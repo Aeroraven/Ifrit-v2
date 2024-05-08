@@ -19,7 +19,7 @@ int main() {
 	}
 
 	GLFWWindowProvider windowProvider;
-	windowProvider.setup(800, 600);
+	windowProvider.setup(1920, 1080);
 
 	OpenGLBackend backend;
 	backend.setViewport(0,0,windowProvider.getWidth(), windowProvider.getHeight());

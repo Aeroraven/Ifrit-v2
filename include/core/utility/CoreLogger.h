@@ -48,4 +48,6 @@ namespace Ifrit::Core::Utility {
 #define ifritLog4(...) Ifrit::Core::Utility::CoreLogger::log(3, __FUNCTION__, __VA_ARGS__)
 #define ifritLog5(...) Ifrit::Core::Utility::CoreLogger::log(4, __FUNCTION__, __VA_ARGS__)
 #define ifritAssert(condition, ...) Ifrit::Core::Utility::CoreLogger::assert(condition, __FUNCTION__, __VA_ARGS__)
+#define ifritError(...) Ifrit::Core::Utility::CoreLogger::log(3, __FUNCTION__, __VA_ARGS__);\
+	throw std::runtime_error("Error occurred")
 }

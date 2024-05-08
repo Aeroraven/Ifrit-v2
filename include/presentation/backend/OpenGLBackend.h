@@ -38,7 +38,7 @@ namespace Ifrit::Presentation::Backend {
 	public:
 		OpenGLBackend();
 		void draw();
-		void updateTexture(Ifrit::Core::Data::ImageU8 image);
+		void updateTexture(const Ifrit::Core::Data::ImageU8& image);
 		void setViewport(int32_t x, int32_t y, int32_t width, int32_t height);
 	};
 }

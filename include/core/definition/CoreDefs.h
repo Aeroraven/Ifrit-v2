@@ -26,6 +26,8 @@
 #include <typeinfo>
 #include <sstream>
 #include <deque>
+#include <mutex>
+#include <thread>
 
 #ifdef _HAS_CXX23
 	#define IFRIT_CXX23_ENABLED 1
@@ -45,3 +47,6 @@
 		static_assert(false, "IFRIT_SHADER_PATH is not defined");
 	#endif
 #endif
+
+
+#define IFRIT_VERBOSE_SAFETY_CHECK

@@ -75,7 +75,7 @@ namespace Ifrit::Presentation::Backend {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	}
-	void OpenGLBackend::updateTexture(Ifrit::Core::Data::ImageU8 image) {
+	void OpenGLBackend::updateTexture(const Ifrit::Core::Data::ImageU8& image) {
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.getWidth(), image.getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, image.getData());
 		glGenerateMipmap(GL_TEXTURE_2D);

@@ -32,7 +32,7 @@ namespace Ifrit::Core::Data {
 			return data[y * width * channel + x * channel + c];
 		}
 
-		T* getData() {
+		const T* getData() const {
 			return data.data();
 		}
 
