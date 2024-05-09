@@ -32,3 +32,4 @@ struct Rect2D {
 
 #define rect2Df Rect2D<float>
 #define rect2Di Rect2D<int>
+

@@ -1,3 +1,4 @@
+#pragma once
 #include "../definition/CoreDefs.h"
 
 namespace Ifrit::Core::Utility {

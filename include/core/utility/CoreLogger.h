@@ -2,9 +2,16 @@
 #include "./core/definition/CoreDefs.h"
 namespace Ifrit::Core::Utility {
 	class CoreLogger {
+	private:
+		
 	public:
+		static std::mutex& getMutex() {
+			static std::mutex logMutex;
+			return logMutex;
+		}
 		template<typename... Args>
 		static void log(int32_t level, const char* caller, Args... args){
+			getMutex().lock();
 			std::string logLevel;
 			switch (level) {
 			case 0:
@@ -29,8 +36,12 @@ namespace Ifrit::Core::Utility {
 			std::time_t t = std::time(0);
 			std::tm* now = std::localtime(&t);
 			std::cout << "[" << logLevel << "][" << now->tm_year + 1900 << "-" << now->tm_mon + 1 << "-" << now->tm_mday << " " << now->tm_hour << ":" << now->tm_min << ":" << now->tm_sec << "][" << caller << "]: ";
-			((std::cout << args), ...);
-			std::cout << std::endl;
+			((std::cout << args <<" "), ...);
+			std::cout << "\n"<<std::endl;
+
+			//flush
+			std::cout.flush();
+			getMutex().unlock();
 		}
 
 		template<typename... Args>
@@ -50,4 +61,5 @@ namespace Ifrit::Core::Utility {
 #define ifritAssert(condition, ...) Ifrit::Core::Utility::CoreLogger::assert(condition, __FUNCTION__, __VA_ARGS__)
 #define ifritError(...) Ifrit::Core::Utility::CoreLogger::log(3, __FUNCTION__, __VA_ARGS__);\
 	throw std::runtime_error("Error occurred")
+
 }

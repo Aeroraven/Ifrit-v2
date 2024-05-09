@@ -11,5 +11,13 @@ namespace Ifrit::Engine {
 			offset += layout[i].size;
 		}
 	}
+
+	void VertexBuffer::setVertexCount(const int vertexCount){
+		this->vertexCount = vertexCount;
+	}
+
+	int VertexBuffer::getVertexCount() const{
+		return vertexCount;
+	}
 	
 }

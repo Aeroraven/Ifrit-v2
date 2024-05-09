@@ -1,45 +1,56 @@
 #pragma once
 #include "core/definition/CoreExports.h"
-#include "core/data/Image.h"
-#include "engine/base/FrameBuffer.h"
-#include "engine/base/Renderer.h"
-#include "engine/base/VertexBuffer.h"
-#include "engine/base/VertexShader.h"
-#include "engine/base/VertexShaderResult.h"
+#include "engine/tileraster/TileRasterContext.h"
 
 namespace Ifrit::Engine::TileRaster {
 	using namespace Ifrit::Engine;
-	class TileRasterRenderer : public Renderer {
+
+	enum class TileRasterStage {
+		CREATED,
+		VERTEX_SHADING,
+		VERTEX_SHADING_SYNC,
+		GEOMETRY_PROCESSING,
+		GEOMETRY_PROCESSING_SYNC,
+		RASTERIZATION,
+		RASTERIZATION_SYNC,
+		FRAGMENT_SHADING,
+		FRAGMENT_SHADING_SYNC,
+		TERMINATED
+	};
+
+	enum class TileRasterLevel {
+		TILE,
+		BLOCK,
+		PIXEL
+	};
+
+	class TileRasterWorker;
+
+	class TileRasterRenderer : public Renderer, public std::enable_shared_from_this<TileRasterRenderer> {
+
 	private:
-		struct TileBinProposal {
-			int primitiveId;
-			rect2Df bbox;
-			bool allAccept;
-		};
-	private:
-		FrameBuffer* frameBuffer;
-		const VertexBuffer* vertexBuffer;
-		const std::vector<int>* indexBuffer;
-		VertexShader* vertexShader;
-		VertexShaderResult* vertexShaderResult;
-		std::vector<std::vector<TileBinProposal>> rasterizerQueue;
-
-		int numThreads = 8;
-		int vertexStride = 3;
-		int tileBlocksX = 16;
-
-		
-
+		bool shaderBindingDirtyFlag = true;
+		bool varyingBufferDirtyFlag = true;
+		std::shared_ptr<TileRasterContext> context;
+		std::vector<std::unique_ptr<TileRasterWorker>> workers;
+		std::mutex lock;
 	public:
-
+		TileRasterRenderer();
 		void bindFrameBuffer(FrameBuffer& frameBuffer);
 		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		void bindIndexBuffer(const std::vector<int>& indexBuffer);
 		void bindVertexShader(VertexShader& vertexShader);
+		void intializeRenderContext();
+
+		void createWorkers();
+		void resetWorkers();
+		void statusTransitionBarrier(TileRasterStage waitOn, TileRasterStage proceedTo);
+		void waitOnWorkers(TileRasterStage waitOn);
 
 		void render();
-		bool triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox);
-		bool triangleCulling(float4 v1, float4 v2, float4 v3);
-		void executeBinner(const int threadId, const int primitiveId, float4 v1, float4 v2, float4 v3, rect2Df bbox);
+		void clear();
+		void init();
+
+
 	};
 }

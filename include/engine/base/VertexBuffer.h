@@ -9,14 +9,36 @@ namespace Ifrit::Engine {
 		std::vector<uint8_t> buffer;
 		std::vector<BufferLayout> layout;
 		std::vector<int> offsets;
+		int vertexCount;
 	public:
 		void setLayout(const std::vector<BufferLayout>& layout);
 
+		void allocateBuffer(const size_t numVertices) { 
+			int elementSize = 0;
+			for (int i = 0; i < layout.size(); i++) {
+				elementSize += layout[i].size;
+			}
+			buffer.resize(numVertices * elementSize);
+			this->vertexCount = numVertices;
+		}
+
 		template<class T>
-		inline void getValue(const int index, const int attribute) {
+		inline T getValue(const int index, const int attribute) const{
+			size_t dOffset = offsets[attribute] + index * layout[attribute].size;
+			const char* data = reinterpret_cast<const char*>(&buffer[dOffset]);
+			return *reinterpret_cast<const T*>(data);
+		}
+
+		template<class T>
+		inline T setValue(const int index, const int attribute, const T value) {
 			size_t dOffset = offsets[attribute] + index * layout[attribute].size;
 			char* data = reinterpret_cast<char*>(&buffer[dOffset]);
-			return *reinterpret_cast<T*>(data);
+			*reinterpret_cast<T*>(data) = value;
+			return value;
 		}
+
+		void setVertexCount(const int vertexCount);
+		int getVertexCount() const;
+
 	};
 }

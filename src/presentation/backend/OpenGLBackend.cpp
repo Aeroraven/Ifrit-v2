@@ -77,7 +77,7 @@ namespace Ifrit::Presentation::Backend {
 	}
 	void OpenGLBackend::updateTexture(const Ifrit::Core::Data::ImageU8& image) {
 		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.getWidth(), image.getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, image.getData());
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, image.getData());
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 	void OpenGLBackend::setViewport(int32_t x, int32_t y, int32_t width, int32_t height) {

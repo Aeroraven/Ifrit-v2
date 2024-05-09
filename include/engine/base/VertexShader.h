@@ -1,14 +1,21 @@
 #pragma once
 #include "engine/base/VertexBuffer.h"
 #include "engine/base/VertexShaderResult.h"
+#include "core/definition/CoreExports.h"
+#include "engine/base/TypeDescriptor.h"
+
 namespace Ifrit::Engine {
 	class VertexShader{
-	private:
-		VertexBuffer* vertexBuffer;
+	protected:
+		const VertexBuffer* vertexBuffer;
 		VertexShaderResult* varyingBuffer;
+		std::vector<TypeDescriptor> varyingDescriptors;
 	public:
-		void bindVertexBuffer(VertexBuffer& vertexBuffer);
+		void setVaryingDescriptors(const std::vector<TypeDescriptor>& varyingDescriptors);
+		void applyVaryingDescriptors();
+		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		void bindVaryingBuffer(VertexShaderResult& varyingBuffer);
-		virtual void execute(const int id) = 0;
+		virtual void execute(const int id) {};
+		uint32_t getVaryingCounts() const { return varyingDescriptors.size(); }
 	};
 }

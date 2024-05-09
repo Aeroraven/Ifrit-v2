@@ -22,6 +22,30 @@ namespace Ifrit::Core::Data {
 		Image(const Image& other) : width(other.width), height(other.height), channel(other.channel), data(other.data) {}
 		Image(Image&& other) noexcept : width(other.width), height(other.height), channel(other.channel), data(std::move(other.data)) {}
 
+		void fillArea(size_t x, size_t y, size_t w, size_t h, const T& value) {
+			ifritAssert(x + w <= width && y + h <= height, "Area out of range");
+			for (size_t i = y; i < y + h; i++) {
+				for (size_t j = x; j < x + w; j++) {
+					for (size_t c = 0; c < channel; c++) {
+						data[i * width * channel + j * channel + c] = value;
+					}
+				}
+			}
+		}
+
+		void fillAreaF(float ndcX, float ndcY, float ndcW, float ndcH, const T& value) {
+			size_t x = ndcX * width;
+			size_t y = ndcY * height;
+			size_t w = ndcW * width;
+			size_t h = ndcH * height;
+			fillArea(x, y, w, h, value);
+		}
+
+		void clearImage() {
+			data.clear();
+			data.resize(width * height * channel);
+		}
+
 		T& operator()(size_t x, size_t y, size_t c) {
 			ifritAssert(x < width && y < height && c < channel, "Index out of range");
 			return data[y * width * channel + x * channel + c];
