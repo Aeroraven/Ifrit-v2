@@ -2,14 +2,14 @@
 
 namespace Ifrit::Presentation::Backend {
 	void OpenGLBackend::draw() {
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glDepthFunc(GL_ALWAYS);
+		glClearColor(0.0f, 1.3f, 0.3f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glBindVertexArray(0);
 	}
 	OpenGLBackend::OpenGLBackend() {
 		std::fstream vertexShaderFile(IFRIT_SHADER_PATH"/opengl.backend.vert.glsl", std::ios::in);
@@ -55,15 +55,23 @@ namespace Ifrit::Presentation::Backend {
 		glLinkProgram(shaderProgram);
 		glUseProgram(shaderProgram);
 
+		int linkSuccess;
+		glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linkSuccess);
+		if (!linkSuccess) {
+			glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+			prints("ERROR::SHADER::PROGRAM::LINK_FAILED\n", infoLog);
+		}
+
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
 
 		glGenBuffers(1, &VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+		
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
 		glEnableVertexAttribArray(0);
+
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 
@@ -73,6 +81,9 @@ namespace Ifrit::Presentation::Backend {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		
+
+		
 
 	}
 	void OpenGLBackend::updateTexture(const Ifrit::Core::Data::ImageU8& image) {

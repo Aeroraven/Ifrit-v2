@@ -7,7 +7,7 @@ namespace Ifrit::Presentation::Window {
 		size_t height;
 	public:
 		virtual bool setup(size_t width, size_t height) = 0;
-		size_t getWidth() const;
-		size_t getHeight() const;
+		virtual size_t getWidth() const;
+		virtual size_t getHeight() const;
 	};
 }

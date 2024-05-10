@@ -13,6 +13,9 @@ namespace Ifrit::Engine::TileRaster {
 		this->context->vertexBuffer = &vertexBuffer;
 		varyingBufferDirtyFlag = true;
 	}
+	void TileRasterRenderer::bindFragmentShader(FragmentShader& fragmentShader) {
+		this->context->fragmentShader = &fragmentShader;
+	}
 	void TileRasterRenderer::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		this->context->indexBuffer = &indexBuffer;
 	}
@@ -31,6 +34,7 @@ namespace Ifrit::Engine::TileRaster {
 			context->vertexShader->bindVaryingBuffer(*context->vertexShaderResult);
 		}
 		if (varyingBufferDirtyFlag) {
+			context->vertexShaderResult->allocateVaryings(context->vertexShader->getVaryingCounts());
 			context->vertexShader->applyVaryingDescriptors();
 			context->vertexShaderResult->setVertexCount(context->vertexBuffer->getVertexCount());
 		}
@@ -78,6 +82,20 @@ namespace Ifrit::Engine::TileRaster {
 			if (allOnBarrier) flag = true;
 		}
 	}
+	int TileRasterRenderer::fetchUnresolvedTileRaster() {
+		auto counter = unresolvedTileRaster.fetch_add(1);
+		if (counter >= context->tileBlocksX * context->tileBlocksX) {
+			return -1;
+		}
+		return counter;
+	}
+	int TileRasterRenderer::fetchUnresolvedTileFragmentShading() {
+		auto counter = unresolvedTileFragmentShading.fetch_add(1);
+		if (counter >= context->tileBlocksX * context->tileBlocksX) {
+			return -1;
+		}
+		return counter;
+	}
 	void TileRasterRenderer::resetWorkers() {
 		for (auto& worker : workers) {
 			worker->status.store(TileRasterStage::VERTEX_SHADING);
@@ -86,7 +104,12 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterRenderer::init() {
 		context = std::make_shared<TileRasterContext>();
-		context->rasterizerQueue.resize(context->tileBlocksX * context->tileBlocksX);
+		context->rasterizerQueue.resize(context->numThreads);
+		context->coverQueue.resize(context->numThreads);
+		for (int i = 0; i < context->numThreads; i++) {
+			context->rasterizerQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
+			context->coverQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
+		}
 		createWorkers();
 		for (auto& worker : workers) {
 			worker->status.store(TileRasterStage::CREATED);
@@ -96,10 +119,20 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterRenderer::clear() {
 		std::lock_guard lockGuard(lock);
 		context->frameBuffer->getColorAttachment(0)->clearImage();
+		context->frameBuffer->getDepthAttachment()->clearImage(1);
 	}
 
 	void TileRasterRenderer::render() {
 		std::lock_guard lockGuard(lock);
+		unresolvedTileRaster.store(0,std::memory_order_seq_cst);
+		unresolvedTileFragmentShading.store(0, std::memory_order_seq_cst);
+		for (int i = 0; i < context->numThreads; i++) {
+			context->rasterizerQueue[i].clear();
+			context->rasterizerQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
+			context->coverQueue[i].clear();
+			context->coverQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
+
+		}
 		intializeRenderContext();
 		resetWorkers();
 		statusTransitionBarrier(TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);

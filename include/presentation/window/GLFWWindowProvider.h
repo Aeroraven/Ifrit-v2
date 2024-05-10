@@ -12,6 +12,6 @@ namespace Ifrit::Presentation::Window {
 		int totalFrameTime = 0;
 	public:
 		virtual bool setup(size_t width, size_t height);
-		void loop(std::function<void()> func);
+		void loop(const std::function<void()>& func);
 	};
 }

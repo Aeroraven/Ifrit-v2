@@ -10,6 +10,7 @@ namespace Ifrit::Engine {
 			offsets[i] = offset;
 			offset += layout[i].size;
 		}
+		elementSize = offset;
 	}
 
 	void VertexBuffer::setVertexCount(const int vertexCount){

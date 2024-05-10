@@ -28,6 +28,7 @@
 #include <deque>
 #include <mutex>
 #include <thread>
+#include <any>
 
 #ifdef _HAS_CXX23
 	#define IFRIT_CXX23_ENABLED 1

@@ -18,7 +18,11 @@ namespace Ifrit::Engine::TileRaster {
 		bool rast = false;
 		bool frag = false;
 
-		
+		std::vector<std::any> interpolatedVaryings;
+		std::vector<float4> colorOutput = std::vector<float4>(1);
+
+		const float EPS = 1e-6;
+		const float EPS2 = 1e-4;
 
 	public:
 		TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context);
@@ -33,7 +37,42 @@ namespace Ifrit::Engine::TileRaster {
 		void rasterization();
 		void fragmentProcessing();
 
-
 		void threadStart();
+		void pixelShading(const int primitiveId, const int dx, const int dy);
+		std::any interpolateVaryings(int id,const int indices[3], const float4& barycentric, const float zCorr,const float w[3]);
+
+		inline float edgeFunction(float4 a, float4 b, float4 c) {
+			return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
+		}
+		inline int getTileID(int x, int y) {
+			return y * context->tileBlocksX + x;
+		}
+		inline void getAcceptRejectCoords(float3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3]) {
+			constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
+			for (int i = 0; i < 3; i++) {
+				bool normalRight = edgeCoefs[i].x < 0;
+				bool normalDown = edgeCoefs[i].y < 0;
+				if (normalRight) {
+					if (normalDown) {
+						chosenCoordTR[i] = VRB;
+						chosenCoordTA[i] = VLT;
+					}
+					else {
+						chosenCoordTR[i] = VRT;
+						chosenCoordTA[i] = VLB;
+					}
+				}
+				else {
+					if (normalDown) {
+						chosenCoordTR[i] = VLB;
+						chosenCoordTA[i] = VRT;
+					}
+					else {
+						chosenCoordTR[i] = VLT;
+						chosenCoordTA[i] = VRB;
+					}
+				}
+			}
+		}
 	};
 }

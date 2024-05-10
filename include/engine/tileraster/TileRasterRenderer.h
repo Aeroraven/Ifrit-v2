@@ -18,11 +18,7 @@ namespace Ifrit::Engine::TileRaster {
 		TERMINATED
 	};
 
-	enum class TileRasterLevel {
-		TILE,
-		BLOCK,
-		PIXEL
-	};
+	
 
 	class TileRasterWorker;
 
@@ -34,18 +30,24 @@ namespace Ifrit::Engine::TileRaster {
 		std::shared_ptr<TileRasterContext> context;
 		std::vector<std::unique_ptr<TileRasterWorker>> workers;
 		std::mutex lock;
+		std::atomic<uint32_t> unresolvedTileRaster = 0;
+		std::atomic<uint32_t> unresolvedTileFragmentShading = 0;
 	public:
 		TileRasterRenderer();
 		void bindFrameBuffer(FrameBuffer& frameBuffer);
 		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		void bindIndexBuffer(const std::vector<int>& indexBuffer);
 		void bindVertexShader(VertexShader& vertexShader);
+		void bindFragmentShader(FragmentShader& fragmentShader);
 		void intializeRenderContext();
 
 		void createWorkers();
 		void resetWorkers();
 		void statusTransitionBarrier(TileRasterStage waitOn, TileRasterStage proceedTo);
 		void waitOnWorkers(TileRasterStage waitOn);
+		int fetchUnresolvedTileRaster();
+		int fetchUnresolvedTileFragmentShading();
+
 
 		void render();
 		void clear();

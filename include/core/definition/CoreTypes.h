@@ -33,3 +33,15 @@ struct Rect2D {
 #define rect2Df Rect2D<float>
 #define rect2Di Rect2D<int>
 
+template<class T>
+struct CoreMat4 {
+	T data[4][4];
+	T* operator[](int i) const {
+		return data[i];
+	}
+	T* operator[](int i) {
+		return data[i];
+	}
+};
+
+#define float4x4 CoreMat4<float>

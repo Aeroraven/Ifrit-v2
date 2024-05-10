@@ -17,13 +17,16 @@ namespace Ifrit::Presentation::Window {
 		}
 		glfwMakeContextCurrent(window);
 		ifritAssert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress), "Failed to initialize GLAD");
+
+		this->width = width;
+		this->height = height;
 		return true;
 	}
-	void GLFWWindowProvider::loop(std::function<void()> func) {
+	void GLFWWindowProvider::loop(const std::function<void()>& funcs) {
 		static int frameCount = 0;
 		while (!glfwWindowShouldClose(window)) {
 			auto start = std::chrono::high_resolution_clock::now();
-			func();
+			funcs();
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 			auto end = std::chrono::high_resolution_clock::now();
@@ -37,7 +40,7 @@ namespace Ifrit::Presentation::Window {
 			frameCount %= 100;
 			if (frameCount % 100 == 0) {
 				std::stringstream ss;
-				ss << "Ifrit";
+				ss << "Ifrit-V2";
 				ss << " [FPS: " << 1000.0 / (totalFrameTime / 100.0)<<"]";
 				glfwSetWindowTitle(window, ss.str().c_str());
 			}
