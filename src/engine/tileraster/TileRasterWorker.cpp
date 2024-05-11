@@ -78,23 +78,9 @@ namespace Ifrit::Engine::TileRaster {
 		int tileMaxx = std::min(context->tileBlocksX - 1, (int)(maxx / tileSize));
 		int tileMaxy = std::min(context->tileBlocksX - 1, (int)(maxy / tileSize));
 
-		float3 edgeCoefs[3];
-		edgeCoefs[0].x = v2.y - v1.y;
-		edgeCoefs[0].y = v1.x - v2.x;
-		edgeCoefs[0].z = v2.x * v1.y - v1.x * v2.y;
-		edgeCoefs[1].x = v3.y - v2.y;
-		edgeCoefs[1].y = v2.x - v3.x;
-		edgeCoefs[1].z = v3.x * v2.y - v2.x * v3.y;
-		edgeCoefs[2].x = v1.y - v3.y;
-		edgeCoefs[2].y = v3.x - v1.x;
-		edgeCoefs[2].z = v1.x * v3.y - v3.x * v1.y;
-
-		for (int i = 0; i < 3; i++) {
-			auto norm = std::max(abs(edgeCoefs[i].x), abs(edgeCoefs[i].y));
-			edgeCoefs[i].x /= norm;
-			edgeCoefs[i].y /= norm;
-			edgeCoefs[i].z /= norm;
-		}
+		float3 edgeCoefs[3] = { context->primitiveEdgeCoefs[primitiveId].coef[0],
+	context->primitiveEdgeCoefs[primitiveId].coef[1],
+	context->primitiveEdgeCoefs[primitiveId].coef[2] };
 
 		float3 tileCoords[4];
 
@@ -165,6 +151,8 @@ namespace Ifrit::Engine::TileRaster {
 			pos->x /= pos->w;
 			pos->y /= pos->w;
 			pos->z /= pos->w;
+
+			
 		}
 		status.store(TileRasterStage::VERTEX_SHADING_SYNC);
 	}
@@ -183,6 +171,18 @@ namespace Ifrit::Engine::TileRaster {
 			float4 v2 = posBuffer[id1];
 			float4 v3 = posBuffer[id2];
 
+			const auto prim = j / context->vertexStride;
+			context->primitiveEdgeCoefs[prim].coef[0] = { v2.y - v1.y, v1.x - v2.x, v2.x * v1.y - v1.x * v2.y };
+			context->primitiveEdgeCoefs[prim].coef[1] = { v3.y - v2.y, v2.x - v3.x, v3.x * v2.y - v2.x * v3.y };
+			context->primitiveEdgeCoefs[prim].coef[2] = { v1.y - v3.y, v3.x - v1.x, v1.x * v3.y - v3.x * v1.y };
+
+			for (int i = 0; i < 3; i++) {
+				auto norm = std::max(abs(context->primitiveEdgeCoefs[prim].coef[i].x), abs(context->primitiveEdgeCoefs[prim].coef[i].y));
+				context->primitiveEdgeCoefs[prim].coef[i].x /= norm;
+				context->primitiveEdgeCoefs[prim].coef[i].y /= norm;
+				context->primitiveEdgeCoefs[prim].coef[i].z /= norm;
+			}
+
 			rect2Df bbox;
 			if (!triangleFrustumClip(v1, v2, v3, bbox)) {
 				continue;
@@ -190,8 +190,8 @@ namespace Ifrit::Engine::TileRaster {
 			if (!triangleCulling(v1, v2, v3)) {
 				continue;
 			}
-			executeBinner(j / context->vertexStride, v1, v2, v3, bbox);
-			context->primitiveMinZ[j / context->vertexStride] = std::min(v1.z, std::min(v2.z, v3.z));
+			executeBinner(prim, v1, v2, v3, bbox);
+			context->primitiveMinZ[prim] = std::min(v1.z, std::min(v2.z, v3.z));
 		}
 		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC);
 	}
@@ -223,27 +223,11 @@ namespace Ifrit::Engine::TileRaster {
 					if (context->frontface == TileRasterFrontFace::COUNTER_CLOCKWISE) {
 						std::swap(idx0, idx2);
 					}
-					float4 v1 = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx0]];
-					float4 v2 = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx1]];
-					float4 v3 = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx2]];
 
-					float3 edgeCoefs[3];
-					edgeCoefs[0].x = v2.y - v1.y;
-					edgeCoefs[0].y = v1.x - v2.x;
-					edgeCoefs[0].z = v2.x * v1.y - v1.x * v2.y;
-					edgeCoefs[1].x = v3.y - v2.y;
-					edgeCoefs[1].y = v2.x - v3.x;
-					edgeCoefs[1].z = v3.x * v2.y - v2.x * v3.y;
-					edgeCoefs[2].x = v1.y - v3.y;
-					edgeCoefs[2].y = v3.x - v1.x;
-					edgeCoefs[2].z = v1.x * v3.y - v3.x * v1.y;
-
-					for (int k = 0; k < 3; k++) {
-						auto norm = std::max(abs(edgeCoefs[k].x), abs(edgeCoefs[k].y));
-						edgeCoefs[k].x /= norm;
-						edgeCoefs[k].y /= norm;
-						edgeCoefs[k].z /= norm;
-					}
+					//auto edgeCoefs = context->primitiveEdgeCoefs[proposal.primitiveId].coef;
+					float3 edgeCoefs[3] = { context->primitiveEdgeCoefs[proposal.primitiveId].coef[0],
+						context->primitiveEdgeCoefs[proposal.primitiveId].coef[1],
+						context->primitiveEdgeCoefs[proposal.primitiveId].coef[2] };
 
 					int chosenCoordTR[3];
 					int chosenCoordTA[3];
@@ -774,6 +758,10 @@ namespace Ifrit::Engine::TileRaster {
 		referenceDepth[2] = depthAttachment(dx, dy + 1, 0);
 		referenceDepth[3] = depthAttachment(dx + 1, dy + 1, 0);
 		float maxDepth = std::max(std::max(referenceDepth[0], referenceDepth[1]), std::max(referenceDepth[2], referenceDepth[3]));
+		float curMinDepthPrimitive = context->primitiveMinZ[primitiveId];
+		if (curMinDepthPrimitive > maxDepth) {
+			return;
+		}
 
 		int idx = primitiveId * context->vertexStride;
 
@@ -782,10 +770,7 @@ namespace Ifrit::Engine::TileRaster {
 		pos[0] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx]];
 		pos[1] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 1]];
 		pos[2] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 2]];
-		float curMinDepthPrimitive = std::min(std::min(pos[0].z , pos[1].z), pos[2].z);
-		if (curMinDepthPrimitive > maxDepth) {
-			return;
-		}
+		
 
 		__m128i dx128i = _mm_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1);
 		__m128i dy128i = _mm_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1);
@@ -1001,7 +986,4 @@ namespace Ifrit::Engine::TileRaster {
 			ifritError("Unsupported Varying Type");
 		}
 	}
-
-
-
 }

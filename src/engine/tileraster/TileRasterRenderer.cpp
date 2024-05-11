@@ -137,6 +137,8 @@ namespace Ifrit::Engine::TileRaster {
 			}
 		}
 		context->primitiveMinZ.reserve(context->indexBuffer->size() / context->vertexStride);
+		context->primitiveEdgeCoefs.reserve(context->indexBuffer->size() / context->vertexStride);
+		context->primitiveEdgeCoefs.resize(context->indexBuffer->size() / context->vertexStride);
 
 		intializeRenderContext();
 		resetWorkers();

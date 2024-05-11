@@ -13,6 +13,8 @@ set(IFRIT_ASSET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/asset")
 # fsantize
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:fast /Qpar")
+
 message(STATUS "IFRIT_SHADER_PATH: ${IFRIT_SHADER_PATH}")
 add_definitions(-DIFRIT_SHADER_PATH="${IFRIT_SHADER_PATH}")
 add_definitions(-DIFRIT_ASSET_PATH="${IFRIT_ASSET_PATH}")

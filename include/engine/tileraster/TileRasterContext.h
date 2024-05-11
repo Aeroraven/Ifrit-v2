@@ -30,6 +30,10 @@ namespace Ifrit::Engine::TileRaster {
 		TileRasterLevel level;
 	};
 
+	struct PrimitiveEdgeCoefs {
+		float3 coef[3];
+	};
+
 	class TileRasterContext {
 	public:
 		// Non-owning Bindings
@@ -54,5 +58,6 @@ namespace Ifrit::Engine::TileRaster {
 
 		// Caches
 		std::vector<float> primitiveMinZ;
+		std::vector<PrimitiveEdgeCoefs> primitiveEdgeCoefs;
 	};
 }
