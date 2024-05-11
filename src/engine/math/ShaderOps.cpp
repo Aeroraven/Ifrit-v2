@@ -1,7 +1,7 @@
 #include "engine/math/ShaderOps.h"
 
 namespace Ifrit::Engine::Math::ShaderOps {
-	float4 multiply(float4x4 a, float4 b){
+	float4 multiply(const float4x4 a, const float4 b){
 		float4 result;
 		result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z + a[0][3] * b.w;
 		result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z + a[1][3] * b.w;
@@ -72,7 +72,7 @@ namespace Ifrit::Engine::Math::ShaderOps {
 		result[3][3] = 0;
 		return result;
 	}
-	float4x4 multiply(float4x4 a, float4x4 b){
+	float4x4 multiply(const float4x4 a, const float4x4 b){
 		float4x4 result;
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {

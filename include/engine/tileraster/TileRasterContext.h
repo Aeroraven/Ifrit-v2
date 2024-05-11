@@ -9,10 +9,15 @@
 #include "engine/base/VertexShaderResult.h"
 
 namespace Ifrit::Engine::TileRaster {
+	enum class TileRasterFrontFace {
+		CLOCKWISE,
+		COUNTER_CLOCKWISE
+	};
 	enum class TileRasterLevel {
 		TILE,
 		BLOCK,
-		PIXEL
+		PIXEL,
+		PIXEL_PACK2X2	//SIMD128
 	};
 
 	struct TileBinProposal {
@@ -38,10 +43,11 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<std::vector<std::vector<TileBinProposal>>> coverQueue;
 
 		// Config
-		int numThreads = 6;
+		int numThreads = 10;
 		int vertexStride = 3;
 		int tileBlocksX = 32;
 		int subtileBlocksX = 8;
 
+		TileRasterFrontFace frontface = TileRasterFrontFace::CLOCKWISE;
 	};
 }

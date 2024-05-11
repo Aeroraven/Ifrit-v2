@@ -36,7 +36,7 @@ struct Rect2D {
 template<class T>
 struct CoreMat4 {
 	T data[4][4];
-	T* operator[](int i) const {
+	const T* operator[](int i) const {
 		return data[i];
 	}
 	T* operator[](int i) {

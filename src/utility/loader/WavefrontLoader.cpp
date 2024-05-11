@@ -1,6 +1,32 @@
 #include "utility/loader/WavefrontLoader.h"
-
+#include "engine/math/ShaderOps.h"
 namespace Ifrit::Utility::Loader {
+	std::vector<float3> WavefrontLoader::remapNormals(std::vector<float3> normals, std::vector<uint32_t> indices, int numVertices) {
+		using namespace Ifrit::Engine::Math::ShaderOps;
+
+		std::vector<float3> retNormals;
+		std::vector<int> counters;
+		retNormals.clear();
+		counters.clear();
+		retNormals.resize(numVertices);
+		counters.resize(numVertices);
+		for (int i = 0; i < numVertices; i++) {
+			retNormals[i] = { 0,0,0 };
+			counters[i] = 0;
+		}
+		for (int i = 0; i < indices.size(); i += 3) {
+			auto faceNode = indices[i];
+			auto normalNode = indices[i + 2];
+			retNormals[faceNode].x += normals[normalNode].x;
+			retNormals[faceNode].y += normals[normalNode].y;
+			retNormals[faceNode].z += normals[normalNode].z;
+			counters[faceNode]++;
+		}
+		for (int i = 0; i < numVertices; i++) {
+			retNormals[i] = normalize(retNormals[i]);
+		}
+		return retNormals;
+	}
 	void WavefrontLoader::loadObject(const char* path, std::vector<float3>& vertices,
 		std::vector<float3>& normals, std::vector<float2>& uvs, std::vector<uint32_t>& indices) {
 

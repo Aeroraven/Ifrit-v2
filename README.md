@@ -7,6 +7,11 @@ Successor to following repos:
  - [Iris (TinyRenderer CPP)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris)
  - [Iris (TinyRenderer C#)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/TinyRenderer)
 
+## Features
+
+- **Performance**:
+	- Multithreaded Rasterization
+	- SIMD Vectorization
 ## Dependencies
 - Presentation Dependencies:
 	- OpenGL 3.3

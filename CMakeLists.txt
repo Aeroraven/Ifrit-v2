@@ -16,6 +16,7 @@ set(IFRIT_ASSET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/asset")
 message(STATUS "IFRIT_SHADER_PATH: ${IFRIT_SHADER_PATH}")
 add_definitions(-DIFRIT_SHADER_PATH="${IFRIT_SHADER_PATH}")
 add_definitions(-DIFRIT_ASSET_PATH="${IFRIT_ASSET_PATH}")
+add_definitions(-DIFRIT_FEATURE_SIMD)
 
 set(AT_REQ_GLFW3_BASE "C:/Program Files (x86)/GLFW/")
 set(glfw3_DIR ${AT_REQ_GLFW3_BASE}/lib/cmake/glfw3/)

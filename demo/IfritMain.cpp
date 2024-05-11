@@ -15,25 +15,29 @@ using namespace Ifrit::Engine::TileRaster;
 using namespace Ifrit::Utility::Loader;
 using namespace Ifrit::Engine::Math::ShaderOps;
 
-float4x4 view = (lookAt({ 0,0.75,-1.0}, { 0,0.75,0 }, { 0,1,0 }));
+float4x4 view = (lookAt({ 0,0.75,1.0}, { 0,0.75,0.0 }, { 0,1,0 }));
 float4x4 proj = (perspective(90*3.14159/180, 1920.0 / 1080.0, 0.1, 1000));
 float4x4 mvp = multiply(proj, view);
 
 class DemoVertexShader : public VertexShader {
 public:
-	void execute(const int id) override {
-		auto s = vertexBuffer->getValue<float4>(id, 0);
+	void execute (const std::vector<const void*>& input, float4& outPos, std::vector<std::any>& outVaryings) override{
+		auto s = *reinterpret_cast<const float4*>(input[0]);
 		auto p = multiply(mvp,s);
-		//p.x = -p.x;
-		varyingBuffer->getPositionBuffer()[id] = p;
-		varyingBuffer->getVaryingBuffer<float4>(0)[id] = vertexBuffer->getValue<float4>(id, 1);
+		outPos = p;
+		outVaryings[0] = *reinterpret_cast<const float4*>(input[1]);
 	}
 };
 
 class DemoFragmentShader : public FragmentShader {
 public:
 	void execute(const std::vector<std::any>& varyings, std::vector<float4>& colorOutput) override {
-		float4 result = { 1,1,1,1 };
+		float4 result = std::any_cast<float4>(varyings[0]);
+		result.x = 0.5 * result.x + 0.5;
+		result.y = 0.5 * result.y + 0.5;
+		result.z = 0.5 * result.z + 0.5;
+		result.w = 0.5 * result.w + 0.5;
+
 		result.x *= 255;
 		result.y *= 255;
 		result.z *= 255;
@@ -49,9 +53,10 @@ int main() {
 	std::vector<float3> normal;
 	std::vector<float2> uv;
 	std::vector<uint32_t> index;
+	std::vector<float3> procNormal;
 
 	loader.loadObject(IFRIT_ASSET_PATH"/yomiya.obj",pos,normal,uv,index);
-
+	procNormal = loader.remapNormals(normal, index, pos.size());
 
 	GLFWWindowProvider windowProvider;
 	windowProvider.setup(1920, 1080);
@@ -65,27 +70,16 @@ int main() {
 	FrameBuffer frameBuffer;
 
 	VertexBuffer vertexBuffer;
-	vertexBuffer.setLayout({ {sizeof(float4)},{sizeof(float4)} });
+	vertexBuffer.setLayout({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 	vertexBuffer.allocateBuffer(pos.size());
-
-	
-	vertexBuffer.setValue(0, 0, float4{ -0.5,-0.5,0,1 });
-	vertexBuffer.setValue(1, 0, float4{ 0.5,-1.95,0,1 });
-	vertexBuffer.setValue(2, 0, float4{ 0.5,0.5,0,1 });
-	vertexBuffer.setValue(3, 0, float4{ -0.5,0.5,0,1 });
-
-	vertexBuffer.setValue(0, 1, float4{ 1,0,0,1 });
-	vertexBuffer.setValue(1, 1, float4{ 0,1,0,1 });
-	vertexBuffer.setValue(2, 1, float4{ 0,0,1,1 });
-	vertexBuffer.setValue(3, 1, float4{ 1,1,1,1 });
 
 	for (int i = 0; i < pos.size(); i++) {
 		vertexBuffer.setValue(i, 0, float4(pos[i].x, pos[i].y, pos[i].z, 1));
-		vertexBuffer.setValue(i, 1, float4(1, 0, 0, 1));
+		vertexBuffer.setValue(i, 1, float4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
 	}
 
 
-	std::vector<int> indexBuffer = { 0,1,2,2,3,0 };
+	std::vector<int> indexBuffer;
 
 	indexBuffer.resize(index.size()/3);
 	for (int i = 0; i < index.size(); i+=3) {

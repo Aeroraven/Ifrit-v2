@@ -49,5 +49,9 @@
 	#endif
 #endif
 
-
 #define IFRIT_VERBOSE_SAFETY_CHECK
+
+#ifdef IFRIT_FEATURE_SIMD
+#include <emmintrin.h>
+#define IFRIT_USE_SIMD_128 1
+#endif	

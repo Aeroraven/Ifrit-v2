@@ -39,11 +39,23 @@ namespace Ifrit::Engine::TileRaster {
 
 		void threadStart();
 		void pixelShading(const int primitiveId, const int dx, const int dy);
+
 		std::any interpolateVaryings(int id,const int indices[3], const float4& barycentric, const float zCorr,const float w[3]);
+		void getVertexAttributes(const int id, std::vector<const void*>& out);
+		void storeVaryings(const int id, const std::vector<std::any>& varyings);
+
+		void pixelShadingSIMD128(const int primitiveId, const int dx, const int dy);
 
 		inline float edgeFunction(float4 a, float4 b, float4 c) {
 			return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
 		}
+
+#ifdef IFRIT_USE_SIMD_128
+		inline __m128 edgeFunctionSIMD128(__m128& aX, __m128& aY, __m128& bX, __m128& bY, __m128& cX, __m128& cY) {
+			return _mm_sub_ps(_mm_mul_ps(_mm_sub_ps(cX, aX), _mm_sub_ps(bY, aY)), _mm_mul_ps(_mm_sub_ps(cY, aY), _mm_sub_ps(bX, aX)));
+		}
+#endif
+
 		inline int getTileID(int x, int y) {
 			return y * context->tileBlocksX + x;
 		}
