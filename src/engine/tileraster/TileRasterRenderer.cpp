@@ -136,6 +136,8 @@ namespace Ifrit::Engine::TileRaster {
 				context->coverQueue[i][j].reserve(prevSizeCQ);
 			}
 		}
+		context->primitiveMinZ.reserve(context->indexBuffer->size() / context->vertexStride);
+
 		intializeRenderContext();
 		resetWorkers();
 		statusTransitionBarrier(TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);

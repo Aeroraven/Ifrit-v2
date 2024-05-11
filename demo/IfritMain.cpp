@@ -21,18 +21,18 @@ float4x4 mvp = multiply(proj, view);
 
 class DemoVertexShader : public VertexShader {
 public:
-	void execute (const std::vector<const void*>& input, float4& outPos, std::vector<std::any>& outVaryings) override{
+	void execute(const std::vector<const void*>& input, float4& outPos, std::vector<VaryingStore*>& outVaryings) override{
 		auto s = *reinterpret_cast<const float4*>(input[0]);
 		auto p = multiply(mvp,s);
 		outPos = p;
-		outVaryings[0] = *reinterpret_cast<const float4*>(input[1]);
+		outVaryings[0]->vf4 = *reinterpret_cast<const float4*>(input[1]);
 	}
 };
 
 class DemoFragmentShader : public FragmentShader {
 public:
-	void execute(const std::vector<std::any>& varyings, std::vector<float4>& colorOutput) override {
-		float4 result = std::any_cast<float4>(varyings[0]);
+	void execute(const std::vector<VaryingStore>& varyings, std::vector<float4>& colorOutput) override {
+		float4 result = varyings[0].vf4;
 		result.x = 0.5 * result.x + 0.5;
 		result.y = 0.5 * result.y + 0.5;
 		result.z = 0.5 * result.z + 0.5;

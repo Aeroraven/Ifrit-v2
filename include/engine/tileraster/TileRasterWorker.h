@@ -4,6 +4,9 @@
 #include "engine/tileraster/TileRasterRenderer.h"
 
 namespace Ifrit::Engine::TileRaster {
+	struct VaryingPlaceholder {
+		char p[64];
+	};
 	class TileRasterWorker {
 	public:
 		std::atomic<TileRasterStage> status;
@@ -18,11 +21,15 @@ namespace Ifrit::Engine::TileRaster {
 		bool rast = false;
 		bool frag = false;
 
-		std::vector<std::any> interpolatedVaryings;
+		std::vector<VaryingStore> perVertexVaryings;
+		std::vector<VaryingStore> interpolatedVaryings;
+		std::vector<const void*> interpolatedVaryingsAddr;
+		std::vector<const void*> perVertexVaryingsAddr;
+
 		std::vector<float4> colorOutput = std::vector<float4>(1);
 
-		const float EPS = 1e-6;
-		const float EPS2 = 1e-4;
+		const float EPS = 1e-7;
+		const float EPS2 = 1e-7;
 
 	public:
 		TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context);
@@ -40,9 +47,9 @@ namespace Ifrit::Engine::TileRaster {
 		void threadStart();
 		void pixelShading(const int primitiveId, const int dx, const int dy);
 
-		std::any interpolateVaryings(int id,const int indices[3], const float4& barycentric, const float zCorr,const float w[3]);
+		void interpolateVaryings(int id, const int indices[3], const float barycentric[3], VaryingStore& dest);
 		void getVertexAttributes(const int id, std::vector<const void*>& out);
-		void storeVaryings(const int id, const std::vector<std::any>& varyings);
+		void getVaryingsAddr(const int id,std::vector<VaryingStore*>& out);
 
 		void pixelShadingSIMD128(const int primitiveId, const int dx, const int dy);
 

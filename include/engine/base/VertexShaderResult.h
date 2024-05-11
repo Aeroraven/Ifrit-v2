@@ -1,13 +1,16 @@
 #pragma once
 #include "core/definition/CoreExports.h"
 #include "engine/base/TypeDescriptor.h"
+#include "engine/base/VaryingStore.h"
 
 namespace Ifrit::Engine {
+
+
 
 	class VertexShaderResult {
 	private:
 		std::vector<float4> position;
-		std::vector<std::vector<char>> varyings;
+		std::vector<std::vector<VaryingStore>> varyings;
 		std::vector<TypeDescriptor> varyingDescriptors;
 		uint32_t vertexCount;
 		uint32_t rawCounter = 0;
@@ -15,14 +18,12 @@ namespace Ifrit::Engine {
 	public:
 		VertexShaderResult(uint32_t vertexCount, uint32_t varyingCount);
 		
-		template<class T>
 		void initializeVaryingBuffer(int id) {
-			varyings[id].resize(vertexCount * sizeof(T));
+			varyings[id].resize(vertexCount);
 		}
 
-		template<class T>
-		T* getVaryingBuffer(int id) {
-			return reinterpret_cast<T*>(varyings[id].data());
+		VaryingStore* getVaryingBuffer(int id) {
+			return varyings[id].data();
 		}
 
 		float4* getPositionBuffer();

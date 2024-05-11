@@ -15,7 +15,7 @@ namespace Ifrit::Engine {
 		void applyVaryingDescriptors();
 		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		void bindVaryingBuffer(VertexShaderResult& varyingBuffer);
-		virtual void execute(const std::vector<const void*>& input, float4& outPos, std::vector<std::any>& outVaryings) {};
+		virtual void execute(const std::vector<const void*>& input, float4& outPos, std::vector<VaryingStore*>& outVaryings) {};
 		uint32_t getVaryingCounts() const { return varyingDescriptors.size(); }
 	};
 }

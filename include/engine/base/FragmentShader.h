@@ -1,9 +1,11 @@
 #pragma once
 #include "engine/base/FrameBuffer.h"
+#include "engine/base/VaryingStore.h"
+
 namespace Ifrit::Engine {
 	class FragmentShader {
 	public:
-		virtual void execute(const std::vector<std::any>& varyings, std::vector<float4>& colorOutput) =0;
+		virtual void execute(const std::vector<VaryingStore>& varyings, std::vector<float4>& colorOutput) =0;
 
 	};
 }

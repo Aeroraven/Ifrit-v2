@@ -49,5 +49,8 @@ namespace Ifrit::Engine::TileRaster {
 		int subtileBlocksX = 4;
 
 		TileRasterFrontFace frontface = TileRasterFrontFace::CLOCKWISE;
+
+		// Caches
+		std::vector<float> primitiveMinZ;
 	};
 }

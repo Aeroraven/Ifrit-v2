@@ -152,15 +152,19 @@ namespace Ifrit::Engine::TileRaster {
 		
 	}
 	void TileRasterWorker::vertexProcessing() {
+		perVertexVaryings.resize(context->vertexBuffer->getVertexCount() * context->vertexShader->getVaryingCounts());
+		auto sk = context->vertexShader->getVaryingCounts();
 		status.store(TileRasterStage::VERTEX_SHADING);
-		std::vector<std::any> outVaryings(context->vertexShader->getVaryingCounts());
+		std::vector<VaryingStore*> outVaryings(context->vertexShader->getVaryingCounts());
 		std::vector<const void*> inVertex(context->vertexBuffer->getAttributeCount());
 		for (int j = workerId; j < context->vertexBuffer->getVertexCount(); j += context->numThreads) {
 			auto pos = &context->vertexShaderResult->getPositionBuffer()[j];
+			getVaryingsAddr(j,outVaryings);
 			getVertexAttributes(j,inVertex);
 			context->vertexShader->execute(inVertex, *pos, outVaryings);
-			storeVaryings(j, outVaryings);
-			//pos->x /= pos->w;
+			pos->x /= pos->w;
+			pos->y /= pos->w;
+			pos->z /= pos->w;
 		}
 		status.store(TileRasterStage::VERTEX_SHADING_SYNC);
 	}
@@ -179,16 +183,6 @@ namespace Ifrit::Engine::TileRaster {
 			float4 v2 = posBuffer[id1];
 			float4 v3 = posBuffer[id2];
 
-			v1.x /= v1.w;
-			v1.y /= v1.w;
-			v1.z /= v1.w;
-			v2.x /= v2.w;
-			v2.y /= v2.w;
-			v2.z /= v2.w;
-			v3.x /= v3.w;
-			v3.y /= v3.w;
-			v3.z /= v3.w;
-
 			rect2Df bbox;
 			if (!triangleFrustumClip(v1, v2, v3, bbox)) {
 				continue;
@@ -197,6 +191,7 @@ namespace Ifrit::Engine::TileRaster {
 				continue;
 			}
 			executeBinner(j / context->vertexStride, v1, v2, v3, bbox);
+			context->primitiveMinZ[j / context->vertexStride] = std::min(v1.z, std::min(v2.z, v3.z));
 		}
 		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC);
 	}
@@ -231,16 +226,6 @@ namespace Ifrit::Engine::TileRaster {
 					float4 v1 = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx0]];
 					float4 v2 = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx1]];
 					float4 v3 = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx2]];
-
-					v1.x /= v1.w;
-					v1.y /= v1.w;
-					v1.z /= v1.w;
-					v2.x /= v2.w;
-					v2.y /= v2.w;
-					v2.z /= v2.w;
-					v3.x /= v3.w;
-					v3.y /= v3.w;
-					v3.z /= v3.w;
 
 					float3 edgeCoefs[3];
 					edgeCoefs[0].x = v2.y - v1.y;
@@ -524,7 +509,13 @@ namespace Ifrit::Engine::TileRaster {
 		auto frameBufferWidth = context->frameBuffer->getWidth();
 		auto frameBufferHeight = context->frameBuffer->getHeight();
 		auto rdTiles = 0;
+		interpolatedVaryings.reserve(context->vertexShader->getVaryingCounts());
 		interpolatedVaryings.resize(context->vertexShader->getVaryingCounts());
+		interpolatedVaryingsAddr.reserve(context->vertexShader->getVaryingCounts());
+		interpolatedVaryingsAddr.resize(context->vertexShader->getVaryingCounts());
+		for (int i = 0; i < interpolatedVaryingsAddr.size(); i++) {
+			interpolatedVaryingsAddr[i] = &interpolatedVaryings[i];
+		}
 		while ((curTile = renderer->fetchUnresolvedTileFragmentShading()) != -1) {
 			for (int i = 0; i < context->numThreads; i++) {
 				for (int j = 0; j < context->coverQueue[i][curTile].size(); j++) {
@@ -612,66 +603,26 @@ namespace Ifrit::Engine::TileRaster {
 			}
 		}
 	}
-	void TileRasterWorker::storeVaryings(const int id, const std::vector<std::any>& varyings){
+	void TileRasterWorker::getVaryingsAddr(const int id, std::vector<VaryingStore*>& out) {
 		for (int i = 0; i < context->vertexShader->getVaryingCounts(); i++) {
 			auto desc = context->vertexShaderResult->getVaryingDescriptor(i);
-			if (desc.type == TypeDescriptorEnum::FLOAT4) {
-				auto f4 = std::any_cast<float4>(varyings[i]);
-				context->vertexShaderResult->getVaryingBuffer<float4>(i)[id] = f4;
-			}
-			else if (desc.type == TypeDescriptorEnum::FLOAT3) {
-				auto f3 = std::any_cast<float3>(varyings[i]);
-				context->vertexShaderResult->getVaryingBuffer<float3>(i)[id] = f3;
-			}
-			else if (desc.type == TypeDescriptorEnum::FLOAT2) {
-				auto f2 = std::any_cast<float2>(varyings[i]);
-				context->vertexShaderResult->getVaryingBuffer<float2>(i)[id] = f2;
-			}
-			else if (desc.type == TypeDescriptorEnum::FLOAT1) {
-				auto f = std::any_cast<float>(varyings[i]);
-				context->vertexShaderResult->getVaryingBuffer<float>(i)[id] = f;
-			}
-			else if (desc.type == TypeDescriptorEnum::INT1) {
-				auto f = std::any_cast<int>(varyings[i]);
-				context->vertexShaderResult->getVaryingBuffer<int>(i)[id] = f;
-			}
-			else if (desc.type == TypeDescriptorEnum::INT2) {
-				auto f = std::any_cast<int2>(varyings[i]);
-				context->vertexShaderResult->getVaryingBuffer<int2>(i)[id] = f;	
-			}
-			else if (desc.type == TypeDescriptorEnum::INT3) {
-				auto f = std::any_cast<int3>(varyings[i]);
-				context->vertexShaderResult->getVaryingBuffer<int3>(i)[id] = f;
-			}
-			else if (desc.type == TypeDescriptorEnum::INT4) {
-				auto f = std::any_cast<int4>(varyings[i]);
-				context->vertexShaderResult->getVaryingBuffer<int4>(i)[id] = f;
-			}
-			else {
-				ifritLog1("Unsupported Type");
-			}
+			out[i] = &context->vertexShaderResult->getVaryingBuffer(i)[id];
 		}
 	}
+
 	void TileRasterWorker::pixelShading(const int primitiveId, const int dx, const int dy) {
 		int idx = primitiveId * context->vertexStride;
 
-
 		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
 		float referenceDepth = depthAttachment(dx, dy, 0);
+		if (context->primitiveMinZ[primitiveId] > referenceDepth) {
+			return;
+		}
 
 		float4 pos[3];
 		pos[0] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx]];
 		pos[1] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 1]];
-		pos[2] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 2]];
-		for (int i = 0; i < 3; i++) {
-			pos[i].x /= pos[i].w;
-			pos[i].y /= pos[i].w;
-			pos[i].z /= pos[i].w;
-		}
-		float minDepth = std::min(std::min(pos[0].z, pos[1].z), pos[2].z);
-		if (minDepth > referenceDepth) {
-			return;
-		}
+		pos[2] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 2]];	
 		
 		float pDx = 2.0f * dx / context->frameBuffer->getWidth() - 1.0f;
 		float pDy = 2.0f * dy / context->frameBuffer->getHeight() - 1.0f;
@@ -700,10 +651,13 @@ namespace Ifrit::Engine::TileRaster {
 		}
 
 		// Interpolate Varyings
-		for (int i = 0; i < context->vertexShader->getVaryingCounts(); i++) {
-			interpolatedVaryings[i] = interpolateVaryings(i, (*context->indexBuffer).data() + idx, { bary[0],bary[1],bary[2] }, zCorr, w);
+		const auto vSize = context->vertexShader->getVaryingCounts();
+		bary[0] = bary[0] / w[0] * zCorr;
+		bary[1] = bary[1] / w[1] * zCorr;	
+		bary[2] = bary[2] / w[2] * zCorr;
+		for (int i = 0; i < vSize; i++) {
+			 interpolateVaryings(i, (*context->indexBuffer).data() + idx, bary, interpolatedVaryings[i]);
 		}
-
 		// Fragment Shader
 		context->fragmentShader->execute(interpolatedVaryings, colorOutput);
 		context->frameBuffer->getColorAttachment(0)->fillPixelRGBA(dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
@@ -724,9 +678,6 @@ namespace Ifrit::Engine::TileRaster {
 		referenceDepth[3] = depthAttachment(dx + 1, dy + 1, 0);
 		float maxDepth = std::max(std::max(referenceDepth[0], referenceDepth[1]), std::max(referenceDepth[2], referenceDepth[3]));
 
-		__m128i dx128i = _mm_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1);
-		__m128i dy128i = _mm_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1);
-
 		int idx = primitiveId * context->vertexStride;
 
 		__m128 posX[3], posY[3], posZ[3], posW[3];
@@ -734,25 +685,20 @@ namespace Ifrit::Engine::TileRaster {
 		pos[0] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx]];
 		pos[1] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 1]];
 		pos[2] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 2]];
-		float curMinDepthPrimitive = std::min(std::min(pos[0].z / pos[0].w, pos[1].z / pos[1].w), pos[2].z / pos[2].w);
+		float curMinDepthPrimitive = std::min(std::min(pos[0].z , pos[1].z), pos[2].z);
 		if (curMinDepthPrimitive > maxDepth) {
 			return;
 		}
 
+		__m128i dx128i = _mm_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1);
+		__m128i dy128i = _mm_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1);
+		float w[3] = { pos[0].w,pos[1].w,pos[2].w };
 		for (int i = 0; i < 3; i++) {
 			posX[i] = _mm_set1_ps(pos[i].x);
 			posY[i] = _mm_set1_ps(pos[i].y);
 			posZ[i] = _mm_set1_ps(pos[i].z);
 			posW[i] = _mm_set1_ps(pos[i].w);
 		}
-	
-		for (int i = 0; i < 3; i++) {
-			posX[i] = _mm_div_ps(posX[i], posW[i]);
-			posY[i] = _mm_div_ps(posY[i], posW[i]);
-			posZ[i] = _mm_div_ps(posZ[i], posW[i]);
-		}
-
-		
 
 		__m128 attachmentWidth = _mm_set1_ps(context->frameBuffer->getWidth());
 		__m128 attachmentHeight = _mm_set1_ps(context->frameBuffer->getHeight());
@@ -786,7 +732,6 @@ namespace Ifrit::Engine::TileRaster {
 		__m128 interpolatedDepth128 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(bary[0], depth[0]), _mm_mul_ps(bary[1], depth[1])), _mm_mul_ps(bary[2], depth[2]));
 		interpolatedDepth128 = _mm_mul_ps(interpolatedDepth128, zCorr);
 
-		
 		float interpolatedDepth[4] = { 0 };
 		float bary32[3][4];
 		float zCorr32[4];
@@ -803,13 +748,13 @@ namespace Ifrit::Engine::TileRaster {
 				continue;
 			}
 			for (int k = 0; k < context->vertexShader->getVaryingCounts(); k++) {
-				float w[3] = { pos[0].w,pos[1].w,pos[2].w };
-				interpolatedVaryings[k] = interpolateVaryings(k, (*context->indexBuffer).data() + idx, { bary32[0][i],bary32[1][i],bary32[2][i] }, zCorr32[i], w);
+				float barytmp[3] = { bary32[0][i]/w[0]* zCorr32[i],bary32[1][i] / w[1]* zCorr32[i],bary32[2][i] / w[2]* zCorr32[i] };
+				interpolateVaryings(k, (*context->indexBuffer).data() + idx, barytmp,interpolatedVaryings[k]);
 			}
 
 			// Fragment Shader
 			context->fragmentShader->execute(interpolatedVaryings, colorOutput);
-			context->frameBuffer->getColorAttachment(0)->fillAreaRGBA(x, y, 1, 1, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
+			context->frameBuffer->getColorAttachment(0)->fillPixelRGBA(x, y, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
 
 			// Depth Write
 			depthAttachment(x, y, 0) = interpolatedDepth[i];
@@ -817,49 +762,41 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 	}
 
-	std::any TileRasterWorker::interpolateVaryings(int id,const int indices[3], const float4& barycentric, const float zCorr, const float w[3]) {
-		auto varying = context->vertexShaderResult->getVaryingBuffer<char*>(id);
+	void TileRasterWorker::interpolateVaryings(int id,const int indices[3], const float barycentric[3], VaryingStore& dest) {
+		auto va = context->vertexShaderResult->getVaryingBuffer(id);
 		auto varyingDescriptor = context->vertexShaderResult->getVaryingDescriptor(id);
-		float bary[3]={barycentric.x,barycentric.y,barycentric.z};
+
 		if (varyingDescriptor.type == TypeDescriptorEnum::FLOAT4) {
-			float4* f4 = reinterpret_cast<float4*>(varying);
-			float4 interpolated = { 0,0,0,0 };
+			dest.vf4 = { 0,0,0,0 };
 			for (int j = 0; j < 3; j++) {
-				interpolated.x += f4[indices[j]].x * bary[j] * zCorr / w[j];
-				interpolated.y += f4[indices[j]].y * bary[j] * zCorr / w[j];
-				interpolated.z += f4[indices[j]].z * bary[j] * zCorr / w[j];
-				interpolated.w += f4[indices[j]].w * bary[j] * zCorr / w[j];
+				dest.vf4.x += va[indices[j]].vf4.x * barycentric[j];
+				dest.vf4.y += va[indices[j]].vf4.y * barycentric[j];
+				dest.vf4.z += va[indices[j]].vf4.z * barycentric[j];
+				dest.vf4.w += va[indices[j]].vf4.w * barycentric[j];
 			}
-			return interpolated;
 		}else if (varyingDescriptor.type == TypeDescriptorEnum::FLOAT3){
-			float3* f3 = reinterpret_cast<float3*>(varying);
-			float3 interpolated3 = { 0,0,0 };
+			dest.vf3 = { 0,0,0 };
 			for (int j = 0; j < 3; j++) {
-				interpolated3.x += f3[indices[j]].x * bary[j] * zCorr / w[j];
-				interpolated3.y += f3[indices[j]].y * bary[j] * zCorr / w[j];
-				interpolated3.z += f3[indices[j]].z * bary[j] * zCorr / w[j];
+				dest.vf3.x += va[indices[j]].vf3.x * barycentric[j];
+				dest.vf3.y += va[indices[j]].vf3.y * barycentric[j];
+				dest.vf3.z += va[indices[j]].vf3.z * barycentric[j];
 			}
-			return interpolated3;
+			
 		} else if (varyingDescriptor.type == TypeDescriptorEnum::FLOAT2){
-			float2* f2 = reinterpret_cast<float2*>(varying);
-			float2 interpolated2 = { 0,0 };
+			dest.vf2 = { 0,0 };
 			for (int j = 0; j < 3; j++) {
-				interpolated2.x += f2[indices[j]].x * bary[j] * zCorr / w[j];
-				interpolated2.y += f2[indices[j]].y * bary[j] * zCorr / w[j];
+				dest.vf2.x += va[indices[j]].vf2.x * barycentric[j];
+				dest.vf2.y += va[indices[j]].vf2.y * barycentric[j];
 			}
-			return interpolated2;
 		}
 		else if (varyingDescriptor.type == TypeDescriptorEnum::FLOAT1) {
-			float* f1 = reinterpret_cast<float*>(varying);
-			float interpolated1 = 0;
+			dest.vf = 0;
 			for (int j = 0; j < 3; j++) {
-				interpolated1 += f1[indices[j]] * bary[j] * zCorr / w[j];
+				dest.vf += va[indices[j]].vf * barycentric[j];
 			}
-			return interpolated1;
 		}
 		else {
 			ifritError("Unsupported Varying Type");
-			return {};
 		}
 	}
 
