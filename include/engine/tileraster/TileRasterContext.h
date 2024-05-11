@@ -17,7 +17,9 @@ namespace Ifrit::Engine::TileRaster {
 		TILE,
 		BLOCK,
 		PIXEL,
-		PIXEL_PACK2X2	//SIMD128
+		PIXEL_PACK2X2,	//SIMD128
+		PIXEL_PACK4X2,	//SIMD256
+		PIXEL_PACK4X4,	//SIMD512
 	};
 
 	struct TileBinProposal {

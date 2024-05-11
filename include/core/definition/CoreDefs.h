@@ -55,3 +55,13 @@
 #include <emmintrin.h>
 #define IFRIT_USE_SIMD_128 1
 #endif	
+
+#ifdef IFRIT_FEATURE_SIMD_AVX512
+#include <immintrin.h>
+#define IFRIT_USE_SIMD_512 1
+#endif
+
+#ifdef IFRIT_FEATURE_SIMD_AVX256
+#include <immintrin.h>
+#define IFRIT_USE_SIMD_256 1
+#endif

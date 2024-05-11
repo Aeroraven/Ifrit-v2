@@ -302,6 +302,21 @@ namespace Ifrit::Engine::TileRaster {
 						edgeCoefs128Z[k] = _mm_set1_ps(edgeCoefs[k].z);
 					}
 
+#ifdef IFRIT_USE_SIMD_256
+					__m256 tileMinX256 = _mm256_set1_ps(tileMinX);
+					__m256 tileMinY256 = _mm256_set1_ps(tileMinY);
+					__m256 tileMaxX256 = _mm256_set1_ps(tileMaxX);
+					__m256 tileMaxY256 = _mm256_set1_ps(tileMaxY);
+					__m256 wp256 = _mm256_set1_ps(context->subtileBlocksX * context->tileBlocksX);
+
+					__m256 edgeCoefs256X[3], edgeCoefs256Y[3], edgeCoefs256Z[3];
+					for (int k = 0; k < 3; k++) {
+						edgeCoefs256X[k] = _mm256_set1_ps(edgeCoefs[k].x);
+						edgeCoefs256Y[k] = _mm256_set1_ps(edgeCoefs[k].y);
+						edgeCoefs256Z[k] = _mm256_set1_ps(edgeCoefs[k].z);
+					}	
+#endif
+
 					TileBinProposal npropPixel;
 					npropPixel.allAccept = true;
 					npropPixel.level = TileRasterLevel::PIXEL;
@@ -309,6 +324,10 @@ namespace Ifrit::Engine::TileRaster {
 					TileBinProposal  npropPixel128;
 					npropPixel128.allAccept = true;
 					npropPixel128.level = TileRasterLevel::PIXEL_PACK2X2;
+
+					TileBinProposal  npropPixel256;
+					npropPixel256.allAccept = true;
+					npropPixel256.level = TileRasterLevel::PIXEL_PACK4X2;
 
 					for (int x = leftBlock; x <= rightBlock; x += 2) {
 						for (int y = topBlock; y <= bottomBlock; y += 2) {
@@ -382,6 +401,63 @@ namespace Ifrit::Engine::TileRaster {
 									int subTileMaxX = (tileIdX * context->subtileBlocksX + (x + i % 2) + 1) * frameBufferWidth / wp;
 									int subTileMaxY = (tileIdY * context->subtileBlocksX + (y + i / 2) + 1) * frameBufferHeight / wp;
 
+#ifdef IFRIT_USE_SIMD_256
+									for (int dx = subTileMinX; dx <= subTileMaxX; dx += 4) {
+										for (int dy = subTileMinY; dy <= subTileMaxY; dy += 2) {
+											__m256i dx256 = _mm256_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
+											__m256i dy256 = _mm256_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
+
+											__m256 ndcX128 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(_mm256_cvtepi32_ps(dx256), _mm256_set1_ps(frameBufferWidth))), _mm256_set1_ps(1.0f));
+											__m256 ndcY128 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(_mm256_cvtepi32_ps(dy256), _mm256_set1_ps(frameBufferHeight))), _mm256_set1_ps(1.0f));
+											__m256i accept256 = _mm256_setzero_si256();
+											__m256 criteria256[3];
+
+											for (int k = 0; k < 3; k++) {
+												criteria256[k] = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(edgeCoefs256X[k], ndcX128), _mm256_mul_ps(edgeCoefs256Y[k], ndcY128)), edgeCoefs256Z[k]);
+												auto acceptMask = _mm256_castps_si256(_mm256_cmp_ps(criteria256[k], _mm256_set1_ps(EPS), _CMP_LT_OS));
+												acceptMask = _mm256_sub_epi32(_mm256_set1_epi32(0), acceptMask);
+												accept256 = _mm256_add_epi32(accept256, acceptMask);
+											}
+											if (_mm256_testc_si256(_mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(3)), _mm256_set1_epi32(-1))) {
+												// If All Accept
+												npropPixel256.bbox = proposal.bbox;
+												npropPixel256.primitiveId = proposal.primitiveId;
+												npropPixel256.tile = { dx,dy };
+												context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel256);
+											}
+											else {
+												// Pack By 2
+												__m128i accept128[2];
+												_mm256_storeu_si256((__m256i*)accept128, accept256);
+												for (int di = 0; di < 2; di++) {
+													auto pv = dx + 2 * (di % 2);
+													if (pv <= subTileMaxX &&
+														_mm_movemask_epi8(_mm_cmpeq_epi32(accept128[di], _mm_set1_epi32(3))) == 0xFFFF) {
+														npropPixel128.bbox = proposal.bbox;
+														npropPixel128.primitiveId = proposal.primitiveId;
+														npropPixel128.tile = { dx + 2 * (di % 2), dy  };
+														context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel128);
+													}
+													else {
+														int accept[4];
+														_mm_storeu_si128((__m128i*)accept, accept128[di]);
+														
+														for (int ddi = 0; ddi < 4; ddi++) {
+															auto pvx = dx + ddi % 2 + 2 * (di % 2);
+															if (pvx <= subTileMaxX && accept[ddi] == 3) {
+																npropPixel.bbox = proposal.bbox;
+																npropPixel.primitiveId = proposal.primitiveId;
+																npropPixel.tile = { dx + ddi % 2 + 2 * (di % 2), dy + ddi / 2};
+																context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel);
+															}
+														}
+													}
+												}
+											}
+
+										}
+									}
+#else
 									for (int dx = subTileMinX; dx <= subTileMaxX; dx+=2) {
 										for (int dy = subTileMinY; dy <= subTileMaxY; dy+=2) {
 											__m128 dx128 = _mm_setr_ps(dx + 0, dx + 1, dx + 0, dx + 1);
@@ -418,6 +494,7 @@ namespace Ifrit::Engine::TileRaster {
 											}
 										}
 									}
+#endif
 								}
 							}
 						}
@@ -504,6 +581,7 @@ namespace Ifrit::Engine::TileRaster {
 		status.store(TileRasterStage::RASTERIZATION_SYNC);
 	}
 
+
 	void TileRasterWorker::fragmentProcessing(){
 		auto curTile = 0;
 		auto frameBufferWidth = context->frameBuffer->getWidth();
@@ -522,6 +600,25 @@ namespace Ifrit::Engine::TileRaster {
 					auto& proposal = context->coverQueue[i][curTile][j];
 					if (proposal.level == TileRasterLevel::PIXEL) {
 						pixelShading(proposal.primitiveId, proposal.tile.x, proposal.tile.y);
+					}
+					else if (proposal.level == TileRasterLevel::PIXEL_PACK4X2) {
+#ifdef IFRIT_USE_SIMD_128
+#ifdef IFRIT_USE_SIMD_256
+						pixelShadingSIMD256(proposal.primitiveId, proposal.tile.x, proposal.tile.y);
+#else
+						for (int dx = proposal.tile.x; dx <= proposal.tile.x + 3; dx+=2) {
+							for (int dy = proposal.tile.y; dy <= proposal.tile.y + 1; dy++) {
+								pixelShadingSIMD128(proposal.primitiveId, dx, dy);
+							}
+						}
+#endif
+#else
+						for (int dx = proposal.tile.x; dx <= proposal.tile.x + 3; dx++) {
+							for (int dy = proposal.tile.y; dy <= proposal.tile.y + 3; dy++) {
+								pixelShading(proposal.primitiveId, dx, dy);
+							}
+						}
+#endif
 					}
 					else if (proposal.level == TileRasterLevel::PIXEL_PACK2X2) {
 #ifdef IFRIT_USE_SIMD_128
@@ -750,6 +847,111 @@ namespace Ifrit::Engine::TileRaster {
 			for (int k = 0; k < context->vertexShader->getVaryingCounts(); k++) {
 				float barytmp[3] = { bary32[0][i]/w[0]* zCorr32[i],bary32[1][i] / w[1]* zCorr32[i],bary32[2][i] / w[2]* zCorr32[i] };
 				interpolateVaryings(k, (*context->indexBuffer).data() + idx, barytmp,interpolatedVaryings[k]);
+			}
+
+			// Fragment Shader
+			context->fragmentShader->execute(interpolatedVaryings, colorOutput);
+			context->frameBuffer->getColorAttachment(0)->fillPixelRGBA(x, y, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
+
+			// Depth Write
+			depthAttachment(x, y, 0) = interpolatedDepth[i];
+		}
+#endif
+	}
+
+
+	void TileRasterWorker::pixelShadingSIMD256(const int primitiveId, const int dx, const int dy) {
+#ifndef IFRIT_USE_SIMD_256
+		ifritError("SIMD 256 (AVX2) not enabled");
+#else
+		float referenceDepth[8];
+		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
+		referenceDepth[0] = depthAttachment(dx, dy, 0);
+		referenceDepth[1] = depthAttachment(dx + 1, dy, 0);
+		referenceDepth[2] = depthAttachment(dx, dy + 1, 0);
+		referenceDepth[3] = depthAttachment(dx + 1, dy + 1, 0);
+		referenceDepth[4] = depthAttachment(dx + 2, dy, 0);
+		referenceDepth[5] = depthAttachment(dx + 3, dy, 0);
+		referenceDepth[6] = depthAttachment(dx + 2, dy + 1, 0);
+		referenceDepth[7] = depthAttachment(dx + 3, dy + 1, 0);
+
+		float maxDepth = 0;
+		for (int i = 0; i < 8; i++) {
+			maxDepth = std::max(maxDepth, referenceDepth[i]);
+		}
+
+		int idx = primitiveId * context->vertexStride;
+
+		__m256 posX[3], posY[3], posZ[3], posW[3];
+		float4 pos[3];
+		pos[0] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx]];
+		pos[1] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 1]];
+		pos[2] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 2]];
+		float curMinDepthPrimitive = std::min(std::min(pos[0].z, pos[1].z), pos[2].z);
+		if (curMinDepthPrimitive > maxDepth) {
+			return;
+		}
+
+		__m256i dx256i = _mm256_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
+		__m256i dy256i = _mm256_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
+		float w[3] = { pos[0].w,pos[1].w,pos[2].w };
+		for (int i = 0; i < 3; i++) {
+			posX[i] = _mm256_set1_ps(pos[i].x);
+			posY[i] = _mm256_set1_ps(pos[i].y);
+			posZ[i] = _mm256_set1_ps(pos[i].z);
+			posW[i] = _mm256_set1_ps(pos[i].w);
+		}
+
+		__m256 attachmentWidth = _mm256_set1_ps(context->frameBuffer->getWidth());
+		__m256 attachmentHeight = _mm256_set1_ps(context->frameBuffer->getHeight());
+
+		__m256i dpDx = _mm256_add_epi32(dx256i, dx256i);
+		__m256i dpDy = _mm256_add_epi32(dy256i, dy256i);
+		__m256 pDx = _mm256_sub_ps(_mm256_div_ps(_mm256_cvtepi32_ps(dpDx), attachmentWidth), _mm256_set1_ps(1.0f));
+		__m256 pDy = _mm256_sub_ps(_mm256_div_ps(_mm256_cvtepi32_ps(dpDy), attachmentHeight), _mm256_set1_ps(1.0f));
+
+		// Edge Function = (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x)
+		__m256 bary[3];
+		__m256 area = edgeFunctionSIMD256(posX[0], posY[0], posX[1], posY[1], posX[2], posY[2]);
+		bary[0] = edgeFunctionSIMD256(posX[1], posY[1], posX[2], posY[2], pDx, pDy);
+		bary[1] = edgeFunctionSIMD256(posX[2], posY[2], posX[0], posY[0], pDx, pDy);
+		bary[2] = edgeFunctionSIMD256(posX[0], posY[0], posX[1], posY[1], pDx, pDy);
+		bary[0] = _mm256_div_ps(bary[0], area);
+		bary[1] = _mm256_div_ps(bary[1], area);
+		bary[2] = _mm256_div_ps(bary[2], area);
+
+		__m256 baryDivW[3];
+		for (int i = 0; i < 3; i++) {
+			baryDivW[i] = _mm256_div_ps(bary[i], posW[i]);
+		}
+		__m256 baryDivWSum = _mm256_add_ps(_mm256_add_ps(baryDivW[0], baryDivW[1]), baryDivW[2]);
+		__m256 zCorr = _mm256_div_ps(_mm256_set1_ps(1.0f), baryDivWSum);
+
+		__m256 depth[3];
+		for (int i = 0; i < 3; i++) {
+			depth[i] = _mm256_div_ps(posZ[i], posW[i]);
+		}
+		__m256 interpolatedDepth256 = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(bary[0], depth[0]), _mm256_mul_ps(bary[1], depth[1])), _mm256_mul_ps(bary[2], depth[2]));
+		interpolatedDepth256 = _mm256_mul_ps(interpolatedDepth256, zCorr);
+
+		float interpolatedDepth[8] = { 0 };
+		float bary32[3][8];
+		float zCorr32[8];
+		_mm256_storeu_ps(interpolatedDepth, interpolatedDepth256);
+		_mm256_storeu_ps(zCorr32, zCorr);
+		for (int i = 0; i < 3; i++) {
+			_mm256_storeu_ps(bary32[i], bary[i]);
+		}
+		for (int i = 0; i < 8; i++) {
+			//Depth Test
+			int x = dx + (i % 4) % 2 + 2 * (i / 4);
+			int y = dy + (i % 4) / 2;
+			if (interpolatedDepth[i] > depthAttachment(x, y, 0)) {
+				continue;
+			}
+			for (int k = 0; k < context->vertexShader->getVaryingCounts(); k++) {
+				float barytmp[3] = { bary32[0][i] / w[0] * zCorr32[i],bary32[1][i] / w[1] * zCorr32[i],bary32[2][i] / w[2] * zCorr32[i] };
+				interpolateVaryings(k, (*context->indexBuffer).data() + idx, barytmp, interpolatedVaryings[k]);
 			}
 
 			// Fragment Shader

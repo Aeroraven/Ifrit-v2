@@ -52,6 +52,7 @@ namespace Ifrit::Engine::TileRaster {
 		void getVaryingsAddr(const int id,std::vector<VaryingStore*>& out);
 
 		void pixelShadingSIMD128(const int primitiveId, const int dx, const int dy);
+		void pixelShadingSIMD256(const int primitiveId, const int dx, const int dy);
 
 		inline float edgeFunction(float4 a, float4 b, float4 c) {
 			return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
@@ -62,7 +63,11 @@ namespace Ifrit::Engine::TileRaster {
 			return _mm_sub_ps(_mm_mul_ps(_mm_sub_ps(cX, aX), _mm_sub_ps(bY, aY)), _mm_mul_ps(_mm_sub_ps(cY, aY), _mm_sub_ps(bX, aX)));
 		}
 #endif
-
+#ifdef IFRIT_USE_SIMD_256
+		inline __m256 edgeFunctionSIMD256(__m256& aX, __m256& aY, __m256& bX, __m256& bY, __m256& cX, __m256& cY) {
+			return _mm256_sub_ps(_mm256_mul_ps(_mm256_sub_ps(cX, aX), _mm256_sub_ps(bY, aY)), _mm256_mul_ps(_mm256_sub_ps(cY, aY), _mm256_sub_ps(bX, aX)));
+		}
+#endif
 		inline int getTileID(int x, int y) {
 			return y * context->tileBlocksX + x;
 		}
