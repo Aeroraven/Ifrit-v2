@@ -100,8 +100,8 @@ namespace Ifrit::Engine::TileRaster {
 
 		int chosenCoordTR[3];
 		int chosenCoordTA[3];
-		auto frameBufferWidth = context->frameBuffer->getColorAttachment(0)->getWidth();
-		auto frameBufferHeight = context->frameBuffer->getColorAttachment(0)->getHeight();
+		auto frameBufferWidth = context->frameBuffer->getWidth();
+		auto frameBufferHeight = context->frameBuffer->getHeight();
 		getAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
 		for (int y = tileMiny; y <= tileMaxy; y++) {
@@ -160,6 +160,7 @@ namespace Ifrit::Engine::TileRaster {
 			getVertexAttributes(j,inVertex);
 			context->vertexShader->execute(inVertex, *pos, outVaryings);
 			storeVaryings(j, outVaryings);
+			//pos->x /= pos->w;
 		}
 		status.store(TileRasterStage::VERTEX_SHADING_SYNC);
 	}
@@ -204,8 +205,8 @@ namespace Ifrit::Engine::TileRaster {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
 		auto curTile = 0;
-		auto frameBufferWidth = context->frameBuffer->getColorAttachment(0)->getWidth();
-		auto frameBufferHeight = context->frameBuffer->getColorAttachment(0)->getHeight();
+		auto frameBufferWidth = context->frameBuffer->getWidth();
+		auto frameBufferHeight = context->frameBuffer->getHeight();
 		auto rdTiles = 0;
 		while ((curTile = renderer->fetchUnresolvedTileRaster()) != -1) {
 			rdTiles++;
@@ -363,8 +364,8 @@ namespace Ifrit::Engine::TileRaster {
 									_mm_add_ps(_mm_mul_ps(edgeCoefs128X[k], tileCoordsX128[chosenCoordTA[k]]),
 									_mm_mul_ps(edgeCoefs128Y[k], tileCoordsY128[chosenCoordTA[k]])), edgeCoefs128Z[k]);	
 
-								__m128i criteriaTRMask = _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTR128[k], _mm_set1_ps(-EPS)));
-								__m128i criteriaTAMask = _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTA128[k], _mm_set1_ps(EPS)));
+								__m128i criteriaTRMask = _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTR128[k], _mm_set1_ps(0)));
+								__m128i criteriaTAMask = _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTA128[k], _mm_set1_ps(0)));
 								criteriaTRMask = _mm_sub_epi32(_mm_set1_epi32(0), criteriaTRMask);
 								criteriaTAMask = _mm_sub_epi32(_mm_set1_epi32(0), criteriaTAMask);
 								criteriaTR128 = _mm_add_epi32(criteriaTR128, criteriaTRMask);
@@ -520,8 +521,8 @@ namespace Ifrit::Engine::TileRaster {
 
 	void TileRasterWorker::fragmentProcessing(){
 		auto curTile = 0;
-		auto frameBufferWidth = context->frameBuffer->getColorAttachment(0)->getWidth();
-		auto frameBufferHeight = context->frameBuffer->getColorAttachment(0)->getHeight();
+		auto frameBufferWidth = context->frameBuffer->getWidth();
+		auto frameBufferHeight = context->frameBuffer->getHeight();
 		auto rdTiles = 0;
 		interpolatedVaryings.resize(context->vertexShader->getVaryingCounts());
 		while ((curTile = renderer->fetchUnresolvedTileFragmentShading()) != -1) {
@@ -653,6 +654,11 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterWorker::pixelShading(const int primitiveId, const int dx, const int dy) {
 		int idx = primitiveId * context->vertexStride;
+
+
+		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
+		float referenceDepth = depthAttachment(dx, dy, 0);
+
 		float4 pos[3];
 		pos[0] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx]];
 		pos[1] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 1]];
@@ -660,11 +666,15 @@ namespace Ifrit::Engine::TileRaster {
 		for (int i = 0; i < 3; i++) {
 			pos[i].x /= pos[i].w;
 			pos[i].y /= pos[i].w;
-			//pos[i].z /= pos[i].w;
+			pos[i].z /= pos[i].w;
+		}
+		float minDepth = std::min(std::min(pos[0].z, pos[1].z), pos[2].z);
+		if (minDepth > referenceDepth) {
+			return;
 		}
 		
-		float pDx = 2.0f * dx / context->frameBuffer->getColorAttachment(0)->getWidth() - 1.0f;
-		float pDy = 2.0f * dy / context->frameBuffer->getColorAttachment(0)->getHeight() - 1.0f;
+		float pDx = 2.0f * dx / context->frameBuffer->getWidth() - 1.0f;
+		float pDy = 2.0f * dy / context->frameBuffer->getHeight() - 1.0f;
 		float4 p = { pDx,pDy,1.0,1.0 };
 
 		float bary[3], area;
@@ -679,14 +689,13 @@ namespace Ifrit::Engine::TileRaster {
 		// Interpolate Depth
 		float depth[3];
 		for (int i = 0; i < 3; i++) {
-			depth[i] = pos[i].z / (pos[i].w * pos[i].w);
+			depth[i] = pos[i].z / ( pos[i].w);
 		}
 		float interpolatedDepth = bary[0] * depth[0] + bary[1] * depth[1] + bary[2] * depth[2];
 		interpolatedDepth *= zCorr;
 
 		// Depth Test
-		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
-		if (interpolatedDepth > depthAttachment(dx, dy, 0)) {
+		if (interpolatedDepth > referenceDepth) {
 			return;
 		}
 
@@ -697,8 +706,8 @@ namespace Ifrit::Engine::TileRaster {
 
 		// Fragment Shader
 		context->fragmentShader->execute(interpolatedVaryings, colorOutput);
-		context->frameBuffer->getColorAttachment(0)->fillAreaRGBA(dx, dy, 1, 1, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
-		
+		context->frameBuffer->getColorAttachment(0)->fillPixelRGBA(dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
+
 		// Depth Write
 		depthAttachment(dx, dy, 0) = interpolatedDepth;
 	}
@@ -707,6 +716,14 @@ namespace Ifrit::Engine::TileRaster {
 #ifndef IFRIT_USE_SIMD_128
 		ifritError("SIMD 128 not enabled");
 #else
+		float referenceDepth[4];
+		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
+		referenceDepth[0] = depthAttachment(dx, dy, 0);
+		referenceDepth[1] = depthAttachment(dx + 1, dy, 0);
+		referenceDepth[2] = depthAttachment(dx, dy + 1, 0);
+		referenceDepth[3] = depthAttachment(dx + 1, dy + 1, 0);
+		float maxDepth = std::max(std::max(referenceDepth[0], referenceDepth[1]), std::max(referenceDepth[2], referenceDepth[3]));
+
 		__m128i dx128i = _mm_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1);
 		__m128i dy128i = _mm_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1);
 
@@ -717,6 +734,10 @@ namespace Ifrit::Engine::TileRaster {
 		pos[0] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx]];
 		pos[1] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 1]];
 		pos[2] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 2]];
+		float curMinDepthPrimitive = std::min(std::min(pos[0].z / pos[0].w, pos[1].z / pos[1].w), pos[2].z / pos[2].w);
+		if (curMinDepthPrimitive > maxDepth) {
+			return;
+		}
 
 		for (int i = 0; i < 3; i++) {
 			posX[i] = _mm_set1_ps(pos[i].x);
@@ -728,9 +749,13 @@ namespace Ifrit::Engine::TileRaster {
 		for (int i = 0; i < 3; i++) {
 			posX[i] = _mm_div_ps(posX[i], posW[i]);
 			posY[i] = _mm_div_ps(posY[i], posW[i]);
+			posZ[i] = _mm_div_ps(posZ[i], posW[i]);
 		}
-		__m128 attachmentWidth = _mm_set1_ps(context->frameBuffer->getColorAttachment(0)->getWidth());
-		__m128 attachmentHeight = _mm_set1_ps(context->frameBuffer->getColorAttachment(0)->getHeight());
+
+		
+
+		__m128 attachmentWidth = _mm_set1_ps(context->frameBuffer->getWidth());
+		__m128 attachmentHeight = _mm_set1_ps(context->frameBuffer->getHeight());
 
 		__m128i dpDx = _mm_add_epi32(dx128i, dx128i);
 		__m128i dpDy = _mm_add_epi32(dy128i, dy128i);
@@ -756,12 +781,12 @@ namespace Ifrit::Engine::TileRaster {
 
 		__m128 depth[3];
 		for (int i = 0; i < 3; i++) {
-			depth[i] = _mm_div_ps(posZ[i], _mm_mul_ps(posW[i], posW[i]));
+			depth[i] = _mm_div_ps(posZ[i], posW[i]);
 		}
 		__m128 interpolatedDepth128 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(bary[0], depth[0]), _mm_mul_ps(bary[1], depth[1])), _mm_mul_ps(bary[2], depth[2]));
 		interpolatedDepth128 = _mm_mul_ps(interpolatedDepth128, zCorr);
 
-		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
+		
 		float interpolatedDepth[4] = { 0 };
 		float bary32[3][4];
 		float zCorr32[4];

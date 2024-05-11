@@ -23,7 +23,7 @@ namespace Ifrit::Core::Data {
 		Image(Image&& other) noexcept : width(other.width), height(other.height), channel(other.channel), data(std::move(other.data)) {}
 
 		void fillAreaRGBA(size_t x, size_t y, size_t w, size_t h, const T& r, const T& g, const T& b, const T& a) {
-			ifritAssert(x + w <= width && y + h <= height, "Area out of range");
+			//ifritAssert(x + w <= width && y + h <= height, "Area out of range");
 			for (size_t i = y; i < y + h; i++) {
 				for (size_t j = x; j < x + w; j++) {
 					data[i * width * channel + j * channel + 0] = r;
@@ -32,6 +32,14 @@ namespace Ifrit::Core::Data {
 					data[i * width * channel + j * channel + 3] = a;
 				}
 			}
+		}
+
+		inline void fillPixelRGBA(size_t x, size_t y, const T& r, const T& g, const T& b, const T& a) {
+			//ifritAssert(x < width && y < height, "Pixel out of range");
+			data[y * width * channel + x * channel + 0] = r;
+			data[y * width * channel + x * channel + 1] = g;
+			data[y * width * channel + x * channel + 2] = b;
+			data[y * width * channel + x * channel + 3] = a;
 		}
 
 		void fillArea(size_t x, size_t y, size_t w, size_t h, const T& value) {
