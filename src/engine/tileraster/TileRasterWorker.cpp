@@ -415,7 +415,10 @@ namespace Ifrit::Engine::TileRaster {
 												_mm256_storeu_si256((__m256i*)accept128, accept256);
 												for (int di = 0; di < 2; di++) {
 													auto pv = dx + 2 * (di % 2);
-													if (pv <= subTileMaxX &&
+													auto pw = dy;
+													subTileMaxX = std::min(1u * subTileMaxX, frameBufferWidth-1);
+													subTileMaxY = std::min(1u * subTileMaxY, frameBufferHeight-1);
+													if (pv <= subTileMaxX && dy<= subTileMaxY &&
 														_mm_movemask_epi8(_mm_cmpeq_epi32(accept128[di], _mm_set1_epi32(3))) == 0xFFFF) {
 														npropPixel128.bbox = proposal.bbox;
 														npropPixel128.primitiveId = proposal.primitiveId;
@@ -428,10 +431,14 @@ namespace Ifrit::Engine::TileRaster {
 														
 														for (int ddi = 0; ddi < 4; ddi++) {
 															auto pvx = dx + ddi % 2 + 2 * (di % 2);
-															if (pvx <= subTileMaxX && accept[ddi] == 3) {
+															auto pvy = dy + ddi / 2;
+															if (pvx <= subTileMaxX && pvy <= subTileMaxY && accept[ddi] == 3) {
 																npropPixel.bbox = proposal.bbox;
 																npropPixel.primitiveId = proposal.primitiveId;
 																npropPixel.tile = { dx + ddi % 2 + 2 * (di % 2), dy + ddi / 2};
+																if (dx + ddi % 2 + 2 * (di % 2) == 1600) {
+																	ifritLog1("??");
+																}
 																context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel);
 															}
 														}
@@ -622,6 +629,8 @@ namespace Ifrit::Engine::TileRaster {
 						auto curTileY2 = (curTileY + 1) * frameBufferHeight / context->tileBlocksX;
 						curTileX = curTileX * frameBufferWidth/ context->tileBlocksX;
 						curTileY = curTileY * frameBufferHeight/ context->tileBlocksX;
+						curTileX2 = std::min(curTileX2, frameBufferWidth);
+						curTileY2 = std::min(curTileY2, frameBufferHeight);
 						for (int dx = curTileX; dx < curTileX2; dx++) {
 							for (int dy = curTileY; dy < curTileY2; dy++) {
 								pixelShading(proposal.primitiveId, dx, dy);
@@ -635,6 +644,8 @@ namespace Ifrit::Engine::TileRaster {
 						auto subTilePixelY = (curTileY * context->subtileBlocksX + proposal.tile.y) * frameBufferHeight / context->tileBlocksX / context->subtileBlocksX;
 						auto subTilePixelX2 = (curTileX * context->subtileBlocksX + proposal.tile.x + 1) * frameBufferWidth / context->tileBlocksX / context->subtileBlocksX;
 						auto subTilePixelY2 = (curTileY * context->subtileBlocksX + proposal.tile.y + 1) * frameBufferHeight / context->tileBlocksX / context->subtileBlocksX;
+						subTilePixelX2 = std::min(subTilePixelX2, frameBufferWidth);
+						subTilePixelY2 = std::min(subTilePixelY2, frameBufferHeight);
 						for (int dx = subTilePixelX; dx < subTilePixelX2; dx++) {
 							for (int dy = subTilePixelY; dy < subTilePixelY2; dy++) {
 								pixelShading(proposal.primitiveId, dx, dy);
@@ -751,12 +762,15 @@ namespace Ifrit::Engine::TileRaster {
 #ifndef IFRIT_USE_SIMD_128
 		ifritError("SIMD 128 not enabled");
 #else
+		const auto fbWidth = context->frameBuffer->getWidth();
+		const auto fbHeight = context->frameBuffer->getHeight();
+
 		float referenceDepth[4];
 		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
 		referenceDepth[0] = depthAttachment(dx, dy, 0);
-		referenceDepth[1] = depthAttachment(dx + 1, dy, 0);
-		referenceDepth[2] = depthAttachment(dx, dy + 1, 0);
-		referenceDepth[3] = depthAttachment(dx + 1, dy + 1, 0);
+		referenceDepth[1] = depthAttachment(std::min(dx + 1u,fbWidth-1), dy, 0);
+		referenceDepth[2] = depthAttachment(dx, std::min(dy + 1u,fbHeight - 1), 0);
+		referenceDepth[3] = depthAttachment(std::min(dx + 1u, fbWidth - 1), std::min(dy + 1u, fbHeight - 1), 0);
 		float maxDepth = std::max(std::max(referenceDepth[0], referenceDepth[1]), std::max(referenceDepth[2], referenceDepth[3]));
 		float curMinDepthPrimitive = context->primitiveMinZ[primitiveId];
 		if (curMinDepthPrimitive > maxDepth) {
@@ -822,10 +836,14 @@ namespace Ifrit::Engine::TileRaster {
 		for (int i = 0; i < 3; i++) {
 			_mm_storeu_ps(bary32[i], bary[i]);
 		}
+
 		for (int i = 0; i < 4; i++) {
 			//Depth Test
 			int x = dx + i % 2;
 			int y = dy + i / 2;
+			if (x >= fbWidth || y >= fbHeight) {
+				continue;
+			}
 			if (interpolatedDepth[i] > depthAttachment(x, y, 0)) {
 				continue;
 			}
@@ -849,21 +867,6 @@ namespace Ifrit::Engine::TileRaster {
 #ifndef IFRIT_USE_SIMD_256
 		ifritError("SIMD 256 (AVX2) not enabled");
 #else
-		float referenceDepth[8];
-		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
-		referenceDepth[0] = depthAttachment(dx, dy, 0);
-		referenceDepth[1] = depthAttachment(dx + 1, dy, 0);
-		referenceDepth[2] = depthAttachment(dx, dy + 1, 0);
-		referenceDepth[3] = depthAttachment(dx + 1, dy + 1, 0);
-		referenceDepth[4] = depthAttachment(dx + 2, dy, 0);
-		referenceDepth[5] = depthAttachment(dx + 3, dy, 0);
-		referenceDepth[6] = depthAttachment(dx + 2, dy + 1, 0);
-		referenceDepth[7] = depthAttachment(dx + 3, dy + 1, 0);
-
-		float maxDepth = 0;
-		for (int i = 0; i < 8; i++) {
-			maxDepth = std::max(maxDepth, referenceDepth[i]);
-		}
 
 		int idx = primitiveId * context->vertexStride;
 
@@ -872,10 +875,6 @@ namespace Ifrit::Engine::TileRaster {
 		pos[0] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx]];
 		pos[1] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 1]];
 		pos[2] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 2]];
-		float curMinDepthPrimitive = std::min(std::min(pos[0].z, pos[1].z), pos[2].z);
-		if (curMinDepthPrimitive > maxDepth) {
-			return;
-		}
 
 		__m256i dx256i = _mm256_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
 		__m256i dy256i = _mm256_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
@@ -927,10 +926,16 @@ namespace Ifrit::Engine::TileRaster {
 		for (int i = 0; i < 3; i++) {
 			_mm256_storeu_ps(bary32[i], bary[i]);
 		}
+		const auto fbWidth = context->frameBuffer->getWidth();
+		const auto fbHeight = context->frameBuffer->getHeight();
+		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
 		for (int i = 0; i < 8; i++) {
 			//Depth Test
 			int x = dx + (i % 4) % 2 + 2 * (i / 4);
 			int y = dy + (i % 4) / 2;
+			if(x>= fbWidth || y>= fbHeight){
+				continue;
+			}
 			if (interpolatedDepth[i] > depthAttachment(x, y, 0)) {
 				continue;
 			}

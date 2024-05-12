@@ -15,8 +15,9 @@ using namespace Ifrit::Engine::TileRaster;
 using namespace Ifrit::Utility::Loader;
 using namespace Ifrit::Engine::Math::ShaderOps;
 
-float4x4 view = (lookAt({ 0,0.75,1.0}, { 0,0.75,0.0 }, { 0,1,0 }));
-float4x4 proj = (perspective(90*3.14159/180, 1920.0 / 1080.0, 0.1, 1000));
+//float4x4 view = (lookAt({ 0,0.1,0.25}, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
+float4x4 view = (lookAt({ 0,3000,1500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
+float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 0.1, 4000));
 float4x4 mvp = multiply(proj, view);
 
 class DemoVertexShader : public VertexShader {
@@ -55,7 +56,7 @@ int main() {
 	std::vector<uint32_t> index;
 	std::vector<float3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/yomiya.obj",pos,normal,uv,index);
+	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj",pos,normal,uv,index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 	GLFWWindowProvider windowProvider;

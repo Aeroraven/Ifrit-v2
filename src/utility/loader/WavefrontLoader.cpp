@@ -63,7 +63,13 @@ namespace Ifrit::Utility::Loader {
 					std::string index;
 					for (int j = 0; j < 3; j++) {
 						std::getline(vss, index, '/');
-						indices.push_back(std::stoi(index) - 1);
+						if (index.size() != 0) {
+							indices.push_back(std::stoi(index) - 1);
+						}
+						else {
+							indices.push_back(0);
+						}
+						
 					}
 				}
 			}
