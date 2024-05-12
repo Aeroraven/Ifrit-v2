@@ -28,8 +28,8 @@ namespace Ifrit::Engine::TileRaster {
 
 		std::vector<float4> colorOutput = std::vector<float4>(1);
 
-		const float EPS = 1e-7;
-		const float EPS2 = 1e-7;
+		const float EPS = 1e-6;
+		const float EPS2 = 1e-6;
 
 	public:
 		TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context);
@@ -45,12 +45,12 @@ namespace Ifrit::Engine::TileRaster {
 		void fragmentProcessing();
 
 		void threadStart();
-		void pixelShading(const int primitiveId, const int dx, const int dy);
 
 		void interpolateVaryings(int id, const int indices[3], const float barycentric[3], VaryingStore& dest);
 		void getVertexAttributes(const int id, std::vector<const void*>& out);
 		void getVaryingsAddr(const int id,std::vector<VaryingStore*>& out);
 
+		void pixelShading(const int primitiveId, const int dx, const int dy);
 		void pixelShadingSIMD128(const int primitiveId, const int dx, const int dy);
 		void pixelShadingSIMD256(const int primitiveId, const int dx, const int dy);
 

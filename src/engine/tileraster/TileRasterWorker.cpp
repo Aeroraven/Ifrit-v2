@@ -239,37 +239,10 @@ namespace Ifrit::Engine::TileRaster {
 					bbox.w = bbox.w * 0.5;
 					bbox.h = bbox.h * 0.5;
 
-
-					int leftBlock = bbox.x* (context->tileBlocksX * context->subtileBlocksX);
-					int rightBlock = std::ceil((bbox.x + bbox.w) * (context->tileBlocksX * context->subtileBlocksX));
-					if (leftBlock / context->tileBlocksX == tileIdX) {
-						leftBlock = leftBlock % context->subtileBlocksX;
-					}
-					else {
-						leftBlock = 0;
-					}
-					if (rightBlock / context->tileBlocksX == tileIdX) {
-						rightBlock = rightBlock % context->subtileBlocksX;
-					}
-					else {
-						rightBlock = context->subtileBlocksX;
-					}
-
-					int topBlock = bbox.y * (context->tileBlocksX * context->subtileBlocksX);
-					int bottomBlock = std::ceil((bbox.y + bbox.h) * (context->tileBlocksX * context->subtileBlocksX));
-					if (topBlock / context->tileBlocksX == tileIdX) {
-						topBlock = topBlock % context->subtileBlocksX;
-					}
-					else {
-						topBlock = 0;
-					}
-					if (bottomBlock / context->tileBlocksX == tileIdX) {
-						bottomBlock = bottomBlock % context->subtileBlocksX;
-					}
-					else {
-						bottomBlock = context->subtileBlocksX;
-					}
-
+					int leftBlock = 0;
+					int rightBlock = context->subtileBlocksX - 1;
+					int topBlock = 0;
+					int bottomBlock = context->subtileBlocksX - 1;
 
 #ifdef IFRIT_USE_SIMD_128
 
@@ -366,9 +339,12 @@ namespace Ifrit::Engine::TileRaster {
 							_mm_storeu_si128((__m128i*)criteriaTA, criteriaTA128);
 
 							for (int i = 0; i < 4; i++) {
-								if (criteriaTR[i] != 3) {
+								auto dwX = x + i % 2;
+								auto dwY = y + i / 2;
+								if (criteriaTR[i] != 3 || (dwX > rightBlock || dwY > bottomBlock)) {
 									continue;
 								}
+								
 								if (criteriaTA[i] == 3) {
 									TileBinProposal nprop;
 									nprop.allAccept = true;
@@ -384,6 +360,9 @@ namespace Ifrit::Engine::TileRaster {
 									int subTileMinY = (tileIdY * context->subtileBlocksX + (y + i / 2)) * frameBufferHeight / wp;
 									int subTileMaxX = (tileIdX * context->subtileBlocksX + (x + i % 2) + 1) * frameBufferWidth / wp;
 									int subTileMaxY = (tileIdY * context->subtileBlocksX + (y + i / 2) + 1) * frameBufferHeight / wp;
+									subTileMaxX = std::min(subTileMaxX * 1u, frameBufferWidth - 1);
+									subTileMaxY = std::min(subTileMaxY * 1u, frameBufferHeight - 1);
+
 
 #ifdef IFRIT_USE_SIMD_256
 									for (int dx = subTileMinX; dx <= subTileMaxX; dx += 4) {
@@ -475,7 +454,7 @@ namespace Ifrit::Engine::TileRaster {
 												int accept[4];
 												_mm_storeu_si128((__m128i*)accept, accept128);
 												for (int di = 0; di < 4; di++) {
-													if (accept[di] == 3) {
+													if (accept[di] == 3 && dx + di % 2 < frameBufferWidth && dy + di / 2 < frameBufferHeight) {
 														npropPixel.bbox = proposal.bbox;
 														npropPixel.primitiveId = proposal.primitiveId;
 														npropPixel.tile = { dx + di % 2, dy + di / 2 };
@@ -509,6 +488,8 @@ namespace Ifrit::Engine::TileRaster {
 						int subTilePixelX2 = (tileIdX*context->subtileBlocksX + x+1)* frameBufferWidth / wp;
 						int subTilePixelY2 = (tileIdY*context->subtileBlocksX + y+1)* frameBufferHeight / wp;
 
+						subTilePixelX2 = std::min(subTilePixelX2 * 1u, frameBufferWidth - 1);
+						subTilePixelY2 = std::min(subTilePixelY2 * 1u, frameBufferHeight - 1);
 
 						float3 tileCoords[4];
 						tileCoords[VLT] = { subTileMinX, subTileMinY, 1.0 };
@@ -597,15 +578,15 @@ namespace Ifrit::Engine::TileRaster {
 #ifdef IFRIT_USE_SIMD_256
 						pixelShadingSIMD256(proposal.primitiveId, proposal.tile.x, proposal.tile.y);
 #else
-						for (int dx = proposal.tile.x; dx <= proposal.tile.x + 3; dx+=2) {
-							for (int dy = proposal.tile.y; dy <= proposal.tile.y + 1; dy++) {
+						for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx+=2) {
+							for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
 								pixelShadingSIMD128(proposal.primitiveId, dx, dy);
 							}
 						}
 #endif
 #else
-						for (int dx = proposal.tile.x; dx <= proposal.tile.x + 3; dx++) {
-							for (int dy = proposal.tile.y; dy <= proposal.tile.y + 3; dy++) {
+						for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx++) {
+							for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
 								pixelShading(proposal.primitiveId, dx, dy);
 							}
 						}
@@ -615,8 +596,8 @@ namespace Ifrit::Engine::TileRaster {
 #ifdef IFRIT_USE_SIMD_128
 						pixelShadingSIMD128(proposal.primitiveId, proposal.tile.x, proposal.tile.y);
 #else
-						for (int dx = proposal.tile.x; dx <= proposal.tile.x + 1; dx++) {
-							for (int dy = proposal.tile.y; dy <= proposal.tile.y + 1; dy++) {
+						for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 1u, frameBufferWidth-1); dx++) {
+							for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
 								pixelShading(proposal.primitiveId, dx, dy);
 							}
 						}
