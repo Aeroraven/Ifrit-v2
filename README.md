@@ -19,6 +19,8 @@ Successor to following repos:
 	- Multithreaded Rasterization
 	- SIMD Vectorization
 
+- **Rendering**:
+	- Homogeneous Space Clipping
 
 
 ## Dependencies
@@ -30,3 +32,10 @@ Successor to following repos:
 - Compile Dependencies:
 	- CMake 3.28
 	- MSVC (Visual Studio 2022)
+- Hardware Requirements:
+	- SSE4.1
+	- AVX2
+	- CUDA 11.0 (Planning)
+
+## TODO
+- Suspected?: Performance drop after introducing homogeneous space clip

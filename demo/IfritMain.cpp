@@ -16,7 +16,8 @@ using namespace Ifrit::Utility::Loader;
 using namespace Ifrit::Engine::Math::ShaderOps;
 
 //float4x4 view = (lookAt({ 0,0.1,0.25}, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
-float4x4 view = (lookAt({ 0,3000,1500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
+//float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
+float4x4 view = (lookAt({ 0,0.75,1.50}, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
 float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 0.1, 4000));
 float4x4 mvp = multiply(proj, view);
 
@@ -56,7 +57,7 @@ int main() {
 	std::vector<uint32_t> index;
 	std::vector<float3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj",pos,normal,uv,index);
+	loader.loadObject(IFRIT_ASSET_PATH"/yomiya.obj",pos,normal,uv,index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 	GLFWWindowProvider windowProvider;
@@ -65,13 +66,23 @@ int main() {
 	OpenGLBackend backend;
 	backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 
-	std::shared_ptr<ImageU8> image = std::make_shared<ImageU8>(1600, 900, 4);
-	std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(1600, 900, 1);
+	std::shared_ptr<ImageU8> image = std::make_shared<ImageU8>(1200, 800, 4);
+	std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(1200, 800, 1);
 	std::shared_ptr<TileRasterRenderer> renderer = std::make_shared<TileRasterRenderer>();
 	FrameBuffer frameBuffer;
 
 	VertexBuffer vertexBuffer;
 	vertexBuffer.setLayout({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
+	
+	vertexBuffer.setVertexCount(3);
+	vertexBuffer.allocateBuffer(3);
+	vertexBuffer.setValue(0, 0, float4(-0.0027,0.3485,-0.0983,0.0026));
+	vertexBuffer.setValue(1, 0, float4(0.0000,0.3294,-0.1037,-0.0037));
+	vertexBuffer.setValue(2, 0, float4(0.0000,0.3487,-0.0971,-0.0028));
+	vertexBuffer.setValue(0, 1, float4(1, 0, 1, 0));
+	vertexBuffer.setValue(1, 1, float4(1, 0, 1, 0));
+	vertexBuffer.setValue(2, 1, float4(1, 0, 1, 0));
+	
 	vertexBuffer.allocateBuffer(pos.size());
 
 	for (int i = 0; i < pos.size(); i++) {
@@ -80,9 +91,9 @@ int main() {
 	}
 
 
-	std::vector<int> indexBuffer;
+	std::vector<int> indexBuffer = { 1,2,0 };
 
-	indexBuffer.resize(index.size()/3);
+	indexBuffer.resize(index.size() / 3);
 	for (int i = 0; i < index.size(); i+=3) {
 		indexBuffer[i/3] = index[i];
 	}

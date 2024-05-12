@@ -1,6 +1,6 @@
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/base/FragmentShader.h"
-
+#include "engine/math/ShaderOps.h"
 namespace Ifrit::Engine::TileRaster {
 	TileRasterWorker::TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context) {
 		this->workerId = workerId;
@@ -30,8 +30,92 @@ namespace Ifrit::Engine::TileRaster {
 				activated.store(false);
 			}
 		}
+	}
+	void TileRasterWorker::triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3) {
+		using Ifrit::Engine::Math::ShaderOps::dot;
+		using Ifrit::Engine::Math::ShaderOps::sub;
+		using Ifrit::Engine::Math::ShaderOps::add;
+		using Ifrit::Engine::Math::ShaderOps::multiply;
+		using Ifrit::Engine::Math::ShaderOps::lerp;
+		constexpr uint32_t clipIts = 7;
+		const float4 clipCriteria[clipIts] = {
+			{0,0,0,EPS},
+			{1,0,0,0},
+			{-1,0,0,0},
+			{0,1,0,0},
+			{0,-1,0,0},
+			{0,0,1,0},
+			{0,0,-1,0}
+		};
+		std::vector<TileRasterClipVertex> ret[2];
+		ret[1].reserve(3);
+		ret[1].push_back({ {1,0,0,0},v1 });
+		ret[1].push_back({ {0,1,0,0},v2 });
+		ret[1].push_back({ {0,0,1,0},v3 });
+		int clipTimes = 0;
+		for (int i = 0; i < clipIts; i++) {
+			float4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
+			float4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
+			ret[i & 1].clear();
+			const auto psize = ret[1 - (i & 1)].size();
+			if (ret[1 - (i & 1)].size() == 0) {
+				return;
+			}
+			int ct = 0;
+			auto pc = ret[1 - (i & 1)][0];
+			for (int j = 0; j < psize; j++) {
+				const auto& pn = ret[1 - (i & 1)][(j + 1) % psize];
+				auto npc = dot(pc.pos, outNormal);
+				auto npn = dot(pn.pos, outNormal);
+			
+				if (npc < EPS && npn < EPS) {
+					ret[i & 1].push_back(pn);
+				}
+				else if (npc * npn < 0) {
+					float4 dir = sub(pn.pos, pc.pos);
+					// Solve for t, where W = aX + bY + cZ + d
+					// W = a(pc.x + t * dir.x) + b(pc.y + t * dir.y) + c(pc.z + t * dir.z) + d = pc.w + t * dir.w
+					// (pc.x*a + pc.y*b + pc.z*c + d - pc.w) + t * (dir.x*a + dir.y*b + dir.z*c - dir.w) = 0
+					// t = (pc.w - pc.x*a - pc.y*b - pc.z*c) / (dir.x*a + dir.y*b + dir.z*c - dir.w)
+					// a = refPoint.x, b = refPoint.y, c = refPoint.z, d = refPoint.w
 
-
+					float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
+					float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
+					float t = numo / deno;
+					float4 intersection = add(pc.pos, multiply(dir, t));
+					float4 barycenter = lerp(pc.barycenter, pn.barycenter, t);
+					TileRasterClipVertex newp;
+					newp.barycenter = barycenter;
+					newp.pos = intersection;
+					ret[i & 1].push_back(newp);
+					if (npn < EPS) {
+						ret[i & 1].push_back(pn);
+					}
+				}
+				pc = pn;
+			}
+			if (ret[i%2].size() < 3 && ret[i % 2].size()!=0) {
+				return;
+			}
+		}
+		
+		for (int i = 0; i < ret[clipIts % 2].size(); i++) {
+			ret[clipIts%2][i].pos.x /= ret[clipIts % 2][i].pos.w;
+			ret[clipIts % 2][i].pos.y /= ret[clipIts % 2][i].pos.w;
+			ret[clipIts % 2][i].pos.z /= ret[clipIts % 2][i].pos.w;
+		}
+		for (int i = 0; i < ret[clipIts % 2].size() - 2; i++) {
+			AssembledTriangleProposal atri;
+			atri.b1 = ret[clipIts % 2][0].barycenter;
+			atri.b2 = ret[clipIts % 2][i + 1].barycenter;
+			atri.b3 = ret[clipIts % 2][i + 2].barycenter;
+			atri.v1 = ret[clipIts % 2][0].pos;
+			atri.v2 = ret[clipIts % 2][i + 1].pos;
+			atri.v3 = ret[clipIts % 2][i + 2].pos;
+			atri.originalPrimitive = primitiveId;
+			generatedTriangle.push_back(atri);
+		}
+		
 	}
 	bool TileRasterWorker::triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox) {
 		bool inside = true;
@@ -64,7 +148,7 @@ namespace Ifrit::Engine::TileRaster {
 		if (d < 0.0) return false;
 		return true;
 	}
-	void TileRasterWorker::executeBinner(const int primitiveId, float4 v1, float4 v2, float4 v3, rect2Df bbox) {
+	void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, rect2Df bbox) {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
 		const float tileSize = 1.0 / context->tileBlocksX;
@@ -78,9 +162,14 @@ namespace Ifrit::Engine::TileRaster {
 		int tileMaxx = std::min(context->tileBlocksX - 1, (int)(maxx / tileSize));
 		int tileMaxy = std::min(context->tileBlocksX - 1, (int)(maxy / tileSize));
 
-		float3 edgeCoefs[3] = { context->primitiveEdgeCoefs[primitiveId].coef[0],
-	context->primitiveEdgeCoefs[primitiveId].coef[1],
-	context->primitiveEdgeCoefs[primitiveId].coef[2] };
+		float4 v1 = atp.v1;
+		float4 v2 = atp.v2;
+		float4 v3 = atp.v3;
+
+		float3 edgeCoefs[3];
+		edgeCoefs[0] = { v2.y - v1.y, v1.x - v2.x, v2.x * v1.y - v1.x * v2.y };
+		edgeCoefs[1] = { v3.y - v2.y, v2.x - v3.x, v3.x * v2.y - v2.x * v3.y };
+		edgeCoefs[2] = { v1.y - v3.y, v3.x - v1.x, v1.x * v3.y - v3.x * v1.y };
 
 		float3 tileCoords[4];
 
@@ -123,6 +212,7 @@ namespace Ifrit::Engine::TileRaster {
 					proposal.level = TileRasterLevel::TILE;
 					proposal.bbox = bbox;
 					proposal.primitiveId = primitiveId;
+					proposal.clippedTriangle = atp;
 					context->coverQueue[workerId][getTileID(x, y)].push_back(proposal);
 				}
 				else {
@@ -131,6 +221,7 @@ namespace Ifrit::Engine::TileRaster {
 					proposal.bbox = bbox;
 					proposal.level = TileRasterLevel::TILE;
 					proposal.primitiveId = primitiveId;
+					proposal.clippedTriangle = atp;
 					context->rasterizerQueue[workerId][getTileID(x, y)].push_back(proposal);
 				}
 			}
@@ -148,17 +239,13 @@ namespace Ifrit::Engine::TileRaster {
 			getVaryingsAddr(j,outVaryings);
 			getVertexAttributes(j,inVertex);
 			context->vertexShader->execute(inVertex, *pos, outVaryings);
-			pos->x /= pos->w;
-			pos->y /= pos->w;
-			pos->z /= pos->w;
-
-			
 		}
 		status.store(TileRasterStage::VERTEX_SHADING_SYNC);
 	}
 
 	void TileRasterWorker::geometryProcessing() {
 		auto posBuffer = context->vertexShaderResult->getPositionBuffer();
+		generatedTriangle.clear();
 		for (int j = workerId * context->vertexStride; j < context->indexBuffer->size(); j += context->numThreads * context->vertexStride) {
 			int id0 = (*context->indexBuffer)[j];
 			int id1 = (*context->indexBuffer)[j + 1];
@@ -183,15 +270,22 @@ namespace Ifrit::Engine::TileRaster {
 				context->primitiveEdgeCoefs[prim].coef[i].z /= norm;
 			}
 
-			rect2Df bbox;
-			if (!triangleFrustumClip(v1, v2, v3, bbox)) {
-				continue;
+			
+			
+			int curTriangleId = generatedTriangle.size();
+			triangleHomogeneousClip(prim, v1, v2, v3);
+			for(int i = curTriangleId; i < generatedTriangle.size(); i++) {
+				auto& atri = generatedTriangle[i];
+				rect2Df bbox;
+				if (!triangleFrustumClip(atri.v1, atri.v2, atri.v3, bbox)) {
+					continue;
+				}
+				if (!triangleCulling(atri.v1, atri.v2, atri.v3)) {
+					continue;
+				}
+				executeBinner(i, atri, bbox);
 			}
-			if (!triangleCulling(v1, v2, v3)) {
-				continue;
-			}
-			executeBinner(prim, v1, v2, v3, bbox);
-			context->primitiveMinZ[prim] = std::min(v1.z, std::min(v2.z, v3.z));
+			context->primitiveMinZ[prim] = 0;
 		}
 		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC);
 	}
@@ -217,17 +311,20 @@ namespace Ifrit::Engine::TileRaster {
 			for (int T = 0; T < context->numThreads; T++) {
 				for (int j = 0; j < context->rasterizerQueue[T][curTile].size(); j++) {
 					auto& proposal = context->rasterizerQueue[T][curTile][j];
-					int idx0 = proposal.primitiveId * context->vertexStride;
-					int idx1 = idx0 + 1;
-					int idx2 = idx0 + 2;
-					if (context->frontface == TileRasterFrontFace::COUNTER_CLOCKWISE) {
-						std::swap(idx0, idx2);
-					}
 
+					float4 v1 = proposal.clippedTriangle.v1;
+					float4 v2 = proposal.clippedTriangle.v2;
+					float4 v3 = proposal.clippedTriangle.v3;
+
+					if (context->frontface == TileRasterFrontFace::COUNTER_CLOCKWISE) {
+						std::swap(v1, v3);
+					}
 					//auto edgeCoefs = context->primitiveEdgeCoefs[proposal.primitiveId].coef;
-					float3 edgeCoefs[3] = { context->primitiveEdgeCoefs[proposal.primitiveId].coef[0],
-						context->primitiveEdgeCoefs[proposal.primitiveId].coef[1],
-						context->primitiveEdgeCoefs[proposal.primitiveId].coef[2] };
+					float3 edgeCoefs[3];
+					edgeCoefs[0] = { v2.y - v1.y, v1.x - v2.x, v2.x * v1.y - v1.x * v2.y };
+					edgeCoefs[1] = { v3.y - v2.y, v2.x - v3.x, v3.x * v2.y - v2.x * v3.y };
+					edgeCoefs[2] = { v1.y - v3.y, v3.x - v1.x, v1.x * v3.y - v3.x * v1.y };
+
 
 					int chosenCoordTR[3];
 					int chosenCoordTA[3];
@@ -352,6 +449,7 @@ namespace Ifrit::Engine::TileRaster {
 									nprop.bbox = proposal.bbox;
 									nprop.tile = { x + i % 2, y + i / 2 };
 									nprop.primitiveId = proposal.primitiveId;
+									nprop.clippedTriangle = proposal.clippedTriangle;
 									context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(nprop);
 								}
 								else {
@@ -386,6 +484,7 @@ namespace Ifrit::Engine::TileRaster {
 												npropPixel256.bbox = proposal.bbox;
 												npropPixel256.primitiveId = proposal.primitiveId;
 												npropPixel256.tile = { dx,dy };
+												npropPixel256.clippedTriangle = proposal.clippedTriangle;
 												context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel256);
 											}
 											else {
@@ -402,6 +501,7 @@ namespace Ifrit::Engine::TileRaster {
 														npropPixel128.bbox = proposal.bbox;
 														npropPixel128.primitiveId = proposal.primitiveId;
 														npropPixel128.tile = { dx + 2 * (di % 2), dy  };
+														npropPixel128.clippedTriangle = proposal.clippedTriangle;
 														context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel128);
 													}
 													else {
@@ -415,6 +515,7 @@ namespace Ifrit::Engine::TileRaster {
 																npropPixel.bbox = proposal.bbox;
 																npropPixel.primitiveId = proposal.primitiveId;
 																npropPixel.tile = { dx + ddi % 2 + 2 * (di % 2), dy + ddi / 2};
+																npropPixel.clippedTriangle = proposal.clippedTriangle;
 																if (dx + ddi % 2 + 2 * (di % 2) == 1600) {
 																	ifritLog1("??");
 																}
@@ -448,6 +549,7 @@ namespace Ifrit::Engine::TileRaster {
 												npropPixel128.bbox = proposal.bbox;
 												npropPixel128.primitiveId = proposal.primitiveId;
 												npropPixel128.tile = { dx,dy };
+												npropPixel128.clippedTriangle = proposal.clippedTriangle;
 												context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel128);
 											}
 											else {
@@ -458,6 +560,7 @@ namespace Ifrit::Engine::TileRaster {
 														npropPixel.bbox = proposal.bbox;
 														npropPixel.primitiveId = proposal.primitiveId;
 														npropPixel.tile = { dx + di % 2, dy + di / 2 };
+														npropPixel.clippedTriangle = proposal.clippedTriangle;
 														context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel);
 													}
 												}
@@ -519,6 +622,7 @@ namespace Ifrit::Engine::TileRaster {
 							nprop.bbox = proposal.bbox;
 							nprop.tile = { x,y };
 							nprop.primitiveId = proposal.primitiveId;
+							nprop.clippedTriangle = proposal.clippedTriangle;
 							context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(nprop);
 						}
 						else {
@@ -538,6 +642,7 @@ namespace Ifrit::Engine::TileRaster {
 										nprop.bbox = proposal.bbox;
 										nprop.primitiveId = proposal.primitiveId;
 										nprop.tile = { dx,dy };
+										nprop.clippedTriangle = proposal.clippedTriangle;
 										context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(nprop);
 									}
 								}
@@ -571,34 +676,34 @@ namespace Ifrit::Engine::TileRaster {
 				for (int j = 0; j < context->coverQueue[i][curTile].size(); j++) {
 					auto& proposal = context->coverQueue[i][curTile][j];
 					if (proposal.level == TileRasterLevel::PIXEL) {
-						pixelShading(proposal.primitiveId, proposal.tile.x, proposal.tile.y);
+						pixelShading(proposal.clippedTriangle, proposal.tile.x, proposal.tile.y);
 					}
 					else if (proposal.level == TileRasterLevel::PIXEL_PACK4X2) {
 #ifdef IFRIT_USE_SIMD_128
 #ifdef IFRIT_USE_SIMD_256
-						pixelShadingSIMD256(proposal.primitiveId, proposal.tile.x, proposal.tile.y);
+						pixelShadingSIMD256(proposal.clippedTriangle, proposal.tile.x, proposal.tile.y);
 #else
 						for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx+=2) {
 							for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
-								pixelShadingSIMD128(proposal.primitiveId, dx, dy);
+								pixelShadingSIMD128(proposal.clippedTriangle, dx, dy);
 							}
 						}
 #endif
 #else
 						for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx++) {
 							for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
-								pixelShading(proposal.primitiveId, dx, dy);
+								pixelShading(proposal.clippedTriangle, dx, dy);
 							}
 						}
 #endif
 					}
 					else if (proposal.level == TileRasterLevel::PIXEL_PACK2X2) {
 #ifdef IFRIT_USE_SIMD_128
-						pixelShadingSIMD128(proposal.primitiveId, proposal.tile.x, proposal.tile.y);
+						pixelShadingSIMD128(proposal.clippedTriangle, proposal.tile.x, proposal.tile.y);
 #else
 						for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 1u, frameBufferWidth-1); dx++) {
 							for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
-								pixelShading(proposal.primitiveId, dx, dy);
+								pixelShading(proposal.clippedTriangle, dx, dy);
 							}
 						}
 #endif
@@ -614,7 +719,7 @@ namespace Ifrit::Engine::TileRaster {
 						curTileY2 = std::min(curTileY2, frameBufferHeight);
 						for (int dx = curTileX; dx < curTileX2; dx++) {
 							for (int dy = curTileY; dy < curTileY2; dy++) {
-								pixelShading(proposal.primitiveId, dx, dy);
+								pixelShading(proposal.clippedTriangle, dx, dy);
 							}
 						}
 					}
@@ -629,7 +734,7 @@ namespace Ifrit::Engine::TileRaster {
 						subTilePixelY2 = std::min(subTilePixelY2, frameBufferHeight);
 						for (int dx = subTilePixelX; dx < subTilePixelX2; dx++) {
 							for (int dy = subTilePixelY; dy < subTilePixelY2; dy++) {
-								pixelShading(proposal.primitiveId, dx, dy);
+								pixelShading(proposal.clippedTriangle, dx, dy);
 							}
 						}
 					}
@@ -683,19 +788,18 @@ namespace Ifrit::Engine::TileRaster {
 		}
 	}
 
-	void TileRasterWorker::pixelShading(const int primitiveId, const int dx, const int dy) {
-		int idx = primitiveId * context->vertexStride;
-
+	void TileRasterWorker::pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy) {
+		
 		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
 		float referenceDepth = depthAttachment(dx, dy, 0);
-		if (context->primitiveMinZ[primitiveId] > referenceDepth) {
-			return;
-		}
+
+		auto originalPrimitive = atp.originalPrimitive;
+		int idx = originalPrimitive * context->vertexStride;
 
 		float4 pos[3];
-		pos[0] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx]];
-		pos[1] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 1]];
-		pos[2] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 2]];	
+		pos[0] = atp.v1;
+		pos[1] = atp.v2;
+		pos[2] = atp.v3;	
 		
 		float pDx = 2.0f * dx / context->frameBuffer->getWidth() - 1.0f;
 		float pDy = 2.0f * dy / context->frameBuffer->getHeight() - 1.0f;
@@ -728,8 +832,14 @@ namespace Ifrit::Engine::TileRaster {
 		bary[0] = bary[0] / w[0] * zCorr;
 		bary[1] = bary[1] / w[1] * zCorr;	
 		bary[2] = bary[2] / w[2] * zCorr;
+
+		float desiredBary[3];
+		desiredBary[0] = bary[0] * atp.b1.x + bary[1] * atp.b2.x + bary[2] * atp.b3.x;
+		desiredBary[1] = bary[0] * atp.b1.y + bary[1] * atp.b2.y + bary[2] * atp.b3.y;
+		desiredBary[2] = bary[0] * atp.b1.z + bary[1] * atp.b2.z + bary[2] * atp.b3.z;
+
 		for (int i = 0; i < vSize; i++) {
-			 interpolateVaryings(i, (*context->indexBuffer).data() + idx, bary, interpolatedVaryings[i]);
+			 interpolateVaryings(i, (*context->indexBuffer).data() + idx, desiredBary, interpolatedVaryings[i]);
 		}
 		// Fragment Shader
 		context->fragmentShader->execute(interpolatedVaryings, colorOutput);
@@ -739,7 +849,7 @@ namespace Ifrit::Engine::TileRaster {
 		depthAttachment(dx, dy, 0) = interpolatedDepth;
 	}
 
-	void TileRasterWorker::pixelShadingSIMD128(const int primitiveId, const int dx, const int dy) {
+	void TileRasterWorker::pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy) {
 #ifndef IFRIT_USE_SIMD_128
 		ifritError("SIMD 128 not enabled");
 #else
@@ -748,23 +858,14 @@ namespace Ifrit::Engine::TileRaster {
 
 		float referenceDepth[4];
 		auto& depthAttachment = *context->frameBuffer->getDepthAttachment();
-		referenceDepth[0] = depthAttachment(dx, dy, 0);
-		referenceDepth[1] = depthAttachment(std::min(dx + 1u,fbWidth-1), dy, 0);
-		referenceDepth[2] = depthAttachment(dx, std::min(dy + 1u,fbHeight - 1), 0);
-		referenceDepth[3] = depthAttachment(std::min(dx + 1u, fbWidth - 1), std::min(dy + 1u, fbHeight - 1), 0);
-		float maxDepth = std::max(std::max(referenceDepth[0], referenceDepth[1]), std::max(referenceDepth[2], referenceDepth[3]));
-		float curMinDepthPrimitive = context->primitiveMinZ[primitiveId];
-		if (curMinDepthPrimitive > maxDepth) {
-			return;
-		}
 
-		int idx = primitiveId * context->vertexStride;
+		int idx = atp.originalPrimitive * context->vertexStride;
 
 		__m128 posX[3], posY[3], posZ[3], posW[3];
 		float4 pos[3];
-		pos[0] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx]];
-		pos[1] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 1]];
-		pos[2] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 2]];
+		pos[0] = atp.v1;
+		pos[1] = atp.v2;
+		pos[2] = atp.v3;
 		
 
 		__m128i dx128i = _mm_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1);
@@ -830,7 +931,11 @@ namespace Ifrit::Engine::TileRaster {
 			}
 			for (int k = 0; k < context->vertexShader->getVaryingCounts(); k++) {
 				float barytmp[3] = { bary32[0][i]/w[0]* zCorr32[i],bary32[1][i] / w[1]* zCorr32[i],bary32[2][i] / w[2]* zCorr32[i] };
-				interpolateVaryings(k, (*context->indexBuffer).data() + idx, barytmp,interpolatedVaryings[k]);
+				float desiredBary[3];
+				desiredBary[0] = barytmp[0] * atp.b1.x + barytmp[1] * atp.b2.x + barytmp[2] * atp.b3.x;
+				desiredBary[1] = barytmp[0] * atp.b1.y + barytmp[1] * atp.b2.y + barytmp[2] * atp.b3.y;
+				desiredBary[2] = barytmp[0] * atp.b1.z + barytmp[1] * atp.b2.z + barytmp[2] * atp.b3.z;
+				interpolateVaryings(k, (*context->indexBuffer).data() + idx, desiredBary,interpolatedVaryings[k]);
 			}
 
 			// Fragment Shader
@@ -844,18 +949,18 @@ namespace Ifrit::Engine::TileRaster {
 	}
 
 
-	void TileRasterWorker::pixelShadingSIMD256(const int primitiveId, const int dx, const int dy) {
+	void TileRasterWorker::pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy) {
 #ifndef IFRIT_USE_SIMD_256
 		ifritError("SIMD 256 (AVX2) not enabled");
 #else
 
-		int idx = primitiveId * context->vertexStride;
+		int idx = atp.originalPrimitive * context->vertexStride;
 
 		__m256 posX[3], posY[3], posZ[3], posW[3];
 		float4 pos[3];
-		pos[0] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx]];
-		pos[1] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 1]];
-		pos[2] = context->vertexShaderResult->getPositionBuffer()[(*context->indexBuffer)[idx + 2]];
+		pos[0] = atp.v1;
+		pos[1] = atp.v2;
+		pos[2] = atp.v3;
 
 		__m256i dx256i = _mm256_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
 		__m256i dy256i = _mm256_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
@@ -922,7 +1027,11 @@ namespace Ifrit::Engine::TileRaster {
 			}
 			for (int k = 0; k < context->vertexShader->getVaryingCounts(); k++) {
 				float barytmp[3] = { bary32[0][i] / w[0] * zCorr32[i],bary32[1][i] / w[1] * zCorr32[i],bary32[2][i] / w[2] * zCorr32[i] };
-				interpolateVaryings(k, (*context->indexBuffer).data() + idx, barytmp, interpolatedVaryings[k]);
+				float desiredBary[3];
+				desiredBary[0] = barytmp[0] * atp.b1.x + barytmp[1] * atp.b2.x + barytmp[2] * atp.b3.x;
+				desiredBary[1] = barytmp[0] * atp.b1.y + barytmp[1] * atp.b2.y + barytmp[2] * atp.b3.y;
+				desiredBary[2] = barytmp[0] * atp.b1.z + barytmp[1] * atp.b2.z + barytmp[2] * atp.b3.z;
+				interpolateVaryings(k, (*context->indexBuffer).data() + idx, desiredBary, interpolatedVaryings[k]);
 			}
 
 			// Fragment Shader

@@ -4,9 +4,16 @@
 #include "engine/tileraster/TileRasterRenderer.h"
 
 namespace Ifrit::Engine::TileRaster {
-	struct VaryingPlaceholder {
-		char p[64];
+	struct TileRasterClipVertex {
+		float4 barycenter;
+		float4 pos;
 	};
+
+	struct AssembledTriangleRef {
+		int sourcePrimitive;
+		int vertexReferences[3];
+	};
+
 	class TileRasterWorker {
 	public:
 		std::atomic<TileRasterStage> status;
@@ -28,16 +35,19 @@ namespace Ifrit::Engine::TileRaster {
 
 		std::vector<float4> colorOutput = std::vector<float4>(1);
 
-		const float EPS = 1e-6;
-		const float EPS2 = 1e-6;
+		std::vector<AssembledTriangleProposal> generatedTriangle;
+
+		const float EPS = 1e-7;
+		const float EPS2 = 1e-7;
 
 	public:
 		TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context);
 		void run();
 
 		bool triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox);
+		void triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3);
 		bool triangleCulling(float4 v1, float4 v2, float4 v3);
-		void executeBinner(const int primitiveId, float4 v1, float4 v2, float4 v3, rect2Df bbox);
+		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, rect2Df bbox);
 
 		void vertexProcessing();
 		void geometryProcessing();
@@ -50,9 +60,9 @@ namespace Ifrit::Engine::TileRaster {
 		void getVertexAttributes(const int id, std::vector<const void*>& out);
 		void getVaryingsAddr(const int id,std::vector<VaryingStore*>& out);
 
-		void pixelShading(const int primitiveId, const int dx, const int dy);
-		void pixelShadingSIMD128(const int primitiveId, const int dx, const int dy);
-		void pixelShadingSIMD256(const int primitiveId, const int dx, const int dy);
+		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy);
+		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy);
+		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy);
 
 		inline float edgeFunction(float4 a, float4 b, float4 c) {
 			return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);

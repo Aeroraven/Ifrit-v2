@@ -24,7 +24,7 @@ add_definitions(-DIFRIT_ASSET_PATH="${IFRIT_ASSET_PATH}")
 
 if(${IFRIT_ENABLE_SIMD_AVX})
     add_definitions(-DIFRIT_FEATURE_SIMD)
-    #add_definitions(-DIFRIT_FEATURE_SIMD_AVX256)
+    add_definitions(-DIFRIT_FEATURE_SIMD_AVX256)
 endif()
 
 if(IFRIT_ENABLE_CUDA)

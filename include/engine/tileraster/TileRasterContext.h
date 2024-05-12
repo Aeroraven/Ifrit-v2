@@ -9,10 +9,17 @@
 #include "engine/base/VertexShaderResult.h"
 
 namespace Ifrit::Engine::TileRaster {
+	enum class TileRasterHomogeneousClipping {
+		DISABLE,
+		SIMPLE_DISCARD,
+		HOMOGENEOUS_CLIPPING
+	};
+
 	enum class TileRasterFrontFace {
 		CLOCKWISE,
 		COUNTER_CLOCKWISE
 	};
+
 	enum class TileRasterLevel {
 		TILE,
 		BLOCK,
@@ -22,12 +29,19 @@ namespace Ifrit::Engine::TileRaster {
 		PIXEL_PACK4X4,	//SIMD512
 	};
 
+	struct AssembledTriangleProposal {
+		float4 v1, v2, v3;
+		float4 b1, b2, b3;
+		int originalPrimitive;
+	};
+
 	struct TileBinProposal {
 		int primitiveId;
 		rect2Df bbox;
 		int2 tile;
 		bool allAccept;
 		TileRasterLevel level;
+		AssembledTriangleProposal clippedTriangle;
 	};
 
 	struct PrimitiveEdgeCoefs {
@@ -56,8 +70,11 @@ namespace Ifrit::Engine::TileRaster {
 
 		TileRasterFrontFace frontface = TileRasterFrontFace::CLOCKWISE;
 
-		// Caches
+		// Geometry
 		std::vector<float> primitiveMinZ;
 		std::vector<PrimitiveEdgeCoefs> primitiveEdgeCoefs;
+
+		// Profiling
+		std::vector<uint32_t> workerIdleTile;
 	};
 }
