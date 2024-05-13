@@ -106,6 +106,8 @@ namespace Ifrit::Engine::TileRaster {
 		context = std::make_shared<TileRasterContext>();
 		context->rasterizerQueue.resize(context->numThreads);
 		context->coverQueue.resize(context->numThreads);
+		context->workerIdleTime.resize(context->numThreads);
+		context->assembledTriangles.resize(context->numThreads);
 		for (int i = 0; i < context->numThreads; i++) {
 			context->rasterizerQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
 			context->coverQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
@@ -127,13 +129,14 @@ namespace Ifrit::Engine::TileRaster {
 		unresolvedTileRaster.store(0,std::memory_order_seq_cst);
 		unresolvedTileFragmentShading.store(0, std::memory_order_seq_cst);
 		for (int i = 0; i < context->numThreads; i++) {
+			context->workerIdleTime[i] = 0;
+			context->assembledTriangles[i].clear();
 			for (int j = 0; j < context->tileBlocksX * context->tileBlocksX; j++) {
 				auto prevSizeRQ = context->rasterizerQueue[i][j].size();
 				auto prevSizeCQ = context->coverQueue[i][j].size();
 				context->rasterizerQueue[i][j].clear();
 				context->coverQueue[i][j].clear();
-				context->rasterizerQueue[i][j].reserve(prevSizeRQ);
-				context->coverQueue[i][j].reserve(prevSizeCQ);
+
 			}
 		}
 		context->primitiveMinZ.reserve(context->indexBuffer->size() / context->vertexStride);

@@ -17,7 +17,7 @@ using namespace Ifrit::Engine::Math::ShaderOps;
 
 //float4x4 view = (lookAt({ 0,0.1,0.25}, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
 //float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
-float4x4 view = (lookAt({ 0,0.75,1.50}, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
+float4x4 view = (lookAt({ 0,0.75,0.50}, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
 float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 0.1, 4000));
 float4x4 mvp = multiply(proj, view);
 
@@ -40,10 +40,10 @@ public:
 		result.z = 0.5 * result.z + 0.5;
 		result.w = 0.5 * result.w + 0.5;
 
-		result.x *= 255;
-		result.y *= 255;
-		result.z *= 255;
-		result.w *= 255;
+		result.x *= 25;
+		result.y *= 25;
+		result.z *= 25;
+		result.w *= 25;
 		colorOutput[0] = result;
 	}
 };

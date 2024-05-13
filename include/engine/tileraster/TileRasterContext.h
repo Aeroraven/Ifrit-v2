@@ -32,7 +32,14 @@ namespace Ifrit::Engine::TileRaster {
 	struct AssembledTriangleProposal {
 		float4 v1, v2, v3;
 		float4 b1, b2, b3;
+		float4 e1, e2, e3; //Edge Coefs
+		float3 f1, f2, f3; //Interpolate Bases
 		int originalPrimitive;
+	};
+
+	struct AssembledTriangleProposalReference {
+		uint32_t workerId;
+		int primId;
 	};
 
 	struct TileBinProposal {
@@ -41,7 +48,7 @@ namespace Ifrit::Engine::TileRaster {
 		int2 tile;
 		bool allAccept;
 		TileRasterLevel level;
-		AssembledTriangleProposal clippedTriangle;
+		AssembledTriangleProposalReference clippedTriangle;
 	};
 
 	struct PrimitiveEdgeCoefs {
@@ -74,7 +81,9 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<float> primitiveMinZ;
 		std::vector<PrimitiveEdgeCoefs> primitiveEdgeCoefs;
 
+		std::vector<std::vector<AssembledTriangleProposal>> assembledTriangles;
+
 		// Profiling
-		std::vector<uint32_t> workerIdleTile;
+		std::vector<uint32_t> workerIdleTime;
 	};
 }
