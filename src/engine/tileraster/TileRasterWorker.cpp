@@ -38,6 +38,7 @@ namespace Ifrit::Engine::TileRaster {
 		using Ifrit::Engine::Math::ShaderOps::add;
 		using Ifrit::Engine::Math::ShaderOps::multiply;
 		using Ifrit::Engine::Math::ShaderOps::lerp;
+
 		constexpr uint32_t clipIts = 7;
 		const float4 clipCriteria[clipIts] = {
 			{0,0,0,EPS},
@@ -48,18 +49,20 @@ namespace Ifrit::Engine::TileRaster {
 			{0,0,1,0},
 			{0,0,-1,0}
 		};
-		std::vector<TileRasterClipVertex> ret[2];
-		ret[1].reserve(3);
-		ret[1].push_back({ {1,0,0,0},v1 });
-		ret[1].push_back({ {0,1,0,0},v2 });
-		ret[1].push_back({ {0,0,1,0},v3 });
+		TileRasterClipVertex ret[2][9];
+		int retCur[2] = { 0,3 };
+
+		ret[1][0] = { {1,0,0,0},v1 };
+		ret[1][1] = { {0,1,0,0},v2 };
+		ret[1][2] = { {0,0,1,0},v3 };
+
 		int clipTimes = 0;
 		for (int i = 0; i < clipIts; i++) {
 			float4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
 			float4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
-			ret[i & 1].clear();
-			const auto psize = ret[1 - (i & 1)].size();
-			if (ret[1 - (i & 1)].size() == 0) {
+			retCur[i & 1] = 0;
+			const auto psize = retCur[1 - (i & 1)];
+			if (psize == 0) {
 				return 0;
 			}
 			int ct = 0;
@@ -70,7 +73,7 @@ namespace Ifrit::Engine::TileRaster {
 				auto npn = dot(pn.pos, outNormal);
 			
 				if (npc < EPS && npn < EPS) {
-					ret[i & 1].push_back(pn);
+					ret[i & 1][retCur[i & 1]++] = pn;
 				}
 				else if (npc * npn < 0) {
 					float4 dir = sub(pn.pos, pc.pos);
@@ -89,25 +92,25 @@ namespace Ifrit::Engine::TileRaster {
 					TileRasterClipVertex newp;
 					newp.barycenter = barycenter;
 					newp.pos = intersection;
-					ret[i & 1].push_back(newp);
+					ret[i & 1][retCur[i & 1]++] = newp;
 					if (npn < EPS) {
-						ret[i & 1].push_back(pn);
+						ret[i & 1][retCur[i & 1]++] = pn;
 					}
 				}
 				pc = pn;
 			}
-			if (ret[i%2].size() < 3 && ret[i % 2].size()!=0) {
+			if (retCur[i & 1] < 3 && retCur[i & 1] !=0) {
 				return 0;
 			}
 		}
 		
-		for (int i = 0; i < ret[clipIts % 2].size(); i++) {
-			ret[clipIts%2][i].pos.x /= ret[clipIts % 2][i].pos.w;
+		for (int i = 0; i < retCur[clipIts & 1]; i++) {
+			ret[clipIts % 2][i].pos.x /= ret[clipIts % 2][i].pos.w;
 			ret[clipIts % 2][i].pos.y /= ret[clipIts % 2][i].pos.w;
 			ret[clipIts % 2][i].pos.z /= ret[clipIts % 2][i].pos.w;
 		}
 		auto genTris = 0;
-		for (int i = 0; i < ret[clipIts % 2].size() - 2; i++) {
+		for (int i = 0; i < retCur[clipIts & 1] - 2; i++) {
 			genTris++;
 			// (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
 			// Equals to c.x*(b.y-a.y) - c.y*(b.x-a.x) + (-a.x*(b.y-a.y)+a.y*(b.x-a.x)
@@ -206,8 +209,8 @@ namespace Ifrit::Engine::TileRaster {
 
 		int chosenCoordTR[3];
 		int chosenCoordTA[3];
-		auto frameBufferWidth = context->frameBuffer->getWidth();
-		auto frameBufferHeight = context->frameBuffer->getHeight();
+		const auto frameBufferWidth = context->frameBuffer->getWidth();
+		const auto frameBufferHeight = context->frameBuffer->getHeight();
 		getAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
 		for (int y = tileMiny; y <= tileMaxy; y++) {
@@ -233,10 +236,9 @@ namespace Ifrit::Engine::TileRaster {
 				for (int i = 0; i < 3; i++) {
 					float criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y + edgeCoefs[i].z;
 					float criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y + edgeCoefs[i].z;
-					if (criteriaTRLocal < 0) criteriaTR += 1;
+					if (criteriaTRLocal > 0) break;
 					if (criteriaTALocal < 0) criteriaTA += 1;
 				}
-				if (criteriaTR != 3)continue;
 				if (criteriaTA == 3) {
 					TileBinProposal proposal;
 					proposal.level = TileRasterLevel::TILE;
@@ -308,8 +310,8 @@ namespace Ifrit::Engine::TileRaster {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
 		auto curTile = 0;
-		auto frameBufferWidth = context->frameBuffer->getWidth();
-		auto frameBufferHeight = context->frameBuffer->getHeight();
+		const auto frameBufferWidth = context->frameBuffer->getWidth();
+		const auto frameBufferHeight = context->frameBuffer->getHeight();
 		auto rdTiles = 0;
 		while ((curTile = renderer->fetchUnresolvedTileRaster()) != -1) {
 			rdTiles++;
@@ -324,8 +326,7 @@ namespace Ifrit::Engine::TileRaster {
 
 			for (int T = 0; T < context->numThreads; T++) {
 				for (int j = 0; j < context->rasterizerQueue[T][curTile].size(); j++) {
-					auto& proposal = context->rasterizerQueue[T][curTile][j];
-
+					const auto& proposal = context->rasterizerQueue[T][curTile][j];
 					const auto& ptRef = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
 					float4 v1 = ptRef.v1;
 					float4 v2 = ptRef.v2;
@@ -379,15 +380,21 @@ namespace Ifrit::Engine::TileRaster {
 						edgeCoefs256Z[k] = _mm256_set1_ps(edgeCoefs[k].z);
 					}	
 #endif
+					TileBinProposal npropBlock;
+					npropBlock.level = TileRasterLevel::BLOCK;
+					npropBlock.clippedTriangle = proposal.clippedTriangle;
 
 					TileBinProposal npropPixel;
 					npropPixel.level = TileRasterLevel::PIXEL;
+					npropPixel.clippedTriangle = proposal.clippedTriangle;
 
 					TileBinProposal  npropPixel128;
 					npropPixel128.level = TileRasterLevel::PIXEL_PACK2X2;
+					npropPixel128.clippedTriangle = proposal.clippedTriangle;
 
 					TileBinProposal  npropPixel256;
 					npropPixel256.level = TileRasterLevel::PIXEL_PACK4X2;
+					npropPixel256.clippedTriangle = proposal.clippedTriangle;
 
 					const auto tileId = getTileID(tileIdX, tileIdY);
 
@@ -451,11 +458,8 @@ namespace Ifrit::Engine::TileRaster {
 								}
 								
 								if (criteriaTA[i] == 3) {
-									TileBinProposal nprop;
-									nprop.level = TileRasterLevel::BLOCK;
-									nprop.tile = { x + (i & 1), y + (i >> 1) };
-									nprop.clippedTriangle = proposal.clippedTriangle;
-									context->coverQueue[workerId][tileId].push_back(nprop);
+									npropBlock.tile = { x + (i & 1), y + (i >> 1) };
+									context->coverQueue[workerId][tileId].push_back(npropBlock);
 								}
 								else {
 									float wp = (context->subtileBlocksX * context->tileBlocksX);
@@ -486,7 +490,6 @@ namespace Ifrit::Engine::TileRaster {
 											if (_mm256_testc_si256(_mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(3)), _mm256_set1_epi32(-1))) {
 												// If All Accept
 												npropPixel256.tile = { dx,dy };
-												npropPixel256.clippedTriangle = proposal.clippedTriangle;
 												context->coverQueue[workerId][tileId].push_back(npropPixel256);
 											}
 											else {
@@ -498,7 +501,6 @@ namespace Ifrit::Engine::TileRaster {
 													if (pv <= subTileMaxX && dy<= subTileMaxY &&
 														_mm_movemask_epi8(_mm_cmpeq_epi32(accept128[di], _mm_set1_epi32(3))) == 0xFFFF) {
 														npropPixel128.tile = { pv, dy  };
-														npropPixel128.clippedTriangle = proposal.clippedTriangle;
 														context->coverQueue[workerId][tileId].push_back(npropPixel128);
 													}
 													else {
@@ -510,7 +512,6 @@ namespace Ifrit::Engine::TileRaster {
 															const auto pvy = dy + (ddi >> 1);
 															if (pvx <= subTileMaxX && pvy <= subTileMaxY && accept[ddi] == 3) {
 																npropPixel.tile = { pvx,pvy };
-																npropPixel.clippedTriangle = proposal.clippedTriangle;
 																context->coverQueue[workerId][tileId].push_back(npropPixel);
 															}
 														}
@@ -720,11 +721,19 @@ namespace Ifrit::Engine::TileRaster {
 						auto subTilePixelY2 = (curTileY * context->subtileBlocksX + proposal.tile.y + 1) * frameBufferHeight / context->tileBlocksX / context->subtileBlocksX;
 						subTilePixelX2 = std::min(subTilePixelX2, frameBufferWidth);
 						subTilePixelY2 = std::min(subTilePixelY2, frameBufferHeight);
+#ifdef IFRIT_USE_SIMD_128
+						for (int dx = subTilePixelX; dx < subTilePixelX2; dx+=2) {
+							for (int dy = subTilePixelY; dy < subTilePixelY2; dy+=2) {
+								pixelShadingSIMD128(triProposal, dx, dy);
+							}
+						}
+#else
 						for (int dx = subTilePixelX; dx < subTilePixelX2; dx++) {
 							for (int dy = subTilePixelY; dy < subTilePixelY2; dy++) {
 								pixelShading(triProposal, dx, dy);
 							}
 						}
+#endif
 					}
 				}	
 			}
@@ -825,8 +834,9 @@ namespace Ifrit::Engine::TileRaster {
 		desiredBary[1] = bary[0] * atp.b1.y + bary[1] * atp.b2.y + bary[2] * atp.b3.y;
 		desiredBary[2] = bary[0] * atp.b1.z + bary[1] * atp.b2.z + bary[2] * atp.b3.z;
 
+		const int* const indicesAddr = (*context->indexBuffer).data() + idx;
 		for (int i = 0; i < vSize; i++) {
-			 interpolateVaryings(i, (*context->indexBuffer).data() + idx, desiredBary, interpolatedVaryings[i]);
+			 interpolateVaryings(i,indicesAddr, desiredBary, interpolatedVaryings[i]);
 		}
 		// Fragment Shader
 		context->fragmentShader->execute(interpolatedVaryings, colorOutput);
@@ -848,7 +858,7 @@ namespace Ifrit::Engine::TileRaster {
 
 		int idx = atp.originalPrimitive * context->vertexStride;
 
-		__m128 posX[3], posY[3], posZ[3], posW[3];
+		__m128 posX[3], posY[3], posZ[3], posW[3], atriW[3];
 		float4 pos[3];
 		pos[0] = atp.v1;
 		pos[1] = atp.v2;
@@ -863,6 +873,9 @@ namespace Ifrit::Engine::TileRaster {
 			posZ[i] = _mm_set1_ps(pos[i].z);
 			posW[i] = _mm_set1_ps(pos[i].w);
 		}
+		atriW[0] = _mm_set1_ps(atp.iw1);
+		atriW[1] = _mm_set1_ps(atp.iw2);
+		atriW[2] = _mm_set1_ps(atp.iw3);
 
 		__m128 attachmentWidth = _mm_set1_ps(context->frameBuffer->getWidth());
 		__m128 attachmentHeight = _mm_set1_ps(context->frameBuffer->getHeight());
@@ -878,16 +891,18 @@ namespace Ifrit::Engine::TileRaster {
 		bary[2] = _mm_add_ps(_mm_add_ps(_mm_mul_ps(_mm_set1_ps(atp.f3.x), pDx), _mm_mul_ps(_mm_set1_ps(atp.f3.y), pDy)), _mm_set1_ps(atp.f3.z));
 
 		__m128 baryDivW[3];
-		for (int i = 0; i < 3; i++) {
-			baryDivW[i] = _mm_div_ps(bary[i], posW[i]);
-		}
+		baryDivW[0] = _mm_mul_ps(bary[0], atriW[0]);
+		baryDivW[1] = _mm_mul_ps(bary[1], atriW[1]);
+		baryDivW[2] = _mm_mul_ps(bary[2], atriW[2]);
+
 		__m128 baryDivWSum = _mm_add_ps(_mm_add_ps(baryDivW[0], baryDivW[1]), baryDivW[2]);
 		__m128 zCorr = _mm_div_ps(_mm_set1_ps(1.0f), baryDivWSum);
 
 		__m128 depth[3];
-		for (int i = 0; i < 3; i++) {
-			depth[i] = _mm_div_ps(posZ[i], posW[i]);
-		}
+		depth[0] = _mm_mul_ps(posZ[0], atriW[0]);
+		depth[1] = _mm_mul_ps(posZ[1], atriW[1]);
+		depth[2] = _mm_mul_ps(posZ[2], atriW[2]);
+
 		__m128 interpolatedDepth128 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(bary[0], depth[0]), _mm_mul_ps(bary[1], depth[1])), _mm_mul_ps(bary[2], depth[2]));
 		interpolatedDepth128 = _mm_mul_ps(interpolatedDepth128, zCorr);
 
@@ -900,23 +915,25 @@ namespace Ifrit::Engine::TileRaster {
 			_mm_storeu_ps(bary32[i], bary[i]);
 		}
 
+		const int* const indicesAddr = (*context->indexBuffer).data() + idx;
 		for (int i = 0; i < 4; i++) {
 			//Depth Test
 			int x = dx + (i & 1);
 			int y = dy + (i >> 1);
-			if (x >= fbWidth || y >= fbHeight) {
-				continue;
-			}
-			if (interpolatedDepth[i] > depthAttachment(x, y, 0)) {
+			if (x >= fbWidth || y >= fbHeight || interpolatedDepth[i] > depthAttachment(x, y, 0)) {
 				continue;
 			}
 			for (int k = 0; k < context->vertexShader->getVaryingCounts(); k++) {
-				float barytmp[3] = { bary32[0][i] / w[0] * zCorr32[i],bary32[1][i] / w[1] * zCorr32[i],bary32[2][i] / w[2] * zCorr32[i] };
+				float barytmp[3] = { 
+					bary32[0][i] * atp.iw1 * zCorr32[i],
+					bary32[1][i] * atp.iw2 * zCorr32[i],
+					bary32[2][i] * atp.iw3 * zCorr32[i]
+				};
 				float desiredBary[3];
 				desiredBary[0] = barytmp[0] * atp.b1.x + barytmp[1] * atp.b2.x + barytmp[2] * atp.b3.x;
 				desiredBary[1] = barytmp[0] * atp.b1.y + barytmp[1] * atp.b2.y + barytmp[2] * atp.b3.y;
 				desiredBary[2] = barytmp[0] * atp.b1.z + barytmp[1] * atp.b2.z + barytmp[2] * atp.b3.z;
-				interpolateVaryings(k, (*context->indexBuffer).data() + idx, desiredBary,interpolatedVaryings[k]);
+				interpolateVaryings(k, indicesAddr, desiredBary, interpolatedVaryings[k]);
 			}
 
 			// Fragment Shader
@@ -1007,7 +1024,7 @@ namespace Ifrit::Engine::TileRaster {
 				continue;
 			}
 			for (int k = 0; k < context->vertexShader->getVaryingCounts(); k++) {
-				float barytmp[3] = { bary32[0][i] / w[0] * zCorr32[i],bary32[1][i] / w[1] * zCorr32[i],bary32[2][i] / w[2] * zCorr32[i] };
+				float barytmp[3] = { bary32[0][i] * atp.iw1 * zCorr32[i],bary32[1][i] * atp.iw2 * zCorr32[i],bary32[2][i] * atp.iw3 * zCorr32[i] };
 				float desiredBary[3];
 				desiredBary[0] = barytmp[0] * atp.b1.x + barytmp[1] * atp.b2.x + barytmp[2] * atp.b3.x;
 				desiredBary[1] = barytmp[0] * atp.b1.y + barytmp[1] * atp.b2.y + barytmp[2] * atp.b3.y;

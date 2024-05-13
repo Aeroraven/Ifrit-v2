@@ -69,7 +69,7 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<std::vector<std::vector<TileBinProposal>>> coverQueue;
 
 		// Config
-		int numThreads = 10;
+		int numThreads = 16;
 		int vertexStride = 3;
 		int tileBlocksX = 64;
 		int subtileBlocksX = 4;

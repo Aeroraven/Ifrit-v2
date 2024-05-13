@@ -9,7 +9,5 @@ namespace Ifrit::Engine {
 	void FrameBuffer::setDepthAttachment(const std::shared_ptr<ImageF32>& depthAttachment) {
 		this->depthAttachment = depthAttachment;
 	}
-	ImageF32* FrameBuffer::getDepthAttachment() {
-		return depthAttachment.get();
-	}
+	
 }

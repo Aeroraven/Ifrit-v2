@@ -15,10 +15,11 @@ namespace Ifrit::Engine {
 		void setColorAttachments(const std::vector<std::shared_ptr<ImageU8>>& colorAttachment);
 		void setDepthAttachment(const std::shared_ptr<ImageF32>& depthAttachment);
 		inline ImageU8* getColorAttachment(size_t index){
-			ifritAssert(index < colorAttachment.size(), "Index out of range");
 			return colorAttachment[index].get();
 		}
-		ImageF32* getDepthAttachment();
+		inline ImageF32* getDepthAttachment() {
+			return depthAttachment.get();
+		}
 		inline uint32_t getWidth() const { return width; }
 		inline uint32_t getHeight() const { return height; }
 	};
