@@ -22,7 +22,7 @@ namespace Ifrit::Engine {
 			varyings[id].resize(vertexCount);
 		}
 
-		VaryingStore* getVaryingBuffer(int id) {
+		inline VaryingStore* getVaryingBuffer(int id) {
 			return varyings[id].data();
 		}
 

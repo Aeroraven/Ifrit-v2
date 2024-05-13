@@ -35,7 +35,7 @@ Successor to following repos:
 - Hardware Requirements:
 	- SSE4.1
 	- AVX2
-	- CUDA 11.0 (Planning)
+	- CUDA 12.4 (Planning)
 
 ## TODO
-- Suspected?: Performance drop after introducing homogeneous space clip
+- CUDA Integration 

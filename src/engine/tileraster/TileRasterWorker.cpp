@@ -10,7 +10,6 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterWorker::run() {
 		while (true) {
 			if (status.load() == TileRasterStage::CREATED || status.load() == TileRasterStage::TERMINATED || activated.load()==false) {
-				//context->workerIdleTime[workerId]++;
 				std::this_thread::yield();
 				continue;
 			}
@@ -184,14 +183,10 @@ namespace Ifrit::Engine::TileRaster {
 		int tileMaxx = std::min(context->tileBlocksX - 1, (int)(maxx / tileSize));
 		int tileMaxy = std::min(context->tileBlocksX - 1, (int)(maxy / tileSize));
 
-		float4 v1 = atp.v1;
-		float4 v2 = atp.v2;
-		float4 v3 = atp.v3;
-
 		float3 edgeCoefs[3];
-		edgeCoefs[0] = { v2.y - v1.y, v1.x - v2.x, v2.x * v1.y - v1.x * v2.y };
-		edgeCoefs[1] = { v3.y - v2.y, v2.x - v3.x, v3.x * v2.y - v2.x * v3.y };
-		edgeCoefs[2] = { v1.y - v3.y, v3.x - v1.x, v1.x * v3.y - v3.x * v1.y };
+		edgeCoefs[0] = atp.e1;
+		edgeCoefs[1] = atp.e2;
+		edgeCoefs[2] = atp.e3;
 
 		float3 tileCoords[4];
 
@@ -312,8 +307,8 @@ namespace Ifrit::Engine::TileRaster {
 			float tileMaxY = 1.0f * (tileIdY + 1) / context->tileBlocksX;
 
 
-			for (int T = 0; T < context->numThreads; T++) {
-				for (int j = 0; j < context->rasterizerQueue[T][curTile].size(); j++) {
+			for (int T = context->numThreads - 1; T >= 0; T--) {
+				for (int j = context->rasterizerQueue[T][curTile].size() - 1; j >= 0; j--) {
 					const auto& proposal = context->rasterizerQueue[T][curTile][j];
 					const auto& ptRef = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
 
@@ -628,19 +623,19 @@ namespace Ifrit::Engine::TileRaster {
 
 	void TileRasterWorker::fragmentProcessing(){
 		auto curTile = 0;
-		auto frameBufferWidth = context->frameBuffer->getWidth();
-		auto frameBufferHeight = context->frameBuffer->getHeight();
-		auto rdTiles = 0;
+		const auto frameBufferWidth = context->frameBuffer->getWidth();
+		const auto frameBufferHeight = context->frameBuffer->getHeight();
 		interpolatedVaryings.reserve(context->vertexShader->getVaryingCounts());
 		interpolatedVaryings.resize(context->vertexShader->getVaryingCounts());
 		interpolatedVaryingsAddr.reserve(context->vertexShader->getVaryingCounts());
 		interpolatedVaryingsAddr.resize(context->vertexShader->getVaryingCounts());
-		for (int i = 0; i < interpolatedVaryingsAddr.size(); i++) {
+
+		for (int i = interpolatedVaryingsAddr.size() - 1; i >= 0; i--) {
 			interpolatedVaryingsAddr[i] = &interpolatedVaryings[i];
 		}
 		while ((curTile = renderer->fetchUnresolvedTileFragmentShading()) != -1) {
-			for (int i = 0; i < context->numThreads; i++) {
-				for (int j = 0; j < context->coverQueue[i][curTile].size(); j++) {
+			for (int i = context->numThreads - 1; i >= 0; i--) {
+				for (int j = context->coverQueue[i][curTile].size() - 1; j >= 0; j--) {
 					auto& proposal = context->coverQueue[i][curTile][j];
 					const auto& triProposal = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
 					if (proposal.level == TileRasterLevel::PIXEL) {
@@ -980,7 +975,7 @@ namespace Ifrit::Engine::TileRaster {
 		for (int i = 0; i < 8; i++) {
 			//Depth Test
 			int x = dx + ((i & 1)) + ((i >> 2) << 1);
-			int y = dy + ((i % 4) >> 1);
+			int y = dy + ((i & 3) >> 1);
 			if(x>= fbWidth || y>= fbHeight){
 				continue;
 			}
