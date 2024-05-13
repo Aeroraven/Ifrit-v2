@@ -32,7 +32,7 @@ namespace Ifrit::Engine::TileRaster {
 	struct AssembledTriangleProposal {
 		float4 v1, v2, v3;
 		float4 b1, b2, b3;
-		float4 e1, e2, e3; //Edge Coefs
+		float3 e1, e2, e3; //Edge Coefs
 		float3 f1, f2, f3; //Interpolate Bases
 		int originalPrimitive;
 	};
@@ -43,9 +43,7 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	struct TileBinProposal {
-		rect2Df bbox;
 		int2 tile;
-		bool allAccept;
 		TileRasterLevel level;
 		AssembledTriangleProposalReference clippedTriangle;
 	};

@@ -67,6 +67,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 			else {
 				std::this_thread::yield();
+
 			}
 		}
 		return ;

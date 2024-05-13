@@ -63,17 +63,15 @@ namespace Ifrit::Engine::TileRaster {
 			if (psize == 0) {
 				return 0;
 			}
-			int ct = 0;
 			auto pc = ret[cRIdx][0];
+			auto npc = dot(pc.pos, outNormal);
 			for (int j = 0; j < psize; j++) {
-				const auto& pn = ret[1 - (i & 1)][(j + 1) % psize];
-				auto npc = dot(pc.pos, outNormal);
+				const auto& pn = ret[cRIdx][(j + 1) % psize];
 				auto npn = dot(pn.pos, outNormal);
-			
-				if (npc < EPS && npn < EPS) {
+				if (npn < EPS) {
 					ret[cIdx][retCnt[cIdx]++] = pn;
 				}
-				else if (npc * npn < 0) {
+				if (npc * npn < 0) {
 					float4 dir = sub(pn.pos, pc.pos);
 					// Solve for t, where W = aX + bY + cZ + d
 					// W = a(pc.x + t * dir.x) + b(pc.y + t * dir.y) + c(pc.z + t * dir.z) + d = pc.w + t * dir.w
@@ -91,19 +89,17 @@ namespace Ifrit::Engine::TileRaster {
 					newp.barycenter = barycenter;
 					newp.pos = intersection;
 					ret[cIdx][retCnt[cIdx]++] = (newp);
-					if (npn < EPS) {
-						ret[cIdx][retCnt[cIdx]++] = (pn);
-					}
 				}
 				pc = pn;
+				npc = npn;
 			}
-			if (retCnt[cIdx] < 3 && retCnt[cIdx] !=0) {
+			if (retCnt[cIdx] < 3) {
 				return 0;
 			}
 		}
 		
 		for (int i = 0; i < retCnt[clipIts % 2]; i++) {
-			ret[clipIts%2][i].pos.x /= ret[clipIts % 2][i].pos.w;
+			ret[clipIts % 2][i].pos.x /= ret[clipIts % 2][i].pos.w;
 			ret[clipIts % 2][i].pos.y /= ret[clipIts % 2][i].pos.w;
 			ret[clipIts % 2][i].pos.z /= ret[clipIts % 2][i].pos.w;
 		}
@@ -226,16 +222,12 @@ namespace Ifrit::Engine::TileRaster {
 				if (criteriaTR != 3)continue;
 				if (criteriaTA == 3) {
 					TileBinProposal proposal;
-					proposal.allAccept = true;
 					proposal.level = TileRasterLevel::TILE;
-					proposal.bbox = bbox;
 					proposal.clippedTriangle = { workerId,primitiveId };
 					context->coverQueue[workerId][getTileID(x, y)].push_back(proposal);
 				}
 				else {
 					TileBinProposal proposal;
-					proposal.allAccept = false;
-					proposal.bbox = bbox;
 					proposal.level = TileRasterLevel::TILE;
 					proposal.clippedTriangle = { workerId,primitiveId };
 					context->rasterizerQueue[workerId][getTileID(x, y)].push_back(proposal);
@@ -276,17 +268,6 @@ namespace Ifrit::Engine::TileRaster {
 			float4 v3 = posBuffer[id2];
 
 			const auto prim = j / context->vertexStride;
-			context->primitiveEdgeCoefs[prim].coef[0] = { v2.y - v1.y, v1.x - v2.x, v2.x * v1.y - v1.x * v2.y };
-			context->primitiveEdgeCoefs[prim].coef[1] = { v3.y - v2.y, v2.x - v3.x, v3.x * v2.y - v2.x * v3.y };
-			context->primitiveEdgeCoefs[prim].coef[2] = { v1.y - v3.y, v3.x - v1.x, v1.x * v3.y - v3.x * v1.y };
-
-			for (int i = 0; i < 3; i++) {
-				auto norm = std::max(abs(context->primitiveEdgeCoefs[prim].coef[i].x), abs(context->primitiveEdgeCoefs[prim].coef[i].y));
-				context->primitiveEdgeCoefs[prim].coef[i].x /= norm;
-				context->primitiveEdgeCoefs[prim].coef[i].y /= norm;
-				context->primitiveEdgeCoefs[prim].coef[i].z /= norm;
-			}
-
 			int fw = triangleHomogeneousClip(prim, v1, v2, v3);
 			int gtri = fw + genTris;
 			for(int i = genTris; i < gtri; i++) {
@@ -301,7 +282,6 @@ namespace Ifrit::Engine::TileRaster {
 				executeBinner(i, atri, bbox);
 			}
 			genTris = gtri;
-			context->primitiveMinZ[prim] = 0;
 		}
 		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC);
 	}
@@ -326,32 +306,17 @@ namespace Ifrit::Engine::TileRaster {
 
 			for (int T = 0; T < context->numThreads; T++) {
 				for (int j = 0; j < context->rasterizerQueue[T][curTile].size(); j++) {
-					auto& proposal = context->rasterizerQueue[T][curTile][j];
-
+					const auto& proposal = context->rasterizerQueue[T][curTile][j];
 					const auto& ptRef = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
-					float4 v1 = ptRef.v1;
-					float4 v2 = ptRef.v2;
-					float4 v3 = ptRef.v3;
 
-					if (context->frontface == TileRasterFrontFace::COUNTER_CLOCKWISE) {
-						std::swap(v1, v3);
-					}
-					//auto edgeCoefs = context->primitiveEdgeCoefs[proposal.primitiveId].coef;
 					float3 edgeCoefs[3];
-					edgeCoefs[0] = { v2.y - v1.y, v1.x - v2.x, v2.x * v1.y - v1.x * v2.y };
-					edgeCoefs[1] = { v3.y - v2.y, v2.x - v3.x, v3.x * v2.y - v2.x * v3.y };
-					edgeCoefs[2] = { v1.y - v3.y, v3.x - v1.x, v1.x * v3.y - v3.x * v1.y };
-
+					edgeCoefs[0] = ptRef.e1;
+					edgeCoefs[1] = ptRef.e2;
+					edgeCoefs[2] = ptRef.e3;
 
 					int chosenCoordTR[3];
 					int chosenCoordTA[3];
 					getAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
-
-					rect2Df bbox = proposal.bbox;
-					bbox.x = bbox.x * 0.5 + 0.5;
-					bbox.y = bbox.y * 0.5 + 0.5;
-					bbox.w = bbox.w * 0.5;
-					bbox.h = bbox.h * 0.5;
 
 					int leftBlock = 0;
 					int rightBlock = context->subtileBlocksX - 1;
@@ -389,16 +354,22 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 
 					TileBinProposal npropPixel;
-					npropPixel.allAccept = true;
 					npropPixel.level = TileRasterLevel::PIXEL;
+					npropPixel.clippedTriangle = proposal.clippedTriangle;
+
+					TileBinProposal npropBlock;
+					npropBlock.level = TileRasterLevel::BLOCK;
+					npropBlock.clippedTriangle = proposal.clippedTriangle;
 
 					TileBinProposal  npropPixel128;
-					npropPixel128.allAccept = true;
 					npropPixel128.level = TileRasterLevel::PIXEL_PACK2X2;
+					npropPixel128.clippedTriangle = proposal.clippedTriangle;
 
 					TileBinProposal  npropPixel256;
-					npropPixel256.allAccept = true;
 					npropPixel256.level = TileRasterLevel::PIXEL_PACK4X2;
+					npropPixel256.clippedTriangle = proposal.clippedTriangle;
+
+					auto& coverQueue = context->coverQueue[workerId][getTileID(tileIdX, tileIdY)];
 
 					for (int x = leftBlock; x <= rightBlock; x += 2) {
 						for (int y = topBlock; y <= bottomBlock; y += 2) {
@@ -453,29 +424,24 @@ namespace Ifrit::Engine::TileRaster {
 							_mm_storeu_si128((__m128i*)criteriaTA, criteriaTA128);
 
 							for (int i = 0; i < 4; i++) {
-								auto dwX = x + i % 2;
-								auto dwY = y + i / 2;
+								const auto dwX = x + (i & 1);
+								const auto dwY = y + (i >> 1);
 								if (criteriaTR[i] != 3 || (dwX > rightBlock || dwY > bottomBlock)) {
 									continue;
 								}
 								
 								if (criteriaTA[i] == 3) {
-									TileBinProposal nprop;
-									nprop.allAccept = true;
-									nprop.level = TileRasterLevel::BLOCK;
-									nprop.bbox = proposal.bbox;
-									nprop.tile = { x + i % 2, y + i / 2 };
-									nprop.clippedTriangle = proposal.clippedTriangle;
-									context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(nprop);
+									npropBlock.tile = { dwX, dwY };
+									coverQueue.push_back(npropBlock);
 								}
 								else {
-									float wp = (context->subtileBlocksX * context->tileBlocksX);
-									int subTileMinX = (tileIdX * context->subtileBlocksX + (x + i % 2)) * frameBufferWidth / wp;
-									int subTileMinY = (tileIdY * context->subtileBlocksX + (y + i / 2)) * frameBufferHeight / wp;
-									int subTileMaxX = (tileIdX * context->subtileBlocksX + (x + i % 2) + 1) * frameBufferWidth / wp;
-									int subTileMaxY = (tileIdY * context->subtileBlocksX + (y + i / 2) + 1) * frameBufferHeight / wp;
-									subTileMaxX = std::min(subTileMaxX * 1u, frameBufferWidth - 1);
-									subTileMaxY = std::min(subTileMaxY * 1u, frameBufferHeight - 1);
+									const int wp = (context->subtileBlocksX * context->tileBlocksX);
+									const auto stMX = tileIdX * context->subtileBlocksX + dwX;
+									const auto stMY = tileIdY * context->subtileBlocksX + dwY;
+									const int subTileMinX = stMX * frameBufferWidth / wp;
+									const int subTileMinY = stMY * frameBufferHeight / wp;
+									const int subTileMaxX = std::min((stMX + 1) * frameBufferWidth / wp, frameBufferWidth - 1);
+									const int subTileMaxY = std::min((stMY + 1) * frameBufferHeight / wp, frameBufferHeight - 1);
 
 
 #ifdef IFRIT_USE_SIMD_256
@@ -497,10 +463,8 @@ namespace Ifrit::Engine::TileRaster {
 											}
 											if (_mm256_testc_si256(_mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(3)), _mm256_set1_epi32(-1))) {
 												// If All Accept
-												npropPixel256.bbox = proposal.bbox;
 												npropPixel256.tile = { dx,dy };
-												npropPixel256.clippedTriangle = proposal.clippedTriangle;
-												context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel256);
+												coverQueue.push_back(npropPixel256);
 											}
 											else {
 												// Pack By 2
@@ -508,14 +472,12 @@ namespace Ifrit::Engine::TileRaster {
 												_mm256_storeu_si256((__m256i*)accept128, accept256);
 												for (int di = 0; di < 2; di++) {
 													auto pv = dx + ((di & 1) << 1);
-													subTileMaxX = std::min(1u * subTileMaxX, frameBufferWidth-1);
-													subTileMaxY = std::min(1u * subTileMaxY, frameBufferHeight-1);
-													if (pv <= subTileMaxX && dy<= subTileMaxY &&
-														_mm_movemask_epi8(_mm_cmpeq_epi32(accept128[di], _mm_set1_epi32(3))) == 0xFFFF) {
-														npropPixel128.bbox = proposal.bbox;
-														npropPixel128.tile = {pv, dy  };
-														npropPixel128.clippedTriangle = proposal.clippedTriangle;
-														context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel128);
+													if (pv > subTileMaxX || dy > subTileMaxY) {
+														continue;
+													}
+													if (_mm_movemask_epi8(_mm_cmpeq_epi32(accept128[di], _mm_set1_epi32(3))) == 0xFFFF) {
+														npropPixel128.tile = { pv, dy };
+														coverQueue.push_back(npropPixel128);
 													}
 													else {
 														int accept[4];
@@ -525,10 +487,8 @@ namespace Ifrit::Engine::TileRaster {
 															auto pvx = pv + (ddi & 1);
 															auto pvy = dy + (ddi >> 1);
 															if (pvx <= subTileMaxX && pvy <= subTileMaxY && accept[ddi] == 3) {
-																npropPixel.bbox = proposal.bbox;
 																npropPixel.tile = { pvx,pvy };
-																npropPixel.clippedTriangle = proposal.clippedTriangle;
-																context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel);
+																coverQueue.push_back(npropPixel);
 															}
 														}
 													}
@@ -555,8 +515,6 @@ namespace Ifrit::Engine::TileRaster {
 											
 											if (_mm_movemask_epi8(_mm_cmpeq_epi32(accept128, _mm_set1_epi32(3))) == 0xFFFF) {
 												// If All Accept
-												npropPixel128.bbox = proposal.bbox;
-												npropPixel128.primitiveId = proposal.primitiveId;
 												npropPixel128.tile = { dx,dy };
 												npropPixel128.clippedTriangle = proposal.clippedTriangle;
 												context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel128);
@@ -566,8 +524,6 @@ namespace Ifrit::Engine::TileRaster {
 												_mm_storeu_si128((__m128i*)accept, accept128);
 												for (int di = 0; di < 4; di++) {
 													if (accept[di] == 3 && dx + di % 2 < frameBufferWidth && dy + di / 2 < frameBufferHeight) {
-														npropPixel.bbox = proposal.bbox;
-														npropPixel.primitiveId = proposal.primitiveId;
 														npropPixel.tile = { dx + di % 2, dy + di / 2 };
 														npropPixel.clippedTriangle = proposal.clippedTriangle;
 														context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel);
@@ -626,11 +582,8 @@ namespace Ifrit::Engine::TileRaster {
 						}
 						if (criteriaTA == 3) {
 							TileBinProposal nprop;
-							nprop.allAccept = true;
 							nprop.level = TileRasterLevel::BLOCK;
-							nprop.bbox = proposal.bbox;
 							nprop.tile = { x,y };
-							nprop.primitiveId = proposal.primitiveId;
 							nprop.clippedTriangle = proposal.clippedTriangle;
 							context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(nprop);
 						}
@@ -646,10 +599,7 @@ namespace Ifrit::Engine::TileRaster {
 									}
 									if (accept==3) {
 										TileBinProposal nprop;
-										nprop.allAccept = true;
 										nprop.level = TileRasterLevel::PIXEL;
-										nprop.bbox = proposal.bbox;
-										nprop.primitiveId = proposal.primitiveId;
 										nprop.tile = { dx,dy };
 										nprop.clippedTriangle = proposal.clippedTriangle;
 										context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(nprop);
