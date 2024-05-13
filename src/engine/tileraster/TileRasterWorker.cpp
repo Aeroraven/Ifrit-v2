@@ -228,7 +228,6 @@ namespace Ifrit::Engine::TileRaster {
 					proposal.allAccept = true;
 					proposal.level = TileRasterLevel::TILE;
 					proposal.bbox = bbox;
-					proposal.primitiveId = primitiveId;
 					proposal.clippedTriangle = { workerId,primitiveId };
 					context->coverQueue[workerId][getTileID(x, y)].push_back(proposal);
 				}
@@ -237,7 +236,6 @@ namespace Ifrit::Engine::TileRaster {
 					proposal.allAccept = false;
 					proposal.bbox = bbox;
 					proposal.level = TileRasterLevel::TILE;
-					proposal.primitiveId = primitiveId;
 					proposal.clippedTriangle = { workerId,primitiveId };
 					context->rasterizerQueue[workerId][getTileID(x, y)].push_back(proposal);
 				}
@@ -466,7 +464,6 @@ namespace Ifrit::Engine::TileRaster {
 									nprop.level = TileRasterLevel::BLOCK;
 									nprop.bbox = proposal.bbox;
 									nprop.tile = { x + i % 2, y + i / 2 };
-									nprop.primitiveId = proposal.primitiveId;
 									nprop.clippedTriangle = proposal.clippedTriangle;
 									context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(nprop);
 								}
@@ -500,7 +497,6 @@ namespace Ifrit::Engine::TileRaster {
 											if (_mm256_testc_si256(_mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(3)), _mm256_set1_epi32(-1))) {
 												// If All Accept
 												npropPixel256.bbox = proposal.bbox;
-												npropPixel256.primitiveId = proposal.primitiveId;
 												npropPixel256.tile = { dx,dy };
 												npropPixel256.clippedTriangle = proposal.clippedTriangle;
 												context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel256);
@@ -510,15 +506,13 @@ namespace Ifrit::Engine::TileRaster {
 												__m128i accept128[2];
 												_mm256_storeu_si256((__m256i*)accept128, accept256);
 												for (int di = 0; di < 2; di++) {
-													auto pv = dx + 2 * (di % 2);
-													auto pw = dy;
+													auto pv = dx + ((di & 1) << 1);
 													subTileMaxX = std::min(1u * subTileMaxX, frameBufferWidth-1);
 													subTileMaxY = std::min(1u * subTileMaxY, frameBufferHeight-1);
 													if (pv <= subTileMaxX && dy<= subTileMaxY &&
 														_mm_movemask_epi8(_mm_cmpeq_epi32(accept128[di], _mm_set1_epi32(3))) == 0xFFFF) {
 														npropPixel128.bbox = proposal.bbox;
-														npropPixel128.primitiveId = proposal.primitiveId;
-														npropPixel128.tile = { dx + 2 * (di % 2), dy  };
+														npropPixel128.tile = {pv, dy  };
 														npropPixel128.clippedTriangle = proposal.clippedTriangle;
 														context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel128);
 													}
@@ -527,16 +521,12 @@ namespace Ifrit::Engine::TileRaster {
 														_mm_storeu_si128((__m128i*)accept, accept128[di]);
 														
 														for (int ddi = 0; ddi < 4; ddi++) {
-															auto pvx = dx + ddi % 2 + 2 * (di % 2);
-															auto pvy = dy + ddi / 2;
+															auto pvx = pv + (ddi & 1);
+															auto pvy = dy + (ddi >> 1);
 															if (pvx <= subTileMaxX && pvy <= subTileMaxY && accept[ddi] == 3) {
 																npropPixel.bbox = proposal.bbox;
-																npropPixel.primitiveId = proposal.primitiveId;
-																npropPixel.tile = { dx + ddi % 2 + 2 * (di % 2), dy + ddi / 2};
+																npropPixel.tile = { pvx,pvy };
 																npropPixel.clippedTriangle = proposal.clippedTriangle;
-																if (dx + ddi % 2 + 2 * (di % 2) == 1600) {
-																	ifritLog1("??");
-																}
 																context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel);
 															}
 														}

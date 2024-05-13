@@ -43,7 +43,6 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	struct TileBinProposal {
-		int primitiveId;
 		rect2Df bbox;
 		int2 tile;
 		bool allAccept;
