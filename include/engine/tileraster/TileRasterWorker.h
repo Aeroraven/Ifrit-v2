@@ -45,9 +45,9 @@ namespace Ifrit::Engine::TileRaster {
 		void run();
 
 		bool triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox);
-		int triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3);
+		void triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3);
 		bool triangleCulling(float4 v1, float4 v2, float4 v3);
-		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp);
+		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, rect2Df bbox);
 
 		void vertexProcessing();
 		void geometryProcessing();
