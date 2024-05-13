@@ -32,7 +32,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 		}
 	}
-	void TileRasterWorker::triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3) {
+	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3) {
 		using Ifrit::Engine::Math::ShaderOps::dot;
 		using Ifrit::Engine::Math::ShaderOps::sub;
 		using Ifrit::Engine::Math::ShaderOps::add;
@@ -48,29 +48,30 @@ namespace Ifrit::Engine::TileRaster {
 			{0,0,1,0},
 			{0,0,-1,0}
 		};
-		std::vector<TileRasterClipVertex> ret[2];
-		ret[1].reserve(3);
-		ret[1].push_back({ {1,0,0,0},v1 });
-		ret[1].push_back({ {0,1,0,0},v2 });
-		ret[1].push_back({ {0,0,1,0},v3 });
+		TileRasterClipVertex ret[2][9];
+		uint32_t retCnt[2] = { 0,3 };
+		ret[1][0] = { {1,0,0,0},v1 };
+		ret[1][1] = { {0,1,0,0},v2 };
+		ret[1][2] = { {0,0,1,0},v3 };
 		int clipTimes = 0;
 		for (int i = 0; i < clipIts; i++) {
 			float4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
 			float4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
-			ret[i & 1].clear();
-			const auto psize = ret[1 - (i & 1)].size();
-			if (ret[1 - (i & 1)].size() == 0) {
-				return;
+			const auto cIdx = i & 1, cRIdx = 1- (i & 1);
+			retCnt[cIdx] = 0;
+			const auto psize = retCnt[cRIdx];
+			if (psize == 0) {
+				return 0;
 			}
 			int ct = 0;
-			auto pc = ret[1 - (i & 1)][0];
+			auto pc = ret[cRIdx][0];
 			for (int j = 0; j < psize; j++) {
 				const auto& pn = ret[1 - (i & 1)][(j + 1) % psize];
 				auto npc = dot(pc.pos, outNormal);
 				auto npn = dot(pn.pos, outNormal);
 			
 				if (npc < EPS && npn < EPS) {
-					ret[i & 1].push_back(pn);
+					ret[cIdx][retCnt[cIdx]++] = pn;
 				}
 				else if (npc * npn < 0) {
 					float4 dir = sub(pn.pos, pc.pos);
@@ -89,24 +90,24 @@ namespace Ifrit::Engine::TileRaster {
 					TileRasterClipVertex newp;
 					newp.barycenter = barycenter;
 					newp.pos = intersection;
-					ret[i & 1].push_back(newp);
+					ret[cIdx][retCnt[cIdx]++] = (newp);
 					if (npn < EPS) {
-						ret[i & 1].push_back(pn);
+						ret[cIdx][retCnt[cIdx]++] = (pn);
 					}
 				}
 				pc = pn;
 			}
-			if (ret[i%2].size() < 3 && ret[i % 2].size()!=0) {
-				return;
+			if (retCnt[cIdx] < 3 && retCnt[cIdx] !=0) {
+				return 0;
 			}
 		}
 		
-		for (int i = 0; i < ret[clipIts % 2].size(); i++) {
+		for (int i = 0; i < retCnt[clipIts % 2]; i++) {
 			ret[clipIts%2][i].pos.x /= ret[clipIts % 2][i].pos.w;
 			ret[clipIts % 2][i].pos.y /= ret[clipIts % 2][i].pos.w;
 			ret[clipIts % 2][i].pos.z /= ret[clipIts % 2][i].pos.w;
 		}
-		for (int i = 0; i < ret[clipIts % 2].size() - 2; i++) {
+		for (int i = 0; i < retCnt[clipIts % 2] - 2; i++) {
 			// (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
 			// Equals to c.x*(b.y-a.y) - c.y*(b.x-a.x) + (-a.x*(b.y-a.y)+a.y*(b.x-a.x)
 			// Order:23/31/12
@@ -132,7 +133,7 @@ namespace Ifrit::Engine::TileRaster {
 			atri.originalPrimitive = primitiveId;
 			context->assembledTriangles[workerId].push_back(atri);
 		}
-		
+		return  retCnt[clipIts % 2] - 2;
 	}
 	bool TileRasterWorker::triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox) {
 		bool inside = true;
@@ -261,6 +262,7 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterWorker::geometryProcessing() {
 		auto posBuffer = context->vertexShaderResult->getPositionBuffer();
 		generatedTriangle.clear();
+		int genTris = 0;
 		for (int j = workerId * context->vertexStride; j < context->indexBuffer->size(); j += context->numThreads * context->vertexStride) {
 			int id0 = (*context->indexBuffer)[j];
 			int id1 = (*context->indexBuffer)[j + 1];
@@ -285,11 +287,9 @@ namespace Ifrit::Engine::TileRaster {
 				context->primitiveEdgeCoefs[prim].coef[i].z /= norm;
 			}
 
-			
-			
-			int curTriangleId = context->assembledTriangles[workerId].size();
-			triangleHomogeneousClip(prim, v1, v2, v3);
-			for(int i = curTriangleId; i < context->assembledTriangles[workerId].size(); i++) {
+			int fw = triangleHomogeneousClip(prim, v1, v2, v3);
+			int gtri = fw + genTris;
+			for(int i = genTris; i < gtri; i++) {
 				auto& atri = context->assembledTriangles[workerId][i];
 				rect2Df bbox;
 				if (!triangleFrustumClip(atri.v1, atri.v2, atri.v3, bbox)) {
@@ -300,6 +300,7 @@ namespace Ifrit::Engine::TileRaster {
 				}
 				executeBinner(i, atri, bbox);
 			}
+			genTris = gtri;
 			context->primitiveMinZ[prim] = 0;
 		}
 		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC);
