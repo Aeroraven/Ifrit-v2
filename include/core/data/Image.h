@@ -9,21 +9,29 @@ namespace Ifrit::Core::Data {
 		size_t width;
 		size_t height;
 		size_t channel;
+
+		size_t widthMulChannel;
 	public:
 		Image(size_t width, size_t height, size_t channel) : width(width), height(height), channel(channel) {
 			data.resize(width * height * channel);
+			widthMulChannel = width * channel;
 		}
 		Image(size_t width, size_t height, size_t channel, const std::vector<T>& data) : width(width), height(height), channel(channel), data(data) {
-			ifritAssert(data.size() == width * height * channel, "Data size does not match the image size");	
+			ifritAssert(data.size() == width * height * channel, "Data size does not match the image size");
+			widthMulChannel = width * channel;
 		}
 		Image(size_t width, size_t height, size_t channel, std::vector<T>&& data) : width(width), height(height), channel(channel), data(std::move(data)) {
 			ifritAssert(data.size() == width * height * channel, "Data size does not match the image size");
+			widthMulChannel = width * channel;
 		}
-		Image(const Image& other) : width(other.width), height(other.height), channel(other.channel), data(other.data) {}
-		Image(Image&& other) noexcept : width(other.width), height(other.height), channel(other.channel), data(std::move(other.data)) {}
+		Image(const Image& other) : width(other.width), height(other.height), channel(other.channel), data(other.data) {
+			widthMulChannel = width * channel;
+		}
+		Image(Image&& other) noexcept : width(other.width), height(other.height), channel(other.channel), data(std::move(other.data)) {
+			widthMulChannel = width * channel;
+		}
 
 		void fillAreaRGBA(size_t x, size_t y, size_t w, size_t h, const T& r, const T& g, const T& b, const T& a) {
-			//ifritAssert(x + w <= width && y + h <= height, "Area out of range");
 			for (size_t i = y; i < y + h; i++) {
 				for (size_t j = x; j < x + w; j++) {
 					data[i * width * channel + j * channel + 0] = r;
@@ -35,11 +43,11 @@ namespace Ifrit::Core::Data {
 		}
 
 		inline void fillPixelRGBA(size_t x, size_t y, const T& r, const T& g, const T& b, const T& a) {
-			//ifritAssert(x < width && y < height, "Pixel out of range");
-			data[y * width * channel + x * channel + 0] = r;
-			data[y * width * channel + x * channel + 1] = g;
-			data[y * width * channel + x * channel + 2] = b;
-			data[y * width * channel + x * channel + 3] = a;
+			const auto p = y * widthMulChannel + x * channel;
+			data[p + 0] = r;
+			data[p + 1] = g;
+			data[p + 2] = b;
+			data[p + 3] = a;
 		}
 
 		void fillArea(size_t x, size_t y, size_t w, size_t h, const T& value) {

@@ -34,6 +34,8 @@ namespace Ifrit::Engine::TileRaster {
 		float4 b1, b2, b3;
 		float4 e1, e2, e3; //Edge Coefs
 		float3 f1, f2, f3; //Interpolate Bases
+		float iw1, iw2, iw3; //Inversed W
+		rect2Df bbox;
 		int originalPrimitive;
 	};
 
@@ -43,10 +45,7 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	struct TileBinProposal {
-		int primitiveId;
-		rect2Df bbox;
 		int2 tile;
-		bool allAccept;
 		TileRasterLevel level;
 		AssembledTriangleProposalReference clippedTriangle;
 	};
