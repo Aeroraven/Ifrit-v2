@@ -338,7 +338,7 @@ namespace Ifrit::Engine::TileRaster {
 					for (int k = 0; k < 3; k++) {
 						edgeCoefs128X[k] = _mm_set1_ps(edgeCoefs[k].x);
 						edgeCoefs128Y[k] = _mm_set1_ps(edgeCoefs[k].y);
-						edgeCoefs128Z[k] = _mm_set1_ps(edgeCoefs[k].z);
+						edgeCoefs128Z[k] = _mm_set1_ps(-edgeCoefs[k].z); //NOTE HERE
 					}
 
 #ifdef IFRIT_USE_SIMD_256
@@ -347,12 +347,14 @@ namespace Ifrit::Engine::TileRaster {
 					__m256 tileMaxX256 = _mm256_set1_ps(tileMaxX);
 					__m256 tileMaxY256 = _mm256_set1_ps(tileMaxY);
 					__m256 wp256 = _mm256_set1_ps(context->subtileBlocksX * context->tileBlocksX);
+					__m256 frameBufferWidth256 = _mm256_set1_ps(frameBufferWidth);
+					__m256 frameBufferHeight256 = _mm256_set1_ps(frameBufferHeight);
 
 					__m256 edgeCoefs256X[3], edgeCoefs256Y[3], edgeCoefs256Z[3];
 					for (int k = 0; k < 3; k++) {
 						edgeCoefs256X[k] = _mm256_set1_ps(edgeCoefs[k].x);
 						edgeCoefs256Y[k] = _mm256_set1_ps(edgeCoefs[k].y);
-						edgeCoefs256Z[k] = _mm256_set1_ps(edgeCoefs[k].z);
+						edgeCoefs256Z[k] = _mm256_set1_ps(-edgeCoefs[k].z+EPS); //NOTE HERE
 					}	
 #endif
 
@@ -405,22 +407,17 @@ namespace Ifrit::Engine::TileRaster {
 
 							__m128 criteriaLocalTR128[3], criteriaLocalTA128[3];
 							for (int k = 0; k < 3; k++) {
-								criteriaLocalTR128[k] = _mm_add_ps(
-									_mm_add_ps(_mm_mul_ps(edgeCoefs128X[k], tileCoordsX128[chosenCoordTR[k]]),
-									_mm_mul_ps(edgeCoefs128Y[k], tileCoordsY128[chosenCoordTR[k]])), edgeCoefs128Z[k]);
+								criteriaLocalTR128[k] = _mm_add_ps(_mm_mul_ps(edgeCoefs128X[k], tileCoordsX128[chosenCoordTR[k]]),
+									_mm_mul_ps(edgeCoefs128Y[k], tileCoordsY128[chosenCoordTR[k]]));
 
-								criteriaLocalTA128[k] = _mm_add_ps(
-									_mm_add_ps(_mm_mul_ps(edgeCoefs128X[k], tileCoordsX128[chosenCoordTA[k]]),
-									_mm_mul_ps(edgeCoefs128Y[k], tileCoordsY128[chosenCoordTA[k]])), edgeCoefs128Z[k]);	
+								criteriaLocalTA128[k] = _mm_add_ps(_mm_mul_ps(edgeCoefs128X[k], tileCoordsX128[chosenCoordTA[k]]),
+									_mm_mul_ps(edgeCoefs128Y[k], tileCoordsY128[chosenCoordTA[k]]));	
 
-								__m128i criteriaTRMask = _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTR128[k], _mm_set1_ps(0)));
-								__m128i criteriaTAMask = _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTA128[k], _mm_set1_ps(0)));
-								criteriaTRMask = _mm_sub_epi32(_mm_set1_epi32(0), criteriaTRMask);
-								criteriaTAMask = _mm_sub_epi32(_mm_set1_epi32(0), criteriaTAMask);
+								__m128i criteriaTRMask = _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTR128[k], edgeCoefs128Z[k]));
+								__m128i criteriaTAMask = _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTA128[k], edgeCoefs128Z[k]));
 								criteriaTR128 = _mm_add_epi32(criteriaTR128, criteriaTRMask);
 								criteriaTA128 = _mm_add_epi32(criteriaTA128, criteriaTAMask);
 							}
-
 
 							int criteriaTR[4], criteriaTA[4];
 							_mm_storeu_si128((__m128i*)criteriaTR, criteriaTR128);
@@ -429,11 +426,11 @@ namespace Ifrit::Engine::TileRaster {
 							for (int i = 0; i < 4; i++) {
 								const auto dwX = x + (i & 1);
 								const auto dwY = y + (i >> 1);
-								if (criteriaTR[i] != 3 || (dwX > rightBlock || dwY > bottomBlock)) {
+								if (criteriaTR[i] != -3 || (dwX > rightBlock || dwY > bottomBlock)) {
 									continue;
 								}
 								
-								if (criteriaTA[i] == 3) {
+								if (criteriaTA[i] == -3) {
 									npropBlock.tile = { dwX, dwY };
 									coverQueue.push_back(npropBlock);
 								}
@@ -450,21 +447,21 @@ namespace Ifrit::Engine::TileRaster {
 #ifdef IFRIT_USE_SIMD_256
 									for (int dx = subTileMinX; dx <= subTileMaxX; dx += 4) {
 										for (int dy = subTileMinY; dy <= subTileMaxY; dy += 2) {
-											__m256i dx256 = _mm256_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
-											__m256i dy256 = _mm256_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
+											__m256 dx256 = _mm256_setr_ps(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
+											__m256 dy256 = _mm256_setr_ps(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
 
-											__m256 ndcX128 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(_mm256_cvtepi32_ps(dx256), _mm256_set1_ps(frameBufferWidth))), _mm256_set1_ps(1.0f));
-											__m256 ndcY128 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(_mm256_cvtepi32_ps(dy256), _mm256_set1_ps(frameBufferHeight))), _mm256_set1_ps(1.0f));
+											__m256 ndcX128 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(dx256, frameBufferWidth256)), _mm256_set1_ps(1.0f));
+											__m256 ndcY128 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(dy256, frameBufferHeight256)), _mm256_set1_ps(1.0f));
 											__m256i accept256 = _mm256_setzero_si256();
 											__m256 criteria256[3];
 
 											for (int k = 0; k < 3; k++) {
-												criteria256[k] = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(edgeCoefs256X[k], ndcX128), _mm256_mul_ps(edgeCoefs256Y[k], ndcY128)), edgeCoefs256Z[k]);
-												auto acceptMask = _mm256_castps_si256(_mm256_cmp_ps(criteria256[k], _mm256_set1_ps(EPS), _CMP_LT_OS));
-												acceptMask = _mm256_sub_epi32(_mm256_set1_epi32(0), acceptMask);
+												criteria256[k] = _mm256_add_ps(_mm256_mul_ps(edgeCoefs256X[k], ndcX128), _mm256_mul_ps(edgeCoefs256Y[k], ndcY128));
+												auto acceptMask = _mm256_castps_si256(_mm256_cmp_ps(criteria256[k], edgeCoefs256Z[k], _CMP_LT_OS));
 												accept256 = _mm256_add_epi32(accept256, acceptMask);
 											}
-											if (_mm256_testc_si256(_mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(3)), _mm256_set1_epi32(-1))) {
+											accept256 = _mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(-3));
+											if (_mm256_testc_si256(accept256, _mm256_set1_epi32(-1))) {
 												// If All Accept
 												npropPixel256.tile = { dx,dy };
 												coverQueue.push_back(npropPixel256);
@@ -478,7 +475,7 @@ namespace Ifrit::Engine::TileRaster {
 													if (pv > subTileMaxX || dy > subTileMaxY) {
 														continue;
 													}
-													if (_mm_movemask_epi8(_mm_cmpeq_epi32(accept128[di], _mm_set1_epi32(3))) == 0xFFFF) {
+													if (_mm_testc_si128(accept128[di],_mm_set1_epi32(-1))) {
 														npropPixel128.tile = { pv, dy };
 														coverQueue.push_back(npropPixel128);
 													}
@@ -487,9 +484,9 @@ namespace Ifrit::Engine::TileRaster {
 														_mm_storeu_si128((__m128i*)accept, accept128[di]);
 														
 														for (int ddi = 0; ddi < 4; ddi++) {
-															auto pvx = pv + (ddi & 1);
-															auto pvy = dy + (ddi >> 1);
-															if (pvx <= subTileMaxX && pvy <= subTileMaxY && accept[ddi] == 3) {
+															const auto pvx = pv + (ddi & 1);
+															const auto pvy = dy + (ddi >> 1);
+															if (pvx <= subTileMaxX && pvy <= subTileMaxY && accept[ddi] == -1) {
 																npropPixel.tile = { pvx,pvy };
 																coverQueue.push_back(npropPixel);
 															}
