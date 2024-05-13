@@ -68,9 +68,7 @@ namespace Ifrit::Engine::TileRaster {
 			for (int j = 0; j < psize; j++) {
 				const auto& pn = ret[cRIdx][(j + 1) % psize];
 				auto npn = dot(pn.pos, outNormal);
-				if (npn < EPS) {
-					ret[cIdx][retCnt[cIdx]++] = pn;
-				}
+				
 				if (npc * npn < 0) {
 					float4 dir = sub(pn.pos, pc.pos);
 					// Solve for t, where W = aX + bY + cZ + d
@@ -89,6 +87,9 @@ namespace Ifrit::Engine::TileRaster {
 					newp.barycenter = barycenter;
 					newp.pos = intersection;
 					ret[cIdx][retCnt[cIdx]++] = (newp);
+				}
+				if (npn < EPS) {
+					ret[cIdx][retCnt[cIdx]++] = pn;
 				}
 				pc = pn;
 				npc = npn;
