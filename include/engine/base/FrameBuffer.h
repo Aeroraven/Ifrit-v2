@@ -7,14 +7,14 @@ namespace Ifrit::Engine {
 
 	class FrameBuffer {
 	private:
-		std::vector<std::shared_ptr<ImageU8>> colorAttachment;
+		std::vector<std::shared_ptr<ImageF32>> colorAttachment;
 		std::shared_ptr<ImageF32> depthAttachment;
 		uint32_t width;
 		uint32_t height;
 	public:
-		void setColorAttachments(const std::vector<std::shared_ptr<ImageU8>>& colorAttachment);
+		void setColorAttachments(const std::vector<std::shared_ptr<ImageF32>>& colorAttachment);
 		void setDepthAttachment(const std::shared_ptr<ImageF32>& depthAttachment);
-		inline ImageU8* getColorAttachment(size_t index){
+		inline ImageF32* getColorAttachment(size_t index){
 			return colorAttachment[index].get();
 		}
 		inline ImageF32* getDepthAttachment() {

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{CBDE4B7D-E58D-4711-A771-AB6D200D542F}</ProjectGuid>
+    <RootNamespace>Ifrit_v2x</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.4.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PropertySheet.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PropertySheet.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Users\Huang\Desktop\Tool\glfw-3.3.8\include;$(ProjectDir)include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>C:\Users\Huang\Desktop\Tool\glfw-3.3.8\include;$(ProjectDir)include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FloatingPointModel>Fast</FloatingPointModel>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>glfw3.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <FloatingPointModel>Fast</FloatingPointModel>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>glfw3.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <Include>$(ProjectDir)include;%(Include)</Include>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\engine\tilerastercuda\TileRasterRendererCuda.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\core\cuda\CudaUtils.h" />
+    <ClInclude Include="include\core\data\Image.h" />
+    <ClInclude Include="include\core\definition\CoreDefs.h" />
+    <ClInclude Include="include\core\definition\CoreExports.h" />
+    <ClInclude Include="include\core\definition\CoreTypes.h" />
+    <ClInclude Include="include\core\utility\CoreLogger.h" />
+    <ClInclude Include="include\core\utility\CoreUtils.h" />
+    <ClInclude Include="include\dependency\GLAD\glad\glad.h" />
+    <ClInclude Include="include\dependency\GLAD\KHR\khrplatform.h" />
+    <ClInclude Include="include\engine\base\BufferLayout.h" />
+    <ClInclude Include="include\engine\base\FragmentShader.h" />
+    <ClInclude Include="include\engine\base\FrameBuffer.h" />
+    <ClInclude Include="include\engine\base\Renderer.h" />
+    <ClInclude Include="include\engine\base\TypeDescriptor.h" />
+    <ClInclude Include="include\engine\base\VaryingStore.h" />
+    <ClInclude Include="include\engine\base\VertexBuffer.h" />
+    <ClInclude Include="include\engine\base\VertexShader.h" />
+    <ClInclude Include="include\engine\base\VertexShaderResult.h" />
+    <ClInclude Include="include\engine\math\ShaderOps.h" />
+    <ClInclude Include="include\engine\tilerastercuda\TileRasterContextCuda.h" />
+    <ClInclude Include="include\engine\tilerastercuda\TileRasterRendererCuda.h" />
+    <ClInclude Include="include\engine\tileraster\TileRasterCommon.h" />
+    <ClInclude Include="include\engine\tileraster\TileRasterContext.h" />
+    <ClInclude Include="include\engine\tileraster\TileRasterRenderer.h" />
+    <ClInclude Include="include\engine\tileraster\TileRasterWorker.h" />
+    <ClInclude Include="include\presentation\backend\BackendProvider.h" />
+    <ClInclude Include="include\presentation\backend\OpenGLBackend.h" />
+    <ClInclude Include="include\presentation\window\GLFWWindowProvider.h" />
+    <ClInclude Include="include\presentation\window\WindowProvider.h" />
+    <ClInclude Include="include\utility\loader\WavefrontLoader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="IfritMain.cpp" />
+    <ClCompile Include="src\dependency\GLAD\glad.c" />
+    <ClCompile Include="src\engine\base\FragmentShader.cpp" />
+    <ClCompile Include="src\engine\base\FrameBuffer.cpp" />
+    <ClCompile Include="src\engine\base\VertexBuffer.cpp" />
+    <ClCompile Include="src\engine\base\VertexShader.cpp" />
+    <ClCompile Include="src\engine\base\VertexShaderResult.cpp" />
+    <ClCompile Include="src\engine\math\ShaderOps.cpp" />
+    <ClCompile Include="src\engine\tilerastercuda\TileRasterContextCuda.cpp" />
+    <ClCompile Include="src\engine\tileraster\TileRasterContext.cpp" />
+    <ClCompile Include="src\engine\tileraster\TileRasterRenderer.cpp" />
+    <ClCompile Include="src\engine\tileraster\TileRasterWorker.cpp" />
+    <ClCompile Include="src\presentation\backend\OpenGLBackend.cpp" />
+    <ClCompile Include="src\presentation\window\GLFWWindowProvider.cpp" />
+    <ClCompile Include="src\presentation\window\WindowProvider.cpp" />
+    <ClCompile Include="src\utility\loader\WavefrontLoader.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.4.targets" />
+  </ImportGroup>
+</Project>

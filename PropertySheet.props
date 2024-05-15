@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <IFRIT_FEATURE_SIMD>1</IFRIT_FEATURE_SIMD>
+    <IFRIT_FEATURE_SIMD_AVX512>0</IFRIT_FEATURE_SIMD_AVX512>
+    <IFRIT_FEATURE_SIMD_AVX256>1</IFRIT_FEATURE_SIMD_AVX256>
+    <IFRIT_FEATURE_CUDA>1</IFRIT_FEATURE_CUDA>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IncludePath>$(ProjectDir)include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <ExternalIncludePath>C:\Program Files (x86)\glfw-3.3.8\lib;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>C:\Program Files (x86)\glfw-3.3.8\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>IFRIT_ASSET_PATH=R"($(ProjectDir)asset)";IFRIT_SHADER_PATH=R"($(ProjectDir)shader)";IFRIT_FEATURE_SIMD=$(IFRIT_FEATURE_SIMD);IFRIT_FEATURE_SIMD_AVX512=$(IFRIT_FEATURE_SIMD_AVX512);IFRIT_FEATURE_SIMD_AVX256=$(IFRIT_FEATURE_SIMD_AVX256);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="IFRIT_FEATURE_SIMD">
+      <Value>$(IFRIT_FEATURE_SIMD)</Value>
+    </BuildMacro>
+    <BuildMacro Include="IFRIT_FEATURE_SIMD_AVX512">
+      <Value>$(IFRIT_FEATURE_SIMD_AVX512)</Value>
+    </BuildMacro>
+    <BuildMacro Include="IFRIT_FEATURE_SIMD_AVX256">
+      <Value>$(IFRIT_FEATURE_SIMD_AVX256)</Value>
+    </BuildMacro>
+    <BuildMacro Include="IFRIT_FEATURE_CUDA">
+      <Value>$(IFRIT_FEATURE_CUDA)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

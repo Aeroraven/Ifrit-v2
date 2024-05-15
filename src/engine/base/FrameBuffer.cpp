@@ -1,7 +1,7 @@
-#include "./engine/base/FrameBuffer.h"
+#include "engine/base/FrameBuffer.h"
 
 namespace Ifrit::Engine {
-	void FrameBuffer::setColorAttachments(const std::vector<std::shared_ptr<ImageU8>>& colorAttachment) {
+	void FrameBuffer::setColorAttachments(const std::vector<std::shared_ptr<ImageF32>>& colorAttachment) {
 		this->colorAttachment = colorAttachment;
 		this->width = colorAttachment[0]->getWidth();
 		this->height = colorAttachment[0]->getHeight();

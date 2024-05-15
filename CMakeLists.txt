@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.10)
-project(Ifrit-v2)
+project(Ifrit-v2 LANGUAGES CXX CUDA)
 
 set(IFRIT_ENABLE_CUDA True)
 set(IFRIT_ENABLE_SIMD_AVX True)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CUDA_STANDARD_REQUIRED True)
 
 set(RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
@@ -31,6 +34,7 @@ if(IFRIT_ENABLE_CUDA)
     enable_language(CUDA)
     include_directories(${IFRIT_REQ_CUDA_INCLUDE})
     include_directories(${IFRIT_REQ_CUDACRT_INCLUDE})
+    add_definitions(-DIFRIT_FEATURE_CUDA)
 endif()
 
 set(glfw3_DIR ${IFRIT_REQ_GLFW3_BASE}/lib/cmake/glfw3/)
@@ -44,6 +48,7 @@ file(GLOB_RECURSE SOURCE_1C "src/*.cu")
 file(GLOB_RECURSE SOURCE_2 "include/external_ref/*.h")
 
 file(GLOB SOURCE_STAGES "demo/*.cpp")
+file(GLOB SOURCE_STAGES_CUDA "demo/*.cu")
 
 include_directories(include)
 include_directories(${IFRIT_REQ_GLFW3_BASE}/include)
@@ -52,5 +57,13 @@ foreach( SRC_FILE_NAME ${SOURCE_STAGES} )
     get_filename_component( SRC_FILE_NAME_SHORT ${SRC_FILE_NAME} NAME_WE )
     add_executable( ${SRC_FILE_NAME_SHORT} ${SRC_FILE_NAME} ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B} ${SOURCE_1C})
     set_property(TARGET ${SRC_FILE_NAME_SHORT} PROPERTY CUDA_ARCHITECTURES  75)
+    target_link_libraries( ${SRC_FILE_NAME_SHORT}  ${glfw3_LIB} )
+endforeach( SRC_FILE_NAME ${SOURCE_STAGES} )
+
+foreach( SRC_FILE_NAME ${SOURCE_STAGES_CUDA} )
+    get_filename_component( SRC_FILE_NAME_SHORT ${SRC_FILE_NAME} NAME_WE )
+    add_executable( ${SRC_FILE_NAME_SHORT} ${SRC_FILE_NAME} ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B} ${SOURCE_1C})
+    set_property(TARGET ${SRC_FILE_NAME_SHORT} PROPERTY CUDA_ARCHITECTURES  75)
+    set_property(TARGET ${SRC_FILE_NAME_SHORT} PROPERTY CXX_STANDARD 20)
     target_link_libraries( ${SRC_FILE_NAME_SHORT}  ${glfw3_LIB} )
 endforeach( SRC_FILE_NAME ${SOURCE_STAGES} )

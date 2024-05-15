@@ -1,4 +1,3 @@
-#include <iostream>
 #include "presentation/window/GLFWWindowProvider.h"
 #include "presentation/backend/OpenGLBackend.h"
 #include "core/data/Image.h"
@@ -17,34 +16,33 @@ using namespace Ifrit::Engine::Math::ShaderOps;
 
 //float4x4 view = (lookAt({ 0,0.1,0.25}, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
 //float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
-
 float4x4 view = (lookAt({ 0,0.75,1.50}, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
 float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 0.1, 4000));
 float4x4 mvp = multiply(proj, view);
 
 class DemoVertexShader : public VertexShader {
 public:
-	void execute(const std::vector<const void*>& input, float4& outPos, std::vector<VaryingStore*>& outVaryings) override{
+	IFRIT_DUAL virtual void execute(const void* const* input, float4* outPos, VaryingStore** outVaryings) override{
 		auto s = *reinterpret_cast<const float4*>(input[0]);
 		auto p = multiply(mvp,s);
-		outPos = p;
+		*outPos = p;
 		outVaryings[0]->vf4 = *reinterpret_cast<const float4*>(input[1]);
 	}
 };
 
 class DemoFragmentShader : public FragmentShader {
 public:
-	void execute(const std::vector<VaryingStore>& varyings, std::vector<float4>& colorOutput) override {
+	IFRIT_DUAL virtual void execute(const VaryingStore* varyings, float4* colorOutput) override {
 		float4 result = varyings[0].vf4;
 		result.x = 0.5 * result.x + 0.5;
 		result.y = 0.5 * result.y + 0.5;
 		result.z = 0.5 * result.z + 0.5;
 		result.w = 0.5 * result.w + 0.5;
 
-		result.x *= 255;
-		result.y *= 255;
-		result.z *= 255;
-		result.w *= 255;
+		result.x *= 0.01;
+		result.y *= 0.01;
+		result.z *= 0.01;
+		result.w *= 0.01;
 		colorOutput[0] = result;
 	}
 };
@@ -67,7 +65,7 @@ int main() {
 	OpenGLBackend backend;
 	backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 
-	std::shared_ptr<ImageU8> image = std::make_shared<ImageU8>(1200, 800, 4);
+	std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(1200, 800, 4);
 	std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(1200, 800, 1);
 	std::shared_ptr<TileRasterRenderer> renderer = std::make_shared<TileRasterRenderer>();
 	FrameBuffer frameBuffer;

@@ -44,11 +44,11 @@ namespace Ifrit::Core::Utility {
 			getMutex().unlock();
 		}
 
+		
 		template<typename... Args>
-		static void assert(bool condition, const char* caller, Args... args) {
+		static void assertfx(bool condition, const char* caller, Args... args) {
 			if (!condition) {
 				log(4, caller, args...);
-				throw std::runtime_error("Assertion failed");
 			}
 		}
 	};
@@ -58,7 +58,7 @@ namespace Ifrit::Core::Utility {
 #define ifritLog3(...) Ifrit::Core::Utility::CoreLogger::log(2, __FUNCTION__, __VA_ARGS__)
 #define ifritLog4(...) Ifrit::Core::Utility::CoreLogger::log(3, __FUNCTION__, __VA_ARGS__)
 #define ifritLog5(...) Ifrit::Core::Utility::CoreLogger::log(4, __FUNCTION__, __VA_ARGS__)
-#define ifritAssert(condition, ...) Ifrit::Core::Utility::CoreLogger::assert(condition, __FUNCTION__, __VA_ARGS__)
+#define ifritAssert(condition, ...) Ifrit::Core::Utility::CoreLogger::assertfx(condition, __FUNCTION__, __VA_ARGS__)
 #define ifritError(...) Ifrit::Core::Utility::CoreLogger::log(3, __FUNCTION__, __VA_ARGS__);\
 	throw std::runtime_error("Error occurred")
 

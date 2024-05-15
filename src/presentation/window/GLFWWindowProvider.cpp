@@ -1,5 +1,5 @@
-#include "./presentation/window/GLFWWindowProvider.h"
-#include "./core/definition/CoreExports.h"
+#include "presentation/window/GLFWWindowProvider.h"
+#include "core/definition/CoreExports.h"
 
 namespace Ifrit::Presentation::Window {
 	bool GLFWWindowProvider::setup(size_t width, size_t height) {

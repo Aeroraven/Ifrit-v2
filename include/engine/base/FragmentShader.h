@@ -5,7 +5,7 @@
 namespace Ifrit::Engine {
 	class FragmentShader {
 	public:
-		virtual void execute(const std::vector<VaryingStore>& varyings, std::vector<float4>& colorOutput) =0;
+		IFRIT_DUAL virtual void execute(const VaryingStore* varyings, float4* colorOutput) =0;
 
 	};
 }

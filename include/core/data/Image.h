@@ -14,10 +14,10 @@ namespace Ifrit::Core::Data {
 			data.resize(width * height * channel);
 		}
 		Image(size_t width, size_t height, size_t channel, const std::vector<T>& data) : width(width), height(height), channel(channel), data(data) {
-			ifritAssert(data.size() == width * height * channel, "Data size does not match the image size");	
+			//ifritAssert(data.size() == width * height * channel, "Data size does not match the image size");	
 		}
 		Image(size_t width, size_t height, size_t channel, std::vector<T>&& data) : width(width), height(height), channel(channel), data(std::move(data)) {
-			ifritAssert(data.size() == width * height * channel, "Data size does not match the image size");
+			//ifritAssert(data.size() == width * height * channel, "Data size does not match the image size");
 		}
 		Image(const Image& other) : width(other.width), height(other.height), channel(other.channel), data(other.data) {}
 		Image(Image&& other) noexcept : width(other.width), height(other.height), channel(other.channel), data(std::move(other.data)) {}
@@ -43,7 +43,7 @@ namespace Ifrit::Core::Data {
 		}
 
 		void fillArea(size_t x, size_t y, size_t w, size_t h, const T& value) {
-			ifritAssert(x + w <= width && y + h <= height, "Area out of range");
+			//ifritAssert(x + w <= width && y + h <= height, "Area out of range");
 			for (size_t i = y; i < y + h; i++) {
 				for (size_t j = x; j < x + w; j++) {
 					for (size_t c = 0; c < channel; c++) {
@@ -68,12 +68,12 @@ namespace Ifrit::Core::Data {
 		}
 
 		T& operator()(size_t x, size_t y, size_t c) {
-			ifritAssert(x < width && y < height && c < channel, "Index out of range");
+			//ifritAssert(x < width && y < height && c < channel, "Index out of range");
 			return data[y * width * channel + x * channel + c];
 		}
 
 		const T& operator()(size_t x, size_t y, size_t c) const {
-			ifritAssert(x < width && y < height && c < channel, "Index out of range");
+			//ifritAssert(x < width && y < height && c < channel, "Index out of range");
 			return data[y * width * channel + x * channel + c];
 		}
 

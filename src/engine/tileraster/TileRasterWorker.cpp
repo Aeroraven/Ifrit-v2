@@ -249,7 +249,7 @@ namespace Ifrit::Engine::TileRaster {
 			auto pos = &context->vertexShaderResult->getPositionBuffer()[j];
 			getVaryingsAddr(j,outVaryings);
 			getVertexAttributes(j,inVertex);
-			context->vertexShader->execute(inVertex, *pos, outVaryings);
+			context->vertexShader->execute(inVertex.data(), pos, outVaryings.data());
 		}
 		status.store(TileRasterStage::VERTEX_SHADING_SYNC);
 	}
@@ -712,28 +712,28 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterWorker::getVertexAttributes(const int id, std::vector<const void*>& out){
 		for (int i = 0; i < context->vertexBuffer->getAttributeCount();i++) {
 			auto desc = context->vertexBuffer->getAttributeDescriptor(i);
-			if (desc.type == TypeDescriptorEnum::FLOAT4) {
+			if (desc.type == TypeDescriptorEnum::IFTP_FLOAT4) {
 				out[i]= (context->vertexBuffer->getValuePtr<float4>(id, i));
 			}
-			else if (desc.type == TypeDescriptorEnum::FLOAT3) {
+			else if (desc.type == TypeDescriptorEnum::IFTP_FLOAT3) {
 				out[i] = (context->vertexBuffer->getValuePtr<float3>(id, i));
 			}
-			else if (desc.type == TypeDescriptorEnum::FLOAT2) {
+			else if (desc.type == TypeDescriptorEnum::IFTP_FLOAT2) {
 				out[i] = (context->vertexBuffer->getValuePtr<float2>(id, i));
 			}
-			else if (desc.type == TypeDescriptorEnum::FLOAT1) {
+			else if (desc.type == TypeDescriptorEnum::IFTP_FLOAT1) {
 				out[i] = (context->vertexBuffer->getValuePtr<float>(id, i));
 			}
-			else if (desc.type == TypeDescriptorEnum::INT1) {
+			else if (desc.type == TypeDescriptorEnum::IFTP_INT1) {
 				out[i] = (context->vertexBuffer->getValuePtr<int>(id, i));
 			}
-			else if (desc.type == TypeDescriptorEnum::INT2) {
+			else if (desc.type == TypeDescriptorEnum::IFTP_INT2) {
 				out[i] = (context->vertexBuffer->getValuePtr<int2>(id, i));
 			}
-			else if (desc.type == TypeDescriptorEnum::INT3) {
+			else if (desc.type == TypeDescriptorEnum::IFTP_INT3) {
 				out[i] = (context->vertexBuffer->getValuePtr<int3>(id, i));
 			}
-			else if (desc.type == TypeDescriptorEnum::INT4) {
+			else if (desc.type == TypeDescriptorEnum::IFTP_INT4) {
 				out[i] = (context->vertexBuffer->getValuePtr<int4>(id, i));
 			}
 			else {
@@ -799,7 +799,7 @@ namespace Ifrit::Engine::TileRaster {
 			 interpolateVaryings(i, addr, desiredBary, interpolatedVaryings[i]);
 		}
 		// Fragment Shader
-		context->fragmentShader->execute(interpolatedVaryings, colorOutput);
+		context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
 		context->frameBuffer->getColorAttachment(0)->fillPixelRGBA(dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
 
 		// Depth Write
@@ -893,7 +893,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 
 			// Fragment Shader
-			context->fragmentShader->execute(interpolatedVaryings, colorOutput);
+			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
 			context->frameBuffer->getColorAttachment(0)->fillPixelRGBA(x, y, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
 
 			// Depth Write
@@ -989,7 +989,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 
 			// Fragment Shader
-			context->fragmentShader->execute(interpolatedVaryings, colorOutput);
+			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
 			context->frameBuffer->getColorAttachment(0)->fillPixelRGBA(x, y, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
 
 			// Depth Write
@@ -1002,7 +1002,7 @@ namespace Ifrit::Engine::TileRaster {
 		auto va = context->vertexShaderResult->getVaryingBuffer(id);
 		auto varyingDescriptor = context->vertexShaderResult->getVaryingDescriptor(id);
 
-		if (varyingDescriptor.type == TypeDescriptorEnum::FLOAT4) {
+		if (varyingDescriptor.type == TypeDescriptorEnum::IFTP_FLOAT4) {
 			dest.vf4 = { 0,0,0,0 };
 			for (int j = 0; j < 3; j++) {
 				dest.vf4.x += va[indices[j]].vf4.x * barycentric[j];
@@ -1010,7 +1010,7 @@ namespace Ifrit::Engine::TileRaster {
 				dest.vf4.z += va[indices[j]].vf4.z * barycentric[j];
 				dest.vf4.w += va[indices[j]].vf4.w * barycentric[j];
 			}
-		}else if (varyingDescriptor.type == TypeDescriptorEnum::FLOAT3){
+		}else if (varyingDescriptor.type == TypeDescriptorEnum::IFTP_FLOAT3){
 			dest.vf3 = { 0,0,0 };
 			for (int j = 0; j < 3; j++) {
 				dest.vf3.x += va[indices[j]].vf3.x * barycentric[j];
@@ -1018,14 +1018,14 @@ namespace Ifrit::Engine::TileRaster {
 				dest.vf3.z += va[indices[j]].vf3.z * barycentric[j];
 			}
 			
-		} else if (varyingDescriptor.type == TypeDescriptorEnum::FLOAT2){
+		} else if (varyingDescriptor.type == TypeDescriptorEnum::IFTP_FLOAT2){
 			dest.vf2 = { 0,0 };
 			for (int j = 0; j < 3; j++) {
 				dest.vf2.x += va[indices[j]].vf2.x * barycentric[j];
 				dest.vf2.y += va[indices[j]].vf2.y * barycentric[j];
 			}
 		}
-		else if (varyingDescriptor.type == TypeDescriptorEnum::FLOAT1) {
+		else if (varyingDescriptor.type == TypeDescriptorEnum::IFTP_FLOAT1) {
 			dest.vf = 0;
 			for (int j = 0; j < 3; j++) {
 				dest.vf += va[indices[j]].vf * barycentric[j];

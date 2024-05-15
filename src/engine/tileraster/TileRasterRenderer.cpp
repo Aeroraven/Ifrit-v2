@@ -29,13 +29,9 @@ namespace Ifrit::Engine::TileRaster {
 			context->vertexShaderResult = std::make_unique<VertexShaderResult>(
 			context->vertexBuffer->getVertexCount(), context->vertexShader->getVaryingCounts());
 		}
-		if (shaderBindingDirtyFlag) {
-			context->vertexShader->bindVertexBuffer(*context->vertexBuffer);
-			context->vertexShader->bindVaryingBuffer(*context->vertexShaderResult);
-		}
 		if (varyingBufferDirtyFlag) {
 			context->vertexShaderResult->allocateVaryings(context->vertexShader->getVaryingCounts());
-			context->vertexShader->applyVaryingDescriptors();
+			context->vertexShader->applyVaryingDescriptors(context->vertexShaderResult.get());
 			context->vertexShaderResult->setVertexCount(context->vertexBuffer->getVertexCount());
 		}
 		varyingBufferDirtyFlag = false;

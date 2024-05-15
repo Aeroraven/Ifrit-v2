@@ -5,15 +5,9 @@ namespace Ifrit::Engine {
 		this->varyingDescriptors = varyingDescriptors;
 		
 	}
-	void VertexShader::applyVaryingDescriptors(){
+	void VertexShader::applyVaryingDescriptors(VertexShaderResult* varyingBuffer){
 		for (int i = 0; i < varyingDescriptors.size(); i++) {
 			varyingBuffer->initializeVaryingBufferFromShader(varyingDescriptors[i], i);
 		}
-	}
-	void VertexShader::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
-		this->vertexBuffer = &vertexBuffer;
-	}
-	void VertexShader::bindVaryingBuffer(VertexShaderResult& varyingBuffer) {
-		this->varyingBuffer = &varyingBuffer;
 	}
 }

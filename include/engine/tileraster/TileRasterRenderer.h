@@ -18,8 +18,6 @@ namespace Ifrit::Engine::TileRaster {
 		TERMINATED
 	};
 
-	
-
 	class TileRasterWorker;
 
 	class TileRasterRenderer : public Renderer, public std::enable_shared_from_this<TileRasterRenderer> {
