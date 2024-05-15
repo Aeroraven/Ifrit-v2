@@ -1,5 +1,5 @@
 #version 330
-precision highp float;
+precision lowp float;
 
 in vec2 texc;
 out vec4 fragColor;

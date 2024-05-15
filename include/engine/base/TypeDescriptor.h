@@ -1,5 +1,5 @@
 #pragma once
-#include "core/definition/CoreExports.h"
+#include "core/definition/CoreTypes.h"
 namespace Ifrit::Engine {
 	enum TypeDescriptorEnum {
 		IFTP_UNDEFINED,

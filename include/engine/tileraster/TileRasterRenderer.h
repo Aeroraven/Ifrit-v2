@@ -35,7 +35,7 @@ namespace Ifrit::Engine::TileRaster {
 		void bindFrameBuffer(FrameBuffer& frameBuffer);
 		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		void bindIndexBuffer(const std::vector<int>& indexBuffer);
-		void bindVertexShader(VertexShader& vertexShader);
+		void bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor);
 		void bindFragmentShader(FragmentShader& fragmentShader);
 		void intializeRenderContext();
 
@@ -47,7 +47,7 @@ namespace Ifrit::Engine::TileRaster {
 		int fetchUnresolvedTileFragmentShading();
 
 
-		void render();
+		void render(bool clearFramebuffer) IFRIT_AP_NOTHROW;
 		void clear();
 		void init();
 

@@ -39,10 +39,10 @@ public:
 		result.z = 0.5 * result.z + 0.5;
 		result.w = 0.5 * result.w + 0.5;
 
-		result.x *= 0.01;
-		result.y *= 0.01;
-		result.z *= 0.01;
-		result.w *= 0.01;
+		result.x *= 0.15;
+		result.y *= 0.15;
+		result.z *= 0.15;
+		result.w *= 0.15;
 		colorOutput[0] = result;
 	}
 };
@@ -89,7 +89,6 @@ int main() {
 		vertexBuffer.setValue(i, 1, float4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
 	}
 
-
 	std::vector<int> indexBuffer = { 1,2,0 };
 
 	indexBuffer.resize(index.size() / 3);
@@ -99,21 +98,25 @@ int main() {
 
 	frameBuffer.setColorAttachments({ image });
 	frameBuffer.setDepthAttachment(depth);
+	
 	renderer->init();
 	renderer->bindFrameBuffer(frameBuffer);
 	renderer->bindVertexBuffer(vertexBuffer);
 	renderer->bindIndexBuffer(indexBuffer);
 	
 	DemoVertexShader vertexShader;
-	vertexShader.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
-	renderer->bindVertexShader(vertexShader);
+	VaryingDescriptor vertexShaderLayout;
+	vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
+	renderer->bindVertexShader(vertexShader, vertexShaderLayout);
 	DemoFragmentShader fragmentShader;
 	renderer->bindFragmentShader(fragmentShader);
 
 	ifritLog2("Start Rendering");
-	windowProvider.loop([&]() {
-		renderer->clear();
-		renderer->render();
+	windowProvider.loop([&](int* coreTime) {
+		std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+		renderer->render(true);
+		std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+		*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		backend.updateTexture(*image);
 		backend.draw();
 	});

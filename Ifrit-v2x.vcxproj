@@ -62,9 +62,12 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>glfw3.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ShowProgress>LinkVerbose</ShowProgress>
+      <Profile>false</Profile>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <AdditionalCompilerOptions>--std=C++20</AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -85,15 +88,20 @@
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>glfw3.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ShowProgress>LinkVerbose</ShowProgress>
+      <Profile>false</Profile>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <Include>$(ProjectDir)include;%(Include)</Include>
+      <AdditionalCompilerOptions>
+      </AdditionalCompilerOptions>
+      <AdditionalOptions>-std=c++20 %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
+    <CudaLink>
+      <Optimization>O3</Optimization>
+    </CudaLink>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <CudaCompile Include="src\engine\tilerastercuda\TileRasterRendererCuda.cu" />
-  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\core\cuda\CudaUtils.h" />
     <ClInclude Include="include\core\data\Image.h" />
@@ -109,6 +117,7 @@
     <ClInclude Include="include\engine\base\FrameBuffer.h" />
     <ClInclude Include="include\engine\base\Renderer.h" />
     <ClInclude Include="include\engine\base\TypeDescriptor.h" />
+    <ClInclude Include="include\engine\base\VaryingDescriptor.h" />
     <ClInclude Include="include\engine\base\VaryingStore.h" />
     <ClInclude Include="include\engine\base\VertexBuffer.h" />
     <ClInclude Include="include\engine\base\VertexShader.h" />
@@ -128,9 +137,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IfritMain.cpp" />
+    <CudaCompile Include="include\engine\tilerastercuda\TileRasterInvocationCuda.cu" />
     <ClCompile Include="src\dependency\GLAD\glad.c" />
     <ClCompile Include="src\engine\base\FragmentShader.cpp" />
     <ClCompile Include="src\engine\base\FrameBuffer.cpp" />
+    <ClCompile Include="src\engine\base\VaryingDescriptor.cpp" />
     <ClCompile Include="src\engine\base\VertexBuffer.cpp" />
     <ClCompile Include="src\engine\base\VertexShader.cpp" />
     <ClCompile Include="src\engine\base\VertexShaderResult.cpp" />

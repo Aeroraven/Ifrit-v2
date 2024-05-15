@@ -1,5 +1,7 @@
 #pragma once
-#include "core/definition/CoreExports.h"
+#include "core/definition/CoreDefs.h"
+#include "core/definition/CoreTypes.h"
+
 #include "core/data/Image.h"
 #include "engine/base/FrameBuffer.h"
 #include "engine/base/Renderer.h"
@@ -13,18 +15,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	using namespace Ifrit::Engine::TileRaster;
 	using namespace Ifrit::Engine;
 
-	class TileRasterDeviceConstants {
-		int vertexStride = 3;
-		int tileBlocksX = 64;
-		int subtileBlocksX = 4;
-		int vertexProcessingThreads = 128;
-		int vertexCount;
-		int attributeCount;
-		int varyingCount;
-		int indexCount;
-		int frameBufferWidth;
-		int frameBufferHeight;
-	};
+	
 
 	class TileRasterContextCuda {
 	public:

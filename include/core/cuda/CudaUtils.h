@@ -1,5 +1,5 @@
 #pragma once
-#include "core/definition/CoreExports.h"
+#include "core/definition/CoreDefs.h"
 
 #ifdef IFRIT_FEATURE_CUDA
 namespace Core::CUDA {

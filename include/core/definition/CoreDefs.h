@@ -39,6 +39,22 @@
 	#endif
 #endif
 
+#ifdef _HAS_CXX20
+	#define IFRIT_CXX20_ENABLED 1
+#endif
+#ifndef _HAS_CXX20
+	#if __cplusplus >= 202002L
+		#define IFRIT_CXX20_ENABLED 1
+	#endif
+#endif
+
+#ifdef _HAS_CXX17
+	#define IFRIT_CXX17_ENABLED 1
+#endif
+#ifndef _HAS_CXX17
+	static_assert(false, "App requires C++17 or higher")
+#endif
+
 #ifdef IFRIT_CXX23_ENABLED
 #include <print>
 #endif 
@@ -51,26 +67,27 @@
 
 #define IFRIT_VERBOSE_SAFETY_CHECK
 
-#ifdef IFRIT_FEATURE_SIMD
+#if IFRIT_FEATURE_SIMD
 	#include <emmintrin.h>
 	#define IFRIT_USE_SIMD_128 1
+	#define IFRIT_USE_SIMD_128_EXPERIMENTAL 0
 #endif	
 
-#ifdef IFRIT_FEATURE_SIMD_AVX512
+#if IFRIT_FEATURE_SIMD_AVX512
 	#include <immintrin.h>
 	#define IFRIT_USE_SIMD_512 1
 #endif
 
-#ifdef IFRIT_FEATURE_SIMD_AVX256
+#if IFRIT_FEATURE_SIMD_AVX256
 	#include <immintrin.h>
 	#define IFRIT_USE_SIMD_256 1
 #endif
 
 
-#ifdef IFRIT_FEATURE_CUDA
+#if IFRIT_FEATURE_CUDA
+	#define IFRIT_USE_CUDA 1
 	// Intellisense for cuda
 	#ifdef __INTELLISENSE__
-		#pragma diag_suppress 283
 		#define CU_KARG2(grid, block)
 		#define CU_KARG3(grid, block, sh_mem)
 		#define CU_KARG4(grid, block, sh_mem, stream)
@@ -96,6 +113,16 @@
 	#define IFRIT_KERNEL
 #endif
 
-#ifndef __FUNCTION__
-	#define __FUNCTION__ "unknown"
+#ifdef IFRIT_CXX20_ENABLED
+	#define IFRIT_BRANCH_LIKELY [[likely]]
+	#define IFRIT_BRANCH_UNLIKELY [[unlikely]]
+#else
+	#define IFRIT_BRANCH_LIKELY
+	#define IFRIT_BRANCH_UNLIKELY
+#endif
+
+#if IFRIT_FEATURE_AGGRESSIVE_PERFORMANCE
+	#define IFRIT_AP_NOTHROW noexcept
+#else
+	#define IFRIT_AP_NOTHROW
 #endif

@@ -30,8 +30,10 @@ Successor to following repos:
 	- GLFW 3.3
 	- GLAD
 - Compile Dependencies:
-	- CMake 3.28
+	- <s>CMake 3.28</s>
 	- MSVC (Visual Studio 2022)
+		- C++17 is required
+		- C++20 is recommended for best performance
 - Hardware Requirements:
 	- SSE4.1
 	- AVX2

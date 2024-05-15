@@ -5,8 +5,6 @@
 
 namespace Ifrit::Engine {
 
-
-
 	class VertexShaderResult {
 	private:
 		std::vector<float4> position;

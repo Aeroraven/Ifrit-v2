@@ -7,7 +7,7 @@ namespace Ifrit::Engine::TileRaster {
 		this->renderer = renderer;
 		this->context = context;
 	}
-	void TileRasterWorker::run() {
+	void TileRasterWorker::run() IFRIT_AP_NOTHROW {
 		while (true) {
 			if (status.load() == TileRasterStage::CREATED || status.load() == TileRasterStage::TERMINATED || activated.load()==false) {
 				std::this_thread::yield();
@@ -22,6 +22,7 @@ namespace Ifrit::Engine::TileRaster {
 				activated.store(false);
 			}
 			if (status.load() == TileRasterStage::RASTERIZATION) {
+				
 				rasterization();
 				activated.store(false);
 			}
@@ -31,7 +32,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 		}
 	}
-	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3) {
+	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3) IFRIT_AP_NOTHROW {
 		using Ifrit::Engine::Math::ShaderOps::dot;
 		using Ifrit::Engine::Math::ShaderOps::sub;
 		using Ifrit::Engine::Math::ShaderOps::add;
@@ -138,7 +139,7 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		return  retCnt[clipOdd] - 2;
 	}
-	bool TileRasterWorker::triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox) {
+	bool TileRasterWorker::triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox) IFRIT_AP_NOTHROW {
 		bool inside = true;
 		float minx = std::min(v1.x, std::min(v2.x, v3.x));
 		float miny = std::min(v1.y, std::min(v2.y, v3.y));
@@ -158,7 +159,7 @@ namespace Ifrit::Engine::TileRaster {
 		bbox.h = maxy - miny;
 		return true;
 	}
-	bool TileRasterWorker::triangleCulling(float4 v1, float4 v2, float4 v3) {
+	bool TileRasterWorker::triangleCulling(float4 v1, float4 v2, float4 v3) IFRIT_AP_NOTHROW {
 		float d1 = (v1.x * v2.y);
 		float d2 = (v2.x * v3.y);
 		float d3 = (v3.x * v1.y);
@@ -169,19 +170,19 @@ namespace Ifrit::Engine::TileRaster {
 		if (d < 0.0) return false;
 		return true;
 	}
-	void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, rect2Df bbox) {
+	void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, rect2Df bbox) IFRIT_AP_NOTHROW {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
-		const float tileSize = 1.0 / context->tileBlocksX;
+
 		float minx = bbox.x * 0.5 + 0.5;
 		float miny = bbox.y * 0.5 + 0.5;
 		float maxx = (bbox.x + bbox.w) * 0.5 + 0.5;
 		float maxy = (bbox.y + bbox.h) * 0.5 + 0.5;
 
-		int tileMinx = std::max(0, (int)(minx / tileSize));
-		int tileMiny = std::max(0, (int)(miny / tileSize));
-		int tileMaxx = std::min(context->tileBlocksX - 1, (int)(maxx / tileSize));
-		int tileMaxy = std::min(context->tileBlocksX - 1, (int)(maxy / tileSize));
+		int tileMinx = std::max(0, (int)(minx * context->tileBlocksX));
+		int tileMiny = std::max(0, (int)(miny * context->tileBlocksX));
+		int tileMaxx = std::min(context->tileBlocksX - 1, (int)(maxx * context->tileBlocksX));
+		int tileMaxy = std::min(context->tileBlocksX - 1, (int)(maxy * context->tileBlocksX));
 
 		float3 edgeCoefs[3];
 		edgeCoefs[0] = atp.e1;
@@ -196,10 +197,11 @@ namespace Ifrit::Engine::TileRaster {
 		auto frameBufferHeight = context->frameBuffer->getHeight();
 		getAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
+
+		const float tileSize = 1.0 / context->tileBlocksX;
 		for (int y = tileMiny; y <= tileMaxy; y++) {
 			for (int x = tileMinx; x <= tileMaxx; x++) {
-				int criteriaTR = 0;
-				int criteriaTA = 0;
+				
 				
 				auto curTileX = x * frameBufferWidth / context->tileBlocksX;
 				auto curTileY = y * frameBufferHeight / context->tileBlocksX;
@@ -216,6 +218,8 @@ namespace Ifrit::Engine::TileRaster {
 					tileCoords[i].y = tileCoords[i].y * 2 - 1;
 				}
 
+				int criteriaTR = 0;
+				int criteriaTA = 0;
 				for (int i = 0; i < 3; i++) {
 					float criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y + edgeCoefs[i].z;
 					float criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y + edgeCoefs[i].z;
@@ -239,11 +243,10 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		
 	}
-	void TileRasterWorker::vertexProcessing() {
-		perVertexVaryings.resize(context->vertexBuffer->getVertexCount() * context->vertexShader->getVaryingCounts());
-		auto sk = context->vertexShader->getVaryingCounts();
+	void TileRasterWorker::vertexProcessing() IFRIT_AP_NOTHROW {
+		auto sk = context->varyingDescriptor->getVaryingCounts();
 		status.store(TileRasterStage::VERTEX_SHADING);
-		std::vector<VaryingStore*> outVaryings(context->vertexShader->getVaryingCounts());
+		std::vector<VaryingStore*> outVaryings(context->varyingDescriptor->getVaryingCounts());
 		std::vector<const void*> inVertex(context->vertexBuffer->getAttributeCount());
 		for (int j = workerId; j < context->vertexBuffer->getVertexCount(); j += context->numThreads) {
 			auto pos = &context->vertexShaderResult->getPositionBuffer()[j];
@@ -254,7 +257,7 @@ namespace Ifrit::Engine::TileRaster {
 		status.store(TileRasterStage::VERTEX_SHADING_SYNC);
 	}
 
-	void TileRasterWorker::geometryProcessing() {
+	void TileRasterWorker::geometryProcessing() IFRIT_AP_NOTHROW {
 		auto posBuffer = context->vertexShaderResult->getPositionBuffer();
 		generatedTriangle.clear();
 		int genTris = 0;
@@ -289,7 +292,7 @@ namespace Ifrit::Engine::TileRaster {
 		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC);
 	}
 
-	void TileRasterWorker::rasterization(){
+	void TileRasterWorker::rasterization() IFRIT_AP_NOTHROW {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
 		auto curTile = 0;
@@ -472,7 +475,7 @@ namespace Ifrit::Engine::TileRaster {
 												_mm256_storeu_si256((__m256i*)accept128, accept256);
 												for (int di = 0; di < 2; di++) {
 													auto pv = dx + ((di & 1) << 1);
-													if (pv > subTileMaxX || dy > subTileMaxY) {
+													if (pv > subTileMaxX || dy > subTileMaxY) IFRIT_BRANCH_UNLIKELY {
 														continue;
 													}
 													if (_mm_testc_si128(accept128[di],_mm_set1_epi32(-1))) {
@@ -618,14 +621,14 @@ namespace Ifrit::Engine::TileRaster {
 	}
 
 
-	void TileRasterWorker::fragmentProcessing(){
+	void TileRasterWorker::fragmentProcessing() IFRIT_AP_NOTHROW {
 		auto curTile = 0;
 		const auto frameBufferWidth = context->frameBuffer->getWidth();
 		const auto frameBufferHeight = context->frameBuffer->getHeight();
-		interpolatedVaryings.reserve(context->vertexShader->getVaryingCounts());
-		interpolatedVaryings.resize(context->vertexShader->getVaryingCounts());
-		interpolatedVaryingsAddr.reserve(context->vertexShader->getVaryingCounts());
-		interpolatedVaryingsAddr.resize(context->vertexShader->getVaryingCounts());
+		interpolatedVaryings.reserve(context->varyingDescriptor->getVaryingCounts());
+		interpolatedVaryings.resize(context->varyingDescriptor->getVaryingCounts());
+		interpolatedVaryingsAddr.reserve(context->varyingDescriptor->getVaryingCounts());
+		interpolatedVaryingsAddr.resize(context->varyingDescriptor->getVaryingCounts());
 
 		for (int i = interpolatedVaryingsAddr.size() - 1; i >= 0; i--) {
 			interpolatedVaryingsAddr[i] = &interpolatedVaryings[i];
@@ -635,7 +638,7 @@ namespace Ifrit::Engine::TileRaster {
 				for (int j = context->coverQueue[i][curTile].size() - 1; j >= 0; j--) {
 					auto& proposal = context->coverQueue[i][curTile][j];
 					const auto& triProposal = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
-					if (proposal.level == TileRasterLevel::PIXEL) {
+					if (proposal.level == TileRasterLevel::PIXEL) IFRIT_BRANCH_LIKELY {
 						pixelShading(triProposal, proposal.tile.x, proposal.tile.y);
 					}
 					else if (proposal.level == TileRasterLevel::PIXEL_PACK4X2) {
@@ -709,10 +712,10 @@ namespace Ifrit::Engine::TileRaster {
 		execWorker->detach();
 	}
 
-	void TileRasterWorker::getVertexAttributes(const int id, std::vector<const void*>& out){
+	void TileRasterWorker::getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW {
 		for (int i = 0; i < context->vertexBuffer->getAttributeCount();i++) {
 			auto desc = context->vertexBuffer->getAttributeDescriptor(i);
-			if (desc.type == TypeDescriptorEnum::IFTP_FLOAT4) {
+			if (desc.type == TypeDescriptorEnum::IFTP_FLOAT4) IFRIT_BRANCH_LIKELY{
 				out[i]= (context->vertexBuffer->getValuePtr<float4>(id, i));
 			}
 			else if (desc.type == TypeDescriptorEnum::IFTP_FLOAT3) {
@@ -736,77 +739,102 @@ namespace Ifrit::Engine::TileRaster {
 			else if (desc.type == TypeDescriptorEnum::IFTP_INT4) {
 				out[i] = (context->vertexBuffer->getValuePtr<int4>(id, i));
 			}
-			else {
+			else IFRIT_BRANCH_UNLIKELY{
 				ifritError("Unsupported Type");
 			}
 		}
 	}
-	void TileRasterWorker::getVaryingsAddr(const int id, std::vector<VaryingStore*>& out) {
-		for (int i = 0; i < context->vertexShader->getVaryingCounts(); i++) {
+	void TileRasterWorker::getVaryingsAddr(const int id, std::vector<VaryingStore*>& out) IFRIT_AP_NOTHROW {
+		for (int i = 0; i < context->varyingDescriptor->getVaryingCounts(); i++) {
 			auto desc = context->vertexShaderResult->getVaryingDescriptor(i);
 			out[i] = &context->vertexShaderResult->getVaryingBuffer(i)[id];
 		}
 	}
 
-	void TileRasterWorker::pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy) {
+	void TileRasterWorker::pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW {
 		
 		auto& depthAttachment = (*context->frameBuffer->getDepthAttachment())(dx, dy, 0);
 		int idx = atp.originalPrimitive * context->vertexStride;
 
-		float4 pos[3];
+		float4 pos[4];
 		pos[0] = atp.v1;
 		pos[1] = atp.v2;
 		pos[2] = atp.v3;	
+
+#ifdef IFRIT_USE_SIMD_128_EXPERIMENTAL
+		__m128 posZ = _mm_setr_ps(pos[0].z, pos[1].z, pos[2].z, 0);
+#endif
 		
 		float pDx = 2.0f * dx / context->frameBuffer->getWidth() - 1.0f;
 		float pDy = 2.0f * dy / context->frameBuffer->getHeight() - 1.0f;
-		float4 p = { pDx,pDy,1.0,1.0 };
+		
+		// Interpolate Depth
+#if IFRIT_USE_SIMD_128_EXPERIMENTAL
+		float4 p = { pDx ,pDy,1.0,0.0 };
 
-		float bary[3];
-		const float w[3] = { pos[0].w,pos[1].w,pos[2].w };
+		float bary[4];
+		float depth[4];
+		float interpolatedDepth;
+		const float w[4] = { pos[0].w,pos[1].w,pos[2].w,1 };
+
 		bary[0] = atp.f1.x * p.x + atp.f1.y * p.y + atp.f1.z;
 		bary[1] = atp.f2.x * p.x + atp.f2.y * p.y + atp.f2.z;
 		bary[2] = atp.f3.x * p.x + atp.f3.y * p.y + atp.f3.z;
+		bary[3] = 0;
+
+		_mm_storeu_ps(bary, _mm_div_ps(_mm_loadu_ps(bary), _mm_loadu_ps(w)));
+		_mm_storeu_ps(depth, _mm_mul_ps(_mm_loadu_ps(bary),posZ));
+		float zCorr = 1.0 / (bary[0] + bary[1] + bary[2]);
+		interpolatedDepth = (depth[0] + depth[1] + depth[2])* zCorr;
 		
-		float zCorr = 1.0 / (bary[0] / pos[0].w + bary[1] / pos[1].w + bary[2] / pos[2].w);
-
-		// Interpolate Depth
+#else
+		float bary[3];
 		float depth[3];
-		for (int i = 0; i < 3; i++) {
-			depth[i] = pos[i].z / ( pos[i].w);
-		}
-		float interpolatedDepth = bary[0] * depth[0] + bary[1] * depth[1] + bary[2] * depth[2];
-		interpolatedDepth *= zCorr;
+		float interpolatedDepth;
+		const float w[3] = { 1 / pos[0].w,1 / pos[1].w,1 / pos[2].w };
+		bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z) * w[0];
+		bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z) * w[1];
+		bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z) * w[2];
 
+		interpolatedDepth = bary[0] * pos[0].z + bary[1] * pos[1].z + bary[2] * pos[2].z;
+		float zCorr = 1.0 / (bary[0]+bary[1]+bary[2]);
+		interpolatedDepth *= zCorr;
+#endif
 		// Depth Test
 		if (interpolatedDepth > depthAttachment) {
 			return;
 		}
 
 		// Interpolate Varyings
-		const auto vSize = context->vertexShader->getVaryingCounts();
-		bary[0] = bary[0] / w[0] * zCorr;
-		bary[1] = bary[1] / w[1] * zCorr;	
-		bary[2] = bary[2] / w[2] * zCorr;
-
+#if IFRIT_USE_SIMD_128_EXPERIMENTAL
+		_mm_storeu_ps(bary, _mm_mul_ps(_mm_loadu_ps(bary), _mm_set1_ps(zCorr)));
+#else
+		bary[0] *= zCorr;
+		bary[1] *= zCorr;
+		bary[2] *= zCorr;
+#endif
 		float desiredBary[3];
 		desiredBary[0] = bary[0] * atp.b1.x + bary[1] * atp.b2.x + bary[2] * atp.b3.x;
 		desiredBary[1] = bary[0] * atp.b1.y + bary[1] * atp.b2.y + bary[2] * atp.b3.y;
 		desiredBary[2] = bary[0] * atp.b1.z + bary[1] * atp.b2.z + bary[2] * atp.b3.z;
 
 		const int* const addr = (*context->indexBuffer).data() + idx;
+		const auto vSize = context->varyingDescriptor->getVaryingCounts();
 		for (int i = 0; i < vSize; i++) {
 			 interpolateVaryings(i, addr, desiredBary, interpolatedVaryings[i]);
 		}
 		// Fragment Shader
 		context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
+#ifdef IFRIT_USE_SIMD_128
+		context->frameBuffer->getColorAttachment(0)->fillPixelRGBA128ps(dx, dy, _mm_loadu_ps((float*)(&colorOutput[0])));
+#else
 		context->frameBuffer->getColorAttachment(0)->fillPixelRGBA(dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
-
+#endif
 		// Depth Write
 		depthAttachment = interpolatedDepth;
 	}
 
-	void TileRasterWorker::pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy) {
+	void TileRasterWorker::pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW {
 #ifndef IFRIT_USE_SIMD_128
 		ifritError("SIMD 128 not enabled");
 #else
@@ -870,12 +898,12 @@ namespace Ifrit::Engine::TileRaster {
 		}
 
 		const int* const addr = (*context->indexBuffer).data() + idx;
-		const auto varyCounts = context->vertexShader->getVaryingCounts();
+		const auto varyCounts = context->varyingDescriptor->getVaryingCounts();
 		for (int i = 0; i < 4; i++) {
 			//Depth Test
 			int x = dx + (i&1);
 			int y = dy + (i>>1);
-			if (x >= fbWidth || y >= fbHeight) {
+			if (x >= fbWidth || y >= fbHeight) IFRIT_BRANCH_UNLIKELY{
 				continue;
 			}
 			if (interpolatedDepth[i] > depthAttachment(x, y, 0)) {
@@ -894,8 +922,7 @@ namespace Ifrit::Engine::TileRaster {
 
 			// Fragment Shader
 			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
-			context->frameBuffer->getColorAttachment(0)->fillPixelRGBA(x, y, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
-
+			context->frameBuffer->getColorAttachment(0)->fillPixelRGBA128ps(x, y, _mm_loadu_ps((const float*)(&colorOutput[0])));
 			// Depth Write
 			depthAttachment(x, y, 0) = interpolatedDepth[i];
 		}
@@ -903,7 +930,7 @@ namespace Ifrit::Engine::TileRaster {
 	}
 
 
-	void TileRasterWorker::pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy) {
+	void TileRasterWorker::pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW {
 #ifndef IFRIT_USE_SIMD_256
 		ifritError("SIMD 256 (AVX2) not enabled");
 #else
@@ -973,7 +1000,7 @@ namespace Ifrit::Engine::TileRaster {
 			//Depth Test
 			int x = dx + ((i & 1)) + ((i >> 2) << 1);
 			int y = dy + ((i & 3) >> 1);
-			if(x>= fbWidth || y>= fbHeight){
+			if(x>= fbWidth || y>= fbHeight) IFRIT_BRANCH_UNLIKELY{
 				continue;
 			}
 			if (interpolatedDepth[i] > depthAttachment(x, y, 0)) {
@@ -984,13 +1011,17 @@ namespace Ifrit::Engine::TileRaster {
 			desiredBary[0] = barytmp[0] * atp.b1.x + barytmp[1] * atp.b2.x + barytmp[2] * atp.b3.x;
 			desiredBary[1] = barytmp[0] * atp.b1.y + barytmp[1] * atp.b2.y + barytmp[2] * atp.b3.y;
 			desiredBary[2] = barytmp[0] * atp.b1.z + barytmp[1] * atp.b2.z + barytmp[2] * atp.b3.z;
-			for (int k = 0; k < context->vertexShader->getVaryingCounts(); k++) {
+			for (int k = 0; k < context->varyingDescriptor->getVaryingCounts(); k++) {
 				interpolateVaryings(k, addr, desiredBary, interpolatedVaryings[k]);
 			}
 
 			// Fragment Shader
 			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
+#ifdef IFRIT_USE_SIMD_128
+			context->frameBuffer->getColorAttachment(0)->fillPixelRGBA128ps(x, y, _mm_loadu_ps((const float*)(&colorOutput[0])));
+#else
 			context->frameBuffer->getColorAttachment(0)->fillPixelRGBA(x, y, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
+#endif
 
 			// Depth Write
 			depthAttachment(x, y, 0) = interpolatedDepth[i];
@@ -998,7 +1029,7 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 	}
 
-	void TileRasterWorker::interpolateVaryings(int id,const int indices[3], const float barycentric[3], VaryingStore& dest) {
+	void TileRasterWorker::interpolateVaryings(int id,const int indices[3], const float barycentric[3], VaryingStore& dest) IFRIT_AP_NOTHROW {
 		auto va = context->vertexShaderResult->getVaryingBuffer(id);
 		auto varyingDescriptor = context->vertexShaderResult->getVaryingDescriptor(id);
 
@@ -1031,7 +1062,7 @@ namespace Ifrit::Engine::TileRaster {
 				dest.vf += va[indices[j]].vf * barycentric[j];
 			}
 		}
-		else {
+		else IFRIT_BRANCH_UNLIKELY{
 			ifritError("Unsupported Varying Type");
 		}
 	}

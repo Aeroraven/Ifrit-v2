@@ -7,6 +7,7 @@
 #include "engine/base/VertexShader.h"
 #include "engine/base/FragmentShader.h"
 #include "engine/base/VertexShaderResult.h"
+#include "engine/base/VaryingDescriptor.h"
 #include "engine/tileraster/TileRasterCommon.h"
 
 namespace Ifrit::Engine::TileRaster {
@@ -17,6 +18,7 @@ namespace Ifrit::Engine::TileRaster {
 		const VertexBuffer* vertexBuffer;
 		const std::vector<int>* indexBuffer;
 		VertexShader* vertexShader;
+		VaryingDescriptor* varyingDescriptor;
 		FragmentShader* fragmentShader;
 
 		// Resources
@@ -25,10 +27,10 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<std::vector<std::vector<TileBinProposal>>> coverQueue;
 
 		// Config
-		int numThreads = 16;
-		int vertexStride = 3;
-		int tileBlocksX = 64;
-		int subtileBlocksX = 4;
+		constexpr static int numThreads = 16;
+		constexpr static int vertexStride = 3;
+		constexpr static int tileBlocksX = 64;
+		constexpr static int subtileBlocksX = 4;
 
 		TileRasterFrontFace frontface = TileRasterFrontFace::CLOCKWISE;
 

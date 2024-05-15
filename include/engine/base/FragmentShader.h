@@ -1,5 +1,4 @@
 #pragma once
-#include "engine/base/FrameBuffer.h"
 #include "engine/base/VaryingStore.h"
 
 namespace Ifrit::Engine {

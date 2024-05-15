@@ -3,8 +3,6 @@
 namespace Ifrit::Presentation::Backend {
 	void OpenGLBackend::draw() {
 		glDepthFunc(GL_ALWAYS);
-		glClearColor(0.0f, 1.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
 		glActiveTexture(GL_TEXTURE0);
@@ -81,15 +79,20 @@ namespace Ifrit::Presentation::Backend {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		
-
-		
 
 	}
 	void OpenGLBackend::updateTexture(const Ifrit::Core::Data::ImageF32& image) {
+		const static float* ptr = nullptr;
 		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_FLOAT, image.getData());
-		glGenerateMipmap(GL_TEXTURE_2D);
+		auto data = image.getData();
+		if (ptr != data) IFRIT_BRANCH_UNLIKELY {
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.getWidth(), image.getHeight(), 0, GL_RGBA, GL_FLOAT, image.getData());
+			ptr = image.getData();
+		}
+		else {
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image.getWidth(), image.getHeight(), GL_RGBA, GL_FLOAT, data);
+		}
+		//glGenerateMipmap(GL_TEXTURE_2D);
 	}
 	void OpenGLBackend::setViewport(int32_t x, int32_t y, int32_t width, int32_t height) {
 		glViewport(x, y, width, height);

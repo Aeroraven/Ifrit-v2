@@ -42,27 +42,27 @@ namespace Ifrit::Engine::TileRaster {
 
 	public:
 		TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context);
-		void run();
+		void run() IFRIT_AP_NOTHROW;
 
-		bool triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox);
-		uint32_t triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3);
-		bool triangleCulling(float4 v1, float4 v2, float4 v3);
-		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, rect2Df bbox);
+		bool triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox) IFRIT_AP_NOTHROW;
+		uint32_t triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3) IFRIT_AP_NOTHROW;
+		bool triangleCulling(float4 v1, float4 v2, float4 v3) IFRIT_AP_NOTHROW;
+		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, rect2Df bbox) IFRIT_AP_NOTHROW;
 
-		void vertexProcessing();
-		void geometryProcessing();
-		void rasterization();
-		void fragmentProcessing();
+		void vertexProcessing() IFRIT_AP_NOTHROW;
+		void geometryProcessing() IFRIT_AP_NOTHROW;
+		void rasterization() IFRIT_AP_NOTHROW;
+		void fragmentProcessing() IFRIT_AP_NOTHROW;
 
 		void threadStart();
 
-		void interpolateVaryings(int id, const int indices[3], const float barycentric[3], VaryingStore& dest);
-		void getVertexAttributes(const int id, std::vector<const void*>& out);
-		void getVaryingsAddr(const int id,std::vector<VaryingStore*>& out);
+		void interpolateVaryings(int id, const int indices[3], const float barycentric[3], VaryingStore& dest) IFRIT_AP_NOTHROW;
+		void getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW ;
+		void getVaryingsAddr(const int id,std::vector<VaryingStore*>& out)IFRIT_AP_NOTHROW ;
 
-		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy);
-		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy);
-		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy);
+		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
+		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
+		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
 
 		inline float edgeFunction(float4 a, float4 b, float4 c) {
 			return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
@@ -78,10 +78,10 @@ namespace Ifrit::Engine::TileRaster {
 			return _mm256_sub_ps(_mm256_mul_ps(_mm256_sub_ps(cX, aX), _mm256_sub_ps(bY, aY)), _mm256_mul_ps(_mm256_sub_ps(cY, aY), _mm256_sub_ps(bX, aX)));
 		}
 #endif
-		inline int getTileID(int x, int y) {
+		inline int getTileID(int x, int y) IFRIT_AP_NOTHROW {
 			return y * context->tileBlocksX + x;
 		}
-		inline void getAcceptRejectCoords(float3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3]) {
+		inline void getAcceptRejectCoords(float3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3])IFRIT_AP_NOTHROW {
 			constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 			for (int i = 0; i < 3; i++) {
 				bool normalRight = edgeCoefs[i].x < 0;

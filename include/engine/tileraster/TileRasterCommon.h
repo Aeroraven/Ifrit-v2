@@ -1,5 +1,7 @@
 #pragma once
-#include "core/definition/CoreExports.h"
+#include "core/definition/CoreDefs.h"
+#include "core/definition/CoreTypes.h"
+
 namespace Ifrit::Engine::TileRaster {
 	enum class TileRasterHomogeneousClipping {
 		DISABLE,
@@ -25,7 +27,7 @@ namespace Ifrit::Engine::TileRaster {
 		float4 v1, v2, v3;
 		float4 b1, b2, b3;
 		float3 e1, e2, e3; //Edge Coefs
-		float3 f1, f2, f3; //Interpolate Bases
+		float4 f1, f2, f3; //Interpolate Bases
 		int originalPrimitive;
 	};
 
@@ -42,5 +44,21 @@ namespace Ifrit::Engine::TileRaster {
 
 	struct PrimitiveEdgeCoefs {
 		float3 coef[3];
+	};
+
+	class TileRasterDeviceConstants {
+	public:
+		int vertexStride = 3;
+		int tileBlocksX = 64;
+		int subtileBlocksX = 4;
+		int vertexProcessingThreads = 128;
+		int vertexCount;
+		int attributeCount;
+		int varyingCount;
+		int indexCount;
+		int frameBufferWidth;
+		int frameBufferHeight;
+
+		bool counterClockwise = false;
 	};
 }

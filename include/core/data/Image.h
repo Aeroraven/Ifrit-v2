@@ -6,24 +6,22 @@ namespace Ifrit::Core::Data {
 	class Image {
 	private:
 		std::vector<T> data;
-		size_t width;
-		size_t height;
-		size_t channel;
+		const size_t width;
+		const size_t height;
+		const size_t channel;
 	public:
 		Image(size_t width, size_t height, size_t channel) : width(width), height(height), channel(channel) {
 			data.resize(width * height * channel);
 		}
 		Image(size_t width, size_t height, size_t channel, const std::vector<T>& data) : width(width), height(height), channel(channel), data(data) {
-			//ifritAssert(data.size() == width * height * channel, "Data size does not match the image size");	
 		}
 		Image(size_t width, size_t height, size_t channel, std::vector<T>&& data) : width(width), height(height), channel(channel), data(std::move(data)) {
-			//ifritAssert(data.size() == width * height * channel, "Data size does not match the image size");
+
 		}
 		Image(const Image& other) : width(other.width), height(other.height), channel(other.channel), data(other.data) {}
 		Image(Image&& other) noexcept : width(other.width), height(other.height), channel(other.channel), data(std::move(other.data)) {}
 
 		void fillAreaRGBA(size_t x, size_t y, size_t w, size_t h, const T& r, const T& g, const T& b, const T& a) {
-			//ifritAssert(x + w <= width && y + h <= height, "Area out of range");
 			for (size_t i = y; i < y + h; i++) {
 				for (size_t j = x; j < x + w; j++) {
 					data[i * width * channel + j * channel + 0] = r;
@@ -40,6 +38,10 @@ namespace Ifrit::Core::Data {
 			data[y * width * channel + x * channel + 1] = g;
 			data[y * width * channel + x * channel + 2] = b;
 			data[y * width * channel + x * channel + 3] = a;
+		}
+
+		inline void fillPixelRGBA128ps (size_t x, size_t y, const __m128& ps) {
+			_mm_store_ps(&data[y * width * channel + x * channel], ps);
 		}
 
 		void fillArea(size_t x, size_t y, size_t w, size_t h, const T& value) {
@@ -62,18 +64,32 @@ namespace Ifrit::Core::Data {
 		}
 
 		void clearImage(T value=0) {
-			data.clear();
-			data.resize(width * height * channel);
-			if(value != 0) std::fill(data.begin(), data.end(), value);
+			const static auto dataPtr = data.data();
+			const static auto dataSize = data.size() * sizeof(T);
+			if constexpr (std::is_same_v<T, char> && !std::is_same_v<T, unsigned char>) {
+				memset(dataPtr, value, dataSize);
+			}
+			else {
+				if (value != 0) IFRIT_BRANCH_UNLIKELY{
+					std::fill(data.begin(), data.end(), value);
+				}
+				else {
+					memset(dataPtr, value, dataSize);
+				}
+			}
+		}
+
+		void clearImageZero() {
+			const static auto dataPtr = data.data();
+			const static auto dataSize = data.size() * sizeof(T);
+			memset(dataPtr, 0, dataSize);
 		}
 
 		T& operator()(size_t x, size_t y, size_t c) {
-			//ifritAssert(x < width && y < height && c < channel, "Index out of range");
 			return data[y * width * channel + x * channel + c];
 		}
 
 		const T& operator()(size_t x, size_t y, size_t c) const {
-			//ifritAssert(x < width && y < height && c < channel, "Index out of range");
 			return data[y * width * channel + x * channel + c];
 		}
 

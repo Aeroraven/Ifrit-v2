@@ -19,19 +19,20 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterRenderer::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		this->context->indexBuffer = &indexBuffer;
 	}
-	void TileRasterRenderer::bindVertexShader(VertexShader& vertexShader) {
+	void TileRasterRenderer::bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor) {
 		this->context->vertexShader = &vertexShader;
+		this->context->varyingDescriptor = &varyingDescriptor;
 		shaderBindingDirtyFlag = true;
 		varyingBufferDirtyFlag = true;
 	}
 	void TileRasterRenderer::intializeRenderContext() {
 		if (varyingBufferDirtyFlag) {
 			context->vertexShaderResult = std::make_unique<VertexShaderResult>(
-			context->vertexBuffer->getVertexCount(), context->vertexShader->getVaryingCounts());
+			context->vertexBuffer->getVertexCount(), context->varyingDescriptor->getVaryingCounts());
 		}
 		if (varyingBufferDirtyFlag) {
-			context->vertexShaderResult->allocateVaryings(context->vertexShader->getVaryingCounts());
-			context->vertexShader->applyVaryingDescriptors(context->vertexShaderResult.get());
+			context->vertexShaderResult->allocateVaryings(context->varyingDescriptor->getVaryingCounts());
+			context->varyingDescriptor->applyVaryingDescriptors(context->vertexShaderResult.get());
 			context->vertexShaderResult->setVertexCount(context->vertexBuffer->getVertexCount());
 		}
 		varyingBufferDirtyFlag = false;
@@ -40,9 +41,11 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterRenderer::createWorkers() {
 		workers.resize(context->numThreads);
+		context->workerIdleTime.resize(context->numThreads);	
 		for (int i = 0; i < context->numThreads; i++) {
 			workers[i] = std::make_unique<TileRasterWorker>(i, shared_from_this(), context);
 			workers[i]->status.store(TileRasterStage::CREATED);
+			context->workerIdleTime[i] = 0;
 		}
 	}
 	void TileRasterRenderer::statusTransitionBarrier(TileRasterStage waitOn, TileRasterStage proceedTo) {
@@ -63,7 +66,6 @@ namespace Ifrit::Engine::TileRaster {
 			}
 			else {
 				std::this_thread::yield();
-
 			}
 		}
 		return ;
@@ -116,38 +118,29 @@ namespace Ifrit::Engine::TileRaster {
 		}
 	}
 	void TileRasterRenderer::clear() {
-		std::lock_guard lockGuard(lock);
-		context->frameBuffer->getColorAttachment(0)->clearImage();
+		context->frameBuffer->getColorAttachment(0)->clearImageZero();
 		context->frameBuffer->getDepthAttachment()->clearImage(255);
 	}
 
-	void TileRasterRenderer::render() {
-		std::lock_guard lockGuard(lock);
+	void TileRasterRenderer::render(bool clearFramebuffer) IFRIT_AP_NOTHROW {
+		intializeRenderContext();
+		resetWorkers();
 		unresolvedTileRaster.store(0,std::memory_order_seq_cst);
 		unresolvedTileFragmentShading.store(0, std::memory_order_seq_cst);
 		for (int i = 0; i < context->numThreads; i++) {
-			context->workerIdleTime[i] = 0;
 			context->assembledTriangles[i].clear();
 			for (int j = 0; j < context->tileBlocksX * context->tileBlocksX; j++) {
-				auto prevSizeRQ = context->rasterizerQueue[i][j].size();
-				auto prevSizeCQ = context->coverQueue[i][j].size();
 				context->rasterizerQueue[i][j].clear();
 				context->coverQueue[i][j].clear();
-
 			}
 		}
-		context->primitiveMinZ.reserve(context->indexBuffer->size() / context->vertexStride);
-		context->primitiveMinZ.resize(context->indexBuffer->size() / context->vertexStride);
-		context->primitiveEdgeCoefs.reserve(context->indexBuffer->size() / context->vertexStride);
-		context->primitiveEdgeCoefs.resize(context->indexBuffer->size() / context->vertexStride);
-
-		intializeRenderContext();
-		resetWorkers();
 		statusTransitionBarrier(TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);
 		statusTransitionBarrier(TileRasterStage::GEOMETRY_PROCESSING_SYNC, TileRasterStage::RASTERIZATION);
+		if (clearFramebuffer) {
+			clear();
+		}
 		statusTransitionBarrier(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::FRAGMENT_SHADING);
 		statusTransitionBarrier(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::TERMINATED);
-		waitOnWorkers(TileRasterStage::TERMINATED);
 	}
 
 }

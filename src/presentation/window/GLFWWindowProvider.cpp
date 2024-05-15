@@ -16,33 +16,46 @@ namespace Ifrit::Presentation::Window {
 			return false;
 		}
 		glfwMakeContextCurrent(window);
+		glfwSwapInterval(0);
 		ifritAssert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress), "Failed to initialize GLAD");
 
 		this->width = width;
 		this->height = height;
 		return true;
 	}
-	void GLFWWindowProvider::loop(const std::function<void()>& funcs) {
+	void GLFWWindowProvider::loop(const std::function<void(int*)>& funcs) {
 		static int frameCount = 0;
 		while (!glfwWindowShouldClose(window)) {
+			int repCore;
 			auto start = std::chrono::high_resolution_clock::now();
-			funcs();
+			funcs(&repCore);
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 			auto end = std::chrono::high_resolution_clock::now();
-			frameTimes.push_back(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+			frameTimes.push_back(std::max(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(),1ll));
+			frameTimesCore.push_back(repCore);
+	
 			totalFrameTime += frameTimes.back();
+			totalFrameTimeCore += frameTimesCore.back();
+			
 			if (frameTimes.size() > 100) {
-				frameTimes.pop_front();
 				totalFrameTime -= frameTimes.front();
+				totalFrameTimeCore -= frameTimesCore.front();
+				frameTimes.pop_front();
+				frameTimesCore.pop_front();
 			}
 			frameCount++;
 			frameCount %= 100;
 			if (frameCount % 100 == 0) {
 				std::stringstream ss;
 				ss << "Ifrit-V2";
-				ss << " [FPS: " << 1000.0 / (totalFrameTime / 100.0)<<"]";
+				ss << " [Total FPS: " << 1000.0 / (totalFrameTime / 100.0)<<",";
+				ss << " Render FPS: " << 1000.0 / (totalFrameTimeCore / 100.0) << ",";
+
+				auto presentationTime = totalFrameTime - totalFrameTimeCore;
+				ss << " Presentation Delay: " << presentationTime/100.0 << "ms]";
 				glfwSetWindowTitle(window, ss.str().c_str());
+
 			}
 		}
 		glfwTerminate();

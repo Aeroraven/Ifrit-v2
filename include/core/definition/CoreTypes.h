@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 template<class T>
 struct CoreVec2 {

@@ -6,6 +6,7 @@
     <IFRIT_FEATURE_SIMD_AVX512>0</IFRIT_FEATURE_SIMD_AVX512>
     <IFRIT_FEATURE_SIMD_AVX256>1</IFRIT_FEATURE_SIMD_AVX256>
     <IFRIT_FEATURE_CUDA>1</IFRIT_FEATURE_CUDA>
+    <IFRIT_FEATURE_AGGRESSIVE_PERFORMANCE>1</IFRIT_FEATURE_AGGRESSIVE_PERFORMANCE>
   </PropertyGroup>
   <PropertyGroup>
     <IncludePath>$(ProjectDir)include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
@@ -15,7 +16,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>IFRIT_ASSET_PATH=R"($(ProjectDir)asset)";IFRIT_SHADER_PATH=R"($(ProjectDir)shader)";IFRIT_FEATURE_SIMD=$(IFRIT_FEATURE_SIMD);IFRIT_FEATURE_SIMD_AVX512=$(IFRIT_FEATURE_SIMD_AVX512);IFRIT_FEATURE_SIMD_AVX256=$(IFRIT_FEATURE_SIMD_AVX256);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>IFRIT_ASSET_PATH=R"($(ProjectDir)asset)";IFRIT_SHADER_PATH=R"($(ProjectDir)shader)";IFRIT_FEATURE_SIMD=$(IFRIT_FEATURE_SIMD);IFRIT_FEATURE_SIMD_AVX512=$(IFRIT_FEATURE_SIMD_AVX512);IFRIT_FEATURE_SIMD_AVX256=$(IFRIT_FEATURE_SIMD_AVX256);IFRIT_FEATURE_CUDA=$(IFRIT_FEATURE_CUDA);IFRIT_FEATURE_AGGRESSIVE_PERFORMANCE=$(IFRIT_FEATURE_AGGRESSIVE_PERFORMANCE);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -30,6 +31,9 @@
     </BuildMacro>
     <BuildMacro Include="IFRIT_FEATURE_CUDA">
       <Value>$(IFRIT_FEATURE_CUDA)</Value>
+    </BuildMacro>
+    <BuildMacro Include="IFRIT_FEATURE_AGGRESSIVE_PERFORMANCE">
+      <Value>$(IFRIT_FEATURE_AGGRESSIVE_PERFORMANCE)</Value>
     </BuildMacro>
   </ItemGroup>
 </Project>
