@@ -38,11 +38,6 @@ public:
 		result.y = 0.5 * result.y + 0.5;
 		result.z = 0.5 * result.z + 0.5;
 		result.w = 0.5 * result.w + 0.5;
-
-		result.x *= 0.15;
-		result.y *= 0.15;
-		result.z *= 0.15;
-		result.w *= 0.15;
 		colorOutput[0] = result;
 	}
 };

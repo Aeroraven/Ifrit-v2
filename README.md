@@ -2,7 +2,7 @@
 
 Software Rasterizer 
 
-![](img/demo.jpg)
+![](img/img_demo2.png)
 
 
 
@@ -10,7 +10,6 @@ Successor to following repos:
  - [Ifrit](https://github.com/Aeroraven/Ifrit)
  - [Iris (TinyRenderer CPP)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris)
  - [Iris (TinyRenderer C#)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/TinyRenderer)
-
 
 
 ## Features
