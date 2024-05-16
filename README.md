@@ -4,6 +4,8 @@ Software Rasterizer
 
 ![](img/img_demo2.png)
 
+![](img/img_demo3.png)
+
 
 
 Successor to following repos:
@@ -21,10 +23,13 @@ Successor to following repos:
 - **Rendering**:
 	- Homogeneous Space Clipping
 
+- **Presentation**:
+	- Terminal Rendering (ASCII Characters)
 
 ## Dependencies
 
 - Presentation Dependencies:
+	- Terminal (Windows Terminal)
 	- OpenGL 3.3
 	- GLFW 3.3
 	- GLAD
@@ -38,5 +43,5 @@ Successor to following repos:
 	- AVX2
 	- CUDA 12.4 (Planning)
 
-## TODO
+## Ongoing Plan
 - CUDA Integration 

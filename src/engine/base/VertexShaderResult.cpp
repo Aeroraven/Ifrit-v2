@@ -7,7 +7,7 @@ namespace Ifrit::Engine {
 		this->varyings.resize(varyingCount);
 	}
 
-	float4* VertexShaderResult::getPositionBuffer() {
+	ifloat4* VertexShaderResult::getPositionBuffer() {
 		return position.data();
 	}
 	void VertexShaderResult::initializeVaryingBufferFromShader(const TypeDescriptor& typeDescriptor, int id) {
@@ -17,7 +17,7 @@ namespace Ifrit::Engine {
 	void VertexShaderResult::setVertexCount(const uint32_t vertexCount){
 		this->vertexCount = vertexCount;
 		for (auto& varying : varyings) {
-			varying.resize(vertexCount * sizeof(float4));
+			varying.resize(vertexCount * sizeof(ifloat4));
 			varyingDescriptors.resize(varyings.size());
 		}
 		position.resize(vertexCount);

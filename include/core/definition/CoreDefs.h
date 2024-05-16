@@ -106,11 +106,15 @@
 		#endif
 	#endif
 	#include <cuda_runtime.h>
+	#define IFRIT_DEVICE __device__
+	#define IFRIT_HOST __host__
 	#define IFRIT_DUAL __host__ __device__
 	#define IFRIT_KERNEL __global__
 #else
 	#define IFRIT_DUAL
 	#define IFRIT_KERNEL
+	#define IFRIT_DEVICE
+	#define IFRIT_HOST
 #endif
 
 #ifdef IFRIT_CXX20_ENABLED
@@ -123,6 +127,8 @@
 
 #if IFRIT_FEATURE_AGGRESSIVE_PERFORMANCE
 	#define IFRIT_AP_NOTHROW noexcept
+	#define IFRIT_AP_RESTRICT __restrict
 #else
 	#define IFRIT_AP_NOTHROW
+	#define IFRIT_AP_RESTRICT
 #endif

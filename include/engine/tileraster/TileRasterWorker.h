@@ -4,10 +4,7 @@
 #include "engine/tileraster/TileRasterRenderer.h"
 
 namespace Ifrit::Engine::TileRaster {
-	struct TileRasterClipVertex {
-		float4 barycenter;
-		float4 pos;
-	};
+	
 
 	struct AssembledTriangleRef {
 		int sourcePrimitive;
@@ -33,7 +30,7 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<const void*> interpolatedVaryingsAddr;
 		std::vector<const void*> perVertexVaryingsAddr;
 
-		std::vector<float4> colorOutput = std::vector<float4>(1);
+		std::vector<ifloat4> colorOutput = std::vector<ifloat4>(1);
 
 		std::vector<AssembledTriangleProposal> generatedTriangle;
 
@@ -44,10 +41,10 @@ namespace Ifrit::Engine::TileRaster {
 		TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context);
 		void run() IFRIT_AP_NOTHROW;
 
-		bool triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox) IFRIT_AP_NOTHROW;
-		uint32_t triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3) IFRIT_AP_NOTHROW;
-		bool triangleCulling(float4 v1, float4 v2, float4 v3) IFRIT_AP_NOTHROW;
-		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, rect2Df bbox) IFRIT_AP_NOTHROW;
+		bool triangleFrustumClip(ifloat4 v1, ifloat4 v2, ifloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW;
+		uint32_t triangleHomogeneousClip(const int primitiveId, ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW;
+		bool triangleCulling(ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW;
+		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, irect2Df bbox) IFRIT_AP_NOTHROW;
 
 		void vertexProcessing() IFRIT_AP_NOTHROW;
 		void geometryProcessing() IFRIT_AP_NOTHROW;
@@ -64,7 +61,7 @@ namespace Ifrit::Engine::TileRaster {
 		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
 		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
 
-		inline float edgeFunction(float4 a, float4 b, float4 c) {
+		inline float edgeFunction(ifloat4 a, ifloat4 b, ifloat4 c) {
 			return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
 		}
 
@@ -81,7 +78,7 @@ namespace Ifrit::Engine::TileRaster {
 		inline int getTileID(int x, int y) IFRIT_AP_NOTHROW {
 			return y * context->tileBlocksX + x;
 		}
-		inline void getAcceptRejectCoords(float3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3])IFRIT_AP_NOTHROW {
+		inline void getAcceptRejectCoords(ifloat3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3])IFRIT_AP_NOTHROW {
 			constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 			for (int i = 0; i < 3; i++) {
 				bool normalRight = edgeCoefs[i].x < 0;

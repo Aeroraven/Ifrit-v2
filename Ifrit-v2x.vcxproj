@@ -123,6 +123,7 @@
     <ClInclude Include="include\engine\base\VertexShader.h" />
     <ClInclude Include="include\engine\base\VertexShaderResult.h" />
     <ClInclude Include="include\engine\math\ShaderOps.h" />
+    <CudaCompile Include="include\engine\math\ShaderOpsCuda.cuh" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterContextCuda.h" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterRendererCuda.h" />
     <ClInclude Include="include\engine\tileraster\TileRasterCommon.h" />
@@ -131,13 +132,15 @@
     <ClInclude Include="include\engine\tileraster\TileRasterWorker.h" />
     <ClInclude Include="include\presentation\backend\BackendProvider.h" />
     <ClInclude Include="include\presentation\backend\OpenGLBackend.h" />
+    <ClInclude Include="include\presentation\backend\AbstractTerminalBackend.h" />
+    <ClInclude Include="include\presentation\backend\TerminalAsciiBackend.h" />
     <ClInclude Include="include\presentation\window\GLFWWindowProvider.h" />
     <ClInclude Include="include\presentation\window\WindowProvider.h" />
     <ClInclude Include="include\utility\loader\WavefrontLoader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IfritMain.cpp" />
-    <CudaCompile Include="include\engine\tilerastercuda\TileRasterInvocationCuda.cu" />
+    <CudaCompile Include="include\engine\tilerastercuda\TileRasterInvocationCuda.cuh" />
     <ClCompile Include="src\dependency\GLAD\glad.c" />
     <ClCompile Include="src\engine\base\FragmentShader.cpp" />
     <ClCompile Include="src\engine\base\FrameBuffer.cpp" />
@@ -151,9 +154,12 @@
     <ClCompile Include="src\engine\tileraster\TileRasterRenderer.cpp" />
     <ClCompile Include="src\engine\tileraster\TileRasterWorker.cpp" />
     <ClCompile Include="src\presentation\backend\OpenGLBackend.cpp" />
+    <ClCompile Include="src\presentation\backend\AbstractTerminalBackend.cpp" />
+    <ClCompile Include="src\presentation\backend\TerminalAsciiBackend.cpp" />
     <ClCompile Include="src\presentation\window\GLFWWindowProvider.cpp" />
     <ClCompile Include="src\presentation\window\WindowProvider.cpp" />
     <ClCompile Include="src\utility\loader\WavefrontLoader.cpp" />
+    <CudaCompile Include="src\engine\tilerastercuda\TileRasterInvocationCuda.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

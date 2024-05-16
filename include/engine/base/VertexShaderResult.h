@@ -7,7 +7,7 @@ namespace Ifrit::Engine {
 
 	class VertexShaderResult {
 	private:
-		std::vector<float4> position;
+		std::vector<ifloat4> position;
 		std::vector<std::vector<VaryingStore>> varyings;
 		std::vector<TypeDescriptor> varyingDescriptors;
 		uint32_t vertexCount;
@@ -24,7 +24,7 @@ namespace Ifrit::Engine {
 			return varyings[id].data();
 		}
 
-		float4* getPositionBuffer();
+		ifloat4* getPositionBuffer();
 		void initializeVaryingBufferFromShader(const TypeDescriptor& typeDescriptor,int id);
 		void setVertexCount(const uint32_t vertexCount);
 		TypeDescriptor getVaryingDescriptor(int id) const { return varyingDescriptors[id]; }

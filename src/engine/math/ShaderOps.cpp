@@ -1,18 +1,18 @@
 #include "engine/math/ShaderOps.h"
 
 namespace Ifrit::Engine::Math::ShaderOps {
-	float4 multiply(const float4x4 a, const float4 b){
-		float4 result;
+	ifloat4 multiply(const float4x4 a, const ifloat4 b){
+		ifloat4 result;
 		result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z + a[0][3] * b.w;
 		result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z + a[1][3] * b.w;
 		result.z = a[2][0] * b.x + a[2][1] * b.y + a[2][2] * b.z + a[2][3] * b.w;
 		result.w = a[3][0] * b.x + a[3][1] * b.y + a[3][2] * b.z + a[3][3] * b.w;
 		return result;
 	}
-	float4x4 lookAt(float3 eye, float3 center, float3 up){
-		float3 f = normalize(sub(center,eye));
-		float3 s = normalize(cross(f, up));
-		float3 u = cross(s, f);
+	float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up){
+		ifloat3 f = normalize(sub(center,eye));
+		ifloat3 s = normalize(cross(f, up));
+		ifloat3 u = cross(s, f);
 		float4x4 result;
 		result[0][0] = s.x;
 		result[0][1] = s.y;
@@ -81,21 +81,21 @@ namespace Ifrit::Engine::Math::ShaderOps {
 		}
 		return result;
 	}
-	float4 normalize(float4 a){
+	ifloat4 normalize(ifloat4 a){
 		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w);
 		return { a.x / length, a.y / length, a.z / length, a.w / length };
 	}
-	float3 cross(float3 a, float3 b){
+	ifloat3 cross(ifloat3 a, ifloat3 b){
 		return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
 	}
-	float3 normalize(float3 a){
+	ifloat3 normalize(ifloat3 a){
 		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 		return { a.x / length, a.y / length, a.z / length };
 	}
-	float3 sub(float3 a, float3 b) {
+	ifloat3 sub(ifloat3 a, ifloat3 b) {
 		return { a.x - b.x, a.y - b.y, a.z - b.z };
 	}
-	float dot(float3 a, float3 b){
+	float dot(ifloat3 a, ifloat3 b){
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 	float4x4 transpose(float4x4 a){

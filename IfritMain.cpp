@@ -1,64 +1,76 @@
 #include "presentation/window/GLFWWindowProvider.h"
+
 #include "presentation/backend/OpenGLBackend.h"
 #include "core/data/Image.h"
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/tileraster/TileRasterRenderer.h"
 #include "utility/loader/WavefrontLoader.h"
 #include "engine/math/ShaderOps.h"
+#include "engine/tilerastercuda/TileRasterInvocationCuda.cuh"
+#include "presentation/backend/TerminalAsciiBackend.h"
 
 using namespace std;
 using namespace Ifrit::Core::Data;
-using namespace Ifrit::Presentation::Window;
-using namespace Ifrit::Presentation::Backend;
 using namespace Ifrit::Engine::TileRaster;
 using namespace Ifrit::Utility::Loader;
 using namespace Ifrit::Engine::Math::ShaderOps;
+using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+using namespace Ifrit::Presentation::Window;
+using namespace Ifrit::Presentation::Backend;
 
-//float4x4 view = (lookAt({ 0,0.1,0.25}, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
+
+enum PresentEngine {
+	PE_GLFW,
+	PE_CONSOLE
+};
+
+PresentEngine presentEngine = PE_GLFW;
+
+float4x4 view = (lookAt({ 0,2.1,5.25}, { 0,1.5,0.0 }, { 0,1,0 })); //Bunny
 //float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
-float4x4 view = (lookAt({ 0,0.75,1.50}, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
+//float4x4 view = (lookAt({ 0,0.75,1.50}, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
 float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 0.1, 4000));
+float4x4 model;
 float4x4 mvp = multiply(proj, view);
 
 class DemoVertexShader : public VertexShader {
 public:
-	IFRIT_DUAL virtual void execute(const void* const* input, float4* outPos, VaryingStore** outVaryings) override{
-		auto s = *reinterpret_cast<const float4*>(input[0]);
+	IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore** outVaryings) override{
+		auto s = *reinterpret_cast<const ifloat4*>(input[0]);
 		auto p = multiply(mvp,s);
 		*outPos = p;
-		outVaryings[0]->vf4 = *reinterpret_cast<const float4*>(input[1]);
+		outVaryings[0]->vf4 = *reinterpret_cast<const ifloat4*>(input[1]);
 	}
 };
 
 class DemoFragmentShader : public FragmentShader {
 public:
-	IFRIT_DUAL virtual void execute(const VaryingStore* varyings, float4* colorOutput) override {
-		float4 result = varyings[0].vf4;
+	IFRIT_DUAL virtual void execute(const VaryingStore* varyings, ifloat4* colorOutput) override {
+		ifloat4 result = varyings[0].vf4;
 		result.x = 0.5 * result.x + 0.5;
 		result.y = 0.5 * result.y + 0.5;
 		result.z = 0.5 * result.z + 0.5;
 		result.w = 0.5 * result.w + 0.5;
+
 		colorOutput[0] = result;
 	}
 };
 
 
 int main() {
-	WavefrontLoader loader;
-	std::vector<float3> pos;
-	std::vector<float3> normal;
-	std::vector<float2> uv;
-	std::vector<uint32_t> index;
-	std::vector<float3> procNormal;
+	testingKernelWrapper();
 
-	loader.loadObject(IFRIT_ASSET_PATH"/yomiya.obj",pos,normal,uv,index);
+	WavefrontLoader loader;
+	std::vector<ifloat3> pos;
+	std::vector<ifloat3> normal;
+	std::vector<ifloat2> uv;
+	std::vector<uint32_t> index;
+	std::vector<ifloat3> procNormal;
+
+	loader.loadObject(IFRIT_ASSET_PATH"/teapot.obj",pos,normal,uv,index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
-	GLFWWindowProvider windowProvider;
-	windowProvider.setup(1920, 1080);
 
-	OpenGLBackend backend;
-	backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 
 	std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(1200, 800, 4);
 	std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(1200, 800, 1);
@@ -70,18 +82,18 @@ int main() {
 	
 	vertexBuffer.setVertexCount(3);
 	vertexBuffer.allocateBuffer(3);
-	vertexBuffer.setValue(0, 0, float4(-0.0027,0.3485,-0.0983,0.0026));
-	vertexBuffer.setValue(1, 0, float4(0.0000,0.3294,-0.1037,-0.0037));
-	vertexBuffer.setValue(2, 0, float4(0.0000,0.3487,-0.0971,-0.0028));
-	vertexBuffer.setValue(0, 1, float4(1, 0, 1, 0));
-	vertexBuffer.setValue(1, 1, float4(1, 0, 1, 0));
-	vertexBuffer.setValue(2, 1, float4(1, 0, 1, 0));
+	vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
+	vertexBuffer.setValue(1, 0, ifloat4(0.0000,0.3294,-0.1037,-0.0037));
+	vertexBuffer.setValue(2, 0, ifloat4(0.0000,0.3487,-0.0971,-0.0028));
+	vertexBuffer.setValue(0, 1, ifloat4(1, 0, 1, 0));
+	vertexBuffer.setValue(1, 1, ifloat4(1, 0, 1, 0));
+	vertexBuffer.setValue(2, 1, ifloat4(1, 0, 1, 0));
 	
 	vertexBuffer.allocateBuffer(pos.size());
 
 	for (int i = 0; i < pos.size(); i++) {
-		vertexBuffer.setValue(i, 0, float4(pos[i].x, pos[i].y, pos[i].z, 1));
-		vertexBuffer.setValue(i, 1, float4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
+		vertexBuffer.setValue(i, 0, ifloat4(pos[i].x, pos[i].y, pos[i].z, 1));
+		vertexBuffer.setValue(i, 1, ifloat4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
 	}
 
 	std::vector<int> indexBuffer = { 1,2,0 };
@@ -106,15 +118,38 @@ int main() {
 	DemoFragmentShader fragmentShader;
 	renderer->bindFragmentShader(fragmentShader);
 
-	ifritLog2("Start Rendering");
-	windowProvider.loop([&](int* coreTime) {
-		std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-		renderer->render(true);
-		std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-		*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-		backend.updateTexture(*image);
-		backend.draw();
-	});
+
+	float ang = 0;
+	if(presentEngine==PE_CONSOLE){
+		TerminalAsciiBackend backend(139, 40);
+		while (true) {
+			ang+=0.002;
+			float4x4 model = axisAngleRotation({ 0,1,0 }, ang);
+			mvp = multiply(proj, view);
+			mvp = multiply(mvp, model);
+
+			renderer->render(true);
+			backend.updateTexture(*image);
+			backend.draw();
+		}
+	}
+	else {
+		ifritLog2("Start Rendering");
+		GLFWWindowProvider windowProvider;
+		windowProvider.setup(1920, 1080);
+
+		OpenGLBackend backend;
+		backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
+		windowProvider.loop([&](int* coreTime) {
+			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+			renderer->render(true);
+			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+			backend.updateTexture(*image);
+			backend.draw();
+		});
+	}
+	
 	return 0;
 }
 

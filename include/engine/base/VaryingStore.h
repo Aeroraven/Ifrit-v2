@@ -7,12 +7,12 @@ namespace Ifrit::Engine {
 		float vf;
 		int vi;
 		uint32_t vui;
-		float2 vf2;
-		float3 vf3;
-		float4 vf4;
-		int2 vi2;
-		int3 vi3;
-		int4 vi4;
-		uint2 vui2;
+		ifloat2 vf2;
+		ifloat3 vf3;
+		ifloat4 vf4;
+		iint2 vi2;
+		iint3 vi3;
+		iint4 vi4;
+		iuint2 vui2;
 	};
 }

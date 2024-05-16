@@ -24,10 +24,10 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	struct AssembledTriangleProposal {
-		float4 v1, v2, v3;
-		float4 b1, b2, b3;
-		float3 e1, e2, e3; //Edge Coefs
-		float4 f1, f2, f3; //Interpolate Bases
+		ifloat4 v1, v2, v3;
+		ifloat4 b1, b2, b3;
+		ifloat3 e1, e2, e3; //Edge Coefs
+		ifloat4 f1, f2, f3; //Interpolate Bases
 		int originalPrimitive;
 	};
 
@@ -37,13 +37,13 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	struct TileBinProposal {
-		int2 tile;
+		iint2 tile;
 		TileRasterLevel level;
 		AssembledTriangleProposalReference clippedTriangle;
 	};
 
 	struct PrimitiveEdgeCoefs {
-		float3 coef[3];
+		ifloat3 coef[3];
 	};
 
 	class TileRasterDeviceConstants {
@@ -60,5 +60,11 @@ namespace Ifrit::Engine::TileRaster {
 		int frameBufferHeight;
 
 		bool counterClockwise = false;
+		int startingIndexId;
+	};
+
+	struct TileRasterClipVertex {
+		ifloat4 barycenter;
+		ifloat4 pos;
 	};
 }

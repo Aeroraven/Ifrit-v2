@@ -32,14 +32,14 @@ namespace Ifrit::Engine::TileRaster {
 			}
 		}
 	}
-	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, float4 v1, float4 v2, float4 v3) IFRIT_AP_NOTHROW {
+	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW {
 		using Ifrit::Engine::Math::ShaderOps::dot;
 		using Ifrit::Engine::Math::ShaderOps::sub;
 		using Ifrit::Engine::Math::ShaderOps::add;
 		using Ifrit::Engine::Math::ShaderOps::multiply;
 		using Ifrit::Engine::Math::ShaderOps::lerp;
 		constexpr uint32_t clipIts = 7;
-		const float4 clipCriteria[clipIts] = {
+		const ifloat4 clipCriteria[clipIts] = {
 			{0,0,0,EPS},
 			{1,0,0,0},
 			{-1,0,0,0},
@@ -55,8 +55,8 @@ namespace Ifrit::Engine::TileRaster {
 		ret[1][2] = { {0,0,1,0},v3 };
 		int clipTimes = 0;
 		for (int i = 0; i < clipIts; i++) {
-			float4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
-			float4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
+			ifloat4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
+			ifloat4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
 			const auto cIdx = i & 1, cRIdx = 1- (i & 1);
 			retCnt[cIdx] = 0;
 			const auto psize = retCnt[cRIdx];
@@ -70,7 +70,7 @@ namespace Ifrit::Engine::TileRaster {
 				auto npn = dot(pn.pos, outNormal);
 				
 				if (npc * npn < 0) {
-					float4 dir = sub(pn.pos, pc.pos);
+					ifloat4 dir = sub(pn.pos, pc.pos);
 					// Solve for t, where W = aX + bY + cZ + d
 					// W = a(pc.x + t * dir.x) + b(pc.y + t * dir.y) + c(pc.z + t * dir.z) + d = pc.w + t * dir.w
 					// (pc.x*a + pc.y*b + pc.z*c + d - pc.w) + t * (dir.x*a + dir.y*b + dir.z*c - dir.w) = 0
@@ -80,8 +80,8 @@ namespace Ifrit::Engine::TileRaster {
 					float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
 					float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
 					float t = numo / deno;
-					float4 intersection = add(pc.pos, multiply(dir, t));
-					float4 barycenter = lerp(pc.barycenter, pn.barycenter, t);
+					ifloat4 intersection = add(pc.pos, multiply(dir, t));
+					ifloat4 barycenter = lerp(pc.barycenter, pn.barycenter, t);
 
 					TileRasterClipVertex newp;
 					newp.barycenter = barycenter;
@@ -129,7 +129,7 @@ namespace Ifrit::Engine::TileRaster {
 			atri.f2 = { sV1V3y * ar, sV1V3x * ar,(-atri.v3.x * sV1V3y - atri.v3.y * sV1V3x) * ar };
 
 
-			float3 edgeCoefs[3];
+			ifloat3 edgeCoefs[3];
 			atri.e1 = { sV2V1y,  sV2V1x,  atri.v2.x * atri.v1.y - atri.v1.x * atri.v2.y };
 			atri.e2 = { sV3V2y,  sV3V2x,  atri.v3.x * atri.v2.y - atri.v2.x * atri.v3.y };
 			atri.e3 = { sV1V3y,  sV1V3x,  atri.v1.x * atri.v3.y - atri.v3.x * atri.v1.y };
@@ -139,7 +139,7 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		return  retCnt[clipOdd] - 2;
 	}
-	bool TileRasterWorker::triangleFrustumClip(float4 v1, float4 v2, float4 v3, rect2Df& bbox) IFRIT_AP_NOTHROW {
+	bool TileRasterWorker::triangleFrustumClip(ifloat4 v1, ifloat4 v2, ifloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW {
 		bool inside = true;
 		float minx = std::min(v1.x, std::min(v2.x, v3.x));
 		float miny = std::min(v1.y, std::min(v2.y, v3.y));
@@ -159,7 +159,7 @@ namespace Ifrit::Engine::TileRaster {
 		bbox.h = maxy - miny;
 		return true;
 	}
-	bool TileRasterWorker::triangleCulling(float4 v1, float4 v2, float4 v3) IFRIT_AP_NOTHROW {
+	bool TileRasterWorker::triangleCulling(ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW {
 		float d1 = (v1.x * v2.y);
 		float d2 = (v2.x * v3.y);
 		float d3 = (v3.x * v1.y);
@@ -170,9 +170,8 @@ namespace Ifrit::Engine::TileRaster {
 		if (d < 0.0) return false;
 		return true;
 	}
-	void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, rect2Df bbox) IFRIT_AP_NOTHROW {
+	void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, irect2Df bbox) IFRIT_AP_NOTHROW {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
-
 
 		float minx = bbox.x * 0.5 + 0.5;
 		float miny = bbox.y * 0.5 + 0.5;
@@ -184,12 +183,12 @@ namespace Ifrit::Engine::TileRaster {
 		int tileMaxx = std::min(context->tileBlocksX - 1, (int)(maxx * context->tileBlocksX));
 		int tileMaxy = std::min(context->tileBlocksX - 1, (int)(maxy * context->tileBlocksX));
 
-		float3 edgeCoefs[3];
+		ifloat3 edgeCoefs[3];
 		edgeCoefs[0] = atp.e1;
 		edgeCoefs[1] = atp.e2;
 		edgeCoefs[2] = atp.e3;
 
-		float3 tileCoords[4];
+		ifloat3 tileCoords[4];
 
 		int chosenCoordTR[3];
 		int chosenCoordTA[3];
@@ -269,9 +268,9 @@ namespace Ifrit::Engine::TileRaster {
 			if (context->frontface == TileRasterFrontFace::COUNTER_CLOCKWISE) {
 				std::swap(id0, id2);
 			}
-			float4 v1 = posBuffer[id0];
-			float4 v2 = posBuffer[id1];
-			float4 v3 = posBuffer[id2];
+			ifloat4 v1 = posBuffer[id0];
+			ifloat4 v2 = posBuffer[id1];
+			ifloat4 v3 = posBuffer[id2];
 			if (!triangleCulling(v1, v2, v3)) {
 				continue;
 			}
@@ -280,7 +279,7 @@ namespace Ifrit::Engine::TileRaster {
 			int gtri = fw + genTris;
 			for(int i = genTris; i < gtri; i++) {
 				auto& atri = context->assembledTriangles[workerId][i];
-				rect2Df bbox;
+				irect2Df bbox;
 				if (!triangleFrustumClip(atri.v1, atri.v2, atri.v3, bbox)) {
 					continue;
 				}
@@ -315,7 +314,7 @@ namespace Ifrit::Engine::TileRaster {
 					const auto& proposal = context->rasterizerQueue[T][curTile][j];
 					const auto& ptRef = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
 
-					float3 edgeCoefs[3];
+					ifloat3 edgeCoefs[3];
 					edgeCoefs[0] = ptRef.e1;
 					edgeCoefs[1] = ptRef.e2;
 					edgeCoefs[2] = ptRef.e3;
@@ -562,7 +561,7 @@ namespace Ifrit::Engine::TileRaster {
 						subTilePixelX2 = std::min(subTilePixelX2 * 1u, frameBufferWidth - 1);
 						subTilePixelY2 = std::min(subTilePixelY2 * 1u, frameBufferHeight - 1);
 
-						float3 tileCoords[4];
+						ifloat3 tileCoords[4];
 						tileCoords[VLT] = { subTileMinX, subTileMinY, 1.0 };
 						tileCoords[VLB] = { subTileMinX, subTileMaxY, 1.0 };
 						tileCoords[VRB] = { subTileMaxX, subTileMaxY, 1.0 };
@@ -716,13 +715,13 @@ namespace Ifrit::Engine::TileRaster {
 		for (int i = 0; i < context->vertexBuffer->getAttributeCount();i++) {
 			auto desc = context->vertexBuffer->getAttributeDescriptor(i);
 			if (desc.type == TypeDescriptorEnum::IFTP_FLOAT4) IFRIT_BRANCH_LIKELY{
-				out[i]= (context->vertexBuffer->getValuePtr<float4>(id, i));
+				out[i]= (context->vertexBuffer->getValuePtr<ifloat4>(id, i));
 			}
 			else if (desc.type == TypeDescriptorEnum::IFTP_FLOAT3) {
-				out[i] = (context->vertexBuffer->getValuePtr<float3>(id, i));
+				out[i] = (context->vertexBuffer->getValuePtr<ifloat3>(id, i));
 			}
 			else if (desc.type == TypeDescriptorEnum::IFTP_FLOAT2) {
-				out[i] = (context->vertexBuffer->getValuePtr<float2>(id, i));
+				out[i] = (context->vertexBuffer->getValuePtr<ifloat2>(id, i));
 			}
 			else if (desc.type == TypeDescriptorEnum::IFTP_FLOAT1) {
 				out[i] = (context->vertexBuffer->getValuePtr<float>(id, i));
@@ -731,13 +730,13 @@ namespace Ifrit::Engine::TileRaster {
 				out[i] = (context->vertexBuffer->getValuePtr<int>(id, i));
 			}
 			else if (desc.type == TypeDescriptorEnum::IFTP_INT2) {
-				out[i] = (context->vertexBuffer->getValuePtr<int2>(id, i));
+				out[i] = (context->vertexBuffer->getValuePtr<iint2>(id, i));
 			}
 			else if (desc.type == TypeDescriptorEnum::IFTP_INT3) {
-				out[i] = (context->vertexBuffer->getValuePtr<int3>(id, i));
+				out[i] = (context->vertexBuffer->getValuePtr<iint3>(id, i));
 			}
 			else if (desc.type == TypeDescriptorEnum::IFTP_INT4) {
-				out[i] = (context->vertexBuffer->getValuePtr<int4>(id, i));
+				out[i] = (context->vertexBuffer->getValuePtr<iint4>(id, i));
 			}
 			else IFRIT_BRANCH_UNLIKELY{
 				ifritError("Unsupported Type");
@@ -756,7 +755,7 @@ namespace Ifrit::Engine::TileRaster {
 		auto& depthAttachment = (*context->frameBuffer->getDepthAttachment())(dx, dy, 0);
 		int idx = atp.originalPrimitive * context->vertexStride;
 
-		float4 pos[4];
+		ifloat4 pos[4];
 		pos[0] = atp.v1;
 		pos[1] = atp.v2;
 		pos[2] = atp.v3;	
@@ -770,7 +769,7 @@ namespace Ifrit::Engine::TileRaster {
 		
 		// Interpolate Depth
 #if IFRIT_USE_SIMD_128_EXPERIMENTAL
-		float4 p = { pDx ,pDy,1.0,0.0 };
+		ifloat4 p = { pDx ,pDy,1.0,0.0 };
 
 		float bary[4];
 		float depth[4];
@@ -846,7 +845,7 @@ namespace Ifrit::Engine::TileRaster {
 		int idx = atp.originalPrimitive * context->vertexStride;
 
 		__m128 posX[3], posY[3], posZ[3], posW[3];
-		float4 pos[3];
+		ifloat4 pos[3];
 		pos[0] = atp.v1;
 		pos[1] = atp.v2;
 		pos[2] = atp.v3;
@@ -937,7 +936,7 @@ namespace Ifrit::Engine::TileRaster {
 		int idx = atp.originalPrimitive * context->vertexStride;
 
 		__m256 posX[3], posY[3], posZ[3], posW[3];
-		float4 pos[3];
+		ifloat4 pos[3];
 		pos[0] = atp.v1;
 		pos[1] = atp.v2;
 		pos[2] = atp.v3;
