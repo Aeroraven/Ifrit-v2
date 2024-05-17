@@ -3,11 +3,13 @@
 
 #ifdef IFRIT_FEATURE_CUDA
 namespace Core::CUDA {
+	
 	template<typename T>
 	__global__ void kernFixVTable(T* devicePtr) {
 		T temp(*devicePtr);
 		memcpy(devicePtr, &temp, sizeof(T));
 	}
+
 	template<typename T>
 	__host__ T* hostGetDeviceObjectCopy(T* hostObject) {
 		T* deviceHandle;

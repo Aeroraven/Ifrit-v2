@@ -97,6 +97,7 @@
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <AdditionalOptions>-std=c++20 %(AdditionalOptions)</AdditionalOptions>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>
     <CudaLink>
       <Optimization>O3</Optimization>
@@ -134,8 +135,10 @@
     <ClInclude Include="include\presentation\backend\OpenGLBackend.h" />
     <ClInclude Include="include\presentation\backend\AbstractTerminalBackend.h" />
     <ClInclude Include="include\presentation\backend\TerminalAsciiBackend.h" />
+    <ClInclude Include="include\presentation\backend\TerminalCharColorBackend.h" />
     <ClInclude Include="include\presentation\window\GLFWWindowProvider.h" />
     <ClInclude Include="include\presentation\window\WindowProvider.h" />
+    <ClInclude Include="include\presentation\window\TerminalProvider.h" />
     <ClInclude Include="include\utility\loader\WavefrontLoader.h" />
   </ItemGroup>
   <ItemGroup>
@@ -156,8 +159,10 @@
     <ClCompile Include="src\presentation\backend\OpenGLBackend.cpp" />
     <ClCompile Include="src\presentation\backend\AbstractTerminalBackend.cpp" />
     <ClCompile Include="src\presentation\backend\TerminalAsciiBackend.cpp" />
+    <ClCompile Include="src\presentation\backend\TerminalCharColorBackend.cpp" />
     <ClCompile Include="src\presentation\window\GLFWWindowProvider.cpp" />
     <ClCompile Include="src\presentation\window\WindowProvider.cpp" />
+    <ClCompile Include="src\presentation\window\TerminalProvider.cpp" />
     <ClCompile Include="src\utility\loader\WavefrontLoader.cpp" />
     <CudaCompile Include="src\engine\tilerastercuda\TileRasterInvocationCuda.cu" />
   </ItemGroup>

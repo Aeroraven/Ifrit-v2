@@ -243,16 +243,60 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					TileBinProposal proposal;
 					proposal.level = TileRasterLevel::TILE;
 					proposal.clippedTriangle = { workerId,primitiveId };
-					auto proposalId = atomicAdd(&dCoverQueueCount[workerId], 1);
-					dCoverQueue[workerId][proposalId] = proposal;
+					auto proposalId = atomicAdd(&dCoverQueueCount[tileId], 1);
+					dCoverQueue[tileId][proposalId] = proposal;
 				}
 				else {
 					TileBinProposal proposal;
 					proposal.level = TileRasterLevel::TILE;
 					proposal.clippedTriangle = { workerId,primitiveId };
-					auto proposalId = atomicAdd(&dRasterQueueCount[workerId], 1);
-					dRasterQueue[workerId][proposalId] = proposal;
+					auto proposalId = atomicAdd(&dRasterQueueCount[tileId], 1);
+					dRasterQueue[tileId][proposalId] = proposal;
 				}
+			}
+		}
+	}
+
+	IFRIT_DEVICE void devInterpolateVaryings(
+		int id, 
+		VaryingStore** dVaryingBuffer,
+		TypeDescriptorEnum* dVaryingTypeDescriptor,
+		const int indices[3], 
+		const float barycentric[3], 
+		VaryingStore& dest
+	)  {
+		auto va = dVaryingBuffer[id];
+		auto varyingDescriptor = dVaryingTypeDescriptor[id];
+
+		if (varyingDescriptor == TypeDescriptorEnum::IFTP_FLOAT4) {
+			dest.vf4 = { 0,0,0,0 };
+			for (int j = 0; j < 3; j++) {
+				dest.vf4.x += va[indices[j]].vf4.x * barycentric[j];
+				dest.vf4.y += va[indices[j]].vf4.y * barycentric[j];
+				dest.vf4.z += va[indices[j]].vf4.z * barycentric[j];
+				dest.vf4.w += va[indices[j]].vf4.w * barycentric[j];
+			}
+		}
+		else if (varyingDescriptor == TypeDescriptorEnum::IFTP_FLOAT3) {
+			dest.vf3 = { 0,0,0 };
+			for (int j = 0; j < 3; j++) {
+				dest.vf3.x += va[indices[j]].vf3.x * barycentric[j];
+				dest.vf3.y += va[indices[j]].vf3.y * barycentric[j];
+				dest.vf3.z += va[indices[j]].vf3.z * barycentric[j];
+			}
+
+		}
+		else if (varyingDescriptor == TypeDescriptorEnum::IFTP_FLOAT2) {
+			dest.vf2 = { 0,0 };
+			for (int j = 0; j < 3; j++) {
+				dest.vf2.x += va[indices[j]].vf2.x * barycentric[j];
+				dest.vf2.y += va[indices[j]].vf2.y * barycentric[j];
+			}
+		}
+		else if (varyingDescriptor == TypeDescriptorEnum::IFTP_FLOAT1) {
+			dest.vf = 0;
+			for (int j = 0; j < 3; j++) {
+				dest.vf += va[indices[j]].vf * barycentric[j];
 			}
 		}
 	}
@@ -291,7 +335,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		VertexShader* vertexShader,
 		char** dVertexBuffer,
 		TypeDescriptorEnum* dVertexTypeDescriptor,
-		char** dVaryingBuffer,
+		VaryingStore** dVaryingBuffer,
 		TypeDescriptorEnum* dVaryingTypeDescriptor,
 		ifloat4* dPosBuffer,
 		TileRasterDeviceConstants* deviceConstants
@@ -305,7 +349,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			vertexInputPtrs[i] = devGetBufferAddress(dVertexBuffer[i], dVertexTypeDescriptor[i], globalInvoIdx);
 		}
 		for (int i = 0; i < numVaryings; i++) {
-			varyingOutputPtrs[i] = reinterpret_cast<VaryingStore*>(devGetBufferAddress(dVaryingBuffer[i], dVaryingTypeDescriptor[i], globalInvoIdx));
+			varyingOutputPtrs[i] = dVaryingBuffer[i] + globalInvoIdx;
 		}
 		vertexShader->execute(vertexInputPtrs, &dPosBuffer[globalInvoIdx], varyingOutputPtrs);
 		delete[] vertexInputPtrs;
@@ -357,8 +401,228 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		uint32_t* dCoverQueueCount,
 		TileRasterDeviceConstants* deviceConstants
 	) {
+		const auto tileIdxX = blockIdx.x * blockDim.x + threadIdx.x;
+		const auto tileIdxY = blockIdx.y * blockDim.y + threadIdx.y;
+		const auto tileId = tileIdxY * deviceConstants->tileBlocksX + tileIdxX;
+		const auto rastCandidates = dRasterQueueCount[tileId];
+		
+		const auto dispatchBlocks = (rastCandidates >> 5) + ((rastCandidates & 0x1F) != 0);
+		tilingRasterizationChildKernel CU_KARG2(dispatchBlocks, 32) (tileIdxX, tileIdxY, rastCandidates,
+			dAssembledTriangles, dAssembledTriangleCount, dRasterQueue, dRasterQueueCount, dCoverQueue,
+			dCoverQueueCount, deviceConstants);
 
 	}
+
+	IFRIT_KERNEL void tilingRasterizationChildKernel(
+		uint32_t tileIdX,
+		uint32_t tileIdY,
+		uint32_t totalBound,
+		AssembledTriangleProposal** dAssembledTriangles,
+		uint32_t* dAssembledTriangleCount,
+		TileBinProposal** dRasterQueue,
+		uint32_t* dRasterQueueCount,
+		TileBinProposal** dCoverQueue,
+		uint32_t* dCoverQueueCount,
+		TileRasterDeviceConstants* deviceConstants
+	) {
+		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
+
+		const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
+		const auto tileId = tileIdY * deviceConstants->tileBlocksX + tileIdX;
+		if (globalInvocation > totalBound)return;
+		const uint32_t pixelStX = deviceConstants->frameBufferWidth * tileIdX / deviceConstants->tileBlocksX;
+		const uint32_t pixelEdX = deviceConstants->frameBufferWidth * (tileIdX + 1) / deviceConstants->tileBlocksX;
+		const uint32_t pixelStY = deviceConstants->frameBufferHeight * tileIdY / deviceConstants->tileBlocksX;
+		const uint32_t pixelEdY = deviceConstants->frameBufferHeight * (tileIdY + 1) / deviceConstants->tileBlocksX;
+		const auto primitiveSrcThread = dRasterQueue[tileId][globalInvocation].clippedTriangle.workerId;
+		const auto primitiveSrcId = dRasterQueue[tileId][globalInvocation].clippedTriangle.primId;
+		const auto& atri = dAssembledTriangles[primitiveSrcThread][primitiveSrcId];
+
+		float tileMinX = 1.0f * tileIdX / deviceConstants->tileBlocksX;
+		float tileMinY = 1.0f * tileIdY / deviceConstants->tileBlocksX;
+		float tileMaxX = 1.0f * (tileIdX + 1) / deviceConstants->tileBlocksX;
+		float tileMaxY = 1.0f * (tileIdY + 1) / deviceConstants->tileBlocksX;
+
+		ifloat3 edgeCoefs[3];
+		edgeCoefs[0] = atri.e1;
+		edgeCoefs[1] = atri.e2;
+		edgeCoefs[2] = atri.e3;
+
+		int chosenCoordTR[3];
+		int chosenCoordTA[3];
+		devGetAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
+
+		// Decomp into Sub Blocks
+		for (int i = deviceConstants->subtileBlocksX * deviceConstants->subtileBlocksX - 1; i >= 0; --i) {
+			int criteriaTR = 0;
+			int criteriaTA = 0;
+
+			auto subTileIX = i % deviceConstants->subtileBlocksX;
+			auto subTileIY = i / deviceConstants->subtileBlocksX;
+			auto subTileTX = (tileIdX * deviceConstants->subtileBlocksX + subTileIX);
+			auto subTileTY = (tileIdY * deviceConstants->subtileBlocksX + subTileIY);
+
+			const int wp = (deviceConstants->subtileBlocksX * deviceConstants->tileBlocksX);
+			int subTilePixelX = subTileTX * deviceConstants->frameBufferWidth / wp;
+			int subTilePixelY = subTileTY * deviceConstants->frameBufferHeight / wp;
+			int subTilePixelX2 = (subTileTX + 1) * deviceConstants->frameBufferWidth / wp;
+			int subTilePixelY2 = (subTileTY + 1) * deviceConstants->frameBufferHeight / wp;
+
+			float subTileMinX = tileMinX + 1.0f * subTileIX / wp;
+			float subTileMinY = tileMinY + 1.0f * subTileIY / wp;
+			float subTileMaxX = tileMinX + 1.0f * (subTileIX + 1) / wp;
+			float subTileMaxY = tileMinY + 1.0f * (subTileIY + 1) / wp;
+
+			ifloat3 tileCoords[4];
+			tileCoords[VLT] = { subTileMinX, subTileMinY, 1.0 };
+			tileCoords[VLB] = { subTileMinX, subTileMaxY, 1.0 };
+			tileCoords[VRB] = { subTileMaxX, subTileMaxY, 1.0 };
+			tileCoords[VRT] = { subTileMaxX, subTileMinY, 1.0 };
+
+			for (int k = 0; k < 4; k++) {
+				tileCoords[k].x = tileCoords[k].x * 2 - 1;
+				tileCoords[k].y = tileCoords[k].y * 2 - 1;
+			}
+
+			for (int k = 0; k < 3; k++) {
+				float criteriaTRLocal = edgeCoefs[k].x * tileCoords[chosenCoordTR[k]].x + edgeCoefs[k].y * tileCoords[chosenCoordTR[k]].y + edgeCoefs[k].z;
+				float criteriaTALocal = edgeCoefs[k].x * tileCoords[chosenCoordTA[k]].x + edgeCoefs[k].y * tileCoords[chosenCoordTA[k]].y + edgeCoefs[k].z;
+				if (criteriaTRLocal < -CU_EPS) criteriaTR += 1;
+				if (criteriaTALocal < CU_EPS) criteriaTA += 1;
+			}
+
+			if (criteriaTR != 3) {
+				continue;
+			}
+			if (criteriaTA == 3) {
+				TileBinProposal nprop;
+				nprop.level = TileRasterLevel::BLOCK;
+				nprop.tile = { subTileIX,subTileIY };
+				nprop.clippedTriangle = dRasterQueue[tileId][globalInvocation].clippedTriangle;
+				auto proposalInsIdx = atomicAdd(&dCoverQueueCount[tileId], 1);
+				dCoverQueue[tileId][proposalInsIdx] = nprop;
+			}
+			else {
+				//Into Pixel level
+				for (int dx = subTilePixelX; dx <= subTilePixelX2; dx++) {
+					for (int dy = subTilePixelY; dy <= subTilePixelY2; dy++) {
+						float ndcX = 2.0f * dx / deviceConstants->frameBufferWidth - 1.0f;
+						float ndcY = 2.0f * dy / deviceConstants->frameBufferHeight - 1.0f;
+						int accept = 0;
+						for (int i = 0; i < 3; i++) {
+							float criteria = edgeCoefs[i].x * ndcX + edgeCoefs[i].y * ndcY + edgeCoefs[i].z;
+							accept += criteria < CU_EPS;
+						}
+						if (accept == 3) {
+							TileBinProposal nprop;
+							nprop.level = TileRasterLevel::PIXEL;
+							nprop.tile = { dx,dy };
+							nprop.clippedTriangle = dRasterQueue[tileId][globalInvocation].clippedTriangle;
+							auto proposalInsIdx = atomicAdd(&dCoverQueueCount[tileId], 1);
+							dCoverQueue[tileId][proposalInsIdx] = nprop;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	IFRIT_KERNEL void fragmentShadingKernel(
+		FragmentShader* fragmentShader,
+		int* dIndexBuffer,
+		VaryingStore** dVaryingBuffer,
+		TypeDescriptorEnum* dVaryingTypeDescriptor,
+		AssembledTriangleProposal** dAssembledTriangles,
+		uint32_t* dAssembledTriangleCount,
+		TileBinProposal** dCoverQueue,
+		uint32_t* dCoverQueueCount,
+		ifloat4** dColorBuffer,
+		float* dDepthBuffer,
+		TileRasterDeviceConstants* deviceConstants
+	) {
+		// A thread only processes ONE pixel
+		const auto pixelX = blockIdx.x * blockDim.x + threadIdx.x;
+		const auto pixelY = blockIdx.y * blockDim.y + threadIdx.y;
+		if (pixelX >= deviceConstants->frameBufferWidth || pixelY >= deviceConstants->frameBufferHeight) {
+			return;
+		}
+
+		const auto tileX = pixelX * deviceConstants->tileBlocksX / deviceConstants->frameBufferWidth;
+		const auto tileY = pixelY * deviceConstants->tileBlocksX / deviceConstants->frameBufferHeight;
+		const auto tileId = tileY * deviceConstants->tileBlocksX + tileX;
+
+		const auto subTileX = pixelX * deviceConstants->tileBlocksX * deviceConstants->subtileBlocksX / deviceConstants->frameBufferWidth;
+		const auto subTileY = pixelY * deviceConstants->tileBlocksX * deviceConstants->subtileBlocksX / deviceConstants->frameBufferWidth;
+		const auto subTileXInb = subTileX - tileX * deviceConstants->subtileBlocksX;
+		const auto subTileYInb = subTileY - tileY * deviceConstants->subtileBlocksX;
+
+		//TODO: Time consuming, looping to find related primitives
+
+		VaryingStore* interpolatedVaryings = new VaryingStore[deviceConstants->varyingCount];
+		ifloat4 colorOutputSingle;
+
+		for (int i = dCoverQueueCount[tileId]; i >= 0; i--) {
+			const auto& tileProposal = dCoverQueue[tileId][i];
+			if (tileProposal.level == TileRasterLevel::PIXEL &&
+				(tileProposal.tile.x != pixelX || tileProposal.tile.y != pixelY)) {
+				continue;
+			}
+			else if (tileProposal.level == TileRasterLevel::BLOCK &&
+				(tileProposal.tile.x != subTileXInb || tileProposal.tile.y != subTileYInb)) {
+				continue;
+			}
+
+			// Test accepted
+			const auto workerId = tileProposal.clippedTriangle.workerId;
+			const auto primId = tileProposal.clippedTriangle.primId;
+			const AssembledTriangleProposal& atp = dAssembledTriangles[workerId][primId];
+
+			ifloat4 pos[4];
+			pos[0] = atp.v1;
+			pos[1] = atp.v2;
+			pos[2] = atp.v3;
+
+			float pDx = 2.0f * pixelX / deviceConstants->frameBufferWidth - 1.0f;
+			float pDy = 2.0f * pixelY / deviceConstants->frameBufferHeight - 1.0f;
+
+			float bary[3];
+			float depth[3];
+			float interpolatedDepth;
+			const float w[3] = { 1 / pos[0].w,1 / pos[1].w,1 / pos[2].w };
+			bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z) * w[0];
+			bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z) * w[1];
+			bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z) * w[2];
+			interpolatedDepth = bary[0] * pos[0].z + bary[1] * pos[1].z + bary[2] * pos[2].z;
+			float zCorr = 1.0 / (bary[0] + bary[1] + bary[2]);
+			interpolatedDepth *= zCorr;
+
+			auto depthRef = dDepthBuffer[pixelY * deviceConstants->frameBufferWidth + pixelX];
+			if (interpolatedDepth > depthRef) {
+				continue;
+			}
+			bary[0] *= zCorr;
+			bary[1] *= zCorr;
+			bary[2] *= zCorr;
+
+			float desiredBary[3];
+			desiredBary[0] = bary[0] * atp.b1.x + bary[1] * atp.b2.x + bary[2] * atp.b3.x;
+			desiredBary[1] = bary[0] * atp.b1.y + bary[1] * atp.b2.y + bary[2] * atp.b3.y;
+			desiredBary[2] = bary[0] * atp.b1.z + bary[1] * atp.b2.z + bary[2] * atp.b3.z;
+			
+			//TODO:Check
+			auto addr = atp.originalPrimitive * deviceConstants->vertexStride;
+			for (int k = 0; k < deviceConstants->varyingCount; k++) {
+				devInterpolateVaryings(
+					k, dVaryingBuffer, dVaryingTypeDescriptor, 
+					dIndexBuffer + addr, desiredBary, interpolatedVaryings[k]);
+			}
+			fragmentShader->execute(interpolatedVaryings, &colorOutputSingle);
+			dColorBuffer[0][pixelY * deviceConstants->frameBufferWidth + pixelX] = colorOutputSingle;
+			dDepthBuffer[pixelY * deviceConstants->frameBufferWidth + pixelX] = interpolatedDepth;
+		}
+		delete[] interpolatedVaryings;
+	}
+
 
 	IFRIT_KERNEL void testingKernel() {
 		printf("Hello World\n");
@@ -370,5 +634,83 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void testingKernelWrapper() {
 		Impl::testingKernel CU_KARG2(4,4) ();
 		cudaDeviceSynchronize();
+	}
+
+	int invokeCudaRenderingGetTpSize(TypeDescriptorEnum typeDesc) {
+		if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT1) {
+			return sizeof(float);
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT2) {
+			return sizeof(ifloat2);
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT3) {
+			return sizeof(ifloat3);
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT4) {
+			return sizeof(ifloat4);
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_INT1) {
+			return sizeof(int);
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_INT2) {
+			return sizeof(iint2);
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_INT3) {
+			return sizeof(iint3);
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_INT4) {
+			return sizeof(iint4);
+		}
+		else {
+			return 0;
+		}
+	}
+
+	void invokeCudaRendering(
+		char** hVertexBuffer,
+		TypeDescriptorEnum* hVertexTypeDescriptor,
+		TypeDescriptorEnum* hVaryingTypeDescriptor,
+		int* hIndexBuffer,
+		VertexShader* vertexShader,
+		FragmentShader* fragmentShader,
+		ifloat4** hColorBuffer,
+		float** hDepthBuffer,
+		TileRasterDeviceConstants* deviceConstants
+	) {
+		// Host To Device Copy
+		char** hdVertexBuffer;
+		hdVertexBuffer = new char * [deviceConstants->attributeCount];
+		for (int i = 0; i < deviceConstants->attributeCount; i++) {
+			cudaMalloc(&hdVertexBuffer[i], deviceConstants->vertexCount * invokeCudaRenderingGetTpSize(hVertexTypeDescriptor[i]));
+			cudaMemcpy(hdVertexBuffer[i], hVertexBuffer[i], deviceConstants->vertexCount * invokeCudaRenderingGetTpSize(hVertexTypeDescriptor[i]), cudaMemcpyHostToDevice);
+		}
+		char** dVertexBuffer;
+		cudaMalloc(&dVertexBuffer, deviceConstants->attributeCount * sizeof(char*));
+		cudaMemcpy(dVertexBuffer, hdVertexBuffer, deviceConstants->attributeCount * sizeof(char*), cudaMemcpyHostToDevice);
+
+		int* dIndexBuffer;
+		cudaMalloc(&dIndexBuffer, deviceConstants->indexCount * sizeof(int));
+		cudaMemcpy(dIndexBuffer, hIndexBuffer, deviceConstants->indexCount * sizeof(int), cudaMemcpyHostToDevice);
+
+		TypeDescriptorEnum* dVertexTypeDescriptor;
+		cudaMalloc(&dVertexTypeDescriptor, deviceConstants->attributeCount * sizeof(TypeDescriptorEnum));
+		cudaMemcpy(dVertexTypeDescriptor, hVertexTypeDescriptor, deviceConstants->attributeCount * sizeof(TypeDescriptorEnum), cudaMemcpyHostToDevice);
+
+		TypeDescriptorEnum* dVaryingTypeDescriptor;
+		cudaMalloc(&dVaryingTypeDescriptor, deviceConstants->varyingCount * sizeof(TypeDescriptorEnum));
+		cudaMemcpy(dVaryingTypeDescriptor, hVaryingTypeDescriptor, deviceConstants->varyingCount * sizeof(TypeDescriptorEnum), cudaMemcpyHostToDevice);
+
+		// Compute
+
+
+		// Free Memory
+		cudaFree(dVertexTypeDescriptor);
+		cudaFree(dVaryingTypeDescriptor);
+		cudaFree(dIndexBuffer);
+		cudaFree(dVertexBuffer);
+		for (int i = 0; i < deviceConstants->attributeCount; i++) {
+			cudaFree(hdVertexBuffer[i]);
+		}
+		delete[] hdVertexBuffer;
 	}
 }
