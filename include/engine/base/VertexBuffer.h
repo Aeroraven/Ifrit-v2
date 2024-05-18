@@ -49,6 +49,11 @@ namespace Ifrit::Engine {
 		int getVertexCount() const;
 		int getAttributeCount() const;
 		TypeDescriptor getAttributeDescriptor(int index) const;
-
+		char* getBufferUnsafe() const {
+			return (char* )buffer.data();
+		}
+		uint32_t getBufferSize() const {
+			return buffer.size();
+		}
 	};
 }

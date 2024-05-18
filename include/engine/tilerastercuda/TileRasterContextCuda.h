@@ -10,6 +10,7 @@
 #include "engine/base/FragmentShader.h"
 #include "engine/base/VertexShaderResult.h"
 #include "engine/tileraster/TileRasterCommon.h"
+#include "engine/base/VaryingDescriptor.h"
 
 namespace Ifrit::Engine::TileRaster::CUDA {
 	using namespace Ifrit::Engine::TileRaster;
@@ -25,6 +26,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		const std::vector<int>* indexBuffer;
 		VertexShader* vertexShader;
 		FragmentShader* fragmentShader;
+		VaryingDescriptor* varyingDescriptor;
 
 		// Constants
 		int vertexStride = 3;

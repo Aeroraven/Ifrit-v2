@@ -2,31 +2,28 @@
 #include "core/definition/CoreExports.h"
 
 #if IFRIT_USE_CUDA
+#include "engine/base/VaryingDescriptor.h"
 #include "engine/tilerastercuda/TileRasterContextCuda.h"
+#include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
+#include "engine/tilerastercuda/TileRasterInvocationCuda.cuh"
 
 namespace Ifrit::Engine::TileRaster::CUDA {
 	using namespace Ifrit::Engine;
 
-	
-
-	class TileRasterRendererCuda {
+	class TileRasterRendererCuda:public std::enable_shared_from_this<TileRasterRendererCuda> {
 	private:
 		std::unique_ptr<TileRasterContextCuda> context;
+		std::unique_ptr<TileRasterDeviceContext> deviceContext;
 	public:
-		TileRasterRendererCuda();
+		void init();
 		void bindFrameBuffer(FrameBuffer& frameBuffer);
 		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		void bindIndexBuffer(const std::vector<int>& indexBuffer);
-		void deviceHostSync();
-		void bindVertexShader(VertexShader& vertexShader);
+		void bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor);
 		void bindFragmentShader(FragmentShader& fragmentShader);
-		void intializeRenderContext();
 
-		void deviceClear();
-		void vertexProcessing();
-		void geometryProcessing();
-		void rasterization();
-		void fragmentShading();
+		void clear();
+		void render();
 	};
 }
 #endif

@@ -13,5 +13,6 @@ namespace Ifrit::Engine {
 		void setVaryingDescriptors(const std::vector<TypeDescriptor>& varyingDescriptors);
 		void applyVaryingDescriptors(VertexShaderResult* varyingBuffer);
 		uint32_t getVaryingCounts() const { return varyingDescriptors.size(); }
+		TypeDescriptor getVaryingDescriptor(int index) const { return varyingDescriptors[index]; }
 	};
 }

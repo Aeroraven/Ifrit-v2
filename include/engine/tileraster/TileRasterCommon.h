@@ -52,6 +52,9 @@ namespace Ifrit::Engine::TileRaster {
 		int tileBlocksX = 64;
 		int subtileBlocksX = 4;
 		int vertexProcessingThreads = 128;
+		int geometryProcessingThreads = 128;
+		int tilingRasterizationThreads = 8;
+		int fragmentProcessingThreads = 8;
 		int vertexCount;
 		int attributeCount;
 		int varyingCount;
@@ -61,6 +64,7 @@ namespace Ifrit::Engine::TileRaster {
 
 		bool counterClockwise = false;
 		int startingIndexId;
+		int totalIndexCount;
 	};
 
 	struct TileRasterClipVertex {

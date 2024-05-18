@@ -5,7 +5,7 @@
 #include "engine/tileraster/TileRasterCommon.h"
 #include "engine/base/VertexShader.h"
 #include "engine/base/FragmentShader.h"
-
+#include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	// Constants
@@ -46,6 +46,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	
 	IFRIT_KERNEL void vertexProcessingKernel(
 		VertexShader* vertexShader,
+		uint32_t vertexCount,
 		char** dVertexBuffer,
 		TypeDescriptorEnum* dVertexTypeDescriptor,
 		VaryingStore** dVaryingBuffer,
@@ -104,21 +105,29 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		ifloat4** dColorBuffer,
 		float* dDepthBuffer,
 		TileRasterDeviceConstants* deviceConstants
+	);//DONE
+
+	IFRIT_KERNEL void resetKernel(
+		uint32_t* count,
+		uint32_t size
 	);
 
 }
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void testingKernelWrapper();
+
 	void invokeCudaRendering(
-		char** hVertexBuffer,
+		char* hVertexBuffer,
+		uint32_t hVertexBufferSize,
 		TypeDescriptorEnum* hVertexTypeDescriptor,
 		TypeDescriptorEnum* hVaryingTypeDescriptor,
 		int* hIndexBuffer,
-		VertexShader* vertexShader,
-		FragmentShader* fragmentShader,
+		VertexShader* dVertexShader,
+		FragmentShader* dFragmentShader,
 		ifloat4** hColorBuffer,
-		float** hDepthBuffer,
-		TileRasterDeviceConstants* deviceConstants
+		float* hDepthBuffer,
+		TileRasterDeviceConstants* deviceConstants,
+		TileRasterDeviceContext* deviceContext
 	);
 }

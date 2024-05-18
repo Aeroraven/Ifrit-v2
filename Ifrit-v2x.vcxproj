@@ -57,6 +57,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -68,6 +69,9 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <AdditionalCompilerOptions>--std=C++20</AdditionalCompilerOptions>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <Include>$(ProjectDir)include;%(Include)</Include>
+      <AdditionalOptions>-std=c++20 %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -125,6 +129,7 @@
     <ClInclude Include="include\engine\base\VertexShaderResult.h" />
     <ClInclude Include="include\engine\math\ShaderOps.h" />
     <CudaCompile Include="include\engine\math\ShaderOpsCuda.cuh" />
+    <CudaCompile Include="include\engine\tilerastercuda\TileRasterDeviceContextCuda.cuh" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterContextCuda.h" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterRendererCuda.h" />
     <ClInclude Include="include\engine\tileraster\TileRasterCommon.h" />
@@ -153,6 +158,7 @@
     <ClCompile Include="src\engine\base\VertexShaderResult.cpp" />
     <ClCompile Include="src\engine\math\ShaderOps.cpp" />
     <ClCompile Include="src\engine\tilerastercuda\TileRasterContextCuda.cpp" />
+    <ClCompile Include="src\engine\tilerastercuda\TileRasterRendererCuda.cpp" />
     <ClCompile Include="src\engine\tileraster\TileRasterContext.cpp" />
     <ClCompile Include="src\engine\tileraster\TileRasterRenderer.cpp" />
     <ClCompile Include="src\engine\tileraster\TileRasterWorker.cpp" />
