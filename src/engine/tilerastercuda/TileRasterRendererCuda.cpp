@@ -47,6 +47,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		hostConstants.frameBufferWidth = context->frameBuffer->getWidth();
 		hostConstants.startingIndexId = 0;
 		hostConstants.totalIndexCount = context->indexBuffer->size();
+		hostConstants.varyingCount = context->varyingDescriptor->getVaryingCounts();
+		hostConstants.vertexCount = context->vertexBuffer->getVertexCount();
+		hostConstants.vertexStride = 3;
 
 		Invocation::invokeCudaRendering(
 			hVertexBuffer,

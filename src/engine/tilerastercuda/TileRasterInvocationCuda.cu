@@ -824,6 +824,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 
 		// Compute
 		
+		printf("Starting Invocation\n");
 		int vertexExecutionBlocks = (deviceConstants->vertexCount / deviceConstants->vertexProcessingThreads) + ((deviceConstants->vertexCount % deviceConstants->vertexProcessingThreads) != 0);
 		Impl::vertexProcessingKernel CU_KARG2(vertexExecutionBlocks, deviceConstants->vertexProcessingThreads)(
 			dVertexShader, deviceConstants->vertexCount, dVertexBuffer, dVertexTypeDescriptor,

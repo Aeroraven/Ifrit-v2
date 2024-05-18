@@ -82,10 +82,6 @@ namespace Ifrit::Core::CUDA {
 			if (n > vectorCapacity) {
 				reserve(n);
 			}
-			// Construct new elements
-			for (size_t i = vectorSize; i < n; i++) {
-				new(&vecData[i]) T();
-			}
 			vectorSize = n;
 			
 		}
