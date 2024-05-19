@@ -1,3 +1,4 @@
+#pragma once
 #include "./core/definition/CoreTypes.h"
 #include "./core/definition/CoreDefs.h"
 

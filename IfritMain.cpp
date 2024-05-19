@@ -9,9 +9,11 @@
 #include "engine/tilerastercuda/TileRasterInvocationCuda.cuh"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
+#include "IfritShaders.cuh"
 
 using namespace std;
 using namespace Ifrit::Core::Data;
+using namespace Ifrit::Core::CUDA;
 using namespace Ifrit::Engine::TileRaster;
 using namespace Ifrit::Utility::Loader;
 using namespace Ifrit::Engine::Math::ShaderOps;
@@ -130,11 +132,6 @@ int mainCpu() {
 	if(presentEngine==PE_CONSOLE){
 		TerminalAsciiBackend backend(139, 40);
 		while (true) {
-			ang+=0.002;
-			float4x4 model = axisAngleRotation({ 0,1,0 }, ang);
-			mvp = multiply(proj, view);
-			mvp = multiply(mvp, model);
-
 			renderer->render(true);
 			backend.updateTexture(*image);
 			backend.draw();
@@ -171,9 +168,6 @@ int mainGpu() {
 
 	vertexBuffer.setVertexCount(3);
 	vertexBuffer.allocateBuffer(3);
-	//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
-	//vertexBuffer.setValue(1, 0, ifloat4(0.0000,0.3294,-0.1037,-0.0037));
-	//vertexBuffer.setValue(2, 0, ifloat4(0.0000,0.3487,-0.0971,-0.0028));
 	vertexBuffer.setValue(0, 0, ifloat4(-0.5, 0.5, -0.1, 1));
 	vertexBuffer.setValue(1, 0, ifloat4(0.0000, -0.5, -0.1, 1));
 	vertexBuffer.setValue(2, 0, ifloat4(0.5, 0.5, -0.1, 1));
@@ -191,14 +185,18 @@ int mainGpu() {
 	renderer->bindVertexBuffer(vertexBuffer);
 	renderer->bindIndexBuffer(indexBuffer);
 
-	DemoVertexShader vertexShader;
+	DemoVertexShaderCuda vertexShader;
 	VaryingDescriptor vertexShaderLayout;
 	vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
-	renderer->bindVertexShader(vertexShader, vertexShaderLayout);
-	DemoFragmentShader fragmentShader;
-	renderer->bindFragmentShader(fragmentShader);
+	DemoFragmentShaderCuda fragmentShader;
 
-	ifritLog2("Start Rendering");
+	
+	auto dVertexShader = copyShaderToDevice<DemoVertexShaderCuda>(&vertexShader);
+	auto dFragmentShader = copyShaderToDevice<DemoFragmentShaderCuda>(&fragmentShader);
+	renderer->bindFragmentShader(dFragmentShader);
+	renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
+
+	printf("Start\n");
 	GLFWWindowProvider windowProvider;
 	windowProvider.setup(1920, 1080);
 

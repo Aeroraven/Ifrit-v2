@@ -4,6 +4,8 @@
 namespace Ifrit::Engine {
 	class VertexShader{
 	public:
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore** outVaryings) {};
+		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore** outVaryings) {
+			printf("Base\n");
+		};
 	};
 }

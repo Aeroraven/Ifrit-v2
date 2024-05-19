@@ -1,6 +1,6 @@
 #pragma once
 #include "core/definition/CoreDefs.h"
-#include "core/cuda/CudaUtils.h"
+#include "core/cuda/CudaUtils.cuh"
 #include "engine/tileraster/TileRasterCommon.h"
 #include "engine/base/VaryingStore.h"
 #include <vector>

@@ -108,7 +108,8 @@
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\core\cuda\CudaUtils.h" />
+    <CudaCompile Include="IfritShaders.cuh" />
+    <CudaCompile Include="include\core\cuda\CudaUtils.cuh" />
     <ClInclude Include="include\core\data\Image.h" />
     <ClInclude Include="include\core\definition\CoreDefs.h" />
     <ClInclude Include="include\core\definition\CoreExports.h" />

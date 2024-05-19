@@ -1,4 +1,5 @@
 #pragma once
+#include "core/definition/CoreDefs.h"
 #include <cstdint>
 
 template<class T>
@@ -36,13 +37,14 @@ struct Rect2D {
 
 template<class T>
 struct CoreMat4 {
-	T data[4][4];
-	const T* operator[](int i) const {
+	 T data[4][4];
+	IFRIT_DUAL const T* operator[](int i) const {
 		return data[i];
 	}
-	T* operator[](int i) {
+	IFRIT_DUAL T* operator[](int i) {
 		return data[i];
 	}
 };
+template CoreMat4<float>;
 
 #define float4x4 CoreMat4<float>

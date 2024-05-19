@@ -15,12 +15,12 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		context->indexBuffer = &indexBuffer;
 	}
-	void TileRasterRendererCuda::bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor) {
-		context->vertexShader = &vertexShader;
+	void TileRasterRendererCuda::bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor) {
+		context->vertexShader = vertexShader;
 		context->varyingDescriptor = &varyingDescriptor;
 	}
-	void TileRasterRendererCuda::bindFragmentShader(FragmentShader& fragmentShader) {
-		context->fragmentShader = &fragmentShader;
+	void TileRasterRendererCuda::bindFragmentShader(FragmentShader* fragmentShader) {
+		context->fragmentShader = fragmentShader;
 	}
 	void TileRasterRendererCuda::clear() {
 		context->frameBuffer->getDepthAttachment()->clearImage(255.0);

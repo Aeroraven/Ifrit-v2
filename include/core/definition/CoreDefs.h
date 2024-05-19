@@ -132,3 +132,5 @@
 	#define IFRIT_AP_NOTHROW
 	#define IFRIT_AP_RESTRICT
 #endif
+
+#define IFRIT_DECLARE_VERTEX_SHADER

@@ -19,8 +19,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void bindFrameBuffer(FrameBuffer& frameBuffer);
 		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		void bindIndexBuffer(const std::vector<int>& indexBuffer);
-		void bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor);
-		void bindFragmentShader(FragmentShader& fragmentShader);
+		void bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor);
+		void bindFragmentShader(FragmentShader* fragmentShader);
 
 		void clear();
 		void render();
