@@ -1,7 +1,6 @@
 #pragma once
 #include "core/definition/CoreDefs.h"
 
-
 #ifdef IFRIT_FEATURE_CUDA
 namespace Ifrit::Core::CUDA {
 	
@@ -16,7 +15,7 @@ namespace Ifrit::Core::CUDA {
 		T* deviceHandle;
 		cudaMalloc(&deviceHandle, sizeof(T));
 		cudaMemcpy(deviceHandle, hostObject, sizeof(T), cudaMemcpyHostToDevice);
-		printf("Copying object to CUDA\n");
+		printf("Copying object to CUDA, %lld,%d\n", deviceHandle, 1);
 		kernFixVTable<T> CU_KARG2(1, 1)(deviceHandle);
 		cudaDeviceSynchronize();
 		printf("Cuda Addr=%lld\n", deviceHandle);

@@ -1,5 +1,5 @@
 #include "presentation/window/GLFWWindowProvider.h"
-
+#include "IfritShaders.cuh"
 #include "presentation/backend/OpenGLBackend.h"
 #include "core/data/Image.h"
 #include "engine/tileraster/TileRasterWorker.h"
@@ -9,7 +9,7 @@
 #include "engine/tilerastercuda/TileRasterInvocationCuda.cuh"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
-#include "IfritShaders.cuh"
+
 
 using namespace std;
 using namespace Ifrit::Core::Data;
@@ -191,8 +191,8 @@ int mainGpu() {
 	DemoFragmentShaderCuda fragmentShader;
 
 	
-	auto dVertexShader = copyShaderToDevice<DemoVertexShaderCuda>(&vertexShader);
-	auto dFragmentShader = copyShaderToDevice<DemoFragmentShaderCuda>(&fragmentShader);
+	auto dVertexShader = vertexShader.getCudaClone();
+	auto dFragmentShader = fragmentShader.getCudaClone();
 	renderer->bindFragmentShader(dFragmentShader);
 	renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
 
@@ -210,7 +210,7 @@ int mainGpu() {
 		*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		backend.updateTexture(*image);
 		backend.draw();
-		});
+	});
 	return 0;
 }
 

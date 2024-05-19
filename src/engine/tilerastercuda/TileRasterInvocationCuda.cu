@@ -71,7 +71,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		ret[1][2] = { {0,0,1,0},v3 };
 		int clipTimes = 0;
 		for (int i = 0; i < clipIts; i++) {
-			printf("Exec %i\n",i);
 			ifloat4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
 			ifloat4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
 			const auto cIdx = i & 1, cRIdx = 1 - (i & 1);
@@ -383,11 +382,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		for (int i = 0; i < numVaryings; i++) {
 			varyingOutputPtrs[i] = dVaryingBuffer[i] + globalInvoIdx;
 		}
-		printf("Ptr0=%lld,%d,%d\n", vertexInputPtrs[0], totalOffset, numAttrs);
 		vertexShader->execute(vertexInputPtrs, &dPosBuffer[globalInvoIdx], varyingOutputPtrs);
-		printf("VS Done\n");
-
-
 		delete[] vertexInputPtrs;
 		delete[] varyingOutputPtrs;
 		delete[] offsets;
@@ -406,7 +401,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	) {
 		const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
 		if(globalInvoIdx >= deviceConstants->indexCount / deviceConstants->vertexStride) return;
-		printf("GS Start %d\n", deviceConstants->indexCount / deviceConstants->vertexStride);
 		const auto indexStart = globalInvoIdx * deviceConstants->vertexStride + deviceConstants->startingIndexId;
 		ifloat4 v1 = dPosBuffer[dIndexBuffer[indexStart]];
 		ifloat4 v2 = dPosBuffer[dIndexBuffer[indexStart + 1]];
@@ -432,7 +426,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if(!devTriangleSimpleClip(atri.v1, atri.v2, atri.v3, bbox)) continue;
 			devExecuteBinner(i, atri, bbox, dRasterQueue, dRasterQueueCount, dCoverQueue, dCoverQueueCount, deviceConstants);
 		}
-		printf("GS Done\n");
 	}
 
 
@@ -451,6 +444,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
 		const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
+
+
 		const auto tileId = tileIdY * deviceConstants->tileBlocksX + tileIdX;
 		if (globalInvocation > totalBound)return;
 		const uint32_t pixelStX = deviceConstants->frameBufferWidth * tileIdX / deviceConstants->tileBlocksX;
@@ -520,7 +515,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if (criteriaTA == 3) {
 				TileBinProposal nprop;
 				nprop.level = TileRasterLevel::BLOCK;
-				nprop.tile = { subTileIX,subTileIY };
+				nprop.tile = { (int)subTileTX,(int)subTileTY };
 				nprop.clippedTriangle = dRasterQueue[tileId][globalInvocation].clippedTriangle;
 				auto proposalInsIdx = atomicAdd(&dCoverQueueCount[tileId], 1);
 				dCoverQueue[tileId][proposalInsIdx] = nprop;
@@ -566,10 +561,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto rastCandidates = dRasterQueueCount[tileId];
 
 		const auto dispatchBlocks = (rastCandidates >> 5) + ((rastCandidates & 0x1F) != 0);
-		tilingRasterizationChildKernel CU_KARG2(dispatchBlocks, 32) (tileIdxX, tileIdxY, rastCandidates,
-			dAssembledTriangles, dAssembledTriangleCount, dRasterQueue, dRasterQueueCount, dCoverQueue,
-			dCoverQueueCount, deviceConstants);
 
+		if (dispatchBlocks != 0) {
+			tilingRasterizationChildKernel CU_KARG2(dispatchBlocks, 32) (tileIdxX, tileIdxY, rastCandidates,
+				dAssembledTriangles, dAssembledTriangleCount, dRasterQueue, dRasterQueueCount, dCoverQueue,
+				dCoverQueueCount, deviceConstants);
+			__syncthreads();
+		}
 	}
 
 
@@ -586,6 +584,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float* dDepthBuffer,
 		TileRasterDeviceConstants* deviceConstants
 	) {
+
 		// A thread only processes ONE pixel
 		const auto pixelX = blockIdx.x * blockDim.x + threadIdx.x;
 		const auto pixelY = blockIdx.y * blockDim.y + threadIdx.y;
@@ -598,9 +597,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto tileId = tileY * deviceConstants->tileBlocksX + tileX;
 
 		const auto subTileX = pixelX * deviceConstants->tileBlocksX * deviceConstants->subtileBlocksX / deviceConstants->frameBufferWidth;
-		const auto subTileY = pixelY * deviceConstants->tileBlocksX * deviceConstants->subtileBlocksX / deviceConstants->frameBufferWidth;
-		const auto subTileXInb = subTileX - tileX * deviceConstants->subtileBlocksX;
-		const auto subTileYInb = subTileY - tileY * deviceConstants->subtileBlocksX;
+		const auto subTileY = pixelY * deviceConstants->tileBlocksX * deviceConstants->subtileBlocksX / deviceConstants->frameBufferHeight;
 
 		//TODO: Time consuming, looping to find related primitives
 
@@ -614,9 +611,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				continue;
 			}
 			else if (tileProposal.level == TileRasterLevel::BLOCK &&
-				(tileProposal.tile.x != subTileXInb || tileProposal.tile.y != subTileYInb)) {
+				(tileProposal.tile.x != subTileX || tileProposal.tile.y != subTileY)) {
 				continue;
 			}
+
 
 			// Test accepted
 			const auto workerId = tileProposal.clippedTriangle.workerId;
@@ -662,9 +660,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					k, dVaryingBuffer, dVaryingTypeDescriptor, 
 					dIndexBuffer + addr, desiredBary, interpolatedVaryings[k]);
 			}
-			if (pixelX == 1 && pixelY == 1) {
-				printf("Inside TWT %d,%d\n", dCoverQueueCount[tileId],tileId);
-			}
 			fragmentShader->execute(interpolatedVaryings, &colorOutputSingle);
 			dColorBuffer[0][pixelY * deviceConstants->frameBufferWidth + pixelX] = colorOutputSingle;
 			dDepthBuffer[pixelY * deviceConstants->frameBufferWidth + pixelX] = interpolatedDepth;
@@ -690,6 +685,32 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 
 namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
+
+
+	template<typename T>
+	__global__ void kernFixVTable(T* devicePtr) {
+		T temp(*devicePtr);
+		memcpy(devicePtr, &temp, sizeof(T));
+	}
+
+	template<typename T>
+	__host__ T* hostGetDeviceObjectCopy(T* hostObject) {
+		T* deviceHandle;
+		cudaMalloc(&deviceHandle, sizeof(T));
+		cudaMemcpy(deviceHandle, hostObject, sizeof(T), cudaMemcpyHostToDevice);
+		printf("Copying object to CUDA, %lld,%d\n", deviceHandle, 1);
+		kernFixVTable<T> CU_KARG2(1, 1)(deviceHandle);
+		cudaDeviceSynchronize();
+		printf("Cuda Addr=%lld\n", deviceHandle);
+		printf("Object copied to CUDA\n");
+		return deviceHandle;
+	}
+
+	template<class T>
+	T* copyShaderToDevice(T* x) {
+		return hostGetDeviceObjectCopy<T>(x);
+	}
+
 	void testingKernelWrapper() {
 		Impl::testingKernel CU_KARG2(4,4) ();
 		cudaDeviceSynchronize();
@@ -738,6 +759,10 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		TileRasterDeviceConstants* deviceConstants,
 		TileRasterDeviceContext* deviceContext
 	) {
+
+		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+		cudaDeviceSetLimit(cudaLimitDevRuntimePendingLaunchCount,8192);
 		// Host To Device Copy
 		char* dVertexBuffer;
 		cudaMalloc(&dVertexBuffer, hVertexBufferSize);
@@ -790,6 +815,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		uint32_t* dAssembledTriangleCount;
 		cudaMalloc(&dAssembledTriangleCount, deviceConstants->geometryProcessingThreads * sizeof(uint32_t));
 
+		
 		//3. Raster Queue
 		TileBinProposal** dRasterQueue;
 		int totalTiles = deviceConstants->tileBlocksX * deviceConstants->tileBlocksX;
@@ -853,12 +879,16 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 
 		// Compute
 		
-		printf("Starting Invocation\n");
+		std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
+
+		//printf("======================Starting Invocation=======================\n");
 		int vertexExecutionBlocks = (deviceConstants->vertexCount / deviceConstants->vertexProcessingThreads) + ((deviceConstants->vertexCount % deviceConstants->vertexProcessingThreads) != 0);
 		Impl::vertexProcessingKernel CU_KARG2(vertexExecutionBlocks, deviceConstants->vertexProcessingThreads)(
 			dVertexShader, deviceConstants->vertexCount, dVertexBuffer, dVertexTypeDescriptor,
 			dVaryingBuffer, dVaryingTypeDescriptor, dPosBuffer, dDeviceConstants
 			);
+		
+
 
 		for (int i = 0; i < deviceConstants->totalIndexCount; i += 1000) {
 			deviceConstants->indexCount = std::min(1000, deviceConstants->totalIndexCount - i);
@@ -888,14 +918,17 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 				dCoverQueue, dCoverQueueCount, dColorBuffer, dDepthBuffer, dDeviceConstants
 				);
 		}
-		printf("Device Sync");
 		cudaDeviceSynchronize();
+
+		std::chrono::steady_clock::time_point end2 = std::chrono::steady_clock::now();
+
 
 		// Copy back color buffers
 		cudaMemcpy(hColorBuffer[0], hdColorBuffer[0], deviceConstants->frameBufferWidth * deviceConstants->frameBufferHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost);
 		cudaDeviceSynchronize();
 
-		printf("Done");
+		std::chrono::steady_clock::time_point end3 = std::chrono::steady_clock::now();
+
 		// Free Memory
 		cudaFree(hdColorBuffer[0]);
 		cudaFree(dColorBuffer);
@@ -912,6 +945,13 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaFree(dIndexBuffer);
 		cudaFree(dVertexBuffer);
 
-		//std::abort();
+		std::chrono::steady_clock::time_point end4 = std::chrono::steady_clock::now();
+
+		auto memcpyTimes = std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin).count();
+		auto computeTimes = std::chrono::duration_cast<std::chrono::microseconds>(end2 - end1).count();
+		auto copybackTimes = std::chrono::duration_cast<std::chrono::microseconds>(end3 - end2).count();
+		auto freeTimes = std::chrono::duration_cast<std::chrono::microseconds>(end4 - end3).count();
+
+		printf("Memcpy,Compute,Copyback,Free: %lld,%lld,%lld,%lld\n", memcpyTimes, computeTimes, copybackTimes, freeTimes);
 	}
 }

@@ -108,6 +108,7 @@
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="IfritShaders.cu" />
     <CudaCompile Include="IfritShaders.cuh" />
     <CudaCompile Include="include\core\cuda\CudaUtils.cuh" />
     <ClInclude Include="include\core\data\Image.h" />

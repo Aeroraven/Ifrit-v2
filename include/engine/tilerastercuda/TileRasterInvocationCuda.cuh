@@ -31,8 +31,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		TileRasterDeviceContext* deviceContext
 	);
 
-	template<class T>
-	T* copyShaderToDevice(T* x) {
-		return Core::CUDA::hostGetDeviceObjectCopy<T>(x);
-	}
+	template<class T>T* copyShaderToDevice(T* x);
+
 }

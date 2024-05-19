@@ -19,12 +19,15 @@ Successor to following repos:
 - **Performance**:
 	- Multithreaded Rasterization
 	- SIMD Vectorization
+	- CUDA Acceleration (Incomplete)
 
 - **Rendering**:
 	- Homogeneous Space Clipping
+	- Programmable VS/FS
 
 - **Presentation**:
-	- Terminal Rendering (ASCII Characters)
+	- Terminal Rendering (ASCII Characters/Color Image)
+
 
 ## Dependencies
 
@@ -41,7 +44,8 @@ Successor to following repos:
 - Hardware Requirements:
 	- SSE4.1
 	- AVX2
-	- CUDA 12.4 (Planning)
+	- CUDA 12.4
 
 ## Ongoing Plan
 - CUDA Integration 
+	- High Overload on Fragment Shading
