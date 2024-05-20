@@ -48,4 +48,5 @@ Successor to following repos:
 
 ## Ongoing Plan
 - CUDA Integration 
-	- High Overload on Fragment Shading
+	- Double Bufferring
+	- Reducing Workload Overhead

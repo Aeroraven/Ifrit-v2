@@ -14,6 +14,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	private:
 		std::unique_ptr<TileRasterContextCuda> context;
 		std::unique_ptr<TileRasterDeviceContext> deviceContext;
+		bool needVaryingUpdate = true;
+		bool initCudaContext = false;
 
 		// Device Addrs
 		int* deviceIndexBuffer = nullptr;
@@ -22,9 +24,16 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		TypeDescriptorEnum* deviceVaryingTypeDescriptor = nullptr;
 		float* deviceDepthBuffer = nullptr;
 		ifloat4* devicePosBuffer = nullptr;
+		int* deviceShadingLockBuffer = nullptr;
 
+		std::vector<ifloat4*> deviceHostColorBuffers{};
+		ifloat4** deviceColorBuffer = nullptr;
+		std::vector<ifloat4*> hostColorBuffers{};
+	private:
+		void updateVaryingBuffer();
 	public:
 		void init();
+		void initCuda();
 		void bindFrameBuffer(FrameBuffer& frameBuffer);
 		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		void bindIndexBuffer(const std::vector<int>& indexBuffer);

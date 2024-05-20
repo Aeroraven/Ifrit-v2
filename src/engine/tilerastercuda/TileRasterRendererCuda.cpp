@@ -1,17 +1,63 @@
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
-
+#include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::init() {
 		context = std::make_unique<TileRasterContextCuda>();
 		deviceContext = std::make_unique<TileRasterDeviceContext>();
+		deviceContext->dCoverQueue = (TileBinProposal*)Invocation::deviceMalloc(CU_MAX_COVER_QUEUE_SIZE * sizeof(TileBinProposal));
+		deviceContext->dCoverQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
+		deviceContext->dShadingQueue = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
+		deviceContext->dRasterQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_TILE_SIZE * CU_TILE_SIZE);
+		deviceContext->dAssembledTrianglesCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_GEOMETRY_PROCESSING_THREADS);
+
+		int perThreadTriangles = 9000 / 3 / CU_GEOMETRY_PROCESSING_THREADS * 9;
+		deviceContext->hdAssembledTrianglesVec.resize(CU_GEOMETRY_PROCESSING_THREADS);
+		if (deviceContext->hdAssembledTriangles.size() < CU_GEOMETRY_PROCESSING_THREADS) {
+			deviceContext->hdAssembledTriangles.resize(CU_GEOMETRY_PROCESSING_THREADS);
+		}
+		for (int i = 0; i < CU_GEOMETRY_PROCESSING_THREADS; i++) {
+			if (deviceContext->hdAssembledTriangles[i].size() < perThreadTriangles) {
+				deviceContext->hdAssembledTriangles[i].resize(perThreadTriangles);
+			}
+			deviceContext->hdAssembledTrianglesVec[i] = deviceContext->hdAssembledTriangles[i].data();
+		}
+		cudaMalloc(&deviceContext->dAssembledTriangles, CU_GEOMETRY_PROCESSING_THREADS * sizeof(AssembledTriangleProposal*));
+		cudaMemcpy(deviceContext->dAssembledTriangles, deviceContext->hdAssembledTrianglesVec.data(), CU_GEOMETRY_PROCESSING_THREADS * sizeof(AssembledTriangleProposal*), cudaMemcpyHostToDevice);
+
+
+		int totalTiles = CU_TILE_SIZE * CU_TILE_SIZE;
+		int totalTriangles = 9000;
+		int maxProposals = 9000;
+
+		deviceContext->hdRasterQueueVec.resize(totalTiles);
+		if (deviceContext->hdRasterQueue.size() < totalTiles) {
+			deviceContext->hdRasterQueue.resize(totalTiles);
+		}
+		for (int i = 0; i < totalTiles; i++) {
+			if (deviceContext->hdRasterQueue[i].size() < maxProposals) {
+				deviceContext->hdRasterQueue[i].resize(maxProposals);
+			}
+			deviceContext->hdRasterQueueVec[i] = deviceContext->hdRasterQueue[i].data();
+		}
+		cudaMalloc(&deviceContext->dRasterQueue, totalTiles * sizeof(TileBinProposal*));
+		cudaMemcpy(deviceContext->dRasterQueue, deviceContext->hdRasterQueueVec.data(), totalTiles * sizeof(TileBinProposal*), cudaMemcpyHostToDevice);
+
+		deviceContext->dDeviceConstants = (TileRasterDeviceConstants*)Invocation::deviceMalloc(sizeof(TileRasterDeviceConstants));
 	}
 	void TileRasterRendererCuda::bindFrameBuffer(FrameBuffer& frameBuffer) {
 		context->frameBuffer = &frameBuffer;
 		auto pixelCount = frameBuffer.getWidth() * frameBuffer.getHeight();
 		this->deviceDepthBuffer = Invocation::getDepthBufferDeviceAddr(pixelCount, this->deviceDepthBuffer);
+		this->deviceShadingLockBuffer = Invocation::getShadingLockDeviceAddr(pixelCount, this->deviceShadingLockBuffer);
+
+		std::vector<ifloat4*> hColorBuffer = { (ifloat4*)frameBuffer.getColorAttachment(0)->getData() };
+		Invocation::getColorBufferDeviceAddr(hColorBuffer,
+			this->deviceHostColorBuffers, this->deviceColorBuffer, pixelCount, this->deviceHostColorBuffers, this->deviceColorBuffer);
+		this->hostColorBuffers = hColorBuffer;
 	}	
 	void TileRasterRendererCuda::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
+		needVaryingUpdate = true;
 		context->vertexBuffer = &vertexBuffer;
 		char* hVertexBuffer = context->vertexBuffer->getBufferUnsafe();
 		uint32_t hVertexBufferSize = context->vertexBuffer->getBufferSize();
@@ -37,8 +83,29 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			hVaryingBufferLayout.push_back(context->varyingDescriptor->getVaryingDescriptor(i).type);
 		}
 		this->deviceVaryingTypeDescriptor = Invocation::getTypeDescriptorDeviceAddr(hVaryingBufferLayout.data(), hVaryingBufferLayout.size(), this->deviceVaryingTypeDescriptor);
+	
+		needVaryingUpdate = true;
+	
 	}
+	void TileRasterRendererCuda::updateVaryingBuffer() {
+		if (!needVaryingUpdate)return;
+		needVaryingUpdate = false;
+		auto vcount = context->varyingDescriptor->getVaryingCounts();
+		deviceContext->hdVaryingBufferVec.resize(vcount);
+		if (deviceContext->hdVaryingBuffer.size() < vcount) {
+			deviceContext->hdVaryingBuffer.resize(vcount);
+		}
+		for (int i = 0; i < vcount; i++) {
+			if (deviceContext->hdVaryingBuffer[i].size() < context->vertexBuffer->getVertexCount()) {
+				deviceContext->hdVaryingBuffer[i].resize(context->vertexBuffer->getVertexCount());
+			}
+			deviceContext->hdVaryingBufferVec[i] = deviceContext->hdVaryingBuffer[i].data();
+		}
 
+		cudaMalloc(&deviceContext->dVaryingBuffer, vcount * sizeof(VaryingStore*));
+		cudaMemcpy(deviceContext->dVaryingBuffer, deviceContext->hdVaryingBufferVec.data(), vcount * sizeof(VaryingStore*), cudaMemcpyHostToDevice);
+
+	}
 	void TileRasterRendererCuda::bindFragmentShader(FragmentShader* fragmentShader) {
 		context->fragmentShader = fragmentShader;
 	}
@@ -46,11 +113,16 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		context->frameBuffer->getDepthAttachment()->clearImage(255.0);
 		context->frameBuffer->getColorAttachment(0)->clearImageZero();
 	}
-
+	void TileRasterRendererCuda::initCuda() {
+		if (this->initCudaContext)return;
+		this->initCudaContext = true;
+		cudaDeviceSetLimit(cudaLimitDevRuntimePendingLaunchCount, 8192);
+	}
 	void TileRasterRendererCuda::render() {
+		initCuda();
+		updateVaryingBuffer();
 
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
-
 		TileRasterDeviceConstants hostConstants;
 		hostConstants.attributeCount = context->vertexBuffer->getAttributeCount();
 		hostConstants.counterClockwise = false;
@@ -67,9 +139,13 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			deviceVertexTypeDescriptor,
 			deviceVaryingTypeDescriptor,
 			deviceIndexBuffer,
+			deviceShadingLockBuffer,
 			context->vertexShader,
 			context->fragmentShader,
-			&colorBuffer,
+			deviceColorBuffer,
+			deviceHostColorBuffers.data(),
+			hostColorBuffers.data(),
+			deviceHostColorBuffers.size(),
 			deviceDepthBuffer,
 			devicePosBuffer,
 			&hostConstants,

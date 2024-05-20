@@ -134,6 +134,7 @@
     <CudaCompile Include="include\engine\tilerastercuda\TileRasterDeviceContextCuda.cuh" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterContextCuda.h" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterRendererCuda.h" />
+    <ClInclude Include="include\engine\tilerastercuda\TileRasterConstantsCuda.h" />
     <ClInclude Include="include\engine\tileraster\TileRasterCommon.h" />
     <ClInclude Include="include\engine\tileraster\TileRasterContext.h" />
     <ClInclude Include="include\engine\tileraster\TileRasterRenderer.h" />
