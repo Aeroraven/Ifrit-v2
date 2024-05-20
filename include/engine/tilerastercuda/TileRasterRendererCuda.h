@@ -14,6 +14,15 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	private:
 		std::unique_ptr<TileRasterContextCuda> context;
 		std::unique_ptr<TileRasterDeviceContext> deviceContext;
+
+		// Device Addrs
+		int* deviceIndexBuffer = nullptr;
+		char* deviceVertexBuffer = nullptr;
+		TypeDescriptorEnum* deviceVertexTypeDescriptor = nullptr;
+		TypeDescriptorEnum* deviceVaryingTypeDescriptor = nullptr;
+		float* deviceDepthBuffer = nullptr;
+		ifloat4* devicePosBuffer = nullptr;
+
 	public:
 		void init();
 		void bindFrameBuffer(FrameBuffer& frameBuffer);

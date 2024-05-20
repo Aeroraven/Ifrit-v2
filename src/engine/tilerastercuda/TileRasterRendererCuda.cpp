@@ -8,17 +8,37 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::bindFrameBuffer(FrameBuffer& frameBuffer) {
 		context->frameBuffer = &frameBuffer;
+		auto pixelCount = frameBuffer.getWidth() * frameBuffer.getHeight();
+		this->deviceDepthBuffer = Invocation::getDepthBufferDeviceAddr(pixelCount, this->deviceDepthBuffer);
 	}	
 	void TileRasterRendererCuda::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
 		context->vertexBuffer = &vertexBuffer;
+		char* hVertexBuffer = context->vertexBuffer->getBufferUnsafe();
+		uint32_t hVertexBufferSize = context->vertexBuffer->getBufferSize();
+		this->deviceVertexBuffer = Invocation::getVertexBufferDeviceAddr(hVertexBuffer, hVertexBufferSize, this->deviceVertexBuffer);
+		this->devicePosBuffer = Invocation::getPositionBufferDeviceAddr(hVertexBufferSize, this->devicePosBuffer);
+
+		std::vector<TypeDescriptorEnum> hVertexBufferLayout;
+		for (int i = 0; i < context->vertexBuffer->getAttributeCount(); i++) {
+			hVertexBufferLayout.push_back(context->vertexBuffer->getAttributeDescriptor(i).type);
+		}
+		this->deviceVertexTypeDescriptor = Invocation::getTypeDescriptorDeviceAddr(hVertexBufferLayout.data(), hVertexBufferLayout.size(), this->deviceVertexTypeDescriptor);
 	}
 	void TileRasterRendererCuda::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		context->indexBuffer = &indexBuffer;
+		this->deviceIndexBuffer = Invocation::getIndexBufferDeviceAddr(indexBuffer.data(), indexBuffer.size(),this->deviceIndexBuffer);
 	}
+
 	void TileRasterRendererCuda::bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor) {
 		context->vertexShader = vertexShader;
 		context->varyingDescriptor = &varyingDescriptor;
+		std::vector<TypeDescriptorEnum> hVaryingBufferLayout;
+		for (int i = 0; i < context->varyingDescriptor->getVaryingCounts(); i++) {
+			hVaryingBufferLayout.push_back(context->varyingDescriptor->getVaryingDescriptor(i).type);
+		}
+		this->deviceVaryingTypeDescriptor = Invocation::getTypeDescriptorDeviceAddr(hVaryingBufferLayout.data(), hVaryingBufferLayout.size(), this->deviceVaryingTypeDescriptor);
 	}
+
 	void TileRasterRendererCuda::bindFragmentShader(FragmentShader* fragmentShader) {
 		context->fragmentShader = fragmentShader;
 	}
@@ -28,16 +48,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 
 	void TileRasterRendererCuda::render() {
-		char* hVertexBuffer = context->vertexBuffer->getBufferUnsafe();
-		uint32_t hVertexBufferSize = context->vertexBuffer->getBufferSize();
-		std::vector<TypeDescriptorEnum> hVertexBufferLayout;
-		std::vector<TypeDescriptorEnum> hVaryingBufferLayout;
-		for (int i = 0; i < context->vertexBuffer->getAttributeCount(); i++) {
-			hVertexBufferLayout.push_back(context->vertexBuffer->getAttributeDescriptor(i).type);
-		}
-		for (int i = 0; i < context->varyingDescriptor->getVaryingCounts(); i++) {
-			hVaryingBufferLayout.push_back(context->varyingDescriptor->getVaryingDescriptor(i).type);
-		}
+
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
 
 		TileRasterDeviceConstants hostConstants;
@@ -52,15 +63,15 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		hostConstants.vertexStride = 3;
 
 		Invocation::invokeCudaRendering(
-			hVertexBuffer,
-			hVertexBufferSize,
-			hVertexBufferLayout.data(),
-			hVaryingBufferLayout.data(),
-			(int*)context->indexBuffer->data(),
+			deviceVertexBuffer,
+			deviceVertexTypeDescriptor,
+			deviceVaryingTypeDescriptor,
+			deviceIndexBuffer,
 			context->vertexShader,
 			context->fragmentShader,
 			&colorBuffer,
-			(float*)context->frameBuffer->getDepthAttachment()->getData(),
+			deviceDepthBuffer,
+			devicePosBuffer,
 			&hostConstants,
 			this->deviceContext.get()
 		);

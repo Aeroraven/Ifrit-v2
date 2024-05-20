@@ -171,9 +171,9 @@ int mainGpu() {
 	vertexBuffer.setValue(0, 0, ifloat4(-0.5, 0.5, -0.1, 1));
 	vertexBuffer.setValue(1, 0, ifloat4(0.0000, -0.5, -0.1, 1));
 	vertexBuffer.setValue(2, 0, ifloat4(0.5, 0.5, -0.1, 1));
-	vertexBuffer.setValue(0, 1, ifloat4(1, 0, 1, 0));
-	vertexBuffer.setValue(1, 1, ifloat4(1, 0, 1, 0));
-	vertexBuffer.setValue(2, 1, ifloat4(1, 0, 1, 0));
+	vertexBuffer.setValue(0, 1, ifloat4(1, 0, 0, 0));
+	vertexBuffer.setValue(1, 1, ifloat4(0, 0, 1, 0));
+	vertexBuffer.setValue(2, 1, ifloat4(0, 1, 0, 0));
 
 	std::vector<int> indexBuffer = { 1,2,0 };
 
