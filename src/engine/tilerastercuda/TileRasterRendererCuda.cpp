@@ -59,14 +59,18 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 		deviceContext->dDeviceConstants = (TileRasterDeviceConstants*)Invocation::deviceMalloc(sizeof(TileRasterDeviceConstants));
 	}
-	void TileRasterRendererCuda::bindFrameBuffer(FrameBuffer& frameBuffer) {
+	void TileRasterRendererCuda::bindFrameBuffer(FrameBuffer& frameBuffer, bool useDoubleBuffer) {
 		context->frameBuffer = &frameBuffer;
 		auto pixelCount = frameBuffer.getWidth() * frameBuffer.getHeight();
 		this->deviceDepthBuffer = Invocation::getDepthBufferDeviceAddr(pixelCount, this->deviceDepthBuffer);
 
 		std::vector<ifloat4*> hColorBuffer = { (ifloat4*)frameBuffer.getColorAttachment(0)->getData() };
+	
 		Invocation::getColorBufferDeviceAddr(hColorBuffer,
-			this->deviceHostColorBuffers, this->deviceColorBuffer, pixelCount, this->deviceHostColorBuffers, this->deviceColorBuffer);
+			this->deviceHostColorBuffers[0], this->deviceColorBuffer[0], pixelCount, this->deviceHostColorBuffers[0], this->deviceColorBuffer[0]);
+		Invocation::getColorBufferDeviceAddr(hColorBuffer,
+			this->deviceHostColorBuffers[1], this->deviceColorBuffer[1], pixelCount, this->deviceHostColorBuffers[1], this->deviceColorBuffer[1]);
+		this->doubleBuffer = useDoubleBuffer;
 		this->hostColorBuffers = hColorBuffer;
 	}	
 	void TileRasterRendererCuda::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
@@ -147,6 +151,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		hostConstants.vertexCount = context->vertexBuffer->getVertexCount();
 		hostConstants.vertexStride = 3;
 
+		int curBuffer = currentBuffer;
 		Invocation::invokeCudaRendering(
 			deviceVertexBuffer,
 			deviceVertexTypeDescriptor,
@@ -155,14 +160,17 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			deviceShadingLockBuffer,
 			context->vertexShader,
 			context->fragmentShader,
-			deviceColorBuffer,
-			deviceHostColorBuffers.data(),
+			deviceColorBuffer[curBuffer],
+			deviceHostColorBuffers[curBuffer].data(),
 			hostColorBuffers.data(),
-			deviceHostColorBuffers.size(),
+			deviceHostColorBuffers[curBuffer].size(),
 			deviceDepthBuffer,
 			devicePosBuffer,
 			&hostConstants,
-			this->deviceContext.get()
+			this->deviceContext.get(),
+			this->doubleBuffer,
+			deviceHostColorBuffers[1-curBuffer].data()
 		);
+		currentBuffer = 1 - curBuffer;
 	}
 }

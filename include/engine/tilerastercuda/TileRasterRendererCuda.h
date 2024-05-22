@@ -26,15 +26,19 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		ifloat4* devicePosBuffer = nullptr;
 		int* deviceShadingLockBuffer = nullptr;
 
-		std::vector<ifloat4*> deviceHostColorBuffers{};
-		ifloat4** deviceColorBuffer = nullptr;
+		std::vector<ifloat4*> deviceHostColorBuffers[2];
+		ifloat4** deviceColorBuffer[2] = { nullptr,nullptr };
 		std::vector<ifloat4*> hostColorBuffers{};
+
+		bool doubleBuffer = false;
+		int currentBuffer = 0;
+
 	private:
 		void updateVaryingBuffer();
 	public:
 		void init();
 		void initCuda();
-		void bindFrameBuffer(FrameBuffer& frameBuffer);
+		void bindFrameBuffer(FrameBuffer& frameBuffer, bool useDoubleBuffer = true);
 		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		void bindIndexBuffer(const std::vector<int>& indexBuffer);
 		void bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor);

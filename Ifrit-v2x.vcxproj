@@ -72,6 +72,8 @@
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
       <Include>$(ProjectDir)include;%(Include)</Include>
       <AdditionalOptions>-std=c++20 %(AdditionalOptions)</AdditionalOptions>
+      <CodeGeneration>compute_75,sm_75</CodeGeneration>
+      <FastMath>true</FastMath>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -102,6 +104,8 @@
       </AdditionalCompilerOptions>
       <AdditionalOptions>-std=c++20 %(AdditionalOptions)</AdditionalOptions>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <CodeGeneration>compute_75,sm_75</CodeGeneration>
+      <FastMath>true</FastMath>
     </CudaCompile>
     <CudaLink>
       <Optimization>O3</Optimization>

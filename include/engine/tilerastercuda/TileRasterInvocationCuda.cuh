@@ -29,7 +29,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		float* dDepthBuffer,
 		ifloat4*  dPositionBuffer,
 		TileRasterDeviceConstants* deviceConstants,
-		TileRasterDeviceContext* deviceContext
+		TileRasterDeviceContext* deviceContext,
+		bool doubleBuffering,
+		ifloat4** dLastColorBuffer
 	);
 
 	template<class T>T* copyShaderToDevice(T* x);

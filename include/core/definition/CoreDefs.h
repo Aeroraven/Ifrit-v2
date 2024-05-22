@@ -134,3 +134,4 @@
 #endif
 
 #define IFRIT_DECLARE_VERTEX_SHADER
+#define IFRIT_RESTRICT_CUDA __restrict__ 

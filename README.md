@@ -20,6 +20,7 @@ Successor to following repos:
 	- Multithreaded Rasterization
 	- SIMD Vectorization
 	- CUDA Acceleration (Incomplete)
+		- Double Buffering / Overlapped Memory Transfer
 
 - **Rendering**:
 	- Homogeneous Space Clipping
@@ -50,4 +51,4 @@ Successor to following repos:
 
 ## Ongoing Plan
 - CUDA Integration 
-	- Double Bufferring
+	- Bug fix
