@@ -5,13 +5,13 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::init() {
 		context = std::make_unique<TileRasterContextCuda>();
 		deviceContext = std::make_unique<TileRasterDeviceContext>();
-		deviceContext->dCoverQueue = (TileBinProposal*)Invocation::deviceMalloc(CU_MAX_COVER_QUEUE_SIZE * sizeof(TileBinProposal));
-		deviceContext->dCoverQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
+
+		deviceContext->dCoverQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_TILE_SIZE * CU_TILE_SIZE);
 		deviceContext->dShadingQueue = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
 		deviceContext->dRasterQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_TILE_SIZE * CU_TILE_SIZE);
 		deviceContext->dAssembledTrianglesCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_GEOMETRY_PROCESSING_THREADS);
 
-		int perThreadTriangles = 9000 / 3 / CU_GEOMETRY_PROCESSING_THREADS * 9;
+		int perThreadTriangles = CU_SINGLE_TIME_TRIANGLE / 3 / CU_GEOMETRY_PROCESSING_THREADS * 9;
 		deviceContext->hdAssembledTrianglesVec.resize(CU_GEOMETRY_PROCESSING_THREADS);
 		if (deviceContext->hdAssembledTriangles.size() < CU_GEOMETRY_PROCESSING_THREADS) {
 			deviceContext->hdAssembledTriangles.resize(CU_GEOMETRY_PROCESSING_THREADS);
@@ -27,8 +27,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 
 		int totalTiles = CU_TILE_SIZE * CU_TILE_SIZE;
-		int totalTriangles = 9000;
-		int maxProposals = 9000;
+		int totalTriangles = CU_SINGLE_TIME_TRIANGLE;
+		int maxProposals = CU_SINGLE_TIME_TRIANGLE;
 
 		deviceContext->hdRasterQueueVec.resize(totalTiles);
 		if (deviceContext->hdRasterQueue.size() < totalTiles) {
@@ -43,13 +43,26 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		cudaMalloc(&deviceContext->dRasterQueue, totalTiles * sizeof(TileBinProposal*));
 		cudaMemcpy(deviceContext->dRasterQueue, deviceContext->hdRasterQueueVec.data(), totalTiles * sizeof(TileBinProposal*), cudaMemcpyHostToDevice);
 
+
+		deviceContext->hdCoverQueueVec.resize(totalTiles);
+		if (deviceContext->hdCoverQueue.size() < totalTiles) {
+			deviceContext->hdCoverQueue.resize(totalTiles);
+		}
+		for (int i = 0; i < totalTiles; i++) {
+			if (deviceContext->hdCoverQueue[i].size() < maxProposals) {
+				deviceContext->hdCoverQueue[i].resize(maxProposals);
+			}
+			deviceContext->hdCoverQueueVec[i] = deviceContext->hdCoverQueue[i].data();
+		}
+		cudaMalloc(&deviceContext->dCoverQueue2, totalTiles * sizeof(TileBinProposal*));
+		cudaMemcpy(deviceContext->dCoverQueue2, deviceContext->hdCoverQueueVec.data(), totalTiles * sizeof(TileBinProposal*), cudaMemcpyHostToDevice);
+
 		deviceContext->dDeviceConstants = (TileRasterDeviceConstants*)Invocation::deviceMalloc(sizeof(TileRasterDeviceConstants));
 	}
 	void TileRasterRendererCuda::bindFrameBuffer(FrameBuffer& frameBuffer) {
 		context->frameBuffer = &frameBuffer;
 		auto pixelCount = frameBuffer.getWidth() * frameBuffer.getHeight();
 		this->deviceDepthBuffer = Invocation::getDepthBufferDeviceAddr(pixelCount, this->deviceDepthBuffer);
-		this->deviceShadingLockBuffer = Invocation::getShadingLockDeviceAddr(pixelCount, this->deviceShadingLockBuffer);
 
 		std::vector<ifloat4*> hColorBuffer = { (ifloat4*)frameBuffer.getColorAttachment(0)->getData() };
 		Invocation::getColorBufferDeviceAddr(hColorBuffer,

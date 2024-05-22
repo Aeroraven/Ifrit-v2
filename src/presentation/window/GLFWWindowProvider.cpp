@@ -23,6 +23,9 @@ namespace Ifrit::Presentation::Window {
 		this->height = height;
 		return true;
 	}
+	void GLFWWindowProvider::setTitle(const std::string& title){
+		this->title = title;
+	}
 	void GLFWWindowProvider::loop(const std::function<void(int*)>& funcs) {
 		static int frameCount = 0;
 		while (!glfwWindowShouldClose(window)) {
@@ -48,7 +51,7 @@ namespace Ifrit::Presentation::Window {
 			frameCount %= 100;
 			if (frameCount % 100 == 0) {
 				std::stringstream ss;
-				ss << "Ifrit-V2";
+				ss << this->title;
 				ss << " [Total FPS: " << 1000.0 / (totalFrameTime / 100.0)<<",";
 				ss << " Render FPS: " << 1000.0 / (totalFrameTimeCore / 100.0) << ",";
 

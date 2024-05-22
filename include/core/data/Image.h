@@ -5,21 +5,45 @@ namespace Ifrit::Core::Data {
 	template<typename T>
 	class Image {
 	private:
-		std::vector<T> data;
+		T* data = nullptr;
+		
+		bool isCudaPinned = false;
 		const size_t width;
 		const size_t height;
 		const size_t channel;
 	public:
+		Image() : width(0), height(0), channel(0) {}
+		Image(size_t width, size_t height, size_t channel, bool pinned) : width(width), height(height), channel(channel), isCudaPinned(pinned) {
+			if (isCudaPinned) {
+				cudaMallocHost(&data, width * height * channel * sizeof(T));
+			}
+			else {
+				data = new T[width * height * channel];
+			}
+		}
 		Image(size_t width, size_t height, size_t channel) : width(width), height(height), channel(channel) {
-			data.resize(width * height * channel);
+			data = new T[width * height * channel];
 		}
-		Image(size_t width, size_t height, size_t channel, const std::vector<T>& data) : width(width), height(height), channel(channel), data(data) {
+		Image(const Image& other) : width(other.width), height(other.height), channel(other.channel) {
+			data = new T[width * height * channel];
+			memcpy(data, other.data, width * height * channel * sizeof(T));
 		}
-		Image(size_t width, size_t height, size_t channel, std::vector<T>&& data) : width(width), height(height), channel(channel), data(std::move(data)) {
+		Image(Image&& other) noexcept : width(other.width), height(other.height), channel(other.channel){
+			data = other.data;
+			other.data = nullptr;
+		}
 
+	
+		~Image() {
+			if (data != nullptr) {
+				if (isCudaPinned) {
+					cudaFreeHost(data);
+				}
+				else {
+					delete[] data;
+				}
+			}
 		}
-		Image(const Image& other) : width(other.width), height(other.height), channel(other.channel), data(other.data) {}
-		Image(Image&& other) noexcept : width(other.width), height(other.height), channel(other.channel), data(std::move(other.data)) {}
 
 		void fillAreaRGBA(size_t x, size_t y, size_t w, size_t h, const T& r, const T& g, const T& b, const T& a) {
 			for (size_t i = y; i < y + h; i++) {
@@ -64,14 +88,19 @@ namespace Ifrit::Core::Data {
 		}
 
 		void clearImage(T value=0) {
-			const static auto dataPtr = data.data();
-			const static auto dataSize = data.size() * sizeof(T);
+			const auto dataPtr = data;
+			const auto dataSize = width * height * channel;
 			if constexpr (std::is_same_v<T, char> && !std::is_same_v<T, unsigned char>) {
-				memset(dataPtr, value, dataSize);
+				memset(dataPtr, value, dataSize * sizeof(T));
 			}
 			else {
 				if (value != 0) IFRIT_BRANCH_UNLIKELY{
-					std::fill(data.begin(), data.end(), value);
+					auto st = data;
+					auto ed = data + width*height*channel;
+					while (st != ed) {
+						*st = value;
+						st++;
+					}
 				}
 				else {
 					memset(dataPtr, value, dataSize);
@@ -80,9 +109,9 @@ namespace Ifrit::Core::Data {
 		}
 
 		void clearImageZero() {
-			const static auto dataPtr = data.data();
-			const static auto dataSize = data.size() * sizeof(T);
-			memset(dataPtr, 0, dataSize);
+			const auto dataPtr = data;
+			const auto dataSize = width * height * channel;
+			memset(dataPtr, 0, dataSize * sizeof(T));
 		}
 
 		T& operator()(size_t x, size_t y, size_t c) {
@@ -94,7 +123,7 @@ namespace Ifrit::Core::Data {
 		}
 
 		const T* getData() const {
-			return data.data();
+			return data;
 		}
 
 		constexpr size_t getSizeOf() const {

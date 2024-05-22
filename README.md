@@ -1,6 +1,6 @@
 # Ifrit-v2
 
-Software Rasterizer 
+GPU/CPU-Parallelized tile-based software rasterizer.
 
 ![](img/img_demo2.png)
 
@@ -41,6 +41,8 @@ Successor to following repos:
 	- MSVC (Visual Studio 2022)
 		- C++17 is required
 		- C++20 is recommended for best performance
+	- NVCC
+	
 - Hardware Requirements:
 	- SSE4.1
 	- AVX2
@@ -49,4 +51,3 @@ Successor to following repos:
 ## Ongoing Plan
 - CUDA Integration 
 	- Double Bufferring
-	- Reducing Workload Overhead

@@ -20,6 +20,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		std::vector<DeviceVector<TileBinProposal>> hdRasterQueue;
 		std::vector<TileBinProposal*> hdRasterQueueVec;
 
+		std::vector<DeviceVector<TileBinProposal>> hdCoverQueue;
+		std::vector<TileBinProposal*> hdCoverQueueVec;
+
+		TileBinProposal** dCoverQueue2;
+
 		TileBinProposal* dCoverQueue;
 		uint32_t* dCoverQueueCounter;
 		uint32_t* dShadingQueue;

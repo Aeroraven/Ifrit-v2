@@ -12,8 +12,10 @@ namespace Ifrit::Presentation::Window {
 		std::deque<int> frameTimesCore;
 		int totalFrameTime = 0;
 		int totalFrameTimeCore = 0;
+		std::string title = "Ifrit-v2";
 	public:
 		virtual bool setup(size_t width, size_t height);
 		void loop(const std::function<void(int*)>& func);
+		void setTitle(const std::string& title);
 	};
 }
