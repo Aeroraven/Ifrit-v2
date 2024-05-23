@@ -266,10 +266,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				auto curTileX2 = (x + 1) * frameBufferWidth / CU_TILE_SIZE;
 				auto curTileY2 = (y + 1) * frameBufferHeight / CU_TILE_SIZE;
 
-				auto ctx1 = 1.0f * curTileX ;
-				auto ctx2 = 1.0f * (curTileX2-1);
-				auto cty1 = 1.0f * curTileY * frameBufferWidth / frameBufferHeight;
-				auto cty2 = 1.0f * (curTileY2-1) * frameBufferWidth / frameBufferHeight;
+				auto ctx1 = 1.0f * curTileX / frameBufferWidth;
+				auto ctx2 = 1.0f * (curTileX2-1) / frameBufferWidth;
+				auto cty1 = 1.0f * curTileY  / frameBufferHeight;
+				auto cty2 = 1.0f * (curTileY2-1) / frameBufferHeight;
 
 				tileCoords[VLT] = { ctx1, cty1 };
 				tileCoords[VLB] = { ctx1, cty2 };
@@ -280,8 +280,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				int criteriaTR = 0;
 				int criteriaTA = 0;
 				for (int i = 0; i < 3; i++) {
-					float criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y + edgeCoefs[i].z * frameBufferWidth;
-					float criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y + edgeCoefs[i].z * frameBufferWidth;
+					float criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y + edgeCoefs[i].z;
+					float criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y + edgeCoefs[i].z;
 					if (criteriaTRLocal < -CU_EPS) criteriaTR += 1;
 					if (criteriaTALocal < CU_EPS) criteriaTA += 1;
 				}
@@ -291,7 +291,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				}
 				auto workerId = threadIdx.x;
 				auto tileId = y * CU_TILE_SIZE + x;
-				if (criteriaTA == 100) {
+				if (criteriaTA == 3) {
 					TileBinProposalCUDA proposal;
 					proposal.level = TileRasterLevel::TILE;
 					proposal.primId = primitiveId;
@@ -513,7 +513,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if (criteriaTR != 3) {
 				continue;
 			}
-			if (criteriaTA == 103) {
+			if (criteriaTA == 3) {
 				TileBinProposalCUDA nprop;
 				nprop.level = TileRasterLevel::BLOCK;
 				nprop.tile = { (int)subTileIX,(int)subTileIY };
@@ -523,17 +523,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 			else {
 				//Into Pixel level
+				const float cmpf[3] = { CU_EPS - edgeCoefs[0].z,CU_EPS - edgeCoefs[1].z,CU_EPS - edgeCoefs[2].z };
 				for (int dy = subTilePixelY; dy < subTilePixelY2; dy++) {
-					float crw[3], crx[3];
-					int accptw = 0, acceptx = 0;
+					float dyf = 1.0 * dy / frameHeight;
 					for (int dx = subTilePixelX; dx < subTilePixelX2; dx++) {
 						int accept = 0;
-						
+						float dxf = 1.0 * dx / frameWidth;
 						for (int i = 0; i < 3; i++) {
-							float dxf = 1.0 * dx /frameWidth;
-							float dyf = 1.0 * dy /frameHeight;
-							float criteria = edgeCoefs[i].x * dxf + edgeCoefs[i].y * dyf + edgeCoefs[i].z;
-							accept += criteria < CU_EPS;
+							float criteria = edgeCoefs[i].x * dxf + edgeCoefs[i].y * dyf;
+							accept += criteria < cmpf[i];
 						}
 						if (accept == 3) {
 							TileBinProposalCUDA nprop;
@@ -729,7 +727,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					frameWidth, frameHeight, vertexStride, varyingCount);
 			}
 			else if (proposal.level == TileRasterLevel::BLOCK) {
-				continue;
 				auto curTileX = tileX * frameWidth / CU_TILE_SIZE;
 				auto curTileY = tileY * frameHeight / CU_TILE_SIZE;
 				auto curTileX2 = (tileX + 1) * frameWidth / CU_TILE_SIZE;
@@ -753,7 +750,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				}
 			}
 			else {
-				continue;
 				auto tileId = tileY * CU_TILE_SIZE + tileX;
 				auto curTileX = tileX * frameWidth / CU_TILE_SIZE;
 				auto curTileY = tileY * frameHeight / CU_TILE_SIZE;
