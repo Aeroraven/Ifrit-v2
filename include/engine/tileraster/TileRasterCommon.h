@@ -42,6 +42,13 @@ namespace Ifrit::Engine::TileRaster {
 		AssembledTriangleProposalReference clippedTriangle;
 	};
 
+	struct TileBinProposalCUDA {
+		iint2 tile;
+		TileRasterLevel level;
+		int primId;
+	};
+
+
 	struct PrimitiveEdgeCoefs {
 		ifloat3 coef[3];
 	};

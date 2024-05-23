@@ -9,21 +9,10 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		deviceContext->dCoverQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_TILE_SIZE * CU_TILE_SIZE);
 		deviceContext->dShadingQueue = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
 		deviceContext->dRasterQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_TILE_SIZE * CU_TILE_SIZE);
-		deviceContext->dAssembledTrianglesCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_GEOMETRY_PROCESSING_THREADS);
+		deviceContext->dAssembledTrianglesCounter2 = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
 
-		int perThreadTriangles = CU_SINGLE_TIME_TRIANGLE / 3 / CU_GEOMETRY_PROCESSING_THREADS * 9;
-		deviceContext->hdAssembledTrianglesVec.resize(CU_GEOMETRY_PROCESSING_THREADS);
-		if (deviceContext->hdAssembledTriangles.size() < CU_GEOMETRY_PROCESSING_THREADS) {
-			deviceContext->hdAssembledTriangles.resize(CU_GEOMETRY_PROCESSING_THREADS);
-		}
-		for (int i = 0; i < CU_GEOMETRY_PROCESSING_THREADS; i++) {
-			if (deviceContext->hdAssembledTriangles[i].size() < perThreadTriangles) {
-				deviceContext->hdAssembledTriangles[i].resize(perThreadTriangles);
-			}
-			deviceContext->hdAssembledTrianglesVec[i] = deviceContext->hdAssembledTriangles[i].data();
-		}
-		cudaMalloc(&deviceContext->dAssembledTriangles, CU_GEOMETRY_PROCESSING_THREADS * sizeof(AssembledTriangleProposal*));
-		cudaMemcpy(deviceContext->dAssembledTriangles, deviceContext->hdAssembledTrianglesVec.data(), CU_GEOMETRY_PROCESSING_THREADS * sizeof(AssembledTriangleProposal*), cudaMemcpyHostToDevice);
+		int totlTriangle = CU_SINGLE_TIME_TRIANGLE * 9;
+		cudaMalloc(&deviceContext->dAssembledTriangles2, totlTriangle * sizeof(AssembledTriangleProposal));
 
 
 		int totalTiles = CU_TILE_SIZE * CU_TILE_SIZE;

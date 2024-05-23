@@ -166,7 +166,7 @@ int mainGpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj", pos, normal, uv, index);
+	loader.loadObject(IFRIT_ASSET_PATH"/yomiya.obj", pos, normal, uv, index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 
@@ -244,5 +244,5 @@ int mainGpu() {
 }
 
 int main() {
-	return mainCpu();
+	return mainGpu();
 }

@@ -8,7 +8,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_MAX_COVER_QUEUE_SIZE = 1280000;
 	constexpr int CU_GEOMETRY_PROCESSING_THREADS = 32;
 	constexpr int CU_RASTERIZATION_THREADS_PERDIM = 8;
-	constexpr int CU_VERTEX_PROCESSING_THREADS = 64;
+	constexpr int CU_VERTEX_PROCESSING_THREADS = 32;
 	constexpr int CU_RASTERIZATION_THREADS = 256;
 
 	constexpr int CU_FRAGMENT_SHADING_THREADS_PER_TILE_X = 8;
@@ -16,7 +16,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_RASTERIZATION_THREADS_PER_TILE = 32;
 
 	constexpr bool CU_FRAGMENT_LAUCH_SUBKERNEL = false;
-	constexpr int CU_SINGLE_TIME_TRIANGLE = 6000;
+	constexpr int CU_SINGLE_TIME_TRIANGLE = 4500;
 	constexpr int CU_TRIANGLE_STRIDE = 3;
 
 }
