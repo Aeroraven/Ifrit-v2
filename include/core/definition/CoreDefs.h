@@ -110,11 +110,13 @@
 	#define IFRIT_HOST __host__
 	#define IFRIT_DUAL __host__ __device__
 	#define IFRIT_KERNEL __global__
+	#define IFRIT_SHARED __shared__
 #else
 	#define IFRIT_DUAL
 	#define IFRIT_KERNEL
 	#define IFRIT_DEVICE
 	#define IFRIT_HOST
+	#define IFRIT_SHARED
 #endif
 
 #ifdef IFRIT_CXX20_ENABLED

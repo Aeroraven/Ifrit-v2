@@ -16,7 +16,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_RASTERIZATION_THREADS_PER_TILE = 32;
 
 	constexpr bool CU_FRAGMENT_LAUCH_SUBKERNEL = false;
-	constexpr int CU_SINGLE_TIME_TRIANGLE = 4500;
+	constexpr int CU_SINGLE_TIME_TRIANGLE = 4800;
 	constexpr int CU_TRIANGLE_STRIDE = 3;
 
 }
