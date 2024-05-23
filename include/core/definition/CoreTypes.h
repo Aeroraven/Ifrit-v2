@@ -25,6 +25,9 @@ struct Rect2D {
 #define ifloat4 CoreVec4<float>
 #define ifloat3 CoreVec3<float>
 #define ifloat2 CoreVec2<float>
+#define idouble4 CoreVec4<double>
+#define idouble3 CoreVec3<double>
+#define idouble2 CoreVec2<double>
 #define iint4 CoreVec4<int>
 #define iint3 CoreVec3<int>
 #define iint2 CoreVec2<int>

@@ -2,7 +2,7 @@
 namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr float CU_EPS = 1e-7f;
 	constexpr int CU_TILE_SIZE = 128;
-	constexpr int CU_SUBTILE_SIZE = 2;
+	constexpr int CU_SUBTILE_SIZE = 1;
 	constexpr int CU_MAX_VARYINGS = 10;
 	constexpr int CU_MAX_ATTRIBUTES = 10;
 	constexpr int CU_MAX_COVER_QUEUE_SIZE = 1280000;
