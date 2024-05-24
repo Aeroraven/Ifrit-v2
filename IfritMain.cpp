@@ -10,6 +10,7 @@
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 
+#define DEMO_RESOLUTION 1280
 
 using namespace std;
 using namespace Ifrit::Core::Data;
@@ -73,8 +74,8 @@ int mainCpu() {
 	loader.loadObject(IFRIT_ASSET_PATH"/yomiya.obj",pos,normal,uv,index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
-	std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(1280, 1280, 4);
-	std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(1280, 1280, 1);
+	std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
+	std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
 	std::shared_ptr<TileRasterRenderer> renderer = std::make_shared<TileRasterRenderer>();
 	FrameBuffer frameBuffer;
 
@@ -170,8 +171,8 @@ int mainGpu() {
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 
-	std::shared_ptr<ImageF32> image1 = std::make_shared<ImageF32>(1280, 1280, 4,true);
-	std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(1280, 1280, 1);
+	std::shared_ptr<ImageF32> image1 = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4,true);
+	std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
 	std::shared_ptr<TileRasterRendererCuda> renderer = std::make_shared<TileRasterRendererCuda>();
 	FrameBuffer frameBuffer;
 

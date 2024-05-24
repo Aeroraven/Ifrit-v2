@@ -12,7 +12,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		deviceContext->dAssembledTrianglesCounter2 = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
 
 		int totlTriangle = CU_SINGLE_TIME_TRIANGLE * 9;
-		cudaMalloc(&deviceContext->dAssembledTriangles2, totlTriangle * sizeof(AssembledTriangleProposal));
+		cudaMalloc(&deviceContext->dAssembledTriangles2, totlTriangle * sizeof(AssembledTriangleProposalCUDA));
 
 
 		int totalTiles = CU_TILE_SIZE * CU_TILE_SIZE;
@@ -29,8 +29,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			}
 			deviceContext->hdRasterQueueVec[i] = deviceContext->hdRasterQueue[i].data();
 		}
-		cudaMalloc(&deviceContext->dRasterQueue, totalTiles * sizeof(TileBinProposal*));
-		cudaMemcpy(deviceContext->dRasterQueue, deviceContext->hdRasterQueueVec.data(), totalTiles * sizeof(TileBinProposal*), cudaMemcpyHostToDevice);
+		cudaMalloc(&deviceContext->dRasterQueue, totalTiles * sizeof(uint32_t*));
+		cudaMemcpy(deviceContext->dRasterQueue, deviceContext->hdRasterQueueVec.data(), totalTiles * sizeof(uint32_t*), cudaMemcpyHostToDevice);
 
 
 		deviceContext->hdCoverQueueVec.resize(totalTiles);
@@ -134,7 +134,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		hostConstants.counterClockwise = false;
 		hostConstants.frameBufferHeight = context->frameBuffer->getHeight();
 		hostConstants.frameBufferWidth = context->frameBuffer->getWidth();
-		hostConstants.startingIndexId = 0;
 		hostConstants.totalIndexCount = context->indexBuffer->size();
 		hostConstants.varyingCount = context->varyingDescriptor->getVaryingCounts();
 		hostConstants.vertexCount = context->vertexBuffer->getVertexCount();

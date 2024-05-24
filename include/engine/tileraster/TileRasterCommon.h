@@ -31,6 +31,14 @@ namespace Ifrit::Engine::TileRaster {
 		int originalPrimitive;
 	};
 
+	struct AssembledTriangleProposalCUDA {
+		ifloat4 v1, v2, v3;
+		ifloat3 b1, b2, b3;
+		ifloat3 e1, e2, e3; //Edge Coefs
+		ifloat3 f1, f2, f3; //Interpolate Bases
+		int originalPrimitive;
+	};
+
 	struct AssembledTriangleProposalReference {
 		uint32_t workerId;
 		int primId;
@@ -44,7 +52,7 @@ namespace Ifrit::Engine::TileRaster {
 
 	struct TileBinProposalCUDA {
 		iint2 tile;
-		TileRasterLevel level;
+		iint2 tileEnd;
 		int primId;
 	};
 
@@ -56,26 +64,22 @@ namespace Ifrit::Engine::TileRaster {
 	class TileRasterDeviceConstants {
 	public:
 		int vertexStride = 3;
-		int tileBlocksX = 64;
-		int subtileBlocksX = 2;
-		int vertexProcessingThreads = 128;
-		int geometryProcessingThreads = 128;
-		int tilingRasterizationThreads = 16;
-		int fragmentProcessingThreads = 8;
 		int vertexCount;
 		int attributeCount;
 		int varyingCount;
-		int indexCount;
 		int frameBufferWidth;
 		int frameBufferHeight;
-
 		bool counterClockwise = false;
-		int startingIndexId;
 		int totalIndexCount;
 	};
 
 	struct TileRasterClipVertex {
 		ifloat4 barycenter;
+		ifloat4 pos;
+	};
+
+	struct TileRasterClipVertexCUDA {
+		ifloat3 barycenter;
 		ifloat4 pos;
 	};
 }

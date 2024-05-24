@@ -17,8 +17,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		std::vector<DeviceVector<AssembledTriangleProposal>> hdAssembledTriangles;
 		std::vector<AssembledTriangleProposal*> hdAssembledTrianglesVec;
 
-		std::vector<DeviceVector<TileBinProposalCUDA>> hdRasterQueue;
-		std::vector<TileBinProposalCUDA*> hdRasterQueueVec;
+		std::vector<DeviceVector<uint32_t>> hdRasterQueue;
+		std::vector<uint32_t*> hdRasterQueueVec;
 
 		std::vector<DeviceVector<TileBinProposalCUDA>> hdCoverQueue;
 		std::vector<TileBinProposalCUDA*> hdCoverQueueVec;
@@ -32,11 +32,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		uint32_t* dAssembledTrianglesCounter;
 
 		AssembledTriangleProposal** dAssembledTriangles;
-		TileBinProposalCUDA** dRasterQueue;
+		uint32_t** dRasterQueue;
 		VaryingStore** dVaryingBuffer;
 		TileRasterDeviceConstants* dDeviceConstants;
 
-		AssembledTriangleProposal* dAssembledTriangles2;
+		AssembledTriangleProposalCUDA* dAssembledTriangles2;
 		uint32_t* dAssembledTrianglesCounter2;
 	};
 }

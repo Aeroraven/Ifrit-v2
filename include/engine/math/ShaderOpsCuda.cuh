@@ -50,7 +50,16 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 	IFRIT_DUAL inline ifloat4 add(const ifloat4& a, const ifloat4& b) {
 		return ifloat4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 	}
+	IFRIT_DUAL inline ifloat3 multiply(const ifloat3& a, const float& b) {
+		return ifloat3(a.x * b, a.y * b, a.z * b);
+	}
+	IFRIT_DUAL inline ifloat3 add(const ifloat3& a, const ifloat3& b) {
+		return ifloat3(a.x + b.x, a.y + b.y, a.z + b.z);
+	}
 	IFRIT_DUAL inline ifloat4 lerp(const ifloat4& a, const ifloat4& b, const float& t) {
+		return add(multiply(a, 1 - t), multiply(b, t));
+	}
+	IFRIT_DUAL inline ifloat3 lerp(const ifloat3& a, const ifloat3& b, const float& t) {
 		return add(multiply(a, 1 - t), multiply(b, t));
 	}
 	IFRIT_DUAL inline ifloat4 multiply(const float4x4 a, const ifloat4 b) {

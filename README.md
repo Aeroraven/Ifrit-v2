@@ -51,4 +51,5 @@ Successor to following repos:
 
 ## Ongoing Plan
 - CUDA Integration 
-	- Bug fix
+	- Bug: Pixel Artifacts
+	- Bug: Access Violation in Homogeneous Clipping
