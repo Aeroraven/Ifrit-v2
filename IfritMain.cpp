@@ -71,7 +71,7 @@ int mainCpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/sponza.obj",pos,normal,uv,index);
+	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj",pos,normal,uv,index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 	std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
@@ -167,7 +167,7 @@ int mainGpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/sponza.obj", pos, normal, uv, index);
+	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj", pos, normal, uv, index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 
@@ -243,5 +243,5 @@ int mainGpu() {
 }
 
 int main() {
-	return mainCpu();
+	return mainGpu();
 }

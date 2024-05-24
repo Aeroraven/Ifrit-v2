@@ -1,6 +1,6 @@
 #pragma once
 namespace Ifrit::Engine::TileRaster::CUDA {
-	constexpr float CU_EPS = 5e-8f;
+	constexpr float CU_EPS = 1e-8f;
 	constexpr int CU_TILE_SIZE = 128;
 	constexpr int CU_SUBTILE_SIZE = 2;
 	constexpr int CU_MAX_VARYINGS = 10;
@@ -16,7 +16,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_RASTERIZATION_THREADS_PER_TILE = 32;
 
 	constexpr bool CU_FRAGMENT_LAUCH_SUBKERNEL = false;
-	constexpr int CU_SINGLE_TIME_TRIANGLE = 7200;
+	constexpr int CU_SINGLE_TIME_TRIANGLE = 8400;
 	constexpr int CU_TRIANGLE_STRIDE = 3;
 	constexpr int CU_FRAGMENT_CANDPROC_PER_LOOP_PER_THREAD = 4;
 	constexpr int CU_FRAGMENT_CANDPROC_PER_LOOP = CU_FRAGMENT_SHADING_THREADS_PER_TILE_X * CU_FRAGMENT_SHADING_THREADS_PER_TILE_Y * CU_FRAGMENT_CANDPROC_PER_LOOP_PER_THREAD;
