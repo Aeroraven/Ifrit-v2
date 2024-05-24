@@ -677,8 +677,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
 		const auto varyingCount = deviceConstants->varyingCount;
 
-		const auto threadX = threadIdx.x;
-		const auto threadY = threadIdx.y;
+		const int threadX = threadIdx.x;
+		const int threadY = threadIdx.y;
 		constexpr auto bds = CU_FRAGMENT_SHADING_THREADS_PER_TILE_X * CU_FRAGMENT_SHADING_THREADS_PER_TILE_Y;
 		const auto threadId = threadY * bds + threadX;
 
@@ -712,10 +712,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 #define FIND_SMALLEST(a,b,q) ((a) * (((q) - (b) + (a) - 1) / (a)) + (b))
 #define FIND_LARGEST(a,b,q) (((q) - (b)) / (a) * (a) + (b))
-				const auto startXw = FIND_SMALLEST(blockX, threadX, startX);
-				const auto endXw = FIND_LARGEST(blockX, threadX, endX);
-				const auto startYw = FIND_SMALLEST(blockY, threadY, startY);
-				const auto endYw = FIND_LARGEST(blockY, threadY, endY);
+				const auto startXw = max(0,FIND_SMALLEST(blockX, threadX, startX));
+				const auto endXw = min(frameWidth - 1, FIND_LARGEST(blockX, threadX, endX));
+				const auto startYw = max(0,FIND_SMALLEST(blockY, threadY, startY));
+				const auto endYw = min(frameHeight - 1, FIND_LARGEST(blockY, threadY, endY));
 #undef FIND_SMALLEST
 #undef FIND_LARGEST
 

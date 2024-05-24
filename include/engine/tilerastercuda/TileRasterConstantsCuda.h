@@ -1,6 +1,6 @@
 #pragma once
 namespace Ifrit::Engine::TileRaster::CUDA {
-	constexpr float CU_EPS = 1e-7f;
+	constexpr float CU_EPS = 5e-8f;
 	constexpr int CU_TILE_SIZE = 128;
 	constexpr int CU_SUBTILE_SIZE = 2;
 	constexpr int CU_MAX_VARYINGS = 10;
