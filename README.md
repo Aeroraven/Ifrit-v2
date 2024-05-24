@@ -51,5 +51,5 @@ Successor to following repos:
 
 ## Ongoing Plan
 - CUDA Integration 
-	- Bug: Pixel Artifacts
-	- Bug: Access Violation in Homogeneous Clipping
+	- Performance: LSB Stall in Primitive Assembly Stage
+	- Performance: LSB Stall in Pixel Shading Stage

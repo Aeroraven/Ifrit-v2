@@ -31,6 +31,9 @@ struct Rect2D {
 #define iint4 CoreVec4<int>
 #define iint3 CoreVec3<int>
 #define iint2 CoreVec2<int>
+#define ishort4 CoreVec4<short>
+#define ishort3 CoreVec3<short>
+#define ishort2 CoreVec2<short>
 #define iuint4 CoreVec4<unsigned int>
 #define iuint3 CoreVec3<unsigned int>
 #define iuint2 CoreVec2<unsigned int>

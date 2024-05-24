@@ -51,8 +51,8 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	struct TileBinProposalCUDA {
-		iint2 tile;
-		iint2 tileEnd;
+		ishort2 tile;
+		ishort2 tileEnd;
 		int primId;
 	};
 
