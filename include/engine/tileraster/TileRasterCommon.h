@@ -31,6 +31,11 @@ namespace Ifrit::Engine::TileRaster {
 		int originalPrimitive;
 	};
 
+	struct PendingTriangleProposalCUDA {
+		ifloat4 v1, v2, v3;
+		ifloat3 b1, b2, b3;
+	};
+
 	struct AssembledTriangleProposalCUDA {
 		ifloat4 v1, v2, v3;
 		ifloat3 b1, b2, b3;

@@ -56,118 +56,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 
-	IFRIT_DEVICE int devTriangleHomogeneousClip(const int primitiveId, ifloat4 v1, ifloat4 v2, ifloat4 v3,
-		AssembledTriangleProposalCUDA* dProposals, uint32_t* dProposalCount, int* startingIdx, float frameWidth, float frameHeight) {
-		using Ifrit::Engine::Math::ShaderOps::CUDA::dot;
-		using Ifrit::Engine::Math::ShaderOps::CUDA::sub;
-		using Ifrit::Engine::Math::ShaderOps::CUDA::add;
-		using Ifrit::Engine::Math::ShaderOps::CUDA::multiply;
-		using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
-
-		constexpr uint32_t clipIts = 7;
-		const ifloat4 clipCriteria[clipIts] = {
-			{0,0,0,CU_EPS},
-			{1,0,0,0},
-			{-1,0,0,0},
-			{0,1,0,0},
-			{0,-1,0,0},
-			{0,0,1,0},
-			{0,0,-1,0}
-		};
-		TileRasterClipVertexCUDA ret[2][9];
-		uint32_t retCnt[2] = { 0,3 };
-		ret[1][0] = { {1,0,0},v1 };
-		ret[1][1] = { {0,1,0},v2 };
-		ret[1][2] = { {0,0,1},v3 };
-		int clipTimes = 0;
-		for (int i = 0; i < clipIts; i++) {
-			ifloat4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
-			ifloat4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
-			const auto cIdx = i & 1, cRIdx = 1 - (i & 1);
-			retCnt[cIdx] = 0;
-			const auto psize = retCnt[cRIdx];
-			if (psize == 0) {
-				*startingIdx = -1;
-				return;
-			}
-			auto pc = ret[cRIdx][0];
-			auto npc = dot(pc.pos, outNormal);
-			for (int j = 0; j < psize; j++) {
-				const auto& pn = ret[cRIdx][(j + 1) % psize];
-				auto npn = dot(pn.pos, outNormal);
-
-				if (npc * npn < 0) {
-					ifloat4 dir = sub(pn.pos, pc.pos);
-					float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
-					float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
-					float t = numo / deno;
-					ifloat4 intersection = add(pc.pos, multiply(dir, t));
-					ifloat3 barycenter = lerp(pc.barycenter, pn.barycenter, t);
-
-					TileRasterClipVertexCUDA newp;
-					newp.barycenter = barycenter;
-					newp.pos = intersection;
-					ret[cIdx][retCnt[cIdx]++] = (newp);
-				}
-				if (npn < CU_EPS) {
-					ret[cIdx][retCnt[cIdx]++] = pn;
-				}
-				pc = pn;
-				npc = npn;
-			}
-			if (retCnt[cIdx] < 3) {
-				*startingIdx = -1;
-				return 0;
-			}
-		}
-		const auto clipOdd = clipTimes & 1;
-		for (int i = 0; i < retCnt[clipOdd]; i++) {
-			ret[clipOdd][i].pos.x /= ret[clipOdd][i].pos.w;
-			ret[clipOdd][i].pos.y /= ret[clipOdd][i].pos.w;
-			ret[clipOdd][i].pos.z /= ret[clipOdd][i].pos.w;
-			ret[clipOdd][i].pos.w = 1 / ret[clipOdd][i].pos.w;
-
-			ret[clipOdd][i].pos.x = ret[clipOdd][i].pos.x * 0.5 + 0.5;
-			ret[clipOdd][i].pos.y = ret[clipOdd][i].pos.y * 0.5 + 0.5;
-		}
-		// Atomic Insertions
-		auto threadId = threadIdx.x;
-
-		auto idxSrc = atomicAdd(dProposalCount, retCnt[clipOdd] - 2);
-		for (int i = 0; i < retCnt[clipOdd] - 2; i++) {
-			auto curIdx = idxSrc + i;
-			AssembledTriangleProposalCUDA& atri = dProposals[curIdx];
-			atri.b1 = ret[clipOdd][0].barycenter;
-			atri.b2 = ret[clipOdd][i + 1].barycenter;
-			atri.b3 = ret[clipOdd][i + 2].barycenter;
-			atri.v1 = ret[clipOdd][0].pos;
-			atri.v2 = ret[clipOdd][i + 1].pos;
-			atri.v3 = ret[clipOdd][i + 2].pos;
-
-			const float ar = 1.0f / devEdgeFunction(atri.v1, atri.v2, atri.v3);
-			const float sV2V1y = atri.v2.y - atri.v1.y;
-			const float sV2V1x = atri.v1.x - atri.v2.x;
-			const float sV3V2y = atri.v3.y - atri.v2.y;
-			const float sV3V2x = atri.v2.x - atri.v3.x;
-			const float sV1V3y = atri.v1.y - atri.v3.y;
-			const float sV1V3x = atri.v3.x - atri.v1.x;
-
-			atri.f3 = { (float)(sV2V1y * ar) * atri.v3.w / frameHeight, (float)(sV2V1x * ar) * atri.v3.w / frameWidth,(float)((-atri.v1.x * sV2V1y - atri.v1.y * sV2V1x) * ar) * atri.v3.w };
-			atri.f1 = { (float)(sV3V2y * ar) * atri.v1.w / frameHeight, (float)(sV3V2x * ar) * atri.v1.w / frameWidth,(float)((-atri.v2.x * sV3V2y - atri.v2.y * sV3V2x) * ar) * atri.v1.w };
-			atri.f2 = { (float)(sV1V3y * ar) * atri.v2.w / frameHeight, (float)(sV1V3x * ar) * atri.v2.w / frameWidth,(float)((-atri.v3.x * sV1V3y - atri.v3.y * sV1V3x) * ar) * atri.v2.w };
-
-
-			ifloat3 edgeCoefs[3];
-			atri.e1 = { (float)(sV2V1y)*frameHeight, (float)(sV2V1x)*frameWidth ,  (float)(atri.v2.x * atri.v1.y - atri.v1.x * atri.v2.y ) * frameHeight * frameWidth };
-			atri.e2 = { (float)(sV3V2y)*frameHeight,  (float)(sV3V2x)*frameWidth ,  (float)(atri.v3.x * atri.v2.y - atri.v2.x * atri.v3.y ) * frameHeight * frameWidth };
-			atri.e3 = { (float)(sV1V3y * frameHeight),  (float)(sV1V3x)*frameWidth ,  (float)(atri.v1.x * atri.v3.y - atri.v3.x * atri.v1.y ) * frameHeight * frameWidth };
-
-			atri.originalPrimitive = primitiveId;
-		}
-		*startingIdx = idxSrc;
-		return  retCnt[clipOdd] - 2;
-	}
-
 	IFRIT_DEVICE bool devTriangleSimpleClip(ifloat4 v1, ifloat4 v2, ifloat4 v3, irect2Df& bbox) {
 		bool inside = true;
 		float minx = min(v1.x, min(v2.x, v3.x));
@@ -188,37 +76,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		bbox.h = maxy - miny;
 		return true;
 	}
-
-	IFRIT_DEVICE void* devGetBufferAddress(char* dBuffer, TypeDescriptorEnum typeDesc, uint32_t element) {
-		if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT1) {
-			return reinterpret_cast<float*>(dBuffer) + element;
-		}
-		else if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT2) {
-			return reinterpret_cast<ifloat2*>(dBuffer) + element;
-		}
-		else if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT3) {
-			return reinterpret_cast<ifloat3*>(dBuffer) + element;
-		}
-		else if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT4) {
-			return reinterpret_cast<ifloat4*>(dBuffer) + element;
-		}
-		else if (typeDesc == TypeDescriptorEnum::IFTP_INT1) {
-			return reinterpret_cast<int*>(dBuffer) + element;
-		}
-		else if (typeDesc == TypeDescriptorEnum::IFTP_INT2) {
-			return reinterpret_cast<iint2*>(dBuffer) + element;
-		}
-		else if (typeDesc == TypeDescriptorEnum::IFTP_INT3) {
-			return reinterpret_cast<iint3*>(dBuffer) + element;
-		}
-		else if (typeDesc == TypeDescriptorEnum::IFTP_INT4) {
-			return reinterpret_cast<iint4*>(dBuffer) + element;
-		}
-		else {
-			return nullptr;
-		}
-	}
-
 	IFRIT_DEVICE void devExecuteBinner(
 		int primitiveId,
 		AssembledTriangleProposalCUDA& atp,
@@ -255,31 +112,30 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		const float tileSize = 1.0f / CU_TILE_SIZE;
 		for (int y = tileMiny; y <= tileMaxy; y++) {
+
+			auto curTileY = y * frameBufferHeight / CU_TILE_SIZE;
+			auto curTileY2 = (y + 1) * frameBufferHeight / CU_TILE_SIZE;
+			auto cty1 = 1.0f * curTileY;
+			auto cty2 = 1.0f * (curTileY2 - 1);
+
 			for (int x = tileMinx; x <= tileMaxx; x++) {
-
 				auto curTileX = x * frameBufferWidth / CU_TILE_SIZE;
-				auto curTileY = y * frameBufferHeight / CU_TILE_SIZE;
 				auto curTileX2 = (x + 1) * frameBufferWidth / CU_TILE_SIZE;
-				auto curTileY2 = (y + 1) * frameBufferHeight / CU_TILE_SIZE;
-
 				auto ctx1 = 1.0f * curTileX;
 				auto ctx2 = 1.0f * (curTileX2-1);
-				auto cty1 = 1.0f * curTileY;
-				auto cty2 = 1.0f * (curTileY2-1);
 
 				tileCoords[VLT] = { ctx1, cty1 };
 				tileCoords[VLB] = { ctx1, cty2 };
 				tileCoords[VRB] = { ctx2, cty2 };
 				tileCoords[VRT] = { ctx2, cty1 };
 
-
 				int criteriaTR = 0;
 				int criteriaTA = 0;
 				for (int i = 0; i < 3; i++) {
-					float criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y + edgeCoefs[i].z;
-					float criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y + edgeCoefs[i].z ;
-					if (criteriaTRLocal < -CU_EPS) criteriaTR += 1;
-					if (criteriaTALocal < CU_EPS) criteriaTA += 1;
+					float criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y;
+					float criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y;
+					if (criteriaTRLocal < -edgeCoefs[i].z) criteriaTR += 1;
+					if (criteriaTALocal < -edgeCoefs[i].z) criteriaTA += 1;
 				}
 				if (criteriaTR != 3) {
 					continue;
@@ -303,6 +159,171 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 
+
+	IFRIT_DEVICE int devTriangleHomogeneousClip(
+		const int primitiveId,
+		ifloat4 v1,
+		ifloat4 v2,
+		ifloat4 v3,
+		AssembledTriangleProposalCUDA* dProposals,
+		uint32_t* dProposalCount,
+		float frameWidth,
+		float frameHeight,
+		uint32_t** IFRIT_RESTRICT_CUDA dRasterQueue,
+		uint32_t* IFRIT_RESTRICT_CUDA dRasterQueueCount,
+		TileBinProposalCUDA** IFRIT_RESTRICT_CUDA dCoverQueue,
+		uint32_t* IFRIT_RESTRICT_CUDA dCoverQueueCounts,
+		TileRasterDeviceConstants* deviceConstants
+	) {
+		using Ifrit::Engine::Math::ShaderOps::CUDA::dot;
+		using Ifrit::Engine::Math::ShaderOps::CUDA::sub;
+		using Ifrit::Engine::Math::ShaderOps::CUDA::add;
+		using Ifrit::Engine::Math::ShaderOps::CUDA::multiply;
+		using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+
+		constexpr uint32_t clipIts = 7;
+		const ifloat4 clipCriteria[clipIts] = {
+			{0,0,0,CU_EPS},
+			{1,0,0,0},
+			{-1,0,0,0},
+			{0,1,0,0},
+			{0,-1,0,0},
+			{0,0,1,0},
+			{0,0,-1,0}
+		};
+		TileRasterClipVertexCUDA retd[18];
+#define ret(x,y) retd[(x)*9+(y)]
+		uint32_t retCnt[2] = { 0,3 };
+		ret(1,0) = {{1,0,0},v1};
+		ret(1,1) = {{0,1,0},v2};
+		ret(1,2) = {{0,0,1},v3};
+		int clipTimes = 0;
+		for (int i = 0; i < clipIts; i++) {
+			ifloat4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
+			ifloat4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
+			const auto cIdx = i & 1, cRIdx = 1 - (i & 1);
+			retCnt[cIdx] = 0;
+			const auto psize = retCnt[cRIdx];
+			if (psize == 0) {
+				return 0;
+			}
+			auto pc = ret(cRIdx,0);
+			auto npc = dot(pc.pos, outNormal);
+			for (int j = 0; j < psize; j++) {
+				const auto& pn = ret(cRIdx,(j + 1) % psize);
+				auto npn = dot(pn.pos, outNormal);
+
+				if (npc * npn < 0) {
+					ifloat4 dir = sub(pn.pos, pc.pos);
+					float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
+					float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
+					float t = numo / deno;
+					ifloat4 intersection = add(pc.pos, multiply(dir, t));
+					ifloat3 barycenter = lerp(pc.barycenter, pn.barycenter, t);
+
+					TileRasterClipVertexCUDA newp;
+					newp.barycenter = barycenter;
+					newp.pos = intersection;
+					ret(cIdx,retCnt[cIdx]++) = (newp);
+				}
+				if (npn < CU_EPS) {
+					ret(cIdx,retCnt[cIdx]++) = pn;
+				}
+				pc = pn;
+				npc = npn;
+			}
+			if (retCnt[cIdx] < 3) {
+				return 0;
+			}
+		}
+		const auto clipOdd = clipTimes & 1;
+		for (int i = 0; i < retCnt[clipOdd]; i++) {
+			ret(clipOdd,i).pos.w = 1 / ret(clipOdd,i).pos.w;
+			ret(clipOdd,i).pos.x *= ret(clipOdd,i).pos.w;
+			ret(clipOdd,i).pos.y *= ret(clipOdd,i).pos.w;
+			ret(clipOdd,i).pos.z *= ret(clipOdd,i).pos.w;
+
+
+			ret(clipOdd,i).pos.x = ret(clipOdd,i).pos.x * 0.5 + 0.5;
+			ret(clipOdd,i).pos.y = ret(clipOdd,i).pos.y * 0.5 + 0.5;
+		}
+		// Atomic Insertions
+		auto threadId = threadIdx.x;
+
+		auto idxSrc = atomicAdd(dProposalCount, retCnt[clipOdd] - 2);
+		for (int i = 0; i < retCnt[clipOdd] - 2; i++) {
+			auto curIdx = idxSrc + i;
+			AssembledTriangleProposalCUDA atri;
+			atri.b1 = ret(clipOdd, 0).barycenter;
+			atri.b2 = ret(clipOdd, i + 1).barycenter;
+			atri.b3 = ret(clipOdd, i + 2).barycenter;
+			atri.v1 = ret(clipOdd, 0).pos;
+			atri.v2 = ret(clipOdd, i + 1).pos;
+			atri.v3 = ret(clipOdd, i + 2).pos;
+
+			const float ar = 1.0f / devEdgeFunction(atri.v1, atri.v2, atri.v3);
+			const float sV2V1y = atri.v2.y - atri.v1.y;
+			const float sV2V1x = atri.v1.x - atri.v2.x;
+			const float sV3V2y = atri.v3.y - atri.v2.y;
+			const float sV3V2x = atri.v2.x - atri.v3.x;
+			const float sV1V3y = atri.v1.y - atri.v3.y;
+			const float sV1V3x = atri.v3.x - atri.v1.x;
+
+			atri.f3 = { (float)(sV2V1y * ar) * atri.v3.w / frameHeight, (float)(sV2V1x * ar) * atri.v3.w / frameWidth,(float)((-atri.v1.x * sV2V1y - atri.v1.y * sV2V1x) * ar) * atri.v3.w };
+			atri.f1 = { (float)(sV3V2y * ar) * atri.v1.w / frameHeight, (float)(sV3V2x * ar) * atri.v1.w / frameWidth,(float)((-atri.v2.x * sV3V2y - atri.v2.y * sV3V2x) * ar) * atri.v1.w };
+			atri.f2 = { (float)(sV1V3y * ar) * atri.v2.w / frameHeight, (float)(sV1V3x * ar) * atri.v2.w / frameWidth,(float)((-atri.v3.x * sV1V3y - atri.v3.y * sV1V3x) * ar) * atri.v2.w };
+
+
+			ifloat3 edgeCoefs[3];
+			atri.e1 = { (float)(sV2V1y)*frameHeight, (float)(sV2V1x)*frameWidth ,  (float)(atri.v2.x * atri.v1.y - atri.v1.x * atri.v2.y ) * frameHeight * frameWidth };
+			atri.e2 = { (float)(sV3V2y)*frameHeight,  (float)(sV3V2x)*frameWidth ,  (float)(atri.v3.x * atri.v2.y - atri.v2.x * atri.v3.y ) * frameHeight * frameWidth };
+			atri.e3 = { (float)(sV1V3y * frameHeight),  (float)(sV1V3x)*frameWidth ,  (float)(atri.v1.x * atri.v3.y - atri.v3.x * atri.v1.y ) * frameHeight * frameWidth };
+
+			atri.originalPrimitive = primitiveId;
+			irect2Df bbox;
+			if (!devTriangleSimpleClip(atri.v1, atri.v2, atri.v3, bbox)) continue;
+			if constexpr (CU_NOT_TILED_BINNER) {
+				devExecuteBinner(idxSrc + i, atri, bbox, dRasterQueue, dRasterQueueCount, dCoverQueue, dCoverQueueCounts, deviceConstants);
+			}
+			dProposals[curIdx] = atri;
+		}
+		return  retCnt[clipOdd] - 2;
+#undef ret
+	}
+
+
+
+	IFRIT_DEVICE void* devGetBufferAddress(char* dBuffer, TypeDescriptorEnum typeDesc, uint32_t element) {
+		if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT1) {
+			return reinterpret_cast<float*>(dBuffer) + element;
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT2) {
+			return reinterpret_cast<ifloat2*>(dBuffer) + element;
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT3) {
+			return reinterpret_cast<ifloat3*>(dBuffer) + element;
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_FLOAT4) {
+			return reinterpret_cast<ifloat4*>(dBuffer) + element;
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_INT1) {
+			return reinterpret_cast<int*>(dBuffer) + element;
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_INT2) {
+			return reinterpret_cast<iint2*>(dBuffer) + element;
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_INT3) {
+			return reinterpret_cast<iint3*>(dBuffer) + element;
+		}
+		else if (typeDesc == TypeDescriptorEnum::IFTP_INT4) {
+			return reinterpret_cast<iint4*>(dBuffer) + element;
+		}
+		else {
+			return nullptr;
+		}
+	}
+
+	
 	IFRIT_DEVICE void devInterpolateVaryings(
 		int id,
 		VaryingStore** dVaryingBuffer,
@@ -596,20 +617,88 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			v1 = v3;
 			v3 = temp;
 		}
+		
 		const auto primId = globalInvoIdx + startingIndexId / CU_TRIANGLE_STRIDE;
 		if (!devTriangleCull(v1, v2, v3)) {
 			return;
 		}
-		int startingIdx;
-		int fw = devTriangleHomogeneousClip(primId, v1, v2, v3, dAssembledTriangles, dAssembledTriangleCount, &startingIdx,deviceConstants->frameBufferWidth,deviceConstants->frameBufferHeight);
-		if (fw <=0) {
-			return;
-		}
-		for(int i = startingIdx;i<startingIdx+fw;i++) {
-			auto& atri = dAssembledTriangles[i];
-			irect2Df bbox;
-			if(!devTriangleSimpleClip(atri.v1, atri.v2, atri.v3, bbox)) continue;
-			devExecuteBinner(i, atri, bbox, dRasterQueue, dRasterQueueCount, dCoverQueue, dCoverQueueCount, deviceConstants);
+		devTriangleHomogeneousClip(primId, v1, v2, v3, dAssembledTriangles, dAssembledTriangleCount, 
+			deviceConstants->frameBufferWidth, deviceConstants->frameBufferHeight, dRasterQueue, dRasterQueueCount,
+			dCoverQueue, dCoverQueueCount, deviceConstants);
+		
+	}
+
+	IFRIT_KERNEL void tilingBinnerKernel(
+		AssembledTriangleProposalCUDA* IFRIT_RESTRICT_CUDA dAssembledTriangles,
+		uint32_t* IFRIT_RESTRICT_CUDA dAssembledTriangleCount,
+		uint32_t** IFRIT_RESTRICT_CUDA dRasterQueue,
+		uint32_t* IFRIT_RESTRICT_CUDA dRasterQueueCount,
+		TileBinProposalCUDA** IFRIT_RESTRICT_CUDA dCoverQueue,
+		uint32_t* IFRIT_RESTRICT_CUDA dCoverQueueCount,
+		TileRasterDeviceConstants* deviceConstants
+	) {
+		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
+
+		const auto tileX = blockIdx.x;
+		const auto tileY = blockIdx.y;
+		const auto threadX = threadIdx.x;
+		const auto numThreads = blockDim.x;
+		const auto totalTriangles = *dAssembledTriangleCount;
+		const auto frameBufferWidth = deviceConstants->frameBufferWidth;
+		const auto frameBufferHeight = deviceConstants->frameBufferHeight;
+
+		auto curTileX = tileX * frameBufferWidth / CU_TILE_SIZE;
+		auto curTileY = tileY * frameBufferHeight / CU_TILE_SIZE;
+		auto curTileX2 = (tileX + 1) * frameBufferWidth / CU_TILE_SIZE;
+		auto curTileY2 = (tileY + 1) * frameBufferHeight / CU_TILE_SIZE;
+
+		auto ctx1 = 1.0f * curTileX;
+		auto ctx2 = 1.0f * (curTileX2 - 1);
+		auto cty1 = 1.0f * curTileY;
+		auto cty2 = 1.0f * (curTileY2 - 1);
+
+		ifloat2 tileCoords[4];
+		tileCoords[VLT] = { ctx1, cty1 };
+		tileCoords[VLB] = { ctx1, cty2 };
+		tileCoords[VRB] = { ctx2, cty2 };
+		tileCoords[VRT] = { ctx2, cty1 };
+
+		for (int i = threadX; i < totalTriangles; i+=numThreads) {
+			const auto& atp = dAssembledTriangles[i];
+			ifloat3 edgeCoefs[3];
+			edgeCoefs[0] = atp.e1;
+			edgeCoefs[1] = atp.e2;
+			edgeCoefs[2] = atp.e3;
+
+			int chosenCoordTR[3];
+			int chosenCoordTA[3];
+			devGetAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
+
+			int criteriaTR = 0;
+			int criteriaTA = 0;
+			for (int i = 0; i < 3; i++) {
+				float criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y + edgeCoefs[i].z;
+				float criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y + edgeCoefs[i].z;
+				if (criteriaTRLocal < -CU_EPS) criteriaTR += 1;
+				if (criteriaTALocal < CU_EPS) criteriaTA += 1;
+			}
+			if (criteriaTR != 3) {
+				continue;
+			}
+			auto workerId = threadIdx.x;
+			auto tileId = tileY * CU_TILE_SIZE + tileX;
+			if (criteriaTA == 3) {
+				TileBinProposalCUDA proposal;
+				proposal.tileEnd = { (short)(curTileX2 - 1),(short)(curTileY2 - 1) };
+				proposal.primId = i;
+				proposal.tile = { (short)curTileX,(short)curTileY };
+				auto proposalId = atomicAdd(&dCoverQueueCount[tileId], 1);
+				dCoverQueue[tileId][proposalId] = proposal;
+			}
+			else {
+				auto proposalId = atomicAdd(&dRasterQueueCount[tileId], 1);
+				dRasterQueue[tileId][proposalId] = i;
+			}
 		}
 	}
 
@@ -623,13 +712,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		uint32_t* IFRIT_RESTRICT_CUDA dCoverQueueCount,
 		TileRasterDeviceConstants* deviceConstants
 	) {
-		
 		const auto tileIdxX = blockIdx.x ;
 		const auto tileIdxY = blockIdx.y;
 		const auto threadX = threadIdx.x;
 		const auto blockX = blockDim.x;
 		const auto tileId = tileIdxY * CU_TILE_SIZE+ tileIdxX;
-
 		IFRIT_SHARED uint32_t sdAtomicCounter[1];
 		IFRIT_SHARED uint32_t sdRastCandidates;
 		if (threadX == 0) {
@@ -637,7 +724,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			sdRastCandidates = dRasterQueueCount[tileId];
 		}
 		__syncthreads();
-
 		const auto dRaster = dRasterQueue[tileId];
 		const auto dCover = dCoverQueue[tileId];
 		for (int i = threadX; i < sdRastCandidates; i+= blockX) {
@@ -648,7 +734,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		if (threadX == 0) {
 			dCoverQueueCount[tileId] = sdAtomicCounter[0];
 		}
-
 	}
 
 
@@ -983,6 +1068,12 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 				deviceContext->dRasterQueue,deviceContext->dRasterQueueCounter, deviceContext->dCoverQueue2, deviceContext->dCoverQueueCounter,i, indexCount,
 				deviceContext->dDeviceConstants
 				);
+			if constexpr (CU_TILED_BINNER) {
+				Impl::tilingBinnerKernel CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(CU_RASTERIZATION_THREADS_PER_TILE, 1, 1), 0, computeStream)(
+					deviceContext->dAssembledTriangles2, deviceContext->dAssembledTrianglesCounter2,
+					deviceContext->dRasterQueue, deviceContext->dRasterQueueCounter, deviceContext->dCoverQueue2, deviceContext->dCoverQueueCounter, deviceContext->dDeviceConstants
+					);
+			}
 			Impl::tilingRasterizationKernel CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(CU_RASTERIZATION_THREADS_PER_TILE, 1, 1), 0, computeStream)(
 				deviceContext->dAssembledTriangles2, deviceContext->dAssembledTrianglesCounter2,
 				deviceContext->dRasterQueue, deviceContext->dRasterQueueCounter, deviceContext->dCoverQueue2, deviceContext->dCoverQueueCounter, deviceContext->dDeviceConstants

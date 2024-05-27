@@ -2,12 +2,13 @@
 namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr float CU_EPS = 1e-8f;
 	constexpr int CU_TILE_SIZE = 128;
+	constexpr int CU_TILE_FIRST_STEP = 8;
 	constexpr int CU_SUBTILE_SIZE_LOG = 2;
 	constexpr int CU_SUBTILE_SIZE = (1<<(CU_SUBTILE_SIZE_LOG));
 	constexpr int CU_MAX_VARYINGS = 10;
 	constexpr int CU_MAX_ATTRIBUTES = 10;
 	constexpr int CU_MAX_COVER_QUEUE_SIZE = 1440000;
-	constexpr int CU_GEOMETRY_PROCESSING_THREADS = 32;
+	constexpr int CU_GEOMETRY_PROCESSING_THREADS = 64;
 	constexpr int CU_RASTERIZATION_THREADS_PERDIM = 8;
 	constexpr int CU_VERTEX_PROCESSING_THREADS = 32;
 
@@ -21,4 +22,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_FRAGMENT_CANDPROC_PER_LOOP_PER_THREAD = 4;
 	constexpr int CU_FRAGMENT_CANDPROC_PER_LOOP = CU_FRAGMENT_SHADING_THREADS_PER_TILE_X * CU_FRAGMENT_SHADING_THREADS_PER_TILE_Y * CU_FRAGMENT_CANDPROC_PER_LOOP_PER_THREAD;
 
+	constexpr bool CU_TILED_BINNER = false;
+	constexpr bool CU_NOT_TILED_BINNER = !CU_TILED_BINNER;
 }
