@@ -55,3 +55,4 @@ Successor to following repos:
 	- Performance: LSB Stall in Primitive Assembly Stage
 	- Performance: LSB Stall in Pixel Shading Stage
 	- Performance: Barrier Stall in Rasterization Stage
+	- Performance: LG in Homogeneous Clipping Stage

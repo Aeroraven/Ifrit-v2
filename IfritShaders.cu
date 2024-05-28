@@ -22,10 +22,11 @@ IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
 
 IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  Ifrit::Engine::VaryingStore* varyings, ifloat4* colorOutput) {
 	ifloat4 result = varyings[0].vf4;
-	result.x = 0.5 * result.x + 0.5;
-	result.y = 0.5 * result.y + 0.5;
-	result.z = 0.5 * result.z + 0.5;
-	result.w = 0.5 * result.w + 0.5;
+	constexpr float fw = 0.07;
+	result.x = fw * result.x + fw;
+	result.y = fw * result.y + fw;
+	result.z = fw * result.z + fw;
+	result.w = fw * result.w + fw;
 	colorOutput[0] = result;
 }
 IFRIT_HOST Ifrit::Engine::FragmentShader* DemoFragmentShaderCuda::getCudaClone() {

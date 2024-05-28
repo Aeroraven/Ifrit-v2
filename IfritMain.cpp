@@ -243,5 +243,5 @@ int mainGpu() {
 }
 
 int main() {
-	return mainCpu();
+	return mainGpu();
 }
