@@ -32,7 +32,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		TileRasterDeviceContext* deviceContext,
 		bool doubleBuffering,
 		ifloat4** dLastColorBuffer
-	);
+	) IFRIT_AP_NOTHROW;
+	void updateFrameBufferConstants(uint32_t width, uint32_t height);
+	void initCudaRendering();
+	void updateVertexLayout(TypeDescriptorEnum* dVertexTypeDescriptor, int attrCounts);
 
 	template<class T>T* copyShaderToDevice(T* x);
 

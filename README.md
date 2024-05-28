@@ -25,6 +25,7 @@ Successor to following repos:
 - **Rendering**:
 	- Homogeneous Space Clipping
 	- Programmable VS/FS
+	- Z Pre-Pass (CUDA-Only)
 
 - **Presentation**:
 	- Terminal Rendering (ASCII Characters/Color Image)
@@ -45,7 +46,7 @@ Successor to following repos:
 	- NVCC
 	
 - Hardware Requirements:
-	- SSE4.1
+	- SSE
 	- AVX2
 	- CUDA 12.4
 
@@ -53,3 +54,4 @@ Successor to following repos:
 - CUDA Integration 
 	- Performance: LSB Stall in Primitive Assembly Stage
 	- Performance: LSB Stall in Pixel Shading Stage
+	- Performance: Barrier Stall in Rasterization Stage

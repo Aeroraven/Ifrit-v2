@@ -11,7 +11,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		deviceContext->dRasterQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_TILE_SIZE * CU_TILE_SIZE);
 		deviceContext->dAssembledTrianglesCounter2 = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
 
-		int totlTriangle = CU_SINGLE_TIME_TRIANGLE * 9;
+		int totlTriangle = CU_SINGLE_TIME_TRIANGLE * 7;
 		cudaMalloc(&deviceContext->dAssembledTriangles2, totlTriangle * sizeof(AssembledTriangleProposalCUDA));
 
 
@@ -47,6 +47,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		cudaMemcpy(deviceContext->dCoverQueue2, deviceContext->hdCoverQueueVec.data(), totalTiles * sizeof(TileBinProposal*), cudaMemcpyHostToDevice);
 
 		deviceContext->dDeviceConstants = (TileRasterDeviceConstants*)Invocation::deviceMalloc(sizeof(TileRasterDeviceConstants));
+		Invocation::initCudaRendering();
 	}
 	void TileRasterRendererCuda::bindFrameBuffer(FrameBuffer& frameBuffer, bool useDoubleBuffer) {
 		context->frameBuffer = &frameBuffer;
@@ -61,6 +62,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			this->deviceHostColorBuffers[1], this->deviceColorBuffer[1], pixelCount, this->deviceHostColorBuffers[1], this->deviceColorBuffer[1]);
 		this->doubleBuffer = useDoubleBuffer;
 		this->hostColorBuffers = hColorBuffer;
+		Invocation::updateFrameBufferConstants(frameBuffer.getWidth(), frameBuffer.getHeight());
 	}	
 	void TileRasterRendererCuda::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
 		needVaryingUpdate = true;
@@ -75,6 +77,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			hVertexBufferLayout.push_back(context->vertexBuffer->getAttributeDescriptor(i).type);
 		}
 		this->deviceVertexTypeDescriptor = Invocation::getTypeDescriptorDeviceAddr(hVertexBufferLayout.data(), hVertexBufferLayout.size(), this->deviceVertexTypeDescriptor);
+
+		Invocation::updateVertexLayout(hVertexBufferLayout.data(), hVertexBufferLayout.size());
 	}
 	void TileRasterRendererCuda::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		context->indexBuffer = &indexBuffer;

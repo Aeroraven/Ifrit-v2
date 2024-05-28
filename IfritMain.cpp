@@ -10,7 +10,7 @@
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 
-#define DEMO_RESOLUTION 1280
+#define DEMO_RESOLUTION 2048
 
 using namespace std;
 using namespace Ifrit::Core::Data;
@@ -243,5 +243,5 @@ int mainGpu() {
 }
 
 int main() {
-	return mainGpu();
+	return mainCpu();
 }

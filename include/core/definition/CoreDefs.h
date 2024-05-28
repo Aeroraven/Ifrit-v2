@@ -106,6 +106,7 @@
 		#endif
 	#endif
 	#include <cuda_runtime.h>
+	#define IFRIT_DEVICE_CONST __constant__
 	#define IFRIT_DEVICE __device__
 	#define IFRIT_HOST __host__
 	#define IFRIT_DUAL __host__ __device__
