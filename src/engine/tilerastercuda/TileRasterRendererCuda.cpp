@@ -11,9 +11,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		deviceContext->dRasterQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_TILE_SIZE * CU_TILE_SIZE);
 		deviceContext->dAssembledTrianglesCounter2 = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
 
-		int totlTriangle = CU_SINGLE_TIME_TRIANGLE * 7;
+		int totlTriangle = CU_SINGLE_TIME_TRIANGLE * 7 * CU_SINGLE_TIME_TRIANGLE_GEOMETRY_BATCHSIZE;
 		cudaMalloc(&deviceContext->dAssembledTriangles2, totlTriangle * sizeof(AssembledTriangleProposalCUDA));
-
 
 		int totalTiles = CU_TILE_SIZE * CU_TILE_SIZE;
 		int totalTriangles = CU_SINGLE_TIME_TRIANGLE;

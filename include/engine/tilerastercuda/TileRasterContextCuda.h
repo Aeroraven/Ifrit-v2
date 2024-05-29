@@ -51,5 +51,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		uint32_t** dRasterizerQueueSize = nullptr;
 		uint32_t** dCoverQueueSize = nullptr;
 		uint32_t* dAssembledTrianglesSize = nullptr;
+
+		irect2Df* dTileBounds = nullptr;
 	};
 }

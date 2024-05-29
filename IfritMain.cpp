@@ -52,10 +52,11 @@ class DemoFragmentShader : public FragmentShader {
 public:
 	IFRIT_DUAL virtual void execute(const VaryingStore* varyings, ifloat4* colorOutput) override {
 		ifloat4 result = varyings[0].vf4;
-		result.x = 0.5 * result.x + 0.5;
-		result.y = 0.5 * result.y + 0.5;
-		result.z = 0.5 * result.z + 0.5;
-		result.w = 0.5 * result.w + 0.5;
+		constexpr float fw = 0.07;
+		result.x = fw * result.x + fw;
+		result.y = fw * result.y + fw;
+		result.z = fw * result.z + fw;
+		result.w = fw * result.w + fw;
 
 		colorOutput[0] = result;
 	}
