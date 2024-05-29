@@ -52,7 +52,7 @@ class DemoFragmentShader : public FragmentShader {
 public:
 	IFRIT_DUAL virtual void execute(const VaryingStore* varyings, ifloat4* colorOutput) override {
 		ifloat4 result = varyings[0].vf4;
-		constexpr float fw = 0.07;
+		constexpr float fw = 0.5;
 		result.x = fw * result.x + fw;
 		result.y = fw * result.y + fw;
 		result.z = fw * result.z + fw;
@@ -232,6 +232,7 @@ int mainGpu() {
 
 	OpenGLBackend backend;
 	backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
+	renderer->setAggressiveRatio(1);
 	windowProvider.loop([&](int* coreTime) {
 		std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 		renderer->render();
@@ -244,5 +245,5 @@ int mainGpu() {
 }
 
 int main() {
-	return mainGpu();
+	return mainCpu();
 }

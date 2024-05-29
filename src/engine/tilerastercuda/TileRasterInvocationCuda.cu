@@ -396,8 +396,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		using Ifrit::Engine::Math::ShaderOps::CUDA::multiply;
 		using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
 
-		constexpr uint32_t clipIts = 7;
-		const ifloat4 clipCriteria[clipIts] = {
+		constexpr uint32_t clipIts = (CU_OPT_HOMOGENEOUS_CLIPPING_NEG_W_ONLY) ? 1 : 7;
+		constexpr int possibleTris = CU_OPT_HOMOGENEOUS_CLIPPING_NEG_W_ONLY ? 4 : 7;
+
+		const ifloat4 clipCriteria[7] = {
 			{0,0,0,CU_EPS},
 			{1,0,0,0},
 			{-1,0,0,0},
@@ -407,12 +409,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			{0,0,-1,0}
 		};
 
-		TileRasterClipVertexCUDA retd[9];
-		int retdIndex[14];
+		TileRasterClipVertexCUDA retd[possibleTris];
+		int retdIndex[2*possibleTris];
 		int retdTriCnt = 3;
 
-#define retidx(x,y) retdIndex[(x)*7+(y)]
-#define ret(x,y) retd[retdIndex[(x)*7+(y)]]
+#define retidx(x,y) retdIndex[(x)*possibleTris+(y)]
+#define ret(x,y) retd[retdIndex[(x)*possibleTris+(y)]]
 		uint32_t retCnt[2] = { 0,3 };
 		retd[0] = { {1,0,0},v1 };
 		retd[1] = { {0,1,0},v2 };
@@ -509,9 +511,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			atri.originalPrimitive = primId;
 			irect2Df bbox;
 			if (!devTriangleSimpleClip(dv1, dv2, dv3, bbox)) continue;
-			if constexpr (CU_NOT_OPT_TILED_BINNER) {
-				devExecuteBinner(idxSrc + i, atri, bbox, dRasterQueue, dRasterQueueCount, dCoverQueue, dCoverQueueCount, deviceConstants);
-			}
+			devExecuteBinner(idxSrc + i, atri, bbox, dRasterQueue, dRasterQueueCount, dCoverQueue, dCoverQueueCount, deviceConstants);
 			dAssembledTriangles[curIdx] = atri;
 		}
 #undef ret
@@ -890,7 +890,8 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		TileRasterDeviceConstants* deviceConstants,
 		TileRasterDeviceContext* deviceContext,
 		bool doubleBuffering,
-		ifloat4** dLastColorBuffer
+		ifloat4** dLastColorBuffer,
+		float aggressiveRatio
 	) IFRIT_AP_NOTHROW {
 		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -936,8 +937,8 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		Impl::resetKernel CU_KARG4(1, 1, 0, computeStream)(deviceContext->dAssembledTrianglesCounter2, totalTiles);
 		Impl::resetKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)(deviceContext->dRasterQueueCounter, totalTiles);
 		Impl::resetKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)(deviceContext->dCoverQueueCounter, totalTiles);
-		for (int i = 0; i < deviceConstants->totalIndexCount; i += CU_SINGLE_TIME_TRIANGLE * 3) {
-			auto indexCount = std::min(CU_SINGLE_TIME_TRIANGLE * 3, deviceConstants->totalIndexCount - i);
+		for (int i = 0; i < deviceConstants->totalIndexCount; i += CU_SINGLE_TIME_TRIANGLE * 3 * aggressiveRatio) {
+			auto indexCount = std::min((int)(CU_SINGLE_TIME_TRIANGLE * 3 * aggressiveRatio), deviceConstants->totalIndexCount - i);
 			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
 			Impl::geometryProcessingKernel CU_KARG4(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS, 0, computeStream)(
 				dPositionBuffer, dIndexBuffer, deviceContext->dAssembledTriangles2, deviceContext->dAssembledTrianglesCounter2,

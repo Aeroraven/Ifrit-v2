@@ -127,6 +127,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		this->initCudaContext = true;
 		cudaDeviceSetLimit(cudaLimitDevRuntimePendingLaunchCount, 8192);
 	}
+	void TileRasterRendererCuda::setAggressiveRatio(float ratio) {
+		this->aggressiveRatio = ratio;
+	}
 	void TileRasterRendererCuda::render() {
 		initCuda();
 		updateVaryingBuffer();
@@ -160,7 +163,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			&hostConstants,
 			this->deviceContext.get(),
 			this->doubleBuffer,
-			deviceHostColorBuffers[1-curBuffer].data()
+			deviceHostColorBuffers[1-curBuffer].data(),
+			aggressiveRatio
 		);
 		currentBuffer = 1 - curBuffer;
 	}

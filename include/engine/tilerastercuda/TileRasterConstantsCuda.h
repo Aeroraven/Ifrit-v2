@@ -2,7 +2,7 @@
 namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr float CU_EPS = 1e-8f;
 	constexpr int CU_TILE_SIZE = 128;
-	constexpr int CU_TILE_FIRST_STEP = 8;
+	constexpr int CU_TILE_FIRST_STEP = 4;
 	constexpr int CU_SUBTILE_SIZE_LOG = 2;
 	constexpr int CU_SUBTILE_SIZE = (1<<(CU_SUBTILE_SIZE_LOG));
 	constexpr int CU_MAX_VARYINGS = 10;
@@ -16,16 +16,10 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_FRAGMENT_SHADING_THREADS_PER_TILE_Y = 10;
 	constexpr int CU_RASTERIZATION_THREADS_PER_TILE = 128;
 
-	constexpr bool CU_FRAGMENT_LAUCH_SUBKERNEL = false;
 	constexpr int CU_SINGLE_TIME_TRIANGLE = 20608;
-	constexpr int CU_SINGLE_TIME_TRIANGLE_GEOMETRY_BATCHSIZE = 32;
+	constexpr int CU_SINGLE_TIME_TRIANGLE_GEOMETRY_BATCHSIZE = 1;
 
 	constexpr int CU_TRIANGLE_STRIDE = 3;
-	constexpr int CU_FRAGMENT_CANDPROC_PER_LOOP_PER_THREAD = 4;
-	constexpr int CU_FRAGMENT_CANDPROC_PER_LOOP = CU_FRAGMENT_SHADING_THREADS_PER_TILE_X * CU_FRAGMENT_SHADING_THREADS_PER_TILE_Y * CU_FRAGMENT_CANDPROC_PER_LOOP_PER_THREAD;
 
-	constexpr bool CU_OPT_TILED_BINNER = false;
-	constexpr bool CU_OPT_SINGLE_THREAD_PER_PIXEL = true;
-
-	constexpr bool CU_NOT_OPT_TILED_BINNER = !CU_OPT_TILED_BINNER;
+	constexpr bool CU_OPT_HOMOGENEOUS_CLIPPING_NEG_W_ONLY = true;
 }

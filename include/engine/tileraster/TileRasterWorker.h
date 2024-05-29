@@ -34,8 +34,8 @@ namespace Ifrit::Engine::TileRaster {
 
 		std::vector<AssembledTriangleProposal> generatedTriangle;
 
-		const float EPS = 1e-7;
-		const float EPS2 = 1e-7;
+		const float EPS = 1e-8;
+		const float EPS2 = 1e-8;
 
 	public:
 		TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context);

@@ -32,6 +32,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 		bool doubleBuffer = false;
 		int currentBuffer = 0;
+		float aggressiveRatio = 1;
 
 	private:
 		void updateVaryingBuffer();
@@ -46,6 +47,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 		void clear();
 		void render();
+		void setAggressiveRatio(float ratio);
 	};
 }
 #endif

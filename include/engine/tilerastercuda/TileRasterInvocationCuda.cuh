@@ -31,7 +31,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		TileRasterDeviceConstants* deviceConstants,
 		TileRasterDeviceContext* deviceContext,
 		bool doubleBuffering,
-		ifloat4** dLastColorBuffer
+		ifloat4** dLastColorBuffer,
+		float aggressiveRatio
 	) IFRIT_AP_NOTHROW;
 	void updateFrameBufferConstants(uint32_t width, uint32_t height);
 	void initCudaRendering();
