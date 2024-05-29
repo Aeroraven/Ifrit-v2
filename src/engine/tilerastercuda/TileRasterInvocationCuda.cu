@@ -161,146 +161,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 
-
-	IFRIT_DEVICE int devTriangleHomogeneousClip(
-		const int primitiveId,
-		ifloat4 v1,
-		ifloat4 v2,
-		ifloat4 v3,
-		AssembledTriangleProposalCUDA* dProposals,
-		uint32_t* dProposalCount,
-		float frameWidth,
-		float frameHeight,
-		uint32_t** IFRIT_RESTRICT_CUDA dRasterQueue,
-		uint32_t* IFRIT_RESTRICT_CUDA dRasterQueueCount,
-		TileBinProposalCUDA** IFRIT_RESTRICT_CUDA dCoverQueue,
-		uint32_t* IFRIT_RESTRICT_CUDA dCoverQueueCounts,
-		TileRasterDeviceConstants* deviceConstants
-	) {
-		using Ifrit::Engine::Math::ShaderOps::CUDA::dot;
-		using Ifrit::Engine::Math::ShaderOps::CUDA::sub;
-		using Ifrit::Engine::Math::ShaderOps::CUDA::add;
-		using Ifrit::Engine::Math::ShaderOps::CUDA::multiply;
-		using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
-
-		constexpr uint32_t clipIts = 7;
-		const ifloat4 clipCriteria[clipIts] = {
-			{0,0,0,CU_EPS},
-			{1,0,0,0},
-			{-1,0,0,0},
-			{0,1,0,0},
-			{0,-1,0,0},
-			{0,0,1,0},
-			{0,0,-1,0}
-		};
-		TileRasterClipVertexCUDA retd[9];
-		int retdIndex[14];
-		int retdTriCnt = 3;
-		
-#define retidx(x,y) retdIndex[(x)*7+(y)]
-#define ret(x,y) retd[retdIndex[(x)*7+(y)]]
-
-		uint32_t retCnt[2] = { 0,3 };
-		retd[0] = {{1,0,0},v1};
-		retd[1] = {{0,1,0},v2};
-		retd[2] = {{0,0,1},v3};
-		retdIndex[0] = 0;
-		retdIndex[1] = 1;
-		retdIndex[2] = 2;
-		int clipTimes = 0;
-		for (int i = 0; i < clipIts; i++) {
-			ifloat4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
-			ifloat4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
-			const auto cIdx = i & 1, cRIdx = 1 - (i & 1);
-			retCnt[cIdx] = 0;
-			const auto psize = retCnt[cRIdx];
-			auto pc = ret(cRIdx,0);
-			auto npc = dot(pc.pos, outNormal);
-			for (int j = 0; j < psize; j++) {
-				const auto& pn = ret(cRIdx,(j + 1) % psize);
-				auto npn = dot(pn.pos, outNormal);
-
-				if (npc * npn < 0) {
-					ifloat4 dir = sub(pn.pos, pc.pos);
-					float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
-					float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
-					float t = numo / deno;
-					ifloat4 intersection = add(pc.pos, multiply(dir, t));
-					ifloat3 barycenter = lerp(pc.barycenter, pn.barycenter, t);
-
-					TileRasterClipVertexCUDA newp;
-					newp.barycenter = barycenter;
-					newp.pos = intersection;
-					retd[retdTriCnt++] = newp;
-					retidx(cIdx,retCnt[cIdx]++) = retdTriCnt - 1;
-				}
-				if (npn < CU_EPS) {
-					retidx(cIdx,retCnt[cIdx]++) = (j + 1) % psize;
-				}
-				pc = pn;
-				npc = npn;
-			}
-			if (retCnt[cIdx] < 3) {
-				return 0;
-			}
-		}
-		const auto clipOdd = clipTimes & 1;
-		for (int i = 0; i < retCnt[clipOdd]; i++) {
-			ret(clipOdd,i).pos.w = 1 / ret(clipOdd,i).pos.w;
-			ret(clipOdd,i).pos.x *= ret(clipOdd,i).pos.w;
-			ret(clipOdd,i).pos.y *= ret(clipOdd,i).pos.w;
-			ret(clipOdd,i).pos.z *= ret(clipOdd,i).pos.w;
-
-			ret(clipOdd,i).pos.x = ret(clipOdd,i).pos.x * 0.5f + 0.5f;
-			ret(clipOdd,i).pos.y = ret(clipOdd,i).pos.y * 0.5f + 0.5f;
-		}
-		// Atomic Insertions
-		auto threadId = threadIdx.x;
-
-		auto idxSrc = atomicAdd(dProposalCount, retCnt[clipOdd] - 2);
-		const auto invFrameHeight = 1.0f / frameHeight;
-		const auto invFrameWidth = 1.0f / frameWidth;
-		for (int i = 0; i < retCnt[clipOdd] - 2; i++) {
-			auto curIdx = idxSrc + i;
-			AssembledTriangleProposalCUDA atri;
-			atri.b1 = ret(clipOdd, 0).barycenter;
-			atri.b2 = ret(clipOdd, i + 1).barycenter;
-			atri.b3 = ret(clipOdd, i + 2).barycenter;
-			atri.v1 = ret(clipOdd, 0).pos;
-			atri.v2 = ret(clipOdd, i + 1).pos;
-			atri.v3 = ret(clipOdd, i + 2).pos;
-
-			const float ar = 1.0f / devEdgeFunction(atri.v1, atri.v2, atri.v3);
-			const float sV2V1y = atri.v2.y - atri.v1.y;
-			const float sV2V1x = atri.v1.x - atri.v2.x;
-			const float sV3V2y = atri.v3.y - atri.v2.y;
-			const float sV3V2x = atri.v2.x - atri.v3.x;
-			const float sV1V3y = atri.v1.y - atri.v3.y;
-			const float sV1V3x = atri.v3.x - atri.v1.x;
-
-			atri.f3 = { (float)(sV2V1y * ar) * atri.v3.w * invFrameHeight, (float)(sV2V1x * ar) * atri.v3.w * invFrameWidth,(float)((-atri.v1.x * sV2V1y - atri.v1.y * sV2V1x) * ar) * atri.v3.w };
-			atri.f1 = { (float)(sV3V2y * ar) * atri.v1.w * invFrameHeight, (float)(sV3V2x * ar) * atri.v1.w * invFrameWidth,(float)((-atri.v2.x * sV3V2y - atri.v2.y * sV3V2x) * ar) * atri.v1.w };
-			atri.f2 = { (float)(sV1V3y * ar) * atri.v2.w * invFrameHeight, (float)(sV1V3x * ar) * atri.v2.w * invFrameWidth,(float)((-atri.v3.x * sV1V3y - atri.v3.y * sV1V3x) * ar) * atri.v2.w };
-
-
-			ifloat3 edgeCoefs[3];
-			atri.e1 = { (float)(sV2V1y)* frameHeight,  (float)(sV2V1x)*frameWidth ,  (float)(atri.v2.x * atri.v1.y - atri.v1.x * atri.v2.y ) * frameHeight * frameWidth };
-			atri.e2 = { (float)(sV3V2y)* frameHeight,  (float)(sV3V2x)*frameWidth ,  (float)(atri.v3.x * atri.v2.y - atri.v2.x * atri.v3.y ) * frameHeight * frameWidth };
-			atri.e3 = { (float)(sV1V3y)* frameHeight,  (float)(sV1V3x)*frameWidth ,  (float)(atri.v1.x * atri.v3.y - atri.v3.x * atri.v1.y ) * frameHeight * frameWidth };
-
-			atri.originalPrimitive = primitiveId;
-			irect2Df bbox;
-			if (!devTriangleSimpleClip(atri.v1, atri.v2, atri.v3, bbox)) continue;
-			if constexpr (CU_NOT_OPT_TILED_BINNER) {
-				devExecuteBinner(idxSrc + i, atri, bbox, dRasterQueue, dRasterQueueCount, dCoverQueue, dCoverQueueCounts, deviceConstants);
-			}
-			dProposals[curIdx] = atri;
-		}
-		return  retCnt[clipOdd] - 2;
-#undef ret
-#undef retidx
-	}
-
 	
 	IFRIT_DEVICE inline void devInterpolateVaryings(
 		int id,
@@ -347,51 +207,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		dColorBuffer[0][pixelPos] = colorOutputSingle;
 	}
 
-	IFRIT_DEVICE void devPixelProcessingPrePass(
-		uint32_t pixelX,
-		uint32_t pixelY,
-		FragmentShader* fragmentShader,
-		const int* IFRIT_RESTRICT_CUDA dIndexBuffer,
-		const VaryingStore* const* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-		const AssembledTriangleProposalCUDA& dAtp,
-		ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
-		float& dDepthBuffer,
-		int frameBufferWidth,
-		int frameBufferHeight,
-		int vertexStride,
-		int varyingCount,
-		float outBary[3],
-		int* outPrim,
-		int inPrimId
-	) {
-		const AssembledTriangleProposalCUDA& atp = dAtp;
-		ifloat4 pos[4];
-		pos[0] = atp.v1;
-		pos[1] = atp.v2;
-		pos[2] = atp.v3;
-
-		float pDx = 1.0f * pixelX;
-		float pDy = 1.0f * pixelY;
-
-		float bary[3];
-		float depth[3];
-		float interpolatedDepth;
-
-		bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
-		bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
-		bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
-		interpolatedDepth = bary[0] * pos[0].z + bary[1] * pos[1].z + bary[2] * pos[2].z;
-		float zCorr = 1.0f / (bary[0] + bary[1] + bary[2]);
-		interpolatedDepth *= zCorr;
-		auto depthRef = dDepthBuffer;
-		if (interpolatedDepth <= depthRef) {
-			dDepthBuffer = interpolatedDepth;
-			*outPrim = inPrimId;
-			outBary[0] = bary[0] * zCorr;
-			outBary[1] = bary[1] * zCorr;
-			outBary[2] = bary[2] * zCorr;
-		}
-	}
 
 	IFRIT_DEVICE void devTilingRasterizationChildProcess(
 		uint32_t tileIdX,
@@ -574,9 +389,133 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		if (!devTriangleCull(v1, v2, v3)) {
 			return;
 		}
-		devTriangleHomogeneousClip(primId, v1, v2, v3, dAssembledTriangles, dAssembledTriangleCount, 
-			csFrameWidth,csFrameHeight, dRasterQueue, dRasterQueueCount,
-			dCoverQueue, dCoverQueueCount, deviceConstants);
+		using Ifrit::Engine::Math::ShaderOps::CUDA::dot;
+		using Ifrit::Engine::Math::ShaderOps::CUDA::sub;
+		using Ifrit::Engine::Math::ShaderOps::CUDA::add;
+		using Ifrit::Engine::Math::ShaderOps::CUDA::multiply;
+		using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+
+		constexpr uint32_t clipIts = 7;
+		const ifloat4 clipCriteria[clipIts] = {
+			{0,0,0,CU_EPS},
+			{1,0,0,0},
+			{-1,0,0,0},
+			{0,1,0,0},
+			{0,-1,0,0},
+			{0,0,1,0},
+			{0,0,-1,0}
+		};
+
+		TileRasterClipVertexCUDA retd[9];
+		int retdIndex[14];
+		int retdTriCnt = 3;
+
+#define retidx(x,y) retdIndex[(x)*7+(y)]
+#define ret(x,y) retd[retdIndex[(x)*7+(y)]]
+		uint32_t retCnt[2] = { 0,3 };
+		retd[0] = { {1,0,0},v1 };
+		retd[1] = { {0,1,0},v2 };
+		retd[2] = { {0,0,1},v3 };
+		retidx(1,0) = 0;
+		retidx(1,1) = 1;
+		retidx(1,2) = 2;
+		int clipTimes = 0;
+		for (int i = 0; i < clipIts; i++) {
+			ifloat4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
+			ifloat4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
+			const auto cIdx = i & 1, cRIdx = 1 - (i & 1);
+			retCnt[cIdx] = 0;
+			const auto psize = retCnt[cRIdx];
+			auto pc = ret(cRIdx, 0);
+			auto npc = dot(pc.pos, outNormal);
+			for (int j = 0; j < psize; j++) {
+				const auto& pn = ret(cRIdx, (j + 1) % psize);
+				auto npn = dot(pn.pos, outNormal);
+
+				if (npc * npn < 0) {
+					pc = ret(cRIdx, (j + psize- 1) % psize);
+					ifloat4 dir = sub(pn.pos, pc.pos);
+					float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
+					float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
+					float t = numo / deno;
+					ifloat4 intersection = add(pc.pos, multiply(dir, t));
+					ifloat3 barycenter = lerp(pc.barycenter, pn.barycenter, t);
+
+					TileRasterClipVertexCUDA newp;
+					newp.barycenter = barycenter;
+					newp.pos = intersection;
+					retd[retdTriCnt++] = newp;
+					retidx(cIdx, retCnt[cIdx]++) = retdTriCnt - 1;
+				}
+				if (npn < CU_EPS) {
+					retidx(cIdx, retCnt[cIdx]++) = (j + 1) % psize;
+				}
+				npc = npn;
+			}
+			if (retCnt[cIdx] < 3) {
+				return;
+			}
+		}
+		const auto clipOdd = clipTimes & 1;
+		for (int i = 0; i < retCnt[clipOdd]; i++) {
+			ret(clipOdd, i).pos.w = 1 / ret(clipOdd, i).pos.w;
+			ret(clipOdd, i).pos.x *= ret(clipOdd, i).pos.w;
+			ret(clipOdd, i).pos.y *= ret(clipOdd, i).pos.w;
+			ret(clipOdd, i).pos.z *= ret(clipOdd, i).pos.w;
+
+			ret(clipOdd, i).pos.x = ret(clipOdd, i).pos.x * 0.5f + 0.5f;
+			ret(clipOdd, i).pos.y = ret(clipOdd, i).pos.y * 0.5f + 0.5f;
+		}
+		// Atomic Insertions
+		auto threadId = threadIdx.x;
+
+		const auto frameHeight = csFrameHeight;
+		const auto frameWidth = csFrameWidth;
+
+		auto idxSrc = atomicAdd(dAssembledTriangleCount, retCnt[clipOdd] - 2);
+		const auto invFrameHeight = 1.0f / frameHeight;
+		const auto invFrameWidth = 1.0f / frameWidth;
+		for (int i = 0; i < retCnt[clipOdd] - 2; i++) {
+			auto curIdx = idxSrc + i;
+			AssembledTriangleProposalCUDA atri;
+			atri.b1 = ret(clipOdd, 0).barycenter;
+			atri.b2 = ret(clipOdd, i + 1).barycenter;
+			atri.b3 = ret(clipOdd, i + 2).barycenter;
+			const auto dv2 = ret(clipOdd, i + 1).pos;
+			const auto dv3 = ret(clipOdd, i + 2).pos;
+			const auto dv1 = ret(clipOdd, 0).pos;
+			atri.v1 = dv1.z;
+			atri.v2 = dv2.z;
+			atri.v3 = dv3.z;
+
+			const float ar = 1.0f / devEdgeFunction(dv1, dv2, dv3);;
+			const float sV2V1y = dv2.y - dv1.y;
+			const float sV2V1x = dv1.x - dv2.x;
+			const float sV3V2y = dv3.y - dv2.y;
+			const float sV3V2x = dv2.x - dv3.x;
+			const float sV1V3y = dv1.y - dv3.y;
+			const float sV1V3x = dv3.x - dv1.x;
+
+			atri.f3 = { (float)(sV2V1y * ar) * dv3.w * invFrameHeight, (float)(sV2V1x * ar) * dv3.w * invFrameWidth,(float)((-dv1.x * sV2V1y - dv1.y * sV2V1x) * ar) * dv3.w };
+			atri.f1 = { (float)(sV3V2y * ar) * dv1.w * invFrameHeight, (float)(sV3V2x * ar) * dv1.w * invFrameWidth,(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) * dv1.w };
+			atri.f2 = { (float)(sV1V3y * ar) * dv2.w * invFrameHeight, (float)(sV1V3x * ar) * dv2.w * invFrameWidth,(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) * dv2.w };
+
+			ifloat3 edgeCoefs[3];
+			atri.e1 = { (float)(sV2V1y)*frameHeight,  (float)(sV2V1x)*frameWidth ,  (float)(dv2.x * dv1.y - dv1.x * dv2.y) * frameHeight * frameWidth };
+			atri.e2 = { (float)(sV3V2y)*frameHeight,  (float)(sV3V2x)*frameWidth ,  (float)(dv3.x * dv2.y - dv2.x * dv3.y) * frameHeight * frameWidth };
+			atri.e3 = { (float)(sV1V3y)*frameHeight,  (float)(sV1V3x)*frameWidth ,  (float)(dv1.x * dv3.y - dv3.x * dv1.y) * frameHeight * frameWidth };
+
+			atri.originalPrimitive = primId;
+			irect2Df bbox;
+			if (!devTriangleSimpleClip(dv1, dv2, dv3, bbox)) continue;
+			if constexpr (CU_NOT_OPT_TILED_BINNER) {
+				devExecuteBinner(idxSrc + i, atri, bbox, dRasterQueue, dRasterQueueCount, dCoverQueue, dCoverQueueCount, deviceConstants);
+			}
+			dAssembledTriangles[curIdx] = atri;
+		}
+#undef ret
+#undef retidx
+
 	}
 
 	IFRIT_KERNEL void tilingBinnerKernel(
@@ -739,9 +678,31 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const auto endY = proposal.tileEnd.y;
 
 			if (startX <= pixelXS && pixelXS <= endX && startY <= pixelYS && pixelYS <= endY) {
-				devPixelProcessingPrePass(pixelXS, pixelYS, fragmentShader, dIndexBuffer, dVaryingBuffer,
-					atp, dColorBuffer, localDepthBuffer, frameWidth, frameHeight, vertexStride, varyingCount, 
-					candidateBary, &candidatePrim, proposal.primId);
+				// Z PrePas
+				float pos[4];
+				pos[0] = atp.v1;
+				pos[1] = atp.v2;
+				pos[2] = atp.v3;
+
+				float pDx = 1.0f * pixelXS;
+				float pDy = 1.0f * pixelYS;
+
+				float bary[3];
+				float interpolatedDepth;
+
+				bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
+				bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
+				bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
+				interpolatedDepth = bary[0] * pos[0] + bary[1] * pos[1] + bary[2] * pos[2];
+				float zCorr = 1.0f / (bary[0] + bary[1] + bary[2]);
+				interpolatedDepth *= zCorr;
+				if (interpolatedDepth <= localDepthBuffer) {
+					localDepthBuffer = interpolatedDepth;
+					candidatePrim = proposal.primId;
+					candidateBary[0] = bary[0] * zCorr;
+					candidateBary[1] = bary[1] * zCorr;
+					candidateBary[2] = bary[2] * zCorr;
+				}
 			}
 		}
 		if (candidatePrim != -1 && localDepthBuffer< compareDepth) {
@@ -1031,6 +992,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 				deviceContext->dRasterQueue,deviceContext->dRasterQueueCounter, deviceContext->dCoverQueue2, deviceContext->dCoverQueueCounter,i, indexCount,
 				deviceContext->dDeviceConstants
 				);
+
 			Impl::tilingRasterizationKernel CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(CU_RASTERIZATION_THREADS_PER_TILE, 1, 1), 0, computeStream)(
 				deviceContext->dAssembledTriangles2, deviceContext->dAssembledTrianglesCounter2,
 				deviceContext->dRasterQueue, deviceContext->dRasterQueueCounter, deviceContext->dCoverQueue2, deviceContext->dCoverQueueCounter, deviceContext->dDeviceConstants

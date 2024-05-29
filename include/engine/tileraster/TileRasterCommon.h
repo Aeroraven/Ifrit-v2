@@ -35,13 +35,17 @@ namespace Ifrit::Engine::TileRaster {
 		ifloat4 v1, v2, v3;
 		ifloat3 b1, b2, b3;
 	};
+	struct TriangleZW {
+		float z, w;
+	};
 
 	struct AssembledTriangleProposalCUDA {
-		ifloat4 v1, v2, v3;
+		float v1, v2, v3;
 		ifloat3 b1, b2, b3;
 		ifloat3 e1, e2, e3; //Edge Coefs
 		ifloat3 f1, f2, f3; //Interpolate Bases
 		int originalPrimitive;
+		int dummy;
 	};
 
 	struct AssembledTriangleProposalReference {
