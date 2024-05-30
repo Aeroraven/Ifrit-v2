@@ -26,8 +26,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float n2 = (v1.x * v3.y);
 		float n3 = (v2.x * v1.y);
 		float d = d1 + d2 + d3 - n1 - n2 - n3;
-		if (d < 0.0f) return false;
-		return true;
+		return d > 0.0f;
 	}
 
 	IFRIT_DEVICE void devGetAcceptRejectCoords(ifloat3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3]) {
@@ -58,7 +57,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 
-	IFRIT_DEVICE bool devTriangleSimpleClip(ifloat4 v1, ifloat4 v2, ifloat4 v3, irect2Df& bbox) {
+	IFRIT_DEVICE bool devTriangleSimpleClip(const ifloat4& v1, const ifloat4& v2, const ifloat4& v3, irect2Df& bbox) {
 		bool inside = true;
 		float minx = min(v1.x, min(v2.x, v3.x));
 		float miny = min(v1.y, min(v2.y, v3.y));
@@ -74,8 +73,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		if (miny > 1.0f) return false;
 		bbox.x = minx;
 		bbox.y = miny;
-		bbox.w = maxx - minx;
-		bbox.h = maxy - miny;
+		bbox.w = maxx;
+		bbox.h = maxy;
 		return true;
 	}
 	IFRIT_DEVICE void devExecuteBinner(
@@ -89,10 +88,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		TileRasterDeviceConstants* deviceConstants
 	) {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
-		float minx = bbox.x ;
-		float miny = bbox.y ;
-		float maxx = (bbox.x + bbox.w);
-		float maxy = (bbox.y + bbox.h);
+		float minx = bbox.x;
+		float miny = bbox.y;
+		float maxx = bbox.w;
+		float maxy = bbox.h;
 
 		int tileMinx = max(0, (int)(minx * CU_TILE_SIZE));
 		int tileMiny = max(0, (int)(miny * CU_TILE_SIZE));
@@ -109,7 +108,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		int chosenCoordTR[3];
 		int chosenCoordTA[3];
 		auto frameBufferWidth = csFrameWidth;
-		auto frameBufferHeight =csFrameHeight;
+		auto frameBufferHeight = csFrameHeight;
 		devGetAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
 		const float tileSize = 1.0f / CU_TILE_SIZE;
@@ -136,8 +135,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				for (int i = 0; i < 3; i++) {
 					float criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y;
 					float criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y;
-					if (criteriaTRLocal < -edgeCoefs[i].z) criteriaTR += 1;
-					if (criteriaTALocal < -edgeCoefs[i].z) criteriaTA += 1;
+					if (criteriaTRLocal < edgeCoefs[i].z) criteriaTR += 1;
+					if (criteriaTALocal < edgeCoefs[i].z) criteriaTA += 1;
 				}
 				if (criteriaTR != 3) {
 					continue;
@@ -224,7 +223,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto frameHeight =csFrameHeight;
 
 		const auto primitiveSrcId = dRasterQueue[globalInvocation];
-
 		const auto& atri = dAssembledTriangles[primitiveSrcId];
 
 		ifloat3 edgeCoefs[3];
@@ -274,12 +272,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			tileCoords[VRB] = { subTileMaxX, subTileMaxY };
 			tileCoords[VRT] = { subTileMaxX, subTileMinY };
 
-			const float cmpf[3] = { dEps - edgeCoefs[0].z,dEps - edgeCoefs[1].z,dEps - edgeCoefs[2].z };
 			for (int k = 0; k < 3; k++) {
 				float criteriaTRLocal = edgeCoefs[k].x * tileCoords[chosenCoordTR[k]].x + edgeCoefs[k].y * tileCoords[chosenCoordTR[k]].y;
 				float criteriaTALocal = edgeCoefs[k].x * tileCoords[chosenCoordTA[k]].x + edgeCoefs[k].y * tileCoords[chosenCoordTA[k]].y;
-				criteriaTR += criteriaTRLocal < cmpf[k];
-				criteriaTA += criteriaTALocal < cmpf[k];
+				criteriaTR += criteriaTRLocal < edgeCoefs[k].z;
+				criteriaTA += criteriaTALocal < edgeCoefs[k].z;
 			}
 
 			if (criteriaTR != 3) {
@@ -305,7 +302,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					int accept = 0;
 					for (int i = 0; i < 3; i++) {
 						float criteria = edgeCoefs[i].x * dx + edgeCoefs[i].y * dy;
-						accept += criteria < cmpf[i];
+						accept += criteria < edgeCoefs[i].z;
 					}
 					if (accept == 3) {
 						TileBinProposalCUDA nprop;
@@ -347,18 +344,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			varyingOutputPtrs[i] = dVaryingBuffer[i] + globalInvoIdx;
 		}
 		vertexShader->execute(vertexInputPtrs, &dPosBuffer[globalInvoIdx], varyingOutputPtrs);
-	}
-
-	IFRIT_KERNEL void primaryBinnerRasterizerKernel(
-		irect2Df* IFRIT_RESTRICT_CUDA dTileBounds,
-		uint32_t* IFRIT_RESTRICT_CUDA dRasterQueueCount,
-		uint32_t* IFRIT_RESTRICT_CUDA dCoverQueueCount,
-		uint32_t** IFRIT_RESTRICT_CUDA dRasterQueue,
-		AssembledTriangleProposalCUDA* IFRIT_RESTRICT_CUDA dAssembledTriangles,
-		uint32_t* IFRIT_RESTRICT_CUDA dAssembledTriangleCount,
-		TileRasterDeviceConstants* deviceConstants
-	) {
-
 	}
 
 	IFRIT_KERNEL void geometryProcessingKernel(
@@ -491,7 +476,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			atri.v2 = dv2.z;
 			atri.v3 = dv3.z;
 
-			const float ar = 1.0f / devEdgeFunction(dv1, dv2, dv3);;
+			const float ar = 1.0f / devEdgeFunction(dv1, dv2, dv3);
 			const float sV2V1y = dv2.y - dv1.y;
 			const float sV2V1x = dv1.x - dv2.x;
 			const float sV3V2y = dv3.y - dv2.y;
@@ -503,10 +488,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			atri.f1 = { (float)(sV3V2y * ar) * dv1.w * invFrameHeight, (float)(sV3V2x * ar) * dv1.w * invFrameWidth,(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) * dv1.w };
 			atri.f2 = { (float)(sV1V3y * ar) * dv2.w * invFrameHeight, (float)(sV1V3x * ar) * dv2.w * invFrameWidth,(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) * dv2.w };
 
+			const auto dEps = CU_EPS*frameHeight*frameWidth;
 			ifloat3 edgeCoefs[3];
-			atri.e1 = { (float)(sV2V1y)*frameHeight,  (float)(sV2V1x)*frameWidth ,  (float)(dv2.x * dv1.y - dv1.x * dv2.y) * frameHeight * frameWidth };
-			atri.e2 = { (float)(sV3V2y)*frameHeight,  (float)(sV3V2x)*frameWidth ,  (float)(dv3.x * dv2.y - dv2.x * dv3.y) * frameHeight * frameWidth };
-			atri.e3 = { (float)(sV1V3y)*frameHeight,  (float)(sV1V3x)*frameWidth ,  (float)(dv1.x * dv3.y - dv3.x * dv1.y) * frameHeight * frameWidth };
+			atri.e1 = { (float)(sV2V1y)*frameHeight,  (float)(sV2V1x)*frameWidth ,  (float)(-dv2.x * dv1.y + dv1.x * dv2.y) * frameHeight * frameWidth };
+			atri.e2 = { (float)(sV3V2y)*frameHeight,  (float)(sV3V2x)*frameWidth ,  (float)(-dv3.x * dv2.y + dv2.x * dv3.y) * frameHeight * frameWidth };
+			atri.e3 = { (float)(sV1V3y)*frameHeight,  (float)(sV1V3x)*frameWidth ,  (float)(-dv1.x * dv3.y + dv3.x * dv1.y) * frameHeight * frameWidth };
+
+			atri.e1.z += dEps;
+			atri.e2.z += dEps;
+			atri.e3.z += dEps;
 
 			atri.originalPrimitive = primId;
 			irect2Df bbox;
