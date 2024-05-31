@@ -1,8 +1,11 @@
 #pragma once
 namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr float CU_EPS = 1e-8f;
+
+	// Kernels
+	constexpr int CU_LARGE_TILE_SIZE = 32;
 	constexpr int CU_TILE_SIZE = 128;
-	constexpr int CU_TILE_FIRST_STEP = 4;
+	constexpr int CU_TILES_PER_LARGE_TILE = CU_TILE_SIZE / CU_LARGE_TILE_SIZE;
 	constexpr int CU_SUBTILE_SIZE_LOG = 2;
 	constexpr int CU_SUBTILE_SIZE = (1<<(CU_SUBTILE_SIZE_LOG));
 	constexpr int CU_MAX_VARYINGS = 10;
@@ -16,10 +19,18 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_FRAGMENT_SHADING_THREADS_PER_TILE_Y = 10;
 	constexpr int CU_RASTERIZATION_THREADS_PER_TILE = 128;
 
-	constexpr int CU_SINGLE_TIME_TRIANGLE = 20608;
+	constexpr int CU_SINGLE_TIME_TRIANGLE = 84480; //Safe 20608
 	constexpr int CU_SINGLE_TIME_TRIANGLE_GEOMETRY_BATCHSIZE = 1;
 
 	constexpr int CU_TRIANGLE_STRIDE = 3;
+	constexpr float CU_LARGE_TRIANGLE_THRESHOLD = 0.25f;
 
+	// Memory Allocation
+	constexpr size_t CU_HEAP_MEMORY_SIZE = 1024ull * 1024 * 1024 * 4;
+	constexpr int CU_VECTOR_BASE_LENGTH = 10;
+	constexpr int CU_VECTOR_HIERARCHY_LEVEL = 10;
+
+	// Options
 	constexpr bool CU_OPT_HOMOGENEOUS_CLIPPING_NEG_W_ONLY = true;
+	constexpr bool CU_OPT_CUDA_PROFILE = true;
 }

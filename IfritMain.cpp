@@ -168,7 +168,7 @@ int mainGpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/yomiya.obj", pos, normal, uv, index);
+	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj", pos, normal, uv, index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 
@@ -244,6 +244,12 @@ int mainGpu() {
 	return 0;
 }
 
+
+int miscTest() {
+	int x = 511;
+	printf("%d\n",31-__lzcnt(x));
+	return 0;
+}
 int main() {
 	return mainGpu();
 }

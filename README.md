@@ -21,6 +21,7 @@ Successor to following repos:
 	- SIMD Vectorization
 	- CUDA Acceleration (Incomplete)
 		- Double Buffering / Overlapped Memory Transfer
+		- Device Vector / Dynamic Array
 
 - **Rendering**:
 	- Homogeneous Space Clipping

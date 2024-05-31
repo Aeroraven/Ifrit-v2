@@ -6,44 +6,12 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		context = std::make_unique<TileRasterContextCuda>();
 		deviceContext = std::make_unique<TileRasterDeviceContext>();
 
-		deviceContext->dCoverQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_TILE_SIZE * CU_TILE_SIZE);
 		deviceContext->dShadingQueue = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
-		deviceContext->dRasterQueueCounter = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t) * CU_TILE_SIZE * CU_TILE_SIZE);
-		deviceContext->dAssembledTrianglesCounter2 = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
 
 		int totlTriangle = CU_SINGLE_TIME_TRIANGLE * 7 * CU_SINGLE_TIME_TRIANGLE_GEOMETRY_BATCHSIZE;
-		cudaMalloc(&deviceContext->dAssembledTriangles2, totlTriangle * sizeof(AssembledTriangleProposalCUDA));
-
 		int totalTiles = CU_TILE_SIZE * CU_TILE_SIZE;
 		int totalTriangles = CU_SINGLE_TIME_TRIANGLE;
 		int maxProposals = CU_SINGLE_TIME_TRIANGLE;
-
-		deviceContext->hdRasterQueueVec.resize(totalTiles);
-		if (deviceContext->hdRasterQueue.size() < totalTiles) {
-			deviceContext->hdRasterQueue.resize(totalTiles);
-		}
-		for (int i = 0; i < totalTiles; i++) {
-			if (deviceContext->hdRasterQueue[i].size() < maxProposals) {
-				deviceContext->hdRasterQueue[i].resize(maxProposals);
-			}
-			deviceContext->hdRasterQueueVec[i] = deviceContext->hdRasterQueue[i].data();
-		}
-		cudaMalloc(&deviceContext->dRasterQueue, totalTiles * sizeof(uint32_t*));
-		cudaMemcpy(deviceContext->dRasterQueue, deviceContext->hdRasterQueueVec.data(), totalTiles * sizeof(uint32_t*), cudaMemcpyHostToDevice);
-
-
-		deviceContext->hdCoverQueueVec.resize(totalTiles);
-		if (deviceContext->hdCoverQueue.size() < totalTiles) {
-			deviceContext->hdCoverQueue.resize(totalTiles);
-		}
-		for (int i = 0; i < totalTiles; i++) {
-			if (deviceContext->hdCoverQueue[i].size() < maxProposals) {
-				deviceContext->hdCoverQueue[i].resize(maxProposals);
-			}
-			deviceContext->hdCoverQueueVec[i] = deviceContext->hdCoverQueue[i].data();
-		}
-		cudaMalloc(&deviceContext->dCoverQueue2, totalTiles * sizeof(TileBinProposal*));
-		cudaMemcpy(deviceContext->dCoverQueue2, deviceContext->hdCoverQueueVec.data(), totalTiles * sizeof(TileBinProposal*), cudaMemcpyHostToDevice);
 
 		deviceContext->dDeviceConstants = (TileRasterDeviceConstants*)Invocation::deviceMalloc(sizeof(TileRasterDeviceConstants));
 		Invocation::initCudaRendering();
