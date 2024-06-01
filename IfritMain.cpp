@@ -182,14 +182,14 @@ int mainGpu() {
 
 	vertexBuffer.setVertexCount(4);
 	vertexBuffer.allocateBuffer(4);
-	vertexBuffer.setValue(0, 0, ifloat4(-0.5, 0.5, -0.1, 1));
+	vertexBuffer.setValue(0, 0, ifloat4(0.2, 0, -0.1, 1));
 	vertexBuffer.setValue(1, 0, ifloat4(-0.5, -0.5, -0.1, 1));
-	vertexBuffer.setValue(2, 0, ifloat4(0.5, -0.5, -0.1, 1));
-	vertexBuffer.setValue(3, 0, ifloat4(0.5, 0.5, -0.1, 1));
-	vertexBuffer.setValue(0, 1, ifloat4(0.3, 0, 0.3, 0));
-	vertexBuffer.setValue(1, 1, ifloat4(0.3, 0, 0.3, 0));
-	vertexBuffer.setValue(2, 1, ifloat4(0.3, 0, 0.3, 0));
-	vertexBuffer.setValue(3, 1, ifloat4(0.3, 0, 0.35, 0));
+	vertexBuffer.setValue(2, 0, ifloat4(0.5, -0.15, 5.51, 1));
+	vertexBuffer.setValue(3, 0, ifloat4(0.5, 0.15, 5.51, 1));
+	vertexBuffer.setValue(0, 1, ifloat4(0.93, 0, 0.3, 0));
+	vertexBuffer.setValue(1, 1, ifloat4(0.93, 0, 0.3, 0));
+	vertexBuffer.setValue(2, 1, ifloat4(0.93, 0, 0.3, 0));
+	vertexBuffer.setValue(3, 1, ifloat4(0.93, 0, 0.3, 0));
 
 	
 	vertexBuffer.allocateBuffer(pos.size());
@@ -199,7 +199,7 @@ int mainGpu() {
 		vertexBuffer.setValue(i, 1, ifloat4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
 	}
 
-	std::vector<int> indexBuffer = { 0,1,2,2,3,0 };
+	std::vector<int> indexBuffer = { 2,3,0 };
 	
 	indexBuffer.resize(index.size() / 3);
 	for (int i = 0; i < index.size(); i += 3) {

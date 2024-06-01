@@ -52,8 +52,8 @@ Successor to following repos:
 	- CUDA 12.4
 
 ## Ongoing Plan
+- Bug Fixing
+	- Incorrect Triangle Position in Some Settings
+	- Incorrect Homogeneous Space Clipping
 - CUDA Integration 
-	- Performance: LSB Stall in Primitive Assembly Stage
-	- Performance: LSB Stall in Pixel Shading Stage
-	- Performance: Barrier Stall in Rasterization Stage
-	- Performance: LG in Homogeneous Clipping Stage
+	- Performance: LSB Stall in Rasterization Stage
