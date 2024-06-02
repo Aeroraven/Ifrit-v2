@@ -512,7 +512,24 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		for (int i = 0; i < numVaryings; i++) {
 			varyingOutputPtrs[i] = dVaryingBuffer[i] + globalInvoIdx;
 		}
+		auto s = *reinterpret_cast<const ifloat4*>(vertexInputPtrs[0]);
+		if (blockIdx.x * blockDim.x + threadIdx.x >= 25015 && blockIdx.x * blockDim.x + threadIdx.x <= 25017) {
+			printf("%d In:%f,%f,%f,%f\n", blockIdx.x * blockDim.x + threadIdx.x , s.x, s.y, s.z, s.w);
+		}
 		vertexShader->execute(vertexInputPtrs, &dPosBuffer[globalInvoIdx], varyingOutputPtrs);
+
+		s = dPosBuffer[globalInvoIdx];
+		if (blockIdx.x * blockDim.x + threadIdx.x >= 25015 && blockIdx.x * blockDim.x + threadIdx.x <= 25017) {
+			printf("%d PsO:%f,%f,%f,%f\n", blockIdx.x * blockDim.x + threadIdx.x, s.x, s.y, s.z, s.w);
+		}
+		s.x /= s.w;
+		s.y /= s.w;
+		s.z /= s.w;
+		if (blockIdx.x * blockDim.x + threadIdx.x >= 25015 && blockIdx.x * blockDim.x + threadIdx.x <= 25017) {
+			printf("%d PsR:%f,%f,%f,%f\n", blockIdx.x * blockDim.x + threadIdx.x, s.x, s.y, s.z, s.w);
+			//dPosBuffer[globalInvoIdx].z = dPosBuffer[globalInvoIdx].w * 0.999925;
+		}
+
 	}
 
 	IFRIT_KERNEL void geometryProcessingKernel(
@@ -529,6 +546,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		ifloat4 v1 = dPosBuffer[dIndexBuffer[indexStart]];
 		ifloat4 v2 = dPosBuffer[dIndexBuffer[indexStart + 1]];
 		ifloat4 v3 = dPosBuffer[dIndexBuffer[indexStart + 2]];
+		//printf("%d %d %d\n", dIndexBuffer[indexStart], dIndexBuffer[indexStart + 1], dIndexBuffer[indexStart + 2]);
 		if (csCounterClosewiseCull) {
 			ifloat4 temp = v1;
 			v1 = v3;
@@ -619,11 +637,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		const auto clipOdd = clipTimes & 1;
 		for (int i = 0; i < retCnt[clipOdd]; i++) {
-			ret(clipOdd, i).pos.w = 1 / ret(clipOdd, i).pos.w;
-			ret(clipOdd, i).pos.x *= ret(clipOdd, i).pos.w;
-			ret(clipOdd, i).pos.y *= ret(clipOdd, i).pos.w;
-			ret(clipOdd, i).pos.z *= ret(clipOdd, i).pos.w;
+			
+			ret(clipOdd, i).pos.x /= ret(clipOdd, i).pos.w;
+			ret(clipOdd, i).pos.y /= ret(clipOdd, i).pos.w;
+			ret(clipOdd, i).pos.z /= ret(clipOdd, i).pos.w;
 
+			ret(clipOdd, i).pos.w = 1 / ret(clipOdd, i).pos.w;
 			ret(clipOdd, i).pos.x = ret(clipOdd, i).pos.x * 0.5f + 0.5f;
 			ret(clipOdd, i).pos.y = ret(clipOdd, i).pos.y * 0.5f + 0.5f;
 		}
@@ -664,6 +683,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			atri.v1 = dv1.z;
 			atri.v2 = dv2.z;
 			atri.v3 = dv3.z;
+			atri.w1 = dv1.w;
+			atri.w2 = dv2.w;
+			atri.w3 = dv3.w;
 
 			const float ar = 1.0f / devEdgeFunction(dv1, dv2, dv3);
 			const float sV2V1y = dv2.y - dv1.y;
@@ -673,9 +695,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const float sV1V3y = dv1.y - dv3.y;
 			const float sV1V3x = dv3.x - dv1.x;
 
-			atri.f3 = { (float)(sV2V1y * ar) * dv3.w * invFrameHeight, (float)(sV2V1x * ar) * dv3.w * invFrameWidth,(float)((-dv1.x * sV2V1y - dv1.y * sV2V1x) * ar) * dv3.w };
-			atri.f1 = { (float)(sV3V2y * ar) * dv1.w * invFrameHeight, (float)(sV3V2x * ar) * dv1.w * invFrameWidth,(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) * dv1.w };
-			atri.f2 = { (float)(sV1V3y * ar) * dv2.w * invFrameHeight, (float)(sV1V3x * ar) * dv2.w * invFrameWidth,(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) * dv2.w };
+			atri.f3 = { (float)(sV2V1y * ar), (float)(sV2V1x * ar),(float)((-dv1.x * sV2V1y - dv1.y * sV2V1x) * ar) };
+			atri.f1 = { (float)(sV3V2y * ar), (float)(sV3V2x * ar),(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) };
+			atri.f2 = { (float)(sV1V3y * ar), (float)(sV1V3x * ar),(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) };
 
 			const auto dEps = CU_EPS*frameHeight*frameWidth;
 			ifloat3 edgeCoefs[3];
@@ -761,60 +783,46 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float candidateBary[3];
 		int candidatePrim = -1;
 		const float compareDepth = dDepthBuffer[pixelYS * frameWidth + pixelXS];
-		float pDx = 1.0f * pixelXS;
-		float pDy = 1.0f * pixelYS;
+		float pDx = 1.0f * pixelXS / csFrameWidth;
+		float pDy = 1.0f * pixelYS / csFrameHeight;
 
+		auto zPrePass = [&](const AssembledTriangleProposalCUDA& atp,  int primId) {
+			float pos[3];
+			pos[0] = atp.v1;
+			pos[1] = atp.v2;
+			pos[2] = atp.v3;
+
+			float bary[3];
+			float interpolatedDepth;
+
+			bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
+			bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
+			bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
+			interpolatedDepth = bary[0] * pos[0] + bary[1] * pos[1] + bary[2] * pos[2];
+
+			if (interpolatedDepth < localDepthBuffer) {
+				localDepthBuffer = interpolatedDepth;
+				candidatePrim = primId;
+
+				bary[0] *= atp.w1;
+				bary[1] *= atp.w2;
+				bary[2] *= atp.w3;
+				float zCorr = 1.0f / (bary[0] + bary[1] + bary[2]);
+				candidateBary[0] = bary[0] * zCorr;
+				candidateBary[1] = bary[1] * zCorr;
+				candidateBary[2] = bary[2] * zCorr;
+			}
+		};
 
 		for (int i = largeCandidates - 1; i >= 0; i--) {
 			const auto proposal = dCoverQueueSuperTileFullM2[superTileId].at(i);
 			const auto atp = dAssembledTriangleM2[proposal];
-
-			float pos[4];
-			pos[0] = atp.v1;
-			pos[1] = atp.v2;
-			pos[2] = atp.v3;
-
-			float bary[3];
-			float interpolatedDepth;
-
-			bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
-			bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
-			bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
-			interpolatedDepth = bary[0] * pos[0] + bary[1] * pos[1] + bary[2] * pos[2];
-			float zCorr = 1.0f / (bary[0] + bary[1] + bary[2]);
-			interpolatedDepth *= zCorr;
-			if (interpolatedDepth <= localDepthBuffer) {
-				localDepthBuffer = interpolatedDepth;
-				candidatePrim = proposal;
-				candidateBary[0] = bary[0] * zCorr;
-				candidateBary[1] = bary[1] * zCorr;
-				candidateBary[2] = bary[2] * zCorr;
-			}
+			zPrePass(atp, proposal);
 		}
 		for (int i = completeCandidates - 1; i >= 0; i--) {
 			const auto proposal = dCoverQueueFullM2[binId].at(i);
 			const auto atp = dAssembledTriangleM2[proposal];
-			float pos[4];
-			pos[0] = atp.v1;
-			pos[1] = atp.v2;
-			pos[2] = atp.v3;
-
-			float bary[3];
-			float interpolatedDepth;
-
-			bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
-			bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
-			bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
-			interpolatedDepth = bary[0] * pos[0] + bary[1] * pos[1] + bary[2] * pos[2];
-			float zCorr = 1.0f / (bary[0] + bary[1] + bary[2]);
-			interpolatedDepth *= zCorr;
-			if (interpolatedDepth <= localDepthBuffer) {
-				localDepthBuffer = interpolatedDepth;
-				candidatePrim = proposal;
-				candidateBary[0] = bary[0] * zCorr;
-				candidateBary[1] = bary[1] * zCorr;
-				candidateBary[2] = bary[2] * zCorr;
-			}
+			zPrePass(atp, proposal);
 		}
 		for (int i = candidates - 1; i >= 0; i--) {
 			const auto proposal = dCoverQueuePartialM2[tileId].at(i);
@@ -825,28 +833,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const auto endY = proposal.tileEnd.y;
 
 			if (startX <= pixelXS && pixelXS <= endX && startY <= pixelYS && pixelYS <= endY) {
-				// Z PrePass
-				float pos[4];
-				pos[0] = atp.v1;
-				pos[1] = atp.v2;
-				pos[2] = atp.v3;
-
-				float bary[3];
-				float interpolatedDepth;
-
-				bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
-				bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
-				bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
-				interpolatedDepth = bary[0] * pos[0] + bary[1] * pos[1] + bary[2] * pos[2];
-				float zCorr = 1.0f / (bary[0] + bary[1] + bary[2]);
-				interpolatedDepth *= zCorr;
-				if (interpolatedDepth <= localDepthBuffer) {
-					localDepthBuffer = interpolatedDepth;
-					candidatePrim = proposal.primId;
-					candidateBary[0] = bary[0] * zCorr;
-					candidateBary[1] = bary[1] * zCorr;
-					candidateBary[2] = bary[2] * zCorr;
-				}
+				zPrePass(atp, proposal.primId);
 			}
 		}
 		if (candidatePrim != -1 && localDepthBuffer< compareDepth) {
@@ -1171,8 +1158,9 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		constexpr int totalTiles = CU_TILE_SIZE * CU_TILE_SIZE;
 		Impl::integratedResetKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)();
 		int dw = 0;
-		for (int i = 0; i < deviceConstants->totalIndexCount; i += CU_SINGLE_TIME_TRIANGLE * 3 * aggressiveRatio) {
+		for (int i = 0; i < deviceConstants->totalIndexCount; i += CU_SINGLE_TIME_TRIANGLE * 3) {
 			dw++;
+			if (dw != 47207*2-1)continue; // 94413
 			auto indexCount = std::min((int)(CU_SINGLE_TIME_TRIANGLE * 3 * aggressiveRatio), deviceConstants->totalIndexCount - i);
 			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
 			Impl::resetLargeTileKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)();

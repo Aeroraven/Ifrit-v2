@@ -201,8 +201,8 @@ int mainGpu() {
 
 	std::vector<int> indexBuffer = { 2,3,0 };
 	
-	indexBuffer.resize(index.size() / 3);
-	for (int i = 0; i < index.size(); i += 3) {
+	indexBuffer.resize(index.size()/3);
+	for (int i = 0; i < index.size(); i += 3) { //index.size()
 		indexBuffer[i / 3] = index[i];
 	}
 

@@ -53,7 +53,6 @@ Successor to following repos:
 
 ## Ongoing Plan
 - Bug Fixing
-	- Incorrect Triangle Position in Some Settings
 	- Incorrect Homogeneous Space Clipping
 - CUDA Integration 
 	- Performance: LSB Stall in Rasterization Stage

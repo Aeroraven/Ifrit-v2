@@ -41,6 +41,7 @@ namespace Ifrit::Engine::TileRaster {
 
 	struct AssembledTriangleProposalCUDA {
 		float v1, v2, v3;
+		float w1, w2, w3;
 		ifloat3 b1, b2, b3;
 		ifloat3 e1, e2, e3; //Edge Coefs
 		ifloat3 f1, f2, f3; //Interpolate Bases
