@@ -246,8 +246,8 @@ int mainGpu() {
 
 
 int miscTest() {
-	int x = 511;
-	printf("%d\n",31-__lzcnt(x));
+	int x = 1;
+	printf("%d\n", 31 - __lzcnt((x - 1) | ((1 << 9) - 1)));
 	return 0;
 }
 int main() {

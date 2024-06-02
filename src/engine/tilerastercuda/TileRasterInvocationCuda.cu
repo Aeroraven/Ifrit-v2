@@ -21,7 +21,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	template<class T>
 	class LocalDynamicVector {
-	private:
+	public:
 		int baseSize;
 		T* data[CU_VECTOR_HIERARCHY_LEVEL];
 		int capacity;
@@ -807,18 +807,45 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 		};
 
+		// Large Bin Level
 		for (int i = largeCandidates - 1; i >= 0; i--) {
 			const auto proposal = dCoverQueueSuperTileFullM2[superTileId].at(i);
 			const auto atp = dAssembledTriangleM2[proposal];
 			zPrePass(atp, proposal);
 		}
+
+		// Bin Level
 		for (int i = completeCandidates - 1; i >= 0; i--) {
 			const auto proposal = dCoverQueueFullM2[binId].at(i);
 			const auto atp = dAssembledTriangleM2[proposal];
 			zPrePass(atp, proposal);
 		}
-		for (int i = candidates - 1; i >= 0; i--) {
-			const auto proposal = dCoverQueuePartialM2[tileId].at(i);
+
+
+		// Sub-tile Level
+		int log2SubTileCandidates = 31 - __clz(max(0, candidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
+		for (int i = 0; i < log2SubTileCandidates; i++) {
+			int dmax = i ? (1 << (i + CU_VECTOR_BASE_LENGTH - 1)) : (1 << (CU_VECTOR_BASE_LENGTH));
+			const auto& data = dCoverQueuePartialM2[tileId].data[i];
+			for (int j = 0; j < dmax; j++) {
+				const auto proposal = data[j];
+				const auto atp = dAssembledTriangleM2[proposal.primId];
+				const auto startX = proposal.tile.x;
+				const auto startY = proposal.tile.y;
+				const auto endX = proposal.tileEnd.x;
+				const auto endY = proposal.tileEnd.y;
+
+				if (startX <= pixelXS && pixelXS <= endX && startY <= pixelYS && pixelYS <= endY) {
+					zPrePass(atp, proposal.primId);
+				}
+			}
+		}
+
+		int processedSubtileProposals = log2SubTileCandidates ? (1 << (log2SubTileCandidates + CU_VECTOR_BASE_LENGTH - 1)) : 0;
+		const auto& dataSubtile = dCoverQueuePartialM2[tileId].data[log2SubTileCandidates];
+		const auto limSubtile = candidates - processedSubtileProposals;
+		for (int i = 0; i < limSubtile; i++) {
+			const auto proposal = dataSubtile[i];
 			const auto atp = dAssembledTriangleM2[proposal.primId];
 			const auto startX = proposal.tile.x;
 			const auto startY = proposal.tile.y;
@@ -829,15 +856,36 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				zPrePass(atp, proposal.primId);
 			}
 		}
-		for (int i = pixelCandidates - 1; i >= 0; i--) {
-			const auto proposal = dCoverQueuePixelM2[tileId].at(i);
+		
+		// Pixel Level
+		int log2PixelCandidates = 31 - __clz(max(0,pixelCandidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
+		for (int i = 0; i < log2PixelCandidates; i++) {
+			int dmax = i ? (1 << (i + CU_VECTOR_BASE_LENGTH - 1)) : (1 << (CU_VECTOR_BASE_LENGTH));
+			const auto& data = dCoverQueuePixelM2[tileId].data[i];
+			for (int j = 0; j < dmax; j++) {
+				const auto proposal = data[j];
+				const auto atp = dAssembledTriangleM2[proposal.primId];
+				const auto startX = proposal.px.x;
+				const auto startY = proposal.px.y;
+				if (pixelXS == startX && pixelYS == startY) {
+					zPrePass(atp, proposal.primId);
+				}
+			}
+		}
+		int processedPixelProposals = log2PixelCandidates ? (1 << (log2PixelCandidates + CU_VECTOR_BASE_LENGTH - 1)) : 0;
+		const auto& dataPixel = dCoverQueuePixelM2[tileId].data[log2PixelCandidates];
+		const auto limPixel = pixelCandidates - processedPixelProposals;
+		for (int i = 0; i < limPixel; i++) {
+			const auto proposal = dataPixel[i];
 			const auto atp = dAssembledTriangleM2[proposal.primId];
 			const auto startX = proposal.px.x;
 			const auto startY = proposal.px.y;
-			if (pixelXS==startX && pixelYS==startY) {
+			if (pixelXS == startX && pixelYS == startY) {
 				zPrePass(atp, proposal.primId);
 			}
 		}
+
+		
 		if (candidatePrim != -1 && localDepthBuffer< compareDepth) {
 			shadingPass(dAssembledTriangleM2[candidatePrim]);
 			dDepthBuffer[pixelYS * frameWidth + pixelXS] = localDepthBuffer;
