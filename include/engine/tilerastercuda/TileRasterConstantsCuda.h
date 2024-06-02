@@ -22,7 +22,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_FRAGMENT_SHADING_THREADS_PER_TILE_Y = 10;
 	constexpr int CU_RASTERIZATION_THREADS_PER_TILE = 128;
 
-	constexpr int CU_SINGLE_TIME_TRIANGLE = 20608; //Safe 20608 84480
+	constexpr int CU_SINGLE_TIME_TRIANGLE = 84480; //Safe 20608 84480
 	constexpr int CU_SINGLE_TIME_TRIANGLE_GEOMETRY_BATCHSIZE = 1;
 
 	constexpr int CU_TRIANGLE_STRIDE = 3;

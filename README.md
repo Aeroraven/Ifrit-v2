@@ -53,6 +53,8 @@ Successor to following repos:
 
 ## Ongoing Plan
 - Bug Fixing
-	- Incorrect Homogeneous Space Clipping
+	- Incorrect Homogeneous Space Clipping (CPU Part)
+	- Incorrect Z Interpolation (CPU Part)
+	- Incorrect Culling Order (CPU Part)
 - CUDA Integration 
-	- Performance: LSB Stall in Rasterization Stage
+	- Performance: Pixel Processing Bottleneck

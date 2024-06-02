@@ -95,6 +95,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueSuperTileFullM2[CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE];
 	IFRIT_DEVICE static LocalDynamicVector<TileBinProposalCUDA> dCoverQueuePartialM2[CU_TILE_SIZE * CU_TILE_SIZE];
+	IFRIT_DEVICE static LocalDynamicVector<TilePixelProposalCUDA> dCoverQueuePixelM2[CU_TILE_SIZE * CU_TILE_SIZE];
 
 	IFRIT_DEVICE static AssembledTriangleProposalCUDA dAssembledTriangleM2[CU_SINGLE_TIME_TRIANGLE * 2];
 	IFRIT_DEVICE static uint32_t dAssembledTriangleCounterM2;
@@ -350,32 +351,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		dest = vd;
 	}
 
-	IFRIT_DEVICE void devPixelProcessingShadingPass(
-		const AssembledTriangleProposalCUDA& atp,
-		FragmentShader* fragmentShader,
-		float bary[3],
-		ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
-		const int* IFRIT_RESTRICT_CUDA dIndexBuffer,
-		const VaryingStore* const* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-		int vertexStride,
-		int varyingCount,
-		int pixelPos
-	) {
-		ifloat4 colorOutputSingle;
-		VaryingStore interpolatedVaryings[CU_MAX_VARYINGS];
-		float desiredBary[3];
-		desiredBary[0] = bary[0] * atp.b1.x + bary[1] * atp.b2.x + bary[2] * atp.b3.x;
-		desiredBary[1] = bary[0] * atp.b1.y + bary[1] * atp.b2.y + bary[2] * atp.b3.y;
-		desiredBary[2] = bary[0] * atp.b1.z + bary[1] * atp.b2.z + bary[2] * atp.b3.z;
-		auto addr = dIndexBuffer + atp.originalPrimitive * vertexStride;
-		for (int k = 0; k < varyingCount; k++) {
-			devInterpolateVaryings(k, dVaryingBuffer, addr, desiredBary, interpolatedVaryings[k]);
-		}
-		fragmentShader->execute(interpolatedVaryings, &colorOutputSingle);
-		dColorBuffer[0][pixelPos] = colorOutputSingle;
-	}
-
-
 	IFRIT_DEVICE void devTilingRasterizationChildProcess(
 		uint32_t tileIdX,
 		uint32_t tileIdY,
@@ -475,11 +450,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						accept += criteria < edgeCoefs[i].z;
 					}
 					if (accept == 3) {
-						TileBinProposalCUDA nprop;
-						nprop.tileEnd = { (short)dx,(short)dy };
-						nprop.tile = { (short)dx,(short)dy };
+						TilePixelProposalCUDA nprop;
+						nprop.px = { (short)dx,(short)dy };
 						nprop.primId = primitiveSrcId;
-						dCoverQueuePartialM2[tileId].push_back(nprop);
+						dCoverQueuePixelM2[tileId].push_back(nprop);
 					}
 				}
 			}
@@ -694,9 +668,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const float sV1V3y = dv1.y - dv3.y;
 			const float sV1V3x = dv3.x - dv1.x;
 
-			atri.f3 = { (float)(sV2V1y * ar), (float)(sV2V1x * ar),(float)((-dv1.x * sV2V1y - dv1.y * sV2V1x) * ar) };
-			atri.f1 = { (float)(sV3V2y * ar), (float)(sV3V2x * ar),(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) };
-			atri.f2 = { (float)(sV1V3y * ar), (float)(sV1V3x * ar),(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) };
+			atri.f3 = { (float)(sV2V1y * ar) * invFrameWidth, (float)(sV2V1x * ar) * invFrameHeight,(float)((-dv1.x * sV2V1y - dv1.y * sV2V1x) * ar) };
+			atri.f1 = { (float)(sV3V2y * ar) * invFrameWidth, (float)(sV3V2x * ar) * invFrameHeight,(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) };
+			atri.f2 = { (float)(sV1V3y * ar) * invFrameWidth, (float)(sV1V3x * ar) * invFrameHeight,(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) };
 
 			const auto dEps = CU_EPS*frameHeight*frameWidth;
 			ifloat3 edgeCoefs[3];
@@ -761,6 +735,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		const auto frameWidth = csFrameWidth;
 		const auto frameHeight = csFrameHeight;
+		const auto pixelCandidates = dCoverQueuePixelM2[tileId].getSize();
 		const auto candidates = dCoverQueuePartialM2[tileId].getSize();
 		const auto completeCandidates =  dCoverQueueFullM2[binId].getSize();
 		const auto largeCandidates = dCoverQueueSuperTileFullM2[superTileId].getSize();
@@ -782,8 +757,32 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float candidateBary[3];
 		int candidatePrim = -1;
 		const float compareDepth = dDepthBuffer[pixelYS * frameWidth + pixelXS];
-		float pDx = 1.0f * pixelXS / csFrameWidth;
-		float pDy = 1.0f * pixelYS / csFrameHeight;
+		float pDx = 1.0f * pixelXS;
+		float pDy = 1.0f * pixelYS;
+
+		auto shadingPass = [&](const AssembledTriangleProposalCUDA& atp) {
+			candidateBary[0] *= atp.w1;
+			candidateBary[1] *= atp.w2;
+			candidateBary[2] *= atp.w3;
+			float zCorr = 1.0f / (candidateBary[0] + candidateBary[1] + candidateBary[2]);
+			candidateBary[0] *= zCorr;
+			candidateBary[1] *= zCorr;
+			candidateBary[2] *= zCorr;
+
+
+			ifloat4 colorOutputSingle;
+			VaryingStore interpolatedVaryings[CU_MAX_VARYINGS];
+			float desiredBary[3];
+			desiredBary[0] = candidateBary[0] * atp.b1.x + candidateBary[1] * atp.b2.x + candidateBary[2] * atp.b3.x;
+			desiredBary[1] = candidateBary[0] * atp.b1.y + candidateBary[1] * atp.b2.y + candidateBary[2] * atp.b3.y;
+			desiredBary[2] = candidateBary[0] * atp.b1.z + candidateBary[1] * atp.b2.z + candidateBary[2] * atp.b3.z;
+			auto addr = dIndexBuffer + atp.originalPrimitive * vertexStride;
+			for (int k = 0; k < varyingCount; k++) {
+				devInterpolateVaryings(k, dVaryingBuffer, addr, desiredBary, interpolatedVaryings[k]);
+			}
+			fragmentShader->execute(interpolatedVaryings, &colorOutputSingle);
+			dColorBuffer[0][pixelYS * frameWidth + pixelXS] = colorOutputSingle;
+		};
 
 		auto zPrePass = [&](const AssembledTriangleProposalCUDA& atp,  int primId) {
 			float pos[3];
@@ -802,14 +801,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if (interpolatedDepth < localDepthBuffer) {
 				localDepthBuffer = interpolatedDepth;
 				candidatePrim = primId;
-
-				bary[0] *= atp.w1;
-				bary[1] *= atp.w2;
-				bary[2] *= atp.w3;
-				float zCorr = 1.0f / (bary[0] + bary[1] + bary[2]);
-				candidateBary[0] = bary[0] * zCorr;
-				candidateBary[1] = bary[1] * zCorr;
-				candidateBary[2] = bary[2] * zCorr;
+				candidateBary[0] = bary[0];
+				candidateBary[1] = bary[1];
+				candidateBary[2] = bary[2];
 			}
 		};
 
@@ -835,14 +829,23 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				zPrePass(atp, proposal.primId);
 			}
 		}
+		for (int i = pixelCandidates - 1; i >= 0; i--) {
+			const auto proposal = dCoverQueuePixelM2[tileId].at(i);
+			const auto atp = dAssembledTriangleM2[proposal.primId];
+			const auto startX = proposal.px.x;
+			const auto startY = proposal.px.y;
+			if (pixelXS==startX && pixelYS==startY) {
+				zPrePass(atp, proposal.primId);
+			}
+		}
 		if (candidatePrim != -1 && localDepthBuffer< compareDepth) {
-			devPixelProcessingShadingPass(dAssembledTriangleM2[candidatePrim], fragmentShader, candidateBary, dColorBuffer, dIndexBuffer,
-				dVaryingBuffer, vertexStride, varyingCount, pixelYS * frameWidth + pixelXS);
+			shadingPass(dAssembledTriangleM2[candidatePrim]);
 			dDepthBuffer[pixelYS * frameWidth + pixelXS] = localDepthBuffer;
 		}
 
 		if (threadX == 0) {
 			dCoverQueuePartialM2[tileId].clear();
+			dCoverQueuePixelM2[tileId].clear();
 			dAssembledTriangleCounterM2 = 0;
 		}
 	}
@@ -851,6 +854,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
 		dAssembledTriangleCounterM2 = 0;
 		dCoverQueuePartialM2[globalInvocation].clear();
+		dCoverQueuePixelM2[globalInvocation].clear();
 		if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
 			dCoverQueueSuperTileFullM2[globalInvocation].clear();
 		}
@@ -864,6 +868,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
 		dAssembledTriangleCounterM2 = 0;
 		dCoverQueuePartialM2[globalInvocation].initialize();
+		dCoverQueuePixelM2[globalInvocation].initialize();
 		if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
 			dCoverQueueSuperTileFullM2[globalInvocation].initialize();
 		}
