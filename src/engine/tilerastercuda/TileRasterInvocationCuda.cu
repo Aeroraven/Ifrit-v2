@@ -103,9 +103,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
 	}
 	IFRIT_DEVICE bool devTriangleCull(ifloat4 v1, ifloat4 v2, ifloat4 v3) {
-		float a1 = 1.0f / v1.w;
-		float a2 = 1.0f / v2.w;
-		float a3 = 1.0f / v3.w;
+		float a1 = 1.0f;
+		float a2 = 1.0f;
+		float a3 = 1.0f;
 		float d1 = (v1.x * v2.y) * a1 * a2;
 		float d2 = (v2.x * v3.y) * a2 * a3;
 		float d3 = (v3.x * v1.y) * a3 * a1;
@@ -513,22 +513,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			varyingOutputPtrs[i] = dVaryingBuffer[i] + globalInvoIdx;
 		}
 		auto s = *reinterpret_cast<const ifloat4*>(vertexInputPtrs[0]);
-		if (blockIdx.x * blockDim.x + threadIdx.x >= 25015 && blockIdx.x * blockDim.x + threadIdx.x <= 25017) {
-			printf("%d In:%f,%f,%f,%f\n", blockIdx.x * blockDim.x + threadIdx.x , s.x, s.y, s.z, s.w);
-		}
 		vertexShader->execute(vertexInputPtrs, &dPosBuffer[globalInvoIdx], varyingOutputPtrs);
 
 		s = dPosBuffer[globalInvoIdx];
-		if (blockIdx.x * blockDim.x + threadIdx.x >= 25015 && blockIdx.x * blockDim.x + threadIdx.x <= 25017) {
-			printf("%d PsO:%f,%f,%f,%f\n", blockIdx.x * blockDim.x + threadIdx.x, s.x, s.y, s.z, s.w);
-		}
 		s.x /= s.w;
 		s.y /= s.w;
 		s.z /= s.w;
-		if (blockIdx.x * blockDim.x + threadIdx.x >= 25015 && blockIdx.x * blockDim.x + threadIdx.x <= 25017) {
-			printf("%d PsR:%f,%f,%f,%f\n", blockIdx.x * blockDim.x + threadIdx.x, s.x, s.y, s.z, s.w);
-			//dPosBuffer[globalInvoIdx].z = dPosBuffer[globalInvoIdx].w * 0.999925;
-		}
 
 	}
 
@@ -553,9 +543,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			v3 = temp;
 		}
 		const auto primId = globalInvoIdx + startingIndexId / CU_TRIANGLE_STRIDE;
-		if (!devTriangleCull(v1, v2, v3)) {
-			return;
-		}
+		
 
 		using Ifrit::Engine::Math::ShaderOps::CUDA::dot;
 		using Ifrit::Engine::Math::ShaderOps::CUDA::sub;
@@ -563,17 +551,28 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		using Ifrit::Engine::Math::ShaderOps::CUDA::multiply;
 		using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
 
-		constexpr uint32_t clipIts = (CU_OPT_HOMOGENEOUS_CLIPPING_NEG_W_ONLY) ? 1 : 7;
-		constexpr int possibleTris = CU_OPT_HOMOGENEOUS_CLIPPING_NEG_W_ONLY ? 4 : 7;
+		constexpr uint32_t clipIts = (CU_OPT_HOMOGENEOUS_CLIPPING_NEG_W_ONLY) ? 2 : 7;
+		constexpr int possibleTris = 7;
 
+		// TODO: NEAR-W PLANE CLIPPING
 		const ifloat4 clipCriteria[7] = {
-			{0,0,0,1e-3},
+			{0,0,0,1},
+			{0,0,0,0},
 			{1,0,0,0},
 			{-1,0,0,0},
 			{0,1,0,0},
 			{0,-1,0,0},
-			{0,0,1,0},
-			{0,0,-1,0}
+			{0,0,1,0}
+		};
+
+		const ifloat4 clipNormal[7] = {
+			{0,0,0,-1},
+			{0,0,-1,0},
+			{1,0,0,0},
+			{-1,0,0,0},
+			{0,1,0,0},
+			{0,-1,0,0},
+			{0,0,1,0}
 		};
 
 		TileRasterClipVertexCUDA retd[possibleTris+1];
@@ -591,10 +590,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		retdIndex[1][1] = 1;
 		int clipTimes = 0;
 		for (int i = 0; i < clipIts; i++) {
-			if (retdIndex[1][0] > 0x7ff) {
-				printf("ERROR1\n");
-			}
-			ifloat4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
+			ifloat4 outNormal = { clipNormal[i].x,clipNormal[i].y,clipNormal[i].z,clipNormal[i].w};
 			ifloat4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
 			const auto cIdx = i & 1, cRIdx = 1 - (i & 1);
 			retCnt[cIdx] = 0;
@@ -606,6 +602,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				auto npn = dot(pn.pos, outNormal);
 				if constexpr (!CU_OPT_HOMOGENEOUS_DISCARD) {
 					if (npc * npn < 0) {
+						
 						ifloat4 dir = sub(pn.pos, pc.pos);
 						float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
 						float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
@@ -620,10 +617,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						retd[retdTriCnt] = newp;
 						retdIndex[cIdx][retCnt[cIdx]++] = retdTriCnt;
 						retdTriCnt++;
+						//printf("CLIPZ: %f %f  %f\n", intersection.z , intersection.w, intersection.z / intersection.w);
 					}
 				}
 				
-				if (npn < CU_EPS) {
+				if (npn < 0) {
 					retdIndex[cIdx][retCnt[cIdx]++] = (j + 1) % psize;
 				}
 				npc = npn;
@@ -667,10 +665,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto invFrameHeight = csFrameHeightInv;
 		const auto invFrameWidth = csFrameWidthInv;
 		for (int i = 0; i < retCnt[clipOdd] - 2; i++) {
-			if (i >= 2) {
-				printf("ERROR CLIPPING\n");
-				return;
-			}
+			
 			uint32_t curIdx = idxSrc + i;
 
 			AssembledTriangleProposalCUDA atri;
@@ -680,6 +675,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const auto dv2 = ret(clipOdd, i + 1).pos;
 			const auto dv3 = ret(clipOdd, i + 2).pos;
 			const auto dv1 = ret(clipOdd, 0).pos;
+
+			if (!devTriangleCull(dv1, dv2, dv3)) {
+				continue;
+			}
 			atri.v1 = dv1.z;
 			atri.v2 = dv2.z;
 			atri.v3 = dv3.z;
@@ -1160,7 +1159,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		int dw = 0;
 		for (int i = 0; i < deviceConstants->totalIndexCount; i += CU_SINGLE_TIME_TRIANGLE * 3) {
 			dw++;
-			if (dw != 47207*2-1)continue; // 94413
+			//if (dw != 741)continue; // 94413
 			auto indexCount = std::min((int)(CU_SINGLE_TIME_TRIANGLE * 3 * aggressiveRatio), deviceConstants->totalIndexCount - i);
 			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
 			Impl::resetLargeTileKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)();
