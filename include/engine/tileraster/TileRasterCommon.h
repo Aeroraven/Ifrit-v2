@@ -70,6 +70,11 @@ namespace Ifrit::Engine::TileRaster {
 		ishort2 px;
 		int primId;
 	};
+	struct TilePixelProposalExperimentalCUDA {
+		int mask;
+		int primId;
+		int subTileId;
+	};
 
 	struct PrimitiveEdgeCoefs {
 		ifloat3 coef[3];

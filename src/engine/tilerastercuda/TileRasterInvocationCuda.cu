@@ -66,6 +66,29 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int prevLevel = putBucket ? (1 << (CU_VECTOR_BASE_LENGTH-1+putBucket)) : 0;
 			data[putBucket][idx - prevLevel] = x;
 		}
+		IFRIT_DEVICE int reserve_back(int v) {
+			auto idx = atomicAdd(&size, v);
+			auto idxs = idx;
+			idx += v - 1;
+			int putBucket = max(0, (31 - (CU_VECTOR_BASE_LENGTH - 1) - __clz(idx)));
+			if (putBucket) {
+				int pralloc = putBucket;
+				if (data[pralloc] == nullptr) {
+					while (atomicCAS(&lock, 0, 1) != 0) {}
+					if (data[pralloc] == nullptr) {
+						data[pralloc] = (T*)malloc(sizeof(T) * (1 << ((CU_VECTOR_BASE_LENGTH - 1) + pralloc)));
+						if (data[pralloc] == nullptr) {
+							printf("ERROR: MALLOC FAILED\n");
+							asm("trap;");
+						}
+					}
+					atomicExch(&lock, 0);
+				}
+			}
+			return idxs;
+		}
+
+
 		IFRIT_DEVICE void write(int v, const T& x) {
 			int putBucket = max(0, (31 - __clz(v)) - (CU_VECTOR_BASE_LENGTH - 1));
 			int prevLevel = putBucket ? (1 << (CU_VECTOR_BASE_LENGTH - 1 + putBucket)) : 0;
@@ -441,9 +464,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				int hei = subTilePixelY2 - subTilePixelY;
 				int tot = wid * hei;
 				IFRIT_ASSUME(tot > 0);
+
+				int dwX = 0;
+				int dwY = 0;
 				for (int i2 = tot - 1; i2 >= 0; i2--) {
-					int dx = subTilePixelX + (uint32_t)i2 % (uint32_t)wid;
-					int dy = subTilePixelY + (uint32_t)i2 / (uint32_t)wid;
+					int dx = subTilePixelX + dwX;
+					int dy = subTilePixelY + dwY;
 					int accept = 0;
 					for (int i = 0; i < 3; i++) {
 						float criteria = edgeCoefs[i].x * dx + edgeCoefs[i].y * dy;
@@ -455,7 +481,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						nprop.primId = primitiveSrcId;
 						dCoverQueuePixelM2[tileId].push_back(nprop);
 					}
+					dwX++;
+					int ds = (dwX == wid);
+					dwY += ds;
+					dwX = (dwX & (ds - 1));
 				}
+				
 			}
 		}
 	}
@@ -698,7 +729,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	}
 
-	IFRIT_KERNEL void secondaryBinnerRasterizerKernel() {
+	IFRIT_KERNEL void secondBinnerRasterizerKernel() {
 		const auto tileIdxX = blockIdx.x ;
 		const auto tileIdxY = blockIdx.y;
 		const auto threadX = threadIdx.x;
@@ -735,7 +766,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		const auto frameWidth = csFrameWidth;
 		const auto frameHeight = csFrameHeight;
-		const auto pixelCandidates = dCoverQueuePixelM2[tileId].getSize();
+		int pixelCandidates;
+
+		pixelCandidates = dCoverQueuePixelM2[tileId].getSize();
 		const auto candidates = dCoverQueuePartialM2[tileId].getSize();
 		const auto completeCandidates =  dCoverQueueFullM2[binId].getSize();
 		const auto largeCandidates = dCoverQueueSuperTileFullM2[superTileId].getSize();
@@ -760,7 +793,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float pDx = 1.0f * pixelXS;
 		float pDy = 1.0f * pixelYS;
 
+		
+
 		auto shadingPass = [&](const AssembledTriangleProposalCUDA& atp) {
+			candidateBary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
+			candidateBary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
+			candidateBary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
 			candidateBary[0] *= atp.w1;
 			candidateBary[1] *= atp.w2;
 			candidateBary[2] *= atp.w3;
@@ -785,25 +823,25 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		};
 
 		auto zPrePass = [&](const AssembledTriangleProposalCUDA& atp,  int primId) {
-			float pos[3];
-			pos[0] = atp.v1;
-			pos[1] = atp.v2;
-			pos[2] = atp.v3;
-
 			float bary[3];
 			float interpolatedDepth;
 
 			bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
 			bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
-			bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
-			interpolatedDepth = bary[0] * pos[0] + bary[1] * pos[1] + bary[2] * pos[2];
+			bary[2] = (atp.f3.x * pDx + atp.f3. y * pDy + atp.f3.z);
+			interpolatedDepth = bary[0] * atp.v1 + bary[1] * atp.v2 + bary[2] * atp.v3;
 
-			if (interpolatedDepth < localDepthBuffer) {
-				localDepthBuffer = interpolatedDepth;
-				candidatePrim = primId;
-				candidateBary[0] = bary[0];
-				candidateBary[1] = bary[1];
-				candidateBary[2] = bary[2];
+			if constexpr (CU_OPT_EXPERIMENTAL_PERFORMANCE) {
+				const auto fp = interpolatedDepth - localDepthBuffer;
+				int cmpv = signbit(fp);
+				localDepthBuffer += cmpv * fp;
+				candidatePrim += cmpv * (primId - candidatePrim);
+			}
+			else {
+				if (interpolatedDepth < localDepthBuffer) {
+					localDepthBuffer = interpolatedDepth;
+					candidatePrim = primId;
+				}
 			}
 		};
 
@@ -858,7 +896,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 		
 		// Pixel Level
-		int log2PixelCandidates = 31 - __clz(max(0,pixelCandidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
+		int log2PixelCandidates = 31 - __clz(max(0, pixelCandidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
+	
+			
 		for (int i = 0; i < log2PixelCandidates; i++) {
 			int dmax = i ? (1 << (i + CU_VECTOR_BASE_LENGTH - 1)) : (1 << (CU_VECTOR_BASE_LENGTH));
 			const auto& data = dCoverQueuePixelM2[tileId].data[i];
@@ -880,10 +920,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const auto atp = dAssembledTriangleM2[proposal.primId];
 			const auto startX = proposal.px.x;
 			const auto startY = proposal.px.y;
+
+			//Bottleneck 1
 			if (pixelXS == startX && pixelYS == startY) {
 				zPrePass(atp, proposal.primId);
 			}
 		}
+		
+
+		
 
 		
 		if (candidatePrim != -1 && localDepthBuffer< compareDepth) {
@@ -1218,7 +1263,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 			Impl::resetLargeTileKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)();
 			Impl::geometryProcessingKernel CU_KARG4(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS, 0, computeStream)(
 				dPositionBuffer, dIndexBuffer,i, indexCount, deviceContext->dDeviceConstants);
-			Impl::secondaryBinnerRasterizerKernel CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(CU_RASTERIZATION_THREADS_PER_TILE, 1, 1), 0, computeStream)();
+			Impl::secondBinnerRasterizerKernel CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(CU_RASTERIZATION_THREADS_PER_TILE, 1, 1), 0, computeStream)();
 			Impl::fragmentShadingKernelPerTile CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(tileSizeX, tileSizeY, 1), 0, computeStream) (
 				dFragmentShader, dIndexBuffer, deviceContext->dVaryingBuffer, dColorBuffer, dDepthBuffer, deviceContext->dDeviceConstants
 			);
