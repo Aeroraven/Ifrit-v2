@@ -117,8 +117,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueFullM2[CU_BIN_SIZE * CU_BIN_SIZE];
 
 	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueSuperTileFullM2[CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE];
-	IFRIT_DEVICE static LocalDynamicVector<TileBinProposalCUDA> dCoverQueuePartialM2[CU_TILE_SIZE * CU_TILE_SIZE];
-	IFRIT_DEVICE static LocalDynamicVector<TilePixelProposalCUDA> dCoverQueuePixelM2[CU_TILE_SIZE * CU_TILE_SIZE];
+	IFRIT_DEVICE static LocalDynamicVector<TilePixelBitProposalCUDA> dCoverQueuePixelM2[CU_TILE_SIZE * CU_TILE_SIZE];
 
 	IFRIT_DEVICE static AssembledTriangleProposalCUDA dAssembledTriangleM2[CU_SINGLE_TIME_TRIANGLE * 2];
 	IFRIT_DEVICE static uint32_t dAssembledTriangleCounterM2;
@@ -413,21 +412,26 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const float dEps = CU_EPS * frameHeight * frameWidth;
 
 		// Decomp into Sub Blocks
-		
-		for (int i = CU_SUBTILE_SIZE * CU_SUBTILE_SIZE - 1 - threadIdx.y; i >= 0; i--) {
+
+		int numSubtilesX = curTileWid / CU_EXPERIMENTAL_SUBTILE_WIDTH + (curTileWid % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
+		int numSubtilesY = curTileHei / CU_EXPERIMENTAL_SUBTILE_WIDTH + (curTileHei % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
+		bool isFitX = (curTileWid % CU_EXPERIMENTAL_SUBTILE_WIDTH == 0);
+		bool isFitY = (curTileHei % CU_EXPERIMENTAL_SUBTILE_WIDTH == 0);
+
+		for (int i = numSubtilesX * numSubtilesY - 1; i >= 0; i--) {
 			int criteriaTR = 0;
 			int criteriaTA = 0;
 
-			auto subTileIX = i % CU_SUBTILE_SIZE;
-			auto subTileIY = i / CU_SUBTILE_SIZE;
-			auto subTileTX = (tileIdX * CU_SUBTILE_SIZE + subTileIX);
-			auto subTileTY = (tileIdY * CU_SUBTILE_SIZE + subTileIY);
+			auto subTileIX = i % numSubtilesX;
+			auto subTileIY = i / numSubtilesX;
 
-			const int wp = (CU_SUBTILE_SIZE * CU_TILE_SIZE);
-			int subTilePixelX = curTileX + (curTileWid * subTileIX >> CU_SUBTILE_SIZE_LOG);
-			int subTilePixelY = curTileY + (curTileHei * subTileIY >> CU_SUBTILE_SIZE_LOG);
-			int subTilePixelX2 = curTileX + (curTileWid * (subTileIX + 1) >> CU_SUBTILE_SIZE_LOG);
-			int subTilePixelY2 = curTileY + (curTileHei * (subTileIY + 1) >> CU_SUBTILE_SIZE_LOG);
+			int subTilePixelX = curTileX + subTileIX * CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			int subTilePixelY = curTileY + subTileIY * CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			int subTilePixelX2 = curTileX + (subTileIX + 1) * CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			int subTilePixelY2 = curTileY + (subTileIY + 1) * CU_EXPERIMENTAL_SUBTILE_WIDTH;
+
+			subTilePixelX2 = min(subTilePixelX2, curTileX2);
+			subTilePixelY2 = min(subTilePixelY2, curTileY2);
 
 			float subTileMinX = 1.0f * subTilePixelX;
 			float subTileMinY = 1.0f * subTilePixelY;
@@ -451,12 +455,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if (criteriaTR != 3) {
 				continue;
 			}
+	
+			int mask = (i << CU_EXPERIMENTAL_PIXELS_PER_SUBTILE);
 			if (criteriaTA == 3) {
-				TileBinProposalCUDA nprop;
-				nprop.tileEnd = { (short)(subTilePixelX2 - 1),(short)(subTilePixelY2 - 1) };
-				nprop.tile = { (short)subTilePixelX,(short)subTilePixelY };
-				nprop.primId = primitiveSrcId;
-				dCoverQueuePartialM2[tileId].push_back(nprop);
+				mask |= ((1 << CU_EXPERIMENTAL_PIXELS_PER_SUBTILE) - 1);
 			}
 			else {
 				//Into Pixel level
@@ -467,6 +469,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 				int dwX = 0;
 				int dwY = 0;
+				
 				for (int i2 = tot - 1; i2 >= 0; i2--) {
 					int dx = subTilePixelX + dwX;
 					int dy = subTilePixelY + dwY;
@@ -475,19 +478,18 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						float criteria = edgeCoefs[i].x * dx + edgeCoefs[i].y * dy;
 						accept += criteria < edgeCoefs[i].z;
 					}
-					if (accept == 3) {
-						TilePixelProposalCUDA nprop;
-						nprop.px = { (short)dx,(short)dy };
-						nprop.primId = primitiveSrcId;
-						dCoverQueuePixelM2[tileId].push_back(nprop);
-					}
+					int cond = (accept == 3);
+					mask |= (cond << (dwY * CU_EXPERIMENTAL_SUBTILE_WIDTH + dwX));
 					dwX++;
 					int ds = (dwX == wid);
 					dwY += ds;
 					dwX = (dwX & (ds - 1));
 				}
-				
 			}
+			TilePixelBitProposalCUDA nprop;
+			nprop.mask = mask;
+			nprop.primId = primitiveSrcId;
+			dCoverQueuePixelM2[tileId].push_back(nprop);
 		}
 	}
  
@@ -519,12 +521,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 		auto s = *reinterpret_cast<const ifloat4*>(vertexInputPtrs[0]);
 		vertexShader->execute(vertexInputPtrs, &dPosBuffer[globalInvoIdx], varyingOutputPtrs);
-
-		s = dPosBuffer[globalInvoIdx];
-		s.x /= s.w;
-		s.y /= s.w;
-		s.z /= s.w;
-
 	}
 
 	IFRIT_KERNEL void geometryProcessingKernel(
@@ -766,11 +762,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		const auto frameWidth = csFrameWidth;
 		const auto frameHeight = csFrameHeight;
-		int pixelCandidates;
-
-		pixelCandidates = dCoverQueuePixelM2[tileId].getSize();
-		const auto candidates = dCoverQueuePartialM2[tileId].getSize();
-		const auto completeCandidates =  dCoverQueueFullM2[binId].getSize();
+		const int pixelCandidates = dCoverQueuePixelM2[tileId].getSize();
+		const auto completeCandidates = dCoverQueueFullM2[binId].getSize();
 		const auto largeCandidates = dCoverQueueSuperTileFullM2[superTileId].getSize();
 
 		constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
@@ -858,77 +851,52 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const auto atp = dAssembledTriangleM2[proposal];
 			zPrePass(atp, proposal);
 		}
-
-
-		// Sub-tile Level
-		int log2SubTileCandidates = 31 - __clz(max(0, candidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
-		for (int i = 0; i < log2SubTileCandidates; i++) {
-			int dmax = i ? (1 << (i + CU_VECTOR_BASE_LENGTH - 1)) : (1 << (CU_VECTOR_BASE_LENGTH));
-			const auto& data = dCoverQueuePartialM2[tileId].data[i];
-			for (int j = 0; j < dmax; j++) {
-				const auto proposal = data[j];
-				const auto atp = dAssembledTriangleM2[proposal.primId];
-				const auto startX = proposal.tile.x;
-				const auto startY = proposal.tile.y;
-				const auto endX = proposal.tileEnd.x;
-				const auto endY = proposal.tileEnd.y;
-
-				if (startX <= pixelXS && pixelXS <= endX && startY <= pixelYS && pixelYS <= endY) {
-					zPrePass(atp, proposal.primId);
-				}
-			}
-		}
-
-		int processedSubtileProposals = log2SubTileCandidates ? (1 << (log2SubTileCandidates + CU_VECTOR_BASE_LENGTH - 1)) : 0;
-		const auto& dataSubtile = dCoverQueuePartialM2[tileId].data[log2SubTileCandidates];
-		const auto limSubtile = candidates - processedSubtileProposals;
-		for (int i = 0; i < limSubtile; i++) {
-			const auto proposal = dataSubtile[i];
-			const auto atp = dAssembledTriangleM2[proposal.primId];
-			const auto startX = proposal.tile.x;
-			const auto startY = proposal.tile.y;
-			const auto endX = proposal.tileEnd.x;
-			const auto endY = proposal.tileEnd.y;
-
-			if (startX <= pixelXS && pixelXS <= endX && startY <= pixelYS && pixelYS <= endY) {
-				zPrePass(atp, proposal.primId);
-			}
-		}
 		
 		// Pixel Level
-		int log2PixelCandidates = 31 - __clz(max(0, pixelCandidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
-	
-			
-		for (int i = 0; i < log2PixelCandidates; i++) {
-			int dmax = i ? (1 << (i + CU_VECTOR_BASE_LENGTH - 1)) : (1 << (CU_VECTOR_BASE_LENGTH));
-			const auto& data = dCoverQueuePixelM2[tileId].data[i];
-			for (int j = 0; j < dmax; j++) {
-				const auto proposal = data[j];
+		if constexpr (true) {
+			auto curTileX = (tileX + 0) * frameWidth / CU_TILE_SIZE;
+			auto curTileY = (tileY + 0) * frameHeight / CU_TILE_SIZE;
+			auto curTileX2 = (tileX + 1) * frameWidth / CU_TILE_SIZE;
+			auto curTileY2 = (tileY + 1) * frameHeight / CU_TILE_SIZE;
+			auto curTileWid = curTileX2 - curTileX;
+			auto curTileHei = curTileY2 - curTileY;
+			int numSubtilesX = curTileWid / CU_EXPERIMENTAL_SUBTILE_WIDTH + (curTileWid % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
+			int numSubtilesY = curTileHei / CU_EXPERIMENTAL_SUBTILE_WIDTH + (curTileHei % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
+			int log2PixelCandidates = 31 - __clz(max(0, pixelCandidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
+			int inTileX = pixelXS - tileX * frameWidth / CU_TILE_SIZE;
+			int inTileY = pixelYS - tileY * frameHeight / CU_TILE_SIZE;
+			int inSubTileX = inTileX / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			int inSubTileY = inTileY / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			int inSubTileId = inSubTileY * numSubtilesX + inSubTileX;
+			int dwX = inTileX % CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			int dwY = inTileY % CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			int dwId = dwY * CU_EXPERIMENTAL_SUBTILE_WIDTH + dwX;
+			int dwMask = (1 << dwId);
+			for (int i = 0; i < log2PixelCandidates; i++) {
+				int dmax = i ? (1 << (i + CU_VECTOR_BASE_LENGTH - 1)) : (1 << (CU_VECTOR_BASE_LENGTH));
+				const auto& data = dCoverQueuePixelM2[tileId].data[i];
+				for (int j = 0; j < dmax; j++) {
+					const auto proposal = data[j];
+					const auto atp = dAssembledTriangleM2[proposal.primId];
+					const auto inSubBlockId = proposal.mask >> CU_EXPERIMENTAL_PIXELS_PER_SUBTILE;
+					if ((proposal.mask & dwMask) == dwMask && inSubBlockId == inSubTileId) {
+						zPrePass(atp, proposal.primId);
+					}
+				}
+			}
+			int processedPixelProposals = log2PixelCandidates ? (1 << (log2PixelCandidates + CU_VECTOR_BASE_LENGTH - 1)) : 0;
+			const auto& dataPixel = dCoverQueuePixelM2[tileId].data[log2PixelCandidates];
+			const auto limPixel = pixelCandidates - processedPixelProposals;
+			for (int i = 0; i < limPixel; i++) {
+				const auto proposal = dataPixel[i];
 				const auto atp = dAssembledTriangleM2[proposal.primId];
-				const auto startX = proposal.px.x;
-				const auto startY = proposal.px.y;
-				if (pixelXS == startX && pixelYS == startY) {
+				const auto inSubBlockId = proposal.mask >> CU_EXPERIMENTAL_PIXELS_PER_SUBTILE;
+				if ((proposal.mask & dwMask) == dwMask && inSubBlockId == inSubTileId) {
 					zPrePass(atp, proposal.primId);
 				}
 			}
-		}
-		int processedPixelProposals = log2PixelCandidates ? (1 << (log2PixelCandidates + CU_VECTOR_BASE_LENGTH - 1)) : 0;
-		const auto& dataPixel = dCoverQueuePixelM2[tileId].data[log2PixelCandidates];
-		const auto limPixel = pixelCandidates - processedPixelProposals;
-		for (int i = 0; i < limPixel; i++) {
-			const auto proposal = dataPixel[i];
-			const auto atp = dAssembledTriangleM2[proposal.primId];
-			const auto startX = proposal.px.x;
-			const auto startY = proposal.px.y;
-
-			//Bottleneck 1
-			if (pixelXS == startX && pixelYS == startY) {
-				zPrePass(atp, proposal.primId);
-			}
-		}
 		
-
-		
+		}
 
 		
 		if (candidatePrim != -1 && localDepthBuffer< compareDepth) {
@@ -937,7 +905,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 
 		if (threadX == 0) {
-			dCoverQueuePartialM2[tileId].clear();
 			dCoverQueuePixelM2[tileId].clear();
 			dAssembledTriangleCounterM2 = 0;
 		}
@@ -946,7 +913,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_KERNEL void integratedResetKernel() {
 		const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
 		dAssembledTriangleCounterM2 = 0;
-		dCoverQueuePartialM2[globalInvocation].clear();
 		dCoverQueuePixelM2[globalInvocation].clear();
 		if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
 			dCoverQueueSuperTileFullM2[globalInvocation].clear();
@@ -960,7 +926,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_KERNEL void integratedInitKernel() {
 		const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
 		dAssembledTriangleCounterM2 = 0;
-		dCoverQueuePartialM2[globalInvocation].initialize();
 		dCoverQueuePixelM2[globalInvocation].initialize();
 		if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
 			dCoverQueueSuperTileFullM2[globalInvocation].initialize();
