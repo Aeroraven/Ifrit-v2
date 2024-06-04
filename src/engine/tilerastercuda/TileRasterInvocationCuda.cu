@@ -318,6 +318,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		auto frameBufferHeight = csFrameHeight;
 		devGetAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
+		//printf("BBox: X=%d->%d, Y=%d->%d\n", tileMiny, tileMaxy, tileMinx, tileMaxx);
 		for (int y = tileMiny; y <= tileMaxy; y++) {
 
 			auto curTileY = y * frameBufferHeight / CU_BIN_SIZE;

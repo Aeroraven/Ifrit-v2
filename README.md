@@ -39,11 +39,11 @@ Successor to following repos:
 
 Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 F32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored.
 
-| Model                     | CPU Single Thread | CPU Multi-thread | CUDA w/ Copy-back | CUDA w/o Copy-back |
-| ------------------------- | ----------------- | ---------------- | ----------------- | ------------------ |
-| Yomiya (70275 Triangles)  | 38 FPS            | 80 FPS           | 123 FPS           | 900 FPS            |
-| Bunny (208353 Triangles)  | 20 FPS            | 80 FPS           | 124 FPS           | 625 FPS            |
-| Sponza (786801 Triangles) | *                 | *                | 123 FPS           | 178 FPS            |
+| Model (Triangles) | CPU Single Thread | CPU Multi-thread | CUDA w/ Copy-back | CUDA w/o Copy-back |
+| ----------------- | ----------------- | ---------------- | ----------------- | ------------------ |
+| Yomiya (70275)    | 38 FPS            | 80 FPS           | 123 FPS           | 900 FPS            |
+| Bunny (208353)    | 20 FPS            | 80 FPS           | 124 FPS           | 625 FPS            |
+| Sponza (786801)   | *                 | *                | 123 FPS           | 178 FPS            |
 
 *. Geometry clipping stage in CPU renderer is buggy currently.
 
