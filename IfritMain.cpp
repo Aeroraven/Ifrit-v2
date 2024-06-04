@@ -31,9 +31,10 @@ enum PresentEngine {
 PresentEngine presentEngine = PE_GLFW;
 //float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 //float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
-float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
+//float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
 //float4x4 view = (lookAt({ 0,0.75,1.50}, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
 //float4x4 view = (lookAt({ 0,0.0,1.25 }, { 0,0.0,0.0 }, { 0,1,0 }));
+float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
 float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 0.1, 4000));
 float4x4 model;
 float4x4 mvp = multiply(proj, view);
@@ -72,7 +73,7 @@ int mainCpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj",pos,normal,uv,index);
+	loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj",pos,normal,uv,index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 	std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
@@ -205,6 +206,7 @@ int mainGpu() {
 	for (int i = 0; i < index.size(); i += 3) { //index.size()
 		indexBuffer[i / 3] = index[i];
 	}
+	printf("Total Triangles:%d\n", index.size() / 3);
 
 	frameBuffer.setColorAttachments({ image1 });
 	frameBuffer.setDepthAttachment(depth);

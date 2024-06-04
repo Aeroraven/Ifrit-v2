@@ -140,7 +140,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	}
 
 	IFRIT_DEVICE void devGetAcceptRejectCoords(ifloat3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3]) {
-		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
+		constexpr const int VLB = 0, VLT = 1, VRT = 3, VRB = 2;
 		for (int i = 0; i < 3; i++) {
 			bool normalRight = edgeCoefs[i].x < 0;
 			bool normalDown = edgeCoefs[i].y < 0;
@@ -219,6 +219,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto curTileLargeY2 = (y + 1) * frameBufferHeight / CU_LARGE_BIN_SIZE;
 			auto cty1 = 1.0f * curTileLargeY, cty2 = 1.0f * (curTileLargeY2 - 1);
 
+			float criteriaTRLocalY[3];
+			float criteriaTALocalY[3];
+
+#define getY(w) (((w)&1)?cty1:cty2)
+			for (int i = 0; i < 3; i++) {
+				criteriaTRLocalY[i] = edgeCoefs[i].y * getY(chosenCoordTR[i]);
+				criteriaTALocalY[i] = edgeCoefs[i].y * getY(chosenCoordTA[i]);
+			}
+#undef getY
 			for (int x = tileLargeMinx; x <= tileLargeMaxx; x++) {
 
 				auto curTileLargeX = x * frameBufferWidth / CU_LARGE_BIN_SIZE;
@@ -226,18 +235,17 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				auto ctx1 = 1.0f * curTileLargeX;
 				auto ctx2 = 1.0f * (curTileLargeX2 - 1);
 
-				tileCoordsT[VLT] = { ctx1, cty1 };
-				tileCoordsT[VLB] = { ctx1, cty2 };
-				tileCoordsT[VRB] = { ctx2, cty2 };
-				tileCoordsT[VRT] = { ctx2, cty1 };
-
 				int criteriaTR = 0, criteriaTA = 0;
+
+#define getX(w) (((w)>>1)?ctx2:ctx1)
 				for (int i = 0; i < 3; i++) {
-					float criteriaTRLocal = edgeCoefs[i].x * tileCoordsT[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoordsT[chosenCoordTR[i]].y;
-					float criteriaTALocal = edgeCoefs[i].x * tileCoordsT[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoordsT[chosenCoordTA[i]].y;
+					float criteriaTRLocal = edgeCoefs[i].x * getX(chosenCoordTR[i]) + criteriaTRLocalY[i];
+					float criteriaTALocal = edgeCoefs[i].x * getX(chosenCoordTA[i]) + criteriaTALocalY[i];
 					criteriaTR += criteriaTRLocal < edgeCoefs[i].z;
 					criteriaTA += criteriaTALocal < edgeCoefs[i].z;
 				}
+#undef getX
+
 				if (criteriaTR != 3)
 					continue;
 				auto tileLargeId = y * CU_LARGE_BIN_SIZE + x;
@@ -257,18 +265,17 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 							auto ctx1 = 1.0f * curTileX;
 							auto ctx2 = 1.0f * (curTileX2 - 1);
 
-							tileCoordsS[VLT] = { ctx1, cty1 };
-							tileCoordsS[VLB] = { ctx1, cty2 };
-							tileCoordsS[VRB] = { ctx2, cty2 };
-							tileCoordsS[VRT] = { ctx2, cty1 };
-
 							int criteriaTR = 0, criteriaTA = 0;
+#define getX(w) (((w)>>1)?ctx2:ctx1)
+#define getY(w) (((w)&1)?cty1:cty2)
 							for (int i = 0; i < 3; i++) {
-								float criteriaTRLocal = edgeCoefs[i].x * tileCoordsS[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoordsS[chosenCoordTR[i]].y;
-								float criteriaTALocal = edgeCoefs[i].x * tileCoordsS[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoordsS[chosenCoordTA[i]].y;
+								float criteriaTRLocal = edgeCoefs[i].x * getX(chosenCoordTR[i]) + edgeCoefs[i].y * getY(chosenCoordTR[i]);
+								float criteriaTALocal = edgeCoefs[i].x * getX(chosenCoordTA[i]) + edgeCoefs[i].y * getY(chosenCoordTA[i]);
 								criteriaTR += criteriaTRLocal < edgeCoefs[i].z;
 								criteriaTA += criteriaTALocal < edgeCoefs[i].z;
 							}
+#undef getX
+#undef getY
 							if (criteriaTR != 3)
 								continue;
 							auto tileId = ty * CU_BIN_SIZE + tx;
@@ -289,7 +296,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	}
 
 	IFRIT_DEVICE void devExecuteBinner(int primitiveId, const AssembledTriangleProposalCUDA& atp,irect2Df bbox) {
-		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
+		constexpr const int VLB = 0, VLT = 1, VRT = 3, VRB = 2;
 		float minx = bbox.x;
 		float miny = bbox.y;
 		float maxx = bbox.w;
@@ -305,9 +312,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		edgeCoefs[1] = atp.e2;
 		edgeCoefs[2] = atp.e3;
 
-		ifloat2 tileCoords[4];
-
-
 		int chosenCoordTR[3];
 		int chosenCoordTA[3];
 		auto frameBufferWidth = csFrameWidth;
@@ -320,24 +324,30 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto curTileY2 = (y + 1) * frameBufferHeight / CU_BIN_SIZE;
 			auto cty1 = 1.0f * curTileY,cty2 = 1.0f * (curTileY2 - 1);
 
+			float criteriaTRLocalY[3];
+			float criteriaTALocalY[3];
+#define getY(w) (((w)&1)?cty1:cty2)
+			for(int i = 0; i < 3; i++) {
+				criteriaTRLocalY[i] = edgeCoefs[i].y * getY(chosenCoordTR[i]);
+				criteriaTALocalY[i] = edgeCoefs[i].y * getY(chosenCoordTA[i]);
+			}
+#undef getY
 			for (int x = tileMinx; x <= tileMaxx; x++) {
 				auto curTileX = x * frameBufferWidth / CU_BIN_SIZE;
 				auto curTileX2 = (x + 1) * frameBufferWidth / CU_BIN_SIZE;
 				auto ctx1 = 1.0f * curTileX;
 				auto ctx2 = 1.0f * (curTileX2-1);
-
-				tileCoords[VLT] = { ctx1, cty1 };
-				tileCoords[VLB] = { ctx1, cty2 };
-				tileCoords[VRB] = { ctx2, cty2 };
-				tileCoords[VRT] = { ctx2, cty1 };
-
 				int criteriaTR = 0,criteriaTA = 0;
+
+#define getX(w) (((w)>>1)?ctx2:ctx1)
 				for (int i = 0; i < 3; i++) {
-					float criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y;
-					float criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y;
+					float criteriaTRLocal = edgeCoefs[i].x * getX(chosenCoordTR[i]) + criteriaTRLocalY[i];
+					float criteriaTALocal = edgeCoefs[i].x * getX(chosenCoordTA[i]) + criteriaTALocalY[i];
 					criteriaTR += criteriaTRLocal < edgeCoefs[i].z;
 					criteriaTA += criteriaTALocal < edgeCoefs[i].z;
 				}
+#undef getX
+
 				if (criteriaTR != 3) 
 					continue;
 				auto tileId = y * CU_BIN_SIZE + x;
@@ -347,7 +357,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				else {
 					dRasterQueueM2[tileId].push_back(primitiveId);
 				}
-					
 			}
 		}
 	}
@@ -379,7 +388,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		uint32_t invoId,
 		uint32_t totalBound
 	) {
-		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
+		constexpr const int VLB = 0, VLT = 1, VRT = 3, VRB = 2;
 
 		auto globalInvocation = invoId;
 		if (globalInvocation > totalBound)return;
@@ -530,6 +539,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		uint32_t indexCount,
 		TileRasterDeviceConstants* deviceConstants
 	) {
+		
 		const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
 		if(globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
 
@@ -537,7 +547,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		ifloat4 v1 = dPosBuffer[dIndexBuffer[indexStart]];
 		ifloat4 v2 = dPosBuffer[dIndexBuffer[indexStart + 1]];
 		ifloat4 v3 = dPosBuffer[dIndexBuffer[indexStart + 2]];
-		//printf("%d %d %d\n", dIndexBuffer[indexStart], dIndexBuffer[indexStart + 1], dIndexBuffer[indexStart + 2]);
+		
 		if (csCounterClosewiseCull) {
 			ifloat4 temp = v1;
 			v1 = v3;
@@ -545,6 +555,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 		const auto primId = globalInvoIdx + startingIndexId / CU_TRIANGLE_STRIDE;
 		
+		if (v1.w < 0 && v2.w < 0 && v3.w < 0) {
+			
+			return;
+		}
 
 		using Ifrit::Engine::Math::ShaderOps::CUDA::dot;
 		using Ifrit::Engine::Math::ShaderOps::CUDA::sub;
@@ -816,6 +830,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		};
 
 		auto zPrePass = [&](const AssembledTriangleProposalCUDA& atp,  int primId) {
+			
 			float bary[3];
 			float interpolatedDepth;
 
@@ -1265,7 +1280,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		static long long wt = 0;
 		w += copybackTimes;
 		wt += 1;
-		printf("AvgTime:%lld\n", w / wt);
+		printf("AvgTime:%lld, FPS=%f\n", w / wt, 1000000.0f / w * wt);
 		//printf("Memcpy,Compute,Copyback,Counter: %lld,%lld,%lld,%d\n", memcpyTimes, computeTimes, copybackTimes,cntw);
 	}
 }
