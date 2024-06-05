@@ -41,9 +41,9 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 F32 Depth Attachment. Ti
 
 | Model (Triangles) | CPU Single Thread | CPU Multi-thread | CUDA w/ Copy-back | CUDA w/o Copy-back |
 | ----------------- | ----------------- | ---------------- | ----------------- | ------------------ |
-| Yomiya (70275)    | 38 FPS            | 80 FPS           | 123 FPS           | 900 FPS            |
-| Bunny (208353)    | 20 FPS            | 80 FPS           | 124 FPS           | 625 FPS            |
-| Sponza (786801)   | *                 | *                | 123 FPS           | 178 FPS            |
+| Yomiya (70275)    | 38 FPS            | 80 FPS           | 123 FPS           | 400 FPS            |
+| Bunny (208353)    | 20 FPS            | 80 FPS           | 124 FPS           | 320 FPS            |
+| Sponza (786801)   | *                 | *                | 123 FPS           | 245 FPS            |
 
 *. Geometry clipping stage in CPU renderer is buggy currently.
 

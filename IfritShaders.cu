@@ -13,7 +13,6 @@ IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4*
 	auto s = *reinterpret_cast<const ifloat4*>(input[0]);
 	auto p = multiply(mvp, s);
 	*outPos = p;
-
 	outVaryings[0]->vf4 = *reinterpret_cast<const ifloat4*>(input[1]);
 }
 IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {

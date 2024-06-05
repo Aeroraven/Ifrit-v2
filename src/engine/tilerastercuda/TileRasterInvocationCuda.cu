@@ -1321,7 +1321,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		std::chrono::steady_clock::time_point end2 = std::chrono::steady_clock::now();
 		if (doubleBuffering) {
 			for (int i = 0; i < dHostColorBufferSize; i++) {
-				//cudaMemcpyAsync(hColorBuffer[i], dLastColorBuffer[i], Impl::hsFrameWidth * Impl::hsFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost, copyStream);
+				cudaMemcpyAsync(hColorBuffer[i], dLastColorBuffer[i], Impl::hsFrameWidth * Impl::hsFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost, copyStream);
 			}
 		}
 		cudaStreamSynchronize(computeStream);
