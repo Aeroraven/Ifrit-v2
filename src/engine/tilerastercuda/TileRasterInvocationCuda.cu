@@ -790,7 +790,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		for (int i = threadX; i < sdRastCandidates; i+= blockX) {
 			devTilingRasterizationChildProcess(tileIdxX, tileIdxY, i, sdRastCandidates);
 		}
-
 	}
 
 
@@ -1044,9 +1043,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	}
 
-	IFRIT_KERNEL void imageResetFloat32Kernel(
+	IFRIT_KERNEL void imageResetFloat32MonoKernel(
 		float* dBuffer,
-		uint32_t channels,
 		float value
 	) {
 		const auto invoX = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1054,9 +1052,23 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		if (invoX >= csFrameWidth || invoY >= csFrameHeight) {
 			return;
 		}
-		for(int i=0;i<channels;i++) {
-			dBuffer[(invoY * csFrameWidth + invoX) * channels + i] = value;
+		dBuffer[(invoY * csFrameWidth + invoX)] = value;
+	}
+
+	IFRIT_KERNEL void imageResetFloat32RGBAKernel(
+		float* dBuffer,
+		float value
+	) {
+		const auto invoX = blockIdx.x * blockDim.x + threadIdx.x;
+		const auto invoY = blockIdx.y * blockDim.y + threadIdx.y;
+		if (invoX >= csFrameWidth || invoY >= csFrameHeight) {
+			return;
 		}
+		const auto dAlignedBuffer = static_cast<float*>(__builtin_assume_aligned(dBuffer, 16));
+		dBuffer[(invoY * csFrameWidth + invoX) * 4 + 0] = value;
+		dBuffer[(invoY * csFrameWidth + invoX) * 4 + 1] = value;
+		dBuffer[(invoY * csFrameWidth + invoX) * 4 + 2] = value;
+		dBuffer[(invoY * csFrameWidth + invoX) * 4 + 3] = value;
 	}
 
 	IFRIT_KERNEL void testingKernel() {
@@ -1259,8 +1271,6 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 			Impl::integratedInitKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE,0, computeStream)();
 			cudaDeviceSynchronize();
 			printf("CUDA Init Done\n");
-
-			
 			secondPass = 1;
 		}
 		
@@ -1274,12 +1284,12 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		int dispatchBlocksX = (Impl::hsFrameWidth / dispatchThreadsX) + ((Impl::hsFrameWidth % dispatchThreadsX) != 0);
 		int dispatchBlocksY = (Impl::hsFrameHeight / dispatchThreadsY) + ((Impl::hsFrameHeight % dispatchThreadsY) != 0);
 		
-		Impl::imageResetFloat32Kernel CU_KARG4(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY), 0, computeStream)(
-			dDepthBuffer, 1, 255.0f
+		Impl::imageResetFloat32MonoKernel CU_KARG4(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY), 0, computeStream)(
+			dDepthBuffer, 255.0f
 		);
 		for (int i = 0; i < dHostColorBufferSize; i++) {
-			Impl::imageResetFloat32Kernel CU_KARG4(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY), 0, computeStream)(
-				(float*)dHostColorBuffer[i], 4, 0.0f
+			Impl::imageResetFloat32RGBAKernel CU_KARG4(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY), 0, computeStream)(
+				(float*)dHostColorBuffer[i], 0.0f
 			);
 		}
 		int vertexExecutionBlocks = (deviceConstants->vertexCount / CU_VERTEX_PROCESSING_THREADS) + ((deviceConstants->vertexCount % CU_VERTEX_PROCESSING_THREADS) != 0);

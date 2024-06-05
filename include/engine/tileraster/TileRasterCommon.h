@@ -46,7 +46,6 @@ namespace Ifrit::Engine::TileRaster {
 		ifloat3 e1, e2, e3; //Edge Coefs
 		ifloat3 f1, f2, f3; //Interpolate Bases
 		int originalPrimitive;
-		int dummy;
 	};
 
 	struct AssembledTriangleProposalReference {
