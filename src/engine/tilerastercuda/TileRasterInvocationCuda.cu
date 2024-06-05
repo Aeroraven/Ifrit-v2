@@ -121,6 +121,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	IFRIT_DEVICE static AssembledTriangleProposalCUDA dAssembledTriangleM2[CU_SINGLE_TIME_TRIANGLE * 2];
 	IFRIT_DEVICE static uint32_t dAssembledTriangleCounterM2;
+	IFRIT_DEVICE static float dHierarchicalDepthTile[CU_TILE_SIZE * CU_TILE_SIZE];
+	IFRIT_DEVICE static int dOverDrawCounter;
+	IFRIT_DEVICE static int dOverZTestCounter;
+
 
 	IFRIT_DEVICE float devEdgeFunction(ifloat4 a, ifloat4 b, ifloat4 c) {
 		return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
@@ -395,6 +399,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		if (globalInvocation > totalBound)return;
 
 		const auto tileId = tileIdY * CU_TILE_SIZE + tileIdX;
+
 		const auto binId = tileIdY / CU_TILES_PER_BIN * CU_BIN_SIZE + tileIdX / CU_TILES_PER_BIN;
 
 		const auto frameWidth = csFrameWidth;
@@ -407,6 +412,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		edgeCoefs[0] = atri.e1;
 		edgeCoefs[1] = atri.e2;
 		edgeCoefs[2] = atri.e3;
+		
 
 		int chosenCoordTR[3];
 		int chosenCoordTA[3];
@@ -828,6 +834,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 			fragmentShader->execute(interpolatedVaryings, &colorOutputSingle);
 			dColorBuffer[0][pixelYS * frameWidth + pixelXS] = colorOutputSingle;
+
+			atomicAdd(&dOverDrawCounter, 1);
 		};
 
 		auto zPrePass = [&](const AssembledTriangleProposalCUDA& atp,  int primId) {
@@ -852,6 +860,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					candidatePrim = primId;
 				}
 			}
+
+			atomicAdd(&dOverZTestCounter, 1);
 		};
 
 		// Large Bin Level
@@ -925,6 +935,25 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dAssembledTriangleCounterM2 = 0;
 		}
 	}
+	IFRIT_KERNEL void updateHierZBuffer(float* depthBuffer) {
+		const auto tileIdX = blockIdx.x;
+		const auto tileIdY = threadIdx.x;
+		const auto tileId = tileIdY * CU_TILE_SIZE + tileIdX;
+		
+		auto curTileX = tileIdX * csFrameWidth / CU_TILE_SIZE;
+		auto curTileY = tileIdY * csFrameHeight / CU_TILE_SIZE;
+		auto curTileX2 = (tileIdX + 1) * csFrameWidth / CU_TILE_SIZE;
+		auto curTileY2 = (tileIdY + 1) * csFrameHeight / CU_TILE_SIZE;
+
+		auto minv = 0.0f;
+		for (int i = curTileX; i < curTileX2; i++) {
+			for (int j = curTileY; j < curTileY2; j++) {
+				minv = max(minv, depthBuffer[j * csFrameWidth + i]);
+			}
+		}
+		//printf("%d %d %d %d %d %d %d # %f\n", curTileX, curTileX2, curTileY, curTileY2, tileIdX, tileIdY, tileId, minv);
+		dHierarchicalDepthTile[tileId] = minv;
+	}
 
 	IFRIT_KERNEL void integratedResetKernel() {
 		const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
@@ -937,6 +966,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dCoverQueueFullM2[globalInvocation].clear();
 			dRasterQueueM2[globalInvocation].clear();
 		}
+		if (blockIdx.x == 0 && threadIdx.x == 0) {
+			printf("Overdraw Rate:%f\n", dOverDrawCounter * 1.0f / 2048.0f / 2048.0f);
+			printf("Overtest Rate:%f\n", dOverZTestCounter * 1.0f / 2048.0f / 2048.0f);
+			dOverDrawCounter = 0;
+			dOverZTestCounter = 0;
+		}
+		
 	}
 
 	IFRIT_KERNEL void integratedInitKernel() {
@@ -1218,7 +1254,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		constexpr int dispatchThreadsY = 8;
 		int dispatchBlocksX = (Impl::hsFrameWidth / dispatchThreadsX) + ((Impl::hsFrameWidth % dispatchThreadsX) != 0);
 		int dispatchBlocksY = (Impl::hsFrameHeight / dispatchThreadsY) + ((Impl::hsFrameHeight % dispatchThreadsY) != 0);
-
+		
 		Impl::imageResetFloat32Kernel CU_KARG4(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY), 0, computeStream)(
 			dDepthBuffer, 1, 255.0f
 		);
@@ -1238,9 +1274,9 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		int dw = 0;
 		for (int i = 0; i < deviceConstants->totalIndexCount; i += CU_SINGLE_TIME_TRIANGLE * 3) {
 			dw++;
-			//if (dw != 741)continue; // 94413
 			auto indexCount = std::min((int)(CU_SINGLE_TIME_TRIANGLE * 3 * aggressiveRatio), deviceConstants->totalIndexCount - i);
 			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
+			
 			Impl::resetLargeTileKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)();
 			Impl::geometryProcessingKernel CU_KARG4(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS, 0, computeStream)(
 				dPositionBuffer, dIndexBuffer,i, indexCount, deviceContext->dDeviceConstants);

@@ -39,6 +39,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_CUDA_PROFILE = true;
 	constexpr bool CU_OPT_PREALLOCATED_TRIANGLE_LIST = true;
 	constexpr bool CU_OPT_EXPERIMENTAL_PERFORMANCE = true;
+	constexpr bool CU_OPT_HIER_Z_CULL = true;
 
 	// == Experimental ==
 	constexpr int CU_EXPERIMENTAL_SUBTILE_WIDTH = 4;
