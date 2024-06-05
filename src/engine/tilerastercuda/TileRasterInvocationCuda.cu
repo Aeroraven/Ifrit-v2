@@ -435,12 +435,18 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		bool isFitX = (curTileWid % CU_EXPERIMENTAL_SUBTILE_WIDTH == 0);
 		bool isFitY = (curTileHei % CU_EXPERIMENTAL_SUBTILE_WIDTH == 0);
 
-		for (int i = numSubtilesX * numSubtilesY - 1; i >= 0; i--) {
+		const auto numLim = numSubtilesX * numSubtilesY;
+		auto subTileIX = -1;
+		auto subTileIY = 0;
+		for (int i = 0; i < numLim; i++) {
+
+			subTileIX++;
+			int dsX = (subTileIX == numSubtilesX);
+			subTileIY += dsX;
+			subTileIX = (subTileIX & (dsX - 1));
+
 			int criteriaTR = 0;
 			int criteriaTA = 0;
-
-			auto subTileIX = i % numSubtilesX;
-			auto subTileIY = i / numSubtilesX;
 
 			int subTilePixelX = curTileX + subTileIX * CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			int subTilePixelY = curTileY + subTileIY * CU_EXPERIMENTAL_SUBTILE_WIDTH;
@@ -456,19 +462,16 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			float subTileMaxY = 1.0f * (subTilePixelY2 - 1);
 
 
-			ifloat2 tileCoords[4];
-			tileCoords[VLT] = { subTileMinX, subTileMinY };
-			tileCoords[VLB] = { subTileMinX, subTileMaxY };
-			tileCoords[VRB] = { subTileMaxX, subTileMaxY };
-			tileCoords[VRT] = { subTileMaxX, subTileMinY };
-
+#define getX(w) (((w)>>1)?subTileMaxX:subTileMinX)
+#define getY(w) (((w)&1)?subTileMinY:subTileMaxY)
 			for (int k = 0; k < 3; k++) {
-				float criteriaTRLocal = edgeCoefs[k].x * tileCoords[chosenCoordTR[k]].x + edgeCoefs[k].y * tileCoords[chosenCoordTR[k]].y;
-				float criteriaTALocal = edgeCoefs[k].x * tileCoords[chosenCoordTA[k]].x + edgeCoefs[k].y * tileCoords[chosenCoordTA[k]].y;
+				float criteriaTRLocal = edgeCoefs[k].x * getX(chosenCoordTR[k]) + edgeCoefs[k].y * getY(chosenCoordTR[k]);
+				float criteriaTALocal = edgeCoefs[k].x * getX(chosenCoordTA[k]) + edgeCoefs[k].y * getY(chosenCoordTA[k]);
 				criteriaTR += criteriaTRLocal < edgeCoefs[k].z;
 				criteriaTA += criteriaTALocal < edgeCoefs[k].z;
 			}
-
+#undef getX
+#undef getY
 			if (criteriaTR != 3) {
 				continue;
 			}
@@ -507,6 +510,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			nprop.mask = mask;
 			nprop.primId = primitiveSrcId;
 			dCoverQueuePixelM2[tileId].push_back(nprop);
+			
 		}
 	}
  
@@ -738,6 +742,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			atri.e2.z += dEps;
 			atri.e3.z += dEps;
 
+			if constexpr (CU_OPT_COMPRESSED_Z_INTERPOL) {
+				atri.v1 = dv1.z * atri.f1.x + dv2.z * atri.f2.x + dv3.z * atri.f3.x;
+				atri.v2 = dv1.z * atri.f1.y + dv2.z * atri.f2.y + dv3.z * atri.f3.y;
+				atri.v3 = dv1.z * atri.f1.z + dv2.z * atri.f2.z + dv3.z * atri.f3.z;
+			}
+
 			atri.originalPrimitive = primId;
 			irect2Df bbox;
 			dAssembledTriangleM2[curIdx] = atri;
@@ -784,7 +794,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	}
 
 
-	IFRIT_KERNEL void fragmentShadingKernelPerTile(
+	IFRIT_KERNEL void fragmentShadingKernel(
 		FragmentShader*  fragmentShader,
 		int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 		const VaryingStore* const* IFRIT_RESTRICT_CUDA dVaryingBuffer,
@@ -856,7 +866,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				devInterpolateVaryings(k, dVaryingBuffer, addr, desiredBary, interpolatedVaryings[k]);
 			}
 			fragmentShader->execute(interpolatedVaryings, &colorOutputSingle);
-			dColorBuffer[0][pixelYS * frameWidth + pixelXS] = colorOutputSingle;
+			auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
+			col0[pixelYS * frameWidth + pixelXS] = colorOutputSingle;
 			if constexpr (CU_PROFILER_OVERDRAW) {
 				atomicAdd(&dOverDrawCounter, 1);
 			}
@@ -867,11 +878,17 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			float bary[3];
 			float interpolatedDepth;
 
-			bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
-			bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
-			bary[2] = (atp.f3.x * pDx + atp.f3. y * pDy + atp.f3.z);
-			interpolatedDepth = bary[0] * atp.v1 + bary[1] * atp.v2 + bary[2] * atp.v3;
+			if constexpr (CU_OPT_COMPRESSED_Z_INTERPOL) {
+				interpolatedDepth = atp.v1 * pDx + atp.v2 * pDy + atp.v3;
+			}
+			else {
+				bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
+				bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
+				bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
+				interpolatedDepth = bary[0] * atp.v1 + bary[1] * atp.v2 + bary[2] * atp.v3;
 
+			}
+			
 			if constexpr (CU_OPT_EXPERIMENTAL_PERFORMANCE) {
 				const auto fp = interpolatedDepth - localDepthBuffer;
 				int cmpv = signbit(fp);
@@ -1042,24 +1059,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 
-	IFRIT_KERNEL void imageResetInt32Kernel(
-		int* dBuffer,
-		uint32_t imageX,
-		uint32_t imageY,
-		uint32_t channels,
-		int value
-	) {
-		const auto invoX = blockIdx.x * blockDim.x + threadIdx.x;
-		const auto invoY = blockIdx.y * blockDim.y + threadIdx.y;
-		if (invoX >= imageX || invoY >= imageY) {
-			return;
-		}
-		for (int i = 0; i < channels; i++) {
-			dBuffer[(invoY * imageX + invoX) * channels + i] = value;
-		}
-	}
-
-
 	IFRIT_KERNEL void testingKernel() {
 		printf("Hello World\n");
 	}
@@ -1154,14 +1153,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		return dBuffer;
 	
 	}
-	int* getShadingLockDeviceAddr(uint32_t bufferSize, int* dOldBuffer) {
-		if (dOldBuffer != nullptr) {
-			cudaFree(dOldBuffer);
-		}
-		int* dBuffer;
-		cudaMalloc(&dBuffer, bufferSize * sizeof(int));
-		return dBuffer;
-	}
+
 	void getColorBufferDeviceAddr(
 		const std::vector<ifloat4*>& hColorBuffer,
 		std::vector<ifloat4*>& dhColorBuffer,
@@ -1298,9 +1290,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		
 		constexpr int totalTiles = CU_TILE_SIZE * CU_TILE_SIZE;
 		Impl::integratedResetKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)();
-		int dw = 0;
 		for (int i = 0; i < deviceConstants->totalIndexCount; i += CU_SINGLE_TIME_TRIANGLE * 3) {
-			dw++;
 			auto indexCount = std::min((int)(CU_SINGLE_TIME_TRIANGLE * 3 * aggressiveRatio), deviceConstants->totalIndexCount - i);
 			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
 			
@@ -1309,7 +1299,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 				dPositionBuffer, dIndexBuffer,i, indexCount, deviceContext->dDeviceConstants);
 			Impl::firstBinnerRasterizerEntryKernel CU_KARG4(1, 1, 0, computeStream)();
 			Impl::secondBinnerRasterizerKernel CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(CU_SECOND_RASTERIZATION_THREADS_PER_TILE, 1, 1), 0, computeStream)();
-			Impl::fragmentShadingKernelPerTile CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(tileSizeX, tileSizeY, 1), 0, computeStream) (
+			Impl::fragmentShadingKernel CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(tileSizeX, tileSizeY, 1), 0, computeStream) (
 				dFragmentShader, dIndexBuffer, deviceContext->dVaryingBuffer, dColorBuffer, dDepthBuffer, deviceContext->dDeviceConstants
 			);
 		}
