@@ -39,13 +39,13 @@ Successor to following repos:
 
 Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 F32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored.
 
-| Model (Triangles) | CPU Single Thread | CPU Multi-thread | CUDA w/ Copy-back | CUDA w/o Copy-back |
-| ----------------- | ----------------- | ---------------- | ----------------- | ------------------ |
-| Yomiya (70275)    | 38 FPS            | 80 FPS           | 123 FPS           | 400 FPS            |
-| Bunny (208353)    | 20 FPS            | 80 FPS           | 124 FPS           | 320 FPS            |
-| Sponza (786801)   | *                 | *                | 123 FPS           | 220 FPS            |
+| Model (Triangles) | CPU Single Thread* | CPU Multi-thread* | CUDA w/ Copy-back | CUDA w/o Copy-back |
+| ----------------- | ------------------ | ----------------- | ----------------- | ------------------ |
+| Yomiya (70275)    | 38 FPS             | 80 FPS            | 123 FPS           | 400 FPS            |
+| Bunny (208353)    | 20 FPS             | 80 FPS            | 124 FPS           | 320 FPS            |
+| Sponza (786801)   | 2 FPS              | 10 FPS            | 123 FPS           | 220 FPS            |
 
-*. Geometry clipping stage in CPU renderer is buggy currently.
+*. Under optimization
 
 
 
@@ -79,9 +79,7 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 F32 Depth Attachment. Ti
 ## Ongoing Plan
 
 - Bug Fixing
-	- Incorrect Homogeneous Space Clipping (CPU Part)
-	- Incorrect Z Interpolation (CPU Part)
-	- Incorrect Culling Order (CPU Part)
+	- Undeterministic Behaviors in CUDA Renderer Piepline
 - CUDA Integration 
 	- Performance: Pixel Processing Bottleneck
 	- Performance: Binner / Geometry Processing Low Throughput 

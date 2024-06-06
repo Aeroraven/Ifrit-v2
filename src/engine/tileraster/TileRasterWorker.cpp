@@ -38,15 +38,24 @@ namespace Ifrit::Engine::TileRaster {
 		using Ifrit::Engine::Math::ShaderOps::add;
 		using Ifrit::Engine::Math::ShaderOps::multiply;
 		using Ifrit::Engine::Math::ShaderOps::lerp;
-		constexpr uint32_t clipIts = 7;
-		const ifloat4 clipCriteria[clipIts] = {
-			{0,0,0,EPS},
+		constexpr uint32_t clipIts = 2;
+		const ifloat4 clipCriteria[7] = {
+			{0,0,0,1},
+			{0,0,0,0},
 			{1,0,0,0},
 			{-1,0,0,0},
 			{0,1,0,0},
 			{0,-1,0,0},
-			{0,0,1,0},
-			{0,0,-1,0}
+			{0,0,1,0}
+		};
+		const ifloat4 clipNormal[7] = {
+			{0,0,0,-1},
+			{0,0,-1,0},
+			{1,0,0,0},
+			{-1,0,0,0},
+			{0,1,0,0},
+			{0,-1,0,0},
+			{0,0,1,0}
 		};
 		TileRasterClipVertex ret[2][9];
 		uint32_t retCnt[2] = { 0,3 };
@@ -55,7 +64,7 @@ namespace Ifrit::Engine::TileRaster {
 		ret[1][2] = { {0,0,1,0},v3 };
 		int clipTimes = 0;
 		for (int i = 0; i < clipIts; i++) {
-			ifloat4 outNormal = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,-1 };
+			ifloat4 outNormal = { clipNormal[i].x,clipNormal[i].y,clipNormal[i].z,clipNormal[i].w};
 			ifloat4 refPoint = { clipCriteria[i].x,clipCriteria[i].y,clipCriteria[i].z,clipCriteria[i].w };
 			const auto cIdx = i & 1, cRIdx = 1- (i & 1);
 			retCnt[cIdx] = 0;
@@ -69,7 +78,7 @@ namespace Ifrit::Engine::TileRaster {
 				const auto& pn = ret[cRIdx][(j + 1) % psize];
 				auto npn = dot(pn.pos, outNormal);
 				
-				if (npc * npn < 0) {
+				if (npc * npn < 0 ) {
 					ifloat4 dir = sub(pn.pos, pc.pos);
 					// Solve for t, where W = aX + bY + cZ + d
 					// W = a(pc.x + t * dir.x) + b(pc.y + t * dir.y) + c(pc.z + t * dir.z) + d = pc.w + t * dir.w
@@ -79,7 +88,7 @@ namespace Ifrit::Engine::TileRaster {
 
 					float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
 					float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
-					float t = numo / deno;
+					float t = (-refPoint.w + numo) / deno;
 					ifloat4 intersection = add(pc.pos, multiply(dir, t));
 					ifloat4 barycenter = lerp(pc.barycenter, pn.barycenter, t);
 
@@ -271,15 +280,16 @@ namespace Ifrit::Engine::TileRaster {
 			ifloat4 v1 = posBuffer[id0];
 			ifloat4 v2 = posBuffer[id1];
 			ifloat4 v3 = posBuffer[id2];
-			if (!triangleCulling(v1, v2, v3)) {
-				continue;
-			}
+			
 			const auto prim = j / context->vertexStride;
 			int fw = triangleHomogeneousClip(prim, v1, v2, v3);
 			int gtri = fw + genTris;
 			for(int i = genTris; i < gtri; i++) {
 				auto& atri = context->assembledTriangles[workerId][i];
 				irect2Df bbox;
+				if (!triangleCulling(atri.v1, atri.v2, atri.v3)) {
+					continue;
+				}
 				if (!triangleFrustumClip(atri.v1, atri.v2, atri.v3, bbox)) {
 					continue;
 				}
@@ -791,19 +801,20 @@ namespace Ifrit::Engine::TileRaster {
 		float depth[3];
 		float interpolatedDepth;
 		const float w[3] = { 1 / pos[0].w,1 / pos[1].w,1 / pos[2].w };
-		bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z) * w[0];
-		bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z) * w[1];
-		bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z) * w[2];
-
+		bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
+		bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
+		bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
 		interpolatedDepth = bary[0] * pos[0].z + bary[1] * pos[1].z + bary[2] * pos[2].z;
-		float zCorr = 1.0 / (bary[0]+bary[1]+bary[2]);
-		interpolatedDepth *= zCorr;
+		
 #endif
 		// Depth Test
 		if (interpolatedDepth > depthAttachment) {
 			return;
 		}
-
+		bary[0] *= w[0];
+		bary[1] *= w[1];
+		bary[2] *= w[2];
+		float zCorr = 1.0 / (bary[0] + bary[1] + bary[2]);
 		// Interpolate Varyings
 #if IFRIT_USE_SIMD_128_EXPERIMENTAL
 		_mm_storeu_ps(bary, _mm_mul_ps(_mm_loadu_ps(bary), _mm_set1_ps(zCorr)));
@@ -873,19 +884,16 @@ namespace Ifrit::Engine::TileRaster {
 		bary[1] = _mm_add_ps(_mm_add_ps(_mm_mul_ps(_mm_set1_ps(atp.f2.x), pDx), _mm_mul_ps(_mm_set1_ps(atp.f2.y), pDy)), _mm_set1_ps(atp.f2.z));
 		bary[2] = _mm_add_ps(_mm_add_ps(_mm_mul_ps(_mm_set1_ps(atp.f3.x), pDx), _mm_mul_ps(_mm_set1_ps(atp.f3.y), pDy)), _mm_set1_ps(atp.f3.z));
 
-		__m128 baryDivW[3];
-		for (int i = 0; i < 3; i++) {
-			baryDivW[i] = _mm_div_ps(bary[i], posW[i]);
-		}
-		__m128 baryDivWSum = _mm_add_ps(_mm_add_ps(baryDivW[0], baryDivW[1]), baryDivW[2]);
-		__m128 zCorr = _mm_div_ps(_mm_set1_ps(1.0f), baryDivWSum);
 
-		__m128 depth[3];
+
+		__m128 baryDiv[3];
 		for (int i = 0; i < 3; i++) {
-			depth[i] = _mm_div_ps(posZ[i], posW[i]);
+			baryDiv[i] = _mm_div_ps(bary[i], posW[i]);
 		}
-		__m128 interpolatedDepth128 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(bary[0], depth[0]), _mm_mul_ps(bary[1], depth[1])), _mm_mul_ps(bary[2], depth[2]));
-		interpolatedDepth128 = _mm_mul_ps(interpolatedDepth128, zCorr);
+		__m128 barySum = _mm_add_ps(_mm_add_ps(baryDiv[0], baryDiv[1]), baryDiv[2]);
+		__m128 zCorr = _mm_div_ps(_mm_set1_ps(1.0f), barySum);
+
+		__m128 interpolatedDepth128 = _mm_add_ps(_mm_add_ps(_mm_mul_ps(bary[0], posZ[0]), _mm_mul_ps(bary[1], posZ[1])), _mm_mul_ps(bary[2], posZ[2]));
 
 		float interpolatedDepth[4] = { 0 };
 		float bary32[3][4];
@@ -893,7 +901,7 @@ namespace Ifrit::Engine::TileRaster {
 		_mm_storeu_ps(interpolatedDepth, interpolatedDepth128);
 		_mm_storeu_ps(zCorr32, zCorr);
 		for (int i = 0; i < 3; i++) {
-			_mm_storeu_ps(bary32[i], bary[i]);
+			_mm_storeu_ps(bary32[i], baryDiv[i]);
 		}
 
 		const int* const addr = (*context->indexBuffer).data() + idx;
@@ -909,7 +917,7 @@ namespace Ifrit::Engine::TileRaster {
 				continue;
 			}
 
-			float barytmp[3] = { bary32[0][i] / w[0] * zCorr32[i],bary32[1][i] / w[1] * zCorr32[i],bary32[2][i] / w[2] * zCorr32[i] };
+			float barytmp[3] = { bary32[0][i] * zCorr32[i],bary32[1][i] * zCorr32[i],bary32[2][i] * zCorr32[i] };
 			float desiredBary[3];
 			desiredBary[0] = barytmp[0] * atp.b1.x + barytmp[1] * atp.b2.x + barytmp[2] * atp.b3.x;
 			desiredBary[1] = barytmp[0] * atp.b1.y + barytmp[1] * atp.b2.y + barytmp[2] * atp.b3.y;
@@ -969,19 +977,16 @@ namespace Ifrit::Engine::TileRaster {
 		bary[1] = _mm256_div_ps(bary[1], area);
 		bary[2] = _mm256_div_ps(bary[2], area);
 
-		__m256 baryDivW[3];
+
+		__m256 baryDiv[3];
 		for (int i = 0; i < 3; i++) {
-			baryDivW[i] = _mm256_div_ps(bary[i], posW[i]);
+			baryDiv[i] = _mm256_div_ps(bary[i], posW[i]);
 		}
-		__m256 baryDivWSum = _mm256_add_ps(_mm256_add_ps(baryDivW[0], baryDivW[1]), baryDivW[2]);
+
+		__m256 baryDivWSum = _mm256_add_ps(_mm256_add_ps(baryDiv[0], baryDiv[1]), baryDiv[2]);
 		__m256 zCorr = _mm256_div_ps(_mm256_set1_ps(1.0f), baryDivWSum);
 
-		__m256 depth[3];
-		for (int i = 0; i < 3; i++) {
-			depth[i] = _mm256_div_ps(posZ[i], posW[i]);
-		}
-		__m256 interpolatedDepth256 = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(bary[0], depth[0]), _mm256_mul_ps(bary[1], depth[1])), _mm256_mul_ps(bary[2], depth[2]));
-		interpolatedDepth256 = _mm256_mul_ps(interpolatedDepth256, zCorr);
+		__m256 interpolatedDepth256 = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(bary[0], posZ[0]), _mm256_mul_ps(bary[1], posZ[1])), _mm256_mul_ps(bary[2], posZ[2]));
 
 		float interpolatedDepth[8] = { 0 };
 		float bary32[3][8];
@@ -989,7 +994,7 @@ namespace Ifrit::Engine::TileRaster {
 		_mm256_storeu_ps(interpolatedDepth, interpolatedDepth256);
 		_mm256_storeu_ps(zCorr32, zCorr);
 		for (int i = 0; i < 3; i++) {
-			_mm256_storeu_ps(bary32[i], bary[i]);
+			_mm256_storeu_ps(bary32[i], baryDiv[i]);
 		}
 		const auto fbWidth = context->frameBuffer->getWidth();
 		const auto fbHeight = context->frameBuffer->getHeight();
@@ -1005,7 +1010,7 @@ namespace Ifrit::Engine::TileRaster {
 			if (interpolatedDepth[i] > depthAttachment(x, y, 0)) {
 				continue;
 			}
-			float barytmp[3] = { bary32[0][i] / w[0] * zCorr32[i],bary32[1][i] / w[1] * zCorr32[i],bary32[2][i] / w[2] * zCorr32[i] };
+			float barytmp[3] = { bary32[0][i] * zCorr32[i],bary32[1][i] * zCorr32[i],bary32[2][i]  * zCorr32[i] };
 			float desiredBary[3];
 			desiredBary[0] = barytmp[0] * atp.b1.x + barytmp[1] * atp.b2.x + barytmp[2] * atp.b3.x;
 			desiredBary[1] = barytmp[0] * atp.b1.y + barytmp[1] * atp.b2.y + barytmp[2] * atp.b3.y;
