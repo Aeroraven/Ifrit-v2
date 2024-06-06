@@ -28,21 +28,17 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	template<class T>
 	class LocalDynamicVector {
 	public:
-		int baseSize;
 		T* data[CU_VECTOR_HIERARCHY_LEVEL];
-		int capacity;
 		int size;
 		int lock;
-		int visitors;
 	public:
 		IFRIT_DEVICE void initialize() {
-			baseSize = CU_VECTOR_BASE_LENGTH;
-			capacity = (1 << baseSize);
+			int baseSize = CU_VECTOR_BASE_LENGTH;
+			int capacity = (1 << baseSize);
 			size = 0;
 			data[0] = (T*)malloc(sizeof(T) * capacity);
 			data[1] = (T*)malloc(sizeof(T) * capacity * 2);
 			lock = 0;
-			visitors = 0;
 			if(data[0] == nullptr || data[1] == nullptr) {
 				printf("ERROR: MALLOC FAILED INIT\n");
 				asm("trap;");
@@ -120,7 +116,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	
 	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dRasterQueueM2[CU_BIN_SIZE * CU_BIN_SIZE];
 	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueFullM2[CU_BIN_SIZE * CU_BIN_SIZE];
-
 	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueSuperTileFullM2[CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE];
 	IFRIT_DEVICE static LocalDynamicVector<TilePixelBitProposalCUDA> dCoverQueuePixelM2[CU_TILE_SIZE * CU_TILE_SIZE][CU_MAX_SUBTILES_PER_TILE];
 
@@ -179,7 +174,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 
-	IFRIT_DEVICE bool devTriangleSimpleClip(const ifloat4& v1, const ifloat4& v2, const ifloat4& v3, irect2Df& bbox) {
+	IFRIT_DEVICE bool devGetBBox(const ifloat4& v1, const ifloat4& v2, const ifloat4& v3, irect2Df& bbox) {
 		bool inside = true;
 		float minx = min(v1.x, min(v2.x, v3.x));
 		float miny = min(v1.y, min(v2.y, v3.y));
@@ -187,12 +182,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float maxy = max(v1.y, max(v2.y, v3.y));
 		float maxz = max(v1.z, max(v2.z, v3.z));
 		float minz = min(v1.z, min(v2.z, v3.z));
-		if (maxz < 0.0f) return false;
-		if (minz > 1.0f) return false;
-		if (maxx < 0.0f) return false;
-		if (minx > 1.0f) return false;
-		if (maxy < 0.0f) return false;
-		if (miny > 1.0f) return false;
 		bbox.x = minx;
 		bbox.y = miny;
 		bbox.w = maxx;
@@ -483,7 +472,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				continue;
 			}
 	
-			int mask = (i << CU_EXPERIMENTAL_PIXELS_PER_SUBTILE);
+			int mask = 0;
 			if (criteriaTA == 3) {
 				mask |= ((1 << CU_EXPERIMENTAL_PIXELS_PER_SUBTILE) - 1);
 			}
@@ -573,7 +562,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto primId = globalInvoIdx + startingIndexId / CU_TRIANGLE_STRIDE;
 		
 		if (v1.w < 0 && v2.w < 0 && v3.w < 0) {
-			
 			return;
 		}
 
@@ -655,7 +643,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						retdIndex[cIdx* possibleTris+retCnt[cIdx]+ retIdxOffset] = retdTriCnt;
 						retCnt[cIdx]++;
 						retdTriCnt++;
-						//printf("CLIPZ: %f %f  %f\n", intersection.z , intersection.w, intersection.z / intersection.w);
 					}
 				}
 				
@@ -721,9 +708,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			atri.v1 = dv1.z;
 			atri.v2 = dv2.z;
 			atri.v3 = dv3.z;
-			atri.w1 = dv1.w;
-			atri.w2 = dv2.w;
-			atri.w3 = dv3.w;
 
 			const float ar = 1.0f / devEdgeFunction(dv1, dv2, dv3);
 			const float sV2V1y = dv2.y - dv1.y;
@@ -747,16 +731,27 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			atri.e2.z += dEps;
 			atri.e3.z += dEps;
 
-			if constexpr (CU_OPT_COMPRESSED_Z_INTERPOL) {
-				atri.v1 = dv1.z * atri.f1.x + dv2.z * atri.f2.x + dv3.z * atri.f3.x;
-				atri.v2 = dv1.z * atri.f1.y + dv2.z * atri.f2.y + dv3.z * atri.f3.y;
-				atri.v3 = dv1.z * atri.f1.z + dv2.z * atri.f2.z + dv3.z * atri.f3.z;
-			}
 
+			atri.v1 = dv1.z * atri.f1.x + dv2.z * atri.f2.x + dv3.z * atri.f3.x;
+			atri.v2 = dv1.z * atri.f1.y + dv2.z * atri.f2.y + dv3.z * atri.f3.y;
+			atri.v3 = dv1.z * atri.f1.z + dv2.z * atri.f2.z + dv3.z * atri.f3.z;
+			atri.f1.x *= dv1.w;
+			atri.f1.y *= dv1.w;
+			atri.f1.z *= dv1.w;
+
+			atri.f2.x *= dv2.w;
+			atri.f2.y *= dv2.w;
+			atri.f2.z *= dv2.w;
+			
+			atri.f3.x *= dv3.w;
+			atri.f3.y *= dv3.w;
+			atri.f3.z *= dv3.w;
 			atri.originalPrimitive = primId;
 			irect2Df bbox;
-			dAssembledTriangleM2[curIdx] = atri;
-			devTriangleSimpleClip(dv1, dv2, dv3, bbox);
+
+			auto dAlignedATM2 = static_cast<AssembledTriangleProposalCUDA*>(__builtin_assume_aligned(dAssembledTriangleM2, 128));
+			dAlignedATM2[curIdx] = atri;
+			devGetBBox(dv1, dv2, dv3, bbox);
 			dBoundingBoxM2[curIdx] = bbox;
 		}
 #undef ret
@@ -843,15 +838,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float pDx = 1.0f * pixelXS;
 		float pDy = 1.0f * pixelYS;
 
-		
-
 		auto shadingPass = [&](const AssembledTriangleProposalCUDA& atp) {
 			candidateBary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
 			candidateBary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
 			candidateBary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
-			candidateBary[0] *= atp.w1;
-			candidateBary[1] *= atp.w2;
-			candidateBary[2] *= atp.w3;
 			float zCorr = 1.0f / (candidateBary[0] + candidateBary[1] + candidateBary[2]);
 			candidateBary[0] *= zCorr;
 			candidateBary[1] *= zCorr;
@@ -1025,7 +1015,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				minv = max(minv, depthBuffer[j * csFrameWidth + i]);
 			}
 		}
-		//printf("%d %d %d %d %d %d %d # %f\n", curTileX, curTileX2, curTileY, curTileY2, tileIdX, tileIdY, tileId, minv);
 		dHierarchicalDepthTile[tileId] = minv;
 	}
 
@@ -1045,7 +1034,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		if constexpr (CU_PROFILER_OVERDRAW) {
 			if (blockIdx.x == 0 && threadIdx.x == 0) {
 				printf("Overdraw Rate:%f (%d)\n", dOverDrawCounter * 1.0f / 2048.0f / 2048.0f, dOverDrawCounter);
-				printf("Overtest Rate:%f (%d)\n", dOverZTestCounter * 1.0f / 2048.0f / 2048.0f , dOverZTestCounter);
+				printf("ZTest Rate:%f (%d)\n", dOverZTestCounter * 1.0f / 2048.0f / 2048.0f , dOverZTestCounter);
 				printf("Irrelevant Rate:%f (%d/%d)\n", 1.0f * dIrrelevantPixel / dTotalBinnedPixel, dIrrelevantPixel, dTotalBinnedPixel);
 
 				dOverDrawCounter = 0;
@@ -1113,10 +1102,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		dBuffer[(invoY * csFrameWidth + invoX) * 4 + 2] = value;
 		dBuffer[(invoY * csFrameWidth + invoX) * 4 + 3] = value;
 	}
-
-	IFRIT_KERNEL void testingKernel() {
-		printf("Hello World\n");
-	}
 }
 
 
@@ -1147,10 +1132,6 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		return hostGetDeviceObjectCopy<T>(x);
 	}
 
-	void testingKernelWrapper() {
-		Impl::testingKernel CU_KARG2(4,4) ();
-		cudaDeviceSynchronize();
-	}
 	char* deviceMalloc(uint32_t size) {
 		char* ptr;
 		cudaMalloc(&ptr, size);
@@ -1328,7 +1309,13 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 			Impl::integratedInitKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE,0, computeStream)();
 			cudaDeviceSynchronize();
 			printf("CUDA Init Done\n");
-			secondPass = 1;
+			
+		}
+		if (initFlag < 20) {
+			initFlag++;
+			if (initFlag == 20) {
+				secondPass = 1;
+			}
 		}
 		
 		// Compute

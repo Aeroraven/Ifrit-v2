@@ -12,7 +12,6 @@
 
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
-	void testingKernelWrapper();
 
 	void invokeCudaRendering(
 		char* dVertexBuffer,

@@ -40,13 +40,13 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_HOMOGENEOUS_CLIPPING_NEG_W_ONLY = true;
 	constexpr bool CU_OPT_CUDA_PROFILE = true;
 	constexpr bool CU_OPT_PREALLOCATED_TRIANGLE_LIST = false;
-	constexpr bool CU_OPT_EXPERIMENTAL_PERFORMANCE = true;
-	constexpr bool CU_OPT_COMPRESSED_Z_INTERPOL = false;
+	constexpr bool CU_OPT_EXPERIMENTAL_PERFORMANCE = false;
+	constexpr bool CU_OPT_COMPRESSED_Z_INTERPOL = true;
 
 	// == Experimental ==
 	constexpr int CU_EXPERIMENTAL_SUBTILE_WIDTH = 4;
 	constexpr int CU_EXPERIMENTAL_PIXELS_PER_SUBTILE = CU_EXPERIMENTAL_SUBTILE_WIDTH * CU_EXPERIMENTAL_SUBTILE_WIDTH;
 
 	// == Profiler ==
-	constexpr bool CU_PROFILER_OVERDRAW = false;
+	constexpr bool CU_PROFILER_OVERDRAW = true;
 }
