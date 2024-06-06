@@ -85,6 +85,7 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 F32 Depth Attachment. Ti
 - CUDA Integration 
 	- Performance: Pixel Processing Bottleneck
 	- Performance: Binner / Geometry Processing Low Throughput 
+	- Performance: Pixel Processing Low Cache Utilization Efficiency
 - Blending
 - Scanline Rasterizer
 
