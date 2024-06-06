@@ -46,6 +46,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		this->deviceVertexTypeDescriptor = Invocation::getTypeDescriptorDeviceAddr(hVertexBufferLayout.data(), hVertexBufferLayout.size(), this->deviceVertexTypeDescriptor);
 
 		Invocation::updateVertexLayout(hVertexBufferLayout.data(), hVertexBufferLayout.size());
+		Invocation::updateVertexCount(vertexBuffer.getVertexCount());
+		Invocation::updateAttributes(vertexBuffer.getAttributeCount());
 	}
 	void TileRasterRendererCuda::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		context->indexBuffer = &indexBuffer;
@@ -62,7 +64,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		this->deviceVaryingTypeDescriptor = Invocation::getTypeDescriptorDeviceAddr(hVaryingBufferLayout.data(), hVaryingBufferLayout.size(), this->deviceVaryingTypeDescriptor);
 	
 		needVaryingUpdate = true;
-	
+		Invocation::updateVarying(context->varyingDescriptor->getVaryingCounts());
 	}
 	void TileRasterRendererCuda::updateVaryingBuffer() {
 		if (!needVaryingUpdate)return;
@@ -103,15 +105,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		updateVaryingBuffer();
 
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
-		TileRasterDeviceConstants hostConstants;
-		hostConstants.attributeCount = context->vertexBuffer->getAttributeCount();
-		hostConstants.counterClockwise = false;
-		hostConstants.frameBufferHeight = context->frameBuffer->getHeight();
-		hostConstants.frameBufferWidth = context->frameBuffer->getWidth();
-		hostConstants.totalIndexCount = context->indexBuffer->size();
-		hostConstants.varyingCount = context->varyingDescriptor->getVaryingCounts();
-		hostConstants.vertexCount = context->vertexBuffer->getVertexCount();
-		hostConstants.vertexStride = 3;
 
 		int curBuffer = currentBuffer;
 		Invocation::invokeCudaRendering(
@@ -128,8 +121,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			deviceHostColorBuffers[curBuffer].size(),
 			deviceDepthBuffer,
 			devicePosBuffer,
-			&hostConstants,
 			this->deviceContext.get(),
+			context->indexBuffer->size(),
 			this->doubleBuffer,
 			deviceHostColorBuffers[1-curBuffer].data(),
 			aggressiveRatio

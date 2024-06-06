@@ -111,6 +111,7 @@
     </CudaCompile>
     <CudaLink>
       <Optimization>O3</Optimization>
+      <PerformDeviceLinkTimeOptimization>true</PerformDeviceLinkTimeOptimization>
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>

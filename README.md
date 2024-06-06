@@ -43,7 +43,7 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 F32 Depth Attachment. Ti
 | ----------------- | ----------------- | ---------------- | ----------------- | ------------------ |
 | Yomiya (70275)    | 38 FPS            | 80 FPS           | 123 FPS           | 400 FPS            |
 | Bunny (208353)    | 20 FPS            | 80 FPS           | 124 FPS           | 320 FPS            |
-| Sponza (786801)   | *                 | *                | 123 FPS           | 245 FPS            |
+| Sponza (786801)   | *                 | *                | 123 FPS           | 220 FPS            |
 
 *. Geometry clipping stage in CPU renderer is buggy currently.
 
@@ -84,9 +84,9 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 F32 Depth Attachment. Ti
 	- Incorrect Culling Order (CPU Part)
 - CUDA Integration 
 	- Performance: Pixel Processing Bottleneck
-	- Fixed Subtile Size
-
-
+	- Performance: Binner / Geometry Processing Low Throughput 
+- Blending
+- Scanline Rasterizer
 
 ## References
 

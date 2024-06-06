@@ -28,10 +28,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_TRIANGLE_STRIDE = 3;
 	constexpr int CU_FIRST_BINNER_STRIDE = 2;
 	constexpr float CU_LARGE_TRIANGLE_THRESHOLD = 0.15f;
+	constexpr int CU_MAX_SUBTILES_PER_TILE = 16;
 
 	// == Memory Allocation ==
 	constexpr size_t CU_HEAP_MEMORY_SIZE = 1024ull * 1024 * 1024 * 4;
-	constexpr int CU_VECTOR_BASE_LENGTH = 11;
+	constexpr int CU_VECTOR_BASE_LENGTH = 9;
 	constexpr int CU_VECTOR_HIERARCHY_LEVEL = 10;
 
 	// == Options ==

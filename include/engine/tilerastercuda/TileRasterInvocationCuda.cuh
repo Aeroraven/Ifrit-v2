@@ -27,9 +27,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		ifloat4** hColorBuffer,
 		uint32_t dHostColorBufferSize,
 		float* dDepthBuffer,
-		ifloat4*  dPositionBuffer,
-		TileRasterDeviceConstants* deviceConstants,
+		ifloat4* dPositionBuffer,
 		TileRasterDeviceContext* deviceContext,
+		int totalIndices,
 		bool doubleBuffering,
 		ifloat4** dLastColorBuffer,
 		float aggressiveRatio
@@ -46,6 +46,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	float* getDepthBufferDeviceAddr( uint32_t bufferSize, float* dOldBuffer);
 	ifloat4* getPositionBufferDeviceAddr(uint32_t bufferSize, ifloat4* dOldBuffer);
 	void getColorBufferDeviceAddr(const std::vector<ifloat4*>& hColorBuffer, std::vector<ifloat4*>& dhColorBuffer, ifloat4**& dColorBuffer, uint32_t bufferSize, std::vector<ifloat4*>& dhOldColorBuffer, ifloat4** dOldBuffer);
+	void updateAttributes(uint32_t attributeCounts);
+	void updateVarying(uint32_t varyingCounts);
+	void updateVertexCount(uint32_t vertexCount);
 
 	char* deviceMalloc(uint32_t size);
 	void deviceFree(char* ptr);
