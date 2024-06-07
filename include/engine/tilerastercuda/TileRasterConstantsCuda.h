@@ -11,8 +11,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_BINS_PER_LARGE_BIN = CU_BIN_SIZE / CU_LARGE_BIN_SIZE;
 	constexpr int CU_SUBTILE_SIZE_LOG = 2;
 	constexpr int CU_SUBTILE_SIZE = (1<<(CU_SUBTILE_SIZE_LOG));
-	constexpr int CU_MAX_VARYINGS = 10;
-	constexpr int CU_MAX_ATTRIBUTES = 10;
+	constexpr int CU_MAX_VARYINGS = 2;
+	constexpr int CU_MAX_ATTRIBUTES = 2;
 	constexpr int CU_GEOMETRY_PROCESSING_THREADS = 32;
 	constexpr int CU_RASTERIZATION_THREADS_PERDIM = 8;
 	constexpr int CU_VERTEX_PROCESSING_THREADS = 64;
@@ -20,7 +20,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_FRAGMENT_SHADING_THREADS_PER_TILE_X = 10;
 	constexpr int CU_FRAGMENT_SHADING_THREADS_PER_TILE_Y = 10;
 	constexpr int CU_FIRST_RASTERIZATION_THREADS = 32;
-	constexpr int CU_SECOND_RASTERIZATION_THREADS_PER_TILE = 128;
+	constexpr int CU_SECOND_RASTERIZATION_THREADS_PER_TILE = 256;
 
 	constexpr int CU_SINGLE_TIME_TRIANGLE = 84480; //Safe 20608 84480
 	constexpr int CU_SINGLE_TIME_TRIANGLE_GEOMETRY_BATCHSIZE = 1;
@@ -48,5 +48,5 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_EXPERIMENTAL_PIXELS_PER_SUBTILE = CU_EXPERIMENTAL_SUBTILE_WIDTH * CU_EXPERIMENTAL_SUBTILE_WIDTH;
 
 	// == Profiler ==
-	constexpr bool CU_PROFILER_OVERDRAW = true;
+	constexpr bool CU_PROFILER_OVERDRAW = false;
 }

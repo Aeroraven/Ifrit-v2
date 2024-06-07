@@ -826,7 +826,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const int blockX = blockDim.x;
 		const int blockY = blockDim.y;
 		const int bds = blockDim.x * blockDim.y;
-		const auto threadId = threadY * bds + threadX;
+		const auto threadId = threadY * blockDim.x + threadX;
 
 		const int pixelXS = threadX + tileX * csFrameWidth / CU_TILE_SIZE;
 		const int pixelYS = threadY + tileY * csFrameHeight / CU_TILE_SIZE;
@@ -838,6 +838,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float pDx = 1.0f * pixelXS;
 		float pDy = 1.0f * pixelYS;
 
+		IFRIT_SHARED float colorOutputSingle[256 * 4];
+		IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
 		auto shadingPass = [&](const AssembledTriangleProposalCUDA& atp) {
 			candidateBary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
 			candidateBary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
@@ -847,19 +849,40 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			candidateBary[1] *= zCorr;
 			candidateBary[2] *= zCorr;
 
-			ifloat4 colorOutputSingle;
-			VaryingStore interpolatedVaryings[CU_MAX_VARYINGS];
+			
 			float desiredBary[3];
 			desiredBary[0] = candidateBary[0] * atp.b1.x + candidateBary[1] * atp.b2.x + candidateBary[2] * atp.b3.x;
 			desiredBary[1] = candidateBary[0] * atp.b1.y + candidateBary[1] * atp.b2.y + candidateBary[2] * atp.b3.y;
 			desiredBary[2] = candidateBary[0] * atp.b1.z + candidateBary[1] * atp.b2.z + candidateBary[2] * atp.b3.z;
 			auto addr = dIndexBuffer + atp.originalPrimitive * vertexStride;
 			for (int k = 0; k < varyingCount; k++) {
-				devInterpolateVaryings(k, dVaryingBuffer, addr, desiredBary, interpolatedVaryings[k]);
+				const auto va = dVaryingBuffer[k];
+				VaryingStore vd;
+				vd.vf4 = { 0,0,0,0 };
+				for (int j = 0; j < 3; j++) {
+					auto vaf4 = va[addr[j]].vf4;
+					vd.vf4.x += vaf4.x * desiredBary[j];
+					vd.vf4.y += vaf4.y * desiredBary[j];
+					vd.vf4.z += vaf4.z * desiredBary[j];
+					vd.vf4.w += vaf4.w * desiredBary[j];
+				}
+				auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadId);
+				dest->x = vd.vf4.x;
+				dest->y = vd.vf4.y;
+				dest->z = vd.vf4.z;
+				dest->w = vd.vf4.w;
 			}
-			fragmentShader->execute(interpolatedVaryings, &colorOutputSingle);
+			fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, 1);
+
 			auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
-			col0[pixelYS * frameWidth + pixelXS] = colorOutputSingle;
+			ifloat4 finalRgba;
+			ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadId))[0];
+			finalRgba.x = midOutput.x;
+			finalRgba.y = midOutput.y;
+			finalRgba.z = midOutput.z;
+			finalRgba.w = midOutput.w;
+
+			col0[pixelYS * frameWidth + pixelXS] = finalRgba;
 			if constexpr (CU_PROFILER_OVERDRAW) {
 				atomicAdd(&dOverDrawCounter, 1);
 			}

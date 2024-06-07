@@ -834,7 +834,7 @@ namespace Ifrit::Engine::TileRaster {
 			 interpolateVaryings(i, addr, desiredBary, interpolatedVaryings[i]);
 		}
 		// Fragment Shader
-		context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
+		context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(),0);
 #ifdef IFRIT_USE_SIMD_128
 		context->frameBuffer->getColorAttachment(0)->fillPixelRGBA128ps(dx, dy, _mm_loadu_ps((float*)(&colorOutput[0])));
 #else
@@ -928,7 +928,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 
 			// Fragment Shader
-			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
+			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(),0);
 			context->frameBuffer->getColorAttachment(0)->fillPixelRGBA128ps(x, y, _mm_loadu_ps((const float*)(&colorOutput[0])));
 			// Depth Write
 			depthAttachment(x, y, 0) = interpolatedDepth[i];
@@ -1020,7 +1020,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 
 			// Fragment Shader
-			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
+			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(),0);
 #ifdef IFRIT_USE_SIMD_128
 			context->frameBuffer->getColorAttachment(0)->fillPixelRGBA128ps(x, y, _mm_loadu_ps((const float*)(&colorOutput[0])));
 #else

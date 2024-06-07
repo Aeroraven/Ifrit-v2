@@ -35,8 +35,10 @@ PresentEngine presentEngine = PE_GLFW;
 //float4x4 view = (lookAt({ 0,0.75,1.50}, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
 //float4x4 view = (lookAt({ 0,0.0,1.25 }, { 0,0.0,0.0 }, { 0,1,0 }));
 //float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
-float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 10.0, 4000));
+//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
+//float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 10.0, 4000));
+float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
+float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 1.0, 3000));
 float4x4 model;
 float4x4 mvp = multiply(proj, view);
 
@@ -52,15 +54,16 @@ public:
 
 class DemoFragmentShader : public FragmentShader {
 public:
-	IFRIT_DUAL virtual void execute(const VaryingStore* varyings, ifloat4* colorOutput) override {
-		ifloat4 result = varyings[0].vf4;
+	IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput, int stride) override {
+		ifloat4 result = ((const VaryingStore*)varyings)[0].vf4;
 		constexpr float fw = 0.5;
 		result.x = fw * result.x + fw;
 		result.y = fw * result.y + fw;
 		result.z = fw * result.z + fw;
 		result.w = fw * result.w + fw;
 
-		colorOutput[0] = result;
+		auto& co = ((ifloat4*)colorOutput)[0];
+		co = result;
 	}
 };
 
@@ -74,7 +77,7 @@ int mainCpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj",pos,normal,uv,index);
+	loader.loadObject(IFRIT_ASSET_PATH"/sponza3.obj",pos,normal,uv,index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 	std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
@@ -153,6 +156,7 @@ int mainCpu() {
 			renderer->render(true);
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+			printf("PassDone %d\n", *coreTime);
 			backend.updateTexture(*image);
 			backend.draw();
 		});
@@ -170,7 +174,7 @@ int mainGpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj", pos, normal, uv, index);
+	loader.loadObject(IFRIT_ASSET_PATH"/sponza3.obj", pos, normal, uv, index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 
@@ -203,7 +207,7 @@ int mainGpu() {
 
 	std::vector<int> indexBuffer = { 2,3,0 };
 	
-	indexBuffer.resize(index.size()/3);
+	indexBuffer.resize(index.size() /3);
 	for (int i = 0; i < index.size(); i += 3) { //index.size()
 		indexBuffer[i / 3] = index[i];
 	}
@@ -254,5 +258,5 @@ int miscTest() {
 	return 0;
 }
 int main() {
-	return mainCpu();
+	return mainGpu();
 }

@@ -22,6 +22,17 @@ struct Rect2D {
 	T x, y, w, h;
 };
 
+template<class T,int U>
+struct CoreVec4Shared {
+	T x;
+	T xp[U - 1];
+	T y;
+	T yp[U - 1];
+	T z;
+	T zp[U - 1];
+	T w;
+};
+
 #define ifloat4 CoreVec4<float>
 #define ifloat3 CoreVec3<float>
 #define ifloat2 CoreVec2<float>
@@ -40,6 +51,9 @@ struct Rect2D {
 
 #define irect2Df Rect2D<float>
 #define irect2Di Rect2D<int>
+
+#define ifloat4s256 CoreVec4Shared<float,256>
+#define ifloat4s128 CoreVec4Shared<float,128>
 
 template<class T>
 struct CoreMat4 {

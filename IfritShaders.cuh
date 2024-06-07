@@ -12,6 +12,6 @@ public:
 
 class DemoFragmentShaderCuda : public  Ifrit::Engine::FragmentShader {
 public:
-	IFRIT_DUAL virtual void execute(const  Ifrit::Engine::VaryingStore* varyings, ifloat4* colorOutput);
+	IFRIT_DUAL virtual void execute(const  void* varyings, void* colorOutput, int stride);
 	IFRIT_HOST virtual Ifrit::Engine::FragmentShader* getCudaClone() override;
 };

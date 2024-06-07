@@ -37,22 +37,30 @@ Successor to following repos:
 
 ## Performance
 
-Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 F32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored.
+Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored.
 
-| Model (Triangles) | CPU Single Thread* | CPU Multi-thread* | CUDA w/ Copy-back | CUDA w/o Copy-back |
-| ----------------- | ------------------ | ----------------- | ----------------- | ------------------ |
-| Yomiya (70275)    | 38 FPS             | 80 FPS            | 123 FPS           | 400 FPS            |
-| Bunny (208353)    | 20 FPS             | 80 FPS            | 124 FPS           | 320 FPS            |
-| Sponza (786801)   | 2 FPS              | 10 FPS            | 123 FPS           | 220 FPS            |
+**Frame Rate**
 
-*. Under optimization
+| Model          | Triangles | CPU Single Thread* | CPU Multi-thread* | CUDA w/ Copy-back | CUDA w/o Copy-back** |
+| -------------- | --------- | ------------------ | ----------------- | ----------------- | -------------------- |
+| Yomiya         | 70275     | 38 FPS             | 80 FPS            | 123 FPS           | 400 FPS              |
+| Stanford Bunny | 208353    | 20 FPS             | 80 FPS            | 124 FPS           | 320 FPS              |
+| Khronos Sponza | 786801    | 2 FPS              | 10 FPS            | 123 FPS           | 220 FPS              |
+| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS             | 44 FPS            | 45 FPS               |
+
+*. Under optimization 
+
+**. Unstable result
 
 
 
 ### Test Environment
 
-- CPU: 12th Gen Intel(R) Core(TM) i9-12900H (Test with 16 threads)
+- CPU: 12th Gen Intel(R) Core(TM) i9-12900H 
+  - Test with 16 threads + AVX2 Instructions
+
 - GPU: NVIDIA GeForce RTX 3070 Ti Laptop GPU
+- Shading: World-space normal
 
 
 
@@ -79,11 +87,16 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 F32 Depth Attachment. Ti
 ## Ongoing Plan
 
 - Bug Fixing
-	- Undeterministic Behaviors in CUDA Renderer Piepline
-- CUDA Integration 
-	- Performance: Pixel Processing Bottleneck
-	- Performance: Binner / Geometry Processing Low Throughput 
-	- Performance: Pixel Processing Low Cache Utilization Efficiency
+  - Undeterministic Behaviors in CUDA Renderer Piepline
+- CPU Pipeline Optimization
+  - Performance: SIMD for tile-level pixel shading
+  - Performance: Z Pre-Pass
+  - Performance: Reduce fp division
+- CUDA  Pipeline Optimization 
+  - Performance: Limited Varyings Or Exhaustive Local Mem Writes
+  - Performance: Pixel Processing Bottleneck
+  - Performance: Binner / Geometry Processing Low Throughput 
+  - Performance: Pixel Processing Low Cache Utilization Efficiency
 - Blending
 - Scanline Rasterizer
 
