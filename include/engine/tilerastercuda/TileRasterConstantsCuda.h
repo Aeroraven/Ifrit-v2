@@ -42,11 +42,17 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_PREALLOCATED_TRIANGLE_LIST = false;
 	constexpr bool CU_OPT_EXPERIMENTAL_PERFORMANCE = false;
 	constexpr bool CU_OPT_COMPRESSED_Z_INTERPOL = true;
+	constexpr bool CU_OPT_WORKQUEUE_SECOND_BINNER = true;
 
 	// == Experimental ==
 	constexpr int CU_EXPERIMENTAL_SUBTILE_WIDTH = 4;
 	constexpr int CU_EXPERIMENTAL_PIXELS_PER_SUBTILE = CU_EXPERIMENTAL_SUBTILE_WIDTH * CU_EXPERIMENTAL_SUBTILE_WIDTH;
 
+	constexpr int CU_EXPERIMENTAL_SECOND_BINNER_WORKLIST_THREADS = 128;
+
 	// == Profiler ==
 	constexpr bool CU_PROFILER_OVERDRAW = false;
+	constexpr bool CU_PROFILER_SECOND_BINNER_UTILIZATION = false;
+	constexpr bool CU_PROFILER_TRIANGLE_SETUP = false;
+	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = true;
 }

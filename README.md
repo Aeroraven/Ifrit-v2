@@ -46,7 +46,7 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. T
 | Yomiya         | 70275     | 38 FPS             | 80 FPS            | 123 FPS           | 400 FPS              |
 | Stanford Bunny | 208353    | 20 FPS             | 80 FPS            | 124 FPS           | 320 FPS              |
 | Khronos Sponza | 786801    | 2 FPS              | 10 FPS            | 123 FPS           | 220 FPS              |
-| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS             | 44 FPS            | 45 FPS               |
+| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS             | 50 FPS            | 50 FPS               |
 
 *. Under optimization 
 
@@ -98,7 +98,7 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. T
   - Performance: Binner / Geometry Processing Low Throughput 
   - Performance: Pixel Processing Low Cache Utilization Efficiency
 - Blending
-- Scanline Rasterizer
+- Scanline Rasterizer (IMR)
 
 ## References
 
