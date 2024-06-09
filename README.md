@@ -43,16 +43,16 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. T
 
 | Model          | Triangles | CPU Single Thread* | CPU Multi-thread* | CUDA w/ Copy-back | CUDA w/o Copy-back** |
 | -------------- | --------- | ------------------ | ----------------- | ----------------- | -------------------- |
-| Yomiya         | 70275     | 38 FPS             | 80 FPS            | 123 FPS           | 400 FPS              |
-| Stanford Bunny | 208353    | 20 FPS             | 80 FPS            | 124 FPS           | 320 FPS              |
-| Khronos Sponza | 786801    | 2 FPS              | 10 FPS            | 123 FPS           | 220 FPS              |
-| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS             | 50 FPS            | 50 FPS               |
+| Yomiya         | 70275     | 38 FPS             | 80 FPS            | 123 FPS^          | 400 FPS^             |
+| Stanford Bunny | 208353    | 20 FPS             | 80 FPS            | 124 FPS^          | 320 FPS^             |
+| Khronos Sponza | 786801    | 2 FPS              | 10 FPS            | 105 FPS           | 239 FPS              |
+| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS             | 99 FPS            | 112 FPS               |
 
 *. Under optimization 
 
-**. Unstable result
+**. Might be influenced by other applications which utilize GPU
 
-
+^. Result of previous commit.
 
 ### Test Environment
 
@@ -93,6 +93,7 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. T
   - Performance: Z Pre-Pass
   - Performance: Reduce fp division
 - CUDA  Pipeline Optimization 
+  - Performance: Batched Geometry Processing 
   - Performance: Limited Varyings Or Exhaustive Local Mem Writes
   - Performance: Pixel Processing Bottleneck
   - Performance: Binner / Geometry Processing Low Throughput 

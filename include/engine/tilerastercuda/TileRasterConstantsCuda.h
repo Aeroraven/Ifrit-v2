@@ -22,6 +22,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_FIRST_RASTERIZATION_THREADS = 32;
 	constexpr int CU_SECOND_RASTERIZATION_THREADS_PER_TILE = 256;
 
+	constexpr int CU_PRIMITIVE_BUFFER_SIZE = 168960; //Safe 20608 84480
 	constexpr int CU_SINGLE_TIME_TRIANGLE = 84480; //Safe 20608 84480
 	constexpr int CU_SINGLE_TIME_TRIANGLE_GEOMETRY_BATCHSIZE = 1;
 
@@ -43,16 +44,23 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_EXPERIMENTAL_PERFORMANCE = false;
 	constexpr bool CU_OPT_COMPRESSED_Z_INTERPOL = true;
 	constexpr bool CU_OPT_WORKQUEUE_SECOND_BINNER = true;
+	constexpr bool CU_OPT_INDIRECT_INVOCATIONS = true; 
+	constexpr bool CU_OPT_VIEWSPACE_CLIP = true;
+
+	constexpr bool CU_OPT_II_UNIFIED_RASTERIZER = true;
+	constexpr bool CU_OPT_II_SKIP_ON_EMPTY_GEOMETRY = true;
+	constexpr bool CU_OPT_II_SKIP_ON_FEW_GEOMETRIES = true;
 
 	// == Experimental ==
 	constexpr int CU_EXPERIMENTAL_SUBTILE_WIDTH = 4;
 	constexpr int CU_EXPERIMENTAL_PIXELS_PER_SUBTILE = CU_EXPERIMENTAL_SUBTILE_WIDTH * CU_EXPERIMENTAL_SUBTILE_WIDTH;
 
 	constexpr int CU_EXPERIMENTAL_SECOND_BINNER_WORKLIST_THREADS = 128;
+	constexpr int CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT = 65536;
 
 	// == Profiler ==
 	constexpr bool CU_PROFILER_OVERDRAW = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_UTILIZATION = false;
 	constexpr bool CU_PROFILER_TRIANGLE_SETUP = false;
-	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = true;
+	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = false;
 }
