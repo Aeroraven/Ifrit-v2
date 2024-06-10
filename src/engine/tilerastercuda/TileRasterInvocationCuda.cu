@@ -867,6 +867,18 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		secondBinnerWorklistRasterizerKernel CU_KARG2(dim3(dispatchBlocks, CU_TILES_PER_BIN, CU_TILES_PER_BIN), dim3(CU_EXPERIMENTAL_SECOND_BINNER_WORKLIST_THREADS, 1, 1)) (totalElements);
 	}
 
+	IFRIT_HOST void secondBinnerWorklistRasterizerEntryProfileKernel() {
+		auto totalElements = 0;
+		cudaDeviceSynchronize();
+		cudaMemcpyFromSymbol(&totalElements, dRasterQueueWorklistCounter, sizeof(int));
+		const auto dispatchBlocks = (totalElements / CU_EXPERIMENTAL_SECOND_BINNER_WORKLIST_THREADS) + (totalElements % CU_EXPERIMENTAL_SECOND_BINNER_WORKLIST_THREADS != 0);
+		if (totalElements == 0)return;
+		if constexpr (CU_PROFILER_SECOND_BINNER_WORKQUEUE) {
+			printf("Second Binner Work Queue Size: %d\n", totalElements);
+			printf("Dispatched Thread Blocks %d\n", dispatchBlocks);
+		}
+		secondBinnerWorklistRasterizerKernel CU_KARG2(dim3(dispatchBlocks, CU_TILES_PER_BIN, CU_TILES_PER_BIN), dim3(CU_EXPERIMENTAL_SECOND_BINNER_WORKLIST_THREADS, 1, 1)) (totalElements);
+	}
 
 	IFRIT_KERNEL void fragmentShadingKernel(
 		FragmentShader*  fragmentShader,
@@ -1224,7 +1236,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	IFRIT_KERNEL void unifiedRasterEngineStageIIKernel(
 		int* dIndexBuffer,
-		const VaryingStore* const* dVaryingBuffer,
+		const VaryingStore const* const* dVaryingBuffer,
 		ifloat4** dColorBuffer,
 		float* dDepthBuffer,
 		FragmentShader* dFragmentShader,
@@ -1244,7 +1256,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				}
 			}
 		}
-		
 		Impl::firstBinnerRasterizerEntryKernel CU_KARG2(1, 1)();
 		Impl::secondBinnerWorklistRasterizerEntryKernel CU_KARG2(1, 1)();
 		Impl::fragmentShadingKernel CU_KARG2(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(tileSizeX, tileSizeY, 1)) (
@@ -1252,6 +1263,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			);
 		Impl::resetLargeTileKernel CU_KARG2(CU_TILE_SIZE, CU_TILE_SIZE)();
 	}
+	
 
 	IFRIT_KERNEL void unifiedRasterEngineKernel(
 		int totalIndices,
@@ -1286,6 +1298,62 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 			
 		}
+	}
+
+	IFRIT_HOST void unifiedRasterEngineProfileEntry(
+		int totalIndices,
+		ifloat4* dPositionBuffer,
+		int* dIndexBuffer,
+		const VaryingStore* const* dVaryingBuffer,
+		ifloat4** dColorBuffer,
+		float* dDepthBuffer,
+		FragmentShader* dFragmentShader,
+		int tileSizeX,
+		int tileSizeY,
+		cudaStream_t& compStream
+	) {
+		for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * 3) {
+			auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * 3), totalIndices - i);
+			bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * 3) >= totalIndices;
+			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
+			Impl::geometryProcessingKernel CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
+				dPositionBuffer, dIndexBuffer, i, indexCount);
+
+			if constexpr (CU_OPT_II_UNIFIED_RASTERIZER) {
+				uint32_t dAssembledTriangleCounterM2Host = 0;
+				cudaDeviceSynchronize();
+				cudaMemcpyFromSymbol(&dAssembledTriangleCounterM2Host, dAssembledTriangleCounterM2, sizeof(uint32_t));
+				//printf("HostProfiler: dAssembledTriangleCounterM2Host=%d\n", dAssembledTriangleCounterM2Host);
+				if constexpr (CU_OPT_II_SKIP_ON_FEW_GEOMETRIES) {
+					if (!isTailCall && dAssembledTriangleCounterM2Host < CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT) {
+						continue;
+					}
+				}
+				else {
+					if constexpr (CU_OPT_II_SKIP_ON_EMPTY_GEOMETRY) {
+						if (dAssembledTriangleCounterM2Host == 0) {
+							continue;
+						}
+					}
+				}
+				Impl::firstBinnerRasterizerEntryKernel CU_KARG4(1, 1, 0, compStream)();
+				
+				Impl::secondBinnerWorklistRasterizerEntryProfileKernel();
+				Impl::fragmentShadingKernel CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(tileSizeX, tileSizeY, 1), 0, compStream) (
+					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
+					);
+				Impl::resetLargeTileKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, compStream)();
+			}
+			else {
+				Impl::firstBinnerRasterizerEntryKernel CU_KARG4(1, 1,0, compStream)();
+				Impl::secondBinnerWorklistRasterizerEntryKernel CU_KARG4(1, 1,0, compStream)();
+				Impl::fragmentShadingKernel CU_KARG4(dim3(CU_TILE_SIZE, CU_TILE_SIZE, 1), dim3(tileSizeX, tileSizeY, 1),0, compStream) (
+					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
+					);
+				Impl::resetLargeTileKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE,0, compStream)();
+			}
+		}
+		cudaDeviceSynchronize();
 	}
 }
 
@@ -1532,10 +1600,19 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 
 
 		if constexpr (CU_OPT_INDIRECT_INVOCATIONS) {
-			Impl::unifiedRasterEngineKernel CU_KARG4(1, 1, 0, computeStream)(
-				totalIndices, dPositionBuffer, dIndexBuffer, deviceContext->dVaryingBuffer, dColorBuffer, dDepthBuffer, dFragmentShader,
-				tileSizeX, tileSizeY
-			);
+			if constexpr (CU_PROFILER_II_CPU_NSIGHT) {
+				Impl::unifiedRasterEngineProfileEntry(
+					totalIndices, dPositionBuffer, dIndexBuffer, deviceContext->dVaryingBuffer, dColorBuffer, dDepthBuffer, dFragmentShader,
+					tileSizeX, tileSizeY, computeStream
+				);
+			}
+			else {
+				Impl::unifiedRasterEngineKernel CU_KARG4(1, 1, 0, computeStream)(
+					totalIndices, dPositionBuffer, dIndexBuffer, deviceContext->dVaryingBuffer, dColorBuffer, dDepthBuffer, dFragmentShader,
+					tileSizeX, tileSizeY
+					);
+			}
+			
 		}
 		else {
 			for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * 3) {
@@ -1577,9 +1654,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		std::chrono::steady_clock::time_point end3 = std::chrono::steady_clock::now();
 
 		// End of rendering
-		auto memcpyTimes = std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin).count();
-		auto computeTimes = std::chrono::duration_cast<std::chrono::microseconds>(end2 - end1).count();
-		auto copybackTimes = std::chrono::duration_cast<std::chrono::microseconds>(end3 - end2).count();
+		auto copybackTimes = std::chrono::duration_cast<std::chrono::microseconds>(end3 - end1).count();
 
 		static long long w = 0;
 		static long long wt = 0;

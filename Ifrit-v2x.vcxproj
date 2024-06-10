@@ -108,6 +108,8 @@
       <CodeGeneration>compute_75,sm_75</CodeGeneration>
       <FastMath>true</FastMath>
       <GenerateLineInfo>true</GenerateLineInfo>
+      <Keep>false</Keep>
+      <NvccCompilation>compile</NvccCompilation>
     </CudaCompile>
     <CudaLink>
       <Optimization>O3</Optimization>
