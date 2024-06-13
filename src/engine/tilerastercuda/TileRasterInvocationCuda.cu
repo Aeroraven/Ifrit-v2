@@ -617,9 +617,23 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
 		auto dPosBufferAligned = reinterpret_cast<ifloat4*>(__builtin_assume_aligned(dPosBuffer, 16));
-		ifloat4 v1 = dPosBufferAligned[dIndexBuffer[indexStart]];
-		ifloat4 v2 = dPosBufferAligned[dIndexBuffer[indexStart + 1]];
-		ifloat4 v3 = dPosBufferAligned[dIndexBuffer[indexStart + 2]];
+
+
+		ifloat4 v1, v2, v3;
+		if constexpr (CU_OPT_ALIGNED_INDEX_BUFFER) {
+			dIndexBuffer = reinterpret_cast<int*>(__builtin_assume_aligned(dIndexBuffer, 16));
+			iint4 indices = reinterpret_cast<iint4*>(dIndexBuffer)[indexStart >> 2];
+			v1 = dPosBufferAligned[indices.x];
+			v2 = dPosBufferAligned[indices.y];
+			v3 = dPosBufferAligned[indices.z];
+		}
+		else {
+			v1 = dPosBufferAligned[dIndexBuffer[indexStart]];
+			v2 = dPosBufferAligned[dIndexBuffer[indexStart + 1]];
+			v3 = dPosBufferAligned[dIndexBuffer[indexStart + 2]];
+		}
+		
+		
 		
 		const auto primId = globalInvoIdx + startingIndexId / CU_TRIANGLE_STRIDE;
 		if (v1.w < 0 && v2.w < 0 && v3.w < 0) {
@@ -741,7 +755,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			atri.f1 = { (float)(sV3V2y * ar) * invFrameWidth, (float)(sV3V2x * ar) * invFrameHeight,(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) };
 			atri.f2 = { (float)(sV1V3y * ar) * invFrameWidth, (float)(sV1V3x * ar) * invFrameHeight,(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) };
 
-			const auto dEps = CU_EPS*frameHeight*frameWidth;
+			const auto dEps = CU_EPS * 4e6f;
 			ifloat3 edgeCoefs[3];
 			atri.e1 = { (float)(sV2V1y)*frameHeight,  (float)(sV2V1x)*frameWidth ,  (float)(-dv2.x * dv1.y + dv1.x * dv2.y) * frameHeight * frameWidth };
 			atri.e2 = { (float)(sV3V2y)*frameHeight,  (float)(sV3V2x)*frameWidth ,  (float)(-dv3.x * dv2.y + dv2.x * dv3.y) * frameHeight * frameWidth };
@@ -1270,9 +1284,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		int tileSizeX,
 		int tileSizeY
 	) {
-		for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * 3) {
-			auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * 3), totalIndices - i);
-			bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * 3) >= totalIndices;
+		for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
+			auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
+			bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
 			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
 			
 			Impl::geometryProcessingKernel CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
@@ -1296,9 +1310,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		int tileSizeY,
 		cudaStream_t& compStream
 	) {
-		for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * 3) {
-			auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * 3), totalIndices - i);
-			bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * 3) >= totalIndices;
+		for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
+			auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
+			bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
 			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
 			Impl::geometryProcessingKernel CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
 				dPositionBuffer, dIndexBuffer, i, indexCount);

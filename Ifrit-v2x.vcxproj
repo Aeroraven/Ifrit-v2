@@ -110,7 +110,7 @@
       <GenerateLineInfo>true</GenerateLineInfo>
       <Keep>false</Keep>
       <NvccCompilation>compile</NvccCompilation>
-      <MaxRegCount>52</MaxRegCount>
+      <MaxRegCount>0</MaxRegCount>
     </CudaCompile>
     <CudaLink>
       <Optimization>O3</Optimization>

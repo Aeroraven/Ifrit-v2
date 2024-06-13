@@ -25,11 +25,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_FIRST_RASTERIZATION_THREADS = 32;
 	constexpr int CU_SECOND_RASTERIZATION_THREADS_PER_TILE = 256;
 
-	constexpr int CU_PRIMITIVE_BUFFER_SIZE = 1351680*2; //Safe 20608 84480
-	constexpr int CU_SINGLE_TIME_TRIANGLE = 1351680; //Safe 20608 84480
+	constexpr int CU_PRIMITIVE_BUFFER_SIZE = 1154048 *2; //Safe 20608 84480
+	constexpr int CU_SINGLE_TIME_TRIANGLE = 1154048; //Safe 20608 84480
 	constexpr int CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER = 84480;
 
-	constexpr int CU_TRIANGLE_STRIDE = 3;
+
 	constexpr int CU_FIRST_BINNER_STRIDE = 2;
 	constexpr float CU_LARGE_TRIANGLE_THRESHOLD = 0.15f;
 	constexpr int CU_MAX_SUBTILES_PER_TILE = 16;
@@ -53,6 +53,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_II_UNIFIED_RASTERIZER = true;
 	constexpr bool CU_OPT_II_SKIP_ON_EMPTY_GEOMETRY = true;
 	constexpr bool CU_OPT_II_SKIP_ON_FEW_GEOMETRIES = true;
+
+	constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = true;
+
+	// == Derived == 
+	constexpr int CU_TRIANGLE_STRIDE = CU_OPT_ALIGNED_INDEX_BUFFER ? 4 : 3;
 
 	// == Experimental ==
 	constexpr int CU_EXPERIMENTAL_SUBTILE_WIDTH = 4;

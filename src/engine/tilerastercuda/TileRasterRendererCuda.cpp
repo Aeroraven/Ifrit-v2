@@ -51,7 +51,18 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		context->indexBuffer = &indexBuffer;
-		this->deviceIndexBuffer = Invocation::getIndexBufferDeviceAddr(indexBuffer.data(), indexBuffer.size(),this->deviceIndexBuffer);
+		if constexpr (CU_OPT_ALIGNED_INDEX_BUFFER) {
+			std::vector<int> indexBufferInt4;
+			for (int i = 0; i < indexBuffer.size(); i++) {
+				indexBufferInt4.push_back(indexBuffer[i]);
+				if (i % 3 == 2)indexBufferInt4.push_back(0);
+			}
+			this->deviceIndexBuffer = Invocation::getIndexBufferDeviceAddr(indexBufferInt4.data(), indexBufferInt4.size(), this->deviceIndexBuffer);
+		}
+		else {
+			this->deviceIndexBuffer = Invocation::getIndexBufferDeviceAddr(indexBuffer.data(), indexBuffer.size(), this->deviceIndexBuffer);
+		}
+		
 	}
 
 	void TileRasterRendererCuda::bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor) {
