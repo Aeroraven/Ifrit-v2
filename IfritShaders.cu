@@ -24,7 +24,7 @@ IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
 
 IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* colorOutput, int stride) {
 	auto result = ((const ifloat4s256*)varyings)[0];
-	constexpr float fw = 0.15;
+	constexpr float fw = 0.1;
 	result.x = fw * result.x + fw;
 	result.y = fw * result.y + fw;
 	result.z = fw * result.z + fw;

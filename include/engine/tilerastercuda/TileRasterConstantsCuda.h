@@ -2,6 +2,9 @@
 namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr float CU_EPS = 1e-8f;
 
+	// == Device ==
+	constexpr int CU_WARP_SIZE = 32;
+
 	// == Kernels ==
 	constexpr int CU_LARGE_BIN_SIZE = 32;
 	constexpr int CU_BIN_SIZE = 64;
@@ -13,7 +16,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_SUBTILE_SIZE = (1<<(CU_SUBTILE_SIZE_LOG));
 	constexpr int CU_MAX_VARYINGS = 2;
 	constexpr int CU_MAX_ATTRIBUTES = 2;
-	constexpr int CU_GEOMETRY_PROCESSING_THREADS = 32;
+	constexpr int CU_GEOMETRY_PROCESSING_THREADS = 128;
 	constexpr int CU_RASTERIZATION_THREADS_PERDIM = 8;
 	constexpr int CU_VERTEX_PROCESSING_THREADS = 64;
 
@@ -22,9 +25,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_FIRST_RASTERIZATION_THREADS = 32;
 	constexpr int CU_SECOND_RASTERIZATION_THREADS_PER_TILE = 256;
 
-	constexpr int CU_PRIMITIVE_BUFFER_SIZE = 168960; //Safe 20608 84480
-	constexpr int CU_SINGLE_TIME_TRIANGLE = 84480; //Safe 20608 84480
-	constexpr int CU_SINGLE_TIME_TRIANGLE_GEOMETRY_BATCHSIZE = 1;
+	constexpr int CU_PRIMITIVE_BUFFER_SIZE = 675840; //Safe 20608 84480
+	constexpr int CU_SINGLE_TIME_TRIANGLE = 337920; //Safe 20608 84480
+	constexpr int CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER = 84480;
 
 	constexpr int CU_TRIANGLE_STRIDE = 3;
 	constexpr int CU_FIRST_BINNER_STRIDE = 2;
@@ -56,12 +59,13 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_EXPERIMENTAL_PIXELS_PER_SUBTILE = CU_EXPERIMENTAL_SUBTILE_WIDTH * CU_EXPERIMENTAL_SUBTILE_WIDTH;
 
 	constexpr int CU_EXPERIMENTAL_SECOND_BINNER_WORKLIST_THREADS = 128;
-	constexpr int CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT = 84480;
+	constexpr int CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT = CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
 
 	// == Profiler ==
 	constexpr bool CU_PROFILER_OVERDRAW = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_UTILIZATION = false;
 	constexpr bool CU_PROFILER_TRIANGLE_SETUP = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = false;
-	constexpr bool CU_PROFILER_II_CPU_NSIGHT = true;
+	constexpr bool CU_PROFILER_II_CPU_NSIGHT = false;
+
 }

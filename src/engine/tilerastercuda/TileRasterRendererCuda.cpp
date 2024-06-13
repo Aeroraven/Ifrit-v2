@@ -8,7 +8,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 		deviceContext->dShadingQueue = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
 
-		int totlTriangle = CU_SINGLE_TIME_TRIANGLE * 7 * CU_SINGLE_TIME_TRIANGLE_GEOMETRY_BATCHSIZE;
+		int totlTriangle = CU_SINGLE_TIME_TRIANGLE * 2 ;
 		int totalTiles = CU_TILE_SIZE * CU_TILE_SIZE;
 		int totalTriangles = CU_SINGLE_TIME_TRIANGLE;
 		int maxProposals = CU_SINGLE_TIME_TRIANGLE;
