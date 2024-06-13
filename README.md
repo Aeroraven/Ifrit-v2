@@ -39,6 +39,8 @@ Successor to following repos:
 
 Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored.
 
+Note that some triangles might be culled or clipped in the pipeline.
+
 **Frame Rate**
 
 | Model          | Triangles | CPU Single Thread* | CPU Multi-thread* | CUDA w/ Copy-back | CUDA w/o Copy-back** |
@@ -93,8 +95,7 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. T
   - Performance: [Pixel Proc] Z Pre-Pass
   - Performance: [General] Reduce fp division
 - CUDA  Pipeline Optimization 
-  - Performance: [Geometry Proc] Latency Issue
-  - Performance: [Geometry Proc] Batched Geometry Processing
+  - Performance: [Geometry Proc] Severe Latency Issue / Memory Bound
   - Performance: [Rasterizer 2] Memory Store Excessive
   - Performance: [Rasterizer 2] Not Selected Stall
   - Performance: [Rasterizer 1] Severe Latency Issue / Memory Bound
