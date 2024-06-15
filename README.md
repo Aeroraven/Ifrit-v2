@@ -45,8 +45,8 @@ Note that some triangles might be culled or clipped in the pipeline.
 
 | Model          | Triangles | CPU Single Thread* | CPU Multi-thread* | CUDA w/ Copy-back | CUDA w/o Copy-back** |
 | -------------- | --------- | ------------------ | ----------------- | ----------------- | -------------------- |
-| Yomiya         | 70275     | 38 FPS             | 80 FPS            | 123 FPS^          | 400 FPS^             |
-| Stanford Bunny | 208353    | 20 FPS             | 80 FPS            | 124 FPS^          | 320 FPS^             |
+| Yomiya         | 70275     | 38 FPS             | 80 FPS            | 123 FPS           | 1000 FPS^            |
+| Stanford Bunny | 208353    | 20 FPS             | 80 FPS            | 124 FPS           | 850 FPS^             |
 | Khronos Sponza | 786801    | 2 FPS              | 10 FPS            | 125 FPS           | 300 FPS              |
 | Intel Sponza   | 11241912  | 1 FPS              | 7 FPS             | 125 FPS           | 155 FPS              |
 
@@ -54,7 +54,7 @@ Note that some triangles might be culled or clipped in the pipeline.
 
 **. Might be influenced by other applications which utilize GPU
 
-^. Result of previous commit.
+^. Peak value
 
 ### Test Environment
 
@@ -99,6 +99,7 @@ Note that some triangles might be culled or clipped in the pipeline.
   - Performance: [Rasterizer 2] Memory Store Excessive
   - Performance: [Rasterizer 2] Not Selected Stall
   - Performance: [Rasterizer 1] Severe Latency Issue / Memory Bound
+  - Bug: Coalesced Index Buffer
 - Blending
 - Scanline Rasterizer (IMR)
 

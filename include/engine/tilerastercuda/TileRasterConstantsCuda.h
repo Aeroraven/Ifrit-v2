@@ -58,7 +58,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_II_SKIP_ON_EMPTY_GEOMETRY = true;
 	constexpr bool CU_OPT_II_SKIP_ON_FEW_GEOMETRIES = true;
 
-	constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = true;
+	constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = false;  //BUGGY?
 	constexpr bool CU_OPT_SEPARATE_FIRST_BINNER_KERNEL = true;
 
 	// == Derived == 
