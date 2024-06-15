@@ -76,6 +76,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_PROFILER_SECOND_BINNER_UTILIZATION = false;
 	constexpr bool CU_PROFILER_TRIANGLE_SETUP = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = false;
-	constexpr bool CU_PROFILER_II_CPU_NSIGHT = true;
+	constexpr bool CU_PROFILER_II_CPU_NSIGHT = false;
 
 }

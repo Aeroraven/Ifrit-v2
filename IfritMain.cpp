@@ -161,7 +161,6 @@ int mainCpu() {
 			backend.draw();
 		});
 	}
-	
 	return 0;
 }
 
@@ -174,7 +173,7 @@ int mainGpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/sponza3.obj", pos, normal, uv, index);
+	loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj", pos, normal, uv, index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 
