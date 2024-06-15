@@ -105,7 +105,7 @@
       </AdditionalCompilerOptions>
       <AdditionalOptions>-std=c++20 %(AdditionalOptions)</AdditionalOptions>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
-      <CodeGeneration>compute_75,sm_75</CodeGeneration>
+      <CodeGeneration>compute_86,sm_86</CodeGeneration>
       <FastMath>true</FastMath>
       <GenerateLineInfo>true</GenerateLineInfo>
       <Keep>false</Keep>
