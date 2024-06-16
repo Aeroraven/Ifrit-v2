@@ -39,7 +39,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_ELEMENTS_PER_SECOND_BINNER_BLOCK = 8;
 
 	// == Memory Allocation ==
-	constexpr size_t CU_HEAP_MEMORY_SIZE = 1024ull * 1024 * 1024 * 4;
+	constexpr size_t CU_HEAP_MEMORY_SIZE = 1024ull * 1024 * 1024 * 7 / 2;
 	constexpr int CU_VECTOR_BASE_LENGTH = 9;
 	constexpr int CU_VECTOR_HIERARCHY_LEVEL = 10;
 
@@ -58,8 +58,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_II_SKIP_ON_EMPTY_GEOMETRY = true;
 	constexpr bool CU_OPT_II_SKIP_ON_FEW_GEOMETRIES = true;
 
-	constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = false;  //BUGGY?
+	constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = true;  //BUGGY?
 	constexpr bool CU_OPT_SEPARATE_FIRST_BINNER_KERNEL = true;
+	constexpr bool CU_OPT_GEOMETRY_POSTPROC_KERNEL = true;
 
 	// == Derived == 
 	constexpr int CU_TRIANGLE_STRIDE = CU_OPT_ALIGNED_INDEX_BUFFER ? 4 : 3;
@@ -70,6 +71,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 	constexpr int CU_EXPERIMENTAL_SECOND_BINNER_WORKLIST_THREADS = 128;
 	constexpr int CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT = CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
+
+	constexpr int CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS = 128;
 
 	// == Profiler ==
 	constexpr bool CU_PROFILER_OVERDRAW = false;

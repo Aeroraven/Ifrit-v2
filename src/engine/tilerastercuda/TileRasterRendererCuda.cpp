@@ -117,6 +117,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
 
+		int totalIndices = context->indexBuffer->size();
+		if constexpr (CU_OPT_ALIGNED_INDEX_BUFFER) {
+			totalIndices = totalIndices / 3 * 4;
+		}
+
 		int curBuffer = currentBuffer;
 		Invocation::invokeCudaRendering(
 			deviceVertexBuffer,
@@ -133,7 +138,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			deviceDepthBuffer,
 			devicePosBuffer,
 			this->deviceContext.get(),
-			context->indexBuffer->size(),
+			totalIndices,
 			this->doubleBuffer,
 			deviceHostColorBuffers[1-curBuffer].data(),
 			aggressiveRatio

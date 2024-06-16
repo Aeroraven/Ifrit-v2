@@ -88,14 +88,11 @@ Note that some triangles might be culled or clipped in the pipeline.
 
 ## Ongoing Plan
 
-- Bug Fixing
-  - Undeterministic Behaviors in CUDA Renderer Piepline
 - CPU Pipeline Optimization
   - Performance: [Pixel Proc] SIMD for tile-level pixel shading
   - Performance: [Pixel Proc] Z Pre-Pass
   - Performance: [General] Reduce fp division
 - CUDA  Pipeline Optimization 
-  - Performance: [Geometry Proc] Severe Latency Issue / Memory Bound
   - Performance: [Rasterizer 2] Memory Store Excessive
   - Performance: [Rasterizer 2] Not Selected Stall
   - Performance: [Rasterizer 1] Severe Latency Issue / Memory Bound

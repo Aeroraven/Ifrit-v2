@@ -11,7 +11,7 @@ IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4*
 	//float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 10.0, 3000));
 
 	//float4x4 view = (lookAt({ 0,1.5,0}, { -100,1.5,0 }, { 0,1,0 }));
-	float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.01, 1000));
+	float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 1.0, 1000));
 	float4x4 mvp = multiply(proj, view);
 	auto s = *reinterpret_cast<const ifloat4*>(input[0]);
 	auto p = multiply(mvp, s);
@@ -24,7 +24,7 @@ IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
 
 IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* colorOutput, int stride) {
 	auto result = ((const ifloat4s256*)varyings)[0];
-	constexpr float fw = 0.1;
+	constexpr float fw = 0.5;
 	result.x = fw * result.x + fw;
 	result.y = fw * result.y + fw;
 	result.z = fw * result.z + fw;
