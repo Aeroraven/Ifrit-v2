@@ -39,28 +39,18 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_ELEMENTS_PER_SECOND_BINNER_BLOCK = 8;
 
 	// == Memory Allocation ==
-	constexpr size_t CU_HEAP_MEMORY_SIZE = 1024ull * 1024 * 1024 * 7 / 2;
+	constexpr size_t CU_HEAP_MEMORY_SIZE = 1024ull * 1024 * 1024 * 4;
 	constexpr int CU_VECTOR_BASE_LENGTH = 9;
 	constexpr int CU_VECTOR_HIERARCHY_LEVEL = 10;
 
 	// == Options ==
 	constexpr bool CU_OPT_HOMOGENEOUS_DISCARD = false;
-	constexpr bool CU_OPT_HOMOGENEOUS_CLIPPING_NEG_W_ONLY = true;
 	constexpr bool CU_OPT_CUDA_PROFILE = true;
 	constexpr bool CU_OPT_PREALLOCATED_TRIANGLE_LIST = false;
-	constexpr bool CU_OPT_EXPERIMENTAL_PERFORMANCE = false;
-	constexpr bool CU_OPT_COMPRESSED_Z_INTERPOL = true;
-	constexpr bool CU_OPT_WORKQUEUE_SECOND_BINNER = true;
-	constexpr bool CU_OPT_INDIRECT_INVOCATIONS = true; 
-	constexpr bool CU_OPT_VIEWSPACE_CLIP = true;
-
-	constexpr bool CU_OPT_II_UNIFIED_RASTERIZER = true;
-	constexpr bool CU_OPT_II_SKIP_ON_EMPTY_GEOMETRY = true;
 	constexpr bool CU_OPT_II_SKIP_ON_FEW_GEOMETRIES = true;
 
-	constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = true;  //BUGGY?
+	constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = true;  
 	constexpr bool CU_OPT_SEPARATE_FIRST_BINNER_KERNEL = true;
-	constexpr bool CU_OPT_GEOMETRY_POSTPROC_KERNEL = true;
 
 	// == Derived == 
 	constexpr int CU_TRIANGLE_STRIDE = CU_OPT_ALIGNED_INDEX_BUFFER ? 4 : 3;
@@ -79,6 +69,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_PROFILER_SECOND_BINNER_UTILIZATION = false;
 	constexpr bool CU_PROFILER_TRIANGLE_SETUP = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = false;
-	constexpr bool CU_PROFILER_II_CPU_NSIGHT = false;
+	constexpr bool CU_PROFILER_II_CPU_NSIGHT = true;
 
 }
