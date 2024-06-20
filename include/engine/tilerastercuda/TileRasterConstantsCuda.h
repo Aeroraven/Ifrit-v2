@@ -22,7 +22,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 	constexpr int CU_FRAGMENT_SHADING_THREADS_PER_TILE_X = 10;
 	constexpr int CU_FRAGMENT_SHADING_THREADS_PER_TILE_Y = 10;
-	constexpr int CU_FIRST_RASTERIZATION_THREADS = 32;
+	constexpr int CU_FIRST_RASTERIZATION_THREADS_TINY = 64;
+	constexpr int CU_FIRST_RASTERIZATION_THREADS = 16;
+	constexpr int CU_FIRST_RASTERIZATION_GATHER_THREADS = 128;
 	constexpr int CU_FIRST_RASTERIZATION_THREADS_LARGE = 8;
 	constexpr int CU_SECOND_RASTERIZATION_THREADS_PER_TILE = 256;
 
@@ -30,8 +32,10 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_SINGLE_TIME_TRIANGLE = 1154048 / 2; //Safe 20608 84480
 	constexpr int CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER = 84480;
 
+	constexpr int CU_ALTERNATIVE_BUFFER_SIZE = 1154048;
 
-	constexpr int CU_FIRST_BINNER_STRIDE = 2;
+	constexpr int CU_FIRST_BINNER_STRIDE_TINY = 2;
+	constexpr int CU_FIRST_BINNER_STRIDE = 8;
 	constexpr int CU_FIRST_BINNER_STRIDE_LARGE = 4;
 	constexpr float CU_LARGE_TRIANGLE_THRESHOLD = 0.15f;
 	constexpr int CU_MAX_SUBTILES_PER_TILE = 16;
@@ -48,7 +52,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_CUDA_PROFILE = true;
 	constexpr bool CU_OPT_PREALLOCATED_TRIANGLE_LIST = false;
 	constexpr bool CU_OPT_II_SKIP_ON_FEW_GEOMETRIES = true;
-
 	constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = true;  
 	constexpr bool CU_OPT_SEPARATE_FIRST_BINNER_KERNEL = true;
 
@@ -63,12 +66,14 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT = CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
 
 	constexpr int CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS = 128;
+	constexpr float CU_EXPERIMENTAL_TINY_THRESHOLD = 1e-3;
 
 	// == Profiler ==
 	constexpr bool CU_PROFILER_OVERDRAW = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_UTILIZATION = false;
 	constexpr bool CU_PROFILER_TRIANGLE_SETUP = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = false;
-	constexpr bool CU_PROFILER_II_CPU_NSIGHT = true;
-
+	constexpr bool CU_PROFILER_SMALL_TRIANGLE_OVERHEAD = false;
+	constexpr bool CU_PROFILER_II_CPU_NSIGHT = false;
+	constexpr bool CU_PROFILER_ENABLE_MEMCPY = true;
 }
