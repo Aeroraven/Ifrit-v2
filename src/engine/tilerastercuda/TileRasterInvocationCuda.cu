@@ -129,6 +129,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dOverZTestCounter;
 	IFRIT_DEVICE static int dIrrelevantPixel;
 	IFRIT_DEVICE static int dTotalBinnedPixel;
+	IFRIT_DEVICE static int dSingleBinnedPixel;
 
 	// Profiler: Second Binner Utilizations
 	IFRIT_DEVICE static int dSecondBinnerTotalReqs;
@@ -590,7 +591,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		TypeDescriptorEnum* dVertexTypeDescriptor,
 		float4** dVaryingBuffer,
 		TypeDescriptorEnum* dVaryingTypeDescriptor,
-		ifloat4* dPosBuffer
+		float4* dPosBuffer
 	) {
 		const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
 		if (globalInvoIdx >= vertexCount) return;
@@ -607,7 +608,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			varyingOutputPtrs[i] = dVaryingBuffer[i] + globalInvoIdx;
 		}
 		auto s = *reinterpret_cast<const ifloat4*>(vertexInputPtrs[0]);
-		vertexShader->execute(vertexInputPtrs, &dPosBuffer[globalInvoIdx], (VaryingStore**)varyingOutputPtrs);
+		vertexShader->execute(vertexInputPtrs, (ifloat4*) &dPosBuffer[globalInvoIdx], (VaryingStore**)varyingOutputPtrs);
 	}
 
 	IFRIT_KERNEL void geometryProcessingKernel(
@@ -788,7 +789,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float4 f1 = { (float)(sV3V2y * ar) * invFrameWidth, (float)(sV3V2x * ar) * invFrameHeight,(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) };
 		float4 f2 = { (float)(sV1V3y * ar) * invFrameWidth, (float)(sV1V3x * ar) * invFrameHeight,(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) };
 
-		const auto dEps = CU_EPS * 4e6f;
+		const auto dEps = CU_EPS * 1e5f;
 
 		float v1 = dv1.z * f1.x + dv2.z * f2.x + dv3.z * f3.x;
 		float v2 = dv1.z * f1.y + dv2.z * f2.y + dv3.z * f3.y;
@@ -1763,7 +1764,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		int vertexExecutionBlocks = (Impl::hsVertexCounts / CU_VERTEX_PROCESSING_THREADS) + ((Impl::hsVertexCounts % CU_VERTEX_PROCESSING_THREADS) != 0);
 		Impl::vertexProcessingKernel CU_KARG4(vertexExecutionBlocks, CU_VERTEX_PROCESSING_THREADS, 0, computeStream)(
 			dVertexShader, Impl::hsVertexCounts, dVertexBuffer, dVertexTypeDescriptor,
-			deviceContext->dVaryingBuffer, dVaryingTypeDescriptor, dPositionBuffer
+			deviceContext->dVaryingBuffer, dVaryingTypeDescriptor, (float4*)dPositionBuffer
 		);
 		
 		constexpr int totalTiles = CU_TILE_SIZE * CU_TILE_SIZE;
