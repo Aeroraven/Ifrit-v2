@@ -48,7 +48,7 @@ Note that some triangles might be culled or clipped in the pipeline.
 | Yomiya         | 70275     | 38 FPS             | 80 FPS            | 123 FPS           | 1000 FPS^            |
 | Stanford Bunny | 208353    | 20 FPS             | 80 FPS            | 124 FPS           | 850 FPS^             |
 | Khronos Sponza | 786801    | 2 FPS              | 10 FPS            | 125 FPS           | 300 FPS              |
-| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS             | 125 FPS           | 155 FPS              |
+| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS             | 125 FPS           | 167 FPS              |
 
 *. Under optimization 
 
@@ -95,8 +95,7 @@ Note that some triangles might be culled or clipped in the pipeline.
 - CUDA  Pipeline Optimization 
   - Performance: [Rasterizer 2] Memory Store Excessive
   - Performance: [Rasterizer 2] Not Selected Stall
-  - Performance: [Rasterizer 1] Severe Latency Issue / Memory Bound
-  - Bug: Coalesced Index Buffer
+  - Performance: [Rasterizer 1] Latency Issue
 - Blending
 - Scanline Rasterizer (IMR)
 
