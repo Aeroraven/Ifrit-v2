@@ -1,6 +1,6 @@
 #pragma once
 namespace Ifrit::Engine::TileRaster::CUDA {
-	constexpr float CU_EPS = 1e-8f;
+	constexpr float CU_EPS = 5e-9f;
 
 	// == Device ==
 	constexpr int CU_WARP_SIZE = 32;
@@ -31,8 +31,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_SECOND_RASTERIZATION_THREADS_PER_TILE = 256;
 	constexpr int CU_SECOND_RASTERIZATION_GATHER_THREADS = 128;
 
-	constexpr int CU_PRIMITIVE_BUFFER_SIZE = 1154048 *2; //Safe 20608 84480
-	constexpr int CU_SINGLE_TIME_TRIANGLE = 1154048 / 2; //Safe 20608 84480
+	constexpr int CU_PRIMITIVE_BUFFER_SIZE = 954048 *2; //Safe 20608 84480
+	constexpr int CU_SINGLE_TIME_TRIANGLE = 954048 / 2; //Safe 20608 84480
 	constexpr int CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER = 84480;
 
 	constexpr int CU_ALTERNATIVE_BUFFER_SIZE = 654048;

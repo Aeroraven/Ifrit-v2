@@ -155,7 +155,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float n2 = (v1.x * v3.y) * a1 * a3;
 		float n3 = (v2.x * v1.y) * a2 * a1;
 		float d = d1 + d2 + d3 - n1 - n2 - n3;
-		return d > 0.0f;
+		return d >= 0.0f;
 	}
 
 	IFRIT_DEVICE bool devViewSpaceClip(ifloat4 v1, ifloat4 v2, ifloat4 v3) {
@@ -543,12 +543,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					criteriaX[2] += edgeCoefs[2].x;
 				}
 				
+		
 			}
 		}
-		TilePixelBitProposalCUDA nprop;
-		nprop.mask = mask;
-		nprop.primId = primitiveSrcId;
-		dq[subTileId].push_back(nprop);
+		if (mask != 0) {
+			TilePixelBitProposalCUDA nprop;
+			nprop.mask = mask;
+			nprop.primId = primitiveSrcId;
+			dq[subTileId].push_back(nprop);
+		}
 
 		//auto plId = atomicAdd(&dSecondBinnerCandCounter, 1);
 		//dSecondBinnerPrim[plId] = primitiveSrcId;
@@ -585,7 +588,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		uint32_t vertexCount,
 		char* dVertexBuffer,
 		TypeDescriptorEnum* dVertexTypeDescriptor,
-		VaryingStore** dVaryingBuffer,
+		float4** dVaryingBuffer,
 		TypeDescriptorEnum* dVaryingTypeDescriptor,
 		ifloat4* dPosBuffer
 	) {
@@ -595,7 +598,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto numVaryings = csVaryingCounts;
 
 		const void* vertexInputPtrs[CU_MAX_ATTRIBUTES];
-		VaryingStore* varyingOutputPtrs[CU_MAX_VARYINGS];
+		float4* varyingOutputPtrs[CU_MAX_VARYINGS];
 		
 		for (int i = 0; i < numAttrs; i++) {
 			vertexInputPtrs[i] = globalInvoIdx * csTotalVertexOffsets + dVertexBuffer + csVertexOffsets[i];
@@ -604,7 +607,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			varyingOutputPtrs[i] = dVaryingBuffer[i] + globalInvoIdx;
 		}
 		auto s = *reinterpret_cast<const ifloat4*>(vertexInputPtrs[0]);
-		vertexShader->execute(vertexInputPtrs, &dPosBuffer[globalInvoIdx], varyingOutputPtrs);
+		vertexShader->execute(vertexInputPtrs, &dPosBuffer[globalInvoIdx], (VaryingStore**)varyingOutputPtrs);
 	}
 
 	IFRIT_KERNEL void geometryProcessingKernel(
@@ -1063,7 +1066,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_KERNEL void fragmentShadingKernel(
 		FragmentShader*  fragmentShader,
 		int* IFRIT_RESTRICT_CUDA dIndexBuffer,
-		const VaryingStore* const* IFRIT_RESTRICT_CUDA dVaryingBuffer,
+		const float4* const* IFRIT_RESTRICT_CUDA dVaryingBuffer,
 		ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
 		float* IFRIT_RESTRICT_CUDA dDepthBuffer
 	) {
@@ -1132,20 +1135,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto addr = dIndexBuffer + orgPrimId * vertexStride;
 			for (int k = 0; k < varyingCount; k++) {
 				const auto va = dVaryingBuffer[k];
-				VaryingStore vd;
-				vd.vf4 = { 0,0,0,0 };
+				float4 vd;
+				vd = { 0,0,0,0 };
 				for (int j = 0; j < 3; j++) {
-					auto vaf4 = va[addr[j]].vf4;
-					vd.vf4.x += vaf4.x * desiredBary[j];
-					vd.vf4.y += vaf4.y * desiredBary[j];
-					vd.vf4.z += vaf4.z * desiredBary[j];
-					vd.vf4.w += vaf4.w * desiredBary[j];
+					auto vaf4 = va[addr[j]];
+					vd.x += vaf4.x * desiredBary[j];
+					vd.y += vaf4.y * desiredBary[j];
+					vd.z += vaf4.z * desiredBary[j];
+					vd.w += vaf4.w * desiredBary[j];
 				}
 				auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadId);
-				dest->x = vd.vf4.x;
-				dest->y = vd.vf4.y;
-				dest->z = vd.vf4.z;
-				dest->w = vd.vf4.w;
+				dest->x = vd.x;
+				dest->y = vd.y;
+				dest->z = vd.z;
+				dest->w = vd.w;
 			}
 			fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, 1);
 
@@ -1395,7 +1398,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	IFRIT_KERNEL void unifiedRasterEngineStageIIKernel(
 		int* dIndexBuffer,
-		const VaryingStore const* const* dVaryingBuffer,
+		const float4 const* const* dVaryingBuffer,
 		ifloat4** dColorBuffer,
 		float* dDepthBuffer,
 		FragmentShader* dFragmentShader,
@@ -1440,7 +1443,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		int totalIndices,
 		ifloat4* dPositionBuffer,
 		int* dIndexBuffer,
-		const VaryingStore* const* dVaryingBuffer,
+		const float4* const* dVaryingBuffer,
 		ifloat4** dColorBuffer,
 		float* dDepthBuffer,
 		FragmentShader* dFragmentShader,
@@ -1464,7 +1467,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		int totalIndices,
 		ifloat4* dPositionBuffer,
 		int* dIndexBuffer,
-		const VaryingStore* const* dVaryingBuffer,
+		const float4* const* dVaryingBuffer,
 		ifloat4** dColorBuffer,
 		float* dDepthBuffer,
 		FragmentShader* dFragmentShader,

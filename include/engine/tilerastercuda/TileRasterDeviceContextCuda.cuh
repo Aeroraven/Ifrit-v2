@@ -11,12 +11,12 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	using namespace Ifrit::Engine;
 
 	struct TileRasterDeviceContext {
-		std::vector<DeviceVector<VaryingStore>> hdVaryingBuffer;
-		std::vector<VaryingStore*> hdVaryingBufferVec;
+		std::vector<DeviceVector<float4>> hdVaryingBuffer;
+		std::vector<float4*> hdVaryingBufferVec;
 
 		uint32_t* dShadingQueue;
 
-		VaryingStore** dVaryingBuffer;
+		float4** dVaryingBuffer;
 		TileRasterDeviceConstants* dDeviceConstants;
 	};
 }
