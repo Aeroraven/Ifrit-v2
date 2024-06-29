@@ -9,6 +9,17 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_LARGE_BIN_SIZE = 32;
 	constexpr int CU_BIN_SIZE = 128;
 	constexpr int CU_TILE_SIZE = 128;
+	constexpr int CU_MAX_FRAMEBUFFER_SIZE = 4096 * 4096;
+
+	// experimentals
+	constexpr int CU_LARGE_BIN_WIDTH = 64;
+	constexpr int CU_BIN_WIDTH = 16;
+	constexpr int CU_TILE_WIDTH = 16;
+
+	constexpr int CU_MAX_BIN_X = 128;
+	constexpr int CU_MAX_TILE_X = 128;
+	constexpr int CU_MAX_LARGE_BIN_X = 32;
+	// end experimentals
 	
 	constexpr int CU_TILES_PER_BIN = CU_TILE_SIZE / CU_BIN_SIZE;
 	constexpr int CU_BINS_PER_LARGE_BIN = CU_BIN_SIZE / CU_LARGE_BIN_SIZE;
@@ -77,6 +88,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_PROFILER_TRIANGLE_SETUP = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = false;
 	constexpr bool CU_PROFILER_SMALL_TRIANGLE_OVERHEAD = false;
-	constexpr bool CU_PROFILER_II_CPU_NSIGHT = false;
+	constexpr bool CU_PROFILER_II_CPU_NSIGHT = true;
 	constexpr bool CU_PROFILER_ENABLE_MEMCPY = true;
 }
