@@ -12,21 +12,21 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		}
 		return result;
 	}
-	IFRIT_DUAL inline ifloat4 normalize(ifloat4 a) {
+	IFRIT_DUAL inline float4 normalize(float4 a) {
 		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w);
 		return { a.x / length, a.y / length, a.z / length, a.w / length };
 	}
-	IFRIT_DUAL inline ifloat3 cross(ifloat3 a, ifloat3 b) {
+	IFRIT_DUAL inline float3 cross(float3 a, float3 b) {
 		return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
 	}
-	IFRIT_DUAL inline ifloat3 normalize(ifloat3 a) {
+	IFRIT_DUAL inline float3 normalize(float3 a) {
 		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 		return { a.x / length, a.y / length, a.z / length };
 	}
-	IFRIT_DUAL inline ifloat3 sub(ifloat3 a, ifloat3 b) {
+	IFRIT_DUAL inline float3 sub(float3 a, float3 b) {
 		return { a.x - b.x, a.y - b.y, a.z - b.z };
 	}
-	IFRIT_DUAL inline float dot(ifloat3 a, ifloat3 b) {
+	IFRIT_DUAL inline float dot(float3 a, float3 b) {
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 	IFRIT_DUAL inline float4x4 transpose(float4x4 a) {
@@ -38,42 +38,42 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		}
 		return result;
 	}
-	IFRIT_DUAL inline float dot(const ifloat4& a, const ifloat4& b) {
+	IFRIT_DUAL inline float dot(const float4& a, const float4& b) {
 		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 	}
-	IFRIT_DUAL inline ifloat4 sub(const ifloat4& a, const ifloat4& b) {
-		return ifloat4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
+	IFRIT_DUAL inline float4 sub(const float4& a, const float4& b) {
+		return float4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
 	}
-	IFRIT_DUAL inline ifloat4 multiply(const ifloat4& a, const float& b) {
-		return ifloat4(a.x * b, a.y * b, a.z * b, a.w * b);
+	IFRIT_DUAL inline float4 multiply(const float4& a, const float& b) {
+		return float4(a.x * b, a.y * b, a.z * b, a.w * b);
 	}
-	IFRIT_DUAL inline ifloat4 add(const ifloat4& a, const ifloat4& b) {
-		return ifloat4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+	IFRIT_DUAL inline float4 add(const float4& a, const float4& b) {
+		return float4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 	}
-	IFRIT_DUAL inline ifloat3 multiply(const ifloat3& a, const float& b) {
-		return ifloat3(a.x * b, a.y * b, a.z * b);
+	IFRIT_DUAL inline float3 multiply(const float3& a, const float& b) {
+		return float3(a.x * b, a.y * b, a.z * b);
 	}
-	IFRIT_DUAL inline ifloat3 add(const ifloat3& a, const ifloat3& b) {
-		return ifloat3(a.x + b.x, a.y + b.y, a.z + b.z);
+	IFRIT_DUAL inline float3 add(const float3& a, const float3& b) {
+		return float3(a.x + b.x, a.y + b.y, a.z + b.z);
 	}
-	IFRIT_DUAL inline ifloat4 lerp(const ifloat4& a, const ifloat4& b, const float& t) {
+	IFRIT_DUAL inline float4 lerp(const float4& a, const float4& b, const float& t) {
 		return add(multiply(a, 1 - t), multiply(b, t));
 	}
-	IFRIT_DUAL inline ifloat3 lerp(const ifloat3& a, const ifloat3& b, const float& t) {
+	IFRIT_DUAL inline float3 lerp(const float3& a, const float3& b, const float& t) {
 		return add(multiply(a, 1 - t), multiply(b, t));
 	}
-	IFRIT_DUAL inline ifloat4 multiply(const float4x4 a, const ifloat4 b) {
-		ifloat4 result;
+	IFRIT_DUAL inline float4 multiply(const float4x4 a, const float4 b) {
+		float4 result;
 		result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z + a[0][3] * b.w;
 		result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z + a[1][3] * b.w;
 		result.z = a[2][0] * b.x + a[2][1] * b.y + a[2][2] * b.z + a[2][3] * b.w;
 		result.w = a[3][0] * b.x + a[3][1] * b.y + a[3][2] * b.z + a[3][3] * b.w;
 		return result;
 	}
-	IFRIT_DUAL inline float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up) {
-		ifloat3 f = normalize(sub(center, eye));
-		ifloat3 s = normalize(cross(f, up));
-		ifloat3 u = cross(s, f);
+	IFRIT_DUAL inline float4x4 lookAt(float3 eye, float3 center, float3 up) {
+		float3 f = normalize(sub(center, eye));
+		float3 s = normalize(cross(f, up));
+		float3 u = cross(s, f);
 		float4x4 result;
 		result[0][0] = s.x;
 		result[0][1] = s.y;

@@ -95,7 +95,7 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	struct TileRasterClipVertexCUDA {
-		ifloat3 barycenter;
-		ifloat4 pos;
+		float3 barycenter;
+		float4 pos;
 	};
 }
