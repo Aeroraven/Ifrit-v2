@@ -52,4 +52,5 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	char* deviceMalloc(uint32_t size);
 	void deviceFree(char* ptr);
 
+	void createTexture(uint32_t texId, uint32_t texWid, uint32_t texHeight, char* data);
 }

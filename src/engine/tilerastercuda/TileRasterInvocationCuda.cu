@@ -18,6 +18,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE_CONST static int csVertexCount = 0;
 	IFRIT_DEVICE_CONST static int csTotalIndices = 0;
 
+	IFRIT_DEVICE_CONST static float* csTextures[CU_MAX_TEXTURE_SLOTS];
+	IFRIT_DEVICE_CONST static int csTextureWidth[CU_MAX_TEXTURE_SLOTS];
+	IFRIT_DEVICE_CONST static int csTextureHeight[CU_MAX_TEXTURE_SLOTS];
+
 	static int hsFrameWidth = 0;
 	static int hsFrameHeight = 0;
 	static bool hsCounterClosewiseCull = false;
@@ -27,6 +31,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	static int hsAttributeCounts = 0;
 	static int hsVertexCounts = 0;
 	static int hsTotalIndices = 0;
+
+	static float* hsTextures[CU_MAX_TEXTURE_SLOTS];
+	static int hsTextureWidth[CU_MAX_TEXTURE_SLOTS];
+	static int hsTextureHeight[CU_MAX_TEXTURE_SLOTS];
 
 	template<class T>
 	class LocalDynamicVector {
@@ -1583,6 +1591,18 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaFree(ptr);
 	}
 
+	void createTexture(uint32_t texId, uint32_t texWid, uint32_t texHeight, float* data) {
+		void* devicePtr;
+		cudaMalloc(&devicePtr, texWid * texHeight * 4 * sizeof(float));
+		cudaMemcpy(devicePtr, data, texWid * texHeight * 4 * sizeof(float), cudaMemcpyHostToDevice);
+		cudaDeviceSynchronize();
+		Impl::hsTextures[texId] = (float*)devicePtr;
+		Impl::hsTextureHeight[texId] = texHeight;
+		Impl::hsTextureWidth[texId] = texWid;
+		cudaMemcpyToSymbol(Impl::csTextures[texId], &Impl::hsTextures[texId], sizeof(float*));
+		cudaMemcpyToSymbol(Impl::csTextureHeight[texId], &Impl::hsTextureHeight[texId], sizeof(float*));
+		cudaMemcpyToSymbol(Impl::csTextureWidth[texId], &Impl::hsTextureWidth[texId], sizeof(float*));
+	}
 
 	int* getIndexBufferDeviceAddr(const int* hIndexBuffer, uint32_t indexBufferSize, int* dOldIndexBuffer) {
 		if(dOldIndexBuffer != nullptr) {

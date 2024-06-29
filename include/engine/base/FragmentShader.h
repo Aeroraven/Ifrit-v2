@@ -1,11 +1,14 @@
 #pragma once
 #include "engine/base/VaryingStore.h"
 
-#define ifritGetOutputColorPtr(x) ((stride)?(reinterpret_cast<ifloat4s256*>(x)):(reinterpret_cast<ifloat4*>(x)))
+#define ifritSampleTex(id,x)
 
 namespace Ifrit::Engine {
 	class FragmentShader {
 	public:
+		float* atTexture[32];
+		uint32_t* atTextureWid[32];
+		uint32_t* atTextureHei[32];
 		IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput, int stride) =0;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() { return nullptr; };
 	};
