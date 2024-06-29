@@ -88,16 +88,7 @@ Note that some triangles might be culled or clipped in the pipeline.
 
 ## Ongoing Plan
 
-- CPU Pipeline Optimization
-  - Performance: [Pixel Proc] SIMD for tile-level pixel shading
-  - Performance: [Pixel Proc] Z Pre-Pass
-  - Performance: [General] Reduce fp division
-- CUDA  Pipeline Optimization 
-  - Performance: [Rasterizer 2] Memory Store Excessive
-  - Performance: [Rasterizer 2] Not Selected Stall
-  - Performance: [Rasterizer 1] Latency Issue
-- Blending
-- Scanline Rasterizer (IMR)
+- Texture
 
 ## References
 
