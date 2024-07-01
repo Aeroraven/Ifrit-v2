@@ -15,11 +15,11 @@ namespace Ifrit::Engine {
 		void setLayout(const std::vector<TypeDescriptor>& layout);
 
 		void allocateBuffer(const size_t numVertices) { 
-			int elementSize = 0;
+			int elementSizeX = 0;
 			for (int i = 0; i < layout.size(); i++) {
-				elementSize += layout[i].size;
+				elementSizeX += layout[i].size;
 			}
-			buffer.resize(numVertices * elementSize);
+			buffer.resize(numVertices * elementSizeX);
 			this->vertexCount = numVertices;
 		}
 

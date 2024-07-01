@@ -56,6 +56,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_MAX_SUBTILES_PER_TILE = 16;
 
 	constexpr int CU_ELEMENTS_PER_SECOND_BINNER_BLOCK = 8;
+	constexpr int CU_ELEMENTS_PER_FINER_SECOND_BINNER_BLOCK = 128;
 
 	// == Memory Allocation ==
 	constexpr size_t CU_HEAP_MEMORY_SIZE = 1024ull * 1024 * 1024 * 4;
@@ -82,8 +83,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT = CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
 
 	constexpr int CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS = 128;
-	constexpr float CU_EXPERIMENTAL_TINY_THRESHOLD = 1e-3;
-	constexpr float CU_EXPERIMENTAL_SMALL_PRIMITIVE_CULL_THRESHOLD = 5e-2;
+	constexpr float CU_EXPERIMENTAL_TINY_THRESHOLD = 1e-3f;
+	constexpr float CU_EXPERIMENTAL_SMALL_PRIMITIVE_CULL_THRESHOLD = 5e-2f;
 
 	// == Profiler ==
 	constexpr bool CU_PROFILER_OVERDRAW = false;
@@ -91,6 +92,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_PROFILER_TRIANGLE_SETUP = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = false;
 	constexpr bool CU_PROFILER_SMALL_TRIANGLE_OVERHEAD = false;
-	constexpr bool CU_PROFILER_II_CPU_NSIGHT = false;
+	constexpr bool CU_PROFILER_SECOND_BINNER_THREAD_DIVERGENCE = true;
+	constexpr bool CU_PROFILER_II_CPU_NSIGHT = true;
 	constexpr bool CU_PROFILER_ENABLE_MEMCPY = true;
 }

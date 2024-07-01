@@ -23,9 +23,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 		return { a.x / length, a.y / length, a.z / length };
 	}
-	IFRIT_DUAL inline float3 sub(float3 a, float3 b) {
-		return { a.x - b.x, a.y - b.y, a.z - b.z };
-	}
+	
 	IFRIT_DUAL inline float dot(float3 a, float3 b) {
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
@@ -44,23 +42,27 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 	IFRIT_DUAL inline float4 sub(const float4& a, const float4& b) {
 		return float4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
 	}
+	IFRIT_DUAL inline float3 sub(float3 a, float3 b) {
+		return { a.x - b.x, a.y - b.y, a.z - b.z };
+	}
 	IFRIT_DUAL inline float4 multiply(const float4& a, const float& b) {
 		return float4(a.x * b, a.y * b, a.z * b, a.w * b);
-	}
-	IFRIT_DUAL inline float4 add(const float4& a, const float4& b) {
-		return float4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 	}
 	IFRIT_DUAL inline float3 multiply(const float3& a, const float& b) {
 		return float3(a.x * b, a.y * b, a.z * b);
 	}
+	IFRIT_DUAL inline float4 add(const float4& a, const float4& b) {
+		return float4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+	}
 	IFRIT_DUAL inline float3 add(const float3& a, const float3& b) {
 		return float3(a.x + b.x, a.y + b.y, a.z + b.z);
 	}
+
 	IFRIT_DUAL inline float4 lerp(const float4& a, const float4& b, const float& t) {
-		return add(multiply(a, 1 - t), multiply(b, t));
+		return add(a, multiply(sub(b, a), t));
 	}
 	IFRIT_DUAL inline float3 lerp(const float3& a, const float3& b, const float& t) {
-		return add(multiply(a, 1 - t), multiply(b, t));
+		return add(a, multiply(sub(b, a), t));
 	}
 	IFRIT_DUAL inline float4 multiply(const float4x4 a, const float4 b) {
 		float4 result;
@@ -109,7 +111,6 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 	}
 	IFRIT_DUAL inline float4x4 perspective(float fovy, float aspect, float zNear, float zFar) {
 		float4x4 result;
-		float f = 1.0f / tan(fovy / 2.0f);
 		float halfFovy = fovy / 2.0f;
 		float nTop = zNear * tan(halfFovy);
 		float nRight = nTop * aspect;

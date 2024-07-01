@@ -16,22 +16,31 @@ Successor to following repos:
  - [Iris (TinyRenderer C#)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/TinyRenderer)
 
 
+
 ## Features
 
-- **Performance**:
-	- Multithreaded Rasterization
-	- SIMD Vectorization
-	- CUDA Acceleration (Incomplete)
-		- Double Buffering / Overlapped Memory Transfer
-		- Device Vector / Dynamic Array
+**Note:** This project is NOT a exact replicate of hardware graphics pipeline (like TBDR architecture). Some behaviors are nondeterministic and incompatible under current implementation (like `Alpha Blending` which requires sorting primitives under parallel setting)
 
-- **Rendering**:
-	- Homogeneous Space Clipping
-	- Programmable VS/FS
-	- Z Pre-Pass (CUDA-Only)
+| Feature                                       | MT CPU Renderer | CUDA Renderer |
+| --------------------------------------------- | --------------- | ------------- |
+| Deterministic / Rendering Order               | ×               | ×             |
+| Performance / SIMD                            | √               |               |
+| Performance / Overlapped Memory Transfer      |                 | √             |
+| Performance / Dynamic Tile List               | √               | √ (2)         |
+| Rendering / Programmable Vertex Shader        | √               | √             |
+| Rendering / Programmable Fragment Shader      | √               | √             |
+| Rendering / Z Pre-Pass                        | ×               | √             |
+| Rendering / Back Face Culling                 | √               | √             |
+| Rendering / Frustum Culling                   | √               | √             |
+| Rendering / Homogeneous Clipping              | √ (1)           | √ (1)         |
+| Rendering / Small Triangle Culling            | ×               | √             |
+| Rendering / Perspective-correct Interpolation | √               | √             |
+| Presentation / Terminal ASCII                 | √               | √             |
+| Presentation / Terminal Color                 | √               | √             |
 
-- **Presentation**:
-	- Terminal Rendering (ASCII Characters/Color Image)
+(1) For performance consideration, only w-axis is considered 
+
+(2) Causing latency issues
 
 
 
@@ -89,6 +98,8 @@ Note that some triangles might be culled or clipped in the pipeline.
 ## Ongoing Plan
 
 - Texture
+
+
 
 ## References
 

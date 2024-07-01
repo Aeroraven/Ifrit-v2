@@ -1,7 +1,7 @@
 #pragma once
 #include "engine/base/VaryingStore.h"
 
-#define ifritSampleTex(id,x)
+#define ifritSampleTex(id,x,y) atTexture[(id)][int((y)*atTextureWid[(id)]*atTextureHei[(id)])+int(x*atTextureWid[(id)])]
 
 namespace Ifrit::Engine {
 	class FragmentShader {
