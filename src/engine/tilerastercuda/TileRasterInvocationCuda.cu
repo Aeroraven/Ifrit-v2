@@ -4,6 +4,8 @@
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 #include <cuda_profiler_api.h>
 
+#define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
+
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE_CONST static int csFrameWidth = 0;
 	IFRIT_DEVICE_CONST static int csFrameHeight = 0;
@@ -92,10 +94,16 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	
 	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueFullM2[CU_BIN_SIZE * CU_BIN_SIZE];
 	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueSuperTileFullM2[CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE];
-	IFRIT_DEVICE static LocalDynamicVector<TilePixelBitProposalCUDA> dCoverQueuePixelM2[CU_TILE_SIZE * CU_TILE_SIZE][CU_MAX_SUBTILES_PER_TILE];
+
+	IFRIT_DEVICE static int dSecondBinnerFinerBufferSize[CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE];
+	IFRIT_DEVICE static int dSecondBinnerFinerBufferStart[CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE];
+	IFRIT_DEVICE static int dSecondBinnerFinerBufferCurInd[CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE];
+	IFRIT_DEVICE static int2 dSecondBinnerFinerBuffer[CU_ALTERNATIVE_BUFFER_SIZE_SECOND];
+	IFRIT_DEVICE static int dSecondBinnerFinerBufferGlobalSize;
 
 	IFRIT_DEVICE static uint32_t dRasterQueueWorklistPrim[CU_BIN_SIZE * 2 * CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER];
 	IFRIT_DEVICE static uint32_t dRasterQueueWorklistTile[CU_BIN_SIZE * 2 * CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER];
+	
 	IFRIT_DEVICE static uint32_t dRasterQueueWorklistCounter;
 
 	IFRIT_DEVICE static float4 dBoundingBoxM2[CU_PRIMITIVE_BUFFER_SIZE * 2];
@@ -120,9 +128,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dCoverPrimsLarge[CU_ALTERNATIVE_BUFFER_SIZE];
 	IFRIT_DEVICE static int dCoverTileLarge[CU_ALTERNATIVE_BUFFER_SIZE];
 
-	IFRIT_DEVICE static int dSecondBinnerPrim[CU_ALTERNATIVE_BUFFER_SIZE];
-	IFRIT_DEVICE static int dSecondBinnerTile[CU_ALTERNATIVE_BUFFER_SIZE];
-	IFRIT_DEVICE static int dSecondBinnerMask[CU_ALTERNATIVE_BUFFER_SIZE];
+	IFRIT_DEVICE static int dSecondBinnerPendingPrim[CU_ALTERNATIVE_BUFFER_SIZE_SECOND];
+	IFRIT_DEVICE static int dSecondBinnerPendingTile[CU_ALTERNATIVE_BUFFER_SIZE_SECOND];
 
 	IFRIT_DEVICE static int dCoverPrimsCounter;
 	IFRIT_DEVICE static int dCoverPrimsLargeTileCounter;
@@ -391,6 +398,106 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		dest = vd;
 	}
 
+	IFRIT_DEVICE void devFinerTilingRasterizationChildProcess(
+		uint32_t tileIdX,
+		uint32_t tileIdY,
+		uint32_t primitiveSrcId,
+		uint32_t subTileId,
+		float4 e1,
+		float4 e2,
+		float4 e3
+	) {
+
+		const auto tileId = tileIdY * CU_MAX_TILE_X + tileIdX;
+
+		float4 edgeCoefs[3];
+		edgeCoefs[0] = e1;
+		edgeCoefs[1] = e2;
+		edgeCoefs[2] = e3;
+
+		auto curTileX = tileIdX * CU_TILE_WIDTH;
+		auto curTileY = tileIdY * CU_TILE_WIDTH;
+
+		constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+
+		auto subTileIX = subTileId % numSubtilesX;
+		auto subTileIY = subTileId / numSubtilesX;
+
+		int criteriaTR = 0;
+		int criteriaTA = 0;
+
+		int subTilePixelX = curTileX + subTileIX * CU_EXPERIMENTAL_SUBTILE_WIDTH;
+		int subTilePixelY = curTileY + subTileIY * CU_EXPERIMENTAL_SUBTILE_WIDTH;
+		int subTilePixelX2 = curTileX + (subTileIX + 1) * CU_EXPERIMENTAL_SUBTILE_WIDTH;
+		int subTilePixelY2 = curTileY + (subTileIY + 1) * CU_EXPERIMENTAL_SUBTILE_WIDTH;
+
+		float subTileMinX = 1.0f * subTilePixelX;
+		float subTileMinY = 1.0f * subTilePixelY;
+		float subTileMaxX = 1.0f * (subTilePixelX2 - 1);
+		float subTileMaxY = 1.0f * (subTilePixelY2 - 1);
+
+		float ccTRX[3], ccTRY[3], ccTAX[3], ccTAY[3];
+
+		for (int i = 0; i < 3; i++) {
+			bool normalRight = edgeCoefs[i].x < 0;
+			bool normalDown = edgeCoefs[i].y < 0;
+			if (normalRight) {
+				ccTRX[i] = normalDown ? subTileMaxX : subTileMaxX;
+				ccTRY[i] = normalDown ? subTileMaxY : subTileMinY;
+				ccTAX[i] = normalDown ? subTileMinX : subTileMinX;
+				ccTAY[i] = normalDown ? subTileMinY : subTileMaxY;
+			}
+			else {
+				ccTRX[i] = normalDown ? subTileMinX : subTileMinX;
+				ccTRY[i] = normalDown ? subTileMaxY : subTileMinY;
+				ccTAX[i] = normalDown ? subTileMaxX : subTileMaxX;
+				ccTAY[i] = normalDown ? subTileMinY : subTileMaxY;
+			}
+		}
+
+		int mask = 0;
+		float criteriaY[3];
+		float criteriaX[3];
+
+		const auto rsX1 = subTilePixelX * edgeCoefs[0].x;
+		const auto rsX2 = subTilePixelX * edgeCoefs[1].x;
+		const auto rsX3 = subTilePixelX * edgeCoefs[2].x;
+
+		criteriaY[0] = subTilePixelY * edgeCoefs[0].y;
+		criteriaY[1] = subTilePixelY * edgeCoefs[1].y;
+		criteriaY[2] = subTilePixelY * edgeCoefs[2].y;
+		criteriaX[0] = rsX1;
+		criteriaX[1] = rsX2;
+		criteriaX[2] = rsX3;
+		for (int i2 = 0; i2 < CU_EXPERIMENTAL_PIXELS_PER_SUBTILE; i2++) {
+			bool accept1 = (criteriaX[0] + criteriaY[0]) < edgeCoefs[0].z;
+			bool accept2 = (criteriaX[1] + criteriaY[1]) < edgeCoefs[1].z;
+			bool accept3 = (criteriaX[2] + criteriaY[2]) < edgeCoefs[2].z;
+
+			int cond = (accept1 && accept2 && accept3);
+			mask |= (cond << i2);
+
+			if ((i2 + 1) % CU_EXPERIMENTAL_SUBTILE_WIDTH == 0) {
+				criteriaY[0] += edgeCoefs[0].y;
+				criteriaY[1] += edgeCoefs[1].y;
+				criteriaY[2] += edgeCoefs[2].y;
+				criteriaX[0] = rsX1;
+				criteriaX[1] = rsX2;
+				criteriaX[2] = rsX3;
+			}
+			else {
+				criteriaX[0] += edgeCoefs[0].x;
+				criteriaX[1] += edgeCoefs[1].x;
+				criteriaX[2] += edgeCoefs[2].x;
+			}
+		}
+		int xid = (tileIdY * CU_MAX_TILE_X + tileIdX) * CU_MAX_SUBTILES_PER_TILE + subTileId;
+		int pw = atomicAdd(&dSecondBinnerFinerBufferCurInd[xid], 1);
+		dSecondBinnerFinerBuffer[pw].x = mask;
+		dSecondBinnerFinerBuffer[pw].y = primitiveSrcId;
+	}
+	
+
 	IFRIT_DEVICE void devTilingRasterizationChildProcess(
 		uint32_t tileIdX,
 		uint32_t tileIdY,
@@ -413,7 +520,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		auto curTileY = tileIdY * CU_TILE_WIDTH;
 	
 		constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
-		const auto dq = dCoverQueuePixelM2[tileId];
 
 		auto subTileIX = subTileId % numSubtilesX;
 		auto subTileIY = subTileId / numSubtilesX;
@@ -503,13 +609,19 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					}
 				}
 			}
+			/*
 			TilePixelBitProposalCUDA nprop;
 			nprop.mask = mask;
 			nprop.primId = primitiveSrcId;
-			dq[subTileId].push_back(nprop);
+			dq[subTileId].push_back(nprop);*/
+			
+			int x = atomicAdd(&dSecondBinnerCandCounter, 1);
+			dSecondBinnerPendingPrim[x] = primitiveSrcId;
+			dSecondBinnerPendingTile[x] = tileId * CU_MAX_SUBTILES_PER_TILE + subTileId;
+			atomicAdd(&dSecondBinnerFinerBufferSize[tileId*CU_MAX_SUBTILES_PER_TILE+subTileId], 1);
 		}
 	}
- 
+	
 	// Kernel Implementations
 
 	IFRIT_KERNEL void vertexProcessingKernel(
@@ -975,6 +1087,40 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		secondBinnerWorklistRasterizerKernel CU_KARG2(dim3(dispatchBlocks, 1, 1), dim3(CU_TILES_PER_BIN * CU_TILES_PER_BIN, CU_MAX_SUBTILES_PER_TILE, CU_ELEMENTS_PER_SECOND_BINNER_BLOCK)) (totalElements);
 	}
 
+	IFRIT_KERNEL void secondFinerBinnerAllocationKernel(){
+		int globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
+		dSecondBinnerFinerBufferStart[globalInvo] = atomicAdd(&dSecondBinnerFinerBufferGlobalSize, dSecondBinnerFinerBufferSize[globalInvo]);
+		dSecondBinnerFinerBufferCurInd[globalInvo] = dSecondBinnerFinerBufferStart[globalInvo];
+	}
+
+	IFRIT_KERNEL void secondFinerBinnerRasterizationKernel(int totalCount) {
+		int globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
+		if (globalInvo >= totalCount)return;
+		auto dv = dSecondBinnerPendingTile[globalInvo];
+		int tileId = dv / CU_MAX_SUBTILES_PER_TILE;
+		int subTileId = dv % CU_MAX_SUBTILES_PER_TILE;
+		int tileX = tileId % CU_MAX_TILE_X;
+		int tileY = tileId / CU_MAX_TILE_X;
+		int prim = dSecondBinnerPendingPrim[globalInvo];
+
+		float4 ec1, ec2;
+		float ec3;
+		float4 edgeCoefs[3];
+		ec1 = dAtriEdgeCoefs1[prim];
+		ec2 = dAtriEdgeCoefs2[prim];
+		ec3 = dAtriEdgeCoefs3[prim];
+		edgeCoefs[0] = { ec1.x,ec1.y,ec1.z };
+		edgeCoefs[1] = { ec1.w,ec2.x,ec2.y };
+		edgeCoefs[2] = { ec2.z,ec2.w,ec3 };
+
+		devFinerTilingRasterizationChildProcess(tileX, tileY, prim, subTileId, edgeCoefs[0], edgeCoefs[1], edgeCoefs[2]);
+	}
+
+	IFRIT_KERNEL void secondFinerBinnerRasterizationEntryKernel() {
+		int dispatchBlock = IFRIT_InvoGetThreadBlocks(dSecondBinnerCandCounter, 128);
+		secondFinerBinnerRasterizationKernel CU_KARG2(dispatchBlock, 128)(dSecondBinnerCandCounter);
+	}
+
 	IFRIT_KERNEL void pixelShadingKernel(
 		FragmentShader* fragmentShader,
 		int* IFRIT_RESTRICT_CUDA dIndexBuffer,
@@ -1112,50 +1258,27 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		// Pixel Level
 		if constexpr (true) {
-			auto curTileX = (tileX + 0) * CU_TILE_WIDTH;
-			auto curTileY = (tileY + 0) * CU_TILE_WIDTH;
-			auto curTileX2 = (tileX + 1) * CU_TILE_WIDTH;
-			auto curTileY2 = (tileY + 1) * CU_TILE_WIDTH;
-			auto curTileWid = curTileX2 - curTileX;
-			int numSubtilesX = curTileWid / CU_EXPERIMENTAL_SUBTILE_WIDTH + (curTileWid % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
-			int inTileX = pixelXS - tileX * CU_TILE_WIDTH;
-			int inTileY = pixelYS - tileY * CU_TILE_WIDTH;
+			auto curTileX = tileX * CU_TILE_WIDTH;
+			auto curTileY = tileY * CU_TILE_WIDTH;
+			constexpr auto curTileWid = CU_TILE_WIDTH;
+			constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			int inTileX = pixelXS - curTileX;
+			int inTileY = pixelYS - curTileY;
 			int inSubTileX = inTileX / CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			int inSubTileY = inTileY / CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			int inSubTileId = inSubTileY * numSubtilesX + inSubTileX;
 
-			const int pixelCandidates = dCoverQueuePixelM2[tileId][inSubTileId].size;
-			int log2PixelCandidates = 31 - __clz(max(0, pixelCandidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
 			int dwX = inTileX % CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			int dwY = inTileY % CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			int dwId = dwY * CU_EXPERIMENTAL_SUBTILE_WIDTH + dwX;
 			int dwMask = (1 << dwId);
-
-			for (int i = 0; i < log2PixelCandidates; i++) {
-				int dmax = i ? (1 << (i + CU_VECTOR_BASE_LENGTH - 1)) : (1 << (CU_VECTOR_BASE_LENGTH));
-				const auto& data = dCoverQueuePixelM2[tileId][inSubTileId].data[i];
-				for (int j = 0; j < dmax; j++) {
-					const auto proposal = data[j];
-					if ((proposal.mask & dwMask)) {
-						zPrePass(proposal.primId);
-					}
-					else {
-						if constexpr (CU_PROFILER_OVERDRAW) {
-							atomicAdd(&dIrrelevantPixel, 1);
-						}
-					}
-					if constexpr (CU_PROFILER_OVERDRAW) {
-						atomicAdd(&dTotalBinnedPixel, 1);
-					}
-				}
-			}
-			int processedPixelProposals = log2PixelCandidates ? (1 << (log2PixelCandidates + CU_VECTOR_BASE_LENGTH - 1)) : 0;
-			const auto& dataPixel = dCoverQueuePixelM2[tileId][inSubTileId].data[log2PixelCandidates];
-			const auto limPixel = pixelCandidates - processedPixelProposals;
-			for (int i = 0; i < limPixel; i++) {
-				const auto proposal = dataPixel[i];
-				if ((proposal.mask & dwMask)) {
-					zPrePass(proposal.primId);
+		
+			int startIndex = dSecondBinnerFinerBufferStart[tileId * CU_MAX_SUBTILES_PER_TILE + inSubTileId];
+			int totlSize = dSecondBinnerFinerBufferSize[tileId * CU_MAX_SUBTILES_PER_TILE + inSubTileId];
+			for (int i = startIndex; i < startIndex + totlSize; i++) {
+				const auto proposal = dSecondBinnerFinerBuffer[i];
+				if ((proposal.x & dwMask)) {
+					zPrePass(proposal.y);
 				}
 				else {
 					if constexpr (CU_PROFILER_OVERDRAW) {
@@ -1180,8 +1303,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		dSmallTriangleCount = 0;
 		dCoverPrimsCounter = 0;
 		dCoverPrimsLargeTileCounter = 0;
+		dSecondBinnerFinerBufferGlobalSize = 0;
+		dSecondBinnerCandCounter = 0;
 		for (int i = 0; i < CU_MAX_SUBTILES_PER_TILE; i++) {
-			dCoverQueuePixelM2[globalInvocation][i].clear();
+			dSecondBinnerFinerBufferStart[globalInvocation * CU_MAX_SUBTILES_PER_TILE + i] = 0;
+			dSecondBinnerFinerBufferCurInd[globalInvocation * CU_MAX_SUBTILES_PER_TILE + i] = 0;
+			dSecondBinnerFinerBufferSize[globalInvocation * CU_MAX_SUBTILES_PER_TILE + i] = 0;
 		}
 		if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
 			dCoverQueueSuperTileFullM2[globalInvocation].clear();
@@ -1211,9 +1338,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		dSecondBinnerEmptyTiles = 0;
 		dRasterQueueWorklistCounter = 0;
 		dSecondBinnerCandCounter = 0;
-		for (int i = 0; i < CU_MAX_SUBTILES_PER_TILE; i++) {
-			dCoverQueuePixelM2[globalInvocation][i].initialize();
-		}
 		if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
 			dCoverQueueSuperTileFullM2[globalInvocation].initialize();
 		}
@@ -1227,8 +1351,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		dCoverPrimsCounter = 0;
 		dCoverPrimsLargeTileCounter = 0;
 		dSecondBinnerCandCounter = 0;
+		dSecondBinnerFinerBufferGlobalSize = 0;
 		for (int i = 0; i < CU_MAX_SUBTILES_PER_TILE; i++) {
-			dCoverQueuePixelM2[globalInvocation][i].clear();
+			dSecondBinnerFinerBufferStart[globalInvocation * CU_MAX_SUBTILES_PER_TILE + i] = 0;
+			dSecondBinnerFinerBufferCurInd[globalInvocation * CU_MAX_SUBTILES_PER_TILE + i] = 0;
+			dSecondBinnerFinerBufferSize[globalInvocation * CU_MAX_SUBTILES_PER_TILE + i] = 0;
 		}
 		if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
 			dCoverQueueSuperTileFullM2[globalInvocation].clear();
@@ -1322,6 +1449,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			Impl::firstBinnerRasterizerEntryKernel CU_KARG2(1, 1)(start, length);
 			Impl::firstBinnerGatherEntryKernel CU_KARG2(1, 1)();
 			Impl::secondBinnerWorklistRasterizerEntryKernel CU_KARG2(1, 1)();
+			int dispatchSfbaBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, 128);
+			Impl::secondFinerBinnerAllocationKernel CU_KARG2(dispatchSfbaBlocks, 128) ();
+			Impl::secondFinerBinnerRasterizationEntryKernel CU_KARG2(1, 1)();
 			int numTileX = (csFrameWidth / CU_TILE_WIDTH) + (csFrameWidth % CU_TILE_WIDTH != 0);
 			int numTileY = (csFrameHeight / CU_TILE_WIDTH) + (csFrameHeight % CU_TILE_WIDTH != 0);
 			int dispZ = (CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH) + (CU_TILE_WIDTH % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
@@ -1346,12 +1476,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
 			bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
 			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
-			
 			Impl::geometryProcessingKernel CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
 				dPositionBuffer, dIndexBuffer, i, indexCount);
 			unifiedRasterEngineStageIIKernel CU_KARG2(1, 1)(
 				dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, dFragmentShader, isTailCall);
-			
 		}
 	}
 
@@ -1368,7 +1496,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
 			auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
 			bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
-			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
+			int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_PROCESSING_THREADS);
 			Impl::geometryProcessingKernel CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
 				dPositionBuffer, dIndexBuffer, i, indexCount);
 			uint32_t dAssembledTriangleCounterM2Host = 0;
@@ -1381,7 +1509,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 			int totalTms = dAssembledTriangleCounterM2Host / CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
 			int curTime = -1;
-			auto dispatchBlocks = dAssembledTriangleCounterM2Host / CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS + (dAssembledTriangleCounterM2Host % CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS != 0);
+			auto dispatchBlocks = IFRIT_InvoGetThreadBlocks(dAssembledTriangleCounterM2Host, CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS);
 			Impl::geometryParamPostprocKernel CU_KARG2(dispatchBlocks, CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS) (dAssembledTriangleCounterM2Host);
 			for (int sI = 0; sI < dAssembledTriangleCounterM2Host; sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER) {
 				curTime++;
@@ -1402,6 +1530,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				Impl::firstBinnerGatherKernel CU_KARG2(dispatchGatherBlocks, CU_FIRST_RASTERIZATION_GATHER_THREADS)(totalCoverPrims);
 
 				Impl::secondBinnerWorklistRasterizerEntryProfileKernel();
+				
+				int dispatchSfbaBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, 128);
+				Impl::secondFinerBinnerAllocationKernel CU_KARG2(dispatchSfbaBlocks, 128) ();
+				cudaDeviceSynchronize();
+				int secondBinnerCands = 0;
+				cudaMemcpyFromSymbol(&secondBinnerCands, dSecondBinnerCandCounter, sizeof(int));
+				
+				int dispatchSfbrBlocks = IFRIT_InvoGetThreadBlocks(secondBinnerCands, 128);
+				Impl::secondFinerBinnerRasterizationKernel CU_KARG2(dispatchSfbrBlocks, 128)(secondBinnerCands);
 
 				int numTileX = (hsFrameWidth / CU_TILE_WIDTH) + (hsFrameWidth % CU_TILE_WIDTH != 0);
 				int numTileY = (hsFrameHeight / CU_TILE_WIDTH) + (hsFrameHeight % CU_TILE_WIDTH != 0);
@@ -1489,7 +1626,6 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaMalloc(&dBuffer, bufferSize);
 		cudaMemcpy(dBuffer, hVertexBuffer, bufferSize, cudaMemcpyHostToDevice);
 		return dBuffer;
-	
 	}
 
 	TypeDescriptorEnum* getTypeDescriptorDeviceAddr(const TypeDescriptorEnum* hBuffer, uint32_t bufferSize, TypeDescriptorEnum* dOldBuffer) {
@@ -1500,7 +1636,6 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaMalloc(&dBuffer, bufferSize * sizeof(TypeDescriptorEnum));
 		cudaMemcpy(dBuffer, hBuffer, bufferSize * sizeof(TypeDescriptorEnum), cudaMemcpyHostToDevice);
 		return dBuffer;
-	
 	}
 
 	float* getDepthBufferDeviceAddr(uint32_t bufferSize, float* dOldBuffer) {
