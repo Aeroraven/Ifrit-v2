@@ -52,18 +52,20 @@ Note that some triangles might be culled or clipped in the pipeline.
 
 **Frame Rate**
 
-| Model          | Triangles | CPU Single Thread* | CPU Multi-thread* | CUDA w/ Copy-back | CUDA w/o Copy-back** |
-| -------------- | --------- | ------------------ | ----------------- | ----------------- | -------------------- |
-| Yomiya         | 70275     | 38 FPS             | 80 FPS            | 123 FPS           | 2857 FPS             |
-| Stanford Bunny | 208353    | 20 FPS             | 80 FPS            | 124 FPS           | 2272 FPS             |
-| Khronos Sponza | 786801    | 2 FPS              | 10 FPS            | 125 FPS           | 480 FPS              |
-| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS             | 125 FPS           | 195 FPS              |
+| Model          | Triangles | CPU Single Thread* | CPU Multi Threads* | CUDA w/ Copy-back** | CUDA w/o Copy-back*** |
+| -------------- | --------- | ------------------ | ------------------ | ------------------- | --------------------- |
+| Yomiya         | 70275     | 38 FPS             | 80 FPS             | 123 FPS             | 2857 FPS              |
+| Stanford Bunny | 208353    | 20 FPS             | 80 FPS             | 124 FPS             | 2272 FPS              |
+| Khronos Sponza | 786801    | 2 FPS              | 10 FPS             | 125 FPS             | 480 FPS               |
+| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS              | 125 FPS             | 195 FPS               |
 
 *. Under optimization 
 
-**. Might be influenced by other applications which utilize GPU
+**. Limited by PCIe performance
 
-^. Peak value
+***. Might be influenced by other applications which utilize GPU
+
+
 
 ### Test Environment
 

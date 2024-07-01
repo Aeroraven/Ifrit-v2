@@ -72,7 +72,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = true;  
 	constexpr bool CU_OPT_SEPARATE_FIRST_BINNER_KERNEL = true;
 	constexpr bool CU_OPT_SMALL_PRIMITIVE_CULL = true;
-	constexpr bool CU_OPT_ENABLE_EMBED_COUNTER = false;
+	constexpr bool CU_OPT_ENABLE_EMBED_COUNTER = false; /* WARNING: Performance Drop */
 
 	// == Derived == 
 	constexpr int CU_TRIANGLE_STRIDE = CU_OPT_ALIGNED_INDEX_BUFFER ? 4 : 3;
@@ -95,7 +95,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = false;
 	constexpr bool CU_PROFILER_SMALL_TRIANGLE_OVERHEAD = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_THREAD_DIVERGENCE = true;
-	constexpr bool CU_PROFILER_II_CPU_NSIGHT = false;
+	constexpr bool CU_PROFILER_II_CPU_NSIGHT = true;
 	constexpr bool CU_PROFILER_ENABLE_MEMCPY = true;
 
 }
