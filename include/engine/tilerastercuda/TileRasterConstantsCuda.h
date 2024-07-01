@@ -94,7 +94,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = false;
 	constexpr bool CU_PROFILER_SMALL_TRIANGLE_OVERHEAD = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_THREAD_DIVERGENCE = true;
-	constexpr bool CU_PROFILER_II_CPU_NSIGHT = false;
+	constexpr bool CU_PROFILER_II_CPU_NSIGHT = true;
 	constexpr bool CU_PROFILER_ENABLE_MEMCPY = true;
 
 }

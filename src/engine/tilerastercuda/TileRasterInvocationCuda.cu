@@ -491,6 +491,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				criteriaX[2] += edgeCoefs[2].x;
 			}
 		}
+		if (mask == 0) {
+			return;
+		}
 		int xid = (tileIdY * CU_MAX_TILE_X + tileIdX) * CU_MAX_SUBTILES_PER_TILE + subTileId;
 		int pw = atomicAdd(&dSecondBinnerFinerBufferCurInd[xid], 1);
 		dSecondBinnerFinerBuffer[pw].x = mask;
@@ -1251,9 +1254,23 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 
 		// Bin Level
-		for (int i = completeCandidates - 1; i >= 0; i--) {
-			const auto proposal = dCoverQueueFullM2[binId].at(i);
-			zPrePass(proposal);
+		if constexpr (true) {
+			int log2LargeCandidates = 31 - __clz(max(0, completeCandidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
+			for (int i = 0; i < log2LargeCandidates; i++) {
+				int dmax = i ? (1 << (i + CU_VECTOR_BASE_LENGTH - 1)) : (1 << (CU_VECTOR_BASE_LENGTH));
+				const auto& data = dCoverQueueFullM2[binId].data[i];
+				for (int j = 0; j < dmax; j++) {
+					const auto proposal = data[j];
+					zPrePass(proposal);
+				}
+			}
+			int processedLargeProposals = log2LargeCandidates ? (1 << (log2LargeCandidates + CU_VECTOR_BASE_LENGTH - 1)) : 0;
+			const auto& dataPixel = dCoverQueueFullM2[binId].data[log2LargeCandidates];
+			const auto limPixel = completeCandidates - processedLargeProposals;
+			for (int i = 0; i < limPixel; i++) {
+				const auto proposal = dataPixel[i];
+				zPrePass(proposal);
+			}
 		}
 
 		// Pixel Level
@@ -1274,8 +1291,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int dwMask = (1 << dwId);
 		
 			int startIndex = dSecondBinnerFinerBufferStart[tileId * CU_MAX_SUBTILES_PER_TILE + inSubTileId];
-			int totlSize = dSecondBinnerFinerBufferSize[tileId * CU_MAX_SUBTILES_PER_TILE + inSubTileId];
-			for (int i = startIndex; i < startIndex + totlSize; i++) {
+			int totlSize = dSecondBinnerFinerBufferCurInd[tileId * CU_MAX_SUBTILES_PER_TILE + inSubTileId];
+			for (int i = startIndex; i < totlSize; i++) {
 				const auto proposal = dSecondBinnerFinerBuffer[i];
 				if ((proposal.x & dwMask)) {
 					zPrePass(proposal.y);
@@ -1457,8 +1474,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int dispZ = (CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH) + (CU_TILE_WIDTH % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
 
 			Impl::pixelShadingKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
-				dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
-				);
+				dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
 			Impl::resetLargeTileKernel CU_KARG2(CU_TILE_SIZE, CU_TILE_SIZE)(isLast);
 		}
 	}
