@@ -15,6 +15,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		std::unique_ptr<TileRasterContextCuda> context;
 		std::unique_ptr<TileRasterDeviceContext> deviceContext;
 		bool needVaryingUpdate = true;
+		bool needFragmentShaderUpdate = true;
 		bool initCudaContext = false;
 
 		// Device Addrs
@@ -32,7 +33,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 		bool doubleBuffer = false;
 		int currentBuffer = 0;
-		float aggressiveRatio = 1;
 
 	private:
 		void updateVaryingBuffer();
@@ -44,10 +44,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void bindIndexBuffer(const std::vector<int>& indexBuffer);
 		void bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor);
 		void bindFragmentShader(FragmentShader* fragmentShader);
+		
+		void createTextureRaw(int slotId, int height, int width, float* data);
 
 		void clear();
 		void render();
-		void setAggressiveRatio(float ratio);
 	};
 }
 #endif

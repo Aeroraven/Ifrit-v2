@@ -30,9 +30,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		TileRasterDeviceContext* deviceContext,
 		int totalIndices,
 		bool doubleBuffering,
-		ifloat4** dLastColorBuffer,
-		float aggressiveRatio
+		ifloat4** dLastColorBuffer
 	) IFRIT_AP_NOTHROW;
+
+	void invokeFragmentShaderUpdate(FragmentShader* dFragmentShader) IFRIT_AP_NOTHROW;
 	void updateFrameBufferConstants(uint32_t width, uint32_t height);
 	void initCudaRendering();
 	void updateVertexLayout(TypeDescriptorEnum* dVertexTypeDescriptor, int attrCounts);
@@ -52,5 +53,5 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	char* deviceMalloc(uint32_t size);
 	void deviceFree(char* ptr);
 
-	void createTexture(uint32_t texId, uint32_t texWid, uint32_t texHeight, char* data);
+	void createTexture(uint32_t texId, uint32_t texWid, uint32_t texHeight, float *data);
 }

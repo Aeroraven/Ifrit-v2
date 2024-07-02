@@ -5,6 +5,7 @@
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/tileraster/TileRasterRenderer.h"
 #include "utility/loader/WavefrontLoader.h"
+#include "utility/loader/ImageLoader.h"
 #include "engine/math/ShaderOps.h"
 #include "engine/tilerastercuda/TileRasterInvocationCuda.cuh"
 #include "presentation/backend/TerminalAsciiBackend.h"
@@ -170,11 +171,13 @@ int mainGpu() {
 	std::vector<ifloat3> normal;
 	std::vector<ifloat2> uv;
 	std::vector<uint32_t> index;
+
 	std::vector<ifloat3> procNormal;
+	std::vector<ifloat2> procUv;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj", pos, normal, uv, index);
+	loader.loadObject(IFRIT_ASSET_PATH"/fox.obj", pos, normal, uv, index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
-
+	procUv = loader.remapUVs(uv, index, pos.size());
 
 	std::shared_ptr<ImageF32> image1 = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4,true);
 	std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
@@ -182,34 +185,26 @@ int mainGpu() {
 	FrameBuffer frameBuffer;
 
 	VertexBuffer vertexBuffer;
-	vertexBuffer.setLayout({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
-
-	vertexBuffer.setVertexCount(4);
-	vertexBuffer.allocateBuffer(4);
-	vertexBuffer.setValue(0, 0, ifloat4(0.2, 0, -0.1, 1));
-	vertexBuffer.setValue(1, 0, ifloat4(-0.5, -0.5, -0.1, 1));
-	vertexBuffer.setValue(2, 0, ifloat4(0.5, -0.15, 5.51, 1));
-	vertexBuffer.setValue(3, 0, ifloat4(0.5, 0.15, 5.51, 1));
-	vertexBuffer.setValue(0, 1, ifloat4(0.93, 0, 0.3, 0));
-	vertexBuffer.setValue(1, 1, ifloat4(0.93, 0, 0.3, 0));
-	vertexBuffer.setValue(2, 1, ifloat4(0.93, 0, 0.3, 0));
-	vertexBuffer.setValue(3, 1, ifloat4(0.93, 0, 0.3, 0));
-
-	
+	vertexBuffer.setLayout({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 	vertexBuffer.allocateBuffer(pos.size());
 
 	for (int i = 0; i < pos.size(); i++) {
 		vertexBuffer.setValue(i, 0, ifloat4(pos[i].x, pos[i].y, pos[i].z, 1));
 		vertexBuffer.setValue(i, 1, ifloat4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
+		vertexBuffer.setValue(i, 2, ifloat4(procUv[i].x, procUv[i].y, 0, 0));
 	}
 
-	std::vector<int> indexBuffer = { 2,3,0 };
-	
+	std::vector<float> texFox;
+	int texFoxW, texFoxH;
+	ImageLoader imageLoader;
+	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/fox_diffuse.png", &texFox, &texFoxH, &texFoxW);
+	renderer->createTextureRaw(0, texFoxW, texFoxH, texFox.data());
+
+	std::vector<int> indexBuffer;
 	indexBuffer.resize(index.size() /3);
-	for (int i = 0; i < index.size(); i += 3) { //index.size()
+	for (int i = 0; i < index.size(); i += 3) {
 		indexBuffer[i / 3] = index[i];
 	}
-	printf("Total Triangles:%d\n", index.size() / 3);
 
 	frameBuffer.setColorAttachments({ image1 });
 	frameBuffer.setDepthAttachment(depth);
@@ -221,7 +216,7 @@ int mainGpu() {
 
 	DemoVertexShaderCuda vertexShader;
 	VaryingDescriptor vertexShaderLayout;
-	vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
+	vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 	DemoFragmentShaderCuda fragmentShader;
 
 	
@@ -233,11 +228,10 @@ int mainGpu() {
 	printf("Start\n");
 	GLFWWindowProvider windowProvider;
 	windowProvider.setup(1920, 1080);
-	windowProvider.setTitle("Ifrit-v2 CUDA");
+	windowProvider.setTitle("Ifrit-v2 CUDA (Resolution: 2048x2048)");
 
 	OpenGLBackend backend;
 	backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
-	renderer->setAggressiveRatio(1);
 	windowProvider.loop([&](int* coreTime) {
 		std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 		renderer->render();

@@ -92,6 +92,10 @@ namespace Ifrit::Engine::Math::ShaderOps {
 		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 		return { a.x / length, a.y / length, a.z / length };
 	}
+	ifloat2 normalize(ifloat2 a) {
+		float length = sqrt(a.x * a.x + a.y * a.y );
+		return { a.x / length, a.y / length };
+	}
 	ifloat3 sub(ifloat3 a, ifloat3 b) {
 		return { a.x - b.x, a.y - b.y, a.z - b.z };
 	}

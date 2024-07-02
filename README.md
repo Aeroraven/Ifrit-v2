@@ -2,6 +2,8 @@
 
 GPU/CPU-Parallelized tile-based software rasterizer.
 
+![img_demo0png](C:\Users\Huang\source\repos\Ifrit-v2\img\img_demo0png.png)
+
 ![](img/img_demo1.png)
 
 ![](img/img_demo2.png)
@@ -19,22 +21,28 @@ Successor to following repos:
 
 ## Features
 
-**Note:** This project is NOT a exact replicate of hardware graphics pipeline (like TBDR architecture). Some behaviors are nondeterministic and incompatible under current implementation (like `Alpha Blending` which requires sorting primitives under parallel setting)
+Overall framework for CUDA renderer pipeline (Some different from its MT-CPU counterpart):
+
+<img src="/img/overview.png" alt="overview" style="zoom: 67%;" />
+
+**Note:** This project is NOT an exact replicate of hardware graphics pipeline (like TBDR architecture). Some behaviors are nondeterministic and some features incompatible under current implementation (like `Alpha Blending` which requires sorting primitives under parallel setting)
 
 | Feature                                       | MT CPU Renderer | CUDA Renderer |
 | --------------------------------------------- | --------------- | ------------- |
-| Deterministic / Rendering Order               | ×               | ×             |
+| Deterministic / Rendering Order               |                 |               |
 | Performance / SIMD                            | √               |               |
 | Performance / Overlapped Memory Transfer      |                 | √             |
 | Performance / Dynamic Tile List               | √               | √ (2)         |
 | Rendering / Programmable Vertex Shader        | √               | √             |
 | Rendering / Programmable Fragment Shader      | √               | √             |
-| Rendering / Z Pre-Pass                        | ×               | √             |
+| Rendering / Z Pre-Pass                        |                 | √             |
+| Rendering / Early-Z Test                      | √               | √             |
 | Rendering / Back Face Culling                 | √               | √             |
 | Rendering / Frustum Culling                   | √               | √             |
 | Rendering / Homogeneous Clipping              | √ (1)           | √ (1)         |
-| Rendering / Small Triangle Culling            | ×               | √             |
+| Rendering / Small Triangle Culling            |                 | √             |
 | Rendering / Perspective-correct Interpolation | √               | √             |
+| Rendering / Texture                           |                 | √             |
 | Presentation / Terminal ASCII                 | √               | √             |
 | Presentation / Terminal Color                 | √               | √             |
 
@@ -97,11 +105,35 @@ Note that some triangles might be culled or clipped in the pipeline.
 
 
 
+## Setup
+
+Some dependencies should be prepared before compiling.
+
+- Place `GLAD` dependency in `include\dependency\GLAD\glad\glad.h` and `include\dependency\GLAD\KHR\khrplatform.h`
+- Place `sbt_image` in `include\dependency\sbt_image.h`
+
+
+
 ## Ongoing Plan
 
-- Texture
+- Bug Fix & Testing
+  - Resolution Change
+- Geometry Shader
+- Line Mode
+- Texture LOD & Texture Sampler
+- Multi-sampling
+- Alpha Blending
+- Mesh Shader
+- Triangle Cluster & Cluster LOD
 
 
 
 ## References
 
+For models / open source code references, check `licenses` folder.
+
+[1]. https://tayfunkayhan.wordpress.com/2019/07/26/chasing-triangles-in-a-tile-based-rasterizer/
+
+[2]. https://www.slideshare.net/slideshow/optimizing-the-graphics-pipeline-with-compute-gdc-2016/59747720
+
+[3]. https://docs.nvidia.com/cuda/cuda-c-programming-guide/

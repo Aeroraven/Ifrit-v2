@@ -10,6 +10,7 @@ namespace Ifrit::Engine::Math::ShaderOps {
 	ifloat4 normalize(ifloat4 a);
 	ifloat3 cross(ifloat3 a, ifloat3 b);
 	ifloat3 normalize(ifloat3 a);
+	ifloat2 normalize(ifloat2 a);
 	ifloat3 sub(ifloat3 a, ifloat3 b);
 	float dot(ifloat3 a, ifloat3 b);
 	float4x4 transpose(float4x4 a);

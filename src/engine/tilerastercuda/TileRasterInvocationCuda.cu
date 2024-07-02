@@ -1563,6 +1563,14 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 		cudaDeviceSynchronize();
 	}
+
+	IFRIT_KERNEL void updateFragmentShaderKernel(FragmentShader* fragmentShader) {
+		for (int i = 0; i < CU_MAX_TEXTURE_SLOTS; i++) {
+			fragmentShader->atTexture[i] = csTextures[i];
+			fragmentShader->atTextureHei[i] = csTextureHeight[i];
+			fragmentShader->atTextureWid[i] = csTextureWidth[i];
+		}
+	}
 }
 
 
@@ -1608,9 +1616,9 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		Impl::hsTextures[texId] = (float*)devicePtr;
 		Impl::hsTextureHeight[texId] = texHeight;
 		Impl::hsTextureWidth[texId] = texWid;
-		cudaMemcpyToSymbol(Impl::csTextures[texId], &Impl::hsTextures[texId], sizeof(float*));
-		cudaMemcpyToSymbol(Impl::csTextureHeight[texId], &Impl::hsTextureHeight[texId], sizeof(float*));
-		cudaMemcpyToSymbol(Impl::csTextureWidth[texId], &Impl::hsTextureWidth[texId], sizeof(float*));
+		cudaMemcpyToSymbol(Impl::csTextures, &Impl::hsTextures[texId], sizeof(float*), sizeof(float*)*texId);
+		cudaMemcpyToSymbol(Impl::csTextureHeight, &Impl::hsTextureHeight[texId], sizeof(int), sizeof(int)*texId);
+		cudaMemcpyToSymbol(Impl::csTextureWidth, &Impl::hsTextureWidth[texId], sizeof(int), sizeof(int)*texId);
 	}
 
 	int* getIndexBufferDeviceAddr(const int* hIndexBuffer, uint32_t indexBufferSize, int* dOldIndexBuffer) {
@@ -1659,7 +1667,6 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		ifloat4* dBuffer;
 		cudaMalloc(&dBuffer, bufferSize * sizeof(ifloat4));
 		return dBuffer;
-	
 	}
 
 	void getColorBufferDeviceAddr(
@@ -1695,6 +1702,12 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		Impl::hsFrameWidth = width;
 	}
 
+	void invokeFragmentShaderUpdate(FragmentShader* dFragmentShader) IFRIT_AP_NOTHROW {
+		Impl::updateFragmentShaderKernel CU_KARG2(1, 1)(dFragmentShader);
+		cudaDeviceSynchronize();
+		printf("Shader init done \n");
+	}
+
 	void updateVarying(uint32_t varyingCounts) {
 		Impl::hsVaryingCounts = varyingCounts;
 		cudaMemcpyToSymbol(Impl::csVaryingCounts, &varyingCounts, sizeof(uint32_t));
@@ -1713,7 +1726,6 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void initCudaRendering() {
 		cudaMemcpyToSymbol(Impl::csCounterClosewiseCull, &Impl::hsCounterClosewiseCull, sizeof(Impl::hsCounterClosewiseCull));
 	}
-
 	void updateVertexLayout(TypeDescriptorEnum* dVertexTypeDescriptor, int attrCounts) {
 		Impl::hsTotalVertexOffsets = 0;
 		for (int i = 0; i < attrCounts; i++) {
@@ -1728,8 +1740,8 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_INT3) cof = sizeof(iint3);
 			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_INT4) cof = sizeof(iint4);
 			Impl::hsTotalVertexOffsets += cof;
+			cudaMemcpyToSymbol(Impl::csVertexOffsets, &Impl::hsVertexOffsets[i], sizeof(Impl::hsVertexOffsets[0]), sizeof(Impl::hsVertexOffsets[0]) * i);
 		}
-		cudaMemcpyToSymbol(Impl::csVertexOffsets, Impl::hsVertexOffsets, sizeof(Impl::hsVertexOffsets));
 		cudaMemcpyToSymbol(Impl::csTotalVertexOffsets, &Impl::hsTotalVertexOffsets, sizeof(Impl::hsTotalVertexOffsets));
 	}
 
@@ -1750,8 +1762,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		TileRasterDeviceContext* deviceContext,
 		int totalIndices,
 		bool doubleBuffering,
-		ifloat4** dLastColorBuffer,
-		float aggressiveRatio
+		ifloat4** dLastColorBuffer
 	) IFRIT_AP_NOTHROW {
 		
 		// Stream Preparation
@@ -1834,22 +1845,10 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		if (doubleBuffering) {
 			cudaStreamSynchronize(copyStream);
 		}
-
 		if (!doubleBuffering) {
 			for (int i = 0; i < dHostColorBufferSize; i++) {
 				cudaMemcpy(hColorBuffer[i], dHostColorBuffer[i], Impl::csFrameWidth * Impl::csFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost);
 			}
-		}
-		
-		// End of rendering
-		if constexpr (CU_OPT_ENABLE_EMBED_COUNTER) {
-			std::chrono::high_resolution_clock::time_point end3 = std::chrono::high_resolution_clock::now();
-			auto copybackTimes = std::chrono::duration_cast<std::chrono::microseconds>(end3 - end1).count();
-			static long long w = 0;
-			static long long wt = 0;
-			w += copybackTimes;
-			wt += 1;
-			printf("AvgTime:%lld, FPS=%f, Loops=%d\n", w / wt, 1000000.0f / w * wt, totalIndices / (CU_SINGLE_TIME_TRIANGLE * 3));
 		}
 	}
 }

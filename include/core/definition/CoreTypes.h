@@ -31,6 +31,7 @@ struct CoreVec4Shared {
 	T z;
 	T zp[U - 1];
 	T w;
+	T wp[U - 1];
 };
 
 #define ifloat4 CoreVec4<float>

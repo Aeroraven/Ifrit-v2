@@ -27,7 +27,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_SUBTILE_SIZE_LOG = 2;
 	constexpr int CU_SUBTILE_SIZE = (1<<(CU_SUBTILE_SIZE_LOG));
 	constexpr int CU_MAX_VARYINGS = 2;
-	constexpr int CU_MAX_ATTRIBUTES = 2;
+	constexpr int CU_MAX_ATTRIBUTES = 3;
 	constexpr int CU_GEOMETRY_PROCESSING_THREADS = 128;
 	constexpr int CU_RASTERIZATION_THREADS_PERDIM = 8;
 	constexpr int CU_VERTEX_PROCESSING_THREADS = 96;

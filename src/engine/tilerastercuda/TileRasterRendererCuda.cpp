@@ -92,6 +92,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::bindFragmentShader(FragmentShader* fragmentShader) {
 		context->fragmentShader = fragmentShader;
+		needFragmentShaderUpdate = true;
+	}
+	void TileRasterRendererCuda::createTextureRaw(int slotId, int height, int width, float* data) {
+		Invocation::createTexture(slotId, width, height, data);
+		needFragmentShaderUpdate = true;
 	}
 	void TileRasterRendererCuda::clear() {
 		context->frameBuffer->getDepthAttachment()->clearImage(255.0);
@@ -102,12 +107,14 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		this->initCudaContext = true;
 		cudaDeviceSetLimit(cudaLimitDevRuntimePendingLaunchCount, 8192);
 	}
-	void TileRasterRendererCuda::setAggressiveRatio(float ratio) {
-		this->aggressiveRatio = ratio;
-	}
 	void TileRasterRendererCuda::render() {
 		initCuda();
 		updateVaryingBuffer();
+
+		if (needFragmentShaderUpdate) {
+			Invocation::invokeFragmentShaderUpdate(context->fragmentShader);
+			needFragmentShaderUpdate = false;
+		}
 
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
 
@@ -134,8 +141,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			this->deviceContext.get(),
 			totalIndices,
 			this->doubleBuffer,
-			deviceHostColorBuffers[1-curBuffer].data(),
-			aggressiveRatio
+			deviceHostColorBuffers[1-curBuffer].data()
 		);
 		currentBuffer = 1 - curBuffer;
 	}
