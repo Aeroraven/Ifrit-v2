@@ -21,7 +21,7 @@ Successor to following repos:
 
 ## Features
 
-Overall framework for CUDA renderer pipeline (Some different from its MT-CPU counterpart):
+Overall framework for CUDA renderer pipeline (Some are different from its MT-CPU counterpart):
 
 <img src="/img/overview.png" alt="overview" style="zoom: 67%;" />
 
