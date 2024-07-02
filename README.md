@@ -2,7 +2,7 @@
 
 GPU/CPU-Parallelized tile-based software rasterizer.
 
-![img_demo0png](C:\Users\Huang\source\repos\Ifrit-v2\img\img_demo0png.png)
+![img_demo0png](/img/img_demo0png.png)
 
 ![](img/img_demo1.png)
 
