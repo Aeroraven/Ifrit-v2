@@ -1,6 +1,6 @@
 #pragma once
 namespace Ifrit::Engine::TileRaster::CUDA {
-	constexpr float CU_EPS = 5e-9f;
+	constexpr float CU_EPS = 1e-8f;
 
 	// == Device ==
 	constexpr int CU_WARP_SIZE = 32;
@@ -30,7 +30,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_MAX_ATTRIBUTES = 2;
 	constexpr int CU_GEOMETRY_PROCESSING_THREADS = 128;
 	constexpr int CU_RASTERIZATION_THREADS_PERDIM = 8;
-	constexpr int CU_VERTEX_PROCESSING_THREADS = 64;
+	constexpr int CU_VERTEX_PROCESSING_THREADS = 96;
 
 	constexpr int CU_FRAGMENT_SHADING_THREADS_PER_TILE_X = 10;
 	constexpr int CU_FRAGMENT_SHADING_THREADS_PER_TILE_Y = 10;
@@ -95,7 +95,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_PROFILER_SECOND_BINNER_WORKQUEUE = false;
 	constexpr bool CU_PROFILER_SMALL_TRIANGLE_OVERHEAD = false;
 	constexpr bool CU_PROFILER_SECOND_BINNER_THREAD_DIVERGENCE = true;
-	constexpr bool CU_PROFILER_II_CPU_NSIGHT = true;
+	constexpr bool CU_PROFILER_II_CPU_NSIGHT = false;
 	constexpr bool CU_PROFILER_ENABLE_MEMCPY = true;
 
 }

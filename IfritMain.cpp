@@ -133,7 +133,6 @@ int mainCpu() {
 	DemoFragmentShader fragmentShader;
 	renderer->bindFragmentShader(fragmentShader);
 
-
 	float ang = 0;
 	if(presentEngine==PE_CONSOLE){
 		TerminalAsciiBackend backend(139, 40);

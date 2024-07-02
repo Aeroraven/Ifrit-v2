@@ -56,8 +56,8 @@ Note that some triangles might be culled or clipped in the pipeline.
 | -------------- | --------- | ------------------ | ------------------ | ------------------- | --------------------- |
 | Yomiya         | 70275     | 38 FPS             | 80 FPS             | 123 FPS             | 2857 FPS              |
 | Stanford Bunny | 208353    | 20 FPS             | 80 FPS             | 124 FPS             | 2272 FPS              |
-| Khronos Sponza | 786801    | 2 FPS              | 10 FPS             | 125 FPS             | 480 FPS               |
-| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS              | 125 FPS             | 195 FPS               |
+| Khronos Sponza | 786801    | 2 FPS              | 10 FPS             | 125 FPS             | 500 FPS               |
+| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS              | 125 FPS             | 198 FPS               |
 
 *. Under optimization 
 

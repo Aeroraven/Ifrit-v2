@@ -93,16 +93,23 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	};
 	
 	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueFullM2[CU_BIN_SIZE * CU_BIN_SIZE];
-	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueSuperTileFullM2[CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE];
-
+	
 	IFRIT_DEVICE static int dSecondBinnerFinerBufferSize[CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE];
 	IFRIT_DEVICE static int dSecondBinnerFinerBufferStart[CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE];
 	IFRIT_DEVICE static int dSecondBinnerFinerBufferCurInd[CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE];
 	IFRIT_DEVICE static int2 dSecondBinnerFinerBuffer[CU_ALTERNATIVE_BUFFER_SIZE_SECOND];
 	IFRIT_DEVICE static int dSecondBinnerFinerBufferGlobalSize;
 
-	IFRIT_DEVICE static uint32_t dRasterQueueWorklistPrim[CU_BIN_SIZE * 2 * CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER];
-	IFRIT_DEVICE static uint32_t dRasterQueueWorklistTile[CU_BIN_SIZE * 2 * CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER];
+	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3Size[CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE];
+	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3Start[CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE];
+	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3CurInd[CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE];
+	IFRIT_DEVICE static int2 dCoverQueueSuperTileFullM3Buffer[CU_ALTERNATIVE_BUFFER_SIZE];
+	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3BufferFinal[CU_ALTERNATIVE_BUFFER_SIZE];
+	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3GlobalSize;
+	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3TotlCands;
+
+
+	IFRIT_DEVICE static uint2 dRasterQueueWorklistPrimTile[CU_BIN_SIZE * 2 * CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER];
 	
 	IFRIT_DEVICE static uint32_t dRasterQueueWorklistCounter;
 
@@ -112,24 +119,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static float dAtriEdgeCoefs3[CU_PRIMITIVE_BUFFER_SIZE * 2];
 	IFRIT_DEVICE static float4 dAtriInterpolBase1[CU_PRIMITIVE_BUFFER_SIZE * 2];
 	IFRIT_DEVICE static float4 dAtriInterpolBase2[CU_PRIMITIVE_BUFFER_SIZE * 2];
-	IFRIT_DEVICE static float4 dAtriInterpolBase3[CU_PRIMITIVE_BUFFER_SIZE * 2];
+	IFRIT_DEVICE static float4 dAtriInterpolBase3Altn[CU_PRIMITIVE_BUFFER_SIZE * 2];
+	IFRIT_DEVICE static float dAtriInterpolBase3[CU_PRIMITIVE_BUFFER_SIZE * 2];
 
-	IFRIT_DEVICE static float2 dAtriBaryCenter1[CU_PRIMITIVE_BUFFER_SIZE * 2];
-	IFRIT_DEVICE static float2 dAtriBaryCenter2[CU_PRIMITIVE_BUFFER_SIZE * 2];
+	IFRIT_DEVICE static float4 dAtriBaryCenter12[CU_PRIMITIVE_BUFFER_SIZE * 2];
 	IFRIT_DEVICE static float2 dAtriBaryCenter3[CU_PRIMITIVE_BUFFER_SIZE * 2];
 
-	IFRIT_DEVICE static float dAtriDepthVal1[CU_PRIMITIVE_BUFFER_SIZE * 2];
-	IFRIT_DEVICE static float dAtriDepthVal2[CU_PRIMITIVE_BUFFER_SIZE * 2];
+	IFRIT_DEVICE static float2 dAtriDepthVal12[CU_PRIMITIVE_BUFFER_SIZE * 2];
 	IFRIT_DEVICE static float dAtriDepthVal3[CU_PRIMITIVE_BUFFER_SIZE * 2];
 	IFRIT_DEVICE static int dAtriOriginalPrimId[CU_PRIMITIVE_BUFFER_SIZE * 2];
 
-	IFRIT_DEVICE static int dCoverPrims[CU_ALTERNATIVE_BUFFER_SIZE];
-	IFRIT_DEVICE static int dCoverTile[CU_ALTERNATIVE_BUFFER_SIZE];
-	IFRIT_DEVICE static int dCoverPrimsLarge[CU_ALTERNATIVE_BUFFER_SIZE];
-	IFRIT_DEVICE static int dCoverTileLarge[CU_ALTERNATIVE_BUFFER_SIZE];
+	IFRIT_DEVICE static int2 dCoverPrimsTile[CU_ALTERNATIVE_BUFFER_SIZE];
+	IFRIT_DEVICE static int2 dCoverPrimsTileLarge[CU_ALTERNATIVE_BUFFER_SIZE];
 
 	IFRIT_DEVICE static int2 dSecondBinnerPendingPrim[CU_ALTERNATIVE_BUFFER_SIZE_SECOND];
-	//IFRIT_DEVICE static int dSecondBinnerPendingTile[CU_ALTERNATIVE_BUFFER_SIZE_SECOND];
 
 	IFRIT_DEVICE static int dCoverPrimsCounter;
 	IFRIT_DEVICE static int dCoverPrimsLargeTileCounter;
@@ -279,12 +282,16 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					continue;
 				auto tileLargeId = y * CU_MAX_LARGE_BIN_X + x;
 				if (criteriaTA == 3) {
-					dCoverQueueSuperTileFullM2[tileLargeId].push_back(primitiveId);
+					//dCoverQueueSuperTileFullM2[tileLargeId].push_back(primitiveId);
+					int x = atomicAdd(&dCoverQueueSuperTileFullM3TotlCands, 1);
+					dCoverQueueSuperTileFullM3Buffer[x].x = primitiveId;
+					dCoverQueueSuperTileFullM3Buffer[x].y = tileLargeId;
+					atomicAdd(&dCoverQueueSuperTileFullM3Size[tileLargeId], 1);
 				}
 				else {
 					auto plId = atomicAdd(&dCoverPrimsLargeTileCounter, 1);
-					dCoverPrimsLarge[plId] = primitiveId;
-					dCoverTileLarge[plId] = tileLargeId;
+					dCoverPrimsTileLarge[plId].x = primitiveId;
+					dCoverPrimsTileLarge[plId].y = tileLargeId;
 				}
 			}
 		}
@@ -351,13 +358,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto tileId = curY * CU_MAX_BIN_X + curX;
 			if (criteriaTA == 3) {
 				auto plId = atomicAdd(&dCoverPrimsCounter, 1);
-				dCoverPrims[plId] = primitiveId;
-				dCoverTile[plId] = tileId;
+				dCoverPrimsTile[plId].x = primitiveId;
+				dCoverPrimsTile[plId].y = tileId;
 			}
 			else if(criteriaTR == 3) {
 				auto plId = atomicAdd(&dRasterQueueWorklistCounter, 1);
-				dRasterQueueWorklistTile[plId] = tileId;
-				dRasterQueueWorklistPrim[plId] = primitiveId;
+				dRasterQueueWorklistPrimTile[plId].y = tileId;
+				dRasterQueueWorklistPrimTile[plId].x = primitiveId;
 			}
 			curX += stride;
 			i2 += stride;
@@ -399,16 +406,17 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	}
 
 	IFRIT_DEVICE void devFinerTilingRasterizationChildProcess(
-		uint32_t tileIdX,
-		uint32_t tileIdY,
+		uint32_t tileId,
 		uint32_t primitiveSrcId,
 		uint32_t subTileId,
+		int xidSrc,
 		float4 e1,
 		float4 e2,
 		float4 e3
 	) {
 
-		const auto tileId = tileIdY * CU_MAX_TILE_X + tileIdX;
+		const auto tileIdX = tileId % CU_MAX_TILE_X;
+		const auto tileIdY = tileId / CU_MAX_TILE_X;
 
 		float4 edgeCoefs[3];
 		edgeCoefs[0] = e1;
@@ -494,7 +502,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		if (mask == 0) {
 			return;
 		}
-		int xid = (tileIdY * CU_MAX_TILE_X + tileIdX) * CU_MAX_SUBTILES_PER_TILE + subTileId;
+		int xid = xidSrc;
 		int pw = atomicAdd(&dSecondBinnerFinerBufferCurInd[xid], 1);
 		dSecondBinnerFinerBuffer[pw].x = mask;
 		dSecondBinnerFinerBuffer[pw].y = primitiveSrcId;
@@ -569,55 +577,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		int mask = 0;
 		if (criteriaTR == 3) {
-
-			float criteriaY[3];
-			float criteriaX[3];
-
-			const auto rsX1 = subTilePixelX * edgeCoefs[0].x;
-			const auto rsX2 = subTilePixelX * edgeCoefs[1].x;
-			const auto rsX3 = subTilePixelX * edgeCoefs[2].x;
-
-			criteriaY[0] = subTilePixelY * edgeCoefs[0].y;
-			criteriaY[1] = subTilePixelY * edgeCoefs[1].y;
-			criteriaY[2] = subTilePixelY * edgeCoefs[2].y;
-			criteriaX[0] = rsX1;
-			criteriaX[1] = rsX2;
-			criteriaX[2] = rsX3;
-
-			if (criteriaTA == 3) {
-				mask = ((1 << CU_EXPERIMENTAL_PIXELS_PER_SUBTILE) - 1);
-			}
-			else {
-				#pragma unroll
-				for (int i2 = 0; i2 < CU_EXPERIMENTAL_PIXELS_PER_SUBTILE; i2++) {
-					bool accept1 = (criteriaX[0] + criteriaY[0]) < edgeCoefs[0].z;
-					bool accept2 = (criteriaX[1] + criteriaY[1]) < edgeCoefs[1].z;
-					bool accept3 = (criteriaX[2] + criteriaY[2]) < edgeCoefs[2].z;
-
-					int cond = (accept1 && accept2 && accept3);
-					mask |= (cond << i2);
-
-					if ((i2 + 1) % CU_EXPERIMENTAL_SUBTILE_WIDTH == 0) {
-						criteriaY[0] += edgeCoefs[0].y;
-						criteriaY[1] += edgeCoefs[1].y;
-						criteriaY[2] += edgeCoefs[2].y;
-						criteriaX[0] = rsX1;
-						criteriaX[1] = rsX2;
-						criteriaX[2] = rsX3;
-					}
-					else {
-						criteriaX[0] += edgeCoefs[0].x;
-						criteriaX[1] += edgeCoefs[1].x;
-						criteriaX[2] += edgeCoefs[2].x;
-					}
-				}
-			}
-			/*
-			TilePixelBitProposalCUDA nprop;
-			nprop.mask = mask;
-			nprop.primId = primitiveSrcId;
-			dq[subTileId].push_back(nprop);*/
-			
 			int x = atomicAdd(&dSecondBinnerCandCounter, 1);
 			dSecondBinnerPendingPrim[x].x = primitiveSrcId;
 			dSecondBinnerPendingPrim[x].y = tileId * CU_MAX_SUBTILES_PER_TILE + subTileId;
@@ -794,9 +753,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto curIdx = atomicAdd(&dAssembledTriangleCounterM2, 1);
 			dAtriInterpolBase1[curIdx] = { dv1.x,dv1.y,dv1.z,dv1.w };
 			dAtriInterpolBase2[curIdx] = { dv2.x,dv2.y,dv2.z,dv2.w };
-			dAtriInterpolBase3[curIdx] = { dv3.x,dv3.y,dv3.z,dv3.w };
-			dAtriBaryCenter1[curIdx] = { b1.x,b1.y };
-			dAtriBaryCenter2[curIdx] = { b2.x,b2.y };
+			dAtriInterpolBase3Altn[curIdx] = { dv3.x,dv3.y,dv3.z,dv3.w };
+			dAtriBaryCenter12[curIdx] = { b1.x,b1.y,b2.x,b2.y };
 			dAtriBaryCenter3[curIdx] = { b3.x,b3.y };
 			dAtriOriginalPrimId[curIdx] = primId;
 		}
@@ -809,11 +767,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		const auto dAtriInterpolBase1Aligned = static_cast<float4*>(__builtin_assume_aligned(dAtriInterpolBase1, 16));
 		const auto dAtriInterpolBase2Aligned = static_cast<float4*>(__builtin_assume_aligned(dAtriInterpolBase2, 16));
-		const auto dAtriInterpolBase3Aligned = static_cast<float4*>(__builtin_assume_aligned(dAtriInterpolBase3, 16));
+		const auto dAtriInterpolBase3AltnAligned = static_cast<float4*>(__builtin_assume_aligned(dAtriInterpolBase3Altn, 16));
 
 		float4 dv1 = dAtriInterpolBase1Aligned[globalInvo];
 		float4 dv2 = dAtriInterpolBase2Aligned[globalInvo];
-		float4 dv3 = dAtriInterpolBase3Aligned[globalInvo];
+		float4 dv3 = dAtriInterpolBase3AltnAligned[globalInvo];
 
 		const auto frameHeight = csFrameHeight;
 		const auto frameWidth = csFrameWidth;
@@ -868,12 +826,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		};
 		dAtriEdgeCoefs3Aligned[globalInvo] = (float)(-dv1.x * dv3.y + dv3.x * dv1.y) * frameHeight * frameWidth + dEps;
 
-		dAtriInterpolBase1Aligned[globalInvo] = f1;
-		dAtriInterpolBase2Aligned[globalInvo] = f2;
-		dAtriInterpolBase3Aligned[globalInvo] = f3;
+		dAtriInterpolBase1Aligned[globalInvo] = { f1.x,f1.y,f1.z,f2.x };
+		dAtriInterpolBase2Aligned[globalInvo] = { f2.y,f2.z,f3.x,f3.y };
+		dAtriInterpolBase3[globalInvo] = f3.z;
 
-		dAtriDepthVal1[globalInvo] = v1;
-		dAtriDepthVal2[globalInvo] = v2;
+		dAtriDepthVal12[globalInvo].x = v1;
+		dAtriDepthVal12[globalInvo].y = v2;
 		dAtriDepthVal3[globalInvo] = v3;
 
 		float4 bbox;
@@ -929,9 +887,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_KERNEL void firstBinnerRasterizerSeparateLargeFinerKernel(uint32_t bound) {
 		auto globalInvo = blockIdx.x * blockDim.x + threadIdx.x;
 		if (globalInvo >= bound)return;
-		int primitiveId = dCoverPrimsLarge[globalInvo];
+		int primitiveId = dCoverPrimsTileLarge[globalInvo].x;
 		int orgPrimId = primitiveId;
-		int orgLargeTileId = dCoverTileLarge[globalInvo];
+		int orgLargeTileId = dCoverPrimsTileLarge[globalInvo].y;
 		auto frameBufferHeight = csFrameHeight;
 		auto frameBufferWidth = csFrameWidth;
 		auto x = orgLargeTileId % CU_LARGE_BIN_SIZE;
@@ -979,13 +937,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		auto tileId = ty * CU_BIN_SIZE + tx;
 		if (criteriaTA == 3) {
 			auto plId = atomicAdd(&dCoverPrimsCounter, 1);
-			dCoverPrims[plId] = primitiveId;
-			dCoverTile[plId] = tileId;
+			dCoverPrimsTile[plId].x = primitiveId;
+			dCoverPrimsTile[plId].y = tileId;
 		}
 		else {
 			auto plId = atomicAdd(&dRasterQueueWorklistCounter, 1);
-			dRasterQueueWorklistTile[plId] = tileId;
-			dRasterQueueWorklistPrim[plId] = primitiveId;
+			dRasterQueueWorklistPrimTile[plId].y = tileId;
+			dRasterQueueWorklistPrimTile[plId].x = primitiveId;
 		}
 	}
 
@@ -1001,14 +959,35 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_KERNEL void firstBinnerGatherKernel(uint32_t bound) {
 		auto globalInvo = blockIdx.x * blockDim.x + threadIdx.x;
 		if (globalInvo >= bound)return;
-		int primId = dCoverPrims[globalInvo];
-		int tileId = dCoverTile[globalInvo];
+		int primId = dCoverPrimsTile[globalInvo].x;
+		int tileId = dCoverPrimsTile[globalInvo].y;
 		dCoverQueueFullM2[tileId].push_back(primId);
 	}
 
 	IFRIT_KERNEL void firstBinnerGatherEntryKernel() {
 		auto dispatchBlocks = dCoverPrimsCounter / CU_FIRST_RASTERIZATION_GATHER_THREADS + (dCoverPrimsCounter % CU_FIRST_RASTERIZATION_GATHER_THREADS != 0);
 		firstBinnerGatherKernel CU_KARG2(dim3(dispatchBlocks, 1, 1), dim3(CU_FIRST_RASTERIZATION_GATHER_THREADS, 1, 1)) (dCoverPrimsCounter);
+	}
+
+	IFRIT_KERNEL void largeTileBufferAllocationKernel() {
+		int globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
+		dCoverQueueSuperTileFullM3Start[globalInvo] = atomicAdd(&dCoverQueueSuperTileFullM3GlobalSize, dCoverQueueSuperTileFullM3Size[globalInvo]);
+		dCoverQueueSuperTileFullM3CurInd[globalInvo] = dCoverQueueSuperTileFullM3Start[globalInvo];
+	}
+
+	IFRIT_KERNEL void largeTileBufferPlacementKernel(int total) {
+		int globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
+		if (globalInvo >= total) return;
+		int primId = dCoverQueueSuperTileFullM3Buffer[globalInvo].x;
+		int largeTileId = dCoverQueueSuperTileFullM3Buffer[globalInvo].y;
+		int v = atomicAdd(&dCoverQueueSuperTileFullM3CurInd[largeTileId], 1);
+		dCoverQueueSuperTileFullM3BufferFinal[v] = primId;
+	}
+
+	IFRIT_KERNEL void largeTileBufferPlacementEntryKernel() {
+		int total = dCoverQueueSuperTileFullM3TotlCands;
+		int dispBlocksLp = IFRIT_InvoGetThreadBlocks(total, 64);
+		largeTileBufferPlacementKernel CU_KARG2(dispBlocksLp, 64)(total);
 	}
 
 	IFRIT_KERNEL void firstBinnerRasterizerEntryKernel(uint32_t firstTriangle,uint32_t triangleNum) {
@@ -1020,6 +999,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		firstBinnerRasterizerSeparateLargeKernel CU_KARG2(dim3(dispatchBlocksLarge, 1, 1), dim3(CU_FIRST_RASTERIZATION_THREADS_LARGE, CU_FIRST_BINNER_STRIDE_LARGE, CU_FIRST_BINNER_STRIDE_LARGE)) (
 			firstTriangle, totalTriangles);
 		firstBinnerRasterizerSeparateLargeFinerEntryKernel CU_KARG2(1, 1)();
+		largeTileBufferAllocationKernel CU_KARG2(CU_LARGE_BIN_SIZE, CU_LARGE_BIN_SIZE)();
+		largeTileBufferPlacementEntryKernel CU_KARG2(1, 1)();
 		firstBinnerRasterizerSeparateSmallKernel CU_KARG2(dim3(dispatchBlocks, 1, 1), dim3(CU_FIRST_RASTERIZATION_THREADS, CU_FIRST_BINNER_STRIDE, 1)) (
 			firstTriangle, totalTriangles);
 		firstBinnerRasterizerSeparateTinyKernel CU_KARG2(dim3(dispatchBlocksTiny, 1, 1), dim3(CU_FIRST_RASTERIZATION_THREADS_TINY, CU_FIRST_BINNER_STRIDE_TINY, 1)) (
@@ -1037,17 +1018,26 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			CU_FIRST_RASTERIZATION_THREADS_LARGE, CU_FIRST_BINNER_STRIDE_LARGE)) (
 			firstTriangle, totalTriangles);
 		firstBinnerRasterizerSeparateLargeFinerEntryKernel CU_KARG2(1, 1)();
+		//===
+		auto largeTileProposals = 0;
+		cudaMemcpyFromSymbol(&largeTileProposals, dCoverQueueSuperTileFullM3TotlCands, sizeof(int));
+		largeTileBufferAllocationKernel CU_KARG2(CU_LARGE_BIN_SIZE, CU_LARGE_BIN_SIZE)();
+		int dispBlocksLp = IFRIT_InvoGetThreadBlocks(largeTileProposals, 64);
+		largeTileBufferPlacementKernel CU_KARG2(dispBlocksLp, 64)(largeTileProposals);
+		//===
 		firstBinnerRasterizerSeparateSmallKernel CU_KARG2(dim3(dispatchBlocks, 1, 1), dim3(CU_FIRST_RASTERIZATION_THREADS, CU_FIRST_BINNER_STRIDE, 1)) (
 			firstTriangle, totalTriangles);
 		firstBinnerRasterizerSeparateTinyKernel CU_KARG2(dim3(dispatchBlocksTiny, 1, 1), dim3(CU_FIRST_RASTERIZATION_THREADS_TINY, CU_FIRST_BINNER_STRIDE_TINY, 1)) (
 			firstTriangle, totalTriangles);
 	}
 
+	
+
 	IFRIT_KERNEL void secondBinnerWorklistRasterizerKernel(int totalElements) {
 		const auto globalInvo = (blockIdx.x * CU_ELEMENTS_PER_SECOND_BINNER_BLOCK) + threadIdx.z;
 		if (globalInvo > totalElements)return;
-		int binId = dRasterQueueWorklistTile[globalInvo];
-		int prim = dRasterQueueWorklistPrim[globalInvo];
+		int binId = dRasterQueueWorklistPrimTile[globalInvo].y;
+		int prim = dRasterQueueWorklistPrimTile[globalInvo].x;
 		int binIdxY = binId / CU_MAX_BIN_X;
 		int binIdxX = binId % CU_MAX_BIN_X;
 		int tileIdxX = binIdxX * CU_TILES_PER_BIN + threadIdx.x % CU_TILES_PER_BIN;
@@ -1102,8 +1092,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		auto dv = dSecondBinnerPendingPrim[globalInvo].y;
 		int tileId = dv / CU_MAX_SUBTILES_PER_TILE;
 		int subTileId = dv % CU_MAX_SUBTILES_PER_TILE;
-		int tileX = tileId % CU_MAX_TILE_X;
-		int tileY = tileId / CU_MAX_TILE_X;
 		int prim = dSecondBinnerPendingPrim[globalInvo].x;
 
 		float4 ec1, ec2;
@@ -1116,7 +1104,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		edgeCoefs[1] = { ec1.w,ec2.x,ec2.y };
 		edgeCoefs[2] = { ec2.z,ec2.w,ec3 };
 
-		devFinerTilingRasterizationChildProcess(tileX, tileY, prim, subTileId, edgeCoefs[0], edgeCoefs[1], edgeCoefs[2]);
+		devFinerTilingRasterizationChildProcess(tileId, prim, subTileId, dv, edgeCoefs[0], edgeCoefs[1], edgeCoefs[2]);
 	}
 
 	IFRIT_KERNEL void secondFinerBinnerRasterizationEntryKernel() {
@@ -1144,8 +1132,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto frameWidth = csFrameWidth;
 		
 		const auto completeCandidates = dCoverQueueFullM2[binId].size;
-		const auto largeCandidates = dCoverQueueSuperTileFullM2[superTileId].size;
-
+		
 		constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
 		const auto varyingCount = csVaryingCounts;
 
@@ -1164,11 +1151,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		IFRIT_SHARED float colorOutputSingle[256 * 4];
 		IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
 		auto shadingPass = [&](const int pId) {
-			float4 f1 = dAtriInterpolBase1[pId];
-			float4 f2 = dAtriInterpolBase2[pId];
-			float4 f3 = dAtriInterpolBase3[pId];
-			float2 b1 = dAtriBaryCenter1[pId];
-			float2 b2 = dAtriBaryCenter2[pId];
+			float4 f1o = dAtriInterpolBase1[pId];
+			float4 f2o = dAtriInterpolBase2[pId];
+			float f3o = dAtriInterpolBase3[pId];
+
+			float3 f1 = { f1o.x,f1o.y,f1o.z };
+			float3 f2 = { f1o.w,f2o.x,f2o.y };
+			float3 f3 = { f2o.z,f2o.w,f3o };
+
+			float4 b12 = dAtriBaryCenter12[pId];
 			float2 b3 = dAtriBaryCenter3[pId];
 			int orgPrimId = dAtriOriginalPrimId[pId];
 
@@ -1181,8 +1172,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			candidateBary[2] *= zCorr;
 
 			float desiredBary[3];
-			desiredBary[0] = candidateBary[0] * b1.x + candidateBary[1] * b2.x + candidateBary[2] * b3.x;
-			desiredBary[1] = candidateBary[0] * b1.y + candidateBary[1] * b2.y + candidateBary[2] * b3.y;
+			desiredBary[0] = candidateBary[0] * b12.x + candidateBary[1] * b12.z + candidateBary[2] * b3.x;
+			desiredBary[1] = candidateBary[0] * b12.y + candidateBary[1] * b12.w + candidateBary[2] * b3.y;
 			desiredBary[2] = 1.0f - (desiredBary[0] + desiredBary[1]);
 			auto addr = dIndexBuffer + orgPrimId * vertexStride;
 			for (int k = 0; k < varyingCount; k++) {
@@ -1220,10 +1211,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		auto zPrePass = [&](int primId) {
 			float interpolatedDepth;
-			float v1 = dAtriDepthVal1[primId];
-			float v2 = dAtriDepthVal2[primId];
+			float2 v12 = dAtriDepthVal12[primId];
 			float v3 = dAtriDepthVal3[primId];
-			interpolatedDepth = v1 * pDx + v2 * pDy + v3;
+			interpolatedDepth = v12.x * pDx + v12.y * pDy + v3;
 			if (interpolatedDepth < localDepthBuffer) {
 				localDepthBuffer = interpolatedDepth;
 				candidatePrim = primId;
@@ -1235,20 +1225,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		// Large Bin Level
 		if constexpr (true) {
-			int log2LargeCandidates = 31 - __clz(max(0, largeCandidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
-			for (int i = 0; i < log2LargeCandidates; i++) {
-				int dmax = i ? (1 << (i + CU_VECTOR_BASE_LENGTH - 1)) : (1 << (CU_VECTOR_BASE_LENGTH));
-				const auto& data = dCoverQueueSuperTileFullM2[superTileId].data[i];
-				for (int j = 0; j < dmax; j++) {
-					const auto proposal = data[j];
-					zPrePass(proposal);
-				}
-			}
-			int processedLargeProposals = log2LargeCandidates ? (1 << (log2LargeCandidates + CU_VECTOR_BASE_LENGTH - 1)) : 0;
-			const auto& dataPixel = dCoverQueueSuperTileFullM2[superTileId].data[log2LargeCandidates];
-			const auto limPixel = largeCandidates - processedLargeProposals;
-			for (int i = 0; i < limPixel; i++) {
-				const auto proposal = dataPixel[i];
+			int startIndex = dCoverQueueSuperTileFullM3Start[superTileId];
+			int totlSize = dCoverQueueSuperTileFullM3CurInd[superTileId];
+			for (int i = startIndex; i < totlSize; i++) {
+				const auto proposal = dCoverQueueSuperTileFullM3BufferFinal[i];
 				zPrePass(proposal);
 			}
 		}
@@ -1317,11 +1297,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
 
 		dSecondBinnerFinerBufferStart[globalInvocation] = 0;
-		dSecondBinnerFinerBufferCurInd[globalInvocation] = 0;
 		dSecondBinnerFinerBufferSize[globalInvocation] = 0;
 
 		if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
-			dCoverQueueSuperTileFullM2[globalInvocation].clear();
+			dCoverQueueSuperTileFullM3Start[globalInvocation] = 0;
+			dCoverQueueSuperTileFullM3Size[globalInvocation] = 0;
 		}
 		if (globalInvocation < CU_BIN_SIZE * CU_BIN_SIZE) {
 			dCoverQueueFullM2[globalInvocation].clear();
@@ -1334,6 +1314,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dCoverPrimsLargeTileCounter = 0;
 			dSecondBinnerFinerBufferGlobalSize = 0;
 			dSecondBinnerCandCounter = 0;
+			dCoverQueueSuperTileFullM3GlobalSize = 0;
+			dCoverQueueSuperTileFullM3TotlCands = 0;
 		}
 		if constexpr (CU_PROFILER_OVERDRAW) {
 			if (blockIdx.x == 0 && threadIdx.x == 0) {
@@ -1351,15 +1333,17 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	IFRIT_KERNEL void integratedInitKernel() {
 		const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
-		dAssembledTriangleCounterM2 = 0;
-		dSecondBinnerActiveReqs = 0;
-		dSecondBinnerTotalReqs = 0;
-		dSecondBinnerEmptyTiles = 0;
-		dRasterQueueWorklistCounter = 0;
-		dSecondBinnerCandCounter = 0;
-		if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
-			dCoverQueueSuperTileFullM2[globalInvocation].initialize();
+		if (globalInvocation == 0) {
+			dAssembledTriangleCounterM2 = 0;
+			dSecondBinnerActiveReqs = 0;
+			dSecondBinnerTotalReqs = 0;
+			dSecondBinnerEmptyTiles = 0;
+			dRasterQueueWorklistCounter = 0;
+			dSecondBinnerCandCounter = 0;
+			dCoverQueueSuperTileFullM3GlobalSize = 0;
+			dCoverQueueSuperTileFullM3TotlCands = 0;
 		}
+
 		if (globalInvocation < CU_BIN_SIZE * CU_BIN_SIZE) {
 			dCoverQueueFullM2[globalInvocation].initialize();
 		}
@@ -1369,11 +1353,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
 		
 		dSecondBinnerFinerBufferStart[globalInvocation] = 0;
-		dSecondBinnerFinerBufferCurInd[globalInvocation] = 0;
 		dSecondBinnerFinerBufferSize[globalInvocation] = 0;
 
 		if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
-			dCoverQueueSuperTileFullM2[globalInvocation].clear();
+			dCoverQueueSuperTileFullM3Start[globalInvocation] = 0;
+			dCoverQueueSuperTileFullM3Size[globalInvocation] = 0;
+
 		}
 		if (globalInvocation < CU_BIN_SIZE * CU_BIN_SIZE) {
 			dCoverQueueFullM2[globalInvocation].clear();
@@ -1404,6 +1389,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dCoverPrimsLargeTileCounter = 0;
 			dSecondBinnerCandCounter = 0;
 			dSecondBinnerFinerBufferGlobalSize = 0;
+			dCoverQueueSuperTileFullM3GlobalSize = 0;
+			dCoverQueueSuperTileFullM3TotlCands = 0;
 		}
 	}
 
@@ -1779,21 +1766,21 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 			}
 			secondPass = 2;
 		}
-		if (initFlag == 0) {
-			initFlag = 1;
-			cudaDeviceSetLimit(cudaLimitMallocHeapSize, CU_HEAP_MEMORY_SIZE);
-
-			cudaStreamCreate(&copyStream);
-			cudaStreamCreate(&computeStream);
-			cudaEventCreate(&copyStart);
-			cudaEventCreate(&copyEnd);
-
-			Impl::integratedInitKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE,0, computeStream)();
-			cudaDeviceSynchronize();
-			printf("CUDA Init Done\n");
-			
-		}
 		if (initFlag < 20) {
+			if (initFlag == 0) {
+				initFlag = 1;
+				cudaDeviceSetLimit(cudaLimitMallocHeapSize, CU_HEAP_MEMORY_SIZE);
+
+				cudaStreamCreate(&copyStream);
+				cudaStreamCreate(&computeStream);
+				cudaEventCreate(&copyStart);
+				cudaEventCreate(&copyEnd);
+
+				Impl::integratedInitKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)();
+				cudaDeviceSynchronize();
+				printf("CUDA Init Done\n");
+
+			}
 			if ((++initFlag) == 20) {
 				secondPass = 1;
 			}
