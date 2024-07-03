@@ -140,7 +140,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static uint32_t dAssembledTriangleCounterM2;
 
 	// Geometry Shader
-	IFRIT_DEVICE static int dGeometryShaderOutVertices;
+	IFRIT_DEVICE static int dGeometryShaderOutSize;
+	IFRIT_DEVICE static float4 dGeometryShaderOutPos[CU_GS_OUT_BUFFER_SIZE];
+	IFRIT_DEVICE static float4 dGeometryShaderOutVaryings[CU_GS_OUT_BUFFER_SIZE * CU_MAX_VARYINGS];
+
 
 	// Profiler: Overdraw
 	IFRIT_DEVICE static int dOverDrawCounter;
@@ -162,6 +165,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	// Profiler: Second Binner Thread Divergence
 	IFRIT_DEVICE static int dSbtdSplit = 0;
 
+	IFRIT_DEVICE float devAbort() {
+		printf("Kernel aborted\n");
+		asm("trap;");
+	}
 
 	IFRIT_DEVICE float devEdgeFunction(float4 a, float4 b, float4 c) {
 		return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
@@ -583,76 +590,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	
-	// Kernel Implementations
-
-	IFRIT_KERNEL void vertexProcessingKernel(
-		VertexShader* vertexShader,
-		uint32_t vertexCount,
-		char* IFRIT_RESTRICT_CUDA dVertexBuffer,
-		TypeDescriptorEnum* IFRIT_RESTRICT_CUDA dVertexTypeDescriptor,
-		float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-		float4* IFRIT_RESTRICT_CUDA dPosBuffer
-	) {
-		const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
-		if (globalInvoIdx >= vertexCount) return;
-		const auto numAttrs = csAttributeCounts;
-		const auto numVaryings = csVaryingCounts;
-
-		const void* vertexInputPtrs[CU_MAX_ATTRIBUTES];
-		float4* varyingOutputPtrs[CU_MAX_VARYINGS];
-		
-		for (int i = 0; i < numAttrs; i++) {
-			vertexInputPtrs[i] = globalInvoIdx * csTotalVertexOffsets + dVertexBuffer + csVertexOffsets[i];
-		}
-		for (int i = 0; i < numVaryings; i++) {
-			varyingOutputPtrs[i] = dVaryingBuffer + globalInvoIdx * numVaryings + i;
-		}
-		vertexShader->execute(vertexInputPtrs, (ifloat4*) &dPosBuffer[globalInvoIdx], (VaryingStore**)varyingOutputPtrs);
-	}
-	
-	IFRIT_KERNEL void geometryShadingKernel(
-		GeometryShader* geometryShader,
-		float4* IFRIT_RESTRICT_CUDA dPosBuffer,
-		int* IFRIT_RESTRICT_CUDA dIndexBuffer,
-		float4** IFRIT_RESTRICT_CUDA dVaryingBuffer,
-		TypeDescriptorEnum* IFRIT_RESTRICT_CUDA dVaryingTypeDescriptor
-	) {
-
-	}
-
-	IFRIT_KERNEL void geometryClippingKernel(
-		ifloat4* IFRIT_RESTRICT_CUDA dPosBuffer,
-		int* IFRIT_RESTRICT_CUDA dIndexBuffer,
-		uint32_t startingIndexId,
-		uint32_t indexCount
-	) {
-		//TODO: Culling face (Templated)
-		
-		const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
-		if(globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
-
-		const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
-		auto dPosBufferAligned = reinterpret_cast<float4*>(__builtin_assume_aligned(dPosBuffer, 16));
-
-		float4 v1, v2, v3;
-		if constexpr (CU_OPT_ALIGNED_INDEX_BUFFER) {
-			dIndexBuffer = reinterpret_cast<int*>(__builtin_assume_aligned(dIndexBuffer, 16));
-			iint4 indices = reinterpret_cast<iint4*>(dIndexBuffer)[indexStart >> 2];
-			v1 = dPosBufferAligned[indices.x];
-			v2 = dPosBufferAligned[indices.y];
-			v3 = dPosBufferAligned[indices.z];
-		}
-		else {
-			v1 = dPosBufferAligned[dIndexBuffer[indexStart]];
-			v2 = dPosBufferAligned[dIndexBuffer[indexStart + 1]];
-			v3 = dPosBufferAligned[dIndexBuffer[indexStart + 2]];
-		}
-
-		const auto primId = globalInvoIdx + startingIndexId / CU_TRIANGLE_STRIDE;
-		if (v1.w < 0 && v2.w < 0 && v3.w < 0) {
-			return;
-		}
-
+	IFRIT_DEVICE void devGeometryCullClip(float4 v1,float4 v2, float4 v3, int primId) {
 		using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
 		constexpr int possibleTris = 5;
 
@@ -662,7 +600,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		int retdTriCnt = 3;
 		const auto retOffset = threadIdx.x * 2;
 		const auto retIdxOffset = threadIdx.x * 5;
-	
+
 		uint32_t retCnt = 0;
 		TileRasterClipVertexCUDA pc;
 		pc.barycenter = { 1,0,0 };
@@ -674,7 +612,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto curNid = (j + 1) % 3;
 			auto pnPos = vSrc[curNid];
 			auto npn = -pnPos.w;
-			
+
 			float3 pnBary = { 0,0,0 };
 			if (j == 0) pnBary.y = 1;
 			if (j == 1) pnBary.z = 1;
@@ -697,7 +635,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					retdTriCnt++;
 				}
 			}
-				
+
 			if (npn < 0) {
 				retdIndex[retCnt + retIdxOffset] = curNid;
 				retCnt++;
@@ -712,33 +650,33 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		const auto clipOdd = 0;
 
-#define normalizeVertex(v) v.w=1/v.w; v.x*=v.w; v.y*=v.w; v.z*=v.w;v.x=v.x*0.5f+0.5f;v.y=v.y*0.5f+0.5f;
+	#define normalizeVertex(v) v.w=1/v.w; v.x*=v.w; v.y*=v.w; v.z*=v.w;v.x=v.x*0.5f+0.5f;v.y=v.y*0.5f+0.5f;
 		normalizeVertex(v1);
 		normalizeVertex(v2);
 		normalizeVertex(v3);
 
-		#pragma unroll
+	#pragma unroll
 		for (int i = 3; i < retdTriCnt; i++) {
 			normalizeVertex(retd[i + retOffset - 3].pos);
 		}
-#undef normalizeVertex
+	#undef normalizeVertex
 
 		// Atomic Insertions
 		const auto frameHeight = csFrameHeight;
 		for (int i = 0; i < retCnt - 2; i++) {
 			int temp;
-#define getBary(fx,fy) (temp = retdIndex[(fx)* possibleTris+(fy)+ retIdxOffset], (temp==0)?float3{1,0,0}:((temp==1)?float3{0,1,0}:(temp==2)?float3{0,0,1}:retd[temp - 3 + retOffset].barycenter))
-#define getPos(fx,fy) (temp = retdIndex[(fx)* possibleTris+(fy)+ retIdxOffset], (temp==0)?v1:((temp==1)?v2:(temp==2)?v3:retd[temp - 3 + retOffset].pos))
+	#define getBary(fx,fy) (temp = retdIndex[(fx)* possibleTris+(fy)+ retIdxOffset], (temp==0)?float3{1,0,0}:((temp==1)?float3{0,1,0}:(temp==2)?float3{0,0,1}:retd[temp - 3 + retOffset].barycenter))
+	#define getPos(fx,fy) (temp = retdIndex[(fx)* possibleTris+(fy)+ retIdxOffset], (temp==0)?v1:((temp==1)?v2:(temp==2)?v3:retd[temp - 3 + retOffset].pos))
 			const auto b1 = getBary(clipOdd, 0);
-			const auto b2 = getBary(clipOdd, i+1);
-			const auto b3 = getBary(clipOdd, i+2);
+			const auto b2 = getBary(clipOdd, i + 1);
+			const auto b3 = getBary(clipOdd, i + 2);
 
 			const float4 dv1 = getPos(clipOdd, 0);
 			const float4 dv2 = getPos(clipOdd, i + 1);
 			const float4 dv3 = getPos(clipOdd, i + 2);
-#undef getBary
-#undef getPos
-			
+	#undef getBary
+	#undef getPos
+
 			if (devViewSpaceClip(dv1, dv2, dv3)) {
 				continue;
 			}
@@ -766,7 +704,133 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dAtriBaryCenter3[curIdx] = { b3.x,b3.y };
 			dAtriOriginalPrimId[curIdx] = primId;
 		}
-#undef ret
+	#undef ret
+}
+
+	// Kernel Implementations
+
+	IFRIT_KERNEL void vertexProcessingKernel(
+		VertexShader* vertexShader,
+		uint32_t vertexCount,
+		char* IFRIT_RESTRICT_CUDA dVertexBuffer,
+		TypeDescriptorEnum* IFRIT_RESTRICT_CUDA dVertexTypeDescriptor,
+		float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
+		float4* IFRIT_RESTRICT_CUDA dPosBuffer
+	) {
+		const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
+		if (globalInvoIdx >= vertexCount) return;
+		const auto numAttrs = csAttributeCounts;
+		const auto numVaryings = csVaryingCounts;
+
+		const void* vertexInputPtrs[CU_MAX_ATTRIBUTES];
+		float4* varyingOutputPtrs[CU_MAX_VARYINGS];
+		
+		for (int i = 0; i < numAttrs; i++) {
+			vertexInputPtrs[i] = globalInvoIdx * csTotalVertexOffsets + dVertexBuffer + csVertexOffsets[i];
+		}
+		for (int i = 0; i < numVaryings; i++) {
+			varyingOutputPtrs[i] = dVaryingBuffer + globalInvoIdx * numVaryings + i;
+		}
+		vertexShader->execute(vertexInputPtrs, (ifloat4*) &dPosBuffer[globalInvoIdx], (VaryingStore**)varyingOutputPtrs);
+	}
+	
+
+	IFRIT_KERNEL void geometryShadingKernel(
+		uint32_t startingIndexId,
+		uint32_t indexCount,
+		GeometryShader* geometryShader,
+		float4* IFRIT_RESTRICT_CUDA dPosBuffer,
+		int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+		float4* IFRIT_RESTRICT_CUDA dVaryingBuffer
+	) {
+		const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
+		if (globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
+		const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
+		auto dPosBufferAligned = reinterpret_cast<float4*>(__builtin_assume_aligned(dPosBuffer, 16));
+		float4 v1, v2, v3;
+
+		//TODO: Bank Conflict
+		IFRIT_SHARED int outVertices[CU_GEOMETRY_SHADER_THREADS];
+		IFRIT_SHARED float4* posPtr[3 * CU_GEOMETRY_SHADER_THREADS];
+		IFRIT_SHARED float4* varyingPtr[3 * CU_MAX_VARYINGS * CU_GEOMETRY_SHADER_THREADS];
+		IFRIT_SHARED float4 posOut[CU_MAX_GS_OUT_VERTICES * CU_GEOMETRY_PROCESSING_THREADS];
+		IFRIT_SHARED float4 varyingOut[CU_MAX_GS_OUT_VERTICES * CU_MAX_VARYINGS * CU_GEOMETRY_SHADER_THREADS];
+		int varyingSpv = csVaryingCounts;
+		if constexpr (CU_OPT_ALIGNED_INDEX_BUFFER) {
+			dIndexBuffer = reinterpret_cast<int*>(__builtin_assume_aligned(dIndexBuffer, 16));
+			iint4 indices = reinterpret_cast<iint4*>(dIndexBuffer)[indexStart >> 2];
+			posPtr[threadIdx.x * 3 + 0] = dPosBufferAligned + indices.x;
+			posPtr[threadIdx.x * 3 + 1] = dPosBufferAligned + indices.y;
+			posPtr[threadIdx.x * 3 + 2] = dPosBufferAligned + indices.z;
+			varyingPtr[threadIdx.x * 3 + 0] = dVaryingBuffer + indices.x * csVaryingCounts;
+			varyingPtr[threadIdx.x * 3 + 1] = dVaryingBuffer + indices.y * csVaryingCounts;
+			varyingPtr[threadIdx.x * 3 + 2] = dVaryingBuffer + indices.z * csVaryingCounts;
+		}
+		else {
+			posPtr[threadIdx.x * 3 + 0] = dPosBufferAligned + dIndexBuffer[indexStart];
+			posPtr[threadIdx.x * 3 + 1] = dPosBufferAligned + dIndexBuffer[indexStart+1];
+			posPtr[threadIdx.x * 3 + 2] = dPosBufferAligned + dIndexBuffer[indexStart+2];
+			varyingPtr[threadIdx.x * 3 + 0] = dVaryingBuffer + dIndexBuffer[indexStart] * csVaryingCounts;
+			varyingPtr[threadIdx.x * 3 + 1] = dVaryingBuffer + dIndexBuffer[indexStart + 1] * csVaryingCounts;
+			varyingPtr[threadIdx.x * 3 + 2] = dVaryingBuffer + dIndexBuffer[indexStart + 2] * csVaryingCounts;
+		}
+		geometryShader->execute(
+			(ifloat4**)(posPtr + 3 * threadIdx.x),
+			(VaryingStore**)(varyingPtr + 3 * threadIdx.x * csVaryingCounts),
+			(ifloat4*)(posOut + 3 * threadIdx.x),
+			(VaryingStore*)(varyingOut + 3 * threadIdx.x * csVaryingCounts),
+			outVertices + threadIdx.x
+		);
+		int outW = outVertices[threadIdx.x];
+		int insPos = atomicAdd(&dGeometryShaderOutSize, outW);
+		for (int i = 0; i < outW; i++) {
+			dGeometryShaderOutPos[insPos + i] = (posOut + 3 * threadIdx.x)[i];
+			for (int j = 0; j < csVaryingCounts; j++) {
+				dGeometryShaderOutVaryings[insPos + i * csVaryingCounts + j] = (varyingOut + 3 * threadIdx.x * csVaryingCounts)[i * csVaryingCounts + j];
+			}
+		}
+	}
+	template <int geometryShaderEnabled>
+	IFRIT_KERNEL void geometryClippingKernel(
+		ifloat4* IFRIT_RESTRICT_CUDA dPosBuffer,
+		int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+		uint32_t startingIndexId,
+		uint32_t indexCount
+	) {
+		//TODO: Culling face (Templated)
+		float4 v1, v2, v3;
+		int primId;
+		const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
+		if constexpr (geometryShaderEnabled) {
+			auto dGSPosBufferAligned = static_cast<float4*>(__builtin_assume_aligned(dGeometryShaderOutPos, 16));
+			v1 = dGSPosBufferAligned[globalInvoIdx * 3];
+			v2 = dGSPosBufferAligned[globalInvoIdx * 3 + 1];
+			v3 = dGSPosBufferAligned[globalInvoIdx * 3 + 2];
+			primId = globalInvoIdx;
+		}
+		else {
+			if (globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
+
+			const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
+			auto dPosBufferAligned = static_cast<float4*>(__builtin_assume_aligned(dPosBuffer, 16));
+
+			if constexpr (CU_OPT_ALIGNED_INDEX_BUFFER) {
+				dIndexBuffer = static_cast<int*>(__builtin_assume_aligned(dIndexBuffer, 16));
+				iint4 indices = reinterpret_cast<iint4*>(dIndexBuffer)[indexStart >> 2];
+				v1 = dPosBufferAligned[indices.x];
+				v2 = dPosBufferAligned[indices.y];
+				v3 = dPosBufferAligned[indices.z];
+			}
+			else {
+				v1 = dPosBufferAligned[dIndexBuffer[indexStart]];
+				v2 = dPosBufferAligned[dIndexBuffer[indexStart + 1]];
+				v3 = dPosBufferAligned[dIndexBuffer[indexStart + 2]];
+			}
+			primId = globalInvoIdx + startingIndexId / CU_TRIANGLE_STRIDE;
+		}
+		if (v1.w < 0 && v2.w < 0 && v3.w < 0)
+			return;
+		devGeometryCullClip(v1, v2, v3, primId);
 	}
 
 	IFRIT_KERNEL void geometryParamPostprocKernel(uint32_t bound) {
@@ -1316,7 +1380,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 		if (globalInvocation == 0) {
 			dAssembledTriangleCounterM2 = 0;
-			dGeometryShaderOutVertices = 0;
+			dGeometryShaderOutSize = 0;
 			dRasterQueueWorklistCounter = 0;
 			dSmallTriangleCount = 0;
 			dCoverPrimsCounter = 0;
@@ -1484,14 +1548,21 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const float4* dVaryingBuffer,
 		ifloat4** dColorBuffer,
 		float* dDepthBuffer,
+		GeometryShader* dGeometryShader,
 		FragmentShader* dFragmentShader
 	) {
 		for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
 			auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
 			bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
-			int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
-			Impl::geometryClippingKernel CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
-				dPositionBuffer, dIndexBuffer, i, indexCount);
+			if (dGeometryShader == nullptr) {
+				int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
+				Impl::geometryClippingKernel<0> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
+					dPositionBuffer, dIndexBuffer, i, indexCount);
+			}
+			else {
+				//TODO: Geometry shader
+				devAbort();
+			}
 			unifiedRasterEngineStageIIKernel CU_KARG2(1, 1)(
 				dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, dFragmentShader, isTailCall);
 		}
@@ -1504,15 +1575,23 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		const float4* dVaryingBuffer,
 		ifloat4** dColorBuffer,
 		float* dDepthBuffer,
+		GeometryShader* dGeometryShader,
 		FragmentShader* dFragmentShader,
 		cudaStream_t& compStream
 	) {
 		for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
 			auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
 			bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
-			int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_PROCESSING_THREADS);
-			Impl::geometryClippingKernel CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
-				dPositionBuffer, dIndexBuffer, i, indexCount);
+			if (dGeometryShader == nullptr) {
+				int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_PROCESSING_THREADS);
+				Impl::geometryClippingKernel<0> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
+					dPositionBuffer, dIndexBuffer, i, indexCount);
+			}
+			else {
+				//TODO: Geometry Shader
+				std::abort();
+			}
+			
 			uint32_t dAssembledTriangleCounterM2Host = 0;
 			cudaDeviceSynchronize();
 			cudaMemcpyFromSymbol(&dAssembledTriangleCounterM2Host, dAssembledTriangleCounterM2, sizeof(uint32_t));
@@ -1581,7 +1660,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 }
-
 
 namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 
@@ -1749,16 +1827,13 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 			if (initFlag == 0) {
 				initFlag = 1;
 				cudaDeviceSetLimit(cudaLimitMallocHeapSize, CU_HEAP_MEMORY_SIZE);
-
 				cudaStreamCreate(&copyStream);
 				cudaStreamCreate(&computeStream);
 				cudaEventCreate(&copyStart);
 				cudaEventCreate(&copyEnd);
-
 				Impl::integratedInitKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)();
 				cudaDeviceSynchronize();
 				printf("CUDA Init Done\n");
-
 			}
 			if ((++initFlag) == 20) {
 				secondPass = 1;
@@ -1789,11 +1864,13 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 
 		if constexpr (CU_PROFILER_II_CPU_NSIGHT) {
 			Impl::unifiedRasterEngineProfileEntry(
-				args.totalIndices, args.dPositionBuffer, args.dIndexBuffer, args.deviceContext->dVaryingBufferM2, args.dColorBuffer, args.dDepthBuffer, args.dFragmentShader, computeStream);
+				args.totalIndices, args.dPositionBuffer, args.dIndexBuffer, args.deviceContext->dVaryingBufferM2,
+				args.dColorBuffer, args.dDepthBuffer, args.dGeometryShader, args.dFragmentShader, computeStream);
 		}
 		else {
 			Impl::unifiedRasterEngineKernel CU_KARG4(1, 1, 0, computeStream)(
-				args.totalIndices, args.dPositionBuffer, args.dIndexBuffer, args.deviceContext->dVaryingBufferM2, args.dColorBuffer, args.dDepthBuffer, args.dFragmentShader);
+				args.totalIndices, args.dPositionBuffer, args.dIndexBuffer, args.deviceContext->dVaryingBufferM2,
+				args.dColorBuffer, args.dDepthBuffer, args.dGeometryShader, args.dFragmentShader);
 		}
 		
 		if (!args.doubleBuffering) {

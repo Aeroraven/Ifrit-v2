@@ -25,6 +25,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		const std::vector<int>* indexBuffer;
 		VertexShader* vertexShader;
 		FragmentShader* fragmentShader;
+		GeometryShader* geometryShader;
 		VaryingDescriptor* varyingDescriptor;
 
 		// Constants

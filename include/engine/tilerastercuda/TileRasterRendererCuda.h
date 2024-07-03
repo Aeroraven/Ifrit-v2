@@ -44,6 +44,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void bindIndexBuffer(const std::vector<int>& indexBuffer);
 		void bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor);
 		void bindFragmentShader(FragmentShader* fragmentShader);
+		void bindGeometryShader(GeometryShader* geometryShader);
 		
 		void createTextureRaw(int slotId, int height, int width, float* data);
 

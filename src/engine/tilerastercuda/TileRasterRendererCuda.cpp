@@ -9,6 +9,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		deviceContext->dShadingQueue = (uint32_t*)Invocation::deviceMalloc(sizeof(uint32_t));
 		deviceContext->dDeviceConstants = (TileRasterDeviceConstants*)Invocation::deviceMalloc(sizeof(TileRasterDeviceConstants));
 		Invocation::initCudaRendering();
+		context->geometryShader = nullptr;
 	}
 	void TileRasterRendererCuda::bindFrameBuffer(FrameBuffer& frameBuffer, bool useDoubleBuffer) {
 		context->frameBuffer = &frameBuffer;
@@ -82,6 +83,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		context->fragmentShader = fragmentShader;
 		needFragmentShaderUpdate = true;
 	}
+	void TileRasterRendererCuda::bindGeometryShader(GeometryShader* geometryShader) {
+		context->geometryShader = geometryShader;
+	}
 	void TileRasterRendererCuda::createTextureRaw(int slotId, int height, int width, float* data) {
 		Invocation::createTexture(slotId, width, height, data);
 		needFragmentShaderUpdate = true;
@@ -119,6 +123,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		args.dIndexBuffer = deviceIndexBuffer;
 		args.dVertexShader = context->vertexShader;
 		args.dFragmentShader = context->fragmentShader;
+		args.dGeometryShader = context->geometryShader;
 		args.dColorBuffer = deviceColorBuffer[curBuffer];
 		args.dHostColorBuffer = deviceHostColorBuffers[curBuffer].data();
 		args.hColorBuffer = hostColorBuffers.data();

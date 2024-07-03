@@ -30,21 +30,21 @@ Overall framework for CUDA renderer pipeline (Some are different from its MT-CPU
 | Feature                                       | MT CPU Renderer | CUDA Renderer |
 | --------------------------------------------- | --------------- | ------------- |
 | Deterministic / Rendering Order               |                 |               |
-| Performance / SIMD                            | √               |               |
-| Performance / Overlapped Memory Transfer      |                 | √             |
-| Performance / Dynamic Tile List               | √               | √ (2)         |
-| Rendering / Programmable Vertex Shader        | √               | √             |
-| Rendering / Programmable Fragment Shader      | √               | √             |
-| Rendering / Z Pre-Pass                        |                 | √             |
-| Rendering / Early-Z Test                      | √               | √             |
-| Rendering / Back Face Culling                 | √               | √             |
-| Rendering / Frustum Culling                   | √               | √             |
-| Rendering / Homogeneous Clipping              | √ (1)           | √ (1)         |
-| Rendering / Small Triangle Culling            |                 | √             |
-| Rendering / Perspective-correct Interpolation | √               | √             |
-| Rendering / Texture                           |                 | √             |
-| Presentation / Terminal ASCII                 | √               | √             |
-| Presentation / Terminal Color                 | √               | √             |
+| Performance / SIMD                            | √              |               |
+| Performance / Overlapped Memory Transfer      |                 | √            |
+| Performance / Dynamic Tile List               | √              | √ (2)        |
+| Pipeline / Programmable Vertex Shader         | √              | √            |
+| Pipeline / Programmable Fragment Shader       | √              | √            |
+| Pipeline / Z Pre-Pass                         |                 | √            |
+| Pipeline / Early-Z Test                       | √              | √            |
+| Pipeline / Back Face Culling                  | √              | √            |
+| Pipeline / Frustum Culling                    | √              | √            |
+| Pipeline / Homogeneous Clipping               | √ (1)          | √ (1)        |
+| Pipeline / Small Triangle Culling             |                 | √            |
+| Pipeline / Perspective-correct Interpolation  | √              | √            |
+| Texture / Basic Support                       |                 | √            |
+| Presentation / Terminal ASCII                 | √              | √            |
+| Presentation / Terminal Color                 | √              | √            |
 
 (1) For performance consideration, only w-axis is considered 
 
@@ -56,7 +56,9 @@ Overall framework for CUDA renderer pipeline (Some are different from its MT-CPU
 
 Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored.
 
-Note that some triangles might be culled or clipped in the pipeline.
+Note that some triangles might be culled or clipped in the pipeline. 
+
+All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6cb66`. The result might not be the latest.
 
 **Frame Rate**
 
@@ -80,7 +82,7 @@ Note that some triangles might be culled or clipped in the pipeline.
 - CPU: 12th Gen Intel(R) Core(TM) i9-12900H 
   - Test with 16 threads + AVX2 Instructions
 
-- GPU: NVIDIA GeForce RTX 3070 Ti Laptop GPU
+- GPU: NVIDIA GeForce RTX 3070 Ti Laptop GPU (Kernel parameters are optimized for the SPECIFIC test environment)
 - Shading: World-space normal
 
 

@@ -28,6 +28,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_SUBTILE_SIZE = (1<<(CU_SUBTILE_SIZE_LOG));
 	constexpr int CU_MAX_VARYINGS = 2;
 	constexpr int CU_MAX_ATTRIBUTES = 3;
+	constexpr int CU_MAX_GS_OUT_VERTICES = 3;
 	constexpr int CU_GEOMETRY_PROCESSING_THREADS = 128;
 	constexpr int CU_RASTERIZATION_THREADS_PERDIM = 8;
 	constexpr int CU_VERTEX_PROCESSING_THREADS = 96;
@@ -59,6 +60,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_ELEMENTS_PER_SECOND_BINNER_BLOCK = 8;
 	constexpr int CU_ELEMENTS_PER_FINER_SECOND_BINNER_BLOCK = 128;
 
+	constexpr int CU_GEOMETRY_SHADER_THREADS = 128;
+
 	// == Memory Allocation ==
 	constexpr size_t CU_HEAP_MEMORY_SIZE = 1024ull * 1024 * 1024 * 2;
 	constexpr int CU_VECTOR_BASE_LENGTH = 9;
@@ -76,6 +79,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 	// == Derived == 
 	constexpr int CU_TRIANGLE_STRIDE = CU_OPT_ALIGNED_INDEX_BUFFER ? 4 : 3;
+	constexpr int CU_GS_OUT_BUFFER_SIZE = CU_PRIMITIVE_BUFFER_SIZE * CU_MAX_GS_OUT_VERTICES;
 
 	// == Experimental ==
 	constexpr int CU_EXPERIMENTAL_SUBTILE_WIDTH = 4;

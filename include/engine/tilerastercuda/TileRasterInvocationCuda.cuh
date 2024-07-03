@@ -16,6 +16,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		int* dIndexBuffer;
 		VertexShader* dVertexShader;
 		FragmentShader* dFragmentShader;
+		GeometryShader* dGeometryShader;
 		ifloat4** dColorBuffer;
 		ifloat4** dHostColorBuffer;
 		ifloat4** hColorBuffer;

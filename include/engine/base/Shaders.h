@@ -35,12 +35,13 @@ namespace Ifrit::Engine {
 	class GeometryShader {
 	public:
 		GeometryShaderTopology atTopology = IGST_TRIANGLES;
-		uint32_t atMaxVertices = 3;
+		uint32_t atMaxVertices = 4;
 		IFRIT_DUAL virtual void execute(
-			const ifloat4* const inPos,
-			const VaryingStore* const* const inVaryings,
+			const ifloat4**  inPos,
+			const VaryingStore**  inVaryings,
 			ifloat4* outPos,
-			VaryingStore** outVaryings
+			VaryingStore* outVaryings,
+			int* outSize
 		) = 0;
 		IFRIT_HOST virtual GeometryShader* getCudaClone() { return nullptr; };
 	};
