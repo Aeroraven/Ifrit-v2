@@ -13,7 +13,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	struct RenderingInvocationArgumentSet {
 		char* dVertexBuffer;
 		TypeDescriptorEnum* dVertexTypeDescriptor;
-		TypeDescriptorEnum* dVaryingTypeDescriptor;
 		int* dIndexBuffer;
 		VertexShader* dVertexShader;
 		FragmentShader* dFragmentShader;

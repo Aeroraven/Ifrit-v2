@@ -75,20 +75,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		if (!needVaryingUpdate)return;
 		needVaryingUpdate = false;
 		auto vcount = context->varyingDescriptor->getVaryingCounts();
-		deviceContext->hdVaryingBufferVec.resize(vcount);
-		if (deviceContext->hdVaryingBuffer.size() < vcount) {
-			deviceContext->hdVaryingBuffer.resize(vcount);
-		}
-		for (int i = 0; i < vcount; i++) {
-			if (deviceContext->hdVaryingBuffer[i].size() < context->vertexBuffer->getVertexCount()) {
-				deviceContext->hdVaryingBuffer[i].resize(context->vertexBuffer->getVertexCount());
-			}
-			deviceContext->hdVaryingBufferVec[i] = deviceContext->hdVaryingBuffer[i].data();
-		}
-
-		cudaMalloc(&deviceContext->dVaryingBuffer, vcount * sizeof(VaryingStore*));
-		cudaMemcpy(deviceContext->dVaryingBuffer, deviceContext->hdVaryingBufferVec.data(), vcount * sizeof(VaryingStore*), cudaMemcpyHostToDevice);
-
+		auto vxcount = context->vertexBuffer->getVertexCount();
+		cudaMalloc(&deviceContext->dVaryingBufferM2, vcount * vxcount * sizeof(VaryingStore*));
 	}
 	void TileRasterRendererCuda::bindFragmentShader(FragmentShader* fragmentShader) {
 		context->fragmentShader = fragmentShader;
@@ -128,7 +116,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		Invocation::RenderingInvocationArgumentSet args;
 		args.dVertexBuffer = deviceVertexBuffer;
 		args.dVertexTypeDescriptor = deviceVertexTypeDescriptor;
-		args.dVaryingTypeDescriptor = deviceVaryingTypeDescriptor;
 		args.dIndexBuffer = deviceIndexBuffer;
 		args.dVertexShader = context->vertexShader;
 		args.dFragmentShader = context->fragmentShader;

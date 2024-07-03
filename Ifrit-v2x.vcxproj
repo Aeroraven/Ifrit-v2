@@ -170,7 +170,6 @@
     <ClCompile Include="src\engine\base\VertexBuffer.cpp" />
     <ClCompile Include="src\engine\base\VertexShaderResult.cpp" />
     <ClCompile Include="src\engine\math\ShaderOps.cpp" />
-    <ClCompile Include="src\engine\tilerastercuda\TileRasterContextCuda.cpp" />
     <ClCompile Include="src\engine\tilerastercuda\TileRasterRendererCuda.cpp" />
     <ClCompile Include="src\engine\tileraster\TileRasterContext.cpp" />
     <ClCompile Include="src\engine\tileraster\TileRasterRenderer.cpp" />
