@@ -124,25 +124,26 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		}
 
 		int curBuffer = currentBuffer;
-		Invocation::invokeCudaRendering(
-			deviceVertexBuffer,
-			deviceVertexTypeDescriptor,
-			deviceVaryingTypeDescriptor,
-			deviceIndexBuffer,
-			deviceShadingLockBuffer,
-			context->vertexShader,
-			context->fragmentShader,
-			deviceColorBuffer[curBuffer],
-			deviceHostColorBuffers[curBuffer].data(),
-			hostColorBuffers.data(),
-			deviceHostColorBuffers[curBuffer].size(),
-			deviceDepthBuffer,
-			devicePosBuffer,
-			this->deviceContext.get(),
-			totalIndices,
-			this->doubleBuffer,
-			deviceHostColorBuffers[1-curBuffer].data()
-		);
+
+		Invocation::RenderingInvocationArgumentSet args;
+		args.dVertexBuffer = deviceVertexBuffer;
+		args.dVertexTypeDescriptor = deviceVertexTypeDescriptor;
+		args.dVaryingTypeDescriptor = deviceVaryingTypeDescriptor;
+		args.dIndexBuffer = deviceIndexBuffer;
+		args.dVertexShader = context->vertexShader;
+		args.dFragmentShader = context->fragmentShader;
+		args.dColorBuffer = deviceColorBuffer[curBuffer];
+		args.dHostColorBuffer = deviceHostColorBuffers[curBuffer].data();
+		args.hColorBuffer = hostColorBuffers.data();
+		args.dHostColorBufferSize = deviceHostColorBuffers[curBuffer].size();
+		args.dDepthBuffer = deviceDepthBuffer;
+		args.dPositionBuffer = devicePosBuffer;
+		args.deviceContext = this->deviceContext.get();
+		args.totalIndices = totalIndices;
+		args.doubleBuffering = this->doubleBuffer;
+		args.dLastColorBuffer = deviceHostColorBuffers[1 - curBuffer].data();
+		
+		Invocation::invokeCudaRendering(args);
 		currentBuffer = 1 - curBuffer;
 	}
 }

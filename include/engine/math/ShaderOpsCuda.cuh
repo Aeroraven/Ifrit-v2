@@ -64,8 +64,10 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 	IFRIT_DUAL inline float3 lerp(const float3& a, const float3& b, const float& t) {
 		return add(a, multiply(sub(b, a), t));
 	}
-	IFRIT_DUAL inline float4 multiply(const float4x4 a, const float4 b) {
-		float4 result;
+
+	template <typename T>
+	IFRIT_DUAL inline T multiply(const float4x4 a, const T b) {
+		T result;
 		result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z + a[0][3] * b.w;
 		result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z + a[1][3] * b.w;
 		result.z = a[2][0] * b.x + a[2][1] * b.y + a[2][2] * b.z + a[2][3] * b.w;

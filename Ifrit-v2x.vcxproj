@@ -118,6 +118,8 @@
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\engine\base\Shaders.h" />
+    <ClInclude Include="include\engine\math\ShaderBuiltin.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <CudaCompile Include="IfritShaders.cu" />
     <CudaCompile Include="IfritShaders.cuh" />
@@ -131,14 +133,12 @@
     <ClInclude Include="include\dependency\GLAD\glad\glad.h" />
     <ClInclude Include="include\dependency\GLAD\KHR\khrplatform.h" />
     <ClInclude Include="include\engine\base\BufferLayout.h" />
-    <ClInclude Include="include\engine\base\FragmentShader.h" />
     <ClInclude Include="include\engine\base\FrameBuffer.h" />
     <ClInclude Include="include\engine\base\Renderer.h" />
     <ClInclude Include="include\engine\base\TypeDescriptor.h" />
     <ClInclude Include="include\engine\base\VaryingDescriptor.h" />
     <ClInclude Include="include\engine\base\VaryingStore.h" />
     <ClInclude Include="include\engine\base\VertexBuffer.h" />
-    <ClInclude Include="include\engine\base\VertexShader.h" />
     <ClInclude Include="include\engine\base\VertexShaderResult.h" />
     <ClInclude Include="include\engine\math\ShaderOps.h" />
     <CudaCompile Include="include\engine\math\ShaderOpsCuda.cuh" />
@@ -165,11 +165,9 @@
     <ClCompile Include="src\utility\loader\ImageLoader.cpp" />
     <CudaCompile Include="include\engine\tilerastercuda\TileRasterInvocationCuda.cuh" />
     <ClCompile Include="src\dependency\GLAD\glad.c" />
-    <ClCompile Include="src\engine\base\FragmentShader.cpp" />
     <ClCompile Include="src\engine\base\FrameBuffer.cpp" />
     <ClCompile Include="src\engine\base\VaryingDescriptor.cpp" />
     <ClCompile Include="src\engine\base\VertexBuffer.cpp" />
-    <ClCompile Include="src\engine\base\VertexShader.cpp" />
     <ClCompile Include="src\engine\base\VertexShaderResult.cpp" />
     <ClCompile Include="src\engine\math\ShaderOps.cpp" />
     <ClCompile Include="src\engine\tilerastercuda\TileRasterContextCuda.cpp" />

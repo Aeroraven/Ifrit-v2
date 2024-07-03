@@ -4,41 +4,37 @@
 #include "core/cuda/CudaUtils.cuh"
 #include "engine/base/TypeDescriptor.h"
 
-#include "engine/base/VertexShader.h"
-#include "engine/base/FragmentShader.h"
+#include "engine/base/Shaders.h"
 #include "engine/tileraster/TileRasterCommon.h"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 
-
-
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 
-	void invokeCudaRendering(
-		char* dVertexBuffer,
-		TypeDescriptorEnum* dVertexTypeDescriptor,
-		TypeDescriptorEnum* dVaryingTypeDescriptor,
-		int* dIndexBuffer,
-		int* dShaderLockBuffer,
-		VertexShader* dVertexShader,
-		FragmentShader* dFragmentShader,
-		ifloat4** dColorBuffer,
-		ifloat4** dHostColorBuffer,
-		ifloat4** hColorBuffer,
-		uint32_t dHostColorBufferSize,
-		float* dDepthBuffer,
-		ifloat4* dPositionBuffer,
-		TileRasterDeviceContext* deviceContext,
-		int totalIndices,
-		bool doubleBuffering,
-		ifloat4** dLastColorBuffer
-	) IFRIT_AP_NOTHROW;
+	struct RenderingInvocationArgumentSet {
+		char* dVertexBuffer;
+		TypeDescriptorEnum* dVertexTypeDescriptor;
+		TypeDescriptorEnum* dVaryingTypeDescriptor;
+		int* dIndexBuffer;
+		VertexShader* dVertexShader;
+		FragmentShader* dFragmentShader;
+		ifloat4** dColorBuffer;
+		ifloat4** dHostColorBuffer;
+		ifloat4** hColorBuffer;
+		uint32_t dHostColorBufferSize;
+		float* dDepthBuffer;
+		ifloat4* dPositionBuffer;
+		TileRasterDeviceContext* deviceContext;
+		int totalIndices;
+		bool doubleBuffering;
+		ifloat4** dLastColorBuffer;
+	};
+
+	void invokeCudaRendering(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW;
 
 	void invokeFragmentShaderUpdate(FragmentShader* dFragmentShader) IFRIT_AP_NOTHROW;
 	void updateFrameBufferConstants(uint32_t width, uint32_t height);
 	void initCudaRendering();
 	void updateVertexLayout(TypeDescriptorEnum* dVertexTypeDescriptor, int attrCounts);
-
-	template<class T>T* copyShaderToDevice(T* x);
 
 	int* getIndexBufferDeviceAddr(const int* hIndexBuffer, uint32_t indexBufferSize,int* dOldIndexBuffer);
 	char* getVertexBufferDeviceAddr(const char* hVertexBuffer, uint32_t bufferSize, char* dOldBuffer);
@@ -52,6 +48,5 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 
 	char* deviceMalloc(uint32_t size);
 	void deviceFree(char* ptr);
-
 	void createTexture(uint32_t texId, uint32_t texWid, uint32_t texHeight, float *data);
 }

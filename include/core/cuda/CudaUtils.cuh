@@ -5,20 +5,18 @@
 namespace Ifrit::Core::CUDA {
 	
 	template<typename T>
-	__global__ void kernFixVTable(T* devicePtr) {
+	IFRIT_KERNEL void kernFixVTable(T* devicePtr) {
 		T temp(*devicePtr);
 		memcpy(devicePtr, &temp, sizeof(T));
 	}
 
 	template<typename T>
-	__host__ T* hostGetDeviceObjectCopy(T* hostObject) {
+	IFRIT_HOST T* hostGetDeviceObjectCopy(T* hostObject) {
 		T* deviceHandle;
 		cudaMalloc(&deviceHandle, sizeof(T));
 		cudaMemcpy(deviceHandle, hostObject, sizeof(T), cudaMemcpyHostToDevice);
-		printf("Copying object to CUDA, %lld,%d\n", deviceHandle, 1);
 		kernFixVTable<T> CU_KARG2(1, 1)(deviceHandle);
 		cudaDeviceSynchronize();
-		printf("Cuda Addr=%lld\n", deviceHandle);
 		printf("Object copied to CUDA\n");
 		return deviceHandle;
 	}

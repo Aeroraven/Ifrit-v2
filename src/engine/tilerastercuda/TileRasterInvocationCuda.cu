@@ -1193,7 +1193,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				dest->z = vd.z;
 				dest->w = vd.w;
 			}
-			fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, 1);
+			fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId);
 
 			auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
 			ifloat4 finalRgba;
@@ -1576,28 +1576,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 
-	template<typename T>
-	__global__ void kernFixVTable(T* devicePtr) {
-		T temp(*devicePtr);
-		memcpy(devicePtr, &temp, sizeof(T));
-	}
-
-	template<typename T>
-	__host__ T* hostGetDeviceObjectCopy(T* hostObject) {
-		T* deviceHandle;
-		cudaMalloc(&deviceHandle, sizeof(T));
-		cudaMemcpy(deviceHandle, hostObject, sizeof(T), cudaMemcpyHostToDevice);
-		kernFixVTable<T> CU_KARG2(1, 1)(deviceHandle);
-		cudaDeviceSynchronize();
-		printf("Object copied to CUDA\n");
-		return deviceHandle;
-	}
-
-	template<class T>
-	T* copyShaderToDevice(T* x) {
-		return hostGetDeviceObjectCopy<T>(x);
-	}
-
 	char* deviceMalloc(uint32_t size) {
 		char* ptr;
 		cudaMalloc(&ptr, size);
@@ -1745,26 +1723,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaMemcpyToSymbol(Impl::csTotalVertexOffsets, &Impl::hsTotalVertexOffsets, sizeof(Impl::hsTotalVertexOffsets));
 	}
 
-	void invokeCudaRendering(
-		char* dVertexBuffer,
-		TypeDescriptorEnum* dVertexTypeDescriptor,
-		TypeDescriptorEnum* dVaryingTypeDescriptor,
-		int* dIndexBuffer,
-		int* dShaderLockBuffer,
-		VertexShader* dVertexShader,
-		FragmentShader* dFragmentShader,
-		ifloat4** dColorBuffer,
-		ifloat4** dHostColorBuffer,
-		ifloat4** hColorBuffer,
-		uint32_t dHostColorBufferSize,
-		float* dDepthBuffer,
-		ifloat4* dPositionBuffer,
-		TileRasterDeviceContext* deviceContext,
-		int totalIndices,
-		bool doubleBuffering,
-		ifloat4** dLastColorBuffer
-	) IFRIT_AP_NOTHROW {
-		
+	void invokeCudaRendering(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW {
 		// Stream Preparation
 		static int initFlag = 0;
 		static int secondPass = 0;
@@ -1804,50 +1763,50 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		int dispatchBlocksY = (Impl::hsFrameHeight / dispatchThreadsY) + ((Impl::hsFrameHeight % dispatchThreadsY) != 0);
 		
 		Impl::imageResetFloat32MonoKernel CU_KARG4(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY), 0, computeStream)(
-			dDepthBuffer, 255.0f
+			args.dDepthBuffer, 255.0f
 		);
-		for (int i = 0; i < dHostColorBufferSize; i++) {
+		for (int i = 0; i < args.dHostColorBufferSize; i++) {
 			Impl::imageResetFloat32RGBAKernel CU_KARG4(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY), 0, computeStream)(
-				(float*)dHostColorBuffer[i], 0.0f
+				(float*)args.dHostColorBuffer[i], 0.0f
 			);
 		}
 		int vertexExecutionBlocks = (Impl::hsVertexCounts / CU_VERTEX_PROCESSING_THREADS) + ((Impl::hsVertexCounts % CU_VERTEX_PROCESSING_THREADS) != 0);
 		Impl::vertexProcessingKernel CU_KARG4(vertexExecutionBlocks, CU_VERTEX_PROCESSING_THREADS, 0, computeStream)(
-			dVertexShader, Impl::hsVertexCounts, dVertexBuffer, dVertexTypeDescriptor,
-			deviceContext->dVaryingBuffer, dVaryingTypeDescriptor, (float4*)dPositionBuffer
+			args.dVertexShader, Impl::hsVertexCounts, args.dVertexBuffer, args.dVertexTypeDescriptor,
+			args.deviceContext->dVaryingBuffer, args.dVaryingTypeDescriptor, (float4*)args.dPositionBuffer
 		);
 		
 		Impl::integratedResetKernel CU_KARG4(CU_TILE_SIZE * CU_MAX_SUBTILES_PER_TILE, CU_TILE_SIZE, 0, computeStream)();
 
 		if constexpr (CU_PROFILER_II_CPU_NSIGHT) {
 			Impl::unifiedRasterEngineProfileEntry(
-				totalIndices, dPositionBuffer, dIndexBuffer, deviceContext->dVaryingBuffer, dColorBuffer, dDepthBuffer, dFragmentShader, computeStream);
+				args.totalIndices, args.dPositionBuffer, args.dIndexBuffer, args.deviceContext->dVaryingBuffer, args.dColorBuffer, args.dDepthBuffer, args.dFragmentShader, computeStream);
 		}
 		else {
 			Impl::unifiedRasterEngineKernel CU_KARG4(1, 1, 0, computeStream)(
-				totalIndices, dPositionBuffer, dIndexBuffer, deviceContext->dVaryingBuffer, dColorBuffer, dDepthBuffer, dFragmentShader);
+				args.totalIndices, args.dPositionBuffer, args.dIndexBuffer, args.deviceContext->dVaryingBuffer, args.dColorBuffer, args.dDepthBuffer, args.dFragmentShader);
 		}
 		
-		if (!doubleBuffering) {
+		if (!args.doubleBuffering) {
 			cudaDeviceSynchronize();
 		}
 
 		// Memory Copy
 		std::chrono::high_resolution_clock::time_point end2 = std::chrono::high_resolution_clock::now();
-		if (doubleBuffering) {
-			for (int i = 0; i < dHostColorBufferSize; i++) {
+		if (args.doubleBuffering) {
+			for (int i = 0; i < args.dHostColorBufferSize; i++) {
 				if constexpr (CU_PROFILER_ENABLE_MEMCPY) {
-					cudaMemcpyAsync(hColorBuffer[i], dLastColorBuffer[i], Impl::hsFrameWidth * Impl::hsFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost, copyStream);
+					cudaMemcpyAsync(args.hColorBuffer[i], args.dLastColorBuffer[i], Impl::hsFrameWidth * Impl::hsFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost, copyStream);
 				}
 			}
 		}
 		cudaStreamSynchronize(computeStream);
-		if (doubleBuffering) {
+		if (args.doubleBuffering) {
 			cudaStreamSynchronize(copyStream);
 		}
-		if (!doubleBuffering) {
-			for (int i = 0; i < dHostColorBufferSize; i++) {
-				cudaMemcpy(hColorBuffer[i], dHostColorBuffer[i], Impl::csFrameWidth * Impl::csFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost);
+		if (!args.doubleBuffering) {
+			for (int i = 0; i < args.dHostColorBufferSize; i++) {
+				cudaMemcpy(args.hColorBuffer[i], args.dHostColorBuffer[i], Impl::csFrameWidth * Impl::csFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost);
 			}
 		}
 	}
