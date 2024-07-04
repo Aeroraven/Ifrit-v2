@@ -27,25 +27,25 @@ Overall framework for CUDA renderer pipeline (Some are different from its MT-CPU
 
 **Note:** This project is NOT an exact replicate of hardware graphics pipeline (like TBDR architecture). Some behaviors are nondeterministic and some features incompatible under current implementation (like `Alpha Blending` which requires sorting primitives under parallel setting)
 
-| Feature                                       | MT CPU Renderer | CUDA Renderer |
-| --------------------------------------------- | --------------- | ------------- |
-| Deterministic / Rendering Order               |                 |               |
-| Performance / SIMD                            | √              |               |
-| Performance / Overlapped Memory Transfer      |                 | √            |
-| Performance / Dynamic Tile List               | √              | √ (2)        |
-| Pipeline / Programmable Vertex Shader         | √              | √            |
-| Pipeline / Programmable Fragment Shader       | √              | √            |
-| Pipeline / Programmable Geometry Shader |  | √ (3) |
-| Pipeline / Z Pre-Pass                         |                 | √            |
-| Pipeline / Early-Z Test                       | √              | √            |
-| Pipeline / Back Face Culling                  | √              | √            |
-| Pipeline / Frustum Culling                    | √              | √            |
-| Pipeline / Homogeneous Clipping               | √ (1)          | √ (1)        |
-| Pipeline / Small Triangle Culling             |                 | √            |
-| Pipeline / Perspective-correct Interpolation  | √              | √            |
-| Texture / Basic Support                       |                 | √            |
-| Presentation / Terminal ASCII                 | √              | √            |
-| Presentation / Terminal Color                 | √              | √            |
+| Feature                                       | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
+| --------------------------------------------- | --------------- | ------------- | ------------- |
+| Deterministic / Rendering Order               | √ |                 |               |
+| Performance / SIMD                            |               | √              |               |
+| Performance / Overlapped Memory Transfer      |                 |                 | √            |
+| Performance / Dynamic Tile List               |               | √              | √ (2)        |
+| Pipeline / Programmable Vertex Shader         | √             | √              | √            |
+| Pipeline / Programmable Fragment Shader       | √             | √              | √            |
+| Pipeline / Programmable Geometry Shader |  |  | √ (3) |
+| Pipeline / Z Pre-Pass                         |                 |                 | √            |
+| Pipeline / Early-Z Test                       | √             | √              | √            |
+| Pipeline / Back Face Culling                  | √             | √              | √            |
+| Pipeline / Frustum Culling                    |               | √              | √            |
+| Pipeline / Homogeneous Clipping               |           | √ (1)          | √ (1)        |
+| Pipeline / Small Triangle Culling             |                 |                 | √            |
+| Pipeline / Perspective-correct Interpolation  |               | √              | √            |
+| Texture / Basic Support                       |                 |                 | √            |
+| Presentation / Terminal ASCII                 |               | √              | √            |
+| Presentation / Terminal Color                 |               | √              | √            |
 
 (1) For performance consideration, only w-axis is considered 
 
