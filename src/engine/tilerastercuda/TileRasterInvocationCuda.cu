@@ -145,8 +145,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dFragmentShadingPrimId[CU_MAX_FRAMEBUFFER_SIZE];
 	IFRIT_DEVICE static uint32_t dAssembledTriangleCounterM2;
 
-	// Pixel Shader Assist
-	IFRIT_DEVICE static int dPsVisibilityIdx[CU_MAX_FRAMEBUFFER_SIZE];
+	// Line Rasterization
+	IFRIT_DEVICE static int2 dLineRasterOut[CU_MAX_FRAMEBUFFER_SIZE];
+	IFRIT_DEVICE static int dLineRasterOutSize;
 	
 	// Geometry Shader
 	IFRIT_DEVICE static int dGeometryShaderOutSize;
@@ -173,70 +174,71 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	// Profiler: Second Binner Thread Divergence
 	IFRIT_DEVICE static int dSbtdSplit = 0;
 
-	IFRIT_DEVICE float devAbort() {
-		printf("Kernel aborted\n");
-		asm("trap;");
-	}
+	namespace GeneralFunction {
+		IFRIT_DEVICE float devAbort() {
+			printf("Kernel aborted\n");
+			asm("trap;");
+		}
 
-	IFRIT_DEVICE float devEdgeFunction(float4 a, float4 b, float4 c) {
-		return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
-	}
-	IFRIT_DEVICE bool devTriangleCull(float4 v1, float4 v2, float4 v3) {
-		float d1 = (v1.x * (v2.y - v3.y));
-		float d2 = (v2.x * (v3.y - v1.y));
-		float d3 = (v3.x * (v1.y - v2.y));
-		return (d1 + d2 + d3) >= 0.0f;
-	}
+		IFRIT_DEVICE float devEdgeFunction(float4 a, float4 b, float4 c) {
+			return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
+		}
+		IFRIT_DEVICE bool devTriangleCull(float4 v1, float4 v2, float4 v3) {
+			float d1 = (v1.x * (v2.y - v3.y));
+			float d2 = (v2.x * (v3.y - v1.y));
+			float d3 = (v3.x * (v1.y - v2.y));
+			return (d1 + d2 + d3) >= 0.0f;
+		}
 
-	IFRIT_DEVICE bool devViewSpaceClip(float4 v1, float4 v2, float4 v3) {
-		auto maxX = max(v1.x, max(v2.x, v3.x));
-		auto maxY = max(v1.y, max(v2.y, v3.y));
-		auto minX = min(v1.x, min(v2.x, v3.x));
-		auto minY = min(v1.y, min(v2.y, v3.y));
-		auto isIllegal = maxX < 0.0f || maxY < 0.0f || minX > 1.0f || minY > 1.0f;
-		return isIllegal;
-	}
+		IFRIT_DEVICE bool devViewSpaceClip(float4 v1, float4 v2, float4 v3) {
+			auto maxX = max(v1.x, max(v2.x, v3.x));
+			auto maxY = max(v1.y, max(v2.y, v3.y));
+			auto minX = min(v1.x, min(v2.x, v3.x));
+			auto minY = min(v1.y, min(v2.y, v3.y));
+			auto isIllegal = maxX < 0.0f || maxY < 0.0f || minX > 1.0f || minY > 1.0f;
+			return isIllegal;
+		}
 
-	IFRIT_DEVICE void devGetAcceptRejectCoords(float4 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3]) {
-		constexpr const int VLB = 0, VLT = 1, VRT = 3, VRB = 2;
-		for (int i = 0; i < 3; i++) {
-			bool normalRight = edgeCoefs[i].x < 0;
-			bool normalDown = edgeCoefs[i].y < 0;
-			if (normalRight) {
-				if (normalDown) {
-					chosenCoordTR[i] = VRB;
-					chosenCoordTA[i] = VLT;
+		IFRIT_DEVICE void devGetAcceptRejectCoords(float4 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3]) {
+			constexpr const int VLB = 0, VLT = 1, VRT = 3, VRB = 2;
+			for (int i = 0; i < 3; i++) {
+				bool normalRight = edgeCoefs[i].x < 0;
+				bool normalDown = edgeCoefs[i].y < 0;
+				if (normalRight) {
+					if (normalDown) {
+						chosenCoordTR[i] = VRB;
+						chosenCoordTA[i] = VLT;
+					}
+					else {
+						chosenCoordTR[i] = VRT;
+						chosenCoordTA[i] = VLB;
+					}
 				}
 				else {
-					chosenCoordTR[i] = VRT;
-					chosenCoordTA[i] = VLB;
-				}
-			}
-			else {
-				if (normalDown) {
-					chosenCoordTR[i] = VLB;
-					chosenCoordTA[i] = VRT;
-				}
-				else {
-					chosenCoordTR[i] = VLT;
-					chosenCoordTA[i] = VRB;
+					if (normalDown) {
+						chosenCoordTR[i] = VLB;
+						chosenCoordTA[i] = VRT;
+					}
+					else {
+						chosenCoordTR[i] = VLT;
+						chosenCoordTA[i] = VRB;
+					}
 				}
 			}
 		}
-	}
 
-	IFRIT_DEVICE bool devGetBBox(const float4& v1, const float4& v2, const float4& v3, float4& bbox) {
-		float minx = min(v1.x, min(v2.x, v3.x));
-		float miny = min(v1.y, min(v2.y, v3.y));
-		float maxx = max(v1.x, max(v2.x, v3.x));
-		float maxy = max(v1.y, max(v2.y, v3.y));
-		bbox.x = minx;
-		bbox.y = miny;
-		bbox.z = maxx;
-		bbox.w = maxy;
-		return true;
+		IFRIT_DEVICE bool devGetBBox(const float4& v1, const float4& v2, const float4& v3, float4& bbox) {
+			float minx = min(v1.x, min(v2.x, v3.x));
+			float miny = min(v1.y, min(v2.y, v3.y));
+			float maxx = max(v1.x, max(v2.x, v3.x));
+			float maxy = max(v1.y, max(v2.y, v3.y));
+			bbox.x = minx;
+			bbox.y = miny;
+			bbox.z = maxx;
+			bbox.w = maxy;
+			return true;
+		}
 	}
-
 	namespace TriangleRasterizationStage {
 		IFRIT_DEVICE void devExecuteBinnerLargeTile(int primitiveId, irect2Df bbox) {
 			float minx = bbox.x;
@@ -262,7 +264,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			ifloat2 tileCoordsT[4], tileCoordsS[4];
 			int chosenCoordTR[3], chosenCoordTA[3];
 
-			devGetAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
+			GeneralFunction::devGetAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 			for (int y = tileLargeMiny + threadIdx.y; y <= tileLargeMaxy; y += CU_FIRST_BINNER_STRIDE_LARGE) {
 
 				auto curTileLargeY = y * CU_LARGE_BIN_WIDTH;
@@ -336,7 +338,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int chosenCoordTR[3];
 			int chosenCoordTA[3];
 			auto frameBufferHeight = csFrameHeight;
-			devGetAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
+			GeneralFunction::devGetAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
 			int mHeight = tileMaxy - tileMiny + 1;
 			int mWidth = tileMaxx - tileMinx + 1;
@@ -634,7 +636,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 			int chosenCoordTR[3];
 			int chosenCoordTA[3];
-			devGetAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
+			GeneralFunction::devGetAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
 			auto dx = threadIdx.y;
 			auto dy = threadIdx.z;
@@ -934,16 +936,16 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 #undef getBary
 #undef getPos
 
-				if (devViewSpaceClip(dv1, dv2, dv3)) {
+				if (GeneralFunction::devViewSpaceClip(dv1, dv2, dv3)) {
 					continue;
 				}
-				if (!devTriangleCull(dv1, dv2, dv3)) {
+				if (!GeneralFunction::devTriangleCull(dv1, dv2, dv3)) {
 					continue;
 				}
 
 				if constexpr (CU_OPT_SMALL_PRIMITIVE_CULL) {
 					float4 bbox;
-					devGetBBox(dv1, dv2, dv3, bbox);
+					GeneralFunction::devGetBBox(dv1, dv2, dv3, bbox);
 					bbox.x *= csFrameWidth - 0.5f;
 					bbox.z *= csFrameWidth - 0.5f;
 					bbox.y *= csFrameHeight - 0.5f;
@@ -1000,7 +1002,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int numTriangles = dGeometryShaderOutSize / 3;
 			if (dGeometryShaderOutSize % 3 != 0) {
 				printf("Invalid GS Output. Aborted\n");
-				devAbort();
+				GeneralFunction::devAbort();
 			}
 			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(numTriangles, CU_GEOMETRY_PROCESSING_THREADS);
 			geometryClippingKernel<1> CU_KARG2(dispatchBlocks, CU_GEOMETRY_PROCESSING_THREADS)(nullptr, nullptr, 0, numTriangles * 3);
@@ -1022,7 +1024,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const auto invFrameHeight = csFrameHeightInv;
 			const auto invFrameWidth = csFrameWidthInv;
 
-			const float ar = 1.0f / devEdgeFunction(dv1, dv2, dv3);
+			const float ar = 1.0f / GeneralFunction::devEdgeFunction(dv1, dv2, dv3);
 			const float sV2V1y = dv2.y - dv1.y;
 			const float sV2V1x = dv1.x - dv2.x;
 			const float sV3V2y = dv3.y - dv2.y;
@@ -1079,7 +1081,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dAtriDepthVal3[globalInvo] = v3;
 
 			float4 bbox;
-			devGetBBox(dv1, dv2, dv3, bbox);
+			GeneralFunction::devGetBBox(dv1, dv2, dv3, bbox);
 
 			const auto dBoundingBoxM2Aligned = static_cast<float4*>(__builtin_assume_aligned(dBoundingBoxM2, 16));
 			dBoundingBoxM2Aligned[globalInvo] = bbox;
@@ -1157,6 +1159,160 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int numTriangles = dGeometryShaderOutSize;
 			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(numTriangles, CU_GEOMETRY_PROCESSING_THREADS);
 			pointRasterizationInsertKernel<1> CU_KARG2(dispatchBlocks, CU_GEOMETRY_PROCESSING_THREADS)(nullptr, nullptr, 0, numTriangles * 3);
+		}
+	}
+	namespace LineGeometryStage {
+		IFRIT_DEVICE void lineCullClipKernel(float4 v1, float4 v2, float4 bary1,float4 bary2, int primId) {
+			if (v1.w < 0 && v2.w < 0)return;
+			if (v1.w < 0) {
+				float deno = v2.w - v1.w;
+				float numo = -1.0 + v2.w;
+				float t = numo / deno;
+				using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+				float4 intersection = lerp(v2, v1, t);
+				float4 barycenter = lerp(bary2, bary1, t);
+				v1 = intersection;
+				bary1 = barycenter;
+			}
+			if (v2.w < 0) {
+				float deno = v1.w - v2.w;
+				float numo = -1.0 + v1.w;
+				float t = numo / deno;
+				using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+				float4 intersection = lerp(v1, v2, t);
+				float4 barycenter = lerp(bary1, bary2, t);
+				v2 = intersection;
+				bary2 = barycenter;
+			}
+			v1.x /= v1.w;
+			v1.y /= v1.w;
+			v1.z /= v1.w;
+			v2.x /= v2.w;
+			v2.y /= v2.w;
+			v2.z /= v2.w;
+			v1.x = v1.x * 0.5 + 0.5;
+			v1.y = v1.y * 0.5 + 0.5;
+			v2.x = v2.x * 0.5 + 0.5;
+			v2.y = v2.y * 0.5 + 0.5;
+			
+			//WARNING & TODO: Simple Discard & Frustum Clip
+			if (v1.x < 0.0 || v1.y < 0.0 || v1.x>1.0 || v1.y>1.0)return;
+			if (v2.x < 0.0 || v2.y < 0.0 || v1.x>1.0 || v1.y>1.0)return;
+			int ds = atomicAdd(&dAssembledTriangleCounterM2, 1);
+			dAtriInterpolBase1[ds] = v1;
+			dAtriInterpolBase2[ds] = v2;
+			dAtriEdgeCoefs1[ds] = bary1;
+			dAtriEdgeCoefs2[ds] = bary2;
+			dAtriOriginalPrimId[ds] = primId;
+		}
+		IFRIT_KERNEL void lineGeometryAssemblyKernel(
+			ifloat4* IFRIT_RESTRICT_CUDA dPosBuffer,
+			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+			uint32_t startingIndexId,
+			uint32_t indexCount
+		) {
+			float4 v1, v2, v3;
+			int primId;
+			const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
+			if (globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
+			const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
+			auto dPosBufferAligned = static_cast<float4*>(__builtin_assume_aligned(dPosBuffer, 16));
+			v1 = dPosBufferAligned[dIndexBuffer[indexStart]];
+			v2 = dPosBufferAligned[dIndexBuffer[indexStart + 1]];
+			v3 = dPosBufferAligned[dIndexBuffer[indexStart + 2]];
+			primId = globalInvoIdx + startingIndexId / CU_TRIANGLE_STRIDE;
+			lineCullClipKernel(v1, v2, { 1,0,0,0 }, { 0,1,0,0 }, primId * 3 + 0);
+			lineCullClipKernel(v2, v3, { 0,1,0,0 }, { 0,0,1,0 }, primId * 3 + 1);
+			lineCullClipKernel(v3, v1, { 0,0,1,0 }, { 0,0,0,1 }, primId * 3 + 0);
+		}
+	}
+	namespace LineRasterizationStage {
+		IFRIT_KERNEL void bresenhamRasterizationKernel(int totalCount) {
+			//TODO: Excessive Global Atomics
+			//TODO: Excessive Branch Divergence
+			int globalInvo = threadIdx.x + blockDim.x * blockIdx.x;
+			if (globalInvo >= totalCount)return;
+			float4 v1 = dAtriInterpolBase1[globalInvo];
+			float4 v2 = dAtriInterpolBase2[globalInvo];
+			int v1x = int(v1.x * (csFrameWidth - 1));
+			int v1y = int(v1.y * (csFrameHeight - 1));
+			int v2x = int(v2.x * (csFrameWidth - 1));
+			int v2y = int(v2.y * (csFrameHeight - 1));
+			int deltaX = abs(v1x - v2x);
+			int deltaY = abs(v1y - v2y);
+
+			if (deltaX > deltaY) {
+				if (v2x < v1x) {
+					v2x ^= v1x;
+					v1x ^= v2x;
+					v2x ^= v1x;
+					v2y ^= v1y;
+					v1y ^= v2y;
+					v2y ^= v1y;
+				}
+				int cx = v1x, cy = v1y;
+				float dslope = 1.0f * (v2y - v1y) / (v2x - v1x);
+				float d = 0.0f;
+				int storeStart = atomicAdd(&dLineRasterOutSize, (v2x - v1x + 1));
+				for (int i = 0; i <= v2x-v1x+1; i++) {
+					int pixelId = cy * CU_MAX_FRAMEBUFFER_WIDTH + cx;
+					dLineRasterOut[storeStart + i].x = globalInvo;
+					dLineRasterOut[storeStart + i].y = pixelId;
+					atomicAdd(&dSecondBinnerFinerBufferSizePoint[pixelId], 1);
+					d += dslope;
+					if (d >= 1.0f)d -= 1.0f;
+					if (d <= -1.0f)d += 1.0f;
+					if (d > 0.5)cy++;
+					if (d < -0.5)cy--;
+					cx++;
+				}
+			}
+			else {
+				if (v2y < v1y) {
+					v2x ^= v1x;
+					v1x ^= v2x;
+					v2x ^= v1x;
+					v2y ^= v1y;
+					v1y ^= v2y;
+					v2y ^= v1y;
+				}
+				int cx = v1x, cy = v1y;
+				float dslope = 1.0f * (v2y - v1y) / (v2x - v1x);
+				float d = 0.0f;
+				int storeStart = atomicAdd(&dLineRasterOutSize, (v2y - v1y + 1));
+				for (int i = 0; i <= v2y - v1y + 1; i++) {
+					int pixelId = cy * CU_MAX_FRAMEBUFFER_WIDTH + cx;
+					dLineRasterOut[storeStart + i].x = globalInvo;
+					dLineRasterOut[storeStart + i].y = pixelId;
+					atomicAdd(&dSecondBinnerFinerBufferSizePoint[pixelId], 1);
+					d += dslope;
+					if (d >= 1.0f)d -= 1.0f;
+					if (d <= -1.0f)d += 1.0f;
+					if (d > 0.5)cx++;
+					if (d < -0.5)cx--;
+					cy++;
+				}
+			}
+		}
+		IFRIT_KERNEL void lineRasterAllocKernel() {
+			int globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
+			if (globalInvo >= csFrameHeight * csFrameWidth)return;
+			int pixelX = globalInvo % csFrameWidth;
+			int pixelY = globalInvo / csFrameWidth;
+			int pixelId = pixelY * CU_MAX_FRAMEBUFFER_WIDTH + pixelX;
+			dSecondBinnerFinerBufferStartPoint[pixelId] = atomicAdd(&dSecondBinnerFinerBufferGlobalSize,
+				dSecondBinnerFinerBufferSizePoint[pixelId]);
+			dSecondBinnerFinerBufferCurIndPoint[pixelId] = dSecondBinnerFinerBufferStartPoint[pixelId];
+		}
+
+		IFRIT_KERNEL void linerRasterPlaceKernel(int totalSize) {
+			int globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
+			if (globalInvo >= totalSize)return;
+			int prId = dLineRasterOut[globalInvo].x;
+			int pixelId = dLineRasterOut[globalInvo].y;
+			int orgPrimId = dAtriOriginalPrimId[prId];
+			int ds = atomicAdd(&dSecondBinnerFinerBufferCurIndPoint[pixelId], 1);
+			dSecondBinnerFinerBufferPoint[ds] = prId;
 		}
 	}
 
@@ -1498,6 +1654,40 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 		}
 	}
+	namespace LineFragmentStage {
+		IFRIT_KERNEL void pixelShadingKernel(
+			FragmentShader* fragmentShader,
+			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
+			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			float* IFRIT_RESTRICT_CUDA dDepthBuffer
+		) {
+			auto globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
+			auto pixelX = globalInvo % csFrameWidth;
+			auto pixelY = globalInvo / csFrameHeight;
+			auto curDepth = dDepthBuffer[globalInvo];
+			auto dPixelId = pixelY * CU_MAX_FRAMEBUFFER_WIDTH + pixelX;
+			int actPrim = -1;
+			int localDepth = 1e9;
+			IFRIT_SHARED float colorOutputSingle[256 * 4];
+			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
+			auto shadingPass = [&](int primId) {
+
+			};
+			auto zPrePass = [&](int primId) {
+
+			};
+			int dStart = dSecondBinnerFinerBufferStartPoint[dPixelId];
+			int dLast = dSecondBinnerFinerBufferCurIndPoint[dPixelId];
+			for (int i = dStart; i < dLast; i++) {
+				zPrePass(dSecondBinnerFinerBufferPoint[i]);
+			}
+			if (localDepth < curDepth && actPrim != -1) {
+				shadingPass(actPrim);
+				dDepthBuffer[globalInvo] = localDepth;
+			}
+		}
+	}
 	namespace TriangleMiscStage {
 		IFRIT_KERNEL void integratedResetKernel() {
 			const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1607,6 +1797,16 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dSecondBinnerFinerBufferSizePoint[globalInvo] = 0;
 			if (globalInvo == 0) {
 				dSecondBinnerFinerBufferGlobalSize = 0;
+			}
+		}
+	}
+	namespace LineMiscStage {
+		IFRIT_KERNEL void resetLineRasterizerKernel() {
+			int globalInvo = threadIdx.x + blockDim.x * blockIdx.x;
+			dSecondBinnerFinerBufferSizePoint[globalInvo] = 0;
+			if (globalInvo == 0) {
+				dSecondBinnerFinerBufferGlobalSize = 0;
+				dLineRasterOutSize = 0;
 			}
 		}
 	}
