@@ -119,6 +119,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\engine\base\Shaders.h" />
+    <ClInclude Include="include\engine\base\Constants.h" />
     <ClInclude Include="include\engine\math\ShaderBuiltin.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <CudaCompile Include="IfritShaders.cu" />

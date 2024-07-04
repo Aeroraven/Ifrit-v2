@@ -6,6 +6,7 @@
 #include "engine/tilerastercuda/TileRasterContextCuda.h"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 #include "engine/tilerastercuda/TileRasterInvocationCuda.cuh"
+#include "engine/base/Constants.h"
 
 namespace Ifrit::Engine::TileRaster::CUDA {
 	using namespace Ifrit::Engine;
@@ -34,6 +35,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		bool doubleBuffer = false;
 		int currentBuffer = 0;
 
+		// Render confs
+		IfritPolygonMode polygonMode = IF_POLYGON_MODE_FILL;
+
 	private:
 		void updateVaryingBuffer();
 	public:
@@ -47,6 +51,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void bindGeometryShader(GeometryShader* geometryShader);
 		
 		void createTextureRaw(int slotId, int height, int width, float* data);
+
+		void setRasterizerPolygonMode(IfritPolygonMode mode);
 
 		void clear();
 		void render();

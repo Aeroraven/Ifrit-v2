@@ -21,37 +21,45 @@ Successor to following repos:
 
 ## Features
 
-Overall framework for CUDA renderer pipeline (Some are different from its MT-CPU counterpart). Stages with asterisk mark are optional.
+Overall framework for CUDA solid triangle renderer pipeline (Some are different from its MT-CPU counterpart). Stages with asterisk mark are optional. Tiling optimization is only applied for filled triangles.
 
 <img src="/img/overview.png" alt="overview" style="zoom: 67%;" />
 
-**Note:** This project is NOT an exact replicate of hardware graphics pipeline (like TBDR architecture). Some behaviors are nondeterministic and some features incompatible under current implementation (like `Alpha Blending` which requires sorting primitives under parallel setting)
+**Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). Some behaviors are nondeterministic and some features incompatible under current implementation (like `Alpha Blending` which requires sorting primitives under parallel setting)
 
 | Feature                                       | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | --------------------------------------------- | --------------- | ------------- | ------------- |
-| Deterministic / Rendering Order               | √ |                 |               |
-| Performance / SIMD                            |               | √              |               |
-| Performance / Overlapped Memory Transfer      |                 |                 | √            |
-| Performance / Dynamic Tile List               |               | √              | √ (2)        |
-| Pipeline / Programmable Vertex Shader         | √             | √              | √            |
-| Pipeline / Programmable Fragment Shader       | √             | √              | √            |
-| Pipeline / Programmable Geometry Shader |  |  | √ (3) |
-| Pipeline / Z Pre-Pass                         |                 |                 | √            |
-| Pipeline / Early-Z Test                       | √             | √              | √            |
-| Pipeline / Back Face Culling                  | √             | √              | √            |
-| Pipeline / Frustum Culling                    |               | √              | √            |
-| Pipeline / Homogeneous Clipping               |           | √ (1)          | √ (1)        |
-| Pipeline / Small Triangle Culling             |                 |                 | √            |
-| Pipeline / Perspective-correct Interpolation  |               | √              | √            |
-| Texture / Basic Support                       |                 |                 | √            |
-| Presentation / Terminal ASCII                 |               | √              | √            |
-| Presentation / Terminal Color                 |               | √              | √            |
+| **Deterministic**           |  |                 |               |
+| Rendering Order | √ | | |
+| **Performance** |  | | |
+| SIMD Instructions / SIMT        |               | √              | √ |
+| Overlapped Memory Transfer      |                 |                 | √            |
+| Dynamic Tile List               |               | √              | √ (2)        |
+| **Pipeline** | |  |  |
+| Programmable Vertex Shader         | √             | √              | √            |
+| Programmable Fragment Shader       | √             | √              | √            |
+| Programmable Geometry Shader |  |  | √ ▲ |
+| Z Pre-Pass                         |                 |                 | √            |
+| Early-Z Test                       | √             | √              | √            |
+| Back Face Culling                  | √             | √              | √            |
+| Frustum Culling                    |               | √              | √            |
+| Homogeneous Clipping               |           | √ (1)          | √ (1)        |
+| Small Triangle Culling             |                 |                 | √            |
+| Perspective-correct Interpolation  |               | √              | √            |
+| **Polygon Mode** | |  |  |
+| Filled Triangle | √ | √ | √ |
+| Point |  |  | √▲ |
+| **Texture** | |  |  |
+| Basic Support                       |                 |                 | √            |
+| **Presentation** | | |  |
+| Terminal ASCII                 |               | √              | √            |
+| Terminal Color                 |               | √              | √            |
 
 (1) For performance consideration, only w-axis is considered 
 
 (2) Causing latency issues
 
-(3) Under testing, might be buggy
+▲ It works, but is still under testing.
 
 
 
@@ -130,6 +138,9 @@ Some dependencies should be prepared before compiling.
 - Alpha Blending
 - Mesh Shader
 - Triangle Cluster & Cluster LOD
+- Known Issues
+  - Overdraw: Point mode with index buffer
+
 
 
 

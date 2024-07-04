@@ -225,6 +225,7 @@ int mainGpu() {
 	renderer->bindFragmentShader(dFragmentShader);
 	renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
 	renderer->bindGeometryShader(dGeometryShader);
+	renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_POINT);
 
 	printf("Start\n");
 	GLFWWindowProvider windowProvider;

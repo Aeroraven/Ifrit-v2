@@ -46,17 +46,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		context->indexBuffer = &indexBuffer;
-		if constexpr (CU_OPT_ALIGNED_INDEX_BUFFER) {
-			std::vector<int> indexBufferInt4;
-			for (int i = 0; i < indexBuffer.size(); i++) {
-				indexBufferInt4.push_back(indexBuffer[i]);
-				if (i % 3 == 2)indexBufferInt4.push_back(0);
-			}
-			this->deviceIndexBuffer = Invocation::getIndexBufferDeviceAddr(indexBufferInt4.data(), indexBufferInt4.size(), this->deviceIndexBuffer);
-		}
-		else {
-			this->deviceIndexBuffer = Invocation::getIndexBufferDeviceAddr(indexBuffer.data(), indexBuffer.size(), this->deviceIndexBuffer);
-		}
+		this->deviceIndexBuffer = Invocation::getIndexBufferDeviceAddr(indexBuffer.data(), indexBuffer.size(), this->deviceIndexBuffer);
 	}
 
 	void TileRasterRendererCuda::bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor) {
@@ -90,6 +80,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		Invocation::createTexture(slotId, width, height, data);
 		needFragmentShaderUpdate = true;
 	}
+	void TileRasterRendererCuda::setRasterizerPolygonMode(IfritPolygonMode mode) {
+		this->polygonMode = mode;
+	}
 	void TileRasterRendererCuda::clear() {
 		context->frameBuffer->getDepthAttachment()->clearImage(255.0);
 		context->frameBuffer->getColorAttachment(0)->clearImageZero();
@@ -111,10 +104,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
 
 		int totalIndices = context->indexBuffer->size();
-		if constexpr (CU_OPT_ALIGNED_INDEX_BUFFER) {
-			totalIndices = totalIndices / 3 * 4;
-		}
-
 		int curBuffer = currentBuffer;
 
 		Invocation::RenderingInvocationArgumentSet args;
@@ -134,6 +123,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		args.totalIndices = totalIndices;
 		args.doubleBuffering = this->doubleBuffer;
 		args.dLastColorBuffer = deviceHostColorBuffers[1 - curBuffer].data();
+		args.polygonMode = polygonMode;
 		
 		Invocation::invokeCudaRendering(args);
 		currentBuffer = 1 - curBuffer;

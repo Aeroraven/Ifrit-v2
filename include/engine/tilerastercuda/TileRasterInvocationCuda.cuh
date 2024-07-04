@@ -7,8 +7,10 @@
 #include "engine/base/Shaders.h"
 #include "engine/tileraster/TileRasterCommon.h"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
+#include "engine/base/Constants.h"
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
+	
 
 	struct RenderingInvocationArgumentSet {
 		char* dVertexBuffer;
@@ -27,6 +29,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		int totalIndices;
 		bool doubleBuffering;
 		ifloat4** dLastColorBuffer;
+		IfritPolygonMode polygonMode = IF_POLYGON_MODE_FILL;
 	};
 
 	void invokeCudaRendering(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW;

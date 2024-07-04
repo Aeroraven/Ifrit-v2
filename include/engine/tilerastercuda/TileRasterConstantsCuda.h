@@ -9,6 +9,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_LARGE_BIN_SIZE = 32;
 	constexpr int CU_BIN_SIZE = 128;
 	constexpr int CU_TILE_SIZE = 128;
+	constexpr int CU_MAX_FRAMEBUFFER_WIDTH = 4096;
 	constexpr int CU_MAX_FRAMEBUFFER_SIZE = 4096 * 4096;
 	constexpr int CU_MAX_TEXTURE_SLOTS = 16;
 
@@ -21,6 +22,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_MAX_TILE_X = 128;
 	constexpr int CU_MAX_LARGE_BIN_X = 32;
 	// end experimentals
+
+	// points
+	constexpr int CU_POINT_RASTERIZATION_FIRST_THREADS = 128;
+	constexpr int CU_POINT_RASTERIZATION_PLACE_THREADS = 128;
+	// end points
 	
 	constexpr int CU_TILES_PER_BIN = CU_TILE_SIZE / CU_BIN_SIZE;
 	constexpr int CU_BINS_PER_LARGE_BIN = CU_BIN_SIZE / CU_LARGE_BIN_SIZE;
@@ -72,13 +78,14 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_CUDA_PROFILE = true;
 	constexpr bool CU_OPT_PREALLOCATED_TRIANGLE_LIST = false;
 	constexpr bool CU_OPT_II_SKIP_ON_FEW_GEOMETRIES = true;
-	constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = true;  
+	//constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = true;  
 	constexpr bool CU_OPT_SEPARATE_FIRST_BINNER_KERNEL = true;
 	constexpr bool CU_OPT_SMALL_PRIMITIVE_CULL = true;
 	constexpr bool CU_OPT_ENABLE_EMBED_COUNTER = false; /* WARNING: Performance Drop */
 
 	// == Derived == 
-	constexpr int CU_TRIANGLE_STRIDE = CU_OPT_ALIGNED_INDEX_BUFFER ? 4 : 3;
+	//constexpr int CU_TRIANGLE_STRIDE = CU_OPT_ALIGNED_INDEX_BUFFER ? 4 : 3;
+	constexpr int CU_TRIANGLE_STRIDE = 3;
 	constexpr int CU_GS_OUT_BUFFER_SIZE = CU_PRIMITIVE_BUFFER_SIZE * CU_MAX_GS_OUT_VERTICES;
 
 	// == Experimental ==
