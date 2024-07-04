@@ -5,3 +5,6 @@
 
 #define isbcuReadPsVarying(x,y)  ((const ifloat4s256*)(x))[(y)]
 #define isbcuReadPsColorOut(x,y)  ((ifloat4s256*)(x))[(y)]
+
+#define isbReadGsVarying(x,y) (inVaryings[(x)][(y)])
+#define isbStoreGsVarying(x,y,d,v) (outVaryings[(x)*(d)+(y)]=(v))

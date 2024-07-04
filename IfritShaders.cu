@@ -20,6 +20,7 @@ IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4*
 	outVaryings[0]->vf4 = isbReadFloat4(input[1]);
 	outVaryings[1]->vf4 = isbReadFloat4(input[2]);
 }
+
 IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
 	return Ifrit::Core::CUDA::hostGetDeviceObjectCopy<DemoVertexShaderCuda>(this);
 }
@@ -33,6 +34,30 @@ IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* col
 	co.z = dco.z;
 	co.w = dco.w;
 }
+
 IFRIT_HOST Ifrit::Engine::FragmentShader* DemoFragmentShaderCuda::getCudaClone() {
 	return Ifrit::Core::CUDA::hostGetDeviceObjectCopy<DemoFragmentShaderCuda>(this);
+}
+
+IFRIT_DUAL void DemoGeometryShaderCuda::execute(const ifloat4** inPos, const Ifrit::Engine::VaryingStore** inVaryings,
+	ifloat4* outPos, Ifrit::Engine::VaryingStore* outVaryings, int* outSize) {
+	outPos[0] = *inPos[0];
+	outPos[1] = *inPos[1];
+	outPos[2] = *inPos[2];
+
+	outPos[0].x += 0.03;
+	outPos[1].x += 0.03;
+	outPos[2].x += 0.03;
+
+	isbStoreGsVarying(0, 0, 2, isbReadGsVarying(0, 0));
+	isbStoreGsVarying(0, 1, 2, isbReadGsVarying(0, 1));
+	isbStoreGsVarying(1, 0, 2, isbReadGsVarying(1, 0));
+	isbStoreGsVarying(1, 1, 2, isbReadGsVarying(1, 1));
+	isbStoreGsVarying(2, 0, 2, isbReadGsVarying(2, 0));
+	isbStoreGsVarying(2, 1, 2, isbReadGsVarying(2, 1));
+	*outSize = 3;
+}
+
+IFRIT_HOST Ifrit::Engine::GeometryShader* DemoGeometryShaderCuda::getCudaClone() { 
+	return  Ifrit::Core::CUDA::hostGetDeviceObjectCopy<DemoGeometryShaderCuda>(this);
 }

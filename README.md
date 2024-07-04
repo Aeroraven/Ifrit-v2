@@ -21,7 +21,7 @@ Successor to following repos:
 
 ## Features
 
-Overall framework for CUDA renderer pipeline (Some are different from its MT-CPU counterpart):
+Overall framework for CUDA renderer pipeline (Some are different from its MT-CPU counterpart). Stages with asterisk mark are optional.
 
 <img src="/img/overview.png" alt="overview" style="zoom: 67%;" />
 
@@ -35,6 +35,7 @@ Overall framework for CUDA renderer pipeline (Some are different from its MT-CPU
 | Performance / Dynamic Tile List               | √              | √ (2)        |
 | Pipeline / Programmable Vertex Shader         | √              | √            |
 | Pipeline / Programmable Fragment Shader       | √              | √            |
+| Pipeline / Programmable Geometry Shader |  | √ (3) |
 | Pipeline / Z Pre-Pass                         |                 | √            |
 | Pipeline / Early-Z Test                       | √              | √            |
 | Pipeline / Back Face Culling                  | √              | √            |
@@ -49,6 +50,8 @@ Overall framework for CUDA renderer pipeline (Some are different from its MT-CPU
 (1) For performance consideration, only w-axis is considered 
 
 (2) Causing latency issues
+
+(3) Under testing, might be buggy
 
 
 
@@ -120,7 +123,7 @@ Some dependencies should be prepared before compiling.
 
 - Bug Fix & Testing
   - Resolution Change
-- Geometry Shader
+- Tessellation
 - Line Mode
 - Texture LOD & Texture Sampler
 - Multi-sampling

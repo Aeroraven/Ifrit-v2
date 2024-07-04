@@ -57,7 +57,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		else {
 			this->deviceIndexBuffer = Invocation::getIndexBufferDeviceAddr(indexBuffer.data(), indexBuffer.size(), this->deviceIndexBuffer);
 		}
-		
 	}
 
 	void TileRasterRendererCuda::bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor) {
@@ -77,7 +76,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		needVaryingUpdate = false;
 		auto vcount = context->varyingDescriptor->getVaryingCounts();
 		auto vxcount = context->vertexBuffer->getVertexCount();
-		cudaMalloc(&deviceContext->dVaryingBufferM2, vcount * vxcount * sizeof(VaryingStore*));
+		printf("Varying Alloc %d %d \n", vcount, vxcount);
+		cudaMalloc(&deviceContext->dVaryingBufferM2, vcount * vxcount * sizeof(VaryingStore));
 	}
 	void TileRasterRendererCuda::bindFragmentShader(FragmentShader* fragmentShader) {
 		context->fragmentShader = fragmentShader;

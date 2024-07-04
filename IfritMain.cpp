@@ -183,7 +183,6 @@ int mainGpu() {
 	std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
 	std::shared_ptr<TileRasterRendererCuda> renderer = std::make_shared<TileRasterRendererCuda>();
 	FrameBuffer frameBuffer;
-
 	VertexBuffer vertexBuffer;
 	vertexBuffer.setLayout({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 	vertexBuffer.allocateBuffer(pos.size());
@@ -205,7 +204,7 @@ int mainGpu() {
 	for (int i = 0; i < index.size(); i += 3) {
 		indexBuffer[i / 3] = index[i];
 	}
-
+	printf("Total Tris:%d\n", indexBuffer.size() / 3);
 	frameBuffer.setColorAttachments({ image1 });
 	frameBuffer.setDepthAttachment(depth);
 
@@ -218,12 +217,14 @@ int mainGpu() {
 	VaryingDescriptor vertexShaderLayout;
 	vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 	DemoFragmentShaderCuda fragmentShader;
-
+	DemoGeometryShaderCuda geometryShader;
 	
 	auto dVertexShader = vertexShader.getCudaClone();
 	auto dFragmentShader = fragmentShader.getCudaClone();
+	auto dGeometryShader = geometryShader.getCudaClone();
 	renderer->bindFragmentShader(dFragmentShader);
 	renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
+	renderer->bindGeometryShader(dGeometryShader);
 
 	printf("Start\n");
 	GLFWWindowProvider windowProvider;
