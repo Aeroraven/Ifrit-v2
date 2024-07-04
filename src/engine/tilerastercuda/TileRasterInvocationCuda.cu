@@ -1662,6 +1662,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
 			float* IFRIT_RESTRICT_CUDA dDepthBuffer
 		) {
+			//TODO: Faster Perspective Interpolation
 			auto globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
 			auto pixelX = globalInvo % csFrameWidth;
 			auto pixelY = globalInvo / csFrameHeight;
@@ -1671,11 +1672,35 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int localDepth = 1e9;
 			IFRIT_SHARED float colorOutputSingle[256 * 4];
 			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
+			auto getPerspectiveZ = [&](float4 v1, float4 v2) {
+				float deltaX = abs(v2.x - v1.x);
+				float deltaY = abs(v2.y - v1.y);
+				using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+				//TODO: Branch Divergence
+				if (deltaX >= deltaY) {
+					float percent = (pixelX - v1.x) / (v2.x - v1.x);
+					return lerp(v1.z, v2.z, percent);
+				}
+				else {
+					float percent = (pixelY - v1.y) / (v2.y - v1.y);
+					return lerp(v1.z, v2.z, percent);
+				}
+			};
 			auto shadingPass = [&](int primId) {
 
 			};
 			auto zPrePass = [&](int primId) {
-
+				float4 v1 = dAtriInterpolBase1[primId];
+				float4 v2 = dAtriInterpolBase2[primId];
+				v1.x *= csFrameWidth;
+				v1.y *= csFrameHeight;
+				v2.x *= csFrameWidth;
+				v2.y *= csFrameHeight;
+				auto zVal = getPerspectiveZ(v1, v2);
+				if (zVal < localDepth) {
+					actPrim = primId;
+					localDepth = zVal;
+				}
 			};
 			int dStart = dSecondBinnerFinerBufferStartPoint[dPixelId];
 			int dLast = dSecondBinnerFinerBufferCurIndPoint[dPixelId];
