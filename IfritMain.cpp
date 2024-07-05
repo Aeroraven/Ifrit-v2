@@ -214,10 +214,10 @@ int mainGpu() {
 	vertexBuffer.setValue(2, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(3, 1, ifloat4(0.1, 0, 0.1, 0));
 
-	vertexBuffer.setValue(0, 2, ifloat4(0.0, 1.0, 0.1, 0));
+	vertexBuffer.setValue(0, 2, ifloat4(0.0, 2.0, 0.1, 0));
 	vertexBuffer.setValue(1, 2, ifloat4(0.0, 0.0, 0.1, 0));
-	vertexBuffer.setValue(2, 2, ifloat4(1.0, 0.0, 0.1, 0));
-	vertexBuffer.setValue(3, 2, ifloat4(1.0, 1.0, 0.1, 0));
+	vertexBuffer.setValue(2, 2, ifloat4(2.0, 0.0, 0.1, 0));
+	vertexBuffer.setValue(3, 2, ifloat4(2.0, 2.0, 0.1, 0));
 	indexBuffer = { 0,1,2,2,3,0 };
 
 
@@ -254,8 +254,8 @@ int mainGpu() {
 
 	IfritSamplerT sampler;
 	sampler.filterMode = IF_FILTER_LINEAR;
-	sampler.addressModeU = IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-	sampler.addressModeV = IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+	sampler.addressModeU = IF_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+	sampler.addressModeV = IF_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 	sampler.borderColor = IF_BORDER_COLOR_WHITE;
 	renderer->createSampler(0, sampler);
 

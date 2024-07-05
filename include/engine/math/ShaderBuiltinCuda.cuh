@@ -16,6 +16,11 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 			if (cX < 0)cX += texW;
 			cX = fmodf(cX, texW);
 		}
+		else if (sampler.addressModeU == IF_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT) {
+			if (cX < 0)cX += 2 * texW;
+			cX = fmodf(cX, 2 * texW);
+			cX = min(cX, 2 * texW - cX);
+		}
 		else if(sampler.addressModeU == IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE) {
 			cX = clamp(cX, 0.0f, texW - 1.0f);
 		}
@@ -24,10 +29,18 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 				return borderColor;
 			}
 		}
+		else if (sampler.addressModeU == IF_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE) {
+			cX = mirrorclamp(cX, 0.0f, texW - 1.0f);
+		}
 		//Address Mode V
 		if (sampler.addressModeV == IF_SAMPLER_ADDRESS_MODE_REPEAT) {
 			if (cY < 0)cY += texH;
 			cY = fmodf(cY, texH);
+		}
+		else if (sampler.addressModeV == IF_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT) {
+			if (cY < 0)cY += 2 * texH;
+			cY = fmodf(cY, 2 * texH);
+			cY = min(cY, 2 * texH - cY);
 		}
 		else if (sampler.addressModeV == IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE) {
 			cY = clamp(cY, 0.0f, texH - 1.0f);
@@ -36,6 +49,9 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 			if (cY >= texH || cY < 0.0) {
 				return borderColor;
 			}
+		}
+		else if (sampler.addressModeV == IF_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE) {
+			cY = mirrorclamp(cY, 0.0f, texH - 1.0f);
 		}
 		//Filter Mode
 		if (sampler.filterMode == IF_FILTER_NEAREST) {

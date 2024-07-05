@@ -7,6 +7,10 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 	IFRIT_DUAL inline T clamp(const T& x, const T& mi, const T& ma) {
 		return (x >= ma) ? ma : ((x <= mi) ? mi : x);
 	}
+	template<class T>
+	IFRIT_DUAL inline T mirrorclamp(const T& x, const T& mi, const T& ma) {
+		return (x >= ma) ? mi : ((x <= mi) ? ma : x);
+	}
 	IFRIT_DUAL inline float4x4 multiply(const float4x4 a, const float4x4 b) {
 		float4x4 result;
 		for (int i = 0; i < 4; i++) {
