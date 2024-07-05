@@ -48,8 +48,8 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Perspective-correct Interpolation |                                                              | √               | √             |
 | **Polygon Mode**                  |                                                              |                 |               |
 | Filled Triangle                   | √                                                            | √               | √             |
-| Line (Wireframe)                  |                                                              |                 | √             |
-| Point                             |                                                              |                 | √▲            |
+| Line (Wireframe)                  |                                                              |                 | √ ▲           |
+| Point                             |                                                              |                 | √ ▲           |
 | **Texture**                       |                                                              |                 |               |
 | Basic Support                     |                                                              |                 | √             |
 | **Presentation**                  |                                                              |                 |               |
