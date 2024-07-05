@@ -225,7 +225,7 @@ int mainGpu() {
 	std::vector<float> texFox;
 	int texFoxW, texFoxH;
 	ImageLoader imageLoader;
-	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/fox_diffuse.png", &texFox, &texFoxH, &texFoxW);
+	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/fox_diffuse2.png", &texFox, &texFoxH, &texFoxW);
 	renderer->createTextureRaw(0, texFoxW, texFoxH, texFox.data());
 
 	
@@ -249,7 +249,11 @@ int mainGpu() {
 	renderer->bindFragmentShader(dFragmentShader);
 	renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
 	renderer->bindGeometryShader(dGeometryShader);
-	renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_LINE);
+	//renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_LINE);
+
+	IfritSamplerT sampler;
+	sampler.filterMode = IF_FILTER_LINEAR;
+	renderer->createSampler(0, sampler);
 
 	printf("Start\n");
 	GLFWWindowProvider windowProvider;

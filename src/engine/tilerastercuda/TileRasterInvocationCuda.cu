@@ -2,6 +2,7 @@
 #include "engine/math/ShaderOpsCuda.cuh"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
+#include "engine/base/Structures.h"
 #include <cuda_profiler_api.h>
 
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
@@ -22,6 +23,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE_CONST static float* csTextures[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST static int csTextureWidth[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST static int csTextureHeight[CU_MAX_TEXTURE_SLOTS];
+	IFRIT_DEVICE_CONST static IfritSamplerT csSamplers[CU_MAX_SAMPLER_SLOTS];
 
 	static int hsFrameWidth = 0;
 	static int hsFrameHeight = 0;
@@ -36,6 +38,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	static float* hsTextures[CU_MAX_TEXTURE_SLOTS];
 	static int hsTextureWidth[CU_MAX_TEXTURE_SLOTS];
 	static int hsTextureHeight[CU_MAX_TEXTURE_SLOTS];
+	static IfritSamplerT hsSampler[CU_MAX_SAMPLER_SLOTS];
 
 	template<class T>
 	class LocalDynamicVector {
@@ -2234,6 +2237,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			fragmentShader->atTextureHei[i] = csTextureHeight[i];
 			fragmentShader->atTextureWid[i] = csTextureWidth[i];
 		}
+		for (int i = 0; i < CU_MAX_SAMPLER_SLOTS; i++) {
+			fragmentShader->atSamplerPtr[i] = csSamplers[i];
+		}
+		
 	}
 }
 
@@ -2260,6 +2267,10 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaMemcpyToSymbol(Impl::csTextures, &Impl::hsTextures[texId], sizeof(float*), sizeof(float*)*texId);
 		cudaMemcpyToSymbol(Impl::csTextureHeight, &Impl::hsTextureHeight[texId], sizeof(int), sizeof(int)*texId);
 		cudaMemcpyToSymbol(Impl::csTextureWidth, &Impl::hsTextureWidth[texId], sizeof(int), sizeof(int)*texId);
+	}
+	void createSampler(uint32_t slotId, const IfritSamplerT& samplerState) {
+		Impl::hsSampler[slotId] = samplerState;
+		cudaMemcpyToSymbol(Impl::csSamplers, &samplerState, sizeof(samplerState), sizeof(samplerState) * slotId);
 	}
 
 	int* getIndexBufferDeviceAddr(const int* hIndexBuffer, uint32_t indexBufferSize, int* dOldIndexBuffer) {

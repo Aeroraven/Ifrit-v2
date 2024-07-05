@@ -8,6 +8,7 @@
 #include "engine/tileraster/TileRasterCommon.h"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 #include "engine/base/Constants.h"
+#include "engine/base/Structures.h"
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	
@@ -52,4 +53,5 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	char* deviceMalloc(uint32_t size);
 	void deviceFree(char* ptr);
 	void createTexture(uint32_t texId, uint32_t texWid, uint32_t texHeight, float *data);
+	void createSampler(uint32_t slotId, const IfritSamplerT& samplerState);
 }

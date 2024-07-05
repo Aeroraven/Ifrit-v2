@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine/base/VaryingStore.h"
-
+#include "engine/base/Structures.h"
 
 namespace Ifrit::Engine {
 	enum GeometryShaderTopology {
@@ -25,6 +25,7 @@ namespace Ifrit::Engine {
 		float* atTexture[32];
 		uint32_t atTextureWid[32];
 		uint32_t atTextureHei[32];
+		IfritSamplerT atSamplerPtr[32];
 		IFRIT_DUAL virtual void execute(
 			const void* varyings, 
 			void* colorOutput

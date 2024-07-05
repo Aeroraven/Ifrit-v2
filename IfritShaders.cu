@@ -1,5 +1,6 @@
 #include "IfritShaders.cuh"
 #include "core/cuda/CudaUtils.cuh"
+#include "engine/math/ShaderBuiltinCuda.cuh"
 
 IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4* outPos, Ifrit::Engine::VaryingStore** outVaryings) {
 	using namespace Ifrit::Engine::Math::ShaderOps::CUDA;
@@ -28,11 +29,11 @@ IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
 IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* colorOutput) {
 	auto result = isbcuReadPsVarying(varyings,1);
 	auto& co = isbcuReadPsColorOut(colorOutput, 0);
-	//auto dco = isbSampleTex(0, result.x, 1.0 - result.y);
-	co.x = 1;
-	co.y = 1;
-	co.z = 1;
-	co.w = 1;
+	auto dco = isbcuSampleTex(0, 0, float2( result.x, 1.0f - result.y )); 
+	co.x = dco.x;
+	co.y = dco.y;
+	co.z = dco.z;
+	co.w = dco.w;
 }
 
 IFRIT_HOST Ifrit::Engine::FragmentShader* DemoFragmentShaderCuda::getCudaClone() {

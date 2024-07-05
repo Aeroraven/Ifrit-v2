@@ -12,6 +12,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_MAX_FRAMEBUFFER_WIDTH = 4096;
 	constexpr int CU_MAX_FRAMEBUFFER_SIZE = 4096 * 4096;
 	constexpr int CU_MAX_TEXTURE_SLOTS = 16;
+	constexpr int CU_MAX_SAMPLER_SLOTS = 16;
 
 	// experimentals
 	constexpr int CU_LARGE_BIN_WIDTH = 64;

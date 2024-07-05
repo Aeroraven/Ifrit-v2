@@ -66,7 +66,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		needVaryingUpdate = false;
 		auto vcount = context->varyingDescriptor->getVaryingCounts();
 		auto vxcount = context->vertexBuffer->getVertexCount();
-		printf("Varying Alloc %d %d \n", vcount, vxcount);
 		cudaMalloc(&deviceContext->dVaryingBufferM2, vcount * vxcount * sizeof(VaryingStore));
 	}
 	void TileRasterRendererCuda::bindFragmentShader(FragmentShader* fragmentShader) {
@@ -78,6 +77,10 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::createTextureRaw(int slotId, int height, int width, float* data) {
 		Invocation::createTexture(slotId, width, height, data);
+		needFragmentShaderUpdate = true;
+	}
+	void TileRasterRendererCuda::createSampler(int slotId, const IfritSamplerT& samplerState) {
+		Invocation::createSampler(slotId, samplerState);
 		needFragmentShaderUpdate = true;
 	}
 	void TileRasterRendererCuda::setRasterizerPolygonMode(IfritPolygonMode mode) {

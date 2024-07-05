@@ -51,6 +51,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void bindGeometryShader(GeometryShader* geometryShader);
 		
 		void createTextureRaw(int slotId, int height, int width, float* data);
+		void createSampler(int slotId, const IfritSamplerT& samplerState);
 
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
 

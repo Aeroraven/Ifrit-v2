@@ -52,6 +52,8 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Point                             |                                                              |                 | √ ▲           |
 | **Texture**                       |                                                              |                 |               |
 | Basic Support                     |                                                              |                 | √             |
+| Linear / Nearest Filter           |                                                              |                 | √             |
+| Sampler Address Mode              |                                                              |                 | √             |
 | **Presentation**                  |                                                              |                 |               |
 | Terminal ASCII                    |                                                              | √               | √             |
 | Terminal Color                    |                                                              | √               | √             |
@@ -61,6 +63,12 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 (2) Causing latency issues
 
 ▲ It works, but is still under testing. Using this feature might cause severe performance drop.
+
+
+
+### Supported Feature Details
+
+- Sampler Address Mode: `IF_SAMPLER_ADDRESS_MODE_REPEAT`, `IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE`
 
 
 
