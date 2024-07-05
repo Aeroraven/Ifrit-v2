@@ -17,7 +17,7 @@ IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4*
 	float4x4 mvp = multiply(proj, view);
 	auto s = isbReadFloat4(input[0]);
 	auto p = multiply(mvp, s);
-	*outPos = p;
+	*outPos = s;
 	outVaryings[0]->vf4 = isbReadFloat4(input[1]);
 	outVaryings[1]->vf4 = isbReadFloat4(input[2]);
 }
@@ -29,7 +29,7 @@ IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
 IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* colorOutput) {
 	auto result = isbcuReadPsVarying(varyings,1);
 	auto& co = isbcuReadPsColorOut(colorOutput, 0);
-	auto dco = isbcuSampleTex(0, 0, float2( result.x, 1.0f - result.y )); 
+	auto dco = isbSampleTexSimple(0, result.x, 1.0 - result.y);//isbcuSampleTex(0, 0, float2( result.x, 1.0f - result.y )); 
 	co.x = dco.x;
 	co.y = dco.y;
 	co.z = dco.z;
@@ -46,9 +46,9 @@ IFRIT_DUAL void DemoGeometryShaderCuda::execute(const ifloat4** inPos, const Ifr
 	outPos[1] = *inPos[1];
 	outPos[2] = *inPos[2];
 
-	outPos[0].x += 0.03;
-	outPos[1].x += 0.03;
-	outPos[2].x += 0.03;
+	//outPos[0].x += 0.03;
+	//outPos[1].x += 0.03;
+	//outPos[2].x += 0.03;
 
 	isbStoreGsVarying(0, 0, 2, isbReadGsVarying(0, 0));
 	isbStoreGsVarying(0, 1, 2, isbReadGsVarying(0, 1));

@@ -6,6 +6,10 @@ namespace Ifrit::Utility::Loader {
 	void ImageLoader::loadRGBA(const char* fileName, std::vector<float>* bufferOut, int* height, int* width) {
 		int h, c, w;
 		stbi_uc* data = stbi_load(fileName, &w, &h, &c, 4);
+		if (c != 4) {
+			printf("ERROR\n");
+			std::abort();
+		}
 		if (data == nullptr) {
 			throw std::runtime_error("Failed to load image");
 		}

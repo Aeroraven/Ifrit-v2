@@ -475,10 +475,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			criteriaX[0] = rsX1;
 			criteriaX[1] = rsX2;
 			criteriaX[2] = rsX3;
+			constexpr auto dEps = CU_OPT_PATCH_STRICT_BOUNDARY ? CU_EPS * 1e7f : 0;
 			for (int i2 = 0; i2 < CU_EXPERIMENTAL_PIXELS_PER_SUBTILE; i2++) {
-				bool accept1 = (criteriaX[0] + criteriaY[0]) < edgeCoefs[0].z;
-				bool accept2 = (criteriaX[1] + criteriaY[1]) < edgeCoefs[1].z;
-				bool accept3 = (criteriaX[2] + criteriaY[2]) < edgeCoefs[2].z;
+				bool accept1 = (criteriaX[0] + criteriaY[0]) < edgeCoefs[0].z + dEps;
+				bool accept2 = (criteriaX[1] + criteriaY[1]) < edgeCoefs[1].z + dEps;
+				bool accept3 = (criteriaX[2] + criteriaY[2]) < edgeCoefs[2].z + dEps;
 
 				int cond = (accept1 && accept2 && accept3);
 				mask |= (cond << i2);

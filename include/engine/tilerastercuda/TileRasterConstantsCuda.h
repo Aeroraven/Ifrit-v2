@@ -89,6 +89,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_SEPARATE_FIRST_BINNER_KERNEL = true;
 	constexpr bool CU_OPT_SMALL_PRIMITIVE_CULL = true;
 	constexpr bool CU_OPT_ENABLE_EMBED_COUNTER = false; /* WARNING: Performance Drop */
+	constexpr bool CU_OPT_PATCH_STRICT_BOUNDARY = true;
 
 	// == Derived == 
 	//constexpr int CU_TRIANGLE_STRIDE = CU_OPT_ALIGNED_INDEX_BUFFER ? 4 : 3;

@@ -199,7 +199,7 @@ int mainGpu() {
 		indexBuffer[i / 3] = index[i];
 	}
 	
-	/*
+	
 	vertexBuffer.setVertexCount(4);
 	vertexBuffer.allocateBuffer(4);
 	//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
@@ -208,25 +208,26 @@ int mainGpu() {
 	vertexBuffer.setValue(0, 0, ifloat4(-0.5, 0.5, -0.1, 1));
 	vertexBuffer.setValue(1, 0, ifloat4(-0.5, -0.5, -0.1, 1));
 	vertexBuffer.setValue(2, 0, ifloat4(0.5, -0.5, -0.1, 1));
-	vertexBuffer.setValue(3, 0, ifloat4(0.7, 0.2, -0.1, 1));
+	vertexBuffer.setValue(3, 0, ifloat4(0.5, 0.5, -0.1, 1));
 	vertexBuffer.setValue(0, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(1, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(2, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(3, 1, ifloat4(0.1, 0, 0.1, 0));
-	vertexBuffer.setValue(0, 2, ifloat4(0.1, 0, 0.1, 0));
-	vertexBuffer.setValue(1, 2, ifloat4(0.1, 0, 0.1, 0));
-	vertexBuffer.setValue(2, 2, ifloat4(0.1, 0, 0.1, 0));
-	vertexBuffer.setValue(3, 2, ifloat4(0.1, 0, 0.1, 0));
-	indexBuffer = { 2,3,0 };*/
+
+	vertexBuffer.setValue(0, 2, ifloat4(0.0, 1.0, 0.1, 0));
+	vertexBuffer.setValue(1, 2, ifloat4(0.0, 0.0, 0.1, 0));
+	vertexBuffer.setValue(2, 2, ifloat4(1.0, 0.0, 0.1, 0));
+	vertexBuffer.setValue(3, 2, ifloat4(1.0, 1.0, 0.1, 0));
+	indexBuffer = { 0,1,2,2,3,0 };
 
 
-	printf("Total Tris:%d\n", indexBuffer.size() / 3);
+	//printf("Total Tris:%d\n", indexBuffer.size() / 3);
 
 	std::vector<float> texFox;
 	int texFoxW, texFoxH;
 	ImageLoader imageLoader;
-	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/fox_diffuse2.png", &texFox, &texFoxH, &texFoxW);
-	renderer->createTextureRaw(0, texFoxW, texFoxH, texFox.data());
+	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/nanachi.png", &texFox, &texFoxH, &texFoxW);
+	renderer->createTextureRaw(0, texFoxH, texFoxW, texFox.data());
 
 	
 	frameBuffer.setColorAttachments({ image1 });
