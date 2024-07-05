@@ -27,6 +27,12 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_POINT_RASTERIZATION_FIRST_THREADS = 128;
 	constexpr int CU_POINT_RASTERIZATION_PLACE_THREADS = 128;
 	// end points
+
+	// lines 
+	constexpr int CU_LINE_GEOMETRY_THREADS = 128;
+	constexpr int CU_LINE_RASTERIZATION_FIRST_THREADS = 128;
+	constexpr int CU_LINE_RASTERIZATION_PLACE_THREADS = 128;
+	// end lines
 	
 	constexpr int CU_TILES_PER_BIN = CU_TILE_SIZE / CU_BIN_SIZE;
 	constexpr int CU_BINS_PER_LARGE_BIN = CU_BIN_SIZE / CU_LARGE_BIN_SIZE;

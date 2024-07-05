@@ -1162,7 +1162,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace LineGeometryStage {
-		IFRIT_DEVICE void lineCullClipKernel(float4 v1, float4 v2, float4 bary1,float4 bary2, int primId) {
+		IFRIT_DEVICE void devLineCullClip(float4 v1, float4 v2, float4 bary1,float4 bary2, int primId) {
 			if (v1.w < 0 && v2.w < 0)return;
 			if (v1.w < 0) {
 				float deno = v2.w - v1.w;
@@ -1204,7 +1204,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dAtriEdgeCoefs1[ds] = bary1;
 			dAtriEdgeCoefs2[ds] = bary2;
 			dAtriOriginalPrimId[ds] = primId;
+			//printf("%f %f -> %f %f \n", v1.x, v1.y, v2.x, v2.y);
 		}
+		template <int geometryShaderEnabled>
 		IFRIT_KERNEL void lineGeometryAssemblyKernel(
 			ifloat4* IFRIT_RESTRICT_CUDA dPosBuffer,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
@@ -1216,14 +1218,31 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
 			if (globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
 			const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
-			auto dPosBufferAligned = static_cast<float4*>(__builtin_assume_aligned(dPosBuffer, 16));
-			v1 = dPosBufferAligned[dIndexBuffer[indexStart]];
-			v2 = dPosBufferAligned[dIndexBuffer[indexStart + 1]];
-			v3 = dPosBufferAligned[dIndexBuffer[indexStart + 2]];
+
+			if constexpr (geometryShaderEnabled) {
+				if (globalInvoIdx >= indexCount / 3) return;
+				auto dGSPosBufferAligned = static_cast<float4*>(__builtin_assume_aligned(dGeometryShaderOutPos, 16));
+				v1 = dGSPosBufferAligned[globalInvoIdx * 3];
+				v2 = dGSPosBufferAligned[globalInvoIdx * 3 + 1];
+				v3 = dGSPosBufferAligned[globalInvoIdx * 3 + 2];
+				primId = globalInvoIdx;
+			}
+			else {
+				auto dPosBufferAligned = static_cast<float4*>(__builtin_assume_aligned(dPosBuffer, 16));
+				v1 = dPosBufferAligned[dIndexBuffer[indexStart]];
+				v2 = dPosBufferAligned[dIndexBuffer[indexStart + 1]];
+				v3 = dPosBufferAligned[dIndexBuffer[indexStart + 2]];
+			}
+			
 			primId = globalInvoIdx + startingIndexId / CU_TRIANGLE_STRIDE;
-			lineCullClipKernel(v1, v2, { 1,0,0,0 }, { 0,1,0,0 }, primId * 3 + 0);
-			lineCullClipKernel(v2, v3, { 0,1,0,0 }, { 0,0,1,0 }, primId * 3 + 1);
-			lineCullClipKernel(v3, v1, { 0,0,1,0 }, { 0,0,0,1 }, primId * 3 + 0);
+			devLineCullClip(v1, v2, { 1,0,0,0 }, { 0,1,0,0 }, primId * 3 + 0);
+			devLineCullClip(v2, v3, { 0,1,0,0 }, { 0,0,1,0 }, primId * 3 + 1);
+			devLineCullClip(v3, v1, { 0,0,1,0 }, { 1,0,0,0 }, primId * 3 + 2);
+		}
+		IFRIT_KERNEL void lineGeometryKernelEntryWithGS() {
+			int numTriangles = dGeometryShaderOutSize;
+			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(numTriangles/ CU_TRIANGLE_STRIDE, CU_GEOMETRY_PROCESSING_THREADS);
+			lineGeometryAssemblyKernel<1> CU_KARG2(dispatchBlocks, CU_GEOMETRY_PROCESSING_THREADS)(nullptr, nullptr, 0, numTriangles);
 		}
 	}
 	namespace LineRasterizationStage {
@@ -1251,19 +1270,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					v2y ^= v1y;
 				}
 				int cx = v1x, cy = v1y;
-				float dslope = 1.0f * (v2y - v1y) / (v2x - v1x);
+				float dslope = abs(1.0f * (v2y - v1y) / (v2x - v1x));
+				int ystep = ((v2y - v1y) > 0) ? 1 : -1;
 				float d = 0.0f;
 				int storeStart = atomicAdd(&dLineRasterOutSize, (v2x - v1x + 1));
-				for (int i = 0; i <= v2x-v1x+1; i++) {
+				for (int i = 0; i <= v2x-v1x; i++) {
 					int pixelId = cy * CU_MAX_FRAMEBUFFER_WIDTH + cx;
 					dLineRasterOut[storeStart + i].x = globalInvo;
 					dLineRasterOut[storeStart + i].y = pixelId;
 					atomicAdd(&dSecondBinnerFinerBufferSizePoint[pixelId], 1);
 					d += dslope;
-					if (d >= 1.0f)d -= 1.0f;
-					if (d <= -1.0f)d += 1.0f;
-					if (d > 0.5)cy++;
-					if (d < -0.5)cy--;
+					if (d > 0.5) {
+						cy += ystep;
+						d -= 1.0;
+					}
 					cx++;
 				}
 			}
@@ -1277,19 +1297,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					v2y ^= v1y;
 				}
 				int cx = v1x, cy = v1y;
-				float dslope = 1.0f * (v2y - v1y) / (v2x - v1x);
+				float dslope = abs( 1.0f * (v2x - v1x) / (v2y - v1y));
+				int ystep = ((v2x - v1x) > 0) ? 1 : -1;
 				float d = 0.0f;
 				int storeStart = atomicAdd(&dLineRasterOutSize, (v2y - v1y + 1));
-				for (int i = 0; i <= v2y - v1y + 1; i++) {
+				for (int i = 0; i <= v2y - v1y; i++) {
 					int pixelId = cy * CU_MAX_FRAMEBUFFER_WIDTH + cx;
 					dLineRasterOut[storeStart + i].x = globalInvo;
 					dLineRasterOut[storeStart + i].y = pixelId;
 					atomicAdd(&dSecondBinnerFinerBufferSizePoint[pixelId], 1);
 					d += dslope;
-					if (d >= 1.0f)d -= 1.0f;
-					if (d <= -1.0f)d += 1.0f;
-					if (d > 0.5)cx++;
-					if (d < -0.5)cx--;
+					if (d > 0.5) {
+						cx += ystep;
+						d -= 1.0;
+					}
 					cy++;
 				}
 			}
@@ -1313,6 +1334,18 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int orgPrimId = dAtriOriginalPrimId[prId];
 			int ds = atomicAdd(&dSecondBinnerFinerBufferCurIndPoint[pixelId], 1);
 			dSecondBinnerFinerBufferPoint[ds] = prId;
+		}
+
+		IFRIT_KERNEL void bresenhamRasterizationEntryKernel() {
+			auto total = dAssembledTriangleCounterM2;
+			auto dispatchBlocks = IFRIT_InvoGetThreadBlocks(total, CU_LINE_RASTERIZATION_FIRST_THREADS);
+			bresenhamRasterizationKernel CU_KARG2(dispatchBlocks, CU_LINE_RASTERIZATION_FIRST_THREADS)(total);
+		}
+
+		IFRIT_KERNEL void linerRasterPlaceEntryKernel() {
+			auto total = dSecondBinnerFinerBufferGlobalSize;
+			auto dispatchBlocks = IFRIT_InvoGetThreadBlocks(total, CU_LINE_RASTERIZATION_PLACE_THREADS);
+			linerRasterPlaceKernel CU_KARG2(dispatchBlocks, CU_LINE_RASTERIZATION_PLACE_THREADS)(total);
 		}
 	}
 
@@ -1655,6 +1688,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace LineFragmentStage {
+
+		template <int geometryShaderEnabled>
 		IFRIT_KERNEL void pixelShadingKernel(
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
@@ -1672,31 +1707,93 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int localDepth = 1e9;
 			IFRIT_SHARED float colorOutputSingle[256 * 4];
 			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
-			auto getPerspectiveZ = [&](float4 v1, float4 v2) {
-				float deltaX = abs(v2.x - v1.x);
-				float deltaY = abs(v2.y - v1.y);
-				using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
-				//TODO: Branch Divergence
-				if (deltaX >= deltaY) {
-					float percent = (pixelX - v1.x) / (v2.x - v1.x);
-					return lerp(v1.z, v2.z, percent);
-				}
-				else {
-					float percent = (pixelY - v1.y) / (v2.y - v1.y);
-					return lerp(v1.z, v2.z, percent);
-				}
-			};
-			auto shadingPass = [&](int primId) {
-
-			};
-			auto zPrePass = [&](int primId) {
-				float4 v1 = dAtriInterpolBase1[primId];
-				float4 v2 = dAtriInterpolBase2[primId];
+			auto getPercent = [&](float4 v1, float4 v2) {
 				v1.x *= csFrameWidth;
 				v1.y *= csFrameHeight;
 				v2.x *= csFrameWidth;
 				v2.y *= csFrameHeight;
-				auto zVal = getPerspectiveZ(v1, v2);
+				float deltaX = abs(v2.x - v1.x);
+				float deltaY = abs(v2.y - v1.y);
+				//TODO: Branch Divergence
+				if (deltaX >= deltaY) {
+					float percent = (pixelX - v1.x) / (v2.x - v1.x);
+					return percent;
+				}
+				else {
+					float percent = (pixelY - v1.y) / (v2.y - v1.y);
+					return percent;
+				}
+			};
+			auto shadingPass = [&](int primId) {
+				//TODO: Optimization for primitive
+				float4 v1 = dAtriInterpolBase1[primId];
+				float4 v2 = dAtriInterpolBase2[primId];
+				auto percent = getPercent(v1, v2);
+				float z1 = v1.w, z2 = v2.w;
+				//zt = 1/(1/z1+s(1/z2-1/z1)
+				//zt = z1z2/(z2+s(z1-z2))
+				float zt = z1 * z2 / (z2 + percent * (z1 - z2));
+				int orgPrimId = dAtriOriginalPrimId[primId];
+				int intPrimId = orgPrimId % 3;
+				orgPrimId /= 3;
+
+				int idx1, idx2;
+				if constexpr (geometryShaderEnabled) {
+					idx1 = orgPrimId * CU_TRIANGLE_STRIDE + intPrimId;
+					idx2 = orgPrimId * CU_TRIANGLE_STRIDE + (intPrimId + 1) % 3;
+				}
+				else {
+					idx1 = dIndexBuffer[orgPrimId * CU_TRIANGLE_STRIDE + intPrimId];
+					idx2 = dIndexBuffer[orgPrimId * CU_TRIANGLE_STRIDE + (intPrimId + 1) % 3];
+				}
+				
+				for (int i = 0; i < csVaryingCounts; i++) {
+					float4 vary1, vary2;
+					if constexpr (geometryShaderEnabled) {
+						vary1 = dGeometryShaderOutVaryings[idx1 * csVaryingCounts + i];
+						vary2 = dGeometryShaderOutVaryings[idx2 * csVaryingCounts + i];
+					}
+					else {
+						vary1 = dVaryingBuffer[idx1 * csVaryingCounts + i];
+						vary2 = dVaryingBuffer[idx2 * csVaryingCounts + i];
+					}
+					vary1.x /= z1;
+					vary1.y /= z1;
+					vary1.z /= z1;
+					vary1.w /= z1;
+					vary2.x /= z2;
+					vary2.y /= z2;
+					vary2.z /= z2;
+					vary2.w /= z2;
+
+					float4 vd;
+					vd.x = (percent * (vary2.x - vary1.x) + vary1.x) * zt;
+					vd.y = (percent * (vary2.y - vary1.y) + vary1.y) * zt;
+					vd.z = (percent * (vary2.z - vary1.z) + vary1.z) * zt;
+					vd.w = (percent * (vary2.w - vary1.w) + vary1.w) * zt;
+
+					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * i + threadIdx.x);
+					dest->x = vd.x;
+					dest->y = vd.y;
+					dest->z = vd.z;
+					dest->w = vd.w;
+				}
+				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x);
+				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
+				ifloat4 finalRgba;
+				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadIdx.x))[0];
+				finalRgba.x = midOutput.x;
+				finalRgba.y = midOutput.y;
+				finalRgba.z = midOutput.z;
+				finalRgba.w = midOutput.w;
+				col0[globalInvo] = finalRgba;
+			};
+			auto zPrePass = [&](int primId) {
+				float4 v1 = dAtriInterpolBase1[primId];
+				float4 v2 = dAtriInterpolBase2[primId];
+				auto percent = getPercent(v1, v2);
+				using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+				auto zVal = lerp(v1.z, v2.z, percent);
 				if (zVal < localDepth) {
 					actPrim = primId;
 					localDepth = zVal;
@@ -2087,6 +2184,49 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 		}
 	}
+	namespace LinePipeline {
+		IFRIT_KERNEL void unifiedLineRasterEngineKernel(int totalIndices,
+			ifloat4* dPositionBuffer,
+			int* dIndexBuffer,
+			const float4* dVaryingBuffer,
+			ifloat4** dColorBuffer,
+			float* dDepthBuffer,
+			GeometryShader* dGeometryShader,
+			FragmentShader* dFragmentShader
+		) {
+			for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
+				auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
+				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
+				int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_LINE_GEOMETRY_THREADS);
+				if (geometryExecutionBlocks == 0)continue;
+				if (dGeometryShader != nullptr) {
+					int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
+					GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (i, indexCount, dGeometryShader, (float4*)dPositionBuffer,
+						dIndexBuffer, dVaryingBuffer);
+					LineGeometryStage::lineGeometryKernelEntryWithGS CU_KARG2(1, 1)();
+				}
+				else {
+					LineGeometryStage::lineGeometryAssemblyKernel<0> CU_KARG2(geometryExecutionBlocks, CU_LINE_GEOMETRY_THREADS)(
+						dPositionBuffer, dIndexBuffer, i, indexCount);
+				}
+				LineRasterizationStage::bresenhamRasterizationEntryKernel CU_KARG2(1, 1) ();
+				int allocBlocks = IFRIT_InvoGetThreadBlocks(csFrameHeight * csFrameWidth, 128);
+				LineRasterizationStage::lineRasterAllocKernel CU_KARG2(allocBlocks, 128)();
+				LineRasterizationStage::linerRasterPlaceEntryKernel CU_KARG2(1, 1) ();
+				int psBlocks = IFRIT_InvoGetThreadBlocks(csFrameHeight * csFrameWidth, 256);
+				if (dGeometryShader != nullptr) {
+					LineFragmentStage::pixelShadingKernel<1> CU_KARG2(psBlocks, 256)(dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+				}
+				else {
+					LineFragmentStage::pixelShadingKernel<0> CU_KARG2(psBlocks, 256)(dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+				}
+				
+				TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_TILE_SIZE * CU_MAX_SUBTILES_PER_TILE, CU_TILE_SIZE)(true);
+				int rsBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_FRAMEBUFFER_SIZE, 256);
+				LineMiscStage::resetLineRasterizerKernel CU_KARG2(rsBlocks, 256)();
+			}
+		}
+	}
 
 	IFRIT_KERNEL void updateFragmentShaderKernel(FragmentShader* fragmentShader) {
 		for (int i = 0; i < CU_MAX_TEXTURE_SLOTS; i++) {
@@ -2271,6 +2411,18 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		}
 	}
 
+	void invokeLineProcessing(const RenderingInvocationArgumentSet& args, cudaStream_t& computeStream) {
+		if constexpr (CU_PROFILER_II_CPU_NSIGHT) {
+			printf("Profiler for point mode is not supported now\n");
+			std::abort();
+		}
+		else {
+			Impl::LinePipeline::unifiedLineRasterEngineKernel CU_KARG4(1, 1, 0, computeStream)(
+				args.totalIndices, args.dPositionBuffer, args.dIndexBuffer, args.deviceContext->dVaryingBufferM2,
+				args.dColorBuffer, args.dDepthBuffer, args.dGeometryShader, args.dFragmentShader);
+		}
+	}
+
 	void invokeCudaRendering(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW {
 		// Stream Preparation
 		static int initFlag = 0;
@@ -2328,6 +2480,9 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		}
 		else if (args.polygonMode == IF_POLYGON_MODE_POINT) {
 			invokePointProcessing(args, computeStream);
+		}
+		else if (args.polygonMode == IF_POLYGON_MODE_LINE) {
+			invokeLineProcessing(args, computeStream);
 		}
 		else {
 			printf("Unsupported polygon mode\n");

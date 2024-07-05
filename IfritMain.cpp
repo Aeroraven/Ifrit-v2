@@ -184,14 +184,43 @@ int mainGpu() {
 	std::shared_ptr<TileRasterRendererCuda> renderer = std::make_shared<TileRasterRendererCuda>();
 	FrameBuffer frameBuffer;
 	VertexBuffer vertexBuffer;
+	std::vector<int> indexBuffer;
+
+
 	vertexBuffer.setLayout({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 	vertexBuffer.allocateBuffer(pos.size());
-
 	for (int i = 0; i < pos.size(); i++) {
 		vertexBuffer.setValue(i, 0, ifloat4(pos[i].x, pos[i].y, pos[i].z, 1));
 		vertexBuffer.setValue(i, 1, ifloat4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
 		vertexBuffer.setValue(i, 2, ifloat4(procUv[i].x, procUv[i].y, 0, 0));
 	}
+	indexBuffer.resize(index.size() / 3);
+	for (int i = 0; i < index.size(); i += 3) {
+		indexBuffer[i / 3] = index[i];
+	}
+	
+	/*
+	vertexBuffer.setVertexCount(4);
+	vertexBuffer.allocateBuffer(4);
+	//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
+	//vertexBuffer.setValue(1, 0, ifloat4(0.0000,0.3294,-0.1037,-0.0037));
+	//vertexBuffer.setValue(2, 0, ifloat4(0.0000,0.3487,-0.0971,-0.0028));
+	vertexBuffer.setValue(0, 0, ifloat4(-0.5, 0.5, -0.1, 1));
+	vertexBuffer.setValue(1, 0, ifloat4(-0.5, -0.5, -0.1, 1));
+	vertexBuffer.setValue(2, 0, ifloat4(0.5, -0.5, -0.1, 1));
+	vertexBuffer.setValue(3, 0, ifloat4(0.7, 0.2, -0.1, 1));
+	vertexBuffer.setValue(0, 1, ifloat4(0.1, 0, 0.1, 0));
+	vertexBuffer.setValue(1, 1, ifloat4(0.1, 0, 0.1, 0));
+	vertexBuffer.setValue(2, 1, ifloat4(0.1, 0, 0.1, 0));
+	vertexBuffer.setValue(3, 1, ifloat4(0.1, 0, 0.1, 0));
+	vertexBuffer.setValue(0, 2, ifloat4(0.1, 0, 0.1, 0));
+	vertexBuffer.setValue(1, 2, ifloat4(0.1, 0, 0.1, 0));
+	vertexBuffer.setValue(2, 2, ifloat4(0.1, 0, 0.1, 0));
+	vertexBuffer.setValue(3, 2, ifloat4(0.1, 0, 0.1, 0));
+	indexBuffer = { 2,3,0 };*/
+
+
+	printf("Total Tris:%d\n", indexBuffer.size() / 3);
 
 	std::vector<float> texFox;
 	int texFoxW, texFoxH;
@@ -199,12 +228,7 @@ int mainGpu() {
 	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/fox_diffuse.png", &texFox, &texFoxH, &texFoxW);
 	renderer->createTextureRaw(0, texFoxW, texFoxH, texFox.data());
 
-	std::vector<int> indexBuffer;
-	indexBuffer.resize(index.size() /3);
-	for (int i = 0; i < index.size(); i += 3) {
-		indexBuffer[i / 3] = index[i];
-	}
-	printf("Total Tris:%d\n", indexBuffer.size() / 3);
+	
 	frameBuffer.setColorAttachments({ image1 });
 	frameBuffer.setDepthAttachment(depth);
 
@@ -225,7 +249,7 @@ int mainGpu() {
 	renderer->bindFragmentShader(dFragmentShader);
 	renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
 	renderer->bindGeometryShader(dGeometryShader);
-	renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_POINT);
+	renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_LINE);
 
 	printf("Start\n");
 	GLFWWindowProvider windowProvider;
