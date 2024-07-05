@@ -253,6 +253,9 @@ int mainGpu() {
 
 	IfritSamplerT sampler;
 	sampler.filterMode = IF_FILTER_LINEAR;
+	sampler.addressModeU = IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+	sampler.addressModeV = IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+	sampler.borderColor = IF_BORDER_COLOR_WHITE;
 	renderer->createSampler(0, sampler);
 
 	printf("Start\n");

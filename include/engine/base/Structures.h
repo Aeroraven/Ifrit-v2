@@ -6,5 +6,6 @@ namespace Ifrit::Engine {
 		IfritSamplerAddressMode addressModeU = IF_SAMPLER_ADDRESS_MODE_REPEAT;
 		IfritSamplerAddressMode addressModeV = IF_SAMPLER_ADDRESS_MODE_REPEAT;
 		IfritSamplerAddressMode addressModeW = IF_SAMPLER_ADDRESS_MODE_REPEAT;
+		IfritBorderColor borderColor = IF_BORDER_COLOR_BLACK;
 	};
 }

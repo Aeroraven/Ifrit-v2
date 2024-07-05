@@ -10,6 +10,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		float cX = uv.x * (texW-1) + offset.x;
 		float cY = uv.y * (texH-1) + offset.y;
 		int pX, pY;
+		float4 borderColor = ((sampler.borderColor == IF_BORDER_COLOR_BLACK) ? float4{ 0.0f,0.0f,0.0f,1.0f }: float4{1.0f, 1.0f, 1.0f, 1.0f});
 		//Address Mode U
 		if (sampler.addressModeU == IF_SAMPLER_ADDRESS_MODE_REPEAT) {
 			if (cX < 0)cX += texW;
@@ -18,6 +19,11 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		else if(sampler.addressModeU == IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE) {
 			cX = clamp(cX, 0.0f, texW - 1.0f);
 		}
+		else if (sampler.addressModeU == IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER) {
+			if (cX >= texW || cX < 0.0) {
+				return borderColor;
+			}
+		}
 		//Address Mode V
 		if (sampler.addressModeV == IF_SAMPLER_ADDRESS_MODE_REPEAT) {
 			if (cY < 0)cY += texH;
@@ -25,6 +31,11 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		}
 		else if (sampler.addressModeV == IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE) {
 			cY = clamp(cY, 0.0f, texH - 1.0f);
+		}
+		else if (sampler.addressModeV == IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER) {
+			if (cY >= texH || cY < 0.0) {
+				return borderColor;
+			}
 		}
 		//Filter Mode
 		if (sampler.filterMode == IF_FILTER_NEAREST) {
@@ -47,7 +58,6 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 			using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
 			float4 c0x = lerp(c00, c01, propX);
 			float4 c1x = lerp(c10, c11, propX);
-			//printf("%f %f\n", propX, propY);
 			return lerp(c0x, c1x, propY);
 		}
 	}

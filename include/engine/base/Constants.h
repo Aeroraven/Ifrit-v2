@@ -15,4 +15,8 @@ namespace Ifrit::Engine {
 		IF_FILTER_NEAREST = 0,
 		IF_FILTER_LINEAR = 1
 	};
+	enum IfritBorderColor {
+		IF_BORDER_COLOR_BLACK = 0,
+		IF_BORDER_COLOR_WHITE = 1
+	};
 }
