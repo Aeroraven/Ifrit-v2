@@ -52,6 +52,8 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Point                             |                                                              |                 | √ ▲           |
 | **Texture**                       |                                                              |                 |               |
 | Basic Support (Sampler)           |                                                              |                 | √             |
+| Blit                              |                                                              |                 | √             |
+| Mipmap                            |                                                              |                 | √             |
 | Filter                            |                                                              |                 | √             |
 | Sampler Address Mode              |                                                              |                 | √             |
 | **Presentation**                  |                                                              |                 |               |
@@ -143,10 +145,16 @@ Some dependencies should be prepared before compiling.
   - Resolution Change
 - Tessellation
 - <s>Line Mode</s>
-- Texture LOD & Texture Sampler
+- <s>Texture LOD & Texture Sampler</s>s
+  - Shader Derivatives
+  - Anisotropic Filtering
+  - Dynamic LOD Selection & Texture Bias
+  - Cubic Texture
+
 - Multi-sampling
 - Alpha Blending
 - Mesh Shader
+- Input Topology
 - Triangle Cluster & Cluster LOD
 - Known Issues
   - Overdraw: Point mode with index buffer

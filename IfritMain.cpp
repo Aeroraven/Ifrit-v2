@@ -214,10 +214,10 @@ int mainGpu() {
 	vertexBuffer.setValue(2, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(3, 1, ifloat4(0.1, 0, 0.1, 0));
 
-	vertexBuffer.setValue(0, 2, ifloat4(0.0, 2.0, 0.1, 0));
+	vertexBuffer.setValue(0, 2, ifloat4(0.0, 1.0, 0.1, 0));
 	vertexBuffer.setValue(1, 2, ifloat4(0.0, 0.0, 0.1, 0));
-	vertexBuffer.setValue(2, 2, ifloat4(2.0, 0.0, 0.1, 0));
-	vertexBuffer.setValue(3, 2, ifloat4(2.0, 2.0, 0.1, 0));
+	vertexBuffer.setValue(2, 2, ifloat4(1.0, 0.0, 0.1, 0));
+	vertexBuffer.setValue(3, 2, ifloat4(1.0, 1.0, 0.1, 0));
 	indexBuffer = { 0,1,2,2,3,0 };
 
 
@@ -227,10 +227,13 @@ int mainGpu() {
 	int texFoxW, texFoxH;
 	ImageLoader imageLoader;
 	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/nanachi.png", &texFox, &texFoxH, &texFoxW);
+
 	IfritImageCreateInfo imageCI;
 	imageCI.extent.height = texFoxH;
 	imageCI.extent.width = texFoxW;
+	imageCI.mipLevels = 2;
 	renderer->createTextureRaw(0, imageCI, texFox.data());
+	renderer->generateMipmap(0, IF_FILTER_LINEAR);
 
 	
 	frameBuffer.setColorAttachments({ image1 });
@@ -256,9 +259,9 @@ int mainGpu() {
 	//renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_LINE);
 
 	IfritSamplerT sampler;
-	sampler.filterMode = IF_FILTER_LINEAR;
-	sampler.addressModeU = IF_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-	sampler.addressModeV = IF_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+	sampler.filterMode = IF_FILTER_NEAREST;
+	sampler.addressModeU = IF_SAMPLER_ADDRESS_MODE_REPEAT;
+	sampler.addressModeV = IF_SAMPLER_ADDRESS_MODE_REPEAT;
 	sampler.borderColor = IF_BORDER_COLOR_WHITE;
 	renderer->createSampler(0, sampler);
 

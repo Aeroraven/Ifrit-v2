@@ -2,6 +2,9 @@
 #include "./core/definition/CoreTypes.h"
 #include "./core/definition/CoreDefs.h"
 
+#define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
+#define IFRIT_InvoCeilRshift(x,y) (((x)+((1<<(y))-1))>>(y))
+
 namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 	template<class T>
 	IFRIT_DUAL inline T clamp(const T& x, const T& mi, const T& ma) {
