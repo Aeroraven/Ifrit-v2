@@ -161,6 +161,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static float4 dGeometryShaderOutPos[CU_GS_OUT_BUFFER_SIZE];
 	IFRIT_DEVICE static float4 dGeometryShaderOutVaryings[CU_GS_OUT_BUFFER_SIZE * CU_MAX_VARYINGS];
 
+	// Pixel Shader Tags
+	IFRIT_DEVICE static int dPixelShaderTags[CU_MAX_FRAMEBUFFER_SIZE];
+
 	// Profiler: Overdraw
 	IFRIT_DEVICE static int dOverDrawCounter;
 	IFRIT_DEVICE static int dOverZTestCounter;
@@ -1435,8 +1438,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace TriangleFragmentStage {
-		template <int geometryShaderEnabled>
-		IFRIT_KERNEL void pixelShadingKernel(
+		IFRIT_KERNEL void pixelTaggingExecKernel(
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
@@ -1468,74 +1470,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int candidatePrim = -1;
 			const float compareDepth = dDepthBuffer[pixelYS * frameWidth + pixelXS];
 			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
-
-			IFRIT_SHARED float colorOutputSingle[256 * 4];
-			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
-			auto shadingPass = [&](const int pId) {
-				float4 f1o = dAtriInterpolBase1[pId];
-				float4 f2o = dAtriInterpolBase2[pId];
-				float f3o = dAtriInterpolBase3[pId];
-
-				float3 f1 = { f1o.x,f1o.y,f1o.z };
-				float3 f2 = { f1o.w,f2o.x,f2o.y };
-				float3 f3 = { f2o.z,f2o.w,f3o };
-
-				float4 b12 = dAtriBaryCenter12[pId];
-				float2 b3 = dAtriBaryCenter3[pId];
-				int orgPrimId = dAtriOriginalPrimId[pId];
-
-				candidateBary[0] = (f1.x * pDx + f1.y * pDy + f1.z);
-				candidateBary[1] = (f2.x * pDx + f2.y * pDy + f2.z);
-				candidateBary[2] = (f3.x * pDx + f3.y * pDy + f3.z);
-				float zCorr = 1.0f / (candidateBary[0] + candidateBary[1] + candidateBary[2]);
-				candidateBary[0] *= zCorr;
-				candidateBary[1] *= zCorr;
-				candidateBary[2] *= zCorr;
-
-				float desiredBary[3];
-				desiredBary[0] = candidateBary[0] * b12.x + candidateBary[1] * b12.z + candidateBary[2] * b3.x;
-				desiredBary[1] = candidateBary[0] * b12.y + candidateBary[1] * b12.w + candidateBary[2] * b3.y;
-				desiredBary[2] = 1.0f - (desiredBary[0] + desiredBary[1]);
-				auto addr = dIndexBuffer + orgPrimId * vertexStride;
-				for (int k = 0; k < varyingCount; k++) {
-					const auto va = dVaryingBuffer;
-					float4 vd;
-					vd = { 0,0,0,0 };
-					for (int j = 0; j < 3; j++) {
-						float4 vaf4;
-						if constexpr (geometryShaderEnabled) {
-							vaf4 = dGeometryShaderOutVaryings[orgPrimId * 3 * varyingCount + k + j * varyingCount];
-						}
-						else {
-							vaf4 = va[addr[j] * varyingCount + k];
-						}
-						vd.x += vaf4.x * desiredBary[j];
-						vd.y += vaf4.y * desiredBary[j];
-						vd.z += vaf4.z * desiredBary[j];
-						vd.w += vaf4.w * desiredBary[j];
-					}
-					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadId);
-					dest->x = vd.x;
-					dest->y = vd.y;
-					dest->z = vd.z;
-					dest->w = vd.w;
-				}
-
-				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId);
-
-				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
-				ifloat4 finalRgba;
-				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadId))[0];
-				finalRgba.x = midOutput.x;
-				finalRgba.y = midOutput.y;
-				finalRgba.z = midOutput.z;
-				finalRgba.w = midOutput.w;
-
-				col0[pixelYS * frameWidth + pixelXS] = finalRgba;
-				if constexpr (CU_PROFILER_OVERDRAW) {
-					atomicAdd(&dOverDrawCounter, 1);
-				}
-			};
 
 			auto zPrePass = [&](int primId) {
 				float interpolatedDepth;
@@ -1616,9 +1550,131 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				}
 			}
 			if (candidatePrim != -1 && localDepthBuffer < compareDepth) {
-				shadingPass(candidatePrim);
 				dDepthBuffer[pixelYS * frameWidth + pixelXS] = localDepthBuffer;
+				
 			}
+			int quadIdX = pixelXS >> 1;
+			int quadOfX = pixelXS & 1;
+			int quadIdY = pixelYS >> 1;
+			int quadOfY = pixelYS & 1;
+			int quadId = (quadIdY * CU_MAX_FRAMEBUFFER_WIDTH + quadIdX) * 4 + (quadOfY * 2 + quadOfX);
+			dPixelShaderTags[quadId] = candidatePrim;
+		}
+
+		template <int geometryShaderEnabled>
+		IFRIT_KERNEL void pixelShadingExecKernel(
+			FragmentShader* fragmentShader,
+			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
+			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			float* IFRIT_RESTRICT_CUDA dDepthBuffer
+		) {
+			IFRIT_SHARED float colorOutputSingle[256 * 4];
+			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
+			float candidateBary[3];
+
+			const int pixelXS = (threadIdx.x & 1) + (threadIdx.y + blockDim.y * blockIdx.y) * 2;
+			const int pixelYS = (threadIdx.x >> 1) + (threadIdx.z + blockDim.z * blockIdx.z) * 2;
+
+			if (pixelXS >= csFrameWidth || pixelYS >= csFrameHeight)return;
+			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
+			constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
+			auto varyingCount = csVaryingCounts;
+			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
+
+			auto shadingPass = [&](const int pId,const bool isHelperInvocation) {
+				float4 f1o = dAtriInterpolBase1[pId];
+				float4 f2o = dAtriInterpolBase2[pId];
+				float f3o = dAtriInterpolBase3[pId];
+
+				float3 f1 = { f1o.x,f1o.y,f1o.z };
+				float3 f2 = { f1o.w,f2o.x,f2o.y };
+				float3 f3 = { f2o.z,f2o.w,f3o };
+
+				float4 b12 = dAtriBaryCenter12[pId];
+				float2 b3 = dAtriBaryCenter3[pId];
+				int orgPrimId = dAtriOriginalPrimId[pId];
+
+				candidateBary[0] = (f1.x * pDx + f1.y * pDy + f1.z);
+				candidateBary[1] = (f2.x * pDx + f2.y * pDy + f2.z);
+				candidateBary[2] = (f3.x * pDx + f3.y * pDy + f3.z);
+				float zCorr = 1.0f / (candidateBary[0] + candidateBary[1] + candidateBary[2]);
+				candidateBary[0] *= zCorr;
+				candidateBary[1] *= zCorr;
+				candidateBary[2] *= zCorr;
+
+				float desiredBary[3];
+				desiredBary[0] = candidateBary[0] * b12.x + candidateBary[1] * b12.z + candidateBary[2] * b3.x;
+				desiredBary[1] = candidateBary[0] * b12.y + candidateBary[1] * b12.w + candidateBary[2] * b3.y;
+				desiredBary[2] = 1.0f - (desiredBary[0] + desiredBary[1]);
+				auto addr = dIndexBuffer + orgPrimId * vertexStride;
+				
+				for (int k = 0; k < varyingCount; k++) {
+					const auto va = dVaryingBuffer;
+					float4 vd;
+					vd = { 0,0,0,0 };
+					for (int j = 0; j < 3; j++) {
+						float4 vaf4;
+						if constexpr (geometryShaderEnabled) {
+							vaf4 = dGeometryShaderOutVaryings[orgPrimId * 3 * varyingCount + k + j * varyingCount];
+						}
+						else {
+							vaf4 = va[addr[j] * varyingCount + k];
+						}
+						vd.x += vaf4.x * desiredBary[j];
+						vd.y += vaf4.y * desiredBary[j];
+						vd.z += vaf4.z * desiredBary[j];
+						vd.w += vaf4.w * desiredBary[j];
+					}
+					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadId);
+					dest->x = vd.x;
+					dest->y = vd.y;
+					dest->z = vd.z;
+					dest->w = vd.w;
+				}
+				if (isHelperInvocation) {
+					return;
+				}
+				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId);
+				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
+				ifloat4 finalRgba;
+				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadId))[0];
+				finalRgba.x = midOutput.x;
+				finalRgba.y = midOutput.y;
+				finalRgba.z = midOutput.z;
+				finalRgba.w = midOutput.w;
+
+				col0[pixelYS * csFrameWidth + pixelXS] = finalRgba;
+				if constexpr (CU_PROFILER_OVERDRAW) {
+					atomicAdd(&dOverDrawCounter, 1);
+				}
+			};
+
+			//Process Quad
+			int dw[4];
+			int quadInternal = threadIdx.x;
+			int quadX = (threadIdx.y + blockDim.y * blockIdx.y);
+			int quadY = (threadIdx.z + blockDim.z * blockIdx.z);
+			int quadIdx = (quadY * CU_MAX_FRAMEBUFFER_WIDTH + quadX) * 4;
+			int selfV = dPixelShaderTags[quadIdx + quadInternal];
+			if constexpr (CU_OPT_SHADER_DERIVATIVES) {
+				for (int i = 0; i < 4; i++) {
+					int tagId = dPixelShaderTags[quadIdx + i];
+					dw[i] = tagId;
+					if (tagId == -1)continue;
+					bool flag = false;
+					for (int j = 0; j < i; j++) {
+						if (tagId == dw[j])flag = true;
+					}
+					if (flag)continue;
+					shadingPass(tagId, tagId != selfV);
+				}
+			}
+			else {
+				if (selfV == -1)return;
+				shadingPass(selfV,false);
+			}
+			
 		}
 	}
 	namespace PointFragmentStage {
@@ -2011,11 +2067,21 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				int numTileY = (csFrameHeight / CU_TILE_WIDTH) + (csFrameHeight % CU_TILE_WIDTH != 0);
 				int dispZ = (CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH) + (CU_TILE_WIDTH % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
 				if (dGeometryShader == nullptr) {
-					Impl::TriangleFragmentStage::pixelShadingKernel<0> CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
+					Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
 						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+					int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth / 2, 8);
+					int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight / 2, 8);
+					Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
+						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+
 				}
 				else {
-					Impl::TriangleFragmentStage::pixelShadingKernel<1> CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
+					Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
+						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+					
+					int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth / 2, 8);
+					int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight / 2, 8);
+					Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
 						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
 				}
 				Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_TILE_SIZE * CU_MAX_SUBTILES_PER_TILE, CU_TILE_SIZE)(isLast);
@@ -2125,15 +2191,16 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					int numTileX = (hsFrameWidth / CU_TILE_WIDTH) + (hsFrameWidth % CU_TILE_WIDTH != 0);
 					int numTileY = (hsFrameHeight / CU_TILE_WIDTH) + (hsFrameHeight % CU_TILE_WIDTH != 0);
 					int dispZ = (CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH) + (CU_TILE_WIDTH % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
+					std::abort();
 					if (dGeometryShader == nullptr) {
-						Impl::TriangleFragmentStage::pixelShadingKernel<0> CU_KARG4(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ), 0, compStream) (
-							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
-							);
+						//Impl::TriangleFragmentStage::pixelTaggingKernel<0> CU_KARG4(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ), 0, compStream) (
+						//	dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
+						//	);
 					}
 					else {
-						Impl::TriangleFragmentStage::pixelShadingKernel<1> CU_KARG4(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ), 0, compStream) (
-							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
-							);
+						//Impl::TriangleFragmentStage::pixelTaggingKernel<1> CU_KARG4(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ), 0, compStream) (
+						//	dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
+						//	);
 					}
 					Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG4(CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, CU_MAX_TILE_X, 0, compStream)(isLast);
 				}
@@ -2245,7 +2312,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		for (int i = 0; i < CU_MAX_SAMPLER_SLOTS; i++) {
 			fragmentShader->atSamplerPtr[i] = csSamplers[i];
 		}
-		
 	}
 }
 

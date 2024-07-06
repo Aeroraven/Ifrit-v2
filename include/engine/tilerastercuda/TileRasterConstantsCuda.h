@@ -81,6 +81,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_VECTOR_HIERARCHY_LEVEL = 10;
 
 	// == Options ==
+	constexpr bool CU_OPT_SHADER_DERIVATIVES = true;
 	constexpr bool CU_OPT_HOMOGENEOUS_DISCARD = false;
 	constexpr bool CU_OPT_CUDA_PROFILE = true;
 	constexpr bool CU_OPT_PREALLOCATED_TRIANGLE_LIST = false;
