@@ -2278,8 +2278,10 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		Impl::hsTextures[texId] = (float*)devicePtr;
 		Impl::hsTextureHeight[texId] = texHeight;
 		Impl::hsTextureWidth[texId] = texWid;
-		cudaMemcpyToSymbol(Impl::csTextures, &Impl::hsTextures[texId], sizeof(float*), sizeof(float*)*texId);
-		cudaMemcpyToSymbol(Impl::csTextureHeight, &Impl::hsTextureHeight[texId], sizeof(int), sizeof(int)*texId);
+		Impl::hsTextureMipLevels[texId] = createInfo.mipLevels;
+		cudaMemcpyToSymbol(Impl::csTextures, &Impl::hsTextures[texId], sizeof(float*), sizeof(float*) * texId);
+		cudaMemcpyToSymbol(Impl::csTextureHeight, &Impl::hsTextureHeight[texId], sizeof(int), sizeof(int) * texId);
+		cudaMemcpyToSymbol(Impl::csTextureMipLevels, &Impl::hsTextureMipLevels[texId], sizeof(int), sizeof(int) * texId);
 		cudaMemcpyToSymbol(Impl::csTextureWidth, &Impl::hsTextureWidth[texId], sizeof(int), sizeof(int)*texId);
 	}
 	void createSampler(uint32_t slotId, const IfritSamplerT& samplerState) {

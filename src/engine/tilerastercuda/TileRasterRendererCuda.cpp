@@ -1,6 +1,7 @@
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
+#include "engine/tilerastercuda/TileRasterImageOpInvocationsCuda.cuh"
 namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::init() {
 		context = std::make_unique<TileRasterContextCuda>();
@@ -94,6 +95,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		if (this->initCudaContext)return;
 		this->initCudaContext = true;
 		cudaDeviceSetLimit(cudaLimitDevRuntimePendingLaunchCount, 8192);
+	}
+	void TileRasterRendererCuda::generateMipmap(int slotId, IfritFilter filter) {
+		Invocation::invokeMipmapGeneration(slotId, filter);
 	}
 	void TileRasterRendererCuda::render() {
 		initCuda();

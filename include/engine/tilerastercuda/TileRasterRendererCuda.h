@@ -52,6 +52,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		
 		void createTextureRaw(int slotId, const IfritImageCreateInfo& createInfo, float* data);
 		void createSampler(int slotId, const IfritSamplerT& samplerState);
+		void generateMipmap(int slotId, IfritFilter filter);
 
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
 
