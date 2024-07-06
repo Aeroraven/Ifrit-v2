@@ -75,8 +75,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::bindGeometryShader(GeometryShader* geometryShader) {
 		context->geometryShader = geometryShader;
 	}
-	void TileRasterRendererCuda::createTextureRaw(int slotId, int height, int width, float* data) {
-		Invocation::createTexture(slotId, width, height, data);
+	void TileRasterRendererCuda::createTextureRaw(int slotId, const IfritImageCreateInfo& createInfo, float* data) {
+		Invocation::createTexture(slotId, createInfo, data);
 		needFragmentShaderUpdate = true;
 	}
 	void TileRasterRendererCuda::createSampler(int slotId, const IfritSamplerT& samplerState) {

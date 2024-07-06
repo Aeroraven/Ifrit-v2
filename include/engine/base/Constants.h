@@ -20,4 +20,7 @@ namespace Ifrit::Engine {
 		IF_BORDER_COLOR_BLACK = 0,
 		IF_BORDER_COLOR_WHITE = 1
 	};
+	enum IfritImageTiling {
+		IF_IMAGE_TILING_LINEAR=1
+	};
 }

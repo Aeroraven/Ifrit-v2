@@ -123,6 +123,8 @@
     <ClInclude Include="include\engine\base\Structures.h" />
     <ClInclude Include="include\engine\math\ShaderBuiltinCuda.cuh" />
     <ClInclude Include="include\engine\math\ShaderBuiltin.h" />
+    <ClInclude Include="include\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cuh" />
+    <ClInclude Include="include\engine\tilerastercuda\TileRasterCommonResourceCuda.cuh" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <CudaCompile Include="IfritShaders.cu" />
     <CudaCompile Include="IfritShaders.cuh" />
@@ -166,7 +168,7 @@
   <ItemGroup>
     <ClCompile Include="IfritMain.cpp" />
     <ClCompile Include="src\utility\loader\ImageLoader.cpp" />
-    <CudaCompile Include="include\engine\tilerastercuda\TileRasterInvocationCuda.cuh" />
+    <CudaCompile Include="include\engine\tilerastercuda\TileRasterCoreInvocationCuda.cuh" />
     <ClCompile Include="src\dependency\GLAD\glad.c" />
     <ClCompile Include="src\engine\base\FrameBuffer.cpp" />
     <ClCompile Include="src\engine\base\VaryingDescriptor.cpp" />
@@ -185,7 +187,8 @@
     <ClCompile Include="src\presentation\window\WindowProvider.cpp" />
     <ClCompile Include="src\presentation\window\TerminalProvider.cpp" />
     <ClCompile Include="src\utility\loader\WavefrontLoader.cpp" />
-    <CudaCompile Include="src\engine\tilerastercuda\TileRasterInvocationCuda.cu" />
+    <CudaCompile Include="src\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cu" />
+    <CudaCompile Include="src\engine\tilerastercuda\TileRasterCoreInvocationCuda.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -7,7 +7,7 @@
 #include "utility/loader/WavefrontLoader.h"
 #include "utility/loader/ImageLoader.h"
 #include "engine/math/ShaderOps.h"
-#include "engine/tilerastercuda/TileRasterInvocationCuda.cuh"
+#include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 
@@ -227,7 +227,10 @@ int mainGpu() {
 	int texFoxW, texFoxH;
 	ImageLoader imageLoader;
 	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/nanachi.png", &texFox, &texFoxH, &texFoxW);
-	renderer->createTextureRaw(0, texFoxH, texFoxW, texFox.data());
+	IfritImageCreateInfo imageCI;
+	imageCI.extent.height = texFoxH;
+	imageCI.extent.width = texFoxW;
+	renderer->createTextureRaw(0, imageCI, texFox.data());
 
 	
 	frameBuffer.setColorAttachments({ image1 });

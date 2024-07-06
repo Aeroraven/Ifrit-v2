@@ -2,7 +2,7 @@
 #include "engine/base/Shaders.h"
 #include "engine/math/ShaderOpsCuda.cuh"
 #include "engine/math/ShaderBuiltin.h"
-#include "engine/tilerastercuda/TileRasterInvocationCuda.cuh"
+#include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 
 class DemoVertexShaderCuda : public  Ifrit::Engine::VertexShader {
 public:

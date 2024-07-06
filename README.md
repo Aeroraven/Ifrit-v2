@@ -51,8 +51,8 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Line (Wireframe)                  |                                                              |                 | √ ▲           |
 | Point                             |                                                              |                 | √ ▲           |
 | **Texture**                       |                                                              |                 |               |
-| Basic Support                     |                                                              |                 | √             |
-| Linear / Nearest Filter           |                                                              |                 | √             |
+| Basic Support (Sampler)           |                                                              |                 | √             |
+| Filter                            |                                                              |                 | √             |
 | Sampler Address Mode              |                                                              |                 | √             |
 | **Presentation**                  |                                                              |                 |               |
 | Terminal ASCII                    |                                                              | √               | √             |
@@ -68,6 +68,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 ### Supported Feature Details
 
+- Sampler Filter :`IF_FILTER_NEAREST`, `IF_FILTER_LINEAR`
 - Sampler Address Mode: `IF_SAMPLER_ADDRESS_MODE_REPEAT`, `IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE`, `IF_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER` , `IF_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT`, `IF_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE`
 
 

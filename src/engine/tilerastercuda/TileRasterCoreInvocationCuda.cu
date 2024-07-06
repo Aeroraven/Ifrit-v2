@@ -1,9 +1,11 @@
-#include "engine/tilerastercuda/TileRasterInvocationCuda.cuh"
+#include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "engine/math/ShaderOpsCuda.cuh"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 #include "engine/base/Structures.h"
 #include <cuda_profiler_api.h>
+
+#include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
 
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
 
@@ -20,10 +22,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE_CONST static int csVertexCount = 0;
 	IFRIT_DEVICE_CONST static int csTotalIndices = 0;
 
-	IFRIT_DEVICE_CONST static float* csTextures[CU_MAX_TEXTURE_SLOTS];
-	IFRIT_DEVICE_CONST static int csTextureWidth[CU_MAX_TEXTURE_SLOTS];
-	IFRIT_DEVICE_CONST static int csTextureHeight[CU_MAX_TEXTURE_SLOTS];
-	IFRIT_DEVICE_CONST static IfritSamplerT csSamplers[CU_MAX_SAMPLER_SLOTS];
+	IFRIT_DEVICE_CONST float* csTextures[CU_MAX_TEXTURE_SLOTS];
+	IFRIT_DEVICE_CONST int csTextureWidth[CU_MAX_TEXTURE_SLOTS];
+	IFRIT_DEVICE_CONST int csTextureHeight[CU_MAX_TEXTURE_SLOTS];
+	IFRIT_DEVICE_CONST int csTextureMipLevels[CU_MAX_TEXTURE_SLOTS];
+	IFRIT_DEVICE_CONST IfritSamplerT csSamplers[CU_MAX_SAMPLER_SLOTS];
 
 	static int hsFrameWidth = 0;
 	static int hsFrameHeight = 0;
@@ -35,10 +38,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	static int hsVertexCounts = 0;
 	static int hsTotalIndices = 0;
 
-	static float* hsTextures[CU_MAX_TEXTURE_SLOTS];
-	static int hsTextureWidth[CU_MAX_TEXTURE_SLOTS];
-	static int hsTextureHeight[CU_MAX_TEXTURE_SLOTS];
-	static IfritSamplerT hsSampler[CU_MAX_SAMPLER_SLOTS];
+	float* hsTextures[CU_MAX_TEXTURE_SLOTS];
+	int hsTextureWidth[CU_MAX_TEXTURE_SLOTS];
+	int hsTextureHeight[CU_MAX_TEXTURE_SLOTS];
+	int hsTextureMipLevels[CU_MAX_TEXTURE_SLOTS];
+	IfritSamplerT hsSampler[CU_MAX_SAMPLER_SLOTS];
 
 	template<class T>
 	class LocalDynamicVector {
@@ -2257,9 +2261,18 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaFree(ptr);
 	}
 
-	void createTexture(uint32_t texId, uint32_t texWid, uint32_t texHeight, float* data) {
+	void createTexture(uint32_t texId, const IfritImageCreateInfo& createInfo, float* data) {
 		void* devicePtr;
-		cudaMalloc(&devicePtr, texWid * texHeight * 4 * sizeof(float));
+		auto texWid = createInfo.extent.width;
+		auto texHeight = createInfo.extent.height;
+		auto texLodSizes = 0;
+		auto texLodWid = texWid, texLodHeight = texHeight;
+		for (int i = 0; i < createInfo.mipLevels; i++) {
+			texLodWid = (texLodWid + 1) >> 1;
+			texLodHeight = (texLodHeight + 1) >> 1;
+			texLodSizes += (texLodWid * texLodHeight);
+		}
+		cudaMalloc(&devicePtr, (texWid * texHeight + texLodSizes) * 4 * sizeof(float));
 		cudaMemcpy(devicePtr, data, texWid * texHeight * 4 * sizeof(float), cudaMemcpyHostToDevice);
 		cudaDeviceSynchronize();
 		Impl::hsTextures[texId] = (float*)devicePtr;

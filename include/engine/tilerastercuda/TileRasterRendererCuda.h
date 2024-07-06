@@ -5,7 +5,7 @@
 #include "engine/base/VaryingDescriptor.h"
 #include "engine/tilerastercuda/TileRasterContextCuda.h"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
-#include "engine/tilerastercuda/TileRasterInvocationCuda.cuh"
+#include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "engine/base/Constants.h"
 
 namespace Ifrit::Engine::TileRaster::CUDA {
@@ -50,7 +50,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void bindFragmentShader(FragmentShader* fragmentShader);
 		void bindGeometryShader(GeometryShader* geometryShader);
 		
-		void createTextureRaw(int slotId, int height, int width, float* data);
+		void createTextureRaw(int slotId, const IfritImageCreateInfo& createInfo, float* data);
 		void createSampler(int slotId, const IfritSamplerT& samplerState);
 
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
