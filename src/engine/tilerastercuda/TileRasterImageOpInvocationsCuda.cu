@@ -98,13 +98,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		int dh = blitArgs.dstDy - blitArgs.dstCy;
 		int blockX = IFRIT_InvoGetThreadBlocks(dw, 8);
 		int blockY = IFRIT_InvoGetThreadBlocks(dh, 8);
-		printf("B%d %d w %d %d\n", blockX, blockY, blitArgs.dstDx, blitArgs.dstDy);
 		if (filter == IF_FILTER_LINEAR) {
 			Impl::blitImageBilinearKernel CU_KARG2(dim3(blockX, blockY, 1), dim3(8, 8, 1)) (blitArgs);
 		}
 		else if (filter == IF_FILTER_NEAREST) {
 			Impl::blitImageNearestKernel CU_KARG2(dim3(blockX, blockY, 1), dim3(8, 8, 1)) (blitArgs);
 		}
+		cudaDeviceSynchronize();
 		
 	}
 	void invokeMipmapGeneration(int slotId, IfritFilter filter) {
@@ -114,7 +114,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		IfritImageBlit region;
 		region.srcExtentSt = { 0,0,0 };
 		region.dstExtentSt = { 0,0,0 };
-		printf("TOTAL %d \n", totalMipLevels);
 		for (int i = 0; i < totalMipLevels; i++) {
 			uint32_t nw = (wid + 1) >> 1;
 			uint32_t nh = (hei + 1) >> 1;

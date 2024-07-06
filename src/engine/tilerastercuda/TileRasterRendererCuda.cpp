@@ -99,6 +99,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::generateMipmap(int slotId, IfritFilter filter) {
 		Invocation::invokeMipmapGeneration(slotId, filter);
 	}
+	void TileRasterRendererCuda::blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter) {
+		Invocation::invokeBlitImage(srcSlotId, dstSlotId, region, filter);
+	}
 	void TileRasterRendererCuda::render() {
 		initCuda();
 		updateVaryingBuffer();
