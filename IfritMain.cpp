@@ -199,7 +199,7 @@ int mainGpu() {
 		indexBuffer[i / 3] = index[i];
 	}
 	
-	
+	/*
 	vertexBuffer.setVertexCount(4);
 	vertexBuffer.allocateBuffer(4);
 	//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
@@ -218,7 +218,7 @@ int mainGpu() {
 	vertexBuffer.setValue(1, 2, ifloat4(0.0, 0.0, 0.1, 0));
 	vertexBuffer.setValue(2, 2, ifloat4(1.0, 0.0, 0.1, 0));
 	vertexBuffer.setValue(3, 2, ifloat4(1.0, 1.0, 0.1, 0));
-	indexBuffer = { 0,1,2,2,3,0 };
+	indexBuffer = { 0,1,2,2,3,0 };*/
 
 
 	//printf("Total Tris:%d\n", indexBuffer.size() / 3);
@@ -226,7 +226,7 @@ int mainGpu() {
 	std::vector<float> texFox;
 	int texFoxW, texFoxH;
 	ImageLoader imageLoader;
-	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/nanachi.png", &texFox, &texFoxH, &texFoxW);
+	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/fox_diffuse.png", &texFox, &texFoxH, &texFoxW);
 
 	IfritImageCreateInfo imageCI;
 	imageCI.extent.height = texFoxH;

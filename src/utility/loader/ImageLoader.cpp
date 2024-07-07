@@ -7,8 +7,8 @@ namespace Ifrit::Utility::Loader {
 		int h, c, w;
 		stbi_uc* data = stbi_load(fileName, &w, &h, &c, 4);
 		if (c != 4) {
-			printf("ERROR\n");
-			std::abort();
+			//printf("ERROR\n");
+			//std::abort();
 		}
 		if (data == nullptr) {
 			throw std::runtime_error("Failed to load image");
