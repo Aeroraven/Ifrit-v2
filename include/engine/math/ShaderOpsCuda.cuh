@@ -23,6 +23,9 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		}
 		return result;
 	}
+	IFRIT_DUAL inline float4 abs(float4 x) {
+		return { fabs(x.x), fabs(x.y), fabs(x.z),fabs(x.w) };
+	}
 	IFRIT_DUAL inline float4 normalize(float4 a) {
 		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w);
 		return { a.x / length, a.y / length, a.z / length, a.w / length };

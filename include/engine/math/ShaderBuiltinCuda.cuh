@@ -91,9 +91,70 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 			return lerp(c0x, c1x, propY);
 		}
 	}
+	IFRIT_DEVICE inline float4 pixelDfDx_s256Device(const ifloat4s256* varyings, int varyId) {
+		const float* ptr = reinterpret_cast<const float*>(varyings);
+		const auto threadX = threadIdx.x;
+		const auto internalX = threadX % 4;
+		ptr = ptr - internalX;
+		const auto offY = threadX & 2;
+		ptr = ptr + offY;
+
+		const auto ptrLeft = reinterpret_cast<const ifloat4s256*>(ptr);
+		const auto ptrRight = reinterpret_cast<const ifloat4s256*>(ptr + 1);
+		const auto leftObj = ptrLeft[varyId];
+		const auto rightObj = ptrRight[varyId];
+
+		float4 ret;
+		ret.x = rightObj.x - leftObj.x;
+		ret.y = rightObj.y - leftObj.y;
+		ret.z = rightObj.z - leftObj.z;
+		ret.w = rightObj.w - leftObj.w;
+		return ret;
+	}
+
+	IFRIT_DEVICE inline float4 pixelDfDy_s256Device(const ifloat4s256* varyings, int varyId) {
+		const float* ptr = reinterpret_cast<const float*>(varyings);
+		const auto threadX = threadIdx.x;
+		const auto internalX = threadX % 4;
+		ptr = ptr - internalX;
+		const auto offX = threadX & 1;
+		ptr = ptr + offX;
+
+		const auto ptrLeft = reinterpret_cast<const ifloat4s256*>(ptr);
+		const auto ptrRight = reinterpret_cast<const ifloat4s256*>(ptr + 2);
+		const auto leftObj = ptrLeft[varyId];
+		const auto rightObj = ptrRight[varyId];
+
+		float4 ret;
+		ret.x = rightObj.x - leftObj.x;
+		ret.y = rightObj.y - leftObj.y;
+		ret.z = rightObj.z - leftObj.z;
+		ret.w = rightObj.w - leftObj.w;
+		return ret;
+	}
+
+	IFRIT_DUAL inline float4 pixelDfDx_s256(const ifloat4s256* varyings, int varyId) {
+#ifdef __CUDA_ARCH__
+		return pixelDfDx_s256Device(varyings, varyId);
+#else
+		printf("Shader derivatives ddx is not supported in CPU mode now\n");
+		return float4{ 1.0f,0.0f,0.0f,0.0f };
+#endif
+	}
+
+	IFRIT_DUAL inline float4 pixelDfDy_s256(const ifloat4s256* varyings, int varyId) {
+#ifdef __CUDA_ARCH__
+		return pixelDfDy_s256Device(varyings, varyId);
+#else
+		printf("Shader derivatives ddy is not supported in CPU mode now\n");
+		return float4{ 1.0f,0.0f,0.0f,0.0f };
+#endif
+	}
 }
 
 #define isbcuSampleTex(sampler,texture,uv) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImpl(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(uv),{0,0},0))
 #define isbcuSampleTexLod(sampler,texture,uv,lod) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImpl(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(uv),{0,0},(lod)))
 #define isbcuReadPsVarying(x,y)  ((const ifloat4s256*)(x))[(y)]
 #define isbcuReadPsColorOut(x,y)  ((ifloat4s256*)(x))[(y)]
+#define isbcuDfDx(x,y)  (Ifrit::Engine::Math::ShaderOps::CUDA::pixelDfDx_s256(((const ifloat4s256*)(x)),(y)))
+#define isbcuDfDy(x,y)  (Ifrit::Engine::Math::ShaderOps::CUDA::pixelDfDy_s256(((const ifloat4s256*)(x)),(y)))
