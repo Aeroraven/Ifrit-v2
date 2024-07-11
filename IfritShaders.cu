@@ -31,13 +31,13 @@ IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* col
 	auto result = isbcuReadPsVarying(varyings,0);
 	auto& co = isbcuReadPsColorOut(colorOutput, 0);
 	auto dco = isbcuSampleTexLod(0, 0, float2( result.x, 1.0f - result.y ),0); 
-	auto ddxv = abs(isbcuDfDx(varyings, 0));
-	auto ddyv = abs(isbcuDfDy(varyings, 0));
+	auto ddxv = result;
+	auto ddyv = result;
 
-	co.x = ddxv.x * 3.0 + ddyv.x * 3.0;
-	co.y = ddxv.y * 3.0 + ddyv.y * 3.0;
-	co.z = ddxv.z * 3.0 + ddyv.z * 3.0;
-	co.w = ddxv.w * 3.0 + ddyv.w * 3.0;
+	co.x = ddxv.x * 0.2 + ddyv.x * 0.2;
+	co.y = ddxv.y * 0.2 + ddyv.y * 0.2;
+	co.z = ddxv.z * 0.2 + ddyv.z * 0.2;
+	co.w = ddxv.w * 0.2 + ddyv.w * 0.2;
 }
 
 IFRIT_HOST Ifrit::Engine::FragmentShader* DemoFragmentShaderCuda::getCudaClone() {
