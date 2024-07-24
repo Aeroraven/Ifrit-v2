@@ -34,10 +34,11 @@ IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* col
 	auto ddxv = result;
 	auto ddyv = result;
 
-	co.x = ddxv.x * 0.2 + ddyv.x * 0.2;
-	co.y = ddxv.y * 0.2 + ddyv.y * 0.2;
-	co.z = ddxv.z * 0.2 + ddyv.z * 0.2;
-	co.w = ddxv.w * 0.2 + ddyv.w * 0.2;
+	co.x = result.x;
+	co.y = result.y;
+	co.z = result.z;
+	co.w = result.w;
+	//printf("%f %f %f %f\n", result.x, result.y, result.z, result.w);
 }
 
 IFRIT_HOST Ifrit::Engine::FragmentShader* DemoFragmentShaderCuda::getCudaClone() {

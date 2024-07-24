@@ -17,7 +17,7 @@ namespace Ifrit::Core::CUDA {
 		cudaMemcpy(deviceHandle, hostObject, sizeof(T), cudaMemcpyHostToDevice);
 		kernFixVTable<T> CU_KARG2(1, 1)(deviceHandle);
 		cudaDeviceSynchronize();
-		printf("Object copied to CUDA\n");
+		//printf("Object copied to CUDA\n");
 		return deviceHandle;
 	}
 

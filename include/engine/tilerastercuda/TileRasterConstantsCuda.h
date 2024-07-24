@@ -34,6 +34,10 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_LINE_RASTERIZATION_FIRST_THREADS = 128;
 	constexpr int CU_LINE_RASTERIZATION_PLACE_THREADS = 128;
 	// end lines
+
+	// sort
+	constexpr int CU_SORT_KEYGEN_THREADS = 128;
+	// end sort
 	
 	constexpr int CU_TILES_PER_BIN = CU_TILE_SIZE / CU_BIN_SIZE;
 	constexpr int CU_BINS_PER_LARGE_BIN = CU_BIN_SIZE / CU_LARGE_BIN_SIZE;
@@ -76,24 +80,18 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_GEOMETRY_SHADER_THREADS = 128;
 
 	// == Memory Allocation ==
-	constexpr size_t CU_HEAP_MEMORY_SIZE = 1024ull * 1024 * 1024 * 2;
-	constexpr int CU_VECTOR_BASE_LENGTH = 9;
-	constexpr int CU_VECTOR_HIERARCHY_LEVEL = 10;
+	constexpr size_t CU_HEAP_MEMORY_SIZE = 1024ull * 1024 * 1024 * 1;
 
 	// == Options ==
 	constexpr bool CU_OPT_SHADER_DERIVATIVES = true;
 	constexpr bool CU_OPT_HOMOGENEOUS_DISCARD = false;
 	constexpr bool CU_OPT_CUDA_PROFILE = true;
-	constexpr bool CU_OPT_PREALLOCATED_TRIANGLE_LIST = false;
 	constexpr bool CU_OPT_II_SKIP_ON_FEW_GEOMETRIES = true;
-	//constexpr bool CU_OPT_ALIGNED_INDEX_BUFFER = true;  
-	constexpr bool CU_OPT_SEPARATE_FIRST_BINNER_KERNEL = true;
 	constexpr bool CU_OPT_SMALL_PRIMITIVE_CULL = true;
-	constexpr bool CU_OPT_ENABLE_EMBED_COUNTER = false; /* WARNING: Performance Drop */
 	constexpr bool CU_OPT_PATCH_STRICT_BOUNDARY = true;
+	constexpr bool CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR = true;
 
 	// == Derived == 
-	//constexpr int CU_TRIANGLE_STRIDE = CU_OPT_ALIGNED_INDEX_BUFFER ? 4 : 3;
 	constexpr int CU_TRIANGLE_STRIDE = 3;
 	constexpr int CU_GS_OUT_BUFFER_SIZE = CU_PRIMITIVE_BUFFER_SIZE * CU_MAX_GS_OUT_VERTICES;
 
