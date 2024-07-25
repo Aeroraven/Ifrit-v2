@@ -7,13 +7,13 @@ IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4*
 	//float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 	//float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
 	//float4x4 view = (lookAt({ 0,0.1,1.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-	float4x4 view = (lookAt({ 0.08,0.05,0.08 }, { 0,0.05,0.0 }, { 0,1,0 })); 
+	//float4x4 view = (lookAt({ 0.08,0.05,0.08 }, { 0,0.05,0.0 }, { 0,1,0 }));  //fox
 	//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-	//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
-	//float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 10.0, 3000));
+	float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
+	float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 10.0, 3000));
 
 	//float4x4 view = (lookAt({ 0,1.5,0}, { -100,1.5,0 }, { 0,1,0 }));
-	float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 1.0, 1000));
+	//float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 1.0, 1000));
 	float4x4 mvp = multiply(proj, view);
 	auto s = isbReadFloat4(input[0]);
 	auto p = multiply(mvp, s);
@@ -31,13 +31,14 @@ IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* col
 	auto result = isbcuReadPsVarying(varyings,0);
 	auto& co = isbcuReadPsColorOut(colorOutput, 0);
 	auto dco = isbcuSampleTexLod(0, 0, float2( result.x, 1.0f - result.y ),0); 
-	auto ddxv = abs(isbcuDfDx(varyings, 0));
-	auto ddyv = abs(isbcuDfDy(varyings, 0));
+	auto ddxv = result;
+	auto ddyv = result;
 
-	co.x = ddxv.x * 3.0 + ddyv.x * 3.0;
-	co.y = ddxv.y * 3.0 + ddyv.y * 3.0;
-	co.z = ddxv.z * 3.0 + ddyv.z * 3.0;
-	co.w = ddxv.w * 3.0 + ddyv.w * 3.0;
+	co.x = result.x * 0.5 + 0.5;
+	co.y = result.y * 0.5 + 0.5;
+	co.z = result.z * 0.5 + 0.5;
+	co.w = result.w * 0.5 + 0.5;
+	//printf("%f %f %f %f\n", result.x, result.y, result.z, result.w);
 }
 
 IFRIT_HOST Ifrit::Engine::FragmentShader* DemoFragmentShaderCuda::getCudaClone() {

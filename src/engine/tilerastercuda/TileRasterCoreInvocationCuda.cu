@@ -4,7 +4,6 @@
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 #include "engine/base/Structures.h"
 #include <cuda_profiler_api.h>
-
 #include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
 
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
@@ -43,68 +42,22 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	int hsTextureHeight[CU_MAX_TEXTURE_SLOTS];
 	int hsTextureMipLevels[CU_MAX_TEXTURE_SLOTS];
 	IfritSamplerT hsSampler[CU_MAX_SAMPLER_SLOTS];
-
-	template<class T>
-	class LocalDynamicVector {
-	public:
-		T* data[CU_VECTOR_HIERARCHY_LEVEL];
-		int size;
-		int lock;
-	public:
-		IFRIT_DEVICE void initialize() {
-			int baseSize = CU_VECTOR_BASE_LENGTH;
-			int capacity = (1 << baseSize);
-			size = 0;
-			data[0] = (T*)malloc(sizeof(T) * capacity);
-			data[1] = (T*)malloc(sizeof(T) * capacity * 2);
-			lock = 0;
-			if(data[0] == nullptr || data[1] == nullptr) {
-				printf("ERROR: MALLOC FAILED INIT\n");
-				asm("trap;");
-			}
-			for (int i = 2; i < CU_VECTOR_HIERARCHY_LEVEL; i++) {
-				data[i] = nullptr;
-			}
-		}
-
-		IFRIT_DEVICE void push_back(const T& x) {
-			auto idx = atomicAdd(&size, 1);
-			int putBucket = max(0, (31 - (CU_VECTOR_BASE_LENGTH - 1) - __clz(idx)));
-			if (putBucket) {
-				int pralloc = putBucket;
-				if (data[pralloc] == nullptr) {
-					while (atomicCAS(&lock, 0, 1) != 0) {}
-					if (data[pralloc] == nullptr) {
-						data[pralloc] = (T*)malloc(sizeof(T) * (1 << ((CU_VECTOR_BASE_LENGTH - 1) + pralloc)));
-						if (data[pralloc] == nullptr) {
-							printf("ERROR: MALLOC FAILED\n");
-							asm("trap;");
-						}
-					}
-					atomicExch(&lock, 0);
-				}
-			}
-			int prevLevel = putBucket ? (1 << (CU_VECTOR_BASE_LENGTH-1+putBucket)) : 0;
-			data[putBucket][idx - prevLevel] = x;
-		}
-		
-		IFRIT_DEVICE T at(int idx) {
-			int putBucket = max(0, (31 - __clz(idx)) - (CU_VECTOR_BASE_LENGTH-1));
-			int prevLevel = putBucket ? (1 << (CU_VECTOR_BASE_LENGTH - 1 + putBucket)) : 0;
-			return data[putBucket][idx - prevLevel];
-		}
-
-		IFRIT_DEVICE void clear() {
-			size = 0;
-		}
-	};
 	
-	IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueFullM2[CU_BIN_SIZE * CU_BIN_SIZE];
+	//IFRIT_DEVICE static LocalDynamicVector<uint32_t> dCoverQueueFullM2[CU_BIN_SIZE * CU_BIN_SIZE];
+	IFRIT_DEVICE static uint32_t dCoverQueueFullM2Buffer[CU_ALTERNATIVE_BUFFER_SIZE];
+	IFRIT_DEVICE static uint64_t dCoverQueueFullM2SortKeys[CU_ALTERNATIVE_BUFFER_SIZE];
+	IFRIT_DEVICE static int dCoverQueueFullM2Size[CU_BIN_SIZE * CU_BIN_SIZE];
+	IFRIT_DEVICE static int dCoverQueueFullM2Start[CU_BIN_SIZE * CU_BIN_SIZE];
+	IFRIT_DEVICE static int dCoverQueueFullM2CurInd[CU_BIN_SIZE * CU_BIN_SIZE];
+	IFRIT_DEVICE static int dCoverQueueFullM2GlobalSize;
 	
 	IFRIT_DEVICE static int dSecondBinnerFinerBufferSize[CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE];
 	IFRIT_DEVICE static int dSecondBinnerFinerBufferStart[CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE];
 	IFRIT_DEVICE static int dSecondBinnerFinerBufferCurInd[CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE];
 	IFRIT_DEVICE static int2 dSecondBinnerFinerBuffer[CU_ALTERNATIVE_BUFFER_SIZE_SECOND];
+	IFRIT_DEVICE static uint64_t dSecondBinnerFinerBufferSortKeys[CU_ALTERNATIVE_BUFFER_SIZE_SECOND];
+	IFRIT_DEVICE static uint64_t dSecondBinnerFinerBufferSortKeysAltern[CU_ALTERNATIVE_BUFFER_SIZE_SECOND];
+
 	IFRIT_DEVICE static int dSecondBinnerFinerBufferGlobalSize;
 
 	IFRIT_DEVICE static int dSecondBinnerFinerBufferSizePoint[CU_MAX_FRAMEBUFFER_SIZE];
@@ -117,6 +70,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3CurInd[CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE];
 	IFRIT_DEVICE static int2 dCoverQueueSuperTileFullM3Buffer[CU_ALTERNATIVE_BUFFER_SIZE];
 	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3BufferFinal[CU_ALTERNATIVE_BUFFER_SIZE];
+	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3BufferFinalSortKeys[CU_ALTERNATIVE_BUFFER_SIZE];
 	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3GlobalSize;
 	IFRIT_DEVICE static int dCoverQueueSuperTileFullM3TotlCands;
 
@@ -183,6 +137,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	// Profiler: Second Binner Thread Divergence
 	IFRIT_DEVICE static int dSbtdSplit = 0;
+	IFRIT_DEVICE static int dLock = 0;
+	IFRIT_DEVICE static int dLockAt = 0;
 
 	namespace GeneralFunction {
 		IFRIT_DEVICE float devAbort() {
@@ -249,6 +205,270 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			return true;
 		}
 	}
+
+	// Kernel Implementations
+	namespace VertexStage {
+		IFRIT_KERNEL void vertexProcessingKernel(
+			VertexShader* vertexShader,
+			uint32_t vertexCount,
+			char* IFRIT_RESTRICT_CUDA dVertexBuffer,
+			TypeDescriptorEnum* IFRIT_RESTRICT_CUDA dVertexTypeDescriptor,
+			float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
+			float4* IFRIT_RESTRICT_CUDA dPosBuffer
+		) {
+			const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
+			if (globalInvoIdx >= vertexCount) return;
+			const auto numAttrs = csAttributeCounts;
+			const auto numVaryings = csVaryingCounts;
+
+			const void* vertexInputPtrs[CU_MAX_ATTRIBUTES];
+			float4* varyingOutputPtrs[CU_MAX_VARYINGS];
+
+			for (int i = 0; i < numAttrs; i++) {
+				vertexInputPtrs[i] = globalInvoIdx * csTotalVertexOffsets + dVertexBuffer + csVertexOffsets[i];
+			}
+			for (int i = 0; i < numVaryings; i++) {
+				varyingOutputPtrs[i] = dVaryingBuffer + globalInvoIdx * numVaryings + i;
+			}
+			vertexShader->execute(vertexInputPtrs, (ifloat4*)&dPosBuffer[globalInvoIdx], (VaryingStore**)varyingOutputPtrs);
+		}
+	}
+	namespace GeneralGeometryStage {
+		IFRIT_KERNEL void geometryShadingKernel(
+			uint32_t startingIndexId,
+			uint32_t indexCount,
+			GeometryShader* geometryShader,
+			float4* IFRIT_RESTRICT_CUDA dPosBuffer,
+			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer
+		) {
+			const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
+			if (globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
+			const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
+			auto dPosBufferAligned = reinterpret_cast<float4*>(__builtin_assume_aligned(dPosBuffer, 16));
+			float4 v1, v2, v3;
+
+			//TODO: Bank Conflict
+			IFRIT_SHARED int outVertices[CU_GEOMETRY_SHADER_THREADS];
+			IFRIT_SHARED float4* posPtr[3 * CU_GEOMETRY_SHADER_THREADS];
+			IFRIT_SHARED const float4* varyingPtr[3 * CU_MAX_VARYINGS * CU_GEOMETRY_SHADER_THREADS];
+			IFRIT_SHARED float4 posOut[CU_MAX_GS_OUT_VERTICES * CU_GEOMETRY_PROCESSING_THREADS];
+			IFRIT_SHARED float4 varyingOut[CU_MAX_GS_OUT_VERTICES * CU_MAX_VARYINGS * CU_GEOMETRY_SHADER_THREADS];
+			int varyingSpv = csVaryingCounts;
+
+			posPtr[threadIdx.x * 3 + 0] = dPosBufferAligned + dIndexBuffer[indexStart];
+			posPtr[threadIdx.x * 3 + 1] = dPosBufferAligned + dIndexBuffer[indexStart + 1];
+			posPtr[threadIdx.x * 3 + 2] = dPosBufferAligned + dIndexBuffer[indexStart + 2];
+			varyingPtr[threadIdx.x * 3 + 0] = dVaryingBuffer + dIndexBuffer[indexStart] * csVaryingCounts;
+			varyingPtr[threadIdx.x * 3 + 1] = dVaryingBuffer + dIndexBuffer[indexStart + 1] * csVaryingCounts;
+			varyingPtr[threadIdx.x * 3 + 2] = dVaryingBuffer + dIndexBuffer[indexStart + 2] * csVaryingCounts;
+
+			geometryShader->execute(
+				(ifloat4**)(posPtr + 3 * threadIdx.x),
+				(VaryingStore**)(varyingPtr + 3 * threadIdx.x),
+				(ifloat4*)(posOut + 3 * threadIdx.x),
+				(VaryingStore*)(varyingOut + 3 * threadIdx.x * csVaryingCounts),
+				outVertices + threadIdx.x
+			);
+			int outW = outVertices[threadIdx.x];
+			int insPos = atomicAdd(&dGeometryShaderOutSize, outW);
+			for (int i = 0; i < outW; i++) {
+				dGeometryShaderOutPos[insPos + i] = (posOut + 3 * threadIdx.x)[i];
+				for (int j = 0; j < csVaryingCounts; j++) {
+					dGeometryShaderOutVaryings[insPos * csVaryingCounts + i * csVaryingCounts + j] = (varyingOut + 3 * threadIdx.x * csVaryingCounts)[i * csVaryingCounts + j];
+				}
+			}
+		}
+		IFRIT_DEVICE void devCallGeometryShader(
+			GeometryShader* dGeometryShader,
+			int stride,
+			int startOffset,
+			int indexCount,
+			float4* IFRIT_RESTRICT_CUDA dPositionBuffer,
+			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+			float4* IFRIT_RESTRICT_CUDA dVaryingBuffer
+		) {
+			int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
+			GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (startOffset, indexCount, dGeometryShader, (float4*)dPositionBuffer,
+				dIndexBuffer, dVaryingBuffer);
+		}
+	}
+	
+	namespace TriangleSortStage {
+		template<typename T>
+		IFRIT_DEVICE void devSwap(T& x, T& y) {
+			T temp = x;
+			x = y;
+			y = temp;
+		}
+
+		template<typename T,typename U>
+		IFRIT_DEVICE void devHeapSortByKeyImpl(T* keys, U* values, int count) {
+			if (count == 0)return;
+			auto siftDown = [&](int st, int ed) {
+				auto ch = 0;
+				while ((ch = (st << 1) + 1) < ed) {
+					if (ch + 1 < ed && keys[ch] < keys[ch + 1]) ch++;
+					if (keys[ch] > keys[st]) {
+						auto tk = keys[ch];
+						keys[ch] = keys[st];
+						keys[st] = tk;
+						auto tv = values[ch];
+						values[ch] = values[st];
+						values[st] = tv;
+						st = ch;
+					}
+					else {
+						return;
+					}
+				}
+			};
+			
+			for (int i = (count >> 1); i >= 0; i--) {
+				siftDown(i, count);
+			}
+			for (int i = count - 1; i > 0; i--) {
+				auto tk = keys[i];
+				keys[i] = keys[0];
+				keys[0] = tk;
+				auto tv = values[i];
+				values[i] = values[0];
+				values[0] = tv;
+				siftDown(0, i);
+			}
+		}
+
+		template<typename T,typename U>
+		IFRIT_DEVICE void devInsertionSortByKeyImpl(T* keys, U* values, int count) {
+			for (int i = 1; i < count; i++) {
+				auto key = keys[i];
+				auto value = values[i];
+				int j = i - 1;
+				while (j >= 0 && keys[j] < key) {
+					keys[j + 1] = keys[j];
+					values[j + 1] = values[j];
+					j--;
+				}
+				keys[j + 1] = key;
+				values[j + 1] = value;
+			}
+		}
+
+		template<typename T,typename U>
+		IFRIT_DEVICE void devSortByKeyImpl(T* keys, U* values, int count) {
+			devHeapSortByKeyImpl(keys, values, count);
+		}
+
+		IFRIT_KERNEL void sortPixelKeyGenerationKernel() {
+			//TODO: Geometry shader integration
+			int globalInvo = blockIdx.x * blockDim.x + threadIdx.x;
+			if(globalInvo>= dSecondBinnerFinerBufferGlobalSize) return;
+			auto primId = dSecondBinnerFinerBuffer[globalInvo].y;
+			auto orgPrimid = dAtriOriginalPrimId[primId];
+
+		}
+		IFRIT_KERNEL void sortPixelKeysByTileKernel(int maxTileX,int maxTileY) {
+			int subtileId = threadIdx.x;
+			int tileX = threadIdx.y + blockDim.y * blockIdx.y;
+			int tileY = threadIdx.z + blockDim.z * blockIdx.z;
+			if(tileX>=maxTileX || tileY>=maxTileY) return;
+			int tileId = tileX + tileY * CU_MAX_TILE_X;
+			int totalId = tileId * CU_MAX_SUBTILES_PER_TILE + subtileId;
+
+			int start = dSecondBinnerFinerBufferStart[totalId];
+			int end = dSecondBinnerFinerBufferCurInd[totalId];
+			int lim = dSecondBinnerFinerBufferSize[totalId];
+			if(start==end) return;
+			auto invoX = threadIdx.x + blockIdx.x * blockDim.x;
+			auto invoY = threadIdx.y + blockIdx.y * blockDim.y;
+			auto invoZ = threadIdx.z + blockIdx.z * blockDim.z;
+			auto globalInvo = invoX + invoY * blockDim.x * gridDim.x + invoZ * blockDim.y * gridDim.y;
+			devSortByKeyImpl(dSecondBinnerFinerBufferSortKeys + start,
+				dSecondBinnerFinerBuffer + start, end - start); //dSecondBinnerFinerBuffer
+		}
+		IFRIT_DEVICE void devSortPixelKeys() {
+			dLock = 0;
+			dLockAt = 0;
+			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(dSecondBinnerFinerBufferGlobalSize, CU_SORT_KEYGEN_THREADS);
+			sortPixelKeyGenerationKernel CU_KARG2(dispatchBlocks, CU_SORT_KEYGEN_THREADS) ();
+			
+			int maxTileX = IFRIT_InvoGetThreadBlocks(csFrameWidth, CU_TILE_WIDTH);
+			int maxTileY = IFRIT_InvoGetThreadBlocks(csFrameHeight, CU_TILE_WIDTH);
+			int dispX = IFRIT_InvoGetThreadBlocks(maxTileX, 2);
+			int dispY = IFRIT_InvoGetThreadBlocks(maxTileY, 2);
+			dim3 blocks(1, dispX, dispY);
+			dim3 threads(CU_MAX_SUBTILES_PER_TILE, 2, 2);
+			sortPixelKeysByTileKernel CU_KARG2(blocks, threads) (maxTileX, maxTileY);
+		}
+
+		IFRIT_KERNEL void sortBinKeyGenerationKernel() {
+			int globalInvo = blockIdx.x * blockDim.x + threadIdx.x;
+			if(globalInvo>= dCoverQueueFullM2GlobalSize) return;
+			auto primId = dCoverQueueFullM2Buffer[globalInvo];
+			auto orgPrimid = dAtriOriginalPrimId[primId];
+			dCoverQueueFullM2SortKeys[globalInvo] = orgPrimid;
+		}
+
+		IFRIT_KERNEL void sortBinKeyByTileKernel(int maxBinX,int maxBinY) {
+			int binx = threadIdx.x + blockDim.x * blockIdx.x;
+			int biny = threadIdx.y + blockDim.y * blockIdx.y;
+			if (binx >= maxBinX || biny >= maxBinY)return;
+
+			int binId = binx + biny * CU_MAX_BIN_X;
+			auto start = dCoverQueueFullM2Start[binId];
+			auto end = dCoverQueueFullM2CurInd[binId];
+			if (start == end)return;
+			devSortByKeyImpl(dCoverQueueFullM2SortKeys + start, dCoverQueueFullM2Buffer + start, end - start);
+		}
+
+		IFRIT_DEVICE void devSortBinKeys() {
+			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(dCoverQueueFullM2GlobalSize, CU_SORT_KEYGEN_THREADS);
+			sortBinKeyGenerationKernel CU_KARG2(dispatchBlocks, CU_SORT_KEYGEN_THREADS) ();
+			int maxBinX = IFRIT_InvoGetThreadBlocks(csFrameWidth, CU_BIN_WIDTH);
+			int maxBinY = IFRIT_InvoGetThreadBlocks(csFrameHeight, CU_BIN_WIDTH);
+			int dispX = IFRIT_InvoGetThreadBlocks(maxBinX, 8);
+			int dispY = IFRIT_InvoGetThreadBlocks(maxBinY, 8);
+			sortBinKeyByTileKernel CU_KARG2(dim3(dispX, dispY, 1), (8, 8, 1))(maxBinX, maxBinY);
+		}
+
+		IFRIT_KERNEL void sortSuperTileKeyGenerationKernel() {
+			int globalInvo = blockIdx.x * blockDim.x + threadIdx.x;
+			if(globalInvo>= dCoverQueueSuperTileFullM3GlobalSize) return;
+			auto primId = dCoverQueueSuperTileFullM3BufferFinal[globalInvo];
+			auto orgPrimid = dAtriOriginalPrimId[primId];
+			dCoverQueueSuperTileFullM3BufferFinalSortKeys[globalInvo] = orgPrimid;
+		}
+
+		IFRIT_KERNEL void sortSuperTileKeyByTileKernel(int maxBinX, int maxBinY) {
+			int binx = threadIdx.x + blockDim.x * blockIdx.x;
+			int biny = threadIdx.y + blockDim.y * blockIdx.y;
+			if (binx >= maxBinX || biny >= maxBinY)return;
+
+			int binId = binx + biny * CU_MAX_BIN_X;
+			auto start = dCoverQueueSuperTileFullM3Start[binId];
+			auto end = dCoverQueueSuperTileFullM3CurInd[binId];
+			if (start == end)return;
+			devSortByKeyImpl(dCoverQueueSuperTileFullM3BufferFinalSortKeys + start,
+				dCoverQueueSuperTileFullM3Buffer + start, end - start);
+		}
+
+		IFRIT_DEVICE void devSortSuperTileKeys() {
+			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(dCoverQueueSuperTileFullM3GlobalSize, CU_SORT_KEYGEN_THREADS);
+			sortSuperTileKeyGenerationKernel CU_KARG2(dispatchBlocks, CU_SORT_KEYGEN_THREADS) ();
+			
+			int maxBinX = IFRIT_InvoGetThreadBlocks(csFrameWidth, CU_LARGE_BIN_WIDTH);
+			int maxBinY = IFRIT_InvoGetThreadBlocks(csFrameHeight, CU_LARGE_BIN_WIDTH);
+			int dispX = IFRIT_InvoGetThreadBlocks(maxBinX, 8);
+			int dispY = IFRIT_InvoGetThreadBlocks(maxBinY, 8);
+			sortSuperTileKeyByTileKernel CU_KARG2(dim3(dispX, dispY, 1), (8, 8, 1))(maxBinX, maxBinY);
+		}
+
+		IFRIT_KERNEL void sortEntryKernel() {
+			devSortPixelKeys();
+			devSortBinKeys();
+			devSortSuperTileKeys();
+		}
+	}
 	namespace TriangleRasterizationStage {
 		IFRIT_DEVICE void devExecuteBinnerLargeTile(int primitiveId, irect2Df bbox) {
 			float minx = bbox.x;
@@ -313,6 +533,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						int x = atomicAdd(&dCoverQueueSuperTileFullM3TotlCands, 1);
 						dCoverQueueSuperTileFullM3Buffer[x].x = primitiveId;
 						dCoverQueueSuperTileFullM3Buffer[x].y = tileLargeId;
+
 						atomicAdd(&dCoverQueueSuperTileFullM3Size[tileLargeId], 1);
 					}
 					else {
@@ -387,6 +608,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					auto plId = atomicAdd(&dCoverPrimsCounter, 1);
 					dCoverPrimsTile[plId].x = primitiveId;
 					dCoverPrimsTile[plId].y = tileId;
+					atomicAdd(&dCoverQueueFullM2Size[tileId], 1);
 				}
 				else if (criteriaTR == 3) {
 					auto plId = atomicAdd(&dRasterQueueWorklistCounter, 1);
@@ -505,15 +727,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					criteriaX[2] += edgeCoefs[2].x;
 				}
 			}
-			if (mask == 0) {
-				return;
-			}
+			//if (mask == 0) {
+			//	return;
+			//}
 			int xid = xidSrc;
 			int pw = atomicAdd(&dSecondBinnerFinerBufferCurInd[xid], 1);
 			dSecondBinnerFinerBuffer[pw].x = mask;
 			dSecondBinnerFinerBuffer[pw].y = primitiveSrcId;
+			dSecondBinnerFinerBufferSortKeys[pw] = dAtriOriginalPrimId[primitiveSrcId];
 		}
-
 
 		IFRIT_DEVICE void devTilingRasterizationChildProcess(
 			uint32_t tileIdX,
@@ -679,6 +901,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				auto plId = atomicAdd(&dCoverPrimsCounter, 1);
 				dCoverPrimsTile[plId].x = primitiveId;
 				dCoverPrimsTile[plId].y = tileId;
+				atomicAdd(&dCoverQueueFullM2Size[tileId], 1);
 			}
 			else {
 				auto plId = atomicAdd(&dRasterQueueWorklistCounter, 1);
@@ -696,13 +919,23 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				dim3(CU_FIRST_RASTERIZATION_LARGE_FINER_PROC, CU_BINS_PER_LARGE_BIN, CU_BINS_PER_LARGE_BIN)
 			)(total);
 		}
-
+		IFRIT_KERNEL void firstBinnerGatherAllocKernel() {
+			auto globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
+			auto binX = globalInvo % CU_MAX_BIN_X;
+			auto binY = globalInvo / CU_MAX_BIN_X;
+			dCoverQueueFullM2Start[globalInvo] = atomicAdd(&dCoverQueueFullM2GlobalSize, dCoverQueueFullM2Size[globalInvo]);
+			dCoverQueueFullM2CurInd[globalInvo] = dCoverQueueFullM2Start[globalInvo];
+			//printf("%lld %d\n", globalInvo, dCoverQueueFullM2Size[globalInvo]);
+		}
 		IFRIT_KERNEL void firstBinnerGatherKernel(uint32_t bound) {
 			auto globalInvo = blockIdx.x * blockDim.x + threadIdx.x;
 			if (globalInvo >= bound)return;
 			int primId = dCoverPrimsTile[globalInvo].x;
 			int tileId = dCoverPrimsTile[globalInvo].y;
-			dCoverQueueFullM2[tileId].push_back(primId);
+			//dCoverQueueFullM2[tileId].push_back(primId);
+			int v = atomicAdd(&dCoverQueueFullM2CurInd[tileId], 1);
+			dCoverQueueFullM2Buffer[v] = primId;
+			dCoverQueueFullM2SortKeys[v] = dAtriOriginalPrimId[primId];
 		}
 
 		IFRIT_KERNEL void firstBinnerGatherEntryKernel() {
@@ -724,6 +957,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int largeTileId = dCoverQueueSuperTileFullM3Buffer[globalInvo].y;
 			int v = atomicAdd(&dCoverQueueSuperTileFullM3CurInd[largeTileId], 1);
 			dCoverQueueSuperTileFullM3BufferFinal[v] = primId;
+			dCoverQueueSuperTileFullM3BufferFinalSortKeys[v] = largeTileId;
 		}
 
 		IFRIT_KERNEL void largeTileBufferPlacementEntryKernel() {
@@ -1105,8 +1339,536 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 		}
 	}
-	namespace PointRasterizationStage {
+	namespace TriangleFragmentStage {
+		IFRIT_KERNEL void pixelTaggingExecKernel(
+			FragmentShader* fragmentShader,
+			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
+			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			float* IFRIT_RESTRICT_CUDA dDepthBuffer
+		) {
+			uint32_t tileX = blockIdx.x, tileY = blockIdx.y;
+			uint32_t binX = tileX / CU_TILES_PER_BIN, binY = tileY / CU_TILES_PER_BIN;
+			uint32_t superTileX = tileX / (CU_BINS_PER_LARGE_BIN * CU_TILES_PER_BIN);
+			uint32_t superTileY = tileY / (CU_BINS_PER_LARGE_BIN * CU_TILES_PER_BIN);
+			uint32_t tileId = tileY * CU_TILE_SIZE + tileX;
+			uint32_t binId = binY * CU_BIN_SIZE + binX;
+			uint32_t superTileId = superTileY * CU_LARGE_BIN_SIZE + superTileX;
 
+			const auto frameWidth = csFrameWidth;
+			//const auto completeCandidates = dCoverQueueFullM2[binId].size;
+
+			constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
+			const auto varyingCount = csVaryingCounts;
+
+			const int threadX = threadIdx.x, threadY = threadIdx.y, threadZ = threadIdx.z;
+			const auto threadId = threadZ * blockDim.x * blockDim.y + threadY * blockDim.x + threadX;
+
+			const int pixelXS = threadX + threadZ * CU_EXPERIMENTAL_SUBTILE_WIDTH + tileX * CU_TILE_WIDTH;
+			const int pixelYS = threadY + tileY * CU_TILE_WIDTH;
+
+			float localDepthBuffer = 1;
+			float candidateBary[3];
+			int candidatePrim = -1;
+			const float compareDepth = dDepthBuffer[pixelYS * frameWidth + pixelXS];
+			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
+
+			auto zPrePass = [&](int primId) {
+				float interpolatedDepth;
+				float2 v12 = dAtriDepthVal12[primId];
+				float v3 = dAtriDepthVal3[primId];
+				interpolatedDepth = v12.x * pDx + v12.y * pDy + v3;
+				if (interpolatedDepth < localDepthBuffer) {
+					localDepthBuffer = interpolatedDepth;
+					candidatePrim = primId;
+				}
+				if constexpr (CU_PROFILER_OVERDRAW) {
+					atomicAdd(&dOverZTestCounter, 1);
+				}
+				};
+
+			// Large Bin Level
+			if constexpr (true) {
+				int startIndex = dCoverQueueSuperTileFullM3Start[superTileId];
+				int totlSize = dCoverQueueSuperTileFullM3CurInd[superTileId];
+				for (int i = startIndex; i < totlSize; i++) {
+					const auto proposal = dCoverQueueSuperTileFullM3BufferFinal[i];
+					zPrePass(proposal);
+				}
+			}
+
+			// Bin Level
+			if constexpr (true) {
+				int startIndex = dCoverQueueFullM2Start[binId];
+				int totlSize = dCoverQueueFullM2CurInd[binId];
+				for (int i = startIndex; i < totlSize; i++) {
+					const auto proposal = dCoverQueueFullM2Buffer[i];
+					zPrePass(proposal);
+				}
+			}
+
+			// Pixel Level
+			if constexpr (true) {
+				auto curTileX = tileX * CU_TILE_WIDTH;
+				auto curTileY = tileY * CU_TILE_WIDTH;
+				constexpr auto curTileWid = CU_TILE_WIDTH;
+				constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+				int inTileX = pixelXS - curTileX;
+				int inTileY = pixelYS - curTileY;
+				int inSubTileX = inTileX / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+				int inSubTileY = inTileY / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+				int inSubTileId = inSubTileY * numSubtilesX + inSubTileX;
+
+				int dwX = inTileX % CU_EXPERIMENTAL_SUBTILE_WIDTH;
+				int dwY = inTileY % CU_EXPERIMENTAL_SUBTILE_WIDTH;
+				int dwId = dwY * CU_EXPERIMENTAL_SUBTILE_WIDTH + dwX;
+				int dwMask = (1 << dwId);
+
+				int startIndex = dSecondBinnerFinerBufferStart[tileId * CU_MAX_SUBTILES_PER_TILE + inSubTileId];
+				int totlSize = dSecondBinnerFinerBufferCurInd[tileId * CU_MAX_SUBTILES_PER_TILE + inSubTileId];
+				for (int i = startIndex; i < totlSize; i++) {
+					const auto proposal = dSecondBinnerFinerBuffer[i];
+					if ((proposal.x & dwMask)) {
+						zPrePass(proposal.y);
+					}
+					else {
+						if constexpr (CU_PROFILER_OVERDRAW) {
+							atomicAdd(&dIrrelevantPixel, 1);
+						}
+					}
+					if constexpr (CU_PROFILER_OVERDRAW) {
+						atomicAdd(&dTotalBinnedPixel, 1);
+					}
+				}
+			}
+			if (candidatePrim != -1 && localDepthBuffer < compareDepth) {
+				dDepthBuffer[pixelYS * frameWidth + pixelXS] = localDepthBuffer;
+
+			}
+			int quadIdX = pixelXS >> 1;
+			int quadOfX = pixelXS & 1;
+			int quadIdY = pixelYS >> 1;
+			int quadOfY = pixelYS & 1;
+			int quadId = (quadIdY * CU_MAX_FRAMEBUFFER_WIDTH + quadIdX) * 4 + (quadOfY * 2 + quadOfX);
+			dPixelShaderTags[quadId] = candidatePrim;
+		}
+
+		template <int geometryShaderEnabled>
+		IFRIT_KERNEL void pixelShadingExecKernel(
+			FragmentShader* fragmentShader,
+			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
+			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			float* IFRIT_RESTRICT_CUDA dDepthBuffer
+		) {
+			IFRIT_SHARED float colorOutputSingle[256 * 4];
+			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
+			float candidateBary[3];
+
+			const int pixelXS = (threadIdx.x & 1) + (threadIdx.y + blockDim.y * blockIdx.y) * 2;
+			const int pixelYS = (threadIdx.x >> 1) + (threadIdx.z + blockDim.z * blockIdx.z) * 2;
+
+			if (pixelXS >= csFrameWidth || pixelYS >= csFrameHeight)return;
+			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
+			constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
+			auto varyingCount = csVaryingCounts;
+			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
+
+			auto shadingPass = [&](const int pId, const bool isHelperInvocation) {
+				float4 f1o = dAtriInterpolBase1[pId];
+				float4 f2o = dAtriInterpolBase2[pId];
+				float f3o = dAtriInterpolBase3[pId];
+
+				float3 f1 = { f1o.x,f1o.y,f1o.z };
+				float3 f2 = { f1o.w,f2o.x,f2o.y };
+				float3 f3 = { f2o.z,f2o.w,f3o };
+
+				float4 b12 = dAtriBaryCenter12[pId];
+				float2 b3 = dAtriBaryCenter3[pId];
+				int orgPrimId = dAtriOriginalPrimId[pId];
+
+				candidateBary[0] = (f1.x * pDx + f1.y * pDy + f1.z);
+				candidateBary[1] = (f2.x * pDx + f2.y * pDy + f2.z);
+				candidateBary[2] = (f3.x * pDx + f3.y * pDy + f3.z);
+				float zCorr = 1.0f / (candidateBary[0] + candidateBary[1] + candidateBary[2]);
+				candidateBary[0] *= zCorr;
+				candidateBary[1] *= zCorr;
+				candidateBary[2] *= zCorr;
+
+				float desiredBary[3];
+				desiredBary[0] = candidateBary[0] * b12.x + candidateBary[1] * b12.z + candidateBary[2] * b3.x;
+				desiredBary[1] = candidateBary[0] * b12.y + candidateBary[1] * b12.w + candidateBary[2] * b3.y;
+				desiredBary[2] = 1.0f - (desiredBary[0] + desiredBary[1]);
+				auto addr = dIndexBuffer + orgPrimId * vertexStride;
+
+				for (int k = 0; k < varyingCount; k++) {
+					const auto va = dVaryingBuffer;
+					float4 vd;
+					vd = { 0,0,0,0 };
+					for (int j = 0; j < 3; j++) {
+						float4 vaf4;
+						if constexpr (geometryShaderEnabled) {
+							vaf4 = dGeometryShaderOutVaryings[orgPrimId * 3 * varyingCount + k + j * varyingCount];
+						}
+						else {
+							vaf4 = va[addr[j] * varyingCount + k];
+						}
+						vd.x += vaf4.x * desiredBary[j];
+						vd.y += vaf4.y * desiredBary[j];
+						vd.z += vaf4.z * desiredBary[j];
+						vd.w += vaf4.w * desiredBary[j];
+					}
+					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadId);
+					dest->x = vd.x;
+					dest->y = vd.y;
+					dest->z = vd.z;
+					dest->w = vd.w;
+				}
+				if (isHelperInvocation) {
+					return;
+				}
+				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId);
+				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
+				ifloat4 finalRgba;
+				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadId))[0];
+				finalRgba.x = midOutput.x;
+				finalRgba.y = midOutput.y;
+				finalRgba.z = midOutput.z;
+				finalRgba.w = midOutput.w;
+
+				col0[pixelYS * csFrameWidth + pixelXS] = finalRgba;
+				if constexpr (CU_PROFILER_OVERDRAW) {
+					atomicAdd(&dOverDrawCounter, 1);
+				}
+				};
+
+			//Process Quad
+			int dw[4];
+			int quadInternal = threadIdx.x;
+			int quadX = (threadIdx.y + blockDim.y * blockIdx.y);
+			int quadY = (threadIdx.z + blockDim.z * blockIdx.z);
+			int quadIdx = (quadY * CU_MAX_FRAMEBUFFER_WIDTH + quadX) * 4;
+			int selfV = dPixelShaderTags[quadIdx + quadInternal];
+			if constexpr (CU_OPT_SHADER_DERIVATIVES) {
+				for (int i = 0; i < 4; i++) {
+					int tagId = dPixelShaderTags[quadIdx + i];
+					dw[i] = tagId;
+					if (tagId == -1)continue;
+					bool flag = false;
+					for (int j = 0; j < i; j++) {
+						if (tagId == dw[j])flag = true;
+					}
+					if (flag)continue;
+					shadingPass(tagId, tagId != selfV);
+				}
+			}
+			else {
+				if (selfV == -1)return;
+				shadingPass(selfV, false);
+			}
+
+		}
+	}
+	namespace TriangleMiscStage {
+		IFRIT_KERNEL void integratedResetKernel() {
+			const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
+
+			dSecondBinnerFinerBufferStart[globalInvocation] = 0;
+			dSecondBinnerFinerBufferSize[globalInvocation] = 0;
+
+			if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
+				dCoverQueueSuperTileFullM3Start[globalInvocation] = 0;
+				dCoverQueueSuperTileFullM3Size[globalInvocation] = 0;
+			}
+			if (globalInvocation < CU_BIN_SIZE * CU_BIN_SIZE) {
+				//dCoverQueueFullM2[globalInvocation].clear();
+				dCoverQueueFullM2Size[globalInvocation] = 0;
+			}
+			if (globalInvocation == 0) {
+				dAssembledTriangleCounterM2 = 0;
+				dGeometryShaderOutSize = 0;
+				dRasterQueueWorklistCounter = 0;
+				dSmallTriangleCount = 0;
+				dCoverPrimsCounter = 0;
+				dCoverPrimsLargeTileCounter = 0;
+				dSecondBinnerFinerBufferGlobalSize = 0;
+				dSecondBinnerCandCounter = 0;
+				dCoverQueueSuperTileFullM3GlobalSize = 0;
+				dCoverQueueSuperTileFullM3TotlCands = 0;
+				dCoverQueueFullM2GlobalSize = 0;
+			}
+			if constexpr (CU_PROFILER_OVERDRAW) {
+				if (blockIdx.x == 0 && threadIdx.x == 0) {
+					printf("Overdraw Rate:%f (%d)\n", dOverDrawCounter * 1.0f / 2048.0f / 2048.0f, dOverDrawCounter);
+					printf("ZTest Rate:%f (%d)\n", dOverZTestCounter * 1.0f / 2048.0f / 2048.0f, dOverZTestCounter);
+					printf("Irrelevant Rate:%f (%d/%d)\n", 1.0f * dIrrelevantPixel / dTotalBinnedPixel, dIrrelevantPixel, dTotalBinnedPixel);
+
+					dOverDrawCounter = 0;
+					dOverZTestCounter = 0;
+					dIrrelevantPixel = 0;
+					dTotalBinnedPixel = 0;
+				}
+			}
+		}
+		IFRIT_KERNEL void integratedInitKernel() {
+			const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
+			if (globalInvocation == 0) {
+				dAssembledTriangleCounterM2 = 0;
+				dSecondBinnerActiveReqs = 0;
+				dSecondBinnerTotalReqs = 0;
+				dSecondBinnerEmptyTiles = 0;
+				dRasterQueueWorklistCounter = 0;
+				dSecondBinnerCandCounter = 0;
+				dCoverQueueSuperTileFullM3GlobalSize = 0;
+				dCoverQueueSuperTileFullM3TotlCands = 0;
+			}
+		}
+
+		IFRIT_KERNEL void resetLargeTileKernel(bool resetTriangle) {
+			const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
+
+			dSecondBinnerFinerBufferStart[globalInvocation] = 0;
+			dSecondBinnerFinerBufferSize[globalInvocation] = 0;
+
+			if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
+				dCoverQueueSuperTileFullM3Start[globalInvocation] = 0;
+				dCoverQueueSuperTileFullM3Size[globalInvocation] = 0;
+
+			}
+			if (globalInvocation < CU_BIN_SIZE * CU_BIN_SIZE) {
+				dCoverQueueFullM2Size[globalInvocation] = 0;
+			}
+
+			if constexpr (CU_PROFILER_SECOND_BINNER_UTILIZATION) {
+				if (globalInvocation == 0) {
+					printf("Tile Empty Rate: %f (%d/%d)\n",
+						1.0f * dSecondBinnerEmptyTiles / (CU_TILE_SIZE * CU_TILE_SIZE), dSecondBinnerEmptyTiles, CU_TILE_SIZE * CU_TILE_SIZE);
+					printf("Second Binner Actual Utilization: %f (%d/%d)\n",
+						1.0f * dSecondBinnerActiveReqs / dSecondBinnerTotalReqs, dSecondBinnerActiveReqs, dSecondBinnerTotalReqs);
+					dSecondBinnerActiveReqs = 0;
+					dSecondBinnerTotalReqs = 0;
+					dSecondBinnerEmptyTiles = 0;
+				}
+			}
+
+			if (globalInvocation == 0) {
+				if (resetTriangle) {
+					dAssembledTriangleCounterM2 = 0;
+					dGeometryShaderOutSize = 0;
+					if constexpr (CU_PROFILER_TRIANGLE_SETUP) {
+						printf("Primitive Queue Occupation: %f (%d/%d)\n",
+							1.0f * dAssembledTriangleCounterM2 / (CU_SINGLE_TIME_TRIANGLE * 2), dAssembledTriangleCounterM2, CU_SINGLE_TIME_TRIANGLE * 2);
+					}
+				}
+				dRasterQueueWorklistCounter = 0;
+				dCoverPrimsCounter = 0;
+				dCoverPrimsLargeTileCounter = 0;
+				dSecondBinnerCandCounter = 0;
+				dSecondBinnerFinerBufferGlobalSize = 0;
+				dCoverQueueSuperTileFullM3GlobalSize = 0;
+				dCoverQueueSuperTileFullM3TotlCands = 0;
+				dCoverQueueFullM2GlobalSize = 0;
+			}
+		}
+	}
+	namespace TrianglePipeline {
+		IFRIT_KERNEL void unifiedRasterEngineStageIIFilledTriangleKernel(
+			int* dIndexBuffer,
+			const float4 const* dVaryingBuffer,
+			ifloat4** dColorBuffer,
+			float* dDepthBuffer,
+			GeometryShader* dGeometryShader,
+			FragmentShader* dFragmentShader,
+			bool isTailCall
+		) {
+			if constexpr (CU_OPT_II_SKIP_ON_FEW_GEOMETRIES) {
+				if (!isTailCall && dAssembledTriangleCounterM2 < CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT) {
+					return;
+				}
+			}
+			int totalTms = dAssembledTriangleCounterM2 / CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
+			int curTime = -1;
+			auto dispatchBlocks = dAssembledTriangleCounterM2 / CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS + (dAssembledTriangleCounterM2 % CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS != 0);
+			Impl::TriangleGeometryStage::geometryParamPostprocKernel CU_KARG2(dispatchBlocks, CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS) (dAssembledTriangleCounterM2);
+
+			for (int sI = 0; sI < dAssembledTriangleCounterM2; sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER) {
+				// Process sizes
+				curTime++;
+				int length = min(dAssembledTriangleCounterM2 - sI, CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER);
+				int start = sI;
+				bool isLast = curTime == totalTms;
+				if (curTime == totalTms - 1) {
+					if (dAssembledTriangleCounterM2 % CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER < CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER * 1 / 2) {
+						length = dAssembledTriangleCounterM2 - sI;
+						sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
+						isLast = true;
+					}
+				}
+				// First binner
+				Impl::TriangleRasterizationStage::firstBinnerRasterizerEntryKernel CU_KARG2(1, 1)(start, length);
+				Impl::TriangleRasterizationStage::firstBinnerGatherAllocKernel CU_KARG2(CU_MAX_BIN_X, CU_MAX_BIN_X)();
+				Impl::TriangleRasterizationStage::firstBinnerGatherEntryKernel CU_KARG2(1, 1)();
+				
+				// Second binner
+				Impl::TriangleRasterizationStage::secondBinnerWorklistRasterizerEntryKernel CU_KARG2(1, 1)();
+				int dispatchSfbaBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, 128);
+				Impl::TriangleRasterizationStage::secondFinerBinnerAllocationKernel CU_KARG2(dispatchSfbaBlocks, 128) ();
+				Impl::TriangleRasterizationStage::secondFinerBinnerRasterizationEntryKernel CU_KARG2(1, 1)();
+				int numTileX = (csFrameWidth / CU_TILE_WIDTH) + (csFrameWidth % CU_TILE_WIDTH != 0);
+				int numTileY = (csFrameHeight / CU_TILE_WIDTH) + (csFrameHeight % CU_TILE_WIDTH != 0);
+				int dispZ = (CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH) + (CU_TILE_WIDTH % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
+				
+				// Sort
+				if constexpr (CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR) {
+					Impl::TriangleSortStage::sortEntryKernel CU_KARG2(1, 1)();
+				}
+				
+				// Fragment Shader
+				int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth / 2, 8);
+				int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight / 2, 8);
+				if (dGeometryShader == nullptr) {
+					Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
+						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+					Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
+						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+				}
+				else {
+					Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
+						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+					Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
+						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+				}
+				Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_TILE_SIZE * CU_MAX_SUBTILES_PER_TILE, CU_TILE_SIZE)(isLast);
+			}
+		}
+
+		IFRIT_KERNEL void unifiedFilledTriangleRasterEngineKernel(
+			int totalIndices,
+			ifloat4* dPositionBuffer,
+			int* dIndexBuffer,
+			const float4* dVaryingBuffer,
+			ifloat4** dColorBuffer,
+			float* dDepthBuffer,
+			GeometryShader* dGeometryShader,
+			FragmentShader* dFragmentShader
+		) {
+			for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
+				auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
+				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
+				if (dGeometryShader == nullptr) {
+					int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
+					Impl::TriangleGeometryStage::geometryClippingKernel<0> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
+						dPositionBuffer, dIndexBuffer, i, indexCount);
+				}
+				else {
+					GeneralGeometryStage::devCallGeometryShader(dGeometryShader, CU_TRIANGLE_STRIDE, i, indexCount,
+						(float4*)dPositionBuffer, dIndexBuffer, (float4*)dVaryingBuffer);
+					Impl::TriangleGeometryStage::geometryClippingKernelEntryWithGS CU_KARG2(1, 1)();
+				}
+				unifiedRasterEngineStageIIFilledTriangleKernel CU_KARG2(1, 1)(
+					dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer,
+					dGeometryShader, dFragmentShader, isTailCall);
+			}
+		}
+
+		IFRIT_HOST void unifiedFilledTriangleRasterEngineProfileEntry(
+			int totalIndices,
+			ifloat4* dPositionBuffer,
+			int* dIndexBuffer,
+			const float4* dVaryingBuffer,
+			ifloat4** dColorBuffer,
+			float* dDepthBuffer,
+			GeometryShader* dGeometryShader,
+			FragmentShader* dFragmentShader,
+			cudaStream_t& compStream
+		) {
+			for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
+				auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
+				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
+				if (dGeometryShader == nullptr) {
+					int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_PROCESSING_THREADS);
+					Impl::TriangleGeometryStage::geometryClippingKernel<0> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
+						dPositionBuffer, dIndexBuffer, i, indexCount);
+				}
+				else {
+					int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
+					Impl::GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (i, indexCount, dGeometryShader, (float4*)dPositionBuffer,
+						dIndexBuffer, dVaryingBuffer);
+					Impl::TriangleGeometryStage::geometryClippingKernelEntryWithGS CU_KARG2(1, 1)();
+				}
+
+				uint32_t dAssembledTriangleCounterM2Host = 0;
+				cudaDeviceSynchronize();
+				cudaMemcpyFromSymbol(&dAssembledTriangleCounterM2Host, dAssembledTriangleCounterM2, sizeof(uint32_t));
+				if constexpr (CU_OPT_II_SKIP_ON_FEW_GEOMETRIES) {
+					if (!isTailCall && dAssembledTriangleCounterM2Host < CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT) {
+						continue;
+					}
+				}
+				int totalTms = dAssembledTriangleCounterM2Host / CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
+				int curTime = -1;
+				auto dispatchBlocks = IFRIT_InvoGetThreadBlocks(dAssembledTriangleCounterM2Host, CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS);
+				Impl::TriangleGeometryStage::geometryParamPostprocKernel CU_KARG2(dispatchBlocks, CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS) (dAssembledTriangleCounterM2Host);
+				for (int sI = 0; sI < dAssembledTriangleCounterM2Host; sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER) {
+					curTime++;
+					int length = min(dAssembledTriangleCounterM2Host - sI, CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER);
+					int start = sI;
+					bool isLast = (curTime == totalTms);
+					if (curTime == totalTms - 1) {
+						if (dAssembledTriangleCounterM2 % CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER < CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER * 2 / 5) {
+							length = dAssembledTriangleCounterM2Host - sI;
+							sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
+							isLast = true;
+						}
+					}
+					Impl::TriangleRasterizationStage::firstBinnerRasterizerEntryProfileKernel(start, length);
+					auto totalCoverPrims = 0;
+					cudaMemcpyFromSymbol(&totalCoverPrims, dCoverPrimsCounter, sizeof(int));
+					int dispatchGatherBlocks = totalCoverPrims / CU_FIRST_RASTERIZATION_GATHER_THREADS + (totalCoverPrims % CU_FIRST_RASTERIZATION_GATHER_THREADS != 0);
+					if (dispatchGatherBlocks != 0) {
+						Impl::TriangleRasterizationStage::firstBinnerGatherKernel CU_KARG2(dispatchGatherBlocks, CU_FIRST_RASTERIZATION_GATHER_THREADS)(totalCoverPrims);
+					}
+					Impl::TriangleRasterizationStage::secondBinnerWorklistRasterizerEntryProfileKernel();
+
+					int dispatchSfbaBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, 128);
+					Impl::TriangleRasterizationStage::secondFinerBinnerAllocationKernel CU_KARG2(dispatchSfbaBlocks, 128) ();
+					cudaDeviceSynchronize();
+					int secondBinnerCands = 0;
+					cudaMemcpyFromSymbol(&secondBinnerCands, dSecondBinnerCandCounter, sizeof(int));
+
+					int dispatchSfbrBlocks = IFRIT_InvoGetThreadBlocks(secondBinnerCands, 128);
+					if (secondBinnerCands != 0) {
+						Impl::TriangleRasterizationStage::secondFinerBinnerRasterizationKernel CU_KARG2(dispatchSfbrBlocks, 128)(secondBinnerCands);
+					}
+
+					int numTileX = (hsFrameWidth / CU_TILE_WIDTH) + (hsFrameWidth % CU_TILE_WIDTH != 0);
+					int numTileY = (hsFrameHeight / CU_TILE_WIDTH) + (hsFrameHeight % CU_TILE_WIDTH != 0);
+					int dispZ = (CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH) + (CU_TILE_WIDTH % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
+					std::abort();
+					if (dGeometryShader == nullptr) {
+						//Impl::TriangleFragmentStage::pixelTaggingKernel<0> CU_KARG4(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ), 0, compStream) (
+						//	dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
+						//	);
+					}
+					else {
+						//Impl::TriangleFragmentStage::pixelTaggingKernel<1> CU_KARG4(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ), 0, compStream) (
+						//	dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
+						//	);
+					}
+					Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG4(CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, CU_MAX_TILE_X, 0, compStream)(isLast);
+				}
+				if constexpr (CU_PROFILER_SMALL_TRIANGLE_OVERHEAD) {
+					auto dSmallTriangleCountHost = 0;
+					cudaMemcpyFromSymbol(&dSmallTriangleCountHost, dSmallTriangleCount, sizeof(uint32_t));
+					printf("Small Triangle Rate:%f (%d/%d)\n", 1.0f * dSmallTriangleCountHost / dAssembledTriangleCounterM2Host, dSmallTriangleCountHost, dAssembledTriangleCounterM2Host);
+					dSmallTriangleCount = 0;
+				}
+			}
+			cudaDeviceSynchronize();
+		}
+	}
+
+	namespace PointRasterizationStage {
 		template <int geometryShaderEnabled>
 		IFRIT_KERNEL void pointRasterizationInsertKernel(
 			ifloat4* IFRIT_RESTRICT_CUDA dPosBuffer,
@@ -1172,6 +1934,133 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			pointRasterizationInsertKernel<1> CU_KARG2(dispatchBlocks, CU_GEOMETRY_PROCESSING_THREADS)(nullptr, nullptr, 0, numTriangles * 3);
 		}
 	}
+	namespace PointFragmentStage {
+		template <int geometryShaderEnabled>
+		IFRIT_KERNEL void pixelShadingKernel(
+			FragmentShader* fragmentShader,
+			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
+			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			float* IFRIT_RESTRICT_CUDA dDepthBuffer
+		) {
+			//TODO: must be 256 threads
+			auto globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
+			auto pixelX = globalInvo % csFrameWidth;
+			auto pixelY = globalInvo / csFrameHeight;
+			auto curDepth = dDepthBuffer[globalInvo];
+			auto dPixelId = pixelY * CU_MAX_FRAMEBUFFER_WIDTH + pixelX;
+			int actPrim = -1;
+			int localDepth = 1e9;
+			IFRIT_SHARED float colorOutputSingle[256 * 4];
+			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
+			auto shadingPass = [&](int primId) {
+				auto varyingCount = csVaryingCounts;
+				int orgPrimId = dAtriOriginalPrimId[primId];
+				auto addr = dIndexBuffer + orgPrimId;
+				for (int k = 0; k < varyingCount; k++) {
+					float4 vd;
+					vd = { 0,0,0,0 };
+					float4 vaf4;
+					if constexpr (geometryShaderEnabled) {
+						vaf4 = dGeometryShaderOutVaryings[orgPrimId * varyingCount + k];
+					}
+					else {
+						vaf4 = dVaryingBuffer[orgPrimId * varyingCount + k];
+					}
+					vd.x = vaf4.x;
+					vd.y = vaf4.y;
+					vd.z = vaf4.z;
+					vd.w = vaf4.w;
+					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadIdx.x);
+					dest->x = vd.x;
+					dest->y = vd.y;
+					dest->z = vd.z;
+					dest->w = vd.w;
+				}
+				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x);
+				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
+				ifloat4 finalRgba;
+				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadIdx.x))[0];
+				finalRgba.x = midOutput.x;
+				finalRgba.y = midOutput.y;
+				finalRgba.z = midOutput.z;
+				finalRgba.w = midOutput.w;
+				col0[globalInvo] = finalRgba;
+
+				};
+			auto zPrePass = [&](int primId) {
+				auto z = dAtriBaryCenter12[primId].z;
+				if (z < localDepth) {
+					actPrim = primId;
+					localDepth = z;
+				}
+			};
+			int dStart = dSecondBinnerFinerBufferStartPoint[dPixelId];
+			int dLast = dSecondBinnerFinerBufferCurIndPoint[dPixelId];
+
+			for (int i = dStart; i < dLast; i++) {
+				zPrePass(dSecondBinnerFinerBufferPoint[i]);
+			}
+			if (localDepth < curDepth && actPrim != -1) {
+				shadingPass(actPrim);
+				dDepthBuffer[globalInvo] = localDepth;
+			}
+		}
+	}
+	namespace PointMiscStage {
+		IFRIT_KERNEL void resetPointRasterizerKernel() {
+			int globalInvo = threadIdx.x + blockDim.x * blockIdx.x;
+			dSecondBinnerFinerBufferSizePoint[globalInvo] = 0;
+			if (globalInvo == 0) {
+				dSecondBinnerFinerBufferGlobalSize = 0;
+			}
+		}
+	}
+	namespace PointPipeline {
+		IFRIT_KERNEL void unifiedPointRasterEngineKernel(
+			int totalIndices,
+			ifloat4* dPositionBuffer,
+			int* dIndexBuffer,
+			const float4* dVaryingBuffer,
+			ifloat4** dColorBuffer,
+			float* dDepthBuffer,
+			GeometryShader* dGeometryShader,
+			FragmentShader* dFragmentShader
+		) {
+			for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE) {
+				auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE), totalIndices - i);
+				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE) >= totalIndices;
+				int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount, CU_POINT_RASTERIZATION_FIRST_THREADS);
+				if (geometryExecutionBlocks == 0)continue;
+				if (dGeometryShader != nullptr) {
+					GeneralGeometryStage::devCallGeometryShader(dGeometryShader, CU_TRIANGLE_STRIDE, i, indexCount,
+						(float4*)dPositionBuffer, dIndexBuffer, (float4*)dVaryingBuffer);
+					PointRasterizationStage::pointGeometryKernelEntryWithGS CU_KARG2(1, 1)();
+				}
+				else {
+					PointRasterizationStage::pointRasterizationInsertKernel<0> CU_KARG2(geometryExecutionBlocks, CU_POINT_RASTERIZATION_FIRST_THREADS)(
+						dPositionBuffer, dIndexBuffer, i, indexCount);
+				}
+
+				int allocBlocks = IFRIT_InvoGetThreadBlocks(csFrameHeight * csFrameWidth, 128);
+				PointRasterizationStage::pointRasterizationAllocKernel CU_KARG2(allocBlocks, 128)();
+				PointRasterizationStage::pointRasterizationPlaceEntryKernel CU_KARG2(1, 1) ();
+				int psBlocks = IFRIT_InvoGetThreadBlocks(csFrameHeight * csFrameWidth, 256);
+				if (dGeometryShader != nullptr) {
+					PointFragmentStage::pixelShadingKernel<1> CU_KARG2(psBlocks, 256)(dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+				}
+				else {
+					PointFragmentStage::pixelShadingKernel<0> CU_KARG2(psBlocks, 256)(dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+				}
+
+				Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_TILE_SIZE * CU_MAX_SUBTILES_PER_TILE, CU_TILE_SIZE)(true);
+
+				int rsBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_FRAMEBUFFER_SIZE, 256);
+				Impl::PointMiscStage::resetPointRasterizerKernel CU_KARG2(rsBlocks, 256)();
+			}
+		}
+	}
+
 	namespace LineGeometryStage {
 		IFRIT_DEVICE void devLineCullClip(float4 v1, float4 v2, float4 bary1,float4 bary2, int primId) {
 			if (v1.w < 0 && v2.w < 0)return;
@@ -1359,398 +2248,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			linerRasterPlaceKernel CU_KARG2(dispatchBlocks, CU_LINE_RASTERIZATION_PLACE_THREADS)(total);
 		}
 	}
-
-	// Kernel Implementations
-	namespace VertexStage {
-		IFRIT_KERNEL void vertexProcessingKernel(
-			VertexShader* vertexShader,
-			uint32_t vertexCount,
-			char* IFRIT_RESTRICT_CUDA dVertexBuffer,
-			TypeDescriptorEnum* IFRIT_RESTRICT_CUDA dVertexTypeDescriptor,
-			float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-			float4* IFRIT_RESTRICT_CUDA dPosBuffer
-		) {
-			const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
-			if (globalInvoIdx >= vertexCount) return;
-			const auto numAttrs = csAttributeCounts;
-			const auto numVaryings = csVaryingCounts;
-
-			const void* vertexInputPtrs[CU_MAX_ATTRIBUTES];
-			float4* varyingOutputPtrs[CU_MAX_VARYINGS];
-
-			for (int i = 0; i < numAttrs; i++) {
-				vertexInputPtrs[i] = globalInvoIdx * csTotalVertexOffsets + dVertexBuffer + csVertexOffsets[i];
-			}
-			for (int i = 0; i < numVaryings; i++) {
-				varyingOutputPtrs[i] = dVaryingBuffer + globalInvoIdx * numVaryings + i;
-				if (globalInvoIdx * numVaryings + i > 2 * 17433) {
-					printf("ERROR %d %d %d\n", globalInvoIdx, numVaryings, i);
-				}
-			}
-			vertexShader->execute(vertexInputPtrs, (ifloat4*)&dPosBuffer[globalInvoIdx], (VaryingStore**)varyingOutputPtrs);
-		}
-	}
-	namespace GeneralGeometryStage {
-		IFRIT_KERNEL void geometryShadingKernel(
-			uint32_t startingIndexId,
-			uint32_t indexCount,
-			GeometryShader* geometryShader,
-			float4* IFRIT_RESTRICT_CUDA dPosBuffer,
-			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
-			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer
-		) {
-			const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
-			if (globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
-			const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
-			auto dPosBufferAligned = reinterpret_cast<float4*>(__builtin_assume_aligned(dPosBuffer, 16));
-			float4 v1, v2, v3;
-
-			//TODO: Bank Conflict
-			IFRIT_SHARED int outVertices[CU_GEOMETRY_SHADER_THREADS];
-			IFRIT_SHARED float4* posPtr[3 * CU_GEOMETRY_SHADER_THREADS];
-			IFRIT_SHARED const float4* varyingPtr[3 * CU_MAX_VARYINGS * CU_GEOMETRY_SHADER_THREADS];
-			IFRIT_SHARED float4 posOut[CU_MAX_GS_OUT_VERTICES * CU_GEOMETRY_PROCESSING_THREADS];
-			IFRIT_SHARED float4 varyingOut[CU_MAX_GS_OUT_VERTICES * CU_MAX_VARYINGS * CU_GEOMETRY_SHADER_THREADS];
-			int varyingSpv = csVaryingCounts;
-			
-			posPtr[threadIdx.x * 3 + 0] = dPosBufferAligned + dIndexBuffer[indexStart];
-			posPtr[threadIdx.x * 3 + 1] = dPosBufferAligned + dIndexBuffer[indexStart + 1];
-			posPtr[threadIdx.x * 3 + 2] = dPosBufferAligned + dIndexBuffer[indexStart + 2];
-			varyingPtr[threadIdx.x * 3 + 0] = dVaryingBuffer + dIndexBuffer[indexStart] * csVaryingCounts;
-			varyingPtr[threadIdx.x * 3 + 1] = dVaryingBuffer + dIndexBuffer[indexStart + 1] * csVaryingCounts;
-			varyingPtr[threadIdx.x * 3 + 2] = dVaryingBuffer + dIndexBuffer[indexStart + 2] * csVaryingCounts;
-			
-			geometryShader->execute(
-				(ifloat4**)(posPtr + 3 * threadIdx.x),
-				(VaryingStore**)(varyingPtr + 3 * threadIdx.x),
-				(ifloat4*)(posOut + 3 * threadIdx.x),
-				(VaryingStore*)(varyingOut + 3 * threadIdx.x * csVaryingCounts),
-				outVertices + threadIdx.x
-			);
-			int outW = outVertices[threadIdx.x];
-			int insPos = atomicAdd(&dGeometryShaderOutSize, outW);
-			for (int i = 0; i < outW; i++) {
-				dGeometryShaderOutPos[insPos + i] = (posOut + 3 * threadIdx.x)[i];
-				for (int j = 0; j < csVaryingCounts; j++) {
-					dGeometryShaderOutVaryings[insPos * csVaryingCounts + i * csVaryingCounts + j] = (varyingOut + 3 * threadIdx.x * csVaryingCounts)[i * csVaryingCounts + j];
-				}
-			}
-		}
-	}
-	namespace TriangleFragmentStage {
-		IFRIT_KERNEL void pixelTaggingExecKernel(
-			FragmentShader* fragmentShader,
-			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
-			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
-			float* IFRIT_RESTRICT_CUDA dDepthBuffer
-		) {
-			uint32_t tileX = blockIdx.x, tileY = blockIdx.y;
-			uint32_t binX = tileX / CU_TILES_PER_BIN, binY = tileY / CU_TILES_PER_BIN;
-			uint32_t superTileX = tileX / (CU_BINS_PER_LARGE_BIN * CU_TILES_PER_BIN);
-			uint32_t superTileY = tileY / (CU_BINS_PER_LARGE_BIN * CU_TILES_PER_BIN);
-			uint32_t tileId = tileY * CU_TILE_SIZE + tileX;
-			uint32_t binId = binY * CU_BIN_SIZE + binX;
-			uint32_t superTileId = superTileY * CU_LARGE_BIN_SIZE + superTileX;
-
-			const auto frameWidth = csFrameWidth;
-			const auto completeCandidates = dCoverQueueFullM2[binId].size;
-
-			constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
-			const auto varyingCount = csVaryingCounts;
-
-			const int threadX = threadIdx.x, threadY = threadIdx.y, threadZ = threadIdx.z;
-			const auto threadId = threadZ * blockDim.x * blockDim.y + threadY * blockDim.x + threadX;
-
-			const int pixelXS = threadX + threadZ * CU_EXPERIMENTAL_SUBTILE_WIDTH + tileX * CU_TILE_WIDTH;
-			const int pixelYS = threadY + tileY * CU_TILE_WIDTH;
-
-			float localDepthBuffer = 1;
-			float candidateBary[3];
-			int candidatePrim = -1;
-			const float compareDepth = dDepthBuffer[pixelYS * frameWidth + pixelXS];
-			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
-
-			auto zPrePass = [&](int primId) {
-				float interpolatedDepth;
-				float2 v12 = dAtriDepthVal12[primId];
-				float v3 = dAtriDepthVal3[primId];
-				interpolatedDepth = v12.x * pDx + v12.y * pDy + v3;
-				if (interpolatedDepth < localDepthBuffer) {
-					localDepthBuffer = interpolatedDepth;
-					candidatePrim = primId;
-				}
-				if constexpr (CU_PROFILER_OVERDRAW) {
-					atomicAdd(&dOverZTestCounter, 1);
-				}
-				};
-
-			// Large Bin Level
-			if constexpr (true) {
-				int startIndex = dCoverQueueSuperTileFullM3Start[superTileId];
-				int totlSize = dCoverQueueSuperTileFullM3CurInd[superTileId];
-				for (int i = startIndex; i < totlSize; i++) {
-					const auto proposal = dCoverQueueSuperTileFullM3BufferFinal[i];
-					zPrePass(proposal);
-				}
-			}
-
-			// Bin Level
-			if constexpr (true) {
-				int log2LargeCandidates = 31 - __clz(max(0, completeCandidates - 1) | ((1 << CU_VECTOR_BASE_LENGTH) - 1)) - (CU_VECTOR_BASE_LENGTH - 1);
-				for (int i = 0; i < log2LargeCandidates; i++) {
-					int dmax = i ? (1 << (i + CU_VECTOR_BASE_LENGTH - 1)) : (1 << (CU_VECTOR_BASE_LENGTH));
-					const auto& data = dCoverQueueFullM2[binId].data[i];
-					for (int j = 0; j < dmax; j++) {
-						const auto proposal = data[j];
-						zPrePass(proposal);
-					}
-				}
-				int processedLargeProposals = log2LargeCandidates ? (1 << (log2LargeCandidates + CU_VECTOR_BASE_LENGTH - 1)) : 0;
-				const auto& dataPixel = dCoverQueueFullM2[binId].data[log2LargeCandidates];
-				const auto limPixel = completeCandidates - processedLargeProposals;
-				for (int i = 0; i < limPixel; i++) {
-					const auto proposal = dataPixel[i];
-					zPrePass(proposal);
-				}
-			}
-
-			// Pixel Level
-			if constexpr (true) {
-				auto curTileX = tileX * CU_TILE_WIDTH;
-				auto curTileY = tileY * CU_TILE_WIDTH;
-				constexpr auto curTileWid = CU_TILE_WIDTH;
-				constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
-				int inTileX = pixelXS - curTileX;
-				int inTileY = pixelYS - curTileY;
-				int inSubTileX = inTileX / CU_EXPERIMENTAL_SUBTILE_WIDTH;
-				int inSubTileY = inTileY / CU_EXPERIMENTAL_SUBTILE_WIDTH;
-				int inSubTileId = inSubTileY * numSubtilesX + inSubTileX;
-
-				int dwX = inTileX % CU_EXPERIMENTAL_SUBTILE_WIDTH;
-				int dwY = inTileY % CU_EXPERIMENTAL_SUBTILE_WIDTH;
-				int dwId = dwY * CU_EXPERIMENTAL_SUBTILE_WIDTH + dwX;
-				int dwMask = (1 << dwId);
-
-				int startIndex = dSecondBinnerFinerBufferStart[tileId * CU_MAX_SUBTILES_PER_TILE + inSubTileId];
-				int totlSize = dSecondBinnerFinerBufferCurInd[tileId * CU_MAX_SUBTILES_PER_TILE + inSubTileId];
-				for (int i = startIndex; i < totlSize; i++) {
-					const auto proposal = dSecondBinnerFinerBuffer[i];
-					if ((proposal.x & dwMask)) {
-						zPrePass(proposal.y);
-					}
-					else {
-						if constexpr (CU_PROFILER_OVERDRAW) {
-							atomicAdd(&dIrrelevantPixel, 1);
-						}
-					}
-					if constexpr (CU_PROFILER_OVERDRAW) {
-						atomicAdd(&dTotalBinnedPixel, 1);
-					}
-				}
-			}
-			if (candidatePrim != -1 && localDepthBuffer < compareDepth) {
-				dDepthBuffer[pixelYS * frameWidth + pixelXS] = localDepthBuffer;
-				
-			}
-			int quadIdX = pixelXS >> 1;
-			int quadOfX = pixelXS & 1;
-			int quadIdY = pixelYS >> 1;
-			int quadOfY = pixelYS & 1;
-			int quadId = (quadIdY * CU_MAX_FRAMEBUFFER_WIDTH + quadIdX) * 4 + (quadOfY * 2 + quadOfX);
-			dPixelShaderTags[quadId] = candidatePrim;
-		}
-
-		template <int geometryShaderEnabled>
-		IFRIT_KERNEL void pixelShadingExecKernel(
-			FragmentShader* fragmentShader,
-			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
-			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
-			float* IFRIT_RESTRICT_CUDA dDepthBuffer
-		) {
-			IFRIT_SHARED float colorOutputSingle[256 * 4];
-			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
-			float candidateBary[3];
-
-			const int pixelXS = (threadIdx.x & 1) + (threadIdx.y + blockDim.y * blockIdx.y) * 2;
-			const int pixelYS = (threadIdx.x >> 1) + (threadIdx.z + blockDim.z * blockIdx.z) * 2;
-
-			if (pixelXS >= csFrameWidth || pixelYS >= csFrameHeight)return;
-			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
-			constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
-			auto varyingCount = csVaryingCounts;
-			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
-
-			auto shadingPass = [&](const int pId,const bool isHelperInvocation) {
-				float4 f1o = dAtriInterpolBase1[pId];
-				float4 f2o = dAtriInterpolBase2[pId];
-				float f3o = dAtriInterpolBase3[pId];
-
-				float3 f1 = { f1o.x,f1o.y,f1o.z };
-				float3 f2 = { f1o.w,f2o.x,f2o.y };
-				float3 f3 = { f2o.z,f2o.w,f3o };
-
-				float4 b12 = dAtriBaryCenter12[pId];
-				float2 b3 = dAtriBaryCenter3[pId];
-				int orgPrimId = dAtriOriginalPrimId[pId];
-
-				candidateBary[0] = (f1.x * pDx + f1.y * pDy + f1.z);
-				candidateBary[1] = (f2.x * pDx + f2.y * pDy + f2.z);
-				candidateBary[2] = (f3.x * pDx + f3.y * pDy + f3.z);
-				float zCorr = 1.0f / (candidateBary[0] + candidateBary[1] + candidateBary[2]);
-				candidateBary[0] *= zCorr;
-				candidateBary[1] *= zCorr;
-				candidateBary[2] *= zCorr;
-
-				float desiredBary[3];
-				desiredBary[0] = candidateBary[0] * b12.x + candidateBary[1] * b12.z + candidateBary[2] * b3.x;
-				desiredBary[1] = candidateBary[0] * b12.y + candidateBary[1] * b12.w + candidateBary[2] * b3.y;
-				desiredBary[2] = 1.0f - (desiredBary[0] + desiredBary[1]);
-				auto addr = dIndexBuffer + orgPrimId * vertexStride;
-				
-				for (int k = 0; k < varyingCount; k++) {
-					const auto va = dVaryingBuffer;
-					float4 vd;
-					vd = { 0,0,0,0 };
-					for (int j = 0; j < 3; j++) {
-						float4 vaf4;
-						if constexpr (geometryShaderEnabled) {
-							vaf4 = dGeometryShaderOutVaryings[orgPrimId * 3 * varyingCount + k + j * varyingCount];
-						}
-						else {
-							vaf4 = va[addr[j] * varyingCount + k];
-						}
-						vd.x += vaf4.x * desiredBary[j];
-						vd.y += vaf4.y * desiredBary[j];
-						vd.z += vaf4.z * desiredBary[j];
-						vd.w += vaf4.w * desiredBary[j];
-					}
-					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadId);
-					dest->x = vd.x;
-					dest->y = vd.y;
-					dest->z = vd.z;
-					dest->w = vd.w;
-				}
-				if (isHelperInvocation) {
-					return;
-				}
-				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId);
-				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
-				ifloat4 finalRgba;
-				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadId))[0];
-				finalRgba.x = midOutput.x;
-				finalRgba.y = midOutput.y;
-				finalRgba.z = midOutput.z;
-				finalRgba.w = midOutput.w;
-
-				col0[pixelYS * csFrameWidth + pixelXS] = finalRgba;
-				if constexpr (CU_PROFILER_OVERDRAW) {
-					atomicAdd(&dOverDrawCounter, 1);
-				}
-			};
-
-			//Process Quad
-			int dw[4];
-			int quadInternal = threadIdx.x;
-			int quadX = (threadIdx.y + blockDim.y * blockIdx.y);
-			int quadY = (threadIdx.z + blockDim.z * blockIdx.z);
-			int quadIdx = (quadY * CU_MAX_FRAMEBUFFER_WIDTH + quadX) * 4;
-			int selfV = dPixelShaderTags[quadIdx + quadInternal];
-			if constexpr (CU_OPT_SHADER_DERIVATIVES) {
-				for (int i = 0; i < 4; i++) {
-					int tagId = dPixelShaderTags[quadIdx + i];
-					dw[i] = tagId;
-					if (tagId == -1)continue;
-					bool flag = false;
-					for (int j = 0; j < i; j++) {
-						if (tagId == dw[j])flag = true;
-					}
-					if (flag)continue;
-					shadingPass(tagId, tagId != selfV);
-				}
-			}
-			else {
-				if (selfV == -1)return;
-				shadingPass(selfV,false);
-			}
-			
-		}
-	}
-	namespace PointFragmentStage {
-		template <int geometryShaderEnabled>
-		IFRIT_KERNEL void pixelShadingKernel(
-			FragmentShader* fragmentShader,
-			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
-			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
-			float* IFRIT_RESTRICT_CUDA dDepthBuffer
-		) {
-			//TODO: must be 256 threads
-			auto globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
-			auto pixelX = globalInvo % csFrameWidth;
-			auto pixelY = globalInvo / csFrameHeight;
-			auto curDepth = dDepthBuffer[globalInvo];
-			auto dPixelId = pixelY * CU_MAX_FRAMEBUFFER_WIDTH + pixelX;
-			int actPrim = -1;
-			int localDepth = 1e9;
-			IFRIT_SHARED float colorOutputSingle[256 * 4];
-			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
-			auto shadingPass = [&](int primId) {
-				auto varyingCount = csVaryingCounts;
-				int orgPrimId = dAtriOriginalPrimId[primId];
-				auto addr = dIndexBuffer + orgPrimId;
-				for (int k = 0; k < varyingCount; k++) {
-					float4 vd;
-					vd = { 0,0,0,0 };
-					float4 vaf4;
-					if constexpr (geometryShaderEnabled) {
-						vaf4 = dGeometryShaderOutVaryings[orgPrimId * varyingCount + k];
-					}
-					else {
-						vaf4 = dVaryingBuffer[orgPrimId * varyingCount + k];
-					}
-					vd.x = vaf4.x;
-					vd.y = vaf4.y;
-					vd.z = vaf4.z;
-					vd.w = vaf4.w;
-					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadIdx.x);
-					dest->x = vd.x;
-					dest->y = vd.y;
-					dest->z = vd.z;
-					dest->w = vd.w;
-				}
-				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x);
-				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
-				ifloat4 finalRgba;
-				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadIdx.x))[0];
-				finalRgba.x = midOutput.x;
-				finalRgba.y = midOutput.y;
-				finalRgba.z = midOutput.z;
-				finalRgba.w = midOutput.w;
-				col0[globalInvo] = finalRgba;
-				
-			};
-			auto zPrePass = [&](int primId) {
-				auto z = dAtriBaryCenter12[primId].z;
-				if (z < localDepth) {
-					actPrim = primId;
-					localDepth = z;
-					
-				}
-			};
-			int dStart = dSecondBinnerFinerBufferStartPoint[dPixelId];
-			int dLast = dSecondBinnerFinerBufferCurIndPoint[dPixelId];
-			
-			for (int i = dStart; i < dLast; i++) {
-				zPrePass(dSecondBinnerFinerBufferPoint[i]);
-			}
-			if (localDepth < curDepth && actPrim != -1) {
-				shadingPass(actPrim);
-				dDepthBuffer[globalInvo] = localDepth;
-			}
-		}
-	}
 	namespace LineFragmentStage {
 
 		template <int geometryShaderEnabled>
@@ -1874,118 +2371,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 		}
 	}
-	namespace TriangleMiscStage {
-		IFRIT_KERNEL void integratedResetKernel() {
-			const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
-
-			dSecondBinnerFinerBufferStart[globalInvocation] = 0;
-			dSecondBinnerFinerBufferSize[globalInvocation] = 0;
-
-			if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
-				dCoverQueueSuperTileFullM3Start[globalInvocation] = 0;
-				dCoverQueueSuperTileFullM3Size[globalInvocation] = 0;
-			}
-			if (globalInvocation < CU_BIN_SIZE * CU_BIN_SIZE) {
-				dCoverQueueFullM2[globalInvocation].clear();
-			}
-			if (globalInvocation == 0) {
-				dAssembledTriangleCounterM2 = 0;
-				dGeometryShaderOutSize = 0;
-				dRasterQueueWorklistCounter = 0;
-				dSmallTriangleCount = 0;
-				dCoverPrimsCounter = 0;
-				dCoverPrimsLargeTileCounter = 0;
-				dSecondBinnerFinerBufferGlobalSize = 0;
-				dSecondBinnerCandCounter = 0;
-				dCoverQueueSuperTileFullM3GlobalSize = 0;
-				dCoverQueueSuperTileFullM3TotlCands = 0;
-			}
-			if constexpr (CU_PROFILER_OVERDRAW) {
-				if (blockIdx.x == 0 && threadIdx.x == 0) {
-					printf("Overdraw Rate:%f (%d)\n", dOverDrawCounter * 1.0f / 2048.0f / 2048.0f, dOverDrawCounter);
-					printf("ZTest Rate:%f (%d)\n", dOverZTestCounter * 1.0f / 2048.0f / 2048.0f, dOverZTestCounter);
-					printf("Irrelevant Rate:%f (%d/%d)\n", 1.0f * dIrrelevantPixel / dTotalBinnedPixel, dIrrelevantPixel, dTotalBinnedPixel);
-
-					dOverDrawCounter = 0;
-					dOverZTestCounter = 0;
-					dIrrelevantPixel = 0;
-					dTotalBinnedPixel = 0;
-				}
-			}
-		}
-		IFRIT_KERNEL void integratedInitKernel() {
-			const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
-			if (globalInvocation == 0) {
-				dAssembledTriangleCounterM2 = 0;
-				dSecondBinnerActiveReqs = 0;
-				dSecondBinnerTotalReqs = 0;
-				dSecondBinnerEmptyTiles = 0;
-				dRasterQueueWorklistCounter = 0;
-				dSecondBinnerCandCounter = 0;
-				dCoverQueueSuperTileFullM3GlobalSize = 0;
-				dCoverQueueSuperTileFullM3TotlCands = 0;
-			}
-
-			if (globalInvocation < CU_BIN_SIZE * CU_BIN_SIZE) {
-				dCoverQueueFullM2[globalInvocation].initialize();
-			}
-		}
-
-		IFRIT_KERNEL void resetLargeTileKernel(bool resetTriangle) {
-			const auto globalInvocation = blockIdx.x * blockDim.x + threadIdx.x;
-
-			dSecondBinnerFinerBufferStart[globalInvocation] = 0;
-			dSecondBinnerFinerBufferSize[globalInvocation] = 0;
-
-			if (globalInvocation < CU_LARGE_BIN_SIZE * CU_LARGE_BIN_SIZE) {
-				dCoverQueueSuperTileFullM3Start[globalInvocation] = 0;
-				dCoverQueueSuperTileFullM3Size[globalInvocation] = 0;
-
-			}
-			if (globalInvocation < CU_BIN_SIZE * CU_BIN_SIZE) {
-				dCoverQueueFullM2[globalInvocation].clear();
-			}
-
-			if constexpr (CU_PROFILER_SECOND_BINNER_UTILIZATION) {
-				if (globalInvocation == 0) {
-					printf("Tile Empty Rate: %f (%d/%d)\n",
-						1.0f * dSecondBinnerEmptyTiles / (CU_TILE_SIZE * CU_TILE_SIZE), dSecondBinnerEmptyTiles, CU_TILE_SIZE * CU_TILE_SIZE);
-					printf("Second Binner Actual Utilization: %f (%d/%d)\n",
-						1.0f * dSecondBinnerActiveReqs / dSecondBinnerTotalReqs, dSecondBinnerActiveReqs, dSecondBinnerTotalReqs);
-					dSecondBinnerActiveReqs = 0;
-					dSecondBinnerTotalReqs = 0;
-					dSecondBinnerEmptyTiles = 0;
-				}
-			}
-
-			if (globalInvocation == 0) {
-				if (resetTriangle) {
-					dAssembledTriangleCounterM2 = 0;
-					dGeometryShaderOutSize = 0;
-					if constexpr (CU_PROFILER_TRIANGLE_SETUP) {
-						printf("Primitive Queue Occupation: %f (%d/%d)\n",
-							1.0f * dAssembledTriangleCounterM2 / (CU_SINGLE_TIME_TRIANGLE * 2), dAssembledTriangleCounterM2, CU_SINGLE_TIME_TRIANGLE * 2);
-					}
-				}
-				dRasterQueueWorklistCounter = 0;
-				dCoverPrimsCounter = 0;
-				dCoverPrimsLargeTileCounter = 0;
-				dSecondBinnerCandCounter = 0;
-				dSecondBinnerFinerBufferGlobalSize = 0;
-				dCoverQueueSuperTileFullM3GlobalSize = 0;
-				dCoverQueueSuperTileFullM3TotlCands = 0;
-			}
-		}
-	}
-	namespace PointMiscStage {
-		IFRIT_KERNEL void resetPointRasterizerKernel() {
-			int globalInvo = threadIdx.x + blockDim.x * blockIdx.x;
-			dSecondBinnerFinerBufferSizePoint[globalInvo] = 0;
-			if (globalInvo == 0) {
-				dSecondBinnerFinerBufferGlobalSize = 0;
-			}
-		}
-	}
 	namespace LineMiscStage {
 		IFRIT_KERNEL void resetLineRasterizerKernel() {
 			int globalInvo = threadIdx.x + blockDim.x * blockIdx.x;
@@ -1996,6 +2381,49 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 		}
 	}
+	namespace LinePipeline {
+		IFRIT_KERNEL void unifiedLineRasterEngineKernel(int totalIndices,
+			ifloat4* dPositionBuffer,
+			int* dIndexBuffer,
+			const float4* dVaryingBuffer,
+			ifloat4** dColorBuffer,
+			float* dDepthBuffer,
+			GeometryShader* dGeometryShader,
+			FragmentShader* dFragmentShader
+		) {
+			for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
+				auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
+				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
+				int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_LINE_GEOMETRY_THREADS);
+				if (geometryExecutionBlocks == 0)continue;
+				if (dGeometryShader != nullptr) {
+					GeneralGeometryStage::devCallGeometryShader(dGeometryShader, CU_TRIANGLE_STRIDE, i, indexCount,
+						(float4*)dPositionBuffer, dIndexBuffer, (float4*)dVaryingBuffer);
+					LineGeometryStage::lineGeometryKernelEntryWithGS CU_KARG2(1, 1)();
+				}
+				else {
+					LineGeometryStage::lineGeometryAssemblyKernel<0> CU_KARG2(geometryExecutionBlocks, CU_LINE_GEOMETRY_THREADS)(
+						dPositionBuffer, dIndexBuffer, i, indexCount);
+				}
+				LineRasterizationStage::bresenhamRasterizationEntryKernel CU_KARG2(1, 1) ();
+				int allocBlocks = IFRIT_InvoGetThreadBlocks(csFrameHeight * csFrameWidth, 128);
+				LineRasterizationStage::lineRasterAllocKernel CU_KARG2(allocBlocks, 128)();
+				LineRasterizationStage::linerRasterPlaceEntryKernel CU_KARG2(1, 1) ();
+				int psBlocks = IFRIT_InvoGetThreadBlocks(csFrameHeight * csFrameWidth, 256);
+				if (dGeometryShader != nullptr) {
+					LineFragmentStage::pixelShadingKernel<1> CU_KARG2(psBlocks, 256)(dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+				}
+				else {
+					LineFragmentStage::pixelShadingKernel<0> CU_KARG2(psBlocks, 256)(dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+				}
+				
+				TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_TILE_SIZE * CU_MAX_SUBTILES_PER_TILE, CU_TILE_SIZE)(true);
+				int rsBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_FRAMEBUFFER_SIZE, 256);
+				LineMiscStage::resetLineRasterizerKernel CU_KARG2(rsBlocks, 256)();
+			}
+		}
+	}
+
 	namespace ImageOperator {
 		IFRIT_KERNEL void imageResetFloat32MonoKernel(
 			float* dBuffer,
@@ -2025,294 +2453,19 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 3] = value;
 		}
 	}
-	namespace TrianglePipeline {
-		IFRIT_KERNEL void unifiedRasterEngineStageIIFilledTriangleKernel(
-			int* dIndexBuffer,
-			const float4 const* dVaryingBuffer,
-			ifloat4** dColorBuffer,
-			float* dDepthBuffer,
-			GeometryShader* dGeometryShader,
-			FragmentShader* dFragmentShader,
-			bool isTailCall
-		) {
-			if constexpr (CU_OPT_II_SKIP_ON_FEW_GEOMETRIES) {
-				if (!isTailCall && dAssembledTriangleCounterM2 < CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT) {
-					return;
-				}
+	namespace MiscKernels {
+		IFRIT_KERNEL void updateFragmentShaderKernel(FragmentShader* fragmentShader) {
+			for (int i = 0; i < CU_MAX_TEXTURE_SLOTS; i++) {
+				fragmentShader->atTexture[i] = csTextures[i];
+				fragmentShader->atTextureHei[i] = csTextureHeight[i];
+				fragmentShader->atTextureWid[i] = csTextureWidth[i];
 			}
-			int totalTms = dAssembledTriangleCounterM2 / CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
-			int curTime = -1;
-			auto dispatchBlocks = dAssembledTriangleCounterM2 / CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS + (dAssembledTriangleCounterM2 % CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS != 0);
-			Impl::TriangleGeometryStage::geometryParamPostprocKernel CU_KARG2(dispatchBlocks, CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS) (dAssembledTriangleCounterM2);
-
-			for (int sI = 0; sI < dAssembledTriangleCounterM2; sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER) {
-				curTime++;
-				int length = min(dAssembledTriangleCounterM2 - sI, CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER);
-				int start = sI;
-				bool isLast = curTime == totalTms;
-				if (curTime == totalTms - 1) {
-					if (dAssembledTriangleCounterM2 % CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER < CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER * 1 / 2) {
-						length = dAssembledTriangleCounterM2 - sI;
-						sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
-						isLast = true;
-					}
-				}
-				Impl::TriangleRasterizationStage::firstBinnerRasterizerEntryKernel CU_KARG2(1, 1)(start, length);
-				Impl::TriangleRasterizationStage::firstBinnerGatherEntryKernel CU_KARG2(1, 1)();
-				Impl::TriangleRasterizationStage::secondBinnerWorklistRasterizerEntryKernel CU_KARG2(1, 1)();
-				int dispatchSfbaBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, 128);
-				Impl::TriangleRasterizationStage::secondFinerBinnerAllocationKernel CU_KARG2(dispatchSfbaBlocks, 128) ();
-				Impl::TriangleRasterizationStage::secondFinerBinnerRasterizationEntryKernel CU_KARG2(1, 1)();
-				int numTileX = (csFrameWidth / CU_TILE_WIDTH) + (csFrameWidth % CU_TILE_WIDTH != 0);
-				int numTileY = (csFrameHeight / CU_TILE_WIDTH) + (csFrameHeight % CU_TILE_WIDTH != 0);
-				int dispZ = (CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH) + (CU_TILE_WIDTH % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
-				if (dGeometryShader == nullptr) {
-					Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
-						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
-					int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth / 2, 8);
-					int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight / 2, 8);
-					Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
-
-				}
-				else {
-					Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
-						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
-					
-					int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth / 2, 8);
-					int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight / 2, 8);
-					Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
-				}
-				Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_TILE_SIZE * CU_MAX_SUBTILES_PER_TILE, CU_TILE_SIZE)(isLast);
-			}
-		}
-
-		IFRIT_KERNEL void unifiedFilledTriangleRasterEngineKernel(
-			int totalIndices,
-			ifloat4* dPositionBuffer,
-			int* dIndexBuffer,
-			const float4* dVaryingBuffer,
-			ifloat4** dColorBuffer,
-			float* dDepthBuffer,
-			GeometryShader* dGeometryShader,
-			FragmentShader* dFragmentShader
-		) {
-			for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
-				auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
-				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
-				if (dGeometryShader == nullptr) {
-					int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
-					Impl::TriangleGeometryStage::geometryClippingKernel<0> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
-						dPositionBuffer, dIndexBuffer, i, indexCount);
-				}
-				else {
-					int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
-					Impl::GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (i, indexCount, dGeometryShader, (float4*)dPositionBuffer,
-						dIndexBuffer, dVaryingBuffer);
-					Impl::TriangleGeometryStage::geometryClippingKernelEntryWithGS CU_KARG2(1, 1)();
-				}
-				unifiedRasterEngineStageIIFilledTriangleKernel CU_KARG2(1, 1)(
-					dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer,
-					dGeometryShader, dFragmentShader, isTailCall);
-			}
-		}
-
-		IFRIT_HOST void unifiedFilledTriangleRasterEngineProfileEntry(
-			int totalIndices,
-			ifloat4* dPositionBuffer,
-			int* dIndexBuffer,
-			const float4* dVaryingBuffer,
-			ifloat4** dColorBuffer,
-			float* dDepthBuffer,
-			GeometryShader* dGeometryShader,
-			FragmentShader* dFragmentShader,
-			cudaStream_t& compStream
-		) {
-			for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
-				auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
-				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
-				if (dGeometryShader == nullptr) {
-					int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_PROCESSING_THREADS);
-					Impl::TriangleGeometryStage::geometryClippingKernel<0> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
-						dPositionBuffer, dIndexBuffer, i, indexCount);
-				}
-				else {
-					int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
-					Impl::GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (i, indexCount, dGeometryShader, (float4*)dPositionBuffer,
-						dIndexBuffer, dVaryingBuffer);
-					Impl::TriangleGeometryStage::geometryClippingKernelEntryWithGS CU_KARG2(1, 1)();
-				}
-
-				uint32_t dAssembledTriangleCounterM2Host = 0;
-				cudaDeviceSynchronize();
-				cudaMemcpyFromSymbol(&dAssembledTriangleCounterM2Host, dAssembledTriangleCounterM2, sizeof(uint32_t));
-				if constexpr (CU_OPT_II_SKIP_ON_FEW_GEOMETRIES) {
-					if (!isTailCall && dAssembledTriangleCounterM2Host < CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT) {
-						continue;
-					}
-				}
-				int totalTms = dAssembledTriangleCounterM2Host / CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
-				int curTime = -1;
-				auto dispatchBlocks = IFRIT_InvoGetThreadBlocks(dAssembledTriangleCounterM2Host, CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS);
-				Impl::TriangleGeometryStage::geometryParamPostprocKernel CU_KARG2(dispatchBlocks, CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS) (dAssembledTriangleCounterM2Host);
-				for (int sI = 0; sI < dAssembledTriangleCounterM2Host; sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER) {
-					curTime++;
-					int length = min(dAssembledTriangleCounterM2Host - sI, CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER);
-					int start = sI;
-					bool isLast = (curTime == totalTms);
-					if (curTime == totalTms - 1) {
-						if (dAssembledTriangleCounterM2 % CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER < CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER * 2 / 5) {
-							length = dAssembledTriangleCounterM2Host - sI;
-							sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
-							isLast = true;
-						}
-					}
-					Impl::TriangleRasterizationStage::firstBinnerRasterizerEntryProfileKernel(start, length);
-					auto totalCoverPrims = 0;
-					cudaMemcpyFromSymbol(&totalCoverPrims, dCoverPrimsCounter, sizeof(int));
-					int dispatchGatherBlocks = totalCoverPrims / CU_FIRST_RASTERIZATION_GATHER_THREADS + (totalCoverPrims % CU_FIRST_RASTERIZATION_GATHER_THREADS != 0);
-					if (dispatchGatherBlocks != 0) {
-						Impl::TriangleRasterizationStage::firstBinnerGatherKernel CU_KARG2(dispatchGatherBlocks, CU_FIRST_RASTERIZATION_GATHER_THREADS)(totalCoverPrims);
-					}
-					Impl::TriangleRasterizationStage::secondBinnerWorklistRasterizerEntryProfileKernel();
-
-					int dispatchSfbaBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_TILE_X * CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, 128);
-					Impl::TriangleRasterizationStage::secondFinerBinnerAllocationKernel CU_KARG2(dispatchSfbaBlocks, 128) ();
-					cudaDeviceSynchronize();
-					int secondBinnerCands = 0;
-					cudaMemcpyFromSymbol(&secondBinnerCands, dSecondBinnerCandCounter, sizeof(int));
-
-					int dispatchSfbrBlocks = IFRIT_InvoGetThreadBlocks(secondBinnerCands, 128);
-					if (secondBinnerCands != 0) {
-						Impl::TriangleRasterizationStage::secondFinerBinnerRasterizationKernel CU_KARG2(dispatchSfbrBlocks, 128)(secondBinnerCands);
-					}
-
-					int numTileX = (hsFrameWidth / CU_TILE_WIDTH) + (hsFrameWidth % CU_TILE_WIDTH != 0);
-					int numTileY = (hsFrameHeight / CU_TILE_WIDTH) + (hsFrameHeight % CU_TILE_WIDTH != 0);
-					int dispZ = (CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH) + (CU_TILE_WIDTH % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
-					std::abort();
-					if (dGeometryShader == nullptr) {
-						//Impl::TriangleFragmentStage::pixelTaggingKernel<0> CU_KARG4(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ), 0, compStream) (
-						//	dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
-						//	);
-					}
-					else {
-						//Impl::TriangleFragmentStage::pixelTaggingKernel<1> CU_KARG4(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ), 0, compStream) (
-						//	dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer
-						//	);
-					}
-					Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG4(CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, CU_MAX_TILE_X, 0, compStream)(isLast);
-				}
-				if constexpr (CU_PROFILER_SMALL_TRIANGLE_OVERHEAD) {
-					auto dSmallTriangleCountHost = 0;
-					cudaMemcpyFromSymbol(&dSmallTriangleCountHost, dSmallTriangleCount, sizeof(uint32_t));
-					printf("Small Triangle Rate:%f (%d/%d)\n", 1.0f * dSmallTriangleCountHost / dAssembledTriangleCounterM2Host, dSmallTriangleCountHost, dAssembledTriangleCounterM2Host);
-					dSmallTriangleCount = 0;
-				}
-			}
-			cudaDeviceSynchronize();
-		}
-	}
-	namespace PointPipeline {
-		IFRIT_KERNEL void unifiedPointRasterEngineKernel(
-			int totalIndices,
-			ifloat4* dPositionBuffer,
-			int* dIndexBuffer,
-			const float4* dVaryingBuffer,
-			ifloat4** dColorBuffer,
-			float* dDepthBuffer,
-			GeometryShader* dGeometryShader,
-			FragmentShader* dFragmentShader
-		) {
-			for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE) {
-				auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE ), totalIndices - i);
-				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE) >= totalIndices;
-				int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount, CU_POINT_RASTERIZATION_FIRST_THREADS);
-				if (geometryExecutionBlocks == 0)continue;
-				if (dGeometryShader != nullptr) {
-					int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
-					GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (i, indexCount, dGeometryShader, (float4*)dPositionBuffer,
-						dIndexBuffer, dVaryingBuffer);
-					PointRasterizationStage::pointGeometryKernelEntryWithGS CU_KARG2(1, 1)();
-				}
-				else {
-					PointRasterizationStage::pointRasterizationInsertKernel<0> CU_KARG2(geometryExecutionBlocks, CU_POINT_RASTERIZATION_FIRST_THREADS)(
-						dPositionBuffer, dIndexBuffer, i, indexCount);
-				}
-				
-				int allocBlocks = IFRIT_InvoGetThreadBlocks(csFrameHeight * csFrameWidth, 128);
-				PointRasterizationStage::pointRasterizationAllocKernel CU_KARG2(allocBlocks, 128)();
-				PointRasterizationStage::pointRasterizationPlaceEntryKernel CU_KARG2(1, 1) ();
-				int psBlocks = IFRIT_InvoGetThreadBlocks(csFrameHeight * csFrameWidth, 256);
-				if (dGeometryShader != nullptr) {
-					PointFragmentStage::pixelShadingKernel<1> CU_KARG2(psBlocks, 256)(dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
-				}
-				else {
-					PointFragmentStage::pixelShadingKernel<0> CU_KARG2(psBlocks, 256)(dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
-				}
-				
-				Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_TILE_SIZE * CU_MAX_SUBTILES_PER_TILE, CU_TILE_SIZE)(true);
-				
-				int rsBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_FRAMEBUFFER_SIZE, 256);
-				Impl::PointMiscStage::resetPointRasterizerKernel CU_KARG2(rsBlocks, 256)();
+			for (int i = 0; i < CU_MAX_SAMPLER_SLOTS; i++) {
+				fragmentShader->atSamplerPtr[i] = csSamplers[i];
 			}
 		}
 	}
-	namespace LinePipeline {
-		IFRIT_KERNEL void unifiedLineRasterEngineKernel(int totalIndices,
-			ifloat4* dPositionBuffer,
-			int* dIndexBuffer,
-			const float4* dVaryingBuffer,
-			ifloat4** dColorBuffer,
-			float* dDepthBuffer,
-			GeometryShader* dGeometryShader,
-			FragmentShader* dFragmentShader
-		) {
-			for (int i = 0; i < totalIndices; i += CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) {
-				auto indexCount = min((int)(CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE), totalIndices - i);
-				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
-				int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_LINE_GEOMETRY_THREADS);
-				if (geometryExecutionBlocks == 0)continue;
-				if (dGeometryShader != nullptr) {
-					int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
-					GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (i, indexCount, dGeometryShader, (float4*)dPositionBuffer,
-						dIndexBuffer, dVaryingBuffer);
-					LineGeometryStage::lineGeometryKernelEntryWithGS CU_KARG2(1, 1)();
-				}
-				else {
-					LineGeometryStage::lineGeometryAssemblyKernel<0> CU_KARG2(geometryExecutionBlocks, CU_LINE_GEOMETRY_THREADS)(
-						dPositionBuffer, dIndexBuffer, i, indexCount);
-				}
-				LineRasterizationStage::bresenhamRasterizationEntryKernel CU_KARG2(1, 1) ();
-				int allocBlocks = IFRIT_InvoGetThreadBlocks(csFrameHeight * csFrameWidth, 128);
-				LineRasterizationStage::lineRasterAllocKernel CU_KARG2(allocBlocks, 128)();
-				LineRasterizationStage::linerRasterPlaceEntryKernel CU_KARG2(1, 1) ();
-				int psBlocks = IFRIT_InvoGetThreadBlocks(csFrameHeight * csFrameWidth, 256);
-				if (dGeometryShader != nullptr) {
-					LineFragmentStage::pixelShadingKernel<1> CU_KARG2(psBlocks, 256)(dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
-				}
-				else {
-					LineFragmentStage::pixelShadingKernel<0> CU_KARG2(psBlocks, 256)(dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
-				}
-				
-				TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_TILE_SIZE * CU_MAX_SUBTILES_PER_TILE, CU_TILE_SIZE)(true);
-				int rsBlocks = IFRIT_InvoGetThreadBlocks(CU_MAX_FRAMEBUFFER_SIZE, 256);
-				LineMiscStage::resetLineRasterizerKernel CU_KARG2(rsBlocks, 256)();
-			}
-		}
-	}
-
-	IFRIT_KERNEL void updateFragmentShaderKernel(FragmentShader* fragmentShader) {
-		for (int i = 0; i < CU_MAX_TEXTURE_SLOTS; i++) {
-			fragmentShader->atTexture[i] = csTextures[i];
-			fragmentShader->atTextureHei[i] = csTextureHeight[i];
-			fragmentShader->atTextureWid[i] = csTextureWidth[i];
-		}
-		for (int i = 0; i < CU_MAX_SAMPLER_SLOTS; i++) {
-			fragmentShader->atSamplerPtr[i] = csSamplers[i];
-		}
-	}
+	
 }
 
 namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
@@ -2437,9 +2590,9 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 	}
 
 	void invokeFragmentShaderUpdate(FragmentShader* dFragmentShader) IFRIT_AP_NOTHROW {
-		Impl::updateFragmentShaderKernel CU_KARG2(1, 1)(dFragmentShader);
+		Impl::MiscKernels::updateFragmentShaderKernel CU_KARG2(1, 1)(dFragmentShader);
 		cudaDeviceSynchronize();
-		printf("Shader init done \n");
+		//printf("Shader init done \n");
 	}
 
 	void updateVarying(uint32_t varyingCounts) {
@@ -2529,7 +2682,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 			}
 			secondPass = 2;
 		}
-		if (initFlag < 20) {
+		if (initFlag < 2) {
 			if (initFlag == 0) {
 				initFlag = 1;
 				cudaDeviceSetLimit(cudaLimitMallocHeapSize, CU_HEAP_MEMORY_SIZE);
@@ -2539,9 +2692,9 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 				cudaEventCreate(&copyEnd);
 				Impl::TriangleMiscStage::integratedInitKernel CU_KARG4(CU_TILE_SIZE, CU_TILE_SIZE, 0, computeStream)();
 				cudaDeviceSynchronize();
-				printf("CUDA Init Done\n");
+				//printf("CUDA Init Done\n");
 			}
-			if ((++initFlag) == 20) {
+			if ((++initFlag) == 2) {
 				secondPass = 1;
 			}
 		}

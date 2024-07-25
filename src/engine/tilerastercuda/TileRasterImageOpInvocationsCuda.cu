@@ -59,8 +59,29 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		int sY = min((int)round(srcCorY), arg.srcHei - 1);
 		float4 result = isrc[sY * arg.srcWid + sX];
 		idst[(curDstX + arg.dstCx) + (curDstY + arg.dstCy) * arg.dstWid] = result;
-		//printf("%d %d -> %f %f %f %f\n", (curDstX + arg.dstCx), (curDstY + arg.dstCy), result.x, result.y, result.z, result.w);
+	}
 
+	static int64_t sTestSortVal[1000000];
+	static int64_t sTestSortVal2[1000000];
+
+	constexpr int totalGroups = 128;
+	IFRIT_DEVICE static int64_t hTestSortVal[1000000];
+	static int sRegionStart[totalGroups];
+	static int sRegionSize[totalGroups];
+	IFRIT_DEVICE static int hRegionStart[totalGroups];
+	IFRIT_DEVICE static int hRegionSize[totalGroups];
+
+	template<class T>
+	IFRIT_DEVICE void doInsertionSort(T* keys, int count) {
+		for (int i = 1; i < count; i++) {
+			T key = keys[i];
+			int j = i - 1;
+			while (j >= 0 && keys[j] > key) {
+				keys[j + 1] = keys[j];
+				j--;
+			}
+			keys[j + 1] = key;
+		}
 	}
 }
 

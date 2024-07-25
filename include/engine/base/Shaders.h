@@ -46,4 +46,25 @@ namespace Ifrit::Engine {
 		) = 0;
 		IFRIT_HOST virtual GeometryShader* getCudaClone() { return nullptr; };
 	};
+
+	class HullShader {
+	public:
+		IFRIT_DUAL virtual void executeMain(
+			const ifloat4** inputPos,
+			const VaryingStore** inputVaryings,
+			ifloat4* outPos,
+			VaryingStore* outVaryings,
+			int invocationId,
+			int patchId
+		) = 0;
+		IFRIT_DUAL virtual void executePatchFunc(
+			const ifloat4** inputPos,
+			const VaryingStore** inputVaryings,
+			int* outerTessLevels,
+			int* innerTessLevels,
+			int invocationId,
+			int patchId
+		) = 0;
+		IFRIT_HOST virtual HullShader* getCudaClone() { return nullptr; };
+	};
 }

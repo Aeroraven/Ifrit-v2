@@ -87,6 +87,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::setRasterizerPolygonMode(IfritPolygonMode mode) {
 		this->polygonMode = mode;
 	}
+
 	void TileRasterRendererCuda::clear() {
 		context->frameBuffer->getDepthAttachment()->clearImage(255.0);
 		context->frameBuffer->getColorAttachment(0)->clearImageZero();

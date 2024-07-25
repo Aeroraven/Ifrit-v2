@@ -33,19 +33,28 @@ PresentEngine presentEngine = PE_GLFW;
 //float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 //float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
 //float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
-//float4x4 view = (lookAt({ 0,0.75,1.50}, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
+float4x4 view = (lookAt({ 0,0.75,1.50}, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
 //float4x4 view = (lookAt({ 0,0.0,1.25 }, { 0,0.0,0.0 }, { 0,1,0 }));
 //float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
 //float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
 //float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 10.0, 4000));
-float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
+//float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
 float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 1.0, 3000));
 float4x4 model;
 float4x4 mvp = multiply(proj, view);
 
+float globalTime = 1.0f;
+
 class DemoVertexShader : public VertexShader {
 public:
 	IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore** outVaryings) override{
+		const auto radius = 0.4f;
+		const auto vX = sin(globalTime) * radius;
+		const auto vZ = cos(globalTime) * radius;
+		const auto dY = sin(globalTime * 0.9f) * 0.05f + 0.1f;
+		float4x4 view = (lookAt({ vX,dY,vZ }, { 0,dY,0.0 }, { 0,1,0 })); //yomiya
+		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.01, 3000));
+		auto mvp = multiply(proj, view);	
 		auto s = *reinterpret_cast<const ifloat4*>(input[0]);
 		auto p = multiply(mvp,s);
 		*outPos = p;
@@ -78,7 +87,7 @@ int mainCpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj",pos,normal,uv,index);
+	loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj",pos,normal,uv,index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 	std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
@@ -156,9 +165,11 @@ int mainCpu() {
 			renderer->render(true);
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-			printf("PassDone %d\n", *coreTime);
+			//printf("PassDone %d\n", *coreTime);
 			backend.updateTexture(*image);
 			backend.draw();
+			globalTime += 0.03f;
+			//printf("PassDone %f\n", globalTime);
 		});
 	}
 	return 0;
@@ -175,7 +186,7 @@ int mainGpu() {
 	std::vector<ifloat3> procNormal;
 	std::vector<ifloat2> procUv;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/fox.obj", pos, normal, uv, index);
+	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj", pos, normal, uv, index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 	procUv = loader.remapUVs(uv, index, pos.size());
 
@@ -255,7 +266,7 @@ int mainGpu() {
 	auto dGeometryShader = geometryShader.getCudaClone();
 	renderer->bindFragmentShader(dFragmentShader);
 	renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
-	renderer->bindGeometryShader(dGeometryShader);
+	//renderer->bindGeometryShader(dGeometryShader);
 	//renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_LINE);
 
 	IfritSamplerT sampler;
@@ -265,13 +276,16 @@ int mainGpu() {
 	sampler.borderColor = IF_BORDER_COLOR_WHITE;
 	renderer->createSampler(0, sampler);
 
-	printf("Start\n");
+	///printf("Start\n");
 	GLFWWindowProvider windowProvider;
 	windowProvider.setup(1920, 1080);
 	windowProvider.setTitle("Ifrit-v2 CUDA (Resolution: 2048x2048)");
 
 	OpenGLBackend backend;
 	backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
+
+	//renderer->testFunc();
+	//return 0;
 	windowProvider.loop([&](int* coreTime) {
 		std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 		renderer->render();
@@ -279,6 +293,7 @@ int mainGpu() {
 		*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		backend.updateTexture(*image1);
 		backend.draw();
+		
 	});
 	return 0;
 }
@@ -289,6 +304,8 @@ int miscTest() {
 	printf("%d\n", 31 - __lzcnt((x - 1) | ((1 << 9) - 1)));
 	return 0;
 }
+
+
 int main() {
 	return mainGpu();
 }
