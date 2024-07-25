@@ -59,8 +59,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 		void clear();
 		void render();
-
-		void testFunc();
 	};
 }
 #endif

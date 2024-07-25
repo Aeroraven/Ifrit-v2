@@ -59,8 +59,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		int sY = min((int)round(srcCorY), arg.srcHei - 1);
 		float4 result = isrc[sY * arg.srcWid + sX];
 		idst[(curDstX + arg.dstCx) + (curDstY + arg.dstCy) * arg.dstWid] = result;
-		//printf("%d %d -> %f %f %f %f\n", (curDstX + arg.dstCx), (curDstY + arg.dstCy), result.x, result.y, result.z, result.w);
-
 	}
 
 	static int64_t sTestSortVal[1000000];
@@ -85,16 +83,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			keys[j + 1] = key;
 		}
 	}
-
-	IFRIT_KERNEL void testSortImpl() {
-		int tid = threadIdx.x + blockDim.x * blockIdx.x;
-		int regionStart = hRegionStart[tid];
-		int regionSize = hRegionSize[tid];
-		doInsertionSort(hTestSortVal + regionStart, regionSize);
-		//printf("%lld %d %d\n", (hTestSortVal + regionStart)[0], regionStart, regionSize);
-	}
-
-
 }
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
@@ -159,49 +147,5 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 			hei = nh;
 		}
 		cudaDeviceSynchronize();
-	}
-
-	void testSort() {
-		int lastStart = 0;
-		for(int i=0;i< Impl::totalGroups;i++){
-			int regionSize = rand() % 10 + 1;
-			Impl::sRegionSize[i] = regionSize;
-			Impl::sRegionStart[i] = lastStart;
-			lastStart += regionSize;
-			for (int j = 0; j < regionSize; j++) {
-				Impl::sTestSortVal[Impl::sRegionStart[i] + j] = rand();
-			}
-		}
-		cudaMemcpyToSymbol(Impl::hRegionSize, Impl::sRegionSize, sizeof(int) * Impl::totalGroups);
-		cudaMemcpyToSymbol(Impl::hRegionStart, Impl::sRegionStart, sizeof(int) * Impl::totalGroups);
-		cudaMemcpyToSymbol(Impl::hTestSortVal, Impl::sTestSortVal, sizeof(int64_t) * 1000000);
-		//Check error
-		cudaError_t error = cudaGetLastError();
-		if (error != cudaSuccess) {
-			printf("CUDA error: %s\n", cudaGetErrorString(error));
-		}
-
-		Impl::testSortImpl CU_KARG2(dim3(Impl::totalGroups /32, 1, 1), dim3(32, 1, 1)) ();
-		cudaDeviceSynchronize();
-		cudaMemcpyFromSymbol(Impl::sTestSortVal2, Impl::hTestSortVal, sizeof(int64_t) * 1000000);
-
-		for (int i = 0; i < Impl::totalGroups; i++) {
-			bool ilv = true;
-			for (int j = 0; j < Impl::sRegionSize[i] - 1; j++) {
-				if (Impl::sTestSortVal2[Impl::sRegionStart[i] + j] > Impl::sTestSortVal2[Impl::sRegionStart[i] + j + 1]) {
-					ilv = false;
-				}
-			}
-			if (true) {
-				for (int j = 0; j < Impl::sRegionSize[i]; j++) {
-					printf("%lld ", Impl::sTestSortVal[Impl::sRegionStart[i] + j]);
-				}
-				printf("->");
-				for (int j = 0; j < Impl::sRegionSize[i]; j++) {
-					printf("%lld ", Impl::sTestSortVal2[Impl::sRegionStart[i] + j]);
-				}
-				printf("\n");
-			}
-		}
 	}
 }

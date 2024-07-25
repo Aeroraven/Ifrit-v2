@@ -186,7 +186,7 @@ int mainGpu() {
 	std::vector<ifloat3> procNormal;
 	std::vector<ifloat2> procUv;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/fox.obj", pos, normal, uv, index);
+	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj", pos, normal, uv, index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 	procUv = loader.remapUVs(uv, index, pos.size());
 

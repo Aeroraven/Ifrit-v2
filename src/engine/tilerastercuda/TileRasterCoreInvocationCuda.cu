@@ -4,8 +4,6 @@
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 #include "engine/base/Structures.h"
 #include <cuda_profiler_api.h>
-#include <thrust/sort.h>
-
 #include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
 
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
@@ -231,9 +229,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 			for (int i = 0; i < numVaryings; i++) {
 				varyingOutputPtrs[i] = dVaryingBuffer + globalInvoIdx * numVaryings + i;
-				if (globalInvoIdx * numVaryings + i > 2 * 17433) {
-					printf("ERROR %d %d %d\n", globalInvoIdx, numVaryings, i);
-				}
 			}
 			vertexShader->execute(vertexInputPtrs, (ifloat4*)&dPosBuffer[globalInvoIdx], (VaryingStore**)varyingOutputPtrs);
 		}
@@ -310,93 +305,37 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		template<typename T,typename U>
 		IFRIT_DEVICE void devHeapSortByKeyImpl(T* keys, U* values, int count) {
 			if (count == 0)return;
-			auto siftDown = [&](int id,int ed,bool trace) {
-				while (true) {
-					int ch = id * 2 + 1;
-					if (id >= ed)return true;
-					if (ch >= ed)return true;
-					if (ch + 1 < ed) {
-						if (keys[ch] < keys[ch + 1]) {
-							ch++;
-						}
+			auto siftDown = [&](int st, int ed) {
+				auto ch = 0;
+				while ((ch = (st << 1) + 1) < ed) {
+					if (ch + 1 < ed && keys[ch] < keys[ch + 1]) ch++;
+					if (keys[ch] > keys[st]) {
+						auto tk = keys[ch];
+						keys[ch] = keys[st];
+						keys[st] = tk;
+						auto tv = values[ch];
+						values[ch] = values[st];
+						values[st] = tv;
+						st = ch;
 					}
-					auto kt = keys[ch];
-					if (keys[id] < keys[ch]) {
-						
-						keys[ch] = keys[id];
-						keys[id] = kt;
-						//auto kv = values[ch];
-						//values[ch] = values[id];
-						//values[id] = kv;
-						if (trace) {
-							printf("SWAP %d %d\n",ch,id);
-							for (int i = 0; i < count; i++) {
-								printf("%llu ", keys[i]);
-							}
-							printf("\n");
-						}
+					else {
+						return;
 					}
-					
-					if (keys[id] == keys[ch]) {
-						/*
-						printf("INCORRECT %llu %llu %llu %d %d\n", keys[id], keys[ch], kt, id, ch);
-						for (int i = 0; i < count; i++) {
-							printf("%llu ", values[i]);
-						}
-						printf("->");
-						for (int i = 0; i < count; i++) {
-							printf("%llu ", keys[i]);
-						}
-						printf("\n");*/
-						return false;
-					}
-					
-					id = ch;
 				}
 			};
-			bool req = true;
-			for (int i = count -1; i >= 0; i--) {
-				req &= siftDown(i, count,false);
-			}
-			if (!req) {
-				printf("================================\n");
-				for (int i = 0; i < count; i++) {
-					printf("%llu ", values[i]);
-				}
-				printf("->");
-				for (int i = 0; i < count; i++) {
-					printf("%llu ", keys[i]);
-				}
-				printf("\n");
-				for (int i = 0; i < count; i++) {
-					keys[i] = values[i];
-				}
-				for (int i = count - 1; i >= 0; i--) {
-					req &= siftDown(i, count, true);
-				}
-				for (int i = 0; i < count; i++) {
-					printf("%llu ", values[i]);
-				}
-				printf("->");
-				for (int i = 0; i < count; i++) {
-					printf("%llu ", keys[i]);
-				}
-				printf("\n");
-				printf("================================\n");
-
-
-			}
 			
-			/*
-			for (int i = count - 1; i >= 0;i--) {
-				auto kt = keys[0];
-				keys[0] = keys[i];
-				keys[i] = kt;
-				auto kv = values[0];
-				values[0] = values[i];
-				values[i] = kv;
+			for (int i = (count >> 1); i >= 0; i--) {
+				siftDown(i, count);
+			}
+			for (int i = count - 1; i > 0; i--) {
+				auto tk = keys[i];
+				keys[i] = keys[0];
+				keys[0] = tk;
+				auto tv = values[i];
+				values[i] = values[0];
+				values[0] = tv;
 				siftDown(0, i);
-			}*/
+			}
 		}
 
 		template<typename T,typename U>
@@ -417,68 +356,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		template<typename T,typename U>
 		IFRIT_DEVICE void devSortByKeyImpl(T* keys, U* values, int count) {
-			//printf("%lld %d\n", (long long)keys / sizeof(T*), count);
-			return;
-			while (atomicCAS(&dLock, 0, 1) == 1) {}
-			devInsertionSortByKeyImpl(keys, values, count);
-			bool r = 1;
-			for (int i = 0; i < count-1; i++) {
-				if (keys[i] < keys[i + 1]) {
-					printf("ERROR\n");
-					r = 0;
-				}
-			}
-			if (!r) {
-				for (int i = 0; i < count; i++) {
-					printf("%d ", keys[i]);
-				}
-				printf("\n");
-			}
-			atomicExch(&dLock, 0);
-			/*
-			while (atomicCAS(&dLock, 0, 1) == 1) {}
-			int legal = -1;
-			int lpv = 0;
-			for (int i = 0; i < count-1; i++) {
-				if (i * 2 + 1 < count && keys[i * 2 + 1] > keys[i])legal = i;
-				if (i * 2 + 2 < count && keys[i * 2 + 2] > keys[i])legal = i, lpv = 1;
-			}
-			if (legal != -1) {
-				
-				printf("[%d/%d] (%lld <%d>,%lld <%d>) ", legal, lpv, keys[legal], legal, keys[legal * 2 + 1 + lpv], legal * 2 + 1 + lpv);
-				for (int i = 0; i < count; i++) {
-					printf("%llu ", values[i]);
-				}
-				printf("->");
-				for (int i = 0; i < count; i++) {
-					printf("%llu ", keys[i]);
-				}
-				printf("[%d/%d] (%lld <%d>,%lld <%d>) ", legal, lpv, keys[legal],legal, keys[legal * 2 + 1 + lpv], legal * 2 + 1 + lpv);
-				
-				printf("\n");
-				
-			}
-			atomicExch(&dLock, 0);
-			*/
-			//printf("%lld %d\n", ((long long)keys)/sizeof(T*), count);
-		}
-
-		IFRIT_KERNEL void validCheckKernel() {
-			int totalSubtiles = csFrameWidth * csFrameHeight / CU_TILE_SIZE * CU_MAX_SUBTILES_PER_TILE;;
-			for (int i = 0; i < totalSubtiles; i++) {
-				for (int j = 0; j < totalSubtiles; j++) {
-					if(i==j) continue;
-					int firstStart = dSecondBinnerFinerBufferStart[i];
-					int firstEnd = dSecondBinnerFinerBufferCurInd[i];
-					int secondStart = dSecondBinnerFinerBufferStart[j];
-					int secondEnd = dSecondBinnerFinerBufferCurInd[j];
-
-					//Check overlap
-					if (firstStart >= secondEnd || secondStart >= firstEnd) continue;
-					if(firstStart==firstEnd || secondStart==secondEnd) continue;
-					//printf("OVERLAPS %d %d %d %d %d %d\n", i, j, firstStart, firstEnd,secondStart,secondEnd);
-				}
-			}
+			devHeapSortByKeyImpl(keys, values, count);
 		}
 
 		IFRIT_KERNEL void sortPixelKeyGenerationKernel() {
@@ -487,9 +365,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if(globalInvo>= dSecondBinnerFinerBufferGlobalSize) return;
 			auto primId = dSecondBinnerFinerBuffer[globalInvo].y;
 			auto orgPrimid = dAtriOriginalPrimId[primId];
-			uint64_t sortKey = dSecondBinnerFinerBufferSortKeys[globalInvo];
-			dSecondBinnerFinerBufferSortKeys[globalInvo] = globalInvo;
-			dSecondBinnerFinerBufferSortKeysAltern[globalInvo] = globalInvo;
 
 		}
 		IFRIT_KERNEL void sortPixelKeysByTileKernel(int maxTileX,int maxTileY) {
@@ -503,36 +378,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int start = dSecondBinnerFinerBufferStart[totalId];
 			int end = dSecondBinnerFinerBufferCurInd[totalId];
 			int lim = dSecondBinnerFinerBufferSize[totalId];
-			if (end - start > lim) {
-				printf("ERROR %d %d %d %d %d %d\n", start, end, lim, totalId, tileX, tileY);
-			}
-			/*
-			for (int i = 0; i < maxTileX; i++) {
-				for (int j = 0; j < maxTileY; j++) {
-					for (int k = 0; k < CU_MAX_SUBTILES_PER_TILE; k++) {
-						int totalId2 = (i + j * CU_MAX_TILE_X) * CU_MAX_SUBTILES_PER_TILE + k;
-						if(totalId == totalId2) continue;
-						int start2 = dSecondBinnerFinerBufferStart[totalId2];
-						int end2 = dSecondBinnerFinerBufferCurInd[totalId2];
-						if (start >= end2 || start2 >= end) continue;
-						//if (start == end || start2 == end2) continue;
-						printf("OVERLAPS %d %d %d %d %d %d\n", totalId, totalId2, start, end, start2, end2);
-					}
-				}
-			}*/
 			if(start==end) return;
 			auto invoX = threadIdx.x + blockIdx.x * blockDim.x;
 			auto invoY = threadIdx.y + blockIdx.y * blockDim.y;
 			auto invoZ = threadIdx.z + blockIdx.z * blockDim.z;
 			auto globalInvo = invoX + invoY * blockDim.x * gridDim.x + invoZ * blockDim.y * gridDim.y;
-
-			//printf("B %d %d %d %d %d %d %lld\n", start, end - start, totalId, tileX, tileY, subtileId, globalInvo);
-
-			if (end < start) {
-				printf("ERRORCW %d %d\n", start, end);
-			}
 			devSortByKeyImpl(dSecondBinnerFinerBufferSortKeys + start,
-				dSecondBinnerFinerBufferSortKeysAltern + start, end - start); //dSecondBinnerFinerBuffer
+				dSecondBinnerFinerBuffer + start, end - start); //dSecondBinnerFinerBuffer
 		}
 		IFRIT_DEVICE void devSortPixelKeys() {
 			dLock = 0;
@@ -554,15 +406,29 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if(globalInvo>= dCoverQueueFullM2GlobalSize) return;
 			auto primId = dCoverQueueFullM2Buffer[globalInvo];
 			auto orgPrimid = dAtriOriginalPrimId[primId];
-			uint64_t sortKey = dCoverQueueFullM2SortKeys[globalInvo];
-			dCoverQueueFullM2SortKeys[globalInvo] = (sortKey<<32) | orgPrimid;
+			dCoverQueueFullM2SortKeys[globalInvo] = orgPrimid;
+		}
+
+		IFRIT_KERNEL void sortBinKeyByTileKernel(int maxBinX,int maxBinY) {
+			int binx = threadIdx.x + blockDim.x * blockIdx.x;
+			int biny = threadIdx.y + blockDim.y * blockIdx.y;
+			if (binx >= maxBinX || biny >= maxBinY)return;
+
+			int binId = binx + biny * CU_MAX_BIN_X;
+			auto start = dCoverQueueFullM2Start[binId];
+			auto end = dCoverQueueFullM2CurInd[binId];
+			if (start == end)return;
+			devSortByKeyImpl(dCoverQueueFullM2SortKeys + start, dCoverQueueFullM2Buffer + start, end - start);
 		}
 
 		IFRIT_DEVICE void devSortBinKeys() {
 			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(dCoverQueueFullM2GlobalSize, CU_SORT_KEYGEN_THREADS);
 			sortBinKeyGenerationKernel CU_KARG2(dispatchBlocks, CU_SORT_KEYGEN_THREADS) ();
-			//devSortByKeyImpl(dCoverQueueFullM2SortKeys, dCoverQueueFullM2Buffer, 
-				//				dCoverQueueFullM2GlobalSize);
+			int maxBinX = IFRIT_InvoGetThreadBlocks(csFrameWidth, CU_BIN_WIDTH);
+			int maxBinY = IFRIT_InvoGetThreadBlocks(csFrameHeight, CU_BIN_WIDTH);
+			int dispX = IFRIT_InvoGetThreadBlocks(maxBinX, 8);
+			int dispY = IFRIT_InvoGetThreadBlocks(maxBinY, 8);
+			sortBinKeyByTileKernel CU_KARG2(dim3(dispX, dispY, 1), (8, 8, 1))(maxBinX, maxBinY);
 		}
 
 		IFRIT_KERNEL void sortSuperTileKeyGenerationKernel() {
@@ -570,22 +436,37 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if(globalInvo>= dCoverQueueSuperTileFullM3GlobalSize) return;
 			auto primId = dCoverQueueSuperTileFullM3BufferFinal[globalInvo];
 			auto orgPrimid = dAtriOriginalPrimId[primId];
-			uint64_t sortKey = dCoverQueueSuperTileFullM3BufferFinalSortKeys[globalInvo];
-			dCoverQueueSuperTileFullM3BufferFinalSortKeys[globalInvo] = (sortKey<<32) | orgPrimid;
+			dCoverQueueSuperTileFullM3BufferFinalSortKeys[globalInvo] = orgPrimid;
+		}
+
+		IFRIT_KERNEL void sortSuperTileKeyByTileKernel(int maxBinX, int maxBinY) {
+			int binx = threadIdx.x + blockDim.x * blockIdx.x;
+			int biny = threadIdx.y + blockDim.y * blockIdx.y;
+			if (binx >= maxBinX || biny >= maxBinY)return;
+
+			int binId = binx + biny * CU_MAX_BIN_X;
+			auto start = dCoverQueueSuperTileFullM3Start[binId];
+			auto end = dCoverQueueSuperTileFullM3CurInd[binId];
+			if (start == end)return;
+			devSortByKeyImpl(dCoverQueueSuperTileFullM3BufferFinalSortKeys + start,
+				dCoverQueueSuperTileFullM3Buffer + start, end - start);
 		}
 
 		IFRIT_DEVICE void devSortSuperTileKeys() {
 			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(dCoverQueueSuperTileFullM3GlobalSize, CU_SORT_KEYGEN_THREADS);
 			sortSuperTileKeyGenerationKernel CU_KARG2(dispatchBlocks, CU_SORT_KEYGEN_THREADS) ();
-			//devSortByKeyImpl(dCoverQueueSuperTileFullM3BufferFinalSortKeys, dCoverQueueSuperTileFullM3Buffer, 
-				//								dCoverQueueSuperTileFullM3GlobalSize);
+			
+			int maxBinX = IFRIT_InvoGetThreadBlocks(csFrameWidth, CU_LARGE_BIN_WIDTH);
+			int maxBinY = IFRIT_InvoGetThreadBlocks(csFrameHeight, CU_LARGE_BIN_WIDTH);
+			int dispX = IFRIT_InvoGetThreadBlocks(maxBinX, 8);
+			int dispY = IFRIT_InvoGetThreadBlocks(maxBinY, 8);
+			sortSuperTileKeyByTileKernel CU_KARG2(dim3(dispX, dispY, 1), (8, 8, 1))(maxBinX, maxBinY);
 		}
 
 		IFRIT_KERNEL void sortEntryKernel() {
-			//validCheckKernel CU_KARG2(1,1) (); 
 			devSortPixelKeys();
-			//devSortBinKeys();
-			//devSortSuperTileKeys();
+			devSortBinKeys();
+			devSortSuperTileKeys();
 		}
 	}
 	namespace TriangleRasterizationStage {
@@ -853,7 +734,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int pw = atomicAdd(&dSecondBinnerFinerBufferCurInd[xid], 1);
 			dSecondBinnerFinerBuffer[pw].x = mask;
 			dSecondBinnerFinerBuffer[pw].y = primitiveSrcId;
-			dSecondBinnerFinerBufferSortKeys[pw] = tileId * CU_MAX_SUBTILES_PER_TILE + subTileId;
+			dSecondBinnerFinerBufferSortKeys[pw] = dAtriOriginalPrimId[primitiveSrcId];
 		}
 
 		IFRIT_DEVICE void devTilingRasterizationChildProcess(
@@ -1044,6 +925,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto binY = globalInvo / CU_MAX_BIN_X;
 			dCoverQueueFullM2Start[globalInvo] = atomicAdd(&dCoverQueueFullM2GlobalSize, dCoverQueueFullM2Size[globalInvo]);
 			dCoverQueueFullM2CurInd[globalInvo] = dCoverQueueFullM2Start[globalInvo];
+			//printf("%lld %d\n", globalInvo, dCoverQueueFullM2Size[globalInvo]);
 		}
 		IFRIT_KERNEL void firstBinnerGatherKernel(uint32_t bound) {
 			auto globalInvo = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1053,7 +935,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			//dCoverQueueFullM2[tileId].push_back(primId);
 			int v = atomicAdd(&dCoverQueueFullM2CurInd[tileId], 1);
 			dCoverQueueFullM2Buffer[v] = primId;
-			dCoverQueueFullM2SortKeys[v] = tileId;
+			dCoverQueueFullM2SortKeys[v] = dAtriOriginalPrimId[primId];
 		}
 
 		IFRIT_KERNEL void firstBinnerGatherEntryKernel() {
@@ -1181,23 +1063,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		IFRIT_KERNEL void secondFinerBinnerAllocationKernel() {
 			int globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
-			while(atomicCAS(&dLock, 0, 1) != 0);
 			dSecondBinnerFinerBufferStart[globalInvo] = atomicAdd(&dSecondBinnerFinerBufferGlobalSize, dSecondBinnerFinerBufferSize[globalInvo]);
 			dSecondBinnerFinerBufferCurInd[globalInvo] = dSecondBinnerFinerBufferStart[globalInvo];
-
-			if (dSecondBinnerFinerBufferSize[globalInvo] == 0) {
-				atomicExch(&dLock, 0);
-				return;
-			}
-			if (dSecondBinnerFinerBufferSize[globalInvo] < 0) {
-				printf("ERROR\n");
-			}
-			if (dSecondBinnerFinerBufferSize[globalInvo] > 1000) {
-				printf("ERROR\n");
-			}
-			printf("%d %d %d %d %d %d %lld\n", dSecondBinnerFinerBufferStart[globalInvo],
-				dSecondBinnerFinerBufferSize[globalInvo], 0, 0, 0, 0, 0);
-			atomicExch(&dLock, 0);
 		}
 
 		IFRIT_KERNEL void secondFinerBinnerRasterizationKernel(int totalCount) {
@@ -1715,6 +1582,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 			if (globalInvocation < CU_BIN_SIZE * CU_BIN_SIZE) {
 				//dCoverQueueFullM2[globalInvocation].clear();
+				dCoverQueueFullM2Size[globalInvocation] = 0;
 			}
 			if (globalInvocation == 0) {
 				dAssembledTriangleCounterM2 = 0;
@@ -1766,6 +1634,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				dCoverQueueSuperTileFullM3Start[globalInvocation] = 0;
 				dCoverQueueSuperTileFullM3Size[globalInvocation] = 0;
 
+			}
+			if (globalInvocation < CU_BIN_SIZE * CU_BIN_SIZE) {
+				dCoverQueueFullM2Size[globalInvocation] = 0;
 			}
 
 			if constexpr (CU_PROFILER_SECOND_BINNER_UTILIZATION) {
@@ -1835,6 +1706,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				}
 				// First binner
 				Impl::TriangleRasterizationStage::firstBinnerRasterizerEntryKernel CU_KARG2(1, 1)(start, length);
+				Impl::TriangleRasterizationStage::firstBinnerGatherAllocKernel CU_KARG2(CU_MAX_BIN_X, CU_MAX_BIN_X)();
 				Impl::TriangleRasterizationStage::firstBinnerGatherEntryKernel CU_KARG2(1, 1)();
 				
 				// Second binner
@@ -2121,9 +1993,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				if (z < localDepth) {
 					actPrim = primId;
 					localDepth = z;
-
 				}
-				};
+			};
 			int dStart = dSecondBinnerFinerBufferStartPoint[dPixelId];
 			int dLast = dSecondBinnerFinerBufferCurIndPoint[dPixelId];
 
@@ -2886,6 +2757,5 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 				cudaMemcpy(args.hColorBuffer[i], args.dHostColorBuffer[i], Impl::csFrameWidth * Impl::csFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost);
 			}
 		}
-		std::exit(0);
 	}
 }

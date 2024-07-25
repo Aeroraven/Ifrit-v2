@@ -29,8 +29,8 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 | Feature                           | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | --------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
-| **Core**                          |                                                              |                 |               |
-| Rendering Order                   | √                                                            |                 |               |
+| **Basic**                         |                                                              |                 |               |
+| Rendering Order                   | √                                                            |                 | √ ▲ (4)       |
 | **Performance**                   |                                                              |                 |               |
 | SIMD Instructions / SIMT          |                                                              | √               | √             |
 | Overlapped Memory Transfer        |                                                              |                 | √             |
@@ -66,6 +66,8 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 (2) Device side vector has been replaced with a large fixed-size buffer without tile partition for performance consideration. 
 
 (3) Shader derivatives are now only available for the filled triangle polygon mode. Shader derivatives are calculated in `2x2` quads, so precision might matter.
+
+(4) Only work under following setting: Filled Triangle w/o Geometry Shader
 
 ▲ It works, but is still under testing. Using this feature might cause severe performance drop.
 
