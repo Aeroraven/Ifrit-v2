@@ -9,6 +9,11 @@
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
+	struct ImplBlendCoefs {
+		int4 s; //SrcColor (x1/x[src.alpha]/x[dst.alpha]/x0)
+		int4 d; //DstColor (x1/x[src.alpha]/x[dst.alpha]/x0)
+	};
+
 	IFRIT_DEVICE_CONST static IfritColorAttachmentBlendState csBlendState;
 	IFRIT_DEVICE_CONST static int csFrameWidth = 0;
 	IFRIT_DEVICE_CONST static int csFrameHeight = 0;
@@ -1334,6 +1339,72 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace TriangleFragmentStage {
+		IFRIT_KERNEL void pixelShadingAlphaBlendKernel(
+			FragmentShader* fragmentShader,
+			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
+			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
+			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			float* IFRIT_RESTRICT_CUDA dDepthBuffer,
+			ImplBlendCoefs blendParam
+		) {
+			//TODO: Geometry shader integration
+			
+			// Process pixel-level data
+			const int pixelXS = (threadIdx.x & 1) + (threadIdx.y + blockDim.y * blockIdx.y) * 2;
+			const int pixelYS = (threadIdx.x >> 1) + (threadIdx.z + blockDim.z * blockIdx.z) * 2;
+			const auto pixelId = pixelYS * CU_MAX_FRAMEBUFFER_WIDTH + pixelXS;
+			if (pixelXS >= csFrameWidth || pixelYS >= csFrameHeight)return;
+
+			auto inTileX = pixelXS % CU_TILE_WIDTH;
+			auto inTileY = pixelYS % CU_TILE_WIDTH;
+			auto inSubtileX = inTileX / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			auto inSubtileY = inTileY / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			auto inSubtileId = inSubtileX * numSubtilesX + inSubtileY;
+
+			auto dwX = inTileX % CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			auto dwY = inTileY % CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			auto dwId = CU_EXPERIMENTAL_SUBTILE_WIDTH * dwY + dwX;
+			auto dwMask = (1 << dwId);
+
+			auto dsMask = 0;
+			auto dsX = (dwX >> 1) << 1;
+			auto dsY = (dwY >> 1) << 1;
+			for (int i = 0; i < 4; i++) {
+				auto dsXv = dsX + (i & 1);
+				auto dsYv = dsY + (i >> 1);
+				auto dsIdv = CU_EXPERIMENTAL_SUBTILE_WIDTH * dsYv + dsXv;
+				dsMask |= (1 << dsIdv);
+			}
+
+			// Process tile-level data
+			auto largeTileX = pixelXS / CU_LARGE_BIN_WIDTH;
+			auto largeTileY = pixelYS / CU_LARGE_BIN_WIDTH;
+			auto largeTileId = largeTileY * CU_MAX_LARGE_BIN_X + largeTileX;
+			auto binX = pixelXS / CU_BIN_WIDTH;
+			auto binY = pixelYS / CU_BIN_WIDTH;
+			auto binId = binY * CU_MAX_BIN_X + binX;
+
+			// Get cover queue data
+			auto pxStart = dSecondBinnerFinerBufferStart[pixelId];
+			auto pxEnd = dSecondBinnerFinerBufferCurInd[pixelId];
+			auto lxStart = dCoverQueueSuperTileFullM3Start[largeTileId];
+			auto lxEnd = dCoverQueueSuperTileFullM3CurInd[largeTileId];
+			auto bxStart = dCoverQueueFullM2Start[binId];
+			auto bxEnd = dCoverQueueFullM2CurInd[binId];
+			auto pxCur = pxStart, lxCur = lxStart, bxCur = bxStart;
+
+			auto pxOrgPrim = -1;
+			auto lxOrgPrim = -1;
+			auto bxOrgPrim = -1;
+			auto chosenOrgPrim = INT_MAX;
+			while (true) {
+				chosenOrgPrim = INT_MAX;
+				
+			}
+
+
+		}
 		IFRIT_KERNEL void pixelTaggingExecKernel(
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
@@ -1718,8 +1789,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				}
 				
 				// Fragment Shader
-				int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth / 2, 8);
-				int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight / 2, 8);
+				int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth >>1, 8);
+				int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight >>1, 8);
 				if (dGeometryShader == nullptr) {
 					Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
 						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
