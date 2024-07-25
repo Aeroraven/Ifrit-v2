@@ -11,7 +11,7 @@
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 
-#define DEMO_RESOLUTION 2048
+#define DEMO_RESOLUTION 1145
 
 using namespace std;
 using namespace Ifrit::Core::Data;
@@ -297,14 +297,6 @@ int mainGpu() {
 	});
 	return 0;
 }
-
-
-int miscTest() {
-	int x = 1;
-	printf("%d\n", 31 - __lzcnt((x - 1) | ((1 << 9) - 1)));
-	return 0;
-}
-
 
 int main() {
 	return mainGpu();

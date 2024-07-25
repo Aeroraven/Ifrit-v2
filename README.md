@@ -86,7 +86,7 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. T
 
 Note that some triangles might be culled or clipped in the pipeline. 
 
-All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6cb66`. The result might not be the latest. Note that the introduction of `Shader Derivatives` degenerates the pipeline performance for 
+All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6cb66`. The result might not be the latest. Note that the introduction of `Shader Derivatives` degenerates the pipeline performance.
 
 **Frame Rate**
 
@@ -147,7 +147,7 @@ Some dependencies should be prepared before compiling.
 ## Ongoing Plan
 
 - Bug Fix & Testing
-  - Resolution Change
+  - <s>Resolution Change</s>
 - Tessellation
 - <s>Line Mode</s>
 - <s>Texture LOD & Texture Sampler</s>

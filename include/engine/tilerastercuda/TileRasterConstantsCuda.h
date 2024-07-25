@@ -6,9 +6,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_WARP_SIZE = 32;
 
 	// == Kernels ==
-	constexpr int CU_LARGE_BIN_SIZE = 32;
-	constexpr int CU_BIN_SIZE = 128;
-	constexpr int CU_TILE_SIZE = 128;
 	constexpr int CU_MAX_FRAMEBUFFER_WIDTH = 4096;
 	constexpr int CU_MAX_FRAMEBUFFER_SIZE = 4096 * 4096;
 	constexpr int CU_MAX_TEXTURE_SLOTS = 16;
@@ -39,8 +36,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_SORT_KEYGEN_THREADS = 128;
 	// end sort
 	
-	constexpr int CU_TILES_PER_BIN = CU_TILE_SIZE / CU_BIN_SIZE;
-	constexpr int CU_BINS_PER_LARGE_BIN = CU_BIN_SIZE / CU_LARGE_BIN_SIZE;
+	constexpr int CU_TILES_PER_BIN = CU_BIN_WIDTH / CU_TILE_WIDTH;
+	constexpr int CU_BINS_PER_LARGE_BIN = CU_LARGE_BIN_WIDTH / CU_BIN_WIDTH;
 	constexpr int CU_SUBTILE_SIZE_LOG = 2;
 	constexpr int CU_SUBTILE_SIZE = (1<<(CU_SUBTILE_SIZE_LOG));
 	constexpr int CU_MAX_VARYINGS = 2;
