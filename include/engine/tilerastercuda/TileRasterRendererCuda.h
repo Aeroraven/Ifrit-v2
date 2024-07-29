@@ -56,6 +56,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region,IfritFilter filter);
 
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
+		void setBlendFunc(IfritColorAttachmentBlendState state);
 
 		void clear();
 		void render();

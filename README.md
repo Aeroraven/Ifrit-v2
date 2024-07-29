@@ -25,7 +25,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 <img src="./img/overview.png" alt="overview" style="zoom: 67%;" />
 
-**Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). Some behaviors are nondeterministic and some features incompatible under current implementation (like `Alpha Blending` which requires sorting primitives under parallel setting)
+**Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). 
 
 | Feature                           | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | --------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
@@ -39,6 +39,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Programmable Vertex Shader        | √                                                            | √               | √             |
 | Programmable Fragment Shader      | √                                                            | √               | √             |
 | Programmable Geometry Shader      |                                                              |                 | √ ▲           |
+| Alpha Blending                    |                                                              |                 | √ ▲           |
 | Z Pre-Pass                        |                                                              |                 | √             |
 | Early-Z Test                      | √                                                            | √               | √             |
 | Back Face Culling                 | √                                                            | √               | √             |
@@ -67,9 +68,9 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 (3) Shader derivatives are now only available for the filled triangle polygon mode. Shader derivatives are calculated in `2x2` quads, so precision might matter.
 
-(4) Only work under following setting: Filled Triangle w/o Geometry Shader
+(4) Only works when `Alpha Blending` is enabled.
 
-▲ It works, but is still under testing. Using this feature might cause severe performance drop.
+▲ Functions with triangle mark are under testing. These functionalities are supported, but might trigger exceptions or introduce performance drops.
 
 
 
@@ -86,7 +87,7 @@ Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. T
 
 Note that some triangles might be culled or clipped in the pipeline. 
 
-All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6cb66`. The result might not be the latest. Note that the introduction of `Shader Derivatives` degenerates the pipeline performance for 
+All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6cb66`. The result might not be the latest. Note that the introduction of `Shader Derivatives` degenerates the pipeline performance.
 
 **Frame Rate**
 
@@ -146,24 +147,40 @@ Some dependencies should be prepared before compiling.
 
 ## Ongoing Plan
 
-- Bug Fix & Testing
-  - Resolution Change
 - Tessellation
+
 - <s>Line Mode</s>
+
 - <s>Texture LOD & Texture Sampler</s>
+  
   - <s>Shader Derivatives</s>
   - Anisotropic Filtering
   - Dynamic LOD Selection & Texture Bias
   - Cubic Texture
-
+  
 - Multi-sampling
-- Alpha Blending
+
+- <s>Alpha Blending</s>
+
+  - <s>Sorting</s>
+
 - Mesh Shader
+
 - Input Topology
+
 - Triangle Cluster & Cluster LOD
+
 - Known Issues
-  - Overdraw: Point mode with index buffer
-  - Latency: Excessive global atomics in line mode
+
+  - <s>Resolution Change</s>
+    - Artifacts in low resolution scenario 
+
+
+    - Overdraw: Point mode with index buffer
+
+
+    - Latency: Excessive global atomics in line mode
+
 
 
 

@@ -29,4 +29,11 @@ namespace Ifrit::Engine {
 		IfritExtent3D dstExtentSt;
 		IfritExtent3D dstExtentEd;
 	};
+	struct IfritColorAttachmentBlendState {
+		bool blendEnable;
+		IfritBlendFactor srcColorBlendFactor;
+		IfritBlendFactor dstColorBlendFactor;
+		IfritBlendFactor srcAlphaBlendFactor;
+		IfritBlendFactor dstAlphaBlendFactor;
+	};
 }
