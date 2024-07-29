@@ -112,6 +112,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dFragmentShadingPrimId[CU_MAX_FRAMEBUFFER_SIZE];
 	IFRIT_DEVICE static uint32_t dAssembledTriangleCounterM2;
 
+	// Alpha Blending
+	IFRIT_DEVICE static ImplBlendCoefs dGlobalBlendCoefs;
+	IFRIT_DEVICE static ImplBlendCoefs dGlobalBlendCoefsAlpha;
+
 	// Line Rasterization
 	IFRIT_DEVICE static int2 dLineRasterOut[CU_MAX_FRAMEBUFFER_SIZE];
 	IFRIT_DEVICE static int dLineRasterOutSize;
@@ -1287,7 +1291,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			float4 f1 = { (float)(sV3V2y * ar) * invFrameWidth, (float)(sV3V2x * ar) * invFrameHeight,(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) };
 			float4 f2 = { (float)(sV1V3y * ar) * invFrameWidth, (float)(sV1V3x * ar) * invFrameHeight,(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) };
 
-			constexpr auto dEps = CU_EPS * 1e5f;
+			constexpr auto dEps = -CU_EPS * 7.85e6f;
 
 			float v1 = dv1.z * f1.x + dv2.z * f2.x + dv3.z * f3.x;
 			float v2 = dv1.z * f1.y + dv2.z * f2.y + dv3.z * f3.y;
@@ -1345,7 +1349,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
 			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
 			float* IFRIT_RESTRICT_CUDA dDepthBuffer,
-			ImplBlendCoefs blendParam
+			ImplBlendCoefs blendParam,
+			ImplBlendCoefs blendParamAlpha
+
 		) {
 			//TODO: Geometry shader integration
 			
@@ -1353,6 +1359,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const int pixelXS = (threadIdx.x & 1) + (threadIdx.y + blockDim.y * blockIdx.y) * 2;
 			const int pixelYS = (threadIdx.x >> 1) + (threadIdx.z + blockDim.z * blockIdx.z) * 2;
 			const auto pixelId = pixelYS * CU_MAX_FRAMEBUFFER_WIDTH + pixelXS;
+			const auto tileX = pixelXS / CU_TILE_WIDTH;
+			const auto tileY = pixelYS / CU_TILE_WIDTH;
+			const auto tileId = tileY * CU_MAX_TILE_X + tileX;
 			if (pixelXS >= csFrameWidth || pixelYS >= csFrameHeight)return;
 
 			auto inTileX = pixelXS % CU_TILE_WIDTH;
@@ -1360,7 +1369,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto inSubtileX = inTileX / CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			auto inSubtileY = inTileY / CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
-			auto inSubtileId = inSubtileX * numSubtilesX + inSubtileY;
+			auto inSubtileId = inSubtileY * numSubtilesX + inSubtileX;
 
 			auto dwX = inTileX % CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			auto dwY = inTileY % CU_EXPERIMENTAL_SUBTILE_WIDTH;
@@ -1385,25 +1394,158 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto binY = pixelYS / CU_BIN_WIDTH;
 			auto binId = binY * CU_MAX_BIN_X + binX;
 
+			// Shading
+			IFRIT_SHARED float colorOutputSingle[256 * 4];
+			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
+			float candidateBary[3];
+			constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
+			auto varyingCount = csVaryingCounts;
+			//TODO: Bug
+			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
+			const auto pDx = pixelXS * 1.0f;
+			const auto pDy = pixelYS * 1.0f;
+			auto shadingPass = [&](const int pId, const bool isHelperInvocation) {
+				float4 f1o = dAtriInterpolBase1[pId];
+				float4 f2o = dAtriInterpolBase2[pId];
+				float f3o = dAtriInterpolBase3[pId];
+
+				float3 f1 = { f1o.x,f1o.y,f1o.z };
+				float3 f2 = { f1o.w,f2o.x,f2o.y };
+				float3 f3 = { f2o.z,f2o.w,f3o };
+
+				float4 b12 = dAtriBaryCenter12[pId];
+				float2 b3 = dAtriBaryCenter3[pId];
+				int orgPrimId = dAtriOriginalPrimId[pId];
+
+				candidateBary[0] = (f1.x * pDx + f1.y * pDy + f1.z);
+				candidateBary[1] = (f2.x * pDx + f2.y * pDy + f2.z);
+				candidateBary[2] = (f3.x * pDx + f3.y * pDy + f3.z);
+				float zCorr = 1.0f / (candidateBary[0] + candidateBary[1] + candidateBary[2]);
+				candidateBary[0] *= zCorr;
+				candidateBary[1] *= zCorr;
+				candidateBary[2] *= zCorr;
+
+				float desiredBary[3];
+				desiredBary[0] = candidateBary[0] * b12.x + candidateBary[1] * b12.z + candidateBary[2] * b3.x;
+				desiredBary[1] = candidateBary[0] * b12.y + candidateBary[1] * b12.w + candidateBary[2] * b3.y;
+				desiredBary[2] = 1.0f - (desiredBary[0] + desiredBary[1]);
+				auto addr = dIndexBuffer + orgPrimId * vertexStride;
+
+				for (int k = 0; k < varyingCount; k++) {
+					const auto va = dVaryingBuffer;
+					float4 vd;
+					vd = { 0,0,0,0 };
+					for (int j = 0; j < 3; j++) {
+						float4 vaf4;
+						if constexpr (false/*geometryShaderEnabled*/) {
+							vaf4 = dGeometryShaderOutVaryings[orgPrimId * 3 * varyingCount + k + j * varyingCount];
+						}
+						else {
+							vaf4 = va[addr[j] * varyingCount + k];
+						}
+						vd.x += vaf4.x * desiredBary[j];
+						vd.y += vaf4.y * desiredBary[j];
+						vd.z += vaf4.z * desiredBary[j];
+						vd.w += vaf4.w * desiredBary[j];
+					}
+					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadId);
+					dest->x = vd.x;
+					dest->y = vd.y;
+					dest->z = vd.z;
+					dest->w = vd.w;
+				}
+				if (isHelperInvocation) {
+					return;
+				}
+				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId);
+				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
+				ifloat4 srcRgba;
+				ifloat4 dstRgba = col0[pixelYS * csFrameWidth + pixelXS];
+				ifloat4 mixRgba;
+				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadId))[0];
+				srcRgba.x = midOutput.x;
+				srcRgba.y = midOutput.y;
+				srcRgba.z = midOutput.z;
+				srcRgba.w = midOutput.w;
+
+				// Blend
+				auto mxSrcX = (blendParam.s.x + blendParam.s.y * (1 - srcRgba.w) + blendParam.s.z * (1 - dstRgba.w)) * (1-blendParam.s.w);
+				auto mxDstX = (blendParam.d.x + blendParam.d.y * (1 - srcRgba.w) + blendParam.d.z * (1 - dstRgba.w)) * (1-blendParam.d.w);
+				auto mxSrcA = (blendParamAlpha.s.x + blendParamAlpha.s.y * (1 - srcRgba.w) + blendParamAlpha.s.z * (1 - dstRgba.w)) * (1-blendParamAlpha.s.w);
+				auto mxDstA = (blendParamAlpha.d.x + blendParamAlpha.d.y * (1 - srcRgba.w) + blendParamAlpha.d.z * (1 - dstRgba.w)) * (1-blendParamAlpha.d.w);
+	
+				mixRgba.x = dstRgba.x * mxDstX + srcRgba.x * mxSrcX;
+				mixRgba.y = dstRgba.y * mxDstX + srcRgba.y * mxSrcX;
+				mixRgba.z = dstRgba.z * mxDstX + srcRgba.z * mxSrcX;
+				mixRgba.w = dstRgba.w * mxDstA + srcRgba.w * mxSrcA;
+
+				col0[pixelYS * csFrameWidth + pixelXS] = mixRgba;
+				if constexpr (CU_PROFILER_OVERDRAW) {
+					atomicAdd(&dOverDrawCounter, 1);
+				}
+			};
+
 			// Get cover queue data
-			auto pxStart = dSecondBinnerFinerBufferStart[pixelId];
-			auto pxEnd = dSecondBinnerFinerBufferCurInd[pixelId];
+			const auto pxId = tileId * CU_MAX_SUBTILES_PER_TILE + inSubtileId;
+			auto pxStart = dSecondBinnerFinerBufferStart[pxId];
+			auto pxEnd = dSecondBinnerFinerBufferCurInd[pxId];
 			auto lxStart = dCoverQueueSuperTileFullM3Start[largeTileId];
 			auto lxEnd = dCoverQueueSuperTileFullM3CurInd[largeTileId];
 			auto bxStart = dCoverQueueFullM2Start[binId];
 			auto bxEnd = dCoverQueueFullM2CurInd[binId];
 			auto pxCur = pxStart, lxCur = lxStart, bxCur = bxStart;
 
-			auto pxOrgPrim = -1;
-			auto lxOrgPrim = -1;
-			auto bxOrgPrim = -1;
+			auto pxOrgPrim = INT_MAX;
+			auto lxOrgPrim = INT_MAX;
+			auto bxOrgPrim = INT_MAX;
 			auto chosenOrgPrim = INT_MAX;
+			auto chosenPrim = 0;
+
 			while (true) {
 				chosenOrgPrim = INT_MAX;
-				
+				pxOrgPrim = INT_MAX;
+				lxOrgPrim = INT_MAX;
+				bxOrgPrim = INT_MAX;
+				if (pxCur < pxEnd) {
+					auto dr = dSecondBinnerFinerBuffer[pxCur].y;
+					pxOrgPrim = dAtriOriginalPrimId[dr];
+				}
+				if (lxCur < lxEnd) {
+					auto dr = dCoverQueueSuperTileFullM3BufferFinal[lxCur];
+					lxOrgPrim = dAtriOriginalPrimId[dr];
+				}
+				if (bxCur < bxEnd) {
+					auto dr = dCoverQueueFullM2Buffer[bxCur];
+					bxOrgPrim = dAtriOriginalPrimId[dr];
+				}
+
+				//Process Target Mask
+				auto targetMask = -1;
+				if (pxOrgPrim != INT_MAX && pxOrgPrim < lxOrgPrim && pxOrgPrim < bxOrgPrim) {
+					targetMask = dSecondBinnerFinerBuffer[pxCur].x;
+					chosenOrgPrim = pxOrgPrim;
+					chosenPrim = dSecondBinnerFinerBuffer[pxCur].y;
+					pxCur++;
+				}
+				else if (lxOrgPrim != INT_MAX && lxOrgPrim < pxOrgPrim && lxOrgPrim < bxOrgPrim) {
+					targetMask = -1;
+					chosenOrgPrim = lxOrgPrim;
+					chosenPrim = dCoverQueueSuperTileFullM3BufferFinal[lxCur];
+					lxCur++;
+				}
+				else if(bxOrgPrim != INT_MAX && bxOrgPrim < pxOrgPrim && bxOrgPrim < lxOrgPrim){
+					targetMask = -1;
+					chosenOrgPrim = bxOrgPrim;
+					chosenPrim = dCoverQueueFullM2Buffer[bxCur];
+					bxCur++;
+				}
+				if (chosenOrgPrim == INT_MAX)break;
+				bool reqCalc = targetMask & dsMask;
+				bool reqDraw = targetMask & dwMask;
+				if (reqDraw) {
+					shadingPass(chosenPrim, !reqDraw);
+				}
 			}
-
-
 		}
 		IFRIT_KERNEL void pixelTaggingExecKernel(
 			FragmentShader* fragmentShader,
@@ -1537,6 +1679,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
 			constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
 			auto varyingCount = csVaryingCounts;
+			
 			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
 
 			auto shadingPass = [&](const int pId, const bool isHelperInvocation) {
@@ -1787,21 +1930,38 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				if constexpr (CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR) {
 					Impl::TriangleSortStage::sortEntryKernel CU_KARG2(1, 1)();
 				}
+				else {
+					bool forceSort = csBlendState.blendEnable;
+					if (forceSort) {
+						Impl::TriangleSortStage::sortEntryKernel CU_KARG2(1, 1)();
+					}
+				}
 				
 				// Fragment Shader
 				int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth >>1, 8);
 				int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight >>1, 8);
-				if (dGeometryShader == nullptr) {
-					Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
-						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
-					Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+				if (csBlendState.blendEnable) {
+					if (dGeometryShader != nullptr) {
+						printf("Alpha blending with geometry shader is not supported now\n");
+						Impl::GeneralFunction::devAbort();
+					}
+					Impl::TriangleFragmentStage::pixelShadingAlphaBlendKernel CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
+						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, dGlobalBlendCoefs,
+						dGlobalBlendCoefsAlpha);
 				}
 				else {
-					Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
-						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
-					Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+					if (dGeometryShader == nullptr) {
+						Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
+							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+						Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
+							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+					}
+					else {
+						Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
+							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+						Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
+							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+					}
 				}
 				Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, CU_MAX_TILE_X)(isLast);
 			}
@@ -2529,6 +2689,100 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				fragmentShader->atSamplerPtr[i] = csSamplers[i];
 			}
 		}
+		IFRIT_KERNEL void updateBlendStateKernel() {
+			auto bs = csBlendState;
+			///SrcColor (x1/x[src.alpha]/x[dst.alpha]/x0)
+			if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+				dGlobalBlendCoefs.s = { 1,0,0,0 };
+			}
+			else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+				dGlobalBlendCoefs.s = { 0,0,0,1 };
+			}
+			else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+				dGlobalBlendCoefs.s = { 0,0,1,0 };
+			}
+			else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+				dGlobalBlendCoefs.s = { 0,1,0,0 };
+			}
+			else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+				dGlobalBlendCoefs.s = { 1,0,-1,0 };
+			}
+			else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+				dGlobalBlendCoefs.s = { 1,-1,0,0 };
+			}
+			else {
+				printf("Unsupported blend factor");
+				Impl::GeneralFunction::devAbort();
+			}
+			//SrcAlpha
+			if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+				dGlobalBlendCoefsAlpha.s = { 1,0,0,0 };
+			}
+			else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+				dGlobalBlendCoefsAlpha.s = { 0,0,0,1 };
+			}
+			else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+				dGlobalBlendCoefsAlpha.s = { 0,0,1,0 };
+			}
+			else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+				dGlobalBlendCoefsAlpha.s = { 0,1,0,0 };
+			}
+			else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+				dGlobalBlendCoefsAlpha.s = { 1,0,-1,0 };
+			}
+			else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+				dGlobalBlendCoefsAlpha.s = { 1,-1,0,0 };
+			}
+			else {
+				printf("Unsupported blend factor");
+				Impl::GeneralFunction::devAbort();
+			}
+
+
+			//DstColor
+			if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+				dGlobalBlendCoefs.d = { 1,0,0,0 };
+			}
+			else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+				dGlobalBlendCoefs.d = { 0,0,0,1 };
+			}
+			else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+				dGlobalBlendCoefs.d = { 0,0,1,0 };
+			}
+			else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+				dGlobalBlendCoefs.d = { 0,1,0,0 };
+			}
+			else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+				dGlobalBlendCoefs.d = { 1,0,-1,0 };
+			}
+			else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+				dGlobalBlendCoefs.d = { 1,-1,0,0 };
+			}
+
+			//DstAlpha
+			if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+				dGlobalBlendCoefsAlpha.d = { 1,0,0,0 };
+			}
+			else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+				dGlobalBlendCoefsAlpha.d = { 0,0,0,1 };
+			}
+			else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+				dGlobalBlendCoefsAlpha.d = { 0,0,1,0 };
+			}
+			else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+				dGlobalBlendCoefsAlpha.d = { 0,1,0,0 };
+			}
+			else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+				dGlobalBlendCoefsAlpha.d = { 1,0,-1,0 };
+			}
+			else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+				dGlobalBlendCoefsAlpha.d = { 1,-1,0,0 };
+			}
+			else {
+				printf("Unsupported blend factor");
+				Impl::GeneralFunction::devAbort();
+			}
+		}
 	}
 	
 }
@@ -2678,6 +2932,11 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void setBlendFunc(IfritColorAttachmentBlendState blendState) {
 		Impl::hsBlendState = blendState;
 		cudaMemcpyToSymbol(Impl::csBlendState, &blendState, sizeof(blendState));
+		if (!blendState.blendEnable) {
+			return;
+		}
+		Impl::MiscKernels::updateBlendStateKernel CU_KARG2(1, 1) ();
+		cudaDeviceSynchronize();
 	}
 
 	void initCudaRendering() {

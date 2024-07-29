@@ -11,7 +11,7 @@
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 
-#define DEMO_RESOLUTION 1145
+#define DEMO_RESOLUTION 2048
 
 using namespace std;
 using namespace Ifrit::Core::Data;
@@ -186,7 +186,7 @@ int mainGpu() {
 	std::vector<ifloat3> procNormal;
 	std::vector<ifloat2> procUv;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/sponza2.obj", pos, normal, uv, index);
+	loader.loadObject(IFRIT_ASSET_PATH"/fox.obj", pos, normal, uv, index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 	procUv = loader.remapUVs(uv, index, pos.size());
 
@@ -232,7 +232,7 @@ int mainGpu() {
 	indexBuffer = { 0,1,2,2,3,0 };*/
 
 
-	//printf("Total Tris:%d\n", indexBuffer.size() / 3);
+	printf("Total Tris:%d\n", indexBuffer.size() / 3);
 
 	std::vector<float> texFox;
 	int texFoxW, texFoxH;
@@ -276,10 +276,20 @@ int mainGpu() {
 	sampler.borderColor = IF_BORDER_COLOR_WHITE;
 	renderer->createSampler(0, sampler);
 
+	IfritColorAttachmentBlendState blendState;
+	blendState.blendEnable = true;
+	blendState.srcColorBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
+	blendState.dstColorBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState.srcAlphaBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
+	blendState.dstAlphaBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	renderer->setBlendFunc(blendState);
+
 	///printf("Start\n");
 	GLFWWindowProvider windowProvider;
-	windowProvider.setup(1920, 1080);
-	windowProvider.setTitle("Ifrit-v2 CUDA (Resolution: 2048x2048)");
+	windowProvider.setup(2048, 1152);
+	stringstream ss;
+	ss << "Ifrit-v2 CUDA (Resolution: " << DEMO_RESOLUTION << "x" << DEMO_RESOLUTION << ")";
+	windowProvider.setTitle(ss.str().c_str());
 
 	OpenGLBackend backend;
 	backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());

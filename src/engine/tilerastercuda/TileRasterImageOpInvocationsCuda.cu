@@ -71,18 +71,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int hRegionStart[totalGroups];
 	IFRIT_DEVICE static int hRegionSize[totalGroups];
 
-	template<class T>
-	IFRIT_DEVICE void doInsertionSort(T* keys, int count) {
-		for (int i = 1; i < count; i++) {
-			T key = keys[i];
-			int j = i - 1;
-			while (j >= 0 && keys[j] > key) {
-				keys[j + 1] = keys[j];
-				j--;
-			}
-			keys[j + 1] = key;
-		}
-	}
 }
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation {

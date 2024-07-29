@@ -25,7 +25,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 <img src="./img/overview.png" alt="overview" style="zoom: 67%;" />
 
-**Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). Some behaviors are nondeterministic and some features incompatible under current implementation (like `Alpha Blending` which requires sorting primitives under parallel setting)
+**Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). 
 
 | Feature                           | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | --------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
@@ -39,6 +39,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Programmable Vertex Shader        | √                                                            | √               | √             |
 | Programmable Fragment Shader      | √                                                            | √               | √             |
 | Programmable Geometry Shader      |                                                              |                 | √ ▲           |
+| Alpha Blending                    |                                                              |                 | √ ▲           |
 | Z Pre-Pass                        |                                                              |                 | √             |
 | Early-Z Test                      | √                                                            | √               | √             |
 | Back Face Culling                 | √                                                            | √               | √             |
@@ -69,7 +70,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 (4) Only work under following setting: Filled Triangle w/o Geometry Shader. However, sort is only performed in hierarchical queues for memory performance consideration.
 
-▲ It works, but is still under testing. Using this feature might cause severe performance drop.
+▲ Functions with triangle mark are under testing. These functionalities are supported, but might trigger exceptions or introduce performance drops.
 
 
 
@@ -146,30 +147,21 @@ Some dependencies should be prepared before compiling.
 
 ## Ongoing Plan
 
-- Bug Fix & Testing
-  - - 
-  
 - Tessellation
-
 - <s>Line Mode</s>
-
 - <s>Texture LOD & Texture Sampler</s>
   
   - <s>Shader Derivatives</s>
   - Anisotropic Filtering
   - Dynamic LOD Selection & Texture Bias
   - Cubic Texture
-  
 - Multi-sampling
-
-- Alpha Blending
+- <s>Alpha Blending</s>
+  - <s>Sorting</s>
 
 - Mesh Shader
-
 - Input Topology
-
 - Triangle Cluster & Cluster LOD
-
 - Known Issues
 
   - <s>Resolution Change</s>
