@@ -30,7 +30,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Feature                           | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | --------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
 | **Basic**                         |                                                              |                 |               |
-| Rendering Order                   | √                                                            |                 | ▲ (4)         |
+| Rendering Order                   | √                                                            |                 | √ ▲ (4)       |
 | **Performance**                   |                                                              |                 |               |
 | SIMD Instructions / SIMT          |                                                              | √               | √             |
 | Overlapped Memory Transfer        |                                                              |                 | √             |
@@ -68,7 +68,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 (3) Shader derivatives are now only available for the filled triangle polygon mode. Shader derivatives are calculated in `2x2` quads, so precision might matter.
 
-(4) Only work under following setting: Filled Triangle w/o Geometry Shader. However, sort is only performed in hierarchical queues for memory performance consideration.
+(4) Only works when `Alpha Blending` is enabled.
 
 ▲ Functions with triangle mark are under testing. These functionalities are supported, but might trigger exceptions or introduce performance drops.
 
@@ -148,28 +148,39 @@ Some dependencies should be prepared before compiling.
 ## Ongoing Plan
 
 - Tessellation
+
 - <s>Line Mode</s>
+
 - <s>Texture LOD & Texture Sampler</s>
   
   - <s>Shader Derivatives</s>
   - Anisotropic Filtering
   - Dynamic LOD Selection & Texture Bias
   - Cubic Texture
+  
 - Multi-sampling
+
 - <s>Alpha Blending</s>
+
   - <s>Sorting</s>
 
 - Mesh Shader
+
 - Input Topology
+
 - Triangle Cluster & Cluster LOD
+
 - Known Issues
 
   - <s>Resolution Change</s>
     - Artifacts in low resolution scenario 
 
 
-  - Overdraw: Point mode with index buffer
-  - Latency: Excessive global atomics in line mode
+    - Overdraw: Point mode with index buffer
+
+
+    - Latency: Excessive global atomics in line mode
+
 
 
 
