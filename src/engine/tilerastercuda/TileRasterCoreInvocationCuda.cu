@@ -2753,7 +2753,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		IFRIT_KERNEL void imageResetFloat32RGBAKernel(
 			float* dBuffer,
-			float value
+			float4 value
 		) {
 			const auto invoX = blockIdx.x * blockDim.x + threadIdx.x;
 			const auto invoY = blockIdx.y * blockDim.y + threadIdx.y;
@@ -2761,10 +2761,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				return;
 			}
 			const auto dAlignedBuffer = static_cast<float*>(__builtin_assume_aligned(dBuffer, 16));
-			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 0] = value;
-			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 1] = value;
-			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 2] = value;
-			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 3] = value;
+			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 0] = value.x;
+			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 1] = value.y;
+			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 2] = value.z;
+			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 3] = value.w;
 		}
 	}
 	namespace MiscKernels {
@@ -3098,6 +3098,22 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		}
 	}
 
+	void invokeCudaRenderingClear(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW {
+		constexpr int dispatchThreadsX = 8, dispatchThreadsY = 8;
+		int dispatchBlocksX = (Impl::hsFrameWidth / dispatchThreadsX) + ((Impl::hsFrameWidth % dispatchThreadsX) != 0);
+		int dispatchBlocksY = (Impl::hsFrameHeight / dispatchThreadsY) + ((Impl::hsFrameHeight % dispatchThreadsY) != 0);
+
+		Impl::ImageOperator::imageResetFloat32MonoKernel CU_KARG2(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY))(
+			args.dDepthBuffer, args.hClearDepth
+			);
+		for (int i = 0; i < args.dHostColorBufferSize; i++) {
+			Impl::ImageOperator::imageResetFloat32RGBAKernel CU_KARG2(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY))(
+				(float*)args.dHostColorBuffer[i], { args.hClearColors[i].x,  args.hClearColors[i].y,  args.hClearColors[i].z,  args.hClearColors[i].w }
+			);
+		}
+	
+	}
+
 	void invokeCudaRendering(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW {
 		// Stream Preparation
 		static int initFlag = 0;
@@ -3133,15 +3149,6 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		constexpr int dispatchThreadsX = 8,dispatchThreadsY = 8;
 		int dispatchBlocksX = (Impl::hsFrameWidth / dispatchThreadsX) + ((Impl::hsFrameWidth % dispatchThreadsX) != 0);
 		int dispatchBlocksY = (Impl::hsFrameHeight / dispatchThreadsY) + ((Impl::hsFrameHeight % dispatchThreadsY) != 0);
-		
-		Impl::ImageOperator::imageResetFloat32MonoKernel CU_KARG4(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY), 0, computeStream)(
-			args.dDepthBuffer, 255.0f
-		);
-		for (int i = 0; i < args.dHostColorBufferSize; i++) {
-			Impl::ImageOperator::imageResetFloat32RGBAKernel CU_KARG4(dim3(dispatchBlocksX, dispatchBlocksY), dim3(dispatchThreadsX, dispatchThreadsY), 0, computeStream)(
-				(float*)args.dHostColorBuffer[i], 0.0f
-			);
-		}
 		int vertexExecutionBlocks = (Impl::hsVertexCounts / CU_VERTEX_PROCESSING_THREADS) + ((Impl::hsVertexCounts % CU_VERTEX_PROCESSING_THREADS) != 0);
 		Impl::VertexStage::vertexProcessingKernel CU_KARG4(vertexExecutionBlocks, CU_VERTEX_PROCESSING_THREADS, 0, computeStream)(
 			args.dVertexShader, Impl::hsVertexCounts, args.dVertexBuffer, args.dVertexTypeDescriptor,

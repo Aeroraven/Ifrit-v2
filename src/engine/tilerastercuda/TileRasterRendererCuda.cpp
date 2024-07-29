@@ -102,9 +102,35 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			Invocation::setDepthFunc(IF_COMPARE_OP_ALWAYS);
 		}
 	}
+	void TileRasterRendererCuda::setClearValues(const std::vector<ifloat4>& clearColors, float clearDepth) {
+		ctxClearColors = clearColors;
+		ctxClearDepth = clearDepth;
+	}
 	void TileRasterRendererCuda::clear() {
-		context->frameBuffer->getDepthAttachment()->clearImage(255.0);
-		context->frameBuffer->getColorAttachment(0)->clearImageZero();
+		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
+		int totalIndices = context->indexBuffer->size();
+		int curBuffer = currentBuffer;
+		Invocation::RenderingInvocationArgumentSet args;
+		args.hClearColors = ctxClearColors.data();
+		args.hClearDepth = ctxClearDepth;
+		args.dVertexBuffer = deviceVertexBuffer;
+		args.dVertexTypeDescriptor = deviceVertexTypeDescriptor;
+		args.dIndexBuffer = deviceIndexBuffer;
+		args.dVertexShader = context->vertexShader;
+		args.dFragmentShader = context->fragmentShader;
+		args.dGeometryShader = context->geometryShader;
+		args.dColorBuffer = deviceColorBuffer[curBuffer];
+		args.dHostColorBuffer = deviceHostColorBuffers[curBuffer].data();
+		args.hColorBuffer = hostColorBuffers.data();
+		args.dHostColorBufferSize = deviceHostColorBuffers[curBuffer].size();
+		args.dDepthBuffer = deviceDepthBuffer;
+		args.dPositionBuffer = devicePosBuffer;
+		args.deviceContext = this->deviceContext.get();
+		args.totalIndices = totalIndices;
+		args.doubleBuffering = this->doubleBuffer;
+		args.dLastColorBuffer = deviceHostColorBuffers[1 - curBuffer].data();
+		args.polygonMode = polygonMode;
+		Invocation::invokeCudaRenderingClear(args);
 	}
 	void TileRasterRendererCuda::initCuda() {
 		if (this->initCudaContext)return;
@@ -127,10 +153,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		}
 
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
-
 		int totalIndices = context->indexBuffer->size();
 		int curBuffer = currentBuffer;
-
 		Invocation::RenderingInvocationArgumentSet args;
 		args.dVertexBuffer = deviceVertexBuffer;
 		args.dVertexTypeDescriptor = deviceVertexTypeDescriptor;

@@ -288,6 +288,7 @@ int mainGpu() {
 
 	renderer->setDepthFunc(IF_COMPARE_OP_LESS);
 	renderer->setDepthTestEnable(true);
+	renderer->setClearValues({ {1,1,1,0} }, 255.0);
 
 	///printf("Start\n");
 	GLFWWindowProvider windowProvider;
@@ -301,6 +302,7 @@ int mainGpu() {
 
 	windowProvider.loop([&](int* coreTime) {
 		std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+		renderer->clear();
 		renderer->render();
 		std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 		*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

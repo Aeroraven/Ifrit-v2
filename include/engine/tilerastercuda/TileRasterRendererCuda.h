@@ -11,7 +11,7 @@
 namespace Ifrit::Engine::TileRaster::CUDA {
 	using namespace Ifrit::Engine;
 
-	class TileRasterRendererCuda:public std::enable_shared_from_this<TileRasterRendererCuda> {
+	class TileRasterRendererCuda :public std::enable_shared_from_this<TileRasterRendererCuda> {
 	private:
 		std::unique_ptr<TileRasterContextCuda> context;
 		std::unique_ptr<TileRasterDeviceContext> deviceContext;
@@ -20,6 +20,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		bool initCudaContext = false;
 		// Depth Test
 		IfritCompareOp ctxDepthFunc = IF_COMPARE_OP_LESS;
+		std::vector<ifloat4> ctxClearColors = { { 0.0f,0.0f,0.0f,0.0f } };
+		float ctxClearDepth = 1.0f;
 
 		// Device Addrs
 		int* deviceIndexBuffer = nullptr;
@@ -42,6 +44,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 	private:
 		void updateVaryingBuffer();
+
 	public:
 		void init();
 		void initCuda();
@@ -51,16 +54,17 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor);
 		void bindFragmentShader(FragmentShader* fragmentShader);
 		void bindGeometryShader(GeometryShader* geometryShader);
-		
+
 		void createTextureRaw(int slotId, const IfritImageCreateInfo& createInfo, float* data);
 		void createSampler(int slotId, const IfritSamplerT& samplerState);
 		void generateMipmap(int slotId, IfritFilter filter);
-		void blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region,IfritFilter filter);
+		void blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter);
 
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
 		void setBlendFunc(IfritColorAttachmentBlendState state);
 		void setDepthFunc(IfritCompareOp depthFunc);
 		void setDepthTestEnable(bool option);
+		void setClearValues(const std::vector<ifloat4>& clearColors, float clearDepth);
 
 		void clear();
 		void render();
