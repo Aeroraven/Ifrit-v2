@@ -18,6 +18,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		bool needVaryingUpdate = true;
 		bool needFragmentShaderUpdate = true;
 		bool initCudaContext = false;
+		// Depth Test
+		IfritCompareOp ctxDepthFunc = IF_COMPARE_OP_LESS;
 
 		// Device Addrs
 		int* deviceIndexBuffer = nullptr;
@@ -57,6 +59,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
 		void setBlendFunc(IfritColorAttachmentBlendState state);
+		void setDepthFunc(IfritCompareOp depthFunc);
+		void setDepthTestEnable(bool option);
 
 		void clear();
 		void render();

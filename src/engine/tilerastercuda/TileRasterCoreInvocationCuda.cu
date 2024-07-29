@@ -112,6 +112,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dFragmentShadingPrimId[CU_MAX_FRAMEBUFFER_SIZE];
 	IFRIT_DEVICE static uint32_t dAssembledTriangleCounterM2;
 
+	// Depth Test
+	IFRIT_DEVICE static bool dDepthTestEnable;
+	IFRIT_DEVICE static IfritCompareOp csDepthFunc;
+
 	// Alpha Blending
 	IFRIT_DEVICE static ImplBlendCoefs dGlobalBlendCoefs;
 	IFRIT_DEVICE static ImplBlendCoefs dGlobalBlendCoefsAlpha;
@@ -1343,6 +1347,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace TriangleFragmentStage {
+		
+		template<uint32_t tpDepthFunc>
 		IFRIT_KERNEL void pixelShadingAlphaBlendKernel(
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
@@ -1404,6 +1410,16 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
 			const auto pDx = pixelXS * 1.0f;
 			const auto pDy = pixelYS * 1.0f;
+			const float compareDepth = dDepthBuffer[pixelYS * csFrameWidth + pixelXS];
+
+			auto getDepth = [&](int primId) {
+				float interpolatedDepth;
+				float2 v12 = dAtriDepthVal12[primId];
+				float v3 = dAtriDepthVal3[primId];
+				interpolatedDepth = v12.x * pDx + v12.y * pDy + v3;
+				return interpolatedDepth;
+			};
+
 			auto shadingPass = [&](const int pId, const bool isHelperInvocation) {
 				float4 f1o = dAtriInterpolBase1[pId];
 				float4 f2o = dAtriInterpolBase2[pId];
@@ -1457,6 +1473,19 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				if (isHelperInvocation) {
 					return;
 				}
+				auto tDepth = getDepth(pId);
+				bool depthTestCond = true;
+
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) depthTestCond = true;
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) depthTestCond = false;
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) depthTestCond = (tDepth < compareDepth);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) depthTestCond = (tDepth == compareDepth);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) depthTestCond = (tDepth > compareDepth);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL) depthTestCond = (tDepth <= compareDepth);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) depthTestCond = (tDepth >= compareDepth);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) depthTestCond = (tDepth != compareDepth);
+
+				if (!depthTestCond)return;
 				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId);
 				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
 				ifloat4 srcRgba;
@@ -1480,6 +1509,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				mixRgba.w = dstRgba.w * mxDstA + srcRgba.w * mxSrcA;
 
 				col0[pixelYS * csFrameWidth + pixelXS] = mixRgba;
+				dDepthBuffer[pixelYS * csFrameWidth + pixelXS] = tDepth;
 				if constexpr (CU_PROFILER_OVERDRAW) {
 					atomicAdd(&dOverDrawCounter, 1);
 				}
@@ -1547,6 +1577,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				}
 			}
 		}
+		
+		// tpDepthFunc: 0-Never / 1-Less / 2-Eq / 3-Leq / 4-Greater / 5-Neq / 6-Geq / 7-Always
+		template<uint32_t tpDepthFunc>
 		IFRIT_KERNEL void pixelTaggingExecKernel(
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
@@ -1574,25 +1607,40 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const int pixelXS = threadX + threadZ * CU_EXPERIMENTAL_SUBTILE_WIDTH + tileX * CU_TILE_WIDTH;
 			const int pixelYS = threadY + tileY * CU_TILE_WIDTH;
 
-			float localDepthBuffer = 1;
 			float candidateBary[3];
 			int candidatePrim = -1;
 			const float compareDepth = dDepthBuffer[pixelYS * frameWidth + pixelXS];
+			float localDepthBuffer = compareDepth;
+			int localOrgPrimId = INT_MAX;
 			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
 
 			auto zPrePass = [&](int primId) {
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) return;
 				float interpolatedDepth;
 				float2 v12 = dAtriDepthVal12[primId];
 				float v3 = dAtriDepthVal3[primId];
 				interpolatedDepth = v12.x * pDx + v12.y * pDy + v3;
-				if (interpolatedDepth < localDepthBuffer) {
-					localDepthBuffer = interpolatedDepth;
-					candidatePrim = primId;
+
+#define PLACE_COND(cond) if ((cond)) { localDepthBuffer = interpolatedDepth; candidatePrim = primId;}
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) PLACE_COND(interpolatedDepth < localDepthBuffer);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL)PLACE_COND(interpolatedDepth <= localDepthBuffer);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) PLACE_COND(interpolatedDepth == localDepthBuffer);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) PLACE_COND(interpolatedDepth > localDepthBuffer);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) PLACE_COND(interpolatedDepth >= localDepthBuffer);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) PLACE_COND(interpolatedDepth != localDepthBuffer);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
+					if (dAtriOriginalPrimId[primId] < localOrgPrimId) {
+						localDepthBuffer = interpolatedDepth;
+						localOrgPrimId = dAtriOriginalPrimId[primId];
+						candidatePrim = primId;
+					}
 				}
+
+#undef PLACE_COND
 				if constexpr (CU_PROFILER_OVERDRAW) {
 					atomicAdd(&dOverZTestCounter, 1);
 				}
-				};
+			};
 
 			// Large Bin Level
 			if constexpr (true) {
@@ -1648,9 +1696,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					}
 				}
 			}
-			if (candidatePrim != -1 && localDepthBuffer < compareDepth) {
-				dDepthBuffer[pixelYS * frameWidth + pixelXS] = localDepthBuffer;
-
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
+				if (candidatePrim != -1) {
+					dDepthBuffer[pixelYS * frameWidth + pixelXS] = localDepthBuffer;
+				}
+			}
+			else {
+				if (candidatePrim != -1 && localDepthBuffer < compareDepth) {
+					dDepthBuffer[pixelYS * frameWidth + pixelXS] = localDepthBuffer;
+				}
 			}
 			int quadIdX = pixelXS >> 1;
 			int quadOfX = pixelXS & 1;
@@ -1658,6 +1712,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int quadOfY = pixelYS & 1;
 			int quadId = (quadIdY * CU_MAX_FRAMEBUFFER_WIDTH + quadIdX) * 4 + (quadOfY * 2 + quadOfX);
 			dPixelShaderTags[quadId] = candidatePrim;
+			
 		}
 
 		template <int geometryShaderEnabled>
@@ -1945,23 +2000,57 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						printf("Alpha blending with geometry shader is not supported now\n");
 						Impl::GeneralFunction::devAbort();
 					}
-					Impl::TriangleFragmentStage::pixelShadingAlphaBlendKernel CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-						dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, dGlobalBlendCoefs,
+#define PIXEL_BLEND_FUNC_SIGN(cond) Impl::TriangleFragmentStage::pixelShadingAlphaBlendKernel<cond>
+#define PIXEL_BLEND_FUNC(cond) PIXEL_BLEND_FUNC_SIGN(cond) CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) ( \
+					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, dGlobalBlendCoefs, \
 						dGlobalBlendCoefsAlpha);
+#define PIXEL_BLEND_FUNC_COND(cond) if (Impl::csDepthFunc==(cond)){PIXEL_BLEND_FUNC(cond)}
+#define PIXEL_BLEND_FUNC_COND_COLLECTION \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_ALWAYS) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_LESS) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_EQUAL) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_GREATER) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_LESS_OR_EQUAL) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_GREATER_OR_EQUAL) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_NOT_EQUAL) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_NEVER) 
+					
+					PIXEL_BLEND_FUNC_COND_COLLECTION;
+
+#undef PIXEL_BLEND_FUNC_COND_COLLECTION
+#undef PIXEL_BLEND_FUNC_COND
+#undef PIXEL_BLEND_FUNC
+#undef PIXEL_BLEND_FUNC_SIGN
 				}
 				else {
+#define PIXEL_TAG_FUNC_SIGN(cond) Impl::TriangleFragmentStage::pixelTaggingExecKernel<cond>
+#define PIXEL_TAG_FUNC(cond) PIXEL_TAG_FUNC_SIGN(cond) CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) ( \
+					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+#define PIXEL_TAG_FUNC_COND(cond) if (Impl::csDepthFunc==(cond)){PIXEL_TAG_FUNC(cond)}
+#define PIXEL_TAG_FUNC_COND_COLLECTION \
+	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_ALWAYS) \
+	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_LESS) \
+	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_EQUAL) \
+	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_GREATER) \
+	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_LESS_OR_EQUAL) \
+	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_GREATER_OR_EQUAL) \
+	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_NOT_EQUAL) \
+	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_NEVER) 
 					if (dGeometryShader == nullptr) {
-						Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
-							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+						PIXEL_TAG_FUNC_COND_COLLECTION;
 						Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
 							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
 					}
 					else {
-						Impl::TriangleFragmentStage::pixelTaggingExecKernel CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) (
-							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+						PIXEL_TAG_FUNC_COND_COLLECTION;
 						Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
 							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
 					}
+#undef PIXEL_TAG_FUNC_COND_COLLECTION
+#undef PIXEL_TAG_FUNC_COND
+#undef PIXEL_TAG_FUNC
+#undef PIXEL_TAG_FUNC_SIGN
+
 				}
 				Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, CU_MAX_TILE_X)(isLast);
 			}
@@ -2785,6 +2874,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	
+	namespace InitializationKernels {
+		IFRIT_KERNEL void globalInitializationKernel() {
+			csDepthFunc = IF_COMPARE_OP_LESS;
+		}
+	}
 }
 
 namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
@@ -2939,7 +3033,13 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaDeviceSynchronize();
 	}
 
+	void setDepthFunc(IfritCompareOp depthFunc) {
+		cudaMemcpyToSymbol(Impl::csDepthFunc, &depthFunc, sizeof(depthFunc));
+	}
+
 	void initCudaRendering() {
+		Impl::InitializationKernels::globalInitializationKernel CU_KARG2(1, 1) ();
+		cudaDeviceSynchronize();
 		cudaMemcpyToSymbol(Impl::csCounterClosewiseCull, &Impl::hsCounterClosewiseCull, sizeof(Impl::hsCounterClosewiseCull));
 	}
 	void updateVertexLayout(TypeDescriptorEnum* dVertexTypeDescriptor, int attrCounts) {

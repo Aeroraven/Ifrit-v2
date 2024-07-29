@@ -90,6 +90,18 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::setBlendFunc(IfritColorAttachmentBlendState state) {
 		Invocation::setBlendFunc(state);
 	}
+	void TileRasterRendererCuda::setDepthFunc(IfritCompareOp depthFunc) {
+		ctxDepthFunc = depthFunc;
+		Invocation::setDepthFunc(depthFunc);
+	}
+	void TileRasterRendererCuda::setDepthTestEnable(bool option) {
+		if (option) {
+			Invocation::setDepthFunc(ctxDepthFunc);
+		}
+		else {
+			Invocation::setDepthFunc(IF_COMPARE_OP_ALWAYS);
+		}
+	}
 	void TileRasterRendererCuda::clear() {
 		context->frameBuffer->getDepthAttachment()->clearImage(255.0);
 		context->frameBuffer->getColorAttachment(0)->clearImageZero();

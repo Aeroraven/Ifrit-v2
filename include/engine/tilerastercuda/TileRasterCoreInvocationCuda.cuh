@@ -56,4 +56,5 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void createSampler(uint32_t slotId, const IfritSamplerT& samplerState);
 
 	void setBlendFunc(IfritColorAttachmentBlendState blendState);
+	void setDepthFunc(IfritCompareOp depthFunc);
 }

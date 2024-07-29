@@ -9,6 +9,7 @@
 #include "engine/math/ShaderOps.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "presentation/backend/TerminalAsciiBackend.h"
+#include "presentation/backend/TerminalCharColorBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 
 #define DEMO_RESOLUTION 2048
@@ -29,7 +30,7 @@ enum PresentEngine {
 	PE_CONSOLE
 };
 
-PresentEngine presentEngine = PE_GLFW;
+PresentEngine presentEngine = PE_CONSOLE;
 //float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 //float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
 //float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
@@ -48,10 +49,10 @@ float globalTime = 1.0f;
 class DemoVertexShader : public VertexShader {
 public:
 	IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore** outVaryings) override{
-		const auto radius = 0.4f;
+		const auto radius = 0.3f;
 		const auto vX = sin(globalTime) * radius;
 		const auto vZ = cos(globalTime) * radius;
-		const auto dY = sin(globalTime * 0.9f) * 0.05f + 0.1f;
+		const auto dY = 0.1f; //sin(globalTime * 0.9f) * 0.05f + 0.1f;
 		float4x4 view = (lookAt({ vX,dY,vZ }, { 0,dY,0.0 }, { 0,1,0 })); //yomiya
 		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.01, 3000));
 		auto mvp = multiply(proj, view);	
@@ -145,11 +146,12 @@ int mainCpu() {
 
 	float ang = 0;
 	if(presentEngine==PE_CONSOLE){
-		TerminalAsciiBackend backend(139, 40);
+		TerminalCharColorBackend backend(139*2, 40*2);
 		while (true) {
 			renderer->render(true);
 			backend.updateTexture(*image);
 			backend.draw();
+			globalTime += 0.03f;
 		}
 	}
 	else {
@@ -284,6 +286,9 @@ int mainGpu() {
 	blendState.dstAlphaBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 	renderer->setBlendFunc(blendState);
 
+	renderer->setDepthFunc(IF_COMPARE_OP_LESS);
+	renderer->setDepthTestEnable(true);
+
 	///printf("Start\n");
 	GLFWWindowProvider windowProvider;
 	windowProvider.setup(2048, 1152);
@@ -294,8 +299,6 @@ int mainGpu() {
 	OpenGLBackend backend;
 	backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 
-	//renderer->testFunc();
-	//return 0;
 	windowProvider.loop([&](int* coreTime) {
 		std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 		renderer->render();
