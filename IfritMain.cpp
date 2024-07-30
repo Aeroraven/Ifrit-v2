@@ -268,7 +268,7 @@ int mainGpu() {
 	auto dGeometryShader = geometryShader.getCudaClone();
 	renderer->bindFragmentShader(dFragmentShader);
 	renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
-	//renderer->bindGeometryShader(dGeometryShader);
+	renderer->bindGeometryShader(dGeometryShader);
 	//renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_LINE);
 
 	IfritSamplerT sampler;

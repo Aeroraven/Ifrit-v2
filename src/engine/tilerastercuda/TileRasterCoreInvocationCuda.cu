@@ -4,6 +4,7 @@
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 #include "engine/base/Structures.h"
 #include <cuda_profiler_api.h>
+//#include <thrust/sort.h>
 #include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
 
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
@@ -98,6 +99,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static float2 dAtriDepthVal12[CU_PRIMITIVE_BUFFER_SIZE * 2];
 	IFRIT_DEVICE static float dAtriDepthVal3[CU_PRIMITIVE_BUFFER_SIZE * 2];
 	IFRIT_DEVICE static int dAtriOriginalPrimId[CU_PRIMITIVE_BUFFER_SIZE * 2];
+	IFRIT_DEVICE static int dAtriOriginalPrimIdGs[CU_PRIMITIVE_BUFFER_SIZE * 2];
 	IFRIT_DEVICE static int dAtriPixelBelong[CU_PRIMITIVE_BUFFER_SIZE * 2];
 
 	IFRIT_DEVICE static int2 dCoverPrimsTile[CU_ALTERNATIVE_BUFFER_SIZE];
@@ -128,6 +130,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dGeometryShaderOutSize;
 	IFRIT_DEVICE static float4 dGeometryShaderOutPos[CU_GS_OUT_BUFFER_SIZE];
 	IFRIT_DEVICE static float4 dGeometryShaderOutVaryings[CU_GS_OUT_BUFFER_SIZE * CU_MAX_VARYINGS];
+	IFRIT_DEVICE static int dGeometryShaderOutSortKeys[CU_GS_OUT_BUFFER_SIZE];
 
 	// Pixel Shader Tags
 	IFRIT_DEVICE static int dPixelShaderTags[CU_MAX_FRAMEBUFFER_SIZE];
@@ -248,6 +251,54 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace GeneralGeometryStage {
+		IFRIT_DEVICE void devGeometryShaderPrimSort(int* keys, float4* valuePos, float4* valueVaryings, int count, int numVaryings) {
+			//TODO: Parallel sort / Stream compaction
+			auto swapVaryings = [&](int a, int b) {
+				for (int i = 0; i < numVaryings; i++) {
+					auto tmp = valueVaryings[a * numVaryings + i];
+					valueVaryings[a * numVaryings + i] = valueVaryings[b * numVaryings + i];
+					valueVaryings[b * numVaryings + i] = tmp;
+				}
+			};
+			auto swapKeys = [&](int a, int b) {
+				auto tmp = keys[a];
+				keys[a] = keys[b];
+				keys[b] = tmp; 
+			};
+			auto swapPos = [&](int a, int b) {
+				auto tmp = valuePos[a];
+				valuePos[a] = valuePos[b];
+				valuePos[b] = tmp;
+			};
+			auto siftDown = [&](int st, int ed) {
+				auto cur = st;
+				auto ch = 0;
+				while ((ch = cur * 2 + 1) < ed) {
+					if (ch + 1 < ed && keys[ch + 1] > keys[ch])ch++;
+					if (keys[ch] > keys[cur]) {
+						swapKeys(ch, cur);
+						//swapPos(ch, cur);
+						//swapVaryings(ch, cur);
+						cur = ch;
+						continue;
+					}
+					break;
+				}
+			};
+			for (int i = count / 2; i >= 0; i--) {
+				siftDown(i, count);
+			}
+			for (int i = count - 1; i >= 1; i--) {
+				swapKeys(i, 0);
+				//swapVaryings(i, 0);
+				//swapPos(i, 0);
+				siftDown(0, i);
+			}
+		}
+		IFRIT_KERNEL void geometryShadingSortKernel() {
+
+		}
+
 		IFRIT_KERNEL void geometryShadingKernel(
 			uint32_t startingIndexId,
 			uint32_t indexCount,
@@ -288,6 +339,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int insPos = atomicAdd(&dGeometryShaderOutSize, outW);
 			for (int i = 0; i < outW; i++) {
 				dGeometryShaderOutPos[insPos + i] = (posOut + 3 * threadIdx.x)[i];
+				if constexpr (CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR) {
+					dGeometryShaderOutSortKeys[insPos + i] = indexStart * CU_MAX_GS_OUT_VERTICES + i;
+				}
 				for (int j = 0; j < csVaryingCounts; j++) {
 					dGeometryShaderOutVaryings[insPos * csVaryingCounts + i * csVaryingCounts + j] = (varyingOut + 3 * threadIdx.x * csVaryingCounts)[i * csVaryingCounts + j];
 				}
@@ -305,6 +359,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
 			GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (startOffset, indexCount, dGeometryShader, (float4*)dPositionBuffer,
 				dIndexBuffer, dVaryingBuffer);
+			GeneralGeometryStage::geometryShadingSortKernel CU_KARG2(1, 1) ();
 		}
 	}
 	
@@ -1108,6 +1163,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace TriangleGeometryStage {
+		template<bool tpGeometryShaderEnabled>
 		IFRIT_DEVICE void devGeometryCullClip(float4 v1, float4 v2, float4 v3, int primId) {
 			using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
 			constexpr int possibleTris = 5;
@@ -1213,7 +1269,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						continue;
 					}
 				}
-
 				auto curIdx = atomicAdd(&dAssembledTriangleCounterM2, 1);
 				dAtriInterpolBase1[curIdx] = { dv1.x,dv1.y,dv1.z,dv1.w };
 				dAtriInterpolBase2[curIdx] = { dv2.x,dv2.y,dv2.z,dv2.w };
@@ -1221,6 +1276,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				dAtriBaryCenter12[curIdx] = { b1.x,b1.y,b2.x,b2.y };
 				dAtriBaryCenter3[curIdx] = { b3.x,b3.y };
 				dAtriOriginalPrimId[curIdx] = primId;
+
+				if constexpr (tpGeometryShaderEnabled) {
+					dAtriOriginalPrimId[curIdx] = dGeometryShaderOutSortKeys[primId * 3];
+					dAtriOriginalPrimIdGs[curIdx] = primId;
+				}
 			}
 #undef ret
 		}
@@ -1241,11 +1301,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				v1 = dGSPosBufferAligned[globalInvoIdx * 3];
 				v2 = dGSPosBufferAligned[globalInvoIdx * 3 + 1];
 				v3 = dGSPosBufferAligned[globalInvoIdx * 3 + 2];
-				primId = globalInvoIdx;
+				primId = globalInvoIdx; //dGeometryShaderOutSortKeys[globalInvoIdx];
 			}
 			else {
 				if (globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
-
 				const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
 				auto dPosBufferAligned = static_cast<float4*>(__builtin_assume_aligned(dPosBuffer, 16));
 				v1 = dPosBufferAligned[dIndexBuffer[indexStart]];
@@ -1255,7 +1314,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 			if (v1.w < 0 && v2.w < 0 && v3.w < 0)
 				return;
-			devGeometryCullClip(v1, v2, v3, primId);
+			devGeometryCullClip<geometryShaderEnabled>(v1, v2, v3, primId);
 		}
 		IFRIT_KERNEL void geometryClippingKernelEntryWithGS() {
 			int numTriangles = dGeometryShaderOutSize / 3;
@@ -1348,7 +1407,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	}
 	namespace TriangleFragmentStage {
 		
-		template<uint32_t tpDepthFunc>
+		template<uint32_t tpDepthFunc, bool tpGeometryShaderEnabled>
 		IFRIT_KERNEL void pixelShadingAlphaBlendKernel(
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
@@ -1432,6 +1491,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				float4 b12 = dAtriBaryCenter12[pId];
 				float2 b3 = dAtriBaryCenter3[pId];
 				int orgPrimId = dAtriOriginalPrimId[pId];
+				if constexpr (tpGeometryShaderEnabled) {
+					orgPrimId = dAtriOriginalPrimIdGs[pId];
+				}
 
 				candidateBary[0] = (f1.x * pDx + f1.y * pDy + f1.z);
 				candidateBary[1] = (f2.x * pDx + f2.y * pDy + f2.z);
@@ -1453,7 +1515,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					vd = { 0,0,0,0 };
 					for (int j = 0; j < 3; j++) {
 						float4 vaf4;
-						if constexpr (false/*geometryShaderEnabled*/) {
+						if constexpr (tpGeometryShaderEnabled) {
 							vaf4 = dGeometryShaderOutVaryings[orgPrimId * 3 * varyingCount + k + j * varyingCount];
 						}
 						else {
@@ -1749,6 +1811,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				float4 b12 = dAtriBaryCenter12[pId];
 				float2 b3 = dAtriBaryCenter3[pId];
 				int orgPrimId = dAtriOriginalPrimId[pId];
+				if constexpr (geometryShaderEnabled) {
+					orgPrimId = dAtriOriginalPrimIdGs[pId];
+				}
 
 				candidateBary[0] = (f1.x * pDx + f1.y * pDy + f1.z);
 				candidateBary[1] = (f2.x * pDx + f2.y * pDy + f2.z);
@@ -1996,26 +2061,28 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth >>1, 8);
 				int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight >>1, 8);
 				if (csBlendState.blendEnable) {
-					if (dGeometryShader != nullptr) {
-						printf("Alpha blending with geometry shader is not supported now\n");
-						Impl::GeneralFunction::devAbort();
-					}
-#define PIXEL_BLEND_FUNC_SIGN(cond) Impl::TriangleFragmentStage::pixelShadingAlphaBlendKernel<cond>
-#define PIXEL_BLEND_FUNC(cond) PIXEL_BLEND_FUNC_SIGN(cond) CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) ( \
+
+#define PIXEL_BLEND_FUNC_SIGN(cond,gsState) Impl::TriangleFragmentStage::pixelShadingAlphaBlendKernel<cond,gsState>
+#define PIXEL_BLEND_FUNC(cond,gsState) PIXEL_BLEND_FUNC_SIGN(cond,gsState) CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) ( \
 					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, dGlobalBlendCoefs, \
 						dGlobalBlendCoefsAlpha);
-#define PIXEL_BLEND_FUNC_COND(cond) if (Impl::csDepthFunc==(cond)){PIXEL_BLEND_FUNC(cond)}
-#define PIXEL_BLEND_FUNC_COND_COLLECTION \
-	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_ALWAYS) \
-	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_LESS) \
-	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_EQUAL) \
-	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_GREATER) \
-	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_LESS_OR_EQUAL) \
-	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_GREATER_OR_EQUAL) \
-	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_NOT_EQUAL) \
-	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_NEVER) 
+#define PIXEL_BLEND_FUNC_COND(cond,gsState) if (Impl::csDepthFunc==(cond)){PIXEL_BLEND_FUNC(cond,gsState)}
+#define PIXEL_BLEND_FUNC_COND_COLLECTION(gsState) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_ALWAYS,gsState) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_LESS,gsState) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_EQUAL,gsState) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_GREATER,gsState) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_LESS_OR_EQUAL,gsState) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_GREATER_OR_EQUAL,gsState) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_NOT_EQUAL,gsState) \
+	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_NEVER,gsState) 
 					
-					PIXEL_BLEND_FUNC_COND_COLLECTION;
+					if (dGeometryShader == nullptr) {
+						PIXEL_BLEND_FUNC_COND_COLLECTION(false);
+					}
+					else {
+						PIXEL_BLEND_FUNC_COND_COLLECTION(true);
+					}
 
 #undef PIXEL_BLEND_FUNC_COND_COLLECTION
 #undef PIXEL_BLEND_FUNC_COND
@@ -2108,6 +2175,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
 					Impl::GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (i, indexCount, dGeometryShader, (float4*)dPositionBuffer,
 						dIndexBuffer, dVaryingBuffer);
+					if constexpr (CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR) {
+						Impl::GeneralGeometryStage::geometryShadingSortKernel CU_KARG2(1, 1) ();
+					}
 					Impl::TriangleGeometryStage::geometryClippingKernelEntryWithGS CU_KARG2(1, 1)();
 				}
 
@@ -2267,9 +2337,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int localDepth = 1e9;
 			IFRIT_SHARED float colorOutputSingle[256 * 4];
 			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
+
 			auto shadingPass = [&](int primId) {
 				auto varyingCount = csVaryingCounts;
 				int orgPrimId = dAtriOriginalPrimId[primId];
+				if constexpr (geometryShaderEnabled) {
+					orgPrimId = dAtriOriginalPrimIdGs[primId];
+				}
 				auto addr = dIndexBuffer + orgPrimId;
 				for (int k = 0; k < varyingCount; k++) {
 					float4 vd;
