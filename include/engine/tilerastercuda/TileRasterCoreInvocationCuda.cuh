@@ -31,8 +31,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		bool doubleBuffering;
 		ifloat4** dLastColorBuffer;
 		IfritPolygonMode polygonMode = IF_POLYGON_MODE_FILL;
+		ifloat4* hClearColors;
+		float hClearDepth;
 	};
-
+	void invokeCudaRenderingClear(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW;
 	void invokeCudaRendering(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW;
 
 	void invokeFragmentShaderUpdate(FragmentShader* dFragmentShader) IFRIT_AP_NOTHROW;
@@ -56,4 +58,5 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void createSampler(uint32_t slotId, const IfritSamplerT& samplerState);
 
 	void setBlendFunc(IfritColorAttachmentBlendState blendState);
+	void setDepthFunc(IfritCompareOp depthFunc);
 }
