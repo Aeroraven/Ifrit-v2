@@ -145,6 +145,12 @@ Some dependencies should be prepared before compiling.
 
 
 
+## Abstractions / Usage
+
+See `docs.md` for more details.
+
+
+
 ## Ongoing Plan
 
 - Tessellation
@@ -157,6 +163,7 @@ Some dependencies should be prepared before compiling.
   - Anisotropic Filtering
   - Dynamic LOD Selection & Texture Bias
   - Cubic Texture
+  - Tiling
   
 - Multi-sampling
 
@@ -174,12 +181,8 @@ Some dependencies should be prepared before compiling.
 
   - <s>Resolution Change</s>
     - Artifacts in low resolution scenario 
-
-
-    - Overdraw: Point mode with index buffer
-
-
-    - Latency: Excessive global atomics in line mode
+  -  Overdraw: Point mode with index buffer
+  -  Latency: Excessive global atomics in line mode
 
 
 

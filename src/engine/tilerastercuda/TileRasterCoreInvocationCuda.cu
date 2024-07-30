@@ -3185,7 +3185,6 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 				(float*)args.dHostColorBuffer[i], { args.hClearColors[i].x,  args.hClearColors[i].y,  args.hClearColors[i].z,  args.hClearColors[i].w }
 			);
 		}
-	
 	}
 
 	void invokeCudaRendering(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW {
@@ -3211,7 +3210,6 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 				cudaEventCreate(&copyEnd);
 				Impl::TriangleMiscStage::integratedInitKernel CU_KARG4(CU_MAX_TILE_X, CU_MAX_TILE_X, 0, computeStream)();
 				cudaDeviceSynchronize();
-				//printf("CUDA Init Done\n");
 			}
 			if ((++initFlag) == 2) {
 				secondPass = 1;
