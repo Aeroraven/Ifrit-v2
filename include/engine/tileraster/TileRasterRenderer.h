@@ -13,6 +13,8 @@ namespace Ifrit::Engine::TileRaster {
 		GEOMETRY_PROCESSING_SYNC,
 		RASTERIZATION,
 		RASTERIZATION_SYNC,
+		SORTING,
+		SORTING_SYNC,
 		FRAGMENT_SHADING,
 		FRAGMENT_SHADING_SYNC,
 		TERMINATED
@@ -30,6 +32,9 @@ namespace Ifrit::Engine::TileRaster {
 		std::mutex lock;
 		std::atomic<uint32_t> unresolvedTileRaster = 0;
 		std::atomic<uint32_t> unresolvedTileFragmentShading = 0;
+		std::atomic<uint32_t> unresolvedTileSort = 0;
+
+		bool optForceDeterministic = false;
 	public:
 		TileRasterRenderer();
 		void bindFrameBuffer(FrameBuffer& frameBuffer);
@@ -45,7 +50,9 @@ namespace Ifrit::Engine::TileRaster {
 		void waitOnWorkers(TileRasterStage waitOn);
 		int fetchUnresolvedTileRaster();
 		int fetchUnresolvedTileFragmentShading();
+		int fetchUnresolvedTileSort();
 
+		void optsetForceDeterministic(bool opt);
 
 		void render(bool clearFramebuffer) IFRIT_AP_NOTHROW;
 		void clear();

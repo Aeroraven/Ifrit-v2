@@ -25,13 +25,18 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<std::vector<std::vector<TileBinProposal>>> rasterizerQueue;
 		std::vector<std::vector<std::vector<TileBinProposal>>> coverQueue;
 
+		// Sorted List
+		std::vector<std::vector<TileBinProposal>> sortedCoverQueue;
+
 		// Config
 		constexpr static int numThreads = 16;
 		constexpr static int vertexStride = 3;
 		constexpr static int tileBlocksX = 64;
 		constexpr static int subtileBlocksX = 4;
-
 		TileRasterFrontFace frontface = TileRasterFrontFace::CLOCKWISE;
+
+		// Options
+		bool optForceDeterministic = true;
 
 		// Geometry
 		std::vector<float> primitiveMinZ;

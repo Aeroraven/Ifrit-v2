@@ -49,6 +49,7 @@ namespace Ifrit::Engine::TileRaster {
 		void vertexProcessing() IFRIT_AP_NOTHROW;
 		void geometryProcessing() IFRIT_AP_NOTHROW;
 		void rasterization() IFRIT_AP_NOTHROW;
+		void sortOrderProcessing() IFRIT_AP_NOTHROW;
 		void fragmentProcessing() IFRIT_AP_NOTHROW;
 
 		void threadStart();

@@ -95,6 +95,16 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		return counter;
 	}
+	int TileRasterRenderer::fetchUnresolvedTileSort() {
+		auto counter = unresolvedTileSort.fetch_add(1);
+		if (counter >= context->tileBlocksX * context->tileBlocksX) {
+			return -1;
+		}
+		return counter;
+	}
+	void TileRasterRenderer::optsetForceDeterministic(bool opt) {
+		context->optForceDeterministic = opt;
+	}
 	void TileRasterRenderer::resetWorkers() {
 		for (auto& worker : workers) {
 			worker->status.store(TileRasterStage::VERTEX_SHADING);
@@ -105,6 +115,7 @@ namespace Ifrit::Engine::TileRaster {
 		context = std::make_shared<TileRasterContext>();
 		context->rasterizerQueue.resize(context->numThreads);
 		context->coverQueue.resize(context->numThreads);
+		context->sortedCoverQueue.resize(context->tileBlocksX * context->tileBlocksX);
 		context->workerIdleTime.resize(context->numThreads);
 		context->assembledTriangles.resize(context->numThreads);
 		for (int i = 0; i < context->numThreads; i++) {
@@ -127,6 +138,7 @@ namespace Ifrit::Engine::TileRaster {
 		resetWorkers();
 		unresolvedTileRaster.store(0,std::memory_order_seq_cst);
 		unresolvedTileFragmentShading.store(0, std::memory_order_seq_cst);
+		unresolvedTileSort.store(0, std::memory_order_seq_cst);
 		for (int i = 0; i < context->numThreads; i++) {
 			context->assembledTriangles[i].clear();
 			for (int j = 0; j < context->tileBlocksX * context->tileBlocksX; j++) {
@@ -139,7 +151,13 @@ namespace Ifrit::Engine::TileRaster {
 		if (clearFramebuffer) {
 			clear();
 		}
-		statusTransitionBarrier(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::FRAGMENT_SHADING);
+		if (context->optForceDeterministic) {
+			statusTransitionBarrier(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::SORTING);
+			statusTransitionBarrier(TileRasterStage::SORTING_SYNC, TileRasterStage::FRAGMENT_SHADING);
+		}
+		else {
+			statusTransitionBarrier(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::FRAGMENT_SHADING);
+		}
 		statusTransitionBarrier(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::TERMINATED);
 	}
 

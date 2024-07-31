@@ -22,8 +22,11 @@ namespace Ifrit::Engine::TileRaster {
 				activated.store(false);
 			}
 			if (status.load() == TileRasterStage::RASTERIZATION) {
-				
 				rasterization();
+				activated.store(false);
+			}
+			if (status.load() == TileRasterStage::SORTING) {
+				sortOrderProcessing();
 				activated.store(false);
 			}
 			if (status.load() == TileRasterStage::FRAGMENT_SHADING) {
@@ -629,6 +632,33 @@ namespace Ifrit::Engine::TileRaster {
 		status.store(TileRasterStage::RASTERIZATION_SYNC);
 	}
 
+	void TileRasterWorker::sortOrderProcessing() IFRIT_AP_NOTHROW {
+		auto curTile = 0;
+		while ((curTile = renderer->fetchUnresolvedTileSort()) != -1) {
+			std::vector<int> numSpaces(context->numThreads);
+			int preSum = 0;
+			for (int i = 0; i < context->numThreads; i++) {
+				numSpaces[i] = preSum;
+				preSum += context->coverQueue[i][curTile].size();
+			}
+			context->sortedCoverQueue[curTile].resize(preSum);
+			for (int i = 0; i < context->numThreads; i++) {
+				std::copy(context->coverQueue[i][curTile].begin(), context->coverQueue[i][curTile].end(),
+					context->sortedCoverQueue[curTile].begin() + numSpaces[i]);
+			}
+			auto sortCompareOp = [&](const TileBinProposal& a, const TileBinProposal& b) {
+				auto aw = a.clippedTriangle.workerId;
+				auto ap = a.clippedTriangle.primId;
+				auto ao = context->assembledTriangles[aw][ap].originalPrimitive;
+				auto bw = b.clippedTriangle.workerId;
+				auto bp = b.clippedTriangle.primId;
+				auto bo = context->assembledTriangles[bw][bp].originalPrimitive;
+				return ao < bo;
+			};
+			std::sort(context->sortedCoverQueue[curTile].begin(), context->sortedCoverQueue[curTile].end(), sortCompareOp);
+		}
+		status.store(TileRasterStage::SORTING_SYNC);
+	}
 
 	void TileRasterWorker::fragmentProcessing() IFRIT_AP_NOTHROW {
 		auto curTile = 0;
@@ -643,75 +673,88 @@ namespace Ifrit::Engine::TileRaster {
 			interpolatedVaryingsAddr[i] = &interpolatedVaryings[i];
 		}
 		while ((curTile = renderer->fetchUnresolvedTileFragmentShading()) != -1) {
-			for (int i = context->numThreads - 1; i >= 0; i--) {
-				for (int j = context->coverQueue[i][curTile].size() - 1; j >= 0; j--) {
-					auto& proposal = context->coverQueue[i][curTile][j];
-					const auto& triProposal = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
-					if (proposal.level == TileRasterLevel::PIXEL) IFRIT_BRANCH_LIKELY {
+			auto proposalProcessFunc = [&](TileBinProposal& proposal) {
+				const auto& triProposal = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
+				if (proposal.level == TileRasterLevel::PIXEL) IFRIT_BRANCH_LIKELY{
 						pixelShading(triProposal, proposal.tile.x, proposal.tile.y);
-					}
-					else if (proposal.level == TileRasterLevel::PIXEL_PACK4X2) {
+				}
+				else if (proposal.level == TileRasterLevel::PIXEL_PACK4X2) {
 #ifdef IFRIT_USE_SIMD_128
 #ifdef IFRIT_USE_SIMD_256
-						pixelShadingSIMD256(triProposal, proposal.tile.x, proposal.tile.y);
+					pixelShadingSIMD256(triProposal, proposal.tile.x, proposal.tile.y);
 #else
-						for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx+=2) {
-							for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
-								pixelShadingSIMD128(triProposal, dx, dy);
-							}
+					for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx += 2) {
+						for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
+							pixelShadingSIMD128(triProposal, dx, dy);
 						}
-#endif
-#else
-						for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx++) {
-							for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
-								pixelShading(triProposal, dx, dy);
-							}
-						}
-#endif
 					}
-					else if (proposal.level == TileRasterLevel::PIXEL_PACK2X2) {
+#endif
+#else
+					for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx++) {
+						for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
+							pixelShading(triProposal, dx, dy);
+						}
+					}
+#endif
+				}
+				else if (proposal.level == TileRasterLevel::PIXEL_PACK2X2) {
 #ifdef IFRIT_USE_SIMD_128
-						pixelShadingSIMD128(triProposal, proposal.tile.x, proposal.tile.y);
+					pixelShadingSIMD128(triProposal, proposal.tile.x, proposal.tile.y);
 #else
-						for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 1u, frameBufferWidth-1); dx++) {
-							for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
-								pixelShading(triProposal, dx, dy);
-							}
+					for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 1u, frameBufferWidth - 1); dx++) {
+						for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
+							pixelShading(triProposal, dx, dy);
 						}
+					}
 #endif
-					}
-					else if (proposal.level == TileRasterLevel::TILE) {
-						auto curTileX = curTile % context->tileBlocksX;
-						auto curTileY = curTile / context->tileBlocksX;
-						auto curTileX2 = (curTileX + 1) * frameBufferWidth / context->tileBlocksX;
-						auto curTileY2 = (curTileY + 1) * frameBufferHeight / context->tileBlocksX;
-						curTileX = curTileX * frameBufferWidth/ context->tileBlocksX;
-						curTileY = curTileY * frameBufferHeight/ context->tileBlocksX;
-						curTileX2 = std::min(curTileX2, frameBufferWidth);
-						curTileY2 = std::min(curTileY2, frameBufferHeight);
-						for (int dx = curTileX; dx < curTileX2; dx++) {
-							for (int dy = curTileY; dy < curTileY2; dy++) {
-								pixelShading(triProposal, dx, dy);
-							}
+				}
+				else if (proposal.level == TileRasterLevel::TILE) {
+					auto curTileX = curTile % context->tileBlocksX;
+					auto curTileY = curTile / context->tileBlocksX;
+					auto curTileX2 = (curTileX + 1) * frameBufferWidth / context->tileBlocksX;
+					auto curTileY2 = (curTileY + 1) * frameBufferHeight / context->tileBlocksX;
+					curTileX = curTileX * frameBufferWidth / context->tileBlocksX;
+					curTileY = curTileY * frameBufferHeight / context->tileBlocksX;
+					curTileX2 = std::min(curTileX2, frameBufferWidth);
+					curTileY2 = std::min(curTileY2, frameBufferHeight);
+					for (int dx = curTileX; dx < curTileX2; dx++) {
+						for (int dy = curTileY; dy < curTileY2; dy++) {
+							pixelShading(triProposal, dx, dy);
 						}
 					}
-					else if (proposal.level == TileRasterLevel::BLOCK) {
-						auto curTileX = curTile % context->tileBlocksX;
-						auto curTileY = curTile / context->tileBlocksX;
-						auto subTilePixelX = (curTileX * context->subtileBlocksX + proposal.tile.x) * frameBufferWidth / context->tileBlocksX / context->subtileBlocksX;
-						auto subTilePixelY = (curTileY * context->subtileBlocksX + proposal.tile.y) * frameBufferHeight / context->tileBlocksX / context->subtileBlocksX;
-						auto subTilePixelX2 = (curTileX * context->subtileBlocksX + proposal.tile.x + 1) * frameBufferWidth / context->tileBlocksX / context->subtileBlocksX;
-						auto subTilePixelY2 = (curTileY * context->subtileBlocksX + proposal.tile.y + 1) * frameBufferHeight / context->tileBlocksX / context->subtileBlocksX;
-						subTilePixelX2 = std::min(subTilePixelX2, frameBufferWidth);
-						subTilePixelY2 = std::min(subTilePixelY2, frameBufferHeight);
-						for (int dx = subTilePixelX; dx < subTilePixelX2; dx++) {
-							for (int dy = subTilePixelY; dy < subTilePixelY2; dy++) {
-								pixelShading(triProposal, dx, dy);
-							}
+				}
+				else if (proposal.level == TileRasterLevel::BLOCK) {
+					auto curTileX = curTile % context->tileBlocksX;
+					auto curTileY = curTile / context->tileBlocksX;
+					auto subTilePixelX = (curTileX * context->subtileBlocksX + proposal.tile.x) * frameBufferWidth / context->tileBlocksX / context->subtileBlocksX;
+					auto subTilePixelY = (curTileY * context->subtileBlocksX + proposal.tile.y) * frameBufferHeight / context->tileBlocksX / context->subtileBlocksX;
+					auto subTilePixelX2 = (curTileX * context->subtileBlocksX + proposal.tile.x + 1) * frameBufferWidth / context->tileBlocksX / context->subtileBlocksX;
+					auto subTilePixelY2 = (curTileY * context->subtileBlocksX + proposal.tile.y + 1) * frameBufferHeight / context->tileBlocksX / context->subtileBlocksX;
+					subTilePixelX2 = std::min(subTilePixelX2, frameBufferWidth);
+					subTilePixelY2 = std::min(subTilePixelY2, frameBufferHeight);
+					for (int dx = subTilePixelX; dx < subTilePixelX2; dx++) {
+						for (int dy = subTilePixelY; dy < subTilePixelY2; dy++) {
+							pixelShading(triProposal, dx, dy);
 						}
 					}
-				}	
+				}
+			};
+			// End of lambda func
+			if (context->optForceDeterministic) {
+				for (int i = 0; i < context->sortedCoverQueue[curTile].size(); i++) {
+					auto& proposal = context->sortedCoverQueue[curTile][i];
+					proposalProcessFunc(proposal);
+				}
 			}
+			else {
+				for (int i = context->numThreads - 1; i >= 0; i--) {
+					for (int j = context->coverQueue[i][curTile].size() - 1; j >= 0; j--) {
+						auto& proposal = context->coverQueue[i][curTile][j];
+						proposalProcessFunc(proposal);
+					}
+				}
+			}
+			
 		}
 		status.store(TileRasterStage::FRAGMENT_SHADING_SYNC);
 	}

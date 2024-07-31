@@ -30,7 +30,7 @@ enum PresentEngine {
 	PE_CONSOLE
 };
 
-PresentEngine presentEngine = PE_CONSOLE;
+PresentEngine presentEngine = PE_GLFW;
 //float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 //float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
 //float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
@@ -49,13 +49,13 @@ float globalTime = 1.0f;
 class DemoVertexShader : public VertexShader {
 public:
 	IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore** outVaryings) override{
-		const auto radius = 0.3f;
+		/*const auto radius = 0.3f;
 		const auto vX = sin(globalTime) * radius;
 		const auto vZ = cos(globalTime) * radius;
 		const auto dY = 0.1f; //sin(globalTime * 0.9f) * 0.05f + 0.1f;
 		float4x4 view = (lookAt({ vX,dY,vZ }, { 0,dY,0.0 }, { 0,1,0 })); //yomiya
 		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.01, 3000));
-		auto mvp = multiply(proj, view);	
+		auto mvp = multiply(proj, view);	*/
 		auto s = *reinterpret_cast<const ifloat4*>(input[0]);
 		auto p = multiply(mvp,s);
 		*outPos = p;
@@ -88,7 +88,7 @@ int mainCpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj",pos,normal,uv,index);
+	loader.loadObject(IFRIT_ASSET_PATH"/yomiya.obj",pos,normal,uv,index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 	std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
@@ -136,7 +136,8 @@ int mainCpu() {
 	renderer->bindFrameBuffer(frameBuffer);
 	renderer->bindVertexBuffer(vertexBuffer);
 	renderer->bindIndexBuffer(indexBuffer);
-	
+	renderer->optsetForceDeterministic(true);
+
 	DemoVertexShader vertexShader;
 	VaryingDescriptor vertexShaderLayout;
 	vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
@@ -314,5 +315,5 @@ int mainGpu() {
 }
 
 int main() {
-	return mainGpu();
+	return mainCpu();
 }

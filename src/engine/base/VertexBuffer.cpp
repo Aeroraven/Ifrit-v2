@@ -9,6 +9,10 @@ namespace Ifrit::Engine {
 		for (int i = 0; i < layout.size(); i++) {
 			offsets[i] = offset;
 			offset += layout[i].size;
+			if (layout[i].type == TypeDescriptorEnum::IFTP_UNDEFINED) {
+				printf("Undefined layout %d\n",TypeDescriptors.FLOAT4.type);
+				std::abort();
+			}
 		}
 		elementSize = offset;
 	}
