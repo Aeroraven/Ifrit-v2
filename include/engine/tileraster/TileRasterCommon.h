@@ -94,8 +94,14 @@ namespace Ifrit::Engine::TileRaster {
 		ifloat4 pos;
 	};
 
+#if IFRIT_USE_CUDA
 	struct TileRasterClipVertexCUDA {
 		float3 barycenter;
 		float4 pos;
+	};
+#endif
+
+	struct AlphaBlendingCoefs {
+		ifloat4 s, d;
 	};
 }

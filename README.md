@@ -40,6 +40,8 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Programmable Fragment Shader      | √                                                            | √               | √             |
 | Programmable Geometry Shader      |                                                              |                 | √ ▲           |
 | Alpha Blending                    |                                                              |                 | √ ▲           |
+| Depth Testing                     | √                                                            | √               | √             |
+| Depth Function                    |                                                              |                 | √             |
 | Z Pre-Pass                        |                                                              |                 | √             |
 | Early-Z Test                      | √                                                            | √               | √             |
 | Back Face Culling                 | √                                                            | √               | √             |

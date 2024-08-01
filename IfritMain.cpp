@@ -71,7 +71,7 @@ public:
 		result.x = fw * result.x + fw;
 		result.y = fw * result.y + fw;
 		result.z = fw * result.z + fw;
-		result.w = fw * result.w + fw;
+		result.w = 0.5;
 
 		auto& co = ((ifloat4*)colorOutput)[0];
 		co = result;
@@ -138,12 +138,22 @@ int mainCpu() {
 	renderer->bindIndexBuffer(indexBuffer);
 	renderer->optsetForceDeterministic(true);
 
+	IfritColorAttachmentBlendState blendState;
+	blendState.blendEnable = true;
+	blendState.srcColorBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
+	blendState.dstColorBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState.srcAlphaBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
+	blendState.dstAlphaBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	renderer->setBlendFunc(blendState);
+
 	DemoVertexShader vertexShader;
 	VaryingDescriptor vertexShaderLayout;
 	vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
 	renderer->bindVertexShader(vertexShader, vertexShaderLayout);
 	DemoFragmentShader fragmentShader;
 	renderer->bindFragmentShader(fragmentShader);
+
+	renderer->optsetDepthTestEnable(false);
 
 	float ang = 0;
 	if(presentEngine==PE_CONSOLE){
@@ -249,7 +259,6 @@ int mainGpu() {
 	renderer->createTextureRaw(0, imageCI, texFox.data());
 	renderer->generateMipmap(0, IF_FILTER_LINEAR);
 
-	
 	frameBuffer.setColorAttachments({ image1 });
 	frameBuffer.setDepthAttachment(depth);
 

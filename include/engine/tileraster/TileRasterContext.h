@@ -34,9 +34,13 @@ namespace Ifrit::Engine::TileRaster {
 		constexpr static int tileBlocksX = 64;
 		constexpr static int subtileBlocksX = 4;
 		TileRasterFrontFace frontface = TileRasterFrontFace::CLOCKWISE;
+		IfritColorAttachmentBlendState blendState;
+		AlphaBlendingCoefs blendColorCoefs;
+		AlphaBlendingCoefs blendAlphaCoefs;
 
 		// Options
 		bool optForceDeterministic = true;
+		bool optDepthTestEnable = true;
 
 		// Geometry
 		std::vector<float> primitiveMinZ;

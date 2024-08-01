@@ -68,6 +68,10 @@ namespace Ifrit::Core::Data {
 			_mm_store_ps(&data[y * width * channel + x * channel], ps);
 		}
 
+		inline T* getPixelRGBAUnsafe(size_t x, size_t y) {
+			return &data[y * width * channel + x * channel];
+		}
+
 		void fillArea(size_t x, size_t y, size_t w, size_t h, const T& value) {
 			//ifritAssert(x + w <= width && y + h <= height, "Area out of range");
 			for (size_t i = y; i < y + h; i++) {

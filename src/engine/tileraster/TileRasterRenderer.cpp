@@ -70,6 +70,99 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		return ;
 	}
+	void TileRasterRenderer::setBlendFunc(IfritColorAttachmentBlendState state) {
+		context->blendState = state;
+		const auto& bs = state;
+		if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+			context->blendColorCoefs.s = { 1,0,0,0 };
+		}
+		else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+			context->blendColorCoefs.s = { 0,0,0,1 };
+		}
+		else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+			context->blendColorCoefs.s = { 0,0,1,0 };
+		}
+		else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+			context->blendColorCoefs.s = { 0,1,0,0 };
+		}
+		else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+			context->blendColorCoefs.s = { 1,0,-1,0 };
+		}
+		else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+			context->blendColorCoefs.s = { 1,-1,0,0 };
+		}
+		else {
+			ifritError("Unsupported blend factor");
+		}
+		//SrcAlpha
+		if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+			context->blendAlphaCoefs.s = { 1,0,0,0 };
+		}
+		else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+			context->blendAlphaCoefs.s = { 0,0,0,1 };
+		}
+		else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+			context->blendAlphaCoefs.s = { 0,0,1,0 };
+		}
+		else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+			context->blendAlphaCoefs.s = { 0,1,0,0 };
+		}
+		else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+			context->blendAlphaCoefs.s = { 1,0,-1,0 };
+		}
+		else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+			context->blendAlphaCoefs.s = { 1,-1,0,0 };
+		}
+		else {
+			ifritError("Unsupported blend factor");
+		}
+
+		//DstColor
+		if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+			context->blendColorCoefs.d = { 1,0,0,0 };
+		}
+		else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+			context->blendColorCoefs.d = { 0,0,0,1 };
+		}
+		else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+			context->blendColorCoefs.d = { 0,0,1,0 };
+		}
+		else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+			context->blendColorCoefs.d = { 0,1,0,0 };
+		}
+		else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+			context->blendColorCoefs.d = { 1,0,-1,0 };
+		}
+		else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+			context->blendColorCoefs.d = { 1,-1,0,0 };
+		}
+		else {
+			ifritError("Unsupported blend factor");
+		}
+
+		//DstAlpha
+		if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+			context->blendAlphaCoefs.d = { 1,0,0,0 };
+		}
+		else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+			context->blendAlphaCoefs.d = { 0,0,0,1 };
+		}
+		else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+			context->blendAlphaCoefs.d = { 0,0,1,0 };
+		}
+		else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+			context->blendAlphaCoefs.d = { 0,1,0,0 };
+		}
+		else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+			context->blendAlphaCoefs.d = { 1,0,-1,0 };
+		}
+		else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+			context->blendAlphaCoefs.d = { 1,-1,0,0 };
+		}
+		else {
+			ifritError("Unsupported blend factor");
+		}
+	}
 	void TileRasterRenderer::waitOnWorkers(TileRasterStage waitOn){
 		bool flag = false;
 		while (!flag) {
@@ -105,6 +198,9 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterRenderer::optsetForceDeterministic(bool opt) {
 		context->optForceDeterministic = opt;
 	}
+	void TileRasterRenderer::optsetDepthTestEnable(bool opt) {
+		context->optDepthTestEnable = opt;
+	}
 	void TileRasterRenderer::resetWorkers() {
 		for (auto& worker : workers) {
 			worker->status.store(TileRasterStage::VERTEX_SHADING);
@@ -118,6 +214,7 @@ namespace Ifrit::Engine::TileRaster {
 		context->sortedCoverQueue.resize(context->tileBlocksX * context->tileBlocksX);
 		context->workerIdleTime.resize(context->numThreads);
 		context->assembledTriangles.resize(context->numThreads);
+		context->blendState.blendEnable = false;
 		for (int i = 0; i < context->numThreads; i++) {
 			context->rasterizerQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
 			context->coverQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
