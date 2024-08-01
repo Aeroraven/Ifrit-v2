@@ -49,6 +49,7 @@ namespace Ifrit::Engine::TileRaster {
 		void vertexProcessing() IFRIT_AP_NOTHROW;
 		void geometryProcessing() IFRIT_AP_NOTHROW;
 		void rasterization() IFRIT_AP_NOTHROW;
+		void sortOrderProcessing() IFRIT_AP_NOTHROW;
 		void fragmentProcessing() IFRIT_AP_NOTHROW;
 
 		void threadStart();
@@ -76,7 +77,8 @@ namespace Ifrit::Engine::TileRaster {
 		}
 #endif
 		inline int getTileID(int x, int y) IFRIT_AP_NOTHROW {
-			return y * context->tileBlocksX + x;
+			return y * context->numTilesX + x;
+		
 		}
 		inline void getAcceptRejectCoords(ifloat3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3])IFRIT_AP_NOTHROW {
 			constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;

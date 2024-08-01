@@ -1,6 +1,12 @@
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/tileraster/TileRasterRenderer.h"
 
+namespace Ifrit::Engine::TileRaster::Inline {
+	template<class T,class U>
+	auto ceilDiv(T a, U b) {
+		return (a + b - 1) / b;
+	}
+}
 
 namespace Ifrit::Engine::TileRaster {
 	TileRasterRenderer::TileRasterRenderer() {
@@ -8,6 +14,9 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterRenderer::bindFrameBuffer(FrameBuffer& frameBuffer) {
 		this->context->frameBuffer = &frameBuffer;
+		context->numTilesX = Inline::ceilDiv(frameBuffer.getColorAttachment(0)->getWidth(), context->tileWidth);
+		context->numTilesY = Inline::ceilDiv(frameBuffer.getColorAttachment(0)->getHeight(), context->tileWidth);
+		updateVectorCapacity();
 	}
 	void TileRasterRenderer::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
 		this->context->vertexBuffer = &vertexBuffer;
@@ -70,6 +79,99 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		return ;
 	}
+	void TileRasterRenderer::setBlendFunc(IfritColorAttachmentBlendState state) {
+		context->blendState = state;
+		const auto& bs = state;
+		if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+			context->blendColorCoefs.s = { 1,0,0,0 };
+		}
+		else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+			context->blendColorCoefs.s = { 0,0,0,1 };
+		}
+		else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+			context->blendColorCoefs.s = { 0,0,1,0 };
+		}
+		else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+			context->blendColorCoefs.s = { 0,1,0,0 };
+		}
+		else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+			context->blendColorCoefs.s = { 1,0,-1,0 };
+		}
+		else if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+			context->blendColorCoefs.s = { 1,-1,0,0 };
+		}
+		else {
+			ifritError("Unsupported blend factor");
+		}
+		//SrcAlpha
+		if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+			context->blendAlphaCoefs.s = { 1,0,0,0 };
+		}
+		else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+			context->blendAlphaCoefs.s = { 0,0,0,1 };
+		}
+		else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+			context->blendAlphaCoefs.s = { 0,0,1,0 };
+		}
+		else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+			context->blendAlphaCoefs.s = { 0,1,0,0 };
+		}
+		else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+			context->blendAlphaCoefs.s = { 1,0,-1,0 };
+		}
+		else if (bs.srcAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+			context->blendAlphaCoefs.s = { 1,-1,0,0 };
+		}
+		else {
+			ifritError("Unsupported blend factor");
+		}
+
+		//DstColor
+		if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+			context->blendColorCoefs.d = { 1,0,0,0 };
+		}
+		else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+			context->blendColorCoefs.d = { 0,0,0,1 };
+		}
+		else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+			context->blendColorCoefs.d = { 0,0,1,0 };
+		}
+		else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+			context->blendColorCoefs.d = { 0,1,0,0 };
+		}
+		else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+			context->blendColorCoefs.d = { 1,0,-1,0 };
+		}
+		else if (bs.dstColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+			context->blendColorCoefs.d = { 1,-1,0,0 };
+		}
+		else {
+			ifritError("Unsupported blend factor");
+		}
+
+		//DstAlpha
+		if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
+			context->blendAlphaCoefs.d = { 1,0,0,0 };
+		}
+		else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ZERO) {
+			context->blendAlphaCoefs.d = { 0,0,0,1 };
+		}
+		else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_DST_ALPHA) {
+			context->blendAlphaCoefs.d = { 0,0,1,0 };
+		}
+		else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_SRC_ALPHA) {
+			context->blendAlphaCoefs.d = { 0,1,0,0 };
+		}
+		else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_DST_ALPHA) {
+			context->blendAlphaCoefs.d = { 1,0,-1,0 };
+		}
+		else if (bs.dstAlphaBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
+			context->blendAlphaCoefs.d = { 1,-1,0,0 };
+		}
+		else {
+			ifritError("Unsupported blend factor");
+		}
+	}
 	void TileRasterRenderer::waitOnWorkers(TileRasterStage waitOn){
 		bool flag = false;
 		while (!flag) {
@@ -83,22 +185,46 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	int TileRasterRenderer::fetchUnresolvedTileRaster() {
 		auto counter = unresolvedTileRaster.fetch_add(1);
-		if (counter >= context->tileBlocksX * context->tileBlocksX) {
+		auto totalTiles = context->numTilesX * context->numTilesY;
+		if (counter >= totalTiles) {
 			return -1;
 		}
 		return counter;
 	}
 	int TileRasterRenderer::fetchUnresolvedTileFragmentShading() {
 		auto counter = unresolvedTileFragmentShading.fetch_add(1);
-		if (counter >= context->tileBlocksX * context->tileBlocksX) {
+		auto totalTiles = context->numTilesX * context->numTilesY;
+		if (counter >= totalTiles) {
 			return -1;
 		}
 		return counter;
+	}
+	int TileRasterRenderer::fetchUnresolvedTileSort() {
+		auto counter = unresolvedTileSort.fetch_add(1);
+		auto totalTiles = context->numTilesX * context->numTilesY;
+		if (counter >= totalTiles) {
+			return -1;
+		}
+		return counter;
+	}
+	void TileRasterRenderer::optsetForceDeterministic(bool opt) {
+		context->optForceDeterministic = opt;
+	}
+	void TileRasterRenderer::optsetDepthTestEnable(bool opt) {
+		context->optDepthTestEnable = opt;
 	}
 	void TileRasterRenderer::resetWorkers() {
 		for (auto& worker : workers) {
 			worker->status.store(TileRasterStage::VERTEX_SHADING);
 			worker->activated.store(true);
+		}
+	}
+	void TileRasterRenderer::updateVectorCapacity() {
+		auto totalTiles = context->numTilesX * context->numTilesY;
+		context->sortedCoverQueue.resize(totalTiles);
+		for (int i = 0; i < context->numThreads; i++) {
+			context->rasterizerQueue[i].resize(totalTiles);
+			context->coverQueue[i].resize(totalTiles);
 		}
 	}
 	void TileRasterRenderer::init() {
@@ -107,10 +233,8 @@ namespace Ifrit::Engine::TileRaster {
 		context->coverQueue.resize(context->numThreads);
 		context->workerIdleTime.resize(context->numThreads);
 		context->assembledTriangles.resize(context->numThreads);
-		for (int i = 0; i < context->numThreads; i++) {
-			context->rasterizerQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
-			context->coverQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
-		}
+		context->blendState.blendEnable = false;
+		
 		createWorkers();
 		for (auto& worker : workers) {
 			worker->status.store(TileRasterStage::CREATED);
@@ -127,9 +251,11 @@ namespace Ifrit::Engine::TileRaster {
 		resetWorkers();
 		unresolvedTileRaster.store(0,std::memory_order_seq_cst);
 		unresolvedTileFragmentShading.store(0, std::memory_order_seq_cst);
+		unresolvedTileSort.store(0, std::memory_order_seq_cst);
+		auto totalTiles = context->numTilesX * context->numTilesY;
 		for (int i = 0; i < context->numThreads; i++) {
 			context->assembledTriangles[i].clear();
-			for (int j = 0; j < context->tileBlocksX * context->tileBlocksX; j++) {
+			for (int j = 0; j < totalTiles; j++) {
 				context->rasterizerQueue[i][j].clear();
 				context->coverQueue[i][j].clear();
 			}
@@ -139,7 +265,13 @@ namespace Ifrit::Engine::TileRaster {
 		if (clearFramebuffer) {
 			clear();
 		}
-		statusTransitionBarrier(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::FRAGMENT_SHADING);
+		if (context->optForceDeterministic) {
+			statusTransitionBarrier(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::SORTING);
+			statusTransitionBarrier(TileRasterStage::SORTING_SYNC, TileRasterStage::FRAGMENT_SHADING);
+		}
+		else {
+			statusTransitionBarrier(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::FRAGMENT_SHADING);
+		}
 		statusTransitionBarrier(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::TERMINATED);
 	}
 

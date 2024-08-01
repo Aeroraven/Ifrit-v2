@@ -30,7 +30,7 @@ enum PresentEngine {
 	PE_CONSOLE
 };
 
-PresentEngine presentEngine = PE_CONSOLE;
+PresentEngine presentEngine = PE_GLFW;
 //float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 //float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
 //float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
@@ -49,13 +49,13 @@ float globalTime = 1.0f;
 class DemoVertexShader : public VertexShader {
 public:
 	IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore** outVaryings) override{
-		const auto radius = 0.3f;
+		/*const auto radius = 0.3f;
 		const auto vX = sin(globalTime) * radius;
 		const auto vZ = cos(globalTime) * radius;
 		const auto dY = 0.1f; //sin(globalTime * 0.9f) * 0.05f + 0.1f;
 		float4x4 view = (lookAt({ vX,dY,vZ }, { 0,dY,0.0 }, { 0,1,0 })); //yomiya
 		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.01, 3000));
-		auto mvp = multiply(proj, view);	
+		auto mvp = multiply(proj, view);	*/
 		auto s = *reinterpret_cast<const ifloat4*>(input[0]);
 		auto p = multiply(mvp,s);
 		*outPos = p;
@@ -71,7 +71,7 @@ public:
 		result.x = fw * result.x + fw;
 		result.y = fw * result.y + fw;
 		result.z = fw * result.z + fw;
-		result.w = fw * result.w + fw;
+		result.w = 0.5;
 
 		auto& co = ((ifloat4*)colorOutput)[0];
 		co = result;
@@ -88,7 +88,7 @@ int mainCpu() {
 	std::vector<uint32_t> index;
 	std::vector<ifloat3> procNormal;
 
-	loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj",pos,normal,uv,index);
+	loader.loadObject(IFRIT_ASSET_PATH"/yomiya.obj",pos,normal,uv,index);
 	procNormal = loader.remapNormals(normal, index, pos.size());
 
 	std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
@@ -104,16 +104,16 @@ int mainCpu() {
 	//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
 	//vertexBuffer.setValue(1, 0, ifloat4(0.0000,0.3294,-0.1037,-0.0037));
 	//vertexBuffer.setValue(2, 0, ifloat4(0.0000,0.3487,-0.0971,-0.0028));
-	vertexBuffer.setValue(0, 0, ifloat4(-0.5,0.5,-0.1,1));
-	vertexBuffer.setValue(1, 0, ifloat4(-0.5,-0.5,-0.1,1));
-	vertexBuffer.setValue(2, 0, ifloat4(0.5,-0.5,-0.1,1));
-	vertexBuffer.setValue(3, 0, ifloat4(0.5,0.5,-0.1,1));
+	vertexBuffer.setValue(0, 0, ifloat4(-0.5,0.5,0.1,1));
+	vertexBuffer.setValue(1, 0, ifloat4(-0.5,-0.5,0.1,1));
+	vertexBuffer.setValue(2, 0, ifloat4(0.5,-0.5,0.1,1));
+	vertexBuffer.setValue(3, 0, ifloat4(0.5,0.5,0.1,1));
 	vertexBuffer.setValue(0, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(1, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(2, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(3, 1, ifloat4(0.1, 0, 0.1, 0));
 	
-
+	
 	
 	vertexBuffer.allocateBuffer(pos.size());
 
@@ -124,6 +124,7 @@ int mainCpu() {
 
 	std::vector<int> indexBuffer = { 0,1,2,2,3,0 };
 
+	
 	indexBuffer.resize(index.size() / 3);
 	for (int i = 0; i < index.size(); i+=3) {
 		indexBuffer[i/3] = index[i];
@@ -136,13 +137,24 @@ int mainCpu() {
 	renderer->bindFrameBuffer(frameBuffer);
 	renderer->bindVertexBuffer(vertexBuffer);
 	renderer->bindIndexBuffer(indexBuffer);
-	
+	renderer->optsetForceDeterministic(true);
+
+	IfritColorAttachmentBlendState blendState;
+	blendState.blendEnable = true;
+	blendState.srcColorBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
+	blendState.dstColorBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState.srcAlphaBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
+	blendState.dstAlphaBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	renderer->setBlendFunc(blendState);
+
 	DemoVertexShader vertexShader;
 	VaryingDescriptor vertexShaderLayout;
 	vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
 	renderer->bindVertexShader(vertexShader, vertexShaderLayout);
 	DemoFragmentShader fragmentShader;
 	renderer->bindFragmentShader(fragmentShader);
+
+	renderer->optsetDepthTestEnable(false);
 
 	float ang = 0;
 	if(presentEngine==PE_CONSOLE){
@@ -248,7 +260,6 @@ int mainGpu() {
 	renderer->createTextureRaw(0, imageCI, texFox.data());
 	renderer->generateMipmap(0, IF_FILTER_LINEAR);
 
-	
 	frameBuffer.setColorAttachments({ image1 });
 	frameBuffer.setDepthAttachment(depth);
 
@@ -314,5 +325,5 @@ int mainGpu() {
 }
 
 int main() {
-	return mainGpu();
+	return mainCpu();
 }

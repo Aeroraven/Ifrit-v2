@@ -30,7 +30,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Feature                           | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | --------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
 | **Basic**                         |                                                              |                 |               |
-| Rendering Order                   | √                                                            |                 | √ ▲ (4)       |
+| Rendering Order                   | √                                                            | √ ▲             | √ ▲ (4)       |
 | **Performance**                   |                                                              |                 |               |
 | SIMD Instructions / SIMT          |                                                              | √               | √             |
 | Overlapped Memory Transfer        |                                                              |                 | √             |
@@ -39,7 +39,9 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Programmable Vertex Shader        | √                                                            | √               | √             |
 | Programmable Fragment Shader      | √                                                            | √               | √             |
 | Programmable Geometry Shader      |                                                              |                 | √ ▲           |
-| Alpha Blending                    |                                                              |                 | √ ▲           |
+| Alpha Blending                    |                                                              | √               | √ ▲           |
+| Depth Testing                     | √                                                            | √               | √             |
+| Depth Function                    |                                                              |                 | √             |
 | Z Pre-Pass                        |                                                              |                 | √             |
 | Early-Z Test                      | √                                                            | √               | √             |
 | Back Face Culling                 | √                                                            | √               | √             |

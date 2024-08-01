@@ -15,6 +15,8 @@ public:
     void bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor);
     void bindFragmentShader(FragmentShader& fragmentShader);
     void intializeRenderContext();
+    void setBlendFunc(IfritColorAttachmentBlendState state);
+    void optsetDepthTestEnable(bool opt);
 
     void render(bool clearFramebuffer);
     void clear();
