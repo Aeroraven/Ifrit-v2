@@ -31,8 +31,14 @@ namespace Ifrit::Engine::TileRaster {
 		// Config
 		constexpr static int numThreads = 16;
 		constexpr static int vertexStride = 3;
-		constexpr static int tileBlocksX = 64;
-		constexpr static int subtileBlocksX = 4;
+		//constexpr static int tileBlocksX = 64;
+		//constexpr static int subtileBlocksX = 4;
+
+		constexpr static int tileWidth = 16;
+		int numTilesX = 1;
+		int numTilesY = 1;
+		constexpr static int subtileBlockWidth = 4;
+
 		TileRasterFrontFace frontface = TileRasterFrontFace::CLOCKWISE;
 		IfritColorAttachmentBlendState blendState;
 		AlphaBlendingCoefs blendColorCoefs;

@@ -44,6 +44,8 @@ namespace Ifrit::Engine::TileRaster {
 		int fetchUnresolvedTileFragmentShading();
 		int fetchUnresolvedTileSort();
 
+		void updateVectorCapacity();
+
 	public:
 		friend class TileRasterWorker;
 		TileRasterRenderer();

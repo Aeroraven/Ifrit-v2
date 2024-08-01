@@ -1,6 +1,12 @@
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/tileraster/TileRasterRenderer.h"
 
+namespace Ifrit::Engine::TileRaster::Inline {
+	template<class T,class U>
+	auto ceilDiv(T a, U b) {
+		return (a + b - 1) / b;
+	}
+}
 
 namespace Ifrit::Engine::TileRaster {
 	TileRasterRenderer::TileRasterRenderer() {
@@ -8,6 +14,9 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterRenderer::bindFrameBuffer(FrameBuffer& frameBuffer) {
 		this->context->frameBuffer = &frameBuffer;
+		context->numTilesX = Inline::ceilDiv(frameBuffer.getColorAttachment(0)->getWidth(), context->tileWidth);
+		context->numTilesY = Inline::ceilDiv(frameBuffer.getColorAttachment(0)->getHeight(), context->tileWidth);
+		updateVectorCapacity();
 	}
 	void TileRasterRenderer::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
 		this->context->vertexBuffer = &vertexBuffer;
@@ -176,21 +185,24 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	int TileRasterRenderer::fetchUnresolvedTileRaster() {
 		auto counter = unresolvedTileRaster.fetch_add(1);
-		if (counter >= context->tileBlocksX * context->tileBlocksX) {
+		auto totalTiles = context->numTilesX * context->numTilesY;
+		if (counter >= totalTiles) {
 			return -1;
 		}
 		return counter;
 	}
 	int TileRasterRenderer::fetchUnresolvedTileFragmentShading() {
 		auto counter = unresolvedTileFragmentShading.fetch_add(1);
-		if (counter >= context->tileBlocksX * context->tileBlocksX) {
+		auto totalTiles = context->numTilesX * context->numTilesY;
+		if (counter >= totalTiles) {
 			return -1;
 		}
 		return counter;
 	}
 	int TileRasterRenderer::fetchUnresolvedTileSort() {
 		auto counter = unresolvedTileSort.fetch_add(1);
-		if (counter >= context->tileBlocksX * context->tileBlocksX) {
+		auto totalTiles = context->numTilesX * context->numTilesY;
+		if (counter >= totalTiles) {
 			return -1;
 		}
 		return counter;
@@ -207,18 +219,22 @@ namespace Ifrit::Engine::TileRaster {
 			worker->activated.store(true);
 		}
 	}
+	void TileRasterRenderer::updateVectorCapacity() {
+		auto totalTiles = context->numTilesX * context->numTilesY;
+		context->sortedCoverQueue.resize(totalTiles);
+		for (int i = 0; i < context->numThreads; i++) {
+			context->rasterizerQueue[i].resize(totalTiles);
+			context->coverQueue[i].resize(totalTiles);
+		}
+	}
 	void TileRasterRenderer::init() {
 		context = std::make_shared<TileRasterContext>();
 		context->rasterizerQueue.resize(context->numThreads);
 		context->coverQueue.resize(context->numThreads);
-		context->sortedCoverQueue.resize(context->tileBlocksX * context->tileBlocksX);
 		context->workerIdleTime.resize(context->numThreads);
 		context->assembledTriangles.resize(context->numThreads);
 		context->blendState.blendEnable = false;
-		for (int i = 0; i < context->numThreads; i++) {
-			context->rasterizerQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
-			context->coverQueue[i].resize(context->tileBlocksX * context->tileBlocksX);
-		}
+		
 		createWorkers();
 		for (auto& worker : workers) {
 			worker->status.store(TileRasterStage::CREATED);
@@ -236,9 +252,10 @@ namespace Ifrit::Engine::TileRaster {
 		unresolvedTileRaster.store(0,std::memory_order_seq_cst);
 		unresolvedTileFragmentShading.store(0, std::memory_order_seq_cst);
 		unresolvedTileSort.store(0, std::memory_order_seq_cst);
+		auto totalTiles = context->numTilesX * context->numTilesY;
 		for (int i = 0; i < context->numThreads; i++) {
 			context->assembledTriangles[i].clear();
-			for (int j = 0; j < context->tileBlocksX * context->tileBlocksX; j++) {
+			for (int j = 0; j < totalTiles; j++) {
 				context->rasterizerQueue[i][j].clear();
 				context->coverQueue[i][j].clear();
 			}
