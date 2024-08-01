@@ -337,7 +337,7 @@ namespace Ifrit::Engine::TileRaster {
 					int topBlock = 0;
 					int bottomBlock = context->numSubtilesPerTileX - 1;
 
-#ifdef IFRIT_USE_SIMD_128
+#ifdef IFRIT_USE_SIMD_1282
 
 					__m128 tileMinX128 = _mm_set1_ps(tileMinX);
 					__m128 tileMinY128 = _mm_set1_ps(tileMinY);
@@ -547,22 +547,23 @@ namespace Ifrit::Engine::TileRaster {
 					}
 
 #else
-					for (int vx = 0; vx < context->subtileBlocksX * context->subtileBlocksX; vx++) {
-						int x = vx % context->subtileBlocksX;
-						int y = vx / context->subtileBlocksX;
+					auto totalSubtiles = context->numSubtilesPerTileX * context->numSubtilesPerTileX;
+					for (int vx = 0; vx < totalSubtiles; vx++) {
+						int x = vx % context->numSubtilesPerTileX;
+						int y = vx / context->numSubtilesPerTileX;
 						int criteriaTR = 0;
 						int criteriaTA = 0;
 
-						float wp = (context->subtileBlocksX * context->tileBlocksX);
-						float subTileMinX = tileMinX + 1.0f * x / wp;
-						float subTileMinY = tileMinY + 1.0f * y / wp;
-						float subTileMaxX = tileMinX + 1.0f * (x + 1) / wp;
-						float subTileMaxY = tileMinY + 1.0f * (y + 1) / wp;
+						//float wp = (context->subtileBlocksX * context->tileBlocksX);
+						float subTileMinX = tileMinX + 1.0f * x * context->subtileBlockWidth / frameBufferWidth;
+						float subTileMinY = tileMinY + 1.0f * y * context->subtileBlockWidth / frameBufferHeight;
+						float subTileMaxX = tileMinX + 1.0f * (x + 1) * context->subtileBlockWidth / frameBufferWidth;
+						float subTileMaxY = tileMinY + 1.0f * (y + 1) * context->subtileBlockWidth / frameBufferHeight;
 
-						int subTilePixelX = (tileIdX * context->subtileBlocksX + x) * frameBufferWidth / wp;
-						int subTilePixelY = (tileIdY * context->subtileBlocksX + y) * frameBufferHeight / wp;
-						int subTilePixelX2 = (tileIdX * context->subtileBlocksX + x + 1) * frameBufferWidth / wp;
-						int subTilePixelY2 = (tileIdY * context->subtileBlocksX + y + 1) * frameBufferHeight / wp;
+						int subTilePixelX = (tileIdX * context->numSubtilesPerTileX + x) * context->subtileBlockWidth;
+						int subTilePixelY = (tileIdY * context->numSubtilesPerTileX + y) * context->subtileBlockWidth;
+						int subTilePixelX2 = (tileIdX * context->numSubtilesPerTileX + x + 1) * context->subtileBlockWidth;
+						int subTilePixelY2 = (tileIdY * context->numSubtilesPerTileX + y + 1) * context->subtileBlockWidth;
 
 						subTilePixelX2 = std::min(subTilePixelX2 * 1u, frameBufferWidth - 1);
 						subTilePixelY2 = std::min(subTilePixelY2 * 1u, frameBufferHeight - 1);
@@ -573,15 +574,11 @@ namespace Ifrit::Engine::TileRaster {
 						tileCoords[VRB] = { subTileMaxX, subTileMaxY, 1.0 };
 						tileCoords[VRT] = { subTileMaxX, subTileMinY, 1.0 };
 
-						for (int k = 0; k < 4; k++) {
-							tileCoords[k].x = tileCoords[k].x * 2 - 1;
-							tileCoords[k].y = tileCoords[k].y * 2 - 1;
-						}
 						for (int k = 0; k < 3; k++) {
 							float criteriaTRLocal = edgeCoefs[k].x * tileCoords[chosenCoordTR[k]].x + edgeCoefs[k].y * tileCoords[chosenCoordTR[k]].y + edgeCoefs[k].z;
 							float criteriaTALocal = edgeCoefs[k].x * tileCoords[chosenCoordTA[k]].x + edgeCoefs[k].y * tileCoords[chosenCoordTA[k]].y + edgeCoefs[k].z;
-							if (criteriaTRLocal < -EPS) criteriaTR += 1;
-							if (criteriaTALocal < EPS) criteriaTA += 1;
+							if (criteriaTRLocal < -EPS2) criteriaTR += 1;
+							if (criteriaTALocal < EPS2) criteriaTA += 1;
 						}
 
 
@@ -596,10 +593,10 @@ namespace Ifrit::Engine::TileRaster {
 							context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(nprop);
 						}
 						else {
-							for (int dx = subTilePixelX; dx <= subTilePixelX2; dx++) {
-								for (int dy = subTilePixelY; dy <= subTilePixelY2; dy++) {
-									float ndcX = 2.0f * dx / frameBufferWidth;
-									float ndcY = 2.0f * dy / frameBufferHeight;
+							for (int dx = subTilePixelX; dx < subTilePixelX2; dx++) {
+								for (int dy = subTilePixelY; dy < subTilePixelY2; dy++) {
+									float ndcX = 1.0f * dx / frameBufferWidth;
+									float ndcY = 1.0f * dy / frameBufferHeight;
 									int accept = 0;
 									for (int i = 0; i < 3; i++) {
 										float criteria = edgeCoefs[i].x * ndcX + edgeCoefs[i].y * ndcY + edgeCoefs[i].z;

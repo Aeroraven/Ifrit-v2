@@ -104,16 +104,16 @@ int mainCpu() {
 	//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
 	//vertexBuffer.setValue(1, 0, ifloat4(0.0000,0.3294,-0.1037,-0.0037));
 	//vertexBuffer.setValue(2, 0, ifloat4(0.0000,0.3487,-0.0971,-0.0028));
-	vertexBuffer.setValue(0, 0, ifloat4(-0.5,0.5,-0.1,1));
-	vertexBuffer.setValue(1, 0, ifloat4(-0.5,-0.5,-0.1,1));
-	vertexBuffer.setValue(2, 0, ifloat4(0.5,-0.5,-0.1,1));
-	vertexBuffer.setValue(3, 0, ifloat4(0.5,0.5,-0.1,1));
+	vertexBuffer.setValue(0, 0, ifloat4(-0.5,0.5,0.1,1));
+	vertexBuffer.setValue(1, 0, ifloat4(-0.5,-0.5,0.1,1));
+	vertexBuffer.setValue(2, 0, ifloat4(0.5,-0.5,0.1,1));
+	vertexBuffer.setValue(3, 0, ifloat4(0.5,0.5,0.1,1));
 	vertexBuffer.setValue(0, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(1, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(2, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(3, 1, ifloat4(0.1, 0, 0.1, 0));
 	
-
+	
 	
 	vertexBuffer.allocateBuffer(pos.size());
 
@@ -124,6 +124,7 @@ int mainCpu() {
 
 	std::vector<int> indexBuffer = { 0,1,2,2,3,0 };
 
+	
 	indexBuffer.resize(index.size() / 3);
 	for (int i = 0; i < index.size(); i+=3) {
 		indexBuffer[i/3] = index[i];
