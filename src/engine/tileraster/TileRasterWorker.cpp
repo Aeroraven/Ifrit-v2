@@ -337,7 +337,7 @@ namespace Ifrit::Engine::TileRaster {
 					int topBlock = 0;
 					int bottomBlock = context->numSubtilesPerTileX - 1;
 
-#ifdef IFRIT_USE_SIMD_1282
+#ifdef IFRIT_USE_SIMD_128
 
 					__m128 tileMinX128 = _mm_set1_ps(tileMinX);
 					__m128 tileMinY128 = _mm_set1_ps(tileMinY);
@@ -349,7 +349,7 @@ namespace Ifrit::Engine::TileRaster {
 					for (int k = 0; k < 3; k++) {
 						edgeCoefs128X[k] = _mm_set1_ps(edgeCoefs[k].x);
 						edgeCoefs128Y[k] = _mm_set1_ps(edgeCoefs[k].y);
-						edgeCoefs128Z[k] = _mm_set1_ps(-edgeCoefs[k].z); //NOTE HERE
+						edgeCoefs128Z[k] = _mm_set1_ps(-edgeCoefs[k].z + EPS); //NOTE HERE
 					}
 
 #ifdef IFRIT_USE_SIMD_256
@@ -505,9 +505,9 @@ namespace Ifrit::Engine::TileRaster {
 
 										}
 									}
-#else
-									for (int dx = subTileMinX; dx <= subTileMaxX; dx += 2) {
-										for (int dy = subTileMinY; dy <= subTileMaxY; dy += 2) {
+#else								
+									for (int dx = subTileMinX; dx < subTileMaxX; dx += 2) {
+										for (int dy = subTileMinY; dy < subTileMaxY; dy += 2) {
 											__m128 dx128 = _mm_setr_ps(dx + 0, dx + 1, dx + 0, dx + 1);
 											__m128 dy128 = _mm_setr_ps(dy + 0, dy + 0, dy + 1, dy + 1);
 											__m128 ndcX128 = _mm_div_ps(dx128, _mm_set1_ps(frameBufferWidth));
@@ -515,13 +515,13 @@ namespace Ifrit::Engine::TileRaster {
 											__m128i accept128 = _mm_setzero_si128();
 											__m128 criteria128[3];
 											for (int k = 0; k < 3; k++) {
-												criteria128[k] = _mm_add_ps(_mm_add_ps(_mm_mul_ps(edgeCoefs128X[k], ndcX128), _mm_mul_ps(edgeCoefs128Y[k], ndcY128)), edgeCoefs128Z[k]);
-												__m128i acceptMask = _mm_castps_si128(_mm_cmplt_ps(criteria128[k], _mm_set1_ps(EPS2)));
-												acceptMask = _mm_sub_epi32(_mm_set1_epi32(0), acceptMask);
+												criteria128[k] = _mm_add_ps(_mm_mul_ps(edgeCoefs128X[k], ndcX128), _mm_mul_ps(edgeCoefs128Y[k], ndcY128));
+												__m128i acceptMask = _mm_castps_si128(_mm_cmplt_ps(criteria128[k], edgeCoefs128Z[k]));
 												accept128 = _mm_add_epi32(accept128, acceptMask);
 											}
+											accept128 = _mm_cmpeq_epi32(accept128, _mm_set1_epi32(-3));
 
-											if (_mm_movemask_epi8(_mm_cmpeq_epi32(accept128, _mm_set1_epi32(3))) == 0xFFFF) {
+											if (_mm_testc_si128(accept128, _mm_set1_epi32(-1))) {
 												// If All Accept
 												npropPixel128.tile = { dx,dy };
 												npropPixel128.clippedTriangle = proposal.clippedTriangle;
@@ -531,7 +531,7 @@ namespace Ifrit::Engine::TileRaster {
 												int accept[4];
 												_mm_storeu_si128((__m128i*)accept, accept128);
 												for (int di = 0; di < 4; di++) {
-													if (accept[di] == 3 && dx + di % 2 < frameBufferWidth && dy + di / 2 < frameBufferHeight) {
+													if (accept[di] == -1 && dx + di % 2 < frameBufferWidth && dy + di / 2 < frameBufferHeight) {
 														npropPixel.tile = { dx + di % 2, dy + di / 2 };
 														npropPixel.clippedTriangle = proposal.clippedTriangle;
 														context->coverQueue[workerId][getTileID(tileIdX, tileIdY)].push_back(npropPixel);
