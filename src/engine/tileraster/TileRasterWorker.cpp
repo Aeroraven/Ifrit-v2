@@ -1137,41 +1137,12 @@ namespace Ifrit::Engine::TileRaster {
 
 	void TileRasterWorker::interpolateVaryings(int id, const int indices[3], const float barycentric[3], VaryingStore& dest) IFRIT_AP_NOTHROW {
 		auto va = context->vertexShaderResult->getVaryingBuffer(id);
-		auto varyingDescriptor = context->vertexShaderResult->getVaryingDescriptor(id);
-
-		if (varyingDescriptor.type == TypeDescriptorEnum::IFTP_FLOAT4) {
-			dest.vf4 = { 0,0,0,0 };
-			for (int j = 0; j < 3; j++) {
-				dest.vf4.x += va[indices[j]].vf4.x * barycentric[j];
-				dest.vf4.y += va[indices[j]].vf4.y * barycentric[j];
-				dest.vf4.z += va[indices[j]].vf4.z * barycentric[j];
-				dest.vf4.w += va[indices[j]].vf4.w * barycentric[j];
-			}
-		}
-		else if (varyingDescriptor.type == TypeDescriptorEnum::IFTP_FLOAT3) {
-			dest.vf3 = { 0,0,0 };
-			for (int j = 0; j < 3; j++) {
-				dest.vf3.x += va[indices[j]].vf3.x * barycentric[j];
-				dest.vf3.y += va[indices[j]].vf3.y * barycentric[j];
-				dest.vf3.z += va[indices[j]].vf3.z * barycentric[j];
-			}
-
-		}
-		else if (varyingDescriptor.type == TypeDescriptorEnum::IFTP_FLOAT2) {
-			dest.vf2 = { 0,0 };
-			for (int j = 0; j < 3; j++) {
-				dest.vf2.x += va[indices[j]].vf2.x * barycentric[j];
-				dest.vf2.y += va[indices[j]].vf2.y * barycentric[j];
-			}
-		}
-		else if (varyingDescriptor.type == TypeDescriptorEnum::IFTP_FLOAT1) {
-			dest.vf = 0;
-			for (int j = 0; j < 3; j++) {
-				dest.vf += va[indices[j]].vf * barycentric[j];
-			}
-		}
-		else IFRIT_BRANCH_UNLIKELY{
-			ifritError("Unsupported Varying Type");
+		dest.vf4 = { 0,0,0,0 };
+		for (int j = 0; j < 3; j++) {
+			dest.vf4.x += va[indices[j]].vf4.x * barycentric[j];
+			dest.vf4.y += va[indices[j]].vf4.y * barycentric[j];
+			dest.vf4.z += va[indices[j]].vf4.z * barycentric[j];
+			dest.vf4.w += va[indices[j]].vf4.w * barycentric[j];
 		}
 	}
 }
