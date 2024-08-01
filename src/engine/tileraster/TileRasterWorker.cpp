@@ -83,12 +83,6 @@ namespace Ifrit::Engine::TileRaster {
 
 				if (npc * npn < 0) {
 					ifloat4 dir = sub(pn.pos, pc.pos);
-					// Solve for t, where W = aX + bY + cZ + d
-					// W = a(pc.x + t * dir.x) + b(pc.y + t * dir.y) + c(pc.z + t * dir.z) + d = pc.w + t * dir.w
-					// (pc.x*a + pc.y*b + pc.z*c + d - pc.w) + t * (dir.x*a + dir.y*b + dir.z*c - dir.w) = 0
-					// t = (pc.w - pc.x*a - pc.y*b - pc.z*c) / (dir.x*a + dir.y*b + dir.z*c - dir.w)
-					// a = refPoint.x, b = refPoint.y, c = refPoint.z, d = refPoint.w
-
 					float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
 					float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
 					float t = (-refPoint.w + numo) / deno;
@@ -136,15 +130,18 @@ namespace Ifrit::Engine::TileRaster {
 			const float sV1V3y = atri.v1.y - atri.v3.y;
 			const float sV1V3x = atri.v3.x - atri.v1.x;
 
-			atri.f3 = { sV2V1y * ar, sV2V1x * ar,(-atri.v1.x * sV2V1y - atri.v1.y * sV2V1x) * ar };
-			atri.f1 = { sV3V2y * ar, sV3V2x * ar,(-atri.v2.x * sV3V2y - atri.v2.y * sV3V2x) * ar };
-			atri.f2 = { sV1V3y * ar, sV1V3x * ar,(-atri.v3.x * sV1V3y - atri.v3.y * sV1V3x) * ar };
+			const auto csInvX = 1.0f / context->frameBuffer->getColorAttachment(0)->getWidth();
+			const auto csInvY = 1.0f / context->frameBuffer->getColorAttachment(0)->getHeight();
+
+			atri.f3 = { sV2V1y * ar * csInvX, sV2V1x * ar * csInvY,(-atri.v1.x * sV2V1y - atri.v1.y * sV2V1x - sV2V1y - sV2V1x) * ar };
+			atri.f1 = { sV3V2y * ar * csInvX, sV3V2x * ar * csInvY,(-atri.v2.x * sV3V2y - atri.v2.y * sV3V2x - sV3V2y - sV3V2x) * ar };
+			atri.f2 = { sV1V3y * ar * csInvX, sV1V3x * ar * csInvY,(-atri.v3.x * sV1V3y - atri.v3.y * sV1V3x - sV1V3y - sV1V3x) * ar };
 
 
 			ifloat3 edgeCoefs[3];
-			atri.e1 = { sV2V1y,  sV2V1x,  atri.v2.x * atri.v1.y - atri.v1.x * atri.v2.y };
-			atri.e2 = { sV3V2y,  sV3V2x,  atri.v3.x * atri.v2.y - atri.v2.x * atri.v3.y };
-			atri.e3 = { sV1V3y,  sV1V3x,  atri.v1.x * atri.v3.y - atri.v3.x * atri.v1.y };
+			atri.e1 = { sV2V1y,  sV2V1x,  atri.v2.x * atri.v1.y - atri.v1.x * atri.v2.y - sV2V1y - sV2V1x };
+			atri.e2 = { sV3V2y,  sV3V2x,  atri.v3.x * atri.v2.y - atri.v2.x * atri.v3.y - sV3V2y - sV3V2x };
+			atri.e3 = { sV1V3y,  sV1V3x,  atri.v1.x * atri.v3.y - atri.v3.x * atri.v1.y - sV1V3y - sV1V3x };
 
 			atri.originalPrimitive = primitiveId;
 			context->assembledTriangles[workerId].emplace_back(std::move(atri));
@@ -185,10 +182,10 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, irect2Df bbox) IFRIT_AP_NOTHROW {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
-		float minx = bbox.x * 0.5 + 0.5;
-		float miny = bbox.y * 0.5 + 0.5;
-		float maxx = (bbox.x + bbox.w) * 0.5 + 0.5;
-		float maxy = (bbox.y + bbox.h) * 0.5 + 0.5;
+		float minx = bbox.x * 0.5f + 0.5f;
+		float miny = bbox.y * 0.5f + 0.5f;
+		float maxx = (bbox.x + bbox.w) * 0.5f + 0.5f;
+		float maxy = (bbox.y + bbox.h) * 0.5f + 0.5f;
 
 		int tileMinx = std::max(0, (int)(minx * context->tileBlocksX));
 		int tileMiny = std::max(0, (int)(miny * context->tileBlocksX));
@@ -212,8 +209,6 @@ namespace Ifrit::Engine::TileRaster {
 		const float tileSize = 1.0 / context->tileBlocksX;
 		for (int y = tileMiny; y <= tileMaxy; y++) {
 			for (int x = tileMinx; x <= tileMaxx; x++) {
-
-
 				auto curTileX = x * frameBufferWidth / context->tileBlocksX;
 				auto curTileY = y * frameBufferHeight / context->tileBlocksX;
 				auto curTileX2 = (x + 1) * frameBufferWidth / context->tileBlocksX;
@@ -225,8 +220,8 @@ namespace Ifrit::Engine::TileRaster {
 				tileCoords[VRT] = { (x + 1) * tileSize, y * tileSize, 1.0 };
 
 				for (int i = 0; i < 4; i++) {
-					tileCoords[i].x = tileCoords[i].x * 2 - 1;
-					tileCoords[i].y = tileCoords[i].y * 2 - 1;
+					tileCoords[i].x = tileCoords[i].x * 2 ;
+					tileCoords[i].y = tileCoords[i].y * 2 ;
 				}
 
 				int criteriaTR = 0;
@@ -416,8 +411,8 @@ namespace Ifrit::Engine::TileRaster {
 							tileCoordsY128[VRB] = subTileMaxY128;
 
 							for (int k = 0; k < 4; k++) {
-								tileCoordsX128[k] = _mm_sub_ps(_mm_mul_ps(tileCoordsX128[k], _mm_set1_ps(2.0f)), _mm_set1_ps(1.0f));
-								tileCoordsY128[k] = _mm_sub_ps(_mm_mul_ps(tileCoordsY128[k], _mm_set1_ps(2.0f)), _mm_set1_ps(1.0f));
+								tileCoordsX128[k] = _mm_mul_ps(tileCoordsX128[k], _mm_set1_ps(2.0f));
+								tileCoordsY128[k] = _mm_mul_ps(tileCoordsY128[k], _mm_set1_ps(2.0f));
 							}
 
 							__m128 criteriaLocalTR128[3], criteriaLocalTA128[3];
@@ -465,8 +460,8 @@ namespace Ifrit::Engine::TileRaster {
 											__m256 dx256 = _mm256_setr_ps(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
 											__m256 dy256 = _mm256_setr_ps(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
 
-											__m256 ndcX128 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(dx256, frameBufferWidth256)), _mm256_set1_ps(1.0f));
-											__m256 ndcY128 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(dy256, frameBufferHeight256)), _mm256_set1_ps(1.0f));
+											__m256 ndcX128 = _mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(dx256, frameBufferWidth256));
+											__m256 ndcY128 = _mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(dy256, frameBufferHeight256));
 											__m256i accept256 = _mm256_setzero_si256();
 											__m256 criteria256[3];
 
@@ -490,23 +485,23 @@ namespace Ifrit::Engine::TileRaster {
 													if (pv > subTileMaxX || dy > subTileMaxY) IFRIT_BRANCH_UNLIKELY{
 														continue;
 													}
-														if (_mm_testc_si128(accept128[di], _mm_set1_epi32(-1))) {
-															npropPixel128.tile = { pv, dy };
-															coverQueue.push_back(npropPixel128);
-														}
-														else {
-															int accept[4];
-															_mm_storeu_si128((__m128i*)accept, accept128[di]);
+													if (_mm_testc_si128(accept128[di], _mm_set1_epi32(-1))) {
+														npropPixel128.tile = { pv, dy };
+														coverQueue.push_back(npropPixel128);
+													}
+													else {
+														int accept[4];
+														_mm_storeu_si128((__m128i*)accept, accept128[di]);
 
-															for (int ddi = 0; ddi < 4; ddi++) {
-																const auto pvx = pv + (ddi & 1);
-																const auto pvy = dy + (ddi >> 1);
-																if (pvx <= subTileMaxX && pvy <= subTileMaxY && accept[ddi] == -1) {
-																	npropPixel.tile = { pvx,pvy };
-																	coverQueue.push_back(npropPixel);
-																}
+														for (int ddi = 0; ddi < 4; ddi++) {
+															const auto pvx = pv + (ddi & 1);
+															const auto pvy = dy + (ddi >> 1);
+															if (pvx <= subTileMaxX && pvy <= subTileMaxY && accept[ddi] == -1) {
+																npropPixel.tile = { pvx,pvy };
+																coverQueue.push_back(npropPixel);
 															}
 														}
+													}
 												}
 											}
 
@@ -517,8 +512,8 @@ namespace Ifrit::Engine::TileRaster {
 										for (int dy = subTileMinY; dy <= subTileMaxY; dy += 2) {
 											__m128 dx128 = _mm_setr_ps(dx + 0, dx + 1, dx + 0, dx + 1);
 											__m128 dy128 = _mm_setr_ps(dy + 0, dy + 0, dy + 1, dy + 1);
-											__m128 ndcX128 = _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(2.0f), _mm_div_ps(dx128, _mm_set1_ps(frameBufferWidth))), _mm_set1_ps(1.0f));
-											__m128 ndcY128 = _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(2.0f), _mm_div_ps(dy128, _mm_set1_ps(frameBufferHeight))), _mm_set1_ps(1.0f));
+											__m128 ndcX128 = _mm_mul_ps(_mm_set1_ps(2.0f), _mm_div_ps(dx128, _mm_set1_ps(frameBufferWidth)));
+											__m128 ndcY128 = _mm_mul_ps(_mm_set1_ps(2.0f), _mm_div_ps(dy128, _mm_set1_ps(frameBufferHeight)));
 											__m128i accept128 = _mm_setzero_si128();
 											__m128 criteria128[3];
 											for (int k = 0; k < 3; k++) {
@@ -605,8 +600,8 @@ namespace Ifrit::Engine::TileRaster {
 						else {
 							for (int dx = subTilePixelX; dx <= subTilePixelX2; dx++) {
 								for (int dy = subTilePixelY; dy <= subTilePixelY2; dy++) {
-									float ndcX = 2.0f * dx / frameBufferWidth - 1.0f;
-									float ndcY = 2.0f * dy / frameBufferHeight - 1.0f;
+									float ndcX = 2.0f * dx / frameBufferWidth;
+									float ndcY = 2.0f * dy / frameBufferHeight;
 									int accept = 0;
 									for (int i = 0; i < 3; i++) {
 										float criteria = edgeCoefs[i].x * ndcX + edgeCoefs[i].y * ndcY + edgeCoefs[i].z;
@@ -818,8 +813,8 @@ namespace Ifrit::Engine::TileRaster {
 		__m128 posZ = _mm_setr_ps(pos[0].z, pos[1].z, pos[2].z, 0);
 #endif
 
-		float pDx = 2.0f * dx / context->frameBuffer->getWidth() - 1.0f;
-		float pDy = 2.0f * dy / context->frameBuffer->getHeight() - 1.0f;
+		float pDx = 2.0f * dx;
+		float pDy = 2.0f * dy;
 
 		// Interpolate Depth
 #if IFRIT_USE_SIMD_128_EXPERIMENTAL
@@ -944,8 +939,8 @@ namespace Ifrit::Engine::TileRaster {
 
 		__m128i dpDx = _mm_add_epi32(dx128i, dx128i);
 		__m128i dpDy = _mm_add_epi32(dy128i, dy128i);
-		__m128 pDx = _mm_sub_ps(_mm_div_ps(_mm_cvtepi32_ps(dpDx), attachmentWidth), _mm_set1_ps(1.0f));
-		__m128 pDy = _mm_sub_ps(_mm_div_ps(_mm_cvtepi32_ps(dpDy), attachmentHeight), _mm_set1_ps(1.0f));
+		__m128 pDx = _mm_cvtepi32_ps(dpDx);
+		__m128 pDy = _mm_cvtepi32_ps(dpDy);
 
 		__m128 bary[3];
 		bary[0] = _mm_add_ps(_mm_add_ps(_mm_mul_ps(_mm_set1_ps(atp.f1.x), pDx), _mm_mul_ps(_mm_set1_ps(atp.f1.y), pDy)), _mm_set1_ps(atp.f1.z));
