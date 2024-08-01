@@ -139,9 +139,9 @@ namespace Ifrit::Engine::TileRaster {
 
 
 			ifloat3 edgeCoefs[3];
-			atri.e1 = { sV2V1y,  sV2V1x,  atri.v2.x * atri.v1.y - atri.v1.x * atri.v2.y - sV2V1y - sV2V1x };
-			atri.e2 = { sV3V2y,  sV3V2x,  atri.v3.x * atri.v2.y - atri.v2.x * atri.v3.y - sV3V2y - sV3V2x };
-			atri.e3 = { sV1V3y,  sV1V3x,  atri.v1.x * atri.v3.y - atri.v3.x * atri.v1.y - sV1V3y - sV1V3x };
+			atri.e1 = { 2.0f * sV2V1y,  2.0f * sV2V1x,  atri.v2.x * atri.v1.y - atri.v1.x * atri.v2.y - sV2V1y - sV2V1x };
+			atri.e2 = { 2.0f * sV3V2y,  2.0f * sV3V2x,  atri.v3.x * atri.v2.y - atri.v2.x * atri.v3.y - sV3V2y - sV3V2x };
+			atri.e3 = { 2.0f * sV1V3y,  2.0f * sV1V3x,  atri.v1.x * atri.v3.y - atri.v3.x * atri.v1.y - sV1V3y - sV1V3x };
 
 			atri.originalPrimitive = primitiveId;
 			context->assembledTriangles[workerId].emplace_back(std::move(atri));
@@ -222,11 +222,6 @@ namespace Ifrit::Engine::TileRaster {
 				tileCoords[VRB] = { (x + 1) * tileSizeX, (y + 1) * tileSizeY, 1.0 };
 				tileCoords[VRT] = { (x + 1) * tileSizeX, y * tileSizeY, 1.0 };
 
-				for (int i = 0; i < 4; i++) {
-					tileCoords[i].x = tileCoords[i].x * 2 ;
-					tileCoords[i].y = tileCoords[i].y * 2 ;
-				}
-
 				int criteriaTR = 0;
 				int criteriaTA = 0;
 				for (int i = 0; i < 3; i++) {
@@ -240,7 +235,7 @@ namespace Ifrit::Engine::TileRaster {
 					TileBinProposal proposal;
 					proposal.level = TileRasterLevel::TILE;
 					proposal.clippedTriangle = { workerId,primitiveId };
-					context->rasterizerQueue[workerId][getTileID(x, y)].push_back(proposal);
+					context->coverQueue[workerId][getTileID(x, y)].push_back(proposal);
 				}
 				else {
 					TileBinProposal proposal;
@@ -309,6 +304,10 @@ namespace Ifrit::Engine::TileRaster {
 		auto frameBufferWidth = context->frameBuffer->getWidth();
 		auto frameBufferHeight = context->frameBuffer->getHeight();
 		auto rdTiles = 0;
+#ifdef IFRIT_USE_SIMD_128
+		__m128 wfx128 = _mm_set1_ps(1.0f * context->subtileBlockWidth / frameBufferWidth);
+		__m128 wfy128 = _mm_set1_ps(1.0f * context->subtileBlockWidth / frameBufferHeight);
+#endif
 		while ((curTile = renderer->fetchUnresolvedTileRaster()) != -1) {
 			rdTiles++;
 			int tileIdX = curTile % context->numTilesX;
@@ -334,9 +333,9 @@ namespace Ifrit::Engine::TileRaster {
 					getAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
 					int leftBlock = 0;
-					int rightBlock = context->tileWidth / context->subtileBlockWidth - 1;
+					int rightBlock = context->numSubtilesPerTileX - 1;
 					int topBlock = 0;
-					int bottomBlock = context->tileWidth / context->subtileBlockWidth - 1;
+					int bottomBlock = context->numSubtilesPerTileX - 1;
 
 #ifdef IFRIT_USE_SIMD_128
 
@@ -345,9 +344,7 @@ namespace Ifrit::Engine::TileRaster {
 					__m128 tileMaxX128 = _mm_set1_ps(tileMaxX);
 					__m128 tileMaxY128 = _mm_set1_ps(tileMaxY);
 					//__m128 wp128 = _mm_set1_ps(context->subtileBlocksX * context->tileBlocksX);
-					__m128 wfx128 = _mm_set1_ps(1.0f * context->subtileBlockWidth / frameBufferWidth);
-					__m128 wfy128 = _mm_set1_ps(1.0f * context->subtileBlockWidth / frameBufferHeight);
-				
+					
 					__m128 edgeCoefs128X[3], edgeCoefs128Y[3], edgeCoefs128Z[3];
 					for (int k = 0; k < 3; k++) {
 						edgeCoefs128X[k] = _mm_set1_ps(edgeCoefs[k].x);
@@ -401,8 +398,8 @@ namespace Ifrit::Engine::TileRaster {
 							__m128 y128f = _mm_cvtepi32_ps(y128);
 							__m128 subTileMinX128 = _mm_add_ps(tileMinX128, _mm_mul_ps(x128f, wfx128));
 							__m128 subTileMinY128 = _mm_add_ps(tileMinY128, _mm_mul_ps(y128f, wfy128));
-							__m128 subTileMaxX128 = _mm_add_ps(tileMinX128, _mm_mul_ps(_mm_add_ps(x128f, _mm_set1_ps(1.0f)), wfx128));
-							__m128 subTileMaxY128 = _mm_add_ps(tileMinY128, _mm_mul_ps(_mm_add_ps(y128f, _mm_set1_ps(1.0f)), wfy128));
+							__m128 subTileMaxX128 = _mm_add_ps(subTileMinX128, wfx128);
+							__m128 subTileMaxY128 = _mm_add_ps(subTileMinY128, wfy128);
 
 							__m128 tileCoordsX128[4], tileCoordsY128[4];
 							tileCoordsX128[VLT] = subTileMinX128;
@@ -414,10 +411,6 @@ namespace Ifrit::Engine::TileRaster {
 							tileCoordsX128[VRB] = subTileMaxX128;
 							tileCoordsY128[VRB] = subTileMaxY128;
 
-							for (int k = 0; k < 4; k++) {
-								tileCoordsX128[k] = _mm_mul_ps(tileCoordsX128[k], _mm_set1_ps(2.0f));
-								tileCoordsY128[k] = _mm_mul_ps(tileCoordsY128[k], _mm_set1_ps(2.0f));
-							}
 
 							__m128 criteriaLocalTR128[3], criteriaLocalTA128[3];
 							for (int k = 0; k < 3; k++) {
@@ -450,7 +443,7 @@ namespace Ifrit::Engine::TileRaster {
 								}
 								else {
 									//const int wp = (context->subtileBlocksX * context->tileBlocksX);
-									auto subtilesXPerTile = context->tileWidth / context->subtileBlockWidth;
+									const auto subtilesXPerTile = context->numSubtilesPerTileX;
 									const auto stMX = tileIdX * subtilesXPerTile + dwX;
 									const auto stMY = tileIdY * subtilesXPerTile + dwY;
 									const int subTileMinX = stMX * context->subtileBlockWidth;
@@ -465,8 +458,8 @@ namespace Ifrit::Engine::TileRaster {
 											__m256 dx256 = _mm256_setr_ps(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
 											__m256 dy256 = _mm256_setr_ps(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
 
-											__m256 ndcX128 = _mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(dx256, frameBufferWidth256));
-											__m256 ndcY128 = _mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_div_ps(dy256, frameBufferHeight256));
+											__m256 ndcX128 = _mm256_div_ps(dx256, frameBufferWidth256);
+											__m256 ndcY128 = _mm256_div_ps(dy256, frameBufferHeight256);
 											__m256i accept256 = _mm256_setzero_si256();
 											__m256 criteria256[3];
 
@@ -517,8 +510,8 @@ namespace Ifrit::Engine::TileRaster {
 										for (int dy = subTileMinY; dy <= subTileMaxY; dy += 2) {
 											__m128 dx128 = _mm_setr_ps(dx + 0, dx + 1, dx + 0, dx + 1);
 											__m128 dy128 = _mm_setr_ps(dy + 0, dy + 0, dy + 1, dy + 1);
-											__m128 ndcX128 = _mm_mul_ps(_mm_set1_ps(2.0f), _mm_div_ps(dx128, _mm_set1_ps(frameBufferWidth)));
-											__m128 ndcY128 = _mm_mul_ps(_mm_set1_ps(2.0f), _mm_div_ps(dy128, _mm_set1_ps(frameBufferHeight)));
+											__m128 ndcX128 = _mm_div_ps(dx128, _mm_set1_ps(frameBufferWidth));
+											__m128 ndcY128 = _mm_div_ps(dy128, _mm_set1_ps(frameBufferHeight));
 											__m128i accept128 = _mm_setzero_si128();
 											__m128 criteria128[3];
 											for (int k = 0; k < 3; k++) {
@@ -679,8 +672,8 @@ namespace Ifrit::Engine::TileRaster {
 					pixelShading(triProposal, proposal.tile.x, proposal.tile.y);
 				}
 				else if (proposal.level == TileRasterLevel::PIXEL_PACK4X2) {
-#ifdef IFRIT_USE_SIMD_1282
-#ifdef IFRIT_USE_SIMD_2562
+#ifdef IFRIT_USE_SIMD_128
+#ifdef IFRIT_USE_SIMD_256
 					pixelShadingSIMD256(triProposal, proposal.tile.x, proposal.tile.y);
 #else
 					for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx += 2) {
@@ -727,7 +720,7 @@ namespace Ifrit::Engine::TileRaster {
 				else if (proposal.level == TileRasterLevel::BLOCK) {
 					auto curTileX = curTile % context->numTilesX;
 					auto curTileY = curTile / context->numTilesX;
-					auto subtileXPerTile = context->tileWidth / context->subtileBlockWidth;
+					auto subtileXPerTile = context->numSubtilesPerTileX;
 					auto subTilePixelX = (curTileX * subtileXPerTile + proposal.tile.x) * context->subtileBlockWidth;
 					auto subTilePixelY = (curTileY * subtileXPerTile + proposal.tile.y) * context->subtileBlockWidth;
 					auto subTilePixelX2 = (curTileX * subtileXPerTile + proposal.tile.x + 1) * context->subtileBlockWidth;

@@ -38,6 +38,7 @@ namespace Ifrit::Engine::TileRaster {
 		int numTilesX = 1;
 		int numTilesY = 1;
 		constexpr static int subtileBlockWidth = 4;
+		constexpr static int numSubtilesPerTileX = tileWidth / subtileBlockWidth;
 
 		TileRasterFrontFace frontface = TileRasterFrontFace::CLOCKWISE;
 		IfritColorAttachmentBlendState blendState;
