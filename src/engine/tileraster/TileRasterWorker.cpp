@@ -663,10 +663,10 @@ namespace Ifrit::Engine::TileRaster {
 			interpolatedVaryingsAddr[i] = &interpolatedVaryings[i];
 		}
 		while ((curTile = renderer->fetchUnresolvedTileFragmentShading()) != -1) {
-			auto proposalProcessFunc = [&](TileBinProposal& proposal) {
+			auto proposalProcessFunc = [&]<bool tpAlphaBlendEnable>(TileBinProposal& proposal) {
 				const auto& triProposal = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
 				if (proposal.level == TileRasterLevel::PIXEL) IFRIT_BRANCH_LIKELY{
-					pixelShading(triProposal, proposal.tile.x, proposal.tile.y);
+					pixelShading<tpAlphaBlendEnable>(triProposal, proposal.tile.x, proposal.tile.y);
 				}
 				else if (proposal.level == TileRasterLevel::PIXEL_PACK4X2) {
 #ifdef IFRIT_USE_SIMD_128
@@ -682,7 +682,7 @@ namespace Ifrit::Engine::TileRaster {
 #else
 					for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx++) {
 						for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
-							pixelShading(triProposal, dx, dy);
+							pixelShading<tpAlphaBlendEnable>(triProposal, dx, dy);
 						}
 					}
 #endif
@@ -693,7 +693,7 @@ namespace Ifrit::Engine::TileRaster {
 #else
 					for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 1u, frameBufferWidth - 1); dx++) {
 						for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
-							pixelShading(triProposal, dx, dy);
+							pixelShading<tpAlphaBlendEnable>(triProposal, dx, dy);
 						}
 					}
 #endif
@@ -710,7 +710,7 @@ namespace Ifrit::Engine::TileRaster {
 					curTileY2 = std::min(curTileY2, (int)frameBufferHeight);
 					for (int dx = curTileX; dx < curTileX2; dx++) {
 						for (int dy = curTileY; dy < curTileY2; dy++) {
-							pixelShading(triProposal, dx, dy);
+							pixelShading<tpAlphaBlendEnable>(triProposal, dx, dy);
 						}
 					}
 				}
@@ -726,7 +726,7 @@ namespace Ifrit::Engine::TileRaster {
 					subTilePixelY2 = std::min(subTilePixelY2, (int)frameBufferHeight);
 					for (int dx = subTilePixelX; dx < subTilePixelX2; dx++) {
 						for (int dy = subTilePixelY; dy < subTilePixelY2; dy++) {
-							pixelShading(triProposal, dx, dy);
+							pixelShading<tpAlphaBlendEnable>(triProposal, dx, dy);
 						}
 					}
 				}
@@ -734,18 +734,26 @@ namespace Ifrit::Engine::TileRaster {
 			// End of lambda func
 			if (context->optForceDeterministic) {
 				int lastp = -1;
-				for (int i = 0; i < context->sortedCoverQueue[curTile].size(); i++) {
-					auto& proposal = context->sortedCoverQueue[curTile][i];
-					proposalProcessFunc(proposal);
-				}
+				auto iterFunc = [&]<bool tpAlphaBlendEnable>() {
+					for (int i = 0; i < context->sortedCoverQueue[curTile].size(); i++) {
+						auto& proposal = context->sortedCoverQueue[curTile][i];
+						proposalProcessFunc.operator()<tpAlphaBlendEnable>(proposal);
+					}
+				};
+				if (context->blendState.blendEnable) iterFunc.operator()<true>();
+				else  iterFunc.operator()<false>();
 			}
 			else {
-				for (int i = context->numThreads - 1; i >= 0; i--) {
-					for (int j = context->coverQueue[i][curTile].size() - 1; j >= 0; j--) {
-						auto& proposal = context->coverQueue[i][curTile][j];
-						proposalProcessFunc(proposal);
+				auto iterFunc = [&]<bool tpAlphaBlendEnable>() {
+					for (int i = context->numThreads - 1; i >= 0; i--) {
+						for (int j = context->coverQueue[i][curTile].size() - 1; j >= 0; j--) {
+							auto& proposal = context->coverQueue[i][curTile][j];
+							proposalProcessFunc.operator()<tpAlphaBlendEnable>(proposal);
+						}
 					}
-				}
+				};
+				if (context->blendState.blendEnable) iterFunc.operator()<true>();
+				else  iterFunc.operator()<false>();
 			}
 
 		}
@@ -795,7 +803,7 @@ namespace Ifrit::Engine::TileRaster {
 			out[i] = &context->vertexShaderResult->getVaryingBuffer(i)[id];
 		}
 	}
-
+	template<bool tpAlphaBlendEnable>
 	void TileRasterWorker::pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW {
 
 		auto& depthAttachment = (*context->frameBuffer->getDepthAttachment())(dx, dy, 0);
@@ -872,7 +880,7 @@ namespace Ifrit::Engine::TileRaster {
 		// Fragment Shader
 		context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
 
-		if (context->blendState.blendEnable) {
+		if constexpr (tpAlphaBlendEnable) {
 			auto dstRgba = context->frameBuffer->getColorAttachment(0)->getPixelRGBAUnsafe(dx, dy);
 			auto srcRgba = colorOutput[0];
 			const auto& blendParam = context->blendColorCoefs;
@@ -1137,4 +1145,7 @@ namespace Ifrit::Engine::TileRaster {
 			dest.vf4.w += va[indices[j]].vf4.w * barycentric[j];
 		}
 	}
+
+	template void TileRasterWorker::pixelShading<true>(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
+	template void TileRasterWorker::pixelShading<false>(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
 }

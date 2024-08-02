@@ -12,7 +12,7 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	class TileRasterWorker {
-	public:
+	protected:
 		std::atomic<TileRasterStage> status;
 		std::atomic<bool> activated;
 	private:
@@ -39,6 +39,9 @@ namespace Ifrit::Engine::TileRaster {
 
 	public:
 		TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context);
+
+	protected:
+		friend class TileRasterRenderer;
 		void run() IFRIT_AP_NOTHROW;
 
 		bool triangleFrustumClip(ifloat4 v1, ifloat4 v2, ifloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW;
@@ -58,7 +61,9 @@ namespace Ifrit::Engine::TileRaster {
 		void getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW ;
 		void getVaryingsAddr(const int id,std::vector<VaryingStore*>& out)IFRIT_AP_NOTHROW ;
 
+		template<bool tpAlphaBlendEnable>
 		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
+
 		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
 		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
 

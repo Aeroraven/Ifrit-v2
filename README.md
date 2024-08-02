@@ -132,8 +132,9 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 - Compile Dependencies:
 	- <s>CMake 3.28</s>
 	- MSVC (Visual Studio 2022)
-		- C++17 is required
-		- C++20 is recommended for best performance
+		- <s>C++17 is required</s>
+			- C++17 can be only used before commit `342a9d3e82a2873f5e5e5e7b4c42145fdc83a5b6`
+		- C++20 is required 
 	- NVCC
 
 
