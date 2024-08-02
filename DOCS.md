@@ -16,6 +16,8 @@ public:
     void bindFragmentShader(FragmentShader& fragmentShader);
     void intializeRenderContext();
     void setBlendFunc(IfritColorAttachmentBlendState state);
+    void setDepthFunc(IfritCompareOp depthFunc);
+
     void optsetDepthTestEnable(bool opt);
 
     void render(bool clearFramebuffer);
