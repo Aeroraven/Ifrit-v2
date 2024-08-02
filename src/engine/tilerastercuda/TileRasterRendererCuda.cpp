@@ -92,9 +92,12 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::setDepthFunc(IfritCompareOp depthFunc) {
 		ctxDepthFunc = depthFunc;
-		Invocation::setDepthFunc(depthFunc);
+		if (ctxDepthTestEnable) {
+			Invocation::setDepthFunc(depthFunc);
+		}
 	}
 	void TileRasterRendererCuda::setDepthTestEnable(bool option) {
+		ctxDepthTestEnable = option;
 		if (option) {
 			Invocation::setDepthFunc(ctxDepthFunc);
 		}
