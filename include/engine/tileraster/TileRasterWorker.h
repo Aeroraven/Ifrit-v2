@@ -61,10 +61,13 @@ namespace Ifrit::Engine::TileRaster {
 		void getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW ;
 		void getVaryingsAddr(const int id,std::vector<VaryingStore*>& out)IFRIT_AP_NOTHROW ;
 
-		template<bool tpAlphaBlendEnable>
+		template<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>
 		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
 
+		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>
 		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
+		
+		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>
 		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
 
 		inline float edgeFunction(ifloat4 a, ifloat4 b, ifloat4 c) {

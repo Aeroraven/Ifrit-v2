@@ -41,7 +41,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Programmable Geometry Shader      |                                                              |                 | √ ▲           |
 | Alpha Blending                    |                                                              | √               | √ ▲           |
 | Depth Testing                     | √                                                            | √               | √             |
-| Depth Function                    |                                                              |                 | √             |
+| Depth Function                    |                                                              | √               | √             |
 | Z Pre-Pass                        |                                                              |                 | √             |
 | Early-Z Test                      | √                                                            | √               | √             |
 | Back Face Culling                 | √                                                            | √               | √             |
@@ -133,8 +133,7 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 	- <s>CMake 3.28</s>
 	- MSVC (Visual Studio 2022)
 		- <s>C++17 is required</s>
-			- C++17 can be only used before commit `342a9d3e82a2873f5e5e5e7b4c42145fdc83a5b6`
-		- C++20 is required 
+		- C++20 is required (since commit `342a9d3e82a2873f5e5e5e7b4c42145fdc83a5b6`)
 	- NVCC
 
 

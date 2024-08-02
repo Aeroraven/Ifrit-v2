@@ -663,19 +663,19 @@ namespace Ifrit::Engine::TileRaster {
 			interpolatedVaryingsAddr[i] = &interpolatedVaryings[i];
 		}
 		while ((curTile = renderer->fetchUnresolvedTileFragmentShading()) != -1) {
-			auto proposalProcessFunc = [&]<bool tpAlphaBlendEnable>(TileBinProposal& proposal) {
+			auto proposalProcessFunc = [&]<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>(TileBinProposal& proposal) {
 				const auto& triProposal = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
 				if (proposal.level == TileRasterLevel::PIXEL) IFRIT_BRANCH_LIKELY{
-					pixelShading<tpAlphaBlendEnable>(triProposal, proposal.tile.x, proposal.tile.y);
+					pixelShading<tpAlphaBlendEnable,tpDepthFunc>(triProposal, proposal.tile.x, proposal.tile.y);
 				}
 				else if (proposal.level == TileRasterLevel::PIXEL_PACK4X2) {
 #ifdef IFRIT_USE_SIMD_128
 #ifdef IFRIT_USE_SIMD_256
-					pixelShadingSIMD256(triProposal, proposal.tile.x, proposal.tile.y);
+					pixelShadingSIMD256<tpAlphaBlendEnable,tpDepthFunc>(triProposal, proposal.tile.x, proposal.tile.y);
 #else
 					for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 3u, frameBufferWidth - 1); dx += 2) {
 						for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
-							pixelShadingSIMD128(triProposal, dx, dy);
+							pixelShadingSIMD128<tpAlphaBlendEnable,tpDepthFunc>(triProposal, dx, dy);
 						}
 					}
 #endif
@@ -689,7 +689,7 @@ namespace Ifrit::Engine::TileRaster {
 				}
 				else if (proposal.level == TileRasterLevel::PIXEL_PACK2X2) {
 #ifdef IFRIT_USE_SIMD_128
-					pixelShadingSIMD128(triProposal, proposal.tile.x, proposal.tile.y);
+					pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc>(triProposal, proposal.tile.x, proposal.tile.y);
 #else
 					for (int dx = proposal.tile.x; dx <= std::min(proposal.tile.x + 1u, frameBufferWidth - 1); dx++) {
 						for (int dy = proposal.tile.y; dy <= std::min(proposal.tile.y + 1u, frameBufferHeight - 1); dy++) {
@@ -710,7 +710,7 @@ namespace Ifrit::Engine::TileRaster {
 					curTileY2 = std::min(curTileY2, (int)frameBufferHeight);
 					for (int dx = curTileX; dx < curTileX2; dx++) {
 						for (int dy = curTileY; dy < curTileY2; dy++) {
-							pixelShading<tpAlphaBlendEnable>(triProposal, dx, dy);
+							pixelShading<tpAlphaBlendEnable, tpDepthFunc>(triProposal, dx, dy);
 						}
 					}
 				}
@@ -726,7 +726,7 @@ namespace Ifrit::Engine::TileRaster {
 					subTilePixelY2 = std::min(subTilePixelY2, (int)frameBufferHeight);
 					for (int dx = subTilePixelX; dx < subTilePixelX2; dx++) {
 						for (int dy = subTilePixelY; dy < subTilePixelY2; dy++) {
-							pixelShading<tpAlphaBlendEnable>(triProposal, dx, dy);
+							pixelShading<tpAlphaBlendEnable, tpDepthFunc>(triProposal, dx, dy);
 						}
 					}
 				}
@@ -734,27 +734,51 @@ namespace Ifrit::Engine::TileRaster {
 			// End of lambda func
 			if (context->optForceDeterministic) {
 				int lastp = -1;
-				auto iterFunc = [&]<bool tpAlphaBlendEnable>() {
+				auto iterFunc = [&]<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>() {
 					for (int i = 0; i < context->sortedCoverQueue[curTile].size(); i++) {
 						auto& proposal = context->sortedCoverQueue[curTile][i];
-						proposalProcessFunc.operator()<tpAlphaBlendEnable>(proposal);
+						proposalProcessFunc.operator()<tpAlphaBlendEnable, tpDepthFunc>(proposal);
 					}
 				};
-				if (context->blendState.blendEnable) iterFunc.operator()<true>();
-				else  iterFunc.operator()<false>();
+#define IF_DECLPS_ITERFUNC_0(tpAlphaBlendEnable,tpDepthFunc) iterFunc.operator()<tpAlphaBlendEnable,tpDepthFunc>();
+#define IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,tpDepthFunc) if(context->depthFunc == tpDepthFunc) IF_DECLPS_ITERFUNC_0(tpAlphaBlendEnable,tpDepthFunc)
+
+#define IF_DECLPS_ITERFUNC(tpAlphaBlendEnable) \
+	IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_ALWAYS); \
+	IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_EQUAL); \
+	IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_GREATER); \
+	IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_GREATER_OR_EQUAL); \
+	IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_LESS); \
+	IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_LESS_OR_EQUAL); \
+	IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NEVER); \
+	IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL); \
+
+				if (context->blendState.blendEnable){
+					IF_DECLPS_ITERFUNC(true);
+				}
+				else{
+					IF_DECLPS_ITERFUNC(false);
+				}
 			}
 			else {
-				auto iterFunc = [&]<bool tpAlphaBlendEnable>() {
+				auto iterFunc = [&]<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>() {
 					for (int i = context->numThreads - 1; i >= 0; i--) {
 						for (int j = context->coverQueue[i][curTile].size() - 1; j >= 0; j--) {
 							auto& proposal = context->coverQueue[i][curTile][j];
-							proposalProcessFunc.operator()<tpAlphaBlendEnable>(proposal);
+							proposalProcessFunc.operator()<tpAlphaBlendEnable, tpDepthFunc >(proposal);
 						}
 					}
 				};
-				if (context->blendState.blendEnable) iterFunc.operator()<true>();
-				else  iterFunc.operator()<false>();
+				if (context->blendState.blendEnable) {
+					IF_DECLPS_ITERFUNC(true);
+				}
+				else {
+					IF_DECLPS_ITERFUNC(false);
+				}
 			}
+#undef IF_DECLPS_ITERFUNC_0_BRANCH
+#undef IF_DECLPS_ITERFUNC_0
+#undef IF_DECLPS_ITERFUNC
 
 		}
 		status.store(TileRasterStage::FRAGMENT_SHADING_SYNC);
@@ -803,7 +827,7 @@ namespace Ifrit::Engine::TileRaster {
 			out[i] = &context->vertexShaderResult->getVaryingBuffer(i)[id];
 		}
 	}
-	template<bool tpAlphaBlendEnable>
+	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>
 	void TileRasterWorker::pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW {
 
 		auto& depthAttachment = (*context->frameBuffer->getDepthAttachment())(dx, dy, 0);
@@ -852,9 +876,32 @@ namespace Ifrit::Engine::TileRaster {
 
 #endif
 		// Depth Test
-		if (context->optDepthTestEnable && interpolatedDepth > depthAttachment) {
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
+			
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) {
+			if (interpolatedDepth != depthAttachment) return;
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) {
+			if (interpolatedDepth <= depthAttachment) return;
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) {
+			if (interpolatedDepth < depthAttachment) return;
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) {
+			if (interpolatedDepth >= depthAttachment) return;
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL) {
+			if (interpolatedDepth > depthAttachment) return;
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) {
 			return;
 		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) {
+			if (interpolatedDepth == depthAttachment) return;
+		}
+
+		
 		bary[0] *= w[0];
 		bary[1] *= w[1];
 		bary[2] *= w[2];
@@ -912,6 +959,7 @@ namespace Ifrit::Engine::TileRaster {
 		depthAttachment = interpolatedDepth;
 	}
 
+	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>
 	void TileRasterWorker::pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW {
 #ifndef IFRIT_USE_SIMD_128
 		ifritError("SIMD 128 not enabled");
@@ -978,12 +1026,35 @@ namespace Ifrit::Engine::TileRaster {
 			//Depth Test
 			int x = dx + (i & 1);
 			int y = dy + (i >> 1);
-			if (x >= fbWidth || y >= fbHeight) IFRIT_BRANCH_UNLIKELY{
+			if (x >= fbWidth || y >= fbHeight){
 				continue;
 			}
-				if (context->optDepthTestEnable && interpolatedDepth[i] > depthAttachment(x, y, 0)) {
-					continue;
-				}
+
+			const auto depthAttachment2 = depthAttachment(x, y, 0);
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
+
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) {
+				if (interpolatedDepth[i] != depthAttachment2) return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) {
+				if (interpolatedDepth[i] <= depthAttachment2) return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) {
+				if (interpolatedDepth[i] < depthAttachment2) return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) {
+				if (interpolatedDepth[i] >= depthAttachment2) return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL) {
+				if (interpolatedDepth[i] > depthAttachment2) return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) {
+				return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) {
+				if (interpolatedDepth[i] == depthAttachment2) return;
+			}
 
 			float barytmp[3] = { bary32[0][i] * zCorr32[i],bary32[1][i] * zCorr32[i],bary32[2][i] * zCorr32[i] };
 			float desiredBary[3];
@@ -997,7 +1068,7 @@ namespace Ifrit::Engine::TileRaster {
 
 			// Fragment Shader
 			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
-			if (context->blendState.blendEnable) {
+			if constexpr(tpAlphaBlendEnable) {
 				auto dstRgba = context->frameBuffer->getColorAttachment(0)->getPixelRGBAUnsafe(x, y);
 				auto srcRgba = colorOutput[0];
 				const auto& blendParam = context->blendColorCoefs;
@@ -1023,7 +1094,7 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 	}
 
-
+	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>
 	void TileRasterWorker::pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW {
 #ifndef IFRIT_USE_SIMD_256
 		ifritError("SIMD 256 (AVX2) not enabled");
@@ -1094,8 +1165,30 @@ namespace Ifrit::Engine::TileRaster {
 			if (x >= fbWidth || y >= fbHeight) IFRIT_BRANCH_UNLIKELY{
 				continue;
 			}
-			if (context->optDepthTestEnable && interpolatedDepth[i] > depthAttachment(x, y, 0)) {
-				continue;
+			const auto depthAttachment2 = depthAttachment(x, y, 0);
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
+
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) {
+				if (interpolatedDepth[i] != depthAttachment2) return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) {
+				if (interpolatedDepth[i] <= depthAttachment2) return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) {
+				if (interpolatedDepth[i] < depthAttachment2) return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) {
+				if (interpolatedDepth[i] >= depthAttachment2) return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL) {
+				if (interpolatedDepth[i] > depthAttachment2) return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) {
+				return;
+			}
+			if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) {
+				if (interpolatedDepth[i] == depthAttachment2) return;
 			}
 			float barytmp[3] = { bary32[0][i] * zCorr32[i],bary32[1][i] * zCorr32[i],bary32[2][i] * zCorr32[i] };
 			float desiredBary[3];
@@ -1108,7 +1201,7 @@ namespace Ifrit::Engine::TileRaster {
 
 			// Fragment Shader
 			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data());
-			if (context->blendState.blendEnable) {
+			if constexpr (tpAlphaBlendEnable) {
 				auto dstRgba = context->frameBuffer->getColorAttachment(0)->getPixelRGBAUnsafe(x, y);
 				auto srcRgba = colorOutput[0];
 				const auto& blendParam = context->blendColorCoefs;
@@ -1146,6 +1239,22 @@ namespace Ifrit::Engine::TileRaster {
 		}
 	}
 
-	template void TileRasterWorker::pixelShading<true>(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
-	template void TileRasterWorker::pixelShading<false>(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
+#define IF_DECLPS1(tpAlphaBlending,tpDepthFunc) \
+	template void TileRasterWorker::pixelShading<tpAlphaBlending,tpDepthFunc>(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW; \
+	template void TileRasterWorker::pixelShadingSIMD128<tpAlphaBlending,tpDepthFunc>(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW; \
+	template void TileRasterWorker::pixelShadingSIMD256<tpAlphaBlending, tpDepthFunc>(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
+
+#define IF_DECLPS1_1(tpDepthFunc) IF_DECLPS1(true,tpDepthFunc);IF_DECLPS1(false,tpDepthFunc);
+
+	IF_DECLPS1_1(IF_COMPARE_OP_ALWAYS);
+	IF_DECLPS1_1(IF_COMPARE_OP_EQUAL);
+	IF_DECLPS1_1(IF_COMPARE_OP_GREATER);
+	IF_DECLPS1_1(IF_COMPARE_OP_GREATER_OR_EQUAL);
+	IF_DECLPS1_1(IF_COMPARE_OP_LESS);
+	IF_DECLPS1_1(IF_COMPARE_OP_LESS_OR_EQUAL);
+	IF_DECLPS1_1(IF_COMPARE_OP_NEVER);
+	IF_DECLPS1_1(IF_COMPARE_OP_NOT_EQUAL);
+
+#undef IF_DECLPS1_1
+#undef IF_DECLPS1
 }
