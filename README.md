@@ -203,7 +203,7 @@ See `DOCS.md` for more details.
 - <s>Texture LOD & Texture Sampler</s>
   - <s>Shader Derivatives</s>
   - Anisotropic Filtering
-  - Dynamic LOD Selection & Texture Bias
+  - <s>Dynamic LOD Selection & Texture Bias</s>
   - Cubic Texture
   - Tiling
   
