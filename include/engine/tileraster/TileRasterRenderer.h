@@ -55,6 +55,7 @@ namespace Ifrit::Engine::TileRaster {
 		void bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor);
 		void bindFragmentShader(FragmentShader& fragmentShader);
 		void setBlendFunc(IfritColorAttachmentBlendState state);
+		void setDepthFunc(IfritCompareOp depthFunc);
 
 		void intializeRenderContext();
 		void optsetForceDeterministic(bool opt);

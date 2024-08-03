@@ -79,6 +79,12 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		return ;
 	}
+	void TileRasterRenderer::setDepthFunc(IfritCompareOp depthFunc) {
+		context->depthFuncSaved = depthFunc;
+		if (context->optDepthTestEnableII) {
+			context->depthFunc = depthFunc;
+		}
+	}
 	void TileRasterRenderer::setBlendFunc(IfritColorAttachmentBlendState state) {
 		context->blendState = state;
 		const auto& bs = state;
@@ -211,7 +217,13 @@ namespace Ifrit::Engine::TileRaster {
 		context->optForceDeterministic = opt;
 	}
 	void TileRasterRenderer::optsetDepthTestEnable(bool opt) {
-		context->optDepthTestEnable = opt;
+		context->optDepthTestEnableII = opt;
+		if (!opt) {
+			context->depthFunc = IF_COMPARE_OP_ALWAYS;
+		}
+		else {
+			context->depthFunc = context->depthFuncSaved;
+		}
 	}
 	void TileRasterRenderer::resetWorkers() {
 		for (auto& worker : workers) {

@@ -1,3 +1,4 @@
+#ifdef IFRIT_FEATURE_CUDA
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "engine/math/ShaderOpsCuda.cuh"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
@@ -3267,3 +3268,4 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		}
 	}
 }
+#endif

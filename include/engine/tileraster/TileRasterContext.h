@@ -44,10 +44,12 @@ namespace Ifrit::Engine::TileRaster {
 		IfritColorAttachmentBlendState blendState;
 		AlphaBlendingCoefs blendColorCoefs;
 		AlphaBlendingCoefs blendAlphaCoefs;
+		IfritCompareOp depthFunc = IF_COMPARE_OP_LESS;
+		IfritCompareOp depthFuncSaved = IF_COMPARE_OP_LESS;
 
 		// Options
 		bool optForceDeterministic = true;
-		bool optDepthTestEnable = true;
+		bool optDepthTestEnableII = true;
 
 		// Geometry
 		std::vector<float> primitiveMinZ;

@@ -14,12 +14,16 @@ namespace Ifrit::Core::Data {
 	public:
 		Image() : width(0), height(0), channel(0) {}
 		Image(size_t width, size_t height, size_t channel, bool pinned) : width(width), height(height), channel(channel), isCudaPinned(pinned) {
+#ifdef IFRIT_FEATURE_CUDA
 			if (isCudaPinned) {
 				cudaMallocHost(&data, width * height * channel * sizeof(T));
 			}
 			else {
 				data = new T[width * height * channel];
 			}
+#else
+			data = new T[width * height * channel];
+#endif
 		}
 		Image(size_t width, size_t height, size_t channel) : width(width), height(height), channel(channel) {
 			data = new T[width * height * channel];
@@ -36,12 +40,16 @@ namespace Ifrit::Core::Data {
 	
 		~Image() {
 			if (data != nullptr) {
+#ifdef IFRIT_FEATURE_CUDA
 				if (isCudaPinned) {
 					cudaFreeHost(data);
 				}
 				else {
 					delete[] data;
 				}
+#else
+				delete[] data;
+#endif
 			}
 		}
 

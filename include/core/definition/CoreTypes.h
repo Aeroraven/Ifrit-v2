@@ -66,6 +66,6 @@ struct CoreMat4 {
 		return data[i];
 	}
 };
-template CoreMat4<float>;
+template struct CoreMat4<float>;
 
 #define float4x4 CoreMat4<float>

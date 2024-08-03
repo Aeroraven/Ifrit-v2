@@ -1,3 +1,4 @@
+#ifdef IFRIT_FEATURE_CUDA
 #include "IfritShaders.cuh"
 #include "core/cuda/CudaUtils.cuh"
 #include "engine/math/ShaderBuiltinCuda.cuh"
@@ -74,3 +75,4 @@ IFRIT_DUAL void DemoGeometryShaderCuda::execute(const ifloat4** inPos, const Ifr
 IFRIT_HOST Ifrit::Engine::GeometryShader* DemoGeometryShaderCuda::getCudaClone() { 
 	return  Ifrit::Core::CUDA::hostGetDeviceObjectCopy<DemoGeometryShaderCuda>(this);
 }
+#endif

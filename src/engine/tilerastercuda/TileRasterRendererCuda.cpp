@@ -1,3 +1,4 @@
+#ifdef IFRIT_FEATURE_CUDA
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
@@ -92,9 +93,12 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::setDepthFunc(IfritCompareOp depthFunc) {
 		ctxDepthFunc = depthFunc;
-		Invocation::setDepthFunc(depthFunc);
+		if (ctxDepthTestEnable) {
+			Invocation::setDepthFunc(depthFunc);
+		}
 	}
 	void TileRasterRendererCuda::setDepthTestEnable(bool option) {
+		ctxDepthTestEnable = option;
 		if (option) {
 			Invocation::setDepthFunc(ctxDepthFunc);
 		}
@@ -178,3 +182,4 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		currentBuffer = 1 - curBuffer;
 	}
 }
+#endif

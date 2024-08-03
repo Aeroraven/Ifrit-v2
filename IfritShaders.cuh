@@ -1,4 +1,5 @@
 #pragma once
+#ifdef IFRIT_FEATURE_CUDA
 #include "engine/base/Shaders.h"
 #include "engine/math/ShaderOpsCuda.cuh"
 #include "engine/math/ShaderBuiltin.h"
@@ -28,3 +29,4 @@ public:
 	);
 	IFRIT_HOST virtual GeometryShader* getCudaClone();
 };
+#endif

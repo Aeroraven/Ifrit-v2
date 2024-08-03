@@ -20,6 +20,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		bool initCudaContext = false;
 		// Depth Test
 		IfritCompareOp ctxDepthFunc = IF_COMPARE_OP_LESS;
+		bool ctxDepthTestEnable = true;
 		std::vector<ifloat4> ctxClearColors = { { 0.0f,0.0f,0.0f,0.0f } };
 		float ctxClearDepth = 1.0f;
 

@@ -1,3 +1,4 @@
+#ifdef IFRIT_FEATURE_CUDA
 #include "engine/tilerastercuda/TileRasterImageOpInvocationsCuda.cuh"
 #include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
 #include "engine/math/ShaderOpsCuda.cuh"
@@ -137,3 +138,4 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaDeviceSynchronize();
 	}
 }
+#endif

@@ -1,4 +1,5 @@
 #pragma once
+#ifdef IFRIT_FEATURE_CUDA
 #include "core/definition/CoreExports.h"
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
@@ -15,3 +16,4 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	extern int hsTextureMipLevels[CU_MAX_TEXTURE_SLOTS];
 	extern IfritSamplerT hsSampler[CU_MAX_SAMPLER_SLOTS];
 }
+#endif

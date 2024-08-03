@@ -1,5 +1,5 @@
 #pragma once
-
+#ifdef IFRIT_FEATURE_CUDA
 #include "core/definition/CoreDefs.h"
 #include "core/cuda/CudaUtils.cuh"
 #include "engine/base/TypeDescriptor.h"
@@ -60,3 +60,4 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void setBlendFunc(IfritColorAttachmentBlendState blendState);
 	void setDepthFunc(IfritCompareOp depthFunc);
 }
+#endif
