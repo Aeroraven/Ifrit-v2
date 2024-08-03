@@ -120,36 +120,76 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 
 ## Dependencies
 
-- Hardware Requirements:
-  - SSE
-  - AVX2
-  - CUDA 12.4
-- Presentation Dependencies:
-	- Terminal (Windows Terminal)
-	- OpenGL 3.3
-	- GLFW 3.3
-	- GLAD
-- Compile Dependencies:
-	- <s>CMake 3.28</s>
-	- MSVC (Visual Studio 2022)
-		- <s>C++17 is required</s>
-		- C++20 is required (since commit `342a9d3e82a2873f5e5e5e7b4c42145fdc83a5b6`)
-	- NVCC
+#### Minimum Requirement
+
+- **Display Dependencies**: 
+  - OpenGL (GLFW3.3 + GLAD)
+- **Compilation Dependencies:** One of following environments. Requires `c++20` support.
+  - MSVC 19.29 + Visual Studio 2022 
+  - CMake 3.28 + GCC 13.2 (MinGW Included) `[CUDA Support is unknown]`
+
+#### Recommend Requirement
+
+- **Hardware Requirements:**  
+  - CUDA 12.4 Supports
+  - AVX2 Support
+- **Display Dependencies**: 
+  - OpenGL (GLFW3.3 + GLAD)
+- **Compilation Dependencies:** Requires `c++20` support.
+  - MSVC 19.29 + Visual Studio 2022 
 
 
 
-## Setup
+## Setup / Run
+
+#### Dependency Installation
 
 Some dependencies should be prepared before compiling.
 
 - Place `GLAD` dependency in `include\dependency\GLAD\glad\glad.h` and `include\dependency\GLAD\KHR\khrplatform.h`
 - Place `sbt_image` in `include\dependency\sbt_image.h`
 
+Change CUDA path and GLFW3 library path in `CMakeLists.txt` 
+
+
+
+#### Compile using GCC 
+
+Follow instructions to build
+
+```cmake
+cmake -S . -B ./build
+cd build
+make
+```
+
+
+
+#### Compile using MinGW
+
+Follow instructions to build
+
+```
+cmake -S . -B ./build -G "MinGW Makefiles"
+cd build
+mingw32-make
+```
+
+
+
+#### Compile using Visual Studio 2022 (MSVC)
+
+Directly open `Ifrit-v2x.sln` in Visual Studio 2022.
+
+Edit the property sheet to help the linker find CUDA and GLFW3 library file. Then press `F5`
+
+
+
 
 
 ## Abstractions / Usage
 
-See `docs.md` for more details.
+See `DOCS.md` for more details.
 
 
 
@@ -160,7 +200,6 @@ See `docs.md` for more details.
 - <s>Line Mode</s>
 
 - <s>Texture LOD & Texture Sampler</s>
-  
   - <s>Shader Derivatives</s>
   - Anisotropic Filtering
   - Dynamic LOD Selection & Texture Bias
