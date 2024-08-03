@@ -259,7 +259,7 @@ int mainGpu() {
 	IfritImageCreateInfo imageCI;
 	imageCI.extent.height = texFoxH;
 	imageCI.extent.width = texFoxW;
-	imageCI.mipLevels = 2;
+	imageCI.mipLevels = 5;
 	renderer->createTextureRaw(0, imageCI, texFox.data());
 	renderer->generateMipmap(0, IF_FILTER_LINEAR);
 
@@ -282,7 +282,7 @@ int mainGpu() {
 	auto dGeometryShader = geometryShader.getCudaClone();
 	renderer->bindFragmentShader(dFragmentShader);
 	renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
-	renderer->bindGeometryShader(dGeometryShader);
+	//renderer->bindGeometryShader(dGeometryShader);
 	//renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_LINE);
 
 	IfritSamplerT sampler;
@@ -293,7 +293,7 @@ int mainGpu() {
 	renderer->createSampler(0, sampler);
 
 	IfritColorAttachmentBlendState blendState;
-	blendState.blendEnable = true;
+	blendState.blendEnable = false;
 	blendState.srcColorBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
 	blendState.dstColorBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 	blendState.srcAlphaBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
@@ -329,5 +329,10 @@ int mainGpu() {
 #endif
 
 int main() {
+#ifdef IFRIT_FEATURE_CUDA
+	return mainGpu();
+#else
 	return mainCpu();
+#endif
+
 }

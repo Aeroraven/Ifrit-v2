@@ -29,23 +29,22 @@ IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
 
 IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* colorOutput) {
 	using Ifrit::Engine::Math::ShaderOps::CUDA::abs;
-	auto result = isbcuReadPsVarying(varyings,0);
+	auto result = isbcuReadPsVarying(varyings,1);
 	auto& co = isbcuReadPsColorOut(colorOutput, 0);
-	//auto dco = isbcuSampleTexLod(0, 0, float2( result.x, 1.0f - result.y ),0); 
+	auto dco = isbcuSampleTexLod(0, 0, float2( result.x, 1.0f - result.y ),2.5f); 
 	auto ddxv = result;
 	auto ddyv = result;
 
-	
+	/*
 	co.x = result.x * 0.5 + 0.5;
 	co.y = result.y * 0.5 + 0.5;
 	co.z = result.z * 0.5 + 0.5;
-	co.w = result.w * 0.5 + 0.5;
+	co.w = result.w * 0.5 + 0.5;*/
 
-	/*
 	co.x = dco.x;
 	co.y = dco.y;
 	co.z = dco.z;
-	co.w = 0.0;*/
+	co.w = 0.0;
 	//printf("%f %f %f %f\n", result.x, result.y, result.z, result.w);
 }
 
