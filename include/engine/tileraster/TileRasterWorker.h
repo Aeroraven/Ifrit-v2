@@ -11,6 +11,13 @@ namespace Ifrit::Engine::TileRaster {
 		int vertexReferences[3];
 	};
 
+	struct PixelShadingFuncArgs {
+		ImageF32* depthAttachmentPtr;
+		int varyingCounts;
+		ImageF32* colorAttachment0;
+		const int* indexBufferPtr;
+	};
+
 	class TileRasterWorker {
 	protected:
 		std::atomic<TileRasterStage> status;
@@ -62,13 +69,13 @@ namespace Ifrit::Engine::TileRaster {
 		void getVaryingsAddr(const int id,std::vector<VaryingStore*>& out)IFRIT_AP_NOTHROW ;
 
 		template<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>
-		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
+		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
 		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>
-		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
+		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 		
 		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>
-		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy) IFRIT_AP_NOTHROW;
+		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
 		inline float edgeFunction(ifloat4 a, ifloat4 b, ifloat4 c) {
 			return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
