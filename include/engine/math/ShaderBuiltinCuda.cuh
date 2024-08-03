@@ -141,8 +141,15 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		return lerp(texcLow, texcHigh, lodDiff);
 	}
 
-	IFRIT_DUAL inline float4 textureImplDynLod(const IfritSamplerT& sampler, const float4* texData,
-		const int& texOw, const int& texOh, const float2& uv, const int2& offset) {
+	IFRIT_DUAL inline float4 textureImplAdaptiveLod(const IfritSamplerT& sampler, const float4* texData,
+		const int& texOw, const int& texOh, const float2& uv, const float2& dx, const float2& dy, const float lodBias, const int2& offset) {
+		const float2 dxI = { dx.x * texOw,dx.y * texOh };
+		const float2 dyI = { dy.x * texOw,dx.y * texOh };
+		const auto dxI2 = dxI.x * dxI.x + dxI.y * dxI.y;
+		const auto dyI2 = dyI.x * dyI.x + dyI.y * dyI.y;
+		const auto d = max(dxI2, dyI2);
+		const auto lod = max(0.0f, 0.5f * log2(d) + lodBias);
+		return textureImplLod(sampler, texData, texOw, texOh, uv, offset, lod);
 	}
 
 	IFRIT_DUAL inline float4 pixelDfDx_s256(const ifloat4s256* varyings, int varyId) {
@@ -162,9 +169,22 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		return float4{ 1.0f,0.0f,0.0f,0.0f };
 #endif
 	}
+
+	IFRIT_DUAL inline float4 textureImplAdaptiveLodFromAttr(const IfritSamplerT& sampler, const float4* texData,
+		const int& texOw, const int& texOh, const float lodBias, const int2& offset, const ifloat4s256* varyings, int varyId) {
+		auto uvRaw = ((const ifloat4s256*)(varyings))[varyId];
+		float2 uv = { uvRaw.x,uvRaw.y };
+		auto dx = pixelDfDx_s256(varyings, varyId);
+		auto dy = pixelDfDy_s256(varyings, varyId);
+		float2 ndx = { dx.x, dx.y };
+		float2 ndy = { dy.x, dy.y };
+		return textureImplAdaptiveLod(sampler, texData, texOw, texOh, uv, ndx, ndy, lodBias, offset);
+	}
 }
 
-#define isbcuSampleTex(sampler,texture,uv) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImpl(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(uv),{0,0},0))
+//#define isbcuSampleTex(sampler,texture,uv) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImpl(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(uv),{0,0},0))
+#define isbcuSampleTexAttr(sampler,texture,vary,varyId,bias) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImplAdaptiveLodFromAttr(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(bias),{0,0},((const ifloat4s256*)(vary)),(varyId)))
+#define isbcuSampleTexAttr1(sampler,texture,vary,varyId,bias,offset) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImplAdaptiveLodFromAttr(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(bias),(offset),((const ifloat4s256*)(vary)),(varyId)))
 #define isbcuSampleTexLod(sampler,texture,uv,lod) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImplLod(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(uv),{0,0},(lod)))
 #define isbcuReadPsVarying(x,y)  ((const ifloat4s256*)(x))[(y)]
 #define isbcuReadPsColorOut(x,y)  ((ifloat4s256*)(x))[(y)]

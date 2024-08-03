@@ -30,7 +30,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Feature                           | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | --------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
 | **Basic**                         |                                                              |                 |               |
-| Rendering Order                   | √                                                            | √ ▲             | √ ▲ (4)       |
+| Rendering Order                   | √                                                            | √               | √ ▲ (4)       |
 | **Performance**                   |                                                              |                 |               |
 | SIMD Instructions / SIMT          |                                                              | √               | √             |
 | Overlapped Memory Transfer        |                                                              |                 | √             |
@@ -60,6 +60,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Mipmap                            |                                                              |                 | √             |
 | Filter                            |                                                              |                 | √             |
 | Sampler Address Mode              |                                                              |                 | √             |
+| LOD Bias                          |                                                              |                 | √ ▲           |
 | **Presentation**                  |                                                              |                 |               |
 | Terminal ASCII                    |                                                              | √               | √             |
 | Terminal Color                    |                                                              | √               | √             |

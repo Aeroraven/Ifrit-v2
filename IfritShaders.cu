@@ -21,6 +21,7 @@ IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4*
 	*outPos = p;
 	outVaryings[0]->vf4 = isbReadFloat4(input[1]);
 	outVaryings[1]->vf4 = isbReadFloat4(input[2]);
+	outVaryings[1]->vf4.y = 1.0f - outVaryings[1]->vf4.y;
 }
 
 IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
@@ -31,7 +32,8 @@ IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* col
 	using Ifrit::Engine::Math::ShaderOps::CUDA::abs;
 	auto result = isbcuReadPsVarying(varyings,1);
 	auto& co = isbcuReadPsColorOut(colorOutput, 0);
-	auto dco = isbcuSampleTexLod(0, 0, float2( result.x, 1.0f - result.y ),2.5f); 
+	//auto dco = isbcuSampleTexLod(0, 0, float2( result.x, 1.0f - result.y ),2.5f); 
+	auto dco = isbcuSampleTexAttr(0, 0, varyings, 1, 0);
 	auto ddxv = result;
 	auto ddyv = result;
 
