@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
-project(Ifrit-v2 LANGUAGES CXX CUDA)
+project(Ifrit-v2 LANGUAGES CXX)
 
-set(IFRIT_ENABLE_CUDA True)
+set(IFRIT_ENABLE_CUDA False)
 set(IFRIT_ENABLE_SIMD_AVX True)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -37,9 +37,18 @@ if(IFRIT_ENABLE_CUDA)
     add_definitions(-DIFRIT_FEATURE_CUDA)
 endif()
 
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    
+else()
+    add_compile_options(-mfma)
+    add_compile_options(-mavx2)
+    message("Add compiler flag: -mfma -mavx2")
+endif()
+
 set(glfw3_DIR ${IFRIT_REQ_GLFW3_BASE}/lib/cmake/glfw3/)
 set(glfw3_LIB ${IFRIT_REQ_GLFW3_BASE}/lib/glfw3.lib)
-find_package(glfw3 3.3 REQUIRED)
+#find_package(glfw3 3.3 REQUIRED)
 
 file(GLOB_RECURSE SOURCE_0 "include/*.h")
 file(GLOB_RECURSE SOURCE_1 "src/*.cpp")
@@ -47,8 +56,8 @@ file(GLOB_RECURSE SOURCE_1B "src/*.c")
 file(GLOB_RECURSE SOURCE_1C "src/*.cu")
 file(GLOB_RECURSE SOURCE_2 "include/external_ref/*.h")
 
-file(GLOB SOURCE_STAGES "demo/*.cpp")
-file(GLOB SOURCE_STAGES_CUDA "demo/*.cu")
+file(GLOB SOURCE_STAGES "./*.cpp")
+file(GLOB SOURCE_STAGES_CUDA "./*.cu")
 
 include_directories(include)
 include_directories(${IFRIT_REQ_GLFW3_BASE}/include)

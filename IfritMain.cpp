@@ -16,15 +16,17 @@
 
 using namespace std;
 using namespace Ifrit::Core::Data;
-using namespace Ifrit::Core::CUDA;
+
 using namespace Ifrit::Engine::TileRaster;
 using namespace Ifrit::Utility::Loader;
 using namespace Ifrit::Engine::Math::ShaderOps;
-using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
 using namespace Ifrit::Presentation::Window;
 using namespace Ifrit::Presentation::Backend;
+#ifdef IFRIT_FEATURE_CUDA
 using namespace Ifrit::Engine::TileRaster::CUDA;
-
+using namespace Ifrit::Core::CUDA;
+using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+#endif
 enum PresentEngine {
 	PE_GLFW,
 	PE_CONSOLE
@@ -189,6 +191,7 @@ int mainCpu() {
 	return 0;
 }
 
+#ifdef IFRIT_FEATURE_CUDA
 int mainGpu() {
 
 	WavefrontLoader loader;
@@ -323,6 +326,7 @@ int mainGpu() {
 	});
 	return 0;
 }
+#endif
 
 int main() {
 	return mainCpu();

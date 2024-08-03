@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <memory>
 #include <cstdlib>
 #include <iostream>
@@ -51,6 +52,11 @@
 	#define IFRIT_CXX17_ENABLED 1
 #endif
 #ifndef _HAS_CXX17
+	#if __cplusplus >= 201703L
+		#define IFRIT_CXX17_ENABLED 1
+	#endif
+#endif
+#ifndef IFRIT_CXX17_ENABLED
 	static_assert(false, "App requires C++17 or higher")
 #endif
 
