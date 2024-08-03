@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(Ifrit-v2 LANGUAGES CXX)
+project(Ifrit-v2 LANGUAGES CXX C)
 
 set(IFRIT_ENABLE_CUDA False)
 set(IFRIT_ENABLE_SIMD_AVX True)
@@ -43,6 +43,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 else()
     add_compile_options(-mfma)
     add_compile_options(-mavx2)
+    add_compile_options(-lglfw3)
+    add_compile_options(-lopengl32)
+    add_compile_options(-lgdi32)
     message("Add compiler flag: -mfma -mavx2")
 endif()
 
