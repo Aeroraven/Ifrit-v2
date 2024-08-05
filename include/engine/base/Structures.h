@@ -19,9 +19,11 @@ namespace Ifrit::Engine {
 		IfritExtent3D extent;
 		IfritImageTiling tilingMode = IF_IMAGE_TILING_LINEAR;
 		uint32_t mipLevels = 0;
+		uint32_t arrayLayers = 1;
 	};
 	struct IfritImageSubresourceLayers {
 		uint32_t mipLevel = 0;
+		uint32_t baseArrayLayer = 0;
 	};
 	struct IfritImageBlit {
 		IfritImageSubresourceLayers srcSubresource;

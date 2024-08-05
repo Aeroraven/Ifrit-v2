@@ -74,18 +74,19 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 	}
 
 	namespace TextureSampleImpl {
-		IFRIT_DUAL inline int textureLodPtroffImpl(const int& texW, const int& texH, const int& lod) {
+		IFRIT_DUAL inline int textureLodPtroffImpl(int texW, int texH, int texLayers, int lod) {
 			int off = 0, w = texW, h = texH;
 			for (int i = 0; i < lod; i++) {
-				off += w * h;
+				off += w * h * texLayers;
 				w = (w + 1) >> 1;
 				h = (h + 1) >> 1;
 			}
 			return off;
 		}
 		IFRIT_DUAL inline float4 textureImplLegacy(const IfritSamplerT& sampler, const float4* texData,
-			const int& texOw, const int& texOh, const float2& uv, const int2& offset, int lod) {
-			int lodoff = textureLodPtroffImpl(texOw, texOh, lod);
+			int texOw, int texOh, int texLayers, const float2& uv, const int2& offset, int lod) {
+			
+			int lodoff = textureLodPtroffImpl(texOw, texOh, texLayers, lod);
 			int texW = IFRIT_InvoCeilRshift(texOw, lod);
 			int texH = IFRIT_InvoCeilRshift(texOh, lod);
 			float cX = uv.x * (texW - 1) + offset.x;
@@ -161,26 +162,28 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		}
 
 		IFRIT_DUAL inline float4 textureImplLod(const IfritSamplerT& sampler, const float4* texData,
-			const int& texOw, const int& texOh, const float2& uv, const int2& offset, const float lod) {
+			int texOw, int texOh, int texLayers, const float2& uv, const int2& offset, const float lod) {
+			
 			int lodLow = floor(lod);
 			auto lodDiff = lod - lodLow;
-			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, uv, offset, lodLow);
-			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, uv, offset, lodLow + 1);
+			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, offset, lodLow);
+			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, offset, lodLow + 1);
 			return lerp(texcLow, texcHigh, lodDiff);
 		}
 
 		IFRIT_DUAL inline float4 textureImplAdaptiveLod(const IfritSamplerT& sampler, const float4* texData,
-			const int& texOw, const int& texOh, const float2& uv, const float2& dx, const float2& dy, const float lodBias, const int2& offset) {
+			int texOw, int texOh,int texLayers, const float2& uv, const float2& dx, const float2& dy, float lodBias, const int2& offset) {
+			
 			const float2 dxI = { dx.x * texOw,dx.y * texOh };
 			const float2 dyI = { dy.x * texOw,dx.y * texOh };
 			const auto dxI2 = dxI.x * dxI.x + dxI.y * dxI.y;
 			const auto dyI2 = dyI.x * dyI.x + dyI.y * dyI.y;
 			const auto d = max(dxI2, dyI2);
 			const auto lod = max(0.0f, 0.5f * log2(d) + lodBias);
-			return textureImplLod(sampler, texData, texOw, texOh, uv, offset, lod);
+			return textureImplLod(sampler, texData, texOw, texOh, texLayers, uv, offset, lod);
 		}
 		IFRIT_DUAL inline float4 textureImplAnisotropicFilter(const IfritSamplerT& sampler, const float4* texData,
-			int texOw, int texOh, int maxAniso, const float2& uv, const float2& du, const float2& dv, float lodBias, const int2& offset) {
+			int texOw, int texOh, int texLayers, int maxAniso, const float2& uv, const float2& du, const float2& dv, float lodBias, const int2& offset) {
 			//TODO: Pixel size
 			auto dudx = du.x, dudy = du.y, dvdx = dv.x, dvdy = dv.y;
 			auto px = sqrt(dudx * dudx + dvdx * dvdx) * texOw;
@@ -195,7 +198,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 				float2 uv2;
 				uv2.x = uv.x + ddu * (1.0f * i / (n + 1) - 0.5f);
 				uv2.y = uv.y + ddv * (1.0f * i / (n + 1) - 0.5f);
-				auto res = textureImplLod(sampler, texData, texOw, texOh, uv2, offset, lambda + lodBias);
+				auto res = textureImplLod(sampler, texData, texOw, texOh, texLayers, uv2, offset, lambda + lodBias);
 				sumAniso.x += res.x;
 				sumAniso.y += res.y;
 				sumAniso.z += res.z;
@@ -209,24 +212,25 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		}
 
 		IFRIT_DUAL inline float4 textureImplAdaptiveLodFromAttr(const IfritSamplerT& sampler, const float4* texData,
-			const int& texOw, const int& texOh, const float lodBias, const int2& offset, const ifloat4s256* varyings, int varyId) {
+			int texOw, int texOh, int texLayers, const float lodBias, const int2& offset, const ifloat4s256* varyings, int varyId) {
+			
 			auto uvRaw = ((const ifloat4s256*)(varyings))[varyId];
 			float2 uv = { uvRaw.x,uvRaw.y };
 			auto dx = pixelDfDx_s256(varyings, varyId);
 			auto dy = pixelDfDy_s256(varyings, varyId);
 			float2 ndx = { dx.x, dx.y };
 			float2 ndy = { dy.x, dy.y };
-			return textureImplAdaptiveLod(sampler, texData, texOw, texOh, uv, ndx, ndy, lodBias, offset);
+			return textureImplAdaptiveLod(sampler, texData, texOw, texOh, texLayers, uv, ndx, ndy, lodBias, offset);
 		}
 		IFRIT_DUAL inline float4 textureImplAnisotropicFilterFromAttr(const IfritSamplerT& sampler, const float4* texData,
-			int texOw, int texOh, float maxAniso, float lodBias, const int2& offset, const ifloat4s256* varyings, int varyId) {
+			int texOw, int texOh, int texLayers, float maxAniso, float lodBias, const int2& offset, const ifloat4s256* varyings, int varyId) {
 			auto uvRaw = ((const ifloat4s256*)(varyings))[varyId];
 			float2 uv = { uvRaw.x,uvRaw.y };
 			auto dx = pixelDfDx_s256(varyings, varyId);
 			auto dy = pixelDfDy_s256(varyings, varyId);
 			float2 ndx = { dx.x, dx.y };
 			float2 ndy = { dy.x, dy.y };
-			return textureImplAnisotropicFilter(sampler, texData, texOw, texOh, maxAniso, uv, ndx, ndy, lodBias, offset);
+			return textureImplAnisotropicFilter(sampler, texData, texOw, texOh, texLayers, maxAniso, uv, ndx, ndy, lodBias, offset);
 		}
 	}
 	
@@ -240,7 +244,8 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
 		auto pWidth = Impl::csTextureWidth[tex];
-		return TextureSampleImpl::textureImplLod(pSamplerState, pTexture, pWidth, pHeight, uv, { 0,0 }, lod);
+		auto pLayers = Impl::csTextureArrayLayers[tex];
+		return TextureSampleImpl::textureImplLod(pSamplerState, pTexture, pWidth, pHeight, pLayers, uv, { 0,0 }, lod);
 #endif
 	}
 	
@@ -254,7 +259,8 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
 		auto pWidth = Impl::csTextureWidth[tex];
-		return TextureSampleImpl::textureImplLod(pSamplerState, pTexture, pWidth, pHeight, uv, offset, lod);
+		auto pLayers = Impl::csTextureArrayLayers[tex];
+		return TextureSampleImpl::textureImplLod(pSamplerState, pTexture, pWidth, pHeight,pLayers, uv, offset, lod);
 #endif
 	}
 	
@@ -268,7 +274,8 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
 		auto pWidth = Impl::csTextureWidth[tex];
-		return TextureSampleImpl::textureImplAdaptiveLod(pSamplerState, pTexture, pWidth, pHeight, uv, dPdx, dPdy, 0.0f, { 0,0 });
+		auto pLayers = Impl::csTextureArrayLayers[tex];
+		return TextureSampleImpl::textureImplAdaptiveLod(pSamplerState, pTexture, pWidth, pHeight,pLayers, uv, dPdx, dPdy, 0.0f, { 0,0 });
 #endif
 	}
 
@@ -282,7 +289,8 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
 		auto pWidth = Impl::csTextureWidth[tex];
-		return TextureSampleImpl::textureImplAdaptiveLod(pSamplerState, pTexture, pWidth, pHeight, uv, dPdx, dPdy, 0.0f, offset);
+		auto pLayers = Impl::csTextureArrayLayers[tex];
+		return TextureSampleImpl::textureImplAdaptiveLod(pSamplerState, pTexture, pWidth, pHeight, pLayers, uv, dPdx, dPdy, 0.0f, offset);
 #endif
 	}
 
@@ -296,12 +304,14 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
 		auto pWidth = Impl::csTextureWidth[tex];
+		auto pLayers = Impl::csTextureArrayLayers[tex];
 		if (pSamplerState.anisotropyEnable) {
-			return  TextureSampleImpl::textureImplAnisotropicFilterFromAttr(pSamplerState, pTexture, pWidth, pHeight,
+			return  TextureSampleImpl::textureImplAnisotropicFilterFromAttr(pSamplerState, pTexture, pWidth, pHeight,pLayers,
 				pSamplerState.maxAnisotropy, bias, { 0,0 }, var, uv);
 		}
 		else {
-			return TextureSampleImpl::textureImplAdaptiveLodFromAttr(pSamplerState, pTexture, pWidth, pHeight, bias, { 0,0 }, var, uv);
+			return TextureSampleImpl::textureImplAdaptiveLodFromAttr(pSamplerState, pTexture, pWidth, pHeight, pLayers,
+				bias, { 0,0 }, var, uv);
 		}
 #endif
 	}

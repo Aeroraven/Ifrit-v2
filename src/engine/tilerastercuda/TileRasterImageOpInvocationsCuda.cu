@@ -66,17 +66,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void invokeBlitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter) {
-		auto getMipLvlOffset = [&](int slotId, int mipLevel) {
+		auto getMipLvlOffset = [&](int slotId, int mipLevel,int totalLayers,int dstLayers) {
 			int baseOff = 0;
 			int bw = Impl::hsTextureWidth[slotId];
 			int bh = Impl::hsTextureHeight[slotId];
 			for (int i = 0; i < mipLevel; i++) {
-				baseOff += bw * bh;
+				baseOff += bw * bh * totalLayers;
 				bw = (bw + 1) >> 1;
 				bh = (bh + 1) >> 1;
 			}
+			baseOff += bw * bh * dstLayers;
 			return baseOff;
 		};
+		auto dstTotalLayers = Impl::hsTextureArrayLayers[dstSlotId];
+		auto srcTotalLayers = Impl::hsTextureArrayLayers[srcSlotId];
 		Impl::BlitImageKernelArgs blitArgs;
 		blitArgs.dstCx = region.dstExtentSt.width;
 		blitArgs.dstCy = region.dstExtentSt.height;
@@ -88,11 +91,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		blitArgs.srcDy = region.srcExtentEd.height;
 		blitArgs.dstHei = IFRIT_InvoCeilRshift(Impl::hsTextureHeight[dstSlotId], region.dstSubresource.mipLevel);
 		blitArgs.dstWid = IFRIT_InvoCeilRshift(Impl::hsTextureWidth[dstSlotId], region.dstSubresource.mipLevel);
-		blitArgs.dstOff = getMipLvlOffset(dstSlotId, region.dstSubresource.mipLevel);
+		blitArgs.dstOff = getMipLvlOffset(dstSlotId, region.dstSubresource.mipLevel, dstTotalLayers, region.dstSubresource.baseArrayLayer);
 		blitArgs.dstId = dstSlotId;
 		blitArgs.srcHei = IFRIT_InvoCeilRshift(Impl::hsTextureHeight[srcSlotId], region.srcSubresource.mipLevel);
 		blitArgs.srcWid = IFRIT_InvoCeilRshift(Impl::hsTextureWidth[srcSlotId], region.srcSubresource.mipLevel);
-		blitArgs.srcOff = getMipLvlOffset(srcSlotId, region.srcSubresource.mipLevel);
+		blitArgs.srcOff = getMipLvlOffset(srcSlotId, region.srcSubresource.mipLevel, srcTotalLayers, region.dstSubresource.baseArrayLayer);
 		blitArgs.srcId = srcSlotId;
 		int dw = blitArgs.dstDx - blitArgs.dstCx;
 		int dh = blitArgs.dstDy - blitArgs.dstCy;
@@ -109,6 +112,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	}
 	void invokeMipmapGeneration(int slotId, IfritFilter filter) {
 		int totalMipLevels = Impl::hsTextureMipLevels[slotId];
+		int totalArrLayers = Impl::hsTextureArrayLayers[slotId];
 		uint32_t wid = Impl::hsTextureWidth[slotId];
 		uint32_t hei = Impl::hsTextureHeight[slotId];
 		IfritImageBlit region;
@@ -121,7 +125,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 			region.dstExtentEd = { nw,nh,0 };
 			region.srcSubresource.mipLevel = i;
 			region.dstSubresource.mipLevel = i + 1;
-			invokeBlitImage(slotId, slotId, region, filter);
+			for (int j = 0; j < totalArrLayers; j++) {
+				region.srcSubresource.baseArrayLayer = j;
+				region.dstSubresource.baseArrayLayer = j;
+				invokeBlitImage(slotId, slotId, region, filter);
+			}
 			wid = nw;
 			hei = nh;
 		}

@@ -33,7 +33,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE_CONST int csTextureWidth[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST int csTextureHeight[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST int csTextureMipLevels[CU_MAX_TEXTURE_SLOTS];
-	IFRIT_DEVICE_CONST int csTextureAnisotropicLevel[CU_MAX_TEXTURE_SLOTS];
+	IFRIT_DEVICE_CONST int csTextureArrayLayers[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST IfritSamplerT csSamplers[CU_MAX_SAMPLER_SLOTS];
 
 	static IfritColorAttachmentBlendState hsBlendState;
@@ -51,7 +51,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	int hsTextureWidth[CU_MAX_TEXTURE_SLOTS];
 	int hsTextureHeight[CU_MAX_TEXTURE_SLOTS];
 	int hsTextureMipLevels[CU_MAX_TEXTURE_SLOTS];
-	int hsTextureAnisotropicLevel[CU_MAX_TEXTURE_SLOTS];
+	int hsTextureArrayLayers[CU_MAX_TEXTURE_SLOTS];
 	IfritSamplerT hsSampler[CU_MAX_SAMPLER_SLOTS];
 	
 	IFRIT_DEVICE static uint32_t dCoverQueueFullM2Buffer[CU_ALTERNATIVE_BUFFER_SIZE];
@@ -2974,23 +2974,27 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		void* devicePtr;
 		auto texWid = createInfo.extent.width;
 		auto texHeight = createInfo.extent.height;
+		auto texArrLayers = createInfo.arrayLayers;
 		auto texLodSizes = 0;
 		auto texLodWid = texWid, texLodHeight = texHeight;
 		for (int i = 0; i < createInfo.mipLevels; i++) {
 			texLodWid = (texLodWid + 1) >> 1;
 			texLodHeight = (texLodHeight + 1) >> 1;
-			texLodSizes += (texLodWid * texLodHeight);
+			texLodSizes += (texLodWid * texLodHeight * texArrLayers);
 		}
-		cudaMalloc(&devicePtr, (texWid * texHeight + texLodSizes) * 4 * sizeof(float));
+		cudaMalloc(&devicePtr, (texWid * texHeight * texArrLayers + texLodSizes) * 4 * sizeof(float));
 		cudaMemcpy(devicePtr, data, texWid * texHeight * 4 * sizeof(float), cudaMemcpyHostToDevice);
 		cudaDeviceSynchronize();
 		Impl::hsTextures[texId] = (float*)devicePtr;
 		Impl::hsTextureHeight[texId] = texHeight;
 		Impl::hsTextureWidth[texId] = texWid;
 		Impl::hsTextureMipLevels[texId] = createInfo.mipLevels;
+		Impl::hsTextureArrayLayers[texId] = createInfo.arrayLayers;
+
 		cudaMemcpyToSymbol(Impl::csTextures, &Impl::hsTextures[texId], sizeof(float*), sizeof(float*) * texId);
 		cudaMemcpyToSymbol(Impl::csTextureHeight, &Impl::hsTextureHeight[texId], sizeof(int), sizeof(int) * texId);
 		cudaMemcpyToSymbol(Impl::csTextureMipLevels, &Impl::hsTextureMipLevels[texId], sizeof(int), sizeof(int) * texId);
+		cudaMemcpyToSymbol(Impl::csTextureArrayLayers, &Impl::hsTextureArrayLayers[texId], sizeof(int), sizeof(int) * texId);
 		cudaMemcpyToSymbol(Impl::csTextureWidth, &Impl::hsTextureWidth[texId], sizeof(int), sizeof(int)*texId);
 	}
 	void createSampler(uint32_t slotId, const IfritSamplerT& samplerState) {
