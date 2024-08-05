@@ -30,7 +30,7 @@
 #include <thread>
 #include <any>
 
-#ifdef _HAS_CXX23
+#if _HAS_CXX23
 	#define IFRIT_CXX23_ENABLED 1
 #endif
 #ifndef _HAS_CXX23
@@ -39,7 +39,7 @@
 	#endif
 #endif
 
-#ifdef _HAS_CXX20
+#if _HAS_CXX20
 	#define IFRIT_CXX20_ENABLED 1
 #endif
 #ifndef _HAS_CXX20
@@ -48,7 +48,7 @@
 	#endif
 #endif
 
-#ifdef _HAS_CXX17
+#if _HAS_CXX17
 	#define IFRIT_CXX17_ENABLED 1
 #endif
 #ifndef _HAS_CXX17

@@ -12,6 +12,8 @@ namespace Ifrit::Engine {
 		IfritSamplerAddressMode addressModeV = IF_SAMPLER_ADDRESS_MODE_REPEAT;
 		IfritSamplerAddressMode addressModeW = IF_SAMPLER_ADDRESS_MODE_REPEAT;
 		IfritBorderColor borderColor = IF_BORDER_COLOR_BLACK;
+		bool anisotropyEnable = false;
+		float maxAnisotropy = 1.0f;
 	};
 	struct IfritImageCreateInfo {
 		IfritExtent3D extent;

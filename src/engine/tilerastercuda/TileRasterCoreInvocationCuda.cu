@@ -33,6 +33,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE_CONST int csTextureWidth[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST int csTextureHeight[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST int csTextureMipLevels[CU_MAX_TEXTURE_SLOTS];
+	IFRIT_DEVICE_CONST int csTextureAnisotropicLevel[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST IfritSamplerT csSamplers[CU_MAX_SAMPLER_SLOTS];
 
 	static IfritColorAttachmentBlendState hsBlendState;
@@ -50,6 +51,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	int hsTextureWidth[CU_MAX_TEXTURE_SLOTS];
 	int hsTextureHeight[CU_MAX_TEXTURE_SLOTS];
 	int hsTextureMipLevels[CU_MAX_TEXTURE_SLOTS];
+	int hsTextureAnisotropicLevel[CU_MAX_TEXTURE_SLOTS];
 	IfritSamplerT hsSampler[CU_MAX_SAMPLER_SLOTS];
 	
 	IFRIT_DEVICE static uint32_t dCoverQueueFullM2Buffer[CU_ALTERNATIVE_BUFFER_SIZE];

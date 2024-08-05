@@ -1,4 +1,5 @@
 #pragma once
+#ifdef IFRIT_FEATURE_CUDA
 #include "core/definition/CoreDefs.h"
 #include "core/cuda/CudaUtils.cuh"
 #include "engine/tileraster/TileRasterCommon.h"
@@ -19,3 +20,4 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		float4* dVaryingBufferM2;
 	};
 }
+#endif

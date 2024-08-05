@@ -227,16 +227,16 @@ int mainGpu() {
 		indexBuffer[i / 3] = index[i];
 	}
 	
-	/*
+	
 	vertexBuffer.setVertexCount(4);
 	vertexBuffer.allocateBuffer(4);
 	//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
 	//vertexBuffer.setValue(1, 0, ifloat4(0.0000,0.3294,-0.1037,-0.0037));
 	//vertexBuffer.setValue(2, 0, ifloat4(0.0000,0.3487,-0.0971,-0.0028));
-	vertexBuffer.setValue(0, 0, ifloat4(-0.5, 0.5, -0.1, 1));
-	vertexBuffer.setValue(1, 0, ifloat4(-0.5, -0.5, -0.1, 1));
-	vertexBuffer.setValue(2, 0, ifloat4(0.5, -0.5, -0.1, 1));
-	vertexBuffer.setValue(3, 0, ifloat4(0.5, 0.5, -0.1, 1));
+	vertexBuffer.setValue(0, 0, ifloat4(-3.5, 0.0, 25.5, 1));
+	vertexBuffer.setValue(1, 0, ifloat4(-3.5, 0.0, -0.5, 1));
+	vertexBuffer.setValue(2, 0, ifloat4(3.5, 0.0, -0.5, 1));
+	vertexBuffer.setValue(3, 0, ifloat4(3.5, 0.0, 25.5, 1));
 	vertexBuffer.setValue(0, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(1, 1, ifloat4(0.1, 0, 0.1, 0));
 	vertexBuffer.setValue(2, 1, ifloat4(0.1, 0, 0.1, 0));
@@ -246,7 +246,7 @@ int mainGpu() {
 	vertexBuffer.setValue(1, 2, ifloat4(0.0, 0.0, 0.1, 0));
 	vertexBuffer.setValue(2, 2, ifloat4(1.0, 0.0, 0.1, 0));
 	vertexBuffer.setValue(3, 2, ifloat4(1.0, 1.0, 0.1, 0));
-	indexBuffer = { 0,1,2,2,3,0 };*/
+	indexBuffer = { 2,1,0,0,3,2 };
 
 
 	printf("Total Tris:%d\n", indexBuffer.size() / 3);
@@ -254,7 +254,7 @@ int mainGpu() {
 	std::vector<float> texFox;
 	int texFoxW, texFoxH;
 	ImageLoader imageLoader;
-	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/fox_diffuse.png", &texFox, &texFoxH, &texFoxW);
+	imageLoader.loadRGBA(IFRIT_ASSET_PATH"/grid.png", &texFox, &texFoxH, &texFoxW);
 
 	IfritImageCreateInfo imageCI;
 	imageCI.extent.height = texFoxH;
@@ -286,10 +286,12 @@ int mainGpu() {
 	//renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_LINE);
 
 	IfritSamplerT sampler;
-	sampler.filterMode = IF_FILTER_NEAREST;
+	sampler.filterMode = IF_FILTER_LINEAR;
 	sampler.addressModeU = IF_SAMPLER_ADDRESS_MODE_REPEAT;
 	sampler.addressModeV = IF_SAMPLER_ADDRESS_MODE_REPEAT;
 	sampler.borderColor = IF_BORDER_COLOR_WHITE;
+	sampler.anisotropyEnable = true;
+	sampler.maxAnisotropy = 2.0f;
 	renderer->createSampler(0, sampler);
 
 	IfritColorAttachmentBlendState blendState;
