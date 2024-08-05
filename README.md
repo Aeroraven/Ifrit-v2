@@ -30,7 +30,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Feature                           | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | --------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
 | **Basic**                         |                                                              |                 |               |
-| Rendering Order                   | √                                                            | √ ▲             | √ ▲ (4)       |
+| Rendering Order                   | √                                                            | √               | √ ▲ (4)       |
 | **Performance**                   |                                                              |                 |               |
 | SIMD Instructions / SIMT          |                                                              | √               | √             |
 | Overlapped Memory Transfer        |                                                              |                 | √             |
@@ -60,6 +60,8 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Mipmap                            |                                                              |                 | √             |
 | Filter                            |                                                              |                 | √             |
 | Sampler Address Mode              |                                                              |                 | √             |
+| LOD Bias                          |                                                              |                 | √ ▲           |
+| Anisotropic Filtering             |                                                              |                 | √ ▲ (5)       |
 | **Presentation**                  |                                                              |                 |               |
 | Terminal ASCII                    |                                                              | √               | √             |
 | Terminal Color                    |                                                              | √               | √             |
@@ -71,6 +73,8 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 (3) Shader derivatives are now only available for the filled triangle polygon mode. Shader derivatives are calculated in `2x2` quads, so precision might matter.
 
 (4) Only works when `Alpha Blending` is enabled.
+
+(5) Only works when `texture` shader function is called.
 
 ▲ Functions with triangle mark are under testing. These functionalities are supported, but might trigger exceptions or introduce performance drops.
 
@@ -201,8 +205,8 @@ See `DOCS.md` for more details.
 
 - <s>Texture LOD & Texture Sampler</s>
   - <s>Shader Derivatives</s>
-  - Anisotropic Filtering
-  - Dynamic LOD Selection & Texture Bias
+  - <s>Anisotropic Filtering</s>
+  - <s>Dynamic LOD Selection & Texture Bias</s>
   - Cubic Texture
   - Tiling
   

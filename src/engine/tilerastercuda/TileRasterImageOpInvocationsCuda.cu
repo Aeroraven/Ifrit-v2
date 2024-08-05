@@ -62,16 +62,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		idst[(curDstX + arg.dstCx) + (curDstY + arg.dstCy) * arg.dstWid] = result;
 	}
 
-	static int64_t sTestSortVal[1000000];
-	static int64_t sTestSortVal2[1000000];
-
-	constexpr int totalGroups = 128;
-	IFRIT_DEVICE static int64_t hTestSortVal[1000000];
-	static int sRegionStart[totalGroups];
-	static int sRegionSize[totalGroups];
-	IFRIT_DEVICE static int hRegionStart[totalGroups];
-	IFRIT_DEVICE static int hRegionSize[totalGroups];
-
 }
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation {

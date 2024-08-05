@@ -8,7 +8,9 @@ IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4*
 	//float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 	//float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
 	//float4x4 view = (lookAt({ 0,0.1,1.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-	float4x4 view = (lookAt({ 0.08,0.05,0.08 }, { 0,0.05,0.0 }, { 0,1,0 }));  //fox
+	//float4x4 view = (lookAt({ 0.08,0.05,0.08 }, { 0,0.05,0.0 }, { 0,1,0 }));  //fox
+	float4x4 view = (lookAt({ 0.0,0.6,-1.5 }, { 0,0.4,0.0 }, { 0,1,0 }));  //fox
+
 	//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
 	//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
 	//float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 10.0, 3000));
@@ -21,6 +23,7 @@ IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4*
 	*outPos = p;
 	outVaryings[0]->vf4 = isbReadFloat4(input[1]);
 	outVaryings[1]->vf4 = isbReadFloat4(input[2]);
+	outVaryings[1]->vf4.y = 1.0f - outVaryings[1]->vf4.y;
 }
 
 IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
@@ -29,23 +32,26 @@ IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
 
 IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* colorOutput) {
 	using Ifrit::Engine::Math::ShaderOps::CUDA::abs;
-	auto result = isbcuReadPsVarying(varyings,0);
+	using Ifrit::Engine::Math::ShaderOps::CUDA::texture;
+
+	auto result = isbcuReadPsVarying(varyings,1);
 	auto& co = isbcuReadPsColorOut(colorOutput, 0);
-	//auto dco = isbcuSampleTexLod(0, 0, float2( result.x, 1.0f - result.y ),0); 
+	//auto dco = isbcuSampleTexLod(0, 0, float2( result.x, 1.0f - result.y ),2.5f); 
+	auto dcl = static_cast<const ifloat4s256*>(varyings);
+	auto dco = texture(0, 0, dcl, 1);
 	auto ddxv = result;
 	auto ddyv = result;
 
-	
+	/*
 	co.x = result.x * 0.5 + 0.5;
 	co.y = result.y * 0.5 + 0.5;
 	co.z = result.z * 0.5 + 0.5;
-	co.w = result.w * 0.5 + 0.5;
+	co.w = result.w * 0.5 + 0.5;*/
 
-	/*
 	co.x = dco.x;
 	co.y = dco.y;
 	co.z = dco.z;
-	co.w = 0.0;*/
+	co.w = 0.0;
 	//printf("%f %f %f %f\n", result.x, result.y, result.z, result.w);
 }
 
