@@ -77,8 +77,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::bindGeometryShader(GeometryShader* geometryShader) {
 		context->geometryShader = geometryShader;
 	}
-	void TileRasterRendererCuda::createTextureRaw(int slotId, const IfritImageCreateInfo& createInfo, float* data) {
-		Invocation::createTexture(slotId, createInfo, data);
+	void TileRasterRendererCuda::createTexture(int slotId, const IfritImageCreateInfo& createInfo) {
+		Invocation::createTexture(slotId, createInfo, nullptr);
 		needFragmentShaderUpdate = true;
 	}
 	void TileRasterRendererCuda::createSampler(int slotId, const IfritSamplerT& samplerState) {
@@ -146,6 +146,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter) {
 		Invocation::invokeBlitImage(srcSlotId, dstSlotId, region, filter);
+	}
+	void TileRasterRendererCuda::copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions) {
+		Invocation::invokeCopyBufferToImage(srcBuffer, dstSlot, regions.size(), regions.data());
 	}
 	void TileRasterRendererCuda::render() {
 		initCuda();

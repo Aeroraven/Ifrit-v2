@@ -135,5 +135,30 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		}
 		cudaDeviceSynchronize();
 	}
+	void invokeCopyBufferToImage(void* srcBuffer, int dstImage, uint32_t regionCount, const IfritBufferImageCopy* pRegions) {
+		auto texH = Impl::hsTextureHeight[dstImage];
+		auto texW = Impl::hsTextureWidth[dstImage];
+		auto copyFunc = [&](const IfritBufferImageCopy& region) {
+			if (region.imageOffset.x != 0 || region.imageOffset.y != 0 || region.imageOffset.z != 0) {
+				printf("Copy with offset is not supported now\n");
+				std::abort();
+			}
+			if (region.imageExtent.height != texH || region.imageExtent.width != texW || region.imageExtent.depth != 1) {
+				printf("Partial image copy is not supported now\n");
+				std::abort();
+			}
+			if (region.imageSubresource.mipLevel != 0) {
+				printf("Copy to mip levels is not supported now\n");
+				std::abort();
+			}
+			int offset = texH * texW * region.imageSubresource.baseArrayLayer;
+			int totalSize = texH * texW * sizeof(float4);
+			cudaMemcpy(Impl::hsTextures[dstImage]+offset, (char*)srcBuffer+region.bufferOffset, totalSize, cudaMemcpyHostToDevice);
+			cudaDeviceSynchronize();
+		};
+		for (int i = 0; i < regionCount; i++) {
+			copyFunc(pRegions[i]);
+		}
+	}
 }
 #endif

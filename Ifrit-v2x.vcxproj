@@ -55,7 +55,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
     </ClCompile>
@@ -84,7 +84,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -118,6 +118,8 @@
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="demo\shader\IfritShaders.cuh" />
+    <ClInclude Include="demo\DefaultDemo.h" />
     <ClInclude Include="include\engine\base\Shaders.h" />
     <ClInclude Include="include\engine\base\Constants.h" />
     <ClInclude Include="include\engine\base\Structures.h" />
@@ -126,6 +128,7 @@
     <ClInclude Include="include\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cuh" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterCommonResourceCuda.cuh" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
+    <CudaCompile Include="demo\shader\IfritShaders.cu" />
     <CudaCompile Include="IfritShaders.cu" />
     <CudaCompile Include="IfritShaders.cuh" />
     <CudaCompile Include="include\core\cuda\CudaUtils.cuh" />
@@ -166,6 +169,7 @@
     <ClInclude Include="include\utility\loader\WavefrontLoader.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="demo\DefaultDemo.cpp" />
     <ClCompile Include="IfritMain.cpp" />
     <ClCompile Include="src\utility\loader\ImageLoader.cpp" />
     <CudaCompile Include="include\engine\tilerastercuda\TileRasterCoreInvocationCuda.cuh" />

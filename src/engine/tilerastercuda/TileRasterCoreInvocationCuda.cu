@@ -2971,6 +2971,10 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 	}
 
 	void createTexture(uint32_t texId, const IfritImageCreateInfo& createInfo, float* data) {
+		if (data != nullptr) {
+			printf("Data should not be specified\n");
+			std::abort();
+		}
 		void* devicePtr;
 		auto texWid = createInfo.extent.width;
 		auto texHeight = createInfo.extent.height;
@@ -2983,7 +2987,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 			texLodSizes += (texLodWid * texLodHeight * texArrLayers);
 		}
 		cudaMalloc(&devicePtr, (texWid * texHeight * texArrLayers + texLodSizes) * 4 * sizeof(float));
-		cudaMemcpy(devicePtr, data, texWid * texHeight * 4 * sizeof(float), cudaMemcpyHostToDevice);
+		//cudaMemcpy(devicePtr, data, texWid * texHeight * 4 * sizeof(float), cudaMemcpyHostToDevice);
 		cudaDeviceSynchronize();
 		Impl::hsTextures[texId] = (float*)devicePtr;
 		Impl::hsTextureHeight[texId] = texHeight;

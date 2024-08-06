@@ -161,6 +161,32 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 			}
 		}
 
+		IFRIT_DUAL inline void textureCubeCoordConversion(const float3& uvw, float2& outUv, int& outFace) {
+			// Face Selection: https://registry.khronos.org/vulkan/specs/1.3-extensions/html/chap16.html#_cube_map_face_selection_and_transformations
+			// Reference: https://www.gamedev.net/forums/topic/687535-implementing-a-cube-map-lookup-function/
+			// 0=+x; 1=-x; 2=+y; 3=-y; 4=+z; 5=-z
+			float oX = uvw.x, oY = uvw.y, oZ = uvw.z;
+			float aX = fabs(oX), aY = fabs(oY), aZ = fabs(oZ);
+			float norm = 0.0f;
+			if (aZ >= aX && aZ >= aY) {
+				outFace = (oZ < 0.0f) ? 5 : 4;
+				norm = 0.5f / aZ;
+				outUv = { oZ < 0.0f ? -oX : oX,-oY };
+			}
+			else if (aY >= aX) {
+				outFace = (oY < 0.0f) ? 3 : 2;
+				norm = 0.5f / aY;
+				outUv = { oX,oY < 0.0f ? -oZ : oZ };
+			}
+			else {
+				outFace = (oX < 0.0f) ? 1 : 0;
+				norm = 0.5f / aX;
+				outUv = { oX < 0.0f ? oZ : -oZ,-oY };
+			}
+			outUv.x = outUv.x * norm + 0.5;
+			outUv.y = outUv.y * norm + 0.5;
+		}
+
 		IFRIT_DUAL inline float4 textureImplLod(const IfritSamplerT& sampler, const float4* texData,
 			int texOw, int texOh, int texLayers, const float2& uv, const int2& offset, const float lod) {
 			
@@ -168,6 +194,19 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 			auto lodDiff = lod - lodLow;
 			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, offset, lodLow);
 			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, offset, lodLow + 1);
+			return lerp(texcLow, texcHigh, lodDiff);
+		}
+
+		IFRIT_DUAL inline float4 textureCubeImplLod(const IfritSamplerT& sampler, const float4* texData,
+			int texOw, int texOh, const float3& uvw, const float lod) {
+
+			int texLayers = 0;
+			float2 uv = { 0.0f,0.0f };
+			textureCubeCoordConversion(uvw, uv, texLayers);
+			int lodLow = floor(lod);
+			auto lodDiff = lod - lodLow;
+			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, { 0,0 }, lodLow);
+			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, { 0,0 }, lodLow + 1);
 			return lerp(texcLow, texcHigh, lodDiff);
 		}
 
@@ -315,12 +354,13 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		}
 #endif
 	}
+
+	IFRIT_DUAL inline float4 textureCube(TextureObject tex, SamplerState samplerState, DifferentiableCollection var, DifferentiableVarId uv, float bias = 0.0f) {
+
+		return float4{ 0,0,0,0 };
+	}
 }
 
-//#define isbcuSampleTex(sampler,texture,uv) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImpl(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(uv),{0,0},0))
-//#define isbcuSampleTexAttr(sampler,texture,vary,varyId,bias) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImplAdaptiveLodFromAttr(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(bias),{0,0},((const ifloat4s256*)(vary)),(varyId)))
-//#define isbcuSampleTexAttr1(sampler,texture,vary,varyId,bias,offset) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImplAdaptiveLodFromAttr(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(bias),(offset),((const ifloat4s256*)(vary)),(varyId)))
-//#define isbcuSampleTexLod(sampler,texture,uv,lod) (Ifrit::Engine::Math::ShaderOps::CUDA::textureImplLod(atSamplerPtr[(sampler)],(float4*)(atTexture[(texture)]),atTextureWid[(texture)],atTextureHei[(texture)],(uv),{0,0},(lod)))
 #define isbcuReadPsVarying(x,y)  ((const ifloat4s256*)(x))[(y)]
 #define isbcuReadPsColorOut(x,y)  ((ifloat4s256*)(x))[(y)]
 #define isbcuDfDx(x,y)  (Ifrit::Engine::Math::ShaderOps::CUDA::pixelDfDx_s256(((const ifloat4s256*)(x)),(y)))

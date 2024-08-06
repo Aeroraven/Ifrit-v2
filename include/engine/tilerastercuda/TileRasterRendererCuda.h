@@ -56,10 +56,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void bindFragmentShader(FragmentShader* fragmentShader);
 		void bindGeometryShader(GeometryShader* geometryShader);
 
-		void createTextureRaw(int slotId, const IfritImageCreateInfo& createInfo, float* data);
+		void createTexture(int slotId, const IfritImageCreateInfo& createInfo);
 		void createSampler(int slotId, const IfritSamplerT& samplerState);
 		void generateMipmap(int slotId, IfritFilter filter);
 		void blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter);
+		void copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions);
 
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
 		void setBlendFunc(IfritColorAttachmentBlendState state);
