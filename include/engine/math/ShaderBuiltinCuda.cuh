@@ -207,7 +207,8 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 			auto lodDiff = lod - lodLow;
 			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, totalLayers, texLayers, uv, { 0,0 }, lodLow);
 			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, totalLayers, texLayers, uv, { 0,0 }, lodLow + 1);
-			/*if (texLayers == 0) {
+			/*
+			if (texLayers == 0) {
 				return float4{ 1,0,0,0 };
 			}
 			else if (texLayers == 1) {

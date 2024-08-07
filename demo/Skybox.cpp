@@ -92,6 +92,7 @@ namespace Ifrit::Demo::Skybox {
 			imageCopy.imageSubresource.mipLevel = 0;
 			renderer->copyHostBufferToImage(texData[i].data(), 0, {imageCopy});
 		}
+		renderer->generateMipmap(0, IF_FILTER_LINEAR);
 
 		SkyboxVS vertexShader;
 		VaryingDescriptor vertexShaderLayout;
