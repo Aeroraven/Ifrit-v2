@@ -1199,7 +1199,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					if (npc * npn < 0) {
 						float numo = pc.pos.w;
 						float deno = -(pnPos.w - pc.pos.w);
-						float t = (-1.0f + numo) / deno;
+						float t = (-1e-3 + numo) / deno;
 						float4 intersection = lerp(pc.pos, pnPos, t);
 						float3 barycenter = lerp(pc.barycenter, pnBary, t);
 
@@ -1244,16 +1244,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				int temp;
 #define getBary(fx,fy) (temp = retdIndex[(fx)* possibleTris+(fy)+ retIdxOffset], (temp==0)?float3{1,0,0}:((temp==1)?float3{0,1,0}:(temp==2)?float3{0,0,1}:retd[temp - 3 + retOffset].barycenter))
 #define getPos(fx,fy) (temp = retdIndex[(fx)* possibleTris+(fy)+ retIdxOffset], (temp==0)?v1:((temp==1)?v2:(temp==2)?v3:retd[temp - 3 + retOffset].pos))
-				const auto b1 = getBary(clipOdd, 0);
-				const auto b2 = getBary(clipOdd, i + 1);
-				const auto b3 = getBary(clipOdd, i + 2);
+				auto b1 = getBary(clipOdd, 0);
+				auto b2 = getBary(clipOdd, i + 1);
+				auto b3 = getBary(clipOdd, i + 2);
 
-				const float4 dv1 = getPos(clipOdd, 0);
-				const float4 dv2 = getPos(clipOdd, i + 1);
-				const float4 dv3 = getPos(clipOdd, i + 2);
+				float4 dv1 = getPos(clipOdd, 0);
+				float4 dv2 = getPos(clipOdd, i + 1);
+				float4 dv3 = getPos(clipOdd, i + 2);
 #undef getBary
 #undef getPos
-
 				if (GeneralFunction::devViewSpaceClip(dv1, dv2, dv3)) {
 					continue;
 				}
@@ -1272,6 +1271,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						continue;
 					}
 				}
+
 				auto curIdx = atomicAdd(&dAssembledTriangleCounterM2, 1);
 				dAtriInterpolBase1[curIdx] = { dv1.x,dv1.y,dv1.z,dv1.w };
 				dAtriInterpolBase2[curIdx] = { dv2.x,dv2.y,dv2.z,dv2.w };

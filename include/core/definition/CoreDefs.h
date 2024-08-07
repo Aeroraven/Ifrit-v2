@@ -98,6 +98,7 @@
 		#define CU_KARG4(grid, block, sh_mem, stream)
 		#define __CUDACC__
 		#define __THROW
+		#define __CUDA_ARCH__
 		#include <device_functions.h>
 	#else
 		#ifdef __CUDACC__

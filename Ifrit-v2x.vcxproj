@@ -120,6 +120,7 @@
   <ItemGroup>
     <ClInclude Include="demo\shader\DefaultDemoShaders.cuh" />
     <ClInclude Include="demo\DefaultDemo.h" />
+    <ClInclude Include="demo\shader\SkyboxShaders.cuh" />
     <ClInclude Include="demo\Skybox.h" />
     <ClInclude Include="include\engine\base\Shaders.h" />
     <ClInclude Include="include\engine\base\Constants.h" />
@@ -132,6 +133,7 @@
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <CudaCompile Include="demo\shader\DefaultDemoShaders.cu" />
+    <CudaCompile Include="demo\shader\SkyboxShaders.cu" />
     <CudaCompile Include="IfritShaders.cu" />
     <CudaCompile Include="IfritShaders.cuh" />
     <CudaCompile Include="include\core\cuda\CudaUtils.cuh" />

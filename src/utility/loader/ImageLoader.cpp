@@ -11,6 +11,7 @@ namespace Ifrit::Utility::Loader {
 			//std::abort();
 		}
 		if (data == nullptr) {
+			printf("Cannot load image %s", fileName);
 			throw std::runtime_error("Failed to load image");
 		}
 		bufferOut->resize(w * h * 4);

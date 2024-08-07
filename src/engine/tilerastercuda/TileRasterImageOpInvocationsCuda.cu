@@ -151,7 +151,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 				printf("Copy to mip levels is not supported now\n");
 				std::abort();
 			}
-			int offset = texH * texW * region.imageSubresource.baseArrayLayer;
+			int offset = texH * texW * region.imageSubresource.baseArrayLayer * 4;
 			int totalSize = texH * texW * sizeof(float4);
 			cudaMemcpy(Impl::hsTextures[dstImage]+offset, (char*)srcBuffer+region.bufferOffset, totalSize, cudaMemcpyHostToDevice);
 			cudaDeviceSynchronize();

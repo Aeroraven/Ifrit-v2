@@ -81,7 +81,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 				w = (w + 1) >> 1;
 				h = (h + 1) >> 1;
 			}
-			return off;
+			return off + (w * h) * texLayers;
 		}
 		IFRIT_DUAL inline float4 textureImplLegacy(const IfritSamplerT& sampler, const float4* texData,
 			int texOw, int texOh, int texLayers, const float2& uv, const int2& offset, int lod) {
@@ -207,6 +207,24 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 			auto lodDiff = lod - lodLow;
 			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, { 0,0 }, lodLow);
 			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, { 0,0 }, lodLow + 1);
+			/*if (texLayers == 0) {
+				return float4{ 1,0,0,0 };
+			}
+			else if (texLayers == 1) {
+				return float4{ 1,1,0,0 };
+			}
+			else if (texLayers == 2) {
+				return float4{ 1,0,1,0 };
+			}
+			else if (texLayers == 3) {
+				return float4{ 0,1,0,0 };
+			}
+			else if (texLayers == 4) {
+				return float4{ 0,0,1,0 };
+			}
+			else if (texLayers == 5) {
+				return float4{ 0,1,1,0 };
+			}*/
 			return lerp(texcLow, texcHigh, lodDiff);
 		}
 
@@ -355,9 +373,19 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 #endif
 	}
 
-	IFRIT_DUAL inline float4 textureCube(TextureObject tex, SamplerState samplerState, DifferentiableCollection var, DifferentiableVarId uv, float bias = 0.0f) {
-
-		return float4{ 0,0,0,0 };
+	IFRIT_DUAL inline float4 textureCubeLod(TextureObject tex, SamplerState samplerState, const float3& uvw, float lod) {
+#ifndef __CUDA_ARCH__
+		printf("This function is not available under CPU Mode.");
+		return { 0,0,0,0 };
+#else
+		using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+		auto& pSamplerState = Impl::csSamplers[samplerState];
+		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
+		auto pHeight = Impl::csTextureHeight[tex];
+		auto pWidth = Impl::csTextureWidth[tex];
+		auto pLayers = Impl::csTextureArrayLayers[tex];
+		return TextureSampleImpl::textureCubeImplLod(pSamplerState, pTexture, pWidth, pHeight, uvw, lod);
+#endif
 	}
 }
 
