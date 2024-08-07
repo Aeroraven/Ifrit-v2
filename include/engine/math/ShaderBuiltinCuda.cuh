@@ -74,19 +74,19 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 	}
 
 	namespace TextureSampleImpl {
-		IFRIT_DUAL inline int textureLodPtroffImpl(int texW, int texH, int texLayers, int lod) {
+		IFRIT_DUAL inline int textureLodPtroffImpl(int texW, int texH, int texLayers,int curLayer, int lod) {
 			int off = 0, w = texW, h = texH;
 			for (int i = 0; i < lod; i++) {
 				off += w * h * texLayers;
 				w = (w + 1) >> 1;
 				h = (h + 1) >> 1;
 			}
-			return off + (w * h) * texLayers;
+			return off + (w * h) * curLayer;
 		}
 		IFRIT_DUAL inline float4 textureImplLegacy(const IfritSamplerT& sampler, const float4* texData,
-			int texOw, int texOh, int texLayers, const float2& uv, const int2& offset, int lod) {
+			int texOw, int texOh, int texLayers, int curLayer, const float2& uv, const int2& offset, int lod) {
 			
-			int lodoff = textureLodPtroffImpl(texOw, texOh, texLayers, lod);
+			int lodoff = textureLodPtroffImpl(texOw, texOh, texLayers, curLayer, lod);
 			int texW = IFRIT_InvoCeilRshift(texOw, lod);
 			int texH = IFRIT_InvoCeilRshift(texOh, lod);
 			float cX = uv.x * (texW - 1) + offset.x;
@@ -192,21 +192,21 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 			
 			int lodLow = floor(lod);
 			auto lodDiff = lod - lodLow;
-			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, offset, lodLow);
-			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, offset, lodLow + 1);
+			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, texLayers,0, uv, offset, lodLow);
+			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, texLayers,0, uv, offset, lodLow + 1);
 			return lerp(texcLow, texcHigh, lodDiff);
 		}
 
 		IFRIT_DUAL inline float4 textureCubeImplLod(const IfritSamplerT& sampler, const float4* texData,
-			int texOw, int texOh, const float3& uvw, const float lod) {
+			int texOw, int texOh, int totalLayers, const float3& uvw, const float lod) {
 
 			int texLayers = 0;
 			float2 uv = { 0.0f,0.0f };
 			textureCubeCoordConversion(uvw, uv, texLayers);
 			int lodLow = floor(lod);
 			auto lodDiff = lod - lodLow;
-			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, { 0,0 }, lodLow);
-			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, texLayers, uv, { 0,0 }, lodLow + 1);
+			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, totalLayers, texLayers, uv, { 0,0 }, lodLow);
+			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, totalLayers, texLayers, uv, { 0,0 }, lodLow + 1);
 			/*if (texLayers == 0) {
 				return float4{ 1,0,0,0 };
 			}
@@ -384,7 +384,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		auto pHeight = Impl::csTextureHeight[tex];
 		auto pWidth = Impl::csTextureWidth[tex];
 		auto pLayers = Impl::csTextureArrayLayers[tex];
-		return TextureSampleImpl::textureCubeImplLod(pSamplerState, pTexture, pWidth, pHeight, uvw, lod);
+		return TextureSampleImpl::textureCubeImplLod(pSamplerState, pTexture, pWidth, pHeight,pLayers, uvw, lod);
 #endif
 	}
 }
