@@ -6,6 +6,6 @@
 namespace Ifrit::Presentation::Backend {
 	class AbstractTerminalBackend :public BackendProvider{
 	public:
-		void setCursor(int x, int y, std::string& str);
+		virtual void setCursor(int x, int y, std::string& str);
 	};
 }

@@ -1,6 +1,6 @@
 #include "DefaultDemo.h"
 #include "presentation/window/GLFWWindowProvider.h"
-#include "./demo/shader/IfritShaders.cuh"
+#include "./demo/shader/DefaultDemoShaders.cuh"
 #include "presentation/backend/OpenGLBackend.h"
 #include "core/data/Image.h"
 #include "engine/tileraster/TileRasterWorker.h"
@@ -16,7 +16,7 @@
 #define DEMO_RESOLUTION 2048
 
 
-namespace Ifrit::Demo {
+namespace Ifrit::Demo::DemoDefault {
 	using namespace std;
 	using namespace Ifrit::Core::Data;
 

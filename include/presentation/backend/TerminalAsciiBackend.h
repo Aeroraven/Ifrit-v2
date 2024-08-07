@@ -10,7 +10,8 @@ namespace Ifrit::Presentation::Backend {
 		std::string resultBuffer;
 	public:
 		TerminalAsciiBackend(int cWid,int cHeight);
-		void updateTexture(const Ifrit::Core::Data::ImageF32& image) override;
-		void draw();
+		virtual void updateTexture(const Ifrit::Core::Data::ImageF32& image) override;
+		virtual void draw() override;
+		virtual void setViewport(int32_t x, int32_t y, int32_t width, int32_t height) override {}
 	};
 }

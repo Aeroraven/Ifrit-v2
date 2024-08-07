@@ -37,8 +37,8 @@ namespace Ifrit::Presentation::Backend {
 
 	public:
 		OpenGLBackend();
-		void draw() override;
-		void updateTexture(const Ifrit::Core::Data::ImageF32& image) override;
-		void setViewport(int32_t x, int32_t y, int32_t width, int32_t height) ;
+		virtual void draw() override;
+		virtual void updateTexture(const Ifrit::Core::Data::ImageF32& image) override;
+		virtual void setViewport(int32_t x, int32_t y, int32_t width, int32_t height) override;
 	};
 }
