@@ -55,7 +55,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
     </ClCompile>
@@ -84,7 +84,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -118,6 +118,10 @@
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="demo\shader\DefaultDemoShaders.cuh" />
+    <ClInclude Include="demo\DefaultDemo.h" />
+    <ClInclude Include="demo\shader\SkyboxShaders.cuh" />
+    <ClInclude Include="demo\Skybox.h" />
     <ClInclude Include="include\engine\base\Shaders.h" />
     <ClInclude Include="include\engine\base\Constants.h" />
     <ClInclude Include="include\engine\base\Structures.h" />
@@ -125,7 +129,11 @@
     <ClInclude Include="include\engine\math\ShaderBuiltin.h" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cuh" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterCommonResourceCuda.cuh" />
+    <ClInclude Include="include\presentation\backend\AdaptiveBackendBuilder.h" />
+    <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
+    <CudaCompile Include="demo\shader\DefaultDemoShaders.cu" />
+    <CudaCompile Include="demo\shader\SkyboxShaders.cu" />
     <CudaCompile Include="IfritShaders.cu" />
     <CudaCompile Include="IfritShaders.cuh" />
     <CudaCompile Include="include\core\cuda\CudaUtils.cuh" />
@@ -166,7 +174,11 @@
     <ClInclude Include="include\utility\loader\WavefrontLoader.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="demo\DefaultDemo.cpp" />
+    <ClCompile Include="demo\Skybox.cpp" />
     <ClCompile Include="IfritMain.cpp" />
+    <ClCompile Include="src\presentation\backend\AdaptiveBackendBuilder.cpp" />
+    <ClCompile Include="src\presentation\window\AdaptiveWindowBuilder.cpp" />
     <ClCompile Include="src\utility\loader\ImageLoader.cpp" />
     <CudaCompile Include="include\engine\tilerastercuda\TileRasterCoreInvocationCuda.cuh" />
     <ClCompile Include="src\dependency\GLAD\glad.c" />

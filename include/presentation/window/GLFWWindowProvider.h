@@ -14,8 +14,8 @@ namespace Ifrit::Presentation::Window {
 		int totalFrameTimeCore = 0;
 		std::string title = "Ifrit-v2";
 	public:
-		virtual bool setup(size_t width, size_t height);
-		void loop(const std::function<void(int*)>& func);
-		void setTitle(const std::string& title);
+		virtual bool setup(size_t width, size_t height) override;
+		virtual void loop(const std::function<void(int*)>& func) override;
+		virtual void setTitle(const std::string& title) override;
 	};
 }

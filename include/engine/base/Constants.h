@@ -5,6 +5,12 @@ namespace Ifrit::Engine {
 		IF_POLYGON_MODE_LINE = 1,
 		IF_POLYGON_MODE_POINT = 2
 	};
+	enum IfritCullMode {
+		IF_CULL_MODE_NONE = 0,
+		IF_CULL_MODE_FRONT = 1,
+		IF_CULL_MODE_BACK = 2,
+		IF_CULL_MODE_FRONT_AND_BACK = 3
+	};
 	enum IfritSamplerAddressMode {
 		IF_SAMPLER_ADDRESS_MODE_REPEAT = 0,
 		IF_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT = 1,

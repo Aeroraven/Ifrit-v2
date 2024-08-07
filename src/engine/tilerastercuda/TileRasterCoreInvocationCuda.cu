@@ -5,7 +5,6 @@
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 #include "engine/base/Structures.h"
 #include <cuda_profiler_api.h>
-//#include <thrust/sort.h>
 #include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
 
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
@@ -33,7 +32,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE_CONST int csTextureWidth[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST int csTextureHeight[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST int csTextureMipLevels[CU_MAX_TEXTURE_SLOTS];
-	IFRIT_DEVICE_CONST int csTextureAnisotropicLevel[CU_MAX_TEXTURE_SLOTS];
+	IFRIT_DEVICE_CONST int csTextureArrayLayers[CU_MAX_TEXTURE_SLOTS];
 	IFRIT_DEVICE_CONST IfritSamplerT csSamplers[CU_MAX_SAMPLER_SLOTS];
 
 	static IfritColorAttachmentBlendState hsBlendState;
@@ -51,7 +50,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	int hsTextureWidth[CU_MAX_TEXTURE_SLOTS];
 	int hsTextureHeight[CU_MAX_TEXTURE_SLOTS];
 	int hsTextureMipLevels[CU_MAX_TEXTURE_SLOTS];
-	int hsTextureAnisotropicLevel[CU_MAX_TEXTURE_SLOTS];
+	int hsTextureArrayLayers[CU_MAX_TEXTURE_SLOTS];
 	IfritSamplerT hsSampler[CU_MAX_SAMPLER_SLOTS];
 	
 	IFRIT_DEVICE static uint32_t dCoverQueueFullM2Buffer[CU_ALTERNATIVE_BUFFER_SIZE];
@@ -120,6 +119,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	// Depth Test
 	IFRIT_DEVICE static bool dDepthTestEnable;
 	IFRIT_DEVICE static IfritCompareOp csDepthFunc;
+
+	// Culling
+	IFRIT_DEVICE static IfritCullMode csCullMode;
 
 	// Alpha Blending
 	IFRIT_DEVICE static ImplBlendCoefs dGlobalBlendCoefs;
@@ -1199,7 +1201,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					if (npc * npn < 0) {
 						float numo = pc.pos.w;
 						float deno = -(pnPos.w - pc.pos.w);
-						float t = (-1.0f + numo) / deno;
+						float t = (-1e-3 + numo) / deno;
 						float4 intersection = lerp(pc.pos, pnPos, t);
 						float3 barycenter = lerp(pc.barycenter, pnBary, t);
 
@@ -1244,22 +1246,41 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				int temp;
 #define getBary(fx,fy) (temp = retdIndex[(fx)* possibleTris+(fy)+ retIdxOffset], (temp==0)?float3{1,0,0}:((temp==1)?float3{0,1,0}:(temp==2)?float3{0,0,1}:retd[temp - 3 + retOffset].barycenter))
 #define getPos(fx,fy) (temp = retdIndex[(fx)* possibleTris+(fy)+ retIdxOffset], (temp==0)?v1:((temp==1)?v2:(temp==2)?v3:retd[temp - 3 + retOffset].pos))
-				const auto b1 = getBary(clipOdd, 0);
-				const auto b2 = getBary(clipOdd, i + 1);
-				const auto b3 = getBary(clipOdd, i + 2);
+				auto b1 = getBary(clipOdd, 0);
+				auto b2 = getBary(clipOdd, i + 1);
+				auto b3 = getBary(clipOdd, i + 2);
 
-				const float4 dv1 = getPos(clipOdd, 0);
-				const float4 dv2 = getPos(clipOdd, i + 1);
-				const float4 dv3 = getPos(clipOdd, i + 2);
+				float4 dv1 = getPos(clipOdd, 0);
+				float4 dv2 = getPos(clipOdd, i + 1);
+				float4 dv3 = getPos(clipOdd, i + 2);
 #undef getBary
 #undef getPos
-
 				if (GeneralFunction::devViewSpaceClip(dv1, dv2, dv3)) {
 					continue;
 				}
-				if (!GeneralFunction::devTriangleCull(dv1, dv2, dv3)) {
+
+				// TODO: templated constexpr
+				const auto cullMode = csCullMode;
+				if (cullMode == IF_CULL_MODE_BACK) {
+					if (!GeneralFunction::devTriangleCull(dv1, dv2, dv3)) {
+						continue;
+					}
+				}
+				else if (cullMode == IF_CULL_MODE_FRONT) {
+					if (!GeneralFunction::devTriangleCull(dv3, dv2, dv1)) {
+						continue;
+					}
+					auto dvt = dv1;
+					dv1 = dv3;
+					dv3 = dvt;
+					auto bt = b1;
+					b1 = b3;
+					b3 = bt;
+				}
+				else if (cullMode == IF_CULL_MODE_FRONT_AND_BACK) {
 					continue;
 				}
+				
 
 				if constexpr (CU_OPT_SMALL_PRIMITIVE_CULL) {
 					float4 bbox;
@@ -1272,6 +1293,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						continue;
 					}
 				}
+
 				auto curIdx = atomicAdd(&dAssembledTriangleCounterM2, 1);
 				dAtriInterpolBase1[curIdx] = { dv1.x,dv1.y,dv1.z,dv1.w };
 				dAtriInterpolBase2[curIdx] = { dv2.x,dv2.y,dv2.z,dv2.w };
@@ -2954,6 +2976,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	namespace InitializationKernels {
 		IFRIT_KERNEL void globalInitializationKernel() {
 			csDepthFunc = IF_COMPARE_OP_LESS;
+			csCullMode = IF_CULL_MODE_BACK;
 		}
 	}
 }
@@ -2971,26 +2994,34 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 	}
 
 	void createTexture(uint32_t texId, const IfritImageCreateInfo& createInfo, float* data) {
+		if (data != nullptr) {
+			printf("Data should not be specified\n");
+			std::abort();
+		}
 		void* devicePtr;
 		auto texWid = createInfo.extent.width;
 		auto texHeight = createInfo.extent.height;
+		auto texArrLayers = createInfo.arrayLayers;
 		auto texLodSizes = 0;
 		auto texLodWid = texWid, texLodHeight = texHeight;
 		for (int i = 0; i < createInfo.mipLevels; i++) {
 			texLodWid = (texLodWid + 1) >> 1;
 			texLodHeight = (texLodHeight + 1) >> 1;
-			texLodSizes += (texLodWid * texLodHeight);
+			texLodSizes += (texLodWid * texLodHeight * texArrLayers);
 		}
-		cudaMalloc(&devicePtr, (texWid * texHeight + texLodSizes) * 4 * sizeof(float));
-		cudaMemcpy(devicePtr, data, texWid * texHeight * 4 * sizeof(float), cudaMemcpyHostToDevice);
+		cudaMalloc(&devicePtr, (texWid * texHeight * texArrLayers + texLodSizes) * 4 * sizeof(float));
+		//cudaMemcpy(devicePtr, data, texWid * texHeight * 4 * sizeof(float), cudaMemcpyHostToDevice);
 		cudaDeviceSynchronize();
 		Impl::hsTextures[texId] = (float*)devicePtr;
 		Impl::hsTextureHeight[texId] = texHeight;
 		Impl::hsTextureWidth[texId] = texWid;
 		Impl::hsTextureMipLevels[texId] = createInfo.mipLevels;
+		Impl::hsTextureArrayLayers[texId] = createInfo.arrayLayers;
+
 		cudaMemcpyToSymbol(Impl::csTextures, &Impl::hsTextures[texId], sizeof(float*), sizeof(float*) * texId);
 		cudaMemcpyToSymbol(Impl::csTextureHeight, &Impl::hsTextureHeight[texId], sizeof(int), sizeof(int) * texId);
 		cudaMemcpyToSymbol(Impl::csTextureMipLevels, &Impl::hsTextureMipLevels[texId], sizeof(int), sizeof(int) * texId);
+		cudaMemcpyToSymbol(Impl::csTextureArrayLayers, &Impl::hsTextureArrayLayers[texId], sizeof(int), sizeof(int) * texId);
 		cudaMemcpyToSymbol(Impl::csTextureWidth, &Impl::hsTextureWidth[texId], sizeof(int), sizeof(int)*texId);
 	}
 	void createSampler(uint32_t slotId, const IfritSamplerT& samplerState) {
@@ -3112,6 +3143,9 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 
 	void setDepthFunc(IfritCompareOp depthFunc) {
 		cudaMemcpyToSymbol(Impl::csDepthFunc, &depthFunc, sizeof(depthFunc));
+	}
+	void setCullMode(IfritCullMode cullMode) {
+		cudaMemcpyToSymbol(Impl::csCullMode, &cullMode, sizeof(cullMode));
 	}
 
 	void initCudaRendering() {

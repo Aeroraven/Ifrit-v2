@@ -33,11 +33,13 @@ IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
 IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* colorOutput) {
 	using Ifrit::Engine::Math::ShaderOps::CUDA::abs;
 	using Ifrit::Engine::Math::ShaderOps::CUDA::texture;
+	using Ifrit::Engine::Math::ShaderOps::CUDA::textureLod;
 
 	auto result = isbcuReadPsVarying(varyings,1);
 	auto& co = isbcuReadPsColorOut(colorOutput, 0);
 	//auto dco = isbcuSampleTexLod(0, 0, float2( result.x, 1.0f - result.y ),2.5f); 
 	auto dcl = static_cast<const ifloat4s256*>(varyings);
+	float2 uv = { dcl[1].x,dcl[1].y };
 	auto dco = texture(0, 0, dcl, 1);
 	auto ddxv = result;
 	auto ddyv = result;
