@@ -5,7 +5,6 @@
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 #include "engine/base/Structures.h"
 #include <cuda_profiler_api.h>
-//#include <thrust/sort.h>
 #include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
 
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
@@ -120,6 +119,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	// Depth Test
 	IFRIT_DEVICE static bool dDepthTestEnable;
 	IFRIT_DEVICE static IfritCompareOp csDepthFunc;
+
+	// Culling
+	IFRIT_DEVICE static IfritCullMode csCullMode;
 
 	// Alpha Blending
 	IFRIT_DEVICE static ImplBlendCoefs dGlobalBlendCoefs;
@@ -1256,9 +1258,29 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				if (GeneralFunction::devViewSpaceClip(dv1, dv2, dv3)) {
 					continue;
 				}
-				if (!GeneralFunction::devTriangleCull(dv1, dv2, dv3)) {
+
+				// TODO: templated constexpr
+				const auto cullMode = csCullMode;
+				if (cullMode == IF_CULL_MODE_BACK) {
+					if (!GeneralFunction::devTriangleCull(dv1, dv2, dv3)) {
+						continue;
+					}
+				}
+				else if (cullMode == IF_CULL_MODE_FRONT) {
+					if (!GeneralFunction::devTriangleCull(dv3, dv2, dv1)) {
+						continue;
+					}
+					auto dvt = dv1;
+					dv1 = dv3;
+					dv3 = dvt;
+					auto bt = b1;
+					b1 = b3;
+					b3 = bt;
+				}
+				else if (cullMode == IF_CULL_MODE_FRONT_AND_BACK) {
 					continue;
 				}
+				
 
 				if constexpr (CU_OPT_SMALL_PRIMITIVE_CULL) {
 					float4 bbox;
@@ -2954,6 +2976,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	namespace InitializationKernels {
 		IFRIT_KERNEL void globalInitializationKernel() {
 			csDepthFunc = IF_COMPARE_OP_LESS;
+			csCullMode = IF_CULL_MODE_BACK;
 		}
 	}
 }
@@ -3120,6 +3143,9 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 
 	void setDepthFunc(IfritCompareOp depthFunc) {
 		cudaMemcpyToSymbol(Impl::csDepthFunc, &depthFunc, sizeof(depthFunc));
+	}
+	void setCullMode(IfritCullMode cullMode) {
+		cudaMemcpyToSymbol(Impl::csCullMode, &cullMode, sizeof(cullMode));
 	}
 
 	void initCudaRendering() {

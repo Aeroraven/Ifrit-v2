@@ -66,6 +66,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void setBlendFunc(IfritColorAttachmentBlendState state);
 		void setDepthFunc(IfritCompareOp depthFunc);
 		void setDepthTestEnable(bool option);
+		void setCullMode(IfritCullMode cullMode);
 		void setClearValues(const std::vector<ifloat4>& clearColors, float clearDepth);
 
 		void clear();

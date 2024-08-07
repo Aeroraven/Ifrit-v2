@@ -106,6 +106,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			Invocation::setDepthFunc(IF_COMPARE_OP_ALWAYS);
 		}
 	}
+	void TileRasterRendererCuda::setCullMode(IfritCullMode cullMode) {
+		Invocation::setCullMode(cullMode);
+	}
 	void TileRasterRendererCuda::setClearValues(const std::vector<ifloat4>& clearColors, float clearDepth) {
 		ctxClearColors = clearColors;
 		ctxClearDepth = clearDepth;

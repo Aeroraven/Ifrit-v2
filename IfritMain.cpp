@@ -22,6 +22,6 @@ int demoSkybox() {
 
 
 int main() {
-	demoSkybox();
+	demoDefault();
 	return 0;
 }

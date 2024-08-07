@@ -62,6 +62,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Sampler Address Mode              |                                                              |                 | √             |
 | LOD Bias                          |                                                              |                 | √ ▲           |
 | Anisotropic Filtering             |                                                              |                 | √ ▲ (5)       |
+| Cube Map                          |                                                              |                 | √ ▲           |
 | **Presentation**                  |                                                              |                 |               |
 | Terminal ASCII                    |                                                              | √               | √             |
 | Terminal Color                    |                                                              | √               | √             |
@@ -207,7 +208,7 @@ See `DOCS.md` for more details.
   - <s>Shader Derivatives</s>
   - <s>Anisotropic Filtering</s>
   - <s>Dynamic LOD Selection & Texture Bias</s>
-  - Cubic Texture
+  - <s>Cubic Texture</s>
   - Tiling
   
 - Multi-sampling
