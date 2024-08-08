@@ -256,54 +256,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace GeneralGeometryStage {
-		IFRIT_DEVICE void devGeometryShaderPrimSort(int* keys, float4* valuePos, float4* valueVaryings, int count, int numVaryings) {
-			//TODO: Parallel sort / Stream compaction
-			auto swapVaryings = [&](int a, int b) {
-				for (int i = 0; i < numVaryings; i++) {
-					auto tmp = valueVaryings[a * numVaryings + i];
-					valueVaryings[a * numVaryings + i] = valueVaryings[b * numVaryings + i];
-					valueVaryings[b * numVaryings + i] = tmp;
-				}
-			};
-			auto swapKeys = [&](int a, int b) {
-				auto tmp = keys[a];
-				keys[a] = keys[b];
-				keys[b] = tmp; 
-			};
-			auto swapPos = [&](int a, int b) {
-				auto tmp = valuePos[a];
-				valuePos[a] = valuePos[b];
-				valuePos[b] = tmp;
-			};
-			auto siftDown = [&](int st, int ed) {
-				auto cur = st;
-				auto ch = 0;
-				while ((ch = cur * 2 + 1) < ed) {
-					if (ch + 1 < ed && keys[ch + 1] > keys[ch])ch++;
-					if (keys[ch] > keys[cur]) {
-						swapKeys(ch, cur);
-						//swapPos(ch, cur);
-						//swapVaryings(ch, cur);
-						cur = ch;
-						continue;
-					}
-					break;
-				}
-			};
-			for (int i = count / 2; i >= 0; i--) {
-				siftDown(i, count);
-			}
-			for (int i = count - 1; i >= 1; i--) {
-				swapKeys(i, 0);
-				//swapVaryings(i, 0);
-				//swapPos(i, 0);
-				siftDown(0, i);
-			}
-		}
-		IFRIT_KERNEL void geometryShadingSortKernel() {
-
-		}
-
 		IFRIT_KERNEL void geometryShadingKernel(
 			uint32_t startingIndexId,
 			uint32_t indexCount,
@@ -364,7 +316,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
 			GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (startOffset, indexCount, dGeometryShader, (float4*)dPositionBuffer,
 				dIndexBuffer, dVaryingBuffer);
-			GeneralGeometryStage::geometryShadingSortKernel CU_KARG2(1, 1) ();
 		}
 	}
 	
@@ -2223,9 +2174,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);
 					Impl::GeneralGeometryStage::geometryShadingKernel CU_KARG2(geometryShaderBlocks, CU_GEOMETRY_SHADER_THREADS) (i, indexCount, dGeometryShader, (float4*)dPositionBuffer,
 						dIndexBuffer, dVaryingBuffer);
-					if constexpr (CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR) {
-						Impl::GeneralGeometryStage::geometryShadingSortKernel CU_KARG2(1, 1) ();
-					}
 					Impl::TriangleGeometryStage::geometryClippingKernelEntryWithGS CU_KARG2(1, 1)();
 				}
 
