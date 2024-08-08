@@ -107,7 +107,7 @@ namespace Ifrit::Demo::Skybox {
 		renderer->setDepthFunc(IF_COMPARE_OP_LESS);
 		renderer->setDepthTestEnable(true);
 		renderer->setClearValues({ {1,1,1,0} }, 255.0);
-
+		
 		auto windowBuilder = std::make_unique<AdaptiveWindowBuilder>();
 		auto windowProvider = windowBuilder->buildUniqueWindowProvider();
 		windowProvider->setup(2048, 1152);

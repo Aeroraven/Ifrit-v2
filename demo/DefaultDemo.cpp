@@ -104,6 +104,7 @@ namespace Ifrit::Demo::DemoDefault {
 		VertexBuffer vertexBuffer;
 		vertexBuffer.setLayout({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 
+
 		vertexBuffer.setVertexCount(4);
 		vertexBuffer.allocateBuffer(4);
 		//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
@@ -230,7 +231,7 @@ namespace Ifrit::Demo::DemoDefault {
 			indexBuffer[i / 3] = index[i];
 		}
 
-
+		/*
 		vertexBuffer.setVertexCount(4);
 		vertexBuffer.allocateBuffer(4);
 		//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
@@ -249,7 +250,7 @@ namespace Ifrit::Demo::DemoDefault {
 		vertexBuffer.setValue(1, 2, ifloat4(0.0, 0.0, 0.1, 0));
 		vertexBuffer.setValue(2, 2, ifloat4(1.0, 0.0, 0.1, 0));
 		vertexBuffer.setValue(3, 2, ifloat4(1.0, 1.0, 0.1, 0));
-		indexBuffer = { 2,1,0,0,3,2 };
+		indexBuffer = { 2,1,0,0,3,2 };*/
 
 
 		printf("Total Tris:%d\n", indexBuffer.size() / 3);
@@ -257,7 +258,7 @@ namespace Ifrit::Demo::DemoDefault {
 		std::vector<float> texFox;
 		int texFoxW, texFoxH;
 		ImageLoader imageLoader;
-		imageLoader.loadRGBA(IFRIT_ASSET_PATH"/grid.png", &texFox, &texFoxH, &texFoxW);
+		imageLoader.loadRGBA(IFRIT_ASSET_PATH"/fox_diffuse.png", &texFox, &texFoxH, &texFoxW);
 
 		IfritImageCreateInfo imageCI;
 		imageCI.extent.height = texFoxH;
@@ -283,7 +284,7 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->bindFrameBuffer(frameBuffer);
 		renderer->bindVertexBuffer(vertexBuffer);
 		renderer->bindIndexBuffer(indexBuffer);
-
+		
 		DemoVertexShaderCuda vertexShader;
 		VaryingDescriptor vertexShaderLayout;
 		vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
@@ -308,7 +309,7 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->createSampler(0, sampler);
 
 		IfritColorAttachmentBlendState blendState;
-		blendState.blendEnable = false;
+		blendState.blendEnable = true;
 		blendState.srcColorBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
 		blendState.dstColorBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		blendState.srcAlphaBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
@@ -318,6 +319,7 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->setDepthFunc(IF_COMPARE_OP_LESS);
 		renderer->setDepthTestEnable(true);
 		renderer->setClearValues({ {1,1,1,0} }, 255.0);
+		renderer->setCullMode(IF_CULL_MODE_BACK);
 
 		///printf("Start\n");
 		GLFWWindowProvider windowProvider;

@@ -1168,7 +1168,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace TriangleGeometryStage {
-		template<bool tpGeometryShaderEnabled>
+		template<bool tpGeometryShaderEnabled,IfritCullMode tpCullMode>
 		IFRIT_DEVICE void devGeometryCullClip(float4 v1, float4 v2, float4 v3, int primId) {
 			using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
 			constexpr int possibleTris = 5;
@@ -1260,13 +1260,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				}
 
 				// TODO: templated constexpr
-				const auto cullMode = csCullMode;
-				if (cullMode == IF_CULL_MODE_BACK) {
+				constexpr auto cullMode = tpCullMode;
+				if constexpr (cullMode == IF_CULL_MODE_BACK) {
 					if (!GeneralFunction::devTriangleCull(dv1, dv2, dv3)) {
 						continue;
 					}
 				}
-				else if (cullMode == IF_CULL_MODE_FRONT) {
+				if constexpr (cullMode == IF_CULL_MODE_FRONT) {
 					if (!GeneralFunction::devTriangleCull(dv3, dv2, dv1)) {
 						continue;
 					}
@@ -1277,11 +1277,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					b1 = b3;
 					b3 = bt;
 				}
-				else if (cullMode == IF_CULL_MODE_FRONT_AND_BACK) {
+				if constexpr (cullMode == IF_CULL_MODE_FRONT_AND_BACK) {
 					continue;
 				}
+				if constexpr (cullMode == IF_CULL_MODE_NONE) {
+					if (!GeneralFunction::devTriangleCull(dv1, dv2, dv3)) {
+						auto dvt = dv1;
+						dv1 = dv3;
+						dv3 = dvt;
+						auto bt = b1;
+						b1 = b3;
+						b3 = bt;
+					}
+				}
 				
-
 				if constexpr (CU_OPT_SMALL_PRIMITIVE_CULL) {
 					float4 bbox;
 					GeneralFunction::devGetBBox(dv1, dv2, dv3, bbox);
@@ -1309,7 +1318,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 #undef ret
 		}
-		template <int geometryShaderEnabled>
+		template <int geometryShaderEnabled,IfritCullMode tpCullMode>
 		IFRIT_KERNEL void geometryClippingKernel(
 			ifloat4* IFRIT_RESTRICT_CUDA dPosBuffer,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
@@ -1339,7 +1348,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 			if (v1.w < 0 && v2.w < 0 && v3.w < 0)
 				return;
-			devGeometryCullClip<geometryShaderEnabled>(v1, v2, v3, primId);
+			devGeometryCullClip<geometryShaderEnabled, tpCullMode>(v1, v2, v3, primId);
 		}
 		IFRIT_KERNEL void geometryClippingKernelEntryWithGS() {
 			int numTriangles = dGeometryShaderOutSize / 3;
@@ -1348,7 +1357,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				GeneralFunction::devAbort();
 			}
 			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(numTriangles, CU_GEOMETRY_PROCESSING_THREADS);
-			geometryClippingKernel<1> CU_KARG2(dispatchBlocks, CU_GEOMETRY_PROCESSING_THREADS)(nullptr, nullptr, 0, numTriangles * 3);
+			
+#define invokeGeometryClippingKernel(tpCullMode) if(csCullMode == tpCullMode) geometryClippingKernel<1,(tpCullMode)> CU_KARG2(dispatchBlocks, CU_GEOMETRY_PROCESSING_THREADS)(nullptr, nullptr, 0, numTriangles * 3);
+			invokeGeometryClippingKernel(IF_CULL_MODE_FRONT);
+			invokeGeometryClippingKernel(IF_CULL_MODE_BACK);
+			invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK);
+			invokeGeometryClippingKernel(IF_CULL_MODE_NONE);
+#undef invokeGeometryClippingKernel
 		}
 		IFRIT_KERNEL void geometryParamPostprocKernel(uint32_t bound) {
 			int globalInvo = threadIdx.x + blockDim.x * blockIdx.x;
@@ -2163,8 +2178,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
 				if (dGeometryShader == nullptr) {
 					int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
-					Impl::TriangleGeometryStage::geometryClippingKernel<0> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
-						dPositionBuffer, dIndexBuffer, i, indexCount);
+#define invokeGeometryClippingKernel(tpCullMode) if(csCullMode == tpCullMode) Impl::TriangleGeometryStage::geometryClippingKernel<0,tpCullMode> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(dPositionBuffer, dIndexBuffer, i, indexCount);
+					invokeGeometryClippingKernel(IF_CULL_MODE_BACK);
+					invokeGeometryClippingKernel(IF_CULL_MODE_FRONT);
+					invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK);
+					invokeGeometryClippingKernel(IF_CULL_MODE_NONE);
+#undef invokeGeometryClippingKernel
 				}
 				else {
 					GeneralGeometryStage::devCallGeometryShader(dGeometryShader, CU_TRIANGLE_STRIDE, i, indexCount,
@@ -2193,8 +2212,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
 				if (dGeometryShader == nullptr) {
 					int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_PROCESSING_THREADS);
-					Impl::TriangleGeometryStage::geometryClippingKernel<0> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(
-						dPositionBuffer, dIndexBuffer, i, indexCount);
+#define invokeGeometryClippingKernel(tpCullMode) if(csCullMode == tpCullMode) Impl::TriangleGeometryStage::geometryClippingKernel<0,tpCullMode> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(dPositionBuffer, dIndexBuffer, i, indexCount);
+					invokeGeometryClippingKernel(IF_CULL_MODE_BACK);
+					invokeGeometryClippingKernel(IF_CULL_MODE_FRONT);
+					invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK);
+					invokeGeometryClippingKernel(IF_CULL_MODE_NONE);
+#undef invokeGeometryClippingKernel
 				}
 				else {
 					int geometryShaderBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_SHADER_THREADS);

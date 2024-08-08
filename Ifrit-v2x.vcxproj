@@ -134,8 +134,6 @@
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <CudaCompile Include="demo\shader\DefaultDemoShaders.cu" />
     <CudaCompile Include="demo\shader\SkyboxShaders.cu" />
-    <CudaCompile Include="IfritShaders.cu" />
-    <CudaCompile Include="IfritShaders.cuh" />
     <CudaCompile Include="include\core\cuda\CudaUtils.cuh" />
     <ClInclude Include="include\core\data\Image.h" />
     <ClInclude Include="include\core\definition\CoreDefs.h" />
