@@ -10,12 +10,17 @@ GPU/CPU-Parallelized tile-based software rasterizer.
 
 ![](img/img_demo3.png)
 
+Check  **[`gallery.md`](./gallery.md)** for **[More Example Pictures](./gallery.md)**
+
 
 
 Successor to following repos:
+
  - [Ifrit](https://github.com/Aeroraven/Ifrit)
  - [Iris (TinyRenderer CPP)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris)
  - [Iris (TinyRenderer C#)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/TinyRenderer)
+
+
 
 
 
@@ -201,34 +206,27 @@ See `DOCS.md` for more details.
 ## Ongoing Plan
 
 - Tessellation
-
 - <s>Line Mode</s>
-
 - <s>Texture LOD & Texture Sampler</s>
   - <s>Shader Derivatives</s>
   - <s>Anisotropic Filtering</s>
   - <s>Dynamic LOD Selection & Texture Bias</s>
   - <s>Cubic Texture</s>
   - Tiling
-  
 - Multi-sampling
-
 - <s>Alpha Blending</s>
 
   - <s>Sorting</s>
-
 - Mesh Shader
-
 - Input Topology
-
 - Triangle Cluster & Cluster LOD
-
 - Known Issues
 
-  - <s>Resolution Change</s>
-    - Artifacts in low resolution scenario 
-  -  Overdraw: Point mode with index buffer
-  -  Latency: Excessive global atomics in line mode
+  - <s>Issue: Faults after resolution change</s>
+  - Overdraw: Point mode with index buffer
+  - Latency: Excessive global atomics in line mode
+  - Issue: Nondeterministic behaviors in wireframe/point mode 
+  - Issue: Artifacts in low resolution scenario 
 
 
 

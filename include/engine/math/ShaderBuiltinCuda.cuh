@@ -207,25 +207,6 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 			auto lodDiff = lod - lodLow;
 			auto texcLow = textureImplLegacy(sampler, texData, texOw, texOh, totalLayers, texLayers, uv, { 0,0 }, lodLow);
 			auto texcHigh = textureImplLegacy(sampler, texData, texOw, texOh, totalLayers, texLayers, uv, { 0,0 }, lodLow + 1);
-			/*
-			if (texLayers == 0) {
-				return float4{ 1,0,0,0 };
-			}
-			else if (texLayers == 1) {
-				return float4{ 1,1,0,0 };
-			}
-			else if (texLayers == 2) {
-				return float4{ 1,0,1,0 };
-			}
-			else if (texLayers == 3) {
-				return float4{ 0,1,0,0 };
-			}
-			else if (texLayers == 4) {
-				return float4{ 0,0,1,0 };
-			}
-			else if (texLayers == 5) {
-				return float4{ 0,1,1,0 };
-			}*/
 			return lerp(texcLow, texcHigh, lodDiff);
 		}
 
@@ -242,6 +223,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		}
 		IFRIT_DUAL inline float4 textureImplAnisotropicFilter(const IfritSamplerT& sampler, const float4* texData,
 			int texOw, int texOh, int texLayers, int maxAniso, const float2& uv, const float2& du, const float2& dv, float lodBias, const int2& offset) {
+			
 			//TODO: Pixel size
 			auto dudx = du.x, dudy = du.y, dvdx = dv.x, dvdy = dv.y;
 			auto px = sqrt(dudx * dudx + dvdx * dvdx) * texOw;

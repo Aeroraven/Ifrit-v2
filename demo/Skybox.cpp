@@ -77,7 +77,7 @@ namespace Ifrit::Demo::Skybox {
 		IfritImageCreateInfo imageCI;
 		imageCI.extent.height = texH[0];
 		imageCI.extent.width = texW[0];
-		imageCI.mipLevels = 5;
+		imageCI.mipLevels = 6;
 		imageCI.arrayLayers = 6;
 		renderer->createTexture(0, imageCI);
 
@@ -99,6 +99,15 @@ namespace Ifrit::Demo::Skybox {
 		vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 		SkyboxFS fragmentShader;
 
+		IfritSamplerT sampler;
+		sampler.filterMode = IF_FILTER_LINEAR;
+		sampler.addressModeU = IF_SAMPLER_ADDRESS_MODE_REPEAT;
+		sampler.addressModeV = IF_SAMPLER_ADDRESS_MODE_REPEAT;
+		sampler.borderColor = IF_BORDER_COLOR_WHITE;
+		sampler.anisotropyEnable = false;
+		sampler.maxAnisotropy = 16.0f;
+		renderer->createSampler(0, sampler);
+
 		auto dVertexShader = vertexShader.getCudaClone();
 		auto dFragmentShader = fragmentShader.getCudaClone();
 		renderer->bindFragmentShader(dFragmentShader);
@@ -107,7 +116,7 @@ namespace Ifrit::Demo::Skybox {
 		renderer->setDepthFunc(IF_COMPARE_OP_LESS);
 		renderer->setDepthTestEnable(true);
 		renderer->setClearValues({ {1,1,1,0} }, 255.0);
-
+		
 		auto windowBuilder = std::make_unique<AdaptiveWindowBuilder>();
 		auto windowProvider = windowBuilder->buildUniqueWindowProvider();
 		windowProvider->setup(2048, 1152);

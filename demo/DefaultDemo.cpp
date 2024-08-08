@@ -104,6 +104,7 @@ namespace Ifrit::Demo::DemoDefault {
 		VertexBuffer vertexBuffer;
 		vertexBuffer.setLayout({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 
+
 		vertexBuffer.setVertexCount(4);
 		vertexBuffer.allocateBuffer(4);
 		//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
@@ -206,9 +207,9 @@ namespace Ifrit::Demo::DemoDefault {
 		std::vector<ifloat3> procNormal;
 		std::vector<ifloat2> procUv;
 
-		loader.loadObject(IFRIT_ASSET_PATH"/fox.obj", pos, normal, uv, index);
+		loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj", pos, normal, uv, index);
 		procNormal = loader.remapNormals(normal, index, pos.size());
-		procUv = loader.remapUVs(uv, index, pos.size());
+		//procUv = loader.remapUVs(uv, index, pos.size());
 
 		std::shared_ptr<ImageF32> image1 = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4, true);
 		std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
@@ -223,14 +224,14 @@ namespace Ifrit::Demo::DemoDefault {
 		for (int i = 0; i < pos.size(); i++) {
 			vertexBuffer.setValue(i, 0, ifloat4(pos[i].x, pos[i].y, pos[i].z, 1));
 			vertexBuffer.setValue(i, 1, ifloat4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
-			vertexBuffer.setValue(i, 2, ifloat4(procUv[i].x, procUv[i].y, 0, 0));
+			vertexBuffer.setValue(i, 2, ifloat4(0,0, 0, 0));
 		}
 		indexBuffer.resize(index.size() / 3);
 		for (int i = 0; i < index.size(); i += 3) {
 			indexBuffer[i / 3] = index[i];
 		}
 
-
+		/*
 		vertexBuffer.setVertexCount(4);
 		vertexBuffer.allocateBuffer(4);
 		//vertexBuffer.setValue(0, 0, ifloat4(-0.0027,0.3485,-0.0983,0.0026));
@@ -249,7 +250,7 @@ namespace Ifrit::Demo::DemoDefault {
 		vertexBuffer.setValue(1, 2, ifloat4(0.0, 0.0, 0.1, 0));
 		vertexBuffer.setValue(2, 2, ifloat4(1.0, 0.0, 0.1, 0));
 		vertexBuffer.setValue(3, 2, ifloat4(1.0, 1.0, 0.1, 0));
-		indexBuffer = { 2,1,0,0,3,2 };
+		indexBuffer = { 2,1,0,0,3,2 };*/
 
 
 		printf("Total Tris:%d\n", indexBuffer.size() / 3);
@@ -257,7 +258,7 @@ namespace Ifrit::Demo::DemoDefault {
 		std::vector<float> texFox;
 		int texFoxW, texFoxH;
 		ImageLoader imageLoader;
-		imageLoader.loadRGBA(IFRIT_ASSET_PATH"/grid.png", &texFox, &texFoxH, &texFoxW);
+		imageLoader.loadRGBA(IFRIT_ASSET_PATH"/fox_diffuse.png", &texFox, &texFoxH, &texFoxW);
 
 		IfritImageCreateInfo imageCI;
 		imageCI.extent.height = texFoxH;
@@ -283,7 +284,7 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->bindFrameBuffer(frameBuffer);
 		renderer->bindVertexBuffer(vertexBuffer);
 		renderer->bindIndexBuffer(indexBuffer);
-
+		
 		DemoVertexShaderCuda vertexShader;
 		VaryingDescriptor vertexShaderLayout;
 		vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
@@ -296,7 +297,7 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->bindFragmentShader(dFragmentShader);
 		renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
 		//renderer->bindGeometryShader(dGeometryShader);
-		//renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_LINE);
+		//renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_POINT);
 
 		IfritSamplerT sampler;
 		sampler.filterMode = IF_FILTER_LINEAR;
@@ -317,11 +318,13 @@ namespace Ifrit::Demo::DemoDefault {
 
 		renderer->setDepthFunc(IF_COMPARE_OP_LESS);
 		renderer->setDepthTestEnable(true);
-		renderer->setClearValues({ {1,1,1,0} }, 255.0);
+		renderer->setClearValues({ {0,0,0,0} }, 255.0);
+		renderer->setCullMode(IF_CULL_MODE_BACK);
 
-		///printf("Start\n");
+		
 		GLFWWindowProvider windowProvider;
 		windowProvider.setup(2048, 1152);
+		
 		stringstream ss;
 		ss << "Ifrit-v2 CUDA (Resolution: " << DEMO_RESOLUTION << "x" << DEMO_RESOLUTION << ")";
 		windowProvider.setTitle(ss.str().c_str());
