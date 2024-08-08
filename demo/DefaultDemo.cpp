@@ -207,9 +207,9 @@ namespace Ifrit::Demo::DemoDefault {
 		std::vector<ifloat3> procNormal;
 		std::vector<ifloat2> procUv;
 
-		loader.loadObject(IFRIT_ASSET_PATH"/fox.obj", pos, normal, uv, index);
+		loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj", pos, normal, uv, index);
 		procNormal = loader.remapNormals(normal, index, pos.size());
-		procUv = loader.remapUVs(uv, index, pos.size());
+		//procUv = loader.remapUVs(uv, index, pos.size());
 
 		std::shared_ptr<ImageF32> image1 = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4, true);
 		std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
@@ -224,7 +224,7 @@ namespace Ifrit::Demo::DemoDefault {
 		for (int i = 0; i < pos.size(); i++) {
 			vertexBuffer.setValue(i, 0, ifloat4(pos[i].x, pos[i].y, pos[i].z, 1));
 			vertexBuffer.setValue(i, 1, ifloat4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
-			vertexBuffer.setValue(i, 2, ifloat4(procUv[i].x, procUv[i].y, 0, 0));
+			vertexBuffer.setValue(i, 2, ifloat4(0,0, 0, 0));
 		}
 		indexBuffer.resize(index.size() / 3);
 		for (int i = 0; i < index.size(); i += 3) {
@@ -297,7 +297,7 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->bindFragmentShader(dFragmentShader);
 		renderer->bindVertexShader(dVertexShader, vertexShaderLayout);
 		//renderer->bindGeometryShader(dGeometryShader);
-		//renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_LINE);
+		//renderer->setRasterizerPolygonMode(IF_POLYGON_MODE_POINT);
 
 		IfritSamplerT sampler;
 		sampler.filterMode = IF_FILTER_LINEAR;
@@ -309,7 +309,7 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->createSampler(0, sampler);
 
 		IfritColorAttachmentBlendState blendState;
-		blendState.blendEnable = true;
+		blendState.blendEnable = false;
 		blendState.srcColorBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
 		blendState.dstColorBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		blendState.srcAlphaBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
@@ -318,12 +318,13 @@ namespace Ifrit::Demo::DemoDefault {
 
 		renderer->setDepthFunc(IF_COMPARE_OP_LESS);
 		renderer->setDepthTestEnable(true);
-		renderer->setClearValues({ {1,1,1,0} }, 255.0);
+		renderer->setClearValues({ {0,0,0,0} }, 255.0);
 		renderer->setCullMode(IF_CULL_MODE_BACK);
 
-		///printf("Start\n");
+		
 		GLFWWindowProvider windowProvider;
 		windowProvider.setup(2048, 1152);
+		
 		stringstream ss;
 		ss << "Ifrit-v2 CUDA (Resolution: " << DEMO_RESOLUTION << "x" << DEMO_RESOLUTION << ")";
 		windowProvider.setTitle(ss.str().c_str());

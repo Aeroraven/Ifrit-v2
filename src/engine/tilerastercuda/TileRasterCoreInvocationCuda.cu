@@ -1394,7 +1394,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			float4 f1 = { (float)(sV3V2y * ar) * invFrameWidth, (float)(sV3V2x * ar) * invFrameHeight,(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) };
 			float4 f2 = { (float)(sV1V3y * ar) * invFrameWidth, (float)(sV1V3x * ar) * invFrameHeight,(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) };
 
-			constexpr auto dEps = -CU_EPS * 7.85e6f;
+			constexpr auto dEps = -CU_EPS * 7.85e5f;
 
 			float v1 = dv1.z * f1.x + dv2.z * f2.x + dv3.z * f3.x;
 			float v2 = dv1.z * f1.y + dv2.z * f2.y + dv3.z * f3.y;
