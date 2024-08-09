@@ -241,3 +241,5 @@ For models / open source code references, check `licenses` folder.
 [2]. https://www.slideshare.net/slideshow/optimizing-the-graphics-pipeline-with-compute-gdc-2016/59747720
 
 [3]. https://docs.nvidia.com/cuda/cuda-c-programming-guide/
+
+[4]. https://github.com/zeux/meshoptimizer
