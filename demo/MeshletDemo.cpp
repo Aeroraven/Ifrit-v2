@@ -15,7 +15,7 @@
 #include "engine/meshletbuilder/MeshletBuilder.h"
 
 
-#define DEMO_RESOLUTION 2048
+#define DEMO_RESOLUTION 1536
 namespace Ifrit::Demo::MeshletDemo {
     using namespace std;
     using namespace Ifrit::Core::Data;

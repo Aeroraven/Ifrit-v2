@@ -10,7 +10,16 @@ namespace Ifrit::Engine {
 		IGST_POINTS = 2
 	};
 
-	class VertexShader {
+	class ShaderBase {
+	public:
+		float* atTexture[32];
+		uint32_t atTextureWid[32];
+		uint32_t atTextureHei[32];
+		IfritSamplerT atSamplerPtr[32];
+		char* atBuffer[32];
+	};
+
+	class VertexShader :public ShaderBase {
 	public:
 		IFRIT_DUAL virtual void execute(
 			const void* const* input,
@@ -20,12 +29,9 @@ namespace Ifrit::Engine {
 		IFRIT_HOST virtual VertexShader* getCudaClone() { return nullptr; };
 	};
 
-	class FragmentShader {
+	class FragmentShader :public ShaderBase {
 	public:
-		float* atTexture[32];
-		uint32_t atTextureWid[32];
-		uint32_t atTextureHei[32];
-		IfritSamplerT atSamplerPtr[32];
+		
 		IFRIT_DUAL virtual void execute(
 			const void* varyings, 
 			void* colorOutput
@@ -33,7 +39,7 @@ namespace Ifrit::Engine {
 		IFRIT_HOST virtual FragmentShader* getCudaClone() { return nullptr; };
 	};
 
-	class GeometryShader {
+	class GeometryShader :public ShaderBase {
 	public:
 		GeometryShaderTopology atTopology = IGST_TRIANGLES;
 		uint32_t atMaxVertices = 4;
@@ -47,7 +53,7 @@ namespace Ifrit::Engine {
 		IFRIT_HOST virtual GeometryShader* getCudaClone() { return nullptr; };
 	};
 
-	class HullShader {
+	class HullShader :public ShaderBase {
 	public:
 		IFRIT_DUAL virtual void executeMain(
 			const ifloat4** inputPos,
@@ -66,5 +72,18 @@ namespace Ifrit::Engine {
 			int patchId
 		) = 0;
 		IFRIT_HOST virtual HullShader* getCudaClone() { return nullptr; };
+	};
+
+	class MeshShader :public ShaderBase {
+	public:
+		IFRIT_DUAL virtual void execute(
+			iint3 localInvocation, 
+			int workGroupId,
+			VaryingStore* outVaryings,
+			ifloat4* outPos,
+			int* outIndices,
+			int& outNumVertices,
+			int& outNumIndices
+		) = 0;
 	};
 }

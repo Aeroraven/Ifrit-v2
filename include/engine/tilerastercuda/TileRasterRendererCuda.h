@@ -44,7 +44,15 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		IfritPolygonMode polygonMode = IF_POLYGON_MODE_FILL;
 
 	private:
+		enum TileRasterRendererCudaVertexPipelineType {
+			IFINTERNAL_CU_VERTEX_PIPELINE_UNDEFINED = 0,
+			IFINTERNAL_CU_VERTEX_PIPELINE_CONVENTIONAL = 1,
+			IFINTERNAL_CU_VERTEX_PIPELINE_MESHSHADER = 2
+		};
+
+	private:
 		void updateVaryingBuffer();
+		void internalRender(TileRasterRendererCudaVertexPipelineType vertexPipeType);
 
 	public:
 		void init();
@@ -55,6 +63,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor);
 		void bindFragmentShader(FragmentShader* fragmentShader);
 		void bindGeometryShader(GeometryShader* geometryShader);
+		void bindMeshShader(MeshShader* meshShader, VaryingDescriptor& varyingDescriptor, iint3 localSize);
 
 		void createTexture(int slotId, const IfritImageCreateInfo& createInfo);
 		void createSampler(int slotId, const IfritSamplerT& samplerState);
@@ -70,7 +79,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void setClearValues(const std::vector<ifloat4>& clearColors, float clearDepth);
 
 		void clear();
-		void render();
+		void drawElements();
+		void drawMeshTasks(int numWorkGroups, int firstWorkGroup);
 	};
 }
 #endif
