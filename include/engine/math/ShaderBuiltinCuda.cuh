@@ -10,6 +10,7 @@
 namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 	using TextureObject = int;
 	using SamplerState = int;
+	using BufferObject = int;
 	using DifferentiableCollection = const ifloat4s256*;
 	using DifferentiableVarId = int;
 
@@ -368,6 +369,16 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		auto pWidth = Impl::csTextureWidth[tex];
 		auto pLayers = Impl::csTextureArrayLayers[tex];
 		return TextureSampleImpl::textureCubeImplLod(pSamplerState, pTexture, pWidth, pHeight,pLayers, uvw, lod);
+#endif
+	}
+
+	IFRIT_DUAL inline char* getBufferPtr(BufferObject buf) {
+#ifndef __CUDA_ARCH__
+		printf("This function is not available under CPU Mode.");
+		return nullptr;
+#else
+		using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+		return Impl::csGeneralBuffer[buf];
 #endif
 	}
 }

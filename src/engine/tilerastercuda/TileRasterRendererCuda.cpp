@@ -66,6 +66,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::updateVaryingBuffer() {
 		if (!needVaryingUpdate)return;
 		needVaryingUpdate = false;
+		if (context->vertexBuffer == nullptr)return;
+		if (context->varyingDescriptor == nullptr)return;
+
 		auto vcount = context->varyingDescriptor->getVaryingCounts();
 		auto vxcount = context->vertexBuffer->getVertexCount();
 		cudaMalloc(&deviceContext->dVaryingBufferM2, vcount * vxcount * sizeof(VaryingStore));
@@ -161,7 +164,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions) {
 		Invocation::invokeCopyBufferToImage(srcBuffer, dstSlot, regions.size(), regions.data());
 	}
-	void TileRasterRendererCuda::copyHostBufferToBuffer(void* srcBuffer, int dstSlot, int size) {
+	void TileRasterRendererCuda::copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size) {
 		Invocation::copyHostBufferToBuffer(srcBuffer, dstSlot, size);
 	}
 	void TileRasterRendererCuda::internalRender(TileRasterRendererCudaVertexPipelineType vertexPipeType) {
@@ -174,7 +177,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		}
 
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
-		int totalIndices = context->indexBuffer->size();
+		int totalIndices = 0;
+		if(context->indexBuffer)totalIndices = context->indexBuffer->size();
 		int curBuffer = currentBuffer;
 		Invocation::RenderingInvocationArgumentSet args;
 		args.dVertexBuffer = deviceVertexBuffer;

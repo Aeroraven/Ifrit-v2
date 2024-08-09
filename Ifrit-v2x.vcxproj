@@ -121,6 +121,7 @@
     <ClInclude Include="demo\MeshletDemo.h" />
     <ClInclude Include="demo\shader\DefaultDemoShaders.cuh" />
     <ClInclude Include="demo\DefaultDemo.h" />
+    <ClInclude Include="demo\shader\MeshletDemoShaders.cuh" />
     <ClInclude Include="demo\shader\SkyboxShaders.cuh" />
     <ClInclude Include="demo\Skybox.h" />
     <ClInclude Include="include\engine\base\Shaders.h" />
@@ -136,6 +137,7 @@
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <CudaCompile Include="demo\shader\DefaultDemoShaders.cu" />
+    <CudaCompile Include="demo\shader\MeshletDemoShaders.cu" />
     <CudaCompile Include="demo\shader\SkyboxShaders.cu" />
     <CudaCompile Include="include\core\cuda\CudaUtils.cuh" />
     <ClInclude Include="include\core\data\Image.h" />

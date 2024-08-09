@@ -1368,6 +1368,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				if (globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
 				const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
 				auto dPosBufferAligned = static_cast<float4*>(__builtin_assume_aligned(dPosBuffer, 16));
+				
+				for (int i = 0; i < 3; i++) {
+					if (dIndexBuffer[indexStart + i] >= 46311) {
+						printf("FAILURE2 %d %d\n", dIndexBuffer[indexStart + i], indexStart);
+					}
+				}
+
 				v1 = dPosBufferAligned[dIndexBuffer[indexStart]];
 				v2 = dPosBufferAligned[dIndexBuffer[indexStart + 1]];
 				v3 = dPosBufferAligned[dIndexBuffer[indexStart + 2]];
@@ -3089,7 +3096,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaMemcpyToSymbol(Impl::csGeneralBuffer, &Impl::hsGeneralBuffer[slotId], sizeof(void*), sizeof(void*) * slotId);
 		cudaMemcpyToSymbol(Impl::csGeneralBufferSize, &Impl::hsGeneralBufferSize[slotId], sizeof(int), sizeof(int) * slotId);
 	}
-	void copyHostBufferToBuffer(void* srcBuffer, int dstSlot, int size) {
+	void copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size) {
 		cudaMemcpy(Impl::hsGeneralBuffer[dstSlot], srcBuffer, size, cudaMemcpyHostToDevice);
 	}
 	int* getIndexBufferDeviceAddr(const int* hIndexBuffer, uint32_t indexBufferSize, int* dOldIndexBuffer) {
@@ -3331,11 +3338,14 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		constexpr int dispatchThreadsX = 8,dispatchThreadsY = 8;
 		int dispatchBlocksX = (Impl::hsFrameWidth / dispatchThreadsX) + ((Impl::hsFrameWidth % dispatchThreadsX) != 0);
 		int dispatchBlocksY = (Impl::hsFrameHeight / dispatchThreadsY) + ((Impl::hsFrameHeight % dispatchThreadsY) != 0);
-		int vertexExecutionBlocks = (Impl::hsVertexCounts / CU_VERTEX_PROCESSING_THREADS) + ((Impl::hsVertexCounts % CU_VERTEX_PROCESSING_THREADS) != 0);
-		Impl::VertexStage::vertexProcessingKernel CU_KARG4(vertexExecutionBlocks, CU_VERTEX_PROCESSING_THREADS, 0, computeStream)(
-			args.dVertexShader, Impl::hsVertexCounts, args.dVertexBuffer, args.dVertexTypeDescriptor,
-			args.deviceContext->dVaryingBufferM2, (float4*)args.dPositionBuffer
-		);
+		
+		if (args.gGeometryPipelineType == IFCUINVO_GEOMETRY_GENERATION_CONVENTIONAL) {
+			int vertexExecutionBlocks = (Impl::hsVertexCounts / CU_VERTEX_PROCESSING_THREADS) + ((Impl::hsVertexCounts % CU_VERTEX_PROCESSING_THREADS) != 0);
+			Impl::VertexStage::vertexProcessingKernel CU_KARG4(vertexExecutionBlocks, CU_VERTEX_PROCESSING_THREADS, 0, computeStream)(
+				args.dVertexShader, Impl::hsVertexCounts, args.dVertexBuffer, args.dVertexTypeDescriptor,
+				args.deviceContext->dVaryingBufferM2, (float4*)args.dPositionBuffer
+			);
+		}
 		
 		Impl::TriangleMiscStage::integratedResetKernel CU_KARG4(CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, CU_MAX_TILE_X, 0, computeStream)();
 		

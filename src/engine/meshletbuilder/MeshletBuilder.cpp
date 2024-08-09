@@ -248,13 +248,21 @@ namespace Ifrit::Engine::MeshletBuilder {
             writeGenratedMeshlet(ctx.get(), ctx->finishedMeshlets[i]);
         }
     }
-    void TrivialMeshletBuilder::mergeMeshlet(const std::vector<std::unique_ptr<Meshlet>>& meshlets, Meshlet& outData){
+    void TrivialMeshletBuilder::mergeMeshlet(const std::vector<std::unique_ptr<Meshlet>>& meshlets,
+        Meshlet& outData, std::vector<int>& outVertexOffset, std::vector<int>& outIndexOffset, bool autoIncre){
         auto totalVerts = 0;
+        auto totalIndices = 0;
         auto accuOffset = 0;
         outData.vbufs.setLayout({TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4});
         for(auto& m:meshlets){
+            outVertexOffset.push_back(totalVerts);
+            outIndexOffset.push_back(totalIndices);
             totalVerts += m->vbufs.getVertexCount();
+            totalIndices += m->ibufs.size();
         }
+        outVertexOffset.push_back(totalVerts);
+        outIndexOffset.push_back(totalIndices);
+
         outData.vbufs.setVertexCount(totalVerts);
         outData.vbufs.allocateBuffer(totalVerts);
         for(auto& m:meshlets){
@@ -263,7 +271,7 @@ namespace Ifrit::Engine::MeshletBuilder {
                 outData.vbufs.setValue(accuOffset+i,1,m->vbufs.getValue<ifloat4>(i,1));
             }
             for(int i=0;i<m->ibufs.size();i++){
-                outData.ibufs.push_back(m->ibufs[i]+accuOffset);
+                outData.ibufs.push_back(m->ibufs[i]+accuOffset* autoIncre);
             }
             accuOffset += m->vbufs.getVertexCount();
         }

@@ -21,11 +21,15 @@ int demoSkybox() {
 }
 
 int demoMeshlet(){
+#ifdef IFRIT_FEATURE_CUDA
+	Ifrit::Demo::MeshletDemo::mainGpu();
+#else
 	Ifrit::Demo::MeshletDemo::mainCpu();
+#endif
 	return 0;
 }
 
 int main() {
-	demoDefault();
+	demoMeshlet();
 	return 0;
 }

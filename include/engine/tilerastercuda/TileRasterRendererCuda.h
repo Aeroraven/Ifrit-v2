@@ -72,7 +72,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions);
 
 		void createBuffer(int slotId, int bufSize);
-		void copyHostBufferToBuffer(void* srcBuffer, int dstSlot, int size);
+		void copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size);
 
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
 		void setBlendFunc(IfritColorAttachmentBlendState state);

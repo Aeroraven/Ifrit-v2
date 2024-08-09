@@ -85,5 +85,6 @@ namespace Ifrit::Engine {
 			int& outNumVertices,
 			int& outNumIndices
 		) = 0;
+		IFRIT_HOST virtual MeshShader* getCudaClone() { return nullptr; };
 	};
 }

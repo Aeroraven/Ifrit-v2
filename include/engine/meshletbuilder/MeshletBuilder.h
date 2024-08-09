@@ -12,6 +12,8 @@ namespace Ifrit::Engine::MeshletBuilder {
         void bindVertexBuffer(const VertexBuffer& vbuffer);
         void bindIndexBuffer(const std::vector<int>& ibuffer);
         void buildMeshlet(int posAttrId,std::vector<std::unique_ptr<Meshlet>>& outData);
-        void mergeMeshlet(const std::vector<std::unique_ptr<Meshlet>>& meshlets, Meshlet& outData);
+        void mergeMeshlet(const std::vector<std::unique_ptr<Meshlet>>& meshlets,
+            Meshlet& outData,std::vector<int>& outVertexOffset,std::vector<int>& outIndexOffset,
+            bool autoIncre);
     };
 }
