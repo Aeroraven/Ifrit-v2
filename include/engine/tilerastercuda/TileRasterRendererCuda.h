@@ -71,6 +71,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter);
 		void copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions);
 
+		void createBuffer(int slotId, int bufSize);
+		void copyHostBufferToBuffer(void* srcBuffer, int dstSlot, int size);
+
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
 		void setBlendFunc(IfritColorAttachmentBlendState state);
 		void setDepthFunc(IfritCompareOp depthFunc);

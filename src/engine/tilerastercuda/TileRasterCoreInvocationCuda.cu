@@ -3081,7 +3081,17 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		Impl::hsSampler[slotId] = samplerState;
 		cudaMemcpyToSymbol(Impl::csSamplers, &samplerState, sizeof(samplerState), sizeof(samplerState) * slotId);
 	}
-
+	void createDeviceBuffer(uint32_t slotId, int bufferSize) {
+		void* devicePtr;
+		cudaMalloc(&devicePtr, bufferSize);
+		Impl::hsGeneralBuffer[slotId] = (char*)devicePtr;
+		Impl::hsGeneralBufferSize[slotId] = bufferSize;
+		cudaMemcpyToSymbol(Impl::csGeneralBuffer, &Impl::hsGeneralBuffer[slotId], sizeof(void*), sizeof(void*) * slotId);
+		cudaMemcpyToSymbol(Impl::csGeneralBufferSize, &Impl::hsGeneralBufferSize[slotId], sizeof(int), sizeof(int) * slotId);
+	}
+	void copyHostBufferToBuffer(void* srcBuffer, int dstSlot, int size) {
+		cudaMemcpy(Impl::hsGeneralBuffer[dstSlot], srcBuffer, size, cudaMemcpyHostToDevice);
+	}
 	int* getIndexBufferDeviceAddr(const int* hIndexBuffer, uint32_t indexBufferSize, int* dOldIndexBuffer) {
 		if(dOldIndexBuffer != nullptr) {
 			cudaFree(dOldIndexBuffer);

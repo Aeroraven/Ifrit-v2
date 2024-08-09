@@ -66,6 +66,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void deviceFree(char* ptr);
 	void createTexture(uint32_t texId, const IfritImageCreateInfo& createInfo, float *data);
 	void createSampler(uint32_t slotId, const IfritSamplerT& samplerState);
+	void createDeviceBuffer(uint32_t slotId, int bufferSize);
+	void copyHostBufferToBuffer(void* srcBuffer, int dstSlot, int size)
 	
 	void setBlendFunc(IfritColorAttachmentBlendState blendState);
 	void setDepthFunc(IfritCompareOp depthFunc);

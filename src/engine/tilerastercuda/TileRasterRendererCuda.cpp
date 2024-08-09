@@ -90,6 +90,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		Invocation::createSampler(slotId, samplerState);
 		needFragmentShaderUpdate = true;
 	}
+	void TileRasterRendererCuda::createBuffer(int slotId, int bufSize) {
+		Invocation::createDeviceBuffer(slotId, bufSize);
+	}
 	void TileRasterRendererCuda::setRasterizerPolygonMode(IfritPolygonMode mode) {
 		this->polygonMode = mode;
 	}
@@ -157,6 +160,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions) {
 		Invocation::invokeCopyBufferToImage(srcBuffer, dstSlot, regions.size(), regions.data());
+	}
+	void TileRasterRendererCuda::copyHostBufferToBuffer(void* srcBuffer, int dstSlot, int size) {
+		Invocation::copyHostBufferToBuffer(srcBuffer, dstSlot, size);
 	}
 	void TileRasterRendererCuda::internalRender(TileRasterRendererCudaVertexPipelineType vertexPipeType) {
 		initCuda();
