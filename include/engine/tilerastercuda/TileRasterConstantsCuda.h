@@ -117,6 +117,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	// == Ext: Mesh Shader ==
 	constexpr int CU_MESHSHADER_MAX_VERTICES = 256 * 3;
 	constexpr int CU_MESHSHADER_MAX_INDICES = 256 * 3;
-	constexpr int CU_MESHSHADER_BUFFER_SIZE = 524288;
+	constexpr int CU_MESHSHADER_MAX_WORKGROUPS = 740;
+	constexpr int CU_MESHSHADER_BUFFER_SIZE = 706432;
 
 }

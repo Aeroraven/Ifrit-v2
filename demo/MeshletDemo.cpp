@@ -97,6 +97,7 @@ namespace Ifrit::Demo::MeshletDemo {
 		mBuilder.bindVertexBuffer(vertexBuffer);
 
 		std::vector<std::unique_ptr<Meshlet>> outMeshlet;
+
 		std::vector<int> outVertOffset, outIndexOffset;
 		
 		Meshlet mergedMeshlet;
@@ -132,10 +133,13 @@ namespace Ifrit::Demo::MeshletDemo {
 
 		renderer->bindFragmentShader(dFragmentShader);
 		renderer->bindMeshShader(dMeshShader, vertexShaderLayout, { 1,1,1 });
+		renderer->setClearValues({ {0,0,0,0} }, 255.0);
+
 
 		auto windowBuilder = std::make_unique<AdaptiveWindowBuilder>();
 		auto windowProvider = windowBuilder->buildUniqueWindowProvider();
 		windowProvider->setup(2048, 1152);
+		windowProvider->setTitle("Ifrit-v2 <Mesh Shader>");
 
 		auto backendBuilder = std::make_unique<AdaptiveBackendBuilder>();
 		auto backend = backendBuilder->buildUniqueBackend();
@@ -143,6 +147,7 @@ namespace Ifrit::Demo::MeshletDemo {
 		backend->setViewport(0, 0, windowProvider->getWidth(), windowProvider->getHeight());
 		windowProvider->loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+			renderer->clear();
 			renderer->drawMeshTasks(totalMeshlets, 0);
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -214,7 +219,7 @@ namespace Ifrit::Demo::MeshletDemo {
         auto windowBuilder = std::make_unique<AdaptiveWindowBuilder>();
 		auto windowProvider = windowBuilder->buildUniqueWindowProvider();
 		windowProvider->setup(2048, 1152);
-
+		
 		auto backendBuilder = std::make_unique<AdaptiveBackendBuilder>();
 		auto backend = backendBuilder->buildUniqueBackend();
 		

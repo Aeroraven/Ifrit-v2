@@ -126,7 +126,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::clear() {
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
-		int totalIndices = context->indexBuffer->size();
+		int totalIndices = 0;
+		if(totalIndices)totalIndices = context->indexBuffer->size();
 		int curBuffer = currentBuffer;
 		Invocation::RenderingInvocationArgumentSet args;
 		args.hClearColors = ctxClearColors.data();
