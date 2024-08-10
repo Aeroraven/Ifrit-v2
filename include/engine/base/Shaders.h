@@ -79,6 +79,7 @@ namespace Ifrit::Engine {
 		IFRIT_DUAL virtual void execute(
 			iint3 localInvocation, 
 			int workGroupId,
+			const void* inTaskShaderPayload,
 			VaryingStore* outVaryings,
 			ifloat4* outPos,
 			int* outIndices,
@@ -86,5 +87,16 @@ namespace Ifrit::Engine {
 			int& outNumIndices
 		) = 0;
 		IFRIT_HOST virtual MeshShader* getCudaClone() { return nullptr; };
+	};
+
+	class TaskShader : public ShaderBase {
+	public:
+		IFRIT_DUAL virtual void execute(
+			int workGroupId,
+			void* outTaskShaderPayload,
+			iint3* outMeshWorkGroups,
+			int& outNumMeshWorkGroups
+		) = 0;
+		IFRIT_HOST virtual TaskShader* getCudaClone() { return nullptr; };
 	};
 }

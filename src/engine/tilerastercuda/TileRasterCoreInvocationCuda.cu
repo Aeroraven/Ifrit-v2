@@ -121,6 +121,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static uint32_t dAssembledTriangleCounterM2;
 
 	// Mesh Shader
+	IFRIT_DEVICE static iint3 dTaskShaderSubWorkGroups[CU_MESHSHADER_MAX_TASK_OUTPUT * CU_MESHSHADER_MAX_WORKGROUPS];
+	IFRIT_DEVICE static int dTaskShaderSubWorkGroupsNum[CU_MESHSHADER_MAX_WORKGROUPS];
+	IFRIT_DEVICE static int dTaskShaderSubWorkGroupsNumPrefixScan[CU_MESHSHADER_MAX_WORKGROUPS];
+	IFRIT_DEVICE static char dTaskShaderPayload[CU_MESHSHADER_MAX_WORKGROUPS * CU_MESHSHADER_MAX_TASK_PAYLOAD_SIZE];
+
 	IFRIT_DEVICE static float4 dMeshShaderPosition[CU_MESHSHADER_BUFFER_SIZE];
 	IFRIT_DEVICE static VaryingStore dMeshShaderVaryings[CU_MESHSHADER_BUFFER_SIZE];
 	IFRIT_DEVICE static int dMeshShaderIndices[CU_MESHSHADER_BUFFER_SIZE];
@@ -292,10 +297,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int* pOutIndex = &(dMeshShaderIndices[workGroupId * CU_MESHSHADER_MAX_INDICES]);
 			
 			ifloat4* pOutPosR = reinterpret_cast<ifloat4*>(pOutPos);
-			meshShader->execute(localInvocation, workGroupId, pOutVaryings, pOutPosR, pOutIndex, *pNumVertices, *pNumIndices);
+			meshShader->execute(localInvocation, workGroupId,nullptr, pOutVaryings, pOutPosR, pOutIndex, *pNumVertices, *pNumIndices);
 		}
 
 		IFRIT_KERNEL void meshShadingCompactionKernel(int totalWorkGroups, int numPerVertexAttributes) {
+			//TODO: Ordering
 			int workGroupId = threadIdx.x + blockDim.x * blockIdx.x;
 			if (workGroupId >= totalWorkGroups)return;
 			int locPosBuffer = atomicAdd(&dMeshShaderAggOffsetVertGlobal, dMeshShaderNumVertices[workGroupId]);
@@ -316,6 +322,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		IFRIT_KERNEL void meshShadingResetKernel() {
 			dMeshShaderAggOffsetVertGlobal = 0;
 			dMeshShaderAggOffsetIndexGlobal = 0;
+		}
+
+		IFRIT_KERNEL void taskShadingKernel(int totalWorkGroups, TaskShader* taskShader) {
+			int workGroupId = threadIdx.x + blockDim.x * blockIdx.x;
+			if (workGroupId >= totalWorkGroups)return;
+			int payloadOffset = workGroupId * CU_MESHSHADER_MAX_TASK_PAYLOAD_SIZE;
+			int subgroupOffset = workGroupId * CU_MESHSHADER_MAX_TASK_OUTPUT;
+			taskShader->execute(workGroupId, &dTaskShaderPayload[payloadOffset], &dTaskShaderSubWorkGroups[subgroupOffset],
+				dTaskShaderSubWorkGroupsNum[workGroupId]);
 		}
 
 		IFRIT_KERNEL void meshShadingEntryPoint(

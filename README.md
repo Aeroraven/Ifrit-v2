@@ -4,11 +4,13 @@ GPU/CPU-Parallelized tile-based software rasterizer.
 
 ![](./img/img_demo0png.png)
 
+![](img/img_demo3.png)
+
 ![](img/img_demo1.png)
 
 ![](img/img_demo2.png)
 
-![](img/img_demo3.png)
+
 
 Check  **[`gallery.md`](./gallery.md)** for **[More Example Pictures](./gallery.md)**
 
@@ -44,6 +46,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Programmable Vertex Shader        | √                                                            | √               | √             |
 | Programmable Fragment Shader      | √                                                            | √               | √             |
 | Programmable Geometry Shader      |                                                              |                 | ▲             |
+| Programmable Mesh Shader          |                                                              |                 | ▲             |
 | Alpha Blending                    |                                                              | √               | √             |
 | Depth Testing                     | √                                                            | √               | √             |
 | Depth Function                    |                                                              | √               | √             |

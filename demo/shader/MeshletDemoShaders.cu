@@ -8,7 +8,7 @@
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 
 namespace Ifrit::Demo::MeshletDemo {
-	void MeshletDemoCuMS::execute(iint3 localInvocation, int workGroupId, Ifrit::Engine::VaryingStore* outVaryings, ifloat4* outPos,
+	void MeshletDemoCuMS::execute(iint3 localInvocation, int workGroupId, const void* inTaskShaderPayload, Ifrit::Engine::VaryingStore* outVaryings, ifloat4* outPos,
 		int* outIndices, int& outNumVertices, int& outNumIndices) {
 
 		using namespace Ifrit::Engine::Math::ShaderOps::CUDA;

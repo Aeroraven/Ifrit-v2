@@ -12,6 +12,7 @@ namespace Ifrit::Demo::MeshletDemo {
 		IFRIT_DUAL virtual void execute(
 			iint3 localInvocation,
 			int workGroupId,
+			const void* inTaskShaderPayload,
 			Ifrit::Engine::VaryingStore* outVaryings,
 			ifloat4* outPos,
 			int* outIndices,

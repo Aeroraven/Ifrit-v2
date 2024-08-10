@@ -120,4 +120,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_MESHSHADER_MAX_WORKGROUPS = 740;
 	constexpr int CU_MESHSHADER_BUFFER_SIZE = 706432;
 
+	constexpr int CU_MESHSHADER_MAX_TASK_OUTPUT = 32;
+	constexpr int CU_MESHSHADER_MAX_TASK_PAYLOAD_SIZE = 128;
+
 }
