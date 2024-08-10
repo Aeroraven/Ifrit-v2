@@ -127,12 +127,15 @@ namespace Ifrit::Demo::MeshletDemo {
 		vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
 		
 		MeshletDemoCuMS meshShader;
+		MeshletDemoCuTS taskShader;
 		MeshletDemoCuFS fragmentShader;
 		auto dMeshShader = meshShader.getCudaClone();
+		auto dTaskShader = taskShader.getCudaClone();
 		auto dFragmentShader = fragmentShader.getCudaClone();
 
 		renderer->bindFragmentShader(dFragmentShader);
 		renderer->bindMeshShader(dMeshShader, vertexShaderLayout, { 1,1,1 });
+		renderer->bindTaskShader(dTaskShader, vertexShaderLayout);
 		renderer->setClearValues({ {0,0,0,0} }, 255.0);
 
 

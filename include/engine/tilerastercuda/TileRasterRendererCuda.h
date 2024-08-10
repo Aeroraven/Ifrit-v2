@@ -53,10 +53,10 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	private:
 		void updateVaryingBuffer();
 		void internalRender(TileRasterRendererCudaVertexPipelineType vertexPipeType);
+		void initCuda();
 
 	public:
 		void init();
-		void initCuda();
 		void bindFrameBuffer(FrameBuffer& frameBuffer, bool useDoubleBuffer = true);
 		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		void bindIndexBuffer(const std::vector<int>& indexBuffer);
@@ -64,6 +64,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void bindFragmentShader(FragmentShader* fragmentShader);
 		void bindGeometryShader(GeometryShader* geometryShader);
 		void bindMeshShader(MeshShader* meshShader, VaryingDescriptor& varyingDescriptor, iint3 localSize);
+		void bindTaskShader(TaskShader* taskShader, VaryingDescriptor& varyingDescriptor);
 
 		void createTexture(int slotId, const IfritImageCreateInfo& createInfo);
 		void createSampler(int slotId, const IfritSamplerT& samplerState);

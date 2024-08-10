@@ -381,6 +381,14 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		return Impl::csGeneralBuffer[buf];
 #endif
 	}
+
+	IFRIT_DUAL inline void emitMeshTask(iint3 blockSize, iint3* appendList, int& appendSize) {
+#ifndef __CUDA_ARCH__
+		printf("This function is not available under CPU Mode.");
+#else
+		appendList[appendSize++] = blockSize;
+#endif
+	}
 }
 
 #define isbcuReadPsVarying(x,y)  ((const ifloat4s256*)(x))[(y)]
