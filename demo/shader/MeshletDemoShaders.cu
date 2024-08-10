@@ -21,11 +21,13 @@ namespace Ifrit::Demo::MeshletDemo {
 		auto vertOffsets = reinterpret_cast<int*>(getBufferPtr(2));
 		auto indOffsets = reinterpret_cast<int*>(getBufferPtr(3));
 
-		auto indStart = indOffsets[workGroupId], indEnd = indOffsets[workGroupId + 1];
-		auto vertStart = vertOffsets[workGroupId], vertEnd = vertOffsets[workGroupId + 1];
+		auto rsWorkGroupId = *reinterpret_cast<const int*>(inTaskShaderPayload);
+
+		auto indStart = indOffsets[rsWorkGroupId], indEnd = indOffsets[rsWorkGroupId + 1];
+		auto vertStart = vertOffsets[rsWorkGroupId], vertEnd = vertOffsets[rsWorkGroupId + 1];
 		outNumIndices = indEnd - indStart;
 		outNumVertices = vertEnd - vertStart;
-		
+
 		for (int i = 0; i < outNumVertices; i++) {
 			auto s = vertexData[vertStart * 2 + i * 2];
 			s.w = 1.0f;
@@ -39,6 +41,23 @@ namespace Ifrit::Demo::MeshletDemo {
 	}
 	IFRIT_HOST Ifrit::Engine::MeshShader* MeshletDemoCuMS::getCudaClone() {
 		return Ifrit::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuMS>(this);
+	}
+
+	IFRIT_DUAL void MeshletDemoCuTS::execute(int workGroupId,void* outTaskShaderPayload,
+		iint3* outMeshWorkGroups,int& outNumMeshWorkGroups) {
+
+		using namespace Ifrit::Engine::Math::ShaderOps::CUDA;
+		outNumMeshWorkGroups = 0;
+		emitMeshTask({ 1,1,1 }, outMeshWorkGroups, outNumMeshWorkGroups);
+		int* baseId = reinterpret_cast<int*>(outTaskShaderPayload);
+		*baseId = workGroupId;
+
+		
+	}
+
+	IFRIT_HOST Ifrit::Engine::TaskShader* MeshletDemoCuTS::getCudaClone() {
+		return Ifrit::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuTS>(this);
+
 	}
 
 	IFRIT_DUAL void MeshletDemoCuFS::execute(const  void* varyings, void* colorOutput) {

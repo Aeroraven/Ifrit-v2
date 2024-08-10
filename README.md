@@ -47,6 +47,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Programmable Fragment Shader      | √                                                            | √               | √             |
 | Programmable Geometry Shader      |                                                              |                 | ▲             |
 | Programmable Mesh Shader          |                                                              |                 | ▲             |
+| Programmable Task Shader          |                                                              |                 | ▲             |
 | Alpha Blending                    |                                                              | √               | √             |
 | Depth Testing                     | √                                                            | √               | √             |
 | Depth Function                    |                                                              | √               | √             |
@@ -204,7 +205,7 @@ See `DOCS.md` for more details.
 - <s>Alpha Blending</s>
 
   - <s>Sorting</s>
-- Mesh Shader
+- <s>Mesh Shader</s>
 - Input Topology
 - Triangle Cluster & Cluster LOD
 - Known Issues

@@ -6,6 +6,8 @@
 #include "engine/base/Structures.h"
 #include <cuda_profiler_api.h>
 #include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
+#include <thrust/scan.h>
+#include <thrust/sort.h>
 
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
 
@@ -122,9 +124,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	// Mesh Shader
 	IFRIT_DEVICE static iint3 dTaskShaderSubWorkGroups[CU_MESHSHADER_MAX_TASK_OUTPUT * CU_MESHSHADER_MAX_WORKGROUPS];
+	IFRIT_DEVICE static iint3 dTaskShaderSubWorkGroupsAfter[CU_MESHSHADER_MAX_TASK_OUTPUT * CU_MESHSHADER_MAX_WORKGROUPS];
+	IFRIT_DEVICE static int dTaskShaderSubWorkGroupsAfterBelong[CU_MESHSHADER_MAX_TASK_OUTPUT * CU_MESHSHADER_MAX_WORKGROUPS];
 	IFRIT_DEVICE static int dTaskShaderSubWorkGroupsNum[CU_MESHSHADER_MAX_WORKGROUPS];
 	IFRIT_DEVICE static int dTaskShaderSubWorkGroupsNumPrefixScan[CU_MESHSHADER_MAX_WORKGROUPS];
 	IFRIT_DEVICE static char dTaskShaderPayload[CU_MESHSHADER_MAX_WORKGROUPS * CU_MESHSHADER_MAX_TASK_PAYLOAD_SIZE];
+	IFRIT_DEVICE static int dTaskShaderSubgroupMaxThreadX, dTaskShaderSubgroupMaxThreadY, dTaskShaderSubgroupMaxThreadZ;
 
 	IFRIT_DEVICE static float4 dMeshShaderPosition[CU_MESHSHADER_BUFFER_SIZE];
 	IFRIT_DEVICE static VaryingStore dMeshShaderVaryings[CU_MESHSHADER_BUFFER_SIZE];
@@ -283,21 +288,32 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace MeshShadingStage {
+		template<bool tpUseTaskShader>
+		IFRIT_DEVICE void devCallSingleMeshShader(int numPerVertexAttributes, MeshShader* meshShader, 
+			int workGroupId, int parentSubWorkGroupId, int parentId, iint3 localInvocation) {
+			int* pNumIndices = &(dMeshShaderNumIndices[workGroupId]);
+			int* pNumVertices = &(dMeshShaderNumVertices[workGroupId]);
+			VaryingStore* pOutVaryings = &(dMeshShaderVaryings[workGroupId * numPerVertexAttributes * CU_MESHSHADER_MAX_VERTICES]);
+			float4* pOutPos = &(dMeshShaderPosition[workGroupId * CU_MESHSHADER_MAX_VERTICES]);
+			int* pOutIndex = &(dMeshShaderIndices[workGroupId * CU_MESHSHADER_MAX_INDICES]);
+
+			ifloat4* pOutPosR = reinterpret_cast<ifloat4*>(pOutPos);
+			if constexpr (tpUseTaskShader) {
+				auto payloadAddr = &dTaskShaderPayload[CU_MESHSHADER_MAX_TASK_PAYLOAD_SIZE * parentId];
+				meshShader->execute(localInvocation, parentSubWorkGroupId, payloadAddr, pOutVaryings, pOutPosR, pOutIndex, *pNumVertices, *pNumIndices);
+			}
+			else {
+				meshShader->execute(localInvocation, parentSubWorkGroupId, nullptr, pOutVaryings, pOutPosR, pOutIndex, *pNumVertices, *pNumIndices);
+			}
+		}
+
 		IFRIT_KERNEL void meshShadingKernel(
 			int numPerVertexAttributes,
 			MeshShader* meshShader
 		) {
 			iint3 localInvocation = { threadIdx.x,threadIdx.y,threadIdx.z };
 			int workGroupId = blockIdx.x;
-
-			int* pNumIndices = &(dMeshShaderNumIndices[workGroupId]);
-			int* pNumVertices = &(dMeshShaderNumVertices[workGroupId]);
-			VaryingStore* pOutVaryings = &(dMeshShaderVaryings[workGroupId * numPerVertexAttributes * CU_MESHSHADER_MAX_VERTICES]);
-			float4* pOutPos = &(dMeshShaderPosition[workGroupId * CU_MESHSHADER_MAX_VERTICES]);
-			int* pOutIndex = &(dMeshShaderIndices[workGroupId * CU_MESHSHADER_MAX_INDICES]);
-			
-			ifloat4* pOutPosR = reinterpret_cast<ifloat4*>(pOutPos);
-			meshShader->execute(localInvocation, workGroupId,nullptr, pOutVaryings, pOutPosR, pOutIndex, *pNumVertices, *pNumIndices);
+			devCallSingleMeshShader<false>(numPerVertexAttributes, meshShader, workGroupId, workGroupId,0, localInvocation);
 		}
 
 		IFRIT_KERNEL void meshShadingCompactionKernel(int totalWorkGroups, int numPerVertexAttributes) {
@@ -324,6 +340,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dMeshShaderAggOffsetIndexGlobal = 0;
 		}
 
+		// With task shader expansion
 		IFRIT_KERNEL void taskShadingKernel(int totalWorkGroups, TaskShader* taskShader) {
 			int workGroupId = threadIdx.x + blockDim.x * blockIdx.x;
 			if (workGroupId >= totalWorkGroups)return;
@@ -331,6 +348,61 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int subgroupOffset = workGroupId * CU_MESHSHADER_MAX_TASK_OUTPUT;
 			taskShader->execute(workGroupId, &dTaskShaderPayload[payloadOffset], &dTaskShaderSubWorkGroups[subgroupOffset],
 				dTaskShaderSubWorkGroupsNum[workGroupId]);
+		}
+
+		IFRIT_KERNEL void taskShadingScanKernel(int totalWorkGroups) {
+			dTaskShaderSubgroupMaxThreadX = 0;
+			dTaskShaderSubgroupMaxThreadY = 0;
+			dTaskShaderSubgroupMaxThreadZ = 0;
+			thrust::exclusive_scan(thrust::device, dTaskShaderSubWorkGroupsNum, dTaskShaderSubWorkGroupsNum+totalWorkGroups,
+				dTaskShaderSubWorkGroupsNumPrefixScan);
+		}
+
+		IFRIT_KERNEL void taskShadingCompactKernel(int totalWorkGroups) {
+			int workGroupId = threadIdx.x + blockDim.x * blockIdx.x;
+			if (workGroupId >= totalWorkGroups)return;
+
+			auto tmax = dTaskShaderSubWorkGroupsNum[workGroupId];
+			auto poffset = dTaskShaderSubWorkGroupsNumPrefixScan[workGroupId];
+			int dmaxX = 0, dmaxY = 0, dmaxZ = 0;
+			for (int i = 0; i < tmax; i++) {
+				auto ds = dTaskShaderSubWorkGroups[workGroupId * CU_MESHSHADER_MAX_TASK_OUTPUT + i];
+				dTaskShaderSubWorkGroupsAfter[i + poffset] = ds;
+				dTaskShaderSubWorkGroupsAfterBelong[i + poffset] = workGroupId;
+				dmaxX = max(dmaxX, ds.x);
+				dmaxY = max(dmaxY, ds.y);
+				dmaxZ = max(dmaxZ, ds.z);
+			}
+			atomicMax(&dTaskShaderSubgroupMaxThreadX, dmaxX);
+			atomicMax(&dTaskShaderSubgroupMaxThreadY, dmaxY);
+			atomicMax(&dTaskShaderSubgroupMaxThreadZ, dmaxZ);
+		}
+
+		IFRIT_KERNEL void taskShadingLaunchSubGroupsKernel(int totalSubworkGroups, int numPerVertexAttributes, MeshShader* meshShader) {
+			int subGroupId = blockIdx.x;
+			if (subGroupId >= totalSubworkGroups)return;
+			int parentWorkGroupId = dTaskShaderSubWorkGroupsAfterBelong[subGroupId];
+			int parentWorkGroupIdStart = dTaskShaderSubWorkGroupsNumPrefixScan[parentWorkGroupId];
+			int internalSubGroupId = subGroupId - parentWorkGroupIdStart;
+			auto blockSizeLim = dTaskShaderSubWorkGroupsAfter[subGroupId];
+
+			if (threadIdx.x >= blockSizeLim.x || threadIdx.y >= blockSizeLim.y || threadIdx.z >= blockSizeLim.z)return;
+			iint3 localInvocation = { threadIdx.x,threadIdx.y,threadIdx.z };
+
+			//printf("%d %d %d\n", subGroupId, parentWorkGroupIdStart, parentWorkGroupId);
+
+			devCallSingleMeshShader<true>(numPerVertexAttributes, meshShader, subGroupId, internalSubGroupId, parentWorkGroupId, localInvocation);
+		}
+
+		IFRIT_KERNEL void taskShadingLaunchSubGroupsEntryKernel(int totalWorkGroups, int numPerVertexAttributes, MeshShader* meshShader) {
+			int lastWorkGroupOffset = dTaskShaderSubWorkGroupsNumPrefixScan[totalWorkGroups - 1];
+			int lastWorkGroupSize = dTaskShaderSubWorkGroupsNum[totalWorkGroups - 1];
+			int totalSubGroups = lastWorkGroupSize + lastWorkGroupOffset;
+			
+			int dispBlocks = IFRIT_InvoGetThreadBlocks(totalSubGroups, 32);
+			int tx = dTaskShaderSubgroupMaxThreadX, ty = dTaskShaderSubgroupMaxThreadY, tz = dTaskShaderSubgroupMaxThreadZ;
+			taskShadingLaunchSubGroupsKernel CU_KARG2(totalSubGroups, dim3(tx, ty, tz)) (totalSubGroups, numPerVertexAttributes, meshShader);
+			meshShadingCompactionKernel CU_KARG2(dispBlocks, 32)(totalWorkGroups, numPerVertexAttributes);
 		}
 
 		IFRIT_KERNEL void meshShadingEntryPoint(
@@ -344,6 +416,21 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			meshShadingKernel CU_KARG2(dim3(totalWorkGroups, 1, 1), dim3(workGroupSize.x, workGroupSize.y, workGroupSize.z))(numAttributes, meshShader);
 			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(totalWorkGroups, 32);
 			meshShadingCompactionKernel CU_KARG2(dispatchBlocks, 32)(totalWorkGroups, numAttributes);
+		}
+
+		IFRIT_KERNEL void meshShadingWithTaskShaderEntryPoint(
+			int totalWorkGroups,
+			int numAttributes,
+			MeshShader* meshShader,
+			TaskShader* taskShader
+		) {
+			
+			meshShadingResetKernel CU_KARG2(1, 1) ();
+			int dispTaskShaderBlocks = IFRIT_InvoGetThreadBlocks(totalWorkGroups, 32);
+			taskShadingKernel CU_KARG2(dispTaskShaderBlocks, 32) (totalWorkGroups, taskShader);
+			taskShadingScanKernel CU_KARG2(1, 1) (totalWorkGroups);
+			taskShadingCompactKernel CU_KARG2(dispTaskShaderBlocks, 32) (totalWorkGroups);
+			taskShadingLaunchSubGroupsEntryKernel CU_KARG2(1, 1) (totalWorkGroups, numAttributes, meshShader);
 		}
 	}
 	namespace GeneralGeometryStage {
@@ -3263,8 +3350,15 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		else {
 			if (args.gGeometryPipelineType == IFCUINVO_GEOMETRY_GENERATION_MESHSHADER) {
 				cudaMemcpyToSymbol(Impl::csVaryingCounts, &args.gMeshShaderAttributes, sizeof(int));
-				Impl::MeshShadingStage::meshShadingEntryPoint CU_KARG4(1, 1, 0, computeStream) (
-					args.gMeshShaderLocalSize, args.gMeshShaderNumWorkGroups, args.dMeshShader, args.gMeshShaderAttributes);
+				if (args.dTaskShader == nullptr) {
+					Impl::MeshShadingStage::meshShadingEntryPoint CU_KARG4(1, 1, 0, computeStream) (
+						args.gMeshShaderLocalSize, args.gMeshShaderNumWorkGroups, args.dMeshShader, args.gMeshShaderAttributes);
+				}
+				else {
+					Impl::MeshShadingStage::meshShadingWithTaskShaderEntryPoint CU_KARG4(1, 1, 0, computeStream) (
+						args.gMeshShaderNumWorkGroups, args.gMeshShaderAttributes, args.dMeshShader, args.dTaskShader);
+				}
+				
 				Impl::TrianglePipeline::unifiedFilledTriangleRasterEngineKernel CU_KARG4(1, 1, 0, computeStream)(
 					-1,nullptr,nullptr,nullptr,args.dColorBuffer,args.dDepthBuffer,nullptr,args.dFragmentShader
 				);
@@ -3292,7 +3386,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 
 	void invokeLineProcessing(const RenderingInvocationArgumentSet& args, cudaStream_t& computeStream) {
 		if constexpr (CU_PROFILER_II_CPU_NSIGHT) {
-			printf("Profiler for point mode is not supported now\n");
+			printf("Profiler for line mode is not supported now\n");
 			std::abort();
 		}
 		else {

@@ -21,15 +21,16 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	public:
 		// Non-owning Bindings
 		FrameBuffer* frameBuffer;
-		const VertexBuffer* vertexBuffer;
-		const std::vector<int>* indexBuffer;
+		const VertexBuffer* vertexBuffer = nullptr;
+		const std::vector<int>* indexBuffer = nullptr;
 		VertexShader* vertexShader;
 		FragmentShader* fragmentShader;
 		GeometryShader* geometryShader;
 		VaryingDescriptor* varyingDescriptor;
 
 		// == mesh shader ==
-		MeshShader* meshShader;
+		MeshShader* meshShader = nullptr;
+		TaskShader* taskShader = nullptr;
 		iint3 meshShaderBlockSize;
 		int meshShaderAttributCnt;
 		int meshShaderNumWorkGroups;

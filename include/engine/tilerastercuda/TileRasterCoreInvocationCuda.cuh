@@ -39,6 +39,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		float hClearDepth;
 
 		MeshShader* dMeshShader;
+		TaskShader* dTaskShader;
 		iint3 gMeshShaderLocalSize;
 		int gMeshShaderNumWorkGroups;
 		GeometryGenerationPipelineType gGeometryPipelineType;

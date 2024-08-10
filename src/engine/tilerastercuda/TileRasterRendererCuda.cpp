@@ -83,7 +83,13 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::bindMeshShader(MeshShader* meshShader, VaryingDescriptor& varyingDescriptor, iint3 localSize) {
 		context->meshShader = meshShader;
 		context->meshShaderAttributCnt = varyingDescriptor.getVaryingCounts();
-		context->meshShaderBlockSize = localSize;
+		if (context->taskShader == nullptr) {
+			context->meshShaderBlockSize = localSize;
+		}
+	}
+	void TileRasterRendererCuda::bindTaskShader(TaskShader* taskShader, VaryingDescriptor& varyingDescriptor) {
+		context->taskShader = taskShader;
+		context->meshShaderAttributCnt = varyingDescriptor.getVaryingCounts();
 	}
 	void TileRasterRendererCuda::createTexture(int slotId, const IfritImageCreateInfo& createInfo) {
 		Invocation::createTexture(slotId, createInfo, nullptr);
@@ -209,6 +215,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			args.gMeshShaderLocalSize = context->meshShaderBlockSize;
 			args.gMeshShaderNumWorkGroups = context->meshShaderNumWorkGroups;
 			args.gMeshShaderAttributes = context->meshShaderAttributCnt;
+			args.dTaskShader = context->taskShader;
 		}
 
 		Invocation::invokeCudaRendering(args);
