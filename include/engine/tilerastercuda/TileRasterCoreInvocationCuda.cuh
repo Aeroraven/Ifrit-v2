@@ -11,7 +11,11 @@
 #include "engine/base/Structures.h"
 
 namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
-	
+	enum GeometryGenerationPipelineType {
+		IFCUINVO_GEOMETRY_GENERATION_UNDEFINED = 0,
+		IFCUINVO_GEOMETRY_GENERATION_CONVENTIONAL = 1,
+		IFCUINVO_GEOMETRY_GENERATION_MESHSHADER = 2
+	};
 
 	struct RenderingInvocationArgumentSet {
 		char* dVertexBuffer;
@@ -33,6 +37,12 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 		IfritPolygonMode polygonMode = IF_POLYGON_MODE_FILL;
 		ifloat4* hClearColors;
 		float hClearDepth;
+
+		MeshShader* dMeshShader;
+		iint3 gMeshShaderLocalSize;
+		int gMeshShaderNumWorkGroups;
+		GeometryGenerationPipelineType gGeometryPipelineType;
+		int gMeshShaderAttributes;
 	};
 	void invokeCudaRenderingClear(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW;
 	void invokeCudaRendering(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW;
@@ -56,7 +66,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void deviceFree(char* ptr);
 	void createTexture(uint32_t texId, const IfritImageCreateInfo& createInfo, float *data);
 	void createSampler(uint32_t slotId, const IfritSamplerT& samplerState);
-
+	void createDeviceBuffer(uint32_t slotId, int bufferSize);
+	void copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size);
+	
 	void setBlendFunc(IfritColorAttachmentBlendState blendState);
 	void setDepthFunc(IfritCompareOp depthFunc);
 	void setCullMode(IfritCullMode cullMode);

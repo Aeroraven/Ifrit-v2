@@ -128,7 +128,7 @@ namespace Ifrit::Demo::Skybox {
 		windowProvider->loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 			renderer->clear();
-			renderer->render();
+			renderer->drawElements();
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 			backend->updateTexture(*image1);

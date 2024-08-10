@@ -37,3 +37,7 @@
 ### Colored Terminal Output
 
 ![](img/img_terminaldisplay.png)
+
+### ASCII Output
+
+![](img/img_ascii.png)

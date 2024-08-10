@@ -35,16 +35,16 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Feature                           | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | --------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
 | **Basic**                         |                                                              |                 |               |
-| Rendering Order                   | √                                                            | √               | √ ▲ (4)       |
+| Rendering Order                   | √                                                            | √               | √ (3)         |
 | **Performance**                   |                                                              |                 |               |
 | SIMD Instructions / SIMT          |                                                              | √               | √             |
 | Overlapped Memory Transfer        |                                                              |                 | √             |
-| Dynamic Tile List                 |                                                              | √               | √ (2)         |
+| Dynamic Tile List                 |                                                              | √               | √             |
 | **Pipeline**                      |                                                              |                 |               |
 | Programmable Vertex Shader        | √                                                            | √               | √             |
 | Programmable Fragment Shader      | √                                                            | √               | √             |
-| Programmable Geometry Shader      |                                                              |                 | √ ▲           |
-| Alpha Blending                    |                                                              | √               | √ ▲           |
+| Programmable Geometry Shader      |                                                              |                 | ▲             |
+| Alpha Blending                    |                                                              | √               | √             |
 | Depth Testing                     | √                                                            | √               | √             |
 | Depth Function                    |                                                              | √               | √             |
 | Z Pre-Pass                        |                                                              |                 | √             |
@@ -54,35 +54,33 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Homogeneous Clipping              |                                                              | √ (1)           | √ (1)         |
 | Small Triangle Culling            |                                                              |                 | √             |
 | Perspective-correct Interpolation |                                                              | √               | √             |
-| Shader Derivatives `dFdx` `dFdy`  |                                                              |                 | √ ▲ (3)       |
+| Shader Derivatives `dFdx` `dFdy`  |                                                              |                 | ▲ (2)         |
 | **Polygon Mode**                  |                                                              |                 |               |
 | Filled Triangle                   | √                                                            | √               | √             |
-| Line (Wireframe)                  |                                                              |                 | √ ▲           |
-| Point                             |                                                              |                 | √ ▲           |
+| Line (Wireframe)                  |                                                              |                 | ▲             |
+| Point                             |                                                              |                 | ▲             |
 | **Texture**                       |                                                              |                 |               |
 | Basic Support (Sampler)           |                                                              |                 | √             |
 | Blit                              |                                                              |                 | √             |
 | Mipmap                            |                                                              |                 | √             |
 | Filter                            |                                                              |                 | √             |
 | Sampler Address Mode              |                                                              |                 | √             |
-| LOD Bias                          |                                                              |                 | √ ▲           |
-| Anisotropic Filtering             |                                                              |                 | √ ▲ (5)       |
-| Cube Map                          |                                                              |                 | √ ▲           |
+| LOD Bias                          |                                                              |                 | √             |
+| Anisotropic Filtering             |                                                              |                 | ▲ (4)         |
+| Cube Map                          |                                                              |                 | √             |
 | **Presentation**                  |                                                              |                 |               |
 | Terminal ASCII                    |                                                              | √               | √             |
 | Terminal Color                    |                                                              | √               | √             |
 
 (1) For performance consideration, only w-axis is considered 
 
-(2) Device side vector has been replaced with a large fixed-size buffer without tile partition for performance consideration. 
+(2) Shader derivatives are now only available for the filled triangle polygon mode. Shader derivatives are calculated in `2x2` quads, so precision might matter.
 
-(3) Shader derivatives are now only available for the filled triangle polygon mode. Shader derivatives are calculated in `2x2` quads, so precision might matter.
+(3) Only works when `Alpha Blending` is enabled.
 
-(4) Only works when `Alpha Blending` is enabled.
+(4) Only works when `texture` shader function is called.
 
-(5) Only works when `texture` shader function is called.
-
-▲ Functions with triangle mark are under testing. These functionalities are supported, but might trigger exceptions or introduce performance drops.
+▲ Limited support.
 
 
 
@@ -103,18 +101,16 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 
 **Frame Rate**
 
-| Model          | Triangles | CPU Single Thread* | CPU Multi Threads* | CUDA w/ Copy-back** | CUDA w/o Copy-back*** |
-| -------------- | --------- | ------------------ | ------------------ | ------------------- | --------------------- |
-| Yomiya         | 70275     | 38 FPS             | 80 FPS             | 123 FPS             | 2857 FPS              |
-| Stanford Bunny | 208353    | 20 FPS             | 80 FPS             | 124 FPS             | 2272 FPS              |
-| Khronos Sponza | 786801    | 2 FPS              | 10 FPS             | 125 FPS             | 500 FPS               |
-| Intel Sponza   | 11241912  | 1 FPS              | 7 FPS              | 125 FPS             | 198 FPS               |
+| Model          | Triangles | CPU Single Thread | CPU Multi Threads | CUDA w/ Copy-back* | CUDA w/o Copy-back** |
+| -------------- | --------- | ----------------- | ----------------- | ------------------ | -------------------- |
+| Yomiya         | 70275     | 38 FPS            | 80 FPS            | 123 FPS            | 2857 FPS             |
+| Stanford Bunny | 208353    | 20 FPS            | 80 FPS            | 124 FPS            | 2272 FPS             |
+| Khronos Sponza | 786801    | 2 FPS             | 10 FPS            | 125 FPS            | 500 FPS              |
+| Intel Sponza   | 11241912  | 1 FPS             | 7 FPS             | 125 FPS            | 198 FPS              |
 
-*. Under optimization 
+*. Limited by PCIe performance
 
-**. Limited by PCIe performance
-
-***. Might be influenced by other applications which utilize GPU
+**. Might be influenced by other applications which utilize GPU
 
 
 
@@ -163,7 +159,7 @@ Change CUDA path and GLFW3 library path in `CMakeLists.txt`
 
 
 
-#### Compile using GCC 
+#### Compile using G++ / MinGW
 
 Follow instructions to build
 
@@ -171,18 +167,6 @@ Follow instructions to build
 cmake -S . -B ./build
 cd build
 make
-```
-
-
-
-#### Compile using MinGW
-
-Follow instructions to build
-
-```
-cmake -S . -B ./build -G "MinGW Makefiles"
-cd build
-mingw32-make
 ```
 
 
@@ -241,3 +225,5 @@ For models / open source code references, check `licenses` folder.
 [2]. https://www.slideshare.net/slideshow/optimizing-the-graphics-pipeline-with-compute-gdc-2016/59747720
 
 [3]. https://docs.nvidia.com/cuda/cuda-c-programming-guide/
+
+[4]. https://github.com/zeux/meshoptimizer

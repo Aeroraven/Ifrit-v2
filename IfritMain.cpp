@@ -1,6 +1,6 @@
 #include "demo/DefaultDemo.h"
 #include "demo/Skybox.h"
-
+#include "demo/MeshletDemo.h"
 
 int demoDefault() {
 #ifdef IFRIT_FEATURE_CUDA
@@ -20,8 +20,16 @@ int demoSkybox() {
 	return 0;
 }
 
+int demoMeshlet(){
+#ifdef IFRIT_FEATURE_CUDA
+	Ifrit::Demo::MeshletDemo::mainGpu();
+#else
+	Ifrit::Demo::MeshletDemo::mainCpu();
+#endif
+	return 0;
+}
 
 int main() {
-	demoDefault();
+	demoMeshlet();
 	return 0;
 }

@@ -66,6 +66,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::updateVaryingBuffer() {
 		if (!needVaryingUpdate)return;
 		needVaryingUpdate = false;
+		if (context->vertexBuffer == nullptr)return;
+		if (context->varyingDescriptor == nullptr)return;
+
 		auto vcount = context->varyingDescriptor->getVaryingCounts();
 		auto vxcount = context->vertexBuffer->getVertexCount();
 		cudaMalloc(&deviceContext->dVaryingBufferM2, vcount * vxcount * sizeof(VaryingStore));
@@ -77,6 +80,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::bindGeometryShader(GeometryShader* geometryShader) {
 		context->geometryShader = geometryShader;
 	}
+	void TileRasterRendererCuda::bindMeshShader(MeshShader* meshShader, VaryingDescriptor& varyingDescriptor, iint3 localSize) {
+		context->meshShader = meshShader;
+		context->meshShaderAttributCnt = varyingDescriptor.getVaryingCounts();
+		context->meshShaderBlockSize = localSize;
+	}
 	void TileRasterRendererCuda::createTexture(int slotId, const IfritImageCreateInfo& createInfo) {
 		Invocation::createTexture(slotId, createInfo, nullptr);
 		needFragmentShaderUpdate = true;
@@ -84,6 +92,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::createSampler(int slotId, const IfritSamplerT& samplerState) {
 		Invocation::createSampler(slotId, samplerState);
 		needFragmentShaderUpdate = true;
+	}
+	void TileRasterRendererCuda::createBuffer(int slotId, int bufSize) {
+		Invocation::createDeviceBuffer(slotId, bufSize);
 	}
 	void TileRasterRendererCuda::setRasterizerPolygonMode(IfritPolygonMode mode) {
 		this->polygonMode = mode;
@@ -115,7 +126,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	}
 	void TileRasterRendererCuda::clear() {
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
-		int totalIndices = context->indexBuffer->size();
+		int totalIndices = 0;
+		if(totalIndices)totalIndices = context->indexBuffer->size();
 		int curBuffer = currentBuffer;
 		Invocation::RenderingInvocationArgumentSet args;
 		args.hClearColors = ctxClearColors.data();
@@ -153,7 +165,10 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions) {
 		Invocation::invokeCopyBufferToImage(srcBuffer, dstSlot, regions.size(), regions.data());
 	}
-	void TileRasterRendererCuda::render() {
+	void TileRasterRendererCuda::copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size) {
+		Invocation::copyHostBufferToBuffer(srcBuffer, dstSlot, size);
+	}
+	void TileRasterRendererCuda::internalRender(TileRasterRendererCudaVertexPipelineType vertexPipeType) {
 		initCuda();
 		updateVaryingBuffer();
 
@@ -163,7 +178,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		}
 
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
-		int totalIndices = context->indexBuffer->size();
+		int totalIndices = 0;
+		if(context->indexBuffer)totalIndices = context->indexBuffer->size();
 		int curBuffer = currentBuffer;
 		Invocation::RenderingInvocationArgumentSet args;
 		args.dVertexBuffer = deviceVertexBuffer;
@@ -183,9 +199,29 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		args.doubleBuffering = this->doubleBuffer;
 		args.dLastColorBuffer = deviceHostColorBuffers[1 - curBuffer].data();
 		args.polygonMode = polygonMode;
-		
+
+		if (vertexPipeType == IFINTERNAL_CU_VERTEX_PIPELINE_CONVENTIONAL) {
+			args.gGeometryPipelineType = Invocation::IFCUINVO_GEOMETRY_GENERATION_CONVENTIONAL;
+		}
+		else if (vertexPipeType == IFINTERNAL_CU_VERTEX_PIPELINE_MESHSHADER) {
+			args.gGeometryPipelineType = Invocation::IFCUINVO_GEOMETRY_GENERATION_MESHSHADER;
+			args.dMeshShader = context->meshShader;
+			args.gMeshShaderLocalSize = context->meshShaderBlockSize;
+			args.gMeshShaderNumWorkGroups = context->meshShaderNumWorkGroups;
+			args.gMeshShaderAttributes = context->meshShaderAttributCnt;
+		}
+
 		Invocation::invokeCudaRendering(args);
 		currentBuffer = 1 - curBuffer;
+	}
+
+	void TileRasterRendererCuda::drawElements() {
+		internalRender(IFINTERNAL_CU_VERTEX_PIPELINE_CONVENTIONAL);
+	}
+	void TileRasterRendererCuda::drawMeshTasks(int numWorkGroups, int firstWorkGroup) {
+		ifritAssert(firstWorkGroup == 0, "workgroup offset not supported now");
+		context->meshShaderNumWorkGroups = numWorkGroups;
+		internalRender(IFINTERNAL_CU_VERTEX_PIPELINE_MESHSHADER);
 	}
 }
 #endif

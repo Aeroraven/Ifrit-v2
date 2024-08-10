@@ -10,6 +10,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_MAX_FRAMEBUFFER_SIZE = 4096 * 4096;
 	constexpr int CU_MAX_TEXTURE_SLOTS = 16;
 	constexpr int CU_MAX_SAMPLER_SLOTS = 16;
+	constexpr int CU_MAX_BUFFER_SLOTS = 16;
 
 	// experimentals
 	constexpr int CU_LARGE_BIN_WIDTH = 64;
@@ -64,7 +65,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 	constexpr int CU_ALTERNATIVE_BUFFER_SIZE_SECOND = 6254048;
 	constexpr int CU_ALTERNATIVE_BUFFER_SIZE = 1254048;
-
+	
 	constexpr int CU_FIRST_BINNER_STRIDE_TINY = 2;
 	constexpr int CU_FIRST_BINNER_STRIDE = 8;
 	constexpr int CU_FIRST_BINNER_STRIDE_LARGE = 4;
@@ -112,5 +113,11 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_PROFILER_SECOND_BINNER_THREAD_DIVERGENCE = true;
 	constexpr bool CU_PROFILER_II_CPU_NSIGHT = false;
 	constexpr bool CU_PROFILER_ENABLE_MEMCPY = true;
+
+	// == Ext: Mesh Shader ==
+	constexpr int CU_MESHSHADER_MAX_VERTICES = 256 * 3;
+	constexpr int CU_MESHSHADER_MAX_INDICES = 256 * 3;
+	constexpr int CU_MESHSHADER_MAX_WORKGROUPS = 740;
+	constexpr int CU_MESHSHADER_BUFFER_SIZE = 706432;
 
 }

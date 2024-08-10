@@ -118,8 +118,10 @@
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="demo\MeshletDemo.h" />
     <ClInclude Include="demo\shader\DefaultDemoShaders.cuh" />
     <ClInclude Include="demo\DefaultDemo.h" />
+    <ClInclude Include="demo\shader\MeshletDemoShaders.cuh" />
     <ClInclude Include="demo\shader\SkyboxShaders.cuh" />
     <ClInclude Include="demo\Skybox.h" />
     <ClInclude Include="include\engine\base\Shaders.h" />
@@ -127,12 +129,15 @@
     <ClInclude Include="include\engine\base\Structures.h" />
     <ClInclude Include="include\engine\math\ShaderBuiltinCuda.cuh" />
     <ClInclude Include="include\engine\math\ShaderBuiltin.h" />
+    <ClInclude Include="include\engine\meshletbuilder\MeshletBuilder.h" />
+    <ClInclude Include="include\engine\meshletbuilder\MeshletCommon.h" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cuh" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterCommonResourceCuda.cuh" />
     <ClInclude Include="include\presentation\backend\AdaptiveBackendBuilder.h" />
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <CudaCompile Include="demo\shader\DefaultDemoShaders.cu" />
+    <CudaCompile Include="demo\shader\MeshletDemoShaders.cu" />
     <CudaCompile Include="demo\shader\SkyboxShaders.cu" />
     <CudaCompile Include="include\core\cuda\CudaUtils.cuh" />
     <ClInclude Include="include\core\data\Image.h" />
@@ -173,8 +178,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="demo\DefaultDemo.cpp" />
+    <ClCompile Include="demo\MeshletDemo.cpp" />
     <ClCompile Include="demo\Skybox.cpp" />
     <ClCompile Include="IfritMain.cpp" />
+    <ClCompile Include="src\engine\meshletbuilder\MeshletBuilder.cpp" />
     <ClCompile Include="src\presentation\backend\AdaptiveBackendBuilder.cpp" />
     <ClCompile Include="src\presentation\window\AdaptiveWindowBuilder.cpp" />
     <ClCompile Include="src\utility\loader\ImageLoader.cpp" />

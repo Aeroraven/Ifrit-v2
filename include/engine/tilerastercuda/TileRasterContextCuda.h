@@ -28,6 +28,12 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		GeometryShader* geometryShader;
 		VaryingDescriptor* varyingDescriptor;
 
+		// == mesh shader ==
+		MeshShader* meshShader;
+		iint3 meshShaderBlockSize;
+		int meshShaderAttributCnt;
+		int meshShaderNumWorkGroups;
+
 		// Constants
 		int vertexStride = 3;
 		int tileBlocksX = 64;
