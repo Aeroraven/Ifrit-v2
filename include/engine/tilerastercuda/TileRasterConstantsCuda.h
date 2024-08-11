@@ -123,4 +123,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr int CU_MESHSHADER_MAX_TASK_OUTPUT = 32;
 	constexpr int CU_MESHSHADER_MAX_TASK_PAYLOAD_SIZE = 128;
 
+	// == Ext: Scissor Test ==
+	constexpr bool CU_SCISSOR_ENABLE = true;
+	constexpr int CU_SCISSOR_MAX_COUNT = 16;
 }

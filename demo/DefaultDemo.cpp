@@ -70,8 +70,9 @@ namespace Ifrit::Demo::DemoDefault {
 
 	class DemoFragmentShader : public FragmentShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput) override {
+		IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput, float& fragmentDepth) override {
 			ifloat4 result = ((const VaryingStore*)varyings)[0].vf4;
+
 			constexpr float fw = 0.5;
 			result.x = fw * result.x + fw;
 			result.y = fw * result.y + fw;
@@ -289,6 +290,7 @@ namespace Ifrit::Demo::DemoDefault {
 		VaryingDescriptor vertexShaderLayout;
 		vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 		DemoFragmentShaderCuda fragmentShader;
+		fragmentShader.allowDepthModification = true;
 		DemoGeometryShaderCuda geometryShader;
 
 		auto dVertexShader = vertexShader.getCudaClone();

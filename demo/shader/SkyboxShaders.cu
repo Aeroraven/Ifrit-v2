@@ -20,7 +20,7 @@ namespace Ifrit::Demo::Skybox {
 		return Ifrit::Core::CUDA::hostGetDeviceObjectCopy<SkyboxVS>(this);
 	}
 
-	IFRIT_DUAL void SkyboxFS::execute(const  void* varyings, void* colorOutput) {
+	IFRIT_DUAL void SkyboxFS::execute(const  void* varyings, void* colorOutput, float& fragmentDepth) {
 		using Ifrit::Engine::Math::ShaderOps::CUDA::textureCubeLod;
 
 		auto r = isbcuReadPsVarying(varyings, 0);

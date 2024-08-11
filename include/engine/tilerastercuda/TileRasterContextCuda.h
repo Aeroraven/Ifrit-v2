@@ -35,6 +35,13 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		int meshShaderAttributCnt;
 		int meshShaderNumWorkGroups;
 
+		// == scissor test ==
+		bool scissorTestEnable = false;
+		std::vector<ifloat4> scissorAreas;
+
+		// == blend state ==
+		IfritColorAttachmentBlendState blendState;
+
 		// Constants
 		int vertexStride = 3;
 		int tileBlocksX = 64;

@@ -31,10 +31,11 @@ namespace Ifrit::Engine {
 
 	class FragmentShader :public ShaderBase {
 	public:
-		
+		bool allowDepthModification = false;
 		IFRIT_DUAL virtual void execute(
 			const void* varyings, 
-			void* colorOutput
+			void* colorOutput,
+			float& fragmentDepth
 		) = 0;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() { return nullptr; };
 	};

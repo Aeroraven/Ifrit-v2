@@ -16,7 +16,7 @@
 #include "shader/MeshletDemoShaders.cuh"
 
 
-#define DEMO_RESOLUTION 1536
+#define DEMO_RESOLUTION 1800
 namespace Ifrit::Demo::MeshletDemo {
     using namespace std;
     using namespace Ifrit::Core::Data;
@@ -49,7 +49,7 @@ namespace Ifrit::Demo::MeshletDemo {
 
     class MeshletDemoFS : public FragmentShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput) override {
+		IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput, float& fragmentDepth) override {
 			ifloat4 result = ((const VaryingStore*)varyings)[0].vf4;
 			constexpr float fw = 0.5;
             constexpr float ds = 1.0;
@@ -129,6 +129,7 @@ namespace Ifrit::Demo::MeshletDemo {
 		MeshletDemoCuMS meshShader;
 		MeshletDemoCuTS taskShader;
 		MeshletDemoCuFS fragmentShader;
+		fragmentShader.allowDepthModification = false;
 		auto dMeshShader = meshShader.getCudaClone();
 		auto dTaskShader = taskShader.getCudaClone();
 		auto dFragmentShader = fragmentShader.getCudaClone();
@@ -136,8 +137,13 @@ namespace Ifrit::Demo::MeshletDemo {
 		renderer->bindFragmentShader(dFragmentShader);
 		renderer->bindMeshShader(dMeshShader, vertexShaderLayout, { 1,1,1 });
 		renderer->bindTaskShader(dTaskShader, vertexShaderLayout);
-		renderer->setClearValues({ {0,0,0,0} }, 255.0);
+		renderer->setClearValues({ {1,1,1,1} }, 255.0);
 
+		renderer->setScissors({
+			{0,0,DEMO_RESOLUTION / 2,DEMO_RESOLUTION / 2},
+			{DEMO_RESOLUTION / 2,DEMO_RESOLUTION / 2,DEMO_RESOLUTION,DEMO_RESOLUTION}
+			});
+		renderer->setScissorTestEnable(false);
 
 		auto windowBuilder = std::make_unique<AdaptiveWindowBuilder>();
 		auto windowProvider = windowBuilder->buildUniqueWindowProvider();
