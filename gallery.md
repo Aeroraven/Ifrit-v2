@@ -32,6 +32,16 @@
 
 
 
+
+
+## Scissor Test
+
+![](img/img_scissortest.png)
+
+
+
+
+
 ## View Layer
 
 ### Colored Terminal Output
@@ -41,3 +51,4 @@
 ### ASCII Output
 
 ![](img/img_ascii.png)
+

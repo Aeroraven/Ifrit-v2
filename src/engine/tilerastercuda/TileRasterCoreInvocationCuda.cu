@@ -148,6 +148,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dMeshShaderAggOffsetIndexStart[CU_MESHSHADER_MAX_WORKGROUPS];
 	IFRIT_DEVICE static int dMeshShaderAggOffsetIndexGlobal;
 
+	// Scissor Test
+	IFRIT_DEVICE static ifloat4 dScissorArea[CU_SCISSOR_MAX_COUNT];
+	IFRIT_DEVICE static int dScissorAreaNum;
+
 	// Depth Test
 	IFRIT_DEVICE static bool dDepthTestEnable;
 	IFRIT_DEVICE static IfritCompareOp csDepthFunc;
@@ -170,7 +174,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dGeometryShaderOutSortKeys[CU_GS_OUT_BUFFER_SIZE];
 
 	// Pixel Shader Tags
-	IFRIT_DEVICE static int dPixelShaderTags[CU_MAX_FRAMEBUFFER_SIZE];
+	//IFRIT_DEVICE static int dPixelShaderTags[CU_MAX_FRAMEBUFFER_SIZE];
 
 	// Profiler: Overdraw
 	IFRIT_DEVICE static int dOverDrawCounter;
@@ -193,6 +197,25 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dSbtdSplit = 0;
 	IFRIT_DEVICE static int dLock = 0;
 	IFRIT_DEVICE static int dLockAt = 0;
+
+	namespace ContextManagement {
+		struct RendererContext {
+			int* dPixelShaderTags;
+		};
+
+		IFRIT_DEVICE static RendererContext dActiveContext;
+		static RendererContext hDefaultContext;
+
+		void initializeRendererContext(RendererContext& ctx) {
+#define CTXCREATE(var,size) cudaMalloc(&(var),sizeof(decltype(var))*(size));
+			CTXCREATE(ctx.dPixelShaderTags, CU_MAX_FRAMEBUFFER_SIZE);
+#undef CTXCREATE
+		}
+
+		void activateRendererContext(RendererContext& ctx) {
+			cudaMemcpyToSymbol(dActiveContext, &ctx, sizeof(ctx));
+		}
+	}
 
 	namespace GeneralFunction {
 		IFRIT_DEVICE float devAbort() {
@@ -1629,6 +1652,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto binX = pixelXS / CU_BIN_WIDTH;
 			auto binY = pixelYS / CU_BIN_WIDTH;
 			auto binId = binY * CU_MAX_BIN_X + binX;
+			
+			// Scissor Test
+			bool scissorTestPass = true;
+			if constexpr (CU_SCISSOR_ENABLE) {
+				bool flag = (dScissorAreaNum == 0);
+				for (int i = 0; i < dScissorAreaNum; i++) {
+					auto sci = dScissorArea[i];
+					if (pixelXS >= sci.x && pixelXS <= sci.x + sci.z && pixelYS >= sci.y && pixelYS <= sci.y + sci.w) {
+						flag = true;
+						break;
+					}
+				}
+				scissorTestPass = flag;
+			}
 
 			// Shading
 			IFRIT_SHARED float colorOutputSingle[256 * 4];
@@ -1636,7 +1673,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			float candidateBary[3];
 			constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
 			auto varyingCount = csVaryingCounts;
-			//TODO: Bug
 			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
 			const auto pDx = pixelXS * 1.0f;
 			const auto pDy = pixelYS * 1.0f;
@@ -1805,8 +1841,9 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				if (chosenOrgPrim == INT_MAX)break;
 				bool reqCalc = targetMask & dsMask;
 				bool reqDraw = targetMask & dwMask;
+				reqDraw = reqDraw && scissorTestPass;
 				if (reqDraw) {
-					shadingPass(chosenPrim, !reqDraw);
+					shadingPass(chosenPrim, !reqCalc);
 				}
 			}
 		}
@@ -1818,7 +1855,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
 			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
-			float* IFRIT_RESTRICT_CUDA dDepthBuffer
+			float* IFRIT_RESTRICT_CUDA dDepthBuffer,
+			int* dTagBuffer
 		) {
 			uint32_t tileX = blockIdx.x, tileY = blockIdx.y;
 			uint32_t binX = tileX / CU_TILES_PER_BIN, binY = tileY / CU_TILES_PER_BIN;
@@ -1846,6 +1884,30 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			float localDepthBuffer = compareDepth;
 			int localOrgPrimId = INT_MAX;
 			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
+
+			// Scissor Test
+			bool scissorTestPass = true;
+			if constexpr (CU_SCISSOR_ENABLE) {
+				bool flag = (dScissorAreaNum == 0);
+				for (int i = 0; i < dScissorAreaNum; i++) {
+					auto sci = dScissorArea[i];
+					if (pixelXS >= sci.x && pixelXS <= sci.x + sci.z && pixelYS >= sci.y && pixelYS <= sci.y + sci.w) {
+						flag = true;
+						break;
+					}
+				}
+				scissorTestPass = flag;
+			}
+
+			if (!scissorTestPass) {
+				int quadIdX = pixelXS >> 1;
+				int quadOfX = pixelXS & 1;
+				int quadIdY = pixelYS >> 1;
+				int quadOfY = pixelYS & 1;
+				int quadId = (quadIdY * CU_MAX_FRAMEBUFFER_WIDTH + quadIdX) * 4 + (quadOfY * 2 + quadOfX);
+				dTagBuffer[quadId] = -1;
+				return;
+			}
 
 			auto zPrePass = [&](int primId) {
 				
@@ -1946,7 +2008,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int quadIdY = pixelYS >> 1;
 			int quadOfY = pixelYS & 1;
 			int quadId = (quadIdY * CU_MAX_FRAMEBUFFER_WIDTH + quadIdX) * 4 + (quadOfY * 2 + quadOfX);
-			dPixelShaderTags[quadId] = candidatePrim;
+			dTagBuffer[quadId] = candidatePrim;
 		}
 
 		template <int geometryShaderEnabled>
@@ -1955,7 +2017,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
 			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
-			float* IFRIT_RESTRICT_CUDA dDepthBuffer
+			float* IFRIT_RESTRICT_CUDA dDepthBuffer,
+			int* dTagBuffer
 		) {
 			IFRIT_SHARED float colorOutputSingle[256 * 4];
 			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
@@ -2049,10 +2112,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int quadX = (threadIdx.y + blockDim.y * blockIdx.y);
 			int quadY = (threadIdx.z + blockDim.z * blockIdx.z);
 			int quadIdx = (quadY * CU_MAX_FRAMEBUFFER_WIDTH + quadX) * 4;
-			int selfV = dPixelShaderTags[quadIdx + quadInternal];
+			int selfV = dTagBuffer[quadIdx + quadInternal];
 			if constexpr (CU_OPT_SHADER_DERIVATIVES) {
 				for (int i = 0; i < 4; i++) {
-					int tagId = dPixelShaderTags[quadIdx + i];
+					int tagId = dTagBuffer[quadIdx + i];
 					dw[i] = tagId;
 					if (tagId == -1)continue;
 					bool flag = false;
@@ -2192,6 +2255,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto dispatchBlocks = dAssembledTriangleCounterM2 / CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS + (dAssembledTriangleCounterM2 % CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS != 0);
 			Impl::TriangleGeometryStage::geometryParamPostprocKernel CU_KARG2(dispatchBlocks, CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS) (dAssembledTriangleCounterM2);
 
+			auto activatedTagBuffer = ContextManagement::dActiveContext.dPixelShaderTags;
+
 			for (int sI = 0; sI < dAssembledTriangleCounterM2; sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER) {
 				// Process sizes
 				curTime++;
@@ -2265,7 +2330,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				else {
 #define PIXEL_TAG_FUNC_SIGN(cond) Impl::TriangleFragmentStage::pixelTaggingExecKernel<cond>
 #define PIXEL_TAG_FUNC(cond) PIXEL_TAG_FUNC_SIGN(cond) CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) ( \
-					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer,activatedTagBuffer);
 #define PIXEL_TAG_FUNC_COND(cond) if (Impl::csDepthFunc==(cond)){PIXEL_TAG_FUNC(cond)}
 #define PIXEL_TAG_FUNC_COND_COLLECTION \
 	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_ALWAYS) \
@@ -2276,15 +2341,17 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_GREATER_OR_EQUAL) \
 	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_NOT_EQUAL) \
 	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_NEVER) 
+					
 					if (dGeometryShader == nullptr) {
 						PIXEL_TAG_FUNC_COND_COLLECTION;
 						Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer);
 					}
 					else {
 						PIXEL_TAG_FUNC_COND_COLLECTION;
+						//PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_LESS);
 						Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer);
+							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer);
 					}
 #undef PIXEL_TAG_FUNC_COND_COLLECTION
 #undef PIXEL_TAG_FUNC_COND
@@ -3006,6 +3073,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if (invoX >= csFrameWidth || invoY >= csFrameHeight) {
 				return;
 			}
+			bool scissorTestPass = true;
+			if constexpr (CU_SCISSOR_ENABLE) {
+				bool flag = (dScissorAreaNum == 0);
+				for (int i = 0; i < dScissorAreaNum; i++) {
+					auto sci = dScissorArea[i];
+					if (invoX >= sci.x && invoX <= sci.x + sci.z && invoY >= sci.y && invoY <= sci.y + sci.w) {
+						flag = true;
+						break;
+					}
+				}
+				scissorTestPass = flag;
+			}
+			if (!scissorTestPass)return;
+
 			dBuffer[(invoY * csFrameWidth + invoX)] = value;
 		}
 
@@ -3018,6 +3099,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if (invoX >= csFrameWidth || invoY >= csFrameHeight) {
 				return;
 			}
+			bool scissorTestPass = true;
+			if constexpr (CU_SCISSOR_ENABLE) {
+				bool flag = (dScissorAreaNum == 0);
+				for (int i = 0; i < dScissorAreaNum; i++) {
+					auto sci = dScissorArea[i];
+					if (invoX >= sci.x && invoX <= sci.x + sci.z && invoY >= sci.y && invoY <= sci.y + sci.w) {
+						flag = true;
+						break;
+					}
+				}
+				scissorTestPass = flag;
+			}
+			if (!scissorTestPass)return;
+
 			const auto dAlignedBuffer = static_cast<float*>(__builtin_assume_aligned(dBuffer, 16));
 			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 0] = value.x;
 			dBuffer[(invoY * csFrameWidth + invoX) * 4 + 1] = value.y;
@@ -3279,6 +3374,14 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		Impl::hsFrameWidth = width;
 	}
 
+	void updateScissorTestData(const ifloat4* scissorAreas, int numScissors, bool scissorEnable) {
+		for (int i = 0; i < numScissors; i++) {
+			cudaMemcpyToSymbol(Impl::dScissorArea, &scissorAreas[i], sizeof(ifloat4), sizeof(ifloat4) * i);
+		}
+		if (!scissorEnable) numScissors = 0;
+		cudaMemcpyToSymbol(Impl::dScissorAreaNum, &numScissors, sizeof(int));
+	}
+
 	void invokeFragmentShaderUpdate(FragmentShader* dFragmentShader) IFRIT_AP_NOTHROW {
 		Impl::MiscKernels::updateFragmentShaderKernel CU_KARG2(1, 1)(dFragmentShader);
 		cudaDeviceSynchronize();
@@ -3426,6 +3529,9 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		}
 		if (initFlag < 2) {
 			if (initFlag == 0) {
+				Impl::ContextManagement::initializeRendererContext(Impl::ContextManagement::hDefaultContext);
+				Impl::ContextManagement::activateRendererContext(Impl::ContextManagement::hDefaultContext);
+
 				initFlag = 1;
 				cudaDeviceSetLimit(cudaLimitMallocHeapSize, CU_HEAP_MEMORY_SIZE);
 				cudaStreamCreate(&copyStream);

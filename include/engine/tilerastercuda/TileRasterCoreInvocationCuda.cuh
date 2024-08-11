@@ -50,6 +50,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 
 	void invokeFragmentShaderUpdate(FragmentShader* dFragmentShader) IFRIT_AP_NOTHROW;
 	void updateFrameBufferConstants(uint32_t width, uint32_t height);
+	void updateScissorTestData(const ifloat4* scissorAreas, int numScissors, bool scissorEnable);
 	void initCudaRendering();
 	void updateVertexLayout(TypeDescriptorEnum* dVertexTypeDescriptor, int attrCounts);
 

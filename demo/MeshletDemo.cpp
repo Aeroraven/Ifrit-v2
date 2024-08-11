@@ -136,8 +136,13 @@ namespace Ifrit::Demo::MeshletDemo {
 		renderer->bindFragmentShader(dFragmentShader);
 		renderer->bindMeshShader(dMeshShader, vertexShaderLayout, { 1,1,1 });
 		renderer->bindTaskShader(dTaskShader, vertexShaderLayout);
-		renderer->setClearValues({ {0,0,0,0} }, 255.0);
+		renderer->setClearValues({ {1,0,0,0} }, 255.0);
 
+		renderer->setScissors({
+			{0,0,DEMO_RESOLUTION / 2,DEMO_RESOLUTION / 2},
+			{DEMO_RESOLUTION / 2,DEMO_RESOLUTION / 2,DEMO_RESOLUTION,DEMO_RESOLUTION}
+			});
+		renderer->setScissorTestEnable(true);
 
 		auto windowBuilder = std::make_unique<AdaptiveWindowBuilder>();
 		auto windowProvider = windowBuilder->buildUniqueWindowProvider();

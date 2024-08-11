@@ -18,6 +18,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		bool needVaryingUpdate = true;
 		bool needFragmentShaderUpdate = true;
 		bool initCudaContext = false;
+
+
 		// Depth Test
 		IfritCompareOp ctxDepthFunc = IF_COMPARE_OP_LESS;
 		bool ctxDepthTestEnable = true;
@@ -74,6 +76,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 		void createBuffer(int slotId, int bufSize);
 		void copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size);
+
+		void setScissors(const std::vector<ifloat4>& scissors);
+		void setScissorTestEnable(bool option);
 
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
 		void setBlendFunc(IfritColorAttachmentBlendState state);

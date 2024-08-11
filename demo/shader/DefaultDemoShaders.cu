@@ -9,7 +9,7 @@ namespace Ifrit::Demo::DemoDefault {
 		//float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 0,0.1,1.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-		float4x4 view = (lookAt({ 0.08,0.10,0.18 }, { 0,0.10,0.0 }, { 0,1,0 }));  //fox
+		float4x4 view = (lookAt({ 0.08,0.10,0.25 }, { 0,0.10,0.0 }, { 0,1,0 }));  //fox
 		//float4x4 view = (lookAt({ 0.0,0.6,-1.5 }, { 0,0.4,0.0 }, { 0,1,0 }));  //af
 
 		//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));

@@ -53,6 +53,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Depth Function                    |                                                              | √               | √             |
 | Z Pre-Pass                        |                                                              |                 | √             |
 | Early-Z Test                      | √                                                            | √               | √             |
+| Scissor Test                      |                                                              |                 | √             |
 | Back Face Culling                 | √                                                            | √               | √             |
 | Frustum Culling                   |                                                              | √               | √             |
 | Homogeneous Clipping              |                                                              | √ (1)           | √ (1)         |
