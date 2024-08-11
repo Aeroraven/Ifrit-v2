@@ -1676,7 +1676,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
 			const auto pDx = pixelXS * 1.0f;
 			const auto pDy = pixelYS * 1.0f;
-			const float compareDepth = dDepthBuffer[pixelYS * csFrameWidth + pixelXS];
+			float compareDepth = dDepthBuffer[pixelYS * csFrameWidth + pixelXS];
 
 			auto getDepth = [&](int primId) {
 				float interpolatedDepth;
@@ -1745,17 +1745,21 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				auto tDepth = getDepth(pId);
 				bool depthTestCond = true;
 
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) depthTestCond = true;
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) depthTestCond = false;
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) depthTestCond = (tDepth < compareDepth);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) depthTestCond = (tDepth == compareDepth);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) depthTestCond = (tDepth > compareDepth);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL) depthTestCond = (tDepth <= compareDepth);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) depthTestCond = (tDepth >= compareDepth);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) depthTestCond = (tDepth != compareDepth);
-
+#define PS_DEPTHTEST \
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) depthTestCond = true; \
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) depthTestCond = false; \
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) depthTestCond = (tDepth < compareDepth); \
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) depthTestCond = (tDepth == compareDepth); \
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) depthTestCond = (tDepth > compareDepth); \
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL) depthTestCond = (tDepth <= compareDepth); \
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) depthTestCond = (tDepth >= compareDepth); \
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) depthTestCond = (tDepth != compareDepth); \
 				if (!depthTestCond)return;
-				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId);
+
+				PS_DEPTHTEST;
+				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, tDepth);
+
+				PS_DEPTHTEST;
 				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
 				ifloat4 srcRgba;
 				ifloat4 dstRgba = col0[pixelYS * csFrameWidth + pixelXS];
@@ -1779,6 +1783,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 				col0[pixelYS * csFrameWidth + pixelXS] = mixRgba;
 				dDepthBuffer[pixelYS * csFrameWidth + pixelXS] = tDepth;
+				compareDepth = tDepth;
 				if constexpr (CU_PROFILER_OVERDRAW) {
 					atomicAdd(&dOverDrawCounter, 1);
 				}
@@ -2091,7 +2096,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				if (isHelperInvocation) {
 					return;
 				}
-				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId);
+				float depthVal = dDepthBuffer[pixelYS * csFrameWidth + pixelXS];
+				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, depthVal);
 				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
 				ifloat4 finalRgba;
 				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadId))[0];
@@ -2289,7 +2295,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					Impl::TriangleSortStage::sortEntryKernel CU_KARG2(1, 1)();
 				}
 				else {
-					bool forceSort = csBlendState.blendEnable;
+					bool forceSort = csBlendState.blendEnable || dFragmentShader->allowDepthModification;
 					if (forceSort) {
 						Impl::TriangleSortStage::sortEntryKernel CU_KARG2(1, 1)();
 					}
@@ -2298,7 +2304,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				// Fragment Shader
 				int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth >>1, 8);
 				int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight >>1, 8);
-				if (csBlendState.blendEnable) {
+				if (csBlendState.blendEnable || dFragmentShader->allowDepthModification) {
 
 #define PIXEL_BLEND_FUNC_SIGN(cond,gsState) Impl::TriangleFragmentStage::pixelShadingAlphaBlendKernel<cond,gsState>
 #define PIXEL_BLEND_FUNC(cond,gsState) PIXEL_BLEND_FUNC_SIGN(cond,gsState) CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) ( \
@@ -2585,7 +2591,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto curDepth = dDepthBuffer[globalInvo];
 			auto dPixelId = pixelY * CU_MAX_FRAMEBUFFER_WIDTH + pixelX;
 			int actPrim = -1;
-			int localDepth = 1e9;
+			float localDepth = 1e9;
 			IFRIT_SHARED float colorOutputSingle[256 * 4];
 			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
 
@@ -2616,7 +2622,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					dest->z = vd.z;
 					dest->w = vd.w;
 				}
-				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x);
+				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x, localDepth);
 				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
 				ifloat4 finalRgba;
 				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadIdx.x))[0];
@@ -2904,7 +2910,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto curDepth = dDepthBuffer[globalInvo];
 			auto dPixelId = pixelY * CU_MAX_FRAMEBUFFER_WIDTH + pixelX;
 			int actPrim = -1;
-			int localDepth = 1e9;
+			float localDepth = 1e9;
 			IFRIT_SHARED float colorOutputSingle[256 * 4];
 			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
 			auto getPercent = [&](float4 v1, float4 v2) {
@@ -2978,7 +2984,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					dest->z = vd.z;
 					dest->w = vd.w;
 				}
-				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x);
+				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x, localDepth);
 				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
 				ifloat4 finalRgba;
 				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadIdx.x))[0];
@@ -3133,6 +3139,14 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 		IFRIT_KERNEL void updateBlendStateKernel() {
 			auto bs = csBlendState;
+			if (bs.blendEnable == false) {
+				dGlobalBlendCoefs.s = { 1,0,0,0 };
+				dGlobalBlendCoefs.d = { 0,0,0,1 };
+				dGlobalBlendCoefsAlpha.s = { 1,0,0,0 };
+				dGlobalBlendCoefsAlpha.d = { 0,0,0,1 };
+				return;
+			}
+
 			///SrcColor (x1/x[src.alpha]/x[dst.alpha]/x0)
 			if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
 				dGlobalBlendCoefs.s = { 1,0,0,0 };
@@ -3406,9 +3420,6 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void setBlendFunc(IfritColorAttachmentBlendState blendState) {
 		Impl::hsBlendState = blendState;
 		cudaMemcpyToSymbol(Impl::csBlendState, &blendState, sizeof(blendState));
-		if (!blendState.blendEnable) {
-			return;
-		}
 		Impl::MiscKernels::updateBlendStateKernel CU_KARG2(1, 1) ();
 		cudaDeviceSynchronize();
 	}

@@ -12,6 +12,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		deviceContext->dDeviceConstants = (TileRasterDeviceConstants*)Invocation::deviceMalloc(sizeof(TileRasterDeviceConstants));
 		Invocation::initCudaRendering();
 		context->geometryShader = nullptr;
+		context->blendState.blendEnable = false;
+		Invocation::setBlendFunc(context->blendState);
 		Invocation::updateScissorTestData(context->scissorAreas.data(), context->scissorAreas.size(), context->scissorTestEnable);
 	}
 	void TileRasterRendererCuda::bindFrameBuffer(FrameBuffer& frameBuffer, bool useDoubleBuffer) {
@@ -77,6 +79,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::bindFragmentShader(FragmentShader* fragmentShader) {
 		context->fragmentShader = fragmentShader;
 		needFragmentShaderUpdate = true;
+		Invocation::setBlendFunc(context->blendState);
 	}
 	void TileRasterRendererCuda::bindGeometryShader(GeometryShader* geometryShader) {
 		context->geometryShader = geometryShader;
@@ -107,6 +110,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		this->polygonMode = mode;
 	}
 	void TileRasterRendererCuda::setBlendFunc(IfritColorAttachmentBlendState state) {
+		context->blendState = state;
 		Invocation::setBlendFunc(state);
 	}
 	void TileRasterRendererCuda::setDepthFunc(IfritCompareOp depthFunc) {

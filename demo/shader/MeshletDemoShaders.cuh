@@ -35,7 +35,7 @@ namespace Ifrit::Demo::MeshletDemo {
 
 	class MeshletDemoCuFS : public  Ifrit::Engine::FragmentShader {
 	public:
-		IFRIT_DUAL virtual void execute(const  void* varyings, void* colorOutput) override;
+		IFRIT_DUAL virtual void execute(const  void* varyings, void* colorOutput, float& fragmentDepth) override;
 		IFRIT_HOST virtual Ifrit::Engine::FragmentShader* getCudaClone() override;
 	};
 }

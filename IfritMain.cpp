@@ -30,6 +30,6 @@ int demoMeshlet(){
 }
 
 int main() {
-	demoMeshlet();
+	demoDefault();
 	return 0;
 }

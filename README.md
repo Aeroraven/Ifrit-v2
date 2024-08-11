@@ -34,48 +34,49 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 **Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). 
 
-| Feature                           | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
-| --------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
-| **Basic**                         |                                                              |                 |               |
-| Rendering Order                   | √                                                            | √               | √ (3)         |
-| **Performance**                   |                                                              |                 |               |
-| SIMD Instructions / SIMT          |                                                              | √               | √             |
-| Overlapped Memory Transfer        |                                                              |                 | √             |
-| Dynamic Tile List                 |                                                              | √               | √             |
-| **Pipeline**                      |                                                              |                 |               |
-| Programmable Vertex Shader        | √                                                            | √               | √             |
-| Programmable Fragment Shader      | √                                                            | √               | √             |
-| Programmable Geometry Shader      |                                                              |                 | ▲             |
-| Programmable Mesh Shader          |                                                              |                 | ▲             |
-| Programmable Task Shader          |                                                              |                 | ▲             |
-| Alpha Blending                    |                                                              | √               | √             |
-| Depth Testing                     | √                                                            | √               | √             |
-| Depth Function                    |                                                              | √               | √             |
-| Z Pre-Pass                        |                                                              |                 | √             |
-| Early-Z Test                      | √                                                            | √               | √             |
-| Scissor Test                      |                                                              |                 | √             |
-| Back Face Culling                 | √                                                            | √               | √             |
-| Frustum Culling                   |                                                              | √               | √             |
-| Homogeneous Clipping              |                                                              | √ (1)           | √ (1)         |
-| Small Triangle Culling            |                                                              |                 | √             |
-| Perspective-correct Interpolation |                                                              | √               | √             |
-| Shader Derivatives `dFdx` `dFdy`  |                                                              |                 | ▲ (2)         |
-| **Polygon Mode**                  |                                                              |                 |               |
-| Filled Triangle                   | √                                                            | √               | √             |
-| Line (Wireframe)                  |                                                              |                 | ▲             |
-| Point                             |                                                              |                 | ▲             |
-| **Texture**                       |                                                              |                 |               |
-| Basic Support (Sampler)           |                                                              |                 | √             |
-| Blit                              |                                                              |                 | √             |
-| Mipmap                            |                                                              |                 | √             |
-| Filter                            |                                                              |                 | √             |
-| Sampler Address Mode              |                                                              |                 | √             |
-| LOD Bias                          |                                                              |                 | √             |
-| Anisotropic Filtering             |                                                              |                 | ▲ (4)         |
-| Cube Map                          |                                                              |                 | √             |
-| **Presentation**                  |                                                              |                 |               |
-| Terminal ASCII                    |                                                              | √               | √             |
-| Terminal Color                    |                                                              | √               | √             |
+| Feature                                     | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
+| ------------------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
+| **Basic**                                   |                                                              |                 |               |
+| Rendering Order                             | √                                                            | √               | √ (3)         |
+| **Performance**                             |                                                              |                 |               |
+| SIMD Instructions / SIMT                    |                                                              | √               | √             |
+| Overlapped Memory Transfer                  |                                                              |                 | √             |
+| Dynamic Tile List                           |                                                              | √               | √             |
+| **Pipeline**                                |                                                              |                 |               |
+| Programmable Vertex Shader                  | √                                                            | √               | √             |
+| Programmable Fragment Shader                | √                                                            | √               | √             |
+| Programmable Geometry Shader                |                                                              |                 | ▲             |
+| Programmable Mesh Shader                    |                                                              |                 | ▲             |
+| Programmable Task Shader                    |                                                              |                 | ▲             |
+| Alpha Blending                              |                                                              | √               | √             |
+| Depth Testing                               | √                                                            | √               | √             |
+| Depth Function                              |                                                              | √               | √             |
+| Z Pre-Pass                                  |                                                              |                 | √             |
+| Early-Z Test                                | √                                                            | √               | √             |
+| Late-Z Test (Depth Replacement & `discard`) |                                                              |                 | √             |
+| Scissor Test                                |                                                              |                 | √             |
+| Back Face Culling                           | √                                                            | √               | √             |
+| Frustum Culling                             |                                                              | √               | √             |
+| Homogeneous Clipping                        |                                                              | √ (1)           | √ (1)         |
+| Small Triangle Culling                      |                                                              |                 | √             |
+| Perspective-correct Interpolation           |                                                              | √               | √             |
+| Shader Derivatives `dFdx` `dFdy`            |                                                              |                 | ▲ (2)         |
+| **Polygon Mode**                            |                                                              |                 |               |
+| Filled Triangle                             | √                                                            | √               | √             |
+| Line (Wireframe)                            |                                                              |                 | ▲             |
+| Point                                       |                                                              |                 | ▲             |
+| **Texture**                                 |                                                              |                 |               |
+| Basic Support (Sampler)                     |                                                              |                 | √             |
+| Blit                                        |                                                              |                 | √             |
+| Mipmap                                      |                                                              |                 | √             |
+| Filter                                      |                                                              |                 | √             |
+| Sampler Address Mode                        |                                                              |                 | √             |
+| LOD Bias                                    |                                                              |                 | √             |
+| Anisotropic Filtering                       |                                                              |                 | ▲ (4)         |
+| Cube Map                                    |                                                              |                 | √             |
+| **Presentation**                            |                                                              |                 |               |
+| Terminal ASCII                              |                                                              | √               | √             |
+| Terminal Color                              |                                                              | √               | √             |
 
 (1) For performance consideration, only w-axis is considered 
 
