@@ -850,8 +850,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 			int subTilePixelX = curTileX + subTileIX * CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			int subTilePixelY = curTileY + subTileIY * CU_EXPERIMENTAL_SUBTILE_WIDTH;
-			int subTilePixelX2 = curTileX + (subTileIX + 1) * CU_EXPERIMENTAL_SUBTILE_WIDTH;
-			int subTilePixelY2 = curTileY + (subTileIY + 1) * CU_EXPERIMENTAL_SUBTILE_WIDTH;
 
 			int mask = 0;
 			float criteriaY[3];
@@ -1288,7 +1286,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					if (npc * npn < 0) {
 						float numo = pc.pos.w;
 						float deno = -(pnPos.w - pc.pos.w);
-						float t = (-1e-3 + numo) / deno;
+						float t = (-1e-3f + numo) / deno;
 						float4 intersection = lerp(pc.pos, pnPos, t);
 						float3 barycenter = lerp(pc.barycenter, pnBary, t);
 
@@ -1822,8 +1820,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			uint32_t superTileId = superTileY * CU_MAX_LARGE_BIN_X + superTileX;
 
 			const auto frameWidth = csFrameWidth;
-			//const auto completeCandidates = dCoverQueueFullM2[binId].size;
-
 			const int threadX = threadIdx.x, threadY = threadIdx.y, threadZ = threadIdx.z;
 			
 			const int pixelXS = threadX + threadZ * CU_EXPERIMENTAL_SUBTILE_WIDTH + tileX * CU_TILE_WIDTH;
@@ -2095,7 +2091,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				dCoverQueueSuperTileFullM3Size[globalInvocation] = 0;
 			}
 			if (globalInvocation < CU_MAX_BIN_X * CU_MAX_BIN_X) {
-				//dCoverQueueFullM2[globalInvocation].clear();
 				dCoverQueueFullM2Size[globalInvocation] = 0;
 			}
 			if (globalInvocation == 0) {
@@ -2154,8 +2149,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 			if constexpr (CU_PROFILER_SECOND_BINNER_UTILIZATION) {
 				if (globalInvocation == 0) {
-					//printf("Tile Empty Rate: %f (%d/%d)\n",
-					//	1.0f * dSecondBinnerEmptyTiles / (CU_TILE_SIZE * CU_TILE_SIZE), dSecondBinnerEmptyTiles, CU_TILE_SIZE * CU_TILE_SIZE);
 					printf("Second Binner Actual Utilization: %f (%d/%d)\n",
 						1.0f * dSecondBinnerActiveReqs / dSecondBinnerTotalReqs, dSecondBinnerActiveReqs, dSecondBinnerTotalReqs);
 					dSecondBinnerActiveReqs = 0;
