@@ -920,6 +920,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			float criteriaY[3];
 			float criteriaX[3];
 
+
 			const auto rsX1 = subTilePixelX * edgeCoefs[0].x;
 			const auto rsX2 = subTilePixelX * edgeCoefs[1].x;
 			const auto rsX3 = subTilePixelX * edgeCoefs[2].x;
@@ -930,14 +931,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			criteriaX[0] = rsX1;
 			criteriaX[1] = rsX2;
 			criteriaX[2] = rsX3;
-			constexpr auto dEps = CU_OPT_PATCH_STRICT_BOUNDARY ? CU_EPS * 1e7f : 0;
+
+			auto dEps = CU_OPT_PATCH_STRICT_BOUNDARY ? CU_EPS * 1e5 : 0;
+			if constexpr (CU_PATCH_FI_240812) {
+				dEps = CU_OPT_PATCH_STRICT_BOUNDARY ? 1e-10 : 0;
+			}
 			for (int i2 = 0; i2 < CU_EXPERIMENTAL_PIXELS_PER_SUBTILE; i2++) {
+
 				bool accept1 = (criteriaX[0] + criteriaY[0]) < edgeCoefs[0].z + dEps;
 				bool accept2 = (criteriaX[1] + criteriaY[1]) < edgeCoefs[1].z + dEps;
 				bool accept3 = (criteriaX[2] + criteriaY[2]) < edgeCoefs[2].z + dEps;
 
 				int cond = (accept1 && accept2 && accept3);
 				mask |= (cond << i2);
+
 
 				if ((i2 + 1) % CU_EXPERIMENTAL_SUBTILE_WIDTH == 0) {
 					criteriaY[0] += edgeCoefs[0].y;
@@ -953,6 +960,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					criteriaX[2] += edgeCoefs[2].x;
 				}
 			}
+
+
+			
+
+
 			//if (mask == 0) {
 			//	return;
 			//}
@@ -1548,7 +1560,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			float4 f1 = { (float)(sV3V2y * ar) * invFrameWidth, (float)(sV3V2x * ar) * invFrameHeight,(float)((-dv2.x * sV3V2y - dv2.y * sV3V2x) * ar) };
 			float4 f2 = { (float)(sV1V3y * ar) * invFrameWidth, (float)(sV1V3x * ar) * invFrameHeight,(float)((-dv3.x * sV1V3y - dv3.y * sV1V3x) * ar) };
 
-			constexpr auto dEps = -CU_EPS * 2.85e6f;
+			constexpr auto dEps =  -CU_EPS * 2.85e6f;
 
 			float v1 = dv1.z * f1.x + dv2.z * f2.x + dv3.z * f3.x;
 			float v2 = dv1.z * f1.y + dv2.z * f2.y + dv3.z * f3.y;
@@ -1570,20 +1582,39 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const auto dAtriEdgeCoefs2Aligned = static_cast<float4*>(__builtin_assume_aligned(dAtriEdgeCoefs2, 16));
 			const auto dAtriEdgeCoefs3Aligned = dAtriEdgeCoefs3;
 
-			dAtriEdgeCoefs1Aligned[globalInvo] = {
-				(float)(sV2V1y)*frameHeight,
-				(float)(sV2V1x)*frameWidth ,
-				(float)(-dv2.x * dv1.y + dv1.x * dv2.y) * frameHeight * frameWidth + dEps,
-				(float)(sV3V2y)*frameHeight
-			};
-			dAtriEdgeCoefs2Aligned[globalInvo] = {
-				(float)(sV3V2x)*frameWidth ,
-				(float)(-dv3.x * dv2.y + dv2.x * dv3.y) * frameHeight * frameWidth + dEps,
-				(float)(sV1V3y)*frameHeight,
-				(float)(sV1V3x)*frameWidth ,
-			};
-			dAtriEdgeCoefs3Aligned[globalInvo] = (float)(-dv1.x * dv3.y + dv3.x * dv1.y) * frameHeight * frameWidth + dEps;
+			if constexpr (CU_PATCH_FI_240812) {
+				dAtriEdgeCoefs1Aligned[globalInvo] = {
+					(float)(sV2V1y)*frameHeight,
+					(float)(sV2V1x)*frameWidth ,
+					(float)(-dv2.x * frameWidth * dv1.y * frameHeight + dv1.x * frameWidth * dv2.y * frameHeight), //+deps
+					(float)(sV3V2y)*frameHeight
+				};
+				dAtriEdgeCoefs2Aligned[globalInvo] = {
+					(float)(sV3V2x)*frameWidth ,
+					(float)(-dv3.x * frameWidth * dv2.y * frameHeight + dv2.x * frameWidth * dv3.y * frameHeight), //+deps
+					(float)(sV1V3y)*frameHeight,
+					(float)(sV1V3x)*frameWidth ,
+				};
+				dAtriEdgeCoefs3Aligned[globalInvo] = (float)(-dv1.x * frameWidth * dv3.y * frameHeight + dv3.x * frameWidth * dv1.y * frameHeight); //+deps
 
+			}
+			else {
+				dAtriEdgeCoefs1Aligned[globalInvo] = {
+					(float)(sV2V1y)*frameHeight,
+					(float)(sV2V1x)*frameWidth ,
+					(float)(-dv2.x * dv1.y + dv1.x * dv2.y)* frameHeight* frameWidth, //+deps
+					(float)(sV3V2y)*frameHeight
+				};
+				dAtriEdgeCoefs2Aligned[globalInvo] = {
+					(float)(sV3V2x)*frameWidth ,
+					(float)(-dv3.x * dv2.y + dv2.x * dv3.y) * frameHeight * frameWidth, //+deps
+					(float)(sV1V3y)*frameHeight,
+					(float)(sV1V3x)*frameWidth ,
+				};
+				dAtriEdgeCoefs3Aligned[globalInvo] = (float)(-dv1.x * dv3.y + dv3.x * dv1.y) * frameHeight * frameWidth; //+deps
+
+			}
+			
 			dAtriInterpolBase1Aligned[globalInvo] = { f1.x,f1.y,f1.z,f2.x };
 			dAtriInterpolBase2Aligned[globalInvo] = { f2.y,f2.z,f3.x,f3.y };
 			dAtriInterpolBase3[globalInvo] = f3.z;
