@@ -895,9 +895,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				}
 			}
 
-			//if (mask == 0) {
-			//	return;
-			//}
+			if (mask == 0) return;
 			int xid = xidSrc;
 			int pw = atomicAdd(&dSecondBinnerFinerBufferCurInd[xid], 1);
 			dSecondBinnerFinerBuffer[pw].x = mask;
