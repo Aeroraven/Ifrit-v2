@@ -216,7 +216,7 @@ See `DOCS.md` for more details.
   - Overdraw: Point mode with index buffer
   - Latency: Excessive global atomics in line mode
   - Issue: Nondeterministic behaviors in wireframe/point mode 
-  - Issue: Artifacts in low resolution scenario 
+  - <s>Issue: Artifacts in low resolution scenario </s>
 
 
 

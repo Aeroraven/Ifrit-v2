@@ -13,7 +13,7 @@
 #include "presentation/backend/TerminalCharColorBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 
-#define DEMO_RESOLUTION 2048
+#define DEMO_RESOLUTION 512
 
 
 namespace Ifrit::Demo::DemoDefault {

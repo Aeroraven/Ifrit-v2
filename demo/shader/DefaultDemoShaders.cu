@@ -43,11 +43,6 @@ namespace Ifrit::Demo::DemoDefault {
 		//float2 uv = { dcl[1].x,dcl[1].y };
 		//auto dco = texture(0, 0, dcl, 1);
 
-		if (fragmentDepth > 0.59) {
-			fragmentDepth = 1e9;
-			return;
-		}
-
 		co.x = result.x * 0.5 + 0.5;
 		co.y = result.y * 0.5 + 0.5;
 		co.z = result.z * 0.5 + 0.5;
