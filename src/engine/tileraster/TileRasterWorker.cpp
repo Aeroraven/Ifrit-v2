@@ -216,11 +216,6 @@ namespace Ifrit::Engine::TileRaster {
 		const float tileSizeY = 1.0f * context->tileWidth / frameBufferHeight;
 		for (int y = tileMiny; y <= tileMaxy; y++) {
 			for (int x = tileMinx; x <= tileMaxx; x++) {
-				auto curTileX = x * context->tileWidth;
-				auto curTileY = y * context->tileWidth;
-				auto curTileX2 = (x + 1) * context->tileWidth;
-				auto curTileY2 = (y + 1)* context->tileWidth;
-
 				tileCoords[VLT] = { x * tileSizeX, y * tileSizeY, 1.0 };
 				tileCoords[VLB] = { x * tileSizeX, (y + 1) * tileSizeY, 1.0 };
 				tileCoords[VRB] = { (x + 1) * tileSizeX, (y + 1) * tileSizeY, 1.0 };
@@ -252,7 +247,6 @@ namespace Ifrit::Engine::TileRaster {
 
 	}
 	void TileRasterWorker::vertexProcessing() IFRIT_AP_NOTHROW {
-		auto sk = context->varyingDescriptor->getVaryingCounts();
 		status.store(TileRasterStage::VERTEX_SHADING);
 		std::vector<VaryingStore*> outVaryings(context->varyingDescriptor->getVaryingCounts());
 		std::vector<const void*> inVertex(context->vertexBuffer->getAttributeCount());
@@ -740,7 +734,6 @@ namespace Ifrit::Engine::TileRaster {
 				};
 			// End of lambda func
 			if (context->optForceDeterministic) {
-				int lastp = -1;
 				auto iterFunc = [&]<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>() {
 					for (auto& proposal: context->sortedCoverQueue[curTile]) {
 						proposalProcessFunc.operator()<tpAlphaBlendEnable, tpDepthFunc>(proposal);
@@ -854,7 +847,6 @@ namespace Ifrit::Engine::TileRaster {
 		// Interpolate Depth
 
 		float bary[3];
-		float depth[3];
 		float interpolatedDepth;
 		const float w[3] = { pos[0].w,pos[1].w,pos[2].w };
 		bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
