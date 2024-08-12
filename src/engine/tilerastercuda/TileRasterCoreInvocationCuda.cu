@@ -153,6 +153,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 	// Culling
 	IFRIT_DEVICE static IfritCullMode csCullMode;
+	static IfritCullMode hsCullMode;
 
 	// Alpha Blending
 	IFRIT_DEVICE static ImplBlendCoefs dGlobalBlendCoefs;
@@ -2359,7 +2360,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
 				if (dGeometryShader == nullptr) {
 					int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_PROCESSING_THREADS);
-#define invokeGeometryClippingKernel(tpCullMode) if(csCullMode == tpCullMode) Impl::TriangleGeometryStage::geometryClippingKernel<0,tpCullMode> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(dPositionBuffer, dIndexBuffer, i, indexCount);
+#define invokeGeometryClippingKernel(tpCullMode) if(hsCullMode == tpCullMode) Impl::TriangleGeometryStage::geometryClippingKernel<0,tpCullMode> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(dPositionBuffer, dIndexBuffer, i, indexCount);
 					invokeGeometryClippingKernel(IF_CULL_MODE_BACK);
 					invokeGeometryClippingKernel(IF_CULL_MODE_FRONT);
 					invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK);
@@ -2391,7 +2392,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					int start = sI;
 					bool isLast = (curTime == totalTms);
 					if (curTime == totalTms - 1) {
-						if (dAssembledTriangleCounterM2 % CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER < CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER * 2 / 5) {
+						if (dAssembledTriangleCounterM2Host % CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER < CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER * 2 / 5) {
 							length = dAssembledTriangleCounterM2Host - sI;
 							sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER;
 							isLast = true;
@@ -2437,7 +2438,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					auto dSmallTriangleCountHost = 0;
 					cudaMemcpyFromSymbol(&dSmallTriangleCountHost, dSmallTriangleCount, sizeof(uint32_t));
 					printf("Small Triangle Rate:%f (%d/%d)\n", 1.0f * dSmallTriangleCountHost / dAssembledTriangleCounterM2Host, dSmallTriangleCountHost, dAssembledTriangleCounterM2Host);
-					dSmallTriangleCount = 0;
 				}
 			}
 			cudaDeviceSynchronize();
@@ -3176,6 +3176,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		IFRIT_KERNEL void globalInitializationKernel() {
 			csDepthFunc = IF_COMPARE_OP_LESS;
 			csCullMode = IF_CULL_MODE_BACK;
+			
 		}
 	}
 }
@@ -3359,10 +3360,12 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaMemcpyToSymbol(Impl::csDepthFunc, &depthFunc, sizeof(depthFunc));
 	}
 	void setCullMode(IfritCullMode cullMode) {
+		Impl::hsCullMode = cullMode;
 		cudaMemcpyToSymbol(Impl::csCullMode, &cullMode, sizeof(cullMode));
 	}
 
 	void initCudaRendering() {
+		Impl::hsCullMode = IF_CULL_MODE_BACK;
 		Impl::InitializationKernels::globalInitializationKernel CU_KARG2(1, 1) ();
 		cudaDeviceSynchronize();
 		cudaMemcpyToSymbol(Impl::csCounterClosewiseCull, &Impl::hsCounterClosewiseCull, sizeof(Impl::hsCounterClosewiseCull));
@@ -3533,7 +3536,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		}
 		if (!args.doubleBuffering) {
 			for (int i = 0; i < args.dHostColorBufferSize; i++) {
-				cudaMemcpy(args.hColorBuffer[i], args.dHostColorBuffer[i], Impl::csFrameWidth * Impl::csFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost);
+				cudaMemcpy(args.hColorBuffer[i], args.dHostColorBuffer[i], Impl::hsFrameWidth * Impl::hsFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost);
 			}
 		}
 	}
