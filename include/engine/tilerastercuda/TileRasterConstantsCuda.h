@@ -126,4 +126,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	// == Ext: Scissor Test ==
 	constexpr bool CU_SCISSOR_ENABLE = true;
 	constexpr int CU_SCISSOR_MAX_COUNT = 16;
+
+	// == Ext: Patch Float Inaccuracy 240812 ==
+	constexpr bool CU_PATCH_FI_240812 = true;
 }

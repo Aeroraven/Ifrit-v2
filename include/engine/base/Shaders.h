@@ -25,7 +25,7 @@ namespace Ifrit::Engine {
 			const void* const* input,
 			ifloat4* outPos,
 			VaryingStore** outVaryings
-		) {};
+		) = 0;
 		IFRIT_HOST virtual VertexShader* getCudaClone() { return nullptr; };
 	};
 

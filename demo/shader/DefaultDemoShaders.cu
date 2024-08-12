@@ -9,9 +9,9 @@ namespace Ifrit::Demo::DemoDefault {
 		//float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 0,0.1,1.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-		float4x4 view = (lookAt({ 0.08,0.10,0.25 }, { 0,0.10,0.0 }, { 0,1,0 }));  //fox
-		//float4x4 view = (lookAt({ 0.0,0.6,-1.5 }, { 0,0.4,0.0 }, { 0,1,0 }));  //af
-
+		float4x4 view = (lookAt({ 0.07,0.05,0.07 }, { 0,0.05,0.0 }, { 0,1,0 }));  //fox
+		//float4x4 view = (lookAt({ 0.0,0.6,-1.5 }, { 0,0.4,0.0 }, { 0,1,0 }));  //af 
+		 
 		//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
 		//float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 10.0, 3000));
@@ -43,15 +43,10 @@ namespace Ifrit::Demo::DemoDefault {
 		//float2 uv = { dcl[1].x,dcl[1].y };
 		//auto dco = texture(0, 0, dcl, 1);
 
-		if (fragmentDepth > 0.59) {
-			fragmentDepth = 1e9;
-			return;
-		}
-
 		co.x = result.x * 0.5 + 0.5;
 		co.y = result.y * 0.5 + 0.5;
 		co.z = result.z * 0.5 + 0.5;
-		co.w = result.w * 0.5 + 0.5;
+		co.w = 0.5;
 
 		/*
 		co.x = result.x;

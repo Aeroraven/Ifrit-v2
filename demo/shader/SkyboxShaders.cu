@@ -26,7 +26,7 @@ namespace Ifrit::Demo::Skybox {
 		auto r = isbcuReadPsVarying(varyings, 0);
 		auto& co = isbcuReadPsColorOut(colorOutput, 0);
 		float3 uvw = { r.x,r.y,r.z };
-		auto cl = textureCubeLod(0, 0, uvw, 4);
+		auto cl = textureCubeLod(0, 0, uvw, 0);
 
 		co.x = cl.x;
 		co.y = cl.y;
