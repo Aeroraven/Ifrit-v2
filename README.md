@@ -139,11 +139,12 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 - **Compilation Dependencies:** One of following environments. Requires `c++20` support.
   - MSVC 19.29 + Visual Studio 2022 
   - CMake 3.28 + GCC 13.2 (MinGW Included) `[CUDA Support is unknown]`
+- **Optional**: When compiling with CUDA
 
 #### Recommended Requirement
 
 - **Hardware Requirements:**  
-  - CUDA 12.4 Supports
+  - CUDA 12.5 (>=12.5)
   - AVX2 Support
 - **Display Dependencies**: 
   - OpenGL (GLFW3.3 + GLAD)

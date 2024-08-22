@@ -892,8 +892,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			for (int k = 0; k < tpMsaaSamples; k++) {
 				auto mSampleStart = (1 * tpMsaaSamples) - 1;
 				float2 mSample = cMsaaSampleSequenceAgg[mSampleStart + k];
-				//mSample.x -= 0.5f;
-				//mSample.y -= 0.5f;
+				mSample.x -= 0.5f;
+				mSample.y -= 0.5f;
 
 				const auto rsX1 = (subTilePixelX)*edgeCoefs[0].x + mSample.x * edgeCoefs[0].x;
 				const auto rsX2 = (subTilePixelX)*edgeCoefs[1].x + mSample.x * edgeCoefs[1].x;
@@ -927,7 +927,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 						criteriaX[2] = rsX3;
 					}
 					else {
-						if(i2>=12) mask |= (cond << i2);
+						mask |= (cond << i2); 
 						criteriaX[0] += edgeCoefs[0].x;
 						criteriaX[1] += edgeCoefs[1].x;
 						criteriaX[2] += edgeCoefs[2].x;
