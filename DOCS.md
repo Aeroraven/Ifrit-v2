@@ -33,38 +33,40 @@ public:
 ``` C++
 class TileRasterRendererCuda{
  public:
-	void init();
-    void bindFrameBuffer(FrameBuffer& frameBuffer, bool useDoubleBuffer = true);
-    void bindVertexBuffer(const VertexBuffer& vertexBuffer);
-    void bindIndexBuffer(const std::vector<int>& indexBuffer);
-    void bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor);
-    void bindFragmentShader(FragmentShader* fragmentShader);
-    void bindGeometryShader(GeometryShader* geometryShader);
-    void bindMeshShader(MeshShader* meshShader, VaryingDescriptor& varyingDescriptor, iint3 localSize);
-    void bindTaskShader(TaskShader* taskShader, VaryingDescriptor& varyingDescriptor);
+		void init();
+		void bindFrameBuffer(FrameBuffer& frameBuffer, bool useDoubleBuffer = true);
+		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
+		void bindIndexBuffer(const std::vector<int>& indexBuffer);
+		void bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor);
+		void bindFragmentShader(FragmentShader* fragmentShader);
+		void bindGeometryShader(GeometryShader* geometryShader);
+		void bindMeshShader(MeshShader* meshShader, VaryingDescriptor& varyingDescriptor, iint3 localSize);
+		void bindTaskShader(TaskShader* taskShader, VaryingDescriptor& varyingDescriptor);
 
-    void createTexture(int slotId, const IfritImageCreateInfo& createInfo);
-    void createSampler(int slotId, const IfritSamplerT& samplerState);
-    void generateMipmap(int slotId, IfritFilter filter);
-    void blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter);
-    void copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions);
+		void createTexture(int slotId, const IfritImageCreateInfo& createInfo);
+		void createSampler(int slotId, const IfritSamplerT& samplerState);
+		void generateMipmap(int slotId, IfritFilter filter);
+		void blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter);
+		void copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions);
 
-    void createBuffer(int slotId, int bufSize);
-    void copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size);
+		void createBuffer(int slotId, int bufSize);
+		void copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size);
 
-    void setScissors(const std::vector<ifloat4>& scissors);
-    void setScissorTestEnable(bool option);
+		void setScissors(const std::vector<ifloat4>& scissors);
+		void setScissorTestEnable(bool option);
 
-    void setRasterizerPolygonMode(IfritPolygonMode mode);
-    void setBlendFunc(IfritColorAttachmentBlendState state);
-    void setDepthFunc(IfritCompareOp depthFunc);
-    void setDepthTestEnable(bool option);
-    void setCullMode(IfritCullMode cullMode);
-    void setClearValues(const std::vector<ifloat4>& clearColors, float clearDepth);
+		void setMsaaSamples(IfritSampleCountFlagBits msaaSamples);
 
-    void clear();
-    void drawElements();
-    void drawMeshTasks(int numWorkGroups, int firstWorkGroup);
+		void setRasterizerPolygonMode(IfritPolygonMode mode);
+		void setBlendFunc(IfritColorAttachmentBlendState state);
+		void setDepthFunc(IfritCompareOp depthFunc);
+		void setDepthTestEnable(bool option);
+		void setCullMode(IfritCullMode cullMode);
+		void setClearValues(const std::vector<ifloat4>& clearColors, float clearDepth);
+
+		void clear();
+		void drawElements();
+		void drawMeshTasks(int numWorkGroups, int firstWorkGroup);
 }
 ```
 
