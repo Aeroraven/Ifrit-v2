@@ -139,6 +139,9 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	void TileRasterRendererCuda::setCullMode(IfritCullMode cullMode) {
 		Invocation::setCullMode(cullMode);
 	}
+	void TileRasterRendererCuda::setMsaaSamples(IfritSampleCountFlagBits msaaSamples) {
+		Invocation::setMsaaSampleBits(msaaSamples);
+	}
 	void TileRasterRendererCuda::setClearValues(const std::vector<ifloat4>& clearColors, float clearDepth) {
 		ctxClearColors = clearColors;
 		ctxClearDepth = clearDepth;

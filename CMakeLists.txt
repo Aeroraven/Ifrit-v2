@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 project(Ifrit-v2 LANGUAGES CXX C)
 
 set(IFRIT_REQ_GLFW3_BASE "C:/Program Files (x86)/GLFW/")
-set(IFRIT_REQ_CUDA_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/include")
-set(IFRIT_REQ_CUDACRT_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/include/crt")
+set(IFRIT_REQ_CUDA_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include")
+set(IFRIT_REQ_CUDACRT_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include/crt")
 
 set(IFRIT_ENABLE_CUDA False)
 set(IFRIT_ENABLE_SIMD_AVX True)

@@ -61,6 +61,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Small Triangle Culling                      |                                                              |                 | √             |
 | Perspective-correct Interpolation           |                                                              | √               | √             |
 | Shader Derivatives `dFdx` `dFdy`            |                                                              |                 | ▲ (2)         |
+| Multi-sampling                              |                                                              |                 | ▲ (8x MSAA)   |
 | **Polygon Mode**                            |                                                              |                 |               |
 | Filled Triangle                             | √                                                            | √               | √             |
 | Line (Wireframe)                            |                                                              |                 | ▲             |
@@ -139,11 +140,14 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 - **Compilation Dependencies:** One of following environments. Requires `c++20` support.
   - MSVC 19.29 + Visual Studio 2022 
   - CMake 3.28 + GCC 13.2 (MinGW Included) `[CUDA Support is unknown]`
+- **Optional**: When compiling with CUDA:
+  - CUDA >= 12.5
+
 
 #### Recommended Requirement
 
 - **Hardware Requirements:**  
-  - CUDA 12.4 Supports
+  - CUDA 12.6
   - AVX2 Support
 - **Display Dependencies**: 
   - OpenGL (GLFW3.3 + GLAD)
@@ -195,28 +199,29 @@ See `DOCS.md` for more details.
 
 ## Ongoing Plan
 
-- Tessellation
-- <s>Line Mode</s>
-- <s>Texture LOD & Texture Sampler</s>
-  - <s>Shader Derivatives</s>
-  - <s>Anisotropic Filtering</s>
-  - <s>Dynamic LOD Selection & Texture Bias</s>
-  - <s>Cubic Texture</s>
-  - Tiling
-- Multi-sampling
-- <s>Alpha Blending</s>
+- [ ] Tessellation
+- [x] Line Mode
+- [x] Texture LOD & Texture Sampler
+  - [x] Shader Derivatives
+  - [x] Anisotropic Filtering
+  - [x] Dynamic LOD Selection & Texture Bias
+  - [x] Cube Mapping
+  - [ ] Tiling
+- [x] Multi-sampling
+  - [ ] Blending Integration
 
-  - <s>Sorting</s>
-- <s>Mesh Shader</s>
-- Input Topology
-- Triangle Cluster & Cluster LOD
-- Known Issues
-
-  - <s>Issue: Faults after resolution change</s>
-  - Overdraw: Point mode with index buffer
-  - Latency: Excessive global atomics in line mode
-  - Issue: Nondeterministic behaviors in wireframe/point mode 
-  - <s>Issue: Artifacts in low resolution scenario </s>
+- [x] Alpha Blending
+  - [x] Sorting
+- [x] Mesh Shader
+- [ ] Input Topology
+- [ ] Triangle Cluster & Cluster LOD
+- [ ] Known Issues
+  - [x] Issue: Faults after resolution change
+  - [ ] Overdraw: Point mode with index buffer
+  - [ ] Latency: Excessive global atomics in line mode
+  - [ ] Issue: Nondeterministic behaviors in wireframe/point mode 
+  - [x] Issue: Artifacts in low resolution scenario 
+  - [ ] Latency: Memory access pattern in MSAA
 
 
 

@@ -74,5 +74,6 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
 	void setBlendFunc(IfritColorAttachmentBlendState blendState);
 	void setDepthFunc(IfritCompareOp depthFunc);
 	void setCullMode(IfritCullMode cullMode);
+	void setMsaaSampleBits(IfritSampleCountFlagBits sampleBits);
 }
 #endif
