@@ -13,7 +13,7 @@
 #include "presentation/backend/TerminalCharColorBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 
-#define DEMO_RESOLUTION 1024
+#define DEMO_RESOLUTION 512
 
 
 namespace Ifrit::Demo::DemoDefault {
@@ -290,7 +290,7 @@ namespace Ifrit::Demo::DemoDefault {
 		VaryingDescriptor vertexShaderLayout;
 		vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
 		DemoFragmentShaderCuda fragmentShader;
-		fragmentShader.allowDepthModification = true;
+		fragmentShader.allowDepthModification = false;
 		DemoGeometryShaderCuda geometryShader;
 
 		auto dVertexShader = vertexShader.getCudaClone();

@@ -42,6 +42,10 @@
 
 
 
+## Multi-sampling
+
+![](img/img_msaa.png)
+
 ## View Layer
 
 ### Colored Terminal Output
