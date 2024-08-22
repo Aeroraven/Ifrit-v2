@@ -51,4 +51,12 @@ namespace Ifrit::Engine {
 		IF_COMPARE_OP_GREATER_OR_EQUAL = 6,
 		IF_COMPARE_OP_ALWAYS = 7
 	};
+
+	enum IfritSampleCountFlagBits {
+		IF_SAMPLE_COUNT_1_BIT = 1,
+		IF_SAMPLE_COUNT_2_BIT = 2,
+		IF_SAMPLE_COUNT_4_BIT = 4,
+		IF_SAMPLE_COUNT_8_BIT = 8,
+		IF_SAMPLE_COUNT_16_BIT = 16,
+	};
 }

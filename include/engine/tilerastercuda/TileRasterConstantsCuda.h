@@ -129,4 +129,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 
 	// == Ext: Patch Float Inaccuracy 240812 ==
 	constexpr bool CU_PATCH_FI_240812 = true;
+
+	// == Ext: MSAA ==
+	constexpr bool CU_MSAA_ENABLED = true;
+	constexpr int CU_MSAA_MAX_SAMPLES = 16;
 }

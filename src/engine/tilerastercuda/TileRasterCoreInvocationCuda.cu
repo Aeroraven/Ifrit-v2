@@ -185,9 +185,37 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	// Profiler: Tiny Triangle Efficiency
 	IFRIT_DEVICE static int dSmallTriangleCount = 0;
 
+	// MSAA Sample Sequence
+	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequence1x[1] = { {0.5f,0.5f} };
+	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequence2x[2] = { {0.75f,0.75f},{0.25f,0.25f} };
+	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequence4x[4] = { 
+		{0.375f, 0.125f},{0.875f, 0.375f},{0.125f, 0.625f},{0.625f, 0.875f}
+	};
+	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequence8x[8] = {
+		{0.5625f, 0.3125f},{0.4375f, 0.6875f},{0.8125f, 0.5625f},{0.3125f, 0.1875f},
+		{0.1875f, 0.8125f},{0.0625f, 0.4375f},{0.6875f, 0.9375f},{0.9375f, 0.0625f}
+	};
+	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequence16x[16] = {
+		{0.5625f, 0.5625f},{0.4375f, 0.3125f},{0.3125f, 0.625f},{0.75f, 0.4375f},
+		{0.1875f, 0.375f},{0.625f, 0.8125f},{0.8125f, 0.6875f},{0.6875f, 0.1875f},
+		{0.375f, 0.875f},{0.5f, 0.0625f},{0.25f, 0.125f},{0.125f, 0.75f},
+		{0.0f, 0.5f},{0.9375f, 0.25f},{0.875f, 0.9375f},{0.0625f, 0.0f}
+	};
+	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequenceAgg[31] = {
+		{0.5f,0.5f},{0.75f,0.75f},{0.25f,0.25f},{0.375f, 0.125f},{0.875f, 0.375f},{0.125f, 0.625f},{0.625f, 0.875f},
+		{0.5625f, 0.5625f},{0.4375f, 0.3125f},{0.3125f, 0.625f},{0.75f, 0.4375f},
+		{0.1875f, 0.375f},{0.625f, 0.8125f},{0.8125f, 0.6875f},{0.6875f, 0.1875f},
+		{0.375f, 0.875f},{0.5f, 0.0625f},{0.25f, 0.125f},{0.125f, 0.75f},
+		{0.0f, 0.5f},{0.9375f, 0.25f},{0.875f, 0.9375f},{0.0625f, 0.0f}
+	};
+	IFRIT_DEVICE_CONST static IfritSampleCountFlagBits csMsaaSampleBits;
+
 	namespace ContextManagement {
 		struct RendererContext {
-			int* dPixelShaderTags;
+			int* dPixelShaderFullTags; //Set when tag covers all subsamples
+			int* dPixelShaderSubsampleTags;
+			float* dTemporarayDepthBuffer;
+			float4* dTemporarayColorBuffer;
 		};
 
 		IFRIT_DEVICE static RendererContext dActiveContext;
@@ -195,7 +223,10 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 		void initializeRendererContext(RendererContext& ctx) {
 #define CTXCREATE(var,size) cudaMalloc(&(var),sizeof(decltype(var))*(size));
-			CTXCREATE(ctx.dPixelShaderTags, CU_MAX_FRAMEBUFFER_SIZE);
+			CTXCREATE(ctx.dPixelShaderFullTags, CU_MAX_FRAMEBUFFER_SIZE);
+			CTXCREATE(ctx.dPixelShaderSubsampleTags, CU_MAX_FRAMEBUFFER_SIZE * CU_MSAA_MAX_SAMPLES);
+			CTXCREATE(ctx.dTemporarayColorBuffer, CU_MAX_FRAMEBUFFER_SIZE * CU_MSAA_MAX_SAMPLES);
+			CTXCREATE(ctx.dTemporarayDepthBuffer, CU_MAX_FRAMEBUFFER_SIZE * CU_MSAA_MAX_SAMPLES);
 #undef CTXCREATE
 		}
 
@@ -691,7 +722,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 				auto curTileLargeY = y * CU_LARGE_BIN_WIDTH;
 				auto curTileLargeY2 = (y + 1) * CU_LARGE_BIN_WIDTH;
-				auto cty1 = 1.0f * curTileLargeY, cty2 = 1.0f * (curTileLargeY2 - 1);
+				auto cty1 = 1.0f * curTileLargeY, cty2 = 1.0f * (curTileLargeY2 - ((CU_MSAA_ENABLED) ? 0 : 1));
 
 				float criteriaTRLocalY[3];
 				float criteriaTALocalY[3];
@@ -706,7 +737,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					auto curTileLargeX = x * CU_LARGE_BIN_WIDTH;
 					auto curTileLargeX2 = (x + 1) * CU_LARGE_BIN_WIDTH;
 					auto ctx1 = 1.0f * curTileLargeX;
-					auto ctx2 = 1.0f * (curTileLargeX2 - 1);
+					auto ctx2 = 1.0f * (curTileLargeX2 - ((CU_MSAA_ENABLED) ? 0 : 1));
 
 					int criteriaTR = 0, criteriaTA = 0;
 
@@ -823,6 +854,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 #undef getY
 #undef getX
 		}
+
+		template<int tpMsaaSamples>
 		IFRIT_DEVICE void devFinerTilingRasterizationChildProcess(
 			uint32_t tileId,
 			uint32_t primitiveSrcId,
@@ -855,52 +888,59 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			int mask = 0;
 			float criteriaY[3];
 			float criteriaX[3];
+			
+			for (int k = 0; k < tpMsaaSamples; k++) {
+				auto mSampleStart = (1 * tpMsaaSamples) - 1;
+				float2 mSample = cMsaaSampleSequenceAgg[mSampleStart + k];
+				//mSample.x -= 0.5f;
+				//mSample.y -= 0.5f;
 
-			const auto rsX1 = subTilePixelX * edgeCoefs[0].x;
-			const auto rsX2 = subTilePixelX * edgeCoefs[1].x;
-			const auto rsX3 = subTilePixelX * edgeCoefs[2].x;
+				const auto rsX1 = (subTilePixelX)*edgeCoefs[0].x + mSample.x * edgeCoefs[0].x;
+				const auto rsX2 = (subTilePixelX)*edgeCoefs[1].x + mSample.x * edgeCoefs[1].x;
+				const auto rsX3 = (subTilePixelX)*edgeCoefs[2].x + mSample.x * edgeCoefs[2].x;
 
-			criteriaY[0] = subTilePixelY * edgeCoefs[0].y;
-			criteriaY[1] = subTilePixelY * edgeCoefs[1].y;
-			criteriaY[2] = subTilePixelY * edgeCoefs[2].y;
-			criteriaX[0] = rsX1;
-			criteriaX[1] = rsX2;
-			criteriaX[2] = rsX3;
+				criteriaY[0] = (subTilePixelY) * edgeCoefs[0].y + mSample.y * edgeCoefs[0].y;
+				criteriaY[1] = (subTilePixelY) * edgeCoefs[1].y + mSample.y * edgeCoefs[1].y;
+				criteriaY[2] = (subTilePixelY) * edgeCoefs[2].y + mSample.y * edgeCoefs[2].y;
+				criteriaX[0] = rsX1;
+				criteriaX[1] = rsX2;
+				criteriaX[2] = rsX3;
 
-			auto dEps = CU_OPT_PATCH_STRICT_BOUNDARY ? CU_EPS * 1e5 : 0;
-			if constexpr (CU_PATCH_FI_240812) {
-				dEps = CU_OPT_PATCH_STRICT_BOUNDARY ? 1e-10 : 0;
-			}
-			for (int i2 = 0; i2 < CU_EXPERIMENTAL_PIXELS_PER_SUBTILE; i2++) {
-
-				bool accept1 = (criteriaX[0] + criteriaY[0]) < edgeCoefs[0].z + dEps;
-				bool accept2 = (criteriaX[1] + criteriaY[1]) < edgeCoefs[1].z + dEps;
-				bool accept3 = (criteriaX[2] + criteriaY[2]) < edgeCoefs[2].z + dEps;
-
-				int cond = (accept1 && accept2 && accept3);
-				mask |= (cond << i2);
-
-				if ((i2 + 1) % CU_EXPERIMENTAL_SUBTILE_WIDTH == 0) {
-					criteriaY[0] += edgeCoefs[0].y;
-					criteriaY[1] += edgeCoefs[1].y;
-					criteriaY[2] += edgeCoefs[2].y;
-					criteriaX[0] = rsX1;
-					criteriaX[1] = rsX2;
-					criteriaX[2] = rsX3;
+				auto dEps = CU_OPT_PATCH_STRICT_BOUNDARY ? CU_EPS * 1e5 : 0;
+				if constexpr (CU_PATCH_FI_240812) {
+					dEps = CU_OPT_PATCH_STRICT_BOUNDARY ? 1e-10 : 0;
 				}
-				else {
-					criteriaX[0] += edgeCoefs[0].x;
-					criteriaX[1] += edgeCoefs[1].x;
-					criteriaX[2] += edgeCoefs[2].x;
-				}
-			}
+				for (int i2 = 0; i2 < CU_EXPERIMENTAL_PIXELS_PER_SUBTILE; i2++) {
+					bool accept1 = (criteriaX[0] + criteriaY[0]) < edgeCoefs[0].z + dEps;
+					bool accept2 = (criteriaX[1] + criteriaY[1]) < edgeCoefs[1].z + dEps;
+					bool accept3 = (criteriaX[2] + criteriaY[2]) < edgeCoefs[2].z + dEps;
 
-			if (mask == 0) return;
-			int xid = xidSrc;
-			int pw = atomicAdd(&dSecondBinnerFinerBufferCurInd[xid], 1);
-			dSecondBinnerFinerBuffer[pw].x = mask;
-			dSecondBinnerFinerBuffer[pw].y = primitiveSrcId;
-			dSecondBinnerFinerBufferSortKeys[pw] = dAtriOriginalPrimId[primitiveSrcId];
+					int cond = (accept1 && accept2 && accept3);
+
+					if ((i2 + 1) % CU_EXPERIMENTAL_SUBTILE_WIDTH == 0) {
+						mask |= (cond << i2);
+						criteriaY[0] += edgeCoefs[0].y;
+						criteriaY[1] += edgeCoefs[1].y;
+						criteriaY[2] += edgeCoefs[2].y;
+						criteriaX[0] = rsX1;
+						criteriaX[1] = rsX2;
+						criteriaX[2] = rsX3;
+					}
+					else {
+						if(i2>=12) mask |= (cond << i2);
+						criteriaX[0] += edgeCoefs[0].x;
+						criteriaX[1] += edgeCoefs[1].x;
+						criteriaX[2] += edgeCoefs[2].x;
+					}
+				}
+
+				if (mask == 0) return;
+				int xid = xidSrc;
+				int pw = atomicAdd(&dSecondBinnerFinerBufferCurInd[xid], 1);
+				dSecondBinnerFinerBuffer[pw].x = mask | ((mSampleStart + k) << CU_EXPERIMENTAL_PIXELS_PER_SUBTILE);
+				dSecondBinnerFinerBuffer[pw].y = primitiveSrcId;
+				dSecondBinnerFinerBufferSortKeys[pw] = dAtriOriginalPrimId[primitiveSrcId];
+			}
 		}
 
 		IFRIT_DEVICE void devTilingRasterizationChildProcess(
@@ -937,8 +977,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 			float subTileMinX = 1.0f * subTilePixelX;
 			float subTileMinY = 1.0f * subTilePixelY;
-			float subTileMaxX = 1.0f * (subTilePixelX2 - 1);
-			float subTileMaxY = 1.0f * (subTilePixelY2 - 1);
+			float subTileMaxX = 1.0f * (subTilePixelX2 - ((CU_MSAA_ENABLED) ? 0 : 1));
+			float subTileMaxY = 1.0f * (subTilePixelY2 - ((CU_MSAA_ENABLED) ? 0 : 1));
 
 			float ccTRX[3], ccTRY[3], ccTAX[3], ccTAY[3];
 
@@ -1225,6 +1265,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			dSecondBinnerFinerBufferCurInd[globalInvo] = dSecondBinnerFinerBufferStart[globalInvo];
 		}
 
+		template<int tpMsaaSamples>
 		IFRIT_KERNEL void secondFinerBinnerRasterizationKernel(int totalCount) {
 			int globalInvo = threadIdx.x + blockIdx.x * blockDim.x;
 			if (globalInvo >= totalCount)return;
@@ -1243,12 +1284,18 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			edgeCoefs[1] = { ec1.w,ec2.x,ec2.y };
 			edgeCoefs[2] = { ec2.z,ec2.w,ec3 };
 
-			devFinerTilingRasterizationChildProcess(tileId, prim, subTileId, dv, edgeCoefs[0], edgeCoefs[1], edgeCoefs[2]);
+			devFinerTilingRasterizationChildProcess<tpMsaaSamples>(tileId, prim, subTileId, dv, edgeCoefs[0], edgeCoefs[1], edgeCoefs[2]);
 		}
 
 		IFRIT_KERNEL void secondFinerBinnerRasterizationEntryKernel() {
 			int dispatchBlock = IFRIT_InvoGetThreadBlocks(dSecondBinnerCandCounter, 128);
-			secondFinerBinnerRasterizationKernel CU_KARG2(dispatchBlock, 128)(dSecondBinnerCandCounter);
+#define invokeFinerRasterKernel(msaaSamples) if(csMsaaSampleBits==msaaSamples) secondFinerBinnerRasterizationKernel<msaaSamples> CU_KARG2(dispatchBlock, 128)(dSecondBinnerCandCounter);
+			invokeFinerRasterKernel(IF_SAMPLE_COUNT_1_BIT);
+			invokeFinerRasterKernel(IF_SAMPLE_COUNT_2_BIT);
+			invokeFinerRasterKernel(IF_SAMPLE_COUNT_4_BIT);
+			invokeFinerRasterKernel(IF_SAMPLE_COUNT_8_BIT);
+			invokeFinerRasterKernel(IF_SAMPLE_COUNT_16_BIT);
+#undef invokeFinerRasterKernel
 		}
 	}
 	namespace TriangleGeometryStage {
@@ -1557,8 +1604,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
 			float* IFRIT_RESTRICT_CUDA dDepthBuffer,
 			ImplBlendCoefs blendParam,
-			ImplBlendCoefs blendParamAlpha
-
+			ImplBlendCoefs blendParamAlpha,
+			int msaaSampless
 		) {
 			//TODO: Geometry shader integration
 			
@@ -1808,8 +1855,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
 			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
 			float* IFRIT_RESTRICT_CUDA dDepthBuffer,
-			int* dTagBuffer
+			int* dTagBuffer,
+			int msaaSamples
 		) {
+			//TODO: MSAA Depth
+			//TODO: On-chip MSAA Resolve
+			//WARNING: This kernel ignores rendering order
+
 			uint32_t tileX = blockIdx.x, tileY = blockIdx.y;
 			uint32_t binX = tileX / CU_TILES_PER_BIN, binY = tileY / CU_TILES_PER_BIN;
 			uint32_t superTileX = tileX / (CU_BINS_PER_LARGE_BIN * CU_TILES_PER_BIN);
@@ -1825,9 +1877,24 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const int pixelYS = threadY + tileY * CU_TILE_WIDTH;
 
 			int candidatePrim = -1;
+			int candidatePrimSubsample[CU_MSAA_MAX_SAMPLES];
+			if constexpr (CU_MSAA_ENABLED) {
+				for (int i = 0; i < CU_MSAA_MAX_SAMPLES; i++)candidatePrimSubsample[i] = -1;
+			}
+
 			const float compareDepth = dDepthBuffer[pixelYS * frameWidth + pixelXS];
 			float localDepthBuffer = compareDepth;
+			float localDepthBufferSubsample[CU_MSAA_MAX_SAMPLES];
+			if constexpr (CU_MSAA_ENABLED) {
+				for (int i = 0; i < CU_MSAA_MAX_SAMPLES; i++) localDepthBufferSubsample[i] = compareDepth;
+			}
+
 			int localOrgPrimId = INT_MAX;
+			int localOrgPrimIdSubsample[CU_MSAA_MAX_SAMPLES];
+			if constexpr(CU_MSAA_ENABLED) {
+				for (int i = 0; i < CU_MSAA_MAX_SAMPLES; i++) localOrgPrimIdSubsample[i] = INT_MAX;
+			}
+
 			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
 
 			// Scissor Test
@@ -1854,7 +1921,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				return;
 			}
 
-			auto zPrePass = [&](int primId) {
+			auto zPrePass = [&](int primId,int subsample) {
 				
 				if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) return;
 				float interpolatedDepth;
@@ -1862,22 +1929,23 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				float v3 = dAtriDepthVal3[primId];
 				interpolatedDepth = v12.x * pDx + v12.y * pDy + v3;
 				
+				auto& localDepthVal = (subsample < 0) ? localDepthBuffer : localDepthBufferSubsample[subsample];
 
-#define PLACE_COND(cond) if ((cond)) { localDepthBuffer = interpolatedDepth; candidatePrim = primId;}
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) PLACE_COND(interpolatedDepth < localDepthBuffer);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL)PLACE_COND(interpolatedDepth <= localDepthBuffer);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) PLACE_COND(interpolatedDepth == localDepthBuffer);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) PLACE_COND(interpolatedDepth > localDepthBuffer);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) PLACE_COND(interpolatedDepth >= localDepthBuffer);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) PLACE_COND(interpolatedDepth != localDepthBuffer);
+#define PLACE_COND(cond) if ((cond)) { localDepthVal = interpolatedDepth; candidatePrim = primId;}
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) PLACE_COND(interpolatedDepth < localDepthVal);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL)PLACE_COND(interpolatedDepth <= localDepthVal);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) PLACE_COND(interpolatedDepth == localDepthVal);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) PLACE_COND(interpolatedDepth > localDepthVal);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) PLACE_COND(interpolatedDepth >= localDepthVal);
+				if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) PLACE_COND(interpolatedDepth != localDepthVal);
 				if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
-					if (dAtriOriginalPrimId[primId] < localOrgPrimId) {
-						localDepthBuffer = interpolatedDepth;
-						localOrgPrimId = dAtriOriginalPrimId[primId];
+					auto& localOrgPrimIdRef = (subsample < 0) ? localOrgPrimId : localOrgPrimIdSubsample[subsample];
+					if (dAtriOriginalPrimId[primId] < localOrgPrimIdRef) {
+						localDepthVal = interpolatedDepth;
+						localOrgPrimIdRef = dAtriOriginalPrimId[primId];
 						candidatePrim = primId;
 					}
 				}
-
 #undef PLACE_COND
 				if constexpr (CU_PROFILER_OVERDRAW) {
 					atomicAdd(&dOverZTestCounter, 1);
@@ -1890,7 +1958,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				int totlSize = dCoverQueueSuperTileFullM3CurInd[superTileId];
 				for (int i = startIndex; i < totlSize; i++) {
 					const auto proposal = dCoverQueueSuperTileFullM3BufferFinal[i];
-					zPrePass(proposal);
+					zPrePass(proposal, -1);
 				}
 			}
 
@@ -1900,7 +1968,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				int totlSize = dCoverQueueFullM2CurInd[binId];
 				for (int i = startIndex; i < totlSize; i++) {
 					const auto proposal = dCoverQueueFullM2Buffer[i];
-					zPrePass(proposal);
+					zPrePass(proposal, -1);
 				}
 			}
 
@@ -1924,8 +1992,15 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				int totlSize = dSecondBinnerFinerBufferCurInd[tileId * CU_MAX_SUBTILES_PER_TILE + inSubTileId];
 				for (int i = startIndex; i < totlSize; i++) {
 					const auto proposal = dSecondBinnerFinerBuffer[i];
+					const auto subsampleId = (proposal.x >> CU_EXPERIMENTAL_PIXELS_PER_SUBTILE);
 					if ((proposal.x & dwMask)) {
-						zPrePass(proposal.y);
+						if constexpr (CU_MSAA_ENABLED) {
+							zPrePass(proposal.y, subsampleId);
+						}
+						else {
+							zPrePass(proposal.y, -1);
+						}
+						
 					}
 					else {
 						if constexpr (CU_PROFILER_OVERDRAW) {
@@ -1937,22 +2012,77 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					}
 				}
 			}
+			// Resolve Msaa
+			if constexpr (CU_MSAA_ENABLED) {
+				for (int i = 0; i < msaaSamples; i++) {
+#define PLACE_COND_TAGBUFFER(depthFunc,op) \
+					if constexpr (tpDepthFunc == depthFunc){ \
+						if (localDepthBuffer op localDepthBufferSubsample[i]) { \
+								localDepthBufferSubsample[i] = localDepthBuffer; \
+								candidatePrimSubsample[i] = candidatePrim; \
+						} \
+					}
+					
+					PLACE_COND_TAGBUFFER(IF_COMPARE_OP_LESS, < );
+					PLACE_COND_TAGBUFFER(IF_COMPARE_OP_LESS_OR_EQUAL, <= );
+					PLACE_COND_TAGBUFFER(IF_COMPARE_OP_GREATER, > );
+					PLACE_COND_TAGBUFFER(IF_COMPARE_OP_GREATER_OR_EQUAL, >= );
+					PLACE_COND_TAGBUFFER(IF_COMPARE_OP_EQUAL, == );
+					PLACE_COND_TAGBUFFER(IF_COMPARE_OP_NOT_EQUAL, != );
+
+					if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
+						if (localOrgPrimId < localOrgPrimIdSubsample[i]) {
+							localOrgPrimIdSubsample[i] = localOrgPrimId;
+							localDepthBufferSubsample[i] = localDepthBuffer;
+							candidatePrimSubsample[i] = candidatePrim;
+						}
+					}
+
+#undef PLACE_COND_TAGBUFFER
+				}
+			}
+
+			// Write Z Buffer
+			int depthIndex = (pixelYS * frameWidth + pixelXS);
 			if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
 				if (candidatePrim != -1) {
-					dDepthBuffer[pixelYS * frameWidth + pixelXS] = localDepthBuffer;
+					if constexpr(CU_MSAA_ENABLED) {
+						for (int i = 0; i < msaaSamples; i++) {
+							dDepthBuffer[depthIndex * msaaSamples + i] = localDepthBufferSubsample[i];
+						}
+					}else{
+						dDepthBuffer[depthIndex] = localDepthBuffer;
+					}
 				}
 			}
 			else {
 				if (candidatePrim != -1 && localDepthBuffer < compareDepth) {
-					dDepthBuffer[pixelYS * frameWidth + pixelXS] = localDepthBuffer;
+					if constexpr (CU_MSAA_ENABLED) {
+						for (int i = 0; i < msaaSamples; i++) {
+							dDepthBuffer[depthIndex * msaaSamples + i] = localDepthBufferSubsample[i];
+						}
+					}
+					else {
+						dDepthBuffer[depthIndex] = localDepthBuffer;
+					}
 				}
 			}
+
+			// Write Tag Buffer
 			int quadIdX = pixelXS >> 1;
 			int quadOfX = pixelXS & 1;
 			int quadIdY = pixelYS >> 1;
 			int quadOfY = pixelYS & 1;
 			int quadId = (quadIdY * CU_MAX_FRAMEBUFFER_WIDTH + quadIdX) * 4 + (quadOfY * 2 + quadOfX);
-			dTagBuffer[quadId] = candidatePrim;
+
+			if constexpr (CU_MSAA_ENABLED) {
+				for (int i = 0; i < msaaSamples; i++) {
+					dTagBuffer[quadId * msaaSamples + i] = candidatePrimSubsample[i];
+				}
+			}
+			else {
+				dTagBuffer[quadId] = candidatePrim;
+			}
 		}
 
 		template <int geometryShaderEnabled>
@@ -1962,7 +2092,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
 			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
 			float* IFRIT_RESTRICT_CUDA dDepthBuffer,
-			int* dTagBuffer
+			int* dTagBuffer,
+			int msaaSamples
 		) {
 			IFRIT_SHARED float colorOutputSingle[256 * 4];
 			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
@@ -1978,7 +2109,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			
 			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
 
-			auto shadingPass = [&](const int pId, const bool isHelperInvocation) {
+			auto shadingPass = [&](int pId, bool isHelperInvocation,int msaaCoverageMask) {
 
 				float4 f1o = dAtriInterpolBase1[pId];
 				float4 f2o = dAtriInterpolBase2[pId];
@@ -2045,37 +2176,127 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				finalRgba.z = midOutput.z;
 				finalRgba.w = midOutput.w;
 
-				col0[pixelYS * csFrameWidth + pixelXS] = finalRgba;
+				if constexpr (CU_MSAA_ENABLED) {
+					for (int i = 0; i < msaaSamples; i++) {
+						if (msaaCoverageMask & (1 << i)) {
+							col0[(pixelYS * csFrameWidth + pixelXS) * msaaSamples + i] = finalRgba;
+						}
+					}
+				}
+				else {
+					col0[pixelYS * csFrameWidth + pixelXS] = finalRgba;
+				}
+
 				if constexpr (CU_PROFILER_OVERDRAW) {
 					atomicAdd(&dOverDrawCounter, 1);
 				}
-				};
+			};
 
-			//Process Quad
-			int dw[4];
-			int quadInternal = threadIdx.x;
-			int quadX = (threadIdx.y + blockDim.y * blockIdx.y);
-			int quadY = (threadIdx.z + blockDim.z * blockIdx.z);
-			int quadIdx = (quadY * CU_MAX_FRAMEBUFFER_WIDTH + quadX) * 4;
-			int selfV = dTagBuffer[quadIdx + quadInternal];
-			if constexpr (CU_OPT_SHADER_DERIVATIVES) {
-				for (int i = 0; i < 4; i++) {
-					int tagId = dTagBuffer[quadIdx + i];
-					dw[i] = tagId;
-					if (tagId == -1)continue;
-					bool flag = false;
-					for (int j = 0; j < i; j++) {
-						if (tagId == dw[j])flag = true;
+			//Resolve Msaa
+			if constexpr (CU_MSAA_ENABLED) {
+				int dw[4 * CU_MSAA_MAX_SAMPLES];
+				int quadInternal = threadIdx.x;
+				int quadX = (threadIdx.y + blockDim.y * blockIdx.y);
+				int quadY = (threadIdx.z + blockDim.z * blockIdx.z);
+				int quadIdx = (quadY * CU_MAX_FRAMEBUFFER_WIDTH + quadX) * 4;
+
+				// Seems O(n2) is too time-consuming
+				if constexpr (CU_OPT_SHADER_DERIVATIVES) {
+					for (int i = 0; i < 4 * msaaSamples; i++) {
+						auto tagId = dTagBuffer[quadIdx * msaaSamples + i];
+						dw[i] = tagId;
+						if (tagId == -1)continue;
+						bool flag = false;
+						for (int j = 0; j < i; j++) {
+							if (tagId == dw[j])flag = true;
+						}
+						if (flag)continue;
+						int pixelIntId = i / msaaSamples;
+						int subsampleIntId = i % msaaSamples;
+
+						int coverageMask = 0;
+						for (int j = 0; j < msaaSamples; j++) {
+							auto selfTagId = dTagBuffer[(quadIdx + quadInternal) * msaaSamples + j];
+							if (selfTagId) coverageMask |= (1 << j);
+						}
+						bool isHelperInvocation = (coverageMask == 0);
+						shadingPass(tagId, isHelperInvocation,coverageMask);
 					}
-					if (flag)continue;
-					shadingPass(tagId, tagId != selfV);
+				}
+				else {
+					//TODO: Without Shader Derivatives / Helper Invocation
+					printf("Not implemented\n");
+					Impl::GeneralFunction::devAbort();
 				}
 			}
 			else {
-				if (selfV == -1)return;
-				shadingPass(selfV, false);
+				int dw[4];
+				int quadInternal = threadIdx.x;
+				int quadX = (threadIdx.y + blockDim.y * blockIdx.y);
+				int quadY = (threadIdx.z + blockDim.z * blockIdx.z);
+				int quadIdx = (quadY * CU_MAX_FRAMEBUFFER_WIDTH + quadX) * 4;
+				int selfV = dTagBuffer[quadIdx + quadInternal];
+				if constexpr (CU_OPT_SHADER_DERIVATIVES) {
+					for (int i = 0; i < 4; i++) {
+						int tagId = dTagBuffer[quadIdx + i];
+						dw[i] = tagId;
+						if (tagId == -1)continue;
+						bool flag = false;
+						for (int j = 0; j < i; j++) {
+							if (tagId == dw[j])flag = true;
+						}
+						if (flag)continue;
+						shadingPass(tagId, tagId != selfV, -1);
+					}
+				}
+				else {
+					if (selfV == -1)return;
+					shadingPass(selfV, false, -1);
+				}
 			}
+		}
 
+		IFRIT_KERNEL void pixelMultisampleCoverageModulationKernel(
+			ifloat4** IFRIT_RESTRICT_CUDA dColorBufferTarget,
+			float* IFRIT_RESTRICT_CUDA dDepthBufferTarget,
+			ifloat4** IFRIT_RESTRICT_CUDA dColorBufferMSAA,
+			float* IFRIT_RESTRICT_CUDA dDepthBufferMSAA,
+			int numColorBuffers,
+			int numMsaaSamples,
+			int frameWidth,
+			int frameHeight
+		) {
+			int invoX = threadIdx.x + blockIdx.x * blockDim.x;
+			int invoY = threadIdx.y + blockIdx.y * blockDim.y;
+			if (invoX >= frameWidth || invoY >= frameHeight)return;
+
+			int invoId = invoY * frameWidth + invoX;
+
+			// Resolve Color
+			for (int i = 0; i < numColorBuffers; i++) {
+				ifloat4 sumColor = { 0.0f,0.0f,0.0f,0.0f };
+				for (int j = 0; j < numMsaaSamples; j++) {
+					auto msaaColor = dColorBufferMSAA[i][invoId * numMsaaSamples + j];
+					sumColor.x += msaaColor.x;
+					sumColor.y += msaaColor.y;
+					sumColor.z += msaaColor.z;
+					sumColor.w += msaaColor.w;
+				}
+				sumColor.x /= numMsaaSamples;
+				sumColor.y /= numMsaaSamples;
+				sumColor.z /= numMsaaSamples;
+				sumColor.w /= numMsaaSamples;
+				dColorBufferTarget[i][invoId] = sumColor;
+			}
+			
+			// Resolve Depth
+			float sumDepth = 0.0f;
+			for (int i = 0; i < numMsaaSamples; i++) {
+				auto msaaDepth = dDepthBufferMSAA[invoId * numMsaaSamples + i];
+				sumDepth += msaaDepth;
+			}
+			sumDepth /= numMsaaSamples;
+			dDepthBufferTarget[invoId] = sumDepth;
 		}
 	}
 	namespace TriangleMiscStage {
@@ -2195,7 +2416,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			auto dispatchBlocks = dAssembledTriangleCounterM2 / CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS + (dAssembledTriangleCounterM2 % CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS != 0);
 			Impl::TriangleGeometryStage::geometryParamPostprocKernel CU_KARG2(dispatchBlocks, CU_EXPERIMENTAL_GEOMETRY_POSTPROC_THREADS) (dAssembledTriangleCounterM2);
 
-			auto activatedTagBuffer = ContextManagement::dActiveContext.dPixelShaderTags;
+			auto activatedTagBuffer = ContextManagement::dActiveContext.dPixelShaderSubsampleTags;
 
 			for (int sI = 0; sI < dAssembledTriangleCounterM2; sI += CU_SINGLE_TIME_TRIANGLE_FIRST_BINNER) {
 				// Process sizes
@@ -2243,7 +2464,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 #define PIXEL_BLEND_FUNC_SIGN(cond,gsState) Impl::TriangleFragmentStage::pixelShadingAlphaBlendKernel<cond,gsState>
 #define PIXEL_BLEND_FUNC(cond,gsState) PIXEL_BLEND_FUNC_SIGN(cond,gsState) CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) ( \
 					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, dGlobalBlendCoefs, \
-						dGlobalBlendCoefsAlpha);
+						dGlobalBlendCoefsAlpha,csMsaaSampleBits);
 #define PIXEL_BLEND_FUNC_COND(cond,gsState) if (Impl::csDepthFunc==(cond)){PIXEL_BLEND_FUNC(cond,gsState)}
 #define PIXEL_BLEND_FUNC_COND_COLLECTION(gsState) \
 	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_ALWAYS,gsState) \
@@ -2270,7 +2491,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				else {
 #define PIXEL_TAG_FUNC_SIGN(cond) Impl::TriangleFragmentStage::pixelTaggingExecKernel<cond>
 #define PIXEL_TAG_FUNC(cond) PIXEL_TAG_FUNC_SIGN(cond) CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) ( \
-					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer,activatedTagBuffer);
+					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer,activatedTagBuffer,csMsaaSampleBits);
 #define PIXEL_TAG_FUNC_COND(cond) if (Impl::csDepthFunc==(cond)){PIXEL_TAG_FUNC(cond)}
 #define PIXEL_TAG_FUNC_COND_COLLECTION \
 	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_ALWAYS) \
@@ -2285,13 +2506,13 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					if (dGeometryShader == nullptr) {
 						PIXEL_TAG_FUNC_COND_COLLECTION;
 						Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer);
+							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer,csMsaaSampleBits);
 					}
 					else {
 						PIXEL_TAG_FUNC_COND_COLLECTION;
 						//PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_LESS);
 						Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer);
+							dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
 					}
 #undef PIXEL_TAG_FUNC_COND_COLLECTION
 #undef PIXEL_TAG_FUNC_COND
@@ -2413,7 +2634,8 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 					int dispatchSfbrBlocks = IFRIT_InvoGetThreadBlocks(secondBinnerCands, 128);
 					if (secondBinnerCands != 0) {
-						Impl::TriangleRasterizationStage::secondFinerBinnerRasterizationKernel CU_KARG2(dispatchSfbrBlocks, 128)(secondBinnerCands);
+						// TODO: MSAA
+						//Impl::TriangleRasterizationStage::secondFinerBinnerRasterizationKernel CU_KARG2(dispatchSfbrBlocks, 128)(secondBinnerCands);
 					}
 
 					//int numTileX = (hsFrameWidth / CU_TILE_WIDTH) + (hsFrameWidth % CU_TILE_WIDTH != 0);
@@ -3354,6 +3576,11 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		cudaDeviceSynchronize();
 	}
 
+	void setMsaaSampleBits(IfritSampleCountFlagBits sampleBits) {
+		cudaMemcpyToSymbol(Impl::csMsaaSampleBits, &sampleBits, sizeof(sampleBits));
+		cudaDeviceSynchronize();
+	}
+
 	void setDepthFunc(IfritCompareOp depthFunc) {
 		cudaMemcpyToSymbol(Impl::csDepthFunc, &depthFunc, sizeof(depthFunc));
 	}
@@ -3367,6 +3594,9 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 		Impl::InitializationKernels::globalInitializationKernel CU_KARG2(1, 1) ();
 		cudaDeviceSynchronize();
 		cudaMemcpyToSymbol(Impl::csCounterClosewiseCull, &Impl::hsCounterClosewiseCull, sizeof(Impl::hsCounterClosewiseCull));
+
+		auto defaultMsaa = IF_SAMPLE_COUNT_1_BIT;
+		cudaMemcpyToSymbol(Impl::csMsaaSampleBits, &defaultMsaa, sizeof(defaultMsaa));
 	}
 	void updateVertexLayout(TypeDescriptorEnum* dVertexTypeDescriptor, int attrCounts) {
 		Impl::hsTotalVertexOffsets = 0;

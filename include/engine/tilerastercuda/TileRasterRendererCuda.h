@@ -80,6 +80,8 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		void setScissors(const std::vector<ifloat4>& scissors);
 		void setScissorTestEnable(bool option);
 
+		void setMsaaSamples(IfritSampleCountFlagBits msaaSamples);
+
 		void setRasterizerPolygonMode(IfritPolygonMode mode);
 		void setBlendFunc(IfritColorAttachmentBlendState state);
 		void setDepthFunc(IfritCompareOp depthFunc);

@@ -208,7 +208,7 @@ namespace Ifrit::Demo::DemoDefault {
 		std::vector<ifloat3> procNormal;
 		std::vector<ifloat2> procUv;
 
-		loader.loadObject(IFRIT_ASSET_PATH"/fox.obj", pos, normal, uv, index);
+		loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj", pos, normal, uv, index);
 		procNormal = loader.remapNormals(normal, index, pos.size());
 		//procUv = loader.remapUVs(uv, index, pos.size());
 
@@ -311,7 +311,7 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->createSampler(0, sampler);
 
 		IfritColorAttachmentBlendState blendState;
-		blendState.blendEnable = true;
+		blendState.blendEnable = false;
 		blendState.srcColorBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
 		blendState.dstColorBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		blendState.srcAlphaBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
@@ -319,7 +319,7 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->setBlendFunc(blendState);
 
 		renderer->setDepthFunc(IF_COMPARE_OP_LESS);
-		renderer->setDepthTestEnable(false);
+		renderer->setDepthTestEnable(true);
 		renderer->setClearValues({ {0,0,0,0} }, 255.0);
 		renderer->setCullMode(IF_CULL_MODE_BACK);
 
