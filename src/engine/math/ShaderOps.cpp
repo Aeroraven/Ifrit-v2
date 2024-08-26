@@ -1,7 +1,7 @@
 #include "engine/math/ShaderOps.h"
 
 namespace Ifrit::Engine::Math::ShaderOps {
-	ifloat4 multiply(const float4x4 a, const ifloat4 b){
+	IFRIT_APIDECL ifloat4 multiply(const float4x4 a, const ifloat4 b){
 		ifloat4 result;
 		result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z + a[0][3] * b.w;
 		result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z + a[1][3] * b.w;
@@ -9,7 +9,7 @@ namespace Ifrit::Engine::Math::ShaderOps {
 		result.w = a[3][0] * b.x + a[3][1] * b.y + a[3][2] * b.z + a[3][3] * b.w;
 		return result;
 	}
-	float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up){
+	IFRIT_APIDECL float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up){
 		ifloat3 f = normalize(sub(center,eye));
 		ifloat3 s = normalize(cross(f, up));
 		ifloat3 u = cross(s, f);
@@ -46,7 +46,7 @@ namespace Ifrit::Engine::Math::ShaderOps {
 		trans[2][2] = 1;
 		return multiply(result,trans);
 	}
-	float4x4 perspective(float fovy, float aspect, float zNear, float zFar){
+	IFRIT_APIDECL float4x4 perspective(float fovy, float aspect, float zNear, float zFar){
 		float4x4 result;
 		float f = 1.0f / tan(fovy / 2.0f);
 		float halfFovy = fovy / 2.0f;
@@ -72,7 +72,7 @@ namespace Ifrit::Engine::Math::ShaderOps {
 		result[3][3] = 0;
 		return result;
 	}
-	float4x4 multiply(const float4x4 a, const float4x4 b){
+	IFRIT_APIDECL float4x4 multiply(const float4x4 a, const float4x4 b){
 		float4x4 result;
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
@@ -81,28 +81,28 @@ namespace Ifrit::Engine::Math::ShaderOps {
 		}
 		return result;
 	}
-	ifloat4 normalize(ifloat4 a){
+	IFRIT_APIDECL ifloat4 normalize(ifloat4 a){
 		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w);
 		return { a.x / length, a.y / length, a.z / length, a.w / length };
 	}
-	ifloat3 cross(ifloat3 a, ifloat3 b){
+	IFRIT_APIDECL ifloat3 cross(ifloat3 a, ifloat3 b){
 		return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
 	}
-	ifloat3 normalize(ifloat3 a){
+	IFRIT_APIDECL ifloat3 normalize(ifloat3 a){
 		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 		return { a.x / length, a.y / length, a.z / length };
 	}
-	ifloat2 normalize(ifloat2 a) {
+	IFRIT_APIDECL ifloat2 normalize(ifloat2 a) {
 		float length = sqrt(a.x * a.x + a.y * a.y );
 		return { a.x / length, a.y / length };
 	}
-	ifloat3 sub(ifloat3 a, ifloat3 b) {
+	IFRIT_APIDECL ifloat3 sub(ifloat3 a, ifloat3 b) {
 		return { a.x - b.x, a.y - b.y, a.z - b.z };
 	}
-	float dot(ifloat3 a, ifloat3 b){
+	IFRIT_APIDECL float dot(ifloat3 a, ifloat3 b){
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
-	float4x4 transpose(float4x4 a){
+	IFRIT_APIDECL float4x4 transpose(float4x4 a){
 		float4x4 result;
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {

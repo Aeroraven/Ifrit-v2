@@ -5,7 +5,7 @@
 
 namespace Ifrit::Engine {
 
-	class VertexShaderResult {
+	class IFRIT_APIDECL VertexShaderResult {
 	private:
 		std::vector<ifloat4> position;
 		std::vector<std::vector<VaryingStore>> varyings;

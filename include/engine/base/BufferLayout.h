@@ -1,7 +1,7 @@
 #pragma once
 
 namespace Ifrit::Engine {
-	struct BufferLayout {
+	struct IFRIT_APIDECL BufferLayout {
 		int size;
 	};
 }

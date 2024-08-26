@@ -2,7 +2,8 @@
 #include "engine/base/TypeDescriptor.h"
 
 namespace Ifrit::Engine {
-	void VertexBuffer::setLayout(const std::vector<TypeDescriptor>& layout) {
+
+	IFRIT_APIDECL void VertexBuffer::setLayout(const std::vector<TypeDescriptor>& layout) {
 		this->layout = layout;
 		this->offsets.resize(layout.size());
 		int offset = 0;
@@ -17,19 +18,19 @@ namespace Ifrit::Engine {
 		elementSize = offset;
 	}
 
-	void VertexBuffer::setVertexCount(const int vertexCount){
+	IFRIT_APIDECL void VertexBuffer::setVertexCount(const int vertexCount){
 		this->vertexCount = vertexCount;
 	}
 
-	int VertexBuffer::getVertexCount() const{
+	IFRIT_APIDECL int VertexBuffer::getVertexCount() const{
 		return vertexCount;
 	}
 
-	int VertexBuffer::getAttributeCount() const{
+	IFRIT_APIDECL int VertexBuffer::getAttributeCount() const{
 		return layout.size();
 	}
 
-	TypeDescriptor VertexBuffer::getAttributeDescriptor(int index) const{
+	IFRIT_APIDECL TypeDescriptor VertexBuffer::getAttributeDescriptor(int index) const{
 		return layout[index];
 	}
 	

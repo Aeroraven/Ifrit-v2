@@ -6,7 +6,7 @@
 #include "engine/base/TypeDescriptor.h"
 
 namespace Ifrit::Engine {
-	class VaryingDescriptor {
+	class IFRIT_APIDECL VaryingDescriptor {
 	protected:
 		std::vector<TypeDescriptor> varyingDescriptors;
 	public:

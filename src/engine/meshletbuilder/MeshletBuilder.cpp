@@ -214,13 +214,13 @@ namespace Ifrit::Engine::MeshletBuilder::Impl {
 }
 
 namespace Ifrit::Engine::MeshletBuilder {
-    void TrivialMeshletBuilder::bindVertexBuffer(const VertexBuffer& vbuffer) {
+    IFRIT_APIDECL void TrivialMeshletBuilder::bindVertexBuffer(const VertexBuffer& vbuffer) {
         this->vbuffer = &vbuffer;
     }
-    void TrivialMeshletBuilder::bindIndexBuffer(const std::vector<int>& ibuffer) {
+    IFRIT_APIDECL void TrivialMeshletBuilder::bindIndexBuffer(const std::vector<int>& ibuffer) {
         this->ibuffer = &ibuffer;
     }
-    void TrivialMeshletBuilder::buildMeshlet(int posAttrId, std::vector<std::unique_ptr<Meshlet>>& outData) {
+    IFRIT_APIDECL void TrivialMeshletBuilder::buildMeshlet(int posAttrId, std::vector<std::unique_ptr<Meshlet>>& outData) {
         using namespace Impl;
         auto ctx = std::make_unique<MbContext>();
         initializeContext(ctx.get(), *vbuffer, *ibuffer, posAttrId);
@@ -248,7 +248,7 @@ namespace Ifrit::Engine::MeshletBuilder {
             writeGenratedMeshlet(ctx.get(), ctx->finishedMeshlets[i]);
         }
     }
-    void TrivialMeshletBuilder::mergeMeshlet(const std::vector<std::unique_ptr<Meshlet>>& meshlets,
+    IFRIT_APIDECL void TrivialMeshletBuilder::mergeMeshlet(const std::vector<std::unique_ptr<Meshlet>>& meshlets,
         Meshlet& outData, std::vector<int>& outVertexOffset, std::vector<int>& outIndexOffset, bool autoIncre){
         auto totalVerts = 0;
         auto totalIndices = 0;

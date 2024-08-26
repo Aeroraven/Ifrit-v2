@@ -15,8 +15,6 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	using namespace Ifrit::Engine::TileRaster;
 	using namespace Ifrit::Engine;
 
-	
-
 	class TileRasterContextCuda {
 	public:
 		// Non-owning Bindings

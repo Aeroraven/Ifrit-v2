@@ -1,11 +1,13 @@
 #pragma once
 #include "core/data/Image.h"
 
+
 namespace Ifrit::Engine {
 	using Ifrit::Core::Data::ImageU8;
 	using Ifrit::Core::Data::ImageF32;
 
-	class FrameBuffer {
+
+	class IFRIT_APIDECL FrameBuffer {
 	private:
 		std::vector<std::shared_ptr<ImageF32>> colorAttachment;
 		std::shared_ptr<ImageF32> depthAttachment;

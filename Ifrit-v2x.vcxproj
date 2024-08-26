@@ -133,6 +133,7 @@
     <ClInclude Include="include\engine\meshletbuilder\MeshletCommon.h" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cuh" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterCommonResourceCuda.cuh" />
+    <ClInclude Include="include\IfritIncludes.h" />
     <ClInclude Include="include\presentation\backend\AdaptiveBackendBuilder.h" />
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
@@ -181,6 +182,8 @@
     <ClCompile Include="demo\MeshletDemo.cpp" />
     <ClCompile Include="demo\Skybox.cpp" />
     <ClCompile Include="IfritMain.cpp" />
+    <ClCompile Include="src\core\definition\CoreDefs.cpp" />
+    <ClCompile Include="src\engine\base\TypeDescriptor.cpp" />
     <ClCompile Include="src\engine\meshletbuilder\MeshletBuilder.cpp" />
     <ClCompile Include="src\presentation\backend\AdaptiveBackendBuilder.cpp" />
     <ClCompile Include="src\presentation\window\AdaptiveWindowBuilder.cpp" />

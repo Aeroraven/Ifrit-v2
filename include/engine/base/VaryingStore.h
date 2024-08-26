@@ -3,7 +3,7 @@
 #include "core/definition/CoreTypes.h"
 
 namespace Ifrit::Engine {
-	union VaryingStore {
+	union IFRIT_APIDECL VaryingStore {
 		float vf;
 		int vi;
 		uint32_t vui;

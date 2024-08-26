@@ -4,7 +4,7 @@
 #include "engine/base/BufferLayout.h"
 #include "engine/base/TypeDescriptor.h"
 namespace Ifrit::Engine {
-	class VertexBuffer {
+	class IFRIT_APIDECL VertexBuffer {
 	private:
 		std::vector<uint8_t> buffer;
 		std::vector<TypeDescriptor> layout;
@@ -14,7 +14,7 @@ namespace Ifrit::Engine {
 	public:
 		void setLayout(const std::vector<TypeDescriptor>& layout);
 
-		void allocateBuffer(const size_t numVertices) { 
+		void allocateBuffer(const size_t numVertices) {
 			int elementSizeX = 0;
 			for (int i = 0; i < layout.size(); i++) {
 				elementSizeX += layout[i].size;

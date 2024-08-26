@@ -3,17 +3,17 @@
 #include "./core/definition/CoreDefs.h"
 
 namespace Ifrit::Engine::Math::ShaderOps {
-	ifloat4 multiply(const float4x4 a, const ifloat4 b);
-	float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up);
-	float4x4 perspective(float fovy, float aspect, float zNear, float zFar);
-	float4x4 multiply(const float4x4 a, const float4x4 b);
-	ifloat4 normalize(ifloat4 a);
-	ifloat3 cross(ifloat3 a, ifloat3 b);
-	ifloat3 normalize(ifloat3 a);
-	ifloat2 normalize(ifloat2 a);
-	ifloat3 sub(ifloat3 a, ifloat3 b);
-	float dot(ifloat3 a, ifloat3 b);
-	float4x4 transpose(float4x4 a);
+	IFRIT_APIDECL ifloat4 multiply(const float4x4 a, const ifloat4 b);
+	IFRIT_APIDECL float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up);
+	IFRIT_APIDECL float4x4 perspective(float fovy, float aspect, float zNear, float zFar);
+	IFRIT_APIDECL float4x4 multiply(const float4x4 a, const float4x4 b);
+	IFRIT_APIDECL ifloat4 normalize(ifloat4 a);
+	IFRIT_APIDECL ifloat3 cross(ifloat3 a, ifloat3 b);
+	IFRIT_APIDECL ifloat3 normalize(ifloat3 a);
+	IFRIT_APIDECL ifloat2 normalize(ifloat2 a);
+	IFRIT_APIDECL ifloat3 sub(ifloat3 a, ifloat3 b);
+	IFRIT_APIDECL float dot(ifloat3 a, ifloat3 b);
+	IFRIT_APIDECL float4x4 transpose(float4x4 a);
 
 	inline float dot(const ifloat4& a, const ifloat4& b) {
 		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
