@@ -55,8 +55,8 @@ namespace Ifrit::Demo::Skybox {
 			4,0,3,3,7,4
 		};
 
-		frameBuffer.setColorAttachments({ image1 });
-		frameBuffer.setDepthAttachment(depth);
+		frameBuffer.setColorAttachments({ image1.get() });
+		frameBuffer.setDepthAttachment(*depth);
 
 		renderer->init();
 		renderer->bindFrameBuffer(frameBuffer);

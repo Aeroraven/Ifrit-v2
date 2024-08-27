@@ -2,24 +2,28 @@
 
 namespace Ifrit::Engine {
 
-	VertexShaderResult::VertexShaderResult(uint32_t vertexCount, uint32_t varyingCount) {
+	IFRIT_APIDECL VertexShaderResult::VertexShaderResult(uint32_t vertexCount, uint32_t varyingCount) {
+		this->context = new std::remove_pointer_t<decltype(this->context)>();
 		this->vertexCount = vertexCount;
-		this->varyings.resize(varyingCount);
+		this->context->varyings.resize(varyingCount);
+	}
+	IFRIT_APIDECL VertexShaderResult::~VertexShaderResult() {
+		delete this->context;
 	}
 
-	ifloat4* VertexShaderResult::getPositionBuffer() {
-		return position.data();
+	IFRIT_APIDECL ifloat4* VertexShaderResult::getPositionBuffer() {
+		return context->position.data();
 	}
-	void VertexShaderResult::initializeVaryingBufferFromShader(const TypeDescriptor& typeDescriptor, int id) {
-		this->varyings[id].resize(vertexCount * typeDescriptor.size);
-		this->varyingDescriptors[id] = typeDescriptor;
+	IFRIT_APIDECL void VertexShaderResult::initializeVaryingBufferFromShader(const TypeDescriptor& typeDescriptor, int id) {
+		this->context->varyings[id].resize(vertexCount * typeDescriptor.size);
+		this->context->varyingDescriptors[id] = typeDescriptor;
 	}
-	void VertexShaderResult::setVertexCount(const uint32_t vertexCount){
+	IFRIT_APIDECL void VertexShaderResult::setVertexCount(const uint32_t vertexCount){
 		this->vertexCount = vertexCount;
-		for (auto& varying : varyings) {
+		for (auto& varying : context->varyings) {
 			varying.resize(vertexCount * sizeof(ifloat4));
-			varyingDescriptors.resize(varyings.size());
+			context->varyingDescriptors.resize(context->varyings.size());
 		}
-		position.resize(vertexCount);
+		context->position.resize(vertexCount);
 	}
 }

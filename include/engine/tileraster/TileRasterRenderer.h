@@ -48,21 +48,22 @@ namespace Ifrit::Engine::TileRaster {
 
 	public:
 		friend class TileRasterWorker;
-		TileRasterRenderer();
-		void bindFrameBuffer(FrameBuffer& frameBuffer);
-		void bindVertexBuffer(const VertexBuffer& vertexBuffer);
-		void bindIndexBuffer(const std::vector<int>& indexBuffer);
-		void bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor);
-		void bindFragmentShader(FragmentShader& fragmentShader);
-		void setBlendFunc(IfritColorAttachmentBlendState state);
-		void setDepthFunc(IfritCompareOp depthFunc);
+		IFRIT_APIDECL TileRasterRenderer();
+		IFRIT_APIDECL ~TileRasterRenderer();
+		IFRIT_APIDECL void bindFrameBuffer(FrameBuffer& frameBuffer);
+		IFRIT_APIDECL void bindVertexBuffer(const VertexBuffer& vertexBuffer);
+		IFRIT_APIDECL void bindIndexBuffer(const std::vector<int>& indexBuffer);
+		IFRIT_APIDECL void bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor);
+		IFRIT_APIDECL void bindFragmentShader(FragmentShader& fragmentShader);
+		IFRIT_APIDECL void setBlendFunc(IfritColorAttachmentBlendState state);
+		IFRIT_APIDECL void setDepthFunc(IfritCompareOp depthFunc);
 
-		void intializeRenderContext();
-		void optsetForceDeterministic(bool opt);
-		void optsetDepthTestEnable(bool opt);
+		IFRIT_APIDECL void intializeRenderContext();
+		IFRIT_APIDECL void optsetForceDeterministic(bool opt);
+		IFRIT_APIDECL void optsetDepthTestEnable(bool opt);
 
-		void render(bool clearFramebuffer) IFRIT_AP_NOTHROW;
-		void clear();
-		void init();
+		IFRIT_APIDECL void render(bool clearFramebuffer) IFRIT_AP_NOTHROW;
+		IFRIT_APIDECL void clear();
+		IFRIT_APIDECL void init();
 	};
 }

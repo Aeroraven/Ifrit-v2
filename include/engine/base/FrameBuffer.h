@@ -1,26 +1,43 @@
 #pragma once
 #include "core/data/Image.h"
 
+
 namespace Ifrit::Engine {
 	using Ifrit::Core::Data::ImageU8;
 	using Ifrit::Core::Data::ImageF32;
 
-	class FrameBuffer {
+	struct FrameBufferContext {
+		std::vector<ImageF32*> colorAttachment;
+		ImageF32* depthAttachment;
+	};
+
+	class IFRIT_APIDECL FrameBuffer {
 	private:
-		std::vector<std::shared_ptr<ImageF32>> colorAttachment;
-		std::shared_ptr<ImageF32> depthAttachment;
+		FrameBufferContext* context;
 		uint32_t width;
 		uint32_t height;
 	public:
-		void setColorAttachments(const std::vector<std::shared_ptr<ImageF32>>& colorAttachment);
-		void setDepthAttachment(const std::shared_ptr<ImageF32>& depthAttachment);
+		FrameBuffer();
+		~FrameBuffer();
+		void setColorAttachments(const std::vector<ImageF32*>& colorAttachment);
+		void setDepthAttachment(ImageF32& depthAttachment);
+
+		/* Inline */
 		inline ImageF32* getColorAttachment(size_t index){
-			return colorAttachment[index].get();
+			return context->colorAttachment[index];
 		}
 		inline ImageF32* getDepthAttachment() {
-			return depthAttachment.get();
+			return context->depthAttachment;
 		}
-		inline uint32_t getWidth() const { return width; }
-		inline uint32_t getHeight() const { return height; }
+		inline uint32_t getWidth() const { 
+			return width;
+		}
+		inline uint32_t getHeight() const { 
+			return height;
+		}
+
+		/* DLL Compat*/
+		void setColorAttachmentsCompatible(ImageF32* const*  colorAttachments, int nums);
+		void setDepthAttachmentCompatible(ImageF32* depthAttachment);
 	};
 }

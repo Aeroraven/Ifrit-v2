@@ -60,7 +60,7 @@ namespace Ifrit::Demo::MeshletDemo {
 
 	}
 
-	IFRIT_DUAL void MeshletDemoCuFS::execute(const  void* varyings, void* colorOutput, float& fragmentDepth) {
+	IFRIT_DUAL void MeshletDemoCuFS::execute(const  void* varyings, void* colorOutput, float* fragmentDepth) {
 		auto result = isbcuReadPsVarying(varyings, 0);
 		auto& co = isbcuReadPsColorOut(colorOutput, 0);
 		co.x = result.x;

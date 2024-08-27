@@ -53,7 +53,7 @@ namespace Ifrit::Demo::DemoDefault {
 
 	class DemoVertexShader : public VertexShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore** outVaryings) override {
+		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override {
 			/*const auto radius = 0.3f;
 			const auto vX = sin(globalTime) * radius;
 			const auto vZ = cos(globalTime) * radius;
@@ -70,7 +70,7 @@ namespace Ifrit::Demo::DemoDefault {
 
 	class DemoFragmentShader : public FragmentShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput, float& fragmentDepth) override {
+		IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput, float* fragmentDepth) override {
 			ifloat4 result = ((const VaryingStore*)varyings)[0].vf4;
 
 			constexpr float fw = 0.5;
@@ -137,8 +137,8 @@ namespace Ifrit::Demo::DemoDefault {
 			indexBuffer[i / 3] = index[i];
 		}
 
-		frameBuffer.setColorAttachments({ image });
-		frameBuffer.setDepthAttachment(depth);
+		frameBuffer.setColorAttachments({ image.get()});
+		frameBuffer.setDepthAttachment(*depth);
 
 		renderer->init();
 		renderer->bindFrameBuffer(frameBuffer);
@@ -278,8 +278,8 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->copyHostBufferToImage(texFox.data(), 0, { imageCopy });
 		renderer->generateMipmap(0, IF_FILTER_LINEAR);
 
-		frameBuffer.setColorAttachments({ image1 });
-		frameBuffer.setDepthAttachment(depth);
+		frameBuffer.setColorAttachments({ image1.get() });
+		frameBuffer.setDepthAttachment(*depth);
 
 		renderer->init();
 		renderer->bindFrameBuffer(frameBuffer);

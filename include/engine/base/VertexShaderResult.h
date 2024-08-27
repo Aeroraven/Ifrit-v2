@@ -4,31 +4,37 @@
 #include "engine/base/VaryingStore.h"
 
 namespace Ifrit::Engine {
-
-	class VertexShaderResult {
-	private:
+	struct VertexShaderResultContext {
 		std::vector<ifloat4> position;
 		std::vector<std::vector<VaryingStore>> varyings;
 		std::vector<TypeDescriptor> varyingDescriptors;
+	};
+	class IFRIT_APIDECL VertexShaderResult {
+	private:
+		VertexShaderResultContext* context;
 		uint32_t vertexCount;
 		uint32_t rawCounter = 0;
 
 	public:
 		VertexShaderResult(uint32_t vertexCount, uint32_t varyingCount);
-		
-		void initializeVaryingBuffer(int id) {
-			varyings[id].resize(vertexCount);
-		}
-
-		inline VaryingStore* getVaryingBuffer(int id) {
-			return varyings[id].data();
-		}
-
+		~VertexShaderResult();
 		ifloat4* getPositionBuffer();
-		void initializeVaryingBufferFromShader(const TypeDescriptor& typeDescriptor,int id);
+		void initializeVaryingBufferFromShader(const TypeDescriptor& typeDescriptor, int id);
 		void setVertexCount(const uint32_t vertexCount);
-		TypeDescriptor getVaryingDescriptor(int id) const { return varyingDescriptors[id]; }
-		void allocateVaryings(int count) { varyings.resize(count); varyingDescriptors.resize(count); }
 
+		/* Inline */
+		TypeDescriptor getVaryingDescriptor(int id) const { 
+			return context->varyingDescriptors[id];
+		}
+		void allocateVaryings(int count) { 
+			context->varyings.resize(count);
+			context->varyingDescriptors.resize(count);
+		}
+		inline void initializeVaryingBuffer(int id) {
+			context->varyings[id].resize(vertexCount);
+		}
+		inline VaryingStore* getVaryingBuffer(int id) {
+			return context->varyings[id].data();
+		}
 	};
 }

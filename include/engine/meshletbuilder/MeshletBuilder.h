@@ -4,7 +4,7 @@
 #include "MeshletCommon.h"
 
 namespace Ifrit::Engine::MeshletBuilder {
-    class TrivialMeshletBuilder {
+    class IFRIT_APIDECL TrivialMeshletBuilder {
     private:
         const VertexBuffer* vbuffer = nullptr;
         const std::vector<int>* ibuffer = nullptr;

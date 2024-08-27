@@ -1,4 +1,5 @@
 #pragma once
+#include "./core/definition/CoreExports.h"
 namespace Ifrit::Engine {
 	enum IfritPolygonMode {
 		IF_POLYGON_MODE_FILL = 0,

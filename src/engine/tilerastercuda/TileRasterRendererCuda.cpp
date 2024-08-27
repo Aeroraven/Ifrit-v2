@@ -4,7 +4,7 @@
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 #include "engine/tilerastercuda/TileRasterImageOpInvocationsCuda.cuh"
 namespace Ifrit::Engine::TileRaster::CUDA {
-	void TileRasterRendererCuda::init() {
+	IFRIT_APIDECL void TileRasterRendererCuda::init() {
 		context = std::make_unique<TileRasterContextCuda>();
 		deviceContext = std::make_unique<TileRasterDeviceContext>();
 
@@ -16,7 +16,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		Invocation::setBlendFunc(context->blendState);
 		Invocation::updateScissorTestData(context->scissorAreas.data(), context->scissorAreas.size(), context->scissorTestEnable);
 	}
-	void TileRasterRendererCuda::bindFrameBuffer(FrameBuffer& frameBuffer, bool useDoubleBuffer) {
+	IFRIT_APIDECL void TileRasterRendererCuda::bindFrameBuffer(FrameBuffer& frameBuffer, bool useDoubleBuffer) {
 		context->frameBuffer = &frameBuffer;
 		auto pixelCount = frameBuffer.getWidth() * frameBuffer.getHeight();
 		this->deviceDepthBuffer = Invocation::getDepthBufferDeviceAddr(pixelCount, this->deviceDepthBuffer);
@@ -31,7 +31,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		this->hostColorBuffers = hColorBuffer;
 		Invocation::updateFrameBufferConstants(frameBuffer.getWidth(), frameBuffer.getHeight());
 	}	
-	void TileRasterRendererCuda::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
+	IFRIT_APIDECL void TileRasterRendererCuda::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
 		needVaryingUpdate = true;
 		context->vertexBuffer = &vertexBuffer;
 		char* hVertexBuffer = context->vertexBuffer->getBufferUnsafe();
@@ -49,12 +49,12 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		Invocation::updateVertexCount(vertexBuffer.getVertexCount());
 		Invocation::updateAttributes(vertexBuffer.getAttributeCount());
 	}
-	void TileRasterRendererCuda::bindIndexBuffer(const std::vector<int>& indexBuffer) {
+	IFRIT_APIDECL void TileRasterRendererCuda::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		context->indexBuffer = &indexBuffer;
 		this->deviceIndexBuffer = Invocation::getIndexBufferDeviceAddr(indexBuffer.data(), indexBuffer.size(), this->deviceIndexBuffer);
 	}
 
-	void TileRasterRendererCuda::bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor) {
+	IFRIT_APIDECL void TileRasterRendererCuda::bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor) {
 		context->vertexShader = vertexShader;
 		context->varyingDescriptor = &varyingDescriptor;
 		std::vector<TypeDescriptorEnum> hVaryingBufferLayout;
@@ -76,50 +76,50 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		auto vxcount = context->vertexBuffer->getVertexCount();
 		cudaMalloc(&deviceContext->dVaryingBufferM2, vcount * vxcount * sizeof(VaryingStore));
 	}
-	void TileRasterRendererCuda::bindFragmentShader(FragmentShader* fragmentShader) {
+	IFRIT_APIDECL void TileRasterRendererCuda::bindFragmentShader(FragmentShader* fragmentShader) {
 		context->fragmentShader = fragmentShader;
 		needFragmentShaderUpdate = true;
 		Invocation::setBlendFunc(context->blendState);
 	}
-	void TileRasterRendererCuda::bindGeometryShader(GeometryShader* geometryShader) {
+	IFRIT_APIDECL void TileRasterRendererCuda::bindGeometryShader(GeometryShader* geometryShader) {
 		context->geometryShader = geometryShader;
 	}
-	void TileRasterRendererCuda::bindMeshShader(MeshShader* meshShader, VaryingDescriptor& varyingDescriptor, iint3 localSize) {
+	IFRIT_APIDECL void TileRasterRendererCuda::bindMeshShader(MeshShader* meshShader, VaryingDescriptor& varyingDescriptor, iint3 localSize) {
 		context->meshShader = meshShader;
 		context->meshShaderAttributCnt = varyingDescriptor.getVaryingCounts();
 		if (context->taskShader == nullptr) {
 			context->meshShaderBlockSize = localSize;
 		}
 	}
-	void TileRasterRendererCuda::bindTaskShader(TaskShader* taskShader, VaryingDescriptor& varyingDescriptor) {
+	IFRIT_APIDECL void TileRasterRendererCuda::bindTaskShader(TaskShader* taskShader, VaryingDescriptor& varyingDescriptor) {
 		context->taskShader = taskShader;
 		context->meshShaderAttributCnt = varyingDescriptor.getVaryingCounts();
 	}
-	void TileRasterRendererCuda::createTexture(int slotId, const IfritImageCreateInfo& createInfo) {
+	IFRIT_APIDECL void TileRasterRendererCuda::createTexture(int slotId, const IfritImageCreateInfo& createInfo) {
 		Invocation::createTexture(slotId, createInfo, nullptr);
 		needFragmentShaderUpdate = true;
 	}
-	void TileRasterRendererCuda::createSampler(int slotId, const IfritSamplerT& samplerState) {
+	IFRIT_APIDECL void TileRasterRendererCuda::createSampler(int slotId, const IfritSamplerT& samplerState) {
 		Invocation::createSampler(slotId, samplerState);
 		needFragmentShaderUpdate = true;
 	}
-	void TileRasterRendererCuda::createBuffer(int slotId, int bufSize) {
+	IFRIT_APIDECL void TileRasterRendererCuda::createBuffer(int slotId, int bufSize) {
 		Invocation::createDeviceBuffer(slotId, bufSize);
 	}
-	void TileRasterRendererCuda::setRasterizerPolygonMode(IfritPolygonMode mode) {
+	IFRIT_APIDECL void TileRasterRendererCuda::setRasterizerPolygonMode(IfritPolygonMode mode) {
 		this->polygonMode = mode;
 	}
-	void TileRasterRendererCuda::setBlendFunc(IfritColorAttachmentBlendState state) {
+	IFRIT_APIDECL void TileRasterRendererCuda::setBlendFunc(IfritColorAttachmentBlendState state) {
 		context->blendState = state;
 		Invocation::setBlendFunc(state);
 	}
-	void TileRasterRendererCuda::setDepthFunc(IfritCompareOp depthFunc) {
+	IFRIT_APIDECL void TileRasterRendererCuda::setDepthFunc(IfritCompareOp depthFunc) {
 		ctxDepthFunc = depthFunc;
 		if (ctxDepthTestEnable) {
 			Invocation::setDepthFunc(depthFunc);
 		}
 	}
-	void TileRasterRendererCuda::setDepthTestEnable(bool option) {
+	IFRIT_APIDECL void TileRasterRendererCuda::setDepthTestEnable(bool option) {
 		ctxDepthTestEnable = option;
 		if (option) {
 			Invocation::setDepthFunc(ctxDepthFunc);
@@ -128,25 +128,25 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			Invocation::setDepthFunc(IF_COMPARE_OP_ALWAYS);
 		}
 	}
-	void TileRasterRendererCuda::setScissors(const std::vector<ifloat4>& scissors) {
+	IFRIT_APIDECL void TileRasterRendererCuda::setScissors(const std::vector<ifloat4>& scissors) {
 		context->scissorAreas = scissors;
 		Invocation::updateScissorTestData(scissors.data(), scissors.size(), context->scissorTestEnable);
 	}
-	void TileRasterRendererCuda::setScissorTestEnable(bool option) {
+	IFRIT_APIDECL void TileRasterRendererCuda::setScissorTestEnable(bool option) {
 		context->scissorTestEnable = option;
 		Invocation::updateScissorTestData(context->scissorAreas.data(), context->scissorAreas.size(), context->scissorTestEnable);
 	}
-	void TileRasterRendererCuda::setCullMode(IfritCullMode cullMode) {
+	IFRIT_APIDECL void TileRasterRendererCuda::setCullMode(IfritCullMode cullMode) {
 		Invocation::setCullMode(cullMode);
 	}
-	void TileRasterRendererCuda::setMsaaSamples(IfritSampleCountFlagBits msaaSamples) {
+	IFRIT_APIDECL void TileRasterRendererCuda::setMsaaSamples(IfritSampleCountFlagBits msaaSamples) {
 		Invocation::setMsaaSampleBits(msaaSamples);
 	}
-	void TileRasterRendererCuda::setClearValues(const std::vector<ifloat4>& clearColors, float clearDepth) {
+	IFRIT_APIDECL void TileRasterRendererCuda::setClearValues(const std::vector<ifloat4>& clearColors, float clearDepth) {
 		ctxClearColors = clearColors;
 		ctxClearDepth = clearDepth;
 	}
-	void TileRasterRendererCuda::clear() {
+	IFRIT_APIDECL void TileRasterRendererCuda::clear() {
 		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
 		int totalIndices = 0;
 		if(totalIndices)totalIndices = context->indexBuffer->size();
@@ -178,16 +178,16 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		this->initCudaContext = true;
 		cudaDeviceSetLimit(cudaLimitDevRuntimePendingLaunchCount, 8192);
 	}
-	void TileRasterRendererCuda::generateMipmap(int slotId, IfritFilter filter) {
+	IFRIT_APIDECL void TileRasterRendererCuda::generateMipmap(int slotId, IfritFilter filter) {
 		Invocation::invokeMipmapGeneration(slotId, filter);
 	}
-	void TileRasterRendererCuda::blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter) {
+	IFRIT_APIDECL void TileRasterRendererCuda::blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter) {
 		Invocation::invokeBlitImage(srcSlotId, dstSlotId, region, filter);
 	}
-	void TileRasterRendererCuda::copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions) {
+	IFRIT_APIDECL void TileRasterRendererCuda::copyHostBufferToImage(void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions) {
 		Invocation::invokeCopyBufferToImage(srcBuffer, dstSlot, regions.size(), regions.data());
 	}
-	void TileRasterRendererCuda::copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size) {
+	IFRIT_APIDECL void TileRasterRendererCuda::copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size) {
 		Invocation::copyHostBufferToBuffer(srcBuffer, dstSlot, size);
 	}
 	void TileRasterRendererCuda::internalRender(TileRasterRendererCudaVertexPipelineType vertexPipeType) {
@@ -238,10 +238,10 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		currentBuffer = 1 - curBuffer;
 	}
 
-	void TileRasterRendererCuda::drawElements() {
+	IFRIT_APIDECL void TileRasterRendererCuda::drawElements() {
 		internalRender(IFINTERNAL_CU_VERTEX_PIPELINE_CONVENTIONAL);
 	}
-	void TileRasterRendererCuda::drawMeshTasks(int numWorkGroups, int firstWorkGroup) {
+	IFRIT_APIDECL void TileRasterRendererCuda::drawMeshTasks(int numWorkGroups, int firstWorkGroup) {
 		ifritAssert(firstWorkGroup == 0, "workgroup offset not supported now");
 		context->meshShaderNumWorkGroups = numWorkGroups;
 		internalRender(IFINTERNAL_CU_VERTEX_PIPELINE_MESHSHADER);

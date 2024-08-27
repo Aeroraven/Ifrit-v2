@@ -1,7 +1,7 @@
 #pragma once
 #include "core/definition/CoreTypes.h"
 namespace Ifrit::Engine {
-	enum TypeDescriptorEnum {
+	enum IFRIT_APIDECL TypeDescriptorEnum {
 		IFTP_UNDEFINED,
 		IFTP_FLOAT1,
 		IFTP_FLOAT2,
@@ -16,20 +16,20 @@ namespace Ifrit::Engine {
 		IFTP_UINT3,
 		IFTP_UINT4
 	};
-	struct TypeDescriptor {
+	struct IFRIT_APIDECL TypeDescriptor {
 		uint32_t size;
 		TypeDescriptorEnum type;
 	};
 
 	template<typename T, TypeDescriptorEnum U>
-	struct TypeDescriptorImpl:TypeDescriptor {
+	struct IFRIT_APIDECL TypeDescriptorImpl:TypeDescriptor {
 		TypeDescriptorImpl() {
 			this->size = sizeof(T);
 			this->type = U;
 		}
 	};
 
-	class TypeDescriptorsT {
+	class IFRIT_APIDECL TypeDescriptorsT {
 	public:
 		TypeDescriptorImpl<float, TypeDescriptorEnum::IFTP_FLOAT1> FLOAT1;
 		TypeDescriptorImpl<ifloat2, TypeDescriptorEnum::IFTP_FLOAT2> FLOAT2;
@@ -45,5 +45,5 @@ namespace Ifrit::Engine {
 		TypeDescriptorImpl<iuint4, TypeDescriptorEnum::IFTP_UINT4> UINT4;
 	};
 
-	static TypeDescriptorsT TypeDescriptors;
+	IFRIT_APIDECL extern TypeDescriptorsT TypeDescriptors;
 }

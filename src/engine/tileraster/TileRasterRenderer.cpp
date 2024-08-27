@@ -9,32 +9,33 @@ namespace Ifrit::Engine::TileRaster::Inline {
 }
 
 namespace Ifrit::Engine::TileRaster {
-	TileRasterRenderer::TileRasterRenderer() {
+	IFRIT_APIDECL TileRasterRenderer::TileRasterRenderer() {
 		
 	}
-	void TileRasterRenderer::bindFrameBuffer(FrameBuffer& frameBuffer) {
+	IFRIT_APIDECL TileRasterRenderer::~TileRasterRenderer() = default;
+	IFRIT_APIDECL void TileRasterRenderer::bindFrameBuffer(FrameBuffer& frameBuffer) {
 		this->context->frameBuffer = &frameBuffer;
 		context->numTilesX = Inline::ceilDiv(frameBuffer.getColorAttachment(0)->getWidth(), context->tileWidth);
 		context->numTilesY = Inline::ceilDiv(frameBuffer.getColorAttachment(0)->getHeight(), context->tileWidth);
 		updateVectorCapacity();
 	}
-	void TileRasterRenderer::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
+	IFRIT_APIDECL void TileRasterRenderer::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
 		this->context->vertexBuffer = &vertexBuffer;
 		varyingBufferDirtyFlag = true;
 	}
-	void TileRasterRenderer::bindFragmentShader(FragmentShader& fragmentShader) {
+	IFRIT_APIDECL void TileRasterRenderer::bindFragmentShader(FragmentShader& fragmentShader) {
 		this->context->fragmentShader = &fragmentShader;
 	}
-	void TileRasterRenderer::bindIndexBuffer(const std::vector<int>& indexBuffer) {
+	IFRIT_APIDECL void TileRasterRenderer::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		this->context->indexBuffer = &indexBuffer;
 	}
-	void TileRasterRenderer::bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor) {
+	IFRIT_APIDECL void TileRasterRenderer::bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor) {
 		this->context->vertexShader = &vertexShader;
 		this->context->varyingDescriptor = &varyingDescriptor;
 		shaderBindingDirtyFlag = true;
 		varyingBufferDirtyFlag = true;
 	}
-	void TileRasterRenderer::intializeRenderContext() {
+	IFRIT_APIDECL void TileRasterRenderer::intializeRenderContext() {
 		if (varyingBufferDirtyFlag) {
 			context->vertexShaderResult = std::make_unique<VertexShaderResult>(
 			context->vertexBuffer->getVertexCount(), context->varyingDescriptor->getVaryingCounts());
@@ -79,13 +80,13 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		return ;
 	}
-	void TileRasterRenderer::setDepthFunc(IfritCompareOp depthFunc) {
+	IFRIT_APIDECL void TileRasterRenderer::setDepthFunc(IfritCompareOp depthFunc) {
 		context->depthFuncSaved = depthFunc;
 		if (context->optDepthTestEnableII) {
 			context->depthFunc = depthFunc;
 		}
 	}
-	void TileRasterRenderer::setBlendFunc(IfritColorAttachmentBlendState state) {
+	IFRIT_APIDECL void TileRasterRenderer::setBlendFunc(IfritColorAttachmentBlendState state) {
 		context->blendState = state;
 		const auto& bs = state;
 		if (bs.srcColorBlendFactor == IfritBlendFactor::IF_BLEND_FACTOR_ONE) {
@@ -213,10 +214,10 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		return counter;
 	}
-	void TileRasterRenderer::optsetForceDeterministic(bool opt) {
+	IFRIT_APIDECL void TileRasterRenderer::optsetForceDeterministic(bool opt) {
 		context->optForceDeterministic = opt;
 	}
-	void TileRasterRenderer::optsetDepthTestEnable(bool opt) {
+	IFRIT_APIDECL void TileRasterRenderer::optsetDepthTestEnable(bool opt) {
 		context->optDepthTestEnableII = opt;
 		if (!opt) {
 			context->depthFunc = IF_COMPARE_OP_ALWAYS;
@@ -239,7 +240,7 @@ namespace Ifrit::Engine::TileRaster {
 			context->coverQueue[i].resize(totalTiles);
 		}
 	}
-	void TileRasterRenderer::init() {
+	IFRIT_APIDECL void TileRasterRenderer::init() {
 		context = std::make_shared<TileRasterContext>();
 		context->rasterizerQueue.resize(context->numThreads);
 		context->coverQueue.resize(context->numThreads);
@@ -253,12 +254,12 @@ namespace Ifrit::Engine::TileRaster {
 			worker->threadStart();
 		}
 	}
-	void TileRasterRenderer::clear() {
+	IFRIT_APIDECL void TileRasterRenderer::clear() {
 		context->frameBuffer->getColorAttachment(0)->clearImageZero();
 		context->frameBuffer->getDepthAttachment()->clearImage(255);
 	}
 
-	void TileRasterRenderer::render(bool clearFramebuffer) IFRIT_AP_NOTHROW {
+	IFRIT_APIDECL void TileRasterRenderer::render(bool clearFramebuffer) IFRIT_AP_NOTHROW {
 		intializeRenderContext();
 		resetWorkers();
 		unresolvedTileRaster.store(0,std::memory_order_seq_cst);

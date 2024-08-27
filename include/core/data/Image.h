@@ -3,7 +3,7 @@
 
 namespace Ifrit::Core::Data {
 	template<typename T>
-	class Image {
+	class IFRIT_APIDECL Image {
 	private:
 		T* data = nullptr;
 		
@@ -97,6 +97,10 @@ namespace Ifrit::Core::Data {
 			size_t w = ndcW * width;
 			size_t h = ndcH * height;
 			fillArea(x, y, w, h, value);
+		}
+
+		T* getData() {
+			return data;
 		}
 
 		void clearImage(T value=0) {

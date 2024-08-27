@@ -2,7 +2,7 @@
 #include "core/data/Image.h"
 
 namespace Ifrit::Engine {
-	class Renderer {
+	class IFRIT_APIDECL Renderer {
 
 	};
 }
