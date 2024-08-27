@@ -1,7 +1,7 @@
 #pragma once
 #include "core/definition/CoreTypes.h"
 namespace Ifrit::Engine {
-	enum TypeDescriptorEnum {
+	enum IFRIT_APIDECL TypeDescriptorEnum {
 		IFTP_UNDEFINED,
 		IFTP_FLOAT1,
 		IFTP_FLOAT2,

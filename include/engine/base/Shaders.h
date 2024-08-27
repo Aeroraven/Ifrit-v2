@@ -10,7 +10,7 @@ namespace Ifrit::Engine {
 		IGST_POINTS = 2
 	};
 
-	class ShaderBase {
+	class IFRIT_APIDECL ShaderBase {
 	public:
 		float* atTexture[32];
 		uint32_t atTextureWid[32];
@@ -24,7 +24,7 @@ namespace Ifrit::Engine {
 		IFRIT_DUAL virtual void execute(
 			const void* const* input,
 			ifloat4* outPos,
-			VaryingStore** outVaryings
+			VaryingStore* const* outVaryings
 		) = 0;
 		IFRIT_HOST virtual VertexShader* getCudaClone() { return nullptr; };
 	};
@@ -35,7 +35,7 @@ namespace Ifrit::Engine {
 		IFRIT_DUAL virtual void execute(
 			const void* varyings, 
 			void* colorOutput,
-			float& fragmentDepth
+			float* fragmentDepth
 		) = 0;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() { return nullptr; };
 	};
@@ -45,8 +45,8 @@ namespace Ifrit::Engine {
 		GeometryShaderTopology atTopology = IGST_TRIANGLES;
 		uint32_t atMaxVertices = 4;
 		IFRIT_DUAL virtual void execute(
-			const ifloat4**  inPos,
-			const VaryingStore**  inVaryings,
+			const ifloat4* const*  inPos,
+			const VaryingStore* const*  inVaryings,
 			ifloat4* outPos,
 			VaryingStore* outVaryings,
 			int* outSize
@@ -100,4 +100,10 @@ namespace Ifrit::Engine {
 		) = 0;
 		IFRIT_HOST virtual TaskShader* getCudaClone() { return nullptr; };
 	};
+
+	/* Function Delegates & C-ABI Compatible */
+	typedef void (*VertexShaderFunctionalPtr)(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings);
+	typedef void (*FragmentShaderFunctionalPtr)(const void* varyings, void* colorOutput, float* fragmentDepth);
+	typedef void (*GeometryShaderFunctionalPtr)(const ifloat4* const* inPos, const VaryingStore* const* inVaryings,
+		ifloat4* outPos, VaryingStore* outVaryings, int* outSize);
 }

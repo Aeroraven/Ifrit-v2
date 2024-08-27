@@ -42,6 +42,9 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | SIMD Instructions / SIMT                    |                                                              | √               | √             |
 | Overlapped Memory Transfer                  |                                                              |                 | √             |
 | Dynamic Tile List                           |                                                              | √               | √             |
+| **Integration (Wrapper)**                   |                                                              |                 |               |
+| C++ DLL                                     |                                                              | ▲               |               |
+| .NET Library (`C#`)                         |                                                              | ▲               |               |
 | **Pipeline**                                |                                                              |                 |               |
 | Programmable Vertex Shader                  | √                                                            | √               | √             |
 | Programmable Fragment Shader                | √                                                            | √               | √             |
@@ -87,7 +90,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 (4) Only works when `texture` shader function is called.
 
-▲ Limited support.
+▲ Limited support / Unstable feature
 
 
 
@@ -106,7 +109,7 @@ Note that some triangles might be culled or clipped in the pipeline.
 
 All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6cb66`. The result might not be the latest. Note that the introduction of `Shader Derivatives` degenerates the pipeline performance.
 
-**Frame Rate**
+### **Frame Rate**
 
 | Model          | Triangles | CPU Single Thread | CPU Multi Threads | CUDA w/ Copy-back* | CUDA w/o Copy-back** |
 | -------------- | --------- | ----------------- | ----------------- | ------------------ | -------------------- |
@@ -133,18 +136,25 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 
 ## Dependencies
 
-#### Minimal Requirement
+#### Minimal Requirement (Native)
 
 - **Display Dependencies**: 
   - OpenGL (GLFW3.3 + GLAD)
 - **Compilation Dependencies:** One of following environments. Requires `c++20` support.
   - MSVC 19.29 + Visual Studio 2022 
   - CMake 3.28 + GCC 13.2 (MinGW Included) `[CUDA Support is unknown]`
-- **Optional**: When compiling with CUDA:
+- **Optional**: CUDA is optional, but when compiling with CUDA:
   - CUDA >= 12.5
 
 
-#### Recommended Requirement
+
+#### Minimal Requirement (C# Wrapper)
+
+- **Framework**: .NET 8.0
+
+
+
+#### Recommended Requirement (Native)
 
 - **Hardware Requirements:**  
   - CUDA 12.6
@@ -156,9 +166,11 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 
 
 
+
+
 ## Setup / Run
 
-#### Dependency Installation
+### Dependency Installation
 
 Some dependencies should be prepared before compiling.
 
@@ -169,7 +181,7 @@ Change CUDA path and GLFW3 library path in `CMakeLists.txt`
 
 
 
-#### Compile using G++ / MinGW
+### Compile using G++ / MinGW
 
 Follow instructions to build
 
@@ -181,11 +193,13 @@ make
 
 
 
-#### Compile using Visual Studio 2022 (MSVC)
+### Compile using Visual Studio
 
-Directly open `Ifrit-v2x.sln` in Visual Studio 2022.
+**Native** open `Ifrit-v2x.sln` in Visual Studio 2022.
 
-Edit the property sheet to help the linker find CUDA and GLFW3 library file. Then press `F5`
+- Edit the property sheet to help the linker find CUDA and GLFW3 library file.
+
+**C# Wrapper** open `bindings/csharp/Ifrit-v2-csharp/Ifrit-v2-csharp.sln` in Visual Studio.
 
 
 

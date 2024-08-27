@@ -2,12 +2,26 @@
 
 namespace Ifrit::Engine {
 	IFRIT_APIDECL void VaryingDescriptor::setVaryingDescriptors(const std::vector<TypeDescriptor>& varyingDescriptors) {
-		this->varyingDescriptors = varyingDescriptors;
+		this->context->varyingDescriptors = varyingDescriptors;
 
 	}
 	IFRIT_APIDECL void VaryingDescriptor::applyVaryingDescriptors(VertexShaderResult* varyingBuffer) {
-		for (int i = 0; i < varyingDescriptors.size(); i++) {
-			varyingBuffer->initializeVaryingBufferFromShader(varyingDescriptors[i], i);
+		for (int i = 0; i < context->varyingDescriptors.size(); i++) {
+			varyingBuffer->initializeVaryingBufferFromShader(context->varyingDescriptors[i], i);
+		}
+	}
+	IFRIT_APIDECL VaryingDescriptor::VaryingDescriptor() {
+		this->context = new std::remove_pointer_t<decltype(this->context)>();
+	}
+	IFRIT_APIDECL VaryingDescriptor::~VaryingDescriptor() {
+		delete this->context;
+	}
+
+	/* DLL Compatible */
+	IFRIT_APIDECL void VaryingDescriptor::setVaryingDescriptorsCompatible(const TypeDescriptor* varyingDescriptors, int num) {
+		this->context->varyingDescriptors = std::vector<TypeDescriptor>(num);
+		for (int i = 0; i < num; i++) {
+			this->context->varyingDescriptors[i] = varyingDescriptors[i];
 		}
 	}
 }

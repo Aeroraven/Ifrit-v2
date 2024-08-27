@@ -912,7 +912,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 		}
 		// Fragment Shader
-		context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(), interpolatedDepth);
+		context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth);
 
 		if constexpr (tpAlphaBlendEnable) {
 			auto dstRgba = args.colorAttachment0->getPixelRGBAUnsafe(dx, dy);
@@ -1060,7 +1060,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 
 			// Fragment Shader
-			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(), interpolatedDepth[i]);
+			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth[i]);
 			if constexpr(tpAlphaBlendEnable) {
 				auto dstRgba = args.colorAttachment0->getPixelRGBAUnsafe(x, y);
 				auto srcRgba = colorOutput[0];
@@ -1202,7 +1202,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 
 			// Fragment Shader
-			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(), interpolatedDepth[i]);
+			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth[i]);
 			if constexpr (tpAlphaBlendEnable) {
 				auto dstRgba = args.colorAttachment0->getPixelRGBAUnsafe(x, y);
 				auto srcRgba = colorOutput[0];

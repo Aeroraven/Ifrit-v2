@@ -4,7 +4,7 @@
 #include "engine/math/ShaderBuiltinCuda.cuh"
 
 namespace Ifrit::Demo::Skybox {
-	IFRIT_DUAL void SkyboxVS::execute(const void* const* input, ifloat4* outPos, Ifrit::Engine::VaryingStore** outVaryings) {
+	IFRIT_DUAL void SkyboxVS::execute(const void* const* input, ifloat4* outPos, Ifrit::Engine::VaryingStore* const* outVaryings) {
 		using namespace Ifrit::Engine::Math::ShaderOps::CUDA;
 		auto s = isbReadFloat4(input[0]);
 		float4x4 view = (lookAt({ 0.0,0.0,0.0 }, { 0.0,0.0,-1.0 }, { 0,1.0,0 }));  
@@ -20,7 +20,7 @@ namespace Ifrit::Demo::Skybox {
 		return Ifrit::Core::CUDA::hostGetDeviceObjectCopy<SkyboxVS>(this);
 	}
 
-	IFRIT_DUAL void SkyboxFS::execute(const  void* varyings, void* colorOutput, float& fragmentDepth) {
+	IFRIT_DUAL void SkyboxFS::execute(const  void* varyings, void* colorOutput, float* fragmentDepth) {
 		using Ifrit::Engine::Math::ShaderOps::CUDA::textureCubeLod;
 
 		auto r = isbcuReadPsVarying(varyings, 0);

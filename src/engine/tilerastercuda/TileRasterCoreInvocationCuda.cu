@@ -1766,7 +1766,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				if (!depthTestCond)return;
 
 				PS_DEPTHTEST;
-				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, tDepth);
+				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, &tDepth);
 
 				PS_DEPTHTEST;
 				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
@@ -2188,7 +2188,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					return;
 				}
 				float depthVal = dDepthBuffer[pixelYS * csFrameWidth + pixelXS];
-				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, depthVal);
+				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, &depthVal);
 				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
 				ifloat4 finalRgba;
 				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadId))[0];
@@ -2827,7 +2827,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					dest->z = vd.z;
 					dest->w = vd.w;
 				}
-				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x, localDepth);
+				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x, &localDepth);
 				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
 				ifloat4 finalRgba;
 				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadIdx.x))[0];
@@ -3187,7 +3187,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					dest->z = vd.z;
 					dest->w = vd.w;
 				}
-				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x, localDepth);
+				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x, &localDepth);
 				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
 				ifloat4 finalRgba;
 				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadIdx.x))[0];

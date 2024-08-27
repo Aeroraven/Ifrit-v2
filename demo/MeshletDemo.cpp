@@ -39,7 +39,7 @@ namespace Ifrit::Demo::MeshletDemo {
 
     class MeshletDemoVS : public VertexShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore** outVaryings) override {
+		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override {
 			auto s = *reinterpret_cast<const ifloat4*>(input[0]);
 			auto p = multiply(mvp, s);
 			*outPos = p;
@@ -49,7 +49,7 @@ namespace Ifrit::Demo::MeshletDemo {
 
     class MeshletDemoFS : public FragmentShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput, float& fragmentDepth) override {
+		IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput, float* fragmentDepth) override {
 			ifloat4 result = ((const VaryingStore*)varyings)[0].vf4;
 			constexpr float fw = 0.5;
             constexpr float ds = 1.0;
@@ -107,8 +107,8 @@ namespace Ifrit::Demo::MeshletDemo {
 		int totalMeshlets = outMeshlet.size(), totalInds = mergedMeshlet.ibufs.size(), totalVerts = mergedMeshlet.vbufs.getVertexCount();
 		printf("Built %d %d %d\n", totalMeshlets, totalInds, totalVerts);
 
-		frameBuffer.setColorAttachments({ image });
-		frameBuffer.setDepthAttachment(depth);
+		frameBuffer.setColorAttachments({ image.get() });
+		frameBuffer.setDepthAttachment(*depth);
 
 		renderer->init();
 		renderer->bindFrameBuffer(frameBuffer);
@@ -209,8 +209,8 @@ namespace Ifrit::Demo::MeshletDemo {
         printf("Built\n");
 		mBuilder.mergeMeshlet(outMeshlet, mergedMeshlet, outVertOffset, outIndexOffset,true);
 
-        frameBuffer.setColorAttachments({ image });
-		frameBuffer.setDepthAttachment(depth);
+        frameBuffer.setColorAttachments({ image.get() });
+		frameBuffer.setDepthAttachment(*depth);
 
 		renderer->init();
 		renderer->bindFrameBuffer(frameBuffer);

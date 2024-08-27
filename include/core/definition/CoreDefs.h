@@ -1,19 +1,44 @@
 #pragma once
 
+#ifdef WIN32 
+	#define IFRIT_APICALL __stdcall
+#else
+	#define IFRIT_APICALL
+#endif
+
 #if _WINDLL
 	#define IFRIT_DLL
 	#define IFRIT_API_EXPORT
 #endif
 
 #ifdef IFRIT_DLL
-	#ifdef IFRIT_API_EXPORT
-		#define IFRIT_APIDECL __declspec(dllexport)
-	#else
-		#define IFRIT_APIDECL __declspec(dllimport)
-		#define IRTIT_IGNORE_PRESENTATION_DEPS
+	#ifndef __cplusplus
+		#define IFRIT_API_EXPORT_COMPATIBLE_MODE
+	#endif // !__cplusplus
+
+	#ifdef IFRIT_API_EXPORT_COMPATIBLE_MODE
+		#ifdef IFRIT_API_EXPORT
+			#define IFRIT_APIDECL
+			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllexport)
+		#else
+			#define IFRIT_APIDECL 
+			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllimport)
+			#define IRTIT_IGNORE_PRESENTATION_DEPS
+		#endif
+	#else 
+		#ifdef IFRIT_API_EXPORT
+			#define IFRIT_APIDECL __declspec(dllexport)
+			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllexport)
+		#else
+			#define IFRIT_APIDECL __declspec(dllimport)
+			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllimport)
+			#define IRTIT_IGNORE_PRESENTATION_DEPS
+		#endif
 	#endif
+	
 #else
 	#define IFRIT_APIDECL
+	#define IFRIT_APIDECL_COMPAT
 #endif
 
 #include <cstddef>
@@ -164,3 +189,5 @@
 #define IFRIT_DECLARE_VERTEX_SHADER
 #define IFRIT_RESTRICT_CUDA __restrict__ 
 #define IFRIT_ASSUME __assume
+#define IFRIT_NOTHROW noexcept
+#define IFRIT_EXPORT_COMPAT_NOTHROW IFRIT_NOTHROW
