@@ -12,7 +12,7 @@ GPU/CPU-Parallelized tile-based software rasterizer.
 
 
 
-Check  **[`gallery.md`](./gallery.md)** for **[More Example Pictures](./gallery.md)**
+Check  **[`gallery.md`](./docs/gallery.md)** for **[More Example Pictures](./gallery.md)**
 
 
 
@@ -174,10 +174,10 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 
 Some dependencies should be prepared before compiling.
 
-- Place `GLAD` dependency in `include\dependency\GLAD\glad\glad.h` and `include\dependency\GLAD\KHR\khrplatform.h`
-- Place `sbt_image` in `include\dependency\sbt_image.h`
+- Place `GLAD` dependency in ` core/include/dependency/GLAD/glad/glad.h` and `core/include/dependency/GLAD/KHR/khrplatform.h`
+- Place `sbt_image` in `core/include/dependency/sbt_image.h`
 
-Change CUDA path and GLFW3 library path in `CMakeLists.txt` 
+Change CUDA path and GLFW3 library path in `core/CMakeLists.txt` 
 
 
 
@@ -186,7 +186,7 @@ Change CUDA path and GLFW3 library path in `CMakeLists.txt`
 Follow instructions to build
 
 ```cmake
-cmake -S . -B ./build
+cmake -S core -B ./build
 cd build
 make
 ```
@@ -195,11 +195,9 @@ make
 
 ### Compile using Visual Studio
 
-**Native** open `Ifrit-v2x.sln` in Visual Studio 2022.
+Open `Ifrit-v2x.sln` in Visual Studio 2022.
 
 - Edit the property sheet to help the linker find CUDA and GLFW3 library file.
-
-**C# Wrapper** open `bindings/csharp/Ifrit-v2-csharp/Ifrit-v2-csharp.sln` in Visual Studio.
 
 
 

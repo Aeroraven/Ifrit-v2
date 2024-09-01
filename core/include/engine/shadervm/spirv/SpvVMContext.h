@@ -1,0 +1,134 @@
+#pragma once
+#include "./core/definition/CoreExports.h"
+namespace Ifrit::Engine::ShaderVM::Spirv {
+	enum SpvVMCtxEndian {
+		IFSP_UNDEFINED = 0,
+		IFSP_LITTLE_ENDIAN = 1,
+		IFSP_BIG_ENDIAN = 2,
+		IFSP_MAX_ENUM = 3
+	};
+	enum SpvVMIntermediateReprAttribute {
+		IFSP_IR_SOURCE_TYPE
+	};
+	enum SpvVMIntermediateReprExpTargetType {
+		IFSP_IRTARGET_UNSPECIFIED,
+		IFSP_IRTARGET_INTERMEDIATE_UNDEF,
+		IFSP_IRTARGET_STRING
+	};
+	enum SpvVMIntermediateReprExpTargetDeclType {
+		IFSP_IRTARGET_DECL_UNSPECIFIED,
+		IFSP_IRTARGET_DECL_VOID,
+		IFSP_IRTARGET_DECL_BOOL,
+		IFSP_IRTARGET_DECL_INT,
+		IFSP_IRTARGET_DECL_FLOAT,
+		IFSP_IRTARGET_DECL_VECTOR,
+		IFSP_IRTARGET_DECL_MATRIX,
+		IFSP_IRTARGET_DECL_IMAGE,
+		IFSP_IRTARGET_DECL_SAMPLER,
+		IFSP_IRTARGET_DECL_SAMPLED_IMAGE,
+		IFSP_IRTARGET_DECL_ARRAY,
+		IFSP_IRTARGET_DECL_RUNTIME_ARRAY,
+		IFSP_IRTARGET_DECL_STRUCT,
+		IFSP_IRTARGET_DECL_OPAQUE,
+		IFSP_IRTARGET_DECL_POINTER,
+		IFSP_IRTARGET_DECL_FUNCTION,
+	};
+	struct SpvVMCtxInstruction {
+		uint32_t opCode;
+		uint32_t opWordCounts;
+		std::vector<uint32_t> opParams;
+	};
+
+	struct SpvVMIntermediateReprBlock {
+		std::vector<std::string> literals;
+		std::unordered_map<SpvVMIntermediateReprAttribute, int> attributes;
+		std::vector<SpvVMIntermediateReprBlock*> children;
+	};
+
+	struct SpvVMIntermediateReprExpTarget {
+		int id = -1;
+
+		union DataRegion {
+			bool boolValue;
+			int intValue;
+			float floatValue;
+		};
+
+		bool activated = false;
+		bool isFunction = false;
+		bool isConstant = false;
+		bool isVariable = false;
+		bool isLabel = false;
+		bool isInstance = false;
+		bool isAccessChain = false;
+		bool named = false;
+
+		bool isUniform = false;
+		bool isMergedBlock = false;
+
+		SpvVMIntermediateReprExpTargetType exprType = IFSP_IRTARGET_UNSPECIFIED;
+		SpvVMIntermediateReprExpTargetDeclType declType = IFSP_IRTARGET_DECL_UNSPECIFIED;
+
+		std::string name;
+		std::string debugString;
+		int decoration;
+		std::vector<std::string> memberName;
+		std::vector<int> memberDecoration;
+		std::vector<int> memberOffset;
+
+		int intWidth;
+		int intSignedness;
+		int floatWidth;
+		int componentCount;
+
+		int componentTypeRef;
+		std::vector<int> memberTypeRef;
+		int resultTypeRef;
+
+		DataRegion data;
+		int storageClass;
+		int functionControl;
+
+		std::vector<int> compositeDataRef;
+		std::vector<int> functionParamRef;
+
+		int accessChainRef;
+		std::vector<int> accessChain;
+		int offset = 0;
+	};
+	struct SpvVMIntermediateRepresentation {
+		SpvVMIntermediateReprBlock* root = nullptr;
+		std::unordered_map<uint32_t, SpvVMIntermediateReprExpTarget> targets;
+		std::unordered_map<SpvVMIntermediateReprAttribute, int> attributes;
+		int addressingModel;
+		int memoryModel;
+
+		int entryPointExecutionModel;
+		int entryPointExecutionMode;
+		int entryPointId;
+		std::string entryPointName;
+		std::vector<int> entryPointInterfaces;
+
+		int capability;
+
+		/* Rewrite IR */
+		int activatedFunctionRef = -1;
+		int recordedFuncParams = 0;
+		int currentPass = 0;
+		int currentInst = 0;
+		std::stringstream generatedIR;
+		std::stringstream functionInstIR;
+	};
+
+	struct SpvVMContext {
+		uint32_t headerMagic;
+		uint32_t headerVersion;
+		uint32_t headerGenerator;
+		uint32_t headerBound;
+		uint32_t headerSchema;
+		SpvVMCtxEndian endianBytecode;
+		SpvVMCtxEndian endianParserNative;
+		std::vector<SpvVMCtxInstruction> instructions;
+	};
+
+}
