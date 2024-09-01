@@ -19,22 +19,38 @@ namespace Ifrit::Engine::TileRaster {
 		context->numTilesY = Inline::ceilDiv(frameBuffer.getColorAttachment(0)->getHeight(), context->tileWidth);
 		updateVectorCapacity();
 	}
+
 	IFRIT_APIDECL void TileRasterRenderer::bindVertexBuffer(const VertexBuffer& vertexBuffer) {
 		this->context->vertexBuffer = &vertexBuffer;
 		varyingBufferDirtyFlag = true;
 	}
+
 	IFRIT_APIDECL void TileRasterRenderer::bindFragmentShader(FragmentShader& fragmentShader) {
 		this->context->fragmentShader = &fragmentShader;
+		if (!fragmentShader.isThreadSafe) {
+			for (int i = 0; i < context->numThreads; i++) {
+				context->threadSafeFS[i] = fragmentShader.getThreadLocalCopy();
+			}
+		}
 	}
+
 	IFRIT_APIDECL void TileRasterRenderer::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		this->context->indexBuffer = &indexBuffer;
 	}
+
 	IFRIT_APIDECL void TileRasterRenderer::bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor) {
 		this->context->vertexShader = &vertexShader;
 		this->context->varyingDescriptor = &varyingDescriptor;
 		shaderBindingDirtyFlag = true;
 		varyingBufferDirtyFlag = true;
+
+		if (!vertexShader.isThreadSafe) {
+			for (int i = 0; i < context->numThreads; i++) {
+				context->threadSafeVS[i] = vertexShader.getThreadLocalCopy();
+			}
+		}
 	}
+
 	IFRIT_APIDECL void TileRasterRenderer::intializeRenderContext() {
 		if (varyingBufferDirtyFlag) {
 			context->vertexShaderResult = std::make_unique<VertexShaderResult>(
@@ -49,6 +65,7 @@ namespace Ifrit::Engine::TileRaster {
 		shaderBindingDirtyFlag = false;
 
 	}
+
 	void TileRasterRenderer::createWorkers() {
 		workers.resize(context->numThreads);
 		context->workerIdleTime.resize(context->numThreads);	
@@ -246,6 +263,8 @@ namespace Ifrit::Engine::TileRaster {
 		context->coverQueue.resize(context->numThreads);
 		context->workerIdleTime.resize(context->numThreads);
 		context->assembledTriangles.resize(context->numThreads);
+		context->threadSafeFS.resize(context->numThreads);
+		context->threadSafeVS.resize(context->numThreads);
 		context->blendState.blendEnable = false;
 		
 		createWorkers();

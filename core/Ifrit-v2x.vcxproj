@@ -48,11 +48,13 @@
     <IncludePath>C:\Program Files (x86)\LLVM\include;C:\Users\Huang\Desktop\Tool\glfw-3.3.8\include;$(ProjectDir)include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <ExternalIncludePath>C:\Program Files (x86)\glfw-3.3.8\lib;C:\Program Files (x86)\LLVM\lib;$(ExternalIncludePath)</ExternalIncludePath>
     <LibraryPath>C:\Program Files (x86)\glfw-3.3.8\lib;C:\Program Files (x86)\LLVM\lib;$(LibraryPath)</LibraryPath>
+    <TargetName>Ifrit.Core</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>C:\Program Files (x86)\LLVM\include;C:\Users\Huang\Desktop\Tool\glfw-3.3.8\include;$(ProjectDir)include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <ExternalIncludePath>C:\Program Files (x86)\glfw-3.3.8\lib;C:\Program Files (x86)\LLVM\lib;$(ExternalIncludePath)</ExternalIncludePath>
     <LibraryPath>C:\Program Files (x86)\glfw-3.3.8\lib;C:\Program Files (x86)\LLVM\lib;$(LibraryPath)</LibraryPath>
+    <TargetName>Ifrit.Core</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -60,16 +62,17 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir);$(ProjectDir)..\components\llvmexec\Ifrit-v2-Component-LLVMExec\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>LLVMMCJIT.lib;LLVMInterpreter.lib;LLVMExecutionEngine.lib;LLVMRuntimeDyld.lib;LLVMOrcTargetProcess.lib;LLVMOrcShared.lib;LLVMCodeGen.lib;LLVMTarget.lib;LLVMScalarOpts.lib;LLVMInstCombine.lib;LLVMAggressiveInstCombine.lib;LLVMObjCARCOpts.lib;LLVMTransformUtils.lib;LLVMCodeGenTypes.lib;LLVMBitWriter.lib;LLVMAnalysis.lib;LLVMProfileData.lib;LLVMSymbolize.lib;LLVMDebugInfoBTF.lib;LLVMDebugInfoPDB.lib;LLVMDebugInfoMSF.lib;LLVMDebugInfoDWARF.lib;LLVMObject.lib;LLVMTextAPI.lib;LLVMMCParser.lib;LLVMIRReader.lib;LLVMAsmParser.lib;LLVMMC.lib;LLVMDebugInfoCodeView.lib;LLVMBitReader.lib;LLVMCore.lib;LLVMRemarks.lib;LLVMBitstreamReader.lib;LLVMBinaryFormat.lib;LLVMTargetParser.lib;LLVMSupport.lib;LLVMDemangle.lib;glfw3.lib;ntdll.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ifrit.Components.LLVMExec.lib;glfw3.lib;ntdll.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>LinkVerbose</ShowProgress>
       <Profile>false</Profile>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\components\llvmexec\Ifrit-v2-Component-LLVMExec\build;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -89,7 +92,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir);$(ProjectDir)..\components\llvmexec\Ifrit-v2-Component-LLVMExec\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -99,10 +102,11 @@
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>false</OptimizeReferences>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>LLVM-C.lib;LLVMAggressiveInstCombine.lib;LLVMAnalysis.lib;LLVMAsmParser.lib;LLVMAsmPrinter.lib;LLVMBinaryFormat.lib;LLVMBitReader.lib;LLVMBitstreamReader.lib;LLVMBitWriter.lib;LLVMCFGuard.lib;LLVMCFIVerify.lib;LLVMCGData.lib;LLVMCodeGen.lib;LLVMCodeGenTypes.lib;LLVMCore.lib;LLVMCoroutines.lib;LLVMCoverage.lib;LLVMDebugInfoBTF.lib;LLVMDebugInfoCodeView.lib;LLVMDebuginfod.lib;LLVMDebugInfoDWARF.lib;LLVMDebugInfoGSYM.lib;LLVMDebugInfoLogicalView.lib;LLVMDebugInfoMSF.lib;LLVMDebugInfoPDB.lib;LLVMDemangle.lib;LLVMDiff.lib;LLVMDlltoolDriver.lib;LLVMDWARFLinker.lib;LLVMDWARFLinkerClassic.lib;LLVMDWARFLinkerParallel.lib;LLVMDWP.lib;LLVMExecutionEngine.lib;LLVMExegesis.lib;LLVMExegesisX86.lib;LLVMExtensions.lib;LLVMFileCheck.lib;LLVMFrontendDriver.lib;LLVMFrontendHLSL.lib;LLVMFrontendOffloading.lib;LLVMFrontendOpenACC.lib;LLVMFrontendOpenMP.lib;LLVMFuzzerCLI.lib;LLVMFuzzMutate.lib;LLVMGlobalISel.lib;LLVMHipStdPar.lib;LLVMInstCombine.lib;LLVMInstrumentation.lib;LLVMInterfaceStub.lib;LLVMInterpreter.lib;LLVMipo.lib;LLVMIRPrinter.lib;LLVMIRReader.lib;LLVMJITLink.lib;LLVMLibDriver.lib;LLVMLineEditor.lib;LLVMLinker.lib;LLVMLTO.lib;LLVMMC.lib;LLVMMCA.lib;LLVMMCDisassembler.lib;LLVMMCJIT.lib;LLVMMCParser.lib;LLVMMIRParser.lib;LLVMObjCARCOpts.lib;LLVMObjCopy.lib;LLVMObject.lib;LLVMObjectYAML.lib;LLVMOptDriver.lib;LLVMOption.lib;LLVMOrcDebugging.lib;LLVMOrcJIT.lib;LLVMOrcShared.lib;LLVMOrcTargetProcess.lib;LLVMPasses.lib;LLVMProfileData.lib;LLVMRemarks.lib;LLVMRuntimeDyld.lib;LLVMSandboxIR.lib;LLVMScalarOpts.lib;LLVMSelectionDAG.lib;LLVMSupport.lib;LLVMSymbolize.lib;LLVMTableGen.lib;LLVMTableGenBasic.lib;LLVMTableGenCommon.lib;LLVMTarget.lib;LLVMTargetParser.lib;LLVMTextAPI.lib;LLVMTextAPIBinaryReader.lib;LLVMTransformUtils.lib;LLVMVectorize.lib;LLVMWindowsDriver.lib;LLVMWindowsManifest.lib;LLVMX86AsmParser.lib;LLVMX86CodeGen.lib;LLVMX86Desc.lib;LLVMX86Disassembler.lib;LLVMX86Info.lib;LLVMX86TargetMCA.lib;LLVMXRay.lib;LTO.lib;Remarks.lib;glfw3.lib;ntdll.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ifrit.Components.LLVMExec.lib;glfw3.lib;ntdll.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>LinkVerboseLib</ShowProgress>
       <Profile>false</Profile>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\components\llvmexec\Ifrit-v2-Component-LLVMExec\build;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -132,9 +136,11 @@
     <ClInclude Include="demo\shader\SkyboxShaders.cuh" />
     <ClInclude Include="demo\Skybox.h" />
     <ClInclude Include="include\dependency\spirv.h" />
+    <ClInclude Include="include\engine\base\ShaderRuntime.h" />
     <ClInclude Include="include\engine\base\Shaders.h" />
     <ClInclude Include="include\engine\base\Constants.h" />
     <ClInclude Include="include\engine\base\Structures.h" />
+    <ClInclude Include="include\engine\comllvmrt\WrappedLLVMRuntime.h" />
     <ClInclude Include="include\engine\export\EngineCommonExport.h" />
     <ClInclude Include="include\engine\export\TileRasterRendererExport.h" />
     <ClInclude Include="include\engine\math\ShaderBuiltinCuda.cuh" />
@@ -144,6 +150,7 @@
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMContext.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMInterpreter.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMReader.h" />
+    <ClInclude Include="include\engine\shadervm\spirv\SpvVMShader.h" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cuh" />
     <ClInclude Include="include\engine\tilerastercuda\TileRasterCommonResourceCuda.cuh" />
     <ClInclude Include="include\IfritExports.h" />
@@ -201,11 +208,13 @@
     <ClCompile Include="src\core\definition\CoreDefs.cpp" />
     <ClCompile Include="src\core\export\CommonExport.cpp" />
     <ClCompile Include="src\engine\base\TypeDescriptor.cpp" />
+    <ClCompile Include="src\engine\comllvmrt\WarppedLLVMRuntime.cpp" />
     <ClCompile Include="src\engine\export\EngineCommonExport.cpp" />
     <ClCompile Include="src\engine\export\TileRasterRendererExport.cpp" />
     <ClCompile Include="src\engine\meshletbuilder\MeshletBuilder.cpp" />
     <ClCompile Include="src\engine\shadervm\spirv\SpvVMInterpreter.cpp" />
     <ClCompile Include="src\engine\shadervm\spirv\SpvVMReader.cpp" />
+    <ClCompile Include="src\engine\shadervm\spirv\SpvVMShader.cpp" />
     <ClCompile Include="src\presentation\backend\AdaptiveBackendBuilder.cpp" />
     <ClCompile Include="src\presentation\window\AdaptiveWindowBuilder.cpp" />
     <ClCompile Include="src\utility\loader\ImageLoader.cpp" />

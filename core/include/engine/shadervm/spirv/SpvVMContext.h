@@ -44,6 +44,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::unordered_map<SpvVMIntermediateReprAttribute, int> attributes;
 		std::vector<SpvVMIntermediateReprBlock*> children;
 	};
+	
+	struct SpvShaderExternalMappings {
+		std::vector<std::string> inputVarSymbols;
+		std::vector<std::string> outputVarSymbols;
+		std::string mainFuncSymbol;
+	};
 
 	struct SpvVMIntermediateReprExpTarget {
 		int id = -1;
@@ -60,6 +66,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		bool isVariable = false;
 		bool isLabel = false;
 		bool isInstance = false;
+		bool isGlobal = false;
 		bool isAccessChain = false;
 		bool named = false;
 
@@ -72,6 +79,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::string name;
 		std::string debugString;
 		int decoration;
+		int location = -1;
 		std::vector<std::string> memberName;
 		std::vector<int> memberDecoration;
 		std::vector<int> memberOffset;
@@ -118,6 +126,9 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		int currentInst = 0;
 		std::stringstream generatedIR;
 		std::stringstream functionInstIR;
+
+		/* Shaderr Link */
+		SpvShaderExternalMappings shaderMaps;
 	};
 
 	struct SpvVMContext {

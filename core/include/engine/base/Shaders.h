@@ -17,6 +17,7 @@ namespace Ifrit::Engine {
 		uint32_t atTextureHei[32];
 		IfritSamplerT atSamplerPtr[32];
 		char* atBuffer[32];
+		bool isThreadSafe = true;
 	};
 
 	class IFRIT_APIDECL VertexShader :public ShaderBase {
@@ -27,6 +28,7 @@ namespace Ifrit::Engine {
 			VaryingStore* const* outVaryings
 		) = 0;
 		IFRIT_HOST virtual VertexShader* getCudaClone() { return nullptr; };
+		IFRIT_HOST virtual VertexShader* getThreadLocalCopy() { return nullptr; };
 	};
 
 	class IFRIT_APIDECL FragmentShader :public ShaderBase {
@@ -38,6 +40,7 @@ namespace Ifrit::Engine {
 			float* fragmentDepth
 		) = 0;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() { return nullptr; };
+		IFRIT_HOST virtual FragmentShader* getThreadLocalCopy() { return nullptr; };
 	};
 
 	class IFRIT_APIDECL GeometryShader :public ShaderBase {

@@ -20,6 +20,10 @@ namespace Ifrit::Engine::TileRaster {
 		VaryingDescriptor* varyingDescriptor;
 		FragmentShader* fragmentShader;
 
+		// Thread-safe Calls
+		std::vector<VertexShader*> threadSafeVS;
+		std::vector<FragmentShader*> threadSafeFS;
+
 		// Resources
 		std::unique_ptr<VertexShaderResult> vertexShaderResult;
 		std::vector<std::vector<std::vector<TileBinProposal>>> rasterizerQueue;

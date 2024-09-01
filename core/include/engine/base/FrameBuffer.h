@@ -2,7 +2,7 @@
 #include "core/data/Image.h"
 
 
-namespace Ifrit::Engine {
+namespace Ifrit::Engine{
 	using Ifrit::Core::Data::ImageU8;
 	using Ifrit::Core::Data::ImageF32;
 

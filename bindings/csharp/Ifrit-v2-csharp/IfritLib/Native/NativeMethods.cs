@@ -10,6 +10,6 @@ namespace IfritLib.Native
 {
     internal static partial class NativeMethods
     {
-        public const string DllName = "Ifrit-v2x.dll";
+        public const string DllName = "Ifrit.Core.dll";
     }
 }
