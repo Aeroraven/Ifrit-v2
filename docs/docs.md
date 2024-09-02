@@ -12,7 +12,7 @@ public:
     void bindFrameBuffer(FrameBuffer& frameBuffer);
     void bindVertexBuffer(const VertexBuffer& vertexBuffer);
     void bindIndexBuffer(const std::vector<int>& indexBuffer);
-    void bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor);
+    void bindVertexShader(VertexShader& vertexShader);
     void bindFragmentShader(FragmentShader& fragmentShader);
     void intializeRenderContext();
     void setBlendFunc(IfritColorAttachmentBlendState state);

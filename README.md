@@ -140,76 +140,19 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 
 ## Dependencies
 
-#### Minimal Requirement (Native)
-
-- **Display Dependencies**: 
-  - OpenGL (GLFW3.3 + GLAD)
-- **Compilation Dependencies:** One of following environments. Requires `c++20` support.
-  - MSVC 19.29 + Visual Studio 2022 
-  - CMake 3.28 + GCC 13.2 (MinGW Included) `[CUDA Support is unknown]`
-- **Optional**: CUDA is optional, but when compiling with CUDA:
-  - CUDA >= 12.5
-
-
-
-#### Minimal Requirement (C# Wrapper)
-
-- **Framework**: .NET 8.0
-
-
-
-#### Recommended Requirement (Native)
-
-- **Hardware Requirements:**  
-  - CUDA 12.6
-  - AVX2 Support
-- **Display Dependencies**: 
-  - OpenGL (GLFW3.3 + GLAD)
-- **Compilation Dependencies:** Requires `c++20` support.
-  - MSVC 19.29 + Visual Studio 2022 
-
-
+See [Requirements & Build Instructions](./docs/requirement.md)
 
 
 
 ## Setup / Run
 
-### Dependency Installation
-
-Some dependencies should be prepared before compiling.
-
-- Place `GLAD` dependency in ` core/include/dependency/GLAD/glad/glad.h` and `core/include/dependency/GLAD/KHR/khrplatform.h`
-- Place `sbt_image` in `core/include/dependency/sbt_image.h`
-
-Change CUDA path and GLFW3 library path in `core/CMakeLists.txt` 
-
-
-
-### Compile using G++ / MinGW
-
-Follow instructions to build
-
-```cmake
-cmake -S core -B ./build
-cd build
-make
-```
-
-
-
-### Compile using Visual Studio
-
-Open `Ifrit-v2x.sln` in Visual Studio 2022.
-
-- Edit the property sheet to help the linker find CUDA and GLFW3 library file.
-
-
+See [Requirements & Build Instructions](./docs/requirement.md)
 
 
 
 ## Abstractions / Usage
 
-See `DOCS.md` for more details.
+See  [Usage](./docs/docs.md) for more details.
 
 
 
