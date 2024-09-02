@@ -1,5 +1,6 @@
 #include "engine/shadervm/spirv/SpvVMInterpreter.h"
 #include "./dependency/spirv.h"
+
 namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 	enum SpvVMAnalysisPass {
 		IFSP_VMA_PASS_FIRST,
@@ -373,6 +374,11 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			if (decoration == spv::Decoration::DecorationBinding) {
 				irContextGlobal->targets[targetId].binding = params[2];
 			}
+			if (decoration == spv::Decoration::DecorationBuiltIn) {
+				if (params[2] == spv::BuiltIn::BuiltInPosition) {
+					irContextGlobal->targets[targetId].isBuiltinPos = true;
+				}
+			}
 			irContextGlobal->targets[targetId].decoration = decoration;
 			irContextGlobal->targets[targetId].id = targetId;
 		}
@@ -734,19 +740,24 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 					irContextGlobal->shaderMaps.inputVarSymbols[location] = varName;
 					irContextGlobal->shaderMaps.inputSize[location] = byteReq;
 				}else if(storageClass == spv::StorageClass::StorageClassOutput) {
-					auto location = irContextGlobal->targets[targetId].location;
-					auto byteReq = getVariableSize(&irContextGlobal->targets[targetId], irContextGlobal);
+					if (irContextGlobal->targets[targetId].isBuiltinPos) {
+						irContextGlobal->shaderMaps.builtinPositionSymbol = varName;
+					}
+					else {
+						auto location = irContextGlobal->targets[targetId].location;
+						auto byteReq = getVariableSize(&irContextGlobal->targets[targetId], irContextGlobal);
 
-					if (location == -1) {
-						ERROR_PREFIX
-						printf("Invalid output location\n");
+						if (location == -1) {
+							ERROR_PREFIX
+								printf("Invalid output location\n");
+						}
+						if (irContextGlobal->shaderMaps.outputVarSymbols.size() <= location) {
+							irContextGlobal->shaderMaps.outputVarSymbols.resize(location + 1);
+							irContextGlobal->shaderMaps.outputSize.resize(location + 1);
+						}
+						irContextGlobal->shaderMaps.outputVarSymbols[location] = varName;
+						irContextGlobal->shaderMaps.outputSize[location] = byteReq;
 					}
-					if (irContextGlobal->shaderMaps.outputVarSymbols.size() <= location) {
-						irContextGlobal->shaderMaps.outputVarSymbols.resize(location + 1);
-						irContextGlobal->shaderMaps.outputSize.resize(location + 1);
-					}
-					irContextGlobal->shaderMaps.outputVarSymbols[location] = varName;
-					irContextGlobal->shaderMaps.outputSize[location] = byteReq;
 				}
 				else if (storageClass == spv::StorageClass::StorageClassUniform) {
 					auto binding = irContextGlobal->targets[targetId].binding;
@@ -1756,6 +1767,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		for (auto& x : outIr->shaderMaps.outputVarSymbols) cleanUpSymbolPrefix(x);
 		for (auto& x : outIr->shaderMaps.uniformVarSymbols) cleanUpSymbolPrefix(x);
 		cleanUpSymbolPrefix(outIr->shaderMaps.mainFuncSymbol);
+		cleanUpSymbolPrefix(outIr->shaderMaps.builtinPositionSymbol);
 	}
 
 	void SpvVMInterpreter::exportLlvmIR(SpvVMIntermediateRepresentation* ir, std::string* outLlvmIR) {

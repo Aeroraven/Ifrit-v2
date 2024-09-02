@@ -16,6 +16,8 @@ namespace Ifrit::Engine {
 		VaryingDescriptorContext* context;
 	public:
 		VaryingDescriptor();
+		VaryingDescriptor(const VaryingDescriptor& x) = delete;
+		VaryingDescriptor(VaryingDescriptor&& x) IFRIT_NOTHROW;
 		~VaryingDescriptor();
 		void setVaryingDescriptors(const std::vector<TypeDescriptor>& varyingDescriptors);
 		void applyVaryingDescriptors(VertexShaderResult* varyingBuffer);

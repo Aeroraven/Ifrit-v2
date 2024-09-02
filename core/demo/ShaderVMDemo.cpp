@@ -31,50 +31,6 @@ using namespace Ifrit::Engine::ComLLVMRuntime;
 
 namespace Ifrit::Demo::ShaderVMDemo {
 
-	class DemoVertexShader2 : public VertexShader {
-	public:
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override {
-			auto s = *reinterpret_cast<const ifloat4*>(input[0]);
-			*outPos = s;
-			outVaryings[0]->vf4 = *reinterpret_cast<const ifloat4*>(input[1]);
-		}
-	};
-
-	class DemoFragmentShader2 : public FragmentShader {
-	public:
-		IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput, float* fragmentDepth) override {
-			ifloat4 result = ((const VaryingStore*)varyings)[0].vf4;
-			constexpr float fw = 0.5;
-			result.x = fw;
-			result.y = fw;
-			result.z = fw;
-			result.w = 0.5;
-			auto& co = ((ifloat4*)colorOutput)[0];
-			co = result;
-		}
-	};
-	
-	int mainEntry() {
-		
-		SpvVMReader reader;
-		SpvVMContext context;
-		SpvVMInterpreter interpreter;
-		SpvVMIntermediateRepresentation irctx;
-		std::string outLlvmIr;
-		auto bytecode = reader.readFile( IFRIT_ASSET_PATH"/shaders/helloworld.hlsl.spv");
-		reader.initializeContext(&context);
-		reader.parseByteCode(bytecode.data(), bytecode.size() / 4, &context);
-		reader.printParsedInstructions(&context);
-		interpreter.parseRawContext(&context, &irctx);
-		interpreter.exportLlvmIR(&irctx, &outLlvmIr);
-
-		WrappedLLVMRuntime irt;
-		irt.initLlvmBackend();
-		irt.loadIR(outLlvmIr, "Test");
-		
-		return 0;
-	}
-
 	int mainTest() {
 		constexpr int DEMO_RESOLUTION = 512;
 		std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
@@ -84,7 +40,6 @@ namespace Ifrit::Demo::ShaderVMDemo {
 
 		VertexBuffer vertexBuffer;
 		vertexBuffer.setLayout({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
-
 
 		vertexBuffer.setVertexCount(3);
 		vertexBuffer.allocateBuffer(3);
@@ -107,22 +62,21 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		renderer->optsetForceDeterministic(true);
 
 		struct Uniform {
-			ifloat4 t1 = { 10,0,0,0 };
-			ifloat4 t2 = { 0,0,0,0 };
+			ifloat4 t1 = { 0,0,0,0 };
+			ifloat4 t2 = { 0.1,0,0,0 };
 		} uniform;
 		renderer->bindUniformBuffer(0, 0, &uniform);
 
 
 		WrappedLLVMRuntime::initLlvmBackend();
 
-		DemoVertexShader2 vertexShader;
-		VaryingDescriptor vertexShaderLayout;
-		vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
-		renderer->bindVertexShaderLegacy(vertexShader, vertexShaderLayout);
-		
-		WrappedLLVMRuntime fsRuntime;
 		SpvVMReader reader;
-		auto fsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/helloworld.hlsl.spv");
+		auto fsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/demo.frag.hlsl.spv");
+		auto vsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/demo.vert.hlsl.spv");
+		
+		WrappedLLVMRuntime fsRuntime, vsRuntime;
+		SpvVertexShader vertexShader(&vsRuntime, vsCode);
+		renderer->bindVertexShader(vertexShader);
 		SpvFragmentShader fragmentShader(&fsRuntime,fsCode);
 		renderer->bindFragmentShader(fragmentShader);
 

@@ -2,6 +2,7 @@
 
 #include "engine/base/VaryingStore.h"
 #include "engine/base/Structures.h"
+#include "engine/base/VaryingDescriptor.h"
 
 namespace Ifrit::Engine {
 	enum GeometryShaderTopology {
@@ -31,6 +32,7 @@ namespace Ifrit::Engine {
 		IFRIT_HOST virtual VertexShader* getThreadLocalCopy() { return nullptr; };
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) {}
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return{}; }
+		IFRIT_HOST virtual VaryingDescriptor getVaryingDescriptor() { return{}; }
 	};
 
 	class IFRIT_APIDECL FragmentShader :public ShaderBase {

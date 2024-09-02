@@ -1,6 +1,10 @@
 #include "engine/base/VaryingDescriptor.h"
 
 namespace Ifrit::Engine {
+	IFRIT_APIDECL VaryingDescriptor::VaryingDescriptor(VaryingDescriptor&& x) IFRIT_NOTHROW{
+		this->context = x.context;
+		x.context = nullptr;
+	}
 	IFRIT_APIDECL void VaryingDescriptor::setVaryingDescriptors(const std::vector<TypeDescriptor>& varyingDescriptors) {
 		this->context->varyingDescriptors = varyingDescriptors;
 
@@ -14,7 +18,7 @@ namespace Ifrit::Engine {
 		this->context = new std::remove_pointer_t<decltype(this->context)>();
 	}
 	IFRIT_APIDECL VaryingDescriptor::~VaryingDescriptor() {
-		delete this->context;
+		if(this->context)delete this->context;
 	}
 
 	/* DLL Compatible */

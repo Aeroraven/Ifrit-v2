@@ -41,6 +41,9 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 			};
 		}
 		this->symbolTables.entry = this->runtime->lookupSymbol(svmir->shaderMaps.mainFuncSymbol);
+		if (svmir->shaderMaps.builtinPositionSymbol.size()) {
+			this->symbolTables.builtinPosition = this->runtime->lookupSymbol(svmir->shaderMaps.builtinPositionSymbol);
+		}
 	}
 
 	SpvVertexShader::SpvVertexShader(ShaderRuntime* runtime, std::vector<char> irByteCode):SpvRuntimeBackend(runtime, irByteCode){
@@ -61,10 +64,20 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 
 	IFRIT_HOST std::vector<std::pair<int, int>> SpvVertexShader::getUniformList(){
 		std::vector<std::pair<int, int>> ret;
-		for (auto p : this->symbolTables.uniform) {
+		for (auto& p : this->symbolTables.uniform) {
 			ret.push_back(p.first);
 		}
 		return ret;
+	}
+
+	IFRIT_HOST VaryingDescriptor SpvVertexShader::getVaryingDescriptor(){
+		VaryingDescriptor vdesc;
+		std::vector<TypeDescriptor> tpDesc{};
+		for (int i = 0; i < symbolTables.outputs.size(); i++) {
+			tpDesc.push_back(TypeDescriptors.FLOAT4);
+		}
+		vdesc.setVaryingDescriptors(tpDesc);
+		return vdesc;
 	}
 	
 	SpvFragmentShader::SpvFragmentShader(ShaderRuntime* runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
@@ -84,12 +97,16 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	}
 
 	void SpvVertexShader::execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) {
-		//TODO: Input & Outputfsss
+		//TODO: Input & Output
 		for (int i = 0; i < symbolTables.inputBytes.size(); i++) {
 			memcpy(symbolTables.inputs[i], input[i], symbolTables.inputBytes[i]);
 		}
 		auto shaderEntry = (void(*)())this->symbolTables.entry;
 		shaderEntry();
+		for (int i = 0; i < symbolTables.outputs.size(); i++) {
+			memcpy(outVaryings[i], symbolTables.outputs[i], symbolTables.outputBytes[i]);
+		}
+		if(symbolTables.builtinPosition) memcpy(outPos, symbolTables.builtinPosition, 16);
 
 	}
 	IFRIT_HOST VertexShader* SpvVertexShader::getCudaClone(){
@@ -114,7 +131,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	
 	IFRIT_HOST std::vector<std::pair<int, int>> SpvFragmentShader::getUniformList() {
 		std::vector<std::pair<int, int>> ret;
-		for (auto p : this->symbolTables.uniform) {
+		for (auto& p : this->symbolTables.uniform) {
 			ret.push_back(p.first);
 		}
 		return ret;

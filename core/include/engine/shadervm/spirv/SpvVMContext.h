@@ -56,6 +56,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::vector<int> outputSize;
 		std::vector<int> uniformSize;
 		std::string mainFuncSymbol;
+		std::string builtinPositionSymbol;
 	};
 
 	struct SpvVMIntermediateReprExpTarget {
@@ -88,6 +89,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		int decoration;
 		int location = -1;
 		int binding = -1, descSet = -1;
+		bool isBuiltinPos = false;
 		std::vector<std::string> memberName;
 		std::vector<int> memberDecoration;
 		std::vector<int> memberOffset;

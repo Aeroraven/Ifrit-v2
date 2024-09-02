@@ -45,9 +45,13 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | **Integration (Wrapper)**                   |                                                              |                 |               |
 | C++ DLL                                     |                                                              | ▲               |               |
 | .NET Library (`C#`)                         |                                                              | ▲               |               |
+| **Shader Language**                         |                                                              |                 |               |
+| In-Application Class                        | √                                                            | √               | √             |
+| SPIR-V Binary / HLSL                        |                                                              | ▲ (OrcJIT)      |               |
+| SPIR-V Binary / GLSL                        |                                                              |                 |               |
 | **Pipeline**                                |                                                              |                 |               |
 | Programmable Vertex Shader                  | √                                                            | √               | √             |
-| Programmable Fragment Shader                | √                                                            | √               | √             |
+| Programmable Pixel Shader                   | √                                                            | √               | √             |
 | Programmable Geometry Shader                |                                                              |                 | ▲             |
 | Programmable Mesh Shader                    |                                                              |                 | ▲             |
 | Programmable Task Shader                    |                                                              |                 | ▲             |
@@ -221,10 +225,13 @@ See `DOCS.md` for more details.
   - [ ] Tiling
 - [x] Multi-sampling
   - [ ] Blending Integration
-
 - [x] Alpha Blending
   - [x] Sorting
 - [x] Mesh Shader
+- [x] Shader Virtual Machine
+  - [ ] Matrix Operations
+  - [ ] Optimization
+
 - [ ] Input Topology
 - [ ] Triangle Cluster & Cluster LOD
 - [ ] Known Issues

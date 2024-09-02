@@ -12,7 +12,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::vector<void*> outputs;
 		std::vector<int> outputBytes;
 		std::unordered_map<std::pair<int, int>, std::pair<void*, int>,Ifrit::Core::Utility::PairHash> uniform;
-		void* entry;
+		void* entry = nullptr;
+		void* builtinPosition = nullptr;
 	};
 	class SpvRuntimeBackend {
 	protected:
@@ -45,6 +46,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		IFRIT_HOST virtual VertexShader* getThreadLocalCopy() override;
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
+		IFRIT_HOST virtual VaryingDescriptor getVaryingDescriptor() override;
 	};
 
 	class SpvFragmentShader final: public FragmentShader, public SpvRuntimeBackend {

@@ -48,6 +48,11 @@ namespace Ifrit::Engine::TileRaster {
 		this->context->indexBuffer = &indexBuffer;
 	}
 
+	IFRIT_APIDECL void TileRasterRenderer::bindVertexShader(VertexShader& vertexShader){
+		this->context->owningVaryingDesc = std::make_unique<VaryingDescriptor>(std::move(vertexShader.getVaryingDescriptor()));
+		bindVertexShaderLegacy(vertexShader, *this->context->owningVaryingDesc);
+	}
+
 	IFRIT_APIDECL void TileRasterRenderer::bindVertexShaderLegacy(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor) {
 		this->context->vertexShader = &vertexShader;
 		this->context->varyingDescriptor = &varyingDescriptor;
