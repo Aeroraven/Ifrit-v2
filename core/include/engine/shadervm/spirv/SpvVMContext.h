@@ -50,8 +50,11 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	struct SpvShaderExternalMappings {
 		std::vector<std::string> inputVarSymbols;
 		std::vector<std::string> outputVarSymbols;
+		std::vector<std::string> uniformVarSymbols;
+		std::vector<std::pair<int, int>> uniformVarLoc;
 		std::vector<int> inputSize;
 		std::vector<int> outputSize;
+		std::vector<int> uniformSize;
 		std::string mainFuncSymbol;
 	};
 
@@ -84,6 +87,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::string debugString;
 		int decoration;
 		int location = -1;
+		int binding = -1, descSet = -1;
 		std::vector<std::string> memberName;
 		std::vector<int> memberDecoration;
 		std::vector<int> memberOffset;

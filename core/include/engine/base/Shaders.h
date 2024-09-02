@@ -29,6 +29,8 @@ namespace Ifrit::Engine {
 		) = 0;
 		IFRIT_HOST virtual VertexShader* getCudaClone() { return nullptr; };
 		IFRIT_HOST virtual VertexShader* getThreadLocalCopy() { return nullptr; };
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) {}
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return{}; }
 	};
 
 	class IFRIT_APIDECL FragmentShader :public ShaderBase {
@@ -41,6 +43,8 @@ namespace Ifrit::Engine {
 		) = 0;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() { return nullptr; };
 		IFRIT_HOST virtual FragmentShader* getThreadLocalCopy() { return nullptr; };
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) {}
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return{}; }
 	};
 
 	class IFRIT_APIDECL GeometryShader :public ShaderBase {

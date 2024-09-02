@@ -40,11 +40,15 @@ namespace Ifrit::Engine::TileRaster {
 		}
 	}
 
+	IFRIT_APIDECL void TileRasterRenderer::bindUniformBuffer(int binding, int set, const void* pBuffer) {
+		this->context->uniformMapping[{binding, set}] = pBuffer;
+	}
+
 	IFRIT_APIDECL void TileRasterRenderer::bindIndexBuffer(const std::vector<int>& indexBuffer) {
 		this->context->indexBuffer = &indexBuffer;
 	}
 
-	IFRIT_APIDECL void TileRasterRenderer::bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor) {
+	IFRIT_APIDECL void TileRasterRenderer::bindVertexShaderLegacy(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor) {
 		this->context->vertexShader = &vertexShader;
 		this->context->varyingDescriptor = &varyingDescriptor;
 		shaderBindingDirtyFlag = true;
@@ -268,6 +272,25 @@ namespace Ifrit::Engine::TileRaster {
 			context->coverQueue[i].resize(totalTiles);
 		}
 	}
+
+	void TileRasterRenderer::updateUniformBuffer(){
+		auto vsUniforms = context->vertexShader->getUniformList();
+		auto fsUniforms = context->fragmentShader->getUniformList();
+		for (int i = 0; i < context->numThreads; i++) {
+			auto numCopies = (context->vertexShader->isThreadSafe) ? 1 : context->numThreads;
+			for (auto& x : vsUniforms) {
+				if (context->uniformMapping.count(x)) {
+					context->threadSafeVS[i]->updateUniformData(x.first, x.second, context->uniformMapping[x]);
+				}
+			}
+			for (auto& x : fsUniforms) {
+				if (context->uniformMapping.count(x)) {
+					context->threadSafeFS[i]->updateUniformData(x.first, x.second, context->uniformMapping[x]);
+				}
+			}
+		}
+	}
+
 	IFRIT_APIDECL void TileRasterRenderer::init() {
 		context = std::make_shared<TileRasterContext>();
 		context->rasterizerQueue.resize(context->numThreads);
@@ -291,6 +314,7 @@ namespace Ifrit::Engine::TileRaster {
 
 	IFRIT_APIDECL void TileRasterRenderer::render(bool clearFramebuffer) IFRIT_AP_NOTHROW {
 		intializeRenderContext();
+		updateUniformBuffer();
 		resetWorkers();
 		unresolvedTileRaster.store(0,std::memory_order_seq_cst);
 		unresolvedTileFragmentShading.store(0, std::memory_order_seq_cst);

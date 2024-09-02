@@ -44,6 +44,7 @@ namespace Ifrit::Engine::TileRaster {
 		int fetchUnresolvedTileSort();
 
 		void updateVectorCapacity();
+		void updateUniformBuffer();
 
 	public:
 		friend class TileRasterWorker;
@@ -52,8 +53,9 @@ namespace Ifrit::Engine::TileRaster {
 		IFRIT_APIDECL void bindFrameBuffer(FrameBuffer& frameBuffer);
 		IFRIT_APIDECL void bindVertexBuffer(const VertexBuffer& vertexBuffer);
 		IFRIT_APIDECL void bindIndexBuffer(const std::vector<int>& indexBuffer);
-		IFRIT_APIDECL void bindVertexShader(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor);
+		IFRIT_APIDECL void bindVertexShaderLegacy(VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor);
 		IFRIT_APIDECL void bindFragmentShader(FragmentShader& fragmentShader);
+		IFRIT_APIDECL void bindUniformBuffer(int binding, int set, const void* pBuffer);
 		IFRIT_APIDECL void setBlendFunc(IfritColorAttachmentBlendState state);
 		IFRIT_APIDECL void setDepthFunc(IfritCompareOp depthFunc);
 

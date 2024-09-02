@@ -54,7 +54,7 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindVertexShaderFunc(IFRIT_TRTP* hIn
 	IFRIT_BASENS::VaryingDescriptor* vsOutDescriptors) IFRIT_EXPORT_COMPAT_NOTHROW {
 	auto vsInst = std::make_unique<VertexShaderFunctionalWrapper>();
 	vsInst->func = func;
-	hInstance->renderer->bindVertexShader(*vsInst, *vsOutDescriptors);
+	hInstance->renderer->bindVertexShaderLegacy(*vsInst, *vsOutDescriptors);
 	hInstance->allocatedFuncWrappers.push_back(std::move(vsInst));
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindFragmentShaderFunc(IFRIT_TRTP* hInstance, IFRIT_BASENS::FragmentShaderFunctionalPtr func) IFRIT_EXPORT_COMPAT_NOTHROW {

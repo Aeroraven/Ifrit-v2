@@ -106,12 +106,19 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		renderer->bindIndexBuffer(indexBuffer);
 		renderer->optsetForceDeterministic(true);
 
+		struct Uniform {
+			ifloat4 t1 = { 10,0,0,0 };
+			ifloat4 t2 = { 0,0,0,0 };
+		} uniform;
+		renderer->bindUniformBuffer(0, 0, &uniform);
+
+
 		WrappedLLVMRuntime::initLlvmBackend();
 
 		DemoVertexShader2 vertexShader;
 		VaryingDescriptor vertexShaderLayout;
 		vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
-		renderer->bindVertexShader(vertexShader, vertexShaderLayout);
+		renderer->bindVertexShaderLegacy(vertexShader, vertexShaderLayout);
 		
 		WrappedLLVMRuntime fsRuntime;
 		SpvVMReader reader;

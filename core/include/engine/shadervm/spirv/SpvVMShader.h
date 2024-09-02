@@ -11,6 +11,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::vector<int> inputBytes;
 		std::vector<void*> outputs;
 		std::vector<int> outputBytes;
+		std::unordered_map<std::pair<int, int>, std::pair<void*, int>,Ifrit::Core::Utility::PairHash> uniform;
 		void* entry;
 	};
 	class SpvRuntimeBackend {
@@ -33,7 +34,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		void updateSymbolTable(bool isCopy);
 	};
 
-	class SpvVertexShader : public VertexShader, public SpvRuntimeBackend {
+	class SpvVertexShader final: public VertexShader, public SpvRuntimeBackend {
 	protected:
 		SpvVertexShader(const SpvVertexShader& p);
 	public:
@@ -42,9 +43,11 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override;
 		IFRIT_HOST virtual VertexShader* getCudaClone() override;
 		IFRIT_HOST virtual VertexShader* getThreadLocalCopy() override;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
 	};
 
-	class SpvFragmentShader : public FragmentShader, public SpvRuntimeBackend {
+	class SpvFragmentShader final: public FragmentShader, public SpvRuntimeBackend {
 	protected:
 		SpvFragmentShader(const SpvFragmentShader& p);
 	public:
@@ -53,5 +56,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		IFRIT_DUAL virtual void execute(const void* varyings,void* colorOutput,	float* fragmentDepth) override;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() override;
 		IFRIT_HOST virtual FragmentShader* getThreadLocalCopy() override;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
 	};
 }

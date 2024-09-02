@@ -157,7 +157,7 @@ namespace Ifrit::Demo::DemoDefault {
 		DemoVertexShader vertexShader;
 		VaryingDescriptor vertexShaderLayout;
 		vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
-		renderer->bindVertexShader(vertexShader, vertexShaderLayout);
+		renderer->bindVertexShaderLegacy(vertexShader, vertexShaderLayout);
 		DemoFragmentShader fragmentShader;
 		renderer->bindFragmentShader(fragmentShader);
 

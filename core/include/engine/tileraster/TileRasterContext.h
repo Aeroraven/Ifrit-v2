@@ -26,6 +26,7 @@ namespace Ifrit::Engine::TileRaster {
 		VertexShader* vertexShader;
 		VaryingDescriptor* varyingDescriptor;
 		FragmentShader* fragmentShader;
+		std::unordered_map<std::pair<int, int>, const void*,Ifrit::Core::Utility::PairHash> uniformMapping;
 
 		// Thread-safe Calls
 		std::vector<VertexShader*> threadSafeVS;

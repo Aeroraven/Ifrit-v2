@@ -221,7 +221,7 @@ namespace Ifrit::Demo::MeshletDemo {
         MeshletDemoVS vertexShader;
 		VaryingDescriptor vertexShaderLayout;
 		vertexShaderLayout.setVaryingDescriptors({ TypeDescriptors.FLOAT4 });
-		renderer->bindVertexShader(vertexShader, vertexShaderLayout);
+		renderer->bindVertexShaderLegacy(vertexShader, vertexShaderLayout);
 		MeshletDemoFS fragmentShader;
 		renderer->bindFragmentShader(fragmentShader);
 

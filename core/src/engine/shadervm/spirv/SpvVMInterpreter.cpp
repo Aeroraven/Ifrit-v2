@@ -186,7 +186,6 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			}
 			else if (target->declType == IFSP_IRTARGET_DECL_VECTOR) {
 				auto componentType = getVariableSize(&irContextGlobal->targets[target->componentTypeRef], irContextGlobal);
-				printf("%d %d\n", target->componentCount, componentType);
 				return target->componentCount * componentType;
 			}
 			else if (target->declType == IFSP_IRTARGET_DECL_ARRAY) {
@@ -200,6 +199,13 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				auto elementType = getVariableSize(&irContextGlobal->targets[columnTypeRef.componentTypeRef], irContextGlobal);
 				auto totalCount = columnCount * rowCount;
 				return totalCount * elementType;
+			}
+			else if (target->declType == IFSP_IRTARGET_DECL_STRUCT) {
+				auto ret = 0;
+				for (int i = 0; i < target->memberTypeRef.size(); i++) {
+					ret += getVariableSize(&irContextGlobal->targets[target->memberTypeRef[i]], irContextGlobal);
+				}
+				return ret;
 			}
 			else {
 				ERROR_PREFIX
@@ -361,6 +367,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			if (decoration == spv::Decoration::DecorationLocation) {
 				irContextGlobal->targets[targetId].location = params[2];
 			}
+			if (decoration == spv::Decoration::DecorationDescriptorSet) {
+				irContextGlobal->targets[targetId].descSet = params[2];
+			}
+			if (decoration == spv::Decoration::DecorationBinding) {
+				irContextGlobal->targets[targetId].binding = params[2];
+			}
 			irContextGlobal->targets[targetId].decoration = decoration;
 			irContextGlobal->targets[targetId].id = targetId;
 		}
@@ -389,6 +401,10 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		DEFINE_OP(spvOpExtension) { UNIMPLEMENTED_OP(OpExtension) }
 		DEFINE_OP(spvOpExtInstImport) { UNIMPLEMENTED_OP(OpExtInstImport) }
 		DEFINE_OP(spvOpExtInst) { 
+			ERROR_PREFIX;
+			printf("External calls not supported\n");
+			return;
+
 			auto retType = params[0];
 			auto resultId = params[1];
 			auto extSet = params[2];
@@ -581,11 +597,15 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			
 			// Generate IR
 			auto structName = getStructName(&irContextGlobal->targets[targetId], irContextGlobal);
-			std::string structType = "{";
+			std::string structType = "type {";
 			for(int i = 1; i < opWordCount - 1; i++) {
 				auto memberTypeRef = params[i];
 				auto memberType = getTargetTypes(&irContextGlobal->targets[memberTypeRef], irContextGlobal);
-				structType += memberType + ", ";
+				irContextGlobal->targets[targetId].memberTypeRef.push_back(memberTypeRef);
+				structType += memberType;
+				if (i != opWordCount - 2) {
+					structType += ", ";
+				}
 			}
 			structType += "}";
 			irContextGlobal->generatedIR << structName << " = " << structType << std::endl;
@@ -728,6 +748,13 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 					irContextGlobal->shaderMaps.outputVarSymbols[location] = varName;
 					irContextGlobal->shaderMaps.outputSize[location] = byteReq;
 				}
+				else if (storageClass == spv::StorageClass::StorageClassUniform) {
+					auto binding = irContextGlobal->targets[targetId].binding;
+					auto descSet = irContextGlobal->targets[targetId].descSet;
+					irContextGlobal->shaderMaps.uniformSize.push_back(getVariableSize(&irContextGlobal->targets[targetId], irContextGlobal));
+					irContextGlobal->shaderMaps.uniformVarLoc.push_back({ binding,descSet });
+					irContextGlobal->shaderMaps.uniformVarSymbols.push_back(varName);
+				}
 			}
 
 			// Generate IR
@@ -756,34 +783,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			//Generate IR
 			if (pass == IFSP_VMA_PASS_SECOND) {
 				auto pointerIsAccessChain = irContextGlobal->targets[pointerId].isAccessChain;
-				if (pointerIsAccessChain) {
-					auto curLoc = irContextGlobal->targets[pointerId].accessChainRef;
-					auto curLocType = irContextGlobal->targets[curLoc].resultTypeRef;
-					if (irContextGlobal->targets[curLocType].declType == IFSP_IRTARGET_DECL_POINTER) {
-						curLocType = irContextGlobal->targets[curLocType].componentTypeRef;
-					}
-					auto ptrName = "%ifspvm_accesschain_" + std::to_string(instLine);
-					irContextGlobal->generatedIR << ptrName << " = getelementptr  " << getTargetTypes(&irContextGlobal->targets[curLocType], irContextGlobal) << ", ";
-					irContextGlobal->generatedIR << "ptr " << getVariableNamePrefix(&irContextGlobal->targets[pointerId], irContextGlobal) << ", ";
-					irContextGlobal->generatedIR << "i32 0";
-					for (int i = 0; i < irContextGlobal->targets[pointerId].accessChain.size(); i++) {
-						auto offset = irContextGlobal->targets[pointerId].accessChain[i];
-						auto offsetValue = irContextGlobal->targets[offset].data.intValue;
-						irContextGlobal->generatedIR << ", i32 " << offsetValue;
-					}
-					irContextGlobal->generatedIR << std::endl;
-
-					auto variableName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
-					auto pointerName = getVariableNamePrefix(&irContextGlobal->targets[pointerId], irContextGlobal);
-					auto typeName = getTargetTypes(&irContextGlobal->targets[targetType], irContextGlobal);
-					irContextGlobal->generatedIR << variableName << " = load " << typeName << ", "<< typeName <<"* " << ptrName << std::endl;
-				}
-				else {
-					auto variableName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
-					auto pointerName = getVariableNamePrefix(&irContextGlobal->targets[pointerId], irContextGlobal);
-					auto typeName = getTargetTypes(&irContextGlobal->targets[targetType], irContextGlobal);
-					irContextGlobal->generatedIR << variableName << " = load " << typeName << ", " << typeName << "* " << pointerName << std::endl;
-				}
+				auto variableName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
+				auto pointerName = getVariableNamePrefix(&irContextGlobal->targets[pointerId], irContextGlobal);
+				auto typeNameRet = getTargetTypes(&irContextGlobal->targets[irContextGlobal->targets[pointerId].resultTypeRef], irContextGlobal);
+				auto typeName = getTargetTypes(&irContextGlobal->targets[targetType], irContextGlobal);
+				
+				irContextGlobal->generatedIR << variableName << " = load " << typeName << ", " << typeNameRet << "* " << pointerName << std::endl;
 				
 			}
 		}
@@ -798,25 +803,6 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			auto pointerName = getVariableNamePrefix(&irContextGlobal->targets[pointerId], irContextGlobal);
 			auto valueId = params[1];
 			
-			auto pointerIsAccessChain = irContextGlobal->targets[pointerId].isAccessChain;
-			if (pointerIsAccessChain) {
-				auto curLoc = irContextGlobal->targets[pointerId].accessChainRef;
-				auto curLocType = irContextGlobal->targets[curLoc].resultTypeRef;
-				if (irContextGlobal->targets[curLocType].declType == IFSP_IRTARGET_DECL_POINTER) {
-					curLocType = irContextGlobal->targets[curLocType].componentTypeRef;
-				}
-				auto ptrName = "%ifspvm_accesschain_" + std::to_string(instLine);
-				irContextGlobal->generatedIR << ptrName << " = getelementptr  " << getTargetTypes(&irContextGlobal->targets[curLocType], irContextGlobal) << ", ";
-				irContextGlobal->generatedIR << "ptr " << getVariableNamePrefix(&irContextGlobal->targets[pointerId], irContextGlobal) << ", ";
-				irContextGlobal->generatedIR << "i32 0";
-				for (int i = 0; i < irContextGlobal->targets[pointerId].accessChain.size(); i++) {
-					auto offset = irContextGlobal->targets[pointerId].accessChain[i];
-					auto offsetValue = irContextGlobal->targets[offset].data.intValue;
-					irContextGlobal->generatedIR << ", i32 " << offsetValue;
-				}
-				irContextGlobal->generatedIR << std::endl;
-				pointerName = ptrName;
-			}
 			auto isConst = irContextGlobal->targets[valueId].isConstant;
 			std::string valueType;
 			if (isConst) {
@@ -830,20 +816,54 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 
 		}
 		DEFINE_OP(spvOpAccessChain) {
-			if (pass == IFSP_VMA_PASS_SECOND)return;
 			auto targetId = params[1];
 			auto resultType = params[0];
 			auto base = params[2];
-			irContextGlobal->targets[targetId].activated = true;
-			irContextGlobal->targets[targetId].resultTypeRef = resultType;
-			irContextGlobal->targets[targetId].isInstance = true;
-			irContextGlobal->targets[targetId].isAccessChain = true;
-			irContextGlobal->targets[targetId].accessChainRef = base;
-			irContextGlobal->targets[targetId].accessChain.resize(opWordCount - 4);
-			for (int i = 3; i < opWordCount - 1; i++) {
-				irContextGlobal->targets[targetId].accessChain[i - 3] = params[i];
+
+			if (pass == IFSP_VMA_PASS_FIRST) {
+				irContextGlobal->targets[targetId].activated = true;
+				irContextGlobal->targets[targetId].resultTypeRef = resultType;
+				irContextGlobal->targets[targetId].isInstance = true;
+				irContextGlobal->targets[targetId].isAccessChain = true;
+				irContextGlobal->targets[targetId].isVariable = true;
+
+				irContextGlobal->targets[targetId].accessChainRef = base;
+				irContextGlobal->targets[targetId].accessChain.resize(opWordCount - 4);
+				for (int i = 3; i < opWordCount - 1; i++) {
+					irContextGlobal->targets[targetId].accessChain[i - 3] = params[i];
+				}
+				irContextGlobal->targets[targetId].id = targetId;
+
+				auto curLocType = irContextGlobal->targets[base].resultTypeRef;
+				if (irContextGlobal->targets[curLocType].declType == IFSP_IRTARGET_DECL_POINTER) {
+					curLocType = irContextGlobal->targets[curLocType].componentTypeRef;
+				}
+				//irContextGlobal->targets[targetId].resultTypeRef = curLocType;
 			}
-			irContextGlobal->targets[targetId].id = targetId;
+
+			if (pass == IFSP_VMA_PASS_SECOND) {
+				auto pointerId = base;
+				auto curLoc = pointerId;
+				auto curLocType = irContextGlobal->targets[curLoc].resultTypeRef;
+				if (irContextGlobal->targets[curLocType].declType == IFSP_IRTARGET_DECL_POINTER) {
+					curLocType = irContextGlobal->targets[curLocType].componentTypeRef;
+				}
+				auto ptrName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
+				auto tmpTpRet = getTargetTypes(&irContextGlobal->targets[resultType], irContextGlobal);
+				auto tmpTp = getTargetTypes(&irContextGlobal->targets[curLocType], irContextGlobal);
+				irContextGlobal->generatedIR << ptrName << " = ";
+				
+				irContextGlobal->generatedIR << " getelementptr  " << tmpTp << ", ";
+				irContextGlobal->generatedIR << tmpTp << "* " << getVariableNamePrefix(&irContextGlobal->targets[pointerId], irContextGlobal) << ", ";
+				irContextGlobal->generatedIR << "i32 0";
+				for (int i = 0; i < irContextGlobal->targets[targetId].accessChain.size(); i++) {
+					auto offset = irContextGlobal->targets[targetId].accessChain[i];
+					auto offsetValue = irContextGlobal->targets[offset].data.intValue;
+					irContextGlobal->generatedIR << ", i32 " << offsetValue;
+				}
+				irContextGlobal->generatedIR << std::endl;
+			}
+			
 		}
 
 		/* 3.52.9. Function Instructions */
@@ -1734,6 +1754,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		};
 		for (auto& x : outIr->shaderMaps.inputVarSymbols) cleanUpSymbolPrefix(x);
 		for (auto& x : outIr->shaderMaps.outputVarSymbols) cleanUpSymbolPrefix(x);
+		for (auto& x : outIr->shaderMaps.uniformVarSymbols) cleanUpSymbolPrefix(x);
 		cleanUpSymbolPrefix(outIr->shaderMaps.mainFuncSymbol);
 	}
 
@@ -1743,11 +1764,17 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		printf("===========\n%s\n", irStr.c_str());
 		printf("Input Vars:\n");
 		for (auto i = 0; auto& x : ir->shaderMaps.inputVarSymbols) {
-			printf("[%d] %s\n", i++, x.c_str());
+			printf("[%d] %s (%d)\n", i++, x.c_str(), ir->shaderMaps.inputSize[i]);
 		}
 		printf("Output Vars:\n");
 		for (auto i = 0; auto & x : ir->shaderMaps.outputVarSymbols) {
-			printf("[%d] %s\n", i++, x.c_str());
+			printf("[%d] %s (%d)\n", i++, x.c_str(), ir->shaderMaps.outputSize[i]);
+		}
+		printf("Uniform Vars:\n");
+		for (auto i = 0; auto & x : ir->shaderMaps.uniformVarSymbols) {
+			printf("[%d,%d] %s (%d)\n", ir->shaderMaps.uniformVarLoc[i].first, ir->shaderMaps.uniformVarLoc[i].second
+				, x.c_str(), ir->shaderMaps.uniformSize[i]);
+			i++;
 		}
 		printf("Entry: %s\n", ir->shaderMaps.mainFuncSymbol.c_str());
 	}

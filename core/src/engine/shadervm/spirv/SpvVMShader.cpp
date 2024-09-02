@@ -33,6 +33,13 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 			this->symbolTables.outputs[i] = this->runtime->lookupSymbol(svmir->shaderMaps.outputVarSymbols[i]);
 			this->symbolTables.outputBytes[i] = svmir->shaderMaps.outputSize[i];
 		}
+		for (int i = 0; i < svmir->shaderMaps.uniformSize.size(); i++) {
+			std::pair<int, int> loc = svmir->shaderMaps.uniformVarLoc[i];
+			this->symbolTables.uniform[loc] = {
+				this->runtime->lookupSymbol(svmir->shaderMaps.uniformVarSymbols[i]),
+				svmir->shaderMaps.uniformSize[i]
+			};
+		}
 		this->symbolTables.entry = this->runtime->lookupSymbol(svmir->shaderMaps.mainFuncSymbol);
 	}
 
@@ -46,6 +53,19 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		auto copy = new SpvVertexShader(*this);
 		return copy;
 	}
+
+	IFRIT_HOST void SpvVertexShader::updateUniformData(int binding, int set, const void* pData){
+		auto& uniformData = symbolTables.uniform[{binding, set}];
+		memcpy(uniformData.first, pData, uniformData.second);
+	}
+
+	IFRIT_HOST std::vector<std::pair<int, int>> SpvVertexShader::getUniformList(){
+		std::vector<std::pair<int, int>> ret;
+		for (auto p : this->symbolTables.uniform) {
+			ret.push_back(p.first);
+		}
+		return ret;
+	}
 	
 	SpvFragmentShader::SpvFragmentShader(ShaderRuntime* runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
 		isThreadSafe = false;
@@ -56,6 +76,11 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	IFRIT_HOST FragmentShader* SpvFragmentShader::getThreadLocalCopy() {
 		auto copy = new SpvFragmentShader(*this);
 		return copy;
+	}
+
+	IFRIT_HOST void SpvFragmentShader::updateUniformData(int binding, int set, const void* pData){
+		auto& uniformData = symbolTables.uniform[{binding, set}];
+		memcpy(uniformData.first, pData, uniformData.second);
 	}
 
 	void SpvVertexShader::execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) {
@@ -85,5 +110,13 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	IFRIT_HOST FragmentShader* SpvFragmentShader::getCudaClone(){
 		ifritError("CUDA not supported");
 		return nullptr;
+	}
+	
+	IFRIT_HOST std::vector<std::pair<int, int>> SpvFragmentShader::getUniformList() {
+		std::vector<std::pair<int, int>> ret;
+		for (auto p : this->symbolTables.uniform) {
+			ret.push_back(p.first);
+		}
+		return ret;
 	}
 }
