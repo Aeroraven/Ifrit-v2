@@ -31,7 +31,7 @@ int demoMeshlet(){
 }
 
 int demoShaderVMTest() {
-	return Ifrit::Demo::ShaderVMDemo::mainEntry();
+	return Ifrit::Demo::ShaderVMDemo::mainTest();
 }
 
 int main() {

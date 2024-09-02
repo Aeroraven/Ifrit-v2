@@ -1,3 +1,4 @@
+#pragma once
 #include "core/definition/CoreExports.h"
 namespace Ifrit::Engine {
 	class ShaderRuntime {

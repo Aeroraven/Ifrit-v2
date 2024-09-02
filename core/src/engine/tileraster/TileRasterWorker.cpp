@@ -250,11 +250,12 @@ namespace Ifrit::Engine::TileRaster {
 		status.store(TileRasterStage::VERTEX_SHADING);
 		std::vector<VaryingStore*> outVaryings(context->varyingDescriptor->getVaryingCounts());
 		std::vector<const void*> inVertex(context->vertexBuffer->getAttributeCount());
+		auto vsEntry = context->threadSafeVS[workerId];
 		for (int j = workerId; j < context->vertexBuffer->getVertexCount(); j += context->numThreads) {
 			auto pos = &context->vertexShaderResult->getPositionBuffer()[j];
 			getVaryingsAddr(j, outVaryings);
 			getVertexAttributes(j, inVertex);
-			context->vertexShader->execute(inVertex.data(), pos, outVaryings.data());
+			vsEntry->execute(inVertex.data(), pos, outVaryings.data());
 		}
 		status.store(TileRasterStage::VERTEX_SHADING_SYNC);
 	}
@@ -912,7 +913,8 @@ namespace Ifrit::Engine::TileRaster {
 			}
 		}
 		// Fragment Shader
-		context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth);
+		auto& psEntry = context->threadSafeFS[workerId];
+		psEntry->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth);
 
 		if constexpr (tpAlphaBlendEnable) {
 			auto dstRgba = args.colorAttachment0->getPixelRGBAUnsafe(dx, dy);
@@ -1060,7 +1062,9 @@ namespace Ifrit::Engine::TileRaster {
 			}
 
 			// Fragment Shader
-			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth[i]);
+			auto& psEntry = context->threadSafeFS[workerId];
+			psEntry->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth[i]);
+			
 			if constexpr(tpAlphaBlendEnable) {
 				auto dstRgba = args.colorAttachment0->getPixelRGBAUnsafe(x, y);
 				auto srcRgba = colorOutput[0];
@@ -1202,7 +1206,9 @@ namespace Ifrit::Engine::TileRaster {
 			}
 
 			// Fragment Shader
-			context->fragmentShader->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth[i]);
+			auto& psEntry = context->threadSafeFS[workerId];
+			psEntry->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth[i]);
+			
 			if constexpr (tpAlphaBlendEnable) {
 				auto dstRgba = args.colorAttachment0->getPixelRGBAUnsafe(x, y);
 				auto srcRgba = colorOutput[0];

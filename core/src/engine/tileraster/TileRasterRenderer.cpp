@@ -26,10 +26,16 @@ namespace Ifrit::Engine::TileRaster {
 	}
 
 	IFRIT_APIDECL void TileRasterRenderer::bindFragmentShader(FragmentShader& fragmentShader) {
+		//TODO: Memory Leaks
 		this->context->fragmentShader = &fragmentShader;
 		if (!fragmentShader.isThreadSafe) {
 			for (int i = 0; i < context->numThreads; i++) {
 				context->threadSafeFS[i] = fragmentShader.getThreadLocalCopy();
+			}
+		}
+		else {
+			for (int i = 0; i < context->numThreads; i++) {
+				context->threadSafeFS[i] = &fragmentShader;
 			}
 		}
 	}
@@ -43,10 +49,15 @@ namespace Ifrit::Engine::TileRaster {
 		this->context->varyingDescriptor = &varyingDescriptor;
 		shaderBindingDirtyFlag = true;
 		varyingBufferDirtyFlag = true;
-
+		//TODO: Memory Leaks
 		if (!vertexShader.isThreadSafe) {
 			for (int i = 0; i < context->numThreads; i++) {
 				context->threadSafeVS[i] = vertexShader.getThreadLocalCopy();
+			}
+		}
+		else {
+			for (int i = 0; i < context->numThreads; i++) {
+				context->threadSafeVS[i] = &vertexShader;
 			}
 		}
 	}

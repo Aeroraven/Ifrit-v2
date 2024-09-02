@@ -23,8 +23,8 @@ namespace Ifrit::Engine::TileRaster {
 		std::atomic<TileRasterStage> status;
 		std::atomic<bool> activated;
 	private:
-		std::unique_ptr<std::thread> execWorker;
 		uint32_t workerId;
+		std::unique_ptr<std::thread> execWorker;
 		std::shared_ptr<TileRasterRenderer> renderer;
 		std::shared_ptr<TileRasterContext> context;
 		bool vert= false;
@@ -38,7 +38,6 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<const void*> perVertexVaryingsAddr;
 
 		std::vector<ifloat4> colorOutput = std::vector<ifloat4>(1);
-
 		std::vector<AssembledTriangleProposal> generatedTriangle;
 
 		const float EPS = 1e-8;

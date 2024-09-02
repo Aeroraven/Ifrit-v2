@@ -13,7 +13,9 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	enum SpvVMIntermediateReprExpTargetType {
 		IFSP_IRTARGET_UNSPECIFIED,
 		IFSP_IRTARGET_INTERMEDIATE_UNDEF,
-		IFSP_IRTARGET_STRING
+		IFSP_IRTARGET_STRING,
+		IFSP_IRTARGET_TYPE_CONSTANT_COMPOSITE,
+		IFSP_IRTARGET_TYPE_CONSTANT
 	};
 	enum SpvVMIntermediateReprExpTargetDeclType {
 		IFSP_IRTARGET_DECL_UNSPECIFIED,
@@ -48,6 +50,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	struct SpvShaderExternalMappings {
 		std::vector<std::string> inputVarSymbols;
 		std::vector<std::string> outputVarSymbols;
+		std::vector<int> inputSize;
+		std::vector<int> outputSize;
 		std::string mainFuncSymbol;
 	};
 

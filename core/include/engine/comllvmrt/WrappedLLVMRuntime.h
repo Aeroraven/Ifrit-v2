@@ -9,9 +9,9 @@ namespace Ifrit::Engine::ComLLVMRuntime {
 		WrappedLLVMRuntime();
 		~WrappedLLVMRuntime();
 		static void initLlvmBackend();
-		virtual void loadIR(std::string irCode, std::string irIdentifier) override;
-		virtual void* lookupSymbol(std::string symbol) override;
-		virtual std::unique_ptr<ShaderRuntime> getThreadLocalCopy() override;
+		virtual void loadIR(std::string irCode, std::string irIdentifier);
+		virtual void* lookupSymbol(std::string symbol);
+		virtual std::unique_ptr<ShaderRuntime> getThreadLocalCopy();
 	private:
 		WrappedLLVMRuntimeContext* session;
 	};

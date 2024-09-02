@@ -2,54 +2,88 @@
 
 namespace Ifrit::Engine::ShaderVM::Spirv {
 	int SpvRuntimeBackend::createTime = 0;
-	SpvRuntimeBackend::SpvRuntimeBackend(ShaderRuntime* runtime, std::string irByteCode) {
+	SpvRuntimeBackend::SpvRuntimeBackend(ShaderRuntime* runtime, std::vector<char> irByteCode) {
 		reader.initializeContext(&spctx);
-		reader.parseByteCode(irByteCode.c_str(), irByteCode.size() / 4, &spctx);
+		reader.parseByteCode(irByteCode.data(), irByteCode.size() / 4, &spctx);
 		interpeter.parseRawContext(&spctx, &spvir);
 		this->runtime = runtime;
 		interpeter.exportLlvmIR(&spvir, &this->irCode);
 		runtime->loadIR(this->irCode, std::to_string(this->createTime));
-		updateSymbolTable();
+		updateSymbolTable(false);
 	}
 	SpvRuntimeBackend::SpvRuntimeBackend(const SpvRuntimeBackend& other) {
 		this->copiedRuntime = other.runtime->getThreadLocalCopy();
 		this->runtime = this->copiedRuntime.get();
-		updateSymbolTable();
+		this->irCode = other.irCode;
+		this->spvirRef = &other.spvir;
+		updateSymbolTable(true);
 	}
-	void SpvRuntimeBackend::updateSymbolTable() {
-		this->symbolTables.inputs.resize(this->spvir.shaderMaps.inputVarSymbols.size());
-		this->symbolTables.outputs.resize(this->spvir.shaderMaps.outputVarSymbols.size());
-		for (int i = 0; i < this->spvir.shaderMaps.inputVarSymbols.size(); i++) {
-			this->symbolTables.inputs[i] = this->runtime->lookupSymbol(this->spvir.shaderMaps.inputVarSymbols[i]);
+	void SpvRuntimeBackend::updateSymbolTable(bool isCopy) {
+		const SpvVMIntermediateRepresentation* svmir = (isCopy) ? spvirRef: &spvir;
+
+		this->symbolTables.inputs.resize(svmir->shaderMaps.inputVarSymbols.size());
+		this->symbolTables.outputs.resize(svmir->shaderMaps.outputVarSymbols.size());
+		this->symbolTables.inputBytes.resize(svmir->shaderMaps.inputVarSymbols.size());
+		this->symbolTables.outputBytes.resize(svmir->shaderMaps.outputVarSymbols.size());
+		for (int i = 0; i < svmir->shaderMaps.inputVarSymbols.size(); i++) {
+			this->symbolTables.inputs[i] = this->runtime->lookupSymbol(svmir->shaderMaps.inputVarSymbols[i]);
+			this->symbolTables.inputBytes[i] = svmir->shaderMaps.inputSize[i];
 		}
-		for (int i = 0; i < this->spvir.shaderMaps.outputVarSymbols.size(); i++) {
-			this->symbolTables.outputs[i] = this->runtime->lookupSymbol(this->spvir.shaderMaps.outputVarSymbols[i]);
+		for (int i = 0; i < svmir->shaderMaps.outputVarSymbols.size(); i++) {
+			this->symbolTables.outputs[i] = this->runtime->lookupSymbol(svmir->shaderMaps.outputVarSymbols[i]);
+			this->symbolTables.outputBytes[i] = svmir->shaderMaps.outputSize[i];
 		}
-		this->symbolTables.entry = this->runtime->lookupSymbol(this->spvir.shaderMaps.mainFuncSymbol);
+		this->symbolTables.entry = this->runtime->lookupSymbol(svmir->shaderMaps.mainFuncSymbol);
 	}
 
-	SpvVertexShader::SpvVertexShader(ShaderRuntime* runtime, std::string irByteCode):SpvRuntimeBackend(runtime, irByteCode){}
-	SpvVertexShader::SpvVertexShader(const SpvVertexShader& p) :SpvRuntimeBackend(p) {}
+	SpvVertexShader::SpvVertexShader(ShaderRuntime* runtime, std::vector<char> irByteCode):SpvRuntimeBackend(runtime, irByteCode){
+		isThreadSafe = false;
+	}
+	SpvVertexShader::SpvVertexShader(const SpvVertexShader& p) :SpvRuntimeBackend(p) {
+		isThreadSafe = false;
+	}
 	IFRIT_HOST VertexShader* SpvVertexShader::getThreadLocalCopy() {
 		auto copy = new SpvVertexShader(*this);
 		return copy;
 	}
 	
-	SpvFragmentShader::SpvFragmentShader(ShaderRuntime* runtime, std::string irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {}
-	SpvFragmentShader::SpvFragmentShader(const SpvFragmentShader& p) :SpvRuntimeBackend(p) {}
+	SpvFragmentShader::SpvFragmentShader(ShaderRuntime* runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
+		isThreadSafe = false;
+	}
+	SpvFragmentShader::SpvFragmentShader(const SpvFragmentShader& p) :SpvRuntimeBackend(p) {
+		isThreadSafe = false;
+	}
 	IFRIT_HOST FragmentShader* SpvFragmentShader::getThreadLocalCopy() {
 		auto copy = new SpvFragmentShader(*this);
 		return copy;
 	}
 
 	void SpvVertexShader::execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) {
-		//TODO: Input & Output
+		//TODO: Input & Outputfsss
+		for (int i = 0; i < symbolTables.inputBytes.size(); i++) {
+			memcpy(symbolTables.inputs[i], input[i], symbolTables.inputBytes[i]);
+		}
 		auto shaderEntry = (void(*)())this->symbolTables.entry;
 		shaderEntry();
+
+	}
+	IFRIT_HOST VertexShader* SpvVertexShader::getCudaClone(){
+		ifritError("CUDA not supported");
+		return nullptr;
 	}
 	void SpvFragmentShader::execute(const void* varyings, void* colorOutput, float* fragmentDepth) {
 		//TODO: Input & Output
+		for (int i = 0; i < symbolTables.inputBytes.size(); i++) {
+			memcpy(symbolTables.inputs[i], (VaryingStore*)varyings + i, symbolTables.inputBytes[i]);
+		}
 		auto shaderEntry = (void(*)())this->symbolTables.entry;
 		shaderEntry();
+		for (int i = 0; i < symbolTables.outputs.size(); i++) {
+			memcpy((ifloat4*)colorOutput + i, symbolTables.outputs[i], symbolTables.outputBytes[i]);
+		}
+	}
+	IFRIT_HOST FragmentShader* SpvFragmentShader::getCudaClone(){
+		ifritError("CUDA not supported");
+		return nullptr;
 	}
 }
