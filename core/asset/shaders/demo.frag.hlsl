@@ -6,5 +6,5 @@ ConstantBuffer<Hello> cam : register(b0, space0);
 
 float4 main(float4 color : COLOR0) : SV_TARGET{
 	float4 base = float4(1.0f,1.0f,1.0f,1.0f);
-	return color * 0.5f + (base + cam.t1 + cam.t2) * 0.125f;
+	return sin(color * 0.5f + (base + cam.t1 + cam.t2) * 0.125f);
 }

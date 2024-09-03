@@ -16,9 +16,15 @@ struct Uniform {
 };
 ConstantBuffer<Uniform> c : register(b0, space0);
 
+struct Uniform2 {
+	float4x4 tm;
+};
+ConstantBuffer<Uniform2> d: register(b1, space0);
+
+
 VSOutput main(VSInput vsIn){
 	VSOutput vsOut;
-	vsOut.pos = vsIn.pos + c.t2;
+	vsOut.pos = mul(d.tm, vsIn.pos) + c.t2;
 	vsOut.color = vsIn.color + c.t1;
 	return vsOut;
 }

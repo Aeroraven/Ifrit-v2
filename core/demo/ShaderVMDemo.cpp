@@ -65,7 +65,16 @@ namespace Ifrit::Demo::ShaderVMDemo {
 			ifloat4 t1 = { 0,0,0,0 };
 			ifloat4 t2 = { 0.1,0,0,0 };
 		} uniform;
+		struct Uniform2 {
+			float mat[16] = {
+				1, 0, 0, 0,
+				0, 1, 0, 0,
+				0, 0, 1, 0,
+				0.5, 0, 0, 1
+			};
+		} uniform2;
 		renderer->bindUniformBuffer(0, 0, &uniform);
+		renderer->bindUniformBuffer(1, 0, &uniform2);
 
 
 		WrappedLLVMRuntime::initLlvmBackend();

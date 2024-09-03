@@ -10,6 +10,11 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	enum SpvVMIntermediateReprAttribute {
 		IFSP_IR_SOURCE_TYPE
 	};
+	enum SpvVMMatrixLayout {
+		IFSP_MATL_UNDEF,
+		IFSP_MATL_COLMAJOR,
+		IFSP_MATL_ROWMAJOR
+	};
 	enum SpvVMIntermediateReprExpTargetType {
 		IFSP_IRTARGET_UNSPECIFIED,
 		IFSP_IRTARGET_INTERMEDIATE_UNDEF,
@@ -58,7 +63,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::string mainFuncSymbol;
 		std::string builtinPositionSymbol;
 	};
-
+	struct SpvDecorationBlock {
+		int location = -1;
+		int binding = -1, descSet = -1;
+		bool isBuiltinPos = false;
+		SpvVMMatrixLayout matrixLayout = IFSP_MATL_COLMAJOR;
+	};
 	struct SpvVMIntermediateReprExpTarget {
 		int id = -1;
 
@@ -86,12 +96,10 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 
 		std::string name;
 		std::string debugString;
-		int decoration;
-		int location = -1;
-		int binding = -1, descSet = -1;
-		bool isBuiltinPos = false;
+		SpvDecorationBlock decoration;
+		
 		std::vector<std::string> memberName;
-		std::vector<int> memberDecoration;
+		std::vector<SpvDecorationBlock> memberDecoration;
 		std::vector<int> memberOffset;
 
 		int intWidth;

@@ -36,7 +36,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 
 		}
 		std::string getStructName(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal) {
-			return "%ifspvm_struct." + std::to_string(target->resultTypeRef);
+			return "%ifspvm_struct." + std::to_string(target->id);
 		}
 		
 		std::string getVariableNamePrefix(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal) {
@@ -215,6 +215,25 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			}
 
 		}
+		SpvDecorationBlock getAccesschainDecoration(SpvVMIntermediateReprExpTarget* target, 
+			uint32_t* accesschain, SpvVMIntermediateRepresentation* irContextGlobal,int id) {
+			if (target->declType == IFSP_IRTARGET_DECL_POINTER) {
+				return getAccesschainDecoration(&irContextGlobal->targets[target->componentTypeRef], accesschain, irContextGlobal, id);
+			}
+			if (target->declType == IFSP_IRTARGET_DECL_STRUCT) {
+				int accessChainVal = irContextGlobal->targets[accesschain[id]].data.intValue;
+				auto tp = target->memberTypeRef[accessChainVal];
+				auto tpr = irContextGlobal->targets[tp];
+				if (tpr.declType == IFSP_IRTARGET_DECL_STRUCT) {
+					ERROR_PREFIX;
+					printf("Nested struct not implemented\n");
+				}
+				return target->memberDecoration[accessChainVal];
+			}
+			ERROR_PREFIX;
+			printf("Invalid accesschain\n");
+			return {};
+		}
 		void elementwiseArithmeticIRGeneratorRaw(std::string instName, SpvVMIntermediateRepresentation* irContextGlobal,
 			std::string resultName, std::string resultType, std::string opLName, std::string opRName) {
 			irContextGlobal->generatedIR << resultName << " = " << instName << " " << resultType << " ";
@@ -289,7 +308,28 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			}
 			return curOffset;
 		}
-
+		void decorationHandler(int decoration, SpvDecorationBlock& decBlock, uint32_t* params) {
+			if (decoration == spv::Decoration::DecorationLocation) {
+				decBlock.location = params[0];
+			}
+			if (decoration == spv::Decoration::DecorationDescriptorSet) {
+				decBlock.descSet = params[0];
+			}
+			if (decoration == spv::Decoration::DecorationBinding) {
+				decBlock.binding = params[0];
+			}
+			if (decoration == spv::Decoration::DecorationBuiltIn) {
+				if (params[0] == spv::BuiltIn::BuiltInPosition) {
+					decBlock.isBuiltinPos = true;
+				}
+			}
+			if (decoration == spv::Decoration::DecorationRowMajor) {
+				decBlock.matrixLayout = IFSP_MATL_ROWMAJOR;
+			}
+			if (decoration == spv::Decoration::DecorationColMajor) {
+				decBlock.matrixLayout = IFSP_MATL_COLMAJOR;
+			}
+		}
 		/* 3.52.1. Miscellaneous Instructions */
 		DEFINE_OP(spvOpNop) {
 			
@@ -361,25 +401,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		}
 
 		/* 3.52.3. Annotation Instructions */
+		
 		DEFINE_OP(spvOpDecorate) { 
 			if (pass == IFSP_VMA_PASS_SECOND) return;
 			auto targetId = params[0];
 			auto decoration = params[1];
-			if (decoration == spv::Decoration::DecorationLocation) {
-				irContextGlobal->targets[targetId].location = params[2];
-			}
-			if (decoration == spv::Decoration::DecorationDescriptorSet) {
-				irContextGlobal->targets[targetId].descSet = params[2];
-			}
-			if (decoration == spv::Decoration::DecorationBinding) {
-				irContextGlobal->targets[targetId].binding = params[2];
-			}
-			if (decoration == spv::Decoration::DecorationBuiltIn) {
-				if (params[2] == spv::BuiltIn::BuiltInPosition) {
-					irContextGlobal->targets[targetId].isBuiltinPos = true;
-				}
-			}
-			irContextGlobal->targets[targetId].decoration = decoration;
+			decorationHandler(decoration, irContextGlobal->targets[targetId].decoration, params + 2);
 			irContextGlobal->targets[targetId].id = targetId;
 		}
 		DEFINE_OP(spvOpMemberDecorate) { 
@@ -391,12 +418,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				irContextGlobal->targets[targetId].memberDecoration.resize(memberIdx + 1);
 				irContextGlobal->targets[targetId].memberOffset.resize(memberIdx + 1);
 			}
-			if (decoration == spv::Decoration::DecorationOffset) {
-				irContextGlobal->targets[targetId].memberOffset[memberIdx] = params[3];
-			}
-			else {
-				irContextGlobal->targets[targetId].memberDecoration[memberIdx] = decoration;
-			}
+			decorationHandler(decoration, irContextGlobal->targets[targetId].memberDecoration[memberIdx], params + 3);
 			irContextGlobal->targets[targetId].id = targetId;
 		}
 		DEFINE_OP(spvOpGroupDecorate) { DEPRECATED_OP(OpGroupDecorate) }
@@ -727,7 +749,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			if (pass == IFSP_VMA_PASS_SECOND) {
 				auto varName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
 				if (storageClass == spv::StorageClass::StorageClassInput) {
-					auto location = irContextGlobal->targets[targetId].location;
+					auto location = irContextGlobal->targets[targetId].decoration.location;
 					auto byteReq = getVariableSize(&irContextGlobal->targets[targetId], irContextGlobal);
 					if (location == -1) {
 						ERROR_PREFIX
@@ -740,11 +762,11 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 					irContextGlobal->shaderMaps.inputVarSymbols[location] = varName;
 					irContextGlobal->shaderMaps.inputSize[location] = byteReq;
 				}else if(storageClass == spv::StorageClass::StorageClassOutput) {
-					if (irContextGlobal->targets[targetId].isBuiltinPos) {
+					if (irContextGlobal->targets[targetId].decoration.isBuiltinPos) {
 						irContextGlobal->shaderMaps.builtinPositionSymbol = varName;
 					}
 					else {
-						auto location = irContextGlobal->targets[targetId].location;
+						auto location = irContextGlobal->targets[targetId].decoration.location;
 						auto byteReq = getVariableSize(&irContextGlobal->targets[targetId], irContextGlobal);
 
 						if (location == -1) {
@@ -760,8 +782,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 					}
 				}
 				else if (storageClass == spv::StorageClass::StorageClassUniform) {
-					auto binding = irContextGlobal->targets[targetId].binding;
-					auto descSet = irContextGlobal->targets[targetId].descSet;
+					auto binding = irContextGlobal->targets[targetId].decoration.binding;
+					auto descSet = irContextGlobal->targets[targetId].decoration.descSet;
 					irContextGlobal->shaderMaps.uniformSize.push_back(getVariableSize(&irContextGlobal->targets[targetId], irContextGlobal));
 					irContextGlobal->shaderMaps.uniformVarLoc.push_back({ binding,descSet });
 					irContextGlobal->shaderMaps.uniformVarSymbols.push_back(varName);
@@ -789,6 +811,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				irContextGlobal->targets[targetId].isInstance = true;
 				irContextGlobal->targets[targetId].resultTypeRef = targetType;
 				irContextGlobal->targets[targetId].id = targetId;
+
+				irContextGlobal->targets[targetId].decoration = irContextGlobal->targets[pointerId].decoration;
 			}
 
 			//Generate IR
@@ -845,16 +869,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				}
 				irContextGlobal->targets[targetId].id = targetId;
 
-				auto curLocType = irContextGlobal->targets[base].resultTypeRef;
-				if (irContextGlobal->targets[curLocType].declType == IFSP_IRTARGET_DECL_POINTER) {
-					curLocType = irContextGlobal->targets[curLocType].componentTypeRef;
-				}
-				//irContextGlobal->targets[targetId].resultTypeRef = curLocType;
+				auto varType = &irContextGlobal->targets[irContextGlobal->targets[base].resultTypeRef];
+				irContextGlobal->targets[targetId].decoration = getAccesschainDecoration(varType, params + 3, irContextGlobal, 0);
 			}
 
 			if (pass == IFSP_VMA_PASS_SECOND) {
-				auto pointerId = base;
-				auto curLoc = pointerId;
+				auto curLoc = base;
 				auto curLocType = irContextGlobal->targets[curLoc].resultTypeRef;
 				if (irContextGlobal->targets[curLocType].declType == IFSP_IRTARGET_DECL_POINTER) {
 					curLocType = irContextGlobal->targets[curLocType].componentTypeRef;
@@ -865,7 +885,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				irContextGlobal->generatedIR << ptrName << " = ";
 				
 				irContextGlobal->generatedIR << " getelementptr  " << tmpTp << ", ";
-				irContextGlobal->generatedIR << tmpTp << "* " << getVariableNamePrefix(&irContextGlobal->targets[pointerId], irContextGlobal) << ", ";
+				irContextGlobal->generatedIR << tmpTp << "* " << getVariableNamePrefix(&irContextGlobal->targets[base], irContextGlobal) << ", ";
 				irContextGlobal->generatedIR << "i32 0";
 				for (int i = 0; i < irContextGlobal->targets[targetId].accessChain.size(); i++) {
 					auto offset = irContextGlobal->targets[targetId].accessChain[i];
@@ -1328,6 +1348,83 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		DEFINE_OP(spvOpMatrixTimesVector) {
 			UNIMPLEMENTED_OP(OpMatrixTimesVector)
 		}
+		DEFINE_OP(spvOpVectorTimesMatrix) {
+			auto retType = params[0];
+			auto retId = params[1];
+			auto vecId = params[2];
+			auto matId = params[3];
+			if (pass == IFSP_VMA_PASS_FIRST) {
+				irContextGlobal->targets[retId].activated = true;
+				irContextGlobal->targets[retId].isInstance = true;
+				irContextGlobal->targets[retId].resultTypeRef = retType;
+				irContextGlobal->targets[retId].id = retId;
+			}
+
+			if (pass == IFSP_VMA_PASS_SECOND) {
+				auto& decorationMat = irContextGlobal->targets[matId].decoration;
+				auto matTypeX = irContextGlobal->targets[matId].resultTypeRef;
+				auto vecTypeX = irContextGlobal->targets[vecId].resultTypeRef;
+				auto matVecNums = irContextGlobal->targets[matTypeX].componentCount;
+				auto matInvecElem = irContextGlobal->targets[irContextGlobal->targets[matTypeX].componentTypeRef].componentCount;
+				auto vecEleNums = irContextGlobal->targets[vecTypeX].componentCount;
+
+				if (decorationMat.matrixLayout == IFSP_MATL_UNDEF) {
+					ERROR_PREFIX;
+					printf("Undefined matrix layout\n");
+				}
+				
+				auto matName = getVariableNamePrefix(&irContextGlobal->targets[matId], irContextGlobal);
+				auto matType = getTargetTypes(&irContextGlobal->targets[matId], irContextGlobal);
+				auto resultName = getVariableNamePrefix(&irContextGlobal->targets[retId], irContextGlobal);  
+				auto resultType = getTargetTypes(&irContextGlobal->targets[retId], irContextGlobal);
+				auto vecType = getTargetTypes(&irContextGlobal->targets[vecId], irContextGlobal);
+				auto vecName = getVariableNamePrefix(&irContextGlobal->targets[vecId], irContextGlobal);
+				
+				auto pf = "%ifspvm_vectormulmatrix_" + std::to_string(instLine);
+				auto& irs = irContextGlobal->generatedIR;
+				for (int i = 0; i < vecEleNums; i++) {
+					//%a1 = extractelement <4 x float> %a, i32 0
+					irs << pf << "_a_" << i << " = extractelement " << vecType << " " << vecName << ", i32 " << i << "\n";
+				}
+				for (int i = 0; i < matVecNums; i++) {
+					for (int j = 0; j < matInvecElem; j++) {
+						int offset = i * matInvecElem + j;
+						int pCol = (decorationMat.matrixLayout == IFSP_MATL_ROWMAJOR) ? j : i;
+						int pRow = (decorationMat.matrixLayout == IFSP_MATL_ROWMAJOR) ? i : j;
+						irs << pf << "_b_" << pRow <<"_"<<pCol << " = extractelement " << matType << " " << matName << ", i32 " << offset << "\n";
+					}
+				}
+				int matCols = (decorationMat.matrixLayout == IFSP_MATL_ROWMAJOR) ? matInvecElem : matVecNums;
+				int matRows = (decorationMat.matrixLayout != IFSP_MATL_ROWMAJOR) ? matInvecElem : matVecNums;
+				for (int i = 0; i < matCols; i++) {
+					for (int j = 0; j < matRows; j++) {
+						irs << pf << "_col_" << i << "_mul_" << j << " = fmul float ";
+						irs << pf << "_a_" << j << ", ";
+						irs << pf << "_b_" << j << "_" << i << "\n";
+					}
+					for (int j = 1; j < matRows; j++) {
+						irs << pf << "_col_" << i << "_sum_" << j << " = fadd float ";
+						if (j == 1) {
+							irs << pf << "_col_" << i << "_mul_0 , ";
+						}
+						else {
+							irs << pf << "_col_" << i << "_sum_" << j - 1 << " , ";
+						}
+						irs << pf << "_col_" << i << "_mul_" << j << "\n";
+					}
+				}
+				std::string lastResult = "undef";
+				for (int i = 0; i < matCols; i++) {
+					std::string curRef = pf + "_result_" + std::to_string(i);
+					if (i == matCols - 1) {
+						curRef = resultName;
+					}
+					irs << curRef << " = insertelement " << resultType <<" "<<lastResult<< ", float " << pf << "_col_" << i << "_sum_" << matRows - 1 <<" , ";
+					irs << "i32 " << i << "\n";
+					lastResult = curRef;
+				}
+			}
+		}
 		DEFINE_OP(spvOpDot) {
 			UNIMPLEMENTED_OP(OpDot)
 		}
@@ -1677,6 +1774,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		outMap[spv::OpFMod] = InstructionImpl::spvOpFMod;
 		outMap[spv::OpVectorTimesScalar] = InstructionImpl::spvOpVectorTimesScalar;
 		outMap[spv::OpMatrixTimesVector] = InstructionImpl::spvOpMatrixTimesVector;
+		outMap[spv::OpVectorTimesMatrix] = InstructionImpl::spvOpVectorTimesMatrix;
+
 		outMap[spv::OpDot] = InstructionImpl::spvOpDot;
 
 		outMap[spv::OpAny] = InstructionImpl::spvOpAny;
