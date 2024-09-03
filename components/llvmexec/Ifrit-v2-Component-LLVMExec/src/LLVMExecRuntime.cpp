@@ -29,6 +29,9 @@ struct IfritCompLLVMExecutionSession {
     bool ready = false;
     void loadIR(std::string irCode) {
         jit = ExitOnErr(jitBuilder.create());
+        jit->getMainJITDylib().addGenerator(
+            cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
+                jit->getDataLayout().getGlobalPrefix())));
         llvmCtx = std::make_unique<LLVMContext>();
         auto M = parseIR(*MemoryBuffer::getMemBuffer(irCode), Err, *llvmCtx);
         if (!M) {

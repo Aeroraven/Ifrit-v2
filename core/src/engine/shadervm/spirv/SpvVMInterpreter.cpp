@@ -1,7 +1,11 @@
 #include "engine/shadervm/spirv/SpvVMInterpreter.h"
 #include "./dependency/spirv.h"
+#include "engine/shadervm/spirv/SpvVMExtInstRegistry.h"
 
 namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
+
+	SpvVMExtRegistry extInstRegistry = SpvVMExtRegistry();
+
 	enum SpvVMAnalysisPass {
 		IFSP_VMA_PASS_FIRST,
 		IFSP_VMA_PASS_SECOND,
@@ -21,6 +25,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		/* Helper */
 		std::string getTargetTypes(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal);
 		void registerTypes(SpvVMIntermediateRepresentation* irContext) {
+			irContext->generatedIR << "declare float @llvm.sin.f32(float %Val)\n";
 			/*
 			irContext->generatedIR << "declare <4 x float> @ifspvm_func_imageSampleImplicitLod(i8*,<2 x float>)\n";
 			irContext->generatedIR << "declare i8* @ifspvm_func_sampledImage(i8*,i8*)\n";
@@ -101,6 +106,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				return "{error var}";
 			}
 		}
+
 		std::string getTargetTypes(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal) {
 			if (target->isLabel) return "label";
 			if (target->isInstance)return getTargetTypes(&irContextGlobal->targets[target->resultTypeRef], irContextGlobal);
@@ -165,6 +171,55 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				return "{error type}";
 			}
 		}
+
+		void getTargetTypeExtInst(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal,
+			SpvVMExtRegistryTypeIdentifier* identifiers, int* numComponents) {
+
+			if (target->isInstance)return getTargetTypeExtInst(&irContextGlobal->targets[target->resultTypeRef], irContextGlobal,identifiers,numComponents);
+			else if (target->declType == IFSP_IRTARGET_DECL_INT) {
+				if (target->intWidth == 32) {
+					if (target->intSignedness == 0) {
+						*identifiers = IFSP_EXTREG_TP_INT;
+						*numComponents = 1;
+					}
+					else {
+						ERROR_PREFIX;
+						printf("Unsupported type: uint32");
+					}
+				}
+				else if (target->intWidth == 64) {
+					ERROR_PREFIX;
+					printf("Unsupported type: int64");
+				}
+			}
+			else if (target->declType == IFSP_IRTARGET_DECL_FLOAT) {
+				if (target->floatWidth == 32) {
+					*identifiers = IFSP_EXTREG_TP_FLOAT;
+					*numComponents = 1;
+				}
+				else if (target->floatWidth == 64) {
+					ERROR_PREFIX;
+					printf("Unsupported type: double");
+				}
+			}
+			else if (target->declType == IFSP_IRTARGET_DECL_POINTER) {
+				getTargetTypeExtInst(&irContextGlobal->targets[target->componentTypeRef], irContextGlobal, identifiers, numComponents);
+			}
+			else if (target->declType == IFSP_IRTARGET_DECL_VECTOR) {
+				getTargetTypeExtInst(&irContextGlobal->targets[target->componentTypeRef], irContextGlobal, identifiers, numComponents);
+				*numComponents *= target->componentCount;
+			}
+			else if (target->declType == IFSP_IRTARGET_DECL_ARRAY) {
+				getTargetTypeExtInst(&irContextGlobal->targets[target->componentTypeRef], irContextGlobal, identifiers, numComponents);
+				*numComponents *= target->componentCount;
+			}
+			else {
+				ERROR_PREFIX;
+				printf("Unknown type: Target=%d\n", target->id);
+			}
+		}
+
+
 		int getVariableSize(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal) {
 			if (target->isInstance)return getVariableSize(&irContextGlobal->targets[target->resultTypeRef], irContextGlobal);
 			if (target->declType == IFSP_IRTARGET_DECL_POINTER) {
@@ -427,11 +482,16 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 
 		/* 3.52.4. Extension Instructions */
 		DEFINE_OP(spvOpExtension) { UNIMPLEMENTED_OP(OpExtension) }
-		DEFINE_OP(spvOpExtInstImport) { UNIMPLEMENTED_OP(OpExtInstImport) }
+		DEFINE_OP(spvOpExtInstImport) {
+			if (pass == IFSP_VMA_PASS_SECOND) return;
+			auto targetId = params[0];
+			auto name = reinterpret_cast<const char*>(params + 1);
+			irContextGlobal->targets[targetId].name = name;
+			irContextGlobal->targets[targetId].activated = true;
+			irContextGlobal->targets[targetId].id = targetId;
+			irContextGlobal->targets[targetId].named = true;
+		}
 		DEFINE_OP(spvOpExtInst) { 
-			ERROR_PREFIX;
-			printf("External calls not supported\n");
-			return;
 
 			auto retType = params[0];
 			auto resultId = params[1];
@@ -446,34 +506,26 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			}
 
 			if (pass == IFSP_VMA_PASS_SECOND) {
-				auto retTypeRef = irContextGlobal->targets[retType];
-				auto retTypeComps = 1;
-				if (retTypeRef.declType == IFSP_IRTARGET_DECL_VECTOR) {
-					retTypeComps = retTypeRef.componentCount;
-					retTypeRef = irContextGlobal->targets[retTypeRef.componentTypeRef];
+				int totalParams = opWordCount - 5;
+				std::vector<SpvVMExtRegistryTypeIdentifier> identifiers(totalParams);
+				std::vector<int> numCounts(totalParams);
+				for (int i = 0; i < totalParams; i++) {
+					getTargetTypeExtInst(&irContextGlobal->targets[params[i + 4]], irContextGlobal, &identifiers[i], &numCounts[i]);
 				}
-				auto baseType = getTargetTypes(&retTypeRef, irContextGlobal);
-				std::string callSig = "@ifspvm_func_callExtHandler";
-				if (baseType == "i32") callSig += "I";
-				else if (baseType == "float") callSig += "F";
-				callSig += (retTypeComps + '0');
+				auto impName = irContextGlobal->targets[params[2]].name;
+				auto resultType = getTargetTypes(&irContextGlobal->targets[params[0]], irContextGlobal);
+				auto resultName = getVariableNamePrefix(&irContextGlobal->targets[params[1]], irContextGlobal);
+				auto funcName = extInstRegistry.queryExternalFunc(impName, params[3], identifiers, numCounts);
 
-				
-				//Call
-				auto callName = getVariableNamePrefix(&irContextGlobal->targets[resultId], irContextGlobal);
-				auto returnTypeName = getTargetTypes(&irContextGlobal->targets[retType], irContextGlobal);
-				irContextGlobal->generatedIR << callName << " = call ";
-				irContextGlobal->generatedIR << returnTypeName << " ";
-				irContextGlobal->generatedIR << "(i32, ...) ";
-				irContextGlobal->generatedIR << callSig << "(i32 " << extName;
-
-				for (int i = 4; i < opWordCount - 1; i++) {
-					auto paramTypeRef = params[i];
-					auto paramType = getTargetTypes(&irContextGlobal->targets[paramTypeRef], irContextGlobal);
-					auto paramName = getVariableNamePrefix(&irContextGlobal->targets[params[i]], irContextGlobal);
-					irContextGlobal->generatedIR << ", " << paramType << " " << paramName;
+				auto& genIr = irContextGlobal->generatedIR;
+				genIr << resultName << " = call " << resultType <<" @"<< funcName<< " (";
+				for (int i = 0; i < totalParams; i++) {
+					auto tp1 = getTargetTypes(&irContextGlobal->targets[params[4 + i]], irContextGlobal);
+					auto tp2 = getVariableNamePrefix(&irContextGlobal->targets[params[4 + i]], irContextGlobal);
+					if (i != 0)genIr << ", ";
+					genIr << tp1 << " " << tp2;
 				}
-				irContextGlobal->generatedIR << ")" << std::endl;
+				genIr << ")\n";
 			}
 
 		}
@@ -1871,8 +1923,9 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 
 	void SpvVMInterpreter::exportLlvmIR(SpvVMIntermediateRepresentation* ir, std::string* outLlvmIR) {
 		std::string irStr = ir->generatedIR.str();
-		*outLlvmIR = irStr;
-		printf("===========\n%s\n", irStr.c_str());
+		std::string irDeps = Impl::extInstRegistry.getRequiredFuncDefs();
+		*outLlvmIR = irDeps + irStr;
+		printf("===========\n%s\n", outLlvmIR->c_str());
 		printf("Input Vars:\n");
 		for (auto i = 0; auto& x : ir->shaderMaps.inputVarSymbols) {
 			printf("[%d] %s (%d)\n", i++, x.c_str(), ir->shaderMaps.inputSize[i]);

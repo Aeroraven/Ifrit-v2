@@ -135,6 +135,7 @@
     <ClInclude Include="demo\shader\MeshletDemoShaders.cuh" />
     <ClInclude Include="demo\shader\SkyboxShaders.cuh" />
     <ClInclude Include="demo\Skybox.h" />
+    <ClInclude Include="include\dependency\glsl.std.450.h" />
     <ClInclude Include="include\dependency\spirv.h" />
     <ClInclude Include="include\engine\base\ShaderRuntime.h" />
     <ClInclude Include="include\engine\base\Shaders.h" />
@@ -148,6 +149,7 @@
     <ClInclude Include="include\engine\meshletbuilder\MeshletBuilder.h" />
     <ClInclude Include="include\engine\meshletbuilder\MeshletCommon.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMContext.h" />
+    <ClInclude Include="include\engine\shadervm\spirv\SpvVMExtInstRegistry.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMInterpreter.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMReader.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMShader.h" />
@@ -158,6 +160,7 @@
     <ClInclude Include="include\presentation\backend\AdaptiveBackendBuilder.h" />
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
+    <ClCompile Include="src\engine\shadervm\spirv\SpvVMExtInstRegistry.cpp" />
     <CudaCompile Include="demo\shader\DefaultDemoShaders.cu" />
     <CudaCompile Include="demo\shader\MeshletDemoShaders.cu" />
     <CudaCompile Include="demo\shader\SkyboxShaders.cu" />
