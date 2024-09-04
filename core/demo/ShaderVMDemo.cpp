@@ -46,7 +46,7 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		procNormal = loader.remapNormals(normal, index, pos.size());
 
 
-		constexpr int DEMO_RESOLUTION = 512;
+		constexpr int DEMO_RESOLUTION = 2048;
 		std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
 		std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
 		std::shared_ptr<TileRasterRenderer> renderer = std::make_shared<TileRasterRenderer>();
