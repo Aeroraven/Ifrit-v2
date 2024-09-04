@@ -26,6 +26,11 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		std::string getTargetTypes(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal);
 		void registerTypes(SpvVMIntermediateRepresentation* irContext) {
 			irContext->generatedIR << "declare float @llvm.sin.f32(float %Val)\n";
+			irContext->generatedIR << "declare float @llvm.cos.f32(float %Val)\n";
+			irContext->generatedIR << "declare float @llvm.tan.f32(float %Val)\n";
+			irContext->generatedIR << "declare float @llvm.asin.f32(float %Val)\n";
+			irContext->generatedIR << "declare float @llvm.acos.f32(float %Val)\n";
+			irContext->generatedIR << "declare float @llvm.atan.f32(float %Val)\n";
 			/*
 			irContext->generatedIR << "declare <4 x float> @ifspvm_func_imageSampleImplicitLod(i8*,<2 x float>)\n";
 			irContext->generatedIR << "declare i8* @ifspvm_func_sampledImage(i8*,i8*)\n";

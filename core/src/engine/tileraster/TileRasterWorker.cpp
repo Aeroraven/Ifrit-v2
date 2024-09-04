@@ -244,7 +244,6 @@ namespace Ifrit::Engine::TileRaster {
 				}
 			}
 		}
-
 	}
 	void TileRasterWorker::vertexProcessing() IFRIT_AP_NOTHROW {
 		status.store(TileRasterStage::VERTEX_SHADING);

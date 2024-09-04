@@ -22,25 +22,25 @@ namespace Ifrit::Engine::ShaderVM::Spirv::ExtInst::GlslStd450 {
 #define GET_TYPE(x) getLlvmType(paramTypes[(x)],paramComCnt[(x)])
 #define GET_TYPE_ANNO(x) getMangledType(paramTypes[(x)],paramComCnt[(x)])
 	
-
-	DEF_INST(Sin) {
+	inline std::string glslstdTrigonometryFunc(const std::vector<SpvVMExtRegistryTypeIdentifier>& paramTypes,
+		const std::vector<int>& paramComCnt, int funcId, const std::string& funcName) {
 		auto specType = GET_TYPE(0), baseType = getLlvmType(paramTypes[0], 1);
 		auto mangledSpecType = GET_TYPE_ANNO(0), mangledBaseType = getMangledType(paramTypes[0], 1);
-		std::string functionName = "GLSL.std.450_13";
+		std::string functionName = "GLSL.std.450_" + std::to_string(funcId);
 		std::string arguments[1] = { "%x" };
 		std::string mangledName = functionName + "_" + mangledSpecType;
 
 		std::stringstream ps;
-		ps << "define "<< specType << " @" << mangledName << "(" << specType << " " << arguments[0] << "){\n";
+		ps << "define " << specType << " @" << mangledName << "(" << specType << " " << arguments[0] << "){\n";
 		if (paramComCnt[0] == 1) {
-			ps << "%p = call " << specType << "@llvm.sin(" << specType << " " << arguments[0] << ")\n";
+			ps << "%p = call " << specType << "@llvm."<< funcName <<"(" << specType << " " << arguments[0] << ")\n";
 			ps << "ret " << specType << " %p \n";
 		}
 		else {
 			std::string lastname = "undef";
 			for (int i = 0; i < paramComCnt[0]; i++) {
 				ps << "%p_" << i << " = extractelement " << specType << " " << arguments[0] << ", i32 " << i << "\n";
-				ps << "%ps_" << i << " = call " << baseType << " @llvm.sin." << mangledBaseType << "(" << baseType << " %p_" << i << ")\n";
+				ps << "%ps_" << i << " = call " << baseType << " @llvm."<< funcName <<"." << mangledBaseType << "(" << baseType << " %p_" << i << ")\n";
 				ps << "%ret_" << i << " = insertelement " << specType << " " << lastname << ", " << baseType << " %ps_" << i << ", i32 " << i << "\n";
 				lastname = "%ret_" + std::to_string(i);
 			}
@@ -50,6 +50,24 @@ namespace Ifrit::Engine::ShaderVM::Spirv::ExtInst::GlslStd450 {
 		return ps.str();
 	}
 
+	DEF_INST(Sin) {
+		return glslstdTrigonometryFunc(paramTypes, paramComCnt, GLSLstd450Sin, "sin");
+	}
+	DEF_INST(Cos) {
+		return glslstdTrigonometryFunc(paramTypes, paramComCnt, GLSLstd450Cos, "cos");
+	}
+	DEF_INST(Tan) {
+		return glslstdTrigonometryFunc(paramTypes, paramComCnt, GLSLstd450Tan, "tan");
+	}
+	DEF_INST(Asin) {
+		return glslstdTrigonometryFunc(paramTypes, paramComCnt, GLSLstd450Asin, "asin");
+	}
+	DEF_INST(Acos) {
+		return glslstdTrigonometryFunc(paramTypes, paramComCnt, GLSLstd450Acos, "acos");
+	}
+	DEF_INST(Atan) {
+		return glslstdTrigonometryFunc(paramTypes, paramComCnt, GLSLstd450Atan, "atan");
+	}
 #undef DEF_INST
 }
 
@@ -58,7 +76,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	SpvVMExtRegistry::SpvVMExtRegistry(){
 #define REGISTER_GLSLSTD450(x,y) generators["GLSL.std.450"][(x)] = (ExtInst::GlslStd450::y);
 		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Sin, Sin);
-		
+		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Cos, Cos);
+		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Tan, Tan);
+		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Asin, Asin);
+		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Acos, Acos);
+		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Atan, Atan);
+
 #undef REGISTER_GLSLSTD450
 	}
 	std::string SpvVMExtRegistry::queryExternalFunc(std::string extImportName, int functionName, const std::vector<SpvVMExtRegistryTypeIdentifier>& identifiers, const std::vector<int>& componentSize){

@@ -32,6 +32,20 @@ using namespace Ifrit::Engine::ComLLVMRuntime;
 namespace Ifrit::Demo::ShaderVMDemo {
 
 	int mainTest() {
+		float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
+		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
+		float4x4 mvp = transpose(multiply(proj, view));
+
+		WavefrontLoader loader;
+		std::vector<ifloat3> pos;
+		std::vector<ifloat3> normal;
+		std::vector<ifloat2> uv;
+		std::vector<uint32_t> index;
+		std::vector<ifloat3> procNormal;
+		loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj", pos, normal, uv, index);
+		procNormal = loader.remapNormals(normal, index, pos.size());
+
+
 		constexpr int DEMO_RESOLUTION = 512;
 		std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
 		std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
@@ -40,17 +54,17 @@ namespace Ifrit::Demo::ShaderVMDemo {
 
 		VertexBuffer vertexBuffer;
 		vertexBuffer.setLayout({ TypeDescriptors.FLOAT4,TypeDescriptors.FLOAT4 });
+		vertexBuffer.allocateBuffer(pos.size());
+		for (int i = 0; i < pos.size(); i++) {
+			vertexBuffer.setValue(i, 0, ifloat4(pos[i].x, pos[i].y, pos[i].z, 1));
+			vertexBuffer.setValue(i, 1, ifloat4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
+		}
 
-		vertexBuffer.setVertexCount(3);
-		vertexBuffer.allocateBuffer(3);
-		vertexBuffer.setValue(0, 0, ifloat4(0, 0.5, 0.1, 1));
-		vertexBuffer.setValue(1, 0, ifloat4(-0.5, -0.5, 0.1, 1));
-		vertexBuffer.setValue(2, 0, ifloat4(0.5, -0.5, 0.1, 1));
-		vertexBuffer.setValue(0, 1, ifloat4(1, 0, 0, 0));
-		vertexBuffer.setValue(1, 1, ifloat4(0, 1, 0, 0));
-		vertexBuffer.setValue(2, 1, ifloat4(0, 0, 1, 0));
-
-		std::vector<int> indexBuffer = { 0,1,2 };
+		std::vector<int> indexBuffer = { 0,1,2,2,3,0 };
+		indexBuffer.resize(index.size() / 3);
+		for (int i = 0; i < index.size(); i += 3) {
+			indexBuffer[i / 3] = index[i];
+		}
 
 		frameBuffer.setColorAttachments({ image.get() });
 		frameBuffer.setDepthAttachment(*depth);
@@ -63,18 +77,11 @@ namespace Ifrit::Demo::ShaderVMDemo {
 
 		struct Uniform {
 			ifloat4 t1 = { 0,0,0,0 };
-			ifloat4 t2 = { 0.1,0,0,0 };
+			ifloat4 t2 = { 0,0,0,0 };
 		} uniform;
-		struct Uniform2 {
-			float mat[16] = {
-				1, 0, 0, 0,
-				0, 1, 0, 0,
-				0, 0, 1, 0,
-				0.5, 0, 0, 1
-			};
-		} uniform2;
+
 		renderer->bindUniformBuffer(0, 0, &uniform);
-		renderer->bindUniformBuffer(1, 0, &uniform2);
+		renderer->bindUniformBuffer(1, 0, &mvp);
 
 
 		WrappedLLVMRuntime::initLlvmBackend();
