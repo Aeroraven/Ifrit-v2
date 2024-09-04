@@ -1,6 +1,5 @@
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/base/Shaders.h"
-#include "engine/math/ShaderOps.h"
 #include "math/VectorOps.h"
 
 using namespace Ifrit::Math;
@@ -40,8 +39,7 @@ namespace Ifrit::Engine::TileRaster {
 		}
 	}
 	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW {
-		using Ifrit::Engine::Math::ShaderOps::multiply;
-
+		
 		constexpr uint32_t clipIts = 2;
 		const ifloat4 clipCriteria[7] = {
 			{0,0,0,1},

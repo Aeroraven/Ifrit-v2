@@ -3,11 +3,11 @@
 #include "./demo/shader/DefaultDemoShaders.cuh"
 #include "presentation/backend/OpenGLBackend.h"
 #include "core/data/Image.h"
+#include "math/LinalgOps.h"
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/tileraster/TileRasterRenderer.h"
 #include "utility/loader/WavefrontLoader.h"
 #include "utility/loader/ImageLoader.h"
-#include "engine/math/ShaderOps.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "presentation/backend/TerminalCharColorBackend.h"
@@ -15,14 +15,13 @@
 
 #define DEMO_RESOLUTION 512
 
-
 namespace Ifrit::Demo::DemoDefault {
 	using namespace std;
 	using namespace Ifrit::Core::Data;
 
 	using namespace Ifrit::Engine::TileRaster;
 	using namespace Ifrit::Utility::Loader;
-	using namespace Ifrit::Engine::Math::ShaderOps;
+	using namespace Ifrit::Math;
 	using namespace Ifrit::Presentation::Window;
 	using namespace Ifrit::Presentation::Backend;
 #ifdef IFRIT_FEATURE_CUDA
@@ -47,7 +46,7 @@ namespace Ifrit::Demo::DemoDefault {
 	//float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
 	float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 1.0, 3000));
 	float4x4 model;
-	float4x4 mvp = multiply(proj, view);
+	float4x4 mvp = matmul(proj, view);
 
 	float globalTime = 1.0f;
 
@@ -62,7 +61,7 @@ namespace Ifrit::Demo::DemoDefault {
 			float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.01, 3000));
 			auto mvp = multiply(proj, view);	*/
 			auto s = *reinterpret_cast<const ifloat4*>(input[0]);
-			auto p = multiply(mvp, s);
+			auto p = matmul(mvp, s);
 			*outPos = p;
 			outVaryings[0]->vf4 = *reinterpret_cast<const ifloat4*>(input[1]);
 		}

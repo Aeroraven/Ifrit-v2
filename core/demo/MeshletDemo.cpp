@@ -7,14 +7,13 @@
 #include "engine/tileraster/TileRasterRenderer.h"
 #include "utility/loader/WavefrontLoader.h"
 #include "utility/loader/ImageLoader.h"
-#include "engine/math/ShaderOps.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "presentation/backend/TerminalCharColorBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 #include "engine/meshletbuilder/MeshletBuilder.h"
 #include "shader/MeshletDemoShaders.cuh"
-
+#include "math/LinalgOps.h"
 
 #define DEMO_RESOLUTION 1800
 namespace Ifrit::Demo::MeshletDemo {
@@ -22,7 +21,7 @@ namespace Ifrit::Demo::MeshletDemo {
     using namespace Ifrit::Core::Data;
     using namespace Ifrit::Engine::TileRaster;
     using namespace Ifrit::Utility::Loader;
-    using namespace Ifrit::Engine::Math::ShaderOps;
+	using namespace Ifrit::Math;
     using namespace Ifrit::Presentation::Window;
     using namespace Ifrit::Presentation::Backend;
     using namespace Ifrit::Engine::MeshletBuilder;
@@ -35,13 +34,13 @@ namespace Ifrit::Demo::MeshletDemo {
 	float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
     //float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
     float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.01, 3000));
-    float4x4 mvp = multiply(proj, view);
+    float4x4 mvp = matmul(proj, view);
 
     class MeshletDemoVS : public VertexShader {
 	public:
 		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override {
 			auto s = *reinterpret_cast<const ifloat4*>(input[0]);
-			auto p = multiply(mvp, s);
+			auto p = matmul(mvp, s);
 			*outPos = p;
 			outVaryings[0]->vf4 = *reinterpret_cast<const ifloat4*>(input[1]);
 		}

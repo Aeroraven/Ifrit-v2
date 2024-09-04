@@ -1,10 +1,8 @@
 #include "utility/loader/WavefrontLoader.h"
-#include "engine/math/ShaderOps.h"
 #include "math/VectorOps.h"
 
 namespace Ifrit::Utility::Loader {
 	std::vector<ifloat2> WavefrontLoader::remapUVs(std::vector<ifloat2> uvs, std::vector<uint32_t> indices, int numVertices) {
-		using namespace Ifrit::Engine::Math::ShaderOps;
 		std::vector<ifloat2> retNormals;
 		std::vector<int> counters;
 		retNormals.clear();
