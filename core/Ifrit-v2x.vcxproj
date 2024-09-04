@@ -177,7 +177,6 @@
     <ClInclude Include="include\core\utility\CoreUtils.h" />
     <ClInclude Include="include\dependency\GLAD\glad\glad.h" />
     <ClInclude Include="include\dependency\GLAD\KHR\khrplatform.h" />
-    <ClInclude Include="include\engine\base\BufferLayout.h" />
     <ClInclude Include="include\engine\base\FrameBuffer.h" />
     <ClInclude Include="include\engine\base\Renderer.h" />
     <ClInclude Include="include\engine\base\TypeDescriptor.h" />

@@ -34,7 +34,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 **Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). 
 
-✅ Supported | 🟦 Limited  Supported | 🟥 TODO
+✅ Available | 🟦 Limited  Support | 🟥 TODO
 
 | Feature                                     | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | ------------------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |

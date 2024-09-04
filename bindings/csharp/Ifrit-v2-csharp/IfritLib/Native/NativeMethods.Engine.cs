@@ -6,14 +6,6 @@ namespace IfritLib.Native
     internal static partial class NativeMethods
     {
         /* Engine */
-        [LibraryImport(DllName, EntryPoint = "iftrCreateBufferLayout")]
-        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
-        public static partial IntPtr IftrCreateBufferLayout();
-
-        [LibraryImport(DllName, EntryPoint = "iftrDestroyBufferLayout")]
-        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
-        public static partial void IftrDestroyBufferLayout(IntPtr pInstance);
-
         [LibraryImport(DllName, EntryPoint = "iftrCreateFrameBuffer")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
         public static partial IntPtr IftrCreateFrameBuffer();
