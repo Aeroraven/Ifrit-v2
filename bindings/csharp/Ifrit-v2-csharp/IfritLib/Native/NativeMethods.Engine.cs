@@ -129,5 +129,39 @@ namespace IfritLib.Native
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
         public static partial void IftrTest(IntPtr func);
 
+        /* ========= Update V1 ======== */
+        [LibraryImport(DllName, EntryPoint = "iftrBindVertexShader")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial void IftrBindVertexShader(IntPtr hInstance, IntPtr func);
+
+        [LibraryImport(DllName, EntryPoint = "iftrBindFragmentShader")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial void IftrBindFragmentShader(IntPtr hInstance, IntPtr func);
+
+        [LibraryImport(DllName, EntryPoint = "ifvmCreateLLVMRuntimeBuilder")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial IntPtr IfvmCreateLLVMRuntimeBuilder();
+
+        [LibraryImport(DllName, EntryPoint = "ifvmDestroyLLVMRuntimeBuilder")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial void IfvmDestroyLLVMRuntimeBuilder(IntPtr pInstance);
+
+        /* SPIRVM */
+        [LibraryImport(DllName, EntryPoint = "ifspvmCreateVertexShaderFromFile")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial IntPtr IfspvmCreateVertexShaderFromFile(IntPtr pRuntimeBuilder, IntPtr path);
+
+        [LibraryImport(DllName, EntryPoint = "ifspvmCreateFragmentShaderFromFile")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial IntPtr IfspvmCreateFragmentShaderFromFile(IntPtr pRuntimeBuilder, IntPtr path);
+
+        [LibraryImport(DllName, EntryPoint = "ifspvmDestroyVertexShaderFromFile")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial void IfspvmDestroyVertexShaderFromFile(IntPtr pInstance);
+
+        [LibraryImport(DllName, EntryPoint = "ifspvmDestroyFragmentShaderFromFile")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial void IfspvmDestroyFragmentShaderFromFile(IntPtr pInstance);
+
     }
 }

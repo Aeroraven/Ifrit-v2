@@ -12,7 +12,7 @@ GPU/CPU-Parallelized tile-based software rasterizer.
 
 
 
-Check  **[`gallery.md`](./gallery.md)** for **[More Example Pictures](./gallery.md)**
+Check  **[`gallery.md`](./docs/gallery.md)** for **[More Example Pictures](./gallery.md)**
 
 
 
@@ -34,65 +34,63 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 **Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). 
 
+✅ Supported | 🟦 Limited  Supported | 🟥 TODO
+
 | Feature                                     | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | ------------------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
-| **Basic**                                   |                                                              |                 |               |
-| Rendering Order                             | √                                                            | √               | √ (3)         |
-| **Performance**                             |                                                              |                 |               |
-| SIMD Instructions / SIMT                    |                                                              | √               | √             |
-| Overlapped Memory Transfer                  |                                                              |                 | √             |
-| Dynamic Tile List                           |                                                              | √               | √             |
-| **Integration (Wrapper)**                   |                                                              |                 |               |
-| C++ DLL                                     |                                                              | ▲               |               |
-| .NET Library (`C#`)                         |                                                              | ▲               |               |
-| **Pipeline**                                |                                                              |                 |               |
-| Programmable Vertex Shader                  | √                                                            | √               | √             |
-| Programmable Fragment Shader                | √                                                            | √               | √             |
-| Programmable Geometry Shader                |                                                              |                 | ▲             |
-| Programmable Mesh Shader                    |                                                              |                 | ▲             |
-| Programmable Task Shader                    |                                                              |                 | ▲             |
-| Alpha Blending                              |                                                              | √               | √             |
-| Depth Testing                               | √                                                            | √               | √             |
-| Depth Function                              |                                                              | √               | √             |
-| Z Pre-Pass                                  |                                                              |                 | √             |
-| Early-Z Test                                | √                                                            | √               | √             |
-| Late-Z Test (Depth Replacement & `discard`) |                                                              |                 | √             |
-| Scissor Test                                |                                                              |                 | √             |
-| Back Face Culling                           | √                                                            | √               | √             |
-| Frustum Culling                             |                                                              | √               | √             |
-| Homogeneous Clipping                        |                                                              | √ (1)           | √ (1)         |
-| Small Triangle Culling                      |                                                              |                 | √             |
-| Perspective-correct Interpolation           |                                                              | √               | √             |
-| Shader Derivatives `dFdx` `dFdy`            |                                                              |                 | ▲ (2)         |
-| Multi-sampling                              |                                                              |                 | ▲ (8x MSAA)   |
-| **Polygon Mode**                            |                                                              |                 |               |
-| Filled Triangle                             | √                                                            | √               | √             |
-| Line (Wireframe)                            |                                                              |                 | ▲             |
-| Point                                       |                                                              |                 | ▲             |
-| **Texture**                                 |                                                              |                 |               |
-| Basic Support (Sampler)                     |                                                              |                 | √             |
-| Blit                                        |                                                              |                 | √             |
-| Mipmap                                      |                                                              |                 | √             |
-| Filter                                      |                                                              |                 | √             |
-| Sampler Address Mode                        |                                                              |                 | √             |
-| LOD Bias                                    |                                                              |                 | √             |
-| Anisotropic Filtering                       |                                                              |                 | ▲ (4)         |
-| Cube Map                                    |                                                              |                 | √             |
-| **Presentation**                            |                                                              |                 |               |
-| Terminal ASCII                              |                                                              | √               | √             |
-| Terminal Color                              |                                                              | √               | √             |
+| 🚀 **Performance**                           |                                                              |                 |               |
+| SIMD Instructions / SIMT                    | 🟥                                                            | ✅               | ✅             |
+| Overlapped Memory Transfer                  | 🟥                                                            | 🟥               | ✅             |
+| Dynamic Tile List                           | 🟥                                                            | ✅               | ✅             |
+| 🔗 **Integration (Wrapper)**                 |                                                              |                 |               |
+| C++ DLL                                     | 🟥                                                            | 🟦               | 🟥             |
+| .NET Library (`C#`)                         | 🟥                                                            | 🟦               | 🟥             |
+| 🔗 **Shader Language**                       |                                                              |                 |               |
+| In-Application Class                        | ✅                                                            | ✅               | ✅             |
+| SPIR-V Binary / HLSL                        | 🟥                                                            | 🟦 OrcJIT (2)    | 🟥             |
+| SPIR-V Binary / GLSL                        | 🟥                                                            | 🟥               | 🟥             |
+| 💡 **Rasterization / Basic**                 |                                                              |                 |               |
+| Rendering Order                             | ✅                                                            | ✅               | ✅             |
+| 💡 **Rasterization / Pipeline**              |                                                              |                 |               |
+| Programmable Vertex Shader                  | ✅                                                            | ✅               | ✅             |
+| Programmable Pixel Shader                   | ✅                                                            | ✅               | ✅             |
+| Programmable Geometry Shader                | 🟥                                                            | 🟥               | 🟦             |
+| Programmable Mesh Shader                    | 🟥                                                            | 🟥               | 🟦             |
+| Programmable Task Shader                    | 🟥                                                            | 🟥               | 🟦             |
+| Alpha Blending                              | 🟥                                                            | ✅               | ✅             |
+| Depth Testing                               | ✅                                                            | ✅               | ✅             |
+| Depth Function                              | 🟥                                                            | ✅               | ✅             |
+| Z Pre-Pass                                  | 🟥                                                            | 🟥               | ✅             |
+| Early-Z Test                                | ✅                                                            | ✅               | ✅             |
+| Late-Z Test (Depth Replacement & `discard`) | 🟥                                                            | 🟥               | ✅             |
+| Scissor Test                                | 🟥                                                            | 🟥               | ✅             |
+| Back Face Culling                           | ✅                                                            | ✅               | ✅             |
+| Frustum Culling                             | 🟥                                                            | ✅               | ✅             |
+| Homogeneous Clipping                        | 🟥                                                            | ✅               | ✅             |
+| Small Triangle Culling                      | 🟥                                                            | 🟥               | ✅             |
+| Perspective-correct Interpolation           | 🟥                                                            | ✅               | ✅             |
+| Shader Derivatives `dFdx` `dFdy`            | 🟥                                                            | 🟥               | 🟦             |
+| Multi-sampling                              | 🟥                                                            | 🟥               | 🟦 8x MSAA     |
+| 💡 **Rasterization / Polygon Mode**          |                                                              |                 |               |
+| Filled Triangle                             | ✅                                                            | ✅               | ✅             |
+| Line (Wireframe)                            | 🟥                                                            | 🟥               | 🟦             |
+| Point                                       | 🟥                                                            | 🟥               | 🟦             |
+| 🖼️ **Texture**                               |                                                              |                 |               |
+| Basic Support (Sampler)                     | 🟥                                                            | 🟥               | ✅             |
+| Blit                                        | 🟥                                                            | 🟥               | ✅             |
+| Mipmap                                      | 🟥                                                            | 🟥               | ✅             |
+| Filter                                      | 🟥                                                            | 🟥               | ✅             |
+| Sampler Address Mode                        | 🟥                                                            | 🟥               | ✅             |
+| LOD Bias                                    | 🟥                                                            | 🟥               | ✅             |
+| Anisotropic Filtering                       | 🟥                                                            | 🟥               | 🟦             |
+| Cube Map                                    | 🟥                                                            | 🟥               | ✅             |
+| 🖥️ **Presentation**                          |                                                              |                 |               |
+| Terminal ASCII                              | 🟥                                                            | ✅               | ✅             |
+| Terminal Color                              | 🟥                                                            | ✅               | ✅             |
 
-(1) For performance consideration, only w-axis is considered 
+(1) Shader derivatives are now only available for the filled triangle polygon mode. Shader derivatives are calculated in `2x2` quads, so precision might matter.
 
-(2) Shader derivatives are now only available for the filled triangle polygon mode. Shader derivatives are calculated in `2x2` quads, so precision might matter.
-
-(3) Only works when `Alpha Blending` is enabled.
-
-(4) Only works when `texture` shader function is called.
-
-▲ Limited support / Unstable feature
-
-
+(2) Partial instructions are supported. Only available for binaries produced by `glslc`
 
 ### Supported Feature Details
 
@@ -136,78 +134,19 @@ All tests were performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6
 
 ## Dependencies
 
-#### Minimal Requirement (Native)
-
-- **Display Dependencies**: 
-  - OpenGL (GLFW3.3 + GLAD)
-- **Compilation Dependencies:** One of following environments. Requires `c++20` support.
-  - MSVC 19.29 + Visual Studio 2022 
-  - CMake 3.28 + GCC 13.2 (MinGW Included) `[CUDA Support is unknown]`
-- **Optional**: CUDA is optional, but when compiling with CUDA:
-  - CUDA >= 12.5
-
-
-
-#### Minimal Requirement (C# Wrapper)
-
-- **Framework**: .NET 8.0
-
-
-
-#### Recommended Requirement (Native)
-
-- **Hardware Requirements:**  
-  - CUDA 12.6
-  - AVX2 Support
-- **Display Dependencies**: 
-  - OpenGL (GLFW3.3 + GLAD)
-- **Compilation Dependencies:** Requires `c++20` support.
-  - MSVC 19.29 + Visual Studio 2022 
-
-
+See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
 
 
 ## Setup / Run
 
-### Dependency Installation
-
-Some dependencies should be prepared before compiling.
-
-- Place `GLAD` dependency in `include\dependency\GLAD\glad\glad.h` and `include\dependency\GLAD\KHR\khrplatform.h`
-- Place `sbt_image` in `include\dependency\sbt_image.h`
-
-Change CUDA path and GLFW3 library path in `CMakeLists.txt` 
-
-
-
-### Compile using G++ / MinGW
-
-Follow instructions to build
-
-```cmake
-cmake -S . -B ./build
-cd build
-make
-```
-
-
-
-### Compile using Visual Studio
-
-**Native** open `Ifrit-v2x.sln` in Visual Studio 2022.
-
-- Edit the property sheet to help the linker find CUDA and GLFW3 library file.
-
-**C# Wrapper** open `bindings/csharp/Ifrit-v2-csharp/Ifrit-v2-csharp.sln` in Visual Studio.
-
-
+See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
 
 
 ## Abstractions / Usage
 
-See `DOCS.md` for more details.
+See  [Usage](./docs/docs.md) for more details.
 
 
 
@@ -223,10 +162,13 @@ See `DOCS.md` for more details.
   - [ ] Tiling
 - [x] Multi-sampling
   - [ ] Blending Integration
-
 - [x] Alpha Blending
   - [x] Sorting
 - [x] Mesh Shader
+- [x] Shader Binary
+  - [ ] Matrix Operations
+  - [ ] Optimization
+
 - [ ] Input Topology
 - [ ] Triangle Cluster & Cluster LOD
 - [ ] Known Issues
@@ -252,3 +194,5 @@ For models / open source code references, check `licenses` folder.
 [3]. https://docs.nvidia.com/cuda/cuda-c-programming-guide/
 
 [4]. https://github.com/zeux/meshoptimizer
+
+[5]. https://llvm.org/docs/LangRef.html

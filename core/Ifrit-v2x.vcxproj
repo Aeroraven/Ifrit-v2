@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{CBDE4B7D-E58D-4711-A771-AB6D200D542F}</ProjectGuid>
+    <RootNamespace>Ifrit_v2x</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Ifrit-v2-Core</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.6.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PropertySheet.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PropertySheet.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Program Files (x86)\LLVM\include;C:\Users\Huang\Desktop\Tool\glfw-3.3.8\include;$(ProjectDir)include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <ExternalIncludePath>C:\Program Files (x86)\glfw-3.3.8\lib;C:\Program Files (x86)\LLVM\lib;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>C:\Program Files (x86)\glfw-3.3.8\lib;C:\Program Files (x86)\LLVM\lib;$(LibraryPath)</LibraryPath>
+    <TargetName>Ifrit.Core</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>C:\Program Files (x86)\LLVM\include;C:\Users\Huang\Desktop\Tool\glfw-3.3.8\include;$(ProjectDir)include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <ExternalIncludePath>C:\Program Files (x86)\glfw-3.3.8\lib;C:\Program Files (x86)\LLVM\lib;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>C:\Program Files (x86)\glfw-3.3.8\lib;C:\Program Files (x86)\LLVM\lib;$(LibraryPath)</LibraryPath>
+    <TargetName>Ifrit.Core</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir);$(ProjectDir)..\components\llvmexec\Ifrit-v2-Component-LLVMExec\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>Ifrit.Components.LLVMExec.lib;glfw3.lib;ntdll.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ShowProgress>LinkVerbose</ShowProgress>
+      <Profile>false</Profile>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\components\llvmexec\Ifrit-v2-Component-LLVMExec\build;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <AdditionalCompilerOptions>--std=C++20</AdditionalCompilerOptions>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <Include>$(ProjectDir)include;%(Include)</Include>
+      <AdditionalOptions>-std=c++20 %(AdditionalOptions)</AdditionalOptions>
+      <CodeGeneration>compute_75,sm_75</CodeGeneration>
+      <FastMath>false</FastMath>
+      <GenerateLineInfo>true</GenerateLineInfo>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir);$(ProjectDir)..\components\llvmexec\Ifrit-v2-Component-LLVMExec\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <FloatingPointModel>Fast</FloatingPointModel>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
+      <OptimizeReferences>false</OptimizeReferences>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>Ifrit.Components.LLVMExec.lib;glfw3.lib;ntdll.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ShowProgress>LinkVerboseLib</ShowProgress>
+      <Profile>false</Profile>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\components\llvmexec\Ifrit-v2-Component-LLVMExec\build;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <Include>$(ProjectDir)include;%(Include)</Include>
+      <AdditionalCompilerOptions>
+      </AdditionalCompilerOptions>
+      <AdditionalOptions>-std=c++20 %(AdditionalOptions)</AdditionalOptions>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <CodeGeneration>compute_86,sm_86</CodeGeneration>
+      <FastMath>true</FastMath>
+      <GenerateLineInfo>true</GenerateLineInfo>
+      <Keep>false</Keep>
+      <NvccCompilation>compile</NvccCompilation>
+      <MaxRegCount>0</MaxRegCount>
+    </CudaCompile>
+    <CudaLink>
+      <Optimization>O3</Optimization>
+      <PerformDeviceLinkTimeOptimization>true</PerformDeviceLinkTimeOptimization>
+    </CudaLink>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="demo\MeshletDemo.h" />
+    <ClInclude Include="demo\ShaderVMDemo.h" />
+    <ClInclude Include="demo\shader\DefaultDemoShaders.cuh" />
+    <ClInclude Include="demo\DefaultDemo.h" />
+    <ClInclude Include="demo\shader\MeshletDemoShaders.cuh" />
+    <ClInclude Include="demo\shader\SkyboxShaders.cuh" />
+    <ClInclude Include="demo\Skybox.h" />
+    <ClInclude Include="include\dependency\glsl.std.450.h" />
+    <ClInclude Include="include\dependency\spirv.h" />
+    <ClInclude Include="include\engine\base\ShaderRuntime.h" />
+    <ClInclude Include="include\engine\base\Shaders.h" />
+    <ClInclude Include="include\engine\base\Constants.h" />
+    <ClInclude Include="include\engine\base\Structures.h" />
+    <ClInclude Include="include\engine\comllvmrt\WrappedLLVMRuntime.h" />
+    <ClInclude Include="include\engine\export\ComLLVMRtExport.h" />
+    <ClInclude Include="include\engine\export\EngineCommonExport.h" />
+    <ClInclude Include="include\engine\export\ShaderVMExport.h" />
+    <ClInclude Include="include\engine\export\TileRasterRendererExport.h" />
+    <ClInclude Include="include\engine\math\ShaderBuiltinCuda.cuh" />
+    <ClInclude Include="include\engine\math\ShaderBuiltin.h" />
+    <ClInclude Include="include\engine\meshletbuilder\MeshletBuilder.h" />
+    <ClInclude Include="include\engine\meshletbuilder\MeshletCommon.h" />
+    <ClInclude Include="include\engine\shadervm\spirv\SpvVMContext.h" />
+    <ClInclude Include="include\engine\shadervm\spirv\SpvVMExtInstRegistry.h" />
+    <ClInclude Include="include\engine\shadervm\spirv\SpvVMInterpreter.h" />
+    <ClInclude Include="include\engine\shadervm\spirv\SpvVMReader.h" />
+    <ClInclude Include="include\engine\shadervm\spirv\SpvVMShader.h" />
+    <ClInclude Include="include\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cuh" />
+    <ClInclude Include="include\engine\tilerastercuda\TileRasterCommonResourceCuda.cuh" />
+    <ClInclude Include="include\IfritExports.h" />
+    <ClInclude Include="include\IfritIncludes.h" />
+    <ClInclude Include="include\presentation\backend\AdaptiveBackendBuilder.h" />
+    <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
+    <ClInclude Include="include\utility\loader\ImageLoader.h" />
+    <ClCompile Include="src\engine\export\ComLLVMRtExport.cpp" />
+    <ClCompile Include="src\engine\export\ShaderVMExport.cpp" />
+    <ClCompile Include="src\engine\shadervm\spirv\SpvVMExtInstRegistry.cpp" />
+    <CudaCompile Include="demo\shader\DefaultDemoShaders.cu" />
+    <CudaCompile Include="demo\shader\MeshletDemoShaders.cu" />
+    <CudaCompile Include="demo\shader\SkyboxShaders.cu" />
+    <CudaCompile Include="include\core\cuda\CudaUtils.cuh" />
+    <ClInclude Include="include\core\data\Image.h" />
+    <ClInclude Include="include\core\definition\CoreDefs.h" />
+    <ClInclude Include="include\core\definition\CoreExports.h" />
+    <ClInclude Include="include\core\definition\CoreTypes.h" />
+    <ClInclude Include="include\core\utility\CoreLogger.h" />
+    <ClInclude Include="include\core\utility\CoreUtils.h" />
+    <ClInclude Include="include\dependency\GLAD\glad\glad.h" />
+    <ClInclude Include="include\dependency\GLAD\KHR\khrplatform.h" />
+    <ClInclude Include="include\engine\base\BufferLayout.h" />
+    <ClInclude Include="include\engine\base\FrameBuffer.h" />
+    <ClInclude Include="include\engine\base\Renderer.h" />
+    <ClInclude Include="include\engine\base\TypeDescriptor.h" />
+    <ClInclude Include="include\engine\base\VaryingDescriptor.h" />
+    <ClInclude Include="include\engine\base\VaryingStore.h" />
+    <ClInclude Include="include\engine\base\VertexBuffer.h" />
+    <ClInclude Include="include\engine\base\VertexShaderResult.h" />
+    <ClInclude Include="include\engine\math\ShaderOps.h" />
+    <CudaCompile Include="include\engine\math\ShaderOpsCuda.cuh" />
+    <CudaCompile Include="include\engine\tilerastercuda\TileRasterDeviceContextCuda.cuh" />
+    <ClInclude Include="include\engine\tilerastercuda\TileRasterContextCuda.h" />
+    <ClInclude Include="include\engine\tilerastercuda\TileRasterRendererCuda.h" />
+    <ClInclude Include="include\engine\tilerastercuda\TileRasterConstantsCuda.h" />
+    <ClInclude Include="include\engine\tileraster\TileRasterCommon.h" />
+    <ClInclude Include="include\engine\tileraster\TileRasterContext.h" />
+    <ClInclude Include="include\engine\tileraster\TileRasterRenderer.h" />
+    <ClInclude Include="include\engine\tileraster\TileRasterWorker.h" />
+    <ClInclude Include="include\presentation\backend\BackendProvider.h" />
+    <ClInclude Include="include\presentation\backend\OpenGLBackend.h" />
+    <ClInclude Include="include\presentation\backend\AbstractTerminalBackend.h" />
+    <ClInclude Include="include\presentation\backend\TerminalAsciiBackend.h" />
+    <ClInclude Include="include\presentation\backend\TerminalCharColorBackend.h" />
+    <ClInclude Include="include\presentation\window\GLFWWindowProvider.h" />
+    <ClInclude Include="include\presentation\window\WindowProvider.h" />
+    <ClInclude Include="include\presentation\window\TerminalProvider.h" />
+    <ClInclude Include="include\utility\loader\WavefrontLoader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="demo\DefaultDemo.cpp" />
+    <ClCompile Include="demo\MeshletDemo.cpp" />
+    <ClCompile Include="demo\ShaderVMDemo.cpp" />
+    <ClCompile Include="demo\Skybox.cpp" />
+    <ClCompile Include="IfritMain.cpp" />
+    <ClCompile Include="include\core\export\CommonExport.h" />
+    <ClCompile Include="src\core\definition\CoreDefs.cpp" />
+    <ClCompile Include="src\core\export\CommonExport.cpp" />
+    <ClCompile Include="src\engine\base\TypeDescriptor.cpp" />
+    <ClCompile Include="src\engine\comllvmrt\WarppedLLVMRuntime.cpp" />
+    <ClCompile Include="src\engine\export\EngineCommonExport.cpp" />
+    <ClCompile Include="src\engine\export\TileRasterRendererExport.cpp" />
+    <ClCompile Include="src\engine\meshletbuilder\MeshletBuilder.cpp" />
+    <ClCompile Include="src\engine\shadervm\spirv\SpvVMInterpreter.cpp" />
+    <ClCompile Include="src\engine\shadervm\spirv\SpvVMReader.cpp" />
+    <ClCompile Include="src\engine\shadervm\spirv\SpvVMShader.cpp" />
+    <ClCompile Include="src\presentation\backend\AdaptiveBackendBuilder.cpp" />
+    <ClCompile Include="src\presentation\window\AdaptiveWindowBuilder.cpp" />
+    <ClCompile Include="src\utility\loader\ImageLoader.cpp" />
+    <CudaCompile Include="include\engine\tilerastercuda\TileRasterCoreInvocationCuda.cuh" />
+    <ClCompile Include="src\dependency\GLAD\glad.c" />
+    <ClCompile Include="src\engine\base\FrameBuffer.cpp" />
+    <ClCompile Include="src\engine\base\VaryingDescriptor.cpp" />
+    <ClCompile Include="src\engine\base\VertexBuffer.cpp" />
+    <ClCompile Include="src\engine\base\VertexShaderResult.cpp" />
+    <ClCompile Include="src\engine\math\ShaderOps.cpp" />
+    <ClCompile Include="src\engine\tilerastercuda\TileRasterRendererCuda.cpp" />
+    <ClCompile Include="src\engine\tileraster\TileRasterContext.cpp" />
+    <ClCompile Include="src\engine\tileraster\TileRasterRenderer.cpp" />
+    <ClCompile Include="src\engine\tileraster\TileRasterWorker.cpp" />
+    <ClCompile Include="src\presentation\backend\OpenGLBackend.cpp" />
+    <ClCompile Include="src\presentation\backend\AbstractTerminalBackend.cpp" />
+    <ClCompile Include="src\presentation\backend\TerminalAsciiBackend.cpp" />
+    <ClCompile Include="src\presentation\backend\TerminalCharColorBackend.cpp" />
+    <ClCompile Include="src\presentation\window\GLFWWindowProvider.cpp" />
+    <ClCompile Include="src\presentation\window\WindowProvider.cpp" />
+    <ClCompile Include="src\presentation\window\TerminalProvider.cpp" />
+    <ClCompile Include="src\utility\loader\WavefrontLoader.cpp" />
+    <CudaCompile Include="src\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cu" />
+    <CudaCompile Include="src\engine\tilerastercuda\TileRasterCoreInvocationCuda.cu" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.6.targets" />
+  </ImportGroup>
+</Project>

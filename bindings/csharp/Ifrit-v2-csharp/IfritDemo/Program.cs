@@ -1,5 +1,6 @@
 ﻿using IfritLib.Engine.Base;
 using IfritLib.Engine.TileRaster;
+using IfritLib.Engine.SpirvInterpreter;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Drawing;
@@ -36,39 +37,7 @@ namespace IfritDemo
                 }
             }
         }
-        public static void MarshalUnmananagedArray2Struct<T>(IntPtr unmanagedArray, int length, out T[] mangagedArray)
-        {
-            //https://stackoverflow.com/questions/6747112/getting-array-of-struct-from-intptr
-            var size = Marshal.SizeOf(typeof(T));
-            mangagedArray = new T[length];
-
-            for (int i = 0; i < length; i++)
-            {
-                IntPtr ins = new IntPtr(unmanagedArray.ToInt64() + i * size);
-                mangagedArray[i] = Marshal.PtrToStructure<T>(ins);
-            }
-        }
-        static void DemoVS(IntPtr input,IntPtr pos,IntPtr varyings)
-        {
-            IntPtr[] inputPtr = new IntPtr[2];
-            MarshalUnmananagedArray2Struct<IntPtr>(input,2,out inputPtr);
-            float[] posData = new float[4];
-            MarshalUnmananagedArray2Struct<float>(inputPtr[0],4,out posData);
-            float[] colorData = new float[4];
-            MarshalUnmananagedArray2Struct<float>(inputPtr[1],4,out colorData);
-            Marshal.Copy(posData, 0, pos, 4);
-
-            IntPtr[] varyingPtr = new nint[1];
-            MarshalUnmananagedArray2Struct<IntPtr>(varyings,1,out varyingPtr);
-            Marshal.Copy(colorData, 0, varyingPtr[0], 4);
-
-        }
-        static void DemoFS(IntPtr varyings,IntPtr color,IntPtr depth)
-        {
-            float[] colorData = new float[4];
-            Marshal.Copy(varyings, colorData, 0, 4);
-            Marshal.Copy(colorData, 0, color, 4);
-        }
+       
         static void Main(string[] args)
         {
             const int DEMO_RESOLUTION = 512;
@@ -111,11 +80,14 @@ namespace IfritDemo
             var varyingDescriptors = new VaryingDescriptors();
             varyingDescriptors.WriteDescriptor(vsOutLayout);
 
-            renderer.BindVertexShader(DemoVS, varyingDescriptors);
-            renderer.BindFragmentShader(DemoFS);
+            SpirvLLVMBackend llvmBackend = new SpirvLLVMBackend();
+            SpirvVertexShader vertexShader = new SpirvVertexShader(llvmBackend, "../../../shader/demo.vert.hlsl.spv");
+            SpirvFragmentShader fragmentShader = new SpirvFragmentShader(llvmBackend, "../../../shader/demo.frag.hlsl.spv");
+
+            renderer.BindVertexShader(vertexShader);
+            renderer.BindFragmentShader(fragmentShader);
 
             renderer.DrawLegacy(1);
-            renderer.DebugPrint();
 
             float[] imageData = new float[4 * DEMO_RESOLUTION * DEMO_RESOLUTION];
             image.CopyToArray(imageData);
