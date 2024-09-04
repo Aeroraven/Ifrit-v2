@@ -15,4 +15,10 @@ namespace Ifrit::Engine::ComLLVMRuntime {
 	private:
 		WrappedLLVMRuntimeContext* session;
 	};
+
+	class WrappedLLVMRuntimeBuilder: public ShaderRuntimeBuilder {
+	public:
+		WrappedLLVMRuntimeBuilder();
+		virtual std::unique_ptr<ShaderRuntime> buildRuntime() const override;
+	};
 }

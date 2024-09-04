@@ -2,13 +2,14 @@
 
 namespace Ifrit::Engine::ShaderVM::Spirv {
 	int SpvRuntimeBackend::createTime = 0;
-	SpvRuntimeBackend::SpvRuntimeBackend(ShaderRuntime* runtime, std::vector<char> irByteCode) {
+	SpvRuntimeBackend::SpvRuntimeBackend(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) {
 		reader.initializeContext(&spctx);
 		reader.parseByteCode(irByteCode.data(), irByteCode.size() / 4, &spctx);
 		interpeter.parseRawContext(&spctx, &spvir);
-		this->runtime = runtime;
+		this->owningRuntime = runtime.buildRuntime();
+		this->runtime = owningRuntime.get();
 		interpeter.exportLlvmIR(&spvir, &this->irCode);
-		runtime->loadIR(this->irCode, std::to_string(this->createTime));
+		this->runtime->loadIR(this->irCode, std::to_string(this->createTime));
 		updateSymbolTable(false);
 	}
 	SpvRuntimeBackend::SpvRuntimeBackend(const SpvRuntimeBackend& other) {
@@ -46,7 +47,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		}
 	}
 
-	SpvVertexShader::SpvVertexShader(ShaderRuntime* runtime, std::vector<char> irByteCode):SpvRuntimeBackend(runtime, irByteCode){
+	SpvVertexShader::SpvVertexShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode):SpvRuntimeBackend(runtime, irByteCode){
 		isThreadSafe = false;
 	}
 	SpvVertexShader::SpvVertexShader(const SpvVertexShader& p) :SpvRuntimeBackend(p) {
@@ -80,7 +81,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		return vdesc;
 	}
 	
-	SpvFragmentShader::SpvFragmentShader(ShaderRuntime* runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
+	SpvFragmentShader::SpvFragmentShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
 		isThreadSafe = false;
 	}
 	SpvFragmentShader::SpvFragmentShader(const SpvFragmentShader& p) :SpvRuntimeBackend(p) {

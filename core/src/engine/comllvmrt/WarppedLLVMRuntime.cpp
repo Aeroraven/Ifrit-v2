@@ -47,4 +47,11 @@ namespace Ifrit::Engine::ComLLVMRuntime {
 		return copy;
 	}
 
+	WrappedLLVMRuntimeBuilder::WrappedLLVMRuntimeBuilder(){
+		WrappedLLVMRuntime::initLlvmBackend();
+	}
+
+	std::unique_ptr<ShaderRuntime> WrappedLLVMRuntimeBuilder::buildRuntime() const {
+		return std::make_unique<WrappedLLVMRuntime>();
+	}
 }

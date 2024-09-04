@@ -83,17 +83,14 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		renderer->bindUniformBuffer(0, 0, &uniform);
 		renderer->bindUniformBuffer(1, 0, &mvp);
 
-
-		WrappedLLVMRuntime::initLlvmBackend();
-
 		SpvVMReader reader;
 		auto fsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/demo.frag.hlsl.spv");
 		auto vsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/demo.vert.hlsl.spv");
 		
-		WrappedLLVMRuntime fsRuntime, vsRuntime;
-		SpvVertexShader vertexShader(&vsRuntime, vsCode);
+		WrappedLLVMRuntimeBuilder llvmRuntime;
+		SpvVertexShader vertexShader(llvmRuntime, vsCode);
 		renderer->bindVertexShader(vertexShader);
-		SpvFragmentShader fragmentShader(&fsRuntime,fsCode);
+		SpvFragmentShader fragmentShader(llvmRuntime,fsCode);
 		renderer->bindFragmentShader(fragmentShader);
 
 		GLFWWindowProvider windowProvider;

@@ -28,8 +28,9 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::unique_ptr<ShaderRuntime> copiedRuntime = nullptr;
 		std::string irCode;
 		
+		std::unique_ptr<ShaderRuntime> owningRuntime = nullptr;
 	public:
-		SpvRuntimeBackend(ShaderRuntime* runtime, std::vector<char> irByteCode);
+		SpvRuntimeBackend(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
 		SpvRuntimeBackend(const SpvRuntimeBackend& other);
 	protected:
 		void updateSymbolTable(bool isCopy);
@@ -39,7 +40,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	protected:
 		SpvVertexShader(const SpvVertexShader& p);
 	public:
-		SpvVertexShader(ShaderRuntime* runtime, std::vector<char> irByteCode);
+		SpvVertexShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
 		~SpvVertexShader() = default;
 		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override;
 		IFRIT_HOST virtual VertexShader* getCudaClone() override;
@@ -53,7 +54,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	protected:
 		SpvFragmentShader(const SpvFragmentShader& p);
 	public:
-		SpvFragmentShader(ShaderRuntime* runtime, std::vector<char> irByteCode);
+		SpvFragmentShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
 		~SpvFragmentShader() = default;
 		IFRIT_DUAL virtual void execute(const void* varyings,void* colorOutput,	float* fragmentDepth) override;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() override;
