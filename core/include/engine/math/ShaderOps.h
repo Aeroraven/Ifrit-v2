@@ -3,33 +3,12 @@
 #include "./core/definition/CoreDefs.h"
 
 namespace Ifrit::Engine::Math::ShaderOps {
-	IFRIT_APIDECL ifloat4 multiply(const float4x4 a, const ifloat4 b);
 	IFRIT_APIDECL float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up);
 	IFRIT_APIDECL float4x4 perspective(float fovy, float aspect, float zNear, float zFar);
+	IFRIT_APIDECL ifloat4 multiply(const float4x4 a, const ifloat4 b);
 	IFRIT_APIDECL float4x4 multiply(const float4x4 a, const float4x4 b);
-	IFRIT_APIDECL ifloat4 normalize(ifloat4 a);
-	IFRIT_APIDECL ifloat3 cross(ifloat3 a, ifloat3 b);
-	IFRIT_APIDECL ifloat3 normalize(ifloat3 a);
-	IFRIT_APIDECL ifloat2 normalize(ifloat2 a);
-	IFRIT_APIDECL ifloat3 sub(ifloat3 a, ifloat3 b);
-	IFRIT_APIDECL float dot(ifloat3 a, ifloat3 b);
-	IFRIT_APIDECL float4x4 transpose(float4x4 a);
+	IFRIT_APIDECL float4x4 transpose(const float4x4& a);
 
-	inline float dot(const ifloat4& a, const ifloat4& b) {
-		return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-	}
-	inline ifloat4 sub(const ifloat4& a, const ifloat4& b) {
-		return ifloat4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
-	}
-	inline ifloat4 multiply(const ifloat4& a, const float& b) {
-		return ifloat4(a.x * b, a.y * b, a.z * b, a.w * b);
-	}
-	inline ifloat4 add(const ifloat4& a, const ifloat4& b) {
-		return ifloat4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
-	}
-	inline ifloat4 lerp(const ifloat4& a, const ifloat4& b, const float& t) {
-		return add(multiply(a, 1 - t), multiply(b, t));
-	}
 	inline float4x4 axisAngleRotation(ifloat3 axis, float angle) {
 		float c = cos(angle);
 		float s = sin(angle);

@@ -1,6 +1,7 @@
 #include "engine/math/ShaderOps.h"
-
+#include "math/VectorOps.h"
 namespace Ifrit::Engine::Math::ShaderOps {
+	using namespace Ifrit::Math;
 	IFRIT_APIDECL ifloat4 multiply(const float4x4 a, const ifloat4 b){
 		ifloat4 result;
 		result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z + a[0][3] * b.w;
@@ -10,7 +11,7 @@ namespace Ifrit::Engine::Math::ShaderOps {
 		return result;
 	}
 	IFRIT_APIDECL float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up){
-		ifloat3 f = normalize(sub(center,eye));
+		ifloat3 f = normalize(center - eye);
 		ifloat3 s = normalize(cross(f, up));
 		ifloat3 u = cross(s, f);
 		float4x4 result;
@@ -81,28 +82,7 @@ namespace Ifrit::Engine::Math::ShaderOps {
 		}
 		return result;
 	}
-	IFRIT_APIDECL ifloat4 normalize(ifloat4 a){
-		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w);
-		return { a.x / length, a.y / length, a.z / length, a.w / length };
-	}
-	IFRIT_APIDECL ifloat3 cross(ifloat3 a, ifloat3 b){
-		return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
-	}
-	IFRIT_APIDECL ifloat3 normalize(ifloat3 a){
-		float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
-		return { a.x / length, a.y / length, a.z / length };
-	}
-	IFRIT_APIDECL ifloat2 normalize(ifloat2 a) {
-		float length = sqrt(a.x * a.x + a.y * a.y );
-		return { a.x / length, a.y / length };
-	}
-	IFRIT_APIDECL ifloat3 sub(ifloat3 a, ifloat3 b) {
-		return { a.x - b.x, a.y - b.y, a.z - b.z };
-	}
-	IFRIT_APIDECL float dot(ifloat3 a, ifloat3 b){
-		return a.x * b.x + a.y * b.y + a.z * b.z;
-	}
-	IFRIT_APIDECL float4x4 transpose(float4x4 a){
+	IFRIT_APIDECL float4x4 transpose(const float4x4& a){
 		float4x4 result;
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {

@@ -1,6 +1,9 @@
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/base/Shaders.h"
 #include "engine/math/ShaderOps.h"
+#include "math/VectorOps.h"
+
+using namespace Ifrit::Math;
 namespace Ifrit::Engine::TileRaster {
 	TileRasterWorker::TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context) {
 		this->workerId = workerId;
@@ -37,11 +40,8 @@ namespace Ifrit::Engine::TileRaster {
 		}
 	}
 	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW {
-		using Ifrit::Engine::Math::ShaderOps::dot;
-		using Ifrit::Engine::Math::ShaderOps::sub;
-		using Ifrit::Engine::Math::ShaderOps::add;
 		using Ifrit::Engine::Math::ShaderOps::multiply;
-		using Ifrit::Engine::Math::ShaderOps::lerp;
+
 		constexpr uint32_t clipIts = 2;
 		const ifloat4 clipCriteria[7] = {
 			{0,0,0,1},
@@ -81,13 +81,12 @@ namespace Ifrit::Engine::TileRaster {
 			for (int j = 0; j < psize; j++) {
 				const auto& pn = ret[cRIdx][(j + 1) % psize];
 				auto npn = dot(pn.pos, outNormal);
-
 				if (npc * npn < 0) {
-					ifloat4 dir = sub(pn.pos, pc.pos);
+					ifloat4 dir = pn.pos - pc.pos;
 					float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
 					float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
 					float t = (-refPoint.w + numo) / deno;
-					ifloat4 intersection = add(pc.pos, multiply(dir, t));
+					ifloat4 intersection = pc.pos + dir * t;
 					ifloat4 barycenter = lerp(pc.barycenter, pn.barycenter, t);
 
 					TileRasterClipVertex newp;

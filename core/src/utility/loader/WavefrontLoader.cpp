@@ -1,5 +1,7 @@
 #include "utility/loader/WavefrontLoader.h"
 #include "engine/math/ShaderOps.h"
+#include "math/VectorOps.h"
+
 namespace Ifrit::Utility::Loader {
 	std::vector<ifloat2> WavefrontLoader::remapUVs(std::vector<ifloat2> uvs, std::vector<uint32_t> indices, int numVertices) {
 		using namespace Ifrit::Engine::Math::ShaderOps;
@@ -23,7 +25,7 @@ namespace Ifrit::Utility::Loader {
 		return retNormals;
 	}
 	std::vector<ifloat3> WavefrontLoader::remapNormals(std::vector<ifloat3> normals, std::vector<uint32_t> indices, int numVertices) {
-		using namespace Ifrit::Engine::Math::ShaderOps;
+		using namespace Ifrit::Math;
 		std::vector<ifloat3> retNormals;
 		std::vector<int> counters;
 		retNormals.clear();
