@@ -88,6 +88,14 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrTest(void (*p)(int)) IFRIT_EXPORT_CO
 	p(114514);
 }
 
+//Update v1
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindVertexShader(IFRIT_TRTP* hInstance, void* pVertexShader) IFRIT_EXPORT_COMPAT_NOTHROW {
+	hInstance->renderer->bindVertexShader(*(VertexShader*)pVertexShader);
+}
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindFragmentShader(IFRIT_TRTP* hInstance, void* pFragmentShader) IFRIT_EXPORT_COMPAT_NOTHROW {
+	hInstance->renderer->bindFragmentShader(*(FragmentShader*)pFragmentShader);
+}
+
 #undef IFRIT_TRTP
 #undef IFRIT_BASENS
 #undef IFRIT_TRNS

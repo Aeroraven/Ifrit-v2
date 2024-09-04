@@ -665,15 +665,6 @@ namespace Ifrit::Engine::TileRaster {
 		pxArgs.indexBufferPtr = (context->indexBuffer->data());
 		
 		while ((curTile = renderer->fetchUnresolvedTileFragmentShading()) != -1) {
-			auto curTileX = curTile % context->numTilesX;
-			auto curTileY = curTile / context->numTilesX;
-
-			auto curTileX2 = (curTileX + 1) * context->tileWidth;
-			auto curTileY2 = (curTileY + 1) * context->tileWidth;
-			curTileX = curTileX * context->tileWidth;
-			curTileY = curTileY * context->tileWidth;
-			curTileX2 = std::min(curTileX2, (int)frameBufferWidth);
-			curTileY2 = std::min(curTileY2, (int)frameBufferHeight);
 
 			auto proposalProcessFunc = [&]<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>(TileBinProposal& proposal) {
 				const auto& triProposal = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
@@ -711,6 +702,16 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 				}
 				else if (proposal.level == TileRasterLevel::TILE) {
+					auto curTileX = curTile % context->numTilesX;
+					auto curTileY = curTile / context->numTilesX;
+
+					auto curTileX2 = (curTileX + 1) * context->tileWidth;
+					auto curTileY2 = (curTileY + 1) * context->tileWidth;
+					curTileX = curTileX * context->tileWidth;
+					curTileY = curTileY * context->tileWidth;
+					curTileX2 = std::min(curTileX2, (int)frameBufferWidth);
+					curTileY2 = std::min(curTileY2, (int)frameBufferHeight);
+
 					for (int dx = curTileX; dx < curTileX2; dx++) {
 						for (int dy = curTileY; dy < curTileY2; dy++) {
 							pixelShading<tpAlphaBlendEnable, tpDepthFunc>(triProposal, dx, dy, pxArgs);
@@ -718,6 +719,8 @@ namespace Ifrit::Engine::TileRaster {
 					}
 				}
 				else if (proposal.level == TileRasterLevel::BLOCK) {
+					auto curTileX = curTile % context->numTilesX;
+					auto curTileY = curTile / context->numTilesX;
 					auto subtileXPerTile = context->numSubtilesPerTileX;
 					auto subTilePixelX = (curTileX * subtileXPerTile + proposal.tile.x) * context->subtileBlockWidth;
 					auto subTilePixelY = (curTileY * subtileXPerTile + proposal.tile.y) * context->subtileBlockWidth;

@@ -26,15 +26,23 @@ namespace IfritLib.Engine.TileRaster
             NativeMethods.IftrBindIndexBuffer(_internalObject, rawPtr, (uint)indexBuffer.Length);
             Marshal.FreeHGlobal(rawPtr);
         }
-        public void BindVertexShader(ShaderDelegates.VertexShaderFunctionPtrRaw vertexShader, VaryingDescriptors layout)
+        public void BindVertexShaderLegacy1(ShaderDelegates.VertexShaderFunctionPtrRaw vertexShader, VaryingDescriptors layout)
         {
             IntPtr funcPtr = Marshal.GetFunctionPointerForDelegate(vertexShader);
             NativeMethods.IftrBindVertexShaderFunc(_internalObject, funcPtr, layout.InternalObject);
         }
-        public void BindFragmentShader(ShaderDelegates.FragmentShaderFunctionPtrRaw fragmentShader)
+        public void BindFragmentShaderLegacy1(ShaderDelegates.FragmentShaderFunctionPtrRaw fragmentShader)
         {
             IntPtr funcPtr = Marshal.GetFunctionPointerForDelegate(fragmentShader);
             NativeMethods.IftrBindFragmentShaderFunc(_internalObject, funcPtr);
+        }
+        public void BindVertexShader(VertexShader vertexShader)
+        {
+            NativeMethods.IftrBindVertexShader(_internalObject, vertexShader.InternalObject);
+        }
+        public void BindFragmentShader(FragmentShader fragmentShader)
+        {
+            NativeMethods.IftrBindFragmentShader(_internalObject, fragmentShader.InternalObject);
         }
         public void SetDepthFunc(int state)
         {
@@ -59,10 +67,6 @@ namespace IfritLib.Engine.TileRaster
         public void Init()
         {
             NativeMethods.IftrInit(_internalObject);
-        }
-        public void DebugPrint()
-        {
-            Console.WriteLine("Hello World\n");
         }
         ~TileRasterRenderer()
         {

@@ -6,7 +6,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::vector<char> data;
 		FILE* file = fopen(path, "rb");
 		if (!file) {
-			ifritError("Failed to open file: %s", path);
+			ifritError("Failed to open file:", std::string(path));
 		}
 		fseek(file, 0, SEEK_END);
 		size_t length = ftell(file);

@@ -18,13 +18,13 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
@@ -142,7 +142,9 @@
     <ClInclude Include="include\engine\base\Constants.h" />
     <ClInclude Include="include\engine\base\Structures.h" />
     <ClInclude Include="include\engine\comllvmrt\WrappedLLVMRuntime.h" />
+    <ClInclude Include="include\engine\export\ComLLVMRtExport.h" />
     <ClInclude Include="include\engine\export\EngineCommonExport.h" />
+    <ClInclude Include="include\engine\export\ShaderVMExport.h" />
     <ClInclude Include="include\engine\export\TileRasterRendererExport.h" />
     <ClInclude Include="include\engine\math\ShaderBuiltinCuda.cuh" />
     <ClInclude Include="include\engine\math\ShaderBuiltin.h" />
@@ -160,6 +162,8 @@
     <ClInclude Include="include\presentation\backend\AdaptiveBackendBuilder.h" />
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
+    <ClCompile Include="src\engine\export\ComLLVMRtExport.cpp" />
+    <ClCompile Include="src\engine\export\ShaderVMExport.cpp" />
     <ClCompile Include="src\engine\shadervm\spirv\SpvVMExtInstRegistry.cpp" />
     <CudaCompile Include="demo\shader\DefaultDemoShaders.cu" />
     <CudaCompile Include="demo\shader\MeshletDemoShaders.cu" />

@@ -43,7 +43,7 @@
 
 - **Library Dependencies:**
   - LLVM 10 (>=10.0.0, <11.0.0)
-- **Compilation Dependencies:**
+- **Compilation Dependencies:** Both
   - MinGW-w64 11.0 (or equivalent compiler)
   - MSVC 19.29 (Library Manager Version 14.29)
 
