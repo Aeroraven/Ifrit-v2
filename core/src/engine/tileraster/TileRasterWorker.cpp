@@ -180,7 +180,7 @@ namespace Ifrit::Engine::TileRaster {
 		float n2 = (v1.x * v3.y);
 		float n3 = (v2.x * v1.y);
 		float d = d1 + d2 + d3 - n1 - n2 - n3;
-		if (d < 0.0) return false;
+		if (d < 0.0f) return false;
 		return true;
 	}
 	void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, irect2Df bbox) IFRIT_AP_NOTHROW {
@@ -250,7 +250,8 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<VaryingStore*> outVaryings(context->varyingDescriptor->getVaryingCounts());
 		std::vector<const void*> inVertex(context->vertexBuffer->getAttributeCount());
 		auto vsEntry = context->threadSafeVS[workerId];
-		for (int j = workerId; j < context->vertexBuffer->getVertexCount(); j += context->numThreads) {
+		const auto vxCount = context->vertexBuffer->getVertexCount();
+		for (int j = workerId; j < vxCount; j += context->numThreads) {
 			auto pos = &context->vertexShaderResult->getPositionBuffer()[j];
 			getVaryingsAddr(j, outVaryings);
 			getVertexAttributes(j, inVertex);
@@ -262,8 +263,8 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterWorker::geometryProcessing() IFRIT_AP_NOTHROW {
 		auto posBuffer = context->vertexShaderResult->getPositionBuffer();
 		generatedTriangle.clear();
-		int genTris = 0;
-		for (int j = workerId * context->vertexStride; j < context->indexBuffer->size(); j += context->numThreads * context->vertexStride) {
+		int genTris = 0, ixBufSize = context->indexBuffer->size();
+		for (int j = workerId * context->vertexStride; j < ixBufSize; j += context->numThreads * context->vertexStride) {
 			int id0 = (*context->indexBuffer)[j];
 			int id1 = (*context->indexBuffer)[j + 1];
 			int id2 = (*context->indexBuffer)[j + 2];
@@ -664,6 +665,16 @@ namespace Ifrit::Engine::TileRaster {
 		pxArgs.indexBufferPtr = (context->indexBuffer->data());
 		
 		while ((curTile = renderer->fetchUnresolvedTileFragmentShading()) != -1) {
+			auto curTileX = curTile % context->numTilesX;
+			auto curTileY = curTile / context->numTilesX;
+
+			auto curTileX2 = (curTileX + 1) * context->tileWidth;
+			auto curTileY2 = (curTileY + 1) * context->tileWidth;
+			curTileX = curTileX * context->tileWidth;
+			curTileY = curTileY * context->tileWidth;
+			curTileX2 = std::min(curTileX2, (int)frameBufferWidth);
+			curTileY2 = std::min(curTileY2, (int)frameBufferHeight);
+
 			auto proposalProcessFunc = [&]<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>(TileBinProposal& proposal) {
 				const auto& triProposal = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
 				if (proposal.level == TileRasterLevel::PIXEL) IFRIT_BRANCH_LIKELY{
@@ -700,15 +711,6 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 				}
 				else if (proposal.level == TileRasterLevel::TILE) {
-					auto curTileX = curTile % context->numTilesX;
-					auto curTileY = curTile / context->numTilesX;
-
-					auto curTileX2 = (curTileX + 1) * context->tileWidth;
-					auto curTileY2 = (curTileY + 1) * context->tileWidth;
-					curTileX = curTileX * context->tileWidth;
-					curTileY = curTileY * context->tileWidth;
-					curTileX2 = std::min(curTileX2, (int)frameBufferWidth);
-					curTileY2 = std::min(curTileY2, (int)frameBufferHeight);
 					for (int dx = curTileX; dx < curTileX2; dx++) {
 						for (int dy = curTileY; dy < curTileY2; dy++) {
 							pixelShading<tpAlphaBlendEnable, tpDepthFunc>(triProposal, dx, dy, pxArgs);
@@ -716,8 +718,6 @@ namespace Ifrit::Engine::TileRaster {
 					}
 				}
 				else if (proposal.level == TileRasterLevel::BLOCK) {
-					auto curTileX = curTile % context->numTilesX;
-					auto curTileY = curTile / context->numTilesX;
 					auto subtileXPerTile = context->numSubtilesPerTileX;
 					auto subTilePixelX = (curTileX * subtileXPerTile + proposal.tile.x) * context->subtileBlockWidth;
 					auto subTilePixelY = (curTileY * subtileXPerTile + proposal.tile.y) * context->subtileBlockWidth;
