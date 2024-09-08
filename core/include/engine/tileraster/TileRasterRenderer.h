@@ -18,7 +18,8 @@ namespace Ifrit::Engine::TileRaster {
 		SORTING_SYNC,
 		FRAGMENT_SHADING,
 		FRAGMENT_SHADING_SYNC,
-		TERMINATED
+		COMPLETED,
+		TERMINATING
 	};
 	class TileRasterWorker;
 
@@ -33,6 +34,7 @@ namespace Ifrit::Engine::TileRaster {
 		std::atomic<uint32_t> unresolvedTileRaster = 0;
 		std::atomic<uint32_t> unresolvedTileFragmentShading = 0;
 		std::atomic<uint32_t> unresolvedTileSort = 0;
+		bool initialized = false;
 
 	protected:
 		void createWorkers();

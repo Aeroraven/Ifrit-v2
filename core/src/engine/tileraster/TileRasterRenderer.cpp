@@ -12,7 +12,20 @@ namespace Ifrit::Engine::TileRaster {
 	IFRIT_APIDECL TileRasterRenderer::TileRasterRenderer() {
 		
 	}
-	IFRIT_APIDECL TileRasterRenderer::~TileRasterRenderer() = default;
+	IFRIT_APIDECL TileRasterRenderer::~TileRasterRenderer(){
+		if (!initialized) {
+			return;
+		}
+		initialized = false;
+		for (auto& worker : workers) {
+			worker->status.store(TileRasterStage::TERMINATING);
+			worker->activated.store(true);
+		}
+		for (auto& worker : workers) {
+			worker->execWorker->join();
+		}
+		ifritLog1("TileRasterRenderer Terminated");
+	}
 	IFRIT_APIDECL void TileRasterRenderer::bindFrameBuffer(FrameBuffer& frameBuffer) {
 		this->context->frameBuffer = &frameBuffer;
 		context->numTilesX = Inline::ceilDiv(frameBuffer.getColorAttachment(0)->getWidth(), context->tileWidth);
@@ -315,6 +328,7 @@ namespace Ifrit::Engine::TileRaster {
 			worker->status.store(TileRasterStage::CREATED);
 			worker->threadStart();
 		}
+		initialized = true;
 	}
 	IFRIT_APIDECL void TileRasterRenderer::clear() {
 		context->frameBuffer->getColorAttachment(0)->clearImageZero();
@@ -349,7 +363,7 @@ namespace Ifrit::Engine::TileRaster {
 		else {
 			statusTransitionBarrier(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::FRAGMENT_SHADING);
 		}
-		statusTransitionBarrier(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::TERMINATED);
+		statusTransitionBarrier(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::COMPLETED);
 	}
 
 }

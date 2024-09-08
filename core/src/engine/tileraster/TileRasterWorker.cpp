@@ -6,36 +6,49 @@ using namespace Ifrit::Math;
 namespace Ifrit::Engine::TileRaster {
 	TileRasterWorker::TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context) {
 		this->workerId = workerId;
-		this->renderer = renderer;
+		this->rendererReference = renderer.get();
 		this->context = context;
+	}
+	void TileRasterWorker::release() {
+		status.store(TileRasterStage::TERMINATING);
+		if (execWorker->joinable()) {
+			execWorker->join();
+		}
 	}
 	void TileRasterWorker::run() IFRIT_AP_NOTHROW {
 		while (true) {
 			const auto& curStatus = status.load();
-			if (curStatus == TileRasterStage::CREATED || curStatus == TileRasterStage::TERMINATED) {
+			if (curStatus == TileRasterStage::CREATED || curStatus == TileRasterStage::COMPLETED) {
 				std::this_thread::yield();
 				continue;
 			}
-			else if (curStatus == TileRasterStage::VERTEX_SHADING) {
-				vertexProcessing();
-				activated.store(false);
+			else if(curStatus == TileRasterStage::TERMINATING){
+				return;
 			}
-			else if (curStatus == TileRasterStage::GEOMETRY_PROCESSING) {
-				geometryProcessing();
-				activated.store(false);
+			else {
+				auto rawRenderer = rendererReference; 
+				if (curStatus == TileRasterStage::VERTEX_SHADING) {
+					vertexProcessing(rawRenderer);
+					activated.store(false);
+				}
+				else if (curStatus == TileRasterStage::GEOMETRY_PROCESSING) {
+					geometryProcessing(rawRenderer);
+					activated.store(false);
+				}
+				else if (curStatus == TileRasterStage::RASTERIZATION) {
+					rasterization(rawRenderer);
+					activated.store(false);
+				}
+				else if (curStatus == TileRasterStage::SORTING) {
+					sortOrderProcessing(rawRenderer);
+					activated.store(false);
+				}
+				else if (curStatus == TileRasterStage::FRAGMENT_SHADING) {
+					fragmentProcessing(rawRenderer);
+					activated.store(false);
+				}
 			}
-			else if (curStatus == TileRasterStage::RASTERIZATION) {
-				rasterization();
-				activated.store(false);
-			}
-			else if (curStatus == TileRasterStage::SORTING) {
-				sortOrderProcessing();
-				activated.store(false);
-			}
-			else if (curStatus == TileRasterStage::FRAGMENT_SHADING) {
-				fragmentProcessing();
-				activated.store(false);
-			}
+			
 		}
 	}
 	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW {
@@ -242,7 +255,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 		}
 	}
-	void TileRasterWorker::vertexProcessing() IFRIT_AP_NOTHROW {
+	void TileRasterWorker::vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
 		status.store(TileRasterStage::VERTEX_SHADING);
 		std::vector<VaryingStore*> outVaryings(context->varyingDescriptor->getVaryingCounts());
 		std::vector<const void*> inVertex(context->vertexBuffer->getAttributeCount());
@@ -257,7 +270,7 @@ namespace Ifrit::Engine::TileRaster {
 		status.store(TileRasterStage::VERTEX_SHADING_SYNC);
 	}
 
-	void TileRasterWorker::geometryProcessing() IFRIT_AP_NOTHROW {
+	void TileRasterWorker::geometryProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
 		auto posBuffer = context->vertexShaderResult->getPositionBuffer();
 		generatedTriangle.clear();
 		int genTris = 0, ixBufSize = context->indexBufferSize;
@@ -293,7 +306,7 @@ namespace Ifrit::Engine::TileRaster {
 		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC);
 	}
 
-	void TileRasterWorker::rasterization() IFRIT_AP_NOTHROW {
+	void TileRasterWorker::rasterization(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
 		auto curTile = 0;
@@ -615,7 +628,7 @@ namespace Ifrit::Engine::TileRaster {
 		status.store(TileRasterStage::RASTERIZATION_SYNC);
 	}
 
-	void TileRasterWorker::sortOrderProcessing() IFRIT_AP_NOTHROW {
+	void TileRasterWorker::sortOrderProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
 		auto curTile = 0;
 		while ((curTile = renderer->fetchUnresolvedTileSort()) != -1) {
 			std::vector<int> numSpaces(context->numThreads);
@@ -643,7 +656,7 @@ namespace Ifrit::Engine::TileRaster {
 		status.store(TileRasterStage::SORTING_SYNC);
 	}
 
-	void TileRasterWorker::fragmentProcessing() IFRIT_AP_NOTHROW {
+	void TileRasterWorker::fragmentProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
 		auto curTile = 0;
 		const auto frameBufferWidth = context->frameBuffer->getWidth();
 		const auto frameBufferHeight = context->frameBuffer->getHeight();
@@ -785,7 +798,7 @@ namespace Ifrit::Engine::TileRaster {
 
 	void TileRasterWorker::threadStart() {
 		execWorker = std::make_unique<std::thread>(&TileRasterWorker::run, this);
-		execWorker->detach();
+		//execWorker->detach();
 	}
 
 	void TileRasterWorker::getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW {

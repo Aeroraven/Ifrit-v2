@@ -24,8 +24,10 @@ namespace Ifrit::Engine::TileRaster {
 		std::atomic<bool> activated;
 	private:
 		uint32_t workerId;
+		//Hold refernce to the parent. weak_ptr is time-consuming. This section conveys no ownership semantic
+		//worker object have the same lifetime with their parent
+		TileRasterRenderer* rendererReference; 
 		std::unique_ptr<std::thread> execWorker;
-		std::shared_ptr<TileRasterRenderer> renderer;
 		std::shared_ptr<TileRasterContext> context;
 		bool vert= false;
 		bool geom = false;
@@ -45,21 +47,22 @@ namespace Ifrit::Engine::TileRaster {
 
 	public:
 		TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context);
-
+		
 	protected:
 		friend class TileRasterRenderer;
 		void run() IFRIT_AP_NOTHROW;
+		void release();
 
 		bool triangleFrustumClip(ifloat4 v1, ifloat4 v2, ifloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW;
 		uint32_t triangleHomogeneousClip(const int primitiveId, ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW;
 		bool triangleCulling(ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW;
 		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, irect2Df bbox) IFRIT_AP_NOTHROW;
 
-		void vertexProcessing() IFRIT_AP_NOTHROW;
-		void geometryProcessing() IFRIT_AP_NOTHROW;
-		void rasterization() IFRIT_AP_NOTHROW;
-		void sortOrderProcessing() IFRIT_AP_NOTHROW;
-		void fragmentProcessing() IFRIT_AP_NOTHROW;
+		void vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
+		void geometryProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
+		void rasterization(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
+		void sortOrderProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
+		void fragmentProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
 
 		void threadStart();
 
