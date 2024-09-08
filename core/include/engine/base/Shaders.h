@@ -29,7 +29,7 @@ namespace Ifrit::Engine {
 			VaryingStore* const* outVaryings
 		) = 0;
 		IFRIT_HOST virtual VertexShader* getCudaClone() { return nullptr; };
-		IFRIT_HOST virtual VertexShader* getThreadLocalCopy() { return nullptr; };
+		IFRIT_HOST virtual std::unique_ptr<VertexShader> getThreadLocalCopy() { return nullptr; };
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) {}
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return{}; }
 		IFRIT_HOST virtual VaryingDescriptor getVaryingDescriptor() { return{}; }
@@ -44,7 +44,7 @@ namespace Ifrit::Engine {
 			float* fragmentDepth
 		) = 0;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() { return nullptr; };
-		IFRIT_HOST virtual FragmentShader* getThreadLocalCopy() { return nullptr; };
+		IFRIT_HOST virtual std::unique_ptr<FragmentShader> getThreadLocalCopy() { return nullptr; };
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) {}
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return{}; }
 	};

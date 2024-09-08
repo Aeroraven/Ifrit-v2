@@ -53,8 +53,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	SpvVertexShader::SpvVertexShader(const SpvVertexShader& p) :SpvRuntimeBackend(p) {
 		isThreadSafe = false;
 	}
-	IFRIT_HOST VertexShader* SpvVertexShader::getThreadLocalCopy() {
-		auto copy = new SpvVertexShader(*this);
+	IFRIT_HOST std::unique_ptr<VertexShader> SpvVertexShader::getThreadLocalCopy() {
+		auto copy = std::make_unique<SpvVertexShader>(*this);
 		return copy;
 	}
 
@@ -87,8 +87,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	SpvFragmentShader::SpvFragmentShader(const SpvFragmentShader& p) :SpvRuntimeBackend(p) {
 		isThreadSafe = false;
 	}
-	IFRIT_HOST FragmentShader* SpvFragmentShader::getThreadLocalCopy() {
-		auto copy = new SpvFragmentShader(*this);
+	IFRIT_HOST std::unique_ptr<FragmentShader> SpvFragmentShader::getThreadLocalCopy() {
+		auto copy = std::make_unique<SpvFragmentShader>(*this);
 		return copy;
 	}
 

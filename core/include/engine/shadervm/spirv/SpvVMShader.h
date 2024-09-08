@@ -37,28 +37,28 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	};
 
 	class SpvVertexShader final: public VertexShader, public SpvRuntimeBackend {
-	protected:
+	public:
 		SpvVertexShader(const SpvVertexShader& p);
 	public:
 		SpvVertexShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
 		~SpvVertexShader() = default;
 		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override;
 		IFRIT_HOST virtual VertexShader* getCudaClone() override;
-		IFRIT_HOST virtual VertexShader* getThreadLocalCopy() override;
+		IFRIT_HOST virtual std::unique_ptr<VertexShader> getThreadLocalCopy() override;
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
 		IFRIT_HOST virtual VaryingDescriptor getVaryingDescriptor() override;
 	};
 
 	class SpvFragmentShader final: public FragmentShader, public SpvRuntimeBackend {
-	protected:
+	public:
 		SpvFragmentShader(const SpvFragmentShader& p);
 	public:
 		SpvFragmentShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
 		~SpvFragmentShader() = default;
 		IFRIT_DUAL virtual void execute(const void* varyings,void* colorOutput,	float* fragmentDepth) override;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() override;
-		IFRIT_HOST virtual FragmentShader* getThreadLocalCopy() override;
+		IFRIT_HOST virtual std::unique_ptr<FragmentShader> getThreadLocalCopy() override;
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
 	};

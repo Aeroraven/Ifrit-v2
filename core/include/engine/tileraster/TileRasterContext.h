@@ -36,6 +36,9 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<VertexShader*> threadSafeVS;
 		std::vector<FragmentShader*> threadSafeFS;
 
+		std::vector<std::unique_ptr<VertexShader>> threadSafeVSOwningSection;
+		std::vector<std::unique_ptr<FragmentShader>> threadSafeFSOwningSection;
+		
 		// Resources
 		std::unique_ptr<VertexShaderResult> vertexShaderResult;
 		std::vector<std::vector<std::vector<TileBinProposal>>> rasterizerQueue;

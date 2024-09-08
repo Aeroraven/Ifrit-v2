@@ -39,11 +39,11 @@ namespace Ifrit::Engine::TileRaster {
 	}
 
 	IFRIT_APIDECL void TileRasterRenderer::bindFragmentShader(FragmentShader& fragmentShader) {
-		//TODO: Memory Leaks
 		this->context->fragmentShader = &fragmentShader;
 		if (!fragmentShader.isThreadSafe) {
 			for (int i = 0; i < context->numThreads; i++) {
-				context->threadSafeFS[i] = fragmentShader.getThreadLocalCopy();
+				context->threadSafeFSOwningSection[i] = fragmentShader.getThreadLocalCopy();
+				context->threadSafeFS[i] = context->threadSafeFSOwningSection[i].get();
 			}
 		}
 		else {
@@ -75,10 +75,10 @@ namespace Ifrit::Engine::TileRaster {
 		this->context->varyingDescriptor = &varyingDescriptor;
 		shaderBindingDirtyFlag = true;
 		varyingBufferDirtyFlag = true;
-		//TODO: Memory Leaks
 		if (!vertexShader.isThreadSafe) {
 			for (int i = 0; i < context->numThreads; i++) {
-				context->threadSafeVS[i] = vertexShader.getThreadLocalCopy();
+				context->threadSafeVSOwningSection[i] = vertexShader.getThreadLocalCopy();
+				context->threadSafeVS[i] = context->threadSafeVSOwningSection[i].get();
 			}
 		}
 		else {
@@ -321,6 +321,9 @@ namespace Ifrit::Engine::TileRaster {
 		context->assembledTriangles.resize(context->numThreads);
 		context->threadSafeFS.resize(context->numThreads);
 		context->threadSafeVS.resize(context->numThreads);
+		context->threadSafeFSOwningSection.resize(context->numThreads);
+		context->threadSafeVSOwningSection.resize(context->numThreads);
+
 		context->blendState.blendEnable = false;
 		
 		createWorkers();
