@@ -71,11 +71,10 @@ namespace Ifrit::Math {
 		trans[2][2] = 1;
 		return matmul(result, trans);
 	}
-	IFRIT_APIDECL inline float4x4 perspective(float fovy, float aspect, float zNear, float zFar) {
+	IFRIT_APIDECL inline float4x4 perspective(float fv, float aspect, float zNear, float zFar) {
 		float4x4 result;
-		float f = 1.0f / tan(fovy / 2.0f);
-		float halfFovy = fovy / 2.0f;
-		float nTop = zNear * tan(halfFovy);
+		float f = 1.0f / tan(fv);
+		float nTop = zNear * tan(fv);
 		float nRight = nTop * aspect;
 		float nLeft = -nRight;
 		float nBottom = -nTop;

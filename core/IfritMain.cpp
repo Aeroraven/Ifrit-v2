@@ -2,6 +2,7 @@
 #include "demo/Skybox.h"
 #include "demo/MeshletDemo.h"
 #include "demo/ShaderVMDemo.h"
+#include "demo/AccelStructDemo.h"
 
 int demoDefault() {
 #ifdef IFRIT_FEATURE_CUDA
@@ -34,7 +35,12 @@ int demoShaderVMTest() {
 	return Ifrit::Demo::ShaderVMDemo::mainTest();
 }
 
+int demoASTest() {
+	return Ifrit::Demo::AccelStructDemo::mainCpu();
+}
+
+
 int main() {
-	demoShaderVMTest();
+	demoASTest();
 	return 0;
 }

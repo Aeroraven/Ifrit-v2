@@ -25,15 +25,15 @@ namespace Ifrit::Math {
 	// Scalar ops
 #define SCALAR_VECTOR_OP(op) \
 	template <typename T> \
-	inline CoreVec2<T> operator op(const CoreVec2<T>& a, const T& b) { \
+	inline CoreVec2<T> operator op(const CoreVec2<T>& a, T b) { \
 		return CoreVec2<T>{a.x op b, a.y op b}; \
 	} \
 	template <typename T> \
-	inline CoreVec3<T> operator op(const CoreVec3<T>& a, const T& b) { \
+	inline CoreVec3<T> operator op(const CoreVec3<T>& a, T b) { \
 		return CoreVec3<T>{a.x op b, a.y op b, a.z op b}; \
 	} \
 	template <typename T> \
-	inline CoreVec4<T> operator op(const CoreVec4<T>& a, const T& b) { \
+	inline CoreVec4<T> operator op(const CoreVec4<T>& a, T b) { \
 		return CoreVec4<T>{a.x op b, a.y op b, a.z op b, a.w op b}; \
 	}
 	SCALAR_VECTOR_OP(+);
@@ -41,6 +41,82 @@ namespace Ifrit::Math {
 	SCALAR_VECTOR_OP(*);
 	SCALAR_VECTOR_OP(/);
 #undef SCALAR_VECTOR_OP
+
+	// Element wise ops 2
+
+#define ELEMENTWISE_VECTOR_OP2(op) \
+	template <typename T> \
+	inline CoreVec2<T>& operator op(CoreVec2<T>& a, const CoreVec2<T>& b) { \
+		a.x op b.x; \
+		a.y op b.y; \
+		return a; \
+	} \
+	template <typename T> \
+	inline CoreVec3<T>& operator op(CoreVec3<T>& a, const CoreVec3<T>& b) { \
+		a.x op b.x; \
+		a.y op b.y; \
+		a.z op b.z; \
+		return a; \
+	} \
+	template <typename T> \
+	inline CoreVec4<T>& operator op(CoreVec4<T>& a, const CoreVec4<T>& b) { \
+		a.x op b.x; \
+		a.y op b.y; \
+		a.z op b.z; \
+		a.w op b.w; \
+		return a; \
+	}
+	ELEMENTWISE_VECTOR_OP2(+=);
+	ELEMENTWISE_VECTOR_OP2(-=);
+	ELEMENTWISE_VECTOR_OP2(*=);
+	ELEMENTWISE_VECTOR_OP2(/=);
+
+#undef ELEMENTWISE_VECTOR_OP2
+
+	// Scalar ops 2
+#define SCALAR_VECTOR_OP2(op) \
+	template <typename T> \
+	inline CoreVec2<T>& operator op(CoreVec2<T>& a, T b) { \
+		a.x op b; \
+		a.y op b; \
+		return a; \
+	} \
+	template <typename T> \
+	inline CoreVec3<T>& operator op(CoreVec3<T>& a, T b) { \
+		a.x op b; \
+		a.y op b; \
+		a.z op b; \
+		return a; \
+	} \
+	template <typename T> \
+	inline CoreVec4<T>& operator op(CoreVec4<T>& a, T b) { \
+		a.x op b; \
+		a.y op b; \
+		a.z op b; \
+		a.w op b; \
+		return a; \
+	}
+
+	SCALAR_VECTOR_OP2(+=);
+	SCALAR_VECTOR_OP2(-=);
+	SCALAR_VECTOR_OP2(*=);
+	SCALAR_VECTOR_OP2(/=);
+
+#undef SCALAR_VECTOR_OP2
+
+	// Address ops
+	template <typename T>
+	IFRIT_APIDECL inline T elementAt(CoreVec2<T>& a, int i) {
+		return i == 0 ? a.x : a.y;
+	}
+	template <typename T>
+	IFRIT_APIDECL inline T elementAt(CoreVec3<T>& a, int i) {
+		return i == 0 ? a.x : i == 1 ? a.y : a.z;
+	}
+	template <typename T>
+	IFRIT_APIDECL inline T elementAt(CoreVec4<T>& a, int i) {
+		return i == 0 ? a.x : i == 1 ? a.y : i == 2 ? a.z : a.w;
+	}
 
 	// Normalize ops
 	template <typename T>

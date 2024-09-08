@@ -19,24 +19,29 @@
 	#ifdef IFRIT_API_EXPORT_COMPATIBLE_MODE
 		#ifdef IFRIT_API_EXPORT
 			#define IFRIT_APIDECL
+			#define IFRIT_APIDECL_FORCED __declspec(dllexport)
 			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllexport)
 		#else
 			#define IFRIT_APIDECL 
+			#define IFRIT_APIDECL_FORCED __declspec(dllimport)
 			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllimport)
 			#define IRTIT_IGNORE_PRESENTATION_DEPS
 		#endif
 	#else 
 		#ifdef IFRIT_API_EXPORT
 			#define IFRIT_APIDECL __declspec(dllexport)
+			#define IFRIT_APIDECL_FORCED __declspec(dllexport)
 			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllexport)
 		#else
 			#define IFRIT_APIDECL __declspec(dllimport)
+			#define IFRIT_APIDECL_FORCED __declspec(dllimport)
 			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllimport)
 			#define IRTIT_IGNORE_PRESENTATION_DEPS
 		#endif
 	#endif
 	
 #else
+	#define IFRIT_APIDECL_FORCED __declspec(dllexport)
 	#define IFRIT_APIDECL
 	#define IFRIT_APIDECL_COMPAT
 #endif

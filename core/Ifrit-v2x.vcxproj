@@ -18,13 +18,13 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
@@ -128,6 +128,7 @@
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="demo\AccelStructDemo.h" />
     <ClInclude Include="demo\MeshletDemo.h" />
     <ClInclude Include="demo\ShaderVMDemo.h" />
     <ClInclude Include="demo\shader\DefaultDemoShaders.cuh" />
@@ -137,6 +138,7 @@
     <ClInclude Include="demo\Skybox.h" />
     <ClInclude Include="include\dependency\glsl.std.450.h" />
     <ClInclude Include="include\dependency\spirv.h" />
+    <ClInclude Include="include\engine\base\RaytracerBase.h" />
     <ClInclude Include="include\engine\base\ShaderRuntime.h" />
     <ClInclude Include="include\engine\base\Shaders.h" />
     <ClInclude Include="include\engine\base\Constants.h" />
@@ -150,6 +152,11 @@
     <ClInclude Include="include\engine\math\ShaderBuiltin.h" />
     <ClInclude Include="include\engine\meshletbuilder\MeshletBuilder.h" />
     <ClInclude Include="include\engine\meshletbuilder\MeshletCommon.h" />
+    <ClInclude Include="include\engine\raytracer\accelstruct\RtBoundingVolumeHierarchy.h" />
+    <ClInclude Include="include\engine\raytracer\accelstruct\RtTrivialIterativeAccelStruct.h" />
+    <ClInclude Include="include\engine\raytracer\TrivialRaytracer.h" />
+    <ClInclude Include="include\engine\raytracer\TrivialRaytracerContext.h" />
+    <ClInclude Include="include\engine\raytracer\TrivialRaytracerWorker.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMContext.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMExtInstRegistry.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMInterpreter.h" />
@@ -164,8 +171,13 @@
     <ClInclude Include="include\presentation\backend\AdaptiveBackendBuilder.h" />
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
+    <ClCompile Include="demo\AccelStructDemo.cpp" />
     <ClCompile Include="src\engine\export\ComLLVMRtExport.cpp" />
     <ClCompile Include="src\engine\export\ShaderVMExport.cpp" />
+    <ClCompile Include="src\engine\raytracer\accelstruct\RtBoundingVolumeHierarchy.cpp" />
+    <ClCompile Include="src\engine\raytracer\accelstruct\RtTrivialIterativeAccelStruct.cpp" />
+    <ClCompile Include="src\engine\raytracer\TrivialRaytracer.cpp" />
+    <ClCompile Include="src\engine\raytracer\TrivialRaytracerWorker.cpp" />
     <ClCompile Include="src\engine\shadervm\spirv\SpvVMExtInstRegistry.cpp" />
     <CudaCompile Include="demo\shader\DefaultDemoShaders.cu" />
     <CudaCompile Include="demo\shader\MeshletDemoShaders.cu" />

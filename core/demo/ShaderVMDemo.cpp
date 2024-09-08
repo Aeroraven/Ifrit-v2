@@ -107,5 +107,6 @@ namespace Ifrit::Demo::ShaderVMDemo {
 			backend.updateTexture(*image);
 			backend.draw();
 		});
+		return 0;
 	}
 }

@@ -1,6 +1,15 @@
 #pragma once
 #include "engine/base/Constants.h"
 namespace Ifrit::Engine {
+	// Runtime Deps
+	struct IFRIT_APIDECL IfritRayDesc {
+		ifloat3 Origin;
+		ifloat3 Direction;
+		float TMin;
+		float TMax;
+	};
+
+	// Other
 	struct IFRIT_APIDECL IfritExtent3D {
 		uint32_t width = 0;
 		uint32_t height = 0;
