@@ -22,7 +22,8 @@ namespace Ifrit::Engine::TileRaster {
 		// Non-owning Bindings
 		FrameBuffer* frameBuffer;
 		const VertexBuffer* vertexBuffer;
-		const std::vector<int>* indexBuffer;
+		const int* indexBuffer;
+		int indexBufferSize;
 		VertexShader* vertexShader;
 		VaryingDescriptor* varyingDescriptor;
 		FragmentShader* fragmentShader;

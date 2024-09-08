@@ -40,12 +40,16 @@ namespace Ifrit::Engine::TileRaster {
 		}
 	}
 
-	IFRIT_APIDECL void TileRasterRenderer::bindUniformBuffer(int binding, int set, const void* pBuffer) {
-		this->context->uniformMapping[{binding, set}] = pBuffer;
+	IFRIT_APIDECL void TileRasterRenderer::bindUniformBuffer(int binding, int set, BufferManager::IfritBuffer pBuffer) {
+		auto p = pBuffer.manager.lock();
+		void* data;
+		p->mapBufferMemory(pBuffer, &data);
+		this->context->uniformMapping[{binding, set}] = data;
 	}
 
-	IFRIT_APIDECL void TileRasterRenderer::bindIndexBuffer(const std::vector<int>& indexBuffer) {
-		this->context->indexBuffer = &indexBuffer;
+	IFRIT_APIDECL void TileRasterRenderer::bindIndexBuffer(BufferManager::IfritBuffer indexBuffer) {
+		auto p = indexBuffer.manager.lock();
+		p->mapBufferMemory(indexBuffer, (void**)&this->context->indexBuffer);
 	}
 
 	IFRIT_APIDECL void TileRasterRenderer::bindVertexShader(VertexShader& vertexShader){
@@ -317,10 +321,11 @@ namespace Ifrit::Engine::TileRaster {
 		context->frameBuffer->getDepthAttachment()->clearImage(255);
 	}
 
-	IFRIT_APIDECL void TileRasterRenderer::render(bool clearFramebuffer) IFRIT_AP_NOTHROW {
+	IFRIT_APIDECL void TileRasterRenderer::drawElements(int vertexCount, bool clearFramebuffer) IFRIT_AP_NOTHROW {
 		intializeRenderContext();
 		updateUniformBuffer();
 		resetWorkers();
+		context->indexBufferSize = vertexCount;
 		unresolvedTileRaster.store(0,std::memory_order_seq_cst);
 		unresolvedTileFragmentShading.store(0, std::memory_order_seq_cst);
 		unresolvedTileSort.store(0, std::memory_order_seq_cst);

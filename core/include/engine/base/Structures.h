@@ -1,6 +1,11 @@
 #pragma once
 #include "engine/base/Constants.h"
 namespace Ifrit::Engine {
+	// Buffer
+	struct  IFRIT_APIDECL IfritBufferCreateInfo {
+		size_t bufferSize;
+	};
+
 	// Runtime Deps
 	struct IFRIT_APIDECL IfritRayDesc {
 		ifloat3 Origin;

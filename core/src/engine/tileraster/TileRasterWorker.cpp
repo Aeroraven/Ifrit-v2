@@ -260,11 +260,11 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterWorker::geometryProcessing() IFRIT_AP_NOTHROW {
 		auto posBuffer = context->vertexShaderResult->getPositionBuffer();
 		generatedTriangle.clear();
-		int genTris = 0, ixBufSize = context->indexBuffer->size();
+		int genTris = 0, ixBufSize = context->indexBufferSize;
 		for (int j = workerId * context->vertexStride; j < ixBufSize; j += context->numThreads * context->vertexStride) {
-			int id0 = (*context->indexBuffer)[j];
-			int id1 = (*context->indexBuffer)[j + 1];
-			int id2 = (*context->indexBuffer)[j + 2];
+			int id0 = (context->indexBuffer)[j];
+			int id1 = (context->indexBuffer)[j + 1];
+			int id2 = (context->indexBuffer)[j + 2];
 
 			if (context->frontface == TileRasterFrontFace::COUNTER_CLOCKWISE) {
 				std::swap(id0, id2);
@@ -282,10 +282,10 @@ namespace Ifrit::Engine::TileRaster {
 				if (!triangleCulling(atri.v1, atri.v2, atri.v3)) {
 					continue;
 				}
+				
 				if (!triangleFrustumClip(atri.v1, atri.v2, atri.v3, bbox)) {
 					continue;
 				}
-
 				executeBinner(i, atri, bbox);
 			}
 			genTris = gtri;
@@ -659,7 +659,7 @@ namespace Ifrit::Engine::TileRaster {
 		pxArgs.colorAttachment0 = context->frameBuffer->getColorAttachment(0);
 		pxArgs.depthAttachmentPtr = context->frameBuffer->getDepthAttachment();
 		pxArgs.varyingCounts = context->varyingDescriptor->getVaryingCounts();
-		pxArgs.indexBufferPtr = (context->indexBuffer->data());
+		pxArgs.indexBufferPtr = (context->indexBuffer);
 		
 		while ((curTile = renderer->fetchUnresolvedTileFragmentShading()) != -1) {
 

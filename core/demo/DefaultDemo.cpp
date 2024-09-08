@@ -12,13 +12,14 @@
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "presentation/backend/TerminalCharColorBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
+#include "engine/bufferman/BufferManager.h"
 
 #define DEMO_RESOLUTION 512
 
 namespace Ifrit::Demo::DemoDefault {
 	using namespace std;
 	using namespace Ifrit::Core::Data;
-
+	using namespace Ifrit::Engine::BufferManager;
 	using namespace Ifrit::Engine::TileRaster;
 	using namespace Ifrit::Utility::Loader;
 	using namespace Ifrit::Math;
@@ -142,7 +143,13 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->init();
 		renderer->bindFrameBuffer(frameBuffer);
 		renderer->bindVertexBuffer(vertexBuffer);
-		renderer->bindIndexBuffer(indexBuffer);
+
+		std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
+		bufferman->init();
+		auto indexBuffer1 = bufferman->createBuffer({ sizeof(indexBuffer[0]) * indexBuffer.size() });
+		bufferman->bufferData(indexBuffer1, indexBuffer.data(), 0, sizeof(indexBuffer[0]) * indexBuffer.size());
+
+		renderer->bindIndexBuffer(indexBuffer1);
 		renderer->optsetForceDeterministic(true);
 
 		IfritColorAttachmentBlendState blendState;
@@ -166,7 +173,7 @@ namespace Ifrit::Demo::DemoDefault {
 		if (presentEngine == PE_CONSOLE) {
 			TerminalCharColorBackend backend(139 * 2, 40 * 2);
 			while (true) {
-				renderer->render(true);
+				renderer->drawElements(indexBuffer.size(),true);
 				backend.updateTexture(*image);
 				backend.draw();
 				globalTime += 0.03f;
@@ -182,7 +189,7 @@ namespace Ifrit::Demo::DemoDefault {
 			backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 			windowProvider.loop([&](int* coreTime) {
 				std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-				renderer->render(true);
+				renderer->drawElements(indexBuffer.size(), true);
 				std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 				*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 				//printf("PassDone %d\n", *coreTime);

@@ -16,6 +16,7 @@
 #include "presentation/backend/TerminalCharColorBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 #include "engine/comllvmrt/WrappedLLVMRuntime.h"
+#include "engine/bufferman/BufferManager.h"
 #include "math/LinalgOps.h"
 
 using namespace std;
@@ -28,6 +29,7 @@ using namespace Ifrit::Presentation::Backend;
 using namespace Ifrit::Math;
 using namespace Ifrit::Engine::ShaderVM::Spirv;
 using namespace Ifrit::Engine::ComLLVMRuntime;
+using namespace Ifrit::Engine::BufferManager;
 
 namespace Ifrit::Demo::ShaderVMDemo {
 
@@ -46,10 +48,12 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		procNormal = loader.remapNormals(normal, index, pos.size());
 
 
-		constexpr int DEMO_RESOLUTION = 2048;
+		constexpr int DEMO_RESOLUTION = 1024;
 		std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
 		std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
 		std::shared_ptr<TileRasterRenderer> renderer = std::make_shared<TileRasterRenderer>();
+		std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
+		bufferman->init();
 		FrameBuffer frameBuffer;
 
 		VertexBuffer vertexBuffer;
@@ -72,16 +76,25 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		renderer->init();
 		renderer->bindFrameBuffer(frameBuffer);
 		renderer->bindVertexBuffer(vertexBuffer);
-		renderer->bindIndexBuffer(indexBuffer);
+		
 		renderer->optsetForceDeterministic(true);
+		renderer->optsetDepthTestEnable(true);
 
 		struct Uniform {
 			ifloat4 t1 = { 0,0,0,0 };
 			ifloat4 t2 = { 0,0,0,0 };
 		} uniform;
 
-		renderer->bindUniformBuffer(0, 0, &uniform);
-		renderer->bindUniformBuffer(1, 0, &mvp);
+		auto uniform1 = bufferman->createBuffer({ sizeof(uniform) });
+		bufferman->bufferData(uniform1, &uniform, 0, sizeof(uniform));
+		auto uniform2 = bufferman->createBuffer({ sizeof(mvp) });
+		bufferman->bufferData(uniform2, &mvp, 0, sizeof(mvp));
+		auto indexBuffer1 = bufferman->createBuffer({ sizeof(indexBuffer[0]) * indexBuffer.size() });
+		bufferman->bufferData(indexBuffer1, indexBuffer.data(), 0, sizeof(indexBuffer[0]) * indexBuffer.size());
+
+		renderer->bindUniformBuffer(0, 0, uniform1);
+		renderer->bindUniformBuffer(1, 0, uniform2);
+		renderer->bindIndexBuffer(indexBuffer1);
 
 		SpvVMReader reader;
 		auto fsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/demo.frag.hlsl.spv");
@@ -101,7 +114,7 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 		windowProvider.loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-			renderer->render(true);
+			renderer->drawElements(indexBuffer.size(),true);
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 			backend.updateTexture(*image);

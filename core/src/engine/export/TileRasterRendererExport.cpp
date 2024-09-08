@@ -1,6 +1,7 @@
 #include "./core/definition/CoreExports.h"
 #include "./engine/tileraster/TileRasterRenderer.h"
 #include "./engine/export/TileRasterRendererExport.h"
+#include "./engine/bufferman/BufferManager.h"
 
 #define IFRIT_TRNS  Ifrit::Engine::TileRaster
 #define IFRIT_BASENS  Ifrit::Engine
@@ -45,10 +46,9 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindFrameBuffer(IFRIT_TRTP* hInstanc
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindVertexBuffer(IFRIT_TRTP* hInstance, const IFRIT_BASENS::VertexBuffer* vertexBuffer) IFRIT_EXPORT_COMPAT_NOTHROW {
 	hInstance->renderer->bindVertexBuffer(*vertexBuffer);
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindIndexBuffer(IFRIT_TRTP* hInstance, const int* indexBuffer, size_t indexBufferSize) IFRIT_EXPORT_COMPAT_NOTHROW {
-	hInstance->allocatedIndexBuffer = std::make_unique<std::vector<int>>(indexBufferSize);
-	memcpy(hInstance->allocatedIndexBuffer->data(), indexBuffer, indexBufferSize * sizeof(int));
-	hInstance->renderer->bindIndexBuffer(*hInstance->allocatedIndexBuffer);
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindIndexBuffer(IFRIT_TRTP* hInstance, void* indexBuffer) IFRIT_EXPORT_COMPAT_NOTHROW {
+	auto p = reinterpret_cast<BufferManager::IfritBuffer*>(indexBuffer);
+	hInstance->renderer->bindIndexBuffer(*p);
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindVertexShaderFunc(IFRIT_TRTP* hInstance, IFRIT_BASENS::VertexShaderFunctionalPtr func,
 	IFRIT_BASENS::VaryingDescriptor* vsOutDescriptors) IFRIT_EXPORT_COMPAT_NOTHROW {
@@ -75,8 +75,8 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrOptsetForceDeterministic(IFRIT_TRTP*
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrOptsetDepthTestEnable(IFRIT_TRTP* hInstance, int opt) IFRIT_EXPORT_COMPAT_NOTHROW {
 	hInstance->renderer->optsetDepthTestEnable(opt);
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDrawLegacy(IFRIT_TRTP* hInstance, int clearFramebuffer) IFRIT_EXPORT_COMPAT_NOTHROW {
-	hInstance->renderer->render(clearFramebuffer);
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDrawLegacy(IFRIT_TRTP* hInstance, int numVertices, int clearFramebuffer) IFRIT_EXPORT_COMPAT_NOTHROW {
+	hInstance->renderer->drawElements(numVertices,clearFramebuffer);
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrClear(IFRIT_TRTP* hInstance) IFRIT_EXPORT_COMPAT_NOTHROW {
 	hInstance->renderer->clear();

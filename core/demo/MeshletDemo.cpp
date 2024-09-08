@@ -12,6 +12,7 @@
 #include "presentation/backend/TerminalCharColorBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 #include "engine/meshletbuilder/MeshletBuilder.h"
+#include "engine/bufferman/BufferManager.h"
 #include "shader/MeshletDemoShaders.cuh"
 #include "math/LinalgOps.h"
 
@@ -25,6 +26,7 @@ namespace Ifrit::Demo::MeshletDemo {
     using namespace Ifrit::Presentation::Window;
     using namespace Ifrit::Presentation::Backend;
     using namespace Ifrit::Engine::MeshletBuilder;
+	using namespace Ifrit::Engine::BufferManager;
 #ifdef IFRIT_FEATURE_CUDA
 	using namespace Ifrit::Engine::TileRaster::CUDA;
 	using namespace Ifrit::Core::CUDA;
@@ -214,7 +216,13 @@ namespace Ifrit::Demo::MeshletDemo {
 		renderer->init();
 		renderer->bindFrameBuffer(frameBuffer);
 		renderer->bindVertexBuffer(mergedMeshlet.vbufs);
-		renderer->bindIndexBuffer(mergedMeshlet.ibufs);
+
+		shared_ptr<TrivialBufferManager> bufferman = make_shared<TrivialBufferManager>();
+		bufferman->init();
+		auto indexBuffer1 = bufferman->createBuffer({ sizeof(mergedMeshlet.ibufs[0]) * mergedMeshlet.ibufs.size() });
+		bufferman->bufferData(indexBuffer1, indexBuffer.data(), 0, sizeof(mergedMeshlet.ibufs[0]) * mergedMeshlet.ibufs.size());
+
+		renderer->bindIndexBuffer(indexBuffer1);
 		renderer->optsetForceDeterministic(true);
 
         MeshletDemoVS vertexShader;
@@ -234,7 +242,7 @@ namespace Ifrit::Demo::MeshletDemo {
 		backend->setViewport(0, 0, windowProvider->getWidth(), windowProvider->getHeight());
 		windowProvider->loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-			renderer->render(true);
+			renderer->drawElements(mergedMeshlet.ibufs.size(),true);
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 			backend->updateTexture(*image);

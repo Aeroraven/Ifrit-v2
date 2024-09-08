@@ -18,13 +18,13 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
@@ -144,6 +144,7 @@
     <ClInclude Include="include\engine\base\Constants.h" />
     <ClInclude Include="include\engine\base\Structures.h" />
     <ClInclude Include="include\engine\comllvmrt\WrappedLLVMRuntime.h" />
+    <ClInclude Include="include\engine\export\BufferManagerExport.h" />
     <ClInclude Include="include\engine\export\ComLLVMRtExport.h" />
     <ClInclude Include="include\engine\export\EngineCommonExport.h" />
     <ClInclude Include="include\engine\export\ShaderVMExport.h" />
@@ -172,6 +173,8 @@
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <ClCompile Include="demo\AccelStructDemo.cpp" />
+    <ClCompile Include="src\engine\bufferman\BufferManager.cpp" />
+    <ClCompile Include="src\engine\export\BufferManagerExport.cpp" />
     <ClCompile Include="src\engine\export\ComLLVMRtExport.cpp" />
     <ClCompile Include="src\engine\export\ShaderVMExport.cpp" />
     <ClCompile Include="src\engine\raytracer\accelstruct\RtBoundingVolumeHierarchy.cpp" />
@@ -179,6 +182,7 @@
     <ClCompile Include="src\engine\raytracer\TrivialRaytracer.cpp" />
     <ClCompile Include="src\engine\raytracer\TrivialRaytracerWorker.cpp" />
     <ClCompile Include="src\engine\shadervm\spirv\SpvVMExtInstRegistry.cpp" />
+    <ClInclude Include="include\engine\bufferman\BufferManager.h" />
     <CudaCompile Include="demo\shader\DefaultDemoShaders.cu" />
     <CudaCompile Include="demo\shader\MeshletDemoShaders.cu" />
     <CudaCompile Include="demo\shader\SkyboxShaders.cu" />
