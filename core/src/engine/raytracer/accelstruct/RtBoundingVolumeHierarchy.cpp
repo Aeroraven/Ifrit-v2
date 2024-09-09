@@ -1,13 +1,13 @@
 #include "engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
 #include "math/VectorOps.h"
 #include <queue>
-#include <stack>
 
 namespace Ifrit::Engine::Raytracer::Impl {
 	struct BVHNode{
 		BoundingBox bbox;
 		std::unique_ptr<BVHNode> left = nullptr, right = nullptr;
 		int elementSize = 0;
+		int startPos = 0;
 	};
 
 	class BoundingVolumeHierarchyBase {
@@ -47,12 +47,14 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			using namespace Ifrit::Math;
 			float tmin = std::numeric_limits<float>::lowest();
 			float tmax = std::numeric_limits<float>::max();
+			ifloat3 invr = ifloat3{ 1.0f,1.0f,1.0f } / ray.r;
+
 			if (fabs(ray.r.x) < 1e-10) {
 				if(ray.o.x < bbox.bmin.x || ray.o.x > bbox.bmax.x) return -1;
 			}
 			else {
-				float tx1 = (bbox.bmin.x - ray.o.x) / ray.r.x;
-				float tx2 = (bbox.bmax.x - ray.o.x) / ray.r.x;
+				float tx1 = (bbox.bmin.x - ray.o.x) * invr.x;
+				float tx2 = (bbox.bmax.x - ray.o.x) * invr.x;
 				tmin = std::max(tmin, std::min(tx1, tx2));
 				tmax = std::min(tmax, std::max(tx1, tx2));
 			}
@@ -61,8 +63,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				if (ray.o.y < bbox.bmin.y || ray.o.y > bbox.bmax.y) return -1;
 			}
 			else {
-				float ty1 = (bbox.bmin.y - ray.o.y) / ray.r.y;
-				float ty2 = (bbox.bmax.y - ray.o.y) / ray.r.y;
+				float ty1 = (bbox.bmin.y - ray.o.y) * invr.y;
+				float ty2 = (bbox.bmax.y - ray.o.y) * invr.y;
 				tmin = std::max(tmin, std::min(ty1, ty2));
 				tmax = std::min(tmax, std::max(ty1, ty2));
 			}
@@ -71,8 +73,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				if (ray.o.z < bbox.bmin.z || ray.o.z > bbox.bmax.z) return -1;
 			}
 			else {
-				float tz1 = (bbox.bmin.z - ray.o.z) / ray.r.z;
-				float tz2 = (bbox.bmax.z - ray.o.z) / ray.r.z;
+				float tz1 = (bbox.bmin.z - ray.o.z) * invr.z;
+				float tz2 = (bbox.bmax.z - ray.o.z) * invr.z;
 				tmin = std::max(tmin, std::min(tz1, tz2));
 				tmax = std::min(tmax, std::max(tz1, tz2));
 			}
@@ -116,6 +118,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 					bbox.bmin = min(bbox.bmin, this->bboxes[this->belonging[start + i]].bmin);
 					largestBBox = max(largestBBox, this->bboxes[this->belonging[start + i]].bmax - this->bboxes[this->belonging[start + i]].bmin);
 				}
+				node->startPos = start;
 				if (depth >= this->maxDepth || node->elementSize <= 1) {
 					q.pop();
 					continue;
@@ -134,7 +137,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				node->left->elementSize = pivot - start + 1;
 				node->right->elementSize = node->elementSize - node->left->elementSize;
 				
-				if (node->left->elementSize != 0 && node->right->elementSize != 0) {
+
+				if (node->left->elementSize > 1 && node->right->elementSize > 1) {
 					q.push({ node->left.get(),depth + 1,start });
 					q.push({ node->right.get(),depth + 1,pivot + 1 });
 				}
@@ -149,7 +153,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			}
 		}
 
-		RayHit queryRayIntersection(const Ray& ray) const {
+		RayHit queryRayIntersection(const Ray& ray) const IFRIT_AP_NOTHROW {
 			RayHit prop;
 			prop.id = -1;
 			prop.t = std::numeric_limits<float>::max();
@@ -157,47 +161,50 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			float rootHit = this->rayBoxIntersection(ray, nodeRoot->bbox);
 			
 			if (rootHit<0) return prop;
-			std::stack<std::tuple<BVHNode*,int,float>> q;
-			q.push({ nodeRoot,0, rootHit });
+			//vector seems to be faster than deque in this circumstance
+			std::vector<std::tuple<BVHNode*, float>> q;
+			
+			q.push_back({ nodeRoot, rootHit });
 			float minDist = std::numeric_limits<float>::max();
 			
 			while (!q.empty()) {
-				auto p = q.top();
-				auto& [node,start,cmindist] = p;
-				q.pop();
-				
+				auto p = q.back();
+				auto& [node,cmindist] = p;
+				q.pop_back();
 				if (cmindist > minDist) {
 					continue;
 				}
 				float leftIntersect = -1, rightIntersect = -1;
-				if (node->left) leftIntersect = this->rayBoxIntersection(ray, node->left->bbox);
-				if (node->right) rightIntersect = this->rayBoxIntersection(ray, node->right->bbox);
-				if (leftIntersect > 0 && rightIntersect > 0) {
-					if (leftIntersect < rightIntersect) {
-						q.push({ node->right.get(),start + node->left->elementSize,rightIntersect });
-						q.push({ node->left.get(),start,leftIntersect });
+				if (node->left == nullptr && node->right == nullptr) {
+					for (int i = 0; i < node->elementSize; i++) {
+						int index = this->belonging[i + node->startPos];
+						auto dist = this->rayElementIntersection(ray, index);
+						if (dist.t > 1e-9 && dist.t < minDist) {
+							minDist = dist.t;
+							prop = dist;
+						}
 					}
-					else {
-						q.push({ node->left.get(),start,leftIntersect });
-						q.push({ node->right.get(), start + node->left->elementSize,rightIntersect });
-					}
-				}
-				else if (leftIntersect > 0) {
-					q.push({ node->left.get(),start,leftIntersect });
-				}
-				else if (rightIntersect > 0) {
-					q.push({ node->right.get(), start + node->left->elementSize,rightIntersect });
 				}
 				else {
-					if (node->left == nullptr && node->right == nullptr) {
-						for (int i = 0; i < node->elementSize; i++) {
-							int index = this->belonging[i + start];
-							auto dist = this->rayElementIntersection(ray, index);
-							if (dist.t >1e-9 && dist.t < minDist) {
-								minDist = dist.t;
-								prop = dist;
-							}
+					leftIntersect = this->rayBoxIntersection(ray, node->left->bbox);
+					rightIntersect = this->rayBoxIntersection(ray, node->right->bbox);
+					if (leftIntersect > minDist) leftIntersect = -1;
+					if (rightIntersect > minDist) rightIntersect = -1;
+					if (leftIntersect > 0 && rightIntersect > 0) {
+						if (leftIntersect < rightIntersect) {
+							q.push_back({ node->right.get(),rightIntersect });
+							q.push_back({ node->left.get(),leftIntersect });
 						}
+						else {
+							q.push_back({ node->left.get(),leftIntersect });
+							q.push_back({ node->right.get(),rightIntersect });
+						}
+					}
+					else if (leftIntersect > 0) {
+						q.push_back({ node->left.get(),leftIntersect });
+					}
+					else if (rightIntersect > 0) {
+						q.push_back({ node->right.get(),rightIntersect });
 					}
 				}
 			}

@@ -79,8 +79,6 @@ namespace Ifrit::Demo::AccelStructDemo {
 			void* payload,
 			void* context
 		) {
-			static int ip = 0;
-			ip++;
 			auto p = reinterpret_cast<Payload*>(payload);
 			p->color = { 0.0f,1.0f,0.0f,1.0f };
 		}
