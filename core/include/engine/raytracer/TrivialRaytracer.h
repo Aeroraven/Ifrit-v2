@@ -13,6 +13,7 @@ namespace Ifrit::Engine::Raytracer {
 		IDLE,
 		TRACING,
 		TRACING_SYNC,
+		COMPLETED,
 		TERMINATED
 	};
 
@@ -21,6 +22,7 @@ namespace Ifrit::Engine::Raytracer {
 		std::shared_ptr<TrivialRaytracerContext> context;
 		std::vector<std::unique_ptr<TrivialRaytracerWorker>> workers;
 		std::atomic<int> unresolvedTiles;
+		bool initialized = false;
 	protected:
 		void resetWorkers();
 		void statusTransitionBarrier(TrivialRaytracerWorkerStatus waitOn, TrivialRaytracerWorkerStatus proceedTo);

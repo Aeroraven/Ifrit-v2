@@ -77,19 +77,15 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				tmax = std::min(tmax, std::max(tz1, tz2));
 			}
 			if (tmin > tmax) {
-				//printf("Reject Ray: %f %f %f, Mi %f Ma %f\n", ray.o.x, ray.o.y, ray.o.z, tmin, tmax);
 				return -1;
 			}
-			//printf("Accept Ray: %f %f %f, Mi %f Ma %f\n", ray.o.x, ray.o.y, ray.o.z, tmin, tmax);
-
 			return tmin;
 		}
 
-		int findSplit(int start, int end, int axis) {
+		int findSplit(int start, int end, int axis,float mid) {
 			using namespace Ifrit::Math;
-			float mid = (elementAt(this->bboxes[this->belonging[start]].bmax, axis) +
-				elementAt(this->bboxes[this->belonging[start]].bmin, axis)) / 2;
 			int l = start, r = end;
+
 			while (l < r) {
 				while (l < r && elementAt(this->centers[this->belonging[l]], axis) < mid) l++;
 				while (l < r && elementAt(this->centers[this->belonging[r]], axis) >= mid) r--;
@@ -107,7 +103,9 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			using namespace Ifrit::Math;
 			std::queue<std::tuple<BVHNode*,int,int>> q;
 			q.push({ this->root.get(),0,0 });
+
 			while (!q.empty()) {
+				ifloat3 largestBBox = ifloat3{ -std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max() };
 				auto& [node,depth,start] = q.front();
 				BoundingBox& bbox = node->bbox;
 				bbox.bmax = ifloat3{ -std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max() };
@@ -116,6 +114,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				for (int i = 0; i < node->elementSize; i++) {
 					bbox.bmax = max(bbox.bmax, this->bboxes[this->belonging[start + i]].bmax);
 					bbox.bmin = min(bbox.bmin, this->bboxes[this->belonging[start + i]].bmin);
+					largestBBox = max(largestBBox, this->bboxes[this->belonging[start + i]].bmax - this->bboxes[this->belonging[start + i]].bmin);
 				}
 				if (depth >= this->maxDepth || node->elementSize <= 1) {
 					q.pop();
@@ -123,19 +122,26 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				}
 
 				ifloat3 diff = bbox.bmax - bbox.bmin;
+				ifloat3 midv = (bbox.bmax + bbox.bmin) * 0.5f;
 				int axis = 0;
 				if (diff.y > diff.x) axis = 1;
 				if (diff.z > diff.y && diff.z > diff.x) axis = 2;
-				int pivot = this->findSplit(start, start + node->elementSize - 1, axis);
-				printf("Split: %d / %d | BBox: %f %f | %f %f | %f %f \n", pivot,node->elementSize, bbox.bmin.x, bbox.bmax.x, bbox.bmin.y, bbox.bmax.y, bbox.bmin.z, bbox.bmax.z);
+				float midvp = elementAt(midv, axis);
 
+				int pivot = this->findSplit(start, start + node->elementSize - 1, axis, midvp);
 				node->left = std::make_unique<BVHNode>();
 				node->right = std::make_unique<BVHNode>();
 				node->left->elementSize = pivot - start + 1;
 				node->right->elementSize = node->elementSize - node->left->elementSize;
-
-				q.push({ node->left.get(),depth + 1,start });
-				q.push({ node->right.get(),depth + 1,pivot + 1 });
+				
+				if (node->left->elementSize != 0 && node->right->elementSize != 0) {
+					q.push({ node->left.get(),depth + 1,start });
+					q.push({ node->right.get(),depth + 1,pivot + 1 });
+				}
+				else {
+					node->left = nullptr;
+					node->right = nullptr;
+				}
 				q.pop();
 			}
 			for (int i = 0; i < this->curSize; i++) {
@@ -144,11 +150,13 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		}
 
 		RayHit queryRayIntersection(const Ray& ray) const {
+			int w = 0;
 			RayHit prop;
 			prop.id = -1;
-			auto nodeRoot = this->root.get();
+			prop.t = std::numeric_limits<float>::max();
+			const auto nodeRoot = this->root.get();
 			float rootHit = this->rayBoxIntersection(ray, nodeRoot->bbox);
-			//printf("HERE %f\n", rootHit);
+			
 			if (rootHit<0) return prop;
 			std::stack<std::tuple<BVHNode*,int,float>> q;
 			q.push({ nodeRoot,0, rootHit });
@@ -156,43 +164,43 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			
 			while (!q.empty()) {
 				auto p = q.top();
-				auto& [node,depth,cmindist] = p;
+				auto& [node,start,cmindist] = p;
 				q.pop();
+				
+				if (cmindist > minDist) {
+					continue;
+				}
 				float leftIntersect = -1, rightIntersect = -1;
 				if (node->left) leftIntersect = this->rayBoxIntersection(ray, node->left->bbox);
 				if (node->right) rightIntersect = this->rayBoxIntersection(ray, node->right->bbox);
 				if (leftIntersect > 0 && rightIntersect > 0) {
 					if (leftIntersect < rightIntersect) {
-						q.push({ node->right.get(),depth + 1,rightIntersect });
-						q.push({ node->left.get(),depth + 1,leftIntersect });
+						q.push({ node->right.get(),start + node->left->elementSize,rightIntersect });
+						q.push({ node->left.get(),start,leftIntersect });
 					}
 					else {
-						q.push({ node->left.get(),depth + 1,leftIntersect });
-						q.push({ node->right.get(),depth + 1,rightIntersect });
+						q.push({ node->left.get(),start,leftIntersect });
+						q.push({ node->right.get(), start + node->left->elementSize,rightIntersect });
 					}
 				}
 				else if (leftIntersect > 0) {
-					q.push({ node->left.get(),depth + 1,leftIntersect });
+					q.push({ node->left.get(),start,leftIntersect });
 				}
 				else if (rightIntersect > 0) {
-					q.push({ node->right.get(),depth + 1,rightIntersect });
+					q.push({ node->right.get(), start + node->left->elementSize,rightIntersect });
 				}
 				else {
-					for (int i = 0; i < node->elementSize; i++) {
-						int index = this->belonging[i];
-						auto dist = this->rayElementIntersection(ray, index);
-						if (dist.t > 0 && dist.t < minDist) {
-							minDist = dist.t;
-							prop = dist;
+					if (node->left == nullptr && node->right == nullptr) {
+						for (int i = 0; i < node->elementSize; i++) {
+							int index = this->belonging[i + start];
+							auto dist = this->rayElementIntersection(ray, index);
+							if (dist.t >1e-9 && dist.t < minDist) {
+								minDist = dist.t;
+								prop = dist;
+							}
 						}
 					}
 				}
-				if (prop.id == -1) {
-					//printf("NO  %f %f %f %lld  \n", ray.o.x, ray.o.y, ray.o.z, this);
-				}
-			}
-			if (prop.id != -1) {
-				//printf("YES %f %f %f %lld \n", ray.o.x, ray.o.y, ray.o.z, this);
 			}
 			return prop;
 		}
@@ -216,6 +224,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		virtual RayHit rayElementIntersection(const Ray& ray, int index) const override {
 			using namespace Ifrit::Math;
 			RayHit proposal;
+			proposal.id = -1;
+			proposal.t = std::numeric_limits<float>::max();
 			ifloat3 v0 = (*this->data)[index * 3];
 			ifloat3 v1 = (*this->data)[index * 3 + 1];
 			ifloat3 v2 = (*this->data)[index * 3 + 2];
@@ -223,28 +233,21 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			ifloat3 e2 = v2 - v0;
 			ifloat3 p = cross(ray.r, e2);
 			float det = dot(e1, p);
-			if (det > -1e-6 && det < 1e-6) {
-				//printf("Reject Ray EL: %f %f %f | Det=%f \n", ray.o.x, ray.o.y, ray.o.z, det);
-				proposal.id = -1;
+			if (det > -1e-8 && det < 1e-8) {
 				return proposal;
 			}
 			float invDet = 1 / det;
 			ifloat3 t = ray.o - v0;
 			float u = dot(t, p) * invDet;
 			if (u < 0 || u > 1) {
-				//printf("Reject Ray U: %f %f %f | U=%f InvDet=%f \n", ray.o.x, ray.o.y, ray.o.z, u, invDet);
-				proposal.id = -1;
 				return proposal;
 			}
 			ifloat3 q = cross(t, e1);
 			float v = dot(ray.r, q) * invDet;
 			if (v < 0 || u + v > 1) {
-				//printf("Reject Ray V: %f %f %f | U=%f, V=%f \n", ray.o.x, ray.o.y, ray.o.z, u,v);
-				proposal.id = -1;
 				return proposal;
 			}
 			float dist = dot(e2, q) * invDet;
-			//printf("Final Accept Ray V: %f %f %f | %f %lld\n", ray.o.x, ray.o.y, ray.o.z, dist, this);
 			proposal.id = index;
 			proposal.p = { u,v,1 - u - v };
 			proposal.t = dist;
@@ -265,10 +268,19 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		}
 		virtual ifloat3 getElementCenter(int index) const override {
 			using namespace Ifrit::Math;
+			
+			/*ifloat3 v0 = (*this->data)[index * 3];
+			ifloat3 v1 = (*this->data)[index * 3 + 1];
+			ifloat3 v2 = (*this->data)[index * 3 + 2];
+			return (v0 + v1 + v2) / 3.0f;*/
+			using namespace Ifrit::Math;
 			ifloat3 v0 = (*this->data)[index * 3];
 			ifloat3 v1 = (*this->data)[index * 3 + 1];
 			ifloat3 v2 = (*this->data)[index * 3 + 2];
-			return (v0 + v1 + v2) / 3.0f;
+			BoundingBox bbox;
+			bbox.bmin = min(min(v0, v1), v2);
+			bbox.bmax = max(max(v0, v1), v2);
+			return (bbox.bmin + bbox.bmax) * 0.5f;
 		}
 		virtual void buildAccelerationStructure() {
 			this->buildBVH();
@@ -290,24 +302,20 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			return pv;
 		}
 		virtual int size() const override {
-			//printf("Size: %d\n", this->data->size());
 			return this->data->size();
 		}
 		virtual RayHit rayElementIntersection(const Ray& ray, int index) const override {
-			//printf("BLAS\n");
 			auto p = (*this->data)[index]->queryIntersection(ray);
 			return p;
 		}
 		virtual BoundingBox getElementBbox(int index) const override {
 			auto x = (*this->data)[index]->impl->getRootBbox();
-			printf("BBox BLAS: %f %f %f - %f %f %f \n", x.bmin.x, x.bmin.y, x.bmin.z, x.bmax.x, x.bmax.y, x.bmax.z);
 			return x;
 		}
 		virtual ifloat3 getElementCenter(int index) const override {
 			using namespace Ifrit::Math;
 			auto bbox = (*this->data)[index]->impl->getRootBbox();
 			auto cx = (bbox.bmax + bbox.bmin) * 0.5f;
-			
 			return cx;
 		}
 		virtual void buildAccelerationStructure() {
@@ -341,7 +349,6 @@ namespace Ifrit::Engine::Raytracer {
 	}
 
 	RayHit BoundingVolumeHierarchyTopLevelAS::queryIntersection(const Ray& ray) const {
-		//printf("=================\n");
 		auto x = this->impl->queryIntersection(ray);
 		return x;
 	}

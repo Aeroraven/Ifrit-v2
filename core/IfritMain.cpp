@@ -41,6 +41,6 @@ int demoASTest() {
 
 
 int main() {
-	demoShaderVMTest();
+	demoASTest();
 	return 0;
 }

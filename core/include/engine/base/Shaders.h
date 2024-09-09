@@ -110,40 +110,7 @@ namespace Ifrit::Engine {
 		IFRIT_HOST virtual TaskShader* getCudaClone() { return nullptr; };
 	};
 
-	// v2
-	class IFRIT_APIDECL RayGenShader : public ShaderBase {
-	public:
-		IFRIT_DUAL virtual void execute(const iint3& inputInvocation, const iint3& dimension) = 0;
-		IFRIT_HOST virtual RayGenShader* getCudaClone() { return nullptr; };
-	};
-
-	class IFRIT_APIDECL MissShader : public ShaderBase {
-		public:
-		IFRIT_DUAL virtual void execute(
-			void* outPayload,
-			const void* inPayload
-		) = 0;
-		IFRIT_HOST virtual MissShader* getCudaClone() { return nullptr; };
-	};
-
-	class IFRIT_APIDECL CloseHitShader : public ShaderBase {
-	public:
-		IFRIT_DUAL virtual void execute(
-			void* outPayload,
-			const void* inPayload
-		) = 0;
-		IFRIT_HOST virtual CloseHitShader* getCudaClone() { return nullptr; };
-	};
-
-	class IFRIT_APIDECL CallableShader : public ShaderBase {
-	public:
-		IFRIT_DUAL virtual void execute(
-			void* outPayload,
-			const void* inPayload
-		) = 0;
-		IFRIT_HOST virtual CallableShader* getCudaClone() { return nullptr; };
-	};
-
+	
 
 	/* Function Delegates & C-ABI Compatible */
 	typedef void (*VertexShaderFunctionalPtr)(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings);

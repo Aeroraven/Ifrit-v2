@@ -2,16 +2,23 @@
 #include "core/definition/CoreExports.h"
 #include "engine/base/RaytracerBase.h"
 #include "TrivialRaytracer.h"
+#include <stack>
 
 namespace Ifrit::Engine::Raytracer {
+	struct RaytracingShaderGlobalVarSection {
+		ShaderBase* shader;
+	};
 
 	class IFRIT_APIDECL TrivialRaytracerWorker {
 	private:
 		int workerId;
 		std::atomic<TrivialRaytracerWorkerStatus> status;
-		std::weak_ptr<TrivialRaytracer> renderer;
+		TrivialRaytracer* renderer;
 		std::shared_ptr<TrivialRaytracerContext> context;
 		std::unique_ptr<std::thread> thread;
+
+		std::stack<RaytracingShaderGlobalVarSection> execStack;
+		int recurDepth = 0;
 
 	public:
 		friend class TrivialRaytracer;
@@ -20,5 +27,8 @@ namespace Ifrit::Engine::Raytracer {
 		void threadCreate();
 
 		void tracingProcess();
+		void tracingRecursiveProcess(Ray ray, void* payload, size_t payloadSize, int depth);
+		
+		int getTracingDepth();
 	};
 }

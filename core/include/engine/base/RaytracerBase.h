@@ -23,4 +23,8 @@ namespace Ifrit::Engine {
 	public:
 		virtual void bufferData(const std::vector<T>& data) = 0;
 	};
+
+	struct AccelerationStructureRef {
+		AccelerationStructure* ref;
+	};
 }

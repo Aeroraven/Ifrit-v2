@@ -5,9 +5,25 @@ namespace Ifrit::Engine::Raytracer {
 	TrivialRaytracer::TrivialRaytracer() {
 		
 	}
-	TrivialRaytracer::~TrivialRaytracer() = default;
+	TrivialRaytracer::~TrivialRaytracer() {
+		if (initialized) {
+			for (auto& worker : workers) {
+				worker->status.store(TrivialRaytracerWorkerStatus::TERMINATED);
+			}
+			for (auto& worker : workers) {
+				worker->thread->join();
+			}
+			initialized = false;
+		}
+		ifritLog1("TrivialRaytracer finalized");
+	}
 	void TrivialRaytracer::init() {
+		initialized = true;
 		context = std::make_shared<TrivialRaytracerContext>();
+		context->perWorkerMiss.resize(context->numThreads);
+		context->perWorkerRaygen.resize(context->numThreads);
+		context->perWorkerRayhit.resize(context->numThreads);
+
 		for (int i = 0; i < context->numThreads; i++) {
 			auto worker = std::make_unique<TrivialRaytracerWorker>(shared_from_this(), context, i);
 			worker->status.store(TrivialRaytracerWorkerStatus::IDLE);
@@ -20,12 +36,21 @@ namespace Ifrit::Engine::Raytracer {
 	}
 	void TrivialRaytracer::bindRaygenShader(RayGenShader* shader) {
 		context->raygenShader = shader;
+		for (int i = 0; i < context->numThreads; i++) {
+			context->perWorkerRaygen[i] = context->raygenShader->getThreadLocalCopy();
+		}
 	}
 	void TrivialRaytracer::bindMissShader(MissShader* shader) {
 		context->missShader = shader;
+		for (int i = 0; i < context->numThreads; i++) {
+			context->perWorkerMiss[i] = context->missShader->getThreadLocalCopy();
+		}
 	}
 	void TrivialRaytracer::bindClosestHitShader(CloseHitShader* shader) {
 		context->closestHitShader = shader;
+		for (int i = 0; i < context->numThreads; i++) {
+			context->perWorkerRayhit[i] = context->closestHitShader->getThreadLocalCopy();
+		}
 	}
 	void TrivialRaytracer::bindCallableShader(CallableShader* shader) {
 		context->callableShader = shader;
@@ -40,7 +65,7 @@ namespace Ifrit::Engine::Raytracer {
 		for (auto& worker : workers) {
 			worker->status.store(TrivialRaytracerWorkerStatus::TRACING);
 		}
-		statusTransitionBarrier(TrivialRaytracerWorkerStatus::TRACING_SYNC, TrivialRaytracerWorkerStatus::TERMINATED);
+		statusTransitionBarrier(TrivialRaytracerWorkerStatus::TRACING_SYNC, TrivialRaytracerWorkerStatus::COMPLETED);
 	}
 	int TrivialRaytracer::fetchUnresolvedTiles() {
 		return unresolvedTiles.fetch_sub(1) - 1;
