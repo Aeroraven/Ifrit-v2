@@ -259,9 +259,6 @@ namespace Ifrit::Demo::DemoDefault {
 		vertexBuffer.setValue(3, 2, ifloat4(1.0, 1.0, 0.1, 0));
 		indexBuffer = { 2,1,0,0,3,2 };*/
 
-
-		printf("Total Tris:%d\n", indexBuffer.size() / 3);
-
 		std::vector<float> texFox;
 		int texFoxW, texFoxH;
 		ImageLoader imageLoader;

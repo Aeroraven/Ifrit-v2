@@ -299,7 +299,6 @@ namespace Ifrit::Engine::TileRaster {
 		auto vsUniforms = context->vertexShader->getUniformList();
 		auto fsUniforms = context->fragmentShader->getUniformList();
 		for (int i = 0; i < context->numThreads; i++) {
-			auto numCopies = (context->vertexShader->isThreadSafe) ? 1 : context->numThreads;
 			for (const auto& x : vsUniforms) {
 				if (context->uniformMapping.count(x)) {
 					context->threadSafeVS[i]->updateUniformData(x.first, x.second, context->uniformMapping[x]);

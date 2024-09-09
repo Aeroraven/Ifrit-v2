@@ -89,7 +89,6 @@ namespace Ifrit::Math {
 	}
 	IFRIT_APIDECL inline float4x4 perspective(float fovy, float aspect, float zNear, float zFar) {
 		float4x4 result;
-		float f = 1.0f / tan(fovy / 2.0f);
 		float halfFovy = fovy / 2.0f;
 		float nTop = zNear * tan(halfFovy);
 		float nRight = nTop * aspect;

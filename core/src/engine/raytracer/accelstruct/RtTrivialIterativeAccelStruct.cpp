@@ -9,8 +9,8 @@ namespace Ifrit::Engine::Raytracer {
 			const std::vector<ifloat3>* data;
 
 		public:
-			virtual void bufferData(const std::vector<ifloat3>& data) override {
-				this->data = &data;
+			virtual void bufferData(const std::vector<ifloat3>& vecData) override {
+				this->data = &vecData;
 			}
 			virtual RayHit queryIntersection(const Ray& ray) const override {
 				const auto cnt = size();
@@ -77,8 +77,8 @@ namespace Ifrit::Engine::Raytracer {
 			const std::vector<TrivialBottomLevelAS*>* data;
 
 		public:
-			virtual void bufferData(const std::vector<TrivialBottomLevelAS*>& data) override {
-				this->data = &data;
+			virtual void bufferData(const std::vector<TrivialBottomLevelAS*>& vecData) override {
+				this->data = &vecData;
 			}
 			virtual RayHit queryIntersection(const Ray& ray) const override {
 				RayHit prop;

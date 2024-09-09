@@ -33,8 +33,8 @@ namespace Ifrit::Engine {
 		elementSize = offset;
 	}
 
-	IFRIT_APIDECL void VertexBuffer::setVertexCount(const int vertexCount){
-		this->vertexCount = vertexCount;
+	IFRIT_APIDECL void VertexBuffer::setVertexCount(const int vcnt){
+		this->vertexCount = vcnt;
 	}
 
 	IFRIT_APIDECL int VertexBuffer::getVertexCount() const{

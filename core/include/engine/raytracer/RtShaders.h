@@ -28,6 +28,7 @@ namespace Ifrit::Engine::Raytracer {
 			const iint3& dimension,
 			void* context
 		) = 0;
+		IFRIT_DUAL virtual ~RayGenShader() = default;
 		IFRIT_HOST virtual RayGenShader* getCudaClone() { return nullptr; };
 		IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() = 0;
 	};
@@ -39,6 +40,7 @@ namespace Ifrit::Engine::Raytracer {
 			void* payload,
 			void* context
 		) = 0;
+		IFRIT_DUAL virtual ~MissShader() = default;
 		IFRIT_HOST virtual MissShader* getCudaClone() { return nullptr; };
 		IFRIT_HOST virtual std::unique_ptr<MissShader> getThreadLocalCopy() = 0;
 	};
@@ -51,6 +53,7 @@ namespace Ifrit::Engine::Raytracer {
 			void* payload,
 			void* context
 		) = 0;
+		IFRIT_DUAL virtual ~CloseHitShader() = default;
 		IFRIT_HOST virtual CloseHitShader* getCudaClone() { return nullptr; };
 		IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy() = 0;
 	};

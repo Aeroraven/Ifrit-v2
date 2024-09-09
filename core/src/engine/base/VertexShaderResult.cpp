@@ -18,8 +18,8 @@ namespace Ifrit::Engine {
 		this->context->varyings[id].resize(vertexCount * typeDescriptor.size);
 		this->context->varyingDescriptors[id] = typeDescriptor;
 	}
-	IFRIT_APIDECL void VertexShaderResult::setVertexCount(const uint32_t vertexCount){
-		this->vertexCount = vertexCount;
+	IFRIT_APIDECL void VertexShaderResult::setVertexCount(const uint32_t vcnt){
+		this->vertexCount = vcnt;
 		for (auto& varying : context->varyings) {
 			varying.resize(vertexCount * sizeof(ifloat4));
 			context->varyingDescriptors.resize(context->varyings.size());

@@ -149,7 +149,6 @@ namespace Ifrit::Engine::TileRaster {
 			atri.f2 = { sV1V3y * ar * csInvX * 2.0f, sV1V3x * ar * csInvY * 2.0f,(-atri.v3.x * sV1V3y - atri.v3.y * sV1V3x - sV1V3y - sV1V3x) * ar };
 
 
-			ifloat3 edgeCoefs[3];
 			atri.e1 = { 2.0f * sV2V1y,  2.0f * sV2V1x,  atri.v2.x * atri.v1.y - atri.v1.x * atri.v2.y - sV2V1y - sV2V1x };
 			atri.e2 = { 2.0f * sV3V2y,  2.0f * sV3V2x,  atri.v3.x * atri.v2.y - atri.v2.x * atri.v3.y - sV3V2y - sV3V2x };
 			atri.e3 = { 2.0f * sV1V3y,  2.0f * sV1V3x,  atri.v1.x * atri.v3.y - atri.v3.x * atri.v1.y - sV1V3y - sV1V3x };
@@ -163,7 +162,6 @@ namespace Ifrit::Engine::TileRaster {
 		return  retCnt[clipOdd] - 2;
 	}
 	bool TileRasterWorker::triangleFrustumClip(ifloat4 v1, ifloat4 v2, ifloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW {
-		bool inside = true;
 		float minx = std::min(v1.x, std::min(v2.x, v3.x));
 		float miny = std::min(v1.y, std::min(v2.y, v3.y));
 		float maxx = std::max(v1.x, std::max(v2.x, v3.x));

@@ -2692,7 +2692,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					//int numTileX = (hsFrameWidth / CU_TILE_WIDTH) + (hsFrameWidth % CU_TILE_WIDTH != 0);
 					//int numTileY = (hsFrameHeight / CU_TILE_WIDTH) + (hsFrameHeight % CU_TILE_WIDTH != 0);
 					//int dispZ = (CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH) + (CU_TILE_WIDTH % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
-					std::abort();
+					//std::abort();
 					if (dGeometryShader == nullptr) {
 						//Impl::TriangleFragmentStage::pixelTaggingKernel<0> CU_KARG4(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ), 0, compStream) (
 						//	dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer

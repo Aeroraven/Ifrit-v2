@@ -150,7 +150,6 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		}
 
 		RayHit queryRayIntersection(const Ray& ray) const {
-			int w = 0;
 			RayHit prop;
 			prop.id = -1;
 			prop.t = std::numeric_limits<float>::max();
@@ -212,8 +211,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		const std::vector<ifloat3>* data;
 
 	public:
-		virtual void bufferData(const std::vector<ifloat3>& data) override {
-			this->data = &data;
+		virtual void bufferData(const std::vector<ifloat3>& vecData) override {
+			this->data = &vecData;
 		}
 		virtual RayHit queryIntersection(const Ray& ray) const override {
 			return this->queryRayIntersection(ray);
@@ -294,8 +293,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		const std::vector<BoundingVolumeHierarchyBottomLevelAS*>* data;
 
 	public:
-		virtual void bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& data) override {
-			this->data = &data;
+		virtual void bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& vecData) override {
+			this->data = &vecData;
 		}
 		virtual RayHit queryIntersection(const Ray& ray) const override {
 			auto pv = this->queryRayIntersection(ray);

@@ -114,7 +114,6 @@ namespace Ifrit::Engine::MeshletBuilder::Impl {
             uint32_t bestPriority = 0xffffffff;
             float bestScore = 1e9;
             for (int j = 0; j < ctx.adjMaps[v].size(); j++) {
-                int w = ctx.adjMaps[v].size();
                 if (ctx.adjMaps[v][j] == -1)continue;
                 auto tri = ctx.triangles[ctx.adjMaps[v][j]];
                 auto ua = meshlet.isvertexUsed[tri.ind.x] == 0, ub = meshlet.isvertexUsed[tri.ind.y] == 0, uc = meshlet.isvertexUsed[tri.ind.z] == 0;
@@ -214,11 +213,11 @@ namespace Ifrit::Engine::MeshletBuilder::Impl {
 }
 
 namespace Ifrit::Engine::MeshletBuilder {
-    IFRIT_APIDECL void TrivialMeshletBuilder::bindVertexBuffer(const VertexBuffer& vbuffer) {
-        this->vbuffer = &vbuffer;
+    IFRIT_APIDECL void TrivialMeshletBuilder::bindVertexBuffer(const VertexBuffer& vbuf) {
+        this->vbuffer = &vbuf;
     }
-    IFRIT_APIDECL void TrivialMeshletBuilder::bindIndexBuffer(const std::vector<int>& ibuffer) {
-        this->ibuffer = &ibuffer;
+    IFRIT_APIDECL void TrivialMeshletBuilder::bindIndexBuffer(const std::vector<int>& ibuf) {
+        this->ibuffer = &ibuf;
     }
     IFRIT_APIDECL void TrivialMeshletBuilder::buildMeshlet(int posAttrId, std::vector<std::unique_ptr<Meshlet>>& outData) {
         using namespace Impl;

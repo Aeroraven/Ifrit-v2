@@ -12,6 +12,6 @@ namespace Ifrit::Presentation::Backend {
 		TerminalAsciiBackend(int cWid,int cHeight);
 		virtual void updateTexture(const Ifrit::Core::Data::ImageF32& image) override;
 		virtual void draw() override;
-		virtual void setViewport(int32_t x, int32_t y, int32_t width, int32_t height) override {}
+		virtual void setViewport(int32_t , int32_t , int32_t , int32_t ) override {}
 	};
 }

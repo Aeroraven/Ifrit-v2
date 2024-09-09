@@ -18,7 +18,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 #define DEFINE_OP(name) void name(SpvVMContext* spvContext, SpvVMIntermediateReprBlock* irContextLocal, \
 	SpvVMIntermediateRepresentation* irContextGlobal,int opWordCount, uint32_t* params, int instLine, SpvVMAnalysisPass pass)
 #define ERROR_PREFIX printf("[Line %d, Pass %d] ", irContextGlobal->currentInst,irContextGlobal->currentPass);
-#define UNIMPLEMENTED_OP(name){ ERROR_PREFIX printf("Unimplemented SPIR-V instruction: "#name); printf("\n");}
+#define UNIMPLEMENTED_OP(name){(void)spvContext;(void)irContextLocal;(void)opWordCount;(void)instLine;(void)pass;(void)params; ERROR_PREFIX printf("Unimplemented SPIR-V instruction: "#name); printf("\n");}
 #define DEPRECATED_OP(name){ ERROR_PREFIX printf("Deprecated SPIR-V instruction: "#name); printf("\n");}
 
 	namespace InstructionImpl {
@@ -105,11 +105,10 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				}
 				return "%ifspvm_temp_" + std::to_string(target->id);
 			}
-			else {
-				ERROR_PREFIX
-				printf("Unknown variable name\n");
-				return "{error var}";
-			}
+			ERROR_PREFIX;
+			printf("Unknown variable name\n");
+			return "{error var}";
+
 		}
 
 		std::string getTargetTypes(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal) {
@@ -268,11 +267,10 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				}
 				return ret;
 			}
-			else {
-				ERROR_PREFIX
-				printf("Unknown type: Target=%d\n", target->id);
-				return 0;
-			}
+			
+			ERROR_PREFIX;
+			printf("Unknown type: Target=%d\n", target->id);
+			return 0;
 
 		}
 		SpvDecorationBlock getAccesschainDecoration(SpvVMIntermediateReprExpTarget* target, 
@@ -500,8 +498,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 
 			auto retType = params[0];
 			auto resultId = params[1];
-			auto extSet = params[2];
-			auto extName = params[3];
+			//auto extSet = params[2];
+			//auto extName = params[3];
 
 			if (pass == IFSP_VMA_PASS_FIRST) {
 				irContextGlobal->targets[resultId].activated = true;
@@ -632,7 +630,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		DEFINE_OP(spvOpTypeImage) {
 			if (pass == IFSP_VMA_PASS_SECOND) return;
 			auto targetId = params[0];
-			auto imageTypeRef = params[1];
+			//auto imageTypeRef = params[1];
 			irContextGlobal->targets[targetId].activated = true;
 			irContextGlobal->targets[targetId].declType = IFSP_IRTARGET_DECL_IMAGE;
 			irContextGlobal->targets[targetId].id = targetId;
@@ -644,7 +642,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		DEFINE_OP(spvOpTypeSampledImage) {
 			if (pass == IFSP_VMA_PASS_SECOND) return;
 			auto targetId = params[0];
-			auto imageTypeRef = params[1];
+			//auto imageTypeRef = params[1];
 			irContextGlobal->targets[targetId].activated = true;
 			irContextGlobal->targets[targetId].declType = IFSP_IRTARGET_DECL_SAMPLED_IMAGE;
 			irContextGlobal->targets[targetId].id = targetId;
@@ -765,7 +763,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			irContextGlobal->targets[targetId].activated = true;
 			irContextGlobal->targets[targetId].componentTypeRef = typeRef;
 			
-			auto typeDesc = irContextGlobal->targets[targetId].declType;
+			//auto typeDesc = irContextGlobal->targets[targetId].declType;
 			irContextGlobal->targets[targetId].data.intValue = params[2];
 			irContextGlobal->targets[targetId].isConstant = true;
 			irContextGlobal->targets[targetId].id = targetId;
@@ -874,7 +872,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 
 			//Generate IR
 			if (pass == IFSP_VMA_PASS_SECOND) {
-				auto pointerIsAccessChain = irContextGlobal->targets[pointerId].isAccessChain;
+				//auto pointerIsAccessChain = irContextGlobal->targets[pointerId].isAccessChain;
 				auto variableName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
 				auto pointerName = getVariableNamePrefix(&irContextGlobal->targets[pointerId], irContextGlobal);
 				auto typeNameRet = getTargetTypes(&irContextGlobal->targets[irContextGlobal->targets[pointerId].resultTypeRef], irContextGlobal);
@@ -1368,14 +1366,14 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			UNIMPLEMENTED_OP(OpFMod)
 		}
 		DEFINE_OP(spvOpVectorTimesScalar) {
-			auto retType = params[0];
+			auto retType1 = params[0];
 			auto retId = params[1];
 			auto vecId = params[2];
 			auto scalarId = params[3];
 			if(pass == IFSP_VMA_PASS_FIRST) {
 				irContextGlobal->targets[retId].activated = true;
 				irContextGlobal->targets[retId].isInstance = true;
-				irContextGlobal->targets[retId].resultTypeRef = retType;
+				irContextGlobal->targets[retId].resultTypeRef = retType1;
 				irContextGlobal->targets[retId].id = retId;
 			}
 			if(pass == IFSP_VMA_PASS_SECOND) {
@@ -1386,7 +1384,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				auto vecName = getVariableNamePrefix(&vecInst, irContextGlobal);
 				auto scalarType = getTargetTypes(&scalar, irContextGlobal);
 				auto retName = getVariableNamePrefix(&irContextGlobal->targets[retId], irContextGlobal);
-				auto retType = getTargetTypes(&irContextGlobal->targets[retId], irContextGlobal);
+				auto retType2 = getTargetTypes(&irContextGlobal->targets[retId], irContextGlobal);
 				
 				//Broadcast Scalar
 				auto scalarName = getVariableNamePrefix(&scalar, irContextGlobal);
@@ -1398,7 +1396,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 					irContextGlobal->generatedIR << "\n";
 					lastName = curName;
 				}
-				elementwiseArithmeticIRGeneratorRaw("fmul", irContextGlobal, retName,retType, lastName, vecName);
+				elementwiseArithmeticIRGeneratorRaw("fmul", irContextGlobal, retName,retType2, lastName, vecName);
 				
 			}
 		}
