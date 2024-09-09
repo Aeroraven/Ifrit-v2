@@ -17,6 +17,7 @@ namespace Ifrit::Engine::Raytracer {
 	public:
 		friend class Impl::BoundingVolumeHierarchyTopLevelASImpl;
 		BoundingVolumeHierarchyBottomLevelAS();
+		~BoundingVolumeHierarchyBottomLevelAS();
 		virtual void bufferData(const std::vector<ifloat3>& data);
 		virtual RayHit queryIntersection(const Ray& ray) const;
 		virtual void buildAccelerationStructure();
@@ -27,6 +28,7 @@ namespace Ifrit::Engine::Raytracer {
 		Impl::BoundingVolumeHierarchyTopLevelASImpl* impl = nullptr;
 	public:
 		BoundingVolumeHierarchyTopLevelAS();
+		~BoundingVolumeHierarchyTopLevelAS();
 		virtual void bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& data);
 		virtual RayHit queryIntersection(const Ray& ray) const;
 		virtual void buildAccelerationStructure();

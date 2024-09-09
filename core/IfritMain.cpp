@@ -1,3 +1,4 @@
+#define _CRTDBG_MAP_ALLOC
 #include "demo/DefaultDemo.h"
 #include "demo/Skybox.h"
 #include "demo/MeshletDemo.h"
@@ -38,7 +39,6 @@ int demoShaderVMTest() {
 int demoASTest() {
 	return Ifrit::Demo::AccelStructDemo::mainCpu();
 }
-
 
 int main() {
 	demoASTest();

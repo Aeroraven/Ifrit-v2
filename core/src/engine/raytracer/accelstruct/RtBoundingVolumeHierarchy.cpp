@@ -329,6 +329,10 @@ namespace Ifrit::Engine::Raytracer {
 		this->impl = new Impl::BoundingVolumeHierarchyBottomLevelASImpl();
 	}
 
+	BoundingVolumeHierarchyBottomLevelAS::~BoundingVolumeHierarchyBottomLevelAS(){
+		delete this->impl;
+	}
+
 	void BoundingVolumeHierarchyBottomLevelAS::bufferData(const std::vector<ifloat3>& data) {
 		this->impl->bufferData(data);
 	}
@@ -342,6 +346,10 @@ namespace Ifrit::Engine::Raytracer {
 
 	BoundingVolumeHierarchyTopLevelAS::BoundingVolumeHierarchyTopLevelAS() {
 		this->impl = new Impl::BoundingVolumeHierarchyTopLevelASImpl();
+	}
+
+	BoundingVolumeHierarchyTopLevelAS::~BoundingVolumeHierarchyTopLevelAS(){
+		delete this->impl;
 	}
 
 	void BoundingVolumeHierarchyTopLevelAS::bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& data) {
