@@ -13,7 +13,7 @@ namespace Ifrit::Engine::Raytracer {
 
 	class RaytracerShaderExecutionStack {
 	protected:
-		std::stack<RaytracerShaderStackElement> execStack;
+		std::vector<RaytracerShaderStackElement> execStack;
 	public:
 		IFRIT_HOST void pushStack(const Ray& ray,const RayHit& rayHit, void* pPayload);
 		IFRIT_HOST void popStack();

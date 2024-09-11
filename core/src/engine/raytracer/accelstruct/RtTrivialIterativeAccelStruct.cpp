@@ -12,7 +12,7 @@ namespace Ifrit::Engine::Raytracer {
 			virtual void bufferData(const std::vector<ifloat3>& vecData) override {
 				this->data = &vecData;
 			}
-			virtual RayHit queryIntersection(const Ray& ray) const override {
+			virtual RayHit queryIntersection(const RayInternal& ray) const override {
 				const auto cnt = size();
 				RayHit prop;
 				prop.id = -1;
@@ -29,7 +29,7 @@ namespace Ifrit::Engine::Raytracer {
 			virtual int size() const {
 				return this->data->size() / 3;
 			}
-			virtual RayHit rayElementIntersection(const Ray& ray, int index) const {
+			virtual RayHit rayElementIntersection(const RayInternal& ray, int index) const {
 				using namespace Ifrit::Math;
 				RayHit proposal;
 				ifloat3 v0 = (*this->data)[index * 3];
@@ -80,7 +80,7 @@ namespace Ifrit::Engine::Raytracer {
 			virtual void bufferData(const std::vector<TrivialBottomLevelAS*>& vecData) override {
 				this->data = &vecData;
 			}
-			virtual RayHit queryIntersection(const Ray& ray) const override {
+			virtual RayHit queryIntersection(const RayInternal& ray) const override {
 				RayHit prop;
 				prop.id = -1;
 				float dist = std::numeric_limits<float>::max();
@@ -110,7 +110,7 @@ namespace Ifrit::Engine::Raytracer {
 		this->impl->bufferData(data);
 	}
 
-	RayHit TrivialBottomLevelAS::queryIntersection(const Ray& ray) const{
+	RayHit TrivialBottomLevelAS::queryIntersection(const RayInternal& ray) const{
 		return this->impl->queryIntersection(ray);
 	}
 
@@ -126,7 +126,7 @@ namespace Ifrit::Engine::Raytracer {
 		this->impl->bufferData(data);
 	}
 
-	RayHit TrivialTopLevelAS::queryIntersection(const Ray& ray) const{
+	RayHit TrivialTopLevelAS::queryIntersection(const RayInternal& ray) const{
 		return this->impl->queryIntersection(ray);
 	}
 

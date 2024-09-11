@@ -1,5 +1,5 @@
 #include "engine/raytracer/TrivialRaytracerWorker.h"
-
+#include "math/VectorOps.h"
 namespace Ifrit::Engine::Raytracer {
 	TrivialRaytracerWorker::TrivialRaytracerWorker(std::shared_ptr<TrivialRaytracer> renderer, std::shared_ptr<TrivialRaytracerContext> context, int workerId) {
 		this->renderer = renderer.get();
@@ -8,13 +8,14 @@ namespace Ifrit::Engine::Raytracer {
 	}
 	void TrivialRaytracerWorker::run() {
 		while (true) {
-			if (status.load() == TrivialRaytracerWorkerStatus::IDLE || status.load() == TrivialRaytracerWorkerStatus::COMPLETED) {
+			const auto st = status.load();
+			if (st == TrivialRaytracerWorkerStatus::IDLE || st == TrivialRaytracerWorkerStatus::COMPLETED) {
 				std::this_thread::yield();
 			}
-			if (status.load() == TrivialRaytracerWorkerStatus::TERMINATED) {
+			else if (st == TrivialRaytracerWorkerStatus::TERMINATED) {
 				return;
 			}
-			if (status.load() == TrivialRaytracerWorkerStatus::TRACING) {
+			else if (st == TrivialRaytracerWorkerStatus::TRACING) {
 				tracingProcess();
 				status.store(TrivialRaytracerWorkerStatus::TRACING_SYNC);
 			}
@@ -47,8 +48,14 @@ namespace Ifrit::Engine::Raytracer {
 		}
 	}
 	void TrivialRaytracerWorker::tracingRecursiveProcess(Ray ray, void* payload, size_t payloadSize, int depth){
+		using namespace Ifrit::Math;
+
 		if (depth >= context->maxDepth)return;
-		auto collresult = context->accelerationStructure->queryIntersection(ray);
+		RayInternal intray;
+		intray.o = ray.o;
+		intray.r = ray.r;
+		intray.invr = ifloat3{ 1.0f,1.0f,1.0f } / intray.r;
+		auto collresult = context->accelerationStructure->queryIntersection(intray);
 		recurDepth++;
 		if (collresult.id == -1) {
 			if (context->missShader) {
@@ -68,30 +75,3 @@ namespace Ifrit::Engine::Raytracer {
 		return recurDepth;
 	}
 }
-
-
-/*
-
-// Demo
-	Ray ray;
-	float rx = 1.0f * (i + tileX * context->tileWidth) / context->traceRegion.x;
-	float ry = 1.0f * (j + tileY * context->tileHeight) / context->traceRegion.y;
-	float rz = 1.0f * (k + tileZ * context->tileDepth) / context->traceRegion.z;
-
-	rx = 0.5f * rx - 0.25f;
-	ry = 0.5f * ry - 0.25f;
-	rz = -1.0;
-
-	ray.o = { rx,ry,rz };
-	ray.r = { 0.0f,0.0f,1.0f };
-
-	auto result = context->accelerationStructure->queryIntersection(ray);
-	if(result.id>=0) {
-		ifloat4 color = {1.0f, 0.0f, 0.0f, 1.0f };
-		context->testImage->fillPixelRGBA(invocation.x, invocation.y, 1, 0, 0, 0);
-	}
-	else {
-		context->testImage->fillPixelRGBA(invocation.x, invocation.y, 0, 0, 1, 0);
-		//printf("%f %f %f\n", rx, ry,rz);
-	}
-*/

@@ -8,9 +8,9 @@ namespace Ifrit::Engine::Raytracer {
 	struct TrivialRaytracerContext {
 		constexpr static int numThreads = 16;
 
-		constexpr static int tileWidth = 16;
-		constexpr static int tileHeight = 16;
-		constexpr static int tileDepth = 5;
+		constexpr static int tileWidth = 32;
+		constexpr static int tileHeight = 32;
+		constexpr static int tileDepth = 1;
 		constexpr static int maxDepth = 15;
 
 		int numTileX, numTileY, numTileZ;

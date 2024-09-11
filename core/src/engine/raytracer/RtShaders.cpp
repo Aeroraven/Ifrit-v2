@@ -6,11 +6,11 @@ namespace Ifrit::Engine::Raytracer {
 		el.ray = ray;
 		el.payloadPtr = pPayload;
 		el.rayHit = rayHit;
-		execStack.push(el);
+		execStack.push_back(el);
 		this->onStackPushComplete();
 	}
 	IFRIT_HOST void RaytracerShaderExecutionStack::popStack(){
-		execStack.pop();
+		execStack.pop_back();
 		this->onStackPopComplete();
 	}
 }

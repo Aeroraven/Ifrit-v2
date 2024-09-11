@@ -6,6 +6,10 @@ namespace Ifrit::Engine {
 		ifloat3 o, r;
 	};
 
+	struct RayInternal {
+		ifloat3 o, r, invr;
+	};
+
 	struct RayHit {
 		ifloat3 p;
 		float t;
@@ -14,7 +18,7 @@ namespace Ifrit::Engine {
 	
 	class AccelerationStructure {
 	public:
-		virtual RayHit queryIntersection(const Ray& ray) const = 0;
+		virtual RayHit queryIntersection(const RayInternal& ray) const = 0;
 		virtual void buildAccelerationStructure() = 0;
 	};
 

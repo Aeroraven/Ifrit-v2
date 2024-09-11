@@ -124,7 +124,7 @@ namespace Ifrit::Demo::AccelStructDemo {
 		raytracer->init();
 		raytracer->bindAccelerationStructure(&tlas);
 		
-		constexpr int DEMO_RESOLUTION = 512;
+		constexpr int DEMO_RESOLUTION = 1024;
 		image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
 		raytracer->bindTestImage(image.get());
 

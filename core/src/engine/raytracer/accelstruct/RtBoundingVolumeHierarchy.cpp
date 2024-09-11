@@ -1,8 +1,13 @@
 #include "engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
 #include "math/VectorOps.h"
 #include <queue>
+#include <malloc.h>
 
 namespace Ifrit::Engine::Raytracer::Impl {
+	enum BVHSplitType {
+		BST_TRIVIAL,
+		BST_SAH
+	};
 	struct BVHNode{
 		BoundingBox bbox;
 		std::unique_ptr<BVHNode> left = nullptr, right = nullptr;
@@ -18,11 +23,13 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		std::vector<int> belonging;
 		std::vector<int> indices;
 		int curSize = 0;
-		const int maxDepth = 32;
+		int curMaxDepth = 0;
+		BVHSplitType splitType = BST_TRIVIAL;
+		static constexpr int maxDepth = 32;
 
 	public:
 		virtual int size() const = 0;
-		virtual RayHit rayElementIntersection(const Ray& ray, int index) const = 0;
+		virtual RayHit rayElementIntersection(const RayInternal& ray, int index) const = 0;
 		virtual BoundingBox getElementBbox(int index) const = 0;
 		virtual ifloat3 getElementCenter(int index) const = 0;
 		
@@ -43,44 +50,15 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			this->buildBVHNode();
 		}
 
-		inline float rayBoxIntersection(const Ray& ray, const BoundingBox& bbox) const {
+		inline float rayBoxIntersection(const RayInternal& ray, const BoundingBox& bbox) const {
 			using namespace Ifrit::Math;
-			float tmin = std::numeric_limits<float>::lowest();
-			float tmax = std::numeric_limits<float>::max();
-			ifloat3 invr = ifloat3{ 1.0f,1.0f,1.0f } / ray.r;
-
-			if (fabs(ray.r.x) < 1e-10) {
-				if(ray.o.x < bbox.bmin.x || ray.o.x > bbox.bmax.x) return -1;
-			}
-			else {
-				float tx1 = (bbox.bmin.x - ray.o.x) * invr.x;
-				float tx2 = (bbox.bmax.x - ray.o.x) * invr.x;
-				tmin = std::max(tmin, std::min(tx1, tx2));
-				tmax = std::min(tmax, std::max(tx1, tx2));
-			}
-
-			if (fabs(ray.r.y) < 1e-10) {
-				if (ray.o.y < bbox.bmin.y || ray.o.y > bbox.bmax.y) return -1;
-			}
-			else {
-				float ty1 = (bbox.bmin.y - ray.o.y) * invr.y;
-				float ty2 = (bbox.bmax.y - ray.o.y) * invr.y;
-				tmin = std::max(tmin, std::min(ty1, ty2));
-				tmax = std::min(tmax, std::max(ty1, ty2));
-			}
-
-			if (fabs(ray.r.z) < 1e-10) {
-				if (ray.o.z < bbox.bmin.z || ray.o.z > bbox.bmax.z) return -1;
-			}
-			else {
-				float tz1 = (bbox.bmin.z - ray.o.z) * invr.z;
-				float tz2 = (bbox.bmax.z - ray.o.z) * invr.z;
-				tmin = std::max(tmin, std::min(tz1, tz2));
-				tmax = std::min(tmax, std::max(tz1, tz2));
-			}
-			if (tmin > tmax) {
-				return -1;
-			}
+			auto t1 = (bbox.bmin - ray.o) * ray.invr;
+			auto t2 = (bbox.bmax - ray.o) * ray.invr;
+			auto v1 = min(t1, t2);
+			auto v2 = max(t1, t2);
+			float tmin = std::max(v1.x, std::max(v1.y, v1.z));
+			float tmax = std::min(v2.x, std::min(v2.y, v2.z));;
+			if (tmin > tmax) return -1;
 			return tmin;
 		}
 
@@ -105,8 +83,10 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			using namespace Ifrit::Math;
 			std::queue<std::tuple<BVHNode*,int,int>> q;
 			q.push({ this->root.get(),0,0 });
+			int profNodes = 0;
 
 			while (!q.empty()) {
+				profNodes++;
 				ifloat3 largestBBox = ifloat3{ -std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max() };
 				auto& [node,depth,start] = q.front();
 				BoundingBox& bbox = node->bbox;
@@ -119,26 +99,79 @@ namespace Ifrit::Engine::Raytracer::Impl {
 					largestBBox = max(largestBBox, this->bboxes[this->belonging[start + i]].bmax - this->bboxes[this->belonging[start + i]].bmin);
 				}
 				node->startPos = start;
-				if (depth >= this->maxDepth || node->elementSize <= 1) {
+				curMaxDepth = std::max(curMaxDepth, depth + 1);
+				if (depth >= maxDepth|| node->elementSize <= 1) {
 					q.pop();
 					continue;
 				}
 
-				ifloat3 diff = bbox.bmax - bbox.bmin;
-				ifloat3 midv = (bbox.bmax + bbox.bmin) * 0.5f;
-				int axis = 0;
-				if (diff.y > diff.x) axis = 1;
-				if (diff.z > diff.y && diff.z > diff.x) axis = 2;
-				float midvp = elementAt(midv, axis);
+				int pivot = 0;
+				
+				if (splitType == BST_TRIVIAL) {
+					ifloat3 diff = bbox.bmax - bbox.bmin;
+					ifloat3 midv = (bbox.bmax + bbox.bmin) * 0.5f;
+					int axis = 0;
+					if (diff.y > diff.x) axis = 1;
+					if (diff.z > diff.y && diff.z > diff.x) axis = 2;
+					float midvp = elementAt(midv, axis);
+					pivot = this->findSplit(start, start + node->elementSize - 1, axis, midvp);
+				}
+				else if (splitType == BST_SAH) {
+					ifloat3 diff = bbox.bmax - bbox.bmin;
+					auto minCost = diff.x * diff.y * diff.z * 2.0 * node->elementSize;
+					float bestPivot = 0.0;
+					int bestAxis = -1;
+					for (int axis = 0; axis < 3; axis++) {
+						for (int i = 1; i < 12; i++) {
+							auto midv = lerp(bbox.bmin, bbox.bmax, 1.0f * i / 12);
+							float midvp = elementAt(midv, axis);
+							pivot = this->findSplit(start, start + node->elementSize - 1, axis, midvp);
 
-				int pivot = this->findSplit(start, start + node->elementSize - 1, axis, midvp);
+							BoundingBox bLeft, bRight;
+							// Bounding boxes
+							bLeft.bmax = ifloat3{ -std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max() };
+							bLeft.bmin = ifloat3{ std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max() };
+							bRight.bmax = ifloat3{ -std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max() };
+							bRight.bmin = ifloat3{ std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max() };
+
+							for (int j = start; j <= pivot; j++) {
+								auto idx = this->belonging[j];
+								bLeft.bmax = max(bLeft.bmax, this->bboxes[idx].bmax);
+								bLeft.bmin = min(bLeft.bmin, this->bboxes[idx].bmin);
+							}
+							for (int j = pivot; j < start + node->elementSize; j++) {
+								auto idx = this->belonging[j];
+								bRight.bmax = max(bRight.bmax, this->bboxes[idx].bmax);
+								bRight.bmin = min(bRight.bmin, this->bboxes[idx].bmin);
+							}
+							auto dLeft = bLeft.bmax - bLeft.bmin;
+							auto dRight = bRight.bmax - bRight.bmin;
+							auto spLeft = dLeft.x * dLeft.y * dLeft.z * 2.0f;
+							auto spRight = dRight.x * dRight.y * dRight.z * 2.0f;
+							auto cost = spLeft * (pivot - start + 1) + spRight * (node->elementSize - (pivot - start + 1));
+							if (cost < minCost) {
+								minCost = cost;
+								bestAxis = axis;
+								bestPivot = midvp;
+							}
+						}
+					}
+					
+					if (bestAxis == -1) {
+						pivot = -2;
+					}
+					else {
+						pivot = this->findSplit(start, start + node->elementSize - 1, bestAxis, bestPivot);
+					}
+				}
+
 				node->left = std::make_unique<BVHNode>();
 				node->right = std::make_unique<BVHNode>();
 				node->left->elementSize = pivot - start + 1;
 				node->right->elementSize = node->elementSize - node->left->elementSize;
-				
 
 				if (node->left->elementSize > 1 && node->right->elementSize > 1) {
+					
 					q.push({ node->left.get(),depth + 1,start });
 					q.push({ node->right.get(),depth + 1,pivot + 1 });
 				}
@@ -151,33 +184,53 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			for (int i = 0; i < this->curSize; i++) {
 				this->indices[this->belonging[i]] = i;
 			}
+			ifritLog1("BVH Built, Total Nodes:", profNodes);
 		}
 
-		RayHit queryRayIntersection(const Ray& ray) const IFRIT_AP_NOTHROW {
+		RayHit queryRayIntersectionFromTLAS(const RayInternal& ray) const IFRIT_AP_NOTHROW {
+			return queryRayIntersection<true>(ray);
+		}
+		template<bool doRootBoxIgnore>
+		RayHit queryRayIntersection(const RayInternal& ray) const IFRIT_AP_NOTHROW {
+			using namespace Ifrit::Math;
 			RayHit prop;
+			ifloat3 invd = ifloat3{ 1.0f,1.0f,1.0f } / ray.r;
 			prop.id = -1;
 			prop.t = std::numeric_limits<float>::max();
 			const auto nodeRoot = this->root.get();
-			float rootHit = this->rayBoxIntersection(ray, nodeRoot->bbox);
+
+			constexpr float ignoreVal = std::numeric_limits<float>::max() * 0.5f;
+			float rootHit;
 			
-			if (rootHit<0) return prop;
-			//vector seems to be faster than deque in this circumstance
-			std::vector<std::tuple<BVHNode*, float>> q;
+			if constexpr(doRootBoxIgnore) {
+				rootHit = ignoreVal;
+			}
+			else {
+				rootHit = this->rayBoxIntersection(ray, nodeRoot->bbox);
+				if (rootHit < 0) return prop;
+			}
+
+			constexpr auto dfsStackSize = BoundingVolumeHierarchyBase::maxDepth * 2 + 1;
+			std::tuple<BVHNode*, float> q[dfsStackSize];
+			int qPos = 0;
 			
-			q.push_back({ nodeRoot, rootHit });
+			q[qPos++] = { nodeRoot, rootHit };
 			float minDist = std::numeric_limits<float>::max();
 			
-			while (!q.empty()) {
-				auto p = q.back();
+			while (qPos) {
+				auto p = q[--qPos];
 				auto& [node,cmindist] = p;
-				q.pop_back();
-				if (cmindist > minDist) {
+				if (cmindist >= minDist) {
 					continue;
 				}
 				float leftIntersect = -1, rightIntersect = -1;
-				if (node->left == nullptr && node->right == nullptr) {
-					for (int i = 0; i < node->elementSize; i++) {
-						int index = this->belonging[i + node->startPos];
+				const auto nLeft = node->left.get();
+				const auto nRight = node->right.get();
+				const auto nSize = node->elementSize;
+				const auto nStartPos = node->startPos;
+				if (nLeft == nullptr || nRight == nullptr) {
+					for (int i = 0; i < nSize; i++) {
+						int index = this->belonging[i + nStartPos];
 						auto dist = this->rayElementIntersection(ray, index);
 						if (dist.t > 1e-9 && dist.t < minDist) {
 							minDist = dist.t;
@@ -186,25 +239,25 @@ namespace Ifrit::Engine::Raytracer::Impl {
 					}
 				}
 				else {
-					leftIntersect = this->rayBoxIntersection(ray, node->left->bbox);
-					rightIntersect = this->rayBoxIntersection(ray, node->right->bbox);
+					leftIntersect = this->rayBoxIntersection(ray, nLeft->bbox);
+					rightIntersect = this->rayBoxIntersection(ray, nRight->bbox);
 					if (leftIntersect > minDist) leftIntersect = -1;
 					if (rightIntersect > minDist) rightIntersect = -1;
 					if (leftIntersect > 0 && rightIntersect > 0) {
 						if (leftIntersect < rightIntersect) {
-							q.push_back({ node->right.get(),rightIntersect });
-							q.push_back({ node->left.get(),leftIntersect });
+							q[qPos++] = { nRight,rightIntersect };
+							q[qPos++] = { nLeft,leftIntersect };
 						}
 						else {
-							q.push_back({ node->left.get(),leftIntersect });
-							q.push_back({ node->right.get(),rightIntersect });
+							q[qPos++] = { nLeft,leftIntersect };
+							q[qPos++] = { nRight,rightIntersect };
 						}
 					}
 					else if (leftIntersect > 0) {
-						q.push_back({ node->left.get(),leftIntersect });
+						q[qPos++] = { nLeft,leftIntersect };
 					}
 					else if (rightIntersect > 0) {
-						q.push_back({ node->right.get(),rightIntersect });
+						q[qPos++] = { nRight,rightIntersect };
 					}
 				}
 			}
@@ -218,16 +271,17 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		const std::vector<ifloat3>* data;
 
 	public:
+		friend class BoundingVolumeHierarchyTopLevelASImpl;
 		virtual void bufferData(const std::vector<ifloat3>& vecData) override {
 			this->data = &vecData;
 		}
-		virtual RayHit queryIntersection(const Ray& ray) const override {
-			return this->queryRayIntersection(ray);
+		virtual RayHit queryIntersection(const RayInternal& ray) const override {
+			return this->queryRayIntersection<false>(ray);
 		}
 		virtual int size() const override {
 			return this->data->size() / 3;
 		}
-		virtual RayHit rayElementIntersection(const Ray& ray, int index) const override {
+		inline virtual RayHit rayElementIntersection(const RayInternal& ray, int index) const override final {
 			using namespace Ifrit::Math;
 			RayHit proposal;
 			proposal.id = -1;
@@ -259,7 +313,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			proposal.t = dist;
 			return proposal;
 		}
-		virtual BoundingBox getElementBbox(int index) const override {
+		virtual BoundingBox getElementBbox(int index) const override final {
 			using namespace Ifrit::Math;
 			ifloat3 v0 = (*this->data)[index * 3];
 			ifloat3 v1 = (*this->data)[index * 3 + 1];
@@ -272,7 +326,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		virtual BoundingBox getRootBbox() {
 			return this->root->bbox;
 		}
-		virtual ifloat3 getElementCenter(int index) const override {
+		virtual ifloat3 getElementCenter(int index) const override final {
 			using namespace Ifrit::Math;
 			
 			/*ifloat3 v0 = (*this->data)[index * 3];
@@ -303,15 +357,15 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		virtual void bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& vecData) override {
 			this->data = &vecData;
 		}
-		virtual RayHit queryIntersection(const Ray& ray) const override {
-			auto pv = this->queryRayIntersection(ray);
+		virtual RayHit queryIntersection(const RayInternal& ray) const override {
+			auto pv = this->queryRayIntersection<false>(ray);
 			return pv;
 		}
 		virtual int size() const override {
 			return this->data->size();
 		}
-		virtual RayHit rayElementIntersection(const Ray& ray, int index) const override {
-			auto p = (*this->data)[index]->queryIntersection(ray);
+		virtual RayHit rayElementIntersection(const RayInternal& ray, int index) const override {
+			auto p = (*this->data)[index]->queryIntersectionFromTLAS(ray);
 			return p;
 		}
 		virtual BoundingBox getElementBbox(int index) const override {
@@ -343,8 +397,11 @@ namespace Ifrit::Engine::Raytracer {
 		this->impl->bufferData(data);
 	}
 
-	RayHit BoundingVolumeHierarchyBottomLevelAS::queryIntersection(const Ray& ray) const {
+	RayHit BoundingVolumeHierarchyBottomLevelAS::queryIntersection(const RayInternal& ray) const {
 		return this->impl->queryIntersection(ray);
+	}
+	RayHit BoundingVolumeHierarchyBottomLevelAS::queryIntersectionFromTLAS(const RayInternal& ray) const{
+		return this->impl->queryRayIntersectionFromTLAS(ray);
 	}
 	void BoundingVolumeHierarchyBottomLevelAS::buildAccelerationStructure() {
 		this->impl->buildAccelerationStructure();
@@ -362,7 +419,7 @@ namespace Ifrit::Engine::Raytracer {
 		this->impl->bufferData(data);
 	}
 
-	RayHit BoundingVolumeHierarchyTopLevelAS::queryIntersection(const Ray& ray) const {
+	RayHit BoundingVolumeHierarchyTopLevelAS::queryIntersection(const RayInternal& ray) const {
 		auto x = this->impl->queryIntersection(ray);
 		return x;
 	}

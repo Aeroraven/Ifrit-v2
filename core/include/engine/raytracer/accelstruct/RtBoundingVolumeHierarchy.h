@@ -19,7 +19,8 @@ namespace Ifrit::Engine::Raytracer {
 		BoundingVolumeHierarchyBottomLevelAS();
 		~BoundingVolumeHierarchyBottomLevelAS();
 		virtual void bufferData(const std::vector<ifloat3>& data);
-		virtual RayHit queryIntersection(const Ray& ray) const;
+		virtual RayHit queryIntersection(const RayInternal& ray) const;
+		virtual RayHit queryIntersectionFromTLAS(const RayInternal& ray) const;
 		virtual void buildAccelerationStructure();
 	};
 
@@ -30,7 +31,7 @@ namespace Ifrit::Engine::Raytracer {
 		BoundingVolumeHierarchyTopLevelAS();
 		~BoundingVolumeHierarchyTopLevelAS();
 		virtual void bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& data);
-		virtual RayHit queryIntersection(const Ray& ray) const;
+		virtual RayHit queryIntersection(const RayInternal& ray) const;
 		virtual void buildAccelerationStructure();
 	};
 }
