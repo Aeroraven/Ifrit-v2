@@ -2,6 +2,8 @@
 #include "core/definition/CoreExports.h"
 #include "engine/base/RaytracerBase.h"
 
+int getProfileCnt();
+
 namespace Ifrit::Engine::Raytracer {
 	struct BoundingBox {
 		ifloat3 bmin, bmax;

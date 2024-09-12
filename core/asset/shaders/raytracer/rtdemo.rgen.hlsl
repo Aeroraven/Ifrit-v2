@@ -12,8 +12,9 @@ void main()
     uint3 lId = DispatchRaysIndex();
     uint3 lSize = DispatchRaysDimensions();
 
-    float2 r = float2(lId.x, lId.y) / float2(lSize.x, lSize.y) * 0.225 - 0.125;
+    float2 r = float2(lId.x, lId.y) / float2(lSize.x, lSize.y) * 0.25 - 0.125;
     r.y += 0.1; 
+    r.x -= 0.02f;
 
     RayDesc ray;
     ray.Origin = float3(r.x, r.y, -1.0);

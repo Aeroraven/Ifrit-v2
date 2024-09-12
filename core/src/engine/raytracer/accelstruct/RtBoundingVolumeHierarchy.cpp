@@ -3,7 +3,14 @@
 #include <queue>
 #include <malloc.h>
 
+constexpr bool PROFILE_CNT = false;
+
 namespace Ifrit::Engine::Raytracer::Impl {
+	static std::atomic<int> intersect = 0;
+	static std::atomic<int> validIntersect = 0;
+	static std::atomic<int> boxIntersect = 0;
+	static std::atomic<int> earlyReject = 0;
+
 	enum BVHSplitType {
 		BST_TRIVIAL,
 		BST_SAH
@@ -23,9 +30,10 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		std::vector<int> belonging;
 		std::vector<int> indices;
 		int curSize = 0;
-		int curMaxDepth = 0;
-		BVHSplitType splitType = BST_TRIVIAL;
+		int curMaxDepth = 0; 
+		BVHSplitType splitType = BST_SAH;
 		static constexpr int maxDepth = 32;
+		static constexpr int sahBuckets = 15;
 
 	public:
 		virtual int size() const = 0;
@@ -50,7 +58,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			this->buildBVHNode();
 		}
 
-		inline float rayBoxIntersection(const RayInternal& ray, const BoundingBox& bbox) const {
+		__forceinline float rayBoxIntersection(const RayInternal& ray, const BoundingBox& bbox) const {
 			using namespace Ifrit::Math;
 			auto t1 = (bbox.bmin - ray.o) * ray.invr;
 			auto t2 = (bbox.bmax - ray.o) * ray.invr;
@@ -107,6 +115,10 @@ namespace Ifrit::Engine::Raytracer::Impl {
 
 				int pivot = 0;
 				
+				float bestPivot = 0.0;
+				auto bestPivotI = 0;
+				int bestAxis = -1;
+
 				if (splitType == BST_TRIVIAL) {
 					ifloat3 diff = bbox.bmax - bbox.bmin;
 					ifloat3 midv = (bbox.bmax + bbox.bmin) * 0.5f;
@@ -118,12 +130,16 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				}
 				else if (splitType == BST_SAH) {
 					ifloat3 diff = bbox.bmax - bbox.bmin;
-					auto minCost = diff.x * diff.y * diff.z * 2.0 * node->elementSize;
-					float bestPivot = 0.0;
-					int bestAxis = -1;
+					constexpr float unbalancedLeafPenalty = 80.0f;
+					auto minCost = diff.x * diff.y * diff.z * 2.0 * node->elementSize + unbalancedLeafPenalty;
+
+					int baxis = 0;
+					if (diff.y > diff.x) baxis = 1;
+					if (diff.z > diff.y && diff.z > diff.x) baxis = 2;
+
 					for (int axis = 0; axis < 3; axis++) {
-						for (int i = 1; i < 12; i++) {
-							auto midv = lerp(bbox.bmin, bbox.bmax, 1.0f * i / 12);
+						for (int i = 1; i < sahBuckets; i++) {
+							auto midv = lerp(bbox.bmin, bbox.bmax, 1.0f * i / sahBuckets);
 							float midvp = elementAt(midv, axis);
 							pivot = this->findSplit(start, start + node->elementSize - 1, axis, midvp);
 
@@ -139,7 +155,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 								bLeft.bmax = max(bLeft.bmax, this->bboxes[idx].bmax);
 								bLeft.bmin = min(bLeft.bmin, this->bboxes[idx].bmin);
 							}
-							for (int j = pivot; j < start + node->elementSize; j++) {
+							for (int j = pivot+1; j < start + node->elementSize; j++) {
 								auto idx = this->belonging[j];
 								bRight.bmax = max(bRight.bmax, this->bboxes[idx].bmax);
 								bRight.bmin = min(bRight.bmin, this->bboxes[idx].bmin);
@@ -148,8 +164,14 @@ namespace Ifrit::Engine::Raytracer::Impl {
 							auto dRight = bRight.bmax - bRight.bmin;
 							auto spLeft = dLeft.x * dLeft.y * dLeft.z * 2.0f;
 							auto spRight = dRight.x * dRight.y * dRight.z * 2.0f;
-							auto cost = spLeft * (pivot - start + 1) + spRight * (node->elementSize - (pivot - start + 1));
-							if (cost < minCost) {
+							auto rnc = (node->elementSize - (pivot - start + 1));
+							auto lnc = pivot - start + 1;
+							auto rcost = spRight * rnc;
+							auto lcost = spLeft * lnc;
+							auto penaltyUnbalancedLeaf = ((lnc<=1&&rnc>2) || (rnc<=1&&lnc>2)) ? unbalancedLeafPenalty : 0.0f;
+							auto cost = lcost + rcost + penaltyUnbalancedLeaf;
+							
+							if (cost < minCost && !isnan(lcost) && !isnan(rcost)) {
 								minCost = cost;
 								bestAxis = axis;
 								bestPivot = midvp;
@@ -170,8 +192,12 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				node->left->elementSize = pivot - start + 1;
 				node->right->elementSize = node->elementSize - node->left->elementSize;
 
-				if (node->left->elementSize > 1 && node->right->elementSize > 1) {
-					
+				bool isUnbalancedLeaf = pivot > 0 && abs(node->left->elementSize - node->right->elementSize) > 5 && (node->left->elementSize <= 1 || node->right->elementSize <= 1);
+				if (isUnbalancedLeaf) {
+					q.push({ node->left.get(),depth + 1,start });
+					q.push({ node->right.get(),depth + 1,pivot + 1 });
+				}
+				else if (pivot > 0 && (node->left->elementSize > 1 && node->right->elementSize > 1)) {
 					q.push({ node->left.get(),depth + 1,start });
 					q.push({ node->right.get(),depth + 1,pivot + 1 });
 				}
@@ -228,6 +254,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				const auto nRight = node->right.get();
 				const auto nSize = node->elementSize;
 				const auto nStartPos = node->startPos;
+
+
 				if (nLeft == nullptr || nRight == nullptr) {
 					for (int i = 0; i < nSize; i++) {
 						int index = this->belonging[i + nStartPos];
@@ -263,6 +291,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			}
 			return prop;
 		}
+		
 	};
 
 
@@ -282,6 +311,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			return this->data->size() / 3;
 		}
 		inline virtual RayHit rayElementIntersection(const RayInternal& ray, int index) const override final {
+			if constexpr (PROFILE_CNT)
+				intersect.fetch_add(1);
 			using namespace Ifrit::Math;
 			RayHit proposal;
 			proposal.id = -1;
@@ -327,12 +358,6 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			return this->root->bbox;
 		}
 		virtual ifloat3 getElementCenter(int index) const override final {
-			using namespace Ifrit::Math;
-			
-			/*ifloat3 v0 = (*this->data)[index * 3];
-			ifloat3 v1 = (*this->data)[index * 3 + 1];
-			ifloat3 v2 = (*this->data)[index * 3 + 2];
-			return (v0 + v1 + v2) / 3.0f;*/
 			using namespace Ifrit::Math;
 			ifloat3 v0 = (*this->data)[index * 3];
 			ifloat3 v1 = (*this->data)[index * 3 + 1];
@@ -426,4 +451,23 @@ namespace Ifrit::Engine::Raytracer {
 	void BoundingVolumeHierarchyTopLevelAS::buildAccelerationStructure() {
 		this->impl->buildAccelerationStructure();
 	}
+}
+
+int getProfileCnt() {
+	if constexpr (PROFILE_CNT) {
+		int v = Ifrit::Engine::Raytracer::Impl::intersect;
+		int vv = Ifrit::Engine::Raytracer::Impl::validIntersect;
+		int bv = Ifrit::Engine::Raytracer::Impl::boxIntersect;
+		int er = Ifrit::Engine::Raytracer::Impl::earlyReject;
+		printf("Total Intersect:%d, Valid Intersect:%d , Overtest Rate:%f\n", v, vv, 1.0f * vv / v);
+		printf("Total Box Intersect:%d Box/Triangle Ratio: %f\n", bv, 1.0f * bv / v);
+		printf("Early Reject: %d\n\n", er);
+
+		Ifrit::Engine::Raytracer::Impl::intersect.store(0);
+		Ifrit::Engine::Raytracer::Impl::validIntersect.store(0);
+		Ifrit::Engine::Raytracer::Impl::boxIntersect.store(0);
+		Ifrit::Engine::Raytracer::Impl::earlyReject.store(0);
+		return v;
+	}
+	return 0;
 }
