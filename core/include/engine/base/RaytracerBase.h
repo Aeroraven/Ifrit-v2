@@ -18,7 +18,7 @@ namespace Ifrit::Engine {
 	
 	class AccelerationStructure {
 	public:
-		virtual RayHit queryIntersection(const RayInternal& ray) const = 0;
+		virtual RayHit queryIntersection(const RayInternal& ray, float tmin, float tmax) const = 0;
 		virtual void buildAccelerationStructure() = 0;
 	};
 

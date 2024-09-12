@@ -37,7 +37,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 
 	public:
 		virtual int size() const = 0;
-		virtual RayHit rayElementIntersection(const RayInternal& ray, int index) const = 0;
+		virtual RayHit rayElementIntersection(const RayInternal& ray, int index , float tmin, float tmax) const = 0;
 		virtual BoundingBox getElementBbox(int index) const = 0;
 		virtual ifloat3 getElementCenter(int index) const = 0;
 		
@@ -213,11 +213,11 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			ifritLog1("BVH Built, Total Nodes:", profNodes);
 		}
 
-		RayHit queryRayIntersectionFromTLAS(const RayInternal& ray) const IFRIT_AP_NOTHROW {
-			return queryRayIntersection<true>(ray);
+		RayHit queryRayIntersectionFromTLAS(const RayInternal& ray, float tmin, float tmax) const IFRIT_AP_NOTHROW {
+			return queryRayIntersection<true>(ray,tmin,tmax);
 		}
 		template<bool doRootBoxIgnore>
-		RayHit queryRayIntersection(const RayInternal& ray) const IFRIT_AP_NOTHROW {
+		RayHit queryRayIntersection(const RayInternal& ray, float tmin, float tmax) const IFRIT_AP_NOTHROW {
 			using namespace Ifrit::Math;
 			RayHit prop;
 			ifloat3 invd = ifloat3{ 1.0f,1.0f,1.0f } / ray.r;
@@ -225,7 +225,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			prop.t = std::numeric_limits<float>::max();
 			const auto nodeRoot = this->root.get();
 
-			constexpr float ignoreVal = std::numeric_limits<float>::max() * 0.5f;
+			constexpr float ignoreVal = 0;
 			float rootHit;
 			
 			if constexpr(doRootBoxIgnore) {
@@ -241,7 +241,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			int qPos = 0;
 			
 			q[qPos++] = { nodeRoot, rootHit };
-			float minDist = std::numeric_limits<float>::max();
+			float minDist = tmax;
 			
 			while (qPos) {
 				auto p = q[--qPos];
@@ -259,8 +259,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				if (nLeft == nullptr || nRight == nullptr) {
 					for (int i = 0; i < nSize; i++) {
 						int index = this->belonging[i + nStartPos];
-						auto dist = this->rayElementIntersection(ray, index);
-						if (dist.t > 1e-9 && dist.t < minDist) {
+						auto dist = this->rayElementIntersection(ray, index,tmin,tmax);
+						if (dist.t > tmin && dist.t < minDist) {
 							minDist = dist.t;
 							prop = dist;
 						}
@@ -304,13 +304,13 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		virtual void bufferData(const std::vector<ifloat3>& vecData) override {
 			this->data = &vecData;
 		}
-		virtual RayHit queryIntersection(const RayInternal& ray) const override {
-			return this->queryRayIntersection<false>(ray);
+		virtual RayHit queryIntersection(const RayInternal& ray, float tmin, float tmax) const override {
+			return this->queryRayIntersection<false>(ray,tmin,tmax);
 		}
 		virtual int size() const override {
 			return this->data->size() / 3;
 		}
-		inline virtual RayHit rayElementIntersection(const RayInternal& ray, int index) const override final {
+		inline virtual RayHit rayElementIntersection(const RayInternal& ray, int index , float tmin, float tmax) const override final {
 			if constexpr (PROFILE_CNT)
 				intersect.fetch_add(1);
 			using namespace Ifrit::Math;
@@ -382,15 +382,15 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		virtual void bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& vecData) override {
 			this->data = &vecData;
 		}
-		virtual RayHit queryIntersection(const RayInternal& ray) const override {
-			auto pv = this->queryRayIntersection<false>(ray);
+		virtual RayHit queryIntersection(const RayInternal& ray,float tmin, float tmax) const override {
+			auto pv = this->queryRayIntersection<false>(ray,tmin,tmax);
 			return pv;
 		}
 		virtual int size() const override {
 			return this->data->size();
 		}
-		virtual RayHit rayElementIntersection(const RayInternal& ray, int index) const override {
-			auto p = (*this->data)[index]->queryIntersectionFromTLAS(ray);
+		virtual RayHit rayElementIntersection(const RayInternal& ray, int index, float tmin, float tmax) const override {
+			auto p = (*this->data)[index]->queryIntersectionFromTLAS(ray, tmin, tmax);
 			return p;
 		}
 		virtual BoundingBox getElementBbox(int index) const override {
@@ -422,11 +422,11 @@ namespace Ifrit::Engine::Raytracer {
 		this->impl->bufferData(data);
 	}
 
-	RayHit BoundingVolumeHierarchyBottomLevelAS::queryIntersection(const RayInternal& ray) const {
-		return this->impl->queryIntersection(ray);
+	RayHit BoundingVolumeHierarchyBottomLevelAS::queryIntersection(const RayInternal& ray,float tmin,float tmax) const {
+		return this->impl->queryIntersection(ray,tmin,tmax);
 	}
-	RayHit BoundingVolumeHierarchyBottomLevelAS::queryIntersectionFromTLAS(const RayInternal& ray) const{
-		return this->impl->queryRayIntersectionFromTLAS(ray);
+	RayHit BoundingVolumeHierarchyBottomLevelAS::queryIntersectionFromTLAS(const RayInternal& ray, float tmin, float tmax) const{
+		return this->impl->queryRayIntersectionFromTLAS(ray,tmin,tmax);
 	}
 	void BoundingVolumeHierarchyBottomLevelAS::buildAccelerationStructure() {
 		this->impl->buildAccelerationStructure();
@@ -444,8 +444,8 @@ namespace Ifrit::Engine::Raytracer {
 		this->impl->bufferData(data);
 	}
 
-	RayHit BoundingVolumeHierarchyTopLevelAS::queryIntersection(const RayInternal& ray) const {
-		auto x = this->impl->queryIntersection(ray);
+	RayHit BoundingVolumeHierarchyTopLevelAS::queryIntersection(const RayInternal& ray, float tmin, float tmax) const {
+		auto x = this->impl->queryIntersection(ray,tmin,tmax);
 		return x;
 	}
 	void BoundingVolumeHierarchyTopLevelAS::buildAccelerationStructure() {

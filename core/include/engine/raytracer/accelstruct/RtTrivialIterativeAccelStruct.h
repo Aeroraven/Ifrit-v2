@@ -16,7 +16,7 @@ namespace Ifrit::Engine::Raytracer {
 		friend class Impl::TrivialTopLevelASImpl;
 		TrivialBottomLevelAS();
 		virtual void bufferData(const std::vector<ifloat3>& data);
-		virtual RayHit queryIntersection(const RayInternal& ray) const;
+		virtual RayHit queryIntersection(const RayInternal& ray, float tmin, float tmax) const;
 		virtual void buildAccelerationStructure();
 	};
 
@@ -26,7 +26,7 @@ namespace Ifrit::Engine::Raytracer {
 	public:
 		TrivialTopLevelAS();
 		virtual void bufferData(const std::vector<TrivialBottomLevelAS*>& data);
-		virtual RayHit queryIntersection(const RayInternal& ray) const;
+		virtual RayHit queryIntersection(const RayInternal& ray, float tmin, float tmax) const;
 		virtual void buildAccelerationStructure();
 	};
 }

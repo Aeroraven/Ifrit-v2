@@ -31,7 +31,7 @@ extern "C" {
 		auto worker = reinterpret_cast<TrivialRaytracerWorker*>(context);
 		//printf("Origin: %f %f %f\n", ray.o.x, ray.o.y, ray.o.z);
 		//printf("Direction: %f %f %f\n", ray.r.x, ray.r.y, ray.r.z);
-		//printf("RM: %f\n", rayTmax);
-		worker->tracingRecursiveProcess(ray, payload, worker->getTracingDepth() + 1);
+		//printf("RM: %f %f\n", rayTmin, rayTmax);
+		worker->tracingRecursiveProcess(ray, payload, worker->getTracingDepth() + 1, rayTmin, rayTmax);
 	}
 }

@@ -20,7 +20,7 @@ void main()
     ray.Origin = float3(r.x, r.y, -1.0);
     ray.Direction = float3(0.0, 0.0, 1.0);
     ray.TMin = 0.001;
-    ray.TMax = 10000.0;
+    ray.TMax = 0.99;
 
     Payload payload;
     TraceRay(accStruct, 0x01, 0xff, 0, 0, 0, ray, payload);

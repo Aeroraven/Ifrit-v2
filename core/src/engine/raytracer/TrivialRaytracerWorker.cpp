@@ -47,7 +47,7 @@ namespace Ifrit::Engine::Raytracer {
 			}
 		}
 	}
-	void TrivialRaytracerWorker::tracingRecursiveProcess(Ray ray, void* payload, int depth){
+	void TrivialRaytracerWorker::tracingRecursiveProcess(Ray ray, void* payload, int depth, float tmin, float tmax){
 		using namespace Ifrit::Math;
 
 		if (depth >= context->maxDepth)return;
@@ -55,7 +55,7 @@ namespace Ifrit::Engine::Raytracer {
 		intray.o = ray.o;
 		intray.r = ray.r;
 		intray.invr = ifloat3{ 1.0f,1.0f,1.0f } / intray.r;
-		auto collresult = context->accelerationStructure->queryIntersection(intray);
+		auto collresult = context->accelerationStructure->queryIntersection(intray, tmin,tmax);
 		recurDepth++;
 		if (collresult.id == -1) {
 			if (context->missShader) {
