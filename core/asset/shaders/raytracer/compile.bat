@@ -1,3 +1,4 @@
 dxc -spirv -T lib_6_3 rtdemo.rgen.hlsl -fspv-target-env=vulkan1.3 -HV 2021 -fspv-extension=SPV_KHR_ray_tracing -fspv-extension=SPV_KHR_multiview -fspv-extension=SPV_KHR_shader_draw_parameters -fspv-extension=SPV_EXT_descriptor_indexing -fspv-extension=SPV_KHR_ray_query -Fo rtdemo.rgen.spv
 dxc -spirv -T lib_6_3 rtdemo.rmiss.hlsl -fspv-target-env=vulkan1.3 -HV 2021 -fspv-extension=SPV_KHR_ray_tracing -fspv-extension=SPV_KHR_multiview -fspv-extension=SPV_KHR_shader_draw_parameters -fspv-extension=SPV_EXT_descriptor_indexing -fspv-extension=SPV_KHR_ray_query -Fo rtdemo.rmiss.spv
+dxc -spirv -T lib_6_3 rtdemo.rchit.hlsl -fspv-target-env=vulkan1.3 -HV 2021 -fspv-extension=SPV_KHR_ray_tracing -fspv-extension=SPV_KHR_multiview -fspv-extension=SPV_KHR_shader_draw_parameters -fspv-extension=SPV_EXT_descriptor_indexing -fspv-extension=SPV_KHR_ray_query -Fo rtdemo.rchit.spv
 pause

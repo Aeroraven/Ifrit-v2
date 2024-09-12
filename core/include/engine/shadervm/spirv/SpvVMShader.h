@@ -19,6 +19,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		void* builtinLaunchSize = nullptr;
 
 		void* builtinContext = nullptr;
+		void* incomingPayload = nullptr;
+		int incomingPayloadSize = 0;
 	};
 	class SpvRuntimeBackend {
 	protected:
@@ -80,5 +82,39 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		IFRIT_HOST virtual std::unique_ptr<Raytracer::RayGenShader> getThreadLocalCopy() override;
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
+	};
+
+	class SpvMissShader final : public Raytracer::MissShader, public SpvRuntimeBackend {
+	public:
+		SpvMissShader(const SpvMissShader& p);
+	private:
+		IFRIT_HOST void updateStack();
+	public:
+		SpvMissShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
+		~SpvMissShader() = default;
+		IFRIT_DUAL virtual void execute(void* context)override;
+		IFRIT_HOST virtual Raytracer::MissShader* getCudaClone() override;
+		IFRIT_HOST virtual std::unique_ptr<Raytracer::MissShader> getThreadLocalCopy() override;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
+		IFRIT_HOST virtual void onStackPushComplete() override;
+		IFRIT_HOST virtual void onStackPopComplete() override;
+	};
+
+	class SpvClosestHitShader final : public Raytracer::CloseHitShader, public SpvRuntimeBackend {
+	public:
+		SpvClosestHitShader(const SpvClosestHitShader& p);
+	private:
+		IFRIT_HOST void updateStack();
+	public:
+		SpvClosestHitShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
+		~SpvClosestHitShader() = default;
+		IFRIT_DUAL virtual void execute(const RayHit& hitAttribute,const Ray& ray, void* context)override;
+		IFRIT_HOST virtual Raytracer::CloseHitShader* getCudaClone() override;
+		IFRIT_HOST virtual std::unique_ptr<Raytracer::CloseHitShader> getThreadLocalCopy() override;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
+		IFRIT_HOST virtual void onStackPushComplete() override;
+		IFRIT_HOST virtual void onStackPopComplete() override;
 	};
 }

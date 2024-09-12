@@ -66,6 +66,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::string builtinPositionSymbol;
 		std::string builtinLaunchIdKHR;
 		std::string builtinLaunchSizeKHR;
+		std::string incomingRayPayloadKHR;
+		int incomingRayPayloadKHRSize = 0;
 	};
 	struct SpvDecorationBlock {
 		int location = -1;
@@ -73,6 +75,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		bool isBuiltinPos = false;
 		bool isBuiltinLaunchIdKHR = false;
 		bool isBuiltinLaunchSizeKHR = false;
+		bool isIncomingRayPayloadKHR = false;
 		SpvVMMatrixLayout matrixLayout = IFSP_MATL_COLMAJOR;
 	};
 	struct SpvVMIntermediateReprExpTarget {

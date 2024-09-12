@@ -57,6 +57,10 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		if(svmir->shaderMaps.builtinLaunchSizeKHR.size()){
 			this->symbolTables.builtinLaunchSize = this->runtime->lookupSymbol(svmir->shaderMaps.builtinLaunchSizeKHR);
 		}
+		if(svmir->shaderMaps.incomingRayPayloadKHR.size()){
+			this->symbolTables.incomingPayload = this->runtime->lookupSymbol(svmir->shaderMaps.incomingRayPayloadKHR);
+			this->symbolTables.incomingPayloadSize = svmir->shaderMaps.incomingRayPayloadKHRSize;
+		}
 		this->symbolTables.builtinContext = this->runtime->lookupSymbol("ifsp_builtin_context_ptr");
 	}
 
@@ -182,5 +186,103 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 			ret.push_back(p.first);
 		}
 		return ret;
+	}
+
+	SpvMissShader::SpvMissShader(const SpvMissShader& p) :SpvRuntimeBackend(p) {
+		isThreadSafe = false;
+	}
+	IFRIT_HOST void SpvMissShader::updateStack(){
+		if (this->execStack.size() == 0)return;
+		const auto& stackTop = this->execStack.back();
+		if (symbolTables.incomingPayload) {
+			memcpy(symbolTables.incomingPayload, stackTop.payloadPtr, symbolTables.incomingPayloadSize);
+		}
+	}
+	SpvMissShader::SpvMissShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
+		isThreadSafe = false;
+	}
+	IFRIT_DUAL void SpvMissShader::execute(void* context){
+		if (symbolTables.builtinContext)memcpy(symbolTables.builtinContext, &context, sizeof(void*));
+		auto shaderEntry = (void(*)())this->symbolTables.entry;
+		shaderEntry();
+
+		//Update payloads
+		const auto& stackTop = this->execStack.back();
+		if (symbolTables.incomingPayload) {
+			memcpy(stackTop.payloadPtr,symbolTables.incomingPayload , symbolTables.incomingPayloadSize);
+		}
+	}
+	IFRIT_HOST Raytracer::MissShader* SpvMissShader::getCudaClone() {
+		ifritError("CUDA not supported");
+		return nullptr;
+	}
+	IFRIT_HOST std::unique_ptr<Raytracer::MissShader> SpvMissShader::getThreadLocalCopy() {
+		auto copy = std::make_unique<SpvMissShader>(*this);
+		return copy;
+	}
+	IFRIT_HOST void SpvMissShader::updateUniformData(int binding, int set, const void* pData) {
+		auto& uniformData = symbolTables.uniform[{binding, set}];
+		memcpy(uniformData.first, pData, uniformData.second);
+	}
+	IFRIT_HOST std::vector<std::pair<int, int>> SpvMissShader::getUniformList() {
+		std::vector<std::pair<int, int>> ret;
+		for (auto& p : this->symbolTables.uniform) {
+			ret.push_back(p.first);
+		}
+		return ret;
+	}
+	IFRIT_HOST void SpvMissShader::onStackPushComplete(){
+		updateStack();
+	}
+	IFRIT_HOST void SpvMissShader::onStackPopComplete(){
+		updateStack();
+	}
+	SpvClosestHitShader::SpvClosestHitShader(const SpvClosestHitShader& p) :SpvRuntimeBackend(p) {
+		isThreadSafe = false;
+	}
+	IFRIT_HOST void SpvClosestHitShader::updateStack(){
+		if (this->execStack.size() == 0)return;
+		const auto& stackTop = this->execStack.back();
+		if (symbolTables.incomingPayload) {
+			memcpy(symbolTables.incomingPayload, stackTop.payloadPtr, symbolTables.incomingPayloadSize);
+		}
+	}
+	SpvClosestHitShader::SpvClosestHitShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
+		isThreadSafe = false;
+	}
+	IFRIT_DUAL void SpvClosestHitShader::execute(const RayHit& hitAttribute, const Ray& ray, void* context){
+		if (symbolTables.builtinContext)memcpy(symbolTables.builtinContext, &context, sizeof(void*));
+		auto shaderEntry = (void(*)())this->symbolTables.entry;
+		shaderEntry();
+		//Update payloads
+		const auto& stackTop = this->execStack.back();
+		if (symbolTables.incomingPayload) {
+			memcpy(stackTop.payloadPtr, symbolTables.incomingPayload, symbolTables.incomingPayloadSize);
+		}
+	}
+	IFRIT_HOST Raytracer::CloseHitShader* SpvClosestHitShader::getCudaClone(){
+		ifritError("CUDA not supported");
+		return nullptr;
+	}
+	IFRIT_HOST std::unique_ptr<Raytracer::CloseHitShader> SpvClosestHitShader::getThreadLocalCopy(){
+		auto copy = std::make_unique<SpvClosestHitShader>(*this);
+		return copy;
+	}
+	IFRIT_HOST void SpvClosestHitShader::updateUniformData(int binding, int set, const void* pData){
+		auto& uniformData = symbolTables.uniform[{binding, set}];
+		memcpy(uniformData.first, pData, uniformData.second);
+	}
+	IFRIT_HOST std::vector<std::pair<int, int>> SpvClosestHitShader::getUniformList(){
+		std::vector<std::pair<int, int>> ret;
+		for (auto& p : this->symbolTables.uniform) {
+			ret.push_back(p.first);
+		}
+		return ret;
+	}
+	IFRIT_HOST void SpvClosestHitShader::onStackPushComplete(){
+		updateStack();
+	}
+	IFRIT_HOST void SpvClosestHitShader::onStackPopComplete(){
+		updateStack();
 	}
 }

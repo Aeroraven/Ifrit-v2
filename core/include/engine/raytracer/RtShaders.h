@@ -37,14 +37,12 @@ namespace Ifrit::Engine::Raytracer {
 
 	class IFRIT_APIDECL MissShader : public ShaderBase, public RaytracerShaderExecutionStack {
 	public:
-		IFRIT_DUAL virtual void execute(
-			const Ray& ray,
-			void* payload,
-			void* context
-		) = 0;
+		IFRIT_DUAL virtual void execute(void* context) = 0;
 		IFRIT_DUAL virtual ~MissShader() = default;
 		IFRIT_HOST virtual MissShader* getCudaClone() { return nullptr; };
 		IFRIT_HOST virtual std::unique_ptr<MissShader> getThreadLocalCopy() = 0;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) {}
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return{}; }
 	};
 
 	class IFRIT_APIDECL CloseHitShader : public ShaderBase, public RaytracerShaderExecutionStack {
@@ -52,12 +50,13 @@ namespace Ifrit::Engine::Raytracer {
 		IFRIT_DUAL virtual void execute(
 			const RayHit& hitAttribute,
 			const Ray& ray,
-			void* payload,
 			void* context
 		) = 0;
 		IFRIT_DUAL virtual ~CloseHitShader() = default;
 		IFRIT_HOST virtual CloseHitShader* getCudaClone() { return nullptr; };
 		IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy() = 0;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) {};
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return{}; }
 	};
 
 	class IFRIT_APIDECL CallableShader : public ShaderBase, public RaytracerShaderExecutionStack {

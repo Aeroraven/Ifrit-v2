@@ -116,6 +116,19 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 					ret += ">";
 					return ret;
 				}
+				else if (tpTarget->declType == IFSP_IRTARGET_DECL_STRUCT) {
+					std::string ret = "{";
+					for (int i = 0; i < target->compositeDataRef.size(); i++) {
+						auto tp = getTargetTypes(&irContextGlobal->targets[target->compositeDataRef[i]], irContextGlobal);
+						auto name = getVariableNamePrefix(&irContextGlobal->targets[target->compositeDataRef[i]], irContextGlobal);
+						if (i > 0) {
+							ret += " , ";
+						}
+						ret += tp + " " + name;
+					}
+					ret += "}";
+					return ret;
+				}
 				else {
 					ERROR_PREFIX
 					printf("Unknown constant type\n");
@@ -897,6 +910,11 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 						irContextGlobal->shaderMaps.outputVarSymbols[location] = varName;
 						irContextGlobal->shaderMaps.outputSize[location] = byteReq;
 					}
+				}
+				else if(storageClass == spv::StorageClass::StorageClassIncomingRayPayloadKHR) {
+					irContextGlobal->shaderMaps.incomingRayPayloadKHR = varName;
+					auto size = getVariableSize(&irContextGlobal->targets[targetId], irContextGlobal);
+					irContextGlobal->shaderMaps.incomingRayPayloadKHRSize = size;
 				}
 				else if (storageClass == spv::StorageClass::StorageClassUniform) {
 					auto binding = irContextGlobal->targets[targetId].decoration.binding;
@@ -2203,7 +2221,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		cleanUpSymbolPrefix(outIr->shaderMaps.builtinPositionSymbol);
 		cleanUpSymbolPrefix(outIr->shaderMaps.builtinLaunchIdKHR);
 		cleanUpSymbolPrefix(outIr->shaderMaps.builtinLaunchSizeKHR);
-
+		cleanUpSymbolPrefix(outIr->shaderMaps.incomingRayPayloadKHR);
 	}
 
 	void SpvVMInterpreter::exportLlvmIR(SpvVMIntermediateRepresentation* ir, std::string* outLlvmIR) {

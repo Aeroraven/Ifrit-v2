@@ -60,36 +60,53 @@ namespace Ifrit::Demo::AccelStructDemo {
 	};
 
 	class DemoClosetHit : public CloseHitShader {
+	private:
+		void* payload;
 	public:
 		IFRIT_DUAL virtual void execute(
 			const RayHit& hitAttribute,
 			const Ray& ray,
-			void* payload,
 			void* context
 		) {
 			auto p = reinterpret_cast<Payload*>(payload);
 			p->color = { 1.0f,0.0f,0.0f,1.0f };
 		}
-		IFRIT_HOST virtual void onStackPushComplete() {}
-		IFRIT_HOST virtual void onStackPopComplete() {}
-
+		IFRIT_HOST virtual void onStackPushComplete() {
+			if (execStack.size()) {
+				payload = execStack.back().payloadPtr;
+			}
+		}
+		IFRIT_HOST virtual void onStackPopComplete() {
+			if (execStack.size()) {
+				payload = execStack.back().payloadPtr;
+			}
+		}
 		IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy() {
 			return std::make_unique<DemoClosetHit>();
 		}
 	};
 
 	class DemoMiss : public MissShader {
+	private:
+		void* payload;
+
 	public:
 		IFRIT_DUAL virtual void execute(
-			const Ray& ray,
-			void* payload,
 			void* context
 		) {
 			auto p = reinterpret_cast<Payload*>(payload);
 			p->color = { 0.0f,1.0f,0.0f,1.0f };
 		}
-		IFRIT_HOST virtual void onStackPushComplete() {}
-		IFRIT_HOST virtual void onStackPopComplete() {}
+		IFRIT_HOST virtual void onStackPushComplete() {
+			if (execStack.size()) {
+				payload = execStack.back().payloadPtr;
+			}
+		}
+		IFRIT_HOST virtual void onStackPopComplete() {
+			if (execStack.size()) {
+				payload = execStack.back().payloadPtr;
+			}
+		}
 
 		IFRIT_HOST virtual std::unique_ptr<MissShader> getThreadLocalCopy() {
 			return std::make_unique<DemoMiss>();
@@ -148,10 +165,13 @@ namespace Ifrit::Demo::AccelStructDemo {
 		WrappedLLVMRuntimeBuilder builder;
 
 		auto rgenCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rgen.spv");
+		auto rmissCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rmiss.spv");
+
 		SpvRaygenShader raygen(builder, rgenCode);
+		SpvMissShader miss(builder, rmissCode);
 		//DemoRayGen raygen;
 		DemoClosetHit hit;
-		DemoMiss miss;
+		//DemoMiss miss;
 
 		raytracer->bindClosestHitShader(&hit);
 		raytracer->bindRaygenShader(&raygen);

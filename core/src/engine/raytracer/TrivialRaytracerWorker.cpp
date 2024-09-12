@@ -60,13 +60,13 @@ namespace Ifrit::Engine::Raytracer {
 		if (collresult.id == -1) {
 			if (context->missShader) {
 				context->perWorkerMiss[workerId]->pushStack(ray, collresult, payload);
-				context->perWorkerMiss[workerId]->execute(ray, payload, this);
+				context->perWorkerMiss[workerId]->execute(this);
 				context->perWorkerMiss[workerId]->popStack();
 			}
 		}
 		else {
 			context->perWorkerRayhit[workerId]->pushStack(ray, collresult, payload);
-			context->perWorkerRayhit[workerId]->execute(collresult, ray, payload, this);
+			context->perWorkerRayhit[workerId]->execute(collresult, ray, this);
 			context->perWorkerRayhit[workerId]->popStack();
 		}
 		recurDepth--;
