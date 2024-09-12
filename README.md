@@ -49,6 +49,12 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | In-Application Class                        | ✅                                                            | ✅               | ✅             |
 | SPIR-V Binary / HLSL                        | 🟥                                                            | 🟦 OrcJIT (2)    | 🟥             |
 | SPIR-V Binary / GLSL                        | 🟥                                                            | 🟥               | 🟥             |
+| 🔦 **Ray-tracer / Pipeline**                 |                                                              |                 |               |
+| Acceleration Structure Traversal            | 🟥                                                            | 🟦               | 🟥             |
+| Surface Area Heuristic                      | 🟥                                                            | ✅               | 🟥             |
+| Programmable Ray Generation Shader          | 🟥                                                            | ✅               | 🟥             |
+| Programmable Closest Hit Shader             | 🟥                                                            | ✅               | 🟥             |
+| Programmable Miss Shader                    | 🟥                                                            | ✅               | 🟥             |
 | 💡 **Rasterization / Basic**                 |                                                              |                 |               |
 | Rendering Order                             | ✅                                                            | ✅               | ✅             |
 | 💡 **Rasterization / Pipeline**              |                                                              |                 |               |
@@ -90,7 +96,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 (1) Shader derivatives are now only available for the filled triangle polygon mode. Shader derivatives are calculated in `2x2` quads, so precision might matter.
 
-(2) Partial instructions are supported. Only available for binaries produced by `glslc`
+(2) Partial instructions are supported. Only available for binaries produced by `glslc` or `dxc`
 
 ### Supported Feature Details
 
@@ -178,6 +184,7 @@ See  [Usage](./docs/docs.md) for more details.
   - [ ] Issue: Nondeterministic behaviors in wireframe/point mode 
   - [x] Issue: Artifacts in low resolution scenario 
   - [ ] Latency: Memory access pattern in MSAA
+  - [ ] Latency: JIT slows down execution
 
 
 
