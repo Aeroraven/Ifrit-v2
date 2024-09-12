@@ -18,7 +18,7 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		initialized = false;
 		for (auto& worker : workers) {
-			worker->status.store(TileRasterStage::TERMINATING);
+			worker->status.store(TileRasterStage::TERMINATING, std::memory_order::memory_order_relaxed);
 			worker->activated.store(true);
 		}
 		for (auto& worker : workers) {
@@ -108,7 +108,7 @@ namespace Ifrit::Engine::TileRaster {
 		context->workerIdleTime.resize(context->numThreads);	
 		for (int i = 0; i < context->numThreads; i++) {
 			workers[i] = std::make_unique<TileRasterWorker>(i, shared_from_this(), context);
-			workers[i]->status.store(TileRasterStage::CREATED);
+			workers[i]->status.store(TileRasterStage::CREATED, std::memory_order::memory_order_relaxed);
 			context->workerIdleTime[i] = 0;
 		}
 	}
@@ -282,7 +282,7 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterRenderer::resetWorkers() {
 		for (auto& worker : workers) {
-			worker->status.store(TileRasterStage::VERTEX_SHADING);
+			worker->status.store(TileRasterStage::VERTEX_SHADING, std::memory_order::memory_order_relaxed);
 			worker->activated.store(true);
 		}
 	}
@@ -327,7 +327,7 @@ namespace Ifrit::Engine::TileRaster {
 		
 		createWorkers();
 		for (auto& worker : workers) {
-			worker->status.store(TileRasterStage::CREATED);
+			worker->status.store(TileRasterStage::CREATED, std::memory_order::memory_order_relaxed);
 			worker->threadStart();
 		}
 		initialized = true;

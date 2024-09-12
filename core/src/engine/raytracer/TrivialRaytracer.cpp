@@ -8,7 +8,7 @@ namespace Ifrit::Engine::Raytracer {
 	TrivialRaytracer::~TrivialRaytracer() {
 		if (initialized) {
 			for (auto& worker : workers) {
-				worker->status.store(TrivialRaytracerWorkerStatus::TERMINATED);
+				worker->status.store(TrivialRaytracerWorkerStatus::TERMINATED, std::memory_order::memory_order_relaxed);
 			}
 			for (auto& worker : workers) {
 				worker->thread->join();
@@ -26,7 +26,7 @@ namespace Ifrit::Engine::Raytracer {
 
 		for (int i = 0; i < context->numThreads; i++) {
 			auto worker = std::make_unique<TrivialRaytracerWorker>(shared_from_this(), context, i);
-			worker->status.store(TrivialRaytracerWorkerStatus::IDLE);
+			worker->status.store(TrivialRaytracerWorkerStatus::IDLE, std::memory_order::memory_order_relaxed);
 			worker->threadCreate();
 			workers.push_back(std::move(worker));
 		}
@@ -70,7 +70,7 @@ namespace Ifrit::Engine::Raytracer {
 		unresolvedTiles = context->totalTiles;
 		updateUniformBuffer();
 		for (auto& worker : workers) {
-			worker->status.store(TrivialRaytracerWorkerStatus::TRACING);
+			worker->status.store(TrivialRaytracerWorkerStatus::TRACING, std::memory_order::memory_order_relaxed);
 		}
 		statusTransitionBarrier(TrivialRaytracerWorkerStatus::TRACING_SYNC, TrivialRaytracerWorkerStatus::COMPLETED);
 	}
@@ -89,7 +89,7 @@ namespace Ifrit::Engine::Raytracer {
 	}
 	void TrivialRaytracer::resetWorkers() {
 		for (auto& worker : workers) {
-			worker->status.store(TrivialRaytracerWorkerStatus::IDLE);
+			worker->status.store(TrivialRaytracerWorkerStatus::IDLE, std::memory_order::memory_order_relaxed);
 		}
 	}
 	void TrivialRaytracer::statusTransitionBarrier(TrivialRaytracerWorkerStatus waitOn, TrivialRaytracerWorkerStatus proceedTo) {
