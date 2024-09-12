@@ -4,6 +4,7 @@
 #include "./engine/base/ShaderRuntime.h"
 #include "./engine/shadervm/spirv/SpvVMInterpreter.h"
 #include "./engine/shadervm/spirv/SpvVMReader.h"
+#include "./engine/raytracer/RtShaders.h"
 
 namespace Ifrit::Engine::ShaderVM::Spirv {
 	struct SpvRuntimeSymbolTables {
@@ -14,6 +15,10 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::unordered_map<std::pair<int, int>, std::pair<void*, int>,Ifrit::Core::Utility::PairHash> uniform;
 		void* entry = nullptr;
 		void* builtinPosition = nullptr;
+		void* builtinLaunchId = nullptr;
+		void* builtinLaunchSize = nullptr;
+
+		void* builtinContext = nullptr;
 	};
 	class SpvRuntimeBackend {
 	protected:
@@ -59,6 +64,20 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		IFRIT_DUAL virtual void execute(const void* varyings,void* colorOutput,	float* fragmentDepth) override;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() override;
 		IFRIT_HOST virtual std::unique_ptr<FragmentShader> getThreadLocalCopy() override;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
+	};
+
+	//V2
+	class SpvRaygenShader final : public Raytracer::RayGenShader, public SpvRuntimeBackend {
+	public:
+		SpvRaygenShader(const SpvRaygenShader& p);
+	public:
+		SpvRaygenShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
+		~SpvRaygenShader() = default;
+		IFRIT_DUAL virtual void execute(const iint3& inputInvocation, const iint3& dimension, void* context)override;
+		IFRIT_HOST virtual Raytracer::RayGenShader* getCudaClone() override;
+		IFRIT_HOST virtual std::unique_ptr<Raytracer::RayGenShader> getThreadLocalCopy() override;
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
 	};

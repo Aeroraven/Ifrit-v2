@@ -16,6 +16,8 @@ namespace Ifrit::Engine::Raytracer {
 		int numTileX, numTileY, numTileZ;
 		int totalTiles;
 
+		std::unordered_map<std::pair<int, int>, const void*, Ifrit::Core::Utility::PairHash> uniformMapping;
+
 		//TODO: Shader binding table & Shader groups
 		RayGenShader* raygenShader;
 		MissShader* missShader;

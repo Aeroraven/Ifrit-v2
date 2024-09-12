@@ -1,5 +1,11 @@
 #include "engine/shadervm/spirv/SpvVMShader.h"
 
+extern "C" {
+	struct alignas(16) iint3Aligned {
+		int x, y, z;
+	};
+}
+
 namespace Ifrit::Engine::ShaderVM::Spirv {
 	int SpvRuntimeBackend::createTime = 0;
 	SpvRuntimeBackend::SpvRuntimeBackend(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) {
@@ -45,6 +51,13 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		if (svmir->shaderMaps.builtinPositionSymbol.size()) {
 			this->symbolTables.builtinPosition = this->runtime->lookupSymbol(svmir->shaderMaps.builtinPositionSymbol);
 		}
+		if(svmir->shaderMaps.builtinLaunchIdKHR.size()){
+			this->symbolTables.builtinLaunchId = this->runtime->lookupSymbol(svmir->shaderMaps.builtinLaunchIdKHR);
+		}
+		if(svmir->shaderMaps.builtinLaunchSizeKHR.size()){
+			this->symbolTables.builtinLaunchSize = this->runtime->lookupSymbol(svmir->shaderMaps.builtinLaunchSizeKHR);
+		}
+		this->symbolTables.builtinContext = this->runtime->lookupSymbol("ifsp_builtin_context_ptr");
 	}
 
 	SpvVertexShader::SpvVertexShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode):SpvRuntimeBackend(runtime, irByteCode){
@@ -131,6 +144,39 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	}
 	
 	IFRIT_HOST std::vector<std::pair<int, int>> SpvFragmentShader::getUniformList() {
+		std::vector<std::pair<int, int>> ret;
+		for (auto& p : this->symbolTables.uniform) {
+			ret.push_back(p.first);
+		}
+		return ret;
+	}
+	
+	SpvRaygenShader::SpvRaygenShader(const SpvRaygenShader& p) :SpvRuntimeBackend(p) {
+		isThreadSafe = false;
+	}
+	SpvRaygenShader::SpvRaygenShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
+		isThreadSafe = false;
+	}
+	IFRIT_DUAL void SpvRaygenShader::execute(const iint3& inputInvocation, const iint3& dimension, void* context){
+		if (symbolTables.builtinLaunchId)memcpy(symbolTables.builtinLaunchId, &inputInvocation, sizeof(iint3));
+		if (symbolTables.builtinLaunchSize)memcpy(symbolTables.builtinLaunchSize, &dimension, sizeof(iint3));
+		if (symbolTables.builtinContext)memcpy(symbolTables.builtinContext, &context, sizeof(void*));
+		auto shaderEntry = (void(*)())this->symbolTables.entry;
+		shaderEntry();
+	}
+	IFRIT_HOST Raytracer::RayGenShader* SpvRaygenShader::getCudaClone(){
+		ifritError("CUDA not supported");
+		return nullptr;
+	}
+	IFRIT_HOST std::unique_ptr<Raytracer::RayGenShader> SpvRaygenShader::getThreadLocalCopy(){
+		auto copy = std::make_unique<SpvRaygenShader>(*this);
+		return copy;
+	}
+	IFRIT_HOST void SpvRaygenShader::updateUniformData(int binding, int set, const void* pData){
+		auto& uniformData = symbolTables.uniform[{binding, set}];
+		memcpy(uniformData.first, pData, uniformData.second);
+	}
+	IFRIT_HOST std::vector<std::pair<int, int>> SpvRaygenShader::getUniformList(){
 		std::vector<std::pair<int, int>> ret;
 		for (auto& p : this->symbolTables.uniform) {
 			ret.push_back(p.first);

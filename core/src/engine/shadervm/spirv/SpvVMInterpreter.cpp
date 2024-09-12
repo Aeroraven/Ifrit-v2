@@ -23,6 +23,31 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 
 	namespace InstructionImpl {
 		/* Helper */
+		double floatToDoubleDeserialization(float x) {
+			auto bin = *(uint32_t*)(&x);
+			auto signFloat = bin >> 31;
+			auto exponentFloat = (bin >> 23) & (0xFF);
+			auto fractionFloat = bin & (0x7FFFFF);
+			auto isNan = (fractionFloat != 0) && (exponentFloat == 0xFF);
+			auto isInf = (fractionFloat == 0) && (exponentFloat == 0xFF);
+			uint64_t exponentDouble = 0;
+			uint64_t fractionDouble = 0;
+			if (isNan || isInf) {
+				exponentDouble = 0x7FF;
+				if (isInf) fractionDouble = 0;
+				else fractionDouble = 0x8000000000000;
+			}
+			else {
+				exponentFloat = exponentFloat + 1023 - 127;
+				exponentDouble = exponentFloat;
+				fractionDouble = static_cast<uint64_t>(fractionFloat) << (52 - 23);
+			}
+			uint64_t signDouble = static_cast<uint64_t>(signFloat) << 63;
+			exponentDouble = exponentDouble << 52;
+			uint64_t result = signDouble | exponentDouble | fractionDouble;
+			return *(double*)(&result);
+		}
+
 		std::string getTargetTypes(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal);
 		void registerTypes(SpvVMIntermediateRepresentation* irContext) {
 			irContext->generatedIR << "declare float @llvm.sin.f32(float %Val)\n";
@@ -31,26 +56,23 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			irContext->generatedIR << "declare float @llvm.asin.f32(float %Val)\n";
 			irContext->generatedIR << "declare float @llvm.acos.f32(float %Val)\n";
 			irContext->generatedIR << "declare float @llvm.atan.f32(float %Val)\n";
-			/*
-			irContext->generatedIR << "declare <4 x float> @ifspvm_func_imageSampleImplicitLod(i8*,<2 x float>)\n";
-			irContext->generatedIR << "declare i8* @ifspvm_func_sampledImage(i8*,i8*)\n";
-			irContext->generatedIR << "declare float @ifspvm_func_callExtHandlerF1(i32,...)\n";
-			irContext->generatedIR << "declare i32 @ifspvm_func_callExtHandlerI1(i32,...)\n";
-			irContext->generatedIR << "declare <2 x i32> @ifspvm_func_callExtHandlerI2(i32,...)\n";
-			irContext->generatedIR << "declare <3 x i32> @ifspvm_func_callExtHandlerI3(i32,...)\n";
-			irContext->generatedIR << "declare <4 x i32> @ifspvm_func_callExtHandlerI4(i32,...)\n";
-			irContext->generatedIR << "declare <2 x float> @ifspvm_func_callExtHandlerF2(i32,...)\n";
-			irContext->generatedIR << "declare <3 x float> @ifspvm_func_callExtHandlerF3(i32,...)\n";
-			irContext->generatedIR << "declare <4 x float> @ifspvm_func_callExtHandlerF4(i32,...)\n";
-			irContext->generatedIR << "\n";*/
+
+			irContext->generatedIR << "declare void @ifritShaderOps_Base_ImageWrite_v2i32_v4f32(i8* %a,<2 x i32> %b,<4 x float> %c)\n";
+			irContext->generatedIR << "declare void @ifritShaderOps_Raytracer_TraceRay(<3 x float> %g, i8* %a,i32 %b,i32 %c,i32 %d,i32 %e,i32 %f,float %h,<3 x float> %i,float %j,i8* %k,i8* %l)\n";
+			
+			irContext->generatedIR << "@ifsp_builtin_context_ptr = global i8* undef\n";
+			irContext->generatedIR << "%ifsp_builtin_accelstruct = type i8*\n";
 
 		}
 		std::string getStructName(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal) {
-			return "%ifspvm_struct." + std::to_string(target->id);
+			return "%ifspvm_struct_" + std::to_string(target->id);
 		}
 		
 		std::string getVariableNamePrefix(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal) {
-			if (target->isVariable) {
+			if (target->isUndef) {
+				return "undef";
+			}
+			else if (target->isVariable) {
 				if (target->isGlobal) {
 					if (target->named) {
 						return "@ifspvm_global_" + target->name + "_" + std::to_string(target->id);
@@ -76,7 +98,10 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 					return std::to_string(target->data.intValue);
 				}
 				else if (tpTarget->declType == IFSP_IRTARGET_DECL_FLOAT) {
-					return std::to_string(target->data.floatValue);
+					//To hex
+					auto hexDouble = floatToDoubleDeserialization(target->data.floatValue);
+					std::string hexStr = std::format("{:#016x}", *(uint64_t*)&hexDouble);
+					return hexStr;
 				}
 				else if (tpTarget->declType == IFSP_IRTARGET_DECL_VECTOR) {
 					std::string ret = "<";
@@ -168,6 +193,9 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			else if (target->declType == IFSP_IRTARGET_DECL_SAMPLER) {
 				//Treat as pointer
 				return "i8*";
+			}
+			else if (target->declType == IFSP_IRTARGET_DECL_ACCELERATION_STRUCTURE) {
+				return "%ifsp_builtin_accelstruct";
 			}
 			else {
 				ERROR_PREFIX
@@ -266,6 +294,19 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 					ret += getVariableSize(&irContextGlobal->targets[target->memberTypeRef[i]], irContextGlobal);
 				}
 				return ret;
+			}
+			//V2
+			else if (target->declType == IFSP_IRTARGET_DECL_IMAGE) {
+				return sizeof(void*);
+			}
+			else if (target->declType == IFSP_IRTARGET_DECL_SAMPLED_IMAGE) {
+				return sizeof(void*);
+			}
+			else if (target->declType == IFSP_IRTARGET_DECL_SAMPLER) {
+				return sizeof(void*);
+			}
+			else if (target->declType == IFSP_IRTARGET_DECL_ACCELERATION_STRUCTURE) {
+				return sizeof(void*);
 			}
 			
 			ERROR_PREFIX;
@@ -380,6 +421,11 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				if (params[0] == spv::BuiltIn::BuiltInPosition) {
 					decBlock.isBuiltinPos = true;
 				}
+				else if (params[0] == spv::BuiltIn::BuiltInLaunchIdKHR) {
+					decBlock.isBuiltinLaunchIdKHR = true;
+				}else if(params[0] == spv::BuiltIn::BuiltInLaunchSizeKHR) {
+					decBlock.isBuiltinLaunchSizeKHR = true;
+				}
 			}
 			if (decoration == spv::Decoration::DecorationRowMajor) {
 				decBlock.matrixLayout = IFSP_MATL_ROWMAJOR;
@@ -394,10 +440,13 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		}
 		DEFINE_OP(spvOpUndef) {
 			if (pass == IFSP_VMA_PASS_SECOND) return;
-			auto targetId = params[0];
+			auto targetTp = params[0];
+			auto targetId = params[1];
 			irContextGlobal->targets[targetId].activated = true;
 			irContextGlobal->targets[targetId].exprType = IFSP_IRTARGET_INTERMEDIATE_UNDEF;
+			irContextGlobal->targets[targetId].resultTypeRef = targetTp;
 			irContextGlobal->targets[targetId].id = targetId;
+			irContextGlobal->targets[targetId].isUndef = true;
 		}
 
 		/* 3.52.2. Debug Instructions */
@@ -735,6 +784,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		DEFINE_OP(spvOpTypeQueue) { UNIMPLEMENTED_OP(OpTypeQueue) }
 		DEFINE_OP(spvOpTypePipe) { UNIMPLEMENTED_OP(OpTypePipe) }
 
+
 		/* 3.52.7. Constant Creation Instructions */
 		DEFINE_OP(spvOpConstantTrue) {
 			if (pass == IFSP_VMA_PASS_SECOND) return;
@@ -775,6 +825,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			auto typeRef = params[0];
 			irContextGlobal->targets[targetId].activated = true;
 			irContextGlobal->targets[targetId].componentTypeRef = typeRef;
+			irContextGlobal->targets[targetId].resultTypeRef = typeRef;
 			irContextGlobal->targets[targetId].compositeDataRef.resize(opWordCount - 3);
 			for(int i = 2; i < opWordCount - 1; i++) {
 				irContextGlobal->targets[targetId].compositeDataRef[i - 2] = params[i];
@@ -807,15 +858,26 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 					auto location = irContextGlobal->targets[targetId].decoration.location;
 					auto byteReq = getVariableSize(&irContextGlobal->targets[targetId], irContextGlobal);
 					if (location == -1) {
-						ERROR_PREFIX
-						printf("Invalid input location\n");
+						if (irContextGlobal->targets[targetId].decoration.isBuiltinLaunchIdKHR) {
+							irContextGlobal->shaderMaps.builtinLaunchIdKHR = varName;
+						}
+						else if (irContextGlobal->targets[targetId].decoration.isBuiltinLaunchSizeKHR) {
+							irContextGlobal->shaderMaps.builtinLaunchSizeKHR = varName;
+						}
+						else {
+							ERROR_PREFIX;
+							printf("Invalid input location\n");
+						}
 					}
-					if (irContextGlobal->shaderMaps.inputVarSymbols.size() <= location) {
-						irContextGlobal->shaderMaps.inputVarSymbols.resize(location + 1);
-						irContextGlobal->shaderMaps.inputSize.resize(location + 1);
+					else {
+						if (irContextGlobal->shaderMaps.inputVarSymbols.size() <= location) {
+							irContextGlobal->shaderMaps.inputVarSymbols.resize(location + 1);
+							irContextGlobal->shaderMaps.inputSize.resize(location + 1);
+						}
+						irContextGlobal->shaderMaps.inputVarSymbols[location] = varName;
+						irContextGlobal->shaderMaps.inputSize[location] = byteReq;
 					}
-					irContextGlobal->shaderMaps.inputVarSymbols[location] = varName;
-					irContextGlobal->shaderMaps.inputSize[location] = byteReq;
+					
 				}else if(storageClass == spv::StorageClass::StorageClassOutput) {
 					if (irContextGlobal->targets[targetId].decoration.isBuiltinPos) {
 						irContextGlobal->shaderMaps.builtinPositionSymbol = varName;
@@ -837,6 +899,13 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 					}
 				}
 				else if (storageClass == spv::StorageClass::StorageClassUniform) {
+					auto binding = irContextGlobal->targets[targetId].decoration.binding;
+					auto descSet = irContextGlobal->targets[targetId].decoration.descSet;
+					irContextGlobal->shaderMaps.uniformSize.push_back(getVariableSize(&irContextGlobal->targets[targetId], irContextGlobal));
+					irContextGlobal->shaderMaps.uniformVarLoc.push_back({ binding,descSet });
+					irContextGlobal->shaderMaps.uniformVarSymbols.push_back(varName);
+				}
+				else if (storageClass == spv::StorageClass::StorageClassUniformConstant) {
 					auto binding = irContextGlobal->targets[targetId].decoration.binding;
 					auto descSet = irContextGlobal->targets[targetId].decoration.descSet;
 					irContextGlobal->shaderMaps.uniformSize.push_back(getVariableSize(&irContextGlobal->targets[targetId], irContextGlobal));
@@ -1135,7 +1204,34 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			UNIMPLEMENTED_OP(OpConvertSToF) 
 		}
 		DEFINE_OP(spvOpConvertUToF) { 
-			UNIMPLEMENTED_OP(OpConvertUToF) 
+			auto targetId = params[1];
+			auto resultType = params[0];
+			auto sourceId = params[2];
+
+			if (pass == IFSP_VMA_PASS_FIRST) {
+				irContextGlobal->targets[targetId].activated = true;
+				irContextGlobal->targets[targetId].resultTypeRef = resultType;
+				irContextGlobal->targets[targetId].isInstance = true;
+				irContextGlobal->targets[targetId].id = targetId;
+			}
+
+			if (pass == IFSP_VMA_PASS_SECOND) {
+				auto source = irContextGlobal->targets[sourceId];
+				auto sourceType = getTargetTypes(&source, irContextGlobal);
+				auto resultName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
+				auto resultTypeName = getTargetTypes(&irContextGlobal->targets[resultType], irContextGlobal);
+				auto sourceTypeName = getTargetTypes(&irContextGlobal->targets[sourceId], irContextGlobal);
+
+				auto isSourceVector = irContextGlobal->targets[source.resultTypeRef].declType == IFSP_IRTARGET_DECL_VECTOR;
+				if(isSourceVector) {
+					ERROR_PREFIX;
+					printf("Cannot convert vector to float\n");
+				}
+				else {
+					irContextGlobal->generatedIR << resultName << " = uitofp " << sourceTypeName << " ";
+					irContextGlobal->generatedIR << getVariableNamePrefix(&source, irContextGlobal) << " to " << resultTypeName << std::endl;
+				}
+			}
 		}
 		DEFINE_OP(spvOpUConvert) { 
 			UNIMPLEMENTED_OP(OpUConvert) 
@@ -1206,24 +1302,46 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			}
 			if (pass == IFSP_VMA_PASS_SECOND) {
 				auto targetType = irContextGlobal->targets[typeRef];
-				if (targetType.declType != IFSP_IRTARGET_DECL_VECTOR) {
-					ERROR_PREFIX
-						printf("Cannot construct non-vector structure\n");
-				}
 				auto resultName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
-				auto resultType = getTargetTypes(&irContextGlobal->targets[targetType.componentTypeRef], irContextGlobal);
-				std::string lastName = "undef";
+				auto resultType = getTargetTypes(&targetType, irContextGlobal);
 				auto elementType = irContextGlobal->targets[targetType.componentTypeRef];
 				auto elementTypeName = getTargetTypes(&elementType, irContextGlobal);
-				for (int i = 2; i < opWordCount - 1; i++) {
-					auto curName = "%ifspvm_compositeconstruct_" + std::to_string(instLine) + "_" + std::to_string(i-2);
-					if (i == opWordCount - 2) {
-						curName = resultName;
+
+				//For undefs
+				
+				if (targetType.declType == IFSP_IRTARGET_DECL_VECTOR) {
+					std::string lastName = "undef";
+					//For variables
+					for (int i = 2; i < opWordCount - 1; i++) {
+						auto curName = "%ifspvm_compositeconstruct_" + std::to_string(instLine) + "_" + std::to_string(i - 2);
+						if (i == opWordCount - 2) {
+							curName = resultName;
+						}
+						irContextGlobal->generatedIR << curName << " = insertelement <" << opWordCount - 3 << " x " << elementTypeName << "> " << lastName << ", " << elementTypeName << " " << getVariableNamePrefix(&irContextGlobal->targets[irContextGlobal->targets[targetId].compositeDataRef[i - 2]], irContextGlobal) << ", i32 " << i - 2;
+						irContextGlobal->generatedIR << std::endl;
+						lastName = curName;
 					}
-					irContextGlobal->generatedIR << curName << " = insertelement <" << opWordCount - 3 << " x " << elementTypeName << "> " << lastName << ", " << elementTypeName << " " << getVariableNamePrefix(&irContextGlobal->targets[irContextGlobal->targets[targetId].compositeDataRef[i-2]], irContextGlobal) << ", i32 " << i-2;
-					irContextGlobal->generatedIR << std::endl;
-					lastName = curName;
 				}
+				else if (targetType.declType == IFSP_IRTARGET_DECL_STRUCT) {
+					std::string lastName = "undef";
+					for (int i = 2; i < opWordCount - 1; i++) {
+						auto curName = "%ifspvm_compositeconstruct_" + std::to_string(instLine) + "_" + std::to_string(i - 2);
+						if (i == opWordCount - 2) {
+							curName = resultName;
+						}
+						irContextGlobal->generatedIR << curName << " = insertvalue " << resultType << " " << lastName << ", ";
+						auto paramType = getTargetTypes(&irContextGlobal->targets[irContextGlobal->targets[params[i]].resultTypeRef], irContextGlobal);
+						auto paramName = getVariableNamePrefix(&irContextGlobal->targets[params[i]], irContextGlobal);
+						irContextGlobal->generatedIR << paramType << " " << paramName << ", " << i - 2;
+						irContextGlobal->generatedIR << std::endl;
+						lastName = curName;
+					}
+				}
+				else {
+					ERROR_PREFIX;
+					printf("Cannot construct non-vector structure\n");
+				}
+				
 			}
 		}
 		DEFINE_OP(spvOpCompositeExtract) {
@@ -1238,18 +1356,42 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			}
 			if (pass == IFSP_VMA_PASS_SECOND) {
 				//Generate IR
-				auto composite = irContextGlobal->targets[compositeId];
-				auto compositeType = getTargetTypes(&composite, irContextGlobal);
-				auto resultName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
-				auto numComponents = opWordCount - 4;
-				irContextGlobal->generatedIR << resultName << " = extractelement " << compositeType << " " << getVariableNamePrefix(&composite, irContextGlobal) << ", i32 ";
-				for(int i=0;i<numComponents;i++) {
-					if(i > 0) {
-						irContextGlobal->generatedIR << ", i32 ";
+				auto srcDecltype = irContextGlobal->targets[irContextGlobal->targets[compositeId].resultTypeRef].declType;
+
+				if(srcDecltype == IFSP_IRTARGET_DECL_VECTOR) {
+					auto composite = irContextGlobal->targets[compositeId];
+					auto compositeType = getTargetTypes(&composite, irContextGlobal);
+					auto resultName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
+					auto numComponents = opWordCount - 4;
+					irContextGlobal->generatedIR << resultName << " = extractelement " << compositeType << " " << getVariableNamePrefix(&composite, irContextGlobal) << ", i32 ";
+					for (int i = 0; i < numComponents; i++) {
+						if (i > 0) {
+							irContextGlobal->generatedIR << ", i32 ";
+						}
+						irContextGlobal->generatedIR << params[i + 3];
 					}
-					irContextGlobal->generatedIR << params[i+3];
+					irContextGlobal->generatedIR << std::endl;
 				}
-				irContextGlobal->generatedIR << std::endl;
+				else if (srcDecltype == IFSP_IRTARGET_DECL_STRUCT) {
+					auto composite = irContextGlobal->targets[compositeId];
+					auto compositeType = getTargetTypes(&composite, irContextGlobal);
+					auto resultName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
+					auto numComponents = opWordCount - 4;
+					irContextGlobal->generatedIR << resultName << " = extractvalue " << compositeType << " " << getVariableNamePrefix(&composite, irContextGlobal) << ", ";
+					for (int i = 0; i < numComponents; i++) {
+						if (i > 0) {
+							irContextGlobal->generatedIR << ", ";
+						}
+						irContextGlobal->generatedIR << params[i + 3];
+					}
+					irContextGlobal->generatedIR << std::endl;
+				}
+				else {
+					ERROR_PREFIX;
+					printf("Cannot extract from non-vector structure\n");
+
+				}
+				
 			}
 		}
 		DEFINE_OP(spvOpCompositeInsert) {
@@ -1723,6 +1865,136 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			}
 		}
 
+		// V2
+		DEFINE_OP(spvOpTypeAccelerationStructure) {
+			if (pass == IFSP_VMA_PASS_SECOND) return;
+			auto targetId = params[0];
+			irContextGlobal->targets[targetId].activated = true;
+			irContextGlobal->targets[targetId].declType = IFSP_IRTARGET_DECL_ACCELERATION_STRUCTURE;
+			irContextGlobal->targets[targetId].id = targetId;
+		}
+		DEFINE_OP(spvOpBitcast) {
+			auto targetId = params[1];
+			auto targetType = params[0];
+			if (pass == IFSP_VMA_PASS_FIRST) {
+				irContextGlobal->targets[targetId].activated = true;
+				irContextGlobal->targets[targetId].resultTypeRef = targetType;
+				irContextGlobal->targets[targetId].isInstance = true;
+				irContextGlobal->targets[targetId].id = targetId;
+			}
+			if (pass == IFSP_VMA_PASS_SECOND) {
+				auto targetName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
+				auto sourceName = getVariableNamePrefix(&irContextGlobal->targets[params[2]], irContextGlobal);
+				auto sourceType = getTargetTypes(&irContextGlobal->targets[params[2]], irContextGlobal);
+				auto targetType = getTargetTypes(&irContextGlobal->targets[params[0]], irContextGlobal);
+				irContextGlobal->generatedIR << targetName << " = bitcast " << sourceType << " " << sourceName << " to " << targetType << std::endl;
+			}
+		}
+		DEFINE_OP(spvOpImageWrite) {
+			if(pass == IFSP_VMA_PASS_FIRST) return;
+			auto imageId = params[0];
+			auto coordId = params[1];
+			auto texelId = params[2];
+
+			auto coordTypeRef = irContextGlobal->targets[coordId].resultTypeRef;
+			auto texelTypeRef = irContextGlobal->targets[texelId].resultTypeRef;
+			auto coordTypeSize = irContextGlobal->targets[coordTypeRef].componentCount;
+			auto texelTypeSize = irContextGlobal->targets[texelTypeRef].componentCount;
+			auto coordTypeBaseElementType = irContextGlobal->targets[irContextGlobal->targets[coordTypeRef].componentTypeRef].declType;
+			auto texelTypeBaseElementType = irContextGlobal->targets[irContextGlobal->targets[texelTypeRef].componentTypeRef].declType;
+
+			std::string coordAttr = "v" + std::to_string(coordTypeSize);
+			std::string texelAttr = "v" + std::to_string(texelTypeSize);
+			if(coordTypeBaseElementType == IFSP_IRTARGET_DECL_INT) {
+				coordAttr += "i32";
+			}
+			else {
+				ERROR_PREFIX;
+				printf("Unsupported coord type %d\n", coordTypeBaseElementType);
+				return;
+			}
+			if(texelTypeBaseElementType == IFSP_IRTARGET_DECL_FLOAT) {
+				texelAttr += "f32";
+			}
+			else {
+				ERROR_PREFIX;
+				printf("Unsupported coord type\n");
+				return;
+			}
+			std::string callFunctionName = "ifritShaderOps_Base_ImageWrite_" + coordAttr + "_" + texelAttr;
+			auto coordName = getVariableNamePrefix(&irContextGlobal->targets[coordId], irContextGlobal);
+			auto texelName = getVariableNamePrefix(&irContextGlobal->targets[texelId], irContextGlobal);
+			auto coordType = getTargetTypes(&irContextGlobal->targets[coordId], irContextGlobal);
+			auto texelType = getTargetTypes(&irContextGlobal->targets[texelId], irContextGlobal);
+			auto imageType = getTargetTypes(&irContextGlobal->targets[imageId], irContextGlobal);
+			auto imageName = getVariableNamePrefix(&irContextGlobal->targets[imageId], irContextGlobal);
+			irContextGlobal->generatedIR << "call void @" << callFunctionName << "(";
+			irContextGlobal->generatedIR << imageType << " " << imageName << ", ";
+			irContextGlobal->generatedIR << coordType << " " << coordName << ", " << texelType << " " << texelName << ")" << std::endl;
+		}
+
+		DEFINE_OP(spvOpTraceRay) {
+			if(pass == IFSP_VMA_PASS_FIRST) return;
+			auto accelId = params[0];
+			auto rayFlagsId = params[1];
+			auto cullMaskId = params[2];
+			auto sbtOffsetId = params[3];
+			auto sbtStrideId = params[4];
+			auto missIndexId = params[5];
+			auto rayOriginId = params[6];
+			auto rayTMinId = params[7];
+			auto rayDirectionId = params[8];
+			auto rayTMaxId = params[9];
+			auto payloadId = params[10];
+
+			auto accelType = getTargetTypes(&irContextGlobal->targets[accelId], irContextGlobal);
+			auto rayFlagsType = getTargetTypes(&irContextGlobal->targets[rayFlagsId], irContextGlobal);
+			auto cullMaskType = getTargetTypes(&irContextGlobal->targets[cullMaskId], irContextGlobal);
+			auto sbtOffsetType = getTargetTypes(&irContextGlobal->targets[sbtOffsetId], irContextGlobal);
+			auto sbtStrideType = getTargetTypes(&irContextGlobal->targets[sbtStrideId], irContextGlobal);
+			auto missIndexType = getTargetTypes(&irContextGlobal->targets[missIndexId], irContextGlobal);
+			auto rayOriginType = getTargetTypes(&irContextGlobal->targets[rayOriginId], irContextGlobal);
+			auto rayTMinType = getTargetTypes(&irContextGlobal->targets[rayTMinId], irContextGlobal);
+			auto rayDirectionType = getTargetTypes(&irContextGlobal->targets[rayDirectionId], irContextGlobal);
+			auto rayTMaxType = getTargetTypes(&irContextGlobal->targets[rayTMaxId], irContextGlobal);
+			auto payloadType = getTargetTypes(&irContextGlobal->targets[payloadId], irContextGlobal) + "*";
+
+			auto accelName = getVariableNamePrefix(&irContextGlobal->targets[accelId], irContextGlobal);
+			auto rayFlagsName = getVariableNamePrefix(&irContextGlobal->targets[rayFlagsId], irContextGlobal);
+			auto cullMaskName = getVariableNamePrefix(&irContextGlobal->targets[cullMaskId], irContextGlobal);
+			auto sbtOffsetName = getVariableNamePrefix(&irContextGlobal->targets[sbtOffsetId], irContextGlobal);
+			auto sbtStrideName = getVariableNamePrefix(&irContextGlobal->targets[sbtStrideId], irContextGlobal);
+			auto missIndexName = getVariableNamePrefix(&irContextGlobal->targets[missIndexId], irContextGlobal);
+			auto rayOriginName = getVariableNamePrefix(&irContextGlobal->targets[rayOriginId], irContextGlobal);
+			auto rayTMinName = getVariableNamePrefix(&irContextGlobal->targets[rayTMinId], irContextGlobal);
+			auto rayDirectionName = getVariableNamePrefix(&irContextGlobal->targets[rayDirectionId], irContextGlobal);
+			auto rayTMaxName = getVariableNamePrefix(&irContextGlobal->targets[rayTMaxId], irContextGlobal);
+			auto payloadName = getVariableNamePrefix(&irContextGlobal->targets[payloadId], irContextGlobal);
+
+			//Generate load ifsp_builtin_context_ptr to register
+			irContextGlobal->generatedIR << "%ifsp_context_" << instLine << " = load i8*, i8** @ifsp_builtin_context_ptr" << std::endl;
+
+			// Payload ptr cast
+			irContextGlobal->generatedIR << "%ifsp_payload_ptr_" << instLine << " = bitcast " << payloadType << " " << payloadName << " to i8*" << std::endl;
+			payloadName = "%ifsp_payload_ptr_" + std::to_string(instLine);
+			payloadType = "i8*";
+
+			std::string funcName = "ifritShaderOps_Raytracer_TraceRay";
+			irContextGlobal->generatedIR << "call void @" << funcName << "(";
+			irContextGlobal->generatedIR << rayOriginType << " " << rayOriginName << ", ";
+			irContextGlobal->generatedIR << accelType << " " << accelName << ", ";
+			irContextGlobal->generatedIR << rayFlagsType << " " << rayFlagsName << ", ";
+			irContextGlobal->generatedIR << cullMaskType << " " << cullMaskName << ", ";
+			irContextGlobal->generatedIR << sbtOffsetType << " " << sbtOffsetName << ", ";
+			irContextGlobal->generatedIR << sbtStrideType << " " << sbtStrideName << ", ";
+			irContextGlobal->generatedIR << missIndexType << " " << missIndexName << ", ";
+			irContextGlobal->generatedIR << rayTMinType << " " << rayTMinName << ", ";
+			irContextGlobal->generatedIR << rayDirectionType << " " << rayDirectionName << ", ";
+			irContextGlobal->generatedIR << rayTMaxType << " " << rayTMaxName << ", ";
+			irContextGlobal->generatedIR << payloadType << " " << payloadName << ", ";
+			irContextGlobal->generatedIR << "i8* %ifsp_context_" << instLine << ")" << std::endl;
+		}
+		
 
 	}
 #undef DEPRECATED_OP
@@ -1774,7 +2046,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		outMap[spv::OpTypeReserveId] = InstructionImpl::spvOpTypeReserveId;
 		outMap[spv::OpTypeQueue] = InstructionImpl::spvOpTypeQueue;
 		outMap[spv::OpTypePipe] = InstructionImpl::spvOpTypePipe;
-
+		
 		outMap[spv::OpConstantTrue] = InstructionImpl::spvOpConstantTrue;
 		outMap[spv::OpConstantFalse] = InstructionImpl::spvOpConstantFalse;
 		outMap[spv::OpConstant] = InstructionImpl::spvOpConstant;
@@ -1881,6 +2153,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		outMap[spv::OpSwitch] = InstructionImpl::spvOpSwitch;
 		outMap[spv::OpReturn] = InstructionImpl::spvOpReturn;
 		outMap[spv::OpReturnValue] = InstructionImpl::spvOpReturnValue;
+
+		//V2
+		outMap[spv::OpTypeAccelerationStructureKHR] = InstructionImpl::spvOpTypeAccelerationStructure;
+		outMap[spv::OpBitcast] = InstructionImpl::spvOpBitcast;
+		outMap[spv::OpImageWrite] = InstructionImpl::spvOpImageWrite;
+		outMap[spv::OpTraceRayKHR] = InstructionImpl::spvOpTraceRay;
 	}
 }
 
@@ -1900,6 +2178,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 				auto op = static_cast<spv::Op>(inst.opCode);
 				auto it = lookupTable.find(op);
 				if (it == lookupTable.end()) {
+					printf("[Line %d, Pass %d] ", i, pass);
 					printf("Unknown opcode %d\n", op);
 					continue;
 				}
@@ -1922,6 +2201,9 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		for (auto& x : outIr->shaderMaps.uniformVarSymbols) cleanUpSymbolPrefix(x);
 		cleanUpSymbolPrefix(outIr->shaderMaps.mainFuncSymbol);
 		cleanUpSymbolPrefix(outIr->shaderMaps.builtinPositionSymbol);
+		cleanUpSymbolPrefix(outIr->shaderMaps.builtinLaunchIdKHR);
+		cleanUpSymbolPrefix(outIr->shaderMaps.builtinLaunchSizeKHR);
+
 	}
 
 	void SpvVMInterpreter::exportLlvmIR(SpvVMIntermediateRepresentation* ir, std::string* outLlvmIR) {

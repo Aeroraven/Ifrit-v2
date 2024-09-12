@@ -5,6 +5,7 @@
 #include "engine/base/Renderer.h"
 #include "core/data/Image.h"
 #include "TrivialRaytracerContext.h"
+#include "engine/bufferman/BufferManager.h"
 
 namespace Ifrit::Engine::Raytracer {
 	class TrivialRaytracerWorker;
@@ -27,6 +28,8 @@ namespace Ifrit::Engine::Raytracer {
 		void resetWorkers();
 		void statusTransitionBarrier(TrivialRaytracerWorkerStatus waitOn, TrivialRaytracerWorkerStatus proceedTo);
 		int fetchUnresolvedTiles();
+		void updateUniformBuffer();
+
 	public:
 		friend class TrivialRaytracerWorker;
 		TrivialRaytracer();
@@ -37,6 +40,8 @@ namespace Ifrit::Engine::Raytracer {
 		void bindMissShader(MissShader* shader);
 		void bindClosestHitShader(CloseHitShader* shader);
 		void bindCallableShader(CallableShader* shader);
+		void bindUniformBuffer(int binding, int set, BufferManager::IfritBuffer pBuffer);
+
 		void traceRays(uint32_t width, uint32_t height, uint32_t depth);
 
 		void bindTestImage(Ifrit::Core::Data::ImageF32* image);

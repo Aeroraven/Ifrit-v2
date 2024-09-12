@@ -31,6 +31,8 @@ namespace Ifrit::Engine::Raytracer {
 		IFRIT_DUAL virtual ~RayGenShader() = default;
 		IFRIT_HOST virtual RayGenShader* getCudaClone() { return nullptr; };
 		IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() = 0;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) {}
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return{}; }
 	};
 
 	class IFRIT_APIDECL MissShader : public ShaderBase, public RaytracerShaderExecutionStack {

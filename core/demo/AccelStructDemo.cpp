@@ -11,6 +11,13 @@
 #include "presentation/backend/TerminalCharColorBackend.h"
 #include "engine/raytracer/RtShaders.h"
 #include "engine/raytracer/shaderops/RtShaderOps.h"
+#include "engine/shadervm/spirv/SpvVMReader.h"
+#include "engine/shadervm/spirv/SpvVMInterpreter.h"
+#include "engine/shadervm/spirv/SpvVMShader.h"
+#include "engine/comllvmrt/WrappedLLVMRuntime.h"
+using namespace Ifrit::Engine::BufferManager;
+using namespace Ifrit::Engine::ComLLVMRuntime;
+
 
 
 using namespace std;
@@ -43,8 +50,7 @@ namespace Ifrit::Demo::AccelStructDemo {
 			float ry = 0.25f * dy - 0.125f + 0.1f;
 			float rz = -1.0f;
 			Payload payload;
-			ifritShaderOps_Raytracer_TraceRay({}, 0, 0, 0, 0, 0,
-				{ rx,ry,rz }, 0.0f, { 0.0f,0.0f,1.0f }, 1.0f, &payload, sizeof(payload), context, 0
+			ifritShaderOps_Raytracer_TraceRay({ rx,ry,rz }, 0, 0, 0, 0, 0,0,0.0f,{ 0.0f,0.0f,1.0f }, 1.0f, &payload, context
 			);
 			image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y, payload.color.z, payload.color.w);
 		}
@@ -92,6 +98,8 @@ namespace Ifrit::Demo::AccelStructDemo {
 
 
 	int mainCpu() {
+		using namespace Ifrit::Engine::ShaderVM::Spirv;
+
 		WavefrontLoader loader;
 		std::vector<ifloat3> posRaw;
 		std::vector<ifloat3> normal;
@@ -128,13 +136,28 @@ namespace Ifrit::Demo::AccelStructDemo {
 		image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
 		raytracer->bindTestImage(image.get());
 
-		DemoRayGen raygen;
+		std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
+		bufferman->init();
+
+		auto imageptrv = image.get();
+		auto imageptr = bufferman->createBuffer({ sizeof(image.get()) });
+		bufferman->bufferData(imageptr,&imageptrv, 0, sizeof(image.get()));
+		
+		//DemoRayGen raygen;
+		SpvVMReader reader;
+		WrappedLLVMRuntimeBuilder builder;
+
+		auto rgenCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rgen.spv");
+		SpvRaygenShader raygen(builder, rgenCode);
+		//DemoRayGen raygen;
 		DemoClosetHit hit;
 		DemoMiss miss;
 
 		raytracer->bindClosestHitShader(&hit);
 		raytracer->bindRaygenShader(&raygen);
 		raytracer->bindMissShader(&miss);
+		raytracer->bindUniformBuffer(0, 1, imageptr);
+
 
 
 		GLFWWindowProvider windowProvider;
@@ -153,6 +176,28 @@ namespace Ifrit::Demo::AccelStructDemo {
 		 });
 
 
+		return 0;
+	}
+
+	int mainCpuSpirv() {
+		using namespace Ifrit::Engine::ShaderVM::Spirv;
+		SpvVMReader reader;
+		SpvVMContext spvContext;
+		reader.initializeContext(&spvContext);
+		SpvVMInterpreter interpreter;
+		SpvVMIntermediateRepresentation spvIR;
+		
+		auto fsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rgen.spv");
+		reader.parseByteCode(fsCode.data(), fsCode.size() / 4, &spvContext);
+		interpreter.parseRawContext(&spvContext, &spvIR);
+		std::string result;
+		interpreter.exportLlvmIR(&spvIR, &result);
+
+		WrappedLLVMRuntime llvmRuntime;
+		llvmRuntime.initLlvmBackend();
+		llvmRuntime.loadIR(result, "raygen");
+
+		auto symbol = llvmRuntime.lookupSymbol("ifspvm_func_1");
 		return 0;
 	}
 }

@@ -3,22 +3,20 @@
 #include "engine/base/RaytracerBase.h"
 extern "C" {
 	IFRIT_APIDECL_FORCED void ifritShaderOps_Raytracer_TraceRay(
-		ifritShaderOps_Raytracer_Struct_AccelerationStructure accelStruct,
+		ifritShaderOps_Raytracer_Vec3 rayOrigin,
+		void* accelStruct,
 		int rayFlag,
 		int cullMask,
 		int sbtOffset,
 		int sbtStride,
 		int missIndex,
-		ifritShaderOps_Raytracer_Vec3 rayOrigin,
 		float rayTmin,
 		ifritShaderOps_Raytracer_Vec3 rayDirection,
 		float rayTmax,
 		void* payload,
 
 		// contextual arguments
-		size_t payloadSize,
-		void* context,
-		int recurDepth
+		void* context
 	) {
 		using namespace Ifrit::Engine;
 		using namespace Ifrit::Engine::Raytracer;
@@ -31,6 +29,9 @@ extern "C" {
 		ray.r.y = rayDirection.y;
 		ray.r.z = rayDirection.z;
 		auto worker = reinterpret_cast<TrivialRaytracerWorker*>(context);
-		worker->tracingRecursiveProcess(ray, payload, payloadSize, worker->getTracingDepth() + 1);
+		//printf("Origin: %f %f %f\n", ray.o.x, ray.o.y, ray.o.z);
+		//printf("Direction: %f %f %f\n", ray.r.x, ray.r.y, ray.r.z);
+		//printf("RM: %f\n", rayTmax);
+		worker->tracingRecursiveProcess(ray, payload, worker->getTracingDepth() + 1);
 	}
 }

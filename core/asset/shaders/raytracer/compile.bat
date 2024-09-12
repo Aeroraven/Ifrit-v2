@@ -1,0 +1,2 @@
+dxc -spirv -T lib_6_3 rtdemo.rgen.hlsl -fspv-target-env=vulkan1.3 -HV 2021 -fspv-extension=SPV_KHR_ray_tracing -fspv-extension=SPV_KHR_multiview -fspv-extension=SPV_KHR_shader_draw_parameters -fspv-extension=SPV_EXT_descriptor_indexing -fspv-extension=SPV_KHR_ray_query -Fo rtdemo.rgen.spv
+pause

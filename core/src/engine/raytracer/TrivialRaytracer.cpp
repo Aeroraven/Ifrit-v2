@@ -55,6 +55,12 @@ namespace Ifrit::Engine::Raytracer {
 	void TrivialRaytracer::bindCallableShader(CallableShader* shader) {
 		context->callableShader = shader;
 	}
+	void TrivialRaytracer::bindUniformBuffer(int binding, int set, BufferManager::IfritBuffer pBuffer) {
+		auto p = pBuffer.manager.lock();
+		void* data;
+		p->mapBufferMemory(pBuffer, &data);
+		this->context->uniformMapping[{binding, set}] = data;
+	}
 	void TrivialRaytracer::traceRays(uint32_t width, uint32_t height, uint32_t depth) {
 		context->traceRegion = iint3(width, height, depth);
 		context->numTileX = (width + context->tileWidth - 1) / context->tileWidth;
@@ -62,6 +68,7 @@ namespace Ifrit::Engine::Raytracer {
 		context->numTileZ = (depth + context->tileDepth - 1) / context->tileDepth;
 		context->totalTiles = context->numTileX * context->numTileY * context->numTileZ;
 		unresolvedTiles = context->totalTiles;
+		updateUniformBuffer();
 		for (auto& worker : workers) {
 			worker->status.store(TrivialRaytracerWorkerStatus::TRACING);
 		}
@@ -69,6 +76,16 @@ namespace Ifrit::Engine::Raytracer {
 	}
 	int TrivialRaytracer::fetchUnresolvedTiles() {
 		return unresolvedTiles.fetch_sub(1) - 1;
+	}
+	void TrivialRaytracer::updateUniformBuffer(){
+		auto rgenUniforms = context->raygenShader->getUniformList();
+		for (int i = 0; i < context->numThreads; i++) {
+			for (const auto& x : rgenUniforms) {
+				if (context->uniformMapping.count(x)) {
+					context->perWorkerRaygen[i]->updateUniformData(x.first, x.second, context->uniformMapping[x]);
+				}
+			}
+		}
 	}
 	void TrivialRaytracer::resetWorkers() {
 		for (auto& worker : workers) {

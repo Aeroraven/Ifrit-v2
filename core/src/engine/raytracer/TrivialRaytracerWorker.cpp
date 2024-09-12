@@ -47,7 +47,7 @@ namespace Ifrit::Engine::Raytracer {
 			}
 		}
 	}
-	void TrivialRaytracerWorker::tracingRecursiveProcess(Ray ray, void* payload, size_t payloadSize, int depth){
+	void TrivialRaytracerWorker::tracingRecursiveProcess(Ray ray, void* payload, int depth){
 		using namespace Ifrit::Math;
 
 		if (depth >= context->maxDepth)return;

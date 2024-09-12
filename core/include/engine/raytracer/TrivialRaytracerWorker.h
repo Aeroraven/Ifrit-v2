@@ -27,7 +27,7 @@ namespace Ifrit::Engine::Raytracer {
 		void threadCreate();
 
 		void tracingProcess();
-		void tracingRecursiveProcess(Ray ray, void* payload, size_t payloadSize, int depth);
+		void tracingRecursiveProcess(Ray ray, void* payload, int depth);
 		
 		int getTracingDepth();
 	};
