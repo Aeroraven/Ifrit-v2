@@ -6,5 +6,5 @@ struct Payload
 [shader("miss")]
 void main(inout Payload p)
 {
-    p.hitv = float4(0.0,1.0,0.0,1.0);
+    p.hitv = float4(1.0,1.0,0.0,1.0);
 }

@@ -149,7 +149,7 @@ namespace Ifrit::Demo::AccelStructDemo {
 		raytracer->init();
 		raytracer->bindAccelerationStructure(&tlas);
 		
-		constexpr int DEMO_RESOLUTION = 1024;
+		constexpr int DEMO_RESOLUTION = 768;
 		image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
 		raytracer->bindTestImage(image.get());
 
@@ -166,12 +166,15 @@ namespace Ifrit::Demo::AccelStructDemo {
 
 		auto rgenCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rgen.spv");
 		auto rmissCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rmiss.spv");
+		auto rchitCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rchit.spv");
 
 		SpvRaygenShader raygen(builder, rgenCode);
 		SpvMissShader miss(builder, rmissCode);
+		SpvClosestHitShader hit(builder, rchitCode);
+		
 		//DemoRayGen raygen;
-		DemoClosetHit hit;
-		//DemoMiss miss;
+		//DemoClosetHit hit;
+		//DemoMiss miss;sz
 
 		raytracer->bindClosestHitShader(&hit);
 		raytracer->bindRaygenShader(&raygen);

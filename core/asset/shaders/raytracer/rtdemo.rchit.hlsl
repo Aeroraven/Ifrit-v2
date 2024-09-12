@@ -8,5 +8,5 @@ struct Payload{
 [shader("closesthit")]
 void main(inout Payload p, in Attributes at){    
     // Unpack Buffers
-    p.hitv = float4(1.0,0.0,0.0,1.0);
+    p.hitv = float4(0.0,1.0,0.0,1.0);
 }

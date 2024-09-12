@@ -254,6 +254,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		if (symbolTables.builtinContext)memcpy(symbolTables.builtinContext, &context, sizeof(void*));
 		auto shaderEntry = (void(*)())this->symbolTables.entry;
 		shaderEntry();
+
 		//Update payloads
 		const auto& stackTop = this->execStack.back();
 		if (symbolTables.incomingPayload) {
