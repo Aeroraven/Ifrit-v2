@@ -254,7 +254,7 @@ namespace Ifrit::Engine::TileRaster {
 		}
 	}
 	void TileRasterWorker::vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
-		status.store(TileRasterStage::VERTEX_SHADING, std::memory_order::memory_order_relaxed);
+		status.store(TileRasterStage::VERTEX_SHADING, std::memory_order::relaxed);
 		std::vector<VaryingStore*> outVaryings(context->varyingDescriptor->getVaryingCounts());
 		std::vector<const void*> inVertex(context->vertexBuffer->getAttributeCount());
 		auto vsEntry = context->threadSafeVS[workerId];
@@ -265,7 +265,7 @@ namespace Ifrit::Engine::TileRaster {
 			getVertexAttributes(j, inVertex);
 			vsEntry->execute(inVertex.data(), pos, outVaryings.data());
 		}
-		status.store(TileRasterStage::VERTEX_SHADING_SYNC, std::memory_order::memory_order_relaxed);
+		status.store(TileRasterStage::VERTEX_SHADING_SYNC, std::memory_order::relaxed);
 	}
 
 	void TileRasterWorker::geometryProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
@@ -301,7 +301,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 			genTris = gtri;
 		}
-		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC, std::memory_order::memory_order_relaxed);
+		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC, std::memory_order::relaxed);
 	}
 
 	void TileRasterWorker::rasterization(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
@@ -623,7 +623,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 		}
 
-		status.store(TileRasterStage::RASTERIZATION_SYNC, std::memory_order::memory_order_relaxed);
+		status.store(TileRasterStage::RASTERIZATION_SYNC, std::memory_order::relaxed);
 	}
 
 	void TileRasterWorker::sortOrderProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
@@ -651,7 +651,7 @@ namespace Ifrit::Engine::TileRaster {
 				};
 			std::sort(context->sortedCoverQueue[curTile].begin(), context->sortedCoverQueue[curTile].end(), sortCompareOp);
 		}
-		status.store(TileRasterStage::SORTING_SYNC, std::memory_order::memory_order_relaxed);
+		status.store(TileRasterStage::SORTING_SYNC, std::memory_order::relaxed);
 	}
 
 	void TileRasterWorker::fragmentProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
@@ -791,7 +791,7 @@ namespace Ifrit::Engine::TileRaster {
 #undef IF_DECLPS_ITERFUNC
 
 		}
-		status.store(TileRasterStage::FRAGMENT_SHADING_SYNC, std::memory_order::memory_order_relaxed);
+		status.store(TileRasterStage::FRAGMENT_SHADING_SYNC, std::memory_order::relaxed);
 	}
 
 	void TileRasterWorker::threadStart() {

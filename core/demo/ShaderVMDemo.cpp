@@ -23,7 +23,9 @@ using namespace std;
 using namespace Ifrit::Core::Data;
 using namespace Ifrit::Engine::TileRaster;
 using namespace Ifrit::Utility::Loader;
+#ifdef IFRIT_FEATURE_CUDA
 using namespace Ifrit::Engine::Math::ShaderOps;
+#endif
 using namespace Ifrit::Presentation::Window;
 using namespace Ifrit::Presentation::Backend;
 using namespace Ifrit::Math;

@@ -180,7 +180,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 							auto penaltyUnbalancedLeaf = ((lnc <= 1 && rnc > 2) || (rnc <= 1 && lnc > 2)) ? unbalancedLeafPenalty : 0.0f;
 							auto cost = lcost + rcost + penaltyUnbalancedLeaf;
 
-							if (cost < minCost && !isnan(lcost) && !isnan(rcost)) {
+							if (cost < minCost && !std::isnan(lcost) && !std::isnan(rcost)) {
 								minCost = cost;
 								bestAxis = axis;
 								bestPivot = midvp;
@@ -349,7 +349,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			vfloat3 e2 = v2 - v0;
 			vfloat3 p = cross(ray.r, e2);
 			float det = dot(e1, p);
-			if (det > -1e-8 && det < 1e-8) {
+			if (det > -1e-8f && det < 1e-8f) {
 				return proposal;
 			}
 			float invDet = 1 / det;

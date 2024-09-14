@@ -5,6 +5,8 @@ set(IFRIT_REQ_GLFW3_BASE "C:/Program Files (x86)/GLFW/")
 set(IFRIT_REQ_CUDA_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include")
 set(IFRIT_REQ_CUDACRT_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include/crt")
 
+set(IFRIT_COMPONENT_LLVM "../components/llvmexec/Ifrit-v2-Component-LLVMExec")
+
 set(IFRIT_ENABLE_CUDA False)
 set(IFRIT_ENABLE_SIMD_AVX True)
 set(IFRIT_ENABLE_OPTIMIZATION True)
@@ -86,10 +88,13 @@ file(GLOB SOURCE_STAGES_CUDA "./*.cu")
 include_directories(".")
 include_directories(include)
 include_directories(${IFRIT_REQ_GLFW3_BASE}/include)
+include_directories(${IFRIT_COMPONENT_LLVM}/include)
+
+set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_COMPONENT_LLVM}/build/Ifrit.Components.LLVMExec.a")
 
 foreach( SRC_FILE_NAME ${SOURCE_STAGES} )
     get_filename_component( SRC_FILE_NAME_SHORT ${SRC_FILE_NAME} NAME_WE )
     add_executable( ${SRC_FILE_NAME_SHORT} ${SRC_FILE_NAME} ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B} ${SOURCE_1C} ${SOURCE_3})
     set_property(TARGET ${SRC_FILE_NAME_SHORT} PROPERTY CUDA_ARCHITECTURES  75)
-    target_link_libraries( ${SRC_FILE_NAME_SHORT}  ${glfw3_LIB} )
+    target_link_libraries( ${SRC_FILE_NAME_SHORT}  ${glfw3_LIB}  )
 endforeach( SRC_FILE_NAME ${SOURCE_STAGES} )

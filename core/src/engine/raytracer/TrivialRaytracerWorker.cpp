@@ -20,7 +20,7 @@ namespace Ifrit::Engine::Raytracer {
 			}
 			else if (st == TrivialRaytracerWorkerStatus::TRACING) {
 				tracingProcess();
-				status.store(TrivialRaytracerWorkerStatus::TRACING_SYNC, std::memory_order::memory_order_relaxed);
+				status.store(TrivialRaytracerWorkerStatus::TRACING_SYNC, std::memory_order::relaxed);
 			}
 		}
 	}
