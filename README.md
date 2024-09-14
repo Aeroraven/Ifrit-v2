@@ -146,6 +146,8 @@ See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
 ## Setup / Run
 
+> Unexpected results observed in MinGW-compiled application
+
 See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
 
@@ -157,6 +159,14 @@ See  [Usage](./docs/docs.md) for more details.
 
 
 ## Ongoing Plan
+
+### Emergent Problem
+
+- [ ] MinGW: Unexpected ray tracer result
+
+
+
+### Long-term Plan
 
 - [ ] Tessellation
 - [x] Line Mode
@@ -174,7 +184,6 @@ See  [Usage](./docs/docs.md) for more details.
 - [x] Shader Binary
   - [ ] Matrix Operations
   - [ ] Optimization
-
 - [ ] Input Topology
 - [ ] Triangle Cluster & Cluster LOD
 - [ ] Known Issues
@@ -185,6 +194,8 @@ See  [Usage](./docs/docs.md) for more details.
   - [x] Issue: Artifacts in low resolution scenario 
   - [ ] Latency: Memory access pattern in MSAA
   - [ ] Latency: JIT slows down execution
+- [ ] Standardization
+  - [ ] C++: `-Wignored-attributes` warnings in SIMD class  
 
 
 
