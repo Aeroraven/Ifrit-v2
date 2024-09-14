@@ -198,6 +198,7 @@ namespace Ifrit::Demo::AccelStructDemo {
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 			backend.updateTexture(*image);
 			backend.draw();
+			//getProfileCnt();
 		 });
 
 

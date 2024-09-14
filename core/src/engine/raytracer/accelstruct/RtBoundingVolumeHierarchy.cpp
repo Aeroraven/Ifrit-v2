@@ -16,6 +16,7 @@ namespace Ifrit::Engine::Raytracer {
 namespace Ifrit::Engine::Raytracer::Impl {
 	static std::atomic<int> intersect = 0;
 	static std::atomic<int> validIntersect = 0;
+	static std::atomic<int> competeIntersect = 0;
 	static std::atomic<int> boxIntersect = 0;
 	static std::atomic<int> earlyReject = 0;
 
@@ -66,10 +67,10 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			this->buildBVHNode();
 		}
 
-		__forceinline float rayBoxIntersection(const RayInternal& ray, const BoundingBox& bbox) const {
+		inline float rayBoxIntersection(const RayInternal& ray, const BoundingBox& bbox) const {
 			using namespace Ifrit::Math;
-			auto t1 = (bbox.bmin - ray.o) * ray.invr;
-			auto t2 = (bbox.bmax - ray.o) * ray.invr;
+			auto t1 = fma(bbox.bmin, ray.invr, ray.neg_invr_o); //(bbox.bmin - ray.o) * ray.invr;
+			auto t2 = fma(bbox.bmax, ray.invr, ray.neg_invr_o); //(bbox.bmax - ray.o) * ray.invr;
 			auto v1 = min(t1, t2);
 			auto v2 = max(t1, t2);
 			float tmin = std::max(v1.x, std::max(v1.y, v1.z));
@@ -139,7 +140,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				else if (splitType == BST_SAH) {
 					auto diff = bbox.bmax - bbox.bmin;
 					constexpr float unbalancedLeafPenalty = 80.0f;
-					auto minCost = diff.x * diff.y * diff.z * 2.0 * node->elementSize + unbalancedLeafPenalty;
+					auto minCost = (node->elementSize == 2) ? 1e30: diff.x* diff.y* diff.z * 2.0 * node->elementSize + unbalancedLeafPenalty;
 
 					int baxis = 0;
 					if (diff.y > diff.x) baxis = 1;
@@ -154,16 +155,16 @@ namespace Ifrit::Engine::Raytracer::Impl {
 							BoundingBox bLeft, bRight;
 							// Bounding boxes
 							bLeft.bmax = vfloat3(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
-							bLeft.bmin = vfloat3(std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max());
-							bRight.bmax = vfloat3(-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max());
-							bRight.bmin = vfloat3(std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max());
+							bLeft.bmin = vfloat3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+							bRight.bmax = vfloat3(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+							bRight.bmin = vfloat3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
 
 							for (int j = start; j <= pivot; j++) {
 								auto idx = this->belonging[j];
 								bLeft.bmax = max(bLeft.bmax, this->bboxes[idx].bmax);
 								bLeft.bmin = min(bLeft.bmin, this->bboxes[idx].bmin);
 							}
-							for (int j = pivot+1; j < start + node->elementSize; j++) {
+							for (int j = pivot + 1; j < start + node->elementSize; j++) {
 								auto idx = this->belonging[j];
 								bRight.bmax = max(bRight.bmax, this->bboxes[idx].bmax);
 								bRight.bmin = min(bRight.bmin, this->bboxes[idx].bmin);
@@ -176,9 +177,9 @@ namespace Ifrit::Engine::Raytracer::Impl {
 							auto lnc = pivot - start + 1;
 							auto rcost = spRight * rnc;
 							auto lcost = spLeft * lnc;
-							auto penaltyUnbalancedLeaf = ((lnc<=1&&rnc>2) || (rnc<=1&&lnc>2)) ? unbalancedLeafPenalty : 0.0f;
+							auto penaltyUnbalancedLeaf = ((lnc <= 1 && rnc > 2) || (rnc <= 1 && lnc > 2)) ? unbalancedLeafPenalty : 0.0f;
 							auto cost = lcost + rcost + penaltyUnbalancedLeaf;
-							
+
 							if (cost < minCost && !isnan(lcost) && !isnan(rcost)) {
 								minCost = cost;
 								bestAxis = axis;
@@ -200,12 +201,14 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				node->left->elementSize = pivot - start + 1;
 				node->right->elementSize = node->elementSize - node->left->elementSize;
 
-				bool isUnbalancedLeaf = pivot > 0 && abs(node->left->elementSize - node->right->elementSize) > 5 && (node->left->elementSize <= 1 || node->right->elementSize <= 1);
+				bool isUnbalancedLeaf = pivot > 0 && abs(node->left->elementSize - node->right->elementSize) > 2 && (node->left->elementSize <= 1 || node->right->elementSize <= 1);
+				auto cA = (node->left->elementSize > 1 || node->right->elementSize > 1);
+
 				if (isUnbalancedLeaf) {
 					q.push({ node->left.get(),depth + 1,start });
 					q.push({ node->right.get(),depth + 1,pivot + 1 });
 				}
-				else if (pivot > 0 && (node->left->elementSize > 1 && node->right->elementSize > 1)) {
+				else if (pivot > 0 && cA) {
 					q.push({ node->left.get(),depth + 1,start });
 					q.push({ node->right.get(),depth + 1,pivot + 1 });
 				}
@@ -265,6 +268,10 @@ namespace Ifrit::Engine::Raytracer::Impl {
 
 				if (nLeft == nullptr || nRight == nullptr) {
 					for (int i = 0; i < nSize; i++) {
+						if constexpr (PROFILE_CNT && doRootBoxIgnore==true) {
+							if(i>=1) competeIntersect.fetch_add(1);
+							intersect.fetch_add(1);
+						}
 						int index = this->belonging[i + nStartPos];
 						auto dist = this->rayElementIntersection(ray, index,tmin,tmax);
 						if (dist.t > tmin && dist.t < minDist) {
@@ -296,6 +303,12 @@ namespace Ifrit::Engine::Raytracer::Impl {
 					}
 				}
 			}
+			if constexpr (PROFILE_CNT) {
+				if (prop.id != 0 && PROFILE_CNT && doRootBoxIgnore) {
+					validIntersect.fetch_add(1);
+				}
+			}
+
 			return prop;
 		}
 		
@@ -323,8 +336,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			return this->data.size() / 3;
 		}
 		inline virtual RayHit rayElementIntersection(const RayInternal& ray, int index , float tmin, float tmax) const override final {
-			if constexpr (PROFILE_CNT)
-				intersect.fetch_add(1);
+			//if constexpr (PROFILE_CNT)
+				//intersect.fetch_add(1);
 			using namespace Ifrit::Math;
 			RayHit proposal;
 			proposal.id = -1;
@@ -471,11 +484,14 @@ int getProfileCnt() {
 		int vv = Ifrit::Engine::Raytracer::Impl::validIntersect;
 		int bv = Ifrit::Engine::Raytracer::Impl::boxIntersect;
 		int er = Ifrit::Engine::Raytracer::Impl::earlyReject;
+		int cv = Ifrit::Engine::Raytracer::Impl::competeIntersect;
 		printf("Total Intersect:%d, Valid Intersect:%d , Overtest Rate:%f\n", v, vv, 1.0f * vv / v);
+		printf("Compete Intersect:%d \n", cv);
 		printf("Total Box Intersect:%d Box/Triangle Ratio: %f\n", bv, 1.0f * bv / v);
 		printf("Early Reject: %d\n\n", er);
 
 		Ifrit::Engine::Raytracer::Impl::intersect.store(0);
+		Ifrit::Engine::Raytracer::Impl::competeIntersect.store(0);
 		Ifrit::Engine::Raytracer::Impl::validIntersect.store(0);
 		Ifrit::Engine::Raytracer::Impl::boxIntersect.store(0);
 		Ifrit::Engine::Raytracer::Impl::earlyReject.store(0);

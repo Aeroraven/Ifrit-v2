@@ -141,6 +141,28 @@ namespace Ifrit::Math::SIMD {
 		SIMD_VECTOR_OPERATOR_2(*=, mul);
 		SIMD_VECTOR_OPERATOR_2(/=, div);
 
+		// Negate
+		inline SimdVector operator-() const {
+			SimdVector r;
+#ifdef IFRIT_FEATURE_SIMD
+			if constexpr (std::is_same_v<S, __m128>) {
+				r.dataf = _mm_sub_ps(_mm_setzero_ps(), dataf);
+			}
+			else if constexpr (std::is_same_v<S, __m128i>) {
+				r.dataf = _mm_sub_epi32(_mm_setzero_si128(), dataf);
+			}
+			else {
+				static_assert(false, "Unsupported SIMD type");
+			}
+#else
+			if constexpr (V >= 4) r.w = -w;
+			if constexpr (V >= 3) r.z = -z;
+			if constexpr (V >= 2) r.y = -y;
+			r.x = -x;
+#endif
+			return r;
+		}
+
 		inline SimdVector& cross_(const SimdVector& v) {
 #ifdef IFRIT_FEATURE_SIMD
 			if constexpr (std::is_same_v<S, __m128>) {
