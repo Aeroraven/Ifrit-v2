@@ -1,13 +1,17 @@
 #pragma once
 #include "math/VectorOps.h"
+#include "math/simd/SimdVectors.h"
 
 namespace Ifrit::Engine {
 	struct Ray {
-		ifloat3 o, r;
+		Ifrit::Math::SIMD::vfloat3 o;
+		Ifrit::Math::SIMD::vfloat3 r;
 	};
 
 	struct RayInternal {
-		ifloat3 o, r, invr;
+		Ifrit::Math::SIMD::vfloat3 o;
+		Ifrit::Math::SIMD::vfloat3 r;
+		Ifrit::Math::SIMD::vfloat3 invr;
 	};
 
 	struct RayHit {

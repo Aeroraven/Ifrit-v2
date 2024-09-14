@@ -15,9 +15,11 @@
 #include "engine/shadervm/spirv/SpvVMInterpreter.h"
 #include "engine/shadervm/spirv/SpvVMShader.h"
 #include "engine/comllvmrt/WrappedLLVMRuntime.h"
+#include "math/simd/SimdVectors.h"
+
 using namespace Ifrit::Engine::BufferManager;
 using namespace Ifrit::Engine::ComLLVMRuntime;
-
+using namespace Ifrit::Math::SIMD;
 
 
 using namespace std;
@@ -149,7 +151,7 @@ namespace Ifrit::Demo::AccelStructDemo {
 		raytracer->init();
 		raytracer->bindAccelerationStructure(&tlas);
 		
-		constexpr int DEMO_RESOLUTION = 768;
+		constexpr int DEMO_RESOLUTION = 1024;
 		image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
 		raytracer->bindTestImage(image.get());
 
@@ -203,24 +205,54 @@ namespace Ifrit::Demo::AccelStructDemo {
 	}
 
 	int mainCpuSpirv() {
-		using namespace Ifrit::Engine::ShaderVM::Spirv;
-		SpvVMReader reader;
-		SpvVMContext spvContext;
-		reader.initializeContext(&spvContext);
-		SpvVMInterpreter interpreter;
-		SpvVMIntermediateRepresentation spvIR;
+		while (true) {
+			float ps;
+			cin >> ps;
+			auto stTime2 = std::chrono::high_resolution_clock::now();
+			auto src2 = ifloat3(0.0f, 0.0f, 0.0f);
+			auto a2 = ifloat3(1.0f, ps, 1.0f);
+			auto b2 = ifloat3(ps, 2.0f, 1.0f);
+			auto c2 = ifloat3(1.0, 1.0, 1.0f);
+			auto d2 = ifloat3(1.0, 1.0, 1.0f);
+			for (long long i = 0; i < 8000000000; i++) {
+				if (i % 2 == 0) {
+					src2 += cross(a2, b2) * c2 + d2;
+				}
+				else {
+					src2 -= cross(b2, a2) * c2 + d2;
+				}
+
+			}
+			auto edTime2 = std::chrono::high_resolution_clock::now();
+			std::cout << "Normal Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count() << std::endl;
+			auto normalTime = std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count();
+			printf("%f %f %f\n", src2.x, src2.y, src2.z);
+
+
+			auto stTime = std::chrono::high_resolution_clock::now();
+			auto src = SimdVector<float, __m128, 3>(0.0f, 0.0f, 0.0f);
+			auto a = SimdVector<float, __m128, 3>(1.0f, ps, 1.0f);
+			auto b = SimdVector<float, __m128, 3>(ps, 2.0f, 1.0f);
+			auto c = SimdVector<float, __m128, 3>(1.0, 1.0, 1.0f);
+			auto d = SimdVector<float, __m128, 3>(1.0, 1.0, 1.0f);
+			for (long long i = 0; i < 8000000000; i++) {
+				if (i % 2 == 0) {
+					src += fma(cross(a, b), c, d);
+				}
+				else {
+					src -= fma(cross(b, a), c, d);
+				}
+
+			}
+			auto edTime = std::chrono::high_resolution_clock::now();
+			std::cout << "SIMD Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(edTime - stTime).count() << std::endl;
+			auto simdTime = std::chrono::duration_cast<std::chrono::milliseconds>(edTime - stTime).count();
+			printf("%f %f %f\n", src.x, src.y, src.z);
+
+			printf("Speedup: %f\n", (float)normalTime / (float)simdTime);
+		}
 		
-		auto fsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rgen.spv");
-		reader.parseByteCode(fsCode.data(), fsCode.size() / 4, &spvContext);
-		interpreter.parseRawContext(&spvContext, &spvIR);
-		std::string result;
-		interpreter.exportLlvmIR(&spvIR, &result);
 
-		WrappedLLVMRuntime llvmRuntime;
-		llvmRuntime.initLlvmBackend();
-		llvmRuntime.loadIR(result, "raygen");
-
-		auto symbol = llvmRuntime.lookupSymbol("ifspvm_func_1");
 		return 0;
 	}
 }

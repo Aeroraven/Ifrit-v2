@@ -71,7 +71,7 @@ struct CoreVec4Shared {
 
 template<class T>
 struct CoreMat4 {
-	 T data[4][4];
+	T data[4][4];
 	IFRIT_DUAL const T* operator[](int i) const {
 		return data[i];
 	}

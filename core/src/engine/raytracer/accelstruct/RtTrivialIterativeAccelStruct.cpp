@@ -1,16 +1,23 @@
 #include "engine/raytracer/accelstruct/RtTrivialIterativeAccelStruct.h"
 #include "math/VectorOps.h"
+#include "math/simd/SimdVectors.h"
+using namespace Ifrit::Math::SIMD;
 
 namespace Ifrit::Engine::Raytracer {
 
 	namespace Impl {
 		class TrivialBottomLevelASImpl : public BufferredAccelerationStructure<ifloat3> {
 		private:
-			const std::vector<ifloat3>* data;
+			const std::vector<ifloat3>* rawData;
+			std::vector<vfloat3> data;
 
 		public:
 			virtual void bufferData(const std::vector<ifloat3>& vecData) override {
-				this->data = &vecData;
+				this->rawData = &vecData;
+				data = std::vector<vfloat3>(vecData.size());
+				for(int i = 0; i < vecData.size(); i++){
+					data[i] = vfloat3(vecData[i].x, vecData[i].y, vecData[i].z);
+				}
 			}
 			virtual RayHit queryIntersection(const RayInternal& ray , float tmin, float tmax) const override {
 				const auto cnt = size();
@@ -27,17 +34,17 @@ namespace Ifrit::Engine::Raytracer {
 				return prop;
 			}
 			virtual int size() const {
-				return this->data->size() / 3;
+				return this->data.size() / 3;
 			}
 			virtual RayHit rayElementIntersection(const RayInternal& ray, int index) const {
 				using namespace Ifrit::Math;
 				RayHit proposal;
-				ifloat3 v0 = (*this->data)[index * 3];
-				ifloat3 v1 = (*this->data)[index * 3 + 1];
-				ifloat3 v2 = (*this->data)[index * 3 + 2];
-				ifloat3 e1 = v1 - v0;
-				ifloat3 e2 = v2 - v0;
-				ifloat3 p = cross(ray.r, e2);
+				auto v0 = (this->data)[index * 3];
+				auto v1 = (this->data)[index * 3 + 1];
+				auto v2 = (this->data)[index * 3 + 2];
+				auto e1 = v1 - v0;
+				auto e2 = v2 - v0;
+				auto p = cross(ray.r, e2);
 				float det = dot(e1, p);
 				if (det > -1e-6 && det < 1e-6) {
 					//printf("Reject Ray EL: %f %f %f | Det=%f \n", ray.o.x, ray.o.y, ray.o.z, det);
@@ -45,14 +52,14 @@ namespace Ifrit::Engine::Raytracer {
 					return proposal;
 				}
 				float invDet = 1 / det;
-				ifloat3 t = ray.o - v0;
+				auto t = ray.o - v0;
 				float u = dot(t, p) * invDet;
 				if (u < 0 || u > 1) {
 					//printf("Reject Ray U: %f %f %f | U=%f InvDet=%f \n", ray.o.x, ray.o.y, ray.o.z, u, invDet);
 					proposal.id = -1;
 					return proposal;
 				}
-				ifloat3 q = cross(t, e1);
+				auto q = cross(t, e1);
 				float v = dot(ray.r, q) * invDet;
 				if (v < 0 || u + v > 1) {
 					//printf("Reject Ray V: %f %f %f | U=%f, V=%f \n", ray.o.x, ray.o.y, ray.o.z, u,v);

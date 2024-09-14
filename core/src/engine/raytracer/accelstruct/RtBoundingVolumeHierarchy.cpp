@@ -1,9 +1,17 @@
 #include "engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
+#include "math/simd/SimdVectors.h"
 #include "math/VectorOps.h"
 #include <queue>
 #include <malloc.h>
 
 constexpr bool PROFILE_CNT = false;
+using namespace Ifrit::Math::SIMD;
+
+namespace Ifrit::Engine::Raytracer {
+	struct BoundingBox {
+		Ifrit::Math::SIMD::vfloat3 bmin, bmax;
+	};
+}
 
 namespace Ifrit::Engine::Raytracer::Impl {
 	static std::atomic<int> intersect = 0;
@@ -26,7 +34,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 	protected:
 		std::unique_ptr<BVHNode> root = nullptr;
 		std::vector<BoundingBox> bboxes;
-		std::vector<ifloat3> centers;
+		std::vector<vfloat3> centers;
 		std::vector<int> belonging;
 		std::vector<int> indices;
 		int curSize = 0;
@@ -39,7 +47,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		virtual int size() const = 0;
 		virtual RayHit rayElementIntersection(const RayInternal& ray, int index , float tmin, float tmax) const = 0;
 		virtual BoundingBox getElementBbox(int index) const = 0;
-		virtual ifloat3 getElementCenter(int index) const = 0;
+		virtual vfloat3 getElementCenter(int index) const = 0;
 		
 		void buildBVH() {
 			this->root = std::make_unique<BVHNode>();
@@ -47,7 +55,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 
 			this->bboxes = std::vector<BoundingBox>(this->size());
 			this->indices = std::vector<int>(this->size());
-			this->centers = std::vector<ifloat3>(this->size());
+			this->centers = std::vector<vfloat3>(this->size());
 			this->belonging = std::vector<int>(this->size());
 			for (int i = 0; i < this->size(); i++) {
 				this->bboxes[i] = this->getElementBbox(i);
@@ -65,7 +73,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			auto v1 = min(t1, t2);
 			auto v2 = max(t1, t2);
 			float tmin = std::max(v1.x, std::max(v1.y, v1.z));
-			float tmax = std::min(v2.x, std::min(v2.y, v2.z));;
+			float tmax = std::min(v2.x, std::min(v2.y, v2.z));
 			if (tmin > tmax) return -1;
 			return tmin;
 		}
@@ -95,11 +103,11 @@ namespace Ifrit::Engine::Raytracer::Impl {
 
 			while (!q.empty()) {
 				profNodes++;
-				ifloat3 largestBBox = ifloat3{ -std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max() };
+				auto largestBBox = vfloat3(-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max());
 				auto& [node,depth,start] = q.front();
 				BoundingBox& bbox = node->bbox;
-				bbox.bmax = ifloat3{ -std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max() };
-				bbox.bmin = ifloat3{ std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max() };
+				bbox.bmax = vfloat3(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+				bbox.bmin = vfloat3(std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max() );
 
 				for (int i = 0; i < node->elementSize; i++) {
 					bbox.bmax = max(bbox.bmax, this->bboxes[this->belonging[start + i]].bmax);
@@ -120,8 +128,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				int bestAxis = -1;
 
 				if (splitType == BST_TRIVIAL) {
-					ifloat3 diff = bbox.bmax - bbox.bmin;
-					ifloat3 midv = (bbox.bmax + bbox.bmin) * 0.5f;
+					auto diff = bbox.bmax - bbox.bmin;
+					auto midv = (bbox.bmax + bbox.bmin) * 0.5f;
 					int axis = 0;
 					if (diff.y > diff.x) axis = 1;
 					if (diff.z > diff.y && diff.z > diff.x) axis = 2;
@@ -129,7 +137,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 					pivot = this->findSplit(start, start + node->elementSize - 1, axis, midvp);
 				}
 				else if (splitType == BST_SAH) {
-					ifloat3 diff = bbox.bmax - bbox.bmin;
+					auto diff = bbox.bmax - bbox.bmin;
 					constexpr float unbalancedLeafPenalty = 80.0f;
 					auto minCost = diff.x * diff.y * diff.z * 2.0 * node->elementSize + unbalancedLeafPenalty;
 
@@ -145,10 +153,10 @@ namespace Ifrit::Engine::Raytracer::Impl {
 
 							BoundingBox bLeft, bRight;
 							// Bounding boxes
-							bLeft.bmax = ifloat3{ -std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max() };
-							bLeft.bmin = ifloat3{ std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max() };
-							bRight.bmax = ifloat3{ -std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max() };
-							bRight.bmin = ifloat3{ std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max() };
+							bLeft.bmax = vfloat3(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+							bLeft.bmin = vfloat3(std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max());
+							bRight.bmax = vfloat3(-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max(),-std::numeric_limits<float>::max());
+							bRight.bmin = vfloat3(std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max());
 
 							for (int j = start; j <= pivot; j++) {
 								auto idx = this->belonging[j];
@@ -220,7 +228,6 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		RayHit queryRayIntersection(const RayInternal& ray, float tmin, float tmax) const IFRIT_AP_NOTHROW {
 			using namespace Ifrit::Math;
 			RayHit prop;
-			ifloat3 invd = ifloat3{ 1.0f,1.0f,1.0f } / ray.r;
 			prop.id = -1;
 			prop.t = std::numeric_limits<float>::max();
 			const auto nodeRoot = this->root.get();
@@ -297,18 +304,23 @@ namespace Ifrit::Engine::Raytracer::Impl {
 
 	class BoundingVolumeHierarchyBottomLevelASImpl : public BoundingVolumeHierarchyBase, public BufferredAccelerationStructure<ifloat3> {
 	private:
-		const std::vector<ifloat3>* data;
+		const std::vector<ifloat3>* rawData;
+		std::vector<vfloat3> data;
 
 	public:
 		friend class BoundingVolumeHierarchyTopLevelASImpl;
 		virtual void bufferData(const std::vector<ifloat3>& vecData) override {
-			this->data = &vecData;
+			this->rawData = &vecData;
+			this->data = std::vector<vfloat3>(vecData.size());
+			for (int i = 0; i < vecData.size(); i++) {
+				this->data[i] = vfloat3(vecData[i].x, vecData[i].y, vecData[i].z);
+			}
 		}
 		virtual RayHit queryIntersection(const RayInternal& ray, float tmin, float tmax) const override {
 			return this->queryRayIntersection<false>(ray,tmin,tmax);
 		}
 		virtual int size() const override {
-			return this->data->size() / 3;
+			return this->data.size() / 3;
 		}
 		inline virtual RayHit rayElementIntersection(const RayInternal& ray, int index , float tmin, float tmax) const override final {
 			if constexpr (PROFILE_CNT)
@@ -317,23 +329,23 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			RayHit proposal;
 			proposal.id = -1;
 			proposal.t = std::numeric_limits<float>::max();
-			ifloat3 v0 = (*this->data)[index * 3];
-			ifloat3 v1 = (*this->data)[index * 3 + 1];
-			ifloat3 v2 = (*this->data)[index * 3 + 2];
-			ifloat3 e1 = v1 - v0;
-			ifloat3 e2 = v2 - v0;
-			ifloat3 p = cross(ray.r, e2);
+			vfloat3 v0 = (this->data)[index * 3];
+			vfloat3 v1 = (this->data)[index * 3 + 1];
+			vfloat3 v2 = (this->data)[index * 3 + 2];
+			vfloat3 e1 = v1 - v0;
+			vfloat3 e2 = v2 - v0;
+			vfloat3 p = cross(ray.r, e2);
 			float det = dot(e1, p);
 			if (det > -1e-8 && det < 1e-8) {
 				return proposal;
 			}
 			float invDet = 1 / det;
-			ifloat3 t = ray.o - v0;
+			vfloat3 t = ray.o - v0;
 			float u = dot(t, p) * invDet;
 			if (u < 0 || u > 1) {
 				return proposal;
 			}
-			ifloat3 q = cross(t, e1);
+			vfloat3 q = cross(t, e1);
 			float v = dot(ray.r, q) * invDet;
 			if (v < 0 || u + v > 1) {
 				return proposal;
@@ -346,9 +358,9 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		}
 		virtual BoundingBox getElementBbox(int index) const override final {
 			using namespace Ifrit::Math;
-			ifloat3 v0 = (*this->data)[index * 3];
-			ifloat3 v1 = (*this->data)[index * 3 + 1];
-			ifloat3 v2 = (*this->data)[index * 3 + 2];
+			vfloat3 v0 = (this->data)[index * 3];
+			vfloat3 v1 = (this->data)[index * 3 + 1];
+			vfloat3 v2 = (this->data)[index * 3 + 2];
 			BoundingBox bbox;
 			bbox.bmin = min(min(v0, v1), v2);
 			bbox.bmax = max(max(v0, v1), v2);
@@ -357,11 +369,11 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		virtual BoundingBox getRootBbox() {
 			return this->root->bbox;
 		}
-		virtual ifloat3 getElementCenter(int index) const override final {
+		virtual vfloat3 getElementCenter(int index) const override final {
 			using namespace Ifrit::Math;
-			ifloat3 v0 = (*this->data)[index * 3];
-			ifloat3 v1 = (*this->data)[index * 3 + 1];
-			ifloat3 v2 = (*this->data)[index * 3 + 2];
+			vfloat3 v0 = (this->data)[index * 3];
+			vfloat3 v1 = (this->data)[index * 3 + 1];
+			vfloat3 v2 = (this->data)[index * 3 + 2];
 			BoundingBox bbox;
 			bbox.bmin = min(min(v0, v1), v2);
 			bbox.bmax = max(max(v0, v1), v2);
@@ -397,7 +409,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 			auto x = (*this->data)[index]->impl->getRootBbox();
 			return x;
 		}
-		virtual ifloat3 getElementCenter(int index) const override {
+		virtual vfloat3 getElementCenter(int index) const override {
 			using namespace Ifrit::Math;
 			auto bbox = (*this->data)[index]->impl->getRootBbox();
 			auto cx = (bbox.bmax + bbox.bmin) * 0.5f;

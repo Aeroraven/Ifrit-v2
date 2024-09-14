@@ -5,9 +5,7 @@
 int getProfileCnt();
 
 namespace Ifrit::Engine::Raytracer {
-	struct BoundingBox {
-		ifloat3 bmin, bmax;
-	};
+
 	namespace Impl {
 		class BoundingVolumeHierarchyBottomLevelASImpl;
 		class BoundingVolumeHierarchyTopLevelASImpl;

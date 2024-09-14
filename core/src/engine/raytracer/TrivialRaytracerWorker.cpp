@@ -1,5 +1,8 @@
 #include "engine/raytracer/TrivialRaytracerWorker.h"
 #include "math/VectorOps.h"
+#include "math/simd/SimdVectors.h"
+using namespace Ifrit::Math::SIMD;
+
 namespace Ifrit::Engine::Raytracer {
 	TrivialRaytracerWorker::TrivialRaytracerWorker(std::shared_ptr<TrivialRaytracer> renderer, std::shared_ptr<TrivialRaytracerContext> context, int workerId) {
 		this->renderer = renderer.get();
@@ -54,7 +57,7 @@ namespace Ifrit::Engine::Raytracer {
 		RayInternal intray;
 		intray.o = ray.o;
 		intray.r = ray.r;
-		intray.invr = ifloat3{ 1.0f,1.0f,1.0f } / intray.r;
+		intray.invr = vfloat3(1.0f) / intray.r;
 		auto collresult = context->accelerationStructure->queryIntersection(intray, tmin,tmax);
 		recurDepth++;
 		if (collresult.id == -1) {

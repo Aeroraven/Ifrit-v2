@@ -1,6 +1,8 @@
 #include "engine/raytracer/shaderops/RtShaderOps.h"
 #include "engine/raytracer/TrivialRaytracerWorker.h"
 #include "engine/base/RaytracerBase.h"
+#include "math/simd/SimdVectors.h"
+using namespace Ifrit::Math::SIMD;
 extern "C" {
 	IFRIT_APIDECL_FORCED void ifritShaderOps_Raytracer_TraceRay(
 		ifritShaderOps_Raytracer_Vec3 rayOrigin,
@@ -22,16 +24,9 @@ extern "C" {
 		using namespace Ifrit::Engine::Raytracer;
 		
 		Ray ray;
-		ray.o.x = rayOrigin.x;
-		ray.o.y = rayOrigin.y;
-		ray.o.z = rayOrigin.z;
-		ray.r.x = rayDirection.x;
-		ray.r.y = rayDirection.y;
-		ray.r.z = rayDirection.z;
+		ray.o = vfloat3(rayOrigin.x, rayOrigin.y, rayOrigin.z);
+		ray.r = vfloat3(rayDirection.x, rayDirection.y, rayDirection.z);
 		auto worker = reinterpret_cast<TrivialRaytracerWorker*>(context);
-		//printf("Origin: %f %f %f\n", ray.o.x, ray.o.y, ray.o.z);
-		//printf("Direction: %f %f %f\n", ray.r.x, ray.r.y, ray.r.z);
-		//printf("RM: %f %f\n", rayTmin, rayTmax);
 		worker->tracingRecursiveProcess(ray, payload, worker->getTracingDepth() + 1, rayTmin, rayTmax);
 	}
 }

@@ -240,6 +240,4 @@ namespace Ifrit::Math {
 	}
 
 
-
-
 }
