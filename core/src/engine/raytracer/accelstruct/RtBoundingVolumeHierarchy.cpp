@@ -69,8 +69,8 @@ namespace Ifrit::Engine::Raytracer::Impl {
 
 		inline float rayBoxIntersection(const RayInternal& ray, const BoundingBox& bbox) const {
 			using namespace Ifrit::Math;
-			auto t1 = fma(bbox.bmin, ray.invr, ray.neg_invr_o); //(bbox.bmin - ray.o) * ray.invr;
-			auto t2 = fma(bbox.bmax, ray.invr, ray.neg_invr_o); //(bbox.bmax - ray.o) * ray.invr;
+			auto t1 = (bbox.bmin - ray.o) * ray.invr;
+			auto t2 = (bbox.bmax - ray.o) * ray.invr;
 			auto v1 = min(t1, t2);
 			auto v2 = max(t1, t2);
 			float tmin = std::max(v1.x, std::max(v1.y, v1.z));
@@ -257,6 +257,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 				auto p = q[--qPos];
 				auto& [node,cmindist] = p;
 				if (cmindist >= minDist) {
+					
 					continue;
 				}
 				float leftIntersect = -1, rightIntersect = -1;

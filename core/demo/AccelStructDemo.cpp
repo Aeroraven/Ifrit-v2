@@ -52,7 +52,7 @@ namespace Ifrit::Demo::AccelStructDemo {
 			float ry = 0.25f * dy - 0.125f + 0.1f;
 			float rz = -1.0f;
 			Payload payload;
-			ifritShaderOps_Raytracer_TraceRay({ rx,ry,rz }, 0, 0, 0, 0, 0,0,0.0f,{ 0.0f,0.0f,1.0f }, 1.0f, &payload, context
+			ifritShaderOps_Raytracer_TraceRay({ rx,ry,rz }, 0, 0, 0, 0, 0,0,0.001f,{ 0.0f,0.0f,1.0f }, 9.0f, &payload, context
 			);
 			image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y, payload.color.z, payload.color.w);
 		}
@@ -176,14 +176,12 @@ namespace Ifrit::Demo::AccelStructDemo {
 		
 		//DemoRayGen raygen;
 		//DemoClosetHit hit;
-		//DemoMiss miss;sz
+		//DemoMiss miss;
 
 		raytracer->bindClosestHitShader(&hit);
 		raytracer->bindRaygenShader(&raygen);
 		raytracer->bindMissShader(&miss);
 		raytracer->bindUniformBuffer(0, 1, imageptr);
-
-
 
 		GLFWWindowProvider windowProvider;
 		windowProvider.setup(1920, 1080);
@@ -191,6 +189,8 @@ namespace Ifrit::Demo::AccelStructDemo {
 
 		OpenGLBackend backend;
 		backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
+
+		ifritLog1("Start");
 		windowProvider.loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 			raytracer->traceRays(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);

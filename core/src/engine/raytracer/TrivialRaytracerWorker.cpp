@@ -60,6 +60,7 @@ namespace Ifrit::Engine::Raytracer {
 		intray.invr = vfloat3(1.0f) / intray.r;
 		intray.neg_invr_o = -(intray.invr * intray.o);
 		auto collresult = context->accelerationStructure->queryIntersection(intray, tmin,tmax);
+		
 		recurDepth++;
 		if (collresult.id == -1) {
 			if (context->missShader) {
@@ -72,6 +73,7 @@ namespace Ifrit::Engine::Raytracer {
 			context->perWorkerRayhit[workerId]->pushStack(ray, collresult, payload);
 			context->perWorkerRayhit[workerId]->execute(collresult, ray, this);
 			context->perWorkerRayhit[workerId]->popStack();
+
 		}
 		recurDepth--;
 	}

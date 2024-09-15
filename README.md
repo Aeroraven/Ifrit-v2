@@ -38,10 +38,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 | Feature                                     | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | ------------------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
-| 🚀 **Performance**                           |                                                              |                 |               |
-| SIMD Instructions / SIMT                    | 🟥                                                            | ✅               | ✅             |
-| Overlapped Memory Transfer                  | 🟥                                                            | 🟥               | ✅             |
-| Dynamic Tile List                           | 🟥                                                            | ✅               | ✅             |
+|                                             |                                                              |                 |               |
 | 🔗 **Integration (Wrapper)**                 |                                                              |                 |               |
 | C++ DLL                                     | 🟥                                                            | 🟦               | 🟥             |
 | .NET Library (`C#`)                         | 🟥                                                            | 🟦               | 🟥             |
@@ -49,12 +46,21 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | In-Application Class                        | ✅                                                            | ✅               | ✅             |
 | SPIR-V Binary / HLSL                        | 🟥                                                            | 🟦 OrcJIT (2)    | 🟥             |
 | SPIR-V Binary / GLSL                        | 🟥                                                            | 🟥               | 🟥             |
+| 🚀 **Ray-tracer / Performance**              |                                                              |                 |               |
+| SIMD Instructions / SIMT                    | 🟥                                                            | ✅               | 🟥             |
+| Acceleration Structure (BVH)                | 🟥                                                            | ✅               | 🟥             |
+| Lock-free Synchronization                   | 🟥                                                            | ✅               | 🟥             |
 | 🔦 **Ray-tracer / Pipeline**                 |                                                              |                 |               |
 | Acceleration Structure Traversal            | 🟥                                                            | 🟦               | 🟥             |
 | Surface Area Heuristic                      | 🟥                                                            | ✅               | 🟥             |
 | Programmable Ray Generation Shader          | 🟥                                                            | ✅               | 🟥             |
 | Programmable Closest Hit Shader             | 🟥                                                            | ✅               | 🟥             |
 | Programmable Miss Shader                    | 🟥                                                            | ✅               | 🟥             |
+| 🚀 **Rasterization / Performance**           |                                                              |                 |               |
+| SIMD Instructions / SIMT                    | 🟥                                                            | ✅               | ✅             |
+| Overlapped Memory Transfer                  | 🟥                                                            | 🟥               | ✅             |
+| Dynamic Tile List                           | 🟥                                                            | ✅               | ✅             |
+| Lock-free Synchronization                   | 🟥                                                            | ✅               | ⬜             |
 | 💡 **Rasterization / Basic**                 |                                                              |                 |               |
 | Rendering Order                             | ✅                                                            | ✅               | ✅             |
 | 💡 **Rasterization / Pipeline**              |                                                              |                 |               |
