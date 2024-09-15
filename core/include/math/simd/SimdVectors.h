@@ -19,7 +19,13 @@ namespace Ifrit::Math::SIMD {
 			S dataf;
 		};
 		inline SimdVector() = default;
-		inline SimdVector(const SimdVector& v) = default;
+		inline SimdVector(const SimdVector& v) {
+			dataf = v.dataf;
+		}
+		inline SimdVector& operator=(const SimdVector& v) {
+			dataf = v.dataf;
+			return *this;
+		}
 
 		inline SimdVector(S data) {
 			dataf = data;
@@ -206,16 +212,24 @@ namespace Ifrit::Math::SIMD {
 	};
 
 	// Crosss
+#ifdef IFRIT_FEATURE_SIMD
+	inline static __m128 cross_product(__m128 const& vec0, __m128 const& vec1) {
+		//From: https://geometrian.com/programming/tutorials/cross-product/index.php
+		__m128 tmp0 = _mm_shuffle_ps(vec0, vec0, _MM_SHUFFLE(3, 0, 2, 1));
+		__m128 tmp1 = _mm_shuffle_ps(vec1, vec1, _MM_SHUFFLE(3, 1, 0, 2));
+		__m128 tmp2 = _mm_mul_ps(tmp0, vec1);
+		__m128 tmp4 = _mm_shuffle_ps(tmp2, tmp2, _MM_SHUFFLE(3, 0, 2, 1));
+		return _mm_fmsub_ps(tmp0, tmp1, tmp4);
+	}
+#endif
+
 	template<typename T, typename S, int V>
 	inline SimdVector<T, S, V> cross(const SimdVector<T, S, V>& a, const SimdVector<T, S, V>& b){
 		SimdVector<T, S, V> r;
 		static_assert(V == 3, "Cross product is only defined for 3D vectors");
 #ifdef IFRIT_FEATURE_SIMD
 	if constexpr (std::is_same_v<S, __m128>) {
-		r.dataf = _mm_sub_ps(
-			_mm_mul_ps(_mm_shuffle_ps(a.dataf, a.dataf, _MM_SHUFFLE(3, 0, 2, 1)), _mm_shuffle_ps(b.dataf, b.dataf, _MM_SHUFFLE(3, 1, 0, 2))),
-			_mm_mul_ps(_mm_shuffle_ps(a.dataf, a.dataf, _MM_SHUFFLE(3, 1, 0, 2)), _mm_shuffle_ps(b.dataf, b.dataf, _MM_SHUFFLE(3, 0, 2, 1)))
-		);
+		r.dataf = cross_product(a.dataf, b.dataf);
 	}
 	else {
 		static_assert(false, "Unsupported SIMD type");
@@ -348,6 +362,26 @@ namespace Ifrit::Math::SIMD {
 		if constexpr (V >= 3) r.z = a.z + (b.z - a.z) * t;
 		if constexpr (V >= 2) r.y = a.y + (b.y - a.y) * t;
 		r.x = a.x + (b.x - a.x) * t;
+#endif
+		return r;
+	}
+
+	//reciprocal
+	template<typename T, typename S, int V>
+	inline SimdVector<T, S, V> reciprocal(const SimdVector<T, S, V>& a) {
+		SimdVector<T, S, V> r;
+#ifdef IFRIT_FEATURE_SIMD
+		if constexpr (std::is_same_v<S, __m128>) {
+			r.dataf = _mm_rcp_ps(a.dataf);
+		}
+		else {
+			static_assert(false, "Unsupported SIMD type");
+		}
+#else
+		if constexpr (V >= 4) r.w = 1.0f / a.w;
+		if constexpr (V >= 3) r.z = 1.0f / a.z;
+		if constexpr (V >= 2) r.y = 1.0f / a.y;
+		r.x = 1.0f / a.x;
 #endif
 		return r;
 	}

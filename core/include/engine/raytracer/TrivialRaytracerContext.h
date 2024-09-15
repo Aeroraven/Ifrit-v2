@@ -1,6 +1,7 @@
 #pragma once
 #include "engine/base/Shaders.h"
 #include "engine/base/RaytracerBase.h"
+#include "engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
 #include "core/data/Image.h"
 #include "RtShaders.h"
 
@@ -24,11 +25,12 @@ namespace Ifrit::Engine::Raytracer {
 		CloseHitShader* closestHitShader;
 		CallableShader* callableShader;
 
+		std::atomic<int> dcnt = 0;
 		std::vector<std::unique_ptr<RayGenShader>> perWorkerRaygen;
 		std::vector<std::unique_ptr<CloseHitShader>> perWorkerRayhit;
 		std::vector<std::unique_ptr<MissShader>> perWorkerMiss;
 
-		const AccelerationStructure* accelerationStructure;
+		const BoundingVolumeHierarchyTopLevelAS* accelerationStructure;
 
 		iint3 traceRegion;
 

@@ -1,6 +1,7 @@
 #include "engine/raytracer/TrivialRaytracerWorker.h"
 #include "math/VectorOps.h"
 #include "math/simd/SimdVectors.h"
+#include "engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
 using namespace Ifrit::Math::SIMD;
 
 namespace Ifrit::Engine::Raytracer {
@@ -30,6 +31,7 @@ namespace Ifrit::Engine::Raytracer {
 
 	void TrivialRaytracerWorker::tracingProcess() {
 		// Tracing process
+		
 		auto curTile = 0;
 		auto rendererTemp = renderer;
 		while((curTile = rendererTemp->fetchUnresolvedTiles()) >= 0) {
@@ -52,15 +54,13 @@ namespace Ifrit::Engine::Raytracer {
 	}
 	void TrivialRaytracerWorker::tracingRecursiveProcess(const Ray& ray, void* payload, int depth, float tmin, float tmax){
 		using namespace Ifrit::Math;
-
 		if (depth >= context->maxDepth)return;
 		RayInternal intray;
 		intray.o = ray.o;
 		intray.r = ray.r;
-		intray.invr = vfloat3(1.0f) / intray.r;
-		intray.neg_invr_o = -(intray.invr * intray.o);
+		intray.invr = reciprocal(intray.r);
 		auto collresult = context->accelerationStructure->queryIntersection(intray, tmin,tmax);
-		
+
 		recurDepth++;
 		if (collresult.id == -1) {
 			if (context->missShader) {

@@ -2,7 +2,6 @@
 #include "presentation/window/GLFWWindowProvider.h"
 #include "engine/raytracer/TrivialRaytracer.h"
 #include "engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
-#include "engine/raytracer/accelstruct/RtTrivialIterativeAccelStruct.h"
 #include "utility/loader/WavefrontLoader.h"
 #include "utility/loader/ImageLoader.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
@@ -52,7 +51,7 @@ namespace Ifrit::Demo::AccelStructDemo {
 			float ry = 0.25f * dy - 0.125f + 0.1f;
 			float rz = -1.0f;
 			Payload payload;
-			ifritShaderOps_Raytracer_TraceRay({ rx,ry,rz }, 0, 0, 0, 0, 0,0,0.001f,{ 0.0f,0.0f,1.0f }, 9.0f, &payload, context
+			ifritShaderOps_Raytracer_TraceRay({ rx,ry,rz }, 0, 0, 0, 0, 0,0,0.001f,{ 0.0f,0.0f,1.0f }, 900000.0f, &payload, context
 			);
 			image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y, payload.color.z, payload.color.w);
 		}
@@ -170,13 +169,15 @@ namespace Ifrit::Demo::AccelStructDemo {
 		auto rmissCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rmiss.spv");
 		auto rchitCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rchit.spv");
 
+#if 0
 		SpvRaygenShader raygen(builder, rgenCode);
 		SpvMissShader miss(builder, rmissCode);
 		SpvClosestHitShader hit(builder, rchitCode);
-		
-		//DemoRayGen raygen;
-		//DemoClosetHit hit;
-		//DemoMiss miss;
+#else
+		DemoRayGen raygen;
+		DemoClosetHit hit;
+		DemoMiss miss;
+#endif
 
 		raytracer->bindClosestHitShader(&hit);
 		raytracer->bindRaygenShader(&raygen);

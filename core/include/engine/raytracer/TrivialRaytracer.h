@@ -35,7 +35,7 @@ namespace Ifrit::Engine::Raytracer {
 		TrivialRaytracer();
 		~TrivialRaytracer();
 		void init();
-		void bindAccelerationStructure(const AccelerationStructure* as);
+		void bindAccelerationStructure(const BoundingVolumeHierarchyTopLevelAS* as);
 		void bindRaygenShader(RayGenShader* shader);
 		void bindMissShader(MissShader* shader);
 		void bindClosestHitShader(CloseHitShader* shader);

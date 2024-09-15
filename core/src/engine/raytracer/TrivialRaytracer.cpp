@@ -31,7 +31,7 @@ namespace Ifrit::Engine::Raytracer {
 			workers.push_back(std::move(worker));
 		}
 	}
-	void TrivialRaytracer::bindAccelerationStructure(const AccelerationStructure* as) {
+	void TrivialRaytracer::bindAccelerationStructure(const BoundingVolumeHierarchyTopLevelAS* as) {
 		context->accelerationStructure = as;
 	}
 	void TrivialRaytracer::bindRaygenShader(RayGenShader* shader) {
