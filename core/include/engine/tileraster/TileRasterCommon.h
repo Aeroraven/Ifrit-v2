@@ -1,6 +1,7 @@
 #pragma once
 #include "core/definition/CoreDefs.h"
 #include "core/definition/CoreTypes.h"
+#include "math/simd/SimdVectors.h"
 
 namespace Ifrit::Engine::TileRaster {
 	enum class TileRasterHomogeneousClipping {
@@ -27,7 +28,7 @@ namespace Ifrit::Engine::TileRaster {
 		ifloat4 v1, v2, v3;
 		ifloat4 b1, b2, b3;
 		ifloat3 e1, e2, e3; //Edge Coefs
-		ifloat4 f1, f2, f3; //Interpolate Bases
+		Ifrit::Math::SIMD::vfloat4 f1, f2, f3; //Interpolate Bases
 		int originalPrimitive;
 	};
 

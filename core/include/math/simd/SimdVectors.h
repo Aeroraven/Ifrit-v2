@@ -480,6 +480,36 @@ namespace Ifrit::Math::SIMD {
 		return r;
 	}
 
+	// Horizontal sum ((a,b,c,d)=>(a+b+c+d))
+	template<typename T, typename S, int V>
+	inline T hsum(const SimdVector<T, S, V>& a) {
+		T r = 0;
+#ifdef IFRIT_FEATURE_SIMD
+		if constexpr (std::is_same_v<S, __m128>) {
+			if constexpr (V == 4) {
+				auto p = _mm_hadd_ps(a.dataf, a.dataf);
+				r = _mm_cvtss_f32(_mm_hadd_ps(p, p));
+			}
+			else if constexpr (V == 3) {
+				auto p = _mm_hadd_ps(a.dataf, a.dataf);
+				r = _mm_cvtss_f32(_mm_hadd_ps(p, p));
+			}
+			else if constexpr (V == 2) r = _mm_cvtss_f32(_mm_hadd_ps(a.dataf, _mm_setzero_ps()));
+			else r = a.x;
+		}
+		else {
+			static_assert(false, "Unsupported SIMD type");
+		}
+#else
+		if constexpr (V >= 4) r += a.w;
+		if constexpr (V >= 3) r += a.z;
+		if constexpr (V >= 2) r += a.y;
+		r += a.x;
+#endif
+		return r;
+	}
+
+
 	// Exporting Types
 	using vfloat3 = SimdVector<float, __m128, 3>;
 	using vfloat4 = SimdVector<float, __m128, 4>;

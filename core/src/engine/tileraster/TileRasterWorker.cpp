@@ -1,8 +1,11 @@
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/base/Shaders.h"
 #include "math/VectorOps.h"
+#include "math/simd/SimdVectors.h"
 
 using namespace Ifrit::Math;
+using namespace Ifrit::Math::SIMD;
+
 namespace Ifrit::Engine::TileRaster {
 	constexpr auto TOTAL_THREADS = TileRasterContext::numThreads + 1;
 	TileRasterWorker::TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context) {
@@ -858,19 +861,18 @@ namespace Ifrit::Engine::TileRaster {
 		pos[1] = atp.v2;
 		pos[2] = atp.v3;
 
-
-		float pDx = dx;
-		float pDy = dy;
-
-		// Interpolate Depth
+		vfloat4 pDxDyVec = vfloat4(dx, dy, 1.0f, 0.0f);
+		vfloat3 zVec = vfloat3(pos[0].z, pos[1].z, pos[2].z);
+		vfloat3 wVec = vfloat3(pos[0].w, pos[1].w, pos[2].w);
 
 		float bary[3];
 		float interpolatedDepth;
-		const float w[3] = { pos[0].w,pos[1].w,pos[2].w };
-		bary[0] = (atp.f1.x * pDx + atp.f1.y * pDy + atp.f1.z);
-		bary[1] = (atp.f2.x * pDx + atp.f2.y * pDy + atp.f2.z);
-		bary[2] = (atp.f3.x * pDx + atp.f3.y * pDy + atp.f3.z);
-		interpolatedDepth = bary[0] * pos[0].z + bary[1] * pos[1].z + bary[2] * pos[2].z;
+		bary[0] = dot(pDxDyVec, atp.f1);
+		bary[1] = dot(pDxDyVec, atp.f2);
+		bary[2] = dot(pDxDyVec, atp.f3);
+		vfloat3 baryVec = vfloat3(bary[0], bary[1], bary[2]);
+		interpolatedDepth = dot(zVec, baryVec);
+
 		// Depth Test
 		if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
 			
@@ -879,7 +881,6 @@ namespace Ifrit::Engine::TileRaster {
 			if (interpolatedDepth != depthAttachment) return;
 		}
 		if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) {
-			if (interpolatedDepth <= depthAttachment) return;
 		}
 		if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) {
 			if (interpolatedDepth < depthAttachment) return;
@@ -897,18 +898,14 @@ namespace Ifrit::Engine::TileRaster {
 			if (interpolatedDepth == depthAttachment) return;
 		}
 
-		
-		bary[0] *= w[0];
-		bary[1] *= w[1];
-		bary[2] *= w[2];
-		float zCorr = 1.0f / (bary[0] + bary[1] + bary[2]);
-		// Interpolate Varyings
-		bary[0] *= zCorr;
-		bary[1] *= zCorr;
-		bary[2] *= zCorr;
+		baryVec *= wVec;
+		float zCorr = 1.0f / hsum(baryVec);
+		baryVec *= zCorr;
+		vfloat3 atpBx = vfloat3(atp.b1.x, atp.b2.x, atp.b3.x);
+		vfloat3 atpBy = vfloat3(atp.b1.y, atp.b2.y, atp.b3.y);
 		float desiredBary[3];
-		desiredBary[0] = bary[0] * atp.b1.x + bary[1] * atp.b2.x + bary[2] * atp.b3.x;
-		desiredBary[1] = bary[0] * atp.b1.y + bary[1] * atp.b2.y + bary[2] * atp.b3.y;
+		desiredBary[0] = dot(baryVec, atpBx);
+		desiredBary[1] = dot(baryVec, atpBy);
 		desiredBary[2] = 1.0f - desiredBary[0] - desiredBary[1];
 
 		const int* const addr = args.indexBufferPtr + idx;
@@ -916,14 +913,14 @@ namespace Ifrit::Engine::TileRaster {
 		for (int i = 0; i < vSize; i++) {
 			auto va = context->vertexShaderResult->getVaryingBuffer(i);
 			auto& dest = interpolatedVaryings[i];
-			dest = { 0,0,0,0 };
+			vfloat4 destVec = vfloat4(0.0f, 0.0f, 0.0f, 0.0f);
 			for (int j = 0; j < 3; j++) {
 				auto& tmp = (va[addr[j]]);
-				dest.x += tmp.x * desiredBary[j];
-				dest.y += tmp.y * desiredBary[j];
-				dest.z += tmp.z * desiredBary[j];
-				dest.w += tmp.w * desiredBary[j];
+				destVec = fma(vfloat4(tmp.x, tmp.y, tmp.z, tmp.w), desiredBary[j], destVec);
 			}
+			dest.x = destVec.x;
+			dest.y = destVec.y;
+			dest.z = destVec.z;
 		}
 		// Fragment Shader
 		auto& psEntry = context->threadSafeFS[workerId];
