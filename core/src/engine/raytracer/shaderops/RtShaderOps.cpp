@@ -23,9 +23,10 @@ extern "C" {
 		using namespace Ifrit::Engine;
 		using namespace Ifrit::Engine::Raytracer;
 		
-		Ray ray;
+		RayInternal ray;
 		ray.o = vfloat3(rayOrigin.x, rayOrigin.y, rayOrigin.z);
 		ray.r = vfloat3(rayDirection.x, rayDirection.y, rayDirection.z);
+		ray.invr = reciprocal(ray.r);
 		auto worker = reinterpret_cast<TrivialRaytracerWorker*>(context);
 		worker->tracingRecursiveProcess(ray, payload, worker->getTracingDepth() + 1, rayTmin, rayTmax);
 	}

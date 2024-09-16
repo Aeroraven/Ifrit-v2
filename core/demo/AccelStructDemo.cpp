@@ -51,8 +51,7 @@ namespace Ifrit::Demo::AccelStructDemo {
 			float ry = 0.25f * dy - 0.125f + 0.1f;
 			float rz = -1.0f;
 			Payload payload;
-			ifritShaderOps_Raytracer_TraceRay({ rx,ry,rz }, 0, 0, 0, 0, 0,0,0.001f,{ 0.0f,0.0f,1.0f }, 900000.0f, &payload, context
-			);
+			ifritShaderOps_Raytracer_TraceRay({ rx,ry,rz }, 0, 0, 0, 0, 0,0,0.001f,{ 0.0f,0.0f,1.0f }, 900000.0f, &payload, context);
 			image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y, payload.color.z, payload.color.w);
 		}
 		IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() {
@@ -66,7 +65,7 @@ namespace Ifrit::Demo::AccelStructDemo {
 	public:
 		IFRIT_DUAL virtual void execute(
 			const RayHit& hitAttribute,
-			const Ray& ray,
+			const RayInternal& ray,
 			void* context
 		) {
 			auto p = reinterpret_cast<Payload*>(payload);
@@ -169,7 +168,7 @@ namespace Ifrit::Demo::AccelStructDemo {
 		auto rmissCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rmiss.spv");
 		auto rchitCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/raytracer/rtdemo.rchit.spv");
 
-#if 0
+#if 1
 		SpvRaygenShader raygen(builder, rgenCode);
 		SpvMissShader miss(builder, rmissCode);
 		SpvClosestHitShader hit(builder, rchitCode);
@@ -199,7 +198,6 @@ namespace Ifrit::Demo::AccelStructDemo {
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 			backend.updateTexture(*image);
 			backend.draw();
-			//getProfileCnt();
 		 });
 
 

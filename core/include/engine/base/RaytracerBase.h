@@ -12,7 +12,6 @@ namespace Ifrit::Engine {
 		Ifrit::Math::SIMD::vfloat3 o;
 		Ifrit::Math::SIMD::vfloat3 r;
 		Ifrit::Math::SIMD::vfloat3 invr;
-		Ifrit::Math::SIMD::vfloat3 neg_invr_o;
 	};
 
 	struct RayHit {

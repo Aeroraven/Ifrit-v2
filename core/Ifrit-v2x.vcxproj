@@ -178,6 +178,7 @@
     <ClInclude Include="include\math\VectorOps.h" />
     <ClInclude Include="include\presentation\backend\AdaptiveBackendBuilder.h" />
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
+    <ClInclude Include="include\utility\debug\DebugHelper.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <ClCompile Include="demo\AccelStructDemo.cpp" />
     <ClCompile Include="src\engine\bufferman\BufferManager.cpp" />
@@ -249,6 +250,7 @@
     <ClCompile Include="src\engine\shadervm\spirv\SpvVMShader.cpp" />
     <ClCompile Include="src\presentation\backend\AdaptiveBackendBuilder.cpp" />
     <ClCompile Include="src\presentation\window\AdaptiveWindowBuilder.cpp" />
+    <ClCompile Include="src\utility\debug\DebugHelper.cpp" />
     <ClCompile Include="src\utility\loader\ImageLoader.cpp" />
     <CudaCompile Include="include\engine\tilerastercuda\TileRasterCoreInvocationCuda.cuh" />
     <ClCompile Include="src\dependency\GLAD\glad.c" />

@@ -1,10 +1,14 @@
 #include "engine/shadervm/spirv/SpvVMShader.h"
+#include <utility/debug/DebugHelper.h>
+using namespace Utility::Debug;
 
 extern "C" {
 	struct alignas(16) iint3Aligned {
 		int x, y, z;
 	};
 }
+#define NOMINMAX
+
 
 namespace Ifrit::Engine::ShaderVM::Spirv {
 	int SpvRuntimeBackend::createTime = 0;
@@ -166,6 +170,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		if (symbolTables.builtinLaunchSize)memcpy(symbolTables.builtinLaunchSize, &dimension, sizeof(iint3));
 		if (symbolTables.builtinContext)memcpy(symbolTables.builtinContext, &context, sizeof(void*));
 		auto shaderEntry = (void(*)())this->symbolTables.entry;
+		//checkAddress(shaderEntry);
 		shaderEntry();
 	}
 	IFRIT_HOST Raytracer::RayGenShader* SpvRaygenShader::getCudaClone(){
@@ -250,7 +255,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	SpvClosestHitShader::SpvClosestHitShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
 		isThreadSafe = false;
 	}
-	IFRIT_DUAL void SpvClosestHitShader::execute(const RayHit& hitAttribute, const Ray& ray, void* context){
+	IFRIT_DUAL void SpvClosestHitShader::execute(const RayHit& hitAttribute, const RayInternal& ray, void* context){
 		if (symbolTables.builtinContext)memcpy(symbolTables.builtinContext, &context, sizeof(void*));
 		auto shaderEntry = (void(*)())this->symbolTables.entry;
 		shaderEntry();

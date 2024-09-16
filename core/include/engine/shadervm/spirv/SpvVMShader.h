@@ -109,7 +109,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	public:
 		SpvClosestHitShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
 		~SpvClosestHitShader() = default;
-		IFRIT_DUAL virtual void execute(const RayHit& hitAttribute,const Ray& ray, void* context)override;
+		IFRIT_DUAL virtual void execute(const RayHit& hitAttribute,const RayInternal& ray, void* context)override;
 		IFRIT_HOST virtual Raytracer::CloseHitShader* getCudaClone() override;
 		IFRIT_HOST virtual std::unique_ptr<Raytracer::CloseHitShader> getThreadLocalCopy() override;
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;

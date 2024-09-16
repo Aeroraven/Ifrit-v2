@@ -28,6 +28,8 @@ namespace Ifrit::Engine::Raytracer {
 		std::vector<int> indices;
 		int size;
 
+		std::vector<Ifrit::Math::SIMD::vfloat4> balwinTmat1, balwinTmat2, balwinTmat3;
+
 	public:
 		BoundingVolumeHierarchyBottomLevelAS() = default;
 		~BoundingVolumeHierarchyBottomLevelAS() = default;

@@ -2,7 +2,6 @@
 #include "math/simd/SimdVectors.h"
 #include "math/VectorOps.h"
 #include <queue>
-#include <malloc.h>
 
 constexpr bool PROFILE_CNT = false;
 
@@ -19,6 +18,11 @@ namespace Ifrit::Engine::Raytracer::Impl {
 	enum BVHSplitType {
 		BST_TRIVIAL,
 		BST_SAH
+	};
+
+	enum BVHRayTriangleIntersectAlgo {
+		BVH_RAYTRI_MOLLER,
+		BVH_RAYTRI_BALDWIN
 	};
 	static constexpr BVHSplitType splitType = BST_SAH;
 	static constexpr int maxDepth = 32;
@@ -164,12 +168,13 @@ namespace Ifrit::Engine::Raytracer::Impl {
 
 			bool isUnbalancedLeaf = pivot > 0 && abs(node->left->elementSize - node->right->elementSize) > 2 && (node->left->elementSize <= 1 || node->right->elementSize <= 1);
 			auto cA = (node->left->elementSize > 1 || node->right->elementSize > 1);
+			auto cB = (node->left->elementSize == 1 && node->right->elementSize == 1);
 
 			if (isUnbalancedLeaf) {
 				q.push({ node->left.get(),depth + 1,start });
 				q.push({ node->right.get(),depth + 1,pivot + 1 });
 			}
-			else if (pivot > 0 && cA) {
+			else if (pivot > 0 && (cA||cB)) {
 				q.push({ node->left.get(),depth + 1,start });
 				q.push({ node->right.get(),depth + 1,pivot + 1 });
 			}
@@ -235,9 +240,29 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		root->elementSize = size;
 		procBuildBvhNode(size, root.get(), bboxes, centers, belonging, indices);
 	}
-
-	inline RayHit procRayElementIntersection(const RayInternal& ray, int index, float tmin, float tmax,const std::vector<vfloat3>& data) {
-		using namespace Ifrit::Math;
+	inline RayHit procRayElementIntersectionBalwin(const RayInternal& ray, int index,
+		const std::vector<vfloat4>& tmat1, const std::vector<vfloat4>& tmat2, const std::vector<vfloat4>& tmat3) {
+		RayHit rh;
+		rh.id = -1;
+		rh.t = std::numeric_limits<float>::max();
+		vfloat4 ro = vfloat4(ray.o, 1.0f);
+		vfloat4 rd = vfloat4(ray.r, 0.0f);
+		float s = dot(tmat3[index], ro);
+		float d = dot(tmat3[index], rd);
+		float t = -s / d;
+		if (t < 0) return rh;
+		vfloat4 p = fma(rd, t, ro);
+		p.w = 1;
+		float u = dot(tmat1[index], p);
+		float v = dot(tmat2[index], p);
+		if (u < 0 || v < 0 || u + v > 1) return rh;
+		
+		rh.id = index;
+		rh.p = { u,v,1 - u - v };
+		rh.t = t;
+		return rh;
+	}
+	inline RayHit procRayElementIntersectionMoller(const RayInternal& ray, int index, const std::vector<vfloat3>& data) {
 		RayHit proposal;
 		proposal.id = -1;
 		proposal.t = std::numeric_limits<float>::max();
@@ -246,6 +271,7 @@ namespace Ifrit::Engine::Raytracer::Impl {
 		vfloat3 e2 = data[index * 3 + 2];
 		vfloat3 p = cross(ray.r, e2);
 		float det = dot(e1, p);
+		using namespace Ifrit::Math;
 		if (det > std::numeric_limits<float>::epsilon()) {
 			vfloat3 t = ray.o - v0;
 			float u = dot(t, p);
@@ -323,9 +349,8 @@ namespace Ifrit::Engine::Raytracer {
 
 			if (nLeft == nullptr || nRight == nullptr) {
 				for (int i = 0; i < nSize; i++) {
-					
 					int index = belonging[i + nStartPos];
-					auto dist = Impl::procRayElementIntersection(ray, index, tmin, tmax, data); 
+					auto dist = Impl::procRayElementIntersectionMoller(ray, index, data); 
 					if (dist.t > tmin && dist.t < minDist) {
 						minDist = dist.t;
 						prop = dist;
@@ -368,14 +393,48 @@ namespace Ifrit::Engine::Raytracer {
 		root->elementSize = size;
 		Impl::procBuildBvhNode(size, root.get(), bboxes, centers, belonging, indices);
 
+		
+		// Balwin precompute
+		// https://www.shadertoy.com/view/wttyR4
+		balwinTmat1.resize(size);
+		balwinTmat2.resize(size);
+		balwinTmat3.resize(size);
+		for (int i = 0; i < size * 3; i += 3) {
+			auto id = i / 3;
+			vfloat3 v0 = vfloat3(data[i]);
+			vfloat3 v1 = vfloat3(data[i + 1]);
+			vfloat3 v2 = vfloat3(data[i + 2]);
+			auto e1 = v1 - v0;
+			auto e2 = v2 - v0;
+			auto n = cross(e1, e2);
+			auto an = abs(n);
+			auto num = -dot(n, v0);
+			if (an.x > an.y && an.x > an.z) {
+				balwinTmat1[id] = vfloat4(0, e2.z, -e2.y, v2.y * v0.z - v2.z * v0.y) / n.x;
+				balwinTmat2[id] = vfloat4(0, -e1.z, e1.y, v1.z * v0.y - v1.y * v0.z) / n.x;
+				balwinTmat3[id] = vfloat4(n.x, n.y, n.z, num) / n.x;
+			}
+			else if (an.y > an.z) {
+				balwinTmat1[id] = vfloat4(-e2.z, 0, e2.x, v2.z * v0.x - v2.x * v0.z) / n.y;
+				balwinTmat2[id] = vfloat4(e1.z, 0, -e1.x, v1.x * v0.z - v1.z * v0.x) / n.y;
+				balwinTmat3[id] = vfloat4(n.x, n.y, n.z, num) / n.y;
+			}
+			else {
+				balwinTmat1[id] = vfloat4(e2.y, -e2.x, 0, v2.x * v0.y - v2.y * v0.x) / n.z;
+				balwinTmat2[id] = vfloat4(-e1.y, e1.x, 0, v1.y * v0.x - v1.x * v0.y) / n.z;
+				balwinTmat3[id] = vfloat4(n.x, n.y, n.z, num) / n.z;
+			}
+		}
+
 		//Precompute edge
-		for (int i = 0; i < size*3; i += 3) {
-			vfloat3 v0 = vfloat3(data[i ]);
+		for (int i = 0; i < size * 3; i += 3) {
+			vfloat3 v0 = vfloat3(data[i]);
 			vfloat3 v1 = vfloat3(data[i + 1]);
 			vfloat3 v2 = vfloat3(data[i + 2]);
 			data[i + 1] = v1 - v0;
 			data[i + 2] = v2 - v0;
 		}
+
 	}
 
 	void BoundingVolumeHierarchyTopLevelAS::bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& data) {
@@ -399,7 +458,7 @@ namespace Ifrit::Engine::Raytracer {
 
 		q[qPos++] = { root.get(), rootHit};
 		float minDist = tmax;
-
+		int ds = 0;
 		while (qPos) {
 			auto p = q[--qPos];
 			auto& [node, cmindist] = p;
@@ -413,6 +472,7 @@ namespace Ifrit::Engine::Raytracer {
 
 			if (nLeft == nullptr || nRight == nullptr) {
 				for (int i = 0; i < nSize; i++) {
+					ds++;
 					int index = belonging[i + nStartPos];
 					auto dist = data[index]->queryIntersection(ray, tmin, tmax);
 					if (dist.t > tmin && dist.t < minDist) {
@@ -440,8 +500,6 @@ namespace Ifrit::Engine::Raytracer {
 				else if (rightIntersect > 0) q[qPos++] = { nRight,rightIntersect };
 			}
 		}
-		//auto endTime = std::chrono::high_resolution_clock::now();
-		//totalTime += std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
 		return prop;
 	}
 	void BoundingVolumeHierarchyTopLevelAS::buildAccelerationStructure() {

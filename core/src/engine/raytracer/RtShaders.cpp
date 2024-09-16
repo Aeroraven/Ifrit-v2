@@ -1,7 +1,7 @@
 #include "engine/raytracer/RtShaders.h"
 
 namespace Ifrit::Engine::Raytracer {
-	IFRIT_HOST void RaytracerShaderExecutionStack::pushStack(const Ray& ray, const RayHit& rayHit, void* pPayload){
+	IFRIT_HOST void RaytracerShaderExecutionStack::pushStack(const RayInternal& ray, const RayHit& rayHit, void* pPayload){
 		RaytracerShaderStackElement el;
 		el.ray = ray;
 		el.payloadPtr = pPayload;

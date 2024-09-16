@@ -6,7 +6,7 @@
 namespace Ifrit::Engine::Raytracer {
 	// v2
 	struct RaytracerShaderStackElement {
-		Ray ray;
+		RayInternal ray;
 		RayHit rayHit;
 		void* payloadPtr;
 	};
@@ -15,7 +15,7 @@ namespace Ifrit::Engine::Raytracer {
 	protected:
 		std::vector<RaytracerShaderStackElement> execStack;
 	public:
-		IFRIT_HOST void pushStack(const Ray& ray,const RayHit& rayHit, void* pPayload);
+		IFRIT_HOST void pushStack(const RayInternal& ray,const RayHit& rayHit, void* pPayload);
 		IFRIT_HOST void popStack();
 		IFRIT_HOST virtual void onStackPushComplete() = 0;
 		IFRIT_HOST virtual void onStackPopComplete() = 0;
@@ -49,7 +49,7 @@ namespace Ifrit::Engine::Raytracer {
 	public:
 		IFRIT_DUAL virtual void execute(
 			const RayHit& hitAttribute,
-			const Ray& ray,
+			const RayInternal& ray,
 			void* context
 		) = 0;
 		IFRIT_DUAL virtual ~CloseHitShader() = default;
