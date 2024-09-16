@@ -4,7 +4,7 @@
 #include "engine/math/ShaderBuiltinCuda.cuh"
 
 namespace Ifrit::Demo::Skybox {
-	IFRIT_DUAL void SkyboxVS::execute(const void* const* input, ifloat4* outPos, Ifrit::Engine::VaryingStore* const* outVaryings) {
+	IFRIT_DUAL void SkyboxVS::execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) {
 		using namespace Ifrit::Engine::Math::ShaderOps::CUDA;
 		auto s = isbReadFloat4(input[0]);
 		float4x4 view = (lookAt({ 0.0,0.0,0.0 }, { 0.0,0.0,-1.0 }, { 0,1.0,0 }));  
@@ -13,7 +13,7 @@ namespace Ifrit::Demo::Skybox {
 		auto p = multiply(mvp, s);
 		*outPos = p;
 		//printf("%f %f %f %f -> %f %f %f %f \n", s.x, s.y, s.z, s.w, p.x, p.y, p.z, p.w);
-		outVaryings[0]->vf4 = isbReadFloat4(input[1]);
+		*outVaryings[0] = isbReadFloat4(input[1]);
 	}
 
 	IFRIT_HOST Ifrit::Engine::VertexShader* SkyboxVS::getCudaClone() {

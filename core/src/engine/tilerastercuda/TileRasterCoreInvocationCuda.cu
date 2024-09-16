@@ -330,7 +330,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			for (int i = 0; i < numVaryings; i++) {
 				varyingOutputPtrs[i] = dVaryingBuffer + globalInvoIdx * numVaryings + i;
 			}
-			vertexShader->execute(vertexInputPtrs, (ifloat4*)&dPosBuffer[globalInvoIdx], (VaryingStore**)varyingOutputPtrs);
+			vertexShader->execute(vertexInputPtrs, (ifloat4*)&dPosBuffer[globalInvoIdx], (ifloat4**)varyingOutputPtrs);
 		}
 	}
 	namespace MeshShadingStage {

@@ -32,6 +32,7 @@ namespace Ifrit::Engine::TileRaster {
 		bool varyingBufferDirtyFlag = true;
 		std::shared_ptr<TileRasterContext> context;
 		std::vector<std::unique_ptr<TileRasterWorker>> workers;
+		std::unique_ptr<TileRasterWorker> selfOwningWorker;
 		std::mutex lock;
 		std::atomic<uint32_t> unresolvedTileRaster = 0;
 		std::atomic<uint32_t> unresolvedTileFragmentShading = 0;
@@ -41,9 +42,7 @@ namespace Ifrit::Engine::TileRaster {
 	protected:
 		void createWorkers();
 		void resetWorkers(TileRasterStage expectedStage);
-		void statusTransitionBarrier(TileRasterStage waitOn, TileRasterStage proceedTo);
 		void statusTransitionBarrier2(TileRasterStage waitOn, TileRasterStage proceedTo);
-		void waitOnWorkers(TileRasterStage waitOn);
 		
 		int fetchUnresolvedTileRaster();
 		int fetchUnresolvedTileFragmentShading();

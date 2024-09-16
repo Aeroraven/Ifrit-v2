@@ -118,7 +118,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		memcpy(uniformData.first, pData, uniformData.second);
 	}
 
-	void SpvVertexShader::execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) {
+	void SpvVertexShader::execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) {
 		//TODO: Input & Output
 		for (int i = 0; i < symbolTables.inputBytes.size(); i++) {
 			memcpy(symbolTables.inputs[i], input[i], symbolTables.inputBytes[i]);

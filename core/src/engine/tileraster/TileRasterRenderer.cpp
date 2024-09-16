@@ -41,13 +41,13 @@ namespace Ifrit::Engine::TileRaster {
 	IFRIT_APIDECL void TileRasterRenderer::bindFragmentShader(FragmentShader& fragmentShader) {
 		this->context->fragmentShader = &fragmentShader;
 		if (!fragmentShader.isThreadSafe) {
-			for (int i = 0; i < context->numThreads; i++) {
+			for (int i = 0; i < context->numThreads + 1; i++) {
 				context->threadSafeFSOwningSection[i] = fragmentShader.getThreadLocalCopy();
 				context->threadSafeFS[i] = context->threadSafeFSOwningSection[i].get();
 			}
 		}
 		else {
-			for (int i = 0; i < context->numThreads; i++) {
+			for (int i = 0; i < context->numThreads + 1; i++) {
 				context->threadSafeFS[i] = &fragmentShader;
 			}
 		}
@@ -76,13 +76,13 @@ namespace Ifrit::Engine::TileRaster {
 		shaderBindingDirtyFlag = true;
 		varyingBufferDirtyFlag = true;
 		if (!vertexShader.isThreadSafe) {
-			for (int i = 0; i < context->numThreads; i++) {
+			for (int i = 0; i < context->numThreads + 1; i++) {
 				context->threadSafeVSOwningSection[i] = vertexShader.getThreadLocalCopy();
 				context->threadSafeVS[i] = context->threadSafeVSOwningSection[i].get();
 			}
 		}
 		else {
-			for (int i = 0; i < context->numThreads; i++) {
+			for (int i = 0; i < context->numThreads + 1; i++) {
 				context->threadSafeVS[i] = &vertexShader;
 			}
 		}
@@ -110,28 +110,7 @@ namespace Ifrit::Engine::TileRaster {
 			workers[i]->status.store(TileRasterStage::CREATED, std::memory_order::relaxed);
 			context->workerIdleTime[i] = 0;
 		}
-	}
-	void TileRasterRenderer::statusTransitionBarrier(TileRasterStage waitOn, TileRasterStage proceedTo) {
-		bool flag = false;
-		while (!flag) {
-			bool allOnBarrier = true;
-			for (auto& worker : workers) {
-				auto arrived = worker->status.load() == waitOn;
-				auto advanced = worker->status.load() >= proceedTo;
-				allOnBarrier = allOnBarrier && (arrived || advanced);
-			}
-			if (allOnBarrier) {
-				for (auto& worker : workers){
-					worker->status.store(proceedTo);
-					worker->activated.store(true);
-				}
-				flag = true;
-			}
-			else {
-				std::this_thread::yield();
-			}
-		}
-		return ;
+		selfOwningWorker = std::make_unique<TileRasterWorker>(context->numThreads, shared_from_this(), context);
 	}
 	void TileRasterRenderer::statusTransitionBarrier2(TileRasterStage waitOn, TileRasterStage proceedTo) {
 		while (true) {
@@ -142,6 +121,10 @@ namespace Ifrit::Engine::TileRaster {
 					(worker->status.compare_exchange_weak(expected, proceedTo, std::memory_order::acq_rel) ||
 					(expected >= proceedTo));
 			}
+			auto expected = waitOn;
+			allOnBarrier = allOnBarrier &&
+				(selfOwningWorker->status.compare_exchange_weak(expected, proceedTo, std::memory_order::acq_rel) ||
+					(expected >= proceedTo));
 			if (allOnBarrier) break;
 			std::this_thread::yield();
 		}
@@ -246,17 +229,7 @@ namespace Ifrit::Engine::TileRaster {
 			ifritError("Unsupported blend factor");
 		}
 	}
-	void TileRasterRenderer::waitOnWorkers(TileRasterStage waitOn){
-		bool flag = false;
-		while (!flag) {
-			bool allOnBarrier = true;
-			for (auto& worker : workers) {
-				auto arrived = worker->status.load() == waitOn;
-				allOnBarrier = allOnBarrier && arrived;
-			}
-			if (allOnBarrier) flag = true;
-		}
-	}
+
 	int TileRasterRenderer::fetchUnresolvedTileRaster() {
 		auto counter = unresolvedTileRaster.fetch_add(1);
 		auto totalTiles = context->numTilesX * context->numTilesY;
@@ -298,11 +271,12 @@ namespace Ifrit::Engine::TileRaster {
 			worker->status.store(expectedStage, std::memory_order::relaxed);
 			worker->activated.store(true);
 		}
+		selfOwningWorker->status.store(expectedStage, std::memory_order::relaxed);
 	}
 	void TileRasterRenderer::updateVectorCapacity() {
 		auto totalTiles = context->numTilesX * context->numTilesY;
 		context->sortedCoverQueue.resize(totalTiles);
-		for (int i = 0; i < context->numThreads; i++) {
+		for (int i = 0; i < context->numThreads + 1; i++) {
 			context->rasterizerQueue[i].resize(totalTiles);
 			context->coverQueue[i].resize(totalTiles);
 		}
@@ -311,7 +285,7 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterRenderer::updateUniformBuffer(){
 		auto vsUniforms = context->vertexShader->getUniformList();
 		auto fsUniforms = context->fragmentShader->getUniformList();
-		for (int i = 0; i < context->numThreads; i++) {
+		for (int i = 0; i < context->numThreads + 1; i++) {
 			for (const auto& x : vsUniforms) {
 				if (context->uniformMapping.count(x)) {
 					context->threadSafeVS[i]->updateUniformData(x.first, x.second, context->uniformMapping[x]);
@@ -327,14 +301,14 @@ namespace Ifrit::Engine::TileRaster {
 
 	IFRIT_APIDECL void TileRasterRenderer::init() {
 		context = std::make_shared<TileRasterContext>();
-		context->rasterizerQueue.resize(context->numThreads);
-		context->coverQueue.resize(context->numThreads);
-		context->workerIdleTime.resize(context->numThreads);
-		context->assembledTriangles.resize(context->numThreads);
-		context->threadSafeFS.resize(context->numThreads);
-		context->threadSafeVS.resize(context->numThreads);
-		context->threadSafeFSOwningSection.resize(context->numThreads);
-		context->threadSafeVSOwningSection.resize(context->numThreads);
+		context->rasterizerQueue.resize(context->numThreads + 1);
+		context->coverQueue.resize(context->numThreads + 1);
+		context->workerIdleTime.resize(context->numThreads + 1);
+		context->assembledTriangles.resize(context->numThreads + 1);
+		context->threadSafeFS.resize(context->numThreads + 1);
+		context->threadSafeVS.resize(context->numThreads + 1);
+		context->threadSafeFSOwningSection.resize(context->numThreads + 1);
+		context->threadSafeVSOwningSection.resize(context->numThreads + 1);
 
 		context->blendState.blendEnable = false;
 		
@@ -343,6 +317,7 @@ namespace Ifrit::Engine::TileRaster {
 			worker->status.store(TileRasterStage::CREATED, std::memory_order::relaxed);
 			worker->threadStart();
 		}
+		selfOwningWorker->status.store(TileRasterStage::CREATED, std::memory_order::relaxed);
 		initialized = true;
 	}
 	IFRIT_APIDECL void TileRasterRenderer::clear() {
@@ -359,11 +334,13 @@ namespace Ifrit::Engine::TileRaster {
 		unresolvedTileSort.store(0, std::memory_order::relaxed);
 		if (clearFramebuffer) {
 			resetWorkers(TileRasterStage::DRAWCALL_START_CLEAR);
+			selfOwningWorker->drawCallWithClear();
 		}
 		else {
 			resetWorkers(TileRasterStage::DRAWCALL_START);
+			selfOwningWorker->drawCall();
 		}
-		statusTransitionBarrier(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::COMPLETED);
+		statusTransitionBarrier2(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::COMPLETED);
 	}
 
 }

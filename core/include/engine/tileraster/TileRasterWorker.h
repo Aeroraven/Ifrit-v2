@@ -34,8 +34,8 @@ namespace Ifrit::Engine::TileRaster {
 		bool rast = false;
 		bool frag = false;
 
-		std::vector<VaryingStore> perVertexVaryings;
-		std::vector<VaryingStore> interpolatedVaryings;
+		std::vector<ifloat4> perVertexVaryings;
+		std::vector<ifloat4> interpolatedVaryings;
 		std::vector<const void*> interpolatedVaryingsAddr;
 		std::vector<const void*> perVertexVaryingsAddr;
 
@@ -68,9 +68,9 @@ namespace Ifrit::Engine::TileRaster {
 
 		void threadStart();
 
-		void interpolateVaryings(int id, const int indices[3], const float barycentric[3], VaryingStore& dest) IFRIT_AP_NOTHROW;
+		void interpolateVaryings(int id, const int indices[3], const float barycentric[3], ifloat4& dest) IFRIT_AP_NOTHROW;
 		void getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW ;
-		void getVaryingsAddr(const int id,std::vector<VaryingStore*>& out)IFRIT_AP_NOTHROW ;
+		void getVaryingsAddr(const int id,std::vector<ifloat4*>& out)IFRIT_AP_NOTHROW ;
 
 		template<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>
 		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;

@@ -6,7 +6,7 @@
 namespace Ifrit::Engine {
 	struct VertexShaderResultContext {
 		std::vector<ifloat4> position;
-		std::vector<std::vector<VaryingStore>> varyings;
+		std::vector<std::vector<ifloat4>> varyings;
 		std::vector<TypeDescriptor> varyingDescriptors;
 	};
 	class IFRIT_APIDECL VertexShaderResult {
@@ -33,7 +33,7 @@ namespace Ifrit::Engine {
 		inline void initializeVaryingBuffer(int id) {
 			context->varyings[id].resize(vertexCount);
 		}
-		inline VaryingStore* getVaryingBuffer(int id) {
+		inline ifloat4* getVaryingBuffer(int id) {
 			return context->varyings[id].data();
 		}
 	};

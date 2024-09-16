@@ -4,6 +4,7 @@
 
 using namespace Ifrit::Math;
 namespace Ifrit::Engine::TileRaster {
+	constexpr auto TOTAL_THREADS = TileRasterContext::numThreads + 1;
 	TileRasterWorker::TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context) {
 		this->workerId = workerId;
 		this->rendererReference = renderer.get();
@@ -35,8 +36,8 @@ namespace Ifrit::Engine::TileRaster {
 		}
 	}
 	void TileRasterWorker::drawCallWithClear() IFRIT_AP_NOTHROW {
-		context->frameBuffer->getColorAttachment(0)->clearImageZeroMultiThread(workerId, context->numThreads);
-		context->frameBuffer->getDepthAttachment()->clearImageMultithread(255, workerId, context->numThreads);
+		context->frameBuffer->getColorAttachment(0)->clearImageZeroMultiThread(workerId, TOTAL_THREADS);
+		context->frameBuffer->getDepthAttachment()->clearImageMultithread(255, workerId, TOTAL_THREADS);
 		drawCall();
 	}
 	void TileRasterWorker::drawCall() IFRIT_AP_NOTHROW {
@@ -265,11 +266,11 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterWorker::vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
 		status.store(TileRasterStage::VERTEX_SHADING, std::memory_order::relaxed);
-		std::vector<VaryingStore*> outVaryings(context->varyingDescriptor->getVaryingCounts());
+		std::vector<ifloat4*> outVaryings(context->varyingDescriptor->getVaryingCounts());
 		std::vector<const void*> inVertex(context->vertexBuffer->getAttributeCount());
 		auto vsEntry = context->threadSafeVS[workerId];
 		const auto vxCount = context->vertexBuffer->getVertexCount();
-		for (int j = workerId; j < vxCount; j += context->numThreads) {
+		for (int j = workerId; j < vxCount; j += TOTAL_THREADS) {
 			auto pos = &context->vertexShaderResult->getPositionBuffer()[j];
 			getVaryingsAddr(j, outVaryings);
 			getVertexAttributes(j, inVertex);
@@ -282,7 +283,7 @@ namespace Ifrit::Engine::TileRaster {
 		auto posBuffer = context->vertexShaderResult->getPositionBuffer();
 		generatedTriangle.clear();
 		int genTris = 0, ixBufSize = context->indexBufferSize;
-		for (int j = workerId * context->vertexStride; j < ixBufSize; j += context->numThreads * context->vertexStride) {
+		for (int j = workerId * context->vertexStride; j < ixBufSize; j += TOTAL_THREADS * context->vertexStride) {
 			int id0 = (context->indexBuffer)[j];
 			int id1 = (context->indexBuffer)[j + 1];
 			int id2 = (context->indexBuffer)[j + 2];
@@ -335,7 +336,7 @@ namespace Ifrit::Engine::TileRaster {
 			float tileMaxX = 1.0f * (tileIdX + 1) * context->tileWidth / frameBufferWidth;
 			float tileMaxY = 1.0f * (tileIdY + 1) * context->tileWidth / frameBufferHeight;
 
-			for (int T = context->numThreads - 1; T >= 0; T--) {
+			for (int T = TOTAL_THREADS - 1; T >= 0; T--) {
 				for (int j = context->rasterizerQueue[T][curTile].size() - 1; j >= 0; j--) {
 					const auto& proposal = context->rasterizerQueue[T][curTile][j];
 					const auto& ptRef = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
@@ -453,7 +454,6 @@ namespace Ifrit::Engine::TileRaster {
 								if (criteriaTR[i] != -3) {
 									continue;
 								}
-
 								if (criteriaTA[i] == -3) {
 									npropBlock.tile = { dwX, dwY };
 									coverQueue.push_back(npropBlock);
@@ -639,14 +639,14 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterWorker::sortOrderProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
 		auto curTile = 0;
 		while ((curTile = renderer->fetchUnresolvedTileSort()) != -1) {
-			std::vector<int> numSpaces(context->numThreads);
+			std::vector<int> numSpaces(TOTAL_THREADS);
 			int preSum = 0;
-			for (int i = 0; i < context->numThreads; i++) {
+			for (int i = 0; i < TOTAL_THREADS; i++) {
 				numSpaces[i] = preSum;
 				preSum += context->coverQueue[i][curTile].size();
 			}
 			context->sortedCoverQueue[curTile].resize(preSum);
-			for (int i = 0; i < context->numThreads; i++) {
+			for (int i = 0; i < TOTAL_THREADS; i++) {
 				std::copy(context->coverQueue[i][curTile].begin(), context->coverQueue[i][curTile].end(),
 					context->sortedCoverQueue[curTile].begin() + numSpaces[i]);
 			}
@@ -782,7 +782,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 			else {
 				auto iterFunc = [&]<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>() {
-					for (int i = context->numThreads - 1; i >= 0; i--) {
+					for (int i = TOTAL_THREADS - 1; i >= 0; i--) {
 						for (int j = context->coverQueue[i][curTile].size() - 1; j >= 0; j--) {
 							auto& proposal = context->coverQueue[i][curTile][j];
 							proposalProcessFunc.operator()<tpAlphaBlendEnable, tpDepthFunc >(proposal);
@@ -841,7 +841,7 @@ namespace Ifrit::Engine::TileRaster {
 			}
 		}
 	}
-	void TileRasterWorker::getVaryingsAddr(const int id, std::vector<VaryingStore*>& out) IFRIT_AP_NOTHROW {
+	void TileRasterWorker::getVaryingsAddr(const int id, std::vector<ifloat4*>& out) IFRIT_AP_NOTHROW {
 		for (int i = 0; i < context->varyingDescriptor->getVaryingCounts(); i++) {
 			auto desc = context->vertexShaderResult->getVaryingDescriptor(i);
 			out[i] = &context->vertexShaderResult->getVaryingBuffer(i)[id];
@@ -858,9 +858,6 @@ namespace Ifrit::Engine::TileRaster {
 		pos[1] = atp.v2;
 		pos[2] = atp.v3;
 
-#if IFRIT_USE_SIMD_128_EXPERIMENTAL
-		__m128 posZ = _mm_setr_ps(pos[0].z, pos[1].z, pos[2].z, 0);
-#endif
 
 		float pDx = dx;
 		float pDy = dy;
@@ -906,13 +903,9 @@ namespace Ifrit::Engine::TileRaster {
 		bary[2] *= w[2];
 		float zCorr = 1.0f / (bary[0] + bary[1] + bary[2]);
 		// Interpolate Varyings
-#if IFRIT_USE_SIMD_128_EXPERIMENTAL
-		_mm_storeu_ps(bary, _mm_mul_ps(_mm_loadu_ps(bary), _mm_set1_ps(zCorr)));
-#else
 		bary[0] *= zCorr;
 		bary[1] *= zCorr;
 		bary[2] *= zCorr;
-#endif
 		float desiredBary[3];
 		desiredBary[0] = bary[0] * atp.b1.x + bary[1] * atp.b2.x + bary[2] * atp.b3.x;
 		desiredBary[1] = bary[0] * atp.b1.y + bary[1] * atp.b2.y + bary[2] * atp.b3.y;
@@ -923,13 +916,13 @@ namespace Ifrit::Engine::TileRaster {
 		for (int i = 0; i < vSize; i++) {
 			auto va = context->vertexShaderResult->getVaryingBuffer(i);
 			auto& dest = interpolatedVaryings[i];
-			dest.vf4 = { 0,0,0,0 };
+			dest = { 0,0,0,0 };
 			for (int j = 0; j < 3; j++) {
-				auto& tmp = va[addr[j]].vf4;
-				dest.vf4.x += tmp.x * desiredBary[j];
-				dest.vf4.y += tmp.y * desiredBary[j];
-				dest.vf4.z += tmp.z * desiredBary[j];
-				dest.vf4.w += tmp.w * desiredBary[j];
+				auto& tmp = (va[addr[j]]);
+				dest.x += tmp.x * desiredBary[j];
+				dest.y += tmp.y * desiredBary[j];
+				dest.z += tmp.z * desiredBary[j];
+				dest.w += tmp.w * desiredBary[j];
 			}
 		}
 		// Fragment Shader
@@ -1072,12 +1065,12 @@ namespace Ifrit::Engine::TileRaster {
 			for (int k = 0; k < varyCounts; k++) {
 				auto va = context->vertexShaderResult->getVaryingBuffer(k);
 				auto& dest = interpolatedVaryings[k];
-				dest.vf4 = { 0,0,0,0 };
+				dest = { 0,0,0,0 };
 				for (int j = 0; j < 3; j++) {
-					dest.vf4.x += va[addr[j]].vf4.x * desiredBary[j];
-					dest.vf4.y += va[addr[j]].vf4.y * desiredBary[j];
-					dest.vf4.z += va[addr[j]].vf4.z * desiredBary[j];
-					dest.vf4.w += va[addr[j]].vf4.w * desiredBary[j];
+					dest.x += va[addr[j]].x * desiredBary[j];
+					dest.y += va[addr[j]].y * desiredBary[j];
+					dest.z += va[addr[j]].z * desiredBary[j];
+					dest.w += va[addr[j]].w * desiredBary[j];
 				}
 			}
 
@@ -1216,12 +1209,12 @@ namespace Ifrit::Engine::TileRaster {
 				//interpolateVaryings(k, addr, desiredBary, interpolatedVaryings[k]);
 				auto va = context->vertexShaderResult->getVaryingBuffer(k);
 				auto& dest = interpolatedVaryings[k];
-				dest.vf4 = { 0,0,0,0 };
+				dest = { 0,0,0,0 };
 				for (int j = 0; j < 3; j++) {
-					dest.vf4.x += va[addr[j]].vf4.x * desiredBary[j];
-					dest.vf4.y += va[addr[j]].vf4.y * desiredBary[j];
-					dest.vf4.z += va[addr[j]].vf4.z * desiredBary[j];
-					dest.vf4.w += va[addr[j]].vf4.w * desiredBary[j];
+					dest.x += va[addr[j]].x * desiredBary[j];
+					dest.y += va[addr[j]].y * desiredBary[j];
+					dest.z += va[addr[j]].z * desiredBary[j];
+					dest.w += va[addr[j]].w * desiredBary[j];
 				}
 			}
 
@@ -1256,14 +1249,14 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 	}
 
-	void TileRasterWorker::interpolateVaryings(int id, const int indices[3], const float barycentric[3], VaryingStore& dest) IFRIT_AP_NOTHROW {
+	void TileRasterWorker::interpolateVaryings(int id, const int indices[3], const float barycentric[3], ifloat4& dest) IFRIT_AP_NOTHROW {
 		auto va = context->vertexShaderResult->getVaryingBuffer(id);
-		dest.vf4 = { 0,0,0,0 };
+		dest = { 0,0,0,0 };
 		for (int j = 0; j < 3; j++) {
-			dest.vf4.x += va[indices[j]].vf4.x * barycentric[j];
-			dest.vf4.y += va[indices[j]].vf4.y * barycentric[j];
-			dest.vf4.z += va[indices[j]].vf4.z * barycentric[j];
-			dest.vf4.w += va[indices[j]].vf4.w * barycentric[j];
+			dest.x += va[indices[j]].x * barycentric[j];
+			dest.y += va[indices[j]].y * barycentric[j];
+			dest.z += va[indices[j]].z * barycentric[j];
+			dest.w += va[indices[j]].w * barycentric[j];
 		}
 	}
 

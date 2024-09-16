@@ -49,7 +49,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	public:
 		SpvVertexShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
 		~SpvVertexShader() = default;
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override;
+		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) override;
 		IFRIT_HOST virtual VertexShader* getCudaClone() override;
 		IFRIT_HOST virtual std::unique_ptr<VertexShader> getThreadLocalCopy() override;
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;

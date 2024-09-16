@@ -20,7 +20,7 @@ namespace Ifrit::Engine::LibraryExport {
 	class VertexShaderFunctionalWrapper : virtual public VertexShader {
 	public:
 		VertexShaderFunctionalPtr func = nullptr;
-		virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override {
+		virtual void execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) override {
 			if(func)func(input, outPos, outVaryings);
 		}
 	};

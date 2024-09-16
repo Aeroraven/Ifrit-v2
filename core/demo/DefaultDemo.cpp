@@ -53,7 +53,7 @@ namespace Ifrit::Demo::DemoDefault {
 
 	class DemoVertexShader : public VertexShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override {
+		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) override {
 			/*const auto radius = 0.3f;
 			const auto vX = sin(globalTime) * radius;
 			const auto vZ = cos(globalTime) * radius;
@@ -64,7 +64,7 @@ namespace Ifrit::Demo::DemoDefault {
 			auto s = *reinterpret_cast<const ifloat4*>(input[0]);
 			auto p = matmul(mvp, s);
 			*outPos = p;
-			outVaryings[0]->vf4 = *reinterpret_cast<const ifloat4*>(input[1]);
+			*outVaryings[0] = *reinterpret_cast<const ifloat4*>(input[1]);
 		}
 	};
 

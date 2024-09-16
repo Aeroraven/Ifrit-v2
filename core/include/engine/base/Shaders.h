@@ -26,7 +26,7 @@ namespace Ifrit::Engine {
 		IFRIT_DUAL virtual void execute(
 			const void* const* input,
 			ifloat4* outPos,
-			VaryingStore* const* outVaryings
+			ifloat4* const* outVaryings
 		) = 0;
 		IFRIT_DUAL virtual ~VertexShader() = default;
 		IFRIT_HOST virtual VertexShader* getCudaClone() { return nullptr; };
@@ -115,8 +115,8 @@ namespace Ifrit::Engine {
 	
 
 	/* Function Delegates & C-ABI Compatible */
-	typedef void (*VertexShaderFunctionalPtr)(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings);
+	typedef void (*VertexShaderFunctionalPtr)(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings);
 	typedef void (*FragmentShaderFunctionalPtr)(const void* varyings, void* colorOutput, float* fragmentDepth);
-	typedef void (*GeometryShaderFunctionalPtr)(const ifloat4* const* inPos, const VaryingStore* const* inVaryings,
+	typedef void (*GeometryShaderFunctionalPtr)(const ifloat4* const* inPos, const ifloat4* const* inVaryings,
 		ifloat4* outPos, VaryingStore* outVaryings, int* outSize);
 }
