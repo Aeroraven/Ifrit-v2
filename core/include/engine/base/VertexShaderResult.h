@@ -2,11 +2,12 @@
 #include "core/definition/CoreExports.h"
 #include "engine/base/TypeDescriptor.h"
 #include "engine/base/VaryingStore.h"
+#include "math/simd/SimdVectors.h"
 
 namespace Ifrit::Engine {
 	struct VertexShaderResultContext {
 		std::vector<ifloat4> position;
-		std::vector<std::vector<ifloat4>> varyings;
+		std::vector<std::vector<Ifrit::Math::SIMD::vfloat4>> varyings;
 		std::vector<TypeDescriptor> varyingDescriptors;
 	};
 	class IFRIT_APIDECL VertexShaderResult {
@@ -33,7 +34,7 @@ namespace Ifrit::Engine {
 		inline void initializeVaryingBuffer(int id) {
 			context->varyings[id].resize(vertexCount);
 		}
-		inline ifloat4* getVaryingBuffer(int id) {
+		inline Ifrit::Math::SIMD::vfloat4* getVaryingBuffer(int id) {
 			return context->varyings[id].data();
 		}
 	};

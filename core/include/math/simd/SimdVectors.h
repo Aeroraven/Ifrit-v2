@@ -515,4 +515,12 @@ namespace Ifrit::Math::SIMD {
 	using vfloat4 = SimdVector<float, __m128, 4>;
 	using vint3 = SimdVector<int, __m128i, 3>;
 	using vint4 = SimdVector<int, __m128i, 4>;
+
+	// Type Conversion
+	inline vfloat3 toSimdVector(const ifloat3& v) {
+		return vfloat3(v.x, v.y, v.z);
+	}
+	inline vfloat4 toSimdVector(const ifloat4& v) {
+		return vfloat4(v.x, v.y, v.z, v.w);
+	}
 }

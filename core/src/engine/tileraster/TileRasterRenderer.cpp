@@ -231,27 +231,15 @@ namespace Ifrit::Engine::TileRaster {
 	}
 
 	int TileRasterRenderer::fetchUnresolvedTileRaster() {
-		auto counter = unresolvedTileRaster.fetch_add(1);
-		auto totalTiles = context->numTilesX * context->numTilesY;
-		if (counter >= totalTiles) {
-			return -1;
-		}
+		auto counter = unresolvedTileRaster.fetch_sub(1) - 1;
 		return counter;
 	}
 	int TileRasterRenderer::fetchUnresolvedTileFragmentShading() {
-		auto counter = unresolvedTileFragmentShading.fetch_add(1);
-		auto totalTiles = context->numTilesX * context->numTilesY;
-		if (counter >= totalTiles) {
-			return -1;
-		}
+		auto counter = unresolvedTileFragmentShading.fetch_sub(1) - 1;
 		return counter;
 	}
 	int TileRasterRenderer::fetchUnresolvedTileSort() {
-		auto counter = unresolvedTileSort.fetch_add(1);
-		auto totalTiles = context->numTilesX * context->numTilesY;
-		if (counter >= totalTiles) {
-			return -1;
-		}
+		auto counter = unresolvedTileSort.fetch_sub(1) - 1;
 		return counter;
 	}
 	IFRIT_APIDECL void TileRasterRenderer::optsetForceDeterministic(bool opt) {
@@ -328,10 +316,12 @@ namespace Ifrit::Engine::TileRaster {
 	IFRIT_APIDECL void TileRasterRenderer::drawElements(int vertexCount, bool clearFramebuffer) IFRIT_AP_NOTHROW {
 		intializeRenderContext();
 		updateUniformBuffer();
+		context->frameWidth = context->frameBuffer->getWidth();
+		context->frameHeight = context->frameBuffer->getHeight();
 		context->indexBufferSize = vertexCount;
-		unresolvedTileRaster.store(0,std::memory_order::relaxed);
-		unresolvedTileFragmentShading.store(0, std::memory_order::relaxed);
-		unresolvedTileSort.store(0, std::memory_order::relaxed);
+		unresolvedTileRaster.store(context->numTilesX * context->numTilesY,std::memory_order::relaxed);
+		unresolvedTileFragmentShading.store(context->numTilesX * context->numTilesY, std::memory_order::relaxed);
+		unresolvedTileSort.store(context->numTilesX * context->numTilesY, std::memory_order::relaxed);
 		if (clearFramebuffer) {
 			resetWorkers(TileRasterStage::DRAWCALL_START_CLEAR);
 			selfOwningWorker->drawCallWithClear();

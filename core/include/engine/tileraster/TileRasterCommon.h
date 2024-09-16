@@ -25,12 +25,12 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	struct AssembledTriangleProposal {
-		ifloat4 v1, v2, v3;
-		ifloat4 b1, b2, b3;
-		ifloat3 e1, e2, e3; //Edge Coefs
+		Ifrit::Math::SIMD::vfloat3 vz, vw;
+		Ifrit::Math::SIMD::vfloat3 bx, by;//b1, b2, b3;
 		Ifrit::Math::SIMD::vfloat4 f1, f2, f3; //Interpolate Bases
 		int originalPrimitive;
-	};
+		ifloat3 e1, e2, e3; //Edge Coefs
+	}; 
 
 	struct PendingTriangleProposalCUDA {
 		ifloat4 v1, v2, v3;
@@ -88,11 +88,6 @@ namespace Ifrit::Engine::TileRaster {
 		int frameBufferHeight;
 		bool counterClockwise = false;
 		int totalIndexCount;
-	};
-
-	struct TileRasterClipVertex {
-		ifloat4 barycenter;
-		ifloat4 pos;
 	};
 
 #if IFRIT_USE_CUDA

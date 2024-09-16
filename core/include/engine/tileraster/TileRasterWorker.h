@@ -29,13 +29,10 @@ namespace Ifrit::Engine::TileRaster {
 		TileRasterRenderer* rendererReference; 
 		std::unique_ptr<std::thread> execWorker;
 		std::shared_ptr<TileRasterContext> context;
-		bool vert= false;
-		bool geom = false;
-		bool rast = false;
-		bool frag = false;
+		
 
 		std::vector<ifloat4> perVertexVaryings;
-		std::vector<ifloat4> interpolatedVaryings;
+		std::vector<Ifrit::Math::SIMD::vfloat4> interpolatedVaryings;
 		std::vector<const void*> interpolatedVaryingsAddr;
 		std::vector<const void*> perVertexVaryingsAddr;
 
@@ -44,6 +41,11 @@ namespace Ifrit::Engine::TileRaster {
 
 		const float EPS = 1e-8;
 		const float EPS2 = 1e-8;
+
+		bool vert = false;
+		bool geom = false;
+		bool rast = false;
+		bool frag = false;
 
 	public:
 		TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context);
@@ -55,9 +57,9 @@ namespace Ifrit::Engine::TileRaster {
 		void drawCallWithClear() IFRIT_AP_NOTHROW;
 		void release();
 
-		bool triangleFrustumClip(ifloat4 v1, ifloat4 v2, ifloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW;
-		uint32_t triangleHomogeneousClip(const int primitiveId, ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW;
-		bool triangleCulling(ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW;
+		bool triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW;
+		uint32_t triangleHomogeneousClip(const int primitiveId, Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
+		bool triangleCulling(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
 		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, irect2Df bbox) IFRIT_AP_NOTHROW;
 
 		void vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
@@ -70,7 +72,7 @@ namespace Ifrit::Engine::TileRaster {
 
 		void interpolateVaryings(int id, const int indices[3], const float barycentric[3], ifloat4& dest) IFRIT_AP_NOTHROW;
 		void getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW ;
-		void getVaryingsAddr(const int id,std::vector<ifloat4*>& out)IFRIT_AP_NOTHROW ;
+		void getVaryingsAddr(const int id,std::vector<Ifrit::Math::SIMD::vfloat4*>& out)IFRIT_AP_NOTHROW ;
 
 		template<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>
 		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
