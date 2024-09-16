@@ -92,15 +92,14 @@ namespace Ifrit::Engine::TileRaster {
 		if (varyingBufferDirtyFlag) {
 			context->vertexShaderResult = std::make_unique<VertexShaderResult>(
 			context->vertexBuffer->getVertexCount(), context->varyingDescriptor->getVaryingCounts());
+			shaderBindingDirtyFlag = false;
 		}
 		if (varyingBufferDirtyFlag) {
 			context->vertexShaderResult->allocateVaryings(context->varyingDescriptor->getVaryingCounts());
 			context->varyingDescriptor->applyVaryingDescriptors(context->vertexShaderResult.get());
 			context->vertexShaderResult->setVertexCount(context->vertexBuffer->getVertexCount());
+			varyingBufferDirtyFlag = false;
 		}
-		varyingBufferDirtyFlag = false;
-		shaderBindingDirtyFlag = false;
-
 	}
 
 	void TileRasterRenderer::createWorkers() {
@@ -358,14 +357,6 @@ namespace Ifrit::Engine::TileRaster {
 		unresolvedTileRaster.store(0,std::memory_order::relaxed);
 		unresolvedTileFragmentShading.store(0, std::memory_order::relaxed);
 		unresolvedTileSort.store(0, std::memory_order::relaxed);
-		auto totalTiles = context->numTilesX * context->numTilesY;
-		for (int i = 0; i < context->numThreads; i++) {
-			context->assembledTriangles[i].clear();
-			for (int j = 0; j < totalTiles; j++) {
-				context->rasterizerQueue[i][j].clear();
-				context->coverQueue[i][j].clear();
-			}
-		}
 		if (clearFramebuffer) {
 			resetWorkers(TileRasterStage::DRAWCALL_START_CLEAR);
 		}

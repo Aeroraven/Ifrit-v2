@@ -152,7 +152,7 @@ namespace Ifrit::Core::Data {
 			const auto dataPtr = data;
 			const auto dataSizeSt = width * height * channel * workerId / totalWorkers;
 			const auto dataSizeEd = width * height * channel * (workerId + 1) / totalWorkers;
-			memset(dataPtr, dataSizeSt, (dataSizeEd - dataSizeSt) * sizeof(T));
+			memset(dataPtr+ dataSizeSt, 0 , (dataSizeEd - dataSizeSt) * sizeof(T));
 		}
 
 		T& operator()(size_t x, size_t y, size_t c) {

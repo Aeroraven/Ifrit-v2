@@ -41,7 +41,14 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterWorker::drawCall() IFRIT_AP_NOTHROW {
 		auto rawRenderer = rendererReference;
+		auto totalTiles = context->numTilesX * context->numTilesY;
+		context->assembledTriangles[workerId].clear();
+		for (int j = 0; j < totalTiles; j++) {
+			context->rasterizerQueue[workerId][j].clear();
+			context->coverQueue[workerId][j].clear();
+		}
 		vertexProcessing(rawRenderer);
+		rawRenderer->statusTransitionBarrier2(TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);
 		geometryProcessing(rawRenderer);
 		rawRenderer->statusTransitionBarrier2(TileRasterStage::GEOMETRY_PROCESSING_SYNC, TileRasterStage::RASTERIZATION);
 		rasterization(rawRenderer);

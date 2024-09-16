@@ -84,7 +84,7 @@ namespace Ifrit::Demo::ShaderVMDemo {
 
 		struct Uniform {
 			ifloat4 t1 = { 0,0,0,0 };
-			ifloat4 t2 = { 0,0,0,0 };
+			ifloat4 t2 = { 0.0,0,0,0 };
 		} uniform;
 
 		auto uniform1 = bufferman->createBuffer({ sizeof(uniform) });
@@ -116,6 +116,8 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 		windowProvider.loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+			//uniform.t2.x = 0.4f*std::sin((float)std::chrono::duration_cast<std::chrono::milliseconds>(start.time_since_epoch()).count() / 1000.0f) * 0.1f;
+			//bufferman->bufferData(uniform1, &uniform, 0, sizeof(uniform));
 			renderer->drawElements(indexBuffer.size(),true);
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
