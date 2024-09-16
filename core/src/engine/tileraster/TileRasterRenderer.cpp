@@ -134,6 +134,20 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		return ;
 	}
+	void TileRasterRenderer::statusTransitionBarrier2(TileRasterStage waitOn, TileRasterStage proceedTo) {
+		while (true) {
+			bool allOnBarrier = true;
+			for (auto& worker : workers) {
+				auto expected = waitOn;
+				allOnBarrier = allOnBarrier && 
+					(worker->status.compare_exchange_weak(expected, proceedTo, std::memory_order::acq_rel) ||
+					(expected >= proceedTo));
+			}
+			if (allOnBarrier) break;
+			std::this_thread::yield();
+		}
+	}
+	
 	IFRIT_APIDECL void TileRasterRenderer::setDepthFunc(IfritCompareOp depthFunc) {
 		context->depthFuncSaved = depthFunc;
 		if (context->optDepthTestEnableII) {
@@ -280,9 +294,9 @@ namespace Ifrit::Engine::TileRaster {
 			context->depthFunc = context->depthFuncSaved;
 		}
 	}
-	void TileRasterRenderer::resetWorkers() {
+	void TileRasterRenderer::resetWorkers(TileRasterStage expectedStage) {
 		for (auto& worker : workers) {
-			worker->status.store(TileRasterStage::VERTEX_SHADING, std::memory_order::relaxed);
+			worker->status.store(expectedStage, std::memory_order::relaxed);
 			worker->activated.store(true);
 		}
 	}
@@ -340,11 +354,10 @@ namespace Ifrit::Engine::TileRaster {
 	IFRIT_APIDECL void TileRasterRenderer::drawElements(int vertexCount, bool clearFramebuffer) IFRIT_AP_NOTHROW {
 		intializeRenderContext();
 		updateUniformBuffer();
-		resetWorkers();
 		context->indexBufferSize = vertexCount;
-		unresolvedTileRaster.store(0,std::memory_order_seq_cst);
-		unresolvedTileFragmentShading.store(0, std::memory_order_seq_cst);
-		unresolvedTileSort.store(0, std::memory_order_seq_cst);
+		unresolvedTileRaster.store(0,std::memory_order::relaxed);
+		unresolvedTileFragmentShading.store(0, std::memory_order::relaxed);
+		unresolvedTileSort.store(0, std::memory_order::relaxed);
 		auto totalTiles = context->numTilesX * context->numTilesY;
 		for (int i = 0; i < context->numThreads; i++) {
 			context->assembledTriangles[i].clear();
@@ -353,17 +366,11 @@ namespace Ifrit::Engine::TileRaster {
 				context->coverQueue[i][j].clear();
 			}
 		}
-		statusTransitionBarrier(TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);
-		statusTransitionBarrier(TileRasterStage::GEOMETRY_PROCESSING_SYNC, TileRasterStage::RASTERIZATION);
 		if (clearFramebuffer) {
-			clear();
-		}
-		if (context->optForceDeterministic) {
-			statusTransitionBarrier(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::SORTING);
-			statusTransitionBarrier(TileRasterStage::SORTING_SYNC, TileRasterStage::FRAGMENT_SHADING);
+			resetWorkers(TileRasterStage::DRAWCALL_START_CLEAR);
 		}
 		else {
-			statusTransitionBarrier(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::FRAGMENT_SHADING);
+			resetWorkers(TileRasterStage::DRAWCALL_START);
 		}
 		statusTransitionBarrier(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::COMPLETED);
 	}

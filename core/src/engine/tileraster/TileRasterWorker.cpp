@@ -25,31 +25,34 @@ namespace Ifrit::Engine::TileRaster {
 			else if(curStatus == TileRasterStage::TERMINATING){
 				return;
 			}
-			else {
-				auto rawRenderer = rendererReference; 
-				if (curStatus == TileRasterStage::VERTEX_SHADING) {
-					vertexProcessing(rawRenderer);
-					activated.store(false);
-				}
-				else if (curStatus == TileRasterStage::GEOMETRY_PROCESSING) {
-					geometryProcessing(rawRenderer);
-					activated.store(false);
-				}
-				else if (curStatus == TileRasterStage::RASTERIZATION) {
-					rasterization(rawRenderer);
-					activated.store(false);
-				}
-				else if (curStatus == TileRasterStage::SORTING) {
-					sortOrderProcessing(rawRenderer);
-					activated.store(false);
-				}
-				else if (curStatus == TileRasterStage::FRAGMENT_SHADING) {
-					fragmentProcessing(rawRenderer);
-					activated.store(false);
-				}
+			else if(curStatus == TileRasterStage::DRAWCALL_START){
+				drawCall();
+			}
+			else if (curStatus == TileRasterStage::DRAWCALL_START_CLEAR) {
+				drawCallWithClear();
 			}
 			
 		}
+	}
+	void TileRasterWorker::drawCallWithClear() IFRIT_AP_NOTHROW {
+		context->frameBuffer->getColorAttachment(0)->clearImageZeroMultiThread(workerId, context->numThreads);
+		context->frameBuffer->getDepthAttachment()->clearImageMultithread(255, workerId, context->numThreads);
+		drawCall();
+	}
+	void TileRasterWorker::drawCall() IFRIT_AP_NOTHROW {
+		auto rawRenderer = rendererReference;
+		vertexProcessing(rawRenderer);
+		geometryProcessing(rawRenderer);
+		rawRenderer->statusTransitionBarrier2(TileRasterStage::GEOMETRY_PROCESSING_SYNC, TileRasterStage::RASTERIZATION);
+		rasterization(rawRenderer);
+		if (context->optForceDeterministic) {
+			rawRenderer->statusTransitionBarrier2(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::SORTING);
+			sortOrderProcessing(rawRenderer);
+			rawRenderer->statusTransitionBarrier2(TileRasterStage::SORTING_SYNC, TileRasterStage::FRAGMENT_SHADING);
+		}else{
+			rawRenderer->statusTransitionBarrier2(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::FRAGMENT_SHADING);
+		}
+		fragmentProcessing(rawRenderer);
 	}
 	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, ifloat4 v1, ifloat4 v2, ifloat4 v3) IFRIT_AP_NOTHROW {
 		

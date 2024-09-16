@@ -51,6 +51,8 @@ namespace Ifrit::Engine::TileRaster {
 	protected:
 		friend class TileRasterRenderer;
 		void run() IFRIT_AP_NOTHROW;
+		void drawCall() IFRIT_AP_NOTHROW;
+		void drawCallWithClear() IFRIT_AP_NOTHROW;
 		void release();
 
 		bool triangleFrustumClip(ifloat4 v1, ifloat4 v2, ifloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW;

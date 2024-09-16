@@ -14,7 +14,7 @@
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 #include "engine/bufferman/BufferManager.h"
 
-#define DEMO_RESOLUTION 512
+#define DEMO_RESOLUTION 2048
 
 namespace Ifrit::Demo::DemoDefault {
 	using namespace std;

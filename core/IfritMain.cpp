@@ -41,6 +41,6 @@ int demoASTest() {
 }
 
 int main() {
-	demoASTest();
+	Ifrit::Demo::ShaderVMDemo::mainTest();
 	return 0;
 }

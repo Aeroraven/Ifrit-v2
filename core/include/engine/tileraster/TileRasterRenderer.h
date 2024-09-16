@@ -8,6 +8,8 @@ namespace Ifrit::Engine::TileRaster {
 
 	enum class TileRasterStage {
 		CREATED,
+		DRAWCALL_START,
+		DRAWCALL_START_CLEAR,
 		VERTEX_SHADING,
 		VERTEX_SHADING_SYNC,
 		GEOMETRY_PROCESSING,
@@ -38,8 +40,9 @@ namespace Ifrit::Engine::TileRaster {
 
 	protected:
 		void createWorkers();
-		void resetWorkers();
+		void resetWorkers(TileRasterStage expectedStage);
 		void statusTransitionBarrier(TileRasterStage waitOn, TileRasterStage proceedTo);
+		void statusTransitionBarrier2(TileRasterStage waitOn, TileRasterStage proceedTo);
 		void waitOnWorkers(TileRasterStage waitOn);
 		
 		int fetchUnresolvedTileRaster();
