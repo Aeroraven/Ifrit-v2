@@ -135,10 +135,7 @@ namespace Ifrit::Core::Data {
 			else {
 				auto st = data + dataSizeSt;
 				auto ed = data + dataSizeEd;
-				while (st != ed) {
-					*st = value;
-					st++;
-				}
+				std::fill(st,ed,value);
 			}
 		}
 

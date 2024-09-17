@@ -18,6 +18,8 @@ namespace Ifrit::Engine::TileRaster {
 		constexpr static int tileWidth = 16;
 		constexpr static int subtileBlockWidth = 4;
 		constexpr static int numSubtilesPerTileX = tileWidth / subtileBlockWidth;
+		constexpr static int vsChunkSize = 48;
+		constexpr static int gsChunkSize = 256;
 
 		// Non-owning Bindings
 		FrameBuffer* frameBuffer;

@@ -37,6 +37,9 @@ namespace Ifrit::Engine::TileRaster {
 		std::atomic<uint32_t> unresolvedTileRaster = 0;
 		std::atomic<uint32_t> unresolvedTileFragmentShading = 0;
 		std::atomic<uint32_t> unresolvedTileSort = 0;
+		std::atomic<uint32_t> unresolvedChunkVertex = 0;
+		std::atomic<uint32_t> unresolvedChunkGeometry = 0;
+
 		bool initialized = false;
 
 	protected:
@@ -44,6 +47,9 @@ namespace Ifrit::Engine::TileRaster {
 		void resetWorkers(TileRasterStage expectedStage);
 		void statusTransitionBarrier2(TileRasterStage waitOn, TileRasterStage proceedTo);
 		
+		int fetchUnresolvedChunkVertex();
+		int fetchUnresolvedChunkGeometry();
+
 		int fetchUnresolvedTileRaster();
 		int fetchUnresolvedTileFragmentShading();
 		int fetchUnresolvedTileSort();

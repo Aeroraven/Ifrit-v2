@@ -30,31 +30,31 @@ namespace Ifrit::Engine::TileRaster {
 				return;
 			}
 			else if(curStatus == TileRasterStage::DRAWCALL_START){
-				drawCall();
+				drawCall(false);
 			}
 			else if (curStatus == TileRasterStage::DRAWCALL_START_CLEAR) {
-				drawCallWithClear();
+				drawCall(true);
 			}
 			
 		}
 	}
-	void TileRasterWorker::drawCallWithClear() IFRIT_AP_NOTHROW {
-		context->frameBuffer->getColorAttachment(0)->clearImageZeroMultiThread(workerId, TOTAL_THREADS);
-		context->frameBuffer->getDepthAttachment()->clearImageMultithread(255, workerId, TOTAL_THREADS);
-		drawCall();
-	}
-	void TileRasterWorker::drawCall() IFRIT_AP_NOTHROW {
+
+	void TileRasterWorker::drawCall(bool withClear) IFRIT_AP_NOTHROW {
 		auto rawRenderer = rendererReference;
 		auto totalTiles = context->numTilesX * context->numTilesY;
+		vertexProcessing(rawRenderer);
+		rawRenderer->statusTransitionBarrier2(TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);
 		context->assembledTriangles[workerId].clear();
 		for (int j = 0; j < totalTiles; j++) {
 			context->rasterizerQueue[workerId][j].clear();
 			context->coverQueue[workerId][j].clear();
 		}
-		vertexProcessing(rawRenderer);
-		rawRenderer->statusTransitionBarrier2(TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);
 		geometryProcessing(rawRenderer);
 		rawRenderer->statusTransitionBarrier2(TileRasterStage::GEOMETRY_PROCESSING_SYNC, TileRasterStage::RASTERIZATION);
+		if (withClear) {
+			context->frameBuffer->getDepthAttachment()->clearImageMultithread(255, workerId, TOTAL_THREADS);
+			context->frameBuffer->getColorAttachment(0)->clearImageZeroMultiThread(workerId, TOTAL_THREADS);
+		}
 		rasterization(rawRenderer);
 		if (context->optForceDeterministic) {
 			rawRenderer->statusTransitionBarrier2(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::SORTING);
@@ -280,11 +280,15 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<const void*> inVertex(context->vertexBuffer->getAttributeCount());
 		auto vsEntry = context->threadSafeVS[workerId];
 		const auto vxCount = context->vertexBuffer->getVertexCount();
-		for (int j = workerId; j < vxCount; j += TOTAL_THREADS) {
-			auto pos = &context->vertexShaderResult->getPositionBuffer()[j];
-			getVaryingsAddr(j, outVaryings);
-			getVertexAttributes(j, inVertex);
-			vsEntry->execute(inVertex.data(), pos, (ifloat4*const*)outVaryings.data());
+		auto curChunk = 0;
+		while((curChunk = renderer->fetchUnresolvedChunkVertex()) >= 0) {
+			auto lim = std::min(vxCount, (curChunk + 1) * context->vsChunkSize);
+			for (int j = curChunk * context->vsChunkSize; j < lim; j++) {
+				auto pos = &context->vertexShaderResult->getPositionBuffer()[j];
+				getVaryingsAddr(j, outVaryings);
+				getVertexAttributes(j, inVertex);
+				vsEntry->execute(inVertex.data(), pos, (ifloat4*const*)outVaryings.data());
+			}
 		}
 		status.store(TileRasterStage::VERTEX_SHADING_SYNC, std::memory_order::relaxed);
 	}
@@ -293,20 +297,26 @@ namespace Ifrit::Engine::TileRaster {
 		auto posBuffer = context->vertexShaderResult->getPositionBuffer();
 		generatedTriangle.clear();
 		int genTris = 0, ixBufSize = context->indexBufferSize;
-		for (int j = workerId * context->vertexStride; j < ixBufSize; j += TOTAL_THREADS * context->vertexStride) {
-			int id0 = (context->indexBuffer)[j];
-			int id1 = (context->indexBuffer)[j + 1];
-			int id2 = (context->indexBuffer)[j + 2];
+		auto curChunk = 0;
+		while ((curChunk = renderer->fetchUnresolvedChunkGeometry()) >= 0) {
+			auto start = curChunk * context->gsChunkSize * context->vertexStride;
+			auto lim = std::min(ixBufSize, (curChunk + 1) * context->gsChunkSize * context->vertexStride);
+			for (int j = start; j < lim; j += context->vertexStride) {
+				int id0 = (context->indexBuffer)[j];
+				int id1 = (context->indexBuffer)[j + 1];
+				int id2 = (context->indexBuffer)[j + 2];
 
-			if (context->frontface == TileRasterFrontFace::COUNTER_CLOCKWISE) {
-				std::swap(id0, id2);
+				if (context->frontface == TileRasterFrontFace::COUNTER_CLOCKWISE) {
+					std::swap(id0, id2);
+				}
+				vfloat4 v1 = toSimdVector(posBuffer[id0]);
+				vfloat4 v2 = toSimdVector(posBuffer[id1]);
+				vfloat4 v3 = toSimdVector(posBuffer[id2]);
+
+				const auto prim = j / context->vertexStride;
+				triangleHomogeneousClip(prim, v1, v2, v3);
 			}
-			vfloat4 v1 = toSimdVector(posBuffer[id0]);
-			vfloat4 v2 = toSimdVector(posBuffer[id1]); 
-			vfloat4 v3 = toSimdVector(posBuffer[id2]);
 
-			const auto prim = j / context->vertexStride;
-			triangleHomogeneousClip(prim, v1, v2, v3);
 		}
 		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC, std::memory_order::relaxed);
 	}

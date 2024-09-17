@@ -53,7 +53,7 @@ namespace Ifrit::Engine::TileRaster {
 	protected:
 		friend class TileRasterRenderer;
 		void run() IFRIT_AP_NOTHROW;
-		void drawCall() IFRIT_AP_NOTHROW;
+		void drawCall(bool withClear) IFRIT_AP_NOTHROW;
 		void drawCallWithClear() IFRIT_AP_NOTHROW;
 		void release();
 
