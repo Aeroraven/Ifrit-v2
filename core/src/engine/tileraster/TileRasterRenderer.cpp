@@ -30,6 +30,10 @@ namespace Ifrit::Engine::TileRaster {
 		this->context->frameBuffer = &frameBuffer;
 		context->numTilesX = Inline::ceilDiv(frameBuffer.getColorAttachment(0)->getWidth(), context->tileWidth);
 		context->numTilesY = Inline::ceilDiv(frameBuffer.getColorAttachment(0)->getHeight(), context->tileWidth);
+		context->frameWidth = context->frameBuffer->getWidth();
+		context->frameHeight = context->frameBuffer->getHeight();
+		context->invFrameWidth = 1.0f / context->frameWidth;
+		context->invFrameHeight = 1.0f / context->frameHeight;
 		updateVectorCapacity();
 	}
 
@@ -324,12 +328,6 @@ namespace Ifrit::Engine::TileRaster {
 	IFRIT_APIDECL void TileRasterRenderer::drawElements(int vertexCount, bool clearFramebuffer) IFRIT_AP_NOTHROW {
 		intializeRenderContext();
 		updateUniformBuffer();
-		context->frameWidth = context->frameBuffer->getWidth();
-		context->frameHeight = context->frameBuffer->getHeight();
-		context->invFrameWidth = 1.0f / context->frameWidth;
-		context->invFrameHeight = 1.0f / context->frameHeight;
-		context->tileSizeX = 1.0f * context->tileWidth / context->frameWidth;
-		context->tileSizeY = 1.0f * context->tileWidth / context->frameHeight;
 
 		context->indexBufferSize = vertexCount;
 		unresolvedTileRaster.store(context->numTilesX * context->numTilesY,std::memory_order::relaxed);

@@ -101,32 +101,6 @@ namespace Ifrit::Engine::TileRaster {
 			return y * context->numTilesX + x;
 		
 		}
-		inline void getAcceptRejectCoords(ifloat3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3])IFRIT_AP_NOTHROW {
-			constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
-			for (int i = 0; i < 3; i++) {
-				bool normalRight = edgeCoefs[i].x < 0;
-				bool normalDown = edgeCoefs[i].y < 0;
-				if (normalRight) {
-					if (normalDown) {
-						chosenCoordTR[i] = VRB;
-						chosenCoordTA[i] = VLT;
-					}
-					else {
-						chosenCoordTR[i] = VRT;
-						chosenCoordTA[i] = VLB;
-					}
-				}
-				else {
-					if (normalDown) {
-						chosenCoordTR[i] = VLB;
-						chosenCoordTA[i] = VRT;
-					}
-					else {
-						chosenCoordTR[i] = VLT;
-						chosenCoordTA[i] = VRB;
-					}
-				}
-			}
-		}
+		
 	};
 }

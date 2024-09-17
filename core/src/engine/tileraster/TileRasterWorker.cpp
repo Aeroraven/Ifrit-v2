@@ -8,6 +8,33 @@ using namespace Ifrit::Math::SIMD;
 
 namespace Ifrit::Engine::TileRaster {
 	constexpr auto TOTAL_THREADS = TileRasterContext::numThreads + 1;
+	inline void getAcceptRejectCoords(vfloat3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3])IFRIT_AP_NOTHROW {
+		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
+		for (int i = 0; i < 3; i++) {
+			bool normalRight = edgeCoefs[i].x < 0;
+			bool normalDown = edgeCoefs[i].y < 0;
+			if (normalRight) {
+				if (normalDown) {
+					chosenCoordTR[i] = VRB;
+					chosenCoordTA[i] = VLT;
+				}
+				else {
+					chosenCoordTR[i] = VRT;
+					chosenCoordTA[i] = VLB;
+				}
+			}
+			else {
+				if (normalDown) {
+					chosenCoordTR[i] = VLB;
+					chosenCoordTA[i] = VRT;
+				}
+				else {
+					chosenCoordTR[i] = VLT;
+					chosenCoordTA[i] = VRB;
+				}
+			}
+		}
+	}
 	TileRasterWorker::TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context) {
 		this->workerId = workerId;
 		this->rendererReference = renderer.get();
@@ -67,15 +94,9 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, vfloat4 v1, vfloat4 v2, vfloat4 v3) IFRIT_AP_NOTHROW {
 		
-		constexpr uint32_t clipIts = 2;
-		const vfloat4 clipCriteria[2] = {
-			vfloat4(0,0,0,1),
-			vfloat4(0,0,0,0)
-		};
-		const vfloat4 clipNormal[2] = {
-			vfloat4(0,0,0,-1),
-			vfloat4(0,0,-1,0)
-		};
+		constexpr uint32_t clipIts = 1;
+		const vfloat4 clipCriteria= vfloat4(0, 0, 0, 1);
+		const vfloat4 clipNormal = vfloat4(0, 0, 0, -1);
 
 		struct TileRasterClipVertex {
 			vfloat4 barycenter;
@@ -88,49 +109,44 @@ namespace Ifrit::Engine::TileRaster {
 		ret[1][1] = { vfloat4(0,1,0,0),v2 };
 		ret[1][2] = { vfloat4(0,0,1,0),v3 };
 		int clipTimes = 0;
-		for (int i = 0; i < clipIts; i++) {
-			vfloat4 outNormal = clipNormal[i];
-			vfloat4 refPoint = clipCriteria[i];
-			const auto cIdx = i & 1, cRIdx = 1 - (i & 1);
-			retCnt[cIdx] = 0;
-			const auto psize = retCnt[cRIdx];
-			if (psize == 0) {
-				return 0;
-			}
-			auto pc = ret[cRIdx][0];
-			auto npc = dot(pc.pos, outNormal);
-			for (int j = 0; j < psize; j++) {
-				const auto& pn = ret[cRIdx][(j + 1) % psize];
-				auto npn = dot(pn.pos, outNormal);
-				if (npc * npn < 0) {
-					vfloat4 dir = pn.pos - pc.pos;
-					float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
-					float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
-					float t = (-refPoint.w + numo) / deno;
-					vfloat4 intersection = pc.pos + dir * t;
-					vfloat4 barycenter = lerp(pc.barycenter, pn.barycenter, t);
+		vfloat4 outNormal = clipNormal;
+		vfloat4 refPoint = clipCriteria;
+		const auto cIdx = 0, cRIdx = 1;
+		retCnt[cIdx] = 0;
+		auto pc = ret[cRIdx][0];
+		auto npc = dot(pc.pos, outNormal);
+		for (int j = 0; j < 3; j++) {
+			const auto& pn = ret[cRIdx][(j + 1) % 3];
+			auto npn = dot(pn.pos, outNormal);
+			if (npc * npn < 0) {
+				vfloat4 dir = pn.pos - pc.pos;
+				float numo = pc.pos.w - pc.pos.x * refPoint.x - pc.pos.y * refPoint.y - pc.pos.z * refPoint.z;
+				float deno = dir.x * refPoint.x + dir.y * refPoint.y + dir.z * refPoint.z - dir.w;
+				float t = (-refPoint.w + numo) / deno;
+				vfloat4 intersection = pc.pos + dir * t;
+				vfloat4 barycenter = lerp(pc.barycenter, pn.barycenter, t);
 
-					TileRasterClipVertex newp;
-					newp.barycenter = barycenter;
-					newp.pos = intersection;
-					ret[cIdx][retCnt[cIdx]++] = (newp);
-				}
-				if (npn < EPS) {
-					ret[cIdx][retCnt[cIdx]++] = pn;
-				}
-				pc = pn;
-				npc = npn;
+				TileRasterClipVertex newp;
+				newp.barycenter = barycenter;
+				newp.pos = intersection;
+				ret[cIdx][retCnt[cIdx]++] = (newp);
 			}
-			if (retCnt[cIdx] < 3) {
-				return 0;
+			if (npn < EPS) {
+				ret[cIdx][retCnt[cIdx]++] = pn;
 			}
+			pc = pn;
+			npc = npn;
 		}
-		const auto clipOdd = clipTimes & 1;
+		if (retCnt[cIdx] < 3) {
+			return 0;
+		}
+		const auto clipOdd = 0;
 		for (int i = 0; i < retCnt[clipOdd]; i++) {
 			auto pd = ret[clipOdd][i].pos.w;
 			ret[clipOdd][i].pos /= pd;
 			ret[clipOdd][i].pos.w = pd;
 		}
+		auto xid = context->assembledTriangles[workerId].size();
 		for (int i = 0; i < retCnt[clipOdd] - 2; i++) {
 			AssembledTriangleProposal atri;
 			vfloat4 tv1, tv2, tv3;
@@ -159,15 +175,21 @@ namespace Ifrit::Engine::TileRaster {
 
 			const auto csInvX = context->invFrameWidth * ar * 2.0f;
 			const auto csInvY = context->invFrameHeight * ar * 2.0f;
+			const auto csFw = context->frameWidth * 2.0f;
+			const auto csFh = context->frameHeight * 2.0f;
+			const auto csFhFw = context->frameHeight * context->frameWidth;
 
-			atri.f3 = { sV2V1y * csInvX , sV2V1x * csInvY,(-tv1.x * sV2V1y - tv1.y * sV2V1x - sV2V1y - sV2V1x) * ar };
-			atri.f1 = { sV3V2y * csInvX , sV3V2x * csInvY,(-tv2.x * sV3V2y - tv2.y * sV3V2x - sV3V2y - sV3V2x) * ar };
-			atri.f2 = { sV1V3y * csInvX , sV1V3x * csInvY,(-tv3.x * sV1V3y - tv3.y * sV1V3x - sV1V3y - sV1V3x) * ar };
+			const auto s3 = -sV2V1y - sV2V1x;
+			const auto s1 = -sV3V2y - sV3V2x;
+			const auto s2 = -sV1V3y - sV1V3x;
 
+			atri.f3 = { sV2V1y * csInvX , sV2V1x * csInvY,(-tv1.x * sV2V1y - tv1.y * sV2V1x + s3) * ar };
+			atri.f1 = { sV3V2y * csInvX , sV3V2x * csInvY,(-tv2.x * sV3V2y - tv2.y * sV3V2x + s1) * ar };
+			atri.f2 = { sV1V3y * csInvX , sV1V3x * csInvY,(-tv3.x * sV1V3y - tv3.y * sV1V3x + s2) * ar };
 
-			atri.e1 = { 2.0f * sV2V1y,  2.0f * sV2V1x,  tv2.x * tv1.y - tv1.x * tv2.y - sV2V1y - sV2V1x - EPS };
-			atri.e2 = { 2.0f * sV3V2y,  2.0f * sV3V2x,  tv3.x * tv2.y - tv2.x * tv3.y - sV3V2y - sV3V2x - EPS };
-			atri.e3 = { 2.0f * sV1V3y,  2.0f * sV1V3x,  tv1.x * tv3.y - tv3.x * tv1.y - sV1V3y - sV1V3x - EPS };
+			atri.e1 = { csFw * sV2V1y,  csFh * sV2V1x,  csFhFw * (tv2.x * tv1.y - tv1.x * tv2.y + s3 - EPS) };
+			atri.e2 = { csFw * sV3V2y,  csFh * sV3V2x,  csFhFw * (tv3.x * tv2.y - tv2.x * tv3.y + s1 - EPS) };
+			atri.e3 = { csFw * sV1V3y,  csFh * sV1V3x,  csFhFw * (tv1.x * tv3.y - tv3.x * tv1.y + s2 - EPS) };
 
 			atri.originalPrimitive = primitiveId;
 			// Precision might matter here
@@ -180,9 +202,8 @@ namespace Ifrit::Engine::TileRaster {
 			if (!triangleFrustumClip(tv1, tv2, tv3, bbox)) {
 				continue;
 			}
-			auto xid = context->assembledTriangles[workerId].size();
 			context->assembledTriangles[workerId].emplace_back(std::move(atri));
-			executeBinner(xid, atri, bbox);
+			executeBinner(xid++, atri, bbox);
 		}
 		return  retCnt[clipOdd] - 2;
 	}
@@ -228,7 +249,7 @@ namespace Ifrit::Engine::TileRaster {
 		int tileMaxx = std::min((int)(maxx * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
 		int tileMaxy = std::min((int)(maxy * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
 
-		ifloat3 edgeCoefs[3];
+		vfloat3 edgeCoefs[3];
 		edgeCoefs[0] = atp.e1;
 		edgeCoefs[1] = atp.e2;
 		edgeCoefs[2] = atp.e3;
@@ -239,23 +260,44 @@ namespace Ifrit::Engine::TileRaster {
 		int chosenCoordTA[3];
 		getAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
-		const float tileSizeX = context->tileSizeX;
-		const float tileSizeY = context->tileSizeY;
+		const float tileSizeX = context->tileWidth;
+		const float tileSizeY = context->tileWidth;
+
+		vfloat3 zeroVec = vfloat3(0.0f);
+
 		for (int y = tileMiny; y <= tileMaxy; y++) {
 			for (int x = tileMinx; x <= tileMaxx; x++) {
-				tileCoords[VLT] = { x * tileSizeX, y * tileSizeY, 1.0 };
-				tileCoords[VLB] = { x * tileSizeX, (y + 1) * tileSizeY, 1.0 };
-				tileCoords[VRB] = { (x + 1) * tileSizeX, (y + 1) * tileSizeY, 1.0 };
-				tileCoords[VRT] = { (x + 1) * tileSizeX, y * tileSizeY, 1.0 };
+				tileCoords[VLT] = { x * tileSizeX, y * tileSizeY, 1.0f };
+				tileCoords[VLB] = { x * tileSizeX, (y + 1) * tileSizeY, 1.0f };
+				tileCoords[VRB] = { (x + 1) * tileSizeX, (y + 1) * tileSizeY, 1.0f };
+				tileCoords[VRT] = { (x + 1) * tileSizeX, y * tileSizeY, 1.0f };
 
 				int criteriaTR = 0;
 				int criteriaTA = 0;
+
+#ifdef IFRIT_USE_SIMD_128
+				vfloat3 coefX = vfloat3(edgeCoefs[0].x, edgeCoefs[1].x, edgeCoefs[2].x);
+				vfloat3 coefY = vfloat3(edgeCoefs[0].y, edgeCoefs[1].y, edgeCoefs[2].y);
+				vfloat3 coefZ = vfloat3(edgeCoefs[0].z, edgeCoefs[1].z, edgeCoefs[2].z);
+
+				vfloat3 tileCoordsX_TR = vfloat3(tileCoords[chosenCoordTR[0]].x, tileCoords[chosenCoordTR[1]].x, tileCoords[chosenCoordTR[2]].x);
+				vfloat3 tileCoordsY_TR = vfloat3(tileCoords[chosenCoordTR[0]].y, tileCoords[chosenCoordTR[1]].y, tileCoords[chosenCoordTR[2]].y);
+				vfloat3 tileCoordsX_TA = vfloat3(tileCoords[chosenCoordTA[0]].x, tileCoords[chosenCoordTA[1]].x, tileCoords[chosenCoordTA[2]].x);
+				vfloat3 tileCoordsY_TA = vfloat3(tileCoords[chosenCoordTA[0]].y, tileCoords[chosenCoordTA[1]].y, tileCoords[chosenCoordTA[2]].y);
+
+				vfloat3 criteriaTRLocal = fma(coefX, tileCoordsX_TR, fma(coefY, tileCoordsY_TR, coefZ));
+				vfloat3 criteriaTALocal = fma(coefX, tileCoordsX_TA, fma(coefY, tileCoordsY_TA, coefZ));
+				criteriaTR += cmpltElements(criteriaTRLocal, zeroVec);
+				criteriaTA += cmpltElements(criteriaTALocal, zeroVec);
+
+#else
 				for (int i = 0; i < 3; i++) {
 					float criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y + edgeCoefs[i].z;
 					float criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y + edgeCoefs[i].z;
 					if (criteriaTRLocal < 0) criteriaTR += 1;
 					if (criteriaTALocal < 0) criteriaTA += 1;
 				}
+#endif
 				if (criteriaTR != 3)continue;
 				if (criteriaTA == 3) {
 					TileBinProposal proposal;
@@ -331,22 +373,28 @@ namespace Ifrit::Engine::TileRaster {
 		__m128 wfx128 = _mm_set1_ps(1.0f * context->subtileBlockWidth / frameBufferWidth);
 		__m128 wfy128 = _mm_set1_ps(1.0f * context->subtileBlockWidth / frameBufferHeight);
 #endif
+
+#ifdef IFRIT_USE_SIMD_256
+		__m256 wfx256 = _mm256_set1_ps(1.0f * context->subtileBlockWidth / frameBufferWidth);
+		__m256 wfy256 = _mm256_set1_ps(1.0f * context->subtileBlockWidth / frameBufferHeight);
+#endif
 		while ((curTile = renderer->fetchUnresolvedTileRaster()) >=0) {
 			rdTiles++;
 			int tileIdX = curTile % context->numTilesX;
 			int tileIdY = curTile / context->numTilesX;
 
-			float tileMinX = tileIdX * context->tileSizeX;
-			float tileMinY = tileIdY * context->tileSizeY;
-			float tileMaxX = (tileIdX + 1) * context->tileSizeX;
-			float tileMaxY = (tileIdY + 1) * context->tileSizeY;
+			float tileMinX = tileIdX * context->tileWidth;
+			float tileMinY = tileIdY * context->tileWidth;
+			float tileMaxX = (tileIdX + 1) * context->tileWidth;
+			float tileMaxY = (tileIdY + 1) * context->tileWidth;
 
 			for (int T = TOTAL_THREADS - 1; T >= 0; T--) {
-				for (int j = context->rasterizerQueue[T][curTile].size() - 1; j >= 0; j--) {
-					const auto& proposal = context->rasterizerQueue[T][curTile][j];
+				const auto& proposalT = context->rasterizerQueue[T][curTile];
+				for (int j = proposalT.size() - 1; j >= 0; j--) {
+					const auto& proposal = proposalT[j];
 					const auto& ptRef = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
 
-					ifloat3 edgeCoefs[3];
+					vfloat3 edgeCoefs[3];
 					edgeCoefs[0] = ptRef.e1;
 					edgeCoefs[1] = ptRef.e2;
 					edgeCoefs[2] = ptRef.e3;
@@ -356,17 +404,35 @@ namespace Ifrit::Engine::TileRaster {
 					getAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
 					int leftBlock = 0;
-					int rightBlock = context->numSubtilesPerTileX - 1;
+					int rightBlock = context->numSubtilesPerTileX;
 					int topBlock = 0;
-					int bottomBlock = context->numSubtilesPerTileX - 1;
+					int bottomBlock = context->numSubtilesPerTileX;
 
 #ifdef IFRIT_USE_SIMD_128
 
+					
+#ifdef IFRIT_USE_SIMD_256
+					__m256 tileMinX256 = _mm256_set1_ps(tileMinX);
+					__m256 tileMinY256 = _mm256_set1_ps(tileMinY);
+					__m256 tileMaxX256 = _mm256_set1_ps(tileMaxX);
+					__m256 tileMaxY256 = _mm256_set1_ps(tileMaxY);
+					__m256 frameBufferWidth256 = _mm256_set1_ps(frameBufferWidth);
+					__m256 frameBufferHeight256 = _mm256_set1_ps(frameBufferHeight);
+
+					__m256 edgeCoefs256X[3], edgeCoefs256Y[3], edgeCoefs256Z[3];
+
+					for (int k = 0; k < 3; k++) {
+						edgeCoefs256X[k] = _mm256_set1_ps(edgeCoefs[k].x);
+						edgeCoefs256Y[k] = _mm256_set1_ps(edgeCoefs[k].y);
+						edgeCoefs256Z[k] = _mm256_set1_ps((-edgeCoefs[k].z));//NOTE HERE
+					}
+#else
+					static_assert(false, "debugging");
 					__m128 tileMinX128 = _mm_set1_ps(tileMinX);
 					__m128 tileMinY128 = _mm_set1_ps(tileMinY);
 					__m128 tileMaxX128 = _mm_set1_ps(tileMaxX);
 					__m128 tileMaxY128 = _mm_set1_ps(tileMaxY);
-					
+
 					__m128 edgeCoefs128X[3], edgeCoefs128Y[3], edgeCoefs128Z[3];
 					for (int k = 0; k < 3; k++) {
 						edgeCoefs128X[k] = _mm_set1_ps(edgeCoefs[k].x);
@@ -374,21 +440,6 @@ namespace Ifrit::Engine::TileRaster {
 						edgeCoefs128Z[k] = _mm_set1_ps(-edgeCoefs[k].z); //NOTE HERE
 					}
 
-#ifdef IFRIT_USE_SIMD_256
-					__m256 tileMinX256 = _mm256_set1_ps(tileMinX);
-					__m256 tileMinY256 = _mm256_set1_ps(tileMinY);
-					__m256 tileMaxX256 = _mm256_set1_ps(tileMaxX);
-					__m256 tileMaxY256 = _mm256_set1_ps(tileMaxY);
-					//__m256 wp256 = _mm256_set1_ps(context->subtileBlocksX * context->tileBlocksX);
-					__m256 frameBufferWidth256 = _mm256_set1_ps(frameBufferWidth);
-					__m256 frameBufferHeight256 = _mm256_set1_ps(frameBufferHeight);
-
-					__m256 edgeCoefs256X[3], edgeCoefs256Y[3], edgeCoefs256Z[3];
-					for (int k = 0; k < 3; k++) {
-						edgeCoefs256X[k] = _mm256_set1_ps(edgeCoefs[k].x * frameBufferHeight);
-						edgeCoefs256Y[k] = _mm256_set1_ps(edgeCoefs[k].y * frameBufferWidth);
-						edgeCoefs256Z[k] = _mm256_set1_ps((-edgeCoefs[k].z) * frameBufferHeight * frameBufferWidth);//NOTE HERE
-					}
 #endif
 
 					TileBinProposal npropPixel;
@@ -409,8 +460,70 @@ namespace Ifrit::Engine::TileRaster {
 
 					auto& coverQueue = context->coverQueue[workerId][getTileID(tileIdX, tileIdY)];
 
-					for (int x = leftBlock; x <= rightBlock; x += 2) {
-						for (int y = topBlock; y <= bottomBlock; y += 2) {
+
+#ifdef IFRIT_USE_SIMD_256
+					__m256 xTileWidth256f = _mm256_set1_ps(context->subtileBlockWidth);
+					for (int x = leftBlock; x < rightBlock; x += 4) {
+						for (int y = topBlock; y < bottomBlock; y += 2) {
+							__m256i x256 = _mm256_setr_epi32(x + 0, x + 1, x + 2, x + 3, x + 0, x + 1, x + 2, x + 3);
+							__m256i y256 = _mm256_setr_epi32(y + 0, y + 0, y + 0, y + 0, y + 1, y + 1, y + 1, y + 1);
+							__m256i criteriaTR256 = _mm256_setzero_si256();
+							__m256i criteriaTA256 = _mm256_setzero_si256();
+							__m256 x256f = _mm256_cvtepi32_ps(x256);
+							__m256 y256f = _mm256_cvtepi32_ps(y256);
+							__m256 subTileMinX256 = _mm256_fmadd_ps(x256f, xTileWidth256f, tileMinX256);//_mm256_fmadd_ps(x256f, wfx256, tileMinX256);
+							__m256 subTileMinY256 = _mm256_fmadd_ps(y256f, xTileWidth256f, tileMinY256);//_mm256_fmadd_ps(y256f, wfy256, tileMinY256);
+							__m256 subTileMaxX256 = _mm256_add_ps(subTileMinX256, xTileWidth256f);
+							__m256 subTileMaxY256 = _mm256_add_ps(subTileMinY256, xTileWidth256f);
+
+							__m256 tileCoordsX256[4], tileCoordsY256[4];
+							tileCoordsX256[VLT] = subTileMinX256;
+							tileCoordsY256[VLT] = subTileMinY256;
+							tileCoordsX256[VLB] = subTileMinX256;
+							tileCoordsY256[VLB] = subTileMaxY256;
+							tileCoordsX256[VRT] = subTileMaxX256;
+							tileCoordsY256[VRT] = subTileMinY256;
+							tileCoordsX256[VRB] = subTileMaxX256;
+							tileCoordsY256[VRB] = subTileMaxY256;
+
+							__m256 criteriaLocalTR256[3], criteriaLocalTA256[3];
+							for (int k = 0; k < 3; k++) {
+								criteriaLocalTR256[k] = _mm256_fmadd_ps(edgeCoefs256X[k], tileCoordsX256[chosenCoordTR[k]], _mm256_mul_ps(edgeCoefs256Y[k], tileCoordsY256[chosenCoordTR[k]]));
+								criteriaLocalTA256[k] = _mm256_fmadd_ps(edgeCoefs256X[k], tileCoordsX256[chosenCoordTA[k]], _mm256_mul_ps(edgeCoefs256Y[k], tileCoordsY256[chosenCoordTA[k]]));
+
+								__m256i criteriaTRMask = _mm256_castps_si256(_mm256_cmp_ps(criteriaLocalTR256[k], edgeCoefs256Z[k], _CMP_LT_OS));
+								__m256i criteriaTAMask = _mm256_castps_si256(_mm256_cmp_ps(criteriaLocalTA256[k], edgeCoefs256Z[k], _CMP_LT_OS));
+								criteriaTR256 = _mm256_add_epi32(criteriaTR256, criteriaTRMask);
+								criteriaTA256 = _mm256_add_epi32(criteriaTA256, criteriaTAMask);
+							}
+
+							int criteriaTR[8], criteriaTA[8];
+							_mm256_storeu_si256((__m256i*)criteriaTR, criteriaTR256);
+							_mm256_storeu_si256((__m256i*)criteriaTA, criteriaTA256);
+
+							for (int i = 0; i < 8; i++) {
+								const auto dwX = x + (i & 3);
+								const auto dwY = y + (i >> 2);
+								if (criteriaTR[i] != -3) {
+									continue;
+								}
+								if (criteriaTA[i] == -3) {
+									npropBlock.tile = { dwX, dwY };
+									coverQueue.push_back(npropBlock);
+								}
+								else {
+									const auto subtilesXPerTile = context->numSubtilesPerTileX;
+									const auto stMX = tileIdX * subtilesXPerTile + dwX;
+									const auto stMY = tileIdY * subtilesXPerTile + dwY;
+									const int subTileMinX = stMX * context->subtileBlockWidth;
+									const int subTileMinY = stMY * context->subtileBlockWidth;
+									const int subTileMaxX = (stMX + 1) * context->subtileBlockWidth;
+									const int subTileMaxY = (stMY + 1) * context->subtileBlockWidth;
+
+
+#else
+					for (int x = leftBlock; x < rightBlock; x += 2) {
+						for (int y = topBlock; y < bottomBlock; y += 2) {
 							__m128i x128 = _mm_setr_epi32(x + 0, x + 1, x + 0, x + 1);
 							__m128i y128 = _mm_setr_epi32(y + 0, y + 0, y + 1, y + 1);
 							__m128i criteriaTR128 = _mm_setzero_si128();
@@ -467,6 +580,7 @@ namespace Ifrit::Engine::TileRaster {
 									const int subTileMaxX = (stMX + 1) * context->subtileBlockWidth;
 									const int subTileMaxY = (stMY + 1) * context->subtileBlockWidth;
 
+#endif
 
 #ifdef IFRIT_USE_SIMD_256
 									for (int dx = subTileMinX; dx < subTileMaxX; dx += 4) {
@@ -500,7 +614,7 @@ namespace Ifrit::Engine::TileRaster {
 													else {
 														int accept[4];
 														_mm_storeu_si128((__m128i*)accept, accept128[di]);
-
+ 
 														for (int ddi = 0; ddi < 4; ddi++) {
 															const auto pvx = pv + (ddi & 1);
 															const auto pvy = dy + (ddi >> 1);

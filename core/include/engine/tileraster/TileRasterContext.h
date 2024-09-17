@@ -36,13 +36,11 @@ namespace Ifrit::Engine::TileRaster {
 		int frameHeight;
 		float invFrameWidth;
 		float invFrameHeight;
-		float tileSizeX;
-		float tileSizeY;
 
 		// Owning Bindings
 		std::unique_ptr<VaryingDescriptor> owningVaryingDesc;
 
-		// Thread-safe Calls (TODO: Mem Leak)
+		// Thread-safe Calls
 		std::vector<VertexShader*> threadSafeVS;
 		std::vector<FragmentShader*> threadSafeFS;
 

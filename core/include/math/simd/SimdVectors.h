@@ -20,10 +20,40 @@ namespace Ifrit::Math::SIMD {
 		};
 		inline SimdVector() = default;
 		inline SimdVector(const SimdVector& v) {
-			dataf = v.dataf;
+#ifdef IFRIT_FEATURE_SIMD
+			if constexpr (std::is_same_v<S, __m128>) {
+				dataf = _mm_load_ps(&v.x);
+			}
+			else if constexpr(std::is_same_v<S, __m128i>){
+				dataf = v.dataf;
+			}
+			else {
+				static_assert(false, "Unsupported SIMD type");
+			}
+#else
+			x = v.x;
+			y = v.y;
+			z = v.z;
+			w = v.w;
+#endif
 		}
 		inline SimdVector& operator=(const SimdVector& v) {
-			dataf = v.dataf;
+#ifdef IFRIT_FEATURE_SIMD
+			if constexpr (std::is_same_v<S, __m128>) {
+				dataf = _mm_load_ps(&v.x);
+			}
+			else if constexpr (std::is_same_v<S, __m128i>) {
+				dataf = v.dataf;
+			}
+			else {
+				static_assert(false, "Unsupported SIMD type");
+			}
+#else
+			x = v.x;
+			y = v.y;
+			z = v.z;
+			w = v.w;
+#endif
 			return *this;
 		}
 		template<int V2>
@@ -508,6 +538,48 @@ namespace Ifrit::Math::SIMD {
 #endif
 		return r;
 	}
+
+	// compare less than mask
+	template<typename T, typename S, int V>
+	inline int cmpltElements(const SimdVector<T, S, V>& a, const SimdVector<T, S, V>& b) {
+		int r;
+		// cmpltos->movemask->popcnt
+#ifdef IFRIT_FEATURE_SIMD
+		if constexpr (std::is_same_v<S, __m128>) {
+			if constexpr (V == 4) {
+				r = _mm_movemask_ps(_mm_cmplt_ps(a.dataf, b.dataf));
+				r = _mm_popcnt_u32(r & 0xf);
+			}
+			else if constexpr (V == 3) {
+				r = _mm_movemask_ps(_mm_cmplt_ps(a.dataf, b.dataf));
+				r = _mm_popcnt_u32(r & 0x7);
+			}
+			else if constexpr (V == 2) {
+				r = _mm_movemask_ps(_mm_cmplt_ps(a.dataf, b.dataf));
+				r = _mm_popcnt_u32(r & 0x3);
+			}
+			else {
+				r = _mm_movemask_ps(_mm_cmplt_ps(a.dataf, b.dataf));
+				r = _mm_popcnt_u32(r & 0x1);
+			}
+
+		}
+		else {
+			static_assert(false, "Unsupported SIMD type");
+		}
+#else
+		if constexpr (V >= 4) r += a.w < b.w ? 1 : 0;
+		if constexpr (V >= 3) r += a.z < b.z ? 1 : 0;
+		if constexpr (V >= 2) r += a.y < b.y ? 1 : 0;
+		r += a.x < b.x ? 1 : 0;
+#endif
+		return r;
+	}
+
+
+
+
+
 
 
 	// Exporting Types
