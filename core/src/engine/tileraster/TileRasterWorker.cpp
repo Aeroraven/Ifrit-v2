@@ -49,7 +49,7 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterWorker::run() IFRIT_AP_NOTHROW {
 		while (true) {
 			const auto& curStatus = status.load();
-			if (curStatus == TileRasterStage::CREATED || curStatus == TileRasterStage::COMPLETED) {
+			if (curStatus == TileRasterStage::COMPLETED) {
 				std::this_thread::yield();
 				continue;
 			}
@@ -147,6 +147,7 @@ namespace Ifrit::Engine::TileRaster {
 			ret[clipOdd][i].pos.w = pd;
 		}
 		auto xid = context->assembledTriangles[workerId].size();
+		auto smallTriangleCullVecP = vfloat4(context->frameWidth, context->frameHeight, context->frameWidth, context->frameHeight);
 		for (int i = 0; i < retCnt[clipOdd] - 2; i++) {
 			AssembledTriangleProposal atri;
 			vfloat4 tv1, tv2, tv3;
@@ -198,16 +199,21 @@ namespace Ifrit::Engine::TileRaster {
 			if (!triangleCulling(tv1, tv2, tv3)) {
 				continue;
 			}
-			irect2Df bbox;
+			vfloat4 bbox;
 			if (!triangleFrustumClip(tv1, tv2, tv3, bbox)) {
 				continue;
 			}
+			vfloat4 bboxR = round(fma(bbox, smallTriangleCullVecP, vfloat4(-0.5f)));// -0.5f;
+			if (bboxR.x == bboxR.z || bboxR.w == bboxR.y) {
+				continue;
+			}
+			bbox = fma(bbox, 0.5f, vfloat4(0.5f));
 			context->assembledTriangles[workerId].emplace_back(std::move(atri));
 			executeBinner(xid++, atri, bbox);
 		}
 		return  retCnt[clipOdd] - 2;
 	}
-	bool TileRasterWorker::triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW {
+	bool TileRasterWorker::triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3, vfloat4& bbox) IFRIT_AP_NOTHROW {
 		auto bMin = min(v1, min(v2, v3));
 		auto bMax = max(v1, max(v2, v3));
 		if (bMax.z < 0.0f) return false;
@@ -218,8 +224,8 @@ namespace Ifrit::Engine::TileRaster {
 		if (bMin.y > 1.0f) return false;
 		bbox.x = bMin.x;
 		bbox.y = bMin.y;
-		bbox.w = bMax.x - bMin.x;
-		bbox.h = bMax.y - bMin.y;
+		bbox.z = bMax.x;
+		bbox.w = bMax.y;
 		return true;
 	}
 	bool TileRasterWorker::triangleCulling(vfloat4 v1, vfloat4 v2, vfloat4 v3) IFRIT_AP_NOTHROW {
@@ -233,21 +239,17 @@ namespace Ifrit::Engine::TileRaster {
 		if (d < 0.0f) return false;
 		return true;
 	}
-	void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, irect2Df bbox) IFRIT_AP_NOTHROW {
+	void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, vfloat4 bbox) IFRIT_AP_NOTHROW {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
-		float minx = bbox.x * 0.5f + 0.5f;
-		float miny = bbox.y * 0.5f + 0.5f;
-		float maxx = (bbox.x + bbox.w) * 0.5f + 0.5f;
-		float maxy = (bbox.y + bbox.h) * 0.5f + 0.5f;
 
 		auto frameBufferWidth = context->frameWidth;
 		auto frameBufferHeight = context->frameHeight;
 
-		int tileMinx = std::max(0, (int)(minx * frameBufferWidth / context->tileWidth));
-		int tileMiny = std::max(0, (int)(miny * frameBufferHeight / context->tileWidth));
-		int tileMaxx = std::min((int)(maxx * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
-		int tileMaxy = std::min((int)(maxy * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
+		int tileMinx = std::max(0, (int)(bbox.x * frameBufferWidth / context->tileWidth));
+		int tileMiny = std::max(0, (int)(bbox.y * frameBufferHeight / context->tileWidth));
+		int tileMaxx = std::min((int)(bbox.z * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
+		int tileMaxy = std::min((int)(bbox.w * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
 
 		vfloat3 edgeCoefs[3];
 		edgeCoefs[0] = atp.e1;

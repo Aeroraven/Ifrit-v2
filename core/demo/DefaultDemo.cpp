@@ -40,12 +40,12 @@ namespace Ifrit::Demo::DemoDefault {
 	//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
 	//float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
 	//float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
-	float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
+	//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
 	//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
 	//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
 	//float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 10.0, 4000));
-	//float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
-	float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
+	float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
+	float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 1.0, 3000));
 	float4x4 model;
 	float4x4 mvp = matmul(proj, view);
 
@@ -94,7 +94,7 @@ namespace Ifrit::Demo::DemoDefault {
 		std::vector<uint32_t> index;
 		std::vector<ifloat3> procNormal;
 
-		loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj", pos, normal, uv, index);
+		loader.loadObject(IFRIT_ASSET_PATH"/sponza3.obj", pos, normal, uv, index);
 		procNormal = loader.remapNormals(normal, index, pos.size());
 
 		std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
@@ -340,7 +340,7 @@ namespace Ifrit::Demo::DemoDefault {
 		windowProvider.loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 			renderer->clear();
-			renderer->drawElements();
+			//renderer->drawElements();
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 			backend.updateTexture(*image1);

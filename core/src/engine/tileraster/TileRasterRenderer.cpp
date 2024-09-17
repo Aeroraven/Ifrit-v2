@@ -111,7 +111,7 @@ namespace Ifrit::Engine::TileRaster {
 		context->workerIdleTime.resize(context->numThreads);	
 		for (int i = 0; i < context->numThreads; i++) {
 			workers[i] = std::make_unique<TileRasterWorker>(i, shared_from_this(), context);
-			workers[i]->status.store(TileRasterStage::CREATED, std::memory_order::relaxed);
+			workers[i]->status.store(TileRasterStage::COMPLETED, std::memory_order::relaxed);
 			context->workerIdleTime[i] = 0;
 		}
 		selfOwningWorker = std::make_unique<TileRasterWorker>(context->numThreads, shared_from_this(), context);
@@ -285,7 +285,7 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterRenderer::updateUniformBuffer(){
 		auto vsUniforms = context->vertexShader->getUniformList();
 		auto fsUniforms = context->fragmentShader->getUniformList();
-		for (int i = 0; i < context->numThreads + 1; i++) {
+		for (int i = context->numThreads; i >= 0; i--) {
 			for (const auto& x : vsUniforms) {
 				if (context->uniformMapping.count(x)) {
 					context->threadSafeVS[i]->updateUniformData(x.first, x.second, context->uniformMapping[x]);
@@ -314,10 +314,10 @@ namespace Ifrit::Engine::TileRaster {
 		
 		createWorkers();
 		for (auto& worker : workers) {
-			worker->status.store(TileRasterStage::CREATED, std::memory_order::relaxed);
+			worker->status.store(TileRasterStage::COMPLETED, std::memory_order::relaxed);
 			worker->threadStart();
 		}
-		selfOwningWorker->status.store(TileRasterStage::CREATED, std::memory_order::relaxed);
+		selfOwningWorker->status.store(TileRasterStage::COMPLETED, std::memory_order::relaxed);
 		initialized = true;
 	}
 	IFRIT_APIDECL void TileRasterRenderer::clear() {
@@ -328,7 +328,6 @@ namespace Ifrit::Engine::TileRaster {
 	IFRIT_APIDECL void TileRasterRenderer::drawElements(int vertexCount, bool clearFramebuffer) IFRIT_AP_NOTHROW {
 		intializeRenderContext();
 		updateUniformBuffer();
-
 		context->indexBufferSize = vertexCount;
 		unresolvedTileRaster.store(context->numTilesX * context->numTilesY,std::memory_order::relaxed);
 		unresolvedTileFragmentShading.store(context->numTilesX * context->numTilesY, std::memory_order::relaxed);

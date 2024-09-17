@@ -36,7 +36,10 @@ using namespace Ifrit::Engine::BufferManager;
 namespace Ifrit::Demo::ShaderVMDemo {
 
 	int mainTest() {
-		float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
+		//float4x4 view = (lookAt({ 0,0.01,0.02 }, { 0,0.01,0.0 }, { 0,1,0 }));
+		float4x4 view = (lookAt({ 0,0.75,2.00 }, { 0,0.75,0.0 }, { 0,1,0 }));
+		//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
+		//float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
 		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
 		float4x4 mvp = transpose(matmul(proj, view));
 
@@ -46,11 +49,11 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		std::vector<ifloat2> uv;
 		std::vector<uint32_t> index;
 		std::vector<ifloat3> procNormal;
-		loader.loadObject(IFRIT_ASSET_PATH"/bunny.obj", pos, normal, uv, index);
+		loader.loadObject(IFRIT_ASSET_PATH"/kirara_gltf.obj", pos, normal, uv, index);
 		procNormal = loader.remapNormals(normal, index, pos.size());
 
 
-		constexpr int DEMO_RESOLUTION = 2048;
+		constexpr int DEMO_RESOLUTION = 4096;
 		std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
 		std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
 		std::shared_ptr<TileRasterRenderer> renderer = std::make_shared<TileRasterRenderer>();
@@ -71,6 +74,7 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		for (int i = 0; i < index.size(); i += 3) {
 			indexBuffer[i / 3] = index[i];
 		}
+		printf("Num Triangles: %d\n", indexBuffer.size() / 3);
 
 		frameBuffer.setColorAttachments({ image.get() });
 		frameBuffer.setDepthAttachment(*depth);
@@ -116,8 +120,8 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 		windowProvider.loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-			uniform.t2.x = 0.4f*std::sin((float)std::chrono::duration_cast<std::chrono::milliseconds>(start.time_since_epoch()).count() / 1000.0f) * 0.1f;
-			bufferman->bufferData(uniform1, &uniform, 0, sizeof(uniform));
+			//uniform.t2.x = 0.4f*std::sin((float)std::chrono::duration_cast<std::chrono::milliseconds>(start.time_since_epoch()).count() / 1000.0f) * 0.1f;
+			//bufferman->bufferData(uniform1, &uniform, 0, sizeof(uniform));
 			renderer->drawElements(indexBuffer.size(),true);
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

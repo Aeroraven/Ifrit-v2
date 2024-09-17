@@ -57,10 +57,10 @@ namespace Ifrit::Engine::TileRaster {
 		void drawCallWithClear() IFRIT_AP_NOTHROW;
 		void release();
 
-		bool triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW;
+		bool triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3, Ifrit::Math::SIMD::vfloat4& bbox) IFRIT_AP_NOTHROW;
 		uint32_t triangleHomogeneousClip(const int primitiveId, Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
 		bool triangleCulling(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
-		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, irect2Df bbox) IFRIT_AP_NOTHROW;
+		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, Ifrit::Math::SIMD::vfloat4 bbox) IFRIT_AP_NOTHROW;
 
 		void vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
 		void geometryProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;

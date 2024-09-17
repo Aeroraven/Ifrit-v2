@@ -79,7 +79,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Back Face Culling                           | ✅                                                            | ✅               | ✅             |
 | Frustum Culling                             | 🟥                                                            | ✅               | ✅             |
 | Homogeneous Clipping                        | 🟥                                                            | ✅               | ✅             |
-| Small Triangle Culling                      | 🟥                                                            | 🟥               | ✅             |
+| Small Triangle Culling                      | 🟥                                                            | ✅               | ✅             |
 | Perspective-correct Interpolation           | 🟥                                                            | ✅               | ✅             |
 | Shader Derivatives `dFdx` `dFdy`            | 🟥                                                            | 🟥               | 🟦             |
 | Multi-sampling                              | 🟥                                                            | 🟥               | 🟦 8x MSAA     |
@@ -113,32 +113,56 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 ## Performance
 
-Test performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored.
+### Frame Rate Comparison (FPS)  Version 2
 
-Note that some triangles might be culled or clipped in the pipeline. 
+#### Influence of Attachment Size
 
-### **Frame Rate **
+Tests performed on multi-thread CPU renderer (1 master + 16 workers), with just-in-time(JIT) compilation of Vulkan-specific HLSL shaders (compiled in SPIR-V binary format). All attachments are in `linear` tiling mode and `float32` mode. 
 
-| Model          | Triangles | CPU Single Thread | CPU Multi Threads | CUDA w/ Copy-back* | CUDA w/o Copy-back** |
-| -------------- | --------- | ----------------- | ----------------- | ------------------ | -------------------- |
-| Yomiya         | 70275     | 38                | 80                | 123                | 2857                 |
-| Stanford Bunny | 208353    | 20<br/>29 / 27 ※  | 80<br/>104 / 91 ※ | 124                | 2272                 |
-| Khronos Sponza | 786801    | 2                 | 10                | 125                | 500                  |
-| Intel Sponza   | 11241912  | 1                 | 7                 | 125                | 198                  |
+| Model                             | 512 x 512 | 1024 x 1024 | 2048 x 2048 | 4096 x 4096 |
+| --------------------------------- | --------- | ----------- | ----------- | ----------- |
+| Kirara / Genshin Impact (3.7 k)   | 1219      | 480         | 124         | 28          |
+| Evil Neurosama (55.9 k)           | 606       | 398         | 120         | 31          |
+| Flandre Scarlet / Touhou (96.1 k) | 502       | 237         | 82          | 19          |
+| Miyako / Blue Archive (346.1 k)   | 106       | 72          | 43          | 13          |
 
-*. Limited by PCIe performance
 
-**. Might be influenced by other applications which utilize GPU
 
-※. Latest result (with hard-coded shader / with Vulkan-Format HLSL SPIRV shader just-in-time execution). If this annotation is not presented, the test was performed before git commit `7e6c34ad836842c02fcc9aa7dc89d5d01cd6cb66`. Note that the introduction of `Shader Derivatives` degenerates the pipeline performance.
+#### Influence of Triangle Numbers
+
+Tests performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored. Note that some triangles **might be culled or clipped** in the pipeline. 
+
+| Model                                   | Yomiya     | Bunny      | Khronos Sponza | Intel Sponza |
+| --------------------------------------- | ---------- | ---------- | -------------- | ------------ |
+| Triangles                               | 70275      | 208353     | 786801         | 11241912     |
+| Single Thread CPU Baseline v1           | 38         | 20         | 2              | 1            |
+| Multi Thread CPU Baseline v1            | 80         | 80         | 10             | 2            |
+| CUDA Baseline v1                        | 2857       | 2272       | 500            | 198          |
+| ST CPU Optimized v2 (C++ / SPIR-V HLSL) | 47 (+23%)  | 27 (+35%)  | 4 (+100%)      | 2 (+100%)    |
+| MT CPU Optimized v2 (C++ / SPIR-V HLSL) | 134 (+68%) | 108 (+35%) | 24 (+140%)     | 11 (+450%)   |
+| ST CPU Optimized v2 (C++ / Class)       | 50 (+31%)  | 29 (+45%)  | 4 (+100%)      | 2 (+100%)    |
+| MT CPU Optimized v2 (C++ / Class)       | 138 (+73%) | 110 (+38%) | 25 (+150%)     | 15 (+650%)   |
+| MT CPU Optimized v2 (C# / SPIR-V HLSL)  |            |            |                |              |
+
+※ **C++ Class**: shaders are coded and compiled ahead-of-time, using virtual inheritance.
+
+※ **SPIR-V HLSL (C++)**: all shader codes are compiled into binary form using `glslc`. HLSL source codes are written in Vulkan-specific style. Just-in-time (JIT) compilation uses LLVM 10 as backend and manual IR mapping (Shared library is compiled with `mingw-w64`). App runs in `msvc`.
+
+
+
+### **Frame Rate Comparison (FPS)  Version 1**
+
+See [Performance History](./docs/performance.md)
+
+
 
 ### Test Environment
 
 - CPU: 12th Gen Intel(R) Core(TM) i9-12900H 
   - Test with 17 threads (1 master + 16 workers) + AVX2 Instructions
-
 - GPU: NVIDIA GeForce RTX 3070 Ti Laptop GPU (Kernel parameters are optimized for the SPECIFIC test environment)
 - Shading: World-space normal
+- Compiler:  MSVC 19.29 + NVCC 12.6 (with O3 optimization)
 
 
 

@@ -7,7 +7,6 @@ namespace Ifrit::Engine::TileRaster {
 	using namespace Ifrit::Engine;
 
 	enum class TileRasterStage {
-		CREATED,
 		DRAWCALL_START,
 		DRAWCALL_START_CLEAR,
 		VERTEX_SHADING,

@@ -576,10 +576,25 @@ namespace Ifrit::Math::SIMD {
 		return r;
 	}
 
-
-
-
-
+	//Rounding
+	template<typename T, typename S, int V>
+	inline SimdVector<T, S, V> round(const SimdVector<T, S, V>& a) {
+		SimdVector<T, S, V> r;
+#ifdef IFRIT_FEATURE_SIMD
+		if constexpr (std::is_same_v<S, __m128>) {
+			r.dataf = _mm_round_ps(a.dataf, _MM_FROUND_TO_NEAREST_INT);
+		}
+		else {
+			static_assert(false, "Unsupported SIMD type");
+		}
+#else
+		if constexpr (V >= 4) r.w = std::round(a.w);
+		if constexpr (V >= 3) r.z = std::round(a.z);
+		if constexpr (V >= 2) r.y = std::round(a.y);
+		r.x = std::round(a.x);
+#endif
+		return r;
+	}
 
 
 	// Exporting Types
