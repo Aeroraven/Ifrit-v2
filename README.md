@@ -146,7 +146,9 @@ Tests performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. 
 
 ※ **C++ Class**: shaders are coded and compiled ahead-of-time, using virtual inheritance.
 
-※ **SPIR-V HLSL (C++)**: all shader codes are compiled into binary form using `glslc`. HLSL source codes are written in Vulkan-specific style. Just-in-time (JIT) compilation uses LLVM 10 as backend and manual IR mapping (Shared library is compiled with `mingw-w64`). App runs in `msvc`.
+※ **SPIR-V HLSL (C++)**: all shader codes are compiled into binary form using `glslc`. HLSL source codes are written in `Vulkan-specific` style. Just-in-time (JIT) compilation uses LLVM 10 as backend and manual IR mapping (Shared library is compiled with `mingw-w64`). App runs in `msvc`.
+
+※ **SPIR-V HLSL (C#)**: the same as above, but with .NET `P/Invoke Source Generation`(`LibraryImport`) that invokes shared library compiled using C++.
 
 
 
@@ -213,7 +215,7 @@ See  [Usage](./docs/docs.md) for more details.
   - [ ] Issue: Nondeterministic behaviors in wireframe/point mode 
   - [x] Issue: Artifacts in low resolution scenario 
   - [ ] Latency: Memory access pattern in MSAA
-  - [ ] Latency: JIT slows down execution
+  - [ ] Latency: JIT slows down execution (in raytracer)
 - [ ] Standardization
   - [ ] C++: `-Wignored-attributes` warnings in SIMD class  
 
