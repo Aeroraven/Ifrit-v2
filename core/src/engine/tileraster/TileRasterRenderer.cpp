@@ -326,6 +326,11 @@ namespace Ifrit::Engine::TileRaster {
 		updateUniformBuffer();
 		context->frameWidth = context->frameBuffer->getWidth();
 		context->frameHeight = context->frameBuffer->getHeight();
+		context->invFrameWidth = 1.0f / context->frameWidth;
+		context->invFrameHeight = 1.0f / context->frameHeight;
+		context->tileSizeX = 1.0f * context->tileWidth / context->frameWidth;
+		context->tileSizeY = 1.0f * context->tileWidth / context->frameHeight;
+
 		context->indexBufferSize = vertexCount;
 		unresolvedTileRaster.store(context->numTilesX * context->numTilesY,std::memory_order::relaxed);
 		unresolvedTileFragmentShading.store(context->numTilesX * context->numTilesY, std::memory_order::relaxed);

@@ -157,12 +157,12 @@ namespace Ifrit::Engine::TileRaster {
 			const float sV1V3y = tv1.y - tv3.y;
 			const float sV1V3x = tv3.x - tv1.x;
 
-			const auto csInvX = 1.0f / context->frameBuffer->getColorAttachment(0)->getWidth();
-			const auto csInvY = 1.0f / context->frameBuffer->getColorAttachment(0)->getHeight();
+			const auto csInvX = context->invFrameWidth * ar * 2.0f;
+			const auto csInvY = context->invFrameHeight * ar * 2.0f;
 
-			atri.f3 = { sV2V1y * ar * csInvX * 2.0f, sV2V1x * ar * csInvY * 2.0f,(-tv1.x * sV2V1y - tv1.y * sV2V1x - sV2V1y - sV2V1x) * ar };
-			atri.f1 = { sV3V2y * ar * csInvX * 2.0f, sV3V2x * ar * csInvY * 2.0f,(-tv2.x * sV3V2y - tv2.y * sV3V2x - sV3V2y - sV3V2x) * ar };
-			atri.f2 = { sV1V3y * ar * csInvX * 2.0f, sV1V3x * ar * csInvY * 2.0f,(-tv3.x * sV1V3y - tv3.y * sV1V3x - sV1V3y - sV1V3x) * ar };
+			atri.f3 = { sV2V1y * csInvX , sV2V1x * csInvY,(-tv1.x * sV2V1y - tv1.y * sV2V1x - sV2V1y - sV2V1x) * ar };
+			atri.f1 = { sV3V2y * csInvX , sV3V2x * csInvY,(-tv2.x * sV3V2y - tv2.y * sV3V2x - sV3V2y - sV3V2x) * ar };
+			atri.f2 = { sV1V3y * csInvX , sV1V3x * csInvY,(-tv3.x * sV1V3y - tv3.y * sV1V3x - sV1V3y - sV1V3x) * ar };
 
 
 			atri.e1 = { 2.0f * sV2V1y,  2.0f * sV2V1x,  tv2.x * tv1.y - tv1.x * tv2.y - sV2V1y - sV2V1x - EPS };
@@ -189,12 +189,12 @@ namespace Ifrit::Engine::TileRaster {
 	bool TileRasterWorker::triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3, irect2Df& bbox) IFRIT_AP_NOTHROW {
 		auto bMin = min(v1, min(v2, v3));
 		auto bMax = max(v1, max(v2, v3));
-		if (bMax.z < 0.0) return false;
-		if (bMin.z > 1.0) return false;
-		if (bMax.x < -1.0) return false;
-		if (bMin.x > 1.0) return false;
-		if (bMax.y < -1.0) return false;
-		if (bMin.y > 1.0) return false;
+		if (bMax.z < 0.0f) return false;
+		if (bMin.z > 1.0f) return false;
+		if (bMax.x < -1.0f) return false;
+		if (bMin.x > 1.0f) return false;
+		if (bMax.y < -1.0f) return false;
+		if (bMin.y > 1.0f) return false;
 		bbox.x = bMin.x;
 		bbox.y = bMin.y;
 		bbox.w = bMax.x - bMin.x;
@@ -220,14 +220,13 @@ namespace Ifrit::Engine::TileRaster {
 		float maxx = (bbox.x + bbox.w) * 0.5f + 0.5f;
 		float maxy = (bbox.y + bbox.h) * 0.5f + 0.5f;
 
-		auto frameBufferWidth = context->frameBuffer->getWidth();
-		auto frameBufferHeight = context->frameBuffer->getHeight();
-
+		auto frameBufferWidth = context->frameWidth;
+		auto frameBufferHeight = context->frameHeight;
 
 		int tileMinx = std::max(0, (int)(minx * frameBufferWidth / context->tileWidth));
 		int tileMiny = std::max(0, (int)(miny * frameBufferHeight / context->tileWidth));
-		int tileMaxx = (int)(maxx * frameBufferWidth / context->tileWidth);
-		int tileMaxy = (int)(maxy * frameBufferWidth / context->tileWidth);
+		int tileMaxx = std::min((int)(maxx * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
+		int tileMaxy = std::min((int)(maxy * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
 
 		ifloat3 edgeCoefs[3];
 		edgeCoefs[0] = atp.e1;
@@ -240,9 +239,8 @@ namespace Ifrit::Engine::TileRaster {
 		int chosenCoordTA[3];
 		getAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
-
-		const float tileSizeX = 1.0f * context->tileWidth / frameBufferWidth;
-		const float tileSizeY = 1.0f * context->tileWidth / frameBufferHeight;
+		const float tileSizeX = context->tileSizeX;
+		const float tileSizeY = context->tileSizeY;
 		for (int y = tileMiny; y <= tileMaxy; y++) {
 			for (int x = tileMinx; x <= tileMaxx; x++) {
 				tileCoords[VLT] = { x * tileSizeX, y * tileSizeY, 1.0 };
@@ -269,7 +267,8 @@ namespace Ifrit::Engine::TileRaster {
 					TileBinProposal proposal;
 					proposal.level = TileRasterLevel::TILE;
 					proposal.clippedTriangle = { workerId,primitiveId };
-					context->rasterizerQueue[workerId][getTileID(x, y)].push_back(proposal);
+					auto tid = getTileID(x, y);
+					context->rasterizerQueue[workerId][tid].push_back(proposal);
 				}
 			}
 		}
@@ -313,7 +312,7 @@ namespace Ifrit::Engine::TileRaster {
 				vfloat4 v2 = toSimdVector(posBuffer[id1]);
 				vfloat4 v3 = toSimdVector(posBuffer[id2]);
 
-				const auto prim = j / context->vertexStride;
+				const auto prim = (uint32_t)j / context->vertexStride;
 				triangleHomogeneousClip(prim, v1, v2, v3);
 			}
 
@@ -325,8 +324,8 @@ namespace Ifrit::Engine::TileRaster {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
 		auto curTile = 0;
-		auto frameBufferWidth = context->frameBuffer->getWidth();
-		auto frameBufferHeight = context->frameBuffer->getHeight();
+		auto frameBufferWidth = context->frameWidth;
+		auto frameBufferHeight = context->frameHeight;
 		auto rdTiles = 0;
 #ifdef IFRIT_USE_SIMD_128
 		__m128 wfx128 = _mm_set1_ps(1.0f * context->subtileBlockWidth / frameBufferWidth);
@@ -337,10 +336,10 @@ namespace Ifrit::Engine::TileRaster {
 			int tileIdX = curTile % context->numTilesX;
 			int tileIdY = curTile / context->numTilesX;
 
-			float tileMinX = 1.0f * tileIdX * context->tileWidth / frameBufferWidth;
-			float tileMinY = 1.0f * tileIdY * context->tileWidth / frameBufferHeight;
-			float tileMaxX = 1.0f * (tileIdX + 1) * context->tileWidth / frameBufferWidth;
-			float tileMaxY = 1.0f * (tileIdY + 1) * context->tileWidth / frameBufferHeight;
+			float tileMinX = tileIdX * context->tileSizeX;
+			float tileMinY = tileIdY * context->tileSizeY;
+			float tileMaxX = (tileIdX + 1) * context->tileSizeX;
+			float tileMaxY = (tileIdY + 1) * context->tileSizeY;
 
 			for (int T = TOTAL_THREADS - 1; T >= 0; T--) {
 				for (int j = context->rasterizerQueue[T][curTile].size() - 1; j >= 0; j--) {
@@ -663,8 +662,8 @@ namespace Ifrit::Engine::TileRaster {
 
 	void TileRasterWorker::fragmentProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
 		auto curTile = 0;
-		const auto frameBufferWidth = context->frameBuffer->getWidth();
-		const auto frameBufferHeight = context->frameBuffer->getHeight();
+		const auto frameBufferWidth = context->frameWidth;
+		const auto frameBufferHeight = context->frameHeight;
 		const auto varyingCnts = context->varyingDescriptor->getVaryingCounts();
 		interpolatedVaryings.reserve(varyingCnts);
 		interpolatedVaryings.resize(varyingCnts);

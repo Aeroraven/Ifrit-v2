@@ -30,9 +30,14 @@ namespace Ifrit::Engine::TileRaster {
 		VaryingDescriptor* varyingDescriptor;
 		FragmentShader* fragmentShader;
 		std::unordered_map<std::pair<int, int>, const void*,Ifrit::Core::Utility::PairHash> uniformMapping;
+		
 		// Cached attributes
 		int frameWidth;
 		int frameHeight;
+		float invFrameWidth;
+		float invFrameHeight;
+		float tileSizeX;
+		float tileSizeY;
 
 		// Owning Bindings
 		std::unique_ptr<VaryingDescriptor> owningVaryingDesc;
