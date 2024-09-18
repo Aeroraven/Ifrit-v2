@@ -319,6 +319,11 @@ namespace Ifrit::Math::SIMD {
 		else {
 			static_assert(false, "Unsupported SIMD type");
 		}
+#else
+		if constexpr (V >= 4) r.w = a.w * b.w + c.w;
+		if constexpr (V >= 3) r.z = a.z * b.z + c.z;
+		if constexpr (V >= 2) r.y = a.y * b.y + c.y;
+		r.x = a.x * b.x + c.x;
 #endif
 		return r;
 	}
@@ -333,6 +338,11 @@ namespace Ifrit::Math::SIMD {
 		else {
 			static_assert(false, "Unsupported SIMD type");
 		}
+#else
+		if constexpr (V >= 4) r.w = a.w * b + c.w;
+		if constexpr (V >= 3) r.z = a.z * b + c.z;
+		if constexpr (V >= 2) r.y = a.y * b + c.y;
+		r.x = a.x * b + c.x;
 #endif
 		return r;
 	}

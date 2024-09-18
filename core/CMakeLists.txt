@@ -1,18 +1,89 @@
 cmake_minimum_required(VERSION 3.10)
-project(Ifrit-v2 LANGUAGES CXX C)
+project(Ifrit-v2-Core LANGUAGES CXX C)
 
 set(IFRIT_REQ_GLFW3_BASE "C:/Program Files (x86)/GLFW/")
 set(IFRIT_REQ_CUDA_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include")
 set(IFRIT_REQ_CUDACRT_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include/crt")
 set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
 string(REGEX REPLACE "(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
-message("[IFRIT] Working Directory ${IFRIT_PROJECT_DIR}")
+message(STATUS "[IFRIT/EnvCheck]: Working Directory ${IFRIT_PROJECT_DIR}")
 
 set(IFRIT_COMPONENT_LLVM "${IFRIT_PROJECT_DIR}/components/llvmexec/Ifrit-v2-Component-LLVMExec")
 
 set(IFRIT_ENABLE_CUDA False)
 set(IFRIT_ENABLE_SIMD_AVX True)
 set(IFRIT_ENABLE_OPTIMIZATION True)
+
+# Deps Check
+include(CheckCXXCompilerFlag)
+include(CheckCSourceCompiles)
+
+# Deps Check / AVX2
+set(OLD_CMAKE_REQUIRED_FLAG ${CMAKE_REQUIRED_FLAGS})
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    set(AVX2_FLAGS "/arch:AVX2")
+else()
+    set(AVX2_FLAGS "-mavx2")
+endif()
+set(CMAKE_REQUIRED_FLAGS ${AVX2_FLAGS})
+set(CHECK_AVX2_SOURCE "
+#include <immintrin.h>
+int main() {
+    __m256i vec = _mm256_set1_epi32(1);  // AVX2 intrinsic
+    return 0;
+}
+")
+check_c_source_compiles("${CHECK_AVX2_SOURCE}" IFRIT_ENABLE_SIMD_AVX2)
+set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQUIRED_FLAG})
+message(STATUS "[IFRIT/EnvCheck]: AVX2 Support - ${IFRIT_ENABLE_SIMD_AVX2}")
+
+# Deps Check / SSE
+set(OLD_CMAKE_REQUIRED_FLAG ${CMAKE_REQUIRED_FLAGS})
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+	set(SSE_FLAGS "/arch:SSE")
+else()
+	set(SSE_FLAGS "-msse")
+endif()
+set(CMAKE_REQUIRED_FLAGS ${SSE_FLAGS})
+set(CHECK_SSE_SOURCE "
+#include <xmmintrin.h>
+int main() {
+    __m128 vec = _mm_set1_ps(1.0f);  // SSE intrinsic
+    return 0;
+}
+")
+check_c_source_compiles("${CHECK_SSE_SOURCE}" IFRIT_ENABLE_SIMD_SSE)
+set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQUIRED_FLAG})
+message(STATUS "[IFRIT/EnvCheck]: SSE Support - ${IFRIT_ENABLE_SIMD_SSE}")
+
+# Deps Check / glfw3
+find_package(glfw3 QUIET)
+if(NOT glfw3_FOUND)
+    include_directories(${IFRIT_REQ_GLFW3_BASE}/include)
+	message(STATUS "[IFRIT/EnvCheck]: glfw3 not found, fallback to predefined paths.")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        set(glfw3_LIB ${IFRIT_REQ_GLFW3_BASE}/lib/glfw3.lib)
+    else()
+        if(CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MINGW)
+            set(glfw3_LIB ${IFRIT_REQ_GLFW3_BASE}/lib/libglfw3.a)
+        else()
+            set(glfw3_LIB ${IFRIT_REQ_GLFW3_BASE}/lib/libglfw3.so)
+        endif()
+    endif()
+    # Check if file exists
+    if(NOT EXISTS ${glfw3_LIB})
+        message(STATUS "[IFRIT/EnvCheck]: Cannot find glfw3 in ${glfw3_LIB}")
+		message(FATAL_ERROR "[IFRIT/EnvCheck]: glfw3 not found, please install glfw3 or set the correct path.")
+    else()
+        message(STATUS "[IFRIT/EnvCheck]: glfw3 found")
+    endif()
+else()
+	message(STATUS "[IFRIT/EnvCheck]: glfw3 found")
+    set(GLFW3_LINK_TARGET glfw)
+    include_directories(${GLFW_INCLUDE_DIRS})
+endif()
+
+# Main
 
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED True)
@@ -31,37 +102,37 @@ set(IFRIT_ASSET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/asset")
 add_definitions(-DIFRIT_SHADER_PATH="${IFRIT_SHADER_PATH}")
 add_definitions(-DIFRIT_ASSET_PATH="${IFRIT_ASSET_PATH}")
 
-if(${IFRIT_ENABLE_SIMD_AVX})
+if(${IFRIT_ENABLE_SIMD_SSE})
     add_definitions(-DIFRIT_FEATURE_SIMD)
-    add_definitions(-DIFRIT_FEATURE_SIMD_AVX256)
-    message("[IFRIT] Use Feature: SIMD")
-    
+    message(STATUS "[IFRIT/Feature]: Use Feature: SIMD/SSE")
 endif()
+
+if(${IFRIT_ENABLE_SIMD_AVX2})
+    add_definitions(-DIFRIT_FEATURE_SIMD_AVX256)
+    message(STATUS "[IFRIT/Feature]: Use Feature: SIMD/AVX2")
+endif()
+
 
 if(IFRIT_ENABLE_CUDA)
     enable_language(CUDA)
     include_directories(${IFRIT_REQ_CUDA_INCLUDE})
     include_directories(${IFRIT_REQ_CUDACRT_INCLUDE})
     add_definitions(-DIFRIT_FEATURE_CUDA)
-    message("[IFRIT] Use Feature: CUDA")
+    message(STATUS "[IFRIT/Feature]: Use Feature: CUDA")
 endif()
 
 if(${IFRIT_ENABLE_OPTIMIZATION})
     add_definitions(-DIFRIT_FEATURE_AGGRESSIVE_PERFORMANCE)
-    message("[IFRIT] Use Feature: Aggessive Performance")
+    message(STATUS "[IFRIT/Feature]: Use Feature: Aggessive Performance")
 endif()
 
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(glfw3_LIB ${IFRIT_REQ_GLFW3_BASE}/lib/glfw3.lib)
     if(${IFRIT_ENABLE_OPTIMIZATION})
         add_compile_options(/O3)
     endif()
 else()
-    #add_compile_options(-pg)
     add_compile_options(-g)
-    #add_compile_options(-no-pie)
-    #add_link_options(-pg)
     if(${IFRIT_ENABLE_OPTIMIZATION})
         add_compile_options(-O3)
         add_compile_options(-fno-math-errno)
@@ -72,23 +143,26 @@ else()
         #add_compile_options(-fcx-limited-range)
         add_compile_options(-fexcess-precision=fast)
         add_compile_options(-fallow-store-data-races)
-        message("[IFRIT] Add compiler flag: -Ofast")
+        message(STATUS "[IFRIT/Flags]: Add compiler flag: -Ofast")
     endif()
-    if(${IFRIT_ENABLE_SIMD_AVX})
-        add_compile_options(-mfma)
+    add_compile_options(-mfma)
+    if(${IFRIT_ENABLE_SIMD_SSE})
+        add_compile_options(-msse)
+        message(STATUS "[IFRIT/Flags]: Add compiler flag: -msse")
+    endif()
+    if(${IFRIT_ENABLE_SIMD_AVX2})
         add_compile_options(-mavx2)
-        message("[IFRIT] Add compiler flag: -mfma -mavx2")
+        message(STATUS "[IFRIT/Flags]: Add compiler flag: -mavx2")
     endif()
     add_compile_options(-lglfw3)
     add_compile_options(-lopengl32)
-    add_compile_options(-lgdi32)
-    message("[IFRIT] Add compiler flag: -lglfw3 -lopengl32 -lgdi32")
-    set(glfw3_LIB ${IFRIT_REQ_GLFW3_BASE}/lib/libglfw3.a)
+    message(STATUS "[IFRIT/Flags]: Add compiler flag: -lglfw3 -lopengl32")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        add_compile_options(-lgdi32)
+        message(STATUS "[IFRIT/Flags]: Add compiler flag: -lgdi32")
+    endif()
+    
 endif()
-
-set(glfw3_DIR ${IFRIT_REQ_GLFW3_BASE}/lib/cmake/glfw3/)
-
-#find_package(glfw3 3.3 REQUIRED)
 
 file(GLOB_RECURSE SOURCE_0 "include/*.h")
 file(GLOB_RECURSE SOURCE_1 "src/*.cpp")
@@ -102,7 +176,7 @@ file(GLOB SOURCE_STAGES_CUDA "./*.cu")
 
 include_directories(".")
 include_directories(include)
-include_directories(${IFRIT_REQ_GLFW3_BASE}/include)
+
 include_directories(${IFRIT_COMPONENT_LLVM}/include)
 
 set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_COMPONENT_LLVM}/build/Ifrit.Components.LLVMExec.a")

@@ -49,7 +49,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | 🚀 **Ray-tracer / Performance**              |                                                              |                 |               |
 | SIMD Instructions / SIMT                    | 🟥                                                            | ✅               | 🟥             |
 | Acceleration Structure (BVH)                | 🟥                                                            | ✅               | 🟥             |
-| Lock-free Synchronization                   | 🟥                                                            | ✅               | 🟥             |
+| Lock-free Synchronization                   | 🟥                                                            | ✅               | ⬜             |
 | 🔦 **Ray-tracer / Pipeline**                 |                                                              |                 |               |
 | Acceleration Structure Traversal            | 🟥                                                            | 🟦               | 🟥             |
 | Surface Area Heuristic                      | 🟥                                                            | ✅               | 🟥             |
@@ -58,7 +58,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Programmable Miss Shader                    | 🟥                                                            | ✅               | 🟥             |
 | 🚀 **Rasterization / Performance**           |                                                              |                 |               |
 | SIMD Instructions / SIMT                    | 🟥                                                            | ✅               | ✅             |
-| Overlapped Memory Transfer                  | 🟥                                                            | 🟥               | ✅             |
+| Overlapped Memory Transfer                  | ⬜                                                            | ⬜               | ✅             |
 | Dynamic Tile List                           | 🟥                                                            | ✅               | ✅             |
 | Lock-free Synchronization                   | 🟥                                                            | ✅               | ⬜             |
 | 💡 **Rasterization / Basic**                 |                                                              |                 |               |
@@ -175,6 +175,21 @@ See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
 
 ## Setup / Run
+
+### Quick Start (MinGW-w64)
+
+> Please ensure that dependencies are installed. This will ignore all CUDA codes in the project. 
+
+```shell
+# NOTE: Some paths / packages should be configured manually before cmake
+cmake -S . -B ./build -G "MinGW Makefiles"
+cd build
+mingw32-make
+```
+
+
+
+### Complete Build Options (Visual Studio /  CUDA)
 
 See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
