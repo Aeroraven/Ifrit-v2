@@ -72,7 +72,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Alpha Blending                              | 🟥                                                            | ✅               | ✅             |
 | Depth Testing                               | ✅                                                            | ✅               | ✅             |
 | Depth Function                              | 🟥                                                            | ✅               | ✅             |
-| Z Pre-Pass                                  | 🟥                                                            | 🟥               | ✅             |
+| Z Pre-Pass                                  | 🟥                                                            | ✅               | ✅             |
 | Early-Z Test                                | ✅                                                            | ✅               | ✅             |
 | Late-Z Test (Depth Replacement & `discard`) | 🟥                                                            | 🟥               | ✅             |
 | Scissor Test                                | 🟥                                                            | 🟥               | ✅             |

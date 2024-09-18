@@ -11,11 +11,20 @@ namespace Ifrit::Engine::TileRaster {
 		int vertexReferences[3];
 	};
 
+	constexpr auto tagbufferSizeX = TileRasterContext::tileWidth;
+	struct TagBufferContext {
+		Ifrit::Math::SIMD::vfloat3 tagBufferBary[tagbufferSizeX * tagbufferSizeX];
+		Ifrit::Math::SIMD::vfloat3 atpBx[tagbufferSizeX * tagbufferSizeX];
+		Ifrit::Math::SIMD::vfloat3 atpBy[tagbufferSizeX * tagbufferSizeX];
+		int valid[tagbufferSizeX * tagbufferSizeX];
+	};
+
 	struct PixelShadingFuncArgs {
 		ImageF32* depthAttachmentPtr;
 		int varyingCounts;
 		ImageF32* colorAttachment0;
 		const int* indexBufferPtr;
+		TagBufferContext* tagBuffer;
 	};
 
 	class TileRasterWorker {
@@ -73,33 +82,20 @@ namespace Ifrit::Engine::TileRaster {
 
 		void threadStart();
 
-		void interpolateVaryings(int id, const int indices[3], const float barycentric[3], ifloat4& dest) IFRIT_AP_NOTHROW;
 		void getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW ;
 		void getVaryingsAddr(const int id,std::vector<Ifrit::Math::SIMD::vfloat4*>& out)IFRIT_AP_NOTHROW ;
 
-		template<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>
+		template<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
 		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
-		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>
+		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
 		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 		
-		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc>
+		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
 		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
-		inline float edgeFunction(ifloat4 a, ifloat4 b, ifloat4 c) {
-			return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
-		}
+		void pixelShadingFromTagBuffer(const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
-#ifdef IFRIT_USE_SIMD_128
-		inline __m128 edgeFunctionSIMD128(__m128& aX, __m128& aY, __m128& bX, __m128& bY, __m128& cX, __m128& cY) {
-			return _mm_sub_ps(_mm_mul_ps(_mm_sub_ps(cX, aX), _mm_sub_ps(bY, aY)), _mm_mul_ps(_mm_sub_ps(cY, aY), _mm_sub_ps(bX, aX)));
-		}
-#endif
-#ifdef IFRIT_USE_SIMD_256
-		inline __m256 edgeFunctionSIMD256(__m256& aX, __m256& aY, __m256& bX, __m256& bY, __m256& cX, __m256& cY) {
-			return _mm256_sub_ps(_mm256_mul_ps(_mm256_sub_ps(cX, aX), _mm256_sub_ps(bY, aY)), _mm256_mul_ps(_mm256_sub_ps(cY, aY), _mm256_sub_ps(bX, aX)));
-		}
-#endif
 		inline int getTileID(int x, int y) IFRIT_AP_NOTHROW {
 			return y * context->numTilesX + x;
 		
