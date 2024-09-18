@@ -7,6 +7,7 @@ using namespace Ifrit::Math;
 using namespace Ifrit::Math::SIMD;
 
 namespace Ifrit::Engine::TileRaster {
+	
 	constexpr auto TOTAL_THREADS = TileRasterContext::numThreads + 1;
 	inline void getAcceptRejectCoords(vfloat3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3])IFRIT_AP_NOTHROW {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
@@ -842,12 +843,27 @@ namespace Ifrit::Engine::TileRaster {
 					curTileY = curTileY * context->tileWidth;
 					curTileX2 = std::min(curTileX2, (int)frameBufferWidth);
 					curTileY2 = std::min(curTileY2, (int)frameBufferHeight);
-
+#ifdef IFRIT_USE_SIMD_128
+#ifdef IFRIT_USE_SIMD_256
+					for (int dx = curTileX; dx < curTileX2; dx+=4) {
+						for (int dy = curTileY; dy < curTileY2; dy+=2) {
+							pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc>(triProposal, dx, dy, pxArgs);
+						}
+					}
+#else
+					for (int dx = curTileX; dx < curTileX2; dx+=2) {
+						for (int dy = curTileY; dy < curTileY2; dy+=2) {
+							pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc>(triProposal, dx, dy, pxArgs);
+						}
+					}
+#endif
+#else
 					for (int dx = curTileX; dx < curTileX2; dx++) {
 						for (int dy = curTileY; dy < curTileY2; dy++) {
 							pixelShading<tpAlphaBlendEnable, tpDepthFunc>(triProposal, dx, dy, pxArgs);
 						}
 					}
+#endif
 				}
 				else if (proposal.level == TileRasterLevel::BLOCK) {
 					auto curTileX = curTile % context->numTilesX;
@@ -859,13 +875,32 @@ namespace Ifrit::Engine::TileRaster {
 					auto subTilePixelY2 = (curTileY * subtileXPerTile + proposal.tile.y + 1) * context->subtileBlockWidth;
 					subTilePixelX2 = std::min(subTilePixelX2, (int)frameBufferWidth);
 					subTilePixelY2 = std::min(subTilePixelY2, (int)frameBufferHeight);
+
+					//Warning: asserts tile size are times of 4
+#ifdef IFRIT_USE_SIMD_128
+#ifdef IFRIT_USE_SIMD_256
+					for (int dx = subTilePixelX; dx < subTilePixelX2; dx += 4) {
+						for (int dy = subTilePixelY; dy < subTilePixelY2; dy += 2) {
+							pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc>(triProposal, dx, dy, pxArgs);
+						}
+					}
+#else
+					for (int dx = subTilePixelX; dx < subTilePixelX2; dx+=2) {
+						for (int dy = subTilePixelY; dy < subTilePixelY2; dy+2) {
+							pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc>(triProposal, dx, dy, pxArgs);
+						}
+					}
+#endif
+#else
 					for (int dx = subTilePixelX; dx < subTilePixelX2; dx++) {
 						for (int dy = subTilePixelY; dy < subTilePixelY2; dy++) {
 							pixelShading<tpAlphaBlendEnable, tpDepthFunc>(triProposal, dx, dy, pxArgs);
 						}
 					}
+#endif
+					
 				}
-				};
+			};
 			// End of lambda func
 			if (context->optForceDeterministic) {
 				auto iterFunc = [&]<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc>() {
@@ -912,7 +947,6 @@ namespace Ifrit::Engine::TileRaster {
 #undef IF_DECLPS_ITERFUNC_0_BRANCH
 #undef IF_DECLPS_ITERFUNC_0
 #undef IF_DECLPS_ITERFUNC
-
 		}
 		status.store(TileRasterStage::FRAGMENT_SHADING_SYNC, std::memory_order::relaxed);
 	}

@@ -39,6 +39,9 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<ifloat4> colorOutput = std::vector<ifloat4>(1);
 		std::vector<AssembledTriangleProposal> generatedTriangle;
 
+		//Debug
+		int totalDraws = 0;
+		int reqDraws = 0;
 		const float EPS = 1e-8;
 		const float EPS2 = 1e-8;
 
