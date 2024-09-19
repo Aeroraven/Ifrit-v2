@@ -37,10 +37,10 @@ namespace Ifrit::Demo::ShaderVMDemo {
 
 	int mainTest() {
 		//float4x4 view = (lookAt({ 0,0.01,0.02 }, { 0,0.01,0.0 }, { 0,1,0 }));
-		//float4x4 view = (lookAt({ 0,1.95,2.00 }, { 0,0.85,0.0 }, { 0,1,0 }));
-		float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
+		float4x4 view = (lookAt({ 0,1.95,1.50 }, { 0,0.95,0.0 }, { 0,1,0 }));
+		//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
-		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 10.0, 3000));
+		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
 		float4x4 mvp = transpose(matmul(proj, view));
 
 		WavefrontLoader loader;
@@ -49,7 +49,7 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		std::vector<ifloat2> uv;
 		std::vector<uint32_t> index;
 		std::vector<ifloat3> procNormal;
-		loader.loadObject(IFRIT_ASSET_PATH"/sponza.obj", pos, normal, uv, index);
+		loader.loadObject(IFRIT_ASSET_PATH"/evilneuro.obj", pos, normal, uv, index);
 		procNormal = loader.remapNormals(normal, index, pos.size());
 
 
@@ -87,7 +87,7 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		renderer->optsetDepthTestEnable(true);
 
 		struct Uniform {
-			ifloat4 t1 = { 0,0,0,0 };
+			ifloat4 t1 = { 1,1,1,0 };
 			ifloat4 t2 = { 0.0,0,0,0 };
 		} uniform;
 
@@ -103,8 +103,8 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		renderer->bindIndexBuffer(indexBuffer1);
 
 		SpvVMReader reader;
-		auto fsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/demo.frag.hlsl.spv");
-		auto vsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/demo.vert.hlsl.spv");
+		auto fsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/diffuse.frag.hlsl.spv");
+		auto vsCode = reader.readFile(IFRIT_ASSET_PATH"/shaders/diffuse.vert.hlsl.spv");
 		
 		WrappedLLVMRuntimeBuilder llvmRuntime;
 		SpvVertexShader vertexShader(llvmRuntime, vsCode);
@@ -120,8 +120,8 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 		windowProvider.loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-			//uniform.t2.x = 0.4f*std::sin((float)std::chrono::duration_cast<std::chrono::milliseconds>(start.time_since_epoch()).count() / 1000.0f) * 0.1f;
-			//bufferman->bufferData(uniform1, &uniform, 0, sizeof(uniform));
+			uniform.t1.x = 0.4f*std::sin((float)std::chrono::duration_cast<std::chrono::milliseconds>(start.time_since_epoch()).count() / 1000.0f);
+			bufferman->bufferData(uniform1, &uniform, 0, sizeof(uniform));
 			renderer->drawElements(indexBuffer.size(),true);
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

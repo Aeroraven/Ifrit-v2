@@ -37,7 +37,7 @@ namespace Ifrit::Core::Utility {
 			std::tm* now = std::localtime(&t);
 			std::cout << "[" << logLevel << "][" << now->tm_year + 1900 << "-" << now->tm_mon + 1 << "-" << now->tm_mday << " " << now->tm_hour << ":" << now->tm_min << ":" << now->tm_sec << "][" << caller << "]: ";
 			((std::cout << args <<" "), ...);
-			std::cout << "\n"<<std::endl;
+			std::cout << std::endl;
 
 			//flush
 			std::cout.flush();

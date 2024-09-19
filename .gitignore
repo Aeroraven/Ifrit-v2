@@ -2,3 +2,4 @@
 .vscode
 x64
 build
+build_mingw

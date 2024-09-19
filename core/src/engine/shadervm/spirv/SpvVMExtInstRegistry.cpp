@@ -52,6 +52,39 @@ namespace Ifrit::Engine::ShaderVM::Spirv::ExtInst::GlslStd450 {
 		return ps.str();
 	}
 
+	inline std::string glslstdVectorNormalize(const std::vector<SpvVMExtRegistryTypeIdentifier>& paramTypes,
+		const std::vector<int>& paramComCnt, int funcId, const std::string& funcName) {
+		auto specType = GET_TYPE(0), baseType = getLlvmType(paramTypes[0], 1);
+		auto mangledSpecType = GET_TYPE_ANNO(0), mangledBaseType = getMangledType(paramTypes[0], 1);
+		std::string functionName = "GLSL.std.450_" + std::to_string(funcId);
+		std::string arguments[1] = { "%x" };
+		std::string mangledName = functionName + "_" + mangledSpecType;
+
+		std::stringstream ps;
+		ps << "define " << specType << " @" << mangledName << "(" << specType << " " << arguments[0] << "){\n";
+		for (int i = 0; i < paramComCnt[0]; i++) {
+			ps << "%p_" << i << " = extractelement " << specType << " " << arguments[0] << ", i32 " << i << "\n";
+			ps << "%psquared_" << i << " = fmul " << baseType << " %p_" << i << ", %p_" << i << "\n";
+			if (i == 1) {
+				ps << "%sum_" << i << " = fadd " << baseType << " %psquared_" << i << ", %psquared_" << i - 1 << "\n";
+			}
+			else if(i>1) {
+				ps << "%sum_" << i << " = fadd " << baseType << " %psquared_" << i << ", %sum_" << i - 1 << "\n";
+			}
+		}
+		//Sqrt
+		ps << "%len = call "<< baseType << " @llvm.sqrt." << mangledBaseType << "(" << baseType << " %sum_" << paramComCnt[0] - 1 << ")\n";
+		std::string lastName = "undef";
+		for (int i = 0; i < paramComCnt[0]; i++) {
+			ps << "%ps_" << i << " = fdiv " << baseType << " %p_" << i << ", %len\n";
+			ps << "%ret_" << i << " = insertelement " << specType << " " << lastName << ", " << baseType << " %ps_" << i << ", i32 " << i << "\n";
+			lastName = "%ret_" + std::to_string(i);
+		}
+		ps << "ret " << specType << " %ret_" << paramComCnt[0] - 1 << "\n";
+		ps << "}\n";
+		return ps.str();
+	}
+
 	DEF_INST(Sin) {
 		return glslstdTrigonometryFunc(paramTypes, paramComCnt, GLSLstd450Sin, "sin");
 	}
@@ -70,6 +103,9 @@ namespace Ifrit::Engine::ShaderVM::Spirv::ExtInst::GlslStd450 {
 	DEF_INST(Atan) {
 		return glslstdTrigonometryFunc(paramTypes, paramComCnt, GLSLstd450Atan, "atan");
 	}
+	DEF_INST(Normalize) {
+		return glslstdVectorNormalize(paramTypes, paramComCnt, GLSLstd450Normalize, "normalize");
+	}
 #undef DEF_INST
 }
 
@@ -83,6 +119,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Asin, Asin);
 		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Acos, Acos);
 		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Atan, Atan);
+		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Normalize, Normalize);
 
 #undef REGISTER_GLSLSTD450
 	}

@@ -121,7 +121,7 @@ Tests performed on multi-thread CPU renderer (1 master + 16 workers), with just-
 
 | Model                             | 512 x 512 | 1024 x 1024 | 2048 x 2048 | 4096 x 4096 |
 | --------------------------------- | --------- | ----------- | ----------- | ----------- |
-| Kirara / Genshin Impact (3.7 k)   | 1219      | 480         | 124         | 28          |
+| Kirara / Genshin Impact (37 k)    | 1219      | 480         | 124         | 28          |
 | Evil Neurosama (55.9 k)           | 606       | 398         | 120         | 31          |
 | Flandre Scarlet / Touhou (96.1 k) | 502       | 237         | 82          | 19          |
 | Miyako / Blue Archive (346.1 k)   | 106       | 72          | 43          | 13          |

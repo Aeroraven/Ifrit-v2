@@ -17,7 +17,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 
 #define DEFINE_OP(name) void name(SpvVMContext* spvContext, SpvVMIntermediateReprBlock* irContextLocal, \
 	SpvVMIntermediateRepresentation* irContextGlobal,int opWordCount, uint32_t* params, int instLine, SpvVMAnalysisPass pass)
-#define ERROR_PREFIX printf("[Line %d, Pass %d] ", irContextGlobal->currentInst,irContextGlobal->currentPass);
+#define ERROR_PREFIX ifritLog2("Interpreter reports errors");printf("[Line %d, Pass %d] ", irContextGlobal->currentInst,irContextGlobal->currentPass);
 #define UNIMPLEMENTED_OP(name){(void)spvContext;(void)irContextLocal;(void)opWordCount;(void)instLine;(void)pass;(void)params; ERROR_PREFIX printf("Unimplemented SPIR-V instruction: "#name); printf("\n");}
 #define DEPRECATED_OP(name){ ERROR_PREFIX printf("Deprecated SPIR-V instruction: "#name); printf("\n");}
 
@@ -62,6 +62,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			irContext->generatedIR << "declare float @llvm.asin.f32(float %Val)\n";
 			irContext->generatedIR << "declare float @llvm.acos.f32(float %Val)\n";
 			irContext->generatedIR << "declare float @llvm.atan.f32(float %Val)\n";
+			irContext->generatedIR << "declare float @llvm.sqrt.f32(float %Val)\n";
 
 			irContext->generatedIR << "declare void @ifritShaderOps_Base_ImageWrite_v2i32_v4f32(i8* %a,<2 x i32> %b,<4 x float> %c)\n";
 			irContext->generatedIR << "declare void @ifritShaderOps_Raytracer_TraceRay(<3 x float> %g, i8* %a,i32 %b,i32 %c,i32 %d,i32 %e,i32 %f,float %h,<3 x float> %i,float %j,i8* %k,i8* %l)\n";
@@ -1302,7 +1303,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				auto elementType = irContextGlobal->targets[irContextGlobal->targets[vec1.resultTypeRef].componentTypeRef];
 				auto elementTypeName = getTargetTypes(&elementType, irContextGlobal);
 
-				irContextGlobal->generatedIR << ", <" << componentCount << " x " << elementTypeName << "> <i32 ";
+				irContextGlobal->generatedIR << ", <" << componentCount << " x i32> <i32 ";
 				for (int i = 0; i < componentCount; i++) {
 					if (i > 0) {
 						irContextGlobal->generatedIR << ", i32 ";
@@ -1648,7 +1649,54 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			}
 		}
 		DEFINE_OP(spvOpDot) {
-			UNIMPLEMENTED_OP(OpDot)
+			auto targetId = params[1];
+			auto typeRef = params[0];
+			auto vec1Id = params[2];
+			auto vec2Id = params[3];
+			if (pass == IFSP_VMA_PASS_FIRST) {
+				irContextGlobal->targets[targetId].activated = true;
+				irContextGlobal->targets[targetId].isInstance = true;
+				irContextGlobal->targets[targetId].resultTypeRef = typeRef;
+				irContextGlobal->targets[targetId].id = targetId;
+			}
+			if (pass == IFSP_VMA_PASS_SECOND) {
+				auto vec1 = irContextGlobal->targets[vec1Id];
+				auto vec2 = irContextGlobal->targets[vec2Id];
+				auto vec1Type = getTargetTypes(&vec1, irContextGlobal);
+				auto vec2Type = getTargetTypes(&vec2, irContextGlobal);
+				auto resultName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
+				auto resultType = getTargetTypes(&irContextGlobal->targets[targetId], irContextGlobal);
+				auto vec1Name = getVariableNamePrefix(&vec1, irContextGlobal);
+				auto vec2Name = getVariableNamePrefix(&vec2, irContextGlobal);
+				auto pf = "%ifspvm_dot_" + std::to_string(instLine);
+				auto& irs = irContextGlobal->generatedIR;
+
+				auto vec1TypeRef = irContextGlobal->targets[vec1.resultTypeRef];
+
+				for (int i = 0; i < vec1TypeRef.componentCount; i++) {
+					irs << pf << "_a_" << i << " = extractelement " << vec1Type << " " << vec1Name << ", i32 " << i << "\n";
+					irs << pf << "_b_" << i << " = extractelement " << vec2Type << " " << vec2Name << ", i32 " << i << "\n";
+					irs << pf << "_mul_" << i << " = fmul float " << pf << "_a_" << i << ", " << pf << "_b_" << i << "\n";
+				}
+				
+				std::string lastName = pf + "_mul_0";
+				for (int i = 1; i < vec1TypeRef.componentCount; i++) {
+					if (i == vec1TypeRef.componentCount - 1) {
+						irs << resultName << " = fadd float ";
+						irs << lastName << ", " << pf << "_mul_" << i << "\n";
+					}
+					else {
+						if (i == 1) {
+							irs << pf << "_sum_" << i << " = fadd float " << pf << "_mul_0, " << pf << "_mul_" << i << "\n";
+						}
+						else {
+							irs << pf << "_sum_" << i << " = fadd float " << pf << "_sum_" << i - 1 << ", " << pf << "_mul_" << i << "\n";
+						}
+						lastName = pf + "_sum_" + std::to_string(i);
+					}
+				}
+				irs << "\n";
+			}
 		}
 
 		/* 3.52.15 Relational and Logical Instructions */
@@ -2197,7 +2245,6 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		}
 		// Analyze
 		auto analyze = [&](Impl::SpvVMAnalysisPass pass) {
-			printf(" ===== Analysis Pass %d =====\n", pass);
 			for (int i = 0; i < context->instructions.size(); i++) {
 				auto& inst = context->instructions[i];
 				auto op = static_cast<spv::Op>(inst.opCode);
@@ -2234,7 +2281,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	void SpvVMInterpreter::exportLlvmIR(SpvVMIntermediateRepresentation* ir, std::string* outLlvmIR) {
 		std::string irStr = ir->generatedIR.str();
 		std::string irDeps = Impl::extInstRegistry.getRequiredFuncDefs();
-		*outLlvmIR = irDeps + irStr;
+		*outLlvmIR = irDeps + irStr; 
+		/*
 		printf("===========\n%s\n", outLlvmIR->c_str());
 		printf("Input Vars:\n");
 		for (auto i = 0; auto& x : ir->shaderMaps.inputVarSymbols) {
@@ -2250,6 +2298,6 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 				, x.c_str(), ir->shaderMaps.uniformSize[i]);
 			i++;
 		}
-		printf("Entry: %s\n", ir->shaderMaps.mainFuncSymbol.c_str());
+		printf("Entry: %s\n", ir->shaderMaps.mainFuncSymbol.c_str());*/
 	}
 }

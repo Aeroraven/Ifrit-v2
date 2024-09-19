@@ -21,6 +21,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		interpeter.exportLlvmIR(&spvir, &this->irCode);
 		this->runtime->loadIR(this->irCode, std::to_string(this->createTime));
 		updateSymbolTable(false);
+		ifritLog1("Shader loaded");
 	}
 	SpvRuntimeBackend::SpvRuntimeBackend(const SpvRuntimeBackend& other) {
 		this->copiedRuntime = other.runtime->getThreadLocalCopy();
