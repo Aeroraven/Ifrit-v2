@@ -1,4 +1,14 @@
 #include "engine/shadervm/spirv/SpvVMShader.h"
+#include <utility/debug/DebugHelper.h>
+using namespace Utility::Debug;
+
+extern "C" {
+	struct alignas(16) iint3Aligned {
+		int x, y, z;
+	};
+}
+#define NOMINMAX
+
 
 namespace Ifrit::Engine::ShaderVM::Spirv {
 	int SpvRuntimeBackend::createTime = 0;
@@ -45,6 +55,17 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		if (svmir->shaderMaps.builtinPositionSymbol.size()) {
 			this->symbolTables.builtinPosition = this->runtime->lookupSymbol(svmir->shaderMaps.builtinPositionSymbol);
 		}
+		if(svmir->shaderMaps.builtinLaunchIdKHR.size()){
+			this->symbolTables.builtinLaunchId = this->runtime->lookupSymbol(svmir->shaderMaps.builtinLaunchIdKHR);
+		}
+		if(svmir->shaderMaps.builtinLaunchSizeKHR.size()){
+			this->symbolTables.builtinLaunchSize = this->runtime->lookupSymbol(svmir->shaderMaps.builtinLaunchSizeKHR);
+		}
+		if(svmir->shaderMaps.incomingRayPayloadKHR.size()){
+			this->symbolTables.incomingPayload = this->runtime->lookupSymbol(svmir->shaderMaps.incomingRayPayloadKHR);
+			this->symbolTables.incomingPayloadSize = svmir->shaderMaps.incomingRayPayloadKHRSize;
+		}
+		this->symbolTables.builtinContext = this->runtime->lookupSymbol("ifsp_builtin_context_ptr");
 	}
 
 	SpvVertexShader::SpvVertexShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode):SpvRuntimeBackend(runtime, irByteCode){
@@ -53,8 +74,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	SpvVertexShader::SpvVertexShader(const SpvVertexShader& p) :SpvRuntimeBackend(p) {
 		isThreadSafe = false;
 	}
-	IFRIT_HOST VertexShader* SpvVertexShader::getThreadLocalCopy() {
-		auto copy = new SpvVertexShader(*this);
+	IFRIT_HOST std::unique_ptr<VertexShader> SpvVertexShader::getThreadLocalCopy() {
+		auto copy = std::make_unique<SpvVertexShader>(*this);
 		return copy;
 	}
 
@@ -87,8 +108,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	SpvFragmentShader::SpvFragmentShader(const SpvFragmentShader& p) :SpvRuntimeBackend(p) {
 		isThreadSafe = false;
 	}
-	IFRIT_HOST FragmentShader* SpvFragmentShader::getThreadLocalCopy() {
-		auto copy = new SpvFragmentShader(*this);
+	IFRIT_HOST std::unique_ptr<FragmentShader> SpvFragmentShader::getThreadLocalCopy() {
+		auto copy = std::make_unique<SpvFragmentShader>(*this);
 		return copy;
 	}
 
@@ -97,7 +118,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		memcpy(uniformData.first, pData, uniformData.second);
 	}
 
-	void SpvVertexShader::execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) {
+	void SpvVertexShader::execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) {
 		//TODO: Input & Output
 		for (int i = 0; i < symbolTables.inputBytes.size(); i++) {
 			memcpy(symbolTables.inputs[i], input[i], symbolTables.inputBytes[i]);
@@ -136,5 +157,138 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 			ret.push_back(p.first);
 		}
 		return ret;
+	}
+	
+	SpvRaygenShader::SpvRaygenShader(const SpvRaygenShader& p) :SpvRuntimeBackend(p) {
+		isThreadSafe = false;
+	}
+	SpvRaygenShader::SpvRaygenShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
+		isThreadSafe = false;
+	}
+	IFRIT_DUAL void SpvRaygenShader::execute(const iint3& inputInvocation, const iint3& dimension, void* context){
+		if (symbolTables.builtinLaunchId)memcpy(symbolTables.builtinLaunchId, &inputInvocation, sizeof(iint3));
+		if (symbolTables.builtinLaunchSize)memcpy(symbolTables.builtinLaunchSize, &dimension, sizeof(iint3));
+		if (symbolTables.builtinContext)memcpy(symbolTables.builtinContext, &context, sizeof(void*));
+		auto shaderEntry = (void(*)())this->symbolTables.entry;
+		//checkAddress(shaderEntry);
+		shaderEntry();
+	}
+	IFRIT_HOST Raytracer::RayGenShader* SpvRaygenShader::getCudaClone(){
+		ifritError("CUDA not supported");
+		return nullptr;
+	}
+	IFRIT_HOST std::unique_ptr<Raytracer::RayGenShader> SpvRaygenShader::getThreadLocalCopy(){
+		auto copy = std::make_unique<SpvRaygenShader>(*this);
+		return copy;
+	}
+	IFRIT_HOST void SpvRaygenShader::updateUniformData(int binding, int set, const void* pData){
+		auto& uniformData = symbolTables.uniform[{binding, set}];
+		memcpy(uniformData.first, pData, uniformData.second);
+	}
+	IFRIT_HOST std::vector<std::pair<int, int>> SpvRaygenShader::getUniformList(){
+		std::vector<std::pair<int, int>> ret;
+		for (auto& p : this->symbolTables.uniform) {
+			ret.push_back(p.first);
+		}
+		return ret;
+	}
+
+	SpvMissShader::SpvMissShader(const SpvMissShader& p) :SpvRuntimeBackend(p) {
+		isThreadSafe = false;
+	}
+	IFRIT_HOST void SpvMissShader::updateStack(){
+		if (this->execStack.size() == 0)return;
+		const auto& stackTop = this->execStack.back();
+		if (symbolTables.incomingPayload) {
+			memcpy(symbolTables.incomingPayload, stackTop.payloadPtr, symbolTables.incomingPayloadSize);
+		}
+	}
+	SpvMissShader::SpvMissShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
+		isThreadSafe = false;
+	}
+	IFRIT_DUAL void SpvMissShader::execute(void* context){
+		if (symbolTables.builtinContext)memcpy(symbolTables.builtinContext, &context, sizeof(void*));
+		auto shaderEntry = (void(*)())this->symbolTables.entry;
+		shaderEntry();
+
+		//Update payloads
+		const auto& stackTop = this->execStack.back();
+		if (symbolTables.incomingPayload) {
+			memcpy(stackTop.payloadPtr,symbolTables.incomingPayload , symbolTables.incomingPayloadSize);
+		}
+	}
+	IFRIT_HOST Raytracer::MissShader* SpvMissShader::getCudaClone() {
+		ifritError("CUDA not supported");
+		return nullptr;
+	}
+	IFRIT_HOST std::unique_ptr<Raytracer::MissShader> SpvMissShader::getThreadLocalCopy() {
+		auto copy = std::make_unique<SpvMissShader>(*this);
+		return copy;
+	}
+	IFRIT_HOST void SpvMissShader::updateUniformData(int binding, int set, const void* pData) {
+		auto& uniformData = symbolTables.uniform[{binding, set}];
+		memcpy(uniformData.first, pData, uniformData.second);
+	}
+	IFRIT_HOST std::vector<std::pair<int, int>> SpvMissShader::getUniformList() {
+		std::vector<std::pair<int, int>> ret;
+		for (auto& p : this->symbolTables.uniform) {
+			ret.push_back(p.first);
+		}
+		return ret;
+	}
+	IFRIT_HOST void SpvMissShader::onStackPushComplete(){
+		updateStack();
+	}
+	IFRIT_HOST void SpvMissShader::onStackPopComplete(){
+		updateStack();
+	}
+	SpvClosestHitShader::SpvClosestHitShader(const SpvClosestHitShader& p) :SpvRuntimeBackend(p) {
+		isThreadSafe = false;
+	}
+	IFRIT_HOST void SpvClosestHitShader::updateStack(){
+		if (this->execStack.size() == 0)return;
+		const auto& stackTop = this->execStack.back();
+		if (symbolTables.incomingPayload) {
+			memcpy(symbolTables.incomingPayload, stackTop.payloadPtr, symbolTables.incomingPayloadSize);
+		}
+	}
+	SpvClosestHitShader::SpvClosestHitShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) :SpvRuntimeBackend(runtime, irByteCode) {
+		isThreadSafe = false;
+	}
+	IFRIT_DUAL void SpvClosestHitShader::execute(const RayHit& hitAttribute, const RayInternal& ray, void* context){
+		if (symbolTables.builtinContext)memcpy(symbolTables.builtinContext, &context, sizeof(void*));
+		auto shaderEntry = (void(*)())this->symbolTables.entry;
+		shaderEntry();
+
+		//Update payloads
+		const auto& stackTop = this->execStack.back();
+		if (symbolTables.incomingPayload) {
+			memcpy(stackTop.payloadPtr, symbolTables.incomingPayload, symbolTables.incomingPayloadSize);
+		}
+	}
+	IFRIT_HOST Raytracer::CloseHitShader* SpvClosestHitShader::getCudaClone(){
+		ifritError("CUDA not supported");
+		return nullptr;
+	}
+	IFRIT_HOST std::unique_ptr<Raytracer::CloseHitShader> SpvClosestHitShader::getThreadLocalCopy(){
+		auto copy = std::make_unique<SpvClosestHitShader>(*this);
+		return copy;
+	}
+	IFRIT_HOST void SpvClosestHitShader::updateUniformData(int binding, int set, const void* pData){
+		auto& uniformData = symbolTables.uniform[{binding, set}];
+		memcpy(uniformData.first, pData, uniformData.second);
+	}
+	IFRIT_HOST std::vector<std::pair<int, int>> SpvClosestHitShader::getUniformList(){
+		std::vector<std::pair<int, int>> ret;
+		for (auto& p : this->symbolTables.uniform) {
+			ret.push_back(p.first);
+		}
+		return ret;
+	}
+	IFRIT_HOST void SpvClosestHitShader::onStackPushComplete(){
+		updateStack();
+	}
+	IFRIT_HOST void SpvClosestHitShader::onStackPopComplete(){
+		updateStack();
 	}
 }

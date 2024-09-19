@@ -1,6 +1,7 @@
 ﻿using IfritLib.Core;
 using IfritLib.Engine.Base;
 using IfritLib.Native;
+using IfritLib.Engine.BufferManagement;
 using System.Runtime.InteropServices;
 
 namespace IfritLib.Engine.TileRaster
@@ -19,12 +20,9 @@ namespace IfritLib.Engine.TileRaster
         {
             NativeMethods.IftrBindVertexBuffer(_internalObject, vertexBuffer.InternalObject);
         }
-        public void BindIndexBuffer(int[] indexBuffer)
+        public void BindIndexBuffer(BufferObject indexBuffer)
         {
-            IntPtr rawPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>() * indexBuffer.Length);
-            Marshal.Copy(indexBuffer, 0, rawPtr, indexBuffer.Length);
-            NativeMethods.IftrBindIndexBuffer(_internalObject, rawPtr, (uint)indexBuffer.Length);
-            Marshal.FreeHGlobal(rawPtr);
+            NativeMethods.IftrBindIndexBuffer(_internalObject,indexBuffer.InternalObject);
         }
         public void BindVertexShaderLegacy1(ShaderDelegates.VertexShaderFunctionPtrRaw vertexShader, VaryingDescriptors layout)
         {
@@ -56,9 +54,9 @@ namespace IfritLib.Engine.TileRaster
         {
             NativeMethods.IftrOptsetDepthTestEnable(_internalObject, opt);
         }
-        public void DrawLegacy(int clearFramebuffer)
+        public void DrawLegacy(int numVertices, int clearFramebuffer)
         {
-            NativeMethods.IftrDrawLegacy(_internalObject, clearFramebuffer);
+            NativeMethods.IftrDrawLegacy(_internalObject, numVertices, clearFramebuffer);
         }
         public void Clear()
         {

@@ -11,6 +11,42 @@
 	#define IFRIT_API_EXPORT
 #endif
 
+// Platform specific dllexport semantics
+// https://stackoverflow.com/questions/2164827/explicitly-exporting-shared-library-functions-in-linux
+#if defined(_MSC_VER)
+	#define IFRIT_DLLEXPORT __declspec(dllexport)
+	#define IFRIT_DLLIMPORT __declspec(dllimport)
+#elif defined(__MINGW64__)
+	#define IFRIT_DLLEXPORT __declspec(dllexport)
+	#define IFRIT_DLLIMPORT __declspec(dllimport)
+#elif defined(__clang__)
+	#define IFRIT_DLLEXPORT __attribute__((visibility("default")))
+	#define IFRIT_DLLIMPORT
+#elif defined(__GNUC__)
+	#define IFRIT_DLLEXPORT __attribute__((visibility("default")))
+	#define IFRIT_DLLIMPORT
+#else
+	static_assert(false, "Unsupported compiler");
+#endif
+
+
+// x64 & x32 platform detection
+#if _WIN32 || _WIN64
+	#if _WIN64
+		#define IFRIT_ENV64
+	#else
+		#define IFRIT_ENV32
+		static_assert(false, "Lacking x32 support");
+	#endif
+#elif __GNUC__
+	#if __x86_64__ || __ppc64__
+		#define IFRIT_ENV64
+	#else
+		#define IFRIT_ENV32
+		static_assert(false, "Lacking x32 support");
+	#endif
+#endif
+
 #ifdef IFRIT_DLL
 	#ifndef __cplusplus
 		#define IFRIT_API_EXPORT_COMPATIBLE_MODE
@@ -19,24 +55,28 @@
 	#ifdef IFRIT_API_EXPORT_COMPATIBLE_MODE
 		#ifdef IFRIT_API_EXPORT
 			#define IFRIT_APIDECL
-			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllexport)
+			#define IFRIT_APIDECL_FORCED  IFRIT_DLLEXPORT
+			#define IFRIT_APIDECL_COMPAT extern "C" IFRIT_DLLEXPORT
 		#else
 			#define IFRIT_APIDECL 
-			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllimport)
+			#define IFRIT_APIDECL_FORCED IFRIT_DLLIMPORT
+			#define IFRIT_APIDECL_COMPAT extern "C" IFRIT_DLLIMPORT
 			#define IRTIT_IGNORE_PRESENTATION_DEPS
 		#endif
 	#else 
 		#ifdef IFRIT_API_EXPORT
-			#define IFRIT_APIDECL __declspec(dllexport)
-			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllexport)
+			#define IFRIT_APIDECL IFRIT_DLLEXPORT
+			#define IFRIT_APIDECL_FORCED  IFRIT_DLLEXPORT
+			#define IFRIT_APIDECL_COMPAT extern "C" IFRIT_DLLEXPORT
 		#else
-			#define IFRIT_APIDECL __declspec(dllimport)
-			#define IFRIT_APIDECL_COMPAT extern "C" __declspec(dllimport)
+			#define IFRIT_APIDECL IFRIT_DLLIMPORT
+			#define IFRIT_APIDECL_FORCED IFRIT_DLLIMPORT
+			#define IFRIT_APIDECL_COMPAT extern "C" IFRIT_DLLIMPORT
 			#define IRTIT_IGNORE_PRESENTATION_DEPS
 		#endif
 	#endif
-	
 #else
+	#define IFRIT_APIDECL_FORCED IFRIT_DLLEXPORT
 	#define IFRIT_APIDECL
 	#define IFRIT_APIDECL_COMPAT
 #endif
@@ -85,6 +125,12 @@
 	#define IFRIT_CXX20_ENABLED 1
 #endif
 #ifndef _HAS_CXX20
+	//Patch for gcc10
+	#ifdef __GNUC__
+		#if __GNUC__ >= 10
+			#define IFRIT_CXX20_ENABLED 1
+		#endif
+	#endif
 	#if __cplusplus >= 202002L
 		#define IFRIT_CXX20_ENABLED 1
 	#endif
@@ -98,8 +144,11 @@
 		#define IFRIT_CXX17_ENABLED 1
 	#endif
 #endif
+#ifndef IFRIT_CXX17_ENABLED
+	static_assert(false, "App requires C++20 or higher (Currently C++17 is not supported)");
+#endif
 #ifndef IFRIT_CXX20_ENABLED
-	static_assert(false, "App requires C++20 or higher")
+	static_assert(false, "App requires C++20 or higher");
 #endif
 
 #ifdef IFRIT_CXX23_ENABLED

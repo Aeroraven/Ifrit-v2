@@ -6,14 +6,6 @@ namespace IfritLib.Native
     internal static partial class NativeMethods
     {
         /* Engine */
-        [LibraryImport(DllName, EntryPoint = "iftrCreateBufferLayout")]
-        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
-        public static partial IntPtr IftrCreateBufferLayout();
-
-        [LibraryImport(DllName, EntryPoint = "iftrDestroyBufferLayout")]
-        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
-        public static partial void IftrDestroyBufferLayout(IntPtr pInstance);
-
         [LibraryImport(DllName, EntryPoint = "iftrCreateFrameBuffer")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
         public static partial IntPtr IftrCreateFrameBuffer();
@@ -84,9 +76,9 @@ namespace IfritLib.Native
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
         public static partial void IftrBindVertexBuffer(IntPtr hInstance, IntPtr vertexBuffer);
 
-        [LibraryImport(DllName, EntryPoint = "iftrBindIndexBuffer")]
+        /*[LibraryImport(DllName, EntryPoint = "iftrBindIndexBuffer")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
-        public static partial void IftrBindIndexBuffer(IntPtr hInstance, IntPtr indexBuffer, nuint indexBufferSize);
+        public static partial void IftrBindIndexBuffer(IntPtr hInstance, IntPtr indexBuffer);*/
 
         [LibraryImport(DllName, EntryPoint = "iftrBindVertexShaderFunc")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
@@ -112,9 +104,9 @@ namespace IfritLib.Native
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
         public static partial void IftrOptsetDepthTestEnable(IntPtr hInstance, int opt);
 
-        [LibraryImport(DllName, EntryPoint = "iftrDrawLegacy")]
+        /*[LibraryImport(DllName, EntryPoint = "iftrDrawLegacy")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
-        public static partial void IftrDrawLegacy(IntPtr hInstance, int clearFramebuffer);
+        public static partial void IftrDrawLegacy(IntPtr hInstance, int clearFramebuffer);*/
 
         [LibraryImport(DllName, EntryPoint = "iftrClear")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
@@ -162,6 +154,38 @@ namespace IfritLib.Native
         [LibraryImport(DllName, EntryPoint = "ifspvmDestroyFragmentShaderFromFile")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
         public static partial void IfspvmDestroyFragmentShaderFromFile(IntPtr pInstance);
+
+        /* ========= Update V2 ======== */
+
+        // Renderer
+        [LibraryImport(DllName, EntryPoint = "iftrBindIndexBuffer")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial void IftrBindIndexBuffer(IntPtr hInstance, IntPtr indexBuffer);
+
+        [LibraryImport(DllName, EntryPoint = "iftrDrawLegacy")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial void IftrDrawLegacy(IntPtr hInstance, int numVertices, int clearFramebuffer);
+
+        // Buffer Management
+        [LibraryImport(DllName, EntryPoint = "ifbufCreateBufferManager")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial IntPtr IfbufCreateBufferManager();
+
+        [LibraryImport(DllName, EntryPoint = "ifbufDestroyBufferManager")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial void IfbufDestroyBufferManager(IntPtr pInstance);
+
+        [LibraryImport(DllName, EntryPoint = "ifbufCreateBuffer")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial IntPtr IfbufCreateBuffer(IntPtr pManager, nuint size);
+
+        [LibraryImport(DllName, EntryPoint = "ifbufDestroyBuffer")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial void IfbufDestroyBuffer(IntPtr pInstance);
+
+        [LibraryImport(DllName, EntryPoint = "ifbufBufferData")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvStdcall)])]
+        public static partial void IfbufBufferData(IntPtr pBuffer, IntPtr pSrc, nuint offset,nuint size);
 
     }
 }

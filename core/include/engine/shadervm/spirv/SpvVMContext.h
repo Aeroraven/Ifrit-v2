@@ -39,6 +39,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		IFSP_IRTARGET_DECL_OPAQUE,
 		IFSP_IRTARGET_DECL_POINTER,
 		IFSP_IRTARGET_DECL_FUNCTION,
+
+		IFSP_IRTARGET_DECL_ACCELERATION_STRUCTURE
 	};
 	struct SpvVMCtxInstruction {
 		uint32_t opCode;
@@ -62,11 +64,18 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::vector<int> uniformSize;
 		std::string mainFuncSymbol;
 		std::string builtinPositionSymbol;
+		std::string builtinLaunchIdKHR;
+		std::string builtinLaunchSizeKHR;
+		std::string incomingRayPayloadKHR;
+		int incomingRayPayloadKHRSize = 0;
 	};
 	struct SpvDecorationBlock {
 		int location = -1;
 		int binding = -1, descSet = -1;
 		bool isBuiltinPos = false;
+		bool isBuiltinLaunchIdKHR = false;
+		bool isBuiltinLaunchSizeKHR = false;
+		bool isIncomingRayPayloadKHR = false;
 		SpvVMMatrixLayout matrixLayout = IFSP_MATL_COLMAJOR;
 	};
 	struct SpvVMIntermediateReprExpTarget {
@@ -81,6 +90,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		bool activated = false;
 		bool isFunction = false;
 		bool isConstant = false;
+		bool isUndef = false;
 		bool isVariable = false;
 		bool isLabel = false;
 		bool isInstance = false;

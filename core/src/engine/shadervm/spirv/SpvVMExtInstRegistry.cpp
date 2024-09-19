@@ -8,12 +8,14 @@ namespace  Ifrit::Engine::ShaderVM::Spirv {
 			return paramComSize == 1 ? "i32" : ("<" + std::to_string(paramComSize) + " x i32>");
 		if (baseIdentifier == IFSP_EXTREG_TP_FLOAT)
 			return paramComSize == 1 ? "float" : ("<" + std::to_string(paramComSize) + " x float>");
+		return "unknown";
 	}
 	std::string getMangledType(SpvVMExtRegistryTypeIdentifier baseIdentifier, int paramComSize) {
 		if (baseIdentifier == IFSP_EXTREG_TP_INT)
 			return paramComSize == 1 ? "i32" : ("v" + std::to_string(paramComSize) + "i32");
 		if (baseIdentifier == IFSP_EXTREG_TP_FLOAT)
 			return paramComSize == 1 ? "f32" : ("v" + std::to_string(paramComSize) + "f32");
+		return "unknown";
 	}
 }
 
@@ -95,7 +97,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 			registeredFunc.insert(baseFuncName);
 			auto lpt1 = generators.count(extImportName);
 			if (lpt1 == 0) {
-				printf("OpExtInst: library %c not supported \n", extImportName.c_str());
+				printf("OpExtInst: library %s not supported \n", extImportName.c_str());
 				return "{error func}";
 			}
 			auto lpt2 = generators[extImportName].count(functionName);

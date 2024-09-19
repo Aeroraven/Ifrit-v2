@@ -147,7 +147,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 		ctxClearDepth = clearDepth;
 	}
 	IFRIT_APIDECL void TileRasterRendererCuda::clear() {
-		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
+		//ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
 		int totalIndices = 0;
 		if(totalIndices)totalIndices = context->indexBuffer->size();
 		int curBuffer = currentBuffer;
@@ -199,7 +199,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 			needFragmentShaderUpdate = false;
 		}
 
-		ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
+		//ifloat4* colorBuffer = (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
 		int totalIndices = 0;
 		if(context->indexBuffer)totalIndices = context->indexBuffer->size();
 		int curBuffer = currentBuffer;

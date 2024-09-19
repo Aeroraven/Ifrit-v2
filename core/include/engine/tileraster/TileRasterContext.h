@@ -18,23 +18,35 @@ namespace Ifrit::Engine::TileRaster {
 		constexpr static int tileWidth = 16;
 		constexpr static int subtileBlockWidth = 4;
 		constexpr static int numSubtilesPerTileX = tileWidth / subtileBlockWidth;
+		constexpr static int vsChunkSize = 48;
+		constexpr static int gsChunkSize = 256;
 
 		// Non-owning Bindings
 		FrameBuffer* frameBuffer;
 		const VertexBuffer* vertexBuffer;
-		const std::vector<int>* indexBuffer;
+		const int* indexBuffer;
+		int indexBufferSize;
 		VertexShader* vertexShader;
 		VaryingDescriptor* varyingDescriptor;
 		FragmentShader* fragmentShader;
 		std::unordered_map<std::pair<int, int>, const void*,Ifrit::Core::Utility::PairHash> uniformMapping;
+		
+		// Cached attributes
+		int frameWidth;
+		int frameHeight;
+		float invFrameWidth;
+		float invFrameHeight;
 
 		// Owning Bindings
 		std::unique_ptr<VaryingDescriptor> owningVaryingDesc;
 
-		// Thread-safe Calls (TODO: Mem Leak)
+		// Thread-safe Calls
 		std::vector<VertexShader*> threadSafeVS;
 		std::vector<FragmentShader*> threadSafeFS;
 
+		std::vector<std::unique_ptr<VertexShader>> threadSafeVSOwningSection;
+		std::vector<std::unique_ptr<FragmentShader>> threadSafeFSOwningSection;
+		
 		// Resources
 		std::unique_ptr<VertexShaderResult> vertexShaderResult;
 		std::vector<std::vector<std::vector<TileBinProposal>>> rasterizerQueue;

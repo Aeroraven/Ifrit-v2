@@ -1,6 +1,5 @@
 #pragma once
 #include "./core/definition/CoreExports.h"
-#include "./engine/base/BufferLayout.h"
 #include "./engine/base/FrameBuffer.h"
 #include "./engine/base/VaryingDescriptor.h"
 
@@ -10,10 +9,6 @@
 namespace Ifrit::Engine::LibraryExport {
 	using ExportTypeDesc = int;
 }
-
-/* Exporting BufferLayout.h */
-IFRIT_APIDECL_COMPAT IFRIT_BASENS::BufferLayout* IFRIT_APICALL iftrCreateBufferLayout() IFRIT_EXPORT_COMPAT_NOTHROW;
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyBufferLayout(IFRIT_BASENS::BufferLayout* pInstance) IFRIT_EXPORT_COMPAT_NOTHROW;
 
 /* Exporting FrameBuffer.h */
 IFRIT_APIDECL_COMPAT IFRIT_BASENS::FrameBuffer* IFRIT_APICALL iftrCreateFrameBuffer() IFRIT_EXPORT_COMPAT_NOTHROW;

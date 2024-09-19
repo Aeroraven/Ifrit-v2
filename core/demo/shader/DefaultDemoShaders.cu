@@ -4,7 +4,7 @@
 #include "engine/math/ShaderBuiltinCuda.cuh"
 
 namespace Ifrit::Demo::DemoDefault {
-	IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4* outPos, Ifrit::Engine::VaryingStore* const* outVaryings) {
+	IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) {
 		using namespace Ifrit::Engine::Math::ShaderOps::CUDA;
 		//float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
@@ -22,9 +22,9 @@ namespace Ifrit::Demo::DemoDefault {
 		auto s = isbReadFloat4(input[0]);
 		auto p = multiply(mvp, s);
 		*outPos = p;
-		outVaryings[0]->vf4 = isbReadFloat4(input[1]);
-		outVaryings[1]->vf4 = isbReadFloat4(input[2]);
-		outVaryings[1]->vf4.y = 1.0f - outVaryings[1]->vf4.y;
+		*outVaryings[0] = isbReadFloat4(input[1]);
+		*outVaryings[1] = isbReadFloat4(input[2]);
+		(*outVaryings[1]).y = 1.0f - outVaryings[1]->y;
 	}
 
 	IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {

@@ -9,13 +9,6 @@
 using namespace Ifrit::Engine;
 using namespace Ifrit::Core::Data;
 
-IFRIT_APIDECL_COMPAT IFRIT_BASENS::BufferLayout* IFRIT_APICALL iftrCreateBufferLayout() IFRIT_EXPORT_COMPAT_NOTHROW {
-	return new BufferLayout();
-}
-
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyBufferLayout(IFRIT_BASENS::BufferLayout* pInstance) IFRIT_EXPORT_COMPAT_NOTHROW {
-	delete pInstance;
-}
 
 IFRIT_APIDECL_COMPAT IFRIT_BASENS::FrameBuffer* IFRIT_APICALL iftrCreateFrameBuffer() IFRIT_EXPORT_COMPAT_NOTHROW {
 	return new FrameBuffer();

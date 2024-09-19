@@ -4,6 +4,7 @@
 #include "./engine/base/ShaderRuntime.h"
 #include "./engine/shadervm/spirv/SpvVMInterpreter.h"
 #include "./engine/shadervm/spirv/SpvVMReader.h"
+#include "./engine/raytracer/RtShaders.h"
 
 namespace Ifrit::Engine::ShaderVM::Spirv {
 	struct SpvRuntimeSymbolTables {
@@ -14,6 +15,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::unordered_map<std::pair<int, int>, std::pair<void*, int>,Ifrit::Core::Utility::PairHash> uniform;
 		void* entry = nullptr;
 		void* builtinPosition = nullptr;
+		void* builtinLaunchId = nullptr;
+		void* builtinLaunchSize = nullptr;
+
+		void* builtinContext = nullptr;
+		void* incomingPayload = nullptr;
+		int incomingPayloadSize = 0;
 	};
 	class SpvRuntimeBackend {
 	protected:
@@ -37,29 +44,77 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	};
 
 	class SpvVertexShader final: public VertexShader, public SpvRuntimeBackend {
-	protected:
+	public:
 		SpvVertexShader(const SpvVertexShader& p);
 	public:
 		SpvVertexShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
 		~SpvVertexShader() = default;
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override;
+		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) override;
 		IFRIT_HOST virtual VertexShader* getCudaClone() override;
-		IFRIT_HOST virtual VertexShader* getThreadLocalCopy() override;
+		IFRIT_HOST virtual std::unique_ptr<VertexShader> getThreadLocalCopy() override;
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
 		IFRIT_HOST virtual VaryingDescriptor getVaryingDescriptor() override;
 	};
 
 	class SpvFragmentShader final: public FragmentShader, public SpvRuntimeBackend {
-	protected:
+	public:
 		SpvFragmentShader(const SpvFragmentShader& p);
 	public:
 		SpvFragmentShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
 		~SpvFragmentShader() = default;
 		IFRIT_DUAL virtual void execute(const void* varyings,void* colorOutput,	float* fragmentDepth) override;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() override;
-		IFRIT_HOST virtual FragmentShader* getThreadLocalCopy() override;
+		IFRIT_HOST virtual std::unique_ptr<FragmentShader> getThreadLocalCopy() override;
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
+	};
+
+	//V2
+	class SpvRaygenShader final : public Raytracer::RayGenShader, public SpvRuntimeBackend {
+	public:
+		SpvRaygenShader(const SpvRaygenShader& p);
+	public:
+		SpvRaygenShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
+		~SpvRaygenShader() = default;
+		IFRIT_DUAL virtual void execute(const iint3& inputInvocation, const iint3& dimension, void* context)override;
+		IFRIT_HOST virtual Raytracer::RayGenShader* getCudaClone() override;
+		IFRIT_HOST virtual std::unique_ptr<Raytracer::RayGenShader> getThreadLocalCopy() override;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
+	};
+
+	class SpvMissShader final : public Raytracer::MissShader, public SpvRuntimeBackend {
+	public:
+		SpvMissShader(const SpvMissShader& p);
+	private:
+		IFRIT_HOST void updateStack();
+	public:
+		SpvMissShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
+		~SpvMissShader() = default;
+		IFRIT_DUAL virtual void execute(void* context)override;
+		IFRIT_HOST virtual Raytracer::MissShader* getCudaClone() override;
+		IFRIT_HOST virtual std::unique_ptr<Raytracer::MissShader> getThreadLocalCopy() override;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
+		IFRIT_HOST virtual void onStackPushComplete() override;
+		IFRIT_HOST virtual void onStackPopComplete() override;
+	};
+
+	class SpvClosestHitShader final : public Raytracer::CloseHitShader, public SpvRuntimeBackend {
+	public:
+		SpvClosestHitShader(const SpvClosestHitShader& p);
+	private:
+		IFRIT_HOST void updateStack();
+	public:
+		SpvClosestHitShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
+		~SpvClosestHitShader() = default;
+		IFRIT_DUAL virtual void execute(const RayHit& hitAttribute,const RayInternal& ray, void* context)override;
+		IFRIT_HOST virtual Raytracer::CloseHitShader* getCudaClone() override;
+		IFRIT_HOST virtual std::unique_ptr<Raytracer::CloseHitShader> getThreadLocalCopy() override;
+		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) override;
+		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
+		IFRIT_HOST virtual void onStackPushComplete() override;
+		IFRIT_HOST virtual void onStackPopComplete() override;
 	};
 }

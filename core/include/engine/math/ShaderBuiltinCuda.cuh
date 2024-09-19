@@ -184,8 +184,8 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 				norm = 0.5f / aX;
 				outUv = { oX < 0.0f ? oZ : -oZ,-oY };
 			}
-			outUv.x = outUv.x * norm + 0.5;
-			outUv.y = outUv.y * norm + 0.5;
+			outUv.x = outUv.x * norm + 0.5f;
+			outUv.y = outUv.y * norm + 0.5f;
 		}
 
 		IFRIT_DUAL inline float4 textureImplLod(const IfritSamplerT& sampler, const float4* texData,

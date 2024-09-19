@@ -124,10 +124,32 @@ namespace Ifrit::Core::Data {
 			}
 		}
 
+		void clearImageMultithread(T value, int workerId,int totalWorkers) {
+			const auto dataPtr = data;
+			const auto dataSizeSt = width * height * channel * workerId / totalWorkers;
+			const auto dataSizeEd = width * height * channel * (workerId + 1) / totalWorkers;
+
+			if constexpr (std::is_same_v<T, char> && !std::is_same_v<T, unsigned char>) {
+				memset(dataPtr+dataSizeSt, value, (dataSizeEd-dataSizeSt) * sizeof(T));
+			}
+			else {
+				auto st = data + dataSizeSt;
+				auto ed = data + dataSizeEd;
+				std::fill(st,ed,value);
+			}
+		}
+
 		void clearImageZero() {
 			const auto dataPtr = data;
 			const auto dataSize = width * height * channel;
 			memset(dataPtr, 0, dataSize * sizeof(T));
+		}
+
+		void clearImageZeroMultiThread(int workerId, int totalWorkers) {
+			const auto dataPtr = data;
+			const auto dataSizeSt = width * height * channel * workerId / totalWorkers;
+			const auto dataSizeEd = width * height * channel * (workerId + 1) / totalWorkers;
+			memset(dataPtr+ dataSizeSt, 0 , (dataSizeEd - dataSizeSt) * sizeof(T));
 		}
 
 		T& operator()(size_t x, size_t y, size_t c) {

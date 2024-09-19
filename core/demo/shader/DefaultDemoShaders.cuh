@@ -9,7 +9,7 @@
 namespace Ifrit::Demo::DemoDefault {
 	class DemoVertexShaderCuda : public  Ifrit::Engine::VertexShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, Ifrit::Engine::VaryingStore* const* outVaryings) override;
+		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) override;
 		IFRIT_HOST virtual Ifrit::Engine::VertexShader* getCudaClone() override;
 	};
 

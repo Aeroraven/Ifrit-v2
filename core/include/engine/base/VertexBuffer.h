@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/utility/CoreUtils.h"
-#include "engine/base/BufferLayout.h"
 #include "engine/base/TypeDescriptor.h"
 namespace Ifrit::Engine {
 

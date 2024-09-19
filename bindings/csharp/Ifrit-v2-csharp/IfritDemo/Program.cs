@@ -4,6 +4,7 @@ using IfritLib.Engine.SpirvInterpreter;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Drawing;
+using IfritLib.Engine.BufferManagement;
 
 namespace IfritDemo
 {
@@ -71,9 +72,12 @@ namespace IfritDemo
             frameBuffer.SetColorAttachmentsFP32([image]);
             frameBuffer.SetDepthAttachmentFP32(depth);
 
+            var bufferManager = new BufferManager();
+            var indexBufferObject = bufferManager.CreateBuffer(indexBuffer.Length * sizeof(float));
+
             renderer.BindFrameBuffer(frameBuffer);
             renderer.BindVertexBuffer(vertexBuffer);
-            renderer.BindIndexBuffer(indexBuffer);
+            renderer.BindIndexBuffer(indexBufferObject);
             renderer.SetForceDeterministic(1);
 
             int[] vsOutLayout = [4];
@@ -87,7 +91,7 @@ namespace IfritDemo
             renderer.BindVertexShader(vertexShader);
             renderer.BindFragmentShader(fragmentShader);
 
-            renderer.DrawLegacy(1);
+            renderer.DrawLegacy(indexBuffer.Length, 1);
 
             float[] imageData = new float[4 * DEMO_RESOLUTION * DEMO_RESOLUTION];
             image.CopyToArray(imageData);

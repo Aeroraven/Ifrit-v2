@@ -9,8 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ifrit-v2-CSharpLib", "bindi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ifrit-v2-CSharpLib-Demo", "bindings\csharp\Ifrit-v2-csharp\IfritDemo\Ifrit-v2-CSharpLib-Demo.csproj", "{8DAB3D45-9715-4D0A-ACB0-6F4401ACA0BB}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Ifrit-v2-Component-LLVMExec", "components\llvmexec\Ifrit-v2-Component-LLVMExec\Ifrit-v2-Component-LLVMExec.vcxproj", "{A901BF30-E8C9-4D17-B754-8CA24E5F2068}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,16 +55,6 @@ Global
 		{8DAB3D45-9715-4D0A-ACB0-6F4401ACA0BB}.Release|x64.Build.0 = Release|Any CPU
 		{8DAB3D45-9715-4D0A-ACB0-6F4401ACA0BB}.Release|x86.ActiveCfg = Release|Any CPU
 		{8DAB3D45-9715-4D0A-ACB0-6F4401ACA0BB}.Release|x86.Build.0 = Release|Any CPU
-		{A901BF30-E8C9-4D17-B754-8CA24E5F2068}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{A901BF30-E8C9-4D17-B754-8CA24E5F2068}.Debug|Any CPU.Build.0 = Debug|x64
-		{A901BF30-E8C9-4D17-B754-8CA24E5F2068}.Debug|x64.ActiveCfg = Debug|x64
-		{A901BF30-E8C9-4D17-B754-8CA24E5F2068}.Debug|x64.Build.0 = Debug|x64
-		{A901BF30-E8C9-4D17-B754-8CA24E5F2068}.Debug|x86.ActiveCfg = Debug|x64
-		{A901BF30-E8C9-4D17-B754-8CA24E5F2068}.Release|Any CPU.ActiveCfg = Release|x64
-		{A901BF30-E8C9-4D17-B754-8CA24E5F2068}.Release|Any CPU.Build.0 = Release|x64
-		{A901BF30-E8C9-4D17-B754-8CA24E5F2068}.Release|x64.ActiveCfg = Release|x64
-		{A901BF30-E8C9-4D17-B754-8CA24E5F2068}.Release|x64.Build.0 = Release|x64
-		{A901BF30-E8C9-4D17-B754-8CA24E5F2068}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

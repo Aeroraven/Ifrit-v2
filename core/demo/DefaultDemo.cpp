@@ -3,26 +3,26 @@
 #include "./demo/shader/DefaultDemoShaders.cuh"
 #include "presentation/backend/OpenGLBackend.h"
 #include "core/data/Image.h"
+#include "math/LinalgOps.h"
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/tileraster/TileRasterRenderer.h"
 #include "utility/loader/WavefrontLoader.h"
 #include "utility/loader/ImageLoader.h"
-#include "engine/math/ShaderOps.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "presentation/backend/TerminalCharColorBackend.h"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
+#include "engine/bufferman/BufferManager.h"
 
-#define DEMO_RESOLUTION 512
-
+#define DEMO_RESOLUTION 2048
 
 namespace Ifrit::Demo::DemoDefault {
 	using namespace std;
 	using namespace Ifrit::Core::Data;
-
+	using namespace Ifrit::Engine::BufferManager;
 	using namespace Ifrit::Engine::TileRaster;
 	using namespace Ifrit::Utility::Loader;
-	using namespace Ifrit::Engine::Math::ShaderOps;
+	using namespace Ifrit::Math;
 	using namespace Ifrit::Presentation::Window;
 	using namespace Ifrit::Presentation::Backend;
 #ifdef IFRIT_FEATURE_CUDA
@@ -39,21 +39,21 @@ namespace Ifrit::Demo::DemoDefault {
 	//float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 	//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 })); //Bunny
 	//float4x4 view = (lookAt({ 0,2600,2500}, { 0,0.1,-500.0 }, { 0,1,0 })); //Sponza
-	float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
-	//float4x4 view = (lookAt({ 0,0.0,1.25 }, { 0,0.0,0.0 }, { 0,1,0 }));
+	//float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 })); //yomiya
+	//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
 	//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
 	//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
 	//float4x4 proj = (perspective(60*3.14159/180, 1920.0 / 1080.0, 10.0, 4000));
-	//float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
+	float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
 	float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 1.0, 3000));
 	float4x4 model;
-	float4x4 mvp = multiply(proj, view);
+	float4x4 mvp = matmul(proj, view);
 
 	float globalTime = 1.0f;
 
 	class DemoVertexShader : public VertexShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings) override {
+		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) override {
 			/*const auto radius = 0.3f;
 			const auto vX = sin(globalTime) * radius;
 			const auto vZ = cos(globalTime) * radius;
@@ -62,9 +62,9 @@ namespace Ifrit::Demo::DemoDefault {
 			float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.01, 3000));
 			auto mvp = multiply(proj, view);	*/
 			auto s = *reinterpret_cast<const ifloat4*>(input[0]);
-			auto p = multiply(mvp, s);
+			auto p = matmul(mvp, s);
 			*outPos = p;
-			outVaryings[0]->vf4 = *reinterpret_cast<const ifloat4*>(input[1]);
+			*outVaryings[0] = *reinterpret_cast<const ifloat4*>(input[1]);
 		}
 	};
 
@@ -94,7 +94,7 @@ namespace Ifrit::Demo::DemoDefault {
 		std::vector<uint32_t> index;
 		std::vector<ifloat3> procNormal;
 
-		loader.loadObject(IFRIT_ASSET_PATH"/yomiya.obj", pos, normal, uv, index);
+		loader.loadObject(IFRIT_ASSET_PATH"/sponza3.obj", pos, normal, uv, index);
 		procNormal = loader.remapNormals(normal, index, pos.size());
 
 		std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
@@ -143,11 +143,17 @@ namespace Ifrit::Demo::DemoDefault {
 		renderer->init();
 		renderer->bindFrameBuffer(frameBuffer);
 		renderer->bindVertexBuffer(vertexBuffer);
-		renderer->bindIndexBuffer(indexBuffer);
-		renderer->optsetForceDeterministic(true);
+
+		std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
+		bufferman->init();
+		auto indexBuffer1 = bufferman->createBuffer({ sizeof(indexBuffer[0]) * indexBuffer.size() });
+		bufferman->bufferData(indexBuffer1, indexBuffer.data(), 0, sizeof(indexBuffer[0]) * indexBuffer.size());
+
+		renderer->bindIndexBuffer(indexBuffer1);
+		renderer->optsetForceDeterministic(false);
 
 		IfritColorAttachmentBlendState blendState;
-		blendState.blendEnable = true;
+		blendState.blendEnable = false;
 		blendState.srcColorBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
 		blendState.dstColorBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		blendState.srcAlphaBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
@@ -161,13 +167,13 @@ namespace Ifrit::Demo::DemoDefault {
 		DemoFragmentShader fragmentShader;
 		renderer->bindFragmentShader(fragmentShader);
 
-		renderer->optsetDepthTestEnable(false);
+		renderer->optsetDepthTestEnable(true);
 
 		float ang = 0;
 		if (presentEngine == PE_CONSOLE) {
 			TerminalCharColorBackend backend(139 * 2, 40 * 2);
 			while (true) {
-				renderer->render(true);
+				renderer->drawElements(indexBuffer.size(),true);
 				backend.updateTexture(*image);
 				backend.draw();
 				globalTime += 0.03f;
@@ -183,7 +189,7 @@ namespace Ifrit::Demo::DemoDefault {
 			backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 			windowProvider.loop([&](int* coreTime) {
 				std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-				renderer->render(true);
+				renderer->drawElements(indexBuffer.size(), true);
 				std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 				*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 				//printf("PassDone %d\n", *coreTime);
@@ -252,9 +258,6 @@ namespace Ifrit::Demo::DemoDefault {
 		vertexBuffer.setValue(2, 2, ifloat4(1.0, 0.0, 0.1, 0));
 		vertexBuffer.setValue(3, 2, ifloat4(1.0, 1.0, 0.1, 0));
 		indexBuffer = { 2,1,0,0,3,2 };*/
-
-
-		printf("Total Tris:%d\n", indexBuffer.size() / 3);
 
 		std::vector<float> texFox;
 		int texFoxW, texFoxH;
@@ -337,7 +340,7 @@ namespace Ifrit::Demo::DemoDefault {
 		windowProvider.loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 			renderer->clear();
-			renderer->drawElements();
+			//renderer->drawElements();
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 			backend.updateTexture(*image1);

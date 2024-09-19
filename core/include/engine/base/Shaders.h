@@ -26,10 +26,11 @@ namespace Ifrit::Engine {
 		IFRIT_DUAL virtual void execute(
 			const void* const* input,
 			ifloat4* outPos,
-			VaryingStore* const* outVaryings
+			ifloat4* const* outVaryings
 		) = 0;
+		IFRIT_DUAL virtual ~VertexShader() = default;
 		IFRIT_HOST virtual VertexShader* getCudaClone() { return nullptr; };
-		IFRIT_HOST virtual VertexShader* getThreadLocalCopy() { return nullptr; };
+		IFRIT_HOST virtual std::unique_ptr<VertexShader> getThreadLocalCopy() { return nullptr; };
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) {}
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return{}; }
 		IFRIT_HOST virtual VaryingDescriptor getVaryingDescriptor() { return{}; }
@@ -43,8 +44,9 @@ namespace Ifrit::Engine {
 			void* colorOutput,
 			float* fragmentDepth
 		) = 0;
+		IFRIT_DUAL virtual ~FragmentShader() = default;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() { return nullptr; };
-		IFRIT_HOST virtual FragmentShader* getThreadLocalCopy() { return nullptr; };
+		IFRIT_HOST virtual std::unique_ptr<FragmentShader> getThreadLocalCopy() { return nullptr; };
 		IFRIT_HOST virtual void updateUniformData(int binding, int set, const void* pData) {}
 		IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return{}; }
 	};
@@ -110,9 +112,11 @@ namespace Ifrit::Engine {
 		IFRIT_HOST virtual TaskShader* getCudaClone() { return nullptr; };
 	};
 
+	
+
 	/* Function Delegates & C-ABI Compatible */
-	typedef void (*VertexShaderFunctionalPtr)(const void* const* input, ifloat4* outPos, VaryingStore* const* outVaryings);
+	typedef void (*VertexShaderFunctionalPtr)(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings);
 	typedef void (*FragmentShaderFunctionalPtr)(const void* varyings, void* colorOutput, float* fragmentDepth);
-	typedef void (*GeometryShaderFunctionalPtr)(const ifloat4* const* inPos, const VaryingStore* const* inVaryings,
+	typedef void (*GeometryShaderFunctionalPtr)(const ifloat4* const* inPos, const ifloat4* const* inVaryings,
 		ifloat4* outPos, VaryingStore* outVaryings, int* outSize);
 }
