@@ -35,6 +35,7 @@ namespace Ifrit::Engine::BufferManager {
 			void destroyBuffer(const IfritBuffer& buffer);
 			void mapBufferMemory(const IfritBuffer& buffer, void** ppData);
 			void bufferData(const IfritBuffer& buffer, const void* src, size_t offset, size_t size);
+			void bufferDataUnsafe(const IfritBuffer& buffer, const void* src, size_t offset, size_t size) IFRIT_AP_NOTHROW;
 		};
 	}
 

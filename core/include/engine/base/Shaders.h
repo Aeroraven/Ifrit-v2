@@ -39,6 +39,8 @@ namespace Ifrit::Engine {
 	class IFRIT_APIDECL FragmentShader :public ShaderBase {
 	public:
 		bool allowDepthModification = false;
+		bool requiresQuadInfo = false;
+		int currentPass = 0;
 		IFRIT_DUAL virtual void execute(
 			const void* varyings, 
 			void* colorOutput,

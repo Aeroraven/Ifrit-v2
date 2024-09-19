@@ -63,11 +63,13 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			irContext->generatedIR << "declare float @llvm.acos.f32(float %Val)\n";
 			irContext->generatedIR << "declare float @llvm.atan.f32(float %Val)\n";
 			irContext->generatedIR << "declare float @llvm.sqrt.f32(float %Val)\n";
+			irContext->generatedIR << "declare float @llvm.fma.f32(float %Val,float %Val2,float %Val3)\n";
 
 			irContext->generatedIR << "declare void @ifritShaderOps_Base_ImageWrite_v2i32_v4f32(i8* %a,<2 x i32> %b,<4 x float> %c)\n";
 			irContext->generatedIR << "declare void @ifritShaderOps_Raytracer_TraceRay(<3 x float> %g, i8* %a,i32 %b,i32 %c,i32 %d,i32 %e,i32 %f,float %h,<3 x float> %i,float %j,i8* %k,i8* %l)\n";
 			
 			irContext->generatedIR << "@ifsp_builtin_context_ptr = global i8* undef\n";
+			irContext->generatedIR << "@ifsp_builtin_pass_id = global i8 undef\n";
 			irContext->generatedIR << "%ifsp_builtin_accelstruct = type i8*\n";
 
 		}
@@ -227,8 +229,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 
 		void getTargetTypeExtInst(SpvVMIntermediateReprExpTarget* target, SpvVMIntermediateRepresentation* irContextGlobal,
 			SpvVMExtRegistryTypeIdentifier* identifiers, int* numComponents) {
-
-			if (target->isInstance)return getTargetTypeExtInst(&irContextGlobal->targets[target->resultTypeRef], irContextGlobal,identifiers,numComponents);
+			if (target->isConstant)return getTargetTypeExtInst(&irContextGlobal->targets[target->componentTypeRef], irContextGlobal, identifiers, numComponents);
+			else if (target->isInstance)return getTargetTypeExtInst(&irContextGlobal->targets[target->resultTypeRef], irContextGlobal,identifiers,numComponents);
 			else if (target->declType == IFSP_IRTARGET_DECL_INT) {
 				if (target->intWidth == 32) {
 					if (target->intSignedness == 0) {
@@ -2067,9 +2069,26 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			irContextGlobal->generatedIR << payloadType << " " << payloadName << ", ";
 			irContextGlobal->generatedIR << "i8* %ifsp_context_" << instLine << ")" << std::endl;
 		}
-		
 
+		DEFINE_OP(spvOpDPDx) {
+			UNIMPLEMENTED_OP(OpDPDx);
+			auto targetId = params[1];
+			auto targetType = params[0];
+			auto sourceId = params[2];
+			if (pass == IFSP_VMA_PASS_FIRST) {
+				irContextGlobal->targets[targetId].activated = true;
+				irContextGlobal->targets[targetId].resultTypeRef = targetType;
+				irContextGlobal->targets[targetId].isInstance = true;
+				irContextGlobal->targets[targetId].id = targetId;
+				irContextGlobal->shaderMaps.requiresInterQuadInfo = true;
+			}
+			if (pass == IFSP_VMA_PASS_SECOND) {
+
+			}
+		}
 	}
+
+
 #undef DEPRECATED_OP
 #undef UNIMPLEMENTED_OP
 #undef DEFINE_OP

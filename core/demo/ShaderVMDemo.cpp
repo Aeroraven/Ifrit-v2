@@ -40,7 +40,9 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		float4x4 view = (lookAt({ 0,1.95,1.50 }, { 0,0.95,0.0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
+		//float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 60.1, 3000));
 		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
+
 		float4x4 mvp = transpose(matmul(proj, view));
 
 		WavefrontLoader loader;
@@ -53,9 +55,10 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		procNormal = loader.remapNormals(normal, index, pos.size());
 
 
-		constexpr int DEMO_RESOLUTION = 2048;
-		std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
-		std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
+		constexpr int DEMO_RESOLUTION_X = 1920;
+		constexpr int DEMO_RESOLUTION_Y = 1080;
+		std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 4);
+		std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 1);
 		std::shared_ptr<TileRasterRenderer> renderer = std::make_shared<TileRasterRenderer>();
 		std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
 		bufferman->init();

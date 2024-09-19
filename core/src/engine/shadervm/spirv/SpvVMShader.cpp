@@ -108,6 +108,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	}
 	SpvFragmentShader::SpvFragmentShader(const SpvFragmentShader& p) :SpvRuntimeBackend(p) {
 		isThreadSafe = false;
+		this->allowDepthModification = p.allowDepthModification;
+		this->requiresQuadInfo = p.requiresQuadInfo;
 	}
 	IFRIT_HOST std::unique_ptr<FragmentShader> SpvFragmentShader::getThreadLocalCopy() {
 		auto copy = std::make_unique<SpvFragmentShader>(*this);

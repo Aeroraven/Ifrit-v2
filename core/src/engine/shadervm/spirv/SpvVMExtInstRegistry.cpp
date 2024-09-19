@@ -84,6 +84,35 @@ namespace Ifrit::Engine::ShaderVM::Spirv::ExtInst::GlslStd450 {
 		ps << "}\n";
 		return ps.str();
 	}
+	inline std::string glslstdFusedMultiplyAdd(const std::vector<SpvVMExtRegistryTypeIdentifier>& paramTypes,
+		const std::vector<int>& paramComCnt, int funcId, const std::string& funcName) {
+		auto specType = GET_TYPE(0), baseType = getLlvmType(paramTypes[0], 1);
+		auto mangledSpecType = GET_TYPE_ANNO(0), mangledBaseType = getMangledType(paramTypes[0], 1);
+		std::string functionName = "GLSL.std.450_" + std::to_string(funcId);
+		std::string arguments[3] = { "%x", "%y", "%z" };
+		std::string mangledName = functionName + "_" + mangledSpecType + "_" + mangledSpecType + "_" + mangledSpecType;
+
+		std::stringstream ps;
+		ps << "define " << specType << " @" << mangledName << "(" << specType << " " << arguments[0] << ", " << specType << " " << arguments[1] << ", " << specType << " " << arguments[2] << "){\n";
+		if (paramComCnt[0] == 1) {
+			ps << "%p = call " << specType << " @llvm.fma.f32(" << specType << " " << arguments[0] << ", " << specType << " " << arguments[1] << ", " << specType << " " << arguments[2] << ")\n";
+			ps << "ret " << specType << " %p \n";
+		}
+		else {
+			std::string lastname = "undef";
+			for (int i = 0; i < paramComCnt[0]; i++) {
+				ps << "%p_" << i << " = extractelement " << specType << " " << arguments[0] << ", i32 " << i << "\n";
+				ps << "%q_" << i << " = extractelement " << specType << " " << arguments[1] << ", i32 " << i << "\n";
+				ps << "%r_" << i << " = extractelement " << specType << " " << arguments[2] << ", i32 " << i << "\n";
+				ps << "%ps_" << i << " = call " << baseType << " @llvm.fma." << mangledBaseType << "(" << baseType << " %p_" << i << ", " << baseType << " %q_" << i << ", " << baseType << " %r_" << i << ")\n";
+				ps << "%ret_" << i << " = insertelement " << specType << " " << lastname << ", " << baseType << " %ps_" << i << ", i32 " << i << "\n";
+				lastname = "%ret_" + std::to_string(i);
+			}
+			ps << "ret " << specType << " %ret_" << paramComCnt[0] - 1 << "\n";
+		}
+		ps << "}\n";
+		return ps.str();
+	}
 
 	DEF_INST(Sin) {
 		return glslstdTrigonometryFunc(paramTypes, paramComCnt, GLSLstd450Sin, "sin");
@@ -106,6 +135,9 @@ namespace Ifrit::Engine::ShaderVM::Spirv::ExtInst::GlslStd450 {
 	DEF_INST(Normalize) {
 		return glslstdVectorNormalize(paramTypes, paramComCnt, GLSLstd450Normalize, "normalize");
 	}
+	DEF_INST(Fma) {
+		return glslstdFusedMultiplyAdd(paramTypes, paramComCnt, GLSLstd450Fma, "fma");
+	}
 #undef DEF_INST
 }
 
@@ -120,6 +152,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Acos, Acos);
 		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Atan, Atan);
 		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Normalize, Normalize);
+		REGISTER_GLSLSTD450(GLSLstd450::GLSLstd450Fma, Fma);
 
 #undef REGISTER_GLSLSTD450
 	}

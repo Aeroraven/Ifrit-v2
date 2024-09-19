@@ -189,9 +189,9 @@ namespace Ifrit::Engine::TileRaster {
 			atri.f1 = { sV3V2y * csInvX , sV3V2x * csInvY,(-tv2.x * sV3V2y - tv2.y * sV3V2x + s1) * ar };
 			atri.f2 = { sV1V3y * csInvX , sV1V3x * csInvY,(-tv3.x * sV1V3y - tv3.y * sV1V3x + s2) * ar };
 
-			atri.e1 = { csFw * sV2V1y,  csFh * sV2V1x,  csFhFw * (tv2.x * tv1.y - tv1.x * tv2.y + s3 - EPS) };
-			atri.e2 = { csFw * sV3V2y,  csFh * sV3V2x,  csFhFw * (tv3.x * tv2.y - tv2.x * tv3.y + s1 - EPS) };
-			atri.e3 = { csFw * sV1V3y,  csFh * sV1V3x,  csFhFw * (tv1.x * tv3.y - tv3.x * tv1.y + s2 - EPS) };
+			atri.e1 = { csFh * sV2V1y,  csFw * sV2V1x,  csFhFw * (tv2.x * tv1.y - tv1.x * tv2.y + s3 - EPS) };
+			atri.e2 = { csFh * sV3V2y,  csFw * sV3V2x,  csFhFw * (tv3.x * tv2.y - tv2.x * tv3.y + s1 - EPS) };
+			atri.e3 = { csFh * sV1V3y,  csFw * sV1V3x,  csFhFw * (tv1.x * tv3.y - tv3.x * tv1.y + s2 - EPS) };
 
 			atri.originalPrimitive = primitiveId;
 			// Precision might matter here
@@ -250,7 +250,7 @@ namespace Ifrit::Engine::TileRaster {
 		int tileMinx = std::max(0, (int)(bbox.x * frameBufferWidth / context->tileWidth));
 		int tileMiny = std::max(0, (int)(bbox.y * frameBufferHeight / context->tileWidth));
 		int tileMaxx = std::min((int)(bbox.z * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
-		int tileMaxy = std::min((int)(bbox.w * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
+		int tileMaxy = std::min((int)(bbox.w * frameBufferHeight / context->tileWidth), context->numTilesY - 1);
 
 		vfloat3 edgeCoefs[3];
 		edgeCoefs[0] = atp.e1;
@@ -508,7 +508,7 @@ namespace Ifrit::Engine::TileRaster {
 								const auto dwX = x + (i & 3);
 								const auto dwY = y + (i >> 2);
 								if (criteriaTR[i] != -3) {
-									continue;
+									//continue;
 								}
 								if (criteriaTA[i] == -3) {
 									npropBlock.tile = { dwX, dwY };
@@ -1023,47 +1023,52 @@ namespace Ifrit::Engine::TileRaster {
 		}
 	}
 
-	void TileRasterWorker::pixelShadingFromTagBuffer(const int dxA, const int dyA, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW{
-		for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
-			auto dx = dxA + (i & 0xf);
-			auto dy = dyA + (i >> 4);
-			auto dxId = i;
-
-			auto& tagBuffer = *args.tagBuffer;
-			vfloat3 baryVec = tagBuffer.tagBufferBary[dxId];
-			vfloat3 atpBx = tagBuffer.atpBx[dxId];
-			vfloat3 atpBy = tagBuffer.atpBy[dxId];
-			auto idx = tagBuffer.valid[dxId] * context->vertexStride;
-			float interpolatedDepth = (*context->frameBuffer->getDepthAttachment())(dx, dy, 0);
-			if (idx < 0)continue;
-
-			float desiredBary[3];
-			desiredBary[0] = dot(baryVec, atpBx);
-			desiredBary[1] = dot(baryVec, atpBy);
-			desiredBary[2] = 1.0f - desiredBary[0] - desiredBary[1];
-
-			const int* const addr = args.indexBufferPtr + idx;
-			const auto vSize = args.varyingCounts;
-			for (int i = 0; i < vSize; i++) {
-				auto va = context->vertexShaderResult->getVaryingBuffer(i);
-				auto& dest = interpolatedVaryings[i];
-				const auto& tmp0 = (va[addr[0]]);
-				const auto& tmp1 = (va[addr[1]]);
-				const auto& tmp2 = (va[addr[2]]);
-				vfloat4 destVec = tmp0 * desiredBary[0];
-				destVec = fma(tmp1, desiredBary[1], destVec);
-				dest = fma(tmp2, desiredBary[2], destVec);
-			}
-			// Fragment Shader
+	void TileRasterWorker::pixelShadingFromTagBuffer(const int dxA, const int dyA, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW {
+		auto pixelShadingPass = [&](int passNo) {
 			auto& psEntry = context->threadSafeFS[workerId];
-			psEntry->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth);
+			psEntry->currentPass = passNo;
+			for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
+				auto dx = dxA + (i & 0xf);
+				auto dy = dyA + (i >> 4);
+				auto dxId = i;
 
+				if(dx>=context->frameWidth || dy>=context->frameHeight)continue;
+
+				auto& tagBuffer = *args.tagBuffer;
+				vfloat3 baryVec = tagBuffer.tagBufferBary[dxId];
+				vfloat3 atpBx = tagBuffer.atpBx[dxId];
+				vfloat3 atpBy = tagBuffer.atpBy[dxId];
+				auto idx = tagBuffer.valid[dxId] * context->vertexStride;
+				float interpolatedDepth = (*context->frameBuffer->getDepthAttachment())(dx, dy, 0);
+				if (idx < 0)continue;
+
+				float desiredBary[3];
+				desiredBary[0] = dot(baryVec, atpBx);
+				desiredBary[1] = dot(baryVec, atpBy);
+				desiredBary[2] = 1.0f - desiredBary[0] - desiredBary[1];
+
+				const int* const addr = args.indexBufferPtr + idx;
+				const auto vSize = args.varyingCounts;
+				for (int i = 0; i < vSize; i++) {
+					auto va = context->vertexShaderResult->getVaryingBuffer(i);
+					auto& dest = interpolatedVaryings[i];
+					const auto& tmp0 = (va[addr[0]]);
+					const auto& tmp1 = (va[addr[1]]);
+					const auto& tmp2 = (va[addr[2]]);
+					vfloat4 destVec = tmp0 * desiredBary[0];
+					destVec = fma(tmp1, desiredBary[1], destVec);
+					dest = fma(tmp2, desiredBary[2], destVec);
+				}
+
+				psEntry->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth);
 #ifdef IFRIT_USE_SIMD_128
-			args.colorAttachment0->fillPixelRGBA128ps(dx, dy, _mm_loadu_ps((float*)(&colorOutput[0])));
+				args.colorAttachment0->fillPixelRGBA128ps(dx, dy, _mm_loadu_ps((float*)(&colorOutput[0])));
 #else
-			args.colorAttachment0->fillPixelRGBA(dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
+				args.colorAttachment0->fillPixelRGBA(dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
 #endif
-		}
+			}
+		};
+		pixelShadingPass(1);
 	}
 
 	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
@@ -1071,7 +1076,7 @@ namespace Ifrit::Engine::TileRaster {
 		auto dx1 = dx % tagbufferSizeX;
 		auto dy1 = dy % tagbufferSizeX;
 		auto dxId = dx1 + dy1 * tagbufferSizeX;
-
+		if(dx>=context->frameWidth || dy>=context->frameHeight)return;
 		auto& depthAttachment = (*(args.depthAttachmentPtr))(dx, dy, 0);
 		int idx = atp.originalPrimitive * context->vertexStride;
 

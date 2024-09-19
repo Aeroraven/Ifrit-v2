@@ -38,7 +38,7 @@ namespace Ifrit::Engine::TileRaster {
 		TileRasterRenderer* rendererReference; 
 		std::unique_ptr<std::thread> execWorker;
 		std::shared_ptr<TileRasterContext> context;
-		
+		std::vector<Ifrit::Math::SIMD::vfloat4> derivativeContext[TileRasterContext::tileWidth * TileRasterContext::tileWidth];
 
 		std::vector<ifloat4> perVertexVaryings;
 		std::vector<Ifrit::Math::SIMD::vfloat4> interpolatedVaryings;
