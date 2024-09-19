@@ -37,11 +37,11 @@ namespace Ifrit::Demo::ShaderVMDemo {
 
 	int mainTest() {
 		//float4x4 view = (lookAt({ 0,0.01,0.02 }, { 0,0.01,0.0 }, { 0,1,0 }));
-		float4x4 view = (lookAt({ 0,1.95,1.50 }, { 0,0.95,0.0 }, { 0,1,0 }));
-		//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
+		//float4x4 view = (lookAt({ 0,1.95,1.50 }, { 0,0.95,0.0 }, { 0,1,0 }));
+		float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
-		//float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 60.1, 3000));
-		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
+		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 60.1, 3000));
+		//float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
 
 		float4x4 mvp = transpose(matmul(proj, view));
 
@@ -51,12 +51,12 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		std::vector<ifloat2> uv;
 		std::vector<uint32_t> index;
 		std::vector<ifloat3> procNormal;
-		loader.loadObject(IFRIT_ASSET_PATH"/evilneuro.obj", pos, normal, uv, index);
+		loader.loadObject(IFRIT_ASSET_PATH"/sponza.obj", pos, normal, uv, index);
 		procNormal = loader.remapNormals(normal, index, pos.size());
 
 
-		constexpr int DEMO_RESOLUTION_X = 1920;
-		constexpr int DEMO_RESOLUTION_Y = 1080;
+		constexpr int DEMO_RESOLUTION_X = 2048;
+		constexpr int DEMO_RESOLUTION_Y = 2048;
 		std::shared_ptr<ImageF32> image = std::make_shared<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 4);
 		std::shared_ptr<ImageF32> depth = std::make_shared<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 1);
 		std::shared_ptr<TileRasterRenderer> renderer = std::make_shared<TileRasterRenderer>();

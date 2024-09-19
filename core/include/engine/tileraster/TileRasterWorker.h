@@ -33,8 +33,6 @@ namespace Ifrit::Engine::TileRaster {
 		std::atomic<bool> activated;
 	private:
 		uint32_t workerId;
-		//Hold refernce to the parent. weak_ptr is time-consuming. This section conveys no ownership semantic
-		//worker object have the same lifetime with their parent
 		TileRasterRenderer* rendererReference; 
 		std::unique_ptr<std::thread> execWorker;
 		std::shared_ptr<TileRasterContext> context;
@@ -47,6 +45,9 @@ namespace Ifrit::Engine::TileRaster {
 
 		std::vector<ifloat4> colorOutput = std::vector<ifloat4>(1);
 		std::vector<AssembledTriangleProposal> generatedTriangle;
+
+		// Hold Cache
+		float depthCache[TileRasterContext::tileWidth * TileRasterContext::tileWidth];
 
 		//Debug
 		int totalDraws = 0;
@@ -78,7 +79,7 @@ namespace Ifrit::Engine::TileRaster {
 		void geometryProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
 		void rasterization(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
 		void sortOrderProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
-		void fragmentProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
+		void fragmentProcessing(TileRasterRenderer* renderer,bool clearedDepth) IFRIT_AP_NOTHROW;
 
 		void threadStart();
 

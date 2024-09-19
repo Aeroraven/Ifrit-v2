@@ -91,7 +91,7 @@ namespace Ifrit::Engine::TileRaster {
 		}else{
 			rawRenderer->statusTransitionBarrier2(TileRasterStage::RASTERIZATION_SYNC, TileRasterStage::FRAGMENT_SHADING);
 		}
-		fragmentProcessing(rawRenderer);
+		fragmentProcessing(rawRenderer, withClear);
 	}
 	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, vfloat4 v1, vfloat4 v2, vfloat4 v3) IFRIT_AP_NOTHROW {
 		
@@ -501,27 +501,28 @@ namespace Ifrit::Engine::TileRaster {
 							}
 
 							int criteriaTR[8], criteriaTA[8];
+							int dwX[8], dwY[8];
 							_mm256_storeu_si256((__m256i*)criteriaTR, criteriaTR256);
 							_mm256_storeu_si256((__m256i*)criteriaTA, criteriaTA256);
+							_mm256_storeu_si256((__m256i*)dwX, x256);
+							_mm256_storeu_si256((__m256i*)dwY, y256);
 
 							for (int i = 0; i < 8; i++) {
-								const auto dwX = x + (i & 3);
-								const auto dwY = y + (i >> 2);
 								if (criteriaTR[i] != -3) {
-									//continue;
+									continue;
 								}
 								if (criteriaTA[i] == -3) {
-									npropBlock.tile = { dwX, dwY };
+									npropBlock.tile = { dwX[i], dwY[i]};
 									coverQueue.push_back(npropBlock);
 								}
 								else {
 									const auto subtilesXPerTile = context->numSubtilesPerTileX;
-									const auto stMX = tileIdX * subtilesXPerTile + dwX;
-									const auto stMY = tileIdY * subtilesXPerTile + dwY;
+									const auto stMX = tileIdX * subtilesXPerTile + dwX[i];
+									const auto stMY = tileIdY * subtilesXPerTile + dwY[i];
 									const int subTileMinX = stMX * context->subtileBlockWidth;
 									const int subTileMinY = stMY * context->subtileBlockWidth;
-									const int subTileMaxX = (stMX + 1) * context->subtileBlockWidth;
-									const int subTileMaxY = (stMY + 1) * context->subtileBlockWidth;
+									const int subTileMaxX = subTileMinX + context->subtileBlockWidth;
+									const int subTileMaxY = subTileMinY + context->subtileBlockWidth;
 
 
 #else
@@ -586,50 +587,61 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 
 #ifdef IFRIT_USE_SIMD_256
+									__m256i dx256Offset = _mm256_setr_epi32(0, 1, 0, 1, 2, 3, 2, 3);
+									__m256i dy256Offset = _mm256_setr_epi32(0, 0, 1, 1, 0, 0, 1, 1);
 									for (int dx = subTileMinX; dx < subTileMaxX; dx += 4) {
+										__m256i dx256i = _mm256_add_epi32(_mm256_set1_epi32(dx), dx256Offset);
+										__m256 dx256 = _mm256_cvtepi32_ps(dx256i);
+										__m256 criteria256X[3];
+										criteria256X[0] = _mm256_mul_ps(edgeCoefs256X[0], dx256);
+										criteria256X[1] = _mm256_mul_ps(edgeCoefs256X[1], dx256);
+										criteria256X[2] = _mm256_mul_ps(edgeCoefs256X[2], dx256);
 										for (int dy = subTileMinY; dy < subTileMaxY; dy += 2) {
-											__m256 dx256 = _mm256_setr_ps(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
-											__m256 dy256 = _mm256_setr_ps(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
+											__m256i dy256i = _mm256_add_epi32(_mm256_set1_epi32(dy), dy256Offset);
+											__m256 dy256 = _mm256_cvtepi32_ps(dy256i);
 											__m256i accept256 = _mm256_setzero_si256();
 											__m256 criteria256[3];
 
 											for (int k = 0; k < 3; k++) {
-												criteria256[k] = _mm256_fmadd_ps(edgeCoefs256X[k], dx256, _mm256_mul_ps(edgeCoefs256Y[k], dy256));
+												criteria256[k] = _mm256_fmadd_ps(edgeCoefs256Y[k], dy256, criteria256X[k]);
 												auto acceptMask = _mm256_castps_si256(_mm256_cmp_ps(criteria256[k], edgeCoefs256Z[k], _CMP_LT_OS));
 												accept256 = _mm256_add_epi32(accept256, acceptMask);
 											}
 											accept256 = _mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(-3));
-											if (_mm256_testc_si256(accept256, _mm256_set1_epi32(-1))) {
-												// If All Accept
+
+
+											auto accept256Mask8 = _mm256_movemask_epi8(accept256);
+											// 0x FF FF FF FF
+
+											if (accept256Mask8 == -1) {
 												npropPixel256.tile = { dx,dy };
 												coverQueue.push_back(npropPixel256);
 											}
 											else {
-												// Pack By 2
-												__m128i accept128[2];
-												_mm256_storeu_si256((__m256i*)accept128, accept256);
-												for (int di = 0; di < 2; di++) {
-													auto pv = dx + ((di & 1) << 1);
-													if (_mm_testc_si128(accept128[di], _mm_set1_epi32(-1))) {
-														npropPixel128.tile = { pv, dy };
-														coverQueue.push_back(npropPixel128);
-													}
-													else {
-														int accept[4];
-														_mm_storeu_si128((__m128i*)accept, accept128[di]);
- 
-														for (int ddi = 0; ddi < 4; ddi++) {
-															const auto pvx = pv + (ddi & 1);
-															const auto pvy = dy + (ddi >> 1);
-															if (accept[ddi] == -1) {
-																npropPixel.tile = { pvx,pvy };
-																coverQueue.push_back(npropPixel);
-															}
-														}
-													}
+												auto cond1 = (accept256Mask8 & 0x0000FFFF);
+												if (cond1 == 0x0000FFFF) {
+													npropPixel128.tile = { dx, dy };
+													coverQueue.push_back(npropPixel128);
 												}
-											}
+												else if (cond1 != 0) {
+													auto pixelId = dx + dy * frameBufferWidth;
+													npropPixel.tile = { pixelId,cond1 };
+													coverQueue.push_back(npropPixel);
+												}
+												auto cond2 = (accept256Mask8 & 0xFFFF0000);
+												if (cond2 == 0xFFFF0000) {
+													npropPixel128.tile = { dx + 2, dy };
+													coverQueue.push_back(npropPixel128);
+												}
+												else if (cond2 != 0) {
+													auto pixelId = dx + dy * frameBufferWidth + 2;
+													npropPixel.tile = { pixelId,(int)(cond2 >> 16) };
+													coverQueue.push_back(npropPixel);
 
+
+												}
+												
+											}
 										}
 									}
 #else								
@@ -777,7 +789,7 @@ namespace Ifrit::Engine::TileRaster {
 		status.store(TileRasterStage::SORTING_SYNC, std::memory_order::relaxed);
 	}
 
-	void TileRasterWorker::fragmentProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
+	void TileRasterWorker::fragmentProcessing(TileRasterRenderer* renderer, bool clearedDepth) IFRIT_AP_NOTHROW {
 		auto curTile = 0;
 		const auto frameBufferWidth = context->frameWidth;
 		const auto frameBufferHeight = context->frameHeight;
@@ -802,8 +814,17 @@ namespace Ifrit::Engine::TileRaster {
 
 			auto proposalProcessFunc = [&]<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>(TileBinProposal& proposal) {
 				const auto& triProposal = context->assembledTriangles[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
-				if (proposal.level == TileRasterLevel::PIXEL) IFRIT_BRANCH_LIKELY{
-					pixelShading<tpAlphaBlendEnable,tpDepthFunc,tpOnlyTaggingPass>(triProposal, proposal.tile.x, proposal.tile.y,pxArgs);
+				if (proposal.level == TileRasterLevel::PIXEL){
+					auto tileXd = proposal.tile.x % frameBufferWidth;
+					auto tileYd = proposal.tile.x / frameBufferWidth;
+					auto dcx = proposal.tile.y;
+					for (int i = 0; i < 4; i++) {
+						auto mask = (0xF << (i << 2));
+						if ((dcx & mask) == mask) {
+							pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, tileXd + (i & 1), tileYd + (i >> 1), pxArgs);
+						}
+					}
+					
 				}
 				else if (proposal.level == TileRasterLevel::PIXEL_PACK4X2) {
 #ifdef IFRIT_USE_SIMD_128
@@ -952,6 +973,20 @@ namespace Ifrit::Engine::TileRaster {
 						for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
 							tagbuf.valid[i] = -1;
 						}
+						// Cache depth
+						if (clearedDepth) {
+							//Set depth to large
+							std::fill(depthCache, depthCache + tagbufferSizeX * tagbufferSizeX, 255.0f);
+						}
+						else {
+							for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
+								auto dx = (i & 0xf);
+								auto dy = (i >> 4);
+								if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
+									depthCache[dx + dy * tagbufferSizeX] = (*context->frameBuffer->getDepthAttachment())(curTileX + dx, curTileY + dy, 0);
+								}
+							}
+						}
 					}
 					
 					for (int i = TOTAL_THREADS - 1; i >= 0; i--) {
@@ -962,6 +997,15 @@ namespace Ifrit::Engine::TileRaster {
 					}
 					if constexpr (tpOnlyTaggingPass) {
 						pixelShadingFromTagBuffer(curTileX, curTileY, pxArgs);
+						// Write Back Depth
+						for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
+							auto dx = (i & 0xf);
+							auto dy = (i >> 4);
+							if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
+								(*context->frameBuffer->getDepthAttachment())(curTileX + dx, curTileY + dy, 0) = depthCache[dx + dy * tagbufferSizeX];
+							}
+							
+						}
 					}
 					
 				};
@@ -1039,7 +1083,7 @@ namespace Ifrit::Engine::TileRaster {
 				vfloat3 atpBx = tagBuffer.atpBx[dxId];
 				vfloat3 atpBy = tagBuffer.atpBy[dxId];
 				auto idx = tagBuffer.valid[dxId] * context->vertexStride;
-				float interpolatedDepth = (*context->frameBuffer->getDepthAttachment())(dx, dy, 0);
+				float interpolatedDepth = depthCache[i];
 				if (idx < 0)continue;
 
 				float desiredBary[3];
@@ -1077,7 +1121,8 @@ namespace Ifrit::Engine::TileRaster {
 		auto dy1 = dy % tagbufferSizeX;
 		auto dxId = dx1 + dy1 * tagbufferSizeX;
 		if(dx>=context->frameWidth || dy>=context->frameHeight)return;
-		auto& depthAttachment = (*(args.depthAttachmentPtr))(dx, dy, 0);
+
+		auto& depthAttachment = depthCache[dxId];
 		int idx = atp.originalPrimitive * context->vertexStride;
 
 		vfloat4 pDxDyVec = vfloat4(dx, dy, 1.0f, 0.0f);
@@ -1182,7 +1227,8 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 		}
 		// Depth Write
-		depthAttachment = interpolatedDepth;
+		(*context->frameBuffer->getDepthAttachment())(dx, dy, 0) = interpolatedDepth;
+		depthCache[dxId] = interpolatedDepth;
 	}
 
 	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
@@ -1193,7 +1239,7 @@ namespace Ifrit::Engine::TileRaster {
 		const auto fbWidth = context->frameWidth;
 		const auto fbHeight = context->frameHeight;
 
-		auto& depthAttachment = *args.depthAttachmentPtr;
+		//auto& depthAttachment = *args.depthAttachmentPtr;
 
 		int idx = atp.originalPrimitive * context->vertexStride;
 
@@ -1249,8 +1295,10 @@ namespace Ifrit::Engine::TileRaster {
 			if (x >= fbWidth || y >= fbHeight){
 				continue;
 			}
-
-			const auto depthAttachment2 = depthAttachment(x, y, 0);
+			auto dx1 = (x) % tagbufferSizeX;
+			auto dy1 = (y) % tagbufferSizeX;
+			auto dxId = dx1 + dy1 * tagbufferSizeX;
+			const auto depthAttachment2 = depthCache[dxId];
 			if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
 
 			}
@@ -1279,14 +1327,12 @@ namespace Ifrit::Engine::TileRaster {
 			//float barytmp[3] = { bary32[0][i] * zCorr32[i],bary32[1][i] * zCorr32[i],bary32[2][i] * zCorr32[i] };
 			vfloat3 bary32Vec = vfloat3(bary32[0][i], bary32[1][i], bary32[2][i]) * zCorr32[i];
 			if constexpr (tpOnlyTaggingPass) {
-				auto dx1 = (x) % tagbufferSizeX;
-				auto dy1 = (y) % tagbufferSizeX;
-				auto dxId = dx1 + dy1 * tagbufferSizeX;
+				
 				args.tagBuffer->atpBx[dxId] = atp.bx;
 				args.tagBuffer->atpBy[dxId] = atp.by;
 				args.tagBuffer->valid[dxId] = atp.originalPrimitive;
 				args.tagBuffer->tagBufferBary[dxId] = bary32Vec;
-				depthAttachment(x, y, 0) = interpolatedDepth[i];
+				depthCache[dxId] = interpolatedDepth[i];
 				continue;
 			}
 			
@@ -1331,7 +1377,8 @@ namespace Ifrit::Engine::TileRaster {
 				args.colorAttachment0->fillPixelRGBA128ps(x, y, _mm_loadu_ps((const float*)(&colorOutput[0])));
 			}
 			// Depth Write
-			depthAttachment(x, y, 0) = interpolatedDepth[i];
+			(*context->frameBuffer->getDepthAttachment())(x, y, 0) = interpolatedDepth[i];
+			depthCache[dxId] = interpolatedDepth[i];
 		}
 #endif
 	}
@@ -1400,7 +1447,11 @@ namespace Ifrit::Engine::TileRaster {
 			if (x >= fbWidth || y >= fbHeight) IFRIT_BRANCH_UNLIKELY{
 				continue;
 			}
-			const auto depthAttachment2 = depthAttachment(x, y, 0);
+			auto dx1 = (x) % tagbufferSizeX;
+			auto dy1 = (y) % tagbufferSizeX;
+			auto dxId = dx1 + dy1 * tagbufferSizeX;
+
+			const auto depthAttachment2 = depthCache[dxId];
 			if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
 
 			}
@@ -1427,14 +1478,11 @@ namespace Ifrit::Engine::TileRaster {
 			}
 			vfloat3 bary32Vec = vfloat3(bary32[0][i], bary32[1][i], bary32[2][i]) * zCorr32[i];
 			if constexpr (tpOnlyTaggingPass) {
-				auto dx1 = (x) % tagbufferSizeX;
-				auto dy1 = (y) % tagbufferSizeX;
-				auto dxId = dx1 + dy1 * tagbufferSizeX;
 				args.tagBuffer->atpBx[dxId] = atp.bx;
 				args.tagBuffer->atpBy[dxId] = atp.by;
 				args.tagBuffer->valid[dxId] = atp.originalPrimitive;
 				args.tagBuffer->tagBufferBary[dxId] = bary32Vec;
-				depthAttachment(x, y, 0) = interpolatedDepth[i];
+				depthCache[dxId] = interpolatedDepth[i];
 				continue;
 			}
 
@@ -1480,7 +1528,8 @@ namespace Ifrit::Engine::TileRaster {
 			}
 
 			// Depth Write
-			depthAttachment(x, y, 0) = interpolatedDepth[i];
+			(*context->frameBuffer->getDepthAttachment())(x, y, 0) = interpolatedDepth[i];
+			depthCache[dxId] = interpolatedDepth[i];
 		}
 #endif
 	}

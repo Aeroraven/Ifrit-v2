@@ -152,7 +152,7 @@ namespace Ifrit::Core::Data {
 			memset(dataPtr+ dataSizeSt, 0 , (dataSizeEd - dataSizeSt) * sizeof(T));
 		}
 
-		T& operator()(size_t x, size_t y, size_t c) {
+		inline T& operator()(size_t x, size_t y, size_t c) {
 			return data[y * width * channel + x * channel + c];
 		}
 
