@@ -3,10 +3,10 @@
 
 
 extern "C" {
-	struct IFRIT_APIDECL_FORCED  alignas(16) ifritShaderOps_Base_Vecf4 {
+	IFRIT_APIDECL_FORCED struct   alignas(16) ifritShaderOps_Base_Vecf4 {
 		float x, y, z, w;
 	};
-	struct IFRIT_APIDECL_FORCED  alignas(16) ifritShaderOps_Base_Veci2 {
+	IFRIT_APIDECL_FORCED struct   alignas(16) ifritShaderOps_Base_Veci2 {
 		int x, y;
 	};
 

@@ -176,20 +176,34 @@ See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
 ## Setup / Run
 
-### Quick Start (MinGW-w64)
+### Quick Start (GCC / MinGW-w64)
 
-> Please ensure that dependencies are installed. This will ignore all CUDA codes in the project. 
+> Warning: Please ensure that dependencies are installed. And this will ignore all CUDA codes in the project. 
+>
+> NOTE: Some paths / packages should be configured manually before cmake
 
 ```shell
-# NOTE: Some paths / packages should be configured manually before cmake
+# G++ (Linux)
+cmake -S . -B ./build
+cd build
+make
+# MinGW-w64 (Windows)
 cmake -S . -B ./build -G "MinGW Makefiles"
 cd build
 mingw32-make
 ```
 
+To run the demo
+
+```shell
+# For linux
+export LD_LIBRARY_PATH=/path/to/Ifrit.Components.LLVMExec.so;$LD_LIBRARY_PATH
+./core/bin/IfritMain
+```
 
 
-### Complete Build Options (Visual Studio /  CUDA)
+
+### Complete Build Options 
 
 See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 

@@ -1,6 +1,6 @@
 #include "presentation/window/TerminalProvider.h"
 #include "core/definition/CoreExports.h"
-
+#include <iomanip>
 namespace Ifrit::Presentation::Window {
 	void TerminalProvider::loop(const std::function<void(int*)>& funcs) {
 		static int frameCount = 0;
@@ -9,7 +9,9 @@ namespace Ifrit::Presentation::Window {
 			auto start = std::chrono::high_resolution_clock::now();
 			funcs(&repCore);
 			auto end = std::chrono::high_resolution_clock::now();
-			frameTimes.push_back(std::max(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 1ll));
+			using durationType = decltype(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+			frameTimes.push_back(std::max(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), 
+				static_cast<durationType>(1ll)));
 			frameTimesCore.push_back(repCore);
 
 			totalFrameTime += frameTimes.back();

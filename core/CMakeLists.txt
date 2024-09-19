@@ -14,6 +14,12 @@ set(IFRIT_ENABLE_CUDA False)
 set(IFRIT_ENABLE_SIMD_AVX True)
 set(IFRIT_ENABLE_OPTIMIZATION True)
 
+set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CUDA_STANDARD_REQUIRED True)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 # Deps Check
 include(CheckCXXCompilerFlag)
 include(CheckCSourceCompiles)
@@ -85,11 +91,14 @@ endif()
 
 # Main
 
-set(CMAKE_CUDA_STANDARD 20)
-set(CMAKE_CUDA_STANDARD_REQUIRED True)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# Versions for GCC
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10.0)
+        message(FATAL_ERROR "GCC version must be at least 10.0!")
+    endif()
+endif()
 
 set(RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
@@ -142,7 +151,7 @@ else()
         add_compile_options(-fno-signaling-nans)
         #add_compile_options(-fcx-limited-range)
         add_compile_options(-fexcess-precision=fast)
-        add_compile_options(-fallow-store-data-races)
+        #add_compile_options(-fallow-store-data-races)
         message(STATUS "[IFRIT/Flags]: Add compiler flag: -Ofast")
     endif()
     add_compile_options(-mfma)
@@ -154,9 +163,8 @@ else()
         add_compile_options(-mavx2)
         message(STATUS "[IFRIT/Flags]: Add compiler flag: -mavx2")
     endif()
-    add_compile_options(-lglfw3)
     add_compile_options(-lopengl32)
-    message(STATUS "[IFRIT/Flags]: Add compiler flag: -lglfw3 -lopengl32")
+    message(STATUS "[IFRIT/Flags]: Add compiler flag: -lopengl32")
     if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         add_compile_options(-lgdi32)
         message(STATUS "[IFRIT/Flags]: Add compiler flag: -lgdi32")
@@ -179,11 +187,29 @@ include_directories(include)
 
 include_directories(${IFRIT_COMPONENT_LLVM}/include)
 
-set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_COMPONENT_LLVM}/build/Ifrit.Components.LLVMExec.a")
+# Operation System
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_COMPONENT_LLVM}/build/Ifrit.Components.LLVMExec.a")
+else()
+    set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_PROJECT_DIR}/build/components/llvmexec/Ifrit-v2-Component-LLVMExec/Ifrit.Components.LLVMExec.so")
+    # Linux pthread
+    add_compile_options(-pthread)
+    add_link_options(-pthread)
+    # Linux dlsym
+    add_compile_options(-ldl)
+    add_link_options(-ldl)
+    message(STATUS "[IFRIT/Flags]: Add compiler flag: -ldl -pthread")
+endif()
 
 foreach( SRC_FILE_NAME ${SOURCE_STAGES} )
     get_filename_component( SRC_FILE_NAME_SHORT ${SRC_FILE_NAME} NAME_WE )
     add_executable( ${SRC_FILE_NAME_SHORT} ${SRC_FILE_NAME} ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B} ${SOURCE_1C} ${SOURCE_3})
     set_property(TARGET ${SRC_FILE_NAME_SHORT} PROPERTY CUDA_ARCHITECTURES  75)
-    target_link_libraries( ${SRC_FILE_NAME_SHORT}  ${glfw3_LIB} ${IFRIT_COMPONENT_LLVM_LIB} )
+    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        target_link_libraries( ${SRC_FILE_NAME_SHORT}  ${glfw3_LIB} ${IFRIT_COMPONENT_LLVM_LIB} )
+    else()
+        message(STATUS "[IFRIT/Flags]: LLVM Component: ${IFRIT_COMPONENT_LLVM_LIB}")
+        target_link_libraries( ${SRC_FILE_NAME_SHORT}  glfw ${IFRIT_COMPONENT_LLVM_LIB} dl pthread) 
+    endif()
+    
 endforeach( SRC_FILE_NAME ${SOURCE_STAGES} )

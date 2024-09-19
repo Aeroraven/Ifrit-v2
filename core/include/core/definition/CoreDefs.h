@@ -26,7 +26,7 @@
 	#define IFRIT_DLLEXPORT __attribute__((visibility("default")))
 	#define IFRIT_DLLIMPORT
 #else
-	static_assert(false, "Unsupported compiler")
+	static_assert(false, "Unsupported compiler");
 #endif
 
 
@@ -36,14 +36,14 @@
 		#define IFRIT_ENV64
 	#else
 		#define IFRIT_ENV32
-		static_assert(false, "Lacking x32 support")
+		static_assert(false, "Lacking x32 support");
 	#endif
 #elif __GNUC__
 	#if __x86_64__ || __ppc64__
 		#define IFRIT_ENV64
 	#else
 		#define IFRIT_ENV32
-		static_assert(false, "Lacking x32 support")
+		static_assert(false, "Lacking x32 support");
 	#endif
 #endif
 
@@ -125,6 +125,12 @@
 	#define IFRIT_CXX20_ENABLED 1
 #endif
 #ifndef _HAS_CXX20
+	//Patch for gcc10
+	#ifdef __GNUC__
+		#if __GNUC__ >= 10
+			#define IFRIT_CXX20_ENABLED 1
+		#endif
+	#endif
 	#if __cplusplus >= 202002L
 		#define IFRIT_CXX20_ENABLED 1
 	#endif
@@ -138,8 +144,11 @@
 		#define IFRIT_CXX17_ENABLED 1
 	#endif
 #endif
+#ifndef IFRIT_CXX17_ENABLED
+	static_assert(false, "App requires C++20 or higher (Currently C++17 is not supported)");
+#endif
 #ifndef IFRIT_CXX20_ENABLED
-	static_assert(false, "App requires C++20 or higher")
+	static_assert(false, "App requires C++20 or higher");
 #endif
 
 #ifdef IFRIT_CXX23_ENABLED

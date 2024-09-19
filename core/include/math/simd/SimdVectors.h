@@ -9,10 +9,13 @@ namespace Ifrit::Math::SIMD {
 #endif
 
 	template<typename T>
-	concept SimdElement32 = requires (T x) { sizeof(T) == 4; };
+	concept SimdElement32 = requires (T x) { std::is_same_v<T, float> || std::is_same_v<T, int>; };
+
+	template<typename T>
+	concept SimdContainer = requires (T x) { std::is_same_v<T, __m128> || std::is_same_v<T, __m128i>; };
 
 	template<typename T, typename S, int V>
-	requires SimdElement32<T>
+	requires SimdElement32<T> && SimdContainer<S>
 	struct alignas(16) SimdVector {
 		union {
 			struct { T x, y, z, w; };
@@ -27,8 +30,8 @@ namespace Ifrit::Math::SIMD {
 			else if constexpr(std::is_same_v<S, __m128i>){
 				dataf = v.dataf;
 			}
-			else {
-				static_assert(false, "Unsupported SIMD type");
+			else{
+				//static_assert(false, "Unsupported SIMD type");
 			}
 #else
 			x = v.x;
@@ -45,8 +48,8 @@ namespace Ifrit::Math::SIMD {
 			else if constexpr (std::is_same_v<S, __m128i>) {
 				dataf = v.dataf;
 			}
-			else {
-				static_assert(false, "Unsupported SIMD type");
+			else{
+				//static_assert(false, "Unsupported SIMD type");
 			}
 #else
 			x = v.x;
@@ -68,7 +71,7 @@ namespace Ifrit::Math::SIMD {
 					dataf = _mm_set_epi32(v.x, v.y, v.z, d);
 				}
 				else {
-					static_assert(false, "Unsupported SIMD type");
+					//static_assert(false, "Unsupported SIMD type");
 				}
 #else
 				w = d;
@@ -105,7 +108,7 @@ namespace Ifrit::Math::SIMD {
 				dataf = _mm_set_epi32(w, z, y, x);
 			}
 			else {
-				static_assert(false, "Unsupported SIMD type");
+				//static_assert(false, "Unsupported SIMD type");
 			}
 #else
 			this->w = w;
@@ -124,7 +127,7 @@ namespace Ifrit::Math::SIMD {
 				dataf = _mm_set_epi32(0, z, y, x);
 			}
 			else {
-				static_assert(false, "Unsupported SIMD type");
+				//static_assert(false, "Unsupported SIMD type");
 			}
 #else
 			this->w = 0;
@@ -142,7 +145,7 @@ namespace Ifrit::Math::SIMD {
 				dataf = _mm_set_epi32(0, 0, y, x);
 			}
 			else {
-				static_assert(false, "Unsupported SIMD type");
+				//static_assert(false, "Unsupported SIMD type");
 			}
 #else
 			this->w = 0;
@@ -161,7 +164,7 @@ namespace Ifrit::Math::SIMD {
 				dataf = _mm_set_epi32(x, x, x, x);
 			}
 			else {
-				static_assert(false, "Unsupported SIMD type");
+				//static_assert(false, "Unsupported SIMD type");
 			}
 #else
 			this->w = x;
@@ -176,13 +179,11 @@ namespace Ifrit::Math::SIMD {
 		inline SimdVector operator op(const SimdVector& v) const { \
 			if constexpr (std::is_same_v<S, __m128>) return _mm_##insName##_ps(dataf, v.dataf); \
 			else if constexpr (std::is_same_v<S, __m128i>) return _mm_##insName##_epi32(dataf, v.dataf); \
-			else  static_assert(false, "Unsupported SIMD type"); \
 		}
 #define SIMD_VECTOR_OPERATOR_2(op,insName) \
 		inline SimdVector& operator op(const SimdVector& v) { \
 			if constexpr (std::is_same_v<S, __m128>) dataf = _mm_##insName##_ps(dataf, v.dataf); \
 			else if constexpr (std::is_same_v<S, __m128i>) dataf = _mm_##insName##_epi32(dataf, v.dataf); \
-			else  static_assert(false, "Unsupported SIMD type"); \
 			return *this; \
 		}
 #else
@@ -224,7 +225,7 @@ namespace Ifrit::Math::SIMD {
 				r.dataf = _mm_sub_epi32(_mm_setzero_si128(), dataf);
 			}
 			else {
-				static_assert(false, "Unsupported SIMD type");
+				//static_assert(false, "Unsupported SIMD type");
 			}
 #else
 			if constexpr (V >= 4) r.w = -w;
@@ -244,7 +245,7 @@ namespace Ifrit::Math::SIMD {
 				);
 			}
 			else {
-				static_assert(false, "Unsupported SIMD type");
+				//static_assert(false, "Unsupported SIMD type");
 			}
 #else
 			T tx = x, ty = y, tz = z;
@@ -265,7 +266,7 @@ namespace Ifrit::Math::SIMD {
 				else r = _mm_cvtss_f32(_mm_dp_ps(dataf, v.dataf, 0x11));
 			}
 			else {
-				static_assert(false, "Unsupported SIMD type");
+				//static_assert(false, "Unsupported SIMD type");
 			}
 #else
 			if constexpr (V >= 4) r += w * v.w;
@@ -298,7 +299,7 @@ namespace Ifrit::Math::SIMD {
 		r.dataf = cross_product(a.dataf, b.dataf);
 	}
 	else {
-		static_assert(false, "Unsupported SIMD type");
+		//static_assert(false, "Unsupported SIMD type");
 	}
 #else
 		r.x = a.y * b.z - a.z * b.y;
@@ -317,7 +318,7 @@ namespace Ifrit::Math::SIMD {
 			r.dataf = _mm_fmadd_ps(a.dataf, b.dataf, c.dataf);
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		if constexpr (V >= 4) r.w = a.w * b.w + c.w;
@@ -336,7 +337,7 @@ namespace Ifrit::Math::SIMD {
 			r.dataf = _mm_fmadd_ps(a.dataf, _mm_set1_ps(b), c.dataf);
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		if constexpr (V >= 4) r.w = a.w * b + c.w;
@@ -360,7 +361,7 @@ namespace Ifrit::Math::SIMD {
 			else r = _mm_cvtss_f32(_mm_dp_ps(a.dataf, b.dataf, 0x11));
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		if constexpr (V >= 4) r += a.w * b.w;
@@ -380,7 +381,7 @@ namespace Ifrit::Math::SIMD {
 			r.dataf = _mm_max_ps(a.dataf, b.dataf);
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		if constexpr (V >= 4) r.w = std::max(a.w, b.w);
@@ -400,7 +401,7 @@ namespace Ifrit::Math::SIMD {
 			r.dataf = _mm_min_ps(a.dataf, b.dataf);
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		if constexpr (V >= 4) r.w = std::min(a.w, b.w);
@@ -433,7 +434,7 @@ namespace Ifrit::Math::SIMD {
 			if (index == 0) return a.x;
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 	}
 
@@ -446,7 +447,7 @@ namespace Ifrit::Math::SIMD {
 			r.dataf = _mm_add_ps(_mm_mul_ps(_mm_sub_ps(b.dataf, a.dataf), _mm_set1_ps(t)), a.dataf);
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		if constexpr (V >= 4) r.w = a.w + (b.w - a.w) * t;
@@ -466,7 +467,7 @@ namespace Ifrit::Math::SIMD {
 			r.dataf = _mm_rcp_ps(a.dataf);
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		if constexpr (V >= 4) r.w = 1.0f / a.w;
@@ -486,7 +487,7 @@ namespace Ifrit::Math::SIMD {
 			r.dataf = _mm_div_ps(a.dataf, _mm_sqrt_ps(_mm_dp_ps(a.dataf, a.dataf, 0x77)));
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		T len = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
@@ -508,7 +509,7 @@ namespace Ifrit::Math::SIMD {
 			r.dataf = _mm_and_ps(a.dataf, _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF)));
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 
 #else
@@ -538,7 +539,7 @@ namespace Ifrit::Math::SIMD {
 			else r = a.x;
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		if constexpr (V >= 4) r += a.w;
@@ -575,7 +576,7 @@ namespace Ifrit::Math::SIMD {
 
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		if constexpr (V >= 4) r += a.w < b.w ? 1 : 0;
@@ -595,7 +596,7 @@ namespace Ifrit::Math::SIMD {
 			r.dataf = _mm_round_ps(a.dataf, _MM_FROUND_TO_NEAREST_INT);
 		}
 		else {
-			static_assert(false, "Unsupported SIMD type");
+			//static_assert(false, "Unsupported SIMD type");
 		}
 #else
 		if constexpr (V >= 4) r.w = std::round(a.w);

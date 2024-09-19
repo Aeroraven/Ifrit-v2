@@ -3,7 +3,7 @@
 #include "engine/raytracer/TrivialRaytracerWorker.h"
 
 extern "C" {
-	struct IFRIT_APIDECL_FORCED  alignas(16) ifritShaderOps_Raytracer_Vec3 {
+	IFRIT_APIDECL_FORCED struct  alignas(16)    ifritShaderOps_Raytracer_Vec3 {
 		float x, y, z;
 	};
 

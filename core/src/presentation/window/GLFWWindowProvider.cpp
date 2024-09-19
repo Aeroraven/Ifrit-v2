@@ -35,7 +35,9 @@ namespace Ifrit::Presentation::Window {
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 			auto end = std::chrono::high_resolution_clock::now();
-			frameTimes.push_back(std::max(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(),1ll));
+			using durationType = decltype(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+			frameTimes.push_back(std::max(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(),
+				static_cast<durationType>(1ll)));
 			frameTimesCore.push_back(repCore);
 	
 			totalFrameTime += frameTimes.back();

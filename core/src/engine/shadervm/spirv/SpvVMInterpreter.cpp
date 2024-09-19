@@ -1,7 +1,7 @@
 #include "engine/shadervm/spirv/SpvVMInterpreter.h"
 #include "./dependency/spirv.h"
 #include "engine/shadervm/spirv/SpvVMExtInstRegistry.h"
-
+#include <iomanip>
 namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 
 	SpvVMExtRegistry extInstRegistry = SpvVMExtRegistry();
@@ -23,6 +23,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 
 	namespace InstructionImpl {
 		/* Helper */
+		std::string get16DigitHexRepresentation(uint64_t x) {
+			//stringstream for compatibility
+			std::stringstream ss;
+			ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << x;
+			return ss.str();
+		}
 		double floatToDoubleDeserialization(float x) {
 			auto bin = *(uint32_t*)(&x);
 			auto signFloat = bin >> 31;
@@ -100,7 +106,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 				else if (tpTarget->declType == IFSP_IRTARGET_DECL_FLOAT) {
 					//To hex
 					auto hexDouble = floatToDoubleDeserialization(target->data.floatValue);
-					std::string hexStr = std::format("{:#016x}", *(uint64_t*)&hexDouble);
+					//std::string hexStr = std::format("{:#016x}", *(uint64_t*)&hexDouble);
+					std::string hexStr = get16DigitHexRepresentation(*(uint64_t*)&hexDouble);
 					return hexStr;
 				}
 				else if (tpTarget->declType == IFSP_IRTARGET_DECL_VECTOR) {
