@@ -25,6 +25,13 @@ namespace Ifrit::Engine {
 		int getAttributeCount() const;
 		TypeDescriptor getAttributeDescriptor(int index) const;
 
+		inline int getOffset(int i) const {
+			return context->offsets[i];
+		}
+		inline int getElementSize() const {
+			return elementSize;
+		}
+
 		/* Templates */
 		template<class T>
 		inline T getValue(const int index, const int attribute) const{

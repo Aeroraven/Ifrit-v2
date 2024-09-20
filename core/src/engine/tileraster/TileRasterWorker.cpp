@@ -91,9 +91,11 @@ namespace Ifrit::Engine::TileRaster {
 		rawRenderer->statusTransitionBarrier2(TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);
 		context->assembledTrianglesRaster[workerId].clear();
 		context->assembledTrianglesShade[workerId].clear();
+		auto& w1 = context->rasterizerQueue[workerId];
+		auto& w2 = context->coverQueue[workerId];
 		for (int j = 0; j < totalTiles; j++) {
-			context->rasterizerQueue[workerId][j].clear();
-			context->coverQueue[workerId][j].clear();
+			w1[j].clear();
+			w2[j].clear();
 		}
 		geometryProcessing(rawRenderer);
 		rawRenderer->statusTransitionBarrier2(TileRasterStage::GEOMETRY_PROCESSING_SYNC, TileRasterStage::RASTERIZATION);
@@ -274,7 +276,8 @@ namespace Ifrit::Engine::TileRaster {
 		const float tileSizeY = context->tileWidth;
 
 		vfloat3 zeroVec = vfloat3(0.0f);
-
+		auto& cvQueue = context->coverQueue[workerId];
+		auto& rsQueue = context->rasterizerQueue[workerId];
 		for (int y = tileMiny; y <= tileMaxy; y++) {
 			for (int x = tileMinx; x <= tileMaxx; x++) {
 				tileCoords[VLT] = { x * tileSizeX, y * tileSizeY, 1.0f };
@@ -310,10 +313,10 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 				if (criteriaTR != 3)continue;
 				if (criteriaTA == 3) {
-					context->coverQueue[workerId][getTileID(x, y)].push_back({ workerId,primitiveId });
+					cvQueue[getTileID(x, y)].push_back({ workerId,primitiveId });
 				}
 				else {
-					context->rasterizerQueue[workerId][getTileID(x, y)].push_back({ workerId,primitiveId });
+					rsQueue[getTileID(x, y)].push_back({ workerId,primitiveId });
 				}
 			}
 		}
@@ -332,18 +335,39 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterWorker::vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
 		status.store(TileRasterStage::VERTEX_SHADING, std::memory_order::relaxed);
-		std::vector<vfloat4*> outVaryings(context->varyingDescriptor->getVaryingCounts());
-		std::vector<const void*> inVertex(context->vertexBuffer->getAttributeCount());
+		auto varyingCnts = context->varyingDescriptor->getVaryingCounts();
+		auto attributeCnts = context->vertexBuffer->getAttributeCount();
+		std::vector<vfloat4*> outVaryings(varyingCnts);
+		std::vector<vfloat4*> outVaryingsBase(varyingCnts);
+
+		std::vector<const void*> inVertex(attributeCnts);
+		std::vector<int> attrOffset(attributeCnts);
 		auto vsEntry = context->threadSafeVS[workerId];
 		const auto vxCount = context->vertexBuffer->getVertexCount();
 		auto curChunk = 0;
+		auto posBufferPtr = (context->vertexShaderResult->getPositionBuffer());
+		auto vertexBufferPtr = context->vertexBuffer->getBufferUnsafe();
+		for (int i = 0; i < varyingCnts; i++) {
+			outVaryingsBase[i] = context->vertexShaderResult->getVaryingBuffer(i);
+		}
+		int totalOffset = context->vertexBuffer->getElementSize();
+		for (int i = 0; i < attributeCnts; i++) {
+			attrOffset[i] = context->vertexBuffer->getOffset(i);
+		}
+		
+		auto inVertexData = inVertex.data();
+		auto outVaryingsData = outVaryings.data();
 		while((curChunk = renderer->fetchUnresolvedChunkVertex()) >= 0) {
 			auto lim = std::min(vxCount, (curChunk + 1) * context->vsChunkSize);
 			for (int j = curChunk * context->vsChunkSize; j < lim; j++) {
-				auto pos = &context->vertexShaderResult->getPositionBuffer()[j];
-				getVaryingsAddr(j, outVaryings);
-				getVertexAttributes(j, inVertex);
-				vsEntry->execute(inVertex.data(), pos, (ifloat4*const*)outVaryings.data());
+				auto pos = posBufferPtr + j;
+				for (int k = 0; k < varyingCnts; k++) {
+					outVaryings[k] = outVaryingsBase[k] + j;
+				}
+				for (int k = 0; k < attributeCnts; k++) {
+					inVertex[k] = vertexBufferPtr + (j * totalOffset + attrOffset[k]);
+				}
+				vsEntry->execute(inVertexData, pos, (ifloat4*const*)outVaryingsData);
 			}
 		}
 		status.store(TileRasterStage::VERTEX_SHADING_SYNC, std::memory_order::relaxed);
@@ -365,10 +389,15 @@ namespace Ifrit::Engine::TileRaster {
 		__m256 aCsFw = _mm256_set1_ps(2.0f * context->frameWidth);
 		__m256 aCsFh = _mm256_set1_ps(2.0f * context->frameHeight);
 		__m256 aCsFhFw = _mm256_set1_ps(context->frameHeight * context->frameWidth);
+		__m256i index = _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0);
+		__m256i indexOffset = _mm256_mullo_epi32(index, _mm256_set1_epi32(4));
+		auto& shadeAtriQueue = context->assembledTrianglesShade[workerId];
+		auto& rasterAtriQueue = context->assembledTrianglesRaster[workerId];
+		__m256 aCsFw1 = _mm256_set1_ps(context->frameWidth);
+		__m256 aCsFh1 = _mm256_set1_ps(context->frameHeight);
+
 
 		auto directTriangleSetup = [&]() {
-			__m256i index = _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0);
-			__m256i indexOffset = _mm256_mullo_epi32(index, _mm256_set1_epi32(4));
 			__m256 tv1X = _mm256_i32gather_ps((float*)candV1, indexOffset, 4);
 			__m256 tv1Y = _mm256_i32gather_ps(((float*)candV1) + 1, indexOffset, 4);
 			__m256 tv1Z = _mm256_i32gather_ps(((float*)candV1) + 2, indexOffset, 4);
@@ -412,7 +441,6 @@ namespace Ifrit::Engine::TileRaster {
 			__m256 aV1ySubV3y = _mm256_sub_ps(tv1Y, tv3Y);
 			__m256 aV2xSubV1x = _mm256_sub_ps(tv1X, tv2X); //NOTE
 
-			
 			__m256 aS3 = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_add_ps(aV2ySubV1y, aV2xSubV1x));
 			__m256 aS1 = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_add_ps(aV3ySubV2y, aV3xSubV2x));
 			__m256 aS2 = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_add_ps(aV1ySubV3y, aV1xSubV3x));
@@ -458,7 +486,6 @@ namespace Ifrit::Engine::TileRaster {
 			__m256 rE3Z = _mm256_sub_ps(_mm256_sub_ps(rE3Z_o, rE3Z_q), _mm256_set1_ps(EPS));
 			rE3Z = _mm256_mul_ps(rE3Z, aCsFhFw);
 
-			//Triangle culling
 			__m256 cullD1 = _mm256_mul_ps(tv1X, tv2Y);
 			__m256 cullD2 = _mm256_fmadd_ps(tv2X, tv3Y, cullD1);
 			__m256 cullD3 = _mm256_fmadd_ps(tv3X, tv1Y, cullD2);
@@ -467,11 +494,7 @@ namespace Ifrit::Engine::TileRaster {
 			__m256 cullN3 = _mm256_fmadd_ps(tv2X, tv1Y, cullN2);
 			__m256 cullD = _mm256_sub_ps(cullD3, cullN3);
 			__m256 cullMask = _mm256_cmp_ps(cullD, _mm256_setzero_ps(), _CMP_GT_OQ);
-			
-			// If all zero
-			if (_mm256_testz_ps(cullMask, cullMask)) {
-				return;
-			}
+			if (_mm256_testz_ps(cullMask, cullMask))return;
 			
 			// Frustum culling
 			__m256 bboxMinX = _mm256_min_ps(tv1X, _mm256_min_ps(tv2X, tv3X));
@@ -495,17 +518,13 @@ namespace Ifrit::Engine::TileRaster {
 			fcullMask = _mm256_or_ps(fcullMask, fcullBMinYMask);
 			fcullMask = _mm256_xor_ps(fcullMask, _mm256_castsi256_ps(_mm256_set1_epi32(-1)));
 
-			// If all zero
-			if (_mm256_testz_ps(fcullMask, fcullMask)) {
-				return;
-			}
-			// Combined mask
+			if (_mm256_testz_ps(fcullMask, fcullMask)) return;
 			__m256 combinedMask = _mm256_and_ps(cullMask, fcullMask);
-			// Rounding
-			__m256 bboxMinXR = _mm256_fmadd_ps(bboxMinX, _mm256_set1_ps(context->frameWidth), _mm256_set1_ps(-0.5f));
-			__m256 bboxMinYR = _mm256_fmadd_ps(bboxMinY, _mm256_set1_ps(context->frameHeight), _mm256_set1_ps(-0.5f));
-			__m256 bboxMaxXR = _mm256_fmadd_ps(bboxMaxX, _mm256_set1_ps(context->frameWidth), _mm256_set1_ps(-0.5f));
-			__m256 bboxMaxYR = _mm256_fmadd_ps(bboxMaxY, _mm256_set1_ps(context->frameHeight), _mm256_set1_ps(-0.5f));
+
+			__m256 bboxMinXR = _mm256_fmadd_ps(bboxMinX, aCsFw1, _mm256_set1_ps(-0.5f));
+			__m256 bboxMinYR = _mm256_fmadd_ps(bboxMinY, aCsFh1, _mm256_set1_ps(-0.5f));
+			__m256 bboxMaxXR = _mm256_fmadd_ps(bboxMaxX, aCsFw1, _mm256_set1_ps(-0.5f));
+			__m256 bboxMaxYR = _mm256_fmadd_ps(bboxMaxY, aCsFh1, _mm256_set1_ps(-0.5f));
 			bboxMinXR = _mm256_round_ps(bboxMinXR, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
 			bboxMinYR = _mm256_round_ps(bboxMinYR, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
 			bboxMaxXR = _mm256_round_ps(bboxMaxXR, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
@@ -515,16 +534,13 @@ namespace Ifrit::Engine::TileRaster {
 			__m256 bboxMask = _mm256_or_ps(bboxXMask, bboxYMask);
 			bboxMask = _mm256_xor_ps(bboxMask, _mm256_castsi256_ps(_mm256_set1_epi32(-1)));
 			// If all zero
-			if (_mm256_testz_ps(bboxMask, bboxMask)) {
-				return;
-			}
+			if (_mm256_testz_ps(bboxMask, bboxMask)) return;
 
 			bboxMinX = _mm256_fmadd_ps(bboxMinX, _mm256_set1_ps(0.5f), _mm256_set1_ps(0.5f));
 			bboxMinY = _mm256_fmadd_ps(bboxMinY, _mm256_set1_ps(0.5f), _mm256_set1_ps(0.5f));
 			bboxMaxX = _mm256_fmadd_ps(bboxMaxX, _mm256_set1_ps(0.5f), _mm256_set1_ps(0.5f));
 			bboxMaxY = _mm256_fmadd_ps(bboxMaxY, _mm256_set1_ps(0.5f), _mm256_set1_ps(0.5f));
 
-			// Overall mask
 			__m256 overallMask = _mm256_and_ps(combinedMask, bboxMask);
 
 			AssembledTriangleProposalRasterStage atriRaster[8];
@@ -570,7 +586,7 @@ namespace Ifrit::Engine::TileRaster {
 			_mm256_storeu_ps(vwInv1T, tv1WInv);
 			_mm256_storeu_ps(vwInv2T, tv2WInv);
 			_mm256_storeu_ps(vwInv3T, tv3WInv);
-			auto xid = context->assembledTrianglesShade[workerId].size();
+			auto xid = shadeAtriQueue.size();
 			auto vid = 0;
 			for (int i = 0; i < cands; i++) {
 				if(overallMaskT[i] == 0) continue;
@@ -589,24 +605,25 @@ namespace Ifrit::Engine::TileRaster {
 
 				vfloat4 bbox = { bboxMinXT[i], bboxMinYT[i], bboxMaxXT[i], bboxMaxYT[i] };
 				executeBinner(xid + vid, atriRaster[i], bbox);
-				context->assembledTrianglesShade[workerId].emplace_back(std::move(atriShade[i]));
-				context->assembledTrianglesRaster[workerId].emplace_back(std::move(atriRaster[i]));
+				shadeAtriQueue.emplace_back(std::move(atriShade[i]));
+				rasterAtriQueue.emplace_back(std::move(atriRaster[i]));
 				vid++;
 				
 			}
 
 		};
 #endif
-
+		auto indexRef = context->indexBuffer;
+		auto optFrontFace = context->frontface;
 		while ((curChunk = renderer->fetchUnresolvedChunkGeometry()) >= 0) {
 			auto start = curChunk * context->gsChunkSize * context->vertexStride;
 			auto lim = std::min(ixBufSize, (curChunk + 1) * context->gsChunkSize * context->vertexStride);
 
 			for (int j = start; j < lim; j += context->vertexStride) {
-				int id0 = (context->indexBuffer)[j];
-				int id1 = (context->indexBuffer)[j + 1];
-				int id2 = (context->indexBuffer)[j + 2];
-				if (context->frontface == TileRasterFrontFace::COUNTER_CLOCKWISE) {
+				int id0 = indexRef[j];
+				int id1 = indexRef[j + 1];
+				int id2 = indexRef[j + 2];
+				if (optFrontFace == TileRasterFrontFace::COUNTER_CLOCKWISE) {
 					std::swap(id0, id2);
 				}
 				vfloat4 v1 = toSimdVector(posBuffer[id0]);
@@ -632,7 +649,6 @@ namespace Ifrit::Engine::TileRaster {
 						cands = 0;
 					}
 #else
-
 					triangleHomogeneousClip(prim, v1, v2, v3);
 					continue;
 #endif
@@ -676,11 +692,13 @@ namespace Ifrit::Engine::TileRaster {
 		float tileMaxY = (tileIdY + 1) * context->tileWidth;
 			 
 		auto& coverQueue = coverQueueLocal;
+		auto& atriQueue = context->assembledTrianglesRaster;
+		auto& rastQueue = context->rasterizerQueue;
 		for (int T = TOTAL_THREADS - 1; T >= 0; T--) {
-			const auto& proposalT = context->rasterizerQueue[T][curTile];
+			const auto& proposalT = rastQueue[T][curTile];
 			for (int j = proposalT.size() - 1; j >= 0; j--) {
 				const auto& proposal = proposalT[j];
-				const auto& ptRef = context->assembledTrianglesRaster[proposal.workerId][proposal.primId];
+				const auto& ptRef = atriQueue[proposal.workerId][proposal.primId];
 
 				vfloat3 edgeCoefs[3];
 				edgeCoefs[0] = ptRef.e1;
@@ -691,10 +709,10 @@ namespace Ifrit::Engine::TileRaster {
 				int chosenCoordTA[3];
 				getAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
-				int leftBlock = 0;
-				int rightBlock = context->numSubtilesPerTileX;
-				int topBlock = 0;
-				int bottomBlock = context->numSubtilesPerTileX;
+				constexpr int leftBlock = 0;
+				constexpr int rightBlock = TileRasterContext::numSubtilesPerTileX;
+				constexpr int topBlock = 0;
+				constexpr int bottomBlock = TileRasterContext::numSubtilesPerTileX;
 
 #ifdef IFRIT_USE_SIMD_128
 
@@ -1102,8 +1120,9 @@ namespace Ifrit::Engine::TileRaster {
 		curTileX2 = std::min(curTileX2, (int)frameBufferWidth);
 		curTileY2 = std::min(curTileY2, (int)frameBufferHeight);
 
+		auto& atriShadeQueue = context->assembledTrianglesShade;
 		auto proposalProcessFuncTileOnly = [&]<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>(AssembledTriangleProposalReference & proposal) {
-			const auto& triProposal = context->assembledTrianglesShade[proposal.workerId][proposal.primId];
+			const auto& triProposal = atriShadeQueue[proposal.workerId][proposal.primId];
 
 #ifdef IFRIT_USE_SIMD_128
 #ifdef IFRIT_USE_SIMD_256
@@ -1129,7 +1148,7 @@ namespace Ifrit::Engine::TileRaster {
 		
 		};
 		auto proposalProcessFunc = [&]<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>(TileBinProposal& proposal) {
-			const auto& triProposal = context->assembledTrianglesShade[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
+			const auto& triProposal = atriShadeQueue[proposal.clippedTriangle.workerId][proposal.clippedTriangle.primId];
 			if (proposal.level == TileRasterLevel::PIXEL){
 				int tileXd = static_cast<int>((uint32_t)proposal.tile.x % TILE_RASTER_TEMP_CONST_MAXW);
 				int tileYd = static_cast<int>((uint32_t)proposal.tile.x / TILE_RASTER_TEMP_CONST_MAXW);
@@ -1229,7 +1248,7 @@ namespace Ifrit::Engine::TileRaster {
 					
 			}
 		};
-		// End of lambda func
+		// ========= End of lambda func ==============
 
 		// Tag buffer
 
@@ -1262,14 +1281,15 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		}
 		else {
 			auto coverQueueLocalSize = coverQueueLocal.size();
+			auto& firstCoverQueue = context->coverQueue;
 			auto iterFunc = [&]<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>() {
 				auto curTileX = curTile % context->numTilesX * context->tileWidth;
 				auto curTileY = curTile / context->numTilesX * context->tileWidth;
-
+				auto& depthRef = (*context->frameBuffer->getDepthAttachment());
 				if constexpr (tpOnlyTaggingPass) {
 					bool directReturn = true;
 					for (int i = TOTAL_THREADS - 1; i >= 0; i--) {
-						if (context->coverQueue[i][curTile].size() > 0) {
+						if (firstCoverQueue[i][curTile].size() > 0) {
 							directReturn = false;
 							break;
 						}
@@ -1284,19 +1304,20 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 						std::fill(depthCache, depthCache + tagbufferSizeX * tagbufferSizeX, 255.0f);
 					}
 					else {
+						
 						for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
 							auto dx = (i & 0xf);
 							auto dy = (i >> 4);
 							if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
-								depthCache[dx + dy * tagbufferSizeX] = (*context->frameBuffer->getDepthAttachment())(curTileX + dx, curTileY + dy, 0);
+								depthCache[dx + dy * tagbufferSizeX] = depthRef(curTileX + dx, curTileY + dy, 0);
 							}
 						}
 					}
 				}
 				//Shared
 				for (int i = TOTAL_THREADS - 1; i >= 0; i--) {
-					for (int j = context->coverQueue[i][curTile].size() - 1; j >= 0; j--) {
-						auto& proposal = context->coverQueue[i][curTile][j];
+					for (int j = firstCoverQueue[i][curTile].size() - 1; j >= 0; j--) {
+						auto& proposal = firstCoverQueue[i][curTile][j];
 						proposalProcessFuncTileOnly.operator()<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass >(proposal);
 					}
 				}
@@ -1312,7 +1333,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 						auto dx = (i & 0xf);
 						auto dy = (i >> 4);
 						if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
-							(*context->frameBuffer->getDepthAttachment())(curTileX + dx, curTileY + dy, 0) = depthCache[dx + dy * tagbufferSizeX];
+							depthRef(curTileX + dx, curTileY + dy, 0) = depthCache[dx + dy * tagbufferSizeX];
 						}
 							
 					}
@@ -1336,49 +1357,20 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		//execWorker->detach();
 	}
 
-	void TileRasterWorker::getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW {
-		for (int i = 0; i < context->vertexBuffer->getAttributeCount(); i++) {
-			auto desc = context->vertexBuffer->getAttributeDescriptor(i);
-			if (desc.type == TypeDescriptorEnum::IFTP_FLOAT4) IFRIT_BRANCH_LIKELY{
-				out[i] = (context->vertexBuffer->getValuePtr<ifloat4>(id, i));
-			}
-			else if (desc.type == TypeDescriptorEnum::IFTP_FLOAT3) {
-				out[i] = (context->vertexBuffer->getValuePtr<ifloat3>(id, i));
-			}
-			else if (desc.type == TypeDescriptorEnum::IFTP_FLOAT2) {
-				out[i] = (context->vertexBuffer->getValuePtr<ifloat2>(id, i));
-			}
-			else if (desc.type == TypeDescriptorEnum::IFTP_FLOAT1) {
-				out[i] = (context->vertexBuffer->getValuePtr<float>(id, i));
-			}
-			else if (desc.type == TypeDescriptorEnum::IFTP_INT1) {
-				out[i] = (context->vertexBuffer->getValuePtr<int>(id, i));
-			}
-			else if (desc.type == TypeDescriptorEnum::IFTP_INT2) {
-				out[i] = (context->vertexBuffer->getValuePtr<iint2>(id, i));
-			}
-			else if (desc.type == TypeDescriptorEnum::IFTP_INT3) {
-				out[i] = (context->vertexBuffer->getValuePtr<iint3>(id, i));
-			}
-			else if (desc.type == TypeDescriptorEnum::IFTP_INT4) {
-				out[i] = (context->vertexBuffer->getValuePtr<iint4>(id, i));
-			}
-			else IFRIT_BRANCH_UNLIKELY{
-				ifritError("Unsupported Type");
-			}
-		}
-	}
-	void TileRasterWorker::getVaryingsAddr(const int id, std::vector<vfloat4*>& out) IFRIT_AP_NOTHROW {
-		for (int i = 0; i < context->varyingDescriptor->getVaryingCounts(); i++) {
-			auto desc = context->vertexShaderResult->getVaryingDescriptor(i);
-			out[i] = &context->vertexShaderResult->getVaryingBuffer(i)[id];
-		}
-	}
-
+	
 	void TileRasterWorker::pixelShadingFromTagBuffer(const int dxA, const int dyA, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW {
 		auto pixelShadingPass = [&](int passNo) {
 			auto& psEntry = context->threadSafeFS[workerId];
 			psEntry->currentPass = passNo;
+			auto aCsFwS1 = _mm256_set1_epi32(context->frameWidth - 1);
+			auto aCsFhS1 = _mm256_set1_epi32(context->frameHeight - 1);
+			auto varyCnts = args.varyingCounts;
+			auto ivData = interpolatedVaryings.data();
+			auto coData = colorOutput.data();
+			std::vector<vfloat4*> vaPtr(varyCnts);
+			for (int i = 0; i < varyCnts; i++) {
+				vaPtr[i] = context->vertexShaderResult->getVaryingBuffer(i);
+			}
 			for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i+=8) {
 
 #ifdef IFRIT_USE_SIMD_256
@@ -1398,8 +1390,8 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				__m256i dy256 = _mm256_add_epi32(dy256A, dx256Tmp2);
 #endif
 
-				__m256i dxFwMask = _mm256_cmpgt_epi32(dx256, _mm256_set1_epi32(context->frameWidth - 1));
-				__m256i dyFhMask = _mm256_cmpgt_epi32(dy256, _mm256_set1_epi32(context->frameHeight - 1));
+				__m256i dxFwMask = _mm256_cmpgt_epi32(dx256, aCsFwS1);
+				__m256i dyFhMask = _mm256_cmpgt_epi32(dy256, aCsFhS1);
 				__m256i validMask = _mm256_andnot_si256(_mm256_or_si256(dxFwMask, dyFhMask), _mm256_set1_epi32(0xffffffff));
 				
 				__m256i gatherIdx = _mm256_mullo_epi32(dxId256, _mm256_set1_epi32(4));
@@ -1449,11 +1441,10 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 				for(int j = 0;j<8;j++){
 					if(validMaskT[j]==0)continue;
-
 					const auto vSize = args.varyingCounts;
 					const int* const addr = args.indexBufferPtr + idxT[j];
 					for (int k = 0;k < vSize; k++) {
-						auto va = context->vertexShaderResult->getVaryingBuffer(k);
+						auto va = vaPtr[k];
 						auto& dest = interpolatedVaryings[k];
 						const auto& tmp0 = (va[addr[0]]);
 						const auto& tmp1 = (va[addr[1]]);
@@ -1463,8 +1454,8 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 						dest = fma(tmp2, desiredBaryZ[j], destVec);
 					}
 
-					psEntry->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepthT[j]);
-					args.colorAttachment0->fillPixelRGBA(dx[j], dy[j], colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
+					psEntry->execute(ivData, coData, &interpolatedDepthT[j]);
+					args.colorAttachment0->fillPixelRGBA128ps(dx[j], dy[j], _mm_loadu_ps((float*)(coData)));
 				}
 
 #else
@@ -1520,8 +1511,10 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		auto dy1 = dy % tagbufferSizeX;
 		auto dxId = dx1 + dy1 * tagbufferSizeX;
 
-		if(dx>=context->frameWidth || dy>=context->frameHeight)return;
-
+		if constexpr (!tpOnlyTaggingPass) {
+			if (dx >= context->frameWidth || dy >= context->frameHeight)return;
+		}
+		
 		auto& depthAttachment = depthCache[dxId];
 		int idx = atp.originalPrimitive * context->vertexStride;
 
@@ -1693,8 +1686,10 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			//Depth Test
 			int x = dx + (i & 1);
 			int y = dy + (i >> 1);
-			if (x >= fbWidth || y >= fbHeight){
-				continue;
+			if constexpr (!tpOnlyTaggingPass) {
+				if (x >= fbWidth || y >= fbHeight) {
+					continue;
+				}
 			}
 			auto dx1 = (x) % tagbufferSizeX;
 			auto dy1 = (y) % tagbufferSizeX;
@@ -1848,8 +1843,10 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			//Depth Test
 			int x = xPacked[i];
 			int y = yPacked[i];
-			if (x >= fbWidth || y >= fbHeight) IFRIT_BRANCH_UNLIKELY{
-				continue;
+			if constexpr (!tpOnlyTaggingPass) {
+				if (x >= fbWidth || y >= fbHeight) IFRIT_BRANCH_UNLIKELY{
+					continue;
+				}
 			}
 			auto dx1 = (x) % tagbufferSizeX;
 			auto dy1 = (y) % tagbufferSizeX;

@@ -85,9 +85,6 @@ namespace Ifrit::Engine::TileRaster {
 
 		void threadStart();
 
-		void getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW ;
-		void getVaryingsAddr(const int id,std::vector<Ifrit::Math::SIMD::vfloat4*>& out)IFRIT_AP_NOTHROW ;
-
 		template<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
 		void pixelShading(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 

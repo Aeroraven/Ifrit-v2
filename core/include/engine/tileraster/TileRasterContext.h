@@ -27,7 +27,7 @@ namespace Ifrit::Engine::TileRaster {
 	class TileRasterContext {
 	public:
 		// Config
-		constexpr static int numThreads = 17;
+		constexpr static int numThreads = 16;
 		constexpr static int vertexStride = 3;
 		constexpr static int tileWidth = 16;
 		constexpr static int subtileBlockWidth = 4;
