@@ -304,7 +304,8 @@ namespace Ifrit::Engine::TileRaster {
 		context->rasterizerQueue.resize(context->numThreads + 1);
 		context->coverQueue.resize(context->numThreads + 1);
 		context->workerIdleTime.resize(context->numThreads + 1);
-		context->assembledTriangles.resize(context->numThreads + 1);
+		context->assembledTrianglesShade.resize(context->numThreads + 1);
+		context->assembledTrianglesRaster.resize(context->numThreads + 1);
 		context->threadSafeFS.resize(context->numThreads + 1);
 		context->threadSafeVS.resize(context->numThreads + 1);
 		context->threadSafeFSOwningSection.resize(context->numThreads + 1);
@@ -330,14 +331,10 @@ namespace Ifrit::Engine::TileRaster {
 		updateUniformBuffer();
 		context->indexBufferSize = vertexCount;
 		unresolvedTileRaster.store(context->numTilesX * context->numTilesY,std::memory_order::relaxed);
-		unresolvedTileFragmentShading.store(context->numTilesX * context->numTilesY, std::memory_order::relaxed);
-		unresolvedTileSort.store(context->numTilesX * context->numTilesY, std::memory_order::relaxed);
-
 		auto vertexChunks = Inline::ceilDiv(context->vertexBuffer->getVertexCount(), context->vsChunkSize);
 		auto geometryChunks = Inline::ceilDiv(vertexCount/context->vertexStride, context->gsChunkSize);
 		unresolvedChunkVertex.store(vertexChunks, std::memory_order::relaxed);
 		unresolvedChunkGeometry.store(geometryChunks, std::memory_order::relaxed);
-
 		if (clearFramebuffer) {
 			resetWorkers(TileRasterStage::DRAWCALL_START_CLEAR);
 			selfOwningWorker->drawCall(true);
@@ -346,7 +343,6 @@ namespace Ifrit::Engine::TileRaster {
 			resetWorkers(TileRasterStage::DRAWCALL_START);
 			selfOwningWorker->drawCall(false);
 		}
-		statusTransitionBarrier2(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::COMPLETED);
 	}
 
 }

@@ -1,6 +1,6 @@
 #include "engine/shadervm/spirv/SpvVMShader.h"
 #include <utility/debug/DebugHelper.h>
-using namespace Utility::Debug;
+using namespace Ifrit::Utility::Debug;
 
 extern "C" {
 	struct alignas(16) iint3Aligned {

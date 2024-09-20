@@ -25,6 +25,6 @@ ConstantBuffer<Uniform2> d: register(b1, space0);
 VSOutput main(VSInput vsIn){
 	VSOutput vsOut;
 	vsOut.pos = mul(d.tm, vsIn.pos) + c.t2;
-	vsOut.color = vsIn.color + c.t1;
+	vsOut.color = vsIn.color;
 	return vsOut;
 }

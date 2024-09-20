@@ -36,8 +36,7 @@ namespace Ifrit::Engine::TileRaster {
 		TileRasterRenderer* rendererReference; 
 		std::unique_ptr<std::thread> execWorker;
 		std::shared_ptr<TileRasterContext> context;
-		std::vector<Ifrit::Math::SIMD::vfloat4> derivativeContext[TileRasterContext::tileWidth * TileRasterContext::tileWidth];
-
+		
 		std::vector<ifloat4> perVertexVaryings;
 		std::vector<Ifrit::Math::SIMD::vfloat4> interpolatedVaryings;
 		std::vector<const void*> interpolatedVaryingsAddr;
@@ -48,6 +47,7 @@ namespace Ifrit::Engine::TileRaster {
 
 		// Hold Cache
 		float depthCache[TileRasterContext::tileWidth * TileRasterContext::tileWidth];
+		std::vector<TileBinProposal> coverQueueLocal;
 
 		//Debug
 		int totalDraws = 0;
@@ -73,13 +73,15 @@ namespace Ifrit::Engine::TileRaster {
 		bool triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3, Ifrit::Math::SIMD::vfloat4& bbox) IFRIT_AP_NOTHROW;
 		uint32_t triangleHomogeneousClip(const int primitiveId, Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
 		bool triangleCulling(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
-		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, Ifrit::Math::SIMD::vfloat4 bbox) IFRIT_AP_NOTHROW;
+		void executeBinner(const int primitiveId, const AssembledTriangleProposalRasterStage& atp, Ifrit::Math::SIMD::vfloat4 bbox) IFRIT_AP_NOTHROW;
 
 		void vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
 		void geometryProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
-		void rasterization(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
-		void sortOrderProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
-		void fragmentProcessing(TileRasterRenderer* renderer,bool clearedDepth) IFRIT_AP_NOTHROW;
+		void tiledProcessing(TileRasterRenderer* renderer, bool clearDepth) IFRIT_AP_NOTHROW;
+
+		void rasterizationSingleTile(TileRasterRenderer* renderer, int tileId) IFRIT_AP_NOTHROW;
+		void sortOrderProcessingSingleTile(TileRasterRenderer* renderer, int tileId) IFRIT_AP_NOTHROW;
+		void fragmentProcessingSingleTile(TileRasterRenderer* renderer,bool clearedDepth, int tileId) IFRIT_AP_NOTHROW;
 
 		void threadStart();
 
@@ -87,13 +89,13 @@ namespace Ifrit::Engine::TileRaster {
 		void getVaryingsAddr(const int id,std::vector<Ifrit::Math::SIMD::vfloat4*>& out)IFRIT_AP_NOTHROW ;
 
 		template<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
-		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+		void pixelShading(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
 		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
-		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+		void pixelShadingSIMD128(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 		
 		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
-		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+		void pixelShadingSIMD256(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
 		void pixelShadingFromTagBuffer(const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 

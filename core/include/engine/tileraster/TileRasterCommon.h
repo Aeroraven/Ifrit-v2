@@ -30,7 +30,6 @@ namespace Ifrit::Engine::TileRaster {
 		Ifrit::Math::SIMD::vfloat4 f1, f2, f3; //Interpolate Bases
 		Ifrit::Math::SIMD::vfloat3 e1, e2, e3; //Edge Coefs
 		int originalPrimitive;
-		
 	}; 
 
 	struct PendingTriangleProposalCUDA {
