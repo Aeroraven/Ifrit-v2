@@ -153,6 +153,11 @@
     <ClInclude Include="include\engine\export\EngineCommonExport.h" />
     <ClInclude Include="include\engine\export\ShaderVMExport.h" />
     <ClInclude Include="include\engine\export\TileRasterRendererExport.h" />
+    <ClInclude Include="include\engine\imaging\BufferedImage.h" />
+    <ClInclude Include="include\engine\imaging\BufferedImageBaseConfig.h" />
+    <ClInclude Include="include\engine\imaging\BufferedImageBuilder.h" />
+    <ClInclude Include="include\engine\imaging\BufferedImageSampler.h" />
+    <ClInclude Include="include\engine\imaging\LayeredBufferedImage.h" />
     <ClInclude Include="include\engine\math\ShaderBuiltinCuda.cuh" />
     <ClInclude Include="include\engine\math\ShaderBuiltin.h" />
     <ClInclude Include="include\engine\meshletbuilder\MeshletBuilder.h" />
@@ -181,10 +186,13 @@
     <ClInclude Include="include\utility\debug\DebugHelper.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <ClCompile Include="demo\AccelStructDemo.cpp" />
+    <ClCompile Include="src\engine\imaging\BufferedImageSampler.cpp" />
     <ClCompile Include="src\engine\bufferman\BufferManager.cpp" />
     <ClCompile Include="src\engine\export\BufferManagerExport.cpp" />
     <ClCompile Include="src\engine\export\ComLLVMRtExport.cpp" />
     <ClCompile Include="src\engine\export\ShaderVMExport.cpp" />
+    <ClCompile Include="src\engine\imaging\BufferedImageBuilder.cpp" />
+    <ClCompile Include="src\engine\imaging\LayeredBufferedImage.cpp" />
     <ClCompile Include="src\engine\raytracer\accelstruct\RtBoundingVolumeHierarchy.cpp" />
     <ClCompile Include="src\engine\raytracer\RtShaders.cpp" />
     <ClCompile Include="src\engine\raytracer\shaderops\RtShaderOps.cpp" />

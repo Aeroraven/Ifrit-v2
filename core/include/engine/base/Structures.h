@@ -39,6 +39,7 @@ namespace Ifrit::Engine {
 		IfritImageTiling tilingMode = IF_IMAGE_TILING_LINEAR;
 		uint32_t mipLevels = 0;
 		uint32_t arrayLayers = 1;
+		IfritFormat format = IF_FORMAT_R32G32B32A32_SFLOAT;
 	};
 	struct IFRIT_APIDECL IfritImageSubresourceLayers {
 		uint32_t mipLevel = 0;
