@@ -111,19 +111,34 @@ namespace Ifrit::Engine::TileRaster {
 		context->workerIdleTime.resize(context->numThreads);	
 		for (int i = 0; i < context->numThreads; i++) {
 			workers[i] = std::make_unique<TileRasterWorker>(i, shared_from_this(), context);
-			workers[i]->status.store(TileRasterStage::COMPLETED, std::memory_order::relaxed);
+			workers[i]->status.store(TileRasterStage::IDLE, std::memory_order::relaxed);
 			context->workerIdleTime[i] = 0;
 		}
 		selfOwningWorker = std::make_unique<TileRasterWorker>(context->numThreads, shared_from_this(), context);
+	}
+	void TileRasterRenderer::statusTransitionBarrier3(TileRasterStage waitOn, TileRasterStage proceedTo) {
+		while (true) {
+			bool allOnBarrier = true;
+			for (auto& worker : workers) {
+				auto expected = waitOn;
+				allOnBarrier = allOnBarrier && (worker->status.load() == waitOn);
+			}
+			allOnBarrier = allOnBarrier && (selfOwningWorker->status.load() == waitOn);
+			if (allOnBarrier) break;
+		}
+		for (auto& worker : workers) {
+			worker->status.store(proceedTo, std::memory_order::relaxed);
+		}
+		selfOwningWorker->status.store(proceedTo, std::memory_order::relaxed);
 	}
 	void TileRasterRenderer::statusTransitionBarrier2(TileRasterStage waitOn, TileRasterStage proceedTo) {
 		while (true) {
 			bool allOnBarrier = true;
 			for (auto& worker : workers) {
 				auto expected = waitOn;
-				allOnBarrier = allOnBarrier && 
+				allOnBarrier = allOnBarrier &&
 					(worker->status.compare_exchange_weak(expected, proceedTo, std::memory_order::acq_rel) ||
-					(expected >= proceedTo));
+						(expected >= proceedTo));
 			}
 			auto expected = waitOn;
 			allOnBarrier = allOnBarrier &&
@@ -269,9 +284,9 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterRenderer::resetWorkers(TileRasterStage expectedStage) {
 		for (auto& worker : workers) {
 			worker->status.store(expectedStage, std::memory_order::relaxed);
-			worker->activated.store(true);
 		}
-		selfOwningWorker->status.store(expectedStage, std::memory_order::relaxed);
+		//No need to set self-owning worker
+		//selfOwningWorker->status.store(expectedStage, std::memory_order::relaxed);
 	}
 	void TileRasterRenderer::updateVectorCapacity() {
 		auto totalTiles = context->numTilesX * context->numTilesY;
@@ -301,16 +316,7 @@ namespace Ifrit::Engine::TileRaster {
 
 	IFRIT_APIDECL void TileRasterRenderer::init() {
 		context = std::make_shared<TileRasterContext>();
-		context->rasterizerQueue.resize(context->numThreads + 1);
-		context->coverQueue.resize(context->numThreads + 1);
 		context->workerIdleTime.resize(context->numThreads + 1);
-		context->assembledTrianglesShade.resize(context->numThreads + 1);
-		context->assembledTrianglesRaster.resize(context->numThreads + 1);
-		context->threadSafeFS.resize(context->numThreads + 1);
-		context->threadSafeVS.resize(context->numThreads + 1);
-		context->threadSafeFSOwningSection.resize(context->numThreads + 1);
-		context->threadSafeVSOwningSection.resize(context->numThreads + 1);
-
 		context->blendState.blendEnable = false;
 		
 		createWorkers();
@@ -343,6 +349,7 @@ namespace Ifrit::Engine::TileRaster {
 			resetWorkers(TileRasterStage::DRAWCALL_START);
 			selfOwningWorker->drawCall(false);
 		}
+		statusTransitionBarrier3(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::IDLE);
 	}
 
 }

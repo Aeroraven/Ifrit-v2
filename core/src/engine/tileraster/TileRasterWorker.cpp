@@ -17,6 +17,9 @@ inline long long getExecutionTime(std::function<void()> f) {
 	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 }
 
+consteval float getInftyDepthValue() noexcept{
+	return std::bit_cast<float, unsigned int>(0x7f7f7f7f);
+}
 
 namespace Ifrit::Engine::TileRaster {
 	
@@ -26,26 +29,8 @@ namespace Ifrit::Engine::TileRaster {
 		for (int i = 0; i < 3; i++) {
 			bool normalRight = edgeCoefs[i].x < 0;
 			bool normalDown = edgeCoefs[i].y < 0;
-			if (normalRight) {
-				if (normalDown) {
-					chosenCoordTR[i] = VRB;
-					chosenCoordTA[i] = VLT;
-				}
-				else {
-					chosenCoordTR[i] = VRT;
-					chosenCoordTA[i] = VLB;
-				}
-			}
-			else {
-				if (normalDown) {
-					chosenCoordTR[i] = VLB;
-					chosenCoordTA[i] = VRT;
-				}
-				else {
-					chosenCoordTR[i] = VLT;
-					chosenCoordTA[i] = VRB;
-				}
-			}
+			chosenCoordTR[i] = normalRight ? (normalDown ? VRB : VRT) : (normalDown ? VLB : VLT);
+                chosenCoordTA[i] = normalRight ? (normalDown ? VLT : VLB) : (normalDown ? VRT : VRB);
 		}
 	}
 	TileRasterWorker::TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context) {
@@ -61,13 +46,10 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterWorker::run() IFRIT_AP_NOTHROW {
 		while (true) {
-			const auto& curStatus = status.load();
-			if (curStatus == TileRasterStage::COMPLETED) {
+			const auto curStatus = status.load();
+			if (curStatus == TileRasterStage::COMPLETED || curStatus == TileRasterStage::IDLE) {
 				std::this_thread::yield();
 				continue;
-			}
-			else if(curStatus == TileRasterStage::TERMINATING){
-				return;
 			}
 			else if(curStatus == TileRasterStage::DRAWCALL_START){
 				drawCall(false);
@@ -75,16 +57,18 @@ namespace Ifrit::Engine::TileRaster {
 			else if (curStatus == TileRasterStage::DRAWCALL_START_CLEAR) {
 				drawCall(true);
 			}
-			
+			else if (curStatus == TileRasterStage::TERMINATING) {
+				return;
+			}
 		}
 	}
 
 	void TileRasterWorker::drawCall(bool withClear) IFRIT_AP_NOTHROW {
 		auto rawRenderer = rendererReference;
 		auto totalTiles = context->numTilesX * context->numTilesY;
-
 		if (withClear) {
-			context->frameBuffer->getDepthAttachment()->clearImageMultithread(255, workerId, TOTAL_THREADS);
+			constexpr auto depth = getInftyDepthValue();
+			context->frameBuffer->getDepthAttachment()->clearImageMultithread(depth, workerId, TOTAL_THREADS);
 			context->frameBuffer->getColorAttachment(0)->clearImageZeroMultiThread(workerId, TOTAL_THREADS);
 		}
 		vertexProcessing(rawRenderer);
@@ -99,9 +83,7 @@ namespace Ifrit::Engine::TileRaster {
 		}
 		geometryProcessing(rawRenderer);
 		rawRenderer->statusTransitionBarrier2(TileRasterStage::GEOMETRY_PROCESSING_SYNC, TileRasterStage::RASTERIZATION);
-		
 		tiledProcessing(rendererReference, withClear);
-		rawRenderer->statusTransitionBarrier2(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::COMPLETED);
 	}
 	uint32_t TileRasterWorker::triangleHomogeneousClip(const int primitiveId, vfloat4 v1, vfloat4 v2, vfloat4 v3) IFRIT_AP_NOTHROW {
 		
@@ -255,11 +237,14 @@ namespace Ifrit::Engine::TileRaster {
 
 		auto frameBufferWidth = context->frameWidth;
 		auto frameBufferHeight = context->frameHeight;
+		float fbwDivTw = 1.0f * frameBufferWidth / context->tileWidth;
+		float fbwDivTh = 1.0f * frameBufferHeight / context->tileWidth;
+		bbox *= vfloat4(fbwDivTw, fbwDivTh, fbwDivTw, fbwDivTh);
 
-		int tileMinx = std::max(0, (int)(bbox.x * frameBufferWidth / context->tileWidth));
-		int tileMiny = std::max(0, (int)(bbox.y * frameBufferHeight / context->tileWidth));
-		int tileMaxx = std::min((int)(bbox.z * frameBufferWidth / context->tileWidth), context->numTilesX - 1);
-		int tileMaxy = std::min((int)(bbox.w * frameBufferHeight / context->tileWidth), context->numTilesY - 1);
+		int tileMinx = std::max(0, (int)(bbox.x));
+		int tileMiny = std::max(0, (int)(bbox.y));
+		int tileMaxx = std::min((int)(bbox.z), context->numTilesX - 1);
+		int tileMaxy = std::min((int)(bbox.w), context->numTilesY - 1);
 
 		vfloat3 edgeCoefs[3];
 		edgeCoefs[0] = atp.e1;
@@ -279,11 +264,14 @@ namespace Ifrit::Engine::TileRaster {
 		auto& cvQueue = context->coverQueue[workerId];
 		auto& rsQueue = context->rasterizerQueue[workerId];
 		for (int y = tileMiny; y <= tileMaxy; y++) {
+			auto dTy = y * tileSizeY;
 			for (int x = tileMinx; x <= tileMaxx; x++) {
-				tileCoords[VLT] = { x * tileSizeX, y * tileSizeY, 1.0f };
-				tileCoords[VLB] = { x * tileSizeX, (y + 1) * tileSizeY, 1.0f };
-				tileCoords[VRB] = { (x + 1) * tileSizeX, (y + 1) * tileSizeY, 1.0f };
-				tileCoords[VRT] = { (x + 1) * tileSizeX, y * tileSizeY, 1.0f };
+				auto dTx = x * tileSizeX;
+				
+				tileCoords[VLT] = { dTx,dTy, 1.0f };
+				tileCoords[VLB] = { dTx, dTy + tileSizeY, 1.0f };
+				tileCoords[VRB] = { dTx + tileSizeX,  dTy + tileSizeY, 1.0f };
+				tileCoords[VRT] = { dTx + tileSizeX, dTy, 1.0f };
 
 				int criteriaTR = 0;
 				int criteriaTA = 0;
@@ -323,18 +311,34 @@ namespace Ifrit::Engine::TileRaster {
 	}
 	void TileRasterWorker::tiledProcessing(TileRasterRenderer* renderer,bool clearDepth) IFRIT_AP_NOTHROW {
 		auto curTile = 0;
-		while ((curTile = renderer->fetchUnresolvedTileRaster()) >=0) {
-			coverQueueLocal.clear();
-			rasterizationSingleTile(renderer, curTile);
-			if (context->optForceDeterministic) {
-				sortOrderProcessingSingleTile(renderer, curTile);
-			}
-			fragmentProcessingSingleTile(renderer, clearDepth, curTile);
+		auto varyingCnts = context->varyingDescriptor->getVaryingCounts();
+		interpolatedVaryings.reserve(varyingCnts);
+		interpolatedVaryings.resize(varyingCnts);
+		interpolatedVaryingsAddr.reserve(varyingCnts);
+		interpolatedVaryingsAddr.resize(varyingCnts);
+		for (int i = interpolatedVaryingsAddr.size() - 1; i >= 0; i--) {
+			interpolatedVaryingsAddr[i] = &interpolatedVaryings[i];
 		}
+		if (context->optForceDeterministic) {
+			while ((curTile = renderer->fetchUnresolvedTileRaster()) >= 0) {
+				coverQueueLocal.clear();
+				rasterizationSingleTile(renderer, curTile);
+				sortOrderProcessingSingleTile(renderer, curTile);
+				fragmentProcessingSingleTile(renderer, clearDepth, curTile);
+			}
+		}
+		else {
+			while ((curTile = renderer->fetchUnresolvedTileRaster()) >= 0) {
+				coverQueueLocal.clear();
+				rasterizationSingleTile(renderer, curTile);
+				fragmentProcessingSingleTile(renderer, clearDepth, curTile);
+			}
+		}
+
+		
 		status.store(TileRasterStage::FRAGMENT_SHADING_SYNC,std::memory_order::relaxed);
 	}
 	void TileRasterWorker::vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
-		status.store(TileRasterStage::VERTEX_SHADING, std::memory_order::relaxed);
 		auto varyingCnts = context->varyingDescriptor->getVaryingCounts();
 		auto attributeCnts = context->vertexBuffer->getAttributeCount();
 		std::vector<vfloat4*> outVaryings(varyingCnts);
@@ -677,20 +681,25 @@ namespace Ifrit::Engine::TileRaster {
 		__m128 wfy128 = _mm_set1_ps(1.0f * context->subtileBlockWidth / frameBufferHeight);
 #endif
 
-#ifdef IFRIT_USE_SIMD_256
-		__m256 wfx256 = _mm256_set1_ps(1.0f * context->subtileBlockWidth / frameBufferWidth);
-		__m256 wfy256 = _mm256_set1_ps(1.0f * context->subtileBlockWidth / frameBufferHeight);
-#endif
-		//while ((curTile = renderer->fetchUnresolvedTileRaster()) >=0) {
+
 		curTile = tileId;
-		int tileIdX = curTile % context->numTilesX;
-		int tileIdY = curTile / context->numTilesX;
+		int tileIdX = (unsigned)curTile % (unsigned)context->numTilesX;
+		int tileIdY = (unsigned)curTile / (unsigned)context->numTilesX;
 
 		float tileMinX = tileIdX * context->tileWidth;
 		float tileMinY = tileIdY * context->tileWidth;
 		float tileMaxX = (tileIdX + 1) * context->tileWidth;
 		float tileMaxY = (tileIdY + 1) * context->tileWidth;
 			 
+#ifdef IFRIT_USE_SIMD_256
+		__m256 tileMinX256 = _mm256_set1_ps(tileMinX);
+		__m256 tileMinY256 = _mm256_set1_ps(tileMinY);
+		__m256 tileMaxX256 = _mm256_set1_ps(tileMaxX);
+		__m256 tileMaxY256 = _mm256_set1_ps(tileMaxY);
+		__m256 frameBufferWidth256 = _mm256_set1_ps(frameBufferWidth);
+		__m256 frameBufferHeight256 = _mm256_set1_ps(frameBufferHeight);
+#endif
+
 		auto& coverQueue = coverQueueLocal;
 		auto& atriQueue = context->assembledTrianglesRaster;
 		auto& rastQueue = context->rasterizerQueue;
@@ -718,13 +727,6 @@ namespace Ifrit::Engine::TileRaster {
 
 					
 #ifdef IFRIT_USE_SIMD_256
-				__m256 tileMinX256 = _mm256_set1_ps(tileMinX);
-				__m256 tileMinY256 = _mm256_set1_ps(tileMinY);
-				__m256 tileMaxX256 = _mm256_set1_ps(tileMaxX);
-				__m256 tileMaxY256 = _mm256_set1_ps(tileMaxY);
-				__m256 frameBufferWidth256 = _mm256_set1_ps(frameBufferWidth);
-				__m256 frameBufferHeight256 = _mm256_set1_ps(frameBufferHeight);
-
 				__m256 edgeCoefs256X[3], edgeCoefs256Y[3], edgeCoefs256Z[3];
 
 				for (int k = 0; k < 3; k++) {
@@ -745,7 +747,6 @@ namespace Ifrit::Engine::TileRaster {
 					edgeCoefs128Y[k] = _mm_set1_ps(edgeCoefs[k].y);
 					edgeCoefs128Z[k] = _mm_set1_ps(-edgeCoefs[k].z); //NOTE HERE
 				}
-
 #endif
 
 				TileBinProposal npropPixel;
@@ -768,32 +769,28 @@ namespace Ifrit::Engine::TileRaster {
 				npropPixel256.clippedTriangle.primId = proposal.primId;
 				npropPixel256.clippedTriangle.workerId = proposal.workerId;
 
-				//context->coverQueue[workerId][getTileID(tileIdX, tileIdY)];
-
-
 #ifdef IFRIT_USE_SIMD_256
 				__m256 xTileWidth256f = _mm256_set1_ps(context->subtileBlockWidth);
 				for (int x = leftBlock; x < rightBlock; x += 4) {
+					__m256 tileCoordsX256[4], tileCoordsY256[4];
+					__m256i x256 = _mm256_setr_epi32(x + 0, x + 1, x + 2, x + 3, x + 0, x + 1, x + 2, x + 3);
+					__m256 x256f = _mm256_cvtepi32_ps(x256);
+					__m256 subTileMinX256 = _mm256_fmadd_ps(x256f, xTileWidth256f, tileMinX256);//_mm256_fmadd_ps(x256f, wfx256, tileMinX256);
+					__m256 subTileMaxX256 = _mm256_add_ps(subTileMinX256, xTileWidth256f);
+					tileCoordsX256[VLT] = subTileMinX256;
+					tileCoordsX256[VLB] = subTileMinX256;
+					tileCoordsX256[VRT] = subTileMaxX256;
+					tileCoordsX256[VRB] = subTileMaxX256;
 					for (int y = topBlock; y < bottomBlock; y += 2) {
-						__m256i x256 = _mm256_setr_epi32(x + 0, x + 1, x + 2, x + 3, x + 0, x + 1, x + 2, x + 3);
 						__m256i y256 = _mm256_setr_epi32(y + 0, y + 0, y + 0, y + 0, y + 1, y + 1, y + 1, y + 1);
 						__m256i criteriaTR256 = _mm256_setzero_si256();
 						__m256i criteriaTA256 = _mm256_setzero_si256();
-						__m256 x256f = _mm256_cvtepi32_ps(x256);
 						__m256 y256f = _mm256_cvtepi32_ps(y256);
-						__m256 subTileMinX256 = _mm256_fmadd_ps(x256f, xTileWidth256f, tileMinX256);//_mm256_fmadd_ps(x256f, wfx256, tileMinX256);
 						__m256 subTileMinY256 = _mm256_fmadd_ps(y256f, xTileWidth256f, tileMinY256);//_mm256_fmadd_ps(y256f, wfy256, tileMinY256);
-						__m256 subTileMaxX256 = _mm256_add_ps(subTileMinX256, xTileWidth256f);
 						__m256 subTileMaxY256 = _mm256_add_ps(subTileMinY256, xTileWidth256f);
-
-						__m256 tileCoordsX256[4], tileCoordsY256[4];
-						tileCoordsX256[VLT] = subTileMinX256;
 						tileCoordsY256[VLT] = subTileMinY256;
-						tileCoordsX256[VLB] = subTileMinX256;
 						tileCoordsY256[VLB] = subTileMaxY256;
-						tileCoordsX256[VRT] = subTileMaxX256;
 						tileCoordsY256[VRT] = subTileMinY256;
-						tileCoordsX256[VRB] = subTileMaxX256;
 						tileCoordsY256[VRB] = subTileMaxY256;
 
 						__m256 criteriaLocalTR256[3], criteriaLocalTA256[3];
@@ -915,8 +912,6 @@ namespace Ifrit::Engine::TileRaster {
 											accept256 = _mm256_add_epi32(accept256, acceptMask);
 										}
 										accept256 = _mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(-3));
-
-
 										auto accept256Mask8 = _mm256_movemask_epi8(accept256);
 
 										if (accept256Mask8 == -1) {
@@ -943,8 +938,6 @@ namespace Ifrit::Engine::TileRaster {
 												auto pixelId = dx + dy * TILE_RASTER_TEMP_CONST_MAXW + 2;
 												npropPixel.tile = { pixelId,(int)(cond2 >> 16) };
 												coverQueue.push_back(npropPixel);
-
-
 											}
 												
 										}
@@ -1094,14 +1087,7 @@ namespace Ifrit::Engine::TileRaster {
 		const auto frameBufferWidth = context->frameWidth;
 		const auto frameBufferHeight = context->frameHeight;
 		const auto varyingCnts = context->varyingDescriptor->getVaryingCounts();
-		interpolatedVaryings.reserve(varyingCnts);
-		interpolatedVaryings.resize(varyingCnts);
-		interpolatedVaryingsAddr.reserve(varyingCnts);
-		interpolatedVaryingsAddr.resize(varyingCnts);
-
-		for (int i = interpolatedVaryingsAddr.size() - 1; i >= 0; i--) {
-			interpolatedVaryingsAddr[i] = &interpolatedVaryings[i];
-		}
+		
 		PixelShadingFuncArgs pxArgs;
 		pxArgs.colorAttachment0 = context->frameBuffer->getColorAttachment(0);
 		pxArgs.depthAttachmentPtr = context->frameBuffer->getDepthAttachment();
@@ -1111,8 +1097,8 @@ namespace Ifrit::Engine::TileRaster {
 		TagBufferContext tagbuf;
 		pxArgs.tagBuffer = &tagbuf;
 		
-		const auto curTileX = curTile % context->numTilesX;
-		const auto curTileY = curTile / context->numTilesX;
+		const int curTileX = (unsigned)curTile % (unsigned)context->numTilesX;
+		const int curTileY = (unsigned)curTile / (unsigned)context->numTilesX;
 		auto curTileX2 = (curTileX + 1) * context->tileWidth;
 		auto curTileY2 = (curTileY + 1) * context->tileWidth;
 		auto curTileX1 = curTileX * context->tileWidth;
@@ -1155,7 +1141,7 @@ namespace Ifrit::Engine::TileRaster {
 				auto dcx = proposal.tile.y;
 				for (int i = 0; i < 4; i++) {
 					auto mask = (0xF << (i << 2));
-					if ((dcx & mask) == mask) {
+					if ((dcx & mask)) {
 						pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, tileXd + (i & 1), tileYd + (i >> 1), pxArgs);
 					}
 				}
@@ -1301,7 +1287,8 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 					// Cache depth
 					if (clearedDepth) {
 						//Set depth to large
-						std::fill(depthCache, depthCache + tagbufferSizeX * tagbufferSizeX, 255.0f);
+						auto inftyDepth = getInftyDepthValue();
+						std::fill(depthCache, depthCache + tagbufferSizeX * tagbufferSizeX, inftyDepth);
 					}
 					else {
 						
@@ -1316,8 +1303,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				}
 				//Shared
 				for (int i = TOTAL_THREADS - 1; i >= 0; i--) {
-					for (int j = firstCoverQueue[i][curTile].size() - 1; j >= 0; j--) {
-						auto& proposal = firstCoverQueue[i][curTile][j];
+					auto& pq = firstCoverQueue[i][curTile];
+					for (int j = pq.size() - 1; j >= 0; j--) {
+						auto& proposal = pq[j];
 						proposalProcessFuncTileOnly.operator()<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass >(proposal);
 					}
 				}
@@ -1371,6 +1359,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			for (int i = 0; i < varyCnts; i++) {
 				vaPtr[i] = context->vertexShaderResult->getVaryingBuffer(i);
 			}
+			auto reqDepth = psEntry->allowDepthModification;
 			for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i+=8) {
 
 #ifdef IFRIT_USE_SIMD_256
@@ -1407,7 +1396,14 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				__m256 atpByY = _mm256_i32gather_ps(((float*)args.tagBuffer->atpBy) + 1, gatherIdx, 4);
 				__m256 atpByZ = _mm256_i32gather_ps(((float*)args.tagBuffer->atpBy) + 2, gatherIdx, 4);
 
-				__m256 interpolatedDepth = _mm256_i32gather_ps((float*)depthCache, dxId256, 4);
+				__m256 interpolatedDepth;
+				if (reqDepth) {
+					interpolatedDepth = _mm256_i32gather_ps((float*)depthCache, dxId256, 4);
+				}
+				else {
+					interpolatedDepth = _mm256_setzero_ps();
+				}
+					
 				__m256i tagBufferValid = _mm256_i32gather_epi32((int*)args.tagBuffer->valid, dxId256, 4);
 
 				__m256i idx = _mm256_mullo_epi32(tagBufferValid, _mm256_set1_epi32(context->vertexStride));
@@ -1507,9 +1503,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
 	void TileRasterWorker::pixelShading(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW {
-		auto dx1 = dx % tagbufferSizeX;
-		auto dy1 = dy % tagbufferSizeX;
-		auto dxId = dx1 + dy1 * tagbufferSizeX;
+		unsigned dx1 = (unsigned)dx % tagbufferSizeX;
+		unsigned dy1 = (unsigned)dy % tagbufferSizeX;
+		unsigned dxId = dx1 + dy1 * tagbufferSizeX;
 
 		if constexpr (!tpOnlyTaggingPass) {
 			if (dx >= context->frameWidth || dy >= context->frameHeight)return;
@@ -1691,9 +1687,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 					continue;
 				}
 			}
-			auto dx1 = (x) % tagbufferSizeX;
-			auto dy1 = (y) % tagbufferSizeX;
-			auto dxId = dx1 + dy1 * tagbufferSizeX;
+			unsigned dx1 = ((unsigned)x) % tagbufferSizeX;
+			unsigned dy1 = ((unsigned)y) % tagbufferSizeX;
+			unsigned dxId = dx1 + dy1 * tagbufferSizeX;
 			const auto depthAttachment2 = depthCache[dxId];
 			if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
 
@@ -1723,7 +1719,6 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			//float barytmp[3] = { bary32[0][i] * zCorr32[i],bary32[1][i] * zCorr32[i],bary32[2][i] * zCorr32[i] };
 			vfloat3 bary32Vec = vfloat3(bary32[0][i], bary32[1][i], bary32[2][i]) * zCorr32[i];
 			if constexpr (tpOnlyTaggingPass) {
-				
 				args.tagBuffer->atpBx[dxId] = atp.bx;
 				args.tagBuffer->atpBy[dxId] = atp.by;
 				args.tagBuffer->valid[dxId] = atp.originalPrimitive;
@@ -1848,9 +1843,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 					continue;
 				}
 			}
-			auto dx1 = (x) % tagbufferSizeX;
-			auto dy1 = (y) % tagbufferSizeX;
-			auto dxId = dx1 + dy1 * tagbufferSizeX;
+			unsigned dx1 = ((unsigned)x) % tagbufferSizeX;
+			unsigned dy1 = ((unsigned)y) % tagbufferSizeX;
+			unsigned dxId = dx1 + dy1 * tagbufferSizeX;
 
 			const auto depthAttachment2 = depthCache[dxId];
 			if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {

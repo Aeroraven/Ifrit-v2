@@ -55,16 +55,16 @@ namespace Ifrit::Engine::TileRaster {
 		std::unique_ptr<VaryingDescriptor> owningVaryingDesc;
 
 		// Thread-safe Calls
-		std::vector<VertexShader*> threadSafeVS;
-		std::vector<FragmentShader*> threadSafeFS;
+		VertexShader* threadSafeVS[TileRasterContext::numThreads + 1];
+		FragmentShader* threadSafeFS[TileRasterContext::numThreads + 1];
 
-		std::vector<std::unique_ptr<VertexShader>> threadSafeVSOwningSection;
-		std::vector<std::unique_ptr<FragmentShader>> threadSafeFSOwningSection;
+		std::unique_ptr<VertexShader> threadSafeVSOwningSection[TileRasterContext::numThreads + 1];
+		std::unique_ptr<FragmentShader> threadSafeFSOwningSection[TileRasterContext::numThreads + 1];
 		
 		// Resources
 		std::unique_ptr<VertexShaderResult> vertexShaderResult;
-		std::vector<std::vector<std::vector<TileRasterContextRasterQueueProposal>>> rasterizerQueue;
-		std::vector<std::vector<std::vector<AssembledTriangleProposalReference>>> coverQueue;
+		std::vector<std::vector<TileRasterContextRasterQueueProposal>> rasterizerQueue[TileRasterContext::numThreads + 1];
+		std::vector<std::vector<AssembledTriangleProposalReference>> coverQueue[TileRasterContext::numThreads + 1];
 
 		// Sorted List
 		std::vector<std::vector<TileBinProposal>> sortedCoverQueue;
@@ -89,8 +89,8 @@ namespace Ifrit::Engine::TileRaster {
 		std::vector<float> primitiveMinZ;
 		std::vector<PrimitiveEdgeCoefs> primitiveEdgeCoefs;
 
-		std::vector<std::vector<AssembledTriangleProposalRasterStage>> assembledTrianglesRaster;
-		std::vector<std::vector<AssembledTriangleProposalShadeStage>> assembledTrianglesShade;
+		std::vector<AssembledTriangleProposalRasterStage> assembledTrianglesRaster[TileRasterContext::numThreads + 1];
+		std::vector<AssembledTriangleProposalShadeStage> assembledTrianglesShade[TileRasterContext::numThreads + 1];
 
 		// Profiling
 		std::vector<uint32_t> workerIdleTime;

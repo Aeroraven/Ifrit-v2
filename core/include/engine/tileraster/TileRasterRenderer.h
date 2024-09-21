@@ -7,8 +7,10 @@ namespace Ifrit::Engine::TileRaster {
 	using namespace Ifrit::Engine;
 
 	enum class TileRasterStage {
+		IDLE,
 		DRAWCALL_START,
 		DRAWCALL_START_CLEAR,
+		DRAWCALL_SYNC,
 		VERTEX_SHADING,
 		VERTEX_SHADING_SYNC,
 		GEOMETRY_PROCESSING,
@@ -45,7 +47,8 @@ namespace Ifrit::Engine::TileRaster {
 		void createWorkers();
 		void resetWorkers(TileRasterStage expectedStage);
 		void statusTransitionBarrier2(TileRasterStage waitOn, TileRasterStage proceedTo);
-		
+		void statusTransitionBarrier3(TileRasterStage waitOn, TileRasterStage proceedTo);
+
 		int fetchUnresolvedChunkVertex();
 		int fetchUnresolvedChunkGeometry();
 

@@ -140,13 +140,19 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	}
 	void SpvFragmentShader::execute(const void* varyings, void* colorOutput, float* fragmentDepth) {
 		//TODO: Input & Output
-		for (int i = 0; i < symbolTables.inputBytes.size(); i++) {
-			memcpy(symbolTables.inputs[i], (VaryingStore*)varyings + i, symbolTables.inputBytes[i]);
+		auto& sIb = symbolTables.inputBytes;
+		auto& sI = symbolTables.inputs;
+		auto& sO = symbolTables.outputs;
+		auto& sOb = symbolTables.outputBytes;
+		auto sISize = sIb.size();
+		auto sOSize = sOb.size();
+		for (int i = 0; i < sISize; i++) {
+			memcpy(sI[i], (VaryingStore*)varyings + i, sIb[i]);
 		}
 		auto shaderEntry = (void(*)())this->symbolTables.entry;
 		shaderEntry();
-		for (int i = 0; i < symbolTables.outputs.size(); i++) {
-			memcpy((ifloat4*)colorOutput + i, symbolTables.outputs[i], symbolTables.outputBytes[i]);
+		for (int i = 0; i < sOSize; i++) {
+			memcpy((ifloat4*)colorOutput + i, sO[i], sOb[i]);
 		}
 	}
 	IFRIT_HOST FragmentShader* SpvFragmentShader::getCudaClone(){
