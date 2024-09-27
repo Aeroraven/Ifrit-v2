@@ -1,4 +1,5 @@
 #include "engine/shadervm/spirv/SpvVMExternalFunction.h"
+#include "engine/imaging/BufferedImageSampler.h"
 extern "C" {
 	IFRIT_APIDECL_FORCED void ifritShaderOps_Base_ImageWrite_v2i32_v4f32(
 		void* pImage,
@@ -10,21 +11,13 @@ extern "C" {
 		image->fillPixelRGBA(coord.x, coord.y, color.x, color.y, color.z, color.w);
 	}
 
-	IFRIT_APIDECL_FORCED void ifritShaderOps_GlslExt_Nomalize_v4f32(
-		ifritShaderOps_Base_Vecf4 pVec
+	IFRIT_APIDECL_FORCED void ifritShaderOps_Base_ImageSampleExplicitLod_2d_v4f32(
+		void* pSampledImage,
+		ifritShaderOps_Base_Veci2 coord,
+		float lod,
+		ifritShaderOps_Base_Vecf4* result
 	) {
-
-	}
-
-	IFRIT_APIDECL_FORCED void ifritShaderOps_GlslExt_Nomalize_v3f32(
-		ifritShaderOps_Base_Vecf3 pVec
-	) {
-
-	}
-
-	IFRIT_APIDECL_FORCED void ifritShaderOps_GlslExt_Nomalize_v2f32(
-		ifritShaderOps_Base_Vecf2 pVec
-	) {
-
+		auto pSi = (Ifrit::Engine::Imaging::BufferedImageSampler*)(pSampledImage);
+		pSi->sample2DLodSi(coord.x, coord.y, lod, { 0,0 }, result);
 	}
 }

@@ -17,6 +17,7 @@
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 #include "engine/comllvmrt/WrappedLLVMRuntime.h"
 #include "engine/bufferman/BufferManager.h"
+#include "engine/shadervm/spirvvec/SpvMdQuadIRGenerator.h"
 #include "math/LinalgOps.h"
 
 using namespace std;
@@ -30,10 +31,28 @@ using namespace Ifrit::Presentation::Window;
 using namespace Ifrit::Presentation::Backend;
 using namespace Ifrit::Math;
 using namespace Ifrit::Engine::ShaderVM::Spirv;
+using namespace Ifrit::Engine::ShaderVM::SpirvVec;
 using namespace Ifrit::Engine::ComLLVMRuntime;
 using namespace Ifrit::Engine::BufferManager;
 
 namespace Ifrit::Demo::ShaderVMDemo {
+
+	int mainTest2() {
+		SpvVMReader reader;
+		SpvVMContext ctx;
+		reader.initializeContext(&ctx);
+		auto cv = reader.readFile(IFRIT_ASSET_PATH"/shaders/diffuse.frag.hlsl.spv");
+		reader.parseByteCode(cv.data(), cv.size() / 4, &ctx);
+
+		SpVcQuadGroupedIRGenerator intp;
+		SpVcVMGeneratorContext irctx;
+		intp.bindBytecode(&ctx, &irctx);
+		intp.init();
+
+		intp.parse();
+		intp.verbose();
+		return 0;
+	}
 
 	int mainTest() {
 		//float4x4 view = (lookAt({ 0,0.01,0.02 }, { 0,0.01,0.0 }, { 0,1,0 }));

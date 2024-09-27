@@ -58,4 +58,10 @@ namespace  Ifrit::Engine::Imaging {
 		auto maxLod = int(ceil(lod));
 		sample3DDirect(u, v, w, minLod, offset, image, pixel);
 	}
+	void BufferedImageSampler::sample2DLodSi(float u, float v, float lod, iint2 offset, void* pixel) const{
+		sample2DLod(u, v, lod, offset, sImg, pixel);
+	}
+	void BufferedImageSampler::sample3DLodSi(float u, float v, float w, float lod, iint3 offset, void* pixel) const{
+		sample3DLod(u, v, w, lod, offset, sImg, pixel);
+	}
 }

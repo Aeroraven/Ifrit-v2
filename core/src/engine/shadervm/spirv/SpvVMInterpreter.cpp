@@ -66,6 +66,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			irContext->generatedIR << "declare float @llvm.fma.f32(float %Val,float %Val2,float %Val3)\n";
 
 			irContext->generatedIR << "declare void @ifritShaderOps_Base_ImageWrite_v2i32_v4f32(i8* %a,<2 x i32> %b,<4 x float> %c)\n";
+			irContext->generatedIR << "declare void @ifritShaderOps_Base_ImageSampleExplicitLod_2d_v4f32(i8* %a,,<2 x float> %b,float %c, <4 x float>* %d)\n";
+			
 			irContext->generatedIR << "declare void @ifritShaderOps_Raytracer_TraceRay(<3 x float> %g, i8* %a,i32 %b,i32 %c,i32 %d,i32 %e,i32 %f,float %h,<3 x float> %i,float %j,i8* %k,i8* %l)\n";
 			
 			irContext->generatedIR << "@ifsp_builtin_context_ptr = global i8* undef\n";
@@ -1214,9 +1216,6 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			}
 
 		}
-		DEFINE_OP(spvOpImageSampleExplicitLod) { 
-			UNIMPLEMENTED_OP(OpImageSampleExplicitLod)
-		}
 		DEFINE_OP(spvOpImageSampleDrefImplicitLod) { 
 			UNIMPLEMENTED_OP(OpImageSampleDrefImplicitLod)
 		}
@@ -2070,21 +2069,46 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			irContextGlobal->generatedIR << "i8* %ifsp_context_" << instLine << ")" << std::endl;
 		}
 
-		DEFINE_OP(spvOpDPDx) {
-			UNIMPLEMENTED_OP(OpDPDx);
+		DEFINE_OP(spvOpImageSampleExplicitLod) {
 			auto targetId = params[1];
 			auto targetType = params[0];
-			auto sourceId = params[2];
 			if (pass == IFSP_VMA_PASS_FIRST) {
-				irContextGlobal->targets[targetId].activated = true;
 				irContextGlobal->targets[targetId].resultTypeRef = targetType;
 				irContextGlobal->targets[targetId].isInstance = true;
 				irContextGlobal->targets[targetId].id = targetId;
-				irContextGlobal->shaderMaps.requiresInterQuadInfo = true;
 			}
 			if (pass == IFSP_VMA_PASS_SECOND) {
+				auto imageId = params[2];
+				auto coordId = params[3];
+				auto lodId = params[5];
+				auto imageType = getTargetTypes(&irContextGlobal->targets[imageId], irContextGlobal);
+				auto coordType = getTargetTypes(&irContextGlobal->targets[coordId], irContextGlobal);
+				auto lodType = getTargetTypes(&irContextGlobal->targets[lodId], irContextGlobal);
+				auto targetTypeName = getTargetTypes(&irContextGlobal->targets[targetId], irContextGlobal);
+				auto targetName = getVariableNamePrefix(&irContextGlobal->targets[targetId], irContextGlobal);
+				auto imageName = getVariableNamePrefix(&irContextGlobal->targets[imageId], irContextGlobal);
+				auto coordName = getVariableNamePrefix(&irContextGlobal->targets[coordId], irContextGlobal);
+				auto lodName = getVariableNamePrefix(&irContextGlobal->targets[lodId], irContextGlobal);
+				// alloca <4 x float> for ptr
+				auto midName = "%ifspvm_imagesample_res_" + std::to_string(instLine);
+				irContextGlobal->generatedIR << midName << " = alloca " << targetTypeName << std::endl;
+
+				irContextGlobal->generatedIR << "call void @ifritShaderOps_Base_ImageSampleExplicitLod_2d_v4f32(";
+				irContextGlobal->generatedIR << "i8* " << imageName << ", ";
+				irContextGlobal->generatedIR << coordType << " " << coordName << ", ";
+				irContextGlobal->generatedIR << lodType << " " << lodName << ", ";
+				irContextGlobal->generatedIR << targetTypeName << "* " << midName << ")" << std::endl;
+
+				// to result
+				irContextGlobal->generatedIR << targetName << " = load " << targetTypeName << ", " << targetTypeName << "* " << midName << std::endl;
+
 
 			}
+
+		}
+
+		DEFINE_OP(spvOpDPDx) {
+			UNIMPLEMENTED_OP(OpDPDx);
 		}
 	}
 
@@ -2251,6 +2275,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 		outMap[spv::OpBitcast] = InstructionImpl::spvOpBitcast;
 		outMap[spv::OpImageWrite] = InstructionImpl::spvOpImageWrite;
 		outMap[spv::OpTraceRayKHR] = InstructionImpl::spvOpTraceRay;
+		outMap[spv::OpImageSampleExplicitLod] = InstructionImpl::spvOpImageSampleExplicitLod;
 	}
 }
 

@@ -157,7 +157,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::stringstream generatedIR;
 		std::stringstream functionInstIR;
 
-		/* Shaderr Link */
+		/* Shader Link */
 		SpvShaderExternalMappings shaderMaps;
 	};
 

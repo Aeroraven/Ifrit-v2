@@ -22,15 +22,10 @@ extern "C" {
 		ifritShaderOps_Base_Vecf4 color
 	);
 
-	IFRIT_APIDECL_FORCED void ifritShaderOps_GlslExt_Nomalize_v4f32(
-		ifritShaderOps_Base_Vecf4 pVec
-	);
-
-	IFRIT_APIDECL_FORCED void ifritShaderOps_GlslExt_Nomalize_v3f32(
-		ifritShaderOps_Base_Vecf3 pVec
-	);
-
-	IFRIT_APIDECL_FORCED void ifritShaderOps_GlslExt_Nomalize_v2f32(
-		ifritShaderOps_Base_Vecf2 pVec
+	IFRIT_APIDECL_FORCED void ifritShaderOps_Base_ImageSampleExplicitLod_2d_v4f32(
+		void* pSampledImage,
+		ifritShaderOps_Base_Veci2 coord,
+		float lod,
+		ifritShaderOps_Base_Vecf4* result
 	);
 }

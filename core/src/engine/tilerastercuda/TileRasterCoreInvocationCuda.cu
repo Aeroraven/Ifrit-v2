@@ -3502,7 +3502,7 @@ namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
 			std::abort();
 		}
 		void* devicePtr;
-		auto texWid = createInfo.extent.width;
+		auto texWid = createInfo.extent.width; 
 		auto texHeight = createInfo.extent.height;
 		auto texArrLayers = createInfo.arrayLayers;
 		auto texLodSizes = 0;

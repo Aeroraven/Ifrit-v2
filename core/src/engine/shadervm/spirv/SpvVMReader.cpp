@@ -48,7 +48,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 			opIns.opCode = opWord & spv::OpCodeMask;
 			opIns.opWordCounts = opWord >> spv::WordCountShift;
 			if (pCur - 1 + opIns.opWordCounts > pStart + length || opIns.opWordCounts == 0) {
-				ifritError("Invalid SPIR-V data: corrupted instruction");
+				ifritError("Invalid SPIR-V data: corrupted instruction, at position", pCur - pStart);
 			}
 			opIns.opParams.resize(opIns.opWordCounts - 1);
 			for (int i = 0; i < opIns.opWordCounts - 1; i++) {
