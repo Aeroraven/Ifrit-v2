@@ -14,7 +14,7 @@
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
 #include "engine/bufferman/BufferManager.h"
 
-#define DEMO_RESOLUTION 2048
+#define DEMO_RESOLUTION 512
 
 namespace Ifrit::Demo::DemoDefault {
 	using namespace std;
@@ -340,7 +340,7 @@ namespace Ifrit::Demo::DemoDefault {
 		windowProvider.loop([&](int* coreTime) {
 			std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 			renderer->clear();
-			//renderer->drawElements();
+			renderer->drawElements();
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 			backend.updateTexture(*image1);

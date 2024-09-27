@@ -1313,7 +1313,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		}
 	}
 	namespace TriangleGeometryStage {
-		template<bool tpGeometryShaderEnabled,IfritCullMode tpCullMode>
+		template<bool tpGeometryShaderEnabled,IfritCullMode tpCullMode, bool tpMsaaEnabled>
 		IFRIT_DEVICE void devGeometryCullClip(float4 v1, float4 v2, float4 v3, int primId) {
 			using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
 			constexpr int possibleTris = 5;
@@ -1435,14 +1435,14 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					}
 				}
 				
-				constexpr auto enableSmallPrimitiveCull = CU_OPT_SMALL_PRIMITIVE_CULL && !CU_MSAA_ENABLED;
+				constexpr auto enableSmallPrimitiveCull = CU_OPT_SMALL_PRIMITIVE_CULL && !tpMsaaEnabled;
 				if constexpr (enableSmallPrimitiveCull) {
 					float4 bbox;
 					GeneralFunction::devGetBBox(dv1, dv2, dv3, bbox);
-					bbox.x = bbox.x * csFrameWidth - 0.5f;
-					bbox.z = bbox.z * csFrameWidth - 0.5f;
-					bbox.y = bbox.y * csFrameHeight - 0.5f;
-					bbox.w = bbox.w * csFrameHeight - 0.5f;
+					bbox.x = bbox.x * csFrameWidth;
+					bbox.z = bbox.z * csFrameWidth;
+					bbox.y = bbox.y * csFrameHeight;
+					bbox.w = bbox.w * csFrameHeight;
 					if (round(bbox.x) == round(bbox.z) || round(bbox.w) == round(bbox.y)) {
 						continue;
 					}
@@ -1463,7 +1463,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 #undef ret
 		}
-		template <int geometryShaderEnabled,IfritCullMode tpCullMode>
+		template <int geometryShaderEnabled,IfritCullMode tpCullMode,bool tpMsaaEnabled>
 		IFRIT_KERNEL void geometryClippingKernel(
 			ifloat4* IFRIT_RESTRICT_CUDA dPosBuffer,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
@@ -1495,7 +1495,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			if (v1.w < 0 && v2.w < 0 && v3.w < 0)
 				return;
 			
-			devGeometryCullClip<geometryShaderEnabled, tpCullMode>(v1, v2, v3, primId);
+			devGeometryCullClip<geometryShaderEnabled, tpCullMode, tpMsaaEnabled>(v1, v2, v3, primId);
 		}
 		IFRIT_KERNEL void geometryClippingKernelEntryWithGS() {
 			int numTriangles = dGeometryShaderOutSize / 3;
@@ -1505,11 +1505,19 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 			}
 			int dispatchBlocks = IFRIT_InvoGetThreadBlocks(numTriangles, CU_GEOMETRY_PROCESSING_THREADS);
 			
-#define invokeGeometryClippingKernel(tpCullMode) if(csCullMode == tpCullMode) geometryClippingKernel<1,(tpCullMode)> CU_KARG2(dispatchBlocks, CU_GEOMETRY_PROCESSING_THREADS)(nullptr, nullptr, 0, numTriangles * 3);
-			invokeGeometryClippingKernel(IF_CULL_MODE_FRONT);
-			invokeGeometryClippingKernel(IF_CULL_MODE_BACK);
-			invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK);
-			invokeGeometryClippingKernel(IF_CULL_MODE_NONE);
+#define invokeGeometryClippingKernel(tpCullMode,tpMsaaEnabled) if(csCullMode == tpCullMode) geometryClippingKernel<1,(tpCullMode),(tpMsaaEnabled)> CU_KARG2(dispatchBlocks, CU_GEOMETRY_PROCESSING_THREADS)(nullptr, nullptr, 0, numTriangles * 3);
+			if(csMsaaSampleBits == IF_SAMPLE_COUNT_1_BIT) {
+				invokeGeometryClippingKernel(IF_CULL_MODE_FRONT, false);
+				invokeGeometryClippingKernel(IF_CULL_MODE_BACK, false);
+				invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK, false);
+				invokeGeometryClippingKernel(IF_CULL_MODE_NONE, false);
+			}
+			else {
+				invokeGeometryClippingKernel(IF_CULL_MODE_FRONT, true);
+				invokeGeometryClippingKernel(IF_CULL_MODE_BACK, true);
+				invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK, true);
+				invokeGeometryClippingKernel(IF_CULL_MODE_NONE, true);
+			}
 #undef invokeGeometryClippingKernel
 		}
 		IFRIT_KERNEL void geometryParamPostprocKernel(uint32_t bound) {
@@ -2482,10 +2490,11 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 					}
 				}
 				
-				// Fragment Shader
-				int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth >>1, 8);
-				int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight >>1, 8);
-				if (csBlendState.blendEnable || dFragmentShader->allowDepthModification) {
+				if (true) {
+					// Fragment Shader
+					int quadX = IFRIT_InvoGetThreadBlocks(csFrameWidth >> 1, 8);
+					int quadY = IFRIT_InvoGetThreadBlocks(csFrameHeight >> 1, 8);
+					if (csBlendState.blendEnable || dFragmentShader->allowDepthModification) {
 #define PIXEL_BLEND_FUNC_SIGN(cond,gsState) Impl::TriangleFragmentStage::pixelShadingAlphaBlendKernel<cond,gsState>
 #define PIXEL_BLEND_FUNC(cond,gsState) PIXEL_BLEND_FUNC_SIGN(cond,gsState) CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) ( \
 					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, dGlobalBlendCoefs, \
@@ -2500,20 +2509,20 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_GREATER_OR_EQUAL,gsState) \
 	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_NOT_EQUAL,gsState) \
 	PIXEL_BLEND_FUNC_COND(IF_COMPARE_OP_NEVER,gsState) 
-					
-					if (dGeometryShader == nullptr) {
-						PIXEL_BLEND_FUNC_COND_COLLECTION(false);
-					}
-					else {
-						PIXEL_BLEND_FUNC_COND_COLLECTION(true);
-					}
+
+						if (dGeometryShader == nullptr) {
+							PIXEL_BLEND_FUNC_COND_COLLECTION(false);
+						}
+						else {
+							PIXEL_BLEND_FUNC_COND_COLLECTION(true);
+						}
 
 #undef PIXEL_BLEND_FUNC_COND_COLLECTION
 #undef PIXEL_BLEND_FUNC_COND
 #undef PIXEL_BLEND_FUNC
 #undef PIXEL_BLEND_FUNC_SIGN
-				}
-				else {
+					}
+					else {
 #define PIXEL_TAG_FUNC_SIGN(cond) Impl::TriangleFragmentStage::pixelTaggingExecKernel<cond>
 #define PIXEL_TAG_FUNC(cond) PIXEL_TAG_FUNC_SIGN(cond) CU_KARG2(dim3(numTileX, numTileY, 1), dim3(CU_EXPERIMENTAL_SUBTILE_WIDTH, CU_TILE_WIDTH, dispZ)) ( \
 					dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer,activatedTagBuffer,csMsaaSampleBits);
@@ -2527,49 +2536,50 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_GREATER_OR_EQUAL) \
 	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_NOT_EQUAL) \
 	PIXEL_TAG_FUNC_COND(IF_COMPARE_OP_NEVER) 
-					
-					if (dGeometryShader == nullptr) {
-						PIXEL_TAG_FUNC_COND_COLLECTION;
-						if constexpr (CU_MSAA_ENABLED) {
-							auto msaaColorBuffer = (ifloat4**) & ContextManagement::dActiveContext.dTemporarayColorBuffer;
-							auto msaaDepthBuffer = ContextManagement::dActiveContext.dTemporarayDepthBuffer;
-							Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-								dFragmentShader, dIndexBuffer, dVaryingBuffer, msaaColorBuffer, msaaDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
-							
-							auto modX = IFRIT_InvoGetThreadBlocks(csFrameWidth, 8);
-							auto modY = IFRIT_InvoGetThreadBlocks(csFrameHeight, 8);
-							Impl::TriangleFragmentStage::pixelMultisampleCoverageModulationKernel CU_KARG2(dim3(modX, modY), dim3(8, 8)) (
-								dColorBuffer, dDepthBuffer, msaaColorBuffer, msaaDepthBuffer, 1, csMsaaSampleBits, csFrameWidth, csFrameHeight);
-						}
-						else {
-							Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-								dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
-						}
-						
-					}
-					else {
-						PIXEL_TAG_FUNC_COND_COLLECTION;
-						if constexpr (CU_MSAA_ENABLED) {
-							auto msaaColorBuffer = (ifloat4**)&ContextManagement::dActiveContext.dTemporarayColorBuffer;
-							auto msaaDepthBuffer = ContextManagement::dActiveContext.dTemporarayDepthBuffer;
-							Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-								dFragmentShader, dIndexBuffer, dVaryingBuffer, msaaColorBuffer, msaaDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
 
-							auto modX = IFRIT_InvoGetThreadBlocks(csFrameWidth, 8);
-							auto modY = IFRIT_InvoGetThreadBlocks(csFrameHeight, 8);
-							Impl::TriangleFragmentStage::pixelMultisampleCoverageModulationKernel CU_KARG2(dim3(modX, modY), dim3(8, 8)) (
-								dColorBuffer, dDepthBuffer, msaaColorBuffer, msaaDepthBuffer, 1, csMsaaSampleBits, csFrameWidth, csFrameHeight);
+						if (dGeometryShader == nullptr) {
+							PIXEL_TAG_FUNC_COND_COLLECTION;
+							if constexpr (CU_MSAA_ENABLED) {
+								auto msaaColorBuffer = (ifloat4**)&ContextManagement::dActiveContext.dTemporarayColorBuffer;
+								auto msaaDepthBuffer = ContextManagement::dActiveContext.dTemporarayDepthBuffer;
+								Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
+									dFragmentShader, dIndexBuffer, dVaryingBuffer, msaaColorBuffer, msaaDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
+
+								auto modX = IFRIT_InvoGetThreadBlocks(csFrameWidth, 8);
+								auto modY = IFRIT_InvoGetThreadBlocks(csFrameHeight, 8);
+								Impl::TriangleFragmentStage::pixelMultisampleCoverageModulationKernel CU_KARG2(dim3(modX, modY), dim3(8, 8)) (
+									dColorBuffer, dDepthBuffer, msaaColorBuffer, msaaDepthBuffer, 1, csMsaaSampleBits, csFrameWidth, csFrameHeight);
+							}
+							else {
+								Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
+									dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
+							}
+
 						}
 						else {
-							Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
-								dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
+							PIXEL_TAG_FUNC_COND_COLLECTION;
+							if constexpr (CU_MSAA_ENABLED) {
+								auto msaaColorBuffer = (ifloat4**)&ContextManagement::dActiveContext.dTemporarayColorBuffer;
+								auto msaaDepthBuffer = ContextManagement::dActiveContext.dTemporarayDepthBuffer;
+								Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
+									dFragmentShader, dIndexBuffer, dVaryingBuffer, msaaColorBuffer, msaaDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
+
+								auto modX = IFRIT_InvoGetThreadBlocks(csFrameWidth, 8);
+								auto modY = IFRIT_InvoGetThreadBlocks(csFrameHeight, 8);
+								Impl::TriangleFragmentStage::pixelMultisampleCoverageModulationKernel CU_KARG2(dim3(modX, modY), dim3(8, 8)) (
+									dColorBuffer, dDepthBuffer, msaaColorBuffer, msaaDepthBuffer, 1, csMsaaSampleBits, csFrameWidth, csFrameHeight);
+							}
+							else {
+								Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
+									dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
+							}
 						}
-					}
 #undef PIXEL_TAG_FUNC_COND_COLLECTION
 #undef PIXEL_TAG_FUNC_COND
 #undef PIXEL_TAG_FUNC
 #undef PIXEL_TAG_FUNC_SIGN
 
+					}
 				}
 				Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG2(CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, CU_MAX_TILE_X)(isLast);
 			}
@@ -2596,11 +2606,19 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
 				if (dGeometryShader == nullptr) {
 					int geometryExecutionBlocks = (indexCount / CU_TRIANGLE_STRIDE / CU_GEOMETRY_PROCESSING_THREADS) + ((indexCount / CU_TRIANGLE_STRIDE % CU_GEOMETRY_PROCESSING_THREADS) != 0);
-#define invokeGeometryClippingKernel(tpCullMode) if(csCullMode == tpCullMode) Impl::TriangleGeometryStage::geometryClippingKernel<0,tpCullMode> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(dPositionBuffer, dIndexBuffer, i, indexCount);
-					invokeGeometryClippingKernel(IF_CULL_MODE_BACK);
-					invokeGeometryClippingKernel(IF_CULL_MODE_FRONT);
-					invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK);
-					invokeGeometryClippingKernel(IF_CULL_MODE_NONE);
+#define invokeGeometryClippingKernel(tpCullMode,tpMsaaEnabled) if(csCullMode == tpCullMode) Impl::TriangleGeometryStage::geometryClippingKernel<0,tpCullMode,tpMsaaEnabled> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(dPositionBuffer, dIndexBuffer, i, indexCount);
+					if (csMsaaSampleBits == IfritSampleCountFlagBits::IF_SAMPLE_COUNT_1_BIT) {
+						invokeGeometryClippingKernel(IF_CULL_MODE_BACK, false);
+						invokeGeometryClippingKernel(IF_CULL_MODE_FRONT, false);
+						invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK, false);
+						invokeGeometryClippingKernel(IF_CULL_MODE_NONE, false);
+					}
+					else {
+						invokeGeometryClippingKernel(IF_CULL_MODE_BACK, true);
+						invokeGeometryClippingKernel(IF_CULL_MODE_FRONT, true);
+						invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK, true);
+						invokeGeometryClippingKernel(IF_CULL_MODE_NONE, true);
+					}
 #undef invokeGeometryClippingKernel
 				}
 				else {
@@ -2630,11 +2648,19 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				bool isTailCall = (i + CU_SINGLE_TIME_TRIANGLE * CU_TRIANGLE_STRIDE) >= totalIndices;
 				if (dGeometryShader == nullptr) {
 					int geometryExecutionBlocks = IFRIT_InvoGetThreadBlocks(indexCount / CU_TRIANGLE_STRIDE, CU_GEOMETRY_PROCESSING_THREADS);
-#define invokeGeometryClippingKernel(tpCullMode) if(hsCullMode == tpCullMode) Impl::TriangleGeometryStage::geometryClippingKernel<0,tpCullMode> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(dPositionBuffer, dIndexBuffer, i, indexCount);
-					invokeGeometryClippingKernel(IF_CULL_MODE_BACK);
-					invokeGeometryClippingKernel(IF_CULL_MODE_FRONT);
-					invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK);
-					invokeGeometryClippingKernel(IF_CULL_MODE_NONE);
+#define invokeGeometryClippingKernel(tpCullMode,tpMsaaEnabled) if(hsCullMode == tpCullMode) Impl::TriangleGeometryStage::geometryClippingKernel<0,tpCullMode,tpMsaaEnabled> CU_KARG2(geometryExecutionBlocks, CU_GEOMETRY_PROCESSING_THREADS)(dPositionBuffer, dIndexBuffer, i, indexCount);
+					if(csMsaaSampleBits == IfritSampleCountFlagBits::IF_SAMPLE_COUNT_1_BIT) {
+						invokeGeometryClippingKernel(IF_CULL_MODE_BACK, false);
+						invokeGeometryClippingKernel(IF_CULL_MODE_FRONT, false);
+						invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK, false);
+						invokeGeometryClippingKernel(IF_CULL_MODE_NONE, false);
+					}
+					else {
+						invokeGeometryClippingKernel(IF_CULL_MODE_BACK, true);
+						invokeGeometryClippingKernel(IF_CULL_MODE_FRONT, true);
+						invokeGeometryClippingKernel(IF_CULL_MODE_FRONT_AND_BACK, true);
+						invokeGeometryClippingKernel(IF_CULL_MODE_NONE, true);
+					}
 #undef invokeGeometryClippingKernel
 				}
 				else {

@@ -87,7 +87,7 @@ namespace Ifrit::Engine::TileRaster::CUDA {
 	constexpr bool CU_OPT_II_SKIP_ON_FEW_GEOMETRIES = true;
 	constexpr bool CU_OPT_SMALL_PRIMITIVE_CULL = true;
 	constexpr bool CU_OPT_PATCH_STRICT_BOUNDARY = true;
-	constexpr bool CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR = true;
+	constexpr bool CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR = false;
 
 	// == Derived == 
 	constexpr int CU_TRIANGLE_STRIDE = 3;
