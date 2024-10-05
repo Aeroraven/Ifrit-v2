@@ -15,10 +15,10 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	SpvRuntimeBackend::SpvRuntimeBackend(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) {
 		reader.initializeContext(&spctx);
 		reader.parseByteCode(irByteCode.data(), irByteCode.size() / 4, &spctx);
-		interpeter.parseRawContext(&spctx, &spvir);
+		interpreter.parseRawContext(&spctx, &spvir);
 		this->owningRuntime = runtime.buildRuntime();
 		this->runtime = owningRuntime.get();
-		interpeter.exportLlvmIR(&spvir, &this->irCode);
+		interpreter.exportLlvmIR(&spvir, &this->irCode);
 		this->runtime->loadIR(this->irCode, std::to_string(this->createTime));
 		updateSymbolTable(false);
 		ifritLog1("Shader loaded");

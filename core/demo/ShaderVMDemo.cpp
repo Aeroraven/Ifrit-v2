@@ -51,6 +51,11 @@ namespace Ifrit::Demo::ShaderVMDemo {
 
 		intp.parse();
 		intp.verbose();
+
+		auto ir = intp.generateIR();
+		WrappedLLVMRuntimeBuilder builder;
+		auto ax = builder.buildRuntime();
+		ax->loadIR(ir, "identifier");
 		return 0;
 	}
 

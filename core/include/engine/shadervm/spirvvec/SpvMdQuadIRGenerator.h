@@ -72,6 +72,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 
 		// Output generates final LLVM IR code
 		//void performOutputPass();
+		void performSymbolExport();
 
 		void parse();
 		std::string generateIR();
@@ -92,6 +93,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		void setCurrentProgCounter(int pc);
 		void setCurrentPass(SpVcQuadGroupedIRStage stage);
 		std::string allocateLlvmVarName();
+		inline Ifrit::Engine::ShaderVM::Spirv::SpvVMExtRegistry* getExtRegistry() { return &mExtInstGen; }
 	
 		template<class T>
 		requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
@@ -118,6 +120,14 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		}
 		template<class T>
 		requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
+		T* addIrBPre(std::unique_ptr<T>&& ir, SpVcVMGenBlock* b) {
+			auto v = ir.get();
+			mCtx->irExprs.push_back(std::move(ir));
+			b->irPre.push_back(v);
+			return v;
+		}
+		template<class T>
+		requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
 		T* addIrBExist(T* ir, SpVcVMGenBlock* b) {
 			auto v = ir;
 			b->ir.push_back(v);
@@ -138,6 +148,15 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 			auto v = ir.get();
 			mCtx->irExprs.push_back(std::move(ir));
 			f->ir.push_back(v);
+			return v;
+		}
+
+		template<class T>
+			requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
+		T* addIrFxTail(std::unique_ptr<T>&& ir, SpVcVMGenFunction* f) {
+			auto v = ir.get();
+			mCtx->irExprs.push_back(std::move(ir));
+			f->irPost.push_back(v);
 			return v;
 		}
 

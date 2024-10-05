@@ -27,6 +27,45 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 #define GET_DEF_PASS(x) DefinitionPass::defPass_##x
 #define GET_CONV_PASS(x) ConversionPass::convPass_##x
 
+	namespace IrUtil {
+		std::string symbolClean(std::string x) {
+			//remove leading % and @
+			if (x[0] == '%' || x[0] == '@') {
+				x = x.substr(1);
+			}
+			return x;
+		}
+
+		int getTypeSize(SpVcVMTypeDescriptor* tp) {
+			if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_INT32) return 4;
+			if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_FLOAT32) return 4;
+			if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_UNSIGNED32) return 4;
+			if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_BOOL) return 1;
+			if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_VECTOR) {
+				auto sz = tp->size;
+				auto chSz = getTypeSize(tp->children[0]);
+				return sz * chSz;
+			}
+			if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_STRUCT) {
+				auto sz = 0;
+				for (auto& ch : tp->children) {
+					sz += getTypeSize(ch);
+				}
+				return sz;
+			}
+			if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_MATRIX) {
+				auto sz = getTypeSize(tp->children[0]);
+				return sz * tp->size;
+			}
+			if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_ARRAY) {
+				auto sz = getTypeSize(tp->children[0]);
+				return sz * tp->size;
+			}
+			ifritError("Unknown type size");
+		}
+
+	}
+
 	namespace DefinitionPass {
 		// Structural Control Flow
 		DEF_PASS(OpSelectionMerge) {
@@ -378,7 +417,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		DEF_PASS(OpAccessChain) {
 			auto tgt = GET_PARAM(1);
 			auto tp = GET_PARAM(0);
-			tgt->tpRef = tp;
+			tgt->tpRef = tp->tpRef;
 			tgt->blockBelong = irg->getActiveBlock();
 			tgt->flag |= SPVC_VARIABLE_TEMP;
 			tgt->flag |= SPVC_VARIABLE_ACCESS_CHAIN;
@@ -464,10 +503,12 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 			
 			auto actMask = irg->getActiveBlock()->stackBelong->masks.activeExecMask.back()->llvmVarName[invo].arg;
 			auto actMaskReg = makeMaskVar(irg);
+			//Load actMask -> actMaskReg
+			auto actMaskLoad = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(actMaskReg, actMask), irg->getActiveBlock());
 
 			auto imm1 = makeOneImm(irg);
 			auto cmpReg = makeBoolVar(irg);
-			auto cmp = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(cmpReg, actMask, imm1, "icmp eq"), irg->getActiveBlock());
+			auto cmp = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(cmpReg, actMaskReg, imm1, "icmp eq"), irg->getActiveBlock());
 
 			auto cVarArg = spirvImmediateLoad(id, invo, irg);
 			auto selRes = spirvCreateVarWithSameType(id, invo, irg);
@@ -545,7 +586,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 
 				//auto p = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rDest, dest), irg->getActiveBlock());
 				auto q = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
-				auto minus = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest, allOneArg, rA, "isub"), irg->getActiveBlock());
+				auto minus = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest, allOneArg, rA, "sub"), irg->getActiveBlock());
 				auto u = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
 				};
 
@@ -569,6 +610,8 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 				}
 				return pred;
 			};
+
+
 #define MASK_BR(k,v,x) v.branchMask[k]->llvmVarName[(x)].arg
 #define MASK_BR_LAST(v,x) v.branchMask.back()->llvmVarName[(x)].arg
 #define MASK_EXEC(v,x) v.execMask->llvmVarName[(x)].arg
@@ -585,9 +628,23 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 				return v.activeExecMask[v.activeExecMask.size() - 2]->llvmVarName[x].arg;
 			};
 
+			
+
 			auto curBx = GET_PARAM(0)->blockBelong;
 			irg->pushActiveBlock(curBx);
 			bool stackSpecified = false;
+
+			// Handle Top Block
+			if constexpr (true) {
+				auto curB = GET_PARAM(0)->blockBelong;
+				if (!FIND_STRUCT_PRED(curB)) {
+					// Jump to block label
+					auto p = curB->llvmLabel;
+					auto q = irg->addIrBPre(std::make_unique<LLVM::SpVcLLVMIns_Br>(p), curB);
+				}
+			}
+
+
 			// Loop Merge : Stack pop
 			if (CONTAIN_TAG(SPVC_BLOCK_LOOP_MERGE)) {
 				irg->popNewStack();
@@ -1002,6 +1059,13 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 			sp->ifStackSize = 1;
 			auto func = GET_PARAM(1)->funcBelong;
 
+			// GenIR
+			auto irFuncName = irg->allocateLlvmVarName();
+			irg->addIrFx(std::make_unique<LLVM::SpVcLLVMIns_FunctionFragmentEntry>(irFuncName), func);
+			irg->addIrFxTail(std::make_unique<LLVM::SpVcLLVMIns_FunctionEnd>(), func);
+			ctx->binds.mainFunction = irFuncName;
+
+			// Init func
 			auto FORALL_CHAN = [&](std::function<void(int)> f) {
 				for (int i = 0; i < irg->getQuads(); i++) f(i);
 				};
@@ -1330,12 +1394,14 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 			foreachInvo([&](int x) {
 				auto src1Reg = spirvImmediateLoad(src1->id, x, irg);
 				auto src2Reg = spirvImmediateLoad(src2->id, x, irg);
-				auto tp = irg->getVariableSafe(src1->id)->tpRef->tp->children[0]->llvmType;
+				auto tpX = irg->getVariableSafe(src1->id)->tpRef->tp->children[0]->llvmType;
+				auto tpP = irg->getVariableSafe(src1->id)->tpRef->tp->llvmType;
+
 				std::vector<LLVM::SpVcLLVMArgument*> args;
 				std::vector<LLVM::SpVcLLVMArgument*> ret;
 				for (int i = 4; i < params.size(); i++) {
 					auto regName = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-					auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, regName));
+					auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpX, regName));
 					args.push_back(regArg);
 					auto sInd = params[i];
 					auto vecSize = irg->getVariableSafe(src1->id)->tpRef->tp->size;
@@ -1345,7 +1411,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 					
 					// Build ret
 					auto retName = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-					auto retArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, retName));
+					auto retArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpP, retName));
 					ret.push_back(retArg);
 					if (i == 4) {
 						irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(retArg, regArg, 0), irg->getActiveBlock());
@@ -1359,11 +1425,141 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		}
 
 		CONV_PASS(OpExtInst) {
-			//irg.m
-		}
-		
-	}
+			auto reg = irg->getExtRegistry();
+			std::vector<Spirv::SpvVMExtRegistryTypeIdentifier> ids;
+			std::vector<int> comSize;
 
+			using checkIdRet = std::pair<Spirv::SpvVMExtRegistryTypeIdentifier, int>;
+			std::function<checkIdRet(SpVcVMTypeDescriptor*)> checkId = [&checkId](SpVcVMTypeDescriptor* desc) -> checkIdRet {
+				if (desc->type == SpVcVMTypeEnum::SPVC_TYPE_VECTOR) {
+					auto comSize = desc->size;
+					auto p = checkId(desc->children[0]);
+					if (p.second == -1) {
+						return { Spirv::SpvVMExtRegistryTypeIdentifier::IFSP_EXTREG_TP_INT ,-1 };
+					}
+					return {p.first, comSize};
+				}
+				else if (desc->type == SpVcVMTypeEnum::SPVC_TYPE_INT32) {
+					return { Spirv::SpvVMExtRegistryTypeIdentifier::IFSP_EXTREG_TP_INT, 1 };
+				}else if(desc->type == SpVcVMTypeEnum::SPVC_TYPE_FLOAT32){
+					return { Spirv::SpvVMExtRegistryTypeIdentifier::IFSP_EXTREG_TP_FLOAT, 1 };
+				}
+				else {
+					return { Spirv::SpvVMExtRegistryTypeIdentifier::IFSP_EXTREG_TP_INT ,-1 };
+				}
+			};
+			
+			for (int i = 4; i < params.size(); i++) {
+				auto tpDesc = checkId(irg->getVariableSafe(params[i])->tpRef->tp.get());
+				if (tpDesc.second == -1) {
+					EMIT_ERROR("Unsupported type");
+				}
+				ids.push_back(tpDesc.first);
+				comSize.push_back(tpDesc.second);
+			}
+			auto extName = irg->getVariableSafe(params[2])->name;
+			auto extOp = GET_PARAM_SCALAR(3);
+			auto funcName = reg->queryExternalFunc(extName, extOp, ids, comSize);
+			
+			foreachInvo([&](int x) {
+				std::vector<LLVM::SpVcLLVMArgument*> args;
+				for (int i = 4; i < params.size(); i++) {
+					auto arg = spirvImmediateLoad(params[i], x, irg);
+					args.push_back(arg);
+				}
+				auto retVal = spirvCreateVarWithSameType(GET_PARAM_SCALAR(1), x, irg);
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_FunctionCallExtInst>(retVal,funcName,args), irg->getActiveBlock());
+				spirvImmediateMaskedStore(GET_PARAM(1)->id, x, retVal, irg);
+				}, irg);
+		}
+
+		// Access chain
+		LLVM::SpVcLLVMArgument* accessChainLookup(LLVM::SpVcLLVMArgument* srcReg, int& p, std::vector<uint32_t> params,
+			SpVcQuadGroupedIRGenerator* irg, SpVcVMTypeDescriptor* tp) {
+			if(p==params.size())return srcReg;
+			if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_VECTOR) {
+				auto idx = irg->getVariableSafe(params[p])->constant->value[0];
+				auto tpReg = tp->children[0]->llvmType;
+				auto regName = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+				auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpReg, regName));
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(regArg, srcReg, idx), irg->getActiveBlock());
+				return regArg;
+			}
+			else if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_STRUCT) {
+				auto idx = irg->getVariableSafe(params[p])->constant->value[0];
+				auto tpReg = tp->children[idx]->llvmType;
+				auto regName = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+				auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpReg, regName));
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_ExtractValueWithConstantIndex>(regArg, srcReg, idx), irg->getActiveBlock());
+				return accessChainLookup(regArg, ++p, params, irg, tp->children[idx]);
+			}
+			EMIT_ERROR("Unsupported access chain");
+		}
+
+		CONV_PASS(OpAccessChain) {
+			auto tgt = GET_PARAM(1);
+			auto src = GET_PARAM(2);
+			auto tgtTp = tgt->tpRef->tp.get();
+			
+
+			auto srcTp = src->tpRef->tp.get();
+			foreachInvo([&](int x) {
+				auto p = 3;
+				auto arg = accessChainLookup(spirvImmediateLoad(src->id, x, irg), p, params, irg, srcTp);
+				spirvImmediateMaskedStore(tgt->id, x, arg, irg);
+			}, irg);
+		}
+
+		CONV_PASS(OpReturn) {
+			//Fetch all in MASK_ACT_LAST, if it's one, set RET_MASK to zero
+			using MASK_TYPE = LLVM::SpVcLLVMTypeInt32;
+			auto MAKE_MASK = [&]() {
+				auto p = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+				auto tp = irg->addIr(std::make_unique<MASK_TYPE>());
+				auto q = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, p));
+				return q;
+				};
+			auto MAKE_MASK_AND = [&](LLVM::SpVcLLVMArgument* dest, LLVM::SpVcLLVMArgument* a, LLVM::SpVcLLVMArgument* b) {
+				auto rDest = MAKE_MASK();
+				auto rA = MAKE_MASK();
+				auto rB = MAKE_MASK();
+				//auto p = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rDest, dest), irg->getActiveBlock());
+				auto q = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
+				auto s = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
+				auto t = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest, rA, rB, "and"), irg->getActiveBlock());
+				auto u = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
+				};
+
+			foreachInvo([&](int x) {
+				//load MASK_ACT_LAST
+				auto curB = irg->getActiveBlock();
+				auto rA = MAKE_MASK();
+				auto maskActLast = MASK_ACT_LAST(curB->stackBelong->masks, x);
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, maskActLast), curB);
+				auto maskRet = curB->funcBelong->returnMask->llvmVarName[x].arg;
+				auto rRet = MAKE_MASK();
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rRet, maskRet), curB);
+
+				auto rDest = MAKE_MASK();
+				auto allOneImm = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(1));
+				auto allOneImmType = irg->addIr(std::make_unique<MASK_TYPE>());
+				auto allOneArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(allOneImmType, allOneImm));
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest, allOneArg, rA, "sub"), irg->getActiveBlock());
+
+				auto rDest2 = MAKE_MASK();
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest2, rRet, rDest, "and"), irg->getActiveBlock());
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(maskRet, rDest2), irg->getActiveBlock());
+
+				auto rAp = MAKE_MASK();
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rAp, rDest2, rA, "and"), irg->getActiveBlock());
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(maskActLast, rAp), irg->getActiveBlock());
+
+
+			}, irg);
+			//TODO: Return
+			irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_ReturnVoid>(), irg->getActiveBlock());
+		}
+	}
 
 	SpVcVMGenBlock* SpVcQuadGroupedIRGenerator::getActiveBlock(){
 		if (mCtx->blockStack.size() == 0) {
@@ -1472,6 +1668,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		mDefinitionPassHandlers[spv::Op::OpConstantComposite] = GET_DEF_PASS(OpConstantComposite);
 
 		mDefinitionPassHandlers[spv::Op::OpVariable] = GET_DEF_PASS(OpVariable);
+		mDefinitionPassHandlers[spv::Op::OpAccessChain] = GET_DEF_PASS(OpAccessChain);
 
 		mDefinitionPassHandlers[spv::Op::OpDecorate] = GET_DEF_PASS(OpDecorate);
 		mDefinitionPassHandlers[spv::Op::OpMemberDecorate] = GET_DEF_PASS(OpMemberDecorate);
@@ -1696,6 +1893,8 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 
 		mConvPassHandlers[spv::Op::OpCompositeConstruct] = GET_CONV_PASS(OpCompositeConstruct);
 		mConvPassHandlers[spv::Op::OpCompositeExtract] = GET_CONV_PASS(OpCompositeExtract);
+		mConvPassHandlers[spv::Op::OpExtInst] = GET_CONV_PASS(OpExtInst);
+
 
 		// Stuffs to ignore
 		mConvPassHandlers[spv::Op::OpDecorate] = GET_CONV_PASS(DefOpIgnore);
@@ -1730,9 +1929,14 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		mConvPassHandlers[spv::Op::OpEntryPoint] = GET_CONV_PASS(DefOpIgnore);
 		mConvPassHandlers[spv::Op::OpExtInstImport] = GET_CONV_PASS(DefOpIgnore);
 		mConvPassHandlers[spv::Op::OpUnreachable] = GET_CONV_PASS(DefOpIgnore);
+		mConvPassHandlers[spv::Op::OpFunctionEnd] = GET_CONV_PASS(DefOpIgnore);
+		mConvPassHandlers[spv::Op::OpSourceExtension] = GET_CONV_PASS(DefOpIgnore);
 
 		mConvPassHandlers[spv::Op::OpDot] = GET_CONV_PASS(OpDot);
 		mConvPassHandlers[spv::Op::OpVectorShuffle] = GET_CONV_PASS(OpVectorShuffle);
+
+		mConvPassHandlers[spv::Op::OpAccessChain] = GET_CONV_PASS(OpAccessChain);
+		mConvPassHandlers[spv::Op::OpReturn] = GET_CONV_PASS(OpReturn);
 
 	}
 
@@ -1846,7 +2050,36 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 						v.llvmVarName[i].arg = varArg;
 						//EMIT_VERBOSE_CORE("Allocated llvmir for", k, " : ", varArg->emitIR());
 					}
-					
+				}
+				if (v.descSet != nullptr) {
+					if (v.storageClass == spv::StorageClass::StorageClassInput) {
+						if (v.descSet->location == -1) {
+							EMIT_ERROR_CORE("Input variable has no location specified");
+						}
+						int loc = v.descSet->location;
+						for (int i = 0; i < getQuads(); i++) {
+							mCtx->binds.unordInputVars[i][loc] = IrUtil::symbolClean(v.llvmVarName[i].arg->emitIRName());
+							mCtx->binds.unordInputVarsSz[i][loc] = IrUtil::getTypeSize(v.tpRef->tp.get());
+						}
+					}
+					else if (v.storageClass == spv::StorageClass::StorageClassOutput) {
+						if (v.descSet->location == -1) {
+							EMIT_ERROR_CORE("Output variable has no location specified");
+						}
+						int loc = v.descSet->location;
+						for (int i = 0; i < getQuads(); i++) {
+							mCtx->binds.unordOutputVars[i][loc] = IrUtil::symbolClean(v.llvmVarName[i].arg->emitIRName());
+							mCtx->binds.unordOutputVarsSz[i][loc] = IrUtil::getTypeSize(v.tpRef->tp.get());
+						}
+					}
+					else if (v.storageClass == spv::StorageClass::StorageClassUniform) {
+						if (v.descSet->descriptorSet == -1 || v.descSet->binding == -1) {
+							EMIT_ERROR_CORE("Uniform variable has no location specified");
+						}
+						mCtx->binds.uniformVarSymbols.push_back(IrUtil::symbolClean(v.llvmVarName[0].arg->emitIRName()));
+						mCtx->binds.uniformVarLoc.push_back({ v.descSet->descriptorSet,v.descSet->binding });
+						mCtx->binds.uniformVarSz.push_back(IrUtil::getTypeSize(v.tpRef->tp.get()));
+					}
 				}
 			}
 			if (v.flag & (SPVC_VARIABLE_CONSTANT)) {
@@ -1894,16 +2127,13 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 						else {
 							var->phiDeps.push_back(getVariableSafe(ins.opParams[1]));
 						}
-						
 					}
 					else if (var->flag & (SPVC_VARIABLE_CONSTANT)) {
 						getVariableSafe(ins.opParams[j + 1])->phiDepsEx.push_back({var,getVariableSafe(ins.opParams[1]) });
 					}
-					
 				}
 			}
 		}
-		
 	}
 
 
@@ -2014,6 +2244,44 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		}
 		printf("====== Gen IR ====== \n");
 		printf("%s\n", generateIR().c_str());
+
+		printf("====== Shader Inputs/Outputs ====== \n");
+		for (int i = 0; i < getQuads(); i++) {
+			printf("Quad %d\n", i);
+			printf("  Inputs: ");
+			for (auto& [k, v] : mCtx->binds.unordInputVars[i]) {
+				printf("%d:%s ", k, v.c_str());
+			}
+			printf("\n");
+			printf("  Outputs: ");
+			for (auto& [k, v] : mCtx->binds.unordOutputVars[i]) {
+				printf("%d:%s ", k, v.c_str());
+			}
+			printf("\n");
+		}
+		//Print Size
+		for (int i = 0; i < getQuads(); i++) {
+			printf("Quad %d\n", i);
+			printf("  Inputs Sizes:");
+			for (auto& [k, v] : mCtx->binds.unordInputVarsSz[i]) {
+				printf("%d:%d ", k, v);
+			}
+			printf("\n");
+			printf("  Outputs Sizes:");
+			for (auto& [k, v] : mCtx->binds.unordOutputVarsSz[i]) {
+				printf("%d:%d ", k, v);
+			}
+			printf("\n");
+		}
+
+
+
+		printf("Uniforms: ");
+		for (int i = 0; i < mCtx->binds.uniformVarSymbols.size(); i++) {
+			printf("%s(<%d,%d>,%d)", mCtx->binds.uniformVarSymbols[i].c_str(), mCtx->binds.uniformVarLoc[i].first, mCtx->binds.uniformVarLoc[i].second, mCtx->binds.uniformVarSz[i]);
+
+		}	
+
 	}
 
 	void SpVcQuadGroupedIRGenerator::performDefinitionPass(){
@@ -2053,11 +2321,20 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 			}
 			// EMIT
 			if (mConvPassHandlers.count(ins[i].opCode) > 0) {
-				mConvPassHandlers[ins[i].opCode](i, ins[i].opParams, mCtx, this);
-
-				
 				bool hasRtype = false, hasRes = false;
 				spv::HasResultAndType((spv::Op)ins[i].opCode, &hasRes, &hasRtype);
+				if (hasRes && hasRtype && getActiveBlock()) {
+					//Add alloc instuctions first
+					for (int k = 0; k < getQuads(); k++) {
+						auto var = getVariableSafe(ins[i].opParams[1]);
+						auto varName = var->llvmVarName[k].arg;
+						auto varType = var->tpRef->tp->llvmType;
+						addIrB(std::make_unique<LLVM::SpVcLLVMIns_Alloca>(varName, varType), getActiveBlock());
+					}
+				}
+
+				mConvPassHandlers[ins[i].opCode](i, ins[i].opParams, mCtx, this);
+
 				if (hasRes && hasRtype) {
 					auto var = getVariableSafe(ins[i].opParams[1]);
 					for (auto& phiDep : var->phiDeps) {
@@ -2154,12 +2431,40 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		}
 	}
 
+	void SpVcQuadGroupedIRGenerator::performSymbolExport(){
+		// Shader inputs
+		for (int i = 0; i < getQuads(); i++) {
+			for (int j = 0; j < mCtx->binds.unordInputVars[i].size(); j++) {
+				if (mCtx->binds.unordInputVars[i].count(j) == 0) {
+					EMIT_ERROR_CORE("Input variable not found: ", j);
+				}
+				auto varName = mCtx->binds.unordInputVars[i][j];
+				auto varSz = mCtx->binds.unordInputVarsSz[i][j];
+				mCtx->binds.inputVarSymbols->push_back(varName);
+				mCtx->binds.inputSize->push_back(varSz);
+			}
+		}
+		// Shader outputs
+		for (int i = 0; i < getQuads(); i++) {
+			for (int j = 0; j < mCtx->binds.unordOutputVars[i].size(); j++) {
+				if (mCtx->binds.unordOutputVars[i].count(j) == 0) {
+					EMIT_ERROR_CORE("Output variable not found: ", j);
+				}
+				auto varName = mCtx->binds.unordOutputVars[i][j];
+				auto varSz = mCtx->binds.unordOutputVarsSz[i][j];
+				mCtx->binds.outputVarSymbols->push_back(varName);
+				mCtx->binds.outputSize->push_back(varSz);
+			}
+		}
+	}
+
 	void SpVcQuadGroupedIRGenerator::parse(){
 		performBlockPass();
 		performDefinitionPass();
 		performDataflowResolutionPass();
 		performTypeGenerationPass();
 		performConversionPass();
+		performSymbolExport();
 	}
 
 	std::string SpVcQuadGroupedIRGenerator::generateIR(){
@@ -2172,6 +2477,8 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		ret += "declare float @llvm.atan.f32(float %Val)\n";
 		ret += "declare float @llvm.sqrt.f32(float %Val)\n";
 		ret += "declare float @llvm.fma.f32(float %Val,float %Val2,float %Val3)\n";
+		ret += mExtInstGen.getRequiredFuncDefs() + "\n";
+		
 		ret += "; global section\n";
 		for (auto& x : mCtx->globalDefs) {
 			ret += x->emitIR() + "\n";
@@ -2183,6 +2490,9 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 			}
 			for (auto& b : f->blocks) {
 				ret += "; block " + std::to_string(b->startingPc) + "\n";
+				for (auto& x : b->irPre) {
+					ret += x->emitIR() + "\n";
+				}
 				for (auto& x : b->ir) {
 					ret += x->emitIR() + "\n";
 				}

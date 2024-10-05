@@ -510,4 +510,54 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec::LLVM {
 		}
 	};	
 
+	class SpVcLLVMIns_FunctionCallExtInst : public SpVcLLVMInstruction {
+		SpVcLLVMArgument* retVal;
+		std::string mName;
+		std::vector< SpVcLLVMArgument*> mArgs;
+	public:
+		virtual ~SpVcLLVMIns_FunctionCallExtInst() = default;
+		SpVcLLVMIns_FunctionCallExtInst(SpVcLLVMArgument* retVal, std::string funcName, const std::vector< SpVcLLVMArgument*> args) : retVal(retVal), mName(funcName), mArgs(args) {}
+		std::string emitIR() override {
+			std::string ret = std::format("{} = call {} @{}(", retVal->emitIRName(), retVal->emitIRType(), mName);
+			for (auto& arg : mArgs) {
+				ret += arg->emitIR() + ", ";
+			}
+			ret.pop_back();
+			ret.pop_back();
+			ret += ")";
+			return ret;
+		}
+	};
+
+	class SpVcLLVMIns_FunctionFragmentEntry : public SpVcLLVMInstruction {
+		std::string mName;
+	public:
+		SpVcLLVMIns_FunctionFragmentEntry(std::string name) : mName(name) {}
+		std::string emitIR() override {
+			return std::format("define void @{}", mName) + "(){";
+		}
+	};
+
+	class SpVcLLVMIns_FunctionEnd : public SpVcLLVMInstruction {
+		public:
+		std::string emitIR() override {
+			return "}";
+		}
+	};
+
+	class SpVcLLVMIns_ExtractValueWithConstantIndex : public SpVcLLVMInstruction, public SpVcLLVMCompContainer<SpVcLLVMArgument*, SpVcLLVMArgument*, int> {
+	public:
+		SpVcLLVMIns_ExtractValueWithConstantIndex(SpVcLLVMArgument* dest, SpVcLLVMArgument* vec, int idx) : SpVcLLVMCompContainer(dest, vec, idx) {}
+		std::string emitIR() override {
+			return std::format("{} = extractvalue {}, {}", std::get<0>(mComponents)->emitIRName(), std::get<1>(mComponents)->emitIR(), std::get<2>(mComponents));
+		}
+	};
+
+	class SpVcLLVMIns_ReturnVoid : public SpVcLLVMInstruction {
+	public:
+		std::string emitIR() override {
+			return "ret void";
+		}
+	};
+
 }

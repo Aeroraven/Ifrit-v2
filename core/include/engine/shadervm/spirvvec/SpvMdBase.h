@@ -5,6 +5,7 @@
 #include <stack>
 
 namespace Ifrit::Engine::ShaderVM::SpirvVec {
+	constexpr int SpVcQuadSize = 4;
 	enum class SpVcVMTypeEnum {
 		SPVC_TYPE_UNDEFINED,
 		SPVC_TYPE_BOOL,
@@ -93,9 +94,9 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 	};
 
 	struct SpVcVMDecoration {
-		int binding = 0;
-		int location = 0;
-		int descriptorSet = 0;
+		int binding = -1;
+		int location = -1;
+		int descriptorSet = -1;
 	};
 
 	struct SpVcGenIRVariable {
@@ -164,6 +165,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 
 		LLVM::SpVcLLVMLabelName* llvmLabel;
 		std::vector<LLVM::SpVcLLVMExpr*> ir;
+		std::vector<LLVM::SpVcLLVMExpr*> irPre;
 
 		LLVM::SpVcLLVMLabelName* contLabel;
 		LLVM::SpVcLLVMLabelName* loopStartLabel;
@@ -199,6 +201,24 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		int memoryModel;
 	};
 
+	// Exporting Symbols
+	struct SpVcSymbolInfo {
+		std::string mainFunction;
+		std::vector<std::string> inputVarSymbols[SpVcQuadSize];
+		std::vector<std::string> outputVarSymbols[SpVcQuadSize];
+		std::vector<std::string> uniformVarSymbols;
+		std::vector<std::pair<int, int>> uniformVarLoc;
+
+		std::vector<int> inputSize[SpVcQuadSize];
+		std::vector<int> outputSize[SpVcQuadSize];
+		std::vector<int> uniformVarSz;
+
+		std::map<int, std::string> unordInputVars[SpVcQuadSize];
+		std::map<int, std::string> unordOutputVars[SpVcQuadSize];
+		std::map<int, int> unordInputVarsSz[SpVcQuadSize];
+		std::map<int, int> unordOutputVarsSz[SpVcQuadSize];
+	};
+
 	// Generator context
 	struct SpVcVMGeneratorContext {
 		std::vector<int> vO;
@@ -222,7 +242,10 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		std::vector<LLVM::SpVcLLVMExpr*> globalDefs;
 
 		int funcCounter = 0;
+		SpVcSymbolInfo binds;
 	};
+
+
 
 
 }

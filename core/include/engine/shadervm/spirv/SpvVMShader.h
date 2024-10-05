@@ -26,7 +26,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	protected:
 		static int createTime;
 		SpvVMReader reader;
-		SpvVMInterpreter interpeter;
+		SpvVMInterpreter interpreter;
 		SpvVMContext spctx;
 		SpvVMIntermediateRepresentation spvir;
 		const SpvVMIntermediateRepresentation* spvirRef;

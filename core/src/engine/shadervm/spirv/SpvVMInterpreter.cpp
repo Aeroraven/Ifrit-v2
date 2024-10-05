@@ -66,7 +66,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv::Impl {
 			irContext->generatedIR << "declare float @llvm.fma.f32(float %Val,float %Val2,float %Val3)\n";
 
 			irContext->generatedIR << "declare void @ifritShaderOps_Base_ImageWrite_v2i32_v4f32(i8* %a,<2 x i32> %b,<4 x float> %c)\n";
-			irContext->generatedIR << "declare void @ifritShaderOps_Base_ImageSampleExplicitLod_2d_v4f32(i8* %a,,<2 x float> %b,float %c, <4 x float>* %d)\n";
+			irContext->generatedIR << "declare void @ifritShaderOps_Base_ImageSampleExplicitLod_2d_v4f32(i8* %a,<2 x float> %b,float %c, <4 x float>* %d)\n";
 			
 			irContext->generatedIR << "declare void @ifritShaderOps_Raytracer_TraceRay(<3 x float> %g, i8* %a,i32 %b,i32 %c,i32 %d,i32 %e,i32 %f,float %h,<3 x float> %i,float %j,i8* %k,i8* %l)\n";
 			

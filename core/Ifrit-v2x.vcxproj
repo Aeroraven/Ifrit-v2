@@ -171,6 +171,7 @@
     <ClInclude Include="include\engine\shadervm\spirvvec\SpvMdBase.h" />
     <ClInclude Include="include\engine\shadervm\spirvvec\SpvMdLlvmIrRepr.h" />
     <ClInclude Include="include\engine\shadervm\spirvvec\SpvMdQuadIRGenerator.h" />
+    <ClInclude Include="include\engine\shadervm\spirvvec\SpvMdShader.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMContext.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMExternalFunction.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMExtInstRegistry.h" />
@@ -202,6 +203,7 @@
     <ClCompile Include="src\engine\raytracer\TrivialRaytracer.cpp" />
     <ClCompile Include="src\engine\raytracer\TrivialRaytracerWorker.cpp" />
     <ClCompile Include="src\engine\shadervm\spirvvec\SpvMdQuadIRGenerator.cpp" />
+    <ClCompile Include="src\engine\shadervm\spirvvec\SpvMdShader.cpp" />
     <ClCompile Include="src\engine\shadervm\spirv\SpvVMExternalFunction.cpp" />
     <ClCompile Include="src\engine\shadervm\spirv\SpvVMExtInstRegistry.cpp" />
     <ClInclude Include="include\engine\bufferman\BufferManager.h" />

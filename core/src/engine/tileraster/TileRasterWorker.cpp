@@ -173,19 +173,21 @@ namespace Ifrit::Engine::TileRaster {
 			const auto s1 = -sV3V2y - sV3V2x;
 			const auto s2 = -sV1V3y - sV1V3x;
 
-			atriShade.f3 = { sV2V1y * csInvX , sV2V1x * csInvY,(-tv1.x * sV2V1y - tv1.y * sV2V1x + s3) * ar };
-			atriShade.f1 = { sV3V2y * csInvX , sV3V2x * csInvY,(-tv2.x * sV3V2y - tv2.y * sV3V2x + s1) * ar };
-			atriShade.f2 = { sV1V3y * csInvX , sV1V3x * csInvY,(-tv3.x * sV1V3y - tv3.y * sV1V3x + s2) * ar };
+			atriShade.f3 = { sV2V1y * csInvX  , sV2V1x * csInvY ,(-tv1.x * sV2V1y - tv1.y * sV2V1x + s3) * ar  };
+			atriShade.f1 = { sV3V2y * csInvX  , sV3V2x * csInvY ,(-tv2.x * sV3V2y - tv2.y * sV3V2x + s1) * ar  };
+			atriShade.f2 = { sV1V3y * csInvX  , sV1V3x * csInvY ,(-tv3.x * sV1V3y - tv3.y * sV1V3x + s2) * ar  };
 
 			atriRaster.e1 = { csFh * sV2V1y,  csFw * sV2V1x,  csFhFw * (tv2.x * tv1.y - tv1.x * tv2.y + s3 - EPS) };
 			atriRaster.e2 = { csFh * sV3V2y,  csFw * sV3V2x,  csFhFw * (tv3.x * tv2.y - tv2.x * tv3.y + s1 - EPS) };
 			atriRaster.e3 = { csFh * sV1V3y,  csFw * sV1V3x,  csFhFw * (tv1.x * tv3.y - tv3.x * tv1.y + s2 - EPS) };
 
-			
+			atriShade.vz = vfloat3(tv1.z * tv1.w, tv2.z * tv2.w, tv3.z * tv3.w);
 			atriShade.originalPrimitive = primitiveId;
 			// Precision might matter here
-			atriShade.vw = vfloat3(1.0f / tv1.w, 1.0f / tv2.w, 1.0f / tv3.w);
-			atriShade.vz = vfloat3(tv1.z, tv2.z, tv3.z);
+			atriShade.f1 *= 1.0f / tv1.w;
+			atriShade.f2 *= 1.0f / tv2.w;
+			atriShade.f3 *= 1.0f / tv3.w;
+			
 			if (!triangleCulling(tv1, tv2, tv3)) {
 				continue;
 			}
@@ -545,6 +547,21 @@ namespace Ifrit::Engine::TileRaster {
 			bboxMaxX = _mm256_fmadd_ps(bboxMaxX, _mm256_set1_ps(0.5f), _mm256_set1_ps(0.5f));
 			bboxMaxY = _mm256_fmadd_ps(bboxMaxY, _mm256_set1_ps(0.5f), _mm256_set1_ps(0.5f));
 
+			// F1 / F2 / F3 div W1 / W2 / W3
+			rF1X = _mm256_mul_ps(rF1X, tv1WInv);
+			rF1Y = _mm256_mul_ps(rF1Y, tv1WInv);
+			rF1Z = _mm256_mul_ps(rF1Z, tv1WInv);
+			rF2X = _mm256_mul_ps(rF2X, tv2WInv);
+			rF2Y = _mm256_mul_ps(rF2Y, tv2WInv);
+			rF2Z = _mm256_mul_ps(rF2Z, tv2WInv);
+			rF3X = _mm256_mul_ps(rF3X, tv3WInv);
+			rF3Y = _mm256_mul_ps(rF3Y, tv3WInv);
+			rF3Z = _mm256_mul_ps(rF3Z, tv3WInv);
+
+			tv1Z = _mm256_mul_ps(tv1Z, tv1W);
+			tv2Z = _mm256_mul_ps(tv2Z, tv2W);
+			tv3Z = _mm256_mul_ps(tv3Z, tv3W);
+
 			__m256 overallMask = _mm256_and_ps(combinedMask, bboxMask);
 
 			AssembledTriangleProposalRasterStage atriRaster[8];
@@ -560,7 +577,6 @@ namespace Ifrit::Engine::TileRaster {
 			float bboxMinXT[8], bboxMaxXT[8];
 			float bboxMinYT[8], bboxMaxYT[8];
 			float vz1T[8], vz2T[8], vz3T[8];
-			float vwInv1T[8], vwInv2T[8], vwInv3T[8];
 			_mm256_storeu_si256((__m256i*)overallMaskT, _mm256_castps_si256(overallMask));
 			_mm256_storeu_ps(f1xT, rF1X);
 			_mm256_storeu_ps(f1yT, rF1Y);
@@ -587,9 +603,6 @@ namespace Ifrit::Engine::TileRaster {
 			_mm256_storeu_ps(vz1T, tv1Z);
 			_mm256_storeu_ps(vz2T, tv2Z);
 			_mm256_storeu_ps(vz3T, tv3Z);
-			_mm256_storeu_ps(vwInv1T, tv1WInv);
-			_mm256_storeu_ps(vwInv2T, tv2WInv);
-			_mm256_storeu_ps(vwInv3T, tv3WInv);
 			auto xid = shadeAtriQueue.size();
 			auto vid = 0;
 			for (int i = 0; i < cands; i++) {
@@ -602,7 +615,6 @@ namespace Ifrit::Engine::TileRaster {
 				atriShade[i].f3 = vfloat4(f3xT[i], f3yT[i], f3zT[i]);
 				atriShade[i].originalPrimitive = candPrim[i];
 				atriShade[i].vz = vfloat3(vz1T[i], vz2T[i], vz3T[i]);
-				atriShade[i].vw = vfloat3(vwInv1T[i], vwInv2T[i], vwInv3T[i]);
 				atriRaster[i].e1 = vfloat3(e1xT[i], e1yT[i], e1zT[i]);
 				atriRaster[i].e2 = vfloat3(e2xT[i], e2yT[i], e2zT[i]);
 				atriRaster[i].e3 = vfloat3(e3xT[i], e3yT[i], e3zT[i]);
@@ -1349,6 +1361,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 	void TileRasterWorker::pixelShadingFromTagBuffer(const int dxA, const int dyA, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW {
 		auto pixelShadingPass = [&](int passNo) {
 			auto& psEntry = context->threadSafeFS[workerId];
+			auto forcedInQuads = psEntry->forcedQuadInvocation;
 			psEntry->currentPass = passNo;
 			auto aCsFwS1 = _mm256_set1_epi32(context->frameWidth - 1);
 			auto aCsFhS1 = _mm256_set1_epi32(context->frameHeight - 1);
@@ -1360,17 +1373,32 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				vaPtr[i] = context->vertexShaderResult->getVaryingBuffer(i);
 			}
 			auto reqDepth = psEntry->allowDepthModification;
-			for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i+=8) {
+			for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i+=(8>>1)) {
 
 #ifdef IFRIT_USE_SIMD_256
+				if (i & tagbufferSizeX) {
+					i += tagbufferSizeX;
+					if (i >= tagbufferSizeX * tagbufferSizeX) break;
+				}
 				__m256i dx256A = _mm256_set1_epi32(dxA);
 				__m256i dy256A = _mm256_set1_epi32(dyA);
-				__m256i dxId256T = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+				// __m256i dxId256T = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+				__m256i dxId256T = _mm256_setr_epi32(0, 1, 0 + tagbufferSizeX, 1 + tagbufferSizeX, 2, 3, 2 + tagbufferSizeX, 3 + tagbufferSizeX);
+
+				// Quad Arrangement:
+				// 0 2 | 4 6 | 8 10 | 12 14
+				// 1 3 | 5 7 | 9 11 | 13 15
+
+				// Source Arrangement:
+				// 0 1   | 2 3   | 4 5   | 6 7   || 8 9   | 10 11 | 12 13 |14 15
+				// 16 17 | 18 19 | 20 21 | 22 23 || 24 25 | 26 27 | 28 29 |30 31
 
 				__m256i dxId256 = _mm256_add_epi32(_mm256_set1_epi32(i), dxId256T);
 #ifdef _MSC_VER
-				__m256i dx256 = _mm256_add_epi32(dx256A, _mm256_and_epi32(dxId256, _mm256_set1_epi32(0xf)));
-				__m256i dy256 = _mm256_add_epi32(dy256A, _mm256_srli_epi32(dxId256, 4));
+				__m256i dx256T1 = _mm256_and_epi32(dxId256, _mm256_set1_epi32(0xf));//_mm256_srli_epi32(_mm256_and_epi32(dxId256, _mm256_set1_epi32(0x1f)), 1);
+				__m256i dx256 = _mm256_add_epi32(dx256A, dx256T1);
+				__m256i dy256T1 = _mm256_srli_epi32(dxId256, 4);
+				__m256i dy256 = _mm256_add_epi32(dy256A, dy256T1);
 #else
 				// no _mm256_and_epi32 but has _mm256_and_ps, so bitcast
 				__m256i dx256Tmp1 = _mm256_castps_si256(_mm256_and_ps(_mm256_castsi256_ps(dxId256), _mm256_castsi256_ps(_mm256_set1_epi32(0xf))));
@@ -1395,6 +1423,12 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				__m256 atpByX = _mm256_i32gather_ps((float*)args.tagBuffer->atpBy, gatherIdx, 4);
 				__m256 atpByY = _mm256_i32gather_ps(((float*)args.tagBuffer->atpBy) + 1, gatherIdx, 4);
 				__m256 atpByZ = _mm256_i32gather_ps(((float*)args.tagBuffer->atpBy) + 2, gatherIdx, 4);
+
+				// zCorr
+				__m256 zCorr = _mm256_rcp_ps(_mm256_add_ps(baryVecX, _mm256_add_ps(baryVecY, baryVecZ)));
+				baryVecX = _mm256_mul_ps(baryVecX, zCorr);
+				baryVecY = _mm256_mul_ps(baryVecY, zCorr);
+				baryVecZ = _mm256_mul_ps(baryVecZ, zCorr);
 
 				__m256 interpolatedDepth;
 				if (reqDepth) {
@@ -1455,6 +1489,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				}
 
 #else
+				static_assert(false,"Quad execution is under development");
 				auto dx = dxA + (i & 0xf);
 				auto dy = dyA + (i >> 4);
 				auto dxId = i;
@@ -1516,7 +1551,6 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 		vfloat4 pDxDyVec = vfloat4(dx, dy, 1.0f, 0.0f);
 		vfloat3 zVec = atp.vz;
-		vfloat3 wVec = atp.vw;
 
 		float bary[3];
 		float interpolatedDepth;
@@ -1552,9 +1586,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			if (interpolatedDepth == depthAttachment) return;
 		}
 
-		baryVec *= wVec;
+		//baryVec *= wVec;
 		float zCorr = 1.0f / hsum(baryVec);
-		baryVec *= zCorr;
+		
 		if constexpr (tpOnlyTaggingPass) {
 			args.tagBuffer->atpBx[dxId] = atp.bx;
 			args.tagBuffer->atpBy[dxId] = atp.by;
@@ -1564,7 +1598,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			return;
 		}
 		
-		
+		baryVec *= zCorr;
 		vfloat3 atpBx = atp.bx;
 		vfloat3 atpBy = atp.by;
 		float desiredBary[3];
@@ -1633,13 +1667,10 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 		int idx = atp.originalPrimitive * context->vertexStride;
 
-		__m128 posZ[3], posW[3];
+		__m128 posZ[3];
 		posZ[0] = _mm_set1_ps(atp.vz.x);
 		posZ[1] = _mm_set1_ps(atp.vz.y);
 		posZ[2] = _mm_set1_ps(atp.vz.z);
-		posW[0] = _mm_set1_ps(atp.vw.x);
-		posW[1] = _mm_set1_ps(atp.vw.y);
-		posW[2] = _mm_set1_ps(atp.vw.z);
 
 		__m128i dx128i = _mm_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1);
 		__m128i dy128i = _mm_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1);
@@ -1655,11 +1686,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		bary[2] = _mm_fmadd_ps(_mm_set1_ps(atp.f3.y), pDy, _mm_set1_ps(atp.f3.z));
 		bary[2] = _mm_fmadd_ps(_mm_set1_ps(atp.f3.x), pDx, bary[2]);
 
-		__m128 baryDiv[3];
-		for (int i = 0; i < 3; i++) {
-			baryDiv[i] = _mm_mul_ps(bary[i], posW[i]);
-		}
-		__m128 barySum = _mm_add_ps(_mm_add_ps(baryDiv[0], baryDiv[1]), baryDiv[2]);
+		__m128 barySum = _mm_add_ps(_mm_add_ps(bary[0], bary[1]), bary[2]);
 		__m128 zCorr = _mm_rcp_ps(barySum);
 
 		__m128 interpolatedDepth128 = _mm_fmadd_ps(bary[0], posZ[0], _mm_mul_ps(bary[1], posZ[1]));
@@ -1671,7 +1698,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		_mm_storeu_ps(interpolatedDepth, interpolatedDepth128);
 		_mm_storeu_ps(zCorr32, zCorr);
 		for (int i = 0; i < 3; i++) {
-			_mm_storeu_ps(bary32[i], baryDiv[i]);
+			_mm_storeu_ps(bary32[i], bary[i]);
 		}
 
 		const int* const addr = args.indexBufferPtr + idx;
@@ -1717,7 +1744,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			}
 
 			//float barytmp[3] = { bary32[0][i] * zCorr32[i],bary32[1][i] * zCorr32[i],bary32[2][i] * zCorr32[i] };
-			vfloat3 bary32Vec = vfloat3(bary32[0][i], bary32[1][i], bary32[2][i]) * zCorr32[i];
+			vfloat3 bary32Vec = vfloat3(bary32[0][i], bary32[1][i], bary32[2][i]);
 			if constexpr (tpOnlyTaggingPass) {
 				args.tagBuffer->atpBx[dxId] = atp.bx;
 				args.tagBuffer->atpBy[dxId] = atp.by;
@@ -1726,7 +1753,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				depthCache[dxId] = interpolatedDepth[i];
 				continue;
 			}
-			
+			bary32Vec *= zCorr32[i];
 			float desiredBary[3];
 			desiredBary[0] = dot(bary32Vec, atpBxVec);
 			desiredBary[1] = dot(bary32Vec, atpByVec);
@@ -1783,13 +1810,10 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		const auto fbWidth = context->frameWidth;
 		const auto fbHeight = context->frameHeight;
 
-		__m256 posZ[3], posW[3];
+		__m256 posZ[3];
 		posZ[0] = _mm256_set1_ps(atp.vz.x);
 		posZ[1] = _mm256_set1_ps(atp.vz.y);
 		posZ[2] = _mm256_set1_ps(atp.vz.z);
-		posW[0] = _mm256_set1_ps(atp.vw.x);
-		posW[1] = _mm256_set1_ps(atp.vw.y);
-		posW[2] = _mm256_set1_ps(atp.vw.z);
 
 		__m256i dx256i = _mm256_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
 		__m256i dy256i = _mm256_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
@@ -1810,7 +1834,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			
 		__m256 baryDiv[3];
 		for (int i = 0; i < 3; i++) {
-			baryDiv[i] = _mm256_mul_ps(bary[i], posW[i]);
+			baryDiv[i] = bary[i];//_mm256_mul_ps(bary[i], posW[i]);
 		}
 
 		__m256 baryDivWSum = _mm256_add_ps(_mm256_add_ps(baryDiv[0], baryDiv[1]), baryDiv[2]);
@@ -1872,7 +1896,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) {
 				if (interpolatedDepth[i] == depthAttachment2) continue;
 			}
-			vfloat3 bary32Vec = vfloat3(bary32[0][i], bary32[1][i], bary32[2][i]) * zCorr32[i];
+			vfloat3 bary32Vec = vfloat3(bary32[0][i], bary32[1][i], bary32[2][i]);
 			if constexpr (tpOnlyTaggingPass) {
 				args.tagBuffer->atpBx[dxId] = atp.bx;
 				args.tagBuffer->atpBy[dxId] = atp.by;
@@ -1882,7 +1906,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				continue;
 			}
 
-			
+			bary32Vec *= zCorr32[i];
 			float desiredBary[3];
 			desiredBary[0] = dot(bary32Vec, atpBxVec);
 			desiredBary[1] = dot(bary32Vec, atpByVec);
