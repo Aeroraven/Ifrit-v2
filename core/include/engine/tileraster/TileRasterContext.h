@@ -35,6 +35,8 @@ namespace Ifrit::Engine::TileRaster {
 		constexpr static int vsChunkSize = 48;
 		constexpr static int gsChunkSize = 128;
 
+		constexpr static int workerReprBits = 8;
+
 		// Non-owning Bindings
 		FrameBuffer* frameBuffer;
 		const VertexBuffer* vertexBuffer;
@@ -63,8 +65,8 @@ namespace Ifrit::Engine::TileRaster {
 		
 		// Resources
 		std::unique_ptr<VertexShaderResult> vertexShaderResult;
-		std::vector<std::vector<TileRasterContextRasterQueueProposal>> rasterizerQueue[TileRasterContext::numThreads + 1];
-		std::vector<std::vector<AssembledTriangleProposalReference>> coverQueue[TileRasterContext::numThreads + 1];
+		std::vector<std::vector<int>> rasterizerQueue[TileRasterContext::numThreads + 1];
+		std::vector<std::vector<int>> coverQueue[TileRasterContext::numThreads + 1];
 
 		// Sorted List
 		std::vector<std::vector<TileBinProposal>> sortedCoverQueue;

@@ -23,6 +23,19 @@ consteval float getInftyDepthValue() noexcept{
 
 namespace Ifrit::Engine::TileRaster {
 	
+	inline int cvrsQueueWorkerId(int x) {
+		return x >> (sizeof(int) * 8 - TileRasterContext::workerReprBits);
+	}
+	inline int cvrsQueuePrimitiveId(int x) {
+		constexpr int mask = ((1 << (sizeof(int) * 8 - TileRasterContext::workerReprBits)) - 1);
+		return x & mask;
+	}
+	inline int cvrsQueuePack(int workerId, int primitiveId){
+		constexpr int shift = (sizeof(int) * 8 - TileRasterContext::workerReprBits);
+		auto p = (workerId << shift) | primitiveId;
+		return p;
+	}
+	
 	constexpr auto TOTAL_THREADS = TileRasterContext::numThreads + 1;
 	inline void getAcceptRejectCoords(vfloat3 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3])IFRIT_AP_NOTHROW {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
@@ -303,10 +316,10 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 				if (criteriaTR != 3)continue;
 				if (criteriaTA == 3) {
-					cvQueue[getTileID(x, y)].push_back({ workerId,primitiveId });
+					cvQueue[getTileID(x, y)].push_back(cvrsQueuePack(workerId, primitiveId));
 				}
 				else {
-					rsQueue[getTileID(x, y)].push_back({ workerId,primitiveId });
+					rsQueue[getTileID(x, y)].push_back(cvrsQueuePack(workerId, primitiveId));
 				}
 			}
 		}
@@ -718,8 +731,10 @@ namespace Ifrit::Engine::TileRaster {
 		for (int T = TOTAL_THREADS - 1; T >= 0; T--) {
 			const auto& proposalT = rastQueue[T][curTile];
 			for (int j = proposalT.size() - 1; j >= 0; j--) {
-				const auto& proposal = proposalT[j];
-				const auto& ptRef = atriQueue[proposal.workerId][proposal.primId];
+				const auto proposal = proposalT[j];
+				auto propWorkerId = cvrsQueueWorkerId(proposal);
+				auto propPrimId = cvrsQueuePrimitiveId(proposal);
+				const auto ptRef = atriQueue[propWorkerId][propPrimId];
 
 				vfloat3 edgeCoefs[3];
 				edgeCoefs[0] = ptRef.e1;
@@ -763,23 +778,23 @@ namespace Ifrit::Engine::TileRaster {
 
 				TileBinProposal npropPixel;
 				npropPixel.level = TileRasterLevel::PIXEL;
-				npropPixel.clippedTriangle.primId = proposal.primId;
-				npropPixel.clippedTriangle.workerId = proposal.workerId;
+				npropPixel.clippedTriangle.primId = propPrimId;
+				npropPixel.clippedTriangle.workerId = propWorkerId;
 
 				TileBinProposal npropBlock;
 				npropBlock.level = TileRasterLevel::BLOCK;
-				npropBlock.clippedTriangle.primId = proposal.primId;
-				npropBlock.clippedTriangle.workerId = proposal.workerId;
+				npropBlock.clippedTriangle.primId = propPrimId;
+				npropBlock.clippedTriangle.workerId = propWorkerId;
 
 				TileBinProposal  npropPixel128;
 				npropPixel128.level = TileRasterLevel::PIXEL_PACK2X2;
-				npropPixel128.clippedTriangle.primId = proposal.primId;
-				npropPixel128.clippedTriangle.workerId = proposal.workerId;
+				npropPixel128.clippedTriangle.primId = propPrimId;
+				npropPixel128.clippedTriangle.workerId = propWorkerId;
 
 				TileBinProposal  npropPixel256;
 				npropPixel256.level = TileRasterLevel::PIXEL_PACK4X2;
-				npropPixel256.clippedTriangle.primId = proposal.primId;
-				npropPixel256.clippedTriangle.workerId = proposal.workerId;
+				npropPixel256.clippedTriangle.primId = propPrimId;
+				npropPixel256.clippedTriangle.workerId = propWorkerId;
 
 #ifdef IFRIT_USE_SIMD_256
 				__m256 xTileWidth256f = _mm256_set1_ps(context->subtileBlockWidth);
@@ -1317,8 +1332,11 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				for (int i = TOTAL_THREADS - 1; i >= 0; i--) {
 					auto& pq = firstCoverQueue[i][curTile];
 					for (int j = pq.size() - 1; j >= 0; j--) {
-						auto& proposal = pq[j];
-						proposalProcessFuncTileOnly.operator()<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass >(proposal);
+						auto proposal = pq[j];
+						auto propPrimId = cvrsQueuePrimitiveId(proposal);
+						auto propWorkerId = cvrsQueueWorkerId(proposal);
+						AssembledTriangleProposalReference proposalX = { propWorkerId,propPrimId };
+						proposalProcessFuncTileOnly.operator() < tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass > (proposalX);
 					}
 				}
 				//TileLocal
@@ -1817,6 +1835,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 		__m256i dx256i = _mm256_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
 		__m256i dy256i = _mm256_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
+		__m256i dx256Mod16 = _mm256_and_si256(dx256i, _mm256_set1_epi32(0xf));
+		__m256i dy256Mod16 = _mm256_and_si256(dy256i, _mm256_set1_epi32(0xf));
+		__m256i dxId256 = _mm256_add_epi32(dx256Mod16, _mm256_slli_epi32(dy256Mod16, 4));
 
 		__m256 attachmentWidth = _mm256_set1_ps(fbWidth);
 		__m256 attachmentHeight = _mm256_set1_ps(fbHeight);
@@ -1832,12 +1853,8 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		bary[2] = _mm256_fmadd_ps(_mm256_set1_ps(atp.f3.y), pDy, _mm256_set1_ps(atp.f3.z));
 		bary[2] = _mm256_fmadd_ps(_mm256_set1_ps(atp.f3.x), pDx, bary[2]);
 			
-		__m256 baryDiv[3];
-		for (int i = 0; i < 3; i++) {
-			baryDiv[i] = bary[i];//_mm256_mul_ps(bary[i], posW[i]);
-		}
 
-		__m256 baryDivWSum = _mm256_add_ps(_mm256_add_ps(baryDiv[0], baryDiv[1]), baryDiv[2]);
+		__m256 baryDivWSum = _mm256_add_ps(_mm256_add_ps(bary[0], bary[1]), bary[2]);
 		__m256 zCorr = _mm256_rcp_ps(baryDivWSum);
 
 		__m256 interpolatedDepth256 = _mm256_fmadd_ps(bary[0], posZ[0], _mm256_fmadd_ps(bary[1], posZ[1], _mm256_mul_ps(bary[2], posZ[2])));
@@ -1845,13 +1862,14 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		float interpolatedDepth[8] = { 0 };
 		float bary32[3][8];
 		float zCorr32[8];
-		int xPacked[8], yPacked[8];
+		int xPacked[8], yPacked[8], idPacked[8];
 		_mm256_storeu_ps(interpolatedDepth, interpolatedDepth256);
 		_mm256_storeu_ps(zCorr32, zCorr);
 		_mm256_storeu_si256((__m256i*)xPacked, dx256i);
 		_mm256_storeu_si256((__m256i*)yPacked, dy256i);
+		_mm256_storeu_si256((__m256i*)idPacked, dxId256);
 		for (int i = 0; i < 3; i++) {
-			_mm256_storeu_ps(bary32[i], baryDiv[i]);
+			_mm256_storeu_ps(bary32[i], bary[i]);
 		}
 
 		auto& depthAttachment = *args.depthAttachmentPtr;
@@ -1867,9 +1885,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 					continue;
 				}
 			}
-			unsigned dx1 = ((unsigned)x) % tagbufferSizeX;
-			unsigned dy1 = ((unsigned)y) % tagbufferSizeX;
-			unsigned dxId = dx1 + dy1 * tagbufferSizeX;
+			unsigned dxId = idPacked[i];
 
 			const auto depthAttachment2 = depthCache[dxId];
 			if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
