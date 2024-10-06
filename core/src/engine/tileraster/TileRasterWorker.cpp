@@ -9,6 +9,7 @@ using namespace Ifrit::Math::SIMD;
 
 #define TILE_RASTER_EXPERIMENTAL 1
 #define TILE_RASTER_TEMP_CONST_MAXW 8192
+#define TILE_RASTER_MAX_VARYINGS 16
 
 inline long long getExecutionTime(std::function<void()> f) {
 	auto start = std::chrono::high_resolution_clock::now();
@@ -1442,12 +1443,15 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				__m256 atpByY = _mm256_i32gather_ps(((float*)args.tagBuffer->atpBy) + 1, gatherIdx, 4);
 				__m256 atpByZ = _mm256_i32gather_ps(((float*)args.tagBuffer->atpBy) + 2, gatherIdx, 4);
 
-				// zCorr
-				__m256 zCorr = _mm256_rcp_ps(_mm256_add_ps(baryVecX, _mm256_add_ps(baryVecY, baryVecZ)));
-				baryVecX = _mm256_mul_ps(baryVecX, zCorr);
-				baryVecY = _mm256_mul_ps(baryVecY, zCorr);
-				baryVecZ = _mm256_mul_ps(baryVecZ, zCorr);
+				__m256 atpF1X = _mm256_i32gather_ps((float*)args.tagBuffer->atpF1, gatherIdx, 4);
+				__m256 atpF1Y = _mm256_i32gather_ps(((float*)args.tagBuffer->atpF1) + 1, gatherIdx, 4);
+				__m256 atpF2X = _mm256_i32gather_ps((float*)args.tagBuffer->atpF2, gatherIdx, 4);
+				__m256 atpF2Y = _mm256_i32gather_ps(((float*)args.tagBuffer->atpF2) + 1, gatherIdx, 4);
+				__m256 atpF3X = _mm256_i32gather_ps((float*)args.tagBuffer->atpF3, gatherIdx, 4);
+				__m256 atpF3Y = _mm256_i32gather_ps(((float*)args.tagBuffer->atpF3) + 1, gatherIdx, 4);
 
+
+				// zCorr
 				__m256 interpolatedDepth;
 				if (reqDepth) {
 					interpolatedDepth = _mm256_i32gather_ps((float*)depthCache, dxId256, 4);
@@ -1465,18 +1469,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				// If all invalid, skip
 				if (_mm256_testz_si256(idxMask2, _mm256_set1_epi32(0xffffffff)))continue;
 
-				__m256 desiredBaryR[3];
-				desiredBaryR[0] = _mm256_fmadd_ps(baryVecX, atpBxX, _mm256_fmadd_ps(baryVecY, atpBxY, _mm256_mul_ps(baryVecZ, atpBxZ)));
-				desiredBaryR[1] = _mm256_fmadd_ps(baryVecX, atpByX, _mm256_fmadd_ps(baryVecY, atpByY, _mm256_mul_ps(baryVecZ, atpByZ)));
-				desiredBaryR[2] = _mm256_sub_ps(_mm256_set1_ps(1.0f), _mm256_add_ps(desiredBaryR[0], desiredBaryR[1]));
-
-				const auto vSize = args.varyingCounts;
 				
-				// convert desiredBary to 16xfloat3
-				float desiredBaryX[8], desiredBaryY[8], desiredBaryZ[8];
-				_mm256_storeu_ps(desiredBaryX, desiredBaryR[0]);
-				_mm256_storeu_ps(desiredBaryY, desiredBaryR[1]);
-				_mm256_storeu_ps(desiredBaryZ, desiredBaryR[2]);
 
 				// Mask from idxMask2
 				int validMaskT[8], dx[8], dy[8], idxT[8];
@@ -1487,23 +1480,150 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				_mm256_storeu_si256((__m256i*)dy, dy256);
 				_mm256_storeu_si256((__m256i*)idxT, idx);
 
-				for(int j = 0;j<8;j++){
-					if(validMaskT[j]==0)continue;
-					const auto vSize = args.varyingCounts;
-					const int* const addr = args.indexBufferPtr + idxT[j];
-					for (int k = 0;k < vSize; k++) {
-						auto va = vaPtr[k];
-						auto& dest = interpolatedVaryings[k];
-						const auto& tmp0 = (va[addr[0]]);
-						const auto& tmp1 = (va[addr[1]]);
-						const auto& tmp2 = (va[addr[2]]);
-						vfloat4 destVec = tmp0 * desiredBaryX[j];
-						destVec = fma(tmp1, desiredBaryY[j], destVec);
-						dest = fma(tmp2, desiredBaryZ[j], destVec);
-					}
 
-					psEntry->execute(ivData, coData, &interpolatedDepthT[j]);
-					args.colorAttachment0->fillPixelRGBA128ps(dx[j], dy[j], _mm_loadu_ps((float*)(coData)));
+				if (forcedInQuads) {
+					bool isNotHelperInvocation[8];
+					float baryVecXT[8], baryVecYT[8], baryVecZT[8];
+					_mm256_storeu_ps(baryVecXT, baryVecX);
+					_mm256_storeu_ps(baryVecYT, baryVecY);
+					_mm256_storeu_ps(baryVecZT, baryVecZ);
+					float f1xT[8], f1yT[8], f2xT[8], f2yT[8], f3xT[8], f3yT[8];
+					_mm256_storeu_ps(f1xT, atpF1X);
+					_mm256_storeu_ps(f1yT, atpF1Y);
+					_mm256_storeu_ps(f2xT, atpF2X);
+					_mm256_storeu_ps(f2yT, atpF2Y);
+					_mm256_storeu_ps(f3xT, atpF3X);
+					_mm256_storeu_ps(f3yT, atpF3Y);
+					float atpBxXT[8], atpBxYT[8], atpBxZT[8];
+					_mm256_storeu_ps(atpBxXT, atpBxX);
+					_mm256_storeu_ps(atpBxYT, atpBxY);
+					_mm256_storeu_ps(atpBxZT, atpBxZ);
+					float atpByXT[8], atpByYT[8], atpByZT[8];
+					_mm256_storeu_ps(atpByXT, atpByX);
+					_mm256_storeu_ps(atpByYT, atpByY);
+					_mm256_storeu_ps(atpByZT, atpByZ);
+					vfloat4 interpVaryingsQuad[8][TILE_RASTER_MAX_VARYINGS];
+					for (int T = 0; T < 2; T++) {
+						for (int j = T * 4; j < T * 4 + 4; j++) {
+							if (validMaskT[j] == 0)continue;
+							bool newDraw = true;
+							for (int k = T * 4; k < j; k++) {
+								if (validMaskT[k] == 0)continue;
+								if (idxT[k] == idxT[j]) {
+									newDraw = false;
+									break;
+								}
+							}
+							if (!newDraw)continue;
+							// Quad organization
+							// 0 1 | 4 6
+							// 2 3 | 5 7
+
+							// Set baryVecs to the data of position 0 or 4
+							float baryVecXsSelf = baryVecXT[j];
+							float baryVecYsSelf = baryVecYT[j];
+							float baryVecZsSelf = baryVecZT[j];
+							int quadIndiceSelf = j & 0x3;
+							float pos0_baryVecX = baryVecXsSelf - (quadIndiceSelf & 1) * f1xT[j] - (quadIndiceSelf >> 0x1) * f1yT[j];
+							float pos0_baryVecY = baryVecYsSelf - (quadIndiceSelf & 1) * f2xT[j] - (quadIndiceSelf >> 0x1) * f2yT[j];
+							float pos0_baryVecZ = baryVecZsSelf - (quadIndiceSelf & 1) * f3xT[j] - (quadIndiceSelf >> 0x1) * f3yT[j];
+
+							// Set baryVecs to the data of position 0 or 4
+							__m128i quadXOffset = _mm_setr_epi32(0, 1, 0, 1);
+							__m128i quadYOffset = _mm_setr_epi32(0, 0, 1, 1);
+
+							__m128 quadXOffsetV1 = _mm_mul_ps(_mm_cvtepi32_ps(quadXOffset), _mm_set1_ps(f1xT[j]));
+							__m128 quadYOffsetV1 = _mm_mul_ps(_mm_cvtepi32_ps(quadYOffset), _mm_set1_ps(f1yT[j]));
+							__m128 quadXOffsetV2 = _mm_mul_ps(_mm_cvtepi32_ps(quadXOffset), _mm_set1_ps(f2xT[j]));
+							__m128 quadYOffsetV2 = _mm_mul_ps(_mm_cvtepi32_ps(quadYOffset), _mm_set1_ps(f2yT[j]));
+							__m128 quadXOffsetV3 = _mm_mul_ps(_mm_cvtepi32_ps(quadXOffset), _mm_set1_ps(f3xT[j]));
+							__m128 quadYOffsetV3 = _mm_mul_ps(_mm_cvtepi32_ps(quadYOffset), _mm_set1_ps(f3yT[j]));
+
+							__m128 baseBaryVecX = _mm_set1_ps(pos0_baryVecX);
+							__m128 baseBaryVecY = _mm_set1_ps(pos0_baryVecY);
+							__m128 baseBaryVecZ = _mm_set1_ps(pos0_baryVecZ);
+
+							__m128 baryVecXs = _mm_add_ps(baseBaryVecX, _mm_add_ps(quadXOffsetV1, quadYOffsetV1));
+							__m128 baryVecYs = _mm_add_ps(baseBaryVecY, _mm_add_ps(quadXOffsetV2, quadYOffsetV2));
+							__m128 baryVecZs = _mm_add_ps(baseBaryVecZ, _mm_add_ps(quadXOffsetV3, quadYOffsetV3));
+
+							__m128 zCorr = _mm_rcp_ps(_mm_add_ps(baryVecXs, _mm_add_ps(baryVecYs, baryVecZs)));
+							baryVecXs = _mm_mul_ps(baryVecXs, zCorr);
+							baryVecYs = _mm_mul_ps(baryVecYs, zCorr);
+							baryVecZs = _mm_mul_ps(baryVecZs, zCorr);
+
+							__m128 desiredBaryR[3];
+							desiredBaryR[0] = _mm_fmadd_ps(baryVecXs, _mm_set1_ps(atpBxXT[j]), _mm_fmadd_ps(baryVecYs, _mm_set1_ps(atpBxYT[j]), _mm_mul_ps(baryVecZs, _mm_set1_ps(atpBxZT[j]))));
+							desiredBaryR[1] = _mm_fmadd_ps(baryVecXs, _mm_set1_ps(atpByXT[j]), _mm_fmadd_ps(baryVecYs, _mm_set1_ps(atpByYT[j]), _mm_mul_ps(baryVecZs, _mm_set1_ps(atpByZT[j]))));
+							desiredBaryR[2] = _mm_sub_ps(_mm_set1_ps(1.0f), _mm_add_ps(desiredBaryR[0], desiredBaryR[1]));
+
+
+							float desiredBaryX[4], desiredBaryY[4], desiredBaryZ[4];
+							_mm_storeu_ps(desiredBaryX, desiredBaryR[0]);
+							_mm_storeu_ps(desiredBaryY, desiredBaryR[1]);
+							_mm_storeu_ps(desiredBaryZ, desiredBaryR[2]);
+
+							for (int k = T * 4; k <= T*4+4; k++) {
+								if (validMaskT[k] == 0)isNotHelperInvocation[k] = false;
+								else {
+									isNotHelperInvocation[k] = (idxT[k] == idxT[j]);
+								}
+								const int* const addr = args.indexBufferPtr + idxT[j];
+								for (int v = 0; v < varyCnts; v++) {
+									auto va = vaPtr[v];
+									auto& dest = interpVaryingsQuad[k][v];
+									const auto& tmp0 = (va[addr[0]]);
+									const auto& tmp1 = (va[addr[1]]);
+									const auto& tmp2 = (va[addr[2]]);
+									vfloat4 destVec = tmp0 * desiredBaryX[k & 0x3];
+									destVec = fma(tmp1, desiredBaryY[k & 0x3], destVec);
+									dest = fma(tmp2, desiredBaryZ[k & 0x3], destVec);
+								}
+								float testDepth = 0.0f;
+								psEntry->execute(interpVaryingsQuad[k], coData, &testDepth);
+								if (isNotHelperInvocation[k]) {
+									args.colorAttachment0->fillPixelRGBA128ps(dx[k], dy[k], _mm_loadu_ps((float*)(coData)));
+								}
+							}
+						}
+					}
+				}
+				else {
+					__m256 zCorr = _mm256_rcp_ps(_mm256_add_ps(baryVecX, _mm256_add_ps(baryVecY, baryVecZ)));
+					baryVecX = _mm256_mul_ps(baryVecX, zCorr);
+					baryVecY = _mm256_mul_ps(baryVecY, zCorr);
+					baryVecZ = _mm256_mul_ps(baryVecZ, zCorr);
+
+					__m256 desiredBaryR[3];
+					desiredBaryR[0] = _mm256_fmadd_ps(baryVecX, atpBxX, _mm256_fmadd_ps(baryVecY, atpBxY, _mm256_mul_ps(baryVecZ, atpBxZ)));
+					desiredBaryR[1] = _mm256_fmadd_ps(baryVecX, atpByX, _mm256_fmadd_ps(baryVecY, atpByY, _mm256_mul_ps(baryVecZ, atpByZ)));
+					desiredBaryR[2] = _mm256_sub_ps(_mm256_set1_ps(1.0f), _mm256_add_ps(desiredBaryR[0], desiredBaryR[1]));
+
+					const auto vSize = args.varyingCounts;
+
+					// convert desiredBary to 16xfloat3
+					float desiredBaryX[8], desiredBaryY[8], desiredBaryZ[8];
+					_mm256_storeu_ps(desiredBaryX, desiredBaryR[0]);
+					_mm256_storeu_ps(desiredBaryY, desiredBaryR[1]);
+					_mm256_storeu_ps(desiredBaryZ, desiredBaryR[2]);
+					for (int j = 0; j < 8; j++) {
+						if (validMaskT[j] == 0)continue;
+						const auto vSize = args.varyingCounts;
+						const int* const addr = args.indexBufferPtr + idxT[j];
+						for (int k = 0; k < vSize; k++) {
+							auto va = vaPtr[k];
+							auto& dest = interpolatedVaryings[k];
+							const auto& tmp0 = (va[addr[0]]);
+							const auto& tmp1 = (va[addr[1]]);
+							const auto& tmp2 = (va[addr[2]]);
+							vfloat4 destVec = tmp0 * desiredBaryX[j];
+							destVec = fma(tmp1, desiredBaryY[j], destVec);
+							dest = fma(tmp2, desiredBaryZ[j], destVec);
+						}
+
+						psEntry->execute(ivData, coData, &interpolatedDepthT[j]);
+						args.colorAttachment0->fillPixelRGBA128ps(dx[j], dy[j], _mm_loadu_ps((float*)(coData)));
+					}
 				}
 
 #else
@@ -1610,6 +1730,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		if constexpr (tpOnlyTaggingPass) {
 			args.tagBuffer->atpBx[dxId] = atp.bx;
 			args.tagBuffer->atpBy[dxId] = atp.by;
+			args.tagBuffer->atpF1[dxId] = atp.f1;
+			args.tagBuffer->atpF2[dxId] = atp.f2;
+			args.tagBuffer->atpF3[dxId] = atp.f3;
 			args.tagBuffer->valid[dxId] = atp.originalPrimitive;
 			args.tagBuffer->tagBufferBary[dxId] = baryVec;
 			depthAttachment = interpolatedDepth;
@@ -1766,6 +1889,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			if constexpr (tpOnlyTaggingPass) {
 				args.tagBuffer->atpBx[dxId] = atp.bx;
 				args.tagBuffer->atpBy[dxId] = atp.by;
+				args.tagBuffer->atpF1[dxId] = atp.f1;
+				args.tagBuffer->atpF2[dxId] = atp.f2;
+				args.tagBuffer->atpF3[dxId] = atp.f3;
 				args.tagBuffer->valid[dxId] = atp.originalPrimitive;
 				args.tagBuffer->tagBufferBary[dxId] = bary32Vec;
 				depthCache[dxId] = interpolatedDepth[i];
@@ -1916,6 +2042,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			if constexpr (tpOnlyTaggingPass) {
 				args.tagBuffer->atpBx[dxId] = atp.bx;
 				args.tagBuffer->atpBy[dxId] = atp.by;
+				args.tagBuffer->atpF1[dxId] = atp.f1;
+				args.tagBuffer->atpF2[dxId] = atp.f2;
+				args.tagBuffer->atpF3[dxId] = atp.f3;
 				args.tagBuffer->valid[dxId] = atp.originalPrimitive;
 				args.tagBuffer->tagBufferBary[dxId] = bary32Vec;
 				depthCache[dxId] = interpolatedDepth[i];

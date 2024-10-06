@@ -16,6 +16,9 @@ namespace Ifrit::Engine::TileRaster {
 		Ifrit::Math::SIMD::vfloat3 tagBufferBary[tagbufferSizeX * tagbufferSizeX];
 		Ifrit::Math::SIMD::vfloat3 atpBx[tagbufferSizeX * tagbufferSizeX];
 		Ifrit::Math::SIMD::vfloat3 atpBy[tagbufferSizeX * tagbufferSizeX];
+		Ifrit::Math::SIMD::vfloat4 atpF1[tagbufferSizeX * tagbufferSizeX];
+		Ifrit::Math::SIMD::vfloat4 atpF2[tagbufferSizeX * tagbufferSizeX];
+		Ifrit::Math::SIMD::vfloat4 atpF3[tagbufferSizeX * tagbufferSizeX];
 		int valid[tagbufferSizeX * tagbufferSizeX];
 	};
 
