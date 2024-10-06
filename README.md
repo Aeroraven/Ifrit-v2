@@ -34,7 +34,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 **Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). 
 
-✅ Available | 🟦 Limited  Support (or Under Testing) | 🟥 TODO
+✅ Available | 🟦 Limited  Support (Under Testing) | 🟨 Severely Unstable (Under Testing) | 🟥 TODO
 
 | Feature                                                 | [Iris Renderer](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris) | MT CPU Renderer | CUDA Renderer |
 | ------------------------------------------------------- | ------------------------------------------------------------ | --------------- | ------------- |
@@ -81,7 +81,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Homogeneous Clipping                                    | 🟥                                                            | ✅               | ✅             |
 | Small Triangle Culling                                  | 🟥                                                            | ✅               | ✅             |
 | Perspective-correct Interpolation                       | 🟥                                                            | ✅               | ✅             |
-| Shader Derivatives `dFdx` `dFdy`<br/>Helper Invocations | 🟥                                                            | 🟥               | 🟦             |
+| Shader Derivatives `dFdx` `dFdy`<br/>Helper Invocations | 🟥                                                            | 🟨               | 🟦             |
 | Multi-sampling                                          | 🟥                                                            | 🟥               | 🟦 8x MSAA     |
 | 💡 **Rasterization / Polygon Mode**                      |                                                              |                 |               |
 | Filled Triangle                                         | ✅                                                            | ✅               | ✅             |
@@ -265,3 +265,5 @@ For models / open source code references, check `licenses` folder.
 [4]. https://github.com/zeux/meshoptimizer
 
 [5]. https://llvm.org/docs/LangRef.html
+
+[6]. https://www.mesa3d.org/

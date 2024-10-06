@@ -1597,6 +1597,43 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 
 				}, irg);
 		}
+
+		CONV_PASS(OpDPDx) {
+			auto src = GET_PARAM(2);
+			// Quad Organization:
+			// 0 1
+			// 2 3
+			static_assert(SpVcQuadSize == 4, "Quad size should be 4");
+			foreachInvo([&](int x) {
+				int lowerId = x & 0x2;
+				int upperId = lowerId + 1;
+				auto lowerReg = spirvImmediateLoad(src->id, lowerId, irg);
+				auto upperReg = spirvImmediateLoad(src->id, upperId, irg);
+				// fsub instruction
+				auto resultType = GET_PARAM(0)->tp.get();
+				auto resultReg = spirvCreateVarWithType(resultType, irg);
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(resultReg, upperReg, lowerReg, "fsub"), irg->getActiveBlock());
+				spirvImmediateMaskedStore(GET_PARAM(1)->id, x, resultReg, irg);
+				}, irg);
+		}
+		CONV_PASS(OpDPDy) {
+			auto src = GET_PARAM(2);
+			// Quad Organization:
+			// 0 1
+			// 2 3
+			static_assert(SpVcQuadSize == 4, "Quad size should be 4");
+			foreachInvo([&](int x) {
+				int lowerId = x & 0x1;
+				int upperId = lowerId + 2;
+				auto lowerReg = spirvImmediateLoad(src->id, lowerId, irg);
+				auto upperReg = spirvImmediateLoad(src->id, upperId, irg);
+				// fsub instruction
+				auto resultType = GET_PARAM(0)->tp.get();
+				auto resultReg = spirvCreateVarWithType(resultType, irg);
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(resultReg, upperReg, lowerReg, "fsub"), irg->getActiveBlock());
+				spirvImmediateMaskedStore(GET_PARAM(1)->id, x, resultReg, irg);
+				}, irg);
+		}
 	}
 
 	SpVcVMGenBlock* SpVcQuadGroupedIRGenerator::getActiveBlock(){
@@ -1977,6 +2014,9 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		mConvPassHandlers[spv::Op::OpReturn] = GET_CONV_PASS(OpReturn);
 
 		mConvPassHandlers[spv::Op::OpVectorTimesScalar] = GET_CONV_PASS(OpVectorTimesScalar);
+
+		mConvPassHandlers[spv::Op::OpDPdx] = GET_CONV_PASS(OpDPDx);
+		mConvPassHandlers[spv::Op::OpDPdy] = GET_CONV_PASS(OpDPDy);
 	}
 
 	void SpVcQuadGroupedIRGenerator::performMaskInjectionPass(int quadSize){
