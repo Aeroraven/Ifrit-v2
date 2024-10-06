@@ -1480,8 +1480,8 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				_mm256_storeu_si256((__m256i*)dy, dy256);
 				_mm256_storeu_si256((__m256i*)idxT, idx);
 
-
-				if (forcedInQuads) {
+				
+				if (true) {
 					bool isNotHelperInvocation[8];
 					float baryVecXT[8], baryVecYT[8], baryVecZT[8];
 					_mm256_storeu_ps(baryVecXT, baryVecX);
@@ -1503,6 +1503,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 					_mm256_storeu_ps(atpByYT, atpByY);
 					_mm256_storeu_ps(atpByZT, atpByZ);
 					vfloat4 interpVaryingsQuad[8][TILE_RASTER_MAX_VARYINGS];
+					vfloat4 colorOutpQuad[8][TILE_RASTER_MAX_VARYINGS];
 					for (int T = 0; T < 2; T++) {
 						for (int j = T * 4; j < T * 4 + 4; j++) {
 							if (validMaskT[j] == 0)continue;
@@ -1563,7 +1564,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 							_mm_storeu_ps(desiredBaryY, desiredBaryR[1]);
 							_mm_storeu_ps(desiredBaryZ, desiredBaryR[2]);
 
-							for (int k = T * 4; k <= T*4+4; k++) {
+							for (int k = T * 4; k < T*4+4; k++) {
 								if (validMaskT[k] == 0)isNotHelperInvocation[k] = false;
 								else {
 									isNotHelperInvocation[k] = (idxT[k] == idxT[j]);
@@ -1579,10 +1580,13 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 									destVec = fma(tmp1, desiredBaryY[k & 0x3], destVec);
 									dest = fma(tmp2, desiredBaryZ[k & 0x3], destVec);
 								}
-								float testDepth = 0.0f;
-								psEntry->execute(interpVaryingsQuad[k], coData, &testDepth);
+							}
+							const void* itp[4] = { interpVaryingsQuad + (T * 4) ,interpVaryingsQuad + (T * 4) + 1,interpVaryingsQuad + (T * 4) + 2,interpVaryingsQuad + (T * 4) + 3 };
+							void* co[4] = { colorOutpQuad + (T * 4),colorOutpQuad + (T * 4) + 1,colorOutpQuad + (T * 4) + 2,colorOutpQuad + (T * 4) + 3 };
+							psEntry->executeInQuad(itp, co, nullptr);
+							for (int k = T * 4; k < T * 4 + 4; k++) {
 								if (isNotHelperInvocation[k]) {
-									args.colorAttachment0->fillPixelRGBA128ps(dx[k], dy[k], _mm_loadu_ps((float*)(coData)));
+									args.colorAttachment0->fillPixelRGBA128ps(dx[k], dy[k], _mm_loadu_ps((float*)(colorOutpQuad[k])));
 								}
 							}
 						}

@@ -534,7 +534,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec::LLVM {
 	public:
 		SpVcLLVMIns_FunctionFragmentEntry(std::string name) : mName(name) {}
 		std::string emitIR() override {
-			return std::format("define void @{}", mName) + "(){";
+			return std::format("define void @{}", mName) + "() #0 {";
 		}
 	};
 

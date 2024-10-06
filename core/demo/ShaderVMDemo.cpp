@@ -18,6 +18,7 @@
 #include "engine/comllvmrt/WrappedLLVMRuntime.h"
 #include "engine/bufferman/BufferManager.h"
 #include "engine/shadervm/spirvvec/SpvMdQuadIRGenerator.h"
+#include "engine/shadervm/spirvvec/SpvMdShader.h"
 #include "math/LinalgOps.h"
 
 using namespace std;
@@ -138,7 +139,8 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		WrappedLLVMRuntimeBuilder llvmRuntime;
 		SpvVertexShader vertexShader(llvmRuntime, vsCode);
 		renderer->bindVertexShader(vertexShader);
-		SpvFragmentShader fragmentShader(llvmRuntime,fsCode);
+		SpvVecFragmentShader fragmentShader(llvmRuntime, fsCode);
+		//SpvFragmentShader fragmentShader(llvmRuntime,fsCode);
 		renderer->bindFragmentShader(fragmentShader);
 
 		GLFWWindowProvider windowProvider;

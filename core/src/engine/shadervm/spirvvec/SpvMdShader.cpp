@@ -12,6 +12,8 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		this->runtime = owningRuntime.get();
 		this->irCode = interpreter.generateIR();
 		this->runtime->loadIR(this->irCode, std::to_string(this->createTime));
+		ifritLog1("IR loaded");
+		printf("%s\n", this->irCode.c_str());
 		updateSymbolTable(false);
 		ifritLog1("Shader loaded");
 	}
@@ -83,7 +85,10 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		auto sOSize = sOb[0].size();
 		for (int T = 0; T < SpVcQuadSize; T++) {
 			for (int i = 0; i < sISize; i++) {
-				memcpy(sI[T][i], (VaryingStore*)varyings[T] + i, sIb[T][i]);
+				auto sA = sI[T][i];
+				auto sB = sIb[T][i];
+				auto sC = ((VaryingStore*)varyings[T]) + i;
+				memcpy(sA, sC, sB);
 			}
 		}
 		
