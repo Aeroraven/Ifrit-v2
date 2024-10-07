@@ -108,11 +108,9 @@ namespace Ifrit::Engine::TileRaster {
 
 	void TileRasterRenderer::createWorkers() {
 		workers.resize(context->numThreads);
-		context->workerIdleTime.resize(context->numThreads);	
 		for (int i = 0; i < context->numThreads; i++) {
 			workers[i] = std::make_unique<TileRasterWorker>(i, shared_from_this(), context);
 			workers[i]->status.store(TileRasterStage::IDLE, std::memory_order::relaxed);
-			context->workerIdleTime[i] = 0;
 		}
 		selfOwningWorker = std::make_unique<TileRasterWorker>(context->numThreads, shared_from_this(), context);
 	}
@@ -316,7 +314,6 @@ namespace Ifrit::Engine::TileRaster {
 
 	IFRIT_APIDECL void TileRasterRenderer::init() {
 		context = std::make_shared<TileRasterContext>();
-		context->workerIdleTime.resize(context->numThreads + 1);
 		context->blendState.blendEnable = false;
 		
 		createWorkers();

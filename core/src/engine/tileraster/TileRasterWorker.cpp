@@ -1121,6 +1121,7 @@ namespace Ifrit::Engine::TileRaster {
 		pxArgs.depthAttachmentPtr = context->frameBuffer->getDepthAttachment();
 		pxArgs.varyingCounts = varyingCnts;
 		pxArgs.indexBufferPtr = (context->indexBuffer);
+		pxArgs.forcedInQuads = context->threadSafeFS[0]->forcedQuadInvocation;
 		
 		TagBufferContext tagbuf;
 		pxArgs.tagBuffer = &tagbuf;
@@ -1401,12 +1402,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				}
 				__m256i dx256A = _mm256_set1_epi32(dxA);
 				__m256i dy256A = _mm256_set1_epi32(dyA);
-				// __m256i dxId256T = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
 				__m256i dxId256T = _mm256_setr_epi32(0, 1, 0 + tagbufferSizeX, 1 + tagbufferSizeX, 2, 3, 2 + tagbufferSizeX, 3 + tagbufferSizeX);
-
-				// Quad Arrangement:
-				// 0 2 | 4 6 | 8 10 | 12 14
-				// 1 3 | 5 7 | 9 11 | 13 15
 
 				// Source Arrangement:
 				// 0 1   | 2 3   | 4 5   | 6 7   || 8 9   | 10 11 | 12 13 |14 15
@@ -1443,22 +1439,11 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				__m256 atpByY = _mm256_i32gather_ps(((float*)args.tagBuffer->atpBy) + 1, gatherIdx, 4);
 				__m256 atpByZ = _mm256_i32gather_ps(((float*)args.tagBuffer->atpBy) + 2, gatherIdx, 4);
 
-				__m256 atpF1X = _mm256_i32gather_ps((float*)args.tagBuffer->atpF1, gatherIdx, 4);
-				__m256 atpF1Y = _mm256_i32gather_ps(((float*)args.tagBuffer->atpF1) + 1, gatherIdx, 4);
-				__m256 atpF2X = _mm256_i32gather_ps((float*)args.tagBuffer->atpF2, gatherIdx, 4);
-				__m256 atpF2Y = _mm256_i32gather_ps(((float*)args.tagBuffer->atpF2) + 1, gatherIdx, 4);
-				__m256 atpF3X = _mm256_i32gather_ps((float*)args.tagBuffer->atpF3, gatherIdx, 4);
-				__m256 atpF3Y = _mm256_i32gather_ps(((float*)args.tagBuffer->atpF3) + 1, gatherIdx, 4);
-
-
+				
 				// zCorr
 				__m256 interpolatedDepth;
-				if (reqDepth) {
-					interpolatedDepth = _mm256_i32gather_ps((float*)depthCache, dxId256, 4);
-				}
-				else {
-					interpolatedDepth = _mm256_setzero_ps();
-				}
+				if (reqDepth) interpolatedDepth = _mm256_i32gather_ps((float*)depthCache, dxId256, 4);
+				else interpolatedDepth = _mm256_setzero_ps();
 					
 				__m256i tagBufferValid = _mm256_i32gather_epi32((int*)args.tagBuffer->valid, dxId256, 4);
 
@@ -1468,8 +1453,6 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 				// If all invalid, skip
 				if (_mm256_testz_si256(idxMask2, _mm256_set1_epi32(0xffffffff)))continue;
-
-				
 
 				// Mask from idxMask2
 				int validMaskT[8], dx[8], dy[8], idxT[8];
@@ -1481,7 +1464,14 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				_mm256_storeu_si256((__m256i*)idxT, idx);
 
 				
-				if (true) {
+				if (forcedInQuads) {
+					__m256 atpF1X = _mm256_i32gather_ps((float*)args.tagBuffer->atpF1, gatherIdx, 4);
+					__m256 atpF1Y = _mm256_i32gather_ps(((float*)args.tagBuffer->atpF1) + 1, gatherIdx, 4);
+					__m256 atpF2X = _mm256_i32gather_ps((float*)args.tagBuffer->atpF2, gatherIdx, 4);
+					__m256 atpF2Y = _mm256_i32gather_ps(((float*)args.tagBuffer->atpF2) + 1, gatherIdx, 4);
+					__m256 atpF3X = _mm256_i32gather_ps((float*)args.tagBuffer->atpF3, gatherIdx, 4);
+					__m256 atpF3Y = _mm256_i32gather_ps(((float*)args.tagBuffer->atpF3) + 1, gatherIdx, 4);
+
 					bool isNotHelperInvocation[8];
 					float baryVecXT[8], baryVecYT[8], baryVecZT[8];
 					_mm256_storeu_ps(baryVecXT, baryVecX);
@@ -1734,9 +1724,11 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		if constexpr (tpOnlyTaggingPass) {
 			args.tagBuffer->atpBx[dxId] = atp.bx;
 			args.tagBuffer->atpBy[dxId] = atp.by;
-			args.tagBuffer->atpF1[dxId] = atp.f1;
-			args.tagBuffer->atpF2[dxId] = atp.f2;
-			args.tagBuffer->atpF3[dxId] = atp.f3;
+			if (args.forcedInQuads) {
+				args.tagBuffer->atpF1[dxId] = atp.f1;
+				args.tagBuffer->atpF2[dxId] = atp.f2;
+				args.tagBuffer->atpF3[dxId] = atp.f3;
+			}
 			args.tagBuffer->valid[dxId] = atp.originalPrimitive;
 			args.tagBuffer->tagBufferBary[dxId] = baryVec;
 			depthAttachment = interpolatedDepth;
@@ -1893,9 +1885,11 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			if constexpr (tpOnlyTaggingPass) {
 				args.tagBuffer->atpBx[dxId] = atp.bx;
 				args.tagBuffer->atpBy[dxId] = atp.by;
-				args.tagBuffer->atpF1[dxId] = atp.f1;
-				args.tagBuffer->atpF2[dxId] = atp.f2;
-				args.tagBuffer->atpF3[dxId] = atp.f3;
+				if (args.forcedInQuads) {
+					args.tagBuffer->atpF1[dxId] = atp.f1;
+					args.tagBuffer->atpF2[dxId] = atp.f2;
+					args.tagBuffer->atpF3[dxId] = atp.f3;
+				}
 				args.tagBuffer->valid[dxId] = atp.originalPrimitive;
 				args.tagBuffer->tagBufferBary[dxId] = bary32Vec;
 				depthCache[dxId] = interpolatedDepth[i];
@@ -2046,9 +2040,11 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			if constexpr (tpOnlyTaggingPass) {
 				args.tagBuffer->atpBx[dxId] = atp.bx;
 				args.tagBuffer->atpBy[dxId] = atp.by;
-				args.tagBuffer->atpF1[dxId] = atp.f1;
-				args.tagBuffer->atpF2[dxId] = atp.f2;
-				args.tagBuffer->atpF3[dxId] = atp.f3;
+				if (args.forcedInQuads) {
+					args.tagBuffer->atpF1[dxId] = atp.f1;
+					args.tagBuffer->atpF2[dxId] = atp.f2;
+					args.tagBuffer->atpF3[dxId] = atp.f3;
+				}
 				args.tagBuffer->valid[dxId] = atp.originalPrimitive;
 				args.tagBuffer->tagBufferBary[dxId] = bary32Vec;
 				depthCache[dxId] = interpolatedDepth[i];

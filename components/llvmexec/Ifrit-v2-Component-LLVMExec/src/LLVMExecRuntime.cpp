@@ -1,4 +1,6 @@
+#include <memory>
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
@@ -6,7 +8,12 @@
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
-
+#include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+//Mem2reg
+#include "llvm/Transforms/Utils.h"
 #include "../include/LLVMExecRuntime.Decl.h"
 
 #ifndef __INTELLISENSE__
@@ -20,7 +27,34 @@ using namespace llvm::orc;
 
 ExitOnError ExitOnErr;
 
+static ThreadSafeModule optimizeModule(ThreadSafeModule M) {
+    // Create a function pass manager.
+    auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModuleUnlocked());
+
+    // Add some optimizations.
+	FPM->add(createPromoteMemoryToRegisterPass());
+    FPM->add(createInstructionCombiningPass());
+    FPM->add(createReassociatePass());
+    FPM->add(createGVNPass());
+    FPM->add(createCFGSimplificationPass());
+    FPM->add(createDeadStoreEliminationPass());
+    FPM->add(createDeadCodeEliminationPass());
+    FPM->doInitialization();
+
+    // Run the optimizations over all functions in the module being added to
+    // the JIT.
+    for (auto& F : *M.getModuleUnlocked())
+        FPM->run(F);
+
+    // Print IR
+    M.getModuleUnlocked()->print(errs(), nullptr);
+
+    return M;
+}
+
 struct IfritCompLLVMExecutionSession {
+    std::unique_ptr<legacy::PassManager> PM = std::make_unique<legacy::PassManager>();
+
     std::unique_ptr<LLVMContext> llvmCtx;
     ThreadSafeModule tsModule;
     SMDiagnostic Err;
@@ -38,7 +72,7 @@ struct IfritCompLLVMExecutionSession {
             Err.print("IfritLLVMExecutionSession: Fail to parse IR:", errs());
             exit(1);
         }
-        tsModule = ThreadSafeModule(std::move(M), std::move(llvmCtx));
+        tsModule = optimizeModule(ThreadSafeModule(std::move(M), std::move(llvmCtx)));
         ExitOnErr(jit->addIRModule(std::move(tsModule)));
         ready = true;
     }

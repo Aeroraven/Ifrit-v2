@@ -28,6 +28,7 @@ namespace Ifrit::Engine::TileRaster {
 		ImageF32* colorAttachment0;
 		const int* indexBufferPtr;
 		TagBufferContext* tagBuffer;
+		bool forcedInQuads;
 	};
 
 	class TileRasterWorker {

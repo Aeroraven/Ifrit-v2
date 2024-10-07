@@ -70,8 +70,6 @@ namespace Ifrit::Engine::TileRaster {
 
 		// Sorted List
 		std::vector<std::vector<TileBinProposal>> sortedCoverQueue;
-
-
 		int numTilesX = 1;
 		int numTilesY = 1;
 		
@@ -88,13 +86,7 @@ namespace Ifrit::Engine::TileRaster {
 		bool optDepthTestEnableII = true;
 
 		// Geometry
-		std::vector<float> primitiveMinZ;
-		std::vector<PrimitiveEdgeCoefs> primitiveEdgeCoefs;
-
 		std::vector<AssembledTriangleProposalRasterStage> assembledTrianglesRaster[TileRasterContext::numThreads + 1];
 		std::vector<AssembledTriangleProposalShadeStage> assembledTrianglesShade[TileRasterContext::numThreads + 1];
-
-		// Profiling
-		std::vector<uint32_t> workerIdleTime;
 	};
 }

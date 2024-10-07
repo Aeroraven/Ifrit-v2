@@ -138,10 +138,10 @@ Tests performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. 
 | Single Thread CPU Baseline v1           | 38         | 20         | 2              | 1            |
 | Multi Thread CPU Baseline v1            | 80         | 80         | 10             | 2            |
 | CUDA Baseline v1                        | 2857       | 2272       | 500            | 198          |
-| ST CPU Optimized v2 (C++ / SPIR-V HLSL) | 47 (+23%)  | 27 (+35%)  | 4 (+100%)      | 2 (+100%)    |
-| MT CPU Optimized v2 (C++ / SPIR-V HLSL) | 134 (+68%) | 108 (+35%) | 24 (+140%)     | 11 (+450%)   |
-| ST CPU Optimized v2 (C++ / Class)       | 50 (+31%)  | 29 (+45%)  | 4 (+100%)      | 2 (+100%)    |
-| MT CPU Optimized v2 (C++ / Class)       | 138 (+73%) | 110 (+38%) | 25 (+150%)     | 15 (+650%)   |
+| ST CPU Optimized v2 (C++ / SPIR-V HLSL) | 47 (+23%)  | 27 (+35%)  | 6 (+200%)      | 2 (+100%)    |
+| MT CPU Optimized v2 (C++ / SPIR-V HLSL) | 134 (+68%) | 108 (+35%) | 39 (+290%)     | 11 (+450%)   |
+| ST CPU Optimized v2 (C++ / Class)       | 50 (+31%)  | 29 (+45%)  | 6 (+200%)      | 2 (+100%)    |
+| MT CPU Optimized v2 (C++ / Class)       | 138 (+73%) | 110 (+38%) | 43 (+330%)     | 15 (+650%)   |
 | MT CPU Optimized v2 (C# / SPIR-V HLSL)  |            |            |                |              |
 
 ※ **C++ Class**: shaders are coded and compiled ahead-of-time, using virtual inheritance.

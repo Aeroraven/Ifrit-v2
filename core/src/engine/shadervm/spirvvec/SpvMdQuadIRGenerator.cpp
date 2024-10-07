@@ -1568,34 +1568,20 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 				auto scalarReg = spirvImmediateLoad(src2->id, x, irg);
 				auto tpX = irg->getVariableSafe(src1->id)->tpRef->tp->children[0]->llvmType;
 				auto tpP = irg->getVariableSafe(src1->id)->tpRef->tp->llvmType;
-
 				auto vectorSize = irg->getVariableSafe(src1->id)->tpRef->tp->size;
-				std::vector<LLVM::SpVcLLVMArgument*> multiplyResRegs;
-				for (int i = 0; i < vectorSize; i++) {
-					auto regName = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-					auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpX, regName));
-					irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(regArg, vecReg, i), irg->getActiveBlock());
-					//ultiply
-					auto regName2 = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-					auto regArg2 = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpX, regName2));
-					irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(regArg2, regArg, scalarReg, "fmul"), irg->getActiveBlock());
-					multiplyResRegs.push_back(regArg2);
-				}
-				//Build ret
+				// Scalar to vector
 				LLVM::SpVcLLVMArgument* last = nullptr;
 				for (int i = 0; i < vectorSize; i++) {
 					auto rp = spirvCreateVarWithType(src1->tpRef->tp.get(), irg);
-					if (i == 0) {
-						irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(rp, multiplyResRegs[i], 0), irg->getActiveBlock());
-					}
-					else {
-						irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndex>(rp, last, multiplyResRegs[i], i), irg->getActiveBlock());
-					}
+					if (i == 0)  irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(rp, scalarReg, 0), irg->getActiveBlock());
+					else  irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndex>(rp, last, scalarReg, i), irg->getActiveBlock());
 					last = rp;
 				}
-				spirvImmediateMaskedStore(GET_PARAM_SCALAR(1), x, last, irg);
+				auto regArg = spirvCreateVarWithType(src1->tpRef->tp.get(), irg);
+				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(regArg, vecReg, last, "fmul"), irg->getActiveBlock());
+				spirvImmediateMaskedStore(GET_PARAM_SCALAR(1), x, regArg, irg);
 
-				}, irg);
+			}, irg);
 		}
 
 		CONV_PASS(OpDPDx) {
@@ -1614,7 +1600,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 				auto resultReg = spirvCreateVarWithType(resultType, irg);
 				irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(resultReg, upperReg, lowerReg, "fsub"), irg->getActiveBlock());
 				spirvImmediateMaskedStore(GET_PARAM(1)->id, x, resultReg, irg);
-				}, irg);
+			}, irg);
 		}
 		CONV_PASS(OpDPDy) {
 			auto src = GET_PARAM(2);
@@ -2557,6 +2543,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		ret += "declare float @llvm.atan.f32(float %Val)\n";
 		ret += "declare float @llvm.sqrt.f32(float %Val)\n";
 		ret += "declare float @llvm.fma.f32(float %Val,float %Val2,float %Val3)\n";
+		ret += "declare float @llvm.fma.v4f32( <4 x float> %Val, <4 x float> %Val2, <4 x float> %Val3)\n";
 		ret += "attributes #0 = { noinline nounwind \"no-stack-arg-probe\" }\n";
 		ret += mExtInstGen.getRequiredFuncDefs() + "\n";
 		
@@ -2585,6 +2572,4 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 			
 		return ret;
 	}
-
-
 }
