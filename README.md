@@ -119,12 +119,12 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 Tests performed on multi-thread CPU renderer (1 master + 16 workers), with just-in-time(JIT) compilation of Vulkan-specific HLSL shaders (compiled in SPIR-V binary format). All attachments are in `linear` tiling mode and `float32` mode. 
 
-| Model                             | 512 x 512 | 1024 x 1024 | 2048 x 2048 | 4096 x 4096 |
-| --------------------------------- | --------- | ----------- | ----------- | ----------- |
-| Kirara / Genshin Impact (37 k)    | 1219      | 480         | 124         | 28          |
-| Evil Neurosama (55.9 k)           | 606       | 398         | 120         | 31          |
-| Flandre Scarlet / Touhou (96.1 k) | 502       | 237         | 82          | 19          |
-| Miyako / Blue Archive (346.1 k)   | 106       | 72          | 43          | 13          |
+| Model                                     | 512 x 512 | 1024 x 1024 | 2048 x 2048 | 4096 x 4096 |
+| ----------------------------------------- | --------- | ----------- | ----------- | ----------- |
+| Kirara / Genshin Impact (37 k)            | 1219      | 480         | 124         | 28          |
+| Evil Neurosama (55.9 k)                   | 606       | 398         | 120         | 31          |
+| Flandre Scarlet / Touhou Project (96.1 k) | 502       | 237         | 82          | 19          |
+| Miyako / Blue Archive (346.1 k)           | 106       | 72          | 43          | 13          |
 
 
 
@@ -132,17 +132,17 @@ Tests performed on multi-thread CPU renderer (1 master + 16 workers), with just-
 
 Tests performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored. Note that some triangles **might be culled or clipped** in the pipeline. 
 
-| Model                                   | Yomiya     | Bunny      | Khronos Sponza | Intel Sponza |
-| --------------------------------------- | ---------- | ---------- | -------------- | ------------ |
-| Triangles                               | 70275      | 208353     | 786801         | 11241912     |
-| Single Thread CPU Baseline v1           | 38         | 20         | 2              | 1            |
-| Multi Thread CPU Baseline v1            | 80         | 80         | 10             | 2            |
-| CUDA Baseline v1                        | 2857       | 2272       | 500            | 198          |
-| ST CPU Optimized v2 (C++ / SPIR-V HLSL) | 47 (+23%)  | 27 (+35%)  | 6 (+200%)      | 2 (+100%)    |
-| MT CPU Optimized v2 (C++ / SPIR-V HLSL) | 134 (+68%) | 108 (+35%) | 39 (+290%)     | 11 (+450%)   |
-| ST CPU Optimized v2 (C++ / Class)       | 50 (+31%)  | 29 (+45%)  | 6 (+200%)      | 2 (+100%)    |
-| MT CPU Optimized v2 (C++ / Class)       | 138 (+73%) | 110 (+38%) | 43 (+330%)     | 15 (+650%)   |
-| MT CPU Optimized v2 (C# / SPIR-V HLSL)  |            |            |                |              |
+| Model                                   | Yomiya      | Bunny      | Khronos Sponza | Intel Sponza |
+| --------------------------------------- | ----------- | ---------- | -------------- | ------------ |
+| Triangles                               | 70275       | 208353     | 786801         | 11241912     |
+| Single Thread CPU Baseline v1           | 38          | 20         | 2              | 1            |
+| Multi Thread CPU Baseline v1            | 80          | 80         | 10             | 2            |
+| CUDA Baseline v1                        | 2857        | 2272       | 500            | 198          |
+| ST CPU Optimized v2 (C++ / SPIR-V HLSL) | 56 (+47%)   | 37 (+85%)  | 7 (+250%)      | 4 (+300%)    |
+| MT CPU Optimized v2 (C++ / SPIR-V HLSL) | 153 (+91%)  | 125 (+56%) | 43 (+330%)     | 24 (+1100%)  |
+| ST CPU Optimized v2 (C++ / Class)       | 56 (+47%)   | 37 (+85%)  | 7 (+250%)      | 4 (+300%)    |
+| MT CPU Optimized v2 (C++ / Class)       | 153 (+91%)* | 126 (+58%) | 43 (+330%)     | 24 (+1100%)* |
+| MT CPU Optimized v2 (C# / SPIR-V HLSL)  |             |            |                |              |
 
 ※ **C++ Class**: shaders are coded and compiled ahead-of-time, using virtual inheritance.
 

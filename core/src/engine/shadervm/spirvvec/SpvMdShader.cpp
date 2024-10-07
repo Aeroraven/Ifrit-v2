@@ -77,6 +77,7 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		ifritError("Shader execution should be organized in quads");
 	}
 	IFRIT_HOST void SpvVecFragmentShader::executeInQuad(const void** varyings, void** colorOutput, float** fragmentDepth){
+		//Here we assume all the inputs are float4
 		auto& sIb = symbolTables.inputBytes;
 		auto& sI = symbolTables.inputs;
 		auto& sO = symbolTables.outputs;
@@ -84,19 +85,21 @@ namespace Ifrit::Engine::ShaderVM::SpirvVec {
 		auto sISize = sIb[0].size();
 		auto sOSize = sOb[0].size();
 		for (int T = 0; T < SpVcQuadSize; T++) {
+			auto ptrSCT = (VaryingStore*)varyings[T];
+			auto& refSIT = sI[T];
 			for (int i = 0; i < sISize; i++) {
-				auto sA = sI[T][i];
-				auto sB = sIb[T][i];
-				auto sC = ((VaryingStore*)varyings[T]) + i;
-				memcpy(sA, sC, sB);
+				auto sA = refSIT[i];
+				auto sC = ptrSCT + i;
+				*((ifloat4*)sA) = *((ifloat4*)sC);
 			}
 		}
-		
 		auto shaderEntry = (void(*)())this->symbolTables.entry;
 		shaderEntry();
 		for (int T = 0; T < SpVcQuadSize; T++) {
+			auto ptrColorOutputT = (ifloat4*)colorOutput[T];
+			auto& refSOT = sO[T];
 			for (int i = 0; i < sOSize; i++) {
-				memcpy((ifloat4*)colorOutput[T] + i, sO[T][i], sOb[T][i]);
+				*(ptrColorOutputT + i) = *((ifloat4*)refSOT[i]);
 			}
 		}
 	}

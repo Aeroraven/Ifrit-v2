@@ -12,13 +12,17 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	constexpr auto tagbufferSizeX = TileRasterContext::tileWidth;
+
+	struct TagBufferContextVec2 {
+		float x, y;
+	};
+
 	struct TagBufferContext {
 		Ifrit::Math::SIMD::vfloat3 tagBufferBary[tagbufferSizeX * tagbufferSizeX];
 		Ifrit::Math::SIMD::vfloat3 atpBx[tagbufferSizeX * tagbufferSizeX];
 		Ifrit::Math::SIMD::vfloat3 atpBy[tagbufferSizeX * tagbufferSizeX];
-		Ifrit::Math::SIMD::vfloat4 atpF1[tagbufferSizeX * tagbufferSizeX];
-		Ifrit::Math::SIMD::vfloat4 atpF2[tagbufferSizeX * tagbufferSizeX];
-		Ifrit::Math::SIMD::vfloat4 atpF3[tagbufferSizeX * tagbufferSizeX];
+		Ifrit::Math::SIMD::vfloat4 atpF1F2[tagbufferSizeX * tagbufferSizeX];
+		TagBufferContextVec2 atpF3[tagbufferSizeX * tagbufferSizeX];
 		int valid[tagbufferSizeX * tagbufferSizeX];
 	};
 
@@ -52,6 +56,7 @@ namespace Ifrit::Engine::TileRaster {
 		// Hold Cache
 		float depthCache[TileRasterContext::tileWidth * TileRasterContext::tileWidth];
 		std::vector<TileBinProposal> coverQueueLocal;
+		float curTileHierZ = 0;
 
 		//Debug
 		int totalDraws = 0;

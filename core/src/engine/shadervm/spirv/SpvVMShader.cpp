@@ -123,16 +123,24 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 
 	void SpvVertexShader::execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) {
 		//TODO: Input & Output
-		for (int i = 0; i < symbolTables.inputBytes.size(); i++) {
-			memcpy(symbolTables.inputs[i], input[i], symbolTables.inputBytes[i]);
+		auto& sI = symbolTables.inputs;
+		auto& sO = symbolTables.outputs;
+		auto& sOb = symbolTables.outputBytes;
+		auto& sIb = symbolTables.inputBytes;
+		auto sISize = sIb.size();
+		for (int i = 0; i < sISize; i++) {
+			memcpy(sI[i], input[i], sIb[i]);
 		}
 		auto shaderEntry = (void(*)())this->symbolTables.entry;
 		shaderEntry();
-		for (int i = 0; i < symbolTables.outputs.size(); i++) {
-			memcpy(outVaryings[i], symbolTables.outputs[i], symbolTables.outputBytes[i]);
+		auto sOSize = sOb.size();
+		for (int i = 0; i < sOSize; i++) {
+			memcpy(outVaryings[i], sO[i], sOb[i]);
 		}
-		if(symbolTables.builtinPosition) memcpy(outPos, symbolTables.builtinPosition, 16);
-
+		auto ptrPos = (ifloat4*)symbolTables.builtinPosition;
+		if (ptrPos) {
+			*outPos = *ptrPos;
+		}
 	}
 	IFRIT_HOST VertexShader* SpvVertexShader::getCudaClone(){
 		ifritError("CUDA not supported");
@@ -147,12 +155,12 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		auto sISize = sIb.size();
 		auto sOSize = sOb.size();
 		for (int i = 0; i < sISize; i++) {
-			memcpy(sI[i], (VaryingStore*)varyings + i, sIb[i]);
+			*((VaryingStore*)sI[i]) = *((VaryingStore*)varyings + i);
 		}
 		auto shaderEntry = (void(*)())this->symbolTables.entry;
 		shaderEntry();
 		for (int i = 0; i < sOSize; i++) {
-			memcpy((ifloat4*)colorOutput + i, sO[i], sOb[i]);
+			*((ifloat4*)colorOutput + i) = *((ifloat4*)sO[i]);
 		}
 	}
 	IFRIT_HOST FragmentShader* SpvFragmentShader::getCudaClone(){
