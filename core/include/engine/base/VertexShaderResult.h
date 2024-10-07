@@ -28,8 +28,8 @@ namespace Ifrit::Engine {
 			return context->varyingDescriptors[id];
 		}
 		void allocateVaryings(int count) { 
-			context->varyings.resize(count);
-			context->varyingDescriptors.resize(count);
+			context->varyings.resize(count * 2);
+			context->varyingDescriptors.resize(count * 2);
 		}
 		inline void initializeVaryingBuffer(int id) {
 			context->varyings[id].resize(vertexCount);

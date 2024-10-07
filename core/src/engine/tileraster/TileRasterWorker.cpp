@@ -218,6 +218,11 @@ namespace Ifrit::Engine::TileRaster {
 			context->assembledTrianglesRaster[workerId].emplace_back(std::move(atriRaster));
 			
 			executeBinner(xid++, atriRaster, bbox);
+
+			//printf("tb1: %d %f,%f,%f\n", workerId, tb1.x, tb1.y, tb1.z);
+			//printf("tb2: %d %f,%f,%f\n", workerId, tb2.x, tb2.y, tb2.z);
+			//printf("tb3: %d %f,%f,%f\n", workerId, tb3.x, tb3.y, tb3.z);
+
 		}
 		return  retCnt - 2;
 	}
