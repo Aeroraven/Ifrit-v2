@@ -19,7 +19,6 @@ namespace Ifrit::Engine::TileRaster {
 		initialized = false;
 		for (auto& worker : workers) {
 			worker->status.store(TileRasterStage::TERMINATING, std::memory_order::relaxed);
-			worker->activated.store(true);
 		}
 		for (auto& worker : workers) {
 			worker->execWorker->join();

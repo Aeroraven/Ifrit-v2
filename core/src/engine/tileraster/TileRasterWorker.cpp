@@ -921,55 +921,56 @@ namespace Ifrit::Engine::TileRaster {
 #ifdef IFRIT_USE_SIMD_256
 								__m256i dx256Offset = _mm256_setr_epi32(0, 1, 0, 1, 2, 3, 2, 3);
 								__m256i dy256Offset = _mm256_setr_epi32(0, 0, 1, 1, 0, 0, 1, 1);
-								for (int dx = subTileMinX; dx < subTileMaxX; dx += 4) {
-									__m256i dx256i = _mm256_add_epi32(_mm256_set1_epi32(dx), dx256Offset);
-									__m256 dx256 = _mm256_cvtepi32_ps(dx256i);
-									__m256 criteria256X[3];
-									criteria256X[0] = _mm256_mul_ps(edgeCoefs256X[0], dx256);
-									criteria256X[1] = _mm256_mul_ps(edgeCoefs256X[1], dx256);
-									criteria256X[2] = _mm256_mul_ps(edgeCoefs256X[2], dx256);
-									for (int dy = subTileMinY; dy < subTileMaxY; dy += 2) {
-										__m256i dy256i = _mm256_add_epi32(_mm256_set1_epi32(dy), dy256Offset);
-										__m256 dy256 = _mm256_cvtepi32_ps(dy256i);
-										__m256i accept256 = _mm256_setzero_si256();
-										__m256 criteria256[3];
-
-										for (int k = 0; k < 3; k++) {
-											criteria256[k] = _mm256_fmadd_ps(edgeCoefs256Y[k], dy256, criteria256X[k]);
-											auto acceptMask = _mm256_castps_si256(_mm256_cmp_ps(criteria256[k], edgeCoefs256Z[k], _CMP_LT_OS));
-											accept256 = _mm256_add_epi32(accept256, acceptMask);
-										}
-										accept256 = _mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(-3));
-										auto accept256Mask8 = _mm256_movemask_epi8(accept256);
-
-										if (accept256Mask8 == -1) {
-											npropPixel256.tile = { dx,dy };
-											coverQueue.push_back(npropPixel256);
-										}
-										else {
-											auto cond1 = (accept256Mask8 & 0x0000FFFF);
-											if (cond1 == 0x0000FFFF) {
-												npropPixel128.tile = { dx, dy };
-												coverQueue.push_back(npropPixel128);
-											}
-											else if (cond1 != 0) {
-												auto pixelId = dx + dy * TILE_RASTER_TEMP_CONST_MAXW;
-												npropPixel.tile = { pixelId,cond1 };
-												coverQueue.push_back(npropPixel);
-											}
-											auto cond2 = (accept256Mask8 & 0xFFFF0000);
-											if (cond2 == 0xFFFF0000) {
-												npropPixel128.tile = { dx + 2, dy };
-												coverQueue.push_back(npropPixel128);
-											}
-											else if (cond2 != 0) {
-												auto pixelId = dx + dy * TILE_RASTER_TEMP_CONST_MAXW + 2;
-												npropPixel.tile = { pixelId,(int)(cond2 >> 16) };
-												coverQueue.push_back(npropPixel);
-											}
-												
-										}
+								static_assert(TileRasterContext::subtileBlockWidth == 4, "subtileBlockWidth != s4");
+								int dx = subTileMinX;
+								__m256i dx256i = _mm256_add_epi32(_mm256_set1_epi32(dx), dx256Offset);
+								__m256 dx256 = _mm256_cvtepi32_ps(dx256i);
+								__m256 criteria256X[3];
+								criteria256X[0] = _mm256_mul_ps(edgeCoefs256X[0], dx256);
+								criteria256X[1] = _mm256_mul_ps(edgeCoefs256X[1], dx256);
+								criteria256X[2] = _mm256_mul_ps(edgeCoefs256X[2], dx256);
+								int dy = subTileMinY;
+								__m256i dy256i = _mm256_add_epi32(_mm256_set1_epi32(dy), dy256Offset);
+								__m256 dy256 = _mm256_cvtepi32_ps(dy256i);
+								__m256 criteria256[3];
+								for (int sk = 0; sk < 2; sk++) {
+									__m256i accept256 = _mm256_setzero_si256();
+									for (int k = 0; k < 3; k++) {
+										criteria256[k] = _mm256_fmadd_ps(edgeCoefs256Y[k], dy256, criteria256X[k]);
+										auto acceptMask = _mm256_castps_si256(_mm256_cmp_ps(criteria256[k], edgeCoefs256Z[k], _CMP_LT_OS));
+										accept256 = _mm256_add_epi32(accept256, acceptMask);
 									}
+									accept256 = _mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(-3));
+									auto accept256Mask8 = _mm256_movemask_epi8(accept256);
+
+									if (accept256Mask8 == -1) {
+										npropPixel256.tile = { dx,dy };
+										coverQueue.push_back(npropPixel256);
+									}
+									else {
+										auto cond1 = (accept256Mask8 & 0x0000FFFF);
+										if (cond1 == 0x0000FFFF) {
+											npropPixel128.tile = { dx, dy };
+											coverQueue.push_back(npropPixel128);
+										}
+										else if (cond1 != 0) {
+											auto pixelId = dx + dy * TILE_RASTER_TEMP_CONST_MAXW;
+											npropPixel.tile = { pixelId,cond1 };
+											coverQueue.push_back(npropPixel);
+										}
+										auto cond2 = (accept256Mask8 & 0xFFFF0000);
+										if (cond2 == 0xFFFF0000) {
+											npropPixel128.tile = { dx + 2, dy };
+											coverQueue.push_back(npropPixel128);
+										}
+										else if (cond2 != 0) {
+											auto pixelId = dx + dy * TILE_RASTER_TEMP_CONST_MAXW + 2;
+											npropPixel.tile = { pixelId,(int)(cond2 >> 16) };
+											coverQueue.push_back(npropPixel);
+										}	
+									}
+									dy256 = _mm256_add_ps(dy256, _mm256_set1_ps(2.0f));
+									dy += 2;
 								}
 #else								
 								for (int dx = subTileMinX; dx < subTileMaxX; dx += 2) {
@@ -1401,20 +1402,16 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			auto ptrCtx = context.get();
 			auto& psEntry = ptrCtx->threadSafeFS[workerId];
 			auto forcedInQuads = psEntry->forcedQuadInvocation;
-			psEntry->currentPass = passNo;
 			auto aCsFwS1 = _mm256_set1_epi32(ptrCtx->frameWidth - 1);
 			auto aCsFhS1 = _mm256_set1_epi32(ptrCtx->frameHeight - 1);
 			auto varyCnts = args.varyingCounts;
-			auto ivData = interpolatedVaryings.data();
-			auto coData = colorOutput.data();
 			auto ptrBaseInd = args.indexBufferPtr;
-			std::vector<vfloat4*> vaPtr(varyCnts);
+			vfloat4* vaPtr[TILE_RASTER_MAX_VARYINGS];
 			auto ptrVsRes = ptrCtx->vertexShaderResult.get();
 			for (int i = 0; i < varyCnts; i++) {
 				vaPtr[i] = ptrVsRes->getVaryingBuffer(i);
 			}
 			auto reqDepth = psEntry->allowDepthModification;
-
 			auto ptrAtpBary = args.tagBuffer->tagBufferBary;
 			auto ptrAtpBx = args.tagBuffer->atpBx;
 			auto ptrAtpBy = args.tagBuffer->atpBy;
@@ -1424,6 +1421,8 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 			vfloat4 interpVaryingsQuad[8][TILE_RASTER_MAX_VARYINGS];
 			vfloat4 colorOutpQuad[8][TILE_RASTER_MAX_VARYINGS];
+			auto ivData = interpVaryingsQuad[0];
+			auto coData = colorOutpQuad[0];
 			const void* itp[2][4] = {
 				{ interpVaryingsQuad ,interpVaryingsQuad + 1,interpVaryingsQuad + 2,interpVaryingsQuad + 3 },
 				{ interpVaryingsQuad + 4 ,interpVaryingsQuad + 5,interpVaryingsQuad + 6,interpVaryingsQuad + 7 },
@@ -1483,10 +1482,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 				
 				// zCorr
-				__m256 interpolatedDepth;
-				if (reqDepth) interpolatedDepth = _mm256_i32gather_ps((float*)depthCache, dxId256, 4);
-				else interpolatedDepth = _mm256_setzero_ps();
-					
+				__m256 interpolatedDepth = reqDepth?_mm256_i32gather_ps((float*)depthCache, dxId256, 4): _mm256_setzero_ps();
 				__m256i tagBufferValid = _mm256_i32gather_epi32((int*)ptrValid, dxId256, 4);
 
 				__m256i idxA = _mm256_slli_epi32(tagBufferValid, 1);
@@ -1630,30 +1626,26 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 					desiredBaryR[1] = _mm256_fmadd_ps(baryVecX, atpByX, _mm256_fmadd_ps(baryVecY, atpByY, _mm256_mul_ps(baryVecZ, atpByZ)));
 					desiredBaryR[2] = _mm256_sub_ps(_mm256_set1_ps(1.0f), _mm256_add_ps(desiredBaryR[0], desiredBaryR[1]));
 
-					const auto vSize = args.varyingCounts;
-
 					// convert desiredBary to 16xfloat3
 					float desiredBaryX[8], desiredBaryY[8], desiredBaryZ[8];
 					_mm256_storeu_ps(desiredBaryX, desiredBaryR[0]);
 					_mm256_storeu_ps(desiredBaryY, desiredBaryR[1]);
 					_mm256_storeu_ps(desiredBaryZ, desiredBaryR[2]);
+					auto ptrCol0 = args.colorAttachment0;
 					for (int j = 0; j < 8; j++) {
 						if (validMaskT[j] == 0)continue;
-						const auto vSize = args.varyingCounts;
-						const int* const addr = args.indexBufferPtr + idxT[j];
-						for (int k = 0; k < vSize; k++) {
+						const int* const addr = ptrBaseInd + idxT[j];
+						for (int k = 0; k < varyCnts; k++) {
 							auto va = vaPtr[k];
-							auto& dest = interpolatedVaryings[k];
 							const auto& tmp0 = (va[addr[0]]);
 							const auto& tmp1 = (va[addr[1]]);
 							const auto& tmp2 = (va[addr[2]]);
 							vfloat4 destVec = tmp0 * desiredBaryX[j];
 							destVec = fma(tmp1, desiredBaryY[j], destVec);
-							dest = fma(tmp2, desiredBaryZ[j], destVec);
+							ivData[k] = fma(tmp2, desiredBaryZ[j], destVec);
 						}
-
 						psEntry->execute(ivData, coData, &interpolatedDepthT[j]);
-						args.colorAttachment0->fillPixelRGBA128ps(dx[j], dy[j], _mm_loadu_ps((float*)(coData)));
+						ptrCol0->fillPixelRGBA128ps(dx[j], dy[j], _mm_loadu_ps((float*)(coData)));
 					}
 				}
 

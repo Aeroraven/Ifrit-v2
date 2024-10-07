@@ -38,17 +38,14 @@ namespace Ifrit::Engine::TileRaster {
 	class TileRasterWorker {
 	protected:
 		std::atomic<TileRasterStage> status;
-		std::atomic<bool> activated;
 	private:
 		uint32_t workerId;
 		TileRasterRenderer* rendererReference; 
 		std::unique_ptr<std::thread> execWorker;
 		std::shared_ptr<TileRasterContext> context;
 		
-		std::vector<ifloat4> perVertexVaryings;
 		std::vector<Ifrit::Math::SIMD::vfloat4> interpolatedVaryings;
 		std::vector<const void*> interpolatedVaryingsAddr;
-		std::vector<const void*> perVertexVaryingsAddr;
 
 		std::vector<ifloat4> colorOutput = std::vector<ifloat4>(1);
 		std::vector<AssembledTriangleProposal> generatedTriangle;
