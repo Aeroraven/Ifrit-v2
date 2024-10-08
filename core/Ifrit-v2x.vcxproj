@@ -184,6 +184,7 @@
     <ClInclude Include="include\IfritIncludes.h" />
     <ClInclude Include="include\math\LinalgOps.h" />
     <ClInclude Include="include\math\simd\SimdVectors.h" />
+    <ClInclude Include="include\math\fastutil\FastUtil.h" />
     <ClInclude Include="include\math\VectorOps.h" />
     <ClInclude Include="include\presentation\backend\AdaptiveBackendBuilder.h" />
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />

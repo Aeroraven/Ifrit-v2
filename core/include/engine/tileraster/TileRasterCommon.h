@@ -47,9 +47,9 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	struct TileBinProposal {
-		iint2 tile;
+		uint64_t tile;
 		TileRasterLevel level;
-		AssembledTriangleProposalReference clippedTriangle;
+		int clipTrianglePacked;
 	};
 
 	struct TileBinProposalCUDA {

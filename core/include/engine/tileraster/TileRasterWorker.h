@@ -95,6 +95,12 @@ namespace Ifrit::Engine::TileRaster {
 		void pixelShading(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
 		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
+		void pixelShadingSingleQuad(const AssembledTriangleProposalShadeStage& atp, int quadMask, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+
+		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
+		void pixelShadingSIMD256Grouped(const AssembledTriangleProposalShadeStage& atp,int groupsX,int groupsY, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+
+		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
 		void pixelShadingSIMD128(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 		
 		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
