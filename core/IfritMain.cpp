@@ -43,5 +43,6 @@ int demoASTest() {
 int main() {
 	Ifrit::Demo::ShaderVMDemo::mainTest();
 	//Ifrit::Demo::DemoDefault::mainCpu();
+	//demoASTest();
 	return 0;
 }

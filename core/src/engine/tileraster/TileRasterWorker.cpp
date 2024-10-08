@@ -199,9 +199,9 @@ namespace Ifrit::Engine::TileRaster {
 			atriShade.vz = vfloat3(tv1.z * tv1.w, tv2.z * tv2.w, tv3.z * tv3.w);
 			atriShade.originalPrimitive = primitiveId;
 			// Precision might matter here
-			atriShade.f1 *= 1.0f / tv1.w;
-			atriShade.f2 *= 1.0f / tv2.w;
-			atriShade.f3 *= 1.0f / tv3.w;
+			atriShade.f1 *= FastUtil::approxReciprocal(tv1.w);
+			atriShade.f2 *= FastUtil::approxReciprocal(tv2.w);
+			atriShade.f3 *= FastUtil::approxReciprocal(tv3.w);
 			
 			if (!triangleCulling(tv1, tv2, tv3)) {
 				continue;
@@ -1230,29 +1230,7 @@ namespace Ifrit::Engine::TileRaster {
 				}
 #endif
 			}
-			else if (proposal.level == TileRasterLevel::TILE) {
-#ifdef IFRIT_USE_SIMD_128
-#ifdef IFRIT_USE_SIMD_256
-				for (int dx = curTileX1; dx < curTileX2; dx+=4) {
-					for (int dy = curTileY1; dy < curTileY2; dy+=2) {
-						pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
-					}
-				}
-#else
-				for (int dx = curTileX1; dx < curTileX2; dx+=2) {
-					for (int dy = curTileY1; dy < curTileY2; dy+=2) {
-						pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
-					}
-				}
-#endif
-#else
-				for (int dx = curTileX1; dx < curTileX2; dx++) {
-					for (int dy = curTileY1; dy < curTileY2; dy++) {
-						pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
-					}
-				}
-#endif
-			}
+
 			else if (proposal.level == TileRasterLevel::BLOCK) {
 				auto subtileXPerTile = context->numSubtilesPerTileX;
 				auto proposalTile = proposal.tile;
@@ -1294,6 +1272,29 @@ namespace Ifrit::Engine::TileRaster {
 #endif
 					
 			}
+			else if (proposal.level == TileRasterLevel::TILE) {
+#ifdef IFRIT_USE_SIMD_128
+#ifdef IFRIT_USE_SIMD_256
+				for (int dx = curTileX1; dx < curTileX2; dx += 4) {
+					for (int dy = curTileY1; dy < curTileY2; dy += 2) {
+						pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+					}
+				}
+#else
+				for (int dx = curTileX1; dx < curTileX2; dx += 2) {
+					for (int dy = curTileY1; dy < curTileY2; dy += 2) {
+						pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+					}
+				}
+#endif
+#else
+				for (int dx = curTileX1; dx < curTileX2; dx++) {
+					for (int dy = curTileY1; dy < curTileY2; dy++) {
+						pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+					}
+				}
+#endif
+			}
 		};
 		// ========= End of lambda func ==============
 
@@ -1330,8 +1331,8 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			auto coverQueueLocalSize = coverQueueLocal.size();
 			auto& firstCoverQueue = context->coverQueue;
 			auto iterFunc = [&]<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>() {
-				auto curTileX = curTile % context->numTilesX * context->tileWidth;
-				auto curTileY = curTile / context->numTilesX * context->tileWidth;
+				auto curTileX = (unsigned)curTile % (unsigned)context->numTilesX * context->tileWidth;
+				auto curTileY = (unsigned)curTile / (unsigned)context->numTilesX * context->tileWidth;
 				auto& depthRef = (*context->frameBuffer->getDepthAttachment());
 				if constexpr (tpOnlyTaggingPass) {
 					bool directReturn = true;
