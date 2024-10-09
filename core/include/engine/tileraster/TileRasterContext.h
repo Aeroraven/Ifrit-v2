@@ -15,8 +15,7 @@ namespace Ifrit::Engine::TileRaster {
 		int primId;
 	};
 	struct AssembledTriangleProposalShadeStage {
-		Ifrit::Math::SIMD::vfloat3 vz;
-		Ifrit::Math::SIMD::vfloat3 bx, by;//b1, b2, b3;
+		Ifrit::Math::SIMD::vfloat3 bx, by;
 		Ifrit::Math::SIMD::vfloat4 f1, f2, f3; //Interpolate Bases
 		int originalPrimitive;
 	};

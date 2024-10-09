@@ -107,9 +107,10 @@ namespace Ifrit::Engine::TileRaster {
 		void pixelShadingSIMD256(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
 		void pixelShadingFromTagBuffer(const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+		void pixelShadingFromTagBufferQuadInvo(const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
 		inline int getTileID(int x, int y) IFRIT_AP_NOTHROW {
-			return y * context->numTilesX + x;
+			return (unsigned)y * (unsigned)context->numTilesX + (unsigned)x;
 		
 		}
 		

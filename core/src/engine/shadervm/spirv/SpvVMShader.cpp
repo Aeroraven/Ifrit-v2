@@ -45,6 +45,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 			this->symbolTables.outputs[i] = this->runtime->lookupSymbol(svmir->shaderMaps.outputVarSymbols[i]);
 			this->symbolTables.outputBytes[i] = svmir->shaderMaps.outputSize[i];
 		}
+		cSISize = svmir->shaderMaps.inputVarSymbols.size();
+		cSOSize = svmir->shaderMaps.outputVarSymbols.size();
 		for (int i = 0; i < svmir->shaderMaps.uniformSize.size(); i++) {
 			std::pair<int, int> loc = svmir->shaderMaps.uniformVarLoc[i];
 			this->symbolTables.uniform[loc] = {
@@ -53,6 +55,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 			};
 		}
 		this->symbolTables.entry = this->runtime->lookupSymbol(svmir->shaderMaps.mainFuncSymbol);
+		cEntry = (void(*)())this->symbolTables.entry;
 		if (svmir->shaderMaps.builtinPositionSymbol.size()) {
 			this->symbolTables.builtinPosition = this->runtime->lookupSymbol(svmir->shaderMaps.builtinPositionSymbol);
 		}
@@ -122,18 +125,17 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	}
 
 	void SpvVertexShader::execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) {
-		//TODO: Input & Output
+		// TODO: Input & Output
 		auto& sI = symbolTables.inputs;
 		auto& sO = symbolTables.outputs;
 		auto& sOb = symbolTables.outputBytes;
 		auto& sIb = symbolTables.inputBytes;
-		auto sISize = sIb.size();
+		auto sISize = cSISize;
+		auto sOSize = cSOSize;
 		for (int i = 0; i < sISize; i++) {
 			memcpy(sI[i], input[i], sIb[i]);
 		}
-		auto shaderEntry = (void(*)())this->symbolTables.entry;
-		shaderEntry();
-		auto sOSize = sOb.size();
+		cEntry();
 		for (int i = 0; i < sOSize; i++) {
 			memcpy(outVaryings[i], sO[i], sOb[i]);
 		}
@@ -148,17 +150,14 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	}
 	void SpvFragmentShader::execute(const void* varyings, void* colorOutput, float* fragmentDepth) {
 		//TODO: Input & Output
-		auto& sIb = symbolTables.inputBytes;
 		auto& sI = symbolTables.inputs;
 		auto& sO = symbolTables.outputs;
-		auto& sOb = symbolTables.outputBytes;
-		auto sISize = sIb.size();
-		auto sOSize = sOb.size();
+		auto sISize = cSISize;
+		auto sOSize = cSOSize;
 		for (int i = 0; i < sISize; i++) {
 			*((VaryingStore*)sI[i]) = *((VaryingStore*)varyings + i);
 		}
-		auto shaderEntry = (void(*)())this->symbolTables.entry;
-		shaderEntry();
+		cEntry();
 		for (int i = 0; i < sOSize; i++) {
 			*((ifloat4*)colorOutput + i) = *((ifloat4*)sO[i]);
 		}

@@ -4,7 +4,7 @@
 #include "math/simd/SimdVectors.h"
 #include "utility/debug/DebugHelper.h"
 #include "math/fastutil/FastUtil.h"
-
+#include "math/fastutil/FastUtilSimd.h"
 using namespace Ifrit::Math;
 using namespace Ifrit::Math::SIMD;
 
@@ -45,7 +45,7 @@ namespace Ifrit::Engine::TileRaster {
 			bool normalRight = edgeCoefs[i].x < 0;
 			bool normalDown = edgeCoefs[i].y < 0;
 			chosenCoordTR[i] = normalRight ? (normalDown ? VRB : VRT) : (normalDown ? VLB : VLT);
-                chosenCoordTA[i] = normalRight ? (normalDown ? VLT : VLB) : (normalDown ? VRT : VRB);
+            chosenCoordTA[i] = normalRight ? (normalDown ? VLT : VLB) : (normalDown ? VRT : VRB);
 		}
 	}
 	TileRasterWorker::TileRasterWorker(uint32_t workerId, std::shared_ptr<TileRasterRenderer> renderer, std::shared_ptr<TileRasterContext> context) {
@@ -80,18 +80,19 @@ namespace Ifrit::Engine::TileRaster {
 
 	void TileRasterWorker::drawCall(bool withClear) IFRIT_AP_NOTHROW {
 		auto rawRenderer = rendererReference;
+		auto ptrCtx = context.get();
 		auto totalTiles = context->numTilesX * context->numTilesY;
 		if (withClear) {
 			constexpr auto depth = getInftyDepthValue();
-			context->frameBuffer->getDepthAttachment()->clearImageMultithread(depth, workerId, TOTAL_THREADS);
-			context->frameBuffer->getColorAttachment(0)->clearImageZeroMultiThread(workerId, TOTAL_THREADS);
+			ptrCtx->frameBuffer->getDepthAttachment()->clearImageMultithread(depth, workerId, TOTAL_THREADS);
+			ptrCtx->frameBuffer->getColorAttachment(0)->clearImageZeroMultiThread(workerId, TOTAL_THREADS);
 		}
 		vertexProcessing(rawRenderer);
 		rawRenderer->statusTransitionBarrier2(TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);
-		context->assembledTrianglesRaster[workerId].clear();
-		context->assembledTrianglesShade[workerId].clear();
-		auto& w1 = context->rasterizerQueue[workerId];
-		auto& w2 = context->coverQueue[workerId];
+		ptrCtx->assembledTrianglesRaster[workerId].clear();
+		ptrCtx->assembledTrianglesShade[workerId].clear();
+		auto& w1 = ptrCtx->rasterizerQueue[workerId];
+		auto& w2 = ptrCtx->coverQueue[workerId];
 		for (int j = 0; j < totalTiles; j++) {
 			w1[j].clear();
 			w2[j].clear();
@@ -188,20 +189,22 @@ namespace Ifrit::Engine::TileRaster {
 			const auto s1 = -sV3V2y - sV3V2x;
 			const auto s2 = -sV1V3y - sV1V3x;
 
-			atriShade.f3 = { sV2V1y * csInvX  , sV2V1x * csInvY ,(-tv1.x * sV2V1y - tv1.y * sV2V1x + s3) * ar  };
-			atriShade.f1 = { sV3V2y * csInvX  , sV3V2x * csInvY ,(-tv2.x * sV3V2y - tv2.y * sV3V2x + s1) * ar  };
-			atriShade.f2 = { sV1V3y * csInvX  , sV1V3x * csInvY ,(-tv3.x * sV1V3y - tv3.y * sV1V3x + s2) * ar  };
+			atriShade.f3 = { sV2V1y * csInvX  , sV2V1x * csInvY ,(-tv1.x * sV2V1y - tv1.y * sV2V1x + s3) * ar, tv3.z * tv3.w };
+			atriShade.f1 = { sV3V2y * csInvX  , sV3V2x * csInvY ,(-tv2.x * sV3V2y - tv2.y * sV3V2x + s1) * ar, tv1.z * tv1.w };
+			atriShade.f2 = { sV1V3y * csInvX  , sV1V3x * csInvY ,(-tv3.x * sV1V3y - tv3.y * sV1V3x + s2) * ar, tv2.z * tv2.w };
 
 			atriRaster.e1 = { csFh * sV2V1y,  csFw * sV2V1x,  csFhFw * (tv2.x * tv1.y - tv1.x * tv2.y + s3 - EPS) };
 			atriRaster.e2 = { csFh * sV3V2y,  csFw * sV3V2x,  csFhFw * (tv3.x * tv2.y - tv2.x * tv3.y + s1 - EPS) };
 			atriRaster.e3 = { csFh * sV1V3y,  csFw * sV1V3x,  csFhFw * (tv1.x * tv3.y - tv3.x * tv1.y + s2 - EPS) };
 
-			atriShade.vz = vfloat3(tv1.z * tv1.w, tv2.z * tv2.w, tv3.z * tv3.w);
 			atriShade.originalPrimitive = primitiveId;
 			// Precision might matter here
 			atriShade.f1 *= FastUtil::approxReciprocal(tv1.w);
 			atriShade.f2 *= FastUtil::approxReciprocal(tv2.w);
 			atriShade.f3 *= FastUtil::approxReciprocal(tv3.w);
+			atriShade.f1.w = tv1.z * tv1.w;
+			atriShade.f2.w = tv2.z * tv2.w;
+			atriShade.f3.w = tv3.z * tv3.w;
 			
 			if (!triangleCulling(tv1, tv2, tv3)) {
 				continue;
@@ -215,6 +218,12 @@ namespace Ifrit::Engine::TileRaster {
 				continue;
 			}
 			bbox = fma(bbox, 0.5f, vfloat4(0.5f));
+			auto frameBufferWidth = context->frameWidth;
+			auto frameBufferHeight = context->frameHeight;
+			float fbwDivTw = 1.0f * frameBufferWidth / context->tileWidth;
+			float fbwDivTh = 1.0f * frameBufferHeight / context->tileWidth;
+			bbox *= vfloat4(fbwDivTw, fbwDivTh, fbwDivTw, fbwDivTh);
+
 			context->assembledTrianglesShade[workerId].emplace_back(std::move(atriShade));
 			context->assembledTrianglesRaster[workerId].emplace_back(std::move(atriRaster));
 			
@@ -251,13 +260,6 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposalRasterStage& atp, vfloat4 bbox) IFRIT_AP_NOTHROW {
 		constexpr const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
-
-		auto frameBufferWidth = context->frameWidth;
-		auto frameBufferHeight = context->frameHeight;
-		float fbwDivTw = 1.0f * frameBufferWidth / context->tileWidth;
-		float fbwDivTh = 1.0f * frameBufferHeight / context->tileWidth;
-		bbox *= vfloat4(fbwDivTw, fbwDivTh, fbwDivTw, fbwDivTh);
-
 		int tileMinx = std::max(0, (int)(bbox.x));
 		int tileMiny = std::max(0, (int)(bbox.y));
 		int tileMaxx = std::min((int)(bbox.z), context->numTilesX - 1);
@@ -268,14 +270,14 @@ namespace Ifrit::Engine::TileRaster {
 		edgeCoefs[1] = atp.e2;
 		edgeCoefs[2] = atp.e3;
 
-		ifloat3 tileCoords[4];
+		ifloat2 tileCoords[4];
 
 		int chosenCoordTR[3];
 		int chosenCoordTA[3];
 		getAcceptRejectCoords(edgeCoefs, chosenCoordTR, chosenCoordTA);
 
-		const float tileSizeX = context->tileWidth;
-		const float tileSizeY = context->tileWidth;
+		constexpr float tileSizeX = TileRasterContext::tileWidth;
+		constexpr float tileSizeY = TileRasterContext::tileWidth;
 
 		vfloat3 zeroVec = vfloat3(0.0f);
 		auto& cvQueue = context->coverQueue[workerId];
@@ -285,10 +287,10 @@ namespace Ifrit::Engine::TileRaster {
 			for (int x = tileMinx; x <= tileMaxx; x++) {
 				auto dTx = x * tileSizeX;
 				
-				tileCoords[VLT] = { dTx,dTy, 1.0f };
-				tileCoords[VLB] = { dTx, dTy + tileSizeY, 1.0f };
-				tileCoords[VRB] = { dTx + tileSizeX,  dTy + tileSizeY, 1.0f };
-				tileCoords[VRT] = { dTx + tileSizeX, dTy, 1.0f };
+				tileCoords[VLT] = { dTx,dTy };
+				tileCoords[VLB] = { dTx, dTy + tileSizeY};
+				tileCoords[VRB] = { dTx + tileSizeX,  dTy + tileSizeY};
+				tileCoords[VRT] = { dTx + tileSizeX, dTy };
 
 				int criteriaTR = 0;
 				int criteriaTA = 0;
@@ -351,8 +353,6 @@ namespace Ifrit::Engine::TileRaster {
 				fragmentProcessingSingleTile(renderer, clearDepth, curTile);
 			}
 		}
-
-		
 		status.store(TileRasterStage::FRAGMENT_SHADING_SYNC,std::memory_order::relaxed);
 	}
 	void TileRasterWorker::vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW {
@@ -416,14 +416,16 @@ namespace Ifrit::Engine::TileRaster {
 		auto& rasterAtriQueue = context->assembledTrianglesRaster[workerId];
 		__m256 aCsFw1 = _mm256_set1_ps(context->frameWidth);
 		__m256 aCsFh1 = _mm256_set1_ps(context->frameHeight);
-
+		__m256 aInvTileWidth = _mm256_set1_ps(FastUtil::approxReciprocal(context->tileWidth));
+		__m256 aFbwDivTw = _mm256_mul_ps(aCsFw1, aInvTileWidth);
+		__m256 aFbwDivTh = _mm256_mul_ps(aCsFh1, aInvTileWidth);
 
 		auto directTriangleSetup = [&]() {
 			__m256 tv1X = _mm256_i32gather_ps((float*)candV1, indexOffset, 4);
 			__m256 tv1Y = _mm256_i32gather_ps(((float*)candV1) + 1, indexOffset, 4);
 			__m256 tv1Z = _mm256_i32gather_ps(((float*)candV1) + 2, indexOffset, 4);
 			__m256 tv1W = _mm256_i32gather_ps(((float*)candV1) + 3, indexOffset, 4);
-			__m256 tv1WInv = _mm256_div_ps(_mm256_set1_ps(1.0f), tv1W);
+			__m256 tv1WInv = FastUtil::approxReciprocalNR_256(tv1W);
 			tv1X = _mm256_mul_ps(tv1X, tv1WInv);
 			tv1Y = _mm256_mul_ps(tv1Y, tv1WInv);
 			tv1Z = _mm256_mul_ps(tv1Z, tv1WInv);
@@ -432,7 +434,7 @@ namespace Ifrit::Engine::TileRaster {
 			__m256 tv2Y = _mm256_i32gather_ps(((float*)candV2) + 1, indexOffset, 4);
 			__m256 tv2Z = _mm256_i32gather_ps(((float*)candV2) + 2, indexOffset, 4);
 			__m256 tv2W = _mm256_i32gather_ps(((float*)candV2) + 3, indexOffset, 4);
-			__m256 tv2WInv = _mm256_div_ps(_mm256_set1_ps(1.0f), tv2W);
+			__m256 tv2WInv = FastUtil::approxReciprocalNR_256(tv2W);
 			tv2X = _mm256_mul_ps(tv2X, tv2WInv);
 			tv2Y = _mm256_mul_ps(tv2Y, tv2WInv);
 			tv2Z = _mm256_mul_ps(tv2Z, tv2WInv);
@@ -441,7 +443,7 @@ namespace Ifrit::Engine::TileRaster {
 			__m256 tv3Y = _mm256_i32gather_ps(((float*)candV3) + 1, indexOffset, 4);
 			__m256 tv3Z = _mm256_i32gather_ps(((float*)candV3) + 2, indexOffset, 4);
 			__m256 tv3W = _mm256_i32gather_ps(((float*)candV3) + 3, indexOffset, 4);
-			__m256 tv3WInv = _mm256_div_ps(_mm256_set1_ps(1.0f), tv3W);
+			__m256 tv3WInv = FastUtil::approxReciprocalNR_256(tv3W);
 			tv3X = _mm256_mul_ps(tv3X, tv3WInv);
 			tv3Y = _mm256_mul_ps(tv3Y, tv3WInv);
 			tv3Z = _mm256_mul_ps(tv3Z, tv3WInv);
@@ -451,10 +453,10 @@ namespace Ifrit::Engine::TileRaster {
 			__m256 aV3ySubV1y = _mm256_sub_ps(tv3Y, tv1Y);
 			__m256 aV2xSubV1xS = _mm256_sub_ps(tv2X, tv1X);
 			__m256 aEdgeCoefMul = _mm256_mul_ps(aV3xSubV1xS, aV2ySubV1y);
-			__m256 aV3ySubV1yNeg = _mm256_sub_ps(_mm256_setzero_ps(), aV3ySubV1y);
+			__m256 aV3ySubV1yNeg = FastUtil::flipFp32Sign_256(aV3ySubV1y);// _mm256_sub_ps(_mm256_setzero_ps(), aV3ySubV1y);
 			__m256 aEdgeCoef = _mm256_fmadd_ps(aV3ySubV1yNeg, aV2xSubV1xS, aEdgeCoefMul);
 
-			__m256 aAr = _mm256_div_ps(_mm256_set1_ps(1.0f), aEdgeCoef);//_mm256_rcp_ps(aEdgeCoef);
+			__m256 aAr = FastUtil::approxReciprocalNR_256(aEdgeCoef);//_mm256_rcp_ps(aEdgeCoef);
 			
 			__m256 aV3ySubV2y = _mm256_sub_ps(tv3Y, tv2Y);
 			__m256 aV3xSubV2x = _mm256_sub_ps(tv2X, tv3X); //NOTE
@@ -462,29 +464,29 @@ namespace Ifrit::Engine::TileRaster {
 			__m256 aV1ySubV3y = _mm256_sub_ps(tv1Y, tv3Y);
 			__m256 aV2xSubV1x = _mm256_sub_ps(tv1X, tv2X); //NOTE
 
-			__m256 aS3 = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_add_ps(aV2ySubV1y, aV2xSubV1x));
-			__m256 aS1 = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_add_ps(aV3ySubV2y, aV3xSubV2x));
-			__m256 aS2 = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_add_ps(aV1ySubV3y, aV1xSubV3x));
+			__m256 aS3 = FastUtil::flipFp32Sign_256(_mm256_add_ps(aV2ySubV1y, aV2xSubV1x));
+			__m256 aS1 = FastUtil::flipFp32Sign_256(_mm256_add_ps(aV3ySubV2y, aV3xSubV2x));
+			__m256 aS2 = FastUtil::flipFp32Sign_256(_mm256_add_ps(aV1ySubV3y, aV1xSubV3x));
 
 			__m256 aCsInvX = _mm256_mul_ps(aCsInvXR, aAr);
 			__m256 aCsInvY = _mm256_mul_ps(aCsInvYR, aAr);
 			__m256 rF3X = _mm256_mul_ps(aV2ySubV1y, aCsInvX);
 			__m256 rF3Y = _mm256_mul_ps(aV2xSubV1x, aCsInvY);
-			__m256 rF3Z_o = _mm256_fmadd_ps(tv1Y, aV2xSubV1x, _mm256_sub_ps(_mm256_setzero_ps(), aS3));
+			__m256 rF3Z_o = _mm256_fmadd_ps(tv1Y, aV2xSubV1x, FastUtil::flipFp32Sign_256(aS3));
 			rF3Z_o = _mm256_fmadd_ps(tv1X, aV2ySubV1y, rF3Z_o);
-			__m256 rF3Z = _mm256_sub_ps(_mm256_setzero_ps(),_mm256_mul_ps(rF3Z_o, aAr));
+			__m256 rF3Z = FastUtil::flipFp32Sign_256(_mm256_mul_ps(rF3Z_o, aAr));
 
 			__m256 rF1X = _mm256_mul_ps(aV3ySubV2y, aCsInvX);
 			__m256 rF1Y = _mm256_mul_ps(aV3xSubV2x, aCsInvY);
-			__m256 rF1Z_o = _mm256_fmadd_ps(tv2Y, aV3xSubV2x, _mm256_sub_ps(_mm256_setzero_ps(), aS1));
+			__m256 rF1Z_o = _mm256_fmadd_ps(tv2Y, aV3xSubV2x, FastUtil::flipFp32Sign_256(aS1));
 			rF1Z_o = _mm256_fmadd_ps(tv2X, aV3ySubV2y, rF1Z_o);
-			__m256 rF1Z = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_mul_ps(rF1Z_o, aAr));
+			__m256 rF1Z = FastUtil::flipFp32Sign_256(_mm256_mul_ps(rF1Z_o, aAr));
 
 			__m256 rF2X = _mm256_mul_ps(aV1ySubV3y, aCsInvX);
 			__m256 rF2Y = _mm256_mul_ps(aV1xSubV3x, aCsInvY);
-			__m256 rF2Z_o = _mm256_fmadd_ps(tv3Y, aV1xSubV3x, _mm256_sub_ps(_mm256_setzero_ps(), aS2));
+			__m256 rF2Z_o = _mm256_fmadd_ps(tv3Y, aV1xSubV3x, FastUtil::flipFp32Sign_256(aS2));
 			rF2Z_o = _mm256_fmadd_ps(tv3X, aV1ySubV3y, rF2Z_o);
-			__m256 rF2Z = _mm256_sub_ps(_mm256_setzero_ps(), _mm256_mul_ps(rF2Z_o, aAr));
+			__m256 rF2Z = FastUtil::flipFp32Sign_256(_mm256_mul_ps(rF2Z_o, aAr));
 
 			__m256 rE1X = _mm256_mul_ps(aCsFh, aV2ySubV1y);
 			__m256 rE1Y = _mm256_mul_ps(aCsFw, aV2xSubV1x);
@@ -561,6 +563,10 @@ namespace Ifrit::Engine::TileRaster {
 			bboxMinY = _mm256_fmadd_ps(bboxMinY, _mm256_set1_ps(0.5f), _mm256_set1_ps(0.5f));
 			bboxMaxX = _mm256_fmadd_ps(bboxMaxX, _mm256_set1_ps(0.5f), _mm256_set1_ps(0.5f));
 			bboxMaxY = _mm256_fmadd_ps(bboxMaxY, _mm256_set1_ps(0.5f), _mm256_set1_ps(0.5f));
+			bboxMinX = _mm256_mul_ps(bboxMinX, aFbwDivTw);
+			bboxMinY = _mm256_mul_ps(bboxMinY, aFbwDivTh);
+			bboxMaxX = _mm256_mul_ps(bboxMaxX, aFbwDivTw);
+			bboxMaxY = _mm256_mul_ps(bboxMaxY, aFbwDivTh);
 
 			// F1 / F2 / F3 div W1 / W2 / W3
 			rF1X = _mm256_mul_ps(rF1X, tv1WInv);
@@ -616,6 +622,8 @@ namespace Ifrit::Engine::TileRaster {
 			_mm256_storeu_ps(vz1T, tv1Z);
 			_mm256_storeu_ps(vz2T, tv2Z);
 			_mm256_storeu_ps(vz3T, tv3Z);
+			_mm256_zeroupper();
+
 			auto xid = shadeAtriQueue.size();
 			auto vid = 0;
 			for (int i = 0; i < cands; i++) {
@@ -623,14 +631,12 @@ namespace Ifrit::Engine::TileRaster {
 				AssembledTriangleProposalRasterStage atriRaster;
 				AssembledTriangleProposalShadeStage atriShade;
 
-
 				atriShade.bx = vfloat3(0, 0, 1);
 				atriShade.by = vfloat3(1, 0, 0);
-				atriShade.f1 = vfloat4(f1xT[i], f1yT[i], f1zT[i]);
-				atriShade.f2 = vfloat4(f2xT[i], f2yT[i], f2zT[i]);
-				atriShade.f3 = vfloat4(f3xT[i], f3yT[i], f3zT[i]);
+				atriShade.f1 = vfloat4(f1xT[i], f1yT[i], f1zT[i], vz1T[i]);
+				atriShade.f2 = vfloat4(f2xT[i], f2yT[i], f2zT[i], vz2T[i]);
+				atriShade.f3 = vfloat4(f3xT[i], f3yT[i], f3zT[i], vz3T[i]);
 				atriShade.originalPrimitive = candPrim[i];
-				atriShade.vz = vfloat3(vz1T[i], vz2T[i], vz3T[i]);
 				atriRaster.e1 = vfloat3(e1xT[i], e1yT[i], e1zT[i]);
 				atriRaster.e2 = vfloat3(e2xT[i], e2yT[i], e2zT[i]);
 				atriRaster.e3 = vfloat3(e3xT[i], e3yT[i], e3zT[i]);
@@ -641,7 +647,6 @@ namespace Ifrit::Engine::TileRaster {
 				rasterAtriQueue.emplace_back(std::move(atriRaster));
 				vid++;
 			}
-
 		};
 #endif
 		auto indexRef = context->indexBuffer;
@@ -1380,15 +1385,20 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 					proposalProcessFunc.operator() < tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass > (proposal);
 				}
 				if constexpr (tpOnlyTaggingPass) {
-					pixelShadingFromTagBuffer(curTileX, curTileY, pxArgs);
+					auto forceQuad = context->threadSafeFS[0]->forcedQuadInvocation;
+					if (forceQuad) {
+						pixelShadingFromTagBufferQuadInvo(curTileX, curTileY, pxArgs);
+					}
+					else {
+						pixelShadingFromTagBuffer(curTileX, curTileY, pxArgs);
+					}
 					// Write Back Depth
 					for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
 						auto dx = (i & 0xf);
 						auto dy = (i >> 4);
 						if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
 							depthRef(curTileX + dx, curTileY + dy, 0) = depthCache[dx + dy * tagbufferSizeX];
-						}
-							
+						}	
 					}
 				}
 					
@@ -1409,305 +1419,394 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		execWorker = std::make_unique<std::thread>(&TileRasterWorker::run, this);
 	}
 
-	
-	void TileRasterWorker::pixelShadingFromTagBuffer(const int dxA, const int dyA, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW {
-		auto pixelShadingPass = [&](int passNo) {
-			auto ptrCtx = context.get();
-			auto& psEntry = ptrCtx->threadSafeFS[workerId];
-			auto forcedInQuads = psEntry->forcedQuadInvocation;
-			auto aCsFwS1 = _mm256_set1_epi32(ptrCtx->frameWidth - 1);
-			auto aCsFhS1 = _mm256_set1_epi32(ptrCtx->frameHeight - 1);
-			auto varyCnts = args.varyingCounts;
-			auto ptrBaseInd = args.indexBufferPtr;
-			vfloat4* vaPtr[TILE_RASTER_MAX_VARYINGS];
-			auto ptrVsRes = ptrCtx->vertexShaderResult.get();
-			for (int i = 0; i < varyCnts; i++) {
-				vaPtr[i] = ptrVsRes->getVaryingBuffer(i);
-			}
-			auto reqDepth = psEntry->allowDepthModification;
-			auto ptrAtpBary = args.tagBuffer->tagBufferBary;
-			auto ptrAtpBx = args.tagBuffer->atpBx;
-			auto ptrAtpBy = args.tagBuffer->atpBy;
-			auto ptrAtpF1F2 = args.tagBuffer->atpF1F2;
-			auto ptrAtpF3 = args.tagBuffer->atpF3;
-			auto ptrValid = args.tagBuffer->valid;
+	void TileRasterWorker::pixelShadingFromTagBufferQuadInvo(const int dxA, const int dyA, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW {
+		auto ptrCtx = context.get();
+		auto& psEntry = ptrCtx->threadSafeFS[workerId];
+		auto forcedInQuads = psEntry->forcedQuadInvocation;
+		auto aCsFwS1 = _mm256_set1_epi32(ptrCtx->frameWidth - 1);
+		auto aCsFhS1 = _mm256_set1_epi32(ptrCtx->frameHeight - 1);
+		auto varyCnts = args.varyingCounts;
+		auto ptrBaseInd = args.indexBufferPtr;
+		vfloat4* vaPtr[TILE_RASTER_MAX_VARYINGS];
+		auto ptrVsRes = ptrCtx->vertexShaderResult.get();
+		for (int i = 0; i < varyCnts; i++) {
+			vaPtr[i] = ptrVsRes->getVaryingBuffer(i);
+		}
+		auto reqDepth = psEntry->allowDepthModification;
+		auto ptrAtpBary = args.tagBuffer->tagBufferBary;
+		auto ptrAtpBx = args.tagBuffer->atpBx;
+		auto ptrAtpBy = args.tagBuffer->atpBy;
+		auto ptrAtpF1F2 = args.tagBuffer->atpF1F2;
+		auto ptrAtpF3 = args.tagBuffer->atpF3;
+		auto ptrValid = args.tagBuffer->valid;
 
-			vfloat4 interpVaryingsQuad[8][TILE_RASTER_MAX_VARYINGS];
-			vfloat4 colorOutpQuad[8][TILE_RASTER_MAX_VARYINGS];
-			auto ivData = interpVaryingsQuad[0];
-			auto coData = colorOutpQuad[0];
-			const void* itp[2][4] = {
-				{ interpVaryingsQuad ,interpVaryingsQuad + 1,interpVaryingsQuad + 2,interpVaryingsQuad + 3 },
-				{ interpVaryingsQuad + 4 ,interpVaryingsQuad + 5,interpVaryingsQuad + 6,interpVaryingsQuad + 7 },
-			};
-			void* co[2][4] = {
-				{ colorOutpQuad ,colorOutpQuad + 1,colorOutpQuad + 2,colorOutpQuad + 3 },
-				{ colorOutpQuad + 4,colorOutpQuad + 5,colorOutpQuad + 6,colorOutpQuad + 7 },
-			};
-
-			for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i+=(8>>1)) {
+		vfloat4 interpVaryingsQuad[8][TILE_RASTER_MAX_VARYINGS];
+		vfloat4 colorOutpQuad[8][TILE_RASTER_MAX_VARYINGS];
+		auto ivData = interpVaryingsQuad[0];
+		auto coData = colorOutpQuad[0];
+		const void* itp[2][4] = {
+			{ interpVaryingsQuad ,interpVaryingsQuad + 1,interpVaryingsQuad + 2,interpVaryingsQuad + 3 },
+			{ interpVaryingsQuad + 4 ,interpVaryingsQuad + 5,interpVaryingsQuad + 6,interpVaryingsQuad + 7 },
+		};
+		void* co[2][4] = {
+			{ colorOutpQuad ,colorOutpQuad + 1,colorOutpQuad + 2,colorOutpQuad + 3 },
+			{ colorOutpQuad + 4,colorOutpQuad + 5,colorOutpQuad + 6,colorOutpQuad + 7 },
+		};
+#ifdef IFRIT_USE_SIMD_256
+		__m256i dx256A = _mm256_set1_epi32(dxA);
+		__m256i dy256A = _mm256_set1_epi32(dyA);
+		__m256i dxId256T = _mm256_setr_epi32(0, 1, 0 + tagbufferSizeX, 1 + tagbufferSizeX, 2, 3, 2 + tagbufferSizeX, 3 + tagbufferSizeX);
+#endif
+		auto ptrCol0 = args.colorAttachment0;
+		for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i += (8 >> 1)) {
 
 #ifdef IFRIT_USE_SIMD_256
-				if (i & tagbufferSizeX) {
-					i += tagbufferSizeX;
-					if (i >= tagbufferSizeX * tagbufferSizeX) break;
-				}
-				__m256i dx256A = _mm256_set1_epi32(dxA);
-				__m256i dy256A = _mm256_set1_epi32(dyA);
-				__m256i dxId256T = _mm256_setr_epi32(0, 1, 0 + tagbufferSizeX, 1 + tagbufferSizeX, 2, 3, 2 + tagbufferSizeX, 3 + tagbufferSizeX);
-
-				// Source Arrangement:
-				// 0 1   | 2 3   | 4 5   | 6 7   || 8 9   | 10 11 | 12 13 |14 15
-				// 16 17 | 18 19 | 20 21 | 22 23 || 24 25 | 26 27 | 28 29 |30 31
-
-				__m256i dxId256 = _mm256_add_epi32(_mm256_set1_epi32(i), dxId256T);
+			if (i & tagbufferSizeX) {
+				i += tagbufferSizeX;
+				if (i >= tagbufferSizeX * tagbufferSizeX) break;
+			}
+			// Source Arrangement:
+			// 0 1   | 2 3   | 4 5   | 6 7   || 8 9   | 10 11 | 12 13 |14 15
+			// 16 17 | 18 19 | 20 21 | 22 23 || 24 25 | 26 27 | 28 29 |30 31
+			__m256i dxId256 = _mm256_add_epi32(_mm256_set1_epi32(i), dxId256T);
 #ifdef _MSC_VER
-				__m256i dx256T1 = _mm256_and_epi32(dxId256, _mm256_set1_epi32(0xf));//_mm256_srli_epi32(_mm256_and_epi32(dxId256, _mm256_set1_epi32(0x1f)), 1);
-				__m256i dx256 = _mm256_add_epi32(dx256A, dx256T1);
-				__m256i dy256T1 = _mm256_srli_epi32(dxId256, 4);
-				__m256i dy256 = _mm256_add_epi32(dy256A, dy256T1);
+			__m256i dx256T1 = _mm256_and_epi32(dxId256, _mm256_set1_epi32(0xf));//_mm256_srli_epi32(_mm256_and_epi32(dxId256, _mm256_set1_epi32(0x1f)), 1);
+			__m256i dx256 = _mm256_add_epi32(dx256A, dx256T1);
+			__m256i dy256T1 = _mm256_srli_epi32(dxId256, 4);
+			__m256i dy256 = _mm256_add_epi32(dy256A, dy256T1);
 #else
-				// no _mm256_and_epi32 but has _mm256_and_ps, so bitcast
-				__m256i dx256Tmp1 = _mm256_castps_si256(_mm256_and_ps(_mm256_castsi256_ps(dxId256), _mm256_castsi256_ps(_mm256_set1_epi32(0xf))));
-				__m256i dx256 = _mm256_add_epi32(dx256A, dx256Tmp1);
-				__m256i dx256Tmp2 = _mm256_srli_epi32(dxId256, 4);
-				__m256i dy256 = _mm256_add_epi32(dy256A, dx256Tmp2);
+			// no _mm256_and_epi32 but has _mm256_and_ps, so bitcast
+			__m256i dx256Tmp1 = _mm256_castps_si256(_mm256_and_ps(_mm256_castsi256_ps(dxId256), _mm256_castsi256_ps(_mm256_set1_epi32(0xf))));
+			__m256i dx256 = _mm256_add_epi32(dx256A, dx256Tmp1);
+			__m256i dx256Tmp2 = _mm256_srli_epi32(dxId256, 4);
+			__m256i dy256 = _mm256_add_epi32(dy256A, dx256Tmp2);
 #endif
 
-				__m256i dxFwMask = _mm256_cmpgt_epi32(dx256, aCsFwS1);
-				__m256i dyFhMask = _mm256_cmpgt_epi32(dy256, aCsFhS1);
-				__m256i validMask = _mm256_andnot_si256(_mm256_or_si256(dxFwMask, dyFhMask), _mm256_set1_epi32(0xffffffff));
-				
-				__m256i gatherIdx = _mm256_slli_epi32(dxId256, 2);
-				__m256 gatherMask = _mm256_castsi256_ps(_mm256_set1_epi32(-1));
+			__m256i dxFwMask = _mm256_cmpgt_epi32(dx256, aCsFwS1);
+			__m256i dyFhMask = _mm256_cmpgt_epi32(dy256, aCsFhS1);
+			__m256i validMask = _mm256_andnot_si256(_mm256_or_si256(dxFwMask, dyFhMask), _mm256_set1_epi32(0xffffffff));
 
-				__m256 baryVecX = _mm256_i32gather_ps(((float*)ptrAtpBary), gatherIdx, 4);
-				__m256 baryVecY = _mm256_i32gather_ps(((float*)ptrAtpBary) + 1, gatherIdx, 4);
-				__m256 baryVecZ = _mm256_i32gather_ps(((float*)ptrAtpBary) + 2, gatherIdx, 4);
+			__m256i gatherIdx = _mm256_slli_epi32(dxId256, 2);
+			__m256 gatherMask = _mm256_castsi256_ps(_mm256_set1_epi32(-1));
 
-				__m256 atpBxX = _mm256_i32gather_ps(((float*)ptrAtpBx), gatherIdx, 4);
-				__m256 atpBxY = _mm256_i32gather_ps(((float*)ptrAtpBx) + 1, gatherIdx, 4);
-				__m256 atpBxZ = _mm256_i32gather_ps(((float*)ptrAtpBx) + 2, gatherIdx, 4);
+			__m256 baryVecX = _mm256_i32gather_ps(((float*)ptrAtpBary), gatherIdx, 4);
+			__m256 baryVecY = _mm256_i32gather_ps(((float*)ptrAtpBary) + 1, gatherIdx, 4);
+			__m256 baryVecZ = _mm256_i32gather_ps(((float*)ptrAtpBary) + 2, gatherIdx, 4);
 
-				__m256 atpByX = _mm256_i32gather_ps((float*)ptrAtpBy, gatherIdx, 4);
-				__m256 atpByY = _mm256_i32gather_ps(((float*)ptrAtpBy) + 1, gatherIdx, 4);
-				__m256 atpByZ = _mm256_i32gather_ps(((float*)ptrAtpBy) + 2, gatherIdx, 4);
+			__m256 atpBxX = _mm256_i32gather_ps(((float*)ptrAtpBx), gatherIdx, 4);
+			__m256 atpBxY = _mm256_i32gather_ps(((float*)ptrAtpBx) + 1, gatherIdx, 4);
+			__m256 atpBxZ = _mm256_i32gather_ps(((float*)ptrAtpBx) + 2, gatherIdx, 4);
 
-				
-				// zCorr
-				__m256 interpolatedDepth = reqDepth?_mm256_i32gather_ps((float*)depthCache, dxId256, 4): _mm256_setzero_ps();
-				__m256i tagBufferValid = _mm256_i32gather_epi32((int*)ptrValid, dxId256, 4);
+			__m256 atpByX = _mm256_i32gather_ps((float*)ptrAtpBy, gatherIdx, 4);
+			__m256 atpByY = _mm256_i32gather_ps(((float*)ptrAtpBy) + 1, gatherIdx, 4);
+			__m256 atpByZ = _mm256_i32gather_ps(((float*)ptrAtpBy) + 2, gatherIdx, 4);
 
-				__m256i idxA = _mm256_slli_epi32(tagBufferValid, 1);
-				__m256i idx = _mm256_add_epi32(tagBufferValid, idxA);
-				__m256i idxMask = _mm256_cmpgt_epi32(idx, _mm256_set1_epi32(-1));
-				__m256i idxMask2 = _mm256_and_si256(idxMask, validMask);
+			// zCorr
+			__m256 interpolatedDepth = reqDepth ? _mm256_i32gather_ps((float*)depthCache, dxId256, 4) : _mm256_setzero_ps();
+			__m256i tagBufferValid = _mm256_i32gather_epi32((int*)ptrValid, dxId256, 4);
 
-				// If all invalid, skip
-				if (_mm256_testz_si256(idxMask2, _mm256_set1_epi32(0xffffffff)))continue;
+			__m256i idxA = _mm256_slli_epi32(tagBufferValid, 1);
+			__m256i idx = _mm256_add_epi32(tagBufferValid, idxA);
+			__m256i idxMask = _mm256_cmpgt_epi32(idx, _mm256_set1_epi32(-1));
+			__m256i idxMask2 = _mm256_and_si256(idxMask, validMask);
 
-				// Mask from idxMask2
-				int validMaskT[8], dx[8], dy[8], idxT[8];
-				float interpolatedDepthT[8];
-				_mm256_storeu_si256((__m256i*)validMaskT, idxMask2);
-				_mm256_storeu_ps(interpolatedDepthT, interpolatedDepth);
-				_mm256_storeu_si256((__m256i*)dx, dx256);
-				_mm256_storeu_si256((__m256i*)dy, dy256);
-				_mm256_storeu_si256((__m256i*)idxT, idx);
+			// If all invalid, skip
+			if (_mm256_testz_si256(idxMask2, _mm256_set1_epi32(0xffffffff)))continue;
 
-				
-				if (forcedInQuads) {
-					__m256 atpF1X = _mm256_i32gather_ps((float*)ptrAtpF1F2, gatherIdx, 4);
-					__m256 atpF1Y = _mm256_i32gather_ps(((float*)ptrAtpF1F2) + 1, gatherIdx, 4);
-					__m256 atpF2X = _mm256_i32gather_ps(((float*)ptrAtpF1F2) + 2, gatherIdx, 4);
-					__m256 atpF2Y = _mm256_i32gather_ps(((float*)ptrAtpF1F2) + 3, gatherIdx, 4);
-					__m256 atpF3X = _mm256_i32gather_ps((float*)ptrAtpF3, gatherIdx, 2);
-					__m256 atpF3Y = _mm256_i32gather_ps(((float*)ptrAtpF3) + 1, gatherIdx, 2);
+			// Mask from idxMask2
+			int validMaskT[8], dx[8], dy[8], idxT[8];
+			float interpolatedDepthT[8];
+			_mm256_storeu_si256((__m256i*)validMaskT, idxMask2);
+			_mm256_storeu_ps(interpolatedDepthT, interpolatedDepth);
+			_mm256_storeu_si256((__m256i*)dx, dx256);
+			_mm256_storeu_si256((__m256i*)dy, dy256);
+			_mm256_storeu_si256((__m256i*)idxT, idx);
+			
+			__m256 atpF1X = _mm256_i32gather_ps((float*)ptrAtpF1F2, gatherIdx, 4);
+			__m256 atpF1Y = _mm256_i32gather_ps(((float*)ptrAtpF1F2) + 1, gatherIdx, 4);
+			__m256 atpF2X = _mm256_i32gather_ps(((float*)ptrAtpF1F2) + 2, gatherIdx, 4);
+			__m256 atpF2Y = _mm256_i32gather_ps(((float*)ptrAtpF1F2) + 3, gatherIdx, 4);
+			__m256 atpF3X = _mm256_i32gather_ps((float*)ptrAtpF3, gatherIdx, 2);
+			__m256 atpF3Y = _mm256_i32gather_ps(((float*)ptrAtpF3) + 1, gatherIdx, 2);
 
-					bool isNotHelperInvocation[8];
-					float baryVecXT[8], baryVecYT[8], baryVecZT[8];
-					_mm256_storeu_ps(baryVecXT, baryVecX);
-					_mm256_storeu_ps(baryVecYT, baryVecY);
-					_mm256_storeu_ps(baryVecZT, baryVecZ);
-					float f1xT[8], f1yT[8], f2xT[8], f2yT[8], f3xT[8], f3yT[8];
-					_mm256_storeu_ps(f1xT, atpF1X);
-					_mm256_storeu_ps(f1yT, atpF1Y);
-					_mm256_storeu_ps(f2xT, atpF2X);
-					_mm256_storeu_ps(f2yT, atpF2Y);
-					_mm256_storeu_ps(f3xT, atpF3X);
-					_mm256_storeu_ps(f3yT, atpF3Y);
-					float atpBxXT[8], atpBxYT[8], atpBxZT[8];
-					_mm256_storeu_ps(atpBxXT, atpBxX);
-					_mm256_storeu_ps(atpBxYT, atpBxY);
-					_mm256_storeu_ps(atpBxZT, atpBxZ);
-					float atpByXT[8], atpByYT[8], atpByZT[8];
-					_mm256_storeu_ps(atpByXT, atpByX);
-					_mm256_storeu_ps(atpByYT, atpByY);
-					_mm256_storeu_ps(atpByZT, atpByZ);
-					
+			bool isNotHelperInvocation[8];
+			float baryVecXT[8], baryVecYT[8], baryVecZT[8];
+			_mm256_storeu_ps(baryVecXT, baryVecX);
+			_mm256_storeu_ps(baryVecYT, baryVecY);
+			_mm256_storeu_ps(baryVecZT, baryVecZ);
+			float f1xT[8], f1yT[8], f2xT[8], f2yT[8], f3xT[8], f3yT[8];
+			_mm256_storeu_ps(f1xT, atpF1X);
+			_mm256_storeu_ps(f1yT, atpF1Y);
+			_mm256_storeu_ps(f2xT, atpF2X);
+			_mm256_storeu_ps(f2yT, atpF2Y);
+			_mm256_storeu_ps(f3xT, atpF3X);
+			_mm256_storeu_ps(f3yT, atpF3Y);
+			float atpBxXT[8], atpBxYT[8], atpBxZT[8];
+			_mm256_storeu_ps(atpBxXT, atpBxX);
+			_mm256_storeu_ps(atpBxYT, atpBxY);
+			_mm256_storeu_ps(atpBxZT, atpBxZ);
+			float atpByXT[8], atpByYT[8], atpByZT[8];
+			_mm256_storeu_ps(atpByXT, atpByX);
+			_mm256_storeu_ps(atpByYT, atpByY);
+			_mm256_storeu_ps(atpByZT, atpByZ);
+			_mm256_zeroupper();
 
-					for (int T = 0; T < 2; T++) {
-						for (int j = T * 4; j < T * 4 + 4; j++) {
-							if (validMaskT[j] == 0)continue;
-							bool newDraw = true;
-							for (int k = T * 4; k < j; k++) {
-								if (validMaskT[k] == 0)continue;
-								if (idxT[k] == idxT[j]) {
-									newDraw = false;
-									break;
-								}
-							}
-							if (!newDraw)continue;
-							// Quad organization
-							// 0 1 | 4 6
-							// 2 3 | 5 7
-
-							// Set baryVecs to the data of position 0 or 4
-							float baryVecXsSelf = baryVecXT[j];
-							float baryVecYsSelf = baryVecYT[j];
-							float baryVecZsSelf = baryVecZT[j];
-							int quadIndiceSelf = j & 0x3;
-							float pos0_baryVecX = baryVecXsSelf - (quadIndiceSelf & 1) * f1xT[j] - (quadIndiceSelf >> 0x1) * f1yT[j];
-							float pos0_baryVecY = baryVecYsSelf - (quadIndiceSelf & 1) * f2xT[j] - (quadIndiceSelf >> 0x1) * f2yT[j];
-							float pos0_baryVecZ = baryVecZsSelf - (quadIndiceSelf & 1) * f3xT[j] - (quadIndiceSelf >> 0x1) * f3yT[j];
-
-							// Set baryVecs to the data of position 0 or 4
-							__m128i quadXOffset = _mm_setr_epi32(0, 1, 0, 1);
-							__m128i quadYOffset = _mm_setr_epi32(0, 0, 1, 1);
-
-							__m128 quadXOffsetV1 = _mm_mul_ps(_mm_cvtepi32_ps(quadXOffset), _mm_set1_ps(f1xT[j]));
-							__m128 quadYOffsetV1 = _mm_mul_ps(_mm_cvtepi32_ps(quadYOffset), _mm_set1_ps(f1yT[j]));
-							__m128 quadXOffsetV2 = _mm_mul_ps(_mm_cvtepi32_ps(quadXOffset), _mm_set1_ps(f2xT[j]));
-							__m128 quadYOffsetV2 = _mm_mul_ps(_mm_cvtepi32_ps(quadYOffset), _mm_set1_ps(f2yT[j]));
-							__m128 quadXOffsetV3 = _mm_mul_ps(_mm_cvtepi32_ps(quadXOffset), _mm_set1_ps(f3xT[j]));
-							__m128 quadYOffsetV3 = _mm_mul_ps(_mm_cvtepi32_ps(quadYOffset), _mm_set1_ps(f3yT[j]));
-
-							__m128 baseBaryVecX = _mm_set1_ps(pos0_baryVecX);
-							__m128 baseBaryVecY = _mm_set1_ps(pos0_baryVecY);
-							__m128 baseBaryVecZ = _mm_set1_ps(pos0_baryVecZ);
-
-							__m128 baryVecXs = _mm_add_ps(baseBaryVecX, _mm_add_ps(quadXOffsetV1, quadYOffsetV1));
-							__m128 baryVecYs = _mm_add_ps(baseBaryVecY, _mm_add_ps(quadXOffsetV2, quadYOffsetV2));
-							__m128 baryVecZs = _mm_add_ps(baseBaryVecZ, _mm_add_ps(quadXOffsetV3, quadYOffsetV3));
-
-							__m128 zCorr = _mm_rcp_ps(_mm_add_ps(baryVecXs, _mm_add_ps(baryVecYs, baryVecZs)));
-							baryVecXs = _mm_mul_ps(baryVecXs, zCorr);
-							baryVecYs = _mm_mul_ps(baryVecYs, zCorr);
-							baryVecZs = _mm_mul_ps(baryVecZs, zCorr);
-
-							__m128 desiredBaryR[3];
-							desiredBaryR[0] = _mm_fmadd_ps(baryVecXs, _mm_set1_ps(atpBxXT[j]), _mm_fmadd_ps(baryVecYs, _mm_set1_ps(atpBxYT[j]), _mm_mul_ps(baryVecZs, _mm_set1_ps(atpBxZT[j]))));
-							desiredBaryR[1] = _mm_fmadd_ps(baryVecXs, _mm_set1_ps(atpByXT[j]), _mm_fmadd_ps(baryVecYs, _mm_set1_ps(atpByYT[j]), _mm_mul_ps(baryVecZs, _mm_set1_ps(atpByZT[j]))));
-							desiredBaryR[2] = _mm_sub_ps(_mm_set1_ps(1.0f), _mm_add_ps(desiredBaryR[0], desiredBaryR[1]));
-							
-
-							float desiredBaryX[4], desiredBaryY[4], desiredBaryZ[4];
-							_mm_storeu_ps(desiredBaryX, desiredBaryR[0]);
-							_mm_storeu_ps(desiredBaryY, desiredBaryR[1]);
-							_mm_storeu_ps(desiredBaryZ, desiredBaryR[2]);
-
-							const int* const addr = ptrBaseInd + idxT[j];
-							for (int k = T * 4; k < T*4+4; k++) {
-								for (int v = 0; v < varyCnts; v++) {
-									auto va = vaPtr[v];
-									auto& dest = interpVaryingsQuad[k][v];
-									const auto& tmp0 = (va[addr[0]]);
-									const auto& tmp1 = (va[addr[1]]);
-									const auto& tmp2 = (va[addr[2]]);
-									vfloat4 destVec = tmp0 * desiredBaryX[k & 0x3];
-									destVec = fma(tmp1, desiredBaryY[k & 0x3], destVec);
-									dest = fma(tmp2, desiredBaryZ[k & 0x3], destVec);
-								}
-							}
-							psEntry->executeInQuad(itp[T], co[T], nullptr);
-							for (int k = T * 4; k < T * 4 + 4; k++) {
-								if (idxT[k] == idxT[j]) {
-									args.colorAttachment0->fillPixelRGBA128ps(dx[k], dy[k], _mm_loadu_ps((float*)(colorOutpQuad[k])));
-								}
-							}
+			for (int T = 0; T < 2; T++) {
+				for (int j = T * 4; j < T * 4 + 4; j++) {
+					if (validMaskT[j] == 0)continue;
+					bool newDraw = true;
+					for (int k = T * 4; k < j; k++) {
+						if (validMaskT[k] == 0)continue;
+						if (idxT[k] == idxT[j]) {
+							newDraw = false;
+							break;
 						}
 					}
-				}
-				else {
-					__m256 zCorr = _mm256_rcp_ps(_mm256_add_ps(baryVecX, _mm256_add_ps(baryVecY, baryVecZ)));
-					baryVecX = _mm256_mul_ps(baryVecX, zCorr);
-					baryVecY = _mm256_mul_ps(baryVecY, zCorr);
-					baryVecZ = _mm256_mul_ps(baryVecZ, zCorr);
+					if (!newDraw)continue;
+					// Quad organization
+					// 0 1 | 4 6
+					// 2 3 | 5 7
 
-					__m256 desiredBaryR[3];
-					desiredBaryR[0] = _mm256_fmadd_ps(baryVecX, atpBxX, _mm256_fmadd_ps(baryVecY, atpBxY, _mm256_mul_ps(baryVecZ, atpBxZ)));
-					desiredBaryR[1] = _mm256_fmadd_ps(baryVecX, atpByX, _mm256_fmadd_ps(baryVecY, atpByY, _mm256_mul_ps(baryVecZ, atpByZ)));
-					desiredBaryR[2] = _mm256_sub_ps(_mm256_set1_ps(1.0f), _mm256_add_ps(desiredBaryR[0], desiredBaryR[1]));
+					// Set baryVecs to the data of position 0 or 4
+					float baryVecXsSelf = baryVecXT[j];
+					float baryVecYsSelf = baryVecYT[j];
+					float baryVecZsSelf = baryVecZT[j];
+					int quadIndiceSelf = j & 0x3;
+					float pos0_baryVecX = baryVecXsSelf - (quadIndiceSelf & 1) * f1xT[j] - (quadIndiceSelf >> 0x1) * f1yT[j];
+					float pos0_baryVecY = baryVecYsSelf - (quadIndiceSelf & 1) * f2xT[j] - (quadIndiceSelf >> 0x1) * f2yT[j];
+					float pos0_baryVecZ = baryVecZsSelf - (quadIndiceSelf & 1) * f3xT[j] - (quadIndiceSelf >> 0x1) * f3yT[j];
 
-					// convert desiredBary to 16xfloat3
-					float desiredBaryX[8], desiredBaryY[8], desiredBaryZ[8];
-					_mm256_storeu_ps(desiredBaryX, desiredBaryR[0]);
-					_mm256_storeu_ps(desiredBaryY, desiredBaryR[1]);
-					_mm256_storeu_ps(desiredBaryZ, desiredBaryR[2]);
-					auto ptrCol0 = args.colorAttachment0;
-					for (int j = 0; j < 8; j++) {
-						if (validMaskT[j] == 0)continue;
-						const int* const addr = ptrBaseInd + idxT[j];
-						for (int k = 0; k < varyCnts; k++) {
-							auto va = vaPtr[k];
+					// Set baryVecs to the data of position 0 or 4
+					__m128i quadXOffset = _mm_setr_epi32(0, 1, 0, 1);
+					__m128i quadYOffset = _mm_setr_epi32(0, 0, 1, 1);
+
+					__m128 quadXOffsetV1 = _mm_mul_ps(_mm_cvtepi32_ps(quadXOffset), _mm_set1_ps(f1xT[j]));
+					__m128 quadYOffsetV1 = _mm_mul_ps(_mm_cvtepi32_ps(quadYOffset), _mm_set1_ps(f1yT[j]));
+					__m128 quadXOffsetV2 = _mm_mul_ps(_mm_cvtepi32_ps(quadXOffset), _mm_set1_ps(f2xT[j]));
+					__m128 quadYOffsetV2 = _mm_mul_ps(_mm_cvtepi32_ps(quadYOffset), _mm_set1_ps(f2yT[j]));
+					__m128 quadXOffsetV3 = _mm_mul_ps(_mm_cvtepi32_ps(quadXOffset), _mm_set1_ps(f3xT[j]));
+					__m128 quadYOffsetV3 = _mm_mul_ps(_mm_cvtepi32_ps(quadYOffset), _mm_set1_ps(f3yT[j]));
+
+					__m128 baseBaryVecX = _mm_set1_ps(pos0_baryVecX);
+					__m128 baseBaryVecY = _mm_set1_ps(pos0_baryVecY);
+					__m128 baseBaryVecZ = _mm_set1_ps(pos0_baryVecZ);
+
+					__m128 baryVecXs = _mm_add_ps(baseBaryVecX, _mm_add_ps(quadXOffsetV1, quadYOffsetV1));
+					__m128 baryVecYs = _mm_add_ps(baseBaryVecY, _mm_add_ps(quadXOffsetV2, quadYOffsetV2));
+					__m128 baryVecZs = _mm_add_ps(baseBaryVecZ, _mm_add_ps(quadXOffsetV3, quadYOffsetV3));
+
+					__m128 zCorr = _mm_rcp_ps(_mm_add_ps(baryVecXs, _mm_add_ps(baryVecYs, baryVecZs)));
+					baryVecXs = _mm_mul_ps(baryVecXs, zCorr);
+					baryVecYs = _mm_mul_ps(baryVecYs, zCorr);
+					baryVecZs = _mm_mul_ps(baryVecZs, zCorr);
+
+					__m128 desiredBaryR[3];
+					desiredBaryR[0] = _mm_fmadd_ps(baryVecXs, _mm_set1_ps(atpBxXT[j]), _mm_fmadd_ps(baryVecYs, _mm_set1_ps(atpBxYT[j]), _mm_mul_ps(baryVecZs, _mm_set1_ps(atpBxZT[j]))));
+					desiredBaryR[1] = _mm_fmadd_ps(baryVecXs, _mm_set1_ps(atpByXT[j]), _mm_fmadd_ps(baryVecYs, _mm_set1_ps(atpByYT[j]), _mm_mul_ps(baryVecZs, _mm_set1_ps(atpByZT[j]))));
+					desiredBaryR[2] = _mm_sub_ps(_mm_set1_ps(1.0f), _mm_add_ps(desiredBaryR[0], desiredBaryR[1]));
+
+					float desiredBaryX[4], desiredBaryY[4], desiredBaryZ[4];
+					_mm_storeu_ps(desiredBaryX, desiredBaryR[0]);
+					_mm_storeu_ps(desiredBaryY, desiredBaryR[1]);
+					_mm_storeu_ps(desiredBaryZ, desiredBaryR[2]);
+
+					const int* const addr = ptrBaseInd + idxT[j];
+					for (int k = T * 4; k < T * 4 + 4; k++) {
+						for (int v = 0; v < varyCnts; v++) {
+							auto va = vaPtr[v];
+							auto& dest = interpVaryingsQuad[k][v];
 							const auto& tmp0 = (va[addr[0]]);
 							const auto& tmp1 = (va[addr[1]]);
 							const auto& tmp2 = (va[addr[2]]);
-							vfloat4 destVec = tmp0 * desiredBaryX[j];
-							destVec = fma(tmp1, desiredBaryY[j], destVec);
-							ivData[k] = fma(tmp2, desiredBaryZ[j], destVec);
+							vfloat4 destVec = tmp0 * desiredBaryX[k & 0x3];
+							destVec = fma(tmp1, desiredBaryY[k & 0x3], destVec);
+							dest = fma(tmp2, desiredBaryZ[k & 0x3], destVec);
 						}
-						psEntry->execute(ivData, coData, &interpolatedDepthT[j]);
-						ptrCol0->fillPixelRGBA128ps(dx[j], dy[j], _mm_loadu_ps((float*)(coData)));
+					}
+					psEntry->executeInQuad(itp[T], co[T], nullptr);
+					for (int k = T * 4; k < T * 4 + 4; k++) {
+						if (idxT[k] == idxT[j]) {
+							args.colorAttachment0->fillPixelRGBA128ps(dx[k], dy[k], _mm_loadu_ps((float*)(colorOutpQuad[k])));
+						}
 					}
 				}
+			}
+			
 
 #else
-				static_assert(false,"Quad execution is under development");
-				auto dx = dxA + (i & 0xf);
-				auto dy = dyA + (i >> 4);
-				auto dxId = i;
+			static_assert(false, "Quad execution is under development");
+#endif
+		}
+	}
+	
+	void TileRasterWorker::pixelShadingFromTagBuffer(const int dxA, const int dyA, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW {
+		auto ptrCtx = context.get();
+		auto& psEntry = ptrCtx->threadSafeFS[workerId];
+		auto forcedInQuads = psEntry->forcedQuadInvocation;
+		auto aCsFwS1 = _mm256_set1_epi32(ptrCtx->frameWidth - 1);
+		auto aCsFhS1 = _mm256_set1_epi32(ptrCtx->frameHeight - 1);
+		auto varyCnts = args.varyingCounts;
+		auto ptrBaseInd = args.indexBufferPtr;
+		vfloat4* vaPtr[TILE_RASTER_MAX_VARYINGS];
+		auto ptrVsRes = ptrCtx->vertexShaderResult.get();
+		for (int i = 0; i < varyCnts; i++) {
+			vaPtr[i] = ptrVsRes->getVaryingBuffer(i);
+		}
+		auto reqDepth = psEntry->allowDepthModification;
+		auto ptrAtpBary = args.tagBuffer->tagBufferBary;
+		auto ptrAtpBx = args.tagBuffer->atpBx;
+		auto ptrAtpBy = args.tagBuffer->atpBy;
+		auto ptrValid = args.tagBuffer->valid;
 
-				if(dx>=context->frameWidth || dy>=context->frameHeight)continue;
+		vfloat4 interpVaryingsQuad[8][TILE_RASTER_MAX_VARYINGS];
+		vfloat4 colorOutpQuad[8][TILE_RASTER_MAX_VARYINGS];
+		auto ivData = interpVaryingsQuad[0];
+		auto coData = colorOutpQuad[0];
+		const void* itp[2][4] = {
+			{ interpVaryingsQuad ,interpVaryingsQuad + 1,interpVaryingsQuad + 2,interpVaryingsQuad + 3 },
+			{ interpVaryingsQuad + 4 ,interpVaryingsQuad + 5,interpVaryingsQuad + 6,interpVaryingsQuad + 7 },
+		};
+		void* co[2][4] = {
+			{ colorOutpQuad ,colorOutpQuad + 1,colorOutpQuad + 2,colorOutpQuad + 3 },
+			{ colorOutpQuad + 4,colorOutpQuad + 5,colorOutpQuad + 6,colorOutpQuad + 7 },
+		};
+#ifdef IFRIT_USE_SIMD_256
+		__m256i dx256A = _mm256_set1_epi32(dxA);
+		__m256i dy256A = _mm256_set1_epi32(dyA);
+		__m256i dxId256T = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+#endif
+		auto ptrCol0 = args.colorAttachment0;
+		for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i+=8) {
 
-				auto& tagBuffer = *args.tagBuffer;
-				vfloat3 baryVec = tagBuffer.tagBufferBary[dxId];
-				vfloat3 atpBx = tagBuffer.atpBx[dxId];
-				vfloat3 atpBy = tagBuffer.atpBy[dxId];
-				auto idx = tagBuffer.valid[dxId] * context->vertexStride;
-				float interpolatedDepth = depthCache[i];
-				if (idx < 0)continue;
+#ifdef IFRIT_USE_SIMD_256
+			__m256i dxId256 = _mm256_add_epi32(_mm256_set1_epi32(i), dxId256T);
+#ifdef _MSC_VER
+			__m256i dx256T1 = _mm256_and_epi32(dxId256, _mm256_set1_epi32(0xf));//_mm256_srli_epi32(_mm256_and_epi32(dxId256, _mm256_set1_epi32(0x1f)), 1);
+			__m256i dx256 = _mm256_add_epi32(dx256A, dx256T1);
+			__m256i dy256T1 = _mm256_srli_epi32(dxId256, 4);
+			__m256i dy256 = _mm256_add_epi32(dy256A, dy256T1);
+#else
+			// no _mm256_and_epi32 but has _mm256_and_ps, so bitcast
+			__m256i dx256Tmp1 = _mm256_castps_si256(_mm256_and_ps(_mm256_castsi256_ps(dxId256), _mm256_castsi256_ps(_mm256_set1_epi32(0xf))));
+			__m256i dx256 = _mm256_add_epi32(dx256A, dx256Tmp1);
+			__m256i dx256Tmp2 = _mm256_srli_epi32(dxId256, 4);
+			__m256i dy256 = _mm256_add_epi32(dy256A, dx256Tmp2);
+#endif
 
-				float desiredBary[3];
-				desiredBary[0] = dot(baryVec, atpBx);
-				desiredBary[1] = dot(baryVec, atpBy);
-				desiredBary[2] = 1.0f - desiredBary[0] - desiredBary[1];
+			__m256i dxFwMask = _mm256_cmpgt_epi32(dx256, aCsFwS1);
+			__m256i dyFhMask = _mm256_cmpgt_epi32(dy256, aCsFhS1);
+			__m256i validMask = _mm256_andnot_si256(_mm256_or_si256(dxFwMask, dyFhMask), _mm256_set1_epi32(0xffffffff));
+				
+			__m256i gatherIdx = _mm256_slli_epi32(dxId256, 2);
 
-				const int* const addr = args.indexBufferPtr + idx;
-				const auto vSize = args.varyingCounts;
-				for (int i = 0; i < vSize; i++) {
-					auto va = context->vertexShaderResult->getVaryingBuffer(i);
-					auto& dest = interpolatedVaryings[i];
+			__m256 baryVecX = _mm256_i32gather_ps(((float*)ptrAtpBary), gatherIdx, 4);
+			__m256 baryVecY = _mm256_i32gather_ps(((float*)ptrAtpBary) + 1, gatherIdx, 4);
+			__m256 baryVecZ = _mm256_i32gather_ps(((float*)ptrAtpBary) + 2, gatherIdx, 4);
+
+			__m256 atpBxX = _mm256_i32gather_ps(((float*)ptrAtpBx), gatherIdx, 4);
+			__m256 atpBxY = _mm256_i32gather_ps(((float*)ptrAtpBx) + 1, gatherIdx, 4);
+			__m256 atpBxZ = _mm256_i32gather_ps(((float*)ptrAtpBx) + 2, gatherIdx, 4);
+
+			__m256 atpByX = _mm256_i32gather_ps((float*)ptrAtpBy, gatherIdx, 4);
+			__m256 atpByY = _mm256_i32gather_ps(((float*)ptrAtpBy) + 1, gatherIdx, 4);
+			__m256 atpByZ = _mm256_i32gather_ps(((float*)ptrAtpBy) + 2, gatherIdx, 4);
+
+			// zCorr
+			__m256 interpolatedDepth = reqDepth?_mm256_i32gather_ps((float*)depthCache, dxId256, 4): _mm256_setzero_ps();
+			__m256i tagBufferValid = _mm256_i32gather_epi32((int*)ptrValid, dxId256, 4);
+
+			__m256i idxA = _mm256_slli_epi32(tagBufferValid, 1);
+			__m256i idx = _mm256_add_epi32(tagBufferValid, idxA);
+			__m256i idxMask = _mm256_cmpgt_epi32(idx, _mm256_set1_epi32(-1));
+			__m256i idxMask2 = _mm256_and_si256(idxMask, validMask);
+
+			// If all invalid, skip
+			if (_mm256_testz_si256(idxMask2, _mm256_set1_epi32(0xffffffff)))continue;
+
+			// Mask from idxMask2
+			int validMaskT[8], dx[8], dy[8], idxT[8];
+			float interpolatedDepthT[8];
+			_mm256_storeu_si256((__m256i*)validMaskT, idxMask2);
+			_mm256_storeu_ps(interpolatedDepthT, interpolatedDepth);
+			_mm256_storeu_si256((__m256i*)dx, dx256);
+			_mm256_storeu_si256((__m256i*)dy, dy256);
+			_mm256_storeu_si256((__m256i*)idxT, idx);
+		
+			__m256 zCorr = _mm256_rcp_ps(_mm256_add_ps(baryVecX, _mm256_add_ps(baryVecY, baryVecZ)));
+			baryVecX = _mm256_mul_ps(baryVecX, zCorr);
+			baryVecY = _mm256_mul_ps(baryVecY, zCorr);
+			baryVecZ = _mm256_mul_ps(baryVecZ, zCorr);
+
+			__m256 desiredBaryR[3];
+			desiredBaryR[0] = _mm256_fmadd_ps(baryVecX, atpBxX, _mm256_fmadd_ps(baryVecY, atpBxY, _mm256_mul_ps(baryVecZ, atpBxZ)));
+			desiredBaryR[1] = _mm256_fmadd_ps(baryVecX, atpByX, _mm256_fmadd_ps(baryVecY, atpByY, _mm256_mul_ps(baryVecZ, atpByZ)));
+			desiredBaryR[2] = _mm256_sub_ps(_mm256_set1_ps(1.0f), _mm256_add_ps(desiredBaryR[0], desiredBaryR[1]));
+
+			// convert desiredBary to 16xfloat3
+			float desiredBaryX[8], desiredBaryY[8], desiredBaryZ[8];
+			_mm256_storeu_ps(desiredBaryX, desiredBaryR[0]);
+			_mm256_storeu_ps(desiredBaryY, desiredBaryR[1]);
+			_mm256_storeu_ps(desiredBaryZ, desiredBaryR[2]);
+			_mm256_zeroupper();
+
+			for (int j = 0; j < 8; j++) {
+				if (validMaskT[j] == 0)continue;
+				const int* const addr = ptrBaseInd + idxT[j];
+				for (int k = 0; k < varyCnts; k++) {
+					auto va = vaPtr[k];
 					const auto& tmp0 = (va[addr[0]]);
 					const auto& tmp1 = (va[addr[1]]);
 					const auto& tmp2 = (va[addr[2]]);
-					vfloat4 destVec = tmp0 * desiredBary[0];
-					destVec = fma(tmp1, desiredBary[1], destVec);
-					dest = fma(tmp2, desiredBary[2], destVec);
+					vfloat4 destVec = tmp0 * desiredBaryX[j];
+					destVec = fma(tmp1, desiredBaryY[j], destVec);
+					ivData[k] = fma(tmp2, desiredBaryZ[j], destVec);
 				}
-
-
-				psEntry->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth);
-#ifdef IFRIT_USE_SIMD_128
-				args.colorAttachment0->fillPixelRGBA128ps(dx, dy, _mm_loadu_ps((float*)(&colorOutput[0])));
+				psEntry->execute(ivData, coData, &interpolatedDepthT[j]);
+				ptrCol0->fillPixelRGBA128ps(dx[j], dy[j], _mm_loadu_ps((float*)(coData)));
+			}
+			
 #else
-				args.colorAttachment0->fillPixelRGBA(dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
-#endif
-#endif
+			auto dx = dxA + (i & 0xf);
+			auto dy = dyA + (i >> 4);
+			auto dxId = i;
+
+			if(dx>=context->frameWidth || dy>=context->frameHeight)continue;
+
+			auto& tagBuffer = *args.tagBuffer;
+			vfloat3 baryVec = tagBuffer.tagBufferBary[dxId];
+			vfloat3 atpBx = tagBuffer.atpBx[dxId];
+			vfloat3 atpBy = tagBuffer.atpBy[dxId];
+			auto idx = tagBuffer.valid[dxId] * context->vertexStride;
+			float interpolatedDepth = depthCache[i];
+			if (idx < 0)continue;
+
+			float desiredBary[3];
+			desiredBary[0] = dot(baryVec, atpBx);
+			desiredBary[1] = dot(baryVec, atpBy);
+			desiredBary[2] = 1.0f - desiredBary[0] - desiredBary[1];
+
+			const int* const addr = args.indexBufferPtr + idx;
+			const auto vSize = args.varyingCounts;
+			for (int i = 0; i < vSize; i++) {
+				auto va = context->vertexShaderResult->getVaryingBuffer(i);
+				auto& dest = interpolatedVaryings[i];
+				const auto& tmp0 = (va[addr[0]]);
+				const auto& tmp1 = (va[addr[1]]);
+				const auto& tmp2 = (va[addr[2]]);
+				vfloat4 destVec = tmp0 * desiredBary[0];
+				destVec = fma(tmp1, desiredBary[1], destVec);
+				dest = fma(tmp2, desiredBary[2], destVec);
 			}
 
-		};
-		pixelShadingPass(1);
+
+			psEntry->execute(interpolatedVaryings.data(), colorOutput.data(), &interpolatedDepth);
+#ifdef IFRIT_USE_SIMD_128
+			args.colorAttachment0->fillPixelRGBA128ps(dx, dy, _mm_loadu_ps((float*)(&colorOutput[0])));
+#else
+			args.colorAttachment0->fillPixelRGBA(dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
+#endif
+#endif
+		}
 	}
 
 	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
@@ -1718,10 +1817,6 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		auto ptrCtx = context.get();
 		const auto fbWidth = ptrCtx->frameWidth;
 		const auto fbHeight = ptrCtx->frameHeight;
-		__m128 posZ[3];
-		posZ[0] = _mm_set1_ps(atp.vz.x);
-		posZ[1] = _mm_set1_ps(atp.vz.y);
-		posZ[2] = _mm_set1_ps(atp.vz.z);
 
 		__m128i dx128i = _mm_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1);
 		__m128i dy128i = _mm_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1);
@@ -1740,7 +1835,10 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		auto ptrAtpF1F2 = args.tagBuffer->atpF1F2;
 		auto ptrAtpF3 = args.tagBuffer->atpF3;
 		auto ptrAtpBary = args.tagBuffer->tagBufferBary;
-
+		__m128 posZ[3];
+		posZ[0] = _mm_set1_ps(valF1.w);
+		posZ[1] = _mm_set1_ps(valF2.w);
+		posZ[2] = _mm_set1_ps(valF3.w);
 		bary[0] = _mm_fmadd_ps(_mm_set1_ps(valF1.y), pDy, _mm_set1_ps(valF1.z));
 		bary[0] = _mm_fmadd_ps(_mm_set1_ps(valF1.x), pDx, bary[0]);
 		bary[1] = _mm_fmadd_ps(_mm_set1_ps(valF2.y), pDy, _mm_set1_ps(valF2.z));
@@ -1748,7 +1846,6 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		bary[2] = _mm_fmadd_ps(_mm_set1_ps(valF3.y), pDy, _mm_set1_ps(valF3.z));
 		bary[2] = _mm_fmadd_ps(_mm_set1_ps(valF3.x), pDx, bary[2]);
 
-		__m128 barySum = _mm_add_ps(_mm_add_ps(bary[0], bary[1]), bary[2]);
 		__m128 interpolatedDepth128 = _mm_fmadd_ps(bary[0], posZ[0], _mm_mul_ps(bary[1], posZ[1]));
 		interpolatedDepth128 = _mm_fmadd_ps(bary[2], posZ[2], interpolatedDepth128);
 
@@ -1823,7 +1920,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		int idx = atp.originalPrimitive * context->vertexStride;
 
 		vfloat4 pDxDyVec = vfloat4(dx, dy, 1.0f, 0.0f);
-		vfloat3 zVec = atp.vz;
+		vfloat3 zVec = vfloat3(atp.f1.w, atp.f2.w, atp.f3.w);
 
 		float bary[3];
 		float interpolatedDepth;
@@ -1938,11 +2035,6 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 		int idx = atp.originalPrimitive * context->vertexStride;
 
-		__m128 posZ[3];
-		posZ[0] = _mm_set1_ps(atp.vz.x);
-		posZ[1] = _mm_set1_ps(atp.vz.y);
-		posZ[2] = _mm_set1_ps(atp.vz.z);
-
 		__m128i dx128i = _mm_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1);
 		__m128i dy128i = _mm_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1);
 
@@ -1953,6 +2045,10 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		vfloat4 valF1 = atp.f1;
 		vfloat4 valF2 = atp.f2;
 		vfloat4 valF3 = atp.f3;
+		__m128 posZ[3];
+		posZ[0] = _mm_set1_ps(valF1.w);
+		posZ[1] = _mm_set1_ps(valF2.w);
+		posZ[2] = _mm_set1_ps(valF3.w);
 		auto valOrgPrim = atp.originalPrimitive;
 		auto ptrAtpBx = args.tagBuffer->atpBx;
 		auto ptrAtpBy = args.tagBuffer->atpBy;
@@ -2088,6 +2184,34 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 #endif
 	}
 
+	template<IfritCompareOp tpDepthFunc>
+	__m256 depthTestSIMD256(__m256 src, __m256 dst) {
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
+			return FastUtil::fillAllOne_256();
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) {
+			return _mm256_cmp_ps(src, dst, _CMP_EQ_OQ);
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) {
+			return _mm256_cmp_ps(src, dst, _CMP_GT_OQ);
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) {
+			return _mm256_cmp_ps(src, dst, _CMP_GE_OQ);
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) {
+			return _mm256_cmp_ps(src, dst, _CMP_LT_OQ);
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL) {
+			return _mm256_cmp_ps(src, dst, _CMP_LE_OQ);
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) {
+			return _mm256_setzero_ps();
+		}
+		if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) {
+			return _mm256_cmp_ps(src, dst, _CMP_NEQ_OQ);
+		}
+	}
+
 	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
 	void TileRasterWorker::pixelShadingSIMD256Grouped(const AssembledTriangleProposalShadeStage& atp, int groupsX, int groupsY, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW {
 		if constexpr (!tpOnlyTaggingPass) {
@@ -2111,30 +2235,42 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		auto valAtpBy = atp.by;
 		auto valForcedQuads = args.forcedInQuads;
 
-		__m256 posZ[3];
-		posZ[0] = _mm256_set1_ps(atp.vz.x);
-		posZ[1] = _mm256_set1_ps(atp.vz.y);
-		posZ[2] = _mm256_set1_ps(atp.vz.z);
+		
 		__m256 attachmentWidth = _mm256_set1_ps(fbWidth);
 		__m256 attachmentHeight = _mm256_set1_ps(fbHeight);
 		uint32_t offx = dx - 4;
+		uint32_t offy = dy - 2;
 		vfloat4 tAtpF1 = atp.f1, tAtpF2 = atp.f2, tAtpF3 = atp.f3;
+		__m256 posZ[3];
+		posZ[0] = _mm256_set1_ps(tAtpF1.w);
+		posZ[1] = _mm256_set1_ps(tAtpF2.w);
+		posZ[2] = _mm256_set1_ps(tAtpF3.w);
 		int xPacked[8], yPacked[8], idPacked[8];
+
+		int tofffsetDx = dx & 0xf;
+		int toffsetDy = dy & 0xf;
+
+		__m256i dxInterOffsetX = _mm256_setr_epi32(0, 1, 0, 1, 2, 3, 2, 3);
+		__m256i dxInterOffsetY = _mm256_setr_epi32(0, 0, 1, 1, 0, 0, 1, 1);
+		__m256i dxInterIncreX = _mm256_set1_epi32(4);
+		__m256i dxInterIncreY = _mm256_set1_epi32(2);
+		__m256i dx256i = _mm256_add_epi32(_mm256_set1_epi32(offx), dxInterOffsetX);
 		for (int gx = 0; gx < groupsX; gx++) {
 			offx += 4;
+			dx256i = _mm256_add_epi32(dx256i, dxInterIncreX);
+			__m256i dy256i = _mm256_add_epi32(_mm256_set1_epi32(offy), dxInterOffsetY);
+
 			__m256 bary[3];
 			__m256 baryBase[3];
-			__m256i dx256i = _mm256_setr_epi32(offx + 0, offx + 1, offx + 0, offx + 1, offx + 2, offx + 3, offx + 2, offx + 3);
 			__m256i dx256Mod16 = _mm256_and_si256(dx256i, _mm256_set1_epi32(0xf));
 			__m256 pDx = _mm256_cvtepi32_ps(dx256i);
+			
 			baryBase[0] = _mm256_fmadd_ps(_mm256_set1_ps(tAtpF1.x), pDx, _mm256_set1_ps(tAtpF1.z));
 			baryBase[1] = _mm256_fmadd_ps(_mm256_set1_ps(tAtpF2.x), pDx, _mm256_set1_ps(tAtpF2.z));
 			baryBase[2] = _mm256_fmadd_ps(_mm256_set1_ps(tAtpF3.x), pDx, _mm256_set1_ps(tAtpF3.z));
-			_mm256_storeu_si256((__m256i*)xPacked, dx256i);
-			uint32_t offy = dy - 2;
+
 			for (int gy = 0; gy < groupsY; gy++) {
-				offy += 2;
-				__m256i dy256i = _mm256_setr_epi32(offy + 0, offy + 0, offy + 1, offy + 1, offy + 0, offy + 0, offy + 1, offy + 1);
+				dy256i = _mm256_add_epi32(dy256i, dxInterIncreY);
 				__m256i dy256Mod16 = _mm256_and_si256(dy256i, _mm256_set1_epi32(0xf));
 				__m256i dxId256 = _mm256_add_epi32(dx256Mod16, _mm256_slli_epi32(dy256Mod16, 4));
 				__m256 pDy = _mm256_cvtepi32_ps(dy256i);
@@ -2144,42 +2280,23 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 				__m256 baryDivWSum = _mm256_add_ps(_mm256_add_ps(bary[0], bary[1]), bary[2]);
 				__m256 interpolatedDepth256 = _mm256_fmadd_ps(bary[0], posZ[0], _mm256_fmadd_ps(bary[1], posZ[1], _mm256_mul_ps(bary[2], posZ[2])));
+				__m256 depthCache256 = _mm256_i32gather_ps(depthCache, dxId256, 4);
 
 				float interpolatedDepth[8] = { 0 };
 				float bary32[3][8];
 				_mm256_storeu_ps(interpolatedDepth, interpolatedDepth256);
-				_mm256_storeu_si256((__m256i*)yPacked, dy256i);
 				_mm256_storeu_si256((__m256i*)idPacked, dxId256);
 				_mm256_storeu_ps(bary32[0], bary[0]);
 				_mm256_storeu_ps(bary32[1], bary[1]);
 				_mm256_storeu_ps(bary32[2], bary[2]);
+				auto depthTestResult = depthTestSIMD256<tpDepthFunc>(interpolatedDepth256, depthCache256);
+				auto depthTestResultMask = _mm256_movemask_ps(depthTestResult);
+				
 				for (int i = 0; i < 8; i++) {
 					//Depth Test
-					int x = xPacked[i];
-					int y = yPacked[i];
 					unsigned dxId = idPacked[i];
-					const auto depthAttachment2 = depthCache[dxId];
-					if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) {
-						if (interpolatedDepth[i] != depthAttachment2) continue;
-					}
-					if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) {
-						if (interpolatedDepth[i] <= depthAttachment2) continue;
-					}
-					if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) {
-						if (interpolatedDepth[i] < depthAttachment2) continue;
-					}
-					if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) {
-						if (interpolatedDepth[i] >= depthAttachment2) continue;
-					}
-					if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL) {
-						if (interpolatedDepth[i] > depthAttachment2) continue;
-					}
-					if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) {
-						return;
-					}
-					if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) {
-						if (interpolatedDepth[i] == depthAttachment2) continue;
-					}
+					//Check the bit in mask
+					if (!(depthTestResultMask & (1 << i)))continue;
 					vfloat3 bary32Vec = vfloat3(bary32[0][i], bary32[1][i], bary32[2][i]);
 					if constexpr (tpOnlyTaggingPass) {
 						ptrAtpBx[dxId] = valAtpBx;
@@ -2194,9 +2311,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 					}
 				}
 			}
+			
 		}
-
-		
+		_mm256_zeroupper();
 	}
 
 	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
@@ -2209,11 +2326,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		const auto fbWidth = ptrCtx->frameWidth;
 		const auto fbHeight = ptrCtx->frameHeight;
 
-		__m256 posZ[3];
-		posZ[0] = _mm256_set1_ps(atp.vz.x);
-		posZ[1] = _mm256_set1_ps(atp.vz.y);
-		posZ[2] = _mm256_set1_ps(atp.vz.z);
-
+		
 		__m256i dx256i = _mm256_setr_epi32(dx + 0, dx + 1, dx + 0, dx + 1, dx + 2, dx + 3, dx + 2, dx + 3);
 		__m256i dy256i = _mm256_setr_epi32(dy + 0, dy + 0, dy + 1, dy + 1, dy + 0, dy + 0, dy + 1, dy + 1);
 		__m256i dx256Mod16 = _mm256_and_si256(dx256i, _mm256_set1_epi32(0xf));
@@ -2228,6 +2341,11 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 		__m256 bary[3];
 		vfloat4 tAtpF1 = atp.f1, tAtpF2 = atp.f2, tAtpF3 = atp.f3;
+		__m256 posZ[3];
+		posZ[0] = _mm256_set1_ps(tAtpF1.w);
+		posZ[1] = _mm256_set1_ps(tAtpF2.w);
+		posZ[2] = _mm256_set1_ps(tAtpF3.w);
+
 		bary[0] = _mm256_fmadd_ps(_mm256_set1_ps(tAtpF1.y), pDy, _mm256_set1_ps(tAtpF1.z));
 		bary[0] = _mm256_fmadd_ps(_mm256_set1_ps(tAtpF1.x), pDx, bary[0]);
 		bary[1] = _mm256_fmadd_ps(_mm256_set1_ps(tAtpF2.y), pDy, _mm256_set1_ps(tAtpF2.z));

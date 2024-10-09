@@ -158,8 +158,8 @@ namespace Ifrit::Demo::ShaderVMDemo {
 			renderer->drawElements(indexBuffer.size(),true);
 			std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 			*coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-			backend.updateTexture(*image);
-			backend.draw();
+			//backend.updateTexture(*image);
+			//backend.draw();
 		});
 		return 0;
 	}
