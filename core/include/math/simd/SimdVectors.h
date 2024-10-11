@@ -14,6 +14,7 @@ namespace Ifrit::Math::SIMD {
 	template<typename T>
 	concept SimdContainer = requires (T x) { std::is_same_v<T, __m128> || std::is_same_v<T, __m128i>; };
 
+	// 4-elements
 	template<typename T, typename S, int V>
 	requires SimdElement32<T> && SimdContainer<S>
 	struct alignas(16) SimdVector {
@@ -39,6 +40,9 @@ namespace Ifrit::Math::SIMD {
 			z = v.z;
 			w = v.w;
 #endif
+		}
+		inline S getVectorizedVal() const{
+			return dataf;
 		}
 		inline SimdVector& operator=(const SimdVector& v) {
 #ifdef IFRIT_FEATURE_SIMD

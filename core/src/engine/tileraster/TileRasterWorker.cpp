@@ -421,28 +421,22 @@ namespace Ifrit::Engine::TileRaster {
 		__m256 aFbwDivTh = _mm256_mul_ps(aCsFh1, aInvTileWidth);
 
 		auto directTriangleSetup = [&]() {
-			__m256 tv1X = _mm256_i32gather_ps((float*)candV1, indexOffset, 4);
-			__m256 tv1Y = _mm256_i32gather_ps(((float*)candV1) + 1, indexOffset, 4);
-			__m256 tv1Z = _mm256_i32gather_ps(((float*)candV1) + 2, indexOffset, 4);
-			__m256 tv1W = _mm256_i32gather_ps(((float*)candV1) + 3, indexOffset, 4);
+			__m256 tv1X, tv1Y, tv1Z, tv1W;
+			__m256 tv2X, tv2Y, tv2Z, tv2W;
+			__m256 tv3X, tv3Y, tv3Z, tv3W;
+			FastUtil::gather32Fp32_stride4_256((float*)candV1, tv1X, tv1Y, tv1Z, tv1W);
 			__m256 tv1WInv = FastUtil::approxReciprocalNR_256(tv1W);
 			tv1X = _mm256_mul_ps(tv1X, tv1WInv);
 			tv1Y = _mm256_mul_ps(tv1Y, tv1WInv);
 			tv1Z = _mm256_mul_ps(tv1Z, tv1WInv);
 
-			__m256 tv2X = _mm256_i32gather_ps((float*)candV2, indexOffset, 4);
-			__m256 tv2Y = _mm256_i32gather_ps(((float*)candV2) + 1, indexOffset, 4);
-			__m256 tv2Z = _mm256_i32gather_ps(((float*)candV2) + 2, indexOffset, 4);
-			__m256 tv2W = _mm256_i32gather_ps(((float*)candV2) + 3, indexOffset, 4);
+			FastUtil::gather32Fp32_stride4_256((float*)candV2, tv2X, tv2Y, tv2Z, tv2W);
 			__m256 tv2WInv = FastUtil::approxReciprocalNR_256(tv2W);
 			tv2X = _mm256_mul_ps(tv2X, tv2WInv);
 			tv2Y = _mm256_mul_ps(tv2Y, tv2WInv);
 			tv2Z = _mm256_mul_ps(tv2Z, tv2WInv);
 
-			__m256 tv3X = _mm256_i32gather_ps((float*)candV3, indexOffset, 4);
-			__m256 tv3Y = _mm256_i32gather_ps(((float*)candV3) + 1, indexOffset, 4);
-			__m256 tv3Z = _mm256_i32gather_ps(((float*)candV3) + 2, indexOffset, 4);
-			__m256 tv3W = _mm256_i32gather_ps(((float*)candV3) + 3, indexOffset, 4);
+			FastUtil::gather32Fp32_stride4_256((float*)candV3, tv3X, tv3Y, tv3Z, tv3W);
 			__m256 tv3WInv = FastUtil::approxReciprocalNR_256(tv3W);
 			tv3X = _mm256_mul_ps(tv3X, tv3WInv);
 			tv3Y = _mm256_mul_ps(tv3Y, tv3WInv);
@@ -464,47 +458,47 @@ namespace Ifrit::Engine::TileRaster {
 			__m256 aV1ySubV3y = _mm256_sub_ps(tv1Y, tv3Y);
 			__m256 aV2xSubV1x = _mm256_sub_ps(tv1X, tv2X); //NOTE
 
-			__m256 aS3 = FastUtil::flipFp32Sign_256(_mm256_add_ps(aV2ySubV1y, aV2xSubV1x));
-			__m256 aS1 = FastUtil::flipFp32Sign_256(_mm256_add_ps(aV3ySubV2y, aV3xSubV2x));
-			__m256 aS2 = FastUtil::flipFp32Sign_256(_mm256_add_ps(aV1ySubV3y, aV1xSubV3x));
+			__m256 aS3 = _mm256_add_ps(aV2ySubV1y, aV2xSubV1x);
+			__m256 aS1 = _mm256_add_ps(aV3ySubV2y, aV3xSubV2x);
+			__m256 aS2 = _mm256_add_ps(aV1ySubV3y, aV1xSubV3x);
 
 			__m256 aCsInvX = _mm256_mul_ps(aCsInvXR, aAr);
 			__m256 aCsInvY = _mm256_mul_ps(aCsInvYR, aAr);
 			__m256 rF3X = _mm256_mul_ps(aV2ySubV1y, aCsInvX);
 			__m256 rF3Y = _mm256_mul_ps(aV2xSubV1x, aCsInvY);
-			__m256 rF3Z_o = _mm256_fmadd_ps(tv1Y, aV2xSubV1x, FastUtil::flipFp32Sign_256(aS3));
+			__m256 rF3Z_o = _mm256_fmadd_ps(tv1Y, aV2xSubV1x, aS3);
 			rF3Z_o = _mm256_fmadd_ps(tv1X, aV2ySubV1y, rF3Z_o);
 			__m256 rF3Z = FastUtil::flipFp32Sign_256(_mm256_mul_ps(rF3Z_o, aAr));
 
 			__m256 rF1X = _mm256_mul_ps(aV3ySubV2y, aCsInvX);
 			__m256 rF1Y = _mm256_mul_ps(aV3xSubV2x, aCsInvY);
-			__m256 rF1Z_o = _mm256_fmadd_ps(tv2Y, aV3xSubV2x, FastUtil::flipFp32Sign_256(aS1));
+			__m256 rF1Z_o = _mm256_fmadd_ps(tv2Y, aV3xSubV2x,aS1);
 			rF1Z_o = _mm256_fmadd_ps(tv2X, aV3ySubV2y, rF1Z_o);
 			__m256 rF1Z = FastUtil::flipFp32Sign_256(_mm256_mul_ps(rF1Z_o, aAr));
 
 			__m256 rF2X = _mm256_mul_ps(aV1ySubV3y, aCsInvX);
 			__m256 rF2Y = _mm256_mul_ps(aV1xSubV3x, aCsInvY);
-			__m256 rF2Z_o = _mm256_fmadd_ps(tv3Y, aV1xSubV3x, FastUtil::flipFp32Sign_256(aS2));
+			__m256 rF2Z_o = _mm256_fmadd_ps(tv3Y, aV1xSubV3x, aS2);
 			rF2Z_o = _mm256_fmadd_ps(tv3X, aV1ySubV3y, rF2Z_o);
 			__m256 rF2Z = FastUtil::flipFp32Sign_256(_mm256_mul_ps(rF2Z_o, aAr));
 
 			__m256 rE1X = _mm256_mul_ps(aCsFh, aV2ySubV1y);
 			__m256 rE1Y = _mm256_mul_ps(aCsFw, aV2xSubV1x);
-			__m256 rE1Z_o = _mm256_fmadd_ps(tv2X, tv1Y, aS3);
+			__m256 rE1Z_o = _mm256_fmadd_ps(tv2X, tv1Y, FastUtil::flipFp32Sign_256(aS3));
 			__m256 rE1Z_q = _mm256_mul_ps(tv1X, tv2Y);
 			__m256 rE1Z = _mm256_sub_ps(_mm256_sub_ps(rE1Z_o, rE1Z_q), _mm256_set1_ps(EPS));
 			rE1Z = _mm256_mul_ps(rE1Z, aCsFhFw);
 
 			__m256 rE2X = _mm256_mul_ps(aCsFh, aV3ySubV2y);
 			__m256 rE2Y = _mm256_mul_ps(aCsFw, aV3xSubV2x);
-			__m256 rE2Z_o = _mm256_fmadd_ps(tv3X, tv2Y, aS1);
+			__m256 rE2Z_o = _mm256_fmadd_ps(tv3X, tv2Y, FastUtil::flipFp32Sign_256(aS1));
 			__m256 rE2Z_q = _mm256_mul_ps(tv2X, tv3Y);
 			__m256 rE2Z = _mm256_sub_ps(_mm256_sub_ps(rE2Z_o, rE2Z_q), _mm256_set1_ps(EPS));
 			rE2Z = _mm256_mul_ps(rE2Z, aCsFhFw);
 
 			__m256 rE3X = _mm256_mul_ps(aCsFh, aV1ySubV3y);
 			__m256 rE3Y = _mm256_mul_ps(aCsFw, aV1xSubV3x);
-			__m256 rE3Z_o = _mm256_fmadd_ps(tv1X, tv3Y, aS2);
+			__m256 rE3Z_o = _mm256_fmadd_ps(tv1X, tv3Y, FastUtil::flipFp32Sign_256(aS2));
 			__m256 rE3Z_q = _mm256_mul_ps(tv3X, tv1Y);
 			__m256 rE3Z = _mm256_sub_ps(_mm256_sub_ps(rE3Z_o, rE3Z_q), _mm256_set1_ps(EPS));
 			rE3Z = _mm256_mul_ps(rE3Z, aCsFhFw);
@@ -544,10 +538,10 @@ namespace Ifrit::Engine::TileRaster {
 			if (_mm256_testz_ps(fcullMask, fcullMask)) return;
 			__m256 combinedMask = _mm256_and_ps(cullMask, fcullMask);
 
-			__m256 bboxMinXR = _mm256_fmadd_ps(bboxMinX, aCsFw1, _mm256_set1_ps(-0.5f));
-			__m256 bboxMinYR = _mm256_fmadd_ps(bboxMinY, aCsFh1, _mm256_set1_ps(-0.5f));
-			__m256 bboxMaxXR = _mm256_fmadd_ps(bboxMaxX, aCsFw1, _mm256_set1_ps(-0.5f));
-			__m256 bboxMaxYR = _mm256_fmadd_ps(bboxMaxY, aCsFh1, _mm256_set1_ps(-0.5f));
+			__m256 bboxMinXR = _mm256_mul_ps(bboxMinX, aCsFw1);
+			__m256 bboxMinYR = _mm256_mul_ps(bboxMinY, aCsFh1);
+			__m256 bboxMaxXR = _mm256_mul_ps(bboxMaxX, aCsFw1);
+			__m256 bboxMaxYR = _mm256_mul_ps(bboxMaxY, aCsFh1);
 			bboxMinXR = _mm256_round_ps(bboxMinXR, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
 			bboxMinYR = _mm256_round_ps(bboxMinYR, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
 			bboxMaxXR = _mm256_round_ps(bboxMaxXR, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
@@ -696,7 +690,6 @@ namespace Ifrit::Engine::TileRaster {
 				cands = 0;
 			}
 #endif
-
 		}
 		status.store(TileRasterStage::GEOMETRY_PROCESSING_SYNC, std::memory_order::relaxed);
 	}
@@ -811,6 +804,12 @@ namespace Ifrit::Engine::TileRaster {
 					tileCoordsX256[VLB] = subTileMinX256;
 					tileCoordsX256[VRT] = subTileMaxX256;
 					tileCoordsX256[VRB] = subTileMaxX256;
+					__m256 critLocalTRX[3], critLocalTRY[3];
+					for (int k = 0; k < 3; k++) {
+						critLocalTRX[k] = _mm256_mul_ps(edgeCoefs256X[k], tileCoordsX256[chosenCoordTR[k]]);
+						critLocalTRY[k] = _mm256_mul_ps(edgeCoefs256X[k], tileCoordsX256[chosenCoordTA[k]]);
+					}
+					tileCoordsX256[VRB] = subTileMaxX256;
 					for (int y = topBlock; y < bottomBlock; y += 2) {
 						__m256i y256 = _mm256_setr_epi32(y + 0, y + 0, y + 0, y + 0, y + 1, y + 1, y + 1, y + 1);
 						__m256i criteriaTR256 = _mm256_setzero_si256();
@@ -825,9 +824,8 @@ namespace Ifrit::Engine::TileRaster {
 
 						__m256 criteriaLocalTR256[3], criteriaLocalTA256[3];
 						for (int k = 0; k < 3; k++) {
-							criteriaLocalTR256[k] = _mm256_fmadd_ps(edgeCoefs256X[k], tileCoordsX256[chosenCoordTR[k]], _mm256_mul_ps(edgeCoefs256Y[k], tileCoordsY256[chosenCoordTR[k]]));
-							criteriaLocalTA256[k] = _mm256_fmadd_ps(edgeCoefs256X[k], tileCoordsX256[chosenCoordTA[k]], _mm256_mul_ps(edgeCoefs256Y[k], tileCoordsY256[chosenCoordTA[k]]));
-
+							criteriaLocalTR256[k] = _mm256_fmadd_ps(edgeCoefs256Y[k], tileCoordsY256[chosenCoordTR[k]], critLocalTRX[k]);
+							criteriaLocalTA256[k] = _mm256_fmadd_ps(edgeCoefs256Y[k], tileCoordsY256[chosenCoordTA[k]], critLocalTRY[k]);
 							__m256i criteriaTRMask = _mm256_castps_si256(_mm256_cmp_ps(criteriaLocalTR256[k], edgeCoefs256Z[k], _CMP_LT_OS));
 							__m256i criteriaTAMask = _mm256_castps_si256(_mm256_cmp_ps(criteriaLocalTA256[k], edgeCoefs256Z[k], _CMP_LT_OS));
 							criteriaTR256 = _mm256_add_epi32(criteriaTR256, criteriaTRMask);
@@ -1526,6 +1524,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			__m256 atpF1Y = _mm256_i32gather_ps(((float*)ptrAtpF1F2) + 1, gatherIdx, 4);
 			__m256 atpF2X = _mm256_i32gather_ps(((float*)ptrAtpF1F2) + 2, gatherIdx, 4);
 			__m256 atpF2Y = _mm256_i32gather_ps(((float*)ptrAtpF1F2) + 3, gatherIdx, 4);
+
 			__m256 atpF3X = _mm256_i32gather_ps((float*)ptrAtpF3, gatherIdx, 2);
 			__m256 atpF3Y = _mm256_i32gather_ps(((float*)ptrAtpF3) + 1, gatherIdx, 2);
 
@@ -1643,8 +1642,8 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 		auto ptrCtx = context.get();
 		auto& psEntry = ptrCtx->threadSafeFS[workerId];
 		auto forcedInQuads = psEntry->forcedQuadInvocation;
-		auto aCsFwS1 = _mm256_set1_epi32(ptrCtx->frameWidth - 1);
-		auto aCsFhS1 = _mm256_set1_epi32(ptrCtx->frameHeight - 1);
+		auto aCsFwS1 = _mm256_set1_epi32(ptrCtx->frameWidth);
+		auto aCsFhS1 = _mm256_set1_epi32(ptrCtx->frameHeight);
 		auto varyCnts = args.varyingCounts;
 		auto ptrBaseInd = args.indexBufferPtr;
 		vfloat4* vaPtr[TILE_RASTER_MAX_VARYINGS];
@@ -1693,9 +1692,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			__m256i dy256 = _mm256_add_epi32(dy256A, dx256Tmp2);
 #endif
 
-			__m256i dxFwMask = _mm256_cmpgt_epi32(dx256, aCsFwS1);
-			__m256i dyFhMask = _mm256_cmpgt_epi32(dy256, aCsFhS1);
-			__m256i validMask = _mm256_andnot_si256(_mm256_or_si256(dxFwMask, dyFhMask), _mm256_set1_epi32(0xffffffff));
+			__m256i dxFwMask = _mm256_cmpgt_epi32(aCsFwS1, dx256);
+			__m256i dyFhMask = _mm256_cmpgt_epi32(aCsFhS1, dy256);
+			__m256i validMask = _mm256_and_si256(dxFwMask, dyFhMask);
 				
 			__m256i gatherIdx = _mm256_slli_epi32(dxId256, 2);
 
@@ -1713,7 +1712,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 			// zCorr
 			__m256 interpolatedDepth = reqDepth?_mm256_i32gather_ps((float*)depthCache, dxId256, 4): _mm256_setzero_ps();
-			__m256i tagBufferValid = _mm256_i32gather_epi32((int*)ptrValid, dxId256, 4);
+			__m256i tagBufferValid = _mm256_loadu_epi32(ptrValid + i);//_mm256_i32gather_epi32(ptrValid, dxId256, 4);
 
 			__m256i idxA = _mm256_slli_epi32(tagBufferValid, 1);
 			__m256i idx = _mm256_add_epi32(tagBufferValid, idxA);
@@ -1721,7 +1720,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 			__m256i idxMask2 = _mm256_and_si256(idxMask, validMask);
 
 			// If all invalid, skip
-			if (_mm256_testz_si256(idxMask2, _mm256_set1_epi32(0xffffffff)))continue;
+			if (_mm256_testz_si256(idxMask2, _mm256_set1_epi32(-1)))continue;
 
 			// Mask from idxMask2
 			int validMaskT[8], dx[8], dy[8], idxT[8];
@@ -1762,7 +1761,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 					ivData[k] = fma(tmp2, desiredBaryZ[j], destVec);
 				}
 				psEntry->execute(ivData, coData, &interpolatedDepthT[j]);
-				ptrCol0->fillPixelRGBA128ps(dx[j], dy[j], _mm_loadu_ps((float*)(coData)));
+				ptrCol0->fillPixelRGBA128ps(dx[j], dy[j], coData->getVectorizedVal());
 			}
 			
 #else
