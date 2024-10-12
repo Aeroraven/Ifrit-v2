@@ -2,13 +2,13 @@
 
 GPU/CPU-Parallelized tile-based software rasterizer.
 
-![](./img/img_demo0png.png)
+![](./docs/img/img_demo0png.png)
 
-![](img/img_demo3.png)
+![](docs/img/img_demo3.png)
 
-![](img/img_demo1.png)
+![](docs/img/img_demo1.png)
 
-![](img/img_demo2.png)
+![](docs/img/img_demo2.png)
 
 
 
@@ -152,6 +152,27 @@ Tests performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. 
 
 
 
+#### Influence of Data Parallelism
+
+Tests performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored. Note that some triangles **might be culled or clipped** in the pipeline. SPIR-V HLSL is used for shading.
+
+| Model          | ST   | MT   | MT + SSE (128) | MT + AVX2 (256) | Mem Bound | CUDA | PCIe Bound |
+| -------------- | ---- | ---- | -------------- | --------------- | --------- | ---- | ---------- |
+| Khronos Sponza | 4    | 33   | 43             | 50              | 128       | 500  | 125        |
+
+※ **Single Thread (ST) and Multi Threads (MT)**: 16 workers (+1 master) are used for multi thread setting
+
+※ **Data Parallelism**: 
+
+- **SSE/AVX**: FP32 numbers are organized into 4-element vectors with SSE instruction supports and 8-element vectors with AVX2 instruction support. Fused multiply add instructions (`FMA`) are used in both setting. 
+
+※ **Performance Bound**: 
+
+- **Mem Bound**: The maximal fps measured when the attachments are painted using memory set functions (`rep stosb` instruction). This measures the upper performance limit of a CPU renderer.
+- **PCIe Bound**: The maximal fps measured when the attachment are copied back from local device (CUDA device) to host device (CPU). This measures the upper performance limit of a CUDA renderer at the final step (without graphics API interop considerations)
+
+
+
 ### **Frame Rate Comparison (FPS)  Version 1**
 
 See [Performance History](./docs/performance.md)
@@ -178,7 +199,7 @@ See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
 ### Quick Start (GCC / MinGW-w64)
 
-> Warning: Please ensure that dependencies are installed. And this will ignore all CUDA codes in the project. 
+> Warning: Please ensure that dependencies are installed. **And this will ignore all CUDA codes in the project.** 
 >
 > NOTE: Some paths / packages should be configured manually before cmake
 

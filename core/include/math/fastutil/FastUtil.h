@@ -16,5 +16,10 @@ namespace Ifrit::Math::FastUtil {
 		r = r * (2 - r * x);
 		return r;
 	}
+	inline float fastApproxReciprocal(float x) {
+		// https://codereview.stackexchange.com/questions/259771/fast-reciprocal-1-x
+		float r = _mm_cvtss_f32(_mm_rcp_ss(_mm_set_ss(x)));
+		return r;
+	}
 }
 
