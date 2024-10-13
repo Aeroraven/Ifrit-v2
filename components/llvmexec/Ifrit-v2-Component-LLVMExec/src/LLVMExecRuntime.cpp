@@ -47,7 +47,7 @@ static ThreadSafeModule optimizeModule(ThreadSafeModule M) {
         FPM->run(F);
 
     // Print IR
-    M.getModuleUnlocked()->print(errs(), nullptr);
+    // M.getModuleUnlocked()->print(errs(), nullptr);
 
     return M;
 }

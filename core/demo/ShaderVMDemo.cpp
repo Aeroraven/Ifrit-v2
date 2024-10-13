@@ -98,7 +98,7 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		vertexBuffer.allocateBuffer(pos.size());
 		for (int i = 0; i < pos.size(); i++) {
 			vertexBuffer.setValue(i, 0, ifloat4(pos[i].x, pos[i].y, pos[i].z, 1));
-			vertexBuffer.setValue(i, 1, ifloat4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0));
+			vertexBuffer.setValue(i, 1, ifloat4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0.5f));
 		}
 
 		std::vector<int> indexBuffer = { 0,1,2,2,3,0 };
@@ -115,9 +115,16 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		renderer->bindFrameBuffer(frameBuffer);
 		renderer->bindVertexBuffer(vertexBuffer);
 		
-		renderer->optsetForceDeterministic(true);
+		renderer->optsetForceDeterministic(false);
 		renderer->optsetDepthTestEnable(true);
 
+		IfritColorAttachmentBlendState blendState;
+		blendState.blendEnable = false;
+		blendState.srcColorBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
+		blendState.dstColorBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		blendState.srcAlphaBlendFactor = IF_BLEND_FACTOR_SRC_ALPHA;
+		blendState.dstAlphaBlendFactor = IF_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		renderer->setBlendFunc(blendState);
 
 		struct Uniform {
 			ifloat4 t1 = { 1,1,1,0 };

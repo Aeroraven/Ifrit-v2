@@ -323,7 +323,8 @@ namespace Ifrit::Engine::TileRaster {
 		for (int i = interpolatedVaryingsAddr.size() - 1; i >= 0; i--) {
 			interpolatedVaryingsAddr[i] = &interpolatedVaryings[i];
 		}
-		if (context->optForceDeterministic) {
+		auto reqDeterministic = context->optForceDeterministic || context->blendState.blendEnable;
+		if (reqDeterministic) {
 			while ((curTile = renderer->fetchUnresolvedTileRaster()) >= 0) {
 				coverQueueLocal.clear();
 				rasterizationSingleTile(renderer, curTile);
@@ -1088,6 +1089,9 @@ namespace Ifrit::Engine::TileRaster {
 			auto bo = context->assembledTrianglesShade[bw][bp].originalPrimitive;
 			return ao < bo;
 			};
+		// Std sort is suboptimal here. `coverQueueLocal` without tile level proposals is already sorted.
+		// We can use a more efficient sorting algorithm here.
+		// TODO: Implement a more efficient sorting algorithm.
 		std::sort(coverQueueLocal.begin(), coverQueueLocal.end(), sortCompareOp);
 	}
 
