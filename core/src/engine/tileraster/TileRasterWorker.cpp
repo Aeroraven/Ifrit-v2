@@ -335,7 +335,7 @@ namespace Ifrit::Engine::TileRaster {
 			while ((curTile = renderer->fetchUnresolvedTileRaster()) >= 0) {
 				coverQueueLocal.clear();
 				rasterizationSingleTile(renderer, curTile);
-				fragmentProcessingSingleTile(renderer, clearDepth, curTile);
+				sfragmentProcessingSingleTile(renderer, clearDepth, curTile);
 			}
 		}
 		status.store(TileRasterStage::FRAGMENT_SHADING_SYNC,std::memory_order::relaxed);
@@ -1063,16 +1063,18 @@ namespace Ifrit::Engine::TileRaster {
 
 	void TileRasterWorker::sortOrderProcessingSingleTile(TileRasterRenderer* renderer, int tileId) IFRIT_AP_NOTHROW {
 		auto curTile = tileId;
-		std::vector<int> numSpaces(TOTAL_THREADS);
-		int preSum = 0;
 		for (int i = 0; i < TOTAL_THREADS; i++) {
-			numSpaces[i] = preSum;
-			preSum += context->coverQueue[i][curTile].size();
-		}
-		context->sortedCoverQueue[curTile].resize(preSum);
-		for (int i = 0; i < TOTAL_THREADS; i++) {
-			//std::copy(context->coverQueue[i][curTile].begin(), context->coverQueue[i][curTile].end(),
-			//	context->sortedCoverQueue[curTile].begin() + numSpaces[i]);
+			auto localSize = context->coverQueue[i][curTile].size();
+			for (int j = 0; j < localSize; j++) {
+				auto prop = context->coverQueue[i][curTile][j];
+				auto propWorkerId = cvrsQueueWorkerId(prop);
+				auto propPrimId = cvrsQueuePrimitiveId(prop);
+				TileBinProposal nprop;
+				nprop.level = TileRasterLevel::TILE;
+				nprop.clipTrianglePacked = cvrsQueuePack(propWorkerId, propPrimId);
+				coverQueueLocal.push_back(nprop);
+			}
+			context->coverQueue[i][curTile].clear();
 		}
 		auto sortCompareOp = [&](const TileBinProposal& a, const TileBinProposal& b) {
 			auto ax = a.clipTrianglePacked;
