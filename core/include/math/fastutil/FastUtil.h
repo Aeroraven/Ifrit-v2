@@ -26,7 +26,7 @@ namespace Ifrit::Math::FastUtil {
 			std::fill(src, src + counts, value);
 		}
 #else
-		std::fill(src, src + counts, T);
+		std::fill(src, src + counts, value);
 #endif
 	}
 }

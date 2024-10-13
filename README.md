@@ -32,7 +32,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 <img src="./docs/img/overview.png" alt="overview" style="zoom: 67%;" />
 
-**Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). 
+**Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). It's just a toy or a tutorial for the basic understanding.
 
 ✅ Available | 🟦 Limited  Support (Under Testing) | 🟨 Severely Unstable (Under Testing) | 🟥 TODO
 
@@ -115,6 +115,25 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 
 ### Frame Rate Comparison (FPS)  Version 2
 
+
+
+#### Performance Comparison For CPU Software Rendering
+
+Tests performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored. Note that some triangles **might be culled or clipped** in the pipeline. 
+
+| Model                             | Yomiya | Bunny | Khronos Sponza | Intel Sponza |
+| --------------------------------- | ------ | ----- | -------------- | ------------ |
+| **Windows (MSVC)**                |        |       |                |              |
+| Ifrit-v2 MTCPU                    | 153    | 126   | 50             | 24           |
+| **WSL2 (Ubuntu 20.04 LTS / GCC)** |        |       |                |              |
+| Ifrit-v2 MTCPU                    | 128    | 102   | 43             | 20           |
+| Mesa3D softpipe                   | 13     | 3     | *              | *            |
+| Mesa3D llvmpipe                   | 152    | 76    | 50             | 8            |
+
+ *. Frame time larger than 1000ms (FPS<1)
+
+
+
 #### Influence of Attachment Size
 
 Tests performed on multi-thread CPU renderer (1 master + 16 workers), with just-in-time(JIT) compilation of Vulkan-specific HLSL shaders (compiled in SPIR-V binary format). All attachments are in `linear` tiling mode and `float32` mode. 
@@ -128,27 +147,29 @@ Tests performed on multi-thread CPU renderer (1 master + 16 workers), with just-
 
 
 
-#### Influence of Triangle Numbers
+#### Influence of Multithreading, Optimization and Execution Strategy
 
 Tests performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. Time consumption in presentation stage (displaying texture via OpenGL) is ignored. Note that some triangles **might be culled or clipped** in the pipeline. 
 
-| Model                                   | Yomiya     | Bunny      | Khronos Sponza | Intel Sponza |
-| --------------------------------------- | ---------- | ---------- | -------------- | ------------ |
-| Triangles                               | 70275      | 208353     | 786801         | 11241912     |
-| Single Thread CPU Baseline v1           | 38         | 20         | 2              | 1            |
-| Multi Thread CPU Baseline v1            | 80         | 80         | 10             | 2            |
-| CUDA Baseline v1                        | 2857       | 2272       | 500            | 198          |
-| ST CPU Optimized v2 (C++ / SPIR-V HLSL) | 56 (+47%)  | 37 (+85%)  | 7 (+250%)      | 4 (+300%)    |
-| MT CPU Optimized v2 (C++ / SPIR-V HLSL) | 153 (+91%) | 125 (+56%) | 50 (+400%)     | 24 (+1100%)  |
-| ST CPU Optimized v2 (C++ / Class)       | 56 (+47%)  | 37 (+85%)  | 7 (+250%)      | 4 (+300%)    |
-| MT CPU Optimized v2 (C++ / Class)       | 153 (+91%) | 126 (+58%) | 50 (+400%)     | 24 (+1100%)  |
-| MT CPU Optimized v2 (C# / SPIR-V HLSL)  |            |            |                |              |
+| Model                                         | Yomiya     | Bunny      | Khronos Sponza | Intel Sponza |
+| --------------------------------------------- | ---------- | ---------- | -------------- | ------------ |
+| **Architectural Optimization & JIT**          |            |            |                |              |
+| Triangles                                     | 70275      | 208353     | 786801         | 11241912     |
+| Single Thread CPU Baseline v1                 | 38         | 20         | 2              | 1            |
+| Multi Thread CPU Baseline v1                  | 80         | 80         | 10             | 2            |
+| CUDA Baseline v1                              | 2857       | 2272       | 500            | 198          |
+| ST CPU Optimized v2 (C++ / SPIR-V HLSL)       | 56 (+47%)  | 37 (+85%)  | 7 (+250%)      | 4 (+300%)    |
+| MT CPU Optimized v2 (C++ / SPIR-V HLSL)       | 153 (+91%) | 125 (+56%) | 50 (+400%)     | 24 (+1100%)  |
+| ST CPU Optimized v2 (C++ / Class Inheritance) | 56 (+47%)  | 37 (+85%)  | 7 (+250%)      | 4 (+300%)    |
+| MT CPU Optimized v2 (C++ / Class Inheritance) | 153 (+91%) | 126 (+58%) | 50 (+400%)     | 24 (+1100%)  |
+| **Pipeline Optimization**                     |            |            |                |              |
+| Optimized                                     | 153        | 126        | 50             | 24           |
+| w/o Tag Buffering                             | 119 (-22%) | 98 (-22%)  | 24 (-52%)      | 17 (-29%)    |
+| w/o Hierarchical Tiling                       | 111 (-26%) | 86 (-32%)  | 19 (-62%)      | 17 (-29%)    |
 
 ※ **C++ Class**: shaders are coded and compiled ahead-of-time, using virtual inheritance.
 
 ※ **SPIR-V HLSL (C++)**: all shader codes are compiled into binary form using `glslc`. HLSL source codes are written in `Vulkan-specific` style. Just-in-time (JIT) compilation uses LLVM 10 as backend and manual IR mapping (Shared library is compiled with `mingw-w64`). App runs in `msvc`.
-
-※ **SPIR-V HLSL (C#)**: the same as above, but with .NET `P/Invoke Source Generation`(`LibraryImport`) that invokes shared library compiled using C++.
 
 
 
@@ -240,6 +261,16 @@ See  [Usage](./docs/docs.md) for more details.
 
 ## TODO
 
+### Short-term Plan
+
+- [x] MTCPU: Alpha Blending Assurance
+- [x] MTCPU: Deterministic Behavior Assurance 
+- [ ] MTCPU: Basic Texture Support
+- [ ] MTCPU: Branch Divergence Handling Assurance in Quads
+- [ ] Compile: Bug with CMake with Linux GCC
+
+### Long-term Plan
+
 - [ ] Tessellation
 - [x] Line Mode
 - [x] Texture LOD & Texture Sampler
@@ -275,7 +306,7 @@ See  [Usage](./docs/docs.md) for more details.
 
 ## References
 
-For models / open source code references, check `licenses` folder.
+For models / open source code references, check `licenses` folder. Thanks for following resources.
 
 [1]. https://tayfunkayhan.wordpress.com/2019/07/26/chasing-triangles-in-a-tile-based-rasterizer/
 

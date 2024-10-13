@@ -112,6 +112,11 @@
 #include <mutex>
 #include <thread>
 
+// Check if the compiler is GCC-family (GCC and MinGW)
+#if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__)
+#define IFRIT_COMPILER_GCC 1
+#endif
+
 #if _HAS_CXX23
 	#define IFRIT_CXX23_ENABLED 1
 #endif

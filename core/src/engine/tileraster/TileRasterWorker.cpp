@@ -1721,7 +1721,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 			// zCorr
 			__m256 interpolatedDepth = reqDepth?_mm256_i32gather_ps((float*)depthCache, dxId256, 4): _mm256_setzero_ps();
-			__m256i tagBufferValid = _mm256_loadu_epi32(ptrValid + i);//_mm256_i32gather_epi32(ptrValid, dxId256, 4);
+			__m256i tagBufferValid = _mm256_castps_si256(_mm256_loadu_ps((const float*)ptrValid + i));//_mm256_i32gather_epi32(ptrValid, dxId256, 4);
 
 			__m256i idxA = _mm256_slli_epi32(tagBufferValid, 1);
 			__m256i idx = _mm256_add_epi32(tagBufferValid, idxA);

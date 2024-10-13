@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClInclude Include="demo\AccelStructDemo.h" />
     <ClInclude Include="demo\MeshletDemo.h" />
+    <ClInclude Include="demo\OglBenchmarking.h" />
     <ClInclude Include="demo\ShaderVMDemo.h" />
     <ClInclude Include="demo\shader\DefaultDemoShaders.cuh" />
     <ClInclude Include="demo\DefaultDemo.h" />
@@ -192,6 +193,7 @@
     <ClInclude Include="include\utility\debug\DebugHelper.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <ClCompile Include="demo\AccelStructDemo.cpp" />
+    <ClCompile Include="demo\OglBenchmarking.cpp" />
     <ClCompile Include="src\engine\imaging\BufferedImageSampler.cpp" />
     <ClCompile Include="src\engine\bufferman\BufferManager.cpp" />
     <ClCompile Include="src\engine\export\BufferManagerExport.cpp" />
@@ -288,6 +290,10 @@
     <ClCompile Include="src\utility\loader\WavefrontLoader.cpp" />
     <CudaCompile Include="src\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cu" />
     <CudaCompile Include="src\engine\tilerastercuda\TileRasterCoreInvocationCuda.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\opengl.benchmarking.sponza.frag.glsl" />
+    <None Include="shader\opengl.benchmarking.sponza.vert.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

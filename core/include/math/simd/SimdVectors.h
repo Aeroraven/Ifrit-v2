@@ -1,6 +1,11 @@
 #pragma once
 #include "core/definition/CoreExports.h"
 
+#ifdef IFRIT_COMPILER_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
+
 namespace Ifrit::Math::SIMD {
 	// Placeholder for machines without SIMD support
 	struct SimdContainerPlaceholder {
@@ -640,3 +645,7 @@ namespace Ifrit::Math::SIMD {
 		return vfloat4(v.x, v.y, v.z, v.w);
 	}
 }
+
+#ifdef IFRIT_COMPILER_GCC
+#pragma GCC diagnostic pop
+#endif
