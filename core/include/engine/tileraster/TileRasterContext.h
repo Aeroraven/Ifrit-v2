@@ -10,6 +10,19 @@
 #include "engine/tileraster/TileRasterCommon.h"
 
 namespace Ifrit::Engine::TileRaster {
+	struct TileRasterContextRasterQueueProposal{
+		uint32_t workerId;
+		int primId;
+	};
+	struct AssembledTriangleProposalShadeStage {
+		Ifrit::Math::SIMD::vfloat4 f1, f2, f3; //Interpolate Bases
+		Ifrit::Math::SIMD::vfloat3 bx, by;
+		int originalPrimitive;
+	};
+	struct AssembledTriangleProposalRasterStage {
+		Ifrit::Math::SIMD::vfloat3 e1, e2, e3; //Edge Coefs
+	};
+
 	class TileRasterContext {
 	public:
 		// Config
@@ -19,7 +32,9 @@ namespace Ifrit::Engine::TileRaster {
 		constexpr static int subtileBlockWidth = 4;
 		constexpr static int numSubtilesPerTileX = tileWidth / subtileBlockWidth;
 		constexpr static int vsChunkSize = 48;
-		constexpr static int gsChunkSize = 256;
+		constexpr static int gsChunkSize = 128;
+
+		constexpr static int workerReprBits = 8;
 
 		// Non-owning Bindings
 		FrameBuffer* frameBuffer;
@@ -41,21 +56,19 @@ namespace Ifrit::Engine::TileRaster {
 		std::unique_ptr<VaryingDescriptor> owningVaryingDesc;
 
 		// Thread-safe Calls
-		std::vector<VertexShader*> threadSafeVS;
-		std::vector<FragmentShader*> threadSafeFS;
+		VertexShader* threadSafeVS[TileRasterContext::numThreads + 1];
+		FragmentShader* threadSafeFS[TileRasterContext::numThreads + 1];
 
-		std::vector<std::unique_ptr<VertexShader>> threadSafeVSOwningSection;
-		std::vector<std::unique_ptr<FragmentShader>> threadSafeFSOwningSection;
+		std::unique_ptr<VertexShader> threadSafeVSOwningSection[TileRasterContext::numThreads + 1];
+		std::unique_ptr<FragmentShader> threadSafeFSOwningSection[TileRasterContext::numThreads + 1];
 		
 		// Resources
 		std::unique_ptr<VertexShaderResult> vertexShaderResult;
-		std::vector<std::vector<std::vector<TileBinProposal>>> rasterizerQueue;
-		std::vector<std::vector<std::vector<TileBinProposal>>> coverQueue;
+		std::vector<std::vector<int>> rasterizerQueue[TileRasterContext::numThreads + 1];
+		std::vector<std::vector<int>> coverQueue[TileRasterContext::numThreads + 1];
 
 		// Sorted List
 		std::vector<std::vector<TileBinProposal>> sortedCoverQueue;
-
-
 		int numTilesX = 1;
 		int numTilesY = 1;
 		
@@ -72,12 +85,7 @@ namespace Ifrit::Engine::TileRaster {
 		bool optDepthTestEnableII = true;
 
 		// Geometry
-		std::vector<float> primitiveMinZ;
-		std::vector<PrimitiveEdgeCoefs> primitiveEdgeCoefs;
-
-		std::vector<std::vector<AssembledTriangleProposal>> assembledTriangles;
-
-		// Profiling
-		std::vector<uint32_t> workerIdleTime;
+		std::vector<AssembledTriangleProposalRasterStage> assembledTrianglesRaster[TileRasterContext::numThreads + 1];
+		std::vector<AssembledTriangleProposalShadeStage> assembledTrianglesShade[TileRasterContext::numThreads + 1];
 	};
 }

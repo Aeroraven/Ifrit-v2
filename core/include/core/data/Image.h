@@ -135,7 +135,23 @@ namespace Ifrit::Core::Data {
 			else {
 				auto st = data + dataSizeSt;
 				auto ed = data + dataSizeEd;
+#ifdef _MSC_VER
+				//Check if satisfies 0x(pp)(pp)(pp)(pp)
+				if constexpr (sizeof(T) == 4) {
+					auto hex = std::bit_cast<unsigned, T>(value);
+					if (hex == (hex & 0xFF) * 0x01010101) {
+						memset(st, value, (ed - st) * sizeof(T));
+					}
+					else {
+						std::fill(st, ed, value);
+					}
+				}
+				else {
+					std::fill(st, ed, value);
+				}
+#else
 				std::fill(st,ed,value);
+#endif
 			}
 		}
 
@@ -152,7 +168,7 @@ namespace Ifrit::Core::Data {
 			memset(dataPtr+ dataSizeSt, 0 , (dataSizeEd - dataSizeSt) * sizeof(T));
 		}
 
-		T& operator()(size_t x, size_t y, size_t c) {
+		inline T& operator()(size_t x, size_t y, size_t c) {
 			return data[y * width * channel + x * channel + c];
 		}
 

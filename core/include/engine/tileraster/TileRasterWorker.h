@@ -12,10 +12,17 @@ namespace Ifrit::Engine::TileRaster {
 	};
 
 	constexpr auto tagbufferSizeX = TileRasterContext::tileWidth;
+
+	struct TagBufferContextVec2 {
+		float x, y;
+	};
+
 	struct TagBufferContext {
 		Ifrit::Math::SIMD::vfloat3 tagBufferBary[tagbufferSizeX * tagbufferSizeX];
 		Ifrit::Math::SIMD::vfloat3 atpBx[tagbufferSizeX * tagbufferSizeX];
 		Ifrit::Math::SIMD::vfloat3 atpBy[tagbufferSizeX * tagbufferSizeX];
+		Ifrit::Math::SIMD::vfloat4 atpF1F2[tagbufferSizeX * tagbufferSizeX];
+		TagBufferContextVec2 atpF3[tagbufferSizeX * tagbufferSizeX];
 		int valid[tagbufferSizeX * tagbufferSizeX];
 	};
 
@@ -25,28 +32,28 @@ namespace Ifrit::Engine::TileRaster {
 		ImageF32* colorAttachment0;
 		const int* indexBufferPtr;
 		TagBufferContext* tagBuffer;
+		bool forcedInQuads;
 	};
 
 	class TileRasterWorker {
 	protected:
 		std::atomic<TileRasterStage> status;
-		std::atomic<bool> activated;
 	private:
 		uint32_t workerId;
-		//Hold refernce to the parent. weak_ptr is time-consuming. This section conveys no ownership semantic
-		//worker object have the same lifetime with their parent
 		TileRasterRenderer* rendererReference; 
 		std::unique_ptr<std::thread> execWorker;
 		std::shared_ptr<TileRasterContext> context;
 		
-
-		std::vector<ifloat4> perVertexVaryings;
 		std::vector<Ifrit::Math::SIMD::vfloat4> interpolatedVaryings;
 		std::vector<const void*> interpolatedVaryingsAddr;
-		std::vector<const void*> perVertexVaryingsAddr;
 
 		std::vector<ifloat4> colorOutput = std::vector<ifloat4>(1);
 		std::vector<AssembledTriangleProposal> generatedTriangle;
+
+		// Hold Cache
+		float depthCache[TileRasterContext::tileWidth * TileRasterContext::tileWidth];
+		std::vector<TileBinProposal> coverQueueLocal;
+		float curTileHierZ = 0;
 
 		//Debug
 		int totalDraws = 0;
@@ -72,32 +79,38 @@ namespace Ifrit::Engine::TileRaster {
 		bool triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3, Ifrit::Math::SIMD::vfloat4& bbox) IFRIT_AP_NOTHROW;
 		uint32_t triangleHomogeneousClip(const int primitiveId, Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
 		bool triangleCulling(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
-		void executeBinner(const int primitiveId, const AssembledTriangleProposal& atp, Ifrit::Math::SIMD::vfloat4 bbox) IFRIT_AP_NOTHROW;
+		void executeBinner(const int primitiveId, const AssembledTriangleProposalRasterStage& atp, Ifrit::Math::SIMD::vfloat4 bbox) IFRIT_AP_NOTHROW;
 
 		void vertexProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
 		void geometryProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
-		void rasterization(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
-		void sortOrderProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
-		void fragmentProcessing(TileRasterRenderer* renderer) IFRIT_AP_NOTHROW;
+		void tiledProcessing(TileRasterRenderer* renderer, bool clearDepth) IFRIT_AP_NOTHROW;
+
+		void rasterizationSingleTile(TileRasterRenderer* renderer, int tileId) IFRIT_AP_NOTHROW;
+		void sortOrderProcessingSingleTile(TileRasterRenderer* renderer, int tileId) IFRIT_AP_NOTHROW;
+		void fragmentProcessingSingleTile(TileRasterRenderer* renderer,bool clearedDepth, int tileId) IFRIT_AP_NOTHROW;
 
 		void threadStart();
 
-		void getVertexAttributes(const int id, std::vector<const void*>& out) IFRIT_AP_NOTHROW ;
-		void getVaryingsAddr(const int id,std::vector<Ifrit::Math::SIMD::vfloat4*>& out)IFRIT_AP_NOTHROW ;
-
 		template<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
-		void pixelShading(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+		void pixelShading(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
 		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
-		void pixelShadingSIMD128(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+		void pixelShadingSingleQuad(const AssembledTriangleProposalShadeStage& atp, int quadMask, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+
+		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
+		void pixelShadingSIMD256Grouped(const AssembledTriangleProposalShadeStage& atp,int groupsX,int groupsY, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+
+		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
+		void pixelShadingSIMD128(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 		
 		template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
-		void pixelShadingSIMD256(const AssembledTriangleProposal& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+		void pixelShadingSIMD256(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
 		void pixelShadingFromTagBuffer(const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+		void pixelShadingFromTagBufferQuadInvo(const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
 		inline int getTileID(int x, int y) IFRIT_AP_NOTHROW {
-			return y * context->numTilesX + x;
+			return (unsigned)y * (unsigned)context->numTilesX + (unsigned)x;
 		
 		}
 		

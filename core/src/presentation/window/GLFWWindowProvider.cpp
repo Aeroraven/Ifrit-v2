@@ -56,6 +56,7 @@ namespace Ifrit::Presentation::Window {
 				ss << this->title;
 				ss << " [Total FPS: " << 1000.0 / (totalFrameTime / 100.0)<<",";
 				ss << " Render FPS: " << 1000.0 / (totalFrameTimeCore / 100.0) << ",";
+				ss << " Frame Time: " << (totalFrameTimeCore / 100.0) << "ms,";
 
 				auto presentationTime = totalFrameTime - totalFrameTimeCore;
 				ss << " Presentation Delay: " << presentationTime/100.0 << "ms]";

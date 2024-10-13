@@ -1,6 +1,6 @@
 #include "engine/shadervm/spirv/SpvVMShader.h"
 #include <utility/debug/DebugHelper.h>
-using namespace Utility::Debug;
+using namespace Ifrit::Utility::Debug;
 
 extern "C" {
 	struct alignas(16) iint3Aligned {
@@ -15,12 +15,13 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	SpvRuntimeBackend::SpvRuntimeBackend(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode) {
 		reader.initializeContext(&spctx);
 		reader.parseByteCode(irByteCode.data(), irByteCode.size() / 4, &spctx);
-		interpeter.parseRawContext(&spctx, &spvir);
+		interpreter.parseRawContext(&spctx, &spvir);
 		this->owningRuntime = runtime.buildRuntime();
 		this->runtime = owningRuntime.get();
-		interpeter.exportLlvmIR(&spvir, &this->irCode);
+		interpreter.exportLlvmIR(&spvir, &this->irCode);
 		this->runtime->loadIR(this->irCode, std::to_string(this->createTime));
 		updateSymbolTable(false);
+		ifritLog1("Shader loaded");
 	}
 	SpvRuntimeBackend::SpvRuntimeBackend(const SpvRuntimeBackend& other) {
 		this->copiedRuntime = other.runtime->getThreadLocalCopy();
@@ -44,6 +45,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 			this->symbolTables.outputs[i] = this->runtime->lookupSymbol(svmir->shaderMaps.outputVarSymbols[i]);
 			this->symbolTables.outputBytes[i] = svmir->shaderMaps.outputSize[i];
 		}
+		cSISize = svmir->shaderMaps.inputVarSymbols.size();
+		cSOSize = svmir->shaderMaps.outputVarSymbols.size();
 		for (int i = 0; i < svmir->shaderMaps.uniformSize.size(); i++) {
 			std::pair<int, int> loc = svmir->shaderMaps.uniformVarLoc[i];
 			this->symbolTables.uniform[loc] = {
@@ -52,6 +55,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 			};
 		}
 		this->symbolTables.entry = this->runtime->lookupSymbol(svmir->shaderMaps.mainFuncSymbol);
+		cEntry = (void(*)())this->symbolTables.entry;
 		if (svmir->shaderMaps.builtinPositionSymbol.size()) {
 			this->symbolTables.builtinPosition = this->runtime->lookupSymbol(svmir->shaderMaps.builtinPositionSymbol);
 		}
@@ -107,6 +111,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	}
 	SpvFragmentShader::SpvFragmentShader(const SpvFragmentShader& p) :SpvRuntimeBackend(p) {
 		isThreadSafe = false;
+		this->allowDepthModification = p.allowDepthModification;
+		this->requiresQuadInfo = p.requiresQuadInfo;
 	}
 	IFRIT_HOST std::unique_ptr<FragmentShader> SpvFragmentShader::getThreadLocalCopy() {
 		auto copy = std::make_unique<SpvFragmentShader>(*this);
@@ -119,17 +125,24 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	}
 
 	void SpvVertexShader::execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) {
-		//TODO: Input & Output
-		for (int i = 0; i < symbolTables.inputBytes.size(); i++) {
-			memcpy(symbolTables.inputs[i], input[i], symbolTables.inputBytes[i]);
+		// TODO: Input & Output
+		auto& sI = symbolTables.inputs;
+		auto& sO = symbolTables.outputs;
+		auto& sOb = symbolTables.outputBytes;
+		auto& sIb = symbolTables.inputBytes;
+		auto sISize = cSISize;
+		auto sOSize = cSOSize;
+		for (int i = 0; i < sISize; i++) {
+			memcpy(sI[i], input[i], sIb[i]);
 		}
-		auto shaderEntry = (void(*)())this->symbolTables.entry;
-		shaderEntry();
-		for (int i = 0; i < symbolTables.outputs.size(); i++) {
-			memcpy(outVaryings[i], symbolTables.outputs[i], symbolTables.outputBytes[i]);
+		cEntry();
+		for (int i = 0; i < sOSize; i++) {
+			memcpy(outVaryings[i], sO[i], sOb[i]);
 		}
-		if(symbolTables.builtinPosition) memcpy(outPos, symbolTables.builtinPosition, 16);
-
+		auto ptrPos = (ifloat4*)symbolTables.builtinPosition;
+		if (ptrPos) {
+			*outPos = *ptrPos;
+		}
 	}
 	IFRIT_HOST VertexShader* SpvVertexShader::getCudaClone(){
 		ifritError("CUDA not supported");
@@ -137,13 +150,16 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	}
 	void SpvFragmentShader::execute(const void* varyings, void* colorOutput, float* fragmentDepth) {
 		//TODO: Input & Output
-		for (int i = 0; i < symbolTables.inputBytes.size(); i++) {
-			memcpy(symbolTables.inputs[i], (VaryingStore*)varyings + i, symbolTables.inputBytes[i]);
+		auto& sI = symbolTables.inputs;
+		auto& sO = symbolTables.outputs;
+		auto sISize = cSISize;
+		auto sOSize = cSOSize;
+		for (int i = 0; i < sISize; i++) {
+			*((VaryingStore*)sI[i]) = *((VaryingStore*)varyings + i);
 		}
-		auto shaderEntry = (void(*)())this->symbolTables.entry;
-		shaderEntry();
-		for (int i = 0; i < symbolTables.outputs.size(); i++) {
-			memcpy((ifloat4*)colorOutput + i, symbolTables.outputs[i], symbolTables.outputBytes[i]);
+		cEntry();
+		for (int i = 0; i < sOSize; i++) {
+			*((ifloat4*)colorOutput + i) = *((ifloat4*)sO[i]);
 		}
 	}
 	IFRIT_HOST FragmentShader* SpvFragmentShader::getCudaClone(){

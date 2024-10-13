@@ -11,7 +11,7 @@ target_compile_options(Ifrit.Components.LLVMExec PRIVATE
     -fno-exceptions
     -fno-rtti
 )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -fno-stack-protector")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_compile_definitions(Ifrit.Components.LLVMExec PRIVATE

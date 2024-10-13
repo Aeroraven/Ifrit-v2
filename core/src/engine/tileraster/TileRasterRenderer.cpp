@@ -19,7 +19,6 @@ namespace Ifrit::Engine::TileRaster {
 		initialized = false;
 		for (auto& worker : workers) {
 			worker->status.store(TileRasterStage::TERMINATING, std::memory_order::relaxed);
-			worker->activated.store(true);
 		}
 		for (auto& worker : workers) {
 			worker->execWorker->join();
@@ -108,22 +107,35 @@ namespace Ifrit::Engine::TileRaster {
 
 	void TileRasterRenderer::createWorkers() {
 		workers.resize(context->numThreads);
-		context->workerIdleTime.resize(context->numThreads);	
 		for (int i = 0; i < context->numThreads; i++) {
 			workers[i] = std::make_unique<TileRasterWorker>(i, shared_from_this(), context);
-			workers[i]->status.store(TileRasterStage::COMPLETED, std::memory_order::relaxed);
-			context->workerIdleTime[i] = 0;
+			workers[i]->status.store(TileRasterStage::IDLE, std::memory_order::relaxed);
 		}
 		selfOwningWorker = std::make_unique<TileRasterWorker>(context->numThreads, shared_from_this(), context);
+	}
+	void TileRasterRenderer::statusTransitionBarrier3(TileRasterStage waitOn, TileRasterStage proceedTo) {
+		while (true) {
+			bool allOnBarrier = true;
+			for (auto& worker : workers) {
+				auto expected = waitOn;
+				allOnBarrier = allOnBarrier && (worker->status.load() == waitOn);
+			}
+			allOnBarrier = allOnBarrier && (selfOwningWorker->status.load() == waitOn);
+			if (allOnBarrier) break;
+		}
+		for (auto& worker : workers) {
+			worker->status.store(proceedTo, std::memory_order::relaxed);
+		}
+		selfOwningWorker->status.store(proceedTo, std::memory_order::relaxed);
 	}
 	void TileRasterRenderer::statusTransitionBarrier2(TileRasterStage waitOn, TileRasterStage proceedTo) {
 		while (true) {
 			bool allOnBarrier = true;
 			for (auto& worker : workers) {
 				auto expected = waitOn;
-				allOnBarrier = allOnBarrier && 
+				allOnBarrier = allOnBarrier &&
 					(worker->status.compare_exchange_weak(expected, proceedTo, std::memory_order::acq_rel) ||
-					(expected >= proceedTo));
+						(expected >= proceedTo));
 			}
 			auto expected = waitOn;
 			allOnBarrier = allOnBarrier &&
@@ -269,9 +281,9 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterRenderer::resetWorkers(TileRasterStage expectedStage) {
 		for (auto& worker : workers) {
 			worker->status.store(expectedStage, std::memory_order::relaxed);
-			worker->activated.store(true);
 		}
-		selfOwningWorker->status.store(expectedStage, std::memory_order::relaxed);
+		//No need to set self-owning worker
+		//selfOwningWorker->status.store(expectedStage, std::memory_order::relaxed);
 	}
 	void TileRasterRenderer::updateVectorCapacity() {
 		auto totalTiles = context->numTilesX * context->numTilesY;
@@ -301,15 +313,6 @@ namespace Ifrit::Engine::TileRaster {
 
 	IFRIT_APIDECL void TileRasterRenderer::init() {
 		context = std::make_shared<TileRasterContext>();
-		context->rasterizerQueue.resize(context->numThreads + 1);
-		context->coverQueue.resize(context->numThreads + 1);
-		context->workerIdleTime.resize(context->numThreads + 1);
-		context->assembledTriangles.resize(context->numThreads + 1);
-		context->threadSafeFS.resize(context->numThreads + 1);
-		context->threadSafeVS.resize(context->numThreads + 1);
-		context->threadSafeFSOwningSection.resize(context->numThreads + 1);
-		context->threadSafeVSOwningSection.resize(context->numThreads + 1);
-
 		context->blendState.blendEnable = false;
 		
 		createWorkers();
@@ -330,14 +333,10 @@ namespace Ifrit::Engine::TileRaster {
 		updateUniformBuffer();
 		context->indexBufferSize = vertexCount;
 		unresolvedTileRaster.store(context->numTilesX * context->numTilesY,std::memory_order::relaxed);
-		unresolvedTileFragmentShading.store(context->numTilesX * context->numTilesY, std::memory_order::relaxed);
-		unresolvedTileSort.store(context->numTilesX * context->numTilesY, std::memory_order::relaxed);
-
 		auto vertexChunks = Inline::ceilDiv(context->vertexBuffer->getVertexCount(), context->vsChunkSize);
 		auto geometryChunks = Inline::ceilDiv(vertexCount/context->vertexStride, context->gsChunkSize);
 		unresolvedChunkVertex.store(vertexChunks, std::memory_order::relaxed);
 		unresolvedChunkGeometry.store(geometryChunks, std::memory_order::relaxed);
-
 		if (clearFramebuffer) {
 			resetWorkers(TileRasterStage::DRAWCALL_START_CLEAR);
 			selfOwningWorker->drawCall(true);
@@ -346,7 +345,7 @@ namespace Ifrit::Engine::TileRaster {
 			resetWorkers(TileRasterStage::DRAWCALL_START);
 			selfOwningWorker->drawCall(false);
 		}
-		statusTransitionBarrier2(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::COMPLETED);
+		statusTransitionBarrier3(TileRasterStage::FRAGMENT_SHADING_SYNC, TileRasterStage::IDLE);
 	}
 
 }

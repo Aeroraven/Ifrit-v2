@@ -1,6 +1,7 @@
 #pragma once
 
 #ifdef WIN32 
+	//Note that this will influence the C# binding
 	#define IFRIT_APICALL __stdcall
 #else
 	#define IFRIT_APICALL
@@ -110,7 +111,11 @@
 #include <deque>
 #include <mutex>
 #include <thread>
-#include <any>
+
+// Check if the compiler is GCC-family (GCC and MinGW)
+#if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__)
+#define IFRIT_COMPILER_GCC 1
+#endif
 
 #if _HAS_CXX23
 	#define IFRIT_CXX23_ENABLED 1
@@ -145,7 +150,7 @@
 	#endif
 #endif
 #ifndef IFRIT_CXX17_ENABLED
-	static_assert(false, "App requires C++20 or higher (Currently C++17 is not supported)");
+	static_assert(false, "App requires C++20 or higher (Current compiler does not support C++17)");
 #endif
 #ifndef IFRIT_CXX20_ENABLED
 	static_assert(false, "App requires C++20 or higher");
@@ -177,8 +182,12 @@
 #endif
 
 #if IFRIT_FEATURE_SIMD_AVX256
-	#include <immintrin.h>
-	#define IFRIT_USE_SIMD_256 1
+	#if IFRIT_FEATURE_SIMD
+		#include <immintrin.h>
+		#define IFRIT_USE_SIMD_256 1
+	#else
+		static_assert(false, "It's assumed that machine with AVX2 support, must support SSE instructions. However SSE tag is not set.");
+	#endif
 #endif
 
 

@@ -57,9 +57,9 @@ namespace Ifrit::Engine::BufferManager::Impl {
 		}
 		memcpy(bufferMetadata[buffer.id].data.get() + offset, src, size);
 	}
-
-
-
+	void BufferManagerImpl::bufferDataUnsafe(const IfritBuffer& buffer, const void* src, size_t offset, size_t size) IFRIT_AP_NOTHROW{
+		memcpy(bufferMetadata[buffer.id].data.get() + offset, src, size);
+	}
 }
 
 namespace Ifrit::Engine::BufferManager {

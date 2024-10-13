@@ -19,6 +19,7 @@ namespace Ifrit::Engine {
 		IfritSamplerT atSamplerPtr[32];
 		char* atBuffer[32];
 		bool isThreadSafe = true;
+		bool forcedQuadInvocation = false;
 	};
 
 	class IFRIT_APIDECL VertexShader :public ShaderBase {
@@ -39,11 +40,24 @@ namespace Ifrit::Engine {
 	class IFRIT_APIDECL FragmentShader :public ShaderBase {
 	public:
 		bool allowDepthModification = false;
+		bool requiresQuadInfo = false;
+		int currentPass = 0;
 		IFRIT_DUAL virtual void execute(
 			const void* varyings, 
 			void* colorOutput,
 			float* fragmentDepth
 		) = 0;
+
+		// Cuda executions are synchronized in wraps
+		// So no need to call following function in cuda
+		IFRIT_HOST virtual void executeInQuad(
+			const void** varyings,
+			void** colorOutput,
+			float** fragmentDepth
+		) {
+			ifritError("executeInQuad not implemented");
+		};
+
 		IFRIT_DUAL virtual ~FragmentShader() = default;
 		IFRIT_HOST virtual FragmentShader* getCudaClone() { return nullptr; };
 		IFRIT_HOST virtual std::unique_ptr<FragmentShader> getThreadLocalCopy() { return nullptr; };

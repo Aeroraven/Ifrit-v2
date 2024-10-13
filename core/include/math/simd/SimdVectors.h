@@ -1,19 +1,33 @@
 #pragma once
 #include "core/definition/CoreExports.h"
 
-namespace Ifrit::Math::SIMD {
-#ifdef IFRIT_FEATURE_SIMD
-	constexpr const auto simdEnable = true;
-#else
-	constexpr const auto simdEnable = false;
+#ifdef IFRIT_COMPILER_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
+
+namespace Ifrit::Math::SIMD {
+	// Placeholder for machines without SIMD support
+	struct SimdContainerPlaceholder {
+		uint32_t x, y, z, w;
+	};
 
 	template<typename T>
 	concept SimdElement32 = requires (T x) { std::is_same_v<T, float> || std::is_same_v<T, int>; };
 
+#ifdef IFRIT_USE_SIMD_128
 	template<typename T>
 	concept SimdContainer = requires (T x) { std::is_same_v<T, __m128> || std::is_same_v<T, __m128i>; };
+#else
+	template<typename T>
+	concept SimdContainer = requires (T x) { std::is_same_v<T, SimdContainerPlaceholder>; };
+#endif
 
+	inline void reportNoSimdSupportError() {
+		ifritError("No SIMD support");
+	}
+
+	// 4-elements
 	template<typename T, typename S, int V>
 	requires SimdElement32<T> && SimdContainer<S>
 	struct alignas(16) SimdVector {
@@ -23,7 +37,7 @@ namespace Ifrit::Math::SIMD {
 		};
 		inline SimdVector() = default;
 		inline SimdVector(const SimdVector& v) {
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 			if constexpr (std::is_same_v<S, __m128>) {
 				dataf = _mm_load_ps(&v.x);
 			}
@@ -31,7 +45,7 @@ namespace Ifrit::Math::SIMD {
 				dataf = v.dataf;
 			}
 			else{
-				//static_assert(false, "Unsupported SIMD type");
+				reportNoSimdSupportError();
 			}
 #else
 			x = v.x;
@@ -40,8 +54,11 @@ namespace Ifrit::Math::SIMD {
 			w = v.w;
 #endif
 		}
+		inline S getVectorizedVal() const{
+			return dataf;
+		}
 		inline SimdVector& operator=(const SimdVector& v) {
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 			if constexpr (std::is_same_v<S, __m128>) {
 				dataf = _mm_load_ps(&v.x);
 			}
@@ -49,7 +66,7 @@ namespace Ifrit::Math::SIMD {
 				dataf = v.dataf;
 			}
 			else{
-				//static_assert(false, "Unsupported SIMD type");
+				reportNoSimdSupportError();
 			}
 #else
 			x = v.x;
@@ -63,7 +80,7 @@ namespace Ifrit::Math::SIMD {
 		inline SimdVector(const SimdVector<T, S, V2>& v, T d) {
 			static_assert(V2 == V - 1, "Invalid vector size");
 			if constexpr (V == 4) {
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 				if constexpr (std::is_same_v<S, __m128>) {
 					dataf = _mm_set_ps(v.x, v.y, v.z, d);
 				}
@@ -71,7 +88,7 @@ namespace Ifrit::Math::SIMD {
 					dataf = _mm_set_epi32(v.x, v.y, v.z, d);
 				}
 				else {
-					//static_assert(false, "Unsupported SIMD type");
+					reportNoSimdSupportError();
 				}
 #else
 				w = d;
@@ -100,7 +117,7 @@ namespace Ifrit::Math::SIMD {
 			dataf = data;
 		}
 		inline SimdVector(T x, T y, T z, T w) {
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 			if constexpr (std::is_same_v<S, __m128>) {
 				dataf = _mm_set_ps(w, z, y, x);
 			}
@@ -108,7 +125,7 @@ namespace Ifrit::Math::SIMD {
 				dataf = _mm_set_epi32(w, z, y, x);
 			}
 			else {
-				//static_assert(false, "Unsupported SIMD type");
+				reportNoSimdSupportError();
 			}
 #else
 			this->w = w;
@@ -119,7 +136,7 @@ namespace Ifrit::Math::SIMD {
 		
 		}
 		inline SimdVector(T x, T y, T z) {
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 			if constexpr (std::is_same_v<S, __m128>) {
 				dataf = _mm_set_ps(0, z, y, x);
 			}
@@ -127,7 +144,7 @@ namespace Ifrit::Math::SIMD {
 				dataf = _mm_set_epi32(0, z, y, x);
 			}
 			else {
-				//static_assert(false, "Unsupported SIMD type");
+				reportNoSimdSupportError();
 			}
 #else
 			this->w = 0;
@@ -137,7 +154,7 @@ namespace Ifrit::Math::SIMD {
 #endif
 		}
 		inline SimdVector(T x, T y) {
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 			if constexpr (std::is_same_v<S, __m128>) {
 				dataf = _mm_set_ps(0, 0, y, x);
 			}
@@ -145,7 +162,7 @@ namespace Ifrit::Math::SIMD {
 				dataf = _mm_set_epi32(0, 0, y, x);
 			}
 			else {
-				//static_assert(false, "Unsupported SIMD type");
+				reportNoSimdSupportError();
 			}
 #else
 			this->w = 0;
@@ -156,7 +173,7 @@ namespace Ifrit::Math::SIMD {
 
 		}
 		inline SimdVector(T x) {
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 			if constexpr (std::is_same_v<S, __m128>) {
 				dataf = _mm_set_ps(x, x, x, x);
 			}
@@ -164,7 +181,7 @@ namespace Ifrit::Math::SIMD {
 				dataf = _mm_set_epi32(x, x, x, x);
 			}
 			else {
-				//static_assert(false, "Unsupported SIMD type");
+				reportNoSimdSupportError();
 			}
 #else
 			this->w = x;
@@ -174,7 +191,7 @@ namespace Ifrit::Math::SIMD {
 #endif
 		}
 
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 #define SIMD_VECTOR_OPERATOR_1(op,insName) \
 		inline SimdVector operator op(const SimdVector& v) const { \
 			if constexpr (std::is_same_v<S, __m128>) return _mm_##insName##_ps(dataf, v.dataf); \
@@ -217,7 +234,7 @@ namespace Ifrit::Math::SIMD {
 		// Negate
 		inline SimdVector operator-() const {
 			SimdVector r;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 			if constexpr (std::is_same_v<S, __m128>) {
 				r.dataf = _mm_sub_ps(_mm_setzero_ps(), dataf);
 			}
@@ -225,7 +242,7 @@ namespace Ifrit::Math::SIMD {
 				r.dataf = _mm_sub_epi32(_mm_setzero_si128(), dataf);
 			}
 			else {
-				//static_assert(false, "Unsupported SIMD type");
+				reportNoSimdSupportError();
 			}
 #else
 			if constexpr (V >= 4) r.w = -w;
@@ -237,7 +254,7 @@ namespace Ifrit::Math::SIMD {
 		}
 
 		inline SimdVector& cross_(const SimdVector& v) {
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 			if constexpr (std::is_same_v<S, __m128>) {
 				dataf = _mm_sub_ps(
 					_mm_mul_ps(_mm_shuffle_ps(dataf, dataf, _MM_SHUFFLE(3, 0, 2, 1)), _mm_shuffle_ps(v.dataf, v.dataf, _MM_SHUFFLE(3, 1, 0, 2))),
@@ -245,7 +262,7 @@ namespace Ifrit::Math::SIMD {
 				);
 			}
 			else {
-				//static_assert(false, "Unsupported SIMD type");
+				reportNoSimdSupportError();
 			}
 #else
 			T tx = x, ty = y, tz = z;
@@ -258,7 +275,7 @@ namespace Ifrit::Math::SIMD {
 
 		inline T dot(const SimdVector& v) const {
 			T r = 0;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 			if constexpr (std::is_same_v<S, __m128>) {
 				if constexpr (V == 4) r = _mm_cvtss_f32(_mm_dp_ps(dataf, v.dataf, 0xF1));
 				else if constexpr (V == 3) r = _mm_cvtss_f32(_mm_dp_ps(dataf, v.dataf, 0x71));
@@ -266,7 +283,7 @@ namespace Ifrit::Math::SIMD {
 				else r = _mm_cvtss_f32(_mm_dp_ps(dataf, v.dataf, 0x11));
 			}
 			else {
-				//static_assert(false, "Unsupported SIMD type");
+				reportNoSimdSupportError();
 			}
 #else
 			if constexpr (V >= 4) r += w * v.w;
@@ -279,7 +296,7 @@ namespace Ifrit::Math::SIMD {
 	};
 
 	// Crosss
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 	inline static __m128 cross_product(__m128 const& vec0, __m128 const& vec1) {
 		//From: https://geometrian.com/programming/tutorials/cross-product/index.php
 		__m128 tmp0 = _mm_shuffle_ps(vec0, vec0, _MM_SHUFFLE(3, 0, 2, 1));
@@ -294,12 +311,12 @@ namespace Ifrit::Math::SIMD {
 	inline SimdVector<T, S, V> cross(const SimdVector<T, S, V>& a, const SimdVector<T, S, V>& b){
 		SimdVector<T, S, V> r;
 		static_assert(V == 3, "Cross product is only defined for 3D vectors");
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 	if constexpr (std::is_same_v<S, __m128>) {
 		r.dataf = cross_product(a.dataf, b.dataf);
 	}
 	else {
-		//static_assert(false, "Unsupported SIMD type");
+		reportNoSimdSupportError();
 	}
 #else
 		r.x = a.y * b.z - a.z * b.y;
@@ -313,12 +330,12 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline SimdVector<T, S, V> fma(const SimdVector<T, S, V>& a, const SimdVector<T, S, V>& b, const SimdVector<T, S, V>& c) {
 		SimdVector<T, S, V> r;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			r.dataf = _mm_fmadd_ps(a.dataf, b.dataf, c.dataf);
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		if constexpr (V >= 4) r.w = a.w * b.w + c.w;
@@ -332,12 +349,12 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline SimdVector<T, S, V> fma(const SimdVector<T, S, V>& a, T b, const SimdVector<T, S, V>& c) {
 		SimdVector<T, S, V> r;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			r.dataf = _mm_fmadd_ps(a.dataf, _mm_set1_ps(b), c.dataf);
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		if constexpr (V >= 4) r.w = a.w * b + c.w;
@@ -353,7 +370,7 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline T dot(const SimdVector<T, S, V>& a, const SimdVector<T, S, V>& b) {
 		T r = 0;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			if constexpr (V == 4) r = _mm_cvtss_f32(_mm_dp_ps(a.dataf, b.dataf, 0xF1));
 			else if constexpr (V == 3)r = _mm_cvtss_f32(_mm_dp_ps(a.dataf, b.dataf, 0x71));
@@ -361,7 +378,7 @@ namespace Ifrit::Math::SIMD {
 			else r = _mm_cvtss_f32(_mm_dp_ps(a.dataf, b.dataf, 0x11));
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		if constexpr (V >= 4) r += a.w * b.w;
@@ -376,12 +393,12 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline SimdVector<T, S, V> max(const SimdVector<T, S, V>& a, const SimdVector<T, S, V>& b) {
 		SimdVector<T, S, V> r;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			r.dataf = _mm_max_ps(a.dataf, b.dataf);
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		if constexpr (V >= 4) r.w = std::max(a.w, b.w);
@@ -396,12 +413,12 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline SimdVector<T, S, V> min(const SimdVector<T, S, V>& a, const SimdVector<T, S, V>& b) {
 		SimdVector<T, S, V> r;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			r.dataf = _mm_min_ps(a.dataf, b.dataf);
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		if constexpr (V >= 4) r.w = std::min(a.w, b.w);
@@ -434,7 +451,7 @@ namespace Ifrit::Math::SIMD {
 			if (index == 0) return a.x;
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 	}
 
@@ -442,12 +459,12 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline SimdVector<T, S, V> lerp(const SimdVector<T, S, V>& a, const SimdVector<T, S, V>& b, const T& t) {
 		SimdVector<T, S, V> r;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			r.dataf = _mm_add_ps(_mm_mul_ps(_mm_sub_ps(b.dataf, a.dataf), _mm_set1_ps(t)), a.dataf);
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		if constexpr (V >= 4) r.w = a.w + (b.w - a.w) * t;
@@ -462,12 +479,12 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline SimdVector<T, S, V> reciprocal(const SimdVector<T, S, V>& a) {
 		SimdVector<T, S, V> r;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			r.dataf = _mm_rcp_ps(a.dataf);
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		if constexpr (V >= 4) r.w = 1.0f / a.w;
@@ -482,12 +499,12 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline SimdVector<T, S, V> normalize(const SimdVector<T, S, V>& a) {
 		SimdVector<T, S, V> r;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			r.dataf = _mm_div_ps(a.dataf, _mm_sqrt_ps(_mm_dp_ps(a.dataf, a.dataf, 0x77)));
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		T len = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
@@ -504,12 +521,12 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline SimdVector<T, S, V> abs(const SimdVector<T, S, V>& a) {
 		SimdVector<T, S, V> r;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			r.dataf = _mm_and_ps(a.dataf, _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF)));
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 
 #else
@@ -525,7 +542,7 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline T hsum(const SimdVector<T, S, V>& a) {
 		T r = 0;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			if constexpr (V == 4) {
 				auto p = _mm_hadd_ps(a.dataf, a.dataf);
@@ -539,7 +556,7 @@ namespace Ifrit::Math::SIMD {
 			else r = a.x;
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		if constexpr (V >= 4) r += a.w;
@@ -555,7 +572,7 @@ namespace Ifrit::Math::SIMD {
 	inline int cmpltElements(const SimdVector<T, S, V>& a, const SimdVector<T, S, V>& b) {
 		int r;
 		// cmpltos->movemask->popcnt
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			if constexpr (V == 4) {
 				r = _mm_movemask_ps(_mm_cmplt_ps(a.dataf, b.dataf));
@@ -576,7 +593,7 @@ namespace Ifrit::Math::SIMD {
 
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		if constexpr (V >= 4) r += a.w < b.w ? 1 : 0;
@@ -591,12 +608,12 @@ namespace Ifrit::Math::SIMD {
 	template<typename T, typename S, int V>
 	inline SimdVector<T, S, V> round(const SimdVector<T, S, V>& a) {
 		SimdVector<T, S, V> r;
-#ifdef IFRIT_FEATURE_SIMD
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (std::is_same_v<S, __m128>) {
 			r.dataf = _mm_round_ps(a.dataf, _MM_FROUND_TO_NEAREST_INT);
 		}
 		else {
-			//static_assert(false, "Unsupported SIMD type");
+			reportNoSimdSupportError();
 		}
 #else
 		if constexpr (V >= 4) r.w = std::round(a.w);
@@ -604,16 +621,22 @@ namespace Ifrit::Math::SIMD {
 		if constexpr (V >= 2) r.y = std::round(a.y);
 		r.x = std::round(a.x);
 #endif
-		return r;
+		return r; 
 	}
 
 
 	// Exporting Types
+#ifdef IFRIT_USE_SIMD_128
 	using vfloat3 = SimdVector<float, __m128, 3>;
 	using vfloat4 = SimdVector<float, __m128, 4>;
 	using vint3 = SimdVector<int, __m128i, 3>;
 	using vint4 = SimdVector<int, __m128i, 4>;
-
+#else
+	using vfloat3 = SimdVector<float, SimdContainerPlaceholder, 3>;
+	using vfloat4 = SimdVector<float, SimdContainerPlaceholder, 4>;
+	using vint3 = SimdVector<int, SimdContainerPlaceholder, 3>;
+	using vint4 = SimdVector<int, SimdContainerPlaceholder, 4>;
+#endif
 	// Type Conversion
 	inline vfloat3 toSimdVector(const ifloat3& v) {
 		return vfloat3(v.x, v.y, v.z);
@@ -622,3 +645,7 @@ namespace Ifrit::Math::SIMD {
 		return vfloat4(v.x, v.y, v.z, v.w);
 	}
 }
+
+#ifdef IFRIT_COMPILER_GCC
+#pragma GCC diagnostic pop
+#endif

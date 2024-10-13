@@ -68,6 +68,8 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::string builtinLaunchSizeKHR;
 		std::string incomingRayPayloadKHR;
 		int incomingRayPayloadKHRSize = 0;
+
+		bool requiresInterQuadInfo = false;
 	};
 	struct SpvDecorationBlock {
 		int location = -1;
@@ -155,7 +157,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::stringstream generatedIR;
 		std::stringstream functionInstIR;
 
-		/* Shaderr Link */
+		/* Shader Link */
 		SpvShaderExternalMappings shaderMaps;
 	};
 

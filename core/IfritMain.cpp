@@ -4,6 +4,7 @@
 #include "demo/MeshletDemo.h"
 #include "demo/ShaderVMDemo.h"
 #include "demo/AccelStructDemo.h"
+#include "demo/OglBenchmarking.h"
 
 int demoDefault() {
 #ifdef IFRIT_FEATURE_CUDA
@@ -40,8 +41,10 @@ int demoASTest() {
 	return Ifrit::Demo::AccelStructDemo::mainCpu();
 }
 
+
+
 int main() {
 	Ifrit::Demo::ShaderVMDemo::mainTest();
-	//Ifrit::Demo::DemoDefault::mainCpu();
+	//Ifrit::Demo::OglBenchmarking::mainCpu();
 	return 0;
 }

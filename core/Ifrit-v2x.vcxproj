@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClInclude Include="demo\AccelStructDemo.h" />
     <ClInclude Include="demo\MeshletDemo.h" />
+    <ClInclude Include="demo\OglBenchmarking.h" />
     <ClInclude Include="demo\ShaderVMDemo.h" />
     <ClInclude Include="demo\shader\DefaultDemoShaders.cuh" />
     <ClInclude Include="demo\DefaultDemo.h" />
@@ -153,6 +154,11 @@
     <ClInclude Include="include\engine\export\EngineCommonExport.h" />
     <ClInclude Include="include\engine\export\ShaderVMExport.h" />
     <ClInclude Include="include\engine\export\TileRasterRendererExport.h" />
+    <ClInclude Include="include\engine\imaging\BufferedImage.h" />
+    <ClInclude Include="include\engine\imaging\BufferedImageBaseConfig.h" />
+    <ClInclude Include="include\engine\imaging\BufferedImageBuilder.h" />
+    <ClInclude Include="include\engine\imaging\BufferedImageSampler.h" />
+    <ClInclude Include="include\engine\imaging\LayeredBufferedImage.h" />
     <ClInclude Include="include\engine\math\ShaderBuiltinCuda.cuh" />
     <ClInclude Include="include\engine\math\ShaderBuiltin.h" />
     <ClInclude Include="include\engine\meshletbuilder\MeshletBuilder.h" />
@@ -163,6 +169,10 @@
     <ClInclude Include="include\engine\raytracer\TrivialRaytracer.h" />
     <ClInclude Include="include\engine\raytracer\TrivialRaytracerContext.h" />
     <ClInclude Include="include\engine\raytracer\TrivialRaytracerWorker.h" />
+    <ClInclude Include="include\engine\shadervm\spirvvec\SpvMdBase.h" />
+    <ClInclude Include="include\engine\shadervm\spirvvec\SpvMdLlvmIrRepr.h" />
+    <ClInclude Include="include\engine\shadervm\spirvvec\SpvMdQuadIRGenerator.h" />
+    <ClInclude Include="include\engine\shadervm\spirvvec\SpvMdShader.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMContext.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMExternalFunction.h" />
     <ClInclude Include="include\engine\shadervm\spirv\SpvVMExtInstRegistry.h" />
@@ -173,23 +183,31 @@
     <ClInclude Include="include\engine\tilerastercuda\TileRasterCommonResourceCuda.cuh" />
     <ClInclude Include="include\IfritExports.h" />
     <ClInclude Include="include\IfritIncludes.h" />
+    <ClInclude Include="include\math\fastutil\FastUtilSimd.h" />
     <ClInclude Include="include\math\LinalgOps.h" />
     <ClInclude Include="include\math\simd\SimdVectors.h" />
+    <ClInclude Include="include\math\fastutil\FastUtil.h" />
     <ClInclude Include="include\math\VectorOps.h" />
     <ClInclude Include="include\presentation\backend\AdaptiveBackendBuilder.h" />
     <ClInclude Include="include\presentation\window\AdaptiveWindowBuilder.h" />
     <ClInclude Include="include\utility\debug\DebugHelper.h" />
     <ClInclude Include="include\utility\loader\ImageLoader.h" />
     <ClCompile Include="demo\AccelStructDemo.cpp" />
+    <ClCompile Include="demo\OglBenchmarking.cpp" />
+    <ClCompile Include="src\engine\imaging\BufferedImageSampler.cpp" />
     <ClCompile Include="src\engine\bufferman\BufferManager.cpp" />
     <ClCompile Include="src\engine\export\BufferManagerExport.cpp" />
     <ClCompile Include="src\engine\export\ComLLVMRtExport.cpp" />
     <ClCompile Include="src\engine\export\ShaderVMExport.cpp" />
+    <ClCompile Include="src\engine\imaging\BufferedImageBuilder.cpp" />
+    <ClCompile Include="src\engine\imaging\LayeredBufferedImage.cpp" />
     <ClCompile Include="src\engine\raytracer\accelstruct\RtBoundingVolumeHierarchy.cpp" />
     <ClCompile Include="src\engine\raytracer\RtShaders.cpp" />
     <ClCompile Include="src\engine\raytracer\shaderops\RtShaderOps.cpp" />
     <ClCompile Include="src\engine\raytracer\TrivialRaytracer.cpp" />
     <ClCompile Include="src\engine\raytracer\TrivialRaytracerWorker.cpp" />
+    <ClCompile Include="src\engine\shadervm\spirvvec\SpvMdQuadIRGenerator.cpp" />
+    <ClCompile Include="src\engine\shadervm\spirvvec\SpvMdShader.cpp" />
     <ClCompile Include="src\engine\shadervm\spirv\SpvVMExternalFunction.cpp" />
     <ClCompile Include="src\engine\shadervm\spirv\SpvVMExtInstRegistry.cpp" />
     <ClInclude Include="include\engine\bufferman\BufferManager.h" />
@@ -272,6 +290,10 @@
     <ClCompile Include="src\utility\loader\WavefrontLoader.cpp" />
     <CudaCompile Include="src\engine\tilerastercuda\TileRasterImageOpInvocationsCuda.cu" />
     <CudaCompile Include="src\engine\tilerastercuda\TileRasterCoreInvocationCuda.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\opengl.benchmarking.sponza.frag.glsl" />
+    <None Include="shader\opengl.benchmarking.sponza.vert.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

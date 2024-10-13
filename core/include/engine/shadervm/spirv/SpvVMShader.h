@@ -26,7 +26,7 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 	protected:
 		static int createTime;
 		SpvVMReader reader;
-		SpvVMInterpreter interpeter;
+		SpvVMInterpreter interpreter;
 		SpvVMContext spctx;
 		SpvVMIntermediateRepresentation spvir;
 		const SpvVMIntermediateRepresentation* spvirRef;
@@ -36,6 +36,13 @@ namespace Ifrit::Engine::ShaderVM::Spirv {
 		std::string irCode;
 		
 		std::unique_ptr<ShaderRuntime> owningRuntime = nullptr;
+
+		// MinGW does not directly store the size of vector
+		// it calculates the size of vector by subtracting the address of the first element from the address of the last elements
+		int cSISize = 0;
+		int cSOSize = 0;
+		void(*cEntry)() = nullptr;
+
 	public:
 		SpvRuntimeBackend(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
 		SpvRuntimeBackend(const SpvRuntimeBackend& other);

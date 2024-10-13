@@ -28,7 +28,12 @@ namespace Ifrit::Engine {
 		IF_BORDER_COLOR_WHITE = 1
 	};
 	enum IfritImageTiling {
-		IF_IMAGE_TILING_LINEAR=1
+		IF_IMAGE_TILING_LINEAR=1,
+		IF_IMAGE_TILING_OPTIMAL=2
+	};
+	enum IfritFormat {
+		IF_FORMAT_R8G8B8A8_UINT = 0,
+		IF_FORMAT_R32G32B32A32_SFLOAT = 1
 	};
 	enum IfritBlendFactor {
 		IF_BLEND_FACTOR_ZERO = 0,
