@@ -1064,9 +1064,10 @@ namespace Ifrit::Engine::TileRaster {
 	void TileRasterWorker::sortOrderProcessingSingleTile(TileRasterRenderer* renderer, int tileId) IFRIT_AP_NOTHROW {
 		auto curTile = tileId;
 		for (int i = 0; i < TOTAL_THREADS; i++) {
-			auto localSize = context->coverQueue[i][curTile].size();
+			auto& qRef = context->coverQueue[i][curTile];
+			auto localSize = qRef.size();
 			for (int j = 0; j < localSize; j++) {
-				auto prop = context->coverQueue[i][curTile][j];
+				auto prop = qRef[j];
 				auto propWorkerId = cvrsQueueWorkerId(prop);
 				auto propPrimId = cvrsQueuePrimitiveId(prop);
 				TileBinProposal nprop;
@@ -1074,7 +1075,7 @@ namespace Ifrit::Engine::TileRaster {
 				nprop.clipTrianglePacked = cvrsQueuePack(propWorkerId, propPrimId);
 				coverQueueLocal.push_back(nprop);
 			}
-			context->coverQueue[i][curTile].clear();
+			qRef.clear();
 		}
 		auto sortCompareOp = [&](const TileBinProposal& a, const TileBinProposal& b) {
 			auto ax = a.clipTrianglePacked;
@@ -1087,7 +1088,7 @@ namespace Ifrit::Engine::TileRaster {
 			auto bo = context->assembledTrianglesShade[bw][bp].originalPrimitive;
 			return ao < bo;
 			};
-		std::sort(context->sortedCoverQueue[curTile].begin(), context->sortedCoverQueue[curTile].end(), sortCompareOp);
+		std::sort(coverQueueLocal.begin(), coverQueueLocal.end(), sortCompareOp);
 	}
 
 	void TileRasterWorker::fragmentProcessingSingleTile(TileRasterRenderer* renderer, bool clearedDepth, int tileId) IFRIT_AP_NOTHROW {
@@ -1289,9 +1290,32 @@ namespace Ifrit::Engine::TileRaster {
 
 		if (context->optForceDeterministic) {
 			auto iterFunc = [&]<bool tpAlphaBlendEnable,IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>() {
-				if (context->sortedCoverQueue[curTile].size() == 0)return;
-				for (auto& proposal: context->sortedCoverQueue[curTile]) {
+				if (coverQueueLocal.size() == 0)return;
+				// Cache depth
+				auto& depthRef = (*context->frameBuffer->getDepthAttachment());
+				if (clearedDepth) {
+					constexpr auto inftyDepth = getInftyDepthValue();
+					FastUtil::memsetDword(depthCache, inftyDepth, tagbufferSizeX * tagbufferSizeX);
+				}
+				else {
+					for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
+						auto dx = (i & 0xf);
+						auto dy = (i >> 4);
+						if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
+							depthCache[dx + dy * tagbufferSizeX] = depthRef(curTileX + dx, curTileY + dy, 0);
+						}
+					}
+				}
+				for (auto& proposal: coverQueueLocal) {
 					proposalProcessFunc.operator()<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(proposal);
+				}
+				// Write Back Depth
+				for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
+					auto dx = (i & 0xf);
+					auto dy = (i >> 4);
+					if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
+						depthRef(curTileX + dx, curTileY + dy, 0) = depthCache[dx + dy * tagbufferSizeX];
+					}
 				}
 			};
 #define IF_DECLPS_ITERFUNC_0(tpAlphaBlendEnable,tpDepthFunc,tpOnlyTaggingPass) iterFunc.operator()<tpAlphaBlendEnable,tpDepthFunc,tpOnlyTaggingPass>();

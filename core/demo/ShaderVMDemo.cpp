@@ -115,8 +115,9 @@ namespace Ifrit::Demo::ShaderVMDemo {
 		renderer->bindFrameBuffer(frameBuffer);
 		renderer->bindVertexBuffer(vertexBuffer);
 		
-		renderer->optsetForceDeterministic(false);
+		renderer->optsetForceDeterministic(true);
 		renderer->optsetDepthTestEnable(true);
+
 
 		struct Uniform {
 			ifloat4 t1 = { 1,1,1,0 };
