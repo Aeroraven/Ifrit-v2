@@ -30,7 +30,7 @@ Successor to following repos:
 
 Overall framework for CUDA solid triangle renderer pipeline (Some are different from its MT-CPU counterpart). Stages with asterisk mark are optional. Tiling optimization is only applied for filled triangles.
 
-<img src="./img/overview.png" alt="overview" style="zoom: 67%;" />
+<img src="./docs/img/overview.png" alt="overview" style="zoom: 67%;" />
 
 **Note:** This project is NOT an exact replicate of hardware graphics pipeline (like IMR or TBDR architecture). 
 
@@ -72,7 +72,7 @@ Overall framework for CUDA solid triangle renderer pipeline (Some are different 
 | Alpha Blending                                          | 🟥                                                            | ✅               | ✅             |
 | Depth Testing                                           | ✅                                                            | ✅               | ✅             |
 | Depth Function                                          | 🟥                                                            | ✅               | ✅             |
-| Z Pre-Pass                                              | 🟥                                                            | ✅               | ✅             |
+| Z Pre-Pass / Tag Buffer                                 | 🟥                                                            | ✅               | ✅             |
 | Early-Z Test                                            | ✅                                                            | ✅               | ✅             |
 | Late-Z Test (Depth Replacement & `discard`)             | 🟥                                                            | 🟥               | ✅             |
 | Scissor Test                                            | 🟥                                                            | 🟥               | ✅             |
@@ -173,6 +173,8 @@ Tests performed on 2048x2048 RGBA FP32 Image + 2048x2048 FP32 Depth Attachment. 
 
 
 
+
+
 ### **Frame Rate Comparison (FPS)  Version 1**
 
 See [Performance History](./docs/performance.md)
@@ -185,7 +187,7 @@ See [Performance History](./docs/performance.md)
   - Test with 17 threads (1 master + 16 workers) + AVX2 Instructions
 - GPU: NVIDIA GeForce RTX 3070 Ti Laptop GPU (Kernel parameters are optimized for the SPECIFIC test environment)
 - Shading: World-space normal
-- Compiler:  MSVC 19.29 + NVCC 12.6 (with O3 optimization)
+- Compiler:  MSVC 19.29 + NVCC 12.6 (with O2 optimization)
 
 
 
@@ -236,9 +238,7 @@ See  [Usage](./docs/docs.md) for more details.
 
 
 
-## Ongoing Plan
-
-### Long-term Plan
+## TODO
 
 - [ ] Tessellation
 - [x] Line Mode

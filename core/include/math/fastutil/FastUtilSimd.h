@@ -58,4 +58,24 @@ namespace Ifrit::Math::FastUtil {
 
 #endif
 
+	inline float approxReciprocal(float x) {
+#ifdef IFRIT_USE_SIMD_128
+		// https://codereview.stackexchange.com/questions/259771/fast-reciprocal-1-x
+		float r = _mm_cvtss_f32(_mm_rcp_ss(_mm_set_ss(x)));
+		r = r * (2 - r * x);
+#else
+		float r = 1.0f / x;
+#endif
+		return r;
+	}
+	inline float fastApproxReciprocal(float x) {
+#ifdef IFRIT_USE_SIMD_128
+		// https://codereview.stackexchange.com/questions/259771/fast-reciprocal-1-x
+		float r = _mm_cvtss_f32(_mm_rcp_ss(_mm_set_ss(x)));
+#else
+		float r = 1.0f / x;
+#endif
+		return r;
+	}
+
 }

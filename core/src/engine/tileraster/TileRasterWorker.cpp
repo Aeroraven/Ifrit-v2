@@ -1328,23 +1328,19 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 						}
 					}
 					if (directReturn && coverQueueLocalSize ==0 ) return;
+					FastUtil::memsetDword(tagbuf.valid, -1, tagbufferSizeX * tagbufferSizeX);
+				}
+				// Cache depth
+				if (clearedDepth) {
+					constexpr auto inftyDepth = getInftyDepthValue();
+					FastUtil::memsetDword(depthCache, inftyDepth, tagbufferSizeX * tagbufferSizeX);
+				}
+				else {
 					for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
-						tagbuf.valid[i] = -1;
-					}
-					// Cache depth
-					if (clearedDepth) {
-						//Set depth to large
-						auto inftyDepth = getInftyDepthValue();
-						std::fill(depthCache, depthCache + tagbufferSizeX * tagbufferSizeX, inftyDepth);
-					}
-					else {
-						
-						for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
-							auto dx = (i & 0xf);
-							auto dy = (i >> 4);
-							if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
-								depthCache[dx + dy * tagbufferSizeX] = depthRef(curTileX + dx, curTileY + dy, 0);
-							}
+						auto dx = (i & 0xf);
+						auto dy = (i >> 4);
+						if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
+							depthCache[dx + dy * tagbufferSizeX] = depthRef(curTileX + dx, curTileY + dy, 0);
 						}
 					}
 				}
@@ -1372,13 +1368,13 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 					else {
 						pixelShadingFromTagBuffer(curTileX, curTileY, pxArgs);
 					}
-					// Write Back Depth
-					for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
-						auto dx = (i & 0xf);
-						auto dy = (i >> 4);
-						if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
-							depthRef(curTileX + dx, curTileY + dy, 0) = depthCache[dx + dy * tagbufferSizeX];
-						}	
+				}
+				// Write Back Depth
+				for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
+					auto dx = (i & 0xf);
+					auto dy = (i >> 4);
+					if (dx + curTileX < frameBufferWidth && dy + curTileY < frameBufferHeight) {
+						depthRef(curTileX + dx, curTileY + dy, 0) = depthCache[dx + dy * tagbufferSizeX];
 					}
 				}
 					
@@ -1793,6 +1789,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 
 	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
 	void TileRasterWorker::pixelShadingSingleQuad(const AssembledTriangleProposalShadeStage& atp, int quadMask, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW {
+#ifdef IFRIT_USE_SIMD_128
 		if constexpr (!tpOnlyTaggingPass) {
 			ifritError("Invalid");
 		}
@@ -1886,6 +1883,9 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 				depthCache[dxId] = interpolatedDepth[i];
 			}
 		}
+#else
+		ifritError("Simd 128 is required");
+#endif
 	}
 
 	template<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
