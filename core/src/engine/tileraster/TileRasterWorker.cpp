@@ -335,7 +335,7 @@ namespace Ifrit::Engine::TileRaster {
 			while ((curTile = renderer->fetchUnresolvedTileRaster()) >= 0) {
 				coverQueueLocal.clear();
 				rasterizationSingleTile(renderer, curTile);
-				sfragmentProcessingSingleTile(renderer, clearDepth, curTile);
+				fragmentProcessingSingleTile(renderer, clearDepth, curTile);
 			}
 		}
 		status.store(TileRasterStage::FRAGMENT_SHADING_SYNC,std::memory_order::relaxed);
