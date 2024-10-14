@@ -110,7 +110,7 @@ int mainTest() {
   for (int i = 0; i < index.size(); i += 3) {
     indexBuffer[i / 3] = index[i];
   }
-  printf("Num Triangles: %d\n", indexBuffer.size() / 3);
+  printf("Num Triangles: %lld\n", indexBuffer.size() / 3);
 
   frameBuffer.setColorAttachments({image.get()});
   frameBuffer.setDepthAttachment(*depth);

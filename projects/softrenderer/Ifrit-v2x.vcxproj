@@ -292,6 +292,7 @@
     <CudaCompile Include="src\engine\tilerastercuda\TileRasterCoreInvocationCuda.cu" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".clang-format" />
     <None Include="shader\opengl.benchmarking.sponza.frag.glsl" />
     <None Include="shader\opengl.benchmarking.sponza.vert.glsl" />
   </ItemGroup>

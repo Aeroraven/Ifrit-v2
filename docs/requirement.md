@@ -19,23 +19,6 @@ You have to install a compiler toolchain to build the project. The following com
 - Ubuntu:
   - GCC 13.2 (GCC 10 is the minimum requirement)
 
-#### External Headers
-- **GLAD**: 
-  1. Download from https://glad.dav1d.de/
-  2. Generate OpenGL loader with `c/c++` language and `gl` version `3.3`
-  3. Place `glad.c` in `core/include/dependency/GLAD/glad.c`
-  4. Place `glad.h` in `core/include/dependency/GLAD/glad/glad.h`
-  5. Place `khrplatform.h` in `core/include/dependency/GLAD/KHR/khrplatform.h`
-
-- **SPIRV-Header**:
-  1. Clone repository from https://www.github.com/KhronosGroup/SPIRV-Headers
-  2. Place `include/spirv/unified1/GLSL.std.450.h` in `core/include/dependency/glsl.std.450`
-  3. Place `include/spirv/unified1/spirv.hpp11` in `core/include/dependency/spirv.h`
-
-- **SBT-Image**:
-  1. Clone repository from https://www.github.com/nothings/stb
-  2. Place `stb_image.h` in `core/include/dependency/stb_image.h`
- 
 
 ### Dependencies
 #### LLVM 10
@@ -53,6 +36,7 @@ sudo ./llvm.sh 10
 
 ```bash
 # Build from source (Windows)
+# Note that MSVC 19 cannot build llvm10, to solve this problem switch to llvm11 or use mingw-w64
 git clone https://github.com/llvm/llvm-project.git
 cd llvm-project
 git checkout release/10.x
@@ -61,7 +45,7 @@ cmake --build build
 ```
 
 #### GLFW 3.3
-  
+
 ```bash
 git clone https://github.com/glfw/glfw.git
 cd glfw
@@ -112,16 +96,15 @@ You can simply install Visual Studio 2022 to get .NET 8.0.
 2. Run the following commands in the root directory of the project.
 ```bash
 cmake -S . -B build 
-cd build
-make
+cmake --build ./build
 ```
 
 ## Run
 
 # For Linux
 ```bash
-export LD_LIBRARY_PATH=/path/to/Ifrit.Components.LLVMExec.so;$LD_LIBRARY_PATH
-./core/bin/IfritMain
-LIBGL_ALWAYS_SOFTWARE=1 ./core/bin/IfritMain # Maybe in WSL2
+export LD_LIBRARY_PATH=/path/to/ifrit.compile.so;$LD_LIBRARY_PATH
+./bin/ifrit
+LIBGL_ALWAYS_SOFTWARE=1 ./bin/ifrit # Maybe in WSL2
 ```
 

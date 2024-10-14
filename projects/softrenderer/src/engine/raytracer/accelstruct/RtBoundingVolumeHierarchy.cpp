@@ -348,7 +348,9 @@ inline RayHit procQueryRayIntersectionTLAS(
     const RayInternal &ray, float tmin, float tmax,
     const std::vector<int> &belonging, bool doRootBoxIgnore, BVHNode *root,
     const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data)
-    IFRIT_AP_NOTHROW {}
+    IFRIT_AP_NOTHROW {
+      return {};
+    }
 } // namespace Ifrit::Engine::Raytracer::Impl
 
 namespace Ifrit::Engine::Raytracer {

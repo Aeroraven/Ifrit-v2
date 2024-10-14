@@ -1,15 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
 project(Ifrit-v2-Core LANGUAGES CXX C)
 
-set(IFRIT_REQ_GLFW3_BASE "C:/Program Files (x86)/GLFW/")
-set(IFRIT_REQ_CUDA_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include")
-set(IFRIT_REQ_CUDACRT_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include/crt")
+set(IFRIT_REQ_GLFW3_BASE ${IFRIT_GLOBAL_GLFW_DIR_WINDOWS})
+set(IFRIT_REQ_CUDA_INCLUDE ${IFRIT_GLOBAL_CUDA_DIR_WINDOWS}"/include")
+set(IFRIT_REQ_CUDACRT_INCLUDE ${IFRIT_GLOBAL_CUDA_DIR_WINDOWS}"/include/crt")
 set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
 string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
 message(STATUS "[IFRIT/EnvCheck]: Working Directory ${IFRIT_PROJECT_DIR}")
 
 set(IFRIT_COMPONENT_LLVM "${IFRIT_PROJECT_DIR}/bin")
 set(IFRIT_COMPONENT_LLVM_SOURCE "${IFRIT_PROJECT_DIR}/projects/ircompile")
+set(IFRIT_EXTERNLA_DEPENDENCY_PATH "${IFRIT_PROJECT_DIR}/dependencies")
 link_directories(${IFRIT_COMPONENT_LLVM})
 
 # Set output directory
@@ -194,6 +195,7 @@ file(GLOB SOURCE_STAGES_CUDA "./*.cu")
 include_directories(".")
 include_directories(include)
 include_directories(${IFRIT_COMPONENT_LLVM_SOURCE}/include)
+include_directories(${IFRIT_EXTERNLA_DEPENDENCY_PATH})
 
 #print include
 message(STATUS "[IFRIT/Include]: ${IFRIT_COMPONENT_LLVM_SOURCE}/include")

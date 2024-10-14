@@ -1,6 +1,12 @@
 #pragma once
 #include "core/data/Image.h"
 
+#if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 extern "C" {
 IFRIT_APIDECL_FORCED struct alignas(16) ifritShaderOps_Base_Vecf4 {
   float x, y, z, w;
@@ -22,3 +28,7 @@ IFRIT_APIDECL_FORCED void ifritShaderOps_Base_ImageSampleExplicitLod_2d_v4f32(
     void *pSampledImage, ifritShaderOps_Base_Veci2 coord, float lod,
     ifritShaderOps_Base_Vecf4 *result);
 }
+
+#if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__)
+#pragma GCC diagnostic pop
+#endif

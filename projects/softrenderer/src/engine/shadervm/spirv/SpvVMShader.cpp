@@ -1,13 +1,9 @@
 #include "engine/shadervm/spirv/SpvVMShader.h"
-#include <utility/debug/DebugHelper.h>
-using namespace Ifrit::Utility::Debug;
-
 extern "C" {
 struct alignas(16) iint3Aligned {
   int x, y, z;
 };
 }
-#define NOMINMAX
 
 namespace Ifrit::Engine::ShaderVM::Spirv {
 int SpvRuntimeBackend::createTime = 0;

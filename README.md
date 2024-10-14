@@ -220,29 +220,34 @@ See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
 ## Setup / Run
 
+### Clone the Repository
+
+```bash
+git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive  
+```
+
+
+
 ### Quick Start (GCC / MinGW-w64)
 
-> Warning: Please ensure that dependencies are installed. **And this will ignore all CUDA codes in the project.** 
+> Note: CUDA support is temporarily not included in repo's CMake.
 >
-> NOTE: Some paths / packages should be configured manually before cmake
+> Please ensure that `find_packages` can find `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options
 
 ```shell
 # G++ (Linux)
 cmake -S . -B ./build
-cd build
-make
+cmake --build ./build
+
 # MinGW-w64 (Windows)
 cmake -S . -B ./build -G "MinGW Makefiles"
-cd build
-mingw32-make
+cmake --build ./build
 ```
 
 To run the demo
 
 ```shell
-# For linux
-export LD_LIBRARY_PATH=/path/to/Ifrit.Components.LLVMExec.so;$LD_LIBRARY_PATH
-./core/bin/IfritMain
+./bin/ifrit
 ```
 
 

@@ -28,10 +28,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         __STDC_LIMIT_MACROS
     )
     include_directories(
-        C:/llvm-project/llvm/include
-        C:/llvm-project/build/include
+       ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/llvm/include
+       ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/build/include
     )
-    target_link_directories(ifrit.ircompile PRIVATE C:/llvm-project/build/lib)
+    target_link_directories(ifrit.ircompile PRIVATE ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/build/lib)
     set_target_properties(ifrit.ircompile PROPERTIES
         LINK_FLAGS "-Wl,--subsystem,windows,--output-def,../../../bin/ifrit.ircompile.def,--out-implib,ifrit.ircompile.a"
     )
@@ -100,8 +100,8 @@ else()
         __STDC_FORMAT_MACROS
         __STDC_LIMIT_MACROS
     )
-    include_directories(/usr/lib/llvm-10/include)
-    target_link_directories(ifrit.ircompile PRIVATE /usr/lib/llvm-10/lib)
+    include_directories(${IFRIT_GLOBAL_LLVM_DIR_LINUX}/include)
+    target_link_directories(ifrit.ircompile PRIVATE ${IFRIT_GLOBAL_LLVM_DIR_LINUX}/lib)
     set_target_properties(ifrit.ircompile PROPERTIES
         LINK_FLAGS "-Wl,--out-implib,ifrit.ircompile.a"
     )
@@ -112,6 +112,8 @@ set_target_properties(ifrit.ircompile PROPERTIES PREFIX "")
 set_target_properties(ifrit.ircompile PROPERTIES
     OUTPUT_NAME "ifrit.ircompile"
 )
+# Print ircompile output directory
+message(STATUS "[IFRIT/Output]: ${IFRIT_IRCOMPILE_OUT_DIR}")
 # If MinGW
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if (CMAKE_SYSTEM_NAME STREQUAL "Windows")

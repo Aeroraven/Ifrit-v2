@@ -270,6 +270,7 @@ std::string getTargetTypes(SpvVMIntermediateReprExpTarget *target,
     printf("Unknown type: Target=%d\n", target->id);
     return "{error type}";
   }
+  return "{error type}";
 }
 
 void getTargetTypeExtInst(SpvVMIntermediateReprExpTarget *target,

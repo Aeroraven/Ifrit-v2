@@ -2,6 +2,12 @@
 #include "core/definition/CoreExports.h"
 #include "engine/raytracer/TrivialRaytracerWorker.h"
 
+#if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 extern "C" {
 IFRIT_APIDECL_FORCED struct alignas(16) ifritShaderOps_Raytracer_Vec3 {
   float x, y, z;
@@ -17,3 +23,7 @@ IFRIT_APIDECL_FORCED void ifritShaderOps_Raytracer_TraceRay(
     // contextual arguments
     void *context);
 }
+
+#if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__)
+#pragma GCC diagnostic pop
+#endif
