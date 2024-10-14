@@ -1,5 +1,5 @@
 #include "./engine/shadervm/spirv/SpvVMReader.h"
-#include "./dependency/spirv.h"
+#include <spirv_headers/include/spirv/unified1/spirv.hpp>>
 
 namespace Ifrit::Engine::ShaderVM::Spirv {
 std::vector<char> SpvVMReader::readFile(const char *path) {

@@ -1,5 +1,5 @@
 #include "engine/shadervm/spirv/SpvVMExtInstRegistry.h"
-#include "dependency/glsl.std.450.h"
+#include <spirv_headers/include/spirv/unified1/GLSL.std.450.h>
 
 namespace Ifrit::Engine::ShaderVM::Spirv {
 std::string getLlvmType(SpvVMExtRegistryTypeIdentifier baseIdentifier,

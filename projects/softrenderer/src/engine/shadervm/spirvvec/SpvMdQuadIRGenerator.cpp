@@ -1,7 +1,7 @@
 #include "engine/shadervm/spirvvec/SpvMdQuadIRGenerator.h"
 #include "engine/shadervm/spirvvec/SpvMdLlvmIrRepr.h"
 #define SPV_ENABLE_UTILITY_CODE
-#include "dependency/spirv.h"
+#include <spirv_headers/include/spirv/unified1/spirv.hpp>
 
 namespace Ifrit::Engine::ShaderVM::SpirvVec {
 

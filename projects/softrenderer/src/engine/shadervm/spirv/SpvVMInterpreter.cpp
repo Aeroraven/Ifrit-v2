@@ -1,5 +1,5 @@
 #include "engine/shadervm/spirv/SpvVMInterpreter.h"
-#include "./dependency/spirv.h"
+#include <spirv_headers/include/spirv/unified1/spirv.hpp>
 #include "engine/shadervm/spirv/SpvVMExtInstRegistry.h"
 #include <iomanip>
 namespace Ifrit::Engine::ShaderVM::Spirv::Impl {

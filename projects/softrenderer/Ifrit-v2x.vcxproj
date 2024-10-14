@@ -51,8 +51,8 @@
     <TargetName>Ifrit.Core</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\Users\Huang\Desktop\Tool\glfw-3.3.8\include;$(ProjectDir)include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <ExternalIncludePath>C:\Program Files (x86)\glfw-3.3.8\lib;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>C:\Users\Huang\Desktop\Tool\glfw-3.3.8\include;$(ProjectDir)include;$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)../../dependencies</IncludePath>
+    <ExternalIncludePath>C:\Program Files (x86)\glfw-3.3.8\lib;$(ProjectDir)../../dependencies;$(ExternalIncludePath)</ExternalIncludePath>
     <LibraryPath>C:\Program Files (x86)\glfw-3.3.8\lib;$(LibraryPath)</LibraryPath>
     <TargetName>Ifrit.Core</TargetName>
     <LinkIncremental>false</LinkIncremental>

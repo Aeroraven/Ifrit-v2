@@ -1,6 +1,6 @@
 #include "utility/loader/ImageLoader.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "dependency/sbt_image.h"
+#include <stb/stb_image.h>
 
 namespace Ifrit::Utility::Loader {
 void ImageLoader::loadRGBA(const char *fileName, std::vector<float> *bufferOut,

@@ -413,7 +413,6 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-include/dependency/*
 build/*
 bin/*
 .vscode/*
