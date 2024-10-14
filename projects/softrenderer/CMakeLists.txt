@@ -5,10 +5,21 @@ set(IFRIT_REQ_GLFW3_BASE "C:/Program Files (x86)/GLFW/")
 set(IFRIT_REQ_CUDA_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include")
 set(IFRIT_REQ_CUDACRT_INCLUDE "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include/crt")
 set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
-string(REGEX REPLACE "(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
+string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
 message(STATUS "[IFRIT/EnvCheck]: Working Directory ${IFRIT_PROJECT_DIR}")
 
-set(IFRIT_COMPONENT_LLVM "${IFRIT_PROJECT_DIR}/components/llvmexec/Ifrit-v2-Component-LLVMExec")
+set(IFRIT_COMPONENT_LLVM "${IFRIT_PROJECT_DIR}/bin")
+set(IFRIT_COMPONENT_LLVM_SOURCE "${IFRIT_PROJECT_DIR}/projects/ircompile")
+link_directories(${IFRIT_COMPONENT_LLVM})
+
+# Set output directory
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${IFRIT_PROJECT_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${IFRIT_PROJECT_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${IFRIT_PROJECT_DIR}/bin)
+
+# set executable path
+set(EXECUTABLE_OUTPUT_PATH ${IFRIT_PROJECT_DIR}/bin)
+
 
 set(IFRIT_ENABLE_CUDA False)
 set(IFRIT_ENABLE_SIMD_AVX True)
@@ -100,8 +111,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     endif()
 endif()
 
-set(RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(IFRIT_SHADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/shader")
 set(IFRIT_ASSET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/asset")
 
@@ -179,19 +188,23 @@ file(GLOB_RECURSE SOURCE_1C "src/*.cu")
 file(GLOB_RECURSE SOURCE_2 "include/external_ref/*.h")
 file(GLOB_RECURSE SOURCE_3 "demo/*")
 
-file(GLOB SOURCE_STAGES "./IfritMain.cpp")
+file(GLOB SOURCE_STAGES "./ifrit.softrenderer.cpp")
 file(GLOB SOURCE_STAGES_CUDA "./*.cu")
 
 include_directories(".")
 include_directories(include)
+include_directories(${IFRIT_COMPONENT_LLVM_SOURCE}/include)
 
-include_directories(${IFRIT_COMPONENT_LLVM}/include)
+#print include
+message(STATUS "[IFRIT/Include]: ${IFRIT_COMPONENT_LLVM_SOURCE}/include")
 
 # Operation System
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_COMPONENT_LLVM}/build/Ifrit.Components.LLVMExec.a")
+    set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_COMPONENT_LLVM}/ifrit.ircompile.a")
 else()
-    set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_PROJECT_DIR}/build/components/llvmexec/Ifrit-v2-Component-LLVMExec/Ifrit.Components.LLVMExec.so")
+    set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_PROJECT_DIR}/bin/ifrit.ircompile.so")
+    add_library(IFRIT_COMPONENT_LLVM_LIB_IMP SHARED IMPORTED)
+    set_target_properties(IFRIT_COMPONENT_LLVM_LIB_IMP PROPERTIES IMPORTED_LOCATION "${IFRIT_PROJECT_DIR}/bin/ifrit.ircompile.so")
     # Linux pthread
     add_compile_options(-pthread)
     add_link_options(-pthread)
@@ -209,7 +222,7 @@ foreach( SRC_FILE_NAME ${SOURCE_STAGES} )
         target_link_libraries( ${SRC_FILE_NAME_SHORT}  ${glfw3_LIB} ${IFRIT_COMPONENT_LLVM_LIB} )
     else()
         message(STATUS "[IFRIT/Flags]: LLVM Component: ${IFRIT_COMPONENT_LLVM_LIB}")
-        target_link_libraries( ${SRC_FILE_NAME_SHORT}  glfw ${IFRIT_COMPONENT_LLVM_LIB} dl pthread) 
+        target_link_libraries( ${SRC_FILE_NAME_SHORT}  glfw IFRIT_COMPONENT_LLVM_LIB_IMP dl pthread) 
     endif()
     
 endforeach( SRC_FILE_NAME ${SOURCE_STAGES} )

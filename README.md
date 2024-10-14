@@ -263,42 +263,29 @@ See  [Usage](./docs/docs.md) for more details.
 
 ### Short-term Plan
 
-- [x] MTCPU: Alpha Blending Assurance
-- [x] MTCPU: Deterministic Behavior Assurance 
 - [ ] MTCPU: Basic Texture Support
 - [ ] MTCPU: Branch Divergence Handling Assurance in Quads
-- [ ] Compile: Bug with CMake with Linux GCC
 
 ### Long-term Plan
 
 - [ ] Tessellation
-- [x] Line Mode
-- [x] Texture LOD & Texture Sampler
-  - [x] Shader Derivatives
-  - [x] Anisotropic Filtering
-  - [x] Dynamic LOD Selection & Texture Bias
-  - [x] Cube Mapping
-  - [ ] Tiling
-- [x] Multi-sampling
-  - [ ] Blending Integration
-- [x] Alpha Blending
-  - [x] Sorting
-- [x] Mesh Shader
-- [x] Shader Binary
-  - [ ] Matrix Operations
-  - [ ] Optimization
+
+- [ ] Texture Tiling
+
+- [ ] Multi-sampling: Blending Integration
+
 - [ ] Input Topology
+
 - [ ] Triangle Cluster & Cluster LOD
+
 - [ ] Known Issues
-  - [x] Issue: Faults after resolution change
+  
   - [ ] Overdraw: Point mode with index buffer
   - [ ] Latency: Excessive global atomics in line mode
-  - [ ] Issue: Nondeterministic behaviors in wireframe/point mode 
-  - [x] Issue: Artifacts in low resolution scenario 
   - [ ] Latency: Memory access pattern in MSAA
   - [ ] Latency: JIT slows down execution (in raytracer)
-- [ ] Standardization
-  - [ ] C++: `-Wignored-attributes` warnings in SIMD class  
+  
+  
 
 
 

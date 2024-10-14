@@ -230,11 +230,11 @@ namespace Ifrit::Demo::AccelStructDemo {
 
 
 			auto stTime = std::chrono::high_resolution_clock::now();
-			auto src = SimdVector<float, __m128, 3>(0.0f, 0.0f, 0.0f);
-			auto a = SimdVector<float, __m128, 3>(1.0f, ps, 1.0f);
-			auto b = SimdVector<float, __m128, 3>(ps, 2.0f, 1.0f);
-			auto c = SimdVector<float, __m128, 3>(1.0, 1.0, 1.0f);
-			auto d = SimdVector<float, __m128, 3>(1.0, 1.0, 1.0f);
+			auto src = vfloat3(0.0f, 0.0f, 0.0f);
+			auto a = vfloat3(1.0f, ps, 1.0f);
+			auto b = vfloat3(ps, 2.0f, 1.0f);
+			auto c = vfloat3(1.0, 1.0, 1.0f);
+			auto d = vfloat3(1.0, 1.0, 1.0f);
 			for (long long i = 0; i < 8000000000; i++) {
 				if (i % 2 == 0) {
 					src += fma(cross(a, b), c, d);

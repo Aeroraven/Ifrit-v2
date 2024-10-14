@@ -5,5 +5,5 @@ IFRIT_APIDECL_COMPAT void* IFRIT_APICALL  ifvmCreateLLVMRuntimeBuilder() IFRIT_E
 	return new Ifrit::Engine::ComLLVMRuntime::WrappedLLVMRuntimeBuilder();
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL  ifvmDestroyLLVMRuntimeBuilder(void* p) IFRIT_EXPORT_COMPAT_NOTHROW {
-	delete p;
+	delete (Ifrit::Engine::ComLLVMRuntime::WrappedLLVMRuntimeBuilder*)p;
 }

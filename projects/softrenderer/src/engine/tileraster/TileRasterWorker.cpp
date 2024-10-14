@@ -1381,7 +1381,7 @@ IF_DECLPS_ITERFUNC_0_BRANCH(tpAlphaBlendEnable,IF_COMPARE_OP_NOT_EQUAL,tpOnlyTag
 						auto proposal = pq[j];
 						auto propPrimId = cvrsQueuePrimitiveId(proposal);
 						auto propWorkerId = cvrsQueueWorkerId(proposal);
-						AssembledTriangleProposalReference proposalX = { propWorkerId,propPrimId };
+						AssembledTriangleProposalReference proposalX = { static_cast<uint32_t>(propWorkerId),propPrimId };
 						proposalProcessFuncTileOnly.operator() < tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass > (proposalX);
 					}
 				}

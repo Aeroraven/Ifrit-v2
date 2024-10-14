@@ -453,6 +453,7 @@ namespace Ifrit::Math::SIMD {
 		else {
 			reportNoSimdSupportError();
 		}
+		return T();
 	}
 
 	// lerp
