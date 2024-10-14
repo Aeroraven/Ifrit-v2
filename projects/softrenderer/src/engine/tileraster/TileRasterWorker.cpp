@@ -4,7 +4,6 @@
 #include "math/fastutil/FastUtil.h"
 #include "math/fastutil/FastUtilSimd.h"
 #include "math/simd/SimdVectors.h"
-#include "utility/debug/DebugHelper.h"
 using namespace Ifrit::Math;
 using namespace Ifrit::Math::SIMD;
 
