@@ -232,7 +232,7 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 
 > Note: CUDA support is temporarily not included in repo's CMake.
 >
-> Please ensure that `find_packages` can find `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options
+> Please ensure that `find_packages` can find `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options.
 
 ```shell
 # G++ (Linux)
