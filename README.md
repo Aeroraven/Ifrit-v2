@@ -24,6 +24,56 @@ Successor to following repos:
 
 
 
+## Setup / Run
+
+### Clone the Repository
+
+> Note: Only x86/x86-64 architecture `Windows` and  `Ubuntu` are tested. It mainly covers `Windows` and some `Linux` systems.
+>
+> Other operation systems like `MacOS` are not supported.
+
+```bash
+git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive  
+```
+
+
+
+### Quick Start (GCC / MinGW-w64)
+
+> Note: CUDA support is temporarily not included in repo's CMake.
+>
+> Please ensure that `find_packages` can find `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options.
+
+```shell
+# G++ (Linux)
+cmake -S . -B ./build
+cmake --build ./build
+
+# MinGW-w64 (Windows) [Note 32-bit MinGW is UNSUPPORTED]
+cmake -S . -B ./build -G "MinGW Makefiles"
+cmake --build ./build
+```
+
+To run the demo
+
+```shell
+./bin/ifrit
+```
+
+
+
+#### Quick Start (MSVC)
+
+> Note: Path to `CUDA`, `llvm` and `glfw3`should be manually configured in the property sheets. To install `cuda`, `llvm` and `glfw3`, check Complete Build Options.
+
+Just open `Ifrit-v2x.sln` in `Visual Studio` and compile the project.
+
+
+
+### Complete Build Options 
+
+See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
+
 
 
 ## Features
@@ -212,44 +262,7 @@ See [Performance History](./docs/performance.md)
 
 
 
-## Dependencies
 
-See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
-
-
-
-## Setup / Run
-
-### Quick Start (GCC / MinGW-w64)
-
-> Warning: Please ensure that dependencies are installed. **And this will ignore all CUDA codes in the project.** 
->
-> NOTE: Some paths / packages should be configured manually before cmake
-
-```shell
-# G++ (Linux)
-cmake -S . -B ./build
-cd build
-make
-# MinGW-w64 (Windows)
-cmake -S . -B ./build -G "MinGW Makefiles"
-cd build
-mingw32-make
-```
-
-To run the demo
-
-```shell
-# For linux
-export LD_LIBRARY_PATH=/path/to/Ifrit.Components.LLVMExec.so;$LD_LIBRARY_PATH
-./core/bin/IfritMain
-```
-
-
-
-### Complete Build Options 
-
-See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
 
 
@@ -263,50 +276,49 @@ See  [Usage](./docs/docs.md) for more details.
 
 ### Short-term Plan
 
-- [x] MTCPU: Alpha Blending Assurance
-- [x] MTCPU: Deterministic Behavior Assurance 
 - [ ] MTCPU: Basic Texture Support
 - [ ] MTCPU: Branch Divergence Handling Assurance in Quads
-- [ ] Compile: Bug with CMake with Linux GCC
 
 ### Long-term Plan
 
 - [ ] Tessellation
-- [x] Line Mode
-- [x] Texture LOD & Texture Sampler
-  - [x] Shader Derivatives
-  - [x] Anisotropic Filtering
-  - [x] Dynamic LOD Selection & Texture Bias
-  - [x] Cube Mapping
-  - [ ] Tiling
-- [x] Multi-sampling
-  - [ ] Blending Integration
-- [x] Alpha Blending
-  - [x] Sorting
-- [x] Mesh Shader
-- [x] Shader Binary
-  - [ ] Matrix Operations
-  - [ ] Optimization
+
+- [ ] Texture Tiling
+
+- [ ] Multi-sampling: Blending Integration
+
 - [ ] Input Topology
+
 - [ ] Triangle Cluster & Cluster LOD
+
 - [ ] Known Issues
-  - [x] Issue: Faults after resolution change
+  
   - [ ] Overdraw: Point mode with index buffer
   - [ ] Latency: Excessive global atomics in line mode
-  - [ ] Issue: Nondeterministic behaviors in wireframe/point mode 
-  - [x] Issue: Artifacts in low resolution scenario 
   - [ ] Latency: Memory access pattern in MSAA
   - [ ] Latency: JIT slows down execution (in raytracer)
-- [ ] Standardization
-  - [ ] C++: `-Wignored-attributes` warnings in SIMD class  
+  
+  
 
 
 
+## References & Acknowledgements
 
+This project relies on following open-source projects. Corresponding licenses are in `licenses` folder.
 
-## References
+- [stb](https://github.com/nothings/stb), for image parsing.
 
-For models / open source code references, check `licenses` folder. Thanks for following resources.
+- [glfw3](https://github.com/glfw/glfw), for window and display support.
+
+- [spirv-headers](https://github.com/KhronosGroup/SPIRV-Headers/), for spirv standard reference.
+
+- [glad](https://github.com/Dav1dde/glad/), for opengl header generation.
+
+- [llvm-project](https://github.com/llvm/llvm-project), for just-in-time compilation support
+
+  
+
+And some references:
 
 [1]. https://tayfunkayhan.wordpress.com/2019/07/26/chasing-triangles-in-a-tile-based-rasterizer/
 
@@ -319,3 +331,8 @@ For models / open source code references, check `licenses` folder. Thanks for fo
 [5]. https://llvm.org/docs/LangRef.html
 
 [6]. https://www.mesa3d.org/
+
+[7]. https://agner.org/optimize/
+
+
+

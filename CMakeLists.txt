@@ -1,5 +1,39 @@
 cmake_minimum_required(VERSION 3.10)
 project(Ifrit-v2x)
 
-add_subdirectory(components/llvmexec/Ifrit-v2-Component-LLVMExec)
-add_subdirectory(core)
+
+# Note following paths should be set to the correct paths on your system
+set(IFRIT_GLOBAL_LLVM_DIR_LINUX "/usr/local/llvm-10/")
+set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "C:/llvm-project/")
+set(IFRIT_GLOBAL_CUDA_DIR_WINDOWS "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/")
+set(IFRIT_GLOBAL_GLFW_DIR_WINDOWS "C:/Program Files (x86)/GLFW/")
+
+# Find LLVM
+find_package(LLVM 10...<12 CONFIG)
+if(LLVM_FOUND)
+    message(STATUS "[Ifrit/Deps] Found LLVM ${LLVM_PACKAGE_VERSION}")
+    message(STATUS "[Ifrit/Deps] Using LLVMConfig.cmake in: ${LLVM_DIR}")
+    # update llvm directories
+    set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "${LLVM_INCLUDE_DIRS}/../")
+    set(IFRIT_GLOBAL_LLVM_DIR_LINUX "${LLVM_INCLUDE_DIRS}/../")
+    message(STATUS "[Ifrit/Deps] LLVM Global Path : ${LLVM_INCLUDE_DIRS}/../")
+else()
+    # warning message
+    message(WARNING "[Ifrit/Deps] LLVM package not found. Using pre-defined paths.")
+    message(STATUS "[Ifrit/Deps] LLVM Global Path (Windows): ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}")
+    message(STATUS "[Ifrit/Deps] LLVM Global Path (Linux): ${IFRIT_GLOBAL_LLVM_DIR_LINUX}")
+endif()
+
+# Find GLFW
+find_package(glfw3 3.3 CONFIG)
+if(glfw3_FOUND)
+    message(STATUS "[Ifrit/Deps] Found GLFW3 ${glfw3_VERSION}")
+    message(STATUS "[Ifrit/Deps] Using GLFW3Config.cmake in: ${glfw3_DIR}")
+else()
+    # warning message
+    message(WARNING "[Ifrit/Deps] GLFW3 package not found. Using pre-defined paths.")
+    message(STATUS "[Ifrit/Deps] GLFW Global Path: ${IFRIT_GLOBAL_GLFW_DIR_WINDOWS}")
+endif()
+
+add_subdirectory(projects/ircompile)
+add_subdirectory(projects/softrenderer)

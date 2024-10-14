@@ -1,0 +1,6 @@
+[submodule "dependencies/stb"]
+	path = dependencies/stb
+	url = git@github.com:nothings/stb.git
+[submodule "dependencies/spirv_headers"]
+	path = dependencies/spirv_headers
+	url = git@github.com:KhronosGroup/SPIRV-Headers.git
