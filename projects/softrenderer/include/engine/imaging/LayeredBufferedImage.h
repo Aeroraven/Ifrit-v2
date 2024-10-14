@@ -3,17 +3,16 @@
 #include "engine/imaging/BufferedImage.h"
 
 namespace Ifrit::Engine::Imaging {
-	class LayeredBufferedImage {
-	private:
-		std::vector<std::shared_ptr<BufferedImage>> layers;
+class LayeredBufferedImage {
+private:
+  std::vector<std::shared_ptr<BufferedImage>> layers;
 
-	public:
-		LayeredBufferedImage() = default;
-		~LayeredBufferedImage() = default;
+public:
+  LayeredBufferedImage() = default;
+  ~LayeredBufferedImage() = default;
 
-		void addLayer(std::shared_ptr<BufferedImage> layer);
-		inline BufferedImage& getLayer(int index) const { return *layers[index]; }
-		inline int getLayerCount() const { return layers.size(); }
-
-	};
-}
+  void addLayer(std::shared_ptr<BufferedImage> layer);
+  inline BufferedImage &getLayer(int index) const { return *layers[index]; }
+  inline int getLayerCount() const { return layers.size(); }
+};
+} // namespace Ifrit::Engine::Imaging

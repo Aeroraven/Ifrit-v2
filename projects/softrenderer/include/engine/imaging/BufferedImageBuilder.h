@@ -3,11 +3,11 @@
 #include "engine/imaging/BufferedImage.h"
 
 namespace Ifrit::Engine::Imaging {
-	class IFRIT_APIDECL BufferedImageBuilder {
-	public:
-		BufferedImageBuilder() = default;
-		~BufferedImageBuilder() = default;
+class IFRIT_APIDECL BufferedImageBuilder {
+public:
+  BufferedImageBuilder() = default;
+  ~BufferedImageBuilder() = default;
 
-		virtual std::shared_ptr<BufferedImage> build(const IfritImageCreateInfo& pCI);
-	};
-}
+  virtual std::shared_ptr<BufferedImage> build(const IfritImageCreateInfo &pCI);
+};
+} // namespace Ifrit::Engine::Imaging

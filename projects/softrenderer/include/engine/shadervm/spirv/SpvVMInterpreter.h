@@ -1,10 +1,12 @@
 #pragma once
-#include "./core/definition/CoreExports.h"
 #include "./SpvVMContext.h"
+#include "./core/definition/CoreExports.h"
 namespace Ifrit::Engine::ShaderVM::Spirv {
-	class SpvVMInterpreter {
-	public:
-		void parseRawContext(SpvVMContext* context, SpvVMIntermediateRepresentation* outIr);
-		void exportLlvmIR(SpvVMIntermediateRepresentation* ir, std::string* outLlvmIR);
-	};
-}
+class SpvVMInterpreter {
+public:
+  void parseRawContext(SpvVMContext *context,
+                       SpvVMIntermediateRepresentation *outIr);
+  void exportLlvmIR(SpvVMIntermediateRepresentation *ir,
+                    std::string *outLlvmIR);
+};
+} // namespace Ifrit::Engine::ShaderVM::Spirv

@@ -1,8 +1,8 @@
 #pragma once
 
 namespace Ifrit::Demo::DemoDefault {
-	int mainCpu();
+int mainCpu();
 #ifdef IFRIT_FEATURE_CUDA
-	int mainGpu();
+int mainGpu();
 #endif
-}
+} // namespace Ifrit::Demo::DemoDefault

@@ -1,165 +1,173 @@
 #pragma once
 #include "engine/shadervm/spirv/SpvVMContext.h"
-#include "engine/shadervm/spirvvec/SpvMdBase.h"
 #include "engine/shadervm/spirv/SpvVMExtInstRegistry.h"
+#include "engine/shadervm/spirvvec/SpvMdBase.h"
 
 namespace Ifrit::Engine::ShaderVM::SpirvVec {
-	enum SpVcQuadGroupedIRStage {
-		SPVC_QGIR_BLOCK_GENERATION,
-		SPVC_QGIR_DEFINITION,
-		SPVC_QGIR_DATAFLOW_DEPENDENCY,
-		SPVC_QGIR_MASKGEN,
-		SPVC_QGIR_CONVERSION
-	};
+enum SpVcQuadGroupedIRStage {
+  SPVC_QGIR_BLOCK_GENERATION,
+  SPVC_QGIR_DEFINITION,
+  SPVC_QGIR_DATAFLOW_DEPENDENCY,
+  SPVC_QGIR_MASKGEN,
+  SPVC_QGIR_CONVERSION
+};
 
-	class SpVcQuadGroupedIRGenerator;
+class SpVcQuadGroupedIRGenerator;
 
-	typedef void (*SpVcDefinitionPassHandler)(int pc, std::vector<uint32_t> params, SpVcVMGeneratorContext* ctx, SpVcQuadGroupedIRGenerator* irg);
-	typedef void (*SpVcConversionPassHandler)(int pc, std::vector<uint32_t> params, SpVcVMGeneratorContext* ctx, SpVcQuadGroupedIRGenerator* irg);
+typedef void (*SpVcDefinitionPassHandler)(int pc, std::vector<uint32_t> params,
+                                          SpVcVMGeneratorContext *ctx,
+                                          SpVcQuadGroupedIRGenerator *irg);
+typedef void (*SpVcConversionPassHandler)(int pc, std::vector<uint32_t> params,
+                                          SpVcVMGeneratorContext *ctx,
+                                          SpVcQuadGroupedIRGenerator *irg);
 
-	enum SpVcDataflowDependencySpecial {
-		SPVC_DATADEPS_ORDINARY = 0x0,
-		SPVC_DATADEPS_SSAPHI = 0x1,
-	};
+enum SpVcDataflowDependencySpecial {
+  SPVC_DATADEPS_ORDINARY = 0x0,
+  SPVC_DATADEPS_SSAPHI = 0x1,
+};
 
-	struct SpVcDataflowDependency {
-		int retArg = -1;
-		std::vector<int> depArgs = {};
-		int depVaArgs = -1;
-		SpVcDataflowDependencySpecial special = SPVC_DATADEPS_ORDINARY;
-	};
+struct SpVcDataflowDependency {
+  int retArg = -1;
+  std::vector<int> depArgs = {};
+  int depVaArgs = -1;
+  SpVcDataflowDependencySpecial special = SPVC_DATADEPS_ORDINARY;
+};
 
-	class SpVcQuadGroupedIRGenerator {
-	private:
-		using SpVcSpirBytecode = Ifrit::Engine::ShaderVM::Spirv::SpvVMContext;
-		SpVcSpirBytecode* mRaw;
-		SpVcVMGeneratorContext* mCtx;
-		Ifrit::Engine::ShaderVM::Spirv::SpvVMExtRegistry mExtInstGen;
+class SpVcQuadGroupedIRGenerator {
+private:
+  using SpVcSpirBytecode = Ifrit::Engine::ShaderVM::Spirv::SpvVMContext;
+  SpVcSpirBytecode *mRaw;
+  SpVcVMGeneratorContext *mCtx;
+  Ifrit::Engine::ShaderVM::Spirv::SpvVMExtRegistry mExtInstGen;
 
-		std::unordered_map<int, SpVcDefinitionPassHandler> mDefinitionPassHandlers;
-		std::unordered_map<int, SpVcConversionPassHandler> mConvPassHandlers;
-		std::unordered_map<int, SpVcDataflowDependency> mArgumentDependency;
-		SpVcDefinitionPassHandler mUniversalDefinitionPassHandler;
-		int curPc = 0;
-		SpVcQuadGroupedIRStage curStage;
-		int curVar = 0;
-		int curVarMask = 0;
-	public:
-		void bindBytecode(SpVcSpirBytecode* bytecode, SpVcVMGeneratorContext* context);
+  std::unordered_map<int, SpVcDefinitionPassHandler> mDefinitionPassHandlers;
+  std::unordered_map<int, SpVcConversionPassHandler> mConvPassHandlers;
+  std::unordered_map<int, SpVcDataflowDependency> mArgumentDependency;
+  SpVcDefinitionPassHandler mUniversalDefinitionPassHandler;
+  int curPc = 0;
+  SpVcQuadGroupedIRStage curStage;
+  int curVar = 0;
+  int curVarMask = 0;
 
-		void performBlockPass();
-		void init();
-		void verbose();
+public:
+  void bindBytecode(SpVcSpirBytecode *bytecode,
+                    SpVcVMGeneratorContext *context);
 
-		// Defintion pass defines types and annotations for variables
-		void performDefinitionPass();
-		void performDefinitionPassRegister();
+  void performBlockPass();
+  void init();
+  void verbose();
 
-		// Data flow dependency resolution
-		void performDataflowResolutionPass();
-		void performDataflowResolutionPassRegister();
+  // Defintion pass defines types and annotations for variables
+  void performDefinitionPass();
+  void performDefinitionPassRegister();
 
-		// Mask injection pass
-		void performMaskInjectionPass(int quadSize);
+  // Data flow dependency resolution
+  void performDataflowResolutionPass();
+  void performDataflowResolutionPassRegister();
 
-		// Type generation
-		void performTypeGenerationPass();
+  // Mask injection pass
+  void performMaskInjectionPass(int quadSize);
 
-		// Conversion pass converts raw bytecode to a intermediate representation,
-		// with consideration of execution masks
-		void performConversionPass();
-		void performConversionPassRegister();
+  // Type generation
+  void performTypeGenerationPass();
 
-		// Output generates final LLVM IR code
-		//void performOutputPass();
-		void performSymbolExport();
+  // Conversion pass converts raw bytecode to a intermediate representation,
+  // with consideration of execution masks
+  void performConversionPass();
+  void performConversionPassRegister();
 
-		void parse();
-		std::string generateIR();
+  // Output generates final LLVM IR code
+  // void performOutputPass();
+  void performSymbolExport();
 
-		// Utilities
-		SpVcVMGenBlock* getActiveBlock();
-		void pushActiveBlock(SpVcVMGenBlock* block);
-		//void popActiveBlock();
+  void parse();
+  std::string generateIR();
 
-		SpVcVMGenStack* getActiveStack();
-		void pushNewStack();
-		void popNewStack();
+  // Utilities
+  SpVcVMGenBlock *getActiveBlock();
+  void pushActiveBlock(SpVcVMGenBlock *block);
+  // void popActiveBlock();
 
-		SpVcVMGenVariable* createExecutionMaskVar();
-		SpVcVMGenVariable* getVariableSafe(uint32_t id);
+  SpVcVMGenStack *getActiveStack();
+  void pushNewStack();
+  void popNewStack();
 
-		std::string getParsingProgress();
-		void setCurrentProgCounter(int pc);
-		void setCurrentPass(SpVcQuadGroupedIRStage stage);
-		std::string allocateLlvmVarName();
-		inline Ifrit::Engine::ShaderVM::Spirv::SpvVMExtRegistry* getExtRegistry() { return &mExtInstGen; }
-	
-		template<class T>
-		requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-		T* addIr(std::unique_ptr<T>&& ir) {
-			auto v = ir.get();
-			mCtx->irExprs.push_back(std::move(ir));
-			return v;
-		}
-		template<class T>
-		requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-		T* addIrG(std::unique_ptr<T>&& ir) {
-			auto v = ir.get();
-			mCtx->irExprs.push_back(std::move(ir));
-			mCtx->globalDefs.push_back(v);
-			return v;
-		}
-		template<class T>
-		requires std::is_base_of_v<LLVM::SpVcLLVMExpr,T>
-		T* addIrB(std::unique_ptr<T>&& ir, SpVcVMGenBlock* b) {
-			auto v = ir.get();
-			mCtx->irExprs.push_back(std::move(ir));
-			b->ir.push_back(v);
-			return v;
-		}
-		template<class T>
-		requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-		T* addIrBPre(std::unique_ptr<T>&& ir, SpVcVMGenBlock* b) {
-			auto v = ir.get();
-			mCtx->irExprs.push_back(std::move(ir));
-			b->irPre.push_back(v);
-			return v;
-		}
-		template<class T>
-		requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-		T* addIrBExist(T* ir, SpVcVMGenBlock* b) {
-			auto v = ir;
-			b->ir.push_back(v);
-			return v;
-		}
-		template<class T>
-		requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-		T* addIrF(std::unique_ptr<T>&& ir, SpVcVMGenBlock* b) {
-			auto v = ir.get();
-			mCtx->irExprs.push_back(std::move(ir));
-			b->funcBelong->ir.push_back(v);
-			return v;
-		}
+  SpVcVMGenVariable *createExecutionMaskVar();
+  SpVcVMGenVariable *getVariableSafe(uint32_t id);
 
-		template<class T>
-		requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-		T* addIrFx(std::unique_ptr<T>&& ir, SpVcVMGenFunction* f) {
-			auto v = ir.get();
-			mCtx->irExprs.push_back(std::move(ir));
-			f->ir.push_back(v);
-			return v;
-		}
+  std::string getParsingProgress();
+  void setCurrentProgCounter(int pc);
+  void setCurrentPass(SpVcQuadGroupedIRStage stage);
+  std::string allocateLlvmVarName();
+  inline Ifrit::Engine::ShaderVM::Spirv::SpvVMExtRegistry *getExtRegistry() {
+    return &mExtInstGen;
+  }
 
-		template<class T>
-			requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-		T* addIrFxTail(std::unique_ptr<T>&& ir, SpVcVMGenFunction* f) {
-			auto v = ir.get();
-			mCtx->irExprs.push_back(std::move(ir));
-			f->irPost.push_back(v);
-			return v;
-		}
+  template <class T>
+  requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T> T *
+  addIr(std::unique_ptr<T> &&ir) {
+    auto v = ir.get();
+    mCtx->irExprs.push_back(std::move(ir));
+    return v;
+  }
+  template <class T>
+  requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T> T *
+  addIrG(std::unique_ptr<T> &&ir) {
+    auto v = ir.get();
+    mCtx->irExprs.push_back(std::move(ir));
+    mCtx->globalDefs.push_back(v);
+    return v;
+  }
+  template <class T>
+  requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T> T *
+  addIrB(std::unique_ptr<T> &&ir, SpVcVMGenBlock *b) {
+    auto v = ir.get();
+    mCtx->irExprs.push_back(std::move(ir));
+    b->ir.push_back(v);
+    return v;
+  }
+  template <class T>
+  requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T> T *
+  addIrBPre(std::unique_ptr<T> &&ir, SpVcVMGenBlock *b) {
+    auto v = ir.get();
+    mCtx->irExprs.push_back(std::move(ir));
+    b->irPre.push_back(v);
+    return v;
+  }
+  template <class T>
+  requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T> T *
+  addIrBExist(T *ir, SpVcVMGenBlock *b) {
+    auto v = ir;
+    b->ir.push_back(v);
+    return v;
+  }
+  template <class T>
+  requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T> T *
+  addIrF(std::unique_ptr<T> &&ir, SpVcVMGenBlock *b) {
+    auto v = ir.get();
+    mCtx->irExprs.push_back(std::move(ir));
+    b->funcBelong->ir.push_back(v);
+    return v;
+  }
 
-		inline int getQuads() { return 4; }
-	};
-}
+  template <class T>
+  requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T> T *
+  addIrFx(std::unique_ptr<T> &&ir, SpVcVMGenFunction *f) {
+    auto v = ir.get();
+    mCtx->irExprs.push_back(std::move(ir));
+    f->ir.push_back(v);
+    return v;
+  }
+
+  template <class T>
+  requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T> T *
+  addIrFxTail(std::unique_ptr<T> &&ir, SpVcVMGenFunction *f) {
+    auto v = ir.get();
+    mCtx->irExprs.push_back(std::move(ir));
+    f->irPost.push_back(v);
+    return v;
+  }
+
+  inline int getQuads() { return 4; }
+};
+} // namespace Ifrit::Engine::ShaderVM::SpirvVec
