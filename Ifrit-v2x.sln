@@ -7,7 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ifrit-v2-CSharpLib", "bindi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ifrit-v2-CSharpLib-Demo", "bindings\csharp\Ifrit-v2-csharp\IfritDemo\Ifrit-v2-CSharpLib-Demo.csproj", "{8DAB3D45-9715-4D0A-ACB0-6F4401ACA0BB}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Ifrit-v2-Core", "projects\softrenderer\Ifrit-v2x.vcxproj", "{CBDE4B7D-E58D-4711-A771-AB6D200D542F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Ifrit-v2-SoftRenderer", "projects\softrenderer\Ifrit-v2x.vcxproj", "{CBDE4B7D-E58D-4711-A771-AB6D200D542F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Ifrit-v2-Common", "projects\common\common.vcxproj", "{66DF6C1F-075A-4F4D-BAF9-865B740B8373}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Ifrit-v2-MeshProcLib", "projects\meshproclib\meshproclib.vcxproj", "{D875A123-BE3D-4A4D-B9D5-47775346B8A0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +59,30 @@ Global
 		{CBDE4B7D-E58D-4711-A771-AB6D200D542F}.Release|x64.Build.0 = Release|x64
 		{CBDE4B7D-E58D-4711-A771-AB6D200D542F}.Release|x86.ActiveCfg = Release|x64
 		{CBDE4B7D-E58D-4711-A771-AB6D200D542F}.Release|x86.Build.0 = Release|x64
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Debug|Any CPU.Build.0 = Debug|x64
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Debug|x64.ActiveCfg = Debug|x64
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Debug|x64.Build.0 = Debug|x64
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Debug|x86.ActiveCfg = Debug|Win32
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Debug|x86.Build.0 = Debug|Win32
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Release|Any CPU.ActiveCfg = Release|x64
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Release|Any CPU.Build.0 = Release|x64
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Release|x64.ActiveCfg = Release|x64
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Release|x64.Build.0 = Release|x64
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Release|x86.ActiveCfg = Release|Win32
+		{66DF6C1F-075A-4F4D-BAF9-865B740B8373}.Release|x86.Build.0 = Release|Win32
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Debug|Any CPU.Build.0 = Debug|x64
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Debug|x64.ActiveCfg = Debug|x64
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Debug|x64.Build.0 = Debug|x64
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Debug|x86.ActiveCfg = Debug|Win32
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Debug|x86.Build.0 = Debug|Win32
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Release|Any CPU.ActiveCfg = Release|x64
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Release|Any CPU.Build.0 = Release|x64
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Release|x64.ActiveCfg = Release|x64
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Release|x64.Build.0 = Release|x64
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Release|x86.ActiveCfg = Release|Win32
+		{D875A123-BE3D-4A4D-B9D5-47775346B8A0}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

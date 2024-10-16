@@ -1,6 +1,8 @@
 #pragma once
-#include "./core/definition/CoreTypes.h"
-
+#include "../core/ApiConv.h"
+#include "VectorDefs.h"
+#include <cmath>
+#include <algorithm>
 namespace Ifrit::Math {
 // Element wise ops
 #define ELEMENTWISE_VECTOR_OP(op)                                              \

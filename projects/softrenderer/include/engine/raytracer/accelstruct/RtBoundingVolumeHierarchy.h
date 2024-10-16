@@ -1,7 +1,7 @@
 #pragma once
 #include "core/definition/CoreExports.h"
 #include "engine/base/RaytracerBase.h"
-#include "math/simd/SimdVectors.h"
+#include <common/math/simd/SimdVectors.h>
 
 int getProfileCnt();
 

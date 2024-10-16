@@ -1,5 +1,7 @@
 #pragma once
 #include "core/definition/CoreTypes.h"
+#include <common/math/VectorDefs.h>
+
 namespace Ifrit::Engine::SoftRenderer {
 enum IFRIT_APIDECL TypeDescriptorEnum {
   IFTP_UNDEFINED,

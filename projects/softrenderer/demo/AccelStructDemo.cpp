@@ -8,7 +8,7 @@
 #include "engine/shadervm/spirv/SpvVMReader.h"
 #include "engine/shadervm/spirv/SpvVMShader.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
-#include "math/simd/SimdVectors.h"
+#include <common/math/simd/SimdVectors.h>
 #include "presentation/backend/OpenGLBackend.h"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "presentation/backend/TerminalCharColorBackend.h"

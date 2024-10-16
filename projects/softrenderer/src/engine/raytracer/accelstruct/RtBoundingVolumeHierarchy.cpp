@@ -1,6 +1,6 @@
 #include "engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
-#include "math/VectorOps.h"
-#include "math/simd/SimdVectors.h"
+#include <common/math/VectorOps.h>
+#include <common/math/simd/SimdVectors.h>
 #include <queue>
 
 constexpr bool PROFILE_CNT = false;

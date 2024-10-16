@@ -1,7 +1,7 @@
 #pragma once
 #include "core/definition/CoreDefs.h"
 #include "core/definition/CoreTypes.h"
-#include "math/simd/SimdVectors.h"
+#include <common/math/simd/SimdVectors.h>
 
 namespace Ifrit::Engine::SoftRenderer::TileRaster {
 enum class TileRasterHomogeneousClipping {

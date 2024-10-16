@@ -2,7 +2,7 @@
 #include "core/definition/CoreExports.h"
 #include "engine/base/TypeDescriptor.h"
 #include "engine/base/VaryingStore.h"
-#include "math/simd/SimdVectors.h"
+#include <common/math/simd/SimdVectors.h>
 
 namespace Ifrit::Engine::SoftRenderer {
 struct VertexShaderResultContext {

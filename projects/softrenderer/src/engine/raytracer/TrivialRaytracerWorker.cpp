@@ -1,7 +1,7 @@
 #include "engine/raytracer/TrivialRaytracerWorker.h"
 #include "engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
-#include "math/VectorOps.h"
-#include "math/simd/SimdVectors.h"
+#include <common/math/VectorOps.h>
+#include <common/math/simd/SimdVectors.h>
 using namespace Ifrit::Math::SIMD;
 
 namespace Ifrit::Engine::SoftRenderer::Raytracer {

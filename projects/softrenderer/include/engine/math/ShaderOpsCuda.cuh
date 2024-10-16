@@ -1,6 +1,7 @@
 #pragma once
 #include "./core/definition/CoreTypes.h"
 #include "./core/definition/CoreDefs.h"
+#include <common/math/VectorDefs.h>
 
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
 #define IFRIT_InvoCeilRshift(x,y) (((x)+((1<<(y))-1))>>(y))

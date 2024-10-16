@@ -1,5 +1,7 @@
 #pragma once
 #include "VectorOps.h"
+#include "../core/ApiConv.h"
+#include <cmath>
 
 namespace Ifrit::Math {
 IFRIT_APIDECL inline float4x4 transpose(const float4x4 &a) {

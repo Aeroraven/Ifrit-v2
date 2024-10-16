@@ -1,7 +1,21 @@
 #pragma once
-#include "core/definition/CoreExports.h"
+#include "../../core/ApiConv.h"
+#include "../VectorDefs.h"
+#include <cstdint>
+#include <type_traits>
+#include <cstdio>
+#include <cstdlib>
 
-#ifdef IFRIT_COMPILER_GCC
+#ifndef IFRIT_USE_SIMD_128
+#ifdef _MSC_VER
+#pragma message("warning: SIMD not enabled")
+#else
+#warning SIMD 128-bit is not enabled
+#endif
+#endif
+
+//Check if GCC or MinGW
+#if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
@@ -26,7 +40,10 @@ template <typename T> concept SimdContainer = requires(T x) {
 };
 #endif
 
-inline void reportNoSimdSupportError() { ifritError("No SIMD support"); }
+inline void reportNoSimdSupportError() { 
+  printf("No SIMD support\n");
+  std::abort();
+}
 
 // 4-elements
 template <typename T, typename S, int V>

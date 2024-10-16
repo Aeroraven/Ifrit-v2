@@ -1,7 +1,9 @@
-#include "core/definition/CoreExports.h"
+#include "../../core/ApiConv.h"
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
+#include <cstdint>
+
 namespace Ifrit::Math::FastUtil {
 inline uint64_t i32Pack(uint32_t x, uint32_t y) {
   return (uint64_t)x | ((uint64_t)y << 32);

@@ -1,9 +1,9 @@
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/base/Shaders.h"
-#include "math/VectorOps.h"
-#include "math/fastutil/FastUtil.h"
-#include "math/fastutil/FastUtilSimd.h"
-#include "math/simd/SimdVectors.h"
+#include <common/math/VectorOps.h>
+#include <common/math/fastutil/FastUtil.h>
+#include <common/math/fastutil/FastUtilSimd.h>
+#include <common/math/simd/SimdVectors.h>
 using namespace Ifrit::Math;
 using namespace Ifrit::Math::SIMD;
 

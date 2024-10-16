@@ -1,5 +1,6 @@
 #pragma once
-#include "core/definition/CoreExports.h"
+#include "../../core/ApiConv.h"
+#include <cstdint>
 
 namespace Ifrit::Math::FastUtil {
 #ifdef IFRIT_USE_SIMD_256

@@ -1,6 +1,6 @@
 #include "OglBenchmarking.h"
 #include "dependency/GLAD/glad/glad.h"
-#include "math/LinalgOps.h"
+#include <common/math/LinalgOps.h>
 #include "presentation/window/GLFWWindowProvider.h"
 #include "utility/loader/WavefrontLoader.h"
 using namespace Ifrit::Engine::SoftRenderer::Utility::Loader;

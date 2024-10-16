@@ -10,7 +10,8 @@ message(STATUS "[IFRIT/EnvCheck]: Working Directory ${IFRIT_PROJECT_DIR}")
 
 set(IFRIT_COMPONENT_LLVM "${IFRIT_PROJECT_DIR}/bin")
 set(IFRIT_COMPONENT_LLVM_SOURCE "${IFRIT_PROJECT_DIR}/projects/ircompile")
-set(IFRIT_EXTERNLA_DEPENDENCY_PATH "${IFRIT_PROJECT_DIR}/dependencies")
+set(IFRIT_PROJECT_SUBDIR "${IFRIT_PROJECT_DIR}/projects")
+set(IFRIT_EXTERNAL_DEPENDENCY_PATH "${IFRIT_PROJECT_DIR}/dependencies")
 link_directories(${IFRIT_COMPONENT_LLVM})
 
 # Set output directory
@@ -195,7 +196,8 @@ file(GLOB SOURCE_STAGES_CUDA "./*.cu")
 include_directories(".")
 include_directories(include)
 include_directories(${IFRIT_COMPONENT_LLVM_SOURCE}/include)
-include_directories(${IFRIT_EXTERNLA_DEPENDENCY_PATH})
+include_directories(${IFRIT_EXTERNAL_DEPENDENCY_PATH})
+include_directories(${IFRIT_PROJECT_SUBDIR})
 
 #print include
 message(STATUS "[IFRIT/Include]: ${IFRIT_COMPONENT_LLVM_SOURCE}/include")

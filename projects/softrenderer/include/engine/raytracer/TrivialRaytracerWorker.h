@@ -1,6 +1,6 @@
 #pragma once
-#include "TrivialRaytracer.h"
 #include "core/definition/CoreExports.h"
+#include "TrivialRaytracer.h"
 #include "engine/base/RaytracerBase.h"
 #include <stack>
 

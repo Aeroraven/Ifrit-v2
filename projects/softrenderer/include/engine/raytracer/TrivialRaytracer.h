@@ -1,7 +1,7 @@
 #pragma once
+#include "core/definition/CoreExports.h"
 #include "TrivialRaytracerContext.h"
 #include "core/data/Image.h"
-#include "core/definition/CoreExports.h"
 #include "engine/base/RaytracerBase.h"
 #include "engine/base/Renderer.h"
 #include "engine/base/Shaders.h"

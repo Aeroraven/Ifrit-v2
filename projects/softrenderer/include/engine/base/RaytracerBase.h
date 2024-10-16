@@ -1,7 +1,8 @@
 #pragma once
-#include "math/VectorOps.h"
-#include "math/simd/SimdVectors.h"
-
+#include "core/definition/CoreExports.h"
+#include <common/math/VectorOps.h>
+#include <common/math/simd/SimdVectors.h>
+#include <vector>
 namespace Ifrit::Engine::SoftRenderer {
 struct Ray {
   Ifrit::Math::SIMD::vfloat3 o;
