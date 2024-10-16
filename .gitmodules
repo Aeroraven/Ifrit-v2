@@ -4,3 +4,9 @@
 [submodule "dependencies/spirv_headers"]
 	path = dependencies/spirv_headers
 	url = git@github.com:KhronosGroup/SPIRV-Headers.git
+[submodule "dependencies/gklib"]
+	path = dependencies/gklib
+	url = git@github.com:Aeroraven/GKlib.git
+[submodule "dependencies/metis"]
+	path = dependencies/metis
+	url = git@github.com:Aeroraven/METIS.git
