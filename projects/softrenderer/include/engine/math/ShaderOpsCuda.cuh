@@ -6,7 +6,7 @@
 #define IFRIT_InvoCeilRshift(x,y) (((x)+((1<<(y))-1))>>(y))
 
 #ifdef IFRIT_FEATURE_CUDA
-namespace Ifrit::Engine::Math::ShaderOps::CUDA {
+namespace Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA {
 	template<class T>
 	IFRIT_DUAL inline T clamp(const T& x, const T& mi, const T& ma) {
 		return (x >= ma) ? ma : ((x <= mi) ? mi : x);

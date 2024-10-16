@@ -2,7 +2,7 @@
 #include "core/definition/CoreDefs.h"
 
 #ifdef IFRIT_FEATURE_CUDA
-namespace Ifrit::Core::CUDA {
+namespace Ifrit::Engine::SoftRenderer::Core::CUDA {
 	
 	template<typename T>
 	IFRIT_KERNEL void kernFixVTable(T* devicePtr) {

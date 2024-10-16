@@ -3,15 +3,15 @@
 #include "./engine/bufferman/BufferManager.h"
 #include "./engine/tileraster/TileRasterRenderer.h"
 
-#define IFRIT_TRNS Ifrit::Engine::TileRaster
-#define IFRIT_BASENS Ifrit::Engine
-#define IFRIT_TRTP Ifrit::Engine::LibraryExport::TileRasterRendererWrapper
+#define IFRIT_TRNS Ifrit::Engine::SoftRenderer::TileRaster
+#define IFRIT_BASENS Ifrit::Engine::SoftRenderer
+#define IFRIT_TRTP Ifrit::Engine::SoftRenderer::LibraryExport::TileRasterRendererWrapper
 
-using namespace Ifrit::Engine;
-using namespace Ifrit::Engine::LibraryExport;
-using namespace Ifrit::Engine::TileRaster;
+using namespace Ifrit::Engine::SoftRenderer;
+using namespace Ifrit::Engine::SoftRenderer::LibraryExport;
+using namespace Ifrit::Engine::SoftRenderer::TileRaster;
 
-namespace Ifrit::Engine::LibraryExport {
+namespace Ifrit::Engine::SoftRenderer::LibraryExport {
 struct TileRasterRendererWrapper {
   std::shared_ptr<IFRIT_TRNS::TileRasterRenderer> renderer;
   std::vector<std::unique_ptr<IFRIT_BASENS::ShaderBase>> allocatedFuncWrappers;
@@ -35,7 +35,7 @@ public:
       func(varyings, colorOutput, fragmentDepth);
   }
 };
-} // namespace Ifrit::Engine::LibraryExport
+} // namespace Ifrit::Engine::SoftRenderer::LibraryExport
 IFRIT_APIDECL_COMPAT IFRIT_TRTP *IFRIT_APICALL iftrCreateInstance()
     IFRIT_EXPORT_COMPAT_NOTHROW {
   auto hInst = new TileRasterRendererWrapper();

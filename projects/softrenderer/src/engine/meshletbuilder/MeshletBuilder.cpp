@@ -1,6 +1,6 @@
 #include "engine/meshletbuilder/MeshletBuilder.h"
 
-namespace Ifrit::Engine::MeshletBuilder::Impl {
+namespace Ifrit::Engine::SoftRenderer::MeshletBuilder::Impl {
 struct MbTriangle {
   iint3 ind;
   ifloat3 normal;
@@ -233,9 +233,9 @@ void writeGenratedMeshlet(MbContext *ctx, const MbCurrentMeshlet &meshlet) {
   }
   ctx->generatedMeshlets->push_back(std::move(emitMeshlet));
 }
-} // namespace Ifrit::Engine::MeshletBuilder::Impl
+} // namespace Ifrit::Engine::SoftRenderer::MeshletBuilder::Impl
 
-namespace Ifrit::Engine::MeshletBuilder {
+namespace Ifrit::Engine::SoftRenderer::MeshletBuilder {
 IFRIT_APIDECL void
 TrivialMeshletBuilder::bindVertexBuffer(const VertexBuffer &vbuf) {
   this->vbuffer = &vbuf;
@@ -306,4 +306,4 @@ IFRIT_APIDECL void TrivialMeshletBuilder::mergeMeshlet(
     accuOffset += m->vbufs.getVertexCount();
   }
 }
-} // namespace Ifrit::Engine::MeshletBuilder
+} // namespace Ifrit::Engine::SoftRenderer::MeshletBuilder

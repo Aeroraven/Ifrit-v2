@@ -2,7 +2,7 @@
 #include "core/definition/CoreExports.h"
 #include "engine/imaging/BufferedImage.h"
 
-namespace Ifrit::Engine::Imaging {
+namespace Ifrit::Engine::SoftRenderer::Imaging {
 class LayeredBufferedImage {
 private:
   std::vector<std::shared_ptr<BufferedImage>> layers;
@@ -15,4 +15,4 @@ public:
   inline BufferedImage &getLayer(int index) const { return *layers[index]; }
   inline int getLayerCount() const { return layers.size(); }
 };
-} // namespace Ifrit::Engine::Imaging
+} // namespace Ifrit::Engine::SoftRenderer::Imaging

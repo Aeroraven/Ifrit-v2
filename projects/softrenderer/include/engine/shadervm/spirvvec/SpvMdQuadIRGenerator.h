@@ -3,7 +3,7 @@
 #include "engine/shadervm/spirv/SpvVMExtInstRegistry.h"
 #include "engine/shadervm/spirvvec/SpvMdBase.h"
 
-namespace Ifrit::Engine::ShaderVM::SpirvVec {
+namespace Ifrit::Engine::SoftRenderer::ShaderVM::SpirvVec {
 enum SpVcQuadGroupedIRStage {
   SPVC_QGIR_BLOCK_GENERATION,
   SPVC_QGIR_DEFINITION,
@@ -35,10 +35,10 @@ struct SpVcDataflowDependency {
 
 class SpVcQuadGroupedIRGenerator {
 private:
-  using SpVcSpirBytecode = Ifrit::Engine::ShaderVM::Spirv::SpvVMContext;
+  using SpVcSpirBytecode = Ifrit::Engine::SoftRenderer::ShaderVM::Spirv::SpvVMContext;
   SpVcSpirBytecode *mRaw;
   SpVcVMGeneratorContext *mCtx;
-  Ifrit::Engine::ShaderVM::Spirv::SpvVMExtRegistry mExtInstGen;
+  Ifrit::Engine::SoftRenderer::ShaderVM::Spirv::SpvVMExtRegistry mExtInstGen;
 
   std::unordered_map<int, SpVcDefinitionPassHandler> mDefinitionPassHandlers;
   std::unordered_map<int, SpVcConversionPassHandler> mConvPassHandlers;
@@ -99,7 +99,7 @@ public:
   void setCurrentProgCounter(int pc);
   void setCurrentPass(SpVcQuadGroupedIRStage stage);
   std::string allocateLlvmVarName();
-  inline Ifrit::Engine::ShaderVM::Spirv::SpvVMExtRegistry *getExtRegistry() {
+  inline Ifrit::Engine::SoftRenderer::ShaderVM::Spirv::SpvVMExtRegistry *getExtRegistry() {
     return &mExtInstGen;
   }
 
@@ -170,4 +170,4 @@ public:
 
   inline int getQuads() { return 4; }
 };
-} // namespace Ifrit::Engine::ShaderVM::SpirvVec
+} // namespace Ifrit::Engine::SoftRenderer::ShaderVM::SpirvVec

@@ -2,7 +2,7 @@
 #ifdef IFRIT_FEATURE_CUDA
 #include "core/definition/CoreExports.h"
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
-namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
+namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 
 	extern IFRIT_DEVICE_CONST float* csTextures[CU_MAX_TEXTURE_SLOTS];
 	extern IFRIT_DEVICE_CONST int csTextureWidth[CU_MAX_TEXTURE_SLOTS];

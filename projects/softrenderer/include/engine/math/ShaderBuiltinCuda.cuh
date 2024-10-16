@@ -7,7 +7,7 @@
 #include "./engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
 
 #ifdef IFRIT_FEATURE_CUDA
-namespace Ifrit::Engine::Math::ShaderOps::CUDA {
+namespace Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA {
 	using TextureObject = int;
 	using SamplerState = int;
 	using BufferObject = int;
@@ -155,7 +155,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 				float4 c01 = texData[pY * texW + min(pX + 1, texW - 1) + lodoff];
 				float4 c10 = texData[min(pY + 1, texH - 1) * texW + pX + lodoff];
 				float4 c11 = texData[min(pY + 1, texH - 1) * texW + min(pX + 1, texW - 1) + lodoff];
-				using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+				using Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::lerp;
 				float4 c0x = lerp(c00, c01, propX);
 				float4 c1x = lerp(c10, c11, propX);
 				return lerp(c0x, c1x, propY);
@@ -280,7 +280,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		printf("This function is not available under CPU Mode.");
 		return { 0,0,0,0 };
 #else
-		using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+		using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation;
 		auto& pSamplerState = Impl::csSamplers[samplerState];
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
@@ -295,7 +295,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		printf("This function is not available under CPU Mode.");
 		return { 0,0,0,0 };
 #else
-		using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+		using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation;
 		auto& pSamplerState = Impl::csSamplers[samplerState];
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
@@ -310,7 +310,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		printf("This function is not available under CPU Mode.");
 		return { 0,0,0,0 };
 #else
-		using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+		using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation;
 		auto& pSamplerState = Impl::csSamplers[samplerState];
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
@@ -325,7 +325,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		printf("This function is not available under CPU Mode.");
 		return { 0,0,0,0 };
 #else
-		using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+		using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation;
 		auto& pSamplerState = Impl::csSamplers[samplerState];
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
@@ -340,7 +340,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		printf("This function is not available under CPU Mode.");
 		return { 0,0,0,0 };
 #else
-		using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+		using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation;
 		auto& pSamplerState = Impl::csSamplers[samplerState];
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
@@ -362,7 +362,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		printf("This function is not available under CPU Mode.");
 		return { 0,0,0,0 };
 #else
-		using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+		using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation;
 		auto& pSamplerState = Impl::csSamplers[samplerState];
 		float4* pTexture = reinterpret_cast<float4*>(Impl::csTextures[tex]);
 		auto pHeight = Impl::csTextureHeight[tex];
@@ -377,7 +377,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 		printf("This function is not available under CPU Mode.");
 		return nullptr;
 #else
-		using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+		using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation;
 		return Impl::csGeneralBuffer[buf];
 #endif
 	}
@@ -393,7 +393,7 @@ namespace Ifrit::Engine::Math::ShaderOps::CUDA {
 
 #define isbcuReadPsVarying(x,y)  ((const ifloat4s256*)(x))[(y)]
 #define isbcuReadPsColorOut(x,y)  ((ifloat4s256*)(x))[(y)]
-#define isbcuDfDx(x,y)  (Ifrit::Engine::Math::ShaderOps::CUDA::pixelDfDx_s256(((const ifloat4s256*)(x)),(y)))
-#define isbcuDfDy(x,y)  (Ifrit::Engine::Math::ShaderOps::CUDA::pixelDfDy_s256(((const ifloat4s256*)(x)),(y)))
+#define isbcuDfDx(x,y)  (Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::pixelDfDx_s256(((const ifloat4s256*)(x)),(y)))
+#define isbcuDfDy(x,y)  (Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::pixelDfDy_s256(((const ifloat4s256*)(x)),(y)))
 
 #endif

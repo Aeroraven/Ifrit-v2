@@ -1,6 +1,6 @@
 #include "engine/raytracer/RtShaders.h"
 
-namespace Ifrit::Engine::Raytracer {
+namespace Ifrit::Engine::SoftRenderer::Raytracer {
 IFRIT_HOST void RaytracerShaderExecutionStack::pushStack(const RayInternal &ray,
                                                          const RayHit &rayHit,
                                                          void *pPayload) {
@@ -15,4 +15,4 @@ IFRIT_HOST void RaytracerShaderExecutionStack::popStack() {
   execStack.pop_back();
   this->onStackPopComplete();
 }
-} // namespace Ifrit::Engine::Raytracer
+} // namespace Ifrit::Engine::SoftRenderer::Raytracer

@@ -6,10 +6,10 @@
 #include "engine/base/VaryingStore.h"
 #include <vector>
 
-namespace Ifrit::Engine::TileRaster::CUDA {
-	using Ifrit::Core::CUDA::DeviceVector;
-	using namespace Ifrit::Engine::TileRaster;
-	using namespace Ifrit::Engine;
+namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA {
+	using Ifrit::Engine::SoftRenderer::Core::CUDA::DeviceVector;
+	using namespace Ifrit::Engine::SoftRenderer::TileRaster;
+	using namespace Ifrit::Engine::SoftRenderer;
 
 	struct TileRasterDeviceContext {
 		//std::vector<DeviceVector<float4>> hdVaryingBuffer;

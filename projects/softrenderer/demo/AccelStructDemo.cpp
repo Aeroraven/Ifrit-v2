@@ -16,15 +16,15 @@
 #include "utility/loader/ImageLoader.h"
 #include "utility/loader/WavefrontLoader.h"
 
-using namespace Ifrit::Engine::BufferManager;
-using namespace Ifrit::Engine::ComLLVMRuntime;
+using namespace Ifrit::Engine::SoftRenderer::BufferManager;
+using namespace Ifrit::Engine::SoftRenderer::ComLLVMRuntime;
 using namespace Ifrit::Math::SIMD;
 
 using namespace std;
-using namespace Ifrit::Engine;
-using namespace Ifrit::Core::Data;
-using namespace Ifrit::Engine::Raytracer;
-using namespace Ifrit::Utility::Loader;
+using namespace Ifrit::Engine::SoftRenderer;
+using namespace Ifrit::Engine::SoftRenderer::Core::Data;
+using namespace Ifrit::Engine::SoftRenderer::Raytracer;
+using namespace Ifrit::Engine::SoftRenderer::Utility::Loader;
 using namespace Ifrit::Math;
 using namespace Ifrit::Presentation::Window;
 using namespace Ifrit::Presentation::Backend;
@@ -109,7 +109,7 @@ public:
 };
 
 int mainCpu() {
-  using namespace Ifrit::Engine::ShaderVM::Spirv;
+  using namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv;
 
   WavefrontLoader loader;
   std::vector<ifloat3> posRaw;

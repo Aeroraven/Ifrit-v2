@@ -5,7 +5,7 @@
 
 int getProfileCnt();
 
-namespace Ifrit::Engine::Raytracer {
+namespace Ifrit::Engine::SoftRenderer::Raytracer {
 
 struct BoundingBox {
   Ifrit::Math::SIMD::vfloat3 bmin, bmax;
@@ -60,4 +60,4 @@ public:
                            float tmax) const;
   void buildAccelerationStructure();
 };
-} // namespace Ifrit::Engine::Raytracer
+} // namespace Ifrit::Engine::SoftRenderer::Raytracer

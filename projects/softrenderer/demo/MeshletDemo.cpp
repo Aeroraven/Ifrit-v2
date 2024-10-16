@@ -19,18 +19,18 @@
 #define DEMO_RESOLUTION 1800
 namespace Ifrit::Demo::MeshletDemo {
 using namespace std;
-using namespace Ifrit::Core::Data;
-using namespace Ifrit::Engine::TileRaster;
-using namespace Ifrit::Utility::Loader;
+using namespace Ifrit::Engine::SoftRenderer::Core::Data;
+using namespace Ifrit::Engine::SoftRenderer::TileRaster;
+using namespace Ifrit::Engine::SoftRenderer::Utility::Loader;
 using namespace Ifrit::Math;
 using namespace Ifrit::Presentation::Window;
 using namespace Ifrit::Presentation::Backend;
-using namespace Ifrit::Engine::MeshletBuilder;
-using namespace Ifrit::Engine::BufferManager;
+using namespace Ifrit::Engine::SoftRenderer::MeshletBuilder;
+using namespace Ifrit::Engine::SoftRenderer::BufferManager;
 #ifdef IFRIT_FEATURE_CUDA
-using namespace Ifrit::Engine::TileRaster::CUDA;
-using namespace Ifrit::Core::CUDA;
-using namespace Ifrit::Engine::TileRaster::CUDA::Invocation;
+using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA;
+using namespace Ifrit::Engine::SoftRenderer::Core::CUDA;
+using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation;
 #endif
 
 float4x4 view = (lookAt({0, 0.1, 0.25}, {0, 0.1, 0.0}, {0, 1, 0}));

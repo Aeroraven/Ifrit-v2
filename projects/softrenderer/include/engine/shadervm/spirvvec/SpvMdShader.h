@@ -5,14 +5,14 @@
 #include "engine/base/Shaders.h"
 #include "engine/shadervm/spirv/SpvVMReader.h"
 
-namespace Ifrit::Engine::ShaderVM::SpirvVec {
+namespace Ifrit::Engine::SoftRenderer::ShaderVM::SpirvVec {
 struct SpvVecRuntimeSymbolTables {
   std::vector<void *> inputs[SpVcQuadSize];
   std::vector<int> inputBytes[SpVcQuadSize];
   std::vector<void *> outputs[SpVcQuadSize];
   std::vector<int> outputBytes[SpVcQuadSize];
   std::unordered_map<std::pair<int, int>, std::pair<void *, int>,
-                     Ifrit::Core::Utility::PairHash>
+                     Ifrit::Engine::SoftRenderer::Core::Utility::PairHash>
       uniform;
   void *entry = nullptr;
 };
@@ -62,4 +62,4 @@ public:
                                             const void *pData) override;
   IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
 };
-} // namespace Ifrit::Engine::ShaderVM::SpirvVec
+} // namespace Ifrit::Engine::SoftRenderer::ShaderVM::SpirvVec

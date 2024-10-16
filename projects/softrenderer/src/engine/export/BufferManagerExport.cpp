@@ -1,7 +1,7 @@
 #include "engine/export/BufferManagerExport.h"
 #include "engine/bufferman/BufferManager.h"
 
-using namespace Ifrit::Engine::BufferManager;
+using namespace Ifrit::Engine::SoftRenderer::BufferManager;
 
 struct TrivialBufferManagerWrapper {
   std::shared_ptr<TrivialBufferManager> manager;

@@ -1,6 +1,6 @@
 #pragma once
 #include "./core/definition/CoreDefs.h"
-namespace Ifrit::Core::Utility {
+namespace Ifrit::Engine::SoftRenderer::Core::Utility {
 class CoreLogger {
 private:
 public:
@@ -54,22 +54,22 @@ public:
   }
 };
 #define ifritLog(level, ...)                                                   \
-  Ifrit::Core::Utility::CoreLogger::log(level, __FUNCTION__, __VA_ARGS__)
+  Ifrit::Engine::SoftRenderer::Core::Utility::CoreLogger::log(level, __FUNCTION__, __VA_ARGS__)
 #define ifritLog1(...)                                                         \
-  Ifrit::Core::Utility::CoreLogger::log(0, __FUNCTION__, __VA_ARGS__)
+  Ifrit::Engine::SoftRenderer::Core::Utility::CoreLogger::log(0, __FUNCTION__, __VA_ARGS__)
 #define ifritLog2(...)                                                         \
-  Ifrit::Core::Utility::CoreLogger::log(1, __FUNCTION__, __VA_ARGS__)
+  Ifrit::Engine::SoftRenderer::Core::Utility::CoreLogger::log(1, __FUNCTION__, __VA_ARGS__)
 #define ifritLog3(...)                                                         \
-  Ifrit::Core::Utility::CoreLogger::log(2, __FUNCTION__, __VA_ARGS__)
+  Ifrit::Engine::SoftRenderer::Core::Utility::CoreLogger::log(2, __FUNCTION__, __VA_ARGS__)
 #define ifritLog4(...)                                                         \
-  Ifrit::Core::Utility::CoreLogger::log(3, __FUNCTION__, __VA_ARGS__)
+  Ifrit::Engine::SoftRenderer::Core::Utility::CoreLogger::log(3, __FUNCTION__, __VA_ARGS__)
 #define ifritLog5(...)                                                         \
-  Ifrit::Core::Utility::CoreLogger::log(4, __FUNCTION__, __VA_ARGS__)
+  Ifrit::Engine::SoftRenderer::Core::Utility::CoreLogger::log(4, __FUNCTION__, __VA_ARGS__)
 #define ifritAssert(condition, ...)                                            \
-  Ifrit::Core::Utility::CoreLogger::assertfx(condition, __FUNCTION__,          \
+  Ifrit::Engine::SoftRenderer::Core::Utility::CoreLogger::assertfx(condition, __FUNCTION__,          \
                                              __VA_ARGS__)
 #define ifritError(...)                                                        \
-  Ifrit::Core::Utility::CoreLogger::log(3, __FUNCTION__, __VA_ARGS__);         \
+  Ifrit::Engine::SoftRenderer::Core::Utility::CoreLogger::log(3, __FUNCTION__, __VA_ARGS__);         \
   std::abort();
 
-} // namespace Ifrit::Core::Utility
+} // namespace Ifrit::Engine::SoftRenderer::Core::Utility

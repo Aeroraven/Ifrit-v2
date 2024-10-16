@@ -21,19 +21,19 @@
 #include "utility/loader/WavefrontLoader.h"
 
 using namespace std;
-using namespace Ifrit::Core::Data;
-using namespace Ifrit::Engine::TileRaster;
-using namespace Ifrit::Utility::Loader;
+using namespace Ifrit::Engine::SoftRenderer::Core::Data;
+using namespace Ifrit::Engine::SoftRenderer::TileRaster;
+using namespace Ifrit::Engine::SoftRenderer::Utility::Loader;
 #ifdef IFRIT_FEATURE_CUDA
-using namespace Ifrit::Engine::Math::ShaderOps;
+using namespace Ifrit::Engine::SoftRenderer::Math::ShaderOps;
 #endif
 using namespace Ifrit::Presentation::Window;
 using namespace Ifrit::Presentation::Backend;
 using namespace Ifrit::Math;
-using namespace Ifrit::Engine::ShaderVM::Spirv;
-using namespace Ifrit::Engine::ShaderVM::SpirvVec;
-using namespace Ifrit::Engine::ComLLVMRuntime;
-using namespace Ifrit::Engine::BufferManager;
+using namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv;
+using namespace Ifrit::Engine::SoftRenderer::ShaderVM::SpirvVec;
+using namespace Ifrit::Engine::SoftRenderer::ComLLVMRuntime;
+using namespace Ifrit::Engine::SoftRenderer::BufferManager;
 
 namespace Ifrit::Demo::ShaderVMDemo {
 

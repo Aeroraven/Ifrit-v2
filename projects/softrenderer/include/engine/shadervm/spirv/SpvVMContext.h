@@ -1,6 +1,6 @@
 #pragma once
 #include "./core/definition/CoreExports.h"
-namespace Ifrit::Engine::ShaderVM::Spirv {
+namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv {
 enum SpvVMCtxEndian {
   IFSP_UNDEFINED = 0,
   IFSP_LITTLE_ENDIAN = 1,
@@ -171,4 +171,4 @@ struct SpvVMContext {
   std::vector<SpvVMCtxInstruction> instructions;
 };
 
-} // namespace Ifrit::Engine::ShaderVM::Spirv
+} // namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv

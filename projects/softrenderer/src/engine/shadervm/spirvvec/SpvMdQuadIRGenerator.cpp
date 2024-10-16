@@ -3,7 +3,7 @@
 #define SPV_ENABLE_UTILITY_CODE
 #include <spirv_headers/include/spirv/unified1/spirv.hpp>
 
-namespace Ifrit::Engine::ShaderVM::SpirvVec {
+namespace Ifrit::Engine::SoftRenderer::ShaderVM::SpirvVec {
 
 #define DEF_PASS(x)                                                            \
   void defPass_##x(int pc, std::vector<uint32_t> params,                       \
@@ -3021,4 +3021,4 @@ std::string SpVcQuadGroupedIRGenerator::generateIR() {
 
   return ret;
 }
-} // namespace Ifrit::Engine::ShaderVM::SpirvVec
+} // namespace Ifrit::Engine::SoftRenderer::ShaderVM::SpirvVec

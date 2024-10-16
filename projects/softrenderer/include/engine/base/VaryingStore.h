@@ -2,7 +2,7 @@
 #include "core/definition/CoreDefs.h"
 #include "core/definition/CoreTypes.h"
 
-namespace Ifrit::Engine {
+namespace Ifrit::Engine::SoftRenderer {
 union IFRIT_APIDECL VaryingStore {
   float vf;
   int vi;
@@ -15,4 +15,4 @@ union IFRIT_APIDECL VaryingStore {
   iint4 vi4;
   iuint2 vui2;
 };
-} // namespace Ifrit::Engine
+} // namespace Ifrit::Engine::SoftRenderer

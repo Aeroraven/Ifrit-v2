@@ -7,22 +7,22 @@
 
 
 namespace Ifrit::Demo::MeshletDemo {
-	class MeshletDemoCuMS : public  Ifrit::Engine::MeshShader {
+	class MeshletDemoCuMS : public  Ifrit::Engine::SoftRenderer::MeshShader {
 	public:
 		IFRIT_DUAL virtual void execute(
 			iint3 localInvocation,
 			int workGroupId,
 			const void* inTaskShaderPayload,
-			Ifrit::Engine::VaryingStore* outVaryings,
+			Ifrit::Engine::SoftRenderer::VaryingStore* outVaryings,
 			ifloat4* outPos,
 			int* outIndices,
 			int& outNumVertices,
 			int& outNumIndices
 		) override;
-		IFRIT_HOST virtual Ifrit::Engine::MeshShader* getCudaClone() override;
+		IFRIT_HOST virtual Ifrit::Engine::SoftRenderer::MeshShader* getCudaClone() override;
 	};
 
-	class MeshletDemoCuTS : public  Ifrit::Engine::TaskShader {
+	class MeshletDemoCuTS : public  Ifrit::Engine::SoftRenderer::TaskShader {
 	public:
 		IFRIT_DUAL virtual void execute(
 			int workGroupId,
@@ -30,13 +30,13 @@ namespace Ifrit::Demo::MeshletDemo {
 			iint3* outMeshWorkGroups,
 			int& outNumMeshWorkGroups
 		);
-		IFRIT_HOST virtual Ifrit::Engine::TaskShader* getCudaClone() override;
+		IFRIT_HOST virtual Ifrit::Engine::SoftRenderer::TaskShader* getCudaClone() override;
 	};
 
-	class MeshletDemoCuFS : public  Ifrit::Engine::FragmentShader {
+	class MeshletDemoCuFS : public  Ifrit::Engine::SoftRenderer::FragmentShader {
 	public:
 		IFRIT_DUAL virtual void execute(const  void* varyings, void* colorOutput, float* fragmentDepth) override;
-		IFRIT_HOST virtual Ifrit::Engine::FragmentShader* getCudaClone() override;
+		IFRIT_HOST virtual Ifrit::Engine::SoftRenderer::FragmentShader* getCudaClone() override;
 	};
 }
 #endif

@@ -5,7 +5,7 @@
 
 namespace Ifrit::Demo::DemoDefault {
 	IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) {
-		using namespace Ifrit::Engine::Math::ShaderOps::CUDA;
+		using namespace Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA;
 		//float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
 		//float4x4 view = (lookAt({ 0,0.1,1.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
@@ -27,14 +27,14 @@ namespace Ifrit::Demo::DemoDefault {
 		(*outVaryings[1]).y = 1.0f - outVaryings[1]->y;
 	}
 
-	IFRIT_HOST Ifrit::Engine::VertexShader* DemoVertexShaderCuda::getCudaClone() {
-		return Ifrit::Core::CUDA::hostGetDeviceObjectCopy<DemoVertexShaderCuda>(this);
+	IFRIT_HOST Ifrit::Engine::SoftRenderer::VertexShader* DemoVertexShaderCuda::getCudaClone() {
+		return Ifrit::Engine::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<DemoVertexShaderCuda>(this);
 	}
 
 	IFRIT_DUAL void DemoFragmentShaderCuda::execute(const  void* varyings, void* colorOutput, float* fragmentDepth) {
-		using Ifrit::Engine::Math::ShaderOps::CUDA::abs;
-		using Ifrit::Engine::Math::ShaderOps::CUDA::texture;
-		using Ifrit::Engine::Math::ShaderOps::CUDA::textureLod;
+		using Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::abs;
+		using Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::texture;
+		using Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::textureLod;
 
 		auto result = isbcuReadPsVarying(varyings, 0);
 		auto& co = isbcuReadPsColorOut(colorOutput, 0);
@@ -56,12 +56,12 @@ namespace Ifrit::Demo::DemoDefault {
 		//printf("%f %f %f %f\n", result.x, result.y, result.z, result.w);
 	}
 
-	IFRIT_HOST Ifrit::Engine::FragmentShader* DemoFragmentShaderCuda::getCudaClone() {
-		return Ifrit::Core::CUDA::hostGetDeviceObjectCopy<DemoFragmentShaderCuda>(this);
+	IFRIT_HOST Ifrit::Engine::SoftRenderer::FragmentShader* DemoFragmentShaderCuda::getCudaClone() {
+		return Ifrit::Engine::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<DemoFragmentShaderCuda>(this);
 	}
 
-	IFRIT_DUAL void DemoGeometryShaderCuda::execute(const ifloat4* const* inPos, const Ifrit::Engine::VaryingStore* const* inVaryings,
-		ifloat4* outPos, Ifrit::Engine::VaryingStore* outVaryings, int* outSize) {
+	IFRIT_DUAL void DemoGeometryShaderCuda::execute(const ifloat4* const* inPos, const Ifrit::Engine::SoftRenderer::VaryingStore* const* inVaryings,
+		ifloat4* outPos, Ifrit::Engine::SoftRenderer::VaryingStore* outVaryings, int* outSize) {
 		outPos[0] = *inPos[0];
 		outPos[1] = *inPos[1];
 		outPos[2] = *inPos[2];
@@ -79,8 +79,8 @@ namespace Ifrit::Demo::DemoDefault {
 		*outSize = 3;
 	}
 
-	IFRIT_HOST Ifrit::Engine::GeometryShader* DemoGeometryShaderCuda::getCudaClone() {
-		return  Ifrit::Core::CUDA::hostGetDeviceObjectCopy<DemoGeometryShaderCuda>(this);
+	IFRIT_HOST Ifrit::Engine::SoftRenderer::GeometryShader* DemoGeometryShaderCuda::getCudaClone() {
+		return  Ifrit::Engine::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<DemoGeometryShaderCuda>(this);
 	}
 }
 #endif

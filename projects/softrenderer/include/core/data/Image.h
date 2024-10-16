@@ -1,7 +1,7 @@
 #pragma once
 #include "./core/definition/CoreExports.h"
 
-namespace Ifrit::Core::Data {
+namespace Ifrit::Engine::SoftRenderer::Core::Data {
 template <typename T> class IFRIT_APIDECL Image {
 private:
   T *data = nullptr;
@@ -202,4 +202,4 @@ using ImageI8 = Image<int8_t>;
 using ImageI16 = Image<int16_t>;
 using ImageI32 = Image<int32_t>;
 using ImageI64 = Image<int64_t>;
-} // namespace Ifrit::Core::Data
+} // namespace Ifrit::Engine::SoftRenderer::Core::Data

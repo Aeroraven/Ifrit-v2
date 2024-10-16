@@ -9,7 +9,7 @@
 #include "engine/base/VertexShaderResult.h"
 #include "engine/tileraster/TileRasterCommon.h"
 
-namespace Ifrit::Engine::TileRaster {
+namespace Ifrit::Engine::SoftRenderer::TileRaster {
 struct TileRasterContextRasterQueueProposal {
   uint32_t workerId;
   int primId;
@@ -45,7 +45,7 @@ public:
   VaryingDescriptor *varyingDescriptor;
   FragmentShader *fragmentShader;
   std::unordered_map<std::pair<int, int>, const void *,
-                     Ifrit::Core::Utility::PairHash>
+                     Ifrit::Engine::SoftRenderer::Core::Utility::PairHash>
       uniformMapping;
 
   // Cached attributes
@@ -94,4 +94,4 @@ public:
   std::vector<AssembledTriangleProposalShadeStage>
       assembledTrianglesShade[TileRasterContext::numThreads + 1];
 };
-} // namespace Ifrit::Engine::TileRaster
+} // namespace Ifrit::Engine::SoftRenderer::TileRaster

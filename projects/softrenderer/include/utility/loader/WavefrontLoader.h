@@ -1,7 +1,7 @@
 #pragma once
 #include "core/definition/CoreExports.h"
 
-namespace Ifrit::Utility::Loader {
+namespace Ifrit::Engine::SoftRenderer::Utility::Loader {
 class WavefrontLoader {
 public:
   void loadObject(const char *path, std::vector<ifloat3> &vertices,
@@ -13,4 +13,4 @@ public:
   std::vector<ifloat2> remapUVs(std::vector<ifloat2> uvs,
                                 std::vector<uint32_t> indices, int numVertices);
 };
-} // namespace Ifrit::Utility::Loader
+} // namespace Ifrit::Engine::SoftRenderer::Utility::Loader

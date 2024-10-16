@@ -1,6 +1,6 @@
 #include "engine/base/VertexShaderResult.h"
 
-namespace Ifrit::Engine {
+namespace Ifrit::Engine::SoftRenderer {
 
 IFRIT_APIDECL VertexShaderResult::VertexShaderResult(uint32_t vertexCount,
                                                      uint32_t varyingCount) {
@@ -28,4 +28,4 @@ IFRIT_APIDECL void VertexShaderResult::setVertexCount(const uint32_t vcnt) {
   }
   context->position.resize(vertexCount);
 }
-} // namespace Ifrit::Engine
+} // namespace Ifrit::Engine::SoftRenderer

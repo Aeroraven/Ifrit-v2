@@ -2,7 +2,7 @@
 
 #include "core/utility/CoreUtils.h"
 #include "engine/base/TypeDescriptor.h"
-namespace Ifrit::Engine {
+namespace Ifrit::Engine::SoftRenderer {
 
 struct VertexBufferContext {
   std::vector<uint8_t> buffer;
@@ -66,4 +66,4 @@ public:
   void setValueFloat4Compatible(const int index, const int attribute,
                                 const ifloat4 value);
 };
-} // namespace Ifrit::Engine
+} // namespace Ifrit::Engine::SoftRenderer

@@ -1,7 +1,7 @@
 #include "core/export/CommonExport.h"
 
-#define IFRIT_CORENS Ifrit::Core::Data
-using namespace Ifrit::Core::Data;
+#define IFRIT_CORENS Ifrit::Engine::SoftRenderer::Core::Data
+using namespace Ifrit::Engine::SoftRenderer::Core::Data;
 
 IFRIT_APIDECL_COMPAT IFRIT_CORENS::ImageF32 *IFRIT_APICALL ifcrCreateImageFP32(
     size_t width, size_t height, size_t channel) IFRIT_EXPORT_COMPAT_NOTHROW {

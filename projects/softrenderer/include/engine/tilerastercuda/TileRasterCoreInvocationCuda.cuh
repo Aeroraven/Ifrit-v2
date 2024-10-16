@@ -10,7 +10,7 @@
 #include "engine/base/Constants.h"
 #include "engine/base/Structures.h"
 
-namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
+namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation {
 	enum GeometryGenerationPipelineType {
 		IFCUINVO_GEOMETRY_GENERATION_UNDEFINED = 0,
 		IFCUINVO_GEOMETRY_GENERATION_CONVENTIONAL = 1,

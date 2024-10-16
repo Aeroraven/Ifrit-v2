@@ -3,7 +3,7 @@
 #include "math/LinalgOps.h"
 #include "presentation/window/GLFWWindowProvider.h"
 #include "utility/loader/WavefrontLoader.h"
-using namespace Ifrit::Utility::Loader;
+using namespace Ifrit::Engine::SoftRenderer::Utility::Loader;
 using namespace Ifrit::Presentation::Window;
 using namespace Ifrit::Math;
 namespace Ifrit::Demo::OglBenchmarking {

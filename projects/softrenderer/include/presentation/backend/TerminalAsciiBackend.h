@@ -12,7 +12,7 @@ private:
 
 public:
   TerminalAsciiBackend(int cWid, int cHeight);
-  virtual void updateTexture(const Ifrit::Core::Data::ImageF32 &image) override;
+  virtual void updateTexture(const Ifrit::Engine::SoftRenderer::Core::Data::ImageF32 &image) override;
   virtual void draw() override;
   virtual void setViewport(int32_t, int32_t, int32_t, int32_t) override {}
 };

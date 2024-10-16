@@ -82,7 +82,7 @@ OpenGLBackend::OpenGLBackend() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
-void OpenGLBackend::updateTexture(const Ifrit::Core::Data::ImageF32 &image) {
+void OpenGLBackend::updateTexture(const Ifrit::Engine::SoftRenderer::Core::Data::ImageF32 &image) {
   const static float *ptr = nullptr;
   glBindTexture(GL_TEXTURE_2D, texture);
   auto data = image.getData();

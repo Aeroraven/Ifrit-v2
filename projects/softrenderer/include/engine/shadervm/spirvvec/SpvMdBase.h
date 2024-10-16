@@ -4,7 +4,7 @@
 #include "engine/shadervm/spirvvec/SpvMdLlvmIrRepr.h"
 #include <stack>
 
-namespace Ifrit::Engine::ShaderVM::SpirvVec {
+namespace Ifrit::Engine::SoftRenderer::ShaderVM::SpirvVec {
 constexpr int SpVcQuadSize = 4;
 enum class SpVcVMTypeEnum {
   SPVC_TYPE_UNDEFINED,
@@ -246,4 +246,4 @@ struct SpVcVMGeneratorContext {
   SpVcSymbolInfo binds;
 };
 
-} // namespace Ifrit::Engine::ShaderVM::SpirvVec
+} // namespace Ifrit::Engine::SoftRenderer::ShaderVM::SpirvVec

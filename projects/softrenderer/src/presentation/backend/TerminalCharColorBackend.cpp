@@ -7,7 +7,7 @@ TerminalCharColorBackend::TerminalCharColorBackend(int cWid, int cHeight) {
   resultBuffer = "";
 }
 void TerminalCharColorBackend::updateTexture(
-    const Ifrit::Core::Data::ImageF32 &image) {
+    const Ifrit::Engine::SoftRenderer::Core::Data::ImageF32 &image) {
   std::string res = "";
   for (int i = consoleHeight - 1; i >= 0; i--) {
     for (int j = 0; j < consoleWidth; j++) {

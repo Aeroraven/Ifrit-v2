@@ -1,6 +1,6 @@
 #pragma once
 #include "core/definition/CoreTypes.h"
-namespace Ifrit::Engine {
+namespace Ifrit::Engine::SoftRenderer {
 enum IFRIT_APIDECL TypeDescriptorEnum {
   IFTP_UNDEFINED,
   IFTP_FLOAT1,
@@ -46,4 +46,4 @@ public:
 };
 
 IFRIT_APIDECL extern TypeDescriptorsT TypeDescriptors;
-} // namespace Ifrit::Engine
+} // namespace Ifrit::Engine::SoftRenderer

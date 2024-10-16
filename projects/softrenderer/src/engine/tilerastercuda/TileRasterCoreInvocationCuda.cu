@@ -11,7 +11,7 @@
 
 #define IFRIT_InvoGetThreadBlocks(tasks,blockSize) ((tasks)/(blockSize))+((tasks) % (blockSize) != 0)
 
-namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
+namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 	struct ImplBlendCoefs {
 		int4 s; //SrcColor (x1/x[src.alpha]/x[dst.alpha]/x0)
 		int4 d; //DstColor (x1/x[src.alpha]/x[dst.alpha]/x0)
@@ -1322,7 +1322,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	namespace TriangleGeometryStage {
 		template<bool tpGeometryShaderEnabled,IfritCullMode tpCullMode, bool tpMsaaEnabled>
 		IFRIT_DEVICE void devGeometryCullClip(float4 v1, float4 v2, float4 v3, int primId) {
-			using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+			using Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::lerp;
 			constexpr int possibleTris = 5;
 
 			IFRIT_SHARED TileRasterClipVertexCUDA retd[2 * CU_GEOMETRY_PROCESSING_THREADS];
@@ -2960,7 +2960,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				float deno = v2.w - v1.w;
 				float numo = -1.0 + v2.w;
 				float t = numo / deno;
-				using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+				using Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::lerp;
 				float4 intersection = lerp(v2, v1, t);
 				float4 barycenter = lerp(bary2, bary1, t);
 				v1 = intersection;
@@ -2970,7 +2970,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				float deno = v1.w - v2.w;
 				float numo = -1.0 + v1.w;
 				float t = numo / deno;
-				using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+				using Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::lerp;
 				float4 intersection = lerp(v1, v2, t);
 				float4 barycenter = lerp(bary1, bary2, t);
 				v2 = intersection;
@@ -3244,7 +3244,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 				float4 v1 = dAtriInterpolBase1[primId];
 				float4 v2 = dAtriInterpolBase2[primId];
 				auto percent = getPercent(v1, v2);
-				using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+				using Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::lerp;
 				auto zVal = lerp(v1.z, v2.z, percent);
 				if (zVal < localDepth) {
 					actPrim = primId;
@@ -3527,7 +3527,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 	}
 }
 
-namespace  Ifrit::Engine::TileRaster::CUDA::Invocation {
+namespace  Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation {
 
 	char* deviceMalloc(uint32_t size) {
 		char* ptr;

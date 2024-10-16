@@ -1,9 +1,9 @@
 #pragma once
 #include "core/data/Image.h"
 
-namespace Ifrit::Engine {
-using Ifrit::Core::Data::ImageF32;
-using Ifrit::Core::Data::ImageU8;
+namespace Ifrit::Engine::SoftRenderer {
+using Ifrit::Engine::SoftRenderer::Core::Data::ImageF32;
+using Ifrit::Engine::SoftRenderer::Core::Data::ImageU8;
 
 struct FrameBufferContext {
   std::vector<ImageF32 *> colorAttachment;
@@ -35,4 +35,4 @@ public:
                                      int nums);
   void setDepthAttachmentCompatible(ImageF32 *depthAttachment);
 };
-} // namespace Ifrit::Engine
+} // namespace Ifrit::Engine::SoftRenderer

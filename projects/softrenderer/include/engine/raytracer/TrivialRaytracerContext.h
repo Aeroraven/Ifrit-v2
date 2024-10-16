@@ -5,7 +5,7 @@
 #include "engine/base/Shaders.h"
 #include "engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
 
-namespace Ifrit::Engine::Raytracer {
+namespace Ifrit::Engine::SoftRenderer::Raytracer {
 struct TrivialRaytracerContext {
   constexpr static int numThreads = 16;
 
@@ -18,7 +18,7 @@ struct TrivialRaytracerContext {
   int totalTiles;
 
   std::unordered_map<std::pair<int, int>, const void *,
-                     Ifrit::Core::Utility::PairHash>
+                     Ifrit::Engine::SoftRenderer::Core::Utility::PairHash>
       uniformMapping;
 
   // TODO: Shader binding table & Shader groups
@@ -36,6 +36,6 @@ struct TrivialRaytracerContext {
 
   iint3 traceRegion;
 
-  Ifrit::Core::Data::ImageF32 *testImage;
+  Ifrit::Engine::SoftRenderer::Core::Data::ImageF32 *testImage;
 };
-} // namespace Ifrit::Engine::Raytracer
+} // namespace Ifrit::Engine::SoftRenderer::Raytracer

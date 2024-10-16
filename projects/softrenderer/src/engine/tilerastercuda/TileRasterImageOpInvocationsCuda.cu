@@ -3,7 +3,7 @@
 #include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
 #include "engine/math/ShaderOpsCuda.cuh"
 
-namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
+namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 	struct BlitImageKernelArgs {
 		int srcOff, srcId;
 		uint32_t srcWid;
@@ -37,7 +37,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 		float4 c10 = isrc[min(srcIntY + 1, arg.srcHei - 1) * arg.srcWid + srcIntX];
 		float4 c11 = isrc[min(srcIntY + 1, arg.srcHei - 1) * arg.srcWid + min(srcIntX + 1, arg.srcWid - 1)];
 		
-		using Ifrit::Engine::Math::ShaderOps::CUDA::lerp;
+		using Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::lerp;
 		float4 c0x = lerp(c00, c01, pX);
 		float4 c1x = lerp(c10, c11, pX);
 		float4 result = lerp(c0x, c1x, pY);
@@ -64,7 +64,7 @@ namespace Ifrit::Engine::TileRaster::CUDA::Invocation::Impl {
 
 }
 
-namespace Ifrit::Engine::TileRaster::CUDA::Invocation {
+namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation {
 	void invokeBlitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter) {
 		auto getMipLvlOffset = [&](int slotId, int mipLevel,int totalLayers,int dstLayers) {
 			int baseOff = 0;

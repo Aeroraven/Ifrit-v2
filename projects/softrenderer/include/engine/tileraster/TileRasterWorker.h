@@ -3,7 +3,7 @@
 #include "core/definition/CoreExports.h"
 #include "engine/tileraster/TileRasterRenderer.h"
 
-namespace Ifrit::Engine::TileRaster {
+namespace Ifrit::Engine::SoftRenderer::TileRaster {
 
 struct AssembledTriangleRef {
   int sourcePrimitive;
@@ -152,4 +152,4 @@ protected:
     return (unsigned)y * (unsigned)context->numTilesX + (unsigned)x;
   }
 };
-} // namespace Ifrit::Engine::TileRaster
+} // namespace Ifrit::Engine::SoftRenderer::TileRaster

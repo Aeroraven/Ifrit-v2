@@ -11,8 +11,8 @@ namespace Ifrit::Demo::Skybox {
 int mainGpu() {
   using namespace Ifrit::Presentation::Backend;
   using namespace Ifrit::Presentation::Window;
-  using namespace Ifrit::Engine::TileRaster::CUDA;
-  using namespace Ifrit::Utility::Loader;
+  using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA;
+  using namespace Ifrit::Engine::SoftRenderer::Utility::Loader;
 
   constexpr static int DEMO_RESOLUTION = 2048;
 

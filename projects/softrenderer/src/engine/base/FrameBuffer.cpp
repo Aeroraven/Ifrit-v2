@@ -1,6 +1,6 @@
 #include "engine/base/FrameBuffer.h"
 
-namespace Ifrit::Engine {
+namespace Ifrit::Engine::SoftRenderer {
 IFRIT_APIDECL void FrameBuffer::setColorAttachments(
     const std::vector<ImageF32 *> &colorAttachment) {
   this->context->colorAttachment = colorAttachment;
@@ -32,4 +32,4 @@ IFRIT_APIDECL void
 FrameBuffer::setDepthAttachmentCompatible(ImageF32 *depthAttachment) {
   this->context->depthAttachment = depthAttachment;
 }
-} // namespace Ifrit::Engine
+} // namespace Ifrit::Engine::SoftRenderer
