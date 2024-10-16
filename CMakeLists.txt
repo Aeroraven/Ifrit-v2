@@ -37,6 +37,8 @@ else()
     message(STATUS "[Ifrit/Deps] GLFW Global Path: ${IFRIT_GLOBAL_GLFW_DIR_WINDOWS}")
 endif()
 
+add_subdirectory(dependencies/gklib)
+add_subdirectory(dependencies/metis)
 add_subdirectory(projects/ircompile)
 add_subdirectory(projects/softrenderer)
 add_subdirectory(projects/meshproclib)

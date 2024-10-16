@@ -117,6 +117,11 @@ message(STATUS "[IFRIT/Output]: ${IFRIT_IRCOMPILE_OUT_DIR}")
 # If MinGW
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        # prebuild command: remove ifrit.ircompile*
+        add_custom_command(TARGET ifrit.ircompile PRE_BUILD
+            COMMAND cmd /c del ifrit.ircompile.*
+            WORKING_DIRECTORY ${IFRIT_IRCOMPILE_OUT_DIR}
+        )
         # libifrit.ircompile.dll.a rename to ifrit.ircompile.a
         add_custom_command(TARGET ifrit.ircompile POST_BUILD
             COMMAND cmd /c ren libifrit.ircompile.dll.a ifrit.ircompile.a
