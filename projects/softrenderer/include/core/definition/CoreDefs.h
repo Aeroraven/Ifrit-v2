@@ -81,6 +81,10 @@ static_assert(false, "App requires C++20 or higher");
 #include <print>
 #endif
 
+#ifdef IFRIT_DLL
+#define IRTIT_IGNORE_PRESENTATION_DEPS
+#endif
+
 #ifndef __INTELLISENSE__
 #ifndef IFRIT_SHADER_PATH
 #ifndef IRTIT_IGNORE_PRESENTATION_DEPS

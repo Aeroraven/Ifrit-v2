@@ -68,7 +68,7 @@ private:
 
 public:
   TileRasterWorker(uint32_t workerId,
-                   std::shared_ptr<TileRasterRenderer> renderer,
+                   TileRasterRenderer* renderer,
                    std::shared_ptr<TileRasterContext> context);
 
 protected:

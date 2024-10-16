@@ -1,27 +1,20 @@
 cmake_minimum_required(VERSION 3.10)
-project(Ifrit-v2-MeshProcLib LANGUAGES CXX C)
+project(Ifrit-v2-Demo LANGUAGES CXX)
 
-set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
-string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
-message(STATUS "[IFRIT/EnvCheck]: Working Directory ${IFRIT_PROJECT_DIR}")
-
-set(IFRIT_PROJECT_SUBDIR "${IFRIT_PROJECT_DIR}/projects")
-set(IFRIT_EXTERNAL_DEPENDENCY_PATH "${IFRIT_PROJECT_DIR}/dependencies")
-
-# Set output directory
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${IFRIT_PROJECT_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${IFRIT_PROJECT_DIR}/bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${IFRIT_PROJECT_DIR}/bin)
+# set output directory
+set(IFRIT_DEMO_PROJECT_DIR "${CMAKE_BINARY_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${IFRIT_DEMO_PROJECT_DIR}/../bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${IFRIT_DEMO_PROJECT_DIR}/../bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${IFRIT_DEMO_PROJECT_DIR}/../bin)
 
 # set executable path
-set(EXECUTABLE_OUTPUT_PATH ${IFRIT_PROJECT_DIR}/bin)
+set(EXECUTABLE_OUTPUT_PATH ${IFRIT_DEMO_PROJECT_DIR}/../bin)
+set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
+string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
+set(IFRIT_PROJECT_SUBDIR "${IFRIT_PROJECT_DIR}/projects")
 
-set(IFRIT_ENABLE_SIMD_AVX True)
-set(IFRIT_ENABLE_OPTIMIZATION True)
 
-set(CMAKE_CUDA_STANDARD 20)
-set(CMAKE_CUDA_STANDARD_REQUIRED True)
-
+# set compiler flags
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -67,15 +60,6 @@ check_c_source_compiles("${CHECK_SSE_SOURCE}" IFRIT_ENABLE_SIMD_SSE)
 set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQUIRED_FLAG})
 message(STATUS "[IFRIT/EnvCheck]: SSE Support - ${IFRIT_ENABLE_SIMD_SSE}")
 
-# Main
-
-# Versions for GCC
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10.0)
-        message(FATAL_ERROR "GCC version must be at least 10.0!")
-    endif()
-endif()
-
 if(${IFRIT_ENABLE_SIMD_SSE})
     add_definitions(-DIFRIT_FEATURE_SIMD)
     message(STATUS "[IFRIT/Feature]: Use Feature: SIMD/SSE")
@@ -85,13 +69,16 @@ if(${IFRIT_ENABLE_SIMD_AVX2})
     add_definitions(-DIFRIT_FEATURE_SIMD_AVX256)
     message(STATUS "[IFRIT/Feature]: Use Feature: SIMD/AVX2")
 endif()
+# add executable
+add_executable(ifrit.demo ifrit.demo.cpp)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    if(${IFRIT_ENABLE_OPTIMIZATION})
-        add_compile_options(/O2)
-    endif()
+
+#if msvc
+if(MSVC)
+# add o2 optimization
+target_compile_options(ifrit.demo PRIVATE -O2)
 else()
-    add_compile_options(-g)
+add_compile_options(-g)
     if(${IFRIT_ENABLE_OPTIMIZATION})
         add_compile_options(-O3)
         add_compile_options(-fno-math-errno)
@@ -113,21 +100,20 @@ else()
         add_compile_options(-mavx2)
         message(STATUS "[IFRIT/Flags]: Add compiler flag: -mavx2")
     endif()
+    add_compile_options(-lopengl32)
+    message(STATUS "[IFRIT/Flags]: Add compiler flag: -lopengl32")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        add_compile_options(-lgdi32)
+        message(STATUS "[IFRIT/Flags]: Add compiler flag: -lgdi32")
+    endif()
 endif()
 
-file(GLOB_RECURSE SOURCE_0 "include/*.h")
-file(GLOB_RECURSE SOURCE_1 "src/*.cpp")
-file(GLOB_RECURSE SOURCE_1B "src/*.c")
-file(GLOB_RECURSE SOURCE_1C "src/*.cu")
-
-file(GLOB SOURCE_STAGES "./meshproclib.cpp")
-
-include_directories(".")
-include_directories(include)
-include_directories(${IFRIT_EXTERNAL_DEPENDENCY_PATH})
 include_directories(${IFRIT_PROJECT_SUBDIR})
-include_directories(${IFRIT_PROJECT_DIR}/dependencies/metis/include)
-include_directories(${IFRIT_PROJECT_DIR}/dependencies/meshoptimizer/include)
+include_directories(${IFRIT_PROJECT_SUBDIR}/softrenderer/include)
 
-add_library(ifrit.meshproclib SHARED ${SOURCE_STAGES} ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B} ${SOURCE_1C} ${SOURCE_3})
-target_link_libraries(ifrit.meshproclib PUBLIC metis meshoptimizer GKlib)     
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    target_link_libraries(ifrit.demo ifrit.softrenderer ifrit.meshproclib)
+else()
+    target_link_libraries(ifrit.demo  ifrit.softrenderer ifrit.meshproclib dl pthread)
+endif()

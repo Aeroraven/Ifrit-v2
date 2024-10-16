@@ -45,10 +45,10 @@ inline void getAcceptRejectCoords(vfloat3 edgeCoefs[3], int chosenCoordTR[3],
   }
 }
 TileRasterWorker::TileRasterWorker(uint32_t workerId,
-                                   std::shared_ptr<TileRasterRenderer> renderer,
+                                   TileRasterRenderer* renderer,
                                    std::shared_ptr<TileRasterContext> context) {
   this->workerId = workerId;
-  this->rendererReference = renderer.get();
+  this->rendererReference = renderer;
   this->context = context;
 }
 void TileRasterWorker::release() {

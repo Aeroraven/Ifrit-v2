@@ -3,7 +3,7 @@
 #include <common/math/VectorDefs.h>
 
 namespace Ifrit::Engine::SoftRenderer {
-enum IFRIT_APIDECL TypeDescriptorEnum {
+enum TypeDescriptorEnum {
   IFTP_UNDEFINED,
   IFTP_FLOAT1,
   IFTP_FLOAT2,

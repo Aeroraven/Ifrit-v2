@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <cstdio>
 #include <cstdlib>
+#include <concepts>
 
 #ifndef IFRIT_USE_SIMD_128
 #ifdef _MSC_VER

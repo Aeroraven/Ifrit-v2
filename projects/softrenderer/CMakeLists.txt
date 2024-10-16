@@ -146,10 +146,12 @@ if(${IFRIT_ENABLE_OPTIMIZATION})
     message(STATUS "[IFRIT/Feature]: Use Feature: Aggessive Performance")
 endif()
 
+add_definitions(-DIFRIT_DLL)
+add_definitions(-DIFRIT_API_EXPORT)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     if(${IFRIT_ENABLE_OPTIMIZATION})
-        add_compile_options(/O3)
+        add_compile_options(/O2)
     endif()
 else()
     add_compile_options(-g)
@@ -204,11 +206,11 @@ message(STATUS "[IFRIT/Include]: ${IFRIT_COMPONENT_LLVM_SOURCE}/include")
 
 # Operation System
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_COMPONENT_LLVM}/ifrit.ircompile.a")
+    set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_COMPONENT_LLVM}/libifrit.ircompile.a")
 else()
-    set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_PROJECT_DIR}/bin/ifrit.ircompile.so")
+    set(IFRIT_COMPONENT_LLVM_LIB "${IFRIT_PROJECT_DIR}/bin/libifrit.ircompile.so")
     add_library(IFRIT_COMPONENT_LLVM_LIB_IMP SHARED IMPORTED)
-    set_target_properties(IFRIT_COMPONENT_LLVM_LIB_IMP PROPERTIES IMPORTED_LOCATION "${IFRIT_PROJECT_DIR}/bin/ifrit.ircompile.so")
+    set_target_properties(IFRIT_COMPONENT_LLVM_LIB_IMP PROPERTIES IMPORTED_LOCATION ${IFRIT_COMPONENT_LLVM_LIB})
     # Linux pthread
     add_compile_options(-pthread)
     add_link_options(-pthread)
@@ -218,15 +220,33 @@ else()
     message(STATUS "[IFRIT/Flags]: Add compiler flag: -ldl -pthread")
 endif()
 
-foreach( SRC_FILE_NAME ${SOURCE_STAGES} )
-    get_filename_component( SRC_FILE_NAME_SHORT ${SRC_FILE_NAME} NAME_WE )
-    add_executable( ${SRC_FILE_NAME_SHORT} ${SRC_FILE_NAME} ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B} ${SOURCE_1C} ${SOURCE_3})
-    set_property(TARGET ${SRC_FILE_NAME_SHORT} PROPERTY CUDA_ARCHITECTURES  75)
+add_library(ifrit.softrenderer SHARED ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B} ${SOURCE_1C} ${SOURCE_3})
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    target_link_libraries(ifrit.softrenderer  ${glfw3_LIB} ${IFRIT_COMPONENT_LLVM_LIB} )
+else()
+    message(STATUS "[IFRIT/Flags]: LLVM Component: ${IFRIT_COMPONENT_LLVM_LIB}")
+    target_link_libraries(ifrit.softrenderer  glfw IFRIT_COMPONENT_LLVM_LIB_IMP dl pthread)
+endif()
+
+# If MinGW
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-        target_link_libraries( ${SRC_FILE_NAME_SHORT}  ${glfw3_LIB} ${IFRIT_COMPONENT_LLVM_LIB} )
-    else()
-        message(STATUS "[IFRIT/Flags]: LLVM Component: ${IFRIT_COMPONENT_LLVM_LIB}")
-        target_link_libraries( ${SRC_FILE_NAME_SHORT}  glfw IFRIT_COMPONENT_LLVM_LIB_IMP dl pthread) 
+        if (MINGW)
+            set_target_properties(ifrit.softrenderer PROPERTIES
+            LINK_FLAGS "-Wl,--subsystem,windows,--output-def,../../../bin/libifrit.softrenderer.def,--out-implib,libifrit.softrenderer.a")
+        endif()
+        add_custom_command(TARGET ifrit.softrenderer PRE_BUILD
+            COMMAND cmd /c del libifrit.softrenderer.*
+            WORKING_DIRECTORY ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
+        )
+        add_custom_command(TARGET ifrit.softrenderer POST_BUILD
+            COMMAND dlltool --input-def libifrit.softrenderer.def --dllname libifrit.softrenderer.dll --output-lib libifrit.softrenderer.lib
+            WORKING_DIRECTORY ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
+        )
+        add_custom_command(
+            TARGET ifrit.softrenderer POST_BUILD
+            COMMAND lib /def:libifrit.softrenderer.def /out:libifrit.softrenderer.lib /machine:x64
+            WORKING_DIRECTORY ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}
+        )
     endif()
-    
-endforeach( SRC_FILE_NAME ${SOURCE_STAGES} )
+endif()
