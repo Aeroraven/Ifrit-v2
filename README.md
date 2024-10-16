@@ -276,10 +276,12 @@ See  [Usage](./docs/docs.md) for more details.
 
 ### Short-term Plan
 
-- [ ] MTCPU: Basic Texture Support
-- [ ] MTCPU: Branch Divergence Handling Assurance in Quads
+- [ ] Triangle Cluster & Cluster LOD
 
 ### Long-term Plan
+
+- [ ] MTCPU: Basic Texture Support
+- [ ] MTCPU: Branch Divergence Handling Assurance in Quads
 
 - [ ] Tessellation
 
@@ -288,8 +290,6 @@ See  [Usage](./docs/docs.md) for more details.
 - [ ] Multi-sampling: Blending Integration
 
 - [ ] Input Topology
-
-- [ ] Triangle Cluster & Cluster LOD
 
 - [ ] Known Issues
   
@@ -315,6 +315,10 @@ This project relies on following open-source projects. Corresponding licenses ar
 - [glad](https://github.com/Dav1dde/glad/), for opengl header generation.
 
 - [llvm-project](https://github.com/llvm/llvm-project), for just-in-time compilation support
+
+- [meshoptimizer](https://github.com/zeux/meshoptimizer), for mesh operations
+
+- [METIS](https://github.com/KarypisLab/METIS/), for graph partitioning
 
   
 
