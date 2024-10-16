@@ -8,6 +8,8 @@ set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "C:/llvm-project/")
 set(IFRIT_GLOBAL_CUDA_DIR_WINDOWS "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/")
 set(IFRIT_GLOBAL_GLFW_DIR_WINDOWS "C:/Program Files (x86)/GLFW/")
 
+set(IFRIT_GLOBAL_INTEGRATED_BUILD_FLAG 1)
+
 # Find LLVM
 find_package(LLVM 10...<12 CONFIG)
 if(LLVM_FOUND)
@@ -37,3 +39,6 @@ endif()
 
 add_subdirectory(projects/ircompile)
 add_subdirectory(projects/softrenderer)
+add_subdirectory(projects/meshproclib)
+
+add_dependencies(ifrit ifrit.ircompile)
