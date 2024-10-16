@@ -10,3 +10,6 @@
 [submodule "dependencies/metis"]
 	path = dependencies/metis
 	url = git@github.com:Aeroraven/METIS.git
+[submodule "dependencies/meshoptimizer"]
+	path = dependencies/meshoptimizer
+	url = git@github.com:zeux/meshoptimizer.git
