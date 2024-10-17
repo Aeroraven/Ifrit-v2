@@ -69,6 +69,8 @@ if(${IFRIT_ENABLE_SIMD_AVX2})
     add_definitions(-DIFRIT_FEATURE_SIMD_AVX256)
     message(STATUS "[IFRIT/Feature]: Use Feature: SIMD/AVX2")
 endif()
+
+include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/GLFW3Resolve.cmake)
 # add executable
 add_executable(ifrit.demo ifrit.demo.cpp)
 
@@ -110,10 +112,10 @@ endif()
 
 include_directories(${IFRIT_PROJECT_SUBDIR})
 include_directories(${IFRIT_PROJECT_SUBDIR}/softrenderer/include)
-
+include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_link_libraries(ifrit.demo ifrit.softrenderer ifrit.meshproclib)
+    target_link_libraries(ifrit.demo ifrit.softrenderer ifrit.meshproclib ifrit.display ${glfw3_LIB})
 else()
-    target_link_libraries(ifrit.demo  ifrit.softrenderer ifrit.meshproclib dl pthread)
+    target_link_libraries(ifrit.demo  ifrit.softrenderer ifrit.meshproclib ifrit.display dl pthread glfw3)
 endif()

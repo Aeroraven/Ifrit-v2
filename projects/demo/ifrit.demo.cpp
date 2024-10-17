@@ -4,6 +4,12 @@
 #include <softrenderer/include/engine/base/Shaders.h>
 #include <softrenderer/include/engine/bufferman/BufferManager.h>
 #include <softrenderer/include/core/data/Image.h>
+#include <display/include/presentation/backend/OpenGLBackend.h>
+#include <display/include/presentation/window/GLFWWindowProvider.h>
+
+#ifdef IFRIT_API_EXPORT
+static_assert(false, "IFRIT_API_DECL is already defined");
+#endif
 
 class DemoVS: public Ifrit::Engine::SoftRenderer::VertexShader {
 public:
@@ -21,7 +27,7 @@ public:
     virtual void execute(const void *varyings, void *colorOutput,float *fragmentDepth){
         //fill red color
         float *outColor = (float *)colorOutput;
-        outColor[0] = 1.0f;
+        outColor[0] = 0.2f;
         outColor[1] = 0.0f;
         outColor[2] = 0.0f;
         outColor[3] = 1.0f;
@@ -64,25 +70,19 @@ int main(){
     bufferman->bufferData(indexBuffer1, indexBuffer.data(), 0,sizeof(indexBuffer[0]) * indexBuffer.size());
     renderer->bindIndexBuffer(indexBuffer1);
 
-    renderer->drawElements(3, true);
+    using namespace Ifrit::Presentation::Backend;
+    using namespace Ifrit::Presentation::Window;
+    GLFWWindowProvider windowProvider;
+    windowProvider.setup(800, 600);
+    windowProvider.setTitle("Ifrit");
 
-    // save to ppm
-    std::ofstream ofs("output.ppm", std::ios::out );
-    // check if the file is opened
-    if (!ofs.is_open()) {
-        std::cerr << "Could not open file for writing\n";
-        return 1;
-    }
-    ofs << "P6\n"
-        << 800 << " " << 600 << "\n"
-        << 255 << "\n";
-    for (int i = 0; i < 800 * 600; i++) {
-        float* p = color->getPixelRGBAUnsafe(i%800, i/800);
-        uint8_t r = p[0] * 255;
-        uint8_t g = p[1] * 255;
-        uint8_t b = p[2] * 255;
-        ofs << r << g << b;  
-    }
-    ofs.close();
+    OpenGLBackend backend;
+    backend.setViewport(0, 0, 800, 600);
+
+    windowProvider.loop([&](int *repCore) {
+        renderer->drawElements(3, true);
+        backend.updateTexture(color->getData(), 4, 800, 600);
+        backend.draw();
+    });
     return 0;
 }
