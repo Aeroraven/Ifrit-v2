@@ -43,7 +43,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
         set_target_properties(${target} PROPERTIES
             LINK_FLAGS "-Wl,--subsystem,windows,--output-def,${outputDir}/${libName}.def,--out-implib,${libName}.a"
         )
-        message(STATUS "[IFRIT/Win]: Add import library: ${libName}.a")
+        message(STATUS "[IFRIT/Win]: Add import library: ${outputDir}/${libName}.a")
     endif()
 endif()
 endif()

@@ -71,6 +71,7 @@ if(${IFRIT_ENABLE_SIMD_AVX2})
 endif()
 
 include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/GLFW3Resolve.cmake)
+include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/VulkanResolve.cmake)
 # add executable
 add_executable(ifrit.demo ifrit.demo.cpp)
 
@@ -115,7 +116,7 @@ include_directories(${IFRIT_PROJECT_SUBDIR}/softrenderer/include)
 include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_link_libraries(ifrit.demo ifrit.softrenderer ifrit.meshproclib ifrit.display ${glfw3_LIB})
+    target_link_libraries(ifrit.demo ifrit.softrenderer ifrit.meshproclib ifrit.display ${glfw3_LIB} ifrit.vkrenderer)
 else()
-    target_link_libraries(ifrit.demo  ifrit.softrenderer ifrit.meshproclib ifrit.display dl pthread glfw3)
+    target_link_libraries(ifrit.demo  ifrit.softrenderer ifrit.meshproclib ifrit.display dl pthread glfw3 ifrit.vkrenderer)
 endif()

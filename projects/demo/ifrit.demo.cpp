@@ -7,6 +7,8 @@
 #include <display/include/presentation/backend/OpenGLBackend.h>
 #include <display/include/presentation/window/GLFWWindowProvider.h>
 
+#include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
+
 #ifdef IFRIT_API_EXPORT
 static_assert(false, "IFRIT_API_DECL is already defined");
 #endif
@@ -34,7 +36,7 @@ public:
     }
 };
 
-int main(){
+int main2(){
     using namespace Ifrit::Engine::SoftRenderer::TileRaster;
     using namespace Ifrit::Engine::SoftRenderer::Core::Data;
     using namespace Ifrit::Engine::SoftRenderer::BufferManager;
@@ -85,4 +87,15 @@ int main(){
         backend.draw();
     });
     return 0;
+}
+
+int main3(){
+    using namespace Ifrit::Engine::VkRenderer;
+    InitializeArguments args;
+    EngineContext context(args);
+    return 0;
+}
+
+int main(){
+    return main2();
 }

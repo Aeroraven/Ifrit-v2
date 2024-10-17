@@ -15,8 +15,12 @@ IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth, size_t argHeight) 
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  if(m_args.vulkanMode){
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  }else{
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  }
 
   window = glfwCreateWindow(argWidth, argHeight, "Ifrit", nullptr, nullptr);
   if (!window) {
@@ -26,9 +30,9 @@ IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth, size_t argHeight) 
   }
   glfwMakeContextCurrent(window);
   glfwSwapInterval(0);
-  displayAssert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress),
+  if(!m_args.vulkanMode)
+    displayAssert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress),
               "Failed to initialize GLAD");
-
   this->width = argWidth;
   this->height = argHeight;
   return true;
@@ -78,5 +82,15 @@ IFRIT_APIDECL void GLFWWindowProvider::loop(const std::function<void(int *)> &fu
     }
   }
   glfwTerminate();
+}
+const char **GLFWWindowProvider::getVkRequiredInstanceExtensions(uint32_t *count) {
+  return glfwGetRequiredInstanceExtensions(count);
+}
+void *GLFWWindowProvider::getWindowObject() {
+#ifdef _WIN32
+  return glfwGetWin32Window(window);
+#else
+  return glfwGetX11Window(window); 
+#endif
 }
 } // namespace Ifrit::Presentation::Window

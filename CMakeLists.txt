@@ -49,6 +49,7 @@ add_subdirectory(projects/display)
 add_subdirectory(projects/ircompile)
 add_subdirectory(projects/softrenderer)
 add_subdirectory(projects/meshproclib)
+add_subdirectory(projects/vkrenderer)
 add_subdirectory(projects/demo)
 
 add_dependencies(ifrit.meshproclib meshoptimizer metis)
