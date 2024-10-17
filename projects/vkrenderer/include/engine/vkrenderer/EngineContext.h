@@ -6,11 +6,15 @@
 #ifdef _WIN32
 #include <Windows.h>
 #endif
+#include <functional>
 
 namespace Ifrit::Engine::VkRenderer{
     struct IFRIT_APIDECL InitializeArguments{
-        const char**(*m_extensionGetter)(uint32_t* count) = nullptr;
+        std::function<const char**(uint32_t*)>  m_extensionGetter;
         bool m_enableValidationLayer = true;
+        uint32_t m_surfaceWidth = -1;
+        uint32_t m_surfaceHeight = -1;
+        uint32_t m_expectedSwapchainImageCount = 3;
 #ifdef _WIN32
         struct{
             HINSTANCE m_hInstance;
@@ -48,6 +52,10 @@ namespace Ifrit::Engine::VkRenderer{
         VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
         DeviceQueueInfo m_queueInfo;
         VkDevice m_device;
+
+        std::vector<const char*> m_deviceExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        };
         
     private:
         void init();
@@ -66,5 +74,6 @@ namespace Ifrit::Engine::VkRenderer{
         inline VkDevice getDevice() const { return m_device; }
         inline const DeviceQueueInfo& getQueueInfo() const { return m_queueInfo; }
         inline const InitializeArguments& getArgs() const { return m_args; }
+        inline const std::vector<const char*>& getDeviceExtensions() const { return m_deviceExtensions; }
     };
 }

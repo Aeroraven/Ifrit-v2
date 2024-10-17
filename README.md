@@ -17,7 +17,7 @@ The project is organized into following parts.
 
 - **`softrenderer`**: CUDA and CPU multithreaded SIMD software rasterizer & ray-tracer.
   - Covers culling, mesh shading pipeline (mesh shader), MSAA (up to 8x), mipmap, anisotropic filtering, SPIR-V JIT execution and shader derivatives.
-  - CPU renderer is organized in TBDR-like manner, utilize AVX2 instructions and tag buffer (with early-z) for performance gain.
+  - CPU renderer is organized in TBR-like manner, utilize AVX2 instructions and tag buffer (with early-z) for performance gain.
   - For implementation details and performance, check [here](./projects/softrenderer/readme.md)
 - **`vkrenderer`**: Vulkan renderer, intended to be the refactored version for [Aria](https://github.com/Aeroraven/Aria).
 - **`meshproclib`**: Mesh algorithms.

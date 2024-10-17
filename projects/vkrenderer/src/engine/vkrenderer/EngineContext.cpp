@@ -178,8 +178,19 @@ namespace Ifrit::Engine::VkRenderer{
         deviceCI.queueCreateInfoCount = queueCreateInfos.size();
         deviceCI.pQueueCreateInfos = queueCreateInfos.data();
         deviceCI.pEnabledFeatures = &deviceFeatures;
-        deviceCI.enabledExtensionCount = 0;
-        deviceCI.ppEnabledExtensionNames = nullptr;
+
+        // Device : Extensions
+        std::vector<const char*> targetDeviceExtensions;
+        uint32_t extensionCountDevice = 0;
+        vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(bestDevice, nullptr, &extensionCountDevice, nullptr), "Failed to enumerate device extensions");
+        std::vector<VkExtensionProperties> availableExtensionsDevice(extensionCountDevice);
+        vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(bestDevice, nullptr, &extensionCountDevice, availableExtensionsDevice.data()), "Failed to enumerate device extensions");
+        for(auto extension: m_deviceExtensions){
+            enableExtension(true, extension, availableExtensionsDevice,targetDeviceExtensions);
+        }
+
+        deviceCI.enabledExtensionCount = targetDeviceExtensions.size();
+        deviceCI.ppEnabledExtensionNames = targetDeviceExtensions.data();
 
         // Device : Layers
         uint32_t layerCountDevice = 0;

@@ -38,5 +38,6 @@ public:
   // For Vulkan
   const char** getVkRequiredInstanceExtensions(uint32_t *count);
   void* getWindowObject();
+  std::pair<uint32_t,uint32_t> getFramebufferSize();
 };
 } // namespace Ifrit::Presentation::Window

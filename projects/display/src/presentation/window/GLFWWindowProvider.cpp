@@ -93,4 +93,9 @@ void *GLFWWindowProvider::getWindowObject() {
   return glfwGetX11Window(window); 
 #endif
 }
+std::pair<uint32_t,uint32_t> GLFWWindowProvider::getFramebufferSize(){
+  int width, height;
+  glfwGetFramebufferSize(window, &width, &height);
+  return {width, height};
+}
 } // namespace Ifrit::Presentation::Window

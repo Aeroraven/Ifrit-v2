@@ -8,6 +8,7 @@
 #include <display/include/presentation/window/GLFWWindowProvider.h>
 
 #include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
+#include <vkrenderer/include/engine/vkrenderer/Swapchain.h>
 
 #ifdef IFRIT_API_EXPORT
 static_assert(false, "IFRIT_API_DECL is already defined");
@@ -91,11 +92,32 @@ int main2(){
 
 int main3(){
     using namespace Ifrit::Engine::VkRenderer;
+    using namespace Ifrit::Presentation::Window;
+    GLFWWindowProviderInitArgs glfwArgs;
+    glfwArgs.vulkanMode = true;
+    GLFWWindowProvider windowProvider(glfwArgs);
+    windowProvider.setup(800, 600);
+    windowProvider.setTitle("Ifrit");
+
     InitializeArguments args;
+    auto extensionGetter = [&windowProvider](uint32_t *count) -> const char** {
+        return windowProvider.getVkRequiredInstanceExtensions(count);
+    };
+    auto fbSize = windowProvider.getFramebufferSize();
+    args.m_extensionGetter = extensionGetter;
+    args.m_win32.m_hInstance = GetModuleHandle(NULL);
+    args.m_win32.m_hWnd = (HWND)windowProvider.getWindowObject();
+    args.m_surfaceWidth = fbSize.first;
+    args.m_surfaceHeight = fbSize.second;
     EngineContext context(args);
+    Swapchain swapchain(&context);
+
+    windowProvider.loop([&](int *repCore) {
+       
+    });
     return 0;
 }
 
 int main(){
-    return main2();
+    return main3();
 }
