@@ -15,6 +15,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${IFRIT_PROJECT_DIR}/bin)
 # set executable path
 set(EXECUTABLE_OUTPUT_PATH ${IFRIT_PROJECT_DIR}/bin)
 
+set(CMAKE_CXX_STANDARD 20 REQUIRED)
+
 add_definitions(-DIFRIT_DLL)
 add_definitions(-DIFRIT_API_EXPORT)
 

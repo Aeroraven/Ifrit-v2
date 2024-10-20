@@ -1,9 +1,13 @@
 #pragma once
-#include <deque>
 #include "./dependencies/GLAD/glad/glad.h"
 #include "./presentation/window/WindowProvider.h"
+#include <deque>
+
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #endif
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -15,7 +19,7 @@
 #include <GLFW/glfw3native.h>
 
 namespace Ifrit::Presentation::Window {
-struct GLFWWindowProviderInitArgs{
+struct GLFWWindowProviderInitArgs {
   bool vulkanMode = false;
 };
 class IFRIT_APIDECL GLFWWindowProvider : public WindowProvider {
@@ -36,8 +40,8 @@ public:
   virtual void setTitle(const std::string &title) override;
 
   // For Vulkan
-  const char** getVkRequiredInstanceExtensions(uint32_t *count);
-  void* getWindowObject();
-  std::pair<uint32_t,uint32_t> getFramebufferSize();
+  const char **getVkRequiredInstanceExtensions(uint32_t *count);
+  void *getWindowObject();
+  std::pair<uint32_t, uint32_t> getFramebufferSize();
 };
 } // namespace Ifrit::Presentation::Window

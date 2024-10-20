@@ -1,6 +1,6 @@
 # Ifrit-v2
 
-GPU/CPU-Parallelized tile-based software rasterizer.
+GPU/CPU-Parallelized tile-based software rasterizer & raytracer.
 
 | ![](docs/img/img_demo3.png) | ![](docs/img/img_demo1.png) |
 | --------------------------- | --------------------------- |
@@ -17,7 +17,7 @@ The project is organized into following parts.
 
 - **`softrenderer`**: CUDA and CPU multithreaded SIMD software rasterizer & ray-tracer.
   - Covers culling, mesh shading pipeline (mesh shader), MSAA (up to 8x), mipmap, anisotropic filtering, SPIR-V JIT execution and shader derivatives.
-  - CPU renderer is organized in TBR-like manner, utilize AVX2 instructions and tag buffer (with early-z) for performance gain.
+  - CPU rasterizer is organized in TBR-like manner, utilize AVX2 instructions and tag buffer (with early-z) for performance gain.
   - For implementation details and performance, check [here](./projects/softrenderer/readme.md)
 - **`vkrenderer`**: Vulkan renderer, intended to be the refactored version for [Aria](https://github.com/Aeroraven/Aria).
 - **`meshproclib`**: Mesh algorithms.
@@ -40,7 +40,7 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 
 ### 2.2 Quick Start (GCC / MinGW-w64)
 
-> Note: CUDA support is temporarily not included in repo's CMake. Your compile should support C++20 standard.
+> Note: CUDA support is temporarily not included in repo's CMake. Your compiler should support C++20 standard.
 >
 > Please ensure that `find_package` can find  `vulkan`, `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options. 
 >
@@ -78,20 +78,15 @@ See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 This project relies on following open-source projects. Corresponding licenses are in `licenses` folder.
 
 - [stb](https://github.com/nothings/stb), for image parsing.
-
 - [glfw3](https://github.com/glfw/glfw), for window and display support.
-
 - [spirv-headers](https://github.com/KhronosGroup/SPIRV-Headers/), for spirv standard reference.
-
 - [glad](https://github.com/Dav1dde/glad/), for opengl header generation.
-
 - [llvm-project](https://github.com/llvm/llvm-project), for just-in-time compilation support
-
 - [meshoptimizer](https://github.com/zeux/meshoptimizer), for mesh operations
-
 - [METIS](https://github.com/KarypisLab/METIS/), for graph partitioning
+- [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator), for memory allocation and buffer management
 
-  
+
 
 And some references that give inspirations:
 
@@ -105,6 +100,11 @@ And some references that give inspirations:
 7. https://qiutang98.github.io/post/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E5%BC%80%E5%8F%91/mynanite01_mesh_processor/
    1. https://github.com/qiutang98/chord/tree/master
 8. https://jglrxavpok.github.io/2024/01/19/recreating-nanite-lod-generation.html
+8. https://lesleylai.info/en/vk-khr-dynamic-rendering/
+8. https://vulkan-tutorial.com/
+11. https://poniesandlight.co.uk/reflect/island_rendergraph_1/
+    1. https://github.com/tgfrerer/island
+
 
 
 

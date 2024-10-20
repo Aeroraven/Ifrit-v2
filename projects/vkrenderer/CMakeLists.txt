@@ -8,8 +8,12 @@ message(STATUS "[IFRIT/EnvCheck]: Working Directory ${IFRIT_PROJECT_DIR}")
 set(IFRIT_PROJECT_SUBDIR "${IFRIT_PROJECT_DIR}/projects")
 
 include_directories(${IFRIT_PROJECT_SUBDIR})
+include_directories(${IFRIT_PROJECT_DIR}/dependencies)
+
 
 # glob required files
+set(CMAKE_CXX_STANDARD 20 REQUIRED)
+
 file(GLOB_RECURSE IFRIT_VKRENDERER_SOURCE_FILES_CXX "src/*.cpp")
 file(GLOB_RECURSE IFRIT_VKRENDERER_SOURCE_FILES_C "src/*.c")
 file(GLOB_RECURSE IFRIT_VKRENDERER_HEADER_FILES "include/*.h")
@@ -20,6 +24,7 @@ include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/VulkanResolve.cmake)
 # add api export
 add_definitions(-DIFRIT_DLL)
 add_definitions(-DIFRIT_API_EXPORT)
+add_compile_options(-g)
 
 # set output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${IFRIT_PROJECT_DIR}/bin)

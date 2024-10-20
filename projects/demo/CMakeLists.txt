@@ -13,6 +13,8 @@ set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
 string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
 set(IFRIT_PROJECT_SUBDIR "${IFRIT_PROJECT_DIR}/projects")
 
+# add shader path
+add_definitions(-DIFRIT_DEMO_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shader/")
 
 # set compiler flags
 set(CMAKE_CXX_STANDARD 20)

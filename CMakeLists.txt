@@ -3,8 +3,9 @@ project(Ifrit-v2x)
 
 
 # Note following paths should be set to the correct paths on your system
-set(IFRIT_GLOBAL_VULKAN_DIR_WINDOWS "C:/VulkanSDK/")
-set(IFRIT_GLOBAL_VULKAN_DIR_LINUX "/usr/include/vulkan/")
+# Fallback paths will be used if `find_package` fails to find the package 
+set(IFRIT_GLOBAL_VULKAN_DIR_WINDOWS "C:/VulkanSDK/") # will be ignored
+set(IFRIT_GLOBAL_VULKAN_DIR_LINUX "/usr/include/vulkan/") # will be ignored
 set(IFRIT_GLOBAL_LLVM_DIR_LINUX "/usr/local/llvm-10/")
 set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "C:/llvm-project/")
 set(IFRIT_GLOBAL_CUDA_DIR_WINDOWS "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/")
@@ -54,4 +55,4 @@ add_subdirectory(projects/demo)
 
 add_dependencies(ifrit.meshproclib meshoptimizer metis)
 add_dependencies(ifrit.softrenderer ifrit.ircompile)
-add_dependencies(ifrit.demo ifrit.meshproclib ifrit.softrenderer ifrit.display)
+add_dependencies(ifrit.demo ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display)
