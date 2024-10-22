@@ -289,7 +289,8 @@ GraphicsPass::setDepthAttachment(RegisteredImageHandle *image,
   transition.m_oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   transition.m_newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
   transition.m_srcAccess = VK_ACCESS_NONE;
-  transition.m_dstAccess = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  transition.m_dstAccess = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                           VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
   addOutputResource(image, transition);
 }
 
@@ -344,9 +345,8 @@ IFRIT_APIDECL void GraphicsPass::record() {
   m_commandBuffer->pipelineBarrier(barrierColor);
 
   if (m_depthAttachment.m_image) {
-    PipelineBarrier barrierDepth(m_context,
-                                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                                 VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, 0);
+    PipelineBarrier barrierDepth(m_context, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 0);
     auto &attachment = m_depthAttachment;
     auto &transition = m_outputTransition[m_colorAttachments.size()];
     attachment.m_image->recordTransition(transition,
@@ -356,7 +356,7 @@ IFRIT_APIDECL void GraphicsPass::record() {
     barrier.oldLayout = transition.m_oldLayout;
     barrier.newLayout = transition.m_newLayout;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = m_commandBuffer->getQueueFamily();
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = attachment.m_image->getImage(m_activeFrame)->getImage();
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     barrier.subresourceRange.levelCount = 1;
@@ -499,6 +499,13 @@ IFRIT_APIDECL void GraphicsPass::setRenderArea(uint32_t x, uint32_t y,
 
 IFRIT_APIDECL void GraphicsPass::setDepthWrite(bool write) {
   m_depthWrite = write;
+}
+
+IFRIT_APIDECL void GraphicsPass::setDepthTestEnable(bool enable) {
+  m_depthTestEnable = enable;
+}
+IFRIT_APIDECL void GraphicsPass::setDepthCompareOp(VkCompareOp compareOp) {
+  m_depthCompareOp = compareOp;
 }
 
 IFRIT_APIDECL void

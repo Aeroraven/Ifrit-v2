@@ -102,7 +102,7 @@ IFRIT_APIDECL SingleDeviceImage::SingleDeviceImage(EngineContext *ctx,
   imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   imageCI.flags = 0;
-
+  m_format = ci.format;
   VmaAllocationCreateInfo allocCI{};
   allocCI.usage = VMA_MEMORY_USAGE_AUTO;
   if (ci.hostVisible) {

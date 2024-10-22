@@ -44,10 +44,10 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 
 > **Note:** 
 >
-> 1. CUDA support is temporarily not included in repo's CMake. Your compiler should support C++20 standard.
->
-> 2. Please ensure that `find_package` can find  `vulkan>=1.3`, `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options. 
-> 3. Your device should support `descriptor indexing`, `dynamic rendering`, `dynamic state` and `timeline semaphore` extensions for `vulkan`
+> 1. CUDA support is temporarily not included in repo's CMake. 
+> 2. Your compiler should support C++20 standards.
+> 3. Please ensure that `find_package` can find  `vulkan>=1.3`, `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options. 
+> 4. Your device should support `descriptor indexing`, `dynamic rendering`, `dynamic state` and `timeline semaphore` extensions for `vulkan`
 >
 > **Under Refactoring, Linux GCC compilation MIGHT be  unavailable now**
 

@@ -294,6 +294,8 @@ public:
   void setRenderArea(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
   void setDepthWrite(bool write);
   void setColorWrite(const std::vector<uint32_t> &write);
+  void setDepthTestEnable(bool enable);
+  void setDepthCompareOp(VkCompareOp compareOp);
 
   void setVertexInput(const VertexBufferDescriptor &descriptor,
                       const std::vector<RegisteredBufferHandle *> &buffers);

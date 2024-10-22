@@ -68,6 +68,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   multisampleCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
   // Render Info
+  bool reqDepth = m_createInfo.depthAttachmentFormat != VK_FORMAT_UNDEFINED;
   VkPipelineRenderingCreateInfo renderCI{};
   renderCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
   renderCI.colorAttachmentCount = m_createInfo.colorAttachmentFormats.size();
@@ -92,6 +93,16 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   colorBlendCI.logicOpEnable = VK_FALSE;
   colorBlendCI.attachmentCount = colorBlendAttachment.size();
   colorBlendCI.pAttachments = colorBlendAttachment.data();
+
+  // Depth Stencil
+  VkPipelineDepthStencilStateCreateInfo depthStencilCI{};
+  depthStencilCI.sType =
+      VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+  depthStencilCI.depthTestEnable = VK_FALSE;
+  depthStencilCI.depthWriteEnable = VK_FALSE;
+  depthStencilCI.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+  depthStencilCI.depthBoundsTestEnable = VK_FALSE;
+  depthStencilCI.stencilTestEnable = VK_FALSE;
 
   // TODO: Pipeline layout
   VkPipelineLayoutCreateInfo pipelineLayoutCI{};
@@ -128,6 +139,9 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   pipelineCI.pRasterizationState = &rasterizationCI;
   pipelineCI.pMultisampleState = &multisampleCI;
   pipelineCI.pDepthStencilState = nullptr;
+  if (reqDepth) {
+    pipelineCI.pDepthStencilState = &depthStencilCI;
+  }
   pipelineCI.pColorBlendState = &colorBlendCI;
   pipelineCI.pDynamicState = &dynamicStateCI;
   pipelineCI.basePipelineHandle = VK_NULL_HANDLE;

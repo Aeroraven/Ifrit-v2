@@ -154,11 +154,17 @@ int main3() {
   Scissor scissor = {0, 0, 800, 600};
 
   std::vector<float> vertexData = {
-      -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, //
-      0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, //
-      0.5f,  0.5f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f, //
-      -0.5f, 0.5f,  1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-  std::vector<uint32_t> indexData = {0, 1, 2, 2, 3, 0};
+      -0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f, 1.0f, 0.0f, //
+      0.5f,  -0.5f, 0.0f,  0.0f, 1.0f, 0.0f, 0.0f, 0.0f, //
+      0.5f,  0.5f,  0.0f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f, //
+      -0.5f, 0.5f,  0.0f,  1.0f, 1.0f, 1.0f, 1.0f, 1.0f, //
+
+      -0.5f, -0.5f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, //
+      0.5f,  -0.5f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, //
+      0.5f,  0.5f,  -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, //
+      -0.5f, 0.5f,  -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f  //
+  };
+  std::vector<uint32_t> indexData = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
 
   // Resource manager
   DescriptorManager bindlessDesc(&context);
@@ -203,9 +209,9 @@ int main3() {
   // Vertex buffer & index buffer
   VertexBufferDescriptor vbDesc;
   vbDesc.addBinding({0, 1, 2},
-                    {VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT,
+                    {VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT,
                      VK_FORMAT_R32G32_SFLOAT},
-                    {0, 8, 20}, 28, VertexInputRate::Vertex);
+                    {0, 12, 24}, 32, VertexInputRate::Vertex);
 
   BufferCreateInfo vbCI{};
   vbCI.size = vertexData.size() * sizeof(float);
@@ -239,8 +245,18 @@ int main3() {
   ubCI.size = 16 * sizeof(float);
   ubCI.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
   ubCI.hostVisible = true;
-
   auto ubBuffer = resourceManager.createTracedMultipleBuffer(ubCI);
+
+  // Depth Buffer
+  ImageCreateInfo depthCI{};
+  depthCI.aspect = ImageAspect::Depth;
+  depthCI.type = ImageType::Image2D;
+  depthCI.width = 800;
+  depthCI.height = 600;
+  depthCI.format = VK_FORMAT_D32_SFLOAT;
+  depthCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  depthCI.hostVisible = false;
+  auto depthImage = resourceManager.createSimpleImage(depthCI);
 
   // Render graph
   auto renderGraph = backend.createRenderGraph();
@@ -253,6 +269,7 @@ int main3() {
   auto ubReg = renderGraph->registerBuffer(ubBuffer);
   auto imReg = renderGraph->registerImage(texture);
   auto smReg = renderGraph->registerSampler(sampler);
+  auto depthReg = renderGraph->registerImage(depthImage);
 
   pass->addColorAttachment(swapchainResReg, VK_ATTACHMENT_LOAD_OP_CLEAR,
                            {{0.2f, 0.2f, 0.2f, 1.0f}});
@@ -261,6 +278,11 @@ int main3() {
   pass->setRenderArea(0, 0, 800, 600);
   pass->setVertexInput(vbDesc, {vbReg});
   pass->setIndexInput(ibReg, VK_INDEX_TYPE_UINT32);
+  pass->setDepthAttachment(depthReg, VK_ATTACHMENT_LOAD_OP_CLEAR,
+                           {{1.0f, 0.0f}});
+  pass->setDepthWrite(true);
+  pass->setDepthTestEnable(true);
+  pass->setDepthCompareOp(VK_COMPARE_OP_LESS);
 
   pass->addUniformBuffer(ubReg, 0);
   pass->addCombinedImageSampler(imReg, smReg, 1);
@@ -275,7 +297,7 @@ int main3() {
   pass->setRecordFunction([&](RenderPassContext *ctx) -> void {
     ctx->m_cmd->setScissors({scissor});
     ctx->m_cmd->setViewports({viewport});
-    ctx->m_cmd->drawIndexed(6, 1, 0, 0, 0);
+    ctx->m_cmd->drawIndexed(12, 1, 0, 0, 0);
   });
 
   float delta = 0.0f;
