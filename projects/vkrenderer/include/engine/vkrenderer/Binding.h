@@ -50,7 +50,7 @@ struct DescriptorBindRangeData {
   std::unique_ptr<SingleBuffer> m_buffer;
 };
 
- class IFRIT_APIDECL DescriptorManager {
+class IFRIT_APIDECL DescriptorManager {
 private:
   EngineContext *m_context;
   std::array<VkDescriptorSetLayoutBinding, cMaxDescriptorType> m_bindings;
@@ -61,6 +61,8 @@ private:
 
   std::vector<SingleBuffer *> m_uniformBuffers;
   std::vector<SingleBuffer *> m_storageBuffers;
+  std::vector<std::pair<SingleDeviceImage *, Sampler *>>
+      m_combinedImageSamplers;
 
   uint32_t m_minUniformBufferAlignment = 0;
 
@@ -77,6 +79,8 @@ public:
   virtual ~DescriptorManager() { destructor(); }
 
   uint32_t registerUniformBuffer(SingleBuffer *buffer);
+  uint32_t registerCombinedImageSampler(SingleDeviceImage *image,
+                                        Sampler *sampler);
   DescriptorBindRange registerBindlessParameterRaw(const char *data,
                                                    uint32_t size);
 

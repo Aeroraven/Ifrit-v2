@@ -19,6 +19,9 @@
 #include <vkrenderer/include/engine/vkrenderer/StagedMemoryResource.h>
 #include <vkrenderer/include/engine/vkrenderer/Swapchain.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
 std::vector<char> readShaderFile(std::string filename) {
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
   if (!file.is_open()) {
@@ -150,9 +153,11 @@ int main3() {
   Viewport viewport = {0.0f, 0.0f, 800.0f, 600.0f, 0.0f, 1.0f};
   Scissor scissor = {0, 0, 800, 600};
 
-  std::vector<float> vertexData = {-0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.5f, -0.5f,
-                                   0.0f,  1.0f,  0.0f, 0.5f, 0.5f, 0.0f, 0.0f,
-                                   1.0f,  -0.5f, 0.5f, 1.0f, 1.0f, 1.0f};
+  std::vector<float> vertexData = {
+      -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, //
+      0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, //
+      0.5f,  0.5f,  0.0f, 0.0f, 1.0f, 0.0f, 1.0f, //
+      -0.5f, 0.5f,  1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
   std::vector<uint32_t> indexData = {0, 1, 2, 2, 3, 0};
 
   // Resource manager
@@ -162,11 +167,45 @@ int main3() {
                           &resourceManager);
   backend.setQueues(true, 1, 0, 1);
 
+  // Image
+  int texWidth, texHeight, texChannels;
+  stbi_uc *pixels = stbi_load(IFRIT_DEMO_ASSET_PATH "/texture.png", &texWidth,
+                              &texHeight, &texChannels, STBI_rgb_alpha);
+  uint64_t imageSize = texWidth * texHeight * 4;
+
+  if (!pixels) {
+    throw std::runtime_error("failed to load texture image!");
+  }
+
+  ImageCreateInfo imageCI{};
+  imageCI.aspect = ImageAspect::Color;
+  imageCI.width = texWidth;
+  imageCI.height = texHeight;
+  imageCI.format = VK_FORMAT_R8G8B8A8_SRGB;
+  imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  imageCI.hostVisible = false;
+
+  auto texture = resourceManager.createSimpleImage(imageCI);
+  StagedSingleImage stagedTexture(&context, texture);
+  backend.runImmidiateCommand(
+      [&stagedTexture, &pixels, &imageSize](CommandBuffer *cmd) {
+        stagedTexture.cmdCopyToDevice(cmd, pixels, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                      VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                      VK_ACCESS_SHADER_READ_BIT);
+      },
+      QueueRequirement::Transfer);
+
+  // Sampler
+  SamplerCreateInfo samplerCI{};
+  auto sampler = resourceManager.createSampler(samplerCI);
+
   // Vertex buffer & index buffer
   VertexBufferDescriptor vbDesc;
-  vbDesc.addBinding({0, 1},
-                    {VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT},
-                    {0, 8}, 20, VertexInputRate::Vertex);
+  vbDesc.addBinding({0, 1, 2},
+                    {VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT,
+                     VK_FORMAT_R32G32_SFLOAT},
+                    {0, 8, 20}, 28, VertexInputRate::Vertex);
 
   BufferCreateInfo vbCI{};
   vbCI.size = vertexData.size() * sizeof(float);
@@ -207,10 +246,13 @@ int main3() {
   auto renderGraph = backend.createRenderGraph();
   auto pass = renderGraph->addGraphicsPass();
   auto swapchainRes = backend.getSwapchainImageResource();
+
   auto swapchainResReg = renderGraph->registerImage(swapchainRes);
   auto vbReg = renderGraph->registerBuffer(stagedVertexBuffer.getBuffer());
   auto ibReg = renderGraph->registerBuffer(stagedIndexBuffer.getBuffer());
   auto ubReg = renderGraph->registerBuffer(ubBuffer);
+  auto imReg = renderGraph->registerImage(texture);
+  auto smReg = renderGraph->registerSampler(sampler);
 
   pass->addColorAttachment(swapchainResReg, VK_ATTACHMENT_LOAD_OP_CLEAR,
                            {{0.2f, 0.2f, 0.2f, 1.0f}});
@@ -221,7 +263,9 @@ int main3() {
   pass->setIndexInput(ibReg, VK_INDEX_TYPE_UINT32);
 
   pass->addUniformBuffer(ubReg, 0);
-  pass->setPassDescriptorLayout({DescriptorType::UniformBuffer});
+  pass->addCombinedImageSampler(imReg, smReg, 1);
+  pass->setPassDescriptorLayout(
+      {DescriptorType::UniformBuffer, DescriptorType::CombinedImageSampler});
 
   // Uniform data
   float4x4 view = (lookAt({0, 0.1, 2.25}, {0, 0.0, 0.0}, {0, 1, 0}));

@@ -55,8 +55,9 @@ IFRIT_APIDECL void RenderGraphPass::setPassDescriptorLayout(
   m_passDescriptorLayout = layout;
 }
 
-IFRIT_APIDECL void RenderGraphPass::addUniformBuffer(RegisteredBufferHandle *buffer,
-                                                     uint32_t position) {
+IFRIT_APIDECL void
+RenderGraphPass::addUniformBuffer(RegisteredBufferHandle *buffer,
+                                  uint32_t position) {
   auto numCopies = buffer->getNumBuffers();
   m_resourceDescriptorHandle[position].resize(numCopies);
   for (int i = 0; i < numCopies; i++) {
@@ -67,6 +68,24 @@ IFRIT_APIDECL void RenderGraphPass::addUniformBuffer(RegisteredBufferHandle *buf
   RenderPassResourceTransition transition{};
   transition.m_required = false;
   addInputResource(buffer, transition);
+}
+
+IFRIT_APIDECL void
+RenderGraphPass::addCombinedImageSampler(RegisteredImageHandle *image,
+                                         RegisteredSamplerHandle *sampler,
+                                         uint32_t position) {
+  auto numCopies = image->getNumBuffers();
+  m_resourceDescriptorHandle[position].resize(numCopies);
+  for (int i = 0; i < numCopies; i++) {
+    auto v = m_descriptorManager->registerCombinedImageSampler(
+        image->getImage(i), sampler->getSampler());
+    m_resourceDescriptorHandle[position][i] = v;
+  }
+  // Add as input
+  RenderPassResourceTransition transition{};
+  transition.m_required = false;
+  addInputResource(image, transition);
+  addInputResource(sampler, transition);
 }
 
 IFRIT_APIDECL void
@@ -86,7 +105,11 @@ RenderGraphPass::buildDescriptorParamHandle(uint32_t numMultiBuffers) {
       if (m_resourceDescriptorHandle.count(i) == 0) {
         vkrError("Descriptor handle not found for position");
       }
-      auto handle = m_resourceDescriptorHandle[i][T];
+      auto &handleR = m_resourceDescriptorHandle[i];
+      if (handleR.size() != 1 && handleR.size() != numMultiBuffers) {
+        vkrLog("Inconsistent double buffers");
+      }
+      auto handle = i >= handleR.size() ? handleR.back() : handleR[T];
       descriptorHandles.push_back(handle);
     }
     m_descriptorBindRange[T] =
@@ -208,9 +231,10 @@ IFRIT_APIDECL GraphicsPass::GraphicsPass(EngineContext *context,
     : RenderGraphPass(context, descriptorManager),
       m_pipelineCache(pipelineCache) {}
 
-IFRIT_APIDECL void GraphicsPass::addColorAttachment(RegisteredImageHandle *image,
-                                                    VkAttachmentLoadOp loadOp,
-                                                    VkClearValue clearValue) {
+IFRIT_APIDECL void
+GraphicsPass::addColorAttachment(RegisteredImageHandle *image,
+                                 VkAttachmentLoadOp loadOp,
+                                 VkClearValue clearValue) {
   RenderPassAttachment attachment;
   attachment.m_image = image;
   attachment.m_loadOp = loadOp;
@@ -249,9 +273,10 @@ IFRIT_APIDECL void GraphicsPass::addColorAttachment(RegisteredImageHandle *image
       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
 }
 
-IFRIT_APIDECL void GraphicsPass::setDepthAttachment(RegisteredImageHandle *image,
-                                                    VkAttachmentLoadOp loadOp,
-                                                    VkClearValue clearValue) {
+IFRIT_APIDECL void
+GraphicsPass::setDepthAttachment(RegisteredImageHandle *image,
+                                 VkAttachmentLoadOp loadOp,
+                                 VkClearValue clearValue) {
   m_depthAttachment.m_image = image;
   m_depthAttachment.m_loadOp = loadOp;
   m_depthAttachment.m_clearValue = clearValue;
@@ -288,7 +313,6 @@ IFRIT_APIDECL void GraphicsPass::setTessEvalShader(ShaderModule *shader) {
   m_tessEvalShader = shader;
 }
 
-
 IFRIT_APIDECL void GraphicsPass::record() {
   m_passContext.m_cmd = m_commandBuffer;
   m_passContext.m_frame = m_activeFrame;
@@ -309,7 +333,7 @@ IFRIT_APIDECL void GraphicsPass::record() {
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     // m_commandBuffer->getQueueFamily();
-    barrier.image = attachment.m_image->getImage()->getImage();
+    barrier.image = attachment.m_image->getImage(m_activeFrame)->getImage();
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.layerCount = 1;
@@ -333,7 +357,7 @@ IFRIT_APIDECL void GraphicsPass::record() {
     barrier.newLayout = transition.m_newLayout;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = m_commandBuffer->getQueueFamily();
-    barrier.image = attachment.m_image->getImage()->getImage();
+    barrier.image = attachment.m_image->getImage(m_activeFrame)->getImage();
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.layerCount = 1;
@@ -353,7 +377,7 @@ IFRIT_APIDECL void GraphicsPass::record() {
     attachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
     attachmentInfo.imageView =
-        m_colorAttachments[i].m_image->getImage()->getImageView();
+        m_colorAttachments[i].m_image->getImage(m_activeFrame)->getImageView();
     colorAttachmentInfos.push_back(attachmentInfo);
   }
   VkRenderingAttachmentInfoKHR depthAttachmentInfo{};
@@ -364,7 +388,7 @@ IFRIT_APIDECL void GraphicsPass::record() {
     depthAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     depthAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
     depthAttachmentInfo.imageView =
-        m_depthAttachment.m_image->getImage()->getImageView();
+        m_depthAttachment.m_image->getImage(m_activeFrame)->getImageView();
   }
 
   VkRenderingInfo renderingInfo{};
@@ -486,9 +510,9 @@ GraphicsPass::setColorWrite(const std::vector<uint32_t> &write) {
   }
 }
 
-IFRIT_APIDECL void
-GraphicsPass::setVertexInput(const VertexBufferDescriptor &descriptor,
-                             const std::vector<RegisteredBufferHandle *> &buffers) {
+IFRIT_APIDECL void GraphicsPass::setVertexInput(
+    const VertexBufferDescriptor &descriptor,
+    const std::vector<RegisteredBufferHandle *> &buffers) {
   m_vertexBufferDescriptor = descriptor;
   m_vertexBuffers = buffers;
   if (m_vertexBuffers.size() != m_vertexBufferDescriptor.m_bindings.size()) {
@@ -497,7 +521,8 @@ GraphicsPass::setVertexInput(const VertexBufferDescriptor &descriptor,
 }
 
 IFRIT_APIDECL
-void GraphicsPass::setIndexInput(RegisteredBufferHandle *buffer, VkIndexType type) {
+void GraphicsPass::setIndexInput(RegisteredBufferHandle *buffer,
+                                 VkIndexType type) {
   m_indexBuffer = buffer;
   m_indexType = type;
 }
@@ -511,14 +536,13 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
   ci.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
   if (m_depthAttachment.m_image) {
     ci.depthAttachmentFormat =
-        m_depthAttachment.m_image->getImage()->getFormat();
+        m_depthAttachment.m_image->getImage(0)->getFormat();
   } else {
     ci.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
   }
   for (int i = 0; i < m_colorAttachments.size(); i++) {
-    auto r = m_colorAttachments[i].m_image->getImage();
     ci.colorAttachmentFormats.push_back(
-        m_colorAttachments[i].m_image->getImage()->getFormat());
+        m_colorAttachments[i].m_image->getImage(0)->getFormat());
   }
   ci.topology = RasterizerTopology::TriangleList;
   if (m_passDescriptorLayout.size() > 0) {
@@ -530,7 +554,6 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
 
   m_pipeline = m_pipelineCache->getGraphicsPipeline(ci);
   setBuilt();
-  
 }
 
 IFRIT_APIDECL void GraphicsPass::withCommandBuffer(CommandBuffer *commandBuffer,
@@ -569,6 +592,15 @@ RenderGraph::registerBuffer(SingleBuffer *buffer) {
   return ptr;
 }
 
+IFRIT_APIDECL RegisteredSamplerHandle *
+RenderGraph::registerSampler(Sampler *sampler) {
+  auto registeredSampler = std::make_unique<RegisteredSamplerHandle>(sampler);
+  auto ptr = registeredSampler.get();
+  m_resources.push_back(std::move(registeredSampler));
+  m_resourceMap[ptr] = m_resources.size() - 1;
+  return ptr;
+}
+
 IFRIT_APIDECL RegisteredBufferHandle *
 RenderGraph::registerBuffer(MultiBuffer *buffer) {
   auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
@@ -578,7 +610,8 @@ RenderGraph::registerBuffer(MultiBuffer *buffer) {
   return ptr;
 }
 
-IFRIT_APIDECL RegisteredImageHandle *RenderGraph::registerImage(DeviceImage *image) {
+IFRIT_APIDECL RegisteredImageHandle *
+RenderGraph::registerImage(SingleDeviceImage *image) {
   if (image->getIsSwapchainImage()) {
     auto p = dynamic_cast<SwapchainImageResource *>(image);
     if (p == nullptr) {
@@ -700,7 +733,6 @@ IFRIT_APIDECL std::vector<std::vector<uint32_t>> &RenderGraph::getSubgraphs() {
 
 IFRIT_APIDECL void RenderGraph::resizeCommandBuffers(uint32_t size) {
   m_commandBuffers.resize(size);
-
 }
 
 IFRIT_APIDECL void RenderGraph::buildPassDescriptors(uint32_t numMultiBuffer) {
@@ -874,7 +906,7 @@ IFRIT_APIDECL void CommandExecutor::runRenderGraph(RenderGraph *graph) {
     pass->setActiveFrame(currentFrame);
     pass->execute();
   }
-  
+
   // for each subgraph, create a command buffer
   auto subgraphs = graph->getSubgraphs();
   for (int i = 0; i < subgraphs.size(); i++) {

@@ -105,8 +105,6 @@ DescriptorManager::registerUniformBuffer(SingleBuffer *buffer) {
       return i;
     }
   }
-  printf("Add uniform buffer\n");
-
   auto handleId = m_uniformBuffers.size();
   m_uniformBuffers.push_back(buffer);
 
@@ -123,6 +121,37 @@ DescriptorManager::registerUniformBuffer(SingleBuffer *buffer) {
   write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   write.descriptorCount = 1;
   write.pBufferInfo = &bufferInfo;
+
+  vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
+  return handleId;
+}
+
+IFRIT_APIDECL
+uint32_t
+DescriptorManager::registerCombinedImageSampler(SingleDeviceImage *image,
+                                                Sampler *sampler) {
+  for (int i = 0; i < m_combinedImageSamplers.size(); i++) {
+    if (m_combinedImageSamplers[i].first == image &&
+        m_combinedImageSamplers[i].second == sampler) {
+      return i;
+    }
+  }
+  auto handleId = m_combinedImageSamplers.size();
+  m_combinedImageSamplers.push_back({image, sampler});
+
+  VkDescriptorImageInfo imageInfo{};
+  imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  imageInfo.imageView = image->getImageView();
+  imageInfo.sampler = sampler->getSampler();
+
+  VkWriteDescriptorSet write{};
+  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  write.dstSet = m_bindlessSet;
+  write.dstBinding = getUnderlying(DescriptorType::CombinedImageSampler);
+  write.dstArrayElement = handleId;
+  write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  write.descriptorCount = 1;
+  write.pImageInfo = &imageInfo;
 
   vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
   return handleId;

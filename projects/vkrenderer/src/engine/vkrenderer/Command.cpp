@@ -162,6 +162,24 @@ IFRIT_APIDECL void CommandBuffer::copyBuffer(VkBuffer srcBuffer,
   vkCmdCopyBuffer(m_commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 }
 
+IFRIT_APIDECL void
+CommandBuffer::copyBufferToImageAll(VkBuffer srcBuffer, VkImage dstImage,
+                                    VkImageLayout dstLayout, uint32_t width,
+                                    uint32_t height, uint32_t depth) const {
+  VkBufferImageCopy region{};
+  region.bufferOffset = 0;
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel = 0;
+  region.imageSubresource.baseArrayLayer = 0;
+  region.imageSubresource.layerCount = 1;
+  region.imageOffset = {0, 0, 0};
+  region.imageExtent = {width, height, depth};
+  vkCmdCopyBufferToImage(m_commandBuffer, srcBuffer, dstImage, dstLayout, 1,
+                         &region);
+}
+
 // Class: Queue
 IFRIT_APIDECL Queue::Queue(EngineContext *ctx, VkQueue queue, uint32_t family,
                            VkQueueFlags capability)

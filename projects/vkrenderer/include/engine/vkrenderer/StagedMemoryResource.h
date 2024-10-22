@@ -25,4 +25,28 @@ public:
   void cmdCopyToDevice(CommandBuffer *cmd, const void *data, uint32_t size,
                        uint32_t localOffset);
 };
+
+class IFRIT_APIDECL StagedSingleImage {
+protected:
+  std::unique_ptr<SingleDeviceImage> m_imageUnique;
+  SingleDeviceImage *m_image;
+  std::unique_ptr<SingleBuffer> m_stagingBuffer;
+  EngineContext *m_context;
+
+public:
+  StagedSingleImage(EngineContext *ctx, SingleDeviceImage *image);
+  StagedSingleImage(EngineContext *ctx, const ImageCreateInfo &ci);
+
+  StagedSingleImage(const StagedSingleImage &p) = delete;
+  StagedSingleImage &operator=(const StagedSingleImage &p) = delete;
+
+  virtual ~StagedSingleImage() {}
+  inline SingleDeviceImage *getImage() const { return m_image; }
+  inline SingleBuffer *getStagingBuffer() const {
+    return m_stagingBuffer.get();
+  }
+  void cmdCopyToDevice(CommandBuffer *cmd, const void *data,
+                       VkImageLayout srcLayout, VkImageLayout dstlayout,
+                       VkPipelineStageFlags dstStage, VkAccessFlags dstAccess);
+};
 } // namespace Ifrit::Engine::VkRenderer

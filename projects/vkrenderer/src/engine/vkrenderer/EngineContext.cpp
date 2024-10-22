@@ -221,6 +221,9 @@ IFRIT_APIDECL void EngineContext::init() {
   m_physicalDevice = bestDevice;
   vkrLog("Physical device selected");
 
+  // Physical Device Propertie
+  vkGetPhysicalDeviceProperties(m_physicalDevice, &m_phyDeviceProperties);
+
   // Queue Family
   uint32_t queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(bestDevice, &queueFamilyCount,
@@ -317,6 +320,8 @@ IFRIT_APIDECL void EngineContext::init() {
   deviceFeaturesColorWriteEnable.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COLOR_WRITE_ENABLE_FEATURES_EXT;
   deviceFeaturesColorWriteEnable.colorWriteEnable = VK_TRUE;
+
+  deviceFeatures.samplerAnisotropy = VK_TRUE;
 
   VkDeviceCreateInfo deviceCI = {};
   deviceCI.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

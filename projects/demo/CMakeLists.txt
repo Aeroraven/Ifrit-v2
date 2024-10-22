@@ -15,6 +15,7 @@ set(IFRIT_PROJECT_SUBDIR "${IFRIT_PROJECT_DIR}/projects")
 
 # add shader path
 add_definitions(-DIFRIT_DEMO_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shader/")
+add_definitions(-DIFRIT_DEMO_ASSET_PATH="${CMAKE_CURRENT_SOURCE_DIR}/asset/")
 
 # set compiler flags
 set(CMAKE_CXX_STANDARD 20)
@@ -81,7 +82,7 @@ add_executable(ifrit.demo ifrit.demo.cpp)
 #if msvc
 if(MSVC)
 # add o2 optimization
-target_compile_options(ifrit.demo PRIVATE -O2)
+
 else()
 add_compile_options(-g)
     if(${IFRIT_ENABLE_OPTIMIZATION})
@@ -112,7 +113,7 @@ add_compile_options(-g)
         message(STATUS "[IFRIT/Flags]: Add compiler flag: -lgdi32")
     endif()
 endif()
-
+include_directories(${IFRIT_PROJECT_DIR}/dependencies)
 include_directories(${IFRIT_PROJECT_SUBDIR})
 include_directories(${IFRIT_PROJECT_SUBDIR}/softrenderer/include)
 include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)

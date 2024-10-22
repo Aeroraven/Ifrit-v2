@@ -54,7 +54,7 @@ public:
   MultiBuffer(const MultiBuffer &p) = delete;
   MultiBuffer &operator=(const MultiBuffer &p) = delete;
   SingleBuffer *getBuffer(uint32_t index);
-  inline SingleBuffer* getActiveBuffer() {
+  inline SingleBuffer *getActiveBuffer() {
     return m_buffers[m_activeFrame].get();
   }
   inline void advanceFrame() {
@@ -66,19 +66,89 @@ public:
   inline uint32_t getBufferCount() { return m_buffers.size(); }
 };
 
-class IFRIT_APIDECL DeviceImage {
+enum class ImageType { Image2D, Image3D, ImageCube };
+enum class ImageAspect { Color, Depth, Stencil };
+
+struct ImageCreateInfo {
+  VkFormat format;
+  VkImageUsageFlags usage;
+  ImageAspect aspect;
+  ImageType type = ImageType::Image2D;
+  uint32_t width;
+  uint32_t height;
+  uint32_t depth = 1;
+  uint32_t mipLevels = 1;
+  uint32_t arrayLayers = 1;
+  bool hostVisible = false;
+};
+
+class IFRIT_APIDECL SingleDeviceImage {
 protected:
+  EngineContext *m_context;
   VkFormat m_format;
   VkImage m_image;
   VkImageView m_imageView;
+  VmaAllocation m_allocation;
+  VmaAllocationInfo m_allocInfo;
+  ImageCreateInfo m_createInfo;
   bool m_isSwapchainImage = false;
+  bool m_created = false;
 
 public:
-  DeviceImage() {}
+  SingleDeviceImage() {}
+  ~SingleDeviceImage();
+  SingleDeviceImage(EngineContext *ctx, const ImageCreateInfo &ci);
+
   virtual VkFormat getFormat();
   virtual VkImage getImage();
   virtual VkImageView getImageView();
   inline bool getIsSwapchainImage() { return m_isSwapchainImage; }
+  uint32_t getSize();
+  inline uint32_t getWidth() { return m_createInfo.width; }
+  inline uint32_t getHeight() { return m_createInfo.height; }
+  inline uint32_t getDepth() { return m_createInfo.depth; }
+  inline VkImageAspectFlags getAspect() {
+    if (m_createInfo.aspect == ImageAspect::Color) {
+      return VK_IMAGE_ASPECT_COLOR_BIT;
+    } else if (m_createInfo.aspect == ImageAspect::Depth) {
+      return VK_IMAGE_ASPECT_DEPTH_BIT;
+    } else if (m_createInfo.aspect == ImageAspect::Stencil) {
+      return VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+    return VK_IMAGE_ASPECT_COLOR_BIT;
+  }
+  inline uint32_t getMipLevels() { return m_createInfo.mipLevels; }
+  inline uint32_t getArrayLayers() { return m_createInfo.arrayLayers; }
+};
+
+struct SamplerCreateInfo {
+  VkFilter magFilter = VK_FILTER_LINEAR;
+  VkFilter minFilter = VK_FILTER_LINEAR;
+  VkSamplerMipmapMode mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  VkSamplerAddressMode addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  VkSamplerAddressMode addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  VkSamplerAddressMode addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  float mipLodBias = 0.0f;
+  VkBool32 anisotropyEnable = VK_FALSE;
+  float maxAnisotropy = -1;
+  VkBool32 compareEnable = VK_FALSE;
+  VkCompareOp compareOp = VK_COMPARE_OP_ALWAYS;
+  float minLod = 0.0f;
+  float maxLod = 0.0f;
+  VkBorderColor borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+  VkBool32 unnormalizedCoordinates = VK_FALSE;
+};
+
+class IFRIT_APIDECL Sampler {
+protected:
+  EngineContext *m_context;
+  VkSampler m_sampler;
+  SamplerCreateInfo m_createInfo;
+
+public:
+  Sampler(EngineContext *ctx, const SamplerCreateInfo &ci);
+  ~Sampler();
+  inline VkSampler getSampler() { return m_sampler; }
 };
 
 class IFRIT_APIDECL ResourceManager {
@@ -87,6 +157,8 @@ protected:
   std::vector<std::unique_ptr<SingleBuffer>> m_simpleBuffer;
   std::vector<std::unique_ptr<MultiBuffer>> m_multiBuffer;
   std::vector<uint32_t> m_multiBufferTraced;
+  std::vector<std::unique_ptr<SingleDeviceImage>> m_simpleImage;
+  std::vector<std::unique_ptr<Sampler>> m_samplers;
   int32_t m_defaultCopies = -1;
 
 public:
@@ -100,6 +172,8 @@ public:
   MultiBuffer *createTracedMultipleBuffer(const BufferCreateInfo &ci,
                                           uint32_t numCopies = UINT32_MAX);
   SingleBuffer *createSimpleBuffer(const BufferCreateInfo &ci);
+  SingleDeviceImage *createSimpleImage(const ImageCreateInfo &ci);
+  Sampler *createSampler(const SamplerCreateInfo &ci);
 
   void setActiveFrame(uint32_t frame);
   inline void setDefaultCopies(int32_t copies) { m_defaultCopies = copies; }

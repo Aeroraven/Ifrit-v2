@@ -39,7 +39,7 @@ struct StencilOps {
   VkCompareOp compareOp = VK_COMPARE_OP_ALWAYS;
 };
 
-class IFRIT_APIDECL SwapchainImageResource : public DeviceImage {
+class IFRIT_APIDECL SwapchainImageResource : public SingleDeviceImage {
 private:
   Swapchain *m_swapchain;
 
@@ -109,11 +109,12 @@ public:
 
 class IFRIT_APIDECL RegisteredImageHandle : public RegisteredResource {
 private:
-  DeviceImage *m_image;
+  SingleDeviceImage *m_image;
 
 public:
-  RegisteredImageHandle(DeviceImage *image) : m_image(image) {}
-  inline virtual DeviceImage *getImage() { return m_image; }
+  RegisteredImageHandle(SingleDeviceImage *image) : m_image(image) {}
+  inline virtual SingleDeviceImage *getImage(uint32_t x) { return m_image; }
+  inline uint32_t getNumBuffers() { return 1; }
   virtual ~RegisteredImageHandle() {}
 };
 
@@ -126,8 +127,20 @@ public:
       : RegisteredImageHandle(image), m_image(image) {
     m_isSwapchainImage = true;
   }
-  inline virtual SwapchainImageResource *getImage() { return m_image; }
+  inline virtual SwapchainImageResource *getImage(uint32_t x) override {
+    return m_image;
+  }
   virtual ~RegisteredSwapchainImage() {}
+};
+
+class IFRIT_APIDECL RegisteredSamplerHandle : public RegisteredResource {
+private:
+  Sampler *m_sampler;
+
+public:
+  RegisteredSamplerHandle(Sampler *sampler) : m_sampler(sampler) {}
+  inline Sampler *getSampler() { return m_sampler; }
+  virtual ~RegisteredSamplerHandle() {}
 };
 
 struct RenderPassContext {
@@ -203,6 +216,9 @@ public:
                                  std::function<void()> func) = 0;
 
   void addUniformBuffer(RegisteredBufferHandle *buffer, uint32_t position);
+  void addCombinedImageSampler(RegisteredImageHandle *image,
+                               RegisteredSamplerHandle *sampler,
+                               uint32_t position);
 
   inline bool getOperatesOnSwapchain() { return m_operateOnSwapchain; }
   inline bool isBuilt() const { return m_passBuilt; }
@@ -213,8 +229,6 @@ public:
   virtual void build(uint32_t numMultiBuffers) = 0;
   virtual void record() = 0;
   virtual void execute();
-
-
 
   friend class RenderGraph;
 };
@@ -266,10 +280,10 @@ public:
   void withCommandBuffer(CommandBuffer *commandBuffer,
                          std::function<void()> func);
 
-  void addColorAttachment(RegisteredImageHandle *image, VkAttachmentLoadOp loadOp,
-                          VkClearValue clearValue);
-  void setDepthAttachment(RegisteredImageHandle *image, VkAttachmentLoadOp loadOp,
-                          VkClearValue clearValue);
+  void addColorAttachment(RegisteredImageHandle *image,
+                          VkAttachmentLoadOp loadOp, VkClearValue clearValue);
+  void setDepthAttachment(RegisteredImageHandle *image,
+                          VkAttachmentLoadOp loadOp, VkClearValue clearValue);
 
   void setVertexShader(ShaderModule *shader);
   void setFragmentShader(ShaderModule *shader);
@@ -287,7 +301,6 @@ public:
 
   uint32_t getRequiredQueueCapability() override;
 
-  
   virtual void build(uint32_t numMultiBuffers) override;
   friend class RenderGraph;
 };
@@ -332,7 +345,8 @@ public:
   GraphicsPass *addGraphicsPass();
   RegisteredBufferHandle *registerBuffer(SingleBuffer *buffer);
   RegisteredBufferHandle *registerBuffer(MultiBuffer *buffer);
-  RegisteredImageHandle *registerImage(DeviceImage *image);
+  RegisteredImageHandle *registerImage(SingleDeviceImage *image);
+  RegisteredSamplerHandle *registerSampler(Sampler *sampler);
 
   void build(uint32_t numMultiBuffers);
   void execute();

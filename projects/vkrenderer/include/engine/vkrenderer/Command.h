@@ -129,6 +129,10 @@ public:
 
   void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t size,
                   uint32_t srcOffset = 0, uint32_t dstOffset = 0) const;
+
+  void copyBufferToImageAll(VkBuffer srcBuffer, VkImage dstImage,
+                            VkImageLayout dstLayout, uint32_t width,
+                            uint32_t height, uint32_t depth) const;
 };
 
 class IFRIT_APIDECL CommandPool {

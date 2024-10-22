@@ -88,6 +88,7 @@ private:
       VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME};
   VmaAllocator m_allocator;
   ExtensionFunction m_extf;
+  VkPhysicalDeviceProperties m_phyDeviceProperties{};
 
 private:
   void init();
@@ -113,5 +114,8 @@ public:
   inline const VmaAllocator &getAllocator() const { return m_allocator; }
   void waitIdle();
   inline const ExtensionFunction getExtensionFunction() const { return m_extf; }
+  inline const VkPhysicalDeviceProperties &getPhysicalDeviceProperties() const {
+    return m_phyDeviceProperties;
+  }
 };
 } // namespace Ifrit::Engine::VkRenderer
