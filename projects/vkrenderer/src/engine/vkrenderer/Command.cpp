@@ -142,6 +142,26 @@ IFRIT_APIDECL void CommandBuffer::draw(uint32_t vertexCount,
             firstInstance);
 }
 
+IFRIT_APIDECL void CommandBuffer::drawIndexed(uint32_t indexCount,
+                                              uint32_t instanceCount,
+                                              uint32_t firstIndex,
+                                              int32_t vertexOffset,
+                                              uint32_t firstInstance) const {
+  vkCmdDrawIndexed(m_commandBuffer, indexCount, instanceCount, firstIndex,
+                   vertexOffset, firstInstance);
+}
+
+IFRIT_APIDECL void CommandBuffer::copyBuffer(VkBuffer srcBuffer,
+                                             VkBuffer dstBuffer, uint32_t size,
+                                             uint32_t srcOffset,
+                                             uint32_t dstOffset) const {
+  VkBufferCopy copyRegion{};
+  copyRegion.srcOffset = srcOffset;
+  copyRegion.dstOffset = dstOffset;
+  copyRegion.size = size;
+  vkCmdCopyBuffer(m_commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+}
+
 // Class: Queue
 IFRIT_APIDECL Queue::Queue(EngineContext *ctx, VkQueue queue, uint32_t family,
                            VkQueueFlags capability)
@@ -173,8 +193,8 @@ Queue::submitCommand(const std::vector<TimelineSemaphoreWait> &waitSemaphores,
 
   std::vector<VkSemaphore> waitSemaphoreHandles;
   std::vector<uint64_t> waitValues;
-  std::vector<VkPipelineStageFlags> waitStages; 
-  
+  std::vector<VkPipelineStageFlags> waitStages;
+
   for (int i = 0; i < waitSemaphores.size(); i++) {
     waitSemaphoreHandles.push_back(waitSemaphores[i].m_semaphore);
     waitValues.push_back(waitSemaphores[i].m_value);
@@ -220,6 +240,8 @@ Queue::submitCommand(const std::vector<TimelineSemaphoreWait> &waitSemaphores,
                   "Failed to submit command buffer");
   m_cmdBufInUse.pop_back();
 }
+
+IFRIT_APIDECL void Queue::waitIdle() { vkQueueWaitIdle(m_queue); }
 
 // Class: CommandSubmissionList
 IFRIT_APIDECL CommandSubmissionList::CommandSubmissionList(EngineContext *ctx)
@@ -304,6 +326,26 @@ IFRIT_APIDECL std::vector<Queue *> QueueCollections::getGraphicsQueues() {
     }
   }
   return graphicsQueues;
+}
+
+IFRIT_APIDECL std::vector<Queue *> QueueCollections::getComputeQueues() {
+  std::vector<Queue *> computeQueues;
+  for (int i = 0; i < m_queues.size(); i++) {
+    if (m_queues[i]->getCapability() & VK_QUEUE_COMPUTE_BIT) {
+      computeQueues.push_back(m_queues[i].get());
+    }
+  }
+  return computeQueues;
+}
+
+IFRIT_APIDECL std::vector<Queue *> QueueCollections::getTransferQueues() {
+  std::vector<Queue *> transferQueues;
+  for (int i = 0; i < m_queues.size(); i++) {
+    if (m_queues[i]->getCapability() & VK_QUEUE_TRANSFER_BIT) {
+      transferQueues.push_back(m_queues[i].get());
+    }
+  }
+  return transferQueues;
 }
 
 } // namespace Ifrit::Engine::VkRenderer

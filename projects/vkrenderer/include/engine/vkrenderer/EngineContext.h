@@ -62,7 +62,6 @@ struct IFRIT_APIDECL ExtensionFunction {
   PFN_vkCmdSetLogicOpEXT p_vkCmdSetLogicOpEXT;
   PFN_vkCmdSetLogicOpEnableEXT p_vkCmdSetLogicOpEnableEXT;
   PFN_vkCmdSetVertexInputEXT p_vkCmdSetVertexInputEXT;
-
 };
 
 class IFRIT_APIDECL EngineContext {
@@ -85,6 +84,7 @@ private:
       VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME,
       VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
       VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME,
+      VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
       VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME};
   VmaAllocator m_allocator;
   ExtensionFunction m_extf;
@@ -112,8 +112,6 @@ public:
   }
   inline const VmaAllocator &getAllocator() const { return m_allocator; }
   void waitIdle();
-  inline const ExtensionFunction getExtensionFunction() const {
-    return m_extf;
-  }
+  inline const ExtensionFunction getExtensionFunction() const { return m_extf; }
 };
 } // namespace Ifrit::Engine::VkRenderer

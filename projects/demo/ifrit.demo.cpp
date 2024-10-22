@@ -1,17 +1,23 @@
 #define IFRIT_DLL
+#include <common/math/LinalgOps.h>
 #include <memory>
+
+#ifndef _MSC_VER
 #include <softrenderer/include/engine/tileraster/TileRasterRenderer.h>
+#endif
 
 #include <display/include/presentation/backend/OpenGLBackend.h>
 #include <display/include/presentation/window/GLFWWindowProvider.h>
 
+#include <chrono>
+#include <fstream>
+#include <vkrenderer/include/engine/vkrenderer/Binding.h>
 #include <vkrenderer/include/engine/vkrenderer/Command.h>
 #include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
 #include <vkrenderer/include/engine/vkrenderer/RenderGraph.h>
 #include <vkrenderer/include/engine/vkrenderer/Shader.h>
+#include <vkrenderer/include/engine/vkrenderer/StagedMemoryResource.h>
 #include <vkrenderer/include/engine/vkrenderer/Swapchain.h>
-
-#include <chrono>
 
 std::vector<char> readShaderFile(std::string filename) {
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -26,7 +32,7 @@ std::vector<char> readShaderFile(std::string filename) {
   return buffer;
 }
 
-
+#ifndef _MSC_VER
 class DemoVS : public Ifrit::Engine::SoftRenderer::VertexShader {
 public:
   virtual void execute(const void *const *input, ifloat4 *outPos,
@@ -107,10 +113,13 @@ int main2() {
   });
   return 0;
 }
+#endif
 
 int main3() {
   using namespace Ifrit::Engine::VkRenderer;
   using namespace Ifrit::Presentation::Window;
+  using namespace Ifrit::Math;
+
   GLFWWindowProviderInitArgs glfwArgs;
   glfwArgs.vulkanMode = true;
   GLFWWindowProvider windowProvider(glfwArgs);
@@ -127,98 +136,135 @@ int main3() {
   args.m_win32.m_hWnd = (HWND)windowProvider.getWindowObject();
   args.m_surfaceWidth = fbSize.first;
   args.m_surfaceHeight = fbSize.second;
+
   EngineContext context(args);
   Swapchain swapchain(&context);
 
   // Print swapchain queue
-  auto presentQueue = swapchain.getPresentQueue();
-  printf("Present queue: %p\n", presentQueue);
-
-  QueueCollections queueCollections(&context);
-  queueCollections.loadQueues();
-  auto graphicsQueues = queueCollections.getGraphicsQueues();
-
-  std::vector<Queue *> queues;
-  queues.push_back(graphicsQueues[0]);
-  if (presentQueue != graphicsQueues[0]->getQueue()) {
-    bool found = false;
-    for (int i = 0; i < graphicsQueues.size(); i++) {
-      if (graphicsQueues[i]->getQueue() == presentQueue) {
-        queues.push_back(graphicsQueues[i]);
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      printf("Present queue not found in graphics queues\n");
-      return 1;
-    }
-  }
-
   auto vsCode = readShaderFile(IFRIT_DEMO_SHADER_PATH "/ifrit.demo.vert.spv");
   auto fsCode = readShaderFile(IFRIT_DEMO_SHADER_PATH "/ifrit.demo.frag.spv");
 
-  ShaderModuleCI vsCI;
-  vsCI.code = vsCode;
-  vsCI.stage = ShaderStage::Vertex;
-  vsCI.entryPoint = "main";
+  ShaderModule vsModule(&context, vsCode, "main", ShaderStage::Vertex);
+  ShaderModule fsModule(&context, fsCode, "main", ShaderStage::Fragment);
 
-  ShaderModuleCI fsCI;
-  fsCI.code = fsCode;
-  fsCI.stage = ShaderStage::Fragment;
-  fsCI.entryPoint = "main";
+  Viewport viewport = {0.0f, 0.0f, 800.0f, 600.0f, 0.0f, 1.0f};
+  Scissor scissor = {0, 0, 800, 600};
 
-  ShaderModule vsModule(&context, vsCI);
-  ShaderModule fsModule(&context, fsCI);
+  std::vector<float> vertexData = {-0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.5f, -0.5f,
+                                   0.0f,  1.0f,  0.0f, 0.5f, 0.5f, 0.0f, 0.0f,
+                                   1.0f,  -0.5f, 0.5f, 1.0f, 1.0f, 1.0f};
+  std::vector<uint32_t> indexData = {0, 1, 2, 2, 3, 0};
 
-  Viewport viewport;
-  viewport.x = 0.0f;
-  viewport.y = 0.0f;
-  viewport.width = 800.0f;
-  viewport.height = 600.0f;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
+  // Resource manager
+  DescriptorManager bindlessDesc(&context);
+  ResourceManager resourceManager(&context);
+  CommandExecutor backend(&context, &swapchain, &bindlessDesc,
+                          &resourceManager);
+  backend.setQueues(true, 1, 0, 1);
 
-  Scissor scissor;
-  scissor.x = 0;
-  scissor.y = 0;
-  scissor.width = 800;
-  scissor.height = 600;
+  // Vertex buffer & index buffer
+  VertexBufferDescriptor vbDesc;
+  vbDesc.addBinding({0, 1},
+                    {VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT},
+                    {0, 8}, 20, VertexInputRate::Vertex);
 
+  BufferCreateInfo vbCI{};
+  vbCI.size = vertexData.size() * sizeof(float);
+  vbCI.usage =
+      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-  RenderGraphExecutor backend(&context, &swapchain);
-  RenderGraph renderGraph(&context);
+  BufferCreateInfo ibCI{};
+  ibCI.size = indexData.size() * sizeof(uint32_t);
+  ibCI.usage =
+      VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  auto vxBuffer = resourceManager.createSimpleBuffer(vbCI);
+  auto ixBuffer = resourceManager.createSimpleBuffer(ibCI);
+
+  StagedSingleBuffer stagedVertexBuffer(&context, vxBuffer);
+  StagedSingleBuffer stagedIndexBuffer(&context, ixBuffer);
+  backend.runImmidiateCommand(
+      [&stagedVertexBuffer, &vertexData](CommandBuffer *cmd) {
+        stagedVertexBuffer.cmdCopyToDevice(
+            cmd, vertexData.data(), vertexData.size() * sizeof(float), 0);
+      },
+      QueueRequirement::Transfer);
+  backend.runImmidiateCommand(
+      [&stagedIndexBuffer, &indexData](CommandBuffer *cmd) {
+        stagedIndexBuffer.cmdCopyToDevice(
+            cmd, indexData.data(), indexData.size() * sizeof(uint32_t), 0);
+      },
+      QueueRequirement::Transfer);
+
+  // Uniform Buffer
+  BufferCreateInfo ubCI{};
+  ubCI.size = 16 * sizeof(float);
+  ubCI.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+  ubCI.hostVisible = true;
+
+  auto ubBuffer = resourceManager.createTracedMultipleBuffer(ubCI);
+
+  // Render graph
+  auto renderGraph = backend.createRenderGraph();
+  auto pass = renderGraph->addGraphicsPass();
   auto swapchainRes = backend.getSwapchainImageResource();
-  auto pass = renderGraph.addGraphicsPass();
-  auto swapchainResReg = renderGraph.registerSwapchainImage(swapchainRes);
+  auto swapchainResReg = renderGraph->registerImage(swapchainRes);
+  auto vbReg = renderGraph->registerBuffer(stagedVertexBuffer.getBuffer());
+  auto ibReg = renderGraph->registerBuffer(stagedIndexBuffer.getBuffer());
+  auto ubReg = renderGraph->registerBuffer(ubBuffer);
+
   pass->addColorAttachment(swapchainResReg, VK_ATTACHMENT_LOAD_OP_CLEAR,
-                           {{0.0f, 1.0f, 0.0f, 1.0f}});
+                           {{0.2f, 0.2f, 0.2f, 1.0f}});
   pass->setVertexShader(&vsModule);
   pass->setFragmentShader(&fsModule);
   pass->setRenderArea(0, 0, 800, 600);
-  pass->setRecordFunction([scissor,viewport](RenderPassContext *ctx) -> void {
+  pass->setVertexInput(vbDesc, {vbReg});
+  pass->setIndexInput(ibReg, VK_INDEX_TYPE_UINT32);
+
+  pass->addUniformBuffer(ubReg, 0);
+  pass->setPassDescriptorLayout({DescriptorType::UniformBuffer});
+
+  // Uniform data
+  float4x4 view = (lookAt({0, 0.1, 2.25}, {0, 0.0, 0.0}, {0, 1, 0}));
+  float4x4 proj = (perspective(60 * 3.14159 / 180, 800.0 / 600.0, 0.01, 3000));
+
+  // Pass Record
+  pass->setRecordFunction([&](RenderPassContext *ctx) -> void {
     ctx->m_cmd->setScissors({scissor});
     ctx->m_cmd->setViewports({viewport});
-    ctx->m_cmd->draw(3, 1, 0, 0);
+    ctx->m_cmd->drawIndexed(6, 1, 0, 0, 0);
   });
-  renderGraph.build();
-  backend.setQueues(queues);
-  backend.compileGraph(&renderGraph);
 
+  float delta = 0.0f;
+  pass->setExecutionFunction([&](RenderPassContext *ctx) -> void {
+    float4x4 model = axisAngleRotation(ifloat3(0.0, 1.0, 0.0), delta);
+    float4x4 mvp = transpose(matmul(proj, matmul(view, model)));
+    delta += 0.001f;
+    auto buf = ubBuffer->getActiveBuffer();
+    buf->map();
+    buf->copyToBuffer(mvp.data, sizeof(mvp), 0);
+    buf->flush();
+    buf->unmap();
+  });
 
+  // Main loop
   windowProvider.loop([&](int *repCore) {
     auto startTime = std::chrono::high_resolution_clock::now();
     swapchain.acquireNextImage();
-    backend.runGraph(&renderGraph);
+    backend.runRenderGraph(renderGraph);
     swapchain.presentImage();
     auto endTime = std::chrono::high_resolution_clock::now();
-    *repCore = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+    *repCore = std::chrono::duration_cast<std::chrono::milliseconds>(endTime -
+                                                                     startTime)
+                   .count();
   });
   context.waitIdle();
   return 0;
 }
 
 int main() {
+#ifdef _MSC_VER
+  return main3();
+#else
   int opt = 0;
   printf("Choose a demo to run:\n");
   printf("1. SoftRenderer\n");
@@ -234,4 +280,5 @@ int main() {
   } else {
     return 0;
   }
+#endif
 }

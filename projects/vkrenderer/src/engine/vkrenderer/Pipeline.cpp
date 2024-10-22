@@ -96,8 +96,8 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   // TODO: Pipeline layout
   VkPipelineLayoutCreateInfo pipelineLayoutCI{};
   pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutCI.setLayoutCount = 0;
-  pipelineLayoutCI.pSetLayouts = nullptr;
+  pipelineLayoutCI.setLayoutCount = m_createInfo.descriptorSetLayouts.size();
+  pipelineLayoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
   pipelineLayoutCI.pushConstantRangeCount = 0;
   pipelineLayoutCI.pPushConstantRanges = nullptr;
   vkrVulkanAssert(vkCreatePipelineLayout(m_context->getDevice(),

@@ -15,6 +15,7 @@ struct GraphicsPipelineCreateInfo {
   VkFormat depthAttachmentFormat;
   VkFormat stencilAttachmentFormat;
   std::vector<ShaderModule *> shaderModules;
+  std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
 };
 struct ComputePipelineCreateInfo {};
 
@@ -30,6 +31,7 @@ public:
   PipelineBase(EngineContext *ctx) : m_context(ctx) {}
   virtual ~PipelineBase() {}
   inline VkPipeline getPipeline() const { return m_pipeline; }
+  inline VkPipelineLayout getLayout() const { return m_layout; }
 };
 
 class IFRIT_APIDECL GraphicsPipeline : public PipelineBase {

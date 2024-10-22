@@ -19,7 +19,9 @@ The project is organized into following parts.
   - Covers culling, mesh shading pipeline (mesh shader), MSAA (up to 8x), mipmap, anisotropic filtering, SPIR-V JIT execution and shader derivatives.
   - CPU rasterizer is organized in TBR-like manner, utilize AVX2 instructions and tag buffer (with early-z) for performance gain.
   - For implementation details and performance, check [here](./projects/softrenderer/readme.md)
-- **`vkrenderer`**: Vulkan renderer, intended to be the refactored version for [Aria](https://github.com/Aeroraven/Aria).
+- **`vkrenderer`**: Vulkan renderer, intended to be the refactored version for [my original implementation](https://github.com/Aeroraven/Aria).
+  - Get rid of messy pass management, synchronization primitives and descriptor bindings in the original repo.
+
 - **`meshproclib`**: Mesh algorithms.
 - **`ircompile`**: LLVM JIT compilation for shader codes.
 - **`display`**:  Presentation and window surface supporting utilities.
@@ -40,9 +42,12 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 
 ### 2.2 Quick Start (GCC / MinGW-w64)
 
-> Note: CUDA support is temporarily not included in repo's CMake. Your compiler should support C++20 standard.
+> **Note:** 
 >
-> Please ensure that `find_package` can find  `vulkan`, `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options. 
+> 1. CUDA support is temporarily not included in repo's CMake. Your compiler should support C++20 standard.
+>
+> 2. Please ensure that `find_package` can find  `vulkan>=1.3`, `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options. 
+> 3. Your device should support `descriptor indexing`, `dynamic rendering` and `timeline semaphore` extensions for `vulkan`
 >
 > **Under Refactoring, Linux GCC compilation MIGHT be  unavailable now**
 
@@ -93,18 +98,19 @@ And some references that give inspirations:
 1. https://tayfunkayhan.wordpress.com/2019/07/26/chasing-triangles-in-a-tile-based-rasterizer/
    1. https://github.com/NotCamelCase/Tyler
 2. https://www.slideshare.net/slideshow/optimizing-the-graphics-pipeline-with-compute-gdc-2016/59747720
-3.  https://docs.nvidia.com/cuda/cuda-c-programming-guide/
+3. https://docs.nvidia.com/cuda/cuda-c-programming-guide/
 4. https://llvm.org/docs/LangRef.html
 5. https://www.mesa3d.org/
 6. https://agner.org/optimize/
 7. https://qiutang98.github.io/post/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E5%BC%80%E5%8F%91/mynanite01_mesh_processor/
    1. https://github.com/qiutang98/chord/tree/master
 8. https://jglrxavpok.github.io/2024/01/19/recreating-nanite-lod-generation.html
-8. https://lesleylai.info/en/vk-khr-dynamic-rendering/
-8. https://vulkan-tutorial.com/
+9. https://lesleylai.info/en/vk-khr-dynamic-rendering/
+10. https://vulkan-tutorial.com/
 11. https://poniesandlight.co.uk/reflect/island_rendergraph_1/
     1. https://github.com/tgfrerer/island
 
+12. https://dev.to/gasim/implementing-bindless-design-in-vulkan-34no
 
 
 

@@ -19,8 +19,11 @@ private:
   VkPipelineShaderStageCreateInfo m_stageCI{};
   EngineContext *m_context;
   ShaderModuleCI m_ci;
+  std::string m_entryPoint;
 
 public:
+  ShaderModule(EngineContext *ctx, const std::vector<char> &code,
+               const std::string &entryPoint, ShaderStage stage);
   ShaderModule(EngineContext *ctx, const ShaderModuleCI &ci);
   ~ShaderModule();
   VkShaderModule getModule() const;

@@ -22,6 +22,41 @@ struct Scissor {
   uint32_t height;
 };
 
+enum class VertexInputRate { Vertex, Instance };
+
+struct VertexBufferDescriptor {
+  std::vector<VkVertexInputAttributeDescription2EXT> m_attributes;
+  std::vector<VkVertexInputBindingDescription2EXT> m_bindings;
+  inline void addBinding(std::vector<uint32_t> location,
+                         std::vector<VkFormat> format,
+                         std::vector<uint32_t> offset, uint32_t stride,
+                         VertexInputRate inputRate = VertexInputRate::Vertex) {
+    VkVertexInputBindingDescription2EXT binding{};
+    binding.binding = m_bindings.size();
+    binding.stride = stride;
+    binding.divisor = 1;
+    binding.sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
+
+    if (inputRate == VertexInputRate::Vertex) {
+      binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    } else {
+      binding.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+    }
+    m_bindings.push_back(binding);
+
+    for (int i = 0; i < location.size(); i++) {
+      VkVertexInputAttributeDescription2EXT attribute{};
+      attribute.sType =
+          VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
+      attribute.binding = binding.binding;
+      attribute.format = format[i];
+      attribute.location = location[i];
+      attribute.offset = offset[i];
+      m_attributes.push_back(attribute);
+    }
+  }
+};
+
 class IFRIT_APIDECL TimelineSemaphore {
 private:
   EngineContext *m_context;
@@ -88,6 +123,12 @@ public:
   void setScissors(const std::vector<Scissor> &scissor) const;
   void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex,
             uint32_t firstInstance) const;
+  void drawIndexed(uint32_t indexCount, uint32_t instanceCount,
+                   uint32_t firstIndex, int32_t vertexOffset,
+                   uint32_t firstInstance) const;
+
+  void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t size,
+                  uint32_t srcOffset = 0, uint32_t dstOffset = 0) const;
 };
 
 class IFRIT_APIDECL CommandPool {
@@ -134,6 +175,7 @@ public:
   CommandBuffer *beginRecording();
   void submitCommand(const std::vector<TimelineSemaphoreWait> &waitSemaphores,
                      VkFence fence, VkSemaphore swapchainSemaphore = nullptr);
+  void waitIdle();
 };
 
 class IFRIT_APIDECL QueueCollections {
@@ -148,6 +190,8 @@ public:
 
   void loadQueues();
   std::vector<Queue *> getGraphicsQueues();
+  std::vector<Queue *> getComputeQueues();
+  std::vector<Queue *> getTransferQueues();
 };
 
 struct CommandSubmissionInfo {

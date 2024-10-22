@@ -50,6 +50,68 @@ RenderGraphPass::addOutputResource(RegisteredResource *resource,
   m_outputTransition.push_back(transition);
 }
 
+IFRIT_APIDECL void RenderGraphPass::setPassDescriptorLayout(
+    const std::vector<DescriptorType> &layout) {
+  m_passDescriptorLayout = layout;
+}
+
+IFRIT_APIDECL void RenderGraphPass::addUniformBuffer(RegisteredBufferHandle *buffer,
+                                                     uint32_t position) {
+  auto numCopies = buffer->getNumBuffers();
+  m_resourceDescriptorHandle[position].resize(numCopies);
+  for (int i = 0; i < numCopies; i++) {
+    auto v = m_descriptorManager->registerUniformBuffer(buffer->getBuffer(i));
+    m_resourceDescriptorHandle[position][i] = v;
+  }
+  // Add as input
+  RenderPassResourceTransition transition{};
+  transition.m_required = false;
+  addInputResource(buffer, transition);
+}
+
+IFRIT_APIDECL void
+RenderGraphPass::buildDescriptorParamHandle(uint32_t numMultiBuffers) {
+  if (m_passDescriptorLayout.size() == 0)
+    return;
+  for (auto &[k, v] : m_resourceDescriptorHandle) {
+    if (v.size() != 1 && v.size() != numMultiBuffers) {
+      vkrError("Descriptor handle size mismatch");
+    }
+  }
+  m_descriptorBindRange.resize(numMultiBuffers);
+  for (int T = 0; T < numMultiBuffers; T++) {
+    std::vector<uint32_t> descriptorHandles;
+    for (int i = 0; i < m_passDescriptorLayout.size(); i++) {
+      auto type = m_passDescriptorLayout[i];
+      if (m_resourceDescriptorHandle.count(i) == 0) {
+        vkrError("Descriptor handle not found for position");
+      }
+      auto handle = m_resourceDescriptorHandle[i][T];
+      descriptorHandles.push_back(handle);
+    }
+    m_descriptorBindRange[T] =
+        m_descriptorManager->registerBindlessParameterRaw(
+            reinterpret_cast<const char *>(descriptorHandles.data()),
+            descriptorHandles.size() * sizeof(uint32_t));
+  }
+}
+
+IFRIT_APIDECL void RenderGraphPass::setRecordFunction(
+    std::function<void(RenderPassContext *)> executeFunction) {
+  m_recordFunction = executeFunction;
+}
+
+IFRIT_APIDECL void RenderGraphPass::setExecutionFunction(
+    std::function<void(RenderPassContext *)> func) {
+  m_executeFunction = func;
+}
+
+IFRIT_APIDECL void RenderGraphPass::execute() {
+  if (m_executeFunction) {
+    m_executeFunction(&m_passContext);
+  }
+}
+
 // Class : Pipeline Cache
 IFRIT_APIDECL PipelineCache::PipelineCache(EngineContext *context)
     : m_context(context) {}
@@ -70,6 +132,9 @@ PipelineCache::graphicsPipelineHash(const GraphicsPipelineCreateInfo &ci) {
     hash ^= hashFunc(ci.colorAttachmentFormats[i]);
   }
   hash ^= hashFunc(getUnderlying(ci.topology));
+  for (int i = 0; i < ci.descriptorSetLayouts.size(); i++) {
+    hash ^= hashFunc(reinterpret_cast<uint64_t>(ci.descriptorSetLayouts[i]));
+  }
   return hash;
 }
 
@@ -98,6 +163,13 @@ PipelineCache::graphicsPipelineEqual(const GraphicsPipelineCreateInfo &a,
   }
   if (a.topology != b.topology)
     return false;
+  if (a.descriptorSetLayouts.size() != b.descriptorSetLayouts.size())
+    return false;
+  for (int i = 0; i < a.descriptorSetLayouts.size(); i++) {
+    if (a.descriptorSetLayouts[i] != b.descriptorSetLayouts[i])
+      return false;
+  }
+
   return true;
 }
 
@@ -131,10 +203,12 @@ RenderGraphPass::getOutputResources() {
 
 // Class : GraphicsPass
 IFRIT_APIDECL GraphicsPass::GraphicsPass(EngineContext *context,
-                                         PipelineCache *pipelineCache)
-    : RenderGraphPass(context), m_pipelineCache(pipelineCache) {}
+                                         PipelineCache *pipelineCache,
+                                         DescriptorManager *descriptorManager)
+    : RenderGraphPass(context, descriptorManager),
+      m_pipelineCache(pipelineCache) {}
 
-IFRIT_APIDECL void GraphicsPass::addColorAttachment(RegisteredImage *image,
+IFRIT_APIDECL void GraphicsPass::addColorAttachment(RegisteredImageHandle *image,
                                                     VkAttachmentLoadOp loadOp,
                                                     VkClearValue clearValue) {
   RenderPassAttachment attachment;
@@ -175,7 +249,7 @@ IFRIT_APIDECL void GraphicsPass::addColorAttachment(RegisteredImage *image,
       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
 }
 
-IFRIT_APIDECL void GraphicsPass::setDepthAttachment(RegisteredImage *image,
+IFRIT_APIDECL void GraphicsPass::setDepthAttachment(RegisteredImageHandle *image,
                                                     VkAttachmentLoadOp loadOp,
                                                     VkClearValue clearValue) {
   m_depthAttachment.m_image = image;
@@ -214,13 +288,10 @@ IFRIT_APIDECL void GraphicsPass::setTessEvalShader(ShaderModule *shader) {
   m_tessEvalShader = shader;
 }
 
-IFRIT_APIDECL void GraphicsPass::setRecordFunction(
-    std::function<void(RenderPassContext *)> executeFunction) {
-  m_executeFunction = executeFunction;
-}
 
 IFRIT_APIDECL void GraphicsPass::record() {
   m_passContext.m_cmd = m_commandBuffer;
+  m_passContext.m_frame = m_activeFrame;
 
   PipelineBarrier barrierColor(
       m_context, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -236,7 +307,7 @@ IFRIT_APIDECL void GraphicsPass::record() {
     barrier.oldLayout = transition.m_oldLayout;
     barrier.newLayout = transition.m_newLayout;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; 
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     // m_commandBuffer->getQueueFamily();
     barrier.image = attachment.m_image->getImage()->getImage();
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -304,47 +375,92 @@ IFRIT_APIDECL void GraphicsPass::record() {
   renderingInfo.pColorAttachments = colorAttachmentInfos.data();
   renderingInfo.pDepthAttachment =
       m_depthAttachment.m_image ? &depthAttachmentInfo : nullptr;
-  
+
   auto exfun = m_context->getExtensionFunction();
-  vkCmdBeginRendering(m_passContext.m_cmd->getCommandBuffer(),
-                      &renderingInfo);
+  vkCmdBeginRendering(m_passContext.m_cmd->getCommandBuffer(), &renderingInfo);
   vkCmdBindPipeline(m_passContext.m_cmd->getCommandBuffer(),
                     VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->getPipeline());
   vkCmdSetDepthWriteEnable(m_passContext.m_cmd->getCommandBuffer(),
                            m_depthWrite);
-  exfun.p_vkCmdSetColorWriteEnableEXT(m_passContext.m_cmd->getCommandBuffer(), m_colorAttachments.size(),
-                              m_colorWrite.data());
-  exfun.p_vkCmdSetColorBlendEnableEXT(m_passContext.m_cmd->getCommandBuffer(), 0,
-                              m_colorAttachments.size(), m_blendEnable.data());
+  exfun.p_vkCmdSetColorWriteEnableEXT(m_passContext.m_cmd->getCommandBuffer(),
+                                      m_colorAttachments.size(),
+                                      m_colorWrite.data());
+  exfun.p_vkCmdSetColorBlendEnableEXT(m_passContext.m_cmd->getCommandBuffer(),
+                                      0, m_colorAttachments.size(),
+                                      m_blendEnable.data());
 
   exfun.p_vkCmdSetColorBlendEquationEXT(m_passContext.m_cmd->getCommandBuffer(),
-                                      0,m_colorAttachments.size(), m_blendEquations.data());
+                                        0, m_colorAttachments.size(),
+                                        m_blendEquations.data());
 
   exfun.p_vkCmdSetColorWriteMaskEXT(m_passContext.m_cmd->getCommandBuffer(), 0,
-                            m_colorAttachments.size(), m_colorWriteMask.data());
+                                    m_colorAttachments.size(),
+                                    m_colorWriteMask.data());
 
-  exfun.p_vkCmdSetVertexInputEXT(m_passContext.m_cmd->getCommandBuffer(), 0, nullptr, 0,
-                         nullptr);
+  exfun.p_vkCmdSetVertexInputEXT(m_passContext.m_cmd->getCommandBuffer(),
+                                 m_vertexBufferDescriptor.m_bindings.size(),
+                                 m_vertexBufferDescriptor.m_bindings.data(),
+                                 m_vertexBufferDescriptor.m_attributes.size(),
+                                 m_vertexBufferDescriptor.m_attributes.data());
+
+  std::vector<VkBuffer> vxbuffers;
+  std::vector<VkDeviceSize> offsets;
+  for (int i = 0; i < m_vertexBuffers.size(); i++) {
+    vxbuffers.push_back(
+        m_vertexBuffers[i]->getBuffer(m_passContext.m_frame)->getBuffer());
+    offsets.push_back(0);
+  }
+  if (vxbuffers.size() > 0) {
+    vkCmdBindVertexBuffers(m_passContext.m_cmd->getCommandBuffer(), 0,
+                           m_vertexBuffers.size(), vxbuffers.data(),
+                           offsets.data());
+  }
+
+  if (m_indexBuffer) {
+    vkCmdBindIndexBuffer(
+        m_passContext.m_cmd->getCommandBuffer(),
+        m_indexBuffer->getBuffer(m_passContext.m_frame)->getBuffer(), 0,
+        m_indexType);
+  }
+
+  if (m_passDescriptorLayout.size() > 0) {
+    auto bindlessSet = m_descriptorManager->getBindlessSet();
+    auto dynamicSet = m_descriptorManager->getParameterDescriptorSet(
+        m_descriptorBindRange[m_passContext.m_frame].rangeId);
+    auto dynamicRange =
+        m_descriptorBindRange[m_passContext.m_frame].rangeOffset;
+    vkCmdBindDescriptorSets(m_passContext.m_cmd->getCommandBuffer(),
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_pipeline->getLayout(), 0, 1, &bindlessSet, 0,
+                            nullptr);
+    vkCmdBindDescriptorSets(m_passContext.m_cmd->getCommandBuffer(),
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_pipeline->getLayout(), 1, 1, &dynamicSet, 1,
+                            &dynamicRange);
+  }
+
   exfun.p_vkCmdSetLogicOpEnableEXT(m_passContext.m_cmd->getCommandBuffer(),
-                           m_logicalOpEnable);
-  exfun.p_vkCmdSetLogicOpEXT(m_passContext.m_cmd->getCommandBuffer(), m_logicOp);
+                                   m_logicalOpEnable);
+  exfun.p_vkCmdSetLogicOpEXT(m_passContext.m_cmd->getCommandBuffer(),
+                             m_logicOp);
   exfun.p_vkCmdSetStencilTestEnable(m_passContext.m_cmd->getCommandBuffer(),
-                            m_stencilEnable);
+                                    m_stencilEnable);
   exfun.p_vkCmdSetStencilOp(m_passContext.m_cmd->getCommandBuffer(),
-                    m_stencilOp.faceMask, m_stencilOp.failOp,
-                    m_stencilOp.passOp, m_stencilOp.depthFailOp, m_stencilOp.compareOp);
+                            m_stencilOp.faceMask, m_stencilOp.failOp,
+                            m_stencilOp.passOp, m_stencilOp.depthFailOp,
+                            m_stencilOp.compareOp);
 
   exfun.p_vkCmdSetDepthBoundsTestEnable(m_passContext.m_cmd->getCommandBuffer(),
-                                   m_depthBoundTestEnable);
+                                        m_depthBoundTestEnable);
   exfun.p_vkCmdSetDepthCompareOp(m_passContext.m_cmd->getCommandBuffer(),
-                            m_depthCompareOp);
+                                 m_depthCompareOp);
   exfun.p_vkCmdSetDepthTestEnable(m_passContext.m_cmd->getCommandBuffer(),
-                             m_depthTestEnable);
+                                  m_depthTestEnable);
   vkCmdSetFrontFace(m_passContext.m_cmd->getCommandBuffer(), m_frontFace);
   vkCmdSetCullMode(m_passContext.m_cmd->getCommandBuffer(), m_cullMode);
 
-  if (m_executeFunction) {
-    m_executeFunction(&m_passContext);
+  if (m_recordFunction) {
+    m_recordFunction(&m_passContext);
   }
 
   vkCmdEndRendering(m_passContext.m_cmd->getCommandBuffer());
@@ -370,7 +486,23 @@ GraphicsPass::setColorWrite(const std::vector<uint32_t> &write) {
   }
 }
 
-IFRIT_APIDECL void GraphicsPass::build() {
+IFRIT_APIDECL void
+GraphicsPass::setVertexInput(const VertexBufferDescriptor &descriptor,
+                             const std::vector<RegisteredBufferHandle *> &buffers) {
+  m_vertexBufferDescriptor = descriptor;
+  m_vertexBuffers = buffers;
+  if (m_vertexBuffers.size() != m_vertexBufferDescriptor.m_bindings.size()) {
+    vkrError("Num of vertex buffers and descriptor bindings are not equal");
+  }
+}
+
+IFRIT_APIDECL
+void GraphicsPass::setIndexInput(RegisteredBufferHandle *buffer, VkIndexType type) {
+  m_indexBuffer = buffer;
+  m_indexType = type;
+}
+
+IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
   GraphicsPipelineCreateInfo ci;
   ci.shaderModules.push_back(m_vertexShader);
   ci.shaderModules.push_back(m_fragmentShader);
@@ -389,8 +521,16 @@ IFRIT_APIDECL void GraphicsPass::build() {
         m_colorAttachments[i].m_image->getImage()->getFormat());
   }
   ci.topology = RasterizerTopology::TriangleList;
+  if (m_passDescriptorLayout.size() > 0) {
+    ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
+    ci.descriptorSetLayouts.push_back(
+        m_descriptorManager->getParameterDescriptorSetLayout(
+            m_descriptorBindRange[0].rangeId));
+  }
+
   m_pipeline = m_pipelineCache->getGraphicsPipeline(ci);
   setBuilt();
+  
 }
 
 IFRIT_APIDECL void GraphicsPass::withCommandBuffer(CommandBuffer *commandBuffer,
@@ -405,49 +545,66 @@ IFRIT_APIDECL uint32_t GraphicsPass::getRequiredQueueCapability() {
 }
 
 // Class: RenderGraph
-IFRIT_APIDECL RenderGraph::RenderGraph(EngineContext *context) {
+IFRIT_APIDECL RenderGraph::RenderGraph(EngineContext *context,
+                                       DescriptorManager *descriptorManager) {
   m_context = context;
+  m_descriptorManager = descriptorManager;
   m_pipelineCache = std::make_unique<PipelineCache>(context);
 }
 
 IFRIT_APIDECL GraphicsPass *RenderGraph::addGraphicsPass() {
-  auto pass = std::make_unique<GraphicsPass>(m_context, m_pipelineCache.get());
+  auto pass = std::make_unique<GraphicsPass>(m_context, m_pipelineCache.get(),
+                                             m_descriptorManager);
   auto ptr = pass.get();
   m_passes.push_back(std::move(pass));
   return ptr;
 }
 
-IFRIT_APIDECL RegisteredBuffer *RenderGraph::registerBuffer(Buffer *buffer) {
-  auto registeredBuffer = std::make_unique<RegisteredBuffer>(buffer);
+IFRIT_APIDECL RegisteredBufferHandle *
+RenderGraph::registerBuffer(SingleBuffer *buffer) {
+  auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
   auto ptr = registeredBuffer.get();
   m_resources.push_back(std::move(registeredBuffer));
   m_resourceMap[ptr] = m_resources.size() - 1;
   return ptr;
 }
 
-IFRIT_APIDECL RegisteredImage *RenderGraph::registerImage(DeviceImage *image) {
-  auto registeredImage = std::make_unique<RegisteredImage>(image);
-  auto ptr = registeredImage.get();
-  m_resources.push_back(std::move(registeredImage));
+IFRIT_APIDECL RegisteredBufferHandle *
+RenderGraph::registerBuffer(MultiBuffer *buffer) {
+  auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
+  auto ptr = registeredBuffer.get();
+  m_resources.push_back(std::move(registeredBuffer));
   m_resourceMap[ptr] = m_resources.size() - 1;
   return ptr;
 }
 
-IFRIT_APIDECL RegisteredSwapchainImage *
-RenderGraph::registerSwapchainImage(SwapchainImageResource *image) {
-  auto registeredImage = std::make_unique<RegisteredSwapchainImage>(image);
-  auto ptr = registeredImage.get();
-  m_resources.push_back(std::move(registeredImage));
-  m_resourceMap[ptr] = m_resources.size() - 1;
-  m_swapchainImageHandle.push_back(ptr);
-  return ptr;
+IFRIT_APIDECL RegisteredImageHandle *RenderGraph::registerImage(DeviceImage *image) {
+  if (image->getIsSwapchainImage()) {
+    auto p = dynamic_cast<SwapchainImageResource *>(image);
+    if (p == nullptr) {
+      vkrError("Invalid swapchain image");
+    }
+    auto registeredImage = std::make_unique<RegisteredSwapchainImage>(p);
+    auto ptr = registeredImage.get();
+    m_resources.push_back(std::move(registeredImage));
+    m_resourceMap[ptr] = m_resources.size() - 1;
+    m_swapchainImageHandle.push_back(ptr);
+    return ptr;
+  } else {
+    auto registeredImage = std::make_unique<RegisteredImageHandle>(image);
+    auto ptr = registeredImage.get();
+    m_resources.push_back(std::move(registeredImage));
+    m_resourceMap[ptr] = m_resources.size() - 1;
+    return ptr;
+  }
+  return nullptr;
 }
 
-IFRIT_APIDECL void RenderGraph::build() {
-    //Build all passes
+IFRIT_APIDECL void RenderGraph::build(uint32_t numMultiBuffers) {
+  // Build all passes
   for (int i = 0; i < m_passes.size(); i++) {
     if (!m_passes[i]->isBuilt()) {
-      m_passes[i]->build();
+      m_passes[i]->build(numMultiBuffers);
     }
   }
   int numSubgraph = 0;
@@ -496,7 +653,7 @@ IFRIT_APIDECL void RenderGraph::build() {
         // m_subgraphs[numSubgraph].push_back(i);
       }
     }
-    
+
     if (assignedPass != 0)
       numSubgraph++;
     if (assignedPass == m_passes.size())
@@ -543,16 +700,119 @@ IFRIT_APIDECL std::vector<std::vector<uint32_t>> &RenderGraph::getSubgraphs() {
 
 IFRIT_APIDECL void RenderGraph::resizeCommandBuffers(uint32_t size) {
   m_commandBuffers.resize(size);
+
 }
 
-// Class : RenderGraphExecutor
-IFRIT_APIDECL void
-RenderGraphExecutor::setQueues(const std::vector<Queue *> &queues) {
-  m_queues = queues;
+IFRIT_APIDECL void RenderGraph::buildPassDescriptors(uint32_t numMultiBuffer) {
+  for (int i = 0; i < m_passes.size(); i++) {
+    auto p = m_passes[i].get();
+    p->buildDescriptorParamHandle(numMultiBuffer);
+  }
 }
 
-IFRIT_APIDECL void RenderGraphExecutor::compileGraph(RenderGraph *graph) {
+// Class : CommandExecutor
+IFRIT_APIDECL RenderGraph *CommandExecutor::createRenderGraph() {
+  auto p = std::make_unique<RenderGraph>(m_context, m_descriptorManager);
+  auto ptr = p.get();
+  m_renderGraph.push_back(std::move(p));
+  return ptr;
+}
+
+IFRIT_APIDECL void CommandExecutor::setQueues(bool reqPresentQueue,
+                                              int numGraphics, int numCompute,
+                                              int numTransfer) {
+  if (m_queueCollections == nullptr) {
+    m_queueCollections = std::make_unique<QueueCollections>(m_context);
+    m_queueCollections->loadQueues();
+  }
+  auto graphicsQueues = m_queueCollections->getGraphicsQueues();
+  auto computeQueues = m_queueCollections->getComputeQueues();
+  std::vector<Queue *> chosenQueue;
+  uint32_t numGraphicsQueues = numGraphics;
+  uint32_t numComputeQueues = numCompute;
+  if (reqPresentQueue) {
+    VkQueue presentQueue = m_swapchain->getPresentQueue();
+    bool found = false;
+    for (int i = 0; i < graphicsQueues.size(); i++) {
+      if (graphicsQueues[i]->getQueue() == presentQueue) {
+        chosenQueue.push_back(graphicsQueues[i]);
+        found = true;
+        numGraphicsQueues--;
+        break;
+      }
+    }
+    if (!found) {
+      vkrError("Present queue not found in graphics queues");
+    }
+  }
+  for (int i = 0; i < numGraphicsQueues; i++) {
+    chosenQueue.push_back(graphicsQueues[i]);
+  }
+
+  m_queuesGraphics = chosenQueue;
+  chosenQueue.clear();
+
+  // Compute queue
+  for (int i = 0, j = 0; i < numComputeQueues; j++) {
+    bool isGraphicsQueue = false;
+    for (int i = 0; i < m_queuesGraphics.size(); i++) {
+      if (m_queuesGraphics[i]->getQueue() == computeQueues[j]->getQueue()) {
+        j++;
+        isGraphicsQueue = true;
+        break;
+      }
+    }
+    if (isGraphicsQueue)
+      continue;
+    chosenQueue.push_back(computeQueues[j]);
+    i++;
+  }
+  m_queuesCompute = chosenQueue;
+
+  // Transfer queue
+  chosenQueue.clear();
+  auto transferQueues = m_queueCollections->getTransferQueues();
+  for (int i = 0, j = 0; i < numTransfer; j++) {
+    bool isGraphicsQueue = false;
+    bool isComputeQueue = false;
+    for (int k = 0; k < m_queuesGraphics.size(); k++) {
+      if (m_queuesGraphics[k]->getQueue() == transferQueues[j]->getQueue()) {
+        j++;
+        isGraphicsQueue = true;
+        break;
+      }
+    }
+    for (int k = 0; k < m_queuesCompute.size(); k++) {
+      if (m_queuesCompute[k]->getQueue() == transferQueues[j]->getQueue()) {
+        j++;
+        isComputeQueue = true;
+        break;
+      }
+    }
+    if (isGraphicsQueue || isComputeQueue)
+      continue;
+    chosenQueue.push_back(transferQueues[j]);
+    i++;
+  }
+  m_queuesTransfer = chosenQueue;
+
+  // insert all into m_queue
+  m_queues.insert(m_queues.end(), m_queuesGraphics.begin(),
+                  m_queuesGraphics.end());
+  m_queues.insert(m_queues.end(), m_queuesCompute.begin(),
+                  m_queuesCompute.end());
+  m_queues.insert(m_queues.end(), m_queuesTransfer.begin(),
+                  m_queuesTransfer.end());
+}
+
+IFRIT_APIDECL void CommandExecutor::compileGraph(RenderGraph *graph,
+                                                 uint32_t numMultiBuffers) {
   m_graph = graph;
+  if (m_graph->m_subgraphs.size() == 0) {
+    graph->buildPassDescriptors(numMultiBuffers);
+    m_descriptorManager->buildBindlessParameter();
+    graph->build(numMultiBuffers);
+  }
   auto subgraphs = graph->getSubgraphs();
   for (int i = 0; i < m_queues.size(); i++) {
     auto queue = m_queues[i];
@@ -596,21 +856,36 @@ IFRIT_APIDECL void RenderGraphExecutor::compileGraph(RenderGraph *graph) {
   m_graph->m_comiled = true;
 }
 
-IFRIT_APIDECL void RenderGraphExecutor::runGraph(RenderGraph *graph) {
+IFRIT_APIDECL void CommandExecutor::syncMultiBufferStateWithSwapchain() {
+  m_resourceManager->setActiveFrame(m_swapchain->getCurrentImageId());
+}
+
+IFRIT_APIDECL void CommandExecutor::runRenderGraph(RenderGraph *graph) {
+  syncMultiBufferStateWithSwapchain();
+  auto numBackBuffers = m_swapchain->getNumBackbuffers();
+  auto currentFrame = m_swapchain->getCurrentImageId();
   if (!graph->m_comiled) {
-    vkrError("Graph not compiled");
+    compileGraph(graph, numBackBuffers);
   }
-  auto subgraphs = graph->getSubgraphs();
+
+  // perform 'execution' handlers attached on passes
+  for (int i = 0; i < m_graph->m_passes.size(); i++) {
+    auto pass = m_graph->m_passes[i].get();
+    pass->setActiveFrame(currentFrame);
+    pass->execute();
+  }
+  
   // for each subgraph, create a command buffer
+  auto subgraphs = graph->getSubgraphs();
   for (int i = 0; i < subgraphs.size(); i++) {
     auto queue = m_graph->m_assignedQueues[i];
     auto commandBuffer = queue->beginRecording();
     for (int j = 0; j < subgraphs[i].size(); j++) {
       auto pass = m_graph->m_passes[subgraphs[i][j]].get();
-      pass->withCommandBuffer(commandBuffer,
-                              [&pass]() { pass->record(); });
+      pass->setActiveFrame(currentFrame);
+      pass->withCommandBuffer(commandBuffer, [&pass]() { pass->record(); });
     }
-    //TODO: Semaphores & Sync
+    // TODO: Semaphores & Sync
     if (m_graph->m_subGraphOperatesOnSwapchain[i]) {
       // Make swapchain image in layout present
       PipelineBarrier barrier(m_context,
@@ -647,8 +922,26 @@ IFRIT_APIDECL void RenderGraphExecutor::runGraph(RenderGraph *graph) {
   }
 }
 
+IFRIT_APIDECL void
+CommandExecutor::runImmidiateCommand(std::function<void(CommandBuffer *)> func,
+                                     QueueRequirement req) {
+  auto queue = m_queues;
+  auto requiredCapability = getUnderlying(req);
+  for (int i = 0; i < queue.size(); i++) {
+    if ((queue[i]->getCapability() & requiredCapability) ==
+        requiredCapability) {
+      auto commandBuffer = queue[i]->beginRecording();
+      func(commandBuffer);
+      queue[i]->submitCommand({}, nullptr);
+      queue[i]->waitIdle();
+      return;
+    }
+  }
+  vkrError("No queue found for immediate command");
+}
+
 IFRIT_APIDECL SwapchainImageResource *
-RenderGraphExecutor::getSwapchainImageResource() {
+CommandExecutor::getSwapchainImageResource() {
   return m_swapchainImageResource.get();
 }
 

@@ -98,8 +98,6 @@ IFRIT_APIDECL void EngineContext::loadExtensionFunction() {
               m_device);
 
   vkrLog("Extension functions loaded");
-
-
 }
 IFRIT_APIDECL EngineContext::EngineContext(const InitializeArguments &args)
     : m_args(args) {
@@ -265,10 +263,22 @@ IFRIT_APIDECL void EngineContext::init() {
       {};
   VkPhysicalDeviceColorWriteEnableFeaturesEXT deviceFeaturesColorWriteEnable =
       {};
+  VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures{};
 
   deviceFeatures12.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
   deviceFeatures12.timelineSemaphore = VK_TRUE;
+  deviceFeatures12.descriptorIndexing = VK_TRUE;
+  deviceFeatures12.descriptorBindingPartiallyBound = VK_TRUE;
+  deviceFeatures12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+  deviceFeatures12.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+  deviceFeatures12.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+  deviceFeatures12.descriptorBindingStorageTexelBufferUpdateAfterBind = VK_TRUE;
+  deviceFeatures12.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+  deviceFeatures12.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE;
+  deviceFeatures12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+  deviceFeatures12.descriptorBindingVariableDescriptorCount = VK_TRUE;
+  deviceFeatures12.runtimeDescriptorArray = VK_TRUE;
   deviceFeatures12.pNext = &deviceFeaturesDynamic;
 
   deviceFeaturesDynamic.sType =
@@ -390,6 +400,7 @@ IFRIT_APIDECL void EngineContext::init() {
 }
 
 void EngineContext::destructor() {
+  vmaDestroyAllocator(m_allocator);
   vkDestroyDevice(m_device, nullptr);
   if (m_args.m_enableValidationLayer) {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(

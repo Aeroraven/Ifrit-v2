@@ -1,10 +1,11 @@
 #pragma once
-#include "VectorOps.h"
 #include "../core/ApiConv.h"
+#include "VectorOps.h"
 #include <cmath>
 
+
 namespace Ifrit::Math {
-IFRIT_APIDECL inline float4x4 transpose(const float4x4 &a) {
+inline float4x4 transpose(const float4x4 &a) {
   float4x4 result;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -13,7 +14,7 @@ IFRIT_APIDECL inline float4x4 transpose(const float4x4 &a) {
   }
   return result;
 }
-IFRIT_APIDECL inline ifloat4 matmul(const float4x4 &a, const ifloat4 &b) {
+inline ifloat4 matmul(const float4x4 &a, const ifloat4 &b) {
   ifloat4 result;
   result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z + a[0][3] * b.w;
   result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z + a[1][3] * b.w;
@@ -21,7 +22,7 @@ IFRIT_APIDECL inline ifloat4 matmul(const float4x4 &a, const ifloat4 &b) {
   result.w = a[3][0] * b.x + a[3][1] * b.y + a[3][2] * b.z + a[3][3] * b.w;
   return result;
 }
-IFRIT_APIDECL inline float4x4 matmul(const float4x4 &a, const float4x4 &b) {
+inline float4x4 matmul(const float4x4 &a, const float4x4 &b) {
   float4x4 result;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -31,8 +32,7 @@ IFRIT_APIDECL inline float4x4 matmul(const float4x4 &a, const float4x4 &b) {
   }
   return result;
 }
-IFRIT_APIDECL inline float4x4 axisAngleRotation(const ifloat3 &axis,
-                                                float angle) {
+inline float4x4 axisAngleRotation(const ifloat3 &axis, float angle) {
   float c = cos(angle), s = sin(angle);
   float t = 1 - c, x = axis.x, y = axis.y, z = axis.z;
   float4x4 ret;
@@ -54,7 +54,7 @@ IFRIT_APIDECL inline float4x4 axisAngleRotation(const ifloat3 &axis,
   ret[3][3] = 1;
   return ret;
 }
-IFRIT_APIDECL inline float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up) {
+inline float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up) {
   ifloat3 f = normalize((center - eye));
   ifloat3 s = normalize(cross(f, up));
   ifloat3 u = cross(s, f);
@@ -91,8 +91,7 @@ IFRIT_APIDECL inline float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up) {
   trans[2][2] = 1;
   return matmul(result, trans);
 }
-IFRIT_APIDECL inline float4x4 perspective(float fovy, float aspect, float zNear,
-                                          float zFar) {
+inline float4x4 perspective(float fovy, float aspect, float zNear, float zFar) {
   float4x4 result;
   float halfFovy = fovy / 2.0f;
   float nTop = zNear * tan(halfFovy);

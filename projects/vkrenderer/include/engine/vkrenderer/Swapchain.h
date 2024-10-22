@@ -72,5 +72,8 @@ public:
   }
 
   inline uint32_t getQueueFamily() const { return m_presentQueueFamilyIndex; }
+  inline uint32_t getNumBackbuffers() const { return m_backbufferCount; }
+  inline uint32_t getCurrentFrame() const { return m_currentFrame; }
+  inline uint32_t getCurrentImageId() const { return m_currentFrame; }
 };
 } // namespace Ifrit::Engine::VkRenderer
