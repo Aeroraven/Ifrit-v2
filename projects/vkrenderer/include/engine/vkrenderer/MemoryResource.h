@@ -39,11 +39,13 @@ public:
   inline VkBuffer getBuffer() const { return m_buffer; }
   inline VkFlags getUsage() const { return m_createInfo.usage; }
   inline uint32_t getSize() const { return m_createInfo.size; }
+  inline BufferCreateInfo getCreateInfo() const { return m_createInfo; }
 };
 
 class IFRIT_APIDECL MultiBuffer {
 protected:
-  std::vector<std::unique_ptr<SingleBuffer>> m_buffers;
+  std::vector<std::unique_ptr<SingleBuffer>> m_buffersOwning;
+  std::vector<SingleBuffer *> m_buffers;
   BufferCreateInfo m_createInfo;
   EngineContext *m_context;
   uint32_t m_activeFrame = 0;
@@ -52,11 +54,10 @@ public:
   MultiBuffer(EngineContext *ctx, const BufferCreateInfo &ci,
               uint32_t numCopies);
   MultiBuffer(const MultiBuffer &p) = delete;
+  MultiBuffer(EngineContext *ctx, const std::vector<SingleBuffer *> &buffers);
   MultiBuffer &operator=(const MultiBuffer &p) = delete;
   SingleBuffer *getBuffer(uint32_t index);
-  inline SingleBuffer *getActiveBuffer() {
-    return m_buffers[m_activeFrame].get();
-  }
+  inline SingleBuffer *getActiveBuffer() { return m_buffers[m_activeFrame]; }
   inline void advanceFrame() {
     m_activeFrame++;
     m_activeFrame %= m_buffers.size();
@@ -177,6 +178,43 @@ public:
 
   void setActiveFrame(uint32_t frame);
   inline void setDefaultCopies(int32_t copies) { m_defaultCopies = copies; }
+
+  // Quick shortcuts
+
+  // Create a storage buffer that used to transfer data from host side
+  // EVERY FRAME. It accepts data from staging buffer or host. Double
+  // buffering will be used in this buffer.
+  MultiBuffer *createStorageBufferShared(uint32_t size, bool hostVisible,
+                                         VkFlags extraFlags = 0);
+
+  // Create a storage buffer that only works on GPU side.
+  SingleBuffer *createStorageBufferDevice(uint32_t size,
+                                          VkFlags extraFlags = 0);
+
+  // Create a uniform buffer that will be used to transfer data from host
+  MultiBuffer *createUniformBufferShared(uint32_t size, bool hostVisible,
+                                         VkFlags extraFlags = 0);
+
+  // Create a vertex buffer.
+  SingleBuffer *createVertexBufferDevice(uint32_t size, VkFlags extraFlags = 0);
+
+  // Create an index buffer.
+  SingleBuffer *createIndexBufferDevice(uint32_t size, VkFlags extraFlags = 0);
+
+  // Create an proxy multi buffer
+  MultiBuffer *
+  createProxyMultiBuffer(const std::vector<SingleBuffer *> &buffers);
+
+  // Create a depth attachment
+  SingleDeviceImage *
+  createDepthAttachment(uint32_t width, uint32_t height,
+                        VkFormat format = VK_FORMAT_D32_SFLOAT,
+                        VkImageUsageFlags extraUsage = 0);
+
+  // Create a device only texture, intended for shader read.
+  SingleDeviceImage *createTexture2DDevice(uint32_t width, uint32_t height,
+                                           VkFormat format,
+                                           VkImageUsageFlags extraUsage = 0);
 };
 
 } // namespace Ifrit::Engine::VkRenderer

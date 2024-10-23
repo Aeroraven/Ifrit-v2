@@ -127,6 +127,34 @@ DescriptorManager::registerUniformBuffer(SingleBuffer *buffer) {
 }
 
 IFRIT_APIDECL
+uint32_t DescriptorManager::registerStorageBuffer(SingleBuffer *buffer) {
+  for (int i = 0; i < m_storageBuffers.size(); i++) {
+    if (m_storageBuffers[i] == buffer) {
+      return i;
+    }
+  }
+  auto handleId = m_storageBuffers.size();
+  m_storageBuffers.push_back(buffer);
+
+  VkDescriptorBufferInfo bufferInfo{};
+  bufferInfo.buffer = buffer->getBuffer();
+  bufferInfo.offset = 0;
+  bufferInfo.range = VK_WHOLE_SIZE;
+
+  VkWriteDescriptorSet write{};
+  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  write.dstSet = m_bindlessSet;
+  write.dstBinding = getUnderlying(DescriptorType::StorageBuffer);
+  write.dstArrayElement = handleId;
+  write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  write.descriptorCount = 1;
+  write.pBufferInfo = &bufferInfo;
+
+  vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
+  return handleId;
+}
+
+IFRIT_APIDECL
 uint32_t
 DescriptorManager::registerCombinedImageSampler(SingleDeviceImage *image,
                                                 Sampler *sampler) {

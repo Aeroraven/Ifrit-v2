@@ -73,6 +73,12 @@ struct TimelineSemaphoreWait {
   VkSemaphore m_semaphore;
   uint64_t m_value;
   VkFlags m_waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+  TimelineSemaphoreWait &operator=(const TimelineSemaphoreWait &other) {
+    m_semaphore = other.m_semaphore;
+    m_value = other.m_value;
+    m_waitStage = other.m_waitStage;
+    return *this;
+  }
 };
 
 class IFRIT_APIDECL PipelineBarrier {
@@ -123,6 +129,8 @@ public:
   void setScissors(const std::vector<Scissor> &scissor) const;
   void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex,
             uint32_t firstInstance) const;
+  void dispatch(uint32_t groupCountX, uint32_t groupCountY,
+                uint32_t groupCountZ) const;
   void drawIndexed(uint32_t indexCount, uint32_t instanceCount,
                    uint32_t firstIndex, int32_t vertexOffset,
                    uint32_t firstInstance) const;
@@ -177,9 +185,11 @@ public:
   inline uint32_t getCapability() const { return m_capability; }
 
   CommandBuffer *beginRecording();
-  void submitCommand(const std::vector<TimelineSemaphoreWait> &waitSemaphores,
-                     VkFence fence, VkSemaphore swapchainSemaphore = nullptr);
+  TimelineSemaphoreWait
+  submitCommand(const std::vector<TimelineSemaphoreWait> &waitSemaphores,
+                VkFence fence, VkSemaphore swapchainSemaphore = nullptr);
   void waitIdle();
+  void counterReset();
 };
 
 class IFRIT_APIDECL QueueCollections {

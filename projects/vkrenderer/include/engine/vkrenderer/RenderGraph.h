@@ -31,6 +31,12 @@ enum class QueueRequirement {
       VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT
 };
 
+enum class ResourceAccessType {
+  Read,
+  Write,
+  ReadOrWrite,
+  ReadAndWrite,
+};
 struct StencilOps {
   VkStencilFaceFlags faceMask = VK_STENCIL_FACE_FRONT_AND_BACK;
   VkStencilOp failOp = VK_STENCIL_OP_KEEP;
@@ -154,24 +160,6 @@ struct RenderPassAttachment {
   VkClearValue m_clearValue;
 };
 
-// Reuse pipelines that share the same layout
-class IFRIT_APIDECL PipelineCache {
-private:
-  EngineContext *m_context;
-  std::vector<std::unique_ptr<GraphicsPipeline>> m_graphicsPipelines;
-  std::vector<GraphicsPipelineCreateInfo> m_graphicsPipelineCI;
-  std::unordered_map<uint64_t, std::vector<int>> m_graphicsPipelineMap;
-
-public:
-  PipelineCache(EngineContext *context);
-  PipelineCache(const PipelineCache &p) = delete;
-  PipelineCache &operator=(const PipelineCache &p) = delete;
-  uint64_t graphicsPipelineHash(const GraphicsPipelineCreateInfo &ci);
-  bool graphicsPipelineEqual(const GraphicsPipelineCreateInfo &a,
-                             const GraphicsPipelineCreateInfo &b);
-  GraphicsPipeline *getGraphicsPipeline(const GraphicsPipelineCreateInfo &ci);
-};
-
 class IFRIT_APIDECL RenderGraphPass {
 protected:
   EngineContext *m_context;
@@ -190,6 +178,11 @@ protected:
   std::vector<DescriptorBindRange> m_descriptorBindRange;
   std::function<void(RenderPassContext *)> m_recordFunction = nullptr;
   std::function<void(RenderPassContext *)> m_executeFunction = nullptr;
+  CommandBuffer *m_commandBuffer = nullptr;
+
+  // SSBOs
+  std::vector<RegisteredBufferHandle *> m_ssbos;
+  std::vector<ResourceAccessType> m_ssboAccess;
 
   uint32_t m_activeFrame = 0;
 
@@ -213,12 +206,14 @@ public:
                                  RenderPassResourceTransition transition);
   virtual uint32_t getRequiredQueueCapability() = 0;
   virtual void withCommandBuffer(CommandBuffer *commandBuffer,
-                                 std::function<void()> func) = 0;
+                                 std::function<void()> func);
 
   void addUniformBuffer(RegisteredBufferHandle *buffer, uint32_t position);
   void addCombinedImageSampler(RegisteredImageHandle *image,
                                RegisteredSamplerHandle *sampler,
                                uint32_t position);
+  void addStorageBuffer(RegisteredBufferHandle *buffer, uint32_t position,
+                        ResourceAccessType access);
 
   inline bool getOperatesOnSwapchain() { return m_operateOnSwapchain; }
   inline bool isBuilt() const { return m_passBuilt; }
@@ -248,7 +243,6 @@ protected:
   ShaderModule *m_tessEvalShader = nullptr;
 
   GraphicsPipeline *m_pipeline = nullptr;
-  CommandBuffer *m_commandBuffer = nullptr;
 
   VkRect2D m_renderArea;
   bool m_depthWrite = false;
@@ -271,14 +265,13 @@ protected:
 
   RegisteredBufferHandle *m_indexBuffer = nullptr;
   VkIndexType m_indexType;
+  RasterizerTopology m_topology = RasterizerTopology::TriangleList;
 
 public:
   GraphicsPass(EngineContext *context, PipelineCache *pipelineCache,
                DescriptorManager *descriptorManager);
 
   void record() override;
-  void withCommandBuffer(CommandBuffer *commandBuffer,
-                         std::function<void()> func);
 
   void addColorAttachment(RegisteredImageHandle *image,
                           VkAttachmentLoadOp loadOp, VkClearValue clearValue);
@@ -296,6 +289,7 @@ public:
   void setColorWrite(const std::vector<uint32_t> &write);
   void setDepthTestEnable(bool enable);
   void setDepthCompareOp(VkCompareOp compareOp);
+  void setRasterizerTopology(RasterizerTopology topology);
 
   void setVertexInput(const VertexBufferDescriptor &descriptor,
                       const std::vector<RegisteredBufferHandle *> &buffers);
@@ -304,7 +298,25 @@ public:
   uint32_t getRequiredQueueCapability() override;
 
   virtual void build(uint32_t numMultiBuffers) override;
-  friend class RenderGraph;
+};
+
+class IFRIT_APIDECL ComputePass : public RenderGraphPass {
+protected:
+  ComputePipeline *m_pipeline;
+  PipelineCache *m_pipelineCache;
+
+  ShaderModule *m_shaderModule = nullptr;
+
+public:
+  ComputePass(EngineContext *context, PipelineCache *pipelineCache,
+              DescriptorManager *descriptorManager)
+      : RenderGraphPass(context, descriptorManager),
+        m_pipelineCache(pipelineCache) {}
+
+  void record() override;
+  uint32_t getRequiredQueueCapability() override;
+  void setComputeShader(ShaderModule *shader);
+  void build(uint32_t numMultiBuffers) override;
 };
 
 struct RegisteredResourceGraphState {
@@ -344,7 +356,10 @@ protected:
 
 public:
   RenderGraph(EngineContext *context, DescriptorManager *descriptorManager);
+
   GraphicsPass *addGraphicsPass();
+  ComputePass *addComputePass();
+
   RegisteredBufferHandle *registerBuffer(SingleBuffer *buffer);
   RegisteredBufferHandle *registerBuffer(MultiBuffer *buffer);
   RegisteredImageHandle *registerImage(SingleDeviceImage *image);
@@ -399,8 +414,13 @@ public:
   void runRenderGraph(RenderGraph *graph);
   void runImmidiateCommand(std::function<void(CommandBuffer *)> func,
                            QueueRequirement req);
-
   SwapchainImageResource *getSwapchainImageResource();
+
+  // Begin a new frame recording procedure on host side.
+  void beginFrame();
+
+  // End the frame recording procedure and present the frame to the screen.
+  void endFrame();
 };
 
 } // namespace Ifrit::Engine::VkRenderer

@@ -2,6 +2,11 @@
 #include <vkrenderer/include/utility/Logger.h>
 
 namespace Ifrit::Engine::VkRenderer {
+template <typename E>
+constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
+  return static_cast<typename std::underlying_type<E>::type>(e);
+}
+
 IFRIT_APIDECL void GraphicsPipeline::init() {
   // Dynamic states
   std::vector<VkDynamicState> dynamicStates = {
@@ -39,7 +44,10 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
     inputAssemblyCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   } else if (m_createInfo.topology == RasterizerTopology::Line) {
     inputAssemblyCI.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+  } else if (m_createInfo.topology == RasterizerTopology::Point) {
+    inputAssemblyCI.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
   }
+  
   inputAssemblyCI.primitiveRestartEnable = VK_FALSE;
 
   // Viewport
@@ -162,10 +170,160 @@ IFRIT_APIDECL GraphicsPipeline::~GraphicsPipeline() {
 }
 
 IFRIT_APIDECL void ComputePipeline::init() {
-  // TODO
+  VkPipelineLayoutCreateInfo pipelineLayoutCI{};
+  pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  pipelineLayoutCI.setLayoutCount = m_createInfo.descriptorSetLayouts.size();
+  pipelineLayoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
+  pipelineLayoutCI.pushConstantRangeCount = 0;
+  pipelineLayoutCI.pPushConstantRanges = nullptr;
+  vkrVulkanAssert(vkCreatePipelineLayout(m_context->getDevice(),
+                                         &pipelineLayoutCI, nullptr, &m_layout),
+                  "Failed to create pipeline layout");
+  m_layoutCreated = true;
+
+  VkComputePipelineCreateInfo pipelineCI{};
+  pipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+  pipelineCI.layout = m_layout;
+  pipelineCI.basePipelineHandle = VK_NULL_HANDLE;
+  pipelineCI.basePipelineIndex = -1;
+
+  // Stage
+  pipelineCI.stage = m_createInfo.shaderModules->getStageCI();
+
+  auto res = vkCreateComputePipelines(m_context->getDevice(), nullptr, 1,
+                                      &pipelineCI, nullptr, &m_pipeline);
+  vkrVulkanAssert(res, "Failed to create compute pipeline");
+  m_pipelineCreated = true;
 }
 
 IFRIT_APIDECL ComputePipeline::~ComputePipeline() {
-  // TODO
+  if (m_layoutCreated) {
+    vkDestroyPipelineLayout(m_context->getDevice(), m_layout, nullptr);
+  }
+  if (m_pipelineCreated) {
+    vkDestroyPipeline(m_context->getDevice(), m_pipeline, nullptr);
+  }
 }
+
+// Class : Pipeline Cache
+IFRIT_APIDECL PipelineCache::PipelineCache(EngineContext *context)
+    : m_context(context) {}
+
+IFRIT_APIDECL uint64_t
+PipelineCache::graphicsPipelineHash(const GraphicsPipelineCreateInfo &ci) {
+  uint64_t hash = 0x9e3779b9;
+  std::hash<uint64_t> hashFunc;
+  for (int i = 0; i < ci.shaderModules.size(); i++) {
+    auto pStage = ci.shaderModules[i];
+    hash ^= hashFunc(reinterpret_cast<uint64_t>(pStage));
+  }
+  hash ^= hashFunc(ci.viewportCount);
+  hash ^= hashFunc(ci.scissorCount);
+  hash ^= hashFunc(ci.stencilAttachmentFormat);
+  hash ^= hashFunc(ci.depthAttachmentFormat);
+  for (int i = 0; i < ci.colorAttachmentFormats.size(); i++) {
+    hash ^= hashFunc(ci.colorAttachmentFormats[i]);
+  }
+  hash ^= hashFunc(getUnderlying(ci.topology));
+  for (int i = 0; i < ci.descriptorSetLayouts.size(); i++) {
+    hash ^= hashFunc(reinterpret_cast<uint64_t>(ci.descriptorSetLayouts[i]));
+  }
+  return hash;
+}
+
+IFRIT_APIDECL uint64_t
+PipelineCache::computePipelineHash(const ComputePipelineCreateInfo &ci) {
+  uint64_t hash = 0x9e3779b9;
+  std::hash<uint64_t> hashFunc;
+  auto pStage = ci.shaderModules;
+  hash ^= hashFunc(reinterpret_cast<uint64_t>(pStage));
+  for (int i = 0; i < ci.descriptorSetLayouts.size(); i++) {
+    hash ^= hashFunc(reinterpret_cast<uint64_t>(ci.descriptorSetLayouts[i]));
+  }
+  return hash;
+}
+
+IFRIT_APIDECL bool
+PipelineCache::graphicsPipelineEqual(const GraphicsPipelineCreateInfo &a,
+                                     const GraphicsPipelineCreateInfo &b) {
+  if (a.shaderModules.size() != b.shaderModules.size())
+    return false;
+  for (int i = 0; i < a.shaderModules.size(); i++) {
+    if (a.shaderModules[i] != b.shaderModules[i])
+      return false;
+  }
+  if (a.viewportCount != b.viewportCount)
+    return false;
+  if (a.scissorCount != b.scissorCount)
+    return false;
+  if (a.stencilAttachmentFormat != b.stencilAttachmentFormat)
+    return false;
+  if (a.depthAttachmentFormat != b.depthAttachmentFormat)
+    return false;
+  if (a.colorAttachmentFormats.size() != b.colorAttachmentFormats.size())
+    return false;
+  for (int i = 0; i < a.colorAttachmentFormats.size(); i++) {
+    if (a.colorAttachmentFormats[i] != b.colorAttachmentFormats[i])
+      return false;
+  }
+  if (a.topology != b.topology)
+    return false;
+  if (a.descriptorSetLayouts.size() != b.descriptorSetLayouts.size())
+    return false;
+  for (int i = 0; i < a.descriptorSetLayouts.size(); i++) {
+    if (a.descriptorSetLayouts[i] != b.descriptorSetLayouts[i])
+      return false;
+  }
+
+  return true;
+}
+
+IFRIT_APIDECL bool
+PipelineCache::computePipelineEqual(const ComputePipelineCreateInfo &a,
+                                    const ComputePipelineCreateInfo &b) {
+  if (a.shaderModules != b.shaderModules)
+    return false;
+  if (a.descriptorSetLayouts.size() != b.descriptorSetLayouts.size())
+    return false;
+  for (int i = 0; i < a.descriptorSetLayouts.size(); i++) {
+    if (a.descriptorSetLayouts[i] != b.descriptorSetLayouts[i])
+      return false;
+  }
+  return true;
+}
+
+IFRIT_APIDECL GraphicsPipeline *
+PipelineCache::getGraphicsPipeline(const GraphicsPipelineCreateInfo &ci) {
+  uint64_t hash = graphicsPipelineHash(ci);
+  for (int i = 0; i < m_graphicsPipelineMap[hash].size(); i++) {
+    int index = m_graphicsPipelineMap[hash][i];
+    if (graphicsPipelineEqual(ci, m_graphicsPipelineCI[index])) {
+      return m_graphicsPipelines[index].get();
+    }
+  }
+  // Otherwise create a new pipeline
+  m_graphicsPipelineCI.push_back(ci);
+  auto &&p = std::make_unique<GraphicsPipeline>(m_context, ci);
+  m_graphicsPipelines.push_back(std::move(p));
+  m_graphicsPipelineMap[hash].push_back(m_graphicsPipelines.size() - 1);
+  return m_graphicsPipelines.back().get();
+}
+
+IFRIT_APIDECL ComputePipeline *
+PipelineCache::getComputePipeline(const ComputePipelineCreateInfo &ci) {
+  uint64_t hash = computePipelineHash(ci);
+  for (int i = 0; i < m_computePipelineMap[hash].size(); i++) {
+    int index = m_computePipelineMap[hash][i];
+    if (computePipelineEqual(ci, m_computePipelineCI[index])) {
+      return m_computePipelines[index].get();
+    }
+  }
+  // Otherwise create a new pipeline
+  m_computePipelineCI.push_back(ci);
+  auto &&p = std::make_unique<ComputePipeline>(m_context, ci);
+  m_computePipelines.push_back(std::move(p));
+  m_computePipelineMap[hash].push_back(m_computePipelines.size() - 1);
+  return m_computePipelines.back().get();
+}
+
 } // namespace Ifrit::Engine::VkRenderer

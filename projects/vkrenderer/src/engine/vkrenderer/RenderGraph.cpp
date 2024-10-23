@@ -70,6 +70,24 @@ RenderGraphPass::addUniformBuffer(RegisteredBufferHandle *buffer,
   addInputResource(buffer, transition);
 }
 
+IFRIT_APIDECL
+void RenderGraphPass::addStorageBuffer(RegisteredBufferHandle *buffer,
+                                       uint32_t position,
+                                       ResourceAccessType access) {
+  auto numCopies = buffer->getNumBuffers();
+  m_resourceDescriptorHandle[position].resize(numCopies);
+  for (int i = 0; i < numCopies; i++) {
+    auto v = m_descriptorManager->registerStorageBuffer(buffer->getBuffer(i));
+    m_resourceDescriptorHandle[position][i] = v;
+  }
+  // Add as input
+  RenderPassResourceTransition transition{};
+  transition.m_required = false;
+  addInputResource(buffer, transition);
+  m_ssbos.push_back(buffer);
+  m_ssboAccess.push_back(access);
+}
+
 IFRIT_APIDECL void
 RenderGraphPass::addCombinedImageSampler(RegisteredImageHandle *image,
                                          RegisteredSamplerHandle *sampler,
@@ -135,85 +153,6 @@ IFRIT_APIDECL void RenderGraphPass::execute() {
   }
 }
 
-// Class : Pipeline Cache
-IFRIT_APIDECL PipelineCache::PipelineCache(EngineContext *context)
-    : m_context(context) {}
-
-IFRIT_APIDECL uint64_t
-PipelineCache::graphicsPipelineHash(const GraphicsPipelineCreateInfo &ci) {
-  uint64_t hash = 0x9e3779b9;
-  std::hash<uint64_t> hashFunc;
-  for (int i = 0; i < ci.shaderModules.size(); i++) {
-    auto pStage = ci.shaderModules[i];
-    hash ^= hashFunc(reinterpret_cast<uint64_t>(pStage));
-  }
-  hash ^= hashFunc(ci.viewportCount);
-  hash ^= hashFunc(ci.scissorCount);
-  hash ^= hashFunc(ci.stencilAttachmentFormat);
-  hash ^= hashFunc(ci.depthAttachmentFormat);
-  for (int i = 0; i < ci.colorAttachmentFormats.size(); i++) {
-    hash ^= hashFunc(ci.colorAttachmentFormats[i]);
-  }
-  hash ^= hashFunc(getUnderlying(ci.topology));
-  for (int i = 0; i < ci.descriptorSetLayouts.size(); i++) {
-    hash ^= hashFunc(reinterpret_cast<uint64_t>(ci.descriptorSetLayouts[i]));
-  }
-  return hash;
-}
-
-IFRIT_APIDECL bool
-PipelineCache::graphicsPipelineEqual(const GraphicsPipelineCreateInfo &a,
-                                     const GraphicsPipelineCreateInfo &b) {
-  if (a.shaderModules.size() != b.shaderModules.size())
-    return false;
-  for (int i = 0; i < a.shaderModules.size(); i++) {
-    if (a.shaderModules[i] != b.shaderModules[i])
-      return false;
-  }
-  if (a.viewportCount != b.viewportCount)
-    return false;
-  if (a.scissorCount != b.scissorCount)
-    return false;
-  if (a.stencilAttachmentFormat != b.stencilAttachmentFormat)
-    return false;
-  if (a.depthAttachmentFormat != b.depthAttachmentFormat)
-    return false;
-  if (a.colorAttachmentFormats.size() != b.colorAttachmentFormats.size())
-    return false;
-  for (int i = 0; i < a.colorAttachmentFormats.size(); i++) {
-    if (a.colorAttachmentFormats[i] != b.colorAttachmentFormats[i])
-      return false;
-  }
-  if (a.topology != b.topology)
-    return false;
-  if (a.descriptorSetLayouts.size() != b.descriptorSetLayouts.size())
-    return false;
-  for (int i = 0; i < a.descriptorSetLayouts.size(); i++) {
-    if (a.descriptorSetLayouts[i] != b.descriptorSetLayouts[i])
-      return false;
-  }
-
-  return true;
-}
-
-IFRIT_APIDECL GraphicsPipeline *
-PipelineCache::getGraphicsPipeline(const GraphicsPipelineCreateInfo &ci) {
-  uint64_t hash = graphicsPipelineHash(ci);
-  for (int i = 0; i < m_graphicsPipelineMap[hash].size(); i++) {
-    int index = m_graphicsPipelineMap[hash][i];
-    if (graphicsPipelineEqual(ci, m_graphicsPipelineCI[index])) {
-      return m_graphicsPipelines[index].get();
-    }
-  }
-  // Otherwise create a new pipeline
-  m_graphicsPipelineCI.push_back(ci);
-  auto &&p = std::make_unique<GraphicsPipeline>(m_context, ci);
-  m_graphicsPipelines.push_back(std::move(p));
-  m_graphicsPipelineMap[hash].push_back(m_graphicsPipelines.size() - 1);
-  return m_graphicsPipelines.back().get();
-}
-
-// Class : RenderPassPass
 IFRIT_APIDECL std::vector<RegisteredResource *> &
 RenderGraphPass::getInputResources() {
   return m_inputResources;
@@ -222,6 +161,14 @@ RenderGraphPass::getInputResources() {
 IFRIT_APIDECL std::vector<RegisteredResource *> &
 RenderGraphPass::getOutputResources() {
   return m_outputResources;
+}
+
+IFRIT_APIDECL void
+RenderGraphPass::withCommandBuffer(CommandBuffer *commandBuffer,
+                                   std::function<void()> func) {
+  m_commandBuffer = commandBuffer;
+  func();
+  m_commandBuffer = nullptr;
 }
 
 // Class : GraphicsPass
@@ -507,6 +454,10 @@ IFRIT_APIDECL void GraphicsPass::setDepthTestEnable(bool enable) {
 IFRIT_APIDECL void GraphicsPass::setDepthCompareOp(VkCompareOp compareOp) {
   m_depthCompareOp = compareOp;
 }
+IFRIT_APIDECL void
+GraphicsPass::setRasterizerTopology(RasterizerTopology topology) {
+  m_topology = topology;
+}
 
 IFRIT_APIDECL void
 GraphicsPass::setColorWrite(const std::vector<uint32_t> &write) {
@@ -525,6 +476,12 @@ IFRIT_APIDECL void GraphicsPass::setVertexInput(
   if (m_vertexBuffers.size() != m_vertexBufferDescriptor.m_bindings.size()) {
     vkrError("Num of vertex buffers and descriptor bindings are not equal");
   }
+  RenderPassResourceTransition trans;
+  trans.m_required = false;
+  for (auto *x : buffers) {
+    addInputResource(x, trans);
+  }
+  
 }
 
 IFRIT_APIDECL
@@ -532,6 +489,10 @@ void GraphicsPass::setIndexInput(RegisteredBufferHandle *buffer,
                                  VkIndexType type) {
   m_indexBuffer = buffer;
   m_indexType = type;
+
+  RenderPassResourceTransition trans;
+  trans.m_required = false;
+  addInputResource(buffer, trans);
 }
 
 IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
@@ -540,6 +501,7 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
   ci.shaderModules.push_back(m_fragmentShader);
   ci.viewportCount = 1;
   ci.scissorCount = 1;
+  ci.topology = m_topology;
   ci.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
   if (m_depthAttachment.m_image) {
     ci.depthAttachmentFormat =
@@ -551,7 +513,6 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
     ci.colorAttachmentFormats.push_back(
         m_colorAttachments[i].m_image->getImage(0)->getFormat());
   }
-  ci.topology = RasterizerTopology::TriangleList;
   if (m_passDescriptorLayout.size() > 0) {
     ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
     ci.descriptorSetLayouts.push_back(
@@ -563,20 +524,63 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
   setBuilt();
 }
 
-IFRIT_APIDECL void GraphicsPass::withCommandBuffer(CommandBuffer *commandBuffer,
-                                                   std::function<void()> func) {
-  m_commandBuffer = commandBuffer;
-  func();
-  m_commandBuffer = nullptr;
-}
-
 IFRIT_APIDECL uint32_t GraphicsPass::getRequiredQueueCapability() {
   return VK_QUEUE_GRAPHICS_BIT;
 }
 
+// Class : ComputePass
+
+IFRIT_APIDECL void ComputePass::build(uint32_t numMultiBuffers) {
+  ComputePipelineCreateInfo ci;
+  ci.shaderModules = m_shaderModule;
+  if (m_passDescriptorLayout.size() > 0) {
+    ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
+    ci.descriptorSetLayouts.push_back(
+        m_descriptorManager->getParameterDescriptorSetLayout(
+            m_descriptorBindRange[0].rangeId));
+  }
+  m_pipeline = m_pipelineCache->getComputePipeline(ci);
+  setBuilt();
+}
+
+IFRIT_APIDECL void ComputePass::setComputeShader(ShaderModule *shader) {
+  m_shaderModule = shader;
+}
+
+IFRIT_APIDECL uint32_t ComputePass::getRequiredQueueCapability() {
+  return VK_QUEUE_COMPUTE_BIT;
+}
+
+IFRIT_APIDECL void ComputePass::record() {
+  m_passContext.m_cmd = m_commandBuffer;
+  m_passContext.m_frame = m_activeFrame;
+
+  if (m_passDescriptorLayout.size() > 0) {
+    auto bindlessSet = m_descriptorManager->getBindlessSet();
+    auto dynamicSet = m_descriptorManager->getParameterDescriptorSet(
+        m_descriptorBindRange[m_passContext.m_frame].rangeId);
+    auto dynamicRange =
+        m_descriptorBindRange[m_passContext.m_frame].rangeOffset;
+    vkCmdBindDescriptorSets(
+        m_passContext.m_cmd->getCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE,
+        m_pipeline->getLayout(), 0, 1, &bindlessSet, 0, nullptr);
+    vkCmdBindDescriptorSets(
+        m_passContext.m_cmd->getCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE,
+        m_pipeline->getLayout(), 1, 1, &dynamicSet, 1, &dynamicRange);
+  }
+
+  vkCmdBindPipeline(m_passContext.m_cmd->getCommandBuffer(),
+                    VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline->getPipeline());
+
+  if (m_recordFunction) {
+    m_recordFunction(&m_passContext);
+  }
+}
+
 // Class: RenderGraph
-IFRIT_APIDECL RenderGraph::RenderGraph(EngineContext *context,
-                                       DescriptorManager *descriptorManager) {
+IFRIT_APIDECL
+RenderGraph::RenderGraph(EngineContext *context,
+                         DescriptorManager *descriptorManager) {
   m_context = context;
   m_descriptorManager = descriptorManager;
   m_pipelineCache = std::make_unique<PipelineCache>(context);
@@ -585,6 +589,14 @@ IFRIT_APIDECL RenderGraph::RenderGraph(EngineContext *context,
 IFRIT_APIDECL GraphicsPass *RenderGraph::addGraphicsPass() {
   auto pass = std::make_unique<GraphicsPass>(m_context, m_pipelineCache.get(),
                                              m_descriptorManager);
+  auto ptr = pass.get();
+  m_passes.push_back(std::move(pass));
+  return ptr;
+}
+
+IFRIT_APIDECL ComputePass *RenderGraph::addComputePass() {
+  auto pass = std::make_unique<ComputePass>(m_context, m_pipelineCache.get(),
+                                            m_descriptorManager);
   auto ptr = pass.get();
   m_passes.push_back(std::move(pass));
   return ptr;
@@ -689,6 +701,7 @@ IFRIT_APIDECL void RenderGraph::build(uint32_t numMultiBuffers) {
           dependencySet.insert(outputResources[j]);
         }
         m_subgraphBelonging[i] = numSubgraph;
+        
         assignedPass++;
         // m_subgraphs[numSubgraph].push_back(i);
       }
@@ -781,6 +794,7 @@ IFRIT_APIDECL void CommandExecutor::setQueues(bool reqPresentQueue,
       }
     }
     if (!found) {
+      // TODO: Wrong handling
       vkrError("Present queue not found in graphics queues");
     }
   }
@@ -918,45 +932,63 @@ IFRIT_APIDECL void CommandExecutor::runRenderGraph(RenderGraph *graph) {
   auto subgraphs = graph->getSubgraphs();
   for (int i = 0; i < subgraphs.size(); i++) {
     auto queue = m_graph->m_assignedQueues[i];
-    auto commandBuffer = queue->beginRecording();
+    TimelineSemaphoreWait lastWait;
     for (int j = 0; j < subgraphs[i].size(); j++) {
+      auto commandBuffer = queue->beginRecording();
       auto pass = m_graph->m_passes[subgraphs[i][j]].get();
       pass->setActiveFrame(currentFrame);
       pass->withCommandBuffer(commandBuffer, [&pass]() { pass->record(); });
-    }
-    // TODO: Semaphores & Sync
-    if (m_graph->m_subGraphOperatesOnSwapchain[i]) {
-      // Make swapchain image in layout present
-      PipelineBarrier barrier(m_context,
-                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0);
-      VkImageMemoryBarrier imageBarrier{};
-      imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-      imageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-      imageBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-      imageBarrier.srcQueueFamilyIndex = queue->getQueueFamily();
-      imageBarrier.dstQueueFamilyIndex = m_swapchain->getQueueFamily();
-      imageBarrier.image = m_swapchain->getCurrentImage();
-      imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      imageBarrier.subresourceRange.levelCount = 1;
-      imageBarrier.subresourceRange.layerCount = 1;
-      imageBarrier.srcAccessMask = 0;
-      imageBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-      barrier.addImageMemoryBarrier(imageBarrier);
-      commandBuffer->pipelineBarrier(barrier);
 
-      TimelineSemaphoreWait wait;
-      wait.m_semaphore = m_swapchain->getImageAvailableSemaphoreCurrentFrame();
-      wait.m_value = 0;
-      wait.m_waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+      // TODO: Semaphores & Sync
+      if (m_graph->m_subGraphOperatesOnSwapchain[i] &&
+          j == subgraphs[i].size() - 1) {
+        // Make swapchain image in layout present
+        PipelineBarrier barrier(
+            m_context, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0);
+        VkImageMemoryBarrier imageBarrier{};
+        imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        imageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        imageBarrier.srcQueueFamilyIndex = queue->getQueueFamily();
+        imageBarrier.dstQueueFamilyIndex = m_swapchain->getQueueFamily();
+        imageBarrier.image = m_swapchain->getCurrentImage();
+        imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBarrier.subresourceRange.levelCount = 1;
+        imageBarrier.subresourceRange.layerCount = 1;
+        imageBarrier.srcAccessMask = 0;
+        imageBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        barrier.addImageMemoryBarrier(imageBarrier);
+        commandBuffer->pipelineBarrier(barrier);
 
-      auto renderFinishSemaphore =
-          m_swapchain->getRenderingFinishSemaphoreCurrentFrame();
+        TimelineSemaphoreWait wait;
+        wait.m_semaphore =
+            m_swapchain->getImageAvailableSemaphoreCurrentFrame();
+        wait.m_value = 0;
+        wait.m_waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 
-      auto fence = m_swapchain->getCurrentFrameFence();
-      queue->submitCommand({wait}, fence, renderFinishSemaphore);
-    } else {
-      queue->submitCommand({}, nullptr);
+        auto renderFinishSemaphore =
+            m_swapchain->getRenderingFinishSemaphoreCurrentFrame();
+
+        auto fence = m_swapchain->getCurrentFrameFence();
+
+        TimelineSemaphoreWait newWait;
+        if (j == 0) {
+          newWait = queue->submitCommand({wait}, fence, renderFinishSemaphore);
+        } else {
+          newWait = queue->submitCommand({wait, lastWait}, fence,
+                                         renderFinishSemaphore);
+        }
+        lastWait = newWait;
+      } else {
+        TimelineSemaphoreWait newWait;
+        if (j == 0) {
+          newWait = queue->submitCommand({}, nullptr);
+        } else {
+          newWait = queue->submitCommand({lastWait}, nullptr);
+        }
+        lastWait = newWait;
+      }
     }
   }
 }
@@ -983,5 +1015,10 @@ IFRIT_APIDECL SwapchainImageResource *
 CommandExecutor::getSwapchainImageResource() {
   return m_swapchainImageResource.get();
 }
+
+IFRIT_APIDECL void CommandExecutor::beginFrame() {
+  m_swapchain->acquireNextImage();
+}
+IFRIT_APIDECL void CommandExecutor::endFrame() { m_swapchain->presentImage(); }
 
 } // namespace Ifrit::Engine::VkRenderer

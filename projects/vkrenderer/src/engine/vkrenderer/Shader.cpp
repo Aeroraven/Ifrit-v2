@@ -13,9 +13,13 @@ IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,
   vkrVulkanAssert(vkCreateShaderModule(device, &moduleCI, nullptr, &m_module),
                   "Failed to create shader module");
   m_stageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  m_stageCI.stage = ci.stage == ShaderStage::Vertex
-                        ? VK_SHADER_STAGE_VERTEX_BIT
-                        : VK_SHADER_STAGE_FRAGMENT_BIT;
+  if (ci.stage == ShaderStage::Vertex) {
+    m_stageCI.stage = VK_SHADER_STAGE_VERTEX_BIT;
+  } else if (ci.stage == ShaderStage::Fragment) {
+    m_stageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+  } else if (ci.stage == ShaderStage::Compute) {
+    m_stageCI.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  }
   m_stageCI.module = m_module;
   m_stageCI.pName = ci.entryPoint.c_str();
   m_stageCI.flags = 0;
@@ -34,8 +38,13 @@ ShaderModule::ShaderModule(EngineContext *ctx, const std::vector<char> &code,
   vkrVulkanAssert(vkCreateShaderModule(device, &moduleCI, nullptr, &m_module),
                   "Failed to create shader module");
   m_stageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  m_stageCI.stage = stage == ShaderStage::Vertex ? VK_SHADER_STAGE_VERTEX_BIT
-                                                 : VK_SHADER_STAGE_FRAGMENT_BIT;
+  if (stage == ShaderStage::Vertex) {
+    m_stageCI.stage = VK_SHADER_STAGE_VERTEX_BIT;
+  } else if (stage == ShaderStage::Fragment) {
+    m_stageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+  } else if (stage == ShaderStage::Compute) {
+    m_stageCI.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  }
   m_entryPoint = entryPoint;
   m_stageCI.module = m_module;
   m_stageCI.pName = m_entryPoint.c_str();

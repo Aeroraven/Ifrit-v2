@@ -53,12 +53,27 @@ IFRIT_APIDECL MultiBuffer::MultiBuffer(EngineContext *ctx,
                                        uint32_t numCopies)
     : m_context(ctx), m_createInfo(ci) {
   for (int i = 0; i < numCopies; i++) {
-    m_buffers.push_back(std::make_unique<SingleBuffer>(ctx, ci));
+    m_buffersOwning.push_back(std::make_unique<SingleBuffer>(ctx, ci));
+    m_buffers.push_back(m_buffersOwning.back().get());
   }
 }
 
+IFRIT_APIDECL
+MultiBuffer::MultiBuffer(EngineContext *ctx,
+                         const std::vector<SingleBuffer *> &buffers) {
+  // Assert all buffers have the same create info
+  m_context = ctx;
+  m_buffers = buffers;
+  m_createInfo = buffers[0]->getCreateInfo();
+  for (auto &buffer : buffers) {
+    vkrAssert(buffer->getCreateInfo().size == m_createInfo.size,
+              "Buffer size must be the same");
+    vkrAssert(buffer->getCreateInfo().usage == m_createInfo.usage,
+              "Buffer usage must be the same");
+  }
+}
 IFRIT_APIDECL SingleBuffer *MultiBuffer::getBuffer(uint32_t index) {
-  return m_buffers[index].get();
+  return m_buffers[index];
 }
 
 // Class: Image
@@ -277,6 +292,90 @@ IFRIT_APIDECL void ResourceManager::setActiveFrame(uint32_t frame) {
   for (int i = 0; i < m_multiBufferTraced.size(); i++) {
     m_multiBuffer[m_multiBufferTraced[i]]->setActiveFrame(frame);
   }
+}
+
+// Shortcut methods
+IFRIT_APIDECL MultiBuffer *
+ResourceManager::createStorageBufferShared(uint32_t size, bool hostVisible,
+                                           VkFlags extraFlags) {
+  BufferCreateInfo ci{};
+  ci.size = size;
+  ci.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | extraFlags;
+  ci.hostVisible = hostVisible;
+  return createTracedMultipleBuffer(ci);
+}
+
+IFRIT_APIDECL SingleBuffer *
+ResourceManager::createStorageBufferDevice(uint32_t size, VkFlags extraFlags) {
+  BufferCreateInfo ci{};
+  ci.size = size;
+  ci.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | extraFlags;
+  ci.hostVisible = false;
+  return createSimpleBuffer(ci);
+}
+
+IFRIT_APIDECL MultiBuffer *
+ResourceManager::createUniformBufferShared(uint32_t size, bool hostVisible,
+                                           VkFlags extraFlags) {
+  BufferCreateInfo ci{};
+  ci.size = size;
+  ci.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | extraFlags;
+  ci.hostVisible = hostVisible;
+  return createTracedMultipleBuffer(ci);
+}
+
+IFRIT_APIDECL SingleBuffer *
+ResourceManager::createVertexBufferDevice(uint32_t size, VkFlags extraFlags) {
+  BufferCreateInfo ci{};
+  ci.size = size;
+  ci.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | extraFlags;
+  ci.hostVisible = false;
+  return createSimpleBuffer(ci);
+}
+
+IFRIT_APIDECL SingleBuffer *
+ResourceManager::createIndexBufferDevice(uint32_t size, VkFlags extraFlags) {
+  BufferCreateInfo ci{};
+  ci.size = size;
+  ci.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | extraFlags;
+  ci.hostVisible = false;
+  return createSimpleBuffer(ci);
+}
+
+IFRIT_APIDECL
+MultiBuffer *ResourceManager::createProxyMultiBuffer(
+    const std::vector<SingleBuffer *> &buffers) {
+  auto tmp = new MultiBuffer(m_context, buffers);
+  auto buffer = std::make_unique<MultiBuffer>(m_context, buffers);
+  auto ptr = buffer.get();
+  m_multiBuffer.push_back(std::move(buffer));
+  return ptr;
+}
+
+IFRIT_APIDECL SingleDeviceImage *
+ResourceManager::createDepthAttachment(uint32_t width, uint32_t height,
+                                       VkFormat format,
+                                       VkImageUsageFlags extraUsage) {
+  ImageCreateInfo ci{};
+  ci.aspect = ImageAspect::Depth;
+  ci.format = format;
+  ci.width = width;
+  ci.height = height;
+  ci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | extraUsage;
+  ci.hostVisible = false;
+  return createSimpleImage(ci);
+}
+
+IFRIT_APIDECL SingleDeviceImage *ResourceManager::createTexture2DDevice(
+    uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage) {
+  ImageCreateInfo ci{};
+  ci.aspect = ImageAspect::Color;
+  ci.format = format;
+  ci.width = width;
+  ci.height = height;
+  ci.usage = VK_IMAGE_USAGE_SAMPLED_BIT | usage;
+  ci.hostVisible = false;
+  return createSimpleImage(ci);
 }
 
 } // namespace Ifrit::Engine::VkRenderer

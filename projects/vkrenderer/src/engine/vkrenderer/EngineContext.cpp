@@ -267,6 +267,7 @@ IFRIT_APIDECL void EngineContext::init() {
   VkPhysicalDeviceColorWriteEnableFeaturesEXT deviceFeaturesColorWriteEnable =
       {};
   VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures{};
+  VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
 
   deviceFeatures12.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -320,6 +321,12 @@ IFRIT_APIDECL void EngineContext::init() {
   deviceFeaturesColorWriteEnable.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COLOR_WRITE_ENABLE_FEATURES_EXT;
   deviceFeaturesColorWriteEnable.colorWriteEnable = VK_TRUE;
+  deviceFeaturesColorWriteEnable.pNext = &meshShaderFeatures;
+
+  meshShaderFeatures.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+  meshShaderFeatures.taskShader = VK_TRUE;
+  meshShaderFeatures.meshShader = VK_TRUE;
 
   deviceFeatures.samplerAnisotropy = VK_TRUE;
 

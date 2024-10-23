@@ -6,7 +6,7 @@
 namespace Ifrit::Engine::VkRenderer {
 
 enum class CullMode { None, Front, Back };
-enum class RasterizerTopology { TriangleList, Line };
+enum class RasterizerTopology { TriangleList, Line,Point };
 struct GraphicsPipelineCreateInfo {
   uint32_t viewportCount;
   uint32_t scissorCount;
@@ -17,7 +17,10 @@ struct GraphicsPipelineCreateInfo {
   std::vector<ShaderModule *> shaderModules;
   std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
 };
-struct ComputePipelineCreateInfo {};
+struct ComputePipelineCreateInfo {
+  ShaderModule *shaderModules;
+  std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+};
 
 class IFRIT_APIDECL PipelineBase {
 protected:
@@ -63,4 +66,33 @@ public:
   }
   virtual ~ComputePipeline();
 };
+
+// Reuse pipelines that share the same layout
+class IFRIT_APIDECL PipelineCache {
+private:
+  EngineContext *m_context;
+  std::vector<std::unique_ptr<GraphicsPipeline>> m_graphicsPipelines;
+  std::vector<GraphicsPipelineCreateInfo> m_graphicsPipelineCI;
+  std::unordered_map<uint64_t, std::vector<int>> m_graphicsPipelineMap;
+
+  std::vector<std::unique_ptr<ComputePipeline>> m_computePipelines;
+  std::vector<ComputePipelineCreateInfo> m_computePipelineCI;
+  std::unordered_map<uint64_t, std::vector<int>> m_computePipelineMap;
+
+public:
+  PipelineCache(EngineContext *context);
+  PipelineCache(const PipelineCache &p) = delete;
+  PipelineCache &operator=(const PipelineCache &p) = delete;
+
+  uint64_t graphicsPipelineHash(const GraphicsPipelineCreateInfo &ci);
+  bool graphicsPipelineEqual(const GraphicsPipelineCreateInfo &a,
+                             const GraphicsPipelineCreateInfo &b);
+  GraphicsPipeline *getGraphicsPipeline(const GraphicsPipelineCreateInfo &ci);
+
+  uint64_t computePipelineHash(const ComputePipelineCreateInfo &ci);
+  bool computePipelineEqual(const ComputePipelineCreateInfo &a,
+                            const ComputePipelineCreateInfo &b);
+  ComputePipeline *getComputePipeline(const ComputePipelineCreateInfo &ci);
+};
+
 } // namespace Ifrit::Engine::VkRenderer

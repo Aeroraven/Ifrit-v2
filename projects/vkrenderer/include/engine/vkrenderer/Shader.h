@@ -5,7 +5,7 @@
 #include <vulkan/vulkan.h>
 
 namespace Ifrit::Engine::VkRenderer {
-enum class ShaderStage { Vertex, Fragment };
+enum class ShaderStage { Vertex, Fragment, Compute };
 
 struct ShaderModuleCI {
   std::vector<char> code;

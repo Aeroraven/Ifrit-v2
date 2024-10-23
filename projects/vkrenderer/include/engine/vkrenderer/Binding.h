@@ -81,6 +81,7 @@ public:
   uint32_t registerUniformBuffer(SingleBuffer *buffer);
   uint32_t registerCombinedImageSampler(SingleDeviceImage *image,
                                         Sampler *sampler);
+  uint32_t registerStorageBuffer(SingleBuffer *buffer);
   DescriptorBindRange registerBindlessParameterRaw(const char *data,
                                                    uint32_t size);
 

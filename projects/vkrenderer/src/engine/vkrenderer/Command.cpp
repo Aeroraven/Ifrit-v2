@@ -151,6 +151,12 @@ IFRIT_APIDECL void CommandBuffer::drawIndexed(uint32_t indexCount,
                    vertexOffset, firstInstance);
 }
 
+IFRIT_APIDECL void CommandBuffer::dispatch(uint32_t groupCountX,
+                                           uint32_t groupCountY,
+                                           uint32_t groupCountZ) const {
+  vkCmdDispatch(m_commandBuffer, groupCountX, groupCountY, groupCountZ);
+}
+
 IFRIT_APIDECL void CommandBuffer::copyBuffer(VkBuffer srcBuffer,
                                              VkBuffer dstBuffer, uint32_t size,
                                              uint32_t srcOffset,
@@ -204,7 +210,7 @@ IFRIT_APIDECL CommandBuffer *Queue::beginRecording() {
   return p;
 }
 
-IFRIT_APIDECL void
+IFRIT_APIDECL TimelineSemaphoreWait
 Queue::submitCommand(const std::vector<TimelineSemaphoreWait> &waitSemaphores,
                      VkFence fence, VkSemaphore swapchainSemaphore) {
   m_recordedCounter++;
@@ -257,9 +263,17 @@ Queue::submitCommand(const std::vector<TimelineSemaphoreWait> &waitSemaphores,
   vkrVulkanAssert(vkQueueSubmit(m_queue, 1, &submitInfo, vfence),
                   "Failed to submit command buffer");
   m_cmdBufInUse.pop_back();
+
+  TimelineSemaphoreWait ret;
+  ret.m_semaphore = m_timelineSemaphore.get()->getSemaphore();
+  ret.m_value = m_recordedCounter;
+  ret.m_waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+  return ret;
 }
 
 IFRIT_APIDECL void Queue::waitIdle() { vkQueueWaitIdle(m_queue); }
+
+IFRIT_APIDECL void Queue::counterReset() { m_recordedCounter = 0; }
 
 // Class: CommandSubmissionList
 IFRIT_APIDECL CommandSubmissionList::CommandSubmissionList(EngineContext *ctx)
