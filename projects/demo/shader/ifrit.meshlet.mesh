@@ -1,0 +1,105 @@
+#version 450
+#extension GL_EXT_mesh_shader : require
+#extension GL_EXT_nonuniform_qualifier : enable
+struct Meshlet {
+  uint vertex_offset;
+  uint triangle_offset;
+  uint vertex_count;
+  uint triangle_count;
+};
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = 64, max_primitives = 124) out;
+
+layout(set = 0 , binding = 1) buffer Meshlets { Meshlet meshlets[]; } gMeshlets[];
+layout(set = 0 , binding = 1) buffer MeshletVertices { uint meshlet_vertices[]; } gMeshletVert[];
+layout(set = 0 , binding = 1) buffer MeshletTriangles { uint meshlet_triangles[]; } gMeshletTri[];
+
+layout(set = 0 , binding = 1) buffer Vertices { vec4 vertices[34834]; } gVertices[];
+
+layout (set = 0,binding = 0) uniform UniformBufferObject {
+  mat4 mvp;
+  uint meshlet_count;
+} ubo[];
+
+layout(set = 1, binding = 0) uniform BindlessMapping {
+  uint meshletId;
+  uint meshletVertId;
+  uint meshletTriId;
+  uint vxbufId;
+  uint uniformId;
+  uint dummy1;
+  uint dummy2;
+  uint dummy3;
+} bindlessMapping;
+
+layout(location = 0) out vec3 fragColor[];
+
+// color maps, 24 colors
+vec4 colorMap[24] = vec4[24](
+  vec4(1.0, 0.0, 0.0, 1.0),
+  vec4(0.0, 1.0, 0.0, 1.0),
+  vec4(0.0, 0.0, 1.0, 1.0),
+  vec4(1.0, 1.0, 0.0, 1.0),
+  vec4(1.0, 0.0, 1.0, 1.0),
+  vec4(0.0, 1.0, 1.0, 1.0),
+  vec4(1.0, 1.0, 1.0, 1.0),
+  vec4(0.5, 0.0, 0.0, 1.0),
+  vec4(0.0, 0.5, 0.0, 1.0),
+  vec4(0.0, 0.0, 0.5, 1.0),
+  vec4(0.5, 0.5, 0.0, 1.0),
+  vec4(0.5, 0.0, 0.5, 1.0),
+  vec4(0.0, 0.5, 0.5, 1.0),
+  vec4(0.5, 0.5, 0.5, 1.0),
+  vec4(0.25, 0.0, 0.0, 1.0),
+  vec4(0.0, 0.25, 0.0, 1.0),
+  vec4(0.0, 0.0, 0.25, 1.0),
+  vec4(0.25, 0.25, 0.0, 1.0),
+  vec4(0.25, 0.0, 0.25, 1.0),
+  vec4(0.0, 0.25, 0.25, 1.0),
+  vec4(0.25, 0.25, 0.25, 1.0),
+  vec4(0.125, 0.0, 0.0, 1.0),
+  vec4(0.0, 0.125, 0.0, 1.0),
+  vec4(0.0, 0.0, 0.125, 1.0)
+);
+
+
+uint readTriangleIndex(uint meshletId, uint offset){
+  uint offsetInUint8Local = offset;
+  uint meshletTriOffset = gMeshlets[bindlessMapping.meshletId].meshlets[meshletId].triangle_offset;
+  uint meshletVertOffset = gMeshlets[bindlessMapping.meshletId].meshlets[meshletId].vertex_offset;
+  uint totalUint8Offset = meshletTriOffset + offsetInUint8Local;
+  
+  uint indexDataU32 = gMeshletTri[bindlessMapping.meshletTriId].meshlet_triangles[totalUint8Offset];
+  return indexDataU32;
+  //uint totalVertOffset = meshletVertOffset + indexDataU32;
+  //return gMeshletVert[bindlessMapping.meshletVertId].meshlet_vertices[totalVertOffset];
+}
+
+uint readVertIndex(uint meshletId, uint offset){
+  uint offsetInUint8Local = offset;
+  uint meshletVertOffset = gMeshlets[bindlessMapping.meshletId].meshlets[meshletId].vertex_offset;
+  uint totalUint8Offset = meshletVertOffset + offsetInUint8Local;
+  return gMeshletVert[bindlessMapping.meshletVertId].meshlet_vertices[totalUint8Offset];
+}
+
+void main() {
+  uint mi = gl_WorkGroupID.x;
+  uint totalTris = min(100,gMeshlets[bindlessMapping.meshletId].meshlets[mi].triangle_count);
+  uint totalVerts = gMeshlets[bindlessMapping.meshletId].meshlets[mi].vertex_count;
+  SetMeshOutputsEXT(totalVerts, totalTris);
+  for(uint i=0;i<totalVerts;i++){
+    uint vi = readVertIndex(mi, i);
+    vec3 v0 = gVertices[bindlessMapping.vxbufId].vertices[vi].xyz;
+    gl_MeshVerticesEXT[i].gl_Position = ubo[bindlessMapping.uniformId].mvp * vec4(v0.xyz, 1.0);
+    fragColor[i] = colorMap[mi % 24].rgb;
+  }
+
+  for(uint i = 0; i < totalTris; i++){
+    uint triIndexA = readTriangleIndex(mi, i*3 + 0);
+    uint triIndexB = readTriangleIndex(mi, i*3 + 1);
+    uint triIndexC = readTriangleIndex(mi, i*3 + 2);
+    gl_PrimitiveTriangleIndicesEXT[i] = uvec3(triIndexA, triIndexB, triIndexC);
+  }
+
+}

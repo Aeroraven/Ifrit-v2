@@ -116,5 +116,31 @@ inline float4x4 perspective(float fovy, float aspect, float zNear, float zFar) {
   result[3][3] = 0;
   return result;
 }
+inline float4x4 perspectiveNegateY(float fovy, float aspect, float zNear,
+                                   float zFar) {
+  float4x4 result;
+  float halfFovy = fovy / 2.0f;
+  float nTop = zNear * tan(halfFovy);
+  float nRight = nTop * aspect;
+  float nLeft = -nRight;
+  float nBottom = -nTop;
+  result[0][0] = 2 * zNear / (nRight - nLeft);
+  result[1][0] = 0;
+  result[2][0] = 0;
+  result[3][0] = 0;
+  result[0][1] = 0;
+  result[1][1] = -2 * zNear / (nTop - nBottom);
+  result[2][1] = 0;
+  result[3][1] = 0;
+  result[0][2] = 0;
+  result[1][2] = 0;
+  result[2][2] = (zFar) / (zFar - zNear);
+  result[3][2] = 1;
+  result[0][3] = 0;
+  result[1][3] = 0;
+  result[2][3] = -(zFar * zNear) / (zFar - zNear);
+  result[3][3] = 0;
+  return result;
+}
 
 } // namespace Ifrit::Math

@@ -131,6 +131,8 @@ public:
             uint32_t firstInstance) const;
   void dispatch(uint32_t groupCountX, uint32_t groupCountY,
                 uint32_t groupCountZ) const;
+  void drawMeshTasks(uint32_t groupCountX, uint32_t groupCountY,
+                     uint32_t groupCountZ) const;
   void drawIndexed(uint32_t indexCount, uint32_t instanceCount,
                    uint32_t firstIndex, int32_t vertexOffset,
                    uint32_t firstInstance) const;

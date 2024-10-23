@@ -242,6 +242,9 @@ protected:
   ShaderModule *m_tessControlShader = nullptr;
   ShaderModule *m_tessEvalShader = nullptr;
 
+  ShaderModule *m_taskShader = nullptr;
+  ShaderModule *m_meshShader = nullptr;
+
   GraphicsPipeline *m_pipeline = nullptr;
 
   VkRect2D m_renderArea;
@@ -283,6 +286,9 @@ public:
   void setGeometryShader(ShaderModule *shader);
   void setTessControlShader(ShaderModule *shader);
   void setTessEvalShader(ShaderModule *shader);
+
+  void setTaskShader(ShaderModule *shader);
+  void setMeshShader(ShaderModule *shader);
 
   void setRenderArea(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
   void setDepthWrite(bool write);

@@ -58,6 +58,7 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
               const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
               void *pUserData) {
   vkrLog(pCallbackData->pMessage);
+  std::abort();
   return VK_FALSE;
 }
 
@@ -95,6 +96,8 @@ IFRIT_APIDECL void EngineContext::loadExtensionFunction() {
   loadExtFunc(m_extf.p_vkCmdSetLogicOpEnableEXT, "vkCmdSetLogicOpEnableEXT",
               m_device);
   loadExtFunc(m_extf.p_vkCmdSetVertexInputEXT, "vkCmdSetVertexInputEXT",
+              m_device);
+  loadExtFunc(m_extf.p_vkCmdDrawMeshTasksEXT, "vkCmdDrawMeshTasksEXT",
               m_device);
 
   vkrLog("Extension functions loaded");

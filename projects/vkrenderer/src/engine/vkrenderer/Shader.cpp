@@ -44,6 +44,10 @@ ShaderModule::ShaderModule(EngineContext *ctx, const std::vector<char> &code,
     m_stageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
   } else if (stage == ShaderStage::Compute) {
     m_stageCI.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  } else if (stage == ShaderStage::Mesh) {
+    m_stageCI.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
+  } else if (stage == ShaderStage::Task) {
+    m_stageCI.stage = VK_SHADER_STAGE_TASK_BIT_EXT;
   }
   m_entryPoint = entryPoint;
   m_stageCI.module = m_module;

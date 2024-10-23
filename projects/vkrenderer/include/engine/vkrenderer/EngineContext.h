@@ -62,6 +62,8 @@ struct IFRIT_APIDECL ExtensionFunction {
   PFN_vkCmdSetLogicOpEXT p_vkCmdSetLogicOpEXT;
   PFN_vkCmdSetLogicOpEnableEXT p_vkCmdSetLogicOpEnableEXT;
   PFN_vkCmdSetVertexInputEXT p_vkCmdSetVertexInputEXT;
+
+  PFN_vkCmdDrawMeshTasksEXT p_vkCmdDrawMeshTasksEXT;
 };
 
 class IFRIT_APIDECL EngineContext {

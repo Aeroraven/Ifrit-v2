@@ -45,6 +45,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
 
 if(MSVC)
+    add_subdirectory(dependencies/meshoptimizer)
     add_subdirectory(projects/display)
     add_subdirectory(projects/vkrenderer)
     add_subdirectory(projects/demo)

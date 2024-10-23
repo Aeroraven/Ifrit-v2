@@ -23,8 +23,55 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
-#define WINDOW_WIDTH  1980
+#include <meshoptimizer/src/meshoptimizer.h>
+
+#define WINDOW_WIDTH 1980
 #define WINDOW_HEIGHT 1080
+
+void loadWaveFrontObject(const char *path, std::vector<ifloat3> &vertices,
+                         std::vector<ifloat3> &normals,
+                         std::vector<ifloat2> &uvs,
+                         std::vector<uint32_t> &indices) {
+
+  // This section is auto-generated from Copilot
+  std::ifstream file(path);
+  std::string line;
+
+  while (std::getline(file, line)) {
+    std::istringstream iss(line);
+    std::string type;
+    iss >> type;
+
+    if (type == "v") {
+      ifloat3 vertex;
+      iss >> vertex.x >> vertex.y >> vertex.z;
+      vertices.push_back(vertex);
+    } else if (type == "vn") {
+      ifloat3 normal;
+      iss >> normal.x >> normal.y >> normal.z;
+      normals.push_back(normal);
+    } else if (type == "vt") {
+      ifloat2 uv;
+      iss >> uv.x >> uv.y;
+      uvs.push_back(uv);
+    } else if (type == "f") {
+      std::string vertex;
+      for (int i = 0; i < 3; i++) {
+        iss >> vertex;
+        std::istringstream vss(vertex);
+        std::string index;
+        for (int j = 0; j < 3; j++) {
+          std::getline(vss, index, '/');
+          if (index.size() != 0) {
+            indices.push_back(std::stoi(index) - 1);
+          } else {
+            indices.push_back(0);
+          }
+        }
+      }
+    }
+  }
+}
 
 std::vector<char> readShaderFile(std::string filename) {
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -73,8 +120,10 @@ int main2() {
   std::shared_ptr<TileRasterRenderer> renderer =
       std::make_shared<TileRasterRenderer>();
   renderer->init();
-  std::unique_ptr<ImageF32> color = std::make_unique<ImageF32>(WINDOW_WIDTH, WINDOW_HEIGHT, 4);
-  std::unique_ptr<ImageF32> depth = std::make_unique<ImageF32>(WINDOW_WIDTH, WINDOW_HEIGHT, 1);
+  std::unique_ptr<ImageF32> color =
+      std::make_unique<ImageF32>(WINDOW_WIDTH, WINDOW_HEIGHT, 4);
+  std::unique_ptr<ImageF32> depth =
+      std::make_unique<ImageF32>(WINDOW_WIDTH, WINDOW_HEIGHT, 1);
   FrameBuffer frameBuffer;
   frameBuffer.setColorAttachments({color.get()});
   frameBuffer.setDepthAttachment(*depth.get());
@@ -229,7 +278,8 @@ int demo_vulkanTriangle() {
       resourceManager.createUniformBufferShared(16 * sizeof(float), true);
 
   // Depth Buffer
-  auto depthImage = resourceManager.createDepthAttachment(WINDOW_WIDTH, WINDOW_HEIGHT);
+  auto depthImage =
+      resourceManager.createDepthAttachment(WINDOW_WIDTH, WINDOW_HEIGHT);
 
   // Render graph
   auto renderGraph = backend.createRenderGraph();
@@ -265,7 +315,8 @@ int demo_vulkanTriangle() {
 
   // Uniform data
   float4x4 view = (lookAt({0, 0.1, 2.25}, {0, 0.0, 0.0}, {0, 1, 0}));
-  float4x4 proj = (perspective(60 * 3.14159 / 180, 1.0 * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01, 3000));
+  float4x4 proj = (perspective(60 * 3.14159 / 180,
+                               1.0 * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01, 3000));
 
   // Pass Record
   pass->setRecordFunction([&](RenderPassContext *ctx) -> void {
@@ -411,8 +462,7 @@ int demo_vulkanComputeShader() {
   // Vertex buffer & index buffer
   VertexBufferDescriptor vbDesc;
   vbDesc.addBinding({0, 1},
-                    {VK_FORMAT_R32G32_SFLOAT,
-                     VK_FORMAT_R32G32B32A32_SFLOAT},
+                    {VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT},
                     {0, 16}, 32, VertexInputRate::Vertex);
 
   auto drawPass = renderGraph->addGraphicsPass();
@@ -445,9 +495,215 @@ int demo_vulkanComputeShader() {
   return 0;
 }
 
+int demo_vulkanMeshShader() {
+  using namespace Ifrit::Engine::VkRenderer;
+  using namespace Ifrit::Presentation::Window;
+  using namespace Ifrit::Math;
+
+  GLFWWindowProviderInitArgs glfwArgs;
+  glfwArgs.vulkanMode = true;
+  GLFWWindowProvider windowProvider(glfwArgs);
+  windowProvider.setup(WINDOW_WIDTH, WINDOW_HEIGHT);
+  windowProvider.setTitle("Ifrit-v2 (Vulkan Backend)");
+
+  InitializeArguments args;
+  auto extensionGetter = [&windowProvider](uint32_t *count) -> const char ** {
+    return windowProvider.getVkRequiredInstanceExtensions(count);
+  };
+  auto fbSize = windowProvider.getFramebufferSize();
+  args.m_extensionGetter = extensionGetter;
+  args.m_win32.m_hInstance = GetModuleHandle(NULL);
+  args.m_win32.m_hWnd = (HWND)windowProvider.getWindowObject();
+  args.m_surfaceWidth = fbSize.first;
+  args.m_surfaceHeight = fbSize.second;
+  args.m_expectedSwapchainImageCount = 2;
+
+  EngineContext context(args);
+  Swapchain swapchain(&context);
+
+  // load meshlet
+  std::vector<ifloat3> vertices;
+  std::vector<ifloat4> verticesAligned;
+  std::vector<ifloat3> normals;
+  std::vector<ifloat2> uvs;
+  std::vector<uint32_t> indicesRaw;
+  std::vector<uint32_t> indices;
+  loadWaveFrontObject("C:/WR/hk3.obj", vertices, normals,
+                      uvs, indicesRaw);
+
+  indices.resize(indicesRaw.size() / 3);
+  for (int i = 0; i < indicesRaw.size(); i += 3) {
+    indices[i / 3] = indicesRaw[i];
+  }
+  verticesAligned.resize(vertices.size());
+  for (int i = 0; i < vertices.size(); i++) {
+    verticesAligned[i] =
+        ifloat4(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
+  }
+
+  const size_t max_vertices = 64;
+  const size_t max_triangles = 124;
+  const float cone_weight = 0.0f;
+
+  size_t max_meshlets =
+      meshopt_buildMeshletsBound(indices.size(), max_vertices, max_triangles);
+  std::vector<meshopt_Meshlet> meshlets(max_meshlets);
+  std::vector<unsigned int> meshlet_vertices(max_meshlets * max_vertices);
+  std::vector<unsigned char> meshlet_triangles(max_meshlets * max_triangles *
+                                               3);
+  std::vector<unsigned int> meshlet_triangles2(max_meshlets * max_triangles *
+                                               3);
+
+  size_t meshlet_count = meshopt_buildMeshlets(
+      meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(),
+      indices.data(), indices.size(), &vertices[0].x, vertices.size(),
+      sizeof(ifloat3), max_vertices, max_triangles, cone_weight);
+
+  for(int i = 0; i < meshlet_triangles.size(); i++) {
+    meshlet_triangles2[i] = meshlet_triangles[i];
+  }
+
+  printf("Meshlet count: %lld\n", meshlet_count);
+  printf("Meshlet Vertices: %lld\n", meshlet_vertices.size());
+  printf("Meshlet Triangles: %lld\n", meshlet_triangles.size());
+  printf("Vertex Buffer %lld\n", vertices.size());
+
+  // Create ssbo
+  Viewport viewport = {0.0f, 0.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.0f, 1.0f};
+  Scissor scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
+
+  DescriptorManager bindlessDesc(&context);
+  ResourceManager resourceManager(&context);
+  CommandExecutor backend(&context, &swapchain, &bindlessDesc,
+                          &resourceManager);
+  backend.setQueues(true, 1, 1, 1);
+
+  struct UniformBuffer {
+    float4x4 mvp;
+    uint32_t meshletCount;
+  } uniformData;
+
+  auto meshletBuffer = resourceManager.createStorageBufferDevice(
+      meshlets.size() * sizeof(meshopt_Meshlet),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto meshletVertexBuffer = resourceManager.createStorageBufferDevice(
+      meshlet_vertices.size() * sizeof(unsigned int),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto meshletIndexBuffer = resourceManager.createStorageBufferDevice(
+      meshlet_triangles2.size() * sizeof(unsigned int),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto vertexBuffer = resourceManager.createStorageBufferDevice(
+      verticesAligned.size() * sizeof(ifloat4),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto ubBuffer =
+      resourceManager.createUniformBufferShared(sizeof(UniformBuffer), true);
+
+  uniformData.meshletCount = meshlet_count;
+
+  StagedSingleBuffer stagedMeshletBuffer(&context, meshletBuffer);
+  StagedSingleBuffer stagedMeshletVertexBuffer(&context, meshletVertexBuffer);
+  StagedSingleBuffer stagedMeshletIndexBuffer(&context, meshletIndexBuffer);
+  StagedSingleBuffer stagedVertexBuffer(&context, vertexBuffer);
+
+  backend.runImmidiateCommand(
+      [&](CommandBuffer *cmd) -> void {
+        stagedMeshletBuffer.cmdCopyToDevice(
+            cmd, meshlets.data(), meshlets.size() * sizeof(meshopt_Meshlet), 0);
+        stagedMeshletVertexBuffer.cmdCopyToDevice(
+            cmd, meshlet_vertices.data(),
+            meshlet_vertices.size() * sizeof(unsigned int), 0);
+        stagedMeshletIndexBuffer.cmdCopyToDevice(
+            cmd, meshlet_triangles2.data(),
+            meshlet_triangles2.size() * sizeof(unsigned int), 0);
+        stagedVertexBuffer.cmdCopyToDevice(
+            cmd, verticesAligned.data(),
+            verticesAligned.size() * sizeof(ifloat4), 0);
+      },
+      QueueRequirement::Transfer);
+
+  // Shader
+  auto msCode =
+      readShaderFile(IFRIT_DEMO_SHADER_PATH "/ifrit.meshlet.mesh.spv");
+  auto fsCode =
+      readShaderFile(IFRIT_DEMO_SHADER_PATH "/ifrit.meshlet.frag.spv");
+
+  ShaderModule msModule(&context, msCode, "main", ShaderStage::Mesh);
+  ShaderModule fsModule(&context, fsCode, "main", ShaderStage::Fragment);
+
+  // Depth Buffer
+  auto depthImage =
+      resourceManager.createDepthAttachment(WINDOW_WIDTH, WINDOW_HEIGHT);
+
+  // Render graph
+  auto renderGraph = backend.createRenderGraph();
+  auto swapchainRes = backend.getSwapchainImageResource();
+  auto msBufReg = renderGraph->registerBuffer(meshletBuffer);
+  auto msVBufReg = renderGraph->registerBuffer(meshletVertexBuffer);
+  auto msIBufReg = renderGraph->registerBuffer(meshletIndexBuffer);
+  auto uniformBufReg = renderGraph->registerBuffer(ubBuffer);
+  auto vertexBufReg = renderGraph->registerBuffer(vertexBuffer);
+  auto swapchainResReg = renderGraph->registerImage(swapchainRes);
+  auto depthReg = renderGraph->registerImage(depthImage);
+
+  auto msPass = renderGraph->addGraphicsPass();
+  msPass->addColorAttachment(swapchainResReg, VK_ATTACHMENT_LOAD_OP_CLEAR,
+                             {{0.2f, 0.2f, 0.2f, 1.0f}});
+  msPass->addStorageBuffer(msBufReg, 0, ResourceAccessType::Read);
+  msPass->addStorageBuffer(msVBufReg, 1, ResourceAccessType::Read);
+  msPass->addStorageBuffer(msIBufReg, 2, ResourceAccessType::Read);
+  msPass->addStorageBuffer(vertexBufReg, 3, ResourceAccessType::Read);
+  msPass->addUniformBuffer(uniformBufReg, 4);
+  msPass->setPassDescriptorLayout(
+      {DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
+       DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
+       DescriptorType::UniformBuffer});
+
+  msPass->setMeshShader(&msModule);
+  msPass->setFragmentShader(&fsModule);
+  msPass->setRasterizerTopology(RasterizerTopology::TriangleList);
+  msPass->setRenderArea(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+  msPass->setDepthAttachment(depthReg, VK_ATTACHMENT_LOAD_OP_CLEAR,
+                             {{1.0f, 0.0f}});
+  msPass->setDepthCompareOp(VK_COMPARE_OP_LESS);
+  msPass->setDepthWrite(true);
+  msPass->setDepthTestEnable(true);
+
+  msPass->setRecordFunction([&](RenderPassContext *ctx) -> void {
+    ctx->m_cmd->setScissors({scissor});
+    ctx->m_cmd->setViewports({viewport});
+    ctx->m_cmd->drawMeshTasks(meshlet_count, 1, 1);
+  });
+
+  msPass->setExecutionFunction([&](RenderPassContext *ctx) -> void {
+    float4x4 view = (lookAt({0, 7.707, 15.55}, {0, 7.707, 0.0}, {0, 1, 0}));
+    float4x4 proj = (perspectiveNegateY(
+        60 * 3.14159 / 180, 1.0 * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01, 3000));
+    auto mvp = transpose(matmul(proj, view));
+    uniformData.mvp = mvp;
+    auto buf = ubBuffer->getActiveBuffer();
+    buf->map();
+    buf->copyToBuffer(&uniformData, sizeof(UniformBuffer), 0);
+    buf->flush();
+    buf->unmap();
+  });
+
+  // Main loop
+  windowProvider.loop([&](int *repCore) {
+    auto startTime = std::chrono::high_resolution_clock::now();
+    backend.beginFrame();
+    backend.runRenderGraph(renderGraph);
+    backend.endFrame();
+    auto endTime = std::chrono::high_resolution_clock::now();
+    *repCore = std::chrono::duration_cast<std::chrono::milliseconds>(endTime -
+                                                                     startTime)
+                   .count();
+  });
+  context.waitIdle();
+  return 0;
+}
 int main() {
 #ifdef _MSC_VER
-  return demo_vulkanComputeShader();
+  return demo_vulkanMeshShader();
 #else
   int opt = 0;
   printf("Choose a demo to run:\n");
@@ -460,7 +716,7 @@ int main() {
   if (opt == 1) {
     return main2();
   } else if (opt == 2) {
-    return demo_vulkanComputeShader();
+    return demo_vulkanMeshShader();
   } else {
     return 0;
   }

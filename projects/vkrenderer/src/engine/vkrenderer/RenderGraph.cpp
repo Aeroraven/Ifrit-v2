@@ -127,7 +127,13 @@ RenderGraphPass::buildDescriptorParamHandle(uint32_t numMultiBuffers) {
       if (handleR.size() != 1 && handleR.size() != numMultiBuffers) {
         vkrLog("Inconsistent double buffers");
       }
-      auto handle = i >= handleR.size() ? handleR.back() : handleR[T];
+      uint32_t handle;
+      // = i >= handleR.size() ? handleR.back() : handleR[T];
+      if (T >= handleR.size()) {
+        handle = handleR.back();
+      } else {
+        handle = handleR[T];
+      }
       descriptorHandles.push_back(handle);
     }
     m_descriptorBindRange[T] =
@@ -261,6 +267,14 @@ IFRIT_APIDECL void GraphicsPass::setTessEvalShader(ShaderModule *shader) {
   m_tessEvalShader = shader;
 }
 
+IFRIT_APIDECL void GraphicsPass::setTaskShader(ShaderModule *shader) {
+  m_taskShader = shader;
+}
+
+IFRIT_APIDECL void GraphicsPass::setMeshShader(ShaderModule *shader) {
+  m_meshShader = shader;
+}
+
 IFRIT_APIDECL void GraphicsPass::record() {
   m_passContext.m_cmd = m_commandBuffer;
   m_passContext.m_frame = m_activeFrame;
@@ -367,31 +381,33 @@ IFRIT_APIDECL void GraphicsPass::record() {
   exfun.p_vkCmdSetColorWriteMaskEXT(m_passContext.m_cmd->getCommandBuffer(), 0,
                                     m_colorAttachments.size(),
                                     m_colorWriteMask.data());
-
-  exfun.p_vkCmdSetVertexInputEXT(m_passContext.m_cmd->getCommandBuffer(),
-                                 m_vertexBufferDescriptor.m_bindings.size(),
-                                 m_vertexBufferDescriptor.m_bindings.data(),
-                                 m_vertexBufferDescriptor.m_attributes.size(),
-                                 m_vertexBufferDescriptor.m_attributes.data());
-
-  std::vector<VkBuffer> vxbuffers;
-  std::vector<VkDeviceSize> offsets;
-  for (int i = 0; i < m_vertexBuffers.size(); i++) {
-    vxbuffers.push_back(
-        m_vertexBuffers[i]->getBuffer(m_passContext.m_frame)->getBuffer());
-    offsets.push_back(0);
-  }
-  if (vxbuffers.size() > 0) {
-    vkCmdBindVertexBuffers(m_passContext.m_cmd->getCommandBuffer(), 0,
-                           m_vertexBuffers.size(), vxbuffers.data(),
-                           offsets.data());
-  }
-
-  if (m_indexBuffer) {
-    vkCmdBindIndexBuffer(
+  if (m_meshShader == nullptr) {
+    exfun.p_vkCmdSetVertexInputEXT(
         m_passContext.m_cmd->getCommandBuffer(),
-        m_indexBuffer->getBuffer(m_passContext.m_frame)->getBuffer(), 0,
-        m_indexType);
+        m_vertexBufferDescriptor.m_bindings.size(),
+        m_vertexBufferDescriptor.m_bindings.data(),
+        m_vertexBufferDescriptor.m_attributes.size(),
+        m_vertexBufferDescriptor.m_attributes.data());
+
+    std::vector<VkBuffer> vxbuffers;
+    std::vector<VkDeviceSize> offsets;
+    for (int i = 0; i < m_vertexBuffers.size(); i++) {
+      vxbuffers.push_back(
+          m_vertexBuffers[i]->getBuffer(m_passContext.m_frame)->getBuffer());
+      offsets.push_back(0);
+    }
+    if (vxbuffers.size() > 0) {
+      vkCmdBindVertexBuffers(m_passContext.m_cmd->getCommandBuffer(), 0,
+                             m_vertexBuffers.size(), vxbuffers.data(),
+                             offsets.data());
+    }
+
+    if (m_indexBuffer) {
+      vkCmdBindIndexBuffer(
+          m_passContext.m_cmd->getCommandBuffer(),
+          m_indexBuffer->getBuffer(m_passContext.m_frame)->getBuffer(), 0,
+          m_indexType);
+    }
   }
 
   if (m_passDescriptorLayout.size() > 0) {
@@ -481,7 +497,6 @@ IFRIT_APIDECL void GraphicsPass::setVertexInput(
   for (auto *x : buffers) {
     addInputResource(x, trans);
   }
-  
 }
 
 IFRIT_APIDECL
@@ -497,8 +512,28 @@ void GraphicsPass::setIndexInput(RegisteredBufferHandle *buffer,
 
 IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
   GraphicsPipelineCreateInfo ci;
-  ci.shaderModules.push_back(m_vertexShader);
+  if (m_vertexShader != nullptr) {
+    ci.shaderModules.push_back(m_vertexShader);
+    ci.geomGenType = GeometryGenerationType::Conventional;
+  } 
   ci.shaderModules.push_back(m_fragmentShader);
+  if (m_geometryShader != nullptr) {
+    ci.shaderModules.push_back(m_geometryShader);
+  }
+  if (m_tessControlShader != nullptr) {
+    ci.shaderModules.push_back(m_tessControlShader);
+  }
+  if (m_tessEvalShader != nullptr) {
+    ci.shaderModules.push_back(m_tessEvalShader);
+  }
+  if (m_taskShader != nullptr) {
+    ci.shaderModules.push_back(m_taskShader);
+  }
+  if (m_meshShader != nullptr) {
+    ci.shaderModules.push_back(m_meshShader);
+    ci.geomGenType = GeometryGenerationType::Mesh;
+    vkrAssert(m_vertexShader == nullptr, "Vertex shader should be null");
+  }
   ci.viewportCount = 1;
   ci.scissorCount = 1;
   ci.topology = m_topology;
@@ -701,7 +736,7 @@ IFRIT_APIDECL void RenderGraph::build(uint32_t numMultiBuffers) {
           dependencySet.insert(outputResources[j]);
         }
         m_subgraphBelonging[i] = numSubgraph;
-        
+
         assignedPass++;
         // m_subgraphs[numSubgraph].push_back(i);
       }

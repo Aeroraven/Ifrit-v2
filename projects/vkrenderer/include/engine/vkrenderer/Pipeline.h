@@ -6,7 +6,9 @@
 namespace Ifrit::Engine::VkRenderer {
 
 enum class CullMode { None, Front, Back };
-enum class RasterizerTopology { TriangleList, Line,Point };
+enum class RasterizerTopology { TriangleList, Line, Point };
+enum class GeometryGenerationType { Conventional, Mesh };
+
 struct GraphicsPipelineCreateInfo {
   uint32_t viewportCount;
   uint32_t scissorCount;
@@ -16,6 +18,7 @@ struct GraphicsPipelineCreateInfo {
   VkFormat stencilAttachmentFormat;
   std::vector<ShaderModule *> shaderModules;
   std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+  GeometryGenerationType geomGenType = GeometryGenerationType::Conventional;
 };
 struct ComputePipelineCreateInfo {
   ShaderModule *shaderModules;
