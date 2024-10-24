@@ -20,6 +20,8 @@
 #include <vkrenderer/include/engine/vkrenderer/StagedMemoryResource.h>
 #include <vkrenderer/include/engine/vkrenderer/Swapchain.h>
 
+#include <meshproclib/include/engine/clusterlod/MeshClusterLodProc.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
@@ -528,7 +530,7 @@ int demo_vulkanMeshShader() {
   std::vector<ifloat2> uvs;
   std::vector<uint32_t> indicesRaw;
   std::vector<uint32_t> indices;
-  loadWaveFrontObject("C:/WR/hk3.obj", vertices, normals,
+  loadWaveFrontObject(IFRIT_DEMO_ASSET_PATH "/bunny.obj", vertices, normals,
                       uvs, indicesRaw);
 
   indices.resize(indicesRaw.size() / 3);
@@ -544,7 +546,7 @@ int demo_vulkanMeshShader() {
   const size_t max_vertices = 64;
   const size_t max_triangles = 124;
   const float cone_weight = 0.0f;
-
+#if 0
   size_t max_meshlets =
       meshopt_buildMeshletsBound(indices.size(), max_vertices, max_triangles);
   std::vector<meshopt_Meshlet> meshlets(max_meshlets);
@@ -558,6 +560,33 @@ int demo_vulkanMeshShader() {
       meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(),
       indices.data(), indices.size(), &vertices[0].x, vertices.size(),
       sizeof(ifloat3), max_vertices, max_triangles, cone_weight);
+
+ #else
+  using namespace Ifrit::Engine::MeshProcLib::ClusterLod;
+  MeshClusterLodProc meshProc;
+  MeshDescriptor meshDesc;
+  meshDesc.indexCount = indices.size();
+  meshDesc.indexData = reinterpret_cast<char *>(indices.data());
+  meshDesc.positionOffset = 0;
+  meshDesc.vertexCount = vertices.size();
+  meshDesc.vertexData = reinterpret_cast<char *>(vertices.data());
+  meshDesc.vertexStride = sizeof(ifloat3);
+
+  std::vector<ClusterLodGeneratorContext> ctx;
+  
+  constexpr int MAX_LOD = 3;
+  auto maxLod = meshProc.clusterLodHierachy(meshDesc, ctx, MAX_LOD);
+  auto chosenLod = MAX_LOD - 1;
+
+  auto meshlets = ctx[chosenLod].meshletsRaw;
+  auto meshlet_vertices = ctx[chosenLod].meshletVertices;
+  auto meshlet_triangles = ctx[chosenLod].meshletTriangles;
+  auto meshlet_count = ctx[chosenLod].meshletsRaw.size();
+
+  std::vector<unsigned int> meshlet_triangles2(meshlet_triangles.size());
+
+ #endif
+
 
   for(int i = 0; i < meshlet_triangles.size(); i++) {
     meshlet_triangles2[i] = meshlet_triangles[i];
@@ -675,7 +704,8 @@ int demo_vulkanMeshShader() {
   });
 
   msPass->setExecutionFunction([&](RenderPassContext *ctx) -> void {
-    float4x4 view = (lookAt({0, 7.707, 15.55}, {0, 7.707, 0.0}, {0, 1, 0}));
+    //float4x4 view = (lookAt({0, 7.707, 15.55}, {0, 7.707, 0.0}, {0, 1, 0}));
+    float4x4 view = (lookAt({0, 0.1, 0.25}, {0, 0.1, 0.0}, {0, 1, 0}));
     float4x4 proj = (perspectiveNegateY(
         60 * 3.14159 / 180, 1.0 * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01, 3000));
     auto mvp = transpose(matmul(proj, view));

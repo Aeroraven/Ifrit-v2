@@ -45,11 +45,16 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
 
 if(MSVC)
+    add_subdirectory(dependencies/gklib)
+    add_subdirectory(dependencies/metis)
     add_subdirectory(dependencies/meshoptimizer)
     add_subdirectory(projects/display)
+    add_subdirectory(projects/meshproclib)
     add_subdirectory(projects/vkrenderer)
     add_subdirectory(projects/demo)
-    add_dependencies(ifrit.demo ifrit.vkrenderer ifrit.display)
+
+    add_dependencies(ifrit.meshproclib meshoptimizer metis)
+    add_dependencies(ifrit.demo ifrit.vkrenderer ifrit.meshproclib ifrit.display)
 else()
     add_subdirectory(dependencies/meshoptimizer)
     add_subdirectory(dependencies/gklib)

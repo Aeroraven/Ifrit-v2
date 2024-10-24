@@ -120,7 +120,7 @@ include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     if(MSVC)
-        target_link_libraries(ifrit.demo meshoptimizer ifrit.display ${glfw3_LIB} ifrit.vkrenderer)
+        target_link_libraries(ifrit.demo meshoptimizer ifrit.display  ifrit.meshproclib ${glfw3_LIB} ifrit.vkrenderer)
     else()
         target_link_libraries(ifrit.demo meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display ${glfw3_LIB} ifrit.vkrenderer)
     endif()

@@ -40,7 +40,7 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 
 
 
-### 2.2 Quick Start (GCC / MinGW-w64)
+### 2.2 Quick Start 
 
 > **Note:** 
 >
@@ -49,7 +49,7 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 > 3. Please ensure that `find_package` can find  `vulkan>=1.3`, `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options. 
 > 4. Your device should support `descriptor indexing`, `dynamic rendering`, `dynamic state` and `timeline semaphore` extensions for `vulkan`
 >
-> **Under Refactoring, Linux GCC compilation MIGHT be  unavailable now**
+> **Under Refactoring, Linux GCC / MSVC compilation MIGHT be  unavailable now**
 
 ```shell
 cmake -S . -B ./build
@@ -64,15 +64,7 @@ To run the demo
 
 
 
-### 2.3 Quick Start (MSVC)
-
-> Note: Path to `CUDA`, `llvm` and `glfw3`should be manually configured in the property sheets. To install `cuda`, `llvm` and `glfw3`, check Complete Build Options. **Under Refactoring, MSVC compilation is not available now**
-
-Just open `Ifrit-v2x.sln` in `Visual Studio` and compile the project.
-
-
-
-### 2.4  Complete Build Options 
+### 2.3  Complete Build Options 
 
 See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
@@ -111,6 +103,7 @@ And some references that give inspirations:
     1. https://github.com/tgfrerer/island
 
 12. https://dev.to/gasim/implementing-bindless-design-in-vulkan-34no
+13. https://github.com/KhronosGroup/Vulkan-Samples
 
 
 
