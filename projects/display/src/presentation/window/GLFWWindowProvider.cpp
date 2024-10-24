@@ -12,7 +12,7 @@ void displayAssert(bool condition, const std::string &message) {
   }
 }
 IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth, size_t argHeight) {
-  glfwInit();
+  callGlfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   if(m_args.vulkanMode){
@@ -23,6 +23,7 @@ IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth, size_t argHeight) 
   }
 
   window = glfwCreateWindow(argWidth, argHeight, "Ifrit", nullptr, nullptr);
+  glfwSetWindowUserPointer(window, this);
   if (!window) {
     glfwTerminate();
     displayAssert(false, "Failed to create GLFW window");
@@ -46,8 +47,7 @@ IFRIT_APIDECL void GLFWWindowProvider::loop(const std::function<void(int *)> &fu
     int repCore;
     auto start = std::chrono::high_resolution_clock::now();
     funcs(&repCore);
-    glfwSwapBuffers(window);
-    glfwPollEvents();
+    
     auto end = std::chrono::high_resolution_clock::now();
     using durationType = decltype(
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
@@ -79,23 +79,29 @@ IFRIT_APIDECL void GLFWWindowProvider::loop(const std::function<void(int *)> &fu
       auto presentationTime = totalFrameTime - totalFrameTimeCore;
       ss << " Presentation Delay: " << presentationTime / 100.0 << "ms]";
       glfwSetWindowTitle(window, ss.str().c_str());
+
     }
+    glfwSwapBuffers(window);
+    glfwPollEvents();
   }
   glfwTerminate();
 }
-const char **GLFWWindowProvider::getVkRequiredInstanceExtensions(uint32_t *count) {
+IFRIT_APIDECL const char **
+GLFWWindowProvider::getVkRequiredInstanceExtensions(uint32_t *count) {
   return glfwGetRequiredInstanceExtensions(count);
 }
-void *GLFWWindowProvider::getWindowObject() {
+IFRIT_APIDECL void *GLFWWindowProvider::getWindowObject() {
 #ifdef _WIN32
   return glfwGetWin32Window(window);
 #else
   return glfwGetX11Window(window); 
 #endif
 }
-std::pair<uint32_t,uint32_t> GLFWWindowProvider::getFramebufferSize(){
+IFRIT_APIDECL std::pair<uint32_t, uint32_t>
+GLFWWindowProvider::getFramebufferSize() {
   int width, height;
   glfwGetFramebufferSize(window, &width, &height);
   return {width, height};
 }
+IFRIT_APIDECL void *GLFWWindowProvider::getGLFWWindow() { return window; }
 } // namespace Ifrit::Presentation::Window

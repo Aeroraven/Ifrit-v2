@@ -30,7 +30,7 @@ The project is organized into following parts.
 
 ## 2. Setup / Run
 
-> WARN: **Compiling files inside `dev` branch might yield unexpected result.**  Only x86-64 architecture `Windows` and  `Ubuntu` are tested. It mainly covers `Windows` and some `Linux` systems. Other operation systems like `MacOS` are NOT supported.
+> **WARN**: **Compiling files inside `dev` branch might yield UNEXPECTED result.**  Only x86-64 architecture `Windows` and  `Ubuntu` are tested. It mainly covers `Windows` and some `Linux` systems. Other operation systems like `MacOS` are NOT supported.
 
 ### 2.1 Clone the Repository
 
@@ -85,7 +85,7 @@ This project relies on following open-source projects. Corresponding licenses ar
 
 
 
-And some references that give inspirations:
+And some references that give inspirations. Thanks for their selfless dedications.
 
 1. https://tayfunkayhan.wordpress.com/2019/07/26/chasing-triangles-in-a-tile-based-rasterizer/
    1. https://github.com/NotCamelCase/Tyler

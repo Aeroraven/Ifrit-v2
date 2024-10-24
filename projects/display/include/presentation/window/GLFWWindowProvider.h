@@ -24,7 +24,7 @@ struct GLFWWindowProviderInitArgs {
 };
 class IFRIT_APIDECL GLFWWindowProvider : public WindowProvider {
 protected:
-  GLFWwindow *window;
+  GLFWwindow *window = nullptr;
   std::deque<int> frameTimes;
   std::deque<int> frameTimesCore;
   int totalFrameTime = 0;
@@ -43,5 +43,14 @@ public:
   const char **getVkRequiredInstanceExtensions(uint32_t *count);
   void *getWindowObject();
   std::pair<uint32_t, uint32_t> getFramebufferSize();
+  void *getGLFWWindow();
+
+  void callGlfwInit() {
+    auto x = glfwInit();
+    if (!x) {
+      printf("GLFW fails\n");
+    }
+    printf("GLFW init:%d\n", x);
+  }
 };
 } // namespace Ifrit::Presentation::Window

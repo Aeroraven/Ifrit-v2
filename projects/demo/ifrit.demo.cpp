@@ -497,16 +497,54 @@ int demo_vulkanComputeShader() {
   return 0;
 }
 
+// Glfw key function here
+float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0,
+      movNear = 0;
+
+void key_callback(GLFWwindow *window, int key, int scancode, int action,
+                  int mods) {
+  if (key == GLFW_KEY_A && action == GLFW_REPEAT) {
+    movLeft += 0.1f;
+  }
+  if (key == GLFW_KEY_D && action == GLFW_REPEAT) {
+    movRight += 0.1f;
+  }
+  if (key == GLFW_KEY_W && action == GLFW_REPEAT) {
+    movTop += 0.1f;
+  }
+  if (key == GLFW_KEY_S && action == GLFW_REPEAT) {
+    movBottom += 0.1f;
+  }
+  if (key == GLFW_KEY_E && action == GLFW_REPEAT) {
+    movFar += 0.1f;
+  }
+  if (key == GLFW_KEY_F && action == GLFW_REPEAT) {
+    movNear += 0.1f;
+  }
+}
+
+static void error_callback(int error, const char *description) {
+  fprintf(stderr, "Error: %s\n", description);
+  std::abort();
+}
+
 int demo_vulkanMeshShader() {
   using namespace Ifrit::Engine::VkRenderer;
   using namespace Ifrit::Presentation::Window;
   using namespace Ifrit::Math;
-
+  
+  glfwSetErrorCallback(error_callback);
+  glfwInit();
   GLFWWindowProviderInitArgs glfwArgs;
   glfwArgs.vulkanMode = true;
   GLFWWindowProvider windowProvider(glfwArgs);
+  windowProvider.callGlfwInit();
   windowProvider.setup(WINDOW_WIDTH, WINDOW_HEIGHT);
   windowProvider.setTitle("Ifrit-v2 (Vulkan Backend)");
+
+  // TODO: window class
+  glfwSetKeyCallback((GLFWwindow*)windowProvider.getGLFWWindow(),
+                     key_callback);
 
   InitializeArguments args;
   auto extensionGetter = [&windowProvider](uint32_t *count) -> const char ** {
@@ -530,7 +568,8 @@ int demo_vulkanMeshShader() {
   std::vector<ifloat2> uvs;
   std::vector<uint32_t> indicesRaw;
   std::vector<uint32_t> indices;
-  loadWaveFrontObject(IFRIT_DEMO_ASSET_PATH "/bunny.obj", vertices, normals,
+  loadWaveFrontObject("C:/WR/hk3.obj", vertices,
+                      normals, //"C:/WR/hk3.obj"
                       uvs, indicesRaw);
 
   indices.resize(indicesRaw.size() / 3);
@@ -546,22 +585,7 @@ int demo_vulkanMeshShader() {
   const size_t max_vertices = 64;
   const size_t max_triangles = 124;
   const float cone_weight = 0.0f;
-#if 0
-  size_t max_meshlets =
-      meshopt_buildMeshletsBound(indices.size(), max_vertices, max_triangles);
-  std::vector<meshopt_Meshlet> meshlets(max_meshlets);
-  std::vector<unsigned int> meshlet_vertices(max_meshlets * max_vertices);
-  std::vector<unsigned char> meshlet_triangles(max_meshlets * max_triangles *
-                                               3);
-  std::vector<unsigned int> meshlet_triangles2(max_meshlets * max_triangles *
-                                               3);
 
-  size_t meshlet_count = meshopt_buildMeshlets(
-      meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(),
-      indices.data(), indices.size(), &vertices[0].x, vertices.size(),
-      sizeof(ifloat3), max_vertices, max_triangles, cone_weight);
-
- #else
   using namespace Ifrit::Engine::MeshProcLib::ClusterLod;
   MeshClusterLodProc meshProc;
   MeshDescriptor meshDesc;
@@ -574,20 +598,28 @@ int demo_vulkanMeshShader() {
 
   std::vector<ClusterLodGeneratorContext> ctx;
   
-  constexpr int MAX_LOD = 3;
+  constexpr int MAX_LOD = 5;
   auto maxLod = meshProc.clusterLodHierachy(meshDesc, ctx, MAX_LOD);
   auto chosenLod = MAX_LOD - 1;
 
+#if 0
   auto meshlets = ctx[chosenLod].meshletsRaw;
   auto meshlet_vertices = ctx[chosenLod].meshletVertices;
   auto meshlet_triangles = ctx[chosenLod].meshletTriangles;
   auto meshlet_count = ctx[chosenLod].meshletsRaw.size();
+  auto meshlet_cull = ctx[chosenLod].lodCullData;
+#else
+  CombinedClusterLodBuffer combinedBuf;
+  meshProc.combineLodData(ctx, combinedBuf);
+  auto meshlet_triangles = combinedBuf.meshletTriangles;
+  auto meshlets = combinedBuf.meshletsRaw;
+  auto meshlet_vertices = combinedBuf.meshletVertices;
+  auto meshlet_count = meshlets.size();
+  auto meshlet_cull = combinedBuf.meshletCull;
+#endif
+
 
   std::vector<unsigned int> meshlet_triangles2(meshlet_triangles.size());
-
- #endif
-
-
   for(int i = 0; i < meshlet_triangles.size(); i++) {
     meshlet_triangles2[i] = meshlet_triangles[i];
   }
@@ -608,8 +640,10 @@ int demo_vulkanMeshShader() {
   backend.setQueues(true, 1, 1, 1);
 
   struct UniformBuffer {
+    ifloat4 cameraPos;
     float4x4 mvp;
     uint32_t meshletCount;
+    float fov;
   } uniformData;
 
   auto meshletBuffer = resourceManager.createStorageBufferDevice(
@@ -624,31 +658,41 @@ int demo_vulkanMeshShader() {
   auto vertexBuffer = resourceManager.createStorageBufferDevice(
       verticesAligned.size() * sizeof(ifloat4),
       VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto meshletCullBuffer =
+      resourceManager.createStorageBufferDevice(
+      meshlet_cull.size() * sizeof(MeshletCullData), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
   auto ubBuffer =
       resourceManager.createUniformBufferShared(sizeof(UniformBuffer), true);
 
   uniformData.meshletCount = meshlet_count;
 
-  StagedSingleBuffer stagedMeshletBuffer(&context, meshletBuffer);
-  StagedSingleBuffer stagedMeshletVertexBuffer(&context, meshletVertexBuffer);
-  StagedSingleBuffer stagedMeshletIndexBuffer(&context, meshletIndexBuffer);
-  StagedSingleBuffer stagedVertexBuffer(&context, vertexBuffer);
+  if(true){
+    StagedSingleBuffer stagedMeshletBuffer(&context, meshletBuffer);
+    StagedSingleBuffer stagedMeshletVertexBuffer(&context, meshletVertexBuffer);
+    StagedSingleBuffer stagedMeshletIndexBuffer(&context, meshletIndexBuffer);
+    StagedSingleBuffer stagedVertexBuffer(&context, vertexBuffer);
+    StagedSingleBuffer stagedMeshletCullBuffer(&context, meshletCullBuffer);
 
-  backend.runImmidiateCommand(
-      [&](CommandBuffer *cmd) -> void {
-        stagedMeshletBuffer.cmdCopyToDevice(
-            cmd, meshlets.data(), meshlets.size() * sizeof(meshopt_Meshlet), 0);
-        stagedMeshletVertexBuffer.cmdCopyToDevice(
-            cmd, meshlet_vertices.data(),
-            meshlet_vertices.size() * sizeof(unsigned int), 0);
-        stagedMeshletIndexBuffer.cmdCopyToDevice(
-            cmd, meshlet_triangles2.data(),
-            meshlet_triangles2.size() * sizeof(unsigned int), 0);
-        stagedVertexBuffer.cmdCopyToDevice(
-            cmd, verticesAligned.data(),
-            verticesAligned.size() * sizeof(ifloat4), 0);
-      },
-      QueueRequirement::Transfer);
+    backend.runImmidiateCommand(
+        [&](CommandBuffer *cmd) -> void {
+          stagedMeshletBuffer.cmdCopyToDevice(
+              cmd, meshlets.data(), meshlets.size() * sizeof(meshopt_Meshlet),
+              0);
+          stagedMeshletVertexBuffer.cmdCopyToDevice(
+              cmd, meshlet_vertices.data(),
+              meshlet_vertices.size() * sizeof(unsigned int), 0);
+          stagedMeshletIndexBuffer.cmdCopyToDevice(
+              cmd, meshlet_triangles2.data(),
+              meshlet_triangles2.size() * sizeof(unsigned int), 0);
+          stagedVertexBuffer.cmdCopyToDevice(
+              cmd, verticesAligned.data(),
+              verticesAligned.size() * sizeof(ifloat4), 0);
+          stagedMeshletCullBuffer.cmdCopyToDevice(
+              cmd, meshlet_cull.data(),
+              meshlet_cull.size() * sizeof(MeshletCullData), 0);
+        },
+        QueueRequirement::Transfer);
+  }
 
   // Shader
   auto msCode =
@@ -671,6 +715,7 @@ int demo_vulkanMeshShader() {
   auto msIBufReg = renderGraph->registerBuffer(meshletIndexBuffer);
   auto uniformBufReg = renderGraph->registerBuffer(ubBuffer);
   auto vertexBufReg = renderGraph->registerBuffer(vertexBuffer);
+  auto cullBufReg = renderGraph->registerBuffer(meshletCullBuffer);
   auto swapchainResReg = renderGraph->registerImage(swapchainRes);
   auto depthReg = renderGraph->registerImage(depthImage);
 
@@ -681,11 +726,12 @@ int demo_vulkanMeshShader() {
   msPass->addStorageBuffer(msVBufReg, 1, ResourceAccessType::Read);
   msPass->addStorageBuffer(msIBufReg, 2, ResourceAccessType::Read);
   msPass->addStorageBuffer(vertexBufReg, 3, ResourceAccessType::Read);
-  msPass->addUniformBuffer(uniformBufReg, 4);
+  msPass->addStorageBuffer(cullBufReg, 4, ResourceAccessType::Read);
+  msPass->addUniformBuffer(uniformBufReg, 5);
   msPass->setPassDescriptorLayout(
       {DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
        DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
-       DescriptorType::UniformBuffer});
+       DescriptorType::StorageBuffer, DescriptorType::UniformBuffer});
 
   msPass->setMeshShader(&msModule);
   msPass->setFragmentShader(&fsModule);
@@ -703,18 +749,27 @@ int demo_vulkanMeshShader() {
     ctx->m_cmd->drawMeshTasks(meshlet_count, 1, 1);
   });
 
+  float timeVal = 0.0f;
   msPass->setExecutionFunction([&](RenderPassContext *ctx) -> void {
-    //float4x4 view = (lookAt({0, 7.707, 15.55}, {0, 7.707, 0.0}, {0, 1, 0}));
-    float4x4 view = (lookAt({0, 0.1, 0.25}, {0, 0.1, 0.0}, {0, 1, 0}));
+    float z = 15.25 + (movFar - movNear)*1.2;// + 0.5*sin(timeVal);
+    float x = 7 + (movRight - movLeft)*1.2;
+    float y = 0.1 + (movTop - movBottom)*1.2;
+
+    ifloat4 camPos = ifloat4(x, y, z, 1.0);
+    float4x4 view = (lookAt({camPos.x, camPos.y, z},
+                            {camPos.x, camPos.y, z - 1}, {0, 1, 0}));
     float4x4 proj = (perspectiveNegateY(
         60 * 3.14159 / 180, 1.0 * WINDOW_WIDTH / WINDOW_HEIGHT, 0.01, 3000));
     auto mvp = transpose(matmul(proj, view));
     uniformData.mvp = mvp;
+    uniformData.fov = 60 * 3.14159 / 180;
+    uniformData.cameraPos = camPos;
     auto buf = ubBuffer->getActiveBuffer();
     buf->map();
     buf->copyToBuffer(&uniformData, sizeof(UniformBuffer), 0);
     buf->flush();
     buf->unmap();
+    timeVal += 0.0005f;
   });
 
   // Main loop
