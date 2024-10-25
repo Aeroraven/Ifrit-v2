@@ -191,6 +191,10 @@ public:
   SingleBuffer *createStorageBufferDevice(uint32_t size,
                                           VkFlags extraFlags = 0);
 
+  // Create a indirect mesh draw buffer and the target for compute shader
+  SingleBuffer *createIndirectMeshDrawBufferDevice(uint32_t numDrawCalls,
+                                                   VkFlags extraFlags = 0);
+
   // Create a uniform buffer that will be used to transfer data from host
   MultiBuffer *createUniformBufferShared(uint32_t size, bool hostVisible,
                                          VkFlags extraFlags = 0);

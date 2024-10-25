@@ -26,6 +26,7 @@ layout(set = 0 , binding = 1) buffer MeshletVertices { uint meshlet_vertices[]; 
 layout(set = 0 , binding = 1) buffer MeshletTriangles { uint meshlet_triangles[]; } gMeshletTri[];
 layout(set = 0 , binding = 1) buffer Vertices { vec4 vertices[]; } gVertices[];
 layout(set = 0 , binding = 1) buffer MeshletCulls { MeshletCull meshlet_culls[]; } gMeshletCulls[];
+layout(set = 0 , binding = 1) buffer FilteredMeshlets { uint data[]; } gCulledMeshlets[];
 
 layout (set = 0,binding = 0) uniform UniformBufferObject {
   vec4 cameraPos;
@@ -40,8 +41,8 @@ layout(set = 1, binding = 0) uniform BindlessMapping {
   uint meshletTriId;
   uint vxbufId;
   uint cullId;
+  uint targetMeshId;
   uint uniformId;
-  uint dummy1;
   uint dummy2;
 } bindlessMapping;
 
@@ -102,52 +103,55 @@ float computeProjectedRadius(float fovy,float d,float r) {
 }
 
 void main() {
-  uint mi = gl_WorkGroupID.x;
-  uint lodLevel = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].lod;
-  // Meshlet culling (although its lacking of efficiency. Performance and data structure will be improved in the future)
-  vec4 selfSphere = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].selfSphere;
-  vec4 parentSphere = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].parentSphere;
-  float selfError = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].selfError;
-  float parentError = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].parentError;
+  uint mio = gl_WorkGroupID.x;
+  uint mi = gCulledMeshlets[bindlessMapping.targetMeshId].data[mio]; 
 
-  float fov = ubo[bindlessMapping.uniformId].fov;
-  vec3 cameraPos = ubo[bindlessMapping.uniformId].cameraPos.xyz;
 
-  // get projected radius for parent
-  const float ACCEPTANCE_THRESHOLD = 0.01;
-  bool parentCull = true;
-  float ppr = 10.0;
-  if(parentError < 1e40){
-    vec3 parentCenter = parentSphere.xyz;
-    vec3 parentToCamera = cameraPos - parentCenter;
-    float parentDistance = length(parentToCamera);
-    float parentErrorRadius = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].parentError;
-    float parentProjectedRadius = computeProjectedRadius(fov, parentDistance, parentErrorRadius);
-    parentCull = parentProjectedRadius >= ACCEPTANCE_THRESHOLD;
-  }
-  // if parent is not culled, then return
-  if(!parentCull){
-    SetMeshOutputsEXT(0, 0);
-    return;
-  }
+  // uint lodLevel = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].lod;
+  // // Meshlet culling (although its lacking of efficiency. Performance and data structure will be improved in the future)
+  // vec4 selfSphere = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].selfSphere;
+  // vec4 parentSphere = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].parentSphere;
+  // float selfError = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].selfError;
+  // float parentError = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].parentError;
 
-  bool selfCull = false;
-  uint selfLod = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].lod;
-  float spr = 10.0;
-  if(selfLod != 0){
-    vec3 selfCenter = selfSphere.xyz;
-    vec3 selfToCamera = cameraPos - selfCenter;
-    float selfDistance = length(selfToCamera);
-    float selfErrorRadius = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].selfError;
-    float selfProjectedRadius = computeProjectedRadius(fov, selfDistance, selfErrorRadius);
-    selfCull = selfProjectedRadius >= ACCEPTANCE_THRESHOLD;
-    spr = selfProjectedRadius;
-  }
-  // if self is culled, then return
-  if(selfCull){
-    SetMeshOutputsEXT(0, 0);
-    return;
-  }
+  // float fov = ubo[bindlessMapping.uniformId].fov;
+  // vec3 cameraPos = ubo[bindlessMapping.uniformId].cameraPos.xyz;
+
+  // // get projected radius for parent
+  // const float ACCEPTANCE_THRESHOLD = 0.01;
+  // bool parentCull = true;
+  // float ppr = 10.0;
+  // if(parentError < 1e40){
+  //   vec3 parentCenter = parentSphere.xyz;
+  //   vec3 parentToCamera = cameraPos - parentCenter;
+  //   float parentDistance = length(parentToCamera);
+  //   float parentErrorRadius = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].parentError;
+  //   float parentProjectedRadius = computeProjectedRadius(fov, parentDistance, parentErrorRadius);
+  //   parentCull = parentProjectedRadius >= ACCEPTANCE_THRESHOLD;
+  // }
+  // // if parent is not culled, then return
+  // if(!parentCull){
+  //   SetMeshOutputsEXT(0, 0);
+  //   return;
+  // }
+
+  // bool selfCull = false;
+  // uint selfLod = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].lod;
+  // float spr = 10.0;
+  // if(selfLod != 0){
+  //   vec3 selfCenter = selfSphere.xyz;
+  //   vec3 selfToCamera = cameraPos - selfCenter;
+  //   float selfDistance = length(selfToCamera);
+  //   float selfErrorRadius = gMeshletCulls[bindlessMapping.cullId].meshlet_culls[mi].selfError;
+  //   float selfProjectedRadius = computeProjectedRadius(fov, selfDistance, selfErrorRadius);
+  //   selfCull = selfProjectedRadius >= ACCEPTANCE_THRESHOLD;
+  //   spr = selfProjectedRadius;
+  // }
+  // // if self is culled, then return
+  // if(selfCull){
+  //   SetMeshOutputsEXT(0, 0);
+  //   return;
+  // }
 
   // Meshlet display
   uint totalTris = gMeshlets[bindlessMapping.meshletId].meshlets[mi].triangle_count;
@@ -157,8 +161,8 @@ void main() {
     uint vi = readVertIndex(mi, i);
     vec3 v0 = gVertices[bindlessMapping.vxbufId].vertices[vi].xyz;
     gl_MeshVerticesEXT[i].gl_Position = ubo[bindlessMapping.uniformId].mvp * vec4(v0.xyz, 1.0);
-    fragColor[i] = vec3(spr,spr,spr);
-    fragColor[i] = colorMap[selfLod % 24].rgb;
+    //fragColor[i] = vec3(spr,spr,spr);
+    fragColor[i] = colorMap[mi % 24].rgb;
   }
 
   for(uint i = 0; i < totalTris; i++){

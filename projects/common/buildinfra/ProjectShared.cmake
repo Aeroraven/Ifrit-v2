@@ -30,7 +30,7 @@ endif()
 if(MSVC)
 
 else()
-    add_compile_options($<$<CONFIG:DEBUG>:-g>)
+    add_compile_options(-g)
     if(${IFRIT_ENABLE_OPTIMIZATION})
         add_compile_options($<$<CONFIG:RELEASE>:-O3>)
         add_compile_options($<$<CONFIG:RELEASE>:-fno-math-errno>)

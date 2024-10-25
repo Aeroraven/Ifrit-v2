@@ -19,7 +19,7 @@ if(NOT glfw3_FOUND)
     else()
         message(STATUS "[IFRIT/EnvCheck]: glfw3 found")
         # set glfw3 lib
-        add_library(glfw3 STATIC IMPORTED)
+        add_library(glfw STATIC IMPORTED)
         set_target_properties(glfw PROPERTIES IMPORTED_LOCATION ${glfw3_LIB})
     endif()
 else()

@@ -160,8 +160,16 @@ IFRIT_APIDECL void CommandBuffer::dispatch(uint32_t groupCountX,
 IFRIT_APIDECL void CommandBuffer::drawMeshTasks(uint32_t groupCountX,
                                                 uint32_t groupCountY,
                                                 uint32_t groupCountZ) const {
-  m_context->getExtensionFunction().p_vkCmdDrawMeshTasksEXT(m_commandBuffer, groupCountX, groupCountY, groupCountZ);
-  
+  m_context->getExtensionFunction().p_vkCmdDrawMeshTasksEXT(
+      m_commandBuffer, groupCountX, groupCountY, groupCountZ);
+}
+
+IFRIT_APIDECL void CommandBuffer::drawMeshTasksIndirect(VkBuffer buffer,
+                                                        uint32_t offset,
+                                                        uint32_t drawCount,
+                                                        uint32_t stride) const {
+  m_context->getExtensionFunction().p_vkCmdDrawMeshTasksIndirectEXT(
+      m_commandBuffer, buffer, offset, drawCount, stride);
 }
 
 IFRIT_APIDECL void CommandBuffer::copyBuffer(VkBuffer srcBuffer,

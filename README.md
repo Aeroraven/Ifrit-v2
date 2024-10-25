@@ -96,6 +96,7 @@ And some references that give inspirations. Thanks for their selfless dedication
 4. https://llvm.org/docs/LangRef.html
 5. https://www.mesa3d.org/
 6. https://agner.org/optimize/
+6. https://advances.realtimerendering.com/s2021/Karis_Nanite_SIGGRAPH_Advances_2021_final.pdf
 7. https://qiutang98.github.io/post/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E5%BC%80%E5%8F%91/mynanite01_mesh_processor/
    1. https://github.com/qiutang98/chord/tree/master
 8. https://jglrxavpok.github.io/2024/01/19/recreating-nanite-lod-generation.html

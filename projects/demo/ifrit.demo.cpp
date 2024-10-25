@@ -3,9 +3,7 @@
 #include <memory>
 #include <random>
 
-#ifndef _MSC_VER
 #include <softrenderer/include/engine/tileraster/TileRasterRenderer.h>
-#endif
 
 #include <display/include/presentation/backend/OpenGLBackend.h>
 #include <display/include/presentation/window/GLFWWindowProvider.h>
@@ -88,7 +86,6 @@ std::vector<char> readShaderFile(std::string filename) {
   return buffer;
 }
 
-#ifndef _MSC_VER
 class DemoVS : public Ifrit::Engine::SoftRenderer::VertexShader {
 public:
   virtual void execute(const void *const *input, ifloat4 *outPos,
@@ -171,7 +168,6 @@ int main2() {
   });
   return 0;
 }
-#endif
 
 int demo_vulkanTriangle() {
   using namespace Ifrit::Engine::VkRenderer;
@@ -532,7 +528,7 @@ int demo_vulkanMeshShader() {
   using namespace Ifrit::Engine::VkRenderer;
   using namespace Ifrit::Presentation::Window;
   using namespace Ifrit::Math;
-  
+
   glfwSetErrorCallback(error_callback);
   glfwInit();
   GLFWWindowProviderInitArgs glfwArgs;
@@ -543,7 +539,7 @@ int demo_vulkanMeshShader() {
   windowProvider.setTitle("Ifrit-v2 (Vulkan Backend)");
 
   // TODO: window class
-  glfwSetKeyCallback((GLFWwindow*)windowProvider.getGLFWWindow(),
+  glfwSetKeyCallback((GLFWwindow *)windowProvider.getGLFWWindow(),
                      key_callback);
 
   InitializeArguments args;
@@ -568,7 +564,7 @@ int demo_vulkanMeshShader() {
   std::vector<ifloat2> uvs;
   std::vector<uint32_t> indicesRaw;
   std::vector<uint32_t> indices;
-  loadWaveFrontObject("C:/WR/hk3.obj", vertices,
+  loadWaveFrontObject(IFRIT_DEMO_ASSET_PATH "/bunny.obj", vertices,
                       normals, //"C:/WR/hk3.obj"
                       uvs, indicesRaw);
 
@@ -596,31 +592,20 @@ int demo_vulkanMeshShader() {
   meshDesc.vertexData = reinterpret_cast<char *>(vertices.data());
   meshDesc.vertexStride = sizeof(ifloat3);
 
-  std::vector<ClusterLodGeneratorContext> ctx;
-  
   constexpr int MAX_LOD = 5;
-  auto maxLod = meshProc.clusterLodHierachy(meshDesc, ctx, MAX_LOD);
   auto chosenLod = MAX_LOD - 1;
-
-#if 0
-  auto meshlets = ctx[chosenLod].meshletsRaw;
-  auto meshlet_vertices = ctx[chosenLod].meshletVertices;
-  auto meshlet_triangles = ctx[chosenLod].meshletTriangles;
-  auto meshlet_count = ctx[chosenLod].meshletsRaw.size();
-  auto meshlet_cull = ctx[chosenLod].lodCullData;
-#else
   CombinedClusterLodBuffer combinedBuf;
-  meshProc.combineLodData(ctx, combinedBuf);
+  MeshletClusterInfo clusterInfo;
+  meshProc.clusterLodHierachyAll(meshDesc, combinedBuf, clusterInfo, MAX_LOD);
+
   auto meshlet_triangles = combinedBuf.meshletTriangles;
   auto meshlets = combinedBuf.meshletsRaw;
   auto meshlet_vertices = combinedBuf.meshletVertices;
   auto meshlet_count = meshlets.size();
   auto meshlet_cull = combinedBuf.meshletCull;
-#endif
-
 
   std::vector<unsigned int> meshlet_triangles2(meshlet_triangles.size());
-  for(int i = 0; i < meshlet_triangles.size(); i++) {
+  for (int i = 0; i < meshlet_triangles.size(); i++) {
     meshlet_triangles2[i] = meshlet_triangles[i];
   }
 
@@ -646,6 +631,10 @@ int demo_vulkanMeshShader() {
     float fov;
   } uniformData;
 
+  struct UniformCullBuffer {
+    uint32_t clusterCounts;
+  } uniformCullData;
+
   auto meshletBuffer = resourceManager.createStorageBufferDevice(
       meshlets.size() * sizeof(meshopt_Meshlet),
       VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -658,20 +647,33 @@ int demo_vulkanMeshShader() {
   auto vertexBuffer = resourceManager.createStorageBufferDevice(
       verticesAligned.size() * sizeof(ifloat4),
       VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-  auto meshletCullBuffer =
-      resourceManager.createStorageBufferDevice(
-      meshlet_cull.size() * sizeof(MeshletCullData), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto meshletCullBuffer = resourceManager.createStorageBufferDevice(
+      meshlet_cull.size() * sizeof(MeshletCullData),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+  printf("CRW:%lld\n", meshlet_cull.size() * sizeof(MeshletCullData));
   auto ubBuffer =
       resourceManager.createUniformBufferShared(sizeof(UniformBuffer), true);
 
+  // Culling pipeline
+  auto indirectDrawBuffer =
+      resourceManager.createIndirectMeshDrawBufferDevice(1);
+  auto clusterDataBuffer = resourceManager.createStorageBufferDevice(
+      clusterInfo.clusterInfo.size() * sizeof(MeshletClusterInfo),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto targetMeshlets = resourceManager.createStorageBufferDevice(
+      meshlets.size() * sizeof(uint32_t));
+  auto ubCullBuffer = resourceManager.createUniformBufferShared(
+      sizeof(UniformCullBuffer), true);
+
   uniformData.meshletCount = meshlet_count;
 
-  if(true){
+  if (true) {
     StagedSingleBuffer stagedMeshletBuffer(&context, meshletBuffer);
     StagedSingleBuffer stagedMeshletVertexBuffer(&context, meshletVertexBuffer);
     StagedSingleBuffer stagedMeshletIndexBuffer(&context, meshletIndexBuffer);
     StagedSingleBuffer stagedVertexBuffer(&context, vertexBuffer);
     StagedSingleBuffer stagedMeshletCullBuffer(&context, meshletCullBuffer);
+    StagedSingleBuffer stagedClusterDataBuffer(&context, clusterDataBuffer);
 
     backend.runImmidiateCommand(
         [&](CommandBuffer *cmd) -> void {
@@ -690,6 +692,9 @@ int demo_vulkanMeshShader() {
           stagedMeshletCullBuffer.cmdCopyToDevice(
               cmd, meshlet_cull.data(),
               meshlet_cull.size() * sizeof(MeshletCullData), 0);
+          stagedClusterDataBuffer.cmdCopyToDevice(
+              cmd, clusterInfo.clusterInfo.data(),
+              clusterInfo.clusterInfo.size() * sizeof(MeshletClusterInfo), 0);
         },
         QueueRequirement::Transfer);
   }
@@ -699,9 +704,17 @@ int demo_vulkanMeshShader() {
       readShaderFile(IFRIT_DEMO_SHADER_PATH "/ifrit.meshlet.mesh.spv");
   auto fsCode =
       readShaderFile(IFRIT_DEMO_SHADER_PATH "/ifrit.meshlet.frag.spv");
+  auto csClearCode =
+      readShaderFile(IFRIT_DEMO_SHADER_PATH "/ifrit.meshlet.clear.comp.spv");
+  auto csDynLodCode =
+      readShaderFile(IFRIT_DEMO_SHADER_PATH "/ifrit.meshlet.dynlod.comp.spv");
 
   ShaderModule msModule(&context, msCode, "main", ShaderStage::Mesh);
   ShaderModule fsModule(&context, fsCode, "main", ShaderStage::Fragment);
+  ShaderModule csClearModule(&context, csClearCode, "main",
+                             ShaderStage::Compute);
+  ShaderModule csDynLodModule(&context, csDynLodCode, "main",
+                              ShaderStage::Compute);
 
   // Depth Buffer
   auto depthImage =
@@ -718,7 +731,34 @@ int demo_vulkanMeshShader() {
   auto cullBufReg = renderGraph->registerBuffer(meshletCullBuffer);
   auto swapchainResReg = renderGraph->registerImage(swapchainRes);
   auto depthReg = renderGraph->registerImage(depthImage);
+  auto targetMeshletsReg = renderGraph->registerBuffer(targetMeshlets);
+  auto clusterDataReg = renderGraph->registerBuffer(clusterDataBuffer);
+  auto indirectDrawReg = renderGraph->registerBuffer(indirectDrawBuffer);
+  auto uniformBufCullReg = renderGraph->registerBuffer(ubCullBuffer);
 
+  // Clear Pass
+  auto clearPass = renderGraph->addComputePass();
+  clearPass->setComputeShader(&csClearModule);
+  clearPass->setPassDescriptorLayout({DescriptorType::StorageBuffer});
+  clearPass->addStorageBuffer(indirectDrawReg, 0, ResourceAccessType::Write);
+  clearPass->setRecordFunction(
+      [&](RenderPassContext *ctx) -> void { ctx->m_cmd->dispatch(1, 1, 1); });
+
+  // Cull Pass
+  auto cullPass = renderGraph->addComputePass();
+  cullPass->setComputeShader(&csDynLodModule);
+  cullPass->setPassDescriptorLayout(
+      {DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
+       DescriptorType::StorageBuffer, DescriptorType::UniformBuffer});
+  cullPass->addStorageBuffer(indirectDrawReg, 0, ResourceAccessType::Write);
+  cullPass->addStorageBuffer(clusterDataReg, 1, ResourceAccessType::Read);
+  cullPass->addStorageBuffer(targetMeshletsReg, 2, ResourceAccessType::Read);
+  cullPass->addUniformBuffer(uniformBufCullReg, 3);
+  cullPass->setRecordFunction(
+      [&](RenderPassContext *ctx) -> void { ctx->m_cmd->dispatch(1, 1, 1); });
+
+  // Draw Pass
+  // TODO: register indirect
   auto msPass = renderGraph->addGraphicsPass();
   msPass->addColorAttachment(swapchainResReg, VK_ATTACHMENT_LOAD_OP_CLEAR,
                              {{0.2f, 0.2f, 0.2f, 1.0f}});
@@ -727,11 +767,13 @@ int demo_vulkanMeshShader() {
   msPass->addStorageBuffer(msIBufReg, 2, ResourceAccessType::Read);
   msPass->addStorageBuffer(vertexBufReg, 3, ResourceAccessType::Read);
   msPass->addStorageBuffer(cullBufReg, 4, ResourceAccessType::Read);
-  msPass->addUniformBuffer(uniformBufReg, 5);
+  msPass->addStorageBuffer(targetMeshletsReg, 5, ResourceAccessType::Read);
+  msPass->addUniformBuffer(uniformBufReg, 6);
   msPass->setPassDescriptorLayout(
       {DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
        DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
-       DescriptorType::StorageBuffer, DescriptorType::UniformBuffer});
+       DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
+       DescriptorType::UniformBuffer});
 
   msPass->setMeshShader(&msModule);
   msPass->setFragmentShader(&fsModule);
@@ -746,14 +788,15 @@ int demo_vulkanMeshShader() {
   msPass->setRecordFunction([&](RenderPassContext *ctx) -> void {
     ctx->m_cmd->setScissors({scissor});
     ctx->m_cmd->setViewports({viewport});
-    ctx->m_cmd->drawMeshTasks(meshlet_count, 1, 1);
+    // ctx->m_cmd->drawMeshTasks(meshlet_count, 1, 1);
+    ctx->m_cmd->drawMeshTasksIndirect(indirectDrawBuffer->getBuffer(), 0, 1, 0);
   });
 
   float timeVal = 0.0f;
   msPass->setExecutionFunction([&](RenderPassContext *ctx) -> void {
-    float z = 15.25 + (movFar - movNear)*1.2;// + 0.5*sin(timeVal);
-    float x = 7 + (movRight - movLeft)*1.2;
-    float y = 0.1 + (movTop - movBottom)*1.2;
+    float z = 0.25 + (movFar - movNear) * 0.02; // + 0.5*sin(timeVal);
+    float x = 0 + (movRight - movLeft) * 0.02;
+    float y = 0.1 + (movTop - movBottom) * 0.02;
 
     ifloat4 camPos = ifloat4(x, y, z, 1.0);
     float4x4 view = (lookAt({camPos.x, camPos.y, z},
@@ -770,6 +813,13 @@ int demo_vulkanMeshShader() {
     buf->flush();
     buf->unmap();
     timeVal += 0.0005f;
+
+    uniformCullData.clusterCounts = clusterInfo.clusterInfo.size();
+    auto buf2 = ubCullBuffer->getActiveBuffer();
+    buf2->map();
+    buf2->copyToBuffer(&uniformCullData, sizeof(UniformCullBuffer), 0);
+    buf2->flush();
+    buf2->unmap();
   });
 
   // Main loop
@@ -787,9 +837,6 @@ int demo_vulkanMeshShader() {
   return 0;
 }
 int main() {
-#ifdef _MSC_VER
-  return demo_vulkanMeshShader();
-#else
   int opt = 0;
   printf("Choose a demo to run:\n");
   printf("1. SoftRenderer\n");
@@ -805,5 +852,4 @@ int main() {
   } else {
     return 0;
   }
-#endif
 }

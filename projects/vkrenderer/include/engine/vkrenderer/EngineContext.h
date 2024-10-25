@@ -64,6 +64,7 @@ struct IFRIT_APIDECL ExtensionFunction {
   PFN_vkCmdSetVertexInputEXT p_vkCmdSetVertexInputEXT;
 
   PFN_vkCmdDrawMeshTasksEXT p_vkCmdDrawMeshTasksEXT;
+  PFN_vkCmdDrawMeshTasksIndirectEXT p_vkCmdDrawMeshTasksIndirectEXT;
 };
 
 class IFRIT_APIDECL EngineContext {

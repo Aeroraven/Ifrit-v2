@@ -133,6 +133,8 @@ public:
                 uint32_t groupCountZ) const;
   void drawMeshTasks(uint32_t groupCountX, uint32_t groupCountY,
                      uint32_t groupCountZ) const;
+  void drawMeshTasksIndirect(VkBuffer buffer, uint32_t offset,
+                             uint32_t drawCount, uint32_t stride) const;
   void drawIndexed(uint32_t indexCount, uint32_t instanceCount,
                    uint32_t firstIndex, int32_t vertexOffset,
                    uint32_t firstInstance) const;

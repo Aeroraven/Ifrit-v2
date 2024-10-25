@@ -1,0 +1,50 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct MeshletClusterInfoBuffer {
+  vec4 boundingSphere;
+  uint subMeshletStart;
+  uint subMeshletCount;
+  uint childClusterStart;
+  uint childClusterCount;
+};
+
+
+layout(set = 0, binding = 1) buffer AtomicCounterBuffer { uvec3 counter; } counter[];
+layout(set = 0, binding = 1) buffer MeshletClusterInfoBufferBuffer { 
+    MeshletClusterInfoBuffer data[]; 
+} clusters[];
+layout(set = 0, binding = 1) buffer FilteredMeshletsBuffer { 
+    uint data[]; 
+} filteredMeshlets[];
+layout(set = 0, binding = 0) uniform UniformData{
+    uint totalClusterCount;
+}ubo[];
+
+layout(set = 1, binding = 0) uniform BindlessBuffer { 
+    uint counterId;
+    uint clusterId;
+    uint meshletId;
+    uint uniformId;
+} bindless;
+
+void main() {
+    uint meshletId = bindless.meshletId;
+    uint clusterId = bindless.clusterId;
+    uint counterId = bindless.counterId;
+    uint uniformId = bindless.uniformId;
+
+    uint totalClusters = ubo[uniformId].totalClusterCount;
+    uint targetMeshes = 0;
+    for(int i=1;i<totalClusters;i++){
+        uint childClusterCount = clusters[bindless.clusterId].data[i].childClusterCount;
+        if(childClusterCount == 0){
+            for(int j=0;j<clusters[bindless.clusterId].data[i].subMeshletCount;j++){
+                filteredMeshlets[bindless.meshletId].data[targetMeshes+j] = clusters[bindless.clusterId].data[i].subMeshletStart+j;
+            }
+            targetMeshes += clusters[bindless.clusterId].data[i].subMeshletCount;
+        }
+    }
+    counter[counterId].counter = uvec3(targetMeshes,1,1);
+}

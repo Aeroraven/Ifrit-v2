@@ -314,6 +314,17 @@ ResourceManager::createStorageBufferDevice(uint32_t size, VkFlags extraFlags) {
   return createSimpleBuffer(ci);
 }
 
+IFRIT_APIDECL SingleBuffer *
+ResourceManager::createIndirectMeshDrawBufferDevice(uint32_t numDrawCalls,
+                                                    VkFlags extraFlags) {
+  BufferCreateInfo ci{};
+  ci.size = numDrawCalls * sizeof(VkDrawMeshTasksIndirectCommandEXT);
+  ci.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
+             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | extraFlags;
+  ci.hostVisible = false;
+  return createSimpleBuffer(ci);
+}
+
 IFRIT_APIDECL MultiBuffer *
 ResourceManager::createUniformBufferShared(uint32_t size, bool hostVisible,
                                            VkFlags extraFlags) {

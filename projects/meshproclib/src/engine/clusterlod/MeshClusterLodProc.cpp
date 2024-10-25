@@ -88,11 +88,13 @@ void initialMeshletGeneration(const MeshDescriptor &mesh,
       TRIANGLES_PER_MESHLET, 0.0f);
 
   ctx.totalMeshlets = meshletCount;
-  
+
   // write lod errors, 0 for initial meshlet
   ctx.lodCullData.resize(meshletCount);
+  ctx.childClusterId.resize(meshletCount);
   for (int i = 0; i < meshletCount; i++) {
     ctx.lodCullData[i].selfError = 0.0f;
+    ctx.childClusterId[i] = UINT32_MAX;
   }
 
   freeUnusedMemoryInCotenxt(ctx);
@@ -184,7 +186,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
   auto modelScale = meshopt_simplifyScale(
       reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
       mesh.vertexCount, mesh.vertexStride);
-  
+
   for (auto &[key, meshletsR] : clusterGroupToMeshletMap) {
     std::vector<uint32_t> aggregatedIndexBuffer;
     for (auto i : meshletsR) {
@@ -221,7 +223,6 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
     simplifiedIndexBuffer.resize(simplifiedSize);
 
     auto targetErrorModel = targetError * modelScale;
-    
 
     // Split into meshlets, using meshopt_buildMeshlet
     std::vector<meshopt_Meshlet> meshlets;
@@ -244,7 +245,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
 
     freeUnusedMemoryInCotenxt2(meshlets, meshletVertices, meshletTriangles,
                                meshletCount);
-    
+
     auto boundSphere = meshopt_computeClusterBounds(
         simplifiedIndexBuffer.data(), simplifiedIndexBuffer.size(),
         reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
@@ -255,7 +256,8 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
 
     auto accumulatedError = 0.0f;
     for (auto i : meshletsR) {
-      accumulatedError = std::max(accumulatedError, ctx.lodCullData[i].selfError);
+      accumulatedError =
+          std::max(accumulatedError, ctx.lodCullData[i].selfError);
     }
     targetErrorModel += accumulatedError;
 
@@ -266,9 +268,8 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
       ctx.lodCullData[i].parentSphere.w = boundSphere.radius;
       ctx.lodCullData[i].parentError = targetErrorModel;
     }
-    
+
     meshletsCull.resize(meshletCount);
-    
 
     for (int i = 0; i < meshletCount; i++) {
       meshletsCull[i].selfSphere.x = boundSphere.center[0];
@@ -278,7 +279,6 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
       meshletsCull[i].selfError = targetErrorModel;
       meshletsCull[i].lod = childLod + 1;
     }
-
 
     // Copy the meshlets to the output context
     auto newMeshletVertexSize = 0;
@@ -298,6 +298,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
                                    newMeshletTriangleSize);
     outCtx.meshletsRaw.resize(newMeshletCount);
     outCtx.lodCullData.resize(newMeshletCount);
+    outCtx.childClusterId.resize(newMeshletCount);
 
     // just std::insert
     for (int i = 0; i < meshletCount; i++) {
@@ -309,6 +310,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
       outCtx.meshletsRaw[outCtx.totalMeshlets + i].triangle_offset +=
           newMeshletTriangleOffset;
       outCtx.lodCullData[outCtx.totalMeshlets + i] = meshletsCull[i];
+      outCtx.childClusterId[outCtx.totalMeshlets + i] = key;
     }
     outCtx.meshletVertices.insert(
         outCtx.meshletVertices.begin() + newMeshletVertexOffset,
@@ -323,7 +325,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
         meshletTriangles.begin(),
         meshletTriangles.begin() + newMeshletTriangleSize);
     outCtx.totalMeshlets = newMeshletCount;
-    //break;
+    // break;
   }
 }
 
@@ -349,6 +351,105 @@ int generateClusterLodHierachy(const MeshDescriptor &mesh,
   return maxLod;
 }
 
+// Dynamic lod selection requires a tree traversal at the cluster level
+int clusterLevelDataBuild(const std::vector<ClusterLodGeneratorContext> &ctx,
+                          MeshletClusterInfo &out) {
+  // TODO: Place meshlets in same cluster group in a contiguous memory
+  printf("Build cluster-level data\n");
+  std::vector<uint32_t> lodClusterStarts;
+  lodClusterStarts.resize(ctx.size() + 1);
+  auto maxlod = ctx.size() - 1;
+
+  // precalculate num of meshlets at each lod
+  std::vector<uint32_t> lodMeshletCount;
+  std::vector<uint32_t> lodClusterCountPrefixSum;
+  uint32_t psum = 0;
+  for (int i = 0; i < ctx.size(); i++) {
+    lodMeshletCount.push_back(ctx[i].meshletsRaw.size());
+    lodClusterCountPrefixSum.push_back(psum);
+    psum += ctx[i].meshletsRaw.size();
+  }
+
+  // root lod
+  MeshletClusterInfoBuffer rootData;
+  rootData.subMeshletStart = 0;
+  rootData.subMeshletCount = ctx[maxlod].totalMeshlets;
+  rootData.childClusterStart = 0;
+  rootData.childClusterCount = 0;
+  rootData.boundingSphere = ifloat4(0.0f, 0.0f, 0.0f, INFINITY);
+  out.clusterInfo.push_back(rootData);
+  lodClusterStarts[ctx.size()] = 0;
+
+  // get all clusters and their child meshlets
+  auto addCluster = [&](int lod, int start, int count) {
+    MeshletClusterInfoBuffer clusterData;
+    clusterData.subMeshletStart = start + lodClusterCountPrefixSum[lod];
+    clusterData.subMeshletCount = count;
+    clusterData.childClusterStart = 0;
+    clusterData.childClusterCount = 0;
+    auto boundSphere = ctx[lod].lodCullData[start].selfSphere;
+    clusterData.boundingSphere = boundSphere;
+    out.clusterInfo.push_back(clusterData);
+  };
+  for (int lod = ctx.size() - 1; lod >= 0; lod--) {
+    lodClusterStarts[lod] = out.clusterInfo.size();
+    auto lastClusterId = UINT32_MAX;
+    auto lastClusterStart = 0;
+    for (int i = 0; i < ctx[lod].meshletsRaw.size(); i++) {
+      auto clusterId = ctx[lod].childClusterId[i];
+      if (clusterId != lastClusterId) {
+        if (lastClusterId != UINT32_MAX) {
+          addCluster(lod, lastClusterStart, i - lastClusterStart); 
+        }
+        lastClusterId = clusterId;
+        lastClusterStart = i;
+      }
+    }
+    if (lastClusterStart < ctx[lod].meshletsRaw.size()) {
+      addCluster(lod, lastClusterStart,
+                 ctx[lod].meshletsRaw.size() - lastClusterStart);
+    }
+  }
+  // update root's child cluster count to max lod's
+  auto dMaxLodStart = lodClusterStarts[maxlod];
+  auto dMaxLodEnd =
+      (maxlod == 0) ? out.clusterInfo.size() : lodClusterStarts[maxlod - 1];
+  out.clusterInfo[0].childClusterCount = dMaxLodEnd - dMaxLodStart;
+  out.clusterInfo[0].childClusterStart = dMaxLodStart;
+
+  // build child cluster info
+  std::vector<std::vector<uint32_t>>
+      childClusterInfo; // at certain lod, cluster i owns child clusters j
+  for (int lod = 0; lod < ctx.size() - 1; lod++) {
+    auto dStart = lodClusterStarts[lod];
+    auto dEnd = lod == 0 ? out.clusterInfo.size() : lodClusterStarts[lod - 1];
+
+    // find how many lods are in the parent lod
+    auto dParentStart = lodClusterStarts[lod + 1];
+    auto dParentEnd = lodClusterStarts[lod];
+    auto numParentClusters = dParentEnd - dParentStart;
+
+    childClusterInfo.clear();
+    childClusterInfo.resize(numParentClusters);
+    for (int i = 0; i < ctx[lod].meshletsRaw.size(); i++) {
+      auto clusterId = ctx[lod].childClusterId[i];
+      auto parentClusterId = ctx[lod].graphPartition[i];
+      auto &r = childClusterInfo[parentClusterId];
+      r.push_back(clusterId + dStart);
+    }
+    for (int i = dParentStart; i < dParentEnd; i++) {
+      auto &cluster = out.clusterInfo[i];
+      auto parentClusterId = i - dParentStart;
+      auto &childClusters = childClusterInfo[parentClusterId];
+      cluster.childClusterStart = out.childClusters.size();
+      cluster.childClusterCount = childClusters.size();
+      out.childClusters.insert(out.childClusters.end(), childClusters.begin(),
+                               childClusters.end());
+    }
+  }
+  return 0;
+}
+
 void combineBuffer(const std::vector<ClusterLodGeneratorContext> &ctx,
                    CombinedClusterLodBuffer &outCtx) {
 
@@ -362,11 +463,10 @@ void combineBuffer(const std::vector<ClusterLodGeneratorContext> &ctx,
 
     for (int j = 0; j < ctx[i].totalMeshlets; j++) {
       outCtx.meshletsRaw[prevlevelMeshletCount + j] =
-          iint4(
-          ctx[i].meshletsRaw[j].vertex_offset + prevlevelVertexCount,
-          ctx[i].meshletsRaw[j].triangle_offset + prevlevelTriangleCount,
-          ctx[i].meshletsRaw[j].vertex_count,
-          ctx[i].meshletsRaw[j].triangle_count);
+          iint4(ctx[i].meshletsRaw[j].vertex_offset + prevlevelVertexCount,
+                ctx[i].meshletsRaw[j].triangle_offset + prevlevelTriangleCount,
+                ctx[i].meshletsRaw[j].vertex_count,
+                ctx[i].meshletsRaw[j].triangle_count);
       outCtx.meshletCull[prevlevelMeshletCount + j] = ctx[i].lodCullData[j];
     }
     outCtx.meshletVertices.insert(outCtx.meshletVertices.end(),
@@ -383,22 +483,6 @@ void combineBuffer(const std::vector<ClusterLodGeneratorContext> &ctx,
   }
 }
 
-int generateClusterLodHierachyFromSimpleMesh(
-    const std::vector<float> &vertices, const std::vector<uint32_t> &indices,
-    std::vector<ClusterLodGeneratorContext> &ctx, int maxLod) {
-  MeshDescriptor mesh;
-  mesh.vertexData =
-      reinterpret_cast<char *>(const_cast<float *>(vertices.data()));
-  mesh.indexData =
-      reinterpret_cast<char *>(const_cast<uint32_t *>(indices.data()));
-  mesh.vertexCount = vertices.size() / 3;
-  mesh.indexCount = indices.size();
-  mesh.vertexStride = 3 * sizeof(float);
-  mesh.positionOffset = 0;
-  auto v = generateClusterLodHierachy(mesh, ctx, maxLod);
-  return v;
-}
-
 IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(
     const MeshDescriptor &mesh, std::vector<ClusterLodGeneratorContext> &ctx,
     int maxLod) {
@@ -407,8 +491,15 @@ IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(
 
 IFRIT_APIDECL void MeshClusterLodProc::combineLodData(
     const std::vector<ClusterLodGeneratorContext> &ctx,
-    CombinedClusterLodBuffer& out) {
+    CombinedClusterLodBuffer &out) {
   return combineBuffer(ctx, out);
 }
-
+IFRIT_APIDECL void MeshClusterLodProc::clusterLodHierachyAll(
+    const MeshDescriptor &mesh, CombinedClusterLodBuffer &meshletData,
+    MeshletClusterInfo &clusterData, int maxlod) {
+  std::vector<ClusterLodGeneratorContext> ctx;
+  generateClusterLodHierachy(mesh, ctx, maxlod);
+  combineBuffer(ctx, meshletData);
+  clusterLevelDataBuild(ctx, clusterData);
+}
 } // namespace Ifrit::Engine::MeshProcLib::ClusterLod

@@ -1,9 +1,9 @@
 #pragma once
 #include <common/core/ApiConv.h>
+#include <common/math/LinalgOps.h>
 #include <cstdint>
 #include <meshoptimizer/src/meshoptimizer.h>
 #include <vector>
-#include <common/math/LinalgOps.h>
 
 namespace Ifrit::Engine::MeshProcLib::ClusterLod {
 
@@ -25,6 +25,21 @@ struct MeshletCullData {
   uint32_t dummy = 0;
 };
 
+struct MeshletClusterInfoBuffer {
+  ifloat4 boundingSphere;
+  uint32_t subMeshletStart;
+  uint32_t subMeshletCount;
+  uint32_t childClusterStart;
+  uint32_t childClusterCount;
+};
+
+struct MeshletClusterInfo {
+  std::vector<MeshletClusterInfoBuffer> clusterInfo;
+  std::vector<uint32_t> subMeshlets;
+  std::vector<uint32_t>
+      childClusters; // TODO: indirect addressing seems to be slow
+};
+
 struct ClusterLodGeneratorContext {
   int totalMeshlets;
   std::vector<meshopt_Meshlet> meshletsRaw;
@@ -35,6 +50,7 @@ struct ClusterLodGeneratorContext {
 
   std::vector<uint32_t> parentStart;
   std::vector<uint32_t> parentSize;
+  std::vector<uint32_t> childClusterId;
 };
 
 struct CombinedClusterLodBuffer {
@@ -50,10 +66,14 @@ struct CombinedClusterLodBuffer {
 class IFRIT_APIDECL MeshClusterLodProc {
 public:
   int clusterLodHierachy(const MeshDescriptor &mesh,
-                                 std::vector<ClusterLodGeneratorContext> &ctx,
-                                 int maxLod);
+                         std::vector<ClusterLodGeneratorContext> &ctx,
+                         int maxLod);
   void combineLodData(const std::vector<ClusterLodGeneratorContext> &ctx,
                       CombinedClusterLodBuffer &out);
+
+  void clusterLodHierachyAll(const MeshDescriptor &mesh,
+                             CombinedClusterLodBuffer &meshletData,
+                             MeshletClusterInfo &clusterData, int maxlod);
 };
 
 } // namespace Ifrit::Engine::MeshProcLib::ClusterLod
