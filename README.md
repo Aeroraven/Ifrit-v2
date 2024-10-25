@@ -53,7 +53,7 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 
 ```shell
 cmake -S . -B ./build
-cmake --build ./builds
+cmake --build ./build
 ```
 
 To run the demo
@@ -103,7 +103,6 @@ And some references that give inspirations. Thanks for their selfless dedication
 10. https://vulkan-tutorial.com/
 11. https://poniesandlight.co.uk/reflect/island_rendergraph_1/
     1. https://github.com/tgfrerer/island
-
 12. https://dev.to/gasim/implementing-bindless-design-in-vulkan-34no
 13. https://github.com/KhronosGroup/Vulkan-Samples
 
