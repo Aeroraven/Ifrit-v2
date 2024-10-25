@@ -21,7 +21,7 @@ You have to install a compiler toolchain to build the project. The following com
 
 
 ### Dependencies
-#### LLVM 10
+#### LLVM 10 / LLVM 11
 
 Note that only LLVM-10 is tested. Unexpected behaviors are observed in LLVM-18 and LLVM-20 (compiled by `msvc` or `MinGW-w64`).
 
@@ -31,7 +31,7 @@ Follow the instructions to install LLVM (https://releases.llvm.org/download.html
 # For ubuntu
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
-sudo ./llvm.sh 10
+sudo ./llvm.sh 10 # or 11
 ```
 
 ```bash
@@ -39,8 +39,8 @@ sudo ./llvm.sh 10
 # Note that MSVC 19 cannot build llvm10, to solve this problem switch to llvm11 or use mingw-w64
 git clone https://github.com/llvm/llvm-project.git
 cd llvm-project
-git checkout release/10.x
-cmake -S llvm -B build -G "MinGW Makefiles" -DLLVM_ENABLE_PROJECTS="clang;lld" -DCMAKE_BUILD_TYPE=Release
+git checkout release/10.x # or release/11.x
+cmake -S llvm -B build -DLLVM_ENABLE_PROJECTS="clang;lld" -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
@@ -101,10 +101,10 @@ cmake --build ./build
 
 ## Run
 
-# For Linux
+### For Linux
 ```bash
 export LD_LIBRARY_PATH=/path/to/ifrit.compile.so;$LD_LIBRARY_PATH
-./bin/ifrit
-LIBGL_ALWAYS_SOFTWARE=1 ./bin/ifrit # Maybe in WSL2
+./bin/ifrit.demo
+LIBGL_ALWAYS_SOFTWARE=1 ./bin/ifrit.demo # Maybe in WSL2
 ```
 

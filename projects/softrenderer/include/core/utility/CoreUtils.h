@@ -1,6 +1,7 @@
 #pragma once
 #include "../definition/CoreDefs.h"
 
+
 namespace Ifrit::Engine::SoftRenderer::Core::Utility {
 
 template <typename T> concept CoreUtilIsIntegerType = std::is_integral_v<T>;

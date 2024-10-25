@@ -2,7 +2,9 @@
 #include <chrono>
 #include <iostream>
 #include <sstream>
-
+#ifndef _WIN32
+#include <X11/Xlib.h>
+#endif
 namespace Ifrit::Presentation::Window {
 
 void displayAssert(bool condition, const std::string &message) {
@@ -94,7 +96,9 @@ IFRIT_APIDECL void *GLFWWindowProvider::getWindowObject() {
 #ifdef _WIN32
   return glfwGetWin32Window(window);
 #else
-  return glfwGetX11Window(window); 
+  
+  static_assert( (sizeof(unsigned long long) == sizeof(void*)), "Window size is not equal to void* size");
+  return (void*)glfwGetX11Window(window); 
 #endif
 }
 IFRIT_APIDECL std::pair<uint32_t, uint32_t>

@@ -16,12 +16,6 @@
 #include "llvm/Transforms/Utils.h"
 #include "../include/LLVMExecRuntime.Decl.h"
 
-#ifndef __INTELLISENSE__
-    #ifdef _MSC_VER
-        static_assert(false, "This project cannot be built using current compiler. For windows, build with MinGW-w64.");
-    #endif
-#endif
-
 using namespace llvm;
 using namespace llvm::orc;
 

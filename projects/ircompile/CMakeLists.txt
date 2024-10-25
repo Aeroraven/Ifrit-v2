@@ -15,12 +15,16 @@ set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
 string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
 message(STATUS "[IFRIT/EnvCheck]: Working Directory ${IFRIT_PROJECT_DIR}")
 
-target_compile_options(ifrit.ircompile PRIVATE -O3)
-target_compile_options(ifrit.ircompile PRIVATE
-    -fno-exceptions
-    -fno-rtti
-)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -fno-stack-protector")
+if(NOT MSVC)
+    target_compile_options(ifrit.ircompile PRIVATE -O2)
+    target_compile_options(ifrit.ircompile PRIVATE
+        -fno-exceptions
+        -fno-rtti
+    )
+endif()
+if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -fno-stack-protector")
+endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_compile_definitions(ifrit.ircompile PRIVATE
@@ -34,7 +38,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
        ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/llvm/include
        ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/build/include
     )
-    target_link_directories(ifrit.ircompile PRIVATE ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/build/lib)
+    
+    if(MSVC)
+        target_link_directories(ifrit.ircompile PRIVATE ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/build/Debug/lib) #TODO
+    else()
+        target_link_directories(ifrit.ircompile PRIVATE ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/build/lib)
+    endif()
     target_link_libraries(ifrit.ircompile PRIVATE
         LLVMOrcJIT
         LLVMPasses
@@ -63,7 +72,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         LLVMBitWriter
         LLVMX86Desc
         LLVMMCDisassembler
-        LLVMX86Utils
         LLVMX86Info
         LLVMMCJIT
         LLVMExecutionEngine
@@ -84,13 +92,16 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         LLVMBinaryFormat
         LLVMSupport
         LLVMDemangle
-        z
         psapi
         shell32
         ole32
         uuid
         advapi32
     )
+    if(NOT MSVC)
+        #add target link libraries: LLVMX86Utils
+        target_link_libraries(ifrit.ircompile PRIVATE LLVMX86Utils z)
+    endif()
 else()
     target_compile_definitions(ifrit.ircompile PRIVATE
         IFRIT_COMPONENT_LLVMEXEC_EXPORT

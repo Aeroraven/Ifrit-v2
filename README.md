@@ -49,7 +49,7 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 > 3. Please ensure that `find_package` can find  `vulkan>=1.3`, `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options. 
 > 4. Your device should support `descriptor indexing`, `dynamic rendering`, `dynamic state` and `timeline semaphore` extensions for `vulkan`
 >
-> **Under Refactoring, Linux GCC / MSVC compilation MIGHT be  unavailable now**
+> **Under Refactoring, Linux GCC compilation MIGHT be unavailable now**
 
 ```shell
 cmake -S . -B ./build
@@ -83,7 +83,9 @@ This project relies on following open-source projects. Corresponding licenses ar
 - [METIS](https://github.com/KarypisLab/METIS/), for graph partitioning
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator), for memory allocation and buffer management
 
+And for debugging
 
+- [RenderDoc](https://renderdoc.org/), for graphics debugging.
 
 And some references that give inspirations. Thanks for their selfless dedications.
 

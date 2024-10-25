@@ -1,3 +1,8 @@
+# Deps Check
+include(CheckCXXCompilerFlag)
+include(CheckCSourceCompiles)
+
+
 # Deps Check / AVX2
 set(OLD_CMAKE_REQUIRED_FLAG ${CMAKE_REQUIRED_FLAGS})
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
@@ -35,3 +40,20 @@ int main() {
 check_c_source_compiles("${CHECK_SSE_SOURCE}" IFRIT_ENABLE_SIMD_SSE)
 set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQUIRED_FLAG})
 message(STATUS "[IFRIT/EnvCheck]: SSE Support - ${IFRIT_ENABLE_SIMD_SSE}")
+
+if(${IFRIT_ENABLE_SIMD_SSE})
+    add_definitions(-DIFRIT_FEATURE_SIMD)
+    if(NOT MSVC)
+        add_definitions(-msse)
+        add_definitions(-mfma)
+    endif()
+    message(STATUS "[IFRIT/Feature]: Use Feature: SIMD/SSE")
+endif()
+
+if(${IFRIT_ENABLE_SIMD_AVX2})
+    add_definitions(-DIFRIT_FEATURE_SIMD_AVX256)
+    if(NOT MSVC)
+        add_definitions(-mavx2)
+    endif()
+    message(STATUS "[IFRIT/Feature]: Use Feature: SIMD/AVX2")
+endif()
