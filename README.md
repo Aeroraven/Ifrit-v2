@@ -87,7 +87,11 @@ And for debugging
 
 - [RenderDoc](https://renderdoc.org/), for graphics debugging.
 
+
+
 And some references that give inspirations. Thanks for their selfless dedications.
+
+**Software Rasterization**：
 
 1. https://tayfunkayhan.wordpress.com/2019/07/26/chasing-triangles-in-a-tile-based-rasterizer/
    1. https://github.com/NotCamelCase/Tyler
@@ -96,16 +100,19 @@ And some references that give inspirations. Thanks for their selfless dedication
 4. https://llvm.org/docs/LangRef.html
 5. https://www.mesa3d.org/
 6. https://agner.org/optimize/
-6. https://advances.realtimerendering.com/s2021/Karis_Nanite_SIGGRAPH_Advances_2021_final.pdf
-7. https://qiutang98.github.io/post/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E5%BC%80%E5%8F%91/mynanite01_mesh_processor/
+
+**Modern Graphics Pipeline**
+
+1. https://advances.realtimerendering.com/s2021/Karis_Nanite_SIGGRAPH_Advances_2021_final.pdf
+2. https://qiutang98.github.io/post/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E5%BC%80%E5%8F%91/mynanite01_mesh_processor/
    1. https://github.com/qiutang98/chord/tree/master
-8. https://jglrxavpok.github.io/2024/01/19/recreating-nanite-lod-generation.html
-9. https://lesleylai.info/en/vk-khr-dynamic-rendering/
-10. https://vulkan-tutorial.com/
-11. https://poniesandlight.co.uk/reflect/island_rendergraph_1/
-    1. https://github.com/tgfrerer/island
-12. https://dev.to/gasim/implementing-bindless-design-in-vulkan-34no
-13. https://github.com/KhronosGroup/Vulkan-Samples
+3. https://jglrxavpok.github.io/2024/01/19/recreating-nanite-lod-generation.html
+4. https://lesleylai.info/en/vk-khr-dynamic-rendering/
+5. https://vulkan-tutorial.com/
+6. https://poniesandlight.co.uk/reflect/island_rendergraph_1/
+   1. https://github.com/tgfrerer/island
+7. https://dev.to/gasim/implementing-bindless-design-in-vulkan-34no
+8. https://github.com/KhronosGroup/Vulkan-Samples
 
 
 

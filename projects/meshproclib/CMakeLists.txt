@@ -39,6 +39,20 @@ if(NOT MSVC)
     add_compile_options(-fPIC)
 endif()
 
+# metis bug fix
+# add_library(metismod STATIC IMPORTED)
+# set_target_properties(metismod PROPERTIES IMPORTED_LOCATION ${IFRIT_PROJECT_DIR}/dependencies/metismod/metis.lib)
+# add_library(gklibmod STATIC IMPORTED)
+# set_target_properties(gklibmod PROPERTIES IMPORTED_LOCATION ${IFRIT_PROJECT_DIR}/dependencies/metismod/GKlib/libgklib.a)
+
+# end metis bug fix
+
+# add address sanitizer for msvc
+# if(MSVC)
+#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
+# endif()
+
+
 include_directories(".")
 include_directories(include)
 include_directories(${IFRIT_EXTERNAL_DEPENDENCY_PATH})

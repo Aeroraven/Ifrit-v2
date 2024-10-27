@@ -2,49 +2,217 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-struct MeshletClusterInfoBuffer {
-  vec4 boundingSphere;
-  uint subMeshletStart;
-  uint subMeshletCount;
-  uint childClusterStart;
-  uint childClusterCount;
+struct BVHNode{
+    vec4 boundingSphere;
+    uint numChildNodes;
+    uint clusterGroupStart;
+    uint clusterGroupCount;
+    uint subTreeSize;
+    uint childNodes[8];
 };
 
+struct ClusterGroup{
+    vec4 selfBoundSphere;
+    vec4 parentBoundSphere;
+    float selfError;
+    float parentError;
+    uint childMeshletStart;
+    uint childMeshletCount;
+    uint lod;
+    uint dummy1;
+    uint dummy2;
+    uint dummy3;
+};
 
-layout(set = 0, binding = 1) buffer AtomicCounterBuffer { uvec3 counter; } counter[];
-layout(set = 0, binding = 1) buffer MeshletClusterInfoBufferBuffer { 
-    MeshletClusterInfoBuffer data[]; 
-} clusters[];
+// Consumer-Producer queue
+layout(set = 0, binding = 1) buffer ConsumerCounter { uint v; } consumer[];
+layout(set = 0, binding = 1) buffer ProducerCounter { uint v; } producer[];
+layout(set = 0, binding = 1) buffer RemainingClusterCounter { uint v; } remainingCluster[];
+layout(set = 0, binding = 1) buffer CPQueue { 
+    uint data[]; 
+} queue[];
+
+// Meshlet storage buffers
+layout(set = 0, binding = 1) buffer AtomicCounterBuffer { uvec3 counter; } drawCallSize[];
+layout(set = 0, binding = 1) buffer ClusterGroupBuffer { 
+    ClusterGroup data[]; 
+} clusterGroups[];
+layout(set = 0, binding = 1) buffer MeshletInClusterGroupBuffer{
+    uint data[];
+} meshletsInClusterGroup[];
+layout(set = 0, binding = 1) buffer BVHNodeBuffer { 
+    BVHNode data[]; 
+} bvhNodes[];
 layout(set = 0, binding = 1) buffer FilteredMeshletsBuffer { 
     uint data[]; 
 } filteredMeshlets[];
-layout(set = 0, binding = 0) uniform UniformData{
-    uint totalClusterCount;
+
+// Uniform bindings
+layout(set = 0, binding = 0) uniform UniformCompData{
+    uint clusterGroupCounts;
+    uint totalBvhNodes;
+    uint totalLods;
 }ubo[];
+layout(set = 0, binding = 0) uniform UniformCameraData{
+    mat4 mvp;
+    mat4 mv;
+    vec4 cameraPos;
+    uint meshletCount;
+    float fov;
+}ubocam[];
 
 layout(set = 1, binding = 0) uniform BindlessBuffer { 
-    uint counterId;
-    uint clusterId;
-    uint meshletId;
-    uint uniformId;
+    uint counterId; // Num of meshlets filtered
+    uint clusterGroupId; // Cluster group buffer
+    uint bvhId; // BVH buffer
+    uint meshletId; // Filtered meshlets buffer
+    uint meshletInClusterGroupId; // Meshlets in cluster group buffer
+    uint uniformId; // Uniform buffer
+    uint unicamId;  // Camera uniform buffer
+    uint consumerId; // Consumer counter
+    uint producerId;  // Producer counter
+    uint queueId; // Queue buffer
+    uint remainingId; // Remaining cluster counter
+    uint dummy2;
 } bindless;
 
-void main() {
-    uint meshletId = bindless.meshletId;
-    uint clusterId = bindless.clusterId;
-    uint counterId = bindless.counterId;
-    uint uniformId = bindless.uniformId;
+float computeProjectedRadius(float fovy,float d,float r) {
+  // https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
+  float fov = fovy / 2;
+  return 1.0 / tan(fov) * r / sqrt(d * d - r * r); 
+}
 
-    uint totalClusters = ubo[uniformId].totalClusterCount;
-    uint targetMeshes = 0;
-    for(int i=1;i<totalClusters;i++){
-        uint childClusterCount = clusters[bindless.clusterId].data[i].childClusterCount;
-        if(childClusterCount == 0){
-            for(int j=0;j<clusters[bindless.clusterId].data[i].subMeshletCount;j++){
-                filteredMeshlets[bindless.meshletId].data[targetMeshes+j] = clusters[bindless.clusterId].data[i].subMeshletStart+j;
+bool isBVHNodeVisible(uint id){
+    return true;
+}
+
+bool isClusterGroupVisible(uint id){
+    // Seems the original paper just use `parentError` to determine whether a cluster group is visible
+    // This implementation uses both `parentError` and `selfError` to determine visibility
+    // which is more slow
+    const float MESHLET_CULL_ERROR_THRESH = 1.0;
+    const float RENDERTARGET_HEIGHT = 1080.0;
+
+    uint totalLod = ubo[bindless.uniformId].totalLods;
+    float fov = ubocam[bindless.unicamId].fov;
+    vec3 cameraPos = ubocam[bindless.unicamId].cameraPos.xyz;
+
+    ClusterGroup group = clusterGroups[bindless.clusterGroupId].data[id];
+    vec3 selfSphereCenter = group.selfBoundSphere.xyz;
+    float selfSphereRaidus = group.selfError;
+    vec3 parentSphereCenter = group.parentBoundSphere.xyz;
+    float parentSphereRadius = group.parentError;
+    bool parentRejected = true;
+
+    if(group.lod != totalLod-1){
+        vec4 viewSpaceCenter = ubocam[bindless.unicamId].mv * vec4(parentSphereCenter, 1.0);
+        vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
+        float parentProjectedRadius = computeProjectedRadius(fov, length(viewSpaceCenter3), parentSphereRadius);
+        parentProjectedRadius*=RENDERTARGET_HEIGHT;
+        parentRejected = parentProjectedRadius > MESHLET_CULL_ERROR_THRESH;
+    }
+    if(!parentRejected) return false;
+
+    bool selfRejected = false;
+    if(group.lod != 0){
+        vec4 viewSpaceCenter = ubocam[bindless.unicamId].mv * vec4(selfSphereCenter, 1.0);
+        vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
+        float selfProjectedRadius = computeProjectedRadius(fov, length(viewSpaceCenter3), selfSphereRaidus);
+        selfProjectedRadius*=RENDERTARGET_HEIGHT;
+        selfRejected = selfProjectedRadius > MESHLET_CULL_ERROR_THRESH;
+    }
+    return !selfRejected;
+}
+
+void enqueueClusterGroup(uint id){
+    // add all meshlets in the cluster group to the filtered meshlets buffer
+    ClusterGroup group = clusterGroups[bindless.clusterGroupId].data[id];
+    uint pos = atomicAdd(drawCallSize[bindless.counterId].counter.x, group.childMeshletCount);
+    for(uint i = 0; i < group.childMeshletCount; i++){
+        // get meshlet in cluster group
+        uint meshletId = meshletsInClusterGroup[bindless.meshletInClusterGroupId].data[group.childMeshletStart + i];
+        filteredMeshlets[bindless.meshletId].data[pos + i] = meshletId;
+    }
+}
+
+void main(){
+    // TODO: Only 1 workgroup is used, low GPU utilization (better sync strategy required)
+    uint threadId = gl_GlobalInvocationID.x;
+    uint groupSize = gl_WorkGroupSize.x;
+
+    const uint UNSET = 0xFFFFFFFF;
+    
+    uint chosenBVHNodeInd = UNSET;
+    uint chosenBVHNodePos = UNSET;
+    uint totalBVHNodes = ubo[bindless.uniformId].totalBvhNodes;
+    uint totalClusters = ubo[bindless.uniformId].clusterGroupCounts;
+
+    uint deadlockCounter = 0;
+    uint testCounter = 0;
+
+    // Reset queue
+    if(threadId == 0){
+        consumer[bindless.consumerId].v = 0;
+        producer[bindless.producerId].v = 0;
+        remainingCluster[bindless.remainingId].v = totalBVHNodes;
+        drawCallSize[bindless.counterId].counter = uvec3(0,1,1);
+    }
+    for(uint i = 0; i < totalClusters ; i += groupSize){
+        queue[bindless.queueId].data[i] = UNSET;
+    }
+
+    // Enqueue root cluster, and assign it to the first thread
+    if(threadId == 0){
+        queue[bindless.queueId].data[0] = 0;
+        chosenBVHNodeInd = 0;
+    }
+    memoryBarrier();
+    while(true){
+        // Check if all BVH Nodes have been processed
+        uint remaining = remainingCluster[bindless.remainingId].v;
+        if(remaining == 0 || remaining >= UNSET/2){
+            break;
+        }
+        // If current thread does not have a cluster to process, try to get one
+        if(chosenBVHNodeInd == UNSET){
+            chosenBVHNodeInd = atomicAdd(consumer[bindless.consumerId].v, 1);
+        }
+        if(chosenBVHNodeInd != UNSET && chosenBVHNodePos == UNSET){
+            uint temp = UNSET;
+            uint retVal = atomicExchange(queue[bindless.queueId].data[chosenBVHNodeInd], temp);
+            if(retVal != UNSET){
+                chosenBVHNodePos = retVal;
             }
-            targetMeshes += clusters[bindless.clusterId].data[i].subMeshletCount;
+        }
+        if(chosenBVHNodePos != UNSET){
+            // Check whether the BVH node is visible
+            bool bvhNodeVisible = isBVHNodeVisible(chosenBVHNodePos);
+            if(bvhNodeVisible){
+                // If the BVH node is visible, enqueue its children
+                atomicAdd(remainingCluster[bindless.remainingId].v, -1);
+                BVHNode node = bvhNodes[bindless.bvhId].data[chosenBVHNodePos];
+
+                for(uint i = 0; i < node.numChildNodes; i++){
+                    uint childNode = node.childNodes[i];
+                    uint pos = atomicAdd(producer[bindless.producerId].v, 1);
+                    queue[bindless.queueId].data[pos] = childNode;
+                }
+                // Check whether the cluster group is visible
+                for(uint i = 0; i < node.clusterGroupCount; i++){
+                     ClusterGroup group = clusterGroups[bindless.clusterGroupId].data[node.clusterGroupStart + i];
+                     bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i);  
+                    if(clusterGroupVisible){
+                        enqueueClusterGroup(node.clusterGroupStart + i);
+                    }
+                 }
+            }else{
+                // Reject all subtrees
+                uint subTreeSize = bvhNodes[bindless.bvhId].data[chosenBVHNodePos].subTreeSize;
+                atomicAdd(remainingCluster[bindless.remainingId].v, -subTreeSize);
+            }
+            // Reset the chosen BVH node
+            chosenBVHNodeInd = UNSET;
+            chosenBVHNodePos = UNSET;;
         }
     }
-    counter[counterId].counter = uvec3(targetMeshes,1,1);
 }

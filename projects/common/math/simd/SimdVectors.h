@@ -588,6 +588,12 @@ inline SimdVector<T, S, V> abs(const SimdVector<T, S, V> &a) {
   return r;
 }
 
+// Length
+template<typename T,typename S,int V>
+inline T length(const SimdVector<T, S, V> &a) {
+  return sqrt(dot(a, a));
+}
+
 // Horizontal sum ((a,b,c,d)=>(a+b+c+d))
 template <typename T, typename S, int V>
 inline T hsum(const SimdVector<T, S, V> &a) {

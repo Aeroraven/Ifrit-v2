@@ -13,6 +13,10 @@ include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/VulkanResolve.cmake)
 add_definitions(-DIFRIT_DEMO_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shader/")
 add_definitions(-DIFRIT_DEMO_ASSET_PATH="${CMAKE_CURRENT_SOURCE_DIR}/asset/")
 
+# if(MSVC)
+#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
+# endif()
+
 # add executable
 add_executable(ifrit.demo ifrit.demo.cpp)
 
