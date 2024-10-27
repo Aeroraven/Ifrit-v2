@@ -13,3 +13,6 @@
 [submodule "dependencies/meshoptimizer"]
 	path = dependencies/meshoptimizer
 	url = git@github.com:zeux/meshoptimizer.git
+[submodule "dependencies/glfw"]
+	path = dependencies/glfw
+	url = https://github.com/glfw/glfw.git
