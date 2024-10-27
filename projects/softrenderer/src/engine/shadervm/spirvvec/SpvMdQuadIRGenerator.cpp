@@ -1,5 +1,5 @@
-#include "engine/shadervm/spirvvec/SpvMdQuadIRGenerator.h"
-#include "engine/shadervm/spirvvec/SpvMdLlvmIrRepr.h"
+#include "ifrit/softgraphics/engine/shadervm/spirvvec/SpvMdQuadIRGenerator.h"
+#include "ifrit/softgraphics/engine/shadervm/spirvvec/SpvMdLlvmIrRepr.h"
 #define SPV_ENABLE_UTILITY_CODE
 #include <spirv_headers/include/spirv/unified1/spirv.hpp>
 

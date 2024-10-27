@@ -1,4 +1,4 @@
-#include "engine/base/FrameBuffer.h"
+#include "ifrit/softgraphics/engine/base/FrameBuffer.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
 IFRIT_APIDECL void FrameBuffer::setColorAttachments(

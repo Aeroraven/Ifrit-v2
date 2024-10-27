@@ -1,4 +1,4 @@
-#include <meshproclib/include/engine/clusterlod/MeshClusterLodProc.h>
+#include "ifrit/meshproc/engine/clusterlod/MeshClusterLodProc.h"
 
 #if IFRIT_FEATURE_SIMD
 #include <emmintrin.h>
@@ -10,20 +10,20 @@
 #define IFRIT_USE_SIMD_256 1
 #endif
 
-#include <common/math/VectorDefs.h>
-#include <common/math/VectorOps.h>
-#include <common/math/simd/SimdVectors.h>
+#include "ifrit/common/math/VectorDefs.h"
+#include "ifrit/common/math/VectorOps.h"
+#include "ifrit/common/math/simd/SimdVectors.h"
 #include <meshoptimizer/src/meshoptimizer.h>
 #include <metis.h>
 
+#include <array>
+#include <functional>
 #include <map>
+#include <memory>
+#include <queue>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <array>
-#include <memory>
-#include <functional>
-#include <queue>
 
 using namespace Ifrit::Math::SIMD;
 
@@ -140,8 +140,8 @@ void initialMeshletGeneration(const MeshDescriptor &mesh,
   printf("Initial meshlet generated\n");
 }
 
-void metisValidation(ClusterLodGeneratorContext& ctx) {
-    //for a cluster group, find whether child meshlets are adjacent
+void metisValidation(ClusterLodGeneratorContext &ctx) {
+  // for a cluster group, find whether child meshlets are adjacent
   std::map<uint32_t, std::vector<uint32_t>> clusterGroupToMeshletMap;
   for (int i = 0; i < ctx.totalMeshlets; i++) {
     clusterGroupToMeshletMap[ctx.graphPartition[i]].push_back(i);
@@ -200,11 +200,10 @@ void metisValidation(ClusterLodGeneratorContext& ctx) {
           edges.push_back({j, i});
         }
       }
-      
     }
     // then find num of connected subgraphs
     int numSubGraphs = 0;
-    std::vector<uint32_t> visited(cluster.size(), 0);   
+    std::vector<uint32_t> visited(cluster.size(), 0);
     for (int k = 0; k < cluster.size(); k++) {
       if (!visited[k]) {
         auto graphSize = 0;
@@ -215,8 +214,10 @@ void metisValidation(ClusterLodGeneratorContext& ctx) {
           auto v = q.back();
           q.pop_back();
           for (int i = 0; i < cluster.size(); i++) {
-            if (visited[i] || std::find(edges.begin(), edges.end(),
-                                        std::make_pair(cluster[v], cluster[i])) == edges.end())
+            if (visited[i] ||
+                std::find(edges.begin(), edges.end(),
+                          std::make_pair(cluster[v], cluster[i])) ==
+                    edges.end())
               continue;
             q.push_back(i);
             visited[i] = 1;
@@ -294,7 +295,7 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
       }
     }
   }
-  
+
   // Build METIS xadj and adjncy arrays
   std::vector<int> xadj;
   std::vector<int> adjncy;
@@ -343,9 +344,9 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
 
   ctx.graphPartition.resize(ctx.totalMeshlets);
 
-  auto result = METIS_PartGraphKway(&nvtxs, &ncon, xadjPtr, adjncyPtr, vwgt, vsize, adjwgt,
-                      &nparts, tpwgts, ubvec, options, &edgeCut,
-                      ctx.graphPartition.data());
+  auto result = METIS_PartGraphKway(
+      &nvtxs, &ncon, xadjPtr, adjncyPtr, vwgt, vsize, adjwgt, &nparts, tpwgts,
+      ubvec, options, &edgeCut, ctx.graphPartition.data());
   if (result != METIS_OK) {
     printf("Partition failed\n");
   }
@@ -357,10 +358,11 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
 void clusterGroupSimplification(const MeshDescriptor &mesh,
                                 ClusterLodGeneratorContext &ctx,
                                 ClusterLodGeneratorContext &outCtx) {
-  // Some questions here: https://www.reddit.com/r/GraphicsProgramming/comments/12jv49o/nanitelike_lods_experiments/
-  // The parentError is calculated in cluster-group level, 
+  // Some questions here:
+  // https://www.reddit.com/r/GraphicsProgramming/comments/12jv49o/nanitelike_lods_experiments/
+  // The parentError is calculated in cluster-group level,
   // ({meshlets})->(clusterGroup)=>simplifyError->(meshlets)
-    
+
   std::map<uint32_t, std::vector<uint32_t>> clusterGroupToMeshletMap;
   for (int i = 0; i < ctx.totalMeshlets; i++) {
     clusterGroupToMeshletMap[ctx.graphPartition[i]].push_back(i);
@@ -389,7 +391,6 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
         aggregatedIndexBuffer.push_back(c);
       }
     }
-
 
     // Simplify the index buffer
     std::vector<uint32_t> simplifiedIndexBuffer(aggregatedIndexBuffer.size());
@@ -439,7 +440,6 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
     vfloat3 bCenter = (bMax + bMin) * 0.5f;
 
     // for lod x, set cluster group data, uses last lod data
-    
 
     // write child nodes with parent data
     auto childLod = ctx.lodCullData[meshletsR[0]].lod;
@@ -458,10 +458,11 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
       ctx.lodCullData[i].parentSphere.w = bRadius;
       ctx.lodCullData[i].parentError = targetErrorModel;
     }
-    
+
     // write all child meshlets, and finally register the cluster group
     // i still think i might misunderstand some stuffs here.
-    // coherent bounding sphere and errors should be ensured in one cluster group
+    // coherent bounding sphere and errors should be ensured in one cluster
+    // group
     ClusterGroup curClusterGroup;
     curClusterGroup.parentBoundingSphere =
         ifloat4(bCenter.x, bCenter.y, bCenter.z, bRadius);
@@ -476,7 +477,6 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
       ctx.meshletsInClusterGroups.push_back(i);
       ctx.clusterGroups.push_back(curClusterGroup);
     }
-    
 
     meshletsCull.resize(meshletCount);
 
@@ -536,7 +536,6 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
     // break;
   }
 }
-
 
 // Finally, put all things together.
 int generateClusterLodHierachy(const MeshDescriptor &mesh,
@@ -617,7 +616,6 @@ void combineBuffer(const std::vector<ClusterLodGeneratorContext> &ctx,
       outCtx.meshletsInClusterGroups[prevlevelMeshletInGroupCount + j] =
           ctx[i].meshletsInClusterGroups[j] + prevlevelMeshletCount;
     }
-    
 
     // TODO: Compat size
     prevlevelMeshletCount += ctx[i].meshletsRaw.size();
@@ -658,11 +656,12 @@ struct ClusterGroupBVHNodeBuildData {
 
 struct ClusterGroupBVH {
   std::unique_ptr<ClusterGroupBVHNode> root;
-
 };
 
 // Some bvh utility functions
-BoundingBoxPair getBoundingBox(const std::vector<ClusterGroup>& clusterGroups, const std::vector<uint32_t>& clusterGroupIndices, uint32_t start, uint32_t end) {
+BoundingBoxPair getBoundingBox(const std::vector<ClusterGroup> &clusterGroups,
+                               const std::vector<uint32_t> &clusterGroupIndices,
+                               uint32_t start, uint32_t end) {
   vfloat3 bMaxA = vfloat3(-std::numeric_limits<float>::max());
   vfloat3 bMinA = vfloat3(std::numeric_limits<float>::max());
   vfloat3 bMaxP = vfloat3(-std::numeric_limits<float>::max());
@@ -679,14 +678,13 @@ BoundingBoxPair getBoundingBox(const std::vector<ClusterGroup>& clusterGroups, c
     bMinA = min(minPos, bMinA);
     bMaxP = max(sphereCenter, bMaxP);
     bMinP = min(sphereCenter, bMinP);
-
   }
   BoundingBox bboxA{.mi = bMinA, .ma = bMaxA};
   BoundingBox bboxP{.mi = bMinP, .ma = bMaxP};
   return BoundingBoxPair{.all = bboxA, .posOnly = bboxP};
 }
 
-int findLongestAxis(const BoundingBox& bbox) { 
+int findLongestAxis(const BoundingBox &bbox) {
   auto diff = bbox.ma - bbox.mi;
   int ret = 0;
   auto answ = diff.x;
@@ -699,11 +697,13 @@ int findLongestAxis(const BoundingBox& bbox) {
   return ret;
 }
 
-uint32_t nodeClustersPatition(const std::vector<ClusterGroup>& clusterGroups,std::vector<uint32_t> indices, uint32_t start, uint32_t end, float mid, uint32_t axis) {
+uint32_t nodeClustersPatition(const std::vector<ClusterGroup> &clusterGroups,
+                              std::vector<uint32_t> indices, uint32_t start,
+                              uint32_t end, float mid, uint32_t axis) {
   int l = start, r = end - 1;
-  auto getElementCenter = [&](uint32_t idx) { 
-      auto sphere = clusterGroups[idx].parentBoundingSphere;
-      return vfloat3(sphere.x, sphere.y, sphere.z);
+  auto getElementCenter = [&](uint32_t idx) {
+    auto sphere = clusterGroups[idx].parentBoundingSphere;
+    return vfloat3(sphere.x, sphere.y, sphere.z);
   };
   while (l < r) {
     while (l < r && elementAt(getElementCenter(indices[l]), axis) < mid)
@@ -721,9 +721,9 @@ uint32_t nodeClustersPatition(const std::vector<ClusterGroup>& clusterGroups,std
 }
 
 uint32_t
-nodeClustersPatitionAlternative(const std::vector<ClusterGroup>& clusterGroups,
-    std::vector<uint32_t> indices, uint32_t start,
-    uint32_t end, uint32_t axis) {
+nodeClustersPatitionAlternative(const std::vector<ClusterGroup> &clusterGroups,
+                                std::vector<uint32_t> indices, uint32_t start,
+                                uint32_t end, uint32_t axis) {
   std::vector<float> candidates;
   for (int i = start; i < end; i++) {
     auto sphere = clusterGroups[indices[i]].parentBoundingSphere;
@@ -737,7 +737,8 @@ nodeClustersPatitionAlternative(const std::vector<ClusterGroup>& clusterGroups,
 }
 
 // this builds a BVH2
-void initialBVHConstruction(ClusterGroupBVH& bvh,const std::vector<ClusterGroup>& clusterGroups) {
+void initialBVHConstruction(ClusterGroupBVH &bvh,
+                            const std::vector<ClusterGroup> &clusterGroups) {
   std::vector<ClusterGroupBVHNodeBuildData> q;
   // first, make bvh root
   bvh.root = std::make_unique<ClusterGroupBVHNode>();
@@ -776,8 +777,8 @@ void initialBVHConstruction(ClusterGroupBVH& bvh,const std::vector<ClusterGroup>
     auto leftNodeRightBoundIncl = nodeClustersPatition(
         clusterGroups, clusterGroupIndices, curNode.clusterStart,
         curNode.clusterEnd, midPartition, longestAxis);
-    if (leftNodeRightBoundIncl+1 == curNode.clusterStart ||
-        leftNodeRightBoundIncl+1 == curNode.clusterEnd) {
+    if (leftNodeRightBoundIncl + 1 == curNode.clusterStart ||
+        leftNodeRightBoundIncl + 1 == curNode.clusterEnd) {
       // failed to partition
       curNode.bvhNode->isLeaf = true;
       for (int i = curNode.clusterStart; i < curNode.clusterEnd; i++) {
@@ -801,7 +802,7 @@ void initialBVHConstruction(ClusterGroupBVH& bvh,const std::vector<ClusterGroup>
     q.push_back(leftSubTree);
     q.push_back(rightSubTree);
   }
-  
+
   printf("Raw BVH Nodes:%d\n", totalNodes);
 }
 
@@ -812,7 +813,7 @@ consteval uint32_t getBvhCollapseExtraDepth() {
 }
 
 // collapse bvh2 into bvh4 or bvh8
-void bvhCollapse(ClusterGroupBVH &bvh) { 
+void bvhCollapse(ClusterGroupBVH &bvh) {
   std::vector<ClusterGroupBVHNode *> q;
   q.push_back(bvh.root.get());
   constexpr auto extDepth = getBvhCollapseExtraDepth();
@@ -826,27 +827,28 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
     IndirectChildrenSet(const IndirectChildrenSet &p) = delete;
   };
 
-  std::function<void(ClusterGroupBVHNode *, IndirectChildrenSet*, int)> getChild =
-      [&](ClusterGroupBVHNode *node,IndirectChildrenSet* indSet, int depth) {
-    if (node->isLeaf) {
-      return;
-    }
-    auto leftPtr = std::move(node->child[0]);
-    auto rightPtr = std::move(node->child[1]);
-    auto leftPtrRaw = leftPtr.get(), rightPtrRaw = rightPtr.get();
-    if (leftPtr->isLeaf || depth == extDepth - 1) {
-      indSet->childNodes.push_back(std::move(leftPtr));
-    } else {
-      indSet->nodesToCollapse.push_back(std::move(leftPtr));
-      getChild(leftPtrRaw, indSet, depth + 1);
-    }
-    if (rightPtr->isLeaf || depth == extDepth - 1) {
-      indSet->childNodes.push_back(std::move(rightPtr));
-    } else {
-      indSet->nodesToCollapse.push_back(std::move(rightPtr));
-      getChild(rightPtrRaw, indSet, depth + 1);
-    }
-  };
+  std::function<void(ClusterGroupBVHNode *, IndirectChildrenSet *, int)>
+      getChild = [&](ClusterGroupBVHNode *node, IndirectChildrenSet *indSet,
+                     int depth) {
+        if (node->isLeaf) {
+          return;
+        }
+        auto leftPtr = std::move(node->child[0]);
+        auto rightPtr = std::move(node->child[1]);
+        auto leftPtrRaw = leftPtr.get(), rightPtrRaw = rightPtr.get();
+        if (leftPtr->isLeaf || depth == extDepth - 1) {
+          indSet->childNodes.push_back(std::move(leftPtr));
+        } else {
+          indSet->nodesToCollapse.push_back(std::move(leftPtr));
+          getChild(leftPtrRaw, indSet, depth + 1);
+        }
+        if (rightPtr->isLeaf || depth == extDepth - 1) {
+          indSet->childNodes.push_back(std::move(rightPtr));
+        } else {
+          indSet->nodesToCollapse.push_back(std::move(rightPtr));
+          getChild(rightPtrRaw, indSet, depth + 1);
+        }
+      };
   uint32_t totalNodes = 0;
   while (!q.empty()) {
     totalNodes++;
@@ -938,6 +940,5 @@ IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(
   bvhFlatten(bvh, flattenedNodes, clusterGroupData);
   return 0;
 }
-
 
 } // namespace Ifrit::Engine::MeshProcLib::ClusterLod

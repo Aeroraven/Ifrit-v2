@@ -1,25 +1,25 @@
 #define IFRIT_DLL
-#include <common/math/LinalgOps.h>
-#include <memory>
-#include <random>
-#include <display/include/presentation/backend/OpenGLBackend.h>
-#include <display/include/presentation/window/GLFWWindowProvider.h>
+#include "ifrit/common/math/LinalgOps.h"
+#include "ifrit/display/presentation/backend/OpenGLBackend.h"
+#include "ifrit/display/presentation/window/GLFWWindowProvider.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/Swapchain.h"
 #include <chrono>
 #include <fstream>
-#include <vkrenderer/include/engine/vkrenderer/Binding.h>
-#include <vkrenderer/include/engine/vkrenderer/Command.h>
-#include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
-#include <vkrenderer/include/engine/vkrenderer/RenderGraph.h>
-#include <vkrenderer/include/engine/vkrenderer/Shader.h>
-#include <vkrenderer/include/engine/vkrenderer/StagedMemoryResource.h>
-#include <vkrenderer/include/engine/vkrenderer/Swapchain.h>
+#include <memory>
+#include <random>
 
-#include <meshproclib/include/engine/clusterlod/MeshClusterLodProc.h>
+#include "ifrit/meshproc/engine/clusterlod/MeshClusterLodProc.h"
 #include <meshoptimizer/src/meshoptimizer.h>
+
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
-
 
 #define WINDOW_WIDTH 1980
 #define WINDOW_HEIGHT 1080
@@ -212,7 +212,6 @@ int demo_vulkanMeshShader() {
   printf("Total Cluster Groups:%lld\n", clusterGroupData.size());
   printf("Total Cluster Groups Raw:%lld\n", meshletData.clusterGroups.size());
 
-
   // Create ssbo
   Viewport viewport = {0.0f, 0.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.0f, 1.0f};
   Scissor scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
@@ -224,7 +223,7 @@ int demo_vulkanMeshShader() {
   backend.setQueues(true, 1, 1, 1);
 
   struct UniformBuffer {
-    
+
     float4x4 mvp;
     float4x4 mv;
     ifloat4 cameraPos;
@@ -262,14 +261,16 @@ int demo_vulkanMeshShader() {
   auto filteredMeshletBuffer = resourceManager.createStorageBufferDevice(
       meshlets.size() * sizeof(uint32_t));
   auto bvhNodeBuffer = resourceManager.createStorageBufferDevice(
-      bvhNodes.size() * sizeof(FlattenedBVHNode),VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+      bvhNodes.size() * sizeof(FlattenedBVHNode),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
   auto clusterGroupBuffer = resourceManager.createStorageBufferDevice(
-      clusterGroupData.size() * sizeof(ClusterGroup),VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+      clusterGroupData.size() * sizeof(ClusterGroup),
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
   auto consumerCounterBuffer =
       resourceManager.createStorageBufferDevice(sizeof(uint32_t));
   auto producerCounterBuffer =
       resourceManager.createStorageBufferDevice(sizeof(uint32_t));
-  auto remainingCounterBuffer = 
+  auto remainingCounterBuffer =
       resourceManager.createStorageBufferDevice(sizeof(uint32_t));
   auto productQueueBuffer = resourceManager.createStorageBufferDevice(
       sizeof(uint32_t) * bvhNodes.size());
@@ -293,7 +294,6 @@ int demo_vulkanMeshShader() {
                                                   meshletGraphPartitionBuffer);
     StagedSingleBuffer stagedMeshletInClusterBuffer(&context,
                                                     meshletInClusteBuffer);
-
 
     backend.runImmidiateCommand(
         [&](CommandBuffer *cmd) -> void {
@@ -321,7 +321,6 @@ int demo_vulkanMeshShader() {
           stagedMeshletInClusterBuffer.cmdCopyToDevice(
               cmd, meshlet_inClusterGroup.data(),
               meshlet_inClusterGroup.size() * sizeof(uint32_t), 0);
-         
         },
         QueueRequirement::Transfer);
   }
@@ -336,7 +335,8 @@ int demo_vulkanMeshShader() {
 
   ShaderModule msModule(&context, msCode, "main", ShaderStage::Mesh);
   ShaderModule fsModule(&context, fsCode, "main", ShaderStage::Fragment);
-  ShaderModule csDynLodModule(&context, csDynLodCode, "main", ShaderStage::Compute);
+  ShaderModule csDynLodModule(&context, csDynLodCode, "main",
+                              ShaderStage::Compute);
 
   // Depth Buffer
   auto depthImage =
@@ -355,7 +355,7 @@ int demo_vulkanMeshShader() {
   auto indirectDrawReg = renderGraph->registerBuffer(indirectDrawBuffer);
   auto graphPartitionReg =
       renderGraph->registerBuffer(meshletGraphPartitionBuffer);
-  
+
   auto uniformBufCullReg = renderGraph->registerBuffer(ubCullBuffer);
   auto queueReg = renderGraph->registerBuffer(productQueueBuffer);
   auto producerReg = renderGraph->registerBuffer(producerCounterBuffer);
@@ -374,10 +374,10 @@ int demo_vulkanMeshShader() {
   cullPass->setPassDescriptorLayout(
       {DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
        DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
-       DescriptorType::StorageBuffer, DescriptorType::UniformBuffer, 
-       DescriptorType::UniformBuffer, 
-      // Culling 
-       DescriptorType::StorageBuffer, DescriptorType::StorageBuffer, 
+       DescriptorType::StorageBuffer, DescriptorType::UniformBuffer,
+       DescriptorType::UniformBuffer,
+       // Culling
+       DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
        DescriptorType::StorageBuffer, DescriptorType::StorageBuffer});
   // Data buffers
   cullPass->addStorageBuffer(indirectDrawReg, 0, ResourceAccessType::Write);
@@ -479,6 +479,5 @@ int demo_vulkanMeshShader() {
   context.waitIdle();
   return 0;
 }
-
 
 int main() { demo_vulkanMeshShader(); }

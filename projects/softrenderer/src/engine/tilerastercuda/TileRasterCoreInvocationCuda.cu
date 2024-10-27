@@ -1,11 +1,11 @@
 #ifdef IFRIT_FEATURE_CUDA
-#include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
-#include "engine/math/ShaderOpsCuda.cuh"
-#include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
-#include "engine/tilerastercuda/TileRasterConstantsCuda.h"
-#include "engine/base/Structures.h"
+#include "ifrit/softgraphics/engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
+#include "ifrit/softgraphics/engine/math/ShaderOpsCuda.cuh"
+#include "ifrit/softgraphics/engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
+#include "ifrit/softgraphics/engine/tilerastercuda/TileRasterConstantsCuda.h"
+#include "ifrit/softgraphics/engine/base/Structures.h"
 #include <cuda_profiler_api.h>
-#include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
+#include "ifrit/softgraphics/engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
 #include <thrust/scan.h>
 #include <thrust/sort.h>
 

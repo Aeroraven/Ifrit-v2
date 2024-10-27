@@ -1,4 +1,4 @@
-#include "engine/bufferman/BufferManager.h"
+#include "ifrit/softgraphics/engine/bufferman/BufferManager.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::BufferManager::Impl {
 int BufferManagerImpl::allocateBufferId() {

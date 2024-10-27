@@ -1,6 +1,6 @@
-#include "engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
-#include <common/math/VectorOps.h>
-#include <common/math/simd/SimdVectors.h>
+#include "ifrit/softgraphics/engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
+#include "ifrit/common/math/VectorOps.h"
+#include "ifrit/common/math/simd/SimdVectors.h"
 #include <queue>
 
 constexpr bool PROFILE_CNT = false;
@@ -349,8 +349,8 @@ inline RayHit procQueryRayIntersectionTLAS(
     const std::vector<int> &belonging, bool doRootBoxIgnore, BVHNode *root,
     const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data)
     IFRIT_AP_NOTHROW {
-      return {};
-    }
+  return {};
+}
 } // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer {
@@ -555,11 +555,16 @@ void BoundingVolumeHierarchyTopLevelAS::buildAccelerationStructure() {
 int getProfileCnt() {
   return totalTime;
   if constexpr (PROFILE_CNT) {
-    int v = Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::intersect;
-    int vv = Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::validIntersect;
-    int bv = Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::boxIntersect;
-    int er = Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::earlyReject;
-    int cv = Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::competeIntersect;
+    int v = Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::
+        intersect;
+    int vv = Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::
+        validIntersect;
+    int bv = Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::
+        boxIntersect;
+    int er = Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::
+        earlyReject;
+    int cv = Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::
+        competeIntersect;
     printf("Total Intersect:%d, Valid Intersect:%d , Overtest Rate:%f\n", v, vv,
            1.0f * vv / v);
     printf("Compete Intersect:%d \n", cv);
@@ -567,11 +572,16 @@ int getProfileCnt() {
            1.0f * bv / v);
     printf("Early Reject: %d\n\n", er);
 
-    Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::intersect.store(0);
-    Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::competeIntersect.store(0);
-    Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::validIntersect.store(0);
-    Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::boxIntersect.store(0);
-    Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::earlyReject.store(0);
+    Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::intersect
+        .store(0);
+    Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::
+        competeIntersect.store(0);
+    Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::
+        validIntersect.store(0);
+    Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::boxIntersect
+        .store(0);
+    Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer::Impl::earlyReject
+        .store(0);
     return v;
   }
   return 0;

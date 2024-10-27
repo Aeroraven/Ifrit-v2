@@ -1,9 +1,10 @@
-#include "engine/tileraster/TileRasterWorker.h"
-#include "engine/base/Shaders.h"
-#include <common/math/VectorOps.h>
-#include <common/math/fastutil/FastUtil.h>
-#include <common/math/fastutil/FastUtilSimd.h>
-#include <common/math/simd/SimdVectors.h>
+#include "ifrit/softgraphics/engine/tileraster/TileRasterWorker.h"
+#include "ifrit/common/math/VectorOps.h"
+#include "ifrit/common/math/fastutil/FastUtil.h"
+#include "ifrit/common/math/fastutil/FastUtilSimd.h"
+#include "ifrit/common/math/simd/SimdVectors.h"
+#include "ifrit/softgraphics/engine/base/Shaders.h"
+
 using namespace Ifrit::Math;
 using namespace Ifrit::Math::SIMD;
 
@@ -45,7 +46,7 @@ inline void getAcceptRejectCoords(vfloat3 edgeCoefs[3], int chosenCoordTR[3],
   }
 }
 TileRasterWorker::TileRasterWorker(uint32_t workerId,
-                                   TileRasterRenderer* renderer,
+                                   TileRasterRenderer *renderer,
                                    std::shared_ptr<TileRasterContext> context) {
   this->workerId = workerId;
   this->rendererReference = renderer;
@@ -956,9 +957,9 @@ void TileRasterWorker::rasterizationSingleTile(TileRasterRenderer *renderer,
           __m128 y128f = _mm_cvtepi32_ps(y128);
 
           //__m256 subTileMinX256 = _mm256_fmadd_ps(x256f, xTileWidth256f,
-          //tileMinX256);
+          // tileMinX256);
           //__m256 subTileMaxX256 = _mm256_add_ps(subTileMinX256,
-          //xTileWidth256f);
+          // xTileWidth256f);
 
           __m128 subTileMinX128 =
               _mm_fmadd_ps(x128f, xTileWidth128f, tileMinX128);
@@ -1673,8 +1674,9 @@ void TileRasterWorker::pixelShadingFromTagBufferQuadInvo(
     __m256i dxId256 = _mm256_add_epi32(_mm256_set1_epi32(i), dxId256T);
 #ifdef _MSC_VER
     __m256i dx256T1 = _mm256_and_epi32(
-        dxId256, _mm256_set1_epi32(0xf)); //_mm256_srli_epi32(_mm256_and_epi32(dxId256,
-                                          //_mm256_set1_epi32(0x1f)), 1);
+        dxId256,
+        _mm256_set1_epi32(0xf)); //_mm256_srli_epi32(_mm256_and_epi32(dxId256,
+                                 //_mm256_set1_epi32(0x1f)), 1);
     __m256i dx256 = _mm256_add_epi32(dx256A, dx256T1);
     __m256i dy256T1 = _mm256_srli_epi32(dxId256, 4);
     __m256i dy256 = _mm256_add_epi32(dy256A, dy256T1);
@@ -1929,8 +1931,9 @@ void TileRasterWorker::pixelShadingFromTagBuffer(
     __m256i dxId256 = _mm256_add_epi32(_mm256_set1_epi32(i), dxId256T);
 #ifdef _MSC_VER
     __m256i dx256T1 = _mm256_and_epi32(
-        dxId256, _mm256_set1_epi32(0xf)); //_mm256_srli_epi32(_mm256_and_epi32(dxId256,
-                                          //_mm256_set1_epi32(0x1f)), 1);
+        dxId256,
+        _mm256_set1_epi32(0xf)); //_mm256_srli_epi32(_mm256_and_epi32(dxId256,
+                                 //_mm256_set1_epi32(0x1f)), 1);
     __m256i dx256 = _mm256_add_epi32(dx256A, dx256T1);
     __m256i dy256T1 = _mm256_srli_epi32(dxId256, 4);
     __m256i dy256 = _mm256_add_epi32(dy256A, dy256T1);

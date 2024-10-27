@@ -1,5 +1,5 @@
-#include "engine/export/BufferManagerExport.h"
-#include "engine/bufferman/BufferManager.h"
+#include "ifrit/softgraphics/engine/export/BufferManagerExport.h"
+#include "ifrit/softgraphics/engine/bufferman/BufferManager.h"
 
 using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::BufferManager;
 

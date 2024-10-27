@@ -1,19 +1,22 @@
-#include "presentation/window/TerminalProvider.h"
+#include "ifrit/display/presentation/window/TerminalProvider.h"
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <chrono>
+
 namespace Ifrit::Presentation::Window {
-IFRIT_APIDECL void TerminalProvider::loop(const std::function<void(int *)> &funcs) {
+IFRIT_APIDECL void
+TerminalProvider::loop(const std::function<void(int *)> &funcs) {
   static int frameCount = 0;
   while (true) {
     int repCore;
     auto start = std::chrono::high_resolution_clock::now();
     funcs(&repCore);
     auto end = std::chrono::high_resolution_clock::now();
-    using durationType = decltype(
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-            .count());
+    using durationType =
+        decltype(std::chrono::duration_cast<std::chrono::milliseconds>(end -
+                                                                       start)
+                     .count());
     frameTimes.push_back(std::max(
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
             .count(),

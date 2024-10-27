@@ -1,4 +1,4 @@
-#include "engine/shadervm/spirv/SpvVMExtInstRegistry.h"
+#include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMExtInstRegistry.h"
 #include <spirv_headers/include/spirv/unified1/GLSL.std.450.h>
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
@@ -25,7 +25,8 @@ std::string getMangledType(SpvVMExtRegistryTypeIdentifier baseIdentifier,
 }
 } // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::ExtInst::GlslStd450 {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::
+    ExtInst::GlslStd450 {
 #define DEF_INST(x)                                                            \
   std::string x(const std::vector<SpvVMExtRegistryTypeIdentifier> &paramTypes, \
                 const std::vector<int> &paramComCnt)
@@ -180,7 +181,8 @@ DEF_INST(Fma) {
   return glslstdFusedMultiplyAdd(paramTypes, paramComCnt, GLSLstd450Fma, "fma");
 }
 #undef DEF_INST
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::ExtInst::GlslStd450
+} // namespace
+  // Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::ExtInst::GlslStd450
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
 SpvVMExtRegistry::SpvVMExtRegistry() {

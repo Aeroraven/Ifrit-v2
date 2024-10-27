@@ -2,11 +2,11 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#include "ifrit/vkgraphics/engine/vkrenderer/Swapchain.h"
+#include "ifrit/vkgraphics/utility/Logger.h"
 #include <algorithm>
 #include <array>
 #include <vector>
-#include <vkrenderer/include/engine/vkrenderer/Swapchain.h>
-#include <vkrenderer/include/utility/Logger.h>
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL void Swapchain::init() {

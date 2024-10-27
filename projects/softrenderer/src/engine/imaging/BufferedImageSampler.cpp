@@ -1,4 +1,4 @@
-#include "engine/imaging/BufferedImageSampler.h"
+#include "ifrit/softgraphics/engine/imaging/BufferedImageSampler.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging {
 inline void processWarpMode2D(IfritSamplerAddressMode mode, float &u,

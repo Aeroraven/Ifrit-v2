@@ -1,7 +1,8 @@
-#include "engine/raytracer/shaderops/RtShaderOps.h"
-#include "engine/base/RaytracerBase.h"
-#include "engine/raytracer/TrivialRaytracerWorker.h"
-#include <common/math/simd/SimdVectors.h>
+#include "ifrit/softgraphics/engine/raytracer/shaderops/RtShaderOps.h"
+#include "ifrit/common/math/simd/SimdVectors.h"
+#include "ifrit/softgraphics/engine/base/RaytracerBase.h"
+#include "ifrit/softgraphics/engine/raytracer/TrivialRaytracerWorker.h"
+
 using namespace Ifrit::Math::SIMD;
 extern "C" {
 IFRIT_APIDECL_FORCED void ifritShaderOps_Raytracer_TraceRay(

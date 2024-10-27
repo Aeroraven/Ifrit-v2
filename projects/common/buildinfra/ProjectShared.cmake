@@ -8,6 +8,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${IFRIT_DEMO_PROJECT_DIR}/../bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${IFRIT_DEMO_PROJECT_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${IFRIT_DEMO_PROJECT_DIR}/../bin)
 
+set(IFRIT_INCLUDE_DIR "${IFRIT_PROJECT_DIR}/include")
 # set executable path
 set(EXECUTABLE_OUTPUT_PATH ${IFRIT_DEMO_PROJECT_DIR}/../bin)
 set(IFRIT_PROJECT_SUBDIR "${IFRIT_PROJECT_DIR}/projects")
@@ -51,3 +52,7 @@ if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         add_compile_options(-lgdi32)
     endif()
 endif()
+
+include_directories(${IFRIT_PROJECT_SUBDIR})
+include_directories(${IFRIT_PROJECT_DIR}/dependencies)
+include_directories(${IFRIT_INCLUDE_DIR})

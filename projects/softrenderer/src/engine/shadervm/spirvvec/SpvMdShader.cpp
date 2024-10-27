@@ -1,4 +1,4 @@
-#include "engine/shadervm/spirvvec/SpvMdShader.h"
+#include "ifrit/softgraphics/engine/shadervm/spirvvec/SpvMdShader.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec {
 int SpvVecRuntimeBackend::createTime = 0;

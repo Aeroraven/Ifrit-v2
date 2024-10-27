@@ -1,11 +1,13 @@
-#include "./engine/export/TileRasterRendererExport.h"
-#include "./core/definition/CoreExports.h"
-#include "./engine/bufferman/BufferManager.h"
-#include "./engine/tileraster/TileRasterRenderer.h"
+#include "ifrit/softgraphics/engine/export/TileRasterRendererExport.h"
+#include "ifrit/softgraphics/core/definition/CoreExports.h"
+#include "ifrit/softgraphics/engine/bufferman/BufferManager.h"
+#include "ifrit/softgraphics/engine/tileraster/TileRasterRenderer.h"
 
 #define IFRIT_TRNS Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster
 #define IFRIT_BASENS Ifrit::Engine::GraphicsBackend::SoftGraphics
-#define IFRIT_TRTP Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport::TileRasterRendererWrapper
+#define IFRIT_TRTP                                                             \
+  Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport::                \
+      TileRasterRendererWrapper
 
 using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics;
 using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport;

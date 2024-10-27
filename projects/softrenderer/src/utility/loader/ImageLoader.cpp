@@ -1,4 +1,4 @@
-#include "utility/loader/ImageLoader.h"
+#include "ifrit/softgraphics/utility/loader/ImageLoader.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 

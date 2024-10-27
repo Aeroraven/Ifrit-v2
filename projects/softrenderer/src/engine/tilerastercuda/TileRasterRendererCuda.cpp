@@ -1,8 +1,8 @@
 #ifdef IFRIT_FEATURE_CUDA
-#include "engine/tilerastercuda/TileRasterRendererCuda.h"
-#include "engine/tilerastercuda/TileRasterConstantsCuda.h"
-#include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
-#include "engine/tilerastercuda/TileRasterImageOpInvocationsCuda.cuh"
+#include "ifrit/softgraphics/engine/tilerastercuda/TileRasterRendererCuda.h"
+#include "ifrit/softgraphics/engine/tilerastercuda/TileRasterConstantsCuda.h"
+#include "ifrit/softgraphics/engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
+#include "ifrit/softgraphics/engine/tilerastercuda/TileRasterImageOpInvocationsCuda.cuh"
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::CUDA {
 IFRIT_APIDECL void TileRasterRendererCuda::init() {
   context = std::make_unique<TileRasterContextCuda>();

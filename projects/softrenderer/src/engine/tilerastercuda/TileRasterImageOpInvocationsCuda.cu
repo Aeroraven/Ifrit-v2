@@ -1,7 +1,7 @@
 #ifdef IFRIT_FEATURE_CUDA
-#include "engine/tilerastercuda/TileRasterImageOpInvocationsCuda.cuh"
-#include "engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
-#include "engine/math/ShaderOpsCuda.cuh"
+#include "ifrit/softgraphics/engine/tilerastercuda/TileRasterImageOpInvocationsCuda.cuh"
+#include "ifrit/softgraphics/engine/tilerastercuda/TileRasterCommonResourceCuda.cuh"
+#include "ifrit/softgraphics/engine/math/ShaderOpsCuda.cuh"
 
 namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 	struct BlitImageKernelArgs {

@@ -1,5 +1,5 @@
-#include "LLVMExecRuntime.Decl.h"
-#include "engine/comllvmrt/WrappedLLVMRuntime.h"
+#include "ifrit/ircompile/llvm_ircompile.h"
+#include "ifrit/softgraphics/engine/comllvmrt/WrappedLLVMRuntime.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ComLLVMRuntime {
 struct WrappedLLVMRuntimeContext {

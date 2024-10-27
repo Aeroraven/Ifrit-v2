@@ -1,5 +1,5 @@
-#include <vkrenderer/include/engine/vkrenderer/MemoryResource.h>
-#include <vkrenderer/include/utility/Logger.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
+#include "ifrit/vkgraphics/utility/Logger.h"
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL void SingleBuffer::init() {

@@ -31,7 +31,6 @@ include_directories(".")
 include_directories(include)
 include_directories(${IFRIT_COMPONENT_LLVM_SOURCE}/include)
 include_directories(${IFRIT_EXTERNAL_DEPENDENCY_PATH})
-include_directories(${IFRIT_PROJECT_SUBDIR})
 
 # Operation System
 if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")

@@ -1,4 +1,4 @@
-#include "presentation/window/WindowProvider.h"
+#include "ifrit/display/presentation/window/WindowProvider.h"
 
 namespace Ifrit::Presentation::Window {
 IFRIT_APIDECL size_t WindowProvider::getWidth() const { return width; }

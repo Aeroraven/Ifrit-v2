@@ -1,5 +1,5 @@
 #define IFRIT_DLL
-#include <common/math/LinalgOps.h>
+#include "ifrit/common/math/LinalgOps.h"
 #include <memory>
 #include <random>
 
@@ -8,15 +8,16 @@
 #include <display/include/presentation/backend/OpenGLBackend.h>
 #include <display/include/presentation/window/GLFWWindowProvider.h>
 
+#include "ifrit/vkgraphics/engine/vkrenderer/Binding.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/Command.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/Shader.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/Swapchain.h>
 #include <chrono>
 #include <fstream>
-#include <vkrenderer/include/engine/vkrenderer/Binding.h>
-#include <vkrenderer/include/engine/vkrenderer/Command.h>
-#include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
-#include <vkrenderer/include/engine/vkrenderer/RenderGraph.h>
-#include <vkrenderer/include/engine/vkrenderer/Shader.h>
-#include <vkrenderer/include/engine/vkrenderer/StagedMemoryResource.h>
-#include <vkrenderer/include/engine/vkrenderer/Swapchain.h>
+
 
 #include <meshproclib/include/engine/clusterlod/MeshClusterLodProc.h>
 
@@ -668,7 +669,7 @@ int demo_vulkanMeshShader() {
       resourceManager.createStorageBufferDevice(sizeof(uint32_t));
   auto producerCounterBuffer =
       resourceManager.createStorageBufferDevice(sizeof(uint32_t));
-  auto remainingCounterBuffer = 
+  auto remainingCounterBuffer =
       resourceManager.createStorageBufferDevice(sizeof(uint32_t));
   auto productQueueBuffer = resourceManager.createStorageBufferDevice(
       sizeof(uint32_t) * clusterInfo.clusterInfo.size());
@@ -743,7 +744,7 @@ int demo_vulkanMeshShader() {
   auto clusterDataReg = renderGraph->registerBuffer(clusterDataBuffer);
   auto indirectDrawReg = renderGraph->registerBuffer(indirectDrawBuffer);
   auto uniformBufCullReg = renderGraph->registerBuffer(ubCullBuffer);
-  
+
   auto queueReg = renderGraph->registerBuffer(productQueueBuffer);
   auto producerReg = renderGraph->registerBuffer(producerCounterBuffer);
   auto consumerReg = renderGraph->registerBuffer(consumerCounterBuffer);

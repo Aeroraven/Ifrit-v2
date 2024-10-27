@@ -20,8 +20,6 @@ add_definitions(-DIFRIT_DEMO_ASSET_PATH="${CMAKE_CURRENT_SOURCE_DIR}/asset/")
 # add executable
 add_executable(ifrit.demo ifrit.demo.cpp)
 
-include_directories(${IFRIT_PROJECT_DIR}/dependencies)
-include_directories(${IFRIT_PROJECT_SUBDIR})
 include_directories(${IFRIT_PROJECT_SUBDIR}/softrenderer/include)
 include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)
 

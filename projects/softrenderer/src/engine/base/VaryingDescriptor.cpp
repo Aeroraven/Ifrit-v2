@@ -1,4 +1,4 @@
-#include "engine/base/VaryingDescriptor.h"
+#include "ifrit/softgraphics/engine/base/VaryingDescriptor.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
 IFRIT_APIDECL

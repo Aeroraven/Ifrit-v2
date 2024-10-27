@@ -1,7 +1,7 @@
+#include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
+#include "ifrit/vkgraphics/utility/Logger.h"
 #include <cstring>
 #include <vector>
-#include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
-#include <vkrenderer/include/utility/Logger.h>
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>

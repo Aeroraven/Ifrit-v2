@@ -1,4 +1,4 @@
-#include "presentation/window/GLFWWindowProvider.h"
+#include "ifrit/display/presentation/window/GLFWWindowProvider.h"
 #include <chrono>
 #include <iostream>
 #include <sstream>
@@ -13,13 +13,14 @@ void displayAssert(bool condition, const std::string &message) {
     exit(1);
   }
 }
-IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth, size_t argHeight) {
+IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth,
+                                             size_t argHeight) {
   callGlfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  if(m_args.vulkanMode){
+  if (m_args.vulkanMode) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  }else{
+  } else {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   }
@@ -33,9 +34,9 @@ IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth, size_t argHeight) 
   }
   glfwMakeContextCurrent(window);
   glfwSwapInterval(0);
-  if(!m_args.vulkanMode)
+  if (!m_args.vulkanMode)
     displayAssert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress),
-              "Failed to initialize GLAD");
+                  "Failed to initialize GLAD");
   this->width = argWidth;
   this->height = argHeight;
   return true;
@@ -43,17 +44,19 @@ IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth, size_t argHeight) 
 IFRIT_APIDECL void GLFWWindowProvider::setTitle(const std::string &titleName) {
   this->title = titleName;
 }
-IFRIT_APIDECL void GLFWWindowProvider::loop(const std::function<void(int *)> &funcs) {
+IFRIT_APIDECL void
+GLFWWindowProvider::loop(const std::function<void(int *)> &funcs) {
   static int frameCount = 0;
   while (!glfwWindowShouldClose(window)) {
     int repCore;
     auto start = std::chrono::high_resolution_clock::now();
     funcs(&repCore);
-    
+
     auto end = std::chrono::high_resolution_clock::now();
-    using durationType = decltype(
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-            .count());
+    using durationType =
+        decltype(std::chrono::duration_cast<std::chrono::milliseconds>(end -
+                                                                       start)
+                     .count());
     frameTimes.push_back(std::max(
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
             .count(),
@@ -81,7 +84,6 @@ IFRIT_APIDECL void GLFWWindowProvider::loop(const std::function<void(int *)> &fu
       auto presentationTime = totalFrameTime - totalFrameTimeCore;
       ss << " Presentation Delay: " << presentationTime / 100.0 << "ms]";
       glfwSetWindowTitle(window, ss.str().c_str());
-
     }
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -96,9 +98,10 @@ IFRIT_APIDECL void *GLFWWindowProvider::getWindowObject() {
 #ifdef _WIN32
   return glfwGetWin32Window(window);
 #else
-  
-  static_assert( (sizeof(unsigned long long) == sizeof(void*)), "Window size is not equal to void* size");
-  return (void*)glfwGetX11Window(window); 
+
+  static_assert((sizeof(unsigned long long) == sizeof(void *)),
+                "Window size is not equal to void* size");
+  return (void *)glfwGetX11Window(window);
 #endif
 }
 IFRIT_APIDECL std::pair<uint32_t, uint32_t>

@@ -3,10 +3,15 @@ project(Ifrit-v2-Component-LLVMExec)
 set(CMAKE_CXX_STANDARD 14)
 
 # Set the output directory for the build executables and libraries
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}../../bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}../../bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}../../bin)
-set(IFRIT_IRCOMPILE_OUT_DIR ${CMAKE_BINARY_DIR}../../bin)
+set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
+string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
+
+include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/ProjectShared.cmake)
+# Reset to CXX14
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+include_directories(${IFRIT_PROJECT_DIR}/include)
 add_library(ifrit.ircompile SHARED 
     ./src/LLVMExecRuntime.cpp
 )

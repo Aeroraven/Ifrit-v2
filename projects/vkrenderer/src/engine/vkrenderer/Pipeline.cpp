@@ -1,5 +1,5 @@
-#include <vkrenderer/include/engine/vkrenderer/Pipeline.h>
-#include <vkrenderer/include/utility/Logger.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/Pipeline.h"
+#include "ifrit/vkgraphics/utility/Logger.h"
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 template <typename E>

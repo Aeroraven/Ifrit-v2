@@ -1,4 +1,4 @@
-#include "core/export/CommonExport.h"
+#include "ifrit/softgraphics/core/export/CommonExport.h"
 
 #define IFRIT_CORENS Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data
 using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data;

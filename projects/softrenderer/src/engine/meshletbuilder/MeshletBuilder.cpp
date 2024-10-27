@@ -1,4 +1,4 @@
-#include "engine/meshletbuilder/MeshletBuilder.h"
+#include "ifrit/softgraphics/engine/meshletbuilder/MeshletBuilder.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::MeshletBuilder::Impl {
 struct MbTriangle {
@@ -233,7 +233,8 @@ void writeGenratedMeshlet(MbContext *ctx, const MbCurrentMeshlet &meshlet) {
   }
   ctx->generatedMeshlets->push_back(std::move(emitMeshlet));
 }
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::MeshletBuilder::Impl
+} // namespace
+  // Ifrit::Engine::GraphicsBackend::SoftGraphics::MeshletBuilder::Impl
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::MeshletBuilder {
 IFRIT_APIDECL void

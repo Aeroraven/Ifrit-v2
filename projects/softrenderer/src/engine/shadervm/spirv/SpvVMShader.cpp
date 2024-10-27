@@ -1,4 +1,4 @@
-#include "engine/shadervm/spirv/SpvVMShader.h"
+#include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMShader.h"
 extern "C" {
 struct alignas(16) iint3Aligned {
   int x, y, z;

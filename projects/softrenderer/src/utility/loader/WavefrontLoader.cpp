@@ -1,5 +1,5 @@
-#include "utility/loader/WavefrontLoader.h"
-#include <common/math/VectorOps.h>
+#include "ifrit/softgraphics/utility/loader/WavefrontLoader.h"
+#include "ifrit/common/math/VectorOps.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Utility::Loader {
 std::vector<ifloat2> WavefrontLoader::remapUVs(std::vector<ifloat2> uvs,

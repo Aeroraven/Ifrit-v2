@@ -1,4 +1,4 @@
-#include "engine/imaging/BufferedImageBuilder.h"
+#include "ifrit/softgraphics/engine/imaging/BufferedImageBuilder.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging {
 std::shared_ptr<BufferedImage>

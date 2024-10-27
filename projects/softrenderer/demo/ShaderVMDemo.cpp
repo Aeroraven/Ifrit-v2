@@ -12,7 +12,7 @@
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
-#include <common/math/LinalgOps.h>
+#include "ifrit/common/math/LinalgOps.h"
 #include "presentation/backend/OpenGLBackend.h"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "presentation/backend/TerminalCharColorBackend.h"

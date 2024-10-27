@@ -1,5 +1,5 @@
-#include "engine/raytracer/TrivialRaytracer.h"
-#include "engine/raytracer/TrivialRaytracerWorker.h"
+#include "ifrit/softgraphics/engine/raytracer/TrivialRaytracer.h"
+#include "ifrit/softgraphics/engine/raytracer/TrivialRaytracerWorker.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer {
 TrivialRaytracer::TrivialRaytracer() {}
@@ -121,7 +121,8 @@ void TrivialRaytracer::statusTransitionBarrier(
     }
   }
 }
-void TrivialRaytracer::bindTestImage(Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data::ImageF32 *image) {
+void TrivialRaytracer::bindTestImage(
+    Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data::ImageF32 *image) {
   context->testImage = image;
 }
 

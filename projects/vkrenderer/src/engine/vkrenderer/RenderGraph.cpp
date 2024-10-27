@@ -1,5 +1,5 @@
-#include <vkrenderer/include/engine/vkrenderer/RenderGraph.h>
-#include <vkrenderer/include/utility/Logger.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
+#include "ifrit/vkgraphics/utility/Logger.h"
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 template <typename E>
@@ -515,7 +515,7 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
   if (m_vertexShader != nullptr) {
     ci.shaderModules.push_back(m_vertexShader);
     ci.geomGenType = GeometryGenerationType::Conventional;
-  } 
+  }
   ci.shaderModules.push_back(m_fragmentShader);
   if (m_geometryShader != nullptr) {
     ci.shaderModules.push_back(m_geometryShader);

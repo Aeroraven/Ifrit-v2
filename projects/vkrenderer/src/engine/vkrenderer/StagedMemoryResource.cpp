@@ -1,4 +1,4 @@
-#include <vkrenderer/include/engine/vkrenderer/StagedMemoryResource.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 
@@ -63,9 +63,8 @@ IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext *ctx,
   m_stagingBuffer = std::make_unique<SingleBuffer>(ctx, stagingCI);
 }
 
-IFRIT_APIDECL void StagedSingleImage::cmdCopyToDevice(CommandBuffer *cmd,
-                                                      const void *data,
-                                                      VkImageLayout srcLayout,
+IFRIT_APIDECL void StagedSingleImage::cmdCopyToDevice(
+    CommandBuffer *cmd, const void *data, VkImageLayout srcLayout,
     VkImageLayout dstLayout, VkPipelineStageFlags dstStage,
     VkAccessFlags dstAccess) {
   m_stagingBuffer->map();
@@ -99,7 +98,8 @@ IFRIT_APIDECL void StagedSingleImage::cmdCopyToDevice(CommandBuffer *cmd,
   imageBarrier.newLayout = dstLayout;
   imageBarrier.srcAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
   imageBarrier.dstAccessMask = dstAccess;
-  PipelineBarrier barrier2(m_context, VK_ACCESS_TRANSFER_WRITE_BIT, dstStage, 0);
+  PipelineBarrier barrier2(m_context, VK_ACCESS_TRANSFER_WRITE_BIT, dstStage,
+                           0);
   barrier2.addImageMemoryBarrier(imageBarrier);
   cmd->pipelineBarrier(barrier2);
 }

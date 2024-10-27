@@ -1,4 +1,4 @@
-#include "presentation/backend/OpenGLBackend.h"
+#include "ifrit/display/presentation/backend/OpenGLBackend.h"
 
 static const char *vertexShaderCodeF = R"(
 #version 330
@@ -24,7 +24,6 @@ void main() {
 }
 )";
 
-
 namespace Ifrit::Presentation::Backend {
 IFRIT_APIDECL void OpenGLBackend::draw() {
   glDepthFunc(GL_ALWAYS);
@@ -35,8 +34,10 @@ IFRIT_APIDECL void OpenGLBackend::draw() {
   glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 IFRIT_APIDECL OpenGLBackend::OpenGLBackend() {
-  vertexShaderCode = vertexShaderCode.empty() ? vertexShaderCodeF : vertexShaderCode;
-  fragmentShaderCode = fragmentShaderCode.empty() ? fragmentShaderCodeF : fragmentShaderCode;
+  vertexShaderCode =
+      vertexShaderCode.empty() ? vertexShaderCodeF : vertexShaderCode;
+  fragmentShaderCode =
+      fragmentShaderCode.empty() ? fragmentShaderCodeF : fragmentShaderCode;
   vertexShader = glCreateShader(GL_VERTEX_SHADER);
   const char *vertexShaderCodeCStr = vertexShaderCode.c_str();
   glShaderSource(vertexShader, 1, &vertexShaderCodeCStr, NULL);
@@ -95,23 +96,24 @@ IFRIT_APIDECL OpenGLBackend::OpenGLBackend() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
-IFRIT_APIDECL void OpenGLBackend::updateTexture(const float* image, int channels,int width,int height) {
+IFRIT_APIDECL void OpenGLBackend::updateTexture(const float *image,
+                                                int channels, int width,
+                                                int height) {
   const static float *ptr = nullptr;
   glBindTexture(GL_TEXTURE_2D, texture);
   auto data = image;
   if (ptr != data) {
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width,
-                   height, 0, GL_RGBA, GL_FLOAT, data);
-      ptr = image;
-    }
-  else {
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
-                    GL_RGBA, GL_FLOAT, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT,
+                 data);
+    ptr = image;
+  } else {
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_FLOAT,
+                    data);
   }
   // glGenerateMipmap(GL_TEXTURE_2D);
 }
-IFRIT_APIDECL void OpenGLBackend::setViewport(int32_t x, int32_t y, int32_t width,
-                                int32_t height) {
+IFRIT_APIDECL void OpenGLBackend::setViewport(int32_t x, int32_t y,
+                                              int32_t width, int32_t height) {
   glViewport(x, y, width, height);
 }
 } // namespace Ifrit::Presentation::Backend

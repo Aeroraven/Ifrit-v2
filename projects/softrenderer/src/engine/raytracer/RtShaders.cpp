@@ -1,4 +1,4 @@
-#include "engine/raytracer/RtShaders.h"
+#include "ifrit/softgraphics/engine/raytracer/RtShaders.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer {
 IFRIT_HOST void RaytracerShaderExecutionStack::pushStack(const RayInternal &ray,

@@ -1,5 +1,5 @@
-#include <vkrenderer/include/engine/vkrenderer/Command.h>
-#include <vkrenderer/include/utility/Logger.h>
+#include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
+#include "ifrit/vkgraphics/utility/Logger.h"
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL TimelineSemaphore::TimelineSemaphore(EngineContext *ctx)

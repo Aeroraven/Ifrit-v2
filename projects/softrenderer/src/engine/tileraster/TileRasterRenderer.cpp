@@ -1,5 +1,5 @@
-#include "engine/tileraster/TileRasterRenderer.h"
-#include "engine/tileraster/TileRasterWorker.h"
+#include "ifrit/softgraphics/engine/tileraster/TileRasterRenderer.h"
+#include "ifrit/softgraphics/engine/tileraster/TileRasterWorker.h"
 
 namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::Inline {
 template <class T, class U> auto ceilDiv(T a, U b) { return (a + b - 1) / b; }
@@ -118,12 +118,11 @@ IFRIT_APIDECL void TileRasterRenderer::intializeRenderContext() {
 void TileRasterRenderer::createWorkers() {
   workers.resize(context->numThreads);
   for (int i = 0; i < context->numThreads; i++) {
-    workers[i] =
-        std::make_unique<TileRasterWorker>(i, this, context);
+    workers[i] = std::make_unique<TileRasterWorker>(i, this, context);
     workers[i]->status.store(TileRasterStage::IDLE, std::memory_order::relaxed);
   }
-  selfOwningWorker = std::make_unique<TileRasterWorker>(
-      context->numThreads, this, context);
+  selfOwningWorker =
+      std::make_unique<TileRasterWorker>(context->numThreads, this, context);
 }
 void TileRasterRenderer::statusTransitionBarrier3(TileRasterStage waitOn,
                                                   TileRasterStage proceedTo) {

@@ -6,9 +6,6 @@ string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_D
 
 include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/ProjectShared.cmake)
 
-include_directories(${IFRIT_PROJECT_SUBDIR})
-include_directories(${IFRIT_PROJECT_DIR}/dependencies)
-
 
 file(GLOB_RECURSE IFRIT_VKRENDERER_SOURCE_FILES_CXX "src/*.cpp")
 file(GLOB_RECURSE IFRIT_VKRENDERER_SOURCE_FILES_C "src/*.c")

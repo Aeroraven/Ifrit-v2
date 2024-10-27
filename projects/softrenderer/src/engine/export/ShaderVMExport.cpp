@@ -1,8 +1,8 @@
-#include "./engine/export/ShaderVMExport.h"
-#include "./engine/base/ShaderRuntime.h"
-#include "./engine/shadervm/spirv/SpvVMInterpreter.h"
-#include "./engine/shadervm/spirv/SpvVMReader.h"
-#include "./engine/shadervm/spirv/SpvVMShader.h"
+#include "ifrit/softgraphics/engine/export/ShaderVMExport.h"
+#include "ifrit/softgraphics/engine/base/ShaderRuntime.h"
+#include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMInterpreter.h"
+#include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMReader.h"
+#include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMShader.h"
 
 using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv;
 using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics;

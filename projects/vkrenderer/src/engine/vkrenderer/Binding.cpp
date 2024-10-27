@@ -1,9 +1,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
+#include "ifrit/vkgraphics/utility/Logger.h"
 #include <algorithm>
-#include <vkrenderer/include/engine/vkrenderer/Binding.h>
-#include <vkrenderer/include/utility/Logger.h>
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 template <typename E>
