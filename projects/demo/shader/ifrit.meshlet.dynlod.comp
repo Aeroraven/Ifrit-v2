@@ -1,14 +1,14 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 512, local_size_y = 1, local_size_z = 1) in;
 
 struct BVHNode{
     vec4 boundingSphere;
-    uint numChildNodes;
+    int numChildNodes;
     uint clusterGroupStart;
     uint clusterGroupCount;
-    uint subTreeSize;
-    uint childNodes[8];
+    int subTreeSize;
+    int childNodes[8];
 };
 
 struct ClusterGroup{
@@ -25,11 +25,11 @@ struct ClusterGroup{
 };
 
 // Consumer-Producer queue
-layout(set = 0, binding = 1) buffer ConsumerCounter { uint v; } consumer[];
-layout(set = 0, binding = 1) buffer ProducerCounter { uint v; } producer[];
-layout(set = 0, binding = 1) buffer RemainingClusterCounter { uint v; } remainingCluster[];
+layout(set = 0, binding = 1) buffer ConsumerCounter { int v; } consumer[];
+layout(set = 0, binding = 1) buffer ProducerCounter { int v; } producer[];
+layout(set = 0, binding = 1) buffer RemainingClusterCounter { int v; } remainingCluster[];
 layout(set = 0, binding = 1) buffer CPQueue { 
-    uint data[]; 
+    int data[]; 
 } queue[];
 
 // Meshlet storage buffers
@@ -140,10 +140,10 @@ void main(){
     uint threadId = gl_GlobalInvocationID.x;
     uint groupSize = gl_WorkGroupSize.x;
 
-    const uint UNSET = 0xFFFFFFFF;
+    const int UNSET = 0x7FFFFFFF;
     
-    uint chosenBVHNodeInd = UNSET;
-    uint chosenBVHNodePos = UNSET;
+    int chosenBVHNodeInd = UNSET;
+    int chosenBVHNodePos = UNSET;
     uint totalBVHNodes = ubo[bindless.uniformId].totalBvhNodes;
     uint totalClusters = ubo[bindless.uniformId].clusterGroupCounts;
 
@@ -152,13 +152,13 @@ void main(){
 
     // Reset queue
     if(threadId == 0){
-        consumer[bindless.consumerId].v = 0;
-        producer[bindless.producerId].v = 0;
-        remainingCluster[bindless.remainingId].v = totalBVHNodes;
+        consumer[bindless.consumerId].v = 1;
+        producer[bindless.producerId].v = 1;
+        remainingCluster[bindless.remainingId].v = int(totalBVHNodes);
         drawCallSize[bindless.counterId].counter = uvec3(0,1,1);
     }
     for(uint i = 0; i < totalClusters ; i += groupSize){
-        queue[bindless.queueId].data[i] = UNSET;
+        queue[bindless.queueId].data[i+threadId] = UNSET;
     }
 
     // Enqueue root cluster, and assign it to the first thread
@@ -169,17 +169,20 @@ void main(){
     memoryBarrier();
     while(true){
         // Check if all BVH Nodes have been processed
-        uint remaining = remainingCluster[bindless.remainingId].v;
-        if(remaining == 0 || remaining >= UNSET/2){
+        int remaining = remainingCluster[bindless.remainingId].v;
+        if(remaining <= 0){
             break;
         }
         // If current thread does not have a cluster to process, try to get one
         if(chosenBVHNodeInd == UNSET){
             chosenBVHNodeInd = atomicAdd(consumer[bindless.consumerId].v, 1);
+            if(chosenBVHNodeInd >= totalBVHNodes){
+                break;
+            }
         }
         if(chosenBVHNodeInd != UNSET && chosenBVHNodePos == UNSET){
-            uint temp = UNSET;
-            uint retVal = atomicExchange(queue[bindless.queueId].data[chosenBVHNodeInd], temp);
+            int temp = UNSET;
+            int retVal = atomicExchange(queue[bindless.queueId].data[chosenBVHNodeInd], temp);
             if(retVal != UNSET){
                 chosenBVHNodePos = retVal;
             }
@@ -192,10 +195,11 @@ void main(){
                 atomicAdd(remainingCluster[bindless.remainingId].v, -1);
                 BVHNode node = bvhNodes[bindless.bvhId].data[chosenBVHNodePos];
 
+                
                 for(uint i = 0; i < node.numChildNodes; i++){
-                    uint childNode = node.childNodes[i];
-                    uint pos = atomicAdd(producer[bindless.producerId].v, 1);
-                    queue[bindless.queueId].data[pos] = childNode;
+                    int childNode = node.childNodes[i];
+                    int pos = atomicAdd(producer[bindless.producerId].v, 1);
+                    atomicExchange(queue[bindless.queueId].data[pos], childNode);
                 }
                 // Check whether the cluster group is visible
                 for(uint i = 0; i < node.clusterGroupCount; i++){
@@ -207,12 +211,13 @@ void main(){
                  }
             }else{
                 // Reject all subtrees
-                uint subTreeSize = bvhNodes[bindless.bvhId].data[chosenBVHNodePos].subTreeSize;
+                int subTreeSize = bvhNodes[bindless.bvhId].data[chosenBVHNodePos].subTreeSize;
                 atomicAdd(remainingCluster[bindless.remainingId].v, -subTreeSize);
             }
             // Reset the chosen BVH node
             chosenBVHNodeInd = UNSET;
-            chosenBVHNodePos = UNSET;;
+            chosenBVHNodePos = UNSET;
+            deadlockCounter = 0;
         }
     }
 }
