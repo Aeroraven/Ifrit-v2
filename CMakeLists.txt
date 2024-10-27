@@ -40,6 +40,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+add_subdirectory(dependencies/glfw)
 add_subdirectory(dependencies/meshoptimizer)
 add_subdirectory(dependencies/gklib)
 add_subdirectory(dependencies/metis)
