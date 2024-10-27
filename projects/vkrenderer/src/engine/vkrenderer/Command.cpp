@@ -1,7 +1,7 @@
 #include <vkrenderer/include/engine/vkrenderer/Command.h>
 #include <vkrenderer/include/utility/Logger.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL TimelineSemaphore::TimelineSemaphore(EngineContext *ctx)
     : m_context(ctx) {
   VkSemaphoreTypeCreateInfo timelineCI{};
@@ -395,4 +395,4 @@ IFRIT_APIDECL std::vector<Queue *> QueueCollections::getTransferQueues() {
   return transferQueues;
 }
 
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

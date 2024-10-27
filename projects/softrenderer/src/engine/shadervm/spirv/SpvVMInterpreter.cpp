@@ -2,7 +2,7 @@
 #include <spirv_headers/include/spirv/unified1/spirv.hpp>
 #include "engine/shadervm/spirv/SpvVMExtInstRegistry.h"
 #include <iomanip>
-namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv::Impl {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::Impl {
 
 SpvVMExtRegistry extInstRegistry = SpvVMExtRegistry();
 
@@ -2496,9 +2496,9 @@ void loadLookupTable(std::unordered_map<spv::Op, SpvInstFunc> &outMap) {
   outMap[spv::OpImageSampleExplicitLod] =
       InstructionImpl::spvOpImageSampleExplicitLod;
 }
-} // namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv::Impl
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::Impl
 
-namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
 void SpvVMInterpreter::parseRawContext(SpvVMContext *context,
                                        SpvVMIntermediateRepresentation *outIr) {
   static std::unordered_map<spv::Op, Impl::SpvInstFunc> lookupTable;
@@ -2572,4 +2572,4 @@ void SpvVMInterpreter::exportLlvmIR(SpvVMIntermediateRepresentation *ir,
   }
   printf("Entry: %s\n", ir->shaderMaps.mainFuncSymbol.c_str());*/
 }
-} // namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv

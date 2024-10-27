@@ -3,15 +3,15 @@
 #include "./engine/bufferman/BufferManager.h"
 #include "./engine/tileraster/TileRasterRenderer.h"
 
-#define IFRIT_TRNS Ifrit::Engine::SoftRenderer::TileRaster
-#define IFRIT_BASENS Ifrit::Engine::SoftRenderer
-#define IFRIT_TRTP Ifrit::Engine::SoftRenderer::LibraryExport::TileRasterRendererWrapper
+#define IFRIT_TRNS Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster
+#define IFRIT_BASENS Ifrit::Engine::GraphicsBackend::SoftGraphics
+#define IFRIT_TRTP Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport::TileRasterRendererWrapper
 
-using namespace Ifrit::Engine::SoftRenderer;
-using namespace Ifrit::Engine::SoftRenderer::LibraryExport;
-using namespace Ifrit::Engine::SoftRenderer::TileRaster;
+using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics;
+using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport;
+using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster;
 
-namespace Ifrit::Engine::SoftRenderer::LibraryExport {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport {
 struct TileRasterRendererWrapper {
   std::shared_ptr<IFRIT_TRNS::TileRasterRenderer> renderer;
   std::vector<std::unique_ptr<IFRIT_BASENS::ShaderBase>> allocatedFuncWrappers;
@@ -35,7 +35,7 @@ public:
       func(varyings, colorOutput, fragmentDepth);
   }
 };
-} // namespace Ifrit::Engine::SoftRenderer::LibraryExport
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport
 IFRIT_APIDECL_COMPAT IFRIT_TRTP *IFRIT_APICALL iftrCreateInstance()
     IFRIT_EXPORT_COMPAT_NOTHROW {
   auto hInst = new TileRasterRendererWrapper();

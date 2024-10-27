@@ -4,7 +4,7 @@
 #include "engine/base/VaryingStore.h"
 #include <common/math/simd/SimdVectors.h>
 
-namespace Ifrit::Engine::SoftRenderer {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
 struct VertexShaderResultContext {
   std::vector<ifloat4> position;
   std::vector<std::vector<Ifrit::Math::SIMD::vfloat4>> varyings;
@@ -39,4 +39,4 @@ public:
     return context->varyings[id].data();
   }
 };
-} // namespace Ifrit::Engine::SoftRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics

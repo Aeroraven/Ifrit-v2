@@ -3,9 +3,9 @@
 
 IFRIT_APIDECL_COMPAT void *IFRIT_APICALL ifvmCreateLLVMRuntimeBuilder()
     IFRIT_EXPORT_COMPAT_NOTHROW {
-  return new Ifrit::Engine::SoftRenderer::ComLLVMRuntime::WrappedLLVMRuntimeBuilder();
+  return new Ifrit::Engine::GraphicsBackend::SoftGraphics::ComLLVMRuntime::WrappedLLVMRuntimeBuilder();
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL ifvmDestroyLLVMRuntimeBuilder(void *p)
     IFRIT_EXPORT_COMPAT_NOTHROW {
-  delete (Ifrit::Engine::SoftRenderer::ComLLVMRuntime::WrappedLLVMRuntimeBuilder *)p;
+  delete (Ifrit::Engine::GraphicsBackend::SoftGraphics::ComLLVMRuntime::WrappedLLVMRuntimeBuilder *)p;
 }

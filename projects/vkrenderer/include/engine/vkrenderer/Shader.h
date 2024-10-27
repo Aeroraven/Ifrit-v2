@@ -4,7 +4,7 @@
 #include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
 #include <vulkan/vulkan.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 enum class ShaderStage { Vertex, Fragment, Compute, Mesh, Task };
 
 struct ShaderModuleCI {
@@ -30,4 +30,4 @@ public:
   VkPipelineShaderStageCreateInfo getStageCI() const;
   inline uint32_t getCodeSize() const { return m_ci.code.size(); }
 };
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

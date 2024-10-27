@@ -33,8 +33,6 @@ file(GLOB_RECURSE SOURCE_0 "include/*.h")
 file(GLOB_RECURSE SOURCE_1 "src/*.cpp")
 file(GLOB_RECURSE SOURCE_1B "src/*.c")
 
-file(GLOB SOURCE_STAGES "./meshproclib.cpp")
-
 if(NOT MSVC)
     add_compile_options(-fPIC)
 endif()
@@ -60,5 +58,5 @@ include_directories(${IFRIT_PROJECT_SUBDIR})
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/metis/include)
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/meshoptimizer/include)
 
-add_library(ifrit.meshproclib SHARED ${SOURCE_STAGES} ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B})
+add_library(ifrit.meshproclib SHARED ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B})
 target_link_libraries(ifrit.meshproclib PUBLIC metis meshoptimizer GKlib)     

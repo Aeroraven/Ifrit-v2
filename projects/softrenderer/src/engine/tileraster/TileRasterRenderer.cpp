@@ -1,11 +1,11 @@
 #include "engine/tileraster/TileRasterRenderer.h"
 #include "engine/tileraster/TileRasterWorker.h"
 
-namespace Ifrit::Engine::SoftRenderer::TileRaster::Inline {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::Inline {
 template <class T, class U> auto ceilDiv(T a, U b) { return (a + b - 1) / b; }
-} // namespace Ifrit::Engine::SoftRenderer::TileRaster::Inline
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::Inline
 
-namespace Ifrit::Engine::SoftRenderer::TileRaster {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster {
 IFRIT_APIDECL TileRasterRenderer::TileRasterRenderer() {}
 IFRIT_APIDECL TileRasterRenderer::~TileRasterRenderer() {
   if (!initialized) {
@@ -367,4 +367,4 @@ TileRasterRenderer::drawElements(int vertexCount,
                            TileRasterStage::IDLE);
 }
 
-} // namespace Ifrit::Engine::SoftRenderer::TileRaster
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster

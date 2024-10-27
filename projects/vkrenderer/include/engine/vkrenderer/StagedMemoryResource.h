@@ -3,7 +3,7 @@
 #include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
 #include <vkrenderer/include/engine/vkrenderer/MemoryResource.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 class IFRIT_APIDECL StagedSingleBuffer {
 protected:
   std::unique_ptr<SingleBuffer> m_bufferUnique;
@@ -49,4 +49,4 @@ public:
                        VkImageLayout srcLayout, VkImageLayout dstlayout,
                        VkPipelineStageFlags dstStage, VkAccessFlags dstAccess);
 };
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

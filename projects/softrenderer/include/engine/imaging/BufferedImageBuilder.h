@@ -2,7 +2,7 @@
 #include "core/definition/CoreExports.h"
 #include "engine/imaging/BufferedImage.h"
 
-namespace Ifrit::Engine::SoftRenderer::Imaging {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging {
 class IFRIT_APIDECL BufferedImageBuilder {
 public:
   BufferedImageBuilder() = default;
@@ -10,4 +10,4 @@ public:
 
   virtual std::shared_ptr<BufferedImage> build(const IfritImageCreateInfo &pCI);
 };
-} // namespace Ifrit::Engine::SoftRenderer::Imaging
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging

@@ -3,10 +3,10 @@
 #include "./engine/base/FrameBuffer.h"
 #include "./engine/base/VaryingDescriptor.h"
 
-#define IFRIT_BASENS Ifrit::Engine::SoftRenderer
-#define IFRIT_CORENS Ifrit::Engine::SoftRenderer::Core::Data
+#define IFRIT_BASENS Ifrit::Engine::GraphicsBackend::SoftGraphics
+#define IFRIT_CORENS Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data
 
-namespace Ifrit::Engine::SoftRenderer::LibraryExport {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport {
 using ExportTypeDesc = int;
 }
 
@@ -29,7 +29,7 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyVaryingDescriptor(
     IFRIT_BASENS::VaryingDescriptor *pInstance) IFRIT_EXPORT_COMPAT_NOTHROW;
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrWriteVaryingDescriptor(
     IFRIT_BASENS::VaryingDescriptor *pInstance,
-    const Ifrit::Engine::SoftRenderer::LibraryExport::ExportTypeDesc *pDesc,
+    const Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport::ExportTypeDesc *pDesc,
     size_t num) IFRIT_EXPORT_COMPAT_NOTHROW;
 
 /* Exporting VertexBuffer.h */
@@ -39,7 +39,7 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyVertexBuffer(
     IFRIT_BASENS::VertexBuffer *pInstance) IFRIT_EXPORT_COMPAT_NOTHROW;
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetVertexBufferLayout(
     IFRIT_BASENS::VertexBuffer *pInstance,
-    const Ifrit::Engine::SoftRenderer::LibraryExport::ExportTypeDesc *pDesc,
+    const Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport::ExportTypeDesc *pDesc,
     size_t num) IFRIT_EXPORT_COMPAT_NOTHROW;
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL
 iftrSetVertexBufferSize(IFRIT_BASENS::VertexBuffer *pInstance,

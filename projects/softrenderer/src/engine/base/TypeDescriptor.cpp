@@ -1,4 +1,4 @@
 #include "engine/base/TypeDescriptor.h"
-namespace Ifrit::Engine::SoftRenderer {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
 IFRIT_APIDECL TypeDescriptorsT TypeDescriptors;
 }

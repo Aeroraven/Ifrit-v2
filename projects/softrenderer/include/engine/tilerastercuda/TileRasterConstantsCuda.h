@@ -1,5 +1,5 @@
 #pragma once
-namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::CUDA {
 constexpr float CU_EPS = 1e-8f;
 
 // == Device ==
@@ -136,4 +136,4 @@ constexpr bool CU_PATCH_FI_240812 = true;
 // == Ext: MSAA ==
 constexpr bool CU_MSAA_ENABLED = true;
 constexpr int CU_MSAA_MAX_SAMPLES = 16;
-} // namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::CUDA

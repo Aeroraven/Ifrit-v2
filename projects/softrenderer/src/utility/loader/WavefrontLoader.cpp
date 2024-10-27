@@ -1,7 +1,7 @@
 #include "utility/loader/WavefrontLoader.h"
 #include <common/math/VectorOps.h>
 
-namespace Ifrit::Engine::SoftRenderer::Utility::Loader {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Utility::Loader {
 std::vector<ifloat2> WavefrontLoader::remapUVs(std::vector<ifloat2> uvs,
                                                std::vector<uint32_t> indices,
                                                int numVertices) {
@@ -97,4 +97,4 @@ void WavefrontLoader::loadObject(const char *path,
     }
   }
 }
-} // namespace Ifrit::Engine::SoftRenderer::Utility::Loader
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Utility::Loader

@@ -2,11 +2,11 @@
 #include "./core/definition/CoreExports.h"
 #include "./engine/tileraster/TileRasterRenderer.h"
 
-#define IFRIT_BASENS Ifrit::Engine::SoftRenderer
-#define IFRIT_CORENS Ifrit::Engine::SoftRenderer::Core::Data
+#define IFRIT_BASENS Ifrit::Engine::GraphicsBackend::SoftGraphics
+#define IFRIT_CORENS Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data
 
-using namespace Ifrit::Engine::SoftRenderer;
-using namespace Ifrit::Engine::SoftRenderer::Core::Data;
+using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics;
+using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data;
 
 IFRIT_APIDECL_COMPAT IFRIT_BASENS::FrameBuffer *IFRIT_APICALL
 iftrCreateFrameBuffer() IFRIT_EXPORT_COMPAT_NOTHROW {
@@ -39,7 +39,7 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyVaryingDescriptor(
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrWriteVaryingDescriptor(
     IFRIT_BASENS::VaryingDescriptor *pInstance,
-    const Ifrit::Engine::SoftRenderer::LibraryExport::ExportTypeDesc *pDesc,
+    const Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport::ExportTypeDesc *pDesc,
     size_t num) IFRIT_EXPORT_COMPAT_NOTHROW {
   std::vector<TypeDescriptor> desc;
   for (int i = 0; i < num; i++) {
@@ -83,7 +83,7 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyVertexBuffer(
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetVertexBufferLayout(
     IFRIT_BASENS::VertexBuffer *pInstance,
-    const Ifrit::Engine::SoftRenderer::LibraryExport::ExportTypeDesc *pDesc,
+    const Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport::ExportTypeDesc *pDesc,
     size_t num) IFRIT_EXPORT_COMPAT_NOTHROW {
   std::vector<TypeDescriptor> desc;
   for (int i = 0; i < num; i++) {

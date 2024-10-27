@@ -15,7 +15,7 @@ consteval float getInftyDepthValue() noexcept {
   return std::bit_cast<float, unsigned int>(0x7f7f7f7f);
 }
 
-namespace Ifrit::Engine::SoftRenderer::TileRaster {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster {
 
 inline int cvrsQueueWorkerId(int x) {
   return x >> (sizeof(int) * 8 - TileRasterContext::workerReprBits);
@@ -2892,4 +2892,4 @@ IF_DECLPS1_1(IF_COMPARE_OP_NOT_EQUAL);
 #undef IF_DECLPS1_1
 #undef IF_DECLPS1_2
 #undef IF_DECLPS1
-} // namespace Ifrit::Engine::SoftRenderer::TileRaster
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster

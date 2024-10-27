@@ -8,8 +8,8 @@
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 
-namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA {
-using namespace Ifrit::Engine::SoftRenderer;
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::CUDA {
+using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics;
 
 class TileRasterRendererCuda
     : public std::enable_shared_from_this<TileRasterRendererCuda> {
@@ -106,5 +106,5 @@ public:
   IFRIT_APIDECL void drawElements();
   IFRIT_APIDECL void drawMeshTasks(int numWorkGroups, int firstWorkGroup);
 };
-} // namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::CUDA
 #endif

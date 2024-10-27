@@ -4,7 +4,7 @@
 #include <common/math/simd/SimdVectors.h>
 using namespace Ifrit::Math::SIMD;
 
-namespace Ifrit::Engine::SoftRenderer::Raytracer {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer {
 TrivialRaytracerWorker::TrivialRaytracerWorker(
     std::shared_ptr<TrivialRaytracer> renderer,
     std::shared_ptr<TrivialRaytracerContext> context, int workerId) {
@@ -83,4 +83,4 @@ void TrivialRaytracerWorker::tracingRecursiveProcess(const RayInternal &ray,
   recurDepth--;
 }
 int TrivialRaytracerWorker::getTracingDepth() { return recurDepth; }
-} // namespace Ifrit::Engine::SoftRenderer::Raytracer
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer

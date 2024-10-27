@@ -1,7 +1,7 @@
 #include <vkrenderer/include/engine/vkrenderer/Shader.h>
 #include <vkrenderer/include/utility/Logger.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,
                                          const ShaderModuleCI &ci) {
   m_context = ctx;
@@ -71,4 +71,4 @@ IFRIT_APIDECL VkShaderModule ShaderModule::getModule() const {
 IFRIT_APIDECL VkPipelineShaderStageCreateInfo ShaderModule::getStageCI() const {
   return m_stageCI;
 }
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

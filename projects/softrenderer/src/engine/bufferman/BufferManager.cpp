@@ -1,6 +1,6 @@
 #include "engine/bufferman/BufferManager.h"
 
-namespace Ifrit::Engine::SoftRenderer::BufferManager::Impl {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::BufferManager::Impl {
 int BufferManagerImpl::allocateBufferId() {
   if (freeBufferIds.empty()) {
     this->bufferMetadata.resize(this->bufferMetadata.size() + 1);
@@ -65,9 +65,9 @@ void BufferManagerImpl::bufferDataUnsafe(const IfritBuffer &buffer,
                                          size_t size) IFRIT_AP_NOTHROW {
   memcpy(bufferMetadata[buffer.id].data.get() + offset, src, size);
 }
-} // namespace Ifrit::Engine::SoftRenderer::BufferManager::Impl
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::BufferManager::Impl
 
-namespace Ifrit::Engine::SoftRenderer::BufferManager {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::BufferManager {
 TrivialBufferManager::TrivialBufferManager() {}
 TrivialBufferManager::~TrivialBufferManager() {}
 void TrivialBufferManager::init() {
@@ -102,4 +102,4 @@ void TrivialBufferManager::bufferData(const IfritBuffer &buffer,
   }
   return impl->bufferData(buffer, src, offset, size);
 }
-} // namespace Ifrit::Engine::SoftRenderer::BufferManager
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::BufferManager

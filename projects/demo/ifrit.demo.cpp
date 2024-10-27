@@ -115,7 +115,7 @@ static void error_callback(int error, const char *description) {
 }
 
 int demo_vulkanMeshShader() {
-  using namespace Ifrit::Engine::VkRenderer;
+  using namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics;
   using namespace Ifrit::Presentation::Window;
   using namespace Ifrit::Math;
 

@@ -12,7 +12,7 @@
 #include <vkrenderer/include/engine/vkrenderer/Shader.h>
 #include <vkrenderer/include/engine/vkrenderer/Swapchain.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 
 class RenderGraph;
 class CommandExecutor;
@@ -429,4 +429,4 @@ public:
   void endFrame();
 };
 
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

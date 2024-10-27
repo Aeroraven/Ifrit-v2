@@ -3,7 +3,7 @@
 #include "engine/base/Structures.h"
 #include <stack>
 
-namespace Ifrit::Engine::SoftRenderer::BufferManager {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::BufferManager {
 class TrivialBufferManager;
 
 struct IfritBuffer {
@@ -58,4 +58,4 @@ public:
   void bufferData(const IfritBuffer &buffer, const void *src, size_t offset,
                   size_t size);
 };
-} // namespace Ifrit::Engine::SoftRenderer::BufferManager
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::BufferManager

@@ -6,7 +6,7 @@
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 bool enableExtension(
     bool mandatory, const char *extension,
     const std::vector<VkExtensionProperties> &availableExtensions,
@@ -430,4 +430,4 @@ void EngineContext::destructor() {
 }
 
 EngineContext::~EngineContext() { destructor(); }
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

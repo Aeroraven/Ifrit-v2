@@ -3,7 +3,7 @@
 #include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
 #include <vkrenderer/include/engine/vkrenderer/Shader.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 
 enum class CullMode { None, Front, Back };
 enum class RasterizerTopology { TriangleList, Line, Point };
@@ -98,4 +98,4 @@ public:
   ComputePipeline *getComputePipeline(const ComputePipelineCreateInfo &ci);
 };
 
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

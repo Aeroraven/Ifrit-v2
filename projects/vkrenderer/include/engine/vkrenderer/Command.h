@@ -3,7 +3,7 @@
 #include <vector>
 #include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 class CommandBuffer;
 
 struct Viewport {
@@ -233,4 +233,4 @@ public:
   void addSubmission(const CommandSubmissionInfo &info);
   void submit(bool hostSync = false);
 };
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

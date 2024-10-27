@@ -1,6 +1,6 @@
 #pragma once
 #include "./core/definition/CoreExports.h"
-namespace Ifrit::Engine::SoftRenderer {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
 enum IfritPolygonMode {
   IF_POLYGON_MODE_FILL = 0,
   IF_POLYGON_MODE_LINE = 1,
@@ -59,4 +59,4 @@ enum IfritSampleCountFlagBits {
   IF_SAMPLE_COUNT_8_BIT = 8,
   IF_SAMPLE_COUNT_16_BIT = 16,
 };
-} // namespace Ifrit::Engine::SoftRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics

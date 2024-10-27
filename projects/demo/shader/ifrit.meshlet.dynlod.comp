@@ -147,7 +147,6 @@ void main(){
     uint totalBVHNodes = ubo[bindless.uniformId].totalBvhNodes;
     uint totalClusters = ubo[bindless.uniformId].clusterGroupCounts;
 
-    uint deadlockCounter = 0;
     uint testCounter = 0;
 
     // Reset queue
@@ -194,7 +193,6 @@ void main(){
                 // If the BVH node is visible, enqueue its children
                 atomicAdd(remainingCluster[bindless.remainingId].v, -1);
                 BVHNode node = bvhNodes[bindless.bvhId].data[chosenBVHNodePos];
-
                 
                 for(uint i = 0; i < node.numChildNodes; i++){
                     int childNode = node.childNodes[i];
@@ -203,12 +201,12 @@ void main(){
                 }
                 // Check whether the cluster group is visible
                 for(uint i = 0; i < node.clusterGroupCount; i++){
-                     ClusterGroup group = clusterGroups[bindless.clusterGroupId].data[node.clusterGroupStart + i];
-                     bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i);  
+                    ClusterGroup group = clusterGroups[bindless.clusterGroupId].data[node.clusterGroupStart + i];
+                    bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i);  
                     if(clusterGroupVisible){
                         enqueueClusterGroup(node.clusterGroupStart + i);
                     }
-                 }
+                }
             }else{
                 // Reject all subtrees
                 int subTreeSize = bvhNodes[bindless.bvhId].data[chosenBVHNodePos].subTreeSize;
@@ -217,7 +215,6 @@ void main(){
             // Reset the chosen BVH node
             chosenBVHNodeInd = UNSET;
             chosenBVHNodePos = UNSET;
-            deadlockCounter = 0;
         }
     }
 }

@@ -2,7 +2,7 @@
 #include "../definition/CoreDefs.h"
 
 
-namespace Ifrit::Engine::SoftRenderer::Core::Utility {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility {
 
 template <typename T> concept CoreUtilIsIntegerType = std::is_integral_v<T>;
 
@@ -174,4 +174,4 @@ struct PairHash {
   }
 };
 
-} // namespace Ifrit::Engine::SoftRenderer::Core::Utility
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility

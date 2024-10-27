@@ -11,9 +11,9 @@
 #include "engine/base/VertexShaderResult.h"
 #include "engine/tileraster/TileRasterCommon.h"
 
-namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA {
-using namespace Ifrit::Engine::SoftRenderer::TileRaster;
-using namespace Ifrit::Engine::SoftRenderer;
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::CUDA {
+using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster;
+using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics;
 
 class TileRasterContextCuda {
 public:
@@ -66,4 +66,4 @@ public:
 
   irect2Df *dTileBounds = nullptr;
 };
-} // namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::CUDA

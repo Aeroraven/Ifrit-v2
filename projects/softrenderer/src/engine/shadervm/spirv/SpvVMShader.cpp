@@ -5,7 +5,7 @@ struct alignas(16) iint3Aligned {
 };
 }
 
-namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
 int SpvRuntimeBackend::createTime = 0;
 SpvRuntimeBackend::SpvRuntimeBackend(const ShaderRuntimeBuilder &runtime,
                                      std::vector<char> irByteCode) {
@@ -347,4 +347,4 @@ SpvClosestHitShader::getUniformList() {
 }
 IFRIT_HOST void SpvClosestHitShader::onStackPushComplete() { updateStack(); }
 IFRIT_HOST void SpvClosestHitShader::onStackPopComplete() { updateStack(); }
-} // namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv

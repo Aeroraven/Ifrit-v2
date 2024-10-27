@@ -4,8 +4,8 @@
 #include "./engine/shadervm/spirv/SpvVMReader.h"
 #include "./engine/shadervm/spirv/SpvVMShader.h"
 
-using namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv;
-using namespace Ifrit::Engine::SoftRenderer;
+using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv;
+using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics;
 
 IFRIT_APIDECL_COMPAT void *IFRIT_APICALL ifspvmCreateVertexShaderFromFile(
     void *runtime, const char *path) IFRIT_EXPORT_COMPAT_NOTHROW {

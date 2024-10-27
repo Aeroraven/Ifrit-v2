@@ -1,6 +1,6 @@
 #include "engine/imaging/BufferedImageBuilder.h"
 
-namespace Ifrit::Engine::SoftRenderer::Imaging {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging {
 std::shared_ptr<BufferedImage>
 BufferedImageBuilder::build(const IfritImageCreateInfo &pCI) {
   BufferedImageCreateInfo intCI;
@@ -37,4 +37,4 @@ BufferedImageBuilder::build(const IfritImageCreateInfo &pCI) {
     }
   }
 }
-} // namespace Ifrit::Engine::SoftRenderer::Imaging
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging

@@ -2,8 +2,8 @@
 
 #include "./core/definition/CoreExports.h"
 
-#define IFRIT_TRNS Ifrit::Engine::SoftRenderer::TileRaster
-#define IFRIT_BASENS Ifrit::Engine::SoftRenderer
+#define IFRIT_TRNS Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster
+#define IFRIT_BASENS Ifrit::Engine::GraphicsBackend::SoftGraphics
 
 // Update v1
 IFRIT_APIDECL_COMPAT void *IFRIT_APICALL ifvmCreateLLVMRuntimeBuilder()

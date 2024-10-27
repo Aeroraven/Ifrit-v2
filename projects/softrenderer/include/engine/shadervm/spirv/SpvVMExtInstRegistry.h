@@ -1,6 +1,6 @@
 #pragma once
 #include "./core/definition/CoreExports.h"
-namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
 enum SpvVMExtRegistryTypeIdentifier {
   IFSP_EXTREG_TP_INT,
   IFSP_EXTREG_TP_FLOAT
@@ -26,4 +26,4 @@ public:
       const std::vector<int> &componentSize);
   std::string getRequiredFuncDefs();
 };
-} // namespace Ifrit::Engine::SoftRenderer::ShaderVM::Spirv
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv

@@ -3,7 +3,7 @@
 #include <common/math/VectorOps.h>
 #include <common/math/simd/SimdVectors.h>
 #include <vector>
-namespace Ifrit::Engine::SoftRenderer {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
 struct Ray {
   Ifrit::Math::SIMD::vfloat3 o;
   Ifrit::Math::SIMD::vfloat3 r;
@@ -29,4 +29,4 @@ public:
   virtual void bufferData(const std::vector<T> &data) = 0;
 };
 
-} // namespace Ifrit::Engine::SoftRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics

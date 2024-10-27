@@ -3,7 +3,7 @@
 #include "core/definition/CoreTypes.h"
 #include <common/math/simd/SimdVectors.h>
 
-namespace Ifrit::Engine::SoftRenderer::TileRaster {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster {
 enum class TileRasterHomogeneousClipping {
   DISABLE,
   SIMPLE_DISCARD,
@@ -96,4 +96,4 @@ struct TileRasterClipVertexCUDA {
 struct AlphaBlendingCoefs {
   ifloat4 s, d;
 };
-} // namespace Ifrit::Engine::SoftRenderer::TileRaster
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster

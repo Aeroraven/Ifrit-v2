@@ -4,7 +4,7 @@
 #include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
 #include <vkrenderer/include/engine/vkrenderer/MemoryResource.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 
 enum class DescriptorType {
   UniformBuffer,
@@ -103,4 +103,4 @@ public:
     return m_bindRanges[rangeId]->m_layout;
   }
 };
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

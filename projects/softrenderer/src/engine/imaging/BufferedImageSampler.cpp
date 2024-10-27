@@ -1,6 +1,6 @@
 #include "engine/imaging/BufferedImageSampler.h"
 
-namespace Ifrit::Engine::SoftRenderer::Imaging {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging {
 inline void processWarpMode2D(IfritSamplerAddressMode mode, float &u,
                               float &v) {
   switch (mode) {
@@ -82,4 +82,4 @@ void BufferedImageSampler::sample3DLodSi(float u, float v, float w, float lod,
                                          iint3 offset, void *pixel) const {
   sample3DLod(u, v, w, lod, offset, sImg, pixel);
 }
-} // namespace Ifrit::Engine::SoftRenderer::Imaging
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging

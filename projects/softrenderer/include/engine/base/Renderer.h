@@ -1,6 +1,6 @@
 #pragma once
 #include "core/data/Image.h"
 
-namespace Ifrit::Engine::SoftRenderer {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
 class IFRIT_APIDECL Renderer {};
-} // namespace Ifrit::Engine::SoftRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics

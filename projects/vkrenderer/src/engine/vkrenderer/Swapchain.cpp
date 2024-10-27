@@ -8,7 +8,7 @@
 #include <vkrenderer/include/engine/vkrenderer/Swapchain.h>
 #include <vkrenderer/include/utility/Logger.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL void Swapchain::init() {
   // Window surface
 #ifdef _WIN32
@@ -278,4 +278,4 @@ IFRIT_APIDECL void Swapchain::presentImage() {
   vkQueuePresentKHR(m_presentQueue, &presentInfo);
   m_currentFrame = (m_currentFrame + 1) % m_backbufferCount;
 }
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

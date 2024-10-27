@@ -9,7 +9,7 @@
 #endif
 #include <functional>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 struct IFRIT_APIDECL InitializeArguments {
   std::function<const char **(uint32_t *)> m_extensionGetter;
   bool m_enableValidationLayer = true;
@@ -124,4 +124,4 @@ public:
     return m_phyDeviceProperties;
   }
 };
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

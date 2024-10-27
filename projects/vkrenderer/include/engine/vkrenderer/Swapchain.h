@@ -7,7 +7,7 @@
 #endif
 #include <vector>
 #include <vkrenderer/include/engine/vkrenderer/EngineContext.h>
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 struct SwapChainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
   std::vector<VkSurfaceFormatKHR> formats;
@@ -76,4 +76,4 @@ public:
   inline uint32_t getCurrentFrame() const { return m_currentFrame; }
   inline uint32_t getCurrentImageId() const { return m_currentFrame; }
 };
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

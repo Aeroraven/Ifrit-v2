@@ -3,7 +3,7 @@
 #include "engine/tilerastercuda/TileRasterConstantsCuda.h"
 #include "engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 #include "engine/tilerastercuda/TileRasterImageOpInvocationsCuda.cuh"
-namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA {
+namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::CUDA {
 IFRIT_APIDECL void TileRasterRendererCuda::init() {
   context = std::make_unique<TileRasterContextCuda>();
   deviceContext = std::make_unique<TileRasterDeviceContext>();
@@ -314,5 +314,5 @@ IFRIT_APIDECL void TileRasterRendererCuda::drawMeshTasks(int numWorkGroups,
   context->meshShaderNumWorkGroups = numWorkGroups;
   internalRender(IFINTERNAL_CU_VERTEX_PIPELINE_MESHSHADER);
 }
-} // namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA
+} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster::CUDA
 #endif

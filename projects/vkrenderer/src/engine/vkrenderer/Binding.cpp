@@ -5,7 +5,7 @@
 #include <vkrenderer/include/engine/vkrenderer/Binding.h>
 #include <vkrenderer/include/utility/Logger.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 template <typename E>
 constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
   return static_cast<typename std::underlying_type<E>::type>(e);
@@ -294,4 +294,4 @@ IFRIT_APIDECL void DescriptorManager::buildBindlessParameter() {
   m_currentBindRange = std::make_unique<DescriptorBindRangeData>();
 }
 
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

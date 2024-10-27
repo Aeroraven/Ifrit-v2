@@ -1,7 +1,7 @@
 #include <vkrenderer/include/engine/vkrenderer/MemoryResource.h>
 #include <vkrenderer/include/utility/Logger.h>
 
-namespace Ifrit::Engine::VkRenderer {
+namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL void SingleBuffer::init() {
   VkBufferCreateInfo bufferCI{};
   bufferCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -389,4 +389,4 @@ IFRIT_APIDECL SingleDeviceImage *ResourceManager::createTexture2DDevice(
   return createSimpleImage(ci);
 }
 
-} // namespace Ifrit::Engine::VkRenderer
+} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
