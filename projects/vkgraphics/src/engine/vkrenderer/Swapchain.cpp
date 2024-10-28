@@ -2,11 +2,14 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#include "ifrit/common/core/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Swapchain.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <algorithm>
 #include <array>
 #include <vector>
+
+using namespace Ifrit::Common::Core;
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL void Swapchain::init() {
@@ -246,8 +249,8 @@ IFRIT_APIDECL void Swapchain::destructor() {
   }
 }
 
-IFRIT_APIDECL Swapchain::Swapchain(EngineContext *context)
-    : m_context(context) {
+IFRIT_APIDECL Swapchain::Swapchain(Rhi::RhiDevice *context)
+    : m_context(checked_cast<EngineContext>(context)) {
   init();
 }
 
@@ -266,7 +269,7 @@ IFRIT_APIDECL uint32_t Swapchain::acquireNextImage() {
   return imageIndex;
 }
 
-IFRIT_APIDECL void Swapchain::presentImage() {
+IFRIT_APIDECL void Swapchain::present() {
   VkPresentInfoKHR presentInfo{};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   presentInfo.waitSemaphoreCount = 1;

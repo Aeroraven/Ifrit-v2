@@ -15,7 +15,7 @@ struct SwapChainSupportDetails {
   std::vector<VkPresentModeKHR> presentModes;
 };
 
-class IFRIT_APIDECL Swapchain {
+class IFRIT_APIDECL Swapchain : public Rhi::RhiSwapchain {
 private:
   EngineContext *m_context;
   void *m_hInstance;
@@ -45,10 +45,10 @@ protected:
   void destructor();
 
 public:
-  Swapchain(EngineContext *context);
+  Swapchain(Rhi::RhiDevice *context);
   ~Swapchain();
-  uint32_t acquireNextImage();
-  void presentImage();
+  uint32_t acquireNextImage() override;
+  void present() override;
 
   inline VkQueue getPresentQueue() const { return m_presentQueue; }
   inline VkFence getCurrentFrameFence() const {
@@ -73,8 +73,14 @@ public:
   }
 
   inline uint32_t getQueueFamily() const { return m_presentQueueFamilyIndex; }
-  inline uint32_t getNumBackbuffers() const { return m_backbufferCount; }
-  inline uint32_t getCurrentFrame() const { return m_currentFrame; }
-  inline uint32_t getCurrentImageId() const { return m_currentFrame; }
+  inline uint32_t getNumBackbuffers() const override {
+    return m_backbufferCount;
+  }
+  inline uint32_t getCurrentFrameIndex() const override {
+    return m_currentFrame;
+  }
+  inline uint32_t getCurrentImageIndex() const override {
+    return m_currentFrame;
+  }
 };
 } // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

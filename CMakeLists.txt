@@ -40,15 +40,16 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_subdirectory(dependencies/glfw)
 add_subdirectory(dependencies/meshoptimizer)
 add_subdirectory(dependencies/gklib)
 add_subdirectory(dependencies/metis)
 add_subdirectory(projects/display)
 add_subdirectory(projects/ircompile)
-add_subdirectory(projects/softrenderer)
+add_subdirectory(projects/softgraphics)
 add_subdirectory(projects/meshproclib)
-add_subdirectory(projects/vkrenderer)
+add_subdirectory(projects/vkgraphics)
 add_subdirectory(projects/demo)
 
 add_dependencies(ifrit.meshproclib meshoptimizer metis)

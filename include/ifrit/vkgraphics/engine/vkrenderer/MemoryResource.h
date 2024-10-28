@@ -1,4 +1,5 @@
 #pragma once
+#include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <memory>
 
@@ -11,7 +12,7 @@ struct BufferCreateInfo {
   bool hostVisible = false;
 };
 
-class IFRIT_APIDECL SingleBuffer {
+class IFRIT_APIDECL SingleBuffer : public Rhi::RhiBuffer {
 protected:
   VkBuffer m_buffer;
   EngineContext *m_context;
@@ -42,7 +43,7 @@ public:
   inline BufferCreateInfo getCreateInfo() const { return m_createInfo; }
 };
 
-class IFRIT_APIDECL MultiBuffer {
+class IFRIT_APIDECL MultiBuffer : public Rhi::RhiMultiBuffer {
 protected:
   std::vector<std::unique_ptr<SingleBuffer>> m_buffersOwning;
   std::vector<SingleBuffer *> m_buffers;

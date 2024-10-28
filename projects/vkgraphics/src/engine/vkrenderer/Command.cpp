@@ -1,5 +1,9 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
+#include "ifrit/common/core/TypingUtil.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
+
+using namespace Ifrit::Common::Core;
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL TimelineSemaphore::TimelineSemaphore(EngineContext *ctx)
@@ -164,29 +168,31 @@ IFRIT_APIDECL void CommandBuffer::drawMeshTasks(uint32_t groupCountX,
       m_commandBuffer, groupCountX, groupCountY, groupCountZ);
 }
 
-IFRIT_APIDECL void CommandBuffer::drawMeshTasksIndirect(VkBuffer buffer,
-                                                        uint32_t offset,
-                                                        uint32_t drawCount,
-                                                        uint32_t stride) const {
+IFRIT_APIDECL void
+CommandBuffer::drawMeshTasksIndirect(const Rhi::RhiBuffer *buffer,
+                                     uint32_t offset, uint32_t drawCount,
+                                     uint32_t stride) const {
+  auto buf = checked_cast<SingleBuffer>(buffer)->getBuffer();
   m_context->getExtensionFunction().p_vkCmdDrawMeshTasksIndirectEXT(
-      m_commandBuffer, buffer, offset, drawCount, stride);
+      m_commandBuffer, buf, offset, drawCount, stride);
 }
 
-IFRIT_APIDECL void CommandBuffer::copyBuffer(VkBuffer srcBuffer,
-                                             VkBuffer dstBuffer, uint32_t size,
-                                             uint32_t srcOffset,
+IFRIT_APIDECL void CommandBuffer::copyBuffer(const Rhi::RhiBuffer *srcBuffer,
+                                             const Rhi::RhiBuffer *dstBuffer,
+                                             uint32_t size, uint32_t srcOffset,
                                              uint32_t dstOffset) const {
   VkBufferCopy copyRegion{};
   copyRegion.srcOffset = srcOffset;
   copyRegion.dstOffset = dstOffset;
   copyRegion.size = size;
-  vkCmdCopyBuffer(m_commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+  auto src = checked_cast<SingleBuffer>(srcBuffer)->getBuffer();
+  auto dst = checked_cast<SingleBuffer>(dstBuffer)->getBuffer();
+  vkCmdCopyBuffer(m_commandBuffer, src, dst, 1, &copyRegion);
 }
 
-IFRIT_APIDECL void
-CommandBuffer::copyBufferToImageAll(VkBuffer srcBuffer, VkImage dstImage,
-                                    VkImageLayout dstLayout, uint32_t width,
-                                    uint32_t height, uint32_t depth) const {
+IFRIT_APIDECL void CommandBuffer::copyBufferToImageAll(
+    const Rhi::RhiBuffer *srcBuffer, VkImage dstImage, VkImageLayout dstLayout,
+    uint32_t width, uint32_t height, uint32_t depth) const {
   VkBufferImageCopy region{};
   region.bufferOffset = 0;
   region.bufferRowLength = 0;
@@ -197,8 +203,9 @@ CommandBuffer::copyBufferToImageAll(VkBuffer srcBuffer, VkImage dstImage,
   region.imageSubresource.layerCount = 1;
   region.imageOffset = {0, 0, 0};
   region.imageExtent = {width, height, depth};
-  vkCmdCopyBufferToImage(m_commandBuffer, srcBuffer, dstImage, dstLayout, 1,
-                         &region);
+
+  auto src = checked_cast<SingleBuffer>(srcBuffer)->getBuffer();
+  vkCmdCopyBufferToImage(m_commandBuffer, src, dstImage, dstLayout, 1, &region);
 }
 
 // Class: Queue

@@ -1,5 +1,6 @@
 #pragma once
 #include "ifrit/common/core/ApiConv.h"
+#include "ifrit/rhi/common/RhiLayer.h"
 #include <cstdint>
 #include <vector>
 #include <vma/vk_mem_alloc.h>
@@ -10,25 +11,7 @@
 #include <functional>
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
-struct IFRIT_APIDECL InitializeArguments {
-  std::function<const char **(uint32_t *)> m_extensionGetter;
-  bool m_enableValidationLayer = true;
-  uint32_t m_surfaceWidth = -1;
-  uint32_t m_surfaceHeight = -1;
-  uint32_t m_expectedSwapchainImageCount = 3;
-#ifdef _WIN32
-  struct {
-    HINSTANCE m_hInstance;
-    HWND m_hWnd;
-  } m_win32;
-#else
-  struct {
-    void *m_hInstance;
-    void *m_hWnd;
-  } m_win32;
 
-#endif
-};
 struct IFRIT_APIDECL DeviceQueueInfo {
   struct DeviceQueueFamily {
     uint32_t m_familyIndex;
@@ -67,11 +50,11 @@ struct IFRIT_APIDECL ExtensionFunction {
   PFN_vkCmdDrawMeshTasksIndirectEXT p_vkCmdDrawMeshTasksIndirectEXT;
 };
 
-class IFRIT_APIDECL EngineContext {
+class IFRIT_APIDECL EngineContext : public Rhi::RhiDevice {
 private:
   constexpr static const char *s_validationLayerName =
       "VK_LAYER_KHRONOS_validation";
-  InitializeArguments m_args;
+  Rhi::RhiInitializeArguments m_args;
   VkInstance m_instance;
   VkDebugUtilsMessengerEXT m_debugMessenger;
   VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
@@ -102,7 +85,7 @@ private:
   void destructor();
 
 public:
-  EngineContext(const InitializeArguments &args);
+  EngineContext(const Rhi::RhiInitializeArguments &args);
   ~EngineContext();
 
   EngineContext(const EngineContext &) = delete;
@@ -113,7 +96,7 @@ public:
   inline VkPhysicalDevice getPhysicalDevice() const { return m_physicalDevice; }
   inline VkDevice getDevice() const { return m_device; }
   inline const DeviceQueueInfo &getQueueInfo() const { return m_queueInfo; }
-  inline const InitializeArguments &getArgs() const { return m_args; }
+  inline const Rhi::RhiInitializeArguments &getArgs() const { return m_args; }
   inline const std::vector<const char *> &getDeviceExtensions() const {
     return m_deviceExtensions;
   }

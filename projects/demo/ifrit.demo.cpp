@@ -17,7 +17,6 @@
 #include "ifrit/meshproc/engine/clusterlod/MeshClusterLodProc.h"
 #include <meshoptimizer/src/meshoptimizer.h>
 
-
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
@@ -115,6 +114,7 @@ static void error_callback(int error, const char *description) {
 }
 
 int demo_vulkanMeshShader() {
+  using namespace Ifrit::Engine::GraphicsBackend::Rhi;
   using namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics;
   using namespace Ifrit::Presentation::Window;
   using namespace Ifrit::Math;
@@ -132,7 +132,7 @@ int demo_vulkanMeshShader() {
   glfwSetKeyCallback((GLFWwindow *)windowProvider.getGLFWWindow(),
                      key_callback);
 
-  InitializeArguments args;
+  RhiInitializeArguments args;
   auto extensionGetter = [&windowProvider](uint32_t *count) -> const char ** {
     return windowProvider.getVkRequiredInstanceExtensions(count);
   };
@@ -428,7 +428,7 @@ int demo_vulkanMeshShader() {
   msPass->setRecordFunction([&](RenderPassContext *ctx) -> void {
     ctx->m_cmd->setScissors({scissor});
     ctx->m_cmd->setViewports({viewport});
-    ctx->m_cmd->drawMeshTasksIndirect(indirectDrawBuffer->getBuffer(), 0, 1, 0);
+    ctx->m_cmd->drawMeshTasksIndirect(indirectDrawBuffer, 0, 1, 0);
   });
 
   float timeVal = 0.0f;

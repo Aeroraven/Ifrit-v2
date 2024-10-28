@@ -945,13 +945,13 @@ IFRIT_APIDECL void CommandExecutor::compileGraph(RenderGraph *graph,
 }
 
 IFRIT_APIDECL void CommandExecutor::syncMultiBufferStateWithSwapchain() {
-  m_resourceManager->setActiveFrame(m_swapchain->getCurrentImageId());
+  m_resourceManager->setActiveFrame(m_swapchain->getCurrentImageIndex());
 }
 
 IFRIT_APIDECL void CommandExecutor::runRenderGraph(RenderGraph *graph) {
   syncMultiBufferStateWithSwapchain();
   auto numBackBuffers = m_swapchain->getNumBackbuffers();
-  auto currentFrame = m_swapchain->getCurrentImageId();
+  auto currentFrame = m_swapchain->getCurrentImageIndex();
   if (!graph->m_comiled) {
     compileGraph(graph, numBackBuffers);
   }
@@ -1054,6 +1054,6 @@ CommandExecutor::getSwapchainImageResource() {
 IFRIT_APIDECL void CommandExecutor::beginFrame() {
   m_swapchain->acquireNextImage();
 }
-IFRIT_APIDECL void CommandExecutor::endFrame() { m_swapchain->presentImage(); }
+IFRIT_APIDECL void CommandExecutor::endFrame() { m_swapchain->present(); }
 
 } // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

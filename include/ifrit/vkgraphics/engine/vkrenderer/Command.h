@@ -1,4 +1,5 @@
 #pragma once
+#include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <memory>
 #include <vector>
@@ -133,16 +134,17 @@ public:
                 uint32_t groupCountZ) const;
   void drawMeshTasks(uint32_t groupCountX, uint32_t groupCountY,
                      uint32_t groupCountZ) const;
-  void drawMeshTasksIndirect(VkBuffer buffer, uint32_t offset,
+  void drawMeshTasksIndirect(const Rhi::RhiBuffer *buffer, uint32_t offset,
                              uint32_t drawCount, uint32_t stride) const;
   void drawIndexed(uint32_t indexCount, uint32_t instanceCount,
                    uint32_t firstIndex, int32_t vertexOffset,
                    uint32_t firstInstance) const;
 
-  void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t size,
+  void copyBuffer(const Rhi::RhiBuffer *srcBuffer,
+                  const Rhi::RhiBuffer *dstBuffer, uint32_t size,
                   uint32_t srcOffset = 0, uint32_t dstOffset = 0) const;
 
-  void copyBufferToImageAll(VkBuffer srcBuffer, VkImage dstImage,
+  void copyBufferToImageAll(const Rhi::RhiBuffer *srcBuffer, VkImage dstImage,
                             VkImageLayout dstLayout, uint32_t width,
                             uint32_t height, uint32_t depth) const;
 };

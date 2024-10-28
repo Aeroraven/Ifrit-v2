@@ -34,8 +34,7 @@ IFRIT_APIDECL void StagedSingleBuffer::cmdCopyToDevice(CommandBuffer *cmd,
   m_stagingBuffer->copyFromBuffer((void *)data, size, 0);
   m_stagingBuffer->flush();
   m_stagingBuffer->unmap();
-  cmd->copyBuffer(m_stagingBuffer.get()->getBuffer(), m_buffer->getBuffer(),
-                  size, 0, localOffset);
+  cmd->copyBuffer(m_stagingBuffer.get(), m_buffer, size, 0, localOffset);
 }
 
 IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext *ctx,
@@ -89,7 +88,7 @@ IFRIT_APIDECL void StagedSingleImage::cmdCopyToDevice(
   barrier.addImageMemoryBarrier(imageBarrier);
 
   cmd->pipelineBarrier(barrier);
-  cmd->copyBufferToImageAll(m_stagingBuffer->getBuffer(), m_image->getImage(),
+  cmd->copyBufferToImageAll(m_stagingBuffer.get(), m_image->getImage(),
                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                             m_image->getWidth(), m_image->getHeight(),
                             m_image->getDepth());

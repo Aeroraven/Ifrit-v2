@@ -40,14 +40,22 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 
 
 
-### 2.2 Quick Start 
+### 2.2 Install Dependencies
+
+Following dependencies should be manually configured. Other dependencies will be configured via submodule.
+
+- OpenGL 3.3
+- Vulkan 1.3, with extension `mesh_shader` extension
+- LLVM 10 or LLVM 11 (Maybe higher version is OK, but LLVM 18 or higher might not work properly)
+
+
+
+### 2.3 Quick Start 
 
 > **Note:** 
 >
 > 1. CUDA support is temporarily not included in repo's CMake. 
 > 2. Your compiler should support C++20 standards.
-> 3. Please ensure that `find_package` can find  `vulkan>=1.3`, `llvm>=10,<12` and `glfw3==3.3`. Otherwise, please manually change the fallback path in `CMakeLists.txt`. To install `llvm` and `glfw3`, check Complete Build Options. 
-> 4. Your device should support `descriptor indexing`, `dynamic rendering`, `dynamic state` and `timeline semaphore` extensions for `vulkan`
 >
 > **Under Refactoring, Linux GCC compilation MIGHT be unavailable now**
 
@@ -63,10 +71,6 @@ To run the demo
 ```
 
 
-
-### 2.3  Complete Build Options 
-
-See [Requirements & Build Instructions ](./docs/requirement.md)for more details.
 
 
 

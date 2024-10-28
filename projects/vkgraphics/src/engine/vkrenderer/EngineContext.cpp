@@ -104,7 +104,8 @@ IFRIT_APIDECL void EngineContext::loadExtensionFunction() {
 
   vkrLog("Extension functions loaded");
 }
-IFRIT_APIDECL EngineContext::EngineContext(const InitializeArguments &args)
+IFRIT_APIDECL
+EngineContext::EngineContext(const Rhi::RhiInitializeArguments &args)
     : m_args(args) {
   init();
 }
