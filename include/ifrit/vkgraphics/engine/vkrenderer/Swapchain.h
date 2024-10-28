@@ -17,7 +17,7 @@ struct SwapChainSupportDetails {
 
 class IFRIT_APIDECL Swapchain : public Rhi::RhiSwapchain {
 private:
-  EngineContext *m_context;
+  EngineContext *m_context = nullptr;
   void *m_hInstance;
   void *m_hWnd;
   VkSurfaceKHR m_surface;

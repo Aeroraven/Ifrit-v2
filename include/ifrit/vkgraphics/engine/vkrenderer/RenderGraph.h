@@ -1,4 +1,6 @@
 #pragma once
+#include "ifrit/common/core/TypingUtil.h"
+#include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
@@ -31,12 +33,6 @@ enum class QueueRequirement {
       VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT
 };
 
-enum class ResourceAccessType {
-  Read,
-  Write,
-  ReadOrWrite,
-  ReadAndWrite,
-};
 struct StencilOps {
   VkStencilFaceFlags faceMask = VK_STENCIL_FACE_FRONT_AND_BACK;
   VkStencilOp failOp = VK_STENCIL_OP_KEEP;
@@ -54,8 +50,8 @@ public:
     m_isSwapchainImage = true;
   }
   virtual ~SwapchainImageResource() {}
-  virtual VkFormat getFormat() override;
-  virtual VkImage getImage() override;
+  virtual VkFormat getFormat() const override;
+  virtual VkImage getImage() const override;
   virtual VkImageView getImageView() override;
 };
 
@@ -149,42 +145,108 @@ public:
   virtual ~RegisteredSamplerHandle() {}
 };
 
-struct RenderPassContext {
-  const CommandBuffer *m_cmd;
-  uint32_t m_frame;
-};
-
 struct RenderPassAttachment {
   RegisteredImageHandle *m_image = nullptr;
   VkAttachmentLoadOp m_loadOp;
   VkClearValue m_clearValue;
 };
 
+class IFRIT_APIDECL RegisteredResourceMapper
+    : public Ifrit::Common::Core::NonCopyable {
+private:
+  std::vector<std::unique_ptr<RegisteredResource>> m_resources;
+  std::unordered_map<SingleBuffer *, uint32_t> m_bufferMap;
+  std::unordered_map<SingleDeviceImage *, uint32_t> m_imageMap;
+  std::unordered_map<MultiBuffer *, uint32_t> m_multiBufferMap;
+  std::unordered_map<Sampler *, uint32_t> m_samplerMap;
+  // swapchain
+
+public:
+  RegisteredResourceMapper() {}
+  inline RegisteredResource *getBufferIndex(SingleBuffer *buffer) {
+    // Check if buffer is already registered
+    auto it = m_bufferMap.find(buffer);
+    if (it != m_bufferMap.end()) {
+      return m_resources[it->second].get();
+    } else {
+      auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
+      auto ptr = registeredBuffer.get();
+      m_resources.push_back(std::move(registeredBuffer));
+      m_bufferMap[buffer] = m_resources.size() - 1;
+      return ptr;
+    }
+  }
+  inline RegisteredResource *getImageIndex(SingleDeviceImage *image) {
+    // Check if image is already registered
+    auto it = m_imageMap.find(image);
+    if (it != m_imageMap.end()) {
+      return m_resources[it->second].get();
+    } else {
+      if (image->getIsSwapchainImage()) {
+        using namespace Ifrit::Common::Core;
+        auto swapchainImage = checked_cast<SwapchainImageResource>(image);
+        auto registeredImage =
+            std::make_unique<RegisteredSwapchainImage>(swapchainImage);
+        auto ptr = registeredImage.get();
+        m_resources.push_back(std::move(registeredImage));
+        m_imageMap[image] = m_resources.size() - 1;
+        return ptr;
+      }
+      auto registeredImage = std::make_unique<RegisteredImageHandle>(image);
+      auto ptr = registeredImage.get();
+      m_resources.push_back(std::move(registeredImage));
+      m_imageMap[image] = m_resources.size() - 1;
+      return ptr;
+    }
+  }
+  inline RegisteredResource *getMultiBufferIndex(MultiBuffer *buffer) {
+    // Check if buffer is already registered
+    auto it = m_multiBufferMap.find(buffer);
+    if (it != m_multiBufferMap.end()) {
+      return m_resources[it->second].get();
+    } else {
+      auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
+      auto ptr = registeredBuffer.get();
+      m_resources.push_back(std::move(registeredBuffer));
+      m_multiBufferMap[buffer] = m_resources.size() - 1;
+      return ptr;
+    }
+  }
+  inline RegisteredResource *getSamplerIndex(Sampler *sampler) {
+    throw std::runtime_error("Not implemented");
+    return nullptr;
+  }
+};
+
 class IFRIT_APIDECL RenderGraphPass {
 protected:
   EngineContext *m_context;
+  RegisteredResourceMapper *m_mapper;
   DescriptorManager *m_descriptorManager;
   std::vector<RegisteredResource *> m_inputResources;
   std::vector<RegisteredResource *> m_outputResources;
   std::vector<RenderPassResourceTransition> m_inputTransition;
   std::vector<RenderPassResourceTransition> m_outputTransition;
-  RenderPassContext m_passContext;
+  Rhi::RhiRenderPassContext m_passContext;
   bool m_operateOnSwapchain = false;
   bool m_passBuilt = false;
 
   std::unordered_map<uint32_t, std::vector<uint32_t>>
       m_resourceDescriptorHandle;
-  std::vector<DescriptorType> m_passDescriptorLayout;
+  std::vector<Rhi::RhiDescriptorType> m_passDescriptorLayout;
   std::vector<DescriptorBindRange> m_descriptorBindRange;
-  std::function<void(RenderPassContext *)> m_recordFunction = nullptr;
-  std::function<void(RenderPassContext *)> m_executeFunction = nullptr;
-  CommandBuffer *m_commandBuffer = nullptr;
+  std::function<void(Rhi::RhiRenderPassContext *)> m_recordFunction = nullptr;
+  std::function<void(Rhi::RhiRenderPassContext *)> m_recordPostFunction =
+      nullptr;
+  std::function<void(Rhi::RhiRenderPassContext *)> m_executeFunction = nullptr;
+  const CommandBuffer *m_commandBuffer = nullptr;
 
   // SSBOs
   std::vector<RegisteredBufferHandle *> m_ssbos;
-  std::vector<ResourceAccessType> m_ssboAccess;
+  std::vector<Rhi::RhiResourceAccessType> m_ssboAccess;
 
   uint32_t m_activeFrame = 0;
+  uint32_t m_defaultMultibuffers = UINT_MAX;
 
 protected:
   std::vector<RegisteredResource *> &getInputResources();
@@ -195,9 +257,12 @@ protected:
   void buildDescriptorParamHandle(uint32_t numMultiBuffers);
 
 public:
-  RenderGraphPass(EngineContext *context, DescriptorManager *descriptorManager)
-      : m_context(context), m_descriptorManager(descriptorManager) {}
-  void setPassDescriptorLayout(const std::vector<DescriptorType> &layout);
+  RenderGraphPass(EngineContext *context, DescriptorManager *descriptorManager,
+                  RegisteredResourceMapper *mapper)
+      : m_context(context), m_descriptorManager(descriptorManager),
+        m_mapper(mapper) {}
+  void setPassDescriptorLayout_base(
+      const std::vector<Rhi::RhiDescriptorType> &layout);
 
   inline void setActiveFrame(uint32_t frame) { m_activeFrame = frame; }
   virtual void addInputResource(RegisteredResource *resource,
@@ -208,18 +273,24 @@ public:
   virtual void withCommandBuffer(CommandBuffer *commandBuffer,
                                  std::function<void()> func);
 
-  void addUniformBuffer(RegisteredBufferHandle *buffer, uint32_t position);
+  void addUniformBuffer_base(RegisteredBufferHandle *buffer, uint32_t position);
   void addCombinedImageSampler(RegisteredImageHandle *image,
                                RegisteredSamplerHandle *sampler,
                                uint32_t position);
-  void addStorageBuffer(RegisteredBufferHandle *buffer, uint32_t position,
-                        ResourceAccessType access);
+  void addStorageBuffer_base(RegisteredBufferHandle *buffer, uint32_t position,
+                             Rhi::RhiResourceAccessType access);
+
+  inline void setDefaultNumMultiBuffers(uint32_t x) {
+    m_defaultMultibuffers = x;
+  }
 
   inline bool getOperatesOnSwapchain() { return m_operateOnSwapchain; }
   inline bool isBuilt() const { return m_passBuilt; }
 
-  void setRecordFunction(std::function<void(RenderPassContext *)> func);
-  void setExecutionFunction(std::function<void(RenderPassContext *)> func);
+  void
+  setRecordFunction_base(std::function<void(Rhi::RhiRenderPassContext *)> func);
+  void setExecutionFunction_base(
+      std::function<void(Rhi::RhiRenderPassContext *)> func);
 
   virtual void build(uint32_t numMultiBuffers) = 0;
   virtual void record() = 0;
@@ -229,7 +300,8 @@ public:
 };
 
 // Graphics Pass performs rendering operations
-class IFRIT_APIDECL GraphicsPass : public RenderGraphPass {
+class IFRIT_APIDECL GraphicsPass : public RenderGraphPass,
+                                   public Rhi::RhiGraphicsPass {
 protected:
   RenderPassAttachment m_depthAttachment;
   std::vector<RenderPassAttachment> m_colorAttachments;
@@ -268,34 +340,39 @@ protected:
 
   RegisteredBufferHandle *m_indexBuffer = nullptr;
   VkIndexType m_indexType;
-  RasterizerTopology m_topology = RasterizerTopology::TriangleList;
+  Rhi::RhiRasterizerTopology m_topology =
+      Rhi::RhiRasterizerTopology::TriangleList;
 
 public:
   GraphicsPass(EngineContext *context, PipelineCache *pipelineCache,
-               DescriptorManager *descriptorManager);
+               DescriptorManager *descriptorManager,
+               RegisteredResourceMapper *mapper);
 
   void record() override;
 
-  void addColorAttachment(RegisteredImageHandle *image,
-                          VkAttachmentLoadOp loadOp, VkClearValue clearValue);
-  void setDepthAttachment(RegisteredImageHandle *image,
-                          VkAttachmentLoadOp loadOp, VkClearValue clearValue);
+  void addColorAttachment(Rhi::RhiTexture *texture,
+                          Rhi::RhiRenderTargetLoadOp op,
+                          Rhi::RhiClearValue clearValue) override;
+  void setDepthAttachment(Rhi::RhiTexture *texture,
+                          Rhi::RhiRenderTargetLoadOp op,
+                          Rhi::RhiClearValue clearValue) override;
 
   void setVertexShader(ShaderModule *shader);
-  void setFragmentShader(ShaderModule *shader);
+  void setPixelShader(Rhi::RhiShader *shader) override;
   void setGeometryShader(ShaderModule *shader);
   void setTessControlShader(ShaderModule *shader);
   void setTessEvalShader(ShaderModule *shader);
 
   void setTaskShader(ShaderModule *shader);
-  void setMeshShader(ShaderModule *shader);
+  void setMeshShader(Rhi::RhiShader *shader) override;
 
-  void setRenderArea(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
-  void setDepthWrite(bool write);
+  void setRenderArea(uint32_t x, uint32_t y, uint32_t width,
+                     uint32_t height) override;
+  void setDepthWrite(bool write) override;
   void setColorWrite(const std::vector<uint32_t> &write);
-  void setDepthTestEnable(bool enable);
-  void setDepthCompareOp(VkCompareOp compareOp);
-  void setRasterizerTopology(RasterizerTopology topology);
+  void setDepthTestEnable(bool enable) override;
+  void setDepthCompareOp(Rhi::RhiCompareOp compareOp) override;
+  void setRasterizerTopology(Rhi::RhiRasterizerTopology topology) override;
 
   void setVertexInput(const VertexBufferDescriptor &descriptor,
                       const std::vector<RegisteredBufferHandle *> &buffers);
@@ -304,9 +381,46 @@ public:
   uint32_t getRequiredQueueCapability() override;
 
   virtual void build(uint32_t numMultiBuffers) override;
+
+  // Rhi compat
+  inline void setShaderBindingLayout(
+      const std::vector<Rhi::RhiDescriptorType> &layout) override {
+    setPassDescriptorLayout_base(layout);
+  }
+  inline void
+  addShaderStorageBuffer(Rhi::RhiBuffer *buffer, uint32_t position,
+                         Rhi::RhiResourceAccessType access) override {
+    using namespace Ifrit::Common::Core;
+    auto buf = checked_cast<SingleBuffer>(buffer);
+    auto registeredBuffer = m_mapper->getBufferIndex(buf);
+    auto registered = checked_cast<RegisteredBufferHandle>(registeredBuffer);
+    addStorageBuffer_base(registered, position, access);
+  }
+  inline void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t position) {
+    using namespace Ifrit::Common::Core;
+    auto buf = checked_cast<MultiBuffer>(buffer);
+    auto registeredBuffer = m_mapper->getMultiBufferIndex(buf);
+    auto registered = checked_cast<RegisteredBufferHandle>(registeredBuffer);
+    addUniformBuffer_base(registered, position);
+  }
+  inline void setExecutionFunction(
+      std::function<void(Rhi::RhiRenderPassContext *)> func) override {
+    setExecutionFunction_base(func);
+  }
+  inline void setRecordFunction(
+      std::function<void(Rhi::RhiRenderPassContext *)> func) override {
+    setRecordFunction_base(func);
+  }
+  inline void setRecordFunctionPostRenderPass(
+      std::function<void(Rhi::RhiRenderPassContext *)> func) override {
+    m_recordPostFunction = func;
+  }
+
+  void run(const Rhi::RhiCommandBuffer *cmd, uint32_t frameId) override;
 };
 
-class IFRIT_APIDECL ComputePass : public RenderGraphPass {
+class IFRIT_APIDECL ComputePass : public RenderGraphPass,
+                                  public Rhi::RhiComputePass {
 protected:
   ComputePipeline *m_pipeline;
   PipelineCache *m_pipelineCache;
@@ -315,14 +429,46 @@ protected:
 
 public:
   ComputePass(EngineContext *context, PipelineCache *pipelineCache,
-              DescriptorManager *descriptorManager)
-      : RenderGraphPass(context, descriptorManager),
+              DescriptorManager *descriptorManager,
+              RegisteredResourceMapper *mapper)
+      : RenderGraphPass(context, descriptorManager, mapper),
         m_pipelineCache(pipelineCache) {}
 
   void record() override;
   uint32_t getRequiredQueueCapability() override;
-  void setComputeShader(ShaderModule *shader);
+  void setComputeShader(Rhi::RhiShader *shader) override;
   void build(uint32_t numMultiBuffers) override;
+
+  // Rhi compat
+  inline void setShaderBindingLayout(
+      const std::vector<Rhi::RhiDescriptorType> &layout) override {
+    setPassDescriptorLayout_base(layout);
+  }
+  inline void
+  addShaderStorageBuffer(Rhi::RhiBuffer *buffer, uint32_t position,
+                         Rhi::RhiResourceAccessType access) override {
+    using namespace Ifrit::Common::Core;
+    auto buf = checked_cast<SingleBuffer>(buffer);
+    auto registeredBuffer = m_mapper->getBufferIndex(buf);
+    auto registered = checked_cast<RegisteredBufferHandle>(registeredBuffer);
+    addStorageBuffer_base(registered, position, access);
+  }
+  inline void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t position) {
+    using namespace Ifrit::Common::Core;
+    auto buf = checked_cast<MultiBuffer>(buffer);
+    auto registeredBuffer = m_mapper->getMultiBufferIndex(buf);
+    auto registered = checked_cast<RegisteredBufferHandle>(registeredBuffer);
+    addUniformBuffer_base(registered, position);
+  }
+  inline void setExecutionFunction(
+      std::function<void(Rhi::RhiRenderPassContext *)> func) override {
+    setExecutionFunction_base(func);
+  }
+  inline void setRecordFunction(
+      std::function<void(Rhi::RhiRenderPassContext *)> func) override {
+    setRecordFunction_base(func);
+  }
+  void run(const Rhi::RhiCommandBuffer *cmd, uint32_t frameId) override;
 };
 
 struct RegisteredResourceGraphState {
@@ -331,7 +477,7 @@ struct RegisteredResourceGraphState {
   uint32_t rwDeps;
 };
 
-class IFRIT_APIDECL RenderGraph {
+class IFRIT_APIDECL RenderGraph : public Rhi::RhiPassGraph {
 private:
   EngineContext *m_context;
   DescriptorManager *m_descriptorManager;
@@ -339,6 +485,8 @@ private:
   std::vector<std::unique_ptr<RegisteredResource>> m_resources;
   std::unordered_map<RegisteredResource *, uint32_t> m_resourceMap;
   std::unique_ptr<PipelineCache> m_pipelineCache;
+
+  std::unique_ptr<RegisteredResourceMapper> m_mapper;
 
   // Graph States
   std::vector<RegisteredResourceGraphState> m_resourceGraphState;
@@ -421,12 +569,11 @@ public:
   void runImmidiateCommand(std::function<void(CommandBuffer *)> func,
                            QueueRequirement req);
   SwapchainImageResource *getSwapchainImageResource();
-
-  // Begin a new frame recording procedure on host side.
   void beginFrame();
-
-  // End the frame recording procedure and present the frame to the screen.
   void endFrame();
+
+  // for rhi layers
+  Queue *getQueue(QueueRequirement req);
 };
 
 } // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

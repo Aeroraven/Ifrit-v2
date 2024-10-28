@@ -7,22 +7,6 @@
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 class CommandBuffer;
 
-struct Viewport {
-  float x;
-  float y;
-  float width;
-  float height;
-  float minDepth;
-  float maxDepth;
-};
-
-struct Scissor {
-  int32_t x;
-  int32_t y;
-  uint32_t width;
-  uint32_t height;
-};
-
 enum class VertexInputRate { Vertex, Instance };
 
 struct VertexBufferDescriptor {
@@ -70,14 +54,18 @@ public:
   inline VkSemaphore getSemaphore() const { return m_semaphore; }
 };
 
-struct TimelineSemaphoreWait {
+class TimelineSemaphoreWait : public Rhi::RhiTaskSubmission {
+public:
   VkSemaphore m_semaphore;
+  VkFence m_fence;
   uint64_t m_value;
   VkFlags m_waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+  bool m_isSwapchainSemaphore = false;
   TimelineSemaphoreWait &operator=(const TimelineSemaphoreWait &other) {
     m_semaphore = other.m_semaphore;
     m_value = other.m_value;
     m_waitStage = other.m_waitStage;
+    m_isSwapchainSemaphore = other.m_isSwapchainSemaphore;
     return *this;
   }
 };
@@ -106,7 +94,7 @@ public:
   friend class CommandBuffer;
 };
 
-class IFRIT_APIDECL CommandBuffer {
+class IFRIT_APIDECL CommandBuffer : public Rhi::RhiCommandBuffer {
 private:
   EngineContext *m_context;
   VkCommandBuffer m_commandBuffer;
@@ -126,16 +114,13 @@ public:
 
   // Functionality
   void pipelineBarrier(const PipelineBarrier &barrier) const;
-  void setViewports(const std::vector<Viewport> &viewport) const;
-  void setScissors(const std::vector<Scissor> &scissor) const;
+
   void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex,
             uint32_t firstInstance) const;
-  void dispatch(uint32_t groupCountX, uint32_t groupCountY,
-                uint32_t groupCountZ) const;
+
   void drawMeshTasks(uint32_t groupCountX, uint32_t groupCountY,
                      uint32_t groupCountZ) const;
-  void drawMeshTasksIndirect(const Rhi::RhiBuffer *buffer, uint32_t offset,
-                             uint32_t drawCount, uint32_t stride) const;
+
   void drawIndexed(uint32_t indexCount, uint32_t instanceCount,
                    uint32_t firstIndex, int32_t vertexOffset,
                    uint32_t firstInstance) const;
@@ -147,6 +132,18 @@ public:
   void copyBufferToImageAll(const Rhi::RhiBuffer *srcBuffer, VkImage dstImage,
                             VkImageLayout dstLayout, uint32_t width,
                             uint32_t height, uint32_t depth) const;
+
+  // Rhi compatible
+  void
+  setViewports(const std::vector<Rhi::RhiViewport> &viewport) const override;
+  void setScissors(const std::vector<Rhi::RhiScissor> &scissor) const override;
+  void dispatch(uint32_t groupCountX, uint32_t groupCountY,
+                uint32_t groupCountZ) const override;
+  void drawMeshTasksIndirect(const Rhi::RhiBuffer *buffer, uint32_t offset,
+                             uint32_t drawCount,
+                             uint32_t stride) const override;
+  void imageBarrier(const Rhi::RhiTexture *texture, Rhi::RhiResourceState src,
+                    Rhi::RhiResourceState dst) const override;
 };
 
 class IFRIT_APIDECL CommandPool {
@@ -168,7 +165,7 @@ public:
   std::unique_ptr<CommandBuffer> allocateCommandBufferUnique();
 };
 
-class IFRIT_APIDECL Queue {
+class IFRIT_APIDECL Queue : public Rhi::RhiQueue {
 private:
   EngineContext *m_context;
   VkQueue m_queue;
@@ -196,6 +193,17 @@ public:
                 VkFence fence, VkSemaphore swapchainSemaphore = nullptr);
   void waitIdle();
   void counterReset();
+
+  // for rhi layers override
+  void runSyncCommand(
+      std::function<void(const Rhi::RhiCommandBuffer *)> func) override;
+
+  std::unique_ptr<Rhi::RhiTaskSubmission> runAsyncCommand(
+      std::function<void(const Rhi::RhiCommandBuffer *)> func,
+      const std::vector<Rhi::RhiTaskSubmission *> &waitOn,
+      const std::vector<Rhi::RhiTaskSubmission *> &toIssue) override;
+
+  void hostWaitEvent(Rhi::RhiTaskSubmission *event) override;
 };
 
 class IFRIT_APIDECL QueueCollections {

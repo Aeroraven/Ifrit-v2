@@ -1,19 +1,19 @@
 #pragma once
+#include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
-enum class ShaderStage { Vertex, Fragment, Compute, Mesh, Task };
 
 struct ShaderModuleCI {
   std::vector<char> code;
   std::string entryPoint;
-  ShaderStage stage;
+  Rhi::RhiShaderStage stage;
 };
 
-class IFRIT_APIDECL ShaderModule {
+class IFRIT_APIDECL ShaderModule : public Rhi::RhiShader {
 private:
   VkShaderModule m_module;
   VkPipelineShaderStageCreateInfo m_stageCI{};
@@ -23,7 +23,7 @@ private:
 
 public:
   ShaderModule(EngineContext *ctx, const std::vector<char> &code,
-               const std::string &entryPoint, ShaderStage stage);
+               const std::string &entryPoint, Rhi::RhiShaderStage stage);
   ShaderModule(EngineContext *ctx, const ShaderModuleCI &ci);
   ~ShaderModule();
   VkShaderModule getModule() const;

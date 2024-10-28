@@ -23,7 +23,7 @@ IFRIT_APIDECL void SingleBuffer::init() {
 IFRIT_APIDECL SingleBuffer::~SingleBuffer() {
   vmaDestroyBuffer(m_context->getAllocator(), m_buffer, m_allocation);
 }
-IFRIT_APIDECL void SingleBuffer::map(size_t size) {
+IFRIT_APIDECL void SingleBuffer::map() {
   vkrAssert(m_createInfo.hostVisible, "Buffer must be host visible to map");
   vmaMapMemory(m_context->getAllocator(), m_allocation,
                (void **)&m_mappedMemory);
@@ -33,13 +33,13 @@ IFRIT_APIDECL void SingleBuffer::unmap() {
   vmaUnmapMemory(m_context->getAllocator(), m_allocation);
   m_mappedMemory = nullptr;
 }
-IFRIT_APIDECL void SingleBuffer::copyFromBuffer(void *data, uint32_t size,
-                                                uint32_t offset) {
+IFRIT_APIDECL void SingleBuffer::readBuffer(void *data, uint32_t size,
+                                            uint32_t offset) {
   vkrAssert(m_mappedMemory, "Buffer must be mapped to copy data");
   memcpy(m_mappedMemory + offset, data, size);
 }
-IFRIT_APIDECL void SingleBuffer::copyToBuffer(const void *data, uint32_t size,
-                                              uint32_t offset) {
+IFRIT_APIDECL void SingleBuffer::writeBuffer(const void *data, uint32_t size,
+                                             uint32_t offset) {
   vkrAssert(m_mappedMemory, "Buffer must be mapped to copy data");
   memcpy((void *)(m_mappedMemory + offset), data, size);
 }
@@ -77,8 +77,8 @@ IFRIT_APIDECL SingleBuffer *MultiBuffer::getBuffer(uint32_t index) {
 }
 
 // Class: Image
-IFRIT_APIDECL VkFormat SingleDeviceImage::getFormat() { return m_format; }
-IFRIT_APIDECL VkImage SingleDeviceImage::getImage() { return m_image; }
+IFRIT_APIDECL VkFormat SingleDeviceImage::getFormat() const { return m_format; }
+IFRIT_APIDECL VkImage SingleDeviceImage::getImage() const { return m_image; }
 IFRIT_APIDECL VkImageView SingleDeviceImage::getImageView() {
   return m_imageView;
 }

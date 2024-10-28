@@ -26,12 +26,12 @@ IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext *ctx,
   m_stagingBuffer = std::make_unique<SingleBuffer>(ctx, stagingCI);
 }
 
-IFRIT_APIDECL void StagedSingleBuffer::cmdCopyToDevice(CommandBuffer *cmd,
-                                                       const void *data,
-                                                       uint32_t size,
-                                                       uint32_t localOffset) {
+IFRIT_APIDECL void
+StagedSingleBuffer::cmdCopyToDevice(const Rhi::RhiCommandBuffer *cmd,
+                                    const void *data, uint32_t size,
+                                    uint32_t localOffset) {
   m_stagingBuffer->map();
-  m_stagingBuffer->copyFromBuffer((void *)data, size, 0);
+  m_stagingBuffer->writeBuffer((void *)data, size, 0);
   m_stagingBuffer->flush();
   m_stagingBuffer->unmap();
   cmd->copyBuffer(m_stagingBuffer.get(), m_buffer, size, 0, localOffset);
@@ -67,7 +67,7 @@ IFRIT_APIDECL void StagedSingleImage::cmdCopyToDevice(
     VkImageLayout dstLayout, VkPipelineStageFlags dstStage,
     VkAccessFlags dstAccess) {
   m_stagingBuffer->map();
-  m_stagingBuffer->copyFromBuffer((void *)data, m_image->getSize(), 0);
+  m_stagingBuffer->writeBuffer((void *)data, m_image->getSize(), 0);
   m_stagingBuffer->flush();
   m_stagingBuffer->unmap();
   PipelineBarrier barrier(m_context, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,

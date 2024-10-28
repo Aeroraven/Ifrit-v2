@@ -1,6 +1,8 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
+#include "ifrit/common/core/TypingUtil.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
+using namespace Ifrit::Common::Core;
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 template <typename E>
 constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
@@ -8,11 +10,11 @@ constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
 }
 // Class : SwapchainImageResource
 
-IFRIT_APIDECL VkFormat SwapchainImageResource::getFormat() {
+IFRIT_APIDECL VkFormat SwapchainImageResource::getFormat() const {
   return m_swapchain->getPreferredFormat();
 }
 
-IFRIT_APIDECL VkImage SwapchainImageResource::getImage() {
+IFRIT_APIDECL VkImage SwapchainImageResource::getImage() const {
   return m_swapchain->getCurrentImage();
 }
 
@@ -50,14 +52,14 @@ RenderGraphPass::addOutputResource(RegisteredResource *resource,
   m_outputTransition.push_back(transition);
 }
 
-IFRIT_APIDECL void RenderGraphPass::setPassDescriptorLayout(
-    const std::vector<DescriptorType> &layout) {
+IFRIT_APIDECL void RenderGraphPass::setPassDescriptorLayout_base(
+    const std::vector<Rhi::RhiDescriptorType> &layout) {
   m_passDescriptorLayout = layout;
 }
 
 IFRIT_APIDECL void
-RenderGraphPass::addUniformBuffer(RegisteredBufferHandle *buffer,
-                                  uint32_t position) {
+RenderGraphPass::addUniformBuffer_base(RegisteredBufferHandle *buffer,
+                                       uint32_t position) {
   auto numCopies = buffer->getNumBuffers();
   m_resourceDescriptorHandle[position].resize(numCopies);
   for (int i = 0; i < numCopies; i++) {
@@ -71,9 +73,9 @@ RenderGraphPass::addUniformBuffer(RegisteredBufferHandle *buffer,
 }
 
 IFRIT_APIDECL
-void RenderGraphPass::addStorageBuffer(RegisteredBufferHandle *buffer,
-                                       uint32_t position,
-                                       ResourceAccessType access) {
+void RenderGraphPass::addStorageBuffer_base(RegisteredBufferHandle *buffer,
+                                            uint32_t position,
+                                            Rhi::RhiResourceAccessType access) {
   auto numCopies = buffer->getNumBuffers();
   m_resourceDescriptorHandle[position].resize(numCopies);
   for (int i = 0; i < numCopies; i++) {
@@ -108,6 +110,9 @@ RenderGraphPass::addCombinedImageSampler(RegisteredImageHandle *image,
 
 IFRIT_APIDECL void
 RenderGraphPass::buildDescriptorParamHandle(uint32_t numMultiBuffers) {
+  if (numMultiBuffers == 0) {
+    numMultiBuffers = m_defaultMultibuffers;
+  }
   if (m_passDescriptorLayout.size() == 0)
     return;
   for (auto &[k, v] : m_resourceDescriptorHandle) {
@@ -143,13 +148,13 @@ RenderGraphPass::buildDescriptorParamHandle(uint32_t numMultiBuffers) {
   }
 }
 
-IFRIT_APIDECL void RenderGraphPass::setRecordFunction(
-    std::function<void(RenderPassContext *)> executeFunction) {
+IFRIT_APIDECL void RenderGraphPass::setRecordFunction_base(
+    std::function<void(Rhi::RhiRenderPassContext *)> executeFunction) {
   m_recordFunction = executeFunction;
 }
 
-IFRIT_APIDECL void RenderGraphPass::setExecutionFunction(
-    std::function<void(RenderPassContext *)> func) {
+IFRIT_APIDECL void RenderGraphPass::setExecutionFunction_base(
+    std::function<void(Rhi::RhiRenderPassContext *)> func) {
   m_executeFunction = func;
 }
 
@@ -180,18 +185,39 @@ RenderGraphPass::withCommandBuffer(CommandBuffer *commandBuffer,
 // Class : GraphicsPass
 IFRIT_APIDECL GraphicsPass::GraphicsPass(EngineContext *context,
                                          PipelineCache *pipelineCache,
-                                         DescriptorManager *descriptorManager)
-    : RenderGraphPass(context, descriptorManager),
+                                         DescriptorManager *descriptorManager,
+                                         RegisteredResourceMapper *mapper)
+    : RenderGraphPass(context, descriptorManager, mapper),
       m_pipelineCache(pipelineCache) {}
 
 IFRIT_APIDECL void
-GraphicsPass::addColorAttachment(RegisteredImageHandle *image,
-                                 VkAttachmentLoadOp loadOp,
-                                 VkClearValue clearValue) {
+GraphicsPass::addColorAttachment(Rhi::RhiTexture *texture,
+                                 Rhi::RhiRenderTargetLoadOp op,
+                                 Rhi::RhiClearValue clearValue) {
+
+  auto imageRaw = checked_cast<SingleDeviceImage>(texture);
+  auto registeredImage = m_mapper->getImageIndex(imageRaw);
+  auto image = checked_cast<RegisteredImageHandle>(registeredImage);
+
+  VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+  if (op == Rhi::RhiRenderTargetLoadOp::Clear) {
+    loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  } else if (op == Rhi::RhiRenderTargetLoadOp::DontCare) {
+    loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  }
+
+  VkClearValue clearValueVk{};
+  clearValueVk.color.float32[0] = clearValue.m_color[0];
+  clearValueVk.color.float32[1] = clearValue.m_color[1];
+  clearValueVk.color.float32[2] = clearValue.m_color[2];
+  clearValueVk.color.float32[3] = clearValue.m_color[3];
+  clearValueVk.depthStencil.depth = clearValue.m_depth;
+  clearValueVk.depthStencil.stencil = clearValue.m_stencil;
+
   RenderPassAttachment attachment;
   attachment.m_image = image;
   attachment.m_loadOp = loadOp;
-  attachment.m_clearValue = clearValue;
+  attachment.m_clearValue = clearValueVk;
   m_colorAttachments.push_back(attachment);
 
   RenderPassResourceTransition transition;
@@ -227,12 +253,32 @@ GraphicsPass::addColorAttachment(RegisteredImageHandle *image,
 }
 
 IFRIT_APIDECL void
-GraphicsPass::setDepthAttachment(RegisteredImageHandle *image,
-                                 VkAttachmentLoadOp loadOp,
-                                 VkClearValue clearValue) {
+GraphicsPass::setDepthAttachment(Rhi::RhiTexture *texture,
+                                 Rhi::RhiRenderTargetLoadOp op,
+                                 Rhi::RhiClearValue clearValue) {
+
+  auto imageRaw = checked_cast<SingleDeviceImage>(texture);
+  auto registeredImage = m_mapper->getImageIndex(imageRaw);
+  auto image = checked_cast<RegisteredImageHandle>(registeredImage);
+
+  VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+  if (op == Rhi::RhiRenderTargetLoadOp::Clear) {
+    loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  } else if (op == Rhi::RhiRenderTargetLoadOp::DontCare) {
+    loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  }
+
+  VkClearValue clearValueVk{};
+  clearValueVk.color.float32[0] = clearValue.m_color[0];
+  clearValueVk.color.float32[1] = clearValue.m_color[1];
+  clearValueVk.color.float32[2] = clearValue.m_color[2];
+  clearValueVk.color.float32[3] = clearValue.m_color[3];
+  clearValueVk.depthStencil.depth = clearValue.m_depth;
+  clearValueVk.depthStencil.stencil = clearValue.m_stencil;
+
   m_depthAttachment.m_image = image;
   m_depthAttachment.m_loadOp = loadOp;
-  m_depthAttachment.m_clearValue = clearValue;
+  m_depthAttachment.m_clearValue = clearValueVk;
 
   RenderPassResourceTransition transition;
   transition.m_required = true;
@@ -251,8 +297,8 @@ IFRIT_APIDECL void GraphicsPass::setVertexShader(ShaderModule *shader) {
   m_vertexShader = shader;
 }
 
-IFRIT_APIDECL void GraphicsPass::setFragmentShader(ShaderModule *shader) {
-  m_fragmentShader = shader;
+IFRIT_APIDECL void GraphicsPass::setPixelShader(Rhi::RhiShader *shader) {
+  m_fragmentShader = checked_cast<ShaderModule>(shader);
 }
 
 IFRIT_APIDECL void GraphicsPass::setGeometryShader(ShaderModule *shader) {
@@ -271,8 +317,8 @@ IFRIT_APIDECL void GraphicsPass::setTaskShader(ShaderModule *shader) {
   m_taskShader = shader;
 }
 
-IFRIT_APIDECL void GraphicsPass::setMeshShader(ShaderModule *shader) {
-  m_meshShader = shader;
+IFRIT_APIDECL void GraphicsPass::setMeshShader(Rhi::RhiShader *shader) {
+  m_meshShader = checked_cast<ShaderModule>(shader);
 }
 
 IFRIT_APIDECL void GraphicsPass::record() {
@@ -362,29 +408,27 @@ IFRIT_APIDECL void GraphicsPass::record() {
       m_depthAttachment.m_image ? &depthAttachmentInfo : nullptr;
 
   auto exfun = m_context->getExtensionFunction();
-  vkCmdBeginRendering(m_passContext.m_cmd->getCommandBuffer(), &renderingInfo);
-  vkCmdBindPipeline(m_passContext.m_cmd->getCommandBuffer(),
-                    VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->getPipeline());
-  vkCmdSetDepthWriteEnable(m_passContext.m_cmd->getCommandBuffer(),
-                           m_depthWrite);
-  exfun.p_vkCmdSetColorWriteEnableEXT(m_passContext.m_cmd->getCommandBuffer(),
-                                      m_colorAttachments.size(),
+
+  VkCommandBuffer cmd =
+      checked_cast<CommandBuffer>(m_commandBuffer)->getCommandBuffer();
+
+  vkCmdBeginRendering(cmd, &renderingInfo);
+  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    m_pipeline->getPipeline());
+  vkCmdSetDepthWriteEnable(cmd, m_depthWrite);
+  exfun.p_vkCmdSetColorWriteEnableEXT(cmd, m_colorAttachments.size(),
                                       m_colorWrite.data());
-  exfun.p_vkCmdSetColorBlendEnableEXT(m_passContext.m_cmd->getCommandBuffer(),
-                                      0, m_colorAttachments.size(),
+  exfun.p_vkCmdSetColorBlendEnableEXT(cmd, 0, m_colorAttachments.size(),
                                       m_blendEnable.data());
 
-  exfun.p_vkCmdSetColorBlendEquationEXT(m_passContext.m_cmd->getCommandBuffer(),
-                                        0, m_colorAttachments.size(),
+  exfun.p_vkCmdSetColorBlendEquationEXT(cmd, 0, m_colorAttachments.size(),
                                         m_blendEquations.data());
 
-  exfun.p_vkCmdSetColorWriteMaskEXT(m_passContext.m_cmd->getCommandBuffer(), 0,
-                                    m_colorAttachments.size(),
+  exfun.p_vkCmdSetColorWriteMaskEXT(cmd, 0, m_colorAttachments.size(),
                                     m_colorWriteMask.data());
   if (m_meshShader == nullptr) {
     exfun.p_vkCmdSetVertexInputEXT(
-        m_passContext.m_cmd->getCommandBuffer(),
-        m_vertexBufferDescriptor.m_bindings.size(),
+        cmd, m_vertexBufferDescriptor.m_bindings.size(),
         m_vertexBufferDescriptor.m_bindings.data(),
         m_vertexBufferDescriptor.m_attributes.size(),
         m_vertexBufferDescriptor.m_attributes.data());
@@ -397,15 +441,13 @@ IFRIT_APIDECL void GraphicsPass::record() {
       offsets.push_back(0);
     }
     if (vxbuffers.size() > 0) {
-      vkCmdBindVertexBuffers(m_passContext.m_cmd->getCommandBuffer(), 0,
-                             m_vertexBuffers.size(), vxbuffers.data(),
+      vkCmdBindVertexBuffers(cmd, 0, m_vertexBuffers.size(), vxbuffers.data(),
                              offsets.data());
     }
 
     if (m_indexBuffer) {
       vkCmdBindIndexBuffer(
-          m_passContext.m_cmd->getCommandBuffer(),
-          m_indexBuffer->getBuffer(m_passContext.m_frame)->getBuffer(), 0,
+          cmd, m_indexBuffer->getBuffer(m_passContext.m_frame)->getBuffer(), 0,
           m_indexType);
     }
   }
@@ -416,41 +458,36 @@ IFRIT_APIDECL void GraphicsPass::record() {
         m_descriptorBindRange[m_passContext.m_frame].rangeId);
     auto dynamicRange =
         m_descriptorBindRange[m_passContext.m_frame].rangeOffset;
-    vkCmdBindDescriptorSets(m_passContext.m_cmd->getCommandBuffer(),
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_pipeline->getLayout(), 0, 1, &bindlessSet, 0,
                             nullptr);
-    vkCmdBindDescriptorSets(m_passContext.m_cmd->getCommandBuffer(),
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_pipeline->getLayout(), 1, 1, &dynamicSet, 1,
                             &dynamicRange);
   }
 
-  exfun.p_vkCmdSetLogicOpEnableEXT(m_passContext.m_cmd->getCommandBuffer(),
-                                   m_logicalOpEnable);
-  exfun.p_vkCmdSetLogicOpEXT(m_passContext.m_cmd->getCommandBuffer(),
-                             m_logicOp);
-  exfun.p_vkCmdSetStencilTestEnable(m_passContext.m_cmd->getCommandBuffer(),
-                                    m_stencilEnable);
-  exfun.p_vkCmdSetStencilOp(m_passContext.m_cmd->getCommandBuffer(),
-                            m_stencilOp.faceMask, m_stencilOp.failOp,
+  exfun.p_vkCmdSetLogicOpEnableEXT(cmd, m_logicalOpEnable);
+  exfun.p_vkCmdSetLogicOpEXT(cmd, m_logicOp);
+  exfun.p_vkCmdSetStencilTestEnable(cmd, m_stencilEnable);
+  exfun.p_vkCmdSetStencilOp(cmd, m_stencilOp.faceMask, m_stencilOp.failOp,
                             m_stencilOp.passOp, m_stencilOp.depthFailOp,
                             m_stencilOp.compareOp);
 
-  exfun.p_vkCmdSetDepthBoundsTestEnable(m_passContext.m_cmd->getCommandBuffer(),
-                                        m_depthBoundTestEnable);
-  exfun.p_vkCmdSetDepthCompareOp(m_passContext.m_cmd->getCommandBuffer(),
-                                 m_depthCompareOp);
-  exfun.p_vkCmdSetDepthTestEnable(m_passContext.m_cmd->getCommandBuffer(),
-                                  m_depthTestEnable);
-  vkCmdSetFrontFace(m_passContext.m_cmd->getCommandBuffer(), m_frontFace);
-  vkCmdSetCullMode(m_passContext.m_cmd->getCommandBuffer(), m_cullMode);
+  exfun.p_vkCmdSetDepthBoundsTestEnable(cmd, m_depthBoundTestEnable);
+  exfun.p_vkCmdSetDepthCompareOp(cmd, m_depthCompareOp);
+  exfun.p_vkCmdSetDepthTestEnable(cmd, m_depthTestEnable);
+  vkCmdSetFrontFace(cmd, m_frontFace);
+  vkCmdSetCullMode(cmd, m_cullMode);
 
   if (m_recordFunction) {
     m_recordFunction(&m_passContext);
   }
 
-  vkCmdEndRendering(m_passContext.m_cmd->getCommandBuffer());
+  vkCmdEndRendering(cmd);
+
+  if (m_recordPostFunction) {
+    m_recordPostFunction(&m_passContext);
+  }
 }
 
 IFRIT_APIDECL void GraphicsPass::setRenderArea(uint32_t x, uint32_t y,
@@ -467,11 +504,43 @@ IFRIT_APIDECL void GraphicsPass::setDepthWrite(bool write) {
 IFRIT_APIDECL void GraphicsPass::setDepthTestEnable(bool enable) {
   m_depthTestEnable = enable;
 }
-IFRIT_APIDECL void GraphicsPass::setDepthCompareOp(VkCompareOp compareOp) {
-  m_depthCompareOp = compareOp;
+IFRIT_APIDECL void
+GraphicsPass::setDepthCompareOp(Rhi::RhiCompareOp compareOp) {
+  VkCompareOp vkcmp;
+  switch (compareOp) {
+  case Rhi::RhiCompareOp::Never:
+    vkcmp = VK_COMPARE_OP_NEVER;
+    break;
+  case Rhi::RhiCompareOp::Less:
+
+    vkcmp = VK_COMPARE_OP_LESS;
+    break;
+  case Rhi::RhiCompareOp::Equal:
+    vkcmp = VK_COMPARE_OP_EQUAL;
+    break;
+  case Rhi::RhiCompareOp::LessOrEqual:
+    vkcmp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    break;
+  case Rhi::RhiCompareOp::Greater:
+    vkcmp = VK_COMPARE_OP_GREATER;
+    break;
+  case Rhi::RhiCompareOp::NotEqual:
+    vkcmp = VK_COMPARE_OP_NOT_EQUAL;
+    break;
+  case Rhi::RhiCompareOp::GreaterOrEqual:
+    vkcmp = VK_COMPARE_OP_GREATER_OR_EQUAL;
+    break;
+  case Rhi::RhiCompareOp::Always:
+    vkcmp = VK_COMPARE_OP_ALWAYS;
+    break;
+  default:
+    vkcmp = VK_COMPARE_OP_ALWAYS;
+    break;
+  }
+  m_depthCompareOp = vkcmp;
 }
 IFRIT_APIDECL void
-GraphicsPass::setRasterizerTopology(RasterizerTopology topology) {
+GraphicsPass::setRasterizerTopology(Rhi::RhiRasterizerTopology topology) {
   m_topology = topology;
 }
 
@@ -514,7 +583,7 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
   GraphicsPipelineCreateInfo ci;
   if (m_vertexShader != nullptr) {
     ci.shaderModules.push_back(m_vertexShader);
-    ci.geomGenType = GeometryGenerationType::Conventional;
+    ci.geomGenType = Rhi::RhiGeometryGenerationType::Conventional;
   }
   ci.shaderModules.push_back(m_fragmentShader);
   if (m_geometryShader != nullptr) {
@@ -531,7 +600,7 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
   }
   if (m_meshShader != nullptr) {
     ci.shaderModules.push_back(m_meshShader);
-    ci.geomGenType = GeometryGenerationType::Mesh;
+    ci.geomGenType = Rhi::RhiGeometryGenerationType::Mesh;
     vkrAssert(m_vertexShader == nullptr, "Vertex shader should be null");
   }
   ci.viewportCount = 1;
@@ -549,6 +618,9 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
         m_colorAttachments[i].m_image->getImage(0)->getFormat());
   }
   if (m_passDescriptorLayout.size() > 0) {
+    if (m_descriptorBindRange.size() == 0) {
+      buildDescriptorParamHandle(numMultiBuffers);
+    }
     ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
     ci.descriptorSetLayouts.push_back(
         m_descriptorManager->getParameterDescriptorSetLayout(
@@ -563,12 +635,26 @@ IFRIT_APIDECL uint32_t GraphicsPass::getRequiredQueueCapability() {
   return VK_QUEUE_GRAPHICS_BIT;
 }
 
+IFRIT_APIDECL void ComputePass::run(const Rhi::RhiCommandBuffer *cmd,
+                                    uint32_t frameId) {
+  if (m_passBuilt == false) {
+    build(0);
+  }
+  m_commandBuffer = checked_cast<CommandBuffer>(cmd);
+  m_activeFrame = frameId;
+  execute();
+  record();
+}
+
 // Class : ComputePass
 
 IFRIT_APIDECL void ComputePass::build(uint32_t numMultiBuffers) {
   ComputePipelineCreateInfo ci;
   ci.shaderModules = m_shaderModule;
   if (m_passDescriptorLayout.size() > 0) {
+    if (m_descriptorBindRange.size()==0) {
+      buildDescriptorParamHandle(numMultiBuffers);
+    }
     ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
     ci.descriptorSetLayouts.push_back(
         m_descriptorManager->getParameterDescriptorSetLayout(
@@ -578,8 +664,9 @@ IFRIT_APIDECL void ComputePass::build(uint32_t numMultiBuffers) {
   setBuilt();
 }
 
-IFRIT_APIDECL void ComputePass::setComputeShader(ShaderModule *shader) {
-  m_shaderModule = shader;
+IFRIT_APIDECL void ComputePass::setComputeShader(Rhi::RhiShader *shader) {
+  auto p = checked_cast<ShaderModule>(shader);
+  m_shaderModule = p;
 }
 
 IFRIT_APIDECL uint32_t ComputePass::getRequiredQueueCapability() {
@@ -589,27 +676,38 @@ IFRIT_APIDECL uint32_t ComputePass::getRequiredQueueCapability() {
 IFRIT_APIDECL void ComputePass::record() {
   m_passContext.m_cmd = m_commandBuffer;
   m_passContext.m_frame = m_activeFrame;
-
+  VkCommandBuffer cmd = m_commandBuffer->getCommandBuffer();
   if (m_passDescriptorLayout.size() > 0) {
     auto bindlessSet = m_descriptorManager->getBindlessSet();
     auto dynamicSet = m_descriptorManager->getParameterDescriptorSet(
         m_descriptorBindRange[m_passContext.m_frame].rangeId);
     auto dynamicRange =
         m_descriptorBindRange[m_passContext.m_frame].rangeOffset;
-    vkCmdBindDescriptorSets(
-        m_passContext.m_cmd->getCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE,
-        m_pipeline->getLayout(), 0, 1, &bindlessSet, 0, nullptr);
-    vkCmdBindDescriptorSets(
-        m_passContext.m_cmd->getCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE,
-        m_pipeline->getLayout(), 1, 1, &dynamicSet, 1, &dynamicRange);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                            m_pipeline->getLayout(), 0, 1, &bindlessSet, 0,
+                            nullptr);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                            m_pipeline->getLayout(), 1, 1, &dynamicSet, 1,
+                            &dynamicRange);
   }
 
-  vkCmdBindPipeline(m_passContext.m_cmd->getCommandBuffer(),
-                    VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline->getPipeline());
+  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                    m_pipeline->getPipeline());
 
   if (m_recordFunction) {
     m_recordFunction(&m_passContext);
   }
+}
+
+IFRIT_APIDECL void GraphicsPass::run(const Rhi::RhiCommandBuffer *cmd,
+                                     uint32_t frameId) {
+  if (m_passBuilt == false) {
+    build(0);
+  }
+  m_commandBuffer = checked_cast<CommandBuffer>(cmd);
+  m_activeFrame = frameId;
+  execute();
+  record();
 }
 
 // Class: RenderGraph
@@ -619,19 +717,20 @@ RenderGraph::RenderGraph(EngineContext *context,
   m_context = context;
   m_descriptorManager = descriptorManager;
   m_pipelineCache = std::make_unique<PipelineCache>(context);
+  m_mapper = std::make_unique<RegisteredResourceMapper>();
 }
 
 IFRIT_APIDECL GraphicsPass *RenderGraph::addGraphicsPass() {
-  auto pass = std::make_unique<GraphicsPass>(m_context, m_pipelineCache.get(),
-                                             m_descriptorManager);
+  auto pass = std::make_unique<GraphicsPass>(
+      m_context, m_pipelineCache.get(), m_descriptorManager, m_mapper.get());
   auto ptr = pass.get();
   m_passes.push_back(std::move(pass));
   return ptr;
 }
 
 IFRIT_APIDECL ComputePass *RenderGraph::addComputePass() {
-  auto pass = std::make_unique<ComputePass>(m_context, m_pipelineCache.get(),
-                                            m_descriptorManager);
+  auto pass = std::make_unique<ComputePass>(
+      m_context, m_pipelineCache.get(), m_descriptorManager, m_mapper.get());
   auto ptr = pass.get();
   m_passes.push_back(std::move(pass));
   return ptr;
@@ -639,11 +738,12 @@ IFRIT_APIDECL ComputePass *RenderGraph::addComputePass() {
 
 IFRIT_APIDECL RegisteredBufferHandle *
 RenderGraph::registerBuffer(SingleBuffer *buffer) {
-  auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
-  auto ptr = registeredBuffer.get();
-  m_resources.push_back(std::move(registeredBuffer));
-  m_resourceMap[ptr] = m_resources.size() - 1;
-  return ptr;
+  auto p = m_mapper->getBufferIndex(buffer);
+  auto s = dynamic_cast<RegisteredBufferHandle *>(p);
+  if (s == nullptr) {
+    vkrError("Invalid buffer");
+  }
+  return s;
 }
 
 IFRIT_APIDECL RegisteredSamplerHandle *
@@ -657,11 +757,12 @@ RenderGraph::registerSampler(Sampler *sampler) {
 
 IFRIT_APIDECL RegisteredBufferHandle *
 RenderGraph::registerBuffer(MultiBuffer *buffer) {
-  auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
-  auto ptr = registeredBuffer.get();
-  m_resources.push_back(std::move(registeredBuffer));
-  m_resourceMap[ptr] = m_resources.size() - 1;
-  return ptr;
+  auto p = m_mapper->getMultiBufferIndex(buffer);
+  auto s = dynamic_cast<RegisteredBufferHandle *>(p);
+  if (s == nullptr) {
+    vkrError("Invalid buffer");
+  }
+  return s;
 }
 
 IFRIT_APIDECL RegisteredImageHandle *
@@ -1055,5 +1156,16 @@ IFRIT_APIDECL void CommandExecutor::beginFrame() {
   m_swapchain->acquireNextImage();
 }
 IFRIT_APIDECL void CommandExecutor::endFrame() { m_swapchain->present(); }
+
+IFRIT_APIDECL Queue *CommandExecutor::getQueue(QueueRequirement req) {
+  auto requiredCapability = getUnderlying(req);
+  for (int i = 0; i < m_queues.size(); i++) {
+    if ((m_queues[i]->getCapability() & requiredCapability) ==
+        requiredCapability) {
+      return m_queues[i];
+    }
+  }
+  return nullptr;
+}
 
 } // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics

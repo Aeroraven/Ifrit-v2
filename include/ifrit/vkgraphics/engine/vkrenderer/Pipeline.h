@@ -1,24 +1,22 @@
 #pragma once
+#include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 #include <memory>
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 
-enum class CullMode { None, Front, Back };
-enum class RasterizerTopology { TriangleList, Line, Point };
-enum class GeometryGenerationType { Conventional, Mesh };
-
 struct GraphicsPipelineCreateInfo {
   uint32_t viewportCount;
   uint32_t scissorCount;
-  RasterizerTopology topology;
+  Rhi::RhiRasterizerTopology topology;
   std::vector<VkFormat> colorAttachmentFormats;
   VkFormat depthAttachmentFormat;
   VkFormat stencilAttachmentFormat;
   std::vector<ShaderModule *> shaderModules;
   std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
-  GeometryGenerationType geomGenType = GeometryGenerationType::Conventional;
+  Rhi::RhiGeometryGenerationType geomGenType =
+      Rhi::RhiGeometryGenerationType::Conventional;
 };
 struct ComputePipelineCreateInfo {
   ShaderModule *shaderModules;

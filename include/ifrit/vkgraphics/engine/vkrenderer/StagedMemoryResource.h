@@ -23,8 +23,8 @@ public:
   inline SingleBuffer *getStagingBuffer() const {
     return m_stagingBuffer.get();
   }
-  void cmdCopyToDevice(CommandBuffer *cmd, const void *data, uint32_t size,
-                       uint32_t localOffset);
+  void cmdCopyToDevice(const Rhi::RhiCommandBuffer *cmd, const void *data,
+                       uint32_t size, uint32_t localOffset) override;
 };
 
 class IFRIT_APIDECL StagedSingleImage {

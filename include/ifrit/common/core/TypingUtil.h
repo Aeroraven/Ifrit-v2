@@ -1,5 +1,5 @@
 #pragma once
-
+#include <stdexcept>
 namespace Ifrit::Common::Core {
 
 template <typename T, typename U> T *checked_cast(U *ptr) {
@@ -19,8 +19,20 @@ template <typename T, typename U> T *checked_cast(U *ptr) {
 #endif
 }
 
-template <typename T, typename U> const T *checked_cast(const U *ref) {
-  return checked_cast<T>(ref);
+template <typename T, typename U> const T *checked_cast(const U *ptr) {
+#ifdef _DEBUG
+  // dynamic cast
+  if (ptr == nullptr) {
+    return nullptr;
+  }
+  auto casted = dynamic_cast<const T *>(ptr);
+  if (casted == nullptr) {
+    throw std::runtime_error("Invalid cast");
+  }
+  return casted;
+#else
+  return static_cast<const T *>(ptr);
+#endif
 }
 
 // Non-copyable class:

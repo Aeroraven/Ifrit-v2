@@ -115,8 +115,8 @@ CommandBuffer::pipelineBarrier(const PipelineBarrier &barrier) const {
       barrier.m_imageMemoryBarriers.data());
 }
 
-IFRIT_APIDECL void
-CommandBuffer::setViewports(const std::vector<Viewport> &viewport) const {
+IFRIT_APIDECL void CommandBuffer::setViewports(
+    const std::vector<Rhi::RhiViewport> &viewport) const {
   std::vector<VkViewport> vps;
   for (int i = 0; i < viewport.size(); i++) {
     VkViewport s = {viewport[i].x,        viewport[i].y,
@@ -128,7 +128,7 @@ CommandBuffer::setViewports(const std::vector<Viewport> &viewport) const {
 }
 
 IFRIT_APIDECL void
-CommandBuffer::setScissors(const std::vector<Scissor> &scissor) const {
+CommandBuffer::setScissors(const std::vector<Rhi::RhiScissor> &scissor) const {
   std::vector<VkRect2D> scs;
   for (int i = 0; i < scissor.size(); i++) {
     VkRect2D s = {{scissor[i].x, scissor[i].y},
@@ -206,6 +206,79 @@ IFRIT_APIDECL void CommandBuffer::copyBufferToImageAll(
 
   auto src = checked_cast<SingleBuffer>(srcBuffer)->getBuffer();
   vkCmdCopyBufferToImage(m_commandBuffer, src, dstImage, dstLayout, 1, &region);
+}
+
+// Rhi compatible
+IFRIT_APIDECL void
+CommandBuffer::imageBarrier(const Rhi::RhiTexture *texture,
+                            Rhi::RhiResourceState src,
+                            Rhi::RhiResourceState dst) const {
+  auto image = checked_cast<SingleDeviceImage>(texture);
+  VkImageMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  // select old layout
+  switch (src) {
+  case Rhi::RhiResourceState::Undefined:
+    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.srcAccessMask =
+        VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT |
+        VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT |
+        VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+        VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+    break;
+  case Rhi::RhiResourceState::RenderTarget:
+    barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    break;
+  case Rhi::RhiResourceState::Present:
+    barrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    break;
+  default:
+    vkrError("Invalid resource state");
+  }
+  // select new layout
+  switch (dst) {
+  case Rhi::RhiResourceState::Undefined:
+    barrier.newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.dstAccessMask =
+        VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT |
+        VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT |
+        VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+        VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+    break;
+  case Rhi::RhiResourceState::RenderTarget:
+    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    break;
+  case Rhi::RhiResourceState::Present:
+    barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    break;
+  default:
+    vkrError("Invalid resource state");
+  }
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  auto p = image->getImage();
+  barrier.image = p;
+  barrier.subresourceRange.aspectMask = image->getAspect();
+  barrier.subresourceRange.layerCount = 1;
+  barrier.subresourceRange.levelCount = 1;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.baseMipLevel = 0;
+
+  vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
+                       nullptr, 1, &barrier);
 }
 
 // Class: Queue
@@ -359,6 +432,45 @@ IFRIT_APIDECL void CommandSubmissionList::submit(bool hostSync) {
                                   &submitInfo, VK_NULL_HANDLE),
                     "Failed to submit command buffer");
   }
+}
+
+void Queue::runSyncCommand(
+    std::function<void(const Rhi::RhiCommandBuffer *)> func) {
+  auto cmd = beginRecording();
+  func(cmd);
+  submitCommand({}, VK_NULL_HANDLE);
+  waitIdle();
+}
+
+std::unique_ptr<Rhi::RhiTaskSubmission>
+Queue::runAsyncCommand(std::function<void(const Rhi::RhiCommandBuffer *)> func,
+                       const std::vector<Rhi::RhiTaskSubmission *> &waitOn,
+                       const std::vector<Rhi::RhiTaskSubmission *> &toIssue) {
+  auto cmd = beginRecording();
+  func(cmd);
+  std::vector<TimelineSemaphoreWait> waitSemaphores;
+
+  VkSemaphore swapchainSemaphore = VK_NULL_HANDLE;
+  VkFence fence = VK_NULL_HANDLE;
+  if (toIssue.size() != 0) {
+    vkrAssert(toIssue.size() == 1, "Only one semaphore can be issued");
+    auto semaphore = checked_cast<TimelineSemaphoreWait>(toIssue[0]);
+    vkrAssert(semaphore->m_isSwapchainSemaphore,
+              "Only swapchain semaphore can be issued");
+    swapchainSemaphore = semaphore->m_semaphore;
+    fence = semaphore->m_fence;
+  }
+  for (int i = 0; i < waitOn.size(); i++) {
+    auto semaphore = checked_cast<TimelineSemaphoreWait>(waitOn[i]);
+    waitSemaphores.push_back(*semaphore);
+  }
+  return std::make_unique<TimelineSemaphoreWait>(
+      submitCommand(waitSemaphores, fence, swapchainSemaphore));
+}
+
+void Queue::hostWaitEvent(Rhi::RhiTaskSubmission *event) {
+  // TODO
+  throw std::runtime_error("Not implemented");
 }
 
 // Queue Collections

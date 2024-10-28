@@ -32,11 +32,12 @@ public:
     init();
   }
   virtual ~SingleBuffer();
-  virtual void map(size_t size = VK_WHOLE_SIZE);
-  virtual void unmap();
-  virtual void copyFromBuffer(void *data, uint32_t size, uint32_t offset);
-  virtual void copyToBuffer(const void *data, uint32_t size, uint32_t offset);
-  virtual void flush();
+  virtual void map() override;
+  virtual void unmap() override;
+  virtual void readBuffer(void *data, uint32_t size, uint32_t offset) override;
+  virtual void writeBuffer(const void *data, uint32_t size,
+                           uint32_t offset) override;
+  virtual void flush() override;
   inline VkBuffer getBuffer() const { return m_buffer; }
   inline VkFlags getUsage() const { return m_createInfo.usage; }
   inline uint32_t getSize() const { return m_createInfo.size; }
@@ -58,7 +59,9 @@ public:
   MultiBuffer(EngineContext *ctx, const std::vector<SingleBuffer *> &buffers);
   MultiBuffer &operator=(const MultiBuffer &p) = delete;
   SingleBuffer *getBuffer(uint32_t index);
-  inline SingleBuffer *getActiveBuffer() { return m_buffers[m_activeFrame]; }
+  inline Rhi::RhiBuffer *getActiveBuffer() override {
+    return m_buffers[m_activeFrame];
+  }
   inline void advanceFrame() {
     m_activeFrame++;
     m_activeFrame %= m_buffers.size();
@@ -74,7 +77,7 @@ enum class ImageAspect { Color, Depth, Stencil };
 struct ImageCreateInfo {
   VkFormat format;
   VkImageUsageFlags usage;
-  ImageAspect aspect;
+  ImageAspect aspect = ImageAspect::Color;
   ImageType type = ImageType::Image2D;
   uint32_t width;
   uint32_t height;
@@ -84,7 +87,7 @@ struct ImageCreateInfo {
   bool hostVisible = false;
 };
 
-class IFRIT_APIDECL SingleDeviceImage {
+class IFRIT_APIDECL SingleDeviceImage : public Rhi::RhiTexture {
 protected:
   EngineContext *m_context;
   VkFormat m_format;
@@ -92,24 +95,24 @@ protected:
   VkImageView m_imageView;
   VmaAllocation m_allocation;
   VmaAllocationInfo m_allocInfo;
-  ImageCreateInfo m_createInfo;
+  ImageCreateInfo m_createInfo{};
   bool m_isSwapchainImage = false;
   bool m_created = false;
 
 public:
   SingleDeviceImage() {}
-  ~SingleDeviceImage();
+  virtual ~SingleDeviceImage();
   SingleDeviceImage(EngineContext *ctx, const ImageCreateInfo &ci);
 
-  virtual VkFormat getFormat();
-  virtual VkImage getImage();
+  virtual VkFormat getFormat() const;
+  virtual VkImage getImage() const;
   virtual VkImageView getImageView();
   inline bool getIsSwapchainImage() { return m_isSwapchainImage; }
   uint32_t getSize();
   inline uint32_t getWidth() { return m_createInfo.width; }
   inline uint32_t getHeight() { return m_createInfo.height; }
   inline uint32_t getDepth() { return m_createInfo.depth; }
-  inline VkImageAspectFlags getAspect() {
+  inline VkImageAspectFlags getAspect() const {
     if (m_createInfo.aspect == ImageAspect::Color) {
       return VK_IMAGE_ASPECT_COLOR_BIT;
     } else if (m_createInfo.aspect == ImageAspect::Depth) {

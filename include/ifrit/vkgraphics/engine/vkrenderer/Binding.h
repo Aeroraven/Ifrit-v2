@@ -1,4 +1,5 @@
 #pragma once
+#include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include <array>
@@ -6,22 +7,14 @@
 
 namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
 
-enum class DescriptorType {
-  UniformBuffer,
-  StorageBuffer,
-  CombinedImageSampler,
-  StorageImage,
-  MaxEnum
-};
-
 struct DescriptorTypeDetails {
   VkDescriptorType type;
   uint32_t maxDescriptors;
 };
 
 constexpr uint32_t cMaxDescriptorType =
-    static_cast<typename std::underlying_type<DescriptorType>::type>(
-        DescriptorType::MaxEnum);
+    static_cast<typename std::underlying_type<Rhi::RhiDescriptorType>::type>(
+        Rhi::RhiDescriptorType::MaxEnum);
 
 constexpr std::array<DescriptorTypeDetails, cMaxDescriptorType>
     cDescriptorTypeDetails = {
@@ -95,11 +88,17 @@ public:
   inline VkDescriptorSetLayout getBindlessLayout() const {
     return m_bindlessLayout;
   }
-  inline VkDescriptorSet getParameterDescriptorSet(uint32_t rangeId) const {
+  inline VkDescriptorSet getParameterDescriptorSet(uint32_t rangeId) {
+    if (rangeId >= m_bindRanges.size()) {
+      buildBindlessParameter();
+    }
     return m_bindRanges[rangeId]->m_set;
   }
   inline VkDescriptorSetLayout
-  getParameterDescriptorSetLayout(uint32_t rangeId) const {
+  getParameterDescriptorSetLayout(uint32_t rangeId) {
+    if (rangeId >= m_bindRanges.size()) {
+      buildBindlessParameter();
+    }
     return m_bindRanges[rangeId]->m_layout;
   }
 };

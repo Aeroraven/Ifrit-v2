@@ -48,7 +48,7 @@ IFRIT_APIDECL void
 GLFWWindowProvider::loop(const std::function<void(int *)> &funcs) {
   static int frameCount = 0;
   while (!glfwWindowShouldClose(window)) {
-    int repCore;
+    int repCore = -1;
     auto start = std::chrono::high_resolution_clock::now();
     funcs(&repCore);
 
@@ -61,7 +61,10 @@ GLFWWindowProvider::loop(const std::function<void(int *)> &funcs) {
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
             .count(),
         static_cast<durationType>(1ll)));
-    frameTimesCore.push_back(repCore);
+    if (repCore != -1)
+      frameTimesCore.push_back(repCore);
+    else
+      frameTimesCore.push_back(1);
 
     totalFrameTime += frameTimes.back();
     totalFrameTimeCore += frameTimesCore.back();
@@ -74,7 +77,7 @@ GLFWWindowProvider::loop(const std::function<void(int *)> &funcs) {
     }
     frameCount++;
     frameCount %= 100;
-    if (frameCount % 100 == 0) {
+    if (frameCount % 100 == 0 && repCore != -1) {
       std::stringstream ss;
       ss << this->title;
       ss << " [Total FPS: " << 1000.0 / (totalFrameTime / 100.0) << ",";
@@ -83,6 +86,12 @@ GLFWWindowProvider::loop(const std::function<void(int *)> &funcs) {
 
       auto presentationTime = totalFrameTime - totalFrameTimeCore;
       ss << " Presentation Delay: " << presentationTime / 100.0 << "ms]";
+      glfwSetWindowTitle(window, ss.str().c_str());
+    } else if (frameCount % 100 == 0) {
+      std::stringstream ss;
+      ss << this->title;
+      ss << " [Total FPS: " << 1000.0 / (totalFrameTime / 100.0) << ",";
+      ss << " Frame Time: " << (totalFrameTime / 100.0) << "ms]";
       glfwSetWindowTitle(window, ss.str().c_str());
     }
     glfwSwapBuffers(window);

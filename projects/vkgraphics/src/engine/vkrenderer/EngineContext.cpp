@@ -418,6 +418,7 @@ IFRIT_APIDECL void EngineContext::init() {
 }
 
 void EngineContext::destructor() {
+  printf("Destructor\n");
   vmaDestroyAllocator(m_allocator);
   vkDestroyDevice(m_device, nullptr);
   if (m_args.m_enableValidationLayer) {

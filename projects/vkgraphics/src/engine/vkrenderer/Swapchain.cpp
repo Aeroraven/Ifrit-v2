@@ -260,7 +260,7 @@ IFRIT_APIDECL uint32_t Swapchain::acquireNextImage() {
   vkWaitForFences(m_context->getDevice(), 1, &m_inFlightFences[m_currentFrame],
                   VK_TRUE, UINT64_MAX);
   vkResetFences(m_context->getDevice(), 1, &m_inFlightFences[m_currentFrame]);
-
+  // printf("frame acquired %d\n", m_currentFrame);
   uint32_t imageIndex;
   vkAcquireNextImageKHR(m_context->getDevice(), m_swapchain, UINT64_MAX,
                         m_imageAvailableSemaphores[m_currentFrame],

@@ -29,7 +29,8 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
       VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT,
       VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT};
 
-  if (m_createInfo.geomGenType == GeometryGenerationType::Conventional) {
+  if (m_createInfo.geomGenType ==
+      Rhi::RhiGeometryGenerationType::Conventional) {
     dynamicStates.push_back(VK_DYNAMIC_STATE_VERTEX_INPUT_EXT);
   }
 
@@ -42,11 +43,11 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   VkPipelineInputAssemblyStateCreateInfo inputAssemblyCI{};
   inputAssemblyCI.sType =
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  if (m_createInfo.topology == RasterizerTopology::TriangleList) {
+  if (m_createInfo.topology == Rhi::RhiRasterizerTopology::TriangleList) {
     inputAssemblyCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-  } else if (m_createInfo.topology == RasterizerTopology::Line) {
+  } else if (m_createInfo.topology == Rhi::RhiRasterizerTopology::Line) {
     inputAssemblyCI.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-  } else if (m_createInfo.topology == RasterizerTopology::Point) {
+  } else if (m_createInfo.topology == Rhi::RhiRasterizerTopology::Point) {
     inputAssemblyCI.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
   }
 

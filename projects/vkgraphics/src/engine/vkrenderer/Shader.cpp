@@ -13,11 +13,11 @@ IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,
   vkrVulkanAssert(vkCreateShaderModule(device, &moduleCI, nullptr, &m_module),
                   "Failed to create shader module");
   m_stageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  if (ci.stage == ShaderStage::Vertex) {
+  if (ci.stage == Rhi::RhiShaderStage::Vertex) {
     m_stageCI.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  } else if (ci.stage == ShaderStage::Fragment) {
+  } else if (ci.stage == Rhi::RhiShaderStage::Fragment) {
     m_stageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  } else if (ci.stage == ShaderStage::Compute) {
+  } else if (ci.stage == Rhi::RhiShaderStage::Compute) {
     m_stageCI.stage = VK_SHADER_STAGE_COMPUTE_BIT;
   }
   m_stageCI.module = m_module;
@@ -28,7 +28,8 @@ IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,
 }
 
 ShaderModule::ShaderModule(EngineContext *ctx, const std::vector<char> &code,
-                           const std::string &entryPoint, ShaderStage stage) {
+                           const std::string &entryPoint,
+                           Rhi::RhiShaderStage stage) {
   m_context = ctx;
   VkDevice device = m_context->getDevice();
   VkShaderModuleCreateInfo moduleCI{};
@@ -38,15 +39,15 @@ ShaderModule::ShaderModule(EngineContext *ctx, const std::vector<char> &code,
   vkrVulkanAssert(vkCreateShaderModule(device, &moduleCI, nullptr, &m_module),
                   "Failed to create shader module");
   m_stageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  if (stage == ShaderStage::Vertex) {
+  if (stage == Rhi::RhiShaderStage::Vertex) {
     m_stageCI.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  } else if (stage == ShaderStage::Fragment) {
+  } else if (stage == Rhi::RhiShaderStage::Fragment) {
     m_stageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  } else if (stage == ShaderStage::Compute) {
+  } else if (stage == Rhi::RhiShaderStage::Compute) {
     m_stageCI.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-  } else if (stage == ShaderStage::Mesh) {
+  } else if (stage == Rhi::RhiShaderStage::Mesh) {
     m_stageCI.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
-  } else if (stage == ShaderStage::Task) {
+  } else if (stage == Rhi::RhiShaderStage::Task) {
     m_stageCI.stage = VK_SHADER_STAGE_TASK_BIT_EXT;
   }
   m_entryPoint = entryPoint;

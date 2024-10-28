@@ -1,14 +1,10 @@
+#ifndef IFRIT_DLL
 #define IFRIT_DLL
+#endif
 #include "ifrit/common/math/LinalgOps.h"
 #include "ifrit/display/presentation/backend/OpenGLBackend.h"
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
-#include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
-#include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
-#include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
-#include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
-#include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
-#include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
-#include "ifrit/vkgraphics/engine/vkrenderer/Swapchain.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
 #include <chrono>
 #include <fstream>
 #include <memory>
@@ -113,7 +109,7 @@ static void error_callback(int error, const char *description) {
   std::abort();
 }
 
-int demo_vulkanMeshShader() {
+int demo_meshShader() {
   using namespace Ifrit::Engine::GraphicsBackend::Rhi;
   using namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics;
   using namespace Ifrit::Presentation::Window;
@@ -143,9 +139,12 @@ int demo_vulkanMeshShader() {
   args.m_surfaceWidth = fbSize.first;
   args.m_surfaceHeight = fbSize.second;
   args.m_expectedSwapchainImageCount = 2;
+  args.m_expectedGraphicsQueueCount = 1;
+  args.m_expectedComputeQueueCount = 1;
+  args.m_expectedTransferQueueCount = 1;
 
-  EngineContext context(args);
-  Swapchain swapchain(&context);
+  RhiVulkanBackendBuilder builder;
+  auto rt = builder.createBackend(args);
 
   // load meshlet
   std::vector<ifloat3> vertices;
@@ -213,14 +212,8 @@ int demo_vulkanMeshShader() {
   printf("Total Cluster Groups Raw:%lld\n", meshletData.clusterGroups.size());
 
   // Create ssbo
-  Viewport viewport = {0.0f, 0.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.0f, 1.0f};
-  Scissor scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-
-  DescriptorManager bindlessDesc(&context);
-  ResourceManager resourceManager(&context);
-  CommandExecutor backend(&context, &swapchain, &bindlessDesc,
-                          &resourceManager);
-  backend.setQueues(true, 1, 1, 1);
+  RhiViewport viewport = {0.0f, 0.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 0.0f, 1.0f};
+  RhiScissor scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
 
   struct UniformBuffer {
 
@@ -237,92 +230,92 @@ int demo_vulkanMeshShader() {
     uint32_t totalLods;
   } uniformCullData;
 
-  auto meshletBuffer = resourceManager.createStorageBufferDevice(
-      meshlets.size() * sizeof(meshopt_Meshlet),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-  auto meshletVertexBuffer = resourceManager.createStorageBufferDevice(
+  auto meshletBuffer =
+      rt->createStorageBufferDevice(meshlets.size() * sizeof(meshopt_Meshlet),
+                                    RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto meshletVertexBuffer = rt->createStorageBufferDevice(
       meshlet_vertices.size() * sizeof(unsigned int),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-  auto meshletIndexBuffer = resourceManager.createStorageBufferDevice(
+      RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto meshletIndexBuffer = rt->createStorageBufferDevice(
       meshlet_triangles2.size() * sizeof(unsigned int),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-  auto meshletGraphPartitionBuffer = resourceManager.createStorageBufferDevice(
+      RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto meshletGraphPartitionBuffer = rt->createStorageBufferDevice(
       meshlet_graphPart.size() * sizeof(unsigned int),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-  auto vertexBuffer = resourceManager.createStorageBufferDevice(
-      verticesAligned.size() * sizeof(ifloat4),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-  auto ubBuffer =
-      resourceManager.createUniformBufferShared(sizeof(UniformBuffer), true);
+      RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto vertexBuffer =
+      rt->createStorageBufferDevice(verticesAligned.size() * sizeof(ifloat4),
+                                    RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto ubBuffer = rt->createUniformBufferShared(sizeof(UniformBuffer), true, 0);
 
   // Culling pipeline
-  auto indirectDrawBuffer =
-      resourceManager.createIndirectMeshDrawBufferDevice(1);
-  auto filteredMeshletBuffer = resourceManager.createStorageBufferDevice(
-      meshlets.size() * sizeof(uint32_t));
-  auto bvhNodeBuffer = resourceManager.createStorageBufferDevice(
-      bvhNodes.size() * sizeof(FlattenedBVHNode),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-  auto clusterGroupBuffer = resourceManager.createStorageBufferDevice(
+  auto indirectDrawBuffer = rt->createIndirectMeshDrawBufferDevice(1);
+  auto filteredMeshletBuffer =
+      rt->createStorageBufferDevice(meshlets.size() * sizeof(uint32_t), 0);
+  auto bvhNodeBuffer =
+      rt->createStorageBufferDevice(bvhNodes.size() * sizeof(FlattenedBVHNode),
+                                    RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto clusterGroupBuffer = rt->createStorageBufferDevice(
       clusterGroupData.size() * sizeof(ClusterGroup),
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+      RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
   auto consumerCounterBuffer =
-      resourceManager.createStorageBufferDevice(sizeof(uint32_t));
+      rt->createStorageBufferDevice(sizeof(uint32_t), 0);
   auto producerCounterBuffer =
-      resourceManager.createStorageBufferDevice(sizeof(uint32_t));
+      rt->createStorageBufferDevice(sizeof(uint32_t), 0);
   auto remainingCounterBuffer =
-      resourceManager.createStorageBufferDevice(sizeof(uint32_t));
-  auto productQueueBuffer = resourceManager.createStorageBufferDevice(
-      sizeof(uint32_t) * bvhNodes.size());
-  auto ubCullBuffer = resourceManager.createUniformBufferShared(
-      sizeof(UniformCullBuffer), true);
-  auto meshletInClusteBuffer = resourceManager.createStorageBufferDevice(
+      rt->createStorageBufferDevice(sizeof(uint32_t), 0);
+  auto productQueueBuffer =
+      rt->createStorageBufferDevice(sizeof(uint32_t) * bvhNodes.size(), 0);
+  auto ubCullBuffer =
+      rt->createUniformBufferShared(sizeof(UniformCullBuffer), true, 0);
+  auto meshletInClusteBuffer = rt->createStorageBufferDevice(
       meshlet_inClusterGroup.size() * sizeof(uint32_t),
       VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 
   uniformData.meshletCount = meshlet_count;
 
   if (true) {
-    StagedSingleBuffer stagedMeshletBuffer(&context, meshletBuffer);
-    StagedSingleBuffer stagedMeshletVertexBuffer(&context, meshletVertexBuffer);
-    StagedSingleBuffer stagedMeshletIndexBuffer(&context, meshletIndexBuffer);
-    StagedSingleBuffer stagedVertexBuffer(&context, vertexBuffer);
-    // Culling pipeline
-    StagedSingleBuffer stagedBvhNodeBuffer(&context, bvhNodeBuffer);
-    StagedSingleBuffer stagedClusterGroupBuffer(&context, clusterGroupBuffer);
-    StagedSingleBuffer stagedGraphPartitionBuffer(&context,
-                                                  meshletGraphPartitionBuffer);
-    StagedSingleBuffer stagedMeshletInClusterBuffer(&context,
-                                                    meshletInClusteBuffer);
+    auto stagedMeshletBuffer = rt->createStagedSingleBuffer(meshletBuffer);
+    auto stagedMeshletVertexBuffer =
+        rt->createStagedSingleBuffer(meshletVertexBuffer);
+    auto stagedMeshletIndexBuffer =
+        rt->createStagedSingleBuffer(meshletIndexBuffer);
+    auto stagedVertexBuffer = rt->createStagedSingleBuffer(vertexBuffer);
 
-    backend.runImmidiateCommand(
-        [&](CommandBuffer *cmd) -> void {
-          stagedMeshletBuffer.cmdCopyToDevice(
-              cmd, meshlets.data(), meshlets.size() * sizeof(meshopt_Meshlet),
-              0);
-          stagedMeshletVertexBuffer.cmdCopyToDevice(
-              cmd, meshlet_vertices.data(),
-              meshlet_vertices.size() * sizeof(unsigned int), 0);
-          stagedMeshletIndexBuffer.cmdCopyToDevice(
-              cmd, meshlet_triangles2.data(),
-              meshlet_triangles2.size() * sizeof(unsigned int), 0);
-          stagedVertexBuffer.cmdCopyToDevice(
-              cmd, verticesAligned.data(),
-              verticesAligned.size() * sizeof(ifloat4), 0);
-          stagedBvhNodeBuffer.cmdCopyToDevice(
-              cmd, bvhNodes.data(), bvhNodes.size() * sizeof(FlattenedBVHNode),
-              0);
-          stagedClusterGroupBuffer.cmdCopyToDevice(
-              cmd, clusterGroupData.data(),
-              clusterGroupData.size() * sizeof(ClusterGroup), 0);
-          stagedGraphPartitionBuffer.cmdCopyToDevice(
-              cmd, meshlet_graphPart.data(),
-              meshlet_graphPart.size() * sizeof(unsigned int), 0);
-          stagedMeshletInClusterBuffer.cmdCopyToDevice(
-              cmd, meshlet_inClusterGroup.data(),
-              meshlet_inClusterGroup.size() * sizeof(uint32_t), 0);
-        },
-        QueueRequirement::Transfer);
+    // Culling pipeline
+    auto stagedBvhNodeBuffer = rt->createStagedSingleBuffer(bvhNodeBuffer);
+    auto stagedClusterGroupBuffer =
+        rt->createStagedSingleBuffer(clusterGroupBuffer);
+    auto stagedGraphPartitionBuffer =
+        rt->createStagedSingleBuffer(meshletGraphPartitionBuffer);
+    auto stagedMeshletInClusterBuffer =
+        rt->createStagedSingleBuffer(meshletInClusteBuffer);
+
+    auto tq = rt->getQueue(RHI_QUEUE_TRANSFER_BIT);
+
+    tq->runSyncCommand([&](const RhiCommandBuffer *cmd) -> void {
+      stagedMeshletBuffer->cmdCopyToDevice(
+          cmd, meshlets.data(), meshlets.size() * sizeof(meshopt_Meshlet), 0);
+      stagedMeshletVertexBuffer->cmdCopyToDevice(
+          cmd, meshlet_vertices.data(),
+          meshlet_vertices.size() * sizeof(unsigned int), 0);
+      stagedMeshletIndexBuffer->cmdCopyToDevice(
+          cmd, meshlet_triangles2.data(),
+          meshlet_triangles2.size() * sizeof(unsigned int), 0);
+      stagedVertexBuffer->cmdCopyToDevice(
+          cmd, verticesAligned.data(), verticesAligned.size() * sizeof(ifloat4),
+          0);
+      stagedBvhNodeBuffer->cmdCopyToDevice(
+          cmd, bvhNodes.data(), bvhNodes.size() * sizeof(FlattenedBVHNode), 0);
+      stagedClusterGroupBuffer->cmdCopyToDevice(
+          cmd, clusterGroupData.data(),
+          clusterGroupData.size() * sizeof(ClusterGroup), 0);
+      stagedGraphPartitionBuffer->cmdCopyToDevice(
+          cmd, meshlet_graphPart.data(),
+          meshlet_graphPart.size() * sizeof(unsigned int), 0);
+      stagedMeshletInClusterBuffer->cmdCopyToDevice(
+          cmd, meshlet_inClusterGroup.data(),
+          meshlet_inClusterGroup.size() * sizeof(uint32_t), 0);
+    });
   }
 
   // Shader
@@ -333,106 +326,101 @@ int demo_vulkanMeshShader() {
   auto csDynLodCode =
       readShaderFile(IFRIT_DEMO_SHADER_PATH "/ifrit.meshlet.dynlod.comp.spv");
 
-  ShaderModule msModule(&context, msCode, "main", ShaderStage::Mesh);
-  ShaderModule fsModule(&context, fsCode, "main", ShaderStage::Fragment);
-  ShaderModule csDynLodModule(&context, csDynLodCode, "main",
-                              ShaderStage::Compute);
+  auto msModule = rt->createShader(msCode, "main", RhiShaderStage::Mesh);
+  auto fsModule = rt->createShader(fsCode, "main", RhiShaderStage::Fragment);
+  auto csDynLodModule =
+      rt->createShader(csDynLodCode, "main", RhiShaderStage::Compute);
 
   // Depth Buffer
-  auto depthImage =
-      resourceManager.createDepthAttachment(WINDOW_WIDTH, WINDOW_HEIGHT);
-
-  // Render graph
-  auto renderGraph = backend.createRenderGraph();
-  auto swapchainRes = backend.getSwapchainImageResource();
-  auto msBufReg = renderGraph->registerBuffer(meshletBuffer);
-  auto msVBufReg = renderGraph->registerBuffer(meshletVertexBuffer);
-  auto msIBufReg = renderGraph->registerBuffer(meshletIndexBuffer);
-  auto uniformBufReg = renderGraph->registerBuffer(ubBuffer);
-  auto vertexBufReg = renderGraph->registerBuffer(vertexBuffer);
-  auto swapchainResReg = renderGraph->registerImage(swapchainRes);
-  auto depthReg = renderGraph->registerImage(depthImage);
-  auto indirectDrawReg = renderGraph->registerBuffer(indirectDrawBuffer);
-  auto graphPartitionReg =
-      renderGraph->registerBuffer(meshletGraphPartitionBuffer);
-
-  auto uniformBufCullReg = renderGraph->registerBuffer(ubCullBuffer);
-  auto queueReg = renderGraph->registerBuffer(productQueueBuffer);
-  auto producerReg = renderGraph->registerBuffer(producerCounterBuffer);
-  auto consumerReg = renderGraph->registerBuffer(consumerCounterBuffer);
-  auto remainingReg = renderGraph->registerBuffer(remainingCounterBuffer);
-
-  auto filteredMeshletReg = renderGraph->registerBuffer(filteredMeshletBuffer);
-  auto bvhNodeReg = renderGraph->registerBuffer(bvhNodeBuffer);
-  auto clusterReg = renderGraph->registerBuffer(clusterGroupBuffer);
-  auto meshletInClusterGroupReg =
-      renderGraph->registerBuffer(meshletInClusteBuffer);
+  auto depthImage = rt->createDepthRenderTexture(WINDOW_WIDTH, WINDOW_HEIGHT);
 
   // Cull Pass
-  auto cullPass = renderGraph->addComputePass();
-  cullPass->setComputeShader(&csDynLodModule);
-  cullPass->setPassDescriptorLayout(
-      {DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
-       DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
-       DescriptorType::StorageBuffer, DescriptorType::UniformBuffer,
-       DescriptorType::UniformBuffer,
+  auto cullPass = rt->createComputePass();
+
+  cullPass->setComputeShader(csDynLodModule);
+  cullPass->setShaderBindingLayout(
+      {RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
+       RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
+       RhiDescriptorType::StorageBuffer, RhiDescriptorType::UniformBuffer,
+       RhiDescriptorType::UniformBuffer,
        // Culling
-       DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
-       DescriptorType::StorageBuffer, DescriptorType::StorageBuffer});
+       RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
+       RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer});
+
   // Data buffers
-  cullPass->addStorageBuffer(indirectDrawReg, 0, ResourceAccessType::Write);
-  cullPass->addStorageBuffer(clusterReg, 1, ResourceAccessType::Read);
-  cullPass->addStorageBuffer(bvhNodeReg, 2, ResourceAccessType::Read);
-  cullPass->addStorageBuffer(filteredMeshletReg, 3, ResourceAccessType::Write);
-  cullPass->addStorageBuffer(meshletInClusterGroupReg, 4,
-                             ResourceAccessType::Read);
-  cullPass->addUniformBuffer(uniformBufCullReg, 5);
-  cullPass->addUniformBuffer(uniformBufReg, 6);
+  cullPass->addShaderStorageBuffer(indirectDrawBuffer, 0,
+                                   RhiResourceAccessType::Write);
+  cullPass->addShaderStorageBuffer(clusterGroupBuffer, 1,
+                                   RhiResourceAccessType::Read);
+  cullPass->addShaderStorageBuffer(bvhNodeBuffer, 2,
+                                   RhiResourceAccessType::Read);
+  cullPass->addShaderStorageBuffer(filteredMeshletBuffer, 3,
+                                   RhiResourceAccessType::Write);
+  cullPass->addShaderStorageBuffer(meshletInClusteBuffer, 4,
+                                   RhiResourceAccessType::Read);
+  cullPass->addUniformBuffer(ubCullBuffer, 5);
+  cullPass->addUniformBuffer(ubBuffer, 6);
 
   // Consumer-Producer buffers
-  cullPass->addStorageBuffer(consumerReg, 7, ResourceAccessType::Write);
-  cullPass->addStorageBuffer(producerReg, 8, ResourceAccessType::Write);
-  cullPass->addStorageBuffer(queueReg, 9, ResourceAccessType::Write);
-  cullPass->addStorageBuffer(remainingReg, 10, ResourceAccessType::Write);
-  cullPass->setRecordFunction(
-      [&](RenderPassContext *ctx) -> void { ctx->m_cmd->dispatch(1, 1, 1); });
+  cullPass->addShaderStorageBuffer(consumerCounterBuffer, 7,
+                                   RhiResourceAccessType::Write);
+  cullPass->addShaderStorageBuffer(producerCounterBuffer, 8,
+                                   RhiResourceAccessType::Write);
+  cullPass->addShaderStorageBuffer(productQueueBuffer, 9,
+                                   RhiResourceAccessType::Write);
+  cullPass->addShaderStorageBuffer(remainingCounterBuffer, 10,
+                                   RhiResourceAccessType::Write);
+  cullPass->setRecordFunction([&](RhiRenderPassContext *ctx) -> void {
+    ctx->m_cmd->dispatch(1, 1, 1);
+  });
 
   // Draw Pass
   // TODO: register indirect
-  auto msPass = renderGraph->addGraphicsPass();
-  msPass->addColorAttachment(swapchainResReg, VK_ATTACHMENT_LOAD_OP_CLEAR,
+  auto msPass = rt->createGraphicsPass();
+  auto swapchainImg = rt->getSwapchainImage();
+  msPass->addColorAttachment(swapchainImg, RhiRenderTargetLoadOp::Clear,
                              {{0.00f, 0.00f, 0.00f, 1.0f}});
-  msPass->addStorageBuffer(msBufReg, 0, ResourceAccessType::Read);
-  msPass->addStorageBuffer(msVBufReg, 1, ResourceAccessType::Read);
-  msPass->addStorageBuffer(msIBufReg, 2, ResourceAccessType::Read);
-  msPass->addStorageBuffer(vertexBufReg, 3, ResourceAccessType::Read);
-  msPass->addStorageBuffer(filteredMeshletReg, 4, ResourceAccessType::Read);
-  msPass->addStorageBuffer(graphPartitionReg, 5, ResourceAccessType::Read);
-  msPass->addUniformBuffer(uniformBufReg, 6);
-  msPass->setPassDescriptorLayout(
-      {DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
-       DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
-       DescriptorType::StorageBuffer, DescriptorType::StorageBuffer,
-       DescriptorType::UniformBuffer});
+  msPass->addShaderStorageBuffer(meshletBuffer, 0, RhiResourceAccessType::Read);
+  msPass->addShaderStorageBuffer(meshletVertexBuffer, 1,
+                                 RhiResourceAccessType::Read);
+  msPass->addShaderStorageBuffer(meshletIndexBuffer, 2,
+                                 RhiResourceAccessType::Read);
+  msPass->addShaderStorageBuffer(vertexBuffer, 3, RhiResourceAccessType::Read);
+  msPass->addShaderStorageBuffer(filteredMeshletBuffer, 4,
+                                 RhiResourceAccessType::Read);
+  msPass->addShaderStorageBuffer(meshletGraphPartitionBuffer, 5,
+                                 RhiResourceAccessType::Read);
+  msPass->addUniformBuffer(ubBuffer, 6);
+  msPass->setShaderBindingLayout(
+      {RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
+       RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
+       RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
+       RhiDescriptorType::UniformBuffer});
 
-  msPass->setMeshShader(&msModule);
-  msPass->setFragmentShader(&fsModule);
-  msPass->setRasterizerTopology(RasterizerTopology::TriangleList);
+  msPass->setMeshShader(msModule);
+  msPass->setPixelShader(fsModule);
+  msPass->setRasterizerTopology(RhiRasterizerTopology::TriangleList);
   msPass->setRenderArea(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-  msPass->setDepthAttachment(depthReg, VK_ATTACHMENT_LOAD_OP_CLEAR,
-                             {{1.0f, 0.0f}});
-  msPass->setDepthCompareOp(VK_COMPARE_OP_LESS);
+  msPass->setDepthAttachment(depthImage, RhiRenderTargetLoadOp::Clear,
+                             {{}, 1.0f});
+
+  msPass->setDepthCompareOp(RhiCompareOp::Less);
   msPass->setDepthWrite(true);
   msPass->setDepthTestEnable(true);
 
-  msPass->setRecordFunction([&](RenderPassContext *ctx) -> void {
+  msPass->setRecordFunction([&](RhiRenderPassContext *ctx) -> void {
     ctx->m_cmd->setScissors({scissor});
     ctx->m_cmd->setViewports({viewport});
     ctx->m_cmd->drawMeshTasksIndirect(indirectDrawBuffer, 0, 1, 0);
   });
+  msPass->setRecordFunctionPostRenderPass(
+      [&](RhiRenderPassContext *ctx) -> void {
+        ctx->m_cmd->imageBarrier(swapchainImg, RhiResourceState::RenderTarget,
+                                 RhiResourceState::Present);
+      });
 
   float timeVal = 0.0f;
-  msPass->setExecutionFunction([&](RenderPassContext *ctx) -> void {
+  msPass->setExecutionFunction([&](RhiRenderPassContext *ctx) -> void {
     float z = 0.25 + (movFar - movNear) * 0.02; // + 0.5*sin(timeVal);
     float x = 0 + (movRight - movLeft) * 0.02;
     float y = 0.1 + (movTop - movBottom) * 0.02;
@@ -450,7 +438,7 @@ int demo_vulkanMeshShader() {
     uniformData.cameraPos = camPos;
     auto buf = ubBuffer->getActiveBuffer();
     buf->map();
-    buf->copyToBuffer(&uniformData, sizeof(UniformBuffer), 0);
+    buf->writeBuffer(&uniformData, sizeof(UniformBuffer), 0);
     buf->flush();
     buf->unmap();
     timeVal += 0.0005f;
@@ -460,24 +448,29 @@ int demo_vulkanMeshShader() {
     uniformCullData.totalLods = MAX_LOD;
     auto buf2 = ubCullBuffer->getActiveBuffer();
     buf2->map();
-    buf2->copyToBuffer(&uniformCullData, sizeof(UniformCullBuffer), 0);
+    buf2->writeBuffer(&uniformCullData, sizeof(UniformCullBuffer), 0);
     buf2->flush();
     buf2->unmap();
   });
 
   // Main loop
+  auto compQueue = rt->getQueue(RHI_QUEUE_COMPUTE_BIT);
+  auto drawQueue = rt->getQueue(RHI_QUEUE_GRAPHICS_BIT);
   windowProvider.loop([&](int *repCore) {
-    auto startTime = std::chrono::high_resolution_clock::now();
-    backend.beginFrame();
-    backend.runRenderGraph(renderGraph);
-    backend.endFrame();
-    auto endTime = std::chrono::high_resolution_clock::now();
-    *repCore = std::chrono::duration_cast<std::chrono::milliseconds>(endTime -
-                                                                     startTime)
-                   .count();
+    rt->beginFrame();
+    auto sFrameReady = rt->getSwapchainFrameReadyEventHandler();
+    auto sRenderComplete = rt->getSwapchainRenderDoneEventHandler();
+    auto sCompEnd = compQueue->runAsyncCommand(
+        [&](const RhiCommandBuffer *cmd) { cullPass->run(cmd, 0); },
+        {sFrameReady.get()}, {});
+    auto sDrawEnd = drawQueue->runAsyncCommand(
+        [&](const RhiCommandBuffer *cmd) { msPass->run(cmd, 0); },
+        {sCompEnd.get()}, {sRenderComplete.get()});
+
+    rt->endFrame();
   });
-  context.waitIdle();
+  rt->waitDeviceIdle();
   return 0;
 }
 
-int main() { demo_vulkanMeshShader(); }
+int main() { demo_meshShader(); }

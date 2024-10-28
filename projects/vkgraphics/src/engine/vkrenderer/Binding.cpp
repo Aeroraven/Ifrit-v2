@@ -116,7 +116,7 @@ DescriptorManager::registerUniformBuffer(SingleBuffer *buffer) {
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.dstSet = m_bindlessSet;
-  write.dstBinding = getUnderlying(DescriptorType::UniformBuffer);
+  write.dstBinding = getUnderlying(Rhi::RhiDescriptorType::UniformBuffer);
   write.dstArrayElement = handleId;
   write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   write.descriptorCount = 1;
@@ -144,7 +144,7 @@ uint32_t DescriptorManager::registerStorageBuffer(SingleBuffer *buffer) {
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.dstSet = m_bindlessSet;
-  write.dstBinding = getUnderlying(DescriptorType::StorageBuffer);
+  write.dstBinding = getUnderlying(Rhi::RhiDescriptorType::StorageBuffer);
   write.dstArrayElement = handleId;
   write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   write.descriptorCount = 1;
@@ -175,7 +175,8 @@ DescriptorManager::registerCombinedImageSampler(SingleDeviceImage *image,
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.dstSet = m_bindlessSet;
-  write.dstBinding = getUnderlying(DescriptorType::CombinedImageSampler);
+  write.dstBinding =
+      getUnderlying(Rhi::RhiDescriptorType::CombinedImageSampler);
   write.dstArrayElement = handleId;
   write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   write.descriptorCount = 1;
@@ -218,8 +219,8 @@ IFRIT_APIDECL void DescriptorManager::buildBindlessParameter() {
   m_currentBindRange->m_buffer->map();
   for (int i = 0; i < m_currentBindRange->m_ranges.size(); i++) {
     auto &range = m_currentBindRange->m_ranges[i];
-    m_currentBindRange->m_buffer->copyFromBuffer(range.data.data(), range.bytes,
-                                                 range.offset);
+    m_currentBindRange->m_buffer->writeBuffer(range.data.data(), range.bytes,
+                                              range.offset);
   }
   m_currentBindRange->m_buffer->flush();
   m_currentBindRange->m_buffer->unmap();
