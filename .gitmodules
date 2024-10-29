@@ -16,3 +16,6 @@
 [submodule "dependencies/glfw"]
 	path = dependencies/glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "dependencies/cereal"]
+	path = dependencies/cereal
+	url = https://github.com/USCiLab/cereal.git
