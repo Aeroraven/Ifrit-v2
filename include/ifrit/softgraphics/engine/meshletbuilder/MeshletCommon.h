@@ -2,9 +2,9 @@
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/VertexBuffer.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::MeshletBuilder {
+namespace Ifrit::GraphicsBackend::SoftGraphics::MeshletBuilder {
 struct IFRIT_APIDECL Meshlet {
   VertexBuffer vbufs;
   std::vector<int> ibufs; // TODO: exporting c-style array
 };
-}; // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::MeshletBuilder
+}; // namespace Ifrit::GraphicsBackend::SoftGraphics::MeshletBuilder

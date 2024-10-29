@@ -2,7 +2,7 @@
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/ShaderRuntime.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ComLLVMRuntime {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ComLLVMRuntime {
 struct WrappedLLVMRuntimeContext;
 class WrappedLLVMRuntime : public ShaderRuntime {
 public:
@@ -22,4 +22,4 @@ public:
   WrappedLLVMRuntimeBuilder();
   virtual std::unique_ptr<ShaderRuntime> buildRuntime() const override;
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ComLLVMRuntime
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::ComLLVMRuntime

@@ -2,7 +2,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Utility::Loader {
+namespace Ifrit::GraphicsBackend::SoftGraphics::Utility::Loader {
 void ImageLoader::loadRGBA(const char *fileName, std::vector<float> *bufferOut,
                            int *height, int *width) {
   int h, c, w;
@@ -23,4 +23,4 @@ void ImageLoader::loadRGBA(const char *fileName, std::vector<float> *bufferOut,
   *height = h;
   *width = w;
 }
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Utility::Loader
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::Utility::Loader

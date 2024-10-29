@@ -1,7 +1,7 @@
 #include "ifrit/softgraphics/engine/base/VertexBuffer.h"
 #include "ifrit/softgraphics/engine/base/TypeDescriptor.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
+namespace Ifrit::GraphicsBackend::SoftGraphics {
 IFRIT_APIDECL VertexBuffer::VertexBuffer() {
   this->context = new std::remove_pointer_t<decltype(this->context)>();
 }
@@ -62,4 +62,4 @@ IFRIT_APIDECL void VertexBuffer::setValueFloat4Compatible(const int index,
   this->setValue<ifloat4>(index, attribute, value);
 }
 
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics
+} // namespace Ifrit::GraphicsBackend::SoftGraphics

@@ -1,9 +1,9 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
-#include "ifrit/common/core/TypingUtil.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
-using namespace Ifrit::Common::Core;
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+using namespace Ifrit::Common::Utility;
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 template <typename E>
 constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
   return static_cast<typename std::underlying_type<E>::type>(e);
@@ -652,7 +652,7 @@ IFRIT_APIDECL void ComputePass::build(uint32_t numMultiBuffers) {
   ComputePipelineCreateInfo ci;
   ci.shaderModules = m_shaderModule;
   if (m_passDescriptorLayout.size() > 0) {
-    if (m_descriptorBindRange.size()==0) {
+    if (m_descriptorBindRange.size() == 0) {
       buildDescriptorParamHandle(numMultiBuffers);
     }
     ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
@@ -1168,4 +1168,4 @@ IFRIT_APIDECL Queue *CommandExecutor::getQueue(QueueRequirement req) {
   return nullptr;
 }
 
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

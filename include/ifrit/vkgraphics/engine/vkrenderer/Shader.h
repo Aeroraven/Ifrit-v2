@@ -5,7 +5,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
 struct ShaderModuleCI {
   std::vector<char> code;
@@ -30,4 +30,4 @@ public:
   VkPipelineShaderStageCreateInfo getStageCI() const;
   inline uint32_t getCodeSize() const { return m_ci.code.size(); }
 };
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

@@ -1,7 +1,7 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/Pipeline.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 template <typename E>
 constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
   return static_cast<typename std::underlying_type<E>::type>(e);
@@ -329,4 +329,4 @@ PipelineCache::getComputePipeline(const ComputePipelineCreateInfo &ci) {
   return m_computePipelines.back().get();
 }
 
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

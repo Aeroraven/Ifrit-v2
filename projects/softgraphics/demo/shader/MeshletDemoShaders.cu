@@ -8,10 +8,10 @@
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 
 namespace Ifrit::Demo::MeshletDemo {
-	void MeshletDemoCuMS::execute(iint3 localInvocation, int workGroupId, const void* inTaskShaderPayload, Ifrit::Engine::SoftRenderer::VaryingStore* outVaryings, ifloat4* outPos,
+	void MeshletDemoCuMS::execute(iint3 localInvocation, int workGroupId, const void* inTaskShaderPayload, Ifrit::SoftRenderer::VaryingStore* outVaryings, ifloat4* outPos,
 		int* outIndices, int& outNumVertices, int& outNumIndices) {
 
-		using namespace Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA;
+		using namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA;
 		float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
 		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 1000));
 		float4x4 mvp = multiply(proj, view);
@@ -33,20 +33,20 @@ namespace Ifrit::Demo::MeshletDemo {
 			s.w = 1.0f;
 			auto p = multiply(mvp, s);
 			outPos[i] = p;
-			outVaryings[i] = reinterpret_cast<Ifrit::Engine::SoftRenderer::VaryingStore*>(vertexData)[vertStart * 2 + i * 2 + 1];
+			outVaryings[i] = reinterpret_cast<Ifrit::SoftRenderer::VaryingStore*>(vertexData)[vertStart * 2 + i * 2 + 1];
 		}
 		for (int i = 0; i < outNumIndices; i++) {
 			outIndices[i] = indexData[indStart+i];
 		}
 	}
-	IFRIT_HOST Ifrit::Engine::SoftRenderer::MeshShader* MeshletDemoCuMS::getCudaClone() {
-		return Ifrit::Engine::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuMS>(this);
+	IFRIT_HOST Ifrit::SoftRenderer::MeshShader* MeshletDemoCuMS::getCudaClone() {
+		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuMS>(this);
 	}
 
 	IFRIT_DUAL void MeshletDemoCuTS::execute(int workGroupId,void* outTaskShaderPayload,
 		iint3* outMeshWorkGroups,int& outNumMeshWorkGroups) {
 
-		using namespace Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA;
+		using namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA;
 		outNumMeshWorkGroups = 0;
 		emitMeshTask({ 1,1,1 }, outMeshWorkGroups, outNumMeshWorkGroups);
 		int* baseId = reinterpret_cast<int*>(outTaskShaderPayload);
@@ -55,8 +55,8 @@ namespace Ifrit::Demo::MeshletDemo {
 		
 	}
 
-	IFRIT_HOST Ifrit::Engine::SoftRenderer::TaskShader* MeshletDemoCuTS::getCudaClone() {
-		return Ifrit::Engine::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuTS>(this);
+	IFRIT_HOST Ifrit::SoftRenderer::TaskShader* MeshletDemoCuTS::getCudaClone() {
+		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuTS>(this);
 
 	}
 
@@ -69,8 +69,8 @@ namespace Ifrit::Demo::MeshletDemo {
 		co.w = result.w;
 	}
 
-	IFRIT_HOST Ifrit::Engine::SoftRenderer::FragmentShader* MeshletDemoCuFS::getCudaClone() {
-		return Ifrit::Engine::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuFS>(this);
+	IFRIT_HOST Ifrit::SoftRenderer::FragmentShader* MeshletDemoCuFS::getCudaClone() {
+		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuFS>(this);
 	}
 }
 

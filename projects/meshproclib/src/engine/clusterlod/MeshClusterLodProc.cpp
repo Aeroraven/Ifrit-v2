@@ -27,7 +27,7 @@
 
 using namespace Ifrit::Math::SIMD;
 
-namespace Ifrit::Engine::MeshProcLib::ClusterLod {
+namespace Ifrit::MeshProcLib::ClusterLod {
 constexpr int CLUSTER_GROUP_SIZE = 4;
 constexpr int TRIANGLES_PER_MESHLET = 124;
 constexpr int VERTICES_PER_MESHLET = 64;
@@ -941,4 +941,4 @@ IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(
   return 0;
 }
 
-} // namespace Ifrit::Engine::MeshProcLib::ClusterLod
+} // namespace Ifrit::MeshProcLib::ClusterLod

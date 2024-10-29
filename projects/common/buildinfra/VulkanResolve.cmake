@@ -8,4 +8,3 @@ find_package(Vulkan REQUIRED)
 
 # add include
 include_directories(${Vulkan_INCLUDE_DIR})
-message(STATUS "[IFRIT/EnvCheck]: Vulkan Include Directory ${Vulkan_INCLUDE_DIR}")

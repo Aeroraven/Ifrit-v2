@@ -3,7 +3,7 @@
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterRenderer.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster {
+namespace Ifrit::GraphicsBackend::SoftGraphics::TileRaster {
 
 struct AssembledTriangleRef {
   int sourcePrimitive;
@@ -151,4 +151,4 @@ protected:
     return (unsigned)y * (unsigned)context->numTilesX + (unsigned)x;
   }
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::TileRaster

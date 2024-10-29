@@ -1,12 +1,11 @@
 #pragma once
-#include "ifrit/common/core/ApiConv.h"
 #include "ifrit/common/math/LinalgOps.h"
+#include "ifrit/common/util/ApiConv.h"
 #include <cstdint>
 #include <meshoptimizer/src/meshoptimizer.h>
 #include <vector>
 
-
-namespace Ifrit::Engine::MeshProcLib::ClusterLod {
+namespace Ifrit::MeshProcLib::ClusterLod {
 constexpr int BVH_CHILDREN = 8; // or 4
 struct MeshDescriptor {
   char *vertexData;
@@ -88,4 +87,4 @@ public:
                          int maxLod);
 };
 
-} // namespace Ifrit::Engine::MeshProcLib::ClusterLod
+} // namespace Ifrit::MeshProcLib::ClusterLod

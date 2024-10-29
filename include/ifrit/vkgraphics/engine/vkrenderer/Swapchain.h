@@ -8,7 +8,7 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <vector>
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 struct SwapChainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
   std::vector<VkSurfaceFormatKHR> formats;
@@ -83,4 +83,4 @@ public:
     return m_currentFrame;
   }
 };
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

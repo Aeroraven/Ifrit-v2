@@ -3,8 +3,7 @@
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMContext.h"
 #include <tuple>
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec::
-    LLVM {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec::LLVM {
 class SpVcLLVMExpr {
 public:
   virtual ~SpVcLLVMExpr() = default;
@@ -666,4 +665,4 @@ public:
 };
 
 } // namespace
-  // Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec::LLVM
+  // Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec::LLVM

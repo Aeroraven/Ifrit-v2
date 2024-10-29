@@ -5,7 +5,7 @@
 #include <array>
 #include <memory>
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
 struct DescriptorTypeDetails {
   VkDescriptorType type;
@@ -102,4 +102,4 @@ public:
     return m_bindRanges[rangeId]->m_layout;
   }
 };
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

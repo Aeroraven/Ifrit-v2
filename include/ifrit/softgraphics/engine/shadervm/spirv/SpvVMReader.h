@@ -1,7 +1,7 @@
 #pragma once
 #include "./SpvVMContext.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
 class SpvVMReader {
 public:
   std::vector<char> readFile(const char *path);
@@ -10,4 +10,4 @@ public:
                      SpvVMContext *outContext);
   void printParsedInstructions(SpvVMContext *outContext);
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv

@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 class CommandBuffer;
 
 enum class VertexInputRate { Vertex, Instance };
@@ -243,4 +243,4 @@ public:
   void addSubmission(const CommandSubmissionInfo &info);
   void submit(bool hostSync = false);
 };
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

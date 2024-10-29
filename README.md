@@ -35,7 +35,8 @@ The project is organized into following parts.
 ### 2.1 Clone the Repository
 
 ```bash
-git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive  
+git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive 
+# git checkout remote main
 ```
 
 

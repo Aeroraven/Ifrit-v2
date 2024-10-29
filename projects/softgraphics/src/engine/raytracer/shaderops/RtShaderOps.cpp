@@ -12,8 +12,8 @@ IFRIT_APIDECL_FORCED void ifritShaderOps_Raytracer_TraceRay(
 
     // contextual arguments
     void *context) {
-  using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics;
-  using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer;
+  using namespace Ifrit::GraphicsBackend::SoftGraphics;
+  using namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer;
 
   RayInternal ray;
   ray.o = vfloat3(rayOrigin.x, rayOrigin.y, rayOrigin.z);

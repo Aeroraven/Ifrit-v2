@@ -8,10 +8,11 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 
-namespace Ifrit::Engine::GraphicsBackend::Rhi {
+
+namespace Ifrit::GraphicsBackend::Rhi {
 class RhiBackend;
 class RhiContext;
 class RhiBuffer;
@@ -383,12 +384,12 @@ public:
       std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
   virtual void
   setRecordFunction(std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
-  virtual void
-  setRecordFunctionPostRenderPass(std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
+  virtual void setRecordFunctionPostRenderPass(
+      std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
 
   virtual void run(const RhiCommandBuffer *cmd, uint32_t frameId) = 0;
 };
 
 class RhiPassGraph {};
 
-} // namespace Ifrit::Engine::GraphicsBackend::Rhi
+} // namespace Ifrit::GraphicsBackend::Rhi

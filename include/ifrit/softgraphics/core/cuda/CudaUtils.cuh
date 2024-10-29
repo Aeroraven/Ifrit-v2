@@ -2,7 +2,7 @@
 #include "ifrit/softgraphics/core/definition/CoreDefs.h"
 
 #ifdef IFRIT_FEATURE_CUDA
-namespace Ifrit::Engine::SoftRenderer::Core::CUDA {
+namespace Ifrit::SoftRenderer::Core::CUDA {
 
 template <typename T> IFRIT_KERNEL void kernFixVTable(T *devicePtr) {
   T temp(*devicePtr);
@@ -76,7 +76,7 @@ public:
     vecData[vectorSize++] = val;
   }
 };
-} // namespace Ifrit::Engine::SoftRenderer::Core::CUDA
+} // namespace Ifrit::SoftRenderer::Core::CUDA
 #define ifritCudaGetDeviceCopy() Core::CUDA::hostGetDeviceObjectCopy(this);
 
 #else

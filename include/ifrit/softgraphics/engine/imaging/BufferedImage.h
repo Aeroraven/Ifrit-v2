@@ -2,7 +2,7 @@
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/Structures.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging {
+namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging {
 
 enum class BufferedImageTiling { TILING_LINEAR, TILING_TILED };
 enum class BufferedImageFormat {
@@ -223,4 +223,4 @@ public:
   }
 };
 
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging

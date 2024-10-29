@@ -5,7 +5,7 @@
 
 namespace Ifrit::Demo::Skybox {
 	IFRIT_DUAL void SkyboxVS::execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) {
-		using namespace Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA;
+		using namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA;
 		auto s = isbReadFloat4(input[0]);
 		float4x4 view = (lookAt({ 0.0,0.0,0.0 }, { 0.0,0.0,-1.0 }, { 0,1.0,0 }));  
 		float4x4 proj = (perspective(30 * 3.14159 / 180, 2048.0 / 1152.0, 0.001, 1000));
@@ -16,12 +16,12 @@ namespace Ifrit::Demo::Skybox {
 		*outVaryings[0] = isbReadFloat4(input[1]);
 	}
 
-	IFRIT_HOST Ifrit::Engine::SoftRenderer::VertexShader* SkyboxVS::getCudaClone() {
-		return Ifrit::Engine::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<SkyboxVS>(this);
+	IFRIT_HOST Ifrit::SoftRenderer::VertexShader* SkyboxVS::getCudaClone() {
+		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<SkyboxVS>(this);
 	}
 
 	IFRIT_DUAL void SkyboxFS::execute(const  void* varyings, void* colorOutput, float* fragmentDepth) {
-		using Ifrit::Engine::SoftRenderer::Math::ShaderOps::CUDA::textureCubeLod;
+		using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::textureCubeLod;
 
 		auto r = isbcuReadPsVarying(varyings, 0);
 		auto& co = isbcuReadPsColorOut(colorOutput, 0);
@@ -34,8 +34,8 @@ namespace Ifrit::Demo::Skybox {
 		co.w = cl.w;
 	}
 
-	IFRIT_HOST Ifrit::Engine::SoftRenderer::FragmentShader* SkyboxFS::getCudaClone() {
-		return Ifrit::Engine::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<SkyboxFS>(this);
+	IFRIT_HOST Ifrit::SoftRenderer::FragmentShader* SkyboxFS::getCudaClone() {
+		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<SkyboxFS>(this);
 	}
 }
 

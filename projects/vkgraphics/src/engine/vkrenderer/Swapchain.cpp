@@ -2,16 +2,16 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
-#include "ifrit/common/core/TypingUtil.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Swapchain.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <algorithm>
 #include <array>
 #include <vector>
 
-using namespace Ifrit::Common::Core;
+using namespace Ifrit::Common::Utility;
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL void Swapchain::init() {
   // Window surface
 #ifdef _WIN32
@@ -281,4 +281,4 @@ IFRIT_APIDECL void Swapchain::present() {
   vkQueuePresentKHR(m_presentQueue, &presentInfo);
   m_currentFrame = (m_currentFrame + 1) % m_backbufferCount;
 }
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

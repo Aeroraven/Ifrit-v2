@@ -1,11 +1,11 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
-#include "ifrit/common/core/TypingUtil.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 
-using namespace Ifrit::Common::Core;
+using namespace Ifrit::Common::Utility;
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 struct RhiVulkanBackendImplDetails : public NonCopyable {
   std::unique_ptr<CommandExecutor> m_commandExecutor;
   std::unique_ptr<DescriptorManager> m_descriptorManager;
@@ -214,4 +214,4 @@ RhiVulkanBackendBuilder::createBackend(
   return std::make_unique<RhiVulkanBackend>(args);
 }
 
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

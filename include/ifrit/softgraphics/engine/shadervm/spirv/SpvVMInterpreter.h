@@ -1,7 +1,7 @@
 #pragma once
 #include "./SpvVMContext.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
 class SpvVMInterpreter {
 public:
   void parseRawContext(SpvVMContext *context,
@@ -9,4 +9,4 @@ public:
   void exportLlvmIR(SpvVMIntermediateRepresentation *ir,
                     std::string *outLlvmIR);
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv

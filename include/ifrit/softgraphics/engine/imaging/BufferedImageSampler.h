@@ -3,7 +3,7 @@
 #include "ifrit/softgraphics/engine/base/Structures.h"
 #include "ifrit/softgraphics/engine/imaging/LayeredBufferedImage.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging {
+namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging {
 class BufferedImageSampler {
 private:
   const IfritSamplerT pCI;
@@ -31,4 +31,4 @@ public:
   void sample3DLodSi(float u, float v, float w, float lod, iint3 offset,
                      void *pixel) const;
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Imaging
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging

@@ -36,8 +36,8 @@ macro(WindowsPrebuild target outputDir prefix)
                 endif()
             endif()
         endif()
+        message(STATUS "[IFRIT/Win]: Prebuild: ${prefix}*")
     endif()
-    message(STATUS "[IFRIT/Win]: Prebuild: ${prefix}*")
 endmacro()
 
 # AddImpLib: Add import library for MinGW

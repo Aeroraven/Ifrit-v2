@@ -1,6 +1,6 @@
 #pragma once
-#include "../core/ApiConv.h"
-#include "../core/CudaBaseDefs.h"
+#include "../util/ApiConv.h"
+#include "../util/CudaBaseDefs.h"
 #include <cstdint>
 
 template <class T> struct CoreVec2 {

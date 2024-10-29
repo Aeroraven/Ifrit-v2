@@ -1,10 +1,10 @@
 #pragma once
-#include "ifrit/common/core/TypingUtil.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 class IFRIT_APIDECL StagedSingleBuffer : public Rhi::RhiStagedSingleBuffer {
 protected:
   std::unique_ptr<SingleBuffer> m_bufferUnique;
@@ -50,4 +50,4 @@ public:
                        VkImageLayout srcLayout, VkImageLayout dstlayout,
                        VkPipelineStageFlags dstStage, VkAccessFlags dstAccess);
 };
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

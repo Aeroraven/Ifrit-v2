@@ -1,6 +1,6 @@
 #include "ifrit/softgraphics/engine/shadervm/spirvvec/SpvMdShader.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec {
 int SpvVecRuntimeBackend::createTime = 0;
 SpvVecRuntimeBackend::SpvVecRuntimeBackend(const ShaderRuntimeBuilder &runtime,
                                            std::vector<char> irByteCode) {
@@ -130,4 +130,4 @@ SpvVecFragmentShader::getUniformList() {
   }
   return ret;
 }
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec

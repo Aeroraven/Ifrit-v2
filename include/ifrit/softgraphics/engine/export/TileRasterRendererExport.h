@@ -2,13 +2,12 @@
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterRenderer.h"
 
-#define IFRIT_TRNS Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster
-#define IFRIT_BASENS Ifrit::Engine::GraphicsBackend::SoftGraphics
+#define IFRIT_TRNS Ifrit::GraphicsBackend::SoftGraphics::TileRaster
+#define IFRIT_BASENS Ifrit::GraphicsBackend::SoftGraphics
 #define IFRIT_TRTP                                                             \
-  Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport::                \
-      TileRasterRendererWrapper
+  Ifrit::GraphicsBackend::SoftGraphics::LibraryExport::TileRasterRendererWrapper
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::LibraryExport {
+namespace Ifrit::GraphicsBackend::SoftGraphics::LibraryExport {
 struct TileRasterRendererWrapper;
 }
 

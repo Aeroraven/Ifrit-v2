@@ -10,8 +10,8 @@ include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/GLFW3Resolve.cmake)
 include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/VulkanResolve.cmake)
 
 # add shader path
-add_definitions(-DIFRIT_DEMO_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shader/")
-add_definitions(-DIFRIT_DEMO_ASSET_PATH="${CMAKE_CURRENT_SOURCE_DIR}/asset/")
+add_definitions(-DIFRIT_DEMO_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Assets/Shader")
+add_definitions(-DIFRIT_DEMO_ASSET_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Assets/")
 
 # if(MSVC)
 #     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
@@ -24,7 +24,7 @@ include_directories(${IFRIT_PROJECT_SUBDIR}/softrenderer/include)
 include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_link_libraries(ifrit.demo meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer)
+    target_link_libraries(ifrit.demo meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer ifrit.core)
 else()
-    target_link_libraries(ifrit.demo meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer dl pthread)
+    target_link_libraries(ifrit.demo meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer ifrit.core dl pthread)
 endif()

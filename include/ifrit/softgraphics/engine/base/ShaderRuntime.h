@@ -1,6 +1,6 @@
 #pragma once
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
+namespace Ifrit::GraphicsBackend::SoftGraphics {
 
 class ShaderRuntime {
 public:
@@ -14,4 +14,4 @@ class ShaderRuntimeBuilder {
 public:
   virtual std::unique_ptr<ShaderRuntime> buildRuntime() const = 0;
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics
+} // namespace Ifrit::GraphicsBackend::SoftGraphics

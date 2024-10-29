@@ -4,7 +4,7 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 #include <memory>
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
 struct GraphicsPipelineCreateInfo {
   uint32_t viewportCount;
@@ -96,4 +96,4 @@ public:
   ComputePipeline *getComputePipeline(const ComputePipelineCreateInfo &ci);
 };
 
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

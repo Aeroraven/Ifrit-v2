@@ -3,7 +3,7 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <memory>
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 enum class BufferMemoryType { DeviceLocal, HostLocal };
 
 struct BufferCreateInfo {
@@ -225,4 +225,4 @@ public:
                                            VkImageUsageFlags extraUsage = 0);
 };
 
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

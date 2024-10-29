@@ -6,7 +6,7 @@
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMInterpreter.h"
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMReader.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
 struct SpvRuntimeSymbolTables {
   std::vector<void *> inputs;
   std::vector<int> inputBytes;
@@ -14,7 +14,7 @@ struct SpvRuntimeSymbolTables {
   std::vector<int> outputBytes;
   std::unordered_map<
       std::pair<int, int>, std::pair<void *, int>,
-      Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility::PairHash>
+      Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::PairHash>
       uniform;
   void *entry = nullptr;
   void *builtinPosition = nullptr;
@@ -162,4 +162,4 @@ public:
   IFRIT_HOST virtual void onStackPushComplete() override;
   IFRIT_HOST virtual void onStackPopComplete() override;
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv

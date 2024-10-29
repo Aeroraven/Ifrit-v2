@@ -7,7 +7,7 @@
 // Include order is strictly required here
 #include "ifrit/common/math/simd/SimdVectors.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
+namespace Ifrit::GraphicsBackend::SoftGraphics {
 struct VertexShaderResultContext {
   std::vector<ifloat4> position;
   std::vector<std::vector<Ifrit::Math::SIMD::vfloat4>> varyings;
@@ -42,4 +42,4 @@ public:
     return context->varyings[id].data();
   }
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics
+} // namespace Ifrit::GraphicsBackend::SoftGraphics

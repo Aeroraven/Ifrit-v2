@@ -1,10 +1,10 @@
 #pragma once
 #include "../definition/CoreDefs.h"
 
+namespace Ifrit::GraphicsBackend::SoftGraphics::Core::Utility {
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility {
-
-template <typename T> concept CoreUtilIsIntegerType = std::is_integral_v<T>;
+template <typename T>
+concept CoreUtilIsIntegerType = std::is_integral_v<T>;
 
 template <typename... Args> class CoreUtilZipContainer {
 private:
@@ -40,18 +40,18 @@ public:
       this->curIters = std::make_unique<GroupIteratorTp>(pIters);
     }
     iterator &operator++() {
-      std::apply([](auto &... p) { (++p, ...); }, *(this->curIters));
+      std::apply([](auto &...p) { (++p, ...); }, *(this->curIters));
       return *this;
     }
     iterator operator++(int) {
       iterator copyIter(*this);
-      std::apply([](auto &... p) { (++p, ...); }, *(this->curIters));
+      std::apply([](auto &...p) { (++p, ...); }, *(this->curIters));
       return copyIter;
     }
     bool operator==(iterator p) const { return *curIters == *p.curIters; }
     bool operator!=(iterator p) const { return *curIters != *p.curIters; }
     GroupIteratorValTp operator*() const {
-      return std::apply([](auto &... p) { return std::make_tuple(*p...); },
+      return std::apply([](auto &...p) { return std::make_tuple(*p...); },
                         *(this->curIters));
     }
   };
@@ -63,17 +63,18 @@ public:
   }
   iterator begin() {
     return iterator(
-        std::apply([](auto &... p) { return std::make_tuple((p.begin())...); },
+        std::apply([](auto &...p) { return std::make_tuple((p.begin())...); },
                    *(this->tuples)));
   }
   iterator end() {
     return iterator(
-        std::apply([](auto &... p) { return std::make_tuple((p.end())...); },
+        std::apply([](auto &...p) { return std::make_tuple((p.end())...); },
                    *(this->tuples)));
   }
 };
 template <typename T>
-requires CoreUtilIsIntegerType<T> class CoreUtilRangedInterval {
+  requires CoreUtilIsIntegerType<T>
+class CoreUtilRangedInterval {
 public:
   class iterator {
   public:
@@ -174,4 +175,4 @@ struct PairHash {
   }
 };
 
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::Core::Utility

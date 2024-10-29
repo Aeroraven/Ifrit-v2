@@ -3,7 +3,7 @@
 #include "ifrit/softgraphics/engine/base/Shaders.h"
 #include <stack>
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer {
+namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer {
 // v2
 struct RaytracerShaderStackElement {
   RayInternal ray;
@@ -74,4 +74,4 @@ public:
   IFRIT_HOST virtual CallableShader *getCudaClone() { return nullptr; };
 };
 
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer

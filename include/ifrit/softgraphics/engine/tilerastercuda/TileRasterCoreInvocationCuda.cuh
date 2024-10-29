@@ -12,7 +12,7 @@
 #include "ifrit/softgraphics/engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
 
 
-namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation {
+namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 enum GeometryGenerationPipelineType {
   IFCUINVO_GEOMETRY_GENERATION_UNDEFINED = 0,
   IFCUINVO_GEOMETRY_GENERATION_CONVENTIONAL = 1,
@@ -92,5 +92,5 @@ void setBlendFunc(IfritColorAttachmentBlendState blendState);
 void setDepthFunc(IfritCompareOp depthFunc);
 void setCullMode(IfritCullMode cullMode);
 void setMsaaSampleBits(IfritSampleCountFlagBits sampleBits);
-} // namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation
+} // namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation
 #endif

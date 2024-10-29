@@ -2,6 +2,7 @@
 #define IFRIT_DLL
 #endif
 #include "ifrit/common/math/LinalgOps.h"
+#include "ifrit/core/Core.h"
 #include "ifrit/display/presentation/backend/OpenGLBackend.h"
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
@@ -110,8 +111,8 @@ static void error_callback(int error, const char *description) {
 }
 
 int demo_meshShader() {
-  using namespace Ifrit::Engine::GraphicsBackend::Rhi;
-  using namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics;
+  using namespace Ifrit::GraphicsBackend::Rhi;
+  using namespace Ifrit::GraphicsBackend::VulkanGraphics;
   using namespace Ifrit::Presentation::Window;
   using namespace Ifrit::Math;
 
@@ -171,7 +172,7 @@ int demo_meshShader() {
   const size_t max_triangles = 124;
   const float cone_weight = 0.0f;
 
-  using namespace Ifrit::Engine::MeshProcLib::ClusterLod;
+  using namespace Ifrit::MeshProcLib::ClusterLod;
   MeshClusterLodProc meshProc;
   MeshDescriptor meshDesc;
   meshDesc.indexCount = indices.size();
@@ -473,4 +474,10 @@ int demo_meshShader() {
   return 0;
 }
 
-int main() { demo_meshShader(); }
+int demo_core() { 
+  using namespace Ifrit::Core;
+  AssetManager assetManager(IFRIT_DEMO_ASSET_PATH);
+  return 0;
+}
+
+int main() { demo_core(); }

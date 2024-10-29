@@ -3,10 +3,9 @@
 #include "ifrit/common/math/simd/SimdVectors.h"
 #include "ifrit/softgraphics/engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
 
-
 using namespace Ifrit::Math::SIMD;
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer {
+namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer {
 TrivialRaytracerWorker::TrivialRaytracerWorker(
     std::shared_ptr<TrivialRaytracer> renderer,
     std::shared_ptr<TrivialRaytracerContext> context, int workerId) {
@@ -85,4 +84,4 @@ void TrivialRaytracerWorker::tracingRecursiveProcess(const RayInternal &ray,
   recurDepth--;
 }
 int TrivialRaytracerWorker::getTracingDepth() { return recurDepth; }
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer

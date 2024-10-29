@@ -1,6 +1,6 @@
 #pragma once
 #include <stdexcept>
-namespace Ifrit::Common::Core {
+namespace Ifrit::Common::Utility {
 
 template <typename T, typename U> T *checked_cast(U *ptr) {
   // Reference: NVIDIAGameWorks/nvrhi/blob/main/include/nvrhi/nvrhi.h
@@ -47,4 +47,4 @@ private:
   NonCopyable &operator=(const NonCopyable &) = delete;
 };
 
-} // namespace Ifrit::Common::Core
+} // namespace Ifrit::Common::Utility

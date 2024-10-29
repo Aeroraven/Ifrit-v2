@@ -3,8 +3,8 @@
 #include "ifrit/softgraphics/engine/bufferman/BufferManager.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterContext.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster {
-using namespace Ifrit::Engine::GraphicsBackend::SoftGraphics;
+namespace Ifrit::GraphicsBackend::SoftGraphics::TileRaster {
+using namespace Ifrit::GraphicsBackend::SoftGraphics;
 
 enum class TileRasterStage {
   IDLE,
@@ -89,4 +89,4 @@ public:
   IFRIT_APIDECL void clear();
   IFRIT_APIDECL void init();
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::TileRaster
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::TileRaster

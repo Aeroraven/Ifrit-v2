@@ -1,6 +1,6 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
 IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext *ctx,
                                                      SingleBuffer *buffer) {
@@ -103,4 +103,4 @@ IFRIT_APIDECL void StagedSingleImage::cmdCopyToDevice(
   cmd->pipelineBarrier(barrier2);
 }
 
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

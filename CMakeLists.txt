@@ -50,8 +50,10 @@ add_subdirectory(projects/ircompile)
 add_subdirectory(projects/softgraphics)
 add_subdirectory(projects/meshproclib)
 add_subdirectory(projects/vkgraphics)
+add_subdirectory(projects/core)
 add_subdirectory(projects/demo)
+
 
 add_dependencies(ifrit.meshproclib meshoptimizer metis)
 add_dependencies(ifrit.softrenderer ifrit.ircompile)
-add_dependencies(ifrit.demo ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display)
+add_dependencies(ifrit.demo ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.core)

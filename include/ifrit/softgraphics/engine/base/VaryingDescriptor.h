@@ -5,7 +5,7 @@
 #include "ifrit/softgraphics/engine/base/VertexBuffer.h"
 #include "ifrit/softgraphics/engine/base/VertexShaderResult.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
+namespace Ifrit::GraphicsBackend::SoftGraphics {
 
 struct VaryingDescriptorContext {
   std::vector<TypeDescriptor> varyingDescriptors;
@@ -36,4 +36,4 @@ public:
   void setVaryingDescriptorsCompatible(const TypeDescriptor *varyingDescriptors,
                                        int num);
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics
+} // namespace Ifrit::GraphicsBackend::SoftGraphics

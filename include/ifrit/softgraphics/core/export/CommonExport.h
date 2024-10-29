@@ -2,7 +2,7 @@
 #include "ifrit/softgraphics/core/data/Image.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 
-#define IFRIT_CORENS Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data
+#define IFRIT_CORENS Ifrit::GraphicsBackend::SoftGraphics::Core::Data
 
 /* Export Image.h */
 IFRIT_APIDECL_COMPAT IFRIT_CORENS::ImageF32 *IFRIT_APICALL ifcrCreateImageFP32(

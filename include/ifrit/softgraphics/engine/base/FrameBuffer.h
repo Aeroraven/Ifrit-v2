@@ -1,9 +1,9 @@
 #pragma once
 #include "ifrit/softgraphics/core/data/Image.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
-using Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data::ImageF32;
-using Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data::ImageU8;
+namespace Ifrit::GraphicsBackend::SoftGraphics {
+using Ifrit::GraphicsBackend::SoftGraphics::Core::Data::ImageF32;
+using Ifrit::GraphicsBackend::SoftGraphics::Core::Data::ImageU8;
 
 struct FrameBufferContext {
   std::vector<ImageF32 *> colorAttachment;
@@ -35,4 +35,4 @@ public:
                                      int nums);
   void setDepthAttachmentCompatible(ImageF32 *depthAttachment);
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics
+} // namespace Ifrit::GraphicsBackend::SoftGraphics

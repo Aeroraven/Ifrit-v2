@@ -1,6 +1,6 @@
 #include "ifrit/softgraphics/engine/base/VaryingDescriptor.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
+namespace Ifrit::GraphicsBackend::SoftGraphics {
 IFRIT_APIDECL
 VaryingDescriptor::VaryingDescriptor(VaryingDescriptor &&x) IFRIT_NOTHROW {
   this->context = x.context;
@@ -33,4 +33,4 @@ IFRIT_APIDECL void VaryingDescriptor::setVaryingDescriptorsCompatible(
     this->context->varyingDescriptors[i] = varyingDescriptors[i];
   }
 }
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics
+} // namespace Ifrit::GraphicsBackend::SoftGraphics

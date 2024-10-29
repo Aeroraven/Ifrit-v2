@@ -4,8 +4,7 @@
 #include "ifrit/softgraphics/engine/base/RaytracerBase.h"
 #include <stack>
 
-
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer {
+namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer {
 struct RaytracingShaderGlobalVarSection {
   ShaderBase *shader;
 };
@@ -35,4 +34,4 @@ public:
 
   int getTracingDepth();
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer

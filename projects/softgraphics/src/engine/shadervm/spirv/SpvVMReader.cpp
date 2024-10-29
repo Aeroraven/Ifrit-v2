@@ -1,7 +1,7 @@
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMReader.h"
 #include <spirv_headers/include/spirv/unified1/spirv.hpp>
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
 std::vector<char> SpvVMReader::readFile(const char *path) {
   std::vector<char> data;
   FILE *file = fopen(path, "rb");
@@ -32,8 +32,8 @@ void SpvVMReader::parseByteCode(const char *byteCode, size_t length,
     auto val = *x;
     x++;
     if (doBswap)
-      val = Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility::
-          byteSwapU32(val);
+      val =
+          Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::byteSwapU32(val);
     return val;
   };
   const uint32_t *pCur = reinterpret_cast<const uint32_t *>(byteCode);
@@ -78,4 +78,4 @@ void SpvVMReader::printParsedInstructions(SpvVMContext *outContext) {
     printf("\n");
   }
 }
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv

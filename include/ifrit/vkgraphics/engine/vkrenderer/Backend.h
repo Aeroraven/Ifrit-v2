@@ -1,10 +1,10 @@
 #pragma once
-#include "ifrit/common/core/ApiConv.h"
-#include "ifrit/common/core/TypingUtil.h"
+#include "ifrit/common/util/ApiConv.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include <memory>
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
 struct RhiVulkanBackendImplDetails;
 class IFRIT_APIDECL RhiVulkanBackend : public Rhi::RhiBackend {
@@ -14,7 +14,7 @@ protected:
   std::unique_ptr<Rhi::RhiDevice> m_device;
   std::unique_ptr<Rhi::RhiSwapchain> m_swapChain;
   RhiVulkanBackendImplDetails *m_implDetails;
-  
+
 public:
   RhiVulkanBackend(const Rhi::RhiInitializeArguments &args);
   ~RhiVulkanBackend();
@@ -63,10 +63,11 @@ public:
   getSwapchainRenderDoneEventHandler() override;
 };
 
-class IFRIT_APIDECL RhiVulkanBackendBuilder : public Rhi::RhiBackendFactory,
-                                              public Common::Core::NonCopyable {
+class IFRIT_APIDECL RhiVulkanBackendBuilder
+    : public Rhi::RhiBackendFactory,
+      public Common::Utility::NonCopyable {
 public:
   std::unique_ptr<Rhi::RhiBackend>
   createBackend(const Rhi::RhiInitializeArguments &args) override;
 };
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

@@ -7,8 +7,7 @@
 #include "ifrit/softgraphics/engine/base/Shaders.h"
 #include "ifrit/softgraphics/engine/bufferman/BufferManager.h"
 
-
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer {
+namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer {
 class TrivialRaytracerWorker;
 
 enum class TrivialRaytracerWorkerStatus {
@@ -51,7 +50,6 @@ public:
   void traceRays(uint32_t width, uint32_t height, uint32_t depth);
 
   void bindTestImage(
-      Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Data::ImageF32
-          *image);
+      Ifrit::GraphicsBackend::SoftGraphics::Core::Data::ImageF32 *image);
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Raytracer
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer

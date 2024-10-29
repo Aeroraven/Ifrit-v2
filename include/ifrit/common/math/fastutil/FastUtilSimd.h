@@ -1,5 +1,5 @@
 #pragma once
-#include "../../core/ApiConv.h"
+#include "../../util/ApiConv.h"
 #include <cstdint>
 
 namespace Ifrit::Math::FastUtil {

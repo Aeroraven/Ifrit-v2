@@ -1,6 +1,6 @@
 #pragma once
 #include "ifrit/softgraphics/core/definition/CoreDefs.h"
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility {
+namespace Ifrit::GraphicsBackend::SoftGraphics::Core::Utility {
 class CoreLogger {
 private:
 public:
@@ -54,29 +54,29 @@ public:
   }
 };
 #define ifritLog(level, ...)                                                   \
-  Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::    \
-      log(level, __FUNCTION__, __VA_ARGS__)
+  Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::log(        \
+      level, __FUNCTION__, __VA_ARGS__)
 #define ifritLog1(...)                                                         \
-  Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::    \
-      log(0, __FUNCTION__, __VA_ARGS__)
+  Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::log(        \
+      0, __FUNCTION__, __VA_ARGS__)
 #define ifritLog2(...)                                                         \
-  Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::    \
-      log(1, __FUNCTION__, __VA_ARGS__)
+  Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::log(        \
+      1, __FUNCTION__, __VA_ARGS__)
 #define ifritLog3(...)                                                         \
-  Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::    \
-      log(2, __FUNCTION__, __VA_ARGS__)
+  Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::log(        \
+      2, __FUNCTION__, __VA_ARGS__)
 #define ifritLog4(...)                                                         \
-  Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::    \
-      log(3, __FUNCTION__, __VA_ARGS__)
+  Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::log(        \
+      3, __FUNCTION__, __VA_ARGS__)
 #define ifritLog5(...)                                                         \
-  Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::    \
-      log(4, __FUNCTION__, __VA_ARGS__)
+  Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::log(        \
+      4, __FUNCTION__, __VA_ARGS__)
 #define ifritAssert(condition, ...)                                            \
-  Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::    \
-      assertfx(condition, __FUNCTION__, __VA_ARGS__)
+  Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::assertfx(   \
+      condition, __FUNCTION__, __VA_ARGS__)
 #define ifritError(...)                                                        \
-  Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::    \
-      log(3, __FUNCTION__, __VA_ARGS__);                                       \
+  Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::CoreLogger::log(        \
+      3, __FUNCTION__, __VA_ARGS__);                                           \
   std::abort();
 
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Core::Utility
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::Core::Utility

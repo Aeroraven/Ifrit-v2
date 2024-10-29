@@ -3,8 +3,7 @@
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/VertexBuffer.h"
 
-
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::MeshletBuilder {
+namespace Ifrit::GraphicsBackend::SoftGraphics::MeshletBuilder {
 class IFRIT_APIDECL TrivialMeshletBuilder {
 private:
   const VertexBuffer *vbuffer = nullptr;
@@ -19,4 +18,4 @@ public:
                     Meshlet &outData, std::vector<int> &outVertexOffset,
                     std::vector<int> &outIndexOffset, bool autoIncre);
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::MeshletBuilder
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::MeshletBuilder

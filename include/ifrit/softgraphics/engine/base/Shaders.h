@@ -4,7 +4,7 @@
 #include "ifrit/softgraphics/engine/base/VaryingDescriptor.h"
 #include "ifrit/softgraphics/engine/base/VaryingStore.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
+namespace Ifrit::GraphicsBackend::SoftGraphics {
 enum GeometryShaderTopology {
   IGST_TRIANGLES = 0,
   IGST_LINES = 1,
@@ -123,4 +123,4 @@ typedef void (*GeometryShaderFunctionalPtr)(const ifloat4 *const *inPos,
                                             ifloat4 *outPos,
                                             VaryingStore *outVaryings,
                                             int *outSize);
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics
+} // namespace Ifrit::GraphicsBackend::SoftGraphics

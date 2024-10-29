@@ -1,7 +1,7 @@
 #include "ifrit/ircompile/llvm_ircompile.h"
 #include "ifrit/softgraphics/engine/comllvmrt/WrappedLLVMRuntime.h"
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ComLLVMRuntime {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ComLLVMRuntime {
 struct WrappedLLVMRuntimeContext {
   IfritCompLLVMExecutionSession *session;
   std::string irCode;
@@ -53,4 +53,4 @@ WrappedLLVMRuntimeBuilder::WrappedLLVMRuntimeBuilder() {
 std::unique_ptr<ShaderRuntime> WrappedLLVMRuntimeBuilder::buildRuntime() const {
   return std::make_unique<WrappedLLVMRuntime>();
 }
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ComLLVMRuntime
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::ComLLVMRuntime

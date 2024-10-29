@@ -1,5 +1,5 @@
 #pragma once
-#include "ifrit/common/core/TypingUtil.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
@@ -14,7 +14,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
 class RenderGraph;
 class CommandExecutor;
@@ -152,7 +152,7 @@ struct RenderPassAttachment {
 };
 
 class IFRIT_APIDECL RegisteredResourceMapper
-    : public Ifrit::Common::Core::NonCopyable {
+    : public Ifrit::Common::Utility::NonCopyable {
 private:
   std::vector<std::unique_ptr<RegisteredResource>> m_resources;
   std::unordered_map<SingleBuffer *, uint32_t> m_bufferMap;
@@ -183,7 +183,7 @@ public:
       return m_resources[it->second].get();
     } else {
       if (image->getIsSwapchainImage()) {
-        using namespace Ifrit::Common::Core;
+        using namespace Ifrit::Common::Utility;
         auto swapchainImage = checked_cast<SwapchainImageResource>(image);
         auto registeredImage =
             std::make_unique<RegisteredSwapchainImage>(swapchainImage);
@@ -390,14 +390,14 @@ public:
   inline void
   addShaderStorageBuffer(Rhi::RhiBuffer *buffer, uint32_t position,
                          Rhi::RhiResourceAccessType access) override {
-    using namespace Ifrit::Common::Core;
+    using namespace Ifrit::Common::Utility;
     auto buf = checked_cast<SingleBuffer>(buffer);
     auto registeredBuffer = m_mapper->getBufferIndex(buf);
     auto registered = checked_cast<RegisteredBufferHandle>(registeredBuffer);
     addStorageBuffer_base(registered, position, access);
   }
   inline void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t position) {
-    using namespace Ifrit::Common::Core;
+    using namespace Ifrit::Common::Utility;
     auto buf = checked_cast<MultiBuffer>(buffer);
     auto registeredBuffer = m_mapper->getMultiBufferIndex(buf);
     auto registered = checked_cast<RegisteredBufferHandle>(registeredBuffer);
@@ -447,14 +447,14 @@ public:
   inline void
   addShaderStorageBuffer(Rhi::RhiBuffer *buffer, uint32_t position,
                          Rhi::RhiResourceAccessType access) override {
-    using namespace Ifrit::Common::Core;
+    using namespace Ifrit::Common::Utility;
     auto buf = checked_cast<SingleBuffer>(buffer);
     auto registeredBuffer = m_mapper->getBufferIndex(buf);
     auto registered = checked_cast<RegisteredBufferHandle>(registeredBuffer);
     addStorageBuffer_base(registered, position, access);
   }
   inline void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t position) {
-    using namespace Ifrit::Common::Core;
+    using namespace Ifrit::Common::Utility;
     auto buf = checked_cast<MultiBuffer>(buffer);
     auto registeredBuffer = m_mapper->getMultiBufferIndex(buf);
     auto registered = checked_cast<RegisteredBufferHandle>(registeredBuffer);
@@ -576,4 +576,4 @@ public:
   Queue *getQueue(QueueRequirement req);
 };
 
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

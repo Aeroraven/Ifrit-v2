@@ -1,8 +1,7 @@
 #pragma once
-#include "../core/ApiConv.h"
+#include "../util/ApiConv.h"
 #include "VectorOps.h"
 #include <cmath>
-
 
 namespace Ifrit::Math {
 inline float4x4 transpose(const float4x4 &a) {
@@ -140,6 +139,29 @@ inline float4x4 perspectiveNegateY(float fovy, float aspect, float zNear,
   result[1][3] = 0;
   result[2][3] = -(zFar * zNear) / (zFar - zNear);
   result[3][3] = 0;
+  return result;
+}
+inline float4x4 eulerAngleToMatrix(const ifloat3 &euler) {
+  float4x4 result;
+  float cx = cos(euler.x), sx = sin(euler.x);
+  float cy = cos(euler.y), sy = sin(euler.y);
+  float cz = cos(euler.z), sz = sin(euler.z);
+  result[0][0] = cy * cz;
+  result[0][1] = cy * sz;
+  result[0][2] = -sy;
+  result[0][3] = 0;
+  result[1][0] = sx * sy * cz - cx * sz;
+  result[1][1] = sx * sy * sz + cx * cz;
+  result[1][2] = sx * cy;
+  result[1][3] = 0;
+  result[2][0] = cx * sy * cz + sx * sz;
+  result[2][1] = cx * sy * sz - sx * cz;
+  result[2][2] = cx * cy;
+  result[2][3] = 0;
+  result[3][0] = 0;
+  result[3][1] = 0;
+  result[3][2] = 0;
+  result[3][3] = 1;
   return result;
 }
 

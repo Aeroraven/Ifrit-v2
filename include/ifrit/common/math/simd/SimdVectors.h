@@ -1,11 +1,12 @@
 #pragma once
-#include "../../core/ApiConv.h"
+#include "../../util/ApiConv.h"
 #include "../VectorDefs.h"
+#include <concepts>
 #include <cstdint>
-#include <type_traits>
 #include <cstdio>
 #include <cstdlib>
-#include <concepts>
+#include <type_traits>
+
 
 #ifndef IFRIT_USE_SIMD_128
 #ifdef _MSC_VER
@@ -15,7 +16,7 @@
 #endif
 #endif
 
-//Check if GCC or MinGW
+// Check if GCC or MinGW
 #if defined(__GNUC__) || defined(__MINGW32__) || defined(__MINGW64__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wignored-attributes"
@@ -27,28 +28,29 @@ struct SimdContainerPlaceholder {
   uint32_t x, y, z, w;
 };
 
-template <typename T> concept SimdElement32 = requires(T x) {
-  std::is_same_v<T, float> || std::is_same_v<T, int>;
-};
+template <typename T>
+concept SimdElement32 =
+    requires(T x) { std::is_same_v<T, float> || std::is_same_v<T, int>; };
 
 #ifdef IFRIT_USE_SIMD_128
-template <typename T> concept SimdContainer = requires(T x) {
-  std::is_same_v<T, __m128> || std::is_same_v<T, __m128i>;
-};
+template <typename T>
+concept SimdContainer =
+    requires(T x) { std::is_same_v<T, __m128> || std::is_same_v<T, __m128i>; };
 #else
-template <typename T> concept SimdContainer = requires(T x) {
-  std::is_same_v<T, SimdContainerPlaceholder>;
-};
+template <typename T>
+concept SimdContainer =
+    requires(T x) { std::is_same_v<T, SimdContainerPlaceholder>; };
 #endif
 
-inline void reportNoSimdSupportError() { 
+inline void reportNoSimdSupportError() {
   printf("No SIMD support\n");
   std::abort();
 }
 
 // 4-elements
 template <typename T, typename S, int V>
-requires SimdElement32<T> &&SimdContainer<S> struct alignas(16) SimdVector {
+  requires SimdElement32<T> && SimdContainer<S>
+struct alignas(16) SimdVector {
   union {
     struct {
       T x, y, z, w;
@@ -589,7 +591,7 @@ inline SimdVector<T, S, V> abs(const SimdVector<T, S, V> &a) {
 }
 
 // Length
-template<typename T,typename S,int V>
+template <typename T, typename S, int V>
 inline T length(const SimdVector<T, S, V> &a) {
   return sqrt(dot(a, a));
 }

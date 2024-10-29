@@ -18,17 +18,17 @@
 
 namespace Ifrit::Demo::DemoDefault {
 using namespace std;
-using namespace Ifrit::Engine::SoftRenderer::Core::Data;
-using namespace Ifrit::Engine::SoftRenderer::BufferManager;
-using namespace Ifrit::Engine::SoftRenderer::TileRaster;
-using namespace Ifrit::Engine::SoftRenderer::Utility::Loader;
+using namespace Ifrit::SoftRenderer::Core::Data;
+using namespace Ifrit::SoftRenderer::BufferManager;
+using namespace Ifrit::SoftRenderer::TileRaster;
+using namespace Ifrit::SoftRenderer::Utility::Loader;
 using namespace Ifrit::Math;
 using namespace Ifrit::Presentation::Window;
 using namespace Ifrit::Presentation::Backend;
 #ifdef IFRIT_FEATURE_CUDA
-using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA;
-using namespace Ifrit::Engine::SoftRenderer::Core::CUDA;
-using namespace Ifrit::Engine::SoftRenderer::TileRaster::CUDA::Invocation;
+using namespace Ifrit::SoftRenderer::TileRaster::CUDA;
+using namespace Ifrit::SoftRenderer::Core::CUDA;
+using namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation;
 #endif
 enum PresentEngine { PE_GLFW, PE_CONSOLE };
 

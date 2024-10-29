@@ -1,7 +1,7 @@
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMExtInstRegistry.h"
 #include <spirv_headers/include/spirv/unified1/GLSL.std.450.h>
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
 std::string getLlvmType(SpvVMExtRegistryTypeIdentifier baseIdentifier,
                         int paramComSize) {
   if (baseIdentifier == IFSP_EXTREG_TP_INT)
@@ -23,10 +23,10 @@ std::string getMangledType(SpvVMExtRegistryTypeIdentifier baseIdentifier,
                              : ("v" + std::to_string(paramComSize) + "f32");
   return "unknown";
 }
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::
-    ExtInst::GlslStd450 {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::ExtInst::
+    GlslStd450 {
 #define DEF_INST(x)                                                            \
   std::string x(const std::vector<SpvVMExtRegistryTypeIdentifier> &paramTypes, \
                 const std::vector<int> &paramComCnt)
@@ -182,9 +182,9 @@ DEF_INST(Fma) {
 }
 #undef DEF_INST
 } // namespace
-  // Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::ExtInst::GlslStd450
+  // Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::ExtInst::GlslStd450
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
+namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
 SpvVMExtRegistry::SpvVMExtRegistry() {
 #define REGISTER_GLSLSTD450(x, y)                                              \
   generators["GLSL.std.450"][(x)] = (ExtInst::GlslStd450::y);
@@ -228,4 +228,4 @@ std::string SpvVMExtRegistry::queryExternalFunc(
   return baseFuncName;
 }
 std::string SpvVMExtRegistry::getRequiredFuncDefs() { return irCode; }
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::ShaderVM::Spirv
+} // namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv

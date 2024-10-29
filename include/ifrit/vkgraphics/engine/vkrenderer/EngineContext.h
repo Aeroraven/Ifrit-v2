@@ -1,5 +1,5 @@
 #pragma once
-#include "ifrit/common/core/ApiConv.h"
+#include "ifrit/common/util/ApiConv.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include <cstdint>
 #include <vector>
@@ -10,7 +10,7 @@
 #endif
 #include <functional>
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
 struct IFRIT_APIDECL DeviceQueueInfo {
   struct DeviceQueueFamily {
@@ -107,4 +107,4 @@ public:
     return m_phyDeviceProperties;
   }
 };
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

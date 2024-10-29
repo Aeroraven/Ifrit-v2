@@ -1,5 +1,5 @@
 #pragma once
 
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics::Utility::Debug {
+namespace Ifrit::GraphicsBackend::SoftGraphics::Utility::Debug {
 void checkAddress(void *address);
 }

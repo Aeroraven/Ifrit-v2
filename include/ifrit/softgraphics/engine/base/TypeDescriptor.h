@@ -2,8 +2,7 @@
 #include "ifrit/common/math/VectorDefs.h"
 #include "ifrit/softgraphics/core/definition/CoreTypes.h"
 
-
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
+namespace Ifrit::GraphicsBackend::SoftGraphics {
 enum TypeDescriptorEnum {
   IFTP_UNDEFINED,
   IFTP_FLOAT1,
@@ -49,4 +48,4 @@ public:
 };
 
 IFRIT_APIDECL extern TypeDescriptorsT TypeDescriptors;
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics
+} // namespace Ifrit::GraphicsBackend::SoftGraphics

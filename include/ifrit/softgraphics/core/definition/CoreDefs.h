@@ -114,8 +114,8 @@ static_assert(false, "It's assumed that machine with AVX2 support, must "
 #endif
 #endif
 
-#include "ifrit/common/core/ApiConv.h"
-#include "ifrit/common/core/CudaBaseDefs.h"
+#include "ifrit/common/util/ApiConv.h"
+#include "ifrit/common/util/CudaBaseDefs.h"
 
 #ifdef IFRIT_CXX20_ENABLED
 #define IFRIT_BRANCH_LIKELY [[likely]]

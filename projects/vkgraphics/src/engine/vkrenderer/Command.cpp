@@ -1,11 +1,11 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
-#include "ifrit/common/core/TypingUtil.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
-using namespace Ifrit::Common::Core;
+using namespace Ifrit::Common::Utility;
 
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL TimelineSemaphore::TimelineSemaphore(EngineContext *ctx)
     : m_context(ctx) {
   VkSemaphoreTypeCreateInfo timelineCI{};
@@ -514,4 +514,4 @@ IFRIT_APIDECL std::vector<Queue *> QueueCollections::getTransferQueues() {
   return transferQueues;
 }
 
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

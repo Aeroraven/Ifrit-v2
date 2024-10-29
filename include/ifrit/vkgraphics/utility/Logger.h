@@ -1,6 +1,6 @@
 #pragma once
 #include <stdexcept>
-namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::GraphicsBackend::VulkanGraphics {
 inline void vkrAssert(bool condition, const char *message) {
   if (!condition) {
     throw std::runtime_error(message);
@@ -18,4 +18,4 @@ inline void vkrError(const char *message) {
   fprintf(stderr, "%s\n", message);
   throw std::runtime_error(message);
 }
-} // namespace Ifrit::Engine::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::GraphicsBackend::VulkanGraphics

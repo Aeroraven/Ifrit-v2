@@ -1,6 +1,6 @@
 #pragma once
 #include "ifrit/softgraphics/engine/base/Constants.h"
-namespace Ifrit::Engine::GraphicsBackend::SoftGraphics {
+namespace Ifrit::GraphicsBackend::SoftGraphics {
 // Buffer
 struct IFRIT_APIDECL IfritBufferCreateInfo {
   size_t bufferSize;
@@ -66,4 +66,4 @@ struct IFRIT_APIDECL IfritColorAttachmentBlendState {
   IfritBlendFactor srcAlphaBlendFactor;
   IfritBlendFactor dstAlphaBlendFactor;
 };
-} // namespace Ifrit::Engine::GraphicsBackend::SoftGraphics
+} // namespace Ifrit::GraphicsBackend::SoftGraphics
