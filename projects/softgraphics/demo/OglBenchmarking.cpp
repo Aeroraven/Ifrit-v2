@@ -4,7 +4,7 @@
 #include "presentation/window/GLFWWindowProvider.h"
 #include "utility/loader/WavefrontLoader.h"
 using namespace Ifrit::SoftRenderer::Utility::Loader;
-using namespace Ifrit::Presentation::Window;
+using namespace Ifrit::Display::Window;
 using namespace Ifrit::Math;
 namespace Ifrit::Demo::OglBenchmarking {
 int mainCpu() {

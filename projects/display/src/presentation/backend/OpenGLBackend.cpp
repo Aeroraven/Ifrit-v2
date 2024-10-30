@@ -24,7 +24,7 @@ void main() {
 }
 )";
 
-namespace Ifrit::Presentation::Backend {
+namespace Ifrit::Display::Backend {
 IFRIT_APIDECL void OpenGLBackend::draw() {
   glDepthFunc(GL_ALWAYS);
   glUseProgram(shaderProgram);
@@ -116,4 +116,4 @@ IFRIT_APIDECL void OpenGLBackend::setViewport(int32_t x, int32_t y,
                                               int32_t width, int32_t height) {
   glViewport(x, y, width, height);
 }
-} // namespace Ifrit::Presentation::Backend
+} // namespace Ifrit::Display::Backend

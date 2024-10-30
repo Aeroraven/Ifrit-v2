@@ -9,8 +9,8 @@
 namespace Ifrit::Demo::Skybox {
 #ifdef IFRIT_FEATURE_CUDA
 int mainGpu() {
-  using namespace Ifrit::Presentation::Backend;
-  using namespace Ifrit::Presentation::Window;
+  using namespace Ifrit::Display::Backend;
+  using namespace Ifrit::Display::Window;
   using namespace Ifrit::SoftRenderer::TileRaster::CUDA;
   using namespace Ifrit::SoftRenderer::Utility::Loader;
 

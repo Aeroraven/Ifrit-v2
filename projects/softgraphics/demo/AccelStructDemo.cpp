@@ -26,8 +26,8 @@ using namespace Ifrit::SoftRenderer::Core::Data;
 using namespace Ifrit::SoftRenderer::Raytracer;
 using namespace Ifrit::SoftRenderer::Utility::Loader;
 using namespace Ifrit::Math;
-using namespace Ifrit::Presentation::Window;
-using namespace Ifrit::Presentation::Backend;
+using namespace Ifrit::Display::Window;
+using namespace Ifrit::Display::Backend;
 
 namespace Ifrit::Demo::AccelStructDemo {
 static std::shared_ptr<ImageF32> image;

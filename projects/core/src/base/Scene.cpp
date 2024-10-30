@@ -1,5 +1,3 @@
-#pragma once
-
 #include "ifrit/core/base/Scene.h"
 namespace Ifrit::Core {
 

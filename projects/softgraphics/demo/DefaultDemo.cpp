@@ -23,8 +23,8 @@ using namespace Ifrit::SoftRenderer::BufferManager;
 using namespace Ifrit::SoftRenderer::TileRaster;
 using namespace Ifrit::SoftRenderer::Utility::Loader;
 using namespace Ifrit::Math;
-using namespace Ifrit::Presentation::Window;
-using namespace Ifrit::Presentation::Backend;
+using namespace Ifrit::Display::Window;
+using namespace Ifrit::Display::Backend;
 #ifdef IFRIT_FEATURE_CUDA
 using namespace Ifrit::SoftRenderer::TileRaster::CUDA;
 using namespace Ifrit::SoftRenderer::Core::CUDA;

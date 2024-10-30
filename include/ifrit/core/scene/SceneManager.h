@@ -2,6 +2,7 @@
 #include "ifrit/core/assetmanager/Asset.h"
 #include "ifrit/core/base/Scene.h"
 #include <filesystem>
+#include <stdexcept>
 
 namespace Ifrit::Core {
 constexpr const char *cSceneFileExtension = ".scene";
@@ -48,7 +49,7 @@ public:
   }
   inline std::shared_ptr<Scene> getScene(std::string name) {
     if (m_scenes.count(name) == 0) {
-      throw std::exception("not found");
+      throw std::runtime_error("Scene does not exist");
     }
     return m_scenes[name];
   }

@@ -5,7 +5,7 @@
 #ifndef _WIN32
 #include <X11/Xlib.h>
 #endif
-namespace Ifrit::Presentation::Window {
+namespace Ifrit::Display::Window {
 
 void displayAssert(bool condition, const std::string &message) {
   if (!condition) {
@@ -120,4 +120,4 @@ GLFWWindowProvider::getFramebufferSize() {
   return {width, height};
 }
 IFRIT_APIDECL void *GLFWWindowProvider::getGLFWWindow() { return window; }
-} // namespace Ifrit::Presentation::Window
+} // namespace Ifrit::Display::Window

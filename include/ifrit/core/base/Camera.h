@@ -35,7 +35,7 @@ public:
   // setters
   inline void setFov(float fov) { m_attributes.m_fov = fov; }
   inline void setAspect(float aspect) { m_attributes.m_aspect = aspect; }
-  inline void setNear(float near) { m_attributes.m_near = near; }
-  inline void setFar(float far) { m_attributes.m_far = far; }
+  inline void setNear(float nearx) { m_attributes.m_near = nearx; }
+  inline void setFar(float farx) { m_attributes.m_far = farx; }
 };
 } // namespace Ifrit::Core

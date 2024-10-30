@@ -4,7 +4,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace Ifrit::Presentation::Window {
+namespace Ifrit::Display::Window {
 IFRIT_APIDECL void
 TerminalProvider::loop(const std::function<void(int *)> &funcs) {
   static int frameCount = 0;
@@ -47,4 +47,4 @@ TerminalProvider::loop(const std::function<void(int *)> &funcs) {
     std::cout << "\n" << ss.str() << std::endl;
   }
 }
-} // namespace Ifrit::Presentation::Window
+} // namespace Ifrit::Display::Window

@@ -18,7 +18,7 @@
 #endif
 #include <GLFW/glfw3native.h>
 
-namespace Ifrit::Presentation::Window {
+namespace Ifrit::Display::Window {
 struct GLFWWindowProviderInitArgs {
   bool vulkanMode = false;
 };
@@ -40,10 +40,10 @@ public:
   virtual void setTitle(const std::string &title) override;
 
   // For Vulkan
-  const char **getVkRequiredInstanceExtensions(uint32_t *count);
-  void *getWindowObject();
+  const char **getVkRequiredInstanceExtensions(uint32_t *count) override;
+  void *getWindowObject() override;
   std::pair<uint32_t, uint32_t> getFramebufferSize();
-  void *getGLFWWindow();
+  void *getGLFWWindow() override;
 
   void callGlfwInit() {
     auto x = glfwInit();
@@ -53,4 +53,4 @@ public:
     printf("GLFW init:%d\n", x);
   }
 };
-} // namespace Ifrit::Presentation::Window
+} // namespace Ifrit::Display::Window

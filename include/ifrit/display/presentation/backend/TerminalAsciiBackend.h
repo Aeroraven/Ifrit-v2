@@ -1,7 +1,7 @@
 #pragma once
 #include "ifrit/display/presentation/backend/AbstractTerminalBackend.h"
 
-namespace Ifrit::Presentation::Backend {
+namespace Ifrit::Display::Backend {
 class IFRIT_APIDECL TerminalAsciiBackend : public AbstractTerminalBackend {
 private:
   int consoleWidth;
@@ -17,4 +17,4 @@ public:
   virtual void draw() override;
   virtual void setViewport(int32_t, int32_t, int32_t, int32_t) override {}
 };
-} // namespace Ifrit::Presentation::Backend
+} // namespace Ifrit::Display::Backend

@@ -5,8 +5,7 @@
 #include <string>
 #include <vector>
 
-
-namespace Ifrit::Presentation::Backend {
+namespace Ifrit::Display::Backend {
 class IFRIT_APIDECL OpenGLBackend : public BackendProvider {
 private:
   std::string vertexShaderCode;
@@ -36,4 +35,4 @@ public:
   virtual void setViewport(int32_t x, int32_t y, int32_t width,
                            int32_t height) override;
 };
-} // namespace Ifrit::Presentation::Backend
+} // namespace Ifrit::Display::Backend

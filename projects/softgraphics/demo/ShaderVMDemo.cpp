@@ -27,8 +27,8 @@ using namespace Ifrit::SoftRenderer::Utility::Loader;
 #ifdef IFRIT_FEATURE_CUDA
 using namespace Ifrit::SoftRenderer::Math::ShaderOps;
 #endif
-using namespace Ifrit::Presentation::Window;
-using namespace Ifrit::Presentation::Backend;
+using namespace Ifrit::Display::Window;
+using namespace Ifrit::Display::Backend;
 using namespace Ifrit::Math;
 using namespace Ifrit::SoftRenderer::ShaderVM::Spirv;
 using namespace Ifrit::SoftRenderer::ShaderVM::SpirvVec;

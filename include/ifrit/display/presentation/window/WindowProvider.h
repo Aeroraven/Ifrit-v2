@@ -1,9 +1,11 @@
 #pragma once
 #include "ifrit/common/util/ApiConv.h"
+#include <cstdint>
 #include <functional>
 #include <string>
 
-namespace Ifrit::Presentation::Window {
+
+namespace Ifrit::Display::Window {
 class IFRIT_APIDECL WindowProvider {
 protected:
   size_t width;
@@ -16,5 +18,10 @@ public:
   virtual size_t getHeight() const;
   virtual void loop(const std::function<void(int *)> &func) = 0;
   virtual void setTitle(const std::string &title) = 0;
+  virtual const char **getVkRequiredInstanceExtensions(uint32_t *count) {
+    return nullptr;
+  };
+  virtual void *getWindowObject() { return nullptr; };
+  virtual void *getGLFWWindow() { return nullptr; };
 };
-} // namespace Ifrit::Presentation::Window
+} // namespace Ifrit::Display::Window

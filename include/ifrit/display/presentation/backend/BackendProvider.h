@@ -2,7 +2,7 @@
 #include "ifrit/common/util/ApiConv.h"
 #include <cstdint>
 
-namespace Ifrit::Presentation::Backend {
+namespace Ifrit::Display::Backend {
 class IFRIT_APIDECL BackendProvider {
 public:
   virtual ~BackendProvider() = default;
@@ -12,4 +12,4 @@ public:
   virtual void setViewport(int32_t x, int32_t y, int32_t width,
                            int32_t height) = 0;
 };
-} // namespace Ifrit::Presentation::Backend
+} // namespace Ifrit::Display::Backend

@@ -18,7 +18,6 @@
 #include <chrono>
 #include <fstream>
 
-
 #include <meshproclib/include/engine/clusterlod/MeshClusterLodProc.h>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -153,8 +152,8 @@ int main2() {
                         sizeof(indexBuffer[0]) * indexBuffer.size());
   renderer->bindIndexBuffer(indexBuffer1);
 
-  using namespace Ifrit::Presentation::Backend;
-  using namespace Ifrit::Presentation::Window;
+  using namespace Ifrit::Display::Backend;
+  using namespace Ifrit::Display::Window;
   GLFWWindowProvider windowProvider;
   windowProvider.setup(WINDOW_WIDTH, WINDOW_HEIGHT);
   windowProvider.setTitle("Ifrit");
@@ -172,7 +171,7 @@ int main2() {
 
 int demo_vulkanTriangle() {
   using namespace Ifrit::Engine::VkRenderer;
-  using namespace Ifrit::Presentation::Window;
+  using namespace Ifrit::Display::Window;
   using namespace Ifrit::Math;
 
   GLFWWindowProviderInitArgs glfwArgs;
@@ -353,7 +352,7 @@ int demo_vulkanTriangle() {
 
 int demo_vulkanComputeShader() {
   using namespace Ifrit::Engine::VkRenderer;
-  using namespace Ifrit::Presentation::Window;
+  using namespace Ifrit::Display::Window;
   using namespace Ifrit::Math;
 
   GLFWWindowProviderInitArgs glfwArgs;
@@ -527,7 +526,7 @@ static void error_callback(int error, const char *description) {
 
 int demo_vulkanMeshShader() {
   using namespace Ifrit::Engine::VkRenderer;
-  using namespace Ifrit::Presentation::Window;
+  using namespace Ifrit::Display::Window;
   using namespace Ifrit::Math;
 
   glfwSetErrorCallback(error_callback);

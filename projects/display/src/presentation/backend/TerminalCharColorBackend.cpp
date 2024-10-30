@@ -2,7 +2,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace Ifrit::Presentation::Backend {
+namespace Ifrit::Display::Backend {
 IFRIT_APIDECL TerminalCharColorBackend::TerminalCharColorBackend(int cWid,
                                                                  int cHeight) {
   this->consoleWidth = cWid;
@@ -39,4 +39,4 @@ IFRIT_APIDECL void TerminalCharColorBackend::draw() {
   std::cout << resultBuffer;
 }
 
-} // namespace Ifrit::Presentation::Backend
+} // namespace Ifrit::Display::Backend

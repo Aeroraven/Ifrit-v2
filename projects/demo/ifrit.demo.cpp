@@ -113,7 +113,7 @@ static void error_callback(int error, const char *description) {
 int demo_meshShader() {
   using namespace Ifrit::GraphicsBackend::Rhi;
   using namespace Ifrit::GraphicsBackend::VulkanGraphics;
-  using namespace Ifrit::Presentation::Window;
+  using namespace Ifrit::Display::Window;
   using namespace Ifrit::Math;
 
   glfwSetErrorCallback(error_callback);
@@ -474,7 +474,9 @@ int demo_meshShader() {
   return 0;
 }
 
-std::shared_ptr<Ifrit::Core::Scene> createScene(Ifrit::Core::SceneManager *sceneMan, Ifrit::Core::AssetManager* assetMan) {
+std::shared_ptr<Ifrit::Core::Scene>
+createScene(Ifrit::Core::SceneManager *sceneMan,
+            Ifrit::Core::AssetManager *assetMan) {
   using namespace Ifrit::Core;
   auto scene = sceneMan->createScene("TestScene");
   auto node = scene->addSceneNode();
@@ -497,10 +499,38 @@ int demo_core() {
   if (sm.checkSceneExists("TestScene")) {
     scene = sm.getScene("TestScene");
   } else {
-    scene = createScene(&sm,&am);
+    scene = createScene(&sm, &am);
   }
 
   return 0;
 }
 
-int main() { demo_core(); }
+class DemoApplication : public Ifrit::Core::Application {
+
+public:
+  void onStart() override {}
+
+  void onUpdate() override { printf("Update\n"); }
+
+  void onEnd() override {}
+};
+
+int demo_application() {
+  Ifrit::Core::ApplicationCreateInfo info;
+  info.m_assetPath = IFRIT_DEMO_ASSET_PATH;
+  info.m_scenePath = IFRIT_DEMO_SCENE_PATH;
+  info.m_displayProvider = Ifrit::Core::ApplicationDisplayProvider::GLFW;
+  info.m_rhiType = Ifrit::Core::ApplicationRhiType::Vulkan;
+  info.m_width = 1980;
+  info.m_height = 1080;
+  info.m_rhiComputeQueueCount = 1;
+  info.m_rhiGraphicsQueueCount = 1;
+  info.m_rhiTransferQueueCount = 1;
+  info.m_rhiNumBackBuffers = 2;
+  info.m_name = "Ifrit-v2";
+
+  DemoApplication app;
+  app.run(info);
+}
+
+int main() { demo_application(); }

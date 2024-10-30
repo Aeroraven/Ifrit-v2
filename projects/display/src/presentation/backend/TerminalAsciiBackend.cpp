@@ -2,7 +2,7 @@
 #include <iomanip>
 #include <iostream>
 
-namespace Ifrit::Presentation::Backend {
+namespace Ifrit::Display::Backend {
 IFRIT_APIDECL TerminalAsciiBackend::TerminalAsciiBackend(int cWid,
                                                          int cHeight) {
   this->consoleWidth = cWid;
@@ -37,4 +37,4 @@ IFRIT_APIDECL void TerminalAsciiBackend::draw() {
   std::cout << resultBuffer;
 }
 
-} // namespace Ifrit::Presentation::Backend
+} // namespace Ifrit::Display::Backend
