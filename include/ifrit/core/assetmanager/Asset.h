@@ -40,10 +40,19 @@ class AssetImporter;
 class IFRIT_APIDECL Asset {
 protected:
   AssetMetadata m_metadata;
+  std::filesystem::path m_path;
+
+public:
+  Asset(AssetMetadata metadata, std::filesystem::path path)
+      : m_metadata(metadata), m_path(path) {}
+
+  const std::string &getUuid() const { return m_metadata.m_uuid; }
+  const std::string &getName() const { return m_metadata.m_name; }
+  virtual void _polyHolder(){}
 };
 
 class IFRIT_APIDECL AssetImporter {
-private:
+protected:
   AssetManager *m_assetManager = nullptr;
 
 public:
@@ -52,6 +61,8 @@ public:
   requestDependencyMeta(const std::filesystem::path &path) {
     return AssetMetadata();
   }
+  virtual void importAsset(const std::filesystem::path &path,
+                           AssetMetadata &metadata) = 0;
   virtual void processMetadata(AssetMetadata &metadata) = 0;
   virtual std::vector<std::string> getSupportedExtensionNames() = 0;
 };
@@ -59,6 +70,7 @@ public:
 class IFRIT_APIDECL AssetManager {
 private:
   std::unordered_map<std::string, std::shared_ptr<Asset>> m_assets;
+  std::unordered_map<std::string, std::string> m_nameToUuid;
   std::unordered_map<std::string, std::shared_ptr<AssetImporter>> m_importers;
   std::unordered_map<std::string, std::string> m_extensionImporterMap;
   std::filesystem::path basePath;
@@ -73,7 +85,27 @@ public:
   void loadAsset(const std::filesystem::path &path);
   void loadAssetDirectory(const std::filesystem::path &path);
 
+  inline void loadAssetDirectory() { loadAssetDirectory(basePath); }
+
   void registerImporter(const std::string &extensionName,
                         std::shared_ptr<AssetImporter> importer);
+  void registerAsset(std::shared_ptr<Asset> asset);
+
+  template <typename T> std::shared_ptr<T> getAsset(const std::string &uuid) {
+    auto it = m_assets.find(uuid);
+    if (it == m_assets.end()) {
+      return nullptr;
+    }
+    return std::dynamic_pointer_cast<T>(it->second);
+  }
+
+  template <typename T>
+  std::shared_ptr<T> getAssetByName(const std::string &name) {
+    auto it = m_nameToUuid.find(name);
+    if (it == m_nameToUuid.end()) {
+      return nullptr;
+    }
+    return getAsset<T>(it->second);
+  }
 };
 } // namespace Ifrit::Core

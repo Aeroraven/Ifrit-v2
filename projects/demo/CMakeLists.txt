@@ -10,6 +10,7 @@ include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/GLFW3Resolve.cmake)
 include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/VulkanResolve.cmake)
 
 # add shader path
+add_definitions(-DIFRIT_DEMO_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Assets/Scene")
 add_definitions(-DIFRIT_DEMO_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Assets/Shader")
 add_definitions(-DIFRIT_DEMO_ASSET_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Assets/")
 

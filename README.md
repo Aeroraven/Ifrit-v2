@@ -79,14 +79,21 @@ To run the demo
 
 This project relies on following open-source projects. Corresponding licenses are in `licenses` folder.
 
-- [stb](https://github.com/nothings/stb), for image parsing.
-- [glfw3](https://github.com/glfw/glfw), for window and display support.
-- [spirv-headers](https://github.com/KhronosGroup/SPIRV-Headers/), for spirv standard reference.
-- [glad](https://github.com/Dav1dde/glad/), for opengl header generation.
-- [llvm-project](https://github.com/llvm/llvm-project), for just-in-time compilation support
-- [meshoptimizer](https://github.com/zeux/meshoptimizer), for mesh operations
-- [METIS](https://github.com/KarypisLab/METIS/), for graph partitioning
-- [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator), for memory allocation and buffer management
+| Repository                                                   | Usage                            | License          |
+| ------------------------------------------------------------ | -------------------------------- | ---------------- |
+| [stb](https://github.com/nothings/stb)                       | Image Parsing                    | MIT / Unlicensed |
+| [glfw3](https://github.com/glfw/glfw)                        | Window and Display support       | Zlib             |
+| [spirv-headers](https://github.com/KhronosGroup/SPIRV-Headers/) | SPIR-V Standard Reference        | MIT              |
+| [glad](https://github.com/Dav1dde/glad/)                     | OpenGL Header Generation.        | -                |
+| [llvm-project](https://github.com/llvm/llvm-project)         | JIT Runtime                      | Apache 2.0       |
+| [meshoptimizer](https://github.com/zeux/meshoptimizer)       | Mesh Algorithm                   | MIT              |
+| [METIS](https://github.com/KarypisLab/METIS/)                | Mesh Algorithm / Graph Partition | Apache 2.0       |
+| [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) | Memory Allocation                | MIT              |
+| [cereal](https://github.com/USCiLab/cereal)                  | Serialization                    | BSD-3            |
+| [tinygltf](https://github.com/syoyo/tinygltf/tree/release)   | Model Loading                    | MIT              |
+| [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT              |
+
+
 
 And for debugging
 

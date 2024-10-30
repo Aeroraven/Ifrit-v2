@@ -9,8 +9,8 @@ IFRIT_APIDECL Component::Component(std::shared_ptr<SceneObject> parent)
     : m_parentObject(parent) {
   Ifrit::Common::Utility::generateUuid(m_id.m_uuid);
 }
+IFRIT_APIDECL void SceneObject::initialize() { addComponent<Transform>(); }
 IFRIT_APIDECL SceneObject::SceneObject() {
-  addComponent<Transform>();
   Ifrit::Common::Utility::generateUuid(m_id.m_uuid);
 }
 

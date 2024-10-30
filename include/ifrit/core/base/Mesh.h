@@ -12,12 +12,13 @@ struct MeshData {
 
   IFRIT_STRUCT_SERIALIZE(m_vertices, m_normals, m_uvs, m_tangents, m_indices);
 };
-//constexpr auto x = std::is_default_constructible<MeshData>::value;
 
-struct Mesh {
-  std::unique_ptr<MeshData> m_data;
+class Mesh {
+public:
+  std::shared_ptr<MeshData> m_data;
   AssetReference m_assetReference;
   bool m_assetLoaded = false;
+  virtual std::shared_ptr<MeshData> loadMesh() { return m_data; }
   IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_assetLoaded);
 };
 
@@ -28,16 +29,19 @@ struct Material {
 
 class MeshFilter : public Component, public AttributeOwner<Mesh> {
 private:
-  MeshData m_loadedMesh;
+  std::shared_ptr<MeshData> m_loadedMesh;
   bool m_meshLoaded = false;
 
 public:
+  MeshFilter() {}
   MeshFilter(std::shared_ptr<SceneObject> owner)
       : Component(owner), AttributeOwner() {}
   virtual ~MeshFilter() = default;
   inline std::string serialize() override { return serializeAttribute(); }
   inline void deserialize() override { deserializeAttribute(); }
   void loadMesh();
+  inline void setMesh(const Mesh& p) { m_attributes = p;  }
+  IFRIT_COMPONENT_SERIALIZE(m_attributes);
 };
 
 struct MeshRendererData {
@@ -55,3 +59,5 @@ public:
 };
 
 } // namespace Ifrit::Core
+
+IFRIT_COMPONENT_REGISTER(Ifrit::Core::MeshFilter);

@@ -1,0 +1,123 @@
+{
+    "value0": {
+        "ptr_wrapper": {
+            "id": 2147483649,
+            "data": {
+                "value0": {
+                    "polymorphic_id": 1073741824,
+                    "ptr_wrapper": {
+                        "id": 2147483650,
+                        "data": {
+                            "value0": [
+                                {
+                                    "polymorphic_id": 1073741824,
+                                    "ptr_wrapper": {
+                                        "id": 2147483651,
+                                        "data": {
+                                            "value0": [],
+                                            "value1": [
+                                                {
+                                                    "polymorphic_id": 1073741824,
+                                                    "ptr_wrapper": {
+                                                        "id": 2147483652,
+                                                        "data": {
+                                                            "value0": {
+                                                                "value0": "875bba3c-5fbf-4fc0-adf1-40e68b140b8a",
+                                                                "value1": ""
+                                                            },
+                                                            "value1": [
+                                                                {
+                                                                    "key": "class Ifrit::Core::Transform",
+                                                                    "value": {
+                                                                        "polymorphic_id": 2147483649,
+                                                                        "polymorphic_name": "Ifrit::Core::Transform",
+                                                                        "ptr_wrapper": {
+                                                                            "id": 2147483653,
+                                                                            "data": {
+                                                                                "value0": {
+                                                                                    "value0": "257f178e-e99e-47e8-abf6-c2d1387e2d1e",
+                                                                                    "value1": ""
+                                                                                },
+                                                                                "value1": {
+                                                                                    "locked_ptr": {
+                                                                                        "polymorphic_id": 1073741824,
+                                                                                        "ptr_wrapper": {
+                                                                                            "id": 4
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                "value2": {
+                                                                                    "value0": {
+                                                                                        "value0": 0.0,
+                                                                                        "value1": 0.0,
+                                                                                        "value2": 0.0
+                                                                                    },
+                                                                                    "value1": {
+                                                                                        "value0": 0.0,
+                                                                                        "value1": 0.0,
+                                                                                        "value2": 0.0
+                                                                                    },
+                                                                                    "value2": {
+                                                                                        "value0": 1.0,
+                                                                                        "value1": 1.0,
+                                                                                        "value2": 1.0
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "key": "class Ifrit::Core::MeshFilter",
+                                                                    "value": {
+                                                                        "polymorphic_id": 2147483650,
+                                                                        "polymorphic_name": "Ifrit::Core::MeshFilter",
+                                                                        "ptr_wrapper": {
+                                                                            "id": 2147483654,
+                                                                            "data": {
+                                                                                "value0": {
+                                                                                    "value0": "5a773f58-517c-4c07-aa15-c044200f5f4f",
+                                                                                    "value1": ""
+                                                                                },
+                                                                                "value1": {
+                                                                                    "locked_ptr": {
+                                                                                        "polymorphic_id": 1073741824,
+                                                                                        "ptr_wrapper": {
+                                                                                            "id": 4
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                "value2": {
+                                                                                    "value0": {
+                                                                                        "ptr_wrapper": {
+                                                                                            "id": 0
+                                                                                        }
+                                                                                    },
+                                                                                    "value1": {
+                                                                                        "value0": "bunny.obj",
+                                                                                        "value1": "84ef2433-fab2-47be-93a5-c4a128593db4",
+                                                                                        "value2": "bunny.obj"
+                                                                                    },
+                                                                                    "value2": true
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ],
+                            "value1": []
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

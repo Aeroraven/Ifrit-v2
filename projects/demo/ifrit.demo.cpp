@@ -474,9 +474,32 @@ int demo_meshShader() {
   return 0;
 }
 
-int demo_core() { 
+std::shared_ptr<Ifrit::Core::Scene> createScene(Ifrit::Core::SceneManager *sceneMan, Ifrit::Core::AssetManager* assetMan) {
   using namespace Ifrit::Core;
-  AssetManager assetManager(IFRIT_DEMO_ASSET_PATH);
+  auto scene = sceneMan->createScene("TestScene");
+  auto node = scene->addSceneNode();
+  auto gameObject = node->addGameObject();
+  auto meshFilter = gameObject->addComponent<MeshFilter>();
+
+  auto s = assetMan->getAssetByName<WaveFrontAsset>("bunny.obj");
+  meshFilter->setMesh(s->getMesh());
+  sceneMan->saveScenes();
+  return scene;
+}
+
+int demo_core() {
+  using namespace Ifrit::Core;
+  AssetManager am(IFRIT_DEMO_ASSET_PATH);
+  SceneManager sm(IFRIT_DEMO_SCENE_PATH, &am);
+  am.loadAssetDirectory();
+
+  std::shared_ptr<Scene> scene;
+  if (sm.checkSceneExists("TestScene")) {
+    scene = sm.getScene("TestScene");
+  } else {
+    scene = createScene(&sm,&am);
+  }
+
   return 0;
 }
 
