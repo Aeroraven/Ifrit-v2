@@ -25,7 +25,7 @@ struct ApplicationCreateInfo {
   uint32_t m_rhiComputeQueueCount = 1;
   uint32_t m_rhiNumBackBuffers = 2;
 };
-class Application {
+class IFRIT_APIDECL Application {
 protected:
   std::shared_ptr<AssetManager> m_assetManager;
   std::shared_ptr<SceneManager> m_sceneManager;

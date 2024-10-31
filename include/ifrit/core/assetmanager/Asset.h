@@ -48,6 +48,7 @@ public:
 
   const std::string &getUuid() const { return m_metadata.m_uuid; }
   const std::string &getName() const { return m_metadata.m_name; }
+  const std::string &getFileId() const { return m_metadata.m_fileId; }
   virtual void _polyHolder(){}
 };
 

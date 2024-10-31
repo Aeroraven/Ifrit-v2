@@ -214,4 +214,8 @@ RhiVulkanBackendBuilder::createBackend(
   return std::make_unique<RhiVulkanBackend>(args);
 }
 
+IFRIT_APIDECL void
+getRhiBackendBuilder_Vulkan(std::unique_ptr<Rhi::RhiBackendFactory> &ptr) {
+  ptr = std::make_unique<RhiVulkanBackendBuilder>();
+}
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

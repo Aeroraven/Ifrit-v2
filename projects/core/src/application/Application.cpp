@@ -16,6 +16,7 @@ IFRIT_APIDECL void Application::start() {
   m_assetManager = std::make_shared<AssetManager>(m_info.m_assetPath);
   m_sceneManager =
       std::make_shared<SceneManager>(m_info.m_scenePath, m_assetManager.get());
+  m_assetManager->loadAssetDirectory();
 
   // Setup Window
   Display::Window::WindowProviderSetupArgs winArgs;
@@ -37,6 +38,7 @@ IFRIT_APIDECL void Application::start() {
   rhiArgs.m_expectedGraphicsQueueCount = m_info.m_rhiGraphicsQueueCount;
   rhiArgs.m_expectedTransferQueueCount = m_info.m_rhiTransferQueueCount;
   rhiArgs.m_expectedSwapchainImageCount = m_info.m_rhiNumBackBuffers;
+  rhiArgs.m_enableValidationLayer = true;
 #ifdef _WIN32
   rhiArgs.m_win32.m_hInstance = GetModuleHandle(NULL);
   rhiArgs.m_win32.m_hWnd = (HWND)m_windowProvider->getWindowObject();

@@ -27,6 +27,15 @@ IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth,
 
   window = glfwCreateWindow(argWidth, argHeight, "Ifrit", nullptr, nullptr);
   glfwSetWindowUserPointer(window, this);
+  auto keyFunc = [](GLFWwindow *window, int key, int scancode, int action,
+                    int mods) {
+    auto s = static_cast<GLFWWindowProvider *>(glfwGetWindowUserPointer(window));
+    auto func = s->getKeyCallBack();
+    if (func) {
+      func(key, scancode, action, mods);
+    }
+  };
+  glfwSetKeyCallback(window, keyFunc);
   if (!window) {
     glfwTerminate();
     displayAssert(false, "Failed to create GLFW window");
@@ -113,6 +122,12 @@ IFRIT_APIDECL void *GLFWWindowProvider::getWindowObject() {
   return (void *)glfwGetX11Window(window);
 #endif
 }
+
+IFRIT_APIDECL void GLFWWindowProvider::
+registerKeyCallback(std::function<void(int, int, int, int)> x) {
+  keyCallBack = x;
+}
+
 IFRIT_APIDECL std::pair<uint32_t, uint32_t>
 GLFWWindowProvider::getFramebufferSize() {
   int width, height;

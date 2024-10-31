@@ -1,6 +1,6 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
-layout(local_size_x = 512, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 struct BVHNode{
     vec4 boundingSphere;
@@ -148,7 +148,7 @@ void main(){
     uint totalClusters = ubo[bindless.uniformId].clusterGroupCounts;
 
     uint testCounter = 0;
-
+    
     // Reset queue
     if(threadId == 0){
         consumer[bindless.consumerId].v = 1;
@@ -156,6 +156,7 @@ void main(){
         remainingCluster[bindless.remainingId].v = int(totalBVHNodes);
         drawCallSize[bindless.counterId].counter = uvec3(0,1,1);
     }
+    
     for(uint i = 0; i < totalClusters ; i += groupSize){
         queue[bindless.queueId].data[i+threadId] = UNSET;
     }
@@ -166,7 +167,13 @@ void main(){
         chosenBVHNodeInd = 0;
     }
     memoryBarrier();
+    uint deadlock =0;
+    
     while(true){
+        deadlock++;
+        if(deadlock > 10000){
+            break;
+        }
         // Check if all BVH Nodes have been processed
         int remaining = remainingCluster[bindless.remainingId].v;
         if(remaining <= 0){
@@ -186,6 +193,7 @@ void main(){
                 chosenBVHNodePos = retVal;
             }
         }
+        
         if(chosenBVHNodePos != UNSET){
             // Check whether the BVH node is visible
             bool bvhNodeVisible = isBVHNodeVisible(chosenBVHNodePos);

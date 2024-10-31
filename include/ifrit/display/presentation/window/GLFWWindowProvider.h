@@ -31,6 +31,7 @@ protected:
   int totalFrameTimeCore = 0;
   std::string title = "Ifrit-v2";
   GLFWWindowProviderInitArgs m_args;
+  std::function<void(int, int, int, int)> keyCallBack;
 
 public:
   GLFWWindowProvider() = default;
@@ -51,6 +52,11 @@ public:
       printf("GLFW fails\n");
     }
     printf("GLFW init:%d\n", x);
+  }
+  virtual void
+      registerKeyCallback(std::function<void(int, int, int, int)>) override;
+  inline std::function<void(int, int, int, int)> getKeyCallBack() {
+    return keyCallBack;
   }
 };
 } // namespace Ifrit::Display::Window

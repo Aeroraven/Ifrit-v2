@@ -4,7 +4,6 @@
 #include "ifrit/rhi/common/RhiLayer.h"
 #include <memory>
 
-
 namespace Ifrit::GraphicsBackend::Rhi {
 enum class RhiBackendType { Vulkan, DirectX, OpenGL, Software };
 class IFRIT_APIDECL RhiSelector {

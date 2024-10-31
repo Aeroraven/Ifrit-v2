@@ -23,5 +23,6 @@ public:
   };
   virtual void *getWindowObject() { return nullptr; };
   virtual void *getGLFWWindow() { return nullptr; };
+  virtual void registerKeyCallback(std::function<void(int, int, int, int)>){}
 };
 } // namespace Ifrit::Display::Window

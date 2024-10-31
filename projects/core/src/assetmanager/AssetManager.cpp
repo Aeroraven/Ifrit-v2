@@ -118,6 +118,6 @@ IFRIT_APIDECL void AssetManager::registerAsset(std::shared_ptr<Asset> asset) {
     throw std::runtime_error("Asset already registered");
   }
   m_assets[asset->getUuid()] = asset;
-  m_nameToUuid[asset->getName()] = asset->getUuid();
+  m_nameToUuid[asset->getFileId()] = asset->getUuid();
 }
 } // namespace Ifrit::Core
