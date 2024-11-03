@@ -1,4 +1,5 @@
 #pragma once
+#include "AssetReference.h"
 #include "ifrit/common/math/VectorDefs.h"
 #include "ifrit/common/serialization/MathTypeSerialization.h"
 #include "ifrit/common/serialization/SerialInterface.h"
@@ -12,7 +13,8 @@
 #include <unordered_map>
 #include <vector>
 
-#define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id,m_parentObject,__VA_ARGS__)
+#define IFRIT_COMPONENT_SERIALIZE(...)                                         \
+  IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject, __VA_ARGS__)
 #define IFRIT_COMPONENT_REGISTER(x)                                            \
   IFRIT_DERIVED_REGISTER(x);                                                   \
   IFRIT_INHERIT_REGISTER(Ifrit::Core::Component, x);
@@ -83,6 +85,14 @@ public:
     }
     return nullptr;
   }
+
+  inline std::vector<std::shared_ptr<Component>> getAllComponents() {
+    std::vector<std::shared_ptr<Component>> ret;
+    for (auto &[key, value] : m_components) {
+      ret.push_back(value);
+    }
+    return ret;
+  }
   IFRIT_STRUCT_SERIALIZE(m_id, m_components);
 };
 
@@ -111,6 +121,10 @@ public:
   inline std::shared_ptr<SceneObject> getParent() const {
     return m_parentObject.lock();
   }
+
+  virtual std::vector<AssetReference *> getAssetReferences() { return {}; }
+  virtual void setAssetReferencedAttributes(
+      const std::vector<std::shared_ptr<IAssetCompatible>> &out) {}
 
   IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject);
 };

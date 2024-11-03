@@ -7,7 +7,7 @@
 namespace Ifrit::Core {
 constexpr const char *cSceneFileExtension = ".scene";
 
-class SceneManager;
+class SceneAssetManager;
 
 class IFRIT_APIDECL SceneAsset : public Asset {
 public:
@@ -19,11 +19,11 @@ public:
 
 class IFRIT_APIDECL SceneAssetImporter : public AssetImporter {
 protected:
-  SceneManager *m_sceneManager;
+  SceneAssetManager *m_sceneManager;
 
 public:
   constexpr static const char *IMPORTER_NAME = "SceneImporter";
-  SceneAssetImporter(AssetManager *manager, SceneManager *sceneManager)
+  SceneAssetImporter(AssetManager *manager, SceneAssetManager *sceneManager)
       : AssetImporter(manager), m_sceneManager(sceneManager) {}
   void processMetadata(AssetMetadata &metadata) override;
   void importAsset(const std::filesystem::path &path,
@@ -31,15 +31,21 @@ public:
   std::vector<std::string> getSupportedExtensionNames() override;
 };
 
-class IFRIT_APIDECL SceneManager {
+class IFRIT_APIDECL SceneAssetManager {
 private:
   std::shared_ptr<SceneAssetImporter> m_sceneImporter;
-  std::unordered_map<std::string, std::shared_ptr<Scene>> m_scenes;
+  std::vector<std::shared_ptr<Scene>> m_scenes;
+  std::vector<uint32_t> m_sceneAssetLoaded;
+  std::unordered_map<std::string, uint32_t> m_scenesIndex;
   std::shared_ptr<Scene> m_activeScene;
   std::filesystem::path m_sceneDataPath;
+  AssetManager *m_assetManager;
+
+private:
+  void attachAssetResources(std::shared_ptr<Scene> &scene);
 
 public:
-  SceneManager(std::filesystem::path path, AssetManager *assetManager);
+  SceneAssetManager(std::filesystem::path path, AssetManager *assetManager);
   void saveScenes();
   void loadScenes();
   void registerScene(std::string name, std::shared_ptr<Scene> scene);
@@ -48,13 +54,16 @@ public:
     return m_sceneImporter;
   }
   inline std::shared_ptr<Scene> getScene(std::string name) {
-    if (m_scenes.count(name) == 0) {
+    if (m_scenesIndex.count(name) == 0) {
       throw std::runtime_error("Scene does not exist");
     }
-    return m_scenes[name];
+    if (m_sceneAssetLoaded[m_scenesIndex[name]] == 0) {
+      attachAssetResources(m_scenes[m_scenesIndex[name]]);
+    }
+    return m_scenes[m_scenesIndex[name]];
   }
   inline bool checkSceneExists(std::string name) {
-    return m_scenes.count(name) != 0;
+    return m_scenesIndex.count(name) != 0;
   }
 };
 } // namespace Ifrit::Core

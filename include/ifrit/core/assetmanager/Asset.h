@@ -1,6 +1,7 @@
 #pragma once
 #include "ifrit/common/serialization/SerialInterface.h"
 #include "ifrit/common/util/ApiConv.h"
+#include "ifrit/core/base/AssetReference.h"
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -37,7 +38,8 @@ struct AssetMetadata {
 
 class AssetImporter;
 
-class IFRIT_APIDECL Asset {
+class IFRIT_APIDECL Asset : public std::enable_shared_from_this<Asset>,
+                            public IAssetCompatible {
 protected:
   AssetMetadata m_metadata;
   std::filesystem::path m_path;
@@ -49,7 +51,7 @@ public:
   const std::string &getUuid() const { return m_metadata.m_uuid; }
   const std::string &getName() const { return m_metadata.m_name; }
   const std::string &getFileId() const { return m_metadata.m_fileId; }
-  virtual void _polyHolder(){}
+  virtual void _polyHolder() {}
 };
 
 class IFRIT_APIDECL AssetImporter {

@@ -22,7 +22,7 @@
                                                         "id": 2147483652,
                                                         "data": {
                                                             "value0": {
-                                                                "value0": "875bba3c-5fbf-4fc0-adf1-40e68b140b8a",
+                                                                "value0": "277c7102-8a96-4f4d-b580-08f2cb681b26",
                                                                 "value1": ""
                                                             },
                                                             "value1": [
@@ -35,7 +35,7 @@
                                                                             "id": 2147483653,
                                                                             "data": {
                                                                                 "value0": {
-                                                                                    "value0": "257f178e-e99e-47e8-abf6-c2d1387e2d1e",
+                                                                                    "value0": "c21a415b-e000-4572-9b1c-3430d499035d",
                                                                                     "value1": ""
                                                                                 },
                                                                                 "value1": {
@@ -76,7 +76,7 @@
                                                                             "id": 2147483654,
                                                                             "data": {
                                                                                 "value0": {
-                                                                                    "value0": "5a773f58-517c-4c07-aa15-c044200f5f4f",
+                                                                                    "value0": "6ca71dd9-4cd7-42cb-9d37-f70a6823cf5f",
                                                                                     "value1": ""
                                                                                 },
                                                                                 "value1": {
@@ -88,17 +88,13 @@
                                                                                     }
                                                                                 },
                                                                                 "value2": {
-                                                                                    "value0": {
-                                                                                        "ptr_wrapper": {
-                                                                                            "id": 0
-                                                                                        }
-                                                                                    },
-                                                                                    "value1": {
-                                                                                        "value0": "bunny.obj",
-                                                                                        "value1": "84ef2433-fab2-47be-93a5-c4a128593db4",
-                                                                                        "value2": "bunny.obj"
-                                                                                    },
-                                                                                    "value2": true
+                                                                                    "polymorphic_id": 0
+                                                                                },
+                                                                                "value3": {
+                                                                                    "value0": "bunny.obj",
+                                                                                    "value1": "84ef2433-fab2-47be-93a5-c4a128593db4",
+                                                                                    "value2": "bunny.obj",
+                                                                                    "value3": true
                                                                                 }
                                                                             }
                                                                         }

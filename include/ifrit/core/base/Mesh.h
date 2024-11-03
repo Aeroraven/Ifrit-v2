@@ -1,6 +1,7 @@
 #pragma once
 #include "AssetReference.h"
 #include "Component.h"
+#include "ifrit/common/util/TypingUtil.h"
 
 namespace Ifrit::Core {
 struct MeshData {
@@ -13,13 +14,12 @@ struct MeshData {
   IFRIT_STRUCT_SERIALIZE(m_vertices, m_normals, m_uvs, m_tangents, m_indices);
 };
 
-class Mesh {
+class Mesh : public AssetReferenceContainer, public IAssetCompatible {
 public:
   std::shared_ptr<MeshData> m_data;
-  AssetReference m_assetReference;
-  bool m_assetLoaded = false;
+
   virtual std::shared_ptr<MeshData> loadMesh() { return m_data; }
-  IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_assetLoaded);
+  IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
 };
 
 struct Material {
@@ -27,21 +27,42 @@ struct Material {
   IFRIT_STRUCT_SERIALIZE(m_assetReference);
 };
 
-class MeshFilter : public Component, public AttributeOwner<Mesh> {
+class MeshFilter : public Component {
 private:
-  std::shared_ptr<MeshData> m_loadedMesh;
   bool m_meshLoaded = false;
+  std::shared_ptr<Mesh> m_rawData = nullptr;
+  AssetReference m_meshReference;
+  std::shared_ptr<Mesh> m_attribute =
+      nullptr; // this points to the actual object used
+               // for primitive gathering
 
 public:
   MeshFilter() {}
-  MeshFilter(std::shared_ptr<SceneObject> owner)
-      : Component(owner), AttributeOwner() {}
+  MeshFilter(std::shared_ptr<SceneObject> owner) : Component(owner) {}
   virtual ~MeshFilter() = default;
-  inline std::string serialize() override { return serializeAttribute(); }
-  inline void deserialize() override { deserializeAttribute(); }
+  inline std::string serialize() override { return ""; }
+  inline void deserialize() override {}
   void loadMesh();
-  inline void setMesh(const Mesh& p) { m_attributes = p;  }
-  IFRIT_COMPONENT_SERIALIZE(m_attributes);
+  inline void setMesh(std::shared_ptr<Mesh> p) {
+    m_meshReference = p->m_assetReference;
+    if (!p->m_usingAsset) {
+      m_rawData = p;
+    }
+    m_attribute = p;
+  }
+  inline virtual std::vector<AssetReference *> getAssetReferences() override {
+    if (m_meshReference.m_usingAsset == false)
+      return {};
+    return {&m_meshReference};
+  }
+  inline virtual void setAssetReferencedAttributes(
+      const std::vector<std::shared_ptr<IAssetCompatible>> &out) override {
+    if (m_meshReference.m_usingAsset) {
+      auto mesh = Ifrit::Common::Utility::checked_pointer_cast<Mesh>(out[0]);
+      m_attribute = mesh;
+    }
+  }
+  IFRIT_COMPONENT_SERIALIZE(m_rawData, m_meshReference);
 };
 
 struct MeshRendererData {

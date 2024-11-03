@@ -20,6 +20,20 @@ public:
   inline std::shared_ptr<SceneObject> getGameObject(uint32_t x) {
     return m_gameObjects.at(x);
   }
+  inline std::vector<std::shared_ptr<SceneNode>> getChildren() {
+    std::vector<std::shared_ptr<SceneNode>> x;
+    for (auto &y : m_children) {
+      x.push_back(y);
+    }
+    return x;
+  }
+  inline std::vector<std::shared_ptr<SceneObject>> getGameObjects() {
+    std::vector<std::shared_ptr<SceneObject>> x;
+    for (auto &y : m_gameObjects) {
+      x.push_back(y);
+    }
+    return x;
+  }
 
   IFRIT_STRUCT_SERIALIZE(m_children, m_gameObjects);
 };

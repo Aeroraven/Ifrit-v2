@@ -14,7 +14,8 @@ public:
     m_assetReference.m_fileId = metadata.m_fileId;
     m_assetReference.m_name = metadata.m_name;
     m_assetReference.m_uuid = metadata.m_uuid;
-    m_assetLoaded = true;
+    m_assetReference.m_usingAsset = true;
+    m_usingAsset = true;
   }
   std::shared_ptr<MeshData> loadMesh() override;
   inline Mesh &getMesh() { return *this; }

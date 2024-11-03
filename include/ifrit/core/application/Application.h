@@ -1,6 +1,6 @@
 #pragma once
 #include "ifrit/core/assetmanager/Asset.h"
-#include "ifrit/core/scene/SceneManager.h"
+#include "ifrit/core/scene/SceneAssetManager.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include <string>
@@ -28,7 +28,7 @@ struct ApplicationCreateInfo {
 class IFRIT_APIDECL Application {
 protected:
   std::shared_ptr<AssetManager> m_assetManager;
-  std::shared_ptr<SceneManager> m_sceneManager;
+  std::shared_ptr<SceneAssetManager> m_sceneManager;
   std::unique_ptr<GraphicsBackend::Rhi::RhiBackend> m_rhiLayer;
   std::unique_ptr<Display::Window::WindowProvider> m_windowProvider;
   ApplicationCreateInfo m_info;

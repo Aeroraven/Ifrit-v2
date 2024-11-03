@@ -17,8 +17,7 @@ using namespace Ifrit::Core;
 float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0,
       movNear = 0;
 
-void key_callback(int key, int scancode, int action,
-                  int mods) {
+void key_callback(int key, int scancode, int action, int mods) {
   auto scale = 0.3f;
   if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS)) {
     movLeft += scale;
@@ -72,7 +71,7 @@ private:
 
 public:
   std::shared_ptr<Ifrit::Core::Scene>
-  createScene(Ifrit::Core::SceneManager *sceneMan,
+  createScene(Ifrit::Core::SceneAssetManager *sceneMan,
               Ifrit::Core::AssetManager *assetMan) {
     using namespace Ifrit::Core;
     auto scene = sceneMan->createScene("TestScene");
@@ -81,12 +80,25 @@ public:
     auto meshFilter = gameObject->addComponent<MeshFilter>();
 
     auto s = assetMan->getAssetByName<WaveFrontAsset>("bunny.obj");
-    meshFilter->setMesh(s->getMesh());
+    meshFilter->setMesh(s);
     sceneMan->saveScenes();
     return scene;
   }
 
   void onStart() override {
+    auto obj = m_assetManager->getAssetByName<WaveFrontAsset>("bunny.obj");
+    if (m_sceneManager->checkSceneExists("TestScene2")) {
+      auto t = m_sceneManager->getScene("TestScene2");
+    } else {
+      auto s = m_sceneManager->createScene("TestScene2");
+      auto node = s->addSceneNode();
+      auto gameObject = node->addGameObject();
+      auto meshFilter = gameObject->addComponent<MeshFilter>();
+
+      meshFilter->setMesh(obj);
+      m_sceneManager->saveScenes();
+    }
+
     m_windowProvider->registerKeyCallback(key_callback);
     auto rt = m_rhiLayer.get();
     // load meshlet
@@ -94,11 +106,11 @@ public:
     std::vector<ifloat4> verticesAligned;
     std::vector<uint32_t> indices;
 
-    auto obj = m_assetManager->getAssetByName<WaveFrontAsset>("bunny.obj");
+   
     auto meshData = obj->loadMesh();
     indices = meshData->m_indices;
     vertices = meshData->m_vertices;
-    
+
     verticesAligned.resize(vertices.size());
     for (int i = 0; i < vertices.size(); i++) {
       verticesAligned[i] =
@@ -109,7 +121,6 @@ public:
     const size_t max_triangles = 124;
     const float cone_weight = 0.0f;
 
-    
     MeshClusterLodProc meshProc;
     MeshDescriptor meshDesc;
     meshDesc.indexCount = indices.size();
@@ -119,11 +130,9 @@ public:
     meshDesc.vertexData = reinterpret_cast<char *>(vertices.data());
     meshDesc.vertexStride = sizeof(ifloat3);
 
-    
     auto chosenLod = MAX_LOD - 1;
     CombinedClusterLodBuffer meshletData;
 
-    
     meshProc.clusterLodHierachy(meshDesc, meshletData, clusterGroupData,
                                 bvhNodes, MAX_LOD);
 
@@ -165,8 +174,7 @@ public:
     auto vertexBuffer =
         rt->createStorageBufferDevice(verticesAligned.size() * sizeof(ifloat4),
                                       RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-    ubBuffer =
-        rt->createUniformBufferShared(sizeof(UniformBuffer), true, 0);
+    ubBuffer = rt->createUniformBufferShared(sizeof(UniformBuffer), true, 0);
 
     // Culling pipeline
     indirectDrawBuffer = rt->createIndirectMeshDrawBufferDevice(1);
@@ -249,10 +257,10 @@ public:
         m_assetManager
             ->getAssetByName<ShaderAsset>("Shader/ifrit.meshlet.frag.spv")
             ->loadShader();
-    auto csDynLodCode =
-        m_assetManager
-            ->getAssetByName<ShaderAsset>("Shader/ifrit.meshlet.dynlod.comp.spv")
-            ->loadShader();
+    auto csDynLodCode = m_assetManager
+                            ->getAssetByName<ShaderAsset>(
+                                "Shader/ifrit.meshlet.dynlod.comp.spv")
+                            ->loadShader();
 
     auto msModule = rt->createShader(msCode, "main", RhiShaderStage::Mesh);
     auto fsModule = rt->createShader(fsCode, "main", RhiShaderStage::Fragment);
@@ -349,7 +357,6 @@ public:
                                    RhiResourceState::Present);
         });
 
-    float timeVal = 0.0f;
     msPass->setExecutionFunction([&](RhiRenderPassContext *ctx) -> void {
       float z = 0.25 + (movFar - movNear) * 0.02; // + 0.5*sin(timeVal);
       float x = 0 + (movRight - movLeft) * 0.02;
@@ -371,7 +378,6 @@ public:
       buf->writeBuffer(&uniformData, sizeof(UniformBuffer), 0);
       buf->flush();
       buf->unmap();
-      timeVal += 0.0005f;
 
       uniformCullData.totalBvhNodes = bvhNodes.size();
       uniformCullData.clusterGroupCounts = clusterGroupData.size();

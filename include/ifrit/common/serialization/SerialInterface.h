@@ -13,6 +13,14 @@
 #define IFRIT_STRUCT_SERIALIZE(...)                                            \
   template <class Archive> void serialize(Archive &ar) { ar(__VA_ARGS__); }
 
+#define IFRIT_STRUCT_SERIALIZE_COND(cond, ...)                                 \
+  template <class Archive> void serialize(Archive &ar) {                       \
+    ar(cond);                                                                  \
+    if (cond) {                                                                \
+      ar(__VA_ARGS__);                                                         \
+    }                                                                          \
+  }
+
 #define IFRIT_DERIVED_REGISTER(x) CEREAL_REGISTER_TYPE(x)
 #define IFRIT_INHERIT_REGISTER(base, derived)                                  \
   CEREAL_REGISTER_POLYMORPHIC_RELATION(base, derived)
@@ -21,8 +29,13 @@ namespace Ifrit::Common::Serialization {
 template <class T> void serialize(T &src, std::string &dst) {
   std::ostringstream oss;
   {
-    cereal::JSONOutputArchive ar(oss);
-    ar(src);
+    try {
+      cereal::JSONOutputArchive ar(oss);
+      ar(src);
+    } catch (const std::exception &e) {
+      printf("Error: %s\n", e.what());
+      std::abort();
+    }
   }
   dst = oss.str();
 }
