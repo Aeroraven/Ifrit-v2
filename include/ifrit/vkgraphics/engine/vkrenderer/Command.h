@@ -1,8 +1,10 @@
 #pragma once
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <memory>
 #include <vector>
+
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 class CommandBuffer;
@@ -17,7 +19,8 @@ struct VertexBufferDescriptor {
                          std::vector<uint32_t> offset, uint32_t stride,
                          VertexInputRate inputRate = VertexInputRate::Vertex) {
     VkVertexInputBindingDescription2EXT binding{};
-    binding.binding = m_bindings.size();
+    binding.binding =
+        Ifrit::Common::Utility::size_cast<uint32_t>(m_bindings.size());
     binding.stride = stride;
     binding.divisor = 1;
     binding.sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;

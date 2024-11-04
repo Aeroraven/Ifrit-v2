@@ -172,7 +172,8 @@ public:
       auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
       auto ptr = registeredBuffer.get();
       m_resources.push_back(std::move(registeredBuffer));
-      m_bufferMap[buffer] = m_resources.size() - 1;
+      m_bufferMap[buffer] =
+          Ifrit::Common::Utility::size_cast<uint32_t>(m_resources.size()) - 1;
       return ptr;
     }
   }
@@ -189,13 +190,14 @@ public:
             std::make_unique<RegisteredSwapchainImage>(swapchainImage);
         auto ptr = registeredImage.get();
         m_resources.push_back(std::move(registeredImage));
-        m_imageMap[image] = m_resources.size() - 1;
+        m_imageMap[image] = size_cast<uint32_t>(m_resources.size()) - 1;
         return ptr;
       }
       auto registeredImage = std::make_unique<RegisteredImageHandle>(image);
       auto ptr = registeredImage.get();
       m_resources.push_back(std::move(registeredImage));
-      m_imageMap[image] = m_resources.size() - 1;
+      m_imageMap[image] =
+          Ifrit::Common::Utility::size_cast<uint32_t>(m_resources.size()) - 1;
       return ptr;
     }
   }
@@ -208,7 +210,8 @@ public:
       auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
       auto ptr = registeredBuffer.get();
       m_resources.push_back(std::move(registeredBuffer));
-      m_multiBufferMap[buffer] = m_resources.size() - 1;
+      m_multiBufferMap[buffer] =
+          Ifrit::Common::Utility::size_cast<uint32_t>(m_resources.size()) - 1;
       return ptr;
     }
   }

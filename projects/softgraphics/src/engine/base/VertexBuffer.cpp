@@ -13,7 +13,7 @@ IFRIT_APIDECL void VertexBuffer::allocateBuffer(const size_t numVertices) {
     elementSizeX += context->layout[i].size;
   }
   context->buffer.resize(numVertices * elementSizeX);
-  this->vertexCount = numVertices;
+  this->vertexCount = static_cast<int>(numVertices);
 }
 
 IFRIT_APIDECL void
@@ -39,7 +39,7 @@ IFRIT_APIDECL void VertexBuffer::setVertexCount(const int vcnt) {
 IFRIT_APIDECL int VertexBuffer::getVertexCount() const { return vertexCount; }
 
 IFRIT_APIDECL int VertexBuffer::getAttributeCount() const {
-  return context->layout.size();
+  return static_cast<int>(context->layout.size());
 }
 
 IFRIT_APIDECL TypeDescriptor

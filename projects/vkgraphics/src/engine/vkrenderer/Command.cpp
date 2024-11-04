@@ -2,7 +2,6 @@
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
-
 using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
@@ -106,13 +105,14 @@ IFRIT_APIDECL void CommandBuffer::reset() {
 
 IFRIT_APIDECL void
 CommandBuffer::pipelineBarrier(const PipelineBarrier &barrier) const {
-  vkCmdPipelineBarrier(
-      m_commandBuffer, barrier.m_srcStage, barrier.m_dstStage,
-      barrier.m_dependencyFlags, barrier.m_memoryBarriers.size(),
-      barrier.m_memoryBarriers.data(), barrier.m_bufferMemoryBarriers.size(),
-      barrier.m_bufferMemoryBarriers.data(),
-      barrier.m_imageMemoryBarriers.size(),
-      barrier.m_imageMemoryBarriers.data());
+  vkCmdPipelineBarrier(m_commandBuffer, barrier.m_srcStage, barrier.m_dstStage,
+                       barrier.m_dependencyFlags,
+                       size_cast<int>(barrier.m_memoryBarriers.size()),
+                       barrier.m_memoryBarriers.data(),
+                       size_cast<int>(barrier.m_bufferMemoryBarriers.size()),
+                       barrier.m_bufferMemoryBarriers.data(),
+                       size_cast<int>(barrier.m_imageMemoryBarriers.size()),
+                       barrier.m_imageMemoryBarriers.data());
 }
 
 IFRIT_APIDECL void CommandBuffer::setViewports(
@@ -124,7 +124,7 @@ IFRIT_APIDECL void CommandBuffer::setViewports(
                     viewport[i].minDepth, viewport[i].maxDepth};
     vps.push_back(s);
   }
-  vkCmdSetViewport(m_commandBuffer, 0, vps.size(), vps.data());
+  vkCmdSetViewport(m_commandBuffer, 0, size_cast<int>(vps.size()), vps.data());
 }
 
 IFRIT_APIDECL void
@@ -135,7 +135,7 @@ CommandBuffer::setScissors(const std::vector<Rhi::RhiScissor> &scissor) const {
                   {scissor[i].width, scissor[i].height}};
     scs.push_back(s);
   }
-  vkCmdSetScissor(m_commandBuffer, 0, scs.size(), scs.data());
+  vkCmdSetScissor(m_commandBuffer, 0, size_cast<int>(scs.size()), scs.data());
 }
 
 IFRIT_APIDECL void CommandBuffer::draw(uint32_t vertexCount,
@@ -335,19 +335,19 @@ Queue::submitCommand(const std::vector<TimelineSemaphoreWait> &waitSemaphores,
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.waitSemaphoreCount = waitSemaphoreHandles.size();
+  submitInfo.waitSemaphoreCount = size_cast<int>(waitSemaphoreHandles.size());
   submitInfo.pWaitSemaphores = waitSemaphoreHandles.data();
   submitInfo.pWaitDstStageMask = waitStages.data();
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &commandBuffer;
-  submitInfo.signalSemaphoreCount = signalSemaphores.size();
+  submitInfo.signalSemaphoreCount = size_cast<int>(signalSemaphores.size());
   submitInfo.pSignalSemaphores = signalSemaphores.data();
 
   VkTimelineSemaphoreSubmitInfo timelineInfo{};
   timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
-  timelineInfo.waitSemaphoreValueCount = waitValues.size();
+  timelineInfo.waitSemaphoreValueCount = size_cast<int>(waitValues.size());
   timelineInfo.pWaitSemaphoreValues = waitValues.data();
-  timelineInfo.signalSemaphoreValueCount = signalValues.size();
+  timelineInfo.signalSemaphoreValueCount = size_cast<int>(signalValues.size());
   timelineInfo.pSignalSemaphoreValues = signalValues.data();
 
   submitInfo.pNext = &timelineInfo;
@@ -411,19 +411,20 @@ IFRIT_APIDECL void CommandSubmissionList::submit(bool hostSync) {
     const VkCommandBuffer commandBuffer =
         submission.m_commandBuffer->getCommandBuffer();
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = waitSemaphores.size();
+    submitInfo.waitSemaphoreCount = size_cast<int>(waitSemaphores.size());
     submitInfo.pWaitSemaphores = waitSemaphores.data();
     submitInfo.pWaitDstStageMask = waitStages.data();
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
-    submitInfo.signalSemaphoreCount = signalSemaphores.size();
+    submitInfo.signalSemaphoreCount = size_cast<int>(signalSemaphores.size());
     submitInfo.pSignalSemaphores = signalSemaphores.data();
 
     VkTimelineSemaphoreSubmitInfo timelineInfo{};
     timelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
-    timelineInfo.waitSemaphoreValueCount = waitValues.size();
+    timelineInfo.waitSemaphoreValueCount = size_cast<int>(waitValues.size());
     timelineInfo.pWaitSemaphoreValues = waitValues.data();
-    timelineInfo.signalSemaphoreValueCount = signalValues.size();
+    timelineInfo.signalSemaphoreValueCount =
+        size_cast<int>(signalValues.size());
     timelineInfo.pSignalSemaphoreValues = signalValues.data();
 
     submitInfo.pNext = &timelineInfo;

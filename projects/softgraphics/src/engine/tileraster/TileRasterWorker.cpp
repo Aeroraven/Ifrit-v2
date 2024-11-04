@@ -3,7 +3,10 @@
 #include "ifrit/common/math/fastutil/FastUtil.h"
 #include "ifrit/common/math/fastutil/FastUtilSimd.h"
 #include "ifrit/common/math/simd/SimdVectors.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/softgraphics/engine/base/Shaders.h"
+
+using namespace Ifrit::Common::Utility;
 
 using namespace Ifrit::Math;
 using namespace Ifrit::Math::SIMD;
@@ -145,22 +148,22 @@ TileRasterWorker::triangleHomogeneousClip(const int primitiveId, vfloat4 v1,
     return 0;
   }
   const auto clipOdd = 0;
-  for (int i = 0; i < retCnt; i++) {
+  for (uint32_t i = 0; i < retCnt; i++) {
     auto pd = ret[i].pos.w;
     ret[i].pos /= pd;
     ret[i].pos.w = pd;
   }
   auto xid = context->assembledTrianglesShade[workerId].size();
   auto smallTriangleCullVecP =
-      vfloat4(context->frameWidth, context->frameHeight, context->frameWidth,
-              context->frameHeight);
+      vfloat4(context->frameWidth * 1.0f, context->frameHeight * 1.0f,
+              context->frameWidth * 1.0f, context->frameHeight * 1.0f);
 
   const auto csInvXR = context->invFrameWidth * 2.0f;
   const auto csInvYR = context->invFrameHeight * 2.0f;
   const auto csFw = context->frameWidth * 2.0f;
   const auto csFh = context->frameHeight * 2.0f;
   const auto csFhFw = context->frameHeight * context->frameWidth;
-  for (int i = 0; i < retCnt - 2; i++) {
+  for (int i = 0; i < static_cast<int>(retCnt) - 2; i++) {
     AssembledTriangleProposalRasterStage atriRaster;
     AssembledTriangleProposalShadeStage atriShade;
     vfloat4 tv1, tv2, tv3;
@@ -242,7 +245,8 @@ TileRasterWorker::triangleHomogeneousClip(const int primitiveId, vfloat4 v1,
     context->assembledTrianglesRaster[workerId].emplace_back(
         std::move(atriRaster));
 
-    executeBinner(xid++, atriRaster, bbox);
+    executeBinner(size_cast<int>(xid), atriRaster, bbox);
+    xid++;
   }
   return retCnt - 2;
 }
@@ -379,7 +383,8 @@ void TileRasterWorker::tiledProcessing(TileRasterRenderer *renderer,
   interpolatedVaryings.resize(varyingCnts);
   interpolatedVaryingsAddr.reserve(varyingCnts);
   interpolatedVaryingsAddr.resize(varyingCnts);
-  for (int i = interpolatedVaryingsAddr.size() - 1; i >= 0; i--) {
+  for (int i = size_cast<int>(interpolatedVaryingsAddr.size()) - 1; i >= 0;
+       i--) {
     interpolatedVaryingsAddr[i] = &interpolatedVaryings[i];
   }
   auto reqDeterministic =
@@ -415,7 +420,7 @@ void TileRasterWorker::vertexProcessing(TileRasterRenderer *renderer)
   auto curChunk = 0;
   auto posBufferPtr = (context->vertexShaderResult->getPositionBuffer());
   auto vertexBufferPtr = context->vertexBuffer->getBufferUnsafe();
-  for (int i = 0; i < varyingCnts; i++) {
+  for (uint32_t i = 0; i < varyingCnts; i++) {
     outVaryingsBase[i] = context->vertexShaderResult->getVaryingBuffer(i);
   }
   int totalOffset = context->vertexBuffer->getElementSize();
@@ -429,7 +434,7 @@ void TileRasterWorker::vertexProcessing(TileRasterRenderer *renderer)
     auto lim = std::min(vxCount, (curChunk + 1) * context->vsChunkSize);
     for (int j = curChunk * context->vsChunkSize; j < lim; j++) {
       auto pos = posBufferPtr + j;
-      for (int k = 0; k < varyingCnts; k++) {
+      for (uint32_t k = 0; k < varyingCnts; k++) {
         outVaryings[k] = outVaryingsBase[k] + j;
       }
       for (int k = 0; k < attributeCnts; k++) {
@@ -456,15 +461,16 @@ void TileRasterWorker::geometryProcessing(TileRasterRenderer *renderer)
   __m256 aCsInvYR = _mm256_set1_ps(2.0f * context->invFrameHeight);
   __m256 aCsFw = _mm256_set1_ps(2.0f * context->frameWidth);
   __m256 aCsFh = _mm256_set1_ps(2.0f * context->frameHeight);
-  __m256 aCsFhFw = _mm256_set1_ps(context->frameHeight * context->frameWidth);
+  __m256 aCsFhFw =
+      _mm256_set1_ps(context->frameHeight * context->frameWidth * 1.0f);
   __m256i index = _mm256_set_epi32(7, 6, 5, 4, 3, 2, 1, 0);
   __m256i indexOffset = _mm256_slli_epi32(index, 2);
   auto &shadeAtriQueue = context->assembledTrianglesShade[workerId];
   auto &rasterAtriQueue = context->assembledTrianglesRaster[workerId];
-  __m256 aCsFw1 = _mm256_set1_ps(context->frameWidth);
-  __m256 aCsFh1 = _mm256_set1_ps(context->frameHeight);
+  __m256 aCsFw1 = _mm256_set1_ps(context->frameWidth * 1.0f);
+  __m256 aCsFh1 = _mm256_set1_ps(context->frameHeight * 1.0f);
   __m256 aInvTileWidth =
-      _mm256_set1_ps(FastUtil::approxReciprocal(context->tileWidth));
+      _mm256_set1_ps(FastUtil::approxReciprocal(context->tileWidth * 1.0f));
   __m256 aFbwDivTw = _mm256_mul_ps(aCsFw1, aInvTileWidth);
   __m256 aFbwDivTh = _mm256_mul_ps(aCsFh1, aInvTileWidth);
 
@@ -712,7 +718,7 @@ void TileRasterWorker::geometryProcessing(TileRasterRenderer *renderer)
       atriRaster.e3 = vfloat3(e3xT[i], e3yT[i], e3zT[i]);
 
       vfloat4 bbox = {bboxMinXT[i], bboxMinYT[i], bboxMaxXT[i], bboxMaxYT[i]};
-      executeBinner(xid + vid, atriRaster, bbox);
+      executeBinner(size_cast<int>(xid) + vid, atriRaster, bbox);
       shadeAtriQueue.emplace_back(std::move(atriShade));
       rasterAtriQueue.emplace_back(std::move(atriRaster));
       vid++;
@@ -784,10 +790,10 @@ void TileRasterWorker::rasterizationSingleTile(TileRasterRenderer *renderer,
   int tileIdX = (unsigned)curTile % (unsigned)context->numTilesX;
   int tileIdY = (unsigned)curTile / (unsigned)context->numTilesX;
 
-  float tileMinX = tileIdX * context->tileWidth;
-  float tileMinY = tileIdY * context->tileWidth;
-  float tileMaxX = (tileIdX + 1) * context->tileWidth;
-  float tileMaxY = (tileIdY + 1) * context->tileWidth;
+  float tileMinX = tileIdX * context->tileWidth * 1.0f;
+  float tileMinY = tileIdY * context->tileWidth * 1.0f;
+  float tileMaxX = (tileIdX + 1) * context->tileWidth * 1.0f;
+  float tileMaxY = (tileIdY + 1) * context->tileWidth * 1.0f;
 
 #ifdef IFRIT_USE_SIMD_128
 #ifdef IFRIT_USE_SIMD_256
@@ -795,8 +801,8 @@ void TileRasterWorker::rasterizationSingleTile(TileRasterRenderer *renderer,
   __m256 tileMinY256 = _mm256_set1_ps(tileMinY);
   __m256 tileMaxX256 = _mm256_set1_ps(tileMaxX);
   __m256 tileMaxY256 = _mm256_set1_ps(tileMaxY);
-  __m256 frameBufferWidth256 = _mm256_set1_ps(frameBufferWidth);
-  __m256 frameBufferHeight256 = _mm256_set1_ps(frameBufferHeight);
+  __m256 frameBufferWidth256 = _mm256_set1_ps(frameBufferWidth * 1.0f);
+  __m256 frameBufferHeight256 = _mm256_set1_ps(frameBufferHeight * 1.0f);
 #else
   __m128 tileMinX128 = _mm_set1_ps(tileMinX);
   __m128 tileMinY128 = _mm_set1_ps(tileMinY);
@@ -811,7 +817,7 @@ void TileRasterWorker::rasterizationSingleTile(TileRasterRenderer *renderer,
   auto &rastQueue = context->rasterizerQueue;
   for (int T = TOTAL_THREADS - 1; T >= 0; T--) {
     const auto &proposalT = rastQueue[T][curTile];
-    for (int j = proposalT.size() - 1; j >= 0; j--) {
+    for (int j = size_cast<int>(proposalT.size()) - 1; j >= 0; j--) {
       const auto proposal = proposalT[j];
       auto propWorkerId = cvrsQueueWorkerId(proposal);
       auto propPrimId = cvrsQueuePrimitiveId(proposal);
@@ -870,7 +876,7 @@ void TileRasterWorker::rasterizationSingleTile(TileRasterRenderer *renderer,
           cvrsQueuePack(propWorkerId, propPrimId);
 
 #ifdef IFRIT_USE_SIMD_256
-      __m256 xTileWidth256f = _mm256_set1_ps(context->subtileBlockWidth);
+      __m256 xTileWidth256f = _mm256_set1_ps(context->subtileBlockWidth * 1.0f);
       for (int x = leftBlock; x < rightBlock; x += 4) {
         __m256 tileCoordsX256[4], tileCoordsY256[4];
         __m256i x256 = _mm256_setr_epi32(x + 0, x + 1, x + 2, x + 3, x + 0,
@@ -1398,8 +1404,10 @@ void TileRasterWorker::fragmentProcessingSingleTile(
                                    tpOnlyTaggingPass>(
             triProposal, 1, 2, subTilePixelX, subTilePixelY, pxArgs);
       } else {
-        for (int dx = subTilePixelX; dx < subTilePixelX2; dx += 4) {
-          for (int dy = subTilePixelY; dy < subTilePixelY2; dy += 2) {
+        for (int dx = subTilePixelX; dx < static_cast<int>(subTilePixelX2);
+             dx += 4) {
+          for (int dy = subTilePixelY; dy < static_cast<int>(subTilePixelY2);
+               dy += 2) {
             pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc,
                                 tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
           }
@@ -1553,8 +1561,8 @@ void TileRasterWorker::fragmentProcessingSingleTile(
         for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
           auto dx = (i & 0xf);
           auto dy = (i >> 4);
-          if (dx + curTileX < frameBufferWidth &&
-              dy + curTileY < frameBufferHeight) {
+          if (dx + curTileX < static_cast<uint32_t>(frameBufferWidth) &&
+              dy + curTileY < static_cast<uint32_t>(frameBufferHeight)) {
             depthCache[dx + dy * tagbufferSizeX] =
                 depthRef(curTileX + dx, curTileY + dy, 0);
           }
@@ -1563,7 +1571,7 @@ void TileRasterWorker::fragmentProcessingSingleTile(
       // Shared
       for (int i = TOTAL_THREADS - 1; i >= 0; i--) {
         auto &pq = firstCoverQueue[i][curTile];
-        for (int j = pq.size() - 1; j >= 0; j--) {
+        for (int j = size_cast<int>(pq.size()) - 1; j >= 0; j--) {
           auto proposal = pq[j];
           auto propPrimId = cvrsQueuePrimitiveId(proposal);
           auto propWorkerId = cvrsQueueWorkerId(proposal);
@@ -1575,7 +1583,7 @@ void TileRasterWorker::fragmentProcessingSingleTile(
         }
       }
       // TileLocal
-      for (int j = coverQueueLocalSize - 1; j >= 0; j--) {
+      for (int j = size_cast<int>(coverQueueLocalSize) - 1; j >= 0; j--) {
         auto &proposal = coverQueueLocal[j];
         proposalProcessFunc.operator()<tpAlphaBlendEnable, tpDepthFunc,
                                        tpOnlyTaggingPass>(proposal);
@@ -1592,8 +1600,8 @@ void TileRasterWorker::fragmentProcessingSingleTile(
       for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i++) {
         auto dx = (i & 0xf);
         auto dy = (i >> 4);
-        if (dx + curTileX < frameBufferWidth &&
-            dy + curTileY < frameBufferHeight) {
+        if (dx + curTileX < static_cast<uint32_t>(frameBufferWidth) &&
+            dy + curTileY < static_cast<uint32_t>(frameBufferHeight)) {
           depthRef(curTileX + dx, curTileY + dy, 0) =
               depthCache[dx + dy * tagbufferSizeX];
         }
@@ -1747,7 +1755,6 @@ void TileRasterWorker::pixelShadingFromTagBufferQuadInvo(
     __m256 atpF3X = _mm256_i32gather_ps((float *)ptrAtpF3, gatherIdx, 2);
     __m256 atpF3Y = _mm256_i32gather_ps(((float *)ptrAtpF3) + 1, gatherIdx, 2);
 
-    bool isNotHelperInvocation[8];
     float baryVecXT[8], baryVecYT[8], baryVecZT[8];
     _mm256_storeu_ps(baryVecXT, baryVecX);
     _mm256_storeu_ps(baryVecYT, baryVecY);
@@ -2211,7 +2218,7 @@ void TileRasterWorker::pixelShading(
   auto &depthAttachment = depthCache[dxId];
   int idx = atp.originalPrimitive * context->vertexStride;
 
-  vfloat4 pDxDyVec = vfloat4(dx, dy, 1.0f, 0.0f);
+  vfloat4 pDxDyVec = vfloat4(dx * 1.0f, dy * 1.0f, 1.0f, 0.0f);
   vfloat3 zVec = vfloat3(atp.f1.w, atp.f2.w, atp.f3.w);
 
   float bary[3];
@@ -2574,8 +2581,8 @@ void TileRasterWorker::pixelShadingSIMD256Grouped(
   auto valAtpBy = atp.by;
   auto valForcedQuads = args.forcedInQuads;
 
-  __m256 attachmentWidth = _mm256_set1_ps(fbWidth);
-  __m256 attachmentHeight = _mm256_set1_ps(fbHeight);
+  __m256 attachmentWidth = _mm256_set1_ps(fbWidth * 1.0f);
+  __m256 attachmentHeight = _mm256_set1_ps(fbHeight * 1.0f);
   uint32_t offx = dx - 4;
   uint32_t offy = dy - 2;
   vfloat4 tAtpF1 = atp.f1, tAtpF2 = atp.f2, tAtpF3 = atp.f3;
@@ -2583,7 +2590,7 @@ void TileRasterWorker::pixelShadingSIMD256Grouped(
   posZ[0] = _mm256_set1_ps(tAtpF1.w);
   posZ[1] = _mm256_set1_ps(tAtpF2.w);
   posZ[2] = _mm256_set1_ps(tAtpF3.w);
-  int xPacked[8], yPacked[8], idPacked[8];
+  int idPacked[8];
 
   int tofffsetDx = dx & 0xf;
   int toffsetDy = dy & 0xf;
@@ -2682,8 +2689,8 @@ void TileRasterWorker::pixelShadingSIMD256(
   __m256i dxId256 =
       _mm256_add_epi32(dx256Mod16, _mm256_slli_epi32(dy256Mod16, 4));
 
-  __m256 attachmentWidth = _mm256_set1_ps(fbWidth);
-  __m256 attachmentHeight = _mm256_set1_ps(fbHeight);
+  __m256 attachmentWidth = _mm256_set1_ps(fbWidth * 1.0f);
+  __m256 attachmentHeight = _mm256_set1_ps(fbHeight * 1.0f);
 
   __m256 pDx = _mm256_cvtepi32_ps(dx256i);
   __m256 pDy = _mm256_cvtepi32_ps(dy256i);

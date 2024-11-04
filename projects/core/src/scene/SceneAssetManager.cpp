@@ -1,6 +1,9 @@
 #include "ifrit/core/scene/SceneAssetManager.h"
 #include "ifrit/common/serialization/SerialInterface.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include <fstream>
+
+using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::Core {
 // Importer
@@ -111,7 +114,7 @@ IFRIT_APIDECL void SceneAssetManager::loadScenes() {
     // use the name of the file as the key, extension removed
     auto name = entry.path().filename().replace_extension("").generic_string();
     // m_scenes[name] = scene;
-    m_scenesIndex[name] = m_scenes.size();
+    m_scenesIndex[name] = size_cast<uint32_t>(m_scenes.size());
     m_scenes.push_back(scene);
   }
 }
@@ -120,7 +123,7 @@ IFRIT_APIDECL std::shared_ptr<Scene>
 SceneAssetManager::createScene(std::string name) {
   auto scene = std::make_shared<Scene>();
   // m_scenes[name] = scene;
-  m_scenesIndex[name] = m_scenes.size();
+  m_scenesIndex[name] = size_cast<uint32_t>(m_scenes.size());
   m_scenes.push_back(scene);
   m_sceneAssetLoaded.push_back(1);
   return scene;
@@ -130,7 +133,7 @@ IFRIT_APIDECL void
 SceneAssetManager::registerScene(std::string name,
                                  std::shared_ptr<Scene> scene) {
   // m_scenes[name] = scene;
-  m_scenesIndex[name] = m_scenes.size();
+  m_scenesIndex[name] = size_cast<uint32_t>(m_scenes.size());
   m_scenes.push_back(scene);
   m_sceneAssetLoaded.push_back(0);
 }

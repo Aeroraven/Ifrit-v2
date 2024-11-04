@@ -1,5 +1,8 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/Pipeline.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
+
+using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 template <typename E>
@@ -36,7 +39,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
 
   VkPipelineDynamicStateCreateInfo dynamicStateCI{};
   dynamicStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  dynamicStateCI.dynamicStateCount = dynamicStates.size();
+  dynamicStateCI.dynamicStateCount = size_cast<int>(dynamicStates.size());
   dynamicStateCI.pDynamicStates = dynamicStates.data();
 
   // Input assembly
@@ -82,7 +85,8 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   bool reqDepth = m_createInfo.depthAttachmentFormat != VK_FORMAT_UNDEFINED;
   VkPipelineRenderingCreateInfo renderCI{};
   renderCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-  renderCI.colorAttachmentCount = m_createInfo.colorAttachmentFormats.size();
+  renderCI.colorAttachmentCount =
+      size_cast<int>(m_createInfo.colorAttachmentFormats.size());
   renderCI.pColorAttachmentFormats = m_createInfo.colorAttachmentFormats.data();
   renderCI.depthAttachmentFormat = m_createInfo.depthAttachmentFormat;
   renderCI.stencilAttachmentFormat = m_createInfo.stencilAttachmentFormat;
@@ -102,7 +106,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   VkPipelineColorBlendStateCreateInfo colorBlendCI{};
   colorBlendCI.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
   colorBlendCI.logicOpEnable = VK_FALSE;
-  colorBlendCI.attachmentCount = colorBlendAttachment.size();
+  colorBlendCI.attachmentCount = size_cast<int>(colorBlendAttachment.size());
   colorBlendCI.pAttachments = colorBlendAttachment.data();
 
   // Depth Stencil
@@ -118,7 +122,8 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   // TODO: Pipeline layout
   VkPipelineLayoutCreateInfo pipelineLayoutCI{};
   pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutCI.setLayoutCount = m_createInfo.descriptorSetLayouts.size();
+  pipelineLayoutCI.setLayoutCount =
+      size_cast<int>(m_createInfo.descriptorSetLayouts.size());
   pipelineLayoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
   pipelineLayoutCI.pushConstantRangeCount = 0;
   pipelineLayoutCI.pPushConstantRanges = nullptr;
@@ -133,7 +138,6 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
     shaderStages.push_back(shaderModule->getStageCI());
   }
 
-  VkRenderPass renderPass;
   auto device = m_context->getDevice();
 
   VkGraphicsPipelineCreateInfo pipelineCI{};
@@ -142,7 +146,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   pipelineCI.renderPass = nullptr;
   pipelineCI.subpass = 0;
   pipelineCI.pNext = &renderCI;
-  pipelineCI.stageCount = shaderStages.size();
+  pipelineCI.stageCount = size_cast<int>(shaderStages.size());
   pipelineCI.pStages = shaderStages.data();
   pipelineCI.pVertexInputState = nullptr;
   pipelineCI.pInputAssemblyState = &inputAssemblyCI;
@@ -175,7 +179,8 @@ IFRIT_APIDECL GraphicsPipeline::~GraphicsPipeline() {
 IFRIT_APIDECL void ComputePipeline::init() {
   VkPipelineLayoutCreateInfo pipelineLayoutCI{};
   pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutCI.setLayoutCount = m_createInfo.descriptorSetLayouts.size();
+  pipelineLayoutCI.setLayoutCount =
+      size_cast<int>(m_createInfo.descriptorSetLayouts.size());
   pipelineLayoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
   pipelineLayoutCI.pushConstantRangeCount = 0;
   pipelineLayoutCI.pPushConstantRanges = nullptr;
@@ -308,7 +313,8 @@ PipelineCache::getGraphicsPipeline(const GraphicsPipelineCreateInfo &ci) {
   m_graphicsPipelineCI.push_back(ci);
   auto &&p = std::make_unique<GraphicsPipeline>(m_context, ci);
   m_graphicsPipelines.push_back(std::move(p));
-  m_graphicsPipelineMap[hash].push_back(m_graphicsPipelines.size() - 1);
+  m_graphicsPipelineMap[hash].push_back(
+      size_cast<int>(m_graphicsPipelines.size()) - 1);
   return m_graphicsPipelines.back().get();
 }
 
@@ -325,7 +331,8 @@ PipelineCache::getComputePipeline(const ComputePipelineCreateInfo &ci) {
   m_computePipelineCI.push_back(ci);
   auto &&p = std::make_unique<ComputePipeline>(m_context, ci);
   m_computePipelines.push_back(std::move(p));
-  m_computePipelineMap[hash].push_back(m_computePipelines.size() - 1);
+  m_computePipelineMap[hash].push_back(
+      size_cast<int>(m_computePipelines.size()) - 1);
   return m_computePipelines.back().get();
 }
 

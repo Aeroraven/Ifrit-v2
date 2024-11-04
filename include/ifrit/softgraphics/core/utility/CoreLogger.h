@@ -1,4 +1,5 @@
 #pragma once
+#define _CRT_SECURE_NO_WARNINGS
 #include "ifrit/softgraphics/core/definition/CoreDefs.h"
 namespace Ifrit::GraphicsBackend::SoftGraphics::Core::Utility {
 class CoreLogger {

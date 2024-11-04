@@ -1,11 +1,13 @@
 #include "ifrit/softgraphics/engine/bufferman/BufferManager.h"
+#include "ifrit/common/util/TypingUtil.h"
+using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::BufferManager::Impl {
 int BufferManagerImpl::allocateBufferId() {
   if (freeBufferIds.empty()) {
     this->bufferMetadata.resize(this->bufferMetadata.size() + 1);
     this->buffers.resize(this->buffers.size() + 1);
-    return this->buffers.size() - 1;
+    return size_cast<int>(this->buffers.size()) - 1;
   } else {
     int id = freeBufferIds.top();
     freeBufferIds.pop();

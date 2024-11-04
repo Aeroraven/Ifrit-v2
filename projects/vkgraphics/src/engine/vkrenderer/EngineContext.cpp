@@ -1,7 +1,9 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <cstring>
 #include <vector>
+using namespace Ifrit::Common::Utility;
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -156,7 +158,8 @@ IFRIT_APIDECL void EngineContext::init() {
     enableExtension(true, ext, availableExtensions, targetExtensions);
   }
 
-  instanceCI.enabledExtensionCount = targetExtensions.size();
+  instanceCI.enabledExtensionCount =
+      size_cast<uint32_t>(targetExtensions.size());
   instanceCI.ppEnabledExtensionNames = targetExtensions.data();
 
   // Instance : Layers
@@ -172,7 +175,7 @@ IFRIT_APIDECL void EngineContext::init() {
   if (m_args.m_enableValidationLayer) {
     enableLayer(true, s_validationLayerName, availableLayers, targetLayers);
   }
-  instanceCI.enabledLayerCount = targetLayers.size();
+  instanceCI.enabledLayerCount = size_cast<uint32_t>(targetLayers.size());
   instanceCI.ppEnabledLayerNames = targetLayers.data();
 
   vkrVulkanAssert(vkCreateInstance(&instanceCI, nullptr, &m_instance),
@@ -338,7 +341,7 @@ IFRIT_APIDECL void EngineContext::init() {
 
   VkDeviceCreateInfo deviceCI = {};
   deviceCI.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  deviceCI.queueCreateInfoCount = queueCreateInfos.size();
+  deviceCI.queueCreateInfoCount = size_cast<uint32_t>(queueCreateInfos.size());
   deviceCI.pQueueCreateInfos = queueCreateInfos.data();
   deviceCI.pEnabledFeatures = &deviceFeatures;
   deviceCI.pNext = &deviceFeatures12;
@@ -360,7 +363,8 @@ IFRIT_APIDECL void EngineContext::init() {
                     targetDeviceExtensions);
   }
 
-  deviceCI.enabledExtensionCount = targetDeviceExtensions.size();
+  deviceCI.enabledExtensionCount =
+      size_cast<uint32_t>(targetDeviceExtensions.size());
   deviceCI.ppEnabledExtensionNames = targetDeviceExtensions.data();
 
   // Device : Layers
@@ -379,7 +383,7 @@ IFRIT_APIDECL void EngineContext::init() {
     enableLayer(true, s_validationLayerName, availableLayersDevice,
                 targetLayersDevice);
   }
-  deviceCI.enabledLayerCount = targetLayersDevice.size();
+  deviceCI.enabledLayerCount = size_cast<uint32_t>(targetLayersDevice.size());
   deviceCI.ppEnabledLayerNames = targetLayersDevice.data();
   vkrVulkanAssert(vkCreateDevice(bestDevice, &deviceCI, nullptr, &m_device),
                   "Failed to create logical device");

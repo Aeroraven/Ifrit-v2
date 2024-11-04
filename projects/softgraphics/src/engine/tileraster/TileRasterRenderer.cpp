@@ -1,5 +1,8 @@
 #include "ifrit/softgraphics/engine/tileraster/TileRasterRenderer.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterWorker.h"
+
+using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::TileRaster::Inline {
 template <class T, class U> auto ceilDiv(T a, U b) { return (a + b - 1) / b; }
@@ -24,10 +27,10 @@ IFRIT_APIDECL TileRasterRenderer::~TileRasterRenderer() {
 IFRIT_APIDECL void
 TileRasterRenderer::bindFrameBuffer(FrameBuffer &frameBuffer) {
   this->context->frameBuffer = &frameBuffer;
-  context->numTilesX = Inline::ceilDiv(
-      frameBuffer.getColorAttachment(0)->getWidth(), context->tileWidth);
-  context->numTilesY = Inline::ceilDiv(
-      frameBuffer.getColorAttachment(0)->getHeight(), context->tileWidth);
+  context->numTilesX = size_cast<int>(Inline::ceilDiv(
+      frameBuffer.getColorAttachment(0)->getWidth(), context->tileWidth));
+  context->numTilesY = size_cast<int>(Inline::ceilDiv(
+      frameBuffer.getColorAttachment(0)->getHeight(), context->tileWidth));
   context->frameWidth = context->frameBuffer->getWidth();
   context->frameHeight = context->frameBuffer->getHeight();
   context->invFrameWidth = 1.0f / context->frameWidth;

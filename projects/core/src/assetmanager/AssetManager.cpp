@@ -2,19 +2,20 @@
 #include "ifrit/core/assetmanager/Asset.h"
 #include "ifrit/core/assetmanager/ShaderAsset.h"
 #include "ifrit/core/assetmanager/WaveFrontAsset.h"
+#include "ifrit/core/base/ApplicationInterface.h"
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 
 namespace Ifrit::Core {
 IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
-  //std::cout << "Loading asset: " << path << std::endl;
-  // Check if this file has a metadata file, add '.meta' without changing suffix
-  // name
+  // std::cout << "Loading asset: " << path << std::endl;
+  //  Check if this file has a metadata file, add '.meta' without changing
+  //  suffix name
   auto metaPath = path;
   metaPath += cMetadataFileExtension;
   if (std::filesystem::exists(metaPath)) {
-    //std::cout << "Metadata file found: " << metaPath << std::endl;
+    // std::cout << "Metadata file found: " << metaPath << std::endl;
   } else {
     // No metadata file found, create one
 
@@ -26,7 +27,7 @@ IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
     // check if importer is registered for this file extension
     if (m_extensionImporterMap.find(path.extension().generic_string()) ==
         m_extensionImporterMap.end()) {
-      //printf("No importer found \n");
+      // printf("No importer found \n");
       return;
     }
     auto importerName =
@@ -89,7 +90,8 @@ AssetManager::registerImporter(const std::string &importerName,
   }
 }
 
-IFRIT_APIDECL AssetManager::AssetManager(std::filesystem::path path) {
+IFRIT_APIDECL AssetManager::AssetManager(std::filesystem::path path,
+                                         IApplication *app) {
   // register default importers
   // TODO: maybe weak_ptr should be used, but i am too lazy to do that
   registerImporter(WaveFrontAssetImporter::IMPORTER_NAME,
@@ -97,6 +99,7 @@ IFRIT_APIDECL AssetManager::AssetManager(std::filesystem::path path) {
   registerImporter(ShaderAssetImporter::IMPORTER_NAME,
                    std::make_shared<ShaderAssetImporter>(this));
   basePath = path;
+  m_app = app;
   // loadAssetDirectory(basePath);
 }
 

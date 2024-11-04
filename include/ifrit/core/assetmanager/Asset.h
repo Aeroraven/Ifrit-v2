@@ -2,6 +2,7 @@
 #include "ifrit/common/serialization/SerialInterface.h"
 #include "ifrit/common/util/ApiConv.h"
 #include "ifrit/core/base/AssetReference.h"
+#include "ifrit/core/base/ApplicationInterface.h"
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -77,6 +78,7 @@ private:
   std::unordered_map<std::string, std::shared_ptr<AssetImporter>> m_importers;
   std::unordered_map<std::string, std::string> m_extensionImporterMap;
   std::filesystem::path basePath;
+  IApplication *m_app;
 
 private:
   std::string metadataSerialization(AssetMetadata &metadata);
@@ -84,11 +86,12 @@ private:
                                AssetMetadata &metadata);
 
 public:
-  AssetManager(std::filesystem::path path);
+  AssetManager(std::filesystem::path path, IApplication *app);
   void loadAsset(const std::filesystem::path &path);
   void loadAssetDirectory(const std::filesystem::path &path);
 
   inline void loadAssetDirectory() { loadAssetDirectory(basePath); }
+  inline IApplication *getApplication() { return m_app; }
 
   void registerImporter(const std::string &extensionName,
                         std::shared_ptr<AssetImporter> importer);

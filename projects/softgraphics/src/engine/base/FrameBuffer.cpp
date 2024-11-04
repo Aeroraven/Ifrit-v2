@@ -1,11 +1,13 @@
 #include "ifrit/softgraphics/engine/base/FrameBuffer.h"
+#include "ifrit/common/util/TypingUtil.h"
+using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::SoftGraphics {
 IFRIT_APIDECL void FrameBuffer::setColorAttachments(
     const std::vector<ImageF32 *> &colorAttachment) {
   this->context->colorAttachment = colorAttachment;
-  this->width = colorAttachment[0]->getWidth();
-  this->height = colorAttachment[0]->getHeight();
+  this->width = size_cast<uint32_t>(colorAttachment[0]->getWidth());
+  this->height = size_cast<uint32_t>(colorAttachment[0]->getHeight());
 }
 IFRIT_APIDECL void FrameBuffer::setDepthAttachment(ImageF32 &depthAttachment) {
   this->context->depthAttachment = &depthAttachment;
@@ -25,8 +27,8 @@ FrameBuffer::setColorAttachmentsCompatible(ImageF32 *const *colorAttachment,
   for (int i = 0; i < nums; i++) {
     this->context->colorAttachment[i] = colorAttachment[i];
   }
-  this->width = colorAttachment[0]->getWidth();
-  this->height = colorAttachment[0]->getHeight();
+  this->width = size_cast<uint32_t>(colorAttachment[0]->getWidth());
+  this->height = size_cast<uint32_t>(colorAttachment[0]->getHeight());
 }
 IFRIT_APIDECL void
 FrameBuffer::setDepthAttachmentCompatible(ImageF32 *depthAttachment) {

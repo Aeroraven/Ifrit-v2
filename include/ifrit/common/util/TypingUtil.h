@@ -1,4 +1,5 @@
 #pragma once
+#include "ifrit/common/util/ApiConv.h"
 #include <memory>
 #include <stdexcept>
 
@@ -54,9 +55,11 @@ std::shared_ptr<T> checked_pointer_cast(const std::shared_ptr<U> &ptr) {
 #endif
 }
 
+template <typename T> T size_cast(size_t size) { return static_cast<T>(size); }
+
 // Non-copyable class:
 // https://www.boost.org/doc/libs/1_41_0/boost/noncopyable.hpp
-class NonCopyable {
+class IFRIT_APIDECL NonCopyable {
 protected:
   NonCopyable() = default;
   ~NonCopyable() = default;

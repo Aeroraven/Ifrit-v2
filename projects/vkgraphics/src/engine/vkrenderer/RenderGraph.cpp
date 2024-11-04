@@ -62,7 +62,7 @@ RenderGraphPass::addUniformBuffer_base(RegisteredBufferHandle *buffer,
                                        uint32_t position) {
   auto numCopies = buffer->getNumBuffers();
   m_resourceDescriptorHandle[position].resize(numCopies);
-  for (int i = 0; i < numCopies; i++) {
+  for (int i = 0; i < static_cast<int>(numCopies); i++) {
     auto v = m_descriptorManager->registerUniformBuffer(buffer->getBuffer(i));
     m_resourceDescriptorHandle[position][i] = v;
   }
@@ -78,7 +78,7 @@ void RenderGraphPass::addStorageBuffer_base(RegisteredBufferHandle *buffer,
                                             Rhi::RhiResourceAccessType access) {
   auto numCopies = buffer->getNumBuffers();
   m_resourceDescriptorHandle[position].resize(numCopies);
-  for (int i = 0; i < numCopies; i++) {
+  for (int i = 0; i < static_cast<int>(numCopies); i++) {
     auto v = m_descriptorManager->registerStorageBuffer(buffer->getBuffer(i));
     m_resourceDescriptorHandle[position][i] = v;
   }
@@ -96,7 +96,7 @@ RenderGraphPass::addCombinedImageSampler(RegisteredImageHandle *image,
                                          uint32_t position) {
   auto numCopies = image->getNumBuffers();
   m_resourceDescriptorHandle[position].resize(numCopies);
-  for (int i = 0; i < numCopies; i++) {
+  for (int i = 0; i < static_cast<int>(numCopies); i++) {
     auto v = m_descriptorManager->registerCombinedImageSampler(
         image->getImage(i), sampler->getSampler());
     m_resourceDescriptorHandle[position][i] = v;
@@ -121,7 +121,7 @@ RenderGraphPass::buildDescriptorParamHandle(uint32_t numMultiBuffers) {
     }
   }
   m_descriptorBindRange.resize(numMultiBuffers);
-  for (int T = 0; T < numMultiBuffers; T++) {
+  for (int T = 0; T < static_cast<int>(numMultiBuffers); T++) {
     std::vector<uint32_t> descriptorHandles;
     for (int i = 0; i < m_passDescriptorLayout.size(); i++) {
       auto type = m_passDescriptorLayout[i];
@@ -144,7 +144,9 @@ RenderGraphPass::buildDescriptorParamHandle(uint32_t numMultiBuffers) {
     m_descriptorBindRange[T] =
         m_descriptorManager->registerBindlessParameterRaw(
             reinterpret_cast<const char *>(descriptorHandles.data()),
-            descriptorHandles.size() * sizeof(uint32_t));
+            Ifrit::Common::Utility::size_cast<uint32_t>(
+                descriptorHandles.size()) *
+                sizeof(uint32_t));
   }
 }
 
@@ -402,7 +404,8 @@ IFRIT_APIDECL void GraphicsPass::record() {
   renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
   renderingInfo.renderArea = m_renderArea;
   renderingInfo.layerCount = 1;
-  renderingInfo.colorAttachmentCount = m_colorAttachments.size();
+  renderingInfo.colorAttachmentCount =
+      size_cast<uint32_t>(m_colorAttachments.size());
   renderingInfo.pColorAttachments = colorAttachmentInfos.data();
   renderingInfo.pDepthAttachment =
       m_depthAttachment.m_image ? &depthAttachmentInfo : nullptr;
@@ -416,21 +419,24 @@ IFRIT_APIDECL void GraphicsPass::record() {
   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                     m_pipeline->getPipeline());
   vkCmdSetDepthWriteEnable(cmd, m_depthWrite);
-  exfun.p_vkCmdSetColorWriteEnableEXT(cmd, m_colorAttachments.size(),
-                                      m_colorWrite.data());
-  exfun.p_vkCmdSetColorBlendEnableEXT(cmd, 0, m_colorAttachments.size(),
-                                      m_blendEnable.data());
+  exfun.p_vkCmdSetColorWriteEnableEXT(
+      cmd, size_cast<uint32_t>(m_colorAttachments.size()), m_colorWrite.data());
+  exfun.p_vkCmdSetColorBlendEnableEXT(
+      cmd, 0, size_cast<uint32_t>(m_colorAttachments.size()),
+      m_blendEnable.data());
 
-  exfun.p_vkCmdSetColorBlendEquationEXT(cmd, 0, m_colorAttachments.size(),
-                                        m_blendEquations.data());
+  exfun.p_vkCmdSetColorBlendEquationEXT(
+      cmd, 0, size_cast<uint32_t>(m_colorAttachments.size()),
+      m_blendEquations.data());
 
-  exfun.p_vkCmdSetColorWriteMaskEXT(cmd, 0, m_colorAttachments.size(),
-                                    m_colorWriteMask.data());
+  exfun.p_vkCmdSetColorWriteMaskEXT(
+      cmd, 0, size_cast<uint32_t>(m_colorAttachments.size()),
+      m_colorWriteMask.data());
   if (m_meshShader == nullptr) {
     exfun.p_vkCmdSetVertexInputEXT(
-        cmd, m_vertexBufferDescriptor.m_bindings.size(),
+        cmd, size_cast<uint32_t>(m_vertexBufferDescriptor.m_bindings.size()),
         m_vertexBufferDescriptor.m_bindings.data(),
-        m_vertexBufferDescriptor.m_attributes.size(),
+        size_cast<uint32_t>(m_vertexBufferDescriptor.m_attributes.size()),
         m_vertexBufferDescriptor.m_attributes.data());
 
     std::vector<VkBuffer> vxbuffers;
@@ -441,8 +447,10 @@ IFRIT_APIDECL void GraphicsPass::record() {
       offsets.push_back(0);
     }
     if (vxbuffers.size() > 0) {
-      vkCmdBindVertexBuffers(cmd, 0, m_vertexBuffers.size(), vxbuffers.data(),
-                             offsets.data());
+      vkCmdBindVertexBuffers(
+          cmd, 0,
+          Ifrit::Common::Utility::size_cast<uint32_t>(m_vertexBuffers.size()),
+          vxbuffers.data(), offsets.data());
     }
 
     if (m_indexBuffer) {
@@ -751,7 +759,7 @@ RenderGraph::registerSampler(Sampler *sampler) {
   auto registeredSampler = std::make_unique<RegisteredSamplerHandle>(sampler);
   auto ptr = registeredSampler.get();
   m_resources.push_back(std::move(registeredSampler));
-  m_resourceMap[ptr] = m_resources.size() - 1;
+  m_resourceMap[ptr] = size_cast<uint32_t>(m_resources.size()) - 1;
   return ptr;
 }
 
@@ -775,14 +783,14 @@ RenderGraph::registerImage(SingleDeviceImage *image) {
     auto registeredImage = std::make_unique<RegisteredSwapchainImage>(p);
     auto ptr = registeredImage.get();
     m_resources.push_back(std::move(registeredImage));
-    m_resourceMap[ptr] = m_resources.size() - 1;
+    m_resourceMap[ptr] = size_cast<uint32_t>(m_resources.size()) - 1;
     m_swapchainImageHandle.push_back(ptr);
     return ptr;
   } else {
     auto registeredImage = std::make_unique<RegisteredImageHandle>(image);
     auto ptr = registeredImage.get();
     m_resources.push_back(std::move(registeredImage));
-    m_resourceMap[ptr] = m_resources.size() - 1;
+    m_resourceMap[ptr] = size_cast<uint32_t>(m_resources.size()) - 1;
     return ptr;
   }
   return nullptr;
@@ -807,7 +815,7 @@ IFRIT_APIDECL void RenderGraph::build(uint32_t numMultiBuffers) {
   }
   uint32_t assignedPass = 0;
   while (true) {
-    for (int i = m_passes.size() - 1; i >= 0; i--) {
+    for (int i = size_cast<int>(m_passes.size()) - 1; i >= 0; i--) {
       auto pass = m_passes[i].get();
       if (m_subgraphBelonging[i] != UINT32_MAX)
         continue;
@@ -934,7 +942,7 @@ IFRIT_APIDECL void CommandExecutor::setQueues(bool reqPresentQueue,
       vkrError("Present queue not found in graphics queues");
     }
   }
-  for (int i = 0; i < numGraphicsQueues; i++) {
+  for (int i = 0; i < size_cast<int>(numGraphicsQueues); i++) {
     chosenQueue.push_back(graphicsQueues[i]);
   }
 
@@ -942,7 +950,7 @@ IFRIT_APIDECL void CommandExecutor::setQueues(bool reqPresentQueue,
   chosenQueue.clear();
 
   // Compute queue
-  for (int i = 0, j = 0; i < numComputeQueues; j++) {
+  for (uint32_t i = 0, j = 0; i < numComputeQueues; j++) {
     bool isGraphicsQueue = false;
     for (int i = 0; i < m_queuesGraphics.size(); i++) {
       if (m_queuesGraphics[i]->getQueue() == computeQueues[j]->getQueue()) {

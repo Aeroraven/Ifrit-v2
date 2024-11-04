@@ -1,5 +1,8 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
+
+using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL void SingleBuffer::init() {
@@ -52,7 +55,7 @@ IFRIT_APIDECL MultiBuffer::MultiBuffer(EngineContext *ctx,
                                        const BufferCreateInfo &ci,
                                        uint32_t numCopies)
     : m_context(ctx), m_createInfo(ci) {
-  for (int i = 0; i < numCopies; i++) {
+  for (uint32_t i = 0; i < numCopies; i++) {
     m_buffersOwning.push_back(std::make_unique<SingleBuffer>(ctx, ci));
     m_buffers.push_back(m_buffersOwning.back().get());
   }
@@ -284,7 +287,7 @@ ResourceManager::createTracedMultipleBuffer(const BufferCreateInfo &ci,
   auto buffer = std::make_unique<MultiBuffer>(m_context, ci, numCopies);
   auto ptr = buffer.get();
   m_multiBuffer.push_back(std::move(buffer));
-  m_multiBufferTraced.push_back(m_multiBuffer.size() - 1);
+  m_multiBufferTraced.push_back(size_cast<int>(m_multiBuffer.size()) - 1);
   return ptr;
 }
 

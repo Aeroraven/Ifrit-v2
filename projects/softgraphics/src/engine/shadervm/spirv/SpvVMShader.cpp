@@ -1,4 +1,6 @@
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMShader.h"
+#include "ifrit/common/util/TypingUtil.h"
+using namespace Ifrit::Common::Utility;
 extern "C" {
 struct alignas(16) iint3Aligned {
   int x, y, z;
@@ -45,8 +47,8 @@ void SpvRuntimeBackend::updateSymbolTable(bool isCopy) {
         this->runtime->lookupSymbol(svmir->shaderMaps.outputVarSymbols[i]);
     this->symbolTables.outputBytes[i] = svmir->shaderMaps.outputSize[i];
   }
-  cSISize = svmir->shaderMaps.inputVarSymbols.size();
-  cSOSize = svmir->shaderMaps.outputVarSymbols.size();
+  cSISize = size_cast<int>(svmir->shaderMaps.inputVarSymbols.size());
+  cSOSize = size_cast<int>(svmir->shaderMaps.outputVarSymbols.size());
   for (int i = 0; i < svmir->shaderMaps.uniformSize.size(); i++) {
     std::pair<int, int> loc = svmir->shaderMaps.uniformVarLoc[i];
     this->symbolTables.uniform[loc] = {

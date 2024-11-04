@@ -58,8 +58,8 @@ private:
   // Debug
   int totalDraws = 0;
   int reqDraws = 0;
-  const float EPS = 1e-8;
-  const float EPS2 = 1e-8;
+  const float EPS = 1e-8f;
+  const float EPS2 = 1e-8f;
 
   bool vert = false;
   bool geom = false;

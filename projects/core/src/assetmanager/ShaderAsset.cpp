@@ -3,16 +3,45 @@
 namespace Ifrit::Core {
 
 // Shader class
-IFRIT_APIDECL std::vector<char> ShaderAsset::loadShader() {
+IFRIT_APIDECL std::shared_ptr<ShaderAsset::ShaderRef>
+ShaderAsset::loadShader() {
   if (m_loaded) {
-    return *m_selfData;
+    return m_selfData;
   } else {
     m_loaded = true;
     std::ifstream file(m_path, std::ios::binary);
     std::vector<char> data((std::istreambuf_iterator<char>(file)),
                            std::istreambuf_iterator<char>());
-    m_selfData = std::make_shared<std::vector<char>>(data);
-    return data;
+
+    auto rhi = m_app->getRhiLayer();
+    GraphicsBackend::Rhi::RhiShaderStage stage;
+    auto fileName = m_path.filename().string();
+    // endswith .vert.glsl
+    auto endsWith = [](const std::string &str, const std::string &suffix) {
+      return str.size() >= suffix.size() &&
+             str.compare(str.size() - suffix.size(), suffix.size(), suffix) ==
+                 0;
+    };
+    if (endsWith(fileName, ".vert.glsl")) {
+      stage = GraphicsBackend::Rhi::RhiShaderStage::Vertex;
+    } else if (endsWith(fileName, ".frag.glsl")) {
+      stage = GraphicsBackend::Rhi::RhiShaderStage::Fragment;
+    } else if (endsWith(fileName, ".comp.glsl")) {
+      stage = GraphicsBackend::Rhi::RhiShaderStage::Compute;
+    } else if (endsWith(fileName, ".mesh.glsl")) {
+      stage = GraphicsBackend::Rhi::RhiShaderStage::Mesh;
+    } else if (endsWith(fileName, ".task.glsl")) {
+      stage = GraphicsBackend::Rhi::RhiShaderStage::Task;
+    } else {
+      throw std::runtime_error("Unknown shader stage");
+    }
+
+    auto p =
+        rhi->createShader(data, "main", stage,
+                          GraphicsBackend::Rhi::RhiShaderSourceType::GLSLCode);
+    // TODO: eliminate raw pointer
+    m_selfData = std::shared_ptr<ShaderRef>(p);
+    return m_selfData;
   }
 }
 
@@ -30,7 +59,7 @@ ShaderAssetImporter::getSupportedExtensionNames() {
 IFRIT_APIDECL void
 ShaderAssetImporter::importAsset(const std::filesystem::path &path,
                                  AssetMetadata &metadata) {
-  auto asset = std::make_shared<ShaderAsset>(metadata, path);
+  auto asset = std::make_shared<ShaderAsset>(metadata, path, m_assetManager->getApplication());
   m_assetManager->registerAsset(asset);
   printf("Imported asset: [Shader] %s\n", metadata.m_uuid.c_str());
 }

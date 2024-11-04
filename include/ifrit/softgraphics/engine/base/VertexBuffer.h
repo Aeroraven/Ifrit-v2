@@ -1,7 +1,9 @@
 #pragma once
 
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/softgraphics/core/utility/CoreUtils.h"
 #include "ifrit/softgraphics/engine/base/TypeDescriptor.h"
+
 namespace Ifrit::GraphicsBackend::SoftGraphics {
 
 struct VertexBufferContext {
@@ -59,7 +61,10 @@ public:
     return (char *)context->buffer.data();
   }
 
-  inline uint32_t getBufferSize() const { return context->buffer.size(); }
+  inline uint32_t getBufferSize() const {
+    using namespace Ifrit::Common::Utility;
+    return size_cast<int>(context->buffer.size());
+  }
 
   /* DLL Compatible */
   void setLayoutCompatible(const TypeDescriptor *layouts, int num);

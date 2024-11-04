@@ -187,7 +187,7 @@ IFRIT_APIDECL void Swapchain::init() {
 
   // Create image views
   m_imageViews.resize(imageCount);
-  for (int i = 0; i < imageCount; i++) {
+  for (int i = 0; i < static_cast<int>(imageCount); i++) {
     VkImageViewCreateInfo imageViewCI{};
     imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     imageViewCI.image = m_images[i];
@@ -218,7 +218,7 @@ IFRIT_APIDECL void Swapchain::init() {
   fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  for (int i = 0; i < m_backbufferCount; i++) {
+  for (uint32_t i = 0; i < m_backbufferCount; i++) {
     vkrVulkanAssert(vkCreateSemaphore(m_context->getDevice(), &semaphoreCI,
                                       nullptr, &m_imageAvailableSemaphores[i]),
                     "Failed to create semaphore");
@@ -240,7 +240,7 @@ IFRIT_APIDECL void Swapchain::destructor() {
   vkDestroySwapchainKHR(m_context->getDevice(), m_swapchain, nullptr);
   vkDestroySurfaceKHR(m_context->getInstance(), m_surface, nullptr);
 
-  for (int i = 0; i < m_backbufferCount; i++) {
+  for (uint32_t i = 0; i < m_backbufferCount; i++) {
     vkDestroySemaphore(m_context->getDevice(), m_imageAvailableSemaphores[i],
                        nullptr);
     vkDestroySemaphore(m_context->getDevice(), m_renderingFinishSemaphores[i],

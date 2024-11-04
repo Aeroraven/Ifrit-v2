@@ -1,22 +1,30 @@
 #pragma once
 #include "ifrit/core/assetmanager/Asset.h"
+#include "ifrit/core/base/ApplicationInterface.h"
 
 namespace Ifrit::Core {
 class IFRIT_APIDECL ShaderAsset : public Asset {
 private:
-  std::shared_ptr<std::vector<char>> m_selfData;
+  using ShaderRef = GraphicsBackend::Rhi::RhiShader;
+  std::shared_ptr<ShaderRef> m_selfData;
   bool m_loaded = false;
+  IApplication *m_app;
 
 public:
-  ShaderAsset(AssetMetadata metadata, std::filesystem::path path)
-      : Asset(metadata, path) {}
+  ShaderAsset(AssetMetadata metadata, std::filesystem::path path,
+              IApplication *app)
+      : Asset(metadata, path), m_app(app) {}
 
-  std::vector<char> loadShader();
+  std::shared_ptr<ShaderRef> loadShader();
 };
 class IFRIT_APIDECL ShaderAssetImporter : public AssetImporter {
+private:
+  IApplication *m_app;
+
 public:
   constexpr static const char *IMPORTER_NAME = "ShaderImporter";
-  ShaderAssetImporter(AssetManager *manager) : AssetImporter(manager) {}
+  ShaderAssetImporter(AssetManager *manager)
+      : AssetImporter(manager), m_app(manager->getApplication()) {}
   void processMetadata(AssetMetadata &metadata) override;
   void importAsset(const std::filesystem::path &path,
                    AssetMetadata &metadata) override;

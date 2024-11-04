@@ -16,6 +16,6 @@ IFRIT_APIDECL_FORCED void ifritShaderOps_Base_ImageSampleExplicitLod_2d_v4f32(
   auto pSi =
       (Ifrit::GraphicsBackend::SoftGraphics::Imaging::BufferedImageSampler
            *)(pSampledImage);
-  pSi->sample2DLodSi(coord.x, coord.y, lod, {0, 0}, result);
+  pSi->sample2DLodSi(coord.x * 1.0f, coord.y * 1.0f, lod, {0, 0}, result);
 }
 }

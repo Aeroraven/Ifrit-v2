@@ -1,8 +1,8 @@
 #pragma once
 #include "ifrit/core/assetmanager/Asset.h"
+#include "ifrit/core/base/ApplicationInterface.h"
 #include "ifrit/core/scene/SceneAssetManager.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
-#include "ifrit/rhi/common/RhiLayer.h"
 #include <string>
 
 namespace Ifrit::Core {
@@ -25,7 +25,7 @@ struct ApplicationCreateInfo {
   uint32_t m_rhiComputeQueueCount = 1;
   uint32_t m_rhiNumBackBuffers = 2;
 };
-class IFRIT_APIDECL Application {
+class IFRIT_APIDECL Application : public IApplication {
 protected:
   std::shared_ptr<AssetManager> m_assetManager;
   std::shared_ptr<SceneAssetManager> m_sceneManager;
@@ -40,9 +40,14 @@ private:
   inline bool applicationShouldClose() { return true; }
 
 public:
-  virtual void onStart() {}
-  virtual void onUpdate() {}
-  virtual void onEnd() {}
+  virtual void onStart() override {}
+  virtual void onUpdate() override {}
+  virtual void onEnd() override {}
   void run(const ApplicationCreateInfo &info);
+
+  inline virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *
+  getRhiLayer() override {
+    return m_rhiLayer.get();
+  }
 };
 } // namespace Ifrit::Core

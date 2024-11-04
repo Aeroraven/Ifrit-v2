@@ -11,7 +11,7 @@ struct RaytracerShaderStackElement {
   void *payloadPtr;
 };
 
-class RaytracerShaderExecutionStack {
+class IFRIT_APIDECL RaytracerShaderExecutionStack {
 protected:
   std::vector<RaytracerShaderStackElement> execStack;
 

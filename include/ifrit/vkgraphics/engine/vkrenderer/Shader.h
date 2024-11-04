@@ -1,4 +1,5 @@
 #pragma once
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <string>
@@ -27,6 +28,9 @@ public:
   ~ShaderModule();
   VkShaderModule getModule() const;
   VkPipelineShaderStageCreateInfo getStageCI() const;
-  inline uint32_t getCodeSize() const { return m_ci.code.size(); }
+  inline uint32_t getCodeSize() const {
+    using namespace Ifrit::Common::Utility;
+    return size_cast<int>(m_ci.code.size());
+  }
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

@@ -122,7 +122,7 @@ public:
           }
         }
       else {
-        memset(dataPtr, value, dataSize);
+        memset(dataPtr, 0, dataSize);
       }
     }
   }

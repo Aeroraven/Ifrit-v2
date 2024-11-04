@@ -1,6 +1,9 @@
 #include "ifrit/softgraphics/engine/export/EngineCommonExport.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterRenderer.h"
+
+using namespace Ifrit::Common::Utility;
 
 #define IFRIT_BASENS Ifrit::GraphicsBackend::SoftGraphics
 #define IFRIT_CORENS Ifrit::GraphicsBackend::SoftGraphics::Core::Data
@@ -21,7 +24,7 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyFrameBuffer(
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetFrameBufferColorAttachmentFP32(
     IFRIT_BASENS::FrameBuffer *pInstance, IFRIT_CORENS::ImageF32 *const *pImage,
     size_t nums) IFRIT_EXPORT_COMPAT_NOTHROW {
-  pInstance->setColorAttachmentsCompatible(pImage, nums);
+  pInstance->setColorAttachmentsCompatible(pImage, size_cast<int>(nums));
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetFrameBufferDepthAttachmentFP32(
     IFRIT_BASENS::FrameBuffer *pInstance,
@@ -124,7 +127,7 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetVertexBufferLayout(
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL
 iftrSetVertexBufferSize(IFRIT_BASENS::VertexBuffer *pInstance,
                         size_t num) IFRIT_EXPORT_COMPAT_NOTHROW {
-  pInstance->setVertexCount(num);
+  pInstance->setVertexCount(static_cast<int>(num));
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrAllocateVertexBuffer(
     IFRIT_BASENS::VertexBuffer *pInstance) IFRIT_EXPORT_COMPAT_NOTHROW {

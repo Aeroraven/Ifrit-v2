@@ -109,18 +109,18 @@ RhiVulkanBackend::getQueue(Rhi::RhiQueueCapability req) {
     reqs = QueueRequirement::Compute;
   } else if (req == Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT) {
     reqs = QueueRequirement::Transfer;
-  } else if (req == Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT |
-             Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT) {
+  } else if (req == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT |
+                     Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT)) {
     reqs = QueueRequirement::Graphics_Compute;
-  } else if (req == Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT |
-             Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT) {
+  } else if (req == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT |
+                     Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT)) {
     reqs = QueueRequirement::Graphics_Transfer;
-  } else if (req == Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT |
-             Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT) {
+  } else if (req == (Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT |
+                     Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT)) {
     reqs = QueueRequirement::Compute_Transfer;
-  } else if (req == Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT |
-             Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT |
-             Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT) {
+  } else if (req == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT |
+                     Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT |
+                     Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT)) {
     reqs = QueueRequirement::Universal;
   }
   auto s = m_implDetails->m_commandExecutor->getQueue(reqs);

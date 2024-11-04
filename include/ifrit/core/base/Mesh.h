@@ -14,7 +14,8 @@ struct MeshData {
   IFRIT_STRUCT_SERIALIZE(m_vertices, m_normals, m_uvs, m_tangents, m_indices);
 };
 
-class Mesh : public AssetReferenceContainer, public IAssetCompatible {
+class IFRIT_APIDECL Mesh : public AssetReferenceContainer,
+                           public IAssetCompatible {
 public:
   std::shared_ptr<MeshData> m_data;
 

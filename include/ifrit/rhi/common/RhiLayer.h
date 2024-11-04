@@ -5,6 +5,7 @@
 #endif
 #include <Windows.h>
 #endif
+#include "ifrit/common/util/ApiConv.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -141,14 +142,14 @@ struct RhiScissor {
 };
 
 // classes
-class RhiBackendFactory {
+class IFRIT_APIDECL RhiBackendFactory {
 public:
   virtual ~RhiBackendFactory() = default;
   virtual std::unique_ptr<Rhi::RhiBackend>
   createBackend(const RhiInitializeArguments &args) = 0;
 };
 
-class RhiBackend {
+class IFRIT_APIDECL RhiBackend {
 protected:
   RhiDevice *m_context;
 
@@ -205,12 +206,12 @@ public:
 
 // RHI device
 
-class RhiDevice {
+class IFRIT_APIDECL RhiDevice {
 protected:
   virtual int _polymorphismPlaceHolder() { return 0; }
 };
 
-class RhiSwapchain {
+class IFRIT_APIDECL RhiSwapchain {
 protected:
   RhiDevice *m_context;
 
@@ -225,7 +226,7 @@ public:
 
 // RHI memory resource
 
-class RhiBuffer {
+class IFRIT_APIDECL RhiBuffer {
 protected:
   RhiDevice *m_context;
 
@@ -239,7 +240,7 @@ public:
                            uint32_t offset) = 0;
 };
 
-class RhiMultiBuffer {
+class IFRIT_APIDECL RhiMultiBuffer {
 protected:
   RhiDevice *m_context;
 
@@ -248,7 +249,7 @@ public:
   virtual ~RhiMultiBuffer() = default;
 };
 
-class RhiStagedSingleBuffer {
+class IFRIT_APIDECL RhiStagedSingleBuffer {
 protected:
   RhiDevice *m_context;
 
@@ -269,7 +270,7 @@ protected:
 
 class RhiHostBarrier {};
 
-class RhiCommandBuffer {
+class IFRIT_APIDECL RhiCommandBuffer {
 protected:
   RhiDevice *m_context;
 
@@ -291,7 +292,7 @@ public:
                             RhiResourceState dst) const = 0;
 };
 
-class RhiQueue {
+class IFRIT_APIDECL RhiQueue {
 protected:
   RhiDevice *m_context;
 
@@ -316,14 +317,14 @@ public:
 
 // RHI shader
 
-class RhiShader {
+class IFRIT_APIDECL RhiShader {
 protected:
   virtual int _polymorphismPlaceHolder() { return 0; }
 };
 
 // RHI imaging
 
-class RhiTexture {
+class IFRIT_APIDECL RhiTexture {
 protected:
   RhiDevice *m_context;
   bool m_rhiSwapchainImage = false;
@@ -334,14 +335,14 @@ public:
 
 // RHI pipeline
 
-struct RhiRenderPassContext {
+struct IFRIT_APIDECL RhiRenderPassContext {
   const RhiCommandBuffer *m_cmd;
   uint32_t m_frame;
 };
 
-class RhiGeneralPassBase {};
+class IFRIT_APIDECL RhiGeneralPassBase {};
 
-class RhiComputePass {
+class IFRIT_APIDECL RhiComputePass {
 
 public:
   virtual ~RhiComputePass() = default;
@@ -359,7 +360,7 @@ public:
   virtual void run(const RhiCommandBuffer *cmd, uint32_t frameId) = 0;
 };
 
-class RhiGraphicsPass {
+class IFRIT_APIDECL RhiGraphicsPass {
 
 public:
   virtual ~RhiGraphicsPass() = default;
@@ -390,6 +391,6 @@ public:
   virtual void run(const RhiCommandBuffer *cmd, uint32_t frameId) = 0;
 };
 
-class RhiPassGraph {};
+class IFRIT_APIDECL RhiPassGraph {};
 
 } // namespace Ifrit::GraphicsBackend::Rhi

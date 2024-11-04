@@ -1,4 +1,5 @@
 #pragma once
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <memory>
@@ -68,7 +69,10 @@ public:
   }
   inline uint32_t getActiveFrame() { return m_activeFrame; }
   inline void setActiveFrame(uint32_t frame) { m_activeFrame = frame; }
-  inline uint32_t getBufferCount() { return m_buffers.size(); }
+  inline uint32_t getBufferCount() {
+    using namespace Ifrit::Common::Utility;
+    return size_cast<int>(m_buffers.size());
+  }
 };
 
 enum class ImageType { Image2D, Image3D, ImageCube };

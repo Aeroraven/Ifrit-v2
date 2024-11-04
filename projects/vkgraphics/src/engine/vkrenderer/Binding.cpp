@@ -2,8 +2,11 @@
 #define NOMINMAX
 #endif
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <algorithm>
+
+using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 template <typename E>
@@ -92,7 +95,7 @@ IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx)
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(m_context->getPhysicalDevice(), &properties);
   m_minUniformBufferAlignment =
-      properties.limits.minUniformBufferOffsetAlignment;
+      size_cast<int>(properties.limits.minUniformBufferOffsetAlignment);
 
   m_currentBindRange = std::make_unique<DescriptorBindRangeData>();
 }
@@ -105,7 +108,7 @@ DescriptorManager::registerUniformBuffer(SingleBuffer *buffer) {
       return i;
     }
   }
-  auto handleId = m_uniformBuffers.size();
+  auto handleId = size_cast<int>(m_uniformBuffers.size());
   m_uniformBuffers.push_back(buffer);
 
   VkDescriptorBufferInfo bufferInfo{};
@@ -145,13 +148,13 @@ uint32_t DescriptorManager::registerStorageBuffer(SingleBuffer *buffer) {
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.dstSet = m_bindlessSet;
   write.dstBinding = getUnderlying(Rhi::RhiDescriptorType::StorageBuffer);
-  write.dstArrayElement = handleId;
+  write.dstArrayElement = size_cast<uint32_t>(handleId);
   write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   write.descriptorCount = 1;
   write.pBufferInfo = &bufferInfo;
 
   vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
-  return handleId;
+  return size_cast<uint32_t>(handleId);
 }
 
 IFRIT_APIDECL
@@ -177,13 +180,13 @@ DescriptorManager::registerCombinedImageSampler(SingleDeviceImage *image,
   write.dstSet = m_bindlessSet;
   write.dstBinding =
       getUnderlying(Rhi::RhiDescriptorType::CombinedImageSampler);
-  write.dstArrayElement = handleId;
+  write.dstArrayElement = size_cast<uint32_t>(handleId);
   write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   write.descriptorCount = 1;
   write.pImageInfo = &imageInfo;
 
   vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
-  return handleId;
+  return size_cast<uint32_t>(handleId);
 }
 
 IFRIT_APIDECL DescriptorBindRange

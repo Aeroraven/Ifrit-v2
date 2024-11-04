@@ -1,4 +1,6 @@
 #include "ifrit/softgraphics/engine/meshletbuilder/MeshletBuilder.h"
+#include "ifrit/common/util/TypingUtil.h"
+using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::MeshletBuilder::Impl {
 struct MbTriangle {
@@ -81,7 +83,8 @@ void initializeContext(MbContext *ctx, const VertexBuffer &vbuf,
     ctx->adjMaps[ctx->triangles[i].ind.z].push_back(i);
   }
   for (int i = 0; i < totVerts; i++) {
-    ctx->remainActiveAdj[i] = ctx->adjMaps[i].size();
+    ctx->remainActiveAdj[i] =
+        Ifrit::Common::Utility::size_cast<int>(ctx->adjMaps[i].size());
   }
 }
 
@@ -131,7 +134,7 @@ int meshletExpansion(const MbContext &ctx, const MbCurrentMeshlet &meshlet) {
       auto la = ctx.remainActiveAdj[tri.ind.x],
            lb = ctx.remainActiveAdj[tri.ind.y],
            lc = ctx.remainActiveAdj[tri.ind.z];
-      auto prior = ua + ub + uc;
+      auto prior = ua + ub + uc + 0u;
       if (prior != 0) {
         if (la == 1 && lb == 1 && lc == 1)
           prior = 0;
@@ -205,7 +208,7 @@ void initializeCurrentMeshlet(const MbContext &ctx, MbCurrentMeshlet *meshlet) {
 void writeGenratedMeshlet(MbContext *ctx, const MbCurrentMeshlet &meshlet) {
   auto emitMeshlet = std::make_unique<Meshlet>();
   auto totalVerts = meshlet.usedVertices.size();
-  emitMeshlet->vbufs.setVertexCount(totalVerts);
+  emitMeshlet->vbufs.setVertexCount(size_cast<int>(totalVerts));
   emitMeshlet->vbufs.setLayout(
       {TypeDescriptors.FLOAT4, TypeDescriptors.FLOAT4});
   ifloat4 dcolor;
@@ -287,7 +290,7 @@ IFRIT_APIDECL void TrivialMeshletBuilder::mergeMeshlet(
     outVertexOffset.push_back(totalVerts);
     outIndexOffset.push_back(totalIndices);
     totalVerts += m->vbufs.getVertexCount();
-    totalIndices += m->ibufs.size();
+    totalIndices += Ifrit::Common::Utility::size_cast<int>(m->ibufs.size());
   }
   outVertexOffset.push_back(totalVerts);
   outIndexOffset.push_back(totalIndices);

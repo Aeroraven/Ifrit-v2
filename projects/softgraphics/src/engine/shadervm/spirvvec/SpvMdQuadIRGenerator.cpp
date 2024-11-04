@@ -1,7 +1,10 @@
 #include "ifrit/softgraphics/engine/shadervm/spirvvec/SpvMdQuadIRGenerator.h"
 #include "ifrit/softgraphics/engine/shadervm/spirvvec/SpvMdLlvmIrRepr.h"
 #define SPV_ENABLE_UTILITY_CODE
+#include "ifrit/common/util/TypingUtil.h"
 #include <spirv_headers/include/spirv/unified1/spirv.hpp>
+
+using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec {
 
@@ -25,7 +28,7 @@ namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec {
 
 std::string readString(const std::vector<uint32_t> &data, int &pos) {
   char *str = (char *)&data[pos];
-  int strlength = strlen(str);
+  int strlength = size_cast<int>(strlen(str));
   pos += (strlength + 3) / 4;
   return std::string(str);
 }
@@ -1705,8 +1708,8 @@ CONV_PASS(OpVectorShuffle) {
           args.push_back(regArg);
           auto sInd = params[i];
           auto vecSize = irg->getVariableSafe(src1->id)->tpRef->tp->size;
-          auto procVec = sInd >= vecSize ? src2Reg : src1Reg;
-          auto procVecIdx = sInd >= vecSize ? sInd - vecSize : sInd;
+          auto procVec = sInd >= (vecSize + 0u) ? src2Reg : src1Reg;
+          auto procVecIdx = sInd >= (vecSize + 0u) ? sInd - vecSize : sInd;
           irg->addIrB(std::make_unique<
                           LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(
                           regArg, procVec, procVecIdx),

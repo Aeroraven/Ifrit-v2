@@ -1,9 +1,11 @@
 #pragma once
 
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/TypeDescriptor.h"
 #include "ifrit/softgraphics/engine/base/VertexBuffer.h"
 #include "ifrit/softgraphics/engine/base/VertexShaderResult.h"
+
 
 namespace Ifrit::GraphicsBackend::SoftGraphics {
 
@@ -26,7 +28,8 @@ public:
 
   /* Inline */
   inline uint32_t getVaryingCounts() const {
-    return context->varyingDescriptors.size();
+    using namespace Ifrit::Common::Utility;
+    return size_cast<uint32_t>(context->varyingDescriptors.size());
   }
   inline TypeDescriptor getVaryingDescriptor(int index) const {
     return context->varyingDescriptors[index];

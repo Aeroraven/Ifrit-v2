@@ -8,8 +8,17 @@
 #endif
 
 #if _WINDLL
+#ifndef IFRIT_DLL
 #define IFRIT_DLL
+#endif
+#ifndef IFRIT_API_EXPORT
 #define IFRIT_API_EXPORT
+#endif
+#endif
+
+// We guarantee that the same STL is used across the library
+#ifdef _MSC_VER
+#pragma warning(disable : 4251)
 #endif
 
 // Platform specific dllexport semantics
