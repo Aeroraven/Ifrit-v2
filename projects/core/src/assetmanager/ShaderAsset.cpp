@@ -24,7 +24,7 @@ ShaderAssetImporter::processMetadata(AssetMetadata &metadata) {
 
 IFRIT_APIDECL std::vector<std::string>
 ShaderAssetImporter::getSupportedExtensionNames() {
-  return {".spv"};
+  return {".glsl"};
 }
 
 IFRIT_APIDECL void

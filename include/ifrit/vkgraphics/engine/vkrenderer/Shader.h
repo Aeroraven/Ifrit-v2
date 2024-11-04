@@ -11,6 +11,7 @@ struct ShaderModuleCI {
   std::vector<char> code;
   std::string entryPoint;
   Rhi::RhiShaderStage stage;
+  Rhi::RhiShaderSourceType sourceType;
 };
 
 class IFRIT_APIDECL ShaderModule : public Rhi::RhiShader {
@@ -22,8 +23,6 @@ private:
   std::string m_entryPoint;
 
 public:
-  ShaderModule(EngineContext *ctx, const std::vector<char> &code,
-               const std::string &entryPoint, Rhi::RhiShaderStage stage);
   ShaderModule(EngineContext *ctx, const ShaderModuleCI &ci);
   ~ShaderModule();
   VkShaderModule getModule() const;

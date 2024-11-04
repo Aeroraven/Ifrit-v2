@@ -106,7 +106,6 @@ public:
     std::vector<ifloat4> verticesAligned;
     std::vector<uint32_t> indices;
 
-   
     auto meshData = obj->loadMesh();
     indices = meshData->m_indices;
     vertices = meshData->m_vertices;
@@ -251,21 +250,24 @@ public:
     // Shader
     auto msCode =
         m_assetManager
-            ->getAssetByName<ShaderAsset>("Shader/ifrit.meshlet.mesh.spv")
+            ->getAssetByName<ShaderAsset>("Shader/ifrit.meshlet.mesh.glsl")
             ->loadShader();
     auto fsCode =
         m_assetManager
-            ->getAssetByName<ShaderAsset>("Shader/ifrit.meshlet.frag.spv")
+            ->getAssetByName<ShaderAsset>("Shader/ifrit.meshlet.frag.glsl")
             ->loadShader();
     auto csDynLodCode = m_assetManager
                             ->getAssetByName<ShaderAsset>(
-                                "Shader/ifrit.meshlet.dynlod.comp.spv")
+                                "Shader/ifrit.meshlet.dynlod.comp.glsl")
                             ->loadShader();
 
-    auto msModule = rt->createShader(msCode, "main", RhiShaderStage::Mesh);
-    auto fsModule = rt->createShader(fsCode, "main", RhiShaderStage::Fragment);
+    auto msModule = rt->createShader(msCode, "main", RhiShaderStage::Mesh,
+                                     RhiShaderSourceType::GLSLCode);
+    auto fsModule = rt->createShader(fsCode, "main", RhiShaderStage::Fragment,
+                                     RhiShaderSourceType::GLSLCode);
     auto csDynLodModule =
-        rt->createShader(csDynLodCode, "main", RhiShaderStage::Compute);
+        rt->createShader(csDynLodCode, "main", RhiShaderStage::Compute,
+                         RhiShaderSourceType::GLSLCode);
 
     // Depth Buffer
     auto depthImage = rt->createDepthRenderTexture(WINDOW_WIDTH, WINDOW_HEIGHT);

@@ -42,7 +42,8 @@ public:
 
   // Shader
   Rhi::RhiShader *createShader(const std::vector<char> &code, std::string entry,
-                               Rhi::RhiShaderStage stage) override;
+                               Rhi::RhiShaderStage stage,
+                               Rhi::RhiShaderSourceType sourceType) override;
 
   // Texture
   Rhi::RhiTexture *createDepthRenderTexture(uint32_t width,

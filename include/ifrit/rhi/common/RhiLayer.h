@@ -11,7 +11,6 @@
 #include <string>
 #include <vector>
 
-
 namespace Ifrit::GraphicsBackend::Rhi {
 class RhiBackend;
 class RhiContext;
@@ -60,6 +59,7 @@ enum RhiQueueCapability {
 };
 
 enum class RhiShaderStage { Vertex, Fragment, Compute, Mesh, Task };
+enum class RhiShaderSourceType { GLSLCode, Binary };
 
 enum class RhiDescriptorType {
   UniformBuffer,
@@ -185,8 +185,8 @@ public:
   virtual RhiQueue *getQueue(RhiQueueCapability req) = 0;
 
   virtual RhiShader *createShader(const std::vector<char> &code,
-                                  std::string entry,
-                                  Rhi::RhiShaderStage stage) = 0;
+                                  std::string entry, Rhi::RhiShaderStage stage,
+                                  Rhi::RhiShaderSourceType sourceType) = 0;
 
   // Pass execution
   virtual RhiComputePass *createComputePass() = 0;
