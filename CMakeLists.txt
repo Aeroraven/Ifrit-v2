@@ -25,14 +25,6 @@ else()
     message(STATUS "[Ifrit/Deps] LLVM package not found. Using pre-defined paths.")
 endif()
 
-# Find GLFW
-find_package(glfw3 3.3 CONFIG QUIET)
-if(glfw3_FOUND)
-    # Nothing todo
-else()
-    # warning message
-    message(STATUS "[Ifrit/Deps] GLFW3 package not found. Using pre-defined paths.")
-endif()
 
 # set build output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)

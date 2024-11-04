@@ -1,5 +1,6 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
+#include <shaderc/shaderc.hpp>
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,

@@ -46,7 +46,11 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 Following dependencies should be manually configured. Other dependencies will be configured via submodule.
 
 - OpenGL 3.3
-- Vulkan 1.3, with extension `mesh_shader` extension
+- CMake 3.24
+- Vulkan SDK 1.3
+  - shaderc 1.3
+  - with `mesh_shader` extension
+
 - LLVM 10 or LLVM 11 (Maybe higher version is OK, but LLVM 18 or higher might not work properly)
 
 
@@ -79,19 +83,19 @@ To run the demo
 
 This project relies on following open-source projects. Corresponding licenses are in `licenses` folder.
 
-| Repository                                                   | Usage                            | License          |
-| ------------------------------------------------------------ | -------------------------------- | ---------------- |
-| [stb](https://github.com/nothings/stb)                       | Image Parsing                    | MIT / Unlicensed |
-| [glfw3](https://github.com/glfw/glfw)                        | Window and Display support       | Zlib             |
-| [spirv-headers](https://github.com/KhronosGroup/SPIRV-Headers/) | SPIR-V Standard Reference        | MIT              |
-| [glad](https://github.com/Dav1dde/glad/)                     | OpenGL Header Generation.        | -                |
-| [llvm-project](https://github.com/llvm/llvm-project)         | JIT Runtime                      | Apache 2.0       |
-| [meshoptimizer](https://github.com/zeux/meshoptimizer)       | Mesh Algorithm                   | MIT              |
-| [METIS](https://github.com/KarypisLab/METIS/)                | Mesh Algorithm / Graph Partition | Apache 2.0       |
-| [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) | Memory Allocation                | MIT              |
-| [cereal](https://github.com/USCiLab/cereal)                  | Serialization                    | BSD-3            |
-| [tinygltf](https://github.com/syoyo/tinygltf/tree/release)   | Model Loading                    | MIT              |
-| [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT              |
+| Repository                                                   | Usage                            | License              |
+| ------------------------------------------------------------ | -------------------------------- | -------------------- |
+| [stb](https://github.com/nothings/stb)                       | Image Parsing                    | MIT / Unlicensed     |
+| [glfw3](https://github.com/glfw/glfw)                        | Window and Display support       | Zlib                 |
+| [spirv-headers](https://github.com/KhronosGroup/SPIRV-Headers/) | SPIR-V Standard Reference        | MIT                  |
+| [glad](https://github.com/Dav1dde/glad/)                     | OpenGL Header Generation.        | Generated files used |
+| [llvm-project](https://github.com/llvm/llvm-project)         | JIT Runtime                      | Apache 2.0           |
+| [meshoptimizer](https://github.com/zeux/meshoptimizer)       | Mesh Algorithm                   | MIT                  |
+| [METIS](https://github.com/KarypisLab/METIS/)                | Mesh Algorithm / Graph Partition | Apache 2.0           |
+| [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) | Memory Allocation                | MIT                  |
+| [cereal](https://github.com/USCiLab/cereal)                  | Serialization                    | BSD-3                |
+| [tinygltf](https://github.com/syoyo/tinygltf/tree/release)   | Model Loading                    | MIT                  |
+| [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT                  |
 
 
 
