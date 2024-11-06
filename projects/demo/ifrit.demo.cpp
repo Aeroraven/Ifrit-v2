@@ -71,6 +71,8 @@ private:
 
   std::vector<FlattenedBVHNode> bvhNodes;
   std::vector<ClusterGroup> clusterGroupData;
+  RhiBindlessDescriptorRef *msDescriptor;
+  RhiBindlessDescriptorRef *csDescriptor;
 
 public:
   std::shared_ptr<Ifrit::Core::Scene>
@@ -90,16 +92,16 @@ public:
 
   void onStart() override {
     auto obj = m_assetManager->getAssetByName<WaveFrontAsset>("bunny.obj");
-    if (m_sceneManager->checkSceneExists("TestScene2")) {
-      auto t = m_sceneManager->getScene("TestScene2");
+    if (m_sceneAssetManager->checkSceneExists("TestScene2")) {
+      auto t = m_sceneAssetManager->getScene("TestScene2");
     } else {
-      auto s = m_sceneManager->createScene("TestScene2");
+      auto s = m_sceneAssetManager->createScene("TestScene2");
       auto node = s->addSceneNode();
       auto gameObject = node->addGameObject();
       auto meshFilter = gameObject->addComponent<MeshFilter>();
 
       meshFilter->setMesh(obj);
-      m_sceneManager->saveScenes();
+      m_sceneAssetManager->saveScenes();
     }
 
     m_windowProvider->registerKeyCallback(key_callback);
@@ -279,30 +281,21 @@ public:
 
     // Cull Pass
     cullPass = rt->createComputePass();
+    csDescriptor = rt->createBindlessDescriptorRef();
+    csDescriptor->addStorageBuffer(indirectDrawBuffer, 0);
+    csDescriptor->addStorageBuffer(clusterGroupBuffer, 1);
+    csDescriptor->addStorageBuffer(bvhNodeBuffer, 2);
+    csDescriptor->addStorageBuffer(filteredMeshletBuffer, 3);
+    csDescriptor->addStorageBuffer(meshletInClusteBuffer, 4);
+    csDescriptor->addUniformBuffer(ubCullBuffer, 5);
+    csDescriptor->addUniformBuffer(ubBuffer, 6);
+    csDescriptor->addStorageBuffer(consumerCounterBuffer, 7);
+    csDescriptor->addStorageBuffer(producerCounterBuffer, 8);
+    csDescriptor->addStorageBuffer(productQueueBuffer, 9);
+    csDescriptor->addStorageBuffer(remainingCounterBuffer, 10);
 
-    cullPass->setComputeShader(csDynLodModule.get());
-    cullPass->setShaderBindingLayout(
-        {RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
-         RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
-         RhiDescriptorType::StorageBuffer, RhiDescriptorType::UniformBuffer,
-         RhiDescriptorType::UniformBuffer,
-         // Culling
-         RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
-         RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer});
-
-    // Data buffers
-    cullPass->addShaderStorageBuffer(indirectDrawBuffer, 0,
-                                     RhiResourceAccessType::Write);
-    cullPass->addShaderStorageBuffer(clusterGroupBuffer, 1,
-                                     RhiResourceAccessType::Read);
-    cullPass->addShaderStorageBuffer(bvhNodeBuffer, 2,
-                                     RhiResourceAccessType::Read);
-    cullPass->addShaderStorageBuffer(filteredMeshletBuffer, 3,
-                                     RhiResourceAccessType::Write);
-    cullPass->addShaderStorageBuffer(meshletInClusteBuffer, 4,
-                                     RhiResourceAccessType::Read);
-    cullPass->addUniformBuffer(ubCullBuffer, 5);
-    cullPass->addUniformBuffer(ubBuffer, 6);
+    cullPass->setComputeShader(csDynLodModule);
+    cullPass->setNumBindlessDescriptorSets(1);
 
     // Consumer-Producer buffers
     cullPass->addShaderStorageBuffer(consumerCounterBuffer, 7,
@@ -314,6 +307,7 @@ public:
     cullPass->addShaderStorageBuffer(remainingCounterBuffer, 10,
                                      RhiResourceAccessType::Write);
     cullPass->setRecordFunction([&](RhiRenderPassContext *ctx) -> void {
+      ctx->m_cmd->attachBindlessReferenceCompute(cullPass, 1, csDescriptor);
       ctx->m_cmd->dispatch(1, 1, 1);
     });
 
@@ -321,29 +315,21 @@ public:
     // TODO: register indirect
     msPass = rt->createGraphicsPass();
     swapchainImg = rt->getSwapchainImage();
-    msPass->addColorAttachment(swapchainImg, RhiRenderTargetLoadOp::Clear,
-                               {{0.00f, 0.00f, 0.00f, 1.0f}});
-    msPass->addShaderStorageBuffer(meshletBuffer, 0,
-                                   RhiResourceAccessType::Read);
-    msPass->addShaderStorageBuffer(meshletVertexBuffer, 1,
-                                   RhiResourceAccessType::Read);
-    msPass->addShaderStorageBuffer(meshletIndexBuffer, 2,
-                                   RhiResourceAccessType::Read);
-    msPass->addShaderStorageBuffer(vertexBuffer, 3,
-                                   RhiResourceAccessType::Read);
-    msPass->addShaderStorageBuffer(filteredMeshletBuffer, 4,
-                                   RhiResourceAccessType::Read);
-    msPass->addShaderStorageBuffer(meshletGraphPartitionBuffer, 5,
-                                   RhiResourceAccessType::Read);
-    msPass->addUniformBuffer(ubBuffer, 6);
-    msPass->setShaderBindingLayout(
-        {RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
-         RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
-         RhiDescriptorType::StorageBuffer, RhiDescriptorType::StorageBuffer,
-         RhiDescriptorType::UniformBuffer});
 
-    msPass->setMeshShader(msModule.get());
-    msPass->setPixelShader(fsModule.get());
+    msDescriptor = rt->createBindlessDescriptorRef();
+    msDescriptor->addStorageBuffer(meshletBuffer, 0);
+    msDescriptor->addStorageBuffer(meshletVertexBuffer, 1);
+    msDescriptor->addStorageBuffer(meshletIndexBuffer, 2);
+    msDescriptor->addStorageBuffer(vertexBuffer, 3);
+    msDescriptor->addStorageBuffer(filteredMeshletBuffer, 4);
+    msDescriptor->addStorageBuffer(meshletGraphPartitionBuffer, 5);
+    msDescriptor->addUniformBuffer(ubBuffer, 6);
+
+    msPass->setNumBindlessDescriptorSets(1);
+    msPass->addColorAttachment(swapchainImg, RhiRenderTargetLoadOp::Clear,
+                               {0.0f, 0.0f, 0.0f, 1.0f});
+    msPass->setMeshShader(msModule);
+    msPass->setPixelShader(fsModule);
     msPass->setRasterizerTopology(RhiRasterizerTopology::TriangleList);
     msPass->setRenderArea(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     msPass->setDepthAttachment(depthImage, RhiRenderTargetLoadOp::Clear,
@@ -354,6 +340,7 @@ public:
     msPass->setDepthTestEnable(true);
 
     msPass->setRecordFunction([&](RhiRenderPassContext *ctx) -> void {
+      ctx->m_cmd->attachBindlessReferenceGraphics(msPass, 1, msDescriptor);
       ctx->m_cmd->setScissors({scissor});
       ctx->m_cmd->setViewports({viewport});
       ctx->m_cmd->drawMeshTasksIndirect(indirectDrawBuffer, 0, 1, 0);

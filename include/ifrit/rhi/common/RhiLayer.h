@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 
+// TODO: Raw pointers are used in the interface, this is not good?
+
 namespace Ifrit::GraphicsBackend::Rhi {
 class RhiBackend;
 class RhiContext;
@@ -39,6 +41,8 @@ class RhiGraphicsQueue;
 class RhiComputeQueue;
 class RhiTransferQueue;
 
+class RhiBindlessDescriptorRef;
+
 // Enums
 enum RhiBufferUsage {
   RHI_BUFFER_USAGE_TRANSFER_SRC_BIT = 0x00000001,
@@ -61,6 +65,8 @@ enum RhiQueueCapability {
 
 enum class RhiShaderStage { Vertex, Fragment, Compute, Mesh, Task };
 enum class RhiShaderSourceType { GLSLCode, Binary };
+
+enum class RhiDescriptorBindPoint { Compute, Graphics };
 
 enum class RhiDescriptorType {
   UniformBuffer,
@@ -157,7 +163,6 @@ public:
   virtual ~RhiBackend() = default;
 
   // Memory resource
-
   virtual void waitDeviceIdle() = 0;
 
   // Create a general buffer
@@ -166,7 +171,6 @@ public:
   virtual RhiBuffer *createIndirectMeshDrawBufferDevice(uint32_t drawCalls) = 0;
   virtual RhiBuffer *createStorageBufferDevice(uint32_t size,
                                                uint32_t usage) = 0;
-
   virtual RhiMultiBuffer *createMultiBuffer(uint32_t size, uint32_t usage,
                                             uint32_t numCopies) = 0;
   virtual RhiMultiBuffer *createUniformBufferShared(uint32_t size,
@@ -175,7 +179,6 @@ public:
   virtual RhiMultiBuffer *createStorageBufferShared(uint32_t size,
                                                     bool hostVisible,
                                                     uint32_t extraFlags) = 0;
-
   virtual RhiTexture *createDepthRenderTexture(uint32_t width,
                                                uint32_t height) = 0;
 
@@ -184,14 +187,12 @@ public:
 
   // Command execution
   virtual RhiQueue *getQueue(RhiQueueCapability req) = 0;
-
   virtual RhiShader *createShader(const std::vector<char> &code,
                                   std::string entry, Rhi::RhiShaderStage stage,
                                   Rhi::RhiShaderSourceType sourceType) = 0;
 
   // Pass execution
   virtual RhiComputePass *createComputePass() = 0;
-
   virtual RhiGraphicsPass *createGraphicsPass() = 0;
 
   // Swapchain
@@ -202,6 +203,9 @@ public:
   getSwapchainFrameReadyEventHandler() = 0;
   virtual std::unique_ptr<RhiTaskSubmission>
   getSwapchainRenderDoneEventHandler() = 0;
+
+  // Descriptor
+  virtual RhiBindlessDescriptorRef *createBindlessDescriptorRef() = 0;
 };
 
 // RHI device
@@ -290,6 +294,14 @@ public:
 
   virtual void imageBarrier(const RhiTexture *texture, RhiResourceState src,
                             RhiResourceState dst) const = 0;
+
+  virtual void
+  attachBindlessReferenceGraphics(Rhi::RhiGraphicsPass *pass, uint32_t setId,
+                                  RhiBindlessDescriptorRef *ref) const = 0;
+
+  virtual void
+  attachBindlessReferenceCompute(Rhi::RhiComputePass *pass, uint32_t setId,
+                                 RhiBindlessDescriptorRef *ref) const = 0;
 };
 
 class IFRIT_APIDECL RhiQueue {
@@ -342,7 +354,7 @@ struct IFRIT_APIDECL RhiRenderPassContext {
 
 class IFRIT_APIDECL RhiGeneralPassBase {};
 
-class IFRIT_APIDECL RhiComputePass {
+class IFRIT_APIDECL RhiComputePass : public RhiGeneralPassBase {
 
 public:
   virtual ~RhiComputePass() = default;
@@ -358,9 +370,10 @@ public:
   setRecordFunction(std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
 
   virtual void run(const RhiCommandBuffer *cmd, uint32_t frameId) = 0;
+  virtual void setNumBindlessDescriptorSets(uint32_t num) = 0;
 };
 
-class IFRIT_APIDECL RhiGraphicsPass {
+class IFRIT_APIDECL RhiGraphicsPass : public RhiGeneralPassBase {
 
 public:
   virtual ~RhiGraphicsPass() = default;
@@ -389,8 +402,18 @@ public:
       std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
 
   virtual void run(const RhiCommandBuffer *cmd, uint32_t frameId) = 0;
+  virtual void setNumBindlessDescriptorSets(uint32_t num) = 0;
 };
 
 class IFRIT_APIDECL RhiPassGraph {};
+
+// Rhi Descriptors
+
+class IFRIT_APIDECL RhiBindlessDescriptorRef {
+public:
+  virtual void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t loc) = 0;
+  virtual void addStorageBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t loc) = 0;
+  virtual void addStorageBuffer(Rhi::RhiBuffer *buffer, uint32_t loc) = 0;
+};
 
 } // namespace Ifrit::GraphicsBackend::Rhi

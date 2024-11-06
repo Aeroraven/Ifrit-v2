@@ -19,12 +19,12 @@ public:
 
 class IFRIT_APIDECL SceneAssetImporter : public AssetImporter {
 protected:
-  SceneAssetManager *m_sceneManager;
+  SceneAssetManager *m_sceneAssetManager;
 
 public:
   constexpr static const char *IMPORTER_NAME = "SceneImporter";
   SceneAssetImporter(AssetManager *manager, SceneAssetManager *sceneManager)
-      : AssetImporter(manager), m_sceneManager(sceneManager) {}
+      : AssetImporter(manager), m_sceneAssetManager(sceneManager) {}
   void processMetadata(AssetMetadata &metadata) override;
   void importAsset(const std::filesystem::path &path,
                    AssetMetadata &metadata) override;

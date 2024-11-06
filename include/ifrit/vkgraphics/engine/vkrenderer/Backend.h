@@ -62,6 +62,9 @@ public:
   getSwapchainFrameReadyEventHandler() override;
   std::unique_ptr<Rhi::RhiTaskSubmission>
   getSwapchainRenderDoneEventHandler() override;
+
+  // Descriptor
+  virtual Rhi::RhiBindlessDescriptorRef *createBindlessDescriptorRef() override;
 };
 
 class IFRIT_APIDECL RhiVulkanBackendBuilder

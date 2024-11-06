@@ -19,6 +19,7 @@ struct RhiVulkanBackendImplDetails : public NonCopyable {
   // managed passes
   std::vector<std::unique_ptr<ComputePass>> m_computePasses;
   std::vector<std::unique_ptr<GraphicsPass>> m_graphicsPasses;
+  std::vector<std::unique_ptr<DescriptorBindlessIndices>> m_bindlessIndices;
 };
 
 IFRIT_APIDECL
@@ -181,6 +182,9 @@ IFRIT_APIDECL void RhiVulkanBackend::beginFrame() {
   m_implDetails->m_commandExecutor->beginFrame();
   m_implDetails->m_resourceManager->setActiveFrame(
       m_swapChain->getCurrentImageIndex());
+  for (auto &desc : m_implDetails->m_bindlessIndices) {
+    desc->setActiveFrame(m_swapChain->getCurrentImageIndex());
+  }
   for (auto &pass : m_implDetails->m_computePasses) {
     pass->setActiveFrame(m_swapChain->getCurrentImageIndex());
   }
@@ -213,6 +217,17 @@ RhiVulkanBackend::getSwapchainRenderDoneEventHandler() {
 }
 
 IFRIT_APIDECL RhiVulkanBackend::~RhiVulkanBackend() { delete m_implDetails; }
+
+IFRIT_APIDECL Rhi::RhiBindlessDescriptorRef *
+RhiVulkanBackend::createBindlessDescriptorRef() {
+  auto ref = std::make_unique<DescriptorBindlessIndices>(
+      checked_cast<EngineContext>(m_device.get()),
+      m_implDetails->m_descriptorManager.get(),
+      m_swapChain->getNumBackbuffers());
+  auto ptr = ref.get();
+  m_implDetails->m_bindlessIndices.push_back(std::move(ref));
+  return ptr;
+}
 
 IFRIT_APIDECL std::unique_ptr<Rhi::RhiBackend>
 RhiVulkanBackendBuilder::createBackend(

@@ -1,7 +1,10 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
 #include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
+
 using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
@@ -279,6 +282,33 @@ CommandBuffer::imageBarrier(const Rhi::RhiTexture *texture,
   vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
                        nullptr, 1, &barrier);
+}
+
+void CommandBuffer::attachBindlessReferenceGraphics(
+    Rhi::RhiGraphicsPass *pass, uint32_t setId,
+    Rhi::RhiBindlessDescriptorRef *ref) const {
+
+  auto bindless = checked_cast<DescriptorBindlessIndices>(ref);
+  auto graphicsPass = checked_cast<GraphicsPass>(pass);
+  auto set = bindless->getActiveRangeSet();
+  auto offset = bindless->getActiveRangeOffset();
+
+  vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          graphicsPass->getPipelineLayout(), setId, 1, &set, 1,
+                          &offset);
+}
+
+void CommandBuffer::attachBindlessReferenceCompute(
+    Rhi::RhiComputePass *pass, uint32_t setId,
+    Rhi::RhiBindlessDescriptorRef *ref) const {
+  auto bindless = checked_cast<DescriptorBindlessIndices>(ref);
+  auto computePass = checked_cast<ComputePass>(pass);
+  auto set = bindless->getActiveRangeSet();
+  auto offset = bindless->getActiveRangeOffset();
+
+  vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                          computePass->getPipelineLayout(), setId, 1, &set, 1,
+                          &offset);
 }
 
 // Class: Queue

@@ -251,6 +251,9 @@ protected:
   uint32_t m_activeFrame = 0;
   uint32_t m_defaultMultibuffers = UINT_MAX;
 
+  // 2x
+  uint32_t m_numBindlessDescriptorSets = 0;
+
 protected:
   std::vector<RegisteredResource *> &getInputResources();
   std::vector<RegisteredResource *> &getOutputResources();
@@ -298,6 +301,10 @@ public:
   virtual void build(uint32_t numMultiBuffers) = 0;
   virtual void record() = 0;
   virtual void execute();
+
+  inline virtual void setNumBindlessDescriptorSets_base(uint32_t num) {
+    m_numBindlessDescriptorSets = num;
+  }
 
   friend class RenderGraph;
 };
@@ -418,8 +425,15 @@ public:
       std::function<void(Rhi::RhiRenderPassContext *)> func) override {
     m_recordPostFunction = func;
   }
+  inline VkPipelineLayout getPipelineLayout() {
+    return m_pipeline->getLayout();
+  }
 
   void run(const Rhi::RhiCommandBuffer *cmd, uint32_t frameId) override;
+
+  inline virtual void setNumBindlessDescriptorSets(uint32_t num) override {
+    setNumBindlessDescriptorSets_base(num);
+  }
 };
 
 class IFRIT_APIDECL ComputePass : public RenderGraphPass,
@@ -472,6 +486,12 @@ public:
     setRecordFunction_base(func);
   }
   void run(const Rhi::RhiCommandBuffer *cmd, uint32_t frameId) override;
+  inline VkPipelineLayout getPipelineLayout() {
+    return m_pipeline->getLayout();
+  }
+  inline virtual void setNumBindlessDescriptorSets(uint32_t num) override {
+    setNumBindlessDescriptorSets_base(num);
+  }
 };
 
 struct RegisteredResourceGraphState {

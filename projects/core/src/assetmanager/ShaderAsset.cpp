@@ -3,8 +3,7 @@
 namespace Ifrit::Core {
 
 // Shader class
-IFRIT_APIDECL std::shared_ptr<ShaderAsset::ShaderRef>
-ShaderAsset::loadShader() {
+IFRIT_APIDECL ShaderAsset::ShaderRef *ShaderAsset::loadShader() {
   if (m_loaded) {
     return m_selfData;
   } else {
@@ -40,7 +39,7 @@ ShaderAsset::loadShader() {
         rhi->createShader(data, "main", stage,
                           GraphicsBackend::Rhi::RhiShaderSourceType::GLSLCode);
     // TODO: eliminate raw pointer
-    m_selfData = std::shared_ptr<ShaderRef>(p);
+    m_selfData = p;
     return m_selfData;
   }
 }
@@ -59,7 +58,8 @@ ShaderAssetImporter::getSupportedExtensionNames() {
 IFRIT_APIDECL void
 ShaderAssetImporter::importAsset(const std::filesystem::path &path,
                                  AssetMetadata &metadata) {
-  auto asset = std::make_shared<ShaderAsset>(metadata, path, m_assetManager->getApplication());
+  auto asset = std::make_shared<ShaderAsset>(metadata, path,
+                                             m_assetManager->getApplication());
   m_assetManager->registerAsset(asset);
   printf("Imported asset: [Shader] %s\n", metadata.m_uuid.c_str());
 }

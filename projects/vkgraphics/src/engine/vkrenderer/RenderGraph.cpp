@@ -460,19 +460,10 @@ IFRIT_APIDECL void GraphicsPass::record() {
     }
   }
 
-  if (m_passDescriptorLayout.size() > 0) {
-    auto bindlessSet = m_descriptorManager->getBindlessSet();
-    auto dynamicSet = m_descriptorManager->getParameterDescriptorSet(
-        m_descriptorBindRange[m_passContext.m_frame].rangeId);
-    auto dynamicRange =
-        m_descriptorBindRange[m_passContext.m_frame].rangeOffset;
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_pipeline->getLayout(), 0, 1, &bindlessSet, 0,
-                            nullptr);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            m_pipeline->getLayout(), 1, 1, &dynamicSet, 1,
-                            &dynamicRange);
-  }
+  auto bindlessSet = m_descriptorManager->getBindlessSet();
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          m_pipeline->getLayout(), 0, 1, &bindlessSet, 0,
+                          nullptr);
 
   exfun.p_vkCmdSetLogicOpEnableEXT(cmd, m_logicalOpEnable);
   exfun.p_vkCmdSetLogicOpEXT(cmd, m_logicOp);
@@ -625,16 +616,11 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
     ci.colorAttachmentFormats.push_back(
         m_colorAttachments[i].m_image->getImage(0)->getFormat());
   }
-  if (m_passDescriptorLayout.size() > 0) {
-    if (m_descriptorBindRange.size() == 0) {
-      buildDescriptorParamHandle(numMultiBuffers);
-    }
-    ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
+  ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
+  for (int i = 0; i < m_numBindlessDescriptorSets; i++) {
     ci.descriptorSetLayouts.push_back(
-        m_descriptorManager->getParameterDescriptorSetLayout(
-            m_descriptorBindRange[0].rangeId));
+        m_descriptorManager->getParameterDescriptorSetLayout());
   }
-
   m_pipeline = m_pipelineCache->getGraphicsPipeline(ci);
   setBuilt();
 }
@@ -659,14 +645,10 @@ IFRIT_APIDECL void ComputePass::run(const Rhi::RhiCommandBuffer *cmd,
 IFRIT_APIDECL void ComputePass::build(uint32_t numMultiBuffers) {
   ComputePipelineCreateInfo ci;
   ci.shaderModules = m_shaderModule;
-  if (m_passDescriptorLayout.size() > 0) {
-    if (m_descriptorBindRange.size() == 0) {
-      buildDescriptorParamHandle(numMultiBuffers);
-    }
-    ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
+  ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
+  for (int i = 0; i < m_numBindlessDescriptorSets; i++) {
     ci.descriptorSetLayouts.push_back(
-        m_descriptorManager->getParameterDescriptorSetLayout(
-            m_descriptorBindRange[0].rangeId));
+        m_descriptorManager->getParameterDescriptorSetLayout());
   }
   m_pipeline = m_pipelineCache->getComputePipeline(ci);
   setBuilt();
@@ -685,20 +667,10 @@ IFRIT_APIDECL void ComputePass::record() {
   m_passContext.m_cmd = m_commandBuffer;
   m_passContext.m_frame = m_activeFrame;
   VkCommandBuffer cmd = m_commandBuffer->getCommandBuffer();
-  if (m_passDescriptorLayout.size() > 0) {
-    auto bindlessSet = m_descriptorManager->getBindlessSet();
-    auto dynamicSet = m_descriptorManager->getParameterDescriptorSet(
-        m_descriptorBindRange[m_passContext.m_frame].rangeId);
-    auto dynamicRange =
-        m_descriptorBindRange[m_passContext.m_frame].rangeOffset;
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-                            m_pipeline->getLayout(), 0, 1, &bindlessSet, 0,
-                            nullptr);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-                            m_pipeline->getLayout(), 1, 1, &dynamicSet, 1,
-                            &dynamicRange);
-  }
-
+  auto bindlessSet = m_descriptorManager->getBindlessSet();
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+                          m_pipeline->getLayout(), 0, 1, &bindlessSet, 0,
+                          nullptr);
   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
                     m_pipeline->getPipeline());
 

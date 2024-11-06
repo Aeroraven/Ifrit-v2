@@ -23,11 +23,6 @@ public:
   IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
 };
 
-struct Material {
-  AssetReference m_assetReference;
-  IFRIT_STRUCT_SERIALIZE(m_assetReference);
-};
-
 class MeshFilter : public Component {
 private:
   bool m_meshLoaded = false;
@@ -66,18 +61,12 @@ public:
   IFRIT_COMPONENT_SERIALIZE(m_rawData, m_meshReference);
 };
 
-struct MeshRendererData {
-  Material m_material;
-  IFRIT_STRUCT_SERIALIZE(m_material);
-};
-
-class MeshRenderer : public Component, public AttributeOwner<MeshRendererData> {
+class MeshRenderer : public Component {
 public:
-  MeshRenderer(std::shared_ptr<SceneObject> owner)
-      : Component(owner), AttributeOwner() {}
+  MeshRenderer(std::shared_ptr<SceneObject> owner) : Component(owner) {}
   virtual ~MeshRenderer() = default;
-  inline std::string serialize() override { return serializeAttribute(); }
-  inline void deserialize() override { deserializeAttribute(); }
+  inline std::string serialize() override { return ""; }
+  inline void deserialize() override {}
 };
 
 } // namespace Ifrit::Core

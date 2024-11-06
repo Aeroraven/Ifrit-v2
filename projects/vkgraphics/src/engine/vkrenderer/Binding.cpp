@@ -21,17 +21,16 @@ IFRIT_APIDECL void DescriptorManager::destructor() {
   // iterates m_bindRages and delete descriptor pool and layout
   for (auto &range : m_bindRanges) {
     vkDestroyDescriptorPool(m_context->getDevice(), range->m_pool, nullptr);
-    vkDestroyDescriptorSetLayout(m_context->getDevice(), range->m_layout,
-                                 nullptr);
   }
 
   if (m_currentBindRange) {
     if (m_currentBindRange->m_pool != VK_NULL_HANDLE)
       vkDestroyDescriptorPool(m_context->getDevice(),
                               m_currentBindRange->m_pool, nullptr);
-    if (m_currentBindRange->m_layout != VK_NULL_HANDLE)
-      vkDestroyDescriptorSetLayout(m_context->getDevice(),
-                                   m_currentBindRange->m_layout, nullptr);
+  }
+  if (m_layoutShared != VK_NULL_HANDLE) {
+    vkDestroyDescriptorSetLayout(m_context->getDevice(), m_layoutShared,
+                                 nullptr);
   }
 }
 IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx)
@@ -98,6 +97,24 @@ IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx)
       size_cast<int>(properties.limits.minUniformBufferOffsetAlignment);
 
   m_currentBindRange = std::make_unique<DescriptorBindRangeData>();
+
+  // Descriptor layout for bindless parameter
+  m_bindingShared.binding = 0;
+  m_bindingShared.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+  m_bindingShared.descriptorCount = 1;
+  m_bindingShared.stageFlags = VK_SHADER_STAGE_ALL;
+  m_bindingShared.pImmutableSamplers = nullptr;
+
+  // Create descriptor set layout
+  VkDescriptorSetLayoutCreateInfo layoutCI2{};
+  layoutCI2.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutCI2.bindingCount = 1;
+  layoutCI2.pBindings = &m_bindingShared;
+
+  vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->getDevice(),
+                                              &layoutCI2,
+                                              nullptr, &m_layoutShared),
+                  "Failed to create descriptor set layout");
 }
 
 IFRIT_APIDECL uint32_t
@@ -228,24 +245,6 @@ IFRIT_APIDECL void DescriptorManager::buildBindlessParameter() {
   m_currentBindRange->m_buffer->flush();
   m_currentBindRange->m_buffer->unmap();
 
-  m_currentBindRange->m_binding.binding = 0;
-  m_currentBindRange->m_binding.descriptorType =
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-  m_currentBindRange->m_binding.descriptorCount = 1;
-  m_currentBindRange->m_binding.stageFlags = VK_SHADER_STAGE_ALL;
-  m_currentBindRange->m_binding.pImmutableSamplers = nullptr;
-
-  // Create descriptor set layout
-  VkDescriptorSetLayoutCreateInfo layoutCI{};
-  layoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutCI.bindingCount = 1;
-  layoutCI.pBindings = &m_currentBindRange->m_binding;
-
-  vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->getDevice(), &layoutCI,
-                                              nullptr,
-                                              &m_currentBindRange->m_layout),
-                  "Failed to create descriptor set layout");
-
   // Create pool
   VkDescriptorPoolSize poolSize{};
   poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -267,7 +266,7 @@ IFRIT_APIDECL void DescriptorManager::buildBindlessParameter() {
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = m_currentBindRange->m_pool;
   allocInfo.descriptorSetCount = 1;
-  allocInfo.pSetLayouts = &m_currentBindRange->m_layout;
+  allocInfo.pSetLayouts = &m_layoutShared;
 
   vkrVulkanAssert(vkAllocateDescriptorSets(m_context->getDevice(), &allocInfo,
                                            &m_currentBindRange->m_set),

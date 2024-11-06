@@ -36,7 +36,7 @@ SceneAssetImporter::importAsset(const std::filesystem::path &path,
   // remove extension
   fileName = fileName.substr(0, fileName.find_last_of("."));
   m_assetManager->registerAsset(asset);
-  m_sceneManager->registerScene(fileName, asset->getScene());
+  m_sceneAssetManager->registerScene(fileName, asset->getScene());
   printf("Imported asset: [Scene] %s\n", metadata.m_uuid.c_str());
 }
 

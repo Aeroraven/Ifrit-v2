@@ -5,7 +5,6 @@
 #include <memory>
 #include <vector>
 
-
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 class CommandBuffer;
 
@@ -147,6 +146,14 @@ public:
                              uint32_t stride) const override;
   void imageBarrier(const Rhi::RhiTexture *texture, Rhi::RhiResourceState src,
                     Rhi::RhiResourceState dst) const override;
+
+  void attachBindlessReferenceGraphics(
+      Rhi::RhiGraphicsPass *pass, uint32_t setId,
+      Rhi::RhiBindlessDescriptorRef *ref) const override;
+
+  void attachBindlessReferenceCompute(
+      Rhi::RhiComputePass *pass, uint32_t setId,
+      Rhi::RhiBindlessDescriptorRef *ref) const override;
 };
 
 class IFRIT_APIDECL CommandPool {

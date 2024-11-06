@@ -3,6 +3,7 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include <array>
+#include <map>
 #include <memory>
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
@@ -38,8 +39,7 @@ struct DescriptorBindRangeData {
   std::vector<Range> m_ranges;
   VkDescriptorPool m_pool{};
   VkDescriptorSet m_set{};
-  VkDescriptorSetLayout m_layout{};
-  VkDescriptorSetLayoutBinding m_binding{};
+
   std::unique_ptr<SingleBuffer> m_buffer;
 };
 
@@ -62,6 +62,9 @@ private:
   std::vector<std::unique_ptr<DescriptorBindRangeData>> m_bindRanges;
   std::unique_ptr<DescriptorBindRangeData> m_currentBindRange;
 
+  VkDescriptorSetLayout m_layoutShared = VK_NULL_HANDLE;
+  VkDescriptorSetLayoutBinding m_bindingShared{};
+
 protected:
   void destructor();
 
@@ -77,7 +80,6 @@ public:
   uint32_t registerStorageBuffer(SingleBuffer *buffer);
   DescriptorBindRange registerBindlessParameterRaw(const char *data,
                                                    uint32_t size);
-
   template <typename T>
   DescriptorBindRange registerBindlessParameter(const T &data) {
     return registerBindlessParameterRaw((char *)&data, sizeof(T));
@@ -94,12 +96,92 @@ public:
     }
     return m_bindRanges[rangeId]->m_set;
   }
-  inline VkDescriptorSetLayout
-  getParameterDescriptorSetLayout(uint32_t rangeId) {
-    if (rangeId >= m_bindRanges.size()) {
-      buildBindlessParameter();
-    }
-    return m_bindRanges[rangeId]->m_layout;
+  inline VkDescriptorSetLayout getParameterDescriptorSetLayout() {
+    return m_layoutShared;
   }
 };
+
+class IFRIT_APIDECL DescriptorBindlessIndices
+    : public Rhi::RhiBindlessDescriptorRef {
+private:
+  EngineContext *m_context;
+  DescriptorManager *m_descriptorManager;
+  std::vector<VkDescriptorSet> m_set;
+  std::vector<DescriptorBindRange> m_bindRange;
+
+  std::vector<std::map<uint32_t, uint32_t>> m_indices;
+  uint32_t numCopies;
+  uint32_t activeFrame = 0;
+
+public:
+  DescriptorBindlessIndices(EngineContext *ctx, DescriptorManager *manager,
+                            uint32_t copies)
+      : m_context(ctx), m_descriptorManager(manager) {
+    m_indices.resize(copies);
+    numCopies = copies;
+  }
+
+  inline virtual void addUniformBuffer(Rhi::RhiMultiBuffer *buffer,
+                                       uint32_t loc) override {
+    auto buf = Ifrit::Common::Utility::checked_cast<MultiBuffer>(buffer);
+    for (uint32_t i = 0; i < numCopies; i++) {
+      auto p = m_descriptorManager->registerUniformBuffer(buf->getBuffer(i));
+      m_indices[i][loc] = p;
+    }
+  }
+
+  inline virtual void addStorageBuffer(Rhi::RhiMultiBuffer *buffer,
+                                       uint32_t loc) override {
+    auto buf = Ifrit::Common::Utility::checked_cast<MultiBuffer>(buffer);
+    for (uint32_t i = 0; i < numCopies; i++) {
+      auto p = m_descriptorManager->registerStorageBuffer(buf->getBuffer(i));
+      m_indices[i][loc] = p;
+    }
+  }
+
+  inline virtual void addStorageBuffer(Rhi::RhiBuffer *buffer,
+                                       uint32_t loc) override {
+    auto buf = Ifrit::Common::Utility::checked_cast<SingleBuffer>(buffer);
+    for (uint32_t i = 0; i < numCopies; i++) {
+      auto p = m_descriptorManager->registerStorageBuffer(buf);
+      m_indices[i][loc] = p;
+    }
+  }
+
+  inline void buildRanges() {
+    if (m_bindRange.size() == 0) {
+      m_bindRange.resize(numCopies);
+      for (uint32_t i = 0; i < numCopies; i++) {
+        std::vector<uint32_t> uniformData;
+        auto numKeys = m_indices[i].size();
+        uniformData.resize(numKeys);
+        for (auto &[k, v] : m_indices[i]) {
+          uniformData[k] = v;
+        }
+        auto ptr = reinterpret_cast<const char *>(uniformData.data());
+        m_bindRange[i] = m_descriptorManager->registerBindlessParameterRaw(
+            ptr, numKeys * sizeof(uint32_t));
+      }
+    }
+  }
+
+  inline virtual VkDescriptorSet getRangeSet(uint32_t frame) {
+    buildRanges();
+    return m_descriptorManager->getParameterDescriptorSet(
+        m_bindRange[frame].rangeId);
+  }
+
+  inline uint32_t getRangeOffset(uint32_t frame) {
+    buildRanges();
+    return m_bindRange[frame].rangeOffset;
+  }
+
+  inline void setActiveFrame(uint32_t frame) { activeFrame = frame; }
+
+  inline uint32_t getActiveRangeOffset() { return getRangeOffset(activeFrame); }
+  inline VkDescriptorSet getActiveRangeSet() {
+    return getRangeSet(activeFrame);
+  }
+};
+
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

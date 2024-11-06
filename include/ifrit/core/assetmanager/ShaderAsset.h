@@ -6,7 +6,7 @@ namespace Ifrit::Core {
 class IFRIT_APIDECL ShaderAsset : public Asset {
 private:
   using ShaderRef = GraphicsBackend::Rhi::RhiShader;
-  std::shared_ptr<ShaderRef> m_selfData;
+  ShaderAsset::ShaderRef *m_selfData;
   bool m_loaded = false;
   IApplication *m_app;
 
@@ -15,7 +15,7 @@ public:
               IApplication *app)
       : Asset(metadata, path), m_app(app) {}
 
-  std::shared_ptr<ShaderRef> loadShader();
+  ShaderRef *loadShader();
 };
 class IFRIT_APIDECL ShaderAssetImporter : public AssetImporter {
 private:
