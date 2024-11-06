@@ -65,6 +65,19 @@ public:
 
   // Descriptor
   virtual Rhi::RhiBindlessDescriptorRef *createBindlessDescriptorRef() override;
+
+  // Render targets
+  virtual std::shared_ptr<Rhi::RhiColorAttachment>
+  createRenderTarget(Rhi::RhiTexture *renderTarget,
+                     Rhi::RhiClearValue clearValue,
+                     Rhi::RhiRenderTargetLoadOp loadOp) override;
+
+  virtual std::shared_ptr<Rhi::RhiDepthStencilAttachment>
+  createRenderTargetDepthStencil(Rhi::RhiTexture *renderTarget,
+                                 Rhi::RhiClearValue clearValue,
+                                 Rhi::RhiRenderTargetLoadOp loadOp) override;
+
+  virtual std::shared_ptr<Rhi::RhiRenderTargets> createRenderTargets() override;
 };
 
 class IFRIT_APIDECL RhiVulkanBackendBuilder

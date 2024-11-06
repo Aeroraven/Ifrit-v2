@@ -43,6 +43,10 @@ class RhiTransferQueue;
 
 class RhiBindlessDescriptorRef;
 
+class RhiRenderTargets;
+class RhiColorAttachment;
+class RhiDepthStencilAttachment;
+
 // Enums
 enum RhiBufferUsage {
   RHI_BUFFER_USAGE_TRANSFER_SRC_BIT = 0x00000001,
@@ -99,7 +103,12 @@ enum class RhiCompareOp {
   Always
 };
 
-enum class RhiResourceState { Undefined, RenderTarget, Present };
+enum class RhiResourceState {
+  Undefined,
+  RenderTarget,
+  DepthStencilRenderTarget,
+  Present
+};
 
 // Structs
 struct RhiInitializeArguments {
@@ -206,6 +215,18 @@ public:
 
   // Descriptor
   virtual RhiBindlessDescriptorRef *createBindlessDescriptorRef() = 0;
+
+  // Render target
+  virtual std::shared_ptr<RhiColorAttachment>
+  createRenderTarget(RhiTexture *renderTarget, RhiClearValue clearValue,
+                     RhiRenderTargetLoadOp loadOp) = 0;
+
+  virtual std::shared_ptr<RhiDepthStencilAttachment>
+  createRenderTargetDepthStencil(RhiTexture *renderTarget,
+                                 RhiClearValue clearValue,
+                                 RhiRenderTargetLoadOp loadOp) = 0;
+
+  virtual std::shared_ptr<RhiRenderTargets> createRenderTargets() = 0;
 };
 
 // RHI device
@@ -401,7 +422,8 @@ public:
   virtual void setRecordFunctionPostRenderPass(
       std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
 
-  virtual void run(const RhiCommandBuffer *cmd, uint32_t frameId) = 0;
+  virtual void run(const RhiCommandBuffer *cmd,
+                   RhiRenderTargets *renderTargets, uint32_t frameId) = 0;
   virtual void setNumBindlessDescriptorSets(uint32_t num) = 0;
 };
 
@@ -414,6 +436,31 @@ public:
   virtual void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t loc) = 0;
   virtual void addStorageBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t loc) = 0;
   virtual void addStorageBuffer(Rhi::RhiBuffer *buffer, uint32_t loc) = 0;
+};
+
+// Rhi RenderTargets
+
+class IFRIT_APIDECL RhiRenderTargets {
+public:
+  virtual void setColorAttachments(
+      const std::vector<Rhi::RhiColorAttachment *> &attachments) = 0;
+  virtual void
+  setDepthStencilAttachment(Rhi::RhiDepthStencilAttachment *attachment) = 0;
+  virtual void
+  beginRendering(const Rhi::RhiCommandBuffer *commandBuffer) const = 0;
+  virtual void
+  endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const = 0;
+  virtual void setRenderArea(Rhi::RhiScissor area) = 0;
+};
+
+class IFRIT_APIDECL RhiColorAttachment {
+protected:
+  virtual int _polymorphismPlaceHolder() { return 0; }
+};
+
+class IFRIT_APIDECL RhiDepthStencilAttachment {
+protected:
+  virtual int _polymorphismPlaceHolder() { return 0; }
 };
 
 } // namespace Ifrit::GraphicsBackend::Rhi

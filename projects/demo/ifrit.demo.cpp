@@ -74,6 +74,10 @@ private:
   RhiBindlessDescriptorRef *msDescriptor;
   RhiBindlessDescriptorRef *csDescriptor;
 
+  std::shared_ptr<RhiRenderTargets> renderTargets;
+  std::shared_ptr<RhiColorAttachment> colorAttachment;
+  std::shared_ptr<RhiDepthStencilAttachment> depthAttachment;
+
 public:
   std::shared_ptr<Ifrit::Core::Scene>
   createScene(Ifrit::Core::SceneAssetManager *sceneMan,
@@ -276,8 +280,17 @@ public:
                                   "Shader/ifrit.meshlet.dynlod.comp.glsl")
                               ->loadShader();
 
-    // Depth Buffer
+    // Render targets
     auto depthImage = rt->createDepthRenderTexture(WINDOW_WIDTH, WINDOW_HEIGHT);
+    swapchainImg = rt->getSwapchainImage();
+    renderTargets = rt->createRenderTargets();
+    colorAttachment = rt->createRenderTarget(
+        swapchainImg, {0.0f, 0.0f, 0.0f, 1.0f}, RhiRenderTargetLoadOp::Clear);
+    depthAttachment = rt->createRenderTargetDepthStencil(
+        depthImage, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
+    renderTargets->setColorAttachments({colorAttachment.get()});
+    renderTargets->setDepthStencilAttachment(depthAttachment.get());
+    renderTargets->setRenderArea(scissor);
 
     // Cull Pass
     cullPass = rt->createComputePass();
@@ -314,7 +327,6 @@ public:
     // Draw Pass
     // TODO: register indirect
     msPass = rt->createGraphicsPass();
-    swapchainImg = rt->getSwapchainImage();
 
     msDescriptor = rt->createBindlessDescriptorRef();
     msDescriptor->addStorageBuffer(meshletBuffer, 0);
@@ -397,7 +409,9 @@ public:
         [&](const RhiCommandBuffer *cmd) { cullPass->run(cmd, 0); },
         {sFrameReady.get()}, {});
     auto sDrawEnd = drawQueue->runAsyncCommand(
-        [&](const RhiCommandBuffer *cmd) { msPass->run(cmd, 0); },
+        [&](const RhiCommandBuffer *cmd) {
+          msPass->run(cmd, renderTargets.get(), 0);
+        },
         {sCompEnd.get()}, {sRenderComplete.get()});
     rt->endFrame();
   }

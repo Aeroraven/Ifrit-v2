@@ -1,6 +1,7 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/RenderTargets.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 
 using namespace Ifrit::Common::Utility;
@@ -214,6 +215,29 @@ RhiVulkanBackend::getSwapchainRenderDoneEventHandler() {
   wait.m_semaphore = sema;
   wait.m_fence = fence;
   return std::make_unique<TimelineSemaphoreWait>(wait);
+}
+
+std::shared_ptr<Rhi::RhiColorAttachment>
+RhiVulkanBackend::createRenderTarget(Rhi::RhiTexture *renderTarget,
+                                     Rhi::RhiClearValue clearValue,
+                                     Rhi::RhiRenderTargetLoadOp loadOp) {
+  auto attachment =
+      std::make_shared<ColorAttachment>(renderTarget, clearValue, loadOp);
+  return attachment;
+}
+
+std::shared_ptr<Rhi::RhiDepthStencilAttachment>
+RhiVulkanBackend::createRenderTargetDepthStencil(
+    Rhi::RhiTexture *renderTarget, Rhi::RhiClearValue clearValue,
+    Rhi::RhiRenderTargetLoadOp loadOp) {
+  auto attachment = std::make_shared<DepthStencilAttachment>(
+      renderTarget, clearValue, loadOp);
+  return attachment;
+}
+
+std::shared_ptr<Rhi::RhiRenderTargets> RhiVulkanBackend::createRenderTargets() {
+  auto ctx = checked_cast<EngineContext>(m_device.get());
+  return std::make_shared<RenderTargets>(ctx);
 }
 
 IFRIT_APIDECL RhiVulkanBackend::~RhiVulkanBackend() { delete m_implDetails; }

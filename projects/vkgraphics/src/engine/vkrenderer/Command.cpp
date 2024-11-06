@@ -262,6 +262,10 @@ CommandBuffer::imageBarrier(const Rhi::RhiTexture *texture,
     barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     break;
+  case Rhi::RhiResourceState::DepthStencilRenderTarget:
+    barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    break;
   case Rhi::RhiResourceState::Present:
     barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;

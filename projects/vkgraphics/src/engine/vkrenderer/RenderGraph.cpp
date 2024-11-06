@@ -323,115 +323,14 @@ IFRIT_APIDECL void GraphicsPass::setMeshShader(Rhi::RhiShader *shader) {
   m_meshShader = checked_cast<ShaderModule>(shader);
 }
 
-IFRIT_APIDECL void GraphicsPass::record() {
+IFRIT_APIDECL void GraphicsPass::record(RenderTargets *renderTarget) {
   m_passContext.m_cmd = m_commandBuffer;
   m_passContext.m_frame = m_activeFrame;
-
-  PipelineBarrier barrierColor(
-      m_context, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0);
-  // Perform resource transitions for output resources
-  for (int i = 0; i < m_colorAttachments.size(); i++) {
-    auto &attachment = m_colorAttachments[i];
-    auto &transition = m_outputTransition[i];
-    attachment.m_image->recordTransition(transition,
-                                         m_commandBuffer->getQueueFamily());
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = transition.m_oldLayout;
-    barrier.newLayout = transition.m_newLayout;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    // m_commandBuffer->getQueueFamily();
-    barrier.image = attachment.m_image->getImage(m_activeFrame)->getImage();
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = transition.m_srcAccess;
-    barrier.dstAccessMask = transition.m_dstAccess;
-    barrierColor.addImageMemoryBarrier(barrier);
-  }
-  m_commandBuffer->pipelineBarrier(barrierColor);
-
-  if (m_depthAttachment.m_image) {
-    PipelineBarrier barrierDepth(m_context, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 0);
-    auto &attachment = m_depthAttachment;
-    auto &transition = m_outputTransition[m_colorAttachments.size()];
-    attachment.m_image->recordTransition(transition,
-                                         m_commandBuffer->getQueueFamily());
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = transition.m_oldLayout;
-    barrier.newLayout = transition.m_newLayout;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = attachment.m_image->getImage(m_activeFrame)->getImage();
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = transition.m_srcAccess;
-    barrier.dstAccessMask = transition.m_dstAccess;
-    barrierDepth.addImageMemoryBarrier(barrier);
-    m_commandBuffer->pipelineBarrier(barrierDepth);
-  }
-
-  // Specify rendering info
-  std::vector<VkRenderingAttachmentInfoKHR> colorAttachmentInfos;
-  for (int i = 0; i < m_colorAttachments.size(); i++) {
-    VkRenderingAttachmentInfoKHR attachmentInfo{};
-    attachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-    attachmentInfo.clearValue = m_colorAttachments[i].m_clearValue;
-    attachmentInfo.loadOp = m_colorAttachments[i].m_loadOp;
-    attachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    attachmentInfo.imageView =
-        m_colorAttachments[i].m_image->getImage(m_activeFrame)->getImageView();
-    colorAttachmentInfos.push_back(attachmentInfo);
-  }
-  VkRenderingAttachmentInfoKHR depthAttachmentInfo{};
-  if (m_depthAttachment.m_image) {
-    depthAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-    depthAttachmentInfo.clearValue = m_depthAttachment.m_clearValue;
-    depthAttachmentInfo.loadOp = m_depthAttachment.m_loadOp;
-    depthAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    depthAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    depthAttachmentInfo.imageView =
-        m_depthAttachment.m_image->getImage(m_activeFrame)->getImageView();
-  }
-
-  VkRenderingInfo renderingInfo{};
-  renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-  renderingInfo.renderArea = m_renderArea;
-  renderingInfo.layerCount = 1;
-  renderingInfo.colorAttachmentCount =
-      size_cast<uint32_t>(m_colorAttachments.size());
-  renderingInfo.pColorAttachments = colorAttachmentInfos.data();
-  renderingInfo.pDepthAttachment =
-      m_depthAttachment.m_image ? &depthAttachmentInfo : nullptr;
-
+  renderTarget->beginRendering(m_commandBuffer);
+  vkCmdBindPipeline(m_commandBuffer->getCommandBuffer(),
+                    VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->getPipeline());
   auto exfun = m_context->getExtensionFunction();
-
-  VkCommandBuffer cmd =
-      checked_cast<CommandBuffer>(m_commandBuffer)->getCommandBuffer();
-
-  vkCmdBeginRendering(cmd, &renderingInfo);
-  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    m_pipeline->getPipeline());
-  vkCmdSetDepthWriteEnable(cmd, m_depthWrite);
-  exfun.p_vkCmdSetColorWriteEnableEXT(
-      cmd, size_cast<uint32_t>(m_colorAttachments.size()), m_colorWrite.data());
-  exfun.p_vkCmdSetColorBlendEnableEXT(
-      cmd, 0, size_cast<uint32_t>(m_colorAttachments.size()),
-      m_blendEnable.data());
-
-  exfun.p_vkCmdSetColorBlendEquationEXT(
-      cmd, 0, size_cast<uint32_t>(m_colorAttachments.size()),
-      m_blendEquations.data());
-
-  exfun.p_vkCmdSetColorWriteMaskEXT(
-      cmd, 0, size_cast<uint32_t>(m_colorAttachments.size()),
-      m_colorWriteMask.data());
+  auto cmd = m_commandBuffer->getCommandBuffer();
   if (m_meshShader == nullptr) {
     exfun.p_vkCmdSetVertexInputEXT(
         cmd, size_cast<uint32_t>(m_vertexBufferDescriptor.m_bindings.size()),
@@ -475,6 +374,8 @@ IFRIT_APIDECL void GraphicsPass::record() {
   exfun.p_vkCmdSetDepthBoundsTestEnable(cmd, m_depthBoundTestEnable);
   exfun.p_vkCmdSetDepthCompareOp(cmd, m_depthCompareOp);
   exfun.p_vkCmdSetDepthTestEnable(cmd, m_depthTestEnable);
+  exfun.p_vkCmdSetDepthWriteEnable(cmd, m_depthWrite);
+
   vkCmdSetFrontFace(cmd, m_frontFace);
   vkCmdSetCullMode(cmd, m_cullMode);
 
@@ -482,7 +383,7 @@ IFRIT_APIDECL void GraphicsPass::record() {
     m_recordFunction(&m_passContext);
   }
 
-  vkCmdEndRendering(cmd);
+  renderTarget->endRendering(m_commandBuffer);
 
   if (m_recordPostFunction) {
     m_recordPostFunction(&m_passContext);
@@ -680,6 +581,7 @@ IFRIT_APIDECL void ComputePass::record() {
 }
 
 IFRIT_APIDECL void GraphicsPass::run(const Rhi::RhiCommandBuffer *cmd,
+                                     Rhi::RhiRenderTargets *renderTargets,
                                      uint32_t frameId) {
   if (m_passBuilt == false) {
     build(0);
@@ -687,7 +589,7 @@ IFRIT_APIDECL void GraphicsPass::run(const Rhi::RhiCommandBuffer *cmd,
   m_commandBuffer = checked_cast<CommandBuffer>(cmd);
   m_activeFrame = frameId;
   execute();
-  record();
+  record(checked_cast<RenderTargets>(renderTargets));
 }
 
 // Class: RenderGraph

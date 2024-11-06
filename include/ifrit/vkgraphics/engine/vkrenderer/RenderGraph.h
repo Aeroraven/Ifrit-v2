@@ -6,6 +6,7 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Pipeline.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/RenderTargets.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Swapchain.h"
 #include <functional>
@@ -13,6 +14,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+// TODO: render graph abstraction is deprecated in this level
+// it's intended to be used in higher level.
+// So this file only encapsulates 'GraphicsPass' and 'ComputePass'
+// Some redundant code is planned to be removed
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
@@ -250,7 +256,7 @@ protected:
 
   uint32_t m_activeFrame = 0;
   uint32_t m_defaultMultibuffers = UINT_MAX;
-
+  
   // 2x
   uint32_t m_numBindlessDescriptorSets = 0;
 
@@ -299,7 +305,7 @@ public:
       std::function<void(Rhi::RhiRenderPassContext *)> func);
 
   virtual void build(uint32_t numMultiBuffers) = 0;
-  virtual void record() = 0;
+  virtual void record(){}
   virtual void execute();
 
   inline virtual void setNumBindlessDescriptorSets_base(uint32_t num) {
@@ -358,7 +364,8 @@ public:
                DescriptorManager *descriptorManager,
                RegisteredResourceMapper *mapper);
 
-  void record() override;
+  void
+  record(Ifrit::GraphicsBackend::VulkanGraphics::RenderTargets *renderTarget);
 
   void addColorAttachment(Rhi::RhiTexture *texture,
                           Rhi::RhiRenderTargetLoadOp op,
@@ -429,7 +436,9 @@ public:
     return m_pipeline->getLayout();
   }
 
-  void run(const Rhi::RhiCommandBuffer *cmd, uint32_t frameId) override;
+  void run(const Rhi::RhiCommandBuffer *cmd,
+           Rhi::RhiRenderTargets *renderTargets,
+           uint32_t frameId) override;
 
   inline virtual void setNumBindlessDescriptorSets(uint32_t num) override {
     setNumBindlessDescriptorSets_base(num);
