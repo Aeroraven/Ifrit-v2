@@ -34,7 +34,7 @@ public:
   Rhi::RhiMultiBuffer *createStorageBufferShared(uint32_t size,
                                                  bool hostVisible,
                                                  uint32_t extraFlags) override;
-  Rhi::RhiStagedSingleBuffer *
+  std::shared_ptr<Rhi::RhiStagedSingleBuffer>
   createStagedSingleBuffer(Rhi::RhiBuffer *target) override;
 
   // Command execution
@@ -65,6 +65,12 @@ public:
 
   // Descriptor
   virtual Rhi::RhiBindlessDescriptorRef *createBindlessDescriptorRef() override;
+
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
+  registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) override;
+
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
+  registerStorageBuffer(Rhi::RhiBuffer *buffer) override;
 
   // Render targets
   virtual std::shared_ptr<Rhi::RhiColorAttachment>

@@ -5,7 +5,6 @@
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/Core.h"
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
-#include "ifrit/meshproc/engine/clusterlod/MeshClusterLodProc.h"
 
 #define WINDOW_WIDTH 1980
 #define WINDOW_HEIGHT 1080
@@ -69,8 +68,6 @@ private:
 
   constexpr static int MAX_LOD = 4;
 
-  std::vector<FlattenedBVHNode> bvhNodes;
-  std::vector<ClusterGroup> clusterGroupData;
   RhiBindlessDescriptorRef *msDescriptor;
   RhiBindlessDescriptorRef *csDescriptor;
 
@@ -78,22 +75,9 @@ private:
   std::shared_ptr<RhiColorAttachment> colorAttachment;
   std::shared_ptr<RhiDepthStencilAttachment> depthAttachment;
 
+  std::shared_ptr<MeshData> meshData;
+
 public:
-  std::shared_ptr<Ifrit::Core::Scene>
-  createScene(Ifrit::Core::SceneAssetManager *sceneMan,
-              Ifrit::Core::AssetManager *assetMan) {
-    using namespace Ifrit::Core;
-    auto scene = sceneMan->createScene("TestScene");
-    auto node = scene->addSceneNode();
-    auto gameObject = node->addGameObject();
-    auto meshFilter = gameObject->addComponent<MeshFilter>();
-
-    auto s = assetMan->getAssetByName<WaveFrontAsset>("bunny.obj");
-    meshFilter->setMesh(s);
-    sceneMan->saveScenes();
-    return scene;
-  }
-
   void onStart() override {
     auto obj = m_assetManager->getAssetByName<WaveFrontAsset>("bunny.obj");
     if (m_sceneAssetManager->checkSceneExists("TestScene2")) {
@@ -115,72 +99,29 @@ public:
     std::vector<ifloat4> verticesAligned;
     std::vector<uint32_t> indices;
 
-    auto meshData = obj->loadMesh();
+    meshData = obj->loadMesh();
+    obj->createMeshLodHierarchy(meshData);
     indices = meshData->m_indices;
     vertices = meshData->m_vertices;
-
-    verticesAligned.resize(vertices.size());
-    for (int i = 0; i < vertices.size(); i++) {
-      verticesAligned[i] =
-          ifloat4(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
-    }
+    verticesAligned = meshData->m_verticesAligned;
 
     const size_t max_vertices = 64;
     const size_t max_triangles = 124;
     const float cone_weight = 0.0f;
 
-    MeshClusterLodProc meshProc;
-    MeshDescriptor meshDesc;
-    meshDesc.indexCount = size_cast<int>(indices.size());
-    meshDesc.indexData = reinterpret_cast<char *>(indices.data());
-    meshDesc.positionOffset = 0;
-    meshDesc.vertexCount = size_cast<int>(vertices.size());
-    meshDesc.vertexData = reinterpret_cast<char *>(vertices.data());
-    meshDesc.vertexStride = sizeof(ifloat3);
-
-    auto chosenLod = MAX_LOD - 1;
-    CombinedClusterLodBuffer meshletData;
-
-    meshProc.clusterLodHierachy(meshDesc, meshletData, clusterGroupData,
-                                bvhNodes, MAX_LOD);
-
-    auto meshlet_triangles = meshletData.meshletTriangles;
-    auto meshlets = meshletData.meshletsRaw;
-    auto meshlet_vertices = meshletData.meshletVertices;
-    auto meshlet_count = meshlets.size();
-    auto meshlet_cull = meshletData.meshletCull;
-    auto meshlet_graphPart = meshletData.graphPartition;
-    auto meshlet_inClusterGroup = meshletData.meshletsInClusterGroups;
-
-    std::vector<unsigned int> meshlet_triangles2(meshlet_triangles.size());
-    for (int i = 0; i < meshlet_triangles.size(); i++) {
-      meshlet_triangles2[i] = meshlet_triangles[i];
-    }
-
-    printf("Meshlet count: %lld\n", meshlet_count);
-    printf("Meshlet Vertices: %lld\n", meshlet_vertices.size());
-    printf("Meshlet Triangles: %lld\n", meshlet_triangles.size());
-    printf("Vertex Buffer %lld\n", vertices.size());
-
-    printf("Total BVH Nodes:%lld\n", bvhNodes.size());
-    printf("Total Cluster Groups:%lld\n", clusterGroupData.size());
-    printf("Total Cluster Groups Raw:%lld\n", meshletData.clusterGroups.size());
-    // Create ssbo
-
     auto meshletBuffer = rt->createStorageBufferDevice(
-        size_cast<uint32_t>(meshlets.size() * sizeof(meshopt_Meshlet)),
+        size_cast<uint32_t>(meshData->m_meshlets.size() * sizeof(iint4)),
         RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
     auto meshletVertexBuffer = rt->createStorageBufferDevice(
-        size_cast<int>(meshlet_vertices.size() * sizeof(unsigned int)),
+        size_cast<int>(meshData->m_meshletVertices.size() *
+                       sizeof(unsigned int)),
         RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
     auto meshletIndexBuffer = rt->createStorageBufferDevice(
-        size_cast<int>(meshlet_triangles2.size() * sizeof(unsigned int)),
-        RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-    auto meshletGraphPartitionBuffer = rt->createStorageBufferDevice(
-        size_cast<int>(meshlet_graphPart.size() * sizeof(unsigned int)),
+        size_cast<int>(meshData->m_meshletTriangles.size() *
+                       sizeof(unsigned int)),
         RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
     auto vertexBuffer = rt->createStorageBufferDevice(
-        size_cast<int>(verticesAligned.size() * sizeof(ifloat4)),
+        size_cast<int>(meshData->m_verticesAligned.size() * sizeof(ifloat4)),
         RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
     ubBuffer = rt->createUniformBufferShared(
         size_cast<int>(sizeof(UniformBuffer)), true, 0);
@@ -188,12 +129,12 @@ public:
     // Culling pipeline
     indirectDrawBuffer = rt->createIndirectMeshDrawBufferDevice(1);
     auto filteredMeshletBuffer = rt->createStorageBufferDevice(
-        size_cast<int>(meshlets.size() * sizeof(uint32_t)), 0);
+        size_cast<int>(meshData->m_meshlets.size() * sizeof(uint32_t)), 0);
     auto bvhNodeBuffer = rt->createStorageBufferDevice(
-        size_cast<int>(bvhNodes.size() * sizeof(FlattenedBVHNode)),
+        size_cast<int>(meshData->m_bvhNodes.size() * sizeof(FlattenedBVHNode)),
         RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
     auto clusterGroupBuffer = rt->createStorageBufferDevice(
-        size_cast<int>(clusterGroupData.size() * sizeof(ClusterGroup)),
+        size_cast<int>(meshData->m_clusterGroups.size() * sizeof(ClusterGroup)),
         RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
     auto consumerCounterBuffer =
         rt->createStorageBufferDevice(size_cast<int>(sizeof(uint32_t)), 0);
@@ -202,14 +143,15 @@ public:
     auto remainingCounterBuffer =
         rt->createStorageBufferDevice(size_cast<int>(sizeof(uint32_t)), 0);
     auto productQueueBuffer = rt->createStorageBufferDevice(
-        size_cast<int>(sizeof(uint32_t) * bvhNodes.size()), 0);
+        size_cast<int>(sizeof(uint32_t) * meshData->m_bvhNodes.size()), 0);
     ubCullBuffer = rt->createUniformBufferShared(
         size_cast<int>(sizeof(UniformCullBuffer)), true, 0);
-    auto meshletInClusteBuffer = rt->createStorageBufferDevice(
-        size_cast<int>(meshlet_inClusterGroup.size() * sizeof(uint32_t)),
+    auto meshletInClusterBuffer = rt->createStorageBufferDevice(
+        size_cast<int>(meshData->m_meshletInClusterGroup.size() *
+                       sizeof(uint32_t)),
         VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 
-    uniformData.meshletCount = size_cast<uint32_t>(meshlet_count);
+    uniformData.meshletCount = size_cast<uint32_t>(meshData->m_meshlets.size());
 
     if (true) {
       auto stagedMeshletBuffer = rt->createStagedSingleBuffer(meshletBuffer);
@@ -223,44 +165,42 @@ public:
       auto stagedBvhNodeBuffer = rt->createStagedSingleBuffer(bvhNodeBuffer);
       auto stagedClusterGroupBuffer =
           rt->createStagedSingleBuffer(clusterGroupBuffer);
-      auto stagedGraphPartitionBuffer =
-          rt->createStagedSingleBuffer(meshletGraphPartitionBuffer);
       auto stagedMeshletInClusterBuffer =
-          rt->createStagedSingleBuffer(meshletInClusteBuffer);
+          rt->createStagedSingleBuffer(meshletInClusterBuffer);
 
       auto tq = rt->getQueue(RHI_QUEUE_TRANSFER_BIT);
 
       tq->runSyncCommand([&](const RhiCommandBuffer *cmd) -> void {
         stagedMeshletBuffer->cmdCopyToDevice(
-            cmd, meshlets.data(),
-            size_cast<uint32_t>(meshlets.size() * sizeof(meshopt_Meshlet)), 0);
+            cmd, meshData->m_meshlets.data(),
+            size_cast<uint32_t>(meshData->m_meshlets.size() * sizeof(iint4)),
+            0);
         stagedMeshletVertexBuffer->cmdCopyToDevice(
-            cmd, meshlet_vertices.data(),
-            size_cast<uint32_t>(meshlet_vertices.size() * sizeof(unsigned int)),
+            cmd, meshData->m_meshletVertices.data(),
+            size_cast<uint32_t>(meshData->m_meshletVertices.size() *
+                                sizeof(unsigned int)),
             0);
         stagedMeshletIndexBuffer->cmdCopyToDevice(
-            cmd, meshlet_triangles2.data(),
-            size_cast<uint32_t>(meshlet_triangles2.size() *
+            cmd, meshData->m_meshletTriangles.data(),
+            size_cast<uint32_t>(meshData->m_meshletTriangles.size() *
                                 sizeof(unsigned int)),
             0);
         stagedVertexBuffer->cmdCopyToDevice(
             cmd, verticesAligned.data(),
             size_cast<uint32_t>(verticesAligned.size() * sizeof(ifloat4)), 0);
         stagedBvhNodeBuffer->cmdCopyToDevice(
-            cmd, bvhNodes.data(),
-            size_cast<uint32_t>(bvhNodes.size() * sizeof(FlattenedBVHNode)), 0);
-        stagedClusterGroupBuffer->cmdCopyToDevice(
-            cmd, clusterGroupData.data(),
-            size_cast<uint32_t>(clusterGroupData.size() * sizeof(ClusterGroup)),
+            cmd, meshData->m_bvhNodes.data(),
+            size_cast<uint32_t>(meshData->m_bvhNodes.size() *
+                                sizeof(FlattenedBVHNode)),
             0);
-        stagedGraphPartitionBuffer->cmdCopyToDevice(
-            cmd, meshlet_graphPart.data(),
-            size_cast<uint32_t>(meshlet_graphPart.size() *
-                                sizeof(unsigned int)),
+        stagedClusterGroupBuffer->cmdCopyToDevice(
+            cmd, meshData->m_clusterGroups.data(),
+            size_cast<uint32_t>(meshData->m_clusterGroups.size() *
+                                sizeof(ClusterGroup)),
             0);
         stagedMeshletInClusterBuffer->cmdCopyToDevice(
-            cmd, meshlet_inClusterGroup.data(),
-            size_cast<uint32_t>(meshlet_inClusterGroup.size() *
+            cmd, meshData->m_meshletInClusterGroup.data(),
+            size_cast<uint32_t>(meshData->m_meshletInClusterGroup.size() *
                                 sizeof(uint32_t)),
             0);
       });
@@ -299,7 +239,7 @@ public:
     csDescriptor->addStorageBuffer(clusterGroupBuffer, 1);
     csDescriptor->addStorageBuffer(bvhNodeBuffer, 2);
     csDescriptor->addStorageBuffer(filteredMeshletBuffer, 3);
-    csDescriptor->addStorageBuffer(meshletInClusteBuffer, 4);
+    csDescriptor->addStorageBuffer(meshletInClusterBuffer, 4);
     csDescriptor->addUniformBuffer(ubCullBuffer, 5);
     csDescriptor->addUniformBuffer(ubBuffer, 6);
     csDescriptor->addStorageBuffer(consumerCounterBuffer, 7);
@@ -309,16 +249,6 @@ public:
 
     cullPass->setComputeShader(csDynLodModule);
     cullPass->setNumBindlessDescriptorSets(1);
-
-    // Consumer-Producer buffers
-    cullPass->addShaderStorageBuffer(consumerCounterBuffer, 7,
-                                     RhiResourceAccessType::Write);
-    cullPass->addShaderStorageBuffer(producerCounterBuffer, 8,
-                                     RhiResourceAccessType::Write);
-    cullPass->addShaderStorageBuffer(productQueueBuffer, 9,
-                                     RhiResourceAccessType::Write);
-    cullPass->addShaderStorageBuffer(remainingCounterBuffer, 10,
-                                     RhiResourceAccessType::Write);
     cullPass->setRecordFunction([&](RhiRenderPassContext *ctx) -> void {
       ctx->m_cmd->attachBindlessReferenceCompute(cullPass, 1, csDescriptor);
       ctx->m_cmd->dispatch(1, 1, 1);
@@ -334,16 +264,12 @@ public:
     msDescriptor->addStorageBuffer(meshletIndexBuffer, 2);
     msDescriptor->addStorageBuffer(vertexBuffer, 3);
     msDescriptor->addStorageBuffer(filteredMeshletBuffer, 4);
-    msDescriptor->addStorageBuffer(meshletGraphPartitionBuffer, 5);
-    msDescriptor->addUniformBuffer(ubBuffer, 6);
+    msDescriptor->addUniformBuffer(ubBuffer, 5);
 
     msPass->setNumBindlessDescriptorSets(1);
-    msPass->addColorAttachment(swapchainImg, RhiRenderTargetLoadOp::Clear,
-                               {0.0f, 0.0f, 0.0f, 1.0f});
     msPass->setMeshShader(msModule);
     msPass->setPixelShader(fsModule);
     msPass->setRasterizerTopology(RhiRasterizerTopology::TriangleList);
-    msPass->setRenderArea(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     msPass->setDepthAttachment(depthImage, RhiRenderTargetLoadOp::Clear,
                                {{}, 1.0f});
 
@@ -353,8 +279,6 @@ public:
 
     msPass->setRecordFunction([&](RhiRenderPassContext *ctx) -> void {
       ctx->m_cmd->attachBindlessReferenceGraphics(msPass, 1, msDescriptor);
-      ctx->m_cmd->setScissors({scissor});
-      ctx->m_cmd->setViewports({viewport});
       ctx->m_cmd->drawMeshTasksIndirect(indirectDrawBuffer, 0, 1, 0);
     });
     msPass->setRecordFunctionPostRenderPass(
@@ -386,9 +310,10 @@ public:
       buf->flush();
       buf->unmap();
 
-      uniformCullData.totalBvhNodes = size_cast<uint32_t>(bvhNodes.size());
+      uniformCullData.totalBvhNodes =
+          size_cast<uint32_t>(meshData->m_bvhNodes.size());
       uniformCullData.clusterGroupCounts =
-          size_cast<uint32_t>(clusterGroupData.size());
+          size_cast<uint32_t>(meshData->m_clusterGroups.size());
       uniformCullData.totalLods = MAX_LOD;
       auto buf2 = ubCullBuffer->getActiveBuffer();
       buf2->map();

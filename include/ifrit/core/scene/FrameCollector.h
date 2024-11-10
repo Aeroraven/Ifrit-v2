@@ -1,5 +1,11 @@
 #pragma once
 #include "ifrit/common/math/VectorDefs.h"
+#include "ifrit/core/base/Material.h"
+#include "ifrit/core/base/Mesh.h"
+#include "ifrit/rhi/common/RhiLayer.h"
+#include <unordered_map>
+#include <vector>
+
 namespace Ifrit::Core {
 
 struct PerFramePerViewData {
@@ -15,7 +21,37 @@ struct PerFramePerViewData {
 };
 
 struct PerObjectData {
-  float4x4 m_modelToWorld;
+  uint32_t transformRef;
+  uint32_t objectDataRef;
+  uint32_t pad0;
+  uint32_t pad1;
+};
+
+struct PerShaderEffectData {
+  std::vector<std::shared_ptr<Material>> m_materials;
+  std::vector<std::shared_ptr<Mesh>> m_meshes;
+  std::vector<std::shared_ptr<Transform>> m_transforms;
+
+  // Data to GPUs
+  uint32_t m_lastObjectCount = ~0u;
+  std::vector<PerObjectData> m_objectData;
+  Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer *m_batchedObjectData = nullptr;
+  Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef *m_batchedObjBufRef =
+      nullptr;
+};
+
+struct PerFrameData {
+  using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
+  using GPUBindlessRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
+  PerFramePerViewData m_viewData;
+  GPUUniformBuffer *m_viewBuffer = nullptr;
+  GPUBindlessRef *m_viewBindlessRef = nullptr;
+  std::vector<PerShaderEffectData> m_shaderEffectData;
+  std::unordered_map<ShaderEffect, uint32_t, ShaderEffectHash>
+      m_shaderEffectMap;
+
+  // TODO: resource release
+  std::unordered_set<uint32_t> m_enabledEffects;
 };
 
 } // namespace Ifrit::Core

@@ -26,7 +26,6 @@ layout(set = 0 , binding = 1) buffer MeshletVertices { uint meshlet_vertices[]; 
 layout(set = 0 , binding = 1) buffer MeshletTriangles { uint meshlet_triangles[]; } gMeshletTri[];
 layout(set = 0 , binding = 1) buffer Vertices { vec4 vertices[]; } gVertices[];
 layout(set = 0 , binding = 1) buffer FilteredMeshlets { uint data[]; } gCulledMeshlets[];
-layout(set = 0 , binding = 1) buffer GraphParts { uint data[]; } gGraphParts[];
 
 layout (set = 0,binding = 0) uniform UniformBufferObject {
   mat4 mvp;
@@ -42,10 +41,10 @@ layout(set = 1, binding = 0) uniform BindlessMapping {
   uint meshletTriId;
   uint vxbufId;
   uint targetMeshId;
-  uint graphPartId;
   uint uniformId;
   uint dummy1;
   uint dummy2;
+  uint dummy3;
 } bindlessMapping;
 
 layout(location = 0) out vec3 fragColor[];
@@ -89,11 +88,6 @@ float computeProjectedRadius(float fovy,float d,float r) {
 void main() {
   uint mio = gl_WorkGroupID.x;
   uint mi = gCulledMeshlets[bindlessMapping.targetMeshId].data[mio]; 
-  uint graphPartId = gGraphParts[bindlessMapping.graphPartId].data[mi];
-  if(graphPartId != 0) {
-    //SetMeshOutputsEXT(0, 0);
-    //return;
-  }
 
   // Meshlet display
   uint totalTris = gMeshlets[bindlessMapping.meshletId].meshlets[mi].triangle_count;

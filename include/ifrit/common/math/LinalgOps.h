@@ -164,5 +164,30 @@ inline float4x4 eulerAngleToMatrix(const ifloat3 &euler) {
   result[3][3] = 1;
   return result;
 }
+inline float4x4 identity() {
+  float4x4 result;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      result[i][j] = i == j ? 1 : 0;
+    }
+  }
+  return result;
+}
+
+inline float4x4 translate3D(const ifloat3 &t) {
+  float4x4 result = identity();
+  result[0][3] = t.x;
+  result[1][3] = t.y;
+  result[2][3] = t.z;
+  return result;
+}
+
+inline float4x4 scale3D(const ifloat3 &s) {
+  float4x4 result = identity();
+  result[0][0] = s.x;
+  result[1][1] = s.y;
+  result[2][2] = s.z;
+  return result;
+}
 
 } // namespace Ifrit::Math

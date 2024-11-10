@@ -69,6 +69,13 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
     m_selfData->m_normals = normals;
     m_selfData->m_uvs = uvs;
     m_selfData->m_indices = indices;
+
+    // align vertices
+    m_selfData->m_verticesAligned.resize(vertices.size());
+    for (int i = 0; i < vertices.size(); i++) {
+      m_selfData->m_verticesAligned[i] =
+          ifloat4(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
+    }
   }
   return m_selfData;
 }

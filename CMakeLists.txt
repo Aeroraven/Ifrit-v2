@@ -49,5 +49,5 @@ add_subdirectory(projects/demo)
 
 add_dependencies(ifrit.meshproclib meshoptimizer metis)
 add_dependencies(ifrit.softrenderer ifrit.ircompile)
-add_dependencies(ifrit.core ifrit.rhi ifrit.display)
+add_dependencies(ifrit.core ifrit.rhi ifrit.display ifrit.meshproclib)
 add_dependencies(ifrit.demo ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.core ifrit.rhi)

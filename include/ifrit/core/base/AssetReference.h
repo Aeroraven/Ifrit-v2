@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 
-
 namespace Ifrit::Core {
 struct AssetReference {
   std::string m_fileId;
@@ -12,6 +11,10 @@ struct AssetReference {
   std::string m_name;
   bool m_usingAsset = false;
   IFRIT_STRUCT_SERIALIZE(m_fileId, m_uuid, m_name, m_usingAsset)
+
+  bool operator==(const AssetReference &other) const {
+    return m_uuid == other.m_uuid && m_name == other.m_name;
+  }
 };
 
 class IFRIT_APIDECL IAssetCompatible {

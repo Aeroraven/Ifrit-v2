@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ifrit/core/base/Camera.h"
 #include "ifrit/core/base/Component.h"
 
 namespace Ifrit::Core {
@@ -46,6 +47,9 @@ public:
   Scene() : m_root(std::make_shared<SceneNode>()) {}
   std::shared_ptr<SceneNode> addSceneNode();
   inline std::shared_ptr<SceneNode> getRootNode() { return m_root; }
+
+  Camera *getMainCamera();
+
   IFRIT_STRUCT_SERIALIZE(m_root);
 };
 

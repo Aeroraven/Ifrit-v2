@@ -18,8 +18,8 @@ The project is organized into following parts.
 - **`softrenderer`**: CUDA and CPU multithreaded SIMD software rasterizer & ray-tracer.
   - Covers culling, mesh shading pipeline (mesh shader), MSAA (up to 8x), mipmap, anisotropic filtering, SPIR-V JIT execution and shader derivatives.
   - CPU rasterizer is organized in TBR-like manner, utilize AVX2 instructions and tag buffer (with early-z) for performance gain.
-  - For implementation details and performance, check [here](./projects/softrenderer/readme.md)
-- **`vkrenderer`**: Vulkan renderer, intended to be the refactored version for [my original implementation](https://github.com/Aeroraven/Aria).
+  - For implementation details and performance, check [here](./projects/softgraphics/readme.md)
+- **`rhi/vkrenderer`**: Vulkan renderer, intended to be the refactored version for [my original implementation](https://github.com/Aeroraven/Aria).
   - Get rid of messy pass management, synchronization primitives and descriptor bindings in the original repo.
 
 - **`meshproclib`**: Mesh algorithms.
@@ -36,7 +36,6 @@ The project is organized into following parts.
 
 ```bash
 git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive 
-# git checkout remote main
 ```
 
 

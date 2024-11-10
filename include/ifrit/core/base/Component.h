@@ -5,6 +5,7 @@
 #include "ifrit/common/serialization/SerialInterface.h"
 #include "ifrit/common/util/ApiConv.h"
 #include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/rhi/common/RhiLayer.h"
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -139,6 +140,12 @@ struct TransformAttribute {
 
 class IFRIT_APIDECL Transform : public Component,
                                 public AttributeOwner<TransformAttribute> {
+private:
+  using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  GPUUniformBuffer *m_gpuBuffer = nullptr;
+  std::shared_ptr<GPUBindId> m_gpuBindlessRef = nullptr;
+
 public:
   Transform(){};
   Transform(std::shared_ptr<SceneObject> parent)
@@ -156,6 +163,17 @@ public:
   inline void setRotation(const ifloat3 &rot) { m_attributes.m_rotation = rot; }
   inline void setScale(const ifloat3 &scale) { m_attributes.m_scale = scale; }
 
+  float4x4 getModelToWorldMatrix();
+  inline void setGPUResource(GPUUniformBuffer *buffer,
+                             std::shared_ptr<GPUBindId> &bindlessRef) {
+    m_gpuBuffer = buffer;
+    m_gpuBindlessRef = bindlessRef;
+  }
+  inline void getGPUResource(GPUUniformBuffer *&buffer,
+                             std::shared_ptr<GPUBindId> &bindlessRef) {
+    buffer = m_gpuBuffer;
+    bindlessRef = m_gpuBindlessRef;
+  }
   IFRIT_COMPONENT_SERIALIZE(m_attributes);
 };
 

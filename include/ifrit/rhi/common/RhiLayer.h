@@ -30,6 +30,9 @@ class RhiStagedSingleBuffer;
 
 // I don't think the abstraction should be on RHI level
 // however, I am too lazy to refactor the whole thing
+
+// Note here 'passes' are in fact 'pipeline references'
+// If two pass hold similar pipeline CI, they are the same
 class RhiComputePass;
 class RhiGraphicsPass;
 class RhiPassGraph;
@@ -156,6 +159,15 @@ struct RhiScissor {
   uint32_t height;
 };
 
+struct RhiBindlessIdRef {
+  uint32_t activeFrame;
+  std::vector<uint32_t> ids;
+
+  inline uint32_t getActiveId() const { return ids[activeFrame]; }
+
+  inline void setFromId(uint32_t frame) { activeFrame = frame; }
+};
+
 // classes
 class IFRIT_APIDECL RhiBackendFactory {
 public:
@@ -191,7 +203,7 @@ public:
   virtual RhiTexture *createDepthRenderTexture(uint32_t width,
                                                uint32_t height) = 0;
 
-  virtual RhiStagedSingleBuffer *
+  virtual std::shared_ptr<Rhi::RhiStagedSingleBuffer>
   createStagedSingleBuffer(RhiBuffer *target) = 0;
 
   // Command execution
@@ -215,6 +227,11 @@ public:
 
   // Descriptor
   virtual RhiBindlessDescriptorRef *createBindlessDescriptorRef() = 0;
+  virtual std::shared_ptr<RhiBindlessIdRef>
+  registerUniformBuffer(RhiMultiBuffer *buffer) = 0;
+
+  virtual std::shared_ptr<RhiBindlessIdRef>
+  registerStorageBuffer(RhiBuffer *buffer) = 0;
 
   // Render target
   virtual std::shared_ptr<RhiColorAttachment>
@@ -351,8 +368,9 @@ public:
 // RHI shader
 
 class IFRIT_APIDECL RhiShader {
-protected:
-  virtual int _polymorphismPlaceHolder() { return 0; }
+public:
+  virtual RhiShaderStage getStage() const = 0;
+  virtual uint32_t getNumDescriptorSets() const = 0;
 };
 
 // RHI imaging
@@ -422,8 +440,8 @@ public:
   virtual void setRecordFunctionPostRenderPass(
       std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
 
-  virtual void run(const RhiCommandBuffer *cmd,
-                   RhiRenderTargets *renderTargets, uint32_t frameId) = 0;
+  virtual void run(const RhiCommandBuffer *cmd, RhiRenderTargets *renderTargets,
+                   uint32_t frameId) = 0;
   virtual void setNumBindlessDescriptorSets(uint32_t num) = 0;
 };
 

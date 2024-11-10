@@ -21,6 +21,9 @@ struct RhiVulkanBackendImplDetails : public NonCopyable {
   std::vector<std::unique_ptr<ComputePass>> m_computePasses;
   std::vector<std::unique_ptr<GraphicsPass>> m_graphicsPasses;
   std::vector<std::unique_ptr<DescriptorBindlessIndices>> m_bindlessIndices;
+
+  // managed descriptors
+  std::vector<std::shared_ptr<Rhi::RhiBindlessIdRef>> m_bindlessIdRefs;
 };
 
 IFRIT_APIDECL
@@ -91,14 +94,12 @@ RhiVulkanBackend::createStorageBufferShared(uint32_t size, bool hostVisible,
   return m_implDetails->m_resourceManager->createStorageBufferShared(
       size, hostVisible, extraFlags);
 }
-IFRIT_APIDECL Rhi::RhiStagedSingleBuffer *
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiStagedSingleBuffer>
 RhiVulkanBackend::createStagedSingleBuffer(Rhi::RhiBuffer *target) {
   // TODO: release memory, (not managed)
   auto buffer = checked_cast<SingleBuffer>(target);
   auto engineContext = checked_cast<EngineContext>(m_device.get());
-  auto unique = std::make_unique<StagedSingleBuffer>(engineContext, buffer);
-  auto ptr = unique.get();
-  m_implDetails->m_stagedSingleBuffer.push_back(std::move(unique));
+  auto ptr = std::make_shared<StagedSingleBuffer>(engineContext, buffer);
   return ptr;
 }
 
@@ -192,6 +193,9 @@ IFRIT_APIDECL void RhiVulkanBackend::beginFrame() {
   for (auto &pass : m_implDetails->m_graphicsPasses) {
     pass->setActiveFrame(m_swapChain->getCurrentImageIndex());
   }
+  for (auto &idRef : m_implDetails->m_bindlessIdRefs) {
+    idRef->activeFrame = m_swapChain->getCurrentImageIndex();
+  }
 }
 IFRIT_APIDECL void RhiVulkanBackend::endFrame() {
   m_implDetails->m_commandExecutor->endFrame();
@@ -251,6 +255,35 @@ RhiVulkanBackend::createBindlessDescriptorRef() {
   auto ptr = ref.get();
   m_implDetails->m_bindlessIndices.push_back(std::move(ref));
   return ptr;
+}
+
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef>
+RhiVulkanBackend::registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) {
+  std::vector<uint32_t> ids;
+  auto descriptorManager = m_implDetails->m_descriptorManager.get();
+  auto multiBuffer = checked_cast<MultiBuffer>(buffer);
+  auto numBackbuffers = m_swapChain->getNumBackbuffers();
+  for (uint32_t i = 0; i < numBackbuffers; i++) {
+    auto id =
+        descriptorManager->registerUniformBuffer(multiBuffer->getBuffer(i));
+    ids.push_back(id);
+  }
+  auto p = std::make_shared<Rhi::RhiBindlessIdRef>();
+  p->ids = ids;
+  p->activeFrame = m_swapChain->getCurrentImageIndex();
+  m_implDetails->m_bindlessIdRefs.push_back(p);
+  return p;
+}
+
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef>
+RhiVulkanBackend::registerStorageBuffer(Rhi::RhiBuffer *buffer) {
+  auto descriptorManager = m_implDetails->m_descriptorManager.get();
+  auto buf = checked_cast<SingleBuffer>(buffer);
+  auto id = descriptorManager->registerStorageBuffer(buf);
+  auto p = std::make_shared<Rhi::RhiBindlessIdRef>();
+  p->ids.push_back(id);
+  p->activeFrame = 0;
+  return p;
 }
 
 IFRIT_APIDECL std::unique_ptr<Rhi::RhiBackend>

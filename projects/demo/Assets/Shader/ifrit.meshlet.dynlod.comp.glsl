@@ -1,6 +1,9 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+#extension GL_GOOGLE_include_directive : require
+
+#include "Bindless.glsl"
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 struct BVHNode{
     vec4 boundingSphere;
@@ -25,41 +28,41 @@ struct ClusterGroup{
 };
 
 // Consumer-Producer queue
-layout(set = 0, binding = 1) buffer ConsumerCounter { int v; } consumer[];
-layout(set = 0, binding = 1) buffer ProducerCounter { int v; } producer[];
-layout(set = 0, binding = 1) buffer RemainingClusterCounter { int v; } remainingCluster[];
-layout(set = 0, binding = 1) buffer CPQueue { 
-    int data[]; 
-} queue[];
+RegisterStorage(consumer,{ int v; });
+RegisterStorage(producer,{ int v; });
+RegisterStorage(remainingCluster,{ int v; });
+RegisterStorage(queue,{ int data[]; });
 
 // Meshlet storage buffers
-layout(set = 0, binding = 1) buffer AtomicCounterBuffer { uvec3 counter; } drawCallSize[];
-layout(set = 0, binding = 1) buffer ClusterGroupBuffer { 
+RegisterStorage(clusterGroups,{ 
     ClusterGroup data[]; 
-} clusterGroups[];
-layout(set = 0, binding = 1) buffer MeshletInClusterGroupBuffer{
+});
+RegisterStorage(drawCallSize,{
+    uvec3 counter;
+});
+RegisterStorage(meshletsInClusterGroup,{
     uint data[];
-} meshletsInClusterGroup[];
-layout(set = 0, binding = 1) buffer BVHNodeBuffer { 
-    BVHNode data[]; 
-} bvhNodes[];
-layout(set = 0, binding = 1) buffer FilteredMeshletsBuffer { 
+});
+RegisterStorage(bvhNodes,{
+    BVHNode data[];
+});
+RegisterStorage(filteredMeshlets, { 
     uint data[]; 
-} filteredMeshlets[];
+});
 
 // Uniform bindings
-layout(set = 0, binding = 0) uniform UniformCompData{
+RegisterUniform(ubo,{
     uint clusterGroupCounts;
     uint totalBvhNodes;
     uint totalLods;
-}ubo[];
-layout(set = 0, binding = 0) uniform UniformCameraData{
+});
+RegisterUniform(ubocam,{
     mat4 mvp;
     mat4 mv;
     vec4 cameraPos;
     uint meshletCount;
     float fov;
-}ubocam[];
+});
 
 layout(set = 1, binding = 0) uniform BindlessBuffer { 
     uint counterId; // Num of meshlets filtered
@@ -93,11 +96,11 @@ bool isClusterGroupVisible(uint id){
     const float MESHLET_CULL_ERROR_THRESH = 1.0;
     const float RENDERTARGET_HEIGHT = 1080.0;
 
-    uint totalLod = ubo[bindless.uniformId].totalLods;
-    float fov = ubocam[bindless.unicamId].fov;
-    vec3 cameraPos = ubocam[bindless.unicamId].cameraPos.xyz;
+    uint totalLod = GetResource(ubo,bindless.uniformId).totalLods;
+    float fov = GetResource(ubocam,bindless.unicamId).fov;
+    vec3 cameraPos = GetResource(ubocam,bindless.unicamId).cameraPos.xyz;
 
-    ClusterGroup group = clusterGroups[bindless.clusterGroupId].data[id];
+    ClusterGroup group = GetResource(clusterGroups,bindless.clusterGroupId).data[id];
     vec3 selfSphereCenter = group.selfBoundSphere.xyz;
     float selfSphereRaidus = group.selfError;
     vec3 parentSphereCenter = group.parentBoundSphere.xyz;
@@ -105,7 +108,7 @@ bool isClusterGroupVisible(uint id){
     bool parentRejected = true;
 
     if(group.lod != totalLod-1){
-        vec4 viewSpaceCenter = ubocam[bindless.unicamId].mv * vec4(parentSphereCenter, 1.0);
+        vec4 viewSpaceCenter = GetResource(ubocam,bindless.unicamId).mv * vec4(parentSphereCenter, 1.0);
         vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
         float parentProjectedRadius = computeProjectedRadius(fov, length(viewSpaceCenter3), parentSphereRadius);
         parentProjectedRadius*=RENDERTARGET_HEIGHT;
@@ -115,7 +118,7 @@ bool isClusterGroupVisible(uint id){
 
     bool selfRejected = false;
     if(group.lod != 0){
-        vec4 viewSpaceCenter = ubocam[bindless.unicamId].mv * vec4(selfSphereCenter, 1.0);
+        vec4 viewSpaceCenter = GetResource(ubocam,bindless.unicamId).mv * vec4(selfSphereCenter, 1.0);
         vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
         float selfProjectedRadius = computeProjectedRadius(fov, length(viewSpaceCenter3), selfSphereRaidus);
         selfProjectedRadius*=RENDERTARGET_HEIGHT;
@@ -126,12 +129,12 @@ bool isClusterGroupVisible(uint id){
 
 void enqueueClusterGroup(uint id){
     // add all meshlets in the cluster group to the filtered meshlets buffer
-    ClusterGroup group = clusterGroups[bindless.clusterGroupId].data[id];
-    uint pos = atomicAdd(drawCallSize[bindless.counterId].counter.x, group.childMeshletCount);
+    ClusterGroup group = GetResource(clusterGroups,bindless.clusterGroupId).data[id];
+    uint pos = atomicAdd(GetResource(drawCallSize,bindless.counterId).counter.x, group.childMeshletCount);
     for(uint i = 0; i < group.childMeshletCount; i++){
         // get meshlet in cluster group
-        uint meshletId = meshletsInClusterGroup[bindless.meshletInClusterGroupId].data[group.childMeshletStart + i];
-        filteredMeshlets[bindless.meshletId].data[pos + i] = meshletId;
+        uint meshletId = GetResource(meshletsInClusterGroup,bindless.meshletInClusterGroupId).data[group.childMeshletStart + i];
+        GetResource(filteredMeshlets,bindless.meshletId).data[pos + i] = meshletId;
     }
 }
 
@@ -144,26 +147,26 @@ void main(){
     
     int chosenBVHNodeInd = UNSET;
     int chosenBVHNodePos = UNSET;
-    uint totalBVHNodes = ubo[bindless.uniformId].totalBvhNodes;
-    uint totalClusters = ubo[bindless.uniformId].clusterGroupCounts;
+    uint totalBVHNodes = GetResource(ubo,bindless.uniformId).totalBvhNodes;
+    uint totalClusters = GetResource(ubo,bindless.uniformId).clusterGroupCounts;
 
     uint testCounter = 0;
     
     // Reset queue
     if(threadId == 0){
-        consumer[bindless.consumerId].v = 1;
-        producer[bindless.producerId].v = 1;
-        remainingCluster[bindless.remainingId].v = int(totalBVHNodes);
-        drawCallSize[bindless.counterId].counter = uvec3(0,1,1);
+        GetResource(consumer,bindless.consumerId).v = 1;
+        GetResource(producer,bindless.producerId).v = 1;
+        GetResource(remainingCluster,bindless.remainingId).v = int(totalBVHNodes);
+        GetResource(drawCallSize,bindless.counterId).counter = uvec3(0,1,1);
     }
     
     for(uint i = 0; i < totalClusters ; i += groupSize){
-        queue[bindless.queueId].data[i+threadId] = UNSET;
+        GetResource(queue,bindless.queueId).data[i+threadId] = UNSET;
     }
 
     // Enqueue root cluster, and assign it to the first thread
     if(threadId == 0){
-        queue[bindless.queueId].data[0] = 0;
+        GetResource(queue,bindless.queueId).data[0] = 0;
         chosenBVHNodeInd = 0;
     }
     memoryBarrier();
@@ -175,20 +178,20 @@ void main(){
             break;
         }
         // Check if all BVH Nodes have been processed
-        int remaining = remainingCluster[bindless.remainingId].v;
+        int remaining = GetResource(remainingCluster,bindless.remainingId).v;
         if(remaining <= 0){
             break;
         }
         // If current thread does not have a cluster to process, try to get one
         if(chosenBVHNodeInd == UNSET){
-            chosenBVHNodeInd = atomicAdd(consumer[bindless.consumerId].v, 1);
+            chosenBVHNodeInd = atomicAdd(GetResource(consumer,bindless.consumerId).v, 1);
             if(chosenBVHNodeInd >= totalBVHNodes){
                 break;
             }
         }
         if(chosenBVHNodeInd != UNSET && chosenBVHNodePos == UNSET){
             int temp = UNSET;
-            int retVal = atomicExchange(queue[bindless.queueId].data[chosenBVHNodeInd], temp);
+            int retVal = atomicExchange(GetResource(queue,bindless.queueId).data[chosenBVHNodeInd], temp);
             if(retVal != UNSET){
                 chosenBVHNodePos = retVal;
             }
@@ -199,17 +202,17 @@ void main(){
             bool bvhNodeVisible = isBVHNodeVisible(chosenBVHNodePos);
             if(bvhNodeVisible){
                 // If the BVH node is visible, enqueue its children
-                atomicAdd(remainingCluster[bindless.remainingId].v, -1);
-                BVHNode node = bvhNodes[bindless.bvhId].data[chosenBVHNodePos];
+                atomicAdd(GetResource(remainingCluster,bindless.remainingId).v, -1);
+                BVHNode node = GetResource(bvhNodes,bindless.bvhId).data[chosenBVHNodePos];
                 
                 for(uint i = 0; i < node.numChildNodes; i++){
                     int childNode = node.childNodes[i];
-                    int pos = atomicAdd(producer[bindless.producerId].v, 1);
-                    atomicExchange(queue[bindless.queueId].data[pos], childNode);
+                    int pos = atomicAdd(GetResource(producer,bindless.producerId).v, 1);
+                    atomicExchange(GetResource(queue,bindless.queueId).data[pos], childNode);
                 }
                 // Check whether the cluster group is visible
                 for(uint i = 0; i < node.clusterGroupCount; i++){
-                    ClusterGroup group = clusterGroups[bindless.clusterGroupId].data[node.clusterGroupStart + i];
+                    ClusterGroup group = GetResource(clusterGroups,bindless.clusterGroupId).data[node.clusterGroupStart + i];
                     bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i);  
                     if(clusterGroupVisible){
                         enqueueClusterGroup(node.clusterGroupStart + i);
@@ -217,8 +220,8 @@ void main(){
                 }
             }else{
                 // Reject all subtrees
-                int subTreeSize = bvhNodes[bindless.bvhId].data[chosenBVHNodePos].subTreeSize;
-                atomicAdd(remainingCluster[bindless.remainingId].v, -subTreeSize);
+                int subTreeSize = GetResource(bvhNodes,bindless.bvhId).data[chosenBVHNodePos].subTreeSize;
+                atomicAdd(GetResource(remainingCluster,bindless.remainingId).v, -subTreeSize);
             }
             // Reset the chosen BVH node
             chosenBVHNodeInd = UNSET;
