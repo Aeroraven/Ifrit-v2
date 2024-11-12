@@ -7,9 +7,11 @@ IFRIT_APIDECL std::shared_ptr<SceneNode> SceneNode::addChildNode() {
   m_children.push_back(node);
   return node;
 }
-IFRIT_APIDECL std::shared_ptr<SceneObject> SceneNode::addGameObject() {
+IFRIT_APIDECL std::shared_ptr<SceneObject>
+SceneNode::addGameObject(const std::string &name) {
   auto obj = std::make_shared<SceneObject>();
   obj->initialize();
+  obj->setName(name);
   m_gameObjects.push_back(obj);
   return obj;
 }

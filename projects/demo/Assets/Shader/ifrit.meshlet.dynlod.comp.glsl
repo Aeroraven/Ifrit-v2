@@ -170,13 +170,8 @@ void main(){
         chosenBVHNodeInd = 0;
     }
     memoryBarrier();
-    uint deadlock =0;
-    
+
     while(true){
-        deadlock++;
-        if(deadlock > 10000){
-            break;
-        }
         // Check if all BVH Nodes have been processed
         int remaining = GetResource(remainingCluster,bindless.remainingId).v;
         if(remaining <= 0){

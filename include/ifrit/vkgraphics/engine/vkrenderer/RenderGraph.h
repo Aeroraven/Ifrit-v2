@@ -16,7 +16,7 @@
 #include <vector>
 
 // TODO: render graph abstraction is deprecated in this level
-// it's intended to be used in higher level.
+// it's intended to be used in a higher level.
 // So this file only encapsulates 'GraphicsPass' and 'ComputePass'
 // Some redundant code is planned to be removed
 
@@ -256,7 +256,7 @@ protected:
 
   uint32_t m_activeFrame = 0;
   uint32_t m_defaultMultibuffers = UINT_MAX;
-  
+
   // 2x
   uint32_t m_numBindlessDescriptorSets = 0;
 
@@ -305,7 +305,7 @@ public:
       std::function<void(Rhi::RhiRenderPassContext *)> func);
 
   virtual void build(uint32_t numMultiBuffers) = 0;
-  virtual void record(){}
+  virtual void record() {}
   virtual void execute();
 
   inline virtual void setNumBindlessDescriptorSets_base(uint32_t num) {
@@ -319,8 +319,9 @@ public:
 class IFRIT_APIDECL GraphicsPass : public RenderGraphPass,
                                    public Rhi::RhiGraphicsPass {
 protected:
-  RenderPassAttachment m_depthAttachment;
-  std::vector<RenderPassAttachment> m_colorAttachments;
+  // RenderPassAttachment m_depthAttachment;
+  // std::vector<RenderPassAttachment> m_colorAttachments;
+  Rhi::RhiRenderTargetsFormat m_renderTargetFormat;
 
   PipelineCache *m_pipelineCache;
 
@@ -367,12 +368,8 @@ public:
   void
   record(Ifrit::GraphicsBackend::VulkanGraphics::RenderTargets *renderTarget);
 
-  void addColorAttachment(Rhi::RhiTexture *texture,
-                          Rhi::RhiRenderTargetLoadOp op,
-                          Rhi::RhiClearValue clearValue) override;
-  void setDepthAttachment(Rhi::RhiTexture *texture,
-                          Rhi::RhiRenderTargetLoadOp op,
-                          Rhi::RhiClearValue clearValue) override;
+  void
+  setRenderTargetFormat(const Rhi::RhiRenderTargetsFormat &format) override;
 
   void setVertexShader(ShaderModule *shader);
   void setPixelShader(Rhi::RhiShader *shader) override;
@@ -437,8 +434,7 @@ public:
   }
 
   void run(const Rhi::RhiCommandBuffer *cmd,
-           Rhi::RhiRenderTargets *renderTargets,
-           uint32_t frameId) override;
+           Rhi::RhiRenderTargets *renderTargets, uint32_t frameId) override;
 
   inline virtual void setNumBindlessDescriptorSets(uint32_t num) override {
     setNumBindlessDescriptorSets_base(num);

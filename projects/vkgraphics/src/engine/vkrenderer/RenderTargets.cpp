@@ -5,6 +5,10 @@ using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
+Rhi::RhiImageFormat toRhiFormat(VkFormat rawFormat) {
+  return static_cast<Rhi::RhiImageFormat>(rawFormat);
+}
+
 IFRIT_APIDECL void RenderTargets::setColorAttachments(
     const std::vector<Rhi::RhiColorAttachment *> &attachments) {
   m_colorAttachments.clear();
@@ -18,8 +22,8 @@ IFRIT_APIDECL void RenderTargets::setDepthStencilAttachment(
   m_depthStencilAttachment = static_cast<DepthStencilAttachment *>(attachment);
 }
 
-IFRIT_APIDECL void
-RenderTargets::beginRendering(const Rhi::RhiCommandBuffer *commandBuffer) const {
+IFRIT_APIDECL void RenderTargets::beginRendering(
+    const Rhi::RhiCommandBuffer *commandBuffer) const {
   auto cmd = checked_cast<CommandBuffer>(commandBuffer);
   auto cmdraw = cmd->getCommandBuffer();
   cmd->imageBarrier(m_depthStencilAttachment->getRenderTarget(),
@@ -154,6 +158,15 @@ RenderTargets::beginRendering(const Rhi::RhiCommandBuffer *commandBuffer) const 
 
   vkCmdSetViewport(cmdraw, 0, 1, &viewport);
   vkCmdSetScissor(cmdraw, 0, 1, &scissor);
+
+  // If depth attachment presents, we assume that depth test is required
+  if (m_depthStencilAttachment) {
+    auto extf = m_context->getExtensionFunction();
+
+    extf.p_vkCmdSetDepthTestEnable(cmdraw, VK_TRUE);
+    extf.p_vkCmdSetDepthWriteEnable(cmdraw, VK_TRUE);
+    extf.p_vkCmdSetDepthCompareOp(cmdraw, VK_COMPARE_OP_LESS);
+  }
 }
 
 IFRIT_APIDECL void
@@ -161,6 +174,21 @@ RenderTargets::endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const {
   auto cmd = checked_cast<CommandBuffer>(commandBuffer);
   auto cmdraw = cmd->getCommandBuffer();
   vkCmdEndRendering(cmdraw);
+}
+
+IFRIT_APIDECL Rhi::RhiRenderTargetsFormat RenderTargets::getFormat() const {
+  Rhi::RhiRenderTargetsFormat format;
+  if (m_depthStencilAttachment) {
+    format.m_depthFormat = toRhiFormat(
+        m_depthStencilAttachment->getRenderTargetInternal()->getFormat());
+  } else {
+    format.m_depthFormat = Rhi::RhiImageFormat::RHI_FORMAT_UNDEFINED;
+  }
+  for (auto attachment : m_colorAttachments) {
+    format.m_colorFormats.push_back(
+        toRhiFormat(attachment->getRenderTargetInternal()->getFormat()));
+  }
+  return format;
 }
 
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

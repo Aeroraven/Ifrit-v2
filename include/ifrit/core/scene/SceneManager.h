@@ -6,7 +6,7 @@
 
 namespace Ifrit::Core {
 
-class SceneManager {
+class IFRIT_APIDECL SceneManager {
 private:
   IApplication *m_app;
 

@@ -28,16 +28,23 @@ IFRIT_APIDECL std::unique_ptr<SimpleRenderer::GPUCommandSubmission>
 SimpleRenderer::render(
     PerFrameData &perframeData, SimpleRenderer::RenderTargets *renderTargets,
     const std::vector<SimpleRenderer::GPUCommandSubmission *> &cmdToWait) {
+
+  buildPipelines(perframeData, GraphicsShaderPassType::Opaque, renderTargets);
+  prepareDeviceResources(perframeData);
+
   auto rhi = m_app->getRhiLayer();
   auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
   // set record function for each class
-  bool isFirst = 0;
+  bool isFirst = true;
   std::unique_ptr<GPUCommandSubmission> drawTask;
+  auto rtFormats = renderTargets->getFormat();
+  PipelineAttachmentConfigs paFormat = {rtFormats.m_depthFormat,
+                                        rtFormats.m_colorFormats};
   for (auto &shaderEffect : perframeData.m_shaderEffectData) {
     auto pass = shaderEffect.m_materials[0]
                     ->m_effectTemplates[GraphicsShaderPassType::Opaque]
-                    .m_drawPass;
+                    .m_drawPasses[paFormat];
     pass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
       // bind view buffer
       ctx->m_cmd->attachBindlessReferenceGraphics(

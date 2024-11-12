@@ -4,6 +4,10 @@
 
 using namespace Ifrit::Common::Utility;
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
+VkFormat toVkFormat(Rhi::RhiImageFormat format) {
+  return static_cast<VkFormat>(format);
+}
+
 template <typename E>
 constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
   return static_cast<typename std::underlying_type<E>::type>(e);
@@ -193,106 +197,8 @@ IFRIT_APIDECL GraphicsPass::GraphicsPass(EngineContext *context,
       m_pipelineCache(pipelineCache) {}
 
 IFRIT_APIDECL void
-GraphicsPass::addColorAttachment(Rhi::RhiTexture *texture,
-                                 Rhi::RhiRenderTargetLoadOp op,
-                                 Rhi::RhiClearValue clearValue) {
-
-  auto imageRaw = checked_cast<SingleDeviceImage>(texture);
-  auto registeredImage = m_mapper->getImageIndex(imageRaw);
-  auto image = checked_cast<RegisteredImageHandle>(registeredImage);
-
-  VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-  if (op == Rhi::RhiRenderTargetLoadOp::Clear) {
-    loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-  } else if (op == Rhi::RhiRenderTargetLoadOp::DontCare) {
-    loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  }
-
-  VkClearValue clearValueVk{};
-  clearValueVk.color.float32[0] = clearValue.m_color[0];
-  clearValueVk.color.float32[1] = clearValue.m_color[1];
-  clearValueVk.color.float32[2] = clearValue.m_color[2];
-  clearValueVk.color.float32[3] = clearValue.m_color[3];
-  clearValueVk.depthStencil.depth = clearValue.m_depth;
-  clearValueVk.depthStencil.stencil = clearValue.m_stencil;
-
-  RenderPassAttachment attachment;
-  attachment.m_image = image;
-  attachment.m_loadOp = loadOp;
-  attachment.m_clearValue = clearValueVk;
-  m_colorAttachments.push_back(attachment);
-
-  RenderPassResourceTransition transition;
-  transition.m_required = true;
-  transition.m_requireExplicitBarrier = true;
-  transition.m_allowUndefinedOldLayout =
-      (loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR);
-  transition.m_oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  transition.m_newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  transition.m_srcAccess = VK_ACCESS_NONE;
-  transition.m_dstAccess = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  addOutputResource(image, transition);
-
-  if (image->getIsSwapchainImage()) {
-    m_operateOnSwapchain = true;
-  }
-
-  m_colorWrite.push_back(VK_TRUE);
-  m_blendEnable.push_back(VK_FALSE);
-
-  VkColorBlendEquationEXT colorBlendEquation{};
-  colorBlendEquation.alphaBlendOp = VK_BLEND_OP_ADD;
-  colorBlendEquation.colorBlendOp = VK_BLEND_OP_ADD;
-  colorBlendEquation.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-  colorBlendEquation.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-  colorBlendEquation.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-  colorBlendEquation.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-  m_blendEquations.push_back(colorBlendEquation);
-
-  m_colorWriteMask.push_back(
-      VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-      VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
-}
-
-IFRIT_APIDECL void
-GraphicsPass::setDepthAttachment(Rhi::RhiTexture *texture,
-                                 Rhi::RhiRenderTargetLoadOp op,
-                                 Rhi::RhiClearValue clearValue) {
-
-  auto imageRaw = checked_cast<SingleDeviceImage>(texture);
-  auto registeredImage = m_mapper->getImageIndex(imageRaw);
-  auto image = checked_cast<RegisteredImageHandle>(registeredImage);
-
-  VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-  if (op == Rhi::RhiRenderTargetLoadOp::Clear) {
-    loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-  } else if (op == Rhi::RhiRenderTargetLoadOp::DontCare) {
-    loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  }
-
-  VkClearValue clearValueVk{};
-  clearValueVk.color.float32[0] = clearValue.m_color[0];
-  clearValueVk.color.float32[1] = clearValue.m_color[1];
-  clearValueVk.color.float32[2] = clearValue.m_color[2];
-  clearValueVk.color.float32[3] = clearValue.m_color[3];
-  clearValueVk.depthStencil.depth = clearValue.m_depth;
-  clearValueVk.depthStencil.stencil = clearValue.m_stencil;
-
-  m_depthAttachment.m_image = image;
-  m_depthAttachment.m_loadOp = loadOp;
-  m_depthAttachment.m_clearValue = clearValueVk;
-
-  RenderPassResourceTransition transition;
-  transition.m_required = true;
-  transition.m_requireExplicitBarrier = true;
-  transition.m_allowUndefinedOldLayout =
-      (loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR);
-  transition.m_oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  transition.m_newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-  transition.m_srcAccess = VK_ACCESS_NONE;
-  transition.m_dstAccess = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
-                           VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-  addOutputResource(image, transition);
+GraphicsPass::setRenderTargetFormat(const Rhi::RhiRenderTargetsFormat &format) {
+  m_renderTargetFormat = format;
 }
 
 IFRIT_APIDECL void GraphicsPass::setVertexShader(ShaderModule *shader) {
@@ -372,9 +278,9 @@ IFRIT_APIDECL void GraphicsPass::record(RenderTargets *renderTarget) {
                             m_stencilOp.compareOp);
 
   exfun.p_vkCmdSetDepthBoundsTestEnable(cmd, m_depthBoundTestEnable);
-  exfun.p_vkCmdSetDepthCompareOp(cmd, m_depthCompareOp);
-  exfun.p_vkCmdSetDepthTestEnable(cmd, m_depthTestEnable);
-  exfun.p_vkCmdSetDepthWriteEnable(cmd, m_depthWrite);
+  //exfun.p_vkCmdSetDepthCompareOp(cmd, m_depthCompareOp);
+  //exfun.p_vkCmdSetDepthTestEnable(cmd, m_depthTestEnable);
+  //exfun.p_vkCmdSetDepthWriteEnable(cmd, m_depthWrite);
 
   vkCmdSetFrontFace(cmd, m_frontFace);
   vkCmdSetCullMode(cmd, m_cullMode);
@@ -446,11 +352,7 @@ GraphicsPass::setRasterizerTopology(Rhi::RhiRasterizerTopology topology) {
 
 IFRIT_APIDECL void
 GraphicsPass::setColorWrite(const std::vector<uint32_t> &write) {
-  vkrAssert(write.size() == m_colorAttachments.size(),
-            "Num of attachments are not equal");
-  for (int i = 0; i < m_colorAttachments.size(); i++) {
-    m_colorWrite[i] = (write[i]) ? VK_TRUE : VK_FALSE;
-  }
+  throw std::runtime_error("Deprecated");
 }
 
 IFRIT_APIDECL void GraphicsPass::setVertexInput(
@@ -507,15 +409,11 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
   ci.scissorCount = 1;
   ci.topology = m_topology;
   ci.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
-  if (m_depthAttachment.m_image) {
-    ci.depthAttachmentFormat =
-        m_depthAttachment.m_image->getImage(0)->getFormat();
-  } else {
-    ci.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
-  }
-  for (int i = 0; i < m_colorAttachments.size(); i++) {
+  ci.depthAttachmentFormat = toVkFormat(m_renderTargetFormat.m_depthFormat);
+
+  for (int i = 0; i < m_renderTargetFormat.m_colorFormats.size(); i++) {
     ci.colorAttachmentFormats.push_back(
-        m_colorAttachments[i].m_image->getImage(0)->getFormat());
+        toVkFormat(m_renderTargetFormat.m_colorFormats[i]));
   }
   ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
   for (int i = 0; i < m_numBindlessDescriptorSets; i++) {

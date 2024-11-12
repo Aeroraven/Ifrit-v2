@@ -69,5 +69,6 @@ public:
   void
   beginRendering(const Rhi::RhiCommandBuffer *commandBuffer) const override;
   void endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const override;
+  Rhi::RhiRenderTargetsFormat getFormat() const override;
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

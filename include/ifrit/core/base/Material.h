@@ -14,6 +14,28 @@ enum class GraphicsShaderPassType {
   DirectLighting,
 };
 
+struct PipelineAttachmentConfigs {
+  Ifrit::GraphicsBackend::Rhi::RhiImageFormat m_depthFormat;
+  std::vector<Ifrit::GraphicsBackend::Rhi::RhiImageFormat> m_colorFormats;
+
+  inline bool operator==(const PipelineAttachmentConfigs &other) const {
+    auto res = m_depthFormat == other.m_depthFormat;
+    res &= (m_colorFormats == other.m_colorFormats);
+    return res;
+  }
+};
+
+struct PipelineAttachmentConfigsHash {
+  inline size_t operator()(const PipelineAttachmentConfigs &configs) const {
+    size_t hash = 0;
+    hash ^= std::hash<int>()(static_cast<int>(configs.m_depthFormat));
+    for (const auto &format : configs.m_colorFormats) {
+      hash ^= std::hash<int>()(static_cast<int>(format));
+    }
+    return hash;
+  }
+};
+
 class ShaderEffect {
   using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;
   using Shader = Ifrit::GraphicsBackend::Rhi::RhiShader;
@@ -21,7 +43,9 @@ class ShaderEffect {
 public:
   std::vector<Shader *> m_shaders;
   std::vector<AssetReference> m_shaderReferences;
-  DrawPass *m_drawPass;
+  std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
+                     PipelineAttachmentConfigsHash>
+      m_drawPasses;
 
   IFRIT_STRUCT_SERIALIZE(m_shaderReferences);
 

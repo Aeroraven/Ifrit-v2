@@ -51,5 +51,7 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
   meshData->m_meshletInClusterGroup = std::move(meshlet_inClusterGroup);
   meshData->m_bvhNodes = std::move(bvhNodes);
   meshData->m_clusterGroups = std::move(clusterGroupData);
+
+  meshData->m_maxLod = MAX_LOD;
 }
 } // namespace Ifrit::Core

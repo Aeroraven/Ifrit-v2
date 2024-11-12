@@ -4,9 +4,10 @@
 using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::Core {
-void SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene,
-                                       Camera *camera,
-                                       GraphicsShaderPassType passType) {
+IFRIT_APIDECL void
+SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene,
+                                  Camera *camera,
+                                  GraphicsShaderPassType passType) {
   // Filling per frame data
   if (camera == nullptr) {
     camera = scene->getMainCamera();
@@ -29,6 +30,12 @@ void SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene,
 
   // For each mesh renderer, get the material, mesh, and transform
   perframeData.m_enabledEffects.clear();
+  for (auto &effect : perframeData.m_shaderEffectData) {
+    effect.m_materials.clear();
+    effect.m_meshes.clear();
+    effect.m_transforms.clear();
+  }
+
   std::vector<std::shared_ptr<Material>> materials;
   std::vector<std::shared_ptr<Mesh>> meshes;
   std::vector<std::shared_ptr<Transform>> transforms;
@@ -66,7 +73,9 @@ void SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene,
     auto &transform = transforms[i];
     ShaderEffect effect;
     effect.m_shaders = material->m_effectTemplates[passType].m_shaders;
-    effect.m_drawPass = material->m_effectTemplates[passType].m_drawPass;
+
+    // TODO: Heavy copy operation, should be avoided
+    effect.m_drawPasses = material->m_effectTemplates[passType].m_drawPasses;
     if (perframeData.m_shaderEffectMap.count(effect) == 0) {
       perframeData.m_shaderEffectMap[effect] =
           size_cast<uint32_t>(perframeData.m_shaderEffectData.size());

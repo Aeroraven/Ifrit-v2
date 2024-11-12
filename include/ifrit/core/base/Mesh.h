@@ -8,6 +8,17 @@
 
 namespace Ifrit::Core {
 struct MeshData {
+  struct GPUCPCounter {
+    uint32_t consume;
+    uint32_t produce;
+    uint32_t remain;
+    uint32_t totalBvhNodes;
+    uint32_t totalNumClusters;
+    uint32_t totalLods;
+    uint32_t pad1;
+    uint32_t pad2;
+  };
+
   std::vector<ifloat3> m_vertices;
   std::vector<ifloat4> m_verticesAligned;
   std::vector<ifloat3> m_normals;
@@ -24,6 +35,9 @@ struct MeshData {
   std::vector<Ifrit::MeshProcLib::ClusterLod::FlattenedBVHNode>
       m_bvhNodes; // seems not suitable to be here
   std::vector<Ifrit::MeshProcLib::ClusterLod::ClusterGroup> m_clusterGroups;
+
+  GPUCPCounter m_cpCounter;
+  uint32_t m_maxLod;
 
   IFRIT_STRUCT_SERIALIZE(m_vertices, m_normals, m_uvs, m_tangents, m_indices);
 };
@@ -43,6 +57,21 @@ public:
     uint32_t bvhNodeBufferId;
     uint32_t clusterGroupBufferId;
     uint32_t meshletInClusterBufferId;
+    uint32_t cpQueueBufferId;
+    uint32_t cpCounterBufferId;
+    uint32_t filteredMeshletsId;
+    uint32_t pad;
+  };
+
+  struct GPUCPCounter {
+    uint32_t consume;
+    uint32_t produce;
+    uint32_t remain;
+    uint32_t totalBvhNodes;
+    uint32_t totalNumClusters;
+    uint32_t totalLods;
+    uint32_t pad1;
+    uint32_t pad2;
   };
 
   struct GPUResource {
@@ -54,6 +83,9 @@ public:
     GPUBuffer *bvhNodeBuffer = nullptr;
     GPUBuffer *clusterGroupBuffer = nullptr;
     GPUBuffer *meshletInClusterBuffer = nullptr;
+    GPUBuffer *cpQueueBuffer = nullptr;
+    GPUBuffer *cpCounterBuffer = nullptr;
+    GPUBuffer *filteredMeshlets = nullptr;
 
     std::shared_ptr<GPUBindId> vertexBufferId = nullptr;
     std::shared_ptr<GPUBindId> meshletBufferId = nullptr;
@@ -63,7 +95,11 @@ public:
     std::shared_ptr<GPUBindId> bvhNodeBufferId = nullptr;
     std::shared_ptr<GPUBindId> clusterGroupBufferId = nullptr;
     std::shared_ptr<GPUBindId> meshletInClusterBufferId = nullptr;
+    std::shared_ptr<GPUBindId> cpQueueBufferId = nullptr;
+    std::shared_ptr<GPUBindId> cpCounterBufferId = nullptr;
+    std::shared_ptr<GPUBindId> filteredMeshletsId = nullptr;
 
+    GPUObjectBuffer objectData;
     GPUBuffer *objectBuffer = nullptr;
     std::shared_ptr<GPUBindId> objectBufferId = nullptr;
 
@@ -81,6 +117,7 @@ public:
     m_resource.bvhNodeBuffer = resource.bvhNodeBuffer;
     m_resource.clusterGroupBuffer = resource.clusterGroupBuffer;
     m_resource.meshletInClusterBuffer = resource.meshletInClusterBuffer;
+    m_resource.filteredMeshlets = resource.filteredMeshlets;
 
     m_resource.vertexBufferId = resource.vertexBufferId;
     m_resource.meshletBufferId = resource.meshletBufferId;
@@ -90,9 +127,11 @@ public:
     m_resource.bvhNodeBufferId = resource.bvhNodeBufferId;
     m_resource.clusterGroupBufferId = resource.clusterGroupBufferId;
     m_resource.meshletInClusterBufferId = resource.meshletInClusterBufferId;
+    m_resource.cpQueueBufferId = resource.cpQueueBufferId;
 
     m_resource.objectBuffer = resource.objectBuffer;
     m_resource.objectBufferId = resource.objectBufferId;
+    m_resource.objectData = resource.objectData;
   }
   inline void getGPUResource(GPUResource &resource) {
     resource.vertexBuffer = m_resource.vertexBuffer;
@@ -103,6 +142,7 @@ public:
     resource.bvhNodeBuffer = m_resource.bvhNodeBuffer;
     resource.clusterGroupBuffer = m_resource.clusterGroupBuffer;
     resource.meshletInClusterBuffer = m_resource.meshletInClusterBuffer;
+    resource.cpQueueBuffer = m_resource.cpQueueBuffer;
 
     resource.vertexBufferId = m_resource.vertexBufferId;
     resource.meshletBufferId = m_resource.meshletBufferId;
@@ -112,9 +152,11 @@ public:
     resource.bvhNodeBufferId = m_resource.bvhNodeBufferId;
     resource.clusterGroupBufferId = m_resource.clusterGroupBufferId;
     resource.meshletInClusterBufferId = m_resource.meshletInClusterBufferId;
+    resource.cpQueueBufferId = m_resource.cpQueueBufferId;
 
     resource.objectBuffer = m_resource.objectBuffer;
     resource.objectBufferId = m_resource.objectBufferId;
+    resource.objectData = m_resource.objectData;
   }
   // TODO: static method
   virtual void createMeshLodHierarchy(std::shared_ptr<MeshData> meshData);
@@ -173,6 +215,7 @@ public:
   inline std::string serialize() override { return ""; }
   inline void deserialize() override {}
   inline std::shared_ptr<Material> getMaterial() { return m_material; }
+  inline void setMaterial(std::shared_ptr<Material> p) { m_material = p; }
 
   IFRIT_COMPONENT_SERIALIZE(m_materialReference);
 };

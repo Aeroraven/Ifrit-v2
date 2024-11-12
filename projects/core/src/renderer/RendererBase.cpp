@@ -2,13 +2,20 @@
 #include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Core {
-IFRIT_APIDECL void
-RendererBase::buildPipelines(PerFrameData &perframeData,
-                             GraphicsShaderPassType passType) {
+IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,
+                                                GraphicsShaderPassType passType,
+                                                RenderTargets *renderTargets) {
   using namespace Ifrit::GraphicsBackend::Rhi;
   for (auto &shaderEffectId : perframeData.m_enabledEffects) {
     auto &shaderEffect = perframeData.m_shaderEffectData[shaderEffectId];
     auto ref = shaderEffect.m_materials[0]->m_effectTemplates[passType];
+    auto rtFormats = renderTargets->getFormat();
+    PipelineAttachmentConfigs paConfig = {rtFormats.m_depthFormat,
+                                          rtFormats.m_colorFormats};
+
+    if (ref.m_drawPasses.count(paConfig) > 0) {
+      continue;
+    }
     RhiShader *vertexShader = nullptr, *fragmentShader = nullptr,
               *taskShader = nullptr, *meshShader = nullptr;
     auto rhi = m_app->getRhiLayer();
@@ -33,8 +40,9 @@ RendererBase::buildPipelines(PerFrameData &perframeData,
       throw std::runtime_error("No descriptor sets found in shader");
     }
     pass->setNumBindlessDescriptorSets(maxSets - 1);
+    pass->setRenderTargetFormat(rtFormats);
     for (auto &material : shaderEffect.m_materials) {
-      material->m_effectTemplates[passType].m_drawPass = pass;
+      material->m_effectTemplates[passType].m_drawPasses[paConfig] = pass;
     }
   }
 }
@@ -114,28 +122,48 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
       if (meshResource.objectBufferId == nullptr || mesh->m_resourceDirty) {
         requireUpdate = true;
         mesh->m_resourceDirty = false;
+        meshDataRef->m_cpCounter.consume = 0;
+        meshDataRef->m_cpCounter.produce = 0;
+        meshDataRef->m_cpCounter.remain = 0; // This word is set in shader
+        meshDataRef->m_cpCounter.totalBvhNodes = meshDataRef->m_bvhNodes.size();
+        meshDataRef->m_cpCounter.totalLods = meshDataRef->m_maxLod;
+        meshDataRef->m_cpCounter.totalNumClusters =
+            meshDataRef->m_clusterGroups.size();
+
         meshResource.vertexBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_verticesAligned.size() * sizeof(ifloat4), 0);
+            meshDataRef->m_verticesAligned.size() * sizeof(ifloat4),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.bvhNodeBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_bvhNodes.size() *
                 sizeof(MeshProcLib::ClusterLod::FlattenedBVHNode),
-            0);
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.clusterGroupBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_clusterGroups.size() *
                 sizeof(MeshProcLib::ClusterLod::ClusterGroup),
-            0);
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshlets.size() * sizeof(iint4), 0);
+            meshDataRef->m_meshlets.size() * sizeof(iint4),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletVertexBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshletVertices.size() * sizeof(uint32_t), 0);
+            meshDataRef->m_meshletVertices.size() * sizeof(uint32_t),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletIndexBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshletTriangles.size() * sizeof(uint32_t), 0);
+            meshDataRef->m_meshletTriangles.size() * sizeof(uint32_t),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletCullBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_meshCullData.size() *
                 sizeof(MeshProcLib::ClusterLod::MeshletCullData),
-            0);
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletInClusterBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshletInClusterGroup.size() * sizeof(uint32_t), 0);
+            meshDataRef->m_meshletInClusterGroup.size() * sizeof(uint32_t),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        meshResource.cpQueueBuffer = rhi->createStorageBufferDevice(
+            meshDataRef->m_meshlets.size() * sizeof(uint32_t),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        meshResource.cpCounterBuffer = rhi->createStorageBufferDevice(
+            sizeof(Mesh::GPUCPCounter), RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        meshResource.filteredMeshlets = rhi->createStorageBufferDevice(
+            meshDataRef->m_meshlets.size() * sizeof(uint32_t), 0);
 
         // Indices in bindless descriptors
         meshResource.vertexBufferId =
@@ -154,11 +182,17 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
             rhi->registerStorageBuffer(meshResource.meshletCullBuffer);
         meshResource.meshletInClusterBufferId =
             rhi->registerStorageBuffer(meshResource.meshletInClusterBuffer);
+        meshResource.cpQueueBufferId =
+            rhi->registerStorageBuffer(meshResource.cpQueueBuffer);
+        meshResource.cpCounterBufferId =
+            rhi->registerStorageBuffer(meshResource.cpCounterBuffer);
+        meshResource.filteredMeshletsId =
+            rhi->registerStorageBuffer(meshResource.filteredMeshlets);
 
         // Here, we assume that no double bufferring is allowed
         // meaning no CPU-GPU data transfer is allowed for mesh data after
         // initialization
-        Mesh::GPUObjectBuffer objectBuffer;
+        Mesh::GPUObjectBuffer &objectBuffer = meshResource.objectData;
         objectBuffer.vertexBufferId =
             meshResource.vertexBufferId->getActiveId();
         objectBuffer.bvhNodeBufferId =
@@ -175,10 +209,16 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
             meshResource.meshletCullBufferId->getActiveId();
         objectBuffer.meshletInClusterBufferId =
             meshResource.meshletInClusterBufferId->getActiveId();
+        objectBuffer.cpQueueBufferId =
+            meshResource.cpQueueBufferId->getActiveId();
+        objectBuffer.cpCounterBufferId =
+            meshResource.cpCounterBufferId->getActiveId();
+        objectBuffer.filteredMeshletsId =
+            meshResource.filteredMeshletsId->getActiveId();
 
         // description for the whole mesh
-        meshResource.objectBuffer =
-            rhi->createStorageBufferDevice(sizeof(Mesh::GPUObjectBuffer), 0);
+        meshResource.objectBuffer = rhi->createStorageBufferDevice(
+            sizeof(Mesh::GPUObjectBuffer), RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.objectBufferId =
             rhi->registerStorageBuffer(meshResource.objectBuffer);
 
@@ -212,6 +252,18 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
         enqueueStagedBuffer(meshletCullBuffer, m_meshCullData);
         enqueueStagedBuffer(meshletInClusterBuffer, m_meshletInClusterGroup);
 
+        auto stagedCPCounterBuffer =
+            rhi->createStagedSingleBuffer(meshResource.cpCounterBuffer);
+        stagedBuffers.push_back(stagedCPCounterBuffer);
+        pendingVertexBuffers.push_back(&meshDataRef->m_cpCounter);
+        pendingVertexBufferSizes.push_back(sizeof(Mesh::GPUCPCounter));
+
+        auto stagedObjectBuffer =
+            rhi->createStagedSingleBuffer(meshResource.objectBuffer);
+        stagedBuffers.push_back(stagedObjectBuffer);
+        pendingVertexBuffers.push_back(&mesh->m_resource.objectData);
+        pendingVertexBufferSizes.push_back(sizeof(Mesh::GPUObjectBuffer));
+
 #undef enqueueStagedBuffer
       }
     }
@@ -235,6 +287,28 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
       }
     });
   }
+}
+
+IFRIT_APIDECL void
+RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
+  auto rhi = m_app->getRhiLayer();
+  using namespace Ifrit::GraphicsBackend;
+  auto drawq = rhi->getQueue(Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+  auto swapchainImg = rhi->getSwapchainImage();
+  auto sRenderComplete = rhi->getSwapchainRenderDoneEventHandler();
+  auto cmd = drawq->runAsyncCommand(
+      [&](const Rhi::RhiCommandBuffer *cmd) {
+        cmd->imageBarrier(swapchainImg, Rhi::RhiResourceState::RenderTarget,
+                          Rhi::RhiResourceState::Present);
+      },
+      cmdToWait, {sRenderComplete.get()});
+  rhi->endFrame();
+}
+IFRIT_APIDECL std::unique_ptr<RendererBase::GPUCommandSubmission>
+RendererBase::beginFrame() {
+  auto rhi = m_app->getRhiLayer();
+  rhi->beginFrame();
+  return rhi->getSwapchainFrameReadyEventHandler();
 }
 
 } // namespace Ifrit::Core

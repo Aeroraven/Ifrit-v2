@@ -62,6 +62,7 @@ IFRIT_APIDECL void Application::start() {
   m_sceneAssetManager = std::make_shared<SceneAssetManager>(
       m_info.m_scenePath, m_assetManager.get());
   m_assetManager->loadAssetDirectory();
+  m_sceneManager = std::make_shared<SceneManager>(this);
 
   onStart();
 }

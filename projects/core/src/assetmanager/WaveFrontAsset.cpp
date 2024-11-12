@@ -76,6 +76,7 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
       m_selfData->m_verticesAligned[i] =
           ifloat4(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
     }
+    this->createMeshLodHierarchy(m_selfData);
   }
   return m_selfData;
 }

@@ -54,6 +54,7 @@ class IFRIT_APIDECL SceneObject
       public std::enable_shared_from_this<SceneObject> {
 protected:
   ComponentIdentifier m_id;
+  std::string m_name;
   std::unordered_map<std::string, std::shared_ptr<Component>> m_components;
 
 public:
@@ -94,7 +95,9 @@ public:
     }
     return ret;
   }
-  IFRIT_STRUCT_SERIALIZE(m_id, m_components);
+
+  inline void setName(const std::string &name) { m_name = name; }
+  IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components);
 };
 
 class IFRIT_APIDECL Component : public Ifrit::Common::Utility::NonCopyable {

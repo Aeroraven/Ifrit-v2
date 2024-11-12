@@ -44,10 +44,11 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 
 Following dependencies should be manually configured. Other dependencies will be configured via submodule.
 
-- OpenGL 3.3
-- CMake 3.24
-- Vulkan SDK 1.3
-  - shaderc 1.3
+- OpenGL >=3.3
+- CMake >=3.24
+- Vulkan SDK 1.3, or at least include:
+  - Core Features 1.3
+  - shaderc combined 1.3
   - with `mesh_shader` extension
 
 - LLVM 10 or LLVM 11 (Maybe higher version is OK, but LLVM 18 or higher might not work properly)
@@ -95,12 +96,13 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [cereal](https://github.com/USCiLab/cereal)                  | Serialization                    | BSD-3                |
 | [tinygltf](https://github.com/syoyo/tinygltf/tree/release)   | Model Loading                    | MIT                  |
 | [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT                  |
+| spirv-reflect                                                | Shader Reflection                | Apache 2.0           |
 
 
 
 And for debugging
 
-- [RenderDoc](https://renderdoc.org/), for graphics debugging.
+- [RenderDoc](https://renderdoc.org/), for debugging and inspecting.
 
 
 
