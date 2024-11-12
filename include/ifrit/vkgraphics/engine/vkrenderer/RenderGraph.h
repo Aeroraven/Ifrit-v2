@@ -371,7 +371,7 @@ public:
   void
   setRenderTargetFormat(const Rhi::RhiRenderTargetsFormat &format) override;
 
-  void setVertexShader(ShaderModule *shader);
+  void setVertexShader(Rhi::RhiShader *shader) override;
   void setPixelShader(Rhi::RhiShader *shader) override;
   void setGeometryShader(ShaderModule *shader);
   void setTessControlShader(ShaderModule *shader);

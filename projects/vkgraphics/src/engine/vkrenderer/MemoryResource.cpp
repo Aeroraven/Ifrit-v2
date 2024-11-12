@@ -267,6 +267,19 @@ ResourceManager::createSimpleImage(const ImageCreateInfo &ci) {
   m_simpleImage.push_back(std::move(image));
   return ptr;
 }
+
+IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>
+ResourceManager::createSimpleImageUnmanaged(const ImageCreateInfo &ci) {
+  auto image = std::make_shared<SingleDeviceImage>(m_context, ci);
+  return image;
+}
+
+IFRIT_APIDECL std::shared_ptr<SingleBuffer>
+ResourceManager::createSimpleBufferUnmanaged(const BufferCreateInfo &ci) {
+  auto buffer = std::make_shared<SingleBuffer>(m_context, ci);
+  return buffer;
+}
+
 IFRIT_APIDECL Sampler *
 ResourceManager::createSampler(const SamplerCreateInfo &ci) {
   auto sampler = std::make_unique<Sampler>(m_context, ci);
@@ -375,9 +388,25 @@ ResourceManager::createDepthAttachment(uint32_t width, uint32_t height,
   ci.format = format;
   ci.width = width;
   ci.height = height;
-  ci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | extraUsage;
+  ci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+             VK_IMAGE_USAGE_SAMPLED_BIT | extraUsage;
   ci.hostVisible = false;
   return createSimpleImage(ci);
+}
+
+IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>
+ResourceManager::createRenderTargetTexture(uint32_t width, uint32_t height,
+                                           VkFormat format,
+                                           VkImageUsageFlags extraUsage) {
+  ImageCreateInfo ci{};
+  ci.aspect = ImageAspect::Color;
+  ci.format = format;
+  ci.width = width;
+  ci.height = height;
+  ci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+             extraUsage;
+  ci.hostVisible = false;
+  return createSimpleImageUnmanaged(ci);
 }
 
 IFRIT_APIDECL SingleDeviceImage *ResourceManager::createTexture2DDevice(
@@ -390,6 +419,28 @@ IFRIT_APIDECL SingleDeviceImage *ResourceManager::createTexture2DDevice(
   ci.usage = VK_IMAGE_USAGE_SAMPLED_BIT | usage;
   ci.hostVisible = false;
   return createSimpleImage(ci);
+}
+
+IFRIT_APIDECL std::shared_ptr<Sampler>
+ResourceManager::createTrivialRenderTargetSampler() {
+  SamplerCreateInfo ci{};
+  ci.magFilter = VK_FILTER_LINEAR;
+  ci.minFilter = VK_FILTER_LINEAR;
+  ci.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  ci.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  ci.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  ci.anisotropyEnable = false;
+  ci.maxAnisotropy = 1.0f;
+  ci.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+  ci.unnormalizedCoordinates = VK_FALSE;
+  ci.compareEnable = VK_FALSE;
+  ci.compareOp = VK_COMPARE_OP_ALWAYS;
+  ci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  ci.mipLodBias = 0.0f;
+  ci.minLod = 0.0f;
+  ci.maxLod = 0.0f;
+  auto sampler = std::make_shared<Sampler>(m_context, ci);
+  return sampler;
 }
 
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

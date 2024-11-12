@@ -37,6 +37,9 @@ public:
   std::shared_ptr<Rhi::RhiStagedSingleBuffer>
   createStagedSingleBuffer(Rhi::RhiBuffer *target) override;
 
+  std::shared_ptr<Rhi::RhiBuffer>
+  getFullScreenQuadVertexBuffer() const override;
+
   // Command execution
   Rhi::RhiQueue *getQueue(Rhi::RhiQueueCapability req) override;
 
@@ -48,6 +51,12 @@ public:
   // Texture
   Rhi::RhiTexture *createDepthRenderTexture(uint32_t width,
                                             uint32_t height) override;
+
+  std::shared_ptr<Rhi::RhiTexture>
+  createRenderTargetTexture(uint32_t width, uint32_t height,
+                            Rhi::RhiImageFormat format) override;
+
+  std::shared_ptr<Rhi::RhiSampler> createTrivialSampler() override;
 
   // Pass
   Rhi::RhiComputePass *createComputePass() override;
@@ -84,6 +93,11 @@ public:
                                  Rhi::RhiRenderTargetLoadOp loadOp) override;
 
   virtual std::shared_ptr<Rhi::RhiRenderTargets> createRenderTargets() override;
+
+  // Vertex buffer
+  virtual std::shared_ptr<Rhi::RhiVertexBufferView> createVertexBufferView() override;
+  virtual std::shared_ptr<Rhi::RhiVertexBufferView>
+  getFullScreenQuadVertexBufferView() const override;
 };
 
 class IFRIT_APIDECL RhiVulkanBackendBuilder

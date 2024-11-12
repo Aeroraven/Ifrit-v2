@@ -191,4 +191,8 @@ IFRIT_APIDECL Rhi::RhiRenderTargetsFormat RenderTargets::getFormat() const {
   return format;
 }
 
+IFRIT_APIDECL Rhi::RhiScissor RenderTargets::getRenderArea() const {
+  return m_renderArea;
+}
+
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

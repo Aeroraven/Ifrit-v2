@@ -48,14 +48,14 @@ private:
   std::shared_ptr<RhiRenderTargets> renderTargets;
   std::shared_ptr<RhiColorAttachment> colorAttachment;
   std::shared_ptr<RhiDepthStencilAttachment> depthAttachment;
-  std::shared_ptr<SimpleRenderer> renderer;
+  std::shared_ptr<SyaroRenderer> renderer;
   RhiTexture *swapchainImg;
 
   PerFrameData perframeData;
 
 public:
   void onStart() override {
-    renderer = std::make_shared<SimpleRenderer>(this);
+    renderer = std::make_shared<SyaroRenderer>(this);
     m_windowProvider->registerKeyCallback(key_callback);
     auto obj = m_assetManager->getAssetByName<WaveFrontAsset>("bunny.obj");
     auto meshShader = m_assetManager->getAssetByName<ShaderAsset>(

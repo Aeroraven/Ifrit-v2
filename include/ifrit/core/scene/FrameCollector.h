@@ -43,6 +43,12 @@ struct PerShaderEffectData {
 struct PerFrameData {
   using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
   using GPUBindlessRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
+  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
+  using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
+  using GPUDepthRT = Ifrit::GraphicsBackend::Rhi::RhiDepthStencilAttachment;
+  using GPURTs = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
+  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
+
   PerFramePerViewData m_viewData;
   GPUUniformBuffer *m_viewBuffer = nullptr;
   GPUBindlessRef *m_viewBindlessRef = nullptr;
@@ -52,6 +58,20 @@ struct PerFrameData {
 
   // TODO: resource release
   std::unordered_set<uint32_t> m_enabledEffects;
+
+  // Visbility buffer
+  std::shared_ptr<GPUTexture> m_visibilityBuffer = nullptr;
+  GPUTexture *m_visPassDepth = nullptr;
+  constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat
+      c_visibilityFormat =
+          Ifrit::GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32_UINT;
+  std::shared_ptr<GPUColorRT> m_visColorRT = nullptr;
+  std::shared_ptr<GPUDepthRT> m_visDepthRT = nullptr;
+  std::shared_ptr<GPURTs> m_visRTs = nullptr;
+
+  // Visibility show
+  std::shared_ptr<GPUSampler> m_visibilitySampler = nullptr;
+  GPUBindlessRef *m_visShowCombinedRef = nullptr;
 };
 
 } // namespace Ifrit::Core

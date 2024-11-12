@@ -113,8 +113,8 @@ public:
   virtual VkImageView getImageView();
   inline bool getIsSwapchainImage() { return m_isSwapchainImage; }
   uint32_t getSize();
-  inline uint32_t getWidth() { return m_createInfo.width; }
-  inline uint32_t getHeight() { return m_createInfo.height; }
+  inline uint32_t getWidth() override { return m_createInfo.width; }
+  inline uint32_t getHeight() override { return m_createInfo.height; }
   inline uint32_t getDepth() { return m_createInfo.depth; }
   inline VkImageAspectFlags getAspect() const {
     if (m_createInfo.aspect == ImageAspect::Color) {
@@ -148,7 +148,7 @@ struct SamplerCreateInfo {
   VkBool32 unnormalizedCoordinates = VK_FALSE;
 };
 
-class IFRIT_APIDECL Sampler {
+class IFRIT_APIDECL Sampler : public Rhi::RhiSampler {
 protected:
   EngineContext *m_context;
   VkSampler m_sampler;
@@ -187,6 +187,15 @@ public:
   void setActiveFrame(uint32_t frame);
   inline void setDefaultCopies(int32_t copies) { m_defaultCopies = copies; }
 
+  // Previous design is TOO UGLY, it saves UNUSED buffer and image
+  // for new interfaces, following methods will be used to create mem resources
+  // TODO: refactor the code
+  std::shared_ptr<SingleDeviceImage>
+  createSimpleImageUnmanaged(const ImageCreateInfo &ci);
+
+  std::shared_ptr<SingleBuffer>
+  createSimpleBufferUnmanaged(const BufferCreateInfo &ci);
+
   // Quick shortcuts
 
   // Create a storage buffer that used to transfer data from host side
@@ -223,10 +232,18 @@ public:
                         VkFormat format = VK_FORMAT_D32_SFLOAT,
                         VkImageUsageFlags extraUsage = 0);
 
+  // Create a readable render target texture
+  std::shared_ptr<SingleDeviceImage>
+  createRenderTargetTexture(uint32_t width, uint32_t height, VkFormat format,
+                            VkImageUsageFlags extraUsage = 0);
+
   // Create a device only texture, intended for shader read.
   SingleDeviceImage *createTexture2DDevice(uint32_t width, uint32_t height,
                                            VkFormat format,
                                            VkImageUsageFlags extraUsage = 0);
+
+  // Create a simple sampler
+  std::shared_ptr<Sampler> createTrivialRenderTargetSampler();
 };
 
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

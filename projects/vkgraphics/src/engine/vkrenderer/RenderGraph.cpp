@@ -4,7 +4,7 @@
 
 using namespace Ifrit::Common::Utility;
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
-VkFormat toVkFormat(Rhi::RhiImageFormat format) {
+inline VkFormat toVkFormat(Rhi::RhiImageFormat format) {
   return static_cast<VkFormat>(format);
 }
 
@@ -201,8 +201,8 @@ GraphicsPass::setRenderTargetFormat(const Rhi::RhiRenderTargetsFormat &format) {
   m_renderTargetFormat = format;
 }
 
-IFRIT_APIDECL void GraphicsPass::setVertexShader(ShaderModule *shader) {
-  m_vertexShader = shader;
+IFRIT_APIDECL void GraphicsPass::setVertexShader(Rhi::RhiShader *shader) {
+  m_vertexShader = checked_cast<ShaderModule>(shader);
 }
 
 IFRIT_APIDECL void GraphicsPass::setPixelShader(Rhi::RhiShader *shader) {

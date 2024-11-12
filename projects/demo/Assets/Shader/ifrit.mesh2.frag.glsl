@@ -1,8 +1,11 @@
 #version 450
 
-layout(location = 0) in vec3 fragColor;
-layout(location = 0) out vec4 outColor;
+layout(location = 0) in flat uint ids; // clusterid, triangleid
+layout(location = 0) out uint outColor;
 
 void main() {
-    outColor = vec4(fragColor, 1.0);
+    uint triangleId = uint(gl_PrimitiveID);
+    uint lowPart = triangleId & 0x0000007Fu;
+    uint highPart = (ids<<7) & 0xFFFFFF80u;
+    outColor = highPart | lowPart;
 }

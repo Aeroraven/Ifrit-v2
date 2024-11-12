@@ -148,6 +148,17 @@ public:
     }
   }
 
+  inline virtual void addCombinedImageSampler(Rhi::RhiTexture *texture,
+                                              Rhi::RhiSampler *sampler,
+                                              uint32_t loc) override {
+    auto tex = Ifrit::Common::Utility::checked_cast<SingleDeviceImage>(texture);
+    auto sam = Ifrit::Common::Utility::checked_cast<Sampler>(sampler);
+    for (uint32_t i = 0; i < numCopies; i++) {
+      auto p = m_descriptorManager->registerCombinedImageSampler(tex, sam);
+      m_indices[i][loc] = p;
+    }
+  }
+
   inline void buildRanges() {
     if (m_bindRange.size() == 0) {
       m_bindRange.resize(numCopies);

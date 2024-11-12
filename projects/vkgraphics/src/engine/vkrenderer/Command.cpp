@@ -288,7 +288,7 @@ CommandBuffer::imageBarrier(const Rhi::RhiTexture *texture,
                        nullptr, 1, &barrier);
 }
 
-void CommandBuffer::attachBindlessReferenceGraphics(
+IFRIT_APIDECL void CommandBuffer::attachBindlessReferenceGraphics(
     Rhi::RhiGraphicsPass *pass, uint32_t setId,
     Rhi::RhiBindlessDescriptorRef *ref) const {
 
@@ -302,7 +302,7 @@ void CommandBuffer::attachBindlessReferenceGraphics(
                           &offset);
 }
 
-void CommandBuffer::attachBindlessReferenceCompute(
+IFRIT_APIDECL void CommandBuffer::attachBindlessReferenceCompute(
     Rhi::RhiComputePass *pass, uint32_t setId,
     Rhi::RhiBindlessDescriptorRef *ref) const {
   auto bindless = checked_cast<DescriptorBindlessIndices>(ref);
@@ -313,6 +313,39 @@ void CommandBuffer::attachBindlessReferenceCompute(
   vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
                           computePass->getPipelineLayout(), setId, 1, &set, 1,
                           &offset);
+}
+
+IFRIT_APIDECL void CommandBuffer::attachVertexBufferView(
+    const Rhi::RhiVertexBufferView &view) const {
+  auto vxDesc = checked_cast<VertexBufferDescriptor>(&view);
+  auto exfun = m_context->getExtensionFunction();
+  exfun.p_vkCmdSetVertexInputEXT(
+      m_commandBuffer, size_cast<uint32_t>(vxDesc->m_bindings.size()),
+      vxDesc->m_bindings.data(),
+      size_cast<uint32_t>(vxDesc->m_attributes.size()),
+      vxDesc->m_attributes.data());
+}
+
+IFRIT_APIDECL void CommandBuffer::attachVertexBuffers(
+    uint32_t firstSlot, const std::vector<Rhi::RhiBuffer *> &buffers) const {
+  std::vector<VkBuffer> vxbuffers;
+  std::vector<VkDeviceSize> offsets;
+  for (int i = 0; i < buffers.size(); i++) {
+    auto buffer = checked_cast<SingleBuffer>(buffers[i]);
+    vxbuffers.push_back(buffer->getBuffer());
+    offsets.push_back(0);
+  }
+  vkCmdBindVertexBuffers(m_commandBuffer, firstSlot,
+                         size_cast<uint32_t>(buffers.size()), vxbuffers.data(),
+                         offsets.data());
+}
+
+IFRIT_APIDECL void CommandBuffer::drawInstanced(uint32_t vertexCount,
+                                                uint32_t instanceCount,
+                                                uint32_t firstVertex,
+                                                uint32_t firstInstance) const {
+  vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, firstVertex,
+            firstInstance);
 }
 
 // Class: Queue

@@ -7,6 +7,10 @@
 using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
+inline VkFormat toVkFormat(Rhi::RhiImageFormat format) {
+  return static_cast<VkFormat>(format);
+}
+
 struct RhiVulkanBackendImplDetails : public NonCopyable {
   std::unique_ptr<CommandExecutor> m_commandExecutor;
   std::unique_ptr<DescriptorManager> m_descriptorManager;
@@ -24,6 +28,11 @@ struct RhiVulkanBackendImplDetails : public NonCopyable {
 
   // managed descriptors
   std::vector<std::shared_ptr<Rhi::RhiBindlessIdRef>> m_bindlessIdRefs;
+
+  // some utility buffers
+  std::shared_ptr<SingleBuffer> m_fullScreenQuadVertexBuffer;
+  std::shared_ptr<VertexBufferDescriptor>
+      m_fullScreenQuadVertexBufferDescriptor;
 };
 
 IFRIT_APIDECL
@@ -46,6 +55,34 @@ RhiVulkanBackend::RhiVulkanBackend(const Rhi::RhiInitializeArguments &args) {
   m_implDetails->m_commandExecutor->setQueues(
       1, args.m_expectedGraphicsQueueCount, args.m_expectedComputeQueueCount,
       args.m_expectedTransferQueueCount);
+
+  // All done, then make a full screen quad buffer
+  BufferCreateInfo ci{}; // One Triangle,
+  ci.size = 3 * 2 * sizeof(float);
+  ci.usage =
+      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  ci.hostVisible = false;
+  m_implDetails->m_fullScreenQuadVertexBuffer =
+      m_implDetails->m_resourceManager->createSimpleBufferUnmanaged(ci);
+
+  StagedSingleBuffer stagedQuadBuffer(
+      engineContext, m_implDetails->m_fullScreenQuadVertexBuffer.get());
+
+  auto transferQueue =
+      m_implDetails->m_commandExecutor->getQueue(QueueRequirement::Transfer);
+  transferQueue->runSyncCommand([&](const Rhi::RhiCommandBuffer *cmd) {
+    float data[] = {
+        0.0f, 0.0f, //
+        4.0f, 0.0f, //
+        0.0f, 4.0f, //
+    };
+    stagedQuadBuffer.cmdCopyToDevice(cmd, data, sizeof(data), 0);
+  });
+  m_implDetails->m_fullScreenQuadVertexBufferDescriptor =
+      std::make_shared<VertexBufferDescriptor>();
+  m_implDetails->m_fullScreenQuadVertexBufferDescriptor->addBinding(
+      {0}, {Rhi::RhiImageFormat::RHI_FORMAT_R32G32_SFLOAT}, {0},
+      2 * sizeof(float));
 }
 
 IFRIT_APIDECL void RhiVulkanBackend::waitDeviceIdle() {
@@ -63,6 +100,12 @@ RhiVulkanBackend::createBuffer(uint32_t size, uint32_t usage,
   auto p = m_implDetails->m_resourceManager->createSimpleBuffer(ci);
   return p;
 }
+
+std::shared_ptr<Rhi::RhiBuffer>
+RhiVulkanBackend::getFullScreenQuadVertexBuffer() const {
+  return m_implDetails->m_fullScreenQuadVertexBuffer;
+}
+
 IFRIT_APIDECL Rhi::RhiBuffer *
 RhiVulkanBackend::createIndirectMeshDrawBufferDevice(uint32_t drawCalls) {
   return m_implDetails->m_resourceManager->createIndirectMeshDrawBufferDevice(
@@ -152,6 +195,18 @@ RhiVulkanBackend::createShader(const std::vector<char> &code, std::string entry,
 IFRIT_APIDECL Rhi::RhiTexture *
 RhiVulkanBackend::createDepthRenderTexture(uint32_t width, uint32_t height) {
   return m_implDetails->m_resourceManager->createDepthAttachment(width, height);
+}
+
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture>
+RhiVulkanBackend::createRenderTargetTexture(uint32_t width, uint32_t height,
+                                            Rhi::RhiImageFormat format) {
+  return m_implDetails->m_resourceManager->createRenderTargetTexture(
+      width, height, toVkFormat(format));
+}
+
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiSampler>
+RhiVulkanBackend::createTrivialSampler() {
+  return m_implDetails->m_resourceManager->createTrivialRenderTargetSampler();
 }
 
 IFRIT_APIDECL Rhi::RhiComputePass *RhiVulkanBackend::createComputePass() {
@@ -284,6 +339,17 @@ RhiVulkanBackend::registerStorageBuffer(Rhi::RhiBuffer *buffer) {
   p->ids.push_back(id);
   p->activeFrame = 0;
   return p;
+}
+  
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiVertexBufferView>
+RhiVulkanBackend::createVertexBufferView() {
+  auto view = std::make_shared<VertexBufferDescriptor>();
+  return view;
+}
+
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiVertexBufferView>
+RhiVulkanBackend::getFullScreenQuadVertexBufferView() const {
+  return m_implDetails->m_fullScreenQuadVertexBufferDescriptor;
 }
 
 IFRIT_APIDECL std::unique_ptr<Rhi::RhiBackend>

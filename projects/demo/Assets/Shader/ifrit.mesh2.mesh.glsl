@@ -67,7 +67,7 @@ layout(binding = 0, set = 2) uniform InstanceData{
     uvec4 ref;
 }uInstanceData;
 
-layout(location = 0) out vec3 fragColor[];
+layout(location = 0) out flat uint ids[];
 
 // color maps, 24 colors
 vec4 colorMap[8] = vec4[8](
@@ -129,12 +129,13 @@ void main(){
         uint vi = readVertexIndex(mi,i);
         vec3 v0 = GetResource(bVertices,vertexRef).data[vi].xyz;
         gl_MeshVerticesEXT[i].gl_Position = mvp * vec4(v0,1.0);
-        fragColor[i] = colorMap[mi % 8].rgb;
+        ids[i] = mio;
     }
     for(uint i = 0; i < totalTris ; i++){
         uint triIndexA = readTriangleIndex(mi,i*3 + 0);
         uint triIndexB = readTriangleIndex(mi,i*3 + 1);
         uint triIndexC = readTriangleIndex(mi,i*3 + 2);
         gl_PrimitiveTriangleIndicesEXT[i] = uvec3(triIndexA,triIndexB,triIndexC);
+        gl_MeshPrimitivesEXT[i].gl_PrimitiveID = int(i);
     }
 }

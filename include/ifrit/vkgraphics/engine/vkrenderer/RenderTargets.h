@@ -70,5 +70,6 @@ public:
   beginRendering(const Rhi::RhiCommandBuffer *commandBuffer) const override;
   void endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const override;
   Rhi::RhiRenderTargetsFormat getFormat() const override;
+  virtual Rhi::RhiScissor getRenderArea() const override;
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

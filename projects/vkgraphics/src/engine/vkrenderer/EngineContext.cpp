@@ -338,6 +338,7 @@ IFRIT_APIDECL void EngineContext::init() {
   meshShaderFeatures.meshShader = VK_TRUE;
 
   deviceFeatures.samplerAnisotropy = VK_TRUE;
+  deviceFeatures.geometryShader = VK_TRUE;
 
   VkDeviceCreateInfo deviceCI = {};
   deviceCI.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

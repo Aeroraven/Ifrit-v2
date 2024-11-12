@@ -8,7 +8,7 @@
 #include "ifrit/core/base/Material.h"
 #include "ifrit/core/base/Mesh.h"
 #include "ifrit/core/base/Scene.h"
-#include "ifrit/core/renderer/SimpleRenderer.h"
+#include "ifrit/core/renderer/SyaroRenderer.h"
 #include "ifrit/core/scene/FrameCollector.h"
 #include "ifrit/core/scene/SceneAssetManager.h"
 #include "ifrit/core/scene/SceneManager.h"

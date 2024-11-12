@@ -22,7 +22,7 @@ IFRIT_APIDECL float4x4 Transform::getModelToWorldMatrix() {
   model = matmul(model, translate3D(m_attributes.m_position));
   model = matmul(model, eulerAngleToMatrix(m_attributes.m_rotation));
   model = matmul(model, scale3D(m_attributes.m_scale));
-  return model;
+  return transpose(model);
 }
 
 } // namespace Ifrit::Core

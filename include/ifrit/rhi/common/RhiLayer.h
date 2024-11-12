@@ -13,6 +13,8 @@
 #include <vector>
 
 // TODO: Raw pointers are used in the interface, this is not good?
+// New interfaces added here will use smart pointers, however, the old
+// interfaces are still remained unchanged. This should be fixed in the future.
 
 namespace Ifrit::GraphicsBackend::Rhi {
 class RhiBackend;
@@ -50,6 +52,8 @@ class RhiRenderTargets;
 class RhiRenderTargetsFormat;
 struct RhiColorAttachment;
 class RhiDepthStencilAttachment;
+
+class RhiVertexBufferView;
 
 // Enums
 enum RhiBufferUsage {
@@ -262,6 +266,7 @@ enum RhiImageFormat {
 
 enum class RhiShaderStage { Vertex, Fragment, Compute, Mesh, Task };
 enum class RhiShaderSourceType { GLSLCode, Binary };
+enum class RhiVertexInputRate { Vertex, Instance };
 
 enum class RhiDescriptorBindPoint { Compute, Graphics };
 
@@ -393,6 +398,15 @@ public:
   virtual RhiTexture *createDepthRenderTexture(uint32_t width,
                                                uint32_t height) = 0;
 
+  virtual std::shared_ptr<RhiBuffer> getFullScreenQuadVertexBuffer() const = 0;
+
+  // Note that the texture created can only be accessed by the GPU
+  virtual std::shared_ptr<RhiTexture>
+  createRenderTargetTexture(uint32_t width, uint32_t height,
+                            RhiImageFormat format) = 0;
+
+  virtual std::shared_ptr<RhiSampler> createTrivialSampler() = 0;
+
   virtual std::shared_ptr<Rhi::RhiStagedSingleBuffer>
   createStagedSingleBuffer(RhiBuffer *target) = 0;
 
@@ -434,6 +448,11 @@ public:
                                  RhiRenderTargetLoadOp loadOp) = 0;
 
   virtual std::shared_ptr<RhiRenderTargets> createRenderTargets() = 0;
+
+  // Vertex buffer
+  virtual std::shared_ptr<RhiVertexBufferView> createVertexBufferView() = 0;
+  virtual std::shared_ptr<RhiVertexBufferView>
+  getFullScreenQuadVertexBufferView() const = 0;
 };
 
 // RHI device
@@ -530,6 +549,17 @@ public:
   virtual void
   attachBindlessReferenceCompute(Rhi::RhiComputePass *pass, uint32_t setId,
                                  RhiBindlessDescriptorRef *ref) const = 0;
+
+  virtual void
+  attachVertexBufferView(const RhiVertexBufferView &view) const = 0;
+
+  virtual void
+  attachVertexBuffers(uint32_t firstSlot,
+                      const std::vector<RhiBuffer *> &buffers) const = 0;
+
+  virtual void drawInstanced(uint32_t vertexCount, uint32_t instanceCount,
+                             uint32_t firstVertex,
+                             uint32_t firstInstance) const = 0;
 };
 
 class IFRIT_APIDECL RhiQueue {
@@ -572,6 +602,8 @@ protected:
 
 public:
   virtual ~RhiTexture() = default;
+  virtual uint32_t getHeight() = 0;
+  virtual uint32_t getWidth() = 0;
 };
 
 // RHI pipeline
@@ -607,6 +639,7 @@ class IFRIT_APIDECL RhiGraphicsPass : public RhiGeneralPassBase {
 public:
   virtual ~RhiGraphicsPass() = default;
   virtual void setMeshShader(RhiShader *shader) = 0;
+  virtual void setVertexShader(RhiShader *shader) = 0;
   virtual void setPixelShader(RhiShader *shader) = 0;
   virtual void setRasterizerTopology(RhiRasterizerTopology topology) = 0;
   virtual void setRenderArea(uint32_t x, uint32_t y, uint32_t width,
@@ -615,7 +648,8 @@ public:
   virtual void setDepthTestEnable(bool enable) = 0;
   virtual void setDepthCompareOp(Rhi::RhiCompareOp compareOp) = 0;
 
-  virtual void setRenderTargetFormat(const Rhi::RhiRenderTargetsFormat &format) = 0;
+  virtual void
+  setRenderTargetFormat(const Rhi::RhiRenderTargetsFormat &format) = 0;
   virtual void
   setShaderBindingLayout(const std::vector<RhiDescriptorType> &layout) = 0;
   virtual void addShaderStorageBuffer(RhiBuffer *buffer, uint32_t position,
@@ -642,6 +676,9 @@ public:
   virtual void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t loc) = 0;
   virtual void addStorageBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t loc) = 0;
   virtual void addStorageBuffer(Rhi::RhiBuffer *buffer, uint32_t loc) = 0;
+  virtual void addCombinedImageSampler(Rhi::RhiTexture *texture,
+                                       Rhi::RhiSampler *sampler,
+                                       uint32_t loc) = 0;
 };
 
 // Rhi RenderTargets
@@ -662,6 +699,7 @@ public:
   endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const = 0;
   virtual void setRenderArea(Rhi::RhiScissor area) = 0;
   virtual RhiRenderTargetsFormat getFormat() const = 0;
+  virtual Rhi::RhiScissor getRenderArea() const = 0;
 };
 
 class IFRIT_APIDECL RhiColorAttachment {
@@ -672,6 +710,19 @@ protected:
 class IFRIT_APIDECL RhiDepthStencilAttachment {
 protected:
   virtual int _polymorphismPlaceHolder() { return 0; }
+};
+
+class IFRIT_APIDECL RhiSampler {
+protected:
+  virtual int _polymorphismPlaceHolder() { return 0; }
+};
+
+class IFRIT_APIDECL RhiVertexBufferView {
+protected:
+  virtual void addBinding(
+      std::vector<uint32_t> location, std::vector<Rhi::RhiImageFormat> format,
+      std::vector<uint32_t> offset, uint32_t stride,
+      Rhi::RhiVertexInputRate inputRate = Rhi::RhiVertexInputRate::Vertex) = 0;
 };
 
 } // namespace Ifrit::GraphicsBackend::Rhi

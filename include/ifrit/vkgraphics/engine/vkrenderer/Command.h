@@ -8,15 +8,15 @@
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 class CommandBuffer;
 
-enum class VertexInputRate { Vertex, Instance };
-
-struct VertexBufferDescriptor {
+class IFRIT_APIDECL VertexBufferDescriptor : public Rhi::RhiVertexBufferView {
+public:
   std::vector<VkVertexInputAttributeDescription2EXT> m_attributes;
   std::vector<VkVertexInputBindingDescription2EXT> m_bindings;
   inline void addBinding(std::vector<uint32_t> location,
-                         std::vector<VkFormat> format,
+                         std::vector<Rhi::RhiImageFormat> format,
                          std::vector<uint32_t> offset, uint32_t stride,
-                         VertexInputRate inputRate = VertexInputRate::Vertex) {
+                         Rhi::RhiVertexInputRate inputRate =
+                             Rhi::RhiVertexInputRate::Vertex) override {
     VkVertexInputBindingDescription2EXT binding{};
     binding.binding =
         Ifrit::Common::Utility::size_cast<uint32_t>(m_bindings.size());
@@ -24,7 +24,7 @@ struct VertexBufferDescriptor {
     binding.divisor = 1;
     binding.sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
 
-    if (inputRate == VertexInputRate::Vertex) {
+    if (inputRate == Rhi::RhiVertexInputRate::Vertex) {
       binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
     } else {
       binding.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
@@ -36,7 +36,7 @@ struct VertexBufferDescriptor {
       attribute.sType =
           VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
       attribute.binding = binding.binding;
-      attribute.format = format[i];
+      attribute.format = static_cast<VkFormat>(format[i]);
       attribute.location = location[i];
       attribute.offset = offset[i];
       m_attributes.push_back(attribute);
@@ -154,6 +154,17 @@ public:
   void attachBindlessReferenceCompute(
       Rhi::RhiComputePass *pass, uint32_t setId,
       Rhi::RhiBindlessDescriptorRef *ref) const override;
+
+  virtual void
+  attachVertexBufferView(const Rhi::RhiVertexBufferView &view) const override;
+
+  virtual void attachVertexBuffers(
+      uint32_t firstSlot,
+      const std::vector<Rhi::RhiBuffer *> &buffers) const override;
+
+  virtual void drawInstanced(uint32_t vertexCount, uint32_t instanceCount,
+                             uint32_t firstVertex,
+                             uint32_t firstInstance) const override;
 };
 
 class IFRIT_APIDECL CommandPool {

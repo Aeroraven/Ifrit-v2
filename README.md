@@ -21,8 +21,9 @@ The project is organized into following parts.
   - For implementation details and performance, check [here](./projects/softgraphics/readme.md)
 - **`rhi/vkrenderer`**: Vulkan renderer, intended to be the refactored version for [my original implementation](https://github.com/Aeroraven/Aria).
   - Get rid of messy pass management, synchronization primitives and descriptor bindings in the original repo.
-
 - **`meshproclib`**: Mesh algorithms.
+  - Nanite-like mesh level of details
+
 - **`ircompile`**: LLVM JIT compilation for shader codes.
 - **`display`**:  Presentation and window surface supporting utilities.
 
@@ -96,7 +97,7 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [cereal](https://github.com/USCiLab/cereal)                  | Serialization                    | BSD-3                |
 | [tinygltf](https://github.com/syoyo/tinygltf/tree/release)   | Model Loading                    | MIT                  |
 | [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT                  |
-| spirv-reflect                                                | Shader Reflection                | Apache 2.0           |
+| [spirv-reflect](https://github.com/KhronosGroup/SPIRV-Reflect) | Shader Reflection                | Apache 2.0           |
 
 
 
