@@ -24,6 +24,7 @@ IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,
     for (auto &shader : ref.m_shaders) {
       if (shader->getStage() == RhiShaderStage::Vertex) {
         vertexShader = shader;
+        pass->setVertexShader(shader);
       } else if (shader->getStage() == RhiShaderStage::Fragment) {
         fragmentShader = shader;
         pass->setPixelShader(shader);
@@ -122,9 +123,6 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
       if (meshResource.objectBufferId == nullptr || mesh->m_resourceDirty) {
         requireUpdate = true;
         mesh->m_resourceDirty = false;
-        meshDataRef->m_cpCounter.consume = 0;
-        meshDataRef->m_cpCounter.produce = 0;
-        meshDataRef->m_cpCounter.remain = 0; // This word is set in shader
         meshDataRef->m_cpCounter.totalBvhNodes = meshDataRef->m_bvhNodes.size();
         meshDataRef->m_cpCounter.totalLods = meshDataRef->m_maxLod;
         meshDataRef->m_cpCounter.totalNumClusters =
@@ -157,13 +155,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
         meshResource.meshletInClusterBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_meshletInClusterGroup.size() * sizeof(uint32_t),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.cpQueueBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshlets.size() * sizeof(uint32_t),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.cpCounterBuffer = rhi->createStorageBufferDevice(
-            sizeof(Mesh::GPUCPCounter), RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.filteredMeshlets = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshlets.size() * sizeof(uint32_t), 0);
+            sizeof(MeshData::GPUCPCounter), RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
         // Indices in bindless descriptors
         meshResource.vertexBufferId =
@@ -182,12 +175,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
             rhi->registerStorageBuffer(meshResource.meshletCullBuffer);
         meshResource.meshletInClusterBufferId =
             rhi->registerStorageBuffer(meshResource.meshletInClusterBuffer);
-        meshResource.cpQueueBufferId =
-            rhi->registerStorageBuffer(meshResource.cpQueueBuffer);
         meshResource.cpCounterBufferId =
             rhi->registerStorageBuffer(meshResource.cpCounterBuffer);
-        meshResource.filteredMeshletsId =
-            rhi->registerStorageBuffer(meshResource.filteredMeshlets);
 
         // Here, we assume that no double bufferring is allowed
         // meaning no CPU-GPU data transfer is allowed for mesh data after
@@ -209,12 +198,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
             meshResource.meshletCullBufferId->getActiveId();
         objectBuffer.meshletInClusterBufferId =
             meshResource.meshletInClusterBufferId->getActiveId();
-        objectBuffer.cpQueueBufferId =
-            meshResource.cpQueueBufferId->getActiveId();
         objectBuffer.cpCounterBufferId =
             meshResource.cpCounterBufferId->getActiveId();
-        objectBuffer.filteredMeshletsId =
-            meshResource.filteredMeshletsId->getActiveId();
 
         // description for the whole mesh
         meshResource.objectBuffer = rhi->createStorageBufferDevice(
@@ -224,8 +209,49 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
 
         mesh->setGPUResource(meshResource);
       }
+
+      // Setup instance buffers
+      auto meshInst = shaderEffect.m_instances[i];
+      MeshInstance::GPUResource instanceResource;
+      meshInst->getGPUResource(instanceResource);
+      auto &meshInstObjData = meshInst->m_resource.objectData;
+      if (instanceResource.objectBuffer == nullptr) {
+        instanceResource.cpQueueBuffer = rhi->createStorageBufferDevice(
+            sizeof(uint32_t) * meshDataRef->m_bvhNodes.size(),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        instanceResource.cpCounterBuffer =
+            rhi->createStorageBufferDevice(sizeof(MeshInstance::GPUCPCounter),
+                                           RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        instanceResource.filteredMeshlets = rhi->createStorageBufferDevice(
+            sizeof(uint32_t) * meshDataRef->m_meshlets.size(), 0);
+
+        instanceResource.cpQueueBufferId =
+            rhi->registerStorageBuffer(instanceResource.cpQueueBuffer);
+        instanceResource.cpCounterBufferId =
+            rhi->registerStorageBuffer(instanceResource.cpCounterBuffer);
+        instanceResource.filteredMeshletsId =
+            rhi->registerStorageBuffer(instanceResource.filteredMeshlets);
+
+        instanceResource.objectData.cpCounterBufferId =
+            instanceResource.cpCounterBufferId->getActiveId();
+        instanceResource.objectData.cpQueueBufferId =
+            instanceResource.cpQueueBufferId->getActiveId();
+        instanceResource.objectData.filteredMeshletsId =
+            instanceResource.filteredMeshletsId->getActiveId();
+
+        instanceResource.objectBuffer = rhi->createStorageBufferDevice(
+            sizeof(MeshInstance::GPUObjectBuffer),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        instanceResource.objectBufferId =
+            rhi->registerStorageBuffer(instanceResource.objectBuffer);
+
+        meshInst->setGPUResource(instanceResource);
+      }
+
       shaderEffect.m_objectData[i].objectDataRef =
           meshResource.objectBufferId->getActiveId();
+      shaderEffect.m_objectData[i].instanceDataRef =
+          meshInst->m_resource.objectBufferId->getActiveId();
 
       // update vertex buffer, TODO: dirty flag
       if (requireUpdate) {
@@ -256,13 +282,20 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
             rhi->createStagedSingleBuffer(meshResource.cpCounterBuffer);
         stagedBuffers.push_back(stagedCPCounterBuffer);
         pendingVertexBuffers.push_back(&meshDataRef->m_cpCounter);
-        pendingVertexBufferSizes.push_back(sizeof(Mesh::GPUCPCounter));
+        pendingVertexBufferSizes.push_back(sizeof(MeshData::GPUCPCounter));
 
         auto stagedObjectBuffer =
             rhi->createStagedSingleBuffer(meshResource.objectBuffer);
         stagedBuffers.push_back(stagedObjectBuffer);
         pendingVertexBuffers.push_back(&mesh->m_resource.objectData);
         pendingVertexBufferSizes.push_back(sizeof(Mesh::GPUObjectBuffer));
+
+        auto stagedInstanceObjectBuffer =
+            rhi->createStagedSingleBuffer(instanceResource.objectBuffer);
+        stagedBuffers.push_back(stagedInstanceObjectBuffer);
+        pendingVertexBuffers.push_back(&meshInst->m_resource.objectData);
+        pendingVertexBufferSizes.push_back(
+            sizeof(MeshInstance::GPUObjectBuffer));
 
 #undef enqueueStagedBuffer
       }
@@ -298,7 +331,7 @@ RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
   auto sRenderComplete = rhi->getSwapchainRenderDoneEventHandler();
   auto cmd = drawq->runAsyncCommand(
       [&](const Rhi::RhiCommandBuffer *cmd) {
-        cmd->imageBarrier(swapchainImg, Rhi::RhiResourceState::RenderTarget,
+        cmd->imageBarrier(swapchainImg, Rhi::RhiResourceState::Undefined,
                           Rhi::RhiResourceState::Present);
       },
       cmdToWait, {sRenderComplete.get()});

@@ -9,6 +9,7 @@ class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using GPUDescRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
   using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;
+  using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
 
 private:
   ComputePass *m_cullingPass = nullptr;
@@ -16,20 +17,32 @@ private:
   std::shared_ptr<GPUBindId> m_indirectDrawBufferId = nullptr;
   GPUDescRef *m_cullingDescriptor = nullptr;
 
-  // For debugging
+  DrawPass *m_visibilityPass = nullptr;
   DrawPass *m_textureShowPass = nullptr; // I think renderdoc can do this, but
                                          // this is for quick debugging
 
 private:
-  void setupCullingPass();
+  // Util functions
+  GPUShader *createShaderFromFile(const std::string &shaderPath,
+                                  const std::string &entry,
+                                  GraphicsBackend::Rhi::RhiShaderStage stage);
+
+  // Setup functions
+  void setupPersistentCullingPass();
+  void setupVisibilityPass();
   void setupTextureShowPass();
   void visbilityBufferSetup(PerFrameData &perframeData,
                             RenderTargets *renderTargets);
 
+  // Many passes are not material-dependent, so a unified instance buffer might
+  // reduce calls
+  void gatherAllInstances(PerFrameData &perframeData);
+
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {
-    setupCullingPass();
+    setupPersistentCullingPass();
     setupTextureShowPass();
+    setupVisibilityPass();
   }
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,

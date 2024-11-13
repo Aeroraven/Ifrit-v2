@@ -4,15 +4,59 @@
 using namespace Ifrit::GraphicsBackend::Rhi;
 
 namespace Ifrit::Core {
-IFRIT_APIDECL void SyaroRenderer::setupCullingPass() {
+
+IFRIT_APIDECL SyaroRenderer::GPUShader *SyaroRenderer::createShaderFromFile(
+    const std::string &shaderPath, const std::string &entry,
+    GraphicsBackend::Rhi::RhiShaderStage stage) {
   auto rhi = m_app->getRhiLayer();
-  std::string shaderPath = IFRIT_CORELIB_SHARED_SHADER_PATH;
-  shaderPath += "/Syaro.LodCulling.comp.glsl";
-  auto shaderCode = Ifrit::Common::Utility::readTextFile(shaderPath);
+  std::string shaderBasePath = IFRIT_CORELIB_SHARED_SHADER_PATH;
+  auto path = shaderBasePath + "/" + shaderPath;
+  auto shaderCode = Ifrit::Common::Utility::readTextFile(path);
   std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
-  auto shader =
-      rhi->createShader(shaderCodeVec, "main", RhiShaderStage::Compute,
-                        RhiShaderSourceType::GLSLCode);
+  return rhi->createShader(shaderCodeVec, entry, stage,
+                           RhiShaderSourceType::GLSLCode);
+}
+IFRIT_APIDECL void SyaroRenderer::setupTextureShowPass() {
+  auto rhi = m_app->getRhiLayer();
+
+  auto vsShader = createShaderFromFile("Syaro.FullScreenCopy.vert.glsl", "main",
+                                       RhiShaderStage::Vertex);
+  auto fsShader = createShaderFromFile("Syaro.FullScreenCopy.frag.glsl", "main",
+                                       RhiShaderStage::Fragment);
+
+  m_textureShowPass = rhi->createGraphicsPass();
+  m_textureShowPass->setVertexShader(vsShader);
+  m_textureShowPass->setPixelShader(fsShader);
+  m_textureShowPass->setNumBindlessDescriptorSets(1); // Only one texture
+
+  Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat rtFmt;
+  rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_B8G8R8A8_SRGB};
+  rtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
+  m_textureShowPass->setRenderTargetFormat(rtFmt);
+}
+
+IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
+  auto rhi = m_app->getRhiLayer();
+  auto msShader = createShaderFromFile("Syaro.VisBuffer.mesh.glsl", "main",
+                                       RhiShaderStage::Mesh);
+  auto fsShader = createShaderFromFile("Syaro.VisBuffer.frag.glsl", "main",
+                                       RhiShaderStage::Fragment);
+
+  m_visibilityPass = rhi->createGraphicsPass();
+  m_visibilityPass->setMeshShader(msShader);
+  m_visibilityPass->setPixelShader(fsShader);
+  m_visibilityPass->setNumBindlessDescriptorSets(2);
+
+  Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat rtFmt;
+  rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_R32_UINT};
+  rtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
+  m_visibilityPass->setRenderTargetFormat(rtFmt);
+}
+
+IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
+  auto rhi = m_app->getRhiLayer();
+  auto shader = createShaderFromFile("Syaro.PersistentCulling.comp.glsl",
+                                     "main", RhiShaderStage::Compute);
 
   m_cullingPass = rhi->createComputePass();
   m_cullingPass->setComputeShader(shader);
@@ -31,9 +75,10 @@ SyaroRenderer::render(
 
   // Some setups
   visbilityBufferSetup(perframeData, renderTargets);
-  buildPipelines(perframeData, GraphicsShaderPassType::Opaque, perframeData.m_visRTs.get());
+  buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
+                 perframeData.m_visRTs.get());
   prepareDeviceResources(perframeData);
-  
+  gatherAllInstances(perframeData);
 
   // Then draw
   auto rhi = m_app->getRhiLayer();
@@ -41,68 +86,46 @@ SyaroRenderer::render(
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
   // set record function for each class
   bool isFirst = true;
-  std::unique_ptr<GPUCommandSubmission> drawTask;
   auto rtFormats = perframeData.m_visRTs->getFormat();
   PipelineAttachmentConfigs paFormat = {rtFormats.m_depthFormat,
                                         rtFormats.m_colorFormats};
   // TODO: Instance culling is material-agonistic, no separate dispatch required
-  for (auto &shaderEffect : perframeData.m_shaderEffectData) {
-    auto pass = shaderEffect.m_materials[0]
-                    ->m_effectTemplates[GraphicsShaderPassType::Opaque]
-                    .m_drawPasses[paFormat];
-    m_textureShowPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-      ctx->m_cmd->attachBindlessReferenceGraphics(
-          m_textureShowPass, 1, perframeData.m_visShowCombinedRef);
-      ctx->m_cmd->attachVertexBufferView(
-          *rhi->getFullScreenQuadVertexBufferView());
-      ctx->m_cmd->attachVertexBuffers(
-          0, {rhi->getFullScreenQuadVertexBuffer().get()});
-      ctx->m_cmd->drawInstanced(3, 1, 0, 0);
-    });
-    pass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-      // bind view buffer
-      ctx->m_cmd->attachBindlessReferenceGraphics(
-          pass, 1, perframeData.m_viewBindlessRef);
-      auto ref = shaderEffect.m_materials[0]
-                     ->m_effectTemplates[GraphicsShaderPassType::Opaque];
-      ctx->m_cmd->attachBindlessReferenceGraphics(
-          pass, 2, shaderEffect.m_batchedObjBufRef);
-      ctx->m_cmd->drawMeshTasksIndirect(m_indirectDrawBuffer, 0, 1, 0);
-    });
-    if (m_cullingPass == nullptr) {
-      setupCullingPass();
-    }
-    m_cullingPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-      // bind view buffer
-      ctx->m_cmd->attachBindlessReferenceCompute(
-          m_cullingPass, 1, perframeData.m_viewBindlessRef);
-      auto ref = shaderEffect.m_materials[0]
-                     ->m_effectTemplates[GraphicsShaderPassType::Opaque];
-      ctx->m_cmd->attachBindlessReferenceCompute(
-          m_cullingPass, 2, shaderEffect.m_batchedObjBufRef);
-      ctx->m_cmd->attachBindlessReferenceCompute(m_cullingPass, 3,
-                                                 m_cullingDescriptor);
-      auto numObjs = shaderEffect.m_materials.size();
-      ctx->m_cmd->dispatch(numObjs, 1, 1);
-    });
-     
-    // Visibility buffer
-    auto semaToWait =
-        (isFirst) ? cmdToWait
-                  : std::vector<SyaroRenderer::GPUCommandSubmission *>();
-    isFirst = false;
-    if (drawTask != nullptr) {
-      semaToWait.push_back(drawTask.get());
-    }
-    auto compTask = compq->runAsyncCommand(
-        [&](const RhiCommandBuffer *cmd) { m_cullingPass->run(cmd, 0); },
-        semaToWait, {});
-    drawTask = drawq->runAsyncCommand(
-        [&](const RhiCommandBuffer *cmd) {
-          pass->run(cmd, perframeData.m_visRTs.get(), 0);
-        },
-        {compTask.get()}, {});
-  }
+  m_textureShowPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    ctx->m_cmd->attachBindlessReferenceGraphics(
+        m_textureShowPass, 1, perframeData.m_visShowCombinedRef);
+    ctx->m_cmd->attachVertexBufferView(
+        *rhi->getFullScreenQuadVertexBufferView());
+    ctx->m_cmd->attachVertexBuffers(
+        0, {rhi->getFullScreenQuadVertexBuffer().get()});
+    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
+  });
+  m_cullingPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    // bind view buffer
+    ctx->m_cmd->attachBindlessReferenceCompute(m_cullingPass, 1,
+                                               perframeData.m_viewBindlessRef);
+    ctx->m_cmd->attachBindlessReferenceCompute(
+        m_cullingPass, 2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+    ctx->m_cmd->attachBindlessReferenceCompute(m_cullingPass, 3,
+                                               m_cullingDescriptor);
+    auto numObjs = perframeData.m_allInstanceData.m_objectData.size();
+    ctx->m_cmd->dispatch(numObjs, 1, 1);
+  });
+  m_visibilityPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    // bind view buffer
+    ctx->m_cmd->attachBindlessReferenceGraphics(m_visibilityPass, 1,
+                                                perframeData.m_viewBindlessRef);
+    ctx->m_cmd->attachBindlessReferenceGraphics(
+        m_visibilityPass, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
+    ctx->m_cmd->drawMeshTasksIndirect(m_indirectDrawBuffer, 0, 1, 0);
+  });
+  auto compTask = compq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) { m_cullingPass->run(cmd, 0); },
+      cmdToWait, {});
+  auto drawTask = drawq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) {
+        m_visibilityPass->run(cmd, perframeData.m_visRTs.get(), 0);
+      },
+      {compTask.get()}, {});
   auto showTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         m_textureShowPass->run(cmd, renderTargets, 0);
@@ -111,35 +134,6 @@ SyaroRenderer::render(
   return showTask;
 }
 
-IFRIT_APIDECL void SyaroRenderer::setupTextureShowPass() {
-  auto rhi = m_app->getRhiLayer();
-
-  std::string vsShaderPath = IFRIT_CORELIB_SHARED_SHADER_PATH;
-  std::string fsShaderPath = IFRIT_CORELIB_SHARED_SHADER_PATH;
-  vsShaderPath += "/Syaro.FullScreenCopy.vert.glsl";
-  fsShaderPath += "/Syaro.FullScreenCopy.frag.glsl";
-
-  auto vsShaderCode = Ifrit::Common::Utility::readTextFile(vsShaderPath);
-  auto fsShaderCode = Ifrit::Common::Utility::readTextFile(fsShaderPath);
-  std::vector<char> vsShaderCodeVec(vsShaderCode.begin(), vsShaderCode.end());
-  auto vsShader =
-      rhi->createShader(vsShaderCodeVec, "main", RhiShaderStage::Vertex,
-                        RhiShaderSourceType::GLSLCode);
-  std::vector<char> fsShaderCodeVec(fsShaderCode.begin(), fsShaderCode.end());
-  auto fsShader =
-      rhi->createShader(fsShaderCodeVec, "main", RhiShaderStage::Fragment,
-                        RhiShaderSourceType::GLSLCode);
-
-  m_textureShowPass = rhi->createGraphicsPass();
-  m_textureShowPass->setVertexShader(vsShader);
-  m_textureShowPass->setPixelShader(fsShader);
-  m_textureShowPass->setNumBindlessDescriptorSets(1); // Only one texture
-
-  Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat rtFmt;
-  rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_B8G8R8A8_SRGB};
-  rtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
-  m_textureShowPass->setRenderTargetFormat(rtFmt);
-}
 IFRIT_APIDECL void
 SyaroRenderer::visbilityBufferSetup(PerFrameData &perframeData,
                                     RenderTargets *renderTargets) {
@@ -188,7 +182,43 @@ SyaroRenderer::visbilityBufferSetup(PerFrameData &perframeData,
   if (m_textureShowPass == nullptr) {
     setupTextureShowPass();
   }
-  
+}
+
+IFRIT_APIDECL void
+SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
+  uint32_t totalInstances = 0;
+  for (auto x : perframeData.m_enabledEffects) {
+    auto &effect = perframeData.m_shaderEffectData[x];
+    totalInstances += effect.m_objectData.size();
+  }
+  auto rhi = m_app->getRhiLayer();
+  if (perframeData.m_allInstanceData.m_lastObjectCount != totalInstances) {
+    perframeData.m_allInstanceData.m_lastObjectCount = totalInstances;
+    perframeData.m_allInstanceData.m_batchedObjectData =
+        rhi->createStorageBufferShared(totalInstances * sizeof(PerObjectData),
+                                       true, 0);
+    perframeData.m_allInstanceData.m_batchedObjBufRef =
+        rhi->createBindlessDescriptorRef();
+    auto buf = perframeData.m_allInstanceData.m_batchedObjectData;
+    perframeData.m_allInstanceData.m_batchedObjBufRef->addStorageBuffer(buf, 0);
+  }
+  perframeData.m_allInstanceData.m_objectData.resize(totalInstances);
+  for (auto i = 0; auto &x : perframeData.m_enabledEffects) {
+    auto &effect = perframeData.m_shaderEffectData[x];
+    for (auto &obj : effect.m_objectData) {
+      perframeData.m_allInstanceData.m_objectData[i] = obj;
+      i++;
+    }
+  }
+  auto activeBuf =
+      perframeData.m_allInstanceData.m_batchedObjectData->getActiveBuffer();
+  activeBuf->map();
+  activeBuf->writeBuffer(perframeData.m_allInstanceData.m_objectData.data(),
+                         perframeData.m_allInstanceData.m_objectData.size() *
+                             sizeof(PerObjectData),
+                         0);
+  activeBuf->flush();
+  activeBuf->unmap();
 }
 
 } // namespace Ifrit::Core

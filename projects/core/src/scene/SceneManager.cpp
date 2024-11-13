@@ -34,11 +34,13 @@ SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene,
     effect.m_materials.clear();
     effect.m_meshes.clear();
     effect.m_transforms.clear();
+    effect.m_instances.clear();
   }
 
   std::vector<std::shared_ptr<Material>> materials;
   std::vector<std::shared_ptr<Mesh>> meshes;
   std::vector<std::shared_ptr<Transform>> transforms;
+  std::vector<std::shared_ptr<MeshInstance>> instances;
 
   std::vector<SceneNode *> nodes;
   nodes.push_back(scene->getRootNode().get());
@@ -59,6 +61,7 @@ SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene,
         materials.push_back(meshRenderer->getMaterial());
         meshes.push_back(meshFilter->getMesh());
         transforms.push_back(transform);
+        instances.push_back(meshFilter->getMeshInstance());
       } else {
         throw std::runtime_error(
             "MeshRenderer, MeshFilter, or Transform not found");
@@ -71,6 +74,8 @@ SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene,
     auto &material = materials[i];
     auto &mesh = meshes[i];
     auto &transform = transforms[i];
+    auto &instance = instances[i];
+
     ShaderEffect effect;
     effect.m_shaders = material->m_effectTemplates[passType].m_shaders;
 
@@ -88,6 +93,7 @@ SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene,
     shaderEffectData.m_materials.push_back(material);
     shaderEffectData.m_meshes.push_back(mesh);
     shaderEffectData.m_transforms.push_back(transform);
+    shaderEffectData.m_instances.push_back(instance);
   }
 }
 } // namespace Ifrit::Core

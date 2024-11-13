@@ -20,7 +20,7 @@ struct PerFramePerViewDataRef{
 struct PerObjectData {
   uint transformRef;
   uint objectDataRef;
-  uint pad0;
+  uint instanceDataRef;
   uint pad1;
 };
 

@@ -21,9 +21,9 @@ struct PerFramePerViewData {
 };
 
 struct PerObjectData {
-  uint32_t transformRef;
-  uint32_t objectDataRef;
-  uint32_t pad0;
+  uint32_t transformRef = 0;
+  uint32_t objectDataRef = 0;
+  uint32_t instanceDataRef = 0;
   uint32_t pad1;
 };
 
@@ -31,6 +31,7 @@ struct PerShaderEffectData {
   std::vector<std::shared_ptr<Material>> m_materials;
   std::vector<std::shared_ptr<Mesh>> m_meshes;
   std::vector<std::shared_ptr<Transform>> m_transforms;
+  std::vector<std::shared_ptr<MeshInstance>> m_instances;
 
   // Data to GPUs
   uint32_t m_lastObjectCount = ~0u;
@@ -55,6 +56,9 @@ struct PerFrameData {
   std::vector<PerShaderEffectData> m_shaderEffectData;
   std::unordered_map<ShaderEffect, uint32_t, ShaderEffectHash>
       m_shaderEffectMap;
+
+  // For culling
+  PerShaderEffectData m_allInstanceData;
 
   // TODO: resource release
   std::unordered_set<uint32_t> m_enabledEffects;

@@ -9,14 +9,10 @@
 namespace Ifrit::Core {
 struct MeshData {
   struct GPUCPCounter {
-    uint32_t consume;
-    uint32_t produce;
-    uint32_t remain;
     uint32_t totalBvhNodes;
     uint32_t totalNumClusters;
     uint32_t totalLods;
     uint32_t pad1;
-    uint32_t pad2;
   };
 
   std::vector<ifloat3> m_vertices;
@@ -57,21 +53,10 @@ public:
     uint32_t bvhNodeBufferId;
     uint32_t clusterGroupBufferId;
     uint32_t meshletInClusterBufferId;
-    uint32_t cpQueueBufferId;
     uint32_t cpCounterBufferId;
-    uint32_t filteredMeshletsId;
-    uint32_t pad;
-  };
-
-  struct GPUCPCounter {
-    uint32_t consume;
-    uint32_t produce;
-    uint32_t remain;
-    uint32_t totalBvhNodes;
-    uint32_t totalNumClusters;
-    uint32_t totalLods;
     uint32_t pad1;
     uint32_t pad2;
+    uint32_t pad3;
   };
 
   struct GPUResource {
@@ -83,9 +68,7 @@ public:
     GPUBuffer *bvhNodeBuffer = nullptr;
     GPUBuffer *clusterGroupBuffer = nullptr;
     GPUBuffer *meshletInClusterBuffer = nullptr;
-    GPUBuffer *cpQueueBuffer = nullptr;
     GPUBuffer *cpCounterBuffer = nullptr;
-    GPUBuffer *filteredMeshlets = nullptr;
 
     std::shared_ptr<GPUBindId> vertexBufferId = nullptr;
     std::shared_ptr<GPUBindId> meshletBufferId = nullptr;
@@ -95,9 +78,7 @@ public:
     std::shared_ptr<GPUBindId> bvhNodeBufferId = nullptr;
     std::shared_ptr<GPUBindId> clusterGroupBufferId = nullptr;
     std::shared_ptr<GPUBindId> meshletInClusterBufferId = nullptr;
-    std::shared_ptr<GPUBindId> cpQueueBufferId = nullptr;
     std::shared_ptr<GPUBindId> cpCounterBufferId = nullptr;
-    std::shared_ptr<GPUBindId> filteredMeshletsId = nullptr;
 
     GPUObjectBuffer objectData;
     GPUBuffer *objectBuffer = nullptr;
@@ -117,7 +98,7 @@ public:
     m_resource.bvhNodeBuffer = resource.bvhNodeBuffer;
     m_resource.clusterGroupBuffer = resource.clusterGroupBuffer;
     m_resource.meshletInClusterBuffer = resource.meshletInClusterBuffer;
-    m_resource.filteredMeshlets = resource.filteredMeshlets;
+    m_resource.cpCounterBuffer = resource.cpCounterBuffer;
 
     m_resource.vertexBufferId = resource.vertexBufferId;
     m_resource.meshletBufferId = resource.meshletBufferId;
@@ -127,7 +108,7 @@ public:
     m_resource.bvhNodeBufferId = resource.bvhNodeBufferId;
     m_resource.clusterGroupBufferId = resource.clusterGroupBufferId;
     m_resource.meshletInClusterBufferId = resource.meshletInClusterBufferId;
-    m_resource.cpQueueBufferId = resource.cpQueueBufferId;
+    m_resource.cpCounterBufferId = resource.cpCounterBufferId;
 
     m_resource.objectBuffer = resource.objectBuffer;
     m_resource.objectBufferId = resource.objectBufferId;
@@ -142,7 +123,7 @@ public:
     resource.bvhNodeBuffer = m_resource.bvhNodeBuffer;
     resource.clusterGroupBuffer = m_resource.clusterGroupBuffer;
     resource.meshletInClusterBuffer = m_resource.meshletInClusterBuffer;
-    resource.cpQueueBuffer = m_resource.cpQueueBuffer;
+    resource.cpCounterBuffer = m_resource.cpCounterBuffer;
 
     resource.vertexBufferId = m_resource.vertexBufferId;
     resource.meshletBufferId = m_resource.meshletBufferId;
@@ -152,7 +133,7 @@ public:
     resource.bvhNodeBufferId = m_resource.bvhNodeBufferId;
     resource.clusterGroupBufferId = m_resource.clusterGroupBufferId;
     resource.meshletInClusterBufferId = m_resource.meshletInClusterBufferId;
-    resource.cpQueueBufferId = m_resource.cpQueueBufferId;
+    resource.cpCounterBufferId = m_resource.cpCounterBufferId;
 
     resource.objectBuffer = m_resource.objectBuffer;
     resource.objectBufferId = m_resource.objectBufferId;
@@ -164,18 +145,87 @@ public:
   IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
 };
 
+// This subjects to change. It's only an alleviation for the coupled design of
+// mesh data and instance making each instance have its own mesh data is not a
+// good idea. However, a cp queue for each instance is still not a good idea
+// Migrating this into persistent culling pass's buffer might be an alternative
+class IFRIT_APIDECL MeshInstance {
+  using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+
+public:
+  struct GPUObjectBuffer {
+    uint32_t cpQueueBufferId;
+    uint32_t cpCounterBufferId;
+    uint32_t filteredMeshletsId;
+    uint32_t pad;
+  };
+
+  struct GPUCPCounter {
+    uint32_t consume;
+    uint32_t produce;
+    uint32_t remain;
+    uint32_t pad1;
+  };
+
+  struct GPUResource {
+    GPUBuffer *cpQueueBuffer = nullptr;
+    GPUBuffer *cpCounterBuffer = nullptr;
+    GPUBuffer *filteredMeshlets = nullptr;
+
+    std::shared_ptr<GPUBindId> cpQueueBufferId = nullptr;
+    std::shared_ptr<GPUBindId> cpCounterBufferId = nullptr;
+    std::shared_ptr<GPUBindId> filteredMeshletsId = nullptr;
+
+    GPUObjectBuffer objectData;
+    GPUBuffer *objectBuffer = nullptr;
+    std::shared_ptr<GPUBindId> objectBufferId = nullptr;
+  } m_resource;
+
+  inline void setGPUResource(GPUResource &resource) {
+    m_resource.filteredMeshlets = resource.filteredMeshlets;
+    m_resource.cpQueueBuffer = resource.cpQueueBuffer;
+    m_resource.cpCounterBuffer = resource.cpCounterBuffer;
+
+    m_resource.filteredMeshletsId = resource.filteredMeshletsId;
+    m_resource.cpCounterBufferId = resource.cpCounterBufferId;
+    m_resource.cpQueueBufferId = resource.cpQueueBufferId;
+
+    m_resource.objectBuffer = resource.objectBuffer;
+    m_resource.objectBufferId = resource.objectBufferId;
+    m_resource.objectData = resource.objectData;
+  }
+  inline void getGPUResource(GPUResource &resource) {
+    resource.filteredMeshlets = m_resource.filteredMeshlets;
+    resource.cpQueueBuffer = m_resource.cpQueueBuffer;
+    resource.cpCounterBuffer = m_resource.cpCounterBuffer;
+
+    resource.filteredMeshletsId = m_resource.filteredMeshletsId;
+    resource.cpCounterBufferId = m_resource.cpCounterBufferId;
+    resource.cpQueueBufferId = m_resource.cpQueueBufferId;
+
+    resource.objectBuffer = m_resource.objectBuffer;
+    resource.objectBufferId = m_resource.objectBufferId;
+    resource.objectData = m_resource.objectData;
+  }
+};
+
 class MeshFilter : public Component {
 private:
   bool m_meshLoaded = false;
   std::shared_ptr<Mesh> m_rawData = nullptr;
   AssetReference m_meshReference;
-  std::shared_ptr<Mesh> m_attribute =
-      nullptr; // this points to the actual object used
-               // for primitive gathering
+  // this points to the actual object used for primitive gathering
+  std::shared_ptr<Mesh> m_attribute = nullptr;
+  std::shared_ptr<MeshInstance> m_instance = nullptr;
 
 public:
-  MeshFilter() {}
-  MeshFilter(std::shared_ptr<SceneObject> owner) : Component(owner) {}
+  MeshFilter() {
+    m_instance = std::make_shared<MeshInstance>();
+  }
+  MeshFilter(std::shared_ptr<SceneObject> owner) : Component(owner) {
+    m_instance = std::make_shared<MeshInstance>();
+  }
   virtual ~MeshFilter() = default;
   inline std::string serialize() override { return ""; }
   inline void deserialize() override {}
@@ -200,6 +250,7 @@ public:
     }
   }
   inline std::shared_ptr<Mesh> getMesh() { return m_attribute; }
+  inline std::shared_ptr<MeshInstance> getMeshInstance() { return m_instance; }
   IFRIT_COMPONENT_SERIALIZE(m_rawData, m_meshReference);
 };
 
