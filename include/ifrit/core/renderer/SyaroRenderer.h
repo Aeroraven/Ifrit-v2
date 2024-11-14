@@ -10,6 +10,9 @@ class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
   using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;
   using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
+  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
+  using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
+  using GPURTs = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
 
 private:
   ComputePass *m_persistentCullingPass = nullptr;
@@ -29,6 +32,11 @@ private:
   GPUDescRef *m_instCullDesc = nullptr;
   uint32_t m_maxSupportedInstances = 0;
 
+  // HiZ buffer
+  ComputePass *m_hizPass = nullptr;
+  constexpr static uint32_t cHiZGroupSizeX = 16;
+  constexpr static uint32_t cHiZGroupSizeY = 16;
+
 private:
   // Util functions
   GPUShader *createShaderFromFile(const std::string &shaderPath,
@@ -41,8 +49,11 @@ private:
   void setupPersistentCullingPass();
   void setupVisibilityPass();
   void setupTextureShowPass();
-  void visbilityBufferSetup(PerFrameData &perframeData,
-                            RenderTargets *renderTargets);
+  void setupHiZPass();
+
+  void hizBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
+  void visibilityBufferSetup(PerFrameData &perframeData,
+                             RenderTargets *renderTargets);
 
   // Many passes are not material-dependent, so a unified instance buffer might
   // reduce calls
@@ -55,6 +66,7 @@ public:
     setupVisibilityPass();
     setupPersistentCullingPass();
     setupInstanceCullingPass();
+    setupHiZPass();
   }
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,

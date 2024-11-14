@@ -59,6 +59,9 @@ public:
   virtual VkFormat getFormat() const override;
   virtual VkImage getImage() const override;
   virtual VkImageView getImageView() override;
+  virtual VkImageView getImageViewMipLayer(uint32_t mip, uint32_t layer,
+                                           uint32_t mipRange,
+                                           uint32_t layerRange) override;
 };
 
 struct RenderPassResourceTransition {

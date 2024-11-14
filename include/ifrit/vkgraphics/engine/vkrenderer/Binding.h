@@ -57,6 +57,9 @@ private:
   std::vector<std::pair<SingleDeviceImage *, Sampler *>>
       m_combinedImageSamplers;
 
+  std::vector<std::pair<SingleDeviceImage *, Rhi::RhiImageSubResource>>
+      m_storageImages;
+
   uint32_t m_minUniformBufferAlignment = 0;
 
   std::vector<std::unique_ptr<DescriptorBindRangeData>> m_bindRanges;
@@ -78,6 +81,9 @@ public:
   uint32_t registerCombinedImageSampler(SingleDeviceImage *image,
                                         Sampler *sampler);
   uint32_t registerStorageBuffer(SingleBuffer *buffer);
+  uint32_t registerStorageImage(SingleDeviceImage *image,
+                                Rhi::RhiImageSubResource subResource);
+
   DescriptorBindRange registerBindlessParameterRaw(const char *data,
                                                    uint32_t size);
   template <typename T>
@@ -156,6 +162,17 @@ public:
     for (uint32_t i = 0; i < numCopies; i++) {
       auto p = m_descriptorManager->registerCombinedImageSampler(tex, sam);
       m_indices[i][loc] = p;
+    }
+  }
+
+  inline virtual void addUAVImage(Rhi::RhiTexture *texture,
+                                  Rhi::RhiImageSubResource subResource,
+                                  uint32_t loc) override {
+    auto tex = Ifrit::Common::Utility::checked_cast<SingleDeviceImage>(texture);
+    for (uint32_t i = 0; i < numCopies; i++) {
+      auto p = m_descriptorManager->registerStorageImage(tex, subResource);
+      m_indices[i][loc] = p;
+      printf("UAVAdd:%d %d\n", p,subResource.mipLevel);
     }
   }
 

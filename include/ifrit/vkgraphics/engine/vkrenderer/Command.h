@@ -145,7 +145,8 @@ public:
                              uint32_t drawCount,
                              uint32_t stride) const override;
   void imageBarrier(const Rhi::RhiTexture *texture, Rhi::RhiResourceState src,
-                    Rhi::RhiResourceState dst) const override;
+                    Rhi::RhiResourceState dst,
+                    Rhi::RhiImageSubResource subResource) const override;
 
   void attachBindlessReferenceGraphics(
       Rhi::RhiGraphicsPass *pass, uint32_t setId,

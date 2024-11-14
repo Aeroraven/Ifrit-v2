@@ -26,6 +26,14 @@ IFRIT_APIDECL VkImageView SwapchainImageResource::getImageView() {
   return m_swapchain->getCurrentImageView();
 }
 
+IFRIT_APIDECL VkImageView SwapchainImageResource::getImageViewMipLayer(
+    uint32_t mip, uint32_t layer, uint32_t mipRange, uint32_t layerRange) {
+  if (mipRange != 1 || layerRange != 1 || mip != 0 || layer != 0) {
+    throw std::runtime_error("Invalid mip or layer");
+  }
+  return m_swapchain->getCurrentImageView();
+}
+
 // Class : RegisteredResource
 IFRIT_APIDECL void RegisteredResource::recordTransition(
     const RenderPassResourceTransition &transition, uint32_t queueFamily) {

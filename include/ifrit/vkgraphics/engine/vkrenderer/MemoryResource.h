@@ -3,6 +3,7 @@
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <memory>
+#include <unordered_map>
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 enum class BufferMemoryType { DeviceLocal, HostLocal };
@@ -96,12 +97,14 @@ protected:
   EngineContext *m_context;
   VkFormat m_format;
   VkImage m_image;
-  VkImageView m_imageView;
+  VkImageView m_imageView = nullptr;
   VmaAllocation m_allocation;
   VmaAllocationInfo m_allocInfo;
   ImageCreateInfo m_createInfo{};
   bool m_isSwapchainImage = false;
   bool m_created = false;
+
+  std::unordered_map<uint64_t, VkImageView> m_managedImageViews;
 
 public:
   SingleDeviceImage() {}
@@ -111,6 +114,9 @@ public:
   virtual VkFormat getFormat() const;
   virtual VkImage getImage() const;
   virtual VkImageView getImageView();
+  virtual VkImageView getImageViewMipLayer(uint32_t mipLevel, uint32_t layer,
+                                           uint32_t mipRange,
+                                           uint32_t layerRange);
   inline bool getIsSwapchainImage() { return m_isSwapchainImage; }
   uint32_t getSize();
   inline uint32_t getWidth() override { return m_createInfo.width; }
@@ -236,6 +242,12 @@ public:
   std::shared_ptr<SingleDeviceImage>
   createRenderTargetTexture(uint32_t width, uint32_t height, VkFormat format,
                             VkImageUsageFlags extraUsage = 0);
+
+  // Create a readable render target texture with mipLevels
+  std::shared_ptr<SingleDeviceImage>
+  createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,
+                               VkFormat format,
+                               VkImageUsageFlags extraUsage = 0);
 
   // Create a device only texture, intended for shader read.
   SingleDeviceImage *createTexture2DDevice(uint32_t width, uint32_t height,

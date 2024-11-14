@@ -1,6 +1,11 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
+// Instance culling typically sends the instance's root BVH node
+// to the persistent culling stage.
+// It's said that instance culling uses mesh as the smallest unit of culling.
+// From: https://www.reddit.com/r/unrealengine4/comments/sycyof/analysis_of_ue5_rendering_technology_nanite/
+
 #include "Base.glsl"
 #include "Bindless.glsl"
 #include "Syaro.Shared.glsl"

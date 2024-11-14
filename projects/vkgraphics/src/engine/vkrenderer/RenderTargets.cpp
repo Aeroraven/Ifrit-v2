@@ -28,12 +28,13 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
   auto cmdraw = cmd->getCommandBuffer();
   cmd->imageBarrier(m_depthStencilAttachment->getRenderTarget(),
                     Rhi::RhiResourceState::Undefined,
-                    Rhi::RhiResourceState::DepthStencilRenderTarget);
+                    Rhi::RhiResourceState::DepthStencilRenderTarget,
+                    {0, 0, 1, 1});
 
   for (auto attachment : m_colorAttachments) {
     cmd->imageBarrier(attachment->getRenderTarget(),
                       Rhi::RhiResourceState::Undefined,
-                      Rhi::RhiResourceState::RenderTarget);
+                      Rhi::RhiResourceState::RenderTarget, {0, 0, 1, 1});
   }
 
   auto exfunc = m_context->getExtensionFunction();
@@ -83,6 +84,8 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
     } else {
       loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     }
+    auto tgtMip = attachment->getTargetMip();
+    auto tgtArrLayer = attachment->getTargetArrLayer();
 
     VkRenderingAttachmentInfoKHR attachmentInfo{};
     attachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
@@ -91,7 +94,8 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
     attachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
     attachmentInfo.imageView =
-        attachment->getRenderTargetInternal()->getImageView();
+        attachment->getRenderTargetInternal()->getImageViewMipLayer(
+            tgtMip, tgtArrLayer, 1, 1);
     colorAttachmentInfos.push_back(attachmentInfo);
   }
   VkRect2D renderArea;

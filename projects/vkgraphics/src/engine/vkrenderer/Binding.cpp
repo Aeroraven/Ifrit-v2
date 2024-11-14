@@ -112,8 +112,8 @@ IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx)
   layoutCI2.pBindings = &m_bindingShared;
 
   vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->getDevice(),
-                                              &layoutCI2,
-                                              nullptr, &m_layoutShared),
+                                              &layoutCI2, nullptr,
+                                              &m_layoutShared),
                   "Failed to create descriptor set layout");
 }
 
@@ -172,6 +172,43 @@ uint32_t DescriptorManager::registerStorageBuffer(SingleBuffer *buffer) {
 
   vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
   return size_cast<uint32_t>(handleId);
+}
+
+IFRIT_APIDECL
+uint32_t
+DescriptorManager::registerStorageImage(SingleDeviceImage *image,
+                                        Rhi::RhiImageSubResource subResource) {
+  for (int i = 0; i < m_storageImages.size(); i++) {
+    if (m_storageImages[i].first == image) {
+      auto &sub = m_storageImages[i].second;
+      if (sub.mipLevel == subResource.mipLevel &&
+          sub.arrayLayer == subResource.arrayLayer &&
+          sub.mipCount == subResource.mipCount &&
+          sub.layerCount == subResource.layerCount) {
+        return i;
+      }
+    }
+  }
+  auto handle = m_storageImages.size();
+  VkDescriptorImageInfo imageInfo{};
+  imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+  imageInfo.imageView =
+      image->getImageViewMipLayer(subResource.mipLevel, subResource.arrayLayer,
+                                  subResource.mipCount, subResource.layerCount);
+  imageInfo.sampler = VK_NULL_HANDLE;
+
+  VkWriteDescriptorSet write{};
+  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  write.dstSet = m_bindlessSet;
+  write.dstBinding = getUnderlying(Rhi::RhiDescriptorType::StorageImage);
+  write.dstArrayElement = size_cast<uint32_t>(handle);;
+  write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+  write.descriptorCount = 1;
+  write.pImageInfo = &imageInfo;
+
+  vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
+  m_storageImages.push_back({image, subResource});
+  return size_cast<uint32_t>(handle);
 }
 
 IFRIT_APIDECL

@@ -212,10 +212,9 @@ IFRIT_APIDECL void CommandBuffer::copyBufferToImageAll(
 }
 
 // Rhi compatible
-IFRIT_APIDECL void
-CommandBuffer::imageBarrier(const Rhi::RhiTexture *texture,
-                            Rhi::RhiResourceState src,
-                            Rhi::RhiResourceState dst) const {
+IFRIT_APIDECL void CommandBuffer::imageBarrier(
+    const Rhi::RhiTexture *texture, Rhi::RhiResourceState src,
+    Rhi::RhiResourceState dst, Rhi::RhiImageSubResource subResource) const {
   auto image = checked_cast<SingleDeviceImage>(texture);
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -240,6 +239,16 @@ CommandBuffer::imageBarrier(const Rhi::RhiTexture *texture,
   case Rhi::RhiResourceState::Present:
     barrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    break;
+  case Rhi::RhiResourceState::DepthStencilRenderTarget:
+    barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+    break;
+  case Rhi::RhiResourceState::UAVStorageImage:
+    barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.dstAccessMask =
+        VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
     break;
   default:
     vkrError("Invalid resource state");
@@ -270,6 +279,11 @@ CommandBuffer::imageBarrier(const Rhi::RhiTexture *texture,
     barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     break;
+  case Rhi::RhiResourceState::UAVStorageImage:
+    barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.dstAccessMask =
+        VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+    break;
   default:
     vkrError("Invalid resource state");
   }
@@ -278,10 +292,10 @@ CommandBuffer::imageBarrier(const Rhi::RhiTexture *texture,
   auto p = image->getImage();
   barrier.image = p;
   barrier.subresourceRange.aspectMask = image->getAspect();
-  barrier.subresourceRange.layerCount = 1;
-  barrier.subresourceRange.levelCount = 1;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.layerCount = subResource.layerCount;
+  barrier.subresourceRange.levelCount = subResource.mipCount;
+  barrier.subresourceRange.baseArrayLayer = subResource.arrayLayer;
+  barrier.subresourceRange.baseMipLevel = subResource.mipLevel;
 
   vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,

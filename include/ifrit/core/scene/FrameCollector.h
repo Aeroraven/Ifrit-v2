@@ -64,7 +64,7 @@ struct PerFrameData {
   // TODO: resource release
   std::unordered_set<uint32_t> m_enabledEffects;
 
-  // Visbility buffer
+  // visibility buffer
   std::shared_ptr<GPUTexture> m_visibilityBuffer = nullptr;
   GPUTexture *m_visPassDepth = nullptr;
   constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat
@@ -73,6 +73,13 @@ struct PerFrameData {
   std::shared_ptr<GPUColorRT> m_visColorRT = nullptr;
   std::shared_ptr<GPUDepthRT> m_visDepthRT = nullptr;
   std::shared_ptr<GPURTs> m_visRTs = nullptr;
+
+  // Hiz buffer
+  std::shared_ptr<GPUTexture> m_hizTexture = nullptr;
+  std::vector<GPUBindlessRef *> m_hizDescs;
+  std::vector<GPUUniformBuffer *> m_hizTexSize;
+  std::shared_ptr<GPUSampler> m_hizDepthSampler = nullptr;
+  uint32_t m_hizIter = 0;
 
   // Visibility show
   std::shared_ptr<GPUSampler> m_visibilitySampler = nullptr;

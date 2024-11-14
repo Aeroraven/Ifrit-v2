@@ -49,11 +49,13 @@ class RhiTransferQueue;
 class RhiBindlessDescriptorRef;
 
 class RhiRenderTargets;
-class RhiRenderTargetsFormat;
-struct RhiColorAttachment;
+struct RhiRenderTargetsFormat;
+class RhiColorAttachment;
 class RhiDepthStencilAttachment;
 
 class RhiVertexBufferView;
+
+struct RhiImageSubResource;
 
 // Enums
 enum RhiBufferUsage {
@@ -67,6 +69,17 @@ enum RhiBufferUsage {
   RHI_BUFFER_USAGE_VERTEX_BUFFER_BIT = 0x00000080,
   RHI_BUFFER_USAGE_INDIRECT_BUFFER_BIT = 0x00000100,
   RHI_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT = 0x00020000,
+};
+
+enum RhiImageUsage {
+  RHI_IMAGE_USAGE_TRANSFER_SRC_BIT = 1,
+  RHI_IMAGE_USAGE_TRANSFER_DST_BIT = 2,
+  RHI_IMAGE_USAGE_SAMPLED_BIT = 4,
+  RHI_IMAGE_USAGE_STORAGE_BIT = 8,
+  RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT = 16,
+  RHI_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT = 32,
+  RHI_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT = 64,
+  RHI_IMAGE_USAGE_INPUT_ATTACHMENT_BIT = 128,
 };
 
 enum RhiQueueCapability {
@@ -305,7 +318,8 @@ enum class RhiResourceState {
   Undefined,
   RenderTarget,
   DepthStencilRenderTarget,
-  Present
+  Present,
+  UAVStorageImage,
 };
 
 // Structs
@@ -406,6 +420,10 @@ public:
   createRenderTargetTexture(uint32_t width, uint32_t height,
                             RhiImageFormat format) = 0;
 
+  virtual std::shared_ptr<RhiTexture>
+  createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,
+                               RhiImageFormat format, uint32_t extraFlags) = 0;
+
   virtual std::shared_ptr<RhiSampler> createTrivialSampler() = 0;
 
   virtual std::shared_ptr<Rhi::RhiStagedSingleBuffer>
@@ -441,7 +459,8 @@ public:
   // Render target
   virtual std::shared_ptr<RhiColorAttachment>
   createRenderTarget(RhiTexture *renderTarget, RhiClearValue clearValue,
-                     RhiRenderTargetLoadOp loadOp) = 0;
+                     RhiRenderTargetLoadOp loadOp, uint32_t mip,
+                     uint32_t arrLayer) = 0;
 
   virtual std::shared_ptr<RhiDepthStencilAttachment>
   createRenderTargetDepthStencil(RhiTexture *renderTarget,
@@ -541,7 +560,8 @@ public:
                                      uint32_t stride) const = 0;
 
   virtual void imageBarrier(const RhiTexture *texture, RhiResourceState src,
-                            RhiResourceState dst) const = 0;
+                            RhiResourceState dst,
+                            RhiImageSubResource subResource) const = 0;
 
   virtual void uavBufferBarrier(const RhiBuffer *buffer) const = 0;
 
@@ -681,6 +701,13 @@ class IFRIT_APIDECL RhiPassGraph {};
 
 // Rhi Descriptors
 
+struct RhiImageSubResource {
+  uint32_t mipLevel;
+  uint32_t arrayLayer;
+  uint32_t mipCount = 1;
+  uint32_t layerCount = 1;
+};
+
 class IFRIT_APIDECL RhiBindlessDescriptorRef {
 public:
   virtual void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t loc) = 0;
@@ -689,6 +716,8 @@ public:
   virtual void addCombinedImageSampler(Rhi::RhiTexture *texture,
                                        Rhi::RhiSampler *sampler,
                                        uint32_t loc) = 0;
+  virtual void addUAVImage(Rhi::RhiTexture *texture,
+                           RhiImageSubResource subResource, uint32_t loc) = 0;
 };
 
 // Rhi RenderTargets
@@ -710,6 +739,7 @@ public:
   virtual void setRenderArea(Rhi::RhiScissor area) = 0;
   virtual RhiRenderTargetsFormat getFormat() const = 0;
   virtual Rhi::RhiScissor getRenderArea() const = 0;
+  virtual RhiDepthStencilAttachment *getDepthStencilAttachment() const = 0;
 };
 
 class IFRIT_APIDECL RhiColorAttachment {
@@ -718,8 +748,8 @@ protected:
 };
 
 class IFRIT_APIDECL RhiDepthStencilAttachment {
-protected:
-  virtual int _polymorphismPlaceHolder() { return 0; }
+public:
+  virtual RhiTexture *getTexture() const = 0;
 };
 
 class IFRIT_APIDECL RhiSampler {

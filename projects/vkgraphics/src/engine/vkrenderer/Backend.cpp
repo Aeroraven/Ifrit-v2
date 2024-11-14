@@ -205,6 +205,13 @@ RhiVulkanBackend::createRenderTargetTexture(uint32_t width, uint32_t height,
       width, height, toVkFormat(format));
 }
 
+std::shared_ptr<Rhi::RhiTexture> RhiVulkanBackend::createRenderTargetMipTexture(
+    uint32_t width, uint32_t height, uint32_t mips, Rhi::RhiImageFormat format,
+    uint32_t extraFlags) {
+  return m_implDetails->m_resourceManager->createRenderTargetMipTexture(
+      width, height, mips, toVkFormat(format), extraFlags);
+}
+
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiSampler>
 RhiVulkanBackend::createTrivialSampler() {
   return m_implDetails->m_resourceManager->createTrivialRenderTargetSampler();
@@ -277,12 +284,11 @@ RhiVulkanBackend::getSwapchainRenderDoneEventHandler() {
   return std::make_unique<TimelineSemaphoreWait>(wait);
 }
 
-std::shared_ptr<Rhi::RhiColorAttachment>
-RhiVulkanBackend::createRenderTarget(Rhi::RhiTexture *renderTarget,
-                                     Rhi::RhiClearValue clearValue,
-                                     Rhi::RhiRenderTargetLoadOp loadOp) {
-  auto attachment =
-      std::make_shared<ColorAttachment>(renderTarget, clearValue, loadOp);
+std::shared_ptr<Rhi::RhiColorAttachment> RhiVulkanBackend::createRenderTarget(
+    Rhi::RhiTexture *renderTarget, Rhi::RhiClearValue clearValue,
+    Rhi::RhiRenderTargetLoadOp loadOp, uint32_t mips, uint32_t layers) {
+  auto attachment = std::make_shared<ColorAttachment>(renderTarget, clearValue,
+                                                      loadOp, mips, layers);
   return attachment;
 }
 

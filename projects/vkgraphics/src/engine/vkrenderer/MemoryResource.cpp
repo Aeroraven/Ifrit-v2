@@ -86,10 +86,55 @@ IFRIT_APIDECL VkImageView SingleDeviceImage::getImageView() {
   return m_imageView;
 }
 
+IFRIT_APIDECL VkImageView SingleDeviceImage::getImageViewMipLayer(
+    uint32_t mipLevel, uint32_t layer, uint32_t mipRange, uint32_t layerRange) {
+  auto key = (static_cast<uint64_t>(mipLevel) << 16) |
+             (static_cast<uint64_t>(layer) << 32) |
+             (static_cast<uint64_t>(mipRange) << 48) |
+             (static_cast<uint64_t>(layerRange) << 56);
+  if (m_managedImageViews.count(key)) {
+    return m_managedImageViews[key];
+  }
+
+  // create image view
+  auto &ci = m_createInfo;
+  VkImageViewCreateInfo imageViewCI{};
+  imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  imageViewCI.image = m_image;
+  if (ci.type == ImageType::ImageCube) {
+    imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+  } else if (ci.type == ImageType::Image2D) {
+    imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  } else if (ci.type == ImageType::Image3D) {
+    imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_3D;
+  }
+  imageViewCI.format = ci.format;
+  if (ci.aspect == ImageAspect::Color) {
+    imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  } else if (ci.aspect == ImageAspect::Depth) {
+    imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+  } else if (ci.aspect == ImageAspect::Stencil) {
+    imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+  }
+  imageViewCI.subresourceRange.baseMipLevel = mipLevel;
+  imageViewCI.subresourceRange.levelCount = mipRange;
+  imageViewCI.subresourceRange.baseArrayLayer = layer;
+  imageViewCI.subresourceRange.layerCount = layerRange;
+
+  VkImageView imageView;
+  vkrVulkanAssert(vkCreateImageView(m_context->getDevice(), &imageViewCI,
+                                    nullptr, &imageView),
+                  "Failed to create image view");
+  m_managedImageViews[key] = imageView;
+  return imageView;
+}
+
 IFRIT_APIDECL SingleDeviceImage::~SingleDeviceImage() {
   if (m_created) {
-    vkDestroyImageView(m_context->getDevice(), m_imageView, nullptr);
     vmaDestroyImage(m_context->getAllocator(), m_image, m_allocation);
+    for (auto &[k, v] : m_managedImageViews) {
+      vkDestroyImageView(m_context->getDevice(), v, nullptr);
+    }
   }
 }
 IFRIT_APIDECL SingleDeviceImage::SingleDeviceImage(EngineContext *ctx,
@@ -130,34 +175,7 @@ IFRIT_APIDECL SingleDeviceImage::SingleDeviceImage(EngineContext *ctx,
   vkrVulkanAssert(vmaCreateImage(ctx->getAllocator(), &imageCI, &allocCI,
                                  &m_image, &m_allocation, &m_allocInfo),
                   "Failed to create image");
-
-  // create image view
-  VkImageViewCreateInfo imageViewCI{};
-  imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  imageViewCI.image = m_image;
-  if (ci.type == ImageType::ImageCube) {
-    imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-  } else if (ci.type == ImageType::Image2D) {
-    imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-  } else if (ci.type == ImageType::Image3D) {
-    imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_3D;
-  }
-  imageViewCI.format = ci.format;
-  if (ci.aspect == ImageAspect::Color) {
-    imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  } else if (ci.aspect == ImageAspect::Depth) {
-    imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-  } else if (ci.aspect == ImageAspect::Stencil) {
-    imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-  }
-  imageViewCI.subresourceRange.baseMipLevel = 0;
-  imageViewCI.subresourceRange.levelCount = ci.mipLevels;
-  imageViewCI.subresourceRange.baseArrayLayer = 0;
-  imageViewCI.subresourceRange.layerCount = ci.arrayLayers;
-
-  vkrVulkanAssert(
-      vkCreateImageView(ctx->getDevice(), &imageViewCI, nullptr, &m_imageView),
-      "Failed to create image view");
+  m_imageView = this->getImageViewMipLayer(0, 0, ci.mipLevels, ci.arrayLayers);
   m_created = true;
 }
 
@@ -406,6 +424,22 @@ ResourceManager::createRenderTargetTexture(uint32_t width, uint32_t height,
   ci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
              extraUsage;
   ci.hostVisible = false;
+  return createSimpleImageUnmanaged(ci);
+}
+
+std::shared_ptr<SingleDeviceImage>
+ResourceManager::createRenderTargetMipTexture(uint32_t width, uint32_t height,
+                                              uint32_t mips, VkFormat format,
+                                              VkImageUsageFlags extraUsage) {
+  ImageCreateInfo ci{};
+  ci.aspect = ImageAspect::Color;
+  ci.format = format;
+  ci.width = width;
+  ci.height = height;
+  ci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+             extraUsage;
+  ci.hostVisible = false;
+  ci.mipLevels = mips;
   return createSimpleImageUnmanaged(ci);
 }
 

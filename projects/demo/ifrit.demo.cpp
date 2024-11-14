@@ -104,8 +104,9 @@ public:
     auto depthImage = rt->createDepthRenderTexture(WINDOW_WIDTH, WINDOW_HEIGHT);
     swapchainImg = rt->getSwapchainImage();
     renderTargets = rt->createRenderTargets();
-    colorAttachment = rt->createRenderTarget(
-        swapchainImg, {0.0f, 0.0f, 0.0f, 1.0f}, RhiRenderTargetLoadOp::Clear);
+    colorAttachment =
+        rt->createRenderTarget(swapchainImg, {0.0f, 0.0f, 0.0f, 1.0f},
+                               RhiRenderTargetLoadOp::Clear, 0, 0);
     depthAttachment = rt->createRenderTargetDepthStencil(
         depthImage, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
     renderTargets->setColorAttachments({colorAttachment.get()});

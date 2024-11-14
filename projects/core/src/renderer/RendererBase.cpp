@@ -334,7 +334,7 @@ RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
   auto cmd = drawq->runAsyncCommand(
       [&](const Rhi::RhiCommandBuffer *cmd) {
         cmd->imageBarrier(swapchainImg, Rhi::RhiResourceState::Undefined,
-                          Rhi::RhiResourceState::Present);
+                          Rhi::RhiResourceState::Present, {0, 0, 1, 1});
       },
       cmdToWait, {sRenderComplete.get()});
   rhi->endFrame();

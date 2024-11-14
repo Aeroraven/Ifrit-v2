@@ -58,6 +58,11 @@ public:
 
   std::shared_ptr<Rhi::RhiSampler> createTrivialSampler() override;
 
+  std::shared_ptr<Rhi::RhiTexture>
+  createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,
+                               Rhi::RhiImageFormat format,
+                               uint32_t extraFlags) override;
+
   // Pass
   Rhi::RhiComputePass *createComputePass() override;
 
@@ -85,7 +90,8 @@ public:
   virtual std::shared_ptr<Rhi::RhiColorAttachment>
   createRenderTarget(Rhi::RhiTexture *renderTarget,
                      Rhi::RhiClearValue clearValue,
-                     Rhi::RhiRenderTargetLoadOp loadOp) override;
+                     Rhi::RhiRenderTargetLoadOp loadOp, uint32_t mips,
+                     uint32_t layers) override;
 
   virtual std::shared_ptr<Rhi::RhiDepthStencilAttachment>
   createRenderTargetDepthStencil(Rhi::RhiTexture *renderTarget,
