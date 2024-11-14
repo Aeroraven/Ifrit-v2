@@ -165,6 +165,14 @@ public:
   virtual void drawInstanced(uint32_t vertexCount, uint32_t instanceCount,
                              uint32_t firstVertex,
                              uint32_t firstInstance) const override;
+
+  virtual void uavBufferBarrier(const Rhi::RhiBuffer *buffer) const override;
+
+  virtual void uavBufferClear(const Rhi::RhiBuffer *buffer,
+                              uint32_t val) const override;
+
+  virtual void dispatchIndirect(const Rhi::RhiBuffer *buffer,
+                                uint32_t offset) const override;
 };
 
 class IFRIT_APIDECL CommandPool {

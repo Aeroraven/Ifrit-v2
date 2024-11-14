@@ -22,8 +22,8 @@ public:
   void waitDeviceIdle() override;
   Rhi::RhiBuffer *createBuffer(uint32_t size, uint32_t usage,
                                bool hostVisible) const override;
-  Rhi::RhiBuffer *
-  createIndirectMeshDrawBufferDevice(uint32_t drawCalls) override;
+  Rhi::RhiBuffer *createIndirectMeshDrawBufferDevice(uint32_t drawCalls,
+                                                     uint32_t usage) override;
   Rhi::RhiBuffer *createStorageBufferDevice(uint32_t size,
                                             uint32_t usage) override;
   Rhi::RhiMultiBuffer *createMultiBuffer(uint32_t size, uint32_t usage,
@@ -95,7 +95,8 @@ public:
   virtual std::shared_ptr<Rhi::RhiRenderTargets> createRenderTargets() override;
 
   // Vertex buffer
-  virtual std::shared_ptr<Rhi::RhiVertexBufferView> createVertexBufferView() override;
+  virtual std::shared_ptr<Rhi::RhiVertexBufferView>
+  createVertexBufferView() override;
   virtual std::shared_ptr<Rhi::RhiVertexBufferView>
   getFullScreenQuadVertexBufferView() const override;
 };

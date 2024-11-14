@@ -200,6 +200,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
             meshResource.meshletInClusterBufferId->getActiveId();
         objectBuffer.cpCounterBufferId =
             meshResource.cpCounterBufferId->getActiveId();
+        objectBuffer.boundingSphere =
+            mesh->getBoundingSphere(meshDataRef->m_vertices);
 
         // description for the whole mesh
         meshResource.objectBuffer = rhi->createStorageBufferDevice(

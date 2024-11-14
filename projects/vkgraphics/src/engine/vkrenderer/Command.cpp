@@ -348,6 +348,34 @@ IFRIT_APIDECL void CommandBuffer::drawInstanced(uint32_t vertexCount,
             firstInstance);
 }
 
+IFRIT_APIDECL void
+CommandBuffer::uavBufferBarrier(const Rhi::RhiBuffer *buffer) const {
+  auto buf = checked_cast<SingleBuffer>(buffer)->getBuffer();
+  VkBufferMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+  barrier.buffer = buf;
+  barrier.size = VK_WHOLE_SIZE;
+  barrier.srcAccessMask =
+      VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+  barrier.dstAccessMask =
+      VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+  vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 1,
+                       &barrier, 0, nullptr);
+}
+
+IFRIT_APIDECL void CommandBuffer::uavBufferClear(const Rhi::RhiBuffer *buffer,
+                                                 uint32_t val) const {
+  auto buf = checked_cast<SingleBuffer>(buffer)->getBuffer();
+  vkCmdFillBuffer(m_commandBuffer, buf, 0, VK_WHOLE_SIZE, val);
+}
+
+IFRIT_APIDECL void CommandBuffer::dispatchIndirect(const Rhi::RhiBuffer *buffer,
+                                                   uint32_t offset) const {
+  auto buf = checked_cast<SingleBuffer>(buffer)->getBuffer();
+  vkCmdDispatchIndirect(m_commandBuffer, buf, offset);
+}
+
 // Class: Queue
 IFRIT_APIDECL Queue::Queue(EngineContext *ctx, VkQueue queue, uint32_t family,
                            VkQueueFlags capability)

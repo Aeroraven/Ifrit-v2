@@ -384,7 +384,8 @@ public:
   // Create a general buffer
   virtual RhiBuffer *createBuffer(uint32_t size, uint32_t usage,
                                   bool hostVisible) const = 0;
-  virtual RhiBuffer *createIndirectMeshDrawBufferDevice(uint32_t drawCalls) = 0;
+  virtual RhiBuffer *createIndirectMeshDrawBufferDevice(uint32_t drawCalls,
+                                                        uint32_t usage) = 0;
   virtual RhiBuffer *createStorageBufferDevice(uint32_t size,
                                                uint32_t usage) = 0;
   virtual RhiMultiBuffer *createMultiBuffer(uint32_t size, uint32_t usage,
@@ -542,6 +543,12 @@ public:
   virtual void imageBarrier(const RhiTexture *texture, RhiResourceState src,
                             RhiResourceState dst) const = 0;
 
+  virtual void uavBufferBarrier(const RhiBuffer *buffer) const = 0;
+
+  // Clear UAV storage buffer, considered as a transfer operation, typically
+  // need a barrier for sync.
+  virtual void uavBufferClear(const RhiBuffer *buffer, uint32_t val) const = 0;
+
   virtual void
   attachBindlessReferenceGraphics(Rhi::RhiGraphicsPass *pass, uint32_t setId,
                                   RhiBindlessDescriptorRef *ref) const = 0;
@@ -560,6 +567,9 @@ public:
   virtual void drawInstanced(uint32_t vertexCount, uint32_t instanceCount,
                              uint32_t firstVertex,
                              uint32_t firstInstance) const = 0;
+
+  virtual void dispatchIndirect(const RhiBuffer *buffer,
+                                uint32_t offset) const = 0;
 };
 
 class IFRIT_APIDECL RhiQueue {

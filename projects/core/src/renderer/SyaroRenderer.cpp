@@ -53,19 +53,53 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
   m_visibilityPass->setRenderTargetFormat(rtFmt);
 }
 
+IFRIT_APIDECL void SyaroRenderer::setupInstanceCullingPass() {
+  auto rhi = m_app->getRhiLayer();
+  auto shader = createShaderFromFile("Syaro.InstanceCulling.comp.glsl", "main",
+                                     RhiShaderStage::Compute);
+
+  m_instanceCullingPass = rhi->createComputePass();
+  m_instanceCullingPass->setComputeShader(shader);
+  m_instanceCullingPass->setNumBindlessDescriptorSets(3);
+}
+
 IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
   auto rhi = m_app->getRhiLayer();
   auto shader = createShaderFromFile("Syaro.PersistentCulling.comp.glsl",
                                      "main", RhiShaderStage::Compute);
 
-  m_cullingPass = rhi->createComputePass();
-  m_cullingPass->setComputeShader(shader);
-  m_cullingPass->setNumBindlessDescriptorSets(3);
+  m_persistentCullingPass = rhi->createComputePass();
+  m_persistentCullingPass->setComputeShader(shader);
+  m_persistentCullingPass->setNumBindlessDescriptorSets(3);
 
-  m_indirectDrawBuffer = rhi->createIndirectMeshDrawBufferDevice(1);
+  m_indirectDrawBuffer = rhi->createIndirectMeshDrawBufferDevice(
+      1, Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
+             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
   m_indirectDrawBufferId = rhi->registerStorageBuffer(m_indirectDrawBuffer);
   m_cullingDescriptor = rhi->createBindlessDescriptorRef();
   m_cullingDescriptor->addStorageBuffer(m_indirectDrawBuffer, 0);
+}
+
+IFRIT_APIDECL void
+SyaroRenderer::recreateInstanceCullingBuffers(uint32_t newMaxInstances) {
+  if (m_maxSupportedInstances == 0 ||
+      m_maxSupportedInstances < newMaxInstances) {
+    auto rhi = m_app->getRhiLayer();
+    m_maxSupportedInstances = newMaxInstances;
+    m_instCullDiscardObj =
+        rhi->createStorageBufferDevice(newMaxInstances * sizeof(uint32_t), 0);
+    m_instCullPassedObj =
+        rhi->createStorageBufferDevice(newMaxInstances * sizeof(uint32_t), 0);
+    m_persistCullIndirectDispatch = rhi->createStorageBufferDevice(
+        sizeof(uint32_t) * 4, Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
+                                      RHI_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
+                                  Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
+                                      RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+    m_instCullDesc = rhi->createBindlessDescriptorRef();
+    m_instCullDesc->addStorageBuffer(m_instCullDiscardObj, 0);
+    m_instCullDesc->addStorageBuffer(m_instCullPassedObj, 1);
+    m_instCullDesc->addStorageBuffer(m_persistCullIndirectDispatch, 2);
+  }
 }
 
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
@@ -79,6 +113,8 @@ SyaroRenderer::render(
                  perframeData.m_visRTs.get());
   prepareDeviceResources(perframeData);
   gatherAllInstances(perframeData);
+  recreateInstanceCullingBuffers(
+      perframeData.m_allInstanceData.m_objectData.size());
 
   // Then draw
   auto rhi = m_app->getRhiLayer();
@@ -89,7 +125,24 @@ SyaroRenderer::render(
   auto rtFormats = perframeData.m_visRTs->getFormat();
   PipelineAttachmentConfigs paFormat = {rtFormats.m_depthFormat,
                                         rtFormats.m_colorFormats};
-  // TODO: Instance culling is material-agonistic, no separate dispatch required
+  // TODO: Instance culling is material-agonistic, no separate dispatch
+  // required
+  m_instanceCullingPass->setRecordFunction(
+      [&](const RhiRenderPassContext *ctx) {
+        // TODO: this assumes the compute queue can TRANSFER
+        ctx->m_cmd->uavBufferClear(m_persistCullIndirectDispatch, 0);
+        ctx->m_cmd->uavBufferBarrier(m_persistCullIndirectDispatch);
+
+        ctx->m_cmd->attachBindlessReferenceCompute(
+            m_instanceCullingPass, 1, perframeData.m_viewBindlessRef);
+        ctx->m_cmd->attachBindlessReferenceCompute(
+            m_instanceCullingPass, 2,
+            perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+        ctx->m_cmd->attachBindlessReferenceCompute(m_instanceCullingPass, 3,
+                                                   m_instCullDesc);
+        auto numObjs = perframeData.m_allInstanceData.m_objectData.size();
+        ctx->m_cmd->dispatch(numObjs, 1, 1);
+      });
   m_textureShowPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     ctx->m_cmd->attachBindlessReferenceGraphics(
         m_textureShowPass, 1, perframeData.m_visShowCombinedRef);
@@ -99,17 +152,20 @@ SyaroRenderer::render(
         0, {rhi->getFullScreenQuadVertexBuffer().get()});
     ctx->m_cmd->drawInstanced(3, 1, 0, 0);
   });
-  m_cullingPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    // bind view buffer
-    ctx->m_cmd->attachBindlessReferenceCompute(m_cullingPass, 1,
-                                               perframeData.m_viewBindlessRef);
-    ctx->m_cmd->attachBindlessReferenceCompute(
-        m_cullingPass, 2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
-    ctx->m_cmd->attachBindlessReferenceCompute(m_cullingPass, 3,
-                                               m_cullingDescriptor);
-    auto numObjs = perframeData.m_allInstanceData.m_objectData.size();
-    ctx->m_cmd->dispatch(numObjs, 1, 1);
-  });
+  m_persistentCullingPass->setRecordFunction(
+      [&](const RhiRenderPassContext *ctx) {
+        ctx->m_cmd->uavBufferClear(m_indirectDrawBuffer, 0);
+        ctx->m_cmd->uavBufferBarrier(m_indirectDrawBuffer);
+        // bind view buffer
+        ctx->m_cmd->attachBindlessReferenceCompute(
+            m_persistentCullingPass, 1, perframeData.m_viewBindlessRef);
+        ctx->m_cmd->attachBindlessReferenceCompute(
+            m_persistentCullingPass, 2,
+            perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+        ctx->m_cmd->attachBindlessReferenceCompute(m_persistentCullingPass, 3,
+                                                   m_cullingDescriptor);
+        ctx->m_cmd->dispatchIndirect(m_persistCullIndirectDispatch, 0);
+      });
   m_visibilityPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     // bind view buffer
     ctx->m_cmd->attachBindlessReferenceGraphics(m_visibilityPass, 1,
@@ -118,14 +174,19 @@ SyaroRenderer::render(
         m_visibilityPass, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
     ctx->m_cmd->drawMeshTasksIndirect(m_indirectDrawBuffer, 0, 1, 0);
   });
-  auto compTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) { m_cullingPass->run(cmd, 0); },
+  auto instanceCullTask = compq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) { m_instanceCullingPass->run(cmd, 0); },
       cmdToWait, {});
+  auto persistCullTask = compq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) {
+        m_persistentCullingPass->run(cmd, 0);
+      },
+      {instanceCullTask.get()}, {});
   auto drawTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         m_visibilityPass->run(cmd, perframeData.m_visRTs.get(), 0);
       },
-      {compTask.get()}, {});
+      {persistCullTask.get()}, {});
   auto showTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         m_textureShowPass->run(cmd, renderTargets, 0);

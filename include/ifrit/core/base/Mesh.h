@@ -57,6 +57,7 @@ public:
     uint32_t pad1;
     uint32_t pad2;
     uint32_t pad3;
+    ifloat4 boundingSphere;
   };
 
   struct GPUResource {
@@ -141,6 +142,7 @@ public:
   }
   // TODO: static method
   virtual void createMeshLodHierarchy(std::shared_ptr<MeshData> meshData);
+  virtual ifloat4 getBoundingSphere(const std::vector<ifloat3> &vertices);
 
   IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
 };
@@ -220,9 +222,7 @@ private:
   std::shared_ptr<MeshInstance> m_instance = nullptr;
 
 public:
-  MeshFilter() {
-    m_instance = std::make_shared<MeshInstance>();
-  }
+  MeshFilter() { m_instance = std::make_shared<MeshInstance>(); }
   MeshFilter(std::shared_ptr<SceneObject> owner) : Component(owner) {
     m_instance = std::make_shared<MeshInstance>();
   }

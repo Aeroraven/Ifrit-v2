@@ -12,14 +12,22 @@ class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
 
 private:
-  ComputePass *m_cullingPass = nullptr;
+  ComputePass *m_persistentCullingPass = nullptr;
   GPUBuffer *m_indirectDrawBuffer = nullptr;
   std::shared_ptr<GPUBindId> m_indirectDrawBufferId = nullptr;
   GPUDescRef *m_cullingDescriptor = nullptr;
 
   DrawPass *m_visibilityPass = nullptr;
-  DrawPass *m_textureShowPass = nullptr; // I think renderdoc can do this, but
-                                         // this is for quick debugging
+  // I think renderdoc can do this, but this is for quick debugging
+  DrawPass *m_textureShowPass = nullptr;
+
+  // Instance culling
+  ComputePass *m_instanceCullingPass = nullptr;
+  GPUBuffer *m_instCullDiscardObj = nullptr;
+  GPUBuffer *m_instCullPassedObj = nullptr;
+  GPUBuffer *m_persistCullIndirectDispatch = nullptr;
+  GPUDescRef *m_instCullDesc = nullptr;
+  uint32_t m_maxSupportedInstances = 0;
 
 private:
   // Util functions
@@ -28,6 +36,8 @@ private:
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
 
   // Setup functions
+  void recreateInstanceCullingBuffers(uint32_t newMaxInstances);
+  void setupInstanceCullingPass();
   void setupPersistentCullingPass();
   void setupVisibilityPass();
   void setupTextureShowPass();
@@ -43,6 +53,8 @@ public:
     setupPersistentCullingPass();
     setupTextureShowPass();
     setupVisibilityPass();
+    setupPersistentCullingPass();
+    setupInstanceCullingPass();
   }
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,

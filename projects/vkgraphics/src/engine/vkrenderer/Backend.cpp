@@ -107,9 +107,10 @@ RhiVulkanBackend::getFullScreenQuadVertexBuffer() const {
 }
 
 IFRIT_APIDECL Rhi::RhiBuffer *
-RhiVulkanBackend::createIndirectMeshDrawBufferDevice(uint32_t drawCalls) {
+RhiVulkanBackend::createIndirectMeshDrawBufferDevice(uint32_t drawCalls,
+                                                     uint32_t usage) {
   return m_implDetails->m_resourceManager->createIndirectMeshDrawBufferDevice(
-      drawCalls);
+      drawCalls, usage);
 }
 IFRIT_APIDECL Rhi::RhiBuffer *
 RhiVulkanBackend::createStorageBufferDevice(uint32_t size, uint32_t usage) {
@@ -340,7 +341,7 @@ RhiVulkanBackend::registerStorageBuffer(Rhi::RhiBuffer *buffer) {
   p->activeFrame = 0;
   return p;
 }
-  
+
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiVertexBufferView>
 RhiVulkanBackend::createVertexBufferView() {
   auto view = std::make_shared<VertexBufferDescriptor>();

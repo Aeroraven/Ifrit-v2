@@ -2,6 +2,9 @@
 #define IFRIT_MESHPROC_IMPORT
 #include "ifrit/meshproc/engine/clusterlod/MeshClusterLodProc.h"
 #undef IFRIT_MESHPROC_IMPORT
+#include "ifrit/common/math/simd/SimdVectors.h"
+
+using namespace Ifrit::Math::SIMD;
 
 namespace Ifrit::Core {
 IFRIT_APIDECL void
@@ -54,4 +57,22 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
 
   meshData->m_maxLod = MAX_LOD;
 }
+
+IFRIT_APIDECL ifloat4
+Mesh::getBoundingSphere(const std::vector<ifloat3> &vertices) {
+  vfloat3 minv = {std::numeric_limits<float>::max(),
+                  std::numeric_limits<float>::max(),
+                  std::numeric_limits<float>::max()};
+  vfloat3 maxv = {std::numeric_limits<float>::min(),
+                  std::numeric_limits<float>::min(),
+                  std::numeric_limits<float>::min()};
+  for (auto &v : vertices) {
+    minv = min(minv, vfloat3{v.x, v.y, v.z});
+    maxv = max(maxv, vfloat3{v.x, v.y, v.z});
+  }
+  auto center = (minv + maxv) * 0.5f;
+  auto radius = length(maxv - center);
+  return {center.x, center.y, center.z, radius};
+}
+
 } // namespace Ifrit::Core

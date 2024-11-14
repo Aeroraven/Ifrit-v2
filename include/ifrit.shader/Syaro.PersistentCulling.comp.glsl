@@ -1,7 +1,10 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
+
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "Syaro.Shared.glsl"
+
 
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
@@ -27,32 +30,7 @@ struct BVHNode{
     int childNodes[8];
 };
 
-RegisterStorage(bPerObjectRef,{
-    PerObjectData data[];
-});
-RegisterUniform(bLocalTransform,{
-    mat4 m_localToWorld;
-});
-RegisterStorage(bMeshDataRef,{
-    uint vertexBuffer;
-    uint meshletBuffer;
-    uint meshletVertexBuffer;
-    uint meshletIndexBuffer;
-    uint meshletCullBuffer;
-    uint bvhNodeBuffer;
-    uint clusterGroupBuffer;
-    uint meshletInClusterBuffer;
-    uint cpCounterBuffer;
-    uint pad1;
-    uint pad2;
-    uint pad3;
-});
-RegisterStorage(bInstanceDataRef,{
-    uint cpQueueBuffer;
-    uint cpCounterBuffer;
-    uint filteredMeshletsBuffer;
-    uint pad;
-});
+
 RegisterStorage(bClusterGroup,{
     ClusterGroup data[];
 });
@@ -82,10 +60,6 @@ RegisterStorage(bDrawCallSize,{
 });
 RegisterStorage(bFilteredMeshlets, { 
     int data[]; 
-});
-
-RegisterUniform(bPerframeView,{
-    PerFramePerViewData data;
 });
 
 layout(binding = 0, set = 1) uniform PerframeViewData{
