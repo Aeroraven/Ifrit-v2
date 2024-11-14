@@ -32,8 +32,8 @@ RegisterStorage(bVertices,{
     vec4 data[];
 });
 
-RegisterStorage(bFilteredMeshlets,{
-    uint data[];
+RegisterStorage(bFilteredMeshlets2,{
+    uvec2 data[];
 });
 
 RegisterStorage(bPerObjectRef,{
@@ -72,6 +72,10 @@ layout(binding = 0, set = 1) uniform PerframeViewData{
 layout(binding = 0, set = 2) uniform InstanceData{
     uvec4 ref;
 }uInstanceData;
+layout(binding = 0, set = 3) uniform IndirectDrawData2{
+    uint allMeshletsRef;
+    uint indDrawCmdRef;
+}uIndirectDrawData2;
 
 layout(location = 0) out flat uint ids[];
 
@@ -88,7 +92,9 @@ vec4 colorMap[8] = vec4[8](
 );
 
 uint readTriangleIndex(uint meshletid, uint offset){
-    uint objId = gl_WorkGroupID.y;
+    uint mio = gl_WorkGroupID.x;
+    uint objId = GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[mio].x;
+
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     uint offsetInUint8Local = offset;
@@ -101,7 +107,10 @@ uint readTriangleIndex(uint meshletid, uint offset){
 
 uint readVertexIndex(uint meshletid, uint offset){
     uint offsetInUint8Local = offset;
-    uint objId = gl_WorkGroupID.y;
+    
+    uint mio = gl_WorkGroupID.x;
+    uint objId = GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[mio].x;
+
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     uint vertexRef = GetResource(bMeshDataRef,obj).meshletVertexBuffer;
@@ -113,7 +122,8 @@ uint readVertexIndex(uint meshletid, uint offset){
 void main(){
     uint mio = gl_WorkGroupID.x;
     // This should be in task shader, but there's only one mesh now.
-    uint objId = gl_WorkGroupID.y;
+    uint objId = GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[mio].x;
+    uint mi = GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[mio].y;
 
     uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
     mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
@@ -127,7 +137,8 @@ void main(){
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     uint filterRef = GetResource(bInstanceDataRef,inst).filteredMeshletsBuffer;
     uint vertexRef = GetResource(bMeshDataRef,obj).vertexBuffer;
-    uint mi = GetResource(bFilteredMeshlets,filterRef).data[mio];
+
+
 
     uint totalTris = GetResource(bMeshlet,meshletRef).data[mi].triangle_count;
     uint totalVerts = GetResource(bMeshlet,meshletRef).data[mi].vertex_count;

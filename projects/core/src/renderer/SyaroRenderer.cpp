@@ -50,7 +50,7 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
   m_visibilityPass = rhi->createGraphicsPass();
   m_visibilityPass->setMeshShader(msShader);
   m_visibilityPass->setPixelShader(fsShader);
-  m_visibilityPass->setNumBindlessDescriptorSets(2);
+  m_visibilityPass->setNumBindlessDescriptorSets(3);
 
   Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat rtFmt;
   rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_R32_UINT};
@@ -75,14 +75,14 @@ IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
 
   m_persistentCullingPass = rhi->createComputePass();
   m_persistentCullingPass->setComputeShader(shader);
-  m_persistentCullingPass->setNumBindlessDescriptorSets(3);
+  m_persistentCullingPass->setNumBindlessDescriptorSets(5);
 
   m_indirectDrawBuffer = rhi->createIndirectMeshDrawBufferDevice(
       1, Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
              RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
   m_indirectDrawBufferId = rhi->registerStorageBuffer(m_indirectDrawBuffer);
-  m_cullingDescriptor = rhi->createBindlessDescriptorRef();
-  m_cullingDescriptor->addStorageBuffer(m_indirectDrawBuffer, 0);
+  m_persistCullDesc = rhi->createBindlessDescriptorRef();
+  m_persistCullDesc->addStorageBuffer(m_indirectDrawBuffer, 0);
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupHiZPass() {
@@ -170,6 +170,9 @@ SyaroRenderer::render(
   });
   m_persistentCullingPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
+        ctx->m_cmd->uavBufferClear(perframeData.m_allFilteredMeshletsCount, 0);
+        ctx->m_cmd->uavBufferBarrier(perframeData.m_allFilteredMeshletsCount);
+
         ctx->m_cmd->uavBufferClear(m_indirectDrawBuffer, 0);
         ctx->m_cmd->uavBufferBarrier(m_indirectDrawBuffer);
         // bind view buffer
@@ -179,7 +182,11 @@ SyaroRenderer::render(
             m_persistentCullingPass, 2,
             perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
         ctx->m_cmd->attachBindlessReferenceCompute(m_persistentCullingPass, 3,
-                                                   m_cullingDescriptor);
+                                                   m_persistCullDesc);
+        ctx->m_cmd->attachBindlessReferenceCompute(
+            m_persistentCullingPass, 4, perframeData.m_allFilteredMeshletsDesc);
+        ctx->m_cmd->attachBindlessReferenceCompute(m_persistentCullingPass, 5,
+                                                   m_instCullDesc);
         ctx->m_cmd->dispatchIndirect(m_persistCullIndirectDispatch, 0);
       });
   m_visibilityPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
@@ -188,7 +195,10 @@ SyaroRenderer::render(
                                                 perframeData.m_viewBindlessRef);
     ctx->m_cmd->attachBindlessReferenceGraphics(
         m_visibilityPass, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
-    ctx->m_cmd->drawMeshTasksIndirect(m_indirectDrawBuffer, 0, 1, 0);
+    ctx->m_cmd->attachBindlessReferenceGraphics(
+        m_visibilityPass, 3, perframeData.m_allFilteredMeshletsDesc);
+    ctx->m_cmd->drawMeshTasksIndirect(perframeData.m_allFilteredMeshletsCount,
+                                      0, 1, 0);
   });
 
   m_hizPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
@@ -345,6 +355,7 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
 IFRIT_APIDECL void
 SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
   uint32_t totalInstances = 0;
+  uint32_t totalMeshlets = 0;
   for (auto x : perframeData.m_enabledEffects) {
     auto &effect = perframeData.m_shaderEffectData[x];
     totalInstances += effect.m_objectData.size();
@@ -365,6 +376,12 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
     auto &effect = perframeData.m_shaderEffectData[x];
     for (auto &obj : effect.m_objectData) {
       perframeData.m_allInstanceData.m_objectData[i] = obj;
+
+      for (int k = 0; k < perframeData.m_shaderEffectData[x].m_materials.size();
+           k++) {
+        auto mesh = perframeData.m_shaderEffectData[x].m_meshes[k]->loadMesh();
+        totalMeshlets += mesh->m_meshlets.size();
+      }
       i++;
     }
   }
@@ -377,6 +394,24 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
                          0);
   activeBuf->flush();
   activeBuf->unmap();
+  if (perframeData.m_allFilteredMeshletsCount == nullptr) {
+    perframeData.m_allFilteredMeshletsCount =
+        rhi->createIndirectMeshDrawBufferDevice(
+            1, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
+                   RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+  }
+  if (perframeData.m_allFilteredMeshletsMaxCount < totalMeshlets) {
+    perframeData.m_allFilteredMeshletsMaxCount = totalMeshlets;
+    perframeData.m_allFilteredMeshlets = rhi->createStorageBufferDevice(
+        totalMeshlets * sizeof(uint32_t) * 2,
+        RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+    perframeData.m_allFilteredMeshletsDesc = rhi->createBindlessDescriptorRef();
+    perframeData.m_allFilteredMeshletsDesc->addStorageBuffer(
+        perframeData.m_allFilteredMeshlets, 0);
+    perframeData.m_allFilteredMeshletsDesc->addStorageBuffer(
+        perframeData.m_allFilteredMeshletsCount, 1);
+  }
 }
 
 } // namespace Ifrit::Core

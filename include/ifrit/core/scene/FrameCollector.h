@@ -44,6 +44,7 @@ struct PerShaderEffectData {
 
 struct PerFrameData {
   using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
+  using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
   using GPUBindlessRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
   using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
@@ -73,6 +74,13 @@ struct PerFrameData {
   std::shared_ptr<GPUColorRT> m_visColorRT = nullptr;
   std::shared_ptr<GPUDepthRT> m_visDepthRT = nullptr;
   std::shared_ptr<GPURTs> m_visRTs = nullptr;
+
+  // all visible clusters
+  GPUBuffer *m_allFilteredMeshlets = nullptr;
+  GPUBuffer *m_allFilteredMeshletsCount = nullptr;
+  uint32_t m_allFilteredMeshletsMaxCount = 0;
+  uint32_t m_requireMaxFilteredMeshlets = 0;
+  GPUBindlessRef *m_allFilteredMeshletsDesc = nullptr;
 
   // Hiz buffer
   std::shared_ptr<GPUTexture> m_hizTexture = nullptr;

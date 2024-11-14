@@ -51,6 +51,9 @@ RegisterStorage(bCpCounterInstance,{
     int pad1;
 });
 
+RegisterStorage(bInstanceAccepted,{
+    uint data[];
+});
 
 RegisterStorage(bMeshletsInClusterGroup,{
     uint data[];
@@ -61,6 +64,15 @@ RegisterStorage(bDrawCallSize,{
 RegisterStorage(bFilteredMeshlets, { 
     int data[]; 
 });
+
+struct MeshletDesc{
+    uint instanceId;
+    uint meshletId;
+};
+RegisterStorage(bFilteredMeshlets2,{
+    ivec2 data[];
+});
+
 
 layout(binding = 0, set = 1) uniform PerframeViewData{
     uvec4 ref;
@@ -74,6 +86,18 @@ layout(binding = 0, set = 3) uniform IndirectDrawData{
     uvec4 ref;
 }uIndirectDrawData;
 
+layout(binding = 0, set = 4) uniform IndirectDrawData2{
+    uint allMeshletsRef;
+    uint indDrawCmdRef;
+}uIndirectDrawData2;
+
+layout(binding = 0, set = 5) uniform IndirectCompData{
+    uint acceptRef;
+    uint rejectRef;
+    uint indRef;
+    uint pad;
+}uIndirectCompInstCull;
+
 float computeProjectedRadius(float fovy,float d,float r) {
   // https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
   float fov = fovy / 2;
@@ -84,8 +108,12 @@ bool isBVHNodeVisible(uint id){
     return true;
 }
 
+uint getObjId(){
+    return GetResource(bInstanceAccepted,uIndirectCompInstCull.acceptRef).data[gl_WorkGroupID.x];
+}
+
 bool isClusterGroupVisible(uint id){
-    uint objId = gl_WorkGroupID.x;
+    uint objId = getObjId();
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
     uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
@@ -138,23 +166,26 @@ bool isClusterGroupVisible(uint id){
 
 void enqueueClusterGroup(uint id, uint clusterRef){
     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
-    uint objId = gl_WorkGroupID.x;
+    uint objId =getObjId();
     uint objMesh = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint objInst = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
     uint filteredRef = GetResource(bInstanceDataRef,objInst).filteredMeshletsBuffer;
     uint micRef = GetResource(bMeshDataRef,objMesh).meshletInClusterBuffer;
     int numMeshlets = int(group.childMeshletCount);
-    int pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData.ref.x).data[0],numMeshlets);
+
+    // Seems atomicity is guaranteed across workgroups
+    int pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).data[0],numMeshlets);
+
     for(uint i = 0;i<group.childMeshletCount;i++){
         uint meshletId = GetResource(bMeshletsInClusterGroup,micRef).data[group.childMeshletStart + i];
-        GetResource(bFilteredMeshlets,filteredRef).data[pos+i] = int(meshletId);
+        GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[pos+i] = ivec2(objId,meshletId);
     }
 }
 
 void main(){
     
     uint threadId = gl_LocalInvocationID.x;
-    uint objId = gl_WorkGroupID.x;
+    uint objId = getObjId();
     uint groupSize = gl_WorkGroupSize.x;
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
@@ -185,9 +216,8 @@ void main(){
     if(threadId == 0){
         GetResource(bCpQueue,cpqueueRef).data[0] = 0;
         // TODO: this should hold num of instances instead of num of meshlets in the future
-        GetResource(bDrawCallSize,uIndirectDrawData.ref.x).data[0] = 0;
-        GetResource(bDrawCallSize,uIndirectDrawData.ref.x).data[1] = 1;
-        GetResource(bDrawCallSize,uIndirectDrawData.ref.x).data[2] = 1;
+        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).data[1] = 1;
+        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).data[2] = 1;
         chosenBVHNodeInd = 0;
     }
     memoryBarrier();

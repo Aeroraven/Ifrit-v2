@@ -75,6 +75,7 @@ public:
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");
     auto node = s->addSceneNode();
+
     auto gameObject = node->addGameObject("bunny");
     auto meshFilter = gameObject->addComponent<MeshFilter>();
     meshFilter->setMesh(obj);
@@ -82,9 +83,19 @@ public:
     meshRenderer->setMaterial(m_material);
 
     auto objectTransform = gameObject->addComponent<Transform>();
-    objectTransform->setPosition({0.0f, 0.0f, 0.0f});
+    objectTransform->setPosition({-0.3f, 0.0f, 0.0f});
     objectTransform->setRotation({0.0f, 0.0f, 0.0f});
     objectTransform->setScale({1.0f, 1.0f, 1.0f});
+
+    auto gameObject2 = node->addGameObject("bunny2");
+    auto meshFilter2 = gameObject2->addComponent<MeshFilter>();
+    meshFilter2->setMesh(obj);
+    auto meshRenderer2 = gameObject2->addComponent<MeshRenderer>();
+    meshRenderer2->setMaterial(m_material);
+    auto objectTransform2 = gameObject2->addComponent<Transform>();
+    objectTransform2->setPosition({0.3f, 0.0f, 0.0f});
+    objectTransform2->setRotation({0.0f, 0.0f, 0.0f});
+    objectTransform2->setScale({1.0f, 1.0f, 1.0f});
 
     auto cameraGameObject = node->addGameObject("camera");
     auto camera = cameraGameObject->addComponent<Camera>();
@@ -118,7 +129,7 @@ public:
     auto cameraGameObject = m_sceneAssetManager->getScene("TestScene2")
                                 ->getRootNode()
                                 ->getChildren()[0]
-                                ->getGameObject(1);
+                                ->getGameObject(2);
     auto camera = cameraGameObject->getComponent<Transform>();
     camera->setPosition({0.0f + movRight - movLeft, 0.1f + movTop - movBottom,
                          -0.25f + movFar - movNear});

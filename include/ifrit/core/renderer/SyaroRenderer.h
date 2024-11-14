@@ -18,7 +18,7 @@ private:
   ComputePass *m_persistentCullingPass = nullptr;
   GPUBuffer *m_indirectDrawBuffer = nullptr;
   std::shared_ptr<GPUBindId> m_indirectDrawBufferId = nullptr;
-  GPUDescRef *m_cullingDescriptor = nullptr;
+  GPUDescRef *m_persistCullDesc = nullptr;
 
   DrawPass *m_visibilityPass = nullptr;
   // I think renderdoc can do this, but this is for quick debugging

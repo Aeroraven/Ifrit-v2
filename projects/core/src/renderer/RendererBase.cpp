@@ -218,6 +218,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
       meshInst->getGPUResource(instanceResource);
       auto &meshInstObjData = meshInst->m_resource.objectData;
       if (instanceResource.objectBuffer == nullptr) {
+        requireUpdate = true;
         instanceResource.cpQueueBuffer = rhi->createStorageBufferDevice(
             sizeof(uint32_t) * meshDataRef->m_bvhNodes.size(),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
