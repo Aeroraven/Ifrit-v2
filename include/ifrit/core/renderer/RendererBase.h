@@ -19,7 +19,8 @@ public:
   virtual void buildPipelines(PerFrameData &perframeData,
                               GraphicsShaderPassType passType,
                               RenderTargets *renderTargets);
-  virtual void prepareDeviceResources(PerFrameData &perframeData);
+  virtual void prepareDeviceResources(PerFrameData &perframeData,
+                                      RenderTargets *renderTargets);
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,
          const std::vector<GPUCommandSubmission *> &cmdToWait) = 0;

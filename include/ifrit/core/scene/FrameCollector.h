@@ -19,6 +19,7 @@ struct PerFramePerViewData {
   float m_cameraFovX;
   float m_cameraFovY;
   float m_cameraAspect;
+  float m_hizLods;
 };
 
 struct PerObjectData {
@@ -46,6 +47,7 @@ struct PerFrameData {
   using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
   using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
   using GPUBindlessRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
+  using GPUBindlessId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
   using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
   using GPUDepthRT = Ifrit::GraphicsBackend::Rhi::RhiDepthStencilAttachment;
@@ -88,6 +90,11 @@ struct PerFrameData {
   std::vector<GPUUniformBuffer *> m_hizTexSize;
   std::shared_ptr<GPUSampler> m_hizDepthSampler = nullptr;
   uint32_t m_hizIter = 0;
+
+  std::vector<std::shared_ptr<GPUBindlessId>> m_hizTestMips;
+  std::vector<uint32_t> m_hizTestMipsId;
+  GPUBuffer *m_hizTestMipsBuffer = nullptr;
+  GPUBindlessRef *m_hizTestDesc = nullptr;
 
   // Visibility show
   std::shared_ptr<GPUSampler> m_visibilitySampler = nullptr;

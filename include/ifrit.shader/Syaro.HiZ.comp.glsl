@@ -42,7 +42,7 @@ void main(){
         float d2 = imageLoad(GetUAVImage2DR32F(uHiZData.srcImg),ivec2(x*2+1,y*2)).r;
         float d3 = imageLoad(GetUAVImage2DR32F(uHiZData.srcImg),ivec2(x*2,y*2+1)).r;
         float d4 = imageLoad(GetUAVImage2DR32F(uHiZData.srcImg),ivec2(x*2+1,y*2+1)).r;
-        float minDepth = min(min(d1,d2),min(d3,d4));
+        float minDepth = max(max(d1,d2),max(d3,d4));
         imageStore(GetUAVImage2DR32F(uHiZData.dstImg),ivec2(x,y),vec4(minDepth,0.0,0.0,0.0));
     }
 }

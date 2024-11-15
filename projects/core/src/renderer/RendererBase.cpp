@@ -49,9 +49,18 @@ IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,
 }
 
 IFRIT_APIDECL void
-RendererBase::prepareDeviceResources(PerFrameData &perframeData) {
+RendererBase::prepareDeviceResources(PerFrameData &perframeData,
+                                     RenderTargets *renderTargets) {
   using namespace Ifrit::GraphicsBackend::Rhi;
   auto rhi = m_app->getRhiLayer();
+  auto renderArea = renderTargets->getRenderArea();
+
+  perframeData.m_viewData.m_renderHeight = renderArea.height;
+  perframeData.m_viewData.m_renderWidth = renderArea.width;
+  perframeData.m_viewData.m_hizLods =
+      static_cast<uint32_t>(std::floor(
+          std::log2(std::max(renderArea.width, renderArea.height)))) +
+      1;
 
   std::vector<std::shared_ptr<RhiStagedSingleBuffer>> stagedBuffers;
   std::vector<void *> pendingVertexBuffers;

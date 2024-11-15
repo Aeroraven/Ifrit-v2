@@ -53,6 +53,10 @@ private:
 
   PerFrameData perframeData;
 
+  constexpr static std::array<ifloat3, 4> bunnyPositions = {
+      ifloat3{-0.3f, 0.0f, 0.0f}, ifloat3{0.3f, 0.0f, 0.0f},
+      ifloat3{0.0f, 0.0f, 0.0f}, ifloat3{0.0f, 0.0f, 5.5f}};
+
 public:
   void onStart() override {
     renderer = std::make_shared<SyaroRenderer>(this);
@@ -76,26 +80,19 @@ public:
     auto s = m_sceneAssetManager->createScene("TestScene2");
     auto node = s->addSceneNode();
 
-    auto gameObject = node->addGameObject("bunny");
-    auto meshFilter = gameObject->addComponent<MeshFilter>();
-    meshFilter->setMesh(obj);
-    auto meshRenderer = gameObject->addComponent<MeshRenderer>();
-    meshRenderer->setMaterial(m_material);
+    for (int i = 0; i < bunnyPositions.size(); i++) {
+      auto gameObject = node->addGameObject("bunny");
+      auto meshFilter = gameObject->addComponent<MeshFilter>();
+      meshFilter->setMesh(obj);
+      auto meshRenderer = gameObject->addComponent<MeshRenderer>();
+      meshRenderer->setMaterial(m_material);
 
-    auto objectTransform = gameObject->addComponent<Transform>();
-    objectTransform->setPosition({-0.3f, 0.0f, 0.0f});
-    objectTransform->setRotation({0.0f, 0.0f, 0.0f});
-    objectTransform->setScale({1.0f, 1.0f, 1.0f});
-
-    auto gameObject2 = node->addGameObject("bunny2");
-    auto meshFilter2 = gameObject2->addComponent<MeshFilter>();
-    meshFilter2->setMesh(obj);
-    auto meshRenderer2 = gameObject2->addComponent<MeshRenderer>();
-    meshRenderer2->setMaterial(m_material);
-    auto objectTransform2 = gameObject2->addComponent<Transform>();
-    objectTransform2->setPosition({0.3f, 0.0f, 0.0f});
-    objectTransform2->setRotation({0.0f, 0.0f, 0.0f});
-    objectTransform2->setScale({1.0f, 1.0f, 1.0f});
+      auto objectTransform = gameObject->addComponent<Transform>();
+      objectTransform->setPosition(
+          {bunnyPositions[i].x, bunnyPositions[i].y, bunnyPositions[i].z});
+      objectTransform->setRotation({0.0f, 0.0f, 0.0f});
+      objectTransform->setScale({1.0f, 1.0f, 1.0f});
+    }
 
     auto cameraGameObject = node->addGameObject("camera");
     auto camera = cameraGameObject->addComponent<Camera>();
@@ -105,7 +102,7 @@ public:
     camera->setFar(3000.0f);
     camera->setNear(0.01f);
 
-    auto cameraTransform = cameraGameObject->addComponent<Transform>();
+    auto cameraTransform = cameraGameObject->getComponent<Transform>();
     cameraTransform->setPosition({0.0f, 0.1f, -1.25f});
     cameraTransform->setRotation({0.0f, 0.0f, 0.0f});
     cameraTransform->setScale({1.0f, 1.0f, 1.0f});
@@ -129,7 +126,7 @@ public:
     auto cameraGameObject = m_sceneAssetManager->getScene("TestScene2")
                                 ->getRootNode()
                                 ->getChildren()[0]
-                                ->getGameObject(2);
+                                ->getGameObject(bunnyPositions.size());
     auto camera = cameraGameObject->getComponent<Transform>();
     camera->setPosition({0.0f + movRight - movLeft, 0.1f + movTop - movBottom,
                          -0.25f + movFar - movNear});

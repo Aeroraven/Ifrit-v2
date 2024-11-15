@@ -65,7 +65,7 @@ IFRIT_APIDECL void SyaroRenderer::setupInstanceCullingPass() {
 
   m_instanceCullingPass = rhi->createComputePass();
   m_instanceCullingPass->setComputeShader(shader);
-  m_instanceCullingPass->setNumBindlessDescriptorSets(3);
+  m_instanceCullingPass->setNumBindlessDescriptorSets(4);
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
@@ -118,31 +118,13 @@ SyaroRenderer::recreateInstanceCullingBuffers(uint32_t newMaxInstances) {
 }
 
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
-SyaroRenderer::render(
+SyaroRenderer::renderFirstCullingPass(
     PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
     const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
-
-  // Some setups
-  visibilityBufferSetup(perframeData, renderTargets);
-  buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
-                 perframeData.m_visRTs.get());
-  prepareDeviceResources(perframeData);
-  gatherAllInstances(perframeData);
-  recreateInstanceCullingBuffers(
-      perframeData.m_allInstanceData.m_objectData.size());
-  hizBufferSetup(perframeData, renderTargets);
-
-  // Then draw
   auto rhi = m_app->getRhiLayer();
   auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
-  // set record function for each class
-  bool isFirst = true;
-  auto rtFormats = perframeData.m_visRTs->getFormat();
-  PipelineAttachmentConfigs paFormat = {rtFormats.m_depthFormat,
-                                        rtFormats.m_colorFormats};
-  // TODO: Instance culling is material-agonistic, no separate dispatch
-  // required
+
   m_instanceCullingPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
         // TODO: this assumes the compute queue can TRANSFER
@@ -156,18 +138,12 @@ SyaroRenderer::render(
             perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
         ctx->m_cmd->attachBindlessReferenceCompute(m_instanceCullingPass, 3,
                                                    m_instCullDesc);
+        ctx->m_cmd->attachBindlessReferenceCompute(m_instanceCullingPass, 4,
+                                                   perframeData.m_hizTestDesc);
         auto numObjs = perframeData.m_allInstanceData.m_objectData.size();
         ctx->m_cmd->dispatch(numObjs, 1, 1);
       });
-  m_textureShowPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    ctx->m_cmd->attachBindlessReferenceGraphics(
-        m_textureShowPass, 1, perframeData.m_visShowCombinedRef);
-    ctx->m_cmd->attachVertexBufferView(
-        *rhi->getFullScreenQuadVertexBufferView());
-    ctx->m_cmd->attachVertexBuffers(
-        0, {rhi->getFullScreenQuadVertexBuffer().get()});
-    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
-  });
+
   m_persistentCullingPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
         ctx->m_cmd->uavBufferClear(perframeData.m_allFilteredMeshletsCount, 0);
@@ -244,15 +220,49 @@ SyaroRenderer::render(
         m_visibilityPass->run(cmd, perframeData.m_visRTs.get(), 0);
       },
       {persistCullTask.get()}, {});
+
+  auto hizTask = compq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) { m_hizPass->run(cmd, 0); },
+      {drawTask.get()}, {});
+  return hizTask;
+}
+
+IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
+SyaroRenderer::render(
+    PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
+    const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
+
+  // Some setups
+  visibilityBufferSetup(perframeData, renderTargets);
+  buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
+                 perframeData.m_visRTs.get());
+  prepareDeviceResources(perframeData, renderTargets);
+  gatherAllInstances(perframeData);
+  recreateInstanceCullingBuffers(
+      perframeData.m_allInstanceData.m_objectData.size());
+  hizBufferSetup(perframeData, renderTargets);
+
+  // Then draw
+  auto rhi = m_app->getRhiLayer();
+  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+  auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
+  m_textureShowPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    ctx->m_cmd->attachBindlessReferenceGraphics(
+        m_textureShowPass, 1, perframeData.m_visShowCombinedRef);
+    ctx->m_cmd->attachVertexBufferView(
+        *rhi->getFullScreenQuadVertexBufferView());
+    ctx->m_cmd->attachVertexBuffers(
+        0, {rhi->getFullScreenQuadVertexBuffer().get()});
+    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
+  });
+  auto firstCullTask =
+      renderFirstCullingPass(perframeData, renderTargets, cmdToWait);
   auto showTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         m_textureShowPass->run(cmd, renderTargets, 0);
       },
-      {drawTask.get()}, {});
-  auto hizTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) { m_hizPass->run(cmd, 0); },
-      {showTask.get()}, {});
-  return hizTask;
+      {firstCullTask.get()}, {});
+  return showTask;
 }
 
 IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
@@ -300,6 +310,27 @@ IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
     perframeData.m_hizDescs.push_back(desc);
   }
   perframeData.m_hizIter = maxMip;
+
+  // For hiz-testing, we need to create a descriptor for the hiz texture
+  // Seems UAV/Storage image does not support mip-levels
+  for (int i = 0; i < maxMip; i++) {
+    perframeData.m_hizTestMips.push_back(rhi->registerUAVImage(
+        perframeData.m_hizTexture.get(), {static_cast<uint32_t>(i), 0, 1, 1}));
+    perframeData.m_hizTestMipsId.push_back(
+        perframeData.m_hizTestMips.back()->getActiveId());
+  }
+  perframeData.m_hizTestMipsBuffer = rhi->createStorageBufferDevice(
+      sizeof(uint32_t) * maxMip,
+      RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+  auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+  auto staged = rhi->createStagedSingleBuffer(perframeData.m_hizTestMipsBuffer);
+  tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
+    staged->cmdCopyToDevice(cmd, perframeData.m_hizTestMipsId.data(),
+                            sizeof(uint32_t) * maxMip, 0);
+  });
+  perframeData.m_hizTestDesc = rhi->createBindlessDescriptorRef();
+  perframeData.m_hizTestDesc->addStorageBuffer(perframeData.m_hizTestMipsBuffer,
+                                               0);
 }
 
 IFRIT_APIDECL void

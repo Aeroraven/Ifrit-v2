@@ -86,6 +86,10 @@ public:
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
   registerStorageBuffer(Rhi::RhiBuffer *buffer) override;
 
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
+  registerUAVImage(Rhi::RhiTexture *texture,
+                   Rhi::RhiImageSubResource subResource) override;
+
   // Render targets
   virtual std::shared_ptr<Rhi::RhiColorAttachment>
   createRenderTarget(Rhi::RhiTexture *renderTarget,

@@ -25,6 +25,10 @@ RegisterStorage(bHierCullDispatch,{
     uint rejected;
 });
 
+RegisterStorage(bHizMipsReference,{
+    uint ref[];
+});
+
 layout(binding = 0, set = 1) uniform PerframeViewData{
     uvec4 ref;
 }uPerframeView;
@@ -39,6 +43,10 @@ layout(binding = 0, set = 3) uniform IndirectCompData{
     uint indRef;
     uint pad;
 }uIndirectComp;
+
+layout(binding = 0,set=4) uniform HizMips{
+    uint ref;
+}uHizMipsRef;
 
 float signedDistToPlane(vec4 plane, vec4 point){
     return dot(plane.xyz,point.xyz) + plane.w;
@@ -77,6 +85,62 @@ bool frustumCull(vec4 boundBall, float radius){
     return false;
 }
 
+// Hiz Test
+float computeProjectedRadius(float fovy,float d,float r) {
+  // https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
+  float fov = fovy / 2;
+  return 1.0 / tan(fov) * r / sqrt(d * d - r * r); 
+}
+
+float hizFetch(uint lodIndex, uint x, uint y){
+    uint hizMip = GetResource(bHizMipsReference,uHizMipsRef.ref).ref[lodIndex];
+    uint clampX = clamp(x,0,uint(GetResource(bPerframeView,uPerframeView.ref.x).data.m_renderWidth) >> lodIndex);
+    uint clampY = clamp(y,0,uint(GetResource(bPerframeView,uPerframeView.ref.x).data.m_renderHeight) >> lodIndex);
+    return  imageLoad(GetUAVImage2DR32F(hizMip),ivec2(clampX,clampY)).r;
+        //texelFetch(uHizMipsRef.ref,hizMip,ivec2(clampX,clampY),0).r;
+}
+
+bool occlusionCull(vec4 boundBall, float radius){
+    uint renderHeight = uint(GetResource(bPerframeView,uPerframeView.ref.x).data.m_renderHeight);
+    uint renderWidth = uint(GetResource(bPerframeView,uPerframeView.ref.x).data.m_renderWidth);
+    uint totalLods = uint(GetResource(bPerframeView,uPerframeView.ref.x).data.m_hizLods);
+    mat4 proj = GetResource(bPerframeView,uPerframeView.ref.x).data.m_perspective;
+    float fovY = GetResource(bPerframeView,uPerframeView.ref.x).data.m_cameraFovY;
+    float distBall = length(boundBall.xyz);
+    float radiusProjected = computeProjectedRadius(fovY,distBall,radius);
+    vec4 projBall = proj * boundBall;
+    vec3 projBall3 = projBall.xyz / projBall.w;
+
+    projBall3 = projBall3 * 0.5 + 0.5;
+
+    uint ballDiameter = uint(radiusProjected * 2.0 * float(max(renderWidth,renderHeight)));
+    float lod = clamp(log2(float(ballDiameter)) - 1.0,0.0,float(totalLods - 1));
+    uint lodIndex = uint(lod);
+
+    uint texW = max(1,renderWidth >> lodIndex);
+    uint texH = max(1,renderHeight >> lodIndex);
+
+    float ballSx = projBall3.x - radiusProjected;
+    float ballSy = projBall3.y - radiusProjected;
+
+    // get starting pixels for ballSx, ballSy
+    uint ballSxPx = uint(ballSx * float(texW));
+    uint ballSyPx = uint(ballSy * float(texH));
+
+    // fetch depth value from hiz mip
+    uint hizMip = GetResource(bHizMipsReference,uHizMipsRef.ref).ref[lodIndex];
+    float depth1 = hizFetch(lodIndex,ballSxPx,ballSyPx);
+    float depth2 = hizFetch(lodIndex,ballSxPx + 1,ballSyPx);
+    float depth3 = hizFetch(lodIndex,ballSxPx,ballSyPx + 1);
+    float depth4 = hizFetch(lodIndex,ballSxPx + ballDiameter,ballSyPx + ballDiameter);
+    float maxDepth = max(max(depth1,depth2),max(depth3,depth4));
+
+    if(projBall3.z > maxDepth){
+        return true;
+    }
+    return false;
+}
+
 void main(){
     uint instanceIndex = gl_GlobalInvocationID.x;
     uint indirectDispatchRef = uIndirectComp.indRef;
@@ -93,7 +157,8 @@ void main(){
     
 
     bool frustumCulled = frustumCull(viewBoundBall,boundBall.w);
-    if(!frustumCulled){
+    bool occlusionCulled = occlusionCull(viewBoundBall,boundBall.w);
+    if(!frustumCulled && !occlusionCulled){
         // if accept
         uint acceptRef = uIndirectComp.acceptRef;
         uint acceptIndex = atomicAdd(GetResource(bHierCullDispatch,indirectDispatchRef).accepted,1);

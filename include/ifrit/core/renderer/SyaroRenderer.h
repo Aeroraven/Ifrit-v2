@@ -59,12 +59,18 @@ private:
   // reduce calls
   void gatherAllInstances(PerFrameData &perframeData);
 
+private:
+  // Decompose the rendering procedure into many parts
+  virtual std::unique_ptr<GPUCommandSubmission>
+  renderFirstCullingPass(PerFrameData &perframeData,
+                         RenderTargets *renderTargets,
+                         const std::vector<GPUCommandSubmission *> &cmdToWait);
+
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {
     setupPersistentCullingPass();
     setupTextureShowPass();
     setupVisibilityPass();
-    setupPersistentCullingPass();
     setupInstanceCullingPass();
     setupHiZPass();
   }

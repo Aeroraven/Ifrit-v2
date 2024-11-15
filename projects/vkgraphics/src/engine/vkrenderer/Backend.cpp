@@ -338,6 +338,18 @@ RhiVulkanBackend::registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) {
 }
 
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef>
+RhiVulkanBackend::registerUAVImage(Rhi::RhiTexture *texture,
+                                   Rhi::RhiImageSubResource subResource) {
+  auto descriptorManager = m_implDetails->m_descriptorManager.get();
+  auto tex = checked_cast<SingleDeviceImage>(texture);
+  auto id = descriptorManager->registerStorageImage(tex, subResource);
+  auto p = std::make_shared<Rhi::RhiBindlessIdRef>();
+  p->ids.push_back(id);
+  p->activeFrame = 0;
+  return p;
+}
+
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef>
 RhiVulkanBackend::registerStorageBuffer(Rhi::RhiBuffer *buffer) {
   auto descriptorManager = m_implDetails->m_descriptorManager.get();
   auto buf = checked_cast<SingleBuffer>(buffer);
