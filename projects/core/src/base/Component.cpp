@@ -25,4 +25,12 @@ IFRIT_APIDECL float4x4 Transform::getModelToWorldMatrix() {
   return transpose(model);
 }
 
+IFRIT_APIDECL float4x4 Transform::getModelToWorldMatrixLast() {
+  float4x4 model = identity();
+  model = matmul(model, translate3D(m_lastFrame.m_position));
+  model = matmul(model, eulerAngleToMatrix(m_lastFrame.m_rotation));
+  model = matmul(model, scale3D(m_lastFrame.m_scale));
+  return transpose(model);
+}
+
 } // namespace Ifrit::Core

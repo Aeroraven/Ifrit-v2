@@ -286,9 +286,9 @@ IFRIT_APIDECL void GraphicsPass::record(RenderTargets *renderTarget) {
                             m_stencilOp.compareOp);
 
   exfun.p_vkCmdSetDepthBoundsTestEnable(cmd, m_depthBoundTestEnable);
-  //exfun.p_vkCmdSetDepthCompareOp(cmd, m_depthCompareOp);
-  //exfun.p_vkCmdSetDepthTestEnable(cmd, m_depthTestEnable);
-  //exfun.p_vkCmdSetDepthWriteEnable(cmd, m_depthWrite);
+  // exfun.p_vkCmdSetDepthCompareOp(cmd, m_depthCompareOp);
+  // exfun.p_vkCmdSetDepthTestEnable(cmd, m_depthTestEnable);
+  // exfun.p_vkCmdSetDepthWriteEnable(cmd, m_depthWrite);
 
   vkCmdSetFrontFace(cmd, m_frontFace);
   vkCmdSetCullMode(cmd, m_cullMode);
@@ -418,6 +418,7 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
   ci.topology = m_topology;
   ci.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
   ci.depthAttachmentFormat = toVkFormat(m_renderTargetFormat.m_depthFormat);
+  ci.pushConstSize = m_pushConstSize;
 
   for (int i = 0; i < m_renderTargetFormat.m_colorFormats.size(); i++) {
     ci.colorAttachmentFormats.push_back(
@@ -457,6 +458,7 @@ IFRIT_APIDECL void ComputePass::build(uint32_t numMultiBuffers) {
     ci.descriptorSetLayouts.push_back(
         m_descriptorManager->getParameterDescriptorSetLayout());
   }
+  ci.pushConstSize = m_pushConstSize;
   m_pipeline = m_pipelineCache->getComputePipeline(ci);
   setBuilt();
 }

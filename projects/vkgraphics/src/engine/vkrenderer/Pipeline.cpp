@@ -127,6 +127,14 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   pipelineLayoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
   pipelineLayoutCI.pushConstantRangeCount = 0;
   pipelineLayoutCI.pPushConstantRanges = nullptr;
+  if (m_createInfo.pushConstSize != 0) {
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = m_createInfo.pushConstSize;
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+    pipelineLayoutCI.pushConstantRangeCount = 1;
+    pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
+  }
   vkrVulkanAssert(vkCreatePipelineLayout(m_context->getDevice(),
                                          &pipelineLayoutCI, nullptr, &m_layout),
                   "Failed to create pipeline layout");
@@ -184,6 +192,14 @@ IFRIT_APIDECL void ComputePipeline::init() {
   pipelineLayoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
   pipelineLayoutCI.pushConstantRangeCount = 0;
   pipelineLayoutCI.pPushConstantRanges = nullptr;
+  if (m_createInfo.pushConstSize != 0) {
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = m_createInfo.pushConstSize;
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
+    pipelineLayoutCI.pushConstantRangeCount = 1;
+    pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
+  }
   vkrVulkanAssert(vkCreatePipelineLayout(m_context->getDevice(),
                                          &pipelineLayoutCI, nullptr, &m_layout),
                   "Failed to create pipeline layout");
@@ -236,6 +252,8 @@ PipelineCache::graphicsPipelineHash(const GraphicsPipelineCreateInfo &ci) {
   for (int i = 0; i < ci.descriptorSetLayouts.size(); i++) {
     hash ^= hashFunc(reinterpret_cast<uint64_t>(ci.descriptorSetLayouts[i]));
   }
+  hash ^= hashFunc(getUnderlying(ci.geomGenType));
+  hash ^= hashFunc(ci.pushConstSize);
   return hash;
 }
 
@@ -248,6 +266,7 @@ PipelineCache::computePipelineHash(const ComputePipelineCreateInfo &ci) {
   for (int i = 0; i < ci.descriptorSetLayouts.size(); i++) {
     hash ^= hashFunc(reinterpret_cast<uint64_t>(ci.descriptorSetLayouts[i]));
   }
+  hash ^= hashFunc(ci.pushConstSize);
   return hash;
 }
 
@@ -282,6 +301,9 @@ PipelineCache::graphicsPipelineEqual(const GraphicsPipelineCreateInfo &a,
     if (a.descriptorSetLayouts[i] != b.descriptorSetLayouts[i])
       return false;
   }
+  if (a.pushConstSize != b.pushConstSize) {
+    return false;
+  }
 
   return true;
 }
@@ -296,6 +318,9 @@ PipelineCache::computePipelineEqual(const ComputePipelineCreateInfo &a,
   for (int i = 0; i < a.descriptorSetLayouts.size(); i++) {
     if (a.descriptorSetLayouts[i] != b.descriptorSetLayouts[i])
       return false;
+  }
+  if (a.pushConstSize != b.pushConstSize) {
+    return false;
   }
   return true;
 }

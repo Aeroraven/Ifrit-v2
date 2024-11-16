@@ -26,7 +26,7 @@ struct PerObjectData {
   uint32_t transformRef = 0;
   uint32_t objectDataRef = 0;
   uint32_t instanceDataRef = 0;
-  uint32_t pad1;
+  uint32_t transformRefLast = 0;
 };
 
 struct PerShaderEffectData {
@@ -55,7 +55,9 @@ struct PerFrameData {
   using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
 
   PerFramePerViewData m_viewData;
+  PerFramePerViewData m_viewDataOld;
   GPUUniformBuffer *m_viewBuffer = nullptr;
+  GPUUniformBuffer *m_viewBufferLast = nullptr;
   GPUBindlessRef *m_viewBindlessRef = nullptr;
   std::vector<PerShaderEffectData> m_shaderEffectData;
   std::unordered_map<ShaderEffect, uint32_t, ShaderEffectHash>
@@ -76,6 +78,12 @@ struct PerFrameData {
   std::shared_ptr<GPUColorRT> m_visColorRT = nullptr;
   std::shared_ptr<GPUDepthRT> m_visDepthRT = nullptr;
   std::shared_ptr<GPURTs> m_visRTs = nullptr;
+
+  // visibility buffer for 2nd pass, reference to the same texture, but without
+  // clearing
+  std::shared_ptr<GPUColorRT> m_visColorRT2 = nullptr;
+  std::shared_ptr<GPUDepthRT> m_visDepthRT2 = nullptr;
+  std::shared_ptr<GPURTs> m_visRTs2 = nullptr;
 
   // all visible clusters
   GPUBuffer *m_allFilteredMeshlets = nullptr;

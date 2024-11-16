@@ -98,6 +98,7 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [tinygltf](https://github.com/syoyo/tinygltf/tree/release)   | Model Loading                    | MIT                  |
 | [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT                  |
 | [spirv-reflect](https://github.com/KhronosGroup/SPIRV-Reflect) | Shader Reflection                | Apache 2.0           |
+| [shaderc](https://github.com/google/shaderc?tab=License-1-ov-file#readme) | Shader Compilation               | Apache 2.0           |
 
 
 

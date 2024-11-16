@@ -26,17 +26,25 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
     const Rhi::RhiCommandBuffer *commandBuffer) const {
   auto cmd = checked_cast<CommandBuffer>(commandBuffer);
   auto cmdraw = cmd->getCommandBuffer();
-  cmd->imageBarrier(m_depthStencilAttachment->getRenderTarget(),
-                    Rhi::RhiResourceState::Undefined,
+
+  // other kind of layout transition should be handled by the
+  // render graph or explicitly by the user.
+  auto depthSrcLayout = (m_depthStencilAttachment->getLoadOp() ==
+                         Rhi::RhiRenderTargetLoadOp::Clear)
+                            ? Rhi::RhiResourceState::Undefined
+                            : Rhi::RhiResourceState::DepthStencilRenderTarget;
+  cmd->imageBarrier(m_depthStencilAttachment->getRenderTarget(), depthSrcLayout,
                     Rhi::RhiResourceState::DepthStencilRenderTarget,
                     {0, 0, 1, 1});
 
   for (auto attachment : m_colorAttachments) {
-    cmd->imageBarrier(attachment->getRenderTarget(),
-                      Rhi::RhiResourceState::Undefined,
+    auto srcLayout =
+        (attachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear)
+            ? Rhi::RhiResourceState::Undefined
+            : Rhi::RhiResourceState::RenderTarget;
+    cmd->imageBarrier(attachment->getRenderTarget(), srcLayout,
                       Rhi::RhiResourceState::RenderTarget, {0, 0, 1, 1});
   }
-
   auto exfunc = m_context->getExtensionFunction();
 
   // Specify rendering info

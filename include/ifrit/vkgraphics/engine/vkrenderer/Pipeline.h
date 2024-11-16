@@ -17,10 +17,12 @@ struct GraphicsPipelineCreateInfo {
   std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
   Rhi::RhiGeometryGenerationType geomGenType =
       Rhi::RhiGeometryGenerationType::Conventional;
+  uint32_t pushConstSize = 0;
 };
 struct ComputePipelineCreateInfo {
   ShaderModule *shaderModules;
   std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+  uint32_t pushConstSize = 0;
 };
 
 class IFRIT_APIDECL PipelineBase {

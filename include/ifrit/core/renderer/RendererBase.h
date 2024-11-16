@@ -21,6 +21,8 @@ public:
                               RenderTargets *renderTargets);
   virtual void prepareDeviceResources(PerFrameData &perframeData,
                                       RenderTargets *renderTargets);
+  virtual void updateLastFrameTransforms(PerFrameData &perframeData);
+
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,
          const std::vector<GPUCommandSubmission *> &cmdToWait) = 0;

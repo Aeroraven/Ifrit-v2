@@ -174,6 +174,11 @@ public:
 
   virtual void dispatchIndirect(const Rhi::RhiBuffer *buffer,
                                 uint32_t offset) const override;
+
+  virtual void setPushConst(Rhi::RhiComputePass *pass, uint32_t offset,
+                            uint32_t size, const void *data) const override;
+  virtual void setPushConst(Rhi::RhiGraphicsPass *pass, uint32_t offset,
+                            uint32_t size, const void *data) const override;
 };
 
 class IFRIT_APIDECL CommandPool {

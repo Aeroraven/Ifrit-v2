@@ -262,6 +262,7 @@ protected:
 
   // 2x
   uint32_t m_numBindlessDescriptorSets = 0;
+  uint32_t m_pushConstSize = 0;
 
 protected:
   std::vector<RegisteredResource *> &getInputResources();
@@ -396,6 +397,9 @@ public:
   void setIndexInput(RegisteredBufferHandle *buffer, VkIndexType type);
 
   uint32_t getRequiredQueueCapability() override;
+  inline void setPushConstSize(uint32_t size) override {
+    m_pushConstSize = size;
+  }
 
   virtual void build(uint32_t numMultiBuffers) override;
 
@@ -463,6 +467,9 @@ public:
   uint32_t getRequiredQueueCapability() override;
   void setComputeShader(Rhi::RhiShader *shader) override;
   void build(uint32_t numMultiBuffers) override;
+  inline void setPushConstSize(uint32_t size) override {
+    m_pushConstSize = size;
+  }
 
   // Rhi compat
   inline void setShaderBindingLayout(

@@ -59,7 +59,12 @@ RegisterStorage(bMeshletsInClusterGroup,{
     uint data[];
 });
 RegisterStorage(bDrawCallSize,{
-    int data[];
+    uint x1;
+    uint y1;
+    uint z1;
+    uint x2;
+    uint y2;
+    uint z2; 
 });
 RegisterStorage(bFilteredMeshlets, { 
     int data[]; 
@@ -75,7 +80,8 @@ RegisterStorage(bFilteredMeshlets2,{
 
 
 layout(binding = 0, set = 1) uniform PerframeViewData{
-    uvec4 ref;
+    uint refCurFrame;
+    uint refPrevFrame;
 }uPerframeView;
 
 layout(binding = 0, set = 2) uniform InstanceData{
@@ -97,6 +103,14 @@ layout(binding = 0, set = 5) uniform IndirectCompData{
     uint indRef;
     uint pad;
 }uIndirectCompInstCull;
+
+layout(push_constant) uniform CullingPass{
+    uint passNo;
+} pConst;
+
+bool isSecondCullingPass(){
+    return pConst.passNo == 1;
+}
 
 float computeProjectedRadius(float fovy,float d,float r) {
   // https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
@@ -123,8 +137,8 @@ bool isClusterGroupVisible(uint id){
     uint clusterRef = GetResource(bMeshDataRef,obj).clusterGroupBuffer;
     uint totalLod = GetResource(bCpCounterMesh,cpcntRefMesh).totalLods;
 
-    float fov = GetResource(bPerframeView,uPerframeView.ref.x).data.m_cameraFovY;
-    vec3 camPos = GetResource(bPerframeView,uPerframeView.ref.x).data.m_cameraPosition.xyz;   
+    float fov = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+    vec3 camPos = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraPosition.xyz;   
 
     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
     vec3 selfSphereCenter = group.selfBoundSphere.xyz;
@@ -135,7 +149,7 @@ bool isClusterGroupVisible(uint id){
     bool parentRejected = true;
     if(group.lod != totalLod-1){
         mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
-        mat4 view = GetResource(bPerframeView,uPerframeView.ref.x).data.m_worldToView;
+        mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
         mat4 mv = view * model;
 
         vec4 viewSpaceCenter = mv * vec4(parentSphereCenter,1.0);
@@ -151,7 +165,7 @@ bool isClusterGroupVisible(uint id){
     bool selfRejected = false;
     if(group.lod != 0){
         mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
-        mat4 view = GetResource(bPerframeView,uPerframeView.ref.x).data.m_worldToView;
+        mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
         mat4 mv = view * model;
 
         vec4 viewSpaceCenter = mv * vec4(selfSphereCenter,1.0);
@@ -174,7 +188,16 @@ void enqueueClusterGroup(uint id, uint clusterRef){
     int numMeshlets = int(group.childMeshletCount);
 
     // Seems atomicity is guaranteed across workgroups
-    int pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).data[0],numMeshlets);
+    uint pos = 0;
+
+    if(isSecondCullingPass()){
+        uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1;
+        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2,numMeshlets);
+        pos += basePos;
+    }else{
+        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1,numMeshlets);
+    }
+    
 
     for(uint i = 0;i<group.childMeshletCount;i++){
         uint meshletId = GetResource(bMeshletsInClusterGroup,micRef).data[group.childMeshletStart + i];
@@ -215,9 +238,13 @@ void main(){
     int chosenBVHNodePos = UNSET;
     if(threadId == 0){
         GetResource(bCpQueue,cpqueueRef).data[0] = 0;
-        // TODO: this should hold num of instances instead of num of meshlets in the future
-        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).data[1] = 1;
-        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).data[2] = 1;
+        if(isSecondCullingPass()){
+            GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y2 = 1;
+            GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z2 = 1;
+        }else{
+            GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y1 = 1;
+            GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z1 = 1;
+        }
         chosenBVHNodeInd = 0;
     }
     memoryBarrier();

@@ -14,6 +14,8 @@ class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
   using GPURTs = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
 
+  enum class CullingPass { First, Second };
+
 private:
   ComputePass *m_persistentCullingPass = nullptr;
   GPUBuffer *m_indirectDrawBuffer = nullptr;
@@ -61,10 +63,10 @@ private:
 
 private:
   // Decompose the rendering procedure into many parts
-  virtual std::unique_ptr<GPUCommandSubmission>
-  renderFirstCullingPass(PerFrameData &perframeData,
-                         RenderTargets *renderTargets,
-                         const std::vector<GPUCommandSubmission *> &cmdToWait);
+  virtual std::unique_ptr<GPUCommandSubmission> renderTwoPassOcclCulling(
+      CullingPass cullPass, PerFrameData &perframeData,
+      RenderTargets *renderTargets,
+      const std::vector<GPUCommandSubmission *> &cmdToWait);
 
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {

@@ -390,6 +390,21 @@ IFRIT_APIDECL void CommandBuffer::dispatchIndirect(const Rhi::RhiBuffer *buffer,
   vkCmdDispatchIndirect(m_commandBuffer, buf, offset);
 }
 
+IFRIT_APIDECL void CommandBuffer::setPushConst(Rhi::RhiComputePass *pass,
+                                               uint32_t offset, uint32_t size,
+                                               const void *data) const {
+  auto computePass = checked_cast<ComputePass>(pass);
+  vkCmdPushConstants(m_commandBuffer, computePass->getPipelineLayout(),
+                     VK_SHADER_STAGE_ALL, offset, size, data);
+};
+IFRIT_APIDECL void CommandBuffer::setPushConst(Rhi::RhiGraphicsPass *pass,
+                                               uint32_t offset, uint32_t size,
+                                               const void *data) const {
+  auto graphicsPass = checked_cast<GraphicsPass>(pass);
+  vkCmdPushConstants(m_commandBuffer, graphicsPass->getPipelineLayout(),
+                     VK_SHADER_STAGE_ALL, offset, size, data);
+};
+
 // Class: Queue
 IFRIT_APIDECL Queue::Queue(EngineContext *ctx, VkQueue queue, uint32_t family,
                            VkQueueFlags capability)

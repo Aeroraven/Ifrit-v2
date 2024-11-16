@@ -147,7 +147,12 @@ private:
   using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
   GPUUniformBuffer *m_gpuBuffer = nullptr;
+  GPUUniformBuffer *m_gpuBufferLast = nullptr;
   std::shared_ptr<GPUBindId> m_gpuBindlessRef = nullptr;
+  std::shared_ptr<GPUBindId> m_gpuBindlessRefLast = nullptr;
+
+  TransformAttribute m_lastFrame;
+  bool changed = true;
 
 public:
   Transform(){};
@@ -156,26 +161,50 @@ public:
   std::string serialize() override { return serializeAttribute(); }
   void deserialize() override { deserializeAttribute(); }
 
+  inline void onFrameCollecting() {
+    if (changed) {
+      m_lastFrame = m_attributes;
+    }
+  }
+
   // getters
   inline ifloat3 getPosition() const { return m_attributes.m_position; }
   inline ifloat3 getRotation() const { return m_attributes.m_rotation; }
   inline ifloat3 getScale() const { return m_attributes.m_scale; }
 
   // setters
-  inline void setPosition(const ifloat3 &pos) { m_attributes.m_position = pos; }
-  inline void setRotation(const ifloat3 &rot) { m_attributes.m_rotation = rot; }
-  inline void setScale(const ifloat3 &scale) { m_attributes.m_scale = scale; }
+  inline void setPosition(const ifloat3 &pos) {
+    m_attributes.m_position = pos;
+    changed = true;
+  }
+  inline void setRotation(const ifloat3 &rot) {
+    m_attributes.m_rotation = rot;
+    changed = true;
+  }
+  inline void setScale(const ifloat3 &scale) {
+    m_attributes.m_scale = scale;
+    changed = true;
+  }
+
+  inline void markUnchanged() { changed = false; }
 
   float4x4 getModelToWorldMatrix();
-  inline void setGPUResource(GPUUniformBuffer *buffer,
-                             std::shared_ptr<GPUBindId> &bindlessRef) {
+  float4x4 getModelToWorldMatrixLast();
+  inline void setGPUResource(GPUUniformBuffer *buffer, GPUUniformBuffer *last,
+                             std::shared_ptr<GPUBindId> &bindlessRef,
+                             std::shared_ptr<GPUBindId> &bindlessRefLast) {
     m_gpuBuffer = buffer;
+    m_gpuBufferLast = last;
     m_gpuBindlessRef = bindlessRef;
+    m_gpuBindlessRefLast = bindlessRefLast;
   }
-  inline void getGPUResource(GPUUniformBuffer *&buffer,
-                             std::shared_ptr<GPUBindId> &bindlessRef) {
+  inline void getGPUResource(GPUUniformBuffer *&buffer, GPUUniformBuffer *&last,
+                             std::shared_ptr<GPUBindId> &bindlessRef,
+                             std::shared_ptr<GPUBindId> &bindlessRefLast) {
     buffer = m_gpuBuffer;
+    last = m_gpuBufferLast;
     bindlessRef = m_gpuBindlessRef;
+    bindlessRefLast = m_gpuBindlessRefLast;
   }
   IFRIT_COMPONENT_SERIALIZE(m_attributes);
 };

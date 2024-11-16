@@ -62,11 +62,21 @@ RegisterStorage(bInstanceDataRef,{
     uint pad;
 });
 
+RegisterStorage(bDrawCallSize,{
+    uint x1;
+    uint y1;
+    uint z1;
+    uint x2;
+    uint y2;
+    uint z2; 
+});
+
 RegisterUniform(bPerframeView,{
     PerFramePerViewData data;
 });
 layout(binding = 0, set = 1) uniform PerframeViewData{
-    uvec4 ref;
+    uint refCurFrame;
+    uint refPrevFrame;
 }uPerframeView;
 
 layout(binding = 0, set = 2) uniform InstanceData{
@@ -76,6 +86,10 @@ layout(binding = 0, set = 3) uniform IndirectDrawData2{
     uint allMeshletsRef;
     uint indDrawCmdRef;
 }uIndirectDrawData2;
+
+layout(push_constant) uniform CullingPass{
+    uint passNo;
+} pConst;
 
 layout(location = 0) out flat uint ids[];
 
@@ -91,9 +105,36 @@ vec4 colorMap[8] = vec4[8](
   vec4(0.5, 0.0, 0.0, 1.0)
 );
 
+bool isSecondCullingPass(){
+    return pConst.passNo == 1;
+}
+uint getClusterID(){
+    if(!isSecondCullingPass()){
+        return gl_WorkGroupID.x;
+    }else{
+        return GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1 + gl_WorkGroupID.x;
+    }
+}
+uint getObjId(){
+    if(!isSecondCullingPass()){
+        return GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[gl_WorkGroupID.x].x;
+    }else{
+        uint baseOffset = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1;
+        return GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[baseOffset + gl_WorkGroupID.x].x;
+    }
+}
+uint getMeshletId(){
+    if(!isSecondCullingPass()){
+        return GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[gl_WorkGroupID.x].y;
+    }else{
+        uint baseOffset = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1;
+        return GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[baseOffset + gl_WorkGroupID.x].y;
+    }
+}
+
 uint readTriangleIndex(uint meshletid, uint offset){
     uint mio = gl_WorkGroupID.x;
-    uint objId = GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[mio].x;
+    uint objId = getObjId();
 
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
@@ -107,9 +148,7 @@ uint readTriangleIndex(uint meshletid, uint offset){
 
 uint readVertexIndex(uint meshletid, uint offset){
     uint offsetInUint8Local = offset;
-    
-    uint mio = gl_WorkGroupID.x;
-    uint objId = GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[mio].x;
+    uint objId = getObjId();
 
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
@@ -120,15 +159,13 @@ uint readVertexIndex(uint meshletid, uint offset){
 }
 
 void main(){
-    uint mio = gl_WorkGroupID.x;
-    // This should be in task shader, but there's only one mesh now.
-    uint objId = GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[mio].x;
-    uint mi = GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[mio].y;
+    uint objId = getObjId();
+    uint mi = getMeshletId();
 
     uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
     mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
-    mat4 view = GetResource(bPerframeView,uPerframeView.ref.x).data.m_worldToView;
-    mat4 proj = GetResource(bPerframeView,uPerframeView.ref.x).data.m_perspective;
+    mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
+    mat4 proj = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_perspective;
     mat4 mvp = proj * view * model;
 
 
@@ -147,7 +184,7 @@ void main(){
         uint vi = readVertexIndex(mi,i);
         vec3 v0 = GetResource(bVertices,vertexRef).data[vi].xyz;
         gl_MeshVerticesEXT[i].gl_Position = mvp * vec4(v0,1.0);
-        ids[i] = mio;
+        ids[i] = getClusterID();
     }
     for(uint i = 0; i < totalTris ; i++){
         uint triIndexA = readTriangleIndex(mi,i*3 + 0);

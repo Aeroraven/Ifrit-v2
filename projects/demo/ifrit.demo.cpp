@@ -55,7 +55,7 @@ private:
 
   constexpr static std::array<ifloat3, 4> bunnyPositions = {
       ifloat3{-0.3f, 0.0f, 0.0f}, ifloat3{0.3f, 0.0f, 0.0f},
-      ifloat3{0.0f, 0.0f, 0.0f}, ifloat3{0.0f, 0.0f, 5.5f}};
+      ifloat3{0.0f, 0.0f, 0.0f}, ifloat3{0.0f, 0.0f, 25.5f}};
 
 public:
   void onStart() override {

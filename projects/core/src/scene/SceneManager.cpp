@@ -15,6 +15,7 @@ SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene,
   if (camera == nullptr) {
     throw std::runtime_error("No camera found in scene");
   }
+  perframeData.m_viewDataOld = perframeData.m_viewData;
   perframeData.m_viewData.m_worldToView = camera->worldToCameraMatrix();
   perframeData.m_viewData.m_perspective = camera->projectionMatrix();
   perframeData.m_viewData.m_cameraAspect = camera->getAspect();

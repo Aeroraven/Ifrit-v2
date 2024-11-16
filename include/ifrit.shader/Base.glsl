@@ -23,6 +23,6 @@ struct PerObjectData {
   uint transformRef;
   uint objectDataRef;
   uint instanceDataRef;
-  uint pad1;
+  uint transformRefLast;
 };
 

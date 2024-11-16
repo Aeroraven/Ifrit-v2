@@ -66,15 +66,23 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
   std::vector<void *> pendingVertexBuffers;
   std::vector<uint32_t> pendingVertexBufferSizes;
 
+  bool initLastFrameMatrix = false;
   if (perframeData.m_viewBindlessRef == nullptr) {
     perframeData.m_viewBuffer =
         rhi->createUniformBufferShared(sizeof(PerFramePerViewData), true, 0);
     perframeData.m_viewBindlessRef = rhi->createBindlessDescriptorRef();
     perframeData.m_viewBindlessRef->addUniformBuffer(perframeData.m_viewBuffer,
                                                      0);
+
+    perframeData.m_viewBufferLast =
+        rhi->createUniformBufferShared(sizeof(PerFramePerViewData), true, 0);
+    perframeData.m_viewBindlessRef->addUniformBuffer(
+        perframeData.m_viewBufferLast, 1);
+    initLastFrameMatrix = true;
   }
 
   // Update view buffer
+
   auto viewBuffer = perframeData.m_viewBuffer;
   auto viewBufferAct = viewBuffer->getActiveBuffer();
   viewBufferAct->map();
@@ -82,6 +90,18 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
                              sizeof(PerFramePerViewData), 0);
   viewBufferAct->flush();
   viewBufferAct->unmap();
+
+  // Init last's frame matrix for the first frame
+  if (initLastFrameMatrix) {
+    perframeData.m_viewDataOld = perframeData.m_viewData;
+  }
+  auto viewBufferLast = perframeData.m_viewBufferLast;
+  auto viewBufferLastAct = viewBufferLast->getActiveBuffer();
+  viewBufferLastAct->map();
+  viewBufferLastAct->writeBuffer(&perframeData.m_viewData,
+                                 sizeof(PerFramePerViewData), 0);
+  viewBufferLastAct->flush();
+  viewBufferLastAct->unmap();
 
   // Per effect data
   for (auto &shaderEffectId : perframeData.m_enabledEffects) {
@@ -105,13 +125,24 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       // Setup transform buffers
       auto transform = shaderEffect.m_transforms[i];
       RhiMultiBuffer *transformBuffer = nullptr;
+      RhiMultiBuffer *transformBufferLast = nullptr;
       std::shared_ptr<RhiBindlessIdRef> bindlessRef = nullptr;
-      transform->getGPUResource(transformBuffer, bindlessRef);
+      std::shared_ptr<RhiBindlessIdRef> bindlessRefLast = nullptr;
+      transform->getGPUResource(transformBuffer, transformBufferLast,
+                                bindlessRef, bindlessRefLast);
+      bool initLastFrameMatrix = false;
       if (transformBuffer == nullptr) {
         transformBuffer =
             rhi->createUniformBufferShared(sizeof(float4x4), true, 0);
         bindlessRef = rhi->registerUniformBuffer(transformBuffer);
-        transform->setGPUResource(transformBuffer, bindlessRef);
+        transform->setGPUResource(transformBuffer, transformBufferLast,
+                                  bindlessRef, bindlessRefLast);
+        initLastFrameMatrix = true;
+        transformBufferLast =
+            rhi->createUniformBufferShared(sizeof(float4x4), true, 0);
+        bindlessRefLast = rhi->registerUniformBuffer(transformBufferLast);
+        transform->setGPUResource(transformBuffer, transformBufferLast,
+                                  bindlessRef, bindlessRefLast);
       }
       // update uniform buffer, TODO: dirty flag
       float4x4 model = transform->getModelToWorldMatrix();
@@ -121,6 +152,19 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       buf->flush();
       buf->unmap();
       shaderEffect.m_objectData[i].transformRef = bindlessRef->getActiveId();
+      shaderEffect.m_objectData[i].transformRefLast =
+          bindlessRefLast->getActiveId();
+
+      if (initLastFrameMatrix) {
+        transform->onFrameCollecting();
+      }
+      float4x4 modelLast = transform->getModelToWorldMatrixLast();
+      auto bufLast = transformBufferLast->getActiveBuffer();
+      bufLast->map();
+      bufLast->writeBuffer(&modelLast, sizeof(float4x4), 0);
+      bufLast->flush();
+      bufLast->unmap();
+      transform->onFrameCollecting();
 
       // Setup mesh buffers
       auto mesh = shaderEffect.m_meshes[i];
@@ -335,6 +379,11 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
 }
 
 IFRIT_APIDECL void
+RendererBase::updateLastFrameTransforms(PerFrameData &perframeData) {
+  throw std::runtime_error("Deprecated");
+}
+
+IFRIT_APIDECL void
 RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
   auto rhi = m_app->getRhiLayer();
   using namespace Ifrit::GraphicsBackend;
@@ -349,6 +398,7 @@ RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
       cmdToWait, {sRenderComplete.get()});
   rhi->endFrame();
 }
+
 IFRIT_APIDECL std::unique_ptr<RendererBase::GPUCommandSubmission>
 RendererBase::beginFrame() {
   auto rhi = m_app->getRhiLayer();

@@ -521,6 +521,7 @@ protected:
 
 public:
   virtual Rhi::RhiBuffer *getActiveBuffer() = 0;
+  virtual Rhi::RhiBuffer *getActiveBufferRelative(uint32_t deltaFrame) = 0;
   virtual ~RhiMultiBuffer() = default;
 };
 
@@ -594,6 +595,11 @@ public:
 
   virtual void dispatchIndirect(const RhiBuffer *buffer,
                                 uint32_t offset) const = 0;
+
+  virtual void setPushConst(Rhi::RhiComputePass *pass, uint32_t offset,
+                            uint32_t size, const void *data) const = 0;
+  virtual void setPushConst(Rhi::RhiGraphicsPass *pass, uint32_t offset,
+                            uint32_t size, const void *data) const = 0;
 };
 
 class IFRIT_APIDECL RhiQueue {
@@ -666,6 +672,7 @@ public:
 
   virtual void run(const RhiCommandBuffer *cmd, uint32_t frameId) = 0;
   virtual void setNumBindlessDescriptorSets(uint32_t num) = 0;
+  virtual void setPushConstSize(uint32_t size) = 0;
 };
 
 class IFRIT_APIDECL RhiGraphicsPass : public RhiGeneralPassBase {
@@ -699,6 +706,7 @@ public:
   virtual void run(const RhiCommandBuffer *cmd, RhiRenderTargets *renderTargets,
                    uint32_t frameId) = 0;
   virtual void setNumBindlessDescriptorSets(uint32_t num) = 0;
+  virtual void setPushConstSize(uint32_t size) = 0;
 };
 
 class IFRIT_APIDECL RhiPassGraph {};

@@ -74,6 +74,9 @@ public:
     using namespace Ifrit::Common::Utility;
     return size_cast<int>(m_buffers.size());
   }
+  inline Rhi::RhiBuffer *getActiveBufferRelative(uint32_t deltaFrame) override {
+    return m_buffers[(m_activeFrame + deltaFrame) % m_buffers.size()];
+  }
 };
 
 enum class ImageType { Image2D, Image3D, ImageCube };

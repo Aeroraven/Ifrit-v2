@@ -51,6 +51,7 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
   m_visibilityPass->setMeshShader(msShader);
   m_visibilityPass->setPixelShader(fsShader);
   m_visibilityPass->setNumBindlessDescriptorSets(3);
+  m_visibilityPass->setPushConstSize(sizeof(uint32_t));
 
   Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat rtFmt;
   rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_R32_UINT};
@@ -66,6 +67,7 @@ IFRIT_APIDECL void SyaroRenderer::setupInstanceCullingPass() {
   m_instanceCullingPass = rhi->createComputePass();
   m_instanceCullingPass->setComputeShader(shader);
   m_instanceCullingPass->setNumBindlessDescriptorSets(4);
+  m_instanceCullingPass->setPushConstSize(sizeof(uint32_t));
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
@@ -76,6 +78,7 @@ IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
   m_persistentCullingPass = rhi->createComputePass();
   m_persistentCullingPass->setComputeShader(shader);
   m_persistentCullingPass->setNumBindlessDescriptorSets(5);
+  m_persistentCullingPass->setPushConstSize(sizeof(uint32_t));
 
   m_indirectDrawBuffer = rhi->createIndirectMeshDrawBufferDevice(
       1, Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
@@ -106,7 +109,7 @@ SyaroRenderer::recreateInstanceCullingBuffers(uint32_t newMaxInstances) {
     m_instCullPassedObj =
         rhi->createStorageBufferDevice(newMaxInstances * sizeof(uint32_t), 0);
     m_persistCullIndirectDispatch = rhi->createStorageBufferDevice(
-        sizeof(uint32_t) * 4, Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
+        sizeof(uint32_t) * 9, Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
                                       RHI_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
                                   Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
                                       RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -118,18 +121,22 @@ SyaroRenderer::recreateInstanceCullingBuffers(uint32_t newMaxInstances) {
 }
 
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
-SyaroRenderer::renderFirstCullingPass(
-    PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
+SyaroRenderer::renderTwoPassOcclCulling(
+    CullingPass cullPass, PerFrameData &perframeData,
+    SyaroRenderer::RenderTargets *renderTargets,
     const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
   auto rhi = m_app->getRhiLayer();
   auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
 
+  int pcData[2] = {0, 1};
   m_instanceCullingPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
         // TODO: this assumes the compute queue can TRANSFER
-        ctx->m_cmd->uavBufferClear(m_persistCullIndirectDispatch, 0);
-        ctx->m_cmd->uavBufferBarrier(m_persistCullIndirectDispatch);
+        if (cullPass == CullingPass::First) {
+          ctx->m_cmd->uavBufferClear(m_persistCullIndirectDispatch, 0);
+          ctx->m_cmd->uavBufferBarrier(m_persistCullIndirectDispatch);
+        }
 
         ctx->m_cmd->attachBindlessReferenceCompute(
             m_instanceCullingPass, 1, perframeData.m_viewBindlessRef);
@@ -141,16 +148,27 @@ SyaroRenderer::renderFirstCullingPass(
         ctx->m_cmd->attachBindlessReferenceCompute(m_instanceCullingPass, 4,
                                                    perframeData.m_hizTestDesc);
         auto numObjs = perframeData.m_allInstanceData.m_objectData.size();
-        ctx->m_cmd->dispatch(numObjs, 1, 1);
+        if (cullPass == CullingPass::First) {
+          ctx->m_cmd->setPushConst(m_instanceCullingPass, 0, sizeof(uint32_t),
+                                   &pcData[0]);
+          ctx->m_cmd->dispatch(numObjs, 1, 1);
+        } else if (cullPass == CullingPass::Second) {
+          ctx->m_cmd->setPushConst(m_instanceCullingPass, 0, sizeof(uint32_t),
+                                   &pcData[1]);
+          ctx->m_cmd->dispatchIndirect(m_persistCullIndirectDispatch,
+                                       3 * sizeof(uint32_t));
+        }
       });
 
   m_persistentCullingPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
-        ctx->m_cmd->uavBufferClear(perframeData.m_allFilteredMeshletsCount, 0);
-        ctx->m_cmd->uavBufferBarrier(perframeData.m_allFilteredMeshletsCount);
-
-        ctx->m_cmd->uavBufferClear(m_indirectDrawBuffer, 0);
-        ctx->m_cmd->uavBufferBarrier(m_indirectDrawBuffer);
+        if (cullPass == CullingPass::First) {
+          ctx->m_cmd->uavBufferClear(perframeData.m_allFilteredMeshletsCount,
+                                     0);
+          ctx->m_cmd->uavBufferBarrier(perframeData.m_allFilteredMeshletsCount);
+          ctx->m_cmd->uavBufferClear(m_indirectDrawBuffer, 0);
+          ctx->m_cmd->uavBufferBarrier(m_indirectDrawBuffer);
+        }
         // bind view buffer
         ctx->m_cmd->attachBindlessReferenceCompute(
             m_persistentCullingPass, 1, perframeData.m_viewBindlessRef);
@@ -163,18 +181,37 @@ SyaroRenderer::renderFirstCullingPass(
             m_persistentCullingPass, 4, perframeData.m_allFilteredMeshletsDesc);
         ctx->m_cmd->attachBindlessReferenceCompute(m_persistentCullingPass, 5,
                                                    m_instCullDesc);
-        ctx->m_cmd->dispatchIndirect(m_persistCullIndirectDispatch, 0);
+        if (cullPass == CullingPass::First) {
+          ctx->m_cmd->setPushConst(m_persistentCullingPass, 0, sizeof(uint32_t),
+                                   &pcData[0]);
+          ctx->m_cmd->dispatchIndirect(m_persistCullIndirectDispatch, 0);
+        } else if (cullPass == CullingPass::Second) {
+          ctx->m_cmd->setPushConst(m_persistentCullingPass, 0, sizeof(uint32_t),
+                                   &pcData[1]);
+          ctx->m_cmd->dispatchIndirect(m_persistCullIndirectDispatch,
+                                       6 * sizeof(uint32_t));
+        }
       });
   m_visibilityPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     // bind view buffer
+
     ctx->m_cmd->attachBindlessReferenceGraphics(m_visibilityPass, 1,
                                                 perframeData.m_viewBindlessRef);
     ctx->m_cmd->attachBindlessReferenceGraphics(
         m_visibilityPass, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
     ctx->m_cmd->attachBindlessReferenceGraphics(
         m_visibilityPass, 3, perframeData.m_allFilteredMeshletsDesc);
-    ctx->m_cmd->drawMeshTasksIndirect(perframeData.m_allFilteredMeshletsCount,
-                                      0, 1, 0);
+    if (cullPass == CullingPass::First) {
+      ctx->m_cmd->setPushConst(m_visibilityPass, 0, sizeof(uint32_t),
+                               &pcData[0]);
+      ctx->m_cmd->drawMeshTasksIndirect(perframeData.m_allFilteredMeshletsCount,
+                                        0, 1, 0);
+    } else {
+      ctx->m_cmd->setPushConst(m_visibilityPass, 0, sizeof(uint32_t),
+                               &pcData[1]);
+      ctx->m_cmd->drawMeshTasksIndirect(perframeData.m_allFilteredMeshletsCount,
+                                        sizeof(uint32_t) * 3, 1, 0);
+    }
   });
 
   m_hizPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
@@ -217,7 +254,12 @@ SyaroRenderer::renderFirstCullingPass(
       {instanceCullTask.get()}, {});
   auto drawTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
-        m_visibilityPass->run(cmd, perframeData.m_visRTs.get(), 0);
+        if (cullPass == CullingPass::First) {
+          m_visibilityPass->run(cmd, perframeData.m_visRTs.get(), 0);
+        } else {
+          // we wont clear the visibility buffer in the second pass
+          m_visibilityPass->run(cmd, perframeData.m_visRTs2.get(), 0);
+        }
       },
       {persistCullTask.get()}, {});
 
@@ -231,7 +273,6 @@ IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
 SyaroRenderer::render(
     PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
     const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
-
   // Some setups
   visibilityBufferSetup(perframeData, renderTargets);
   buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
@@ -255,13 +296,15 @@ SyaroRenderer::render(
         0, {rhi->getFullScreenQuadVertexBuffer().get()});
     ctx->m_cmd->drawInstanced(3, 1, 0, 0);
   });
-  auto firstCullTask =
-      renderFirstCullingPass(perframeData, renderTargets, cmdToWait);
+  auto firstCullTask = renderTwoPassOcclCulling(
+      CullingPass::First, perframeData, renderTargets, cmdToWait);
+  auto secondCullTask = renderTwoPassOcclCulling(
+      CullingPass::Second, perframeData, renderTargets, {firstCullTask.get()});
   auto showTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         m_textureShowPass->run(cmd, renderTargets, 0);
       },
-      {firstCullTask.get()}, {});
+      {secondCullTask.get()}, {});
   return showTask;
 }
 
@@ -358,6 +401,8 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
   auto visDepth = rhi->createDepthRenderTexture(rtArea.width + rtArea.x,
                                                 rtArea.height + rtArea.y);
   perframeData.m_visibilityBuffer = visBuffer;
+
+  // first pass rts
   perframeData.m_visPassDepth = visDepth;
   perframeData.m_visColorRT = rhi->createRenderTarget(
       visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Clear, 0, 0);
@@ -369,6 +414,18 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
   perframeData.m_visRTs->setDepthStencilAttachment(
       perframeData.m_visDepthRT.get());
   perframeData.m_visRTs->setRenderArea(renderTargets->getRenderArea());
+
+  // second pass rts
+  perframeData.m_visColorRT2 = rhi->createRenderTarget(
+      visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Load, 0, 0);
+  perframeData.m_visDepthRT2 = rhi->createRenderTargetDepthStencil(
+      visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Load);
+  perframeData.m_visRTs2 = rhi->createRenderTargets();
+  perframeData.m_visRTs2->setColorAttachments(
+      {perframeData.m_visColorRT2.get()});
+  perframeData.m_visRTs2->setDepthStencilAttachment(
+      perframeData.m_visDepthRT2.get());
+  perframeData.m_visRTs2->setRenderArea(renderTargets->getRenderArea());
 
   // Then a sampler
   perframeData.m_visibilitySampler = rhi->createTrivialSampler();
@@ -428,7 +485,7 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
   if (perframeData.m_allFilteredMeshletsCount == nullptr) {
     perframeData.m_allFilteredMeshletsCount =
         rhi->createIndirectMeshDrawBufferDevice(
-            1, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
+            2, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
                    RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
   }
   if (perframeData.m_allFilteredMeshletsMaxCount < totalMeshlets) {
