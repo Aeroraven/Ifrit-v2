@@ -4,17 +4,12 @@
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-
+#include "Syaro.Shared.glsl"
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 64, max_primitives = 124) out;
 
-struct Meshlet {
-  uint vertex_offset;
-  uint triangle_offset;
-  uint vertex_count;
-  uint triangle_count;
-};
+
 
 RegisterStorage(bMeshlet,{
     Meshlet data[];
@@ -36,32 +31,6 @@ RegisterStorage(bFilteredMeshlets2,{
     uvec2 data[];
 });
 
-RegisterStorage(bPerObjectRef,{
-    PerObjectData data[];
-});
-RegisterUniform(bLocalTransform,{
-    mat4 m_localToWorld;
-});
-RegisterStorage(bMeshDataRef,{
-    uint vertexBuffer;
-    uint meshletBuffer;
-    uint meshletVertexBuffer;
-    uint meshletIndexBuffer;
-    uint meshletCullBuffer;
-    uint bvhNodeBuffer;
-    uint clusterGroupBuffer;
-    uint meshletInClusterBuffer;
-    uint cpCounterBuffer;
-    uint pad1;
-});
-
-RegisterStorage(bInstanceDataRef,{
-    uint cpQueueBuffer;
-    uint cpCounterBuffer;
-    uint filteredMeshletsBuffer;
-    uint pad;
-});
-
 RegisterStorage(bDrawCallSize,{
     uint x1;
     uint y1;
@@ -71,9 +40,7 @@ RegisterStorage(bDrawCallSize,{
     uint z2; 
 });
 
-RegisterUniform(bPerframeView,{
-    PerFramePerViewData data;
-});
+
 layout(binding = 0, set = 1) uniform PerframeViewData{
     uint refCurFrame;
     uint refPrevFrame;

@@ -200,9 +200,10 @@ RhiVulkanBackend::createDepthRenderTexture(uint32_t width, uint32_t height) {
 
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture>
 RhiVulkanBackend::createRenderTargetTexture(uint32_t width, uint32_t height,
-                                            Rhi::RhiImageFormat format) {
+                                            Rhi::RhiImageFormat format,
+                                            uint32_t extraFlags) {
   return m_implDetails->m_resourceManager->createRenderTargetTexture(
-      width, height, toVkFormat(format));
+      width, height, toVkFormat(format), extraFlags);
 }
 
 std::shared_ptr<Rhi::RhiTexture> RhiVulkanBackend::createRenderTargetMipTexture(

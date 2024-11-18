@@ -66,9 +66,6 @@ RegisterStorage(bDrawCallSize,{
     uint y2;
     uint z2; 
 });
-RegisterStorage(bFilteredMeshlets, { 
-    int data[]; 
-});
 
 struct MeshletDesc{
     uint instanceId;

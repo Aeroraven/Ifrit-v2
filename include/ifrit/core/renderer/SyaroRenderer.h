@@ -39,6 +39,11 @@ private:
   constexpr static uint32_t cHiZGroupSizeX = 16;
   constexpr static uint32_t cHiZGroupSizeY = 16;
 
+  // Emit depth targets
+  ComputePass *m_emitDepthTargetsPass = nullptr;
+  constexpr static uint32_t cEmitDepthGroupSizeX = 16;
+  constexpr static uint32_t cEmitDepthGroupSizeY = 16;
+
 private:
   // Util functions
   GPUShader *createShaderFromFile(const std::string &shaderPath,
@@ -52,21 +57,29 @@ private:
   void setupVisibilityPass();
   void setupTextureShowPass();
   void setupHiZPass();
+  void setupEmitDepthTargetsPass();
 
   void hizBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
   void visibilityBufferSetup(PerFrameData &perframeData,
                              RenderTargets *renderTargets);
+  void depthTargetsSetup(PerFrameData &perframeData,
+                         RenderTargets *renderTargets);
 
-  // Many passes are not material-dependent, so a unified instance buffer might
-  // reduce calls
+  // Many passes are not material-dependent, so a unified instance buffer
+  // might reduce calls
   void gatherAllInstances(PerFrameData &perframeData);
 
 private:
   // Decompose the rendering procedure into many parts
-  virtual std::unique_ptr<GPUCommandSubmission> renderTwoPassOcclCulling(
+  std::unique_ptr<GPUCommandSubmission> renderTwoPassOcclCulling(
       CullingPass cullPass, PerFrameData &perframeData,
       RenderTargets *renderTargets,
       const std::vector<GPUCommandSubmission *> &cmdToWait);
+
+  std::unique_ptr<GPUCommandSubmission>
+  renderEmitDepthTargets(PerFrameData &perframeData,
+                         RenderTargets *renderTargets,
+                         const std::vector<GPUCommandSubmission *> &cmdToWait);
 
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {
@@ -75,6 +88,7 @@ public:
     setupVisibilityPass();
     setupInstanceCullingPass();
     setupHiZPass();
+    setupEmitDepthTargetsPass();
   }
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,

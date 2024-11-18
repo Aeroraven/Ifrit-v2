@@ -52,6 +52,7 @@ private:
   RhiTexture *swapchainImg;
 
   PerFrameData perframeData;
+  float timing = 0;
 
   constexpr static std::array<ifloat3, 4> bunnyPositions = {
       ifloat3{-0.3f, 0.0f, 0.0f}, ifloat3{0.3f, 0.0f, 0.0f},
@@ -128,7 +129,9 @@ public:
                                 ->getChildren()[0]
                                 ->getGameObject(bunnyPositions.size());
     auto camera = cameraGameObject->getComponent<Transform>();
-    camera->setPosition({0.0f + movRight - movLeft, 0.1f + movTop - movBottom,
+    timing = timing + 0.01f;
+    camera->setPosition({0.0f + movRight - movLeft + 0.5f * std::sin(timing),
+                         0.1f + movTop - movBottom,
                          -0.25f + movFar - movNear});
     auto sFrameStart = renderer->beginFrame();
     m_sceneManager->collectPerframeData(

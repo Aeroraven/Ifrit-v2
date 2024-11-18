@@ -54,7 +54,8 @@ public:
 
   std::shared_ptr<Rhi::RhiTexture>
   createRenderTargetTexture(uint32_t width, uint32_t height,
-                            Rhi::RhiImageFormat format) override;
+                            Rhi::RhiImageFormat format,
+                            uint32_t extraFlags) override;
 
   std::shared_ptr<Rhi::RhiSampler> createTrivialSampler() override;
 

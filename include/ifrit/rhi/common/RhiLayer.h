@@ -418,7 +418,7 @@ public:
   // Note that the texture created can only be accessed by the GPU
   virtual std::shared_ptr<RhiTexture>
   createRenderTargetTexture(uint32_t width, uint32_t height,
-                            RhiImageFormat format) = 0;
+                            RhiImageFormat format, uint32_t extraFlags) = 0;
 
   virtual std::shared_ptr<RhiTexture>
   createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,

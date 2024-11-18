@@ -1,6 +1,7 @@
 struct PerFramePerViewData {
   mat4 m_worldToView;
   mat4 m_perspective;
+  mat4 m_invPerspective;
   vec4 m_cameraPosition;
   float m_renderWidth;
   float m_renderHeight;

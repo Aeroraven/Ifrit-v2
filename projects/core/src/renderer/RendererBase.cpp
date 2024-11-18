@@ -98,7 +98,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
   auto viewBufferLast = perframeData.m_viewBufferLast;
   auto viewBufferLastAct = viewBufferLast->getActiveBuffer();
   viewBufferLastAct->map();
-  viewBufferLastAct->writeBuffer(&perframeData.m_viewData,
+  viewBufferLastAct->writeBuffer(&perframeData.m_viewDataOld,
                                  sizeof(PerFramePerViewData), 0);
   viewBufferLastAct->flush();
   viewBufferLastAct->unmap();

@@ -98,6 +98,36 @@ IFRIT_APIDECL void SyaroRenderer::setupHiZPass() {
   m_hizPass->setNumBindlessDescriptorSets(1);
 }
 
+IFRIT_APIDECL void SyaroRenderer::setupEmitDepthTargetsPass() {
+  auto rhi = m_app->getRhiLayer();
+  auto shader = createShaderFromFile("Syaro.EmitDepthTarget.comp.glsl", "main",
+                                     RhiShaderStage::Compute);
+
+  m_emitDepthTargetsPass = rhi->createComputePass();
+  m_emitDepthTargetsPass->setComputeShader(shader);
+  m_emitDepthTargetsPass->setNumBindlessDescriptorSets(4);
+  m_emitDepthTargetsPass->setPushConstSize(2 * sizeof(uint32_t));
+}
+
+IFRIT_APIDECL void
+SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
+                                 RenderTargets *renderTargets) {
+  auto rhi = m_app->getRhiLayer();
+  auto rtArea = renderTargets->getRenderArea();
+  if (perframeData.m_velocityMaterial != nullptr)
+    return;
+  perframeData.m_velocityMaterial = rhi->createRenderTargetTexture(
+      rtArea.width + rtArea.x, rtArea.height + rtArea.y,
+      RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+      RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+  perframeData.m_velocityMaterialDesc = rhi->createBindlessDescriptorRef();
+  perframeData.m_velocityMaterialDesc->addUAVImage(
+      perframeData.m_velocityMaterial.get(), {0, 0, 1, 1}, 0);
+  perframeData.m_velocityMaterialDesc->addCombinedImageSampler(
+      perframeData.m_visibilityBuffer.get(),
+      perframeData.m_visibilitySampler.get(), 1);
+}
+
 IFRIT_APIDECL void
 SyaroRenderer::recreateInstanceCullingBuffers(uint32_t newMaxInstances) {
   if (m_maxSupportedInstances == 0 ||
@@ -120,6 +150,45 @@ SyaroRenderer::recreateInstanceCullingBuffers(uint32_t newMaxInstances) {
   }
 }
 
+IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
+SyaroRenderer::renderEmitDepthTargets(
+    PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
+    const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
+  auto rhi = m_app->getRhiLayer();
+  auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
+  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+
+  m_emitDepthTargetsPass->setRecordFunction(
+      [&](const RhiRenderPassContext *ctx) {
+        ctx->m_cmd->imageBarrier(
+            perframeData.m_velocityMaterial.get(), RhiResourceState::Undefined,
+            RhiResourceState::UAVStorageImage, {0, 0, 1, 1});
+        ctx->m_cmd->attachBindlessReferenceCompute(
+            m_emitDepthTargetsPass, 1, perframeData.m_viewBindlessRef);
+        ctx->m_cmd->attachBindlessReferenceCompute(
+            m_emitDepthTargetsPass, 2,
+            perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+        ctx->m_cmd->attachBindlessReferenceCompute(
+            m_emitDepthTargetsPass, 3, perframeData.m_allFilteredMeshletsDesc);
+        ctx->m_cmd->attachBindlessReferenceCompute(
+            m_emitDepthTargetsPass, 4, perframeData.m_velocityMaterialDesc);
+        uint32_t pcData[2] = {perframeData.m_viewData.m_renderWidth,
+                              perframeData.m_viewData.m_renderHeight};
+        ctx->m_cmd->setPushConst(m_emitDepthTargetsPass, 0,
+                                 sizeof(uint32_t) * 2, &pcData[0]);
+
+        uint32_t wgX =
+            (pcData[0] + cEmitDepthGroupSizeX - 1) / cEmitDepthGroupSizeX;
+        uint32_t wgY =
+            (pcData[1] + cEmitDepthGroupSizeY - 1) / cEmitDepthGroupSizeY;
+        ctx->m_cmd->dispatch(wgX, wgY, 1);
+      });
+
+  auto emitDepthTask = compq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) { m_emitDepthTargetsPass->run(cmd, 0); },
+      cmdToWait, {});
+  return emitDepthTask;
+}
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
 SyaroRenderer::renderTwoPassOcclCulling(
     CullingPass cullPass, PerFrameData &perframeData,
@@ -282,6 +351,7 @@ SyaroRenderer::render(
   recreateInstanceCullingBuffers(
       perframeData.m_allInstanceData.m_objectData.size());
   hizBufferSetup(perframeData, renderTargets);
+  depthTargetsSetup(perframeData, renderTargets);
 
   // Then draw
   auto rhi = m_app->getRhiLayer();
@@ -300,11 +370,13 @@ SyaroRenderer::render(
       CullingPass::First, perframeData, renderTargets, cmdToWait);
   auto secondCullTask = renderTwoPassOcclCulling(
       CullingPass::Second, perframeData, renderTargets, {firstCullTask.get()});
+  auto emitDepthTask = renderEmitDepthTargets(perframeData, renderTargets,
+                                              {secondCullTask.get()});
   auto showTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         m_textureShowPass->run(cmd, renderTargets, 0);
       },
-      {secondCullTask.get()}, {});
+      {emitDepthTask.get()}, {});
   return showTask;
 }
 
@@ -397,7 +469,8 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
   // so here I use R32 for visibility buffer
   auto visBuffer = rhi->createRenderTargetTexture(
       rtArea.width + rtArea.x, rtArea.height + rtArea.y,
-      PerFrameData::c_visibilityFormat);
+      PerFrameData::c_visibilityFormat,
+      RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
   auto visDepth = rhi->createDepthRenderTexture(rtArea.width + rtArea.x,
                                                 rtArea.height + rtArea.y);
   perframeData.m_visibilityBuffer = visBuffer;

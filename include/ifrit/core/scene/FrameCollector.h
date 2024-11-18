@@ -8,9 +8,13 @@
 
 namespace Ifrit::Core {
 
+// The design is inappropriate for the current project.
+// It's renderer-specific and should be moved to the renderer.
+
 struct PerFramePerViewData {
   float4x4 m_worldToView;
   float4x4 m_perspective;
+  float4x4 m_inversePerspective;
   ifloat4 m_cameraPosition;
   float m_renderWidth;
   float m_renderHeight;
@@ -107,6 +111,10 @@ struct PerFrameData {
   // Visibility show
   std::shared_ptr<GPUSampler> m_visibilitySampler = nullptr;
   GPUBindlessRef *m_visShowCombinedRef = nullptr;
+
+  // Emit depth targets
+  std::shared_ptr<GPUTexture> m_velocityMaterial = nullptr;
+  GPUBindlessRef *m_velocityMaterialDesc = nullptr;
 };
 
 } // namespace Ifrit::Core
