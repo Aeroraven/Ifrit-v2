@@ -303,6 +303,7 @@ enum class RhiCullMode { None, Front, Back };
 enum class RhiRasterizerTopology { TriangleList, Line, Point };
 enum class RhiGeometryGenerationType { Conventional, Mesh };
 
+enum class RhiResourceType { Buffer, Texture };
 enum class RhiCompareOp {
   Never,
   Less,
@@ -376,6 +377,34 @@ struct RhiBindlessIdRef {
   inline uint32_t getActiveId() const { return ids[activeFrame]; }
 
   inline void setFromId(uint32_t frame) { activeFrame = frame; }
+};
+
+enum class RhiBarrierType { UAVAccess, Transition };
+
+struct RhiUAVBarrier {
+  RhiResourceType m_type;
+  union {
+    RhiBuffer *m_buffer;
+    RhiTexture *m_texture;
+  };
+};
+
+struct RhiTransitionBarrier {
+  RhiResourceType m_type;
+  union {
+    RhiBuffer *m_buffer;
+    RhiTexture *m_texture;
+  };
+  RhiResourceState m_srcState;
+  RhiResourceState m_dstState;
+};
+
+struct RhiResourceBarrier {
+  RhiBarrierType m_type;
+  union {
+    RhiUAVBarrier m_uav;
+    RhiTransitionBarrier m_transition;
+  };
 };
 
 // classes
@@ -605,6 +634,11 @@ public:
   virtual void clearUAVImageFloat(const RhiTexture *texture,
                                   RhiImageSubResource subResource,
                                   const std::array<float, 4> &val) const = 0;
+  virtual void
+  resourceBarrier(const std::vector<RhiResourceBarrier> &barriers) const = 0;
+
+  virtual void beginScope(const std::string &name) const = 0;
+  virtual void endScope() const = 0;
 };
 
 class IFRIT_APIDECL RhiQueue {

@@ -440,6 +440,70 @@ CommandBuffer::clearUAVImageFloat(const Rhi::RhiTexture *texture,
                        VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &range);
 }
 
+IFRIT_APIDECL
+void CommandBuffer::resourceBarrier(
+    const std::vector<Rhi::RhiResourceBarrier> &barriers) const {
+  std::vector<VkImageMemoryBarrier> imageBarriers;
+  std::vector<VkBufferMemoryBarrier> bufferBarriers;
+  for (int i = 0; i < barriers.size(); i++) {
+    auto barrier = barriers[i];
+    if (barrier.m_type == Rhi::RhiBarrierType::Transition) {
+      throw std::runtime_error("Not implemented");
+    } else if (barrier.m_type == Rhi::RhiBarrierType::UAVAccess) {
+      auto resourceType = barrier.m_uav.m_type;
+      if (resourceType == Rhi::RhiResourceType::Buffer) {
+        VkBufferMemoryBarrier bufferBarrier{};
+        bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bufferBarrier.buffer =
+            checked_cast<SingleBuffer>(barrier.m_uav.m_buffer)->getBuffer();
+        bufferBarrier.offset = 0;
+        bufferBarrier.size = VK_WHOLE_SIZE;
+        bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        bufferBarriers.push_back(bufferBarrier);
+      } else if (resourceType == Rhi::RhiResourceType::Texture) {
+        // WARNING: subresource unspecified
+        VkImageMemoryBarrier imageBarrier{};
+        imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        imageBarrier.image =
+            checked_cast<SingleDeviceImage>(barrier.m_uav.m_texture)
+                ->getImage();
+        imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBarrier.subresourceRange.baseMipLevel = 0;
+        imageBarrier.subresourceRange.levelCount = 1;
+        imageBarrier.subresourceRange.baseArrayLayer = 0;
+        imageBarrier.subresourceRange.layerCount = 1;
+        imageBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        imageBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+        imageBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+        imageBarriers.push_back(imageBarrier);
+      }
+    }
+  }
+  vkCmdPipelineBarrier(
+      m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr,
+      size_cast<int>(bufferBarriers.size()), bufferBarriers.data(),
+      size_cast<int>(imageBarriers.size()), imageBarriers.data());
+}
+
+IFRIT_APIDECL void CommandBuffer::beginScope(const std::string &name) const {
+  VkDebugUtilsLabelEXT label{};
+  label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+  label.pLabelName = name.c_str();
+  label.color[0] = 1.0f;
+  label.color[1] = 1.0f;
+  label.color[2] = 0.0f;
+  label.color[3] = 1.0f;
+  auto exfun = m_context->getExtensionFunction();
+  exfun.p_vkCmdBeginDebugUtilsLabelEXT(m_commandBuffer, &label);
+}
+IFRIT_APIDECL void CommandBuffer::endScope() const {
+  auto exfun = m_context->getExtensionFunction();
+  exfun.p_vkCmdEndDebugUtilsLabelEXT(m_commandBuffer);
+}
+
 // Class: Queue
 IFRIT_APIDECL Queue::Queue(EngineContext *ctx, VkQueue queue, uint32_t family,
                            VkQueueFlags capability)

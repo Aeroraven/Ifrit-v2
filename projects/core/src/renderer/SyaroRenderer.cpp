@@ -221,6 +221,40 @@ SyaroRenderer::materialClassifyBufferSetup(PerFrameData &perframeData,
         perframeData.m_matClassIndirectDispatchBuffer, 4);
     perframeData.m_matClassDesc->addUAVImage(perframeData.m_matClassDebug.get(),
                                              {0, 0, 1, 1}, 5);
+
+    perframeData.m_matClassBarrier.clear();
+    RhiResourceBarrier barrierCountBuffer;
+    barrierCountBuffer.m_type = RhiBarrierType::UAVAccess;
+    barrierCountBuffer.m_uav.m_buffer = perframeData.m_matClassCountBuffer;
+    barrierCountBuffer.m_uav.m_type = RhiResourceType::Buffer;
+
+    RhiResourceBarrier barrierFinalBuffer;
+    barrierFinalBuffer.m_type = RhiBarrierType::UAVAccess;
+    barrierFinalBuffer.m_uav.m_buffer = perframeData.m_matClassFinalBuffer;
+    barrierFinalBuffer.m_uav.m_type = RhiResourceType::Buffer;
+
+    RhiResourceBarrier barrierPixelOffsetBuffer;
+    barrierPixelOffsetBuffer.m_type = RhiBarrierType::UAVAccess;
+    barrierPixelOffsetBuffer.m_uav.m_buffer =
+        perframeData.m_matClassPixelOffsetBuffer;
+    barrierPixelOffsetBuffer.m_uav.m_type = RhiResourceType::Buffer;
+
+    RhiResourceBarrier barrierIndirectDispatchBuffer;
+    barrierIndirectDispatchBuffer.m_type = RhiBarrierType::UAVAccess;
+    barrierIndirectDispatchBuffer.m_uav.m_buffer =
+        perframeData.m_matClassIndirectDispatchBuffer;
+    barrierIndirectDispatchBuffer.m_uav.m_type = RhiResourceType::Buffer;
+
+    RhiResourceBarrier barrierDebug;
+    barrierDebug.m_type = RhiBarrierType::UAVAccess;
+    barrierDebug.m_uav.m_texture = perframeData.m_matClassDebug.get();
+    barrierDebug.m_uav.m_type = RhiResourceType::Texture;
+
+    perframeData.m_matClassBarrier.push_back(barrierCountBuffer);
+    perframeData.m_matClassBarrier.push_back(barrierFinalBuffer);
+    perframeData.m_matClassBarrier.push_back(barrierPixelOffsetBuffer);
+    perframeData.m_matClassBarrier.push_back(barrierIndirectDispatchBuffer);
+    perframeData.m_matClassBarrier.push_back(barrierDebug);
   }
 }
 
@@ -300,7 +334,11 @@ SyaroRenderer::renderEmitDepthTargets(
       });
 
   auto emitDepthTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) { m_emitDepthTargetsPass->run(cmd, 0); },
+      [&](const RhiCommandBuffer *cmd) {
+        cmd->beginScope("Syaro: Emit Depth Targets");
+        m_emitDepthTargetsPass->run(cmd, 0);
+        cmd->endScope();
+      },
       cmdToWait, {});
   return emitDepthTask;
 }
@@ -429,26 +467,40 @@ SyaroRenderer::renderTwoPassOcclCulling(
   });
 
   auto instanceCullTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) { m_instanceCullingPass->run(cmd, 0); },
+      [&](const RhiCommandBuffer *cmd) {
+        cmd->beginScope("Syaro: Instance Culling Pass");
+        m_instanceCullingPass->run(cmd, 0);
+        cmd->endScope();
+      },
       cmdToWait, {});
   auto persistCullTask = compq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
+        cmd->beginScope("Syaro: Persistent Culling Pass");
         m_persistentCullingPass->run(cmd, 0);
+        cmd->endScope();
       },
       {instanceCullTask.get()}, {});
   auto drawTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         if (cullPass == CullingPass::First) {
+          cmd->beginScope("Syaro: Visibility Pass, First");
           m_visibilityPass->run(cmd, perframeData.m_visRTs.get(), 0);
+          cmd->endScope();
         } else {
           // we wont clear the visibility buffer in the second pass
+          cmd->beginScope("Syaro: Visibility Pass, Second");
           m_visibilityPass->run(cmd, perframeData.m_visRTs2.get(), 0);
+          cmd->endScope();
         }
       },
       {persistCullTask.get()}, {});
 
   auto hizTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) { m_hizPass->run(cmd, 0); },
+      [&](const RhiCommandBuffer *cmd) {
+        cmd->beginScope("Syaro: HiZ Pass");
+        m_hizPass->run(cmd, 0);
+        cmd->endScope();
+      },
       {drawTask.get()}, {});
   return hizTask;
 }
@@ -510,9 +562,6 @@ SyaroRenderer::renderMaterialClassify(
 
   // Debug
   m_matclassDebugPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    ctx->m_cmd->imageBarrier(perframeData.m_matClassDebug.get(),
-                             RhiResourceState::Undefined,
-                             RhiResourceState::Common, {0, 0, 1, 1});
     ctx->m_cmd->clearUAVImageFloat(perframeData.m_matClassDebug.get(),
                                    {0, 0, 1, 1}, {0.0f, 0.0f, 0.0f, 0.0f});
     ctx->m_cmd->imageBarrier(perframeData.m_matClassDebug.get(),
@@ -527,19 +576,24 @@ SyaroRenderer::renderMaterialClassify(
   });
 
   // Start rendering
-  auto countTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) { m_matclassCountPass->run(cmd, 0); },
+  auto matclassTask = compq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) {
+        cmd->beginScope("Syaro: Material Classification");
+        cmd->imageBarrier(perframeData.m_matClassDebug.get(),
+                          RhiResourceState::Undefined, RhiResourceState::Common,
+                          {0, 0, 1, 1});
+        m_matclassCountPass->run(cmd, 0);
+        cmd->resourceBarrier(perframeData.m_matClassBarrier);
+        m_matclassReservePass->run(cmd, 0);
+        cmd->resourceBarrier(perframeData.m_matClassBarrier);
+        m_matclassScatterPass->run(cmd, 0);
+        cmd->resourceBarrier(perframeData.m_matClassBarrier);
+        m_matclassDebugPass->run(cmd, 0);
+        cmd->endScope();
+      },
       cmdToWait, {});
-  auto reserveTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) { m_matclassReservePass->run(cmd, 0); },
-      {countTask.get()}, {});
-  auto scatterTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) { m_matclassScatterPass->run(cmd, 0); },
-      {reserveTask.get()}, {});
-  auto debugTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) { m_matclassDebugPass->run(cmd, 0); },
-      {scatterTask.get()}, {});
-  return debugTask;
+
+  return matclassTask;
 }
 
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
@@ -581,7 +635,9 @@ SyaroRenderer::render(
                                              {emitDepthTask.get()});
   auto showTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
+        cmd->beginScope("Syaro: Display Texture");
         m_textureShowPass->run(cmd, renderTargets, 0);
+        cmd->endScope();
       },
       {matClassTask.get()}, {});
   return showTask;

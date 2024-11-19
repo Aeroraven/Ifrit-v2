@@ -58,6 +58,7 @@ struct PerFrameData {
   using GPUDepthRT = Ifrit::GraphicsBackend::Rhi::RhiDepthStencilAttachment;
   using GPURTs = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
+  using GPUBarrier = Ifrit::GraphicsBackend::Rhi::RhiResourceBarrier;
 
   PerFramePerViewData m_viewData;
   PerFramePerViewData m_viewDataOld;
@@ -123,6 +124,7 @@ struct PerFrameData {
   GPUBuffer *m_matClassFinalBuffer = nullptr;
   GPUBuffer *m_matClassPixelOffsetBuffer = nullptr;
   GPUBindlessRef *m_matClassDesc = nullptr;
+  std::vector<GPUBarrier> m_matClassBarrier;
   std::shared_ptr<GPUTexture> m_matClassDebug = nullptr;
   uint32_t m_matClassSupportedNumMaterials = 0;
   uint32_t m_matClassSupportedNumPixels = 0;

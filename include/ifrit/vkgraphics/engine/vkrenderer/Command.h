@@ -183,6 +183,12 @@ public:
   clearUAVImageFloat(const Rhi::RhiTexture *texture,
                      Rhi::RhiImageSubResource subResource,
                      const std::array<float, 4> &val) const override;
+
+  virtual void resourceBarrier(
+      const std::vector<Rhi::RhiResourceBarrier> &barriers) const override;
+
+  virtual void beginScope(const std::string &name) const override;
+  virtual void endScope() const override;
 };
 
 class IFRIT_APIDECL CommandPool {

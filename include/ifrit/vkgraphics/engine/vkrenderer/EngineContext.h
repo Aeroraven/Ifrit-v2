@@ -48,6 +48,9 @@ struct IFRIT_APIDECL ExtensionFunction {
 
   PFN_vkCmdDrawMeshTasksEXT p_vkCmdDrawMeshTasksEXT;
   PFN_vkCmdDrawMeshTasksIndirectEXT p_vkCmdDrawMeshTasksIndirectEXT;
+
+  PFN_vkCmdBeginDebugUtilsLabelEXT p_vkCmdBeginDebugUtilsLabelEXT;
+  PFN_vkCmdEndDebugUtilsLabelEXT p_vkCmdEndDebugUtilsLabelEXT;
 };
 
 class IFRIT_APIDECL EngineContext : public Rhi::RhiDevice {

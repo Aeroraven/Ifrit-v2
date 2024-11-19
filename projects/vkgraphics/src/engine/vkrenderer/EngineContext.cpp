@@ -103,6 +103,10 @@ IFRIT_APIDECL void EngineContext::loadExtensionFunction() {
               m_device);
   loadExtFunc(m_extf.p_vkCmdDrawMeshTasksIndirectEXT,
               "vkCmdDrawMeshTasksIndirectEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdBeginDebugUtilsLabelEXT,
+              "vkCmdBeginDebugUtilsLabelEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdEndDebugUtilsLabelEXT, "vkCmdEndDebugUtilsLabelEXT",
+              m_device);
 
   vkrLog("Extension functions loaded");
 }
