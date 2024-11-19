@@ -232,6 +232,14 @@ IFRIT_APIDECL void CommandBuffer::imageBarrier(
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
         VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
     break;
+  case Rhi::RhiResourceState::Common:
+    barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.srcAccessMask =
+        VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
+        VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT |
+        VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+    break;
+
   case Rhi::RhiResourceState::RenderTarget:
     barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -266,6 +274,13 @@ IFRIT_APIDECL void CommandBuffer::imageBarrier(
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
         VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+    break;
+  case Rhi::RhiResourceState::Common:
+    barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.dstAccessMask =
+        VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
+        VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT |
+        VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
     break;
   case Rhi::RhiResourceState::RenderTarget:
     barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -404,6 +419,26 @@ IFRIT_APIDECL void CommandBuffer::setPushConst(Rhi::RhiGraphicsPass *pass,
   vkCmdPushConstants(m_commandBuffer, graphicsPass->getPipelineLayout(),
                      VK_SHADER_STAGE_ALL, offset, size, data);
 };
+
+IFRIT_APIDECL void
+CommandBuffer::clearUAVImageFloat(const Rhi::RhiTexture *texture,
+                                  Rhi::RhiImageSubResource subResource,
+                                  const std::array<float, 4> &val) const {
+  auto image = checked_cast<SingleDeviceImage>(texture);
+  VkClearColorValue clearColor;
+  clearColor.float32[0] = val[0];
+  clearColor.float32[1] = val[1];
+  clearColor.float32[2] = val[2];
+  clearColor.float32[3] = val[3];
+  VkImageSubresourceRange range{};
+  range.aspectMask = image->getAspect();
+  range.baseMipLevel = subResource.mipLevel;
+  range.levelCount = subResource.mipCount;
+  range.baseArrayLayer = subResource.arrayLayer;
+  range.layerCount = subResource.layerCount;
+  vkCmdClearColorImage(m_commandBuffer, image->getImage(),
+                       VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &range);
+}
 
 // Class: Queue
 IFRIT_APIDECL Queue::Queue(EngineContext *ctx, VkQueue queue, uint32_t family,

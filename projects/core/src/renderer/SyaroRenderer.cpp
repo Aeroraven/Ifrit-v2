@@ -109,6 +109,121 @@ IFRIT_APIDECL void SyaroRenderer::setupEmitDepthTargetsPass() {
   m_emitDepthTargetsPass->setPushConstSize(2 * sizeof(uint32_t));
 }
 
+IFRIT_APIDECL void SyaroRenderer::setupMaterialClassifyPass() {
+  auto rhi = m_app->getRhiLayer();
+  // Count pass
+  if constexpr (true) {
+    auto shader = createShaderFromFile("Syaro.ClassifyMaterial.Count.comp.glsl",
+                                       "main", RhiShaderStage::Compute);
+    m_matclassCountPass = rhi->createComputePass();
+    m_matclassCountPass->setComputeShader(shader);
+    m_matclassCountPass->setNumBindlessDescriptorSets(1);
+    m_matclassCountPass->setPushConstSize(sizeof(uint32_t) * 3);
+  }
+  // Reserve pass
+  if constexpr (true) {
+    auto shader =
+        createShaderFromFile("Syaro.ClassifyMaterial.Reserve.comp.glsl", "main",
+                             RhiShaderStage::Compute);
+    m_matclassReservePass = rhi->createComputePass();
+    m_matclassReservePass->setComputeShader(shader);
+    m_matclassReservePass->setNumBindlessDescriptorSets(1);
+    m_matclassReservePass->setPushConstSize(sizeof(uint32_t) * 3);
+  }
+  // Scatter pass
+  if constexpr (true) {
+    auto shader =
+        createShaderFromFile("Syaro.ClassifyMaterial.Scatter.comp.glsl", "main",
+                             RhiShaderStage::Compute);
+    m_matclassScatterPass = rhi->createComputePass();
+    m_matclassScatterPass->setComputeShader(shader);
+    m_matclassScatterPass->setNumBindlessDescriptorSets(1);
+    m_matclassScatterPass->setPushConstSize(sizeof(uint32_t) * 3);
+  }
+  // Debug pass
+  if constexpr (true) {
+    auto shader = createShaderFromFile("Syaro.ClassifyMaterial.Debug.comp.glsl",
+                                       "main", RhiShaderStage::Compute);
+    m_matclassDebugPass = rhi->createComputePass();
+    m_matclassDebugPass->setComputeShader(shader);
+    m_matclassDebugPass->setNumBindlessDescriptorSets(1);
+    m_matclassDebugPass->setPushConstSize(sizeof(uint32_t) * 3);
+  }
+}
+
+IFRIT_APIDECL void
+SyaroRenderer::materialClassifyBufferSetup(PerFrameData &perframeData,
+                                           RenderTargets *renderTargets) {
+  auto numMaterials = perframeData.m_enabledEffects.size();
+  auto rhi = m_app->getRhiLayer();
+  auto renderArea = renderTargets->getRenderArea();
+  auto width = renderArea.width + renderArea.x;
+  auto height = renderArea.height + renderArea.y;
+  auto totalSize = width * height;
+  bool needRecreate = false;
+  bool needRecreateMat = false;
+  bool needRecreatePixel = false;
+  if (perframeData.m_matClassSupportedNumMaterials < numMaterials ||
+      perframeData.m_matClassCountBuffer == nullptr) {
+    needRecreate = true;
+    needRecreateMat = true;
+  }
+  if (perframeData.m_matClassSupportedNumPixels < totalSize) {
+    needRecreate = true;
+    needRecreatePixel = true;
+  }
+  if (!needRecreate) {
+    return;
+  }
+  if (needRecreateMat) {
+    perframeData.m_matClassSupportedNumMaterials = numMaterials;
+    auto createSize = cMatClassCounterBufferSizeBase +
+                      cMatClassCounterBufferSizeMult * numMaterials;
+    perframeData.m_matClassCountBuffer = rhi->createStorageBufferDevice(
+        createSize, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+    perframeData.m_matClassIndirectDispatchBuffer =
+        rhi->createStorageBufferDevice(
+            sizeof(uint32_t) * 3,
+            RhiBufferUsage::RHI_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
+                RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+  }
+  if (needRecreatePixel) {
+    perframeData.m_matClassSupportedNumPixels = totalSize;
+    perframeData.m_matClassFinalBuffer = rhi->createStorageBufferDevice(
+        totalSize * sizeof(uint32_t),
+        RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    perframeData.m_matClassPixelOffsetBuffer = rhi->createStorageBufferDevice(
+        totalSize * sizeof(uint32_t),
+        RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    perframeData.m_matClassDebug = rhi->createRenderTargetTexture(
+        width, height, RhiImageFormat::RHI_FORMAT_R32_UINT,
+        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
+            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+    perframeData.m_matClassDebug = rhi->createRenderTargetTexture(
+        width, height, RhiImageFormat::RHI_FORMAT_R32_UINT,
+        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
+            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
+            RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+  }
+
+  if (needRecreate) {
+    perframeData.m_matClassDesc = rhi->createBindlessDescriptorRef();
+    perframeData.m_matClassDesc->addUAVImage(
+        perframeData.m_velocityMaterial.get(), {0, 0, 1, 1}, 0);
+    perframeData.m_matClassDesc->addStorageBuffer(
+        perframeData.m_matClassCountBuffer, 1);
+    perframeData.m_matClassDesc->addStorageBuffer(
+        perframeData.m_matClassFinalBuffer, 2);
+    perframeData.m_matClassDesc->addStorageBuffer(
+        perframeData.m_matClassPixelOffsetBuffer, 3);
+    perframeData.m_matClassDesc->addStorageBuffer(
+        perframeData.m_matClassIndirectDispatchBuffer, 4);
+    perframeData.m_matClassDesc->addUAVImage(perframeData.m_matClassDebug.get(),
+                                             {0, 0, 1, 1}, 5);
+  }
+}
+
 IFRIT_APIDECL void
 SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
                                  RenderTargets *renderTargets) {
@@ -339,6 +454,95 @@ SyaroRenderer::renderTwoPassOcclCulling(
 }
 
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
+SyaroRenderer::renderMaterialClassify(
+    PerFrameData &perframeData, RenderTargets *renderTargets,
+    const std::vector<GPUCommandSubmission *> &cmdToWait) {
+  auto rhi = m_app->getRhiLayer();
+  auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
+  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+  auto totalMaterials = perframeData.m_enabledEffects.size();
+
+  auto renderArea = renderTargets->getRenderArea();
+  auto width = renderArea.width + renderArea.x;
+  auto height = renderArea.height + renderArea.y;
+  uint32_t pcData[3] = {width, height, totalMaterials};
+
+  constexpr uint32_t pTileWidth =
+      cMatClassQuadSize * cMatClassGroupSizeCountScatterX;
+  constexpr uint32_t pTileHeight =
+      cMatClassQuadSize * cMatClassGroupSizeCountScatterY;
+
+  // Counting
+  auto wgX = (width + pTileWidth - 1) / pTileWidth;
+  auto wgY = (height + pTileHeight - 1) / pTileHeight;
+  m_matclassCountPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    ctx->m_cmd->uavBufferClear(perframeData.m_matClassCountBuffer, 0);
+    ctx->m_cmd->uavBufferBarrier(perframeData.m_matClassCountBuffer);
+
+    ctx->m_cmd->attachBindlessReferenceCompute(m_matclassCountPass, 1,
+                                               perframeData.m_matClassDesc);
+    ctx->m_cmd->setPushConst(m_matclassCountPass, 0, sizeof(uint32_t) * 3,
+                             &pcData[0]);
+    ctx->m_cmd->dispatch(wgX, wgY, 1);
+  });
+
+  // Reserving
+  auto wgX2 = (totalMaterials + cMatClassGroupSizeReserveX - 1) /
+              cMatClassGroupSizeReserveX;
+  m_matclassReservePass->setRecordFunction(
+      [&](const RhiRenderPassContext *ctx) {
+        ctx->m_cmd->attachBindlessReferenceCompute(m_matclassReservePass, 1,
+                                                   perframeData.m_matClassDesc);
+        ctx->m_cmd->setPushConst(m_matclassReservePass, 0, sizeof(uint32_t) * 3,
+                                 &pcData[0]);
+        ctx->m_cmd->dispatch(wgX2, 1, 1);
+      });
+
+  // Scatter
+  m_matclassScatterPass->setRecordFunction(
+      [&](const RhiRenderPassContext *ctx) {
+        ctx->m_cmd->attachBindlessReferenceCompute(m_matclassScatterPass, 1,
+                                                   perframeData.m_matClassDesc);
+        ctx->m_cmd->setPushConst(m_matclassScatterPass, 0, sizeof(uint32_t) * 3,
+                                 &pcData[0]);
+        ctx->m_cmd->dispatch(wgX, wgY, 1);
+      });
+
+  // Debug
+  m_matclassDebugPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    ctx->m_cmd->imageBarrier(perframeData.m_matClassDebug.get(),
+                             RhiResourceState::Undefined,
+                             RhiResourceState::Common, {0, 0, 1, 1});
+    ctx->m_cmd->clearUAVImageFloat(perframeData.m_matClassDebug.get(),
+                                   {0, 0, 1, 1}, {0.0f, 0.0f, 0.0f, 0.0f});
+    ctx->m_cmd->imageBarrier(perframeData.m_matClassDebug.get(),
+                             RhiResourceState::Common,
+                             RhiResourceState::UAVStorageImage, {0, 0, 1, 1});
+    ctx->m_cmd->attachBindlessReferenceCompute(m_matclassDebugPass, 1,
+                                               perframeData.m_matClassDesc);
+    ctx->m_cmd->setPushConst(m_matclassDebugPass, 0, sizeof(uint32_t) * 3,
+                             &pcData[0]);
+    ctx->m_cmd->dispatchIndirect(perframeData.m_matClassIndirectDispatchBuffer,
+                                 0);
+  });
+
+  // Start rendering
+  auto countTask = compq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) { m_matclassCountPass->run(cmd, 0); },
+      cmdToWait, {});
+  auto reserveTask = compq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) { m_matclassReservePass->run(cmd, 0); },
+      {countTask.get()}, {});
+  auto scatterTask = compq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) { m_matclassScatterPass->run(cmd, 0); },
+      {reserveTask.get()}, {});
+  auto debugTask = compq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) { m_matclassDebugPass->run(cmd, 0); },
+      {scatterTask.get()}, {});
+  return debugTask;
+}
+
+IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
 SyaroRenderer::render(
     PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
     const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
@@ -352,6 +556,7 @@ SyaroRenderer::render(
       perframeData.m_allInstanceData.m_objectData.size());
   hizBufferSetup(perframeData, renderTargets);
   depthTargetsSetup(perframeData, renderTargets);
+  materialClassifyBufferSetup(perframeData, renderTargets);
 
   // Then draw
   auto rhi = m_app->getRhiLayer();
@@ -372,11 +577,13 @@ SyaroRenderer::render(
       CullingPass::Second, perframeData, renderTargets, {firstCullTask.get()});
   auto emitDepthTask = renderEmitDepthTargets(perframeData, renderTargets,
                                               {secondCullTask.get()});
+  auto matClassTask = renderMaterialClassify(perframeData, renderTargets,
+                                             {emitDepthTask.get()});
   auto showTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         m_textureShowPass->run(cmd, renderTargets, 0);
       },
-      {emitDepthTask.get()}, {});
+      {matClassTask.get()}, {});
   return showTask;
 }
 

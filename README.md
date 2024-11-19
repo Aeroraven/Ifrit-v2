@@ -132,6 +132,7 @@ And some references that give inspirations. Thanks for their selfless dedication
    1. https://github.com/tgfrerer/island
 7. https://dev.to/gasim/implementing-bindless-design-in-vulkan-34no
 8. https://github.com/KhronosGroup/Vulkan-Samples
+9. https://www.elopezr.com/a-macro-view-of-nanite/
 
 
 

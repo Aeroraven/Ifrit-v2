@@ -25,5 +25,6 @@ struct PerObjectData {
   uint objectDataRef;
   uint instanceDataRef;
   uint transformRefLast;
+  uint materialId;
 };
 

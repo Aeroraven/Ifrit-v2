@@ -44,6 +44,20 @@ private:
   constexpr static uint32_t cEmitDepthGroupSizeX = 16;
   constexpr static uint32_t cEmitDepthGroupSizeY = 16;
 
+  // Material classify
+  ComputePass *m_matclassCountPass = nullptr;
+  ComputePass *m_matclassReservePass = nullptr;
+  ComputePass *m_matclassScatterPass = nullptr;
+  ComputePass *m_matclassDebugPass = nullptr;
+  constexpr static uint32_t cMatClassQuadSize = 2;
+  constexpr static uint32_t cMatClassGroupSizeCountScatterX = 8;
+  constexpr static uint32_t cMatClassGroupSizeCountScatterY = 8;
+  constexpr static uint32_t cMatClassGroupSizeReserveX = 128;
+  constexpr static uint32_t cMatClassCounterBufferSizeBase =
+      2 * sizeof(uint32_t);
+  constexpr static uint32_t cMatClassCounterBufferSizeMult =
+      2 * sizeof(uint32_t);
+
 private:
   // Util functions
   GPUShader *createShaderFromFile(const std::string &shaderPath,
@@ -58,12 +72,15 @@ private:
   void setupTextureShowPass();
   void setupHiZPass();
   void setupEmitDepthTargetsPass();
+  void setupMaterialClassifyPass();
 
   void hizBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
   void visibilityBufferSetup(PerFrameData &perframeData,
                              RenderTargets *renderTargets);
   void depthTargetsSetup(PerFrameData &perframeData,
                          RenderTargets *renderTargets);
+  void materialClassifyBufferSetup(PerFrameData &perframeData,
+                                   RenderTargets *renderTargets);
 
   // Many passes are not material-dependent, so a unified instance buffer
   // might reduce calls
@@ -81,6 +98,11 @@ private:
                          RenderTargets *renderTargets,
                          const std::vector<GPUCommandSubmission *> &cmdToWait);
 
+  std::unique_ptr<GPUCommandSubmission>
+  renderMaterialClassify(PerFrameData &perframeData,
+                         RenderTargets *renderTargets,
+                         const std::vector<GPUCommandSubmission *> &cmdToWait);
+
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {
     setupPersistentCullingPass();
@@ -89,6 +111,7 @@ public:
     setupInstanceCullingPass();
     setupHiZPass();
     setupEmitDepthTargetsPass();
+    setupMaterialClassifyPass();
   }
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,

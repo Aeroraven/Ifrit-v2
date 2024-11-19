@@ -31,6 +31,7 @@ struct PerObjectData {
   uint32_t objectDataRef = 0;
   uint32_t instanceDataRef = 0;
   uint32_t transformRefLast = 0;
+  uint32_t materialId = 0;
 };
 
 struct PerShaderEffectData {
@@ -115,6 +116,16 @@ struct PerFrameData {
   // Emit depth targets
   std::shared_ptr<GPUTexture> m_velocityMaterial = nullptr;
   GPUBindlessRef *m_velocityMaterialDesc = nullptr;
+
+  // Material classify
+  GPUBuffer *m_matClassCountBuffer = nullptr;
+  GPUBuffer *m_matClassIndirectDispatchBuffer = nullptr;
+  GPUBuffer *m_matClassFinalBuffer = nullptr;
+  GPUBuffer *m_matClassPixelOffsetBuffer = nullptr;
+  GPUBindlessRef *m_matClassDesc = nullptr;
+  std::shared_ptr<GPUTexture> m_matClassDebug = nullptr;
+  uint32_t m_matClassSupportedNumMaterials = 0;
+  uint32_t m_matClassSupportedNumPixels = 0;
 };
 
 } // namespace Ifrit::Core

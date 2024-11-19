@@ -316,6 +316,7 @@ enum class RhiCompareOp {
 
 enum class RhiResourceState {
   Undefined,
+  Common,
   RenderTarget,
   DepthStencilRenderTarget,
   Present,
@@ -600,6 +601,10 @@ public:
                             uint32_t size, const void *data) const = 0;
   virtual void setPushConst(Rhi::RhiGraphicsPass *pass, uint32_t offset,
                             uint32_t size, const void *data) const = 0;
+
+  virtual void clearUAVImageFloat(const RhiTexture *texture,
+                                  RhiImageSubResource subResource,
+                                  const std::array<float, 4> &val) const = 0;
 };
 
 class IFRIT_APIDECL RhiQueue {

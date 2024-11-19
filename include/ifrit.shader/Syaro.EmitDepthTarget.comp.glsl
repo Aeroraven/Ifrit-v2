@@ -181,7 +181,7 @@ void main(){
 
     // Material ID
     uint instanceRef = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].instanceDataRef;
-    uint materialId = GetResource(bInstanceDataRef, instanceRef).materialId;
+    uint materialId = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].materialId;
 
     // Then write to the buffer
     vec4 velMatData = vec4((motionVector), msDepth, float(materialId)+1.0);

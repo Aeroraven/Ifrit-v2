@@ -179,6 +179,10 @@ public:
                             uint32_t size, const void *data) const override;
   virtual void setPushConst(Rhi::RhiGraphicsPass *pass, uint32_t offset,
                             uint32_t size, const void *data) const override;
+  virtual void
+  clearUAVImageFloat(const Rhi::RhiTexture *texture,
+                     Rhi::RhiImageSubResource subResource,
+                     const std::array<float, 4> &val) const override;
 };
 
 class IFRIT_APIDECL CommandPool {

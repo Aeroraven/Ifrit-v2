@@ -104,6 +104,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
   viewBufferLastAct->unmap();
 
   // Per effect data
+  uint32_t curShaderMaterialId = 0;
   for (auto &shaderEffectId : perframeData.m_enabledEffects) {
     auto &shaderEffect = perframeData.m_shaderEffectData[shaderEffectId];
     // find whether batched object data should be recreated
@@ -308,6 +309,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
           meshResource.objectBufferId->getActiveId();
       shaderEffect.m_objectData[i].instanceDataRef =
           meshInst->m_resource.objectBufferId->getActiveId();
+      shaderEffect.m_objectData[i].materialId = curShaderMaterialId;
 
       // update vertex buffer, TODO: dirty flag
       if (requireUpdate) {
@@ -365,6 +367,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
                                       sizeof(PerObjectData) * objectCount, 0);
     batchedObjectDataAct->flush();
     batchedObjectDataAct->unmap();
+
+    curShaderMaterialId++;
   }
   // Issue a command buffer to copy data to GPU
   if (stagedBuffers.size() > 0) {
