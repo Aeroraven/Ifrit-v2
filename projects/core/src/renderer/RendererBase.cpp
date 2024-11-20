@@ -49,6 +49,122 @@ IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,
 }
 
 IFRIT_APIDECL void
+RendererBase::recreateGBuffers(PerFrameData &perframeData,
+                               RenderTargets *renderTargets) {
+  using namespace Ifrit::GraphicsBackend::Rhi;
+  auto rhi = m_app->getRhiLayer();
+  auto rtArea = renderTargets->getRenderArea();
+  auto needRecreate = (perframeData.m_gbuffer.m_rtCreated == 0);
+  if (!needRecreate) {
+    needRecreate = (perframeData.m_gbuffer.m_rtWidth != rtArea.width ||
+                    perframeData.m_gbuffer.m_rtHeight != rtArea.height);
+  }
+  if (needRecreate) {
+    perframeData.m_gbuffer.m_rtCreated = 1;
+    perframeData.m_gbuffer.m_rtWidth = rtArea.width;
+    perframeData.m_gbuffer.m_rtHeight = rtArea.height;
+
+    auto targetUsage = RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
+                       RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
+                       RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+    auto targetFomrat = RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM;
+
+    perframeData.m_gbuffer.m_albedo_materialFlags =
+        rhi->createRenderTargetTexture(rtArea.width + rtArea.x,
+                                       rtArea.height + rtArea.y, targetFomrat,
+                                       targetUsage);
+    perframeData.m_gbuffer.m_emissive = rhi->createRenderTargetTexture(
+        rtArea.width + rtArea.x, rtArea.height + rtArea.y, targetFomrat,
+        targetUsage);
+    perframeData.m_gbuffer.m_normal_smoothness = rhi->createRenderTargetTexture(
+        rtArea.width + rtArea.x, rtArea.height + rtArea.y, targetFomrat,
+        targetUsage);
+    perframeData.m_gbuffer.m_specular_occlusion =
+        rhi->createRenderTargetTexture(rtArea.width + rtArea.x,
+                                       rtArea.height + rtArea.y, targetFomrat,
+                                       targetUsage);
+    perframeData.m_gbuffer.m_shadowMask = rhi->createRenderTargetTexture(
+        rtArea.width + rtArea.x, rtArea.height + rtArea.y, targetFomrat,
+        targetUsage);
+
+    // Then bindless ids
+    perframeData.m_gbuffer.m_albedo_materialFlagsId = rhi->registerUAVImage(
+        perframeData.m_gbuffer.m_albedo_materialFlags.get(), {0, 0, 1, 1});
+    perframeData.m_gbuffer.m_emissiveId = rhi->registerUAVImage(
+        perframeData.m_gbuffer.m_emissive.get(), {0, 0, 1, 1});
+    perframeData.m_gbuffer.m_normal_smoothnessId = rhi->registerUAVImage(
+        perframeData.m_gbuffer.m_normal_smoothness.get(), {0, 0, 1, 1});
+    perframeData.m_gbuffer.m_specular_occlusionId = rhi->registerUAVImage(
+        perframeData.m_gbuffer.m_specular_occlusion.get(), {0, 0, 1, 1});
+    perframeData.m_gbuffer.m_shadowMaskId = rhi->registerUAVImage(
+        perframeData.m_gbuffer.m_shadowMask.get(), {0, 0, 1, 1});
+
+    // Then gbuffer refs
+    PerFrameData::GBufferDesc gbufferDesc;
+    gbufferDesc.m_albedo_materialFlags =
+        perframeData.m_gbuffer.m_albedo_materialFlagsId->getActiveId();
+    gbufferDesc.m_emissive = perframeData.m_gbuffer.m_emissiveId->getActiveId();
+    gbufferDesc.m_normal_smoothness =
+        perframeData.m_gbuffer.m_normal_smoothnessId->getActiveId();
+    gbufferDesc.m_specular_occlusion =
+        perframeData.m_gbuffer.m_specular_occlusionId->getActiveId();
+    gbufferDesc.m_shadowMask =
+        perframeData.m_gbuffer.m_shadowMaskId->getActiveId();
+
+    // Then gbuffer desc
+    perframeData.m_gbuffer.m_gbufferRefs = rhi->createStorageBufferDevice(
+        sizeof(PerFrameData::GBufferDesc),
+        RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+    auto stagedBuf =
+        rhi->createStagedSingleBuffer(perframeData.m_gbuffer.m_gbufferRefs);
+    auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+    tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
+      stagedBuf->cmdCopyToDevice(cmd, &gbufferDesc,
+                                 sizeof(PerFrameData::GBufferDesc), 0);
+    });
+    perframeData.m_gbuffer.m_gbufferDesc = rhi->createBindlessDescriptorRef();
+    perframeData.m_gbuffer.m_gbufferDesc->addStorageBuffer(
+        perframeData.m_gbuffer.m_gbufferRefs, 0);
+
+    // Create a uav barrier for the gbuffer
+    perframeData.m_gbuffer.m_gbufferBarrier.clear();
+    RhiResourceBarrier bAlbedo;
+    bAlbedo.m_type = RhiBarrierType::UAVAccess;
+    bAlbedo.m_uav.m_texture =
+        perframeData.m_gbuffer.m_albedo_materialFlags.get();
+    bAlbedo.m_uav.m_type = RhiResourceType::Texture;
+
+    RhiResourceBarrier bEmissive;
+    bEmissive.m_type = RhiBarrierType::UAVAccess;
+    bEmissive.m_uav.m_texture = perframeData.m_gbuffer.m_emissive.get();
+    bEmissive.m_uav.m_type = RhiResourceType::Texture;
+
+    RhiResourceBarrier bNormal;
+    bNormal.m_type = RhiBarrierType::UAVAccess;
+    bNormal.m_uav.m_texture = perframeData.m_gbuffer.m_normal_smoothness.get();
+    bNormal.m_uav.m_type = RhiResourceType::Texture;
+
+    RhiResourceBarrier bSpecular;
+    bSpecular.m_type = RhiBarrierType::UAVAccess;
+    bSpecular.m_uav.m_texture =
+        perframeData.m_gbuffer.m_specular_occlusion.get();
+    bSpecular.m_uav.m_type = RhiResourceType::Texture;
+
+    RhiResourceBarrier bShadow;
+    bShadow.m_type = RhiBarrierType::UAVAccess;
+    bShadow.m_uav.m_texture = perframeData.m_gbuffer.m_shadowMask.get();
+    bShadow.m_uav.m_type = RhiResourceType::Texture;
+
+    perframeData.m_gbuffer.m_gbufferBarrier.push_back(bAlbedo);
+    perframeData.m_gbuffer.m_gbufferBarrier.push_back(bEmissive);
+    perframeData.m_gbuffer.m_gbufferBarrier.push_back(bNormal);
+    perframeData.m_gbuffer.m_gbufferBarrier.push_back(bSpecular);
+    perframeData.m_gbuffer.m_gbufferBarrier.push_back(bShadow);
+  }
+}
+
+IFRIT_APIDECL void
 RendererBase::prepareDeviceResources(PerFrameData &perframeData,
                                      RenderTargets *renderTargets) {
   using namespace Ifrit::GraphicsBackend::Rhi;
@@ -185,6 +301,12 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         meshResource.vertexBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_verticesAligned.size() * sizeof(ifloat4),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        meshResource.normalBuffer = rhi->createStorageBufferDevice(
+            meshDataRef->m_normalsAligned.size() * sizeof(ifloat4),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        meshResource.uvBuffer = rhi->createStorageBufferDevice(
+            meshDataRef->m_uvs.size() * sizeof(ifloat2),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.bvhNodeBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_bvhNodes.size() *
                 sizeof(MeshProcLib::ClusterLod::FlattenedBVHNode),
@@ -215,6 +337,10 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         // Indices in bindless descriptors
         meshResource.vertexBufferId =
             rhi->registerStorageBuffer(meshResource.vertexBuffer);
+        meshResource.normalBufferId =
+            rhi->registerStorageBuffer(meshResource.normalBuffer);
+        meshResource.uvBufferId =
+            rhi->registerStorageBuffer(meshResource.uvBuffer);
         meshResource.bvhNodeBufferId =
             rhi->registerStorageBuffer(meshResource.bvhNodeBuffer);
         meshResource.clusterGroupBufferId =
@@ -238,6 +364,9 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         Mesh::GPUObjectBuffer &objectBuffer = meshResource.objectData;
         objectBuffer.vertexBufferId =
             meshResource.vertexBufferId->getActiveId();
+        objectBuffer.normalBufferId =
+            meshResource.normalBufferId->getActiveId();
+        objectBuffer.uvBufferId = meshResource.uvBufferId->getActiveId();
         objectBuffer.bvhNodeBufferId =
             meshResource.bvhNodeBufferId->getActiveId();
         objectBuffer.clusterGroupBufferId =
@@ -328,6 +457,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
           sizeof(decltype(meshDataRef->vecBuffer)::value_type))
 
         enqueueStagedBuffer(vertexBuffer, m_verticesAligned);
+        enqueueStagedBuffer(normalBuffer, m_normalsAligned);
         enqueueStagedBuffer(bvhNodeBuffer, m_bvhNodes);
         enqueueStagedBuffer(clusterGroupBuffer, m_clusterGroups);
         enqueueStagedBuffer(meshletBuffer, m_meshlets);

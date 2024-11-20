@@ -70,7 +70,7 @@ std::vector<uint32_t> compileShaderFile(const std::string &source_name,
       compiler.CompileGlslToSpv(preCode, kind, source_name.c_str(), options);
 
   if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
-    //std::cerr << preCode;
+    std::cerr << preCode;
     std::cerr << module.GetErrorMessage();
     std::abort();
     return std::vector<uint32_t>();

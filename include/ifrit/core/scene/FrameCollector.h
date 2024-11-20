@@ -60,6 +60,37 @@ struct PerFrameData {
   using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
   using GPUBarrier = Ifrit::GraphicsBackend::Rhi::RhiResourceBarrier;
 
+  struct GBufferDesc {
+    uint32_t m_albedo_materialFlags;
+    uint32_t m_specular_occlusion;
+    uint32_t m_normal_smoothness;
+    uint32_t m_emissive;
+    uint32_t m_shadowMask;
+  };
+
+  struct GBuffer {
+    std::shared_ptr<GPUTexture> m_albedo_materialFlags;
+    std::shared_ptr<GPUTexture> m_specular_occlusion;
+    std::shared_ptr<GPUTexture> m_normal_smoothness;
+    std::shared_ptr<GPUTexture> m_emissive;
+    std::shared_ptr<GPUTexture> m_shadowMask;
+
+    uint32_t m_rtWidth = 0;
+    uint32_t m_rtHeight = 0;
+    uint32_t m_rtCreated = 0;
+
+    std::shared_ptr<GPUBindlessId> m_albedo_materialFlagsId;
+    std::shared_ptr<GPUBindlessId> m_specular_occlusionId;
+    std::shared_ptr<GPUBindlessId> m_normal_smoothnessId;
+    std::shared_ptr<GPUBindlessId> m_emissiveId;
+    std::shared_ptr<GPUBindlessId> m_shadowMaskId;
+
+    GPUBuffer *m_gbufferRefs = nullptr;
+    GPUBindlessRef *m_gbufferDesc = nullptr;
+
+    std::vector<GPUBarrier> m_gbufferBarrier;
+  };
+
   PerFramePerViewData m_viewData;
   PerFramePerViewData m_viewDataOld;
   GPUUniformBuffer *m_viewBuffer = nullptr;
@@ -68,6 +99,9 @@ struct PerFrameData {
   std::vector<PerShaderEffectData> m_shaderEffectData;
   std::unordered_map<ShaderEffect, uint32_t, ShaderEffectHash>
       m_shaderEffectMap;
+
+  // GBuffer
+  GBuffer m_gbuffer;
 
   // For culling
   PerShaderEffectData m_allInstanceData;

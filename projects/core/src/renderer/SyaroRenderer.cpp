@@ -245,16 +245,10 @@ SyaroRenderer::materialClassifyBufferSetup(PerFrameData &perframeData,
         perframeData.m_matClassIndirectDispatchBuffer;
     barrierIndirectDispatchBuffer.m_uav.m_type = RhiResourceType::Buffer;
 
-    RhiResourceBarrier barrierDebug;
-    barrierDebug.m_type = RhiBarrierType::UAVAccess;
-    barrierDebug.m_uav.m_texture = perframeData.m_matClassDebug.get();
-    barrierDebug.m_uav.m_type = RhiResourceType::Texture;
-
     perframeData.m_matClassBarrier.push_back(barrierCountBuffer);
     perframeData.m_matClassBarrier.push_back(barrierFinalBuffer);
     perframeData.m_matClassBarrier.push_back(barrierPixelOffsetBuffer);
     perframeData.m_matClassBarrier.push_back(barrierIndirectDispatchBuffer);
-    perframeData.m_matClassBarrier.push_back(barrierDebug);
   }
 }
 
@@ -579,16 +573,11 @@ SyaroRenderer::renderMaterialClassify(
   auto matclassTask = compq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         cmd->beginScope("Syaro: Material Classification");
-        cmd->imageBarrier(perframeData.m_matClassDebug.get(),
-                          RhiResourceState::Undefined, RhiResourceState::Common,
-                          {0, 0, 1, 1});
         m_matclassCountPass->run(cmd, 0);
         cmd->resourceBarrier(perframeData.m_matClassBarrier);
         m_matclassReservePass->run(cmd, 0);
         cmd->resourceBarrier(perframeData.m_matClassBarrier);
         m_matclassScatterPass->run(cmd, 0);
-        cmd->resourceBarrier(perframeData.m_matClassBarrier);
-        m_matclassDebugPass->run(cmd, 0);
         cmd->endScope();
       },
       cmdToWait, {});
@@ -611,6 +600,7 @@ SyaroRenderer::render(
   hizBufferSetup(perframeData, renderTargets);
   depthTargetsSetup(perframeData, renderTargets);
   materialClassifyBufferSetup(perframeData, renderTargets);
+  recreateGBuffers(perframeData, renderTargets);
 
   // Then draw
   auto rhi = m_app->getRhiLayer();
@@ -633,14 +623,27 @@ SyaroRenderer::render(
                                               {secondCullTask.get()});
   auto matClassTask = renderMaterialClassify(perframeData, renderTargets,
                                              {emitDepthTask.get()});
+  auto emitGBufferTask = renderDefaultEmitGBuffer(perframeData, renderTargets,
+                                                  {matClassTask.get()});
   auto showTask = drawq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         cmd->beginScope("Syaro: Display Texture");
         m_textureShowPass->run(cmd, renderTargets, 0);
         cmd->endScope();
       },
-      {matClassTask.get()}, {});
+      {emitGBufferTask.get()}, {});
   return showTask;
+}
+
+IFRIT_APIDECL void SyaroRenderer::setupDefaultEmitGBufferPass() {
+  auto rhi = m_app->getRhiLayer();
+  auto shader = createShaderFromFile("Syaro.EmitGBuffer.Default."
+                                     "comp.glsl",
+                                     "main", RhiShaderStage::Compute);
+  m_defaultEmitGBufferPass = rhi->createComputePass();
+  m_defaultEmitGBufferPass->setComputeShader(shader);
+  m_defaultEmitGBufferPass->setNumBindlessDescriptorSets(6);
+  m_defaultEmitGBufferPass->setPushConstSize(sizeof(uint32_t) * 3);
 }
 
 IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
@@ -689,8 +692,10 @@ IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
   }
   perframeData.m_hizIter = maxMip;
 
-  // For hiz-testing, we need to create a descriptor for the hiz texture
-  // Seems UAV/Storage image does not support mip-levels
+  // For hiz-testing, we need to
+  // create a descriptor for the hiz
+  // texture Seems UAV/Storage image
+  // does not support mip-levels
   for (int i = 0; i < maxMip; i++) {
     perframeData.m_hizTestMips.push_back(rhi->registerUAVImage(
         perframeData.m_hizTexture.get(), {static_cast<uint32_t>(i), 0, 1, 1}));
@@ -727,9 +732,12 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
   if (!createCond) {
     return;
   }
-  // It seems nanite's paper uses R32G32 for mesh visibility,
-  // but I wonder the depth is implicitly calculated from the depth buffer
-  // so here I use R32 for visibility buffer
+  // It seems nanite's paper uses
+  // R32G32 for mesh visibility, but
+  // I wonder the depth is implicitly
+  // calculated from the depth buffer
+  // so here I use R32 for visibility
+  // buffer
   auto visBuffer = rhi->createRenderTargetTexture(
       rtArea.width + rtArea.x, rtArea.height + rtArea.y,
       PerFrameData::c_visibilityFormat,
@@ -774,6 +782,91 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
   if (m_textureShowPass == nullptr) {
     setupTextureShowPass();
   }
+}
+
+IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
+SyaroRenderer::renderDefaultEmitGBuffer(
+    PerFrameData &perframeData, RenderTargets *renderTargets,
+    const std::vector<GPUCommandSubmission *> &cmdToWait) {
+  auto numMaterials = perframeData.m_enabledEffects.size();
+  auto rtArea = renderTargets->getRenderArea();
+  m_defaultEmitGBufferPass->setRecordFunction([&](const RhiRenderPassContext
+                                                      *ctx) {
+    // first transition all
+    // gbuffer textures to
+    // UAV/Common
+    ctx->m_cmd->imageBarrier(
+        perframeData.m_gbuffer.m_albedo_materialFlags.get(),
+        RhiResourceState::Undefined, RhiResourceState::Common, {0, 0, 1, 1});
+    ctx->m_cmd->imageBarrier(perframeData.m_gbuffer.m_normal_smoothness.get(),
+                             RhiResourceState::Undefined,
+                             RhiResourceState::Common, {0, 0, 1, 1});
+    ctx->m_cmd->imageBarrier(perframeData.m_gbuffer.m_emissive.get(),
+                             RhiResourceState::Undefined,
+                             RhiResourceState::Common, {0, 0, 1, 1});
+    ctx->m_cmd->imageBarrier(perframeData.m_gbuffer.m_specular_occlusion.get(),
+                             RhiResourceState::Undefined,
+                             RhiResourceState::Common, {0, 0, 1, 1});
+    ctx->m_cmd->imageBarrier(perframeData.m_gbuffer.m_shadowMask.get(),
+                             RhiResourceState::Undefined,
+                             RhiResourceState::Common, {0, 0, 1, 1});
+
+    // Clear gbuffer textures
+    ctx->m_cmd->clearUAVImageFloat(
+        perframeData.m_gbuffer.m_albedo_materialFlags.get(), {0, 0, 1, 1},
+        {0.0f, 0.0f, 0.0f, 0.0f});
+    ctx->m_cmd->clearUAVImageFloat(
+        perframeData.m_gbuffer.m_normal_smoothness.get(), {0, 0, 1, 1},
+        {0.0f, 0.0f, 0.0f, 0.0f});
+    ctx->m_cmd->clearUAVImageFloat(perframeData.m_gbuffer.m_emissive.get(),
+                                   {0, 0, 1, 1}, {0.0f, 0.0f, 0.0f, 0.0f});
+    ctx->m_cmd->clearUAVImageFloat(
+        perframeData.m_gbuffer.m_specular_occlusion.get(), {0, 0, 1, 1},
+        {0.0f, 0.0f, 0.0f, 0.0f});
+    ctx->m_cmd->clearUAVImageFloat(perframeData.m_gbuffer.m_shadowMask.get(),
+                                   {0, 0, 1, 1}, {0.0f, 0.0f, 0.0f, 0.0f});
+    ctx->m_cmd->resourceBarrier(perframeData.m_gbuffer.m_gbufferBarrier);
+
+    // For each material, make
+    // one dispatch
+    uint32_t pcData[3] = {0, rtArea.width + rtArea.x, rtArea.height + rtArea.y};
+    for (int i = 0; i < numMaterials; i++) {
+      ctx->m_cmd->attachBindlessReferenceCompute(m_defaultEmitGBufferPass, 1,
+                                                 perframeData.m_matClassDesc);
+      ctx->m_cmd->attachBindlessReferenceCompute(
+          m_defaultEmitGBufferPass, 2, perframeData.m_gbuffer.m_gbufferDesc);
+      ctx->m_cmd->attachBindlessReferenceCompute(
+          m_defaultEmitGBufferPass, 3, perframeData.m_viewBindlessRef);
+      ctx->m_cmd->attachBindlessReferenceCompute(
+          m_defaultEmitGBufferPass, 4,
+          perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+      ctx->m_cmd->attachBindlessReferenceCompute(
+          m_defaultEmitGBufferPass, 5, perframeData.m_allFilteredMeshletsDesc);
+      ctx->m_cmd->attachBindlessReferenceCompute(
+          m_defaultEmitGBufferPass, 6, perframeData.m_velocityMaterialDesc);
+
+      pcData[0] = i;
+      ctx->m_cmd->setPushConst(m_defaultEmitGBufferPass, 0,
+                               sizeof(uint32_t) * 3, &pcData[0]);
+      ctx->m_cmd->dispatchIndirect(
+          perframeData.m_matClassIndirectDispatchBuffer,
+          i * sizeof(uint32_t) * 3);
+      if (i != numMaterials - 1) {
+        ctx->m_cmd->resourceBarrier(perframeData.m_gbuffer.m_gbufferBarrier);
+      }
+    }
+  });
+  auto rhi = m_app->getRhiLayer();
+  auto computeQueue = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
+  auto emitGBufferTask = computeQueue->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) {
+        cmd->beginScope("Syaro: Emit "
+                        "GBuffer");
+        m_defaultEmitGBufferPass->run(cmd, 0);
+        cmd->endScope();
+      },
+      cmdToWait, {});
+  return emitGBufferTask;
 }
 
 IFRIT_APIDECL void

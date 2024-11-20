@@ -22,6 +22,8 @@ public:
   virtual void prepareDeviceResources(PerFrameData &perframeData,
                                       RenderTargets *renderTargets);
   virtual void updateLastFrameTransforms(PerFrameData &perframeData);
+  virtual void recreateGBuffers(PerFrameData &perframeData,
+                                RenderTargets *renderTargets);
 
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,

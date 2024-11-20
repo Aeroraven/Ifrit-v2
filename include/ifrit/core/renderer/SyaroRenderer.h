@@ -58,6 +58,9 @@ private:
   constexpr static uint32_t cMatClassCounterBufferSizeMult =
       2 * sizeof(uint32_t);
 
+  // Emit GBuffer, pass here is for default / debugging
+  ComputePass *m_defaultEmitGBufferPass = nullptr;
+
 private:
   // Util functions
   GPUShader *createShaderFromFile(const std::string &shaderPath,
@@ -73,6 +76,7 @@ private:
   void setupHiZPass();
   void setupEmitDepthTargetsPass();
   void setupMaterialClassifyPass();
+  void setupDefaultEmitGBufferPass();
 
   void hizBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
   void visibilityBufferSetup(PerFrameData &perframeData,
@@ -103,6 +107,11 @@ private:
                          RenderTargets *renderTargets,
                          const std::vector<GPUCommandSubmission *> &cmdToWait);
 
+  // This is for debugging. The proc should be material-specific
+  std::unique_ptr<GPUCommandSubmission> renderDefaultEmitGBuffer(
+      PerFrameData &perframeData, RenderTargets *renderTargets,
+      const std::vector<GPUCommandSubmission *> &cmdToWait);
+
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {
     setupPersistentCullingPass();
@@ -112,6 +121,7 @@ public:
     setupHiZPass();
     setupEmitDepthTargetsPass();
     setupMaterialClassifyPass();
+    setupDefaultEmitGBufferPass();
   }
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,

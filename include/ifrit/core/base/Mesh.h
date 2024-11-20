@@ -18,6 +18,7 @@ struct MeshData {
   std::vector<ifloat3> m_vertices;
   std::vector<ifloat4> m_verticesAligned;
   std::vector<ifloat3> m_normals;
+  std::vector<ifloat4> m_normalsAligned;
   std::vector<ifloat2> m_uvs;
   std::vector<ifloat3> m_tangents;
   std::vector<uint32_t> m_indices;
@@ -45,7 +46,11 @@ class IFRIT_APIDECL Mesh : public AssetReferenceContainer,
 
 public:
   struct GPUObjectBuffer {
+    ifloat4 boundingSphere;
     uint32_t vertexBufferId;
+    uint32_t normalBufferId;
+    uint32_t tangentBufferId;
+    uint32_t uvBufferId;
     uint32_t meshletBufferId;
     uint32_t meshletVertexBufferId;
     uint32_t meshletIndexBufferId;
@@ -57,11 +62,12 @@ public:
     uint32_t pad1;
     uint32_t pad2;
     uint32_t pad3;
-    ifloat4 boundingSphere;
   };
 
   struct GPUResource {
     GPUBuffer *vertexBuffer = nullptr; // should be aligned
+    GPUBuffer *normalBuffer = nullptr; // should be aligned
+    GPUBuffer *uvBuffer = nullptr;
     GPUBuffer *meshletBuffer = nullptr;
     GPUBuffer *meshletVertexBuffer = nullptr;
     GPUBuffer *meshletIndexBuffer = nullptr;
@@ -72,6 +78,8 @@ public:
     GPUBuffer *cpCounterBuffer = nullptr;
 
     std::shared_ptr<GPUBindId> vertexBufferId = nullptr;
+    std::shared_ptr<GPUBindId> normalBufferId = nullptr;
+    std::shared_ptr<GPUBindId> uvBufferId = nullptr;
     std::shared_ptr<GPUBindId> meshletBufferId = nullptr;
     std::shared_ptr<GPUBindId> meshletVertexBufferId = nullptr;
     std::shared_ptr<GPUBindId> meshletIndexBufferId = nullptr;
@@ -92,6 +100,8 @@ public:
   virtual std::shared_ptr<MeshData> loadMesh() { return m_data; }
   inline void setGPUResource(GPUResource &resource) {
     m_resource.vertexBuffer = resource.vertexBuffer;
+    m_resource.normalBuffer = resource.normalBuffer;
+    m_resource.uvBuffer = resource.uvBuffer;
     m_resource.meshletBuffer = resource.meshletBuffer;
     m_resource.meshletVertexBuffer = resource.meshletVertexBuffer;
     m_resource.meshletIndexBuffer = resource.meshletIndexBuffer;
@@ -102,6 +112,8 @@ public:
     m_resource.cpCounterBuffer = resource.cpCounterBuffer;
 
     m_resource.vertexBufferId = resource.vertexBufferId;
+    m_resource.normalBufferId = resource.normalBufferId;
+    m_resource.uvBufferId = resource.uvBufferId;
     m_resource.meshletBufferId = resource.meshletBufferId;
     m_resource.meshletVertexBufferId = resource.meshletVertexBufferId;
     m_resource.meshletIndexBufferId = resource.meshletIndexBufferId;
@@ -117,6 +129,8 @@ public:
   }
   inline void getGPUResource(GPUResource &resource) {
     resource.vertexBuffer = m_resource.vertexBuffer;
+    resource.normalBuffer = m_resource.normalBuffer;
+    resource.uvBuffer = m_resource.uvBuffer;
     resource.meshletBuffer = m_resource.meshletBuffer;
     resource.meshletVertexBuffer = m_resource.meshletVertexBuffer;
     resource.meshletIndexBuffer = m_resource.meshletIndexBuffer;
@@ -127,6 +141,8 @@ public:
     resource.cpCounterBuffer = m_resource.cpCounterBuffer;
 
     resource.vertexBufferId = m_resource.vertexBufferId;
+    resource.normalBufferId = m_resource.normalBufferId;
+    resource.uvBufferId = m_resource.uvBufferId;
     resource.meshletBufferId = m_resource.meshletBufferId;
     resource.meshletVertexBufferId = m_resource.meshletVertexBufferId;
     resource.meshletIndexBufferId = m_resource.meshletIndexBufferId;

@@ -45,12 +45,60 @@ void loadWaveFrontObject(const char *path, std::vector<ifloat3> &vertices,
       }
     }
   }
-  indices.resize(interIdx.size() / 3);
-  for (int i = 0; i < interIdx.size(); i += 3) {
-    indices[i / 3] = interIdx[i];
+  indices.resize(interIdx.size());
+  for (int i = 0; i < interIdx.size(); i++) {
+    indices[i] = interIdx[i];
   }
 }
+std::vector<ifloat3> remapNormals(std::vector<ifloat3> normals,
+                                  std::vector<uint32_t> indices,
+                                  int numVertices) {
+  using namespace Ifrit::Math;
+  std::vector<ifloat3> retNormals;
+  std::vector<int> counters;
+  retNormals.clear();
+  counters.clear();
+  retNormals.resize(numVertices);
+  counters.resize(numVertices);
+  for (int i = 0; i < numVertices; i++) {
+    retNormals[i] = {0, 0, 0};
+    counters[i] = 0;
+  }
+  for (int i = 0; i < indices.size(); i += 3) {
+    auto faceNode = indices[i];
+    auto normalNode = indices[i + 2];
+    retNormals[faceNode].x += normals[normalNode].x;
+    retNormals[faceNode].y += normals[normalNode].y;
+    retNormals[faceNode].z += normals[normalNode].z;
+    counters[faceNode]++;
+  }
+  for (int i = 0; i < numVertices; i++) {
+    retNormals[i] = normalize(retNormals[i]);
+  }
+  return retNormals;
+}
 
+std::vector<ifloat2> remapUVs(std::vector<ifloat2> uvs,
+                              std::vector<uint32_t> indices, int numVertices) {
+  std::vector<ifloat2> retNormals;
+  std::vector<int> counters;
+  retNormals.clear();
+  counters.clear();
+  retNormals.resize(numVertices);
+  counters.resize(numVertices);
+  for (int i = 0; i < numVertices; i++) {
+    retNormals[i] = {0, 0};
+    counters[i] = 0;
+  }
+  for (int i = 0; i < indices.size(); i += 3) {
+    auto faceNode = indices[i];
+    auto normalNode = indices[i + 1];
+    retNormals[faceNode].x = uvs[normalNode].x;
+    retNormals[faceNode].y = uvs[normalNode].y;
+    counters[faceNode]++;
+  }
+  return retNormals;
+}
 // Mesh class
 
 IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
@@ -61,20 +109,40 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
     m_selfData = std::make_shared<MeshData>();
     std::vector<ifloat3> vertices;
     std::vector<ifloat3> normals;
+    std::vector<ifloat3> remappedNormals;
     std::vector<ifloat2> uvs;
+    std::vector<ifloat2> remappedUVs;
+    std::vector<uint32_t> remappedIndices;
     std::vector<uint32_t> indices;
     auto rawPath = m_path.generic_string();
     loadWaveFrontObject(rawPath.c_str(), vertices, normals, uvs, indices);
+    remappedNormals = remapNormals(normals, indices, vertices.size());
+    if (uvs.size() != 0) {
+      remappedUVs = remapUVs(uvs, indices, vertices.size());
+    } else {
+      remappedUVs.resize(vertices.size());
+    }
+
     m_selfData->m_vertices = vertices;
-    m_selfData->m_normals = normals;
-    m_selfData->m_uvs = uvs;
-    m_selfData->m_indices = indices;
+    m_selfData->m_normals = remappedNormals;
+    m_selfData->m_uvs = remappedUVs;
+
+    // remap indices
+    remappedIndices.resize(indices.size() / 3);
+    for (int i = 0; i < indices.size(); i += 3) {
+      remappedIndices[i / 3] = indices[i];
+    }
+    m_selfData->m_indices = remappedIndices;
 
     // align vertices
     m_selfData->m_verticesAligned.resize(vertices.size());
+    m_selfData->m_normalsAligned.resize(vertices.size());
     for (int i = 0; i < vertices.size(); i++) {
       m_selfData->m_verticesAligned[i] =
           ifloat4(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
+      m_selfData->m_normalsAligned[i] =
+          ifloat4(remappedNormals[i].x, remappedNormals[i].y,
+                  remappedNormals[i].z, 1.0);
     }
     this->createMeshLodHierarchy(m_selfData);
   }

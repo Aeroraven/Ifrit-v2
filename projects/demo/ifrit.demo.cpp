@@ -55,7 +55,7 @@ private:
   float timing = 0;
 
   constexpr static std::array<ifloat3, 4> bunnyPositions = {
-      ifloat3{-0.3f, 0.0f, 0.0f}, ifloat3{0.3f, 0.0f, 0.0f},
+      ifloat3{-0.2f, 0.0f, 0.0f}, ifloat3{0.3f, 0.0f, 0.0f},
       ifloat3{0.0f, 0.0f, 0.0f}, ifloat3{0.0f, 0.0f, 25.5f}};
 
 public:
@@ -129,10 +129,9 @@ public:
                                 ->getChildren()[0]
                                 ->getGameObject(bunnyPositions.size());
     auto camera = cameraGameObject->getComponent<Transform>();
-    timing = timing + 0.01f;
+    timing = timing + 0.00f;
     camera->setPosition({0.0f + movRight - movLeft + 0.5f * std::sin(timing),
-                         0.1f + movTop - movBottom,
-                         -0.25f + movFar - movNear});
+                         0.1f + movTop - movBottom, -0.25f + movFar - movNear});
     auto sFrameStart = renderer->beginFrame();
     m_sceneManager->collectPerframeData(
         perframeData, m_sceneAssetManager->getScene("TestScene2").get());

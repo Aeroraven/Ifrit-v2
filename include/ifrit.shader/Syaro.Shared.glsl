@@ -10,7 +10,11 @@ RegisterUniform(bLocalTransform,{
     mat4 m_localToWorld;
 });
 RegisterStorage(bMeshDataRef,{
+    vec4 boundingSphere;
     uint vertexBuffer;
+    uint normalBufferId;
+    uint tangentBufferId;
+    uint uvBufferId;
     uint meshletBuffer;
     uint meshletVertexBuffer;
     uint meshletIndexBuffer;
@@ -22,7 +26,6 @@ RegisterStorage(bMeshDataRef,{
     uint pad0;
     uint pad2;
     uint pad3;
-    vec4 boundingSphere;
 });
 RegisterStorage(bInstanceDataRef,{
     uint cpQueueBuffer;
