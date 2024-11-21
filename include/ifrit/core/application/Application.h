@@ -13,6 +13,7 @@ enum class ApplicationDisplayProvider { GLFW };
 struct ApplicationCreateInfo {
   std::string m_name;
   std::string m_version;
+  std::string m_cachePath;
   ApplicationRhiType m_rhiType = ApplicationRhiType::Vulkan;
   ApplicationDisplayProvider m_displayProvider =
       ApplicationDisplayProvider::GLFW;

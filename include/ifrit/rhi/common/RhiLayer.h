@@ -507,6 +507,9 @@ public:
   virtual std::shared_ptr<RhiVertexBufferView> createVertexBufferView() = 0;
   virtual std::shared_ptr<RhiVertexBufferView>
   getFullScreenQuadVertexBufferView() const = 0;
+
+  virtual void setCacheDirectory(const std::string &dir) = 0;
+  virtual std::string getCacheDirectory() const = 0;
 };
 
 // RHI device

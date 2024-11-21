@@ -49,13 +49,13 @@ IFRIT_APIDECL void Application::start() {
   case ApplicationRhiType::Vulkan:
     rhiType = GraphicsBackend::Rhi::RhiBackendType::Vulkan;
     break;
-  case ApplicationRhiType::Software:
-    rhiType = GraphicsBackend::Rhi::RhiBackendType::Software;
-    break;
   default:
     throw std::runtime_error("RHI not supported");
   }
   m_rhiLayer = rhiSelector.createBackend(rhiType, rhiArgs);
+
+  // Setup RHI cache
+  m_rhiLayer->setCacheDirectory(m_info.m_cachePath);
 
   // Setup systems
   m_assetManager = std::make_shared<AssetManager>(m_info.m_assetPath, this);

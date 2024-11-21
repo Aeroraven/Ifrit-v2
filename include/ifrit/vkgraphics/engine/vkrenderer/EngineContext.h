@@ -82,6 +82,8 @@ private:
   ExtensionFunction m_extf;
   VkPhysicalDeviceProperties m_phyDeviceProperties{};
 
+  std::string cacheDirectory = "";
+
 private:
   void init();
   void loadExtensionFunction();
@@ -109,5 +111,7 @@ public:
   inline const VkPhysicalDeviceProperties &getPhysicalDeviceProperties() const {
     return m_phyDeviceProperties;
   }
+  inline const std::string &getCacheDirectory() const { return cacheDirectory; }
+  void setCacheDirectory(const std::string &dir) { cacheDirectory = dir; }
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

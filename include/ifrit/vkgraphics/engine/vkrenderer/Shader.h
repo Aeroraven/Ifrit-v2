@@ -26,6 +26,9 @@ private:
   SpvReflectShaderModule m_reflectModule;
   std::vector<SpvReflectDescriptorSet *> m_reflectSets;
 
+  // Intended for pipeline cache
+  std::string m_signature;
+
 public:
   ShaderModule(EngineContext *ctx, const ShaderModuleCI &ci);
   ~ShaderModule();
@@ -40,5 +43,8 @@ public:
     return size_cast<uint32_t>(m_reflectSets.size());
   }
   virtual Rhi::RhiShaderStage getStage() const override { return m_ci.stage; }
+
+  void cacheReflectionData();
+  void recoverReflectionData();
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

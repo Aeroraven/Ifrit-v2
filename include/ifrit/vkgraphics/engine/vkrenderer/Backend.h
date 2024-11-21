@@ -110,6 +110,10 @@ public:
   createVertexBufferView() override;
   virtual std::shared_ptr<Rhi::RhiVertexBufferView>
   getFullScreenQuadVertexBufferView() const override;
+
+  // Cache
+  virtual void setCacheDirectory(const std::string &dir) override;
+  virtual std::string getCacheDirectory() const override;
 };
 
 class IFRIT_APIDECL RhiVulkanBackendBuilder

@@ -372,6 +372,15 @@ RhiVulkanBackend::getFullScreenQuadVertexBufferView() const {
   return m_implDetails->m_fullScreenQuadVertexBufferDescriptor;
 }
 
+IFRIT_APIDECL void RhiVulkanBackend::setCacheDirectory(const std::string &dir) {
+  auto engineContext = checked_cast<EngineContext>(m_device.get());
+  engineContext->setCacheDirectory(dir);
+}
+IFRIT_APIDECL std::string RhiVulkanBackend::getCacheDirectory() const {
+  auto engineContext = checked_cast<EngineContext>(m_device.get());
+  return engineContext->getCacheDirectory();
+}
+
 IFRIT_APIDECL std::unique_ptr<Rhi::RhiBackend>
 RhiVulkanBackendBuilder::createBackend(
     const Rhi::RhiInitializeArguments &args) {
