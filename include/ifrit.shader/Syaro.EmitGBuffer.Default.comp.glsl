@@ -19,7 +19,8 @@ void main(){
     gbcomp_TriangleData triData = gbcomp_GetTriangleData(clusterTri,px);
 
     GBufferPixel pixelData;
-    pixelData.albedo = vec3(triData.vpNormalVS.xyz);
+    pixelData.albedo = vec3(1.0,1.0,1.0);
+    pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
 
     gbcomp_WriteGBuffer(gBuffer, px, pixelData);
 }

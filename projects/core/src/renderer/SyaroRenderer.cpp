@@ -10,6 +10,32 @@ struct GPUHiZDesc {
   uint32_t m_height;
 };
 
+std::vector<Ifrit::GraphicsBackend::Rhi::RhiResourceBarrier>
+registerUAVBarriers(
+    const std::vector<Ifrit::GraphicsBackend::Rhi::RhiBuffer *> &buffers,
+    const std::vector<Ifrit::GraphicsBackend::Rhi::RhiTexture *> &textures) {
+  std::vector<Ifrit::GraphicsBackend::Rhi::RhiResourceBarrier> barriers;
+  for (auto &buffer : buffers) {
+    Ifrit::GraphicsBackend::Rhi::RhiUAVBarrier barrier;
+    barrier.m_type = Ifrit::GraphicsBackend::Rhi::RhiResourceType::Buffer;
+    barrier.m_buffer = buffer;
+    Ifrit::GraphicsBackend::Rhi::RhiResourceBarrier resBarrier;
+    resBarrier.m_type = Ifrit::GraphicsBackend::Rhi::RhiBarrierType::UAVAccess;
+    resBarrier.m_uav = barrier;
+    barriers.push_back(resBarrier);
+  }
+  for (auto &texture : textures) {
+    Ifrit::GraphicsBackend::Rhi::RhiUAVBarrier barrier;
+    barrier.m_type = Ifrit::GraphicsBackend::Rhi::RhiResourceType::Texture;
+    barrier.m_texture = texture;
+    Ifrit::GraphicsBackend::Rhi::RhiResourceBarrier resBarrier;
+    resBarrier.m_type = Ifrit::GraphicsBackend::Rhi::RhiBarrierType::UAVAccess;
+    resBarrier.m_uav = barrier;
+    barriers.push_back(resBarrier);
+  }
+  return barriers;
+}
+
 IFRIT_APIDECL PerFrameData::PerViewData &
 SyaroRenderer::getPrimaryView(PerFrameData &perframeData) {
   for (auto &view : perframeData.m_views) {
@@ -49,6 +75,69 @@ IFRIT_APIDECL void SyaroRenderer::setupTextureShowPass() {
   rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_B8G8R8A8_SRGB};
   rtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
   m_textureShowPass->setRenderTargetFormat(rtFmt);
+}
+
+IFRIT_APIDECL void
+SyaroRenderer::setupDeferredShadingPass(RenderTargets *renderTargets) {
+  auto rhi = m_app->getRhiLayer();
+
+  // This seems to be a bit of redundant code
+  // The rhi backend now can reference the pipeline with similar CI
+
+  PipelineAttachmentConfigs paCfg;
+  auto rtCfg = renderTargets->getFormat();
+  paCfg.m_colorFormats = rtCfg.m_colorFormats;
+  paCfg.m_depthFormat = rtCfg.m_depthFormat;
+
+  DrawPass *pass = nullptr;
+  if (m_deferredShadingPass.find(paCfg) != m_deferredShadingPass.end()) {
+    pass = m_deferredShadingPass[paCfg];
+  } else {
+    pass = rhi->createGraphicsPass();
+    auto vsShader = createShaderFromFile("Syaro.DeferredShading.vert.glsl",
+                                         "main", RhiShaderStage::Vertex);
+    auto fsShader = createShaderFromFile("Syaro.DeferredShading.frag.glsl",
+                                         "main", RhiShaderStage::Fragment);
+    pass->setVertexShader(vsShader);
+    pass->setPixelShader(fsShader);
+    pass->setNumBindlessDescriptorSets(1);
+    pass->setRenderTargetFormat(rtCfg);
+    m_deferredShadingPass[paCfg] = pass;
+  }
+}
+
+IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
+SyaroRenderer::renderDeferredShading(
+    PerFrameData &perframeData, RenderTargets *renderTargets,
+    const std::vector<GPUCommandSubmission *> &cmdToWait) {
+  auto rhi = m_app->getRhiLayer();
+  setupDeferredShadingPass(renderTargets);
+
+  PipelineAttachmentConfigs paCfg;
+  auto rtCfg = renderTargets->getFormat();
+  paCfg.m_colorFormats = rtCfg.m_colorFormats;
+  paCfg.m_depthFormat = rtCfg.m_depthFormat;
+
+  auto pass = m_deferredShadingPass[paCfg];
+  pass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    ctx->m_cmd->attachBindlessReferenceGraphics(pass, 1,
+                                                perframeData.m_gbufferDescFrag);
+    ctx->m_cmd->attachVertexBufferView(
+        *rhi->getFullScreenQuadVertexBufferView());
+    ctx->m_cmd->attachVertexBuffers(
+        0, {rhi->getFullScreenQuadVertexBuffer().get()});
+    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
+  });
+
+  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+  auto deferredTask = drawq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) {
+        cmd->beginScope("Syaro: Deferred Shading");
+        pass->run(cmd, renderTargets, 0);
+        cmd->endScope();
+      },
+      cmdToWait, {});
+  return deferredTask;
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
@@ -285,7 +374,7 @@ SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
 }
 
 IFRIT_APIDECL void
-SyaroRenderer::recreateInstanceCullingBuffers(PerFrameData& perframe,
+SyaroRenderer::recreateInstanceCullingBuffers(PerFrameData &perframe,
                                               uint32_t newMaxInstances) {
   for (uint32_t i = 0; i < perframe.m_views.size(); i++) {
     auto &view = perframe.m_views[i];
@@ -308,6 +397,17 @@ SyaroRenderer::recreateInstanceCullingBuffers(PerFrameData& perframe,
       view.m_instCullDesc->addStorageBuffer(view.m_instCullPassedObj, 1);
       view.m_instCullDesc->addStorageBuffer(view.m_persistCullIndirectDispatch,
                                             2);
+
+      // create barriers
+      view.m_persistCullBarrier.clear();
+      view.m_persistCullBarrier = registerUAVBarriers(
+          {view.m_instCullDiscardObj, view.m_instCullPassedObj,
+           view.m_persistCullIndirectDispatch},
+          {});
+
+      view.m_visibilityBarrier.clear();
+      view.m_visibilityBarrier = registerUAVBarriers(
+          {view.m_allFilteredMeshlets, view.m_allFilteredMeshletsCount}, {});
     }
   }
 }
@@ -403,6 +503,7 @@ SyaroRenderer::renderTwoPassOcclCulling(
 
     m_persistentCullingPass->setRecordFunction(
         [&](const RhiRenderPassContext *ctx) {
+          ctx->m_cmd->resourceBarrier(perView.m_persistCullBarrier);
           if (cullPass == CullingPass::First) {
             ctx->m_cmd->uavBufferClear(perView.m_allFilteredMeshletsCount, 0);
             ctx->m_cmd->uavBufferBarrier(perView.m_allFilteredMeshletsCount);
@@ -435,7 +536,6 @@ SyaroRenderer::renderTwoPassOcclCulling(
         });
     m_visibilityPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
       // bind view buffer
-
       ctx->m_cmd->attachBindlessReferenceGraphics(m_visibilityPass, 1,
                                                   perView.m_viewBindlessRef);
       ctx->m_cmd->attachBindlessReferenceGraphics(
@@ -486,22 +586,15 @@ SyaroRenderer::renderTwoPassOcclCulling(
       }
     });
 
-    auto instanceCullTask = compq->runAsyncCommand(
+    auto instanceCullTask = drawq->runAsyncCommand(
         [&](const RhiCommandBuffer *cmd) {
           cmd->beginScope("Syaro: Instance Culling Pass");
           m_instanceCullingPass->run(cmd, 0);
           cmd->endScope();
-        },
-        lastToWait, {});
-    auto persistCullTask = compq->runAsyncCommand(
-        [&](const RhiCommandBuffer *cmd) {
           cmd->beginScope("Syaro: Persistent Culling Pass");
           m_persistentCullingPass->run(cmd, 0);
           cmd->endScope();
-        },
-        {instanceCullTask.get()}, {});
-    auto drawTask = drawq->runAsyncCommand(
-        [&](const RhiCommandBuffer *cmd) {
+          cmd->globalMemoryBarrier();
           if (cullPass == CullingPass::First) {
             cmd->beginScope("Syaro: Visibility Pass, First");
             m_visibilityPass->run(cmd, perView.m_visRTs.get(), 0);
@@ -512,19 +605,15 @@ SyaroRenderer::renderTwoPassOcclCulling(
             m_visibilityPass->run(cmd, perView.m_visRTs2.get(), 0);
             cmd->endScope();
           }
-        },
-        {persistCullTask.get()}, {});
-
-    auto hizTask = compq->runAsyncCommand(
-        [&](const RhiCommandBuffer *cmd) {
+          cmd->globalMemoryBarrier();
           cmd->beginScope("Syaro: HiZ Pass");
           m_hizPass->run(cmd, 0);
           cmd->endScope();
         },
-        {drawTask.get()}, {});
+        lastToWait, {});
 
-    lastToWait = {hizTask.get()};
-    lastTask = std::move(hizTask);
+    lastToWait = {instanceCullTask.get()};
+    lastTask = std::move(instanceCullTask);
   }
 
   return lastTask;
@@ -620,7 +709,15 @@ IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
 SyaroRenderer::render(
     PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
     const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
-  // Some setups
+
+  // According to
+  // lunarg(https://www.lunasdk.org/manual/rhi/command_queues_and_command_buffers/)
+  // graphics queue can submit dispatch and transfer commands, but compute queue
+  // can only submit compute commands. Following posts suggests reduce command
+  // buffer submission to improve performance
+  // https://zeux.io/2020/02/27/writing-an-efficient-vulkan-renderer/
+  // https://gpuopen.com/learn/rdna-performance-guide/#command-buffers
+
   visibilityBufferSetup(perframeData, renderTargets);
   auto &primaryView = getPrimaryView(perframeData);
   buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
@@ -657,14 +754,9 @@ SyaroRenderer::render(
                                              {emitDepthTask.get()});
   auto emitGBufferTask = renderDefaultEmitGBuffer(perframeData, renderTargets,
                                                   {matClassTask.get()});
-  auto showTask = drawq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        cmd->beginScope("Syaro: Display Texture");
-        m_textureShowPass->run(cmd, renderTargets, 0);
-        cmd->endScope();
-      },
-      {emitGBufferTask.get()}, {});
-  return showTask;
+  auto deferredTask = renderDeferredShading(perframeData, renderTargets,
+                                            {emitGBufferTask.get()});
+  return deferredTask;
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupDefaultEmitGBufferPass() {
@@ -892,12 +984,16 @@ SyaroRenderer::renderDefaultEmitGBuffer(
       pcData[0] = i;
       ctx->m_cmd->setPushConst(m_defaultEmitGBufferPass, 0,
                                sizeof(uint32_t) * 3, &pcData[0]);
+      RhiResourceBarrier barrierCountBuffer;
+      barrierCountBuffer.m_type = RhiBarrierType::UAVAccess;
+      barrierCountBuffer.m_uav.m_buffer = perframeData.m_matClassCountBuffer;
+      barrierCountBuffer.m_uav.m_type = RhiResourceType::Buffer;
+
+      ctx->m_cmd->resourceBarrier({barrierCountBuffer});
       ctx->m_cmd->dispatchIndirect(
           perframeData.m_matClassIndirectDispatchBuffer,
           i * sizeof(uint32_t) * 3);
-      if (i != numMaterials - 1) {
-        ctx->m_cmd->resourceBarrier(perframeData.m_gbuffer.m_gbufferBarrier);
-      }
+      ctx->m_cmd->resourceBarrier(perframeData.m_gbuffer.m_gbufferBarrier);
     }
   });
   auto rhi = m_app->getRhiLayer();

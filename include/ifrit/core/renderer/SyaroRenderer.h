@@ -59,6 +59,11 @@ private:
   // Perframe data maintained by the renderer, this is unsafe
   std::unordered_map<Scene *, PerFrameData> m_perScenePerframe;
 
+  // Finally, deferred pass
+  std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
+                     PipelineAttachmentConfigsHash>
+      m_deferredShadingPass;
+
 private:
   // Util functions
   GPUShader *createShaderFromFile(const std::string &shaderPath,
@@ -66,7 +71,7 @@ private:
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
 
   // Setup functions
-  void recreateInstanceCullingBuffers(PerFrameData& perframe,
+  void recreateInstanceCullingBuffers(PerFrameData &perframe,
                                       uint32_t newMaxInstances);
   void setupInstanceCullingPass();
   void setupPersistentCullingPass();
@@ -76,6 +81,8 @@ private:
   void setupEmitDepthTargetsPass();
   void setupMaterialClassifyPass();
   void setupDefaultEmitGBufferPass();
+
+  void setupDeferredShadingPass(RenderTargets *renderTargets);
 
   void hizBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
   void visibilityBufferSetup(PerFrameData &perframeData,
@@ -112,6 +119,11 @@ private:
   std::unique_ptr<GPUCommandSubmission> renderDefaultEmitGBuffer(
       PerFrameData &perframeData, RenderTargets *renderTargets,
       const std::vector<GPUCommandSubmission *> &cmdToWait);
+
+  std::unique_ptr<GPUCommandSubmission>
+  renderDeferredShading(PerFrameData &perframeData,
+                        RenderTargets *renderTargets,
+                        const std::vector<GPUCommandSubmission *> &cmdToWait);
 
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {

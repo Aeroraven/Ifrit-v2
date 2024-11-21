@@ -21,5 +21,7 @@ void main(){
     GetResource(bMaterialCounter, uMaterialPassData.materialCounterRef).data[materialId].offset = offset;
 
     // Write indirect command, for simplicity one pixel one workgroup (slow, might be optimized later)
-    GetResource(bMaterialPassIndirectCommand, uMaterialPassData.indirectCommandRef).data[materialId] = MaterialPassIndirectCommand(thisMaterialCounter,1,1);
+    GetResource(bMaterialPassIndirectCommand, uMaterialPassData.indirectCommandRef).data[materialId].x = thisMaterialCounter;
+    GetResource(bMaterialPassIndirectCommand, uMaterialPassData.indirectCommandRef).data[materialId].y = 1;
+    GetResource(bMaterialPassIndirectCommand, uMaterialPassData.indirectCommandRef).data[materialId].z = 1;
 }

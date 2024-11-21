@@ -187,6 +187,8 @@ public:
   virtual void resourceBarrier(
       const std::vector<Rhi::RhiResourceBarrier> &barriers) const override;
 
+  virtual void globalMemoryBarrier() const override;
+
   virtual void beginScope(const std::string &name) const override;
   virtual void endScope() const override;
 };

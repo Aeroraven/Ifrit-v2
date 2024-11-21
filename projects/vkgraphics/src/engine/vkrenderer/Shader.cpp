@@ -98,6 +98,7 @@ std::vector<uint32_t> compileShaderFile(const std::string &source_name,
   if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
     std::cerr << preCode;
     std::cerr << module.GetErrorMessage();
+
     std::abort();
     return std::vector<uint32_t>();
   }

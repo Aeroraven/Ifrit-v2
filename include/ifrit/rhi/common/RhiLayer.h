@@ -640,6 +640,8 @@ public:
   virtual void
   resourceBarrier(const std::vector<RhiResourceBarrier> &barriers) const = 0;
 
+  virtual void globalMemoryBarrier() const = 0;
+
   virtual void beginScope(const std::string &name) const = 0;
   virtual void endScope() const = 0;
 };

@@ -141,6 +141,10 @@ struct PerFrameData {
     GPUBuffer *m_persistCullIndirectDispatch = nullptr;
     GPUBindlessRef *m_instCullDesc = nullptr;
     uint32_t m_maxSupportedInstances = 0;
+
+    // Inst-Persist barrier
+    std::vector<GPUBarrier> m_persistCullBarrier;
+    std::vector<GPUBarrier> m_visibilityBarrier;
   };
   constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat
       c_visibilityFormat =
@@ -158,6 +162,10 @@ struct PerFrameData {
 
   // GBuffer
   GBuffer m_gbuffer;
+
+  // Gbuffer desc
+  std::shared_ptr<GPUSampler> m_gbufferSampler = nullptr;
+  GPUBindlessRef *m_gbufferDescFrag = nullptr;
 
   // Visibility show
   std::shared_ptr<GPUSampler> m_visibilitySampler = nullptr;

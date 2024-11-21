@@ -227,6 +227,25 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
     perframeData.m_gbuffer.m_gbufferDesc->addStorageBuffer(
         perframeData.m_gbuffer.m_gbufferRefs, 0);
 
+    // Then gbuffer desc for pixel shader
+    perframeData.m_gbufferSampler = rhi->createTrivialSampler();
+    perframeData.m_gbufferDescFrag = rhi->createBindlessDescriptorRef();
+    perframeData.m_gbufferDescFrag->addCombinedImageSampler(
+        perframeData.m_gbuffer.m_albedo_materialFlags.get(),
+        perframeData.m_gbufferSampler.get(), 0);
+    perframeData.m_gbufferDescFrag->addCombinedImageSampler(
+        perframeData.m_gbuffer.m_specular_occlusion.get(),
+        perframeData.m_gbufferSampler.get(), 1);
+    perframeData.m_gbufferDescFrag->addCombinedImageSampler(
+        perframeData.m_gbuffer.m_normal_smoothness.get(),
+        perframeData.m_gbufferSampler.get(), 2);
+    perframeData.m_gbufferDescFrag->addCombinedImageSampler(
+        perframeData.m_gbuffer.m_emissive.get(),
+        perframeData.m_gbufferSampler.get(), 3);
+    perframeData.m_gbufferDescFrag->addCombinedImageSampler(
+        perframeData.m_gbuffer.m_shadowMask.get(),
+        perframeData.m_gbufferSampler.get(), 4);
+
     // Create a uav barrier for the gbuffer
     perframeData.m_gbuffer.m_gbufferBarrier.clear();
     RhiResourceBarrier bAlbedo;
@@ -634,7 +653,7 @@ RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
   auto sRenderComplete = rhi->getSwapchainRenderDoneEventHandler();
   auto cmd = drawq->runAsyncCommand(
       [&](const Rhi::RhiCommandBuffer *cmd) {
-        cmd->imageBarrier(swapchainImg, Rhi::RhiResourceState::Undefined,
+        cmd->imageBarrier(swapchainImg, Rhi::RhiResourceState::RenderTarget,
                           Rhi::RhiResourceState::Present, {0, 0, 1, 1});
       },
       cmdToWait, {sRenderComplete.get()});
