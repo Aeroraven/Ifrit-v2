@@ -172,7 +172,6 @@ public:
     for (uint32_t i = 0; i < numCopies; i++) {
       auto p = m_descriptorManager->registerStorageImage(tex, subResource);
       m_indices[i][loc] = p;
-      printf("UAVAdd:%d %d\n", p,subResource.mipLevel);
     }
   }
 

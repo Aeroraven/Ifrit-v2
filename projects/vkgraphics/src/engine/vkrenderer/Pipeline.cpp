@@ -170,9 +170,87 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   pipelineCI.pDynamicState = &dynamicStateCI;
   pipelineCI.basePipelineHandle = VK_NULL_HANDLE;
 
-  auto res = vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCI, nullptr,
+  SHA1 sha1;
+  sha1.update("gv1,shader:");
+  for (auto &shaderModule : m_createInfo.shaderModules) {
+    sha1.update(shaderModule->getSignature());
+    sha1.update(",");
+  }
+  sha1.update(",vp:");
+  sha1.update(std::to_string(m_createInfo.viewportCount));
+  sha1.update(",sc:");
+  sha1.update(std::to_string(m_createInfo.scissorCount));
+  sha1.update(",topo:");
+  sha1.update(std::to_string(getUnderlying(m_createInfo.topology)));
+  sha1.update(",color:");
+  for (auto &color : m_createInfo.colorAttachmentFormats) {
+    sha1.update(std::to_string(color));
+    sha1.update(",");
+  }
+  sha1.update(",depth:");
+  sha1.update(std::to_string(m_createInfo.depthAttachmentFormat));
+  sha1.update(",stencil:");
+  sha1.update(std::to_string(m_createInfo.stencilAttachmentFormat));
+  sha1.update(",numlayout:");
+  sha1.update(std::to_string(m_createInfo.descriptorSetLayouts.size()));
+  sha1.update(",geom:");
+  sha1.update(std::to_string(getUnderlying(m_createInfo.geomGenType)));
+  sha1.update(",push:");
+  sha1.update(std::to_string(m_createInfo.pushConstSize));
+  auto digest = sha1.final();
+
+  // Cache
+  // save a pipeline cache
+  VkPipelineCacheCreateInfo cacheCI{};
+  cacheCI.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+  cacheCI.initialDataSize = 0;
+  cacheCI.pInitialData = nullptr;
+  cacheCI.flags = 0;
+
+  auto cacheDir = m_context->getCacheDirectory();
+  auto cachePath = cacheDir + "/vkgraphics.psographics." + digest + ".cache";
+
+  VkPipelineCache cache;
+
+  bool cacheExists = false;
+  std::ifstream cacheFile(cachePath, std::ios::binary);
+  std::vector<uint8_t> cacheData;
+  if (cacheFile.is_open()) {
+    cacheExists = true;
+    cacheFile.seekg(0, std::ios::end);
+    size_t cacheSize = cacheFile.tellg();
+    cacheFile.seekg(0, std::ios::beg);
+    cacheData.resize(cacheSize);
+    cacheFile.read(reinterpret_cast<char *>(cacheData.data()), cacheSize);
+    cacheFile.close();
+  }
+
+  if (cacheExists) {
+    cacheCI.initialDataSize = cacheData.size();
+    cacheCI.pInitialData = cacheData.data();
+  }
+
+  vkrVulkanAssert(vkCreatePipelineCache(device, &cacheCI, nullptr, &cache),
+                  "Failed to create pipeline cache");
+
+  auto res = vkCreateGraphicsPipelines(device, cache, 1, &pipelineCI, nullptr,
                                        &m_pipeline);
   vkrVulkanAssert(res, "Failed to create graphics pipeline");
+
+  if (!cacheExists) {
+    size_t cacheSize = 0;
+    vkrVulkanAssert(vkGetPipelineCacheData(device, cache, &cacheSize, nullptr),
+                    "Failed to get pipeline cache data size");
+    cacheData.resize(cacheSize);
+    vkrVulkanAssert(
+        vkGetPipelineCacheData(device, cache, &cacheSize, cacheData.data()),
+        "Failed to get pipeline cache data");
+
+    std::ofstream cacheFile(cachePath, std::ios::binary);
+    cacheFile.write(reinterpret_cast<const char *>(cacheData.data()),
+                    cacheSize);
+    cacheFile.close();
+  }
   m_pipelineCreated = true;
 }
 
@@ -253,7 +331,6 @@ IFRIT_APIDECL void ComputePipeline::init() {
   if (cacheExists) {
     cacheCI.initialDataSize = cacheData.size();
     cacheCI.pInitialData = cacheData.data();
-    printf("Cache exists\n");
   }
 
   vkrVulkanAssert(
