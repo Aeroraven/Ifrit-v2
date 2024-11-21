@@ -19,3 +19,6 @@
 [submodule "dependencies/cereal"]
 	path = dependencies/cereal
 	url = https://github.com/USCiLab/cereal.git
+[submodule "dependencies/sha1"]
+	path = dependencies/sha1
+	url = git@github.com:vog/sha1.git
