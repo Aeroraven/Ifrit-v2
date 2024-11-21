@@ -28,11 +28,6 @@ private:
 
   // Instance culling
   ComputePass *m_instanceCullingPass = nullptr;
-  GPUBuffer *m_instCullDiscardObj = nullptr;
-  GPUBuffer *m_instCullPassedObj = nullptr;
-  GPUBuffer *m_persistCullIndirectDispatch = nullptr;
-  GPUDescRef *m_instCullDesc = nullptr;
-  uint32_t m_maxSupportedInstances = 0;
 
   // HiZ buffer
   ComputePass *m_hizPass = nullptr;
@@ -61,6 +56,9 @@ private:
   // Emit GBuffer, pass here is for default / debugging
   ComputePass *m_defaultEmitGBufferPass = nullptr;
 
+  // Perframe data maintained by the renderer, this is unsafe
+  std::unordered_map<Scene *, PerFrameData> m_perScenePerframe;
+
 private:
   // Util functions
   GPUShader *createShaderFromFile(const std::string &shaderPath,
@@ -68,7 +66,8 @@ private:
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
 
   // Setup functions
-  void recreateInstanceCullingBuffers(uint32_t newMaxInstances);
+  void recreateInstanceCullingBuffers(PerFrameData& perframe,
+                                      uint32_t newMaxInstances);
   void setupInstanceCullingPass();
   void setupPersistentCullingPass();
   void setupVisibilityPass();
@@ -89,6 +88,8 @@ private:
   // Many passes are not material-dependent, so a unified instance buffer
   // might reduce calls
   void gatherAllInstances(PerFrameData &perframeData);
+
+  PerFrameData::PerViewData &getPrimaryView(PerFrameData &perframeData);
 
 private:
   // Decompose the rendering procedure into many parts
@@ -125,6 +126,10 @@ public:
   }
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,
+         const std::vector<GPUCommandSubmission *> &cmdToWait) override;
+
+  virtual std::unique_ptr<GPUCommandSubmission>
+  render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
          const std::vector<GPUCommandSubmission *> &cmdToWait) override;
 };
 } // namespace Ifrit::Core

@@ -1,6 +1,7 @@
 #pragma once
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/base/ApplicationInterface.h"
+#include "ifrit/core/base/Scene.h"
 #include "ifrit/core/scene/FrameCollector.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
@@ -25,8 +26,16 @@ public:
   virtual void recreateGBuffers(PerFrameData &perframeData,
                                 RenderTargets *renderTargets);
 
+  virtual void collectPerframeData(PerFrameData &perframeData, Scene *scene,
+                                   Camera *camera,
+                                   GraphicsShaderPassType passType);
+
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,
+         const std::vector<GPUCommandSubmission *> &cmdToWait) = 0;
+
+  virtual std::unique_ptr<GPUCommandSubmission>
+  render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
          const std::vector<GPUCommandSubmission *> &cmdToWait) = 0;
 
   virtual void endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait);

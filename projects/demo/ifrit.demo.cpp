@@ -50,8 +50,6 @@ private:
   std::shared_ptr<RhiDepthStencilAttachment> depthAttachment;
   std::shared_ptr<SyaroRenderer> renderer;
   RhiTexture *swapchainImg;
-
-  PerFrameData perframeData;
   float timing = 0;
 
   constexpr static std::array<ifloat3, 4> bunnyPositions = {
@@ -133,10 +131,9 @@ public:
     camera->setPosition({0.0f + movRight - movLeft + 0.5f * std::sin(timing),
                          0.1f + movTop - movBottom, -0.25f + movFar - movNear});
     auto sFrameStart = renderer->beginFrame();
-    m_sceneManager->collectPerframeData(
-        perframeData, m_sceneAssetManager->getScene("TestScene2").get());
-    auto renderComplete = renderer->render(perframeData, renderTargets.get(),
-                                           {sFrameStart.get()});
+    auto renderComplete =
+        renderer->render(m_sceneAssetManager->getScene("TestScene2").get(),
+                         nullptr, renderTargets.get(), {sFrameStart.get()});
     renderer->endFrame({renderComplete.get()});
   }
 

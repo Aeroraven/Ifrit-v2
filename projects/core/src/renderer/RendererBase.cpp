@@ -2,6 +2,106 @@
 #include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Core {
+IFRIT_APIDECL void
+RendererBase::collectPerframeData(PerFrameData &perframeData, Scene *scene,
+                                  Camera *camera,
+                                  GraphicsShaderPassType passType) {
+  using Ifrit::Common::Utility::size_cast;
+  // Filling per frame data
+  if (camera == nullptr) {
+    camera = scene->getMainCamera();
+  }
+  if (camera == nullptr) {
+    throw std::runtime_error("No camera found in scene");
+  }
+  perframeData.m_views.resize(1);
+  auto &viewData = perframeData.m_views[0];
+  viewData.m_viewType = PerFrameData::ViewType::Primary;
+  viewData.m_viewDataOld = viewData.m_viewData;
+  viewData.m_viewData.m_worldToView = camera->worldToCameraMatrix();
+  viewData.m_viewData.m_perspective = camera->projectionMatrix();
+  viewData.m_viewData.m_cameraAspect = camera->getAspect();
+  viewData.m_viewData.m_inversePerspective =
+      Ifrit::Math::inverse4(viewData.m_viewData.m_perspective);
+  auto cameraTransform = camera->getParent()->getComponent<Transform>();
+  if (cameraTransform == nullptr) {
+    throw std::runtime_error("Camera has no transform");
+  }
+  auto pos = cameraTransform->getPosition();
+  viewData.m_viewData.m_cameraPosition = ifloat4{pos.x, pos.y, pos.z, 1.0f};
+  viewData.m_viewData.m_cameraNear = camera->getNear();
+  viewData.m_viewData.m_cameraFar = camera->getFar();
+  viewData.m_viewData.m_cameraFovX = camera->getFov();
+  viewData.m_viewData.m_cameraFovY = camera->getFov();
+
+  // For each mesh renderer, get the material, mesh, and transform
+  perframeData.m_enabledEffects.clear();
+  for (auto &effect : perframeData.m_shaderEffectData) {
+    effect.m_materials.clear();
+    effect.m_meshes.clear();
+    effect.m_transforms.clear();
+    effect.m_instances.clear();
+  }
+
+  std::vector<std::shared_ptr<Material>> materials;
+  std::vector<std::shared_ptr<Mesh>> meshes;
+  std::vector<std::shared_ptr<Transform>> transforms;
+  std::vector<std::shared_ptr<MeshInstance>> instances;
+
+  std::vector<SceneNode *> nodes;
+  nodes.push_back(scene->getRootNode().get());
+  while (!nodes.empty()) {
+    auto node = nodes.back();
+    nodes.pop_back();
+    for (auto &child : node->getChildren()) {
+      nodes.push_back(child.get());
+    }
+    for (auto &obj : node->getGameObjects()) {
+      auto meshRenderer = obj->getComponent<MeshRenderer>();
+      auto meshFilter = obj->getComponent<MeshFilter>();
+      auto transform = obj->getComponent<Transform>();
+      if (!meshRenderer || !meshFilter || !transform) {
+        continue;
+      }
+      if (meshRenderer && meshFilter && transform) {
+        materials.push_back(meshRenderer->getMaterial());
+        meshes.push_back(meshFilter->getMesh());
+        transforms.push_back(transform);
+        instances.push_back(meshFilter->getMeshInstance());
+      } else {
+        throw std::runtime_error(
+            "MeshRenderer, MeshFilter, or Transform not found");
+      }
+    }
+  }
+
+  // Groups meshes with the same shader effect
+  for (size_t i = 0; i < materials.size(); i++) {
+    auto &material = materials[i];
+    auto &mesh = meshes[i];
+    auto &transform = transforms[i];
+    auto &instance = instances[i];
+
+    ShaderEffect effect;
+    effect.m_shaders = material->m_effectTemplates[passType].m_shaders;
+
+    // TODO: Heavy copy operation, should be avoided
+    effect.m_drawPasses = material->m_effectTemplates[passType].m_drawPasses;
+    if (perframeData.m_shaderEffectMap.count(effect) == 0) {
+      perframeData.m_shaderEffectMap[effect] =
+          size_cast<uint32_t>(perframeData.m_shaderEffectData.size());
+      perframeData.m_shaderEffectData.push_back(PerShaderEffectData{});
+    }
+    auto id = perframeData.m_shaderEffectMap[effect];
+    auto &shaderEffectData = perframeData.m_shaderEffectData[id];
+    perframeData.m_enabledEffects.insert(id);
+
+    shaderEffectData.m_materials.push_back(material);
+    shaderEffectData.m_meshes.push_back(mesh);
+    shaderEffectData.m_transforms.push_back(transform);
+    shaderEffectData.m_instances.push_back(instance);
+  }
+}
 IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,
                                                 GraphicsShaderPassType passType,
                                                 RenderTargets *renderTargets) {
@@ -171,9 +271,16 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
   auto rhi = m_app->getRhiLayer();
   auto renderArea = renderTargets->getRenderArea();
 
-  perframeData.m_viewData.m_renderHeight = renderArea.height;
-  perframeData.m_viewData.m_renderWidth = renderArea.width;
-  perframeData.m_viewData.m_hizLods =
+  if (perframeData.m_views.size() > 1) {
+    printf("Warning: Multiple views are not supported yet\n");
+    throw std::runtime_error("Multiple views are not supported yet");
+  }
+
+  auto &primaryView = perframeData.m_views[0];
+  primaryView.m_viewType = PerFrameData::ViewType::Primary;
+  primaryView.m_viewData.m_renderHeight = renderArea.height;
+  primaryView.m_viewData.m_renderWidth = renderArea.width;
+  primaryView.m_viewData.m_hizLods =
       static_cast<uint32_t>(std::floor(
           std::log2(std::max(renderArea.width, renderArea.height)))) +
       1;
@@ -182,42 +289,43 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
   std::vector<void *> pendingVertexBuffers;
   std::vector<uint32_t> pendingVertexBufferSizes;
 
-  bool initLastFrameMatrix = false;
-  if (perframeData.m_viewBindlessRef == nullptr) {
-    perframeData.m_viewBuffer =
-        rhi->createUniformBufferShared(sizeof(PerFramePerViewData), true, 0);
-    perframeData.m_viewBindlessRef = rhi->createBindlessDescriptorRef();
-    perframeData.m_viewBindlessRef->addUniformBuffer(perframeData.m_viewBuffer,
-                                                     0);
+  for (uint32_t i = 0; i < perframeData.m_views.size(); i++) {
+    bool initLastFrameMatrix = false;
+    auto &curView = perframeData.m_views[i];
+    if (curView.m_viewBindlessRef == nullptr) {
+      curView.m_viewBuffer =
+          rhi->createUniformBufferShared(sizeof(PerFramePerViewData), true, 0);
+      curView.m_viewBindlessRef = rhi->createBindlessDescriptorRef();
+      curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBuffer, 0);
 
-    perframeData.m_viewBufferLast =
-        rhi->createUniformBufferShared(sizeof(PerFramePerViewData), true, 0);
-    perframeData.m_viewBindlessRef->addUniformBuffer(
-        perframeData.m_viewBufferLast, 1);
-    initLastFrameMatrix = true;
+      curView.m_viewBufferLast =
+          rhi->createUniformBufferShared(sizeof(PerFramePerViewData), true, 0);
+      curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBufferLast, 1);
+      initLastFrameMatrix = true;
+    }
+
+    // Update view buffer
+
+    auto viewBuffer = curView.m_viewBuffer;
+    auto viewBufferAct = viewBuffer->getActiveBuffer();
+    viewBufferAct->map();
+    viewBufferAct->writeBuffer(&curView.m_viewData, sizeof(PerFramePerViewData),
+                               0);
+    viewBufferAct->flush();
+    viewBufferAct->unmap();
+
+    // Init last's frame matrix for the first frame
+    if (initLastFrameMatrix) {
+      curView.m_viewDataOld = curView.m_viewData;
+    }
+    auto viewBufferLast = curView.m_viewBufferLast;
+    auto viewBufferLastAct = viewBufferLast->getActiveBuffer();
+    viewBufferLastAct->map();
+    viewBufferLastAct->writeBuffer(&curView.m_viewDataOld,
+                                   sizeof(PerFramePerViewData), 0);
+    viewBufferLastAct->flush();
+    viewBufferLastAct->unmap();
   }
-
-  // Update view buffer
-
-  auto viewBuffer = perframeData.m_viewBuffer;
-  auto viewBufferAct = viewBuffer->getActiveBuffer();
-  viewBufferAct->map();
-  viewBufferAct->writeBuffer(&perframeData.m_viewData,
-                             sizeof(PerFramePerViewData), 0);
-  viewBufferAct->flush();
-  viewBufferAct->unmap();
-
-  // Init last's frame matrix for the first frame
-  if (initLastFrameMatrix) {
-    perframeData.m_viewDataOld = perframeData.m_viewData;
-  }
-  auto viewBufferLast = perframeData.m_viewBufferLast;
-  auto viewBufferLastAct = viewBufferLast->getActiveBuffer();
-  viewBufferLastAct->map();
-  viewBufferLastAct->writeBuffer(&perframeData.m_viewDataOld,
-                                 sizeof(PerFramePerViewData), 0);
-  viewBufferLastAct->flush();
-  viewBufferLastAct->unmap();
 
   // Per effect data
   uint32_t curShaderMaterialId = 0;

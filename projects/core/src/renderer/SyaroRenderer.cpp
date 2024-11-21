@@ -10,6 +10,17 @@ struct GPUHiZDesc {
   uint32_t m_height;
 };
 
+IFRIT_APIDECL PerFrameData::PerViewData &
+SyaroRenderer::getPrimaryView(PerFrameData &perframeData) {
+  for (auto &view : perframeData.m_views) {
+    if (view.m_viewType == PerFrameData::ViewType::Primary) {
+      return view;
+    }
+  }
+  throw std::runtime_error("Primary view not found");
+  return perframeData.m_views[0];
+}
+
 IFRIT_APIDECL SyaroRenderer::GPUShader *SyaroRenderer::createShaderFromFile(
     const std::string &shaderPath, const std::string &entry,
     GraphicsBackend::Rhi::RhiShaderStage stage) {
@@ -266,30 +277,38 @@ SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
   perframeData.m_velocityMaterialDesc = rhi->createBindlessDescriptorRef();
   perframeData.m_velocityMaterialDesc->addUAVImage(
       perframeData.m_velocityMaterial.get(), {0, 0, 1, 1}, 0);
+
+  auto &primaryView = getPrimaryView(perframeData);
   perframeData.m_velocityMaterialDesc->addCombinedImageSampler(
-      perframeData.m_visibilityBuffer.get(),
+      primaryView.m_visibilityBuffer.get(),
       perframeData.m_visibilitySampler.get(), 1);
 }
 
 IFRIT_APIDECL void
-SyaroRenderer::recreateInstanceCullingBuffers(uint32_t newMaxInstances) {
-  if (m_maxSupportedInstances == 0 ||
-      m_maxSupportedInstances < newMaxInstances) {
-    auto rhi = m_app->getRhiLayer();
-    m_maxSupportedInstances = newMaxInstances;
-    m_instCullDiscardObj =
-        rhi->createStorageBufferDevice(newMaxInstances * sizeof(uint32_t), 0);
-    m_instCullPassedObj =
-        rhi->createStorageBufferDevice(newMaxInstances * sizeof(uint32_t), 0);
-    m_persistCullIndirectDispatch = rhi->createStorageBufferDevice(
-        sizeof(uint32_t) * 9, Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
-                                      RHI_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
-                                  Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
-                                      RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-    m_instCullDesc = rhi->createBindlessDescriptorRef();
-    m_instCullDesc->addStorageBuffer(m_instCullDiscardObj, 0);
-    m_instCullDesc->addStorageBuffer(m_instCullPassedObj, 1);
-    m_instCullDesc->addStorageBuffer(m_persistCullIndirectDispatch, 2);
+SyaroRenderer::recreateInstanceCullingBuffers(PerFrameData& perframe,
+                                              uint32_t newMaxInstances) {
+  for (uint32_t i = 0; i < perframe.m_views.size(); i++) {
+    auto &view = perframe.m_views[i];
+    if (view.m_maxSupportedInstances == 0 ||
+        view.m_maxSupportedInstances < newMaxInstances) {
+      auto rhi = m_app->getRhiLayer();
+      view.m_maxSupportedInstances = newMaxInstances;
+      view.m_instCullDiscardObj =
+          rhi->createStorageBufferDevice(newMaxInstances * sizeof(uint32_t), 0);
+      view.m_instCullPassedObj =
+          rhi->createStorageBufferDevice(newMaxInstances * sizeof(uint32_t), 0);
+      view.m_persistCullIndirectDispatch = rhi->createStorageBufferDevice(
+          sizeof(uint32_t) * 9,
+          Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
+                  RHI_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
+              Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
+                  RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+      view.m_instCullDesc = rhi->createBindlessDescriptorRef();
+      view.m_instCullDesc->addStorageBuffer(view.m_instCullDiscardObj, 0);
+      view.m_instCullDesc->addStorageBuffer(view.m_instCullPassedObj, 1);
+      view.m_instCullDesc->addStorageBuffer(view.m_persistCullIndirectDispatch,
+                                            2);
+    }
   }
 }
 
@@ -301,22 +320,23 @@ SyaroRenderer::renderEmitDepthTargets(
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
   auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
 
+  auto &primaryView = getPrimaryView(perframeData);
   m_emitDepthTargetsPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
         ctx->m_cmd->imageBarrier(
             perframeData.m_velocityMaterial.get(), RhiResourceState::Undefined,
             RhiResourceState::UAVStorageImage, {0, 0, 1, 1});
         ctx->m_cmd->attachBindlessReferenceCompute(
-            m_emitDepthTargetsPass, 1, perframeData.m_viewBindlessRef);
+            m_emitDepthTargetsPass, 1, primaryView.m_viewBindlessRef);
         ctx->m_cmd->attachBindlessReferenceCompute(
             m_emitDepthTargetsPass, 2,
             perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
         ctx->m_cmd->attachBindlessReferenceCompute(
-            m_emitDepthTargetsPass, 3, perframeData.m_allFilteredMeshletsDesc);
+            m_emitDepthTargetsPass, 3, primaryView.m_allFilteredMeshletsDesc);
         ctx->m_cmd->attachBindlessReferenceCompute(
             m_emitDepthTargetsPass, 4, perframeData.m_velocityMaterialDesc);
-        uint32_t pcData[2] = {perframeData.m_viewData.m_renderWidth,
-                              perframeData.m_viewData.m_renderHeight};
+        uint32_t pcData[2] = {primaryView.m_viewData.m_renderWidth,
+                              primaryView.m_viewData.m_renderHeight};
         ctx->m_cmd->setPushConst(m_emitDepthTargetsPass, 0,
                                  sizeof(uint32_t) * 2, &pcData[0]);
 
@@ -346,157 +366,168 @@ SyaroRenderer::renderTwoPassOcclCulling(
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
 
   int pcData[2] = {0, 1};
-  m_instanceCullingPass->setRecordFunction(
-      [&](const RhiRenderPassContext *ctx) {
-        // TODO: this assumes the compute queue can TRANSFER
-        if (cullPass == CullingPass::First) {
-          ctx->m_cmd->uavBufferClear(m_persistCullIndirectDispatch, 0);
-          ctx->m_cmd->uavBufferBarrier(m_persistCullIndirectDispatch);
-        }
+  std::vector<SyaroRenderer::GPUCommandSubmission *> lastToWait = cmdToWait;
+  std::unique_ptr<SyaroRenderer::GPUCommandSubmission> lastTask = nullptr;
+  for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
+    auto &perView = perframeData.m_views[k];
+    m_instanceCullingPass->setRecordFunction(
+        [&](const RhiRenderPassContext *ctx) {
+          // TODO: this assumes the compute queue can TRANSFER
+          if (cullPass == CullingPass::First) {
+            ctx->m_cmd->uavBufferClear(perView.m_persistCullIndirectDispatch,
+                                       0);
+            ctx->m_cmd->uavBufferBarrier(perView.m_persistCullIndirectDispatch);
+          }
 
-        ctx->m_cmd->attachBindlessReferenceCompute(
-            m_instanceCullingPass, 1, perframeData.m_viewBindlessRef);
-        ctx->m_cmd->attachBindlessReferenceCompute(
-            m_instanceCullingPass, 2,
-            perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
-        ctx->m_cmd->attachBindlessReferenceCompute(m_instanceCullingPass, 3,
-                                                   m_instCullDesc);
-        ctx->m_cmd->attachBindlessReferenceCompute(m_instanceCullingPass, 4,
-                                                   perframeData.m_hizTestDesc);
-        auto numObjs = perframeData.m_allInstanceData.m_objectData.size();
-        if (cullPass == CullingPass::First) {
-          ctx->m_cmd->setPushConst(m_instanceCullingPass, 0, sizeof(uint32_t),
-                                   &pcData[0]);
-          ctx->m_cmd->dispatch(numObjs, 1, 1);
-        } else if (cullPass == CullingPass::Second) {
-          ctx->m_cmd->setPushConst(m_instanceCullingPass, 0, sizeof(uint32_t),
-                                   &pcData[1]);
-          ctx->m_cmd->dispatchIndirect(m_persistCullIndirectDispatch,
-                                       3 * sizeof(uint32_t));
-        }
-      });
+          ctx->m_cmd->attachBindlessReferenceCompute(m_instanceCullingPass, 1,
+                                                     perView.m_viewBindlessRef);
+          ctx->m_cmd->attachBindlessReferenceCompute(
+              m_instanceCullingPass, 2,
+              perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+          ctx->m_cmd->attachBindlessReferenceCompute(m_instanceCullingPass, 3,
+                                                     perView.m_instCullDesc);
+          ctx->m_cmd->attachBindlessReferenceCompute(m_instanceCullingPass, 4,
+                                                     perView.m_hizTestDesc);
+          auto numObjs = perframeData.m_allInstanceData.m_objectData.size();
+          if (cullPass == CullingPass::First) {
+            ctx->m_cmd->setPushConst(m_instanceCullingPass, 0, sizeof(uint32_t),
+                                     &pcData[0]);
+            ctx->m_cmd->dispatch(numObjs, 1, 1);
+          } else if (cullPass == CullingPass::Second) {
+            ctx->m_cmd->setPushConst(m_instanceCullingPass, 0, sizeof(uint32_t),
+                                     &pcData[1]);
+            ctx->m_cmd->dispatchIndirect(perView.m_persistCullIndirectDispatch,
+                                         3 * sizeof(uint32_t));
+          }
+        });
 
-  m_persistentCullingPass->setRecordFunction(
-      [&](const RhiRenderPassContext *ctx) {
-        if (cullPass == CullingPass::First) {
-          ctx->m_cmd->uavBufferClear(perframeData.m_allFilteredMeshletsCount,
-                                     0);
-          ctx->m_cmd->uavBufferBarrier(perframeData.m_allFilteredMeshletsCount);
-          ctx->m_cmd->uavBufferClear(m_indirectDrawBuffer, 0);
-          ctx->m_cmd->uavBufferBarrier(m_indirectDrawBuffer);
-        }
-        // bind view buffer
-        ctx->m_cmd->attachBindlessReferenceCompute(
-            m_persistentCullingPass, 1, perframeData.m_viewBindlessRef);
-        ctx->m_cmd->attachBindlessReferenceCompute(
-            m_persistentCullingPass, 2,
-            perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
-        ctx->m_cmd->attachBindlessReferenceCompute(m_persistentCullingPass, 3,
-                                                   m_persistCullDesc);
-        ctx->m_cmd->attachBindlessReferenceCompute(
-            m_persistentCullingPass, 4, perframeData.m_allFilteredMeshletsDesc);
-        ctx->m_cmd->attachBindlessReferenceCompute(m_persistentCullingPass, 5,
-                                                   m_instCullDesc);
-        if (cullPass == CullingPass::First) {
-          ctx->m_cmd->setPushConst(m_persistentCullingPass, 0, sizeof(uint32_t),
-                                   &pcData[0]);
-          ctx->m_cmd->dispatchIndirect(m_persistCullIndirectDispatch, 0);
-        } else if (cullPass == CullingPass::Second) {
-          ctx->m_cmd->setPushConst(m_persistentCullingPass, 0, sizeof(uint32_t),
-                                   &pcData[1]);
-          ctx->m_cmd->dispatchIndirect(m_persistCullIndirectDispatch,
-                                       6 * sizeof(uint32_t));
-        }
-      });
-  m_visibilityPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    // bind view buffer
+    m_persistentCullingPass->setRecordFunction(
+        [&](const RhiRenderPassContext *ctx) {
+          if (cullPass == CullingPass::First) {
+            ctx->m_cmd->uavBufferClear(perView.m_allFilteredMeshletsCount, 0);
+            ctx->m_cmd->uavBufferBarrier(perView.m_allFilteredMeshletsCount);
+            ctx->m_cmd->uavBufferClear(m_indirectDrawBuffer, 0);
+            ctx->m_cmd->uavBufferBarrier(m_indirectDrawBuffer);
+          }
+          // bind view buffer
+          ctx->m_cmd->attachBindlessReferenceCompute(m_persistentCullingPass, 1,
+                                                     perView.m_viewBindlessRef);
+          ctx->m_cmd->attachBindlessReferenceCompute(
+              m_persistentCullingPass, 2,
+              perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+          ctx->m_cmd->attachBindlessReferenceCompute(m_persistentCullingPass, 3,
+                                                     m_persistCullDesc);
+          ctx->m_cmd->attachBindlessReferenceCompute(
+              m_persistentCullingPass, 4, perView.m_allFilteredMeshletsDesc);
+          ctx->m_cmd->attachBindlessReferenceCompute(m_persistentCullingPass, 5,
+                                                     perView.m_instCullDesc);
+          if (cullPass == CullingPass::First) {
+            ctx->m_cmd->setPushConst(m_persistentCullingPass, 0,
+                                     sizeof(uint32_t), &pcData[0]);
+            ctx->m_cmd->dispatchIndirect(perView.m_persistCullIndirectDispatch,
+                                         0);
+          } else if (cullPass == CullingPass::Second) {
+            ctx->m_cmd->setPushConst(m_persistentCullingPass, 0,
+                                     sizeof(uint32_t), &pcData[1]);
+            ctx->m_cmd->dispatchIndirect(perView.m_persistCullIndirectDispatch,
+                                         6 * sizeof(uint32_t));
+          }
+        });
+    m_visibilityPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+      // bind view buffer
 
-    ctx->m_cmd->attachBindlessReferenceGraphics(m_visibilityPass, 1,
-                                                perframeData.m_viewBindlessRef);
-    ctx->m_cmd->attachBindlessReferenceGraphics(
-        m_visibilityPass, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
-    ctx->m_cmd->attachBindlessReferenceGraphics(
-        m_visibilityPass, 3, perframeData.m_allFilteredMeshletsDesc);
-    if (cullPass == CullingPass::First) {
-      ctx->m_cmd->setPushConst(m_visibilityPass, 0, sizeof(uint32_t),
-                               &pcData[0]);
-      ctx->m_cmd->drawMeshTasksIndirect(perframeData.m_allFilteredMeshletsCount,
-                                        0, 1, 0);
-    } else {
-      ctx->m_cmd->setPushConst(m_visibilityPass, 0, sizeof(uint32_t),
-                               &pcData[1]);
-      ctx->m_cmd->drawMeshTasksIndirect(perframeData.m_allFilteredMeshletsCount,
-                                        sizeof(uint32_t) * 3, 1, 0);
-    }
-  });
-
-  m_hizPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    auto rtHeight = perframeData.m_hizTexture->getHeight();
-    auto rtWidth = perframeData.m_hizTexture->getWidth();
-    Ifrit::GraphicsBackend::Rhi::RhiImageSubResource subRes0 = {0, 0, 1, 1};
-    ctx->m_cmd->imageBarrier(perframeData.m_hizTexture.get(),
-                             RhiResourceState::Undefined,
-                             RhiResourceState::UAVStorageImage, subRes0);
-    for (int i = 0; i < perframeData.m_hizIter; i++) {
-      auto desc = perframeData.m_hizDescs[i];
-      ctx->m_cmd->attachBindlessReferenceCompute(m_hizPass, 1, desc);
-      auto wgX = (rtWidth + cHiZGroupSizeX - 1) / cHiZGroupSizeX;
-      auto wgY = (rtHeight + cHiZGroupSizeY - 1) / cHiZGroupSizeY;
-      ctx->m_cmd->dispatch(wgX, wgY, 1);
-      rtWidth = std::max(1u, rtWidth / 2);
-      rtHeight = std::max(1u, rtHeight / 2);
-      if (i == perframeData.m_hizIter - 1) {
-        return;
+      ctx->m_cmd->attachBindlessReferenceGraphics(m_visibilityPass, 1,
+                                                  perView.m_viewBindlessRef);
+      ctx->m_cmd->attachBindlessReferenceGraphics(
+          m_visibilityPass, 2,
+          perframeData.m_allInstanceData.m_batchedObjBufRef);
+      ctx->m_cmd->attachBindlessReferenceGraphics(
+          m_visibilityPass, 3, perView.m_allFilteredMeshletsDesc);
+      if (cullPass == CullingPass::First) {
+        ctx->m_cmd->setPushConst(m_visibilityPass, 0, sizeof(uint32_t),
+                                 &pcData[0]);
+        ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsCount, 0,
+                                          1, 0);
+      } else {
+        ctx->m_cmd->setPushConst(m_visibilityPass, 0, sizeof(uint32_t),
+                                 &pcData[1]);
+        ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsCount,
+                                          sizeof(uint32_t) * 3, 1, 0);
       }
-      Ifrit::GraphicsBackend::Rhi::RhiImageSubResource subRes = {i, 0, 1, 1};
-      ctx->m_cmd->imageBarrier(perframeData.m_hizTexture.get(),
-                               RhiResourceState::UAVStorageImage,
-                               RhiResourceState::UAVStorageImage, subRes);
-      Ifrit::GraphicsBackend::Rhi::RhiImageSubResource subRes1 = {i + 1, 0, 1,
-                                                                  1};
-      ctx->m_cmd->imageBarrier(perframeData.m_hizTexture.get(),
+    });
+
+    m_hizPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+      auto rtHeight = perView.m_hizTexture->getHeight();
+      auto rtWidth = perView.m_hizTexture->getWidth();
+      Ifrit::GraphicsBackend::Rhi::RhiImageSubResource subRes0 = {0, 0, 1, 1};
+      ctx->m_cmd->imageBarrier(perView.m_hizTexture.get(),
                                RhiResourceState::Undefined,
-                               RhiResourceState::UAVStorageImage, subRes1);
-    }
-  });
-
-  auto instanceCullTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        cmd->beginScope("Syaro: Instance Culling Pass");
-        m_instanceCullingPass->run(cmd, 0);
-        cmd->endScope();
-      },
-      cmdToWait, {});
-  auto persistCullTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        cmd->beginScope("Syaro: Persistent Culling Pass");
-        m_persistentCullingPass->run(cmd, 0);
-        cmd->endScope();
-      },
-      {instanceCullTask.get()}, {});
-  auto drawTask = drawq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        if (cullPass == CullingPass::First) {
-          cmd->beginScope("Syaro: Visibility Pass, First");
-          m_visibilityPass->run(cmd, perframeData.m_visRTs.get(), 0);
-          cmd->endScope();
-        } else {
-          // we wont clear the visibility buffer in the second pass
-          cmd->beginScope("Syaro: Visibility Pass, Second");
-          m_visibilityPass->run(cmd, perframeData.m_visRTs2.get(), 0);
-          cmd->endScope();
+                               RhiResourceState::UAVStorageImage, subRes0);
+      for (int i = 0; i < perView.m_hizIter; i++) {
+        auto desc = perView.m_hizDescs[i];
+        ctx->m_cmd->attachBindlessReferenceCompute(m_hizPass, 1, desc);
+        auto wgX = (rtWidth + cHiZGroupSizeX - 1) / cHiZGroupSizeX;
+        auto wgY = (rtHeight + cHiZGroupSizeY - 1) / cHiZGroupSizeY;
+        ctx->m_cmd->dispatch(wgX, wgY, 1);
+        rtWidth = std::max(1u, rtWidth / 2);
+        rtHeight = std::max(1u, rtHeight / 2);
+        if (i == perView.m_hizIter - 1) {
+          return;
         }
-      },
-      {persistCullTask.get()}, {});
+        Ifrit::GraphicsBackend::Rhi::RhiImageSubResource subRes = {i, 0, 1, 1};
+        ctx->m_cmd->imageBarrier(perView.m_hizTexture.get(),
+                                 RhiResourceState::UAVStorageImage,
+                                 RhiResourceState::UAVStorageImage, subRes);
+        Ifrit::GraphicsBackend::Rhi::RhiImageSubResource subRes1 = {i + 1, 0, 1,
+                                                                    1};
+        ctx->m_cmd->imageBarrier(perView.m_hizTexture.get(),
+                                 RhiResourceState::Undefined,
+                                 RhiResourceState::UAVStorageImage, subRes1);
+      }
+    });
 
-  auto hizTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        cmd->beginScope("Syaro: HiZ Pass");
-        m_hizPass->run(cmd, 0);
-        cmd->endScope();
-      },
-      {drawTask.get()}, {});
-  return hizTask;
+    auto instanceCullTask = compq->runAsyncCommand(
+        [&](const RhiCommandBuffer *cmd) {
+          cmd->beginScope("Syaro: Instance Culling Pass");
+          m_instanceCullingPass->run(cmd, 0);
+          cmd->endScope();
+        },
+        lastToWait, {});
+    auto persistCullTask = compq->runAsyncCommand(
+        [&](const RhiCommandBuffer *cmd) {
+          cmd->beginScope("Syaro: Persistent Culling Pass");
+          m_persistentCullingPass->run(cmd, 0);
+          cmd->endScope();
+        },
+        {instanceCullTask.get()}, {});
+    auto drawTask = drawq->runAsyncCommand(
+        [&](const RhiCommandBuffer *cmd) {
+          if (cullPass == CullingPass::First) {
+            cmd->beginScope("Syaro: Visibility Pass, First");
+            m_visibilityPass->run(cmd, perView.m_visRTs.get(), 0);
+            cmd->endScope();
+          } else {
+            // we wont clear the visibility buffer in the second pass
+            cmd->beginScope("Syaro: Visibility Pass, Second");
+            m_visibilityPass->run(cmd, perView.m_visRTs2.get(), 0);
+            cmd->endScope();
+          }
+        },
+        {persistCullTask.get()}, {});
+
+    auto hizTask = compq->runAsyncCommand(
+        [&](const RhiCommandBuffer *cmd) {
+          cmd->beginScope("Syaro: HiZ Pass");
+          m_hizPass->run(cmd, 0);
+          cmd->endScope();
+        },
+        {drawTask.get()}, {});
+
+    lastToWait = {hizTask.get()};
+    lastTask = std::move(hizTask);
+  }
+
+  return lastTask;
 }
 
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
@@ -591,12 +622,13 @@ SyaroRenderer::render(
     const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
   // Some setups
   visibilityBufferSetup(perframeData, renderTargets);
+  auto &primaryView = getPrimaryView(perframeData);
   buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
-                 perframeData.m_visRTs.get());
+                 primaryView.m_visRTs.get());
   prepareDeviceResources(perframeData, renderTargets);
   gatherAllInstances(perframeData);
   recreateInstanceCullingBuffers(
-      perframeData.m_allInstanceData.m_objectData.size());
+      perframeData, perframeData.m_allInstanceData.m_objectData.size());
   hizBufferSetup(perframeData, renderTargets);
   depthTargetsSetup(perframeData, renderTargets);
   materialClassifyBufferSetup(perframeData, renderTargets);
@@ -648,139 +680,150 @@ IFRIT_APIDECL void SyaroRenderer::setupDefaultEmitGBufferPass() {
 
 IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
                                                  RenderTargets *renderTargets) {
-  auto renderArea = renderTargets->getRenderArea();
-  auto width = renderArea.width + renderArea.x;
-  auto height = renderArea.height + renderArea.y;
-  bool cond = (perframeData.m_hizTexture == nullptr);
-  if (!cond && (perframeData.m_hizTexture->getWidth() != width ||
-                perframeData.m_hizTexture->getHeight() != height)) {
-    cond = true;
+  if (perframeData.m_views.size() > 1) {
+    throw std::runtime_error("Multiple views not supported for HiZ buffer");
   }
-  if (!cond) {
-    return;
-  }
-  auto rhi = m_app->getRhiLayer();
-  auto maxMip = int(std::floor(std::log2(std::max(width, height))) + 1);
-  perframeData.m_hizTexture = rhi->createRenderTargetMipTexture(
-      width, height, maxMip, RhiImageFormat::RHI_FORMAT_R32_SFLOAT,
-      RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+  for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
+    auto &perView = perframeData.m_views[k];
+    auto renderArea = renderTargets->getRenderArea();
+    auto width = renderArea.width + renderArea.x;
+    auto height = renderArea.height + renderArea.y;
+    bool cond = (perView.m_hizTexture == nullptr);
+    if (!cond && (perView.m_hizTexture->getWidth() != width ||
+                  perView.m_hizTexture->getHeight() != height)) {
+      cond = true;
+    }
+    if (!cond) {
+      return;
+    }
+    auto rhi = m_app->getRhiLayer();
+    auto maxMip = int(std::floor(std::log2(std::max(width, height))) + 1);
+    perView.m_hizTexture = rhi->createRenderTargetMipTexture(
+        width, height, maxMip, RhiImageFormat::RHI_FORMAT_R32_SFLOAT,
+        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
 
-  uint32_t rWidth = renderArea.width + renderArea.x;
-  uint32_t rHeight = renderArea.height + renderArea.y;
-  perframeData.m_hizDepthSampler = rhi->createTrivialSampler();
+    uint32_t rWidth = renderArea.width + renderArea.x;
+    uint32_t rHeight = renderArea.height + renderArea.y;
+    perView.m_hizDepthSampler = rhi->createTrivialSampler();
 
-  for (int i = 0; i < maxMip; i++) {
-    auto desc = rhi->createBindlessDescriptorRef();
-    auto hizTexSize = rhi->createStorageBufferDevice(
-        sizeof(GPUHiZDesc), RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-    GPUHiZDesc hizDesc = {rWidth, rHeight};
-    auto stagedBuf = rhi->createStagedSingleBuffer(hizTexSize);
+    for (int i = 0; i < maxMip; i++) {
+      auto desc = rhi->createBindlessDescriptorRef();
+      auto hizTexSize = rhi->createStorageBufferDevice(
+          sizeof(GPUHiZDesc),
+          RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+      GPUHiZDesc hizDesc = {rWidth, rHeight};
+      auto stagedBuf = rhi->createStagedSingleBuffer(hizTexSize);
+      auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+      tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
+        stagedBuf->cmdCopyToDevice(cmd, &hizDesc, sizeof(GPUHiZDesc), 0);
+      });
+      rWidth = std::max(1u, rWidth / 2);
+      rHeight = std::max(1u, rHeight / 2);
+      desc->addCombinedImageSampler(perView.m_visPassDepth,
+                                    perView.m_hizDepthSampler.get(), 0);
+      desc->addUAVImage(perView.m_hizTexture.get(),
+                        {static_cast<uint32_t>(std::max(0, i - 1)), 0, 1, 1},
+                        1);
+      desc->addUAVImage(perView.m_hizTexture.get(),
+                        {static_cast<uint32_t>(i), 0, 1, 1}, 2);
+      desc->addStorageBuffer(hizTexSize, 3);
+      perView.m_hizDescs.push_back(desc);
+    }
+    perView.m_hizIter = maxMip;
+
+    // For hiz-testing, we need to
+    // create a descriptor for the hiz
+    // texture Seems UAV/Storage image
+    // does not support mip-levels
+    for (int i = 0; i < maxMip; i++) {
+      perView.m_hizTestMips.push_back(rhi->registerUAVImage(
+          perView.m_hizTexture.get(), {static_cast<uint32_t>(i), 0, 1, 1}));
+      perView.m_hizTestMipsId.push_back(
+          perView.m_hizTestMips.back()->getActiveId());
+    }
+    perView.m_hizTestMipsBuffer = rhi->createStorageBufferDevice(
+        sizeof(uint32_t) * maxMip,
+        RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
     auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+    auto staged = rhi->createStagedSingleBuffer(perView.m_hizTestMipsBuffer);
     tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-      stagedBuf->cmdCopyToDevice(cmd, &hizDesc, sizeof(GPUHiZDesc), 0);
+      staged->cmdCopyToDevice(cmd, perView.m_hizTestMipsId.data(),
+                              sizeof(uint32_t) * maxMip, 0);
     });
-    rWidth = std::max(1u, rWidth / 2);
-    rHeight = std::max(1u, rHeight / 2);
-    desc->addCombinedImageSampler(perframeData.m_visPassDepth,
-                                  perframeData.m_hizDepthSampler.get(), 0);
-    desc->addUAVImage(perframeData.m_hizTexture.get(),
-                      {static_cast<uint32_t>(std::max(0, i - 1)), 0, 1, 1}, 1);
-    desc->addUAVImage(perframeData.m_hizTexture.get(),
-                      {static_cast<uint32_t>(i), 0, 1, 1}, 2);
-    desc->addStorageBuffer(hizTexSize, 3);
-    perframeData.m_hizDescs.push_back(desc);
+    perView.m_hizTestDesc = rhi->createBindlessDescriptorRef();
+    perView.m_hizTestDesc->addStorageBuffer(perView.m_hizTestMipsBuffer, 0);
   }
-  perframeData.m_hizIter = maxMip;
-
-  // For hiz-testing, we need to
-  // create a descriptor for the hiz
-  // texture Seems UAV/Storage image
-  // does not support mip-levels
-  for (int i = 0; i < maxMip; i++) {
-    perframeData.m_hizTestMips.push_back(rhi->registerUAVImage(
-        perframeData.m_hizTexture.get(), {static_cast<uint32_t>(i), 0, 1, 1}));
-    perframeData.m_hizTestMipsId.push_back(
-        perframeData.m_hizTestMips.back()->getActiveId());
-  }
-  perframeData.m_hizTestMipsBuffer = rhi->createStorageBufferDevice(
-      sizeof(uint32_t) * maxMip,
-      RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-  auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
-  auto staged = rhi->createStagedSingleBuffer(perframeData.m_hizTestMipsBuffer);
-  tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-    staged->cmdCopyToDevice(cmd, perframeData.m_hizTestMipsId.data(),
-                            sizeof(uint32_t) * maxMip, 0);
-  });
-  perframeData.m_hizTestDesc = rhi->createBindlessDescriptorRef();
-  perframeData.m_hizTestDesc->addStorageBuffer(perframeData.m_hizTestMipsBuffer,
-                                               0);
 }
 
 IFRIT_APIDECL void
 SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
                                      RenderTargets *renderTargets) {
+  if (perframeData.m_views.size() > 1) {
+    throw std::runtime_error("Multiple views not supported for vis buffer");
+  }
   auto rhi = m_app->getRhiLayer();
   auto rtArea = renderTargets->getRenderArea();
-  bool createCond = (perframeData.m_visibilityBuffer == nullptr);
-  if (!createCond) {
-    auto visHeight = perframeData.m_visibilityBuffer->getHeight();
-    auto visWidth = perframeData.m_visibilityBuffer->getWidth();
-    auto rtSize = renderTargets->getRenderArea();
-    createCond = (visHeight != rtSize.height + rtSize.x ||
-                  visWidth != rtSize.width + rtSize.y);
-  }
-  if (!createCond) {
-    return;
-  }
-  // It seems nanite's paper uses
-  // R32G32 for mesh visibility, but
-  // I wonder the depth is implicitly
-  // calculated from the depth buffer
-  // so here I use R32 for visibility
-  // buffer
-  auto visBuffer = rhi->createRenderTargetTexture(
-      rtArea.width + rtArea.x, rtArea.height + rtArea.y,
-      PerFrameData::c_visibilityFormat,
-      RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
-  auto visDepth = rhi->createDepthRenderTexture(rtArea.width + rtArea.x,
-                                                rtArea.height + rtArea.y);
-  perframeData.m_visibilityBuffer = visBuffer;
 
-  // first pass rts
-  perframeData.m_visPassDepth = visDepth;
-  perframeData.m_visColorRT = rhi->createRenderTarget(
-      visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Clear, 0, 0);
-  perframeData.m_visDepthRT = rhi->createRenderTargetDepthStencil(
-      visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
+  for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
+    auto &perView = perframeData.m_views[k];
+    bool createCond = (perView.m_visibilityBuffer == nullptr);
+    if (!createCond) {
+      auto visHeight = perView.m_visibilityBuffer->getHeight();
+      auto visWidth = perView.m_visibilityBuffer->getWidth();
+      auto rtSize = renderTargets->getRenderArea();
+      createCond = (visHeight != rtSize.height + rtSize.x ||
+                    visWidth != rtSize.width + rtSize.y);
+    }
+    if (!createCond) {
+      return;
+    }
+    // It seems nanite's paper uses
+    // R32G32 for mesh visibility, but
+    // I wonder the depth is implicitly
+    // calculated from the depth buffer
+    // so here I use R32 for visibility
+    // buffer
+    auto visBuffer = rhi->createRenderTargetTexture(
+        rtArea.width + rtArea.x, rtArea.height + rtArea.y,
+        PerFrameData::c_visibilityFormat,
+        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+    auto visDepth = rhi->createDepthRenderTexture(rtArea.width + rtArea.x,
+                                                  rtArea.height + rtArea.y);
+    perView.m_visibilityBuffer = visBuffer;
 
-  perframeData.m_visRTs = rhi->createRenderTargets();
-  perframeData.m_visRTs->setColorAttachments({perframeData.m_visColorRT.get()});
-  perframeData.m_visRTs->setDepthStencilAttachment(
-      perframeData.m_visDepthRT.get());
-  perframeData.m_visRTs->setRenderArea(renderTargets->getRenderArea());
+    // first pass rts
+    perView.m_visPassDepth = visDepth;
+    perView.m_visColorRT = rhi->createRenderTarget(
+        visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Clear, 0, 0);
+    perView.m_visDepthRT = rhi->createRenderTargetDepthStencil(
+        visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
 
-  // second pass rts
-  perframeData.m_visColorRT2 = rhi->createRenderTarget(
-      visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Load, 0, 0);
-  perframeData.m_visDepthRT2 = rhi->createRenderTargetDepthStencil(
-      visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Load);
-  perframeData.m_visRTs2 = rhi->createRenderTargets();
-  perframeData.m_visRTs2->setColorAttachments(
-      {perframeData.m_visColorRT2.get()});
-  perframeData.m_visRTs2->setDepthStencilAttachment(
-      perframeData.m_visDepthRT2.get());
-  perframeData.m_visRTs2->setRenderArea(renderTargets->getRenderArea());
+    perView.m_visRTs = rhi->createRenderTargets();
+    perView.m_visRTs->setColorAttachments({perView.m_visColorRT.get()});
+    perView.m_visRTs->setDepthStencilAttachment(perView.m_visDepthRT.get());
+    perView.m_visRTs->setRenderArea(renderTargets->getRenderArea());
 
-  // Then a sampler
-  perframeData.m_visibilitySampler = rhi->createTrivialSampler();
-  perframeData.m_visShowCombinedRef = rhi->createBindlessDescriptorRef();
-  perframeData.m_visShowCombinedRef->addCombinedImageSampler(
-      perframeData.m_visibilityBuffer.get(),
-      perframeData.m_visibilitySampler.get(), 0);
+    // second pass rts
+    perView.m_visColorRT2 = rhi->createRenderTarget(
+        visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Load, 0, 0);
+    perView.m_visDepthRT2 = rhi->createRenderTargetDepthStencil(
+        visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Load);
+    perView.m_visRTs2 = rhi->createRenderTargets();
+    perView.m_visRTs2->setColorAttachments({perView.m_visColorRT2.get()});
+    perView.m_visRTs2->setDepthStencilAttachment(perView.m_visDepthRT2.get());
+    perView.m_visRTs2->setRenderArea(renderTargets->getRenderArea());
 
-  // Command  buffer recording
-  if (m_textureShowPass == nullptr) {
-    setupTextureShowPass();
+    // Then a sampler
+    perframeData.m_visibilitySampler = rhi->createTrivialSampler();
+    perframeData.m_visShowCombinedRef = rhi->createBindlessDescriptorRef();
+    perframeData.m_visShowCombinedRef->addCombinedImageSampler(
+        perView.m_visibilityBuffer.get(),
+        perframeData.m_visibilitySampler.get(), 0);
+
+    // Command  bu ffer recording
+    if (m_textureShowPass == nullptr) {
+      setupTextureShowPass();
+    }
   }
 }
 
@@ -830,18 +873,19 @@ SyaroRenderer::renderDefaultEmitGBuffer(
     // For each material, make
     // one dispatch
     uint32_t pcData[3] = {0, rtArea.width + rtArea.x, rtArea.height + rtArea.y};
+    auto &primaryView = getPrimaryView(perframeData);
     for (int i = 0; i < numMaterials; i++) {
       ctx->m_cmd->attachBindlessReferenceCompute(m_defaultEmitGBufferPass, 1,
                                                  perframeData.m_matClassDesc);
       ctx->m_cmd->attachBindlessReferenceCompute(
           m_defaultEmitGBufferPass, 2, perframeData.m_gbuffer.m_gbufferDesc);
-      ctx->m_cmd->attachBindlessReferenceCompute(
-          m_defaultEmitGBufferPass, 3, perframeData.m_viewBindlessRef);
+      ctx->m_cmd->attachBindlessReferenceCompute(m_defaultEmitGBufferPass, 3,
+                                                 primaryView.m_viewBindlessRef);
       ctx->m_cmd->attachBindlessReferenceCompute(
           m_defaultEmitGBufferPass, 4,
           perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
       ctx->m_cmd->attachBindlessReferenceCompute(
-          m_defaultEmitGBufferPass, 5, perframeData.m_allFilteredMeshletsDesc);
+          m_defaultEmitGBufferPass, 5, primaryView.m_allFilteredMeshletsDesc);
       ctx->m_cmd->attachBindlessReferenceCompute(
           m_defaultEmitGBufferPass, 6, perframeData.m_velocityMaterialDesc);
 
@@ -911,24 +955,40 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
                          0);
   activeBuf->flush();
   activeBuf->unmap();
-  if (perframeData.m_allFilteredMeshletsCount == nullptr) {
-    perframeData.m_allFilteredMeshletsCount =
-        rhi->createIndirectMeshDrawBufferDevice(
-            2, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
-                   RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-  }
-  if (perframeData.m_allFilteredMeshletsMaxCount < totalMeshlets) {
-    perframeData.m_allFilteredMeshletsMaxCount = totalMeshlets;
-    perframeData.m_allFilteredMeshlets = rhi->createStorageBufferDevice(
-        totalMeshlets * sizeof(uint32_t) * 2,
-        RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+  for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
+    auto &perView = perframeData.m_views[k];
+    if (perView.m_allFilteredMeshletsCount == nullptr) {
+      perView.m_allFilteredMeshletsCount =
+          rhi->createIndirectMeshDrawBufferDevice(
+              2, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
+                     RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    }
+    if (perView.m_allFilteredMeshletsMaxCount < totalMeshlets) {
+      perView.m_allFilteredMeshletsMaxCount = totalMeshlets;
+      perView.m_allFilteredMeshlets = rhi->createStorageBufferDevice(
+          totalMeshlets * sizeof(uint32_t) * 2,
+          RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
-    perframeData.m_allFilteredMeshletsDesc = rhi->createBindlessDescriptorRef();
-    perframeData.m_allFilteredMeshletsDesc->addStorageBuffer(
-        perframeData.m_allFilteredMeshlets, 0);
-    perframeData.m_allFilteredMeshletsDesc->addStorageBuffer(
-        perframeData.m_allFilteredMeshletsCount, 1);
+      perView.m_allFilteredMeshletsDesc = rhi->createBindlessDescriptorRef();
+      perView.m_allFilteredMeshletsDesc->addStorageBuffer(
+          perView.m_allFilteredMeshlets, 0);
+      perView.m_allFilteredMeshletsDesc->addStorageBuffer(
+          perView.m_allFilteredMeshletsCount, 1);
+    }
   }
+}
+
+IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
+SyaroRenderer::render(Scene *scene, Camera *camera,
+                      RenderTargets *renderTargets,
+                      const std::vector<GPUCommandSubmission *> &cmdToWait) {
+  if (m_perScenePerframe.count(scene) == 0) {
+    m_perScenePerframe[scene] = PerFrameData();
+  }
+  auto &perframeData = m_perScenePerframe[scene];
+  collectPerframeData(perframeData, scene, camera,
+                      GraphicsShaderPassType::Opaque);
+  return render(perframeData, renderTargets, cmdToWait);
 }
 
 } // namespace Ifrit::Core

@@ -60,6 +60,8 @@ struct PerFrameData {
   using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
   using GPUBarrier = Ifrit::GraphicsBackend::Rhi::RhiResourceBarrier;
 
+  enum class ViewType { Invisible, Primary, Display, Shadow };
+
   struct GBufferDesc {
     uint32_t m_albedo_materialFlags;
     uint32_t m_specular_occlusion;
@@ -91,58 +93,71 @@ struct PerFrameData {
     std::vector<GPUBarrier> m_gbufferBarrier;
   };
 
-  PerFramePerViewData m_viewData;
-  PerFramePerViewData m_viewDataOld;
-  GPUUniformBuffer *m_viewBuffer = nullptr;
-  GPUUniformBuffer *m_viewBufferLast = nullptr;
-  GPUBindlessRef *m_viewBindlessRef = nullptr;
-  std::vector<PerShaderEffectData> m_shaderEffectData;
-  std::unordered_map<ShaderEffect, uint32_t, ShaderEffectHash>
-      m_shaderEffectMap;
+  struct PerViewData {
+    ViewType m_viewType = ViewType::Invisible;
 
-  // GBuffer
-  GBuffer m_gbuffer;
+    PerFramePerViewData m_viewData;
+    PerFramePerViewData m_viewDataOld;
+    GPUUniformBuffer *m_viewBuffer = nullptr;
+    GPUUniformBuffer *m_viewBufferLast = nullptr;
+    GPUBindlessRef *m_viewBindlessRef = nullptr;
 
-  // For culling
-  PerShaderEffectData m_allInstanceData;
+    // visibility buffer
+    std::shared_ptr<GPUTexture> m_visibilityBuffer = nullptr;
+    GPUTexture *m_visPassDepth = nullptr;
 
-  // TODO: resource release
-  std::unordered_set<uint32_t> m_enabledEffects;
+    std::shared_ptr<GPUColorRT> m_visColorRT = nullptr;
+    std::shared_ptr<GPUDepthRT> m_visDepthRT = nullptr;
+    std::shared_ptr<GPURTs> m_visRTs = nullptr;
 
-  // visibility buffer
-  std::shared_ptr<GPUTexture> m_visibilityBuffer = nullptr;
-  GPUTexture *m_visPassDepth = nullptr;
+    // visibility buffer for 2nd pass, reference to the same texture, but
+    // without clearing
+    std::shared_ptr<GPUColorRT> m_visColorRT2 = nullptr;
+    std::shared_ptr<GPUDepthRT> m_visDepthRT2 = nullptr;
+    std::shared_ptr<GPURTs> m_visRTs2 = nullptr;
+
+    // all visible clusters
+    GPUBuffer *m_allFilteredMeshlets = nullptr;
+    GPUBuffer *m_allFilteredMeshletsCount = nullptr;
+    uint32_t m_allFilteredMeshletsMaxCount = 0;
+    uint32_t m_requireMaxFilteredMeshlets = 0;
+    GPUBindlessRef *m_allFilteredMeshletsDesc = nullptr;
+
+    // Hiz buffer
+    std::shared_ptr<GPUTexture> m_hizTexture = nullptr;
+    std::vector<GPUBindlessRef *> m_hizDescs;
+    std::vector<GPUUniformBuffer *> m_hizTexSize;
+    std::shared_ptr<GPUSampler> m_hizDepthSampler = nullptr;
+    uint32_t m_hizIter = 0;
+
+    std::vector<std::shared_ptr<GPUBindlessId>> m_hizTestMips;
+    std::vector<uint32_t> m_hizTestMipsId;
+    GPUBuffer *m_hizTestMipsBuffer = nullptr;
+    GPUBindlessRef *m_hizTestDesc = nullptr;
+
+    // Instance culling
+    GPUBuffer *m_instCullDiscardObj = nullptr;
+    GPUBuffer *m_instCullPassedObj = nullptr;
+    GPUBuffer *m_persistCullIndirectDispatch = nullptr;
+    GPUBindlessRef *m_instCullDesc = nullptr;
+    uint32_t m_maxSupportedInstances = 0;
+  };
   constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat
       c_visibilityFormat =
           Ifrit::GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32_UINT;
-  std::shared_ptr<GPUColorRT> m_visColorRT = nullptr;
-  std::shared_ptr<GPUDepthRT> m_visDepthRT = nullptr;
-  std::shared_ptr<GPURTs> m_visRTs = nullptr;
 
-  // visibility buffer for 2nd pass, reference to the same texture, but without
-  // clearing
-  std::shared_ptr<GPUColorRT> m_visColorRT2 = nullptr;
-  std::shared_ptr<GPUDepthRT> m_visDepthRT2 = nullptr;
-  std::shared_ptr<GPURTs> m_visRTs2 = nullptr;
+  std::unordered_set<uint32_t> m_enabledEffects;
+  std::vector<PerShaderEffectData> m_shaderEffectData;
+  std::unordered_map<ShaderEffect, uint32_t, ShaderEffectHash>
+      m_shaderEffectMap;
+  PerShaderEffectData m_allInstanceData;
 
-  // all visible clusters
-  GPUBuffer *m_allFilteredMeshlets = nullptr;
-  GPUBuffer *m_allFilteredMeshletsCount = nullptr;
-  uint32_t m_allFilteredMeshletsMaxCount = 0;
-  uint32_t m_requireMaxFilteredMeshlets = 0;
-  GPUBindlessRef *m_allFilteredMeshletsDesc = nullptr;
+  // Per view data. Here for simplicity, assume 0 is the primary view
+  // Other views are for shadow maps, etc.
+  std::vector<PerViewData> m_views;
 
-  // Hiz buffer
-  std::shared_ptr<GPUTexture> m_hizTexture = nullptr;
-  std::vector<GPUBindlessRef *> m_hizDescs;
-  std::vector<GPUUniformBuffer *> m_hizTexSize;
-  std::shared_ptr<GPUSampler> m_hizDepthSampler = nullptr;
-  uint32_t m_hizIter = 0;
-
-  std::vector<std::shared_ptr<GPUBindlessId>> m_hizTestMips;
-  std::vector<uint32_t> m_hizTestMipsId;
-  GPUBuffer *m_hizTestMipsBuffer = nullptr;
-  GPUBindlessRef *m_hizTestDesc = nullptr;
+  // GBuffer
+  GBuffer m_gbuffer;
 
   // Visibility show
   std::shared_ptr<GPUSampler> m_visibilitySampler = nullptr;
