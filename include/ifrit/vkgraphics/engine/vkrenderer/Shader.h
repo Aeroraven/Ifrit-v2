@@ -25,6 +25,7 @@ private:
   std::string m_entryPoint;
   SpvReflectShaderModule m_reflectModule;
   std::vector<SpvReflectDescriptorSet *> m_reflectSets;
+  bool m_reflectionCreated = false;
 
   // Intended for pipeline cache
   std::string m_signature;
@@ -46,5 +47,8 @@ public:
 
   void cacheReflectionData();
   void recoverReflectionData();
+
+  // get signature
+  inline std::string getSignature() const { return m_signature; }
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

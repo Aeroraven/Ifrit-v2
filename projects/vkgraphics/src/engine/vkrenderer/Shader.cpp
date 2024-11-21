@@ -215,6 +215,7 @@ IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,
       m_reflectSets.resize(numDescSets);
       spvReflectEnumerateDescriptorSets(&m_reflectModule, &numDescSets,
                                         m_reflectSets.data());
+      m_reflectionCreated = true;
       cacheReflectionData();
     }
   }
@@ -246,7 +247,9 @@ IFRIT_APIDECL void ShaderModule::recoverReflectionData() {
 IFRIT_APIDECL ShaderModule::~ShaderModule() {
   vkDestroyShaderModule(m_context->getDevice(), m_module, nullptr);
   m_module = VK_NULL_HANDLE;
-  spvReflectDestroyShaderModule(&m_reflectModule);
+  if (m_reflectionCreated) {
+    spvReflectDestroyShaderModule(&m_reflectModule);
+  }
 }
 
 IFRIT_APIDECL VkShaderModule ShaderModule::getModule() const {

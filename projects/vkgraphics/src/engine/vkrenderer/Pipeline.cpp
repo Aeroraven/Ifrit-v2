@@ -1,6 +1,7 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/Pipeline.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
+#include "sha1/sha1.hpp"
 
 using namespace Ifrit::Common::Utility;
 
@@ -214,10 +215,72 @@ IFRIT_APIDECL void ComputePipeline::init() {
   // Stage
   pipelineCI.stage = m_createInfo.shaderModules->getStageCI();
 
-  auto res = vkCreateComputePipelines(m_context->getDevice(), nullptr, 1,
+  SHA1 sha1;
+  sha1.update("v1,");
+  sha1.update(m_createInfo.shaderModules->getSignature());
+  sha1.update(",");
+  sha1.update(std::to_string(m_createInfo.pushConstSize));
+  sha1.update(",");
+  sha1.update(std::to_string(m_createInfo.descriptorSetLayouts.size()));
+  auto digest = sha1.final();
+
+  // Cache
+  // save a pipeline cache
+  VkPipelineCacheCreateInfo cacheCI{};
+  cacheCI.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+  cacheCI.initialDataSize = 0;
+  cacheCI.pInitialData = nullptr;
+  cacheCI.flags = 0;
+
+  auto cacheDir = m_context->getCacheDirectory();
+  auto cachePath = cacheDir + "/vkgraphics.psocomp." + digest + ".cache";
+
+  VkPipelineCache cache;
+
+  bool cacheExists = false;
+  std::ifstream cacheFile(cachePath, std::ios::binary);
+  std::vector<uint8_t> cacheData;
+  if (cacheFile.is_open()) {
+    cacheExists = true;
+    cacheFile.seekg(0, std::ios::end);
+    size_t cacheSize = cacheFile.tellg();
+    cacheFile.seekg(0, std::ios::beg);
+    cacheData.resize(cacheSize);
+    cacheFile.read(reinterpret_cast<char *>(cacheData.data()), cacheSize);
+    cacheFile.close();
+  }
+
+  if (cacheExists) {
+    cacheCI.initialDataSize = cacheData.size();
+    cacheCI.pInitialData = cacheData.data();
+    printf("Cache exists\n");
+  }
+
+  vkrVulkanAssert(
+      vkCreatePipelineCache(m_context->getDevice(), &cacheCI, nullptr, &cache),
+      "Failed to create pipeline cache");
+
+  auto res = vkCreateComputePipelines(m_context->getDevice(), cache, 1,
                                       &pipelineCI, nullptr, &m_pipeline);
   vkrVulkanAssert(res, "Failed to create compute pipeline");
   m_pipelineCreated = true;
+
+  // Save the cache data
+  if (!cacheExists) {
+    size_t cacheSize = 0;
+    vkrVulkanAssert(vkGetPipelineCacheData(m_context->getDevice(), cache,
+                                           &cacheSize, nullptr),
+                    "Failed to get pipeline cache data size");
+    cacheData.resize(cacheSize);
+    vkrVulkanAssert(vkGetPipelineCacheData(m_context->getDevice(), cache,
+                                           &cacheSize, cacheData.data()),
+                    "Failed to get pipeline cache data");
+
+    std::ofstream cacheFile(cachePath, std::ios::binary);
+    cacheFile.write(reinterpret_cast<const char *>(cacheData.data()),
+                    cacheSize);
+    cacheFile.close();
+  }
 }
 
 IFRIT_APIDECL ComputePipeline::~ComputePipeline() {
