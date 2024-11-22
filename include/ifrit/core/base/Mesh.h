@@ -98,6 +98,12 @@ public:
   std::shared_ptr<MeshData> m_data;
 
   virtual std::shared_ptr<MeshData> loadMesh() { return m_data; }
+
+  // Profile result shows that the copy of shared_ptr takes most of
+  // game loop time, so a funcion indicating no ownership transfer
+  // might be useful
+  virtual MeshData *loadMeshUnsafe() { return m_data.get(); }
+
   inline void setGPUResource(GPUResource &resource) {
     m_resource.vertexBuffer = resource.vertexBuffer;
     m_resource.normalBuffer = resource.normalBuffer;

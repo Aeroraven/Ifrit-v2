@@ -389,26 +389,31 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
                                   bindlessRef, bindlessRefLast);
       }
       // update uniform buffer, TODO: dirty flag
-      float4x4 model = transform->getModelToWorldMatrix();
-      auto buf = transformBuffer->getActiveBuffer();
-      buf->map();
-      buf->writeBuffer(&model, sizeof(float4x4), 0);
-      buf->flush();
-      buf->unmap();
-      shaderEffect.m_objectData[i].transformRef = bindlessRef->getActiveId();
-      shaderEffect.m_objectData[i].transformRefLast =
-          bindlessRefLast->getActiveId();
+      auto transformDirty = transform->getDirtyFlag();
+      if (transformDirty.changed) {
+        float4x4 model = transform->getModelToWorldMatrix();
+        auto buf = transformBuffer->getActiveBuffer();
+        buf->map();
+        buf->writeBuffer(&model, sizeof(float4x4), 0);
+        buf->flush();
+        buf->unmap();
+        shaderEffect.m_objectData[i].transformRef = bindlessRef->getActiveId();
+        shaderEffect.m_objectData[i].transformRefLast =
+            bindlessRefLast->getActiveId();
+      }
 
       if (initLastFrameMatrix) {
         transform->onFrameCollecting();
       }
-      float4x4 modelLast = transform->getModelToWorldMatrixLast();
-      auto bufLast = transformBufferLast->getActiveBuffer();
-      bufLast->map();
-      bufLast->writeBuffer(&modelLast, sizeof(float4x4), 0);
-      bufLast->flush();
-      bufLast->unmap();
-      transform->onFrameCollecting();
+      if (initLastFrameMatrix || transformDirty.lastChanged) {
+        float4x4 modelLast = transform->getModelToWorldMatrixLast();
+        auto bufLast = transformBufferLast->getActiveBuffer();
+        bufLast->map();
+        bufLast->writeBuffer(&modelLast, sizeof(float4x4), 0);
+        bufLast->flush();
+        bufLast->unmap();
+        transform->onFrameCollecting();
+      }
 
       // Setup mesh buffers
       auto mesh = shaderEffect.m_meshes[i];

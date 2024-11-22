@@ -1005,17 +1005,20 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
     perframeData.m_allInstanceData.m_batchedObjBufRef->addStorageBuffer(buf, 0);
   }
   perframeData.m_allInstanceData.m_objectData.resize(totalInstances);
+  //TODO, EMERGENT: the logic is confusing here. Losing instance->mesh relation.
   for (auto i = 0; auto &x : perframeData.m_enabledEffects) {
     auto &effect = perframeData.m_shaderEffectData[x];
     for (auto &obj : effect.m_objectData) {
       perframeData.m_allInstanceData.m_objectData[i] = obj;
-
-      for (int k = 0; k < perframeData.m_shaderEffectData[x].m_materials.size();
-           k++) {
-        auto mesh = perframeData.m_shaderEffectData[x].m_meshes[k]->loadMesh();
-        totalMeshlets += mesh->m_meshlets.size();
-      }
       i++;
+    }
+    uint32_t objDataSize = static_cast<uint32_t>(effect.m_objectData.size());
+    uint32_t matSize = static_cast<uint32_t>(
+        perframeData.m_shaderEffectData[x].m_materials.size());
+    for (int k = 0; k < matSize; k++) {
+      auto mesh =
+          perframeData.m_shaderEffectData[x].m_meshes[k]->loadMeshUnsafe();
+      totalMeshlets += mesh->m_meshlets.size() * objDataSize;
     }
   }
   auto activeBuf =

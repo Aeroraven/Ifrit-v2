@@ -6,6 +6,7 @@ namespace Ifrit::Core {
 class IFRIT_APIDECL WaveFrontAsset : public Asset, public Mesh {
 private:
   std::shared_ptr<MeshData> m_selfData;
+  MeshData *m_selfDataRaw = nullptr;
   bool m_loaded = false;
 
 public:
@@ -18,6 +19,7 @@ public:
     m_usingAsset = true;
   }
   std::shared_ptr<MeshData> loadMesh() override;
+  MeshData *loadMeshUnsafe() override;
   inline Mesh &getMesh() { return *this; }
 };
 class IFRIT_APIDECL WaveFrontAssetImporter : public AssetImporter {

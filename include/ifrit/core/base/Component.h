@@ -83,7 +83,12 @@ public:
     auto typeName = typeid(T).name();
     auto it = m_components.find(typeName);
     if (it != m_components.end()) {
+      // if debug
+#ifdef _DEBUG
       return std::dynamic_pointer_cast<T>(it->second);
+#else
+      return std::static_pointer_cast<T>(it->second);
+#endif
     }
     return nullptr;
   }
@@ -152,7 +157,11 @@ private:
   std::shared_ptr<GPUBindId> m_gpuBindlessRefLast = nullptr;
 
   TransformAttribute m_lastFrame;
-  bool changed = true;
+
+  struct DirtyFlag {
+    bool changed = true;
+    bool lastChanged = true;
+  } m_dirty;
 
 public:
   Transform(){};
@@ -162,9 +171,11 @@ public:
   void deserialize() override { deserializeAttribute(); }
 
   inline void onFrameCollecting() {
-    if (changed) {
+    if (m_dirty.changed) {
       m_lastFrame = m_attributes;
     }
+    m_dirty.lastChanged = m_dirty.changed;
+    m_dirty.changed = false;
   }
 
   // getters
@@ -175,18 +186,20 @@ public:
   // setters
   inline void setPosition(const ifloat3 &pos) {
     m_attributes.m_position = pos;
-    changed = true;
+    m_dirty.changed = true;
   }
   inline void setRotation(const ifloat3 &rot) {
     m_attributes.m_rotation = rot;
-    changed = true;
+    m_dirty.changed = true;
   }
   inline void setScale(const ifloat3 &scale) {
     m_attributes.m_scale = scale;
-    changed = true;
+    m_dirty.changed = true;
   }
 
-  inline void markUnchanged() { changed = false; }
+  inline void markUnchanged() { m_dirty.changed = false; }
+
+  inline DirtyFlag getDirtyFlag() { return m_dirty; }
 
   float4x4 getModelToWorldMatrix();
   float4x4 getModelToWorldMatrixLast();

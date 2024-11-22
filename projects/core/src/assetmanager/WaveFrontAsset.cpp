@@ -149,6 +149,17 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
   return m_selfData;
 }
 
+IFRIT_APIDECL MeshData *WaveFrontAsset::loadMeshUnsafe() {
+  if (m_selfDataRaw == nullptr) {
+    if (m_selfData == nullptr) {
+      m_selfDataRaw = loadMesh().get();
+    } else {
+      m_selfDataRaw = m_selfData.get();
+    }
+  }
+  return m_selfDataRaw;
+}
+
 // Importer
 IFRIT_APIDECL void
 WaveFrontAssetImporter::processMetadata(AssetMetadata &metadata) {
