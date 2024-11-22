@@ -194,7 +194,6 @@ void enqueueClusterGroup(uint id, uint clusterRef){
     }else{
         pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1,numMeshlets);
     }
-    
 
     for(uint i = 0;i<group.childMeshletCount;i++){
         uint meshletId = GetResource(bMeshletsInClusterGroup,micRef).data[group.childMeshletStart + i];

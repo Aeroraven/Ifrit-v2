@@ -14,7 +14,7 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
   const size_t max_vertices = 64;
   const size_t max_triangles = 124;
   const float cone_weight = 0.0f;
-  constexpr int MAX_LOD = 4;
+  constexpr int MAX_LOD = 8;
 
   MeshClusterLodProc meshProc;
   MeshDescriptor meshDesc;

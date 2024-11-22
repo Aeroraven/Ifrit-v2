@@ -281,6 +281,7 @@ IFRIT_APIDECL void EngineContext::init() {
       {};
   VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures{};
   VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
+  VkPhysicalDeviceHostQueryResetFeaturesEXT hostQueryResetFeatures{};
 
   deviceFeatures12.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -296,6 +297,7 @@ IFRIT_APIDECL void EngineContext::init() {
   deviceFeatures12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
   deviceFeatures12.descriptorBindingVariableDescriptorCount = VK_TRUE;
   deviceFeatures12.runtimeDescriptorArray = VK_TRUE;
+  deviceFeatures12.hostQueryReset = VK_TRUE;
   deviceFeatures12.pNext = &deviceFeaturesDynamic;
 
   deviceFeaturesDynamic.sType =

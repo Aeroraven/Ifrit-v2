@@ -13,6 +13,7 @@ class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
   using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
   using GPURTs = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
+  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandBuffer;
 
   enum class CullingPass { First, Second };
 
@@ -64,6 +65,9 @@ private:
                      PipelineAttachmentConfigsHash>
       m_deferredShadingPass;
 
+  // Timer
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer> m_timer;
+
 private:
   // Util functions
   GPUShader *createShaderFromFile(const std::string &shaderPath,
@@ -81,6 +85,7 @@ private:
   void setupEmitDepthTargetsPass();
   void setupMaterialClassifyPass();
   void setupDefaultEmitGBufferPass();
+  void createTimer();
 
   void setupDeferredShadingPass(RenderTargets *renderTargets);
 
@@ -100,25 +105,23 @@ private:
 
 private:
   // Decompose the rendering procedure into many parts
-  std::unique_ptr<GPUCommandSubmission> renderTwoPassOcclCulling(
-      CullingPass cullPass, PerFrameData &perframeData,
-      RenderTargets *renderTargets,
-      const std::vector<GPUCommandSubmission *> &cmdToWait);
+  void renderTwoPassOcclCulling(CullingPass cullPass,
+                                PerFrameData &perframeData,
+                                RenderTargets *renderTargets,
+                                const GPUCmdBuffer *cmd);
 
-  std::unique_ptr<GPUCommandSubmission>
-  renderEmitDepthTargets(PerFrameData &perframeData,
-                         RenderTargets *renderTargets,
-                         const std::vector<GPUCommandSubmission *> &cmdToWait);
+  void renderEmitDepthTargets(PerFrameData &perframeData,
+                              RenderTargets *renderTargets,
+                              const GPUCmdBuffer *cmd);
 
-  std::unique_ptr<GPUCommandSubmission>
-  renderMaterialClassify(PerFrameData &perframeData,
-                         RenderTargets *renderTargets,
-                         const std::vector<GPUCommandSubmission *> &cmdToWait);
+  void renderMaterialClassify(PerFrameData &perframeData,
+                              RenderTargets *renderTargets,
+                              const GPUCmdBuffer *cmd);
 
   // This is for debugging. The proc should be material-specific
-  std::unique_ptr<GPUCommandSubmission> renderDefaultEmitGBuffer(
-      PerFrameData &perframeData, RenderTargets *renderTargets,
-      const std::vector<GPUCommandSubmission *> &cmdToWait);
+  void renderDefaultEmitGBuffer(PerFrameData &perframeData,
+                                RenderTargets *renderTargets,
+                                const GPUCmdBuffer *cmd);
 
   std::unique_ptr<GPUCommandSubmission>
   renderDeferredShading(PerFrameData &perframeData,
@@ -135,6 +138,7 @@ public:
     setupEmitDepthTargetsPass();
     setupMaterialClassifyPass();
     setupDefaultEmitGBufferPass();
+    createTimer();
   }
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,

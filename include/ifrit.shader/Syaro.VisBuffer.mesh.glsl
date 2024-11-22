@@ -6,10 +6,8 @@
 #include "Bindless.glsl"
 #include "Syaro.Shared.glsl"
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 64, max_primitives = 124) out;
-
-
 
 RegisterStorage(bMeshlet,{
     Meshlet data[];
@@ -135,25 +133,26 @@ void main(){
     mat4 proj = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_perspective;
     mat4 mvp = proj * view * model;
 
-
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint inst = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     uint filterRef = GetResource(bInstanceDataRef,inst).filteredMeshletsBuffer;
     uint vertexRef = GetResource(bMeshDataRef,obj).vertexBuffer;
 
-
-
     uint totalTris = GetResource(bMeshlet,meshletRef).data[mi].triangle_count;
     uint totalVerts = GetResource(bMeshlet,meshletRef).data[mi].vertex_count;
     SetMeshOutputsEXT(totalVerts, totalTris);
-    for(uint i = 0; i < totalVerts ; i++){
+
+    uint gtid = gl_LocalInvocationID.x;
+    if(gtid < totalVerts){
+        uint i = gtid;
         uint vi = readVertexIndex(mi,i);
         vec3 v0 = GetResource(bVertices,vertexRef).data[vi].xyz;
         gl_MeshVerticesEXT[i].gl_Position = mvp * vec4(v0,1.0);
         ids[i] = getClusterID();
     }
-    for(uint i = 0; i < totalTris ; i++){
+    if(gtid < totalTris){
+        uint i = gtid;
         uint triIndexA = readTriangleIndex(mi,i*3 + 0);
         uint triIndexB = readTriangleIndex(mi,i*3 + 1);
         uint triIndexC = readTriangleIndex(mi,i*3 + 2);

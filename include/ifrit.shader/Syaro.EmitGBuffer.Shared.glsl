@@ -84,6 +84,7 @@ layout(binding = 0, set = 6) uniform EmitDepthTargetData{
     uint visBufferRef;
 }uEmitDepthTargetData;
 
+
 layout(push_constant) uniform EmitGBufferPushConstant{
     uint materialIndex;
     uint renderWidth;
@@ -93,10 +94,19 @@ layout(push_constant) uniform EmitGBufferPushConstant{
 uint gbcomp_GetGBufferId(){
     return uGBufferRefs.gBufferRef;
 }
+uint gbcomp_GetTotalPixels(){
+    uint materialIndex = uEmitGBufferPushConstant.materialIndex;
+    uint thisMaterialCounter = GetResource(bMaterialCounter, uMaterialPassData.materialCounterRef).data[materialIndex].counter;
+    return thisMaterialCounter;
+}
 
 uvec2 gbcomp_GetPixel(){
     uint materialIdx = uEmitGBufferPushConstant.materialIndex;
     uint tX = gl_GlobalInvocationID.x;
+    uint totalPx = gbcomp_GetTotalPixels();
+    if(tX>=totalPx){
+        return uvec2(~0,~0);
+    }
     uint offset = GetResource(bMaterialCounter, uMaterialPassData.materialCounterRef).data[materialIdx].offset;
     uint pixelIdx = GetResource(bMaterialPixelList, uMaterialPassData.materialPixelListRef).data[offset + tX];
     uint pX = pixelIdx % uEmitGBufferPushConstant.renderWidth;

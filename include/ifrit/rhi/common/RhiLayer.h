@@ -57,6 +57,8 @@ class RhiVertexBufferView;
 
 struct RhiImageSubResource;
 
+class RhiDeviceTimer;
+
 // Enums
 enum RhiBufferUsage {
   RHI_BUFFER_USAGE_TRANSFER_SRC_BIT = 0x00000001,
@@ -421,7 +423,9 @@ protected:
 
 public:
   virtual ~RhiBackend() = default;
+  // Timer
 
+  virtual std::shared_ptr<RhiDeviceTimer> createDeviceTimer() = 0;
   // Memory resource
   virtual void waitDeviceIdle() = 0;
 
@@ -819,6 +823,13 @@ protected:
       std::vector<uint32_t> location, std::vector<Rhi::RhiImageFormat> format,
       std::vector<uint32_t> offset, uint32_t stride,
       Rhi::RhiVertexInputRate inputRate = Rhi::RhiVertexInputRate::Vertex) = 0;
+};
+
+class IFRIT_APIDECL RhiDeviceTimer {
+public:
+  virtual void start(const RhiCommandBuffer *cmd) = 0;
+  virtual void stop(const RhiCommandBuffer *cmd) = 0;
+  virtual float getElapsedMs() = 0;
 };
 
 } // namespace Ifrit::GraphicsBackend::Rhi

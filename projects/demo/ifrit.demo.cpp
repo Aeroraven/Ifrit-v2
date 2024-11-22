@@ -52,9 +52,16 @@ private:
   RhiTexture *swapchainImg;
   float timing = 0;
 
-  constexpr static std::array<ifloat3, 4> bunnyPositions = {
-      ifloat3{-0.2f, 0.0f, 0.0f}, ifloat3{0.3f, 0.0f, 0.0f},
-      ifloat3{0.0f, 0.0f, 0.0f}, ifloat3{0.0f, 0.0f, 25.5f}};
+  constexpr static uint32_t bunnyPlacementX = 40;
+  constexpr static uint32_t bunnyPlacementY = 1;
+  constexpr static uint32_t bunnyPlacementZ = 20;
+
+  constexpr static float bunnyMinX = -4.0;
+  constexpr static float bunnyMaxX = 4.0;
+  constexpr static float bunnyMinY = 0.0;
+  constexpr static float bunnyMaxY = 0.0;
+  constexpr static float bunnyMinZ = 0.0;
+  constexpr static float bunnyMaxZ = 10.0;
 
 public:
   void onStart() override {
@@ -79,20 +86,6 @@ public:
     auto s = m_sceneAssetManager->createScene("TestScene2");
     auto node = s->addSceneNode();
 
-    for (int i = 0; i < bunnyPositions.size(); i++) {
-      auto gameObject = node->addGameObject("bunny");
-      auto meshFilter = gameObject->addComponent<MeshFilter>();
-      meshFilter->setMesh(obj);
-      auto meshRenderer = gameObject->addComponent<MeshRenderer>();
-      meshRenderer->setMaterial(m_material);
-
-      auto objectTransform = gameObject->addComponent<Transform>();
-      objectTransform->setPosition(
-          {bunnyPositions[i].x, bunnyPositions[i].y, bunnyPositions[i].z});
-      objectTransform->setRotation({0.0f, 0.0f, 0.0f});
-      objectTransform->setScale({1.0f, 1.0f, 1.0f});
-    }
-
     auto cameraGameObject = node->addGameObject("camera");
     auto camera = cameraGameObject->addComponent<Camera>();
     camera->setMainCamera(true);
@@ -105,6 +98,29 @@ public:
     cameraTransform->setPosition({0.0f, 0.1f, -1.25f});
     cameraTransform->setRotation({0.0f, 0.0f, 0.0f});
     cameraTransform->setScale({1.0f, 1.0f, 1.0f});
+
+    for (int dx = 0; dx < bunnyPlacementX; dx++) {
+      for (int dy = 0; dy < bunnyPlacementY; dy++) {
+        for (int dz = 0; dz < bunnyPlacementZ; dz++) {
+          auto gameObject = node->addGameObject("bunny");
+          auto meshFilter = gameObject->addComponent<MeshFilter>();
+          meshFilter->setMesh(obj);
+          auto meshRenderer = gameObject->addComponent<MeshRenderer>();
+          meshRenderer->setMaterial(m_material);
+
+          auto objectTransform = gameObject->addComponent<Transform>();
+          auto posX = std::lerp(bunnyMinX, bunnyMaxX,
+                                1.0f * dx / std::max(1u, bunnyPlacementX - 1));
+          auto posY = std::lerp(bunnyMinY, bunnyMaxY,
+                                1.0f * dy / std::max(1u, bunnyPlacementY - 1));
+          auto posZ = std::lerp(bunnyMinZ, bunnyMaxZ,
+                                1.0f * dz / std::max(1u, bunnyPlacementZ - 1));
+          objectTransform->setPosition({posX, posY, posZ});
+          objectTransform->setRotation({0.0f, 0.0f, 0.0f});
+          objectTransform->setScale({1.0f, 1.0f, 1.0f});
+        }
+      }
+    }
 
     // Render targets
     auto rt = m_rhiLayer.get();
@@ -125,7 +141,7 @@ public:
     auto cameraGameObject = m_sceneAssetManager->getScene("TestScene2")
                                 ->getRootNode()
                                 ->getChildren()[0]
-                                ->getGameObject(bunnyPositions.size());
+                                ->getGameObject(0);
     auto camera = cameraGameObject->getComponent<Transform>();
     timing = timing + 0.00f;
     camera->setPosition({0.0f + movRight - movLeft + 0.5f * std::sin(timing),

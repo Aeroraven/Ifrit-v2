@@ -46,6 +46,11 @@ SyaroRenderer::getPrimaryView(PerFrameData &perframeData) {
   throw std::runtime_error("Primary view not found");
   return perframeData.m_views[0];
 }
+IFRIT_APIDECL void SyaroRenderer::createTimer() {
+  auto rhi = m_app->getRhiLayer();
+  auto timer = rhi->createDeviceTimer();
+  m_timer = timer;
+}
 
 IFRIT_APIDECL SyaroRenderer::GPUShader *SyaroRenderer::createShaderFromFile(
     const std::string &shaderPath, const std::string &entry,
@@ -284,7 +289,7 @@ SyaroRenderer::materialClassifyBufferSetup(PerFrameData &perframeData,
 
     perframeData.m_matClassIndirectDispatchBuffer =
         rhi->createStorageBufferDevice(
-            sizeof(uint32_t) * 3,
+            sizeof(uint32_t) * 4 * numMaterials,
             RhiBufferUsage::RHI_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
                 RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
   }
@@ -412,10 +417,9 @@ SyaroRenderer::recreateInstanceCullingBuffers(PerFrameData &perframe,
   }
 }
 
-IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
-SyaroRenderer::renderEmitDepthTargets(
+IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
     PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
-    const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
+    const GPUCmdBuffer *cmd) {
   auto rhi = m_app->getRhiLayer();
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
   auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
@@ -447,28 +451,24 @@ SyaroRenderer::renderEmitDepthTargets(
         ctx->m_cmd->dispatch(wgX, wgY, 1);
       });
 
-  auto emitDepthTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        cmd->beginScope("Syaro: Emit Depth Targets");
-        m_emitDepthTargetsPass->run(cmd, 0);
-        cmd->endScope();
-      },
-      cmdToWait, {});
-  return emitDepthTask;
+  cmd->globalMemoryBarrier();
+  cmd->beginScope("Syaro: Emit Depth Targets");
+  m_emitDepthTargetsPass->run(cmd, 0);
+  cmd->endScope();
 }
-IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
-SyaroRenderer::renderTwoPassOcclCulling(
+IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
     CullingPass cullPass, PerFrameData &perframeData,
-    SyaroRenderer::RenderTargets *renderTargets,
-    const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
+    RenderTargets *renderTargets, const GPUCmdBuffer *cmd) {
   auto rhi = m_app->getRhiLayer();
   auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
 
   int pcData[2] = {0, 1};
-  std::vector<SyaroRenderer::GPUCommandSubmission *> lastToWait = cmdToWait;
   std::unique_ptr<SyaroRenderer::GPUCommandSubmission> lastTask = nullptr;
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
+    if (k != 0 && cullPass != CullingPass::First) {
+      cmd->globalMemoryBarrier();
+    }
     auto &perView = perframeData.m_views[k];
     m_instanceCullingPass->setRecordFunction(
         [&](const RhiRenderPassContext *ctx) {
@@ -586,43 +586,34 @@ SyaroRenderer::renderTwoPassOcclCulling(
       }
     });
 
-    auto instanceCullTask = drawq->runAsyncCommand(
-        [&](const RhiCommandBuffer *cmd) {
-          cmd->beginScope("Syaro: Instance Culling Pass");
-          m_instanceCullingPass->run(cmd, 0);
-          cmd->endScope();
-          cmd->beginScope("Syaro: Persistent Culling Pass");
-          m_persistentCullingPass->run(cmd, 0);
-          cmd->endScope();
-          cmd->globalMemoryBarrier();
-          if (cullPass == CullingPass::First) {
-            cmd->beginScope("Syaro: Visibility Pass, First");
-            m_visibilityPass->run(cmd, perView.m_visRTs.get(), 0);
-            cmd->endScope();
-          } else {
-            // we wont clear the visibility buffer in the second pass
-            cmd->beginScope("Syaro: Visibility Pass, Second");
-            m_visibilityPass->run(cmd, perView.m_visRTs2.get(), 0);
-            cmd->endScope();
-          }
-          cmd->globalMemoryBarrier();
-          cmd->beginScope("Syaro: HiZ Pass");
-          m_hizPass->run(cmd, 0);
-          cmd->endScope();
-        },
-        lastToWait, {});
-
-    lastToWait = {instanceCullTask.get()};
-    lastTask = std::move(instanceCullTask);
+    cmd->beginScope("Syaro: Instance Culling Pass");
+    m_instanceCullingPass->run(cmd, 0);
+    cmd->endScope();
+    cmd->beginScope("Syaro: Persistent Culling Pass");
+    m_persistentCullingPass->run(cmd, 0);
+    cmd->endScope();
+    cmd->globalMemoryBarrier();
+    if (cullPass == CullingPass::First) {
+      cmd->beginScope("Syaro: Visibility Pass, First");
+      m_visibilityPass->run(cmd, perView.m_visRTs.get(), 0);
+      cmd->endScope();
+    } else {
+      // we wont clear the visibility buffer in the second pass
+      cmd->beginScope("Syaro: Visibility Pass, Second");
+      m_visibilityPass->run(cmd, perView.m_visRTs2.get(), 0);
+      cmd->endScope();
+    }
+    cmd->globalMemoryBarrier();
+    cmd->beginScope("Syaro: HiZ Pass");
+    m_hizPass->run(cmd, 0);
+    cmd->endScope();
   }
-
-  return lastTask;
 }
 
-IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
-SyaroRenderer::renderMaterialClassify(
-    PerFrameData &perframeData, RenderTargets *renderTargets,
-    const std::vector<GPUCommandSubmission *> &cmdToWait) {
+IFRIT_APIDECL void
+SyaroRenderer::renderMaterialClassify(PerFrameData &perframeData,
+                                      RenderTargets *renderTargets,
+                                      const GPUCmdBuffer *cmd) {
   auto rhi = m_app->getRhiLayer();
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
   auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
@@ -674,35 +665,15 @@ SyaroRenderer::renderMaterialClassify(
         ctx->m_cmd->dispatch(wgX, wgY, 1);
       });
 
-  // Debug
-  m_matclassDebugPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    ctx->m_cmd->clearUAVImageFloat(perframeData.m_matClassDebug.get(),
-                                   {0, 0, 1, 1}, {0.0f, 0.0f, 0.0f, 0.0f});
-    ctx->m_cmd->imageBarrier(perframeData.m_matClassDebug.get(),
-                             RhiResourceState::Common,
-                             RhiResourceState::UAVStorageImage, {0, 0, 1, 1});
-    ctx->m_cmd->attachBindlessReferenceCompute(m_matclassDebugPass, 1,
-                                               perframeData.m_matClassDesc);
-    ctx->m_cmd->setPushConst(m_matclassDebugPass, 0, sizeof(uint32_t) * 3,
-                             &pcData[0]);
-    ctx->m_cmd->dispatchIndirect(perframeData.m_matClassIndirectDispatchBuffer,
-                                 0);
-  });
-
   // Start rendering
-  auto matclassTask = compq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        cmd->beginScope("Syaro: Material Classification");
-        m_matclassCountPass->run(cmd, 0);
-        cmd->resourceBarrier(perframeData.m_matClassBarrier);
-        m_matclassReservePass->run(cmd, 0);
-        cmd->resourceBarrier(perframeData.m_matClassBarrier);
-        m_matclassScatterPass->run(cmd, 0);
-        cmd->endScope();
-      },
-      cmdToWait, {});
-
-  return matclassTask;
+  cmd->globalMemoryBarrier();
+  cmd->beginScope("Syaro: Material Classification");
+  m_matclassCountPass->run(cmd, 0);
+  cmd->resourceBarrier(perframeData.m_matClassBarrier);
+  m_matclassReservePass->run(cmd, 0);
+  cmd->resourceBarrier(perframeData.m_matClassBarrier);
+  m_matclassScatterPass->run(cmd, 0);
+  cmd->endScope();
 }
 
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
@@ -744,18 +715,28 @@ SyaroRenderer::render(
         0, {rhi->getFullScreenQuadVertexBuffer().get()});
     ctx->m_cmd->drawInstanced(3, 1, 0, 0);
   });
-  auto firstCullTask = renderTwoPassOcclCulling(
-      CullingPass::First, perframeData, renderTargets, cmdToWait);
-  auto secondCullTask = renderTwoPassOcclCulling(
-      CullingPass::Second, perframeData, renderTargets, {firstCullTask.get()});
-  auto emitDepthTask = renderEmitDepthTargets(perframeData, renderTargets,
-                                              {secondCullTask.get()});
-  auto matClassTask = renderMaterialClassify(perframeData, renderTargets,
-                                             {emitDepthTask.get()});
-  auto emitGBufferTask = renderDefaultEmitGBuffer(perframeData, renderTargets,
-                                                  {matClassTask.get()});
-  auto deferredTask = renderDeferredShading(perframeData, renderTargets,
-                                            {emitGBufferTask.get()});
+
+  auto dq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+  auto mainTask = dq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) {
+        printf("GPUTimer:%f\n", m_timer->getElapsedMs());
+        m_timer->start(cmd);
+        renderTwoPassOcclCulling(CullingPass::First, perframeData,
+                                 renderTargets, cmd);
+        cmd->globalMemoryBarrier();
+        renderTwoPassOcclCulling(CullingPass::Second, perframeData,
+                                 renderTargets, cmd);
+        cmd->globalMemoryBarrier();
+        renderEmitDepthTargets(perframeData, renderTargets, cmd);
+        cmd->globalMemoryBarrier();
+        renderMaterialClassify(perframeData, renderTargets, cmd);
+        cmd->globalMemoryBarrier();
+        renderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
+        m_timer->stop(cmd);
+      },
+      cmdToWait, {});
+  auto deferredTask =
+      renderDeferredShading(perframeData, renderTargets, {mainTask.get()});
   return deferredTask;
 }
 
@@ -919,10 +900,10 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
   }
 }
 
-IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
-SyaroRenderer::renderDefaultEmitGBuffer(
-    PerFrameData &perframeData, RenderTargets *renderTargets,
-    const std::vector<GPUCommandSubmission *> &cmdToWait) {
+IFRIT_APIDECL void
+SyaroRenderer::renderDefaultEmitGBuffer(PerFrameData &perframeData,
+                                        RenderTargets *renderTargets,
+                                        const GPUCmdBuffer *cmd) {
   auto numMaterials = perframeData.m_enabledEffects.size();
   auto rtArea = renderTargets->getRenderArea();
   m_defaultEmitGBufferPass->setRecordFunction([&](const RhiRenderPassContext
@@ -992,21 +973,16 @@ SyaroRenderer::renderDefaultEmitGBuffer(
       ctx->m_cmd->resourceBarrier({barrierCountBuffer});
       ctx->m_cmd->dispatchIndirect(
           perframeData.m_matClassIndirectDispatchBuffer,
-          i * sizeof(uint32_t) * 3);
+          i * sizeof(uint32_t) * 4);
       ctx->m_cmd->resourceBarrier(perframeData.m_gbuffer.m_gbufferBarrier);
     }
   });
   auto rhi = m_app->getRhiLayer();
   auto computeQueue = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
-  auto emitGBufferTask = computeQueue->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        cmd->beginScope("Syaro: Emit "
-                        "GBuffer");
-        m_defaultEmitGBufferPass->run(cmd, 0);
-        cmd->endScope();
-      },
-      cmdToWait, {});
-  return emitGBufferTask;
+  cmd->globalMemoryBarrier();
+  cmd->beginScope("Syaro: Emit  GBuffer");
+  m_defaultEmitGBufferPass->run(cmd, 0);
+  cmd->endScope();
 }
 
 IFRIT_APIDECL void

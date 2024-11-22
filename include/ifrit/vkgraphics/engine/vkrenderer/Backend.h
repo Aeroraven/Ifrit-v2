@@ -20,6 +20,7 @@ public:
   ~RhiVulkanBackend();
 
   void waitDeviceIdle() override;
+  std::shared_ptr<Rhi::RhiDeviceTimer> createDeviceTimer() override;
   Rhi::RhiBuffer *createBuffer(uint32_t size, uint32_t usage,
                                bool hostVisible) const override;
   Rhi::RhiBuffer *createIndirectMeshDrawBufferDevice(uint32_t drawCalls,

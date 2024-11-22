@@ -3,6 +3,7 @@
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderTargets.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/Timer.h"
 
 using namespace Ifrit::Common::Utility;
 
@@ -33,6 +34,9 @@ struct RhiVulkanBackendImplDetails : public NonCopyable {
   std::shared_ptr<SingleBuffer> m_fullScreenQuadVertexBuffer;
   std::shared_ptr<VertexBufferDescriptor>
       m_fullScreenQuadVertexBufferDescriptor;
+
+  // timers
+  std::vector<std::shared_ptr<DeviceTimer>> m_deviceTimers;
 };
 
 IFRIT_APIDECL
@@ -88,6 +92,16 @@ RhiVulkanBackend::RhiVulkanBackend(const Rhi::RhiInitializeArguments &args) {
 IFRIT_APIDECL void RhiVulkanBackend::waitDeviceIdle() {
   auto p = checked_cast<EngineContext>(m_device.get());
   p->waitIdle();
+}
+
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiDeviceTimer>
+RhiVulkanBackend::createDeviceTimer() {
+  auto swapchain = checked_cast<Swapchain>(m_swapChain.get());
+  auto numFrameInFlight = swapchain->getNumBackbuffers();
+  auto p = std::make_shared<DeviceTimer>(
+      checked_cast<EngineContext>(m_device.get()), numFrameInFlight);
+  m_implDetails->m_deviceTimers.push_back(p);
+  return p;
 }
 
 IFRIT_APIDECL Rhi::RhiBuffer *
@@ -259,6 +273,9 @@ IFRIT_APIDECL void RhiVulkanBackend::beginFrame() {
   }
   for (auto &idRef : m_implDetails->m_bindlessIdRefs) {
     idRef->activeFrame = m_swapChain->getCurrentImageIndex();
+  }
+  for (auto &timer : m_implDetails->m_deviceTimers) {
+    timer->frameProceed();
   }
 }
 IFRIT_APIDECL void RhiVulkanBackend::endFrame() {
