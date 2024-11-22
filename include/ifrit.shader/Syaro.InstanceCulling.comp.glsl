@@ -130,36 +130,68 @@ bool occlusionCull(vec4 boundBall, float radius){
     uint totalLods = uint(GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_hizLods);
     mat4 proj = GetResource(bPerframeView,getPerFrameRef()).data.m_perspective;
     float fovY = GetResource(bPerframeView,getPerFrameRef()).data.m_cameraFovY;
-    float distBall = length(boundBall.xyz);
-    float radiusProjected = computeProjectedRadius(fovY,distBall,radius);
-    vec4 projBall = proj * boundBall;
-    vec3 projBall3 = projBall.xyz / projBall.w;
 
-    projBall3 = projBall3 * 0.5 + 0.5;
+    // Make 8 AABB corners
+    vec4 boundBallAABB[8];
+    boundBallAABB[0] = boundBall + vec4(radius,radius,radius,0.0);
+    boundBallAABB[1] = boundBall + vec4(-radius,radius,radius,0.0);
+    boundBallAABB[2] = boundBall + vec4(radius,-radius,radius,0.0);
+    boundBallAABB[3] = boundBall + vec4(-radius,-radius,radius,0.0);
+    boundBallAABB[4] = boundBall + vec4(radius,radius,-radius,0.0);
+    boundBallAABB[5] = boundBall + vec4(-radius,radius,-radius,0.0);
+    boundBallAABB[6] = boundBall + vec4(radius,-radius,-radius,0.0);
+    boundBallAABB[7] = boundBall + vec4(-radius,-radius,-radius,0.0);
 
-    uint ballDiameter = uint(radiusProjected * 2.0 * float(max(renderWidth,renderHeight)));
-    float lod = clamp(log2(float(ballDiameter)) - 1.0,0.0,float(totalLods - 1));
+    vec4 projBoundBallAABB[8];
+    vec3 projBoundBallUVz[8];
+    bool ableToCull = true;
+    for(int i = 0; i < 8; i++){
+        projBoundBallAABB[i] = proj * boundBallAABB[i];
+        if(projBoundBallAABB[i].w <= 0.0){
+            ableToCull = false;
+            break;
+        }
+        vec3 projBoundBallAABB3 = projBoundBallAABB[i].xyz / projBoundBallAABB[i].w;
+        float projZ = projBoundBallAABB3.z;
+        projBoundBallAABB3 = projBoundBallAABB3 * 0.5 + 0.5;
+        projBoundBallUVz[i] = projBoundBallAABB3;
+        projBoundBallUVz[i].z = projZ;
+        if(projBoundBallUVz[i].x < 0.0 || projBoundBallUVz[i].y < 0.0 || projBoundBallUVz[i].x > 1.0 || projBoundBallUVz[i].y > 1.0){
+            ableToCull = false;
+            break;
+        }
+    }
+    if(!ableToCull){
+        return false;
+    }
+    // get lod to use
+    vec2 minUV = vec2(1.0,1.0);
+    vec2 maxUV = vec2(0.0,0.0);
+    float minZ = 1.0;
+    for(int i = 0; i < 8; i++){
+        minUV = min(minUV,projBoundBallUVz[i].xy);
+        maxUV = max(maxUV,projBoundBallUVz[i].xy);
+        minZ = min(minZ,projBoundBallUVz[i].z);
+    }
+    uint rectW = uint((maxUV.x - minUV.x) * float(renderWidth));
+    uint rectH = uint((maxUV.y - minUV.y) * float(renderHeight));
+    float lod = clamp(log2(float(max(rectW,rectH))) ,0.0,float(totalLods - 1));
     uint lodIndex = uint(lod);
 
-    uint texW = max(1,renderWidth >> lodIndex);
-    uint texH = max(1,renderHeight >> lodIndex);
+    // then fetch the hiz value
+    uint lodWidth = renderWidth >> lodIndex;
+    uint lodHeight = renderHeight >> lodIndex;
+    uvec2 minUVInt = uvec2(minUV * vec2(lodWidth,lodHeight));
+    
+    float depth1 = hizFetch(lodIndex,minUVInt.x,minUVInt.y);
+    float depth2 = hizFetch(lodIndex,minUVInt.x + 1,minUVInt.y);
+    float depth3 = hizFetch(lodIndex,minUVInt.x,minUVInt.y + 1);
+    float depth4 = hizFetch(lodIndex,minUVInt.x + 1,minUVInt.y + 1);
 
-    float ballSx = projBall3.x - radiusProjected * 0.5;
-    float ballSy = projBall3.y - radiusProjected * 0.5;
-
-    // get starting pixels for ballSx, ballSy
-    uint ballSxPx = uint(ballSx * float(texW));
-    uint ballSyPx = uint(ballSy * float(texH));
-
-    // fetch depth value from hiz mip
-    uint hizMip = GetResource(bHizMipsReference,uHizMipsRef.ref).ref[lodIndex];
-    float depth1 = hizFetch(lodIndex,ballSxPx,ballSyPx);
-    float depth2 = hizFetch(lodIndex,ballSxPx + 1,ballSyPx);
-    float depth3 = hizFetch(lodIndex,ballSxPx,ballSyPx + 1);
-    float depth4 = hizFetch(lodIndex,ballSxPx + ballDiameter,ballSyPx + 1);
     float maxDepth = max(max(depth1,depth2),max(depth3,depth4));
 
-    if(projBall3.z > maxDepth){
+    // check if the aabb is occluded
+    if(minZ > maxDepth){
         return true;
     }
     return false;
