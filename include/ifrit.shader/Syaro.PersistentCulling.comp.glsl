@@ -111,7 +111,7 @@ bool isSecondCullingPass(){
 
 float computeProjectedRadius(float fovy,float d,float r) {
   // https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
-  float fov = fovy / 2;
+  float fov = fovy * 0.5;
   return 1.0 / tan(fov) * r / sqrt(d * d - r * r); 
 }
 
@@ -123,13 +123,11 @@ uint getObjId(){
     return GetResource(bInstanceAccepted,uIndirectCompInstCull.acceptRef).data[gl_WorkGroupID.x];
 }
 
-bool isClusterGroupVisible(uint id){
+bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight){
     uint objId = getObjId();
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
-    uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
     uint cpcntRefMesh = GetResource(bMeshDataRef,obj).cpCounterBuffer;
-    uint cpcntRefInst = GetResource(bInstanceDataRef,instId).cpCounterBuffer;
 
     uint clusterRef = GetResource(bMeshDataRef,obj).clusterGroupBuffer;
     uint totalLod = GetResource(bCpCounterMesh,cpcntRefMesh).totalLods;
@@ -145,14 +143,10 @@ bool isClusterGroupVisible(uint id){
 
     bool parentRejected = true;
     if(group.lod != totalLod-1){
-        mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
-        mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
-        mat4 mv = view * model;
-
-        vec4 viewSpaceCenter = mv * vec4(parentSphereCenter,1.0);
+        vec4 viewSpaceCenter = mvMat * vec4(parentSphereCenter,1.0);
         vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
         float parentProjectedRadius = computeProjectedRadius(fov,length(viewSpaceCenter3),parentSphereRadius);
-        parentProjectedRadius*=1080.0;
+        parentProjectedRadius*=rtHeight;
         parentRejected = parentProjectedRadius > 1.0;
     }
     if(!parentRejected){
@@ -161,14 +155,10 @@ bool isClusterGroupVisible(uint id){
 
     bool selfRejected = false;
     if(group.lod != 0){
-        mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
-        mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
-        mat4 mv = view * model;
-
-        vec4 viewSpaceCenter = mv * vec4(selfSphereCenter,1.0);
+        vec4 viewSpaceCenter = mvMat * vec4(selfSphereCenter,1.0);
         vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
         float selfProjectedRadius = computeProjectedRadius(fov,length(viewSpaceCenter3),selfSphereRadius);
-        selfProjectedRadius*=1080.0;
+        selfProjectedRadius*=rtHeight;
         selfRejected = selfProjectedRadius > 1.0;
     }
     return !selfRejected;
@@ -208,6 +198,13 @@ void main(){
     uint groupSize = gl_WorkGroupSize.x;
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
+
+    uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
+    mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
+    mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
+    mat4 mv = view * model;
+
+    float rtHeight =  GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderHeight;
 
     uint cpcntRefMesh = GetResource(bMeshDataRef,obj).cpCounterBuffer;
     uint cpcntRefInst = GetResource(bInstanceDataRef,instId).cpCounterBuffer;
@@ -275,8 +272,8 @@ void main(){
                 }
                 for(uint i = 0 ; i < node.clusterGroupCount;i++){
                     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
-                    bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i);
-                    if(clusterGroupVisible){
+                    bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight);
+                    if(clusterGroupVisible){ 
                         enqueueClusterGroup(node.clusterGroupStart + i,clusterRef);
                     }
                 }

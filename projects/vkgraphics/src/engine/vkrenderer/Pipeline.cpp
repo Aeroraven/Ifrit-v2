@@ -128,8 +128,8 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   pipelineLayoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
   pipelineLayoutCI.pushConstantRangeCount = 0;
   pipelineLayoutCI.pPushConstantRanges = nullptr;
+  VkPushConstantRange pushConstantRange{};
   if (m_createInfo.pushConstSize != 0) {
-    VkPushConstantRange pushConstantRange{};
     pushConstantRange.offset = 0;
     pushConstantRange.size = m_createInfo.pushConstSize;
     pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
@@ -271,8 +271,8 @@ IFRIT_APIDECL void ComputePipeline::init() {
   pipelineLayoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
   pipelineLayoutCI.pushConstantRangeCount = 0;
   pipelineLayoutCI.pPushConstantRanges = nullptr;
+  VkPushConstantRange pushConstantRange{};
   if (m_createInfo.pushConstSize != 0) {
-    VkPushConstantRange pushConstantRange{};
     pushConstantRange.offset = 0;
     pushConstantRange.size = m_createInfo.pushConstSize;
     pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;

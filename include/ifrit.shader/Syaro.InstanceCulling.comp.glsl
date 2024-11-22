@@ -216,7 +216,7 @@ void main(){
             uint acceptRef = uIndirectComp.acceptRef;
             uint acceptIndex = atomicAdd(GetResource(bHierCullDispatch,indirectDispatchRef).accepted,1);
             GetResource(bInstanceAccepted,acceptRef).data[acceptIndex] = instanceIndex;
-        }else{
+        }else if(!frustumCulled){
             uint rejectRef = uIndirectComp.rejectRef;
             uint rejectIndex = atomicAdd(GetResource(bHierCullDispatch,indirectDispatchRef).rejected,1);
             GetResource(bInstanceRejected,rejectRef).data[rejectIndex] = instanceIndex;

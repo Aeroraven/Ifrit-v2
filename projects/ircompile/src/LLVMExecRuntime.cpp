@@ -1,3 +1,8 @@
+#ifdef _MSC_VER
+#define IFRIT_IGNORE_IRCOMPILE
+#endif
+
+#ifndef IFRIT_IGNORE_IRCOMPILE
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -11,10 +16,13 @@
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
+#endif
 #include <memory>
 
 // Mem2reg
 #include "ifrit/ircompile/llvm_ircompile.h"
+
+#ifndef IFRIT_IGNORE_IRCOMPILE
 #include "llvm/Transforms/Utils.h"
 
 using namespace llvm;
@@ -82,17 +90,24 @@ struct IfritCompLLVMExecutionSession {
     return (void *)sym.getAddress();
   }
 };
+#endif
 
 IFRIT_COM_LE_API void IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Init() {
+#ifndef IFRIT_IGNORE_IRCOMPILE
   InitializeNativeTarget();
   InitializeNativeTargetAsmPrinter();
+#endif
 }
 
 IFRIT_COM_LE_API IfritCompLLVMExecutionSession *IFRIT_COM_LE_API_CALLCONV
 IfritCom_LlvmExec_Create(const char *ir, const char *identifier) {
+#ifndef IFRIT_IGNORE_IRCOMPILE
   auto session = new IfritCompLLVMExecutionSession();
   session->loadIR(ir);
   return session;
+#else
+  return nullptr;
+#endif
 }
 
 IFRIT_COM_LE_API void IFRIT_COM_LE_API_CALLCONV
@@ -102,5 +117,9 @@ IfritCom_LlvmExec_Destroy(IfritCompLLVMExecutionSession *session) {
 
 IFRIT_COM_LE_API void *IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Lookup(
     IfritCompLLVMExecutionSession *session, const char *symbol) {
+#ifndef IFRIT_IGNORE_IRCOMPILE
   return session->lookupSymbol(symbol);
+#else
+  return nullptr;
+#endif
 }
