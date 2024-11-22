@@ -97,6 +97,7 @@ uint getMeshletId(){
     }
 }
 
+
 uint readTriangleIndex(uint meshletid, uint offset){
     uint mio = gl_WorkGroupID.x;
     uint objId = getObjId();

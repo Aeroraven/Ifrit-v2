@@ -109,10 +109,9 @@ bool isSecondCullingPass(){
     return pConst.passNo == 1;
 }
 
-float computeProjectedRadius(float fovy,float d,float r) {
+float computeProjectedRadius(float tanfovy,float d,float r) {
   // https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
-  float fov = fovy * 0.5;
-  return 1.0 / tan(fov) * r / sqrt(d * d - r * r); 
+  return 1.0 / tanfovy * r / sqrt(d * d - r * r); 
 }
 
 bool isBVHNodeVisible(uint id){
@@ -123,7 +122,7 @@ uint getObjId(){
     return GetResource(bInstanceAccepted,uIndirectCompInstCull.acceptRef).data[gl_WorkGroupID.x];
 }
 
-bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight){
+bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy){
     uint objId = getObjId();
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
@@ -131,8 +130,7 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight){
 
     uint clusterRef = GetResource(bMeshDataRef,obj).clusterGroupBuffer;
     uint totalLod = GetResource(bCpCounterMesh,cpcntRefMesh).totalLods;
-
-    float fov = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+    
     vec3 camPos = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraPosition.xyz;   
 
     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
@@ -145,7 +143,7 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight){
     if(group.lod != totalLod-1){
         vec4 viewSpaceCenter = mvMat * vec4(parentSphereCenter,1.0);
         vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
-        float parentProjectedRadius = computeProjectedRadius(fov,length(viewSpaceCenter3),parentSphereRadius);
+        float parentProjectedRadius = computeProjectedRadius(tanfovy,length(viewSpaceCenter3),parentSphereRadius);
         parentProjectedRadius*=rtHeight;
         parentRejected = parentProjectedRadius > 1.0;
     }
@@ -157,7 +155,7 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight){
     if(group.lod != 0){
         vec4 viewSpaceCenter = mvMat * vec4(selfSphereCenter,1.0);
         vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
-        float selfProjectedRadius = computeProjectedRadius(fov,length(viewSpaceCenter3),selfSphereRadius);
+        float selfProjectedRadius = computeProjectedRadius(tanfovy,length(viewSpaceCenter3),selfSphereRadius);
         selfProjectedRadius*=rtHeight;
         selfRejected = selfProjectedRadius > 1.0;
     }
@@ -216,13 +214,14 @@ void main(){
 
     uint totalBVHNodes = GetResource(bCpCounterMesh,cpcntRefMesh).totalBvh;
     uint totalClusterGroups = GetResource(bCpCounterMesh,cpcntRefMesh).totalCluster;
+    float fov = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+    float tanfovy = tan(fov*0.5);
     if(threadId == 0){
         GetResource(bCpCounterInstance, cpcntRefInst).con = 0;
         GetResource(bCpCounterInstance, cpcntRefInst).prod = 0;
         GetResource(bCpCounterInstance, cpcntRefInst).remain = int(totalBVHNodes);
     }
     
-
     for(uint i= 0;i<totalClusterGroups;i+=groupSize){
         GetResource(bCpQueue,cpqueueRef).data[i+threadId] = UNSET;
     }
@@ -272,7 +271,7 @@ void main(){
                 }
                 for(uint i = 0 ; i < node.clusterGroupCount;i++){
                     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
-                    bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight);
+                    bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy);
                     if(clusterGroupVisible){ 
                         enqueueClusterGroup(node.clusterGroupStart + i,clusterRef);
                     }

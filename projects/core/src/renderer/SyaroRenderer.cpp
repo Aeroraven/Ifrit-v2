@@ -719,7 +719,7 @@ SyaroRenderer::render(
   auto dq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
   auto mainTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
-        printf("GPUTimer:%f\n", m_timer->getElapsedMs());
+        printf("GPUTimer: %f ms/frame\n", m_timer->getElapsedMs());
         m_timer->start(cmd);
         renderTwoPassOcclCulling(CullingPass::First, perframeData,
                                  renderTargets, cmd);
@@ -1005,7 +1005,8 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
     perframeData.m_allInstanceData.m_batchedObjBufRef->addStorageBuffer(buf, 0);
   }
   perframeData.m_allInstanceData.m_objectData.resize(totalInstances);
-  //TODO, EMERGENT: the logic is confusing here. Losing instance->mesh relation.
+  // TODO, EMERGENT: the logic is confusing here. Losing instance->mesh
+  // relation.
   for (auto i = 0; auto &x : perframeData.m_enabledEffects) {
     auto &effect = perframeData.m_shaderEffectData[x];
     for (auto &obj : effect.m_objectData) {

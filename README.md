@@ -135,6 +135,7 @@ And some references that give inspirations. Thanks for their selfless dedication
 8. https://github.com/KhronosGroup/Vulkan-Samples
 9. https://www.elopezr.com/a-macro-view-of-nanite/
 9. https://media.gdcvault.com/gdc2024/Slides/GDC+slide+presentations/Nanite+GPU+Driven+Materials.pdf
+9. https://www.slideshare.net/slideshow/optimizing-the-graphics-pipeline-with-compute-gdc-2016/59747720
 
 
 

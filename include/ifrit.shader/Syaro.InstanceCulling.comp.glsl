@@ -173,6 +173,9 @@ bool occlusionCull(vec4 boundBall, float radius){
         maxUV = max(maxUV,projBoundBallUVz[i].xy);
         minZ = min(minZ,projBoundBallUVz[i].z);
     }
+    if(minZ < 0.0){
+        return false;
+    }
     uint rectW = uint((maxUV.x - minUV.x) * float(renderWidth));
     uint rectH = uint((maxUV.y - minUV.y) * float(renderHeight));
     float lod = clamp(log2(float(max(rectW,rectH))) ,0.0,float(totalLods - 1));
@@ -196,8 +199,6 @@ bool occlusionCull(vec4 boundBall, float radius){
     }
     return false;
 }
-
-
 
 void main(){
     bool isFirstPass = !isSecondCullingPass();
@@ -240,9 +241,10 @@ void main(){
     vec4 worldBoundBallOccl = localToWorldOccl * vec4(boundBall.xyz,1.0);
     vec4 viewBoundBallOccl = worldToViewOccl * worldBoundBallOccl;
 
-    bool frustumCulled = frustumCull(viewBoundBall,boundBall.w);
+    
     bool occlusionCulled = occlusionCull(viewBoundBallOccl,boundBall.w);
     if(isFirstPass){
+        bool frustumCulled = frustumCull(viewBoundBall,boundBall.w);
         if(!frustumCulled && !occlusionCulled ){
             // if accept
             uint acceptRef = uIndirectComp.acceptRef;
