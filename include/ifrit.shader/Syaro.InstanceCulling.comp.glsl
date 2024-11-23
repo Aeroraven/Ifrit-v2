@@ -10,7 +10,7 @@
 #include "Bindless.glsl"
 #include "Syaro.Shared.glsl"
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 RegisterStorage(bInstanceAccepted,{
     uint data[];
@@ -31,9 +31,12 @@ RegisterStorage(bHierCullDispatch,{
     uint accepted2;
     uint compY2;
     uint compZ2;
+    // Total rejected instance
+    uint totalRejected; 
 });
 
 RegisterStorage(bHizMipsReference,{
+    uint pad;
     uint ref[];
 });
 
@@ -53,9 +56,15 @@ layout(binding = 0, set = 3) uniform IndirectCompData{
     uint pad;
 }uIndirectComp;
 
-layout(binding = 0,set=4) uniform HizMips{
-    uint ref;
-}uHizMipsRef;
+// layout(binding = 0,set=4) uniform HizMips{
+//     uint ref;
+// }uHizMipsRef;
+
+layout(binding = 0, set = 4) uniform HiZData{
+    uint depthImg; // Depth image, with samplers
+    uint hizRefs; // Reference to image views, UAVs 
+    uint hizAtomics; // Atomic counter
+}uHiZData;
 
 layout(push_constant) uniform CullingPass{
     uint passNo;
@@ -118,11 +127,22 @@ float computeProjectedRadius(float fovy,float d,float r) {
 }
 
 float hizFetch(uint lodIndex, uint x, uint y){
-    uint hizMip = GetResource(bHizMipsReference,uHizMipsRef.ref).ref[lodIndex];
+    uint hizMip = GetResource(bHizMipsReference,uHiZData.hizRefs).ref[lodIndex];
     uint clampX = clamp(x,0,uint(GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderWidth) >> lodIndex);
     uint clampY = clamp(y,0,uint(GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderHeight) >> lodIndex);
     return  imageLoad(GetUAVImage2DR32F(hizMip),ivec2(clampX,clampY)).r;
 }
+
+uint roundUpPow2(uint x){
+    x--;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x++;
+    return x;
+}   
 
 bool occlusionCull(vec4 boundBall, float radius){
     uint renderHeight = uint(GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderHeight);
@@ -182,9 +202,15 @@ bool occlusionCull(vec4 boundBall, float radius){
     uint lodIndex = uint(lod);
 
     // then fetch the hiz value
-    uint lodWidth = renderWidth >> lodIndex;
-    uint lodHeight = renderHeight >> lodIndex;
-    uvec2 minUVInt = uvec2(minUV * vec2(lodWidth,lodHeight));
+    uint lod0Width = roundUpPow2(renderWidth);
+    uint lod0Height = roundUpPow2(renderHeight);
+    float uvfactorX = float(renderWidth) / float(lod0Width);
+    float uvfactorY = float(renderHeight) / float(lod0Height);
+    vec2 uvfactor = vec2(uvfactorX,uvfactorY);
+
+    uint lodWidth = lod0Width >> lodIndex;
+    uint lodHeight = lod0Height >> lodIndex;
+    uvec2 minUVInt = uvec2(minUV * uvfactor * vec2(lodWidth,lodHeight));
     
     float depth1 = hizFetch(lodIndex,minUVInt.x,minUVInt.y);
     float depth2 = hizFetch(lodIndex,minUVInt.x + 1,minUVInt.y);
@@ -252,7 +278,7 @@ void main(){
             GetResource(bInstanceAccepted,acceptRef).data[acceptIndex] = instanceIndex;
         }else if(!frustumCulled){
             uint rejectRef = uIndirectComp.rejectRef;
-            uint rejectIndex = atomicAdd(GetResource(bHierCullDispatch,indirectDispatchRef).rejected,1);
+            uint rejectIndex = atomicAdd(GetResource(bHierCullDispatch,indirectDispatchRef).totalRejected,1);
             GetResource(bInstanceRejected,rejectRef).data[rejectIndex] = instanceIndex;
         }
     }else{

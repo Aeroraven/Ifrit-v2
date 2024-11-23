@@ -35,6 +35,11 @@ private:
   constexpr static uint32_t cHiZGroupSizeX = 16;
   constexpr static uint32_t cHiZGroupSizeY = 16;
 
+  // Single pass HiZ
+  ComputePass *m_singlePassHiZPass = nullptr;
+  constexpr static uint32_t cSPHiZGroupSizeX = 256;
+  constexpr static uint32_t cSPHiZTileSize = 64;
+
   // Emit depth targets
   ComputePass *m_emitDepthTargetsPass = nullptr;
   constexpr static uint32_t cEmitDepthGroupSizeX = 16;
@@ -85,11 +90,15 @@ private:
   void setupEmitDepthTargetsPass();
   void setupMaterialClassifyPass();
   void setupDefaultEmitGBufferPass();
+
+  void setupSinglePassHiZPass();
   void createTimer();
 
   void setupDeferredShadingPass(RenderTargets *renderTargets);
 
   void hizBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
+  void sphizBufferSetup(PerFrameData &perframeData,
+                        RenderTargets *renderTargets);
   void visibilityBufferSetup(PerFrameData &perframeData,
                              RenderTargets *renderTargets);
   void depthTargetsSetup(PerFrameData &perframeData,
@@ -138,6 +147,7 @@ public:
     setupEmitDepthTargetsPass();
     setupMaterialClassifyPass();
     setupDefaultEmitGBufferPass();
+    setupSinglePassHiZPass();
     createTimer();
   }
   virtual std::unique_ptr<GPUCommandSubmission>

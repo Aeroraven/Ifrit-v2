@@ -75,6 +75,23 @@ RegisterStorage(bFilteredMeshlets2,{
     ivec2 data[];
 });
 
+RegisterStorage(bHierCullDispatch,{
+    // Indirect command buffer for accepted
+    uint accepted;
+    uint compY;
+    uint compZ;
+    // Indirect command buffer for rejected
+    uint rejected;
+    uint compYR;
+    uint compZR;
+    // Indirect command buffer for accepted (2nd pass)
+    uint accepted2;
+    uint compY2;
+    uint compZ2;
+    // Total rejected instance
+    uint totalRejected; 
+});
+
 
 layout(binding = 0, set = 1) uniform PerframeViewData{
     uint refCurFrame;
@@ -190,6 +207,12 @@ void enqueueClusterGroup(uint id, uint clusterRef){
 }
 
 void main(){
+
+    if(gl_GlobalInvocationID.x == 0){
+        uint rejected = GetResource(bHierCullDispatch,uIndirectCompInstCull.indRef).totalRejected;
+        uint instanceCullTGSZ = 64;
+        GetResource(bHierCullDispatch,uIndirectCompInstCull.indRef).rejected = (rejected + instanceCullTGSZ - 1) / instanceCullTGSZ;
+    }
     
     uint threadId = gl_LocalInvocationID.x;
     uint objId = getObjId();

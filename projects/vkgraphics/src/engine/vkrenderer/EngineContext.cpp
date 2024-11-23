@@ -184,7 +184,7 @@ IFRIT_APIDECL void EngineContext::init() {
 
   vkrVulkanAssert(vkCreateInstance(&instanceCI, nullptr, &m_instance),
                   "Failed to create Vulkan instance");
-  vkrLog("Vulkan instance created");
+  vkrLog("Instance created");
 
   // Debug Messenger
   if (m_args.m_enableValidationLayer) {

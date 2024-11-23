@@ -93,6 +93,18 @@ struct PerFrameData {
     std::vector<GPUBarrier> m_gbufferBarrier;
   };
 
+  struct SinglePassHiZData {
+    std::shared_ptr<GPUTexture> m_hizTexture = nullptr;
+    std::vector<uint32_t> m_hizRefs;
+    GPUBuffer *m_hizRefBuffer = nullptr;
+    GPUBuffer *m_hizAtomics = nullptr;
+    GPUBindlessRef *m_hizDesc = nullptr;
+    std::shared_ptr<GPUSampler> m_hizSampler = nullptr;
+    uint32_t m_hizIters = 0;
+    uint32_t m_hizWidth = 0;
+    uint32_t m_hizHeight = 0;
+  };
+
   struct PerViewData {
     ViewType m_viewType = ViewType::Invisible;
 
@@ -134,6 +146,9 @@ struct PerFrameData {
     std::vector<uint32_t> m_hizTestMipsId;
     GPUBuffer *m_hizTestMipsBuffer = nullptr;
     GPUBindlessRef *m_hizTestDesc = nullptr;
+
+    // SPD HiZ
+    SinglePassHiZData m_spHiZData;
 
     // Instance culling
     GPUBuffer *m_instCullDiscardObj = nullptr;
