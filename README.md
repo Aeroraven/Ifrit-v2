@@ -1,9 +1,17 @@
 # Ifrit-v2
 
-GPU/CPU-Parallelized tile-based software rasterizer & raytracer.
+Some toys about real-time rendering. Currently, it contains:
 
-| ![](docs/img/img_demo3.png) | ![](docs/img/img_demo1.png) |
-| --------------------------- | --------------------------- |
+- CUDA / Multithreaded CPU Software Rasterizer & Ray-tracer. 
+- Deferred Renderer with Cluster Level of Details.
+
+
+
+| Software Renderer / Mesh Shading | Software Renderer / CUDA Renderer |
+| -------------------------------- | --------------------------------- |
+| ![](docs/img/img_demo3.png)      | ![](docs/img/img_demo1.png)       |
+
+
 
 Check  **[`gallery.md`](./docs/gallery.md)** for **[More Example Pictures](./docs/gallery.md)**
 
@@ -19,11 +27,12 @@ The project is organized into following parts.
   - Covers culling, mesh shading pipeline (mesh shader), MSAA (up to 8x), mipmap, anisotropic filtering, SPIR-V JIT execution and shader derivatives.
   - CPU rasterizer is organized in TBR-like manner, utilize AVX2 instructions and tag buffer (with early-z) for performance gain.
   - For implementation details and performance, check [here](./projects/softgraphics/readme.md)
+- **`core`**: 
+  - Implementation of the deferred renderer.
 - **`rhi/vkrenderer`**: Vulkan renderer, intended to be the refactored version for [my original implementation](https://github.com/Aeroraven/Aria).
   - Get rid of messy pass management, synchronization primitives and descriptor bindings in the original repo.
 - **`meshproclib`**: Mesh algorithms.
-  - Nanite-like mesh level of details
-
+  - Nanite-like mesh level of details. It 
 - **`ircompile`**: LLVM JIT compilation for shader codes.
 - **`display`**:  Presentation and window surface supporting utilities.
 
@@ -139,5 +148,7 @@ And some references that give inspirations. Thanks for their selfless dedication
 
 
 
+## 4. License
 
+Although this repository is a completely toy project, I'd like to make it as free as possible. So, it's licensed under [AGPL-v3 License](https://www.gnu.org/licenses/agpl-3.0.en.html), even it's hard to be integrated with server applications. The copy for license can be found in the root directory. 
 

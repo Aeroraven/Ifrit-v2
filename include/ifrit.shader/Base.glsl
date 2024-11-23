@@ -28,3 +28,8 @@ struct PerObjectData {
   uint materialId;
 };
 
+float ifrit_recoverViewSpaceDepth(float screenZ, float nearPlane, float farPlane){
+  // Near->0 (Scr), Far->1 (Scr)
+  return (2.0 * nearPlane * farPlane) / ( - screenZ * (farPlane - nearPlane) + (farPlane + nearPlane));
+}
+

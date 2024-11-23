@@ -177,6 +177,8 @@ struct PerFrameData {
 
   // GBuffer
   GBuffer m_gbuffer;
+  GPUBindlessRef *m_gbufferDepthDesc;
+  std::shared_ptr<GPUSampler> m_gbufferDepthSampler = nullptr;
 
   // Gbuffer desc
   std::shared_ptr<GPUSampler> m_gbufferSampler = nullptr;

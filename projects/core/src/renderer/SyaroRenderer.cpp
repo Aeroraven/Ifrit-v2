@@ -105,7 +105,7 @@ SyaroRenderer::setupDeferredShadingPass(RenderTargets *renderTargets) {
                                          "main", RhiShaderStage::Fragment);
     pass->setVertexShader(vsShader);
     pass->setPixelShader(fsShader);
-    pass->setNumBindlessDescriptorSets(1);
+    pass->setNumBindlessDescriptorSets(3);
     pass->setRenderTargetFormat(rtCfg);
     m_deferredShadingPass[paCfg] = pass;
   }
@@ -124,9 +124,14 @@ SyaroRenderer::renderDeferredShading(
   paCfg.m_depthFormat = rtCfg.m_depthFormat;
 
   auto pass = m_deferredShadingPass[paCfg];
+  auto &primaryView = getPrimaryView(perframeData);
   pass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     ctx->m_cmd->attachBindlessReferenceGraphics(pass, 1,
                                                 perframeData.m_gbufferDescFrag);
+    ctx->m_cmd->attachBindlessReferenceGraphics(
+        pass, 2, perframeData.m_gbufferDepthDesc);
+    ctx->m_cmd->attachBindlessReferenceGraphics(pass, 3,
+                                                primaryView.m_viewBindlessRef);
     ctx->m_cmd->attachVertexBufferView(
         *rhi->getFullScreenQuadVertexBufferView());
     ctx->m_cmd->attachVertexBuffers(
@@ -385,6 +390,13 @@ SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
   perframeData.m_velocityMaterialDesc->addCombinedImageSampler(
       primaryView.m_visibilityBuffer.get(),
       perframeData.m_visibilitySampler.get(), 1);
+
+  // For gbuffer, depth is required to reconstruct position
+  perframeData.m_gbufferDepthDesc = rhi->createBindlessDescriptorRef();
+  perframeData.m_gbufferDepthSampler = rhi->createTrivialSampler();
+  perframeData.m_gbufferDepthDesc->addCombinedImageSampler(
+      perframeData.m_velocityMaterial.get(),
+      perframeData.m_gbufferDepthSampler.get(), 0);
 }
 
 IFRIT_APIDECL void

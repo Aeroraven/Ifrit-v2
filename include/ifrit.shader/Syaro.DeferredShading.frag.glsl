@@ -6,10 +6,16 @@
 // And with the raster pipeline before, conventional graphics pipeline (vertex shader)
 // seems to be a bit redundant.
 
+#include "Base.glsl"
 #include "Bindless.glsl"
+#include "DeferredPBR.glsl"
 
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
+
+RegisterUniform(bPerframeView,{
+    PerFramePerViewData data;
+});
 
 layout(binding = 0, set = 1) uniform EmitGBufferRefs{
     uint albedo_materialFlags;
@@ -19,14 +25,54 @@ layout(binding = 0, set = 1) uniform EmitGBufferRefs{
     uint shadowMask;
 } uGBufferRefs;
 
+layout(binding = 0, set = 2) uniform MotionDepthRefs{
+    uint ref;
+} uMotionDepthRefs;
+
+layout(binding = 0, set = 3) uniform PerframeViewData{
+    uint refCurFrame;
+    uint refPrevFrame;
+}uPerframeView;
+
+
 void main(){
     vec3 albedo = texture(GetSampler2D(uGBufferRefs.albedo_materialFlags),texCoord).rgb;
     vec3 normal = texture(GetSampler2D(uGBufferRefs.normal_smoothness),texCoord).rgb;
+    vec3 motion_depth = texture(GetSampler2D(uMotionDepthRefs.ref),texCoord).rgb;
+    mat4 invproj = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_invPerspective;
+    float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
+    float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
+    float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
+    vec4 ndcPos = vec4(texCoord * 2.0 - 1.0, motion_depth.b, 1.0) * vsDepth;
+    vec4 viewPos = invproj * ndcPos;
     normal = normalize(normal * 2.0 - 1.0);
     vec3 lightDir = normalize(vec3(1.0,0.0,-1.0));
 
     float NdotL = max(dot(normal,lightDir),0.0);
-    vec3 diffuse = albedo * NdotL;
+    vec3 V = normalize(-viewPos.xyz);
+    vec3 H = normalize(lightDir + V);
+    float NdotH = max(dot(normal,H),0.0);
+    float roughness = 0.6;
+    float D = dpbr_trowbridgeReitzGGX(NdotH,roughness);
 
-    outColor = vec4(diffuse, 1.0);
+    float NdotV = max(dot(normal,V),0.0);
+    float G = dpbr_smithSchlickGGX(NdotV,NdotL,roughness);
+
+    vec3 F0 = vec3(0.04);
+    float metallic = 0.3;
+    float HdotV = max(dot(H,V),0.0);
+    vec3 F = dpbr_fresnelSchlickMetallic(F0,albedo,metallic,HdotV);
+
+    vec3 kS = F;
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metallic;
+
+    float PIx = 3.14159265359;
+    vec3 specular = dpbr_cookTorranceBRDF(F,G,D,NdotV,NdotL);
+    vec3 Lo = (kD * albedo / PIx + specular) * NdotL;
+
+    vec3 ambient = vec3(0.05) * albedo;
+    vec3 color = ambient + Lo;
+
+    outColor = vec4(color,1.0);
 }
