@@ -262,7 +262,7 @@ void main(){
         }
         chosenBVHNodeInd = 0;
     }
-    memoryBarrier();
+    barrier();
 
     while(true){
         int remaining = GetResource(bCpCounterInstance,cpcntRefInst).remain;

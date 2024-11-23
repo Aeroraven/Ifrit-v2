@@ -172,7 +172,7 @@ IFRIT_APIDECL void SyaroRenderer::setupInstanceCullingPass() {
   m_instanceCullingPass = rhi->createComputePass();
   m_instanceCullingPass->setComputeShader(shader);
   m_instanceCullingPass->setNumBindlessDescriptorSets(4);
-  m_instanceCullingPass->setPushConstSize(sizeof(uint32_t));
+  m_instanceCullingPass->setPushConstSize(sizeof(uint32_t) * 2);
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
@@ -473,12 +473,15 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
 
   int pcData[2] = {0, 1};
+
   std::unique_ptr<SyaroRenderer::GPUCommandSubmission> lastTask = nullptr;
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     if (k != 0 && cullPass != CullingPass::First) {
       cmd->globalMemoryBarrier();
     }
     auto &perView = perframeData.m_views[k];
+    auto numObjs = perframeData.m_allInstanceData.m_objectData.size();
+    int pcDataInstCull[4] = {0, numObjs, 1, numObjs};
     m_instanceCullingPass->setRecordFunction(
         [&](const RhiRenderPassContext *ctx) {
           // TODO: this assumes the compute queue can TRANSFER
@@ -497,15 +500,15 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
                                                      perView.m_instCullDesc);
           ctx->m_cmd->attachBindlessReferenceCompute(
               m_instanceCullingPass, 4, perView.m_spHiZData.m_hizDesc);
-          auto numObjs = perframeData.m_allInstanceData.m_objectData.size();
+
           if (cullPass == CullingPass::First) {
-            ctx->m_cmd->setPushConst(m_instanceCullingPass, 0, sizeof(uint32_t),
-                                     &pcData[0]);
+            ctx->m_cmd->setPushConst(m_instanceCullingPass, 0,
+                                     sizeof(uint32_t) * 2, &pcDataInstCull[0]);
             auto tgx = (numObjs + 63) / 64;
             ctx->m_cmd->dispatch(tgx, 1, 1);
           } else if (cullPass == CullingPass::Second) {
-            ctx->m_cmd->setPushConst(m_instanceCullingPass, 0, sizeof(uint32_t),
-                                     &pcData[1]);
+            ctx->m_cmd->setPushConst(m_instanceCullingPass, 0,
+                                     sizeof(uint32_t) * 2, &pcDataInstCull[2]);
             ctx->m_cmd->dispatchIndirect(perView.m_persistCullIndirectDispatch,
                                          3 * sizeof(uint32_t));
           }

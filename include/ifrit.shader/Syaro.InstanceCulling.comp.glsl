@@ -68,6 +68,7 @@ layout(binding = 0, set = 4) uniform HiZData{
 
 layout(push_constant) uniform CullingPass{
     uint passNo;
+    uint totalInstances;
 } pConst;
 
 bool isSecondCullingPass(){
@@ -236,11 +237,17 @@ void main(){
 
     if(isFirstPass){
         instanceIndex = gl_GlobalInvocationID.x;
+        if(instanceIndex >= pConst.totalInstances){
+            return;
+        }
         objRef = GetResource(bPerObjectRef,uInstanceData.ref.x).data[instanceIndex].objectDataRef;
         transRef = GetResource(bPerObjectRef,uInstanceData.ref.x).data[instanceIndex].transformRef;
         transRefLast = GetResource(bPerObjectRef,uInstanceData.ref.x).data[instanceIndex].transformRefLast;
     }else{
         // read from rejected buffer
+        if(gl_GlobalInvocationID.x >= GetResource(bHierCullDispatch,uIndirectComp.indRef).totalRejected){
+            return;
+        }
         instanceIndex = GetResource(bInstanceRejected,uIndirectComp.rejectRef).data[gl_GlobalInvocationID.x];
         objRef = GetResource(bPerObjectRef,uInstanceData.ref.x).data[instanceIndex].objectDataRef;
         transRef = GetResource(bPerObjectRef,uInstanceData.ref.x).data[instanceIndex].transformRef;
