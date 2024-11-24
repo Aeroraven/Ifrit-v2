@@ -191,6 +191,11 @@ public:
 
   virtual void beginScope(const std::string &name) const override;
   virtual void endScope() const override;
+
+  virtual void copyImage(const Rhi::RhiTexture *src,
+                         Rhi::RhiImageSubResource srcSub,
+                         const Rhi::RhiTexture *dst,
+                         Rhi::RhiImageSubResource dstSub) const override;
 };
 
 class IFRIT_APIDECL CommandPool {

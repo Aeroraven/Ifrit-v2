@@ -122,9 +122,9 @@ public:
                                            uint32_t layerRange);
   inline bool getIsSwapchainImage() { return m_isSwapchainImage; }
   uint32_t getSize();
-  inline uint32_t getWidth() override { return m_createInfo.width; }
-  inline uint32_t getHeight() override { return m_createInfo.height; }
-  inline uint32_t getDepth() { return m_createInfo.depth; }
+  inline uint32_t getWidth() const override { return m_createInfo.width; }
+  inline uint32_t getHeight() const override { return m_createInfo.height; }
+  inline uint32_t getDepth() const { return m_createInfo.depth; }
   inline VkImageAspectFlags getAspect() const {
     if (m_createInfo.aspect == ImageAspect::Color) {
       return VK_IMAGE_ASPECT_COLOR_BIT;
@@ -259,6 +259,9 @@ public:
 
   // Create a simple sampler
   std::shared_ptr<Sampler> createTrivialRenderTargetSampler();
+
+  // Create a bilinear sampler
+  std::shared_ptr<Sampler> createTrivialBilinearSampler();
 };
 
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

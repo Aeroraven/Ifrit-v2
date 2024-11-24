@@ -50,14 +50,15 @@ private:
   std::shared_ptr<RhiDepthStencilAttachment> depthAttachment;
   std::shared_ptr<SyaroRenderer> renderer;
   RhiTexture *swapchainImg;
+  RendererConfig renderConfig;
   float timing = 0;
 
-  constexpr static uint32_t bunnyPlacementX = 40;
+  constexpr static uint32_t bunnyPlacementX = 20;
   constexpr static uint32_t bunnyPlacementY = 1;
   constexpr static uint32_t bunnyPlacementZ = 20;
 
-  constexpr static float bunnyMinX = -4.0;
-  constexpr static float bunnyMaxX = 4.0;
+  constexpr static float bunnyMinX = -2.0;
+  constexpr static float bunnyMaxX = 2.0;
   constexpr static float bunnyMinY = 0.0;
   constexpr static float bunnyMaxY = 0.0;
   constexpr static float bunnyMinZ = 0.0;
@@ -72,6 +73,9 @@ public:
         "Shader/ifrit.mesh2.mesh.glsl");
     auto fragShader = m_assetManager->getAssetByName<ShaderAsset>(
         "Shader/ifrit.mesh2.frag.glsl");
+
+    // Renderer config
+    renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
 
     // Material
     m_material = std::make_shared<Material>();
@@ -147,9 +151,9 @@ public:
     camera->setPosition({0.0f + movRight - movLeft + 0.5f * std::sin(timing),
                          0.1f + movTop - movBottom, -0.25f + movFar - movNear});
     auto sFrameStart = renderer->beginFrame();
-    auto renderComplete =
-        renderer->render(m_sceneAssetManager->getScene("TestScene2").get(),
-                         nullptr, renderTargets.get(), {sFrameStart.get()});
+    auto renderComplete = renderer->render(
+        m_sceneAssetManager->getScene("TestScene2").get(), nullptr,
+        renderTargets.get(), renderConfig, {sFrameStart.get()});
     renderer->endFrame({renderComplete.get()});
   }
 

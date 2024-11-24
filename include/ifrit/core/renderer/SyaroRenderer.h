@@ -65,10 +65,19 @@ private:
   // Perframe data maintained by the renderer, this is unsafe
   std::unordered_map<Scene *, PerFrameData> m_perScenePerframe;
 
+  // TAA
+  ComputePass *m_taaHistoryPass = nullptr;
+  constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat cTAAFormat =
+      Ifrit::GraphicsBackend::Rhi::RhiImageFormat::
+          RHI_FORMAT_R16G16B16A16_SFLOAT;
   // Finally, deferred pass
   std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
                      PipelineAttachmentConfigsHash>
       m_deferredShadingPass;
+
+  std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
+                     PipelineAttachmentConfigsHash>
+      m_taaPass;
 
   // Timer
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer> m_timer;
@@ -95,6 +104,7 @@ private:
   void createTimer();
 
   void setupDeferredShadingPass(RenderTargets *renderTargets);
+  void setupTAAPass(RenderTargets *renderTargets);
 
   void hizBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
   void sphizBufferSetup(PerFrameData &perframeData,
@@ -105,6 +115,8 @@ private:
                          RenderTargets *renderTargets);
   void materialClassifyBufferSetup(PerFrameData &perframeData,
                                    RenderTargets *renderTargets);
+  void taaHistorySetup(PerFrameData &perframeData,
+                       RenderTargets *renderTargets);
 
   // Many passes are not material-dependent, so a unified instance buffer
   // might reduce calls
@@ -132,10 +144,16 @@ private:
                                 RenderTargets *renderTargets,
                                 const GPUCmdBuffer *cmd);
 
-  std::unique_ptr<GPUCommandSubmission>
-  renderDeferredShading(PerFrameData &perframeData,
-                        RenderTargets *renderTargets,
-                        const std::vector<GPUCommandSubmission *> &cmdToWait);
+  void renderDeferredShading(PerFrameData &perframeData,
+                             RenderTargets *renderTargets,
+                             const GPUCmdBuffer *cmd);
+
+  void renderTAAResolve(PerFrameData &perframeData,
+                        RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
+
+  virtual std::unique_ptr<GPUCommandSubmission>
+  render(PerFrameData &perframeData, RenderTargets *renderTargets,
+         const std::vector<GPUCommandSubmission *> &cmdToWait);
 
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {
@@ -150,12 +168,10 @@ public:
     setupSinglePassHiZPass();
     createTimer();
   }
-  virtual std::unique_ptr<GPUCommandSubmission>
-  render(PerFrameData &perframeData, RenderTargets *renderTargets,
-         const std::vector<GPUCommandSubmission *> &cmdToWait) override;
 
   virtual std::unique_ptr<GPUCommandSubmission>
   render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
+         const RendererConfig &config,
          const std::vector<GPUCommandSubmission *> &cmdToWait) override;
 };
 } // namespace Ifrit::Core

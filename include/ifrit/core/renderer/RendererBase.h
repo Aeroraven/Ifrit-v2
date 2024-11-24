@@ -7,6 +7,17 @@
 
 namespace Ifrit::Core {
 
+struct SceneCollectConfig {
+  float projectionTranslateX = 0.0f;
+  float projectionTranslateY = 0.0f;
+};
+
+enum class AntiAliasingType { None, TAA };
+
+struct RendererConfig {
+  AntiAliasingType m_antiAliasingType = AntiAliasingType::None;
+};
+
 // TODO: move render graph to here
 class IFRIT_APIDECL RendererBase {
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
@@ -15,7 +26,7 @@ class IFRIT_APIDECL RendererBase {
 protected:
   IApplication *m_app;
 
-public:
+protected:
   RendererBase(IApplication *app) : m_app(app) {}
   virtual void buildPipelines(PerFrameData &perframeData,
                               GraphicsShaderPassType passType,
@@ -28,14 +39,13 @@ public:
 
   virtual void collectPerframeData(PerFrameData &perframeData, Scene *scene,
                                    Camera *camera,
-                                   GraphicsShaderPassType passType);
+                                   GraphicsShaderPassType passType,
+                                   const SceneCollectConfig &config);
 
-  virtual std::unique_ptr<GPUCommandSubmission>
-  render(PerFrameData &perframeData, RenderTargets *renderTargets,
-         const std::vector<GPUCommandSubmission *> &cmdToWait) = 0;
-
+public:
   virtual std::unique_ptr<GPUCommandSubmission>
   render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
+         const RendererConfig &config,
          const std::vector<GPUCommandSubmission *> &cmdToWait) = 0;
 
   virtual void endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait);

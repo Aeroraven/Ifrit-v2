@@ -232,6 +232,11 @@ RhiVulkanBackend::createTrivialSampler() {
   return m_implDetails->m_resourceManager->createTrivialRenderTargetSampler();
 }
 
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiSampler>
+RhiVulkanBackend::createTrivialBilinearSampler() {
+  return m_implDetails->m_resourceManager->createTrivialBilinearSampler();
+}
+
 IFRIT_APIDECL Rhi::RhiComputePass *RhiVulkanBackend::createComputePass() {
   auto pass = std::make_unique<ComputePass>(
       checked_cast<EngineContext>(m_device.get()),

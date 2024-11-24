@@ -160,7 +160,7 @@ IFRIT_APIDECL void Swapchain::init() {
   swapchainCI.imageColorSpace = m_preferredSurfaceFormat.colorSpace;
   swapchainCI.imageExtent = m_extent;
   swapchainCI.imageArrayLayers = 1;
-  swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
   // Note: Beware of queue family ownership
   swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;

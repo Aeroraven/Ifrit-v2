@@ -48,6 +48,17 @@ struct PerShaderEffectData {
       nullptr;
 };
 
+struct PerFrameRenderTargets {
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiTexture> m_colorRT;
+  Ifrit::GraphicsBackend::Rhi::RhiTexture *m_depthRT;
+
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiColorAttachment> m_colorRTRef;
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDepthStencilAttachment>
+      m_depthRTRef;
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiRenderTargets> m_rts;
+  uint32_t m_width = 0, m_height = 0;
+};
+
 struct PerFrameData {
   using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
   using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
@@ -202,6 +213,18 @@ struct PerFrameData {
   std::shared_ptr<GPUTexture> m_matClassDebug = nullptr;
   uint32_t m_matClassSupportedNumMaterials = 0;
   uint32_t m_matClassSupportedNumPixels = 0;
+
+  // For history
+  uint32_t m_frameId = 0;
+
+  // TAA
+  std::vector<PerFrameRenderTargets> m_taaHistory;
+  std::shared_ptr<GPUTexture> m_taaUnresolved = nullptr;
+  std::shared_ptr<GPUSampler> m_taaHistorySampler = nullptr;
+  GPUBindlessRef *m_taaHistoryDesc = nullptr;
+  std::shared_ptr<GPUSampler> m_taaSampler = nullptr;
+  float m_taaJitterX = 0.0f;
+  float m_taaJitterY = 0.0f;
 };
 
 } // namespace Ifrit::Core

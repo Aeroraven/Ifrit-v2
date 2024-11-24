@@ -324,6 +324,8 @@ enum class RhiResourceState {
   DepthStencilRenderTarget,
   Present,
   UAVStorageImage,
+  CopySource,
+  CopyDest,
 };
 
 // Structs
@@ -459,6 +461,7 @@ public:
                                RhiImageFormat format, uint32_t extraFlags) = 0;
 
   virtual std::shared_ptr<RhiSampler> createTrivialSampler() = 0;
+  virtual std::shared_ptr<RhiSampler> createTrivialBilinearSampler() = 0;
 
   virtual std::shared_ptr<Rhi::RhiStagedSingleBuffer>
   createStagedSingleBuffer(RhiBuffer *target) = 0;
@@ -648,6 +651,10 @@ public:
 
   virtual void beginScope(const std::string &name) const = 0;
   virtual void endScope() const = 0;
+
+  virtual void copyImage(const RhiTexture *src, RhiImageSubResource srcSub,
+                         const RhiTexture *dst,
+                         RhiImageSubResource dstSub) const = 0;
 };
 
 class IFRIT_APIDECL RhiQueue {
@@ -690,8 +697,8 @@ protected:
 
 public:
   virtual ~RhiTexture() = default;
-  virtual uint32_t getHeight() = 0;
-  virtual uint32_t getWidth() = 0;
+  virtual uint32_t getHeight() const = 0;
+  virtual uint32_t getWidth() const = 0;
 };
 
 // RHI pipeline
@@ -800,11 +807,12 @@ public:
   virtual RhiRenderTargetsFormat getFormat() const = 0;
   virtual Rhi::RhiScissor getRenderArea() const = 0;
   virtual RhiDepthStencilAttachment *getDepthStencilAttachment() const = 0;
+  virtual RhiColorAttachment *getColorAttachment(uint32_t index) const = 0;
 };
 
 class IFRIT_APIDECL RhiColorAttachment {
-protected:
-  virtual int _polymorphismPlaceHolder() { return 0; }
+public:
+  virtual RhiTexture *getRenderTarget() const = 0;
 };
 
 class IFRIT_APIDECL RhiDepthStencilAttachment {

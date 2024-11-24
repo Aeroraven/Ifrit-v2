@@ -59,6 +59,7 @@ public:
                             uint32_t extraFlags) override;
 
   std::shared_ptr<Rhi::RhiSampler> createTrivialSampler() override;
+  std::shared_ptr<Rhi::RhiSampler> createTrivialBilinearSampler() override;
 
   std::shared_ptr<Rhi::RhiTexture>
   createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,

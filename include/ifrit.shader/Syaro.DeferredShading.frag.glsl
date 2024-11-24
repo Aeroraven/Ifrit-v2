@@ -59,7 +59,7 @@ void main(){
     float G = dpbr_smithSchlickGGX(NdotV,NdotL,roughness);
 
     vec3 F0 = vec3(0.04);
-    float metallic = 0.3;
+    float metallic = 0.1;
     float HdotV = max(dot(H,V),0.0);
     vec3 F = dpbr_fresnelSchlickMetallic(F0,albedo,metallic,HdotV);
 

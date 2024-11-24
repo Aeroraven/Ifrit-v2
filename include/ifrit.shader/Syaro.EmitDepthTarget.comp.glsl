@@ -167,12 +167,29 @@ void main(){
     mat4 localToWorldLast = GetResource(bLocalTransform, transLastRef).m_localToWorld;
     mat4 worldToViewLast = GetResource(bPerframeView, uPerframeView.refPrevFrame).data.m_worldToView;
     mat4 projectionLast = GetResource(bPerframeView, uPerframeView.refPrevFrame).data.m_perspective;
+    mat4 projNow = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_perspective;
+
+    // Eliminate jitter in the motion vector
+    projectionLast[0][2] = 0.0;
+    projectionLast[1][2] = 0.0;
+    projectionLast[2][0] = 0.0;
+    projectionLast[2][1] = 0.0;
+
+    projNow[0][2] = 0.0;
+    projNow[1][2] = 0.0;
+    projNow[2][0] = 0.0;
+    projNow[2][1] = 0.0;
 
     vec4 vp = vec4(interpolate3(v0.xyz, v1.xyz, v2.xyz, bary),1.0);
     vec4 vpLast = projectionLast * worldToViewLast * localToWorldLast * vp;
     vec2 ndcVpLast = vpLast.xy / vpLast.w;
     ndcVpLast = ndcVpLast * 0.5 + 0.5;
-    vec2 ndcVpNow = vec2(pos) / vec2(uEmitDepthTargetPushConstant.renderWidth, uEmitDepthTargetPushConstant.renderHeight);
+
+    vec4 vpNowX = projNow * worldToView * localToWorld * vp;
+    vec2 ndcVpNow = vpNowX.xy / vpNowX.w;
+    ndcVpNow = ndcVpNow * 0.5 + 0.5;
+
+
     vec2 motionVector = ndcVpNow - ndcVpLast;
 
     // Depth, this is just for debugging.

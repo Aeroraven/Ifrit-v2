@@ -2,10 +2,9 @@
 #include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Core {
-IFRIT_APIDECL void
-RendererBase::collectPerframeData(PerFrameData &perframeData, Scene *scene,
-                                  Camera *camera,
-                                  GraphicsShaderPassType passType) {
+IFRIT_APIDECL void RendererBase::collectPerframeData(
+    PerFrameData &perframeData, Scene *scene, Camera *camera,
+    GraphicsShaderPassType passType, const SceneCollectConfig &config) {
   using Ifrit::Common::Utility::size_cast;
   // Filling per frame data
   if (camera == nullptr) {
@@ -20,6 +19,8 @@ RendererBase::collectPerframeData(PerFrameData &perframeData, Scene *scene,
   viewData.m_viewDataOld = viewData.m_viewData;
   viewData.m_viewData.m_worldToView = camera->worldToCameraMatrix();
   viewData.m_viewData.m_perspective = camera->projectionMatrix();
+  viewData.m_viewData.m_perspective[2][0] += config.projectionTranslateX;
+  viewData.m_viewData.m_perspective[2][1] += config.projectionTranslateY;
   viewData.m_viewData.m_cameraAspect = camera->getAspect();
   viewData.m_viewData.m_inversePerspective =
       Ifrit::Math::inverse4(viewData.m_viewData.m_perspective);

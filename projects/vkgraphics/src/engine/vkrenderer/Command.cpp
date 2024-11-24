@@ -268,6 +268,17 @@ IFRIT_APIDECL void CommandBuffer::imageBarrier(
     barrier.dstAccessMask =
         VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
     break;
+
+  case Rhi::RhiResourceState::CopySource:
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    break;
+
+  case Rhi::RhiResourceState::CopyDest:
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    break;
+
   default:
     vkrError("Invalid resource state");
   }
@@ -308,6 +319,16 @@ IFRIT_APIDECL void CommandBuffer::imageBarrier(
     barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.dstAccessMask =
         VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+    break;
+
+  case Rhi::RhiResourceState::CopySource:
+    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    break;
+
+  case Rhi::RhiResourceState::CopyDest:
+    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     break;
   default:
     vkrError("Invalid resource state");
@@ -449,6 +470,29 @@ CommandBuffer::clearUAVImageFloat(const Rhi::RhiTexture *texture,
   vkCmdClearColorImage(m_commandBuffer, image->getImage(),
                        VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &range);
 }
+
+IFRIT_APIDECL void CommandBuffer::copyImage(
+    const Rhi::RhiTexture *src, Rhi::RhiImageSubResource srcSub,
+    const Rhi::RhiTexture *dst, Rhi::RhiImageSubResource dstSub) const {
+  auto srcImage = checked_cast<SingleDeviceImage>(src);
+  auto dstImage = checked_cast<SingleDeviceImage>(dst);
+  VkImageCopy region{};
+  region.srcSubresource.aspectMask = srcImage->getAspect();
+  region.srcSubresource.mipLevel = srcSub.mipLevel;
+  region.srcSubresource.baseArrayLayer = srcSub.arrayLayer;
+  region.srcSubresource.layerCount = srcSub.layerCount;
+  region.srcOffset = {0, 0, 0};
+  region.dstSubresource.aspectMask = dstImage->getAspect();
+  region.dstSubresource.mipLevel = dstSub.mipLevel;
+  region.dstSubresource.baseArrayLayer = dstSub.arrayLayer;
+  region.dstSubresource.layerCount = dstSub.layerCount;
+  region.dstOffset = {0, 0, 0};
+  region.extent.width = srcImage->getWidth();
+  region.extent.height = srcImage->getHeight();
+  region.extent.depth = srcImage->getDepth();
+  vkCmdCopyImage(m_commandBuffer, srcImage->getImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage->getImage(),
+                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+};
 
 IFRIT_APIDECL
 void CommandBuffer::resourceBarrier(

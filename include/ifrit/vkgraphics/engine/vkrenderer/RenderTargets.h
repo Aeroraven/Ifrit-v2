@@ -24,7 +24,9 @@ public:
   inline SingleDeviceImage *getRenderTargetInternal() const {
     return m_renderTarget;
   }
-  inline Rhi::RhiTexture *getRenderTarget() const { return m_renderTarget; }
+  inline Rhi::RhiTexture *getRenderTarget() const override {
+    return m_renderTarget;
+  }
   inline Rhi::RhiClearValue getClearValue() const { return m_clearValue; }
   inline Rhi::RhiRenderTargetLoadOp getLoadOp() const { return m_loadOp; }
   inline uint32_t getTargetMip() const { return m_targetMip; }
@@ -81,6 +83,9 @@ public:
   inline Rhi::RhiDepthStencilAttachment *
   getDepthStencilAttachment() const override {
     return m_depthStencilAttachment;
+  }
+  inline Rhi::RhiColorAttachment *getColorAttachment(uint32_t index) const {
+    return m_colorAttachments[index];
   }
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

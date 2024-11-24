@@ -1,5 +1,8 @@
 #include "ifrit/core/renderer/SyaroRenderer.h"
 #include "ifrit/common/util/FileOps.h"
+#include "ifrit/core/renderer/RendererUtil.h"
+#include <algorithm>
+#include <bit>
 
 using namespace Ifrit::GraphicsBackend::Rhi;
 
@@ -91,8 +94,9 @@ SyaroRenderer::setupDeferredShadingPass(RenderTargets *renderTargets) {
 
   PipelineAttachmentConfigs paCfg;
   auto rtCfg = renderTargets->getFormat();
-  paCfg.m_colorFormats = rtCfg.m_colorFormats;
+  paCfg.m_colorFormats = {cTAAFormat};
   paCfg.m_depthFormat = rtCfg.m_depthFormat;
+  rtCfg.m_colorFormats = paCfg.m_colorFormats;
 
   DrawPass *pass = nullptr;
   if (m_deferredShadingPass.find(paCfg) != m_deferredShadingPass.end()) {
@@ -111,15 +115,45 @@ SyaroRenderer::setupDeferredShadingPass(RenderTargets *renderTargets) {
   }
 }
 
-IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
-SyaroRenderer::renderDeferredShading(
-    PerFrameData &perframeData, RenderTargets *renderTargets,
-    const std::vector<GPUCommandSubmission *> &cmdToWait) {
+IFRIT_APIDECL void SyaroRenderer::setupTAAPass(RenderTargets *renderTargets) {
   auto rhi = m_app->getRhiLayer();
-  setupDeferredShadingPass(renderTargets);
 
   PipelineAttachmentConfigs paCfg;
   auto rtCfg = renderTargets->getFormat();
+  paCfg.m_colorFormats = {cTAAFormat,
+                          renderTargets->getFormat().m_colorFormats[0]};
+  paCfg.m_depthFormat = rtCfg.m_depthFormat;
+  rtCfg.m_colorFormats = paCfg.m_colorFormats;
+
+  DrawPass *pass = nullptr;
+  if (m_taaPass.find(paCfg) != m_taaPass.end()) {
+    pass = m_taaPass[paCfg];
+  } else {
+    pass = rhi->createGraphicsPass();
+    auto vsShader = createShaderFromFile("Syaro.TAA.vert.glsl", "main",
+                                         RhiShaderStage::Vertex);
+    auto fsShader = createShaderFromFile("Syaro.TAA.frag.glsl", "main",
+                                         RhiShaderStage::Fragment);
+    pass->setVertexShader(vsShader);
+    pass->setPixelShader(fsShader);
+    pass->setNumBindlessDescriptorSets(2);
+    pass->setPushConstSize(sizeof(uint32_t) * 5);
+    pass->setRenderTargetFormat(rtCfg);
+    m_taaPass[paCfg] = pass;
+  }
+}
+
+IFRIT_APIDECL void
+SyaroRenderer::renderDeferredShading(PerFrameData &perframeData,
+                                     RenderTargets *renderTargets,
+                                     const GPUCmdBuffer *cmd) {
+  auto rhi = m_app->getRhiLayer();
+  setupDeferredShadingPass(renderTargets);
+
+  auto curRT = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_rts;
+
+  PipelineAttachmentConfigs paCfg;
+  auto rtCfg = curRT->getFormat();
   paCfg.m_colorFormats = rtCfg.m_colorFormats;
   paCfg.m_depthFormat = rtCfg.m_depthFormat;
 
@@ -138,16 +172,57 @@ SyaroRenderer::renderDeferredShading(
         0, {rhi->getFullScreenQuadVertexBuffer().get()});
     ctx->m_cmd->drawInstanced(3, 1, 0, 0);
   });
+  cmd->beginScope("Syaro: Deferred Shading");
+  pass->run(cmd, curRT.get(), 0);
+  cmd->endScope();
+}
 
-  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
-  auto deferredTask = drawq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        cmd->beginScope("Syaro: Deferred Shading");
-        pass->run(cmd, renderTargets, 0);
-        cmd->endScope();
-      },
-      cmdToWait, {});
-  return deferredTask;
+void SyaroRenderer::renderTAAResolve(PerFrameData &perframeData,
+                                     RenderTargets *renderTargets,
+                                     const GPUCmdBuffer *cmd) {
+  auto rhi = m_app->getRhiLayer();
+  auto taaRT = rhi->createRenderTargets();
+  auto taaCurTargetTex =
+      perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT;
+  auto taaCurTarget = rhi->createRenderTarget(
+      taaCurTargetTex.get(), {}, RhiRenderTargetLoadOp::Clear, 0, 0);
+  auto taaRenderTarget = renderTargets->getColorAttachment(0);
+  taaRT->setColorAttachments({taaCurTarget.get(), taaRenderTarget});
+  taaRT->setDepthStencilAttachment(renderTargets->getDepthStencilAttachment());
+  taaRT->setRenderArea(renderTargets->getRenderArea());
+
+  setupTAAPass(renderTargets);
+  auto rtCfg = taaRT->getFormat();
+  PipelineAttachmentConfigs paCfg;
+  paCfg.m_colorFormats = rtCfg.m_colorFormats;
+  paCfg.m_depthFormat = rtCfg.m_depthFormat;
+
+  auto pass = m_taaPass[paCfg];
+  auto renderArea = renderTargets->getRenderArea();
+  uint32_t jitterX = std::bit_cast<uint32_t, float>(perframeData.m_taaJitterX);
+  uint32_t jitterY = std::bit_cast<uint32_t, float>(perframeData.m_taaJitterY);
+  uint32_t pconst[5] = {
+      perframeData.m_frameId,
+      renderArea.width,
+      renderArea.height,
+      jitterX,
+      jitterY,
+  };
+  pass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    ctx->m_cmd->attachBindlessReferenceGraphics(pass, 1,
+                                                perframeData.m_taaHistoryDesc);
+    ctx->m_cmd->attachBindlessReferenceGraphics(
+        pass, 2, perframeData.m_gbufferDepthDesc);
+    ctx->m_cmd->setPushConst(pass, 0, sizeof(uint32_t) * 3, pconst);
+    ctx->m_cmd->attachVertexBufferView(
+        *rhi->getFullScreenQuadVertexBufferView());
+    ctx->m_cmd->attachVertexBuffers(
+        0, {rhi->getFullScreenQuadVertexBuffer().get()});
+    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
+  });
+  cmd->beginScope("Syaro: TAA Resolve");
+  pass->run(cmd, taaRT.get(), 0);
+  cmd->endScope();
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
@@ -689,72 +764,6 @@ SyaroRenderer::renderMaterialClassify(PerFrameData &perframeData,
   cmd->endScope();
 }
 
-IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
-SyaroRenderer::render(
-    PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
-    const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
-
-  // According to
-  // lunarg(https://www.lunasdk.org/manual/rhi/command_queues_and_command_buffers/)
-  // graphics queue can submit dispatch and transfer commands, but compute queue
-  // can only submit compute commands. Following posts suggests reduce command
-  // buffer submission to improve performance
-  // https://zeux.io/2020/02/27/writing-an-efficient-vulkan-renderer/
-  // https://gpuopen.com/learn/rdna-performance-guide/#command-buffers
-
-  visibilityBufferSetup(perframeData, renderTargets);
-  auto &primaryView = getPrimaryView(perframeData);
-  buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
-                 primaryView.m_visRTs.get());
-  prepareDeviceResources(perframeData, renderTargets);
-  gatherAllInstances(perframeData);
-  recreateInstanceCullingBuffers(
-      perframeData, perframeData.m_allInstanceData.m_objectData.size());
-  hizBufferSetup(perframeData, renderTargets);
-  depthTargetsSetup(perframeData, renderTargets);
-  materialClassifyBufferSetup(perframeData, renderTargets);
-  recreateGBuffers(perframeData, renderTargets);
-  sphizBufferSetup(perframeData, renderTargets);
-
-  // Then draw
-  auto rhi = m_app->getRhiLayer();
-  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
-  auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
-  m_textureShowPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    ctx->m_cmd->attachBindlessReferenceGraphics(
-        m_textureShowPass, 1, perframeData.m_visShowCombinedRef);
-    ctx->m_cmd->attachVertexBufferView(
-        *rhi->getFullScreenQuadVertexBufferView());
-    ctx->m_cmd->attachVertexBuffers(
-        0, {rhi->getFullScreenQuadVertexBuffer().get()});
-    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
-  });
-
-  auto dq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
-  auto mainTask = dq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        printf("GPUTimer: %f ms/frame\n", m_timer->getElapsedMs());
-        m_timer->start(cmd);
-        renderTwoPassOcclCulling(CullingPass::First, perframeData,
-                                 renderTargets, cmd);
-        cmd->globalMemoryBarrier();
-        renderTwoPassOcclCulling(CullingPass::Second, perframeData,
-                                 renderTargets, cmd);
-        cmd->globalMemoryBarrier();
-        renderEmitDepthTargets(perframeData, renderTargets, cmd);
-        cmd->globalMemoryBarrier();
-        renderMaterialClassify(perframeData, renderTargets, cmd);
-        cmd->globalMemoryBarrier();
-        renderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
-        m_timer->stop(cmd);
-      },
-      cmdToWait, {});
-  auto deferredTask =
-      renderDeferredShading(perframeData, renderTargets, {mainTask.get()});
-
-  return deferredTask;
-}
-
 IFRIT_APIDECL void SyaroRenderer::setupDefaultEmitGBufferPass() {
   auto rhi = m_app->getRhiLayer();
   auto shader = createShaderFromFile("Syaro.EmitGBuffer.Default."
@@ -1140,17 +1149,178 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
   }
 }
 
+IFRIT_APIDECL void
+SyaroRenderer::taaHistorySetup(PerFrameData &perframeData,
+                               RenderTargets *renderTargets) {
+  auto rhi = m_app->getRhiLayer();
+  auto rtArea = renderTargets->getRenderArea();
+  if (rtArea.x != 0 || rtArea.y != 0) {
+    throw std::runtime_error(
+        "Currently, it does not support non-zero x/y offsets");
+  }
+  auto width = rtArea.width + rtArea.x;
+  auto height = rtArea.height + rtArea.y;
+
+  auto needRecreate = (perframeData.m_taaHistory.size() == 0);
+  if (!needRecreate) {
+    needRecreate = (perframeData.m_taaHistory[0].m_width != width ||
+                    perframeData.m_taaHistory[0].m_height != height);
+  }
+  if (!needRecreate) {
+    return;
+  }
+  perframeData.m_taaHistory.clear();
+  perframeData.m_taaHistory.resize(2);
+  perframeData.m_taaHistory[0].m_width = width;
+  perframeData.m_taaHistory[0].m_height = height;
+  perframeData.m_taaSampler = rhi->createTrivialSampler();
+  perframeData.m_taaHistorySampler = rhi->createTrivialSampler();
+  perframeData.m_taaHistoryDesc = rhi->createBindlessDescriptorRef();
+  auto rtFormat = renderTargets->getFormat();
+
+  perframeData.m_taaUnresolved = rhi->createRenderTargetTexture(
+      width, height, cTAAFormat,
+      RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  perframeData.m_taaHistoryDesc->addCombinedImageSampler(
+      perframeData.m_taaUnresolved.get(), perframeData.m_taaSampler.get(), 0);
+  for (int i = 0; i < 2; i++) {
+    // TODO: choose formats
+
+    perframeData.m_taaHistory[i].m_colorRT = rhi->createRenderTargetTexture(
+        width, height, cTAAFormat,
+        RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_SRC_BIT);
+    perframeData.m_taaHistory[i].m_depthRT =
+        rhi->createDepthRenderTexture(width, height);
+
+    // TODO: clear values
+    perframeData.m_taaHistory[i].m_colorRTRef = rhi->createRenderTarget(
+        perframeData.m_taaUnresolved.get(), {{0, 0, 0, 0}},
+        RhiRenderTargetLoadOp::Clear, 0, 0);
+    perframeData.m_taaHistory[i].m_depthRTRef =
+        rhi->createRenderTargetDepthStencil(
+            perframeData.m_taaHistory[i].m_depthRT, {{}, 1.0f},
+            RhiRenderTargetLoadOp::Clear);
+    perframeData.m_taaHistory[i].m_rts = rhi->createRenderTargets();
+    perframeData.m_taaHistory[i].m_rts->setColorAttachments(
+        {perframeData.m_taaHistory[i].m_colorRTRef.get()});
+    perframeData.m_taaHistory[i].m_rts->setDepthStencilAttachment(
+        perframeData.m_taaHistory[i].m_depthRTRef.get());
+    perframeData.m_taaHistory[i].m_rts->setRenderArea(
+        renderTargets->getRenderArea());
+
+    perframeData.m_taaHistoryDesc->addCombinedImageSampler(
+        perframeData.m_taaHistory[i].m_colorRT.get(),
+        perframeData.m_taaHistorySampler.get(), i + 1);
+  }
+}
+
+IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
+SyaroRenderer::render(
+    PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
+    const std::vector<SyaroRenderer::GPUCommandSubmission *> &cmdToWait) {
+
+  // According to
+  // lunarg(https://www.lunasdk.org/manual/rhi/command_queues_and_command_buffers/)
+  // graphics queue can submit dispatch and transfer commands, but compute queue
+  // can only submit compute/transfer commands. Following posts suggests reduce
+  // command buffer submission to improve performance
+  // https://zeux.io/2020/02/27/writing-an-efficient-vulkan-renderer/
+  // https://gpuopen.com/learn/rdna-performance-guide/#command-buffers
+
+  visibilityBufferSetup(perframeData, renderTargets);
+  auto &primaryView = getPrimaryView(perframeData);
+  buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
+                 primaryView.m_visRTs.get());
+  prepareDeviceResources(perframeData, renderTargets);
+  gatherAllInstances(perframeData);
+  recreateInstanceCullingBuffers(
+      perframeData, perframeData.m_allInstanceData.m_objectData.size());
+  hizBufferSetup(perframeData, renderTargets);
+  depthTargetsSetup(perframeData, renderTargets);
+  materialClassifyBufferSetup(perframeData, renderTargets);
+  recreateGBuffers(perframeData, renderTargets);
+  sphizBufferSetup(perframeData, renderTargets);
+  taaHistorySetup(perframeData, renderTargets);
+
+  // Then draw
+  auto rhi = m_app->getRhiLayer();
+  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+  auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
+  m_textureShowPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    ctx->m_cmd->attachBindlessReferenceGraphics(
+        m_textureShowPass, 1, perframeData.m_visShowCombinedRef);
+    ctx->m_cmd->attachVertexBufferView(
+        *rhi->getFullScreenQuadVertexBufferView());
+    ctx->m_cmd->attachVertexBuffers(
+        0, {rhi->getFullScreenQuadVertexBuffer().get()});
+    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
+  });
+
+  auto dq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+  auto mainTask = dq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) {
+        printf("GPUTimer: %f ms/frame\n", m_timer->getElapsedMs());
+        m_timer->start(cmd);
+        renderTwoPassOcclCulling(CullingPass::First, perframeData,
+                                 renderTargets, cmd);
+        cmd->globalMemoryBarrier();
+        renderTwoPassOcclCulling(CullingPass::Second, perframeData,
+                                 renderTargets, cmd);
+        cmd->globalMemoryBarrier();
+        renderEmitDepthTargets(perframeData, renderTargets, cmd);
+        cmd->globalMemoryBarrier();
+        renderMaterialClassify(perframeData, renderTargets, cmd);
+        cmd->globalMemoryBarrier();
+        renderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
+        m_timer->stop(cmd);
+      },
+      cmdToWait, {});
+
+  auto deferredTask = dq->runAsyncCommand(
+      [&](const RhiCommandBuffer *cmd) {
+        renderDeferredShading(perframeData, renderTargets, cmd);
+        cmd->globalMemoryBarrier();
+        renderTAAResolve(perframeData, renderTargets, cmd);
+      },
+      {mainTask.get()}, {});
+
+  return deferredTask;
+}
+
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
 SyaroRenderer::render(Scene *scene, Camera *camera,
                       RenderTargets *renderTargets,
+                      const RendererConfig &config,
                       const std::vector<GPUCommandSubmission *> &cmdToWait) {
   if (m_perScenePerframe.count(scene) == 0) {
     m_perScenePerframe[scene] = PerFrameData();
   }
   auto &perframeData = m_perScenePerframe[scene];
+  auto frameId = perframeData.m_frameId;
+
+  auto haltonX =
+      RendererConsts::cHalton2[frameId % RendererConsts::cHalton2.size()];
+  auto haltonY =
+      RendererConsts::cHalton3[frameId % RendererConsts::cHalton3.size()];
+  auto renderArea = renderTargets->getRenderArea();
+  auto width = renderArea.width + renderArea.x;
+  auto height = renderArea.height + renderArea.y;
+  SceneCollectConfig sceneConfig;
+  if (config.m_antiAliasingType == AntiAliasingType::TAA) {
+    sceneConfig.projectionTranslateX = (haltonX * 2.0f - 1.0f) / width;
+    sceneConfig.projectionTranslateY = (haltonY * 2.0f - 1.0f) / height;
+  } else {
+    sceneConfig.projectionTranslateX = 0.0f;
+    sceneConfig.projectionTranslateY = 0.0f;
+  }
   collectPerframeData(perframeData, scene, camera,
-                      GraphicsShaderPassType::Opaque);
-  return render(perframeData, renderTargets, cmdToWait);
+                      GraphicsShaderPassType::Opaque, sceneConfig);
+
+  perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5;
+  perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5;
+  auto ret = render(perframeData, renderTargets, cmdToWait);
+  perframeData.m_frameId++;
+  return ret;
 }
 
 } // namespace Ifrit::Core
