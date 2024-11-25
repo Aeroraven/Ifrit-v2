@@ -19,6 +19,9 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   viewData.m_viewDataOld = viewData.m_viewData;
   viewData.m_viewData.m_worldToView = camera->worldToCameraMatrix();
   viewData.m_viewData.m_perspective = camera->projectionMatrix();
+  viewData.m_viewData.m_worldToClip = Math::transpose(
+      Math::matmul(Math::transpose(viewData.m_viewData.m_perspective),
+                   Math::transpose(viewData.m_viewData.m_worldToView)));
   viewData.m_viewData.m_perspective[2][0] += config.projectionTranslateX;
   viewData.m_viewData.m_perspective[2][1] += config.projectionTranslateY;
   viewData.m_viewData.m_cameraAspect = camera->getAspect();
@@ -30,6 +33,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   }
   auto pos = cameraTransform->getPosition();
   viewData.m_viewData.m_cameraPosition = ifloat4{pos.x, pos.y, pos.z, 1.0f};
+  viewData.m_viewData.m_cameraFront = camera->getFront();
   viewData.m_viewData.m_cameraNear = camera->getNear();
   viewData.m_viewData.m_cameraFar = camera->getFar();
   viewData.m_viewData.m_cameraFovX = camera->getFov();
@@ -449,7 +453,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
                 sizeof(MeshProcLib::MeshProcess::ClusterGroup),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshlets.size() * sizeof(iint4),
+            meshDataRef->m_meshlets.size() * sizeof(MeshData::MeshletData),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletVertexBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_meshletVertices.size() * sizeof(uint32_t),

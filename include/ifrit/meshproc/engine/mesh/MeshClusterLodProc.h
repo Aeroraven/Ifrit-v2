@@ -14,15 +14,6 @@
 
 namespace Ifrit::MeshProcLib::MeshProcess {
 
-struct MeshDescriptor {
-  char *vertexData;
-  char *indexData;
-  int vertexCount;
-  int indexCount;
-  int vertexStride;
-  int positionOffset;
-};
-
 struct ClusterLodGeneratorContext {
   int totalMeshlets;
   std::vector<meshopt_Meshlet> meshletsRaw;

@@ -1,9 +1,12 @@
 
 struct Meshlet {
-  uint vertex_offset;
-  uint triangle_offset;
-  uint vertex_count;
-  uint triangle_count;
+    uint vertex_offset;
+    uint triangle_offset;
+    uint vertex_count;
+    uint triangle_count;
+    vec4 normalCone;
+    vec4 normalConeApex;
+    vec4 boundSphere;
 };
 
 RegisterUniform(bLocalTransform,{

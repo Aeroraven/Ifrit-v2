@@ -657,6 +657,8 @@ public:
   virtual void copyImage(const RhiTexture *src, RhiImageSubResource srcSub,
                          const RhiTexture *dst,
                          RhiImageSubResource dstSub) const = 0;
+
+  virtual void setCullMode(RhiCullMode mode) const = 0;
 };
 
 class IFRIT_APIDECL RhiQueue {

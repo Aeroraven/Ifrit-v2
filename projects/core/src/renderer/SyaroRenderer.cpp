@@ -575,9 +575,8 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
           if (cullPass == CullingPass::First) {
             ctx->m_cmd->uavBufferClear(perView.m_persistCullIndirectDispatch,
                                        0);
-            ctx->m_cmd->uavBufferBarrier(perView.m_persistCullIndirectDispatch);
           }
-
+          ctx->m_cmd->uavBufferBarrier(perView.m_persistCullIndirectDispatch);
           ctx->m_cmd->attachBindlessReferenceCompute(m_instanceCullingPass, 1,
                                                      perView.m_viewBindlessRef);
           ctx->m_cmd->attachBindlessReferenceCompute(
@@ -608,6 +607,9 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
             ctx->m_cmd->uavBufferClear(perView.m_allFilteredMeshletsCount, 0);
             ctx->m_cmd->uavBufferBarrier(perView.m_allFilteredMeshletsCount);
             ctx->m_cmd->uavBufferClear(m_indirectDrawBuffer, 0);
+            ctx->m_cmd->uavBufferBarrier(m_indirectDrawBuffer);
+          } else {
+            ctx->m_cmd->uavBufferBarrier(perView.m_allFilteredMeshletsCount);
             ctx->m_cmd->uavBufferBarrier(m_indirectDrawBuffer);
           }
           // bind view buffer
@@ -641,18 +643,19 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
       ctx->m_cmd->attachBindlessReferenceGraphics(
           m_visibilityPass, 2,
           perframeData.m_allInstanceData.m_batchedObjBufRef);
+      ctx->m_cmd->setCullMode(RhiCullMode::Back);
       ctx->m_cmd->attachBindlessReferenceGraphics(
           m_visibilityPass, 3, perView.m_allFilteredMeshletsDesc);
       if (cullPass == CullingPass::First) {
         ctx->m_cmd->setPushConst(m_visibilityPass, 0, sizeof(uint32_t),
                                  &pcData[0]);
-        ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsCount, 0,
-                                          1, 0);
+        ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsCount,
+                                          sizeof(uint32_t) * 3, 1, 0);
       } else {
         ctx->m_cmd->setPushConst(m_visibilityPass, 0, sizeof(uint32_t),
                                  &pcData[1]);
         ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsCount,
-                                          sizeof(uint32_t) * 3, 1, 0);
+                                          sizeof(uint32_t) * 0, 1, 0);
       }
     });
 

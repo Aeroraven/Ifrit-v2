@@ -14,8 +14,10 @@ namespace Ifrit::Core {
 struct PerFramePerViewData {
   float4x4 m_worldToView;
   float4x4 m_perspective;
+  float4x4 m_worldToClip;
   float4x4 m_inversePerspective;
   ifloat4 m_cameraPosition;
+  ifloat4 m_cameraFront;
   float m_renderWidth;
   float m_renderHeight;
   float m_cameraNear;

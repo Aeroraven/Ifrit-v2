@@ -51,6 +51,7 @@ struct IFRIT_APIDECL ExtensionFunction {
 
   PFN_vkCmdBeginDebugUtilsLabelEXT p_vkCmdBeginDebugUtilsLabelEXT;
   PFN_vkCmdEndDebugUtilsLabelEXT p_vkCmdEndDebugUtilsLabelEXT;
+  PFN_vkCmdSetCullModeEXT p_vkCmdSetCullModeEXT;
 };
 
 class IFRIT_APIDECL EngineContext : public Rhi::RhiDevice {

@@ -33,7 +33,9 @@ struct BVHNode{
     int dummy2;
     int dummy3;
 };
-
+RegisterStorage(bMeshlet,{
+    Meshlet data[];
+});
 
 RegisterStorage(bClusterGroup,{
     ClusterGroup data[];
@@ -63,18 +65,14 @@ RegisterStorage(bMeshletsInClusterGroup,{
     uint data[];
 });
 RegisterStorage(bDrawCallSize,{
-    uint x1;
-    uint y1;
-    uint z1;
     uint x2;
     uint y2;
-    uint z2; 
+    uint z2;
+    uint x1;
+    uint y1;
+    uint z1; 
 });
 
-struct MeshletDesc{
-    uint instanceId;
-    uint meshletId;
-};
 RegisterStorage(bFilteredMeshlets2,{
     ivec2 data[];
 });
@@ -188,24 +186,86 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy){
 
 }
 
-void enqueueClusterGroup(uint id, uint clusterRef, uint micRef){
+
+bool frustumCullLRTB(vec4 left, vec4 right, vec4 top, vec4 bottom, vec4 boundBall, float radius){
+    float distLeft = ifrit_signedDistToPlane(left,boundBall);
+    float distRight = ifrit_signedDistToPlane(right,boundBall);
+    float distTop = ifrit_signedDistToPlane(top,boundBall);
+    float distBottom = ifrit_signedDistToPlane(bottom,boundBall);
+
+    if(distLeft + radius < 0.0 || distRight + radius < 0.0 || distTop + radius < 0.0 || distBottom + radius < 0.0){
+        return true;
+    }
+    return false;
+}
+
+// If the object should be culled, return true
+bool frustumCull(vec4 boundBall, float radius, float tanHalfFovY){
+    float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
+    float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
+    
+    float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+    float z = boundBall.z;
+    if(z+radius < camNear || z-radius > camFar){
+        return true;
+    }
+    vec4 leftNorm = normalize(vec4(1.0, 0.0,tanHalfFovY * camAspect, 0.0));
+    vec4 rightNorm = normalize(vec4(-1.0, 0.0,tanHalfFovY * camAspect, 0.0));
+    vec4 topNorm = normalize(vec4(0.0, -1.0,tanHalfFovY, 0.0));
+    vec4 bottomNorm = normalize(vec4(0.0, 1.0,tanHalfFovY, 0.0));
+    if(frustumCullLRTB(leftNorm,rightNorm,topNorm,bottomNorm,boundBall,radius)){
+        return true;
+    }
+    return false;
+}
+
+void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFovY){
     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
     uint objId =getObjId();
     int numMeshlets = 1; //int(group.childMeshletCount);
     uint pos = 0;
 
-    if(isSecondCullingPass()){
-        uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1;
-        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2,numMeshlets);
-        pos += basePos;
-    }else{
-        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1,numMeshlets);
+    bool bMeshletCulled = false;
+
+    // Backface culling
+    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
+    uint meshletId = GetResource(bMeshletsInClusterGroup,micRef).data[group.childMeshletStart];
+    vec4 normalConeAxis = GetResource(bMeshlet,meshletRef).data[meshletId].normalCone;
+    vec4 normalConeApex = GetResource(bMeshlet,meshletRef).data[meshletId].normalConeApex;
+    vec4 boundBall = GetResource(bMeshlet,meshletRef).data[meshletId].boundSphere;
+    vec4 boundBallCenter = vec4(boundBall.xyz,1.0); 
+    float boundBallRadius = boundBall.w;
+
+    uint transRef = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
+    mat4 localToWorld = GetResource(bLocalTransform,transRef).m_localToWorld;
+    mat4 worldToView = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
+    mat4 localToView = worldToView * localToWorld;  
+
+    // TODO: this transform is incorrect, but the demo scene only uses translation, it's fine for now
+    vec4 viewConeAxis = localToView * vec4(normalConeAxis.xyz,0.0);
+    vec4 viewConeApex = localToView * vec4(normalConeApex.xyz,1.0);
+    float coneAngle = dot(viewConeAxis.xyz,viewConeApex.xyz);
+    if(coneAngle > normalConeAxis.w){
+        return;
     }
 
-    for(uint i = 0;i<group.childMeshletCount;i++){
-        uint meshletId = GetResource(bMeshletsInClusterGroup,micRef).data[group.childMeshletStart + i];
-        GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[pos+i] = ivec2(objId,meshletId);
+    // Frustum culling
+    vec4 viewBoundBallCenter = localToView * boundBallCenter;
+    if(frustumCull(viewBoundBallCenter,boundBallRadius,tanHalfFovY)){
+        return;
     }
+
+    // End culling
+    if(isSecondCullingPass()){
+        uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1;
+        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2,1);
+        pos += basePos;
+    }else{
+        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1,1);
+    }
+
+    GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[pos] = ivec2(objId,meshletId);
 }
 
 void main(){
@@ -213,6 +273,13 @@ void main(){
         uint rejected = GetResource(bHierCullDispatch,uIndirectCompInstCull.indRef).totalRejected;
         uint instanceCullTGSZ = 64;
         GetResource(bHierCullDispatch,uIndirectCompInstCull.indRef).rejected = (rejected + instanceCullTGSZ - 1) / instanceCullTGSZ;
+    }
+
+    if(gl_WorkGroupID.x==0){
+        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y2 = 1;
+        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z2 = 1;
+        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y1 = 1;
+        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z1 = 1;
     }
     
     uint threadId = gl_LocalInvocationID.x;
@@ -255,13 +322,6 @@ void main(){
     int chosenBVHNodePos = UNSET;
     if(threadId == 0){
         GetResource(bCpQueue,cpqueueRef).data[0] = 0;
-        if(isSecondCullingPass()){
-            GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y2 = 1;
-            GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z2 = 1;
-        }else{
-            GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y1 = 1;
-            GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z1 = 1;
-        }
         chosenBVHNodeInd = 0;
     }
     barrier();
@@ -298,7 +358,7 @@ void main(){
                     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
                     bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy);
                     if(clusterGroupVisible){ 
-                        enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef);
+                        enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
                     }
                 }
             }else{
@@ -309,4 +369,5 @@ void main(){
             chosenBVHNodeInd = UNSET;
         }
     }
+    //GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2 = 104829;
 }

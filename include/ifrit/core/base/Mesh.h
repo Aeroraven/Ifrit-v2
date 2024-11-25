@@ -15,6 +15,16 @@ struct MeshData {
     uint32_t pad1;
   };
 
+  struct MeshletData {
+    uint32_t vertexOffset;
+    uint32_t triangleOffset;
+    uint32_t vertexCount;
+    uint32_t triangleCount;
+    ifloat4 normalConeAxisCutoff;
+    ifloat4 normalConeApex;
+    ifloat4 boundSphere;
+  };
+
   std::vector<ifloat3> m_vertices;
   std::vector<ifloat4> m_verticesAligned;
   std::vector<ifloat3> m_normals;
@@ -24,7 +34,10 @@ struct MeshData {
   std::vector<uint32_t> m_indices;
 
   // Cluster data
-  std::vector<iint4> m_meshlets;
+  std::vector<MeshletData> m_meshlets;
+  std::vector<ifloat4> m_normalsCone;
+  std::vector<ifloat4> m_normalsConeApex;
+  std::vector<ifloat4> m_boundSphere;
   std::vector<uint32_t> m_meshletTriangles;
   std::vector<uint32_t> m_meshletVertices;
   std::vector<uint32_t> m_meshletInClusterGroup;

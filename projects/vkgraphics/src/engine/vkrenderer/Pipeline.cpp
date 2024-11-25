@@ -16,7 +16,6 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   std::vector<VkDynamicState> dynamicStates = {
       VK_DYNAMIC_STATE_VIEWPORT,
       VK_DYNAMIC_STATE_SCISSOR,
-
       VK_DYNAMIC_STATE_CULL_MODE_EXT,
       VK_DYNAMIC_STATE_FRONT_FACE_EXT,
       VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT, //

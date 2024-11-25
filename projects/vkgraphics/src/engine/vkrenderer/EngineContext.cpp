@@ -69,6 +69,7 @@ template <typename T>
 void loadExtFunc(T &extf, const char *name, VkDevice device) {
   extf = (T)vkGetDeviceProcAddr(device, name);
   if (!extf) {
+    printf("Loading: %s\n", name);
     vkrError("Failed to load extension function");
   }
 }
@@ -107,6 +108,7 @@ IFRIT_APIDECL void EngineContext::loadExtensionFunction() {
               "vkCmdBeginDebugUtilsLabelEXT", m_device);
   loadExtFunc(m_extf.p_vkCmdEndDebugUtilsLabelEXT, "vkCmdEndDebugUtilsLabelEXT",
               m_device);
+  // loadExtFunc(m_extf.p_vkCmdSetCullModeEXT, "vkCmdSetCullModeEXT", m_device);
 
   vkrLog("Extension functions loaded");
 }

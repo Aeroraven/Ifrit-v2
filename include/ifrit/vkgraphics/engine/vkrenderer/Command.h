@@ -196,6 +196,7 @@ public:
                          Rhi::RhiImageSubResource srcSub,
                          const Rhi::RhiTexture *dst,
                          Rhi::RhiImageSubResource dstSub) const override;
+  virtual void setCullMode(Rhi::RhiCullMode mode) const override;
 };
 
 class IFRIT_APIDECL CommandPool {

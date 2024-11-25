@@ -20,6 +20,18 @@ IFRIT_APIDECL float4x4 Camera::worldToCameraMatrix() const {
 }
 IFRIT_APIDECL float4x4 Camera::projectionMatrix() const {
   auto data = m_attributes;
-  return transpose(perspectiveNegateY(data.m_fov, data.m_aspect, data.m_near, data.m_far));
+  return transpose(
+      perspectiveNegateY(data.m_fov, data.m_aspect, data.m_near, data.m_far));
+}
+
+IFRIT_APIDECL ifloat4 Camera::getFront() const {
+  auto p = getParent();
+  auto transform = p->getComponent<Transform>();
+  auto pos = transform->getPosition();
+  auto rot = transform->getRotation();
+  ifloat4 frontRaw = ifloat4{0.0f, 0.0f, 1.0f, 0.0f};
+  auto rotationMatrix = eulerAngleToMatrix(rot);
+  auto front = matmul(rotationMatrix, frontRaw);
+  return front;
 }
 } // namespace Ifrit::Core

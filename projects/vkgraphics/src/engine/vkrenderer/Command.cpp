@@ -490,7 +490,8 @@ IFRIT_APIDECL void CommandBuffer::copyImage(
   region.extent.width = srcImage->getWidth();
   region.extent.height = srcImage->getHeight();
   region.extent.depth = srcImage->getDepth();
-  vkCmdCopyImage(m_commandBuffer, srcImage->getImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage->getImage(),
+  vkCmdCopyImage(m_commandBuffer, srcImage->getImage(),
+                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage->getImage(),
                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 };
 
@@ -558,6 +559,24 @@ IFRIT_APIDECL void CommandBuffer::endScope() const {
   exfun.p_vkCmdEndDebugUtilsLabelEXT(m_commandBuffer);
 }
 
+IFRIT_APIDECL void CommandBuffer::setCullMode(Rhi::RhiCullMode mode) const {
+  VkCullModeFlags cullMode;
+  switch (mode) {
+  case Rhi::RhiCullMode::None:
+    cullMode = VK_CULL_MODE_NONE;
+    break;
+  case Rhi::RhiCullMode::Front:
+    cullMode = VK_CULL_MODE_FRONT_BIT;
+    break;
+  case Rhi::RhiCullMode::Back:
+    cullMode = VK_CULL_MODE_BACK_BIT;
+    break;
+  default:
+    vkrError("Invalid cull mode");
+  }
+  auto exfun = m_context->getExtensionFunction();
+  vkCmdSetCullMode(m_commandBuffer, cullMode);
+}
 // Class: Queue
 IFRIT_APIDECL Queue::Queue(EngineContext *ctx, VkQueue queue, uint32_t family,
                            VkQueueFlags capability)

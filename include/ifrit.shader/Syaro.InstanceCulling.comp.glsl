@@ -75,10 +75,6 @@ bool isSecondCullingPass(){
     return pConst.passNo == 1;
 }
 
-float signedDistToPlane(vec4 plane, vec4 point){
-    return dot(plane.xyz,point.xyz) + plane.w;
-}
-
 uint getPerFrameRef(){
     if(isSecondCullingPass()){
         return uPerframeView.refCurFrame;
@@ -88,10 +84,10 @@ uint getPerFrameRef(){
 }
 
 bool frustumCullLRTB(vec4 left, vec4 right, vec4 top, vec4 bottom, vec4 boundBall, float radius){
-    float distLeft = signedDistToPlane(left,boundBall);
-    float distRight = signedDistToPlane(right,boundBall);
-    float distTop = signedDistToPlane(top,boundBall);
-    float distBottom = signedDistToPlane(bottom,boundBall);
+    float distLeft = ifrit_signedDistToPlane(left,boundBall);
+    float distRight = ifrit_signedDistToPlane(right,boundBall);
+    float distTop = ifrit_signedDistToPlane(top,boundBall);
+    float distBottom = ifrit_signedDistToPlane(bottom,boundBall);
 
     if(distLeft + radius < 0.0 || distRight + radius < 0.0 || distTop + radius < 0.0 || distBottom + radius < 0.0){
         return true;
@@ -283,7 +279,7 @@ void main(){
             uint acceptRef = uIndirectComp.acceptRef;
             uint acceptIndex = atomicAdd(GetResource(bHierCullDispatch,indirectDispatchRef).accepted,1);
             GetResource(bInstanceAccepted,acceptRef).data[acceptIndex] = instanceIndex;
-        }else if(!frustumCulled){
+        }else if(!frustumCulled && occlusionCulled){ 
             uint rejectRef = uIndirectComp.rejectRef;
             uint rejectIndex = atomicAdd(GetResource(bHierCullDispatch,indirectDispatchRef).totalRejected,1);
             GetResource(bInstanceRejected,rejectRef).data[rejectIndex] = instanceIndex;
@@ -307,6 +303,11 @@ void main(){
             GetResource(bHierCullDispatch,indirectDispatchRef).compY2 = 1;
             GetResource(bHierCullDispatch,indirectDispatchRef).compZ2 = 1;
         }
+    }
+
+    // An extra workgroup should be launched to handle if all instances are culled using prev hzb
+    if(gl_GlobalInvocationID.x==0){
+       // atomicAdd(GetResource(bHierCullDispatch,indirectDispatchRef).accepted,1);
     }
 
 }

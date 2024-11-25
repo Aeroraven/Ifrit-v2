@@ -1,6 +1,7 @@
 #include "ifrit/core/base/Mesh.h"
 #define IFRIT_MESHPROC_IMPORT
 #include "ifrit/meshproc/engine/mesh/MeshClusterLodProc.h"
+#include "ifrit/meshproc/engine/mesh/MeshletConeCull.h"
 #undef IFRIT_MESHPROC_IMPORT
 #include "ifrit/common/math/simd/SimdVectors.h"
 
@@ -17,6 +18,8 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
   constexpr int MAX_LOD = 10;
 
   MeshClusterLodProc meshProc;
+  MeshletConeCullProc coneCullProc;
+
   MeshDescriptor meshDesc;
   meshDesc.indexCount = size_cast<int>(meshData->m_indices.size());
   meshDesc.indexData = reinterpret_cast<char *>(meshData->m_indices.data());
@@ -24,6 +27,8 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
   meshDesc.vertexCount = size_cast<int>(meshData->m_vertices.size());
   meshDesc.vertexData = reinterpret_cast<char *>(meshData->m_vertices.data());
   meshDesc.vertexStride = sizeof(ifloat3);
+  meshDesc.normalData = reinterpret_cast<char *>(meshData->m_normals.data());
+  meshDesc.normalStride = sizeof(ifloat3);
 
   auto chosenLod = MAX_LOD - 1;
   CombinedClusterLodBuffer meshletData;
@@ -33,6 +38,10 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
 
   meshProc.clusterLodHierachy(meshDesc, meshletData, clusterGroupData, bvhNodes,
                               MAX_LOD);
+  coneCullProc.createNormalCones(
+      meshDesc, meshletData.meshletsRaw, meshletData.meshletVertices,
+      meshletData.meshletTriangles, meshData->m_normalsCone,
+      meshData->m_normalsConeApex, meshData->m_boundSphere);
 
   auto meshlet_triangles = meshletData.meshletTriangles;
   auto meshlets = meshletData.meshletsRaw;
@@ -43,16 +52,25 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
   auto meshlet_inClusterGroup = meshletData.meshletsInClusterGroups;
 
   meshData->m_meshlets.resize(meshlets.size());
+  for (auto i = 0; i < meshData->m_normalsCone.size(); i++) {
+    meshData->m_meshlets[i].normalConeAxisCutoff = meshData->m_normalsCone[i];
+    meshData->m_meshlets[i].normalConeApex = meshData->m_normalsConeApex[i];
+    meshData->m_meshlets[i].boundSphere = meshData->m_boundSphere[i];
+  }
+
   for (size_t i = 0; i < meshlets.size(); i++) {
-    meshData->m_meshlets[i] = meshlets[i];
+    meshData->m_meshlets[i].vertexOffset = meshlets[i].x;
+    meshData->m_meshlets[i].triangleOffset = meshlets[i].y;
+    meshData->m_meshlets[i].vertexCount = meshlets[i].z;
+    meshData->m_meshlets[i].triangleCount = meshlets[i].w;
   }
 
   uint32_t totalTriangles = 0;
   for (size_t i = 0; i < meshlet_count; i++) {
-    auto orgOffset = meshData->m_meshlets[i].y;
-    meshData->m_meshlets[i].y = totalTriangles;
-    totalTriangles += meshData->m_meshlets[i].w;
-    for (size_t j = 0; j < meshData->m_meshlets[i].w; j++) {
+    auto orgOffset = meshData->m_meshlets[i].triangleOffset;
+    meshData->m_meshlets[i].triangleOffset = totalTriangles;
+    totalTriangles += meshData->m_meshlets[i].triangleCount;
+    for (size_t j = 0; j < meshData->m_meshlets[i].triangleCount; j++) {
       uint32_t packedTriangle = 0;
       packedTriangle |= meshlet_triangles[orgOffset + j * 3];
       packedTriangle |= meshlet_triangles[orgOffset + j * 3 + 1] << 8;

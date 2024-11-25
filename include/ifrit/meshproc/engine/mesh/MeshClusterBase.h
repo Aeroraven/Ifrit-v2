@@ -35,5 +35,15 @@ struct FlattenedBVHNode {
   uint32_t pad2;
   uint32_t pad3;
 };
+struct MeshDescriptor {
+  char *vertexData;
+  char *indexData;
+  char *normalData;
+  int vertexCount;
+  int indexCount;
+  int vertexStride;
+  int positionOffset;
+  int normalStride;
+};
 
 } // namespace Ifrit::MeshProcLib::MeshProcess

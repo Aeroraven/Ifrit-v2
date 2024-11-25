@@ -1,8 +1,10 @@
 struct PerFramePerViewData {
   mat4 m_worldToView;
   mat4 m_perspective;
+  mat4 m_worldToClip;
   mat4 m_invPerspective;
   vec4 m_cameraPosition;
+  vec4 m_cameraFront;
   float m_renderWidth;
   float m_renderHeight;
   float m_cameraNear;
@@ -33,3 +35,6 @@ float ifrit_recoverViewSpaceDepth(float screenZ, float nearPlane, float farPlane
   return (2.0 * nearPlane * farPlane) / ( - screenZ * (farPlane - nearPlane) + (farPlane + nearPlane));
 }
 
+float ifrit_signedDistToPlane(vec4 plane, vec4 point){
+    return dot(plane.xyz,point.xyz) + plane.w;
+}

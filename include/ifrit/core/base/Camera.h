@@ -26,6 +26,7 @@ public:
   inline void deserialize() override { deserializeAttribute(); }
   float4x4 worldToCameraMatrix() const;
   float4x4 projectionMatrix() const;
+  ifloat4 getFront() const;
 
   // getters
   inline float getFov() const { return m_attributes.m_fov; }
