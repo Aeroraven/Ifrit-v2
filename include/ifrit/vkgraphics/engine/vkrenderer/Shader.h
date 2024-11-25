@@ -14,6 +14,7 @@ struct ShaderModuleCI {
   std::string entryPoint;
   Rhi::RhiShaderStage stage;
   Rhi::RhiShaderSourceType sourceType;
+  std::string fileName;
 };
 
 class IFRIT_APIDECL ShaderModule : public Rhi::RhiShader {

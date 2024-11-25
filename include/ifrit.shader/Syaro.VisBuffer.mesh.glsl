@@ -7,7 +7,7 @@
 #include "Syaro.Shared.glsl"
 
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
-layout(triangles, max_vertices = 64, max_primitives = 124) out;
+layout(triangles, max_vertices = 128, max_primitives = 128) out;
 
 RegisterStorage(bMeshlet,{
     Meshlet data[];
@@ -97,27 +97,20 @@ uint getMeshletId(){
     }
 }
 
-
-uint readTriangleIndex(uint meshletid, uint offset){
-    uint mio = gl_WorkGroupID.x;
-    uint objId = getObjId();
-
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
-    uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
-    uint offsetInUint8Local = offset;
+uvec2 readTriangleIndexRefOffset(uint meshletid, uint meshletRef, uint obj){
     uint meshletTriOffset = GetResource(bMeshlet,meshletRef).data[meshletid].triangle_offset;
-    uint totalUint8Offset = meshletTriOffset + offsetInUint8Local;
     uint indexRef = GetResource(bMeshDataRef,obj).meshletIndexBuffer;
-    uint indexDataU32 = GetResource(bMeshletTriangles,indexRef).data[totalUint8Offset];
-    return indexDataU32;
+    return uvec2(indexRef,meshletTriOffset);
 }
 
-uint readVertexIndex(uint meshletid, uint offset){
+uint readTriangleIndex2(uvec2 refOffset, uint offset){
     uint offsetInUint8Local = offset;
-    uint objId = getObjId();
+    uint totalUint8Offset = refOffset.y + offsetInUint8Local;
+    return GetResource(bMeshletTriangles,refOffset.x).data[totalUint8Offset];
+}
 
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
-    uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
+uint readVertexIndex(uint meshletid, uint meshletRef, uint obj, uint offset){
+    uint offsetInUint8Local = offset;
     uint vertexRef = GetResource(bMeshDataRef,obj).meshletVertexBuffer;
     uint meshletVertOffset = GetResource(bMeshlet,meshletRef).data[meshletid].vertex_offset;
     uint totalUint8Offset = meshletVertOffset + offsetInUint8Local;
@@ -143,20 +136,22 @@ void main(){
     uint totalTris = GetResource(bMeshlet,meshletRef).data[mi].triangle_count;
     uint totalVerts = GetResource(bMeshlet,meshletRef).data[mi].vertex_count;
     SetMeshOutputsEXT(totalVerts, totalTris);
-
     uint gtid = gl_LocalInvocationID.x;
+    uvec2 triRefOffset = readTriangleIndexRefOffset(mi,meshletRef,obj);
+
     if(gtid < totalVerts){
         uint i = gtid;
-        uint vi = readVertexIndex(mi,i);
+        uint vi = readVertexIndex(mi,meshletRef,obj,i);
         vec3 v0 = GetResource(bVertices,vertexRef).data[vi].xyz;
         gl_MeshVerticesEXT[i].gl_Position = mvp * vec4(v0,1.0);
         ids[i] = getClusterID();
     }
     if(gtid < totalTris){
         uint i = gtid;
-        uint triIndexA = readTriangleIndex(mi,i*3 + 0);
-        uint triIndexB = readTriangleIndex(mi,i*3 + 1);
-        uint triIndexC = readTriangleIndex(mi,i*3 + 2);
+        uint triIndices = readTriangleIndex2(triRefOffset,i);
+        uint triIndexA = triIndices & 0x000000FF;
+        uint triIndexB = (triIndices & 0x0000FF00) >> 8;
+        uint triIndexC = (triIndices & 0x00FF0000) >> 16;
         gl_PrimitiveTriangleIndicesEXT[i] = uvec3(triIndexA,triIndexB,triIndexC);
         gl_MeshPrimitivesEXT[i].gl_PrimitiveID = int(i);
     }

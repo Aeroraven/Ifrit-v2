@@ -36,7 +36,7 @@ IFRIT_APIDECL ShaderAsset::ShaderRef *ShaderAsset::loadShader() {
     }
 
     auto p =
-        rhi->createShader(data, "main", stage,
+        rhi->createShader(fileName, data, "main", stage,
                           GraphicsBackend::Rhi::RhiShaderSourceType::GLSLCode);
     // TODO: eliminate raw pointer
     m_selfData = p;

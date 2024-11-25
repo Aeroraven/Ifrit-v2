@@ -191,15 +191,16 @@ RhiVulkanBackend::getQueue(Rhi::RhiQueueCapability req) {
   return s;
 }
 
-IFRIT_APIDECL Rhi::RhiShader *
-RhiVulkanBackend::createShader(const std::vector<char> &code, std::string entry,
-                               Rhi::RhiShaderStage stage,
-                               Rhi::RhiShaderSourceType sourceType) {
+IFRIT_APIDECL Rhi::RhiShader *RhiVulkanBackend::createShader(
+    const std::string &name, const std::vector<char> &code,
+    const std::string &entry, Rhi::RhiShaderStage stage,
+    Rhi::RhiShaderSourceType sourceType) {
   ShaderModuleCI ci{};
   ci.code = code;
   ci.entryPoint = entry;
   ci.stage = stage;
   ci.sourceType = sourceType;
+  ci.fileName = name;
   auto shaderModule = std::make_unique<ShaderModule>(
       checked_cast<EngineContext>(m_device.get()), ci);
   auto ptr = shaderModule.get();

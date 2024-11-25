@@ -69,7 +69,7 @@ std::string precompileShaderFile(const std::string &source_name,
 std::vector<uint32_t> compileShaderFile(const std::string &source_name,
                                         shaderc_shader_kind kind,
                                         const std::string &source,
-                                        bool optimize = false) {
+                                        bool optimize = true) {
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
   options.SetIncluder(std::make_unique<CustomShaderInclude>(
@@ -88,7 +88,7 @@ std::vector<uint32_t> compileShaderFile(const std::string &source_name,
   std::string preCode(precompiledModule.cbegin(), precompiledModule.cend());
 
   if (optimize)
-    options.SetOptimizationLevel(shaderc_optimization_level_size);
+    options.SetOptimizationLevel(shaderc_optimization_level_performance);
   options.SetTargetEnvironment(shaderc_target_env_vulkan,
                                shaderc_env_version_vulkan_1_2);
 
@@ -146,7 +146,7 @@ IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,
 
     if (cacheDir.empty()) {
       compiledCode = compileShaderFile(
-          ci.entryPoint, static_cast<shaderc_shader_kind>(kind), rawCode);
+          ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
       moduleCI.codeSize = compiledCode.size() * sizeof(uint32_t);
       moduleCI.pCode = compiledCode.data();
     } else {

@@ -28,6 +28,10 @@ struct BVHNode{
     uint clusterGroupCount;
     int subTreeSize;
     int childNodes[8];
+    float maxClusterError;
+    int dummy1;
+    int dummy2;
+    int dummy3;
 };
 
 
@@ -122,6 +126,11 @@ layout(push_constant) uniform CullingPass{
     uint passNo;
 } pConst;
 
+shared uint sConsumer;
+shared uint sProducer;
+shared int sRemain;
+
+
 bool isSecondCullingPass(){
     return pConst.passNo == 1;
 }
@@ -142,7 +151,6 @@ uint getObjId(){
 bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy){
     uint objId = getObjId();
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
-    uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
     uint cpcntRefMesh = GetResource(bMeshDataRef,obj).cpCounterBuffer;
 
     uint clusterRef = GetResource(bMeshDataRef,obj).clusterGroupBuffer;
@@ -180,16 +188,10 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy){
 
 }
 
-void enqueueClusterGroup(uint id, uint clusterRef){
+void enqueueClusterGroup(uint id, uint clusterRef, uint micRef){
     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
     uint objId =getObjId();
-    uint objMesh = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
-    uint objInst = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
-    uint filteredRef = GetResource(bInstanceDataRef,objInst).filteredMeshletsBuffer;
-    uint micRef = GetResource(bMeshDataRef,objMesh).meshletInClusterBuffer;
-    int numMeshlets = int(group.childMeshletCount);
-
-    // Seems atomicity is guaranteed across workgroups
+    int numMeshlets = 1; //int(group.childMeshletCount);
     uint pos = 0;
 
     if(isSecondCullingPass()){
@@ -207,7 +209,6 @@ void enqueueClusterGroup(uint id, uint clusterRef){
 }
 
 void main(){
-
     if(gl_GlobalInvocationID.x == 0){
         uint rejected = GetResource(bHierCullDispatch,uIndirectCompInstCull.indRef).totalRejected;
         uint instanceCullTGSZ = 64;
@@ -219,6 +220,7 @@ void main(){
     uint groupSize = gl_WorkGroupSize.x;
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
+    uint micRef = GetResource(bMeshDataRef,obj).meshletInClusterBuffer;
 
     uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
     mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
@@ -240,9 +242,9 @@ void main(){
     float fov = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
     float tanfovy = tan(fov*0.5);
     if(threadId == 0){
-        GetResource(bCpCounterInstance, cpcntRefInst).con = 0;
-        GetResource(bCpCounterInstance, cpcntRefInst).prod = 0;
-        GetResource(bCpCounterInstance, cpcntRefInst).remain = int(totalBVHNodes);
+        sConsumer = 0;
+        sProducer = 0;
+        sRemain = int(totalBVHNodes);
     }
     
     for(uint i= 0;i<totalClusterGroups;i+=groupSize){
@@ -265,12 +267,12 @@ void main(){
     barrier();
 
     while(true){
-        int remaining = GetResource(bCpCounterInstance,cpcntRefInst).remain;
+        int remaining = sRemain;
         if(remaining <= 0){
             break;
         }
         if(chosenBVHNodeInd == UNSET){
-            chosenBVHNodeInd = atomicAdd(GetResource(bCpCounterInstance,cpcntRefInst).con,1);
+            chosenBVHNodeInd = int(atomicAdd(sConsumer,1));
             if(chosenBVHNodeInd >= totalBVHNodes){
                 break;
             }
@@ -285,23 +287,23 @@ void main(){
         if(chosenBVHNodePos != UNSET){
             bool bvhNodeVisible = isBVHNodeVisible(chosenBVHNodePos);
             if(bvhNodeVisible){
-                atomicAdd(GetResource(bCpCounterInstance,cpcntRefInst).remain,-1);
+                atomicAdd(sRemain,-1);
                 BVHNode node = GetResource(bBVHNode,bvhRef).data[chosenBVHNodePos];
                 for(uint i = 0;i < node.numChildNodes ; i++){
                     int childNode = node.childNodes[i];
-                    int pos = atomicAdd(GetResource(bCpCounterInstance,cpcntRefInst).prod,1);
+                    int pos = int(atomicAdd(sProducer,1));
                     atomicExchange(GetResource(bCpQueue,cpqueueRef).data[pos],childNode); 
                 }
                 for(uint i = 0 ; i < node.clusterGroupCount;i++){
                     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
                     bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy);
                     if(clusterGroupVisible){ 
-                        enqueueClusterGroup(node.clusterGroupStart + i,clusterRef);
+                        enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef);
                     }
                 }
             }else{
                 int subTreeSize = GetResource(bBVHNode,bvhRef).data[chosenBVHNodePos].subTreeSize;
-                atomicAdd(GetResource(bCpCounterInstance,cpcntRefInst).remain,-subTreeSize);
+                atomicAdd(sRemain,-subTreeSize);
             }
             chosenBVHNodePos = UNSET;
             chosenBVHNodeInd = UNSET;

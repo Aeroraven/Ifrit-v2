@@ -1,7 +1,7 @@
 #pragma once
 #include "ifrit/common/math/LinalgOps.h"
 
-namespace Ifrit::MeshProcLib::ClusterLod {
+namespace Ifrit::MeshProcLib::MeshProcess {
 constexpr int BVH_CHILDREN = 8; // or 4
 struct MeshletCullData {
   ifloat4 selfSphere;
@@ -30,6 +30,10 @@ struct FlattenedBVHNode {
   uint32_t clusterGroupSize;
   uint32_t subTreeSize;
   uint32_t childNodes[BVH_CHILDREN];
+  float maxClusterError;
+  uint32_t pad1;
+  uint32_t pad2;
+  uint32_t pad3;
 };
 
-} // namespace Ifrit::MeshProcLib::ClusterLod
+} // namespace Ifrit::MeshProcLib::MeshProcess

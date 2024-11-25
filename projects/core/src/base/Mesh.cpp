@@ -1,6 +1,6 @@
 #include "ifrit/core/base/Mesh.h"
 #define IFRIT_MESHPROC_IMPORT
-#include "ifrit/meshproc/engine/clusterlod/MeshClusterLodProc.h"
+#include "ifrit/meshproc/engine/mesh/MeshClusterLodProc.h"
 #undef IFRIT_MESHPROC_IMPORT
 #include "ifrit/common/math/simd/SimdVectors.h"
 
@@ -9,7 +9,7 @@ using namespace Ifrit::Math::SIMD;
 namespace Ifrit::Core {
 IFRIT_APIDECL void
 Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
-  using namespace Ifrit::MeshProcLib::ClusterLod;
+  using namespace Ifrit::MeshProcLib::MeshProcess;
   using namespace Ifrit::Common::Utility;
   const size_t max_vertices = 64;
   const size_t max_triangles = 124;
@@ -46,14 +46,27 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
   for (size_t i = 0; i < meshlets.size(); i++) {
     meshData->m_meshlets[i] = meshlets[i];
   }
-  for (size_t i = 0; i < meshlet_triangles.size(); i++) {
-    meshData->m_meshletTriangles.push_back(meshlet_triangles[i]);
+
+  uint32_t totalTriangles = 0;
+  for (size_t i = 0; i < meshlet_count; i++) {
+    auto orgOffset = meshData->m_meshlets[i].y;
+    meshData->m_meshlets[i].y = totalTriangles;
+    totalTriangles += meshData->m_meshlets[i].w;
+    for (size_t j = 0; j < meshData->m_meshlets[i].w; j++) {
+      uint32_t packedTriangle = 0;
+      packedTriangle |= meshlet_triangles[orgOffset + j * 3];
+      packedTriangle |= meshlet_triangles[orgOffset + j * 3 + 1] << 8;
+      packedTriangle |= meshlet_triangles[orgOffset + j * 3 + 2] << 16;
+      meshData->m_meshletTriangles.push_back(packedTriangle);
+    }
   }
+
   meshData->m_meshletVertices = std::move(meshlet_vertices);
   meshData->m_meshCullData = std::move(meshlet_cull);
   meshData->m_meshletInClusterGroup = std::move(meshlet_inClusterGroup);
   meshData->m_bvhNodes = std::move(bvhNodes);
   meshData->m_clusterGroups = std::move(clusterGroupData);
+  meshData->m_numMeshletsEachLod = std::move(meshletData.numClustersEachLod);
 
   meshData->m_maxLod = MAX_LOD;
 }

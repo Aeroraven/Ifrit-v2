@@ -11,7 +11,7 @@
 #define WINDOW_HEIGHT 1080
 
 using namespace Ifrit::GraphicsBackend::Rhi;
-using namespace Ifrit::MeshProcLib::ClusterLod;
+using namespace Ifrit::MeshProcLib::MeshProcess;
 using namespace Ifrit::Math;
 using namespace Ifrit::Core;
 using namespace Ifrit::Common::Utility;
@@ -53,14 +53,14 @@ private:
   RendererConfig renderConfig;
   float timing = 0;
 
-  constexpr static uint32_t bunnyPlacementX = 20;
-  constexpr static uint32_t bunnyPlacementY = 1;
-  constexpr static uint32_t bunnyPlacementZ = 20;
+  constexpr static uint32_t bunnyPlacementX = 40;
+  constexpr static uint32_t bunnyPlacementY = 3;
+  constexpr static uint32_t bunnyPlacementZ = 15;
 
-  constexpr static float bunnyMinX = -2.0;
-  constexpr static float bunnyMaxX = 2.0;
-  constexpr static float bunnyMinY = 0.0;
-  constexpr static float bunnyMaxY = 0.0;
+  constexpr static float bunnyMinX = -4.0;
+  constexpr static float bunnyMaxX = 4.0;
+  constexpr static float bunnyMinY = -0.5;
+  constexpr static float bunnyMaxY = 0.5;
   constexpr static float bunnyMinZ = 0.0;
   constexpr static float bunnyMaxZ = 10.0;
 

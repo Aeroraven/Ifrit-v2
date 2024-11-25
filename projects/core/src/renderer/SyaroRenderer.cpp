@@ -63,7 +63,7 @@ IFRIT_APIDECL SyaroRenderer::GPUShader *SyaroRenderer::createShaderFromFile(
   auto path = shaderBasePath + "/" + shaderPath;
   auto shaderCode = Ifrit::Common::Utility::readTextFile(path);
   std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
-  return rhi->createShader(shaderCodeVec, entry, stage,
+  return rhi->createShader(shaderPath, shaderCodeVec, entry, stage,
                            RhiShaderSourceType::GLSLCode);
 }
 IFRIT_APIDECL void SyaroRenderer::setupTextureShowPass() {
@@ -682,6 +682,7 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
     cmd->endScope();
     cmd->globalMemoryBarrier();
     if (cullPass == CullingPass::First) {
+      // PERFORMANCE BOTTLNECK
       cmd->beginScope("Syaro: Visibility Pass, First");
       m_visibilityPass->run(cmd, perView.m_visRTs.get(), 0);
       cmd->endScope();

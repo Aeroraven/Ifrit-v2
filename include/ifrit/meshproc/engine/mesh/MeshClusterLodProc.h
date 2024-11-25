@@ -6,14 +6,13 @@
 #include <meshoptimizer/src/meshoptimizer.h>
 #include <vector>
 
-
 #ifndef IFRIT_MESHPROC_IMPORT
 #define IFRIT_MESHPROC_API IFRIT_APIDECL
 #else
 #define IFRIT_MESHPROC_API IFRIT_APIDECL_IMPORT
 #endif
 
-namespace Ifrit::MeshProcLib::ClusterLod {
+namespace Ifrit::MeshProcLib::MeshProcess {
 
 struct MeshDescriptor {
   char *vertexData;
@@ -23,8 +22,6 @@ struct MeshDescriptor {
   int vertexStride;
   int positionOffset;
 };
-
-
 
 struct ClusterLodGeneratorContext {
   int totalMeshlets;
@@ -55,8 +52,10 @@ struct CombinedClusterLodBuffer {
   // cluster groups
   std::vector<ClusterGroup> clusterGroups;
   std::vector<uint32_t> meshletsInClusterGroups;
-};
 
+  // Num clusters for each lod
+  std::vector<uint32_t> numClustersEachLod;
+};
 
 class IFRIT_MESHPROC_API MeshClusterLodProc {
 public:
@@ -67,4 +66,4 @@ public:
                          int maxLod);
 };
 
-} // namespace Ifrit::MeshProcLib::ClusterLod
+} // namespace Ifrit::MeshProcLib::MeshProcess

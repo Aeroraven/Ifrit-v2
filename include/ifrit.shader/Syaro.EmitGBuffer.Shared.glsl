@@ -203,11 +203,12 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     uint triangleId = clusterTriangleId.y;
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].objectDataRef;
     uint vertexRef = GetResource(bMeshDataRef,obj).vertexBuffer;
-
-    uint v0Tx = _gbcomp_readTriangleIndex(objMeshletId, triangleId * 3 + 0);
-    uint v1Tx = _gbcomp_readTriangleIndex(objMeshletId, triangleId * 3 + 1);
-    uint v2Tx = _gbcomp_readTriangleIndex(objMeshletId, triangleId * 3 + 2);
-
+    
+    uint vTx = _gbcomp_readTriangleIndex(objMeshletId, triangleId);
+    uint v0Tx = vTx & 0x000000FFu;
+    uint v1Tx = (vTx & 0x0000FF00u) >> 8;
+    uint v2Tx = (vTx & 0x00FF0000u) >> 16;
+    
     data.v0Idx = _gbcomp_readVertexIndex(objMeshletId, v0Tx);
     data.v1Idx = _gbcomp_readVertexIndex(objMeshletId, v1Tx);
     data.v2Idx = _gbcomp_readVertexIndex(objMeshletId, v2Tx);

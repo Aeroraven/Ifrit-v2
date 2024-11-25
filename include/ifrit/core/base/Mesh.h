@@ -3,7 +3,7 @@
 #include "Component.h"
 #include "Material.h"
 #include "ifrit/common/util/TypingUtil.h"
-#include "ifrit/meshproc/engine/clusterlod/MeshClusterBase.h"
+#include "ifrit/meshproc/engine/mesh/MeshClusterBase.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Core {
@@ -28,10 +28,13 @@ struct MeshData {
   std::vector<uint32_t> m_meshletTriangles;
   std::vector<uint32_t> m_meshletVertices;
   std::vector<uint32_t> m_meshletInClusterGroup;
-  std::vector<Ifrit::MeshProcLib::ClusterLod::MeshletCullData> m_meshCullData;
-  std::vector<Ifrit::MeshProcLib::ClusterLod::FlattenedBVHNode>
+  std::vector<Ifrit::MeshProcLib::MeshProcess::MeshletCullData> m_meshCullData;
+  std::vector<Ifrit::MeshProcLib::MeshProcess::FlattenedBVHNode>
       m_bvhNodes; // seems not suitable to be here
-  std::vector<Ifrit::MeshProcLib::ClusterLod::ClusterGroup> m_clusterGroups;
+  std::vector<Ifrit::MeshProcLib::MeshProcess::ClusterGroup> m_clusterGroups;
+
+  // Num meshlets in each lod
+  std::vector<uint32_t> m_numMeshletsEachLod;
 
   GPUCPCounter m_cpCounter;
   uint32_t m_maxLod;
@@ -185,20 +188,11 @@ public:
     uint32_t pad;
   };
 
-  struct GPUCPCounter {
-    uint32_t consume;
-    uint32_t produce;
-    uint32_t remain;
-    uint32_t pad1;
-  };
-
   struct GPUResource {
     GPUBuffer *cpQueueBuffer = nullptr;
-    GPUBuffer *cpCounterBuffer = nullptr;
     GPUBuffer *filteredMeshlets = nullptr;
 
     std::shared_ptr<GPUBindId> cpQueueBufferId = nullptr;
-    std::shared_ptr<GPUBindId> cpCounterBufferId = nullptr;
     std::shared_ptr<GPUBindId> filteredMeshletsId = nullptr;
 
     GPUObjectBuffer objectData;
@@ -209,10 +203,8 @@ public:
   inline void setGPUResource(GPUResource &resource) {
     m_resource.filteredMeshlets = resource.filteredMeshlets;
     m_resource.cpQueueBuffer = resource.cpQueueBuffer;
-    m_resource.cpCounterBuffer = resource.cpCounterBuffer;
 
     m_resource.filteredMeshletsId = resource.filteredMeshletsId;
-    m_resource.cpCounterBufferId = resource.cpCounterBufferId;
     m_resource.cpQueueBufferId = resource.cpQueueBufferId;
 
     m_resource.objectBuffer = resource.objectBuffer;
@@ -222,10 +214,8 @@ public:
   inline void getGPUResource(GPUResource &resource) {
     resource.filteredMeshlets = m_resource.filteredMeshlets;
     resource.cpQueueBuffer = m_resource.cpQueueBuffer;
-    resource.cpCounterBuffer = m_resource.cpCounterBuffer;
 
     resource.filteredMeshletsId = m_resource.filteredMeshletsId;
-    resource.cpCounterBufferId = m_resource.cpCounterBufferId;
     resource.cpQueueBufferId = m_resource.cpQueueBufferId;
 
     resource.objectBuffer = m_resource.objectBuffer;

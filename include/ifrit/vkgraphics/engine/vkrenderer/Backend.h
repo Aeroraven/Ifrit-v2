@@ -45,7 +45,9 @@ public:
   Rhi::RhiQueue *getQueue(Rhi::RhiQueueCapability req) override;
 
   // Shader
-  Rhi::RhiShader *createShader(const std::vector<char> &code, std::string entry,
+  Rhi::RhiShader *createShader(const std::string &name,
+                               const std::vector<char> &code,
+                               const std::string &entry,
                                Rhi::RhiShaderStage stage,
                                Rhi::RhiShaderSourceType sourceType) override;
 

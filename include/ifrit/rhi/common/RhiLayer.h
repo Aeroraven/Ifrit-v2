@@ -468,8 +468,10 @@ public:
 
   // Command execution
   virtual RhiQueue *getQueue(RhiQueueCapability req) = 0;
-  virtual RhiShader *createShader(const std::vector<char> &code,
-                                  std::string entry, Rhi::RhiShaderStage stage,
+  virtual RhiShader *createShader(const std::string &name,
+                                  const std::vector<char> &code,
+                                  const std::string &entry,
+                                  Rhi::RhiShaderStage stage,
                                   Rhi::RhiShaderSourceType sourceType) = 0;
 
   // Pass execution

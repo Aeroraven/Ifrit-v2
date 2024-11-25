@@ -10,7 +10,7 @@
 #define WINDOW_HEIGHT 1080
 
 using namespace Ifrit::GraphicsBackend::Rhi;
-using namespace Ifrit::MeshProcLib::ClusterLod;
+using namespace Ifrit::MeshProcLib::MeshProcess;
 using namespace Ifrit::Math;
 using namespace Ifrit::Core;
 using namespace Ifrit::Common::Utility;

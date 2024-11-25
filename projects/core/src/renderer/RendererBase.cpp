@@ -442,11 +442,11 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.bvhNodeBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_bvhNodes.size() *
-                sizeof(MeshProcLib::ClusterLod::FlattenedBVHNode),
+                sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.clusterGroupBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_clusterGroups.size() *
-                sizeof(MeshProcLib::ClusterLod::ClusterGroup),
+                sizeof(MeshProcLib::MeshProcess::ClusterGroup),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_meshlets.size() * sizeof(iint4),
@@ -459,7 +459,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletCullBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_meshCullData.size() *
-                sizeof(MeshProcLib::ClusterLod::MeshletCullData),
+                sizeof(MeshProcLib::MeshProcess::MeshletCullData),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletInClusterBuffer = rhi->createStorageBufferDevice(
             meshDataRef->m_meshletInClusterGroup.size() * sizeof(uint32_t),
@@ -538,21 +538,17 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         instanceResource.cpQueueBuffer = rhi->createStorageBufferDevice(
             sizeof(uint32_t) * meshDataRef->m_bvhNodes.size(),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        instanceResource.cpCounterBuffer =
-            rhi->createStorageBufferDevice(sizeof(MeshInstance::GPUCPCounter),
-                                           RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+        auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0] +
+                               meshDataRef->m_numMeshletsEachLod[1];
         instanceResource.filteredMeshlets = rhi->createStorageBufferDevice(
-            sizeof(uint32_t) * meshDataRef->m_meshlets.size(), 0);
+            sizeof(uint32_t) * safeNumMeshlets, 0);
 
         instanceResource.cpQueueBufferId =
             rhi->registerStorageBuffer(instanceResource.cpQueueBuffer);
-        instanceResource.cpCounterBufferId =
-            rhi->registerStorageBuffer(instanceResource.cpCounterBuffer);
         instanceResource.filteredMeshletsId =
             rhi->registerStorageBuffer(instanceResource.filteredMeshlets);
 
-        instanceResource.objectData.cpCounterBufferId =
-            instanceResource.cpCounterBufferId->getActiveId();
         instanceResource.objectData.cpQueueBufferId =
             instanceResource.cpQueueBufferId->getActiveId();
         instanceResource.objectData.filteredMeshletsId =

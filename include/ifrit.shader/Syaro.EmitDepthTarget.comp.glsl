@@ -137,9 +137,10 @@ void main(){
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].objectDataRef;
     uint vertexRef = GetResource(bMeshDataRef,obj).vertexBuffer;
 
-    uint v0Tx = readTriangleIndex(objMeshletId, clusterTriangleId.y * 3 + 0);
-    uint v1Tx = readTriangleIndex(objMeshletId, clusterTriangleId.y * 3 + 1);
-    uint v2Tx = readTriangleIndex(objMeshletId, clusterTriangleId.y * 3 + 2);
+    uint vTx = readTriangleIndex(objMeshletId, clusterTriangleId.y);
+    uint v0Tx = vTx & 0x000000FFu;
+    uint v1Tx = (vTx & 0x0000FF00u) >> 8;
+    uint v2Tx = (vTx & 0x00FF0000u) >> 16;
 
     uint v0Idx = readVertexIndex(objMeshletId, v0Tx);
     uint v1Idx = readVertexIndex(objMeshletId, v1Tx);

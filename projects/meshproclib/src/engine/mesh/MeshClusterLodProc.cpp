@@ -1,4 +1,4 @@
-#include "ifrit/meshproc/engine/clusterlod/MeshClusterLodProc.h"
+#include "ifrit/meshproc/engine/mesh/MeshClusterLodProc.h"
 
 #if IFRIT_FEATURE_SIMD
 #include <emmintrin.h>
@@ -28,10 +28,10 @@
 
 using namespace Ifrit::Math::SIMD;
 
-namespace Ifrit::MeshProcLib::ClusterLod {
+namespace Ifrit::MeshProcLib::MeshProcess {
 constexpr int CLUSTER_GROUP_SIZE = 4;
-constexpr int TRIANGLES_PER_MESHLET = 124;
-constexpr int VERTICES_PER_MESHLET = 64;
+constexpr int TRIANGLES_PER_MESHLET = 128;
+constexpr int VERTICES_PER_MESHLET = 128;
 constexpr float MESH_SIMPLIFICATION_RATE = 0.5f;
 
 // Meshlet definition
@@ -332,7 +332,7 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
   idx_t *vwgt = nullptr;
   idx_t *vsize = nullptr;
   idx_t *adjwgt = nullptr;
-  idx_t nparts = ctx.totalMeshlets / CLUSTER_GROUP_SIZE;
+  idx_t nparts = std::max(2, ctx.totalMeshlets / CLUSTER_GROUP_SIZE);
   real_t *tpwgts = nullptr;
   real_t *ubvec = nullptr;
   idx_t edgeCut;
@@ -657,6 +657,7 @@ struct ClusterGroupBVHNode {
   uint32_t isLeaf = 0;
   uint32_t curChildren = 0;
   uint32_t subTreeSize = 0;
+  float maxClusterError = 0.0f;
   BoundingBox bbox;
 };
 
@@ -889,17 +890,32 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
   printf("Total Nodes, after collapse:%d\n", totalNodes);
 
   // After collapse, dfs for subtree size
-  std::function<uint32_t(ClusterGroupBVHNode *)> dfsSubTreeSize =
-      [&](ClusterGroupBVHNode *node) -> uint32_t {
+  struct DFSRet {
+    uint32_t subTreeSize = 0;
+    float maxClusterError = 0.0f;
+  };
+  std::function<DFSRet(ClusterGroupBVHNode *)> dfsSubTreeSize =
+      [&](ClusterGroupBVHNode *node) -> DFSRet {
     if (node->isLeaf) {
+      DFSRet ret;
       node->subTreeSize = 1;
-      return 1;
+      for (auto &clusterGroup : node->childClusterGroups) {
+        ret.maxClusterError =
+            std::max(ret.maxClusterError, clusterGroup->selfBoundError);
+      }
+      node->maxClusterError = ret.maxClusterError;
+      return ret;
     }
-    uint32_t ret = 1;
+    DFSRet ret;
+    ret.subTreeSize = 1;
     for (uint32_t i = 0; i < node->curChildren; i++) {
-      ret += dfsSubTreeSize(node->child[i].get());
+      auto childRet = dfsSubTreeSize(node->child[i].get());
+      ret.subTreeSize += childRet.subTreeSize;
+      ret.maxClusterError =
+          std::max(ret.maxClusterError, node->child[i]->maxClusterError);
     }
-    node->subTreeSize = ret;
+    node->subTreeSize = ret.subTreeSize;
+    node->maxClusterError = ret.maxClusterError;
     return ret;
   };
   dfsSubTreeSize(bvh.root.get());
@@ -932,6 +948,7 @@ void bvhFlatten(const ClusterGroupBVH &bvh,
     newNode.clusterGroupSize = Ifrit::Common::Utility::size_cast<uint32_t>(
         curNode->childClusterGroups.size());
     newNode.subTreeSize = curNode->subTreeSize;
+    newNode.maxClusterError = curNode->maxClusterError;
     for (int i = 0; i < static_cast<int>(curNode->curChildren); i++) {
       newNode.childNodes[i] = childId++;
       q.push(curNode->child[i].get());
@@ -952,6 +969,10 @@ IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(
   std::vector<ClusterLodGeneratorContext> ctx;
   auto p = generateClusterLodHierachy(mesh, ctx, maxLod + 1);
   ctx.pop_back();
+  for (auto i = 0; i < ctx.size(); i++) {
+    meshletData.numClustersEachLod.push_back(
+        Ifrit::Common::Utility::size_cast<uint32_t>(ctx[i].meshletsRaw.size()));
+  }
   combineBuffer(ctx, meshletData);
   ClusterGroupBVH bvh;
   initialBVHConstruction(bvh, meshletData.clusterGroups);
@@ -960,4 +981,4 @@ IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(
   return 0;
 }
 
-} // namespace Ifrit::MeshProcLib::ClusterLod
+} // namespace Ifrit::MeshProcLib::MeshProcess

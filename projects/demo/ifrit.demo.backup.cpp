@@ -582,7 +582,7 @@ int demo_vulkanMeshShader() {
   const size_t max_triangles = 124;
   const float cone_weight = 0.0f;
 
-  using namespace Ifrit::Engine::MeshProcLib::ClusterLod;
+  using namespace Ifrit::Engine::MeshProcLib::MeshProcess;
   MeshClusterLodProc meshProc;
   MeshDescriptor meshDesc;
   meshDesc.indexCount = indices.size();
