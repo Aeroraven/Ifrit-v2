@@ -19,11 +19,11 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   viewData.m_viewDataOld = viewData.m_viewData;
   viewData.m_viewData.m_worldToView = camera->worldToCameraMatrix();
   viewData.m_viewData.m_perspective = camera->projectionMatrix();
+  viewData.m_viewData.m_perspective[2][0] += config.projectionTranslateX;
+  viewData.m_viewData.m_perspective[2][1] += config.projectionTranslateY;
   viewData.m_viewData.m_worldToClip = Math::transpose(
       Math::matmul(Math::transpose(viewData.m_viewData.m_perspective),
                    Math::transpose(viewData.m_viewData.m_worldToView)));
-  viewData.m_viewData.m_perspective[2][0] += config.projectionTranslateX;
-  viewData.m_viewData.m_perspective[2][1] += config.projectionTranslateY;
   viewData.m_viewData.m_cameraAspect = camera->getAspect();
   viewData.m_viewData.m_inversePerspective =
       Ifrit::Math::inverse4(viewData.m_viewData.m_perspective);

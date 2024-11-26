@@ -539,7 +539,6 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
                               primaryView.m_viewData.m_renderHeight};
         ctx->m_cmd->setPushConst(m_emitDepthTargetsPass, 0,
                                  sizeof(uint32_t) * 2, &pcData[0]);
-
         uint32_t wgX =
             (pcData[0] + cEmitDepthGroupSizeX - 1) / cEmitDepthGroupSizeX;
         uint32_t wgY =
@@ -1135,7 +1134,7 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
     if (perView.m_allFilteredMeshletsCount == nullptr) {
       perView.m_allFilteredMeshletsCount =
           rhi->createIndirectMeshDrawBufferDevice(
-              2, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
+              4, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
                      RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     }
     if (perView.m_allFilteredMeshletsMaxCount < totalMeshlets) {

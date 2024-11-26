@@ -36,6 +36,12 @@ RegisterStorage(bDrawCallSize,{
     uint x1;
     uint y1;
     uint z1;
+    uint completedWorkGroups1;
+    uint completedWorkGroups2;
+    uint meshletsToDraw1;
+    uint meshletsToDraw2; 
+    uint pad1;
+    uint pad2;
 });
 
 

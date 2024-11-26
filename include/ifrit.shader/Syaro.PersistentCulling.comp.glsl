@@ -70,7 +70,14 @@ RegisterStorage(bDrawCallSize,{
     uint z2;
     uint x1;
     uint y1;
-    uint z1; 
+    uint z1;
+
+    uint completedWorkGroups1;
+    uint completedWorkGroups2;
+    uint meshletsToDraw1;
+    uint meshletsToDraw2; 
+    uint pad1;
+    uint pad2;
 });
 
 RegisterStorage(bFilteredMeshlets2,{
@@ -370,4 +377,20 @@ void main(){
         }
     }
     //GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2 = 104829;
+
+    barrier();
+    if(threadId == 0){
+        if(isSecondCullingPass()){
+            uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups2,1) + 1;
+            if(v == gl_NumWorkGroups.x){
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2;
+            }
+        }
+        else{
+            uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups1,1) + 1;
+            if(v == gl_NumWorkGroups.x){
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1;
+            }
+        }
+    }
 }
