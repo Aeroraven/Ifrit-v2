@@ -80,27 +80,13 @@ bool isSecondCullingPass(){
     return pConst.passNo == 1;
 }
 uint getClusterID(){
-    if(!isSecondCullingPass()){
-        return gl_WorkGroupID.x;
-    }else{
-        return GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1 + gl_WorkGroupID.x;
-    }
+    return taskSharedData.subIds[gl_WorkGroupID.x].clusterId;
 }
 uint getObjId(){
-    if(!isSecondCullingPass()){
-        return GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[gl_WorkGroupID.x].x;
-    }else{
-        uint baseOffset = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1;
-        return GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[baseOffset + gl_WorkGroupID.x].x;
-    }
+    return taskSharedData.subIds[gl_WorkGroupID.x].objId;
 }
 uint getMeshletId(){
-    if(!isSecondCullingPass()){
-        return GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[gl_WorkGroupID.x].y;
-    }else{
-        uint baseOffset = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1;
-        return GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[baseOffset + gl_WorkGroupID.x].y;
-    }
+    return taskSharedData.subIds[gl_WorkGroupID.x].meshletId;
 }
 
 uvec2 readTriangleIndexRefOffset(uint meshletid, uint meshletRef, uint obj){
