@@ -359,7 +359,8 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
 // and then simplify the meshlet. [DAG->IndexBuffer (Simplify)]
 void clusterGroupSimplification(const MeshDescriptor &mesh,
                                 ClusterLodGeneratorContext &ctx,
-                                ClusterLodGeneratorContext &outCtx) {
+                                ClusterLodGeneratorContext &outCtx,
+                                float predefError) {
   // Some questions here:
   // https://www.reddit.com/r/GraphicsProgramming/comments/12jv49o/nanitelike_lods_experiments/
   // The parentError is calculated in cluster-group level,
@@ -402,7 +403,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
                   meshopt_SimplifySparse;
     auto targetIndexCount = static_cast<uint32_t>(aggregatedIndexBuffer.size() *
                                                   MESH_SIMPLIFICATION_RATE);
-    float targetError = 0.01f;
+    float targetError = predefError * modelScale; // 0.01f;
     auto simplifiedSize = meshopt_simplify(
         simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(),
         aggregatedIndexBuffer.size(),
@@ -553,7 +554,10 @@ int generateClusterLodHierachy(const MeshDescriptor &mesh,
   for (int i = 1; i < maxLod; i++) {
     printf("Generating lod:%d\n", i);
     meshletAdjacencyGeneration(ctx[i - 1]);
-    clusterGroupSimplification(mesh, ctx[i - 1], ctx[i]);
+    // Error ramping follows:
+    // https://jglrxavpok.github.io/2024/01/19/recreating-nanite-lod-generation.html
+    auto error = std::lerp(0.01f, 0.5f, i / float(maxLod));
+    clusterGroupSimplification(mesh, ctx[i - 1], ctx[i], i / float(maxLod));
     if (ctx[i].totalMeshlets <= 1 || i == maxLod - 1) {
       // push parent
       for (int j = 0; j < ctx[i - 1].totalMeshlets; j++) {

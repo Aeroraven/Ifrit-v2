@@ -738,6 +738,7 @@ class IFRIT_APIDECL RhiGraphicsPass : public RhiGeneralPassBase {
 
 public:
   virtual ~RhiGraphicsPass() = default;
+  virtual void setTaskShader(RhiShader *shader) = 0;
   virtual void setMeshShader(RhiShader *shader) = 0;
   virtual void setVertexShader(RhiShader *shader) = 0;
   virtual void setPixelShader(RhiShader *shader) = 0;

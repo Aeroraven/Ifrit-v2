@@ -238,38 +238,14 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     uint meshletId = GetResource(bMeshletsInClusterGroup,micRef).data[group.childMeshletStart];
-    vec4 normalConeAxis = GetResource(bMeshlet,meshletRef).data[meshletId].normalCone;
-    vec4 normalConeApex = GetResource(bMeshlet,meshletRef).data[meshletId].normalConeApex;
-    vec4 boundBall = GetResource(bMeshlet,meshletRef).data[meshletId].boundSphere;
-    vec4 boundBallCenter = vec4(boundBall.xyz,1.0); 
-    float boundBallRadius = boundBall.w;
-
-    uint transRef = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
-    mat4 localToWorld = GetResource(bLocalTransform,transRef).m_localToWorld;
-    mat4 worldToView = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
-    mat4 localToView = worldToView * localToWorld;  
-
-    // TODO: this transform is incorrect, but the demo scene only uses translation, it's fine for now
-    vec4 viewConeAxis = localToView * vec4(normalConeAxis.xyz,0.0);
-    vec4 viewConeApex = localToView * vec4(normalConeApex.xyz,1.0);
-    float coneAngle = dot(viewConeAxis.xyz,viewConeApex.xyz);
-    if(coneAngle > normalConeAxis.w){
-        return;
-    }
-
-    // Frustum culling
-    vec4 viewBoundBallCenter = localToView * boundBallCenter;
-    if(frustumCull(viewBoundBallCenter,boundBallRadius,tanHalfFovY)){
-        return;
-    }
 
     // End culling
     if(isSecondCullingPass()){
-        uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1;
-        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2,1);
+        uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1;
+        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2,1);
         pos += basePos;
     }else{
-        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1,1);
+        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1,1);
     }
 
     GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[pos] = ivec2(objId,meshletId);
@@ -383,13 +359,17 @@ void main(){
         if(isSecondCullingPass()){
             uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups2,1) + 1;
             if(v == gl_NumWorkGroups.x){
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2;
+                uint m2 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2;
+                uint issuedTasks = (m2 + 127) / 128;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2 = issuedTasks;
             }
         }
         else{
             uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups1,1) + 1;
             if(v == gl_NumWorkGroups.x){
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1;
+                uint m1 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1;
+                uint issuedTasks = (m1 + 127) / 128;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1 = issuedTasks;
             }
         }
     }

@@ -229,8 +229,8 @@ IFRIT_APIDECL void GraphicsPass::setTessEvalShader(ShaderModule *shader) {
   m_tessEvalShader = shader;
 }
 
-IFRIT_APIDECL void GraphicsPass::setTaskShader(ShaderModule *shader) {
-  m_taskShader = shader;
+IFRIT_APIDECL void GraphicsPass::setTaskShader(Rhi::RhiShader *shader) {
+  m_taskShader = checked_cast<ShaderModule>(shader);
 }
 
 IFRIT_APIDECL void GraphicsPass::setMeshShader(Rhi::RhiShader *shader) {

@@ -381,7 +381,7 @@ public:
   void setTessControlShader(ShaderModule *shader);
   void setTessEvalShader(ShaderModule *shader);
 
-  void setTaskShader(ShaderModule *shader);
+  void setTaskShader(Rhi::RhiShader *shader) override;
   void setMeshShader(Rhi::RhiShader *shader) override;
 
   void setRenderArea(uint32_t x, uint32_t y, uint32_t width,

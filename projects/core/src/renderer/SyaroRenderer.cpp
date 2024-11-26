@@ -227,12 +227,15 @@ void SyaroRenderer::renderTAAResolve(PerFrameData &perframeData,
 
 IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
   auto rhi = m_app->getRhiLayer();
+  auto tsShader = createShaderFromFile("Syaro.VisBuffer.task.glsl", "main",
+                                       RhiShaderStage::Task);
   auto msShader = createShaderFromFile("Syaro.VisBuffer.mesh.glsl", "main",
                                        RhiShaderStage::Mesh);
   auto fsShader = createShaderFromFile("Syaro.VisBuffer.frag.glsl", "main",
                                        RhiShaderStage::Fragment);
 
   m_visibilityPass = rhi->createGraphicsPass();
+  m_visibilityPass->setTaskShader(tsShader);
   m_visibilityPass->setMeshShader(msShader);
   m_visibilityPass->setPixelShader(fsShader);
   m_visibilityPass->setNumBindlessDescriptorSets(3);
