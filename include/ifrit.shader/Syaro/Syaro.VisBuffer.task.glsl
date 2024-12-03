@@ -4,16 +4,17 @@
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Syaro.Shared.glsl"
+#include "Syaro/Syaro.Shared.glsl"
+#include "Syaro/Syaro.SharedConst.h"
 
-layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = cMeshRasterizeTaskThreadGroupSize, local_size_y = 1, local_size_z = 1) in;
 
 // According to NVIDIA's documentation, AS's payload should be small
 // to avoid perf penalty.
 // https://developer.nvidia.com/blog/advanced-api-performance-mesh-shaders/
 struct TaskSharedData{
     uint base;
-    uint subIds[32];
+    uint subIds[cMeshRasterizeTaskPayloadSize];
 };
 
 taskPayloadSharedEXT  TaskSharedData taskSharedData;
@@ -152,7 +153,7 @@ void main(){
         sAcceptedMeshlets = 0;
         taskSharedData.base = gl_GlobalInvocationID.x;
     }
-    if(gl_LocalInvocationID.x < 32){
+    if(gl_LocalInvocationID.x < cMeshRasterizeTaskPayloadSize){
         taskSharedData.subIds[gl_LocalInvocationID.x] = 0;
     }
     barrier();

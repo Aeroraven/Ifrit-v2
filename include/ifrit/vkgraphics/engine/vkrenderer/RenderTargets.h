@@ -11,6 +11,7 @@ private:
   Rhi::RhiRenderTargetLoadOp m_loadOp;
   uint32_t m_targetMip = ~0u;
   uint32_t m_targetArrLayer = ~0u;
+  Rhi::RhiAttachmentBlendInfo m_blendInfo;
 
 public:
   ColorAttachment(Rhi::RhiTexture *renderTarget, Rhi::RhiClearValue clearValue,
@@ -31,6 +32,13 @@ public:
   inline Rhi::RhiRenderTargetLoadOp getLoadOp() const { return m_loadOp; }
   inline uint32_t getTargetMip() const { return m_targetMip; }
   inline uint32_t getTargetArrLayer() const { return m_targetArrLayer; }
+
+  inline void setBlendInfo(const Rhi::RhiAttachmentBlendInfo &info) override {
+    m_blendInfo = info;
+  }
+  inline Rhi::RhiAttachmentBlendInfo getBlendInfo() const {
+    return m_blendInfo;
+  }
 };
 
 class IFRIT_APIDECL DepthStencilAttachment

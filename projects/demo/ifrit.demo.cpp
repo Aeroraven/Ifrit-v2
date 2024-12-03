@@ -53,16 +53,16 @@ private:
   RendererConfig renderConfig;
   float timing = 0;
 
-  constexpr static uint32_t bunnyPlacementX = 40;
-  constexpr static uint32_t bunnyPlacementY = 3;
-  constexpr static uint32_t bunnyPlacementZ = 15;
+  constexpr static uint32_t bunnyPlacementX = 3;
+  constexpr static uint32_t bunnyPlacementY = 1;
+  constexpr static uint32_t bunnyPlacementZ = 3;
 
-  constexpr static float bunnyMinX = -4.0;
-  constexpr static float bunnyMaxX = 4.0;
-  constexpr static float bunnyMinY = -0.5;
-  constexpr static float bunnyMaxY = 0.5;
+  constexpr static float bunnyMinX = -0.25;
+  constexpr static float bunnyMaxX = 0.25;
+  constexpr static float bunnyMinY = -0.00;
+  constexpr static float bunnyMaxY = 0.10;
   constexpr static float bunnyMinZ = 0.0;
-  constexpr static float bunnyMaxZ = 10.0;
+  constexpr static float bunnyMaxZ = 1.0;
 
 public:
   void onStart() override {
@@ -99,7 +99,7 @@ public:
     camera->setNear(0.01f);
 
     auto cameraTransform = cameraGameObject->getComponent<Transform>();
-    cameraTransform->setPosition({0.0f, 0.1f, -1.25f});
+    cameraTransform->setPosition({0.0f, 0.5f, -1.25f});
     cameraTransform->setRotation({0.0f, 0.0f, 0.0f});
     cameraTransform->setScale({1.0f, 1.0f, 1.0f});
 

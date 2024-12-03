@@ -3,10 +3,10 @@
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Syaro.Shared.glsl"
+#include "Syaro/Syaro.Shared.glsl"
+#include "Syaro/Syaro.SharedConst.h"
 
-
-layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = cPersistentCullThreadGroupSizeX, local_size_y = 1, local_size_z = 1) in;
 
 struct ClusterGroup{
     vec4 selfBoundSphere;
@@ -146,6 +146,8 @@ float computeProjectedRadius(float tanfovy,float d,float r) {
 }
 
 bool isBVHNodeVisible(uint id){
+    // Currently, the impl is wrong, so we just return true.
+    // The correct impl will be added later.
     return true;
 }
 
@@ -360,7 +362,7 @@ void main(){
             uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups2,1) + 1;
             if(v == gl_NumWorkGroups.x){
                 uint m2 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2;
-                uint issuedTasks = (m2 + 127) / 128;
+                uint issuedTasks = (m2 + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
                 GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2 = issuedTasks;
             }
         }
@@ -368,7 +370,7 @@ void main(){
             uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups1,1) + 1;
             if(v == gl_NumWorkGroups.x){
                 uint m1 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1;
-                uint issuedTasks = (m1 + 127) / 128;
+                uint issuedTasks = (m1 + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
                 GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1 = issuedTasks;
             }
         }

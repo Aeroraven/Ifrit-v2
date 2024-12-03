@@ -1,5 +1,7 @@
 #pragma once
+#include "PbrAtmosphereRenderer.h"
 #include "RendererBase.h"
+
 namespace Ifrit::Core {
 class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
@@ -69,7 +71,7 @@ private:
   ComputePass *m_taaHistoryPass = nullptr;
   constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat cTAAFormat =
       Ifrit::GraphicsBackend::Rhi::RhiImageFormat::
-          RHI_FORMAT_R16G16B16A16_SFLOAT;
+          RHI_FORMAT_R32G32B32A32_SFLOAT;
   // Finally, deferred pass
   std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
                      PipelineAttachmentConfigsHash>
@@ -78,6 +80,10 @@ private:
   std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
                      PipelineAttachmentConfigsHash>
       m_taaPass;
+
+  // Atmosphere
+  ComputePass *m_atmospherePass = nullptr;
+  std::shared_ptr<PbrAtmosphereRenderer> m_atmosphereRenderer;
 
   // Timer
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer> m_timer;
@@ -99,6 +105,7 @@ private:
   void setupEmitDepthTargetsPass();
   void setupMaterialClassifyPass();
   void setupDefaultEmitGBufferPass();
+  void setupPbrAtmosphereRenderer();
 
   void setupSinglePassHiZPass();
   void createTimer();
@@ -151,6 +158,9 @@ private:
   void renderTAAResolve(PerFrameData &perframeData,
                         RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
+  void renderAtmosphere(PerFrameData &perframeData,
+                        RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
+
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,
          const std::vector<GPUCommandSubmission *> &cmdToWait);
@@ -166,6 +176,7 @@ public:
     setupMaterialClassifyPass();
     setupDefaultEmitGBufferPass();
     setupSinglePassHiZPass();
+    setupPbrAtmosphereRenderer();
     createTimer();
   }
 

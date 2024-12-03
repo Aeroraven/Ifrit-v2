@@ -3,15 +3,16 @@
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Syaro.Shared.glsl"
+#include "Syaro/Syaro.Shared.glsl"
+#include "Syaro/Syaro.SharedConst.h"
 
 // Material Pass / Scatter Pass
 // This pass is unoptimized. It just do scattering.
 // Optimizations mentioned in GDC 2024 slides are not implemented.
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(local_size_x = cClassifyMaterialScatterThreadGroupSizeX, local_size_y = cClassifyMaterialScatterThreadGroupSizeY, local_size_z = 1) in;
 
-#include "Syaro.ClassifyMaterial.Shared.glsl"
+#include "Syaro/Syaro.ClassifyMaterial.Shared.glsl"
 
 void main(){
     uint tX = gl_GlobalInvocationID.x;

@@ -3,7 +3,8 @@
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Syaro.Shared.glsl"
+#include "Syaro/Syaro.Shared.glsl"
+#include "Syaro/Syaro.SharedConst.h"
 
 // Material Pass / Counting Pass
 // [Unlike HLSL, GLSL only have ONE entry point for compute shader, so,
@@ -32,9 +33,9 @@
 // Total memory usage: uint3 * NumScreenPixels 
 // For simplicity, larger memory is used in this implementation.
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(local_size_x = cClassifyMaterialCountThreadGroupSizeX, local_size_y = cClassifyMaterialCountThreadGroupSizeY, local_size_z = 1) in;
 
-#include "Syaro.ClassifyMaterial.Shared.glsl"
+#include "Syaro/Syaro.ClassifyMaterial.Shared.glsl"
 
 void main(){
     uint tX = gl_GlobalInvocationID.x;

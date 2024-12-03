@@ -2,6 +2,7 @@
 #include "ifrit/common/math/VectorDefs.h"
 #include "ifrit/core/base/Material.h"
 #include "ifrit/core/base/Mesh.h"
+#include "ifrit/core/base/Object.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include <unordered_map>
 #include <vector>
@@ -16,6 +17,7 @@ struct PerFramePerViewData {
   float4x4 m_perspective;
   float4x4 m_worldToClip;
   float4x4 m_inversePerspective;
+  float4x4 m_clipToWorld;
   ifloat4 m_cameraPosition;
   ifloat4 m_cameraFront;
   float m_renderWidth;
@@ -52,6 +54,7 @@ struct PerShaderEffectData {
 
 struct PerFrameRenderTargets {
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiTexture> m_colorRT;
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef> m_colorRTId;
   Ifrit::GraphicsBackend::Rhi::RhiTexture *m_depthRT;
 
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiColorAttachment> m_colorRTRef;
@@ -126,14 +129,17 @@ struct PerFrameData {
     GPUUniformBuffer *m_viewBuffer = nullptr;
     GPUUniformBuffer *m_viewBufferLast = nullptr;
     GPUBindlessRef *m_viewBindlessRef = nullptr;
+    std::shared_ptr<GPUBindlessId> m_viewBufferId = nullptr;
 
     // visibility buffer
     std::shared_ptr<GPUTexture> m_visibilityBuffer = nullptr;
     GPUTexture *m_visPassDepth = nullptr;
+    std::shared_ptr<GPUSampler> m_visDepthSampler = nullptr;
 
     std::shared_ptr<GPUColorRT> m_visColorRT = nullptr;
     std::shared_ptr<GPUDepthRT> m_visDepthRT = nullptr;
     std::shared_ptr<GPURTs> m_visRTs = nullptr;
+    std::shared_ptr<GPUBindlessId> m_visDepthId = nullptr;
 
     // visibility buffer for 2nd pass, reference to the same texture, but
     // without clearing
@@ -227,6 +233,11 @@ struct PerFrameData {
   std::shared_ptr<GPUSampler> m_taaSampler = nullptr;
   float m_taaJitterX = 0.0f;
   float m_taaJitterY = 0.0f;
+
+  // Atmosphere
+  std::shared_ptr<void> m_atmosphereData = nullptr;
+  std::shared_ptr<GPUTexture> m_atmoOutput;
+  std::shared_ptr<GPUBindlessId> m_atmoOutputId;
 };
 
 } // namespace Ifrit::Core

@@ -27,6 +27,8 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   viewData.m_viewData.m_cameraAspect = camera->getAspect();
   viewData.m_viewData.m_inversePerspective =
       Ifrit::Math::inverse4(viewData.m_viewData.m_perspective);
+  viewData.m_viewData.m_clipToWorld =
+      Math::inverse4(viewData.m_viewData.m_worldToClip);
   auto cameraTransform = camera->getParent()->getComponent<Transform>();
   if (cameraTransform == nullptr) {
     throw std::runtime_error("Camera has no transform");
@@ -326,6 +328,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
           rhi->createUniformBufferShared(sizeof(PerFramePerViewData), true, 0);
       curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBufferLast, 1);
       initLastFrameMatrix = true;
+
+      curView.m_viewBufferId = rhi->registerUniformBuffer(curView.m_viewBuffer);
     }
 
     // Update view buffer

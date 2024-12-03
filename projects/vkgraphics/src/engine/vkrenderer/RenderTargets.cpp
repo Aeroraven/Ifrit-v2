@@ -29,13 +29,15 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
 
   // other kind of layout transition should be handled by the
   // render graph or explicitly by the user.
-  auto depthSrcLayout = (m_depthStencilAttachment->getLoadOp() ==
-                         Rhi::RhiRenderTargetLoadOp::Clear)
-                            ? Rhi::RhiResourceState::Undefined
-                            : Rhi::RhiResourceState::DepthStencilRenderTarget;
-  cmd->imageBarrier(m_depthStencilAttachment->getRenderTarget(), depthSrcLayout,
-                    Rhi::RhiResourceState::DepthStencilRenderTarget,
-                    {0, 0, 1, 1});
+  if (m_depthStencilAttachment != nullptr) {
+    auto depthSrcLayout = (m_depthStencilAttachment->getLoadOp() ==
+                           Rhi::RhiRenderTargetLoadOp::Clear)
+                              ? Rhi::RhiResourceState::Undefined
+                              : Rhi::RhiResourceState::DepthStencilRenderTarget;
+    cmd->imageBarrier(
+        m_depthStencilAttachment->getRenderTarget(), depthSrcLayout,
+        Rhi::RhiResourceState::DepthStencilRenderTarget, {0, 0, 1, 1});
+  }
 
   for (auto attachment : m_colorAttachments) {
     auto srcLayout =
@@ -127,21 +129,32 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
   std::vector<VkBool32> blendEnable;
   std::vector<VkColorBlendEquationEXT> blendEquations;
   std::vector<VkColorComponentFlags> colorWriteMask;
+
+#define TOVKBLENDOP(op) static_cast<VkBlendOp>(op)
+#define TOVKBLENDFACTOR(factor) static_cast<VkBlendFactor>(factor)
+
   for (auto attachment : m_colorAttachments) {
+    auto blendInfo = attachment->getBlendInfo();
     colorWrite.push_back(VK_TRUE);
-    blendEnable.push_back(VK_FALSE);
+    blendEnable.push_back(blendInfo.m_blendEnable ? VK_TRUE : VK_FALSE);
     VkColorBlendEquationEXT colorBlendEquation{};
-    colorBlendEquation.alphaBlendOp = VK_BLEND_OP_ADD;
-    colorBlendEquation.colorBlendOp = VK_BLEND_OP_ADD;
-    colorBlendEquation.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendEquation.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendEquation.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendEquation.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    colorBlendEquation.alphaBlendOp = TOVKBLENDOP(blendInfo.m_alphaBlendOp);
+    colorBlendEquation.colorBlendOp = TOVKBLENDOP(blendInfo.m_colorBlendOp);
+    colorBlendEquation.dstAlphaBlendFactor =
+        TOVKBLENDFACTOR(blendInfo.m_dstAlphaBlendFactor);
+    colorBlendEquation.dstColorBlendFactor =
+        TOVKBLENDFACTOR(blendInfo.m_dstColorBlendFactor);
+    colorBlendEquation.srcAlphaBlendFactor =
+        TOVKBLENDFACTOR(blendInfo.m_srcAlphaBlendFactor);
+    colorBlendEquation.srcColorBlendFactor =
+        TOVKBLENDFACTOR(blendInfo.m_srcColorBlendFactor);
     blendEquations.push_back(colorBlendEquation);
     colorWriteMask.push_back(
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
   }
+#undef TOVKBLENDOP
+#undef TOVKBLENDFACTOR
   exfunc.p_vkCmdSetColorWriteEnableEXT(
       cmdraw, size_cast<uint32_t>(m_colorAttachments.size()),
       colorWrite.data());
@@ -177,6 +190,11 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
 
     extf.p_vkCmdSetDepthTestEnable(cmdraw, VK_TRUE);
     extf.p_vkCmdSetDepthWriteEnable(cmdraw, VK_TRUE);
+    extf.p_vkCmdSetDepthCompareOp(cmdraw, VK_COMPARE_OP_LESS);
+  } else {
+    auto extf = m_context->getExtensionFunction();
+    extf.p_vkCmdSetDepthTestEnable(cmdraw, VK_FALSE);
+    extf.p_vkCmdSetDepthWriteEnable(cmdraw, VK_FALSE);
     extf.p_vkCmdSetDepthCompareOp(cmdraw, VK_COMPARE_OP_LESS);
   }
 }

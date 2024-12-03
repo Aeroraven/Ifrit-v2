@@ -766,8 +766,15 @@ Queue::runAsyncCommand(std::function<void(const Rhi::RhiCommandBuffer *)> func,
 }
 
 void Queue::hostWaitEvent(Rhi::RhiTaskSubmission *event) {
-  // TODO
-  throw std::runtime_error("Not implemented");
+  VkSemaphoreWaitInfo waitInfo{};
+  auto sev = checked_cast<TimelineSemaphoreWait>(event);
+  waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;
+  waitInfo.semaphoreCount = 1;
+  waitInfo.pSemaphores = &sev->m_semaphore;
+  waitInfo.pValues = &sev->m_value;
+  vkrVulkanAssert(vkWaitSemaphores(m_context->getDevice(), &waitInfo,
+                                   std::numeric_limits<uint64_t>::max()),
+                  "Failed to wait for semaphore");
 }
 
 // Queue Collections

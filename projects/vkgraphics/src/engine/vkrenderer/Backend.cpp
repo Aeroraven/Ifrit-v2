@@ -221,6 +221,15 @@ RhiVulkanBackend::createRenderTargetTexture(uint32_t width, uint32_t height,
       width, height, toVkFormat(format), extraFlags);
 }
 
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture>
+RhiVulkanBackend::createRenderTargetTexture3D(uint32_t width, uint32_t height,
+                                              uint32_t depth,
+                                              Rhi::RhiImageFormat format,
+                                              uint32_t extraFlags) {
+  return m_implDetails->m_resourceManager->createRenderTargetTexture3D(
+      width, height, depth, toVkFormat(format), extraFlags);
+};
+
 std::shared_ptr<Rhi::RhiTexture> RhiVulkanBackend::createRenderTargetMipTexture(
     uint32_t width, uint32_t height, uint32_t mips, Rhi::RhiImageFormat format,
     uint32_t extraFlags) {
@@ -358,6 +367,19 @@ RhiVulkanBackend::registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) {
   p->ids = ids;
   p->activeFrame = m_swapChain->getCurrentImageIndex();
   m_implDetails->m_bindlessIdRefs.push_back(p);
+  return p;
+}
+
+std::shared_ptr<Rhi::RhiBindlessIdRef>
+RhiVulkanBackend::registerCombinedImageSampler(Rhi::RhiTexture *texture,
+                                               Rhi::RhiSampler *sampler) {
+  auto descriptorManager = m_implDetails->m_descriptorManager.get();
+  auto tex = checked_cast<SingleDeviceImage>(texture);
+  auto sam = checked_cast<Sampler>(sampler);
+  auto id = descriptorManager->registerCombinedImageSampler(tex, sam);
+  auto p = std::make_shared<Rhi::RhiBindlessIdRef>();
+  p->ids.push_back(id);
+  p->activeFrame = 0;
   return p;
 }
 

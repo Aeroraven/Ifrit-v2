@@ -32,7 +32,7 @@ The project is organized into following parts.
 - **`rhi/vkrenderer`**: Vulkan renderer, intended to be the refactored version for [my original implementation](https://github.com/Aeroraven/Aria).
   - Get rid of messy pass management, synchronization primitives and descriptor bindings in the original repo.
 - **`meshproclib`**: Mesh algorithms.
-  - Nanite-like mesh level of details. It 
+  - Nanite-like mesh level of details. 
 - **`ircompile`**: LLVM JIT compilation for shader codes.
 - **`display`**:  Presentation and window surface supporting utilities.
 
@@ -109,6 +109,8 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [spirv-reflect](https://github.com/KhronosGroup/SPIRV-Reflect) | Shader Reflection                | Apache 2.0           |
 | [shaderc](https://github.com/google/shaderc?tab=License-1-ov-file#readme) | Shader Compilation               | Apache 2.0           |
 | [sha1](https://github.com/vog/sha1)                          | Hash                             | Public domain        |
+| [precomputed_atmospheric_scattering](https://github.com/ebruneton/precomputed_atmospheric_scattering) | Atmospheric Scattering           | BSD-3-Clause         |
+| [gcem](https://github.com/kthohr/gcem)                       | Compile-time Math                | Apache 2.0           |
 
 
 
@@ -150,5 +152,5 @@ And some references that give inspirations. Thanks for their selfless dedication
 
 ## 4. License
 
-Although this repository is a completely toy project, I'd like to make it as free as possible. So, it's licensed under [AGPL-v3 License](https://www.gnu.org/licenses/agpl-3.0.en.html), even it's hard to be integrated with server applications. The copy for license can be found in the root directory. 
+It's licensed under [AGPL-v3 License](https://www.gnu.org/licenses/agpl-3.0.en.html), even it's hard to be integrated with server applications. The copy for license can be found in the root directory. 
 

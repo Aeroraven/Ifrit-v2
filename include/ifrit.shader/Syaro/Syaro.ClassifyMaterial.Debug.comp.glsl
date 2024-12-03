@@ -3,11 +3,11 @@
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Syaro.Shared.glsl"
+#include "Syaro/Syaro.Shared.glsl"
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-#include "Syaro.ClassifyMaterial.Shared.glsl"
+#include "Syaro/Syaro.ClassifyMaterial.Shared.glsl"
 
 void main(){
     uint offset = GetResource(bMaterialCounter, uMaterialPassData.materialCounterRef).data[0].offset;

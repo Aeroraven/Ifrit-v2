@@ -1,10 +1,12 @@
 #pragma once
 #include "../../util/ApiConv.h"
 #include "../VectorDefs.h"
+#include <algorithm>
 #include <concepts>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
 #include <type_traits>
 
 

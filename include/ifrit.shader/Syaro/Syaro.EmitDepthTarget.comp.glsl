@@ -3,10 +3,10 @@
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Syaro.Shared.glsl"
+#include "Syaro/Syaro.Shared.glsl"
+#include "Syaro/Syaro.SharedConst.h"
 
-
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(local_size_x = cEmitDepthTargetThreadGroupSizeX, local_size_y = cEmitDepthTargetThreadGroupSizeY, local_size_z = 1) in;
 
 RegisterStorage(bMeshlet,{
     Meshlet data[];

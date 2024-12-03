@@ -90,6 +90,37 @@ enum RhiQueueCapability {
   RHI_QUEUE_TRANSFER_BIT = 0x00000004,
 };
 
+enum RhiBlendOp {
+  RHI_BLEND_OP_ADD = 0,
+  RHI_BLEND_OP_SUBTRACT = 1,
+  RHI_BLEND_OP_REVERSE_SUBTRACT = 2,
+  RHI_BLEND_OP_MIN = 3,
+  RHI_BLEND_OP_MAX = 4,
+};
+
+enum RhiBlendFactor {
+  RHI_BLEND_FACTOR_ZERO = 0,
+  RHI_BLEND_FACTOR_ONE = 1,
+  RHI_BLEND_FACTOR_SRC_COLOR = 2,
+  RHI_BLEND_FACTOR_ONE_MINUS_SRC_COLOR = 3,
+  RHI_BLEND_FACTOR_DST_COLOR = 4,
+  RHI_BLEND_FACTOR_ONE_MINUS_DST_COLOR = 5,
+  RHI_BLEND_FACTOR_SRC_ALPHA = 6,
+  RHI_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA = 7,
+  RHI_BLEND_FACTOR_DST_ALPHA = 8,
+  RHI_BLEND_FACTOR_ONE_MINUS_DST_ALPHA = 9,
+  RHI_BLEND_FACTOR_CONSTANT_COLOR = 10,
+  RHI_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR = 11,
+  RHI_BLEND_FACTOR_CONSTANT_ALPHA = 12,
+  RHI_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA = 13,
+  RHI_BLEND_FACTOR_SRC_ALPHA_SATURATE = 14,
+  RHI_BLEND_FACTOR_SRC1_COLOR = 15,
+  RHI_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR = 16,
+  RHI_BLEND_FACTOR_SRC1_ALPHA = 17,
+  RHI_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA = 18,
+  RHI_BLEND_FACTOR_MAX_ENUM = 0x7FFFFFFF
+};
+
 // These are just mapped from vulkan spec
 enum RhiImageFormat {
   RHI_FORMAT_UNDEFINED = 0,
@@ -352,6 +383,16 @@ struct RhiInitializeArguments {
 #endif
 };
 
+struct RhiAttachmentBlendInfo {
+  bool m_blendEnable = false;
+  RhiBlendFactor m_srcColorBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ONE;
+  RhiBlendFactor m_dstColorBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ZERO;
+  RhiBlendOp m_colorBlendOp = RhiBlendOp::RHI_BLEND_OP_ADD;
+  RhiBlendFactor m_srcAlphaBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ONE;
+  RhiBlendFactor m_dstAlphaBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ZERO;
+  RhiBlendOp m_alphaBlendOp = RhiBlendOp::RHI_BLEND_OP_ADD;
+};
+
 struct RhiClearValue {
   float m_color[4];
   float m_depth;
@@ -457,6 +498,10 @@ public:
                             RhiImageFormat format, uint32_t extraFlags) = 0;
 
   virtual std::shared_ptr<RhiTexture>
+  createRenderTargetTexture3D(uint32_t width, uint32_t height, uint32_t depth,
+                              RhiImageFormat format, uint32_t extraFlags) = 0;
+
+  virtual std::shared_ptr<RhiTexture>
   createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,
                                RhiImageFormat format, uint32_t extraFlags) = 0;
 
@@ -498,6 +543,10 @@ public:
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
   registerUAVImage(Rhi::RhiTexture *texture,
                    Rhi::RhiImageSubResource subResource) = 0;
+
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
+  registerCombinedImageSampler(Rhi::RhiTexture *texture,
+                               Rhi::RhiSampler *sampler) = 0;
 
   // Render target
   virtual std::shared_ptr<RhiColorAttachment>
@@ -818,6 +867,7 @@ public:
 class IFRIT_APIDECL RhiColorAttachment {
 public:
   virtual RhiTexture *getRenderTarget() const = 0;
+  virtual void setBlendInfo(const RhiAttachmentBlendInfo &info) = 0;
 };
 
 class IFRIT_APIDECL RhiDepthStencilAttachment {

@@ -38,15 +38,21 @@ layout(binding = 0, set = 3) uniform PerframeViewData{
 void main(){
     vec3 albedo = texture(GetSampler2D(uGBufferRefs.albedo_materialFlags),texCoord).rgb;
     vec3 normal = texture(GetSampler2D(uGBufferRefs.normal_smoothness),texCoord).rgb;
-    vec3 motion_depth = texture(GetSampler2D(uMotionDepthRefs.ref),texCoord).rgb;
+    vec4 motion_depth = texture(GetSampler2D(uMotionDepthRefs.ref),texCoord).rgba;
     mat4 invproj = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_invPerspective;
     float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
     float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
+
+    if(motion_depth.a < 0.5){
+        outColor = vec4(0.0);
+        return;
+    }
+
     vec4 ndcPos = vec4(texCoord * 2.0 - 1.0, motion_depth.b, 1.0) * vsDepth;
     vec4 viewPos = invproj * ndcPos;
     normal = normalize(normal * 2.0 - 1.0);
-    vec3 lightDir = normalize(vec3(1.0,0.0,-1.0));
+    vec3 lightDir = normalize(vec3(1.0, 0.5, 1.0));
 
     float NdotL = max(dot(normal,lightDir),0.0);
     vec3 V = normalize(-viewPos.xyz);

@@ -16,9 +16,10 @@
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Syaro.Shared.glsl"
+#include "Syaro/Syaro.Shared.glsl"
+#include "Syaro/Syaro.SharedConst.h"
 
-layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = cHiZThreadGroupSize, local_size_y = 1, local_size_z = 1) in;
 
 RegisterStorage(bHiZStorage,{
     uint pad;

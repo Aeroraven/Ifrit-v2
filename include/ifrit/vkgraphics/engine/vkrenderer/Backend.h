@@ -60,6 +60,11 @@ public:
                             Rhi::RhiImageFormat format,
                             uint32_t extraFlags) override;
 
+  std::shared_ptr<Rhi::RhiTexture>
+  createRenderTargetTexture3D(uint32_t width, uint32_t height, uint32_t depth,
+                              Rhi::RhiImageFormat format,
+                              uint32_t extraFlags) override;
+
   std::shared_ptr<Rhi::RhiSampler> createTrivialSampler() override;
   std::shared_ptr<Rhi::RhiSampler> createTrivialBilinearSampler() override;
 
@@ -94,6 +99,10 @@ public:
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
   registerUAVImage(Rhi::RhiTexture *texture,
                    Rhi::RhiImageSubResource subResource) override;
+
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
+  registerCombinedImageSampler(Rhi::RhiTexture *texture,
+                               Rhi::RhiSampler *sampler) override;
 
   // Render targets
   virtual std::shared_ptr<Rhi::RhiColorAttachment>

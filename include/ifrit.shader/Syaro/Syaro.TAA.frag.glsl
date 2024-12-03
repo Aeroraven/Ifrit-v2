@@ -64,7 +64,7 @@ vec4 colorClamp(vec4 srcColor, vec4 historyColor, vec2 uv){
 void main(){
     vec2 curFrameJitter = vec2(uTAA.jitterX, uTAA.jitterY);
     vec2 motionVector = texture(GetSampler2D(uMotionDepthRefs.ref), texCoord).rg;
-    vec2 lastTexCoord = (texCoord-curFrameJitter) - motionVector;
+    vec2 lastTexCoord = (texCoord) - motionVector;
     vec4 resolvedColor;
 
     float blendFactor = clamp(0.05 + length(motionVector)*114.514, 0.0, 1.0);

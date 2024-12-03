@@ -822,15 +822,12 @@ void initialBVHConstruction(ClusterGroupBVH &bvh,
     q.push_back(leftSubTree);
     q.push_back(rightSubTree);
   }
-
   printf("Raw BVH Nodes:%d\n", totalNodes);
 }
 
 // utils for bvh collapse
 consteval int xlog2(int n) { return (n <= 1) ? 0 : 1 + xlog2(n / 2); }
-consteval uint32_t getBvhCollapseExtraDepth() {
-  return xlog2(BVH_CHILDREN) - 1;
-}
+consteval uint32_t getBvhCollapseExtraDepth() { return xlog2(BVH_CHILDREN); }
 
 // collapse bvh2 into bvh4 or bvh8
 void bvhCollapse(ClusterGroupBVH &bvh) {
@@ -917,7 +914,32 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
       ret.subTreeSize += childRet.subTreeSize;
       ret.maxClusterError =
           std::max(ret.maxClusterError, node->child[i]->maxClusterError);
+
+      // merge all leaf nodes' cluster groups
+      if (node->child[i]->isLeaf) {
+        for (auto &clusterGroup : node->child[i]->childClusterGroups) {
+          node->childClusterGroups.push_back(clusterGroup);
+        }
+        ret.subTreeSize -= 1;
+      }
     }
+
+    // remove all leaf nodes (node->child), using erase if
+    std::vector<std::unique_ptr<ClusterGroupBVHNode>> newChildren;
+    for (uint32_t i = 0; i < node->curChildren; i++) {
+      if (!node->child[i]->isLeaf) {
+        newChildren.push_back(std::move(node->child[i]));
+      }
+    }
+    for (uint32_t i = 0; i < node->curChildren; i++) {
+      node->child[i] = nullptr;
+    }
+    node->curChildren =
+        Ifrit::Common::Utility::size_cast<uint32_t>(newChildren.size());
+    for (uint32_t i = 0; i < node->curChildren; i++) {
+      node->child[i] = std::move(newChildren[i]);
+    }
+
     node->subTreeSize = ret.subTreeSize;
     node->maxClusterError = ret.maxClusterError;
     return ret;

@@ -246,6 +246,11 @@ public:
   createRenderTargetTexture(uint32_t width, uint32_t height, VkFormat format,
                             VkImageUsageFlags extraUsage = 0);
 
+  std::shared_ptr<SingleDeviceImage>
+  createRenderTargetTexture3D(uint32_t width, uint32_t height, uint32_t depth,
+                              VkFormat format,
+                              VkImageUsageFlags extraUsage = 0);
+
   // Create a readable render target texture with mipLevels
   std::shared_ptr<SingleDeviceImage>
   createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,

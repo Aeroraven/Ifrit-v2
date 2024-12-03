@@ -427,6 +427,23 @@ ResourceManager::createRenderTargetTexture(uint32_t width, uint32_t height,
   return createSimpleImageUnmanaged(ci);
 }
 
+IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>
+ResourceManager::createRenderTargetTexture3D(uint32_t width, uint32_t height,
+                                             uint32_t depth, VkFormat format,
+                                             VkImageUsageFlags extraUsage) {
+  ImageCreateInfo ci{};
+  ci.aspect = ImageAspect::Color;
+  ci.type = ImageType::Image3D;
+  ci.format = format;
+  ci.width = width;
+  ci.height = height;
+  ci.depth = depth;
+  ci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+             extraUsage;
+  ci.hostVisible = false;
+  return createSimpleImageUnmanaged(ci);
+}
+
 std::shared_ptr<SingleDeviceImage>
 ResourceManager::createRenderTargetMipTexture(uint32_t width, uint32_t height,
                                               uint32_t mips, VkFormat format,

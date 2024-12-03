@@ -96,7 +96,7 @@ std::vector<uint32_t> compileShaderFile(const std::string &source_name,
       compiler.CompileGlslToSpv(preCode, kind, source_name.c_str(), options);
 
   if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
-    std::cerr << preCode;
+    std::cerr << "During compilation of:" << source_name << std::endl;
     std::cerr << module.GetErrorMessage();
 
     std::abort();
@@ -139,7 +139,7 @@ IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,
     std::string rawCode(ci.code.begin(), ci.code.end());
     std::string precompiled;
     precompiled = precompileShaderFile(
-        ci.entryPoint, static_cast<shaderc_shader_kind>(kind), rawCode);
+        ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
     sha1.update(precompiled);
     auto hash = sha1.final();
     m_signature = hash;
@@ -163,7 +163,7 @@ IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,
         cache.close();
       } else {
         compiledCode = compileShaderFile(
-            ci.entryPoint, static_cast<shaderc_shader_kind>(kind), rawCode);
+            ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
         std::ofstream cache(cacheFile, std::ios::binary);
         cache.write(reinterpret_cast<const char *>(compiledCode.data()),
                     compiledCode.size() * sizeof(uint32_t));

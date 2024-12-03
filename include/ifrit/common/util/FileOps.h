@@ -1,8 +1,9 @@
+#pragma once
 #include <fstream>
 #include <string>
 
 namespace Ifrit::Common::Utility {
-std::string readTextFile(const std::string &path) {
+inline std::string readTextFile(const std::string &path) {
   std::ifstream file(path);
   std::string content;
   std::string line;

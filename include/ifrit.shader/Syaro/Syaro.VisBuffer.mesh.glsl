@@ -4,10 +4,11 @@
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Syaro.Shared.glsl"
+#include "Syaro/Syaro.Shared.glsl"
+#include "Syaro/Syaro.SharedConst.h"
 
-layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
-layout(triangles, max_vertices = 128, max_primitives = 128) out;
+layout(local_size_x = cMeshRasterizeThreadGroupSizeX, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = cMeshRasterizeMaxVertexSize, max_primitives = cMeshRasterizeMaxPrimitiveSize) out;
 
 
 // According to NVIDIA's documentation, AS's payload should be small
@@ -15,7 +16,7 @@ layout(triangles, max_vertices = 128, max_primitives = 128) out;
 // https://developer.nvidia.com/blog/advanced-api-performance-mesh-shaders/
 struct TaskSharedData{
     uint base;
-    uint subIds[32];
+    uint subIds[cMeshRasterizeTaskPayloadSize];
 };
 
 taskPayloadSharedEXT  TaskSharedData taskSharedData;
@@ -87,8 +88,8 @@ vec4 colorMap[8] = vec4[8](
   vec4(0.5, 0.0, 0.0, 1.0)
 );
 
-shared vec2 sPositionsXY[128];
-shared float sPositionsW[128];
+shared vec2 sPositionsXY[cMeshRasterizeMaxVertexSize];
+shared float sPositionsW[cMeshRasterizeMaxVertexSize];
 
 bool isSecondCullingPass(){
     return pConst.passNo == 1;
