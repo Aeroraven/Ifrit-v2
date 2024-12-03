@@ -152,5 +152,5 @@ And some references that give inspirations. Thanks for their selfless dedication
 
 ## 4. License
 
-It's licensed under [AGPL-v3 License](https://www.gnu.org/licenses/agpl-3.0.en.html), even it's hard to be integrated with server applications. The copy for license can be found in the root directory. 
+It's licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html), even it's hard to be integrated with server applications. The copy for license can be found in the root directory. 
 
