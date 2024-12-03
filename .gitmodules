@@ -22,3 +22,6 @@
 [submodule "dependencies/sha1"]
 	path = dependencies/sha1
 	url = git@github.com:vog/sha1.git
+[submodule "dependencies/gcem"]
+	path = dependencies/gcem
+	url = https://github.com/kthohr/gcem.git
