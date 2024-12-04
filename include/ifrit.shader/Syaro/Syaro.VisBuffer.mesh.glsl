@@ -229,6 +229,8 @@ void main(){
         vec3 vC = vec3(sPositionsXY[triIndexC],sPositionsW[triIndexC]);
 
         float det = determinant(mat3(vA,vB,vC));
+        float maxZ = max(vA.z,max(vB.z,vC.z));
+        float minZ = min(vA.z,min(vB.z,vC.z));
 
         vec2 uvA = vA.xy * 0.5 + 0.5;
         vec2 uvB = vB.xy * 0.5 + 0.5;
@@ -245,6 +247,10 @@ void main(){
 
         bCulled = (maxUV.x==minUV.x) || (maxUV.y == minUV.y);
         bCulled = bCulled || (det > 1e-3);
+
+        if(minZ < 0.0 || maxZ > 0.0){
+            bCulled = false;
+        }
 
         gl_PrimitiveTriangleIndicesEXT[gtid] = uvec3(triIndexA,triIndexB,triIndexC);
         gl_MeshPrimitivesEXT[gtid].gl_PrimitiveID = int(gtid);

@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/math/VectorDefs.h"
 #include "ifrit/core/base/Material.h"
@@ -116,11 +115,20 @@ struct PerFrameData {
     uint32_t m_rtHeight = 0;
     uint32_t m_rtCreated = 0;
 
+    std::shared_ptr<GPUSampler> m_gbufferSampler = nullptr;
+
     std::shared_ptr<GPUBindlessId> m_albedo_materialFlagsId;
     std::shared_ptr<GPUBindlessId> m_specular_occlusionId;
+    std::shared_ptr<GPUBindlessId> m_specular_occlusion_sampId;
     std::shared_ptr<GPUBindlessId> m_normal_smoothnessId;
+    std::shared_ptr<GPUBindlessId> m_normal_smoothness_sampId;
     std::shared_ptr<GPUBindlessId> m_emissiveId;
     std::shared_ptr<GPUBindlessId> m_shadowMaskId;
+
+    std::shared_ptr<GPUBindlessId> m_depth_sampId;
+
+    GPUBarrier m_normal_smoothnessBarrier;
+    GPUBarrier m_specular_occlusionBarrier;
 
     GPUBuffer *m_gbufferRefs = nullptr;
     GPUBindlessRef *m_gbufferDesc = nullptr;
@@ -217,6 +225,7 @@ struct PerFrameData {
   GBuffer m_gbuffer;
   GPUBindlessRef *m_gbufferDepthDesc;
   std::shared_ptr<GPUSampler> m_gbufferDepthSampler = nullptr;
+  std::shared_ptr<GPUBindlessId> m_gbufferDepthIdX = nullptr;
 
   // Gbuffer desc
   std::shared_ptr<GPUSampler> m_gbufferSampler = nullptr;

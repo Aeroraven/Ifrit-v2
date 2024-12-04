@@ -190,6 +190,10 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy){
     vec3 parentSphereCenter = group.parentBoundSphere.xyz;
     float parentSphereRadius = group.parentError;
 
+    if(totalLod == 1){
+        return true;
+    }
+
     bool parentRejected = true;
     if(group.lod != totalLod-1){
         vec4 viewSpaceCenter = mvMat * vec4(parentSphereCenter,1.0);

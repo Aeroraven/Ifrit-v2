@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/core/renderer/RendererBase.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
@@ -214,6 +213,8 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
         rtArea.width + rtArea.x, rtArea.height + rtArea.y, targetFomrat,
         targetUsage);
 
+    perframeData.m_gbuffer.m_gbufferSampler = rhi->createTrivialSampler();
+
     // Then bindless ids
     perframeData.m_gbuffer.m_albedo_materialFlagsId = rhi->registerUAVImage(
         perframeData.m_gbuffer.m_albedo_materialFlags.get(), {0, 0, 1, 1});
@@ -225,6 +226,31 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
         perframeData.m_gbuffer.m_specular_occlusion.get(), {0, 0, 1, 1});
     perframeData.m_gbuffer.m_shadowMaskId = rhi->registerUAVImage(
         perframeData.m_gbuffer.m_shadowMask.get(), {0, 0, 1, 1});
+
+    // sampler
+    perframeData.m_gbuffer.m_normal_smoothness_sampId =
+        rhi->registerCombinedImageSampler(
+            perframeData.m_gbuffer.m_normal_smoothness.get(),
+            perframeData.m_gbuffer.m_gbufferSampler.get());
+    perframeData.m_gbuffer.m_specular_occlusion_sampId =
+        rhi->registerCombinedImageSampler(
+            perframeData.m_gbuffer.m_specular_occlusion.get(),
+            perframeData.m_gbuffer.m_gbufferSampler.get());
+
+    // barriers
+    perframeData.m_gbuffer.m_normal_smoothnessBarrier.m_type =
+        RhiBarrierType::UAVAccess;
+    perframeData.m_gbuffer.m_normal_smoothnessBarrier.m_uav.m_texture =
+        perframeData.m_gbuffer.m_normal_smoothness.get();
+    perframeData.m_gbuffer.m_normal_smoothnessBarrier.m_uav.m_type =
+        RhiResourceType::Texture;
+
+    perframeData.m_gbuffer.m_specular_occlusionBarrier.m_type =
+        RhiBarrierType::UAVAccess;
+    perframeData.m_gbuffer.m_specular_occlusionBarrier.m_uav.m_texture =
+        perframeData.m_gbuffer.m_specular_occlusion.get();
+    perframeData.m_gbuffer.m_specular_occlusionBarrier.m_uav.m_type =
+        RhiResourceType::Texture;
 
     // Then gbuffer refs
     PerFrameData::GBufferDesc gbufferDesc;

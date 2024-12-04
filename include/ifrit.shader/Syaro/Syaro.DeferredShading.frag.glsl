@@ -62,6 +62,7 @@ void main(){
     float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
     float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
+    float ao = texture(GetSampler2D(uGBufferRefs.specular_occlusion),texCoord).a;
 
     if(motion_depth.a < 0.5){
         outColor = vec4(0.0);
@@ -96,7 +97,7 @@ void main(){
     vec3 specular = dpbr_cookTorranceBRDF(F,G,D,NdotV,NdotL);
     vec3 Lo = (kD * albedo / PIx + specular) * NdotL;
 
-    vec3 ambient = vec3(0.05) * albedo;
+    vec3 ambient = vec3(0.17) * albedo * ao;
     vec3 color = ambient + Lo;
 
     outColor = vec4(color,1.0);

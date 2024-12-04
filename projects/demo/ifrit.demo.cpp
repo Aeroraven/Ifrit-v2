@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #ifndef IFRIT_DLL
 #define IFRIT_DLL
 #endif
@@ -25,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/Core.h"
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
 #include <numbers>
+#include <thread>
 
 #define WINDOW_WIDTH 1980
 #define WINDOW_HEIGHT 1080
@@ -88,6 +88,7 @@ public:
     renderer = std::make_shared<SyaroRenderer>(this);
     m_windowProvider->registerKeyCallback(key_callback);
     auto obj = m_assetManager->getAssetByName<WaveFrontAsset>("bunny.obj");
+    auto planeObj = m_assetManager->getAssetByName<WaveFrontAsset>("plane.obj");
     auto meshShader = m_assetManager->getAssetByName<ShaderAsset>(
         "Shader/ifrit.mesh2.mesh.glsl");
     auto fragShader = m_assetManager->getAssetByName<ShaderAsset>(
@@ -121,6 +122,16 @@ public:
     cameraTransform->setPosition({0.0f, 0.5f, -1.25f});
     cameraTransform->setRotation({0.0f, 0.0f, 0.0f});
     cameraTransform->setScale({1.0f, 1.0f, 1.0f});
+
+    auto planeGameObject = node->addGameObject("plane");
+    auto planeMeshFilter = planeGameObject->addComponent<MeshFilter>();
+    planeMeshFilter->setMesh(planeObj);
+    auto planeMeshRenderer = planeGameObject->addComponent<MeshRenderer>();
+    planeMeshRenderer->setMaterial(m_material);
+    auto planeTransform = planeGameObject->addComponent<Transform>();
+    planeTransform->setPosition({0.0f, 0.038f, 0.0f});
+    planeTransform->setRotation({0.0f, 0.0f, 0.0f});
+    planeTransform->setScale({1.0f, 1.0f, 1.0f});
 
     for (int dx = 0; dx < bunnyPlacementX; dx++) {
       for (int dy = 0; dy < bunnyPlacementY; dy++) {
@@ -174,6 +185,9 @@ public:
         m_sceneAssetManager->getScene("TestScene2").get(), nullptr,
         renderTargets.get(), renderConfig, {sFrameStart.get()});
     renderer->endFrame({renderComplete.get()});
+
+    // sleep for 500ms
+    // std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
 
   void onEnd() override {}

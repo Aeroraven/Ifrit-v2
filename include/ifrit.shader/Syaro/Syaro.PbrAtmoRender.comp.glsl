@@ -154,8 +154,7 @@ void main(){
     // Mix
     vec3 radiance = mix(skyRadiance, groundRadiance , groundAlpha);
 
-    // tone mapping, might be put at other place
     vec4 color = vec4(radiance, 1.0) ;
-    color = vec4(1.0) - exp(-color * 10.0);
+    color = color * 10.0;
     imageStore(GetUAVImage2DRGBA32F(uAtmoRenderPushConstant.outTex), ivec2(tX, tY), vec4(color));
 }

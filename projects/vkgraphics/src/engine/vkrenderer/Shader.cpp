@@ -40,6 +40,7 @@ public:
                                      const char *requesting_source,
                                      size_t include_depth) override {
     std::string full_path = m_shaderDir + "/" + requested_source;
+    printf("Requesting %s\n", full_path.c_str());
     m_includeDirs.push_back(full_path);
 
     std::ifstream file(full_path);

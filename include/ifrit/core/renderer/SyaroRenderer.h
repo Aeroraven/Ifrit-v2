@@ -16,10 +16,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "AmbientOcclusionPass.h"
 #include "PbrAtmosphereRenderer.h"
 #include "RendererBase.h"
+#include "ifrit/common/util/Hash.h"
+#include "postprocessing/PostFxAcesTonemapping.h"
 
 namespace Ifrit::Core {
 class IFRIT_APIDECL SyaroRenderer : public RendererBase {
@@ -35,6 +37,7 @@ class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
   using GPURTs = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandBuffer;
+  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
 
   enum class CullingPass { First, Second };
 
@@ -107,6 +110,30 @@ private:
   // Timer
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer> m_timer;
 
+  // AO
+  std::shared_ptr<AmbientOcclusionPass> m_aoPass;
+
+  // Postprocess, just 2 textures and 1 sampler is required.
+  using PairHash = Ifrit::Common::Utility::PairwiseHash<uint32_t, uint32_t>;
+  std::unordered_map<std::pair<uint32_t, uint32_t>,
+                     std::array<std::shared_ptr<GPUTexture>, 2>, PairHash>
+      m_postprocTex;
+  std::unordered_map<std::pair<uint32_t, uint32_t>,
+                     std::array<std::shared_ptr<GPUBindId>, 2>, PairHash>
+      m_postprocTexId;
+  std::unordered_map<std::pair<uint32_t, uint32_t>,
+                     std::array<std::shared_ptr<GPUColorRT>, 2>, PairHash>
+      m_postprocColorRT;
+  std::unordered_map<std::pair<uint32_t, uint32_t>,
+                     std::array<std::shared_ptr<GPURTs>, 2>, PairHash>
+      m_postprocRTs;
+  std::shared_ptr<GPUSampler> m_postprocTexSampler;
+  std::shared_ptr<GPUBindId> m_postprocTexSamplerId;
+
+  // All postprocess passes required
+  std::unique_ptr<PostprocessPassCollection::PostFxAcesToneMapping>
+      m_acesToneMapping;
+
 private:
   // Util functions
   GPUShader *createShaderFromFile(const std::string &shaderPath,
@@ -127,6 +154,8 @@ private:
   void setupPbrAtmosphereRenderer();
 
   void setupSinglePassHiZPass();
+
+  void setupPostprocessPassAndTextures();
   void createTimer();
 
   void setupDeferredShadingPass(RenderTargets *renderTargets);
@@ -143,6 +172,7 @@ private:
                                    RenderTargets *renderTargets);
   void taaHistorySetup(PerFrameData &perframeData,
                        RenderTargets *renderTargets);
+  void createPostprocessTextures(uint32_t width, uint32_t height);
 
   // Many passes are not material-dependent, so a unified instance buffer
   // might reduce calls
@@ -180,6 +210,12 @@ private:
   void renderAtmosphere(PerFrameData &perframeData,
                         RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
+  void renderAmbientOccl(PerFrameData &perframeData,
+                         RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
+
+  void renderToneMapping(PerFrameData &perframeData,
+                         RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
+
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,
          const std::vector<GPUCommandSubmission *> &cmdToWait);
@@ -196,7 +232,10 @@ public:
     setupDefaultEmitGBufferPass();
     setupSinglePassHiZPass();
     setupPbrAtmosphereRenderer();
+    setupPostprocessPassAndTextures();
     createTimer();
+
+    m_aoPass = std::make_shared<AmbientOcclusionPass>(app);
   }
 
   virtual std::unique_ptr<GPUCommandSubmission>

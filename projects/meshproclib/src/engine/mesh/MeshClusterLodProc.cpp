@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/meshproc/engine/mesh/MeshClusterLodProc.h"
 
 #if IFRIT_FEATURE_SIMD
@@ -583,7 +582,7 @@ int generateClusterLodHierachy(const MeshDescriptor &mesh,
         ctx[i].parentStart.push_back(-1);
         ctx[i].parentSize.push_back(-1);
       }
-      return i + 1;
+      return i;
     }
   }
   return maxLod;
@@ -1013,8 +1012,11 @@ IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(
 
   std::vector<ClusterLodGeneratorContext> ctx;
   auto p = generateClusterLodHierachy(mesh, ctx, maxLod + 1);
+  printf("FFFFFFFFFFFFF %d\n", p);
   ctx.pop_back();
+  ctx.resize(p);
   for (auto i = 0; i < ctx.size(); i++) {
+    printf("Sz: %d\n", (int)(ctx[i].meshletsRaw.size()));
     meshletData.numClustersEachLod.push_back(
         Ifrit::Common::Utility::size_cast<uint32_t>(ctx[i].meshletsRaw.size()));
   }
@@ -1023,7 +1025,7 @@ IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(
   initialBVHConstruction(bvh, meshletData.clusterGroups);
   bvhCollapse(bvh);
   bvhFlatten(bvh, flattenedNodes, clusterGroupData);
-  return 0;
+  return p;
 }
 
 } // namespace Ifrit::MeshProcLib::MeshProcess

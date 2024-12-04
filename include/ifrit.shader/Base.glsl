@@ -58,3 +58,5 @@ float ifrit_recoverViewSpaceDepth(float screenZ, float nearPlane, float farPlane
 float ifrit_signedDistToPlane(vec4 plane, vec4 point){
     return dot(plane.xyz,point.xyz) + plane.w;
 }
+
+const float kPI = 3.14159265359;

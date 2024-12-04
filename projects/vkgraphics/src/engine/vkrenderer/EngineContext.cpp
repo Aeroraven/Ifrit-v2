@@ -76,13 +76,13 @@ int physicalDeviceRanking(const VkPhysicalDevice &device) {
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
               VkDebugUtilsMessageTypeFlagsEXT messageType,
+
               const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
               void *pUserData) {
   vkrLog(pCallbackData->pMessage);
   std::abort();
   return VK_FALSE;
 }
-
 // START CLASS DEFINITION
 template <typename T>
 void loadExtFunc(T &extf, const char *name, VkDevice device) {

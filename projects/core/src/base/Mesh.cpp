@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/core/base/Mesh.h"
 #define IFRIT_MESHPROC_IMPORT
 #include "ifrit/meshproc/engine/mesh/MeshClusterLodProc.h"
@@ -55,8 +54,8 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
   std::vector<FlattenedBVHNode> bvhNodes;
   std::vector<ClusterGroup> clusterGroupData;
 
-  meshProc.clusterLodHierachy(meshDesc, meshletData, clusterGroupData, bvhNodes,
-                              MAX_LOD);
+  auto totalLods = meshProc.clusterLodHierachy(
+      meshDesc, meshletData, clusterGroupData, bvhNodes, MAX_LOD);
   coneCullProc.createNormalCones(
       meshDesc, meshletData.meshletsRaw, meshletData.meshletVertices,
       meshletData.meshletTriangles, meshData->m_normalsCone,
@@ -105,7 +104,7 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
   meshData->m_clusterGroups = std::move(clusterGroupData);
   meshData->m_numMeshletsEachLod = std::move(meshletData.numClustersEachLod);
 
-  meshData->m_maxLod = MAX_LOD;
+  meshData->m_maxLod = totalLods;
 }
 
 IFRIT_APIDECL ifloat4

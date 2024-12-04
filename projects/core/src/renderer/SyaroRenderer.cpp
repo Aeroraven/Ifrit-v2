@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/core/renderer/SyaroRenderer.h"
 #include "ifrit/common/math/constfunc/ConstFunc.h"
 #include "ifrit/common/util/FileOps.h"
@@ -107,6 +106,49 @@ IFRIT_APIDECL void SyaroRenderer::setupTextureShowPass() {
   m_textureShowPass->setRenderTargetFormat(rtFmt);
 }
 
+IFRIT_APIDECL void SyaroRenderer::setupPostprocessPassAndTextures() {
+  // passes
+  m_acesToneMapping =
+      std::make_unique<PostprocessPassCollection::PostFxAcesToneMapping>(m_app);
+  // tex and samplers
+  m_postprocTexSampler = m_app->getRhiLayer()->createTrivialSampler();
+}
+
+IFRIT_APIDECL void SyaroRenderer::createPostprocessTextures(uint32_t width,
+                                                            uint32_t height) {
+  auto rhi = m_app->getRhiLayer();
+  auto rtFmt = RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT;
+  if (m_postprocTex.find({width, height}) != m_postprocTex.end()) {
+    return;
+  }
+  for (uint32_t i = 0; i < 2; i++) {
+    auto tex = rhi->createRenderTargetTexture(width, height, rtFmt, 0);
+    auto colorRT =
+        rhi->createRenderTarget(tex.get(), {{0.0f, 0.0f, 0.0f, 1.0f}},
+                                RhiRenderTargetLoadOp::Clear, 0, 0);
+    auto rts = rhi->createRenderTargets();
+
+    m_postprocTex[{width, height}][i] = tex;
+    m_postprocTexId[{width, height}][i] = rhi->registerCombinedImageSampler(
+        tex.get(), m_postprocTexSampler.get());
+    m_postprocColorRT[{width, height}][i] = colorRT;
+    rts->setColorAttachments({colorRT.get()});
+    m_postprocRTs[{width, height}][i] = rts;
+  }
+}
+
+IFRIT_APIDECL void
+SyaroRenderer::renderToneMapping(PerFrameData &perframeData,
+                                 RenderTargets *renderTargets,
+                                 const GPUCmdBuffer *cmd) {
+  auto primaryView = getPrimaryView(perframeData);
+  auto rhi = m_app->getRhiLayer();
+  auto width = primaryView.m_viewData.m_renderWidth;
+  auto height = primaryView.m_viewData.m_renderHeight;
+  auto srcPostprocTex = m_postprocTexId[{width, height}][0].get();
+  m_acesToneMapping->renderPostFx(cmd, renderTargets, srcPostprocTex);
+}
+
 IFRIT_APIDECL void SyaroRenderer::setupPbrAtmosphereRenderer() {
   m_atmosphereRenderer = std::make_shared<PbrAtmosphereRenderer>(m_app);
   auto rhi = m_app->getRhiLayer();
@@ -156,7 +198,7 @@ IFRIT_APIDECL void SyaroRenderer::setupTAAPass(RenderTargets *renderTargets) {
   PipelineAttachmentConfigs paCfg;
   auto rtCfg = renderTargets->getFormat();
   paCfg.m_colorFormats = {cTAAFormat,
-                          renderTargets->getFormat().m_colorFormats[0]};
+                          RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT};
   paCfg.m_depthFormat = rtCfg.m_depthFormat;
   rtCfg.m_colorFormats = paCfg.m_colorFormats;
 
@@ -221,7 +263,14 @@ void SyaroRenderer::renderTAAResolve(PerFrameData &perframeData,
       perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT;
   auto taaCurTarget = rhi->createRenderTarget(
       taaCurTargetTex.get(), {}, RhiRenderTargetLoadOp::Clear, 0, 0);
-  auto taaRenderTarget = renderTargets->getColorAttachment(0);
+
+  auto primaryView = getPrimaryView(perframeData);
+  auto width = primaryView.m_viewData.m_renderWidth;
+  auto height = primaryView.m_viewData.m_renderHeight;
+
+  createPostprocessTextures(width, height);
+  auto taaRenderTarget = m_postprocColorRT[{width, height}][0].get();
+
   taaRT->setColorAttachments({taaCurTarget.get(), taaRenderTarget});
   taaRT->setDepthStencilAttachment(renderTargets->getDepthStencilAttachment());
   taaRT->setRenderArea(renderTargets->getRenderArea());
@@ -510,6 +559,8 @@ SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
   perframeData.m_gbufferDepthDesc->addCombinedImageSampler(
       perframeData.m_velocityMaterial.get(),
       perframeData.m_gbufferDepthSampler.get(), 0);
+  perframeData.m_gbufferDepthIdX = rhi->registerCombinedImageSampler(
+      primaryView.m_visPassDepth, primaryView.m_visDepthSampler.get());
 }
 
 IFRIT_APIDECL void
@@ -1171,6 +1222,29 @@ IFRIT_APIDECL void SyaroRenderer::renderAtmosphere(PerFrameData &perframeData,
   m_atmospherePass->run(cmd, 0);
   cmd->endScope();
 }
+
+IFRIT_APIDECL void
+SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData,
+                                 RenderTargets *renderTargets,
+                                 const GPUCmdBuffer *cmd) {
+  auto primaryView = getPrimaryView(perframeData);
+
+  auto normalSamp = perframeData.m_gbuffer.m_normal_smoothness_sampId;
+  auto depthSamp = perframeData.m_gbufferDepthIdX;
+  auto perframe = primaryView.m_viewBufferId;
+  auto ao = perframeData.m_gbuffer.m_specular_occlusionId;
+
+  uint32_t width = primaryView.m_viewData.m_renderWidth;
+  uint32_t height = primaryView.m_viewData.m_renderHeight;
+  cmd->beginScope("Syaro: Ambient Occlusion");
+  cmd->resourceBarrier({perframeData.m_gbuffer.m_normal_smoothnessBarrier,
+                        perframeData.m_gbuffer.m_specular_occlusionBarrier});
+  m_aoPass->renderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(),
+                       ao.get(), perframe.get());
+  cmd->resourceBarrier({perframeData.m_gbuffer.m_specular_occlusionBarrier});
+  cmd->endScope();
+}
+
 IFRIT_APIDECL void
 SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
   uint32_t totalInstances = 0;
@@ -1394,6 +1468,8 @@ SyaroRenderer::render(
         renderMaterialClassify(perframeData, renderTargets, cmd);
         cmd->globalMemoryBarrier();
         renderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
+        cmd->globalMemoryBarrier();
+        renderAmbientOccl(perframeData, renderTargets, cmd);
         m_timer->stop(cmd);
       },
       cmdToWaitBkp, {});
@@ -1406,6 +1482,7 @@ SyaroRenderer::render(
         cmd->globalMemoryBarrier();
         renderTAAResolve(perframeData, renderTargets, cmd);
         cmd->globalMemoryBarrier();
+        renderToneMapping(perframeData, renderTargets, cmd);
       },
       {mainTask.get()}, {});
 
