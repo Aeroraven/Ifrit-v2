@@ -124,6 +124,17 @@ public:
     cameraTransform->setRotation({0.0f, 0.0f, 0.0f});
     cameraTransform->setScale({1.0f, 1.0f, 1.0f});
 
+    auto lightGameObject = node->addGameObject("sun");
+    auto light = lightGameObject->addComponent<Light>();
+    auto lightTransform = lightGameObject->getComponent<Transform>();
+    // make light dir (0,-1,-1)=> eulerX=135deg
+    lightTransform->setRotation({150.0 / 180.0f * std::numbers::pi_v<float>,
+                                 -45.0 / 180.0f * std::numbers::pi_v<float>,
+                                 0.0f});
+    lightTransform->setPosition({-1.5f, 2.0f, 2.0f});
+    lightTransform->setScale({1.0f, 1.0f, 1.0f});
+    light->setShadowMap(true);
+
     auto planeGameObject = node->addGameObject("plane");
     auto planeMeshFilter = planeGameObject->addComponent<MeshFilter>();
     planeMeshFilter->setMesh(planeObj);

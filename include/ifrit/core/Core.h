@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/core/application/Application.h"
 #include "ifrit/core/assetmanager/Asset.h"
@@ -24,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/assetmanager/WaveFrontAsset.h"
 #include "ifrit/core/base/Camera.h"
 #include "ifrit/core/base/Component.h"
+#include "ifrit/core/base/Light.h"
 #include "ifrit/core/base/Material.h"
 #include "ifrit/core/base/Mesh.h"
 #include "ifrit/core/base/Scene.h"

@@ -32,7 +32,9 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   if (camera == nullptr) {
     throw std::runtime_error("No camera found in scene");
   }
-  perframeData.m_views.resize(1);
+  if (perframeData.m_views.size() == 0) {
+    perframeData.m_views.resize(1);
+  }
   auto &viewData = perframeData.m_views[0];
   viewData.m_viewType = PerFrameData::ViewType::Primary;
   viewData.m_viewDataOld = viewData.m_viewData;
@@ -43,6 +45,8 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   viewData.m_viewData.m_worldToClip = Math::transpose(
       Math::matmul(Math::transpose(viewData.m_viewData.m_perspective),
                    Math::transpose(viewData.m_viewData.m_worldToView)));
+  viewData.m_viewData.m_viewToWorld =
+      Math::inverse4(viewData.m_viewData.m_worldToView);
   viewData.m_viewData.m_cameraAspect = camera->getAspect();
   viewData.m_viewData.m_inversePerspective =
       Ifrit::Math::inverse4(viewData.m_viewData.m_perspective);
@@ -78,11 +82,54 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
         return shadow;
       });
 
-  for (auto &lightObj : lightWithShadow) {
-    perframeData.m_views.push_back(PerFrameData::PerViewData{});
-    auto &viewData = perframeData.m_views.back();
+  if (perframeData.m_views.size() < 1 + lightWithShadow.size()) {
+    perframeData.m_views.resize(1 + lightWithShadow.size());
+  }
+  for (auto di = 0; auto &lightObj : lightWithShadow) {
+    auto &viewData = perframeData.m_views[di + 1];
+    // viewData = PerFrameData::PerViewData{};
     viewData.m_viewType = PerFrameData::ViewType::Shadow;
     // Temporarily, assume all lights are directional
+
+    auto lightTransform = lightObj->getComponent<Transform>();
+    auto lightTransformMat = lightTransform->getModelToWorldMatrix();
+
+    auto lightPos = lightTransform->getPosition(); // PLACEHOLDER, WRONG NOW
+    auto lightDirRaw = ifloat4{0.0f, 0.0f, 1.0f, 0.0f};
+    auto lightDir = Math::matmul(lightTransformMat, lightDirRaw);
+    printf("%f %f %f\n", lightDir.x, lightDir.y, lightDir.z);
+    auto lightUpRaw = ifloat4{0.0f, 1.0f, 0.0f, 0.0f};
+    auto lightLookAtCenter =
+        ifloat3(lightPos.x + lightDir.x, lightPos.y + lightDir.y,
+                lightPos.z + lightDir.z);
+    auto lightLookAt = Math::transpose(
+        Math::lookAt(lightPos, lightLookAtCenter,
+                     ifloat3(lightUpRaw.x, lightUpRaw.y, lightUpRaw.z)));
+
+    viewData.m_viewData.m_worldToView = lightLookAt;
+    viewData.m_viewData.m_perspective =
+        Math::transpose(Math::orthographicNegateY(1.75, 1.0, 1.0, 25.0));
+    viewData.m_viewData.m_worldToClip = Math::transpose(
+        Math::matmul(Math::transpose(viewData.m_viewData.m_perspective),
+                     Math::transpose(viewData.m_viewData.m_worldToView)));
+    viewData.m_viewData.m_cameraAspect = 1.0f;
+    viewData.m_viewData.m_inversePerspective =
+        Ifrit::Math::inverse4(viewData.m_viewData.m_perspective);
+    viewData.m_viewData.m_clipToWorld =
+        Math::inverse4(viewData.m_viewData.m_worldToClip);
+    viewData.m_viewData.m_cameraPosition =
+        ifloat4{lightPos.x, lightPos.y, lightPos.z, 1.0f};
+    viewData.m_viewData.m_cameraFront =
+        ifloat4{lightDir.x, lightDir.y, lightDir.z, 0.0f};
+    viewData.m_viewData.m_cameraNear = 0.1f;
+    viewData.m_viewData.m_cameraFar = 100.0f;
+    viewData.m_viewData.m_cameraFovX = 0.0f;
+    viewData.m_viewData.m_cameraFovY = 0.0f;
+    viewData.m_viewData.m_cameraOrthoSize = 2.0f;
+    viewData.m_viewData.m_viewCameraType = 1.0f;
+
+    viewData.m_viewData.m_viewToWorld =
+        Math::inverse4(viewData.m_viewData.m_worldToView);
   }
 
   // For each mesh renderer, get the material, mesh, and transform
@@ -370,7 +417,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
 
   if (perframeData.m_views.size() > 1) {
     printf("Warning: Multiple views are not supported yet\n");
-    throw std::runtime_error("Multiple views are not supported yet");
+    // throw std::runtime_error("Multiple views are not supported yet");
   }
 
   auto &primaryView = perframeData.m_views[0];
@@ -381,6 +428,16 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       static_cast<uint32_t>(std::floor(
           std::log2(std::max(renderArea.width, renderArea.height)))) +
       1;
+
+  for (auto &view : perframeData.m_views) {
+    if (view.m_viewType == PerFrameData::ViewType::Shadow) {
+      view.m_viewType = PerFrameData::ViewType::Shadow;
+      view.m_viewData.m_renderHeight = 2048;
+      view.m_viewData.m_renderWidth = 2048;
+      view.m_viewData.m_hizLods =
+          static_cast<uint32_t>(std::floor(std::log2(2048))) + 1;
+    }
+  }
 
   std::vector<std::shared_ptr<RhiStagedSingleBuffer>> stagedBuffers;
   std::vector<void *> pendingVertexBuffers;
@@ -618,8 +675,9 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             sizeof(uint32_t) * meshDataRef->m_bvhNodes.size(),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
-        auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0] +
-                               meshDataRef->m_numMeshletsEachLod[1];
+        auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0];
+        if (meshDataRef->m_numMeshletsEachLod.size()>1)
+          safeNumMeshlets+=meshDataRef->m_numMeshletsEachLod[1];
         instanceResource.filteredMeshlets = rhi->createStorageBufferDevice(
             sizeof(uint32_t) * safeNumMeshlets, 0);
 

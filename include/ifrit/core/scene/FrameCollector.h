@@ -36,6 +36,7 @@ struct PerFramePerViewData {
   float4x4 m_worldToClip;
   float4x4 m_inversePerspective;
   float4x4 m_clipToWorld;
+  float4x4 m_viewToWorld;
   ifloat4 m_cameraPosition;
   ifloat4 m_cameraFront;
   float m_renderWidth;
@@ -82,6 +83,19 @@ struct PerFrameRenderTargets {
       m_depthRTRef;
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiRenderTargets> m_rts;
   uint32_t m_width = 0, m_height = 0;
+};
+
+struct ShadowMappingData {
+  using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
+  using GPUBindlessId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+
+  struct SingleShadowView {
+    uint32_t m_viewRef;
+    uint32_t m_texRef;
+  };
+  std::vector<SingleShadowView> m_shadowViews;
+  GPUBuffer *m_allShadowData;
+  std::shared_ptr<GPUBindlessId> m_allShadowDataId;
 };
 
 struct PerFrameData {
@@ -268,6 +282,9 @@ struct PerFrameData {
   std::shared_ptr<void> m_atmosphereData = nullptr;
   std::shared_ptr<GPUTexture> m_atmoOutput;
   std::shared_ptr<GPUBindlessId> m_atmoOutputId;
+
+  // Shadow mapping
+  ShadowMappingData m_shadowData;
 };
 
 } // namespace Ifrit::Core

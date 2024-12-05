@@ -291,9 +291,9 @@ void main(){
     vec4 viewBoundBallOccl = worldToViewOccl * worldBoundBallOccl;
 
     
-    bool occlusionCulled = occlusionCull(viewBoundBallOccl,boundBall.w);
+    bool occlusionCulled = false;//occlusionCull(viewBoundBallOccl,boundBall.w);
     if(isFirstPass){
-        bool frustumCulled = frustumCull(viewBoundBall,boundBall.w);
+        bool frustumCulled = false;//frustumCull(viewBoundBall,boundBall.w);
         if(!frustumCulled && !occlusionCulled ){
             // if accept
             uint acceptRef = uIndirectComp.acceptRef;

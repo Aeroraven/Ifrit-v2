@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/base/ApplicationInterface.h"
@@ -35,6 +34,7 @@ enum class AntiAliasingType { None, TAA };
 
 struct RendererConfig {
   AntiAliasingType m_antiAliasingType = AntiAliasingType::None;
+  uint32_t m_defaultShadowMapSize = 2048;
 };
 
 // TODO: move render graph to here

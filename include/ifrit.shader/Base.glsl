@@ -23,6 +23,7 @@ struct PerFramePerViewData {
   mat4 m_worldToClip;
   mat4 m_invPerspective;
   mat4 m_clipToWorld;
+  mat4 m_viewToWorld;
   vec4 m_cameraPosition;
   vec4 m_cameraFront;
   float m_renderWidth;

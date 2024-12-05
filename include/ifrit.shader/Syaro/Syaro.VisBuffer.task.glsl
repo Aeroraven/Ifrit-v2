@@ -140,6 +140,10 @@ bool frustumCullLRTB(vec4 left, vec4 right, vec4 top, vec4 bottom, vec4 boundBal
 bool frustumCull(vec4 boundBall, float radius, float tanHalfFovY){
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
     float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
+    float camType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
+    if(camType>0.5){
+        return false;
+    }
     
     float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
     float z = boundBall.z;
@@ -202,7 +206,7 @@ void main(){
         vec4 viewConeApex = mv * vec4(normalConeApex.xyz,1.0);
         float coneAngle = dot(viewConeAxis.xyz,viewConeApex.xyz);
         if(coneAngle > normalConeAxis.w){
-            isAccepted = false;
+            //isAccepted = false;
         }
 
         if(isAccepted){
@@ -212,7 +216,7 @@ void main(){
 
             vec4 viewBoundBallCenter = mv * boundBallCenter;
             if(frustumCull(viewBoundBallCenter,boundBallRadius,tanHalfFovY)){
-                isAccepted = false;
+                //isAccepted = false;
             }
         }
         if(isAccepted){

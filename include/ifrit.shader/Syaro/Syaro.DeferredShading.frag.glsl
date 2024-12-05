@@ -53,6 +53,52 @@ layout(binding = 0, set = 3) uniform PerframeViewData{
     uint refPrevFrame;
 }uPerframeView;
 
+struct ShadowMaps{
+    uint viewRef;
+    uint shadowRef;
+};
+
+RegisterStorage(bShadowMaps,{
+    ShadowMaps data[];
+});
+
+layout(push_constant) uniform PushConstant{
+    uint shadowRef;
+    uint numShadowMaps;
+} pc;
+
+float shadowMapping(vec3 worldPos){
+    // 1=no shadow, 0=shadow
+    float shadow = 1.0;
+    for(uint i = 0; i < pc.numShadowMaps; i++){
+        ShadowMaps shadowMap = GetResource(bShadowMaps,pc.shadowRef).data[i];
+        mat4 lightView = GetResource(bPerframeView,shadowMap.viewRef).data.m_worldToView;
+        mat4 lightProj = GetResource(bPerframeView,shadowMap.viewRef).data.m_perspective;
+        mat4 vp = lightProj * lightView;
+        vec4 lightPos = vp * vec4(worldPos,1.0);
+        lightPos.xyz /= lightPos.w;
+        vec2 uv = lightPos.xy * 0.5 + 0.5;
+
+        float avgShadow = 0.0;
+        for(int kx = -2 ; kx <= 2; kx++){
+            for(int ky = -2; ky <= 2; ky++){
+                vec2 offset = vec2(kx,ky) / 2048.0;
+                vec2 sampPos = uv + offset;
+                sampPos = clamp(sampPos,vec2(0.0),vec2(1.0));
+                float depth = texture(GetSampler2D(shadowMap.shadowRef),sampPos).r;
+                if(depth - lightPos.z < -1e-3 ){
+                    avgShadow += 0.0;
+                }else{
+                    avgShadow += 1.0;
+                }
+            }
+        }
+        avgShadow /= 25.0;
+        shadow = min(shadow,avgShadow);
+    }
+    return shadow;
+}
+
 
 void main(){
     vec3 albedo = texture(GetSampler2D(uGBufferRefs.albedo_materialFlags),texCoord).rgb;
@@ -63,6 +109,7 @@ void main(){
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
     float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
     float ao = texture(GetSampler2D(uGBufferRefs.specular_occlusion),texCoord).a;
+    mat4 clipToWorld = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_clipToWorld;
 
     if(motion_depth.a < 0.5){
         outColor = vec4(0.0);
@@ -71,8 +118,11 @@ void main(){
 
     vec4 ndcPos = vec4(texCoord * 2.0 - 1.0, motion_depth.b, 1.0) * vsDepth;
     vec4 viewPos = invproj * ndcPos;
+    vec4 worldPos = clipToWorld * ndcPos;
+    worldPos /= worldPos.w;
+    viewPos /= viewPos.w;
     normal = normalize(normal * 2.0 - 1.0);
-    vec3 lightDir = normalize(vec3(1.0, 0.5, 1.0));
+    vec3 lightDir = normalize(vec3(0.612372,0.500000,0.612372));
 
     float NdotL = max(dot(normal,lightDir),0.0);
     vec3 V = normalize(-viewPos.xyz);
@@ -97,8 +147,11 @@ void main(){
     vec3 specular = dpbr_cookTorranceBRDF(F,G,D,NdotV,NdotL);
     vec3 Lo = (kD * albedo / PIx + specular) * NdotL;
 
-    vec3 ambient = vec3(0.17) * albedo * ao;
-    vec3 color = ambient + Lo;
+    vec3 ambient = vec3(0.10) * albedo * ao;
+    float shadow = shadowMapping(worldPos.xyz);
+
+    //This is incorrect, but it's used for test if shadow mapping works
+    vec3 color = ambient + Lo * shadow; 
 
     outColor = vec4(color,1.0);
 }

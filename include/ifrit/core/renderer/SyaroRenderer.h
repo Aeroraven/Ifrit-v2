@@ -134,6 +134,9 @@ private:
   std::unique_ptr<PostprocessPassCollection::PostFxAcesToneMapping>
       m_acesToneMapping;
 
+  // Render config
+  RendererConfig m_renderConfig;
+
 private:
   // Util functions
   GPUShader *createShaderFromFile(const std::string &shaderPath,
@@ -173,6 +176,7 @@ private:
   void taaHistorySetup(PerFrameData &perframeData,
                        RenderTargets *renderTargets);
   void createPostprocessTextures(uint32_t width, uint32_t height);
+  void prepareAggregatedShadowData(PerFrameData &perframeData);
 
   // Many passes are not material-dependent, so a unified instance buffer
   // might reduce calls
@@ -185,7 +189,9 @@ private:
   void renderTwoPassOcclCulling(CullingPass cullPass,
                                 PerFrameData &perframeData,
                                 RenderTargets *renderTargets,
-                                const GPUCmdBuffer *cmd);
+                                const GPUCmdBuffer *cmd,
+                                PerFrameData::ViewType filteredViewType,
+                                uint32_t idx);
 
   void renderEmitDepthTargets(PerFrameData &perframeData,
                               RenderTargets *renderTargets,

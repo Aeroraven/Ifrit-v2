@@ -96,7 +96,7 @@ void main(){
 
     // Solar radiance
     vec3 solarRadiance = GetSolarRadiance(atmo);
-    vec3 sunDirection = normalize(vec3(-1.0, 0.5, 1.0));
+    vec3 sunDirection = normalize(vec3(-0.612372,0.500000,0.612372));
 
     // Get ground radiance, intersection with ground
     float dist = raySphereIntersect(rayDir, camPosKmRelativeToEarth.xyz, vec3(0.0), uAtmoRenderPushConstant.earthRadius);
