@@ -112,6 +112,7 @@ public:
 
     auto cameraGameObject = node->addGameObject("camera");
     auto camera = cameraGameObject->addComponent<Camera>();
+    camera->setCameraType(CameraType::Perspective);
     camera->setMainCamera(true);
     camera->setAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
     camera->setFov(90.0f / 180.0f * std::numbers::pi_v<float>);

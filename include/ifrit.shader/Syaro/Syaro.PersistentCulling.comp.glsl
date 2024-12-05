@@ -174,7 +174,7 @@ uint getObjId(){
     return GetResource(bInstanceAccepted,uIndirectCompInstCull.acceptRef).data[gl_WorkGroupID.x];
 }
 
-bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy){
+bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,float viewCamType,float camAspect, float orthoSize){
     uint objId = getObjId();
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint cpcntRefMesh = GetResource(bMeshDataRef,obj).cpCounterBuffer;
@@ -198,7 +198,13 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy){
     if(group.lod != totalLod-1){
         vec4 viewSpaceCenter = mvMat * vec4(parentSphereCenter,1.0);
         vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
-        float parentProjectedRadius = computeProjectedRadius(tanfovy,length(viewSpaceCenter3),parentSphereRadius);
+        float parentProjectedRadius;
+        
+        if(viewCamType == 0){
+            parentProjectedRadius = computeProjectedRadius(tanfovy,length(viewSpaceCenter3),parentSphereRadius);
+        }else{
+            parentProjectedRadius = parentSphereRadius * camAspect * orthoSize;
+        }
         parentProjectedRadius*=rtHeight;
         parentRejected = parentProjectedRadius > 1.0;
     }
@@ -210,7 +216,12 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy){
     if(group.lod != 0){
         vec4 viewSpaceCenter = mvMat * vec4(selfSphereCenter,1.0);
         vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
-        float selfProjectedRadius = computeProjectedRadius(tanfovy,length(viewSpaceCenter3),selfSphereRadius);
+        float selfProjectedRadius;
+        if(viewCamType == 0){
+            selfProjectedRadius = computeProjectedRadius(tanfovy,length(viewSpaceCenter3),selfSphereRadius);
+        }else{
+            selfProjectedRadius = selfSphereRadius * camAspect * orthoSize;
+        }
         selfProjectedRadius*=rtHeight;
         selfRejected = selfProjectedRadius > 1.0;
     }
@@ -296,6 +307,7 @@ void main(){
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
     uint micRef = GetResource(bMeshDataRef,obj).meshletInClusterBuffer;
+    float viewCamType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
 
     uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
     mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
@@ -316,6 +328,8 @@ void main(){
     uint totalClusterGroups = GetResource(bCpCounterMesh,cpcntRefMesh).totalCluster;
     float fov = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
     float tanfovy = tan(fov*0.5);
+    float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+    float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
     if(threadId == 0){
         sConsumer = 0;
         sProducer = 0;
@@ -364,7 +378,8 @@ void main(){
                 }
                 for(uint i = 0 ; i < node.clusterGroupCount;i++){
                     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
-                    bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy);
+                    bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy,
+                        viewCamType,camAspect,orthoSize);
                     if(clusterGroupVisible){ 
                         enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
                     }

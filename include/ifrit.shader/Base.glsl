@@ -32,7 +32,9 @@ struct PerFramePerViewData {
   float m_cameraFovX;
   float m_cameraFovY;
   float m_cameraAspect;
+  float m_cameraOrthoSize;
   float m_hizLods;
+  float m_viewCameraType;
 };
 
 struct PerFramePerViewDataRef{

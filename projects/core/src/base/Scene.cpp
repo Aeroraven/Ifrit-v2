@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/core/base/Scene.h"
 #include "ifrit/core/base/Component.h"
 namespace Ifrit::Core {
@@ -56,5 +55,25 @@ IFRIT_APIDECL Camera *Scene::getMainCamera() {
     }
   }
   return nullptr;
+}
+
+IFRIT_APIDECL std::vector<std::shared_ptr<SceneObject>>
+Scene::filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter) {
+  std::vector<std::shared_ptr<SceneObject>> result;
+  std::vector<SceneNode *> nodes;
+  nodes.push_back(m_root.get());
+  while (!nodes.empty()) {
+    auto node = nodes.back();
+    nodes.pop_back();
+    for (auto &child : node->getChildren()) {
+      nodes.push_back(child.get());
+    }
+    for (auto &obj : node->getGameObjects()) {
+      if (filter(obj)) {
+        result.push_back(obj);
+      }
+    }
+  }
+  return result;
 }
 } // namespace Ifrit::Core

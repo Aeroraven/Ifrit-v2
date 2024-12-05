@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/renderer/RendererBase.h"
+#include "ifrit/core/base/Light.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Core {
@@ -58,6 +59,31 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   viewData.m_viewData.m_cameraFar = camera->getFar();
   viewData.m_viewData.m_cameraFovX = camera->getFov();
   viewData.m_viewData.m_cameraFovY = camera->getFov();
+  viewData.m_viewData.m_cameraOrthoSize = camera->getOrthoSpaceSize();
+  viewData.m_viewData.m_viewCameraType =
+      camera->getCameraType() == CameraType::Orthographic ? 1.0f : 0.0f;
+
+  // Insert light view data, if shadow maps are enabled
+  auto lightWithShadow =
+      scene->filterObjects([](std::shared_ptr<SceneObject> obj) -> bool {
+        auto light = obj->getComponent<Light>();
+        auto transform = obj->getComponent<Transform>();
+        if (!light) {
+          return false;
+        }
+        if (!transform) {
+          throw std::runtime_error("Light has no transform");
+        }
+        auto shadow = light->getShadowMap();
+        return shadow;
+      });
+
+  for (auto &lightObj : lightWithShadow) {
+    perframeData.m_views.push_back(PerFrameData::PerViewData{});
+    auto &viewData = perframeData.m_views.back();
+    viewData.m_viewType = PerFrameData::ViewType::Shadow;
+    // Temporarily, assume all lights are directional
+  }
 
   // For each mesh renderer, get the material, mesh, and transform
   perframeData.m_enabledEffects.clear();

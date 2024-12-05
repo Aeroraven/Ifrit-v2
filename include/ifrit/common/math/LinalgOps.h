@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "../util/ApiConv.h"
 #include "VectorOps.h"
@@ -160,6 +159,32 @@ inline float4x4 perspectiveNegateY(float fovy, float aspect, float zNear,
   result[3][3] = 0;
   return result;
 }
+inline float4x4 orthographicNegateY(float orthoSize, float aspect, float zNear,
+                                    float zFar) {
+  float4x4 result;
+  float nTop = orthoSize / 2;
+  float nRight = nTop * aspect;
+  float nLeft = -nRight;
+  float nBottom = -nTop;
+  result[0][0] = 2 / (nRight - nLeft);
+  result[1][0] = 0;
+  result[2][0] = 0;
+  result[3][0] = 0;
+  result[0][1] = 0;
+  result[1][1] = -2 / (nTop - nBottom);
+  result[2][1] = 0;
+  result[3][1] = 0;
+  result[0][2] = 0;
+  result[1][2] = 0;
+  result[2][2] = 1 / (zFar - zNear);
+  result[3][2] = 0;
+  result[0][3] = -(nRight + nLeft) / (nRight - nLeft);
+  result[1][3] = -(nTop + nBottom) / (nTop - nBottom);
+  result[2][3] = -zNear / (zFar - zNear);
+  result[3][3] = 1;
+  return result;
+}
+
 inline float4x4 eulerAngleToMatrix(const ifloat3 &euler) {
   float4x4 result;
   float cx = cos(euler.x), sx = sin(euler.x);

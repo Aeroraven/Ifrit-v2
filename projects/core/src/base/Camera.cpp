@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/core/base/Camera.h"
 #include "ifrit/common/math/LinalgOps.h"
 
@@ -39,8 +38,13 @@ IFRIT_APIDECL float4x4 Camera::worldToCameraMatrix() const {
 }
 IFRIT_APIDECL float4x4 Camera::projectionMatrix() const {
   auto data = m_attributes;
-  return transpose(
-      perspectiveNegateY(data.m_fov, data.m_aspect, data.m_near, data.m_far));
+  if (data.m_type == CameraType::Perspective) {
+    return transpose(
+        perspectiveNegateY(data.m_fov, data.m_aspect, data.m_near, data.m_far));
+  } else {
+    return transpose(orthographicNegateY(data.m_orthoSpaceSize, data.m_aspect,
+                                         data.m_near, data.m_far));
+  }
 }
 
 IFRIT_APIDECL ifloat4 Camera::getFront() const {

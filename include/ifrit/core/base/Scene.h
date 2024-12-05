@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 
 #include "ifrit/core/base/Camera.h"
@@ -68,6 +67,8 @@ public:
   inline std::shared_ptr<SceneNode> getRootNode() { return m_root; }
 
   Camera *getMainCamera();
+  std::vector<std::shared_ptr<SceneObject>>
+  filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter);
 
   IFRIT_STRUCT_SERIALIZE(m_root);
 };

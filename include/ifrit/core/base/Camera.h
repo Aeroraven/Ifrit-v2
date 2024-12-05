@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 
 #include "Component.h"
@@ -27,13 +26,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/util/TypingUtil.h"
 
 namespace Ifrit::Core {
+enum class CameraType { Perspective, Orthographic };
 struct CameraData {
+  CameraType m_type = CameraType::Perspective; // Ortho support not implemented
   float m_fov = 60.0f;
+  float m_orthoSpaceSize = 1.0f;
   float m_aspect = 1.0f;
   float m_near = 0.1f;
   float m_far = 1000.0f;
   bool m_isMainCamera = false;
-  IFRIT_STRUCT_SERIALIZE(m_fov, m_aspect, m_near, m_far, m_isMainCamera);
+  IFRIT_STRUCT_SERIALIZE(m_type, m_fov, m_aspect, m_near, m_far,
+                         m_isMainCamera);
 };
 class IFRIT_APIDECL Camera : public Component,
                              public AttributeOwner<CameraData> {
@@ -53,6 +56,10 @@ public:
   inline float getNear() const { return m_attributes.m_near; }
   inline float getFar() const { return m_attributes.m_far; }
   inline bool isMainCamera() const { return m_attributes.m_isMainCamera; }
+  inline float getOrthoSpaceSize() const {
+    return m_attributes.m_orthoSpaceSize;
+  }
+  inline CameraType getCameraType() const { return m_attributes.m_type; }
 
   // setters
   inline void setFov(float fov) { m_attributes.m_fov = fov; }
@@ -62,7 +69,12 @@ public:
   inline void setMainCamera(bool isMain) {
     m_attributes.m_isMainCamera = isMain;
   }
+  inline void setOrthoSpaceSize(float size) {
+    m_attributes.m_orthoSpaceSize = size;
+  }
+  inline void setCameraType(CameraType type) { m_attributes.m_type = type; }
 };
 } // namespace Ifrit::Core
 
 IFRIT_COMPONENT_REGISTER(Ifrit::Core::Camera)
+IFRIT_ENUMCLASS_SERIALIZE(Ifrit::Core::CameraType)

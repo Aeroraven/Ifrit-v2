@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/json.hpp>
@@ -66,5 +65,10 @@ template <class T> void deserialize(const std::string &src, T &dst) {
     ar(dst);
   }
 }
+
+#define IFRIT_ENUMCLASS_SERIALIZE(enumClass)                                   \
+  template <class Archive> void serialize(Archive &ar, enumClass &x) {         \
+    ar(cereal::make_nvp(#enumClass, x));                                       \
+  }
 
 } // namespace Ifrit::Common::Serialization
