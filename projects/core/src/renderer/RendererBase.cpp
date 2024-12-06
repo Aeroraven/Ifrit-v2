@@ -97,7 +97,6 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     auto lightPos = lightTransform->getPosition(); // PLACEHOLDER, WRONG NOW
     auto lightDirRaw = ifloat4{0.0f, 0.0f, 1.0f, 0.0f};
     auto lightDir = Math::matmul(lightTransformMat, lightDirRaw);
-    printf("%f %f %f\n", lightDir.x, lightDir.y, lightDir.z);
     auto lightUpRaw = ifloat4{0.0f, 1.0f, 0.0f, 0.0f};
     auto lightLookAtCenter =
         ifloat3(lightPos.x + lightDir.x, lightPos.y + lightDir.y,
@@ -415,11 +414,6 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
   auto rhi = m_app->getRhiLayer();
   auto renderArea = renderTargets->getRenderArea();
 
-  if (perframeData.m_views.size() > 1) {
-    printf("Warning: Multiple views are not supported yet\n");
-    // throw std::runtime_error("Multiple views are not supported yet");
-  }
-
   auto &primaryView = perframeData.m_views[0];
   primaryView.m_viewType = PerFrameData::ViewType::Primary;
   primaryView.m_viewData.m_renderHeight = renderArea.height;
@@ -676,8 +670,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
         auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0];
-        if (meshDataRef->m_numMeshletsEachLod.size()>1)
-          safeNumMeshlets+=meshDataRef->m_numMeshletsEachLod[1];
+        if (meshDataRef->m_numMeshletsEachLod.size() > 1)
+          safeNumMeshlets += meshDataRef->m_numMeshletsEachLod[1];
         instanceResource.filteredMeshlets = rhi->createStorageBufferDevice(
             sizeof(uint32_t) * safeNumMeshlets, 0);
 

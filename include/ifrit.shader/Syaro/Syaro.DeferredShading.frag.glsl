@@ -65,6 +65,7 @@ RegisterStorage(bShadowMaps,{
 layout(push_constant) uniform PushConstant{
     uint shadowRef;
     uint numShadowMaps;
+    uint depthTexRef;
 } pc;
 
 float shadowMapping(vec3 worldPos){
@@ -110,13 +111,14 @@ void main(){
     float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
     float ao = texture(GetSampler2D(uGBufferRefs.specular_occlusion),texCoord).a;
     mat4 clipToWorld = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_clipToWorld;
+    float depth = texture(GetSampler2D(pc.depthTexRef),texCoord).r;
 
     if(motion_depth.a < 0.5){
         outColor = vec4(0.0);
         return;
     }
 
-    vec4 ndcPos = vec4(texCoord * 2.0 - 1.0, motion_depth.b, 1.0) * vsDepth;
+    vec4 ndcPos = vec4(texCoord * 2.0 - 1.0, depth, 1.0) * vsDepth;
     vec4 viewPos = invproj * ndcPos;
     vec4 worldPos = clipToWorld * ndcPos;
     worldPos /= worldPos.w;

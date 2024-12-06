@@ -187,7 +187,7 @@ SyaroRenderer::setupDeferredShadingPass(RenderTargets *renderTargets) {
     pass->setVertexShader(vsShader);
     pass->setPixelShader(fsShader);
     pass->setNumBindlessDescriptorSets(3);
-    pass->setPushConstSize(2 * sizeof(uint32_t));
+    pass->setPushConstSize(3 * sizeof(uint32_t));
     pass->setRenderTargetFormat(rtCfg);
     m_deferredShadingPass[paCfg] = pass;
   }
@@ -240,10 +240,12 @@ SyaroRenderer::renderDeferredShading(PerFrameData &perframeData,
   struct DeferPushConst {
     uint32_t shadowMapDataRef;
     uint32_t numShadowMaps;
+    uint32_t depthTexRef;
   } pc;
   pc.numShadowMaps = perframeData.m_views.size() - 1;
   pc.shadowMapDataRef =
       perframeData.m_shadowData.m_allShadowDataId->getActiveId();
+  pc.depthTexRef = primaryView.m_visDepthId->getActiveId();
 
   pass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     ctx->m_cmd->attachBindlessReferenceGraphics(pass, 1,
@@ -622,6 +624,11 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
   auto &primaryView = getPrimaryView(perframeData);
   m_emitDepthTargetsPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
+        auto primaryView = getPrimaryView(perframeData);
+
+        ctx->m_cmd->imageBarrier(primaryView.m_visPassDepth,
+                                 RhiResourceState::DepthStencilRenderTarget,
+                                 RhiResourceState::Common, {0, 0, 1, 1});
         ctx->m_cmd->imageBarrier(
             perframeData.m_velocityMaterial.get(), RhiResourceState::Undefined,
             RhiResourceState::UAVStorageImage, {0, 0, 1, 1});
@@ -643,6 +650,13 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
         uint32_t wgY =
             (pcData[1] + cEmitDepthGroupSizeY - 1) / cEmitDepthGroupSizeY;
         ctx->m_cmd->dispatch(wgX, wgY, 1);
+        ctx->m_cmd->imageBarrier(perframeData.m_velocityMaterial.get(),
+                                 RhiResourceState::UAVStorageImage,
+                                 RhiResourceState::UAVStorageImage,
+                                 {0, 0, 1, 1});
+        ctx->m_cmd->imageBarrier(
+            primaryView.m_visPassDepth, RhiResourceState::Common,
+            RhiResourceState::DepthStencilRenderTarget, {0, 0, 1, 1});
       });
 
   cmd->globalMemoryBarrier();
