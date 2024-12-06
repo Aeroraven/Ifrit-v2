@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderTargets.h"
 #include "ifrit/common/util/TypingUtil.h"
 
@@ -174,18 +173,20 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
   }
 #undef TOVKBLENDOP
 #undef TOVKBLENDFACTOR
-  exfunc.p_vkCmdSetColorWriteEnableEXT(
-      cmdraw, size_cast<uint32_t>(m_colorAttachments.size()),
-      colorWrite.data());
-  exfunc.p_vkCmdSetColorBlendEnableEXT(
-      cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
-      blendEnable.data());
-  exfunc.p_vkCmdSetColorBlendEquationEXT(
-      cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
-      blendEquations.data());
-  exfunc.p_vkCmdSetColorWriteMaskEXT(
-      cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
-      colorWriteMask.data());
+  if (m_colorAttachments.size() > 0) {
+    exfunc.p_vkCmdSetColorWriteEnableEXT(
+        cmdraw, size_cast<uint32_t>(m_colorAttachments.size()),
+        colorWrite.data());
+    exfunc.p_vkCmdSetColorBlendEnableEXT(
+        cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
+        blendEnable.data());
+    exfunc.p_vkCmdSetColorBlendEquationEXT(
+        cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
+        blendEquations.data());
+    exfunc.p_vkCmdSetColorWriteMaskEXT(
+        cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
+        colorWriteMask.data());
+  }
 
   // Set default viewport & scissor
   VkViewport viewport{};

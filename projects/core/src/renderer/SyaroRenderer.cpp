@@ -341,6 +341,17 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
   rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_R32_UINT};
   rtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
   m_visibilityPass->setRenderTargetFormat(rtFmt);
+
+  m_depthOnlyVisibilityPass = rhi->createGraphicsPass();
+  m_depthOnlyVisibilityPass->setTaskShader(tsShader);
+  m_depthOnlyVisibilityPass->setMeshShader(msShader);
+  m_depthOnlyVisibilityPass->setNumBindlessDescriptorSets(3);
+  m_depthOnlyVisibilityPass->setPushConstSize(sizeof(uint32_t));
+
+  Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat depthOnlyRtFmt;
+  depthOnlyRtFmt.m_colorFormats = {};
+  depthOnlyRtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
+  m_depthOnlyVisibilityPass->setRenderTargetFormat(depthOnlyRtFmt);
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupInstanceCullingPass() {
@@ -759,43 +770,45 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
                                        6 * sizeof(uint32_t));
         }
       });
-  m_visibilityPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+
+  auto &visPass = (filteredViewType == PerFrameData::ViewType::Primary)
+                      ? m_visibilityPass
+                      : m_depthOnlyVisibilityPass;
+  visPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     // bind view buffer
-    ctx->m_cmd->attachBindlessReferenceGraphics(m_visibilityPass, 1,
+    ctx->m_cmd->attachBindlessReferenceGraphics(visPass, 1,
                                                 perView.m_viewBindlessRef);
     ctx->m_cmd->attachBindlessReferenceGraphics(
-        m_visibilityPass, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
+        visPass, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
     ctx->m_cmd->setCullMode(RhiCullMode::Back);
     ctx->m_cmd->attachBindlessReferenceGraphics(
-        m_visibilityPass, 3, perView.m_allFilteredMeshletsDesc);
+        visPass, 3, perView.m_allFilteredMeshletsDesc);
     if (cullPass == CullingPass::First) {
-      ctx->m_cmd->setPushConst(m_visibilityPass, 0, sizeof(uint32_t),
-                               &pcData[0]);
+      ctx->m_cmd->setPushConst(visPass, 0, sizeof(uint32_t), &pcData[0]);
       ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsCount,
                                         sizeof(uint32_t) * 3, 1, 0);
     } else {
-      ctx->m_cmd->setPushConst(m_visibilityPass, 0, sizeof(uint32_t),
-                               &pcData[1]);
+      ctx->m_cmd->setPushConst(visPass, 0, sizeof(uint32_t), &pcData[1]);
       ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsCount,
                                         sizeof(uint32_t) * 0, 1, 0);
     }
   });
 
-  auto &primaryView = getPrimaryView(perframeData);
-  auto width = primaryView.m_viewData.m_renderWidth;
-  auto height = primaryView.m_viewData.m_renderHeight;
-  uint32_t pushConst[5] = {primaryView.m_spHiZData.m_hizWidth,
-                           primaryView.m_spHiZData.m_hizHeight, width, height,
-                           primaryView.m_spHiZData.m_hizIters};
+  // auto &primaryView = getPrimaryView(perframeData);
+  auto width = perView.m_viewData.m_renderWidth;
+  auto height = perView.m_viewData.m_renderHeight;
+  uint32_t pushConst[5] = {perView.m_spHiZData.m_hizWidth,
+                           perView.m_spHiZData.m_hizHeight, width, height,
+                           perView.m_spHiZData.m_hizIters};
   m_singlePassHiZPass->setRecordFunction([&](RhiRenderPassContext *ctx) {
-    ctx->m_cmd->attachBindlessReferenceCompute(
-        m_singlePassHiZPass, 1, primaryView.m_spHiZData.m_hizDesc);
+    ctx->m_cmd->attachBindlessReferenceCompute(m_singlePassHiZPass, 1,
+                                               perView.m_spHiZData.m_hizDesc);
     ctx->m_cmd->setPushConst(m_singlePassHiZPass, 0, sizeof(uint32_t) * 5,
                              &pushConst[0]);
-    auto tgX = (primaryView.m_spHiZData.m_hizWidth + cSPHiZTileSize - 1) /
-               cSPHiZTileSize;
-    auto tgY = (primaryView.m_spHiZData.m_hizHeight + cSPHiZTileSize - 1) /
-               cSPHiZTileSize;
+    auto tgX =
+        (perView.m_spHiZData.m_hizWidth + cSPHiZTileSize - 1) / cSPHiZTileSize;
+    auto tgY =
+        (perView.m_spHiZData.m_hizHeight + cSPHiZTileSize - 1) / cSPHiZTileSize;
     ctx->m_cmd->dispatch(tgX, tgY, 1);
   });
 
@@ -806,15 +819,18 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
   m_persistentCullingPass->run(cmd, 0);
   cmd->endScope();
   cmd->globalMemoryBarrier();
+  auto visPassRd = (filteredViewType == PerFrameData::ViewType::Primary)
+                       ? m_visibilityPass
+                       : m_depthOnlyVisibilityPass;
   if (cullPass == CullingPass::First) {
     // PERFORMANCE BOTTLNECK
     cmd->beginScope("Syaro: Visibility Pass, First");
-    m_visibilityPass->run(cmd, perView.m_visRTs.get(), 0);
+    visPassRd->run(cmd, perView.m_visRTs.get(), 0);
     cmd->endScope();
   } else {
     // we wont clear the visibility buffer in the second pass
     cmd->beginScope("Syaro: Visibility Pass, Second");
-    m_visibilityPass->run(cmd, perView.m_visRTs2.get(), 0);
+    visPassRd->run(cmd, perView.m_visRTs2.get(), 0);
     cmd->endScope();
   }
   cmd->globalMemoryBarrier();
@@ -980,10 +996,6 @@ IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
 IFRIT_APIDECL void
 SyaroRenderer::sphizBufferSetup(PerFrameData &perframeData,
                                 RenderTargets *renderTargets) {
-
-  if (perframeData.m_views.size() > 1) {
-    // throw std::runtime_error("Multiple views not supported for HiZ buffer");
-  }
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     auto &perView = perframeData.m_views[k];
     auto renderArea = renderTargets->getRenderArea();
@@ -1051,9 +1063,6 @@ SyaroRenderer::sphizBufferSetup(PerFrameData &perframeData,
 IFRIT_APIDECL void
 SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
                                      RenderTargets *renderTargets) {
-  if (perframeData.m_views.size() > 1) {
-    // throw std::runtime_error("Multiple views not supported for vis buffer");
-  }
   auto rhi = m_app->getRhiLayer();
   auto rtArea = renderTargets->getRenderArea();
 
@@ -1104,13 +1113,18 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     perView.m_visDepthId = rhi->registerCombinedImageSampler(
         perView.m_visPassDepth, perView.m_visDepthSampler.get());
 
-    perView.m_visColorRT = rhi->createRenderTarget(
-        visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Clear, 0, 0);
     perView.m_visDepthRT = rhi->createRenderTargetDepthStencil(
         visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
 
     perView.m_visRTs = rhi->createRenderTargets();
-    perView.m_visRTs->setColorAttachments({perView.m_visColorRT.get()});
+    if (perView.m_viewType == PerFrameData::ViewType::Primary) {
+      perView.m_visColorRT = rhi->createRenderTarget(
+          visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Clear, 0, 0);
+      perView.m_visRTs->setColorAttachments({perView.m_visColorRT.get()});
+    } else {
+      // shadow passes do not need color attachment
+      perView.m_visRTs->setColorAttachments({});
+    }
     perView.m_visRTs->setDepthStencilAttachment(perView.m_visDepthRT.get());
     perView.m_visRTs->setRenderArea(renderTargets->getRenderArea());
     if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
@@ -1120,12 +1134,18 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     }
 
     // second pass rts
-    perView.m_visColorRT2 = rhi->createRenderTarget(
-        visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Load, 0, 0);
+
     perView.m_visDepthRT2 = rhi->createRenderTargetDepthStencil(
         visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Load);
     perView.m_visRTs2 = rhi->createRenderTargets();
-    perView.m_visRTs2->setColorAttachments({perView.m_visColorRT2.get()});
+    if (perView.m_viewType == PerFrameData::ViewType::Primary) {
+      perView.m_visColorRT2 = rhi->createRenderTarget(
+          visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Load, 0, 0);
+      perView.m_visRTs2->setColorAttachments({perView.m_visColorRT2.get()});
+    } else {
+      // shadow passes do not need color attachment
+      perView.m_visRTs2->setColorAttachments({});
+    }
     perView.m_visRTs2->setDepthStencilAttachment(perView.m_visDepthRT2.get());
     perView.m_visRTs2->setRenderArea(renderTargets->getRenderArea());
     if (perView.m_viewType == PerFrameData::ViewType::Shadow) {

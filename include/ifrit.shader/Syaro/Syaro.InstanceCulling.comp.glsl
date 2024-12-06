@@ -136,6 +136,35 @@ bool frustumCull(vec4 boundBall, float radius){
     return false;
 }
 
+bool frustumCullOrtho(vec4 boundBall, float radius){
+    float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
+    float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
+    float camFovY = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+    float halfFovY = camFovY * 0.5;
+    float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+    float z = boundBall.z;
+    if(z+radius < camNear || z-radius > camFar){
+        return true;
+    }
+    float camOrthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
+    float camOrthoHalfSize = camOrthoSize;
+
+    float left = -camOrthoHalfSize * camAspect;
+    float right = camOrthoHalfSize * camAspect;
+    float top = -camOrthoHalfSize;
+    float bottom = camOrthoHalfSize;
+
+    bool leftCull = boundBall.x - radius > right;
+    bool rightCull = boundBall.x + radius < left;
+    bool topCull = boundBall.y - radius > bottom;
+    bool bottomCull = boundBall.y + radius < top;
+
+    if(leftCull || rightCull || topCull || bottomCull){
+        return true;
+    }
+    return false;
+}
+
 // Hiz Test
 float computeProjectedRadius(float fovy,float d,float r) {
   // https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
@@ -291,9 +320,15 @@ void main(){
     vec4 viewBoundBallOccl = worldToViewOccl * worldBoundBallOccl;
 
     
-    bool occlusionCulled = false;//occlusionCull(viewBoundBallOccl,boundBall.w);
+    bool occlusionCulled = occlusionCull(viewBoundBallOccl,boundBall.w);
     if(isFirstPass){
-        bool frustumCulled = false;//frustumCull(viewBoundBall,boundBall.w);
+        bool frustumCulled;
+        float camViewType = GetResource(bPerframeView,perframeRef).data.m_viewCameraType;
+        if(camViewType < 0.5){
+            frustumCulled = frustumCull(viewBoundBall,boundBall.w);
+        }else{
+            frustumCulled = frustumCullOrtho(viewBoundBall,boundBall.w);
+        }
         if(!frustumCulled && !occlusionCulled ){
             // if accept
             uint acceptRef = uIndirectComp.acceptRef;

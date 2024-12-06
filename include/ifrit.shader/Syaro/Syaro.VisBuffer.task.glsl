@@ -160,6 +160,34 @@ bool frustumCull(vec4 boundBall, float radius, float tanHalfFovY){
     return false;
 }
 
+bool frustumCullOrtho(vec4 boundBall, float radius){
+    float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
+    float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
+    float camFovY = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+    float halfFovY = camFovY * 0.5;
+    float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+    float z = boundBall.z;
+    if(z+radius < camNear || z-radius > camFar){
+        return true;
+    }
+    float camOrthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
+    float camOrthoHalfSize = camOrthoSize;
+
+    float left = -camOrthoHalfSize * camAspect;
+    float right = camOrthoHalfSize * camAspect;
+    float top = -camOrthoHalfSize;
+    float bottom = camOrthoHalfSize;
+
+    bool leftCull = boundBall.x - radius > right;
+    bool rightCull = boundBall.x + radius < left;
+    bool topCull = boundBall.y - radius > bottom;
+    bool bottomCull = boundBall.y + radius < top;
+
+    if(leftCull || rightCull || topCull || bottomCull){
+        return true;
+    }
+    return false;
+}
 
 void main(){
     // I make meshlet culling from persist cull stage into task shader.
@@ -205,8 +233,9 @@ void main(){
         vec4 viewConeAxis = mv * vec4(normalConeAxis.xyz,0.0);
         vec4 viewConeApex = mv * vec4(normalConeApex.xyz,1.0);
         float coneAngle = dot(viewConeAxis.xyz,viewConeApex.xyz);
-        if(coneAngle > normalConeAxis.w){
-            //isAccepted = false;
+        float camViewType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
+        if(camViewType < 0.5 && coneAngle > normalConeAxis.w){
+            isAccepted = false;
         }
 
         if(isAccepted){
@@ -215,8 +244,14 @@ void main(){
             float boundBallRadius = boundBall.w;
 
             vec4 viewBoundBallCenter = mv * boundBallCenter;
-            if(frustumCull(viewBoundBallCenter,boundBallRadius,tanHalfFovY)){
-                //isAccepted = false;
+            if(camViewType < 0.5){
+                if(frustumCull(viewBoundBallCenter,boundBallRadius,tanHalfFovY)){
+                    isAccepted = false;
+                }
+            }else{
+                if(frustumCullOrtho(viewBoundBallCenter,boundBallRadius)){
+                    isAccepted = false;
+                }
             }
         }
         if(isAccepted){

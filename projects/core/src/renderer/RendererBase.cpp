@@ -124,7 +124,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     viewData.m_viewData.m_cameraFar = 100.0f;
     viewData.m_viewData.m_cameraFovX = 0.0f;
     viewData.m_viewData.m_cameraFovY = 0.0f;
-    viewData.m_viewData.m_cameraOrthoSize = 2.0f;
+    viewData.m_viewData.m_cameraOrthoSize = 1.75f;
     viewData.m_viewData.m_viewCameraType = 1.0f;
 
     viewData.m_viewData.m_viewToWorld =

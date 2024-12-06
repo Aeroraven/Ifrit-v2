@@ -48,6 +48,7 @@ private:
   GPUDescRef *m_persistCullDesc = nullptr;
 
   DrawPass *m_visibilityPass = nullptr;
+  DrawPass *m_depthOnlyVisibilityPass = nullptr;
   // I think renderdoc can do this, but this is for quick debugging
   DrawPass *m_textureShowPass = nullptr;
 

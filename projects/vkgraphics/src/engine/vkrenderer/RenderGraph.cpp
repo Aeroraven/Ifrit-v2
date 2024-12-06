@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
@@ -414,7 +413,9 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
     ci.shaderModules.push_back(m_vertexShader);
     ci.geomGenType = Rhi::RhiGeometryGenerationType::Conventional;
   }
-  ci.shaderModules.push_back(m_fragmentShader);
+  if (m_fragmentShader != nullptr) {
+    ci.shaderModules.push_back(m_fragmentShader);
+  }
   if (m_geometryShader != nullptr) {
     ci.shaderModules.push_back(m_geometryShader);
   }
