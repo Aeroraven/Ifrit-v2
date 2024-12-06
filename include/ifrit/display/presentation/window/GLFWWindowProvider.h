@@ -16,11 +16,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/display/dependencies/GLAD/glad/glad.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include <deque>
+#include <stdexcept>
 
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -69,8 +69,8 @@ public:
     auto x = glfwInit();
     if (!x) {
       printf("GLFW fails\n");
+      throw std::runtime_error("GLFW fails");
     }
-    printf("GLFW init:%d\n", x);
   }
   virtual void
       registerKeyCallback(std::function<void(int, int, int, int)>) override;

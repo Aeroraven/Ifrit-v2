@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 // Some constants used for both cpp and shader code:
 
 #ifndef SYARO_SHADER_SHARED_CONST_H
@@ -59,6 +58,9 @@ SYARO_DEFINE_UINT(cEmitGbufThreadGroupSizeX, 128);
 
 SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeX, 16);
 SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeY, 16);
+
+#define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_SAMPLING 1
+#define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_NUM_SAMPLES 32
 
 #ifdef __cplusplus
 } // namespace Ifrit::Core::Syaro

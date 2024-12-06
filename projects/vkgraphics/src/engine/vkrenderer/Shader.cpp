@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "spirv_reflect/spirv_reflect.c"
 
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
@@ -40,7 +39,6 @@ public:
                                      const char *requesting_source,
                                      size_t include_depth) override {
     std::string full_path = m_shaderDir + "/" + requested_source;
-    printf("Requesting %s\n", full_path.c_str());
     m_includeDirs.push_back(full_path);
 
     std::ifstream file(full_path);
