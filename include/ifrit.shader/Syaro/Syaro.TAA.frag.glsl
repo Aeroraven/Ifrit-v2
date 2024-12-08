@@ -137,6 +137,7 @@ void main(){
         historyColor = colorClampYCbCr(frameColor, historyColor, texCoord);
         resolvedColor = mix(historyColor, frameColor, blendFactor);
     }
+    resolvedColor.a = 1.0;
     outColorNextHistory = resolvedColor;
     outColorFrameBuffer = resolvedColor;
 }

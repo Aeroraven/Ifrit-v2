@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "RendererBase.h"
 #include "ifrit/common/util/Hash.h"
 #include "postprocessing/PostFxAcesTonemapping.h"
+#include "postprocessing/PostFxGlobalFog.h"
 
 namespace Ifrit::Core {
 class IFRIT_APIDECL SyaroRenderer : public RendererBase {
@@ -123,6 +124,9 @@ private:
                      std::array<std::shared_ptr<GPUBindId>, 2>, PairHash>
       m_postprocTexId;
   std::unordered_map<std::pair<uint32_t, uint32_t>,
+                     std::array<std::shared_ptr<GPUBindId>, 2>, PairHash>
+      m_postprocTexIdComp;
+  std::unordered_map<std::pair<uint32_t, uint32_t>,
                      std::array<std::shared_ptr<GPUColorRT>, 2>, PairHash>
       m_postprocColorRT;
   std::unordered_map<std::pair<uint32_t, uint32_t>,
@@ -134,6 +138,7 @@ private:
   // All postprocess passes required
   std::unique_ptr<PostprocessPassCollection::PostFxAcesToneMapping>
       m_acesToneMapping;
+  std::unique_ptr<PostprocessPassCollection::PostFxGlobalFog> m_globalFogPass;
 
   // Render config
   RendererConfig m_renderConfig;
@@ -220,6 +225,9 @@ private:
   void renderAmbientOccl(PerFrameData &perframeData,
                          RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
+  // Postprocesses
+  void renderGlobalFog(PerFrameData &perframeData, RenderTargets *renderTargets,
+                       const GPUCmdBuffer *cmd);
   void renderToneMapping(PerFrameData &perframeData,
                          RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 

@@ -110,6 +110,9 @@ IFRIT_APIDECL void SyaroRenderer::setupPostprocessPassAndTextures() {
   // passes
   m_acesToneMapping =
       std::make_unique<PostprocessPassCollection::PostFxAcesToneMapping>(m_app);
+  m_globalFogPass =
+      std::make_unique<PostprocessPassCollection::PostFxGlobalFog>(m_app);
+
   // tex and samplers
   m_postprocTexSampler = m_app->getRhiLayer()->createTrivialSampler();
 }
@@ -122,19 +125,54 @@ IFRIT_APIDECL void SyaroRenderer::createPostprocessTextures(uint32_t width,
     return;
   }
   for (uint32_t i = 0; i < 2; i++) {
-    auto tex = rhi->createRenderTargetTexture(width, height, rtFmt, 0);
+    auto tex = rhi->createRenderTargetTexture(
+        width, height, rtFmt, RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
     auto colorRT =
         rhi->createRenderTarget(tex.get(), {{0.0f, 0.0f, 0.0f, 1.0f}},
-                                RhiRenderTargetLoadOp::Clear, 0, 0);
+                                RhiRenderTargetLoadOp::Load, 0, 0);
     auto rts = rhi->createRenderTargets();
 
     m_postprocTex[{width, height}][i] = tex;
     m_postprocTexId[{width, height}][i] = rhi->registerCombinedImageSampler(
         tex.get(), m_postprocTexSampler.get());
+    m_postprocTexIdComp[{width, height}][i] =
+        rhi->registerUAVImage(tex.get(), {0, 0, 1, 1});
     m_postprocColorRT[{width, height}][i] = colorRT;
+
+    RhiAttachmentBlendInfo blendInfo;
+    blendInfo.m_blendEnable = true;
+    blendInfo.m_srcColorBlendFactor =
+        RhiBlendFactor::RHI_BLEND_FACTOR_SRC_ALPHA;
+    blendInfo.m_dstColorBlendFactor =
+        RhiBlendFactor::RHI_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    blendInfo.m_colorBlendOp = RhiBlendOp::RHI_BLEND_OP_ADD;
+    blendInfo.m_alphaBlendOp = RhiBlendOp::RHI_BLEND_OP_ADD;
+    blendInfo.m_srcAlphaBlendFactor =
+        RhiBlendFactor::RHI_BLEND_FACTOR_SRC_ALPHA;
+    blendInfo.m_dstAlphaBlendFactor =
+        RhiBlendFactor::RHI_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
     rts->setColorAttachments({colorRT.get()});
+    rts->setRenderArea({0, 0, width, height});
+    colorRT->setBlendInfo(blendInfo);
     m_postprocRTs[{width, height}][i] = rts;
   }
+}
+
+IFRIT_APIDECL void SyaroRenderer::renderGlobalFog(PerFrameData &perframeData,
+                                                  RenderTargets *renderTargets,
+                                                  const GPUCmdBuffer *cmd) {
+  auto primaryView = getPrimaryView(perframeData);
+  auto rhi = m_app->getRhiLayer();
+  auto width = primaryView.m_viewData.m_renderWidth;
+  auto height = primaryView.m_viewData.m_renderHeight;
+
+  auto primaryViewId = primaryView.m_viewBufferId.get();
+  auto sceneDepthSampId = primaryView.m_visDepthId.get();
+
+  auto srcPostprocTex0 = m_postprocTexId[{width, height}][0].get();
+  m_globalFogPass->renderPostFx(cmd, renderTargets, srcPostprocTex0,
+                                sceneDepthSampId, primaryViewId);
 }
 
 IFRIT_APIDECL void
@@ -145,8 +183,22 @@ SyaroRenderer::renderToneMapping(PerFrameData &perframeData,
   auto rhi = m_app->getRhiLayer();
   auto width = primaryView.m_viewData.m_renderWidth;
   auto height = primaryView.m_viewData.m_renderHeight;
-  auto srcPostprocTex = m_postprocTexId[{width, height}][0].get();
-  m_acesToneMapping->renderPostFx(cmd, renderTargets, srcPostprocTex);
+
+  auto srcPostprocTex0Content = m_postprocTex[{width, height}][0].get();
+  auto srcPostprocTex1Content = m_postprocTex[{width, height}][1].get();
+
+  auto srcPostprocTex0 = m_postprocTexId[{width, height}][0].get();
+  auto srcPostprocTex1 = m_postprocTexId[{width, height}][1].get();
+
+  auto srcPostprocTex0RT = m_postprocRTs[{width, height}][0].get();
+  auto srcPostprocTex1RT = m_postprocRTs[{width, height}][1].get();
+
+  auto primaryViewId = primaryView.m_viewBufferId.get();
+  auto sceneDepthSampId = primaryView.m_visDepthId.get();
+
+  // m_globalFogPass->renderPostFx(cmd, srcPostprocTex1RT, srcPostprocTex0,
+  //                               sceneDepthSampId, primaryViewId);
+  m_acesToneMapping->renderPostFx(cmd, renderTargets, srcPostprocTex0);
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupPbrAtmosphereRenderer() {
@@ -228,6 +280,13 @@ SyaroRenderer::renderDeferredShading(PerFrameData &perframeData,
   auto rhi = m_app->getRhiLayer();
   setupDeferredShadingPass(renderTargets);
 
+  auto &primaryView = getPrimaryView(perframeData);
+  uint32_t width = primaryView.m_viewData.m_renderWidth;
+  uint32_t height = primaryView.m_viewData.m_renderHeight;
+
+  // createPostprocessTextures(width, height);
+  auto postprocRTs = m_postprocRTs[{width, height}];
+  auto postprocRT0 = postprocRTs[0];
   auto curRT = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_rts;
 
   PipelineAttachmentConfigs paCfg;
@@ -236,7 +295,6 @@ SyaroRenderer::renderDeferredShading(PerFrameData &perframeData,
   paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
 
   auto pass = m_deferredShadingPass[paCfg];
-  auto &primaryView = getPrimaryView(perframeData);
   struct DeferPushConst {
     uint32_t shadowMapDataRef;
     uint32_t numShadowMaps;
@@ -262,8 +320,12 @@ SyaroRenderer::renderDeferredShading(PerFrameData &perframeData,
     ctx->m_cmd->drawInstanced(3, 1, 0, 0);
   });
   cmd->beginScope("Syaro: Deferred Shading");
-  pass->run(cmd, curRT.get(), 0);
+  pass->run(cmd, postprocRT0.get(), 0);
   cmd->endScope();
+
+  // Some postprocess before anti-aliasing
+  cmd->globalMemoryBarrier();
+  renderGlobalFog(perframeData, curRT.get(), cmd);
 }
 
 void SyaroRenderer::renderTAAResolve(PerFrameData &perframeData,
@@ -271,16 +333,17 @@ void SyaroRenderer::renderTAAResolve(PerFrameData &perframeData,
                                      const GPUCmdBuffer *cmd) {
   auto rhi = m_app->getRhiLayer();
   auto taaRT = rhi->createRenderTargets();
-  auto taaCurTargetTex =
-      perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT;
-  auto taaCurTarget = rhi->createRenderTarget(
-      taaCurTargetTex.get(), {}, RhiRenderTargetLoadOp::Clear, 0, 0);
 
   auto primaryView = getPrimaryView(perframeData);
   auto width = primaryView.m_viewData.m_renderWidth;
   auto height = primaryView.m_viewData.m_renderHeight;
 
-  createPostprocessTextures(width, height);
+  auto taaCurTargetTex =
+      perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT;
+
+  auto taaCurTarget = rhi->createRenderTarget(
+      taaCurTargetTex.get(), {}, RhiRenderTargetLoadOp::Clear, 0, 0);
+
   auto taaRenderTarget = m_postprocColorRT[{width, height}][0].get();
 
   taaRT->setColorAttachments({taaCurTarget.get(), taaRenderTarget});
@@ -1262,15 +1325,19 @@ IFRIT_APIDECL void SyaroRenderer::renderAtmosphere(PerFrameData &perframeData,
     decltype(atmoData) m_atmoData;
   } pushConst;
   auto primaryView = getPrimaryView(perframeData);
+  uint32_t width = primaryView.m_viewData.m_renderWidth;
+  uint32_t height = primaryView.m_viewData.m_renderHeight;
+  createPostprocessTextures(width, height);
+  auto postprocId = m_postprocTexIdComp[{width, height}][0];
+  auto postprocTex = m_postprocTex[{width, height}][0];
+
   pushConst.m_perframe = primaryView.m_viewBufferId->getActiveId();
-  pushConst.m_outTex = perframeData.m_taaHistory[perframeData.m_frameId % 2]
-                           .m_colorRTId->getActiveId();
+  pushConst.m_outTex = postprocId->getActiveId();
   pushConst.m_atmoData = atmoData;
   pushConst.m_depthTex = primaryView.m_visDepthId->getActiveId();
 
   m_atmospherePass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    ctx->m_cmd->imageBarrier(perframeData.m_taaUnresolved.get(),
-                             RhiResourceState::Undefined,
+    ctx->m_cmd->imageBarrier(postprocTex.get(), RhiResourceState::Undefined,
                              RhiResourceState::Common, {0, 0, 1, 1});
     ctx->m_cmd->setPushConst(m_atmospherePass, 0, sizeof(AtmoPushConst),
                              &pushConst);
@@ -1281,8 +1348,7 @@ IFRIT_APIDECL void SyaroRenderer::renderAtmosphere(PerFrameData &perframeData,
         Math::ConstFunc::divRoundUp(primaryView.m_viewData.m_renderHeight,
                                     SyaroConfig::cAtmoRenderThreadGroupSizeY);
     ctx->m_cmd->dispatch(wgX, wgY, 1);
-    ctx->m_cmd->imageBarrier(perframeData.m_taaUnresolved.get(),
-                             RhiResourceState::Common,
+    ctx->m_cmd->imageBarrier(postprocTex.get(), RhiResourceState::Common,
                              RhiResourceState::RenderTarget, {0, 0, 1, 1});
   });
 
@@ -1461,9 +1527,10 @@ SyaroRenderer::taaHistorySetup(PerFrameData &perframeData,
     // TODO: clear values
     perframeData.m_taaHistory[i].m_colorRTRef = rhi->createRenderTarget(
         perframeData.m_taaUnresolved.get(), {{0, 0, 0, 0}},
-        RhiRenderTargetLoadOp::Load, 0, 0);
+        RhiRenderTargetLoadOp::Clear, 0, 0);
+
     RhiAttachmentBlendInfo blendInfo;
-    blendInfo.m_blendEnable = true;
+    blendInfo.m_blendEnable = false;
     blendInfo.m_srcColorBlendFactor =
         RhiBlendFactor::RHI_BLEND_FACTOR_SRC_ALPHA;
     blendInfo.m_dstColorBlendFactor =
