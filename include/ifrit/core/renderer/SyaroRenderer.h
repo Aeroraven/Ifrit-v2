@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "AmbientOcclusionPass.h"
 #include "PbrAtmosphereRenderer.h"
 #include "RendererBase.h"
+#include "framegraph/FrameGraph.h"
 #include "ifrit/common/util/Hash.h"
 #include "postprocessing/PostFxAcesTonemapping.h"
 #include "postprocessing/PostFxGlobalFog.h"
@@ -50,16 +51,9 @@ private:
 
   DrawPass *m_visibilityPass = nullptr;
   DrawPass *m_depthOnlyVisibilityPass = nullptr;
-  // I think renderdoc can do this, but this is for quick debugging
-  DrawPass *m_textureShowPass = nullptr;
 
   // Instance culling
   ComputePass *m_instanceCullingPass = nullptr;
-
-  // HiZ buffer
-  ComputePass *m_hizPass = nullptr;
-  constexpr static uint32_t cHiZGroupSizeX = 16;
-  constexpr static uint32_t cHiZGroupSizeY = 16;
 
   // Single pass HiZ
   ComputePass *m_singlePassHiZPass = nullptr;
@@ -75,7 +69,6 @@ private:
   ComputePass *m_matclassCountPass = nullptr;
   ComputePass *m_matclassReservePass = nullptr;
   ComputePass *m_matclassScatterPass = nullptr;
-  ComputePass *m_matclassDebugPass = nullptr;
   constexpr static uint32_t cMatClassQuadSize = 2;
   constexpr static uint32_t cMatClassGroupSizeCountScatterX = 8;
   constexpr static uint32_t cMatClassGroupSizeCountScatterY = 8;
@@ -155,13 +148,10 @@ private:
   void setupInstanceCullingPass();
   void setupPersistentCullingPass();
   void setupVisibilityPass();
-  void setupTextureShowPass();
-  void setupHiZPass();
   void setupEmitDepthTargetsPass();
   void setupMaterialClassifyPass();
   void setupDefaultEmitGBufferPass();
   void setupPbrAtmosphereRenderer();
-
   void setupSinglePassHiZPass();
 
   void setupPostprocessPassAndTextures();
@@ -212,24 +202,13 @@ private:
                                 RenderTargets *renderTargets,
                                 const GPUCmdBuffer *cmd);
 
-  void renderDeferredShading(PerFrameData &perframeData,
-                             RenderTargets *renderTargets,
-                             const GPUCmdBuffer *cmd);
-
-  void renderTAAResolve(PerFrameData &perframeData,
-                        RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
-
-  void renderAtmosphere(PerFrameData &perframeData,
-                        RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
-
   void renderAmbientOccl(PerFrameData &perframeData,
                          RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
-  // Postprocesses
-  void renderGlobalFog(PerFrameData &perframeData, RenderTargets *renderTargets,
-                       const GPUCmdBuffer *cmd);
-  void renderToneMapping(PerFrameData &perframeData,
-                         RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
+  // Frame graph
+  void setupAndRunFrameGraph(PerFrameData &perframeData,
+                             RenderTargets *renderTargets,
+                             const GPUCmdBuffer *cmd);
 
   virtual std::unique_ptr<GPUCommandSubmission>
   render(PerFrameData &perframeData, RenderTargets *renderTargets,
@@ -238,10 +217,8 @@ private:
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {
     setupPersistentCullingPass();
-    setupTextureShowPass();
     setupVisibilityPass();
     setupInstanceCullingPass();
-    setupHiZPass();
     setupEmitDepthTargetsPass();
     setupMaterialClassifyPass();
     setupDefaultEmitGBufferPass();

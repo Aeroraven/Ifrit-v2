@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
@@ -156,6 +155,9 @@ public:
   }
   inline uint32_t getMipLevels() { return m_createInfo.mipLevels; }
   inline uint32_t getArrayLayers() { return m_createInfo.arrayLayers; }
+  inline bool isDepthTexture() const override {
+    return m_createInfo.aspect == ImageAspect::Depth;
+  }
 };
 
 struct SamplerCreateInfo {

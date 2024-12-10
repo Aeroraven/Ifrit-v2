@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/math/constfunc/ConstFunc.h"
 #include "ifrit/common/util/FileOps.h"
 #include "ifrit/core/renderer/RendererUtil.h"
+#include "ifrit/core/renderer/util/RenderingUtils.h"
 #include <algorithm>
 #include <bit>
 
@@ -87,24 +88,6 @@ IFRIT_APIDECL SyaroRenderer::GPUShader *SyaroRenderer::createShaderFromFile(
   return rhi->createShader(shaderPath, shaderCodeVec, entry, stage,
                            RhiShaderSourceType::GLSLCode);
 }
-IFRIT_APIDECL void SyaroRenderer::setupTextureShowPass() {
-  auto rhi = m_app->getRhiLayer();
-
-  auto vsShader = createShaderFromFile("Syaro.FullScreenCopy.vert.glsl", "main",
-                                       RhiShaderStage::Vertex);
-  auto fsShader = createShaderFromFile("Syaro.FullScreenCopy.frag.glsl", "main",
-                                       RhiShaderStage::Fragment);
-
-  m_textureShowPass = rhi->createGraphicsPass();
-  m_textureShowPass->setVertexShader(vsShader);
-  m_textureShowPass->setPixelShader(fsShader);
-  m_textureShowPass->setNumBindlessDescriptorSets(1); // Only one texture
-
-  Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat rtFmt;
-  rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_B8G8R8A8_SRGB};
-  rtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
-  m_textureShowPass->setRenderTargetFormat(rtFmt);
-}
 
 IFRIT_APIDECL void SyaroRenderer::setupPostprocessPassAndTextures() {
   // passes
@@ -126,7 +109,9 @@ IFRIT_APIDECL void SyaroRenderer::createPostprocessTextures(uint32_t width,
   }
   for (uint32_t i = 0; i < 2; i++) {
     auto tex = rhi->createRenderTargetTexture(
-        width, height, rtFmt, RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+        width, height, rtFmt,
+        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
+            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
     auto colorRT =
         rhi->createRenderTarget(tex.get(), {{0.0f, 0.0f, 0.0f, 1.0f}},
                                 RhiRenderTargetLoadOp::Load, 0, 0);
@@ -159,57 +144,234 @@ IFRIT_APIDECL void SyaroRenderer::createPostprocessTextures(uint32_t width,
   }
 }
 
-IFRIT_APIDECL void SyaroRenderer::renderGlobalFog(PerFrameData &perframeData,
-                                                  RenderTargets *renderTargets,
-                                                  const GPUCmdBuffer *cmd) {
-  auto primaryView = getPrimaryView(perframeData);
-  auto rhi = m_app->getRhiLayer();
-  auto width = primaryView.m_viewData.m_renderWidth;
-  auto height = primaryView.m_viewData.m_renderHeight;
-
-  auto primaryViewId = primaryView.m_viewBufferId.get();
-  auto sceneDepthSampId = primaryView.m_visDepthId.get();
-
-  auto srcPostprocTex0 = m_postprocTexId[{width, height}][0].get();
-  m_globalFogPass->renderPostFx(cmd, renderTargets, srcPostprocTex0,
-                                sceneDepthSampId, primaryViewId);
-}
-
 IFRIT_APIDECL void
-SyaroRenderer::renderToneMapping(PerFrameData &perframeData,
-                                 RenderTargets *renderTargets,
-                                 const GPUCmdBuffer *cmd) {
-  auto primaryView = getPrimaryView(perframeData);
+SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
+                                     RenderTargets *renderTargets,
+                                     const GPUCmdBuffer *cmd) {
+
+  // declare frame graph
+  FrameGraph fg;
+
+  std::vector<ResourceNodeId> resShadowMapTexs;
+  std::vector<uint32_t> shadowMapTexIds;
+  for (auto id = 0; auto &view : perframeData.m_views) {
+    if (view.m_viewType == PerFrameData::ViewType::Shadow) {
+      auto resId = fg.addResource("ShadowMapTex" + std::to_string(id));
+      resShadowMapTexs.push_back(resId);
+      shadowMapTexIds.push_back(id);
+    }
+    id++;
+  }
+  auto resAtmosphereOutput = fg.addResource("AtmosphereOutput");
+
+  auto resGbufferAlbedoMaterial = fg.addResource("GbufferAlbedoMaterial");
+  auto resGbufferNormalSmoothness = fg.addResource("GbufferNormalSmoothness");
+  auto resGbufferSpecularAO = fg.addResource("GbufferSpecularAO");
+  auto resMotionDepth = fg.addResource("MotionDepth");
+
+  auto resPrimaryViewDepth = fg.addResource("PrimaryViewDepth");
+  auto resDeferredShadingOutput = fg.addResource("DeferredShadingOutput");
+  auto resGlobalFogOutput = fg.addResource("GlobalFogOutput");
+  auto resTAAFrameOutput = fg.addResource("TAAFrameOutput");
+  auto resTAAHistoryOutput = fg.addResource("TAAHistoryOutput");
+  auto resFinalOutput = fg.addResource("FinalOutput");
+
+  std::vector<ResourceNodeId> resGbuffer = {
+      resGbufferAlbedoMaterial, resGbufferNormalSmoothness,
+      resGbufferSpecularAO, resMotionDepth, resPrimaryViewDepth};
+  for (auto &x : resShadowMapTexs) {
+    resGbuffer.push_back(x);
+  }
+
+  // add passes
+  auto passAtmosphere =
+      fg.addPass("Atmosphere", FrameGraphPassType::Graphics,
+                 {resPrimaryViewDepth}, {resAtmosphereOutput}, {});
+  auto passDeferredShading =
+      fg.addPass("DeferredShading", FrameGraphPassType::Graphics, resGbuffer,
+                 {resDeferredShadingOutput}, {resAtmosphereOutput});
+  auto passGlobalFog =
+      fg.addPass("GlobalFog", FrameGraphPassType::Graphics,
+                 {resPrimaryViewDepth, resDeferredShadingOutput},
+                 {resGlobalFogOutput}, {});
+  auto passTAAResolve = fg.addPass(
+      "TAAResolve", FrameGraphPassType::Graphics, {resGlobalFogOutput},
+      {resTAAFrameOutput, resTAAHistoryOutput}, {});
+  auto passToneMapping = fg.addPass("ToneMapping", FrameGraphPassType::Graphics,
+                                    {resTAAFrameOutput}, {resFinalOutput}, {});
+
+  // binding resources to pass
+  auto &primaryView = getPrimaryView(perframeData);
   auto rhi = m_app->getRhiLayer();
-  auto width = primaryView.m_viewData.m_renderWidth;
-  auto height = primaryView.m_viewData.m_renderHeight;
+  auto mainRtWidth = primaryView.m_viewData.m_renderWidth;
+  auto mainRtHeight = primaryView.m_viewData.m_renderHeight;
+  createPostprocessTextures(mainRtWidth, mainRtHeight);
 
-  auto srcPostprocTex0Content = m_postprocTex[{width, height}][0].get();
-  auto srcPostprocTex1Content = m_postprocTex[{width, height}][1].get();
+  fg.setImportedResource(resAtmosphereOutput,
+                         m_postprocTex[{mainRtWidth, mainRtHeight}][0].get(),
+                         {0, 0, 1, 1});
+  fg.setImportedResource(resGbufferAlbedoMaterial,
+                         perframeData.m_gbuffer.m_albedo_materialFlags.get(),
+                         {0, 0, 1, 1});
+  fg.setImportedResource(resGbufferNormalSmoothness,
+                         perframeData.m_gbuffer.m_normal_smoothness.get(),
+                         {0, 0, 1, 1});
+  fg.setImportedResource(resGbufferSpecularAO,
+                         perframeData.m_gbuffer.m_specular_occlusion.get(),
+                         {0, 0, 1, 1});
+  fg.setImportedResource(resMotionDepth, perframeData.m_velocityMaterial.get(),
+                         {0, 0, 1, 1});
+  for (auto i = 0; auto &x : resShadowMapTexs) {
+    auto viewId = shadowMapTexIds[i];
+    fg.setImportedResource(x, perframeData.m_views[viewId].m_visPassDepth,
+                           {0, 0, 1, 1});
+    i++;
+  }
 
-  auto srcPostprocTex0 = m_postprocTexId[{width, height}][0].get();
-  auto srcPostprocTex1 = m_postprocTexId[{width, height}][1].get();
+  fg.setImportedResource(resPrimaryViewDepth, primaryView.m_visPassDepth,
+                         {0, 0, 1, 1});
+  fg.setImportedResource(resDeferredShadingOutput,
+                         m_postprocTex[{mainRtWidth, mainRtHeight}][0].get(),
+                         {0, 0, 1, 1});
+  fg.setImportedResource(resGlobalFogOutput, perframeData.m_taaUnresolved.get(),
+                         {0, 0, 1, 1});
+  fg.setImportedResource(resTAAFrameOutput,
+                         m_postprocTex[{mainRtWidth, mainRtHeight}][0].get(),
+                         {0, 0, 1, 1});
+  fg.setImportedResource(
+      resTAAHistoryOutput,
+      perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(),
+      {0, 0, 1, 1});
+  fg.setImportedResource(
+      resFinalOutput, renderTargets->getColorAttachment(0)->getRenderTarget(),
+      {0, 0, 1, 1});
 
-  auto srcPostprocTex0RT = m_postprocRTs[{width, height}][0].get();
-  auto srcPostprocTex1RT = m_postprocRTs[{width, height}][1].get();
+  // setup execution function
+  fg.setExecutionFunction(passAtmosphere, [&]() {
+    auto postprocId = m_postprocTexIdComp[{mainRtWidth, mainRtHeight}][0];
+    auto postprocTex = m_postprocTex[{mainRtWidth, mainRtHeight}][0];
+    auto atmoData = m_atmosphereRenderer->getResourceDesc(perframeData);
+    auto rhi = m_app->getRhiLayer();
+    struct AtmoPushConst {
+      uint32_t m_perframe;
+      uint32_t m_outTex;
+      uint32_t m_depthTex;
+      uint32_t pad1;
+      decltype(atmoData) m_atmoData;
+    } pushConst;
+    pushConst.m_perframe = primaryView.m_viewBufferId->getActiveId();
+    pushConst.m_outTex = postprocId->getActiveId();
+    pushConst.m_atmoData = atmoData;
+    pushConst.m_depthTex = primaryView.m_visDepthId->getActiveId();
+    m_atmospherePass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+      ctx->m_cmd->setPushConst(m_atmospherePass, 0, sizeof(AtmoPushConst),
+                               &pushConst);
+      auto wgX =
+          Math::ConstFunc::divRoundUp(primaryView.m_viewData.m_renderWidth,
+                                      SyaroConfig::cAtmoRenderThreadGroupSizeX);
+      auto wgY =
+          Math::ConstFunc::divRoundUp(primaryView.m_viewData.m_renderHeight,
+                                      SyaroConfig::cAtmoRenderThreadGroupSizeY);
+      ctx->m_cmd->dispatch(wgX, wgY, 1);
+    });
+    cmd->beginScope("Syaro: Atmosphere");
+    m_atmospherePass->run(cmd, 0);
+    cmd->endScope();
+  });
 
-  auto primaryViewId = primaryView.m_viewBufferId.get();
-  auto sceneDepthSampId = primaryView.m_visDepthId.get();
+  fg.setExecutionFunction(passDeferredShading, [&]() {
+    setupDeferredShadingPass(renderTargets);
+    auto postprocRTs = m_postprocRTs[{mainRtWidth, mainRtHeight}];
+    auto postprocRT0 = postprocRTs[0];
+    auto curRT = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_rts;
+    PipelineAttachmentConfigs paCfg;
+    auto rtCfg = curRT->getFormat();
+    paCfg.m_colorFormats = rtCfg.m_colorFormats;
+    paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+    auto pass = m_deferredShadingPass[paCfg];
+    struct DeferPushConst {
+      uint32_t shadowMapDataRef;
+      uint32_t numShadowMaps;
+      uint32_t depthTexRef;
+    } pc;
+    pc.numShadowMaps = perframeData.m_views.size() - 1;
+    pc.shadowMapDataRef =
+        perframeData.m_shadowData.m_allShadowDataId->getActiveId();
+    pc.depthTexRef = primaryView.m_visDepthId->getActiveId();
+    cmd->beginScope("Syaro: Deferred Shading");
+    RenderingUtil::enqueueFullScreenPass(cmd, rhi, pass, postprocRT0.get(),
+                                         {perframeData.m_gbufferDescFrag,
+                                          perframeData.m_gbufferDepthDesc,
+                                          primaryView.m_viewBindlessRef},
+                                         &pc, 3);
+    cmd->endScope();
+  });
+  fg.setExecutionFunction(passGlobalFog, [&]() {
+    auto fogRT = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_rts;
+    auto inputId = m_postprocTexId[{mainRtWidth, mainRtHeight}][0].get();
+    auto inputDepthId = primaryView.m_visDepthId.get();
+    auto primaryViewId = primaryView.m_viewBufferId.get();
+    m_globalFogPass->renderPostFx(cmd, fogRT.get(), inputId, inputDepthId,
+                                  primaryViewId);
+  });
+  fg.setExecutionFunction(passTAAResolve, [&]() {
+    auto taaRT = rhi->createRenderTargets();
+    auto taaCurTarget = rhi->createRenderTarget(
+        perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(),
+        {}, RhiRenderTargetLoadOp::Clear, 0, 0);
+    auto taaRenderTarget =
+        m_postprocColorRT[{mainRtWidth, mainRtHeight}][0].get();
 
-  // m_globalFogPass->renderPostFx(cmd, srcPostprocTex1RT, srcPostprocTex0,
-  //                               sceneDepthSampId, primaryViewId);
-  m_acesToneMapping->renderPostFx(cmd, renderTargets, srcPostprocTex0);
+    taaRT->setColorAttachments({taaCurTarget.get(), taaRenderTarget});
+    taaRT->setDepthStencilAttachment(nullptr);
+    taaRT->setRenderArea(renderTargets->getRenderArea());
+    setupTAAPass(renderTargets);
+    auto rtCfg = taaRT->getFormat();
+    PipelineAttachmentConfigs paCfg;
+    paCfg.m_colorFormats = rtCfg.m_colorFormats;
+    paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+    auto pass = m_taaPass[paCfg];
+    auto renderArea = renderTargets->getRenderArea();
+    uint32_t jitterX =
+        std::bit_cast<uint32_t, float>(perframeData.m_taaJitterX);
+    uint32_t jitterY =
+        std::bit_cast<uint32_t, float>(perframeData.m_taaJitterY);
+    uint32_t pconst[5] = {
+        perframeData.m_frameId,
+        renderArea.width,
+        renderArea.height,
+        jitterX,
+        jitterY,
+    };
+    cmd->beginScope("Syaro: TAA Resolve");
+    RenderingUtil::enqueueFullScreenPass(
+        cmd, rhi, pass, taaRT.get(),
+        {perframeData.m_taaHistoryDesc, perframeData.m_gbufferDepthDesc},
+        pconst, 3);
+    cmd->endScope();
+  });
+  fg.setExecutionFunction(passToneMapping, [&]() {
+    m_acesToneMapping->renderPostFx(
+        cmd, renderTargets,
+        m_postprocTexId[{mainRtWidth, mainRtHeight}][0].get());
+  });
+
+  // transition input resources
+  cmd->imageBarrier(m_postprocTex[{mainRtWidth, mainRtHeight}][0].get(),
+                    RhiResourceState::Undefined, RhiResourceState::RenderTarget,
+                    {0, 0, 1, 1});
+  // run!
+  FrameGraphCompiler compiler;
+  auto compiledGraph = compiler.compile(fg);
+  FrameGraphExecutor executor;
+  executor.executeInSingleCmd(cmd, compiledGraph);
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupPbrAtmosphereRenderer() {
   m_atmosphereRenderer = std::make_shared<PbrAtmosphereRenderer>(m_app);
   auto rhi = m_app->getRhiLayer();
-  auto csShader = createShaderFromFile("Syaro.PbrAtmoRender.comp.glsl", "main",
-                                       RhiShaderStage::Compute);
-  m_atmospherePass = rhi->createComputePass();
-  m_atmospherePass->setComputeShader(csShader);
-  m_atmospherePass->setNumBindlessDescriptorSets(0);
-  m_atmospherePass->setPushConstSize(sizeof(uint32_t) * 15);
+  m_atmospherePass = RenderingUtil::createComputePass(
+      rhi, "Syaro/Syaro.PbrAtmoRender.comp.glsl", 0, 15);
 }
 
 IFRIT_APIDECL void
@@ -252,7 +414,7 @@ IFRIT_APIDECL void SyaroRenderer::setupTAAPass(RenderTargets *renderTargets) {
   auto rtCfg = renderTargets->getFormat();
   paCfg.m_colorFormats = {cTAAFormat,
                           RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT};
-  paCfg.m_depthFormat = rtCfg.m_depthFormat;
+  paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
   rtCfg.m_colorFormats = paCfg.m_colorFormats;
 
   DrawPass *pass = nullptr;
@@ -268,120 +430,11 @@ IFRIT_APIDECL void SyaroRenderer::setupTAAPass(RenderTargets *renderTargets) {
     pass->setPixelShader(fsShader);
     pass->setNumBindlessDescriptorSets(2);
     pass->setPushConstSize(sizeof(uint32_t) * 5);
+    rtCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+    paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
     pass->setRenderTargetFormat(rtCfg);
     m_taaPass[paCfg] = pass;
   }
-}
-
-IFRIT_APIDECL void
-SyaroRenderer::renderDeferredShading(PerFrameData &perframeData,
-                                     RenderTargets *renderTargets,
-                                     const GPUCmdBuffer *cmd) {
-  auto rhi = m_app->getRhiLayer();
-  setupDeferredShadingPass(renderTargets);
-
-  auto &primaryView = getPrimaryView(perframeData);
-  uint32_t width = primaryView.m_viewData.m_renderWidth;
-  uint32_t height = primaryView.m_viewData.m_renderHeight;
-
-  // createPostprocessTextures(width, height);
-  auto postprocRTs = m_postprocRTs[{width, height}];
-  auto postprocRT0 = postprocRTs[0];
-  auto curRT = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_rts;
-
-  PipelineAttachmentConfigs paCfg;
-  auto rtCfg = curRT->getFormat();
-  paCfg.m_colorFormats = rtCfg.m_colorFormats;
-  paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
-
-  auto pass = m_deferredShadingPass[paCfg];
-  struct DeferPushConst {
-    uint32_t shadowMapDataRef;
-    uint32_t numShadowMaps;
-    uint32_t depthTexRef;
-  } pc;
-  pc.numShadowMaps = perframeData.m_views.size() - 1;
-  pc.shadowMapDataRef =
-      perframeData.m_shadowData.m_allShadowDataId->getActiveId();
-  pc.depthTexRef = primaryView.m_visDepthId->getActiveId();
-
-  pass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    ctx->m_cmd->attachBindlessReferenceGraphics(pass, 1,
-                                                perframeData.m_gbufferDescFrag);
-    ctx->m_cmd->attachBindlessReferenceGraphics(
-        pass, 2, perframeData.m_gbufferDepthDesc);
-    ctx->m_cmd->attachBindlessReferenceGraphics(pass, 3,
-                                                primaryView.m_viewBindlessRef);
-    ctx->m_cmd->attachVertexBufferView(
-        *rhi->getFullScreenQuadVertexBufferView());
-    ctx->m_cmd->attachVertexBuffers(
-        0, {rhi->getFullScreenQuadVertexBuffer().get()});
-    ctx->m_cmd->setPushConst(pass, 0, sizeof(DeferPushConst), &pc);
-    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
-  });
-  cmd->beginScope("Syaro: Deferred Shading");
-  pass->run(cmd, postprocRT0.get(), 0);
-  cmd->endScope();
-
-  // Some postprocess before anti-aliasing
-  cmd->globalMemoryBarrier();
-  renderGlobalFog(perframeData, curRT.get(), cmd);
-}
-
-void SyaroRenderer::renderTAAResolve(PerFrameData &perframeData,
-                                     RenderTargets *renderTargets,
-                                     const GPUCmdBuffer *cmd) {
-  auto rhi = m_app->getRhiLayer();
-  auto taaRT = rhi->createRenderTargets();
-
-  auto primaryView = getPrimaryView(perframeData);
-  auto width = primaryView.m_viewData.m_renderWidth;
-  auto height = primaryView.m_viewData.m_renderHeight;
-
-  auto taaCurTargetTex =
-      perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT;
-
-  auto taaCurTarget = rhi->createRenderTarget(
-      taaCurTargetTex.get(), {}, RhiRenderTargetLoadOp::Clear, 0, 0);
-
-  auto taaRenderTarget = m_postprocColorRT[{width, height}][0].get();
-
-  taaRT->setColorAttachments({taaCurTarget.get(), taaRenderTarget});
-  taaRT->setDepthStencilAttachment(renderTargets->getDepthStencilAttachment());
-  taaRT->setRenderArea(renderTargets->getRenderArea());
-
-  setupTAAPass(renderTargets);
-  auto rtCfg = taaRT->getFormat();
-  PipelineAttachmentConfigs paCfg;
-  paCfg.m_colorFormats = rtCfg.m_colorFormats;
-  paCfg.m_depthFormat = rtCfg.m_depthFormat;
-
-  auto pass = m_taaPass[paCfg];
-  auto renderArea = renderTargets->getRenderArea();
-  uint32_t jitterX = std::bit_cast<uint32_t, float>(perframeData.m_taaJitterX);
-  uint32_t jitterY = std::bit_cast<uint32_t, float>(perframeData.m_taaJitterY);
-  uint32_t pconst[5] = {
-      perframeData.m_frameId,
-      renderArea.width,
-      renderArea.height,
-      jitterX,
-      jitterY,
-  };
-  pass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    ctx->m_cmd->attachBindlessReferenceGraphics(pass, 1,
-                                                perframeData.m_taaHistoryDesc);
-    ctx->m_cmd->attachBindlessReferenceGraphics(
-        pass, 2, perframeData.m_gbufferDepthDesc);
-    ctx->m_cmd->setPushConst(pass, 0, sizeof(uint32_t) * 3, pconst);
-    ctx->m_cmd->attachVertexBufferView(
-        *rhi->getFullScreenQuadVertexBufferView());
-    ctx->m_cmd->attachVertexBuffers(
-        0, {rhi->getFullScreenQuadVertexBuffer().get()});
-    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
-  });
-  cmd->beginScope("Syaro: TAA Resolve");
-  pass->run(cmd, taaRT.get(), 0);
-  cmd->endScope();
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
@@ -419,24 +472,14 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
 
 IFRIT_APIDECL void SyaroRenderer::setupInstanceCullingPass() {
   auto rhi = m_app->getRhiLayer();
-  auto shader = createShaderFromFile("Syaro.InstanceCulling.comp.glsl", "main",
-                                     RhiShaderStage::Compute);
-
-  m_instanceCullingPass = rhi->createComputePass();
-  m_instanceCullingPass->setComputeShader(shader);
-  m_instanceCullingPass->setNumBindlessDescriptorSets(4);
-  m_instanceCullingPass->setPushConstSize(sizeof(uint32_t) * 2);
+  m_instanceCullingPass = RenderingUtil::createComputePass(
+      rhi, "Syaro/Syaro.InstanceCulling.comp.glsl", 4, 2);
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
   auto rhi = m_app->getRhiLayer();
-  auto shader = createShaderFromFile("Syaro.PersistentCulling.comp.glsl",
-                                     "main", RhiShaderStage::Compute);
-
-  m_persistentCullingPass = rhi->createComputePass();
-  m_persistentCullingPass->setComputeShader(shader);
-  m_persistentCullingPass->setNumBindlessDescriptorSets(5);
-  m_persistentCullingPass->setPushConstSize(sizeof(uint32_t));
+  m_persistentCullingPass = RenderingUtil::createComputePass(
+      rhi, "Syaro/Syaro.PersistentCulling.comp.glsl", 5, 1);
 
   m_indirectDrawBuffer = rhi->createIndirectMeshDrawBufferDevice(
       1, Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
@@ -446,76 +489,25 @@ IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
   m_persistCullDesc->addStorageBuffer(m_indirectDrawBuffer, 0);
 }
 
-IFRIT_APIDECL void SyaroRenderer::setupHiZPass() {
-  auto rhi = m_app->getRhiLayer();
-  auto shader = createShaderFromFile("Syaro.HiZ.comp.glsl", "main",
-                                     RhiShaderStage::Compute);
-
-  m_hizPass = rhi->createComputePass();
-  m_hizPass->setComputeShader(shader);
-  m_hizPass->setNumBindlessDescriptorSets(1);
-}
-
 IFRIT_APIDECL void SyaroRenderer::setupSinglePassHiZPass() {
   auto rhi = m_app->getRhiLayer();
-  auto shader = createShaderFromFile("Syaro.SinglePassHiZ.comp.glsl", "main",
-                                     RhiShaderStage::Compute);
-  m_singlePassHiZPass = rhi->createComputePass();
-  m_singlePassHiZPass->setComputeShader(shader);
-  m_singlePassHiZPass->setNumBindlessDescriptorSets(1);
-  m_singlePassHiZPass->setPushConstSize(sizeof(uint32_t) * 5);
+  m_singlePassHiZPass = RenderingUtil::createComputePass(
+      rhi, "Syaro/Syaro.SinglePassHiZ.comp.glsl", 1, 5);
 }
 IFRIT_APIDECL void SyaroRenderer::setupEmitDepthTargetsPass() {
   auto rhi = m_app->getRhiLayer();
-  auto shader = createShaderFromFile("Syaro.EmitDepthTarget.comp.glsl", "main",
-                                     RhiShaderStage::Compute);
-
-  m_emitDepthTargetsPass = rhi->createComputePass();
-  m_emitDepthTargetsPass->setComputeShader(shader);
-  m_emitDepthTargetsPass->setNumBindlessDescriptorSets(4);
-  m_emitDepthTargetsPass->setPushConstSize(2 * sizeof(uint32_t));
+  m_emitDepthTargetsPass = RenderingUtil::createComputePass(
+      rhi, "Syaro/Syaro.EmitDepthTarget.comp.glsl", 4, 2);
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupMaterialClassifyPass() {
   auto rhi = m_app->getRhiLayer();
-  // Count pass
-  if constexpr (true) {
-    auto shader = createShaderFromFile("Syaro.ClassifyMaterial.Count.comp.glsl",
-                                       "main", RhiShaderStage::Compute);
-    m_matclassCountPass = rhi->createComputePass();
-    m_matclassCountPass->setComputeShader(shader);
-    m_matclassCountPass->setNumBindlessDescriptorSets(1);
-    m_matclassCountPass->setPushConstSize(sizeof(uint32_t) * 3);
-  }
-  // Reserve pass
-  if constexpr (true) {
-    auto shader =
-        createShaderFromFile("Syaro.ClassifyMaterial.Reserve.comp.glsl", "main",
-                             RhiShaderStage::Compute);
-    m_matclassReservePass = rhi->createComputePass();
-    m_matclassReservePass->setComputeShader(shader);
-    m_matclassReservePass->setNumBindlessDescriptorSets(1);
-    m_matclassReservePass->setPushConstSize(sizeof(uint32_t) * 3);
-  }
-  // Scatter pass
-  if constexpr (true) {
-    auto shader =
-        createShaderFromFile("Syaro.ClassifyMaterial.Scatter.comp.glsl", "main",
-                             RhiShaderStage::Compute);
-    m_matclassScatterPass = rhi->createComputePass();
-    m_matclassScatterPass->setComputeShader(shader);
-    m_matclassScatterPass->setNumBindlessDescriptorSets(1);
-    m_matclassScatterPass->setPushConstSize(sizeof(uint32_t) * 3);
-  }
-  // Debug pass
-  if constexpr (true) {
-    auto shader = createShaderFromFile("Syaro.ClassifyMaterial.Debug.comp.glsl",
-                                       "main", RhiShaderStage::Compute);
-    m_matclassDebugPass = rhi->createComputePass();
-    m_matclassDebugPass->setComputeShader(shader);
-    m_matclassDebugPass->setNumBindlessDescriptorSets(1);
-    m_matclassDebugPass->setPushConstSize(sizeof(uint32_t) * 3);
-  }
+  m_matclassCountPass = RenderingUtil::createComputePass(
+      rhi, "Syaro/Syaro.ClassifyMaterial.Count.comp.glsl", 1, 3);
+  m_matclassReservePass = RenderingUtil::createComputePass(
+      rhi, "Syaro/Syaro.ClassifyMaterial.Reserve.comp.glsl", 1, 3);
+  m_matclassScatterPass = RenderingUtil::createComputePass(
+      rhi, "Syaro/Syaro.ClassifyMaterial.Scatter.comp.glsl", 1, 3);
 }
 
 IFRIT_APIDECL void
@@ -970,20 +962,12 @@ SyaroRenderer::renderMaterialClassify(PerFrameData &perframeData,
 
 IFRIT_APIDECL void SyaroRenderer::setupDefaultEmitGBufferPass() {
   auto rhi = m_app->getRhiLayer();
-  auto shader = createShaderFromFile("Syaro.EmitGBuffer.Default."
-                                     "comp.glsl",
-                                     "main", RhiShaderStage::Compute);
-  m_defaultEmitGBufferPass = rhi->createComputePass();
-  m_defaultEmitGBufferPass->setComputeShader(shader);
-  m_defaultEmitGBufferPass->setNumBindlessDescriptorSets(6);
-  m_defaultEmitGBufferPass->setPushConstSize(sizeof(uint32_t) * 3);
+  m_defaultEmitGBufferPass = RenderingUtil::createComputePass(
+      rhi, "Syaro/Syaro.EmitGBuffer.Default.comp.glsl", 6, 3);
 }
 
 IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
                                                  RenderTargets *renderTargets) {
-  if (perframeData.m_views.size() > 1) {
-    // throw std::runtime_error("Multiple views not supported for HiZ buffer");
-  }
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     auto &perView = perframeData.m_views[k];
     auto renderArea = renderTargets->getRenderArea();
@@ -1311,53 +1295,6 @@ SyaroRenderer::renderDefaultEmitGBuffer(PerFrameData &perframeData,
   cmd->endScope();
 }
 
-IFRIT_APIDECL void SyaroRenderer::renderAtmosphere(PerFrameData &perframeData,
-                                                   RenderTargets *renderTargets,
-                                                   const GPUCmdBuffer *cmd) {
-  // todo: implement
-  auto atmoData = m_atmosphereRenderer->getResourceDesc(perframeData);
-  auto rhi = m_app->getRhiLayer();
-  struct AtmoPushConst {
-    uint32_t m_perframe;
-    uint32_t m_outTex;
-    uint32_t m_depthTex;
-    uint32_t pad1;
-    decltype(atmoData) m_atmoData;
-  } pushConst;
-  auto primaryView = getPrimaryView(perframeData);
-  uint32_t width = primaryView.m_viewData.m_renderWidth;
-  uint32_t height = primaryView.m_viewData.m_renderHeight;
-  createPostprocessTextures(width, height);
-  auto postprocId = m_postprocTexIdComp[{width, height}][0];
-  auto postprocTex = m_postprocTex[{width, height}][0];
-
-  pushConst.m_perframe = primaryView.m_viewBufferId->getActiveId();
-  pushConst.m_outTex = postprocId->getActiveId();
-  pushConst.m_atmoData = atmoData;
-  pushConst.m_depthTex = primaryView.m_visDepthId->getActiveId();
-
-  m_atmospherePass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    ctx->m_cmd->imageBarrier(postprocTex.get(), RhiResourceState::Undefined,
-                             RhiResourceState::Common, {0, 0, 1, 1});
-    ctx->m_cmd->setPushConst(m_atmospherePass, 0, sizeof(AtmoPushConst),
-                             &pushConst);
-    auto wgX =
-        Math::ConstFunc::divRoundUp(primaryView.m_viewData.m_renderWidth,
-                                    SyaroConfig::cAtmoRenderThreadGroupSizeX);
-    auto wgY =
-        Math::ConstFunc::divRoundUp(primaryView.m_viewData.m_renderHeight,
-                                    SyaroConfig::cAtmoRenderThreadGroupSizeY);
-    ctx->m_cmd->dispatch(wgX, wgY, 1);
-    ctx->m_cmd->imageBarrier(postprocTex.get(), RhiResourceState::Common,
-                             RhiResourceState::RenderTarget, {0, 0, 1, 1});
-  });
-
-  cmd->globalMemoryBarrier();
-  cmd->beginScope("Syaro: Atmosphere");
-  m_atmospherePass->run(cmd, 0);
-  cmd->endScope();
-}
-
 IFRIT_APIDECL void
 SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData,
                                  RenderTargets *renderTargets,
@@ -1588,15 +1525,6 @@ SyaroRenderer::render(
   auto rhi = m_app->getRhiLayer();
   auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
-  m_textureShowPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-    ctx->m_cmd->attachBindlessReferenceGraphics(
-        m_textureShowPass, 1, perframeData.m_visShowCombinedRef);
-    ctx->m_cmd->attachVertexBufferView(
-        *rhi->getFullScreenQuadVertexBufferView());
-    ctx->m_cmd->attachVertexBuffers(
-        0, {rhi->getFullScreenQuadVertexBuffer().get()});
-    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
-  });
 
   auto dq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
 
@@ -1658,13 +1586,7 @@ SyaroRenderer::render(
 
   auto deferredTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
-        renderAtmosphere(perframeData, renderTargets, cmd);
-        cmd->globalMemoryBarrier();
-        renderDeferredShading(perframeData, renderTargets, cmd);
-        cmd->globalMemoryBarrier();
-        renderTAAResolve(perframeData, renderTargets, cmd);
-        cmd->globalMemoryBarrier();
-        renderToneMapping(perframeData, renderTargets, cmd);
+        setupAndRunFrameGraph(perframeData, renderTargets, cmd);
       },
       {mainTask.get()}, {});
 

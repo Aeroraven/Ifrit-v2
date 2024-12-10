@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
@@ -514,6 +513,88 @@ IFRIT_APIDECL void CommandBuffer::copyImage(
                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 };
 
+void _resourceStateToAccessMask(Rhi::RhiResourceState state,
+                                VkAccessFlags &dstAccessMask) {
+  switch (state) {
+  case Rhi::RhiResourceState::Undefined:
+    dstAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT |
+                    VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT |
+                    VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
+                    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                    VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                    VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+    break;
+  case Rhi::RhiResourceState::Common:
+    dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
+                    VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT |
+                    VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+    break;
+  case Rhi::RhiResourceState::RenderTarget:
+    dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    break;
+  case Rhi::RhiResourceState::Present:
+    dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    break;
+  case Rhi::RhiResourceState::DepthStencilRenderTarget:
+    dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    break;
+  case Rhi::RhiResourceState::UAVStorageImage:
+    dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+    break;
+  case Rhi::RhiResourceState::CopySource:
+    dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    break;
+  case Rhi::RhiResourceState::CopyDest:
+    dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    break;
+  case Rhi::RhiResourceState::UnorderedAccess:
+    dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+    break;
+  case Rhi::RhiResourceState::PixelShaderResource:
+    dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    break;
+  default:
+    vkrError("Invalid resource state");
+  }
+}
+
+void _resourceStateToImageLayout(Rhi::RhiResourceState state,
+                                 VkImageLayout &dstLayout) {
+  switch (state) {
+  case Rhi::RhiResourceState::Undefined:
+    dstLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    break;
+  case Rhi::RhiResourceState::Common:
+    dstLayout = VK_IMAGE_LAYOUT_GENERAL;
+    break;
+  case Rhi::RhiResourceState::RenderTarget:
+    dstLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    break;
+  case Rhi::RhiResourceState::Present:
+    dstLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    break;
+  case Rhi::RhiResourceState::DepthStencilRenderTarget:
+    dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    break;
+  case Rhi::RhiResourceState::UAVStorageImage:
+    dstLayout = VK_IMAGE_LAYOUT_GENERAL;
+    break;
+  case Rhi::RhiResourceState::CopySource:
+    dstLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    break;
+  case Rhi::RhiResourceState::CopyDest:
+    dstLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    break;
+  case Rhi::RhiResourceState::PixelShaderResource:
+    dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    break;
+  default:
+    vkrError("Invalid resource state");
+  }
+}
+
 IFRIT_APIDECL
 void CommandBuffer::resourceBarrier(
     const std::vector<Rhi::RhiResourceBarrier> &barriers) const {
@@ -522,7 +603,50 @@ void CommandBuffer::resourceBarrier(
   for (int i = 0; i < barriers.size(); i++) {
     auto barrier = barriers[i];
     if (barrier.m_type == Rhi::RhiBarrierType::Transition) {
-      throw std::runtime_error("Not implemented");
+      auto resourceType = barrier.m_transition.m_type;
+      auto srcState = barrier.m_transition.m_srcState;
+      auto dstState = barrier.m_transition.m_dstState;
+      VkAccessFlags srcAccessMask, dstAccessMask;
+      _resourceStateToAccessMask(srcState, srcAccessMask);
+      _resourceStateToAccessMask(dstState, dstAccessMask);
+
+      if (resourceType == Rhi::RhiResourceType::Buffer) {
+        VkBufferMemoryBarrier bufferBarrier{};
+        bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bufferBarrier.buffer =
+            checked_cast<SingleBuffer>(barrier.m_transition.m_buffer)
+                ->getBuffer();
+        bufferBarrier.offset = 0;
+        bufferBarrier.size = VK_WHOLE_SIZE;
+        bufferBarrier.srcAccessMask = srcAccessMask;
+        bufferBarrier.dstAccessMask = dstAccessMask;
+        bufferBarriers.push_back(bufferBarrier);
+      } else if (resourceType == Rhi::RhiResourceType::Texture) {
+        // WARNING: subresource unspecified
+        VkImageLayout srcLayout, dstLayout;
+        auto subResource = barrier.m_transition.m_subResource;
+        _resourceStateToImageLayout(srcState, srcLayout);
+        _resourceStateToImageLayout(dstState, dstLayout);
+        auto image =
+            checked_cast<SingleDeviceImage>(barrier.m_transition.m_texture);
+        auto aspect = image->getAspect();
+        VkImageMemoryBarrier imageBarrier{};
+        imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        imageBarrier.image =
+            checked_cast<SingleDeviceImage>(barrier.m_transition.m_texture)
+                ->getImage();
+        imageBarrier.subresourceRange.aspectMask = aspect;
+        imageBarrier.subresourceRange.baseMipLevel = subResource.mipLevel;
+        imageBarrier.subresourceRange.levelCount = subResource.mipCount;
+        imageBarrier.subresourceRange.baseArrayLayer = subResource.arrayLayer;
+        imageBarrier.subresourceRange.layerCount = subResource.layerCount;
+        imageBarrier.srcAccessMask = srcAccessMask;
+        imageBarrier.dstAccessMask = dstAccessMask;
+        imageBarrier.oldLayout = srcLayout;
+        imageBarrier.newLayout = dstLayout;
+        imageBarriers.push_back(imageBarrier);
+      }
+
     } else if (barrier.m_type == Rhi::RhiBarrierType::UAVAccess) {
       auto resourceType = barrier.m_uav.m_type;
       if (resourceType == Rhi::RhiResourceType::Buffer) {

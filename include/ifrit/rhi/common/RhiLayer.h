@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -376,6 +375,8 @@ enum class RhiResourceState {
   UAVStorageImage,
   CopySource,
   CopyDest,
+  UnorderedAccess,
+  PixelShaderResource,
 };
 
 // Structs
@@ -434,6 +435,13 @@ struct RhiScissor {
   uint32_t height;
 };
 
+struct RhiImageSubResource {
+  uint32_t mipLevel;
+  uint32_t arrayLayer;
+  uint32_t mipCount = 1;
+  uint32_t layerCount = 1;
+};
+
 struct RhiBindlessIdRef {
   uint32_t activeFrame;
   std::vector<uint32_t> ids;
@@ -456,19 +464,24 @@ struct RhiUAVBarrier {
 struct RhiTransitionBarrier {
   RhiResourceType m_type;
   union {
-    RhiBuffer *m_buffer;
+    RhiBuffer *m_buffer = nullptr;
     RhiTexture *m_texture;
   };
-  RhiResourceState m_srcState;
-  RhiResourceState m_dstState;
+  RhiImageSubResource m_subResource = {0, 0, 1, 1};
+  RhiResourceState m_srcState = RhiResourceState::Undefined;
+  RhiResourceState m_dstState = RhiResourceState::Undefined;
+
+  RhiTransitionBarrier() { m_texture = nullptr; }
 };
 
 struct RhiResourceBarrier {
-  RhiBarrierType m_type;
+  RhiBarrierType m_type = RhiBarrierType::UAVAccess;
   union {
     RhiUAVBarrier m_uav;
     RhiTransitionBarrier m_transition;
   };
+
+  RhiResourceBarrier() { m_uav = {}; }
 };
 
 // classes
@@ -771,6 +784,7 @@ public:
   virtual ~RhiTexture() = default;
   virtual uint32_t getHeight() const = 0;
   virtual uint32_t getWidth() const = 0;
+  virtual bool isDepthTexture() const = 0;
 };
 
 // RHI pipeline
@@ -840,13 +854,6 @@ public:
 class IFRIT_APIDECL RhiPassGraph {};
 
 // Rhi Descriptors
-
-struct RhiImageSubResource {
-  uint32_t mipLevel;
-  uint32_t arrayLayer;
-  uint32_t mipCount = 1;
-  uint32_t layerCount = 1;
-};
 
 class IFRIT_APIDECL RhiBindlessDescriptorRef {
 public:

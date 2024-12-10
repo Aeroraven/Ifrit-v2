@@ -72,12 +72,12 @@ private:
   RendererConfig renderConfig;
   float timing = 0;
 
-  constexpr static uint32_t bunnyPlacementX = 3;
+  constexpr static uint32_t bunnyPlacementX = 5;
   constexpr static uint32_t bunnyPlacementY = 1;
-  constexpr static uint32_t bunnyPlacementZ = 3;
+  constexpr static uint32_t bunnyPlacementZ = 5;
 
-  constexpr static float bunnyMinX = -0.25;
-  constexpr static float bunnyMaxX = 0.25;
+  constexpr static float bunnyMinX = -0.5;
+  constexpr static float bunnyMaxX = 0.5;
   constexpr static float bunnyMinY = -0.00;
   constexpr static float bunnyMaxY = 0.10;
   constexpr static float bunnyMinZ = 0.0;
@@ -199,7 +199,7 @@ public:
     renderer->endFrame({renderComplete.get()});
 
     // sleep for 500ms
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
   void onEnd() override {}
