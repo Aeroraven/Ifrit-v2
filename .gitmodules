@@ -25,3 +25,6 @@
 [submodule "dependencies/gcem"]
 	path = dependencies/gcem
 	url = https://github.com/kthohr/gcem.git
+[submodule "dependencies/spdlog"]
+	path = dependencies/spdlog
+	url = git@github.com:gabime/spdlog.git
