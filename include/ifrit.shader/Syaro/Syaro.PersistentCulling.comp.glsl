@@ -161,6 +161,9 @@ bool isSecondCullingPass(){
 
 float computeProjectedRadius(float tanfovy,float d,float r) {
   // https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
+  if(d<r){
+    return 1e10;
+  }
   return 1.0 / tanfovy * r / sqrt(d * d - r * r); 
 }
 

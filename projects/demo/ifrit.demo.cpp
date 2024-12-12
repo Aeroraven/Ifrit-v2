@@ -40,7 +40,7 @@ float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0,
       movNear = 0;
 
 void key_callback(int key, int scancode, int action, int mods) {
-  auto scale = 0.05f;
+  auto scale = 0.01f;
   if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
     movLeft += scale;
 
