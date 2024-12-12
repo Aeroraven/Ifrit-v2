@@ -18,12 +18,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "spirv_reflect/spirv_reflect.c"
 
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include "sha1/sha1.hpp"
 #include <fstream>
 #include <iostream>
 #include <shaderc/shaderc.hpp>
+
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
@@ -241,13 +243,13 @@ IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,
 }
 
 IFRIT_APIDECL void ShaderModule::cacheReflectionData() {
-
+  using Ifrit::Common::Utility::size_cast;
   // Currently, only writes the number of descriptor sets
   auto cacheDir = m_context->getCacheDirectory();
   std::string cacheFile =
       cacheDir + "/vkgraphics.shaderrefl." + m_signature + ".cache";
   std::ofstream cache(cacheFile, std::ios::binary);
-  uint32_t numDescSets = m_reflectSets.size();
+  uint32_t numDescSets = size_cast<uint32_t>(m_reflectSets.size());
   cache.write(reinterpret_cast<const char *>(&numDescSets), sizeof(uint32_t));
   cache.close();
 }

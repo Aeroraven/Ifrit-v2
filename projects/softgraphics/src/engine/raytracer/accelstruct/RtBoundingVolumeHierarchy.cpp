@@ -16,15 +16,17 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
 #include "ifrit/common/math/VectorOps.h"
 #include "ifrit/common/math/simd/SimdVectors.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include <queue>
+
 
 constexpr bool PROFILE_CNT = false;
 
 using namespace Ifrit::Math::SIMD;
+using Ifrit::Common::Utility::size_cast;
 
 static auto totalTime = 0;
 namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl {
@@ -379,7 +381,7 @@ void BoundingVolumeHierarchyBottomLevelAS::bufferData(
   for (int i = 0; i < vecData.size(); i++) {
     this->data[i] = vfloat3(vecData[i].x, vecData[i].y, vecData[i].z);
   }
-  size = vecData.size() / 3;
+  size = size_cast<int>(vecData.size()) / 3;
 }
 RayHit BoundingVolumeHierarchyBottomLevelAS::queryIntersection(
     const RayInternal &ray, float tmin, float tmax) const {
@@ -501,7 +503,7 @@ void BoundingVolumeHierarchyBottomLevelAS::buildAccelerationStructure() {
 void BoundingVolumeHierarchyTopLevelAS::bufferData(
     const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data) {
   this->data = data;
-  this->size = data.size();
+  this->size = size_cast<int>(data.size());
 }
 RayHit BoundingVolumeHierarchyTopLevelAS::queryIntersection(
     const RayInternal &ray, float tmin, float tmax) const {

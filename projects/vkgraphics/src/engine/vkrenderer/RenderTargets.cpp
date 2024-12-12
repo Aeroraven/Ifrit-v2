@@ -192,8 +192,8 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
   VkViewport viewport{};
   viewport.x = 0;
   viewport.y = 0;
-  viewport.width = m_renderArea.width;
-  viewport.height = m_renderArea.height;
+  viewport.width = static_cast<float>(m_renderArea.width);
+  viewport.height = static_cast<float>(m_renderArea.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 

@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/core/renderer/PbrAtmosphereRenderer.h"
 #include "ifrit.shader/Atmosphere/PAS.SharedConst.h"
 #include "ifrit/common/math/constfunc/ConstFunc.h"
@@ -68,21 +67,27 @@ PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perframeData) {
   using DensityProfileLayer =
       PbrAtmospherePerframe::PbrAtmosphereDensiyProfileLayer;
   constexpr DensityProfileLayer rayleighLayer1 = {
-      0.0, 1.0, -1.0 / Util::PbrAtmoConstants::kRayleighScaleHeight * km, 0.0,
-      0.0};
+      0.0f, 1.0f,
+      static_cast<float>(-1.0 / Util::PbrAtmoConstants::kRayleighScaleHeight *
+                         km),
+      0.0, 0.0f};
   constexpr DensityProfileLayer mieLayer1 = {
-      0.0, 1.0, -1.0 / Util::PbrAtmoConstants::kMieScaleHeight * km, 0.0, 0.0};
+      0.0f, 1.0f,
+      static_cast<float>(-1.0 / Util::PbrAtmoConstants::kMieScaleHeight * km),
+      0.0f, 0.0f};
 
   constexpr DensityProfileLayer absorptionLayer0 = {
-      25.0 * kmX, 0.0, 0.0, 1.0 / (15.0 * kmX), -2.0 / 3.0};
+      static_cast<float>(25.0 * kmX), 0.0, 0.0,
+      static_cast<float>(1.0 / (15.0 * kmX)), -2.0f / 3.0f};
   constexpr DensityProfileLayer absorptionLayer1 = {
-      0.0, 0.0, 0.0, -1.0 / (15.0 * kmX), 8.0 / 3.0};
+      0.0f, 0.0f, 0.0f, static_cast<float>(-1.0 / (15.0 * kmX)), 8.0f / 3.0f};
   constexpr auto muSMin = gcem::cos(102.0 * degToRad);
 
-  constexpr ifloat3 earthCenter = {0.0f, 0.0f, -bottomRadius};
+  constexpr ifloat3 earthCenter = {0.0f, 0.0f,
+                                   static_cast<float>(-bottomRadius)};
   constexpr ifloat3 groundAlbedo = {0.1f, 0.1f, 0.1f};
-  constexpr ifloat2 sunSize = {gcem::tan(sunAngularRadius),
-                               gcem::cos(sunAngularRadius)};
+  constexpr ifloat2 sunSize = {static_cast<float>(gcem::tan(sunAngularRadius)),
+                               static_cast<float>(gcem::cos(sunAngularRadius))};
 
   // Now filling in the data (params)
   constexpr auto solarIrradianceFloat =
@@ -95,7 +100,8 @@ PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perframeData) {
 
   data->m_atmosphereParams.solarIrradiance = toVec3(
       interpolateSpectrum(waveLengthToSample, solarIrradianceFloat, 1.0f));
-  data->m_atmosphereParams.sunAngularRadius = sunAngularRadius;
+  data->m_atmosphereParams.sunAngularRadius =
+      static_cast<float>(sunAngularRadius);
   data->m_atmosphereParams.bottomRadius =
       bottomRadius / Util::PbrAtmoConstants::km;
   data->m_atmosphereParams.topRadius = topRadius / Util::PbrAtmoConstants::km;
@@ -113,7 +119,7 @@ PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perframeData) {
       waveLengthToSample, mieExtinction, Util::PbrAtmoConstants::km));
 
   data->m_atmosphereParams.miePhaseFunctionG =
-      Util::PbrAtmoConstants::kMiePhaseFunctionG;
+      static_cast<float>(Util::PbrAtmoConstants::kMiePhaseFunctionG);
   data->m_atmosphereParams.absorptionDensity.layers[0] = absorptionLayer0;
   data->m_atmosphereParams.absorptionDensity.layers[1] = absorptionLayer1;
 
@@ -121,7 +127,7 @@ PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perframeData) {
       waveLengthToSample, absorptionExtinction, Util::PbrAtmoConstants::km));
 
   data->m_atmosphereParams.groundAlbedo = toVec3(groundAlbedo);
-  data->m_atmosphereParams.muSMin = muSMin;
+  data->m_atmosphereParams.muSMin = static_cast<float>(muSMin);
 
   // create textures
   auto rhi = m_app->getRhiLayer();

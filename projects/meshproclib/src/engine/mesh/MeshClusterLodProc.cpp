@@ -68,7 +68,7 @@ uint64_t packUnorderedPair(uint32_t a, uint32_t b) {
   return (uint64_t(a) << 32) | b;
 }
 std::tuple<uint32_t, uint32_t> unpackUnorderedPair(uint64_t pair) {
-  return std::make_tuple(pair >> 32, pair & 0xFFFFFFFF);
+  return std::make_tuple(pair >> 32, pair & 0xFFFFFFFFull);
 }
 
 void freeUnusedMemoryInCotenxt(ClusterLodGeneratorContext &ctx) {

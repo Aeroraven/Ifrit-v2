@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/display/presentation/window/TerminalProvider.h"
 #include <chrono>
 #include <iomanip>
@@ -36,10 +35,10 @@ TerminalProvider::loop(const std::function<void(int *)> &funcs) {
         decltype(std::chrono::duration_cast<std::chrono::milliseconds>(end -
                                                                        start)
                      .count());
-    frameTimes.push_back(std::max(
+    frameTimes.push_back(static_cast<int>(std::max(
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
             .count(),
-        static_cast<durationType>(1ll)));
+        static_cast<durationType>(1ll))));
     frameTimesCore.push_back(repCore);
 
     totalFrameTime += frameTimes.back();

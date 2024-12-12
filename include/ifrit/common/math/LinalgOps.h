@@ -212,7 +212,7 @@ inline float4x4 identity() {
   float4x4 result;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      result[i][j] = i == j ? 1 : 0;
+      result[i][j] = i == j ? 1.0f : 0.0f;
     }
   }
   return result;

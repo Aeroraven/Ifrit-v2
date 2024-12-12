@@ -445,7 +445,7 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
         toVkFormat(m_renderTargetFormat.m_colorFormats[i]));
   }
   ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
-  for (int i = 0; i < m_numBindlessDescriptorSets; i++) {
+  for (uint32_t i = 0; i < m_numBindlessDescriptorSets; i++) {
     ci.descriptorSetLayouts.push_back(
         m_descriptorManager->getParameterDescriptorSetLayout());
   }
@@ -474,7 +474,7 @@ IFRIT_APIDECL void ComputePass::build(uint32_t numMultiBuffers) {
   ComputePipelineCreateInfo ci;
   ci.shaderModules = m_shaderModule;
   ci.descriptorSetLayouts.push_back(m_descriptorManager->getBindlessLayout());
-  for (int i = 0; i < m_numBindlessDescriptorSets; i++) {
+  for (uint32_t i = 0; i < m_numBindlessDescriptorSets; i++) {
     ci.descriptorSetLayouts.push_back(
         m_descriptorManager->getParameterDescriptorSetLayout());
   }

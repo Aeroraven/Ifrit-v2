@@ -17,13 +17,16 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/renderer/framegraph/FrameGraph.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include <stdexcept>
+
+using Ifrit::Common::Utility::size_cast;
 
 namespace Ifrit::Core {
 
 IFRIT_APIDECL ResourceNodeId FrameGraph::addResource(const std::string &name) {
   ResourceNode node;
-  node.id = m_resources.size();
+  node.id = size_cast<uint32_t>(m_resources.size());
   node.type = FrameGraphResourceType::Undefined;
   node.name = name;
   node.isImported = false;
@@ -38,7 +41,7 @@ FrameGraph::addPass(const std::string &name, FrameGraphPassType type,
                     const std::vector<ResourceNodeId> &dependencies) {
   PassNode node;
   node.type = type;
-  node.id = m_passes.size();
+  node.id = size_cast<uint32_t>(m_passes.size());
   node.name = name;
   node.isImported = false;
   node.inputResources = inputs;

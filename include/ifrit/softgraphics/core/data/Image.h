@@ -164,7 +164,7 @@ public:
       if constexpr (sizeof(T) == 4) {
         auto hex = std::bit_cast<unsigned, T>(value);
         if (hex == (hex & 0xFF) * 0x01010101) {
-          memset(st, value, (ed - st) * sizeof(T));
+          memset(st, (hex & 0xFF), (ed - st) * sizeof(T));
         } else {
           std::fill(st, ed, value);
         }

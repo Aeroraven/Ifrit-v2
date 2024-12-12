@@ -39,8 +39,8 @@ struct PerFramePerViewData {
   float4x4 m_viewToWorld;
   ifloat4 m_cameraPosition;
   ifloat4 m_cameraFront;
-  float m_renderWidth;
-  float m_renderHeight;
+  float m_renderWidthf;
+  float m_renderHeightf;
   float m_cameraNear;
   float m_cameraFar;
   float m_cameraFovX;
@@ -180,6 +180,9 @@ struct PerFrameData {
     GPUUniformBuffer *m_viewBufferLast = nullptr;
     GPUBindlessRef *m_viewBindlessRef = nullptr;
     std::shared_ptr<GPUBindlessId> m_viewBufferId = nullptr;
+    // Non-gpu data
+    uint32_t m_renderWidth;
+    uint32_t m_renderHeight;
 
     // visibility buffer
     std::shared_ptr<GPUTexture> m_visibilityBuffer = nullptr;

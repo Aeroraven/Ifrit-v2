@@ -18,9 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/renderer/RendererBase.h"
 #include "ifrit/common/logging/Logging.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/base/Light.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
+using Ifrit::Common::Utility::size_cast;
 namespace Ifrit::Core {
 IFRIT_APIDECL void RendererBase::collectPerframeData(
     PerFrameData &perframeData, Scene *scene, Camera *camera,
@@ -97,7 +99,8 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     perframeData.m_shadowData2.m_shadowViews.resize(
         m_config->m_shadowConfig.k_maxShadowMaps);
   }
-  perframeData.m_shadowData2.m_enabledShadowMaps = lightWithShadow.size();
+  perframeData.m_shadowData2.m_enabledShadowMaps =
+      size_cast<uint32_t>(lightWithShadow.size());
   for (auto di = 0, dj = 0; auto &lightObj : lightWithShadow) {
     // Temporarily, we assume that all lights are directional lights
     auto light = lightObj->getComponent<Light>();
@@ -118,6 +121,10 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     perframeData.m_shadowData2.m_shadowViews[di].m_csmEnd = splitEnd;
     for (auto i = 0; auto &csmView : csmViews) {
       perframeData.m_views[1 + dj].m_viewData = csmView.m_viewData;
+      perframeData.m_views[1 + dj].m_renderHeight =
+          static_cast<uint32_t>(csmView.m_viewData.m_renderHeightf);
+      perframeData.m_views[1 + dj].m_renderWidth =
+          static_cast<uint32_t>(csmView.m_viewData.m_renderWidthf);
       perframeData.m_views[1 + dj].m_viewType = PerFrameData::ViewType::Shadow;
       perframeData.m_shadowData2.m_shadowViews[di].m_viewMapping[i] = dj + 1;
       dj++;
@@ -412,12 +419,15 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
 
   auto &primaryView = perframeData.m_views[0];
   primaryView.m_viewType = PerFrameData::ViewType::Primary;
-  primaryView.m_viewData.m_renderHeight = renderArea.height;
-  primaryView.m_viewData.m_renderWidth = renderArea.width;
+  primaryView.m_viewData.m_renderHeightf =
+      static_cast<float>(renderArea.height);
+  primaryView.m_viewData.m_renderWidthf = static_cast<float>(renderArea.width);
+  primaryView.m_renderHeight = renderArea.height;
+  primaryView.m_renderWidth = renderArea.width;
   primaryView.m_viewData.m_hizLods =
-      static_cast<uint32_t>(std::floor(
-          std::log2(std::max(renderArea.width, renderArea.height)))) +
-      1;
+      std::floor(std::log2(
+          static_cast<float>(std::max(renderArea.width, renderArea.height)))) +
+      1.0f;
 
   // Shadow views data has been filled in collectPerframeData
 
@@ -471,7 +481,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
     auto &shaderEffect = perframeData.m_shaderEffectData[shaderEffectId];
     // find whether batched object data should be recreated
     auto lastObjectCount = shaderEffect.m_lastObjectCount;
-    auto objectCount = shaderEffect.m_materials.size();
+    auto objectCount = size_cast<uint32_t>(shaderEffect.m_materials.size());
     if (lastObjectCount != objectCount || lastObjectCount == ~0u) {
       // TODO/EMERGENCY: release old buffer
       shaderEffect.m_lastObjectCount = objectCount;
@@ -544,46 +554,56 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       if (meshResource.objectBufferId == nullptr || mesh->m_resourceDirty) {
         requireUpdate = true;
         mesh->m_resourceDirty = false;
-        meshDataRef->m_cpCounter.totalBvhNodes = meshDataRef->m_bvhNodes.size();
+        meshDataRef->m_cpCounter.totalBvhNodes =
+            size_cast<uint32_t>(meshDataRef->m_bvhNodes.size());
         meshDataRef->m_cpCounter.totalLods = meshDataRef->m_maxLod;
         meshDataRef->m_cpCounter.totalNumClusters =
-            meshDataRef->m_clusterGroups.size();
+            size_cast<uint32_t>(meshDataRef->m_clusterGroups.size());
 
         meshResource.vertexBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_verticesAligned.size() * sizeof(ifloat4),
+            size_cast<uint32_t>(meshDataRef->m_verticesAligned.size() *
+                                sizeof(ifloat4)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.normalBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_normalsAligned.size() * sizeof(ifloat4),
+            size_cast<uint32_t>(meshDataRef->m_normalsAligned.size() *
+                                sizeof(ifloat4)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.uvBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_uvs.size() * sizeof(ifloat2),
+            size_cast<uint32_t>(meshDataRef->m_uvs.size() * sizeof(ifloat2)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.bvhNodeBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_bvhNodes.size() *
-                sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode),
+            size_cast<uint32_t>(
+                meshDataRef->m_bvhNodes.size() *
+                sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.clusterGroupBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_clusterGroups.size() *
-                sizeof(MeshProcLib::MeshProcess::ClusterGroup),
+            size_cast<uint32_t>(meshDataRef->m_clusterGroups.size() *
+                                sizeof(MeshProcLib::MeshProcess::ClusterGroup)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshlets.size() * sizeof(MeshData::MeshletData),
+            size_cast<uint32_t>(meshDataRef->m_meshlets.size() *
+                                sizeof(MeshData::MeshletData)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletVertexBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshletVertices.size() * sizeof(uint32_t),
+            size_cast<uint32_t>(meshDataRef->m_meshletVertices.size() *
+                                sizeof(uint32_t)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletIndexBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshletTriangles.size() * sizeof(uint32_t),
+            size_cast<uint32_t>(meshDataRef->m_meshletTriangles.size() *
+                                sizeof(uint32_t)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletCullBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshCullData.size() *
-                sizeof(MeshProcLib::MeshProcess::MeshletCullData),
+            size_cast<uint32_t>(
+                meshDataRef->m_meshCullData.size() *
+                sizeof(MeshProcLib::MeshProcess::MeshletCullData)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletInClusterBuffer = rhi->createStorageBufferDevice(
-            meshDataRef->m_meshletInClusterGroup.size() * sizeof(uint32_t),
+            size_cast<uint32_t>(meshDataRef->m_meshletInClusterGroup.size() *
+                                sizeof(uint32_t)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.cpCounterBuffer = rhi->createStorageBufferDevice(
-            sizeof(MeshData::GPUCPCounter), RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+            size_cast<uint32_t>(sizeof(MeshData::GPUCPCounter)),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
         // Indices in bindless descriptors
         meshResource.vertexBufferId =
@@ -654,7 +674,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       if (instanceResource.objectBuffer == nullptr) {
         requireUpdate = true;
         instanceResource.cpQueueBuffer = rhi->createStorageBufferDevice(
-            sizeof(uint32_t) * meshDataRef->m_bvhNodes.size(),
+            size_cast<uint32_t>(sizeof(uint32_t) *
+                                meshDataRef->m_bvhNodes.size()),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
         auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0];
@@ -701,8 +722,9 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
   auto staged##name = rhi->createStagedSingleBuffer(meshResource.name);        \
   funcEnqueueStagedBuffer(                                                     \
       staged##name, meshDataRef->vecBuffer.data(),                             \
-      meshDataRef->vecBuffer.size() *                                          \
-          sizeof(decltype(meshDataRef->vecBuffer)::value_type))
+      size_cast<uint32_t>(                                                     \
+          meshDataRef->vecBuffer.size() *                                      \
+          sizeof(decltype(meshDataRef->vecBuffer)::value_type)))
 
         enqueueStagedBuffer(vertexBuffer, m_verticesAligned);
         enqueueStagedBuffer(normalBuffer, m_normalsAligned);

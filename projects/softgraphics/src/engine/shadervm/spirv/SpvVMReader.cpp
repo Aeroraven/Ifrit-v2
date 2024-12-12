@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMReader.h"
 #include <spirv_headers/include/spirv/unified1/spirv.hpp>
 
@@ -71,7 +70,7 @@ void SpvVMReader::parseByteCode(const char *byteCode, size_t length,
   outContext->headerGenerator = readWord(pCur);
   outContext->headerBound = readWord(pCur);
   outContext->headerSchema = readWord(pCur);
-  while (pCur - pStart < length) {
+  while (pCur - pStart < static_cast<uint32_t>(length)) {
     uint32_t opWord = readWord(pCur);
     SpvVMCtxInstruction opIns;
     opIns.opCode = opWord & spv::OpCodeMask;
@@ -82,7 +81,7 @@ void SpvVMReader::parseByteCode(const char *byteCode, size_t length,
                  pCur - pStart);
     }
     opIns.opParams.resize(opIns.opWordCounts - 1);
-    for (int i = 0; i < opIns.opWordCounts - 1; i++) {
+    for (auto i = 0u; i < opIns.opWordCounts - 1; i++) {
       opIns.opParams[i] = readWord(pCur);
     }
     outContext->instructions.emplace_back(std::move(opIns));

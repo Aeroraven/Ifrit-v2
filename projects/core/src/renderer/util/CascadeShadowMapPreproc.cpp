@@ -35,8 +35,8 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
   std::vector<float> splitEndMeter;
 
   float accumSplit = 0.0f;
-  for (auto i = 0; i < splitCount; i++) {
-    if (i == 0) {
+  for (auto i = 0u; i < splitCount; i++) {
+    if (i == 0u) {
       splitStartMeter.push_back(0.0f);
     } else {
       auto borderPercent = borders[i - 1] * splits[i - 1];
@@ -53,7 +53,7 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
   auto camFovY = perView.m_viewData.m_cameraAspect;
   auto camPos = perView.m_viewData.m_cameraPosition;
 
-  for (auto i = 0; i < splitCount; i++) {
+  for (auto i = 0u; i < splitCount; i++) {
     auto vNear = splitStartMeter[i];
     auto vFar = splitEndMeter[i];
     auto vApex = ifloat3{camPos.x, camPos.y, camPos.z};
@@ -64,7 +64,7 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
 
   // Make result
   std::vector<CSMSingleSplitResult> results;
-  for (auto i = 0; i < splitCount; i++) {
+  for (auto i = 0u; i < splitCount; i++) {
     auto &sphere = boundSpheres[i];
     sphere.w += 1e-3f;
     auto lightCamPosShiftXN =
@@ -93,7 +93,7 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
 
   CSMResult resultf;
   resultf.m_splits = results;
-  for (auto i = 0; i < splitCount; i++) {
+  for (auto i = 0u; i < splitCount; i++) {
     resultf.m_splitStart[i] = splitStartMeter[i];
     resultf.m_splitEnd[i] = splitEndMeter[i];
   }
@@ -116,7 +116,7 @@ fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
                                       maxDistance, splits, borders);
 
   std::vector<PerFrameData::PerViewData> views;
-  for (auto i = 0; i < splitCount; i++) {
+  for (auto i = 0u; i < splitCount; i++) {
     auto &split = csmResult.m_splits[i];
     auto view = perView;
     view.m_viewType = PerFrameData::ViewType::Shadow;
@@ -142,9 +142,10 @@ fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
         Math::inverse4(view.m_viewData.m_worldToView);
 
     auto shadowMapSize = light.getShadowMapResolution();
-    view.m_viewData.m_renderHeight = shadowMapSize;
-    view.m_viewData.m_renderWidth = shadowMapSize;
-    view.m_viewData.m_hizLods = std::floor(std::log2(shadowMapSize)) + 1;
+    view.m_viewData.m_renderHeightf = static_cast<float>(shadowMapSize);
+    view.m_viewData.m_renderWidthf = static_cast<float>(shadowMapSize);
+    view.m_viewData.m_hizLods =
+        std::floor(std::log2(1.0f * shadowMapSize)) + 1.0f;
 
     views.push_back(view);
   }

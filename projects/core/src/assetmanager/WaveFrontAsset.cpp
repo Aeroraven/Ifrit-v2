@@ -18,7 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
 #include "ifrit/core/assetmanager/WaveFrontAsset.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include <fstream>
+using Ifrit::Common::Utility::size_cast;
+
 namespace Ifrit::Core {
 
 void loadWaveFrontObject(const char *path, std::vector<ifloat3> &vertices,
@@ -135,9 +138,9 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
     std::vector<uint32_t> indices;
     auto rawPath = m_path.generic_string();
     loadWaveFrontObject(rawPath.c_str(), vertices, normals, uvs, indices);
-    remappedNormals = remapNormals(normals, indices, vertices.size());
+    remappedNormals = remapNormals(normals, indices, size_cast<int>(vertices.size()));
     if (uvs.size() != 0) {
-      remappedUVs = remapUVs(uvs, indices, vertices.size());
+      remappedUVs = remapUVs(uvs, indices, size_cast<int>(vertices.size()));
     } else {
       remappedUVs.resize(vertices.size());
     }

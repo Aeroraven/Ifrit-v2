@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include <array>
@@ -195,6 +196,7 @@ public:
   }
 
   inline void buildRanges() {
+    using Ifrit::Common::Utility::size_cast;
     if (m_bindRange.size() == 0) {
       m_bindRange.resize(numCopies);
       for (uint32_t i = 0; i < numCopies; i++) {
@@ -206,7 +208,7 @@ public:
         }
         auto ptr = reinterpret_cast<const char *>(uniformData.data());
         m_bindRange[i] = m_descriptorManager->registerBindlessParameterRaw(
-            ptr, numKeys * sizeof(uint32_t));
+            ptr, size_cast<uint32_t>(numKeys * sizeof(uint32_t)));
       }
     }
   }

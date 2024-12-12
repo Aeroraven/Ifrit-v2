@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/math/constfunc/ConstFunc.h"
 #include "ifrit/common/util/FileOps.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/renderer/RendererUtil.h"
 #include "ifrit/core/renderer/util/RenderingUtils.h"
 #include <algorithm>
@@ -28,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader/Syaro/Syaro.SharedConst.h"
 
 using namespace Ifrit::GraphicsBackend::Rhi;
+using Ifrit::Common::Utility::size_cast;
 
 namespace Ifrit::Core {
 
@@ -248,8 +250,8 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   // binding resources to pass
   auto &primaryView = getPrimaryView(perframeData);
   auto rhi = m_app->getRhiLayer();
-  auto mainRtWidth = primaryView.m_viewData.m_renderWidth;
-  auto mainRtHeight = primaryView.m_viewData.m_renderHeight;
+  auto mainRtWidth = primaryView.m_renderWidth;
+  auto mainRtHeight = primaryView.m_renderHeight;
   createPostprocessTextures(mainRtWidth, mainRtHeight);
 
   fg.setImportedResource(resAtmosphereOutput,
@@ -320,12 +322,10 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     m_atmospherePass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
       ctx->m_cmd->setPushConst(m_atmospherePass, 0, sizeof(AtmoPushConst),
                                &pushConst);
-      auto wgX =
-          Math::ConstFunc::divRoundUp(primaryView.m_viewData.m_renderWidth,
-                                      SyaroConfig::cAtmoRenderThreadGroupSizeX);
-      auto wgY =
-          Math::ConstFunc::divRoundUp(primaryView.m_viewData.m_renderHeight,
-                                      SyaroConfig::cAtmoRenderThreadGroupSizeY);
+      auto wgX = Math::ConstFunc::divRoundUp(
+          primaryView.m_renderWidth, SyaroConfig::cAtmoRenderThreadGroupSizeX);
+      auto wgY = Math::ConstFunc::divRoundUp(
+          primaryView.m_renderHeight, SyaroConfig::cAtmoRenderThreadGroupSizeY);
       ctx->m_cmd->dispatch(wgX, wgY, 1);
     });
     cmd->beginScope("Syaro: Atmosphere");
@@ -629,15 +629,19 @@ SyaroRenderer::materialClassifyBufferSetup(PerFrameData &perframeData,
     return;
   }
   if (needRecreateMat) {
-    perframeData.m_matClassSupportedNumMaterials = numMaterials;
-    auto createSize = cMatClassCounterBufferSizeBase +
-                      cMatClassCounterBufferSizeMult * numMaterials;
+    perframeData.m_matClassSupportedNumMaterials =
+        Ifrit::Common::Utility::size_cast<uint32_t>(numMaterials);
+    auto createSize =
+        cMatClassCounterBufferSizeBase +
+        cMatClassCounterBufferSizeMult *
+            Ifrit::Common::Utility::size_cast<uint32_t>(numMaterials);
     perframeData.m_matClassCountBuffer = rhi->createStorageBufferDevice(
         createSize, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
     perframeData.m_matClassIndirectDispatchBuffer =
         rhi->createStorageBufferDevice(
-            sizeof(uint32_t) * 4 * numMaterials,
+            Ifrit::Common::Utility::size_cast<uint32_t>(sizeof(uint32_t) * 4 *
+                                                        numMaterials),
             RhiBufferUsage::RHI_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
                 RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
   }
@@ -801,8 +805,8 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
             m_emitDepthTargetsPass, 3, primaryView.m_allFilteredMeshletsDesc);
         ctx->m_cmd->attachBindlessReferenceCompute(
             m_emitDepthTargetsPass, 4, perframeData.m_velocityMaterialDesc);
-        uint32_t pcData[2] = {primaryView.m_viewData.m_renderWidth,
-                              primaryView.m_viewData.m_renderHeight};
+        uint32_t pcData[2] = {primaryView.m_renderWidth,
+                              primaryView.m_renderHeight};
         ctx->m_cmd->setPushConst(m_emitDepthTargetsPass, 0,
                                  sizeof(uint32_t) * 2, &pcData[0]);
         uint32_t wgX =
@@ -851,7 +855,8 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
   }
   auto &perView = perframeData.m_views[k];
   auto numObjs = perframeData.m_allInstanceData.m_objectData.size();
-  int pcDataInstCull[4] = {0, numObjs, 1, numObjs};
+  int pcDataInstCull[4] = {0, Ifrit::Common::Utility::size_cast<int>(numObjs),
+                           1, Ifrit::Common::Utility::size_cast<int>(numObjs)};
   m_instanceCullingPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
         if (cullPass == CullingPass::First) {
@@ -871,9 +876,9 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
         if (cullPass == CullingPass::First) {
           ctx->m_cmd->setPushConst(m_instanceCullingPass, 0,
                                    sizeof(uint32_t) * 2, &pcDataInstCull[0]);
-          auto tgx =
-              (numObjs + SyaroConfig::cInstanceCullingThreadGroupSizeX - 1) /
-              SyaroConfig::cInstanceCullingThreadGroupSizeX;
+          auto tgx = (size_cast<uint32_t>(numObjs) +
+                      SyaroConfig::cInstanceCullingThreadGroupSizeX - 1) /
+                     SyaroConfig::cInstanceCullingThreadGroupSizeX;
           ctx->m_cmd->dispatch(tgx, 1, 1);
         } else if (cullPass == CullingPass::Second) {
           ctx->m_cmd->setPushConst(m_instanceCullingPass, 0,
@@ -944,8 +949,8 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
   });
 
   // auto &primaryView = getPrimaryView(perframeData);
-  auto width = perView.m_viewData.m_renderWidth;
-  auto height = perView.m_viewData.m_renderHeight;
+  auto width = perView.m_renderWidth;
+  auto height = perView.m_renderHeight;
   uint32_t pushConst[5] = {perView.m_spHiZData.m_hizWidth,
                            perView.m_spHiZData.m_hizHeight, width, height,
                            perView.m_spHiZData.m_hizIters};
@@ -995,7 +1000,8 @@ SyaroRenderer::renderMaterialClassify(PerFrameData &perframeData,
   auto rhi = m_app->getRhiLayer();
   auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
   auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
-  auto totalMaterials = perframeData.m_enabledEffects.size();
+  auto totalMaterials =
+      size_cast<uint32_t>(perframeData.m_enabledEffects.size());
 
   auto renderArea = renderTargets->getRenderArea();
   auto width = renderArea.width + renderArea.x;
@@ -1065,8 +1071,8 @@ IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     auto &perView = perframeData.m_views[k];
     auto renderArea = renderTargets->getRenderArea();
-    auto width = perView.m_viewData.m_renderWidth;
-    auto height = perView.m_viewData.m_renderHeight;
+    auto width = perView.m_renderWidth;
+    auto height = perView.m_renderHeight;
     bool cond = (perView.m_hizTexture == nullptr);
     if (!cond && (perView.m_hizTexture->getWidth() != width ||
                   perView.m_hizTexture->getHeight() != height)) {
@@ -1140,8 +1146,8 @@ SyaroRenderer::sphizBufferSetup(PerFrameData &perframeData,
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     auto &perView = perframeData.m_views[k];
     auto renderArea = renderTargets->getRenderArea();
-    auto width = perView.m_viewData.m_renderWidth;
-    auto height = perView.m_viewData.m_renderHeight;
+    auto width = perView.m_renderWidth;
+    auto height = perView.m_renderHeight;
     bool cond = (perView.m_spHiZData.m_hizTexture == nullptr);
 
     // Make width and heights power of 2
@@ -1171,11 +1177,13 @@ SyaroRenderer::sphizBufferSetup(PerFrameData &perframeData,
     }
 
     perView.m_spHiZData.m_hizRefBuffer = rhi->createStorageBufferDevice(
-        sizeof(uint32_t) * (perView.m_spHiZData.m_hizRefs.size()),
+        Ifrit::Common::Utility::size_cast<uint32_t>(
+            sizeof(uint32_t) * (perView.m_spHiZData.m_hizRefs.size())),
         RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
     perView.m_spHiZData.m_hizAtomics = rhi->createStorageBufferDevice(
-        sizeof(uint32_t) * (perView.m_spHiZData.m_hizRefs.size()),
+        Ifrit::Common::Utility::size_cast<uint32_t>(
+            sizeof(uint32_t) * (perView.m_spHiZData.m_hizRefs.size())),
         RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
     auto staged =
@@ -1184,7 +1192,9 @@ SyaroRenderer::sphizBufferSetup(PerFrameData &perframeData,
     tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
       staged->cmdCopyToDevice(
           cmd, perView.m_spHiZData.m_hizRefs.data(),
-          sizeof(uint32_t) * perView.m_spHiZData.m_hizRefs.size(), 0);
+          size_cast<uint32_t>(sizeof(uint32_t) *
+                              perView.m_spHiZData.m_hizRefs.size()),
+          0);
     });
 
     perView.m_spHiZData.m_hizDesc = rhi->createBindlessDescriptorRef();
@@ -1217,8 +1227,8 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
       createCond = (visHeight != rtSize.height + rtSize.x ||
                     visWidth != rtSize.width + rtSize.y);
     }
-    auto visHeight = perView.m_viewData.m_renderHeight;
-    auto visWidth = perView.m_viewData.m_renderWidth;
+    auto visHeight = perView.m_renderHeight;
+    auto visWidth = perView.m_renderWidth;
     if (visHeight == 0 || visWidth == 0) {
       if (perView.m_viewType == PerFrameData::ViewType::Primary) {
         // use render target size
@@ -1269,8 +1279,8 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     perView.m_visRTs->setDepthStencilAttachment(perView.m_visDepthRT.get());
     perView.m_visRTs->setRenderArea(renderTargets->getRenderArea());
     if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
-      auto rtHeight = uint32_t(perView.m_viewData.m_renderHeight);
-      auto rtWidth = uint32_t(perView.m_viewData.m_renderWidth);
+      auto rtHeight = (perView.m_renderHeight);
+      auto rtWidth = (perView.m_renderWidth);
       perView.m_visRTs->setRenderArea({0, 0, rtWidth, rtHeight});
     }
 
@@ -1290,8 +1300,8 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     perView.m_visRTs2->setDepthStencilAttachment(perView.m_visDepthRT2.get());
     perView.m_visRTs2->setRenderArea(renderTargets->getRenderArea());
     if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
-      auto rtHeight = uint32_t(perView.m_viewData.m_renderHeight);
-      auto rtWidth = uint32_t(perView.m_viewData.m_renderWidth);
+      auto rtHeight = (perView.m_renderHeight);
+      auto rtWidth = (perView.m_renderWidth);
       perView.m_visRTs2->setRenderArea({0, 0, rtWidth, rtHeight});
     }
 
@@ -1400,8 +1410,8 @@ SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData,
   auto perframe = primaryView.m_viewBufferId;
   auto ao = perframeData.m_gbuffer.m_specular_occlusionId;
 
-  uint32_t width = primaryView.m_viewData.m_renderWidth;
-  uint32_t height = primaryView.m_viewData.m_renderHeight;
+  uint32_t width = primaryView.m_renderWidth;
+  uint32_t height = primaryView.m_renderHeight;
   cmd->beginScope("Syaro: Ambient Occlusion");
   cmd->resourceBarrier({perframeData.m_gbuffer.m_normal_smoothnessBarrier,
                         perframeData.m_gbuffer.m_specular_occlusionBarrier});
@@ -1417,7 +1427,7 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
   uint32_t totalMeshlets = 0;
   for (auto x : perframeData.m_enabledEffects) {
     auto &effect = perframeData.m_shaderEffectData[x];
-    totalInstances += effect.m_objectData.size();
+    totalInstances += size_cast<uint32_t>(effect.m_objectData.size());
   }
   auto rhi = m_app->getRhiLayer();
   if (perframeData.m_allInstanceData.m_lastObjectCount != totalInstances) {
@@ -1442,19 +1452,21 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
     uint32_t objDataSize = static_cast<uint32_t>(effect.m_objectData.size());
     uint32_t matSize = static_cast<uint32_t>(
         perframeData.m_shaderEffectData[x].m_materials.size());
-    for (int k = 0; k < matSize; k++) {
+    for (uint32_t k = 0; k < matSize; k++) {
       auto mesh =
           perframeData.m_shaderEffectData[x].m_meshes[k]->loadMeshUnsafe();
-      totalMeshlets += mesh->m_meshlets.size() * objDataSize;
+      totalMeshlets +=
+          size_cast<uint32_t>(mesh->m_meshlets.size()) * objDataSize;
     }
   }
   auto activeBuf =
       perframeData.m_allInstanceData.m_batchedObjectData->getActiveBuffer();
   activeBuf->map();
-  activeBuf->writeBuffer(perframeData.m_allInstanceData.m_objectData.data(),
-                         perframeData.m_allInstanceData.m_objectData.size() *
-                             sizeof(PerObjectData),
-                         0);
+  activeBuf->writeBuffer(
+      perframeData.m_allInstanceData.m_objectData.data(),
+      size_cast<uint32_t>(perframeData.m_allInstanceData.m_objectData.size() *
+                          sizeof(PerObjectData)),
+      0);
   activeBuf->flush();
   activeBuf->unmap();
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
@@ -1493,7 +1505,7 @@ SyaroRenderer::prepareAggregatedShadowData(PerFrameData &perframeData) {
         rhi->registerStorageBuffer(shadowData.m_allShadowData);
   }
   for (auto d = 0; auto &x : shadowData.m_shadowViews) {
-    for (auto i = 0; i < x.m_csmSplits; i++) {
+    for (auto i = 0u; i < x.m_csmSplits; i++) {
       auto idx = x.m_viewMapping[i];
       x.m_texRef[i] = perframeData.m_views[idx].m_visDepthId->getActiveId();
       x.m_viewRef[i] = perframeData.m_views[idx].m_viewBufferId->getActiveId();
@@ -1504,14 +1516,15 @@ SyaroRenderer::prepareAggregatedShadowData(PerFrameData &perframeData) {
   tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
     staged->cmdCopyToDevice(
         cmd, shadowData.m_shadowViews.data(),
-        shadowData.m_shadowViews.size() *
-            sizeof(decltype(shadowData.m_shadowViews)::value_type),
+        size_cast<uint32_t>(
+            shadowData.m_shadowViews.size() *
+            sizeof(decltype(shadowData.m_shadowViews)::value_type)),
         0);
   });
 
   auto mainView = getPrimaryView(perframeData);
-  auto mainRtWidth = mainView.m_viewData.m_renderWidth;
-  auto mainRtHeight = mainView.m_viewData.m_renderHeight;
+  auto mainRtWidth = mainView.m_renderWidth;
+  auto mainRtHeight = mainView.m_renderHeight;
   if (perframeData.m_deferShadowMask == nullptr) {
     perframeData.m_deferShadowMask = rhi->createRenderTargetTexture(
         mainRtWidth, mainRtHeight,
@@ -1630,7 +1643,8 @@ SyaroRenderer::render(
   prepareDeviceResources(perframeData, renderTargets);
   gatherAllInstances(perframeData);
   recreateInstanceCullingBuffers(
-      perframeData, perframeData.m_allInstanceData.m_objectData.size());
+      perframeData,
+      size_cast<uint32_t>(perframeData.m_allInstanceData.m_objectData.size()));
   hizBufferSetup(perframeData, renderTargets);
   depthTargetsSetup(perframeData, renderTargets);
   materialClassifyBufferSetup(perframeData, renderTargets);
@@ -1742,8 +1756,8 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
   collectPerframeData(perframeData, scene, camera,
                       GraphicsShaderPassType::Opaque, sceneConfig);
 
-  perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5;
-  perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5;
+  perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5f;
+  perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5f;
   auto ret = render(perframeData, renderTargets, cmdToWait);
   perframeData.m_frameId++;
   return ret;

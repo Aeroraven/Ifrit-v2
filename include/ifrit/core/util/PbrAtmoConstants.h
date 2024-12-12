@@ -93,10 +93,10 @@ consteval std::array<float, kSpecSize> getRayleighScattering() {
 consteval std::array<float, kSpecSize> getMieScattering() {
   std::array<float, kSpecSize> mieScattering;
   for (int i = 0; i < mieScattering.size(); ++i) {
-    double lambda = static_cast<double>(i) * 1e-3;
-    float mie = kMieAngstromBeta / kMieScaleHeight *
+    double lambda = static_cast<float>(i) * 1e-3f;
+    double mie = kMieAngstromBeta / kMieScaleHeight *
                 gcem::pow(lambda, -kMieAngstromAlpha);
-    mieScattering[i] = mie * kMieSingleScatteringAlbedo;
+    mieScattering[i] = static_cast<float>(mie * kMieSingleScatteringAlbedo);
   }
   return mieScattering;
 }
@@ -105,8 +105,8 @@ consteval std::array<float, kSpecSize> getMieExtinction() {
   std::array<float, kSpecSize> mieExtinction;
   for (int i = 0; i < mieExtinction.size(); ++i) {
     double lambda = static_cast<double>(i) * 1e-3;
-    float mie = kMieAngstromBeta / kMieScaleHeight *
-                gcem::pow(lambda, -kMieAngstromAlpha);
+    float mie = static_cast<float>( kMieAngstromBeta / kMieScaleHeight *
+                gcem::pow(lambda, -kMieAngstromAlpha));
     mieExtinction[i] = mie;
   }
   return mieExtinction;
@@ -116,7 +116,7 @@ consteval std::array<float, kSpecSize> getAbsorptionExtinction() {
   std::array<float, kSpecSize> absorptionExtinction;
   for (int i = 0; i < absorptionExtinction.size(); ++i) {
     double lambda = static_cast<double>(i) * 1e-3;
-    float val = kMaxOzoneNumberDensity * kOzoneCrossSection[i];
+    float val = static_cast<float>(kMaxOzoneNumberDensity * kOzoneCrossSection[i]);
     absorptionExtinction[i] = val;
   }
   return absorptionExtinction;

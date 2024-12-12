@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #ifdef _MSC_VER
 #define IFRIT_IGNORE_IRCOMPILE
 #endif
@@ -131,7 +130,9 @@ IfritCom_LlvmExec_Create(const char *ir, const char *identifier) {
 
 IFRIT_COM_LE_API void IFRIT_COM_LE_API_CALLCONV
 IfritCom_LlvmExec_Destroy(IfritCompLLVMExecutionSession *session) {
+#ifndef IFRIT_IGNORE_IRCOMPILE
   delete session;
+#endif
 }
 
 IFRIT_COM_LE_API void *IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Lookup(

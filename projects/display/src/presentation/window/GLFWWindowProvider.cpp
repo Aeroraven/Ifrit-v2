@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
+#include "ifrit/common/util/TypingUtil.h"
 #include <chrono>
 #include <iostream>
 #include <sstream>
@@ -43,12 +43,14 @@ IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth,
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   }
-
-  window = glfwCreateWindow(argWidth, argHeight, "Ifrit", nullptr, nullptr);
+  using Ifrit::Common::Utility::size_cast;
+  window = glfwCreateWindow(size_cast<int>(argWidth), size_cast<int>(argHeight),
+                            "Ifrit", nullptr, nullptr);
   glfwSetWindowUserPointer(window, this);
   auto keyFunc = [](GLFWwindow *window, int key, int scancode, int action,
                     int mods) {
-    auto s = static_cast<GLFWWindowProvider *>(glfwGetWindowUserPointer(window));
+    auto s =
+        static_cast<GLFWWindowProvider *>(glfwGetWindowUserPointer(window));
     auto func = s->getKeyCallBack();
     if (func) {
       func(key, scancode, action, mods);
@@ -85,10 +87,10 @@ GLFWWindowProvider::loop(const std::function<void(int *)> &funcs) {
         decltype(std::chrono::duration_cast<std::chrono::milliseconds>(end -
                                                                        start)
                      .count());
-    frameTimes.push_back(std::max(
+    frameTimes.push_back(Ifrit::Common::Utility::size_cast<int>(std::max(
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
             .count(),
-        static_cast<durationType>(1ll)));
+        static_cast<durationType>(1ll))));
     if (repCore != -1)
       frameTimesCore.push_back(repCore);
     else
@@ -142,8 +144,8 @@ IFRIT_APIDECL void *GLFWWindowProvider::getWindowObject() {
 #endif
 }
 
-IFRIT_APIDECL void GLFWWindowProvider::
-registerKeyCallback(std::function<void(int, int, int, int)> x) {
+IFRIT_APIDECL void GLFWWindowProvider::registerKeyCallback(
+    std::function<void(int, int, int, int)> x) {
   keyCallBack = x;
 }
 
