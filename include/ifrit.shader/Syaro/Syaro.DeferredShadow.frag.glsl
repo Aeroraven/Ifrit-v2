@@ -55,6 +55,7 @@ layout(binding = 0, set = 3) uniform PerframeViewData{
     uint refPrevFrame;
 }uPerframeView;
 
+
 struct ShadowMaps{
     uvec4 viewRef;
     uvec4 shadowRef;
@@ -72,10 +73,9 @@ layout(push_constant) uniform PushConstant{
     uint shadowRef;
     uint numShadowMaps;
     uint depthTexRef;
-    uint shadowTexRef;
 } pc;
 
-const vec4 testLightPos = vec4(0.61237, -0.50, -0.61237, 0.00) * 3.0;
+const vec4 testLightPos = vec4(0.61237, -0.50, -0.61237, 0.00) * 10.0;
 
 mat2 rotate2d(float angle){
     return mat2(cos(angle),-sin(angle),sin(angle),cos(angle));
@@ -128,7 +128,7 @@ float shadowMappingSingle(uint lightId, vec3 worldPos, float pcfRadius,uint csmI
     float avgShadow = 0.0;
     
     
-    float kSearchRadiusPx = pcfRadius;
+    float kSearchRadiusPx = pcfRadius + 1.0;
 
 #if SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_SAMPLING
     for(int k=0;k<SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_NUM_SAMPLES;k++){
@@ -169,7 +169,7 @@ float pcssBlockerAvgDepth(vec2 uv, float lightDepth,uint shadowTexRef){
     float numSamples = 0.0;
     for(int k = -2; k <= 2; k++){
         for(int l = -2; l <= 2; l++){
-            vec2 offset = vec2(k,l) / 2048.0 * 5.0;
+            vec2 offset = vec2(k,l) / 2048.0 * 6.0;
             vec2 sampPos = uv + offset;
             float depth = texture(GetSampler2D(shadowTexRef),sampPos).r;
             if(depth - lightDepth < -1e-5 ){
@@ -215,7 +215,7 @@ float pcssShadowMapSingle(uint lightId, vec3 worldPos, uint csmIdx){
         return 1.0;
     }
     
-    float rPenumbra = max(0.0,65.0 * (dReceiver - dBlocker)/dBlocker);
+    float rPenumbra = max(0.0,35.0 * (dReceiver - dBlocker)/dBlocker);
 
     float avgShadow = 0.0;
     avgShadow = shadowMappingSingle(lightId,worldPos,rPenumbra,csmIdx);
@@ -252,7 +252,7 @@ float globalShadowMapping(vec3 worldPos, vec3 viewPos){
         float fade = 0.0;
         if(reqNextLevel != 0){
             float nextCSMStart = GetResource(bShadowMaps,pc.shadowRef).data[i].csmStart[csmLevel+1];
-            fade = (viewPos.z - curCSMEnd) / (nextCSMStart - curCSMEnd);
+            fade = 1.0 - (viewPos.z - curCSMEnd) / (nextCSMStart - curCSMEnd);
         }
         float ditherRand = ifrit_wnoise2(vec2(gl_FragCoord.x,gl_FragCoord.y));
         if(ditherRand<0.0){
@@ -268,19 +268,16 @@ float globalShadowMapping(vec3 worldPos, vec3 viewPos){
 }
 
 void main(){
-    vec3 albedo = texture(GetSampler2D(uGBufferRefs.albedo_materialFlags),texCoord).rgb;
-    vec3 normal = texture(GetSampler2D(uGBufferRefs.normal_smoothness),texCoord).rgb;
     vec4 motion_depth = texture(GetSampler2D(uMotionDepthRefs.ref),texCoord).rgba;
     mat4 invproj = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_invPerspective;
     float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
     float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
-    float ao = texture(GetSampler2D(uGBufferRefs.specular_occlusion),texCoord).a;
     mat4 clipToWorld = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_clipToWorld;
     float depth = texture(GetSampler2D(pc.depthTexRef),texCoord).r;
 
     if(motion_depth.a < 0.5){
-        outColor = vec4(0.0);
+        outColor = vec4(1.0);
         return;
     }
 
@@ -289,37 +286,7 @@ void main(){
     vec4 worldPos = clipToWorld * ndcPos;
     worldPos /= worldPos.w;
     viewPos /= viewPos.w;
-    normal = normalize(normal * 2.0 - 1.0);
-    vec3 lightDir = normalize(vec3(0.612372,0.500000,0.612372));
+    float shadow = globalShadowMapping(worldPos.xyz,viewPos.xyz);
 
-    float NdotL = max(dot(normal,lightDir),0.0);
-    vec3 V = normalize(-viewPos.xyz);
-    vec3 H = normalize(lightDir + V);
-    float NdotH = max(dot(normal,H),0.0);
-    float roughness = 0.6;
-    float D = dpbr_trowbridgeReitzGGX(NdotH,roughness);
-
-    float NdotV = max(dot(normal,V),0.0);
-    float G = dpbr_smithSchlickGGX(NdotV,NdotL,roughness);
-
-    vec3 F0 = vec3(0.04);
-    float metallic = 0.1;
-    float HdotV = max(dot(H,V),0.0);
-    vec3 F = dpbr_fresnelSchlickMetallic(F0,albedo,metallic,HdotV);
-
-    vec3 kS = F;
-    vec3 kD = 1.0 - kS;
-    kD *= 1.0 - metallic;
-
-    float PIx = 3.14159265359;
-    vec3 specular = dpbr_cookTorranceBRDF(F,G,D,NdotV,NdotL);
-    vec3 Lo = (kD * albedo / PIx + specular) * NdotL;
-
-    vec3 ambient = vec3(0.10) * albedo * ao;
-    float shadow = texture(GetSampler2D(pc.shadowTexRef),texCoord).r;
-
-    //This is incorrect, but it's used for test if shadow mapping works
-    vec3 color = ambient + Lo * shadow; 
-    //color = vec3(shadow);
-    outColor = vec4(color,1.0);
+    outColor = vec4(shadow);
 }

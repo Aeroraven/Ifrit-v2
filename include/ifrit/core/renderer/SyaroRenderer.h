@@ -23,6 +23,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "framegraph/FrameGraph.h"
 #include "ifrit/common/util/Hash.h"
 #include "postprocessing/PostFxAcesTonemapping.h"
+#include "postprocessing/PostFxGaussianHori.h"
+#include "postprocessing/PostFxGaussianVert.h"
 #include "postprocessing/PostFxGlobalFog.h"
 
 namespace Ifrit::Core {
@@ -94,6 +96,8 @@ private:
                      PipelineAttachmentConfigsHash>
       m_deferredShadingPass;
 
+  DrawPass *m_deferredShadowPass = nullptr;
+
   std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
                      PipelineAttachmentConfigsHash>
       m_taaPass;
@@ -132,6 +136,8 @@ private:
   std::unique_ptr<PostprocessPassCollection::PostFxAcesToneMapping>
       m_acesToneMapping;
   std::unique_ptr<PostprocessPassCollection::PostFxGlobalFog> m_globalFogPass;
+  std::unique_ptr<PostprocessPassCollection::PostFxGaussianHori> m_gaussianHori;
+  std::unique_ptr<PostprocessPassCollection::PostFxGaussianVert> m_gaussianVert;
 
   // Render config
   RendererConfig m_renderConfig;

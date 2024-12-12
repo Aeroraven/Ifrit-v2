@@ -40,7 +40,7 @@ The project is organized into following parts.
 
 ## 2. Setup / Run
 
-> **WARN**: **Compiling files inside `dev` branch might yield UNEXPECTED result.**  Only x86-64 architecture `Windows` and  `Ubuntu` are tested. It mainly covers `Windows` and some `Linux` systems. Other operation systems like `MacOS` are NOT supported.
+> **WARN**: **Compiling files inside `dev` branch might yield UNEXPECTED result.**  Only x86-64 architecture `Windows` is tested. It mainly covers `Windows` and some `Linux` systems. Other operating systems like `MacOS` are NOT supported.
 
 ### 2.1 Clone the Repository
 
@@ -54,14 +54,14 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 
 Following dependencies should be manually configured. Other dependencies will be configured via submodule.
 
-- OpenGL >=3.3
-- CMake >=3.24
+- OpenGL >= 3.3
+- CMake >= 3.24
 - Vulkan SDK 1.3, or at least include:
   - Core Features 1.3
   - shaderc combined 1.3
   - with `mesh_shader` extension
-
 - LLVM 10 or LLVM 11 (Maybe higher version is OK, but LLVM 18 or higher might not work properly)
+- CUDA >= 12.6 (If you have CUDA)
 
 
 
@@ -111,6 +111,7 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [sha1](https://github.com/vog/sha1)                          | Hash                             | Public domain        |
 | [precomputed_atmospheric_scattering](https://github.com/ebruneton/precomputed_atmospheric_scattering) | Atmospheric Scattering           | BSD-3-Clause         |
 | [gcem](https://github.com/kthohr/gcem)                       | Compile-time Math                | Apache 2.0           |
+| [spdlog](https://github.com/gabime/spdlog.git)               | Logging                          | MIT                  |
 
 
 

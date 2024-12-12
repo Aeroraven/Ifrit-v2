@@ -96,6 +96,7 @@ public:
 
     // Renderer config
     renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
+    renderConfig.m_shadowConfig.m_maxDistance = 5.0f;
 
     // Material
     m_material = std::make_shared<Material>();
@@ -131,9 +132,8 @@ public:
     lightTransform->setRotation({150.0 / 180.0f * std::numbers::pi_v<float>,
                                  -45.0 / 180.0f * std::numbers::pi_v<float>,
                                  0.0f});
-    lightTransform->setPosition({-1.5f, 2.0f, 2.0f});
-    lightTransform->setScale({1.0f, 1.0f, 1.0f});
     light->setShadowMap(true);
+    light->setShadowMapResolution(2048);
 
     auto planeGameObject = node->addGameObject("plane");
     auto planeMeshFilter = planeGameObject->addComponent<MeshFilter>();
@@ -198,8 +198,8 @@ public:
         renderTargets.get(), renderConfig, {sFrameStart.get()});
     renderer->endFrame({renderComplete.get()});
 
-    // sleep for 500ms
-    // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    // sleep for 50ms
+    // std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
   void onEnd() override {}

@@ -17,9 +17,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/core/renderer/util/CascadeShadowMapPreproc.h"
+
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/base/ApplicationInterface.h"
 #include "ifrit/core/base/Scene.h"
+
 #include "ifrit/core/scene/FrameCollector.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
@@ -33,8 +36,16 @@ struct SceneCollectConfig {
 enum class AntiAliasingType { None, TAA };
 
 struct RendererConfig {
+  struct ShadowConfig {
+    constexpr static uint32_t k_maxShadowMaps = 256;
+    float m_maxDistance = 5.0f;
+    uint32_t m_csmCount = 4;
+    std::array<float, 4> m_csmSplits = {0.067f, 0.133f, 0.267f, 0.533f};
+    std::array<float, 4> m_csmBorders = {0.08f, 0.05f, 0.0f, 0.0f};
+  };
+
   AntiAliasingType m_antiAliasingType = AntiAliasingType::None;
-  uint32_t m_defaultShadowMapSize = 2048;
+  ShadowConfig m_shadowConfig;
 };
 
 // TODO: move render graph to here
@@ -44,6 +55,7 @@ class IFRIT_APIDECL RendererBase {
 
 protected:
   IApplication *m_app;
+  const RendererConfig *m_config = nullptr;
 
 protected:
   RendererBase(IApplication *app) : m_app(app) {}
@@ -60,6 +72,10 @@ protected:
                                    Camera *camera,
                                    GraphicsShaderPassType passType,
                                    const SceneCollectConfig &config);
+
+  inline void setRendererConfig(const RendererConfig *config) {
+    m_config = config;
+  }
 
 public:
   virtual std::unique_ptr<GPUCommandSubmission>

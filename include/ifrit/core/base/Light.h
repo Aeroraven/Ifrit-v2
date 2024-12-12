@@ -30,6 +30,7 @@ struct LightData {
   LightType m_type = LightType::Directional;
   bool m_affectPbrSky = false;
   bool m_shadowMap = false;
+  uint32_t m_shadowMapResolution = 512;
   IFRIT_STRUCT_SERIALIZE(m_type, m_affectPbrSky, m_shadowMap);
 };
 
@@ -45,6 +46,9 @@ public:
   inline LightType getType() const { return m_attributes.m_type; }
   inline bool getAffectPbrSky() const { return m_attributes.m_affectPbrSky; }
   inline bool getShadowMap() const { return m_attributes.m_shadowMap; }
+  inline uint32_t getShadowMapResolution() const {
+    return m_attributes.m_shadowMapResolution;
+  }
 
   // setters
   inline void setType(const LightType &type) { m_attributes.m_type = type; }
@@ -53,6 +57,9 @@ public:
   }
   inline void setShadowMap(bool shadowMap) {
     m_attributes.m_shadowMap = shadowMap;
+  }
+  inline void setShadowMapResolution(uint32_t resolution) {
+    m_attributes.m_shadowMapResolution = resolution;
   }
 };
 } // namespace Ifrit::Core

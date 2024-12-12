@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/renderer/SyaroRenderer.h"
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/math/constfunc/ConstFunc.h"
 #include "ifrit/common/util/FileOps.h"
 #include "ifrit/core/renderer/RendererUtil.h"
@@ -95,6 +96,10 @@ IFRIT_APIDECL void SyaroRenderer::setupPostprocessPassAndTextures() {
       std::make_unique<PostprocessPassCollection::PostFxAcesToneMapping>(m_app);
   m_globalFogPass =
       std::make_unique<PostprocessPassCollection::PostFxGlobalFog>(m_app);
+  m_gaussianHori =
+      std::make_unique<PostprocessPassCollection::PostFxGaussianHori>(m_app);
+  m_gaussianVert =
+      std::make_unique<PostprocessPassCollection::PostFxGaussianVert>(m_app);
 
   // tex and samplers
   m_postprocTexSampler = m_app->getRhiLayer()->createTrivialSampler();
@@ -148,6 +153,25 @@ IFRIT_APIDECL void
 SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
                                      RenderTargets *renderTargets,
                                      const GPUCmdBuffer *cmd) {
+  // some pipelines
+  if (m_deferredShadowPass == nullptr) {
+    auto rhi = m_app->getRhiLayer();
+    auto vsShader = createShaderFromFile("Syaro.DeferredShadow.vert.glsl",
+                                         "main", RhiShaderStage::Vertex);
+    auto fsShader = createShaderFromFile("Syaro.DeferredShadow.frag.glsl",
+                                         "main", RhiShaderStage::Fragment);
+    auto shadowRtCfg = renderTargets->getFormat();
+    shadowRtCfg.m_colorFormats = {
+        RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT};
+    shadowRtCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+
+    m_deferredShadowPass = rhi->createGraphicsPass();
+    m_deferredShadowPass->setVertexShader(vsShader);
+    m_deferredShadowPass->setPixelShader(fsShader);
+    m_deferredShadowPass->setNumBindlessDescriptorSets(3);
+    m_deferredShadowPass->setPushConstSize(3 * sizeof(uint32_t));
+    m_deferredShadowPass->setRenderTargetFormat(shadowRtCfg);
+  }
 
   // declare frame graph
   FrameGraph fg;
@@ -169,6 +193,11 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   auto resGbufferSpecularAO = fg.addResource("GbufferSpecularAO");
   auto resMotionDepth = fg.addResource("MotionDepth");
 
+  auto resDeferredShadowOutput = fg.addResource("DeferredShadowOutput");
+  auto resBlurredShadowIntermediateOutput =
+      fg.addResource("BlurredShadowIntermediateOutput");
+  auto resBlurredShadowOutput = fg.addResource("BlurredShadowOutput");
+
   auto resPrimaryViewDepth = fg.addResource("PrimaryViewDepth");
   auto resDeferredShadingOutput = fg.addResource("DeferredShadingOutput");
   auto resGlobalFogOutput = fg.addResource("GlobalFogOutput");
@@ -176,17 +205,33 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   auto resTAAHistoryOutput = fg.addResource("TAAHistoryOutput");
   auto resFinalOutput = fg.addResource("FinalOutput");
 
-  std::vector<ResourceNodeId> resGbuffer = {
+  std::vector<ResourceNodeId> resGbufferShadowReq = {
       resGbufferAlbedoMaterial, resGbufferNormalSmoothness,
       resGbufferSpecularAO, resMotionDepth, resPrimaryViewDepth};
   for (auto &x : resShadowMapTexs) {
-    resGbuffer.push_back(x);
+    resGbufferShadowReq.push_back(x);
   }
+
+  std::vector<ResourceNodeId> resGbuffer = resGbufferShadowReq;
+  resGbuffer.push_back(resBlurredShadowOutput);
 
   // add passes
   auto passAtmosphere =
       fg.addPass("Atmosphere", FrameGraphPassType::Graphics,
                  {resPrimaryViewDepth}, {resAtmosphereOutput}, {});
+
+  auto passDeferredShadow = fg.addPass(
+      "DeferredShadow", FrameGraphPassType::Graphics, resGbufferShadowReq,
+      {resDeferredShadowOutput}, {resAtmosphereOutput});
+
+  auto passBlurShadowHori = fg.addPass(
+      "BlurShadowHori", FrameGraphPassType::Graphics, {resDeferredShadowOutput},
+      {resBlurredShadowIntermediateOutput}, {});
+
+  auto passBlurShadowVert = fg.addPass(
+      "BlurShadowVert", FrameGraphPassType::Graphics,
+      {resBlurredShadowIntermediateOutput}, {resBlurredShadowOutput}, {});
+
   auto passDeferredShading =
       fg.addPass("DeferredShading", FrameGraphPassType::Graphics, resGbuffer,
                  {resDeferredShadingOutput}, {resAtmosphereOutput});
@@ -227,6 +272,15 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
                            {0, 0, 1, 1});
     i++;
   }
+  fg.setImportedResource(resDeferredShadowOutput,
+                         perframeData.m_deferShadowMask.get(), {0, 0, 1, 1});
+
+  fg.setImportedResource(resBlurredShadowIntermediateOutput,
+                         m_postprocTex[{mainRtWidth, mainRtHeight}][1].get(),
+                         {0, 0, 1, 1});
+
+  fg.setImportedResource(resBlurredShadowOutput,
+                         perframeData.m_deferShadowMask.get(), {0, 0, 1, 1});
 
   fg.setImportedResource(resPrimaryViewDepth, primaryView.m_visPassDepth,
                          {0, 0, 1, 1});
@@ -278,9 +332,43 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     m_atmospherePass->run(cmd, 0);
     cmd->endScope();
   });
+  fg.setExecutionFunction(passDeferredShadow, [&]() {
+    struct DeferPushConst {
+      uint32_t shadowMapDataRef;
+      uint32_t numShadowMaps;
+      uint32_t depthTexRef;
+    } pc;
+    pc.numShadowMaps = perframeData.m_shadowData2.m_enabledShadowMaps;
+    pc.shadowMapDataRef =
+        perframeData.m_shadowData2.m_allShadowDataId->getActiveId();
+    pc.depthTexRef = primaryView.m_visDepthId->getActiveId();
+    cmd->beginScope("Syaro: Deferred Shadowing");
+
+    auto targetRT = perframeData.m_deferShadowMaskRTs.get();
+    RenderingUtil::enqueueFullScreenPass(
+        cmd, rhi, m_deferredShadowPass, targetRT,
+        {perframeData.m_gbufferDescFrag, perframeData.m_gbufferDepthDesc,
+         primaryView.m_viewBindlessRef},
+        &pc, 3);
+    cmd->endScope();
+  });
+
+  fg.setExecutionFunction(passBlurShadowHori, [&]() {
+    auto postprocRTs = m_postprocRTs[{mainRtWidth, mainRtHeight}];
+    auto postprocRT1 = postprocRTs[1];
+    auto deferShadowId = perframeData.m_deferShadowMaskId.get();
+    m_gaussianHori->renderPostFx(cmd, postprocRT1.get(), deferShadowId, 5);
+  });
+
+  fg.setExecutionFunction(passBlurShadowVert, [&]() {
+    auto postprocId = m_postprocTexId[{mainRtWidth, mainRtHeight}][1];
+    m_gaussianVert->renderPostFx(cmd, perframeData.m_deferShadowMaskRTs.get(),
+                                 postprocId.get(), 5);
+  });
 
   fg.setExecutionFunction(passDeferredShading, [&]() {
     setupDeferredShadingPass(renderTargets);
+
     auto postprocRTs = m_postprocRTs[{mainRtWidth, mainRtHeight}];
     auto postprocRT0 = postprocRTs[0];
     auto curRT = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_rts;
@@ -293,17 +381,19 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
       uint32_t shadowMapDataRef;
       uint32_t numShadowMaps;
       uint32_t depthTexRef;
+      uint32_t shadowTexRef;
     } pc;
-    pc.numShadowMaps = perframeData.m_views.size() - 1;
+    pc.numShadowMaps = perframeData.m_shadowData2.m_enabledShadowMaps;
     pc.shadowMapDataRef =
-        perframeData.m_shadowData.m_allShadowDataId->getActiveId();
+        perframeData.m_shadowData2.m_allShadowDataId->getActiveId();
     pc.depthTexRef = primaryView.m_visDepthId->getActiveId();
+    pc.shadowTexRef = perframeData.m_deferShadowMaskId->getActiveId();
     cmd->beginScope("Syaro: Deferred Shading");
     RenderingUtil::enqueueFullScreenPass(cmd, rhi, pass, postprocRT0.get(),
                                          {perframeData.m_gbufferDescFrag,
                                           perframeData.m_gbufferDepthDesc,
                                           primaryView.m_viewBindlessRef},
-                                         &pc, 3);
+                                         &pc, 4);
     cmd->endScope();
   });
   fg.setExecutionFunction(passGlobalFog, [&]() {
@@ -360,6 +450,9 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   cmd->imageBarrier(m_postprocTex[{mainRtWidth, mainRtHeight}][0].get(),
                     RhiResourceState::Undefined, RhiResourceState::RenderTarget,
                     {0, 0, 1, 1});
+  cmd->imageBarrier(m_postprocTex[{mainRtWidth, mainRtHeight}][1].get(),
+                    RhiResourceState::Undefined, RhiResourceState::RenderTarget,
+                    {0, 0, 1, 1});
   // run!
   FrameGraphCompiler compiler;
   auto compiledGraph = compiler.compile(fg);
@@ -379,7 +472,8 @@ SyaroRenderer::setupDeferredShadingPass(RenderTargets *renderTargets) {
   auto rhi = m_app->getRhiLayer();
 
   // This seems to be a bit of redundant code
-  // The rhi backend now can reference the pipeline with similar CI
+  // The rhi backend now can reference the pipeline with similar
+  // CI
 
   PipelineAttachmentConfigs paCfg;
   auto rtCfg = renderTargets->getFormat();
@@ -401,7 +495,7 @@ SyaroRenderer::setupDeferredShadingPass(RenderTargets *renderTargets) {
     pass->setVertexShader(vsShader);
     pass->setPixelShader(fsShader);
     pass->setNumBindlessDescriptorSets(3);
-    pass->setPushConstSize(3 * sizeof(uint32_t));
+    pass->setPushConstSize(4 * sizeof(uint32_t));
     pass->setRenderTargetFormat(rtCfg);
     m_deferredShadingPass[paCfg] = pass;
   }
@@ -1131,8 +1225,8 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
         visHeight = rtArea.height + rtArea.y;
         visWidth = rtArea.width + rtArea.x;
       } else if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
-        visHeight = m_renderConfig.m_defaultShadowMapSize;
-        visWidth = m_renderConfig.m_defaultShadowMapSize;
+        Logging::error("Shadow view has no size");
+        std::abort();
       }
     }
     // TODO: all shadow passes do not need visibility buffer, but
@@ -1159,9 +1253,9 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     perView.m_visDepthSampler = visDepthSampler;
     perView.m_visDepthId = rhi->registerCombinedImageSampler(
         perView.m_visPassDepth, perView.m_visDepthSampler.get());
-
     perView.m_visDepthRT = rhi->createRenderTargetDepthStencil(
         visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
+    printf("Setting up visibility buffer\n");
 
     perView.m_visRTs = rhi->createRenderTargets();
     if (perView.m_viewType == PerFrameData::ViewType::Primary) {
@@ -1175,9 +1269,9 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     perView.m_visRTs->setDepthStencilAttachment(perView.m_visDepthRT.get());
     perView.m_visRTs->setRenderArea(renderTargets->getRenderArea());
     if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
-      perView.m_visRTs->setRenderArea({0, 0,
-                                       m_renderConfig.m_defaultShadowMapSize,
-                                       m_renderConfig.m_defaultShadowMapSize});
+      auto rtHeight = uint32_t(perView.m_viewData.m_renderHeight);
+      auto rtWidth = uint32_t(perView.m_viewData.m_renderWidth);
+      perView.m_visRTs->setRenderArea({0, 0, rtWidth, rtHeight});
     }
 
     // second pass rts
@@ -1196,9 +1290,9 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     perView.m_visRTs2->setDepthStencilAttachment(perView.m_visDepthRT2.get());
     perView.m_visRTs2->setRenderArea(renderTargets->getRenderArea());
     if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
-      perView.m_visRTs2->setRenderArea({0, 0,
-                                        m_renderConfig.m_defaultShadowMapSize,
-                                        m_renderConfig.m_defaultShadowMapSize});
+      auto rtHeight = uint32_t(perView.m_viewData.m_renderHeight);
+      auto rtWidth = uint32_t(perView.m_viewData.m_renderWidth);
+      perView.m_visRTs2->setRenderArea({0, 0, rtWidth, rtHeight});
     }
 
     // Then a sampler
@@ -1337,8 +1431,8 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
     perframeData.m_allInstanceData.m_batchedObjBufRef->addStorageBuffer(buf, 0);
   }
   perframeData.m_allInstanceData.m_objectData.resize(totalInstances);
-  // TODO, EMERGENT: the logic is confusing here. Losing instance->mesh
-  // relation.
+  // TODO, EMERGENT: the logic is confusing here. Losing
+  // instance->mesh relation.
   for (auto i = 0; auto &x : perframeData.m_enabledEffects) {
     auto &effect = perframeData.m_shaderEffectData[x];
     for (auto &obj : effect.m_objectData) {
@@ -1388,21 +1482,21 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
 
 IFRIT_APIDECL void
 SyaroRenderer::prepareAggregatedShadowData(PerFrameData &perframeData) {
-  auto &shadowData = perframeData.m_shadowData;
+  auto &shadowData = perframeData.m_shadowData2;
   auto rhi = m_app->getRhiLayer();
-  if (shadowData.m_shadowViews.size() == 0) {
-    shadowData.m_shadowViews.resize(256);
+
+  if (shadowData.m_allShadowData == nullptr) {
     shadowData.m_allShadowData = rhi->createStorageBufferDevice(
         256 * sizeof(decltype(shadowData.m_shadowViews)::value_type),
         RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
     shadowData.m_allShadowDataId =
         rhi->registerStorageBuffer(shadowData.m_allShadowData);
   }
-  for (auto d = 0; auto &x : perframeData.m_views) {
-    if (x.m_viewType == PerFrameData::ViewType::Shadow) {
-      shadowData.m_shadowViews[d].m_texRef = x.m_visDepthId->getActiveId();
-      shadowData.m_shadowViews[d].m_viewRef = x.m_viewBufferId->getActiveId();
-      d++;
+  for (auto d = 0; auto &x : shadowData.m_shadowViews) {
+    for (auto i = 0; i < x.m_csmSplits; i++) {
+      auto idx = x.m_viewMapping[i];
+      x.m_texRef[i] = perframeData.m_views[idx].m_visDepthId->getActiveId();
+      x.m_viewRef[i] = perframeData.m_views[idx].m_viewBufferId->getActiveId();
     }
   }
   auto staged = rhi->createStagedSingleBuffer(shadowData.m_allShadowData);
@@ -1414,6 +1508,29 @@ SyaroRenderer::prepareAggregatedShadowData(PerFrameData &perframeData) {
             sizeof(decltype(shadowData.m_shadowViews)::value_type),
         0);
   });
+
+  auto mainView = getPrimaryView(perframeData);
+  auto mainRtWidth = mainView.m_viewData.m_renderWidth;
+  auto mainRtHeight = mainView.m_viewData.m_renderHeight;
+  if (perframeData.m_deferShadowMask == nullptr) {
+    perframeData.m_deferShadowMask = rhi->createRenderTargetTexture(
+        mainRtWidth, mainRtHeight,
+        RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
+            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+    perframeData.m_deferShadowMaskRT = rhi->createRenderTarget(
+        perframeData.m_deferShadowMask.get(), {{0.0f, 0.0f, 0.0f, 1.0f}},
+        RhiRenderTargetLoadOp::Clear, 0, 0);
+    perframeData.m_deferShadowMaskSampler = rhi->createTrivialSampler();
+    perframeData.m_deferShadowMaskRTs = rhi->createRenderTargets();
+    perframeData.m_deferShadowMaskRTs->setColorAttachments(
+        {perframeData.m_deferShadowMaskRT.get()});
+    perframeData.m_deferShadowMaskRTs->setRenderArea(
+        {0, 0, uint32_t(mainRtWidth), uint32_t(mainRtHeight)});
+    perframeData.m_deferShadowMaskId = rhi->registerCombinedImageSampler(
+        perframeData.m_deferShadowMask.get(),
+        perframeData.m_deferShadowMaskSampler.get());
+  }
 }
 
 IFRIT_APIDECL void
@@ -1499,9 +1616,10 @@ SyaroRenderer::render(
 
   // According to
   // lunarg(https://www.lunasdk.org/manual/rhi/command_queues_and_command_buffers/)
-  // graphics queue can submit dispatch and transfer commands, but compute queue
-  // can only submit compute/transfer commands. Following posts suggests reduce
-  // command buffer submission to improve performance
+  // graphics queue can submit dispatch and transfer commands,
+  // but compute queue can only submit compute/transfer commands.
+  // Following posts suggests reduce command buffer submission to
+  // improve performance
   // https://zeux.io/2020/02/27/writing-an-efficient-vulkan-renderer/
   // https://gpuopen.com/learn/rdna-performance-guide/#command-buffers
 
@@ -1590,7 +1708,7 @@ SyaroRenderer::render(
       },
       {mainTask.get()}, {});
 
-  return deferredTask;
+  return mainTask;
 }
 
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
@@ -1620,6 +1738,7 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
     sceneConfig.projectionTranslateX = 0.0f;
     sceneConfig.projectionTranslateY = 0.0f;
   }
+  setRendererConfig(&config);
   collectPerframeData(perframeData, scene, camera,
                       GraphicsShaderPassType::Opaque, sceneConfig);
 

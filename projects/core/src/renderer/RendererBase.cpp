@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/renderer/RendererBase.h"
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/core/base/Light.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
@@ -25,6 +26,8 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     PerFrameData &perframeData, Scene *scene, Camera *camera,
     GraphicsShaderPassType passType, const SceneCollectConfig &config) {
   using Ifrit::Common::Utility::size_cast;
+
+  Logging::assertion(m_config != nullptr, "Renderer config is not set");
   // Filling per frame data
   if (camera == nullptr) {
     camera = scene->getMainCamera();
@@ -82,54 +85,47 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
         return shadow;
       });
 
-  if (perframeData.m_views.size() < 1 + lightWithShadow.size()) {
-    perframeData.m_views.resize(1 + lightWithShadow.size());
-  }
-  for (auto di = 0; auto &lightObj : lightWithShadow) {
-    auto &viewData = perframeData.m_views[di + 1];
-    // viewData = PerFrameData::PerViewData{};
-    viewData.m_viewType = PerFrameData::ViewType::Shadow;
-    // Temporarily, assume all lights are directional
+  auto shadowViewCounts = size_cast<uint32_t>(lightWithShadow.size()) *
+                          m_config->m_shadowConfig.m_csmCount;
 
+  if (perframeData.m_views.size() < 1 + shadowViewCounts) {
+    perframeData.m_views.resize(1 + shadowViewCounts);
+    printf("Resized views to %d\n", 1 + shadowViewCounts);
+  }
+  if (perframeData.m_shadowData2.m_shadowViews.size() <
+      m_config->m_shadowConfig.k_maxShadowMaps) {
+    perframeData.m_shadowData2.m_shadowViews.resize(
+        m_config->m_shadowConfig.k_maxShadowMaps);
+  }
+  perframeData.m_shadowData2.m_enabledShadowMaps = lightWithShadow.size();
+  for (auto di = 0, dj = 0; auto &lightObj : lightWithShadow) {
+    // Temporarily, we assume that all lights are directional lights
+    auto light = lightObj->getComponent<Light>();
     auto lightTransform = lightObj->getComponent<Transform>();
-    auto lightTransformMat = lightTransform->getModelToWorldMatrix();
+    std::vector<float> csmSplits(m_config->m_shadowConfig.m_csmSplits.begin(),
+                                 m_config->m_shadowConfig.m_csmSplits.end());
+    std::vector<float> csmBorders(m_config->m_shadowConfig.m_csmBorders.begin(),
+                                  m_config->m_shadowConfig.m_csmBorders.end());
+    auto maxDist = m_config->m_shadowConfig.m_maxDistance;
+    std::array<float, 4> splitStart, splitEnd;
+    auto csmViews = RenderingUtil::CascadeShadowMapping::fillCSMViews(
+        viewData, *light, *lightTransform, m_config->m_shadowConfig.m_csmCount,
+        maxDist, csmSplits, csmBorders, splitStart, splitEnd);
 
-    auto lightPos = lightTransform->getPosition(); // PLACEHOLDER, WRONG NOW
-    auto lightDirRaw = ifloat4{0.0f, 0.0f, 1.0f, 0.0f};
-    auto lightDir = Math::matmul(lightTransformMat, lightDirRaw);
-    auto lightUpRaw = ifloat4{0.0f, 1.0f, 0.0f, 0.0f};
-    auto lightLookAtCenter =
-        ifloat3(lightPos.x + lightDir.x, lightPos.y + lightDir.y,
-                lightPos.z + lightDir.z);
-    auto lightLookAt = Math::transpose(
-        Math::lookAt(lightPos, lightLookAtCenter,
-                     ifloat3(lightUpRaw.x, lightUpRaw.y, lightUpRaw.z)));
-
-    viewData.m_viewData.m_worldToView = lightLookAt;
-    viewData.m_viewData.m_perspective =
-        Math::transpose(Math::orthographicNegateY(1.75, 1.0, 1.0, 25.0));
-    viewData.m_viewData.m_worldToClip = Math::transpose(
-        Math::matmul(Math::transpose(viewData.m_viewData.m_perspective),
-                     Math::transpose(viewData.m_viewData.m_worldToView)));
-    viewData.m_viewData.m_cameraAspect = 1.0f;
-    viewData.m_viewData.m_inversePerspective =
-        Ifrit::Math::inverse4(viewData.m_viewData.m_perspective);
-    viewData.m_viewData.m_clipToWorld =
-        Math::inverse4(viewData.m_viewData.m_worldToClip);
-    viewData.m_viewData.m_cameraPosition =
-        ifloat4{lightPos.x, lightPos.y, lightPos.z, 1.0f};
-    viewData.m_viewData.m_cameraFront =
-        ifloat4{lightDir.x, lightDir.y, lightDir.z, 0.0f};
-    viewData.m_viewData.m_cameraNear = 0.1f;
-    viewData.m_viewData.m_cameraFar = 100.0f;
-    viewData.m_viewData.m_cameraFovX = 0.0f;
-    viewData.m_viewData.m_cameraFovY = 0.0f;
-    viewData.m_viewData.m_cameraOrthoSize = 1.75f;
-    viewData.m_viewData.m_viewCameraType = 1.0f;
-
-    viewData.m_viewData.m_viewToWorld =
-        Math::inverse4(viewData.m_viewData.m_worldToView);
+    perframeData.m_shadowData2.m_shadowViews[di].m_csmSplits =
+        m_config->m_shadowConfig.m_csmCount;
+    perframeData.m_shadowData2.m_shadowViews[di].m_csmStart = splitStart;
+    perframeData.m_shadowData2.m_shadowViews[di].m_csmEnd = splitEnd;
+    for (auto i = 0; auto &csmView : csmViews) {
+      perframeData.m_views[1 + dj].m_viewData = csmView.m_viewData;
+      perframeData.m_views[1 + dj].m_viewType = PerFrameData::ViewType::Shadow;
+      perframeData.m_shadowData2.m_shadowViews[di].m_viewMapping[i] = dj + 1;
+      dj++;
+      i++;
+    }
+    di++;
   }
+  // filling shadow data
 
   // For each mesh renderer, get the material, mesh, and transform
   perframeData.m_enabledEffects.clear();
@@ -423,15 +419,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
           std::log2(std::max(renderArea.width, renderArea.height)))) +
       1;
 
-  for (auto &view : perframeData.m_views) {
-    if (view.m_viewType == PerFrameData::ViewType::Shadow) {
-      view.m_viewType = PerFrameData::ViewType::Shadow;
-      view.m_viewData.m_renderHeight = 2048;
-      view.m_viewData.m_renderWidth = 2048;
-      view.m_viewData.m_hizLods =
-          static_cast<uint32_t>(std::floor(std::log2(2048))) + 1;
-    }
-  }
+  // Shadow views data has been filled in collectPerframeData
 
   std::vector<std::shared_ptr<RhiStagedSingleBuffer>> stagedBuffers;
   std::vector<void *> pendingVertexBuffers;

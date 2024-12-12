@@ -90,11 +90,18 @@ struct ShadowMappingData {
   using GPUBindlessId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
 
   struct SingleShadowView {
-    uint32_t m_viewRef;
-    uint32_t m_texRef;
+    std::array<uint32_t, 4> m_viewRef;
+    std::array<uint32_t, 4> m_texRef;
+
+    std::array<uint32_t, 4> m_viewMapping;
+    std::array<float, 4> m_csmStart;
+    std::array<float, 4> m_csmEnd;
+    uint32_t m_csmSplits;
   };
   std::vector<SingleShadowView> m_shadowViews;
-  GPUBuffer *m_allShadowData;
+  uint32_t m_enabledShadowMaps = 0;
+
+  GPUBuffer *m_allShadowData = nullptr;
   std::shared_ptr<GPUBindlessId> m_allShadowDataId;
 };
 
@@ -284,7 +291,13 @@ struct PerFrameData {
   std::shared_ptr<GPUBindlessId> m_atmoOutputId;
 
   // Shadow mapping
-  ShadowMappingData m_shadowData;
+  ShadowMappingData m_shadowData2;
+  std::shared_ptr<GPUTexture> m_deferShadowMask = nullptr;
+  std::shared_ptr<GPUColorRT> m_deferShadowMaskRT;
+  std::shared_ptr<GPURTs> m_deferShadowMaskRTs;
+
+  std::shared_ptr<GPUSampler> m_deferShadowMaskSampler = nullptr;
+  std::shared_ptr<GPUBindlessId> m_deferShadowMaskId;
 };
 
 } // namespace Ifrit::Core
