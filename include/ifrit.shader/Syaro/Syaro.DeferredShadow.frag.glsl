@@ -127,8 +127,7 @@ float shadowMappingSingle(uint lightId, vec3 worldPos, float pcfRadius,uint csmI
     vec2 uv = lightPos.xy * 0.5 + 0.5;
     float avgShadow = 0.0;
     
-    
-    float kSearchRadiusPx = pcfRadius + 1.0;
+    float kSearchRadiusPx = pcfRadius; //pcfRadius+0.5;
 
 #if SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_SAMPLING
     for(int k=0;k<SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_NUM_SAMPLES;k++){
@@ -169,10 +168,10 @@ float pcssBlockerAvgDepth(vec2 uv, float lightDepth,uint shadowTexRef){
     float numSamples = 0.0;
     for(int k = -2; k <= 2; k++){
         for(int l = -2; l <= 2; l++){
-            vec2 offset = vec2(k,l) / 2048.0 * 6.0;
+            vec2 offset = vec2(k,l) / 2048.0 * 1.0;
             vec2 sampPos = uv + offset;
             float depth = texture(GetSampler2D(shadowTexRef),sampPos).r;
-            if(depth - lightDepth < -1e-5 ){
+            if(depth - lightDepth < -1e-6 ){
                 avgDepth += depth;
                 numSamples += 1.0;
             }
@@ -195,7 +194,7 @@ float pcssShadowMapSingle(uint lightId, vec3 worldPos, uint csmIdx){
     float lightFar = GetResource(bPerframeView,viewRef).data.m_cameraFar;
 
     vec3 lightProjPos = GetResource(bPerframeView,viewRef).data.m_cameraPosition.xyz;
-    float lightDistance = length(testLightPos.xyz - lightProjPos);
+    float lightDistance = abs(lightProjPos.y - testLightPos.y) / abs(0.5);
 
     mat4 vp = lightProj * lightView;
 
@@ -214,8 +213,11 @@ float pcssShadowMapSingle(uint lightId, vec3 worldPos, uint csmIdx){
     if(dReceiver - dBlocker < 1e-5 || dBlocker > 1e8){
         return 1.0;
     }
-    
-    float rPenumbra = max(0.0,35.0 * (dReceiver - dBlocker)/dBlocker);
+    // if(125.0 * (dReceiver - dBlocker)/dBlocker < 1.0){
+    //     return -9.0;
+    // }
+    float orthoSizeLight = GetResource(bPerframeView,viewRef).data.m_cameraOrthoSize; 
+    float rPenumbra = max(0.0,165.0 * (dReceiver - dBlocker)/dBlocker/orthoSizeLight);
 
     float avgShadow = 0.0;
     avgShadow = shadowMappingSingle(lightId,worldPos,rPenumbra,csmIdx);
@@ -255,13 +257,16 @@ float globalShadowMapping(vec3 worldPos, vec3 viewPos){
             fade = 1.0 - (viewPos.z - curCSMEnd) / (nextCSMStart - curCSMEnd);
         }
         float ditherRand = ifrit_wnoise2(vec2(gl_FragCoord.x,gl_FragCoord.y));
-        if(ditherRand<0.0){
-            avgShadow = -100.0;
-        }
         if(ditherRand < fade){
             csmLevel++;
         }
-        float shadow0 = pcssShadowMapSingle(i,worldPos,csmLevel);
+        uvec4 viewRef4 = GetResource(bShadowMaps,pc.shadowRef).data[i].viewRef;
+        uint viewRef = uvec4ToUint(viewRef4,csmLevel);
+        float lightOrthoSize = GetResource(bPerframeView,viewRef).data.m_cameraOrthoSize;
+        
+        // shadowMappingSingle(i,worldPos,4/lightOrthoSize,csmLevel);
+        // pcssShadowMapSingle(i,worldPos,csmLevel);
+        float shadow0 = shadowMappingSingle(i,worldPos,2/lightOrthoSize,csmLevel);
         avgShadow = min(avgShadow,shadow0);
     }
     return avgShadow;

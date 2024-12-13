@@ -49,12 +49,37 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
 
   // Calculate frustum bounding spheres
   std::vector<ifloat4> boundSpheres;
-  auto camAspect = perView.m_viewData.m_cameraFovY;
-  auto camFovY = perView.m_viewData.m_cameraAspect;
+  auto camAspect = perView.m_viewData.m_cameraAspect;
+  auto camFovY = perView.m_viewData.m_cameraFovY;
   auto camPos = perView.m_viewData.m_cameraPosition;
 
+#if 1
+  // Bound AABBs
+  std::vector<CSMSingleSplitResult> results;
   for (auto i = 0u; i < splitCount; i++) {
-    auto vNear = splitStartMeter[i];
+    auto vNear = std::max(1e-4f, splitStartMeter[i]);
+    auto vFar = splitEndMeter[i];
+    auto vApex = ifloat3{camPos.x, camPos.y, camPos.z};
+    auto rZFar = 0.0f, rOrthoSize = 0.0f;
+    ifloat3 rCenter;
+    getFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, vApex,
+                                 lightFront, 1e-3f, rZFar, rOrthoSize, rCenter);
+    auto lightCamUp = ifloat3{0.0f, 1.0f, 0.0f};
+    auto proj = orthographicNegateY(rOrthoSize, 1.0, 1e-3f, rZFar);
+    auto view = lookAt(rCenter, rCenter + lightFront, lightCamUp);
+    CSMSingleSplitResult result;
+    result.m_proj = proj;
+    result.m_view = view;
+    result.m_lightCamPos = {rCenter.x, rCenter.y, rCenter.z, 1.0f};
+    result.m_near = 1e-3f;
+    result.m_far = rZFar;
+    result.m_orthoSize = rOrthoSize;
+    results.push_back(result);
+  }
+#else
+  // Bound spheres
+  for (auto i = 0u; i < splitCount; i++) {
+    auto vNear = std::max(1e-4f, splitStartMeter[i]);
     auto vFar = splitEndMeter[i];
     auto vApex = ifloat3{camPos.x, camPos.y, camPos.z};
     auto sphere =
@@ -90,6 +115,7 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
     result.m_orthoSize = sphere.w * 2;
     results.push_back(result);
   }
+#endif
 
   CSMResult resultf;
   resultf.m_splits = results;
