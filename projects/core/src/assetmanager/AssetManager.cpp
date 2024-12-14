@@ -16,7 +16,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/util/Identifier.h"
 #include "ifrit/core/assetmanager/Asset.h"
 #include "ifrit/core/assetmanager/ShaderAsset.h"
@@ -46,7 +46,7 @@ IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
     // check if importer is registered for this file extension
     if (m_extensionImporterMap.find(path.extension().generic_string()) ==
         m_extensionImporterMap.end()) {
-      // printf("No importer found \n");
+      iWarn("No importer found for file: {}", path.generic_string());
       return;
     }
     auto importerName =
@@ -73,7 +73,7 @@ IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
   auto importerName = metadata.m_importer;
   // check if importer is registered
   if (m_importers.find(importerName) == m_importers.end()) {
-    printf("Importer not found: %s\n", importerName.c_str());
+    iWarn("Importer not found: {}", importerName);
     return;
   }
   auto importer = m_importers[importerName];
@@ -83,7 +83,7 @@ IFRIT_APIDECL void
 AssetManager::loadAssetDirectory(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
     auto s = path.generic_string();
-    printf("Path does not exist: %s\n", s.c_str());
+    iWarn("Path does not exist: {}", s);
   }
   for (auto &entry : std::filesystem::directory_iterator(path)) {
     if (entry.is_directory()) {

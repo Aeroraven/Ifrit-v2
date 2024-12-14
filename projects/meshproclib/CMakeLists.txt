@@ -58,5 +58,7 @@ include_directories(${IFRIT_PROJECT_SUBDIR})
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/metis/include)
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/meshoptimizer/include)
 
+add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.MeshProcLib")
+
 add_library(ifrit.meshproclib SHARED ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B})
 target_link_libraries(ifrit.meshproclib PUBLIC metis meshoptimizer GKlib)     

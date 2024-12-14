@@ -16,10 +16,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/core/assetmanager/WaveFrontAsset.h"
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include <fstream>
+
 using Ifrit::Common::Utility::size_cast;
 
 namespace Ifrit::Core {
@@ -138,7 +139,8 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
     std::vector<uint32_t> indices;
     auto rawPath = m_path.generic_string();
     loadWaveFrontObject(rawPath.c_str(), vertices, normals, uvs, indices);
-    remappedNormals = remapNormals(normals, indices, size_cast<int>(vertices.size()));
+    remappedNormals =
+        remapNormals(normals, indices, size_cast<int>(vertices.size()));
     if (uvs.size() != 0) {
       remappedUVs = remapUVs(uvs, indices, size_cast<int>(vertices.size()));
     } else {
@@ -198,7 +200,7 @@ WaveFrontAssetImporter::importAsset(const std::filesystem::path &path,
                                     AssetMetadata &metadata) {
   auto asset = std::make_shared<WaveFrontAsset>(metadata, path);
   m_assetManager->registerAsset(asset);
-  printf("Imported asset: [WaveFrontMesh] %s\n", metadata.m_uuid.c_str());
+  iInfo("Imported asset: [WaveFrontMesh] {}", metadata.m_uuid);
 }
 
 } // namespace Ifrit::Core

@@ -14,6 +14,7 @@ file(GLOB_RECURSE IFRIT_CORELIB_HEADER_FILES ${IFRIT_PROJECT_DIR}"/include/ifrit
 add_definitions(-DIFRIT_DLL)
 add_definitions(-DIFRIT_API_EXPORT)
 add_definitions(-DIFRIT_CORELIB_SHARED_SHADER_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.shader")
+add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.Core")
 
 # set cxx20
 set(CMAKE_CXX_STANDARD 20)

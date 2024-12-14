@@ -16,8 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
-
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -179,7 +177,8 @@ IFRIT_APIDECL void Swapchain::init() {
   swapchainCI.imageColorSpace = m_preferredSurfaceFormat.colorSpace;
   swapchainCI.imageExtent = m_extent;
   swapchainCI.imageArrayLayers = 1;
-  swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  swapchainCI.imageUsage =
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
   // Note: Beware of queue family ownership
   swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -279,7 +278,6 @@ IFRIT_APIDECL uint32_t Swapchain::acquireNextImage() {
   vkWaitForFences(m_context->getDevice(), 1, &m_inFlightFences[m_currentFrame],
                   VK_TRUE, UINT64_MAX);
   vkResetFences(m_context->getDevice(), 1, &m_inFlightFences[m_currentFrame]);
-  // printf("frame acquired %d\n", m_currentFrame);
   uint32_t imageIndex;
   vkAcquireNextImageKHR(m_context->getDevice(), m_swapchain, UINT64_MAX,
                         m_imageAvailableSemaphores[m_currentFrame],

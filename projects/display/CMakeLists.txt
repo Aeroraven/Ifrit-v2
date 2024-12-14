@@ -30,6 +30,8 @@ else()
     target_link_libraries(ifrit.display  glfw  Vulkan::Vulkan)
 endif()
 
+add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.Display")
+
 include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/WindowsLibConv.cmake)
 WindowsPostbuild(ifrit.display "libifrit.display.def" "libifrit.display.dll" "libifrit.display.lib" ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "x64")
 WindowsPrebuild(ifrit.display ${IFRIT_PROJECT_DIR}/bin x64)

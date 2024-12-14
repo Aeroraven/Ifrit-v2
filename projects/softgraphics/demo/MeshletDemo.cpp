@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "MeshletDemo.h"
 #include "./demo/shader/DefaultDemoShaders.cuh"
 #include "core/data/Image.h"
@@ -127,14 +126,11 @@ int mainGpu() {
   std::vector<int> outVertOffset, outIndexOffset;
 
   Meshlet mergedMeshlet;
-  printf("Prepare to build\n");
   mBuilder.buildMeshlet(0, outMeshlet);
   mBuilder.mergeMeshlet(outMeshlet, mergedMeshlet, outVertOffset,
                         outIndexOffset, false);
   int totalMeshlets = outMeshlet.size(), totalInds = mergedMeshlet.ibufs.size(),
       totalVerts = mergedMeshlet.vbufs.getVertexCount();
-  printf("Built %d %d %d\n", totalMeshlets, totalInds, totalVerts);
-
   frameBuffer.setColorAttachments({image.get()});
   frameBuffer.setDepthAttachment(*depth);
 

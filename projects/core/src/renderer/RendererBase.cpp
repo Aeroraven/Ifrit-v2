@@ -92,7 +92,6 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
 
   if (perframeData.m_views.size() < 1 + shadowViewCounts) {
     perframeData.m_views.resize(1 + shadowViewCounts);
-    printf("Resized views to %d\n", 1 + shadowViewCounts);
   }
   if (perframeData.m_shadowData2.m_shadowViews.size() <
       m_config->m_shadowConfig.k_maxShadowMaps) {

@@ -16,12 +16,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/core/renderer/SyaroRenderer.h"
+#include "ifrit/common/logging/Logging.h"
+
 #include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/math/constfunc/ConstFunc.h"
 #include "ifrit/common/util/FileOps.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/renderer/RendererUtil.h"
+#include "ifrit/core/renderer/SyaroRenderer.h"
 #include "ifrit/core/renderer/util/RenderingUtils.h"
 #include <algorithm>
 #include <bit>
@@ -357,13 +359,13 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     auto postprocRTs = m_postprocRTs[{mainRtWidth, mainRtHeight}];
     auto postprocRT1 = postprocRTs[1];
     auto deferShadowId = perframeData.m_deferShadowMaskId.get();
-    m_gaussianHori->renderPostFx(cmd, postprocRT1.get(), deferShadowId, 5);
+    m_gaussianHori->renderPostFx(cmd, postprocRT1.get(), deferShadowId, 3);
   });
 
   fg.setExecutionFunction(passBlurShadowVert, [&]() {
     auto postprocId = m_postprocTexId[{mainRtWidth, mainRtHeight}][1];
     m_gaussianVert->renderPostFx(cmd, perframeData.m_deferShadowMaskRTs.get(),
-                                 postprocId.get(), 5);
+                                 postprocId.get(), 3);
   });
 
   fg.setExecutionFunction(passDeferredShading, [&]() {
@@ -1265,7 +1267,6 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
         perView.m_visPassDepth, perView.m_visDepthSampler.get());
     perView.m_visDepthRT = rhi->createRenderTargetDepthStencil(
         visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
-    printf("Setting up visibility buffer\n");
 
     perView.m_visRTs = rhi->createRenderTargets();
     if (perView.m_viewType == PerFrameData::ViewType::Primary) {
@@ -1682,7 +1683,7 @@ SyaroRenderer::render(
 
   auto mainTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
-        printf("GPUTimer: %f ms/frame\n", m_timer->getElapsedMs());
+        iDebug("GPUTimer: {} ms/frame", m_timer->getElapsedMs());
         m_timer->start(cmd);
         renderTwoPassOcclCulling(CullingPass::First, perframeData,
                                  renderTargets, cmd,

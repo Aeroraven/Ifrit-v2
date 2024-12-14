@@ -681,16 +681,6 @@ IFRIT_APIDECL void RenderGraph::build(uint32_t numMultiBuffers) {
   for (int i = 0; i < m_passes.size(); i++) {
     m_subgraphs[m_subgraphBelonging[i]].push_back(i);
   }
-
-  // stat
-  printf("Number of subgraphs: %d\n", numSubgraph);
-  for (int i = 0; i < m_subgraphs.size(); i++) {
-    printf("Subgraph %d: ", i);
-    for (int j = 0; j < m_subgraphs[i].size(); j++) {
-      printf("%d ", m_subgraphs[i][j]);
-    }
-    printf("\n");
-  }
 }
 
 IFRIT_APIDECL std::vector<std::vector<uint32_t>> &RenderGraph::getSubgraphs() {

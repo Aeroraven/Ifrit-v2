@@ -16,10 +16,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
+#include "ifrit/common/logging/Logging.h"
 
-#include "ifrit/core/scene/SceneAssetManager.h"
 #include "ifrit/common/serialization/SerialInterface.h"
 #include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/scene/SceneAssetManager.h"
 #include <fstream>
 
 using namespace Ifrit::Common::Utility;
@@ -56,7 +57,8 @@ SceneAssetImporter::importAsset(const std::filesystem::path &path,
   fileName = fileName.substr(0, fileName.find_last_of("."));
   m_assetManager->registerAsset(asset);
   m_sceneAssetManager->registerScene(fileName, asset->getScene());
-  printf("Imported asset: [Scene] %s\n", metadata.m_uuid.c_str());
+
+  iInfo("Imported asset: [Scene] {}", metadata.m_uuid);
 }
 
 // Manager

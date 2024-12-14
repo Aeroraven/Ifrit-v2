@@ -17,6 +17,7 @@ include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/VulkanResolve.cmake)
 add_definitions(-DIFRIT_DLL)
 add_definitions(-DIFRIT_API_EXPORT)
 add_definitions(-DIFRIT_VKGRAPHICS_SHARED_SHADER_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.shader")
+add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.VkGraphics")
 
 add_library(ifrit.vkrenderer SHARED ${IFRIT_VKRENDERER_SOURCE_FILES_CXX} ${IFRIT_VKRENDERER_SOURCE_FILES_C} ${IFRIT_VKRENDERER_HEADER_FILES})
 target_link_libraries(ifrit.vkrenderer Vulkan::Vulkan Vulkan::shaderc_combined)

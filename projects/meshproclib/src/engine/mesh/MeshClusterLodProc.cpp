@@ -28,6 +28,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define IFRIT_USE_SIMD_256 1
 #endif
 
+#include "ifrit/common/logging/Logging.h"
+
 #include "ifrit/common/math/VectorDefs.h"
 #include "ifrit/common/math/VectorOps.h"
 #include "ifrit/common/math/simd/SimdVectors.h"
@@ -156,7 +158,8 @@ void initialMeshletGeneration(const MeshDescriptor &mesh,
   }
 
   freeUnusedMemoryInCotenxt(ctx);
-  printf("Initial meshlet generated\n");
+  iDebug("Initial meshlet generation done, total meshlets:{}",
+         ctx.totalMeshlets);
 }
 
 void metisValidation(ClusterLodGeneratorContext &ctx) {
@@ -247,11 +250,14 @@ void metisValidation(ClusterLodGeneratorContext &ctx) {
       }
     }
     if (numSubGraphs != 1) {
-      printf("Cluster Group %d, have %d subgraphs.\n", key, numSubGraphs);
+      iWarn("After METIS cut, cluster group #{}, have {} disconnected "
+            "subgraphs.",
+            key, numSubGraphs);
       a++;
     }
   }
-  printf("Total abnormalities:%d\n", a);
+  if (a)
+    iWarn("Total abnormalities found in graph cut: {}", a);
 }
 
 void connectivityCheck(const std::vector<std::vector<int>> &adj) {
@@ -275,7 +281,7 @@ void connectivityCheck(const std::vector<std::vector<int>> &adj) {
         }
         graphSize++;
       }
-      printf("Subgraph have: %d/%lld nodes\n", graphSize, adj.size());
+      iDebug("Subgraph have: {}/{} nodes", graphSize, adj.size());
     }
   }
 }
@@ -368,7 +374,7 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
       &nvtxs, &ncon, xadjPtr, adjncyPtr, vwgt, vsize, adjwgt, &nparts, tpwgts,
       ubvec, options, &edgeCut, ctx.graphPartition.data());
   if (result != METIS_OK) {
-    printf("Partition failed\n");
+    iError("METIS partition failed, error code: {}", result);
   }
   metisValidation(ctx);
 }
@@ -551,8 +557,9 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
         meshletVertices.begin(),
         meshletVertices.begin() + newMeshletVertexSize);
 
-    printf("Simplified cluster group: %d, localError=%f, center=%f,%f,%f\n",
-           key, targetErrorModel, bCenter.x, bCenter.y, bCenter.z);
+    // iDebug("Simplified cluster group: {}, localError={}, center={},{},{}",
+    // key,
+    //        targetErrorModel, bCenter.x, bCenter.y, bCenter.z);
     outCtx.meshletTriangles.insert(
         outCtx.meshletTriangles.begin() + newMeshletTriangleOffset,
         meshletTriangles.begin(),
@@ -570,7 +577,6 @@ int generateClusterLodHierachy(const MeshDescriptor &mesh,
   ctx.resize(maxLod);
   initialMeshletGeneration(mesh, ctx[0]);
   for (int i = 1; i < maxLod; i++) {
-    printf("Generating lod:%d\n", i);
     meshletAdjacencyGeneration(ctx[i - 1]);
     // Error ramping follows:
     // https://jglrxavpok.github.io/2024/01/19/recreating-nanite-lod-generation.html
@@ -608,14 +614,14 @@ void combineBuffer(const std::vector<ClusterLodGeneratorContext> &ctx,
       outCtx.clusterGroups[prevlevelClusterGroupCount + j] =
           ctx[i].clusterGroups[j];
       if (ctx[i].meshletsInClusterGroups.size() != ctx[i].totalMeshlets) {
-        printf("inconsistent data\n");
+        iError("Inconsistent data");
         std::abort();
       }
       outCtx.clusterGroups[prevlevelClusterGroupCount + j].childMeshletStart +=
           prevlevelMeshletInGroupCount;
       outCtx.clusterGroups[prevlevelClusterGroupCount + j].lod = i;
       if (prevlevelMeshletInGroupCount != prevlevelMeshletCount) {
-        printf("inconsistent meshlet data\n");
+        iError("Inconsistent meshlet data");
         std::abort();
       }
     }
@@ -657,7 +663,6 @@ void combineBuffer(const std::vector<ClusterLodGeneratorContext> &ctx,
         Ifrit::Common::Utility::size_cast<int>(ctx[i].clusterGroups.size());
     prevlevelMeshletInGroupCount += Ifrit::Common::Utility::size_cast<int>(
         ctx[i].meshletsInClusterGroups.size());
-    printf("Meshlet count at %d:%lld\n", i, ctx[i].meshletsRaw.size());
   }
 }
 
@@ -840,7 +845,7 @@ void initialBVHConstruction(ClusterGroupBVH &bvh,
     q.push_back(leftSubTree);
     q.push_back(rightSubTree);
   }
-  printf("Raw BVH Nodes:%d\n", totalNodes);
+  iDebug("Raw BVH Nodes:{}", totalNodes);
 }
 
 // utils for bvh collapse
@@ -906,7 +911,7 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
     curNode->curChildren =
         Ifrit::Common::Utility::size_cast<uint32_t>(indChild.childNodes.size());
   }
-  printf("Total Nodes, after collapse:%d\n", totalNodes);
+  iDebug("Total Nodes, after collapse:{}", totalNodes);
 
   // After collapse, dfs for subtree size
   struct DFSRet {
@@ -1012,11 +1017,9 @@ IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(
 
   std::vector<ClusterLodGeneratorContext> ctx;
   auto p = generateClusterLodHierachy(mesh, ctx, maxLod + 1);
-  printf("FFFFFFFFFFFFF %d\n", p);
   ctx.pop_back();
   ctx.resize(p);
   for (auto i = 0; i < ctx.size(); i++) {
-    printf("Sz: %d\n", (int)(ctx[i].meshletsRaw.size()));
     meshletData.numClustersEachLod.push_back(
         Ifrit::Common::Utility::size_cast<uint32_t>(ctx[i].meshletsRaw.size()));
   }

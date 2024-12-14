@@ -27,7 +27,6 @@ namespace Ifrit::Math {
 inline ifloat4 getFrustumBoundingSphere(float fovy, float aspect, float fNear,
                                         float fFar, ifloat3 apex) {
   float halfFov = fovy / 2.0f;
-  printf("HalfFov %f\n", std::tan(halfFov));
   auto halfHeightNear = fNear * std::tan(halfFov);
   auto halfWidthNear = halfHeightNear * aspect;
   auto halfHeightFar = fFar * std::tan(halfFov);

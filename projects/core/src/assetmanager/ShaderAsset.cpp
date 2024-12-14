@@ -16,6 +16,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
+#include "ifrit/common/logging/Logging.h"
 
 #include "ifrit/core/assetmanager/ShaderAsset.h"
 #include <fstream>
@@ -80,7 +81,7 @@ ShaderAssetImporter::importAsset(const std::filesystem::path &path,
   auto asset = std::make_shared<ShaderAsset>(metadata, path,
                                              m_assetManager->getApplication());
   m_assetManager->registerAsset(asset);
-  printf("Imported asset: [Shader] %s\n", metadata.m_uuid.c_str());
+  iInfo("Imported asset: [Shader] {}", metadata.m_uuid);
 }
 
 } // namespace Ifrit::Core

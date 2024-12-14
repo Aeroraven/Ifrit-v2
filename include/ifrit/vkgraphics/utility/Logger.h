@@ -16,25 +16,26 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/logging/Logging.h"
 #include <stdexcept>
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 inline void vkrAssert(bool condition, const char *message) {
   if (!condition) {
+    iError(message);
     throw std::runtime_error(message);
   }
 }
-inline void vkrDebug(const char *message) { printf("%s\n", message); }
+inline void vkrDebug(const char *message) { iDebug(message); }
 inline void vkrVulkanAssert(VkResult result, const char *message) {
   if (result != VK_SUCCESS) {
-    printf("Error code: %d\n", result);
+    iError("Error code: {}", static_cast<uint32_t>(result));
     throw std::runtime_error(message);
   }
 }
-inline void vkrLog(const char *message) { printf("%s\n", message); }
+inline void vkrLog(const char *message) { iInfo(message); }
 inline void vkrError(const char *message) {
-  fprintf(stderr, "%s\n", message);
+  iError(message);
   throw std::runtime_error(message);
 }
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

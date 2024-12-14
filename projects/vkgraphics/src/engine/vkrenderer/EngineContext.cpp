@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
@@ -39,13 +38,13 @@ bool enableExtension(
     }
   }
   if (mandatory) {
-
     // print all available extensions
-    printf("Available extensions:\n");
+
+    iInfo("Available extensions:");
     for (auto ext : availableExtensions) {
       vkrLog(ext.extensionName);
     }
-    vkrError("Extension not found");
+    iError("Extension not found: {}", extension);
   }
   return false;
 }
@@ -59,7 +58,7 @@ bool enableLayer(bool mandatory, const char *layer,
     }
   }
   if (mandatory) {
-    vkrError("Layer not found");
+    iError("Layer not found: {}", layer);
   }
   return false;
 }
@@ -79,7 +78,8 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 
               const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
               void *pUserData) {
-  vkrLog(pCallbackData->pMessage);
+  iWarn("Validation layer called");
+  iWarn(pCallbackData->pMessage);
   std::abort();
   return VK_FALSE;
 }
@@ -88,8 +88,7 @@ template <typename T>
 void loadExtFunc(T &extf, const char *name, VkDevice device) {
   extf = (T)vkGetDeviceProcAddr(device, name);
   if (!extf) {
-    printf("Loading: %s\n", name);
-    vkrError("Failed to load extension function");
+    iError("Failed to load extension function: {}", name);
   }
 }
 
@@ -129,7 +128,7 @@ IFRIT_APIDECL void EngineContext::loadExtensionFunction() {
               m_device);
   // loadExtFunc(m_extf.p_vkCmdSetCullModeEXT, "vkCmdSetCullModeEXT", m_device);
 
-  vkrLog("Extension functions loaded");
+  vkrDebug("Extension functions loaded");
 }
 IFRIT_APIDECL
 EngineContext::EngineContext(const Rhi::RhiInitializeArguments &args)
@@ -205,7 +204,7 @@ IFRIT_APIDECL void EngineContext::init() {
 
   vkrVulkanAssert(vkCreateInstance(&instanceCI, nullptr, &m_instance),
                   "Failed to create Vulkan instance");
-  vkrLog("Instance created");
+  vkrDebug("Instance created");
 
   // Debug Messenger
   if (m_args.m_enableValidationLayer) {
@@ -253,7 +252,7 @@ IFRIT_APIDECL void EngineContext::init() {
     vkrError("No suitable physical device found");
   }
   m_physicalDevice = bestDevice;
-  vkrLog("Physical device selected");
+  vkrDebug("Physical device selected");
 
   // Physical Device Propertie
   vkGetPhysicalDeviceProperties(m_physicalDevice, &m_phyDeviceProperties);
@@ -415,7 +414,7 @@ IFRIT_APIDECL void EngineContext::init() {
   deviceCI.ppEnabledLayerNames = targetLayersDevice.data();
   vkrVulkanAssert(vkCreateDevice(bestDevice, &deviceCI, nullptr, &m_device),
                   "Failed to create logical device");
-  vkrLog("Logical device created");
+  vkrDebug("Logical device created");
 
   // Retrieve Queues
   for (uint32_t i = 0; i < m_queueInfo.m_queueFamilies.size(); i++) {
@@ -446,11 +445,12 @@ IFRIT_APIDECL void EngineContext::init() {
   vmaCreateAllocator(&allocatorCI, &m_allocator);
 
   loadExtensionFunction();
-  vkrLog("Allocator created");
+  vkrDebug("Allocator created");
+
+  vkrLog("Engine context initialized");
 }
 
 void EngineContext::destructor() {
-  printf("Destructor\n");
   vmaDestroyAllocator(m_allocator);
   vkDestroyDevice(m_device, nullptr);
   if (m_args.m_enableValidationLayer) {
