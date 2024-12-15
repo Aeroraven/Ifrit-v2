@@ -459,7 +459,10 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   FrameGraphCompiler compiler;
   auto compiledGraph = compiler.compile(fg);
   FrameGraphExecutor executor;
+
+  cmd->beginScope("Syaro: Deferred Shading");
   executor.executeInSingleCmd(cmd, compiledGraph);
+  cmd->endScope();
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupPbrAtmosphereRenderer() {
@@ -967,7 +970,11 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
         (perView.m_spHiZData.m_hizHeight + cSPHiZTileSize - 1) / cSPHiZTileSize;
     ctx->m_cmd->dispatch(tgX, tgY, 1);
   });
-
+  if (cullPass == CullingPass::First) {
+    cmd->beginScope("Syaro: Cull Rasterize I");
+  } else {
+    cmd->beginScope("Syaro: Cull Rasterize II");
+  }
   cmd->beginScope("Syaro: Instance Culling Pass");
   m_instanceCullingPass->run(cmd, 0);
   cmd->endScope();
@@ -992,6 +999,7 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
   cmd->globalMemoryBarrier();
   cmd->beginScope("Syaro: HiZ Pass");
   m_singlePassHiZPass->run(cmd, 0);
+  cmd->endScope();
   cmd->endScope();
 }
 
@@ -1419,6 +1427,29 @@ SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData,
   m_aoPass->renderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(),
                        ao.get(), perframe.get());
   cmd->resourceBarrier({perframeData.m_gbuffer.m_specular_occlusionBarrier});
+
+  // Blurring AO
+  auto rhi = m_app->getRhiLayer();
+  cmd->globalMemoryBarrier();
+  auto colorRT1 = rhi->createRenderTarget(
+      perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
+      {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Clear, 0, 0);
+  auto colorRT2 = rhi->createRenderTarget(
+      perframeData.m_gbuffer.m_specular_occlusion.get(), {{0, 0, 0, 0}},
+      RhiRenderTargetLoadOp::Clear, 0, 0);
+  auto rt1 = rhi->createRenderTargets();
+  rt1->setColorAttachments({colorRT1.get()});
+  rt1->setRenderArea(renderTargets->getRenderArea());
+  auto rt2 = rhi->createRenderTargets();
+  rt2->setColorAttachments({colorRT2.get()});
+  rt2->setRenderArea(renderTargets->getRenderArea());
+
+  m_gaussianHori->renderPostFx(
+      cmd, rt1.get(), perframeData.m_gbuffer.m_specular_occlusion_sampId.get(),
+      5);
+  m_gaussianVert->renderPostFx(
+      cmd, rt2.get(),
+      perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId.get(), 5);
   cmd->endScope();
 }
 

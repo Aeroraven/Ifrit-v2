@@ -28,10 +28,8 @@ layout(push_constant) uniform GaussianHoriParams{
 } pc;
 
 void main(){
-    vec3 color = vec3(0.0);
-
+    vec4 color = vec4(0.0);
     vec2 fragCoord = vec2(gl_FragCoord.x, gl_FragCoord.y);
-    //texelFetch
     float offset = 1.0;
     float totalWeights = 0.0;
     for(int i = -int(pc.kernelSize) / 2; i <= int(pc.kernelSize) / 2; i++){
@@ -39,8 +37,8 @@ void main(){
         float y = fragCoord.y;
         float gaussianWeight = 1.0 / sqrt(2.0 * 3.14159265359 * 1.0) * exp(-float(i * i) / (2.0 * 1.0));
         totalWeights += gaussianWeight;
-        color += texelFetch(GetSampler2D(pc.inputTexture), ivec2(x, y), 0).rgb * gaussianWeight;
+        color += texelFetch(GetSampler2D(pc.inputTexture), ivec2(x, y), 0).rgbas * gaussianWeight;
     }
-    outColor = vec4(color / totalWeights, 1.0);
+    outColor = vec4(color / totalWeights);
 }
 

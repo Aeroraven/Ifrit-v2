@@ -283,6 +283,10 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
         rhi->createRenderTargetTexture(rtArea.width + rtArea.x,
                                        rtArea.height + rtArea.y, targetFomrat,
                                        targetUsage);
+    perframeData.m_gbuffer.m_specular_occlusion_intermediate =
+        rhi->createRenderTargetTexture(rtArea.width + rtArea.x,
+                                       rtArea.height + rtArea.y, targetFomrat,
+                                       targetUsage);
     perframeData.m_gbuffer.m_shadowMask = rhi->createRenderTargetTexture(
         rtArea.width + rtArea.x, rtArea.height + rtArea.y, targetFomrat,
         targetUsage);
@@ -298,6 +302,10 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
         perframeData.m_gbuffer.m_normal_smoothness.get(), {0, 0, 1, 1});
     perframeData.m_gbuffer.m_specular_occlusionId = rhi->registerUAVImage(
         perframeData.m_gbuffer.m_specular_occlusion.get(), {0, 0, 1, 1});
+    perframeData.m_gbuffer.m_specular_occlusion_intermediateId =
+        rhi->registerUAVImage(
+            perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
+            {0, 0, 1, 1});
     perframeData.m_gbuffer.m_shadowMaskId = rhi->registerUAVImage(
         perframeData.m_gbuffer.m_shadowMask.get(), {0, 0, 1, 1});
 
@@ -309,6 +317,10 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
     perframeData.m_gbuffer.m_specular_occlusion_sampId =
         rhi->registerCombinedImageSampler(
             perframeData.m_gbuffer.m_specular_occlusion.get(),
+            perframeData.m_gbuffer.m_gbufferSampler.get());
+    perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId =
+        rhi->registerCombinedImageSampler(
+            perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
             perframeData.m_gbuffer.m_gbufferSampler.get());
 
     // barriers

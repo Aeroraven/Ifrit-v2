@@ -130,6 +130,7 @@ struct PerFrameData {
   struct GBuffer {
     std::shared_ptr<GPUTexture> m_albedo_materialFlags;
     std::shared_ptr<GPUTexture> m_specular_occlusion;
+    std::shared_ptr<GPUTexture> m_specular_occlusion_intermediate;
     std::shared_ptr<GPUTexture> m_normal_smoothness;
     std::shared_ptr<GPUTexture> m_emissive;
     std::shared_ptr<GPUTexture> m_shadowMask;
@@ -143,6 +144,8 @@ struct PerFrameData {
     std::shared_ptr<GPUBindlessId> m_albedo_materialFlagsId;
     std::shared_ptr<GPUBindlessId> m_specular_occlusionId;
     std::shared_ptr<GPUBindlessId> m_specular_occlusion_sampId;
+    std::shared_ptr<GPUBindlessId> m_specular_occlusion_intermediateId;
+    std::shared_ptr<GPUBindlessId> m_specular_occlusion_intermediate_sampId;
     std::shared_ptr<GPUBindlessId> m_normal_smoothnessId;
     std::shared_ptr<GPUBindlessId> m_normal_smoothness_sampId;
     std::shared_ptr<GPUBindlessId> m_emissiveId;
