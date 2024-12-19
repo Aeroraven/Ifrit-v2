@@ -28,11 +28,13 @@ struct PostprocessPassConfig {
   std::string fragPath;
   uint32_t numPushConstants;
   uint32_t numDescriptorSets;
+  bool isComputeShader = false;
 };
 
 class IFRIT_APIDECL PostprocessPass {
 protected:
   using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;
+  using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
   using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandBuffer;
@@ -44,11 +46,13 @@ protected:
   std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
                      PipelineAttachmentConfigsHash>
       m_renderPipelines;
+  ComputePass *m_computePipeline = nullptr;
 
   GPUShader *createShaderFromFile(const std::string &shaderPath,
                                   const std::string &entry,
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
   DrawPass *setupRenderPipeline(RenderTargets *renderTargets);
+  ComputePass *setupComputePipeline();
 
 protected:
   void renderInternal(PerFrameData *perframeData, RenderTargets *renderTargets,

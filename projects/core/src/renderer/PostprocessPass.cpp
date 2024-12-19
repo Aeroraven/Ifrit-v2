@@ -1,4 +1,5 @@
 #include "ifrit/core/renderer/PostprocessPass.h"
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/util/FileOps.h"
 
 using namespace Ifrit::GraphicsBackend::Rhi;
@@ -43,6 +44,21 @@ PostprocessPass::setupRenderPipeline(RenderTargets *renderTargets) {
   return pass;
 }
 
+IFRIT_APIDECL PostprocessPass::ComputePass *
+PostprocessPass::setupComputePipeline() {
+  auto rhi = m_app->getRhiLayer();
+  if (m_computePipeline == nullptr) {
+    m_computePipeline = rhi->createComputePass();
+    auto csShader =
+        createShaderFromFile(m_cfg.fragPath, "main", RhiShaderStage::Compute);
+    m_computePipeline->setNumBindlessDescriptorSets(m_cfg.numDescriptorSets);
+    m_computePipeline->setComputeShader(csShader);
+    m_computePipeline->setPushConstSize(sizeof(uint32_t) *
+                                        m_cfg.numPushConstants);
+  }
+  return m_computePipeline;
+}
+
 IFRIT_APIDECL void PostprocessPass::renderInternal(
     PerFrameData *perframeData, RenderTargets *renderTargets,
     const GPUCmdBuffer *cmd, const void *pushConstants,
@@ -71,6 +87,12 @@ IFRIT_APIDECL void PostprocessPass::renderInternal(
 
 IFRIT_APIDECL PostprocessPass::PostprocessPass(IApplication *app,
                                                const PostprocessPassConfig &cfg)
-    : m_app(app), m_cfg(cfg) {}
+    : m_app(app), m_cfg(cfg) {
+
+  if (cfg.isComputeShader) {
+    iInfo("Creating compute shader pipeline");
+    setupComputePipeline();
+  }
+}
 
 } // namespace Ifrit::Core

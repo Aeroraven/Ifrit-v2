@@ -293,5 +293,5 @@ void main(){
     viewPos /= viewPos.w;
     float shadow = globalShadowMapping(worldPos.xyz,viewPos.xyz);
 
-    outColor = vec4(shadow);
+    outColor = vec4(vec3(shadow),1.0);
 }

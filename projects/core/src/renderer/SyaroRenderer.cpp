@@ -104,6 +104,8 @@ IFRIT_APIDECL void SyaroRenderer::setupPostprocessPassAndTextures() {
       std::make_unique<PostprocessPassCollection::PostFxGaussianHori>(m_app);
   m_gaussianVert =
       std::make_unique<PostprocessPassCollection::PostFxGaussianVert>(m_app);
+  m_stockhamDFT2 =
+      std::make_unique<PostprocessPassCollection::PostFxStockhamDFT2>(m_app);
 
   // tex and samplers
   m_postprocTexSampler = m_app->getRhiLayer()->createTrivialSampler();
@@ -1751,6 +1753,16 @@ SyaroRenderer::render(
   auto deferredTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         setupAndRunFrameGraph(perframeData, renderTargets, cmd);
+
+        // Testing DFT
+        cmd->globalMemoryBarrier();
+        auto width = renderTargets->getRenderArea().width +
+                     renderTargets->getRenderArea().x;
+        auto height = renderTargets->getRenderArea().height +
+                      renderTargets->getRenderArea().y;
+        auto postprocTex0Id = m_postprocTexId[{width, height}][0].get();
+        m_stockhamDFT2->renderPostFx(cmd, postprocTex0Id, nullptr, width,
+                                     height, 4);
       },
       {mainTask.get()}, {});
 

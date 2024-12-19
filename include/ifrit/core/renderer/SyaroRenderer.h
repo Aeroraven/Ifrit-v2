@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "postprocessing/PostFxGaussianHori.h"
 #include "postprocessing/PostFxGaussianVert.h"
 #include "postprocessing/PostFxGlobalFog.h"
+#include "postprocessing/PostFxStockhamDFT2.h"
 
 namespace Ifrit::Core {
 class IFRIT_APIDECL SyaroRenderer : public RendererBase {
@@ -138,6 +139,7 @@ private:
   std::unique_ptr<PostprocessPassCollection::PostFxGlobalFog> m_globalFogPass;
   std::unique_ptr<PostprocessPassCollection::PostFxGaussianHori> m_gaussianHori;
   std::unique_ptr<PostprocessPassCollection::PostFxGaussianVert> m_gaussianVert;
+  std::unique_ptr<PostprocessPassCollection::PostFxStockhamDFT2> m_stockhamDFT2;
 
   // Render config
   RendererConfig m_renderConfig;
