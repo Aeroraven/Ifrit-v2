@@ -99,10 +99,9 @@ PostFxStockhamDFT2::renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId,
   wgY = p2Width;
   runCommand(cmd, wgX, wgY, &pc);
   cmd->endScope();
-  s
 
-      // IDFT
-      pc.dftMode = 1;
+  // IDFT
+  pc.dftMode = 1;
   cmd->beginScope("Postprocess: Stockham DFT2, IDFT-Y");
   pc.orientation = 0;
   wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Height / 2, 256);

@@ -99,7 +99,121 @@ def sidft(x:list[complex])->list[float]:
 def sdft(x:list[float])->list[complex]:
     return stockham_iter_dft_impl(x,-1,1)
 
+def fftshift(x:np.ndarray)->np.ndarray:
+    ret = np.zeros_like(x,dtype=np.complex128)
+    rows, cols = x.shape
+    for r in range(rows):
+        for c in range(cols):
+            ret[r,c] = x[(r+rows//2)%rows,(c+cols//2)%cols]
+    return ret
+
+def ifftshift(x:np.ndarray)->np.ndarray:
+    ret = np.zeros_like(x,dtype=np.complex128)
+    rows, cols = x.shape
+    for r in range(rows):
+        for c in range(cols):
+            ret[r,c] = x[(r-rows//2)%rows,(c-cols//2)%cols]
+    return ret
+
+def sdft2(x:np.ndarray)->np.ndarray:
+    ret = np.zeros_like(x,dtype=np.complex128)
+    intm = np.zeros_like(x,dtype=np.complex128)
+    rows, cols = x.shape
+    for r in range(rows):
+        intm[r,:] = np.array(sdft(x[r]))
+    for c in range(cols):
+        ret[:,c] = np.array(sdft(intm[:,c]))
+    return ret
+
+def sidft2(x:np.ndarray)->np.ndarray:
+    ret = np.zeros_like(x)
+    intm = np.zeros_like(x)
+    rows, cols = x.shape
+    for c in range(cols):
+        intm[:,c] = np.array(sidft(x[:,c]))
+    for r in range(rows):
+        ret[r,:] = np.array(sidft(intm[r]))
+    return ret
+
+def fftconv(x:np.ndarray,y:np.ndarray)->np.ndarray:
+    yh, yw = y.shape
+    xh, xw = x.shape
+    assert yh == yw and xh == xw, "Only support square kernel"
+    image_padding = yh//2   
+    image_pad = np.pad(x,((image_padding,image_padding),(image_padding,image_padding)),"constant")
+    
+    pad_0_low = image_pad.shape[0] // 2 - yh // 2
+    pad_0_high = image_pad.shape[0] - yh - pad_0_low
+    pad_1_low = image_pad.shape[1] // 2 - yw // 2
+    pad_1_high = image_pad.shape[1] - yw - pad_1_low
+    kernel_pad = np.pad(y,((pad_0_low,pad_0_high),(pad_1_low,pad_1_high)),"constant")
+
+    # pad to 512
+    image_pad2 = np.zeros((512,512))
+    kernel_pad2 = np.zeros((512,512))
+
+    # put image_pad to image_pad2, in center
+    image_pad2[256-128:256+128,256-128:256+128] = image_pad
+    kernel_pad2[256-128:256+128,256-128:256+128] = kernel_pad
+
+
+    kernel_shift = ifftshift(kernel_pad2)
+    
+    print(image_pad.shape,kernel_shift.shape)
+    img_fft = sdft2(image_pad2)
+    kernel_fft = sdft2(kernel_shift)
+    conv = img_fft * kernel_fft
+    print(kernel_fft)  
+    conv = sidft2(conv)
+    return conv[256-128:256+128,256-128:256+128]
+
+def fftconvnp(x:np.ndarray,y:np.ndarray)->np.ndarray:
+    yh, yw = y.shape
+    xh, xw = x.shape
+    assert yh == yw and xh == xw, "Only support square kernel"
+    image_padding = yh//2   
+    image_pad = np.pad(x,((image_padding,image_padding),(image_padding,image_padding)),"constant")
+
+    pad_0_low = image_pad.shape[0] // 2 - yh // 2
+    pad_0_high = image_pad.shape[0] - yh - pad_0_low
+    pad_1_low = image_pad.shape[1] // 2 - yw // 2
+    pad_1_high = image_pad.shape[1] - yw - pad_1_low
+    kernel_pad = np.pad(y,((pad_0_low,pad_0_high),(pad_1_low,pad_1_high)),"constant")
+
+    kernel_shift = ifftshift(kernel_pad)
+    
+    print(image_pad.shape,kernel_shift.shape)
+    img_fft = sdft2(image_pad)
+    kernel_fft = np.fft.fft2(kernel_shift)
+    conv = img_fft * kernel_fft
+    print(kernel_fft)
+
+    conv = sidft2(conv)
+    return conv[image_padding:-image_padding,image_padding:-image_padding]
+
+def simpleconv(x:np.ndarray,y:np.ndarray)->np.ndarray:
+    # no fft
+    yh, yw = y.shape
+    xh, xw = x.shape
+    assert yh == yw and xh == xw, "Only support square kernel"
+    image_padding = yh//2
+    image_pad = np.pad(x,((image_padding,image_padding),(image_padding,image_padding)),"constant")
+
+    pad_0_low = image_pad.shape[0] // 2 - yh // 2
+    pad_0_high = image_pad.shape[0] - yh - pad_0_low
+    pad_1_low = image_pad.shape[1] // 2 - yw // 2
+    pad_1_high = image_pad.shape[1] - yw - pad_1_low
+    kernel_pad = np.pad(y,((pad_0_low,pad_0_high),(pad_1_low,pad_1_high)),"constant")
+
+    conv = np.zeros_like(image_pad)
+    for r in range(image_padding,image_pad.shape[0]-image_padding):
+        for c in range(image_padding,image_pad.shape[1]-image_padding):
+            conv[r,c] = np.sum(image_pad[r-image_padding:r+image_padding+1,c-image_padding:c+image_padding+1]*y)
+    return conv[image_padding:-image_padding,image_padding:-image_padding]
+    
+
 def dft2(x:np.ndarray)->np.ndarray:
+
     ret = np.zeros_like(x)
     intm = np.zeros_like(x)
     rows, cols = x.shape
@@ -127,7 +241,7 @@ def main1():
     from PIL import Image
     from matplotlib import pyplot as plt
     x = Image.open(r"../projects/demo/Assets/texture.png")
-    x = x.resize((256,256))
+    x = x.resize((256-2,256-2))
     bt = x.tobytes()
     print(len(bt),x.height,x.width,x.height*x.width*3)
     w = np.frombuffer(bt,dtype=np.uint8)
@@ -163,5 +277,51 @@ def main2():
     print(f3)
     print(if3)
 
+def gaussian_kernel(size:int,sigma:float)->np.ndarray:
+    kernel = np.zeros((size,size))
+    for r in range(size):
+        for c in range(size):
+            kernel[r,c] = math.exp(-((r-size//2)**2+(c-size//2)**2)/(2*sigma*sigma))
+    return kernel
+
+def sobel_kernel()->np.ndarray:
+    kernel = np.zeros((3,3))
+    kernel[0,:] = [-1,-2,-1]
+    kernel[2,:] = [1,2,1]
+    return kernel
+
+def main3():
+    from PIL import Image
+    from matplotlib import pyplot as plt
+    x = Image.open(r"../projects/demo/Assets/texture.png")
+
+    kernel_size = 3
+    
+    x = x.resize((256-kernel_size+1,256-kernel_size+1))
+    bt = x.tobytes()
+    print(len(bt),x.height,x.width,x.height*x.width*3)
+    w = np.frombuffer(bt,dtype=np.uint8)
+    w = np.reshape(w,(x.height,x.width,3)).astype(np.complex128)
+    print(w.shape)
+
+    w = w[:,:,0] / np.max(w[:,:,0])
+    kernel = sobel_kernel()#gaussian_kernel(kernel_size,55)
+
+    res_fft = fftconv(w,kernel).real
+    res_simple = simpleconv(w,kernel).real
+    res_fftnp = fftconvnp(w,kernel).real
+
+    plt.figure()
+    plt.subplot(221)
+    plt.imshow(w.astype(np.float32),cmap="gray")
+    plt.subplot(222)
+    plt.imshow(res_fft.astype(np.float32),cmap="gray")
+    plt.subplot(223)
+    plt.imshow(res_simple.astype(np.float32),cmap="gray")
+    plt.subplot(224)
+    plt.imshow(res_fftnp.astype(np.float32),cmap="gray")
+    plt.show()
+
+
 if __name__ == "__main__":
-    main2()
+    main3()
