@@ -95,7 +95,7 @@ void main(){
     float cosAngRad = cos(GetResource(bAtmo, uAtmoRenderPushConstant.atmo).data.sun_angular_radius);
 
     // Solar radiance
-    vec3 solarRadiance = GetSolarRadiance(atmo);
+    vec3 solarRadiance = vec3(0.0);//GetSolarRadiance(atmo);
     vec3 sunDirection = normalize(vec3(-0.612372,0.500000,0.612372));
 
     // Get ground radiance, intersection with ground

@@ -213,6 +213,8 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   auto resTAAHistoryOutput = fg.addResource("TAAHistoryOutput");
   auto resFinalOutput = fg.addResource("FinalOutput");
 
+  auto resBloomOutput = fg.addResource("BloomOutput");
+
   std::vector<ResourceNodeId> resGbufferShadowReq = {
       resGbufferAlbedoMaterial, resGbufferNormalSmoothness,
       resGbufferSpecularAO, resMotionDepth, resPrimaryViewDepth};
@@ -250,8 +252,11 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   auto passTAAResolve = fg.addPass(
       "TAAResolve", FrameGraphPassType::Graphics, {resGlobalFogOutput},
       {resTAAFrameOutput, resTAAHistoryOutput}, {});
+
+  auto passConvBloom = fg.addPass("ConvBloom", FrameGraphPassType::Graphics,
+                                  {resTAAFrameOutput}, {resBloomOutput}, {});
   auto passToneMapping = fg.addPass("ToneMapping", FrameGraphPassType::Graphics,
-                                    {resTAAFrameOutput}, {resFinalOutput}, {});
+                                    {resBloomOutput}, {resFinalOutput}, {});
 
   // binding resources to pass
   auto &primaryView = getPrimaryView(perframeData);
@@ -304,6 +309,9 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
       resTAAHistoryOutput,
       perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(),
       {0, 0, 1, 1});
+  fg.setImportedResource(resBloomOutput,
+                         m_postprocTex[{mainRtWidth, mainRtHeight}][1].get(),
+                         {0, 0, 1, 1});
   fg.setImportedResource(
       resFinalOutput, renderTargets->getColorAttachment(0)->getRenderTarget(),
       {0, 0, 1, 1});
@@ -446,10 +454,22 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
         pconst, 3);
     cmd->endScope();
   });
+  fg.setExecutionFunction(passConvBloom, [&]() {
+    cmd->beginScope("Syaro: Convolution Bloom");
+    auto width =
+        renderTargets->getRenderArea().width + renderTargets->getRenderArea().x;
+    auto height = renderTargets->getRenderArea().height +
+                  renderTargets->getRenderArea().y;
+    auto postprocTex0Id = m_postprocTexId[{width, height}][0].get();
+    auto postprocTex1Id = m_postprocTexIdComp[{width, height}][1].get();
+    m_fftConv2d->renderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr,
+                              width, height, 33, 33, 2);
+    cmd->endScope();
+  });
   fg.setExecutionFunction(passToneMapping, [&]() {
     m_acesToneMapping->renderPostFx(
         cmd, renderTargets,
-        m_postprocTexId[{mainRtWidth, mainRtHeight}][0].get());
+        m_postprocTexId[{mainRtWidth, mainRtHeight}][1].get());
   });
 
   // transition input resources
@@ -1755,17 +1775,6 @@ SyaroRenderer::render(
   auto deferredTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         setupAndRunFrameGraph(perframeData, renderTargets, cmd);
-
-        // Testing DFT
-        cmd->globalMemoryBarrier();
-        auto width = renderTargets->getRenderArea().width +
-                     renderTargets->getRenderArea().x;
-        auto height = renderTargets->getRenderArea().height +
-                      renderTargets->getRenderArea().y;
-        auto postprocTex0Id = m_postprocTexId[{width, height}][0].get();
-        auto postprocTex1Id = m_postprocTexIdComp[{width, height}][1].get();
-        m_fftConv2d->renderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr,
-                                  width, height, 3, 3, 4);
       },
       {mainTask.get()}, {});
 

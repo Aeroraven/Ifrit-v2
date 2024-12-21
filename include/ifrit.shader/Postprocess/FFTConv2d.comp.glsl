@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #version 450
 #include "Base.glsl"
 #include "Bindless.glsl"
-
+#include "Postprocess/FFTConv2d.Shared.h"
 
 layout(push_constant) uniform PushConstFFTConv2d{
     uint srcDownScale;
@@ -39,6 +39,7 @@ layout(push_constant) uniform PushConstFFTConv2d{
     uint fftTexSizeWLog;
     uint fftTexSizeHLog;
     uint fftStep;
+    uint bloomMix;
 }pc;
 
 const uint kStepDFT1 = 0;
@@ -49,7 +50,7 @@ const uint kStepMultiply = 4;
 const uint kStepIDFT2 = 5;
 const uint kStepIDFT1 = 6;
 
-const uint kBlockSize = 256;
+const uint kBlockSize = cThreadGroupSizeX;
 layout(local_size_x=kBlockSize,local_size_y=1,local_size_z=1) in;
 
 float getSobelKernel(uint x,uint y){
@@ -79,6 +80,10 @@ float getSobelKernel(uint x,uint y){
         }
     }
     return 0.0;
+}
+
+float getBoxBlurKernel(uint x,uint y,uint totalW,uint totalH){
+    return 1.0/float(totalW*totalH);
 }
 
 shared vec2 fftSharedMem[kBlockSize*4];
@@ -119,6 +124,10 @@ void stockhamFFTImpl(uint ori,uint logW,uint logH,uint unitId,uint anotherDim,ui
     storeFFTShared(iterId+1,lpos2+dj+stride,vec2(tRr,tRi));
 }
 
+float rgbToLuma(vec4 v){
+    return 0.299*v.r + 0.587*v.g + 0.114*v.b;
+}
+
 vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pads,uvec2 coord,vec2 shift){
     // LR,TB: pad
     if(imgId==0){
@@ -132,7 +141,8 @@ vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pad
         if(shiftedX>=rtW/downscale||shiftedY>=rtH/downscale){
             return vec4(0.0);
         }
-        return vec4(getSobelKernel(uint(shiftedX),uint(shiftedY)),vec3(0.0));
+        //return vec4(getSobelKernel(uint(shiftedX),uint(shiftedY)),vec3(0.0));
+        return vec4(getBoxBlurKernel(uint(shiftedX),uint(shiftedY),rtW,rtH),vec3(0.0));
     }
     float sampX = float(coord.x-pads.x)/float(rtW/downscale);
     float sampY = float(coord.y-pads.z)/float(rtH/downscale);
@@ -145,7 +155,11 @@ vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pad
     uv += shift;
     uv = fract(uv);
     vec4 rt = texture(GetSampler2D(imgId),uv);
-    rt.g=0;
+
+    // float luma = rgbToLuma(rt);
+    // if(luma<0.6){
+    //     return vec4(0.0);
+    // }
     return rt;
 }
 
@@ -171,8 +185,29 @@ void stockhamFFTImplWrapper(uint ori,uint logW,uint logH,uint unitId,uint anothe
     }
 }
 
+uint getChannelShift(uint channel,uint fftW){
+    if(channel>=2){
+        return fftW;   
+    }
+    return 0;
+}
+
+float getChannelValue(vec4 v,uint channel){
+    if(channel==0){
+        return v.r;
+    }else if(channel==1){
+        return v.g;
+    }else if(channel==2){
+        return v.b;
+    }else if(channel==3){
+        return v.a;
+    }
+    return 0.0;
+}
+
 void stockhamFFTFromImageImpl0(uint imgId,uint outImgId, uint downscale,uint texW,uint texH,
-                        uint logfftW, uint logfftH, bool isIdft, bool isIfftShift,uint dirload){
+                        uint logfftW, uint logfftH, bool isIdft, bool isIfftShift,uint dirload,
+                        uint channel){
     uint fftW = 1<<logfftW;
     uint fftH = 1<<logfftH;
     uint padL = (fftW-texW/downscale)/2;
@@ -188,30 +223,51 @@ void stockhamFFTFromImageImpl0(uint imgId,uint outImgId, uint downscale,uint tex
 
     vec4 pa;
     vec4 pb;
+
+    uint cshift = getChannelShift(channel,fftW);
     if(dirload==0){
         pa = loadImageWithPaddings(imgId,downscale,texW,texH,pads,uvec2(gY,gX),shift);
         pb = loadImageWithPaddings(imgId,downscale,texW,texH,pads,uvec2(gY,gX+fftH/2),shift);
+        storeFFTShared(0,gX,vec2(getChannelValue(pa,channel),0.0));
+        storeFFTShared(0,gX+fftH/2,vec2(getChannelValue(pb,channel),0.0));
     }else{
-        pa = directImageLoad(imgId,uvec2(gY,gX));
-        pb = directImageLoad(imgId,uvec2(gY,gX+fftH/2));
+        pa = directImageLoad(imgId,uvec2(gY+cshift,gX));
+        pb = directImageLoad(imgId,uvec2(gY+cshift,gX+fftH/2));
+        if((channel & 1) == 1){
+            storeFFTShared(0,gX,vec2(pa.b,pa.a));
+            storeFFTShared(0,gX+fftH/2,vec2(pb.b,pb.a));
+        }else{
+            storeFFTShared(0,gX,vec2(pa.r,pa.g));
+            storeFFTShared(0,gX+fftH/2,vec2(pb.r,pb.g));
+        }
+    }
+    barrier();
+    pa = directImageLoad(outImgId,uvec2(gY+cshift,gX));
+    pb = directImageLoad(outImgId,uvec2(gY+cshift,gX+fftH/2));
+    if((channel & 1) == 1){
+        stockhamFFTImplWrapper(0,logfftW,logfftH,gX,gY,isIdft);
+        vec2 da = loadFFTShared(logfftH,gX);
+        vec2 db = loadFFTShared(logfftH,gX+fftH/2);
+        uvec2 coord1 = uvec2(gY+cshift,gX);
+        uvec2 coord2 = uvec2(gY+cshift,gX+fftH/2);
+        imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord1),vec4(pa.r,pa.g,da.r,da.g));
+        imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord2),vec4(pb.r,pb.g,db.r,db.g));
+    }else{
+        stockhamFFTImplWrapper(0,logfftW,logfftH,gX,gY,isIdft);
+        vec2 da = loadFFTShared(logfftH,gX);
+        vec2 db = loadFFTShared(logfftH,gX+fftH/2);
+        uvec2 coord1 = uvec2(gY+cshift,gX);
+        uvec2 coord2 = uvec2(gY+cshift,gX+fftH/2);
+        imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord1),vec4(da.r,da.g,pa.b,pa.a));
+        imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord2),vec4(db.r,db.g,pb.b,pb.a));
     }
     
-    storeFFTShared(0,gX,vec2(pa.r,pa.g));
-    storeFFTShared(0,gX+fftH/2,vec2(pb.r,pb.g));
-
-    barrier();
-    stockhamFFTImplWrapper(0,logfftW,logfftH,gX,gY,isIdft);
-    vec2 da = loadFFTShared(logfftH,gX);
-    vec2 db = loadFFTShared(logfftH,gX+fftH/2);
-    uvec2 coord1 = uvec2(gY,gX);
-    uvec2 coord2 = uvec2(gY,gX+fftH/2);
-    imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord1),vec4(da.r,da.g,0.0,0.0));
-    imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord2),vec4(db.r,db.g,0.0,0.0));
     barrier();
 }
 
 void stockhamFFTFromImageImpl1(uint imgId,uint outImgId, uint downscale,uint texW,uint texH,
-                        uint logfftW, uint logfftH, bool isIdft, bool isIfftShift,uint dirload){
+                        uint logfftW, uint logfftH, bool isIdft, bool isIfftShift,uint dirload,
+                        uint channel){
     uint fftW = 1<<logfftW;
     uint fftH = 1<<logfftH;
     uint padL = (fftW-texW/downscale)/2;
@@ -224,109 +280,159 @@ void stockhamFFTFromImageImpl1(uint imgId,uint outImgId, uint downscale,uint tex
     // then orientation = 1
     uint gX = gl_GlobalInvocationID.x;
     uint gY = gl_GlobalInvocationID.y;
-
-    // pa = loadImageWithPaddings(outImgId,downscale,fftH,fftW,pads,uvec2(gX,gY),shift);
-    // pb = loadImageWithPaddings(outImgId,downscale,fftH,fftW,pads,uvec2(gX+fftW/2,gY),shift);s
     vec4 pa;
     vec4 pb;
+    uint cshift = getChannelShift(channel,fftW);
     if(dirload==0){
         pa = loadImageWithPaddings(imgId,downscale,texW,texH,pads,uvec2(gX,gY),shift);
         pb = loadImageWithPaddings(imgId,downscale,texW,texH,pads,uvec2(gX+fftW/2,gY),shift);
+        storeFFTShared(0,gX,vec2(getChannelValue(pa,channel),0.0));
+        storeFFTShared(0,gX+fftW/2,vec2(getChannelValue(pb,channel),0.0));
     }else{
-        pa = directImageLoad(imgId,uvec2(gX,gY));
-        pb = directImageLoad(imgId,uvec2(gX+fftW/2,gY));
+        pa = directImageLoad(imgId,uvec2(gX+cshift,gY));
+        pb = directImageLoad(imgId,uvec2(gX+fftW/2+cshift,gY));
+        if((channel & 1) == 1){
+            storeFFTShared(0,gX,vec2(pa.b,pa.a));
+            storeFFTShared(0,gX+fftW/2,vec2(pb.b,pb.a));
+        }else{
+            storeFFTShared(0,gX,vec2(pa.r,pa.g));
+            storeFFTShared(0,gX+fftW/2,vec2(pb.r,pb.g));
+        }
     }
-
-    storeFFTShared(0,gX,vec2(pa.r,pa.g));
-    storeFFTShared(0,gX+fftW/2,vec2(pb.r,pb.g));
-
     barrier();
-    //if(imgId!=0 && !isIdft){
+    pa = directImageLoad(outImgId,uvec2(gX+cshift,gY));
+    pb = directImageLoad(outImgId,uvec2(gX+fftW/2+cshift,gY));
+    if((channel & 1) == 1){
         stockhamFFTImplWrapper(1,logfftW,logfftH,gX,gY,isIdft);
-    //}
-    vec2 da = loadFFTShared(logfftW,gX);
-    vec2 db = loadFFTShared(logfftW,gX+fftW/2);
-    uvec2 coord1 = uvec2(gX,gY);
-    uvec2 coord2 = uvec2(gX+fftW/2,gY);
-    // if(imgId==0 && !isIdft){
-    //     imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord1),vec4(pa.r,pa.g,0.0,0.0));
-    //     imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord2),vec4(pb.r,pb.g,0.0,0.0));
-    //     return;
-    // }
-    imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord1),vec4(da.r,da.g,0.0,0.0));
-    imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord2),vec4(db.r,db.g,0.0,0.0));
+        vec2 da = loadFFTShared(logfftW,gX);
+        vec2 db = loadFFTShared(logfftW,gX+fftW/2);
+        uvec2 coord1 = uvec2(gX+cshift,gY);
+        uvec2 coord2 = uvec2(gX+fftW/2+cshift,gY);
+        imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord1),vec4(pa.r,pa.g,da.r,da.g));
+        imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord2),vec4(pb.r,pb.g,db.r,db.g));
+    }else{
+        stockhamFFTImplWrapper(1,logfftW,logfftH,gX,gY,isIdft);
+        vec2 da = loadFFTShared(logfftW,gX);
+        vec2 db = loadFFTShared(logfftW,gX+fftW/2);
+        uvec2 coord1 = uvec2(gX+cshift,gY);
+        uvec2 coord2 = uvec2(gX+fftW/2+cshift,gY);
+        imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord1),vec4(da.r,da.g,pa.b,pa.a));
+        imageStore(GetUAVImage2DRGBA32F(outImgId),ivec2(coord2),vec4(db.r,db.g,pb.b,pb.a));
+    }
     barrier();
 }
+
 void stockhamFFTFromImage(uint imgId,uint outImgId,uint tempImgId, uint downscale,uint texW,uint texH,
-                        uint logfftW, uint logfftH, bool isIdft, bool isIfftShift, uint ori){
+                        uint logfftW, uint logfftH, bool isIdft, bool isIfftShift, uint ori,
+                        uint channel){
     if(!isIdft){
         if(ori==1){
-            stockhamFFTFromImageImpl1(imgId,tempImgId,downscale,texW,texH,logfftW,logfftH,isIdft,isIfftShift,0);
+            stockhamFFTFromImageImpl1(imgId,tempImgId,downscale,texW,texH,logfftW,
+                logfftH,isIdft,isIfftShift,0,channel);
         }else{
-            stockhamFFTFromImageImpl0(tempImgId,outImgId,downscale,texW,texH,logfftW,logfftH,isIdft,isIfftShift,1);
+            stockhamFFTFromImageImpl0(tempImgId,outImgId,downscale,texW,texH,logfftW,
+                logfftH,isIdft,isIfftShift,1,channel);
         }
     }else{
         if(ori==0){
-            stockhamFFTFromImageImpl0(outImgId,tempImgId,downscale,texW,texH,logfftW,logfftH,isIdft,isIfftShift,1);
+            stockhamFFTFromImageImpl0(outImgId,tempImgId,downscale,texW,texH,logfftW,
+                logfftH,isIdft,isIfftShift,1,channel);
         }else{
-            stockhamFFTFromImageImpl1(tempImgId,imgId,downscale,texW,texH,logfftW,logfftH,isIdft,isIfftShift,1);
+            stockhamFFTFromImageImpl1(tempImgId,imgId,downscale,texW,texH,logfftW,
+                logfftH,isIdft,isIfftShift,1,channel);
         }
     }
 }
 
-void freqDomainMultiply(uint imgId1,uint imgId2,uint outImgId,uint fftW,uint fftH){
+void freqDomainMultiply(uint imgId1,uint imgId2,uint outImgId,uint fftW,uint fftH,uint channel){
     uint gX = gl_GlobalInvocationID.x;
     uint gY = gl_GlobalInvocationID.y;
-    ivec2 coord1 = ivec2(gX,gY);
-    ivec2 coord2 = ivec2(gX+fftW/2,gY);
+    uint cshift = getChannelShift(channel,fftW);
+    ivec2 coord1 = ivec2(gX+cshift,gY);
+    ivec2 coord2 = ivec2(gX+fftW/2+cshift,gY);
+    ivec2 coord1kern = ivec2(gX,gY);
+    ivec2 coord2kern = ivec2(gX+fftW/2,gY);
     vec4 pa = imageLoad(GetUAVImage2DRGBA32F(imgId1),coord1);
-    vec4 pb = imageLoad(GetUAVImage2DRGBA32F(imgId2),coord1);
+    vec4 pb = imageLoad(GetUAVImage2DRGBA32F(imgId2),coord1kern);
     vec4 pc = imageLoad(GetUAVImage2DRGBA32F(imgId1),coord2);
-    vec4 pd = imageLoad(GetUAVImage2DRGBA32F(imgId2),coord2);
+    vec4 pd = imageLoad(GetUAVImage2DRGBA32F(imgId2),coord2kern);
 
-    float paR = pa.r;
-    float paI = pa.g;
-    float pbR = pb.r;
-    float pbI = pb.g;
-    float pcR = pc.r;
-    float pcI = pc.g;
-    float pdR = pd.r;
-    float pdI = pd.g;
+    float paR;
+    float paI;
+    float pbR;
+    float pbI;
+    float pcR;
+    float pcI;
+    float pdR;
+    float pdI;
+    pbR = pb.r;
+    pbI = pb.g;
+    pdR = pd.r;
+    pdI = pd.g;
+
+    if((channel & 1) == 1){
+        paR = pa.b;
+        paI = pa.a;
+        pcR = pc.b;
+        pcI = pc.a;
+    }else{
+        paR = pa.r;
+        paI = pa.g;
+        pcR = pc.r;
+        pcI = pc.g;
+    }
 
     float raR = paR*pbR - paI*pbI;
     float raI = paR*pbI + paI*pbR;
     float rbR = pcR*pdR - pcI*pdI;
     float rbI = pcR*pdI + pcI*pdR;
+    vec4 ra; //= vec4(raR,raI,0.0,0.0);
+    vec4 rb; //= vec4(rbR,rbI,0.0,0.0);
 
-    vec4 ra = vec4(raR,raI,0.0,0.0);
-    vec4 rb = vec4(rbR,rbI,0.0,0.0);
-
+    if((channel & 1) == 1){
+        ra = vec4(pa.r,pa.g,raR,raI);
+        rb = vec4(pc.r,pc.g,rbR,rbI);
+    }else{
+        ra = vec4(raR,raI,pa.b,pa.a);
+        rb = vec4(rbR,rbI,pc.b,pc.a);
+    }
     imageStore(GetUAVImage2DRGBA32F(outImgId),coord1,ra);
     imageStore(GetUAVImage2DRGBA32F(outImgId),coord2,rb);
 }
 
 void main(){
+
     if(pc.fftStep==kStepDFT1){
-        stockhamFFTFromImage(pc.srcImage,pc.srcIntermImage,pc.tempImage,pc.srcDownScale,
-            pc.srcRtW,pc.srcRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,false,1);
+        for(uint ch = 0;ch<4;ch++){
+            stockhamFFTFromImage(pc.srcImage,pc.srcIntermImage,pc.tempImage,pc.srcDownScale,
+                pc.srcRtW,pc.srcRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,false,1,ch);
+        }
     }else if(pc.fftStep==kStepDFT2){
-        stockhamFFTFromImage(pc.srcImage,pc.srcIntermImage,pc.tempImage,pc.srcDownScale,
-            pc.srcRtW,pc.srcRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,false,0);
+        for(uint ch = 0;ch<4;ch++){
+            stockhamFFTFromImage(pc.srcImage,pc.srcIntermImage,pc.tempImage,pc.srcDownScale,
+                pc.srcRtW,pc.srcRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,false,0,ch);
+        }
     }else if(pc.fftStep==kStepKernDFT1){
         stockhamFFTFromImage(pc.kernImage,pc.kernIntermImage,pc.tempImage,pc.kernDownScale,
-            pc.kernRtW,pc.kernRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,false,1);
+            pc.kernRtW,pc.kernRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,false,1,0);
     }else if(pc.fftStep==kStepKernDFT2){
         stockhamFFTFromImage(pc.kernImage,pc.kernIntermImage,pc.tempImage,pc.kernDownScale,
-            pc.kernRtW,pc.kernRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,false,0);
+            pc.kernRtW,pc.kernRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,false,0,0);
     }else if(pc.fftStep==kStepMultiply){
         uint fftW = 1<<pc.fftTexSizeWLog;
         uint fftH = 1<<pc.fftTexSizeHLog;
-        freqDomainMultiply(pc.srcIntermImage,pc.kernIntermImage,pc.srcIntermImage,fftW,fftH);
+        for(uint ch = 0;ch<4;ch++){
+            freqDomainMultiply(pc.srcIntermImage,pc.kernIntermImage,pc.srcIntermImage,fftW,fftH,ch);
+        }
     }else if(pc.fftStep==kStepIDFT2){
-        stockhamFFTFromImage(pc.kernIntermImage,pc.srcIntermImage,pc.tempImage,pc.srcDownScale,
-            pc.srcRtW,pc.srcRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,true,false,0);
+        for(uint ch = 0;ch<4;ch++){
+            stockhamFFTFromImage(pc.kernIntermImage,pc.srcIntermImage,pc.tempImage,pc.srcDownScale,
+                pc.srcRtW,pc.srcRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,true,false,0,ch);
+        }
     }else if(pc.fftStep==kStepIDFT1){
-        stockhamFFTFromImage(pc.kernIntermImage,pc.srcIntermImage,pc.tempImage,pc.srcDownScale,
-            pc.srcRtW,pc.srcRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,true,false,1);
+        for(uint ch = 0;ch<4;ch++){
+            stockhamFFTFromImage(pc.srcIntermImage,pc.srcIntermImage,pc.tempImage,pc.srcDownScale,
+                pc.srcRtW,pc.srcRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,true,false,1,ch);
+        }
     }
 }
