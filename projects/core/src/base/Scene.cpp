@@ -33,6 +33,13 @@ SceneNode::addGameObject(const std::string &name) {
   m_gameObjects.push_back(obj);
   return obj;
 }
+
+IFRIT_APIDECL std::shared_ptr<SceneObject>
+SceneNode::addGameObjectTransferred(std::shared_ptr<SceneObject> &&obj) {
+  m_gameObjects.push_back(std::move(obj));
+  return obj;
+}
+
 IFRIT_APIDECL std::shared_ptr<SceneNode> Scene::addSceneNode() {
   return m_root->addChildNode();
 }

@@ -33,6 +33,8 @@ public:
   virtual ~SceneNode() = default;
   std::shared_ptr<SceneNode> addChildNode();
   std::shared_ptr<SceneObject> addGameObject(const std::string &name);
+  std::shared_ptr<SceneObject>
+  addGameObjectTransferred(std::shared_ptr<SceneObject> &&obj);
   inline std::shared_ptr<SceneNode> getSceneNode(uint32_t x) {
     return m_children.at(x);
   }

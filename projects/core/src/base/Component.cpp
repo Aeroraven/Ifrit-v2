@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/core/base/Component.h"
 #include "ifrit/common/math/LinalgOps.h"
 #include "ifrit/common/util/Identifier.h"
@@ -27,7 +26,15 @@ using namespace Ifrit::Math;
 
 namespace Ifrit::Core {
 
-IFRIT_APIDECL Component::Component(std::shared_ptr<SceneObject> parent)
+IFRIT_APIDECL std::shared_ptr<SceneObject> SceneObject::createPrefab() {
+  auto prefab = std::make_shared<SceneObjectPrefab>();
+  prefab->initialize();
+  prefab->addComponent<Transform>();
+  return prefab;
+}
+
+IFRIT_APIDECL
+Component::Component(std::shared_ptr<SceneObject> parent)
     : m_parentObject(parent) {
   Ifrit::Common::Utility::generateUuid(m_id.m_uuid);
 }

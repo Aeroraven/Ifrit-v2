@@ -31,6 +31,12 @@ IFRIT_APIDECL void SingleBuffer::init() {
   bufferCI.usage = m_createInfo.usage;
   bufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+  if (bufferCI.size >= 1063742160) {
+  
+    vkrLog("Buffer size is too large. ");
+    std::abort();
+  }
+
   VmaAllocationCreateInfo allocCI{};
   allocCI.usage = VMA_MEMORY_USAGE_AUTO;
   if (m_createInfo.hostVisible) {

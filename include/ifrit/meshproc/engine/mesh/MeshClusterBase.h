@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/math/LinalgOps.h"
 
@@ -33,14 +32,10 @@ struct MeshletCullData {
 struct ClusterGroup {
   ifloat4 selfBoundingSphere;
   ifloat4 parentBoundingSphere; // No need for this, maybe
-  float selfBoundError;
-  float parentBoundError;
   uint32_t childMeshletStart;
   uint32_t childMeshletSize;
   uint32_t lod;
   uint32_t dummy1;
-  uint32_t dummy2;
-  uint32_t dummy3;
 };
 struct FlattenedBVHNode {
   ifloat4 boundSphere;

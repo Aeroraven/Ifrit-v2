@@ -72,8 +72,8 @@ void main(){
     vec4 color = texture(GetSampler2D(pc.inputTexture), texCoord).rgba;
     float colorAlpha = color.a;
     vec3 fogColor = vec3(0.5, 0.5, 0.5);
-    color = mix(color, vec4(fogColor, 1.0), coef);
-    color.a = clamp(colorAlpha, 0.0, 1.0);
+    //color = mix(color, vec4(fogColor, 1.0), coef);
+    //color.a = clamp(colorAlpha, 0.0, 1.0);
 
     outColor = color;
 }

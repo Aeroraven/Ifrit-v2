@@ -30,14 +30,10 @@ layout(local_size_x = cPersistentCullThreadGroupSizeX, local_size_y = 1, local_s
 struct ClusterGroup{
     vec4 selfBoundSphere;
     vec4 parentBoundSphere;
-    float selfError;
-    float parentError;
     uint childMeshletStart;
     uint childMeshletCount;
     uint lod;
     uint dummy1;
-    uint dummy2;
-    uint dummy3;
 };
 
 struct BVHNode{
@@ -189,9 +185,9 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
 
     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
     vec3 selfSphereCenter = group.selfBoundSphere.xyz;
-    float selfSphereRadius = group.selfError;
+    float selfSphereRadius = group.selfBoundSphere.w;
     vec3 parentSphereCenter = group.parentBoundSphere.xyz;
-    float parentSphereRadius = group.parentError;
+    float parentSphereRadius = group.parentBoundSphere.w;
 
     if(totalLod == 1){
         return true;

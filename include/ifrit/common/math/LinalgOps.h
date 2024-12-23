@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "../util/ApiConv.h"
 #include "VectorOps.h"
 #include <cmath>
+#include <numbers>
 
 namespace Ifrit::Math {
 inline float4x4 transpose(const float4x4 &a) {
@@ -208,6 +209,24 @@ inline float4x4 eulerAngleToMatrix(const ifloat3 &euler) {
   result[3][3] = 1;
   return result;
 }
+
+inline ifloat3 quaternionToEuler(const ifloat4 &q) {
+  ifloat3 euler;
+  float sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+  float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+  euler.x = atan2(sinr_cosp, cosr_cosp);
+  float sinp = 2 * (q.w * q.y - q.z * q.x);
+  auto pi = std::numbers::pi_v<float>;
+  if (fabs(sinp) >= 1)
+    euler.y = std::copysign(pi / 2, sinp);
+  else
+    euler.y = asin(sinp);
+  float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+  float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+  euler.z = atan2(siny_cosp, cosy_cosp);
+  return euler;
+}
+
 inline float4x4 identity() {
   float4x4 result;
   for (int i = 0; i < 4; i++) {
@@ -278,6 +297,40 @@ inline float4x4 inverse4(const float4x4 &p) {
   inv[3][2] = -invdet * (p[0][0] * a1213 - p[0][1] * a0213 + p[0][2] * a0113);
   inv[3][3] = invdet * (p[0][0] * a1212 - p[0][1] * a0212 + p[0][2] * a0112);
   return inv;
+}
+
+inline float4x4 quaternionToRotMatrix(const ifloat4 &q) {
+  float4x4 result;
+  float sqw = q.w * q.w;
+  float sqx = q.x * q.x;
+  float sqy = q.y * q.y;
+  float sqz = q.z * q.z;
+  float invs = 1 / (sqx + sqy + sqz + sqw);
+  result[0][0] = (sqx - sqy - sqz + sqw) * invs;
+  result[1][1] = (-sqx + sqy - sqz + sqw) * invs;
+  result[2][2] = (-sqx - sqy + sqz + sqw) * invs;
+
+  float tmp1 = q.x * q.y;
+  float tmp2 = q.z * q.w;
+  result[1][0] = 2.0f * (tmp1 + tmp2) * invs;
+  result[0][1] = 2.0f * (tmp1 - tmp2) * invs;
+
+  tmp1 = q.x * q.z;
+  tmp2 = q.y * q.w;
+  result[2][0] = 2.0f * (tmp1 - tmp2) * invs;
+  result[0][2] = 2.0f * (tmp1 + tmp2) * invs;
+  tmp1 = q.y * q.z;
+  tmp2 = q.x * q.w;
+  result[2][1] = 2.0f * (tmp1 + tmp2) * invs;
+  result[1][2] = 2.0f * (tmp1 - tmp2) * invs;
+  result[0][3] = 0;
+  result[1][3] = 0;
+  result[2][3] = 0;
+  result[3][0] = 0;
+  result[3][1] = 0;
+  result[3][2] = 0;
+  result[3][3] = 1;
+  return result;
 }
 
 } // namespace Ifrit::Math

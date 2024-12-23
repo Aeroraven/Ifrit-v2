@@ -250,14 +250,14 @@ void metisValidation(ClusterLodGeneratorContext &ctx) {
       }
     }
     if (numSubGraphs != 1) {
-      iWarn("After METIS cut, cluster group #{}, have {} disconnected "
-            "subgraphs.",
-            key, numSubGraphs);
+      // iWarn("After METIS cut, cluster group #{}, have {} disconnected "
+      //       "subgraphs.",
+      //       key, numSubGraphs);
       a++;
     }
   }
   if (a)
-    iWarn("Total abnormalities found in graph cut: {}", a);
+    iWarn("Total METIS abnormalities found in graph cut: {}", a);
 }
 
 void connectivityCheck(const std::vector<std::vector<int>> &adj) {
@@ -281,7 +281,7 @@ void connectivityCheck(const std::vector<std::vector<int>> &adj) {
         }
         graphSize++;
       }
-      iDebug("Subgraph have: {}/{} nodes", graphSize, adj.size());
+      // iDebug("Subgraph have: {}/{} nodes", graphSize, adj.size());
     }
   }
 }
@@ -375,6 +375,7 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
       ubvec, options, &edgeCut, ctx.graphPartition.data());
   if (result != METIS_OK) {
     iError("METIS partition failed, error code: {}", result);
+    std::abort();
   }
   metisValidation(ctx);
 }
@@ -421,10 +422,19 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
 
     // Simplify the index buffer
     std::vector<uint32_t> simplifiedIndexBuffer(aggregatedIndexBuffer.size());
+    if (simplifiedIndexBuffer.size() == 0) {
+      iInfo("MeshletR size: {}", meshletsR.size());
+      for (auto i : meshletsR) {
+        // Copy the index buffer
+        auto base = ctx.meshletsRaw[i].triangle_offset;
+        auto count = ctx.meshletsRaw[i].triangle_count;
+        iInfo("Meshlet {} has {} triangles", i, count);
+      }
+      iError("Empty meshlet found in cluster group {}", key);
+    }
     float simplifyError;
     // option: lockborder
-    auto option = meshopt_SimplifyLockBorder | meshopt_SimplifyErrorAbsolute |
-                  meshopt_SimplifySparse;
+    auto option = meshopt_SimplifyLockBorder | meshopt_SimplifyErrorAbsolute;
     auto targetIndexCount = static_cast<uint32_t>(aggregatedIndexBuffer.size() *
                                                   MESH_SIMPLIFICATION_RATE);
     float targetError = predefError * modelScale; // 0.01f;
@@ -434,7 +444,13 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
         reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
         mesh.vertexCount, mesh.vertexStride, targetIndexCount, targetError,
         option, &simplifyError);
-
+    if (simplifiedSize == 0) {
+      iError("Simplified size is 0, targetIndexCount: {}, targetError: {}",
+             targetIndexCount, targetError);
+      iInfo("SimplifiedIndexBuffer size: {}", simplifiedIndexBuffer.size());
+      iInfo("AggregatedIndexBuffer size: {}", aggregatedIndexBuffer.size());
+      std::abort();
+    }
     simplifiedIndexBuffer.resize(simplifiedSize);
 
     auto targetErrorModel = simplifyError;
@@ -494,13 +510,14 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
     ClusterGroup curClusterGroup;
     curClusterGroup.parentBoundingSphere =
         ifloat4(bCenter.x, bCenter.y, bCenter.z, bRadius);
-    curClusterGroup.parentBoundError = targetErrorModel;
+    curClusterGroup.parentBoundingSphere.w = targetErrorModel;
     curClusterGroup.childMeshletSize = 1;
 
     for (auto i : meshletsR) {
       auto clusterGroupChildInsStart = ctx.meshletsInClusterGroups.size();
       curClusterGroup.selfBoundingSphere = ctx.lodCullData[i].selfSphere;
-      curClusterGroup.selfBoundError = ctx.lodCullData[i].selfError;
+      // curClusterGroup.selfBoundError = ctx.lodCullData[i].selfError;
+      curClusterGroup.selfBoundingSphere.w = ctx.lodCullData[i].selfError;
       curClusterGroup.childMeshletStart =
           Ifrit::Common::Utility::size_cast<uint32_t>(
               clusterGroupChildInsStart);
@@ -712,8 +729,8 @@ BoundingBoxPair getBoundingBox(const std::vector<ClusterGroup> &clusterGroups,
     vfloat3 sphereCenter = vfloat3(clusterGroups[i].selfBoundingSphere.x,
                                    clusterGroups[i].selfBoundingSphere.y,
                                    clusterGroups[i].selfBoundingSphere.z);
-    vfloat3 maxPos = sphereCenter + clusterGroups[i].parentBoundError;
-    vfloat3 minPos = sphereCenter - clusterGroups[i].parentBoundError;
+    vfloat3 maxPos = sphereCenter + clusterGroups[i].parentBoundingSphere.w;
+    vfloat3 minPos = sphereCenter - clusterGroups[i].parentBoundingSphere.w;
     bMaxA = max(maxPos, bMaxA);
     bMinA = min(minPos, bMinA);
     bMaxP = max(sphereCenter, bMaxP);
@@ -925,7 +942,7 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
       node->subTreeSize = 1;
       for (auto &clusterGroup : node->childClusterGroups) {
         ret.maxClusterError =
-            std::max(ret.maxClusterError, clusterGroup->selfBoundError);
+            std::max(ret.maxClusterError, clusterGroup->selfBoundingSphere.w);
       }
       node->maxClusterError = ret.maxClusterError;
       return ret;

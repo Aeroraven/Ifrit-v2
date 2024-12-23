@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "AssetReference.h"
 #include "ifrit/common/math/VectorDefs.h"
@@ -81,6 +80,8 @@ public:
   virtual ~SceneObject() = default;
   void initialize();
 
+  static std::shared_ptr<SceneObject> createPrefab();
+
   template <class T> void addComponent(std::shared_ptr<T> component) {
     static_assert(std::is_base_of<Component, T>::value,
                   "T must be derived from Component");
@@ -123,6 +124,10 @@ public:
   inline void setName(const std::string &name) { m_name = name; }
   IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components);
 };
+
+// Here, SceneObjectPrefab is a type alias for SceneObject.
+// It only indiecates that the object does not belong to the scene.
+using SceneObjectPrefab = SceneObject;
 
 class IFRIT_APIDECL Component : public Ifrit::Common::Utility::NonCopyable {
 protected:

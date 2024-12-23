@@ -16,6 +16,8 @@ add_definitions(-DIFRIT_API_EXPORT)
 add_definitions(-DIFRIT_CORELIB_SHARED_SHADER_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.shader")
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.Core")
 
+include_directories(${IFRIT_PROJECT_DIR}/dependencies/stb)
+
 # set cxx20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)

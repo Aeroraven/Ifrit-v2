@@ -39,10 +39,10 @@ constexpr uint32_t cMaxDescriptorType =
 
 constexpr std::array<DescriptorTypeDetails, cMaxDescriptorType>
     cDescriptorTypeDetails = {
-        {{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10000},
-         {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10000},
-         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10000},
-         {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 10000}}};
+        {{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 40000},
+         {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 40000},
+         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 40000},
+         {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 40000}}};
 
 struct DescriptorBindRange {
   uint32_t rangeId;

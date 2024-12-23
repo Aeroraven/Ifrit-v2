@@ -19,12 +19,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/util/Identifier.h"
 #include "ifrit/core/assetmanager/Asset.h"
+#include "ifrit/core/assetmanager/DirectDrawSurfaceAsset.h"
+#include "ifrit/core/assetmanager/GLTFAsset.h"
 #include "ifrit/core/assetmanager/ShaderAsset.h"
 #include "ifrit/core/assetmanager/WaveFrontAsset.h"
 #include "ifrit/core/base/ApplicationInterface.h"
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+
 
 namespace Ifrit::Core {
 IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
@@ -117,6 +120,10 @@ IFRIT_APIDECL AssetManager::AssetManager(std::filesystem::path path,
                    std::make_shared<WaveFrontAssetImporter>(this));
   registerImporter(ShaderAssetImporter::IMPORTER_NAME,
                    std::make_shared<ShaderAssetImporter>(this));
+  registerImporter(GLTFAssetImporter::IMPORTER_NAME,
+                   std::make_shared<GLTFAssetImporter>(this));
+  registerImporter(DirectDrawSurfaceAssetImporter::IMPORTER_NAME,
+                   std::make_shared<DirectDrawSurfaceAssetImporter>(this));
   basePath = path;
   m_app = app;
   // loadAssetDirectory(basePath);

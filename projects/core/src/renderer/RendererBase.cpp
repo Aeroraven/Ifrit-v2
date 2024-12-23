@@ -603,11 +603,6 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             size_cast<uint32_t>(meshDataRef->m_meshletTriangles.size() *
                                 sizeof(uint32_t)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.meshletCullBuffer = rhi->createStorageBufferDevice(
-            size_cast<uint32_t>(
-                meshDataRef->m_meshCullData.size() *
-                sizeof(MeshProcLib::MeshProcess::MeshletCullData)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         meshResource.meshletInClusterBuffer = rhi->createStorageBufferDevice(
             size_cast<uint32_t>(meshDataRef->m_meshletInClusterGroup.size() *
                                 sizeof(uint32_t)),
@@ -633,8 +628,6 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             rhi->registerStorageBuffer(meshResource.meshletVertexBuffer);
         meshResource.meshletIndexBufferId =
             rhi->registerStorageBuffer(meshResource.meshletIndexBuffer);
-        meshResource.meshletCullBufferId =
-            rhi->registerStorageBuffer(meshResource.meshletCullBuffer);
         meshResource.meshletInClusterBufferId =
             rhi->registerStorageBuffer(meshResource.meshletInClusterBuffer);
         meshResource.cpCounterBufferId =
@@ -659,8 +652,6 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             meshResource.meshletVertexBufferId->getActiveId();
         objectBuffer.meshletIndexBufferId =
             meshResource.meshletIndexBufferId->getActiveId();
-        objectBuffer.meshletCullBufferId =
-            meshResource.meshletCullBufferId->getActiveId();
         objectBuffer.meshletInClusterBufferId =
             meshResource.meshletInClusterBufferId->getActiveId();
         objectBuffer.cpCounterBufferId =
@@ -744,7 +735,6 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         enqueueStagedBuffer(meshletBuffer, m_meshlets);
         enqueueStagedBuffer(meshletVertexBuffer, m_meshletVertices);
         enqueueStagedBuffer(meshletIndexBuffer, m_meshletTriangles);
-        enqueueStagedBuffer(meshletCullBuffer, m_meshCullData);
         enqueueStagedBuffer(meshletInClusterBuffer, m_meshletInClusterGroup);
 
         auto stagedCPCounterBuffer =

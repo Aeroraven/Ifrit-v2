@@ -40,7 +40,7 @@ float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0,
       movNear = 0;
 
 void key_callback(int key, int scancode, int action, int mods) {
-  auto scale = 0.01f;
+  auto scale = 2.5f;
   if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
     movLeft += scale;
 
@@ -89,6 +89,8 @@ public:
     m_windowProvider->registerKeyCallback(key_callback);
     auto obj = m_assetManager->getAssetByName<WaveFrontAsset>("bunny.obj");
     auto planeObj = m_assetManager->getAssetByName<WaveFrontAsset>("plane.obj");
+    auto bistroObj =
+        m_assetManager->getAssetByName<GLTFAsset>("Bistro/bistro.gltf");
     auto meshShader = m_assetManager->getAssetByName<ShaderAsset>(
         "Shader/ifrit.mesh2.mesh.glsl");
     auto fragShader = m_assetManager->getAssetByName<ShaderAsset>(
@@ -96,7 +98,7 @@ public:
 
     // Renderer config
     renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
-    renderConfig.m_shadowConfig.m_maxDistance = 5.0f;
+    renderConfig.m_shadowConfig.m_maxDistance = 1000.0f;
 
     // Material
     m_material = std::make_shared<Material>();
@@ -145,6 +147,17 @@ public:
     planeTransform->setRotation({0.0f, 0.0f, 0.0f});
     planeTransform->setScale({1.0f, 1.0f, 1.0f});
 
+#if 1
+    auto prefabs = bistroObj->getPrefabs();
+    uint32_t numMeshes = 0;
+    for (auto &prefab : prefabs) {
+      numMeshes++;
+      // if (numMeshes > 700)
+      //   break;
+      prefab->m_prefab->addComponent<MeshRenderer>()->setMaterial(m_material);
+      node->addGameObjectTransferred(std::move(prefab->m_prefab));
+    }
+#else
     for (int dx = 0; dx < bunnyPlacementX; dx++) {
       for (int dy = 0; dy < bunnyPlacementY; dy++) {
         for (int dz = 0; dz < bunnyPlacementZ; dz++) {
@@ -167,6 +180,7 @@ public:
         }
       }
     }
+#endif
 
     // Render targets
     auto rt = m_rhiLayer.get();
@@ -191,7 +205,8 @@ public:
     auto camera = cameraGameObject->getComponent<Transform>();
     timing = timing + 0.00f;
     camera->setPosition({0.0f + movRight - movLeft + 0.5f * std::sin(timing),
-                         0.1f + movTop - movBottom, -0.25f + movFar - movNear});
+                         150.0f + movTop - movBottom,
+                         200.25f + movFar - movNear});
     auto sFrameStart = renderer->beginFrame();
     auto renderComplete = renderer->render(
         m_sceneAssetManager->getScene("TestScene2").get(), nullptr,
@@ -199,7 +214,7 @@ public:
     renderer->endFrame({renderComplete.get()});
 
     // sleep for 50ms
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
   void onEnd() override {}

@@ -1511,8 +1511,13 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
     for (uint32_t k = 0; k < matSize; k++) {
       auto mesh =
           perframeData.m_shaderEffectData[x].m_meshes[k]->loadMeshUnsafe();
-      totalMeshlets +=
-          size_cast<uint32_t>(mesh->m_meshlets.size()) * objDataSize;
+      auto lv0Meshlets = mesh->m_numMeshletsEachLod[0];
+      auto lv1Meshlets = 0;
+      if (mesh->m_numMeshletsEachLod.size() > 1) {
+        lv1Meshlets = mesh->m_numMeshletsEachLod[1];
+      }
+      //iInfo("Meshlets: {} {}", lv0Meshlets, lv1Meshlets);
+      totalMeshlets += (lv0Meshlets+lv1Meshlets) * objDataSize;
     }
   }
   auto activeBuf =
@@ -1536,7 +1541,7 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
     if (perView.m_allFilteredMeshletsMaxCount < totalMeshlets) {
       perView.m_allFilteredMeshletsMaxCount = totalMeshlets;
       perView.m_allFilteredMeshlets = rhi->createStorageBufferDevice(
-          totalMeshlets * sizeof(uint32_t) * 2,
+          totalMeshlets * sizeof(uint32_t) * 3 / 2 + 1,
           RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
       perView.m_allFilteredMeshletsDesc = rhi->createBindlessDescriptorRef();

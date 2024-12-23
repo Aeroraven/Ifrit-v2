@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/core/application/Application.h"
 #include "ifrit/core/assetmanager/Asset.h"
+#include "ifrit/core/assetmanager/GLTFAsset.h"
 #include "ifrit/core/assetmanager/ShaderAsset.h"
 #include "ifrit/core/assetmanager/WaveFrontAsset.h"
 #include "ifrit/core/base/Camera.h"
@@ -31,3 +32,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/scene/FrameCollector.h"
 #include "ifrit/core/scene/SceneAssetManager.h"
 #include "ifrit/core/scene/SceneManager.h"
+
