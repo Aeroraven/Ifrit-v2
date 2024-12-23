@@ -28,3 +28,6 @@
 [submodule "dependencies/spdlog"]
 	path = dependencies/spdlog
 	url = git@github.com:gabime/spdlog.git
+[submodule "dependencies/tinygltf2"]
+	path = dependencies/tinygltf2
+	url = git@github.com:syoyo/tinygltf.git
