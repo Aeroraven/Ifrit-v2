@@ -144,16 +144,30 @@ vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pad
         //return vec4(getSobelKernel(uint(shiftedX),uint(shiftedY)),vec3(0.0));
         return vec4(getBoxBlurKernel(uint(shiftedX),uint(shiftedY),rtW,rtH),vec3(0.0));
     }
-    float sampX = float(coord.x-pads.x)/float(rtW/downscale);
-    float sampY = float(coord.y-pads.z)/float(rtH/downscale);
+    int fftW = 1<<pc.fftTexSizeWLog;
+    int fftH = 1<<pc.fftTexSizeHLog;
+    int shiftedX = int(coord.x)-int(pads.x)+fftW;
+    int shiftedY = int(coord.y)-int(pads.z)+fftH;
+    if(shift.x==0.5){
+        shiftedX+=fftW/2;
+    }
+    if(shift.y==0.5){
+        shiftedY+=fftH/2;
+    }
+    shiftedX%=fftW;
+    shiftedY%=fftH;
+    if(shiftedX>=rtW/downscale||shiftedY>=rtH/downscale){
+        return vec4(0.0);
+    }
+
+    float sampX = float(shiftedX)/float(rtW/downscale);
+    float sampY = float(shiftedY)/float(rtH/downscale);
     float halfPixelX = 0.5/float(rtW/downscale);
     float halfPixelY = 0.5/float(rtH/downscale);
     vec2 uv = vec2(sampX+halfPixelX,sampY+halfPixelY);
     if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){
         return vec4(0.0);
     }
-    uv += shift;
-    uv = fract(uv);
     vec4 rt = texture(GetSampler2D(imgId),uv);
 
     // float luma = rgbToLuma(rt);
@@ -414,10 +428,10 @@ void main(){
         }
     }else if(pc.fftStep==kStepKernDFT1){
         stockhamFFTFromImage(pc.kernImage,pc.kernIntermImage,pc.tempImage,pc.kernDownScale,
-            pc.kernRtW,pc.kernRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,false,1,0);
+            pc.kernRtW,pc.kernRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,true,1,0);
     }else if(pc.fftStep==kStepKernDFT2){
         stockhamFFTFromImage(pc.kernImage,pc.kernIntermImage,pc.tempImage,pc.kernDownScale,
-            pc.kernRtW,pc.kernRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,false,0,0);
+            pc.kernRtW,pc.kernRtH,pc.fftTexSizeWLog,pc.fftTexSizeHLog,false,true,0,0);
     }else if(pc.fftStep==kStepMultiply){
         uint fftW = 1<<pc.fftTexSizeWLog;
         uint fftH = 1<<pc.fftTexSizeHLog;

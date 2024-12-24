@@ -28,12 +28,20 @@ struct PostFxFFTConv2dSubpasses;
 struct PostFxFFTConv2dResourceCollection {
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
+  using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
+  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
+
   std::shared_ptr<GPUTexture> m_tex1;
   std::shared_ptr<GPUBindId> m_tex1Id;
   std::shared_ptr<GPUTexture> m_tex2;
   std::shared_ptr<GPUBindId> m_tex2Id;
   std::shared_ptr<GPUTexture> m_texTemp;
   std::shared_ptr<GPUBindId> m_texTempId;
+
+  std::shared_ptr<GPUTexture> m_texGaussian;
+  std::shared_ptr<GPUSampler> m_texGaussianSampler;
+  std::shared_ptr<GPUBindId> m_texGaussianId;
+  std::shared_ptr<GPUBindId> m_texGaussianSampId;
 
   PostFxFFTConv2dResourceCollection() = default;
   PostFxFFTConv2dResourceCollection(const PostFxFFTConv2dResourceCollection &) =
@@ -54,6 +62,7 @@ class IFRIT_APIDECL PostFxFFTConv2d : public PostprocessPass {
       m_resMap;
 
   ComputePass *m_upsamplePipeline = nullptr;
+  ComputePass *m_gaussianPipeline = nullptr;
 
 public:
   PostFxFFTConv2d(IApplication *app);

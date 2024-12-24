@@ -120,7 +120,7 @@ public:
     camera->setAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
     camera->setFov(90.0f / 180.0f * std::numbers::pi_v<float>);
     camera->setFar(3000.0f);
-    camera->setNear(0.01f);
+    camera->setNear(10.01f);
 
     auto cameraTransform = cameraGameObject->getComponent<Transform>();
     cameraTransform->setPosition({0.0f, 0.5f, -1.25f});
@@ -152,8 +152,8 @@ public:
     uint32_t numMeshes = 0;
     for (auto &prefab : prefabs) {
       numMeshes++;
-      // if (numMeshes > 700)
-      //   break;
+      //if (numMeshes > 700)
+      //  break;
       prefab->m_prefab->addComponent<MeshRenderer>()->setMaterial(m_material);
       node->addGameObjectTransferred(std::move(prefab->m_prefab));
     }

@@ -87,7 +87,7 @@ void main(){
 
     // Create a random coef for sampling direction disturbance
     float rand = ifrit_wnoise2(tUV.yx).x * kPI * 2.0 / float(cHBAODirections);
-    float rand2 = 1.0;
+    float rand2 = ifrit_wnoise2(tUV.yx).x;
 
     float weightedAO = 0.0;
     float totalWeight = 0.0;
@@ -102,7 +102,7 @@ void main(){
         // min(pushConst.radius / vsPos.z, pushConst.maxRadius);
 
         float accAO = 0.0;
-        float maxAO = sin(15.0/180.0*kPI);
+        float maxAO = sin(10.0/180.0*kPI);
         for(uint j=0;j<cHBAOSampleSteps;j++){
             vec2 sampUV = uv + dir * sampleStep * (float(j) + rand2);
             float sampDepth = texture(GetSampler2D(pushConst.depthTex),sampUV).x;

@@ -37,6 +37,13 @@ IFRIT_APIDECL PostFxFFTConv2d::PostFxFFTConv2d(IApplication *app)
   m_upsamplePipeline->setComputeShader(shader);
   m_upsamplePipeline->setPushConstSize(16 * sizeof(uint32_t));
   m_upsamplePipeline->setNumBindlessDescriptorSets(0);
+
+  auto gshader = createShaderFromFile("GaussianKernelGenerate.comp.glsl",
+                                      "main", RhiShaderStage::Compute);
+  m_gaussianPipeline = rhi->createComputePass();
+  m_gaussianPipeline->setComputeShader(gshader);
+  m_gaussianPipeline->setPushConstSize(4 * sizeof(uint32_t));
+  m_gaussianPipeline->setNumBindlessDescriptorSets(0);
 }
 
 IFRIT_APIDECL PostFxFFTConv2d::~PostFxFFTConv2d() {}
@@ -93,12 +100,28 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
     auto tex1Id = rhi->registerUAVImage(tex1.get(), {0, 0, 1, 1});
     auto tex2Id = rhi->registerUAVImage(tex2.get(), {0, 0, 1, 1});
     auto texTempId = rhi->registerUAVImage(texTemp.get(), {0, 0, 1, 1});
+
+    auto texSampler = rhi->createTrivialSampler();
+    auto texGaussian = rhi->createRenderTargetTexture(
+        kernelWidth, kernelHeight,
+        RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
+            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+    auto texGaussianId = rhi->registerUAVImage(texGaussian.get(), {0, 0, 1, 1});
+    auto texGaussianSampId =
+        rhi->registerCombinedImageSampler(texGaussian.get(), texSampler.get());
+
     res->m_tex1 = tex1;
     res->m_tex1Id = tex1Id;
     res->m_tex2 = tex2;
     res->m_tex2Id = tex2Id;
     res->m_texTemp = texTemp;
     res->m_texTempId = texTempId;
+    res->m_texGaussian = texGaussian;
+    res->m_texGaussianId = texGaussianId;
+    res->m_texGaussianSampler = texSampler;
+    res->m_texGaussianSampId = texGaussianSampId;
+
     m_resMap[{p2Width, p2Height}] = *res;
   }
 
@@ -136,6 +159,34 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
   pc.fftTexSizeWLog = logP2Width;
   pc.fftTexSizeHLog = logP2Height;
   pc.bloomMix = 1;
+
+  if (kernelSampId != nullptr) {
+    pc.kernImage = kernelSampId->getActiveId();
+  } else {
+    pc.kernImage =
+        m_resMap[{p2Width, p2Height}].m_texGaussianSampId->getActiveId();
+
+    struct PushConstBlur {
+      uint32_t blurKernW;
+      uint32_t blurKernH;
+      uint32_t srcImgId;
+      float sigma = 10.0f;
+    } pcb;
+    pcb.blurKernW = kernelWidth;
+    pcb.blurKernH = kernelHeight;
+    pcb.srcImgId = m_resMap[{p2Width, p2Height}].m_texGaussianId->getActiveId();
+    cmd->beginScope("Postprocess: FFTConv2D, GaussianBlur");
+    m_gaussianPipeline->setRecordFunction(
+        [&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
+          cmd->setPushConst(m_gaussianPipeline, 0, 4 * sizeof(uint32_t), &pcb);
+          ctx->m_cmd->dispatch(Ifrit::Math::ConstFunc::divRoundUp(p2Width, 8),
+                               Ifrit::Math::ConstFunc::divRoundUp(p2Height, 8),
+                               1);
+        });
+    m_gaussianPipeline->run(cmd, 0);
+    cmd->globalMemoryBarrier();
+    cmd->endScope();
+  }
 
   if (logP2Height != logP2Width) {
     iError("FFTConv2d: Image size must be square");
