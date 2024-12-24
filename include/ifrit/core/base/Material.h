@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/serialization/SerialInterface.h"
 #include "ifrit/common/util/ApiConv.h"
@@ -32,6 +31,8 @@ enum class GraphicsShaderPassType {
   PostProcess,
   DirectLighting,
 };
+
+enum class ShaderEffectType { Graphics, Compute };
 
 struct PipelineAttachmentConfigs {
   Ifrit::GraphicsBackend::Rhi::RhiImageFormat m_depthFormat;
@@ -57,19 +58,23 @@ struct PipelineAttachmentConfigsHash {
 
 class ShaderEffect {
   using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;
+  using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
   using Shader = Ifrit::GraphicsBackend::Rhi::RhiShader;
 
 public:
+  ShaderEffectType m_type = ShaderEffectType::Graphics;
   std::vector<Shader *> m_shaders;
   std::vector<AssetReference> m_shaderReferences;
   std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
                      PipelineAttachmentConfigsHash>
       m_drawPasses;
+  ComputePass *m_computePass = nullptr;
 
   IFRIT_STRUCT_SERIALIZE(m_shaderReferences);
 
   bool operator==(const ShaderEffect &other) const {
     bool result = true;
+    result &= m_type == other.m_type;
     for (size_t i = 0; i < m_shaderReferences.size(); i++) {
       result &= m_shaderReferences[i] == other.m_shaderReferences[i];
     }

@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "AssetReference.h"
 #include "Component.h"
@@ -94,7 +93,7 @@ public:
     uint32_t clusterGroupBufferId;
     uint32_t meshletInClusterBufferId;
     uint32_t cpCounterBufferId;
-    uint32_t pad1;
+    uint32_t materialDataId;
     uint32_t pad2;
     uint32_t pad3;
   };
@@ -111,6 +110,8 @@ public:
     GPUBuffer *clusterGroupBuffer = nullptr;
     GPUBuffer *meshletInClusterBuffer = nullptr;
     GPUBuffer *cpCounterBuffer = nullptr;
+    GPUBuffer *materialDataBuffer =
+        nullptr; // currently, opaque is used to hold material data
 
     std::shared_ptr<GPUBindId> vertexBufferId = nullptr;
     std::shared_ptr<GPUBindId> normalBufferId = nullptr;
@@ -123,6 +124,7 @@ public:
     std::shared_ptr<GPUBindId> clusterGroupBufferId = nullptr;
     std::shared_ptr<GPUBindId> meshletInClusterBufferId = nullptr;
     std::shared_ptr<GPUBindId> cpCounterBufferId = nullptr;
+    std::shared_ptr<GPUBindId> materialDataBufferId = nullptr;
 
     GPUObjectBuffer objectData;
     GPUBuffer *objectBuffer = nullptr;
@@ -151,6 +153,7 @@ public:
     m_resource.clusterGroupBuffer = resource.clusterGroupBuffer;
     m_resource.meshletInClusterBuffer = resource.meshletInClusterBuffer;
     m_resource.cpCounterBuffer = resource.cpCounterBuffer;
+    m_resource.materialDataBuffer = resource.materialDataBuffer;
 
     m_resource.vertexBufferId = resource.vertexBufferId;
     m_resource.normalBufferId = resource.normalBufferId;
@@ -163,6 +166,7 @@ public:
     m_resource.clusterGroupBufferId = resource.clusterGroupBufferId;
     m_resource.meshletInClusterBufferId = resource.meshletInClusterBufferId;
     m_resource.cpCounterBufferId = resource.cpCounterBufferId;
+    m_resource.materialDataBufferId = resource.materialDataBufferId;
 
     m_resource.objectBuffer = resource.objectBuffer;
     m_resource.objectBufferId = resource.objectBufferId;
@@ -180,6 +184,7 @@ public:
     resource.clusterGroupBuffer = m_resource.clusterGroupBuffer;
     resource.meshletInClusterBuffer = m_resource.meshletInClusterBuffer;
     resource.cpCounterBuffer = m_resource.cpCounterBuffer;
+    resource.materialDataBuffer = m_resource.materialDataBuffer;
 
     resource.vertexBufferId = m_resource.vertexBufferId;
     resource.normalBufferId = m_resource.normalBufferId;
@@ -192,6 +197,7 @@ public:
     resource.clusterGroupBufferId = m_resource.clusterGroupBufferId;
     resource.meshletInClusterBufferId = m_resource.meshletInClusterBufferId;
     resource.cpCounterBufferId = m_resource.cpCounterBufferId;
+    resource.materialDataBufferId = m_resource.materialDataBufferId;
 
     resource.objectBuffer = m_resource.objectBuffer;
     resource.objectBufferId = m_resource.objectBufferId;

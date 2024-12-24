@@ -262,6 +262,12 @@ public:
                         VkFormat format = VK_FORMAT_D32_SFLOAT,
                         VkImageUsageFlags extraUsage = 0);
 
+  // Create a simple 2D texture, without mipmaps
+  std::shared_ptr<SingleDeviceImage>
+  createTexture2DDeviceUnmanaged(uint32_t width, uint32_t height,
+                                 VkFormat format,
+                                 VkImageUsageFlags extraUsage = 0);
+
   // Create a readable render target texture
   std::shared_ptr<SingleDeviceImage>
   createRenderTargetTexture(uint32_t width, uint32_t height, VkFormat format,

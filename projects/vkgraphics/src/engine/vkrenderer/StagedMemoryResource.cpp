@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
@@ -107,10 +106,10 @@ IFRIT_APIDECL void StagedSingleImage::cmdCopyToDevice(
   barrier.addImageMemoryBarrier(imageBarrier);
 
   cmd->pipelineBarrier(barrier);
-  cmd->copyBufferToImageAll(m_stagingBuffer.get(), m_image->getImage(),
-                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                            m_image->getWidth(), m_image->getHeight(),
-                            m_image->getDepth());
+  cmd->copyBufferToImageAllInternal(m_stagingBuffer.get(), m_image->getImage(),
+                                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                    m_image->getWidth(), m_image->getHeight(),
+                                    m_image->getDepth());
 
   imageBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
   imageBarrier.newLayout = dstLayout;

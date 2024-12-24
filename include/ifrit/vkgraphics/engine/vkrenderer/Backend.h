@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/util/ApiConv.h"
 #include "ifrit/common/util/TypingUtil.h"
@@ -71,6 +70,10 @@ public:
                                Rhi::RhiShaderSourceType sourceType) override;
 
   // Texture
+  std::shared_ptr<Rhi::RhiTexture>
+  createTexture2D(uint32_t width, uint32_t height, Rhi::RhiImageFormat format,
+                  uint32_t extraFlags) override;
+
   Rhi::RhiTexture *createDepthRenderTexture(uint32_t width,
                                             uint32_t height) override;
 

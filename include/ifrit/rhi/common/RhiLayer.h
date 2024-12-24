@@ -525,6 +525,10 @@ public:
   virtual std::shared_ptr<RhiBuffer> getFullScreenQuadVertexBuffer() const = 0;
 
   // Note that the texture created can only be accessed by the GPU
+  virtual std::shared_ptr<RhiTexture> createTexture2D(uint32_t width,
+                                                      uint32_t height,
+                                                      RhiImageFormat format,
+                                                      uint32_t extraFlags) = 0;
   virtual std::shared_ptr<RhiTexture>
   createRenderTargetTexture(uint32_t width, uint32_t height,
                             RhiImageFormat format, uint32_t extraFlags) = 0;
@@ -738,6 +742,9 @@ public:
   virtual void copyImage(const RhiTexture *src, RhiImageSubResource srcSub,
                          const RhiTexture *dst,
                          RhiImageSubResource dstSub) const = 0;
+
+  virtual void copyBufferToImage(const RhiBuffer *src, const RhiTexture *dst,
+                                 RhiImageSubResource dstSub) const = 0;
 
   virtual void setCullMode(RhiCullMode mode) const = 0;
 };

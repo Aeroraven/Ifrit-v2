@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
@@ -225,6 +224,14 @@ IFRIT_APIDECL Rhi::RhiShader *RhiVulkanBackend::createShader(
   auto ptr = shaderModule.get();
   m_implDetails->m_shaderModule.push_back(std::move(shaderModule));
   return ptr;
+}
+
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture>
+RhiVulkanBackend::createTexture2D(uint32_t width, uint32_t height,
+                                  Rhi::RhiImageFormat format,
+                                  uint32_t extraFlags) {
+  return m_implDetails->m_resourceManager->createTexture2DDeviceUnmanaged(
+      width, height, toVkFormat(format), extraFlags);
 }
 
 IFRIT_APIDECL Rhi::RhiTexture *

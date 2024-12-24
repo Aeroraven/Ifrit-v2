@@ -20,14 +20,69 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/assetmanager/DirectDrawSurfaceAsset.h"
 #include <fstream>
+
+#ifndef MAKEFOURCC
+#define MAKEFOURCC(ch0, ch1, ch2, ch3)                                         \
+  ((uint32_t)(char)(ch0) | ((uint32_t)(char)(ch1) << 8) |                      \
+   ((uint32_t)(char)(ch2) << 16) | ((uint32_t)(char)(ch3) << 24))
+#endif
+
 namespace Ifrit::Core {
 
-void parseDDS(std ::filesystem::path path) {
+struct DDS_PIXELFORMAT {
+  uint32_t dwSize;
+  uint32_t dwFlags;
+  uint32_t dwFourCC;
+  uint32_t dwRGBBitCount;
+  uint32_t dwRBitMask;
+  uint32_t dwGBitMask;
+  uint32_t dwBBitMask;
+  uint32_t dwABitMask;
+};
+
+typedef struct {
+  uint32_t dxgiFormat;
+  uint32_t resourceDimension;
+  uint32_t miscFlag;
+  uint32_t arraySize;
+  uint32_t miscFlags2;
+} DDS_HEADER_DXT10;
+
+typedef struct {
+  uint32_t dwSize;
+  uint32_t dwFlags;
+  uint32_t dwHeight;
+  uint32_t dwWidth;
+  uint32_t dwPitchOrLinearSize;
+  uint32_t dwDepth;
+  uint32_t dwMipMapCount;
+  uint32_t dwReserved1[11];
+  DDS_PIXELFORMAT ddspf;
+  uint32_t dwCaps;
+  uint32_t dwCaps2;
+  uint32_t dwCaps3;
+  uint32_t dwCaps4;
+  uint32_t dwReserved2;
+} DDS_HEADER;
+
+enum class DDSCompressedType {
+  Unknown,
+  DXT1,
+  DXT2,
+  DXT3,
+  DXT4,
+  DXT5,
+  ATI1,
+  ATI2,
+};
+
+std::shared_ptr<GraphicsBackend::Rhi::RhiTexture>
+parseDDS(std ::filesystem::path path, IApplication *app) {
   std::ifstream ifs;
   ifs.open(path, std::ios::binary);
   if (!ifs.is_open()) {
     iError("Failed to open file: {}", path.generic_string());
-    return;
+    return nullptr;
   }
   ifs.seekg(0, std::ios::end);
   auto size = ifs.tellg();
@@ -35,6 +90,130 @@ void parseDDS(std ::filesystem::path path) {
   std::vector<char> data(size);
   ifs.read(data.data(), size);
   ifs.close();
+
+  // Check magic
+  using namespace Ifrit::GraphicsBackend::Rhi;
+  uint32_t bodyOffset = 4;
+  uint32_t magic = *reinterpret_cast<uint32_t *>(data.data());
+  if (magic != 0x20534444) {
+    iError("Invalid magic number: {}", magic);
+    std::abort();
+  }
+
+  DDS_HEADER *header = reinterpret_cast<DDS_HEADER *>(data.data() + 4);
+  DDS_HEADER_DXT10 *header10 = nullptr;
+  DDSCompressedType compressedType = DDSCompressedType::Unknown;
+  RhiImageFormat format = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+  bool hasAlpha = false;
+
+  iInfo("DDS Header: dwSize: {}, dwFlags: {}, dwHeight: {}, dwWidth: {}, "
+        "dwPitchOrLinearSize: {}, dwDepth: {}, dwMipMapCount: {}, dwCaps: {}, "
+        "dwCaps2: {}, dwCaps3: {}, dwCaps4: {}, dwddspfFlags: "
+        "{},dwddspfRGBBitCount: {}, dwddspfRBitMask: {}, ",
+        header->dwSize, header->dwFlags, header->dwHeight, header->dwWidth,
+        header->dwPitchOrLinearSize, header->dwDepth, header->dwMipMapCount,
+        header->dwCaps, header->dwCaps2, header->dwCaps3, header->dwCaps4,
+        header->ddspf.dwFlags, header->ddspf.dwRGBBitCount,
+        header->ddspf.dwRBitMask);
+  bodyOffset += sizeof(DDS_HEADER);
+  hasAlpha = header->ddspf.dwFlags & 0x1;
+
+  // Check DX10 header
+  if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', '1', '0')) {
+    iInfo("DX10 header detected");
+    header10 = reinterpret_cast<DDS_HEADER_DXT10 *>(data.data() + 4 +
+                                                    sizeof(DDS_HEADER));
+    iInfo("DX10 Header: dxgiFormat: {}, resourceDimension: {}, miscFlag: {}, "
+          "arraySize: {}, miscFlags2: {}",
+          header10->dxgiFormat, header10->resourceDimension, header10->miscFlag,
+          header10->arraySize, header10->miscFlags2);
+    bodyOffset += sizeof(DDS_HEADER_DXT10);
+  } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '1')) {
+
+    compressedType = DDSCompressedType::DXT1;
+    if (hasAlpha) {
+      format = RhiImageFormat::RHI_FORMAT_BC1_RGBA_UNORM_BLOCK;
+      iInfo("DXT1 header detected, RGBA");
+    } else {
+      format = RhiImageFormat::RHI_FORMAT_BC1_RGB_UNORM_BLOCK;
+      iInfo("DXT1 header detected, RGB");
+    }
+  } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '2')) {
+    iInfo("DXT2 header detected");
+    compressedType = DDSCompressedType::DXT2;
+    format = RhiImageFormat::RHI_FORMAT_BC2_UNORM_BLOCK;
+  } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '3')) {
+    iInfo("DXT3 header detected");
+    compressedType = DDSCompressedType::DXT3;
+    format = RhiImageFormat::RHI_FORMAT_BC2_UNORM_BLOCK;
+  } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '4')) {
+    iInfo("DXT4 header detected");
+    compressedType = DDSCompressedType::DXT4;
+    format = RhiImageFormat::RHI_FORMAT_BC3_UNORM_BLOCK;
+  } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '5')) {
+    iInfo("DXT5 header detected");
+    compressedType = DDSCompressedType::DXT5;
+    format = RhiImageFormat::RHI_FORMAT_BC3_UNORM_BLOCK;
+  } else if (header->ddspf.dwFourCC == MAKEFOURCC('A', 'T', 'I', '1')) {
+    iInfo("ATI1 header detected");
+    compressedType = DDSCompressedType::ATI1;
+    format = RhiImageFormat::RHI_FORMAT_BC4_UNORM_BLOCK;
+  } else if (header->ddspf.dwFourCC == MAKEFOURCC('A', 'T', 'I', '2')) {
+    iInfo("ATI2 header detected");
+    compressedType = DDSCompressedType::ATI2;
+    format = RhiImageFormat::RHI_FORMAT_BC5_UNORM_BLOCK;
+  } else {
+    char fourcc[5];
+    fourcc[0] = (header->ddspf.dwFourCC >> 0) & 0xFF;
+    fourcc[1] = (header->ddspf.dwFourCC >> 8) & 0xFF;
+    fourcc[2] = (header->ddspf.dwFourCC >> 16) & 0xFF;
+    fourcc[3] = (header->ddspf.dwFourCC >> 24) & 0xFF;
+    fourcc[4] = '\0';
+    iError("Unsupported FourCC: {}", fourcc);
+    std::abort();
+  }
+
+  auto rhi = app->getRhiLayer();
+  auto tex =
+      rhi->createTexture2D(header->dwWidth, header->dwHeight, format,
+                           RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+  auto totalBodySize = data.size() - bodyOffset;
+  auto requiredBodySize = header->dwPitchOrLinearSize * header->dwHeight;
+  if (format == RhiImageFormat::RHI_FORMAT_UNDEFINED) {
+    iError("Invalid format");
+    std::abort();
+  } else {
+    // This is compressed format
+    requiredBodySize = header->dwPitchOrLinearSize;
+  }
+  if (totalBodySize < requiredBodySize) {
+    iError("Invalid body size: {}, required: {}", totalBodySize,
+           requiredBodySize);
+    std::abort();
+  }
+  auto buffer = rhi->createBuffer(
+      requiredBodySize, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      true);
+  buffer->map();
+  buffer->writeBuffer(data.data() + bodyOffset, requiredBodySize, 0);
+  buffer->flush();
+  buffer->unmap();
+  tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
+    cmd->imageBarrier(tex.get(), RhiResourceState::Undefined,
+                      RhiResourceState::CopyDest, {0, 0, 1, 1});
+    cmd->copyBufferToImage(buffer, tex.get(), {0, 0, 1, 1});
+    cmd->imageBarrier(tex.get(), RhiResourceState::CopyDest,
+                      RhiResourceState::Common, {0, 0, 1, 1});
+  });
+  return tex;
+}
+
+IFRIT_APIDECL DirectDrawSurfaceAsset::DirectDrawSurfaceAsset(
+    AssetMetadata metadata, std::filesystem::path path, IApplication *app)
+    : Asset(metadata, path), m_app(app) {
+  m_texture = parseDDS(path, app);
 }
 
 // Importer
@@ -53,9 +232,6 @@ DirectDrawSurfaceAssetImporter::importAsset(const std::filesystem::path &path,
                                             AssetMetadata &metadata) {
   auto asset = std::make_shared<DirectDrawSurfaceAsset>(
       metadata, path, m_assetManager->getApplication());
-  // Test
-  parseDDS(path);
-  // End Test
   m_assetManager->registerAsset(asset);
   iInfo("Imported asset: [DDSTexture] {}", metadata.m_uuid);
 }

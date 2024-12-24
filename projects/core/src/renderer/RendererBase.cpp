@@ -186,6 +186,9 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
 
     // TODO: Heavy copy operation, should be avoided
     effect.m_drawPasses = material->m_effectTemplates[passType].m_drawPasses;
+    effect.m_computePass = material->m_effectTemplates[passType].m_computePass;
+    effect.m_type = material->m_effectTemplates[passType].m_type;
+
     if (perframeData.m_shaderEffectMap.count(effect) == 0) {
       perframeData.m_shaderEffectMap[effect] =
           size_cast<uint32_t>(perframeData.m_shaderEffectData.size());
@@ -208,6 +211,24 @@ IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,
   for (auto &shaderEffectId : perframeData.m_enabledEffects) {
     auto &shaderEffect = perframeData.m_shaderEffectData[shaderEffectId];
     auto ref = shaderEffect.m_materials[0]->m_effectTemplates[passType];
+
+    if (ref.m_type == ShaderEffectType::Compute) {
+      if (ref.m_computePass) {
+        continue;
+      }
+      auto rhi = m_app->getRhiLayer();
+      auto computePass = rhi->createComputePass();
+      auto shader = ref.m_shaders[0];
+      computePass->setComputeShader(shader);
+
+      // TODO: obtain via reflection
+      computePass->setPushConstSize(64); // Test value
+      computePass->setNumBindlessDescriptorSets(3);
+      for (auto &material : shaderEffect.m_materials) {
+        material->m_effectTemplates[passType].m_computePass = computePass;
+      }
+      continue;
+    }
     auto rtFormats = renderTargets->getFormat();
     PipelineAttachmentConfigs paConfig = {rtFormats.m_depthFormat,
                                           rtFormats.m_colorFormats};
@@ -560,6 +581,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       auto meshDataRef = mesh->loadMesh();
       Mesh::GPUResource meshResource;
       bool requireUpdate = false;
+      bool haveMaterialData = false;
 
       mesh->getGPUResource(meshResource);
       if (meshResource.objectBufferId == nullptr || mesh->m_resourceDirty) {
@@ -611,6 +633,20 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             size_cast<uint32_t>(sizeof(MeshData::GPUCPCounter)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
+        auto materialDataSize = 0;
+        auto &materialRef = shaderEffect.m_materials[i];
+        if (materialRef->m_data.size() > 0) {
+          haveMaterialData = true;
+          materialDataSize = size_cast<uint32_t>(materialRef->m_data[0].size());
+          meshResource.materialDataBuffer = rhi->createStorageBufferDevice(
+              size_cast<uint32_t>(
+                  shaderEffect.m_materials[i]->m_data[0].size()),
+              RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        } else {
+          meshResource.materialDataBuffer = nullptr;
+          iWarn("Material data not found for mesh {}", i);
+        }
+
         // Indices in bindless descriptors
         meshResource.vertexBufferId =
             rhi->registerStorageBuffer(meshResource.vertexBuffer);
@@ -632,6 +668,10 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             rhi->registerStorageBuffer(meshResource.meshletInClusterBuffer);
         meshResource.cpCounterBufferId =
             rhi->registerStorageBuffer(meshResource.cpCounterBuffer);
+        if (haveMaterialData) {
+          meshResource.materialDataBufferId =
+              rhi->registerStorageBuffer(meshResource.materialDataBuffer);
+        }
 
         // Here, we assume that no double bufferring is allowed
         // meaning no CPU-GPU data transfer is allowed for mesh data after
@@ -658,6 +698,9 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             meshResource.cpCounterBufferId->getActiveId();
         objectBuffer.boundingSphere =
             mesh->getBoundingSphere(meshDataRef->m_vertices);
+        objectBuffer.materialDataId =
+            haveMaterialData ? meshResource.materialDataBufferId->getActiveId()
+                             : 0;
 
         // description for the whole mesh
         meshResource.objectBuffer = rhi->createStorageBufferDevice(
@@ -742,6 +785,18 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         stagedBuffers.push_back(stagedCPCounterBuffer);
         pendingVertexBuffers.push_back(&meshDataRef->m_cpCounter);
         pendingVertexBufferSizes.push_back(sizeof(MeshData::GPUCPCounter));
+
+        std::shared_ptr<RhiStagedSingleBuffer> stagedMaterialDataBuffer =
+            nullptr;
+        if (haveMaterialData) {
+          stagedMaterialDataBuffer =
+              rhi->createStagedSingleBuffer(meshResource.materialDataBuffer);
+          stagedBuffers.push_back(stagedMaterialDataBuffer);
+          pendingVertexBuffers.push_back(
+              &shaderEffect.m_materials[i]->m_data[0][0]);
+          pendingVertexBufferSizes.push_back(
+              shaderEffect.m_materials[i]->m_data[0].size());
+        }
 
         auto stagedObjectBuffer =
             rhi->createStagedSingleBuffer(meshResource.objectBuffer);

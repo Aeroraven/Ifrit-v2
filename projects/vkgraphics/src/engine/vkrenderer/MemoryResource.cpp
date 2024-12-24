@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
@@ -32,7 +31,7 @@ IFRIT_APIDECL void SingleBuffer::init() {
   bufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   if (bufferCI.size >= 1063742160) {
-  
+
     vkrLog("Buffer size is too large. ");
     std::abort();
   }
@@ -435,6 +434,20 @@ ResourceManager::createDepthAttachment(uint32_t width, uint32_t height,
              VK_IMAGE_USAGE_SAMPLED_BIT | extraUsage;
   ci.hostVisible = false;
   return createSimpleImage(ci);
+}
+
+IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>
+ResourceManager::createTexture2DDeviceUnmanaged(uint32_t width, uint32_t height,
+                                                VkFormat format,
+                                                VkImageUsageFlags extraUsage) {
+  ImageCreateInfo ci{};
+  ci.aspect = ImageAspect::Color;
+  ci.format = format;
+  ci.width = width;
+  ci.height = height;
+  ci.usage = VK_IMAGE_USAGE_SAMPLED_BIT | extraUsage;
+  ci.hostVisible = false;
+  return createSimpleImageUnmanaged(ci);
 }
 
 IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>

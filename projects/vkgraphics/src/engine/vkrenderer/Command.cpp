@@ -211,7 +211,7 @@ IFRIT_APIDECL void CommandBuffer::copyBuffer(const Rhi::RhiBuffer *srcBuffer,
   vkCmdCopyBuffer(m_commandBuffer, src, dst, 1, &copyRegion);
 }
 
-IFRIT_APIDECL void CommandBuffer::copyBufferToImageAll(
+IFRIT_APIDECL void CommandBuffer::copyBufferToImageAllInternal(
     const Rhi::RhiBuffer *srcBuffer, VkImage dstImage, VkImageLayout dstLayout,
     uint32_t width, uint32_t height, uint32_t depth) const {
   VkBufferImageCopy region{};
@@ -227,6 +227,27 @@ IFRIT_APIDECL void CommandBuffer::copyBufferToImageAll(
 
   auto src = checked_cast<SingleBuffer>(srcBuffer)->getBuffer();
   vkCmdCopyBufferToImage(m_commandBuffer, src, dstImage, dstLayout, 1, &region);
+}
+
+IFRIT_APIDECL void
+CommandBuffer::copyBufferToImage(const Rhi::RhiBuffer *src,
+                                 const Rhi::RhiTexture *dst,
+                                 Rhi::RhiImageSubResource dstSub) const {
+  auto image = checked_cast<SingleDeviceImage>(dst);
+  VkBufferImageCopy region{};
+  region.bufferOffset = 0;
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel = dstSub.mipLevel;
+  region.imageSubresource.baseArrayLayer = dstSub.arrayLayer;
+  region.imageSubresource.layerCount = dstSub.layerCount;
+  region.imageOffset = {0, 0, 0};
+  region.imageExtent = {image->getWidth(), image->getHeight(), 1};
+
+  auto buffer = checked_cast<SingleBuffer>(src)->getBuffer();
+  vkCmdCopyBufferToImage(m_commandBuffer, buffer, image->getImage(),
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
 IFRIT_APIDECL void CommandBuffer::globalMemoryBarrier() const {

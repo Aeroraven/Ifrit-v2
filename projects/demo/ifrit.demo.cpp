@@ -152,8 +152,9 @@ public:
     uint32_t numMeshes = 0;
     for (auto &prefab : prefabs) {
       numMeshes++;
-      //if (numMeshes > 700)
-      //  break;
+      if (numMeshes > 10) {
+        //break;
+      }
       prefab->m_prefab->addComponent<MeshRenderer>()->setMaterial(m_material);
       node->addGameObjectTransferred(std::move(prefab->m_prefab));
     }

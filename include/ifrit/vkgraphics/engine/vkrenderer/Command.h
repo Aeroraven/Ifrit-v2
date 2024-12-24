@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
@@ -150,9 +149,10 @@ public:
                   const Rhi::RhiBuffer *dstBuffer, uint32_t size,
                   uint32_t srcOffset = 0, uint32_t dstOffset = 0) const;
 
-  void copyBufferToImageAll(const Rhi::RhiBuffer *srcBuffer, VkImage dstImage,
-                            VkImageLayout dstLayout, uint32_t width,
-                            uint32_t height, uint32_t depth) const;
+  void copyBufferToImageAllInternal(const Rhi::RhiBuffer *srcBuffer,
+                                    VkImage dstImage, VkImageLayout dstLayout,
+                                    uint32_t width, uint32_t height,
+                                    uint32_t depth) const;
 
   // Rhi compatible
   void
@@ -215,6 +215,10 @@ public:
                          Rhi::RhiImageSubResource srcSub,
                          const Rhi::RhiTexture *dst,
                          Rhi::RhiImageSubResource dstSub) const override;
+
+  virtual void
+  copyBufferToImage(const Rhi::RhiBuffer *src, const Rhi::RhiTexture *dst,
+                    Rhi::RhiImageSubResource dstSub) const override;
   virtual void setCullMode(Rhi::RhiCullMode mode) const override;
 };
 

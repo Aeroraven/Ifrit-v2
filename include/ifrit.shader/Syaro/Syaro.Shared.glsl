@@ -45,7 +45,7 @@ RegisterStorage(bMeshDataRef,{
     uint clusterGroupBuffer;
     uint meshletInClusterBuffer;
     uint cpCounterBuffer;
-    uint pad0;
+    uint materialDataBufferId;
     uint pad2;
     uint pad3;
 });
