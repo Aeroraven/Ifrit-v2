@@ -288,11 +288,14 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     vec2 uv2 = GetResource(bUVs, uvRef).data[data.v2Idx];
 
     data.vpUV = vec4(_gbcomp_interpolate2(uv0, uv1, uv2, data.barycentric.xyz), 0.0, 1.0);
-
     uint albedoTexId = _gbcomp_readAlbedoTexId(objMeshletId);
 
     if(albedoTexId != ~0u){
+        data.vAlbedo = vec4(vec3(float(albedoTexId)),0.0); 
         data.vAlbedo = texture(GetSampler2D(albedoTexId), data.vpUV.xy);
+        //data.vAlbedo = vec4(data.vpUV.xy, 0.0, 1.0);
+    }else{
+        data.vAlbedo = vec4(1.0,0.0,0.0,1.0);
     }
 
     return data;

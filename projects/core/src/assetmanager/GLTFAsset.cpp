@@ -193,7 +193,7 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
   m_internalData = new GLTFInternalData();
   auto rhi = m_manager->getApplication()->getRhiLayer();
   if (m_internalData->defaultSampler == nullptr) {
-    m_internalData->defaultSampler = rhi->createTrivialBilinearSampler();
+    m_internalData->defaultSampler = rhi->createTrivialBilinearSampler(true);
   }
   tinygltf::TinyGLTF loader;
   std::string err;

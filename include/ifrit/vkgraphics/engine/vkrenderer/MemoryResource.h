@@ -293,7 +293,7 @@ public:
   std::shared_ptr<Sampler> createTrivialRenderTargetSampler();
 
   // Create a bilinear sampler
-  std::shared_ptr<Sampler> createTrivialBilinearSampler();
+  std::shared_ptr<Sampler> createTrivialBilinearSampler(bool repeat);
 };
 
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

@@ -533,13 +533,20 @@ ResourceManager::createTrivialRenderTargetSampler() {
 }
 
 IFRIT_APIDECL std::shared_ptr<Sampler>
-ResourceManager::createTrivialBilinearSampler() {
+ResourceManager::createTrivialBilinearSampler(bool repeat) {
   SamplerCreateInfo ci{};
   ci.magFilter = VK_FILTER_LINEAR;
   ci.minFilter = VK_FILTER_LINEAR;
-  ci.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  ci.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  ci.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  if (repeat) {
+    ci.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    ci.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    ci.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  } else {
+    ci.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    ci.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    ci.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  }
+
   ci.anisotropyEnable = false;
   ci.maxAnisotropy = 1.0f;
   ci.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;

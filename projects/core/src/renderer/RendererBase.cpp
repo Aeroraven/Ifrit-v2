@@ -289,8 +289,8 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
                        RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
                        RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-    auto targetFomrat = RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM;
-
+    // auto targetFomrat = RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM;
+    auto targetFomrat = RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT;
     perframeData.m_gbuffer.m_albedo_materialFlags =
         rhi->createRenderTargetTexture(rtArea.width + rtArea.x,
                                        rtArea.height + rtArea.y, targetFomrat,

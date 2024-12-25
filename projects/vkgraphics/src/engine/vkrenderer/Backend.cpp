@@ -269,8 +269,8 @@ RhiVulkanBackend::createTrivialSampler() {
 }
 
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiSampler>
-RhiVulkanBackend::createTrivialBilinearSampler() {
-  return m_implDetails->m_resourceManager->createTrivialBilinearSampler();
+RhiVulkanBackend::createTrivialBilinearSampler(bool repeat) {
+  return m_implDetails->m_resourceManager->createTrivialBilinearSampler(repeat);
 }
 
 IFRIT_APIDECL Rhi::RhiComputePass *RhiVulkanBackend::createComputePass() {
