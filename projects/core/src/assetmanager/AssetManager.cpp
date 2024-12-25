@@ -28,7 +28,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <iostream>
 #include <stdexcept>
 
-
 namespace Ifrit::Core {
 IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
   // std::cout << "Loading asset: " << path << std::endl;
@@ -36,12 +35,15 @@ IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
   //  suffix name
   auto metaPath = path;
   metaPath += cMetadataFileExtension;
+  auto relativePath = std::filesystem::relative(path, basePath);
+  if (m_nameToUuid.find(relativePath.generic_string()) != m_nameToUuid.end()) {
+    iWarn("Asset already loaded: {}", path.generic_string());
+    return;
+  }
   if (std::filesystem::exists(metaPath)) {
     // std::cout << "Metadata file found: " << metaPath << std::endl;
   } else {
     // No metadata file found, create one
-
-    auto relativePath = std::filesystem::relative(path, basePath);
     AssetMetadata metaData;
     metaData.m_fileId = relativePath.generic_string();
     metaData.m_name = path.filename().generic_string();
@@ -82,6 +84,7 @@ IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
   auto importer = m_importers[importerName];
   importer->importAsset(path, metadata);
 }
+
 IFRIT_APIDECL void
 AssetManager::loadAssetDirectory(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
@@ -100,6 +103,27 @@ AssetManager::loadAssetDirectory(const std::filesystem::path &path) {
       loadAsset(entry.path());
     }
   }
+}
+
+IFRIT_APIDECL std::shared_ptr<Asset>
+AssetManager::requestAssetIntenal(const std::filesystem::path &path) {
+  auto relativePath = std::filesystem::relative(path, basePath);
+  if (m_nameToUuid.find(relativePath.generic_string()) == m_nameToUuid.end()) {
+    // load the asset
+    loadAsset(path);
+    if (m_nameToUuid.find(relativePath.generic_string()) ==
+        m_nameToUuid.end()) {
+      iError("Asset not found: {}", path.generic_string());
+      return nullptr;
+    }
+  }
+  auto uuid = m_nameToUuid[relativePath.generic_string()];
+  auto it = m_assets.find(uuid);
+  if (it == m_assets.end()) {
+    iWarn("Asset not found: {}", path.generic_string());
+    return nullptr;
+  }
+  return it->second;
 }
 
 IFRIT_APIDECL void

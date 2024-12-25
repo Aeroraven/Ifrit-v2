@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core {
 class GLTFAsset;
 struct GLTFInternalData;
+class GLTFAssetImporter;
 
 class IFRIT_APIDECL GLTFMesh : public Mesh {
 private:
@@ -71,12 +72,13 @@ private:
   GLTFInternalData *m_internalData = nullptr;
 
 public:
-  GLTFAsset(AssetMetadata metadata, std::filesystem::path path)
+  GLTFAsset(AssetMetadata metadata, std::filesystem::path path,
+            AssetManager *m_manager)
       : Asset(metadata, path), m_metadata(metadata), m_path(path) {
-    loadGLTF();
+    loadGLTF(m_manager);
   }
   ~GLTFAsset();
-  void loadGLTF();
+  void loadGLTF(AssetManager *m_manager);
   GLTFInternalData *getInternalData();
   inline std::vector<std::shared_ptr<GLTFPrefab>> getPrefabs() {
     return m_prefabs;

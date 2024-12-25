@@ -203,6 +203,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     shaderEffectData.m_transforms.push_back(transform);
     shaderEffectData.m_instances.push_back(instance);
   }
+  return;
 }
 IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,
                                                 GraphicsShaderPassType passType,
@@ -773,6 +774,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
 
         enqueueStagedBuffer(vertexBuffer, m_verticesAligned);
         enqueueStagedBuffer(normalBuffer, m_normalsAligned);
+        enqueueStagedBuffer(uvBuffer, m_uvs);
         enqueueStagedBuffer(bvhNodeBuffer, m_bvhNodes);
         enqueueStagedBuffer(clusterGroupBuffer, m_clusterGroups);
         enqueueStagedBuffer(meshletBuffer, m_meshlets);

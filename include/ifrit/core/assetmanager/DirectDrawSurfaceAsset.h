@@ -18,19 +18,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/core/assetmanager/Asset.h"
+#include "ifrit/core/assetmanager/TextureAsset.h"
 #include "ifrit/core/base/ApplicationInterface.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Core {
-class IFRIT_APIDECL DirectDrawSurfaceAsset : public Asset {
+class IFRIT_APIDECL DirectDrawSurfaceAsset : public TextureAsset {
 private:
   bool m_loaded = false;
   IApplication *m_app;
-  std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> m_texture;
+  std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> m_texture = nullptr;
 
 public:
   DirectDrawSurfaceAsset(AssetMetadata metadata, std::filesystem::path path,
                          IApplication *app);
+  std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> getTexture() override;
 };
 class IFRIT_APIDECL DirectDrawSurfaceAssetImporter : public AssetImporter {
 private:

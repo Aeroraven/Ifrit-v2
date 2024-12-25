@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/util/Hash.h"
 #include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/assetmanager/TextureAsset.h"
+#include "ifrit/core/material/SyaroDefaultGBufEmitter.h"
 #include <fstream>
 
 #define TINYGLTF_IMPLEMENTATION
@@ -34,6 +36,7 @@ namespace Ifrit::Core {
 
 struct GLTFInternalData {
   tinygltf::Model model;
+  std::shared_ptr<GraphicsBackend::Rhi::RhiSampler> defaultSampler;
 };
 
 // Mesh class
@@ -186,8 +189,12 @@ IFRIT_APIDECL MeshData *GLTFMesh::loadMeshUnsafe() {
 
 // Asset class
 
-IFRIT_APIDECL void GLTFAsset::loadGLTF() {
+IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
   m_internalData = new GLTFInternalData();
+  auto rhi = m_manager->getApplication()->getRhiLayer();
+  if (m_internalData->defaultSampler == nullptr) {
+    m_internalData->defaultSampler = rhi->createTrivialBilinearSampler();
+  }
   tinygltf::TinyGLTF loader;
   std::string err;
   std::string warn;
@@ -214,6 +221,10 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF() {
   }
 
   // Create prefab for each node
+  // get gltf path
+  auto gltfDir = m_path.parent_path();
+
+  auto rawGLTFData = m_internalData->model;
   for (auto i = 0; auto &node : m_internalData->model.nodes) {
     auto meshId = node.mesh;
     if (meshId < 0) {
@@ -224,18 +235,40 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF() {
       auto prefab =
           std::make_shared<GLTFPrefab>(&m_metadata, this, meshId, j, i);
       auto meshFilter = prefab->m_prefab->addComponent<MeshFilter>();
-      meshFilter->setMesh(m_meshes[meshHash[{size_cast<uint32_t>(meshId), j}]]);
+      auto mesh = m_meshes[meshHash[{size_cast<uint32_t>(meshId), j}]];
+      meshFilter->setMesh(mesh);
+
+      auto &gltfMaterial = rawGLTFData.materials[primitive.material];
+      auto &pbrData = gltfMaterial.pbrMetallicRoughness;
+      auto baseColorIndex = pbrData.baseColorTexture.index;
+      iInfo("baseColorIndex: {}", baseColorIndex);
+      auto baseColorURI = rawGLTFData.images[baseColorIndex].uri;
+      auto texPath = gltfDir / baseColorURI;
+      iInfo("texPath: {}", texPath.string());
+      auto tex = m_manager->requestAsset<Asset>(texPath);
+      auto texCasted = std::dynamic_pointer_cast<TextureAsset>(tex);
+      if (!texCasted) {
+        iError("GLTFAsset: invalid texture asset");
+        std::abort();
+      }
+
+      auto meshRenderer = prefab->m_prefab->addComponent<MeshRenderer>();
+      auto material = std::make_shared<SyaroDefaultGBufEmitter>(
+          m_manager->getApplication());
+      auto albedoId = rhi->registerCombinedImageSampler(
+          texCasted->getTexture().get(), m_internalData->defaultSampler.get());
+      material->setAlbedoId(albedoId->getActiveId());
+      iInfo("GLTFAsset: albedoId: {}", albedoId->getActiveId());
+      material->buildMaterial();
+      meshRenderer->setMaterial(material);
+
       m_prefabs.push_back(std::move(prefab));
       j++;
     }
     i++;
   }
-  iInfo("GLTFAsset: loaded "
-        "mesh count: {}",
-        m_meshes.size());
-  iInfo("GLTFAsset: loaded "
-        "prefab count: {}",
-        m_prefabs.size());
+  iInfo("GLTFAsset: loaded mesh count: {}", m_meshes.size());
+  iInfo("GLTFAsset: loaded prefab count: {}", m_prefabs.size());
 }
 
 IFRIT_APIDECL GLTFInternalData *GLTFAsset::getInternalData() {
@@ -261,12 +294,10 @@ GLTFAssetImporter::getSupportedExtensionNames() {
 IFRIT_APIDECL void
 GLTFAssetImporter::importAsset(const std::filesystem::path &path,
                                AssetMetadata &metadata) {
-  auto asset = std::make_shared<GLTFAsset>(metadata, path);
+  auto asset = std::make_shared<GLTFAsset>(metadata, path, m_assetManager);
   m_assetManager->registerAsset(asset);
 
-  iInfo("Imported asset: "
-        "[GLTFObject] {}",
-        metadata.m_uuid);
+  iInfo("Imported asset: [GLTFObject] {}", metadata.m_uuid);
 }
 
 } // namespace Ifrit::Core

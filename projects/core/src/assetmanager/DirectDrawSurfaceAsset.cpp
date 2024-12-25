@@ -212,8 +212,16 @@ parseDDS(std ::filesystem::path path, IApplication *app) {
 
 IFRIT_APIDECL DirectDrawSurfaceAsset::DirectDrawSurfaceAsset(
     AssetMetadata metadata, std::filesystem::path path, IApplication *app)
-    : Asset(metadata, path), m_app(app) {
-  m_texture = parseDDS(path, app);
+    : TextureAsset(metadata, path), m_app(app) {
+  // Pass
+}
+
+IFRIT_APIDECL std::shared_ptr<GraphicsBackend::Rhi::RhiTexture>
+DirectDrawSurfaceAsset::getTexture() {
+  if (!m_texture) {
+    m_texture = parseDDS(m_path, m_app);
+  }
+  return m_texture;
 }
 
 // Importer

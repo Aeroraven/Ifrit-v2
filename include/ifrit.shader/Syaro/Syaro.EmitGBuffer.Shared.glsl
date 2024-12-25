@@ -66,9 +66,12 @@ RegisterStorage(bUVs,{
     vec2 data[];
 });
 
-
 RegisterStorage(bFilteredMeshlets2,{
     uvec2 data[];
+});
+
+RegisterStorage(bMaterialData,{
+    uint albedoTexId;
 });
 
 layout(binding = 0, set = 1) uniform MaterialPassData{
@@ -163,6 +166,14 @@ uint _gbcomp_readVertexIndex(uvec2 objMeshletId, uint vertexId){
     return vertexIndex;
 }
 
+uint _gbcomp_readAlbedoTexId(uvec2 objMeshletId){
+    uint objId = objMeshletId.x;
+    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint materialRef = GetResource(bMeshDataRef,obj).materialDataBufferId;
+    uint albedoTexId = GetResource(bMaterialData, materialRef).albedoTexId;
+    return albedoTexId;
+}
+
 uvec2 _gbcomp_getObjMeshletId(uint clusterId){
     return GetResource(bFilteredMeshlets2,uIndirectDrawData.allMeshletsRef).data[clusterId];
 }
@@ -214,6 +225,8 @@ struct gbcomp_TriangleData{
     vec4 vpPosVS;
     vec4 vpNormalVS;
     vec4 vpUV;
+
+    vec4 vAlbedo;
 };
 
 gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos){
@@ -275,6 +288,12 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     vec2 uv2 = GetResource(bUVs, uvRef).data[data.v2Idx];
 
     data.vpUV = vec4(_gbcomp_interpolate2(uv0, uv1, uv2, data.barycentric.xyz), 0.0, 1.0);
+
+    uint albedoTexId = _gbcomp_readAlbedoTexId(objMeshletId);
+
+    if(albedoTexId != ~0u){
+        data.vAlbedo = texture(GetSampler2D(albedoTexId), data.vpUV.xy);
+    }
 
     return data;
 }

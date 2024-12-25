@@ -137,6 +137,17 @@ public:
     light->setShadowMap(true);
     light->setShadowMapResolution(2048);
 
+#if 1
+    auto prefabs = bistroObj->getPrefabs();
+    uint32_t numMeshes = 0;
+    for (auto &prefab : prefabs) {
+      numMeshes++;
+      if (numMeshes > 10) {
+        //break;
+      }
+      node->addGameObjectTransferred(std::move(prefab->m_prefab));
+    }
+#else
     auto planeGameObject = node->addGameObject("plane");
     auto planeMeshFilter = planeGameObject->addComponent<MeshFilter>();
     planeMeshFilter->setMesh(planeObj);
@@ -147,18 +158,6 @@ public:
     planeTransform->setRotation({0.0f, 0.0f, 0.0f});
     planeTransform->setScale({1.0f, 1.0f, 1.0f});
 
-#if 1
-    auto prefabs = bistroObj->getPrefabs();
-    uint32_t numMeshes = 0;
-    for (auto &prefab : prefabs) {
-      numMeshes++;
-      if (numMeshes > 10) {
-        //break;
-      }
-      prefab->m_prefab->addComponent<MeshRenderer>()->setMaterial(m_material);
-      node->addGameObjectTransferred(std::move(prefab->m_prefab));
-    }
-#else
     for (int dx = 0; dx < bunnyPlacementX; dx++) {
       for (int dy = 0; dy < bunnyPlacementY; dy++) {
         for (int dz = 0; dz < bunnyPlacementZ; dz++) {

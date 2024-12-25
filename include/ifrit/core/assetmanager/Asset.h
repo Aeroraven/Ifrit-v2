@@ -16,12 +16,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/serialization/SerialInterface.h"
 #include "ifrit/common/util/ApiConv.h"
-#include "ifrit/core/base/AssetReference.h"
 #include "ifrit/core/base/ApplicationInterface.h"
+#include "ifrit/core/base/AssetReference.h"
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -115,6 +114,16 @@ public:
   void registerImporter(const std::string &extensionName,
                         std::shared_ptr<AssetImporter> importer);
   void registerAsset(std::shared_ptr<Asset> asset);
+
+  std::shared_ptr<Asset> requestAssetIntenal(const std::filesystem::path &path);
+  template <typename T>
+  std::shared_ptr<T> requestAsset(const std::filesystem::path &path) {
+    auto asset = requestAssetIntenal(path);
+    if (!asset) {
+      return nullptr;
+    }
+    return std::dynamic_pointer_cast<T>(asset);
+  }
 
   template <typename T> std::shared_ptr<T> getAsset(const std::string &uuid) {
     auto it = m_assets.find(uuid);
