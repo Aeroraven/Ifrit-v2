@@ -40,6 +40,7 @@ layout(push_constant) uniform PushConstFFTConv2d{
     uint fftTexSizeHLog;
     uint fftStep;
     uint bloomMix;
+    uint srcIntermImageSamp;
 }pc;
 
 layout(local_size_x=8,local_size_y=8,local_size_z=1) in;
@@ -68,15 +69,21 @@ void main(){
     float posXf = float(padL)+float(px)/float(pc.srcRtW)*(fftW-padL-padR);
     float posYf = float(padT)+float(py)/float(pc.srcRtH)*(fftH-padT-padB);
 
-    vec2 srcVal = imageLoad(GetUAVImage2DRGBA32F(pc.srcIntermImage),ivec2(posXf,posYf)).rb;
-    vec2 srcVal2 = imageLoad(GetUAVImage2DRGBA32F(pc.srcIntermImage),ivec2(posXf,posYf)+ivec2(fftW,0)).rb;
+    //vec2 srcVal = imageLoad(GetUAVImage2DRGBA32F(pc.srcIntermImage),ivec2(posXf,posYf)).rb;
+    //vec2 srcVal2 = imageLoad(GetUAVImage2DRGBA32F(pc.srcIntermImage),ivec2(posXf,posYf)+ivec2(fftW,0)).rb;
+
+    vec2 srcValUV =vec2(posXf/float(fftW),posYf/float(fftH))*vec2(0.5,1.0);
+    vec2 srcVal = texture(GetSampler2D(pc.srcIntermImageSamp),srcValUV).rb;
+
+    vec2 srcValUV2 =vec2(posXf/float(fftW),posYf/float(fftH))*vec2(0.5,1.0)+vec2(0.5,0.0);
+    vec2 srcVal2 = texture(GetSampler2D(pc.srcIntermImageSamp),srcValUV2).rb;
     
     vec4 rawVal = texture(GetSampler2D(pc.srcImage),vec2(float(px)/float(pc.srcRtW),float(py)/float(pc.srcRtH)));
 
     vec4 retVal = vec4(srcVal.x,srcVal.y,srcVal2.x,srcVal2.y);
     if(pc.bloomMix==1){
         float luma = rgbToLuma(rawVal);
-        retVal = rawVal + retVal;
+        retVal = rawVal + retVal * 0.75;
     }
     // Store to dstimage
     imageStore(GetUAVImage2DRGBA32F(pc.dstImage),ivec2(px,py),retVal);

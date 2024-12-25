@@ -127,7 +127,7 @@ void main(){
 
     float PIx = 3.14159265359;
     vec3 specular = dpbr_cookTorranceBRDF(F,G,D,NdotV,NdotL);
-    vec3 Lo = (kD * albedo / PIx + specular) * NdotL;
+    vec3 Lo = (kD * albedo / PIx + specular) * NdotL * 5.0;
 
     vec3 ambient = vec3(0.10) * albedo * ao;
     float shadow = texture(GetSampler2D(pc.shadowTexRef),texCoord).r;

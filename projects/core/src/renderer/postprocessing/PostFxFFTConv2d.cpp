@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core::PostprocessPassCollection {
 
 IFRIT_APIDECL PostFxFFTConv2d::PostFxFFTConv2d(IApplication *app)
-    : PostprocessPass(app, {"FFTConv2d.comp.glsl", 16, 1, true}) {
+    : PostprocessPass(app, {"FFTConv2d.comp.glsl", 17, 1, true}) {
   using namespace Ifrit::GraphicsBackend::Rhi;
   auto rhi = app->getRhiLayer();
   m_upsamplePipeline = rhi->createComputePass();
@@ -35,7 +35,7 @@ IFRIT_APIDECL PostFxFFTConv2d::PostFxFFTConv2d(IApplication *app)
   auto shader = createShaderFromFile("FFTConv2d.Upsample.comp.glsl", "main",
                                      RhiShaderStage::Compute);
   m_upsamplePipeline->setComputeShader(shader);
-  m_upsamplePipeline->setPushConstSize(16 * sizeof(uint32_t));
+  m_upsamplePipeline->setPushConstSize(17 * sizeof(uint32_t));
   m_upsamplePipeline->setNumBindlessDescriptorSets(0);
 
   auto gshader = createShaderFromFile("GaussianKernelGenerate.comp.glsl",
@@ -69,6 +69,10 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
   using Ifrit::Math::FastUtil::qlog2;
   auto logP2Width = 32 - qclz(imagePaddedX - 1);
   auto logP2Height = 32 - qclz(imagePaddedY - 1);
+
+  logP2Width = std::max(logP2Width, logP2Height);
+  logP2Height = logP2Width;
+
   auto p2Width = 1 << logP2Width;
   auto p2Height = 1 << logP2Height;
 
@@ -113,6 +117,8 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
 
     res->m_tex1 = tex1;
     res->m_tex1Id = tex1Id;
+    res->m_tex1IdSamp =
+        rhi->registerCombinedImageSampler(tex1.get(), texSampler.get());
     res->m_tex2 = tex2;
     res->m_tex2Id = tex2Id;
     res->m_texTemp = texTemp;
@@ -142,6 +148,7 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
     uint32_t fftTexSizeHLog;
     uint32_t fftStep;
     uint32_t bloomMix;
+    uint32_t srcIntermImageSamp;
   } pc;
 
   pc.srcDownScale = srcDownscale;
@@ -152,6 +159,8 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
   pc.kernRtH = kernelHeight;
   pc.srcImage = srcSampId->getActiveId();
   pc.srcIntermImage = m_resMap[{p2Width, p2Height}].m_tex1Id->getActiveId();
+  pc.srcIntermImageSamp =
+      m_resMap[{p2Width, p2Height}].m_tex1IdSamp->getActiveId();
   pc.kernImage = 0; // kernelSampId->getActiveId();
   pc.kernIntermImage = m_resMap[{p2Width, p2Height}].m_tex2Id->getActiveId();
   pc.dstImage = dstUAVImg->getActiveId();
@@ -221,7 +230,7 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
   m_upsamplePipeline->setRecordFunction(
       [&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
         pc.tempImage = m_resMap[{p2Width, p2Height}].m_texTempId->getActiveId();
-        cmd->setPushConst(m_upsamplePipeline, 0, 16 * sizeof(uint32_t), &pc);
+        cmd->setPushConst(m_upsamplePipeline, 0, 17 * sizeof(uint32_t), &pc);
         ctx->m_cmd->dispatch(dwgX, dwgY, 1);
       });
   m_upsamplePipeline->run(cmd, 0);

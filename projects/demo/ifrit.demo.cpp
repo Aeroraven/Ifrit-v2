@@ -98,7 +98,7 @@ public:
 
     // Renderer config
     renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
-    renderConfig.m_shadowConfig.m_maxDistance = 1000.0f;
+    renderConfig.m_shadowConfig.m_maxDistance = 3000.0f;
 
     // Material
     m_material = std::make_shared<Material>();
@@ -142,8 +142,8 @@ public:
     uint32_t numMeshes = 0;
     for (auto &prefab : prefabs) {
       numMeshes++;
-      if (numMeshes > 10) {
-        //break;
+      if (numMeshes < 510) {
+        //continue;
       }
       node->addGameObjectTransferred(std::move(prefab->m_prefab));
     }

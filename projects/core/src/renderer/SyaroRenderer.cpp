@@ -463,7 +463,7 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     auto postprocTex0Id = m_postprocTexId[{width, height}][0].get();
     auto postprocTex1Id = m_postprocTexIdComp[{width, height}][1].get();
     m_fftConv2d->renderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr,
-                              width, height, 33, 33, 2);
+                              width, height, 51, 51, 4);
     cmd->endScope();
   });
   fg.setExecutionFunction(passToneMapping, [&]() {
@@ -1516,8 +1516,8 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
       if (mesh->m_numMeshletsEachLod.size() > 1) {
         lv1Meshlets = mesh->m_numMeshletsEachLod[1];
       }
-      //iInfo("Meshlets: {} {}", lv0Meshlets, lv1Meshlets);
-      totalMeshlets += (lv0Meshlets+lv1Meshlets) * objDataSize;
+      // iInfo("Meshlets: {} {}", lv0Meshlets, lv1Meshlets);
+      totalMeshlets += (lv0Meshlets + lv1Meshlets) * objDataSize;
     }
   }
   auto activeBuf =

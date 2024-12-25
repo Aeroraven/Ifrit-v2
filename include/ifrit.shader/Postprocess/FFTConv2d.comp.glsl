@@ -40,6 +40,7 @@ layout(push_constant) uniform PushConstFFTConv2d{
     uint fftTexSizeHLog;
     uint fftStep;
     uint bloomMix;
+    uint srcIntermImageSamp;
 }pc;
 
 const uint kStepDFT1 = 0;

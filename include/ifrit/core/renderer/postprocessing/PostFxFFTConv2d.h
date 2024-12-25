@@ -33,6 +33,7 @@ struct PostFxFFTConv2dResourceCollection {
 
   std::shared_ptr<GPUTexture> m_tex1;
   std::shared_ptr<GPUBindId> m_tex1Id;
+  std::shared_ptr<GPUBindId> m_tex1IdSamp;
   std::shared_ptr<GPUTexture> m_tex2;
   std::shared_ptr<GPUBindId> m_tex2Id;
   std::shared_ptr<GPUTexture> m_texTemp;

@@ -58,13 +58,13 @@ IFRIT_APIDECL GLTFPrefab::GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset,
     float posX = static_cast<float>(gltfNode.translation[0]);
     float posY = static_cast<float>(gltfNode.translation[1]);
     float posZ = static_cast<float>(gltfNode.translation[2]);
-    transform->setPosition({posX, posY, posZ});
+    // transform->setPosition({posX, posY, posZ});
   }
   if (gltfNode.scale.size()) {
     float scaleX = static_cast<float>(gltfNode.scale[0]);
     float scaleY = static_cast<float>(gltfNode.scale[1]);
     float scaleZ = static_cast<float>(gltfNode.scale[2]);
-    transform->setScale({scaleX, scaleY, scaleZ});
+    // transform->setScale({scaleX, scaleY, scaleZ});
   }
   if (gltfNode.rotation.size()) {
     float rotX = static_cast<float>(gltfNode.rotation[0]);
