@@ -158,8 +158,8 @@ void initialMeshletGeneration(const MeshDescriptor &mesh,
   }
 
   freeUnusedMemoryInCotenxt(ctx);
-  iDebug("Initial meshlet generation done, total meshlets:{}",
-         ctx.totalMeshlets);
+  // iDebug("Initial meshlet generation done, total meshlets:{}",
+  //        ctx.totalMeshlets);
 }
 
 void metisValidation(ClusterLodGeneratorContext &ctx) {
@@ -377,7 +377,7 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
     iError("METIS partition failed, error code: {}", result);
     std::abort();
   }
-  metisValidation(ctx);
+  // metisValidation(ctx);
 }
 
 // Third step, for each cluster group, generate an aggregated meshlet.

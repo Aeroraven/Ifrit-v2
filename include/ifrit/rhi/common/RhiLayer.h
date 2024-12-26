@@ -545,6 +545,9 @@ public:
   virtual std::shared_ptr<RhiSampler>
   createTrivialBilinearSampler(bool repeat) = 0;
 
+  virtual std::shared_ptr<RhiSampler>
+  createTrivialNearestSampler(bool repeat) = 0;
+
   virtual std::shared_ptr<Rhi::RhiStagedSingleBuffer>
   createStagedSingleBuffer(RhiBuffer *target) = 0;
 

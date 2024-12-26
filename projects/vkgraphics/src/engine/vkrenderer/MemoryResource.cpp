@@ -561,4 +561,34 @@ ResourceManager::createTrivialBilinearSampler(bool repeat) {
   return sampler;
 }
 
+IFRIT_APIDECL
+std::shared_ptr<Sampler>
+ResourceManager::createTrivialNearestSampler(bool repeat) {
+  SamplerCreateInfo ci{};
+  ci.magFilter = VK_FILTER_NEAREST;
+  ci.minFilter = VK_FILTER_NEAREST;
+  if (repeat) {
+    ci.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    ci.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    ci.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  } else {
+    ci.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    ci.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    ci.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  }
+
+  ci.anisotropyEnable = false;
+  ci.maxAnisotropy = 1.0f;
+  ci.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+  ci.unnormalizedCoordinates = VK_FALSE;
+  ci.compareEnable = VK_FALSE;
+  ci.compareOp = VK_COMPARE_OP_ALWAYS;
+  ci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  ci.mipLodBias = 0.0f;
+  ci.minLod = 0.0f;
+  ci.maxLod = 0.0f;
+  auto sampler = std::make_shared<Sampler>(m_context, ci);
+  return sampler;
+}
+
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

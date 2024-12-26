@@ -83,7 +83,7 @@ void main(){
     vec4 retVal = vec4(srcVal.x,srcVal.y,srcVal2.x,srcVal2.y);
     if(pc.bloomMix==1){
         float luma = rgbToLuma(rawVal);
-        retVal = rawVal + retVal * 0.75;
+        retVal = rawVal + retVal * 0.85;
     }
     // Store to dstimage
     imageStore(GetUAVImage2DRGBA32F(pc.dstImage),ivec2(px,py),retVal);

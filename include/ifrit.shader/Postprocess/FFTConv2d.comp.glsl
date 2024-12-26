@@ -176,11 +176,11 @@ vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pad
     // }
     vec4 rt = texture(GetSampler2D(imgId),uv);
 
-    // float luma = rgbToLuma(rt);
-    // if(luma<0.6){
-    //     return vec4(0.0);
-    // }
-    return rt;
+    float luma = rgbToLuma(rt);
+    if(pc.fftStep!=kStepDFT1){
+        return rt;
+    }
+    return rt * pow(min(1.0,luma),1.15);
 }
 
 vec4 directImageLoad(uint imgId,uvec2 coord){

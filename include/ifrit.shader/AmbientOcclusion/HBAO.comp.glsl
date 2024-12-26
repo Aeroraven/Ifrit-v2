@@ -86,14 +86,14 @@ void main(){
     vec3 vsPos = toViewspace(uv,vsDepth,invPerspective,nearZ,farZ);
 
     // Create a random coef for sampling direction disturbance
-    float rand = ifrit_wnoise2(tUV.yx).x * kPI * 2.0 / float(cHBAODirections);
-    float rand2 = ifrit_wnoise2(tUV.yx).x;
+    float randv = ifrit_wnoise2(tUV.yx).x;
+    float rand = randv * kPI * 2.0 / float(cHBAODirections);
 
     float weightedAO = 0.0;
     float totalWeight = 0.0;
 
     const float kRadiusPixel = 0.5;
-    const float kMaxRadiusPixel = 16.0;
+    const float kMaxRadiusPixel = 12.0;
     for(uint i=0;i<cHBAODirections;i++){
         float dirAng = float(i) * kPI * 2.0 / float(cHBAODirections) + rand;
         vec2 dir = getRotationMatrix(dirAng) * vec2(1.0,0.0);
@@ -104,7 +104,7 @@ void main(){
         float accAO = 0.0;
         float maxAO = sin(10.0/180.0*kPI);
         for(uint j=0;j<cHBAOSampleSteps;j++){
-            vec2 sampUV = uv + dir * sampleStep * (float(j) + rand2);
+            vec2 sampUV = uv + dir * sampleStep * (float(j) + randv);
             float sampDepth = texture(GetSampler2D(pushConst.depthTex),sampUV).x;
             vec3 sampVSPos = toViewspace(sampUV,sampDepth,invPerspective,nearZ,farZ);
             float ao = computeAO(vsPos,sampVSPos,vsNormal,maxAO);

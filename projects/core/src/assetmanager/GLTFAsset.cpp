@@ -89,6 +89,7 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   auto &accessorPos = data.accessors[primitive.attributes["POSITION"]];
   auto &accessorNormal = data.accessors[primitive.attributes["NORMAL"]];
   auto &accessorTexcoord = data.accessors[primitive.attributes["TEXCOORD_0"]];
+  auto &accessorTangent = data.accessors[primitive.attributes["TANGENT"]];
   auto &accessorIndices = data.accessors[primitive.indices];
 
   iAssertion(accessorPos.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT,
@@ -103,6 +104,10 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
              "GLTFMesh: component type not supported");
   iAssertion(accessorTexcoord.type == TINYGLTF_TYPE_VEC2,
              "GLTFMesh: type not supported");
+  iAssertion(accessorTangent.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT,
+             "GLTFMesh: component type not supported");
+  iAssertion(accessorTangent.type == TINYGLTF_TYPE_VEC4,
+             "GLTFMesh: type not supported");
   iAssertion(accessorIndices.type == TINYGLTF_TYPE_SCALAR,
              "GLTFMesh: type not supported");
 
@@ -110,11 +115,13 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   auto &normalBufferView = data.bufferViews[accessorNormal.bufferView];
   auto &texcoordBufferView = data.bufferViews[accessorTexcoord.bufferView];
   auto &indicesBufferView = data.bufferViews[accessorIndices.bufferView];
+  auto &tangentBufferView = data.bufferViews[accessorTangent.bufferView];
 
   auto &posBuffer = data.buffers[posBufferView.buffer];
   auto &normalBuffer = data.buffers[normalBufferView.buffer];
   auto &texcoordBuffer = data.buffers[texcoordBufferView.buffer];
   auto &indicesBuffer = data.buffers[indicesBufferView.buffer];
+  auto &tangentBuffer = data.buffers[tangentBufferView.buffer];
 
   auto posData = reinterpret_cast<float *>(posBuffer.data.data() +
                                            posBufferView.byteOffset +
@@ -125,6 +132,9 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   auto texcoordData = reinterpret_cast<float *>(texcoordBuffer.data.data() +
                                                 texcoordBufferView.byteOffset +
                                                 accessorTexcoord.byteOffset);
+  auto tangentData = reinterpret_cast<float *>(tangentBuffer.data.data() +
+                                               tangentBufferView.byteOffset +
+                                               accessorTangent.byteOffset);
   auto indicesData = reinterpret_cast<uint32_t *>(indicesBuffer.data.data() +
                                                   indicesBufferView.byteOffset +
                                                   accessorIndices.byteOffset);
@@ -136,6 +146,7 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   auto normalDataSize = size_cast<uint32_t>(accessorNormal.count * 3);
   auto texcoordDataSize = size_cast<uint32_t>(accessorTexcoord.count * 2);
   auto indicesDataSize = size_cast<uint32_t>(accessorIndices.count);
+  auto tangentDataSize = size_cast<uint32_t>(accessorTangent.count * 4);
 
   m_selfData->m_vertices.resize(accessorPos.count);
   m_selfData->m_verticesAligned.resize(accessorPos.count);
@@ -143,6 +154,7 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   m_selfData->m_normalsAligned.resize(accessorNormal.count);
   m_selfData->m_uvs.resize(accessorTexcoord.count);
   m_selfData->m_indices.resize(accessorIndices.count);
+  m_selfData->m_tangents.resize(accessorTangent.count);
 
   for (auto i = 0; i < accessorPos.count; i++) {
     m_selfData->m_vertices[i] = {posData[i * 3], posData[i * 3 + 1],
@@ -159,6 +171,12 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   for (auto i = 0; i < accessorTexcoord.count; i++) {
     m_selfData->m_uvs[i] = {texcoordData[i * 2], texcoordData[i * 2 + 1]};
   }
+  for (auto i = 0; i < accessorTangent.count; i++) {
+    m_selfData->m_tangents[i] = {tangentData[i * 4], tangentData[i * 4 + 1],
+                                 tangentData[i * 4 + 2],
+                                 tangentData[i * 4 + 3]};
+  }
+
   if (accessorIndices.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
     for (auto i = 0; i < accessorIndices.count; i++) {
       m_selfData->m_indices[i] = indicesDataUshort[i];
@@ -239,15 +257,25 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
       meshFilter->setMesh(mesh);
 
       auto &gltfMaterial = rawGLTFData.materials[primitive.material];
+      auto &normalData = gltfMaterial.normalTexture;
       auto &pbrData = gltfMaterial.pbrMetallicRoughness;
       auto baseColorIndex = pbrData.baseColorTexture.index;
-      iInfo("baseColorIndex: {}", baseColorIndex);
+      auto normalTexIndex = normalData.index;
       auto baseColorURI = rawGLTFData.images[baseColorIndex].uri;
-      auto texPath = gltfDir / baseColorURI;
-      iInfo("texPath: {}", texPath.string());
-      auto tex = m_manager->requestAsset<Asset>(texPath);
-      auto texCasted = std::dynamic_pointer_cast<TextureAsset>(tex);
-      if (!texCasted) {
+      auto normalTexURI = rawGLTFData.images[normalTexIndex].uri;
+
+      auto texPathBase = gltfDir / baseColorURI;
+      auto texBase = m_manager->requestAsset<Asset>(texPathBase);
+      auto texCastedBase = std::dynamic_pointer_cast<TextureAsset>(texBase);
+      if (!texCastedBase) {
+        iError("GLTFAsset: invalid texture asset");
+        std::abort();
+      }
+
+      auto texPathNormal = gltfDir / normalTexURI;
+      auto texNormal = m_manager->requestAsset<Asset>(texPathNormal);
+      auto texCastedNormal = std::dynamic_pointer_cast<TextureAsset>(texNormal);
+      if (!texCastedNormal) {
         iError("GLTFAsset: invalid texture asset");
         std::abort();
       }
@@ -256,9 +284,16 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
       auto material = std::make_shared<SyaroDefaultGBufEmitter>(
           m_manager->getApplication());
       auto albedoId = rhi->registerCombinedImageSampler(
-          texCasted->getTexture().get(), m_internalData->defaultSampler.get());
+          texCastedBase->getTexture().get(),
+          m_internalData->defaultSampler.get());
+      auto normalId = rhi->registerCombinedImageSampler(
+          texCastedNormal->getTexture().get(),
+          m_internalData->defaultSampler.get());
+
       material->setAlbedoId(albedoId->getActiveId());
-      iInfo("GLTFAsset: albedoId: {}", albedoId->getActiveId());
+      material->setNormalMapId(normalId->getActiveId());
+      iInfo("GLTFAsset: albedoId: {} normalId: {}", albedoId->getActiveId(),
+            normalId->getActiveId());
       material->buildMaterial();
       meshRenderer->setMaterial(material);
 

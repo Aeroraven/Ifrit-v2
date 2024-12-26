@@ -294,6 +294,9 @@ public:
 
   // Create a bilinear sampler
   std::shared_ptr<Sampler> createTrivialBilinearSampler(bool repeat);
+
+  // Create a nearest sampler
+  std::shared_ptr<Sampler> createTrivialNearestSampler(bool repeat);
 };
 
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

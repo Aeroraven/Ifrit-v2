@@ -59,6 +59,12 @@ SYARO_DEFINE_UINT(cEmitGbufThreadGroupSizeX, 128);
 SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeX, 16);
 SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeY, 16);
 
+SYARO_DEFINE_UINT(cPersistentCullParallelStg_PersistThread, 1);
+SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop, 2);
+
+SYARO_DEFINE_UINT(cPersistentCullParallelStg,
+                  cPersistentCullParallelStg_StridedLoop);
+
 #define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_SAMPLING 1
 #define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_NUM_SAMPLES 32
 

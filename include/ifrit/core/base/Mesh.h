@@ -48,7 +48,7 @@ struct MeshData {
   std::vector<ifloat3> m_normals;
   std::vector<ifloat4> m_normalsAligned;
   std::vector<ifloat2> m_uvs;
-  std::vector<ifloat3> m_tangents;
+  std::vector<ifloat4> m_tangents;
   std::vector<uint32_t> m_indices;
 
   // Cluster data
@@ -112,6 +112,7 @@ public:
     GPUBuffer *cpCounterBuffer = nullptr;
     GPUBuffer *materialDataBuffer =
         nullptr; // currently, opaque is used to hold material data
+    GPUBuffer *tangentBuffer = nullptr;
 
     std::shared_ptr<GPUBindId> vertexBufferId = nullptr;
     std::shared_ptr<GPUBindId> normalBufferId = nullptr;
@@ -125,11 +126,11 @@ public:
     std::shared_ptr<GPUBindId> meshletInClusterBufferId = nullptr;
     std::shared_ptr<GPUBindId> cpCounterBufferId = nullptr;
     std::shared_ptr<GPUBindId> materialDataBufferId = nullptr;
+    std::shared_ptr<GPUBindId> tangentBufferId = nullptr;
 
     GPUObjectBuffer objectData;
     GPUBuffer *objectBuffer = nullptr;
     std::shared_ptr<GPUBindId> objectBufferId = nullptr;
-
   } m_resource;
   bool m_resourceDirty = true;
   std::shared_ptr<MeshData> m_data;
@@ -154,6 +155,7 @@ public:
     m_resource.meshletInClusterBuffer = resource.meshletInClusterBuffer;
     m_resource.cpCounterBuffer = resource.cpCounterBuffer;
     m_resource.materialDataBuffer = resource.materialDataBuffer;
+    m_resource.tangentBuffer = resource.tangentBuffer;
 
     m_resource.vertexBufferId = resource.vertexBufferId;
     m_resource.normalBufferId = resource.normalBufferId;
@@ -167,6 +169,7 @@ public:
     m_resource.meshletInClusterBufferId = resource.meshletInClusterBufferId;
     m_resource.cpCounterBufferId = resource.cpCounterBufferId;
     m_resource.materialDataBufferId = resource.materialDataBufferId;
+    m_resource.tangentBufferId = resource.tangentBufferId;
 
     m_resource.objectBuffer = resource.objectBuffer;
     m_resource.objectBufferId = resource.objectBufferId;
@@ -185,6 +188,7 @@ public:
     resource.meshletInClusterBuffer = m_resource.meshletInClusterBuffer;
     resource.cpCounterBuffer = m_resource.cpCounterBuffer;
     resource.materialDataBuffer = m_resource.materialDataBuffer;
+    resource.tangentBuffer = m_resource.tangentBuffer;
 
     resource.vertexBufferId = m_resource.vertexBufferId;
     resource.normalBufferId = m_resource.normalBufferId;
@@ -198,6 +202,7 @@ public:
     resource.meshletInClusterBufferId = m_resource.meshletInClusterBufferId;
     resource.cpCounterBufferId = m_resource.cpCounterBufferId;
     resource.materialDataBufferId = m_resource.materialDataBufferId;
+    resource.tangentBufferId = m_resource.tangentBufferId;
 
     resource.objectBuffer = m_resource.objectBuffer;
     resource.objectBufferId = m_resource.objectBufferId;

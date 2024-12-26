@@ -90,6 +90,8 @@ public:
   std::shared_ptr<Rhi::RhiSampler> createTrivialSampler() override;
   std::shared_ptr<Rhi::RhiSampler>
   createTrivialBilinearSampler(bool repeat) override;
+  std::shared_ptr<Rhi::RhiSampler>
+  createTrivialNearestSampler(bool repeat) override;
 
   std::shared_ptr<Rhi::RhiTexture>
   createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,

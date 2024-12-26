@@ -84,8 +84,9 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
            FFTConv2DConfig::cMaxSupportedTextureSize, p2Width, p2Height);
     return;
   }
-
+  bool firstTime = false;
   if (m_resMap.count({p2Width, p2Height}) == 0) {
+    firstTime = true;
     using namespace Ifrit::GraphicsBackend::Rhi;
     auto res = std::make_unique<PostFxFFTConv2dResourceCollection>();
     auto rhi = m_app->getRhiLayer();
@@ -184,17 +185,20 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
     pcb.blurKernW = kernelWidth;
     pcb.blurKernH = kernelHeight;
     pcb.srcImgId = m_resMap[{p2Width, p2Height}].m_texGaussianId->getActiveId();
-    cmd->beginScope("Postprocess: FFTConv2D, GaussianBlur");
-    m_gaussianPipeline->setRecordFunction(
-        [&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
-          cmd->setPushConst(m_gaussianPipeline, 0, 4 * sizeof(uint32_t), &pcb);
-          ctx->m_cmd->dispatch(Ifrit::Math::ConstFunc::divRoundUp(p2Width, 8),
-                               Ifrit::Math::ConstFunc::divRoundUp(p2Height, 8),
-                               1);
-        });
-    m_gaussianPipeline->run(cmd, 0);
-    cmd->globalMemoryBarrier();
-    cmd->endScope();
+    if (firstTime) {
+      cmd->beginScope("Postprocess: FFTConv2D, GaussianBlur");
+      m_gaussianPipeline->setRecordFunction(
+          [&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
+            cmd->setPushConst(m_gaussianPipeline, 0, 4 * sizeof(uint32_t),
+                              &pcb);
+            ctx->m_cmd->dispatch(
+                Ifrit::Math::ConstFunc::divRoundUp(p2Width, 8),
+                Ifrit::Math::ConstFunc::divRoundUp(p2Height, 8), 1);
+          });
+      m_gaussianPipeline->run(cmd, 0);
+      cmd->globalMemoryBarrier();
+      cmd->endScope();
+    }
   }
 
   if (logP2Height != logP2Width) {
@@ -212,6 +216,10 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
       "Postprocess: FFTConv2D, IFFT-X",
   };
   for (uint32_t i = 0u; i < 7u; i++) {
+    if (!firstTime) {
+      if (i == 2u || i == 3u)
+        continue;
+    }
     cmd->beginScope(scopeNames[i]);
     m_computePipeline->setRecordFunction(
         [&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {

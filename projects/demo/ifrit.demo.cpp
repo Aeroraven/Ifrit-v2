@@ -100,15 +100,6 @@ public:
     renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
     renderConfig.m_shadowConfig.m_maxDistance = 3000.0f;
 
-    // Material
-    m_material = std::make_shared<Material>();
-    m_material->m_effectTemplates[GraphicsShaderPassType::Opaque] =
-        ShaderEffect();
-    auto &effect =
-        m_material->m_effectTemplates[GraphicsShaderPassType::Opaque];
-    effect.m_shaders.push_back(meshShader->loadShader());
-    effect.m_shaders.push_back(fragShader->loadShader());
-
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");
     auto node = s->addSceneNode();
@@ -137,50 +128,15 @@ public:
     light->setShadowMap(true);
     light->setShadowMapResolution(2048);
 
-#if 1
     auto prefabs = bistroObj->getPrefabs();
     uint32_t numMeshes = 0;
     for (auto &prefab : prefabs) {
       numMeshes++;
-      if (numMeshes < 510) {
-        //continue;
+      if (numMeshes < 810) {
+        // continue;
       }
       node->addGameObjectTransferred(std::move(prefab->m_prefab));
     }
-#else
-    auto planeGameObject = node->addGameObject("plane");
-    auto planeMeshFilter = planeGameObject->addComponent<MeshFilter>();
-    planeMeshFilter->setMesh(planeObj);
-    auto planeMeshRenderer = planeGameObject->addComponent<MeshRenderer>();
-    planeMeshRenderer->setMaterial(m_material);
-    auto planeTransform = planeGameObject->addComponent<Transform>();
-    planeTransform->setPosition({0.0f, 0.038f, 0.0f});
-    planeTransform->setRotation({0.0f, 0.0f, 0.0f});
-    planeTransform->setScale({1.0f, 1.0f, 1.0f});
-
-    for (int dx = 0; dx < bunnyPlacementX; dx++) {
-      for (int dy = 0; dy < bunnyPlacementY; dy++) {
-        for (int dz = 0; dz < bunnyPlacementZ; dz++) {
-          auto gameObject = node->addGameObject("bunny");
-          auto meshFilter = gameObject->addComponent<MeshFilter>();
-          meshFilter->setMesh(obj);
-          auto meshRenderer = gameObject->addComponent<MeshRenderer>();
-          meshRenderer->setMaterial(m_material);
-
-          auto objectTransform = gameObject->addComponent<Transform>();
-          auto posX = std::lerp(bunnyMinX, bunnyMaxX,
-                                1.0f * dx / std::max(1u, bunnyPlacementX - 1));
-          auto posY = std::lerp(bunnyMinY, bunnyMaxY,
-                                1.0f * dy / std::max(1u, bunnyPlacementY - 1));
-          auto posZ = std::lerp(bunnyMinZ, bunnyMaxZ,
-                                1.0f * dz / std::max(1u, bunnyPlacementZ - 1));
-          objectTransform->setPosition({posX, posY, posZ});
-          objectTransform->setRotation({0.0f, 0.0f, 0.0f});
-          objectTransform->setScale({1.0f, 1.0f, 1.0f});
-        }
-      }
-    }
-#endif
 
     // Render targets
     auto rt = m_rhiLayer.get();

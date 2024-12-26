@@ -347,34 +347,57 @@ void main(){
     }
     barrier();
 
-    while(true){
-        int remaining = sRemain;
-        if(remaining <= 0){
-            break;
-        }
-        if(chosenBVHNodeInd == UNSET){
-            chosenBVHNodeInd = int(atomicAdd(sConsumer,1));
-            if(chosenBVHNodeInd >= totalBVHNodes){
+    if(cPersistentCullParallelStg == cPersistentCullParallelStg_PersistThread){
+        while(true){
+            int remaining = sRemain;
+            if(remaining <= 0){
                 break;
             }
-        }
-        if(chosenBVHNodeInd != UNSET && chosenBVHNodePos == UNSET){
-            int temp = UNSET;
-            int retVal = atomicExchange(GetResource(bCpQueue,cpqueueRef).data[chosenBVHNodeInd],temp);
-            if(retVal != UNSET){
-                chosenBVHNodePos = retVal;
+            if(chosenBVHNodeInd == UNSET){
+                chosenBVHNodeInd = int(atomicAdd(sConsumer,1));
+                if(chosenBVHNodeInd >= totalBVHNodes){
+                    break;
+                }
+            }
+            if(chosenBVHNodeInd != UNSET && chosenBVHNodePos == UNSET){
+                int temp = UNSET;
+                int retVal = atomicExchange(GetResource(bCpQueue,cpqueueRef).data[chosenBVHNodeInd],temp);
+                if(retVal != UNSET){
+                    chosenBVHNodePos = retVal;
+                }
+            }
+            if(chosenBVHNodePos != UNSET){
+                bool bvhNodeVisible = isBVHNodeVisible(chosenBVHNodePos);
+                if(bvhNodeVisible){
+                    atomicAdd(sRemain,-1);
+                    BVHNode node = GetResource(bBVHNode,bvhRef).data[chosenBVHNodePos];
+                    for(uint i = 0;i < node.numChildNodes ; i++){
+                        int childNode = node.childNodes[i];
+                        int pos = int(atomicAdd(sProducer,1));
+                        atomicExchange(GetResource(bCpQueue,cpqueueRef).data[pos],childNode); 
+                    }
+                    for(uint i = 0 ; i < node.clusterGroupCount;i++){
+                        ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
+                        bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy,
+                            viewCamType,camAspect,orthoSize);
+                        if(clusterGroupVisible){ 
+                            enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
+                        }
+                    }
+                }else{
+                    int subTreeSize = GetResource(bBVHNode,bvhRef).data[chosenBVHNodePos].subTreeSize;
+                    atomicAdd(sRemain,-subTreeSize);
+                }
+                chosenBVHNodePos = UNSET;
+                chosenBVHNodeInd = UNSET;
             }
         }
-        if(chosenBVHNodePos != UNSET){
+    }else{
+        for(uint k=threadId;k<totalBVHNodes;k+=cPersistentCullThreadGroupSizeX){
+            uint chosenBVHNodePos = k;
             bool bvhNodeVisible = isBVHNodeVisible(chosenBVHNodePos);
             if(bvhNodeVisible){
-                atomicAdd(sRemain,-1);
                 BVHNode node = GetResource(bBVHNode,bvhRef).data[chosenBVHNodePos];
-                for(uint i = 0;i < node.numChildNodes ; i++){
-                    int childNode = node.childNodes[i];
-                    int pos = int(atomicAdd(sProducer,1));
-                    atomicExchange(GetResource(bCpQueue,cpqueueRef).data[pos],childNode); 
-                }
                 for(uint i = 0 ; i < node.clusterGroupCount;i++){
                     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
                     bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy,
@@ -383,14 +406,10 @@ void main(){
                         enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
                     }
                 }
-            }else{
-                int subTreeSize = GetResource(bBVHNode,bvhRef).data[chosenBVHNodePos].subTreeSize;
-                atomicAdd(sRemain,-subTreeSize);
             }
-            chosenBVHNodePos = UNSET;
-            chosenBVHNodeInd = UNSET;
         }
     }
+    
     //GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2 = 104829;
 
     barrier();

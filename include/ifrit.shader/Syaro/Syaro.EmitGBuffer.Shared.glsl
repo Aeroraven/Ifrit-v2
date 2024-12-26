@@ -65,6 +65,9 @@ RegisterStorage(bNormals,{
 RegisterStorage(bUVs,{
     vec2 data[];
 });
+RegisterStorage(bTangents,{
+    vec4 data[];
+});
 
 RegisterStorage(bFilteredMeshlets2,{
     uvec2 data[];
@@ -72,6 +75,7 @@ RegisterStorage(bFilteredMeshlets2,{
 
 RegisterStorage(bMaterialData,{
     uint albedoTexId;
+    uint normalTexId;
 });
 
 layout(binding = 0, set = 1) uniform MaterialPassData{
@@ -174,6 +178,14 @@ uint _gbcomp_readAlbedoTexId(uvec2 objMeshletId){
     return albedoTexId;
 }
 
+uint _gbcomp_readNormalTexId(uvec2 objMeshletId){
+    uint objId = objMeshletId.x;
+    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint materialRef = GetResource(bMeshDataRef,obj).materialDataBufferId;
+    uint normalTexId = GetResource(bMaterialData, materialRef).normalTexId;
+    return normalTexId;
+}
+
 uvec2 _gbcomp_getObjMeshletId(uint clusterId){
     return GetResource(bFilteredMeshlets2,uIndirectDrawData.allMeshletsRef).data[clusterId];
 }
@@ -206,6 +218,10 @@ vec3 _gbcomp_getBarycentric(vec3 v0, vec3 v1, vec3 v2, uvec2 texPos){
     return bary;
 }
 
+vec4 _gbcomp_interpolate4(vec4 v0, vec4 v1, vec4 v2, vec3 bary){
+    return v0 * bary.x + v1 * bary.y + v2 * bary.z;
+}
+
 vec3 _gbcomp_interpolate3(vec3 v0, vec3 v1, vec3 v2, vec3 bary){
     return v0 * bary.x + v1 * bary.y + v2 * bary.z;
 }
@@ -227,6 +243,7 @@ struct gbcomp_TriangleData{
     vec4 vpUV;
 
     vec4 vAlbedo;
+    vec4 vTangent;
 };
 
 gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos){
@@ -281,22 +298,44 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     vec4 n2vs = worldToView * n2ws;
 
     data.vpNormalVS = vec4(normalize(_gbcomp_interpolate3(n0vs.xyz, n1vs.xyz, n2vs.xyz, data.barycentric.xyz)),1.0);
+    vec4 normalLocal = vec4(normalize(_gbcomp_interpolate3(n0.xyz, n1.xyz, n2.xyz, data.barycentric.xyz)),1.0);
 
     uint uvRef = GetResource(bMeshDataRef,obj).uvBufferId;
     vec2 uv0 = GetResource(bUVs, uvRef).data[data.v0Idx];
     vec2 uv1 = GetResource(bUVs, uvRef).data[data.v1Idx];
     vec2 uv2 = GetResource(bUVs, uvRef).data[data.v2Idx];
-
     data.vpUV = vec4(_gbcomp_interpolate2(uv0, uv1, uv2, data.barycentric.xyz), 0.0, 1.0);
+
     uint albedoTexId = _gbcomp_readAlbedoTexId(objMeshletId);
+    uint normalTexId = _gbcomp_readNormalTexId(objMeshletId);
+
+    uint tangentRef = GetResource(bMeshDataRef,obj).tangentBufferId;
+    vec4 tangent0 = GetResource(bTangents,tangentRef).data[data.v0Idx];
+    vec4 tangent1 = GetResource(bTangents,tangentRef).data[data.v1Idx];
+    vec4 tangent2 = GetResource(bTangents,tangentRef).data[data.v2Idx];
+    data.vTangent = vec4(_gbcomp_interpolate4(tangent0,tangent1,tangent2,data.barycentric.xyz));
 
     if(albedoTexId != ~0u){
-        data.vAlbedo = vec4(vec3(float(albedoTexId)),0.0); 
         data.vAlbedo = texture(GetSampler2D(albedoTexId), data.vpUV.xy);
-        //data.vAlbedo = vec4(data.vpUV.xy, 0.0, 1.0);
-    }else{
-        data.vAlbedo = vec4(1.0,0.0,0.0,1.0);
     }
 
+    if(normalTexId!=~0u){
+        vec4 tangentX = data.vTangent;
+        tangentX.xyz = normalize(tangentX.xyz);
+        vec3 normal = normalLocal.xyz;
+        vec3 tangent = normalize(tangentX.xyz - dot(normal,tangentX.xyz)*normal);
+        vec3 bitangent = cross(tangent,normal) * tangentX.w;
+        mat3 tbn = mat3(tangent,bitangent,normal);
+
+        vec4 vNormal = texture(GetSampler2D(normalTexId), data.vpUV.xy);
+        vec2 vNormalRG = vNormal.rg * 2.0 - 1.0;
+        float vNormalZ = sqrt(1.0-vNormalRG.r*vNormalRG.r-vNormalRG.g*vNormalRG.g);
+
+        vec3 vNormalRGB = vec3(vNormalRG,vNormalZ);
+
+        vec3 rNormal = tbn * normalize(vNormalRGB);
+        data.vpNormalVS = worldToView * localToWorld * vec4(rNormal,0.0);
+    }
+    
     return data;
 }

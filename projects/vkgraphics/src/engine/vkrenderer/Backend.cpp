@@ -273,6 +273,11 @@ RhiVulkanBackend::createTrivialBilinearSampler(bool repeat) {
   return m_implDetails->m_resourceManager->createTrivialBilinearSampler(repeat);
 }
 
+std::shared_ptr<Rhi::RhiSampler>
+RhiVulkanBackend::createTrivialNearestSampler(bool repeat) {
+  return m_implDetails->m_resourceManager->createTrivialNearestSampler(repeat);
+}
+
 IFRIT_APIDECL Rhi::RhiComputePass *RhiVulkanBackend::createComputePass() {
   auto pass = std::make_unique<ComputePass>(
       checked_cast<EngineContext>(m_device.get()),

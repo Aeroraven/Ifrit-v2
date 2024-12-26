@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/renderer/RendererBase.h"
 #include "ifrit/common/logging/Logging.h"
+#include "ifrit/common/util/Parallel.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/base/Light.h"
 #include "ifrit/rhi/common/RhiLayer.h"
@@ -527,6 +528,14 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
           shaderEffect.m_batchedObjectData, 0);
     }
 
+    // preloading meshes
+    Ifrit::Common::Utility::unordered_for<size_t>(
+        0, shaderEffect.m_materials.size(), [&](size_t x) {
+          auto mesh = shaderEffect.m_meshes[x];
+          // auto meshDataRef = mesh->loadMesh();
+        });
+
+    // load meshes
     for (int i = 0; i < shaderEffect.m_materials.size(); i++) {
       // Setup transform buffers
       auto transform = shaderEffect.m_transforms[i];
@@ -633,6 +642,10 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         meshResource.cpCounterBuffer = rhi->createStorageBufferDevice(
             size_cast<uint32_t>(sizeof(MeshData::GPUCPCounter)),
             RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        meshResource.tangentBuffer = rhi->createStorageBufferDevice(
+            size_cast<uint32_t>(sizeof(ifloat4) *
+                                meshDataRef->m_tangents.size()),
+            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
 
         auto materialDataSize = 0;
         auto &materialRef = shaderEffect.m_materials[i];
@@ -669,6 +682,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             rhi->registerStorageBuffer(meshResource.meshletInClusterBuffer);
         meshResource.cpCounterBufferId =
             rhi->registerStorageBuffer(meshResource.cpCounterBuffer);
+        meshResource.tangentBufferId =
+            rhi->registerStorageBuffer(meshResource.tangentBuffer);
         if (haveMaterialData) {
           meshResource.materialDataBufferId =
               rhi->registerStorageBuffer(meshResource.materialDataBuffer);
@@ -702,6 +717,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         objectBuffer.materialDataId =
             haveMaterialData ? meshResource.materialDataBufferId->getActiveId()
                              : 0;
+        objectBuffer.tangentBufferId =
+            meshResource.tangentBufferId->getActiveId();
 
         // description for the whole mesh
         meshResource.objectBuffer = rhi->createStorageBufferDevice(
@@ -775,6 +792,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         enqueueStagedBuffer(vertexBuffer, m_verticesAligned);
         enqueueStagedBuffer(normalBuffer, m_normalsAligned);
         enqueueStagedBuffer(uvBuffer, m_uvs);
+        enqueueStagedBuffer(tangentBuffer, m_tangents);
         enqueueStagedBuffer(bvhNodeBuffer, m_bvhNodes);
         enqueueStagedBuffer(clusterGroupBuffer, m_clusterGroups);
         enqueueStagedBuffer(meshletBuffer, m_meshlets);
