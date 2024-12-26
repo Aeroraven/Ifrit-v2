@@ -295,6 +295,7 @@ struct PerFrameData {
   std::shared_ptr<void> m_atmosphereData = nullptr;
   std::shared_ptr<GPUTexture> m_atmoOutput;
   std::shared_ptr<GPUBindlessId> m_atmoOutputId;
+  ifloat4 m_sunDir;
 
   // Shadow mapping
   ShadowMappingData m_shadowData2;

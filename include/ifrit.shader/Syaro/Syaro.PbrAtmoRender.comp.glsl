@@ -32,6 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 layout(local_size_x = cAtmoRenderThreadGroupSizeX, local_size_y = cAtmoRenderThreadGroupSizeY, local_size_z = 1) in;
 
 layout(push_constant) uniform PushConstant{
+    vec4 sundir;
     uint perframe;
     uint outTex;
     uint depthTex;
@@ -96,7 +97,8 @@ void main(){
 
     // Solar radiance
     vec3 solarRadiance = vec3(0.0);//GetSolarRadiance(atmo);
-    vec3 sunDirection = normalize(vec3(-0.612372,0.500000,0.612372));
+    vec3 sunDirection = normalize(vec3(-uAtmoRenderPushConstant.sundir.x,uAtmoRenderPushConstant.sundir.yz));//normalize(vec3(0.612372,0.500000,0.612372));
+    //normalize(vec3(-0.612372,0.500000,0.612372));
 
     // Get ground radiance, intersection with ground
     float dist = raySphereIntersect(rayDir, camPosKmRelativeToEarth.xyz, vec3(0.0), uAtmoRenderPushConstant.earthRadius);

@@ -218,6 +218,7 @@ void main(){
         uint clusterId = getClusterID();
 
         uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
+        vec4 camPos = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraPosition;
         mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
         mat4 worldToView = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
         float fovy = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
@@ -230,11 +231,11 @@ void main(){
         vec4 normalConeApex = GetResource(bMeshlet,meshletRef).data[meshletId].normalConeApex;
 
         // TODO: this transform is incorrect, but the demo scene only uses translation, it's fine for now
-        vec4 viewConeAxis = mv * vec4(normalConeAxis.xyz,0.0);
-        vec4 viewConeApex = mv * vec4(normalConeApex.xyz,1.0);
-        float coneAngle = dot(viewConeAxis.xyz,viewConeApex.xyz);
+        vec4 viewConeAxis = model * vec4(normalConeAxis.xyz,0.0);
+        vec4 viewConeApex = model * vec4(normalConeApex.xyz,1.0);
+        float coneAngle = dot(normalize(viewConeApex-camPos),normalize(viewConeAxis));
         float camViewType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
-        if(camViewType < 0.5 && coneAngle > normalConeAxis.w){
+        if(camViewType < 0.5 && coneAngle > normalConeAxis.w+1e-6){
             isAccepted = false;
         }
 
@@ -246,11 +247,11 @@ void main(){
             vec4 viewBoundBallCenter = mv * boundBallCenter;
             if(camViewType < 0.5){
                 if(frustumCull(viewBoundBallCenter,boundBallRadius,tanHalfFovY)){
-                    isAccepted = false;
+                    //isAccepted = false;
                 }
             }else{
                 if(frustumCullOrtho(viewBoundBallCenter,boundBallRadius)){
-                    isAccepted = false;
+                    //isAccepted = false;
                 }
             }
         }

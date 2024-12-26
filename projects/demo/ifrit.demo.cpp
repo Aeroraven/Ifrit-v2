@@ -37,7 +37,7 @@ using namespace Ifrit::Common::Utility;
 
 // Glfw key function here
 float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0,
-      movNear = 0;
+      movNear = 0, movRot = 0;
 
 void key_callback(int key, int scancode, int action, int mods) {
   auto scale = 2.5f;
@@ -58,12 +58,17 @@ void key_callback(int key, int scancode, int action, int mods) {
 
   if (key == GLFW_KEY_F && (action == GLFW_REPEAT || action == GLFW_PRESS))
     movNear += scale;
+
+  if (key == GLFW_KEY_Z && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    movRot += scale * 0.1f;
+
+  if (key == GLFW_KEY_X && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    movRot -= scale * 0.1f;
 }
 
 class DemoApplication : public Ifrit::Core::Application {
 private:
   RhiScissor scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-  std::shared_ptr<Material> m_material;
   std::shared_ptr<RhiRenderTargets> renderTargets;
   std::shared_ptr<RhiColorAttachment> colorAttachment;
   std::shared_ptr<RhiDepthStencilAttachment> depthAttachment;
@@ -72,30 +77,12 @@ private:
   RendererConfig renderConfig;
   float timing = 0;
 
-  constexpr static uint32_t bunnyPlacementX = 5;
-  constexpr static uint32_t bunnyPlacementY = 1;
-  constexpr static uint32_t bunnyPlacementZ = 5;
-
-  constexpr static float bunnyMinX = -0.5;
-  constexpr static float bunnyMaxX = 0.5;
-  constexpr static float bunnyMinY = -0.00;
-  constexpr static float bunnyMaxY = 0.10;
-  constexpr static float bunnyMinZ = 0.0;
-  constexpr static float bunnyMaxZ = 1.0;
-
 public:
   void onStart() override {
     renderer = std::make_shared<SyaroRenderer>(this);
     m_windowProvider->registerKeyCallback(key_callback);
-    auto obj = m_assetManager->getAssetByName<WaveFrontAsset>("bunny.obj");
-    auto planeObj = m_assetManager->getAssetByName<WaveFrontAsset>("plane.obj");
     auto bistroObj =
         m_assetManager->getAssetByName<GLTFAsset>("Bistro/bistro.gltf");
-    auto meshShader = m_assetManager->getAssetByName<ShaderAsset>(
-        "Shader/ifrit.mesh2.mesh.glsl");
-    auto fragShader = m_assetManager->getAssetByName<ShaderAsset>(
-        "Shader/ifrit.mesh2.frag.glsl");
-
     // Renderer config
     renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
     renderConfig.m_shadowConfig.m_maxDistance = 3000.0f;
@@ -115,24 +102,25 @@ public:
 
     auto cameraTransform = cameraGameObject->getComponent<Transform>();
     cameraTransform->setPosition({0.0f, 0.5f, -1.25f});
-    cameraTransform->setRotation({0.0f, 0.0f, 0.0f});
+    cameraTransform->setRotation({0.0f, 0.1f, 0.0f});
     cameraTransform->setScale({1.0f, 1.0f, 1.0f});
 
     auto lightGameObject = node->addGameObject("sun");
     auto light = lightGameObject->addComponent<Light>();
     auto lightTransform = lightGameObject->getComponent<Transform>();
     // make light dir (0,-1,-1)=> eulerX=135deg
-    lightTransform->setRotation({150.0 / 180.0f * std::numbers::pi_v<float>,
+    lightTransform->setRotation({120.0 / 180.0f * std::numbers::pi_v<float>,
                                  -45.0 / 180.0f * std::numbers::pi_v<float>,
                                  0.0f});
     light->setShadowMap(true);
     light->setShadowMapResolution(2048);
+    light->setAffectPbrSky(true);
 
     auto prefabs = bistroObj->getPrefabs();
     uint32_t numMeshes = 0;
     for (auto &prefab : prefabs) {
       numMeshes++;
-      if (numMeshes < 810) {
+      if (numMeshes < 910) {
         // continue;
       }
       node->addGameObjectTransferred(std::move(prefab->m_prefab));
@@ -163,6 +151,7 @@ public:
     camera->setPosition({0.0f + movRight - movLeft + 0.5f * std::sin(timing),
                          150.0f + movTop - movBottom,
                          200.25f + movFar - movNear});
+    camera->setRotation({0.0f, movRot, 0.0f});
     auto sFrameStart = renderer->beginFrame();
     auto renderComplete = renderer->render(
         m_sceneAssetManager->getScene("TestScene2").get(), nullptr,

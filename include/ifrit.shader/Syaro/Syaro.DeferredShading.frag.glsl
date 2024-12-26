@@ -69,6 +69,7 @@ RegisterStorage(bShadowMaps,{
 });
 
 layout(push_constant) uniform PushConstant{
+    vec4 sundir;
     uint shadowRef;
     uint numShadowMaps;
     uint depthTexRef;
@@ -104,20 +105,21 @@ void main(){
     worldPos /= worldPos.w;
     viewPos /= viewPos.w;
     normal = normalize(normal * 2.0 - 1.0);
-    vec3 lightDir = normalize(vec3(0.612372,0.500000,0.612372));
+    vec3 lightDir = normalize(pc.sundir.xyz);
+    //normalize(vec3(0.612372,0.500000,0.612372));
 
     float NdotL = max(dot(normal,lightDir),0.0);
     vec3 V = normalize(-viewPos.xyz);
     vec3 H = normalize(lightDir + V);
     float NdotH = max(dot(normal,H),0.0);
-    float roughness = 0.5;
+    float roughness = 0.62;
     float D = dpbr_trowbridgeReitzGGX(NdotH,roughness);
 
     float NdotV = max(dot(normal,V),0.0);
     float G = dpbr_smithSchlickGGX(NdotV,NdotL,roughness);
 
     vec3 F0 = vec3(0.04);
-    float metallic = 0.05;
+    float metallic = 0.03;
     float HdotV = max(dot(H,V),0.0);
     vec3 F = dpbr_fresnelSchlickMetallic(F0,albedo,metallic,HdotV);
 
@@ -127,9 +129,9 @@ void main(){
 
     float PIx = 3.14159265359;
     vec3 specular = dpbr_cookTorranceBRDF(F,G,D,NdotV,NdotL);
-    vec3 Lo = (kD * albedo / PIx + specular) * NdotL * 4.0;
+    vec3 Lo = (kD * albedo / PIx + specular) * NdotL * 2.3;
 
-    vec3 ambient = vec3(0.15) * albedo * pow(ao,1.5);
+    vec3 ambient = vec3(0.12) * albedo * pow(ao,1.5);
     float shadow = texture(GetSampler2D(pc.shadowTexRef),texCoord).r;
 
     //This is incorrect, but it's used for test if shadow mapping works

@@ -323,12 +323,14 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     auto atmoData = m_atmosphereRenderer->getResourceDesc(perframeData);
     auto rhi = m_app->getRhiLayer();
     struct AtmoPushConst {
+      ifloat4 sundir;
       uint32_t m_perframe;
       uint32_t m_outTex;
       uint32_t m_depthTex;
       uint32_t pad1;
       decltype(atmoData) m_atmoData;
     } pushConst;
+    pushConst.sundir = perframeData.m_sunDir;
     pushConst.m_perframe = primaryView.m_viewBufferId->getActiveId();
     pushConst.m_outTex = postprocId->getActiveId();
     pushConst.m_atmoData = atmoData;
@@ -392,11 +394,13 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
     auto pass = m_deferredShadingPass[paCfg];
     struct DeferPushConst {
+      ifloat4 sundir;
       uint32_t shadowMapDataRef;
       uint32_t numShadowMaps;
       uint32_t depthTexRef;
       uint32_t shadowTexRef;
     } pc;
+    pc.sundir = perframeData.m_sunDir;
     pc.numShadowMaps = perframeData.m_shadowData2.m_enabledShadowMaps;
     pc.shadowMapDataRef =
         perframeData.m_shadowData2.m_allShadowDataId->getActiveId();
@@ -407,7 +411,7 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
                                          {perframeData.m_gbufferDescFrag,
                                           perframeData.m_gbufferDepthDesc,
                                           primaryView.m_viewBindlessRef},
-                                         &pc, 4);
+                                         &pc, 8);
     cmd->endScope();
   });
   fg.setExecutionFunction(passGlobalFog, [&]() {
@@ -493,7 +497,7 @@ IFRIT_APIDECL void SyaroRenderer::setupPbrAtmosphereRenderer() {
   m_atmosphereRenderer = std::make_shared<PbrAtmosphereRenderer>(m_app);
   auto rhi = m_app->getRhiLayer();
   m_atmospherePass = RenderingUtil::createComputePass(
-      rhi, "Syaro/Syaro.PbrAtmoRender.comp.glsl", 0, 15);
+      rhi, "Syaro/Syaro.PbrAtmoRender.comp.glsl", 0, 19);
 }
 
 IFRIT_APIDECL void
@@ -524,7 +528,7 @@ SyaroRenderer::setupDeferredShadingPass(RenderTargets *renderTargets) {
     pass->setVertexShader(vsShader);
     pass->setPixelShader(fsShader);
     pass->setNumBindlessDescriptorSets(3);
-    pass->setPushConstSize(4 * sizeof(uint32_t));
+    pass->setPushConstSize(8 * sizeof(uint32_t));
     pass->setRenderTargetFormat(rtCfg);
     m_deferredShadingPass[paCfg] = pass;
   }
@@ -1743,7 +1747,7 @@ SyaroRenderer::render(
 
   auto mainTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
-        iDebug("GPUTimer: {} ms/frame", m_timer->getElapsedMs());
+        iDebug("GPUTimer, MainView: {} ms/frame", m_timer->getElapsedMs());
         m_timer->start(cmd);
         renderTwoPassOcclCulling(CullingPass::First, perframeData,
                                  renderTargets, cmd,
@@ -1752,6 +1756,8 @@ SyaroRenderer::render(
         renderTwoPassOcclCulling(CullingPass::Second, perframeData,
                                  renderTargets, cmd,
                                  PerFrameData::ViewType::Primary, ~0u);
+
+        m_timer->stop(cmd);
         cmd->globalMemoryBarrier();
         renderEmitDepthTargets(perframeData, renderTargets, cmd);
         cmd->globalMemoryBarrier();
@@ -1759,6 +1765,7 @@ SyaroRenderer::render(
         cmd->globalMemoryBarrier();
         renderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
         cmd->globalMemoryBarrier();
+
         renderAmbientOccl(perframeData, renderTargets, cmd);
         cmd->globalMemoryBarrier();
 
@@ -1773,7 +1780,6 @@ SyaroRenderer::render(
                                    PerFrameData::ViewType::Shadow, i);
           cmd->globalMemoryBarrier();
         }
-        m_timer->stop(cmd);
       },
       cmdToWaitBkp, {});
 

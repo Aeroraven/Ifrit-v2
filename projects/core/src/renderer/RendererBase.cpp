@@ -73,6 +73,29 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   viewData.m_viewData.m_viewCameraType =
       camera->getCameraType() == CameraType::Orthographic ? 1.0f : 0.0f;
 
+  // Find lights that represent the sun
+  auto sunLights = scene->filterObjects([](std::shared_ptr<SceneObject> obj) {
+    auto light = obj->getComponent<Light>();
+    if (!light) {
+      return false;
+    }
+    return light->getAffectPbrSky();
+  });
+  if (sunLights.size() > 1) {
+    iError("Multiple sun lights found");
+    throw std::runtime_error("Multiple sun lights found");
+  }
+  if (sunLights.size() == 1) {
+    auto transform = sunLights[0]->getComponent<Transform>();
+    ifloat4 front = {0.0f, 0.0f, 1.0f, 0.0f};
+    auto rotation = transform->getRotation();
+    auto rotMatrix = Math::eulerAngleToMatrix(rotation);
+    front = Math::matmul(rotMatrix, front);
+    front.z = -front.z;
+    perframeData.m_sunDir = front;
+    iInfo("Sun direction: {} {} {}", front.x, front.y, front.z);
+  }
+
   // Insert light view data, if shadow maps are enabled
   auto lightWithShadow =
       scene->filterObjects([](std::shared_ptr<SceneObject> obj) -> bool {

@@ -63,7 +63,7 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
     auto rZFar = 0.0f, rOrthoSize = 0.0f;
     ifloat3 rCenter;
     getFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, vApex,
-                                 lightFront, 6e3f, rZFar, rOrthoSize, rCenter);
+                                 lightFront, 8e3f, rZFar, rOrthoSize, rCenter);
     auto lightCamUp = ifloat3{0.0f, 1.0f, 0.0f};
     auto proj = orthographicNegateY(rOrthoSize, 1.0, 1e1f, rZFar);
     auto view = lookAt(rCenter, rCenter + lightFront, lightCamUp);

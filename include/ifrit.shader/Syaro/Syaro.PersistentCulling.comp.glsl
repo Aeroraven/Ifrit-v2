@@ -329,25 +329,26 @@ void main(){
     float tanfovy = tan(fov*0.5);
     float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
     float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
-    if(threadId == 0){
-        sConsumer = 0;
-        sProducer = 0;
-        sRemain = int(totalBVHNodes);
-    }
     
-    for(uint i= 0;i<totalClusterGroups;i+=groupSize){
-        GetResource(bCpQueue,cpqueueRef).data[i+threadId] = UNSET;
-    }
-
-    int chosenBVHNodeInd = UNSET;
-    int chosenBVHNodePos = UNSET;
-    if(threadId == 0){
-        GetResource(bCpQueue,cpqueueRef).data[0] = 0;
-        chosenBVHNodeInd = 0;
-    }
-    barrier();
 
     if(cPersistentCullParallelStg == cPersistentCullParallelStg_PersistThread){
+        if(threadId == 0){
+            sConsumer = 0;
+            sProducer = 0;
+            sRemain = int(totalBVHNodes);
+        }
+        
+        for(uint i= 0;i<totalClusterGroups;i+=groupSize){
+            GetResource(bCpQueue,cpqueueRef).data[i+threadId] = UNSET;
+        }
+
+        int chosenBVHNodeInd = UNSET;
+        int chosenBVHNodePos = UNSET;
+        if(threadId == 0){
+            GetResource(bCpQueue,cpqueueRef).data[0] = 0;
+            chosenBVHNodeInd = 0;
+        }
+        barrier();
         while(true){
             int remaining = sRemain;
             if(remaining <= 0){
