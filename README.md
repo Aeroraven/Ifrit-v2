@@ -2,14 +2,16 @@
 
 Some toys about real-time rendering. Currently, it contains:
 
-- CUDA / Multithreaded CPU Software Rasterizer & Ray-tracer. 
-- Deferred Renderer with Cluster Level of Details.
+- **Soft-Renderer**: CUDA / Multithreaded CPU Software Rasterizer & Ray-tracer, with JIT support.
+- **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details.
 
 
 
-| Software Renderer / Mesh Shading | Software Renderer / CUDA Renderer |
-| -------------------------------- | --------------------------------- |
-| ![](docs/img/img_demo3.png)      | ![](docs/img/img_demo1.png)       |
+| Software Renderer / Mesh Shading                        | Software Renderer / CUDA Renderer |
+| ------------------------------------------------------- | --------------------------------- |
+| ![](docs/img/img_demo3.png)                             | ![](docs/img/img_demo1.png)       |
+| **Syaro / Cull Rasterize Visibility Buffer (R32_UINT)** | **Syaro / Final Output**          |
+| ![](docs/img/syaro_clodvisb.png)                        | ![](docs/img/syaro_clod1.png)     |
 
 
 
@@ -29,6 +31,7 @@ The project is organized into following parts.
   - For implementation details and performance, check [here](./projects/softgraphics/readme.md)
 - **`core`**: 
   - Implementation of the deferred renderer.
+  - Functionality covered: Temporal anti-aliasing, Compute-based culling(Compute Shader+Amplification Shader), FFT convolutional bloom, HBAO.
 - **`rhi/vkrenderer`**: Vulkan renderer, intended to be the refactored version for [my original implementation](https://github.com/Aeroraven/Aria).
   - Get rid of messy pass management, synchronization primitives and descriptor bindings in the original repo.
 - **`meshproclib`**: Mesh algorithms.
@@ -40,7 +43,7 @@ The project is organized into following parts.
 
 ## 2. Setup / Run
 
-> **WARN**: **Compiling files inside `dev` branch might yield UNEXPECTED result.**  Only x86-64 architecture `Windows` is tested. It mainly covers `Windows` and some `Linux` systems. Other operating systems like `MacOS` are NOT supported.
+> **WARN**: **Compiling files inside `dev` branch might yield UNEXPECTED result. (Known bugs are NOT resolved yet)**  Only x86-64 architecture `Windows` is tested. It mainly covers `Windows` and some `Linux` systems. Other operating systems like `MacOS` are NOT supported.
 
 ### 2.1 Clone the Repository
 
@@ -81,6 +84,8 @@ cmake --build ./build
 
 To run the demo
 
+- Download `lumberyard-bistro` , convert it into `gltf` format, then place it in the `project/demo/Asset/Bistro` directory, with dds textures in `textures` subfolder.
+
 ```shell
 ./bin/ifrit.demo
 ```
@@ -115,9 +120,11 @@ This project relies on following open-source projects. Corresponding licenses ar
 
 
 
-And for debugging
+Some tools are used during the development.
 
 - [RenderDoc](https://renderdoc.org/), for debugging and inspecting.
+- Nsight Graphics, for debugging and inspecting.
+- Blender, for model conversion.
 
 
 
@@ -148,6 +155,7 @@ And some references that give inspirations. Thanks for their selfless dedication
 9. https://www.elopezr.com/a-macro-view-of-nanite/
 9. https://media.gdcvault.com/gdc2024/Slides/GDC+slide+presentations/Nanite+GPU+Driven+Materials.pdf
 9. https://www.slideshare.net/slideshow/optimizing-the-graphics-pipeline-with-compute-gdc-2016/59747720
+9. https://developer.nvidia.com/orca/amazon-lumberyard-bistro
 
 
 

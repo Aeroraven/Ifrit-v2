@@ -110,7 +110,7 @@ public:
     auto lightTransform = lightGameObject->getComponent<Transform>();
     // make light dir (0,-1,-1)=> eulerX=135deg
     lightTransform->setRotation({120.0 / 180.0f * std::numbers::pi_v<float>,
-                                 -45.0 / 180.0f * std::numbers::pi_v<float>,
+                                 -15.0 / 180.0f * std::numbers::pi_v<float>,
                                  0.0f});
     light->setShadowMap(true);
     light->setShadowMapResolution(2048);
@@ -121,7 +121,7 @@ public:
     for (auto &prefab : prefabs) {
       numMeshes++;
       if (numMeshes < 910) {
-        // continue;
+        //continue;
       }
       node->addGameObjectTransferred(std::move(prefab->m_prefab));
     }

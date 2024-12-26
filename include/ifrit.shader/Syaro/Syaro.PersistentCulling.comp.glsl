@@ -205,7 +205,7 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
             parentProjectedRadius = parentSphereRadius * camAspect * orthoSize;
         }
         parentProjectedRadius*=rtHeight;
-        parentRejected = parentProjectedRadius > 1.0;
+        parentRejected = parentProjectedRadius > 0.5;
     }
     if(!parentRejected){
         return false;
@@ -222,7 +222,7 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
             selfProjectedRadius = selfSphereRadius * camAspect * orthoSize;
         }
         selfProjectedRadius*=rtHeight;
-        selfRejected = selfProjectedRadius > 1.0;
+        selfRejected = selfProjectedRadius > 0.5;
     }
     return !selfRejected;
 

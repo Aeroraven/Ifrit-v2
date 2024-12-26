@@ -334,7 +334,7 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
         vec3 vNormalRGB = vec3(vNormalRG,vNormalZ);
 
         vec3 rNormal = tbn * normalize(vNormalRGB);
-        data.vpNormalVS = worldToView * localToWorld * vec4(rNormal,0.0);
+        data.vpNormalVS = vec4(rNormal,0.0);
     }
     
     return data;

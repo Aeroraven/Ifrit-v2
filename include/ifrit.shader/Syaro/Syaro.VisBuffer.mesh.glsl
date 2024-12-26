@@ -254,6 +254,6 @@ void main(){
 
         gl_PrimitiveTriangleIndicesEXT[gtid] = uvec3(triIndexA,triIndexB,triIndexC);
         gl_MeshPrimitivesEXT[gtid].gl_PrimitiveID = int(gtid);
-        gl_MeshPrimitivesEXT[gtid].gl_CullPrimitiveEXT = bCulled;
+        gl_MeshPrimitivesEXT[gtid].gl_CullPrimitiveEXT = false;//bCulled;
     }
 }

@@ -87,6 +87,7 @@ void main(){
     vec3 normal = texture(GetSampler2D(uGBufferRefs.normal_smoothness),texCoord).rgb;
     vec4 motion_depth = texture(GetSampler2D(uMotionDepthRefs.ref),texCoord).rgba;
     mat4 invproj = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_invPerspective;
+    mat4 worldToView = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
     float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
     float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
@@ -105,7 +106,10 @@ void main(){
     worldPos /= worldPos.w;
     viewPos /= viewPos.w;
     normal = normalize(normal * 2.0 - 1.0);
-    vec3 lightDir = normalize(pc.sundir.xyz);
+    vec3 lightDir = -(vec4(normalize(pc.sundir.xyz),0.0)).xyz;
+    normal = (vec4(normal,0.0)).xyz;
+    lightDir.y = -lightDir.y;
+    lightDir.z = -lightDir.z;
     //normalize(vec3(0.612372,0.500000,0.612372));
 
     float NdotL = max(dot(normal,lightDir),0.0);
@@ -135,7 +139,8 @@ void main(){
     float shadow = texture(GetSampler2D(pc.shadowTexRef),texCoord).r;
 
     //This is incorrect, but it's used for test if shadow mapping works
-    vec3 color = ambient + Lo * shadow; 
-    //color = vec3(shadow);
+    vec3 color = ambient + Lo * shadow;
+    //vec3 color = vec3 
+    //color = vec3(abs(normal.x),abs(normal.y),abs(normal.z));    
     outColor = vec4(color,1.0);
 }

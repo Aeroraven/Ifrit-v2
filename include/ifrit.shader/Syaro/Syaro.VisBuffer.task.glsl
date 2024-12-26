@@ -236,7 +236,7 @@ void main(){
         float coneAngle = dot(normalize(viewConeApex-camPos),normalize(viewConeAxis));
         float camViewType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
         if(camViewType < 0.5 && coneAngle > normalConeAxis.w+1e-6){
-            isAccepted = false;
+            //isAccepted = false;
         }
 
         if(isAccepted){

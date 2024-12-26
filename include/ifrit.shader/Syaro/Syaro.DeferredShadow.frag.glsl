@@ -136,7 +136,7 @@ float shadowMappingSingle(uint lightId, vec3 worldPos, float pcfRadius,uint csmI
         vec2 sampPos = uv + rot;
         sampPos = clamp(sampPos,vec2(0.0),vec2(1.0));
         float depth = texture(GetSampler2D(shadowRef),sampPos).r;
-        if(depth - lightPos.z < -2e-3 ){
+        if(depth - lightPos.z < -1e-4 ){
             avgShadow += 0.0;
         }else{
             avgShadow += 1.0;
@@ -151,7 +151,7 @@ float shadowMappingSingle(uint lightId, vec3 worldPos, float pcfRadius,uint csmI
             vec2 sampPos = uv + offset;
             sampPos = clamp(sampPos,vec2(0.0),vec2(1.0));
             float depth = texture(GetSampler2D(shadowRef),sampPos).r;
-            if(depth - lightPos.z < -1e-3 ){
+            if(depth - lightPos.z < -1e-4 ){
                 avgShadow += 0.0;
             }else{
                 avgShadow += 1.0;
