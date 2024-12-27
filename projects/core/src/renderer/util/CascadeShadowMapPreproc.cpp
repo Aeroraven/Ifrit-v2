@@ -62,10 +62,11 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
     auto vApex = ifloat3{camPos.x, camPos.y, camPos.z};
     auto rZFar = 0.0f, rOrthoSize = 0.0f;
     ifloat3 rCenter;
-    getFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, vApex,
-                                 lightFront, 8e3f, rZFar, rOrthoSize, rCenter);
-    // printf("i=%d;rZFar=%f;vFar=%f,vNear=%f\n", i, rZFar / 3.0f - 8e3f,
-    //        splitEndMeter[i], splitStartMeter[i]);
+    auto worldToView = perView.m_viewData.m_worldToView;
+    auto viewToWorld = inverse4(transpose(worldToView));
+    getFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, viewToWorld,
+                                 vApex, lightFront, 8e3f, rZFar, rOrthoSize,
+                                 rCenter);
     rZFar *= 2.0f;
     auto lightCamUp = ifloat3{0.0f, 1.0f, 0.0f};
     auto proj = orthographicNegateY(rOrthoSize, 1.0, 1e1f, rZFar);

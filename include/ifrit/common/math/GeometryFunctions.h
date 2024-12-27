@@ -54,9 +54,10 @@ inline ifloat4 getFrustumBoundingSphere(float fovy, float aspect, float fNear,
 }
 
 inline void getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear,
-                                         float zFar, ifloat3 apex,
-                                         ifloat3 rayDir, float reqResultZNear,
-                                         float &resZFar, float &resOrthoSize,
+                                         float zFar, float4x4 viewToWorld,
+                                         ifloat3 apex, ifloat3 rayDir,
+                                         float reqResultZNear, float &resZFar,
+                                         float &resOrthoSize,
                                          ifloat3 &resCenter) {
   float halfFov = fovy / 2.0f;
   auto halfHeightNear = zNear * std::tan(halfFov);
@@ -75,7 +76,18 @@ inline void getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear,
   worldSpacePts.push_back({-halfWidthFar, -halfHeightFar, zFar, 1.0f});
 
   for (auto &pt : worldSpacePts) {
-    pt = {apex.x + pt.x, apex.y + pt.y, apex.z + pt.z, 1.0f};
+    // pt = {apex.x + pt.x, apex.y + pt.y, apex.z + pt.z, 1.0f};
+    auto spt = ifloat4{apex.x + pt.x, apex.y + pt.y, apex.z + pt.z, 1.0f};
+    auto bpt = matmul(viewToWorld, pt);
+    bpt.x /= bpt.w;
+    bpt.y /= bpt.w;
+    bpt.z /= bpt.w;
+    bpt.w = 1.0f;
+    pt = bpt;
+    // TODO: this is an alleviation for the startup bug
+    if (std::isnan(pt.x) || std::isnan(pt.y) || std::isnan(pt.z)) {
+      pt = spt;
+    }
   }
 
   float projMinX = std::numeric_limits<float>::max();

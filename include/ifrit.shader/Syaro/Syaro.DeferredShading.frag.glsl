@@ -108,9 +108,7 @@ void main(){
     normal = (worldToView * vec4(normalize(normal * 2.0 - 1.0),0.0)).xyz;
 
     vec3 sundir = normalize(pc.sundir.xyz);
-    sundir.y = -sundir.y;
-    sundir.z = -sundir.z;
-    vec3 lightDir = (worldToView * -vec4(sundir,0.0)).xyz;
+    vec3 lightDir = (worldToView * vec4(sundir,0.0)).xyz;
     //normalize(vec3(0.612372,0.500000,0.612372));
 
     float NdotL = max(dot(normal,lightDir),0.0);
