@@ -125,6 +125,10 @@ float shadowMappingSingle(uint lightId, vec3 worldPos, float pcfRadius,uint csmI
     vec4 lightPos = vp * vec4(worldPos,1.0);
     lightPos.xyz /= lightPos.w;
     vec2 uv = lightPos.xy * 0.5 + 0.5;
+
+    if(uv.x<0.0 || uv.x>1.0 || uv.y<0.0 || uv.y>1.0){
+        return 10.0;
+    }
     float avgShadow = 0.0;
     
     float kSearchRadiusPx = pcfRadius; //pcfRadius+0.5;
@@ -136,7 +140,7 @@ float shadowMappingSingle(uint lightId, vec3 worldPos, float pcfRadius,uint csmI
         vec2 sampPos = uv + rot;
         sampPos = clamp(sampPos,vec2(0.0),vec2(1.0));
         float depth = texture(GetSampler2D(shadowRef),sampPos).r;
-        if(depth - lightPos.z < -1e-4 ){
+        if(depth - lightPos.z < -5e-4 ){
             avgShadow += 0.0;
         }else{
             avgShadow += 1.0;
@@ -268,13 +272,16 @@ float globalShadowMapping(vec3 worldPos, vec3 viewPos){
         // pcssShadowMapSingle(i,worldPos,csmLevel);
         float shadow0 = shadowMappingSingle(i,worldPos,2/lightOrthoSize,csmLevel);
         avgShadow = min(avgShadow,shadow0);
+        // if(csmLevel!=1){
+        //     return 1.0;
+        // }
     }
     return avgShadow;
 }
 
 void main(){
     vec4 motion_depth = texture(GetSampler2D(uMotionDepthRefs.ref),texCoord).rgba;
-    mat4 invproj = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_invPerspective;
+    mat4 worldToView = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
     float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
     float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
@@ -287,9 +294,10 @@ void main(){
     }
 
     vec4 ndcPos = vec4(texCoord * 2.0 - 1.0, depth, 1.0) * vsDepth;
-    vec4 viewPos = invproj * ndcPos;
+    
     vec4 worldPos = clipToWorld * ndcPos;
     worldPos /= worldPos.w;
+    vec4 viewPos = worldToView * worldPos;
     viewPos /= viewPos.w;
     float shadow = globalShadowMapping(worldPos.xyz,viewPos.xyz);
 

@@ -150,16 +150,17 @@ vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pad
     }
     int fftW = 1<<pc.fftTexSizeWLog;
     int fftH = 1<<pc.fftTexSizeHLog;
-    int shiftedX = int(coord.x)-int(pads.x)+fftW;
-    int shiftedY = int(coord.y)-int(pads.z)+fftH;
+    int shiftedX = int(coord.x)-int(pads.x);
+    int shiftedY = int(coord.y)-int(pads.z);
     if(shift.x==0.5){
-        shiftedX+=fftW/2;
+        shiftedX+=fftW/2+fftW;
+        shiftedX%=fftW;
     }
     if(shift.y==0.5){
         shiftedY+=fftH/2;
+        shiftedY%=fftH+fftH;
     }
-    shiftedX%=fftW;
-    shiftedY%=fftH;
+
     if(shiftedX>=rtW/downscale||shiftedY>=rtH/downscale){
         if(paddingMode==kPaddingModeZero){
             return vec4(0.0);
@@ -174,6 +175,7 @@ vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pad
     // if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){
     //     return vec4(0.0);
     // }
+    uv = clamp(uv,0.0,1.0);
     vec4 rt = texture(GetSampler2D(imgId),uv);
 
     float luma = rgbToLuma(rt);

@@ -1302,7 +1302,7 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     perView.m_visDepthId = rhi->registerCombinedImageSampler(
         perView.m_visPassDepth, perView.m_visDepthSampler.get());
     perView.m_visDepthRT = rhi->createRenderTargetDepthStencil(
-        visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
+        visDepth, {{}, 5.0f}, RhiRenderTargetLoadOp::Clear);
 
     perView.m_visRTs = rhi->createRenderTargets();
     if (perView.m_viewType == PerFrameData::ViewType::Primary) {

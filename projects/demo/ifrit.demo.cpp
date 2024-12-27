@@ -60,10 +60,10 @@ void key_callback(int key, int scancode, int action, int mods) {
     movNear += scale;
 
   if (key == GLFW_KEY_Z && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movRot += scale * 0.1f;
+    movRot += scale * 0.01f;
 
   if (key == GLFW_KEY_X && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movRot -= scale * 0.1f;
+    movRot -= scale * 0.01f;
 }
 
 class DemoApplication : public Ifrit::Core::Application {

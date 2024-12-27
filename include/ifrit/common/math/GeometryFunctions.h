@@ -116,7 +116,6 @@ inline void getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear,
   auto reqCamPos = ifloat3{worldCenter.x - orthoSizeZ * dRay.x,
                            worldCenter.y - orthoSizeZ * dRay.y,
                            worldCenter.z - orthoSizeZ * dRay.z};
-
   // Return
   resZFar = orthoSizeZFar;
   resOrthoSize = orthoSize;
