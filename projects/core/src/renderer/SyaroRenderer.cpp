@@ -1534,6 +1534,8 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
       0);
   activeBuf->flush();
   activeBuf->unmap();
+
+  RhiBuffer *allFilteredMeshlets = nullptr;
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     auto &perView = perframeData.m_views[k];
     if (perView.m_allFilteredMeshletsCount == nullptr) {
@@ -1544,10 +1546,18 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
     }
     if (perView.m_allFilteredMeshletsMaxCount < totalMeshlets) {
       perView.m_allFilteredMeshletsMaxCount = totalMeshlets;
-      perView.m_allFilteredMeshlets = rhi->createStorageBufferDevice(
-          totalMeshlets * sizeof(uint32_t) * 3 / 2 + 1,
-          RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-
+      if (true) {
+        if (allFilteredMeshlets == nullptr) {
+          allFilteredMeshlets = rhi->createStorageBufferDevice(
+              totalMeshlets * sizeof(uint32_t) * 3 / 2 + 1,
+              RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        }
+        perView.m_allFilteredMeshlets = allFilteredMeshlets;
+      } else {
+        perView.m_allFilteredMeshlets = rhi->createStorageBufferDevice(
+            totalMeshlets * sizeof(uint32_t) * 3 / 2 + 1,
+            RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+      }
       perView.m_allFilteredMeshletsDesc = rhi->createBindlessDescriptorRef();
       perView.m_allFilteredMeshletsDesc->addStorageBuffer(
           perView.m_allFilteredMeshlets, 0);
