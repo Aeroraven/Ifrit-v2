@@ -77,7 +77,7 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
     auto viewOriginalInv = inverse4(viewOriginal);
     auto camPosOriginal =
         matmul(viewOriginal, ifloat4{rCenter.x, rCenter.y, rCenter.z, 1.0f});
-    float texelSize = rOrthoSize / 1024.0f;
+    float texelSize = rOrthoSize / shadowResolution;
     auto camPosSnapped =
         ifloat3{camPosOriginal.x - std::fmodf(camPosOriginal.x, texelSize),
                 camPosOriginal.y - std::fmodf(camPosOriginal.y, texelSize),
@@ -87,6 +87,7 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
                                         camPosSnapped.z, 1.0f});
     auto newCenter = ifloat3{camPosSnappedWorld.x, camPosSnappedWorld.y,
                              camPosSnappedWorld.z};
+    // printf("New center: %f %f %f\n", newCenter.x, newCenter.y, newCenter.z);
     view = lookAt(newCenter, newCenter + lightFront, lightCamUp);
 
     CSMSingleSplitResult result;
@@ -161,8 +162,8 @@ fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
   auto lightDir = Math::matmul(lightTransformMat, lightDirRaw);
 
   auto lightDir3 = ifloat3{lightDir.x, lightDir.y, lightDir.z};
-  auto csmResult = calculateCSMSplits(perView,shadowResolution, lightDir3, splitCount,
-                                      maxDistance, splits, borders);
+  auto csmResult = calculateCSMSplits(perView, shadowResolution, lightDir3,
+                                      splitCount, maxDistance, splits, borders);
 
   std::vector<PerFrameData::PerViewData> views;
   for (auto i = 0u; i < splitCount; i++) {

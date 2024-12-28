@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "./LinalgOps.h"
 #include "VectorOps.h"
 #include <cmath>
+#include <vector>
 
 namespace Ifrit::Math {
 
@@ -75,14 +76,18 @@ inline void getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear,
   worldSpacePts.push_back({halfWidthFar, -halfHeightFar, zFar, 1.0f});
   worldSpacePts.push_back({-halfWidthFar, -halfHeightFar, zFar, 1.0f});
 
+  // the change of ortho size causes csm flickering.
+  // Using diagonal of the frustum bounding box instead of ortho size
+  // Ref: https://zhuanlan.zhihu.com/p/116731971
+
+  auto farDist = distance(worldSpacePts[4], worldSpacePts[3]);
+  auto diagDist = distance(worldSpacePts[4], worldSpacePts[7]);
+  auto maxDist = std::max(farDist, diagDist);
+
   for (auto &pt : worldSpacePts) {
     // pt = {apex.x + pt.x, apex.y + pt.y, apex.z + pt.z, 1.0f};
     auto spt = ifloat4{apex.x + pt.x, apex.y + pt.y, apex.z + pt.z, 1.0f};
     auto bpt = matmul(viewToWorld, pt);
-    bpt.x /= bpt.w;
-    bpt.y /= bpt.w;
-    bpt.z /= bpt.w;
-    bpt.w = 1.0f;
     pt = bpt;
     // TODO: this is an alleviation for the startup bug
     if (std::isnan(pt.x) || std::isnan(pt.y) || std::isnan(pt.z)) {
@@ -130,7 +135,7 @@ inline void getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear,
                            worldCenter.z - orthoSizeZ * dRay.z};
   // Return
   resZFar = orthoSizeZFar;
-  resOrthoSize = orthoSize;
+  resOrthoSize = maxDist;
   resCenter = {reqCamPos.x, reqCamPos.y, reqCamPos.z};
 }
 } // namespace Ifrit::Math
