@@ -60,10 +60,10 @@ void key_callback(int key, int scancode, int action, int mods) {
     movNear += scale;
 
   if (key == GLFW_KEY_Z && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movRot += scale * 0.01f;
+    movRot += scale * 0.003f;
 
   if (key == GLFW_KEY_X && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movRot -= scale * 0.01f;
+    movRot -= scale * 0.003f;
 }
 
 class DemoApplication : public Ifrit::Core::Application {
@@ -85,7 +85,7 @@ public:
         m_assetManager->getAssetByName<GLTFAsset>("Bistro/bistro.gltf");
     // Renderer config
     renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
-    renderConfig.m_shadowConfig.m_maxDistance = 3000.0f;
+    renderConfig.m_shadowConfig.m_maxDistance = 9000.0f;
 
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");
@@ -97,8 +97,8 @@ public:
     camera->setMainCamera(true);
     camera->setAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
     camera->setFov(90.0f / 180.0f * std::numbers::pi_v<float>);
-    camera->setFar(3000.0f);
-    camera->setNear(10.01f);
+    camera->setFar(9000.0f);
+    camera->setNear(30.01f);
 
     auto cameraTransform = cameraGameObject->getComponent<Transform>();
     cameraTransform->setPosition({0.0f, 0.5f, -1.25f});
@@ -121,7 +121,7 @@ public:
     for (auto &prefab : prefabs) {
       numMeshes++;
       if (numMeshes < 910) {
-        //continue;
+        // continue;
       }
       node->addGameObjectTransferred(std::move(prefab->m_prefab));
     }

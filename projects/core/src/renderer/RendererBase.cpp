@@ -93,7 +93,6 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     front = Math::matmul(rotMatrix, front);
     front.z = -front.z;
     perframeData.m_sunDir = front;
-    iInfo("Sun direction: {} {} {}", front.x, front.y, front.z);
   }
 
   // Insert light view data, if shadow maps are enabled
@@ -135,8 +134,9 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     auto maxDist = m_config->m_shadowConfig.m_maxDistance;
     std::array<float, 4> splitStart, splitEnd;
     auto csmViews = RenderingUtil::CascadeShadowMapping::fillCSMViews(
-        viewData, *light, *lightTransform, m_config->m_shadowConfig.m_csmCount,
-        maxDist, csmSplits, csmBorders, splitStart, splitEnd);
+        viewData, *light, light->getShadowMapResolution(), *lightTransform,
+        m_config->m_shadowConfig.m_csmCount, maxDist, csmSplits, csmBorders,
+        splitStart, splitEnd);
 
     perframeData.m_shadowData2.m_shadowViews[di].m_csmSplits =
         m_config->m_shadowConfig.m_csmCount;

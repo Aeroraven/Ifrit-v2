@@ -22,9 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core::RenderingUtil::CascadeShadowMapping {
 
 IFRIT_APIDECL CSMResult calculateCSMSplits(
-    const PerFrameData::PerViewData &perView, ifloat3 lightFront,
-    uint32_t splitCount, float maxDistance, const std::vector<float> &splits,
-    const std::vector<float> &borders) {
+    const PerFrameData::PerViewData &perView, uint32_t shadowResolution,
+    ifloat3 lightFront, uint32_t splitCount, float maxDistance,
+    const std::vector<float> &splits, const std::vector<float> &borders) {
 
   using namespace Ifrit::Math;
 
@@ -67,10 +67,28 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
     getFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, viewToWorld,
                                  vApex, lightFront, 8e3f, rZFar, rOrthoSize,
                                  rCenter);
-    rZFar *= 2.0f;
     auto lightCamUp = ifloat3{0.0f, 1.0f, 0.0f};
     auto proj = orthographicNegateY(rOrthoSize, 1.0, 1e1f, rZFar);
     auto view = lookAt(rCenter, rCenter + lightFront, lightCamUp);
+
+    // To alleviate shadow flickering, we need to snap the light camera to texel
+    auto viewOriginal =
+        lookAt(ifloat3{0.0f, 0.0f, 0.0f}, lightFront, lightCamUp);
+    auto viewOriginalInv = inverse4(viewOriginal);
+    auto camPosOriginal =
+        matmul(viewOriginal, ifloat4{rCenter.x, rCenter.y, rCenter.z, 1.0f});
+    float texelSize = rOrthoSize / 1024.0f;
+    auto camPosSnapped =
+        ifloat3{camPosOriginal.x - std::fmodf(camPosOriginal.x, texelSize),
+                camPosOriginal.y - std::fmodf(camPosOriginal.y, texelSize),
+                camPosOriginal.z - std::fmodf(camPosOriginal.z, texelSize)};
+    auto camPosSnappedWorld =
+        matmul(viewOriginalInv, ifloat4{camPosSnapped.x, camPosSnapped.y,
+                                        camPosSnapped.z, 1.0f});
+    auto newCenter = ifloat3{camPosSnappedWorld.x, camPosSnappedWorld.y,
+                             camPosSnappedWorld.z};
+    view = lookAt(newCenter, newCenter + lightFront, lightCamUp);
+
     CSMSingleSplitResult result;
     result.m_proj = proj;
     result.m_view = view;
@@ -133,7 +151,8 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
 
 IFRIT_APIDECL std::vector<PerFrameData::PerViewData>
 fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
-             Transform &lightTransform, uint32_t splitCount, float maxDistance,
+             uint32_t shadowResolution, Transform &lightTransform,
+             uint32_t splitCount, float maxDistance,
              const std::vector<float> &splits,
              const std::vector<float> &borders,
              std::array<float, 4> &splitStart, std::array<float, 4> &splitEnd) {
@@ -142,7 +161,7 @@ fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
   auto lightDir = Math::matmul(lightTransformMat, lightDirRaw);
 
   auto lightDir3 = ifloat3{lightDir.x, lightDir.y, lightDir.z};
-  auto csmResult = calculateCSMSplits(perView, lightDir3, splitCount,
+  auto csmResult = calculateCSMSplits(perView,shadowResolution, lightDir3, splitCount,
                                       maxDistance, splits, borders);
 
   std::vector<PerFrameData::PerViewData> views;

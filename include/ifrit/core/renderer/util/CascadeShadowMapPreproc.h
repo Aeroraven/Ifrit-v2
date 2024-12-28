@@ -50,14 +50,15 @@ struct CSMResult {
 };
 
 IFRIT_APIDECL CSMResult calculateCSMSplits(
-    const Ifrit::Core::PerFrameData::PerViewData &perView, ifloat3 lightFront,
-    uint32_t splitCount, float maxDistance, const std::vector<float> &splits,
+    const Ifrit::Core::PerFrameData::PerViewData &perView,
+    uint32_t shadowResolution, ifloat3 lightFront, uint32_t splitCount,
+    float maxDistance, const std::vector<float> &splits,
     const std::vector<float> &borders);
 
 IFRIT_APIDECL std::vector<PerFrameData::PerViewData>
 fillCSMViews(const Ifrit::Core::PerFrameData::PerViewData &perView,
-             Light &light,
-             Transform &lightTransform, uint32_t splitCount, float maxDistance,
+             Light &light, uint32_t shadowResolution, Transform &lightTransform,
+             uint32_t splitCount, float maxDistance,
              const std::vector<float> &splits,
              const std::vector<float> &borders,
              std::array<float, 4> &splitStart, std::array<float, 4> &splitEnd);
