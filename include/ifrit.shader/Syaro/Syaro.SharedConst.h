@@ -34,6 +34,8 @@ namespace Ifrit::Core::SyaroConfig {
 
 #endif
 
+#define SYARO_SHADER_SHARED_VISBUFFER_ENABLE_PRIMCULL 0
+
 SYARO_DEFINE_UINT(cPersistentCullThreadGroupSizeX, 128);
 SYARO_DEFINE_UINT(cInstanceCullingThreadGroupSizeX, 64);
 
@@ -60,10 +62,11 @@ SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeX, 16);
 SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeY, 16);
 
 SYARO_DEFINE_UINT(cPersistentCullParallelStg_PersistThread, 1);
-SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop, 2);
+SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop_BVH, 2);
+SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop_ClusterGroup, 3);
 
 SYARO_DEFINE_UINT(cPersistentCullParallelStg,
-                  cPersistentCullParallelStg_StridedLoop);
+                  cPersistentCullParallelStg_StridedLoop_ClusterGroup);
 
 #define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_SAMPLING 1
 #define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_NUM_SAMPLES 32

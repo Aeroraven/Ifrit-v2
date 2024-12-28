@@ -505,8 +505,8 @@ public:
   virtual void waitDeviceIdle() = 0;
 
   // Create a general buffer
-  virtual RhiBuffer *createBuffer(uint32_t size, uint32_t usage,
-                                  bool hostVisible) const = 0;
+  virtual std::shared_ptr<RhiBuffer> createBuffer(uint32_t size, uint32_t usage,
+                                          bool hostVisible) const = 0;
   virtual RhiBuffer *createIndirectMeshDrawBufferDevice(uint32_t drawCalls,
                                                         uint32_t usage) = 0;
   virtual RhiBuffer *createStorageBufferDevice(uint32_t size,

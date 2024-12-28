@@ -233,7 +233,7 @@ void main(){
         // TODO: this transform is incorrect, but the demo scene only uses translation, it's fine for now
         vec4 viewConeAxis = model * vec4(normalConeAxis.xyz,0.0);
         vec4 viewConeApex = model * vec4(normalConeApex.xyz,1.0);
-        float coneAngle = dot(normalize(viewConeApex-camPos),normalize(viewConeAxis));
+        float coneAngle = dot(normalize(viewConeApex-camPos),viewConeAxis);
         float camViewType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
         if(camViewType < 0.5 && coneAngle > normalConeAxis.w+1e-6){
             isAccepted = false;

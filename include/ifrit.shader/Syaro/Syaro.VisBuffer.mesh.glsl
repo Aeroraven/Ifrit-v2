@@ -107,8 +107,10 @@ vec4 colorMap[8] = vec4[8](
   vec4(0.5, 0.0, 0.0, 1.0)
 );
 
+#if SYARO_SHADER_SHARED_VISBUFFER_ENABLE_PRIMCULL
 shared vec2 sPositionsXY[cMeshRasterizeMaxVertexSize];
 shared float sPositionsW[cMeshRasterizeMaxVertexSize];
+#endif
 
 bool isSecondCullingPass(){
     return pConst.passNo == 1;
@@ -195,11 +197,14 @@ void main(){
         vec3 v0 = GetResource(bVertices,vertexRef).data[vi].xyz;
         vec4 final= mvp * vec4(v0,1.0);
         gl_MeshVerticesEXT[i].gl_Position = final;
+#if SYARO_SHADER_SHARED_VISBUFFER_ENABLE_PRIMCULL
         sPositionsXY[i] = final.xy / final.w;
         sPositionsW[i] = final.w;
+#endif
         ids[i] = getClusterID();
     }
 
+#if SYARO_SHADER_SHARED_VISBUFFER_ENABLE_PRIMCULL
     barrier();
 
     if(gtid<totalTris){
@@ -254,6 +259,18 @@ void main(){
 
         gl_PrimitiveTriangleIndicesEXT[gtid] = uvec3(triIndexA,triIndexB,triIndexC);
         gl_MeshPrimitivesEXT[gtid].gl_PrimitiveID = int(gtid);
-        gl_MeshPrimitivesEXT[gtid].gl_CullPrimitiveEXT = false;//bCulled;
+        gl_MeshPrimitivesEXT[gtid].gl_CullPrimitiveEXT = bCulled;
     }
+#else
+    if(gtid<totalTris){
+        uint triIndices = readTriangleIndex2(triRefOffset,gtid);
+        uint triIndexA = triIndices & 0x000000FF;
+        uint triIndexB = (triIndices & 0x0000FF00) >> 8;
+        uint triIndexC = (triIndices & 0x00FF0000) >> 16;
+
+        gl_PrimitiveTriangleIndicesEXT[gtid] = uvec3(triIndexA,triIndexB,triIndexC);
+        gl_MeshPrimitivesEXT[gtid].gl_PrimitiveID = int(gtid);
+        gl_MeshPrimitivesEXT[gtid].gl_CullPrimitiveEXT = false;
+    }
+#endif
 }

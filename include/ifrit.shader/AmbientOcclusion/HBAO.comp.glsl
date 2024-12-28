@@ -117,7 +117,7 @@ void main(){
     weightedAO /= totalWeight;
 
     // store ao in alpha channel
-    vec4 rawSmoothAO = imageLoad(GetUAVImage2DR32F(pushConst.aoTex),ivec2(threadX,threadY));
+    vec4 rawSmoothAO = vec4(0.0);
     rawSmoothAO.a = 1.0 - weightedAO; 
     imageStore(GetUAVImage2DRGBA32F(pushConst.aoTex),ivec2(threadX,threadY),rawSmoothAO);
 }

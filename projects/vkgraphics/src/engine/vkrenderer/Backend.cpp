@@ -122,14 +122,14 @@ RhiVulkanBackend::createDeviceTimer() {
   return p;
 }
 
-IFRIT_APIDECL Rhi::RhiBuffer *
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiBuffer>
 RhiVulkanBackend::createBuffer(uint32_t size, uint32_t usage,
                                bool hostVisible) const {
   BufferCreateInfo ci{};
   ci.size = size;
   ci.usage = usage;
   ci.hostVisible = hostVisible;
-  auto p = m_implDetails->m_resourceManager->createSimpleBuffer(ci);
+  auto p = m_implDetails->m_resourceManager->createSimpleBufferUnmanaged(ci);
   return p;
 }
 

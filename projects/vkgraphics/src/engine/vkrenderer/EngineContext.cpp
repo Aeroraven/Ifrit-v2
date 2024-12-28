@@ -80,7 +80,7 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
               void *pUserData) {
   iWarn("Validation layer called");
   iWarn(pCallbackData->pMessage);
-  std::abort();
+  //std::abort();
   return VK_FALSE;
 }
 // START CLASS DEFINITION

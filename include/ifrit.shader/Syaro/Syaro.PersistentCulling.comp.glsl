@@ -393,7 +393,7 @@ void main(){
                 chosenBVHNodeInd = UNSET;
             }
         }
-    }else{
+    }else if(cPersistentCullParallelStg == cPersistentCullParallelStg_StridedLoop_BVH){
         for(uint k=threadId;k<totalBVHNodes;k+=cPersistentCullThreadGroupSizeX){
             uint chosenBVHNodePos = k;
             bool bvhNodeVisible = isBVHNodeVisible(chosenBVHNodePos);
@@ -407,6 +407,15 @@ void main(){
                         enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
                     }
                 }
+            }
+        }
+    }else if(cPersistentCullParallelStg == cPersistentCullParallelStg_StridedLoop_ClusterGroup){
+        for(uint k=threadId;k<totalClusterGroups;k+=cPersistentCullThreadGroupSizeX){
+            ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[k];
+            bool clusterGroupVisible = isClusterGroupVisible(k,mv,rtHeight,tanfovy,
+                viewCamType,camAspect,orthoSize);
+            if(clusterGroupVisible){ 
+                enqueueClusterGroup(k,clusterRef,micRef,tanfovy);
             }
         }
     }

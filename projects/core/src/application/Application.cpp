@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/core/application/Application.h"
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/display/presentation/window/WindowSelector.h"
 #include "ifrit/rhi/platform/RhiSelector.h"
 
@@ -52,7 +52,10 @@ IFRIT_APIDECL void Application::start() {
   rhiArgs.m_expectedGraphicsQueueCount = m_info.m_rhiGraphicsQueueCount;
   rhiArgs.m_expectedTransferQueueCount = m_info.m_rhiTransferQueueCount;
   rhiArgs.m_expectedSwapchainImageCount = m_info.m_rhiNumBackBuffers;
-  rhiArgs.m_enableValidationLayer = true;
+  rhiArgs.m_enableValidationLayer = m_info.m_rhiDebugMode;
+  if (!m_info.m_rhiDebugMode) {
+    iWarn("Debug mode is disabled, validation layers are not enabled");
+  }
 #ifdef _WIN32
   rhiArgs.m_win32.m_hInstance = GetModuleHandle(NULL);
   rhiArgs.m_win32.m_hWnd = (HWND)m_windowProvider->getWindowObject();

@@ -45,6 +45,7 @@ struct ApplicationCreateInfo {
   uint32_t m_rhiTransferQueueCount = 1;
   uint32_t m_rhiComputeQueueCount = 1;
   uint32_t m_rhiNumBackBuffers = 2;
+  uint32_t m_rhiDebugMode = 0;
 };
 class IFRIT_APIDECL Application : public IApplication {
 protected:

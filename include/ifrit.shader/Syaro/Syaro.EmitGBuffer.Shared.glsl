@@ -272,14 +272,12 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
 
     uint transRef = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].transformRef;
     mat4 localToWorld = GetResource(bLocalTransform, transRef).m_localToWorld;
-    vec4 v0ws = localToWorld * v0;
-    vec4 v1ws = localToWorld * v1;
-    vec4 v2ws = localToWorld * v2;
-
     mat4 worldToView = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_worldToView;
-    vec4 v0vs = worldToView * v0ws;
-    vec4 v1vs = worldToView * v1ws;
-    vec4 v2vs = worldToView * v2ws;
+    mat4 localToView = worldToView * localToWorld;
+
+    vec4 v0vs = localToView * v0;
+    vec4 v1vs = localToView * v1;
+    vec4 v2vs = localToView * v2;
 
     data.barycentric = vec4(_gbcomp_getBarycentric(v0vs.xyz, v1vs.xyz, v2vs.xyz, pxPos),1.0);
     data.vpPosVS = vec4(_gbcomp_interpolate3(v0vs.xyz, v1vs.xyz, v2vs.xyz, data.barycentric.xyz),1.0);
@@ -289,13 +287,9 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     vec4 n1 = vec4(GetResource(bNormals, normalRef).data[data.v1Idx].xyz, 0.0);
     vec4 n2 = vec4(GetResource(bNormals, normalRef).data[data.v2Idx].xyz, 0.0);
 
-    vec4 n0ws = localToWorld * n0;
-    vec4 n1ws = localToWorld * n1;
-    vec4 n2ws = localToWorld * n2;
-
-    vec4 n0vs = worldToView * n0ws;
-    vec4 n1vs = worldToView * n1ws;
-    vec4 n2vs = worldToView * n2ws;
+    vec4 n0vs = localToView * n0;
+    vec4 n1vs = localToView * n1;
+    vec4 n2vs = localToView * n2;
 
     data.vpNormalVS = vec4(normalize(_gbcomp_interpolate3(n0vs.xyz, n1vs.xyz, n2vs.xyz, data.barycentric.xyz)),1.0);
     vec4 normalLocal = vec4(normalize(_gbcomp_interpolate3(n0.xyz, n1.xyz, n2.xyz, data.barycentric.xyz)),1.0);
@@ -333,7 +327,7 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
 
         vec3 vNormalRGB = vec3(vNormalRG,vNormalZ);
 
-        vec3 rNormal = tbn * normalize(vNormalRGB);
+        vec3 rNormal = tbn * vNormalRGB;
         data.vpNormalVS = vec4(rNormal,0.0);
     }
     

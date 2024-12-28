@@ -1,6 +1,11 @@
 # Ifrit-v2 / Existing Bugs
 
-- [ ] TAA Flickering for distant tiny objects
-- [x] CSM Flickering while moving
-- [ ] Incorect startup
-- [ ] LOD switching not smooth
+## Artifacts
+- [ ] Syaro: TAA Flickering for distant tiny objects
+- [x] Syaro: CSM Flickering while moving
+- [ ] Syaro: Incorect startup
+- [ ] Syaro: LOD switching not smooth
+
+## Performance
+- [ ] Syaro: memory fragmentation and low memory utilization.
+- [ ] Syaro: low thread utilization for small meshes (eg for almost no bvh nodes)

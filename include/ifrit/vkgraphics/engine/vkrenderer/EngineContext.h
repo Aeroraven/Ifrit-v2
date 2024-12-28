@@ -134,5 +134,6 @@ public:
   }
   inline const std::string &getCacheDirectory() const { return cacheDirectory; }
   void setCacheDirectory(const std::string &dir) { cacheDirectory = dir; }
+  inline bool isDebugMode() { return m_args.m_enableValidationLayer; }
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

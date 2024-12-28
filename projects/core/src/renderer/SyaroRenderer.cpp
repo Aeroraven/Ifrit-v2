@@ -1302,7 +1302,7 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     perView.m_visDepthId = rhi->registerCombinedImageSampler(
         perView.m_visPassDepth, perView.m_visDepthSampler.get());
     perView.m_visDepthRT = rhi->createRenderTargetDepthStencil(
-        visDepth, {{}, 5.0f}, RhiRenderTargetLoadOp::Clear);
+        visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
 
     perView.m_visRTs = rhi->createRenderTargets();
     if (perView.m_viewType == PerFrameData::ViewType::Primary) {
@@ -1549,13 +1549,13 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
       if (true) {
         if (allFilteredMeshlets == nullptr) {
           allFilteredMeshlets = rhi->createStorageBufferDevice(
-              totalMeshlets * sizeof(uint32_t) * 3 / 2 + 1,
+              totalMeshlets * sizeof(uint32_t) * 5 / 4 + 1,
               RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
         }
         perView.m_allFilteredMeshlets = allFilteredMeshlets;
       } else {
         perView.m_allFilteredMeshlets = rhi->createStorageBufferDevice(
-            totalMeshlets * sizeof(uint32_t) * 3 / 2 + 1,
+            totalMeshlets * sizeof(uint32_t) * 5 / 4 + 1,
             RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
       }
       perView.m_allFilteredMeshletsDesc = rhi->createBindlessDescriptorRef();

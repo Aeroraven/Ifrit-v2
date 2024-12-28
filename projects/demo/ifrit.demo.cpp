@@ -179,6 +179,7 @@ int main() {
   info.m_rhiNumBackBuffers = 2;
   info.m_name = "Ifrit-v2";
   info.m_cachePath = IFRIT_DEMO_CACHE_PATH;
+  info.m_rhiDebugMode = true;
 
   DemoApplication app;
   app.run(info);
