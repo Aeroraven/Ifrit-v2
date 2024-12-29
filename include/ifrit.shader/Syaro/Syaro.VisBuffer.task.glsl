@@ -171,12 +171,22 @@ bool frustumCullOrtho(vec4 boundBall, float radius){
         return true;
     }
     float camOrthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
+    float camOrthoSizeCullX = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeX;
+    float camOrthoSizeCullY = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeY;
+
     float camOrthoHalfSize = camOrthoSize;
 
+#if SYARO_SHADER_SHARED_EXPLICIT_ORTHO_FRUSTUM_CULL
+    float left = -camOrthoSizeCullX * 0.5;
+    float right = camOrthoSizeCullX * 0.5;
+    float top = -camOrthoSizeCullY * 0.5;
+    float bottom = camOrthoSizeCullY * 0.5;
+#else
     float left = -camOrthoHalfSize * camAspect;
     float right = camOrthoHalfSize * camAspect;
     float top = -camOrthoHalfSize;
     float bottom = camOrthoHalfSize;
+#endif
 
     bool leftCull = boundBall.x - radius > right;
     bool rightCull = boundBall.x + radius < left;

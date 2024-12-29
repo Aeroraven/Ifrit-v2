@@ -34,7 +34,17 @@ namespace Ifrit::Core::SyaroConfig {
 
 #endif
 
+// This macro enables the culling in triangle-level, which sacrifices
+// max-occupancy (shared memory) for better culling efficiency. However, the
+// trade-off is not always beneficial.
 #define SYARO_SHADER_SHARED_VISBUFFER_ENABLE_PRIMCULL 0
+
+// This macro allows the culling frustum to be smaller than the actual view
+// frustum, for CSM, view frustum culling is larger than the actual view frustum
+// to avoid flickering. However, this makes about 107% useless area to be
+// rendered. This macro intends to reduce the culling frustum to the actual view
+// frustum.
+#define SYARO_SHADER_SHARED_EXPLICIT_ORTHO_FRUSTUM_CULL 1
 
 SYARO_DEFINE_UINT(cPersistentCullThreadGroupSizeX, 128);
 SYARO_DEFINE_UINT(cInstanceCullingThreadGroupSizeX, 64);

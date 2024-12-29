@@ -173,7 +173,9 @@ uint getObjId(){
     return GetResource(bInstanceAccepted,uIndirectCompInstCull.acceptRef).data[gl_WorkGroupID.x];
 }
 
-bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,float viewCamType,float camAspect, float orthoSize){
+bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,float viewCamType,
+    float camAspect, float orthoSize, float cullOrthoX, float cullOrthoY){
+
     uint objId = getObjId();
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint cpcntRefMesh = GetResource(bMeshDataRef,obj).cpCounterBuffer;
@@ -329,7 +331,8 @@ void main(){
     float tanfovy = tan(fov*0.5);
     float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
     float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
-    
+    float cullOrthoX = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeX;
+    float cullOrthoY = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeY;
 
     if(cPersistentCullParallelStg == cPersistentCullParallelStg_PersistThread){
         if(threadId == 0){
@@ -380,7 +383,7 @@ void main(){
                     for(uint i = 0 ; i < node.clusterGroupCount;i++){
                         ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
                         bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy,
-                            viewCamType,camAspect,orthoSize);
+                            viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY);
                         if(clusterGroupVisible){ 
                             enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
                         }
@@ -402,7 +405,7 @@ void main(){
                 for(uint i = 0 ; i < node.clusterGroupCount;i++){
                     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
                     bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy,
-                        viewCamType,camAspect,orthoSize);
+                        viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY);
                     if(clusterGroupVisible){ 
                         enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
                     }
@@ -413,7 +416,7 @@ void main(){
         for(uint k=threadId;k<totalClusterGroups;k+=cPersistentCullThreadGroupSizeX){
             ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[k];
             bool clusterGroupVisible = isClusterGroupVisible(k,mv,rtHeight,tanfovy,
-                viewCamType,camAspect,orthoSize);
+                viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY);
             if(clusterGroupVisible){ 
                 enqueueClusterGroup(k,clusterRef,micRef,tanfovy);
             }

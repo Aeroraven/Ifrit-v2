@@ -61,12 +61,13 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
     auto vFar = splitEndMeter[i];
     auto vApex = ifloat3{camPos.x, camPos.y, camPos.z};
     auto rZFar = 0.0f, rOrthoSize = 0.0f;
+    auto rCullOrthoX = 0.0f, rCullOrthoY = 0.0f;
     ifloat3 rCenter;
     auto worldToView = perView.m_viewData.m_worldToView;
     auto viewToWorld = inverse4(transpose(worldToView));
     getFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, viewToWorld,
                                  vApex, lightFront, 8e3f, rZFar, rOrthoSize,
-                                 rCenter);
+                                 rCenter, rCullOrthoX, rCullOrthoY);
     auto lightCamUp = ifloat3{0.0f, 1.0f, 0.0f};
     auto proj = orthographicNegateY(rOrthoSize, 1.0, 1e1f, rZFar);
     auto view = lookAt(rCenter, rCenter + lightFront, lightCamUp);
@@ -97,6 +98,8 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
     result.m_near = 1e-3;
     result.m_far = rZFar;
     result.m_orthoSize = rOrthoSize;
+    result.m_clipOrthoSizeX = rCullOrthoX;
+    result.m_clipOrthoSizeY = rCullOrthoY;
     results.push_back(result);
   }
 #else
@@ -187,6 +190,8 @@ fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
     view.m_viewData.m_cameraFovX = 0.0f;
     view.m_viewData.m_cameraFovY = 0.0f;
     view.m_viewData.m_cameraOrthoSize = split.m_orthoSize;
+    view.m_viewData.m_cullCamOrthoSizeX = split.m_clipOrthoSizeX;
+    view.m_viewData.m_cullCamOrthoSizeY = split.m_clipOrthoSizeY;
     view.m_viewData.m_viewCameraType = 1.0f;
     view.m_viewData.m_viewToWorld =
         Math::inverse4(view.m_viewData.m_worldToView);

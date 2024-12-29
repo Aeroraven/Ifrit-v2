@@ -54,12 +54,12 @@ inline ifloat4 getFrustumBoundingSphere(float fovy, float aspect, float fNear,
   return {center.x, center.y, center.z, sphereRadius};
 }
 
-inline void getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear,
-                                         float zFar, float4x4 viewToWorld,
-                                         ifloat3 apex, ifloat3 rayDir,
-                                         float reqResultZNear, float &resZFar,
-                                         float &resOrthoSize,
-                                         ifloat3 &resCenter) {
+inline void
+getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear, float zFar,
+                             float4x4 viewToWorld, ifloat3 apex, ifloat3 rayDir,
+                             float reqResultZNear, float &resZFar,
+                             float &resOrthoSize, ifloat3 &resCenter,
+                             float &resCullOrthoX, float &resCullOrthoY) {
   float halfFov = fovy / 2.0f;
   auto halfHeightNear = zNear * std::tan(halfFov);
   auto halfWidthNear = halfHeightNear * aspect;
@@ -136,6 +136,8 @@ inline void getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear,
   // Return
   resZFar = orthoSizeZFar;
   resOrthoSize = maxDist;
+  resCullOrthoX = projMaxX - projMinX;
+  resCullOrthoY = projMaxY - projMinY;
   resCenter = {reqCamPos.x, reqCamPos.y, reqCamPos.z};
 }
 } // namespace Ifrit::Math

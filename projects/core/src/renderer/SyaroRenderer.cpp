@@ -1759,6 +1759,7 @@ SyaroRenderer::render(
       [&](const RhiCommandBuffer *cmd) {
         iDebug("GPUTimer, MainView: {} ms/frame", m_timer->getElapsedMs());
         m_timer->start(cmd);
+        cmd->beginScope("Syaro: Draw Call, Main View");
         renderTwoPassOcclCulling(CullingPass::First, perframeData,
                                  renderTargets, cmd,
                                  PerFrameData::ViewType::Primary, ~0u);
@@ -1767,7 +1768,6 @@ SyaroRenderer::render(
                                  renderTargets, cmd,
                                  PerFrameData::ViewType::Primary, ~0u);
 
-        m_timer->stop(cmd);
         cmd->globalMemoryBarrier();
         renderEmitDepthTargets(perframeData, renderTargets, cmd);
         cmd->globalMemoryBarrier();
@@ -1778,8 +1778,10 @@ SyaroRenderer::render(
 
         renderAmbientOccl(perframeData, renderTargets, cmd);
         cmd->globalMemoryBarrier();
+        cmd->endScope();
 
         for (uint32_t i = 0; i < perframeData.m_views.size(); i++) {
+          cmd->beginScope("Syaro: Draw Call, Shadow View");
           auto &perView = perframeData.m_views[i];
           renderTwoPassOcclCulling(CullingPass::First, perframeData,
                                    renderTargets, cmd,
@@ -1789,7 +1791,9 @@ SyaroRenderer::render(
                                    renderTargets, cmd,
                                    PerFrameData::ViewType::Shadow, i);
           cmd->globalMemoryBarrier();
+          cmd->endScope();
         }
+        m_timer->stop(cmd);
       },
       cmdToWaitBkp, {});
 

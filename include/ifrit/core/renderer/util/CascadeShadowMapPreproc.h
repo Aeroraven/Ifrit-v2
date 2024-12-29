@@ -41,6 +41,9 @@ struct CSMSingleSplitResult {
   float m_orthoSize;
   float m_near;
   float m_far;
+
+  float m_clipOrthoSizeX;
+  float m_clipOrthoSizeY;
 };
 
 struct CSMResult {
