@@ -140,6 +140,22 @@ uvec2 gbcomp_GetPixel(){
     return uvec2(pX, pY);
 }
 
+#if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
+uvec2 gbcomp_GetPixelReused(uint ofx){
+    uint materialIdx = uEmitGBufferPushConstant.materialIndex;
+    uint tX = gl_GlobalInvocationID.x * 4 + ofx;
+    uint totalPx = gbcomp_GetTotalPixels();
+    if(tX>=totalPx){
+        return uvec2(~0,~0);
+    }
+    uint offset = GetResource(bMaterialCounter, uMaterialPassData.materialCounterRef).data[materialIdx].offset;
+    uint pixelIdx = GetResource(bMaterialPixelList, uMaterialPassData.materialPixelListRef).data[offset + tX];
+    uint pX = pixelIdx % uEmitGBufferPushConstant.renderWidth;
+    uint pY = pixelIdx / uEmitGBufferPushConstant.renderWidth;
+    return uvec2(pX, pY);
+}
+#endif
+
 uvec2 gbcomp_GetVisBufferData(uvec2 pos){
     uint sampledVal = texelFetch(GetSampler2DU(uEmitDepthTargetData.visBufferRef), ivec2(pos), 0).r;
     uint clusterId = (sampledVal >> 7)-1;
@@ -218,6 +234,33 @@ vec3 _gbcomp_getBarycentric(vec3 v0, vec3 v1, vec3 v2, uvec2 texPos){
     return bary;
 }
 
+// Requires v0,v1,v2 to be in clip space
+vec3 _gbcomp_getBarycentric_v2(vec4 v0, vec4 v1, vec4 v2, uvec2 texPos){
+    vec2 uvNdc = vec2(texPos) / vec2(uEmitGBufferPushConstant.renderWidth, uEmitGBufferPushConstant.renderHeight);
+    uvNdc = uvNdc * 2.0 - 1.0;
+    
+    vec3 rcpW = 1.0 / vec3(v0.w, v1.w, v2.w);
+    vec3 p0 = v0.xyz * rcpW.x;
+    vec3 p1 = v1.xyz * rcpW.y;
+    vec3 p2 = v2.xyz * rcpW.z;
+
+    vec3 p120x = vec3(p1.x, p2.x, p0.x);
+    vec3 p120y = vec3(p1.y, p2.y, p0.y);
+    vec3 p201x = vec3(p2.x, p0.x, p1.x);
+    vec3 p201y = vec3(p2.y, p0.y, p1.y);
+
+    vec3 cdx = p201y - p120y;
+    vec3 cdy = p120x - p201x;
+
+    vec3 a = cdx*(uvNdc.x-p120x) + cdy*(uvNdc.y-p120y);
+    vec3 b = a*rcpW;
+
+    float h = dot(a,rcpW);
+    float rcpH = 1.0/h;
+    return b*rcpH;
+}
+
+
 vec4 _gbcomp_interpolate4(vec4 v0, vec4 v1, vec4 v2, vec3 bary){
     return v0 * bary.x + v1 * bary.y + v2 * bary.z;
 }
@@ -231,12 +274,6 @@ vec2 _gbcomp_interpolate2(vec2 v0, vec2 v1, vec2 v2, vec3 bary){
 }
 
 struct gbcomp_TriangleData{
-    uint v0Idx;
-    uint v1Idx;
-    uint v2Idx;
-    vec4 v0Pos;
-    vec4 v1Pos;
-    vec4 v2Pos;
     vec4 barycentric;
     vec4 vpPosVS;
     vec4 vpNormalVS;
@@ -245,6 +282,24 @@ struct gbcomp_TriangleData{
     vec4 vAlbedo;
     vec4 vTangent;
 };
+
+#if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
+struct gbcomp_TriangleDataShared{
+    vec4 v0PosVS;
+    vec4 v1PosVS;
+    vec4 v2PosVS;
+
+    vec3 v0NormalMS;
+    vec3 v1NormalMS;
+    vec3 v2NormalMS;
+    vec4 v0Tangent;
+    vec4 v1Tangent;
+    vec4 v2Tangent;
+    vec2 v0UV;
+    vec2 v1UV;
+    vec2 v2UV;
+};
+#endif
 
 gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos){
     gbcomp_TriangleData data;
@@ -258,17 +313,13 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     uint v1Tx = (vTx & 0x0000FF00u) >> 8;
     uint v2Tx = (vTx & 0x00FF0000u) >> 16;
     
-    data.v0Idx = _gbcomp_readVertexIndex(objMeshletId, v0Tx);
-    data.v1Idx = _gbcomp_readVertexIndex(objMeshletId, v1Tx);
-    data.v2Idx = _gbcomp_readVertexIndex(objMeshletId, v2Tx);
+    uint v0Idx = _gbcomp_readVertexIndex(objMeshletId, v0Tx);
+    uint v1Idx = _gbcomp_readVertexIndex(objMeshletId, v1Tx);
+    uint v2Idx = _gbcomp_readVertexIndex(objMeshletId, v2Tx);
     
-    vec4 v0 = vec4(GetResource(bVertices, vertexRef).data[data.v0Idx].xyz, 1.0);
-    vec4 v1 = vec4(GetResource(bVertices, vertexRef).data[data.v1Idx].xyz, 1.0);
-    vec4 v2 = vec4(GetResource(bVertices, vertexRef).data[data.v2Idx].xyz, 1.0);
-
-    data.v0Pos = v0;
-    data.v1Pos = v1;
-    data.v2Pos = v2;
+    vec4 v0 = vec4(GetResource(bVertices, vertexRef).data[v0Idx].xyz, 1.0);
+    vec4 v1 = vec4(GetResource(bVertices, vertexRef).data[v1Idx].xyz, 1.0);
+    vec4 v2 = vec4(GetResource(bVertices, vertexRef).data[v2Idx].xyz, 1.0);
 
     uint transRef = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].transformRef;
     mat4 localToWorld = GetResource(bLocalTransform, transRef).m_localToWorld;
@@ -283,30 +334,33 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     data.vpPosVS = vec4(_gbcomp_interpolate3(v0vs.xyz, v1vs.xyz, v2vs.xyz, data.barycentric.xyz),1.0);
 
     uint normalRef = GetResource(bMeshDataRef,obj).normalBufferId;
-    vec4 n0 = vec4(GetResource(bNormals, normalRef).data[data.v0Idx].xyz, 0.0);
-    vec4 n1 = vec4(GetResource(bNormals, normalRef).data[data.v1Idx].xyz, 0.0);
-    vec4 n2 = vec4(GetResource(bNormals, normalRef).data[data.v2Idx].xyz, 0.0);
+    vec3 n0 = vec3(GetResource(bNormals, normalRef).data[v0Idx].xyz);
+    vec3 n1 = vec3(GetResource(bNormals, normalRef).data[v1Idx].xyz);
+    vec3 n2 = vec3(GetResource(bNormals, normalRef).data[v2Idx].xyz);
 
-    vec4 n0vs = localToView * n0;
-    vec4 n1vs = localToView * n1;
-    vec4 n2vs = localToView * n2;
+    mat3 localToView3 = mat3(localToView);
 
-    data.vpNormalVS = vec4(normalize(_gbcomp_interpolate3(n0vs.xyz, n1vs.xyz, n2vs.xyz, data.barycentric.xyz)),1.0);
+    vec3 n0vs = localToView3 * n0;
+    vec3 n1vs = localToView3 * n1;
+    vec3 n2vs = localToView3 * n2;
+
+
     vec4 normalLocal = vec4(normalize(_gbcomp_interpolate3(n0.xyz, n1.xyz, n2.xyz, data.barycentric.xyz)),1.0);
 
     uint uvRef = GetResource(bMeshDataRef,obj).uvBufferId;
-    vec2 uv0 = GetResource(bUVs, uvRef).data[data.v0Idx];
-    vec2 uv1 = GetResource(bUVs, uvRef).data[data.v1Idx];
-    vec2 uv2 = GetResource(bUVs, uvRef).data[data.v2Idx];
+    vec2 uv0 = GetResource(bUVs, uvRef).data[v0Idx];
+    vec2 uv1 = GetResource(bUVs, uvRef).data[v1Idx];
+    vec2 uv2 = GetResource(bUVs, uvRef).data[v2Idx];
     data.vpUV = vec4(_gbcomp_interpolate2(uv0, uv1, uv2, data.barycentric.xyz), 0.0, 1.0);
+
 
     uint albedoTexId = _gbcomp_readAlbedoTexId(objMeshletId);
     uint normalTexId = _gbcomp_readNormalTexId(objMeshletId);
 
     uint tangentRef = GetResource(bMeshDataRef,obj).tangentBufferId;
-    vec4 tangent0 = GetResource(bTangents,tangentRef).data[data.v0Idx];
-    vec4 tangent1 = GetResource(bTangents,tangentRef).data[data.v1Idx];
-    vec4 tangent2 = GetResource(bTangents,tangentRef).data[data.v2Idx];
+    vec4 tangent0 = GetResource(bTangents,tangentRef).data[v0Idx];
+    vec4 tangent1 = GetResource(bTangents,tangentRef).data[v1Idx];
+    vec4 tangent2 = GetResource(bTangents,tangentRef).data[v2Idx];
     data.vTangent = vec4(_gbcomp_interpolate4(tangent0,tangent1,tangent2,data.barycentric.xyz));
 
     if(albedoTexId != ~0u){
@@ -333,3 +387,112 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     
     return data;
 }
+
+#if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
+
+gbcomp_TriangleDataShared gbcomp_GetTriangleDataImp(uvec2 clusterTriangleId, uvec2 pxPos){
+    gbcomp_TriangleDataShared data;
+    uvec2 objMeshletId = _gbcomp_getObjMeshletId(clusterTriangleId.x);
+    uint triangleId = clusterTriangleId.y;
+    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].objectDataRef;
+    uint vertexRef = GetResource(bMeshDataRef,obj).vertexBuffer;
+    
+    uint vTx = _gbcomp_readTriangleIndex(objMeshletId, triangleId);
+    uint v0Tx = vTx & 0x000000FFu;
+    uint v1Tx = (vTx & 0x0000FF00u) >> 8;
+    uint v2Tx = (vTx & 0x00FF0000u) >> 16;
+    
+    uint v0Idx = _gbcomp_readVertexIndex(objMeshletId, v0Tx);
+    uint v1Idx = _gbcomp_readVertexIndex(objMeshletId, v1Tx);
+    uint v2Idx = _gbcomp_readVertexIndex(objMeshletId, v2Tx);
+
+    uint transRef = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].transformRef;
+    mat4 localToWorld = GetResource(bLocalTransform, transRef).m_localToWorld;
+    mat4 worldToClip = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_worldToClip;
+    mat4 localToClip = worldToClip * localToWorld;
+
+    vec4 v0vs = localToClip * GetResource(bVertices, vertexRef).data[v0Idx];
+    vec4 v1vs = localToClip * GetResource(bVertices, vertexRef).data[v1Idx];
+    vec4 v2vs = localToClip * GetResource(bVertices, vertexRef).data[v2Idx];
+
+#if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
+    data.v0PosVS = v0vs;
+    data.v1PosVS = v1vs;
+    data.v2PosVS = v2vs;
+#endif
+
+    uint normalRef = GetResource(bMeshDataRef,obj).normalBufferId;
+    vec3 n0 = vec3(GetResource(bNormals, normalRef).data[v0Idx].xyz);
+    vec3 n1 = vec3(GetResource(bNormals, normalRef).data[v1Idx].xyz);
+    vec3 n2 = vec3(GetResource(bNormals, normalRef).data[v2Idx].xyz);
+
+#if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
+    data.v0NormalMS = n0.xyz;
+    data.v1NormalMS = n1.xyz;
+    data.v2NormalMS = n2.xyz;
+#endif
+
+    uint uvRef = GetResource(bMeshDataRef,obj).uvBufferId;
+    vec2 uv0 = GetResource(bUVs, uvRef).data[v0Idx];
+    vec2 uv1 = GetResource(bUVs, uvRef).data[v1Idx];
+    vec2 uv2 = GetResource(bUVs, uvRef).data[v2Idx];
+
+#if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
+    data.v0UV = uv0;
+    data.v1UV = uv1;
+    data.v2UV = uv2;
+#endif
+
+    uint tangentRef = GetResource(bMeshDataRef,obj).tangentBufferId;
+    vec4 tangent0 = GetResource(bTangents,tangentRef).data[v0Idx];
+    vec4 tangent1 = GetResource(bTangents,tangentRef).data[v1Idx];
+    vec4 tangent2 = GetResource(bTangents,tangentRef).data[v2Idx];
+
+#if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
+    data.v0Tangent = tangent0;
+    data.v1Tangent = tangent1;
+    data.v2Tangent = tangent2;
+#endif
+
+    return data;
+}
+
+gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastData,uvec2 clusterTriangleId, uvec2 pxPos){
+    gbcomp_TriangleData data;
+
+    data.barycentric = vec4(_gbcomp_getBarycentric_v2(lastData.v0PosVS, lastData.v1PosVS, lastData.v2PosVS, pxPos),1.0);
+   
+    vec3 normalLocal = normalize(_gbcomp_interpolate3(lastData.v0NormalMS, lastData.v1NormalMS, lastData.v2NormalMS, data.barycentric.xyz));
+    data.vpUV = vec4(_gbcomp_interpolate2(lastData.v0UV, lastData.v1UV, lastData.v2UV, data.barycentric.xyz), 0.0, 1.0);
+    data.vTangent = vec4(_gbcomp_interpolate4(lastData.v0Tangent,lastData.v1Tangent,lastData.v2Tangent,data.barycentric.xyz));
+
+    uvec2 objMeshletId = _gbcomp_getObjMeshletId(clusterTriangleId.x);
+    uint albedoTexId = _gbcomp_readAlbedoTexId(objMeshletId);
+    uint normalTexId = _gbcomp_readNormalTexId(objMeshletId);
+
+    if(albedoTexId != ~0u){
+        data.vAlbedo = texture(GetSampler2D(albedoTexId), data.vpUV.xy);
+    }
+
+    if(normalTexId!=~0u){
+        vec4 tangentX = data.vTangent;
+        tangentX.xyz = normalize(tangentX.xyz);
+        vec3 normal = normalLocal;
+        vec3 tangent = normalize(tangentX.xyz - dot(normal,tangentX.xyz)*normal);
+        vec3 bitangent = cross(tangent,normal) * tangentX.w;
+        mat3 tbn = mat3(tangent,bitangent,normal);
+
+        vec4 vNormal = texture(GetSampler2D(normalTexId), data.vpUV.xy);
+        vec2 vNormalRG = vNormal.rg * 2.0 - 1.0;
+        float vNormalZ = sqrt(1.0-vNormalRG.r*vNormalRG.r-vNormalRG.g*vNormalRG.g);
+
+        vec3 vNormalRGB = vec3(vNormalRG,vNormalZ);
+
+        vec3 rNormal = tbn * vNormalRGB;
+        data.vpNormalVS = vec4(rNormal,0.0);
+    }
+
+    return data;
+}
+
+#endif

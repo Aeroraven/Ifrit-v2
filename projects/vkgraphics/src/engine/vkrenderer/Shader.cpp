@@ -26,7 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <iostream>
 #include <shaderc/shaderc.hpp>
 
-
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
 class CustomShaderInclude : public shaderc::CompileOptions::IncluderInterface {

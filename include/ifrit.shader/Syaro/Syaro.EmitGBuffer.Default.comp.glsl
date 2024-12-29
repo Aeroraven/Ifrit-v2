@@ -31,6 +31,65 @@ layout(local_size_x = cEmitGbufThreadGroupSizeX, local_size_y = 1, local_size_z 
 #include "Syaro/Syaro.EmitGBuffer.Shared.glsl"
 
 void main(){
+#if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
+    gbcomp_TriangleDataShared triDataShared;
+    uvec2 lastClusterTri = uvec2(~0);
+    uint gBuffer = gbcomp_GetGBufferId();
+    GBufferPixel pixelData;
+    gbcomp_TriangleData triData;
+    uvec2 clusterTri;
+
+    // Loop Iter 0
+    uvec2 px0 = gbcomp_GetPixelReused(0);
+    if(px0.x==~0) return;
+    clusterTri = gbcomp_GetVisBufferData(px0);
+    triDataShared = gbcomp_GetTriangleDataImp(clusterTri,px0);
+    lastClusterTri = clusterTri;
+    triData = gbcomp_GetTriangleDataReused(triDataShared,clusterTri,px0);
+    pixelData.albedo = triData.vAlbedo.xyz;
+    pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
+    gbcomp_WriteGBuffer(gBuffer, px0, pixelData);
+
+    // Loop Iter 1
+    uvec2 px1 = gbcomp_GetPixelReused(1);
+    if(px1.x==~0) return;
+    clusterTri = gbcomp_GetVisBufferData(px1);
+    if(lastClusterTri!=clusterTri){
+        triDataShared = gbcomp_GetTriangleDataImp(clusterTri,px1);
+        lastClusterTri = clusterTri;
+    }
+    triData = gbcomp_GetTriangleDataReused(triDataShared,clusterTri,px1);
+    pixelData.albedo = triData.vAlbedo.xyz;
+    pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
+    gbcomp_WriteGBuffer(gBuffer, px1, pixelData);
+
+    // Loop Iter 2
+    uvec2 px2 = gbcomp_GetPixelReused(2);
+    if(px2.x==~0) return;
+    clusterTri = gbcomp_GetVisBufferData(px2);
+    if(lastClusterTri!=clusterTri){
+        triDataShared = gbcomp_GetTriangleDataImp(clusterTri,px2);
+        lastClusterTri = clusterTri;
+    }
+    triData = gbcomp_GetTriangleDataReused(triDataShared,clusterTri,px2);
+    pixelData.albedo = triData.vAlbedo.xyz;
+    pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
+    gbcomp_WriteGBuffer(gBuffer, px2, pixelData);
+
+    // Loop Iter 3
+    uvec2 px3 = gbcomp_GetPixelReused(3);
+    if(px3.x==~0) return;
+    clusterTri = gbcomp_GetVisBufferData(px3);
+    if(lastClusterTri!=clusterTri){
+        triDataShared = gbcomp_GetTriangleDataImp(clusterTri,px3);
+        lastClusterTri = clusterTri;
+    }
+    triData = gbcomp_GetTriangleDataReused(triDataShared,clusterTri,px3);
+    pixelData.albedo = triData.vAlbedo.xyz;
+    pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
+    gbcomp_WriteGBuffer(gBuffer, px3, pixelData);
+
+#else
     uvec2 px = gbcomp_GetPixel();
     if(px.x==~0){
         return;
@@ -45,4 +104,5 @@ void main(){
     pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
 
     gbcomp_WriteGBuffer(gBuffer, px, pixelData);
+#endif
 }

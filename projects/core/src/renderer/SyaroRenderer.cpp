@@ -570,6 +570,8 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
                                        RhiShaderStage::Task);
   auto msShader = createShaderFromFile("Syaro.VisBuffer.mesh.glsl", "main",
                                        RhiShaderStage::Mesh);
+  auto msShaderDepth = createShaderFromFile("Syaro.VisBufferDepth.mesh.glsl",
+                                            "main", RhiShaderStage::Mesh);
   auto fsShader = createShaderFromFile("Syaro.VisBuffer.frag.glsl", "main",
                                        RhiShaderStage::Fragment);
 
@@ -587,7 +589,7 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
 
   m_depthOnlyVisibilityPass = rhi->createGraphicsPass();
   m_depthOnlyVisibilityPass->setTaskShader(tsShader);
-  m_depthOnlyVisibilityPass->setMeshShader(msShader);
+  m_depthOnlyVisibilityPass->setMeshShader(msShaderDepth);
   m_depthOnlyVisibilityPass->setNumBindlessDescriptorSets(3);
   m_depthOnlyVisibilityPass->setPushConstSize(sizeof(uint32_t));
 
@@ -1154,10 +1156,8 @@ IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
     }
     perView.m_hizIter = maxMip;
 
-    // For hiz-testing, we need to
-    // create a descriptor for the hiz
-    // texture Seems UAV/Storage image
-    // does not support mip-levels
+    // For hiz-testing, we need to create a descriptor for the hiz
+    // texture Seems UAV/Storage image does not support mip-levels
     for (int i = 0; i < maxMip; i++) {
       perView.m_hizTestMips.push_back(rhi->registerUAVImage(
           perView.m_hizTexture.get(), {static_cast<uint32_t>(i), 0, 1, 1}));
@@ -1811,6 +1811,8 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
                       RenderTargets *renderTargets,
                       const RendererConfig &config,
                       const std::vector<GPUCommandSubmission *> &cmdToWait) {
+
+  auto start = std::chrono::high_resolution_clock::now();
   if (m_perScenePerframe.count(scene) == 0) {
     m_perScenePerframe[scene] = PerFrameData();
   }
@@ -1841,6 +1843,11 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
   perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5f;
   auto ret = render(perframeData, renderTargets, cmdToWait);
   perframeData.m_frameId++;
+
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  iDebug("CPU time: {} ms", duration.count());
   return ret;
 }
 

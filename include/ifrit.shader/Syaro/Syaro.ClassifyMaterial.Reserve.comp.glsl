@@ -41,7 +41,11 @@ void main(){
     GetResource(bMaterialCounter, uMaterialPassData.materialCounterRef).data[materialId].offset = offset;
 
     // DONE: Write indirect command, for simplicity one pixel one workgroup (slow, might be optimized later)
+#if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
+    uint totalTGX = (thisMaterialCounter + cEmitGbufThreadGroupSizeX*4 - 1)/(4*cEmitGbufThreadGroupSizeX);
+#else
     uint totalTGX = (thisMaterialCounter + cEmitGbufThreadGroupSizeX - 1)/cEmitGbufThreadGroupSizeX;
+#endif
     GetResource(bMaterialPassIndirectCommand, uMaterialPassData.indirectCommandRef).data[materialId].x = totalTGX;
     GetResource(bMaterialPassIndirectCommand, uMaterialPassData.indirectCommandRef).data[materialId].y = 1;
     GetResource(bMaterialPassIndirectCommand, uMaterialPassData.indirectCommandRef).data[materialId].z = 1;

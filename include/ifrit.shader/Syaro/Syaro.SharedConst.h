@@ -46,6 +46,10 @@ namespace Ifrit::Core::SyaroConfig {
 // frustum.
 #define SYARO_SHADER_SHARED_EXPLICIT_ORTHO_FRUSTUM_CULL 1
 
+// This macro determines whether to reuse the calculated triangle data during
+// the GBuffer emission. A thread will process 4 pixels (quad) at a time.
+#define SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE 1
+
 SYARO_DEFINE_UINT(cPersistentCullThreadGroupSizeX, 128);
 SYARO_DEFINE_UINT(cInstanceCullingThreadGroupSizeX, 64);
 
@@ -66,7 +70,7 @@ SYARO_DEFINE_UINT(cClassifyMaterialCountThreadGroupSizeY, 8);
 SYARO_DEFINE_UINT(cClassifyMaterialScatterThreadGroupSizeX, 8);
 SYARO_DEFINE_UINT(cClassifyMaterialScatterThreadGroupSizeY, 8);
 
-SYARO_DEFINE_UINT(cEmitGbufThreadGroupSizeX, 128);
+SYARO_DEFINE_UINT(cEmitGbufThreadGroupSizeX, 256);
 
 SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeX, 16);
 SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeY, 16);

@@ -7,10 +7,10 @@ Some toys about real-time rendering. Currently, it contains:
 
 
 
-| Software Renderer / Mesh Shading                        | Software Renderer / CUDA Renderer |
+| <center>Software Renderer / Mesh Shading</center>                        | <center>Software Renderer / CUDA Renderer</center> |
 | ------------------------------------------------------- | --------------------------------- |
 | ![](docs/img/img_demo3.png)                             | ![](docs/img/img_demo1.png)       |
-| **Syaro / Cull Rasterize Visibility Buffer (R32_UINT)** | **Syaro / Final Output**          |
+| <center>**Syaro / Cull Rasterize Visibility Buffer (R32_UINT)**</center> | <center>**Syaro / Final Output**</center>          |
 | ![](docs/img/syaro_clodvisb.png)                        | ![](docs/img/syaro_clod1.png)     |
 
 
