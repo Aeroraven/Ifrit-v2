@@ -39,19 +39,20 @@ void main(){
     gbcomp_TriangleData triData;
     uvec2 clusterTri;
 
+    uvec2 totalPxMatOffset = gbcomp_GetTotalPixelsOffset();
+
     // Loop Iter 0
-    uvec2 px0 = gbcomp_GetPixelReused(0);
-    if(px0.x==~0) return;
+    uvec2 px0 = gbcomp_GetPixelReused(0,totalPxMatOffset);
     clusterTri = gbcomp_GetVisBufferData(px0);
     triDataShared = gbcomp_GetTriangleDataImp(clusterTri,px0);
     lastClusterTri = clusterTri;
     triData = gbcomp_GetTriangleDataReused(triDataShared,clusterTri,px0);
     pixelData.albedo = triData.vAlbedo.xyz;
-    pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
-    gbcomp_WriteGBuffer(gBuffer, px0, pixelData);
+    pixelData.normal = triData.vpNormalVS * 0.5 + 0.5;
+    gbcomp_WriteGBufferAlbedoNormal(gBuffer, px0, pixelData);
 
     // Loop Iter 1
-    uvec2 px1 = gbcomp_GetPixelReused(1);
+    uvec2 px1 = gbcomp_GetPixelReused(1,totalPxMatOffset);
     if(px1.x==~0) return;
     clusterTri = gbcomp_GetVisBufferData(px1);
     if(lastClusterTri!=clusterTri){
@@ -60,11 +61,11 @@ void main(){
     }
     triData = gbcomp_GetTriangleDataReused(triDataShared,clusterTri,px1);
     pixelData.albedo = triData.vAlbedo.xyz;
-    pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
-    gbcomp_WriteGBuffer(gBuffer, px1, pixelData);
+    pixelData.normal = triData.vpNormalVS * 0.5 + 0.5;
+    gbcomp_WriteGBufferAlbedoNormal(gBuffer, px1, pixelData);
 
     // Loop Iter 2
-    uvec2 px2 = gbcomp_GetPixelReused(2);
+    uvec2 px2 = gbcomp_GetPixelReused(2,totalPxMatOffset);
     if(px2.x==~0) return;
     clusterTri = gbcomp_GetVisBufferData(px2);
     if(lastClusterTri!=clusterTri){
@@ -73,11 +74,11 @@ void main(){
     }
     triData = gbcomp_GetTriangleDataReused(triDataShared,clusterTri,px2);
     pixelData.albedo = triData.vAlbedo.xyz;
-    pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
-    gbcomp_WriteGBuffer(gBuffer, px2, pixelData);
+    pixelData.normal = triData.vpNormalVS * 0.5 + 0.5;
+    gbcomp_WriteGBufferAlbedoNormal(gBuffer, px2, pixelData);
 
     // Loop Iter 3
-    uvec2 px3 = gbcomp_GetPixelReused(3);
+    uvec2 px3 = gbcomp_GetPixelReused(3,totalPxMatOffset);
     if(px3.x==~0) return;
     clusterTri = gbcomp_GetVisBufferData(px3);
     if(lastClusterTri!=clusterTri){
@@ -86,8 +87,8 @@ void main(){
     }
     triData = gbcomp_GetTriangleDataReused(triDataShared,clusterTri,px3);
     pixelData.albedo = triData.vAlbedo.xyz;
-    pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
-    gbcomp_WriteGBuffer(gBuffer, px3, pixelData);
+    pixelData.normal = triData.vpNormalVS * 0.5 + 0.5;
+    gbcomp_WriteGBufferAlbedoNormal(gBuffer, px3, pixelData);
 
 #else
     uvec2 px = gbcomp_GetPixel();
@@ -103,6 +104,6 @@ void main(){
     pixelData.albedo = triData.vAlbedo.xyz;
     pixelData.normal = vec3(triData.vpNormalVS.xyz) * 0.5 + 0.5;
 
-    gbcomp_WriteGBuffer(gBuffer, px, pixelData);
+    gbcomp_WriteGBufferAlbedoNormal(gBuffer, px, pixelData);
 #endif
 }

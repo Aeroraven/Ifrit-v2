@@ -717,12 +717,12 @@ IFRIT_APIDECL void CommandBuffer::beginScope(const std::string &name) const {
   label.color[3] = 1.0f;
   auto exfun = m_context->getExtensionFunction();
   if (m_context->isDebugMode())
-  exfun.p_vkCmdBeginDebugUtilsLabelEXT(m_commandBuffer, &label);
+    exfun.p_vkCmdBeginDebugUtilsLabelEXT(m_commandBuffer, &label);
 }
 IFRIT_APIDECL void CommandBuffer::endScope() const {
   auto exfun = m_context->getExtensionFunction();
   if (m_context->isDebugMode())
-  exfun.p_vkCmdEndDebugUtilsLabelEXT(m_commandBuffer);
+    exfun.p_vkCmdEndDebugUtilsLabelEXT(m_commandBuffer);
 }
 
 IFRIT_APIDECL void CommandBuffer::setCullMode(Rhi::RhiCullMode mode) const {
@@ -771,7 +771,6 @@ IFRIT_APIDECL TimelineSemaphoreWait
 Queue::submitCommand(const std::vector<TimelineSemaphoreWait> &waitSemaphores,
                      VkFence fence, VkSemaphore swapchainSemaphore) {
   m_recordedCounter++;
-
   std::vector<VkSemaphore> waitSemaphoreHandles;
   std::vector<uint64_t> waitValues;
   std::vector<VkPipelineStageFlags> waitStages;

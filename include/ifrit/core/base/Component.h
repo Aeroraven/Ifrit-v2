@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "AssetReference.h"
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/math/VectorDefs.h"
 #include "ifrit/common/serialization/MathTypeSerialization.h"
 #include "ifrit/common/serialization/SerialInterface.h"
@@ -67,13 +68,19 @@ class Component;
 class SceneObject;
 class Transform;
 
+// TODO: for performance considerations, components container is not consistent
+// across different build envs.
+
 class IFRIT_APIDECL SceneObject
     : public Ifrit::Common::Utility::NonCopyable,
       public std::enable_shared_from_this<SceneObject> {
 protected:
   ComponentIdentifier m_id;
   std::string m_name;
-  std::unordered_map<std::string, std::shared_ptr<Component>> m_components;
+  // std::unordered_map<std::string, std::shared_ptr<Component>> m_components;
+  std::vector<std::shared_ptr<Component>> m_components;
+  std::unordered_map<std::string, uint32_t> m_componentIndex;
+  std::unordered_map<size_t, uint32_t> m_componentsHashed;
 
 public:
   SceneObject();
@@ -86,43 +93,80 @@ public:
     static_assert(std::is_base_of<Component, T>::value,
                   "T must be derived from Component");
     auto typeName = typeid(T).name();
-    m_components[typeName] = component;
+    auto typeHash = typeid(T).hash_code();
+    if (m_componentIndex.count(typeName) > 0) {
+      iError("Component already exists");
+      std::abort();
+    }
+    if (m_componentsHashed.count(typeHash) > 0) {
+      iError("Hash conflicted");
+      std::abort();
+    }
+    m_components.push_back(component);
+    m_componentIndex[typeName] = m_components.size() - 1;
+    m_componentsHashed[typeHash] = m_components.size() - 1;
   }
+
   template <class T> std::shared_ptr<T> addComponent() {
     static_assert(std::is_base_of<Component, T>::value,
                   "T must be derived from Component");
     auto typeName = typeid(T).name();
+    auto typeHash = typeid(T).hash_code();
+    if (m_componentIndex.count(typeName) > 0) {
+      auto idx = m_componentIndex[typeName];
+      return std::static_pointer_cast<T>(m_components[idx]);
+    }
+    if (m_componentsHashed.count(typeHash) > 0) {
+      iError("Hash conflicted");
+      std::abort();
+    }
     auto ret = std::make_shared<T>(shared_from_this());
-    m_components[typeName] = ret;
+    m_components.push_back(ret);
+    m_componentIndex[typeName] = m_components.size() - 1;
+    m_componentsHashed[typeHash] = m_components.size() - 1;
     return ret;
   }
 
   template <class T> std::shared_ptr<T> getComponent() {
     static_assert(std::is_base_of<Component, T>::value,
                   "T must be derived from Component");
-    auto typeName = typeid(T).name();
-    auto it = m_components.find(typeName);
-    if (it != m_components.end()) {
-      // if debug
-#ifdef _DEBUG
-      return std::dynamic_pointer_cast<T>(it->second);
-#else
-      return std::static_pointer_cast<T>(it->second);
-#endif
+    auto typeHash = typeid(T).hash_code();
+    if (m_componentsHashed.count(typeHash) == 0) {
+      return nullptr;
     }
-    return nullptr;
+    auto itIndex = m_componentsHashed[typeHash];
+#ifdef _DEBUG
+    auto ret = std::dynamic_pointer_cast<T>(m_components[itIndex]);
+    if (ret == nullptr) {
+      iError("Invalid cast");
+      std::abort();
+    }
+    return ret;
+#else
+    return std::static_pointer_cast<T>(m_components[itIndex]);
+#endif
+  }
+
+  // Unsafe version of getComponent, use with caution. It's intended to be used
+  // in performance-critical code.
+  template <class T> T *getComponentUnsafe() {
+    static_assert(std::is_base_of<Component, T>::value,
+                  "T must be derived from Component");
+    auto typeHash = typeid(T).hash_code();
+    if (m_componentsHashed.count(typeHash) == 0) {
+      return nullptr;
+    }
+    auto itIndex = m_componentsHashed[typeHash];
+    return static_cast<T *>(m_components[itIndex].get());
   }
 
   inline std::vector<std::shared_ptr<Component>> getAllComponents() {
-    std::vector<std::shared_ptr<Component>> ret;
-    for (auto &[key, value] : m_components) {
-      ret.push_back(value);
-    }
-    return ret;
+    return m_components;
   }
 
   inline void setName(const std::string &name) { m_name = name; }
-  IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components);
+  IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components, m_componentIndex,
+                         m_componentsHashed);
 };
 
 // Here, SceneObjectPrefab is a type alias for SceneObject.

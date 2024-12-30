@@ -77,7 +77,7 @@ void main(){
     vec2 tUV = vec2(threadX,threadY);
 
     vec3 vsNormal = texture(GetSampler2D(pushConst.normalTex),uv).xyz;
-    vsNormal = normalize(vsNormal * 2.0 - 1.0);
+    vsNormal = vsNormal * 2.0 - 1.0;
     float vsDepth = texture(GetSampler2D(pushConst.depthTex),uv).x;
 
     mat4 invPerspective = GetResource(bPerframe,pushConst.perframe).data.m_invPerspective;
@@ -87,22 +87,27 @@ void main(){
 
     // Create a random coef for sampling direction disturbance
     float randv = ifrit_wnoise2(tUV.yx).x;
-    float rand = randv * kPI * 2.0 / float(cHBAODirections);
+    const float kInvHbaoDirections = 1.0 / cHBAODirections;
+    const float kInvHbaoDirectionsRotOnce = kInvHbaoDirections * kPI * 2.0;
+    mat2 kRotMat = getRotationMatrix(kInvHbaoDirectionsRotOnce);
 
+    float rand = randv * kPI * 2.0 * kInvHbaoDirections;
     float weightedAO = 0.0;
     float totalWeight = 0.0;
 
     const float kRadiusPixel = 0.5;
     const float kMaxRadiusPixel = 12.0;
+    float sampleStep = kMaxRadiusPixel/renderHeight/(cHBAOSampleSteps+1);
+
+    mat2 rotMatBase = getRotationMatrix(rand);
+    mat2 rotMatIncr = getRotationMatrix(kInvHbaoDirectionsRotOnce);
+
+    vec2 dir = vec2(1.0,0.0);
+    dir = rotMatBase * dir;
+
     for(uint i=0;i<cHBAODirections;i++){
-        float dirAng = float(i) * kPI * 2.0 / float(cHBAODirections) + rand;
-        vec2 dir = getRotationMatrix(dirAng) * vec2(1.0,0.0);
-
-        float sampleStep = kMaxRadiusPixel/renderHeight/(cHBAOSampleSteps+1);
-        // min(pushConst.radius / vsPos.z, pushConst.maxRadius);
-
         float accAO = 0.0;
-        float maxAO = sin(10.0/180.0*kPI);
+        float maxAO = 0.03;
         for(uint j=0;j<cHBAOSampleSteps;j++){
             vec2 sampUV = uv + dir * sampleStep * (float(j) + randv);
             float sampDepth = texture(GetSampler2D(pushConst.depthTex),sampUV).x;
@@ -111,10 +116,9 @@ void main(){
             accAO += ao;
         }    
         weightedAO += accAO;
-        totalWeight += 1.0;
+        dir = rotMatIncr * dir;
     }
-
-    weightedAO /= totalWeight;
+    weightedAO *= kInvHbaoDirections;
 
     // store ao in alpha channel
     vec4 rawSmoothAO = vec4(0.0);

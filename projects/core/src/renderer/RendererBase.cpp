@@ -58,7 +58,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
       Ifrit::Math::inverse4(viewData.m_viewData.m_perspective);
   viewData.m_viewData.m_clipToWorld =
       Math::inverse4(viewData.m_viewData.m_worldToClip);
-  auto cameraTransform = camera->getParent()->getComponent<Transform>();
+  auto cameraTransform = camera->getParent()->getComponentUnsafe<Transform>();
   if (cameraTransform == nullptr) {
     throw std::runtime_error("Camera has no transform");
   }
@@ -75,7 +75,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
 
   // Find lights that represent the sun
   auto sunLights = scene->filterObjects([](std::shared_ptr<SceneObject> obj) {
-    auto light = obj->getComponent<Light>();
+    auto light = obj->getComponentUnsafe<Light>();
     if (!light) {
       return false;
     }
@@ -86,7 +86,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     throw std::runtime_error("Multiple sun lights found");
   }
   if (sunLights.size() == 1) {
-    auto transform = sunLights[0]->getComponent<Transform>();
+    auto transform = sunLights[0]->getComponentUnsafe<Transform>();
     ifloat4 front = {0.0f, 0.0f, 1.0f, 0.0f};
     auto rotation = transform->getRotation();
     auto rotMatrix = Math::eulerAngleToMatrix(rotation);
@@ -98,13 +98,9 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   // Insert light view data, if shadow maps are enabled
   auto lightWithShadow =
       scene->filterObjects([](std::shared_ptr<SceneObject> obj) -> bool {
-        auto light = obj->getComponent<Light>();
-        auto transform = obj->getComponent<Transform>();
+        auto light = obj->getComponentUnsafe<Light>();
         if (!light) {
           return false;
-        }
-        if (!transform) {
-          throw std::runtime_error("Light has no transform");
         }
         auto shadow = light->getShadowMap();
         return shadow;
@@ -125,8 +121,8 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
       size_cast<uint32_t>(lightWithShadow.size());
   for (auto di = 0, dj = 0; auto &lightObj : lightWithShadow) {
     // Temporarily, we assume that all lights are directional lights
-    auto light = lightObj->getComponent<Light>();
-    auto lightTransform = lightObj->getComponent<Transform>();
+    auto light = lightObj->getComponentUnsafe<Light>();
+    auto lightTransform = lightObj->getComponentUnsafe<Transform>();
     std::vector<float> csmSplits(m_config->m_shadowConfig.m_csmSplits.begin(),
                                  m_config->m_shadowConfig.m_csmSplits.end());
     std::vector<float> csmBorders(m_config->m_shadowConfig.m_csmBorders.begin(),
@@ -156,7 +152,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     di++;
   }
   // filling shadow data
-
+  auto start = std::chrono::high_resolution_clock::now();
   // For each mesh renderer, get the material, mesh, and transform
   perframeData.m_enabledEffects.clear();
   for (auto &effect : perframeData.m_shaderEffectData) {
@@ -180,12 +176,12 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
       nodes.push_back(child.get());
     }
     for (auto &obj : node->getGameObjects()) {
-      auto meshRenderer = obj->getComponent<MeshRenderer>();
-      auto meshFilter = obj->getComponent<MeshFilter>();
-      auto transform = obj->getComponent<Transform>();
-      if (!meshRenderer || !meshFilter || !transform) {
+      auto meshRenderer = obj->getComponentUnsafe<MeshRenderer>();
+      auto meshFilter = obj->getComponentUnsafe<MeshFilter>();
+      if (!meshRenderer || !meshFilter) {
         continue;
       }
+      auto transform = obj->getComponent<Transform>();
       if (meshRenderer && meshFilter && transform) {
         materials.push_back(meshRenderer->getMaterial());
         meshes.push_back(meshFilter->getMesh());
@@ -197,7 +193,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
       }
     }
   }
-
+  auto end = std::chrono::high_resolution_clock::now();
   // Groups meshes with the same shader effect
   for (size_t i = 0; i < materials.size(); i++) {
     auto &material = materials[i];
@@ -227,6 +223,11 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     shaderEffectData.m_transforms.push_back(transform);
     shaderEffectData.m_instances.push_back(instance);
   }
+
+  auto elapsed =
+      std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  iDebug("CPU time, Collecting per frame data, shader effects: {} ms",
+         elapsed.count() / 1000.0f);
   return;
 }
 IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,

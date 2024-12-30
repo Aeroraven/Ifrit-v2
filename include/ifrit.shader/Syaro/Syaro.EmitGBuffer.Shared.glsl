@@ -141,14 +141,20 @@ uvec2 gbcomp_GetPixel(){
 }
 
 #if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
-uvec2 gbcomp_GetPixelReused(uint ofx){
+uvec2 gbcomp_GetTotalPixelsOffset(){
+    uint materialIndex = uEmitGBufferPushConstant.materialIndex;
+    uint totalPx = gbcomp_GetTotalPixels();
+    uint thisMaterialOffset = GetResource(bMaterialCounter, uMaterialPassData.materialCounterRef).data[materialIndex].offset;
+    return uvec2(totalPx, thisMaterialOffset);
+}
+uvec2 gbcomp_GetPixelReused(uint ofx,uvec2 totalPxMaterOffset){
     uint materialIdx = uEmitGBufferPushConstant.materialIndex;
     uint tX = gl_GlobalInvocationID.x * 4 + ofx;
-    uint totalPx = gbcomp_GetTotalPixels();
+    uint totalPx = totalPxMaterOffset.x;
     if(tX>=totalPx){
         return uvec2(~0,~0);
     }
-    uint offset = GetResource(bMaterialCounter, uMaterialPassData.materialCounterRef).data[materialIdx].offset;
+    uint offset = totalPxMaterOffset.y;
     uint pixelIdx = GetResource(bMaterialPixelList, uMaterialPassData.materialPixelListRef).data[offset + tX];
     uint pX = pixelIdx % uEmitGBufferPushConstant.renderWidth;
     uint pY = pixelIdx / uEmitGBufferPushConstant.renderWidth;
@@ -163,25 +169,51 @@ uvec2 gbcomp_GetVisBufferData(uvec2 pos){
     return uvec2(clusterId, triangleId);
 }
 
-uint _gbcomp_readTriangleIndex(uvec2 objMeshletId, uint triangleId){
-    uint meshletId = objMeshletId.y;
-    uint objId = objMeshletId.x;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
-    uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
-    uint indexRef = GetResource(bMeshDataRef,obj).meshletIndexBuffer;
-    uint meshletOffset = GetResource(bMeshlet, meshletRef).data[meshletId].triangle_offset;
-    uint triangleIndex = GetResource(bMeshletTriangles, indexRef).data[meshletOffset + triangleId];
-    return triangleIndex;
-}
-
-uint _gbcomp_readVertexIndex(uvec2 objMeshletId, uint vertexId){
+uvec4 _gbcomp_readMeshletVertexIndicesRef(uvec2 objMeshletId){
     uint meshletId = objMeshletId.y;
     uint objId = objMeshletId.x;
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     uint vertexRef = GetResource(bMeshDataRef,obj).meshletVertexBuffer;
+    uint indexRef = GetResource(bMeshDataRef,obj).meshletIndexBuffer;
+    uint vbuf = GetResource(bMeshDataRef,obj).vertexBuffer;
+    
+    return uvec4(meshletRef, vertexRef, indexRef,vbuf);
+}
 
+uint _gbcomp_readTriangleIndex(uvec2 objMeshletId, uint triangleId,uvec4 mviRef){
+    uint meshletId = objMeshletId.y;
+    uint objId = objMeshletId.x;
+    uint meshletRef = mviRef.x;
+    uint indexRef = mviRef.z;
+    uint meshletOffset = GetResource(bMeshlet, meshletRef).data[meshletId].triangle_offset;
+    uint triangleIndex = GetResource(bMeshletTriangles, indexRef).data[meshletOffset + triangleId];
+    return triangleIndex;
+}
+
+uint _gbcomp_readVertexIndex(uvec2 objMeshletId, uint vertexId,uvec4 mviRef){
+    uint meshletId = objMeshletId.y;
+    uint objId = objMeshletId.x;
+    uint meshletRef = mviRef.x;
+    uint vertexRef = mviRef.y;
     uint meshletOffset = GetResource(bMeshlet, meshletRef).data[meshletId].vertex_offset;
+    uint vertexIndex = GetResource(bMeshletVertices, vertexRef).data[meshletOffset + vertexId];
+    return vertexIndex;
+}
+
+uint _gbcomp_readVertexIndex_getMeshletOffset(uvec2 objMeshletId,uvec4 mviRef){
+    uint meshletId = objMeshletId.y;
+    uint objId = objMeshletId.x;
+    uint meshletRef = mviRef.x;
+    uint vertexRef = mviRef.y;
+    uint meshletOffset = GetResource(bMeshlet, meshletRef).data[meshletId].vertex_offset;
+    return meshletOffset;
+}
+uint _gbcomp_readVertexIndex_2(uvec2 objMeshletId, uint vertexId,uvec4 mviRef,uint meshletOffset){
+    uint meshletId = objMeshletId.y;
+    uint objId = objMeshletId.x;
+    uint meshletRef = mviRef.x;
+    uint vertexRef = mviRef.y;
     uint vertexIndex = GetResource(bMeshletVertices, vertexRef).data[meshletOffset + vertexId];
     return vertexIndex;
 }
@@ -200,6 +232,15 @@ uint _gbcomp_readNormalTexId(uvec2 objMeshletId){
     uint materialRef = GetResource(bMeshDataRef,obj).materialDataBufferId;
     uint normalTexId = GetResource(bMaterialData, materialRef).normalTexId;
     return normalTexId;
+}
+
+uvec2 _gbcomp_readAlbedoNormalTexId(uvec2 objMeshletId){
+    uint objId = objMeshletId.x;
+    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint materialRef = GetResource(bMeshDataRef,obj).materialDataBufferId;
+    uint albedoTexId = GetResource(bMaterialData, materialRef).albedoTexId;
+    uint normalTexId = GetResource(bMaterialData, materialRef).normalTexId;
+    return uvec2(albedoTexId, normalTexId);
 }
 
 uvec2 _gbcomp_getObjMeshletId(uint clusterId){
@@ -276,11 +317,10 @@ vec2 _gbcomp_interpolate2(vec2 v0, vec2 v1, vec2 v2, vec3 bary){
 struct gbcomp_TriangleData{
     vec4 barycentric;
     vec4 vpPosVS;
-    vec4 vpNormalVS;
-    vec4 vpUV;
-
     vec4 vAlbedo;
     vec4 vTangent;
+    vec3 vpNormalVS;
+    vec2 vpUV;
 };
 
 #if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
@@ -304,18 +344,20 @@ struct gbcomp_TriangleDataShared{
 gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos){
     gbcomp_TriangleData data;
     uvec2 objMeshletId = _gbcomp_getObjMeshletId(clusterTriangleId.x);
-    uint triangleId = clusterTriangleId.y;
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].objectDataRef;
-    uint vertexRef = GetResource(bMeshDataRef,obj).vertexBuffer;
+    uint triangleId = clusterTriangleId.y;
     
-    uint vTx = _gbcomp_readTriangleIndex(objMeshletId, triangleId);
+    uvec4 mviRef = _gbcomp_readMeshletVertexIndicesRef(objMeshletId);
+    uint vertexRef = mviRef.w;
+
+    uint vTx = _gbcomp_readTriangleIndex(objMeshletId, triangleId,mviRef);
     uint v0Tx = vTx & 0x000000FFu;
     uint v1Tx = (vTx & 0x0000FF00u) >> 8;
     uint v2Tx = (vTx & 0x00FF0000u) >> 16;
     
-    uint v0Idx = _gbcomp_readVertexIndex(objMeshletId, v0Tx);
-    uint v1Idx = _gbcomp_readVertexIndex(objMeshletId, v1Tx);
-    uint v2Idx = _gbcomp_readVertexIndex(objMeshletId, v2Tx);
+    uint v0Idx = _gbcomp_readVertexIndex(objMeshletId, v0Tx,mviRef);
+    uint v1Idx = _gbcomp_readVertexIndex(objMeshletId, v1Tx,mviRef);
+    uint v2Idx = _gbcomp_readVertexIndex(objMeshletId, v2Tx,mviRef);
     
     vec4 v0 = vec4(GetResource(bVertices, vertexRef).data[v0Idx].xyz, 1.0);
     vec4 v1 = vec4(GetResource(bVertices, vertexRef).data[v1Idx].xyz, 1.0);
@@ -344,15 +386,13 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     vec3 n1vs = localToView3 * n1;
     vec3 n2vs = localToView3 * n2;
 
-
     vec4 normalLocal = vec4(normalize(_gbcomp_interpolate3(n0.xyz, n1.xyz, n2.xyz, data.barycentric.xyz)),1.0);
 
     uint uvRef = GetResource(bMeshDataRef,obj).uvBufferId;
     vec2 uv0 = GetResource(bUVs, uvRef).data[v0Idx];
     vec2 uv1 = GetResource(bUVs, uvRef).data[v1Idx];
     vec2 uv2 = GetResource(bUVs, uvRef).data[v2Idx];
-    data.vpUV = vec4(_gbcomp_interpolate2(uv0, uv1, uv2, data.barycentric.xyz), 0.0, 1.0);
-
+    data.vpUV = _gbcomp_interpolate2(uv0, uv1, uv2, data.barycentric.xyz);
 
     uint albedoTexId = _gbcomp_readAlbedoTexId(objMeshletId);
     uint normalTexId = _gbcomp_readNormalTexId(objMeshletId);
@@ -361,7 +401,7 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     vec4 tangent0 = GetResource(bTangents,tangentRef).data[v0Idx];
     vec4 tangent1 = GetResource(bTangents,tangentRef).data[v1Idx];
     vec4 tangent2 = GetResource(bTangents,tangentRef).data[v2Idx];
-    data.vTangent = vec4(_gbcomp_interpolate4(tangent0,tangent1,tangent2,data.barycentric.xyz));
+    data.vTangent = _gbcomp_interpolate4(tangent0,tangent1,tangent2,data.barycentric.xyz);
 
     if(albedoTexId != ~0u){
         data.vAlbedo = texture(GetSampler2D(albedoTexId), data.vpUV.xy);
@@ -382,7 +422,7 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
         vec3 vNormalRGB = vec3(vNormalRG,vNormalZ);
 
         vec3 rNormal = tbn * vNormalRGB;
-        data.vpNormalVS = vec4(rNormal,0.0);
+        data.vpNormalVS = rNormal;
     }
     
     return data;
@@ -395,16 +435,19 @@ gbcomp_TriangleDataShared gbcomp_GetTriangleDataImp(uvec2 clusterTriangleId, uve
     uvec2 objMeshletId = _gbcomp_getObjMeshletId(clusterTriangleId.x);
     uint triangleId = clusterTriangleId.y;
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].objectDataRef;
-    uint vertexRef = GetResource(bMeshDataRef,obj).vertexBuffer;
-    
-    uint vTx = _gbcomp_readTriangleIndex(objMeshletId, triangleId);
+
+    uvec4 mviRef = _gbcomp_readMeshletVertexIndicesRef(objMeshletId);
+    uint vertexRef = mviRef.w;
+
+    uint vTx = _gbcomp_readTriangleIndex(objMeshletId, triangleId,mviRef);
     uint v0Tx = vTx & 0x000000FFu;
     uint v1Tx = (vTx & 0x0000FF00u) >> 8;
     uint v2Tx = (vTx & 0x00FF0000u) >> 16;
     
-    uint v0Idx = _gbcomp_readVertexIndex(objMeshletId, v0Tx);
-    uint v1Idx = _gbcomp_readVertexIndex(objMeshletId, v1Tx);
-    uint v2Idx = _gbcomp_readVertexIndex(objMeshletId, v2Tx);
+    uint meshletOffset = _gbcomp_readVertexIndex_getMeshletOffset(objMeshletId,mviRef);
+    uint v0Idx = _gbcomp_readVertexIndex_2(objMeshletId, v0Tx,mviRef,meshletOffset);
+    uint v1Idx = _gbcomp_readVertexIndex_2(objMeshletId, v1Tx,mviRef,meshletOffset);
+    uint v2Idx = _gbcomp_readVertexIndex_2(objMeshletId, v2Tx,mviRef,meshletOffset);
 
     uint transRef = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].transformRef;
     mat4 localToWorld = GetResource(bLocalTransform, transRef).m_localToWorld;
@@ -422,9 +465,9 @@ gbcomp_TriangleDataShared gbcomp_GetTriangleDataImp(uvec2 clusterTriangleId, uve
 #endif
 
     uint normalRef = GetResource(bMeshDataRef,obj).normalBufferId;
-    vec3 n0 = vec3(GetResource(bNormals, normalRef).data[v0Idx].xyz);
-    vec3 n1 = vec3(GetResource(bNormals, normalRef).data[v1Idx].xyz);
-    vec3 n2 = vec3(GetResource(bNormals, normalRef).data[v2Idx].xyz);
+    vec4 n0 = GetResource(bNormals, normalRef).data[v0Idx];
+    vec4 n1 = GetResource(bNormals, normalRef).data[v1Idx];
+    vec4 n2 = GetResource(bNormals, normalRef).data[v2Idx];
 
 #if SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE
     data.v0NormalMS = n0.xyz;
@@ -463,12 +506,13 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
     data.barycentric = vec4(_gbcomp_getBarycentric_v2(lastData.v0PosVS, lastData.v1PosVS, lastData.v2PosVS, pxPos),1.0);
    
     vec3 normalLocal = normalize(_gbcomp_interpolate3(lastData.v0NormalMS, lastData.v1NormalMS, lastData.v2NormalMS, data.barycentric.xyz));
-    data.vpUV = vec4(_gbcomp_interpolate2(lastData.v0UV, lastData.v1UV, lastData.v2UV, data.barycentric.xyz), 0.0, 1.0);
-    data.vTangent = vec4(_gbcomp_interpolate4(lastData.v0Tangent,lastData.v1Tangent,lastData.v2Tangent,data.barycentric.xyz));
+    data.vpUV = _gbcomp_interpolate2(lastData.v0UV, lastData.v1UV, lastData.v2UV, data.barycentric.xyz);
+    data.vTangent = _gbcomp_interpolate4(lastData.v0Tangent,lastData.v1Tangent,lastData.v2Tangent,data.barycentric.xyz);
 
     uvec2 objMeshletId = _gbcomp_getObjMeshletId(clusterTriangleId.x);
-    uint albedoTexId = _gbcomp_readAlbedoTexId(objMeshletId);
-    uint normalTexId = _gbcomp_readNormalTexId(objMeshletId);
+    uvec2 albedoNormalTexId = _gbcomp_readAlbedoNormalTexId(objMeshletId);
+    uint albedoTexId = albedoNormalTexId.x;
+    uint normalTexId = albedoNormalTexId.y;
 
     if(albedoTexId != ~0u){
         data.vAlbedo = texture(GetSampler2D(albedoTexId), data.vpUV.xy);
@@ -489,7 +533,7 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
         vec3 vNormalRGB = vec3(vNormalRG,vNormalZ);
 
         vec3 rNormal = tbn * vNormalRGB;
-        data.vpNormalVS = vec4(rNormal,0.0);
+        data.vpNormalVS = rNormal;
     }
 
     return data;

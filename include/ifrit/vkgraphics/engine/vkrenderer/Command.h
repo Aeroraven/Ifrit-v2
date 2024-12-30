@@ -66,7 +66,7 @@ class IFRIT_APIDECL TimelineSemaphore {
 private:
   EngineContext *m_context;
   VkSemaphore m_semaphore;
-  uint32_t m_recordedCounter = 0;
+  uint64_t m_recordedCounter = 0;
 
 public:
   TimelineSemaphore(EngineContext *ctx);
@@ -250,7 +250,7 @@ private:
   std::unique_ptr<CommandPool> m_commandPool;
   std::unique_ptr<TimelineSemaphore> m_timelineSemaphore;
   std::vector<std::unique_ptr<CommandBuffer>> m_cmdBufInUse;
-  uint32_t m_recordedCounter = 0;
+  uint64_t m_recordedCounter = 0;
   CommandBuffer *m_currentCommandBuffer = nullptr;
 
 public:

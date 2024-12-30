@@ -112,3 +112,8 @@ void gbcomp_WriteGBuffer(uint gBuffer, uvec2 pixel, GBufferPixel pixelData){
     gbcomp_WriteSpecularOcclusion(gBuffer, pixel, pixelData.specular, pixelData.occlusion);
     gbcomp_WriteEmissive(gBuffer, pixel, pixelData.emissive);
 }
+
+void gbcomp_WriteGBufferAlbedoNormal(uint gBuffer, uvec2 pixel, GBufferPixel pixelData){
+    gbcomp_WriteAlbedoMaterialFlags(gBuffer, pixel, pixelData.albedo, pixelData.materialFlags);
+    gbcomp_WriteNormalSmoothness(gBuffer, pixel, pixelData.normal, pixelData.smoothness);
+}
