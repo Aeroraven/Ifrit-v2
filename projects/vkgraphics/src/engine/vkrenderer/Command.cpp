@@ -977,6 +977,9 @@ IFRIT_APIDECL std::vector<Queue *> QueueCollections::getComputeQueues() {
 IFRIT_APIDECL std::vector<Queue *> QueueCollections::getTransferQueues() {
   std::vector<Queue *> transferQueues;
   for (int i = 0; i < m_queues.size(); i++) {
+    if (m_queues[i]->getCapability() & VK_QUEUE_COMPUTE_BIT) {
+      continue;
+    }
     if (m_queues[i]->getCapability() & VK_QUEUE_TRANSFER_BIT) {
       transferQueues.push_back(m_queues[i].get());
     }

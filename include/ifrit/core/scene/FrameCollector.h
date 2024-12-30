@@ -90,6 +90,7 @@ struct PerFrameRenderTargets {
 
 struct ShadowMappingData {
   using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
+  using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
   using GPUBindlessId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
 
   struct SingleShadowView {
@@ -104,7 +105,7 @@ struct ShadowMappingData {
   std::vector<SingleShadowView> m_shadowViews;
   uint32_t m_enabledShadowMaps = 0;
 
-  GPUBuffer *m_allShadowData = nullptr;
+  GPUUniformBuffer *m_allShadowData = nullptr;
   std::shared_ptr<GPUBindlessId> m_allShadowDataId;
 };
 

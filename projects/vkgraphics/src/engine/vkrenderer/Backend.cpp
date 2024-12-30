@@ -437,6 +437,25 @@ RhiVulkanBackend::registerStorageBuffer(Rhi::RhiBuffer *buffer) {
   return p;
 }
 
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef>
+RhiVulkanBackend::registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) {
+  // TODO
+  std::vector<uint32_t> ids;
+  auto descriptorManager = m_implDetails->m_descriptorManager.get();
+  auto multiBuffer = checked_cast<MultiBuffer>(buffer);
+  auto numBackbuffers = m_swapChain->getNumBackbuffers();
+  for (uint32_t i = 0; i < numBackbuffers; i++) {
+    auto id =
+        descriptorManager->registerStorageBuffer(multiBuffer->getBuffer(i));
+    ids.push_back(id);
+  }
+  auto p = std::make_shared<Rhi::RhiBindlessIdRef>();
+  p->ids = ids;
+  p->activeFrame = m_swapChain->getCurrentImageIndex();
+  m_implDetails->m_bindlessIdRefs.push_back(p);
+  return p;
+}
+
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiVertexBufferView>
 RhiVulkanBackend::createVertexBufferView() {
   auto view = std::make_shared<VertexBufferDescriptor>();

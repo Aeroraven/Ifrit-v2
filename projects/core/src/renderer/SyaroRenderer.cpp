@@ -1573,11 +1573,11 @@ SyaroRenderer::prepareAggregatedShadowData(PerFrameData &perframeData) {
   auto rhi = m_app->getRhiLayer();
 
   if (shadowData.m_allShadowData == nullptr) {
-    shadowData.m_allShadowData = rhi->createStorageBufferDevice(
-        256 * sizeof(decltype(shadowData.m_shadowViews)::value_type),
+    shadowData.m_allShadowData = rhi->createStorageBufferShared(
+        256 * sizeof(decltype(shadowData.m_shadowViews)::value_type), true,
         RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
     shadowData.m_allShadowDataId =
-        rhi->registerStorageBuffer(shadowData.m_allShadowData);
+        rhi->registerStorageBufferShared(shadowData.m_allShadowData);
   }
   for (auto d = 0; auto &x : shadowData.m_shadowViews) {
     for (auto i = 0u; i < x.m_csmSplits; i++) {
@@ -1586,16 +1586,15 @@ SyaroRenderer::prepareAggregatedShadowData(PerFrameData &perframeData) {
       x.m_viewRef[i] = perframeData.m_views[idx].m_viewBufferId->getActiveId();
     }
   }
-  auto staged = rhi->createStagedSingleBuffer(shadowData.m_allShadowData);
-  auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
-  tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-    staged->cmdCopyToDevice(
-        cmd, shadowData.m_shadowViews.data(),
-        size_cast<uint32_t>(
-            shadowData.m_shadowViews.size() *
-            sizeof(decltype(shadowData.m_shadowViews)::value_type)),
-        0);
-  });
+  auto p = shadowData.m_allShadowData->getActiveBuffer();
+  p->map();
+  p->writeBuffer(shadowData.m_shadowViews.data(),
+                 size_cast<uint32_t>(
+                     shadowData.m_shadowViews.size() *
+                     sizeof(decltype(shadowData.m_shadowViews)::value_type)),
+                 0);
+  p->flush();
+  p->unmap();
 
   auto mainView = getPrimaryView(perframeData);
   auto mainRtWidth = mainView.m_renderWidth;
@@ -1711,12 +1710,15 @@ SyaroRenderer::render(
   // https://zeux.io/2020/02/27/writing-an-efficient-vulkan-renderer/
   // https://gpuopen.com/learn/rdna-performance-guide/#command-buffers
 
+  auto start = std::chrono::high_resolution_clock::now();
   visibilityBufferSetup(perframeData, renderTargets);
   auto &primaryView = getPrimaryView(perframeData);
   buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
                  primaryView.m_visRTs.get());
   prepareDeviceResources(perframeData, renderTargets);
+
   gatherAllInstances(perframeData);
+
   recreateInstanceCullingBuffers(
       perframeData,
       size_cast<uint32_t>(perframeData.m_allInstanceData.m_objectData.size()));
@@ -1726,7 +1728,13 @@ SyaroRenderer::render(
   recreateGBuffers(perframeData, renderTargets);
   sphizBufferSetup(perframeData, renderTargets);
   taaHistorySetup(perframeData, renderTargets);
+
+  auto start1 = std::chrono::high_resolution_clock::now();
   prepareAggregatedShadowData(perframeData);
+  auto end1 = std::chrono::high_resolution_clock::now();
+  auto elapsed1 =
+      std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
+  iDebug("CPU time, Aggregate shadow: {} ms", elapsed1.count() / 1000.0f);
 
   // Then draw
   auto rhi = m_app->getRhiLayer();
@@ -1755,6 +1763,12 @@ SyaroRenderer::render(
     cmdToWaitBkp = {pbrAtmoTask.get()};
   }
 
+  auto end0 = std::chrono::high_resolution_clock::now();
+  auto elapsed0 =
+      std::chrono::duration_cast<std::chrono::microseconds>(end0 - start);
+  iDebug("CPU time, Setup: {} ms", elapsed0.count() / 1000.0f);
+
+  start = std::chrono::high_resolution_clock::now();
   auto mainTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         iDebug("GPUTimer, MainView: {} ms/frame", m_timer->getElapsedMs());
@@ -1797,11 +1811,21 @@ SyaroRenderer::render(
       },
       cmdToWaitBkp, {});
 
+  end0 = std::chrono::high_resolution_clock::now();
+  elapsed0 =
+      std::chrono::duration_cast<std::chrono::microseconds>(end0 - start);
+  iDebug("CPU time, MainView Cmd Recording: {} ms", elapsed0.count() / 1000.0f);
+
+  start = std::chrono::high_resolution_clock::now();
   auto deferredTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
         setupAndRunFrameGraph(perframeData, renderTargets, cmd);
       },
       {mainTask.get()}, {});
+  end0 = std::chrono::high_resolution_clock::now();
+  elapsed0 =
+      std::chrono::duration_cast<std::chrono::microseconds>(end0 - start);
+  iDebug("CPU time, Deferred Cmd Recording: {} ms", elapsed0.count() / 1000.0f);
 
   return mainTask;
 }
@@ -1839,6 +1863,10 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
   collectPerframeData(perframeData, scene, camera,
                       GraphicsShaderPassType::Opaque, sceneConfig);
 
+  auto end0 = std::chrono::high_resolution_clock::now();
+  auto duration0 =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end0 - start);
+  iDebug("CPU time, frame collecting: {} ms", duration0.count());
   perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5f;
   perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5f;
   auto ret = render(perframeData, renderTargets, cmdToWait);

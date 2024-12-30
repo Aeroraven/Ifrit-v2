@@ -9,4 +9,3 @@
 ## Performance
 - [ ] Syaro: memory fragmentation and low memory utilization.
 - [ ] Syaro: low thread utilization for small meshes (eg for almost no bvh nodes)
-- [ ] Syaro: CPU-side high compute overhead for a single render call

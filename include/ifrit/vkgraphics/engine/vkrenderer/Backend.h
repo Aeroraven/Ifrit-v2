@@ -119,6 +119,9 @@ public:
   registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) override;
 
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
+  registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) override;
+
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
   registerStorageBuffer(Rhi::RhiBuffer *buffer) override;
 
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef>

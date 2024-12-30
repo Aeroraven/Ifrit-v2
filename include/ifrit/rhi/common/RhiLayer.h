@@ -506,7 +506,7 @@ public:
 
   // Create a general buffer
   virtual std::shared_ptr<RhiBuffer> createBuffer(uint32_t size, uint32_t usage,
-                                          bool hostVisible) const = 0;
+                                                  bool hostVisible) const = 0;
   virtual RhiBuffer *createIndirectMeshDrawBufferDevice(uint32_t drawCalls,
                                                         uint32_t usage) = 0;
   virtual RhiBuffer *createStorageBufferDevice(uint32_t size,
@@ -579,6 +579,9 @@ public:
 
   virtual std::shared_ptr<RhiBindlessIdRef>
   registerStorageBuffer(RhiBuffer *buffer) = 0;
+
+  virtual std::shared_ptr<RhiBindlessIdRef>
+  registerStorageBufferShared(RhiMultiBuffer *buffer) = 0;
 
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
   registerUAVImage(Rhi::RhiTexture *texture,

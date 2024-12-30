@@ -958,13 +958,21 @@ IFRIT_APIDECL void CommandExecutor::beginFrame() {
 IFRIT_APIDECL void CommandExecutor::endFrame() { m_swapchain->present(); }
 
 IFRIT_APIDECL Queue *CommandExecutor::getQueue(QueueRequirement req) {
+  uint32_t unsel = 0;
+  if (req == QueueRequirement::Transfer) {
+    unsel = getUnderlying(QueueRequirement::Graphics_Compute);
+  }
   auto requiredCapability = getUnderlying(req);
   for (int i = 0; i < m_queues.size(); i++) {
+    if ((m_queues[i]->getCapability() & unsel)) {
+      continue;
+    }
     if ((m_queues[i]->getCapability() & requiredCapability) ==
         requiredCapability) {
       return m_queues[i];
     }
   }
+  std::abort();
   return nullptr;
 }
 
