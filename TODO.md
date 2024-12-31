@@ -2,9 +2,10 @@
 
 ## Artifacts
 - [ ] Syaro: TAA Flickering for distant tiny objects
-- [x] Syaro: CSM Flickering while moving
+- [x] Syaro: CSM Flickering while moving  
 - [ ] Syaro: Incorect startup
 - [ ] Syaro: LOD switching not smooth
+- [ ] Syaro: CSM UV Overflow
 
 ## Performance
 - [ ] Syaro: memory fragmentation and low memory utilization.
