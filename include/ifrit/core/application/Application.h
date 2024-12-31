@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/core/assetmanager/Asset.h"
 #include "ifrit/core/base/ApplicationInterface.h"
@@ -71,6 +70,10 @@ public:
   inline virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *
   getRhiLayer() override {
     return m_rhiLayer.get();
+  }
+
+  inline std::string getCacheDirectory() const override {
+    return m_info.m_cachePath;
   }
 };
 } // namespace Ifrit::Core

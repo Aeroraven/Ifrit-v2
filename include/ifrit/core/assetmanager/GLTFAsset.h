@@ -34,12 +34,13 @@ private:
   std::shared_ptr<MeshData> m_selfData;
   MeshData *m_selfDataRaw = nullptr;
   bool m_loaded = false;
+  std::string m_cachePath;
 
 public:
   GLTFMesh(AssetMetadata *metadata, GLTFAsset *asset, uint32_t meshId,
-           uint32_t primitiveId, uint32_t nodeId)
+           uint32_t primitiveId, uint32_t nodeId, const std::string &cachePath)
       : m_asset(asset), m_meshId(meshId), m_primitiveId(primitiveId),
-        m_nodeId(nodeId) {
+        m_nodeId(nodeId), m_cachePath(cachePath) {
     m_assetReference.m_fileId = metadata->m_fileId;
     m_assetReference.m_name = metadata->m_name;
     m_assetReference.m_uuid = metadata->m_uuid;
@@ -70,6 +71,9 @@ private:
   std::vector<std::shared_ptr<GLTFMesh>> m_meshes;
   std::vector<std::shared_ptr<GLTFPrefab>> m_prefabs;
   GLTFInternalData *m_internalData = nullptr;
+
+private:
+  inline AssetMetadata &getMetadata() { return m_metadata; }
 
 public:
   GLTFAsset(AssetMetadata metadata, std::filesystem::path path,

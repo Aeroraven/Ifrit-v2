@@ -22,12 +22,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/meshproc/engine/mesh/MeshletConeCull.h"
 #undef IFRIT_MESHPROC_IMPORT
 #include "ifrit/common/math/simd/SimdVectors.h"
+#include "ifrit/common/util/FileOps.h"
+#include <filesystem>
 
 using namespace Ifrit::Math::SIMD;
 
 namespace Ifrit::Core {
+
+struct CreateMeshLodHierMiscInfo {
+  uint32_t totalLods;
+
+  IFRIT_STRUCT_SERIALIZE(totalLods);
+};
+
 IFRIT_APIDECL void
-Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
+Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData,
+                             const std::string &cachePath) {
   using namespace Ifrit::MeshProcLib::MeshProcess;
   using namespace Ifrit::Common::Utility;
   const size_t max_vertices = 64;
@@ -49,13 +59,95 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData) {
   meshDesc.normalStride = sizeof(ifloat3);
 
   auto chosenLod = MAX_LOD - 1;
+  auto totalLods = 0;
   CombinedClusterLodBuffer meshletData;
 
   std::vector<FlattenedBVHNode> bvhNodes;
   std::vector<ClusterGroup> clusterGroupData;
 
-  auto totalLods = meshProc.clusterLodHierachy(
-      meshDesc, meshletData, clusterGroupData, bvhNodes, MAX_LOD);
+  bool ableToLoadCachedVG = false;
+  bool needToGenerateVG = false;
+  bool needToStoreVG = false;
+
+  auto serialCCLBufferName = "core.mesh.ccl." + meshData->identifier + ".cache";
+  auto serialFBNName = "core.mesh.fbn." + meshData->identifier + ".cache";
+  auto serialCGName = "core.mesh.cg." + meshData->identifier + ".cache";
+  auto serialMiscName = "core.mesh.misc." + meshData->identifier + ".cache";
+
+  auto serialCCLPath = cachePath + serialCCLBufferName;
+  auto serialFBNPath = cachePath + serialFBNName;
+  auto serialCGPath = cachePath + serialCGName;
+  auto serialMiscPath = cachePath + serialMiscName;
+
+  if (meshData->identifier.empty()) {
+    needToGenerateVG = true;
+  } else {
+    if (cachePath.empty()) {
+      needToGenerateVG = true;
+    } else {
+      bool cclBufferExists = false;
+      bool fbnExists = false;
+      bool cgExists = false;
+      bool miscExists = false;
+
+      // check files exist
+      cclBufferExists = std::filesystem::exists(serialCCLPath);
+      fbnExists = std::filesystem::exists(serialFBNPath);
+      cgExists = std::filesystem::exists(serialCGPath);
+      miscExists = std::filesystem::exists(serialMiscPath);
+
+      if (cclBufferExists && fbnExists && cgExists && miscExists) {
+        ableToLoadCachedVG = true;
+      } else {
+        needToGenerateVG = true;
+        needToStoreVG = true;
+      }
+    }
+  }
+
+  if (ableToLoadCachedVG) {
+    std::string cclBuffer;
+    std::string fbnBuffer;
+    std::string cgBuffer;
+    std::string miscBuffer;
+
+    cclBuffer = Ifrit::Common::Utility::readBinaryFile(serialCCLPath);
+    fbnBuffer = Ifrit::Common::Utility::readBinaryFile(serialFBNPath);
+    cgBuffer = Ifrit::Common::Utility::readBinaryFile(serialCGPath);
+    miscBuffer = Ifrit::Common::Utility::readBinaryFile(serialMiscPath);
+
+    Ifrit::Common::Serialization::deserializeBinary(cclBuffer, meshletData);
+    Ifrit::Common::Serialization::deserializeBinary(fbnBuffer, bvhNodes);
+    Ifrit::Common::Serialization::deserializeBinary(cgBuffer, clusterGroupData);
+    CreateMeshLodHierMiscInfo miscInfo;
+    Ifrit::Common::Serialization::deserializeBinary(miscBuffer, miscInfo);
+
+    totalLods = miscInfo.totalLods;
+
+    iInfo("Loaded cached mesh VG for {}", meshData->identifier);
+  }
+  if (needToGenerateVG) {
+    totalLods = meshProc.clusterLodHierachy(
+        meshDesc, meshletData, clusterGroupData, bvhNodes, MAX_LOD);
+    if (needToStoreVG) {
+      std::string cclBuffer;
+      Ifrit::Common::Serialization::serializeBinary(meshletData, cclBuffer);
+      std::string fbnBuffer;
+      Ifrit::Common::Serialization::serializeBinary(bvhNodes, fbnBuffer);
+      std::string cgBuffer;
+      Ifrit::Common::Serialization::serializeBinary(clusterGroupData, cgBuffer);
+      CreateMeshLodHierMiscInfo miscInfo;
+      miscInfo.totalLods = totalLods;
+      std::string miscBuffer;
+      Ifrit::Common::Serialization::serializeBinary(miscInfo, miscBuffer);
+
+      Ifrit::Common::Utility::writeBinaryFile(serialCCLPath, cclBuffer);
+      Ifrit::Common::Utility::writeBinaryFile(serialFBNPath, fbnBuffer);
+      Ifrit::Common::Utility::writeBinaryFile(serialCGPath, cgBuffer);
+      Ifrit::Common::Utility::writeBinaryFile(serialMiscPath, miscBuffer);
+    }
+  }
+
   coneCullProc.createNormalCones(
       meshDesc, meshletData.meshletsRaw, meshletData.meshletVertices,
       meshletData.meshletTriangles, meshData->m_normalsCone,

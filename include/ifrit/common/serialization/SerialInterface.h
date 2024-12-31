@@ -58,10 +58,32 @@ template <class T> void serialize(T &src, std::string &dst) {
   dst = oss.str();
 }
 
+template <class T> void serializeBinary(T &src, std::string &dst) {
+  std::ostringstream oss;
+  {
+    try {
+      cereal::BinaryOutputArchive ar(oss);
+      ar(src);
+    } catch (const std::exception &e) {
+      printf("Error: %s\n", e.what());
+      std::abort();
+    }
+  }
+  dst = oss.str();
+}
+
 template <class T> void deserialize(const std::string &src, T &dst) {
   std::istringstream iss(src);
   {
     cereal::JSONInputArchive ar(iss);
+    ar(dst);
+  }
+}
+
+template <class T> void deserializeBinary(const std::string &src, T &dst) {
+  std::istringstream iss(src);
+  {
+    cereal::BinaryInputArchive ar(iss);
     ar(dst);
   }
 }

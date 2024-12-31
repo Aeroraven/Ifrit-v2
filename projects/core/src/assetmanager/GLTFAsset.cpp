@@ -82,6 +82,10 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   }
   // Start loading mesh
   m_selfData = std::make_shared<MeshData>();
+  m_selfData->identifier = m_asset->getMetadata().m_uuid + "_" +
+                           std::to_string(m_meshId) + "_" +
+                           std::to_string(m_primitiveId);
+
   auto &data = m_asset->getInternalData()->model;
   auto &mesh = data.meshes[m_meshId];
   auto &primitive = mesh.primitives[m_primitiveId];
@@ -189,7 +193,7 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   } else {
     iError("GLTFMesh: index component type not supported");
   }
-  this->createMeshLodHierarchy(m_selfData);
+  this->createMeshLodHierarchy(m_selfData, m_cachePath);
   m_loaded = true;
   m_selfDataRaw = m_selfData.get();
   return m_selfData;
@@ -228,9 +232,11 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
   std::unordered_map<std::pair<uint32_t, uint32_t>, uint32_t,
                      Ifrit::Common::Utility::PairwiseHash<uint32_t, uint32_t>>
       meshHash;
+  auto cachePath = m_manager->getApplication()->getCacheDirectory();
   for (auto i = 0; auto &mesh : m_internalData->model.meshes) {
     for (auto j = 0; auto &primitive : mesh.primitives) {
-      auto mesh = std::make_shared<GLTFMesh>(&m_metadata, this, i, j, ~0u);
+      auto mesh =
+          std::make_shared<GLTFMesh>(&m_metadata, this, i, j, ~0u, cachePath);
       m_meshes.push_back(std::move(mesh));
       meshHash[{i, j}] = m_meshes.size() - 1;
       j++;

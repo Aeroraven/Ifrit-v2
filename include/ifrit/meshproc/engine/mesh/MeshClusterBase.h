@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/common/math/LinalgOps.h"
+#include "ifrit/common/serialization/MathTypeSerialization.h"
+#include "ifrit/common/serialization/SerialInterface.h"
 
 namespace Ifrit::MeshProcLib::MeshProcess {
 constexpr int BVH_CHILDREN = 8; // or 4
@@ -28,6 +30,8 @@ struct MeshletCullData {
   float parentError = INFINITY;
   uint32_t lod = 0;
   uint32_t dummy = 0;
+
+  IFRIT_STRUCT_SERIALIZE(selfSphere, parentSphere, selfError, parentError, lod);
 };
 struct ClusterGroup {
   ifloat4 selfBoundingSphere;
@@ -36,6 +40,9 @@ struct ClusterGroup {
   uint32_t childMeshletSize;
   uint32_t lod;
   uint32_t dummy1;
+
+  IFRIT_STRUCT_SERIALIZE(selfBoundingSphere, parentBoundingSphere,
+                         childMeshletStart, childMeshletSize, lod);
 };
 struct FlattenedBVHNode {
   ifloat4 boundSphere;
@@ -48,6 +55,10 @@ struct FlattenedBVHNode {
   uint32_t pad1;
   uint32_t pad2;
   uint32_t pad3;
+
+  IFRIT_STRUCT_SERIALIZE(boundSphere, numChildNodes, clusterGroupStart,
+                         clusterGroupSize, subTreeSize, childNodes,
+                         maxClusterError);
 };
 struct MeshDescriptor {
   char *vertexData;

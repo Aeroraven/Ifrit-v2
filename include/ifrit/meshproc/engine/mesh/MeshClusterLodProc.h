@@ -16,14 +16,16 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "MeshClusterBase.h"
 #include "ifrit/common/math/LinalgOps.h"
+#include "ifrit/common/serialization/MathTypeSerialization.h"
+#include "ifrit/common/serialization/SerialInterface.h"
 #include "ifrit/common/util/ApiConv.h"
 #include <cstdint>
 #include <meshoptimizer/src/meshoptimizer.h>
 #include <vector>
+
 
 #ifndef IFRIT_MESHPROC_IMPORT
 #define IFRIT_MESHPROC_API IFRIT_APIDECL
@@ -65,6 +67,11 @@ struct CombinedClusterLodBuffer {
 
   // Num clusters for each lod
   std::vector<uint32_t> numClustersEachLod;
+
+  IFRIT_STRUCT_SERIALIZE(meshletsRaw, meshletVertices, meshletTriangles,
+                         graphPartition, parentStart, parentSize, meshletCull,
+                         clusterGroups, meshletsInClusterGroups,
+                         numClustersEachLod);
 };
 
 class IFRIT_MESHPROC_API MeshClusterLodProc {

@@ -42,6 +42,7 @@ struct MeshData {
     ifloat4 normalConeApex;
     ifloat4 boundSphere;
   };
+  std::string identifier;
 
   std::vector<ifloat3> m_vertices;
   std::vector<ifloat4> m_verticesAligned;
@@ -209,7 +210,8 @@ public:
     resource.objectData = m_resource.objectData;
   }
   // TODO: static method
-  virtual void createMeshLodHierarchy(std::shared_ptr<MeshData> meshData);
+  virtual void createMeshLodHierarchy(std::shared_ptr<MeshData> meshData,
+                                      const std::string &cachePath);
   virtual ifloat4 getBoundingSphere(const std::vector<ifloat3> &vertices);
 
   IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);

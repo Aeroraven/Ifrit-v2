@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/rhi/common/RhiLayer.h"
 namespace Ifrit::Core {
@@ -27,5 +26,6 @@ public:
   virtual void onEnd() = 0;
 
   virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() = 0;
+  virtual std::string getCacheDirectory() const = 0;
 };
 } // namespace Ifrit::Core

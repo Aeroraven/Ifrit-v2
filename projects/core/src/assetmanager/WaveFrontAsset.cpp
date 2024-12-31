@@ -168,7 +168,7 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
           ifloat4(remappedNormals[i].x, remappedNormals[i].y,
                   remappedNormals[i].z, 1.0);
     }
-    this->createMeshLodHierarchy(m_selfData);
+    this->createMeshLodHierarchy(m_selfData, "");
   }
   return m_selfData;
 }
