@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 layout(local_size_x = cMeshRasterizeThreadGroupSizeX, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = cMeshRasterizeMaxVertexSize, max_primitives = cMeshRasterizeMaxPrimitiveSize) out;
 
-
+#if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
 // According to NVIDIA's documentation, AS's payload should be small
 // to avoid perf penalty.
 // https://developer.nvidia.com/blog/advanced-api-performance-mesh-shaders/
@@ -39,6 +39,7 @@ struct TaskSharedData{
 };
 
 taskPayloadSharedEXT  TaskSharedData taskSharedData;
+#endif
 
 RegisterStorage(bMeshlet,{
     Meshlet data[];
@@ -117,11 +118,15 @@ bool isSecondCullingPass(){
 }
 
 uint getAcutalWorkGroup(){
+#if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
+    return gl_WorkGroupID.x;
+#else
     uint inTaskWorkGroup = gl_WorkGroupID.x;
     uint slotId = inTaskWorkGroup / 4;
     uint slotOffset = (inTaskWorkGroup % 4) * 8;
     uint localInvo = (taskSharedData.subIds[slotId] >> slotOffset) & 0xFF;
     return localInvo + taskSharedData.base;
+#endif
 }
 uint getClusterID(){
     uint actualWorkGroup = getAcutalWorkGroup();

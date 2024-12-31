@@ -9,3 +9,5 @@
 ## Performance
 - [ ] Syaro: memory fragmentation and low memory utilization.
 - [ ] Syaro: low thread utilization for small meshes (eg for almost no bvh nodes)
+- [ ] Syaro: improper compute shader usage
+    - Reference: https://computergraphics.stackexchange.com/questions/9956/performance-of-compute-shaders-vs-fragment-shaders-for-deferred-rendering

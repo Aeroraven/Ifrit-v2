@@ -107,7 +107,7 @@ void main(){
 
     for(uint i=0;i<cHBAODirections;i++){
         float accAO = 0.0;
-        float maxAO = 0.03;
+        float maxAO = 0.2;
         for(uint j=0;j<cHBAOSampleSteps;j++){
             vec2 sampUV = uv + dir * sampleStep * (float(j) + randv);
             float sampDepth = texture(GetSampler2D(pushConst.depthTex),sampUV).x;

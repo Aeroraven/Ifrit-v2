@@ -263,6 +263,45 @@ bool frustumCull(vec4 boundBall, float radius, float tanHalfFovY){
     return false;
 }
 
+bool frustumCullOrtho(vec4 boundBall, float radius){
+    float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
+    float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
+    float camFovY = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+    float halfFovY = camFovY * 0.5;
+    float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+    float z = boundBall.z;
+    if(z+radius < camNear || z-radius > camFar){
+        return true;
+    }
+    float camOrthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
+    float camOrthoSizeCullX = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeX;
+    float camOrthoSizeCullY = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeY;
+
+    float camOrthoHalfSize = camOrthoSize;
+
+#if SYARO_SHADER_SHARED_EXPLICIT_ORTHO_FRUSTUM_CULL
+    float left = -camOrthoSizeCullX * 0.5;
+    float right = camOrthoSizeCullX * 0.5;
+    float top = -camOrthoSizeCullY * 0.5;
+    float bottom = camOrthoSizeCullY * 0.5;
+#else
+    float left = -camOrthoHalfSize * camAspect;
+    float right = camOrthoHalfSize * camAspect;
+    float top = -camOrthoHalfSize;
+    float bottom = camOrthoHalfSize;
+#endif
+
+    bool leftCull = boundBall.x - radius > right;
+    bool rightCull = boundBall.x + radius < left;
+    bool topCull = boundBall.y - radius > bottom;
+    bool bottomCull = boundBall.y + radius < top;
+
+    if(leftCull || rightCull || topCull || bottomCull){
+        return true;
+    }
+    return false;
+}
+
 void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFovY){
     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
     uint objId =getObjId();
@@ -270,11 +309,40 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
     uint pos = 0;
 
     bool bMeshletCulled = false;
-
-    // Backface culling
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     uint meshletId = GetResource(bMeshletsInClusterGroup,micRef).data[group.childMeshletStart];
+
+#if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
+    uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
+    uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
+    mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
+    mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
+    mat4 mv = view * model;
+    
+    // cone culling
+    Meshlet meshlet = GetResource(bMeshlet,meshletRef).data[meshletId];
+    vec4 normalConeAxis = model * vec4(meshlet.normalCone.xyz,0.0);
+    vec4 normalConeApex = model * vec4(meshlet.normalConeApex.xyz,1.0);
+    vec3 cameraPos = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraPosition.xyz;
+    float camViewType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
+    float coneAngle = dot(normalize(normalConeApex.xyz - cameraPos),normalize(normalConeAxis.xyz));
+    if(coneAngle > meshlet.normalCone.w+1e-6){
+        return;
+    }
+
+    // frustum culling
+    vec4 boundBall = mv * vec4(meshlet.boundSphere.xyz,1.0);
+    float radius = meshlet.boundSphere.w;
+    if(camViewType > 0.5){
+        bMeshletCulled = frustumCullOrtho(boundBall,radius);
+    }else{
+        bMeshletCulled = frustumCull(boundBall,radius,tanHalfFovY);
+    }
+    if(bMeshletCulled){
+        //return;
+    }
+#endif
 
     // End culling
     if(isSecondCullingPass()){
@@ -431,7 +499,11 @@ void main(){
             uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups2,1) + 1;
             if(v == gl_NumWorkGroups.x){
                 uint m2 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2;
+#if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
+                uint issuedTasks = m2;
+#else
                 uint issuedTasks = (m2 + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
+#endif
                 GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2 = issuedTasks;
             }
         }
@@ -439,7 +511,11 @@ void main(){
             uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups1,1) + 1;
             if(v == gl_NumWorkGroups.x){
                 uint m1 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1;
+#if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
+                uint issuedTasks = m1;
+#else
                 uint issuedTasks = (m1 + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
+#endif
                 GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1 = issuedTasks;
             }
         }

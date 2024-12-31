@@ -131,7 +131,7 @@ float shadowMappingSingle(uint lightId, vec3 worldPos, float pcfRadius,uint csmI
     }
     float avgShadow = 0.0;
     
-    float kSearchRadiusPx = pcfRadius; //pcfRadius+0.5;
+    float kSearchRadiusPx = pcfRadius+0.5;
 
 #if SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_SAMPLING
     for(int k=0;k<SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_NUM_SAMPLES;k++){
@@ -140,7 +140,7 @@ float shadowMappingSingle(uint lightId, vec3 worldPos, float pcfRadius,uint csmI
         vec2 sampPos = uv + rot;
         sampPos = clamp(sampPos,vec2(0.0),vec2(1.0));
         float depth = texture(GetSampler2D(shadowRef),sampPos).r;
-        if(depth - lightPos.z < -5e-4 ){
+        if(depth - lightPos.z < -1e-3 ){
             avgShadow += 0.0;
         }else{
             avgShadow += 1.0;
@@ -270,11 +270,8 @@ float globalShadowMapping(vec3 worldPos, vec3 viewPos){
         
         // shadowMappingSingle(i,worldPos,4/lightOrthoSize,csmLevel);
         // pcssShadowMapSingle(i,worldPos,csmLevel);
-        float shadow0 = shadowMappingSingle(i,worldPos,2/lightOrthoSize,csmLevel);
+        float shadow0 = shadowMappingSingle(i,worldPos,4/lightOrthoSize,csmLevel);
         avgShadow = min(avgShadow,shadow0);
-        // if(csmLevel!=1){
-        //     return 1.0;
-        // }
     }
     return avgShadow;
 }

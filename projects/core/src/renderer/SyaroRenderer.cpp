@@ -80,6 +80,8 @@ IFRIT_APIDECL void SyaroRenderer::createTimer() {
   auto rhi = m_app->getRhiLayer();
   auto timer = rhi->createDeviceTimer();
   m_timer = timer;
+  auto deferTimer = rhi->createDeviceTimer();
+  m_timerDefer = deferTimer;
 }
 
 IFRIT_APIDECL SyaroRenderer::GPUShader *SyaroRenderer::createShaderFromFile(
@@ -576,7 +578,9 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
                                        RhiShaderStage::Fragment);
 
   m_visibilityPass = rhi->createGraphicsPass();
+#if !SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
   m_visibilityPass->setTaskShader(tsShader);
+#endif
   m_visibilityPass->setMeshShader(msShader);
   m_visibilityPass->setPixelShader(fsShader);
   m_visibilityPass->setNumBindlessDescriptorSets(3);
@@ -588,7 +592,9 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
   m_visibilityPass->setRenderTargetFormat(rtFmt);
 
   m_depthOnlyVisibilityPass = rhi->createGraphicsPass();
+#if !SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
   m_depthOnlyVisibilityPass->setTaskShader(tsShader);
+#endif
   m_depthOnlyVisibilityPass->setMeshShader(msShaderDepth);
   m_depthOnlyVisibilityPass->setNumBindlessDescriptorSets(3);
   m_depthOnlyVisibilityPass->setPushConstSize(sizeof(uint32_t));
@@ -858,7 +864,6 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
             RhiResourceState::DepthStencilRenderTarget, {0, 0, 1, 1});
       });
 
-  cmd->globalMemoryBarrier();
   cmd->beginScope("Syaro: Emit Depth Targets");
   m_emitDepthTargetsPass->run(cmd, 0);
   cmd->endScope();
@@ -1090,7 +1095,6 @@ SyaroRenderer::renderMaterialClassify(PerFrameData &perframeData,
       });
 
   // Start rendering
-  cmd->globalMemoryBarrier();
   cmd->beginScope("Syaro: Material Classification");
   m_matclassCountPass->run(cmd, 0);
   cmd->resourceBarrier(perframeData.m_matClassBarrier);
@@ -1283,12 +1287,9 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     if (!createCond) {
       return;
     }
-    // It seems nanite's paper uses
-    // R32G32 for mesh visibility, but
-    // I wonder the depth is implicitly
-    // calculated from the depth buffer
-    // so here I use R32 for visibility
-    // buffer
+    // It seems nanite's paper uses R32G32 for mesh visibility, but
+    // I wonder the depth is implicitly calculated from the depth buffer
+    // so here I use R32 for visibility buffer
     auto visBuffer = rhi->createRenderTargetTexture(
         visWidth, visHeight, PerFrameData::c_visibilityFormat,
         RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
@@ -1322,7 +1323,6 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     }
 
     // second pass rts
-
     perView.m_visDepthRT2 = rhi->createRenderTargetDepthStencil(
         visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Load);
     perView.m_visRTs2 = rhi->createRenderTargets();
@@ -1430,7 +1430,6 @@ SyaroRenderer::renderDefaultEmitGBuffer(PerFrameData &perframeData,
   });
   auto rhi = m_app->getRhiLayer();
   auto computeQueue = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
-  cmd->globalMemoryBarrier();
   cmd->beginScope("Syaro: Emit  GBuffer");
   m_defaultEmitGBufferPass->run(cmd, 0);
   cmd->endScope();
@@ -1734,7 +1733,7 @@ SyaroRenderer::render(
   auto end1 = std::chrono::high_resolution_clock::now();
   auto elapsed1 =
       std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
-  iDebug("CPU time, Aggregate shadow: {} ms", elapsed1.count() / 1000.0f);
+  // iDebug("CPU time, Aggregate shadow: {} ms", elapsed1.count() / 1000.0f);
 
   // Then draw
   auto rhi = m_app->getRhiLayer();
@@ -1766,7 +1765,7 @@ SyaroRenderer::render(
   auto end0 = std::chrono::high_resolution_clock::now();
   auto elapsed0 =
       std::chrono::duration_cast<std::chrono::microseconds>(end0 - start);
-  iDebug("CPU time, Setup: {} ms", elapsed0.count() / 1000.0f);
+  // iDebug("CPU time, Setup: {} ms", elapsed0.count() / 1000.0f);
 
   start = std::chrono::high_resolution_clock::now();
   auto mainTask = dq->runAsyncCommand(
@@ -1777,7 +1776,6 @@ SyaroRenderer::render(
         renderTwoPassOcclCulling(CullingPass::First, perframeData,
                                  renderTargets, cmd,
                                  PerFrameData::ViewType::Primary, ~0u);
-        cmd->globalMemoryBarrier();
         renderTwoPassOcclCulling(CullingPass::Second, perframeData,
                                  renderTargets, cmd,
                                  PerFrameData::ViewType::Primary, ~0u);
@@ -1786,25 +1784,26 @@ SyaroRenderer::render(
         renderEmitDepthTargets(perframeData, renderTargets, cmd);
         cmd->globalMemoryBarrier();
         renderMaterialClassify(perframeData, renderTargets, cmd);
-        cmd->globalMemoryBarrier();
         renderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
         cmd->globalMemoryBarrier();
 
         renderAmbientOccl(perframeData, renderTargets, cmd);
-        cmd->globalMemoryBarrier();
         cmd->endScope();
 
         for (uint32_t i = 0; i < perframeData.m_views.size(); i++) {
+          if (perframeData.m_views[i].m_viewType !=
+              PerFrameData::ViewType::Shadow) {
+            continue;
+          }
           cmd->beginScope("Syaro: Draw Call, Shadow View");
+          cmd->globalMemoryBarrier();
           auto &perView = perframeData.m_views[i];
           renderTwoPassOcclCulling(CullingPass::First, perframeData,
                                    renderTargets, cmd,
                                    PerFrameData::ViewType::Shadow, i);
-          cmd->globalMemoryBarrier();
           renderTwoPassOcclCulling(CullingPass::Second, perframeData,
                                    renderTargets, cmd,
                                    PerFrameData::ViewType::Shadow, i);
-          cmd->globalMemoryBarrier();
           cmd->endScope();
         }
         m_timer->stop(cmd);
@@ -1814,18 +1813,24 @@ SyaroRenderer::render(
   end0 = std::chrono::high_resolution_clock::now();
   elapsed0 =
       std::chrono::duration_cast<std::chrono::microseconds>(end0 - start);
-  iDebug("CPU time, MainView Cmd Recording: {} ms", elapsed0.count() / 1000.0f);
+  // iDebug("CPU time, MainView Cmd Recording: {} ms", elapsed0.count() /
+  // 1000.0f);
 
   start = std::chrono::high_resolution_clock::now();
   auto deferredTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
+        // iDebug("GPUTimer, Deferred: {} ms/frame",
+        // m_timerDefer->getElapsedMs());
+        // m_timerDefer->start(cmd);
         setupAndRunFrameGraph(perframeData, renderTargets, cmd);
+        // m_timerDefer->stop(cmd);
       },
       {mainTask.get()}, {});
   end0 = std::chrono::high_resolution_clock::now();
   elapsed0 =
       std::chrono::duration_cast<std::chrono::microseconds>(end0 - start);
-  iDebug("CPU time, Deferred Cmd Recording: {} ms", elapsed0.count() / 1000.0f);
+  // iDebug("CPU time, Deferred Cmd Recording: {} ms", elapsed0.count() /
+  // 1000.0f);
 
   return mainTask;
 }
@@ -1866,7 +1871,7 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
   auto end0 = std::chrono::high_resolution_clock::now();
   auto duration0 =
       std::chrono::duration_cast<std::chrono::milliseconds>(end0 - start);
-  iDebug("CPU time, frame collecting: {} ms", duration0.count());
+  // iDebug("CPU time, frame collecting: {} ms", duration0.count());
   perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5f;
   perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5f;
   auto ret = render(perframeData, renderTargets, cmdToWait);
@@ -1875,7 +1880,7 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
   auto end = std::chrono::high_resolution_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  iDebug("CPU time: {} ms", duration.count());
+  // iDebug("CPU time: {} ms", duration.count());
   return ret;
 }
 

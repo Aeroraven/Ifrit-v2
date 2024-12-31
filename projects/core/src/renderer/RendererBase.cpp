@@ -226,8 +226,8 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
 
   auto elapsed =
       std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  iDebug("CPU time, Collecting per frame data, shader effects: {} ms",
-         elapsed.count() / 1000.0f);
+  // iDebug("CPU time, Collecting per frame data, shader effects: {} ms",
+  //       elapsed.count() / 1000.0f);
   return;
 }
 IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,

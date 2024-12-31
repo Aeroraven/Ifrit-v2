@@ -29,7 +29,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "postprocessing/PostFxGlobalFog.h"
 #include "postprocessing/PostFxStockhamDFT2.h"
 
-
 namespace Ifrit::Core {
 class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
@@ -111,6 +110,7 @@ private:
 
   // Timer
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer> m_timer;
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer> m_timerDefer;
 
   // AO
   std::shared_ptr<AmbientOcclusionPass> m_aoPass;

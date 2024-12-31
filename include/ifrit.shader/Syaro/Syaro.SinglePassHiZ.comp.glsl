@@ -150,9 +150,6 @@ void main(){
     if(sharedCounter != totalTiles){
         return;
     }
-    if(sharedCounter == 0){
-        imageStore(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[7]),ivec2(15,15),vec4(1.0,0.0,0.0,0.0));
-    }
 
     // Last thread group, generate remaining mips
     for(uint i=6;i<uHiZPushConstant.mipLevels;++i){

@@ -48,7 +48,12 @@ namespace Ifrit::Core::SyaroConfig {
 
 // This macro determines whether to reuse the calculated triangle data during
 // the GBuffer emission. A thread will process 4 pixels (quad) at a time.
+// This sacrifices warp occupancy.
 #define SYARO_SHADER_SHARED_EMIT_GBUFFER_TRIANGLE_REUSE 1
+
+// Whether to move triangle culling from amplification shader to the persistent
+// cull stage. This drops amplification shader.
+#define SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL 1
 
 SYARO_DEFINE_UINT(cPersistentCullThreadGroupSizeX, 128);
 SYARO_DEFINE_UINT(cInstanceCullingThreadGroupSizeX, 64);

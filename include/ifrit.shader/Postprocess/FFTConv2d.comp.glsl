@@ -124,6 +124,16 @@ void stockhamFFTImpl(uint ori,uint logW,uint logH,uint unitId,uint anotherDim,ui
     float tRr = (vLr - vRr*c + vRi*s)/float(fftScale);
     float tRi = (vLi - vRi*c - vRr*s)/float(fftScale);
 
+    // if nan, set to 0
+    if(isnan(tLr)||isnan(tLi)){
+        tLr = 0.0;
+        tLi = 0.0;
+    }
+    if(isnan(tRr)||isnan(tRi)){
+        tRr = 0.0;
+        tRi = 0.0;
+    }
+
     storeFFTShared(iterId+1,lpos2+dj,vec2(tLr,tLi));
     storeFFTShared(iterId+1,lpos2+dj+stride,vec2(tRr,tRi));
 }
@@ -134,20 +144,6 @@ float rgbToLuma(vec4 v){
 
 vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pads,uvec2 coord,vec2 shift,uint paddingMode){
     // LR,TB: pad
-    if(imgId==0){
-        // loads from sobel kernel
-        int fftW = 1<<pc.fftTexSizeWLog;
-        int fftH = 1<<pc.fftTexSizeHLog;
-        int shiftedX = int(coord.x)-int(pads.x)+fftW/2+fftW;
-        int shiftedY = int(coord.y)-int(pads.z)+fftH/2+fftH;
-        shiftedX%=fftW;
-        shiftedY%=fftH;
-        if(shiftedX>=rtW/downscale||shiftedY>=rtH/downscale){
-            return vec4(0.0);
-        }
-        //return vec4(getSobelKernel(uint(shiftedX),uint(shiftedY)),vec3(0.0));
-        return vec4(getBoxBlurKernel(uint(shiftedX),uint(shiftedY),rtW,rtH),vec3(0.0));
-    }
     int fftW = 1<<pc.fftTexSizeWLog;
     int fftH = 1<<pc.fftTexSizeHLog;
     int shiftedX = int(coord.x)-int(pads.x);
