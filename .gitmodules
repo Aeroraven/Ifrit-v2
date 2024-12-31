@@ -4,3 +4,30 @@
 [submodule "dependencies/spirv_headers"]
 	path = dependencies/spirv_headers
 	url = git@github.com:KhronosGroup/SPIRV-Headers.git
+[submodule "dependencies/gklib"]
+	path = dependencies/gklib
+	url = git@github.com:Aeroraven/GKlib.git
+[submodule "dependencies/metis"]
+	path = dependencies/metis
+	url = git@github.com:Aeroraven/METIS.git
+[submodule "dependencies/meshoptimizer"]
+	path = dependencies/meshoptimizer
+	url = git@github.com:zeux/meshoptimizer.git
+[submodule "dependencies/glfw"]
+	path = dependencies/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "dependencies/cereal"]
+	path = dependencies/cereal
+	url = https://github.com/USCiLab/cereal.git
+[submodule "dependencies/sha1"]
+	path = dependencies/sha1
+	url = git@github.com:vog/sha1.git
+[submodule "dependencies/gcem"]
+	path = dependencies/gcem
+	url = https://github.com/kthohr/gcem.git
+[submodule "dependencies/spdlog"]
+	path = dependencies/spdlog
+	url = git@github.com:gabime/spdlog.git
+[submodule "dependencies/tinygltf2"]
+	path = dependencies/tinygltf2
+	url = git@github.com:syoyo/tinygltf.git

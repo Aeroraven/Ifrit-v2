@@ -1,23 +1,35 @@
 cmake_minimum_required(VERSION 3.10)
 project(Ifrit-v2-Component-LLVMExec)
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_STATIC_LIBRARY_PREFIX "")
 
 # Set the output directory for the build executables and libraries
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}../../bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}../../bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}../../bin)
-set(IFRIT_IRCOMPILE_OUT_DIR ${CMAKE_BINARY_DIR}../../bin)
+set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
+string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
+
+include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/ProjectShared.cmake)
+# Reset to CXX14
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+include_directories(${IFRIT_PROJECT_DIR}/include)
 add_library(ifrit.ircompile SHARED 
     ./src/LLVMExecRuntime.cpp
 )
 
-target_compile_options(ifrit.ircompile PRIVATE -O3)
-target_compile_options(ifrit.ircompile PRIVATE
-    -fno-exceptions
-    -fno-rtti
-)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -fno-stack-protector")
+set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
+string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
+message(STATUS "[IFRIT/EnvCheck]: Working Directory ${IFRIT_PROJECT_DIR}")
+
+if(NOT MSVC)
+    target_compile_options(ifrit.ircompile PRIVATE -O2)
+    target_compile_options(ifrit.ircompile PRIVATE
+        -fno-exceptions
+        -fno-rtti
+    )
+endif()
+if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -fno-stack-protector")
+endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_compile_definitions(ifrit.ircompile PRIVATE
@@ -31,10 +43,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
        ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/llvm/include
        ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/build/include
     )
-    target_link_directories(ifrit.ircompile PRIVATE ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/build/lib)
-    set_target_properties(ifrit.ircompile PROPERTIES
-        LINK_FLAGS "-Wl,--subsystem,windows,--output-def,../../../bin/ifrit.ircompile.def,--out-implib,ifrit.ircompile.a"
-    )
+    
+    if(MSVC)
+        target_link_directories(ifrit.ircompile PRIVATE ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/build/Debug/lib) #TODO
+    else()
+        target_link_directories(ifrit.ircompile PRIVATE ${IFRIT_GLOBAL_LLVM_DIR_WINDOWS}/build/lib)
+    endif()
     target_link_libraries(ifrit.ircompile PRIVATE
         LLVMOrcJIT
         LLVMPasses
@@ -63,7 +77,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         LLVMBitWriter
         LLVMX86Desc
         LLVMMCDisassembler
-        LLVMX86Utils
         LLVMX86Info
         LLVMMCJIT
         LLVMExecutionEngine
@@ -84,13 +97,16 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         LLVMBinaryFormat
         LLVMSupport
         LLVMDemangle
-        z
         psapi
         shell32
         ole32
         uuid
         advapi32
     )
+    if(NOT MSVC)
+        #add target link libraries: LLVMX86Utils
+        target_link_libraries(ifrit.ircompile PRIVATE LLVMX86Utils z)
+    endif()
 else()
     target_compile_definitions(ifrit.ircompile PRIVATE
         IFRIT_COMPONENT_LLVMEXEC_EXPORT
@@ -103,33 +119,12 @@ else()
     include_directories(${IFRIT_GLOBAL_LLVM_DIR_LINUX}/include)
     target_link_directories(ifrit.ircompile PRIVATE ${IFRIT_GLOBAL_LLVM_DIR_LINUX}/lib)
     set_target_properties(ifrit.ircompile PROPERTIES
-        LINK_FLAGS "-Wl,--out-implib,ifrit.ircompile.a"
+        LINK_FLAGS "-Wl,--out-implib,libifrit.ircompile.a"
     )
     target_link_libraries(ifrit.ircompile PRIVATE LLVM-10)
 endif()
 
-set_target_properties(ifrit.ircompile PROPERTIES PREFIX "")
-set_target_properties(ifrit.ircompile PROPERTIES
-    OUTPUT_NAME "ifrit.ircompile"
-)
-# Print ircompile output directory
-message(STATUS "[IFRIT/Output]: ${IFRIT_IRCOMPILE_OUT_DIR}")
-# If MinGW
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-        # libifrit.ircompile.dll.a rename to ifrit.ircompile.a
-        add_custom_command(TARGET ifrit.ircompile POST_BUILD
-            COMMAND cmd /c ren libifrit.ircompile.dll.a ifrit.ircompile.a
-            WORKING_DIRECTORY ${IFRIT_IRCOMPILE_OUT_DIR}
-        )
-        add_custom_command(TARGET ifrit.ircompile POST_BUILD
-            COMMAND dlltool --input-def ifrit.ircompile.def --dllname ifrit.ircompile.dll --output-lib ifrit.ircompile.lib
-            WORKING_DIRECTORY ${IFRIT_IRCOMPILE_OUT_DIR}
-        )
-        add_custom_command(
-            TARGET ifrit.ircompile POST_BUILD
-            COMMAND lib /def:ifrit.ircompile.def /out:ifrit.ircompile.lib /machine:x64
-            WORKING_DIRECTORY ${IFRIT_IRCOMPILE_OUT_DIR}
-        )
-    endif()
-endif()
+include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/WindowsLibConv.cmake)
+WindowsPrebuild(ifrit.ircompile ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "libifrit.ircompile")
+WindowsPostbuild(ifrit.ircompile "libifrit.ircompile.def" "libifrit.ircompile.dll" "libifrit.ircompile.lib" ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "x64")
+AddImpLib(ifrit.ircompile ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "libifrit.ircompile")
