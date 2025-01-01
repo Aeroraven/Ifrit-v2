@@ -25,14 +25,14 @@ Successor to following repos: [Ifrit](https://github.com/Aeroraven/Ifrit), [Aria
 
 The project is organized into following parts.
 
-- **`softrenderer`**: CUDA and CPU multithreaded SIMD software rasterizer & ray-tracer.
+- **`softgraphics`**: CUDA and CPU multithreaded SIMD software rasterizer & ray-tracer.
   - Covers culling, mesh shading pipeline (mesh shader), MSAA (up to 8x), mipmap, anisotropic filtering, SPIR-V JIT execution and shader derivatives.
   - CPU rasterizer is organized in TBR-like manner, utilize AVX2 instructions and tag buffer (with early-z) for performance gain.
   - For implementation details and performance, check [here](./projects/softgraphics/readme.md)
 - **`core`**: 
   - Implementation of the deferred renderer.
-  - Functionality covered: Temporal anti-aliasing, Compute-based culling(Compute Shader+Amplification Shader), FFT convolutional bloom, HBAO.
-- **`rhi/vkrenderer`**: Vulkan renderer, intended to be the refactored version for [my original implementation](https://github.com/Aeroraven/Aria).
+  - Functionality covered: Temporal anti-aliasing, Compute-based culling(Compute Shader+Amplification Shader), FFT convolutional bloom, HBAO, Compute-shader-based software rasterizer, Cascaded shadow mapping.
+- **`rhi/vkgraphics`**: Vulkan renderer, intended to be the refactored version for [my original implementation](https://github.com/Aeroraven/Aria).
   - Get rid of messy pass management, synchronization primitives and descriptor bindings in the original repo.
 - **`meshproclib`**: Mesh algorithms.
   - Nanite-like mesh level of details. 
@@ -57,7 +57,7 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 
 Following dependencies should be manually configured. Other dependencies will be configured via submodule.
 
-- OpenGL >= 3.3
+- OpenGL >= 4.6 
 - CMake >= 3.24
 - Vulkan SDK 1.3, or at least include:
   - Core Features 1.3

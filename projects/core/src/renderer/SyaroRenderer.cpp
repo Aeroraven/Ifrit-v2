@@ -16,14 +16,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/common/logging/Logging.h"
-
+#include "ifrit/core/renderer/SyaroRenderer.h"
 #include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/math/constfunc/ConstFunc.h"
 #include "ifrit/common/util/FileOps.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/renderer/RendererUtil.h"
-#include "ifrit/core/renderer/SyaroRenderer.h"
 #include "ifrit/core/renderer/util/RenderingUtils.h"
 #include <algorithm>
 #include <bit>
@@ -283,8 +281,9 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
                          {0, 0, 1, 1});
   for (auto i = 0; auto &x : resShadowMapTexs) {
     auto viewId = shadowMapTexIds[i];
-    fg.setImportedResource(x, perframeData.m_views[viewId].m_visPassDepth,
-                           {0, 0, 1, 1});
+    fg.setImportedResource(
+        x, perframeData.m_views[viewId].m_visibilityDepth_Combined.get(),
+        {0, 0, 1, 1});
     i++;
   }
   fg.setImportedResource(resDeferredShadowOutput,
@@ -297,7 +296,8 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   fg.setImportedResource(resBlurredShadowOutput,
                          perframeData.m_deferShadowMask.get(), {0, 0, 1, 1});
 
-  fg.setImportedResource(resPrimaryViewDepth, primaryView.m_visPassDepth,
+  fg.setImportedResource(resPrimaryViewDepth,
+                         primaryView.m_visibilityDepth_Combined.get(),
                          {0, 0, 1, 1});
   fg.setImportedResource(resDeferredShadingOutput,
                          m_postprocTex[{mainRtWidth, mainRtHeight}][0].get(),
@@ -336,7 +336,8 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     pushConst.m_perframe = primaryView.m_viewBufferId->getActiveId();
     pushConst.m_outTex = postprocId->getActiveId();
     pushConst.m_atmoData = atmoData;
-    pushConst.m_depthTex = primaryView.m_visDepthId->getActiveId();
+    pushConst.m_depthTex =
+        primaryView.m_visibilityDepthIdSRV_Combined->getActiveId();
     m_atmospherePass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
       ctx->m_cmd->setPushConst(m_atmospherePass, 0, sizeof(AtmoPushConst),
                                &pushConst);
@@ -359,7 +360,7 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     pc.numShadowMaps = perframeData.m_shadowData2.m_enabledShadowMaps;
     pc.shadowMapDataRef =
         perframeData.m_shadowData2.m_allShadowDataId->getActiveId();
-    pc.depthTexRef = primaryView.m_visDepthId->getActiveId();
+    pc.depthTexRef = primaryView.m_visibilityDepthIdSRV_Combined->getActiveId();
     cmd->beginScope("Syaro: Deferred Shadowing");
 
     auto targetRT = perframeData.m_deferShadowMaskRTs.get();
@@ -406,7 +407,7 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     pc.numShadowMaps = perframeData.m_shadowData2.m_enabledShadowMaps;
     pc.shadowMapDataRef =
         perframeData.m_shadowData2.m_allShadowDataId->getActiveId();
-    pc.depthTexRef = primaryView.m_visDepthId->getActiveId();
+    pc.depthTexRef = primaryView.m_visibilityDepthIdSRV_Combined->getActiveId();
     pc.shadowTexRef = perframeData.m_deferShadowMaskId->getActiveId();
     cmd->beginScope("Syaro: Deferred Shading");
     RenderingUtil::enqueueFullScreenPass(cmd, rhi, pass, postprocRT0.get(),
@@ -419,7 +420,7 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   fg.setExecutionFunction(passGlobalFog, [&]() {
     auto fogRT = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_rts;
     auto inputId = m_postprocTexId[{mainRtWidth, mainRtHeight}][0].get();
-    auto inputDepthId = primaryView.m_visDepthId.get();
+    auto inputDepthId = primaryView.m_visibilityDepthIdSRV_Combined.get();
     auto primaryViewId = primaryView.m_viewBufferId.get();
     m_globalFogPass->renderPostFx(cmd, fogRT.get(), inputId, inputDepthId,
                                   primaryViewId);
@@ -568,41 +569,67 @@ IFRIT_APIDECL void SyaroRenderer::setupTAAPass(RenderTargets *renderTargets) {
 
 IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
   auto rhi = m_app->getRhiLayer();
-  auto tsShader = createShaderFromFile("Syaro.VisBuffer.task.glsl", "main",
-                                       RhiShaderStage::Task);
-  auto msShader = createShaderFromFile("Syaro.VisBuffer.mesh.glsl", "main",
-                                       RhiShaderStage::Mesh);
-  auto msShaderDepth = createShaderFromFile("Syaro.VisBufferDepth.mesh.glsl",
-                                            "main", RhiShaderStage::Mesh);
-  auto fsShader = createShaderFromFile("Syaro.VisBuffer.frag.glsl", "main",
-                                       RhiShaderStage::Fragment);
 
-  m_visibilityPass = rhi->createGraphicsPass();
+  // Hardware Rasterize
+  if constexpr (true) {
+    auto tsShader = createShaderFromFile("Syaro.VisBuffer.task.glsl", "main",
+                                         RhiShaderStage::Task);
+    auto msShader = createShaderFromFile("Syaro.VisBuffer.mesh.glsl", "main",
+                                         RhiShaderStage::Mesh);
+    auto msShaderDepth = createShaderFromFile("Syaro.VisBufferDepth.mesh.glsl",
+                                              "main", RhiShaderStage::Mesh);
+    auto fsShader = createShaderFromFile("Syaro.VisBuffer.frag.glsl", "main",
+                                         RhiShaderStage::Fragment);
+
+    m_visibilityPassHW = rhi->createGraphicsPass();
 #if !SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
-  m_visibilityPass->setTaskShader(tsShader);
+    m_visibilityPassHW->setTaskShader(tsShader);
 #endif
-  m_visibilityPass->setMeshShader(msShader);
-  m_visibilityPass->setPixelShader(fsShader);
-  m_visibilityPass->setNumBindlessDescriptorSets(3);
-  m_visibilityPass->setPushConstSize(sizeof(uint32_t));
+    m_visibilityPassHW->setMeshShader(msShader);
+    m_visibilityPassHW->setPixelShader(fsShader);
+    m_visibilityPassHW->setNumBindlessDescriptorSets(3);
+    m_visibilityPassHW->setPushConstSize(sizeof(uint32_t));
 
-  Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat rtFmt;
-  rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_R32_UINT};
-  rtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
-  m_visibilityPass->setRenderTargetFormat(rtFmt);
+    Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat rtFmt;
+    rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_R32_UINT};
+    rtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
+    m_visibilityPassHW->setRenderTargetFormat(rtFmt);
 
-  m_depthOnlyVisibilityPass = rhi->createGraphicsPass();
+    m_depthOnlyVisibilityPassHW = rhi->createGraphicsPass();
 #if !SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
-  m_depthOnlyVisibilityPass->setTaskShader(tsShader);
+    m_depthOnlyVisibilityPassHW->setTaskShader(tsShader);
 #endif
-  m_depthOnlyVisibilityPass->setMeshShader(msShaderDepth);
-  m_depthOnlyVisibilityPass->setNumBindlessDescriptorSets(3);
-  m_depthOnlyVisibilityPass->setPushConstSize(sizeof(uint32_t));
+    m_depthOnlyVisibilityPassHW->setMeshShader(msShaderDepth);
+    m_depthOnlyVisibilityPassHW->setNumBindlessDescriptorSets(3);
+    m_depthOnlyVisibilityPassHW->setPushConstSize(sizeof(uint32_t));
 
-  Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat depthOnlyRtFmt;
-  depthOnlyRtFmt.m_colorFormats = {};
-  depthOnlyRtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
-  m_depthOnlyVisibilityPass->setRenderTargetFormat(depthOnlyRtFmt);
+    Ifrit::GraphicsBackend::Rhi::RhiRenderTargetsFormat depthOnlyRtFmt;
+    depthOnlyRtFmt.m_colorFormats = {};
+    depthOnlyRtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
+    m_depthOnlyVisibilityPassHW->setRenderTargetFormat(depthOnlyRtFmt);
+  }
+
+#if SYARO_ENABLE_SW_RASTERIZER
+  // Software Rasterize
+  if (true) {
+    auto csShader = createShaderFromFile("Syaro.SoftRasterize.comp.glsl",
+                                         "main", RhiShaderStage::Compute);
+    m_visibilityPassSW = rhi->createComputePass();
+    m_visibilityPassSW->setComputeShader(csShader);
+    m_visibilityPassSW->setNumBindlessDescriptorSets(3);
+    m_visibilityPassSW->setPushConstSize(sizeof(uint32_t) * 8);
+  }
+
+  // Combine software and hardware rasterize results
+  if (true) {
+    auto csShader = createShaderFromFile("Syaro.CombineVisBuffer.comp.glsl",
+                                         "main", RhiShaderStage::Compute);
+    m_visibilityCombinePass = rhi->createComputePass();
+    m_visibilityCombinePass->setComputeShader(csShader);
+    m_visibilityCombinePass->setNumBindlessDescriptorSets(0);
+    m_visibilityCombinePass->setPushConstSize(sizeof(uint32_t) * 8);
+  }
+#endif
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupInstanceCullingPass() {
@@ -614,7 +641,7 @@ IFRIT_APIDECL void SyaroRenderer::setupInstanceCullingPass() {
 IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
   auto rhi = m_app->getRhiLayer();
   m_persistentCullingPass = RenderingUtil::createComputePass(
-      rhi, "Syaro/Syaro.PersistentCulling.comp.glsl", 5, 1);
+      rhi, "Syaro/Syaro.PersistentCulling.comp.glsl", 5, 3);
 
   m_indirectDrawBuffer = rhi->createIndirectMeshDrawBufferDevice(
       1, Ifrit::GraphicsBackend::Rhi::RhiBufferUsage::
@@ -767,7 +794,7 @@ SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
 
   auto &primaryView = getPrimaryView(perframeData);
   perframeData.m_velocityMaterialDesc->addCombinedImageSampler(
-      primaryView.m_visibilityBuffer.get(),
+      primaryView.m_visibilityBuffer_Combined.get(),
       perframeData.m_visibilitySampler.get(), 1);
 
   // For gbuffer, depth is required to reconstruct position
@@ -777,7 +804,8 @@ SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
       perframeData.m_velocityMaterial.get(),
       perframeData.m_gbufferDepthSampler.get(), 0);
   perframeData.m_gbufferDepthIdX = rhi->registerCombinedImageSampler(
-      primaryView.m_visPassDepth, primaryView.m_visDepthSampler.get());
+      primaryView.m_visibilityDepth_Combined.get(),
+      primaryView.m_visDepthSampler.get());
 }
 
 IFRIT_APIDECL void
@@ -814,7 +842,9 @@ SyaroRenderer::recreateInstanceCullingBuffers(PerFrameData &perframe,
 
       view.m_visibilityBarrier.clear();
       view.m_visibilityBarrier = registerUAVBarriers(
-          {view.m_allFilteredMeshlets, view.m_allFilteredMeshletsCount}, {});
+          {view.m_allFilteredMeshletsHW, view.m_allFilteredMeshletsAllCount,
+           view.m_allFilteredMeshletsSW},
+          {});
     }
   }
 }
@@ -830,10 +860,13 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
   m_emitDepthTargetsPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
         auto primaryView = getPrimaryView(perframeData);
-
-        ctx->m_cmd->imageBarrier(primaryView.m_visPassDepth,
+#if !SYARO_ENABLE_SW_RASTERIZER
+        // This barrier is intentionally for layout transition. Sync barrier is
+        // issued via globalMemoryBarrier
+        ctx->m_cmd->imageBarrier(primaryView.m_visibilityDepth_Combined.get(),
                                  RhiResourceState::DepthStencilRenderTarget,
                                  RhiResourceState::Common, {0, 0, 1, 1});
+#endif
         ctx->m_cmd->imageBarrier(
             perframeData.m_velocityMaterial.get(), RhiResourceState::Undefined,
             RhiResourceState::UAVStorageImage, {0, 0, 1, 1});
@@ -859,9 +892,12 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
                                  RhiResourceState::UAVStorageImage,
                                  RhiResourceState::UAVStorageImage,
                                  {0, 0, 1, 1});
-        ctx->m_cmd->imageBarrier(
-            primaryView.m_visPassDepth, RhiResourceState::Common,
-            RhiResourceState::DepthStencilRenderTarget, {0, 0, 1, 1});
+#if !SYARO_ENABLE_SW_RASTERIZER
+        ctx->m_cmd->imageBarrier(primaryView.m_visibilityDepth_Combined.get(),
+                                 RhiResourceState::Common,
+                                 RhiResourceState::DepthStencilRenderTarget,
+                                 {0, 0, 1, 1});
+#endif
       });
 
   cmd->beginScope("Syaro: Emit Depth Targets");
@@ -930,14 +966,21 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
 
   m_persistentCullingPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
+        struct PersistCullPushConst {
+          uint32_t passNo;
+          uint32_t swOffset;
+          uint32_t rejectSwRaster;
+        } pcPersistCull;
+
         ctx->m_cmd->resourceBarrier(perView.m_persistCullBarrier);
         if (cullPass == CullingPass::First) {
-          ctx->m_cmd->uavBufferClear(perView.m_allFilteredMeshletsCount, 0);
-          ctx->m_cmd->uavBufferBarrier(perView.m_allFilteredMeshletsCount);
+          ctx->m_cmd->uavBufferClear(perView.m_allFilteredMeshletsAllCount, 0);
+          ctx->m_cmd->uavBufferBarrier(perView.m_allFilteredMeshletsAllCount);
           ctx->m_cmd->uavBufferClear(m_indirectDrawBuffer, 0);
           ctx->m_cmd->uavBufferBarrier(m_indirectDrawBuffer);
         } else {
-          ctx->m_cmd->uavBufferBarrier(perView.m_allFilteredMeshletsCount);
+          ctx->m_cmd->uavBufferBarrier(perView.m_allFilteredMeshletsAllCount);
+          ctx->m_cmd->uavBufferBarrier(perView.m_allFilteredMeshletsAllCount);
           ctx->m_cmd->uavBufferBarrier(m_indirectDrawBuffer);
         }
         // bind view buffer
@@ -952,40 +995,133 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
             m_persistentCullingPass, 4, perView.m_allFilteredMeshletsDesc);
         ctx->m_cmd->attachBindlessReferenceCompute(m_persistentCullingPass, 5,
                                                    perView.m_instCullDesc);
+        if (perView.m_viewType == PerFrameData::ViewType::Primary) {
+          pcPersistCull.rejectSwRaster = 0;
+        } else {
+          pcPersistCull.rejectSwRaster = 1;
+        }
         if (cullPass == CullingPass::First) {
-          ctx->m_cmd->setPushConst(m_persistentCullingPass, 0, sizeof(uint32_t),
-                                   &pcData[0]);
+          pcPersistCull.passNo = 0;
+          pcPersistCull.swOffset = perView.m_allFilteredMeshlets_SWOffset;
+
+          ctx->m_cmd->setPushConst(m_persistentCullingPass, 0,
+                                   sizeof(PersistCullPushConst),
+                                   &pcPersistCull);
           ctx->m_cmd->dispatchIndirect(perView.m_persistCullIndirectDispatch,
                                        0);
         } else if (cullPass == CullingPass::Second) {
-          ctx->m_cmd->setPushConst(m_persistentCullingPass, 0, sizeof(uint32_t),
-                                   &pcData[1]);
+          pcPersistCull.passNo = 1;
+          pcPersistCull.swOffset = perView.m_allFilteredMeshlets_SWOffset;
+
+          ctx->m_cmd->setPushConst(m_persistentCullingPass, 0,
+                                   sizeof(PersistCullPushConst),
+                                   &pcPersistCull);
           ctx->m_cmd->dispatchIndirect(perView.m_persistCullIndirectDispatch,
                                        6 * sizeof(uint32_t));
         }
       });
 
-  auto &visPass = (filteredViewType == PerFrameData::ViewType::Primary)
-                      ? m_visibilityPass
-                      : m_depthOnlyVisibilityPass;
-  visPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+  auto &visPassHW = (filteredViewType == PerFrameData::ViewType::Primary)
+                        ? m_visibilityPassHW
+                        : m_depthOnlyVisibilityPassHW;
+  visPassHW->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     // bind view buffer
-    ctx->m_cmd->attachBindlessReferenceGraphics(visPass, 1,
+    ctx->m_cmd->attachBindlessReferenceGraphics(visPassHW, 1,
                                                 perView.m_viewBindlessRef);
     ctx->m_cmd->attachBindlessReferenceGraphics(
-        visPass, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
+        visPassHW, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
     ctx->m_cmd->setCullMode(RhiCullMode::Back);
     ctx->m_cmd->attachBindlessReferenceGraphics(
-        visPass, 3, perView.m_allFilteredMeshletsDesc);
+        visPassHW, 3, perView.m_allFilteredMeshletsDesc);
     if (cullPass == CullingPass::First) {
-      ctx->m_cmd->setPushConst(visPass, 0, sizeof(uint32_t), &pcData[0]);
-      ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsCount,
+      ctx->m_cmd->setPushConst(visPassHW, 0, sizeof(uint32_t), &pcData[0]);
+      ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsAllCount,
                                         sizeof(uint32_t) * 3, 1, 0);
     } else {
-      ctx->m_cmd->setPushConst(visPass, 0, sizeof(uint32_t), &pcData[1]);
-      ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsCount,
+      ctx->m_cmd->setPushConst(visPassHW, 0, sizeof(uint32_t), &pcData[1]);
+      ctx->m_cmd->drawMeshTasksIndirect(perView.m_allFilteredMeshletsAllCount,
                                         sizeof(uint32_t) * 0, 1, 0);
     }
+  });
+
+  auto &visPassSW = m_visibilityPassSW;
+
+  visPassSW->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    // if this is the first pass, we need to clear the visibility buffer
+    // seems cleaing visibility buffer is not necessary. Just clear the depth
+    if (cullPass == CullingPass::First) {
+      ctx->m_cmd->uavBufferClear(perView.m_visPassDepth_SW,
+                                 0xffffffff); // clear to max_uint
+      ctx->m_cmd->uavBufferClear(perView.m_visPassDepthCASLock_SW, 0);
+      ctx->m_cmd->uavBufferBarrier(perView.m_visPassDepth_SW);
+      ctx->m_cmd->uavBufferBarrier(perView.m_visPassDepthCASLock_SW);
+    }
+    // bind view buffer
+    ctx->m_cmd->attachBindlessReferenceCompute(visPassSW, 1,
+                                               perView.m_viewBindlessRef);
+    ctx->m_cmd->attachBindlessReferenceCompute(
+        visPassSW, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
+    ctx->m_cmd->attachBindlessReferenceCompute(
+        visPassSW, 3, perView.m_allFilteredMeshletsDesc);
+
+    struct SWPushConst {
+      uint32_t passNo;
+      uint32_t depthBufferId;
+      uint32_t visBufferId;
+      uint32_t rtHeight;
+      uint32_t rtWidth;
+      uint32_t swOffset;
+      uint32_t casBufferId;
+    } pcsw;
+    pcsw.passNo = cullPass == CullingPass::First ? 0 : 1;
+    pcsw.depthBufferId = perView.m_visDepthId_SW->getActiveId();
+    pcsw.visBufferId = perView.m_visBufferIdUAV_SW->getActiveId();
+    pcsw.rtHeight = perView.m_renderHeight;
+    pcsw.rtWidth = perView.m_renderWidth;
+    pcsw.swOffset = perView.m_allFilteredMeshlets_SWOffset;
+    pcsw.casBufferId = perView.m_visDepthCASLockId_SW->getActiveId();
+    ctx->m_cmd->setPushConst(visPassSW, 0, sizeof(SWPushConst), &pcsw);
+    if (cullPass == CullingPass::First) {
+      ctx->m_cmd->dispatchIndirect(perView.m_allFilteredMeshletsAllCount,
+                                   sizeof(uint32_t) * 13);
+    } else {
+      ctx->m_cmd->dispatchIndirect(perView.m_allFilteredMeshletsAllCount,
+                                   sizeof(uint32_t) * 10);
+    }
+  });
+
+  auto &combinePass = m_visibilityCombinePass;
+
+  combinePass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    struct CombinePassPushConst {
+      uint32_t hwVisUAVId;
+      uint32_t hwDepthSRVId;
+      uint32_t swVisUAVId;
+      uint32_t swDepthUAVId;
+      uint32_t rtWidth;
+      uint32_t rtHeight;
+      uint32_t outVisUAVId;
+      uint32_t outDepthUAVId;
+    } pcCombine;
+    pcCombine.rtWidth = perView.m_renderWidth;
+    pcCombine.rtHeight = perView.m_renderHeight;
+    pcCombine.outVisUAVId =
+        perView.m_visibilityBufferIdUAV_Combined->getActiveId();
+    pcCombine.outDepthUAVId =
+        perView.m_visibilityDepthIdUAV_Combined->getActiveId();
+    // Testing, not specifying sw ids
+    pcCombine.hwVisUAVId = perView.m_visBufferIdUAV_HW->getActiveId();
+    pcCombine.hwDepthSRVId = perView.m_visDepthId_HW->getActiveId();
+    pcCombine.swVisUAVId = perView.m_visBufferIdUAV_SW->getActiveId();
+    pcCombine.swDepthUAVId = perView.m_visDepthId_SW->getActiveId();
+
+    constexpr auto wgSizeX = SyaroConfig::cCombineVisBufferThreadGroupSizeX;
+    constexpr auto wgSizeY = SyaroConfig::cCombineVisBufferThreadGroupSizeY;
+
+    auto tgX = Math::ConstFunc::divRoundUp(pcCombine.rtWidth, wgSizeX);
+    auto tgY = Math::ConstFunc::divRoundUp(pcCombine.rtHeight, wgSizeY);
+    cmd->setPushConst(combinePass, 0, sizeof(pcCombine), &pcCombine);
+    ctx->m_cmd->dispatch(tgX, tgY, 1);
   });
 
   // auto &primaryView = getPrimaryView(perframeData);
@@ -1017,20 +1153,30 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
   m_persistentCullingPass->run(cmd, 0);
   cmd->endScope();
   cmd->globalMemoryBarrier();
-  auto visPassRd = (filteredViewType == PerFrameData::ViewType::Primary)
-                       ? m_visibilityPass
-                       : m_depthOnlyVisibilityPass;
+
+  // HW Rasterize
+  cmd->beginScope("Syaro: HW Rasterize");
   if (cullPass == CullingPass::First) {
-    // PERFORMANCE BOTTLNECK
-    cmd->beginScope("Syaro: Visibility Pass, First");
-    visPassRd->run(cmd, perView.m_visRTs.get(), 0);
-    cmd->endScope();
+    visPassHW->run(cmd, perView.m_visRTs_HW.get(), 0);
   } else {
     // we wont clear the visibility buffer in the second pass
-    cmd->beginScope("Syaro: Visibility Pass, Second");
-    visPassRd->run(cmd, perView.m_visRTs2.get(), 0);
-    cmd->endScope();
+    visPassHW->run(cmd, perView.m_visRTs2_HW.get(), 0);
   }
+  cmd->endScope();
+
+  // SW Rasterize, Run in parallel with HW Rasterize. Not specify barrier here
+  cmd->beginScope("Syaro: SW Rasterize");
+  visPassSW->run(cmd, 0);
+  cmd->endScope();
+
+  // Combine HW and SW results,
+  cmd->globalMemoryBarrier();
+  cmd->beginScope("Syaro: SW Rasterize Merge");
+  combinePass->run(cmd, 0);
+  cmd->endScope();
+
+  // Run hi-z pass
+
   cmd->globalMemoryBarrier();
   cmd->beginScope("Syaro: HiZ Pass");
   m_singlePassHiZPass->run(cmd, 0);
@@ -1148,7 +1294,7 @@ IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
       });
       rWidth = std::max(1u, rWidth / 2);
       rHeight = std::max(1u, rHeight / 2);
-      desc->addCombinedImageSampler(perView.m_visPassDepth,
+      desc->addCombinedImageSampler(perView.m_visibilityDepth_Combined.get(),
                                     perView.m_hizDepthSampler.get(), 0);
       desc->addUAVImage(perView.m_hizTexture.get(),
                         {static_cast<uint32_t>(std::max(0, i - 1)), 0, 1, 1},
@@ -1243,7 +1389,8 @@ SyaroRenderer::sphizBufferSetup(PerFrameData &perframeData,
     perView.m_spHiZData.m_hizDesc->addStorageBuffer(
         perView.m_spHiZData.m_hizRefBuffer, 1);
     perView.m_spHiZData.m_hizDesc->addCombinedImageSampler(
-        perView.m_visPassDepth, perView.m_spHiZData.m_hizSampler.get(), 0);
+        perView.m_visibilityDepth_Combined.get(),
+        perView.m_spHiZData.m_hizSampler.get(), 0);
     perView.m_spHiZData.m_hizDesc->addStorageBuffer(
         perView.m_spHiZData.m_hizAtomics, 2);
 
@@ -1261,10 +1408,11 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
 
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     auto &perView = perframeData.m_views[k];
-    bool createCond = (perView.m_visibilityBuffer == nullptr);
+    bool createCond = (perView.m_visibilityBuffer_Combined == nullptr);
+
     if (!createCond) {
-      auto visHeight = perView.m_visibilityBuffer->getHeight();
-      auto visWidth = perView.m_visibilityBuffer->getWidth();
+      auto visHeight = perView.m_visibilityBuffer_Combined->getHeight();
+      auto visWidth = perView.m_visibilityBuffer_Combined->getWidth();
       auto rtSize = renderTargets->getRenderArea();
       createCond = (visHeight != rtSize.height + rtSize.x ||
                     visWidth != rtSize.width + rtSize.y);
@@ -1281,8 +1429,6 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
         std::abort();
       }
     }
-    // TODO: all shadow passes do not need visibility buffer, but
-    //  depth buffer is required for shadow passes
 
     if (!createCond) {
       return;
@@ -1290,64 +1436,130 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     // It seems nanite's paper uses R32G32 for mesh visibility, but
     // I wonder the depth is implicitly calculated from the depth buffer
     // so here I use R32 for visibility buffer
-    auto visBuffer = rhi->createRenderTargetTexture(
-        visWidth, visHeight, PerFrameData::c_visibilityFormat,
-        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
-    auto visDepth = rhi->createDepthRenderTexture(visWidth, visHeight);
-    auto visDepthSampler = rhi->createTrivialSampler();
-    perView.m_visibilityBuffer = visBuffer;
+    // Update: Now it's required for SW rasterizer. But I use a separate buffer
 
-    // first pass rts
-    perView.m_visPassDepth = visDepth;
-    perView.m_visDepthSampler = visDepthSampler;
-    perView.m_visDepthId = rhi->registerCombinedImageSampler(
-        perView.m_visPassDepth, perView.m_visDepthSampler.get());
-    perView.m_visDepthRT = rhi->createRenderTargetDepthStencil(
-        visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
+    // For HW rasterizer
+    if constexpr (true) {
+      auto visBufferHW = rhi->createRenderTargetTexture(
+          visWidth, visHeight, PerFrameData::c_visibilityFormat,
+          RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+      auto visDepthHW = rhi->createDepthRenderTexture(visWidth, visHeight);
+      auto visDepthSampler = rhi->createTrivialSampler();
+      perView.m_visibilityBuffer_HW = visBufferHW;
+      perView.m_visBufferIdUAV_HW = rhi->registerUAVImage(
+          perView.m_visibilityBuffer_HW.get(), {0, 0, 1, 1});
 
-    perView.m_visRTs = rhi->createRenderTargets();
-    if (perView.m_viewType == PerFrameData::ViewType::Primary) {
-      perView.m_visColorRT = rhi->createRenderTarget(
-          visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Clear, 0, 0);
-      perView.m_visRTs->setColorAttachments({perView.m_visColorRT.get()});
-    } else {
-      // shadow passes do not need color attachment
-      perView.m_visRTs->setColorAttachments({});
-    }
-    perView.m_visRTs->setDepthStencilAttachment(perView.m_visDepthRT.get());
-    perView.m_visRTs->setRenderArea(renderTargets->getRenderArea());
-    if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
-      auto rtHeight = (perView.m_renderHeight);
-      auto rtWidth = (perView.m_renderWidth);
-      perView.m_visRTs->setRenderArea({0, 0, rtWidth, rtHeight});
+      // first pass rts
+      perView.m_visPassDepth_HW = visDepthHW;
+      perView.m_visDepthSampler = visDepthSampler;
+      perView.m_visDepthId_HW = rhi->registerCombinedImageSampler(
+          perView.m_visPassDepth_HW.get(), perView.m_visDepthSampler.get());
+      perView.m_visDepthRT_HW = rhi->createRenderTargetDepthStencil(
+          visDepthHW.get(), {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
+
+      perView.m_visRTs_HW = rhi->createRenderTargets();
+      if (perView.m_viewType == PerFrameData::ViewType::Primary) {
+        perView.m_visColorRT_HW =
+            rhi->createRenderTarget(visBufferHW.get(), {{0, 0, 0, 0}},
+                                    RhiRenderTargetLoadOp::Clear, 0, 0);
+        perView.m_visRTs_HW->setColorAttachments(
+            {perView.m_visColorRT_HW.get()});
+      } else {
+        // shadow passes do not need color attachment
+        perView.m_visRTs_HW->setColorAttachments({});
+      }
+      perView.m_visRTs_HW->setDepthStencilAttachment(
+          perView.m_visDepthRT_HW.get());
+      perView.m_visRTs_HW->setRenderArea(renderTargets->getRenderArea());
+      if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
+        auto rtHeight = (perView.m_renderHeight);
+        auto rtWidth = (perView.m_renderWidth);
+        perView.m_visRTs_HW->setRenderArea({0, 0, rtWidth, rtHeight});
+      }
+
+      // second pass rts
+      perView.m_visDepthRT2_HW = rhi->createRenderTargetDepthStencil(
+          visDepthHW.get(), {{}, 1.0f}, RhiRenderTargetLoadOp::Load);
+      perView.m_visRTs2_HW = rhi->createRenderTargets();
+      if (perView.m_viewType == PerFrameData::ViewType::Primary) {
+        perView.m_visColorRT2_HW =
+            rhi->createRenderTarget(visBufferHW.get(), {{0, 0, 0, 0}},
+                                    RhiRenderTargetLoadOp::Load, 0, 0);
+        perView.m_visRTs2_HW->setColorAttachments(
+            {perView.m_visColorRT2_HW.get()});
+      } else {
+        // shadow passes do not need color attachment
+        perView.m_visRTs2_HW->setColorAttachments({});
+      }
+      perView.m_visRTs2_HW->setDepthStencilAttachment(
+          perView.m_visDepthRT2_HW.get());
+      perView.m_visRTs2_HW->setRenderArea(renderTargets->getRenderArea());
+      if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
+        auto rtHeight = (perView.m_renderHeight);
+        auto rtWidth = (perView.m_renderWidth);
+        perView.m_visRTs2_HW->setRenderArea({0, 0, rtWidth, rtHeight});
+      }
+
+      // Then a sampler
+      perframeData.m_visibilitySampler = rhi->createTrivialSampler();
     }
 
-    // second pass rts
-    perView.m_visDepthRT2 = rhi->createRenderTargetDepthStencil(
-        visDepth, {{}, 1.0f}, RhiRenderTargetLoadOp::Load);
-    perView.m_visRTs2 = rhi->createRenderTargets();
-    if (perView.m_viewType == PerFrameData::ViewType::Primary) {
-      perView.m_visColorRT2 = rhi->createRenderTarget(
-          visBuffer.get(), {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Load, 0, 0);
-      perView.m_visRTs2->setColorAttachments({perView.m_visColorRT2.get()});
-    } else {
-      // shadow passes do not need color attachment
-      perView.m_visRTs2->setColorAttachments({});
-    }
-    perView.m_visRTs2->setDepthStencilAttachment(perView.m_visDepthRT2.get());
-    perView.m_visRTs2->setRenderArea(renderTargets->getRenderArea());
-    if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
-      auto rtHeight = (perView.m_renderHeight);
-      auto rtWidth = (perView.m_renderWidth);
-      perView.m_visRTs2->setRenderArea({0, 0, rtWidth, rtHeight});
+#if SYARO_ENABLE_SW_RASTERIZER
+    // For SW rasterizer
+    if constexpr (true) {
+      perView.m_visibilityBuffer_SW = rhi->createRenderTargetTexture(
+          visWidth, visHeight, PerFrameData::c_visibilityFormat,
+          RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+      perView.m_visPassDepth_SW = rhi->createStorageBufferDevice(
+          sizeof(uint64_t) * visWidth * visHeight,
+          RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+      perView.m_visPassDepthCASLock_SW = rhi->createStorageBufferDevice(
+          sizeof(float) * visWidth * visHeight,
+          RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+      perView.m_visDepthId_SW =
+          rhi->registerStorageBuffer(perView.m_visPassDepth_SW);
+      perView.m_visDepthCASLockId_SW =
+          rhi->registerStorageBuffer(perView.m_visPassDepthCASLock_SW);
+      perView.m_visBufferIdUAV_SW = rhi->registerUAVImage(
+          perView.m_visibilityBuffer_SW.get(), {0, 0, 1, 1});
     }
 
-    // Then a sampler
-    perframeData.m_visibilitySampler = rhi->createTrivialSampler();
-    perframeData.m_visShowCombinedRef = rhi->createBindlessDescriptorRef();
-    perframeData.m_visShowCombinedRef->addCombinedImageSampler(
-        perView.m_visibilityBuffer.get(),
-        perframeData.m_visibilitySampler.get(), 0);
+    // For combined buffer
+    if constexpr (true) {
+      perView.m_visibilityBuffer_Combined = rhi->createRenderTargetTexture(
+          visWidth, visHeight, PerFrameData::c_visibilityFormat,
+          RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+      perView.m_visibilityDepth_Combined = rhi->createRenderTargetTexture(
+          visWidth, visHeight, RhiImageFormat::RHI_FORMAT_R32_SFLOAT,
+          RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+      perView.m_visibilityBufferIdUAV_Combined = rhi->registerUAVImage(
+          perView.m_visibilityBuffer_Combined.get(), {0, 0, 1, 1});
+      perView.m_visibilityDepthIdUAV_Combined = rhi->registerUAVImage(
+          perView.m_visibilityDepth_Combined.get(), {0, 0, 1, 1});
+      perView.m_visibilityBufferIdSRV_Combined =
+          rhi->registerCombinedImageSampler(
+              perView.m_visibilityBuffer_Combined.get(),
+              perframeData.m_visibilitySampler.get());
+      perView.m_visibilityDepthIdSRV_Combined =
+          rhi->registerCombinedImageSampler(
+              perView.m_visibilityDepth_Combined.get(),
+              perframeData.m_visibilitySampler.get());
+    }
+#else
+    if constexpr (true) {
+      perView.m_visibilityDepth_Combined = perView.m_visPassDepth_HW;
+      perView.m_visibilityBuffer_Combined = perView.m_visibilityBuffer_HW;
+      perView.m_visibilityDepthIdSRV_Combined = perView.m_visDepthId_HW;
+      perView.m_visibilityBufferIdSRV_Combined =
+          rhi->registerCombinedImageSampler(
+              perView.m_visibilityBuffer_Combined.get(),
+              perframeData.m_visibilitySampler.get());
+      // UAV is not needed for HW rasterizer
+      perView.m_visibilityBufferIdUAV_Combined = nullptr;
+      perView.m_visibilityDepthIdUAV_Combined = nullptr;
+    }
+#endif
   }
 }
 
@@ -1519,8 +1731,7 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
       if (mesh->m_numMeshletsEachLod.size() > 1) {
         lv1Meshlets = mesh->m_numMeshletsEachLod[1];
       }
-      // iInfo("Meshlets: {} {}", lv0Meshlets, lv1Meshlets);
-      totalMeshlets += (lv0Meshlets + lv1Meshlets) * objDataSize;
+      totalMeshlets += (lv0Meshlets + lv1Meshlets);
     }
   }
   auto activeBuf =
@@ -1534,34 +1745,46 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
   activeBuf->flush();
   activeBuf->unmap();
 
-  RhiBuffer *allFilteredMeshlets = nullptr;
+  RhiBuffer *allFilteredMeshletsHW = nullptr;
+  RhiBuffer *allFilteredMeshletsSW = nullptr;
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     auto &perView = perframeData.m_views[k];
-    if (perView.m_allFilteredMeshletsCount == nullptr) {
-      perView.m_allFilteredMeshletsCount =
+    if (perView.m_allFilteredMeshletsAllCount == nullptr) {
+      perView.m_allFilteredMeshletsAllCount =
           rhi->createIndirectMeshDrawBufferDevice(
-              4, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
+              8, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
                      RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     }
     if (perView.m_allFilteredMeshletsMaxCount < totalMeshlets) {
       perView.m_allFilteredMeshletsMaxCount = totalMeshlets;
-      if (true) {
-        if (allFilteredMeshlets == nullptr) {
-          allFilteredMeshlets = rhi->createStorageBufferDevice(
-              totalMeshlets * sizeof(uint32_t) * 5 / 4 + 1,
-              RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        }
-        perView.m_allFilteredMeshlets = allFilteredMeshlets;
-      } else {
-        perView.m_allFilteredMeshlets = rhi->createStorageBufferDevice(
-            totalMeshlets * sizeof(uint32_t) * 5 / 4 + 1,
+      constexpr uint32_t bufMultiplier = 1 + SYARO_ENABLE_SW_RASTERIZER;
+      if (allFilteredMeshletsHW == nullptr) {
+        allFilteredMeshletsHW = rhi->createStorageBufferDevice(
+            totalMeshlets * bufMultiplier * sizeof(iint2) + 2,
             RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
       }
+      perView.m_allFilteredMeshletsHW = allFilteredMeshletsHW;
+
+#if SYARO_ENABLE_SW_RASTERIZER
+      if (allFilteredMeshletsSW == nullptr) {
+        allFilteredMeshletsSW = allFilteredMeshletsHW;
+      }
+      perView.m_allFilteredMeshlets_SWOffset = totalMeshlets + 1;
+      perView.m_allFilteredMeshletsSW = allFilteredMeshletsSW;
+#endif
+
       perView.m_allFilteredMeshletsDesc = rhi->createBindlessDescriptorRef();
       perView.m_allFilteredMeshletsDesc->addStorageBuffer(
-          perView.m_allFilteredMeshlets, 0);
+          perView.m_allFilteredMeshletsHW, 0);
+#if SYARO_ENABLE_SW_RASTERIZER
       perView.m_allFilteredMeshletsDesc->addStorageBuffer(
-          perView.m_allFilteredMeshletsCount, 1);
+          perView.m_allFilteredMeshletsSW, 1);
+#else
+      perView.m_allFilteredMeshletsDesc->addStorageBuffer(
+          perView.m_allFilteredMeshletsHW, 1);
+#endif
+      perView.m_allFilteredMeshletsDesc->addStorageBuffer(
+          perView.m_allFilteredMeshletsAllCount, 2);
     }
   }
 }
@@ -1581,7 +1804,8 @@ SyaroRenderer::prepareAggregatedShadowData(PerFrameData &perframeData) {
   for (auto d = 0; auto &x : shadowData.m_shadowViews) {
     for (auto i = 0u; i < x.m_csmSplits; i++) {
       auto idx = x.m_viewMapping[i];
-      x.m_texRef[i] = perframeData.m_views[idx].m_visDepthId->getActiveId();
+      x.m_texRef[i] = perframeData.m_views[idx]
+                          .m_visibilityDepthIdSRV_Combined->getActiveId();
       x.m_viewRef[i] = perframeData.m_views[idx].m_viewBufferId->getActiveId();
     }
   }
@@ -1713,7 +1937,7 @@ SyaroRenderer::render(
   visibilityBufferSetup(perframeData, renderTargets);
   auto &primaryView = getPrimaryView(perframeData);
   buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
-                 primaryView.m_visRTs.get());
+                 primaryView.m_visRTs_HW.get());
   prepareDeviceResources(perframeData, renderTargets);
 
   gatherAllInstances(perframeData);

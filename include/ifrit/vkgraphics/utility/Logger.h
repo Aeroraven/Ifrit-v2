@@ -29,7 +29,35 @@ inline void vkrAssert(bool condition, const char *message) {
 inline void vkrDebug(const char *message) { iDebug(message); }
 inline void vkrVulkanAssert(VkResult result, const char *message) {
   if (result != VK_SUCCESS) {
-    iError("Error code: {}", static_cast<uint32_t>(result));
+    iError("Error code: {}", static_cast<int32_t>(result));
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+      iError("Error details: VK_ERROR_OUT_OF_DATE_KHR");
+    } else if (result == VK_ERROR_DEVICE_LOST) {
+      iError("Error details: VK_ERROR_DEVICE_LOST");
+    } else if (result == VK_ERROR_SURFACE_LOST_KHR) {
+      iError("Error details: VK_ERROR_SURFACE_LOST_KHR");
+    } else if (result == VK_ERROR_OUT_OF_HOST_MEMORY) {
+      iError("Error details: VK_ERROR_OUT_OF_HOST_MEMORY");
+    } else if (result == VK_ERROR_OUT_OF_DEVICE_MEMORY) {
+      iError("Error details: VK_ERROR_OUT_OF_DEVICE_MEMORY");
+    } else if (result == VK_ERROR_INITIALIZATION_FAILED) {
+      iError("Error details: VK_ERROR_INITIALIZATION_FAILED");
+    } else if (result == VK_ERROR_EXTENSION_NOT_PRESENT) {
+      iError("Error details: VK_ERROR_EXTENSION_NOT_PRESENT");
+    } else if (result == VK_ERROR_FEATURE_NOT_PRESENT) {
+      iError("Error details: VK_ERROR_FEATURE_NOT_PRESENT");
+    } else if (result == VK_ERROR_INCOMPATIBLE_DRIVER) {
+      iError("Error details: VK_ERROR_INCOMPATIBLE_DRIVER");
+    } else if (result == VK_ERROR_TOO_MANY_OBJECTS) {
+      iError("Error details: VK_ERROR_TOO_MANY_OBJECTS");
+    } else if (result == VK_ERROR_FORMAT_NOT_SUPPORTED) {
+      iError("Error details: VK_ERROR_FORMAT_NOT_SUPPORTED");
+    } else if (result == VK_ERROR_FRAGMENTED_POOL) {
+      iError("Error details: VK_ERROR_FRAGMENTED_POOL");
+    } else if (result == VK_ERROR_UNKNOWN) {
+      iError("Error details: VK_ERROR_UNKNOWN");
+    }
+
     throw std::runtime_error(message);
   }
 }

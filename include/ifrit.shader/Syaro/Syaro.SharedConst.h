@@ -55,6 +55,9 @@ namespace Ifrit::Core::SyaroConfig {
 // cull stage. This drops amplification shader.
 #define SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL 1
 
+// Whether to enable SW rasterizer
+#define SYARO_ENABLE_SW_RASTERIZER 1
+
 SYARO_DEFINE_UINT(cPersistentCullThreadGroupSizeX, 128);
 SYARO_DEFINE_UINT(cInstanceCullingThreadGroupSizeX, 64);
 
@@ -86,6 +89,9 @@ SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop_ClusterGroup, 3);
 
 SYARO_DEFINE_UINT(cPersistentCullParallelStg,
                   cPersistentCullParallelStg_StridedLoop_ClusterGroup);
+
+SYARO_DEFINE_UINT(cCombineVisBufferThreadGroupSizeX, 16);
+SYARO_DEFINE_UINT(cCombineVisBufferThreadGroupSizeY, 16);
 
 #define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_SAMPLING 1
 #define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_NUM_SAMPLES 32

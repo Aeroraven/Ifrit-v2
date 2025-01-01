@@ -61,3 +61,26 @@ RegisterUniform(bPerframeView,{
 RegisterStorage(bPerObjectRef,{
     PerObjectData data[];
 });
+RegisterStorage(bDrawCallSize,{
+    uint x2;
+    uint y2;
+    uint z2;
+    uint x1;
+    uint y1;
+    uint z1;
+    uint completedWorkGroups1;
+    uint completedWorkGroups2;
+    uint meshletsToDraw1;
+    uint meshletsToDraw2; 
+
+    uint x2sw;
+    uint y2sw;
+    uint z2sw;
+    uint x1sw;
+    uint y1sw;
+    uint z1sw;
+    uint completedWorkGroups1sw;
+    uint completedWorkGroups2sw;
+    uint meshletsToDraw1sw;
+    uint meshletsToDraw2sw; 
+});

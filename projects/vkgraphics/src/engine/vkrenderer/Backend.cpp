@@ -234,7 +234,7 @@ RhiVulkanBackend::createTexture2D(uint32_t width, uint32_t height,
       width, height, toVkFormat(format), extraFlags);
 }
 
-IFRIT_APIDECL Rhi::RhiTexture *
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture>
 RhiVulkanBackend::createDepthRenderTexture(uint32_t width, uint32_t height) {
   return m_implDetails->m_resourceManager->createDepthAttachment(width, height);
 }

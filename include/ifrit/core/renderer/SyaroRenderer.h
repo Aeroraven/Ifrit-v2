@@ -53,8 +53,10 @@ private:
   std::shared_ptr<GPUBindId> m_indirectDrawBufferId = nullptr;
   GPUDescRef *m_persistCullDesc = nullptr;
 
-  DrawPass *m_visibilityPass = nullptr;
-  DrawPass *m_depthOnlyVisibilityPass = nullptr;
+  DrawPass *m_visibilityPassHW = nullptr;
+  DrawPass *m_depthOnlyVisibilityPassHW = nullptr;
+  ComputePass *m_visibilityPassSW = nullptr;
+  ComputePass *m_visibilityCombinePass = nullptr;
 
   // Instance culling
   ComputePass *m_instanceCullingPass = nullptr;

@@ -79,21 +79,7 @@ RegisterStorage(bInstanceAccepted,{
 RegisterStorage(bMeshletsInClusterGroup,{
     uint data[];
 });
-RegisterStorage(bDrawCallSize,{
-    uint x2;
-    uint y2;
-    uint z2;
-    uint x1;
-    uint y1;
-    uint z1;
 
-    uint completedWorkGroups1;
-    uint completedWorkGroups2;
-    uint meshletsToDraw1;
-    uint meshletsToDraw2; 
-    uint pad1;
-    uint pad2;
-});
 
 RegisterStorage(bFilteredMeshlets2,{
     ivec2 data[];
@@ -132,6 +118,7 @@ layout(binding = 0, set = 3) uniform IndirectDrawData{
 
 layout(binding = 0, set = 4) uniform IndirectDrawData2{
     uint allMeshletsRef;
+    uint allMeshletsRefSW;
     uint indDrawCmdRef;
 }uIndirectDrawData2;
 
@@ -144,6 +131,8 @@ layout(binding = 0, set = 5) uniform IndirectCompData{
 
 layout(push_constant) uniform CullingPass{
     uint passNo;
+    uint swOffset;
+    uint rejectSwRaster;
 } pConst;
 
 shared uint sConsumer;
@@ -204,7 +193,7 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
         if(viewCamType == 0){
             parentProjectedRadius = computeProjectedRadius(tanfovy,length(viewSpaceCenter3),parentSphereRadius);
         }else{
-            parentProjectedRadius = parentSphereRadius * camAspect * orthoSize;
+            parentProjectedRadius = parentSphereRadius * camAspect / orthoSize;
         }
         parentProjectedRadius*=rtHeight;
         parentRejected = parentProjectedRadius > 0.5;
@@ -221,7 +210,7 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
         if(viewCamType == 0){
             selfProjectedRadius = computeProjectedRadius(tanfovy,length(viewSpaceCenter3),selfSphereRadius);
         }else{
-            selfProjectedRadius = selfSphereRadius * camAspect * orthoSize;
+            selfProjectedRadius = selfSphereRadius * camAspect / orthoSize;
         }
         selfProjectedRadius*=rtHeight;
         selfRejected = selfProjectedRadius > 0.5;
@@ -340,8 +329,42 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
         bMeshletCulled = frustumCull(boundBall,radius,tanHalfFovY);
     }
     if(bMeshletCulled){
-        //return;
+        return;
     }
+
+#if SYARO_ENABLE_SW_RASTERIZER
+    // contribution division, planning move meshlets bbox smaller than 16px
+    // to sw rasterization. Currently, just discard them.
+    if(pConst.rejectSwRaster == 0){
+        float projectedRadius = 0.0;
+        if(camViewType>0.5){
+            float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
+            float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+            projectedRadius = radius * camAspect / orthoSize;
+        }else{
+            float fov = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+            float tanfovy = tan(fov*0.5);
+            float lengthx = length(boundBall.xyz);
+            projectedRadius = computeProjectedRadius(tanfovy,lengthx,radius);
+        }
+        float rtHeight =  GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderHeight;
+        projectedRadius*=rtHeight;
+
+        if(projectedRadius < 32.0){
+            if(isSecondCullingPass()){
+                uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1sw;
+                pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2sw,1);
+                pos += basePos;
+            }else{
+                pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1sw,1);
+            }
+            GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRefSW).data[pos+pConst.swOffset] = ivec2(objId,meshletId);
+            return;
+        }
+    }
+    
+#endif
+
 #endif
 
     // End culling
@@ -490,7 +513,6 @@ void main(){
             }
         }
     }
-    
     //GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2 = 104829;
 
     barrier();
@@ -499,24 +521,41 @@ void main(){
             uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups2,1) + 1;
             if(v == gl_NumWorkGroups.x){
                 uint m2 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2;
+                uint m2sw = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2sw;
 #if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
                 uint issuedTasks = m2;
+                uint issuedTasksSw = m2sw;
 #else
                 uint issuedTasks = (m2 + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
+                uint issuedTasksSw = (m2sw + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
 #endif
                 GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2 = issuedTasks;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2sw = issuedTasksSw;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y2 = 1;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z2 = 1;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y2sw = 1;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z2sw = 1;
+                
             }
         }
         else{
             uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups1,1) + 1;
             if(v == gl_NumWorkGroups.x){
                 uint m1 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1;
+                uint m1sw = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1sw;
 #if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
                 uint issuedTasks = m1;
+                uint issuedTasksSw = m1sw;
 #else
                 uint issuedTasks = (m1 + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
+                uint issuedTasksSw = (m1sw + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
 #endif
                 GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1 = issuedTasks;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1sw = issuedTasksSw;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y1 = 1;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z1 = 1;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y1sw = 1;
+                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z1sw = 1;
             }
         }
     }

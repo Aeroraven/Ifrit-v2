@@ -192,24 +192,49 @@ struct PerFrameData {
     uint32_t m_renderHeight;
 
     // visibility buffer
-    std::shared_ptr<GPUTexture> m_visibilityBuffer = nullptr;
-    GPUTexture *m_visPassDepth = nullptr;
+    std::shared_ptr<GPUTexture> m_visibilityBuffer_HW = nullptr;
+    std::shared_ptr<GPUTexture> m_visPassDepth_HW = nullptr;
     std::shared_ptr<GPUSampler> m_visDepthSampler = nullptr;
+    std::shared_ptr<GPUBindlessId> m_visBufferIdUAV_HW = nullptr;
 
-    std::shared_ptr<GPUColorRT> m_visColorRT = nullptr;
-    std::shared_ptr<GPUDepthRT> m_visDepthRT = nullptr;
-    std::shared_ptr<GPURTs> m_visRTs = nullptr;
-    std::shared_ptr<GPUBindlessId> m_visDepthId = nullptr;
+    std::shared_ptr<GPUColorRT> m_visColorRT_HW = nullptr;
+    std::shared_ptr<GPUDepthRT> m_visDepthRT_HW = nullptr;
+    std::shared_ptr<GPURTs> m_visRTs_HW = nullptr;
+    std::shared_ptr<GPUBindlessId> m_visDepthId_HW = nullptr;
+
+    // visibility buffer software. It's compute shader, so
+    // not repeated decl required
+    std::shared_ptr<GPUTexture> m_visibilityBuffer_SW = nullptr;
+    GPUBuffer *m_visPassDepth_SW = nullptr;
+    GPUBuffer *m_visPassDepthCASLock_SW = nullptr;
+
+    std::shared_ptr<GPUBindlessId> m_visBufferIdUAV_SW = nullptr;
+    std::shared_ptr<GPUBindlessId> m_visDepthId_SW = nullptr;
+    std::shared_ptr<GPUBindlessId> m_visDepthCASLockId_SW = nullptr;
+
+    // combined visibility buffer is required
+    std::shared_ptr<GPUTexture> m_visibilityBuffer_Combined = nullptr;
+    std::shared_ptr<GPUTexture> m_visibilityDepth_Combined = nullptr;
+
+    std::shared_ptr<GPUBindlessId> m_visibilityBufferIdUAV_Combined = nullptr;
+    std::shared_ptr<GPUBindlessId> m_visibilityDepthIdUAV_Combined = nullptr;
+    std::shared_ptr<GPUBindlessId> m_visibilityBufferIdSRV_Combined = nullptr;
+    std::shared_ptr<GPUBindlessId> m_visibilityDepthIdSRV_Combined = nullptr;
 
     // visibility buffer for 2nd pass, reference to the same texture, but
     // without clearing
-    std::shared_ptr<GPUColorRT> m_visColorRT2 = nullptr;
-    std::shared_ptr<GPUDepthRT> m_visDepthRT2 = nullptr;
-    std::shared_ptr<GPURTs> m_visRTs2 = nullptr;
+    std::shared_ptr<GPUColorRT> m_visColorRT2_HW = nullptr;
+    std::shared_ptr<GPUDepthRT> m_visDepthRT2_HW = nullptr;
+    std::shared_ptr<GPURTs> m_visRTs2_HW = nullptr;
 
     // all visible clusters
-    GPUBuffer *m_allFilteredMeshlets = nullptr;
-    GPUBuffer *m_allFilteredMeshletsCount = nullptr;
+    GPUBuffer *m_allFilteredMeshletsAllCount = nullptr;
+
+    GPUBuffer *m_allFilteredMeshletsHW = nullptr;
+    GPUBuffer *m_allFilteredMeshletsSW = nullptr;
+
+    uint32_t m_allFilteredMeshlets_SWOffset = 0;
+
     uint32_t m_allFilteredMeshletsMaxCount = 0;
     uint32_t m_requireMaxFilteredMeshlets = 0;
     GPUBindlessRef *m_allFilteredMeshletsDesc = nullptr;

@@ -71,6 +71,7 @@ private:
   RhiScissor scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
   std::shared_ptr<RhiRenderTargets> renderTargets;
   std::shared_ptr<RhiColorAttachment> colorAttachment;
+  std::shared_ptr<RhiTexture> depthImage;
   std::shared_ptr<RhiDepthStencilAttachment> depthAttachment;
   std::shared_ptr<SyaroRenderer> renderer;
   RhiTexture *swapchainImg;
@@ -120,7 +121,7 @@ public:
     uint32_t numMeshes = 0;
     for (auto &prefab : prefabs) {
       numMeshes++;
-      if (numMeshes < 910) {
+      if (numMeshes < 510) {
         // continue;
       }
       node->addGameObjectTransferred(std::move(prefab->m_prefab));
@@ -128,14 +129,14 @@ public:
 
     // Render targets
     auto rt = m_rhiLayer.get();
-    auto depthImage = rt->createDepthRenderTexture(WINDOW_WIDTH, WINDOW_HEIGHT);
+    depthImage = rt->createDepthRenderTexture(WINDOW_WIDTH, WINDOW_HEIGHT);
     swapchainImg = rt->getSwapchainImage();
     renderTargets = rt->createRenderTargets();
     colorAttachment =
         rt->createRenderTarget(swapchainImg, {0.0f, 0.0f, 0.0f, 1.0f},
                                RhiRenderTargetLoadOp::Clear, 0, 0);
     depthAttachment = rt->createRenderTargetDepthStencil(
-        depthImage, {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
+        depthImage.get(), {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
     renderTargets->setColorAttachments({colorAttachment.get()});
     renderTargets->setDepthStencilAttachment(depthAttachment.get());
     renderTargets->setRenderArea(scissor);

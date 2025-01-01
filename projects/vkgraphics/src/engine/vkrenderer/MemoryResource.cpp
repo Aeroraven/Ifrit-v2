@@ -30,12 +30,6 @@ IFRIT_APIDECL void SingleBuffer::init() {
   bufferCI.usage = m_createInfo.usage;
   bufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  if (bufferCI.size >= 1063742160) {
-
-    vkrLog("Buffer size is too large. ");
-    std::abort();
-  }
-
   VmaAllocationCreateInfo allocCI{};
   allocCI.usage = VMA_MEMORY_USAGE_AUTO;
   if (m_createInfo.hostVisible) {
@@ -421,7 +415,7 @@ MultiBuffer *ResourceManager::createProxyMultiBuffer(
   return ptr;
 }
 
-IFRIT_APIDECL SingleDeviceImage *
+IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>
 ResourceManager::createDepthAttachment(uint32_t width, uint32_t height,
                                        VkFormat format,
                                        VkImageUsageFlags extraUsage) {
@@ -433,7 +427,7 @@ ResourceManager::createDepthAttachment(uint32_t width, uint32_t height,
   ci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
              VK_IMAGE_USAGE_SAMPLED_BIT | extraUsage;
   ci.hostVisible = false;
-  return createSimpleImage(ci);
+  return createSimpleImageUnmanaged(ci);
 }
 
 IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>

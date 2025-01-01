@@ -102,6 +102,7 @@ layout(binding = 0, set = 4) uniform InstanceData{
 
 layout(binding = 0, set = 5) uniform IndirectDrawData{
     uint allMeshletsRef;
+    uint allMeshletsRefSW;
     uint indDrawCmdRef;
 }uIndirectDrawData;
 

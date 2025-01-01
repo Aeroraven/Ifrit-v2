@@ -257,7 +257,7 @@ public:
   createProxyMultiBuffer(const std::vector<SingleBuffer *> &buffers);
 
   // Create a depth attachment
-  SingleDeviceImage *
+  std::shared_ptr<SingleDeviceImage>
   createDepthAttachment(uint32_t width, uint32_t height,
                         VkFormat format = VK_FORMAT_D32_SFLOAT,
                         VkImageUsageFlags extraUsage = 0);

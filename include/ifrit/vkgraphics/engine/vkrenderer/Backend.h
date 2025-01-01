@@ -74,8 +74,8 @@ public:
   createTexture2D(uint32_t width, uint32_t height, Rhi::RhiImageFormat format,
                   uint32_t extraFlags) override;
 
-  Rhi::RhiTexture *createDepthRenderTexture(uint32_t width,
-                                            uint32_t height) override;
+  std::shared_ptr<Rhi::RhiTexture>
+  createDepthRenderTexture(uint32_t width, uint32_t height) override;
 
   std::shared_ptr<Rhi::RhiTexture>
   createRenderTargetTexture(uint32_t width, uint32_t height,

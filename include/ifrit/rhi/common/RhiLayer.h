@@ -519,8 +519,8 @@ public:
   virtual RhiMultiBuffer *createStorageBufferShared(uint32_t size,
                                                     bool hostVisible,
                                                     uint32_t extraFlags) = 0;
-  virtual RhiTexture *createDepthRenderTexture(uint32_t width,
-                                               uint32_t height) = 0;
+  virtual std::shared_ptr<Rhi::RhiTexture>
+  createDepthRenderTexture(uint32_t width, uint32_t height) = 0;
 
   virtual std::shared_ptr<RhiBuffer> getFullScreenQuadVertexBuffer() const = 0;
 

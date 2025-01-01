@@ -78,9 +78,16 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 
               const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
               void *pUserData) {
-  iWarn("Validation layer called");
-  iWarn(pCallbackData->pMessage);
-  //std::abort();
+  if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+    iError("Validation layer called");
+    iError(pCallbackData->pMessage);
+    std::abort();
+  } else {
+    iWarn("Validation layer called");
+    iWarn(pCallbackData->pMessage);
+  }
+
+  // std::abort();
   return VK_FALSE;
 }
 // START CLASS DEFINITION
@@ -318,6 +325,8 @@ IFRIT_APIDECL void EngineContext::init() {
   deviceFeatures12.descriptorBindingVariableDescriptorCount = VK_TRUE;
   deviceFeatures12.runtimeDescriptorArray = VK_TRUE;
   deviceFeatures12.hostQueryReset = VK_TRUE;
+  deviceFeatures12.shaderSharedInt64Atomics = VK_TRUE;
+  deviceFeatures12.shaderBufferInt64Atomics = VK_TRUE;
   deviceFeatures12.pNext = &deviceFeaturesDynamic;
 
   deviceFeaturesDynamic.sType =
@@ -365,6 +374,8 @@ IFRIT_APIDECL void EngineContext::init() {
 
   deviceFeatures.samplerAnisotropy = VK_TRUE;
   deviceFeatures.geometryShader = VK_TRUE;
+  deviceFeatures.shaderFloat64 = VK_TRUE;
+  deviceFeatures.shaderInt64 = VK_TRUE;
 
   VkDeviceCreateInfo deviceCI = {};
   deviceCI.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
