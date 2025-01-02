@@ -45,11 +45,8 @@ Successor to following repos: [Ifrit](https://github.com/Aeroraven/Ifrit), [Aria
 - Some extra features supported:
 
   - Horizon-Based Ambient Occlusion
-
   - Cascaded Shadow Mapping
-
-  - Temporal Anti-aliasing
-
+  - Temporal Anti-aliasings
   - Convolution Bloom (Fast Fourier Transform)
 
     
