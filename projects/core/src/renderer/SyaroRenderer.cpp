@@ -853,9 +853,6 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
     PerFrameData &perframeData, SyaroRenderer::RenderTargets *renderTargets,
     const GPUCmdBuffer *cmd) {
   auto rhi = m_app->getRhiLayer();
-  auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
-  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
-
   auto &primaryView = getPrimaryView(perframeData);
   m_emitDepthTargetsPass->setRecordFunction(
       [&](const RhiRenderPassContext *ctx) {
@@ -909,9 +906,6 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
     RenderTargets *renderTargets, const GPUCmdBuffer *cmd,
     PerFrameData::ViewType filteredViewType, uint32_t idx) {
   auto rhi = m_app->getRhiLayer();
-  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
-  auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
-
   int pcData[2] = {0, 1};
 
   std::unique_ptr<SyaroRenderer::GPUCommandSubmission> lastTask = nullptr;
@@ -1154,26 +1148,30 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
   cmd->endScope();
   cmd->globalMemoryBarrier();
 
+  // SW Rasterize, TODO:Run in parallel with HW Rasterize. Not specify barrier
+  // here
+  if (perView.m_viewType == PerFrameData::ViewType::Primary) {
+    cmd->beginScope("Syaro: SW Rasterize");
+    visPassSW->run(cmd, 0);
+    cmd->endScope();
+  }
+
   // HW Rasterize
   cmd->beginScope("Syaro: HW Rasterize");
   if (cullPass == CullingPass::First) {
     visPassHW->run(cmd, perView.m_visRTs_HW.get(), 0);
   } else {
-    // we wont clear the visibility buffer in the second pass
     visPassHW->run(cmd, perView.m_visRTs2_HW.get(), 0);
   }
   cmd->endScope();
 
-  // SW Rasterize, Run in parallel with HW Rasterize. Not specify barrier here
-  cmd->beginScope("Syaro: SW Rasterize");
-  visPassSW->run(cmd, 0);
-  cmd->endScope();
-
   // Combine HW and SW results,
-  cmd->globalMemoryBarrier();
-  cmd->beginScope("Syaro: SW Rasterize Merge");
-  combinePass->run(cmd, 0);
-  cmd->endScope();
+  if (perView.m_viewType == PerFrameData::ViewType::Primary) {
+    cmd->globalMemoryBarrier();
+    cmd->beginScope("Syaro: SW Rasterize Merge");
+    combinePass->run(cmd, 0);
+    cmd->endScope();
+  }
 
   // Run hi-z pass
 
@@ -1189,8 +1187,6 @@ SyaroRenderer::renderMaterialClassify(PerFrameData &perframeData,
                                       RenderTargets *renderTargets,
                                       const GPUCmdBuffer *cmd) {
   auto rhi = m_app->getRhiLayer();
-  auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
-  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
   auto totalMaterials =
       size_cast<uint32_t>(perframeData.m_enabledEffects.size());
 
@@ -1504,9 +1500,9 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
       perframeData.m_visibilitySampler = rhi->createTrivialSampler();
     }
 
-#if SYARO_ENABLE_SW_RASTERIZER
     // For SW rasterizer
-    if constexpr (true) {
+    if (SYARO_ENABLE_SW_RASTERIZER &&
+        perView.m_viewType == PerFrameData::ViewType::Primary) {
       perView.m_visibilityBuffer_SW = rhi->createRenderTargetTexture(
           visWidth, visHeight, PerFrameData::c_visibilityFormat,
           RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
@@ -1526,7 +1522,8 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
     }
 
     // For combined buffer
-    if constexpr (true) {
+    if (SYARO_ENABLE_SW_RASTERIZER &&
+        perView.m_viewType == PerFrameData::ViewType::Primary) {
       perView.m_visibilityBuffer_Combined = rhi->createRenderTargetTexture(
           visWidth, visHeight, PerFrameData::c_visibilityFormat,
           RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
@@ -1545,9 +1542,7 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
           rhi->registerCombinedImageSampler(
               perView.m_visibilityDepth_Combined.get(),
               perframeData.m_visibilitySampler.get());
-    }
-#else
-    if constexpr (true) {
+    } else {
       perView.m_visibilityDepth_Combined = perView.m_visPassDepth_HW;
       perView.m_visibilityBuffer_Combined = perView.m_visibilityBuffer_HW;
       perView.m_visibilityDepthIdSRV_Combined = perView.m_visDepthId_HW;
@@ -1555,11 +1550,13 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
           rhi->registerCombinedImageSampler(
               perView.m_visibilityBuffer_Combined.get(),
               perframeData.m_visibilitySampler.get());
+
+      iInfo("DepthId:{}",
+            perView.m_visibilityDepthIdSRV_Combined->getActiveId());
       // UAV is not needed for HW rasterizer
       perView.m_visibilityBufferIdUAV_Combined = nullptr;
       perView.m_visibilityDepthIdUAV_Combined = nullptr;
     }
-#endif
   }
 }
 
@@ -1641,7 +1638,6 @@ SyaroRenderer::renderDefaultEmitGBuffer(PerFrameData &perframeData,
     }
   });
   auto rhi = m_app->getRhiLayer();
-  auto computeQueue = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
   cmd->beginScope("Syaro: Emit  GBuffer");
   m_defaultEmitGBufferPass->run(cmd, 0);
   cmd->endScope();
@@ -1939,7 +1935,6 @@ SyaroRenderer::render(
   buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
                  primaryView.m_visRTs_HW.get());
   prepareDeviceResources(perframeData, renderTargets);
-
   gatherAllInstances(perframeData);
 
   recreateInstanceCullingBuffers(
@@ -1961,9 +1956,6 @@ SyaroRenderer::render(
 
   // Then draw
   auto rhi = m_app->getRhiLayer();
-  auto drawq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
-  auto compq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
-
   auto dq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
 
   std::vector<RhiTaskSubmission *> cmdToWaitBkp = cmdToWait;
@@ -1989,73 +1981,50 @@ SyaroRenderer::render(
   auto end0 = std::chrono::high_resolution_clock::now();
   auto elapsed0 =
       std::chrono::duration_cast<std::chrono::microseconds>(end0 - start);
-  // iDebug("CPU time, Setup: {} ms", elapsed0.count() / 1000.0f);
 
   start = std::chrono::high_resolution_clock::now();
   auto mainTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
-        iDebug("GPUTimer, MainView: {} ms/frame", m_timer->getElapsedMs());
-        m_timer->start(cmd);
-        cmd->beginScope("Syaro: Draw Call, Main View");
-        renderTwoPassOcclCulling(CullingPass::First, perframeData,
-                                 renderTargets, cmd,
-                                 PerFrameData::ViewType::Primary, ~0u);
-        renderTwoPassOcclCulling(CullingPass::Second, perframeData,
-                                 renderTargets, cmd,
-                                 PerFrameData::ViewType::Primary, ~0u);
-
-        cmd->globalMemoryBarrier();
-        renderEmitDepthTargets(perframeData, renderTargets, cmd);
-        cmd->globalMemoryBarrier();
-        renderMaterialClassify(perframeData, renderTargets, cmd);
-        renderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
-        cmd->globalMemoryBarrier();
-
-        renderAmbientOccl(perframeData, renderTargets, cmd);
-        cmd->endScope();
-
         for (uint32_t i = 0; i < perframeData.m_views.size(); i++) {
-          if (perframeData.m_views[i].m_viewType !=
+          if (perframeData.m_views[i].m_viewType ==
               PerFrameData::ViewType::Shadow) {
-            continue;
+            cmd->beginScope("Syaro: Draw Call, Shadow View");
+            cmd->globalMemoryBarrier();
+            auto &perView = perframeData.m_views[i];
+            renderTwoPassOcclCulling(CullingPass::First, perframeData,
+                                     renderTargets, cmd,
+                                     PerFrameData::ViewType::Shadow, i);
+            renderTwoPassOcclCulling(CullingPass::Second, perframeData,
+                                     renderTargets, cmd,
+                                     PerFrameData::ViewType::Shadow, i);
+            cmd->endScope();
+          } else if (perframeData.m_views[i].m_viewType ==
+                     PerFrameData::ViewType::Primary) {
+            cmd->beginScope("Syaro: Draw Call, Main View");
+            renderTwoPassOcclCulling(CullingPass::First, perframeData,
+                                     renderTargets, cmd,
+                                     PerFrameData::ViewType::Primary, ~0u);
+            renderTwoPassOcclCulling(CullingPass::Second, perframeData,
+                                     renderTargets, cmd,
+                                     PerFrameData::ViewType::Primary, ~0u);
+            cmd->globalMemoryBarrier();
+            renderEmitDepthTargets(perframeData, renderTargets, cmd);
+            cmd->globalMemoryBarrier();
+            renderMaterialClassify(perframeData, renderTargets, cmd);
+            renderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
+            cmd->globalMemoryBarrier();
+            renderAmbientOccl(perframeData, renderTargets, cmd);
+            cmd->endScope();
           }
-          cmd->beginScope("Syaro: Draw Call, Shadow View");
-          cmd->globalMemoryBarrier();
-          auto &perView = perframeData.m_views[i];
-          renderTwoPassOcclCulling(CullingPass::First, perframeData,
-                                   renderTargets, cmd,
-                                   PerFrameData::ViewType::Shadow, i);
-          renderTwoPassOcclCulling(CullingPass::Second, perframeData,
-                                   renderTargets, cmd,
-                                   PerFrameData::ViewType::Shadow, i);
-          cmd->endScope();
         }
-        m_timer->stop(cmd);
       },
       cmdToWaitBkp, {});
 
-  end0 = std::chrono::high_resolution_clock::now();
-  elapsed0 =
-      std::chrono::duration_cast<std::chrono::microseconds>(end0 - start);
-  // iDebug("CPU time, MainView Cmd Recording: {} ms", elapsed0.count() /
-  // 1000.0f);
-
-  start = std::chrono::high_resolution_clock::now();
   auto deferredTask = dq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {
-        // iDebug("GPUTimer, Deferred: {} ms/frame",
-        // m_timerDefer->getElapsedMs());
-        // m_timerDefer->start(cmd);
         setupAndRunFrameGraph(perframeData, renderTargets, cmd);
-        // m_timerDefer->stop(cmd);
       },
       {mainTask.get()}, {});
-  end0 = std::chrono::high_resolution_clock::now();
-  elapsed0 =
-      std::chrono::duration_cast<std::chrono::microseconds>(end0 - start);
-  // iDebug("CPU time, Deferred Cmd Recording: {} ms", elapsed0.count() /
-  // 1000.0f);
-
   return mainTask;
 }
 

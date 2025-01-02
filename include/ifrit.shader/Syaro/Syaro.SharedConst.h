@@ -55,8 +55,13 @@ namespace Ifrit::Core::SyaroConfig {
 // cull stage. This drops amplification shader.
 #define SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL 1
 
-// Whether to enable SW rasterizer
+// Whether to enable SW rasterizer. Currently, all operations are sequential.
+// Which means, this might increase the latency of the rendering pipeline.
+// If async compute is enabled, this might be beneficial.
 #define SYARO_ENABLE_SW_RASTERIZER 1
+
+// Whether to use reverse-z
+#define SYARO_SHADER_ENABLE_REVERSE_Z 0
 
 SYARO_DEFINE_UINT(cPersistentCullThreadGroupSizeX, 128);
 SYARO_DEFINE_UINT(cInstanceCullingThreadGroupSizeX, 64);

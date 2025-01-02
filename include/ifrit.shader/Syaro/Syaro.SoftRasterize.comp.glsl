@@ -140,54 +140,16 @@ uint readVertexIndex(uint meshletid, uint meshletRef, uint obj, uint offset){
     return GetResource(bMeshletVertices,vertexRef).data[totalUint8Offset];
 }
 
-vec3 getBarycenter(vec4 v0, vec4 v1, vec4 v2, vec2 uvNdc){
-    vec3 rcpW = 1.0 / vec3(v0.w, v1.w, v2.w);
-    vec3 p0 = v0.xyz * rcpW.x;
-    vec3 p1 = v1.xyz * rcpW.y;
-    vec3 p2 = v2.xyz * rcpW.z;
-
-    vec3 p120x = vec3(p1.x, p2.x, p0.x);
-    vec3 p120y = vec3(p1.y, p2.y, p0.y);
-    vec3 p201x = vec3(p2.x, p0.x, p1.x);
-    vec3 p201y = vec3(p2.y, p0.y, p1.y);
-
-    vec3 cdx = p201y - p120y;
-    vec3 cdy = p120x - p201x;
-
-    vec3 a = cdx*(uvNdc.x-p120x) + cdy*(uvNdc.y-p120y);
-    vec3 b = a*rcpW;
-
-    float h = dot(a,rcpW);
-    float rcpH = 1.0/h;
-    return b*rcpH;
-}
-
 void writePixel(uvec2 pos, uint triangleId, float depth){
     uint offset = pos.y * pConst.renderWidth + pos.x;
-#if 0
-    // without depth test
     uint lowPart = triangleId & 0x0000007Fu;
     uint ids = getClusterID();
     uint highPart = ((ids+1)<<7) & 0xFFFFFF80u;
     uint outColor = highPart | lowPart;
-    imageStore(GetUAVImage2DR32UI(pConst.visBufferId),ivec2(pos),uvec4(outColor));
-    GetResource(bDepth,pConst.depthBufferId).data[offset] = depth;
-
-#else
-
-    uint lowPart = triangleId & 0x0000007Fu;
-    uint ids = getClusterID();
-    uint highPart = ((ids+1)<<7) & 0xFFFFFF80u;
-    uint outColor = highPart | lowPart;
-
-    // make depth to 32bits bins
     double scaled = double(depth) * double(4294967295.0);
     uint depthBits = uint(scaled);
-
     uint64_t zbufValue = (uint64_t(depthBits) << 32) | uint64_t(outColor);
     atomicMin(GetResource(bDepth,pConst.depthBufferId).data[offset],zbufValue);
-    
-#endif
 }
 
 void main(){
@@ -219,8 +181,6 @@ void main(){
         sharedVertices[i] = final;
     }
     barrier();
-
-     
     if(gtid<totalTris){
         uint triIndices = readTriangleIndex2(triRefOffset,gtid);
         uint triIndexA = triIndices & 0x000000FF;
@@ -274,11 +234,13 @@ void main(){
         float v1az = v1.z / v1.w;
         float v2az = v2.z / v2.w;
 
+        float invRw = 1.0 / float(pConst.renderWidth);
+        float invRh = 1.0 / float(pConst.renderHeight);
+        float base = -cdx*p120x - cdy*p120y;
         for(uint y = minY; y < maxY; y++){
             for(uint x = minX; x < maxX; x++){
-                vec2 uvNdc = vec2(float(x) / float(pConst.renderWidth), float(y) / float(pConst.renderHeight));
-                uvNdc = uvNdc * 2.0 - 1.0;
-                vec3 a = cdx*(uvNdc.x-p120x) + cdy*(uvNdc.y-p120y);
+                vec2 uvNdc = vec2(float(x) * invRw, float(y) * invRh) * 2.0 - 1.0;
+                vec3 a = cdx * uvNdc.x + cdy*uvNdc.y + base;
                 vec3 b = a*rcpW;
                 float h = dot(a,rcpW);
                 float rcpH = 1.0/h;

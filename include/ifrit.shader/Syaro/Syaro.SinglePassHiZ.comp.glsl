@@ -102,9 +102,7 @@ void main(){
         uint blockSize = 32u;
         uvec2 inTileXY = mortonDecode(tX*4);
         uint numBlocksX = max(1,tileSize/blockSize);
-        if(inTileXY.x >= tileSize || inTileXY.y >= tileSize){
-            // Do nothing
-        }else{
+        if(inTileXY.x < tileSize && inTileXY.y < tileSize){
             for(uint fx=0;fx<numBlocksX;fx++){
                 for(uint fy=0;fy<numBlocksX;fy++){
                     uint tileX = tgX * tileSize + fx * blockSize + inTileXY.x;
@@ -159,9 +157,7 @@ void main(){
         uint numBlocksX = max(1,mipWidth/blockSize);
         uint numBlocksY = max(1,mipHeight/blockSize);
         uvec2 inTileXY = mortonDecode(tX*4);
-        if(inTileXY.x >= mipWidth || inTileXY.y >= mipHeight){
-            // do nothing
-        }else{
+        if(inTileXY.x < mipWidth && inTileXY.y < mipHeight){
             for(uint fx=0;fx<numBlocksX;fx++){
                 for(uint fy=0;fy<numBlocksY;fy++){
                     uint tileX = fx * blockSize + inTileXY.x;

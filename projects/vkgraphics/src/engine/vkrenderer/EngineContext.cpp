@@ -81,7 +81,10 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
     iError("Validation layer called");
     iError(pCallbackData->pMessage);
-    std::abort();
+
+    // This fixes Nsight bug for GPU Trace
+    if (pCallbackData->messageIdNumber != 0x8ebf0028)
+      std::abort();
   } else {
     iWarn("Validation layer called");
     iWarn(pCallbackData->pMessage);

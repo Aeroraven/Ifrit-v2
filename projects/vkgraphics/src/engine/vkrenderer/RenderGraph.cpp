@@ -958,20 +958,50 @@ IFRIT_APIDECL void CommandExecutor::beginFrame() {
 IFRIT_APIDECL void CommandExecutor::endFrame() { m_swapchain->present(); }
 
 IFRIT_APIDECL Queue *CommandExecutor::getQueue(QueueRequirement req) {
+
+  // This section is too MESSY
   uint32_t unsel = 0;
   if (req == QueueRequirement::Transfer) {
     unsel = getUnderlying(QueueRequirement::Graphics_Compute);
   }
   auto requiredCapability = getUnderlying(req);
+
+  std::unordered_map<uint32_t, bool> graphicsQueueList;
+  uint32_t graphicsQueueCnt = 0;
+
   for (int i = 0; i < m_queues.size(); i++) {
-    if ((m_queues[i]->getCapability() & unsel)) {
-      continue;
-    }
-    if ((m_queues[i]->getCapability() & requiredCapability) ==
-        requiredCapability) {
-      return m_queues[i];
+    if ((m_queues[i]->getCapability()) &
+        getUnderlying(QueueRequirement::Graphics)) {
+      graphicsQueueList[i] = true;
+      graphicsQueueCnt++;
+      if (graphicsQueueCnt >= m_queuesGraphics.size()) {
+        break;
+      }
     }
   }
+
+  if (req == QueueRequirement::Compute) {
+    for (int i = 0; i < m_queues.size(); i++) {
+      if (graphicsQueueList.find(i) != graphicsQueueList.end()) {
+        continue;
+      }
+      if ((m_queues[i]->getCapability() & requiredCapability) ==
+          requiredCapability) {
+        return m_queues[i];
+      }
+    }
+  } else {
+    for (int i = 0; i < m_queues.size(); i++) {
+      if ((m_queues[i]->getCapability() & unsel)) {
+        continue;
+      }
+      if ((m_queues[i]->getCapability() & requiredCapability) ==
+          requiredCapability) {
+        return m_queues[i];
+      }
+    }
+  }
+
   std::abort();
   return nullptr;
 }
