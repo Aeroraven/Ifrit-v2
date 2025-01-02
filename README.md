@@ -21,25 +21,38 @@ Successor to following repos: [Ifrit](https://github.com/Aeroraven/Ifrit), [Aria
 
 
 
-## 1. Structure
+## 1. Features Supported
 
-The project is organized into following parts.
+### 1.1 Parallelized Soft Renderer
 
-- **`softgraphics`**: CUDA and CPU multithreaded SIMD software rasterizer & ray-tracer.
-  - Covers culling, mesh shading pipeline (mesh shader), MSAA (up to 8x), mipmap, anisotropic filtering, SPIR-V JIT execution and shader derivatives.
-  - CPU rasterizer is organized in TBR-like manner, utilize AVX2 instructions and tag buffer (with early-z) for performance gain.
-  - For implementation details and performance, check [here](./projects/softgraphics/readme.md)
-- **`core`**: 
-  - Implementation of the deferred renderer.
-  - Functionality covered: Temporal anti-aliasing, Compute-based culling(Compute Shader+Amplification Shader), FFT convolutional bloom, HBAO, Compute-shader-based software rasterizer, Cascaded shadow mapping.
-- **`rhi/vkgraphics`**: Vulkan renderer, intended to be the refactored version for [my original implementation](https://github.com/Aeroraven/Aria).
-  - Get rid of messy pass management, synchronization primitives and descriptor bindings in the original repo.
-- **`meshproclib`**: Mesh algorithms.
-  - Nanite-like mesh level of details. 
-- **`ircompile`**: LLVM JIT compilation for shader codes.
-- **`display`**:  Presentation and window surface supporting utilities.
+- Parallelized rasterization & ray-tracing pipeline, with GPU (CUDA) & Multithreaded CPU (SIMD) support
+- Support mesh shading pipeline (mesh  shaders), and raytracing shaders (like miss shader)
+- Support just-in-time compilation of HLSL SPIR-V shader code.
+- Covers culling (including contribution culling), MSAA (8x), mipmapping,  anisotropic filtering and shader derivatives (`ddx` & `ddy`)
+- For implementation details and performance, check [here](./projects/softgraphics/readme.md)
 
 
+
+### 1.2 Syaro: Virtual-Geometry-based Deferred Renderer
+
+- Refactored version for [my original renderer](https://github.com/Aeroraven/Aria), improving pass management, synchronization primitives and descriptor bindings.
+
+  - Bindless Descriptors
+  - Dynamic Rendering
+
+- Reproduced some features mentioned in Nanite's report: Two-pass occlusion culling, Mesh LoDs, Compute-shader-based SW rasterization.
+
+- Some extra features supported:
+
+  - Horizon-Based Ambient Occlusion
+
+  - Cascaded Shadow Mapping
+
+  - Temporal Anti-aliasing
+
+  - Convolution Bloom (Fast Fourier Transform)
+
+    
 
 ## 2. Setup / Run
 
@@ -59,10 +72,16 @@ Following dependencies should be manually configured. Other dependencies will be
 
 - OpenGL >= 4.6 
 - CMake >= 3.24
-- Vulkan SDK 1.3, or at least include:
+
+**Syaro**
+
+- Vulkan SDK 1.3 (with shaderc combined)
   - Core Features 1.3
-  - shaderc combined 1.3
-  - with `mesh_shader` extension
+    - Or following extensions: `KHR_timeline_semaphore`, `KHR_dynamic_rendering`, `EXT_vertex_input_dynamic_state`, `EXT_color_write_enable`, `EXT_extended_dynamic_state3`,`EXT_extended_dynamic_state2`, `EXT_descriptor_indexing`, `KHR_spirv_1_4`, `EXT_host_query_reset`, `KHR_shader_float_controls`
+  - with `EXT_mesh_shader` extension
+
+**Soft Renderer** 
+
 - LLVM 10 or LLVM 11 (Maybe higher version is OK, but LLVM 18 or higher might not work properly)
 - CUDA >= 12.6 (If you have CUDA)
 

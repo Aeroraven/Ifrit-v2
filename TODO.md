@@ -4,18 +4,19 @@
 
 - [ ] Syaro: no objects will got tested if first instance cull pass reject all objects using prev-frame hzb
 - [ ] Syaro: compute SW rasterizer losing depth precision when performing depth testing.
-  - considering reverse z
-
+  - [ ] Considering reverse z
+- [ ] Syaro: CSM uv overflow
+- [ ] Syaro: incorect startup
+- [ ] Syaro: GLTF node transform
 
 
 ## Artifacts
 
 - [ ] Syaro: TAA flickering for distant tiny objects
 - [x] Syaro: CSM flickering while moving  
-- [ ] Syaro: incorect startup
 - [ ] Syaro: LOD switching not smooth
-- [ ] Syaro: CSM uv overflow
-
+- [ ] Syaro: PCF shadow not smooth
+- [ ] Syaro: Too aggressive culling
 
 
 ## Performance
@@ -27,6 +28,8 @@
 - [ ] Syaro: compute SW rasterizer got redundant computations in bbox iteration.
 
 - [ ] Syaro: compute SW rasterizer got incorrect parallelism
+
+    - [ ] Considering async compute
 
 - [ ] Syaro: improper compute shader usage
     - Reference: https://computergraphics.stackexchange.com/questions/9956/performance-of-compute-shaders-vs-fragment-shaders-for-deferred-rendering
