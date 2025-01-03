@@ -163,7 +163,7 @@ uint getObjId(){
 }
 
 bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,float viewCamType,
-    float camAspect, float orthoSize, float cullOrthoX, float cullOrthoY){
+    float camAspect, float orthoSize, float cullOrthoX, float cullOrthoY, float maxScale){
 
     uint objId = getObjId();
     uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
@@ -176,9 +176,9 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
 
     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
     vec3 selfSphereCenter = group.selfBoundSphere.xyz;
-    float selfSphereRadius = group.selfBoundSphere.w;
+    float selfSphereRadius = group.selfBoundSphere.w * maxScale;
     vec3 parentSphereCenter = group.parentBoundSphere.xyz;
-    float parentSphereRadius = group.parentBoundSphere.w;
+    float parentSphereRadius = group.parentBoundSphere.w * maxScale;
 
     if(totalLod == 1){
         return true;
@@ -306,6 +306,7 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
     uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
     uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
     mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
+    float maxScale = GetResource(bLocalTransform,trans).m_maxScale;
     mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
     mat4 mv = view * model;
     
@@ -322,7 +323,7 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
 
     // frustum culling
     vec4 boundBall = mv * vec4(meshlet.boundSphere.xyz,1.0);
-    float radius = meshlet.boundSphere.w;
+    float radius = meshlet.boundSphere.w*maxScale;
     if(camViewType > 0.5){
         bMeshletCulled = frustumCullOrtho(boundBall,radius);
     }else{
@@ -340,7 +341,7 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
         // the near plane, we just discard it.
         float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
         float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
-        if(boundBall.z - radius > camNear+10.0){
+        if(boundBall.z - radius > camNear){
             float projectedRadius = 0.0;
             if(camViewType>0.5){
                 float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
@@ -366,6 +367,7 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
                 GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRefSW).data[pos+pConst.swOffset] = ivec2(objId,meshletId);
                 return;
             }
+            
         }
     }
     
@@ -431,6 +433,8 @@ void main(){
     float cullOrthoX = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeX;
     float cullOrthoY = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeY;
 
+    float maxScale = GetResource(bLocalTransform,trans).m_maxScale;
+
     if(cPersistentCullParallelStg == cPersistentCullParallelStg_PersistThread){
         if(threadId == 0){
             sConsumer = 0;
@@ -480,7 +484,7 @@ void main(){
                     for(uint i = 0 ; i < node.clusterGroupCount;i++){
                         ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
                         bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy,
-                            viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY);
+                            viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY,maxScale);
                         if(clusterGroupVisible){ 
                             enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
                         }
@@ -502,7 +506,7 @@ void main(){
                 for(uint i = 0 ; i < node.clusterGroupCount;i++){
                     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[node.clusterGroupStart + i];
                     bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy,
-                        viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY);
+                        viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY,maxScale);
                     if(clusterGroupVisible){ 
                         enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
                     }
@@ -513,7 +517,7 @@ void main(){
         for(uint k=threadId;k<totalClusterGroups;k+=cPersistentCullThreadGroupSizeX){
             ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[k];
             bool clusterGroupVisible = isClusterGroupVisible(k,mv,rtHeight,tanfovy,
-                viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY);
+                viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY,maxScale);
             if(clusterGroupVisible){ 
                 enqueueClusterGroup(k,clusterRef,micRef,tanfovy);
             }

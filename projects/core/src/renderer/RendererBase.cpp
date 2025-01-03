@@ -597,6 +597,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         model.model = Math::transpose(transform->getModelToWorldMatrix());
         model.invModel =
             Math::transpose(Math::inverse4(transform->getModelToWorldMatrix()));
+        auto scale = transform->getScale();
+        model.maxScale = std::max(scale.x, std::max(scale.y, scale.z));
 
         auto buf = transformBuffer->getActiveBuffer();
         buf->map();
@@ -616,6 +618,9 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         modelLast.model = Math::transpose(transform->getModelToWorldMatrix());
         modelLast.invModel =
             Math::transpose(Math::inverse4(transform->getModelToWorldMatrix()));
+        auto lastScale = transform->getScaleLast();
+        modelLast.maxScale =
+            std::max(lastScale.x, std::max(lastScale.y, lastScale.z));
         auto bufLast = transformBufferLast->getActiveBuffer();
         bufLast->map();
         bufLast->writeBuffer(&modelLast, sizeof(MeshInstanceTransform), 0);

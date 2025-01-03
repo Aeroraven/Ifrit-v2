@@ -271,6 +271,7 @@ public:
 
   float4x4 getModelToWorldMatrix();
   float4x4 getModelToWorldMatrixLast();
+  inline ifloat3 getScaleLast() { return m_lastFrame.m_scale; }
   inline void setGPUResource(GPUUniformBuffer *buffer, GPUUniformBuffer *last,
                              std::shared_ptr<GPUBindId> &bindlessRef,
                              std::shared_ptr<GPUBindId> &bindlessRefLast) {

@@ -290,6 +290,7 @@ void main(){
     uint objRef = 0;
     uint transRef = 0;
     uint transRefLast = 0;
+    float maxScale = 0.0;
 
     if(isFirstPass){
         instanceIndex = gl_GlobalInvocationID.x;
@@ -322,23 +323,25 @@ void main(){
     vec4 viewBoundBall = worldToView * worldBoundBall;
 
     mat4 localToWorldOccl;
-    if(isFirstPass){
+    if(!isFirstPass){
         localToWorldOccl = localToWorld;
+        maxScale = GetResource(bLocalTransform,transRef).m_maxScale;
     }else{
         localToWorldOccl = GetResource(bLocalTransform,transRefLast).m_localToWorld;
+        maxScale = GetResource(bLocalTransform,transRefLast).m_maxScale;
     }
     vec4 worldBoundBallOccl = localToWorldOccl * vec4(boundBall.xyz,1.0);
     vec4 viewBoundBallOccl = worldToViewOccl * worldBoundBallOccl;
 
     
-    bool occlusionCulled = occlusionCull(viewBoundBallOccl,boundBall.w);
+    bool occlusionCulled = occlusionCull(viewBoundBallOccl,boundBall.w*maxScale);
     if(isFirstPass){
         bool frustumCulled;
         float camViewType = GetResource(bPerframeView,perframeRef).data.m_viewCameraType;
         if(camViewType < 0.5){
-            frustumCulled = frustumCull(viewBoundBall,boundBall.w);
+            frustumCulled = frustumCull(viewBoundBall,boundBall.w*maxScale);
         }else{
-            frustumCulled = frustumCullOrtho(viewBoundBall,boundBall.w);
+            frustumCulled = frustumCullOrtho(viewBoundBall,boundBall.w*maxScale);
         }
         if(!frustumCulled && !occlusionCulled ){
             // if accept

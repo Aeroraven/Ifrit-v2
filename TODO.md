@@ -3,14 +3,16 @@
 ## Bugs
 
 - [ ] Syaro: no objects will got tested if first instance cull pass reject all objects using prev-frame hzb
-- [ ] Syaro: compute SW rasterizer losing depth precision when performing depth testing.
-  - [ ] Considering reverse z
+
+  
 
 
 ## Artifacts
 
 - [ ] Syaro: TAA flickering for distant tiny objects
 - [ ] Syaro: LOD switching not smooth
+  - [ ] Abrupt attribute change (causing lighting changes when lod switches)
+
 - [ ] Syaro: PCF shadow not smooth
 - [ ] Syaro: Too aggressive culling
 

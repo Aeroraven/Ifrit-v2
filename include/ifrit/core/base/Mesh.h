@@ -77,6 +77,7 @@ struct MeshData {
 struct MeshInstanceTransform {
   float4x4 model;
   float4x4 invModel;
+  float maxScale;
 };
 
 class IFRIT_APIDECL Mesh : public AssetReferenceContainer,

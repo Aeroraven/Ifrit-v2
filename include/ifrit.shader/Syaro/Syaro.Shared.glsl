@@ -31,6 +31,7 @@ struct Meshlet {
 RegisterUniform(bLocalTransform,{
     mat4 m_localToWorld;
     mat4 m_worldToLocal;
+    float m_maxScale;
 });
 RegisterStorage(bMeshDataRef,{
     vec4 boundingSphere;
