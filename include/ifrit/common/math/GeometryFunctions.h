@@ -96,11 +96,11 @@ getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear, float zFar,
   }
 
   float projMinX = std::numeric_limits<float>::max();
-  float projMaxX = std::numeric_limits<float>::min();
+  float projMaxX = -std::numeric_limits<float>::max();
   float projMinY = std::numeric_limits<float>::max();
-  float projMaxY = std::numeric_limits<float>::min();
+  float projMaxY = -std::numeric_limits<float>::max();
   float projMinZ = std::numeric_limits<float>::max();
-  float projMaxZ = std::numeric_limits<float>::min();
+  float projMaxZ = -std::numeric_limits<float>::max();
 
   ifloat3 dLookAtCenter = ifloat3{0.0f, 0.0f, 0.0f};
   ifloat3 dUp = ifloat3{0.0f, 1.0f, 0.0f};

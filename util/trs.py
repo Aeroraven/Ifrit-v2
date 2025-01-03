@@ -62,5 +62,14 @@ if __name__ == '__main__':
     print(trs_norm)
     euler = trs_to_euler2(trs_norm)
     print(euler_to_trs(euler))
-    
-    # [ 0.013149 -0.009061 -0.012891]
+
+    print("============")
+
+    a = "103"
+    lenx = len(a)
+    lv = lenx - 1
+    for i in range(0,lenx-1):
+        if (int(a[i])+int(a[lv]))&1 == 0:
+            print(a[i], a[lv])
+            
+    print(222222222222222222222222222222222*3333333333333333333333333333333333333333333333*444444444444444444444444444444444444)

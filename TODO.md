@@ -5,7 +5,6 @@
 - [ ] Syaro: no objects will got tested if first instance cull pass reject all objects using prev-frame hzb
 - [ ] Syaro: compute SW rasterizer losing depth precision when performing depth testing.
   - [ ] Considering reverse z
-- [ ] Syaro: CSM uv overflow
 - [ ] Syaro: incorrect startup
 
 
@@ -30,6 +29,8 @@
     
 
 ## Resolved
+
+- Syaro: CSM uv overflow, incorrect bbox infinity init (250103)
 
 - Syaro: GLTF node transform (250103)
 
