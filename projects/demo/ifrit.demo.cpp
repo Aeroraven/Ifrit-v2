@@ -86,7 +86,7 @@ public:
         m_assetManager->getAssetByName<GLTFAsset>("Bistro/untitled.gltf");
     // Renderer config
     renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
-    renderConfig.m_shadowConfig.m_maxDistance = 100.0f;
+    renderConfig.m_shadowConfig.m_maxDistance = 200.0f;
 
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");
@@ -98,7 +98,7 @@ public:
     camera->setMainCamera(true);
     camera->setAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
     camera->setFov(60.0f / 180.0f * std::numbers::pi_v<float>);
-    camera->setFar(100.0f);
+    camera->setFar(200.0f);
     camera->setNear(1.00f);
 
     auto cameraTransform = cameraGameObject->getComponent<Transform>();

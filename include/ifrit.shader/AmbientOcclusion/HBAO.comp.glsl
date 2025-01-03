@@ -60,7 +60,7 @@ float computeAO(vec3 vpos, vec3 stepVpos, vec3 normal, inout float topOcclusion)
     float occlusion = dot(normal, horizonVector) / horizonVectorLength;
     float diff = max(occlusion - topOcclusion, 0);
     topOcclusion = max(occlusion, topOcclusion);
-    float distanceFactor = clamp(horizonVectorLength / 30.00, 0, 1); //0.15
+    float distanceFactor = clamp(horizonVectorLength / 1.50, 0, 1); //0.15
     distanceFactor = 1 - distanceFactor * distanceFactor;
     return diff * distanceFactor;
 }
