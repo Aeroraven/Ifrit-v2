@@ -179,6 +179,7 @@ bool frustumCullOrtho(vec4 boundBall, float radius){
 float computeProjectedRadius(float fovy,float d,float r) {
   // https://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
   float fov = fovy / 2;
+  if(d<=r) return 1e10;
   return 1.0 / tan(fov) * r / sqrt(d * d - r * r); 
 }
 

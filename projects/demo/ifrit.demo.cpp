@@ -40,7 +40,7 @@ float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0,
       movNear = 0, movRot = 0;
 
 void key_callback(int key, int scancode, int action, int mods) {
-  auto scale = 2.5f;
+  auto scale = 0.5f;
   if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
     movLeft += scale;
 
@@ -60,10 +60,10 @@ void key_callback(int key, int scancode, int action, int mods) {
     movNear += scale;
 
   if (key == GLFW_KEY_Z && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movRot += scale * 0.003f;
+    movRot += scale * 0.03f;
 
   if (key == GLFW_KEY_X && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movRot -= scale * 0.003f;
+    movRot -= scale * 0.03f;
 }
 
 class DemoApplication : public Ifrit::Core::Application {
@@ -83,10 +83,10 @@ public:
     renderer = std::make_shared<SyaroRenderer>(this);
     m_windowProvider->registerKeyCallback(key_callback);
     auto bistroObj =
-        m_assetManager->getAssetByName<GLTFAsset>("Bistro/bistro.gltf");
+        m_assetManager->getAssetByName<GLTFAsset>("Bistro/untitled.gltf");
     // Renderer config
     renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
-    renderConfig.m_shadowConfig.m_maxDistance = 6000.0f;
+    renderConfig.m_shadowConfig.m_maxDistance = 100.0f;
 
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");
@@ -98,8 +98,8 @@ public:
     camera->setMainCamera(true);
     camera->setAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
     camera->setFov(60.0f / 180.0f * std::numbers::pi_v<float>);
-    camera->setFar(6000.0f);
-    camera->setNear(30.01f);
+    camera->setFar(100.0f);
+    camera->setNear(1.00f);
 
     auto cameraTransform = cameraGameObject->getComponent<Transform>();
     cameraTransform->setPosition({0.0f, 0.5f, -1.25f});
@@ -111,7 +111,7 @@ public:
     auto lightTransform = lightGameObject->getComponent<Transform>();
     // make light dir (0,-1,-1)=> eulerX=135deg
     lightTransform->setRotation({120.0 / 180.0f * std::numbers::pi_v<float>,
-                                 -15.0 / 180.0f * std::numbers::pi_v<float>,
+                                 0.0f,
                                  0.0f});
     light->setShadowMap(true);
     light->setShadowMapResolution(2048);
@@ -121,7 +121,7 @@ public:
     uint32_t numMeshes = 0;
     for (auto &prefab : prefabs) {
       numMeshes++;
-      if (numMeshes < 910) {
+      if (numMeshes < 900) {
         // continue;
       }
       node->addGameObjectTransferred(std::move(prefab->m_prefab));
@@ -150,8 +150,7 @@ public:
     auto camera = cameraGameObject->getComponent<Transform>();
     timing = timing + 0.00f;
     camera->setPosition({0.0f + movRight - movLeft + 0.5f * std::sin(timing),
-                         150.0f + movTop - movBottom,
-                         200.25f + movFar - movNear});
+                         5.0f + movTop - movBottom, 5.25f + movFar - movNear});
     camera->setRotation({0.0f, movRot, 0.0f});
     auto sFrameStart = renderer->beginFrame();
     auto renderComplete = renderer->render(

@@ -173,7 +173,12 @@ And some references that give inspirations. Thanks for their selfless dedication
 9. https://www.slideshare.net/slideshow/optimizing-the-graphics-pipeline-with-compute-gdc-2016/59747720
 9. https://developer.nvidia.com/orca/amazon-lumberyard-bistro
 
+### 3.2 About naming
+All names are chosen randomly from some characters.
 
+- Ifrit: https://arknights.wiki.gg/wiki/Ifrit
+- Syaro: https://gochiusa.fandom.com/wiki/Syaro_Kirima
+  - Directly: https://osu.ppy.sh/beatmapsets/451250#osu/974142
 
 ## 4. License
 

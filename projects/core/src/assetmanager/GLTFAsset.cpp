@@ -42,7 +42,8 @@ struct GLTFInternalData {
 // Mesh class
 IFRIT_APIDECL GLTFPrefab::GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset,
                                      uint32_t meshId, uint32_t primitiveId,
-                                     uint32_t nodeId)
+                                     uint32_t nodeId,
+                                     const float4x4 &parentTransform)
     : m_asset(asset), m_meshId(meshId), m_primitiveId(primitiveId),
       m_nodeId(nodeId) {
   m_prefab = SceneObject::createPrefab();
@@ -54,25 +55,86 @@ IFRIT_APIDECL GLTFPrefab::GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset,
   if (gltfNode.matrix.size()) {
     iError("GLTFPrefab: matrix is not supported yet");
   }
+  float posX = 0.0f, posY = 0.0f, posZ = 0.0f;
+  float scaleX = 1.0f, scaleY = 1.0f, scaleZ = 1.0f;
+  float rotX = 0.0f, rotY = 0.0f, rotZ = 0.0f, rotW = 1.0f;
   if (gltfNode.translation.size()) {
-    float posX = static_cast<float>(gltfNode.translation[0]);
-    float posY = static_cast<float>(gltfNode.translation[1]);
-    float posZ = static_cast<float>(gltfNode.translation[2]);
-    // transform->setPosition({posX, posY, posZ});
+    posX = static_cast<float>(gltfNode.translation[0]);
+    posY = static_cast<float>(gltfNode.translation[1]);
+    posZ = static_cast<float>(gltfNode.translation[2]);
   }
   if (gltfNode.scale.size()) {
-    float scaleX = static_cast<float>(gltfNode.scale[0]);
-    float scaleY = static_cast<float>(gltfNode.scale[1]);
-    float scaleZ = static_cast<float>(gltfNode.scale[2]);
-    // transform->setScale({scaleX, scaleY, scaleZ});
+    scaleX = static_cast<float>(gltfNode.scale[0]);
+    scaleY = static_cast<float>(gltfNode.scale[1]);
+    scaleZ = static_cast<float>(gltfNode.scale[2]);
   }
   if (gltfNode.rotation.size()) {
-    float rotX = static_cast<float>(gltfNode.rotation[0]);
-    float rotY = static_cast<float>(gltfNode.rotation[1]);
-    float rotZ = static_cast<float>(gltfNode.rotation[2]);
-    float rotW = static_cast<float>(gltfNode.rotation[3]);
+    rotX = static_cast<float>(gltfNode.rotation[0]);
+    rotY = static_cast<float>(gltfNode.rotation[1]);
+    rotZ = static_cast<float>(gltfNode.rotation[2]);
+    rotW = static_cast<float>(gltfNode.rotation[3]);
     ifloat3 euler = Math::quaternionToEuler({rotX, rotY, rotZ, rotW});
-    // transform->setRotation(euler);
+    rotX = euler.x;
+    rotY = euler.y;
+    rotZ = euler.z;
+  }
+
+  auto localTransform = Math::getTransformMat(
+      {scaleX, scaleY, scaleZ}, {posX, posY, posZ}, {rotX, rotY, rotZ});
+  auto combinedTransform = Math::matmul(parentTransform, localTransform);
+
+  ifloat3 newScale, newTranslation, newRotation;
+  Math::recoverTransformInfo(combinedTransform, newScale, newTranslation,
+                             newRotation);
+  transform->setPosition(newTranslation);
+  transform->setRotation(newRotation);
+  transform->setScale(newScale);
+
+  auto newTransform = transform->getModelToWorldMatrix();
+
+  // check if the new transform is correct
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      if (abs(newTransform[i][j] - combinedTransform[i][j]) > 1e-3) {
+        iError("GLTFPrefab: transform matrix is not correct");
+        printf("GLTFPrefab: scale: %f %f %f\n", newScale.x, newScale.y,
+               newScale.z);
+        printf("GLTFPrefab: translation: %f %f %f\n", newTranslation.x,
+               newTranslation.y, newTranslation.z);
+        printf("GLTFPrefab: rotation: %f %f %f\n", newRotation.x, newRotation.y,
+               newRotation.z);
+        // print new transform matrix
+        printf("GLTFPrefab: new transform matrix: \n");
+        for (int i = 0; i < 4; i++) {
+          for (int j = 0; j < 4; j++) {
+            printf("%f ", newTransform[i][j]);
+          }
+          printf("\n");
+        }
+        // print combined transform matrix
+        printf("GLTFPrefab: combined transform matrix: \n");
+        for (int i = 0; i < 4; i++) {
+          for (int j = 0; j < 4; j++) {
+            printf("%f ", combinedTransform[i][j]);
+          }
+          printf("\n");
+        }
+
+        std::abort();
+      }
+    }
+  }
+
+  if (abs(newRotation.x) > 1e-3) {
+    // print new transform matrix
+    printf("GLTFPrefab: new transform matrix: \n");
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        printf("%f ", combinedTransform[i][j]);
+      }
+      printf("\n");
+    }
   }
 }
 
@@ -96,6 +158,8 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   auto &accessorTangent = data.accessors[primitive.attributes["TANGENT"]];
   auto &accessorIndices = data.accessors[primitive.indices];
 
+  bool tangent3 = false;
+
   iAssertion(accessorPos.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT,
              "GLTFMesh: component type not supported");
   iAssertion(accessorPos.type == TINYGLTF_TYPE_VEC3,
@@ -110,8 +174,12 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
              "GLTFMesh: type not supported");
   iAssertion(accessorTangent.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT,
              "GLTFMesh: component type not supported");
-  iAssertion(accessorTangent.type == TINYGLTF_TYPE_VEC4,
-             "GLTFMesh: type not supported");
+  if (accessorTangent.type == TINYGLTF_TYPE_VEC3) {
+    tangent3 = true;
+  } else {
+    iAssertion(accessorTangent.type == TINYGLTF_TYPE_VEC4,
+               "GLTFMesh: type not supported");
+  }
   iAssertion(accessorIndices.type == TINYGLTF_TYPE_SCALAR,
              "GLTFMesh: type not supported");
 
@@ -150,7 +218,9 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   auto normalDataSize = size_cast<uint32_t>(accessorNormal.count * 3);
   auto texcoordDataSize = size_cast<uint32_t>(accessorTexcoord.count * 2);
   auto indicesDataSize = size_cast<uint32_t>(accessorIndices.count);
-  auto tangentDataSize = size_cast<uint32_t>(accessorTangent.count * 4);
+  auto tangentStride = tangent3 ? 3 : 4;
+  auto tangentDataSize =
+      size_cast<uint32_t>(accessorTangent.count * tangentStride);
 
   m_selfData->m_vertices.resize(accessorPos.count);
   m_selfData->m_verticesAligned.resize(accessorPos.count);
@@ -168,7 +238,7 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
   }
   for (auto i = 0; i < accessorNormal.count; i++) {
     m_selfData->m_normals[i] = {normalData[i * 3], normalData[i * 3 + 1],
-                                normalData[i * 3 + 2]};
+                                -normalData[i * 3 + 2]};
     m_selfData->m_normalsAligned[i] = {normalData[i * 3], normalData[i * 3 + 1],
                                        normalData[i * 3 + 2], 0.0f};
   }
@@ -176,9 +246,10 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
     m_selfData->m_uvs[i] = {texcoordData[i * 2], texcoordData[i * 2 + 1]};
   }
   for (auto i = 0; i < accessorTangent.count; i++) {
-    m_selfData->m_tangents[i] = {tangentData[i * 4], tangentData[i * 4 + 1],
-                                 tangentData[i * 4 + 2],
-                                 tangentData[i * 4 + 3]};
+    m_selfData->m_tangents[i] = {
+        tangentData[i * tangentStride], tangentData[i * tangentStride + 1],
+        tangentData[i * tangentStride + 2],
+        tangent3 ? 1.0f : tangentData[i * tangentStride + 3]};
   }
 
   if (accessorIndices.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
@@ -249,64 +320,110 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
   auto gltfDir = m_path.parent_path();
 
   auto rawGLTFData = m_internalData->model;
-  for (auto i = 0; auto &node : m_internalData->model.nodes) {
-    auto meshId = node.mesh;
-    if (meshId < 0) {
-      continue;
+
+  std::function<void(int, float4x4)> traverseNode =
+      [&](int nodeId, float4x4 parentTransform) {
+        auto &node = rawGLTFData.nodes[nodeId];
+        auto translationX = 0.0f, translationY = 0.0f, translationZ = 0.0f;
+        auto scaleX = 1.0f, scaleY = 1.0f, scaleZ = 1.0f;
+        auto rotX = 0.0f, rotY = 0.0f, rotZ = 0.0f, rotW = 1.0f;
+        if (node.translation.size()) {
+          translationX = static_cast<float>(node.translation[0]);
+          translationY = static_cast<float>(node.translation[1]);
+          translationZ = static_cast<float>(node.translation[2]);
+        }
+        if (node.scale.size()) {
+          scaleX = static_cast<float>(node.scale[0]);
+          scaleY = static_cast<float>(node.scale[1]);
+          scaleZ = static_cast<float>(node.scale[2]);
+        }
+        if (node.rotation.size()) {
+          rotX = static_cast<float>(node.rotation[0]);
+          rotY = static_cast<float>(node.rotation[1]);
+          rotZ = static_cast<float>(node.rotation[2]);
+          rotW = static_cast<float>(node.rotation[3]);
+          if (node.rotation.size() == 4) {
+            ifloat3 euler = Math::quaternionToEuler({rotX, rotY, rotZ, rotW});
+            rotX = euler.x;
+            rotY = euler.y;
+            rotZ = euler.z;
+          }
+        }
+        auto childTransform = Math::getTransformMat(
+            {scaleX, scaleY, scaleZ},
+            {translationX, translationY, translationZ}, {rotX, rotY, rotZ});
+
+        // Check children
+        if (node.children.size()) {
+          for (auto &childId : node.children) {
+            traverseNode(childId,
+                         Math::matmul(parentTransform, childTransform));
+          }
+        }
+        // if mesh is present
+        if (node.mesh >= 0) {
+          for (auto j = 0;
+               auto &primitive : rawGLTFData.meshes[node.mesh].primitives) {
+            auto prefab = std::make_shared<GLTFPrefab>(
+                &m_metadata, this, node.mesh, j, nodeId, parentTransform);
+            auto meshFilter = prefab->m_prefab->addComponent<MeshFilter>();
+            auto mesh = m_meshes[meshHash[{size_cast<uint32_t>(node.mesh), j}]];
+            meshFilter->setMesh(mesh);
+
+            auto &gltfMaterial = rawGLTFData.materials[primitive.material];
+            auto &normalData = gltfMaterial.normalTexture;
+            auto &pbrData = gltfMaterial.pbrMetallicRoughness;
+            auto baseColorIndex = pbrData.baseColorTexture.index;
+            auto normalTexIndex = normalData.index;
+            auto baseColorURI = rawGLTFData.images[baseColorIndex].uri;
+            auto normalTexURI = rawGLTFData.images[normalTexIndex].uri;
+
+            auto texPathBase = gltfDir / baseColorURI;
+            auto texBase = m_manager->requestAsset<Asset>(texPathBase);
+            auto texCastedBase =
+                std::dynamic_pointer_cast<TextureAsset>(texBase);
+            if (!texCastedBase) {
+              iError("GLTFAsset: invalid texture asset");
+              std::abort();
+            }
+
+            auto texPathNormal = gltfDir / normalTexURI;
+            auto texNormal = m_manager->requestAsset<Asset>(texPathNormal);
+            auto texCastedNormal =
+                std::dynamic_pointer_cast<TextureAsset>(texNormal);
+            if (!texCastedNormal) {
+              iError("GLTFAsset: invalid texture asset");
+              std::abort();
+            }
+
+            auto meshRenderer = prefab->m_prefab->addComponent<MeshRenderer>();
+            auto material = std::make_shared<SyaroDefaultGBufEmitter>(
+                m_manager->getApplication());
+            auto albedoId = rhi->registerCombinedImageSampler(
+                texCastedBase->getTexture().get(),
+                m_internalData->defaultSampler.get());
+            auto normalId = rhi->registerCombinedImageSampler(
+                texCastedNormal->getTexture().get(),
+                m_internalData->defaultSampler.get());
+
+            material->setAlbedoId(albedoId->getActiveId());
+            material->setNormalMapId(normalId->getActiveId());
+            iInfo("GLTFAsset: albedoId: {} normalId: {}",
+                  albedoId->getActiveId(), normalId->getActiveId());
+            material->buildMaterial();
+            meshRenderer->setMaterial(material);
+
+            m_prefabs.push_back(std::move(prefab));
+            j++;
+          }
+        }
+      };
+
+  // Get nodes from scenes
+  for (auto &scene : rawGLTFData.scenes) {
+    for (auto &nodeId : scene.nodes) {
+      traverseNode(nodeId, Math::identity());
     }
-    for (auto j = 0;
-         auto &primitive : m_internalData->model.meshes[meshId].primitives) {
-      auto prefab =
-          std::make_shared<GLTFPrefab>(&m_metadata, this, meshId, j, i);
-      auto meshFilter = prefab->m_prefab->addComponent<MeshFilter>();
-      auto mesh = m_meshes[meshHash[{size_cast<uint32_t>(meshId), j}]];
-      meshFilter->setMesh(mesh);
-
-      auto &gltfMaterial = rawGLTFData.materials[primitive.material];
-      auto &normalData = gltfMaterial.normalTexture;
-      auto &pbrData = gltfMaterial.pbrMetallicRoughness;
-      auto baseColorIndex = pbrData.baseColorTexture.index;
-      auto normalTexIndex = normalData.index;
-      auto baseColorURI = rawGLTFData.images[baseColorIndex].uri;
-      auto normalTexURI = rawGLTFData.images[normalTexIndex].uri;
-
-      auto texPathBase = gltfDir / baseColorURI;
-      auto texBase = m_manager->requestAsset<Asset>(texPathBase);
-      auto texCastedBase = std::dynamic_pointer_cast<TextureAsset>(texBase);
-      if (!texCastedBase) {
-        iError("GLTFAsset: invalid texture asset");
-        std::abort();
-      }
-
-      auto texPathNormal = gltfDir / normalTexURI;
-      auto texNormal = m_manager->requestAsset<Asset>(texPathNormal);
-      auto texCastedNormal = std::dynamic_pointer_cast<TextureAsset>(texNormal);
-      if (!texCastedNormal) {
-        iError("GLTFAsset: invalid texture asset");
-        std::abort();
-      }
-
-      auto meshRenderer = prefab->m_prefab->addComponent<MeshRenderer>();
-      auto material = std::make_shared<SyaroDefaultGBufEmitter>(
-          m_manager->getApplication());
-      auto albedoId = rhi->registerCombinedImageSampler(
-          texCastedBase->getTexture().get(),
-          m_internalData->defaultSampler.get());
-      auto normalId = rhi->registerCombinedImageSampler(
-          texCastedNormal->getTexture().get(),
-          m_internalData->defaultSampler.get());
-
-      material->setAlbedoId(albedoId->getActiveId());
-      material->setNormalMapId(normalId->getActiveId());
-      iInfo("GLTFAsset: albedoId: {} normalId: {}", albedoId->getActiveId(),
-            normalId->getActiveId());
-      material->buildMaterial();
-      meshRenderer->setMaterial(material);
-
-      m_prefabs.push_back(std::move(prefab));
-      j++;
-    }
-    i++;
   }
   iInfo("GLTFAsset: loaded mesh count: {}", m_meshes.size());
   iInfo("GLTFAsset: loaded prefab count: {}", m_prefabs.size());

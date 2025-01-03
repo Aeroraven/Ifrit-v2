@@ -44,20 +44,23 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   auto &viewData = perframeData.m_views[0];
   viewData.m_viewType = PerFrameData::ViewType::Primary;
   viewData.m_viewDataOld = viewData.m_viewData;
-  viewData.m_viewData.m_worldToView = camera->worldToCameraMatrix();
-  viewData.m_viewData.m_perspective = camera->projectionMatrix();
+  viewData.m_viewData.m_worldToView =
+      Math::transpose(camera->worldToCameraMatrix());
+  viewData.m_viewData.m_perspective =
+      Math::transpose(camera->projectionMatrix());
   viewData.m_viewData.m_perspective[2][0] += config.projectionTranslateX;
   viewData.m_viewData.m_perspective[2][1] += config.projectionTranslateY;
   viewData.m_viewData.m_worldToClip = Math::transpose(
       Math::matmul(Math::transpose(viewData.m_viewData.m_perspective),
                    Math::transpose(viewData.m_viewData.m_worldToView)));
-  viewData.m_viewData.m_viewToWorld =
-      Math::inverse4(viewData.m_viewData.m_worldToView);
+  viewData.m_viewData.m_viewToWorld = Math::transpose(
+      Math::inverse4(Math::transpose(viewData.m_viewData.m_worldToView)));
   viewData.m_viewData.m_cameraAspect = camera->getAspect();
   viewData.m_viewData.m_inversePerspective =
-      Ifrit::Math::inverse4(viewData.m_viewData.m_perspective);
-  viewData.m_viewData.m_clipToWorld =
-      Math::inverse4(viewData.m_viewData.m_worldToClip);
+      Math::transpose(Ifrit::Math::inverse4(
+          Math::transpose(viewData.m_viewData.m_perspective)));
+  viewData.m_viewData.m_clipToWorld = Math::transpose(
+      Math::inverse4(Math::transpose(viewData.m_viewData.m_worldToClip)));
   auto cameraTransform = camera->getParent()->getComponentUnsafe<Transform>();
   if (cameraTransform == nullptr) {
     throw std::runtime_error("Camera has no transform");
@@ -91,7 +94,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     auto rotation = transform->getRotation();
     auto rotMatrix = Math::eulerAngleToMatrix(rotation);
     front = Math::matmul(rotMatrix, front);
-    front.z = -front.z;
+    // front.z = -front.z;
     perframeData.m_sunDir = front;
   }
 
@@ -571,14 +574,14 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
                                 bindlessRef, bindlessRefLast);
       bool initLastFrameMatrix = false;
       if (transformBuffer == nullptr) {
-        transformBuffer =
-            rhi->createUniformBufferShared(sizeof(float4x4), true, 0);
+        transformBuffer = rhi->createUniformBufferShared(
+            sizeof(MeshInstanceTransform), true, 0);
         bindlessRef = rhi->registerUniformBuffer(transformBuffer);
         transform->setGPUResource(transformBuffer, transformBufferLast,
                                   bindlessRef, bindlessRefLast);
         initLastFrameMatrix = true;
-        transformBufferLast =
-            rhi->createUniformBufferShared(sizeof(float4x4), true, 0);
+        transformBufferLast = rhi->createUniformBufferShared(
+            sizeof(MeshInstanceTransform), true, 0);
         bindlessRefLast = rhi->registerUniformBuffer(transformBufferLast);
         transform->setGPUResource(transformBuffer, transformBufferLast,
                                   bindlessRef, bindlessRefLast);
@@ -586,10 +589,15 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       // update uniform buffer, TODO: dirty flag
       auto transformDirty = transform->getDirtyFlag();
       if (transformDirty.changed) {
-        float4x4 model = transform->getModelToWorldMatrix();
+        MeshInstanceTransform model;
+        // Transpose is required because glsl uses column major matrices
+        model.model = Math::transpose(transform->getModelToWorldMatrix());
+        model.invModel =
+            Math::transpose(Math::inverse4(transform->getModelToWorldMatrix()));
+
         auto buf = transformBuffer->getActiveBuffer();
         buf->map();
-        buf->writeBuffer(&model, sizeof(float4x4), 0);
+        buf->writeBuffer(&model, sizeof(MeshInstanceTransform), 0);
         buf->flush();
         buf->unmap();
         shaderEffect.m_objectData[i].transformRef = bindlessRef->getActiveId();
@@ -601,10 +609,13 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         transform->onFrameCollecting();
       }
       if (initLastFrameMatrix || transformDirty.lastChanged) {
-        float4x4 modelLast = transform->getModelToWorldMatrixLast();
+        MeshInstanceTransform modelLast;
+        modelLast.model = Math::transpose(transform->getModelToWorldMatrix());
+        modelLast.invModel =
+            Math::transpose(Math::inverse4(transform->getModelToWorldMatrix()));
         auto bufLast = transformBufferLast->getActiveBuffer();
         bufLast->map();
-        bufLast->writeBuffer(&modelLast, sizeof(float4x4), 0);
+        bufLast->writeBuffer(&modelLast, sizeof(MeshInstanceTransform), 0);
         bufLast->flush();
         bufLast->unmap();
         transform->onFrameCollecting();

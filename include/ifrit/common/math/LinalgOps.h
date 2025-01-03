@@ -70,6 +70,7 @@ inline float4x4 axisAngleRotation(const ifloat3 &axis, float angle) {
   ret[3][1] = 0;
   ret[3][2] = 0;
   ret[3][3] = 1;
+  ret = transpose(ret);
   return ret;
 }
 inline float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up) {
@@ -186,27 +187,21 @@ inline float4x4 orthographicNegateY(float orthoSize, float aspect, float zNear,
   return result;
 }
 
-inline float4x4 eulerAngleToMatrix(const ifloat3 &euler) {
+inline float4x4 identity() {
   float4x4 result;
-  float cx = cos(euler.x), sx = sin(euler.x);
-  float cy = cos(euler.y), sy = sin(euler.y);
-  float cz = cos(euler.z), sz = sin(euler.z);
-  result[0][0] = cy * cz;
-  result[0][1] = cy * sz;
-  result[0][2] = -sy;
-  result[0][3] = 0;
-  result[1][0] = sx * sy * cz - cx * sz;
-  result[1][1] = sx * sy * sz + cx * cz;
-  result[1][2] = sx * cy;
-  result[1][3] = 0;
-  result[2][0] = cx * sy * cz + sx * sz;
-  result[2][1] = cx * sy * sz - sx * cz;
-  result[2][2] = cx * cy;
-  result[2][3] = 0;
-  result[3][0] = 0;
-  result[3][1] = 0;
-  result[3][2] = 0;
-  result[3][3] = 1;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      result[i][j] = i == j ? 1.0f : 0.0f;
+    }
+  }
+  return result;
+}
+
+inline float4x4 eulerAngleToMatrix(const ifloat3 &euler) {
+  float4x4 result = identity();
+  result = matmul(axisAngleRotation({1, 0, 0}, euler.x), result);
+  result = matmul(axisAngleRotation({0, 1, 0}, euler.y), result);
+  result = matmul(axisAngleRotation({0, 0, 1}, euler.z), result);
   return result;
 }
 
@@ -216,9 +211,8 @@ inline ifloat3 quaternionToEuler(const ifloat4 &q) {
   float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
   euler.x = atan2(sinr_cosp, cosr_cosp);
   float sinp = 2 * (q.w * q.y - q.z * q.x);
-  auto pi = std::numbers::pi_v<float>;
-  if (fabs(sinp) >= 1)
-    euler.y = std::copysign(pi / 2, sinp);
+  if (std::abs(sinp) >= 1)
+    euler.y = std::copysign(std::numbers::pi_v<float> / 2, sinp);
   else
     euler.y = asin(sinp);
   float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
@@ -227,14 +221,35 @@ inline ifloat3 quaternionToEuler(const ifloat4 &q) {
   return euler;
 }
 
-inline float4x4 identity() {
-  float4x4 result;
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      result[i][j] = i == j ? 1.0f : 0.0f;
+// Get the rotation matrix from a matrix, only 3x3 part is used
+// Always assume the 3x3 matrix is orthogonal
+inline ifloat3 eulerFromRotationMatrix(const float4x4 &q) {
+  // https://stackoverflow.com/questions/15022630/how-to-calculate-the-angle-from-rotation-matrix
+  ifloat3 euler;
+  euler.x = std::atan2(q[2][1], q[2][2]);
+  euler.y =
+      std::atan2(-q[2][0], std::sqrt(q[2][1] * q[2][1] + q[2][2] * q[2][2]));
+  euler.z = std::atan2(q[1][0], q[0][0]);
+  return euler;
+}
+
+// Always assume the homogeneous part of the matrix (that is A[3][3]) is 1
+inline void recoverTransformInfo(const float4x4 &q, ifloat3 &scale,
+                                 ifloat3 &translation, ifloat3 &rotation) {
+  translation.x = q[0][3];
+  translation.y = q[1][3];
+  translation.z = q[2][3];
+  scale.x = length(ifloat3{q[0][0], q[1][0], q[2][0]});
+  scale.y = length(ifloat3{q[0][1], q[1][1], q[2][1]});
+  scale.z = length(ifloat3{q[0][2], q[1][2], q[2][2]});
+  float4x4 normalizedRotMat;
+  for (int i = 0; i < 3; i++) {
+    float len = length(ifloat3{q[0][i], q[1][i], q[2][i]});
+    for (int j = 0; j < 3; j++) {
+      normalizedRotMat[j][i] = q[j][i] / len;
     }
   }
-  return result;
+  rotation = eulerFromRotationMatrix(normalizedRotMat);
 }
 
 inline float4x4 translate3D(const ifloat3 &t) {
@@ -297,6 +312,18 @@ inline float4x4 inverse4(const float4x4 &p) {
   inv[3][2] = -invdet * (p[0][0] * a1213 - p[0][1] * a0213 + p[0][2] * a0113);
   inv[3][3] = invdet * (p[0][0] * a1212 - p[0][1] * a0212 + p[0][2] * a0112);
   return inv;
+}
+
+inline float4x4 getTransformMat(const ifloat3 &scale,
+                                const ifloat3 &translation,
+                                const ifloat3 &rotation) {
+  float4x4 result = identity();
+  result = matmul(scale3D(scale), result);
+  result = matmul(axisAngleRotation({1, 0, 0}, rotation.x), result);
+  result = matmul(axisAngleRotation({0, 1, 0}, rotation.y), result);
+  result = matmul(axisAngleRotation({0, 0, 1}, rotation.z), result);
+  result = matmul(translate3D(translation), result);
+  return result;
 }
 
 inline float4x4 quaternionToRotMatrix(const ifloat4 &q) {

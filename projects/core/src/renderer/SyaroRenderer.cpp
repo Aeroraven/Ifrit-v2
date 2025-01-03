@@ -1497,7 +1497,8 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
       }
 
       // Then a sampler
-      perframeData.m_visibilitySampler = rhi->createTrivialSampler();
+      if (perframeData.m_visibilitySampler == nullptr)
+        perframeData.m_visibilitySampler = rhi->createTrivialSampler();
     }
 
     // For SW rasterizer

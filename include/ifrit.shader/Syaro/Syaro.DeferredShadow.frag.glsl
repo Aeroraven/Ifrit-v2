@@ -281,9 +281,10 @@ void main(){
     mat4 worldToView = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
     float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
-    float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
-    mat4 clipToWorld = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_clipToWorld;
     float depth = texture(GetSampler2D(pc.depthTexRef),texCoord).r;
+    float vsDepth = ifrit_recoverViewSpaceDepth(depth,camNear,camFar);
+    mat4 clipToWorld = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_clipToWorld;
+    
 
     if(motion_depth.a < 0.5){
         outColor = vec4(1.0);

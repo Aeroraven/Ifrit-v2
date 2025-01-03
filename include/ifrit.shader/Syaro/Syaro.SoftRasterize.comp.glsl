@@ -236,7 +236,7 @@ void main(){
 
         float invRw = 1.0 / float(pConst.renderWidth);
         float invRh = 1.0 / float(pConst.renderHeight);
-        float base = -cdx*p120x - cdy*p120y;
+        vec3 base = -cdx*p120x - cdy*p120y;
         for(uint y = minY; y < maxY; y++){
             for(uint x = minX; x < maxX; x++){
                 vec2 uvNdc = vec2(float(x) * invRw, float(y) * invRh) * 2.0 - 1.0;

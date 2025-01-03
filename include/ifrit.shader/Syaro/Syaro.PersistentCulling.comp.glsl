@@ -336,30 +336,36 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
     // contribution division, planning move meshlets bbox smaller than 16px
     // to sw rasterization. Currently, just discard them.
     if(pConst.rejectSwRaster == 0){
-        float projectedRadius = 0.0;
-        if(camViewType>0.5){
-            float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
-            float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
-            projectedRadius = radius * camAspect / orthoSize;
-        }else{
-            float fov = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
-            float tanfovy = tan(fov*0.5);
-            float lengthx = length(boundBall.xyz);
-            projectedRadius = computeProjectedRadius(tanfovy,lengthx,radius);
-        }
-        float rtHeight =  GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderHeight;
-        projectedRadius*=rtHeight;
-
-        if(projectedRadius < 32.0){
-            if(isSecondCullingPass()){
-                uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1sw;
-                pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2sw,1);
-                pos += basePos;
+        // We don't want sw rasterizer got homogeneous clipping. So if sphere intersects
+        // the near plane, we just discard it.
+        float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
+        float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
+        if(boundBall.z - radius > camNear+10.0){
+            float projectedRadius = 0.0;
+            if(camViewType>0.5){
+                float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
+                float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+                projectedRadius = radius * camAspect / orthoSize;
             }else{
-                pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1sw,1);
+                float fov = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+                float tanfovy = tan(fov*0.5);
+                float lengthx = length(boundBall.xyz);
+                projectedRadius = computeProjectedRadius(tanfovy,lengthx,radius);
             }
-            GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRefSW).data[pos+pConst.swOffset] = ivec2(objId,meshletId);
-            return;
+            float rtWidth = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderWidth;
+            projectedRadius*=rtWidth;
+
+            if(projectedRadius < 32.0){
+                if(isSecondCullingPass()){
+                    uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1sw;
+                    pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2sw,1);
+                    pos += basePos;
+                }else{
+                    pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1sw,1);
+                }
+                GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRefSW).data[pos+pConst.swOffset] = ivec2(objId,meshletId);
+                return;
+            }
         }
     }
     

@@ -60,7 +60,8 @@ public:
   uint32_t m_nodeId;
   std::shared_ptr<SceneObjectPrefab> m_prefab;
   GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset, uint32_t meshId,
-             uint32_t primitiveId, uint32_t nodeId);
+             uint32_t primitiveId, uint32_t nodeId,
+             const float4x4 &parentTransform);
 };
 
 class IFRIT_APIDECL GLTFAsset : public Asset {

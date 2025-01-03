@@ -53,7 +53,6 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
   auto camFovY = perView.m_viewData.m_cameraFovY;
   auto camPos = perView.m_viewData.m_cameraPosition;
 
-#if 1
   // Bound AABBs
   std::vector<CSMSingleSplitResult> results;
   for (auto i = 0u; i < splitCount; i++) {
@@ -63,13 +62,13 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
     auto rZFar = 0.0f, rOrthoSize = 0.0f;
     auto rCullOrthoX = 0.0f, rCullOrthoY = 0.0f;
     ifloat3 rCenter;
-    auto worldToView = perView.m_viewData.m_worldToView;
-    auto viewToWorld = inverse4(transpose(worldToView));
+    auto worldToView = Math::transpose(perView.m_viewData.m_worldToView);
+    auto viewToWorld = inverse4((worldToView));
     getFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, viewToWorld,
-                                 vApex, lightFront, 8e3f, rZFar, rOrthoSize,
+                                 vApex, lightFront, 1e2f, rZFar, rOrthoSize,
                                  rCenter, rCullOrthoX, rCullOrthoY);
     auto lightCamUp = ifloat3{0.0f, 1.0f, 0.0f};
-    auto proj = orthographicNegateY(rOrthoSize, 1.0, 1e1f, rZFar);
+    auto proj = orthographicNegateY(rOrthoSize, 1.0, 0.1f, rZFar);
     auto view = lookAt(rCenter, rCenter + lightFront, lightCamUp);
 
     // To alleviate shadow flickering, we need to snap the light camera to texel
@@ -102,46 +101,6 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
     result.m_clipOrthoSizeY = rCullOrthoY;
     results.push_back(result);
   }
-#else
-  // Bound spheres
-  for (auto i = 0u; i < splitCount; i++) {
-    auto vNear = std::max(1e-4f, splitStartMeter[i]);
-    auto vFar = splitEndMeter[i];
-    auto vApex = ifloat3{camPos.x, camPos.y, camPos.z};
-    auto sphere =
-        getFrustumBoundingSphere(camFovY, camAspect, vNear, vFar, vApex);
-    boundSpheres.push_back(sphere);
-  }
-
-  // Make result
-  std::vector<CSMSingleSplitResult> results;
-  for (auto i = 0u; i < splitCount; i++) {
-    auto &sphere = boundSpheres[i];
-    sphere.w += 1e-3f;
-    auto lightCamPosShiftXN =
-        ifloat3{-lightFront.x * sphere.w, -lightFront.y * sphere.w,
-                -lightFront.z * sphere.w};
-    auto lightCamPosShiftXF =
-        ifloat3{lightFront.x * sphere.w, lightFront.y * sphere.w,
-                lightFront.z * sphere.w};
-    auto lightCamPos = ifloat3{lightCamPosShiftXN.x + sphere.x,
-                               lightCamPosShiftXN.y + sphere.y,
-                               lightCamPosShiftXN.z + sphere.z};
-    auto lightCamLookAtCenter = ifloat3{sphere.x, sphere.y, sphere.z};
-    auto lightCamUp = ifloat3{0.0f, 1.0f, 0.0f};
-    auto proj = orthographicNegateY(sphere.w * 2, 1.0, 1e-3f, 2 * sphere.w);
-    auto view = lookAt(lightCamPos, lightCamLookAtCenter, lightCamUp);
-
-    CSMSingleSplitResult result;
-    result.m_proj = proj;
-    result.m_view = view;
-    result.m_lightCamPos = {lightCamPos.x, lightCamPos.y, lightCamPos.z, 1.0f};
-    result.m_near = 1e-3f;
-    result.m_far = 2 * sphere.w;
-    result.m_orthoSize = sphere.w * 2;
-    results.push_back(result);
-  }
-#endif
 
   CSMResult resultf;
   resultf.m_splits = results;
@@ -163,7 +122,6 @@ fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
   auto lightTransformMat = lightTransform.getModelToWorldMatrix();
   auto lightDirRaw = ifloat4{0.0f, 0.0f, 1.0f, 0.0f};
   auto lightDir = Math::matmul(lightTransformMat, lightDirRaw);
-
   auto lightDir3 = ifloat3{lightDir.x, lightDir.y, lightDir.z};
   auto csmResult = calculateCSMSplits(perView, shadowResolution, lightDir3,
                                       splitCount, maxDistance, splits, borders);
@@ -179,10 +137,10 @@ fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
         Math::matmul(Math::transpose(view.m_viewData.m_perspective),
                      Math::transpose(view.m_viewData.m_worldToView)));
     view.m_viewData.m_cameraAspect = 1.0f;
-    view.m_viewData.m_inversePerspective =
-        Ifrit::Math::inverse4(view.m_viewData.m_perspective);
-    view.m_viewData.m_clipToWorld =
-        Math::inverse4(view.m_viewData.m_worldToClip);
+    view.m_viewData.m_inversePerspective = Math::transpose(
+        Ifrit::Math::inverse4(Math::transpose(view.m_viewData.m_perspective)));
+    view.m_viewData.m_clipToWorld = Math::transpose(
+        Math::inverse4(Math::transpose(view.m_viewData.m_worldToClip)));
     view.m_viewData.m_cameraPosition = split.m_lightCamPos;
     view.m_viewData.m_cameraFront = {lightDir.x, lightDir.y, lightDir.z, 0.0f};
     view.m_viewData.m_cameraNear = split.m_near;
@@ -193,8 +151,8 @@ fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
     view.m_viewData.m_cullCamOrthoSizeX = split.m_clipOrthoSizeX;
     view.m_viewData.m_cullCamOrthoSizeY = split.m_clipOrthoSizeY;
     view.m_viewData.m_viewCameraType = 1.0f;
-    view.m_viewData.m_viewToWorld =
-        Math::inverse4(view.m_viewData.m_worldToView);
+    view.m_viewData.m_viewToWorld = Math::transpose(
+        Math::inverse4(Math::transpose(view.m_viewData.m_worldToView)));
 
     auto shadowMapSize = light.getShadowMapResolution();
     view.m_viewData.m_renderHeightf = static_cast<float>(shadowMapSize);

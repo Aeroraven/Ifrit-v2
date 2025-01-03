@@ -86,6 +86,4 @@ void main(){
             GetResource(bPerPixelCounterOffset, uMaterialPassData.perPixelCounterOffsetRef).data[posId] = inMaterialCounterOffset;
         }
     }
-
-
 }

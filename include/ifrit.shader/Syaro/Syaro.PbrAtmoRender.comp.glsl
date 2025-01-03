@@ -97,7 +97,7 @@ void main(){
 
     // Solar radiance
     vec3 solarRadiance = vec3(0.0);//GetSolarRadiance(atmo);
-    vec3 sunDirection = normalize(vec3(-uAtmoRenderPushConstant.sundir.x,uAtmoRenderPushConstant.sundir.yz));//normalize(vec3(0.612372,0.500000,0.612372));
+    vec3 sunDirection = -normalize(vec3(uAtmoRenderPushConstant.sundir.x,uAtmoRenderPushConstant.sundir.yz));//normalize(vec3(0.612372,0.500000,0.612372));
     //normalize(vec3(-0.612372,0.500000,0.612372));
 
     // Get ground radiance, intersection with ground

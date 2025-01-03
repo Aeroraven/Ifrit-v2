@@ -74,6 +74,11 @@ struct MeshData {
   IFRIT_STRUCT_SERIALIZE(m_vertices, m_normals, m_uvs, m_tangents, m_indices);
 };
 
+struct MeshInstanceTransform {
+  float4x4 model;
+  float4x4 invModel;
+};
+
 class IFRIT_APIDECL Mesh : public AssetReferenceContainer,
                            public IAssetCompatible {
   using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;

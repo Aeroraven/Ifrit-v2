@@ -107,7 +107,7 @@ void main(){
     viewPos /= viewPos.w;
     normal = (worldToView * vec4(normalize(normal * 2.0 - 1.0),0.0)).xyz;
 
-    vec3 sundir = normalize(pc.sundir.xyz);
+    vec3 sundir = -normalize(pc.sundir.xyz);
     vec3 lightDir = (worldToView * vec4(sundir,0.0)).xyz;
     //normalize(vec3(0.612372,0.500000,0.612372));
 

@@ -33,17 +33,17 @@ IFRIT_APIDECL float4x4 Camera::worldToCameraMatrix() const {
   auto upRaw = ifloat4{0.0f, 1.0f, 0.0f, 0.0f};
   auto up = matmul(rotationMatrix, upRaw);
   auto center = pos + ifloat3{front.x, front.y, front.z};
-  return transpose(
+  return (
       lookAt(ifloat3{pos.x, pos.y, pos.z}, center, ifloat3{up.x, up.y, up.z}));
 }
 IFRIT_APIDECL float4x4 Camera::projectionMatrix() const {
   auto data = m_attributes;
   if (data.m_type == CameraType::Perspective) {
-    return transpose(
+    return (
         perspectiveNegateY(data.m_fov, data.m_aspect, data.m_near, data.m_far));
   } else {
-    return transpose(orthographicNegateY(data.m_orthoSpaceSize, data.m_aspect,
-                                         data.m_near, data.m_far));
+    return (orthographicNegateY(data.m_orthoSpaceSize, data.m_aspect,
+                                data.m_near, data.m_far));
   }
 }
 
