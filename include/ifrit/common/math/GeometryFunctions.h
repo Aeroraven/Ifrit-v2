@@ -85,14 +85,8 @@ getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear, float zFar,
   auto maxDist = std::max(farDist, diagDist);
 
   for (auto &pt : worldSpacePts) {
-    // pt = {apex.x + pt.x, apex.y + pt.y, apex.z + pt.z, 1.0f};
-    auto spt = ifloat4{apex.x + pt.x, apex.y + pt.y, apex.z + pt.z, 1.0f};
     auto bpt = matmul(viewToWorld, pt);
     pt = bpt;
-    // TODO: this is an alleviation for the startup bug
-    if (std::isnan(pt.x) || std::isnan(pt.y) || std::isnan(pt.z)) {
-      pt = spt;
-    }
   }
 
   float projMinX = std::numeric_limits<float>::max();

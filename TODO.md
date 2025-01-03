@@ -5,7 +5,6 @@
 - [ ] Syaro: no objects will got tested if first instance cull pass reject all objects using prev-frame hzb
 - [ ] Syaro: compute SW rasterizer losing depth precision when performing depth testing.
   - [ ] Considering reverse z
-- [ ] Syaro: incorrect startup
 
 
 ## Artifacts
@@ -29,6 +28,8 @@
     
 
 ## Resolved
+
+- Syaro: incorrect startup (wrong view data for the first frame), referencing destroyed variable. (250103)
 
 - Syaro: CSM uv overflow, incorrect bbox infinity init (250103)
 

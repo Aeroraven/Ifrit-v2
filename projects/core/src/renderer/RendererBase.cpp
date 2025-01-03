@@ -41,40 +41,42 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   if (perframeData.m_views.size() == 0) {
     perframeData.m_views.resize(1);
   }
-  auto &viewData = perframeData.m_views[0];
-  viewData.m_viewType = PerFrameData::ViewType::Primary;
-  viewData.m_viewDataOld = viewData.m_viewData;
-  viewData.m_viewData.m_worldToView =
-      Math::transpose(camera->worldToCameraMatrix());
-  viewData.m_viewData.m_perspective =
-      Math::transpose(camera->projectionMatrix());
-  viewData.m_viewData.m_perspective[2][0] += config.projectionTranslateX;
-  viewData.m_viewData.m_perspective[2][1] += config.projectionTranslateY;
-  viewData.m_viewData.m_worldToClip = Math::transpose(
-      Math::matmul(Math::transpose(viewData.m_viewData.m_perspective),
-                   Math::transpose(viewData.m_viewData.m_worldToView)));
-  viewData.m_viewData.m_viewToWorld = Math::transpose(
-      Math::inverse4(Math::transpose(viewData.m_viewData.m_worldToView)));
-  viewData.m_viewData.m_cameraAspect = camera->getAspect();
-  viewData.m_viewData.m_inversePerspective =
-      Math::transpose(Ifrit::Math::inverse4(
-          Math::transpose(viewData.m_viewData.m_perspective)));
-  viewData.m_viewData.m_clipToWorld = Math::transpose(
-      Math::inverse4(Math::transpose(viewData.m_viewData.m_worldToClip)));
-  auto cameraTransform = camera->getParent()->getComponentUnsafe<Transform>();
-  if (cameraTransform == nullptr) {
-    throw std::runtime_error("Camera has no transform");
+  if (true) {
+    auto &viewData = perframeData.m_views[0];
+    viewData.m_viewType = PerFrameData::ViewType::Primary;
+    viewData.m_viewDataOld = viewData.m_viewData;
+    viewData.m_viewData.m_worldToView =
+        Math::transpose(camera->worldToCameraMatrix());
+    viewData.m_viewData.m_perspective =
+        Math::transpose(camera->projectionMatrix());
+    viewData.m_viewData.m_perspective[2][0] += config.projectionTranslateX;
+    viewData.m_viewData.m_perspective[2][1] += config.projectionTranslateY;
+    viewData.m_viewData.m_worldToClip = Math::transpose(
+        Math::matmul(Math::transpose(viewData.m_viewData.m_perspective),
+                     Math::transpose(viewData.m_viewData.m_worldToView)));
+    viewData.m_viewData.m_viewToWorld = Math::transpose(
+        Math::inverse4(Math::transpose(viewData.m_viewData.m_worldToView)));
+    viewData.m_viewData.m_cameraAspect = camera->getAspect();
+    viewData.m_viewData.m_inversePerspective =
+        Math::transpose(Ifrit::Math::inverse4(
+            Math::transpose(viewData.m_viewData.m_perspective)));
+    viewData.m_viewData.m_clipToWorld = Math::transpose(
+        Math::inverse4(Math::transpose(viewData.m_viewData.m_worldToClip)));
+    auto cameraTransform = camera->getParent()->getComponentUnsafe<Transform>();
+    if (cameraTransform == nullptr) {
+      throw std::runtime_error("Camera has no transform");
+    }
+    auto pos = cameraTransform->getPosition();
+    viewData.m_viewData.m_cameraPosition = ifloat4{pos.x, pos.y, pos.z, 1.0f};
+    viewData.m_viewData.m_cameraFront = camera->getFront();
+    viewData.m_viewData.m_cameraNear = camera->getNear();
+    viewData.m_viewData.m_cameraFar = camera->getFar();
+    viewData.m_viewData.m_cameraFovX = camera->getFov();
+    viewData.m_viewData.m_cameraFovY = camera->getFov();
+    viewData.m_viewData.m_cameraOrthoSize = camera->getOrthoSpaceSize();
+    viewData.m_viewData.m_viewCameraType =
+        camera->getCameraType() == CameraType::Orthographic ? 1.0f : 0.0f;
   }
-  auto pos = cameraTransform->getPosition();
-  viewData.m_viewData.m_cameraPosition = ifloat4{pos.x, pos.y, pos.z, 1.0f};
-  viewData.m_viewData.m_cameraFront = camera->getFront();
-  viewData.m_viewData.m_cameraNear = camera->getNear();
-  viewData.m_viewData.m_cameraFar = camera->getFar();
-  viewData.m_viewData.m_cameraFovX = camera->getFov();
-  viewData.m_viewData.m_cameraFovY = camera->getFov();
-  viewData.m_viewData.m_cameraOrthoSize = camera->getOrthoSpaceSize();
-  viewData.m_viewData.m_viewCameraType =
-      camera->getCameraType() == CameraType::Orthographic ? 1.0f : 0.0f;
 
   // Find lights that represent the sun
   auto sunLights = scene->filterObjects([](std::shared_ptr<SceneObject> obj) {
@@ -132,6 +134,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
                                   m_config->m_shadowConfig.m_csmBorders.end());
     auto maxDist = m_config->m_shadowConfig.m_maxDistance;
     std::array<float, 4> splitStart, splitEnd;
+    auto &viewData = perframeData.m_views[0];
     auto csmViews = RenderingUtil::CascadeShadowMapping::fillCSMViews(
         viewData, *light, light->getShadowMapResolution(), *lightTransform,
         m_config->m_shadowConfig.m_csmCount, maxDist, csmSplits, csmBorders,
