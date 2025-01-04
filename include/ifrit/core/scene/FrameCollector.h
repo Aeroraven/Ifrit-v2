@@ -79,6 +79,7 @@ struct PerShaderEffectData {
 struct PerFrameRenderTargets {
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiTexture> m_colorRT;
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef> m_colorRTId;
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef> m_colorRTIdSRV;
   Ifrit::GraphicsBackend::Rhi::RhiTexture *m_depthRT;
 
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiColorAttachment> m_colorRTRef;

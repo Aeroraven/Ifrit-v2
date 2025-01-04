@@ -85,7 +85,7 @@ public:
     auto bistroObj =
         m_assetManager->getAssetByName<GLTFAsset>("Bistro/untitled.gltf");
     // Renderer config
-    renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
+    renderConfig.m_antiAliasingType = AntiAliasingType::None;
     renderConfig.m_shadowConfig.m_maxDistance = 200.0f;
 
     // Scene

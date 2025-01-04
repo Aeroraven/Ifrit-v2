@@ -89,53 +89,6 @@ IFRIT_APIDECL GLTFPrefab::GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset,
   transform->setPosition(newTranslation);
   transform->setRotation(newRotation);
   transform->setScale(newScale);
-
-  auto newTransform = transform->getModelToWorldMatrix();
-
-  // check if the new transform is correct
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      if (abs(newTransform[i][j] - combinedTransform[i][j]) > 1e-3) {
-        iError("GLTFPrefab: transform matrix is not correct");
-        printf("GLTFPrefab: scale: %f %f %f\n", newScale.x, newScale.y,
-               newScale.z);
-        printf("GLTFPrefab: translation: %f %f %f\n", newTranslation.x,
-               newTranslation.y, newTranslation.z);
-        printf("GLTFPrefab: rotation: %f %f %f\n", newRotation.x, newRotation.y,
-               newRotation.z);
-        // print new transform matrix
-        printf("GLTFPrefab: new transform matrix: \n");
-        for (int i = 0; i < 4; i++) {
-          for (int j = 0; j < 4; j++) {
-            printf("%f ", newTransform[i][j]);
-          }
-          printf("\n");
-        }
-        // print combined transform matrix
-        printf("GLTFPrefab: combined transform matrix: \n");
-        for (int i = 0; i < 4; i++) {
-          for (int j = 0; j < 4; j++) {
-            printf("%f ", combinedTransform[i][j]);
-          }
-          printf("\n");
-        }
-
-        std::abort();
-      }
-    }
-  }
-
-  if (abs(newRotation.x) > 1e-3) {
-    // print new transform matrix
-    printf("GLTFPrefab: new transform matrix: \n");
-    for (int i = 0; i < 4; i++) {
-      for (int j = 0; j < 4; j++) {
-        printf("%f ", combinedTransform[i][j]);
-      }
-      printf("\n");
-    }
-  }
 }
 
 IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {

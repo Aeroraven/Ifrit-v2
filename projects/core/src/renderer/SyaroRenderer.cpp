@@ -245,16 +245,26 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   auto passDeferredShading =
       fg.addPass("DeferredShading", FrameGraphPassType::Graphics, resGbuffer,
                  {resDeferredShadingOutput}, {resAtmosphereOutput});
-  auto passGlobalFog =
-      fg.addPass("GlobalFog", FrameGraphPassType::Graphics,
-                 {resPrimaryViewDepth, resDeferredShadingOutput},
-                 {resGlobalFogOutput}, {});
-  auto passTAAResolve = fg.addPass(
-      "TAAResolve", FrameGraphPassType::Graphics, {resGlobalFogOutput},
-      {resTAAFrameOutput, resTAAHistoryOutput}, {});
+  PassNodeId passGlobalFog;
+  PassNodeId passTAAResolve;
+  PassNodeId passConvBloom;
 
-  auto passConvBloom = fg.addPass("ConvBloom", FrameGraphPassType::Graphics,
-                                  {resTAAFrameOutput}, {resBloomOutput}, {});
+  if (m_config->m_antiAliasingType == AntiAliasingType::TAA) {
+    passGlobalFog = fg.addPass("GlobalFog", FrameGraphPassType::Graphics,
+                               {resPrimaryViewDepth, resDeferredShadingOutput},
+                               {resGlobalFogOutput}, {});
+    passTAAResolve = fg.addPass("TAAResolve", FrameGraphPassType::Graphics,
+                                {resGlobalFogOutput},
+                                {resTAAFrameOutput, resTAAHistoryOutput}, {});
+    passConvBloom = fg.addPass("ConvBloom", FrameGraphPassType::Graphics,
+                               {resTAAFrameOutput}, {resBloomOutput}, {});
+  } else {
+    passGlobalFog = fg.addPass("GlobalFog", FrameGraphPassType::Graphics,
+                               {resPrimaryViewDepth, resDeferredShadingOutput},
+                               {resGlobalFogOutput}, {});
+    passConvBloom = fg.addPass("ConvBloom", FrameGraphPassType::Graphics,
+                               {resGlobalFogOutput}, {resBloomOutput}, {});
+  }
   auto passToneMapping = fg.addPass("ToneMapping", FrameGraphPassType::Graphics,
                                     {resBloomOutput}, {resFinalOutput}, {});
 
@@ -425,54 +435,73 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     m_globalFogPass->renderPostFx(cmd, fogRT.get(), inputId, inputDepthId,
                                   primaryViewId);
   });
-  fg.setExecutionFunction(passTAAResolve, [&]() {
-    auto taaRT = rhi->createRenderTargets();
-    auto taaCurTarget = rhi->createRenderTarget(
-        perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(),
-        {}, RhiRenderTargetLoadOp::Clear, 0, 0);
-    auto taaRenderTarget =
-        m_postprocColorRT[{mainRtWidth, mainRtHeight}][0].get();
 
-    taaRT->setColorAttachments({taaCurTarget.get(), taaRenderTarget});
-    taaRT->setDepthStencilAttachment(nullptr);
-    taaRT->setRenderArea(renderTargets->getRenderArea());
-    setupTAAPass(renderTargets);
-    auto rtCfg = taaRT->getFormat();
-    PipelineAttachmentConfigs paCfg;
-    paCfg.m_colorFormats = rtCfg.m_colorFormats;
-    paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
-    auto pass = m_taaPass[paCfg];
-    auto renderArea = renderTargets->getRenderArea();
-    uint32_t jitterX =
-        std::bit_cast<uint32_t, float>(perframeData.m_taaJitterX);
-    uint32_t jitterY =
-        std::bit_cast<uint32_t, float>(perframeData.m_taaJitterY);
-    uint32_t pconst[5] = {
-        perframeData.m_frameId,
-        renderArea.width,
-        renderArea.height,
-        jitterX,
-        jitterY,
-    };
-    cmd->beginScope("Syaro: TAA Resolve");
-    RenderingUtil::enqueueFullScreenPass(
-        cmd, rhi, pass, taaRT.get(),
-        {perframeData.m_taaHistoryDesc, perframeData.m_gbufferDepthDesc},
-        pconst, 3);
-    cmd->endScope();
-  });
-  fg.setExecutionFunction(passConvBloom, [&]() {
-    cmd->beginScope("Syaro: Convolution Bloom");
-    auto width =
-        renderTargets->getRenderArea().width + renderTargets->getRenderArea().x;
-    auto height = renderTargets->getRenderArea().height +
-                  renderTargets->getRenderArea().y;
-    auto postprocTex0Id = m_postprocTexId[{width, height}][0].get();
-    auto postprocTex1Id = m_postprocTexIdComp[{width, height}][1].get();
-    m_fftConv2d->renderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr,
-                              width, height, 51, 51, 4);
-    cmd->endScope();
-  });
+  if (m_config->m_antiAliasingType == AntiAliasingType::TAA) {
+    fg.setExecutionFunction(passTAAResolve, [&]() {
+      auto taaRT = rhi->createRenderTargets();
+      auto taaCurTarget = rhi->createRenderTarget(
+          perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(),
+          {}, RhiRenderTargetLoadOp::Clear, 0, 0);
+      auto taaRenderTarget =
+          m_postprocColorRT[{mainRtWidth, mainRtHeight}][0].get();
+
+      taaRT->setColorAttachments({taaCurTarget.get(), taaRenderTarget});
+      taaRT->setDepthStencilAttachment(nullptr);
+      taaRT->setRenderArea(renderTargets->getRenderArea());
+      setupTAAPass(renderTargets);
+      auto rtCfg = taaRT->getFormat();
+      PipelineAttachmentConfigs paCfg;
+      paCfg.m_colorFormats = rtCfg.m_colorFormats;
+      paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+      auto pass = m_taaPass[paCfg];
+      auto renderArea = renderTargets->getRenderArea();
+      uint32_t jitterX =
+          std::bit_cast<uint32_t, float>(perframeData.m_taaJitterX);
+      uint32_t jitterY =
+          std::bit_cast<uint32_t, float>(perframeData.m_taaJitterY);
+      uint32_t pconst[5] = {
+          perframeData.m_frameId,
+          renderArea.width,
+          renderArea.height,
+          jitterX,
+          jitterY,
+      };
+      cmd->beginScope("Syaro: TAA Resolve");
+      RenderingUtil::enqueueFullScreenPass(
+          cmd, rhi, pass, taaRT.get(),
+          {perframeData.m_taaHistoryDesc, perframeData.m_gbufferDepthDesc},
+          pconst, 3);
+      cmd->endScope();
+    });
+    fg.setExecutionFunction(passConvBloom, [&]() {
+      cmd->beginScope("Syaro: Convolution Bloom");
+      auto width = renderTargets->getRenderArea().width +
+                   renderTargets->getRenderArea().x;
+      auto height = renderTargets->getRenderArea().height +
+                    renderTargets->getRenderArea().y;
+      auto postprocTex0Id = m_postprocTexId[{width, height}][0].get();
+      auto postprocTex1Id = m_postprocTexIdComp[{width, height}][1].get();
+      m_fftConv2d->renderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr,
+                                width, height, 51, 51, 4);
+      cmd->endScope();
+    });
+  } else {
+    fg.setExecutionFunction(passConvBloom, [&]() {
+      cmd->beginScope("Syaro: Convolution Bloom");
+      auto width = renderTargets->getRenderArea().width +
+                   renderTargets->getRenderArea().x;
+      auto height = renderTargets->getRenderArea().height +
+                    renderTargets->getRenderArea().y;
+      auto postprocTex0Id =
+          perframeData.m_taaHistory[perframeData.m_frameId % 2]
+              .m_colorRTIdSRV.get();
+      auto postprocTex1Id = m_postprocTexIdComp[{width, height}][1].get();
+      m_fftConv2d->renderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr,
+                                width, height, 51, 51, 4);
+      cmd->endScope();
+    });
+  }
+
   fg.setExecutionFunction(passToneMapping, [&]() {
     m_acesToneMapping->renderPostFx(
         cmd, renderTargets,
@@ -1884,6 +1913,10 @@ SyaroRenderer::taaHistorySetup(PerFrameData &perframeData,
             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
     perframeData.m_taaHistory[i].m_colorRTId =
         rhi->registerUAVImage(perframeData.m_taaUnresolved.get(), {0, 0, 1, 1});
+    perframeData.m_taaHistory[i].m_colorRTIdSRV =
+        rhi->registerCombinedImageSampler(
+            perframeData.m_taaUnresolved.get(),
+            perframeData.m_taaHistorySampler.get());
 
     // TODO: clear values
     perframeData.m_taaHistory[i].m_colorRTRef = rhi->createRenderTarget(
