@@ -23,6 +23,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Timer.h"
 
+#include "ifrit/vkgraphics/engine/fsr2extension/FSR2Processor.h"
+
 using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
@@ -465,6 +467,12 @@ RhiVulkanBackend::createVertexBufferView() {
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiVertexBufferView>
 RhiVulkanBackend::getFullScreenQuadVertexBufferView() const {
   return m_implDetails->m_fullScreenQuadVertexBufferDescriptor;
+}
+
+IFRIT_APIDECL std::unique_ptr<Rhi::FSR2::RhiFsr2Processor>
+RhiVulkanBackend::createFsr2Processor() {
+  auto ctx = checked_cast<EngineContext>(m_device.get());
+  return std::make_unique<VulkanGraphics::FSR2::FSR2Processor>(ctx);
 }
 
 IFRIT_APIDECL void RhiVulkanBackend::setCacheDirectory(const std::string &dir) {

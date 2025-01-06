@@ -33,7 +33,7 @@ struct SceneCollectConfig {
   float projectionTranslateY = 0.0f;
 };
 
-enum class AntiAliasingType { None, TAA };
+enum class AntiAliasingType { None, TAA, FSR2 };
 
 struct RendererConfig {
   struct ShadowConfig {
@@ -46,6 +46,7 @@ struct RendererConfig {
 
   AntiAliasingType m_antiAliasingType = AntiAliasingType::None;
   ShadowConfig m_shadowConfig;
+  float m_superSamplingRate = 1.0f;
 };
 
 // TODO: move render graph to here
@@ -59,6 +60,18 @@ protected:
 
 protected:
   RendererBase(IApplication *app) : m_app(app) {}
+
+  inline void getSupersampledRenderArea(const RenderTargets *finalRenderTargets,
+                                        uint32_t *renderWidth,
+                                        uint32_t *renderHeight) {
+    *renderWidth =
+        static_cast<uint32_t>(finalRenderTargets->getRenderArea().width /
+                              m_config->m_superSamplingRate);
+    *renderHeight =
+        static_cast<uint32_t>(finalRenderTargets->getRenderArea().height /
+                              m_config->m_superSamplingRate);
+  }
+
   virtual void buildPipelines(PerFrameData &perframeData,
                               GraphicsShaderPassType passType,
                               RenderTargets *renderTargets);
@@ -71,6 +84,7 @@ protected:
   virtual void collectPerframeData(PerFrameData &perframeData, Scene *scene,
                                    Camera *camera,
                                    GraphicsShaderPassType passType,
+                                   RenderTargets *renderTargets,
                                    const SceneCollectConfig &config);
 
   inline void setRendererConfig(const RendererConfig *config) {

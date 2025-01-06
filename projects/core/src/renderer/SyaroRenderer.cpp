@@ -64,6 +64,19 @@ registerUAVBarriers(
   return barriers;
 }
 
+RhiScissor
+getSupersampleDownsampledArea(const RhiRenderTargets *finalRenderTargets,
+                              const RendererConfig &cfg) {
+  RhiScissor scissor;
+  scissor.x = 0;
+  scissor.y = 0;
+  scissor.width =
+      finalRenderTargets->getRenderArea().width / cfg.m_superSamplingRate;
+  scissor.height =
+      finalRenderTargets->getRenderArea().height / cfg.m_superSamplingRate;
+  return scissor;
+}
+
 IFRIT_APIDECL PerFrameData::PerViewData &
 SyaroRenderer::getPrimaryView(PerFrameData &perframeData) {
   for (auto &view : perframeData.m_views) {
@@ -111,6 +124,9 @@ IFRIT_APIDECL void SyaroRenderer::setupPostprocessPassAndTextures() {
 
   // tex and samplers
   m_postprocTexSampler = m_app->getRhiLayer()->createTrivialSampler();
+
+  // fsr2
+  m_fsr2proc = m_app->getRhiLayer()->createFsr2Processor();
 }
 
 IFRIT_APIDECL void SyaroRenderer::createPostprocessTextures(uint32_t width,
@@ -447,24 +463,20 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
 
       taaRT->setColorAttachments({taaCurTarget.get(), taaRenderTarget});
       taaRT->setDepthStencilAttachment(nullptr);
-      taaRT->setRenderArea(renderTargets->getRenderArea());
+      taaRT->setRenderArea(
+          getSupersampleDownsampledArea(renderTargets, *m_config));
       setupTAAPass(renderTargets);
       auto rtCfg = taaRT->getFormat();
       PipelineAttachmentConfigs paCfg;
       paCfg.m_colorFormats = rtCfg.m_colorFormats;
       paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
       auto pass = m_taaPass[paCfg];
-      auto renderArea = renderTargets->getRenderArea();
       uint32_t jitterX =
           std::bit_cast<uint32_t, float>(perframeData.m_taaJitterX);
       uint32_t jitterY =
           std::bit_cast<uint32_t, float>(perframeData.m_taaJitterY);
       uint32_t pconst[5] = {
-          perframeData.m_frameId,
-          renderArea.width,
-          renderArea.height,
-          jitterX,
-          jitterY,
+          perframeData.m_frameId, mainRtWidth, mainRtHeight, jitterX, jitterY,
       };
       cmd->beginScope("Syaro: TAA Resolve");
       RenderingUtil::enqueueFullScreenPass(
@@ -475,10 +487,8 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     });
     fg.setExecutionFunction(passConvBloom, [&]() {
       cmd->beginScope("Syaro: Convolution Bloom");
-      auto width = renderTargets->getRenderArea().width +
-                   renderTargets->getRenderArea().x;
-      auto height = renderTargets->getRenderArea().height +
-                    renderTargets->getRenderArea().y;
+      auto width = mainRtWidth;
+      auto height = mainRtHeight;
       auto postprocTex0Id = m_postprocTexId[{width, height}][0].get();
       auto postprocTex1Id = m_postprocTexIdComp[{width, height}][1].get();
       m_fftConv2d->renderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr,
@@ -488,10 +498,8 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   } else {
     fg.setExecutionFunction(passConvBloom, [&]() {
       cmd->beginScope("Syaro: Convolution Bloom");
-      auto width = renderTargets->getRenderArea().width +
-                   renderTargets->getRenderArea().x;
-      auto height = renderTargets->getRenderArea().height +
-                    renderTargets->getRenderArea().y;
+      auto width = mainRtWidth;
+      auto height = mainRtHeight;
       auto postprocTex0Id =
           perframeData.m_taaHistory[perframeData.m_frameId % 2]
               .m_colorRTIdSRV.get();
@@ -706,9 +714,12 @@ SyaroRenderer::materialClassifyBufferSetup(PerFrameData &perframeData,
                                            RenderTargets *renderTargets) {
   auto numMaterials = perframeData.m_enabledEffects.size();
   auto rhi = m_app->getRhiLayer();
-  auto renderArea = renderTargets->getRenderArea();
-  auto width = renderArea.width + renderArea.x;
-  auto height = renderArea.height + renderArea.y;
+
+  uint32_t actualRtWidth = 0, actualRtHeight = 0;
+  getSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
+
+  auto width = actualRtWidth;
+  auto height = actualRtHeight;
   auto totalSize = width * height;
   bool needRecreate = false;
   bool needRecreateMat = false;
@@ -810,12 +821,18 @@ IFRIT_APIDECL void
 SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
                                  RenderTargets *renderTargets) {
   auto rhi = m_app->getRhiLayer();
-  auto rtArea = renderTargets->getRenderArea();
+
+  uint32_t actualRtWidth = 0, actualRtHeight = 0;
+  getSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
+
   if (perframeData.m_velocityMaterial != nullptr)
     return;
   perframeData.m_velocityMaterial = rhi->createRenderTargetTexture(
-      rtArea.width + rtArea.x, rtArea.height + rtArea.y,
+      actualRtWidth, actualRtHeight,
       RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+      RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+  perframeData.m_motionVector = rhi->createRenderTargetTexture(
+      actualRtWidth, actualRtHeight, RhiImageFormat::RHI_FORMAT_R32G32_SFLOAT,
       RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
   perframeData.m_velocityMaterialDesc = rhi->createBindlessDescriptorRef();
   perframeData.m_velocityMaterialDesc->addUAVImage(
@@ -825,6 +842,8 @@ SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
   perframeData.m_velocityMaterialDesc->addCombinedImageSampler(
       primaryView.m_visibilityBuffer_Combined.get(),
       perframeData.m_visibilitySampler.get(), 1);
+  perframeData.m_velocityMaterialDesc->addUAVImage(
+      perframeData.m_motionVector.get(), {0, 0, 1, 1}, 2);
 
   // For gbuffer, depth is required to reconstruct position
   perframeData.m_gbufferDepthDesc = rhi->createBindlessDescriptorRef();
@@ -1219,9 +1238,11 @@ SyaroRenderer::renderMaterialClassify(PerFrameData &perframeData,
   auto totalMaterials =
       size_cast<uint32_t>(perframeData.m_enabledEffects.size());
 
-  auto renderArea = renderTargets->getRenderArea();
-  auto width = renderArea.width + renderArea.x;
-  auto height = renderArea.height + renderArea.y;
+  uint32_t actualRtWidth = 0, actualRtHeight = 0;
+  getSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
+
+  auto width = actualRtWidth;
+  auto height = actualRtHeight;
   uint32_t pcData[3] = {width, height, totalMaterials};
 
   constexpr uint32_t pTileWidth =
@@ -1285,7 +1306,6 @@ IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
                                                  RenderTargets *renderTargets) {
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     auto &perView = perframeData.m_views[k];
-    auto renderArea = renderTargets->getRenderArea();
     auto width = perView.m_renderWidth;
     auto height = perView.m_renderHeight;
     bool cond = (perView.m_hizTexture == nullptr);
@@ -1302,8 +1322,8 @@ IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
         width, height, maxMip, RhiImageFormat::RHI_FORMAT_R32_SFLOAT,
         RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
 
-    uint32_t rWidth = renderArea.width + renderArea.x;
-    uint32_t rHeight = renderArea.height + renderArea.y;
+    uint32_t rWidth = perView.m_renderWidth;
+    uint32_t rHeight = perView.m_renderHeight;
     perView.m_hizDepthSampler = rhi->createTrivialSampler();
 
     for (int i = 0; i < maxMip; i++) {
@@ -1358,7 +1378,6 @@ SyaroRenderer::sphizBufferSetup(PerFrameData &perframeData,
                                 RenderTargets *renderTargets) {
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     auto &perView = perframeData.m_views[k];
-    auto renderArea = renderTargets->getRenderArea();
     auto width = perView.m_renderWidth;
     auto height = perView.m_renderHeight;
     bool cond = (perView.m_spHiZData.m_hizTexture == nullptr);
@@ -1429,26 +1448,21 @@ IFRIT_APIDECL void
 SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
                                      RenderTargets *renderTargets) {
   auto rhi = m_app->getRhiLayer();
-  auto rtArea = renderTargets->getRenderArea();
 
   for (uint32_t k = 0; k < perframeData.m_views.size(); k++) {
     auto &perView = perframeData.m_views[k];
     bool createCond = (perView.m_visibilityBuffer_Combined == nullptr);
 
-    if (!createCond) {
-      auto visHeight = perView.m_visibilityBuffer_Combined->getHeight();
-      auto visWidth = perView.m_visibilityBuffer_Combined->getWidth();
-      auto rtSize = renderTargets->getRenderArea();
-      createCond = (visHeight != rtSize.height + rtSize.x ||
-                    visWidth != rtSize.width + rtSize.y);
-    }
+    uint32_t actualRtw = 0, actualRth = 0;
+    getSupersampledRenderArea(renderTargets, &actualRtw, &actualRth);
+
     auto visHeight = perView.m_renderHeight;
     auto visWidth = perView.m_renderWidth;
     if (visHeight == 0 || visWidth == 0) {
       if (perView.m_viewType == PerFrameData::ViewType::Primary) {
         // use render target size
-        visHeight = rtArea.height + rtArea.y;
-        visWidth = rtArea.width + rtArea.x;
+        visHeight = actualRth;
+        visWidth = actualRtw;
       } else if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
         Logging::error("Shadow view has no size");
         std::abort();
@@ -1495,7 +1509,8 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
       }
       perView.m_visRTs_HW->setDepthStencilAttachment(
           perView.m_visDepthRT_HW.get());
-      perView.m_visRTs_HW->setRenderArea(renderTargets->getRenderArea());
+      perView.m_visRTs_HW->setRenderArea(
+          getSupersampleDownsampledArea(renderTargets, *m_config));
       if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
         auto rtHeight = (perView.m_renderHeight);
         auto rtWidth = (perView.m_renderWidth);
@@ -1518,7 +1533,8 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
       }
       perView.m_visRTs2_HW->setDepthStencilAttachment(
           perView.m_visDepthRT2_HW.get());
-      perView.m_visRTs2_HW->setRenderArea(renderTargets->getRenderArea());
+      perView.m_visRTs2_HW->setRenderArea(
+          getSupersampleDownsampledArea(renderTargets, *m_config));
       if (perView.m_viewType == PerFrameData::ViewType::Shadow) {
         auto rtHeight = (perView.m_renderHeight);
         auto rtWidth = (perView.m_renderWidth);
@@ -1581,8 +1597,6 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
               perView.m_visibilityBuffer_Combined.get(),
               perframeData.m_visibilitySampler.get());
 
-      iInfo("DepthId:{}",
-            perView.m_visibilityDepthIdSRV_Combined->getActiveId());
       // UAV is not needed for HW rasterizer
       perView.m_visibilityBufferIdUAV_Combined = nullptr;
       perView.m_visibilityDepthIdUAV_Combined = nullptr;
@@ -1595,7 +1609,6 @@ SyaroRenderer::renderDefaultEmitGBuffer(PerFrameData &perframeData,
                                         RenderTargets *renderTargets,
                                         const GPUCmdBuffer *cmd) {
   auto numMaterials = perframeData.m_enabledEffects.size();
-  auto rtArea = renderTargets->getRenderArea();
   m_defaultEmitGBufferPass->setRecordFunction([&](const RhiRenderPassContext
                                                       *ctx) {
     // first transition all
@@ -1635,7 +1648,9 @@ SyaroRenderer::renderDefaultEmitGBuffer(PerFrameData &perframeData,
 
     // For each material, make
     // one dispatch
-    uint32_t pcData[3] = {0, rtArea.width + rtArea.x, rtArea.height + rtArea.y};
+    uint32_t actualRtw = 0, actualRth = 0;
+    getSupersampledRenderArea(renderTargets, &actualRtw, &actualRth);
+    uint32_t pcData[3] = {0, actualRtw, actualRth};
     auto &primaryView = getPrimaryView(perframeData);
     for (int i = 0; i < numMaterials; i++) {
       ctx->m_cmd->attachBindlessReferenceCompute(m_defaultEmitGBufferPass, 1,
@@ -1704,10 +1719,10 @@ SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData,
       RhiRenderTargetLoadOp::Clear, 0, 0);
   auto rt1 = rhi->createRenderTargets();
   rt1->setColorAttachments({colorRT1.get()});
-  rt1->setRenderArea(renderTargets->getRenderArea());
+  rt1->setRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
   auto rt2 = rhi->createRenderTargets();
   rt2->setColorAttachments({colorRT2.get()});
-  rt2->setRenderArea(renderTargets->getRenderArea());
+  rt2->setRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
 
   m_gaussianHori->renderPostFx(
       cmd, rt1.get(), perframeData.m_gbuffer.m_specular_occlusion_sampId.get(),
@@ -1873,13 +1888,12 @@ IFRIT_APIDECL void
 SyaroRenderer::taaHistorySetup(PerFrameData &perframeData,
                                RenderTargets *renderTargets) {
   auto rhi = m_app->getRhiLayer();
-  auto rtArea = renderTargets->getRenderArea();
-  if (rtArea.x != 0 || rtArea.y != 0) {
-    throw std::runtime_error(
-        "Currently, it does not support non-zero x/y offsets");
-  }
-  auto width = rtArea.width + rtArea.x;
-  auto height = rtArea.height + rtArea.y;
+
+  uint32_t actualRtw = 0, actualRth = 0;
+  getSupersampledRenderArea(renderTargets, &actualRtw, &actualRth);
+
+  auto width = actualRtw;
+  auto height = actualRth;
 
   auto needRecreate = (perframeData.m_taaHistory.size() == 0);
   if (!needRecreate) {
@@ -1941,7 +1955,7 @@ SyaroRenderer::taaHistorySetup(PerFrameData &perframeData,
     perframeData.m_taaHistory[i].m_rts->setColorAttachments(
         {perframeData.m_taaHistory[i].m_colorRTRef.get()});
     perframeData.m_taaHistory[i].m_rts->setRenderArea(
-        renderTargets->getRenderArea());
+        getSupersampleDownsampledArea(renderTargets, *m_config));
 
     perframeData.m_taaHistoryDesc->addCombinedImageSampler(
         perframeData.m_taaHistory[i].m_colorRT.get(),
@@ -1996,11 +2010,10 @@ SyaroRenderer::render(
   std::unique_ptr<RhiTaskSubmission> pbrAtmoTask;
   if (perframeData.m_atmosphereData == nullptr) {
     // Need to create an atmosphere output texture
+    uint32_t actualRtw = 0, actualRth = 0;
+    getSupersampledRenderArea(renderTargets, &actualRtw, &actualRth);
     perframeData.m_atmoOutput = rhi->createRenderTargetTexture(
-        renderTargets->getRenderArea().width + renderTargets->getRenderArea().x,
-        renderTargets->getRenderArea().height +
-            renderTargets->getRenderArea().y,
-        RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        actualRtw, actualRth, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
         RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
 
     perframeData.m_atmoOutputId =
@@ -2073,41 +2086,57 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
     m_perScenePerframe[scene] = PerFrameData();
   }
   m_renderConfig = config;
+  m_config = &config;
   auto &perframeData = m_perScenePerframe[scene];
+
   auto frameId = perframeData.m_frameId;
 
   auto haltonX =
       RendererConsts::cHalton2[frameId % RendererConsts::cHalton2.size()];
   auto haltonY =
       RendererConsts::cHalton3[frameId % RendererConsts::cHalton3.size()];
-  auto renderArea = renderTargets->getRenderArea();
-  auto width = renderArea.width + renderArea.x;
-  auto height = renderArea.height + renderArea.y;
+
+  uint32_t actualRw = 0, actualRh = 0;
+  getSupersampledRenderArea(renderTargets, &actualRw, &actualRh);
+  auto width = actualRw;
+  auto height = actualRh;
   SceneCollectConfig sceneConfig;
   if (config.m_antiAliasingType == AntiAliasingType::TAA) {
     sceneConfig.projectionTranslateX = (haltonX * 2.0f - 1.0f) / width;
     sceneConfig.projectionTranslateY = (haltonY * 2.0f - 1.0f) / height;
+  } else if (config.m_antiAliasingType == AntiAliasingType::FSR2) {
+    float jx, jy;
+    m_fsr2proc->getJitters(&jx, &jy, perframeData.m_frameId, actualRw,
+                           actualRh);
+    sceneConfig.projectionTranslateX = jx;
+    sceneConfig.projectionTranslateY = jy;
   } else {
     sceneConfig.projectionTranslateX = 0.0f;
     sceneConfig.projectionTranslateY = 0.0f;
   }
   setRendererConfig(&config);
   collectPerframeData(perframeData, scene, camera,
-                      GraphicsShaderPassType::Opaque, sceneConfig);
+                      GraphicsShaderPassType::Opaque, renderTargets,
+                      sceneConfig);
 
   auto end0 = std::chrono::high_resolution_clock::now();
   auto duration0 =
       std::chrono::duration_cast<std::chrono::milliseconds>(end0 - start);
   // iDebug("CPU time, frame collecting: {} ms", duration0.count());
-  perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5f;
-  perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5f;
+  if (config.m_antiAliasingType == AntiAliasingType::TAA) {
+    perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5f;
+    perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5f;
+  } else {
+    perframeData.m_taaJitterX = sceneConfig.projectionTranslateX;
+    perframeData.m_taaJitterY = sceneConfig.projectionTranslateY;
+  }
+
   auto ret = render(perframeData, renderTargets, cmdToWait);
   perframeData.m_frameId++;
 
   auto end = std::chrono::high_resolution_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  // iDebug("CPU time: {} ms", duration.count());
   return ret;
 }
 

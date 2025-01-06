@@ -23,4 +23,4 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_library(ifrit.core SHARED ${IFRIT_CORELIB_SOURCE_FILES_CXX} ${IFRIT_CORELIB_SOURCE_FILES_C} ${IFRIT_CORELIB_HEADER_FILES})
-target_link_libraries(ifrit.core ifrit.rhi ifrit.display ifrit.meshproclib)
+target_link_libraries(ifrit.core ifrit.rhi ifrit.display ifrit.meshproclib ${FSR2_API_LIBRARIES})

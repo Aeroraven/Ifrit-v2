@@ -109,6 +109,7 @@ layout(binding = 0, set = 5) uniform IndirectDrawData{
 layout(binding = 0, set = 6) uniform EmitDepthTargetData{
     uint velocityMaterialRef; //Seems rgb32f specifiers are not provided
     uint visBufferRef;
+    uint motionVectorRef;
 }uEmitDepthTargetData;
 
 

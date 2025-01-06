@@ -20,7 +20,7 @@ add_definitions(-DIFRIT_VKGRAPHICS_SHARED_SHADER_PATH="${IFRIT_PROJECT_DIR}/incl
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.VkGraphics")
 
 add_library(ifrit.vkrenderer SHARED ${IFRIT_VKRENDERER_SOURCE_FILES_CXX} ${IFRIT_VKRENDERER_SOURCE_FILES_C} ${IFRIT_VKRENDERER_HEADER_FILES})
-target_link_libraries(ifrit.vkrenderer Vulkan::Vulkan Vulkan::shaderc_combined)
+target_link_libraries(ifrit.vkrenderer Vulkan::Vulkan Vulkan::shaderc_combined ${FSR2_API_LIBRARIES})
 
 # windows specific
 include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/WindowsLibConv.cmake)

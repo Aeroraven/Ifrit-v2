@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <atomic>
 #include <random>
 
+
 using namespace Ifrit::Math;
 
 namespace Ifrit::Core {

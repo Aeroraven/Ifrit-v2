@@ -106,6 +106,9 @@ private:
                      PipelineAttachmentConfigsHash>
       m_taaPass;
 
+  // FSR2
+  std::unique_ptr<GraphicsBackend::Rhi::FSR2::RhiFsr2Processor> m_fsr2proc;
+
   // Atmosphere
   ComputePass *m_atmospherePass = nullptr;
   std::shared_ptr<PbrAtmosphereRenderer> m_atmosphereRenderer;
@@ -166,7 +169,7 @@ private:
   void setupDefaultEmitGBufferPass();
   void setupPbrAtmosphereRenderer();
   void setupSinglePassHiZPass();
-
+  void setupFSR2Data();
   void setupPostprocessPassAndTextures();
   void createTimer();
 

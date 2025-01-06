@@ -361,8 +361,6 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
 
             material->setAlbedoId(albedoId->getActiveId());
             material->setNormalMapId(normalId->getActiveId());
-            iInfo("GLTFAsset: albedoId: {} normalId: {}",
-                  albedoId->getActiveId(), normalId->getActiveId());
             material->buildMaterial();
             meshRenderer->setMaterial(material);
 
@@ -378,8 +376,6 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
       traverseNode(nodeId, Math::identity());
     }
   }
-  iInfo("GLTFAsset: loaded mesh count: {}", m_meshes.size());
-  iInfo("GLTFAsset: loaded prefab count: {}", m_prefabs.size());
 }
 
 IFRIT_APIDECL GLTFInternalData *GLTFAsset::getInternalData() {

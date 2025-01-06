@@ -27,7 +27,8 @@ using Ifrit::Common::Utility::size_cast;
 namespace Ifrit::Core {
 IFRIT_APIDECL void RendererBase::collectPerframeData(
     PerFrameData &perframeData, Scene *scene, Camera *camera,
-    GraphicsShaderPassType passType, const SceneCollectConfig &config) {
+    GraphicsShaderPassType passType, RenderTargets *renderTargets,
+    const SceneCollectConfig &config) {
   using Ifrit::Common::Utility::size_cast;
 
   Logging::assertion(m_config != nullptr, "Renderer config is not set");
@@ -42,6 +43,10 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     perframeData.m_views.resize(1);
   }
   if (true) {
+    auto rtArea = renderTargets->getRenderArea();
+    uint32_t actualRtWidth = 0, actualRtHeight = 0;
+    getSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
+
     auto &viewData = perframeData.m_views[0];
     viewData.m_viewType = PerFrameData::ViewType::Primary;
     viewData.m_viewDataOld = viewData.m_viewData;
@@ -307,14 +312,18 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
   auto rhi = m_app->getRhiLayer();
   auto rtArea = renderTargets->getRenderArea();
   auto needRecreate = (perframeData.m_gbuffer.m_rtCreated == 0);
+
+  uint32_t actualRtWidth = 0, actualRtHeight = 0;
+  getSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
+
   if (!needRecreate) {
-    needRecreate = (perframeData.m_gbuffer.m_rtWidth != rtArea.width ||
-                    perframeData.m_gbuffer.m_rtHeight != rtArea.height);
+    needRecreate = (perframeData.m_gbuffer.m_rtWidth != actualRtWidth ||
+                    perframeData.m_gbuffer.m_rtHeight != actualRtHeight);
   }
   if (needRecreate) {
     perframeData.m_gbuffer.m_rtCreated = 1;
-    perframeData.m_gbuffer.m_rtWidth = rtArea.width;
-    perframeData.m_gbuffer.m_rtHeight = rtArea.height;
+    perframeData.m_gbuffer.m_rtWidth = actualRtWidth;
+    perframeData.m_gbuffer.m_rtHeight = actualRtHeight;
 
     auto targetUsage = RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
                        RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
@@ -323,26 +332,20 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
     // auto targetFomrat = RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM;
     auto targetFomrat = RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT;
     perframeData.m_gbuffer.m_albedo_materialFlags =
-        rhi->createRenderTargetTexture(rtArea.width + rtArea.x,
-                                       rtArea.height + rtArea.y, targetFomrat,
-                                       targetUsage);
+        rhi->createRenderTargetTexture(actualRtWidth, actualRtHeight,
+                                       targetFomrat, targetUsage);
     perframeData.m_gbuffer.m_emissive = rhi->createRenderTargetTexture(
-        rtArea.width + rtArea.x, rtArea.height + rtArea.y, targetFomrat,
-        targetUsage);
+        actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
     perframeData.m_gbuffer.m_normal_smoothness = rhi->createRenderTargetTexture(
-        rtArea.width + rtArea.x, rtArea.height + rtArea.y, targetFomrat,
-        targetUsage);
+        actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
     perframeData.m_gbuffer.m_specular_occlusion =
-        rhi->createRenderTargetTexture(rtArea.width + rtArea.x,
-                                       rtArea.height + rtArea.y, targetFomrat,
-                                       targetUsage);
+        rhi->createRenderTargetTexture(actualRtWidth, actualRtHeight,
+                                       targetFomrat, targetUsage);
     perframeData.m_gbuffer.m_specular_occlusion_intermediate =
-        rhi->createRenderTargetTexture(rtArea.width + rtArea.x,
-                                       rtArea.height + rtArea.y, targetFomrat,
-                                       targetUsage);
+        rhi->createRenderTargetTexture(actualRtWidth, actualRtHeight,
+                                       targetFomrat, targetUsage);
     perframeData.m_gbuffer.m_shadowMask = rhi->createRenderTargetTexture(
-        rtArea.width + rtArea.x, rtArea.height + rtArea.y, targetFomrat,
-        targetUsage);
+        actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
 
     perframeData.m_gbuffer.m_gbufferSampler = rhi->createTrivialSampler();
 
@@ -481,16 +484,21 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
   auto rhi = m_app->getRhiLayer();
   auto renderArea = renderTargets->getRenderArea();
 
+  uint32_t actualRenderWidth = 0.0;
+  uint32_t actualRenderHeight = 0.0;
+  getSupersampledRenderArea(renderTargets, &actualRenderWidth,
+                            &actualRenderHeight);
+
   auto &primaryView = perframeData.m_views[0];
   primaryView.m_viewType = PerFrameData::ViewType::Primary;
   primaryView.m_viewData.m_renderHeightf =
-      static_cast<float>(renderArea.height);
-  primaryView.m_viewData.m_renderWidthf = static_cast<float>(renderArea.width);
-  primaryView.m_renderHeight = renderArea.height;
-  primaryView.m_renderWidth = renderArea.width;
+      static_cast<float>(actualRenderHeight);
+  primaryView.m_viewData.m_renderWidthf = static_cast<float>(actualRenderWidth);
+  primaryView.m_renderHeight = actualRenderHeight;
+  primaryView.m_renderWidth = actualRenderWidth;
   primaryView.m_viewData.m_hizLods =
-      std::floor(std::log2(
-          static_cast<float>(std::max(renderArea.width, renderArea.height)))) +
+      std::floor(std::log2(static_cast<float>(
+          std::max(actualRenderWidth, actualRenderHeight)))) +
       1.0f;
 
   // Shadow views data has been filled in collectPerframeData

@@ -266,6 +266,14 @@ struct PerFrameData {
     std::vector<GPUBarrier> m_persistCullBarrier;
     std::vector<GPUBarrier> m_visibilityBarrier;
   };
+
+  struct FSR2ExtraData {
+    std::shared_ptr<GPUTexture> m_fsr2Output = nullptr;
+    std::shared_ptr<GPUSampler> m_fsr2Sampler = nullptr;
+    std::shared_ptr<GPUBindlessId> m_fsr2OutputSRVId = nullptr;
+    uint32_t m_fsrFrameId = 0;
+  };
+
   constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat
       c_visibilityFormat =
           Ifrit::GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32_UINT;
@@ -296,6 +304,7 @@ struct PerFrameData {
 
   // Emit depth targets
   std::shared_ptr<GPUTexture> m_velocityMaterial = nullptr;
+  std::shared_ptr<GPUTexture> m_motionVector = nullptr;
   GPUBindlessRef *m_velocityMaterialDesc = nullptr;
 
   // Material classify
@@ -320,6 +329,9 @@ struct PerFrameData {
   std::shared_ptr<GPUSampler> m_taaSampler = nullptr;
   float m_taaJitterX = 0.0f;
   float m_taaJitterY = 0.0f;
+
+  // FSR2
+  FSR2ExtraData m_fsr2Data;
 
   // Atmosphere
   std::shared_ptr<void> m_atmosphereData = nullptr;

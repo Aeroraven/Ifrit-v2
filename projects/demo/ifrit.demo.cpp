@@ -87,7 +87,7 @@ public:
     // Renderer config
     renderConfig.m_antiAliasingType = AntiAliasingType::None;
     renderConfig.m_shadowConfig.m_maxDistance = 200.0f;
-
+    renderConfig.m_superSamplingRate = 1.5f;
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");
     auto node = s->addSceneNode();

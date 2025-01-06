@@ -106,15 +106,6 @@ parseDDS(std ::filesystem::path path, IApplication *app) {
   RhiImageFormat format = RhiImageFormat::RHI_FORMAT_UNDEFINED;
   bool hasAlpha = false;
 
-  iInfo("DDS Header: dwSize: {}, dwFlags: {}, dwHeight: {}, dwWidth: {}, "
-        "dwPitchOrLinearSize: {}, dwDepth: {}, dwMipMapCount: {}, dwCaps: {}, "
-        "dwCaps2: {}, dwCaps3: {}, dwCaps4: {}, dwddspfFlags: "
-        "{},dwddspfRGBBitCount: {}, dwddspfRBitMask: {}, ",
-        header->dwSize, header->dwFlags, header->dwHeight, header->dwWidth,
-        header->dwPitchOrLinearSize, header->dwDepth, header->dwMipMapCount,
-        header->dwCaps, header->dwCaps2, header->dwCaps3, header->dwCaps4,
-        header->ddspf.dwFlags, header->ddspf.dwRGBBitCount,
-        header->ddspf.dwRBitMask);
   bodyOffset += sizeof(DDS_HEADER);
   hasAlpha = header->ddspf.dwFlags & 0x1;
 
@@ -133,33 +124,25 @@ parseDDS(std ::filesystem::path path, IApplication *app) {
     compressedType = DDSCompressedType::DXT1;
     if (hasAlpha) {
       format = RhiImageFormat::RHI_FORMAT_BC1_RGBA_UNORM_BLOCK;
-      iInfo("DXT1 header detected, RGBA");
     } else {
       format = RhiImageFormat::RHI_FORMAT_BC1_RGB_UNORM_BLOCK;
-      iInfo("DXT1 header detected, RGB");
     }
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '2')) {
-    iInfo("DXT2 header detected");
     compressedType = DDSCompressedType::DXT2;
     format = RhiImageFormat::RHI_FORMAT_BC2_UNORM_BLOCK;
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '3')) {
-    iInfo("DXT3 header detected");
     compressedType = DDSCompressedType::DXT3;
     format = RhiImageFormat::RHI_FORMAT_BC2_UNORM_BLOCK;
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '4')) {
-    iInfo("DXT4 header detected");
     compressedType = DDSCompressedType::DXT4;
     format = RhiImageFormat::RHI_FORMAT_BC3_UNORM_BLOCK;
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '5')) {
-    iInfo("DXT5 header detected");
     compressedType = DDSCompressedType::DXT5;
     format = RhiImageFormat::RHI_FORMAT_BC3_UNORM_BLOCK;
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('A', 'T', 'I', '1')) {
-    iInfo("ATI1 header detected");
     compressedType = DDSCompressedType::ATI1;
     format = RhiImageFormat::RHI_FORMAT_BC4_UNORM_BLOCK;
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('A', 'T', 'I', '2')) {
-    iInfo("ATI2 header detected");
     compressedType = DDSCompressedType::ATI2;
     format = RhiImageFormat::RHI_FORMAT_BC5_UNORM_BLOCK;
   } else {

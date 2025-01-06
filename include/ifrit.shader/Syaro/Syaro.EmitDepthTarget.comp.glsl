@@ -65,6 +65,7 @@ layout(binding = 0, set = 3) uniform IndirectDrawData{
 layout(binding = 0, set = 4) uniform EmitDepthTargetData{
     uint velocityMaterialRef; //Seems rgb32f specifiers are not provided
     uint visBufferRef;
+    uint motionVectorRef;
 }uEmitDepthTargetData;
 
 layout(push_constant) uniform EmitDepthTargetPushConstant{
@@ -211,6 +212,7 @@ void main(){
 
 
     vec2 motionVector = ndcVpNow - ndcVpLast;
+    motionVector = motionVector* 2.0 - 1.0;
 
     // Depth, this is just for debugging.
     vec4 vpScr = projectionLast * worldToViewLast * localToWorldLast * vp;
@@ -224,5 +226,8 @@ void main(){
     vec4 velMatData = vec4((motionVector), msDepth, float(materialId)+1.0);
     imageStore(GetUAVImage2DRGBA32F(uEmitDepthTargetData.velocityMaterialRef), ivec2(pos), velMatData);
 
+
+    // And motion vector
+    imageStore(GetUAVImage2DRGBA32F(uEmitDepthTargetData.motionVectorRef), ivec2(pos), vec4(motionVector, 0.0, 0.0));
 }
 

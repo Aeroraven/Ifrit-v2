@@ -33,6 +33,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# ffx_fsr2_api_vk_x64 and ffx_fsr2_api_x64 dependencies
+set(FSR2_API_LIBRARIES ffx_fsr2_api_vk_x64 ffx_fsr2_api_x64)
+
 add_subdirectory(dependencies/glfw)
 add_subdirectory(dependencies/meshoptimizer)
 add_subdirectory(dependencies/gklib)
@@ -42,12 +45,12 @@ add_subdirectory(projects/ircompile)
 add_subdirectory(projects/softgraphics)
 add_subdirectory(projects/meshproclib)
 add_subdirectory(projects/vkgraphics)
+add_subdirectory(projects/external/fsr2)
 add_subdirectory(projects/core)
 add_subdirectory(projects/rhi)
 add_subdirectory(projects/demo)
 
-
 add_dependencies(ifrit.meshproclib meshoptimizer metis)
 add_dependencies(ifrit.softrenderer ifrit.ircompile)
-add_dependencies(ifrit.core ifrit.rhi ifrit.display ifrit.meshproclib)
+add_dependencies(ifrit.core ifrit.rhi ifrit.display ifrit.meshproclib ${FSR2_API_LIBRARIES})
 add_dependencies(ifrit.demo ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.core ifrit.rhi)

@@ -155,6 +155,10 @@ public:
   // Cache
   virtual void setCacheDirectory(const std::string &dir) override;
   virtual std::string getCacheDirectory() const override;
+
+  // Extension
+  virtual std::unique_ptr<Rhi::FSR2::RhiFsr2Processor>
+  createFsr2Processor() override;
 };
 
 class IFRIT_APIDECL RhiVulkanBackendBuilder
