@@ -288,7 +288,13 @@ IFRIT_APIDECL void CommandBuffer::imageBarrier(
         VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT |
         VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
     break;
-
+  case Rhi::RhiResourceState::PixelShaderResource:
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.dstAccessMask =
+        VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
+        VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT |
+        VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+    break;
   case Rhi::RhiResourceState::RenderTarget:
     barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -337,6 +343,13 @@ IFRIT_APIDECL void CommandBuffer::imageBarrier(
     break;
   case Rhi::RhiResourceState::Common:
     barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.dstAccessMask =
+        VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
+        VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT |
+        VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+    break;
+  case Rhi::RhiResourceState::PixelShaderResource:
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.dstAccessMask =
         VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
         VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT |
@@ -600,6 +613,9 @@ void _resourceStateToImageLayout(Rhi::RhiResourceState state,
     dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     break;
   case Rhi::RhiResourceState::UAVStorageImage:
+    dstLayout = VK_IMAGE_LAYOUT_GENERAL;
+    break;
+  case Rhi::RhiResourceState::UnorderedAccess:
     dstLayout = VK_IMAGE_LAYOUT_GENERAL;
     break;
   case Rhi::RhiResourceState::CopySource:

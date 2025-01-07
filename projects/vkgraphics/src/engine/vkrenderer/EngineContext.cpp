@@ -330,6 +330,7 @@ IFRIT_APIDECL void EngineContext::init() {
   deviceFeatures12.hostQueryReset = VK_TRUE;
   deviceFeatures12.shaderSharedInt64Atomics = VK_TRUE;
   deviceFeatures12.shaderBufferInt64Atomics = VK_TRUE;
+  deviceFeatures12.shaderFloat16 = VK_TRUE;
   deviceFeatures12.pNext = &deviceFeaturesDynamic;
 
   deviceFeaturesDynamic.sType =
@@ -379,6 +380,7 @@ IFRIT_APIDECL void EngineContext::init() {
   deviceFeatures.geometryShader = VK_TRUE;
   deviceFeatures.shaderFloat64 = VK_TRUE;
   deviceFeatures.shaderInt64 = VK_TRUE;
+  deviceFeatures.shaderInt16 = VK_TRUE;
 
   VkDeviceCreateInfo deviceCI = {};
   deviceCI.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

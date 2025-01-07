@@ -320,6 +320,7 @@ struct PerFrameData {
 
   // For history
   uint32_t m_frameId = 0;
+  float m_frameTimestamp[2] = {0.0f, 0.0f};
 
   // TAA
   std::vector<PerFrameRenderTargets> m_taaHistory;

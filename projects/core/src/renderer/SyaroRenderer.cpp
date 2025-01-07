@@ -230,6 +230,7 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   auto resFinalOutput = fg.addResource("FinalOutput");
 
   auto resBloomOutput = fg.addResource("BloomOutput");
+  auto resFsr2Output = fg.addResource("Fsr2Output");
 
   std::vector<ResourceNodeId> resGbufferShadowReq = {
       resGbufferAlbedoMaterial, resGbufferNormalSmoothness,
@@ -264,8 +265,16 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   PassNodeId passGlobalFog;
   PassNodeId passTAAResolve;
   PassNodeId passConvBloom;
-
-  if (m_config->m_antiAliasingType == AntiAliasingType::TAA) {
+  PassNodeId passFsr2Dispatch = 0;
+  if (m_config->m_antiAliasingType == AntiAliasingType::FSR2) {
+    passGlobalFog = fg.addPass("GlobalFog", FrameGraphPassType::Graphics,
+                               {resPrimaryViewDepth, resDeferredShadingOutput},
+                               {resGlobalFogOutput}, {});
+    passConvBloom = fg.addPass("ConvBloom", FrameGraphPassType::Graphics,
+                               {resGlobalFogOutput}, {resBloomOutput}, {});
+    passFsr2Dispatch = fg.addPass("FSR2Dispatch", FrameGraphPassType::Compute,
+                                  {resBloomOutput}, {resFsr2Output}, {});
+  } else if (m_config->m_antiAliasingType == AntiAliasingType::TAA) {
     passGlobalFog = fg.addPass("GlobalFog", FrameGraphPassType::Graphics,
                                {resPrimaryViewDepth, resDeferredShadingOutput},
                                {resGlobalFogOutput}, {});
@@ -274,6 +283,7 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
                                 {resTAAFrameOutput, resTAAHistoryOutput}, {});
     passConvBloom = fg.addPass("ConvBloom", FrameGraphPassType::Graphics,
                                {resTAAFrameOutput}, {resBloomOutput}, {});
+
   } else {
     passGlobalFog = fg.addPass("GlobalFog", FrameGraphPassType::Graphics,
                                {resPrimaryViewDepth, resDeferredShadingOutput},
@@ -281,8 +291,14 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     passConvBloom = fg.addPass("ConvBloom", FrameGraphPassType::Graphics,
                                {resGlobalFogOutput}, {resBloomOutput}, {});
   }
-  auto passToneMapping = fg.addPass("ToneMapping", FrameGraphPassType::Graphics,
-                                    {resBloomOutput}, {resFinalOutput}, {});
+  PassNodeId passToneMapping;
+  if (m_config->m_antiAliasingType == AntiAliasingType::FSR2) {
+    passToneMapping = fg.addPass("ToneMapping", FrameGraphPassType::Graphics,
+                                 {resFsr2Output}, {resFinalOutput}, {});
+  } else {
+    passToneMapping = fg.addPass("ToneMapping", FrameGraphPassType::Graphics,
+                                 {resBloomOutput}, {resFinalOutput}, {});
+  }
 
   // binding resources to pass
   auto &primaryView = getPrimaryView(perframeData);
@@ -343,6 +359,12 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   fg.setImportedResource(
       resFinalOutput, renderTargets->getColorAttachment(0)->getRenderTarget(),
       {0, 0, 1, 1});
+
+  if (m_config->m_antiAliasingType == AntiAliasingType::FSR2) {
+    fg.setImportedResource(resFsr2Output,
+                           perframeData.m_fsr2Data.m_fsr2Output.get(),
+                           {0, 0, 1, 1});
+  }
 
   // setup execution function
   fg.setExecutionFunction(passAtmosphere, [&]() {
@@ -510,13 +532,80 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
     });
   }
 
-  fg.setExecutionFunction(passToneMapping, [&]() {
-    m_acesToneMapping->renderPostFx(
-        cmd, renderTargets,
-        m_postprocTexId[{mainRtWidth, mainRtHeight}][1].get());
-  });
+  // TODO, place fsr2 here
+  if (m_config->m_antiAliasingType == AntiAliasingType::FSR2) {
+    fg.setExecutionFunction(passFsr2Dispatch, [&]() {
+      cmd->beginScope("Syaro: FSR2 Dispatch");
+      auto color = m_postprocTex[{mainRtWidth, mainRtHeight}][0].get();
+      auto depth = primaryView.m_visibilityDepth_Combined.get();
+      auto motion = perframeData.m_motionVector.get();
+
+      auto mainView = getPrimaryView(perframeData);
+      GraphicsBackend::Rhi::FSR2::RhiFSR2DispatchArgs args;
+      args.camFar = mainView.m_viewData.m_cameraFar;
+      args.camNear = mainView.m_viewData.m_cameraNear;
+      args.camFovY = mainView.m_viewData.m_cameraFovY;
+      args.color = color;
+      args.depth = depth;
+      if (perframeData.m_frameId < 2) {
+        args.deltaTime = 16.6f;
+      } else {
+        // TODO: precision loss
+        args.deltaTime =
+            perframeData.m_frameTimestamp[perframeData.m_frameId % 2] -
+            perframeData.m_frameTimestamp[(perframeData.m_frameId - 1) % 2];
+      }
+      args.exposure = nullptr;
+      args.jitterX = perframeData.m_taaJitterX;
+      args.jitterY = perframeData.m_taaJitterY;
+      args.motion = motion;
+      args.reactiveMask = nullptr;
+      args.transparencyMask = nullptr;
+      args.output = perframeData.m_fsr2Data.m_fsr2Output.get();
+
+      if (args.output == nullptr) {
+        throw std::runtime_error("FSR2 output is null");
+      }
+
+      cmd->beginScope("Syaro: FSR2 Dispatch, Impl");
+      m_fsr2proc->dispatch(cmd, args);
+      cmd->endScope();
+      cmd->endScope();
+
+      // make output transist to render target
+    });
+  }
+
+  if (m_config->m_antiAliasingType == AntiAliasingType::FSR2) {
+    auto renderArea = renderTargets->getRenderArea();
+    auto width = renderArea.width;
+    auto height = renderArea.height;
+
+    fg.setExecutionFunction(passToneMapping, [&]() {
+      m_acesToneMapping->renderPostFx(
+          cmd, renderTargets, perframeData.m_fsr2Data.m_fsr2OutputSRVId.get());
+    });
+  } else {
+    fg.setExecutionFunction(passToneMapping, [&]() {
+      m_acesToneMapping->renderPostFx(
+          cmd, renderTargets,
+          m_postprocTexId[{mainRtWidth, mainRtHeight}][0].get());
+    });
+  }
 
   // transition input resources
+  if (m_config->m_antiAliasingType == AntiAliasingType::FSR2) {
+    cmd->imageBarrier(perframeData.m_fsr2Data.m_fsr2Output.get(),
+                      RhiResourceState::Undefined,
+                      RhiResourceState::PixelShaderResource, {0, 0, 1, 1});
+    auto motion = perframeData.m_motionVector.get();
+    auto primaryView = getPrimaryView(perframeData);
+    auto depth = primaryView.m_visibilityDepth_Combined.get();
+    cmd->imageBarrier(motion, RhiResourceState::Common,
+                      RhiResourceState::PixelShaderResource, {0, 0, 1, 1});
+    cmd->imageBarrier(depth, RhiResourceState::Common,
+                      RhiResourceState::PixelShaderResource, {0, 0, 1, 1});
+  }
   cmd->imageBarrier(m_postprocTex[{mainRtWidth, mainRtHeight}][0].get(),
                     RhiResourceState::Undefined, RhiResourceState::RenderTarget,
                     {0, 0, 1, 1});
@@ -915,6 +1004,9 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
         ctx->m_cmd->imageBarrier(
             perframeData.m_velocityMaterial.get(), RhiResourceState::Undefined,
             RhiResourceState::UAVStorageImage, {0, 0, 1, 1});
+        ctx->m_cmd->imageBarrier(
+            perframeData.m_motionVector.get(), RhiResourceState::Undefined,
+            RhiResourceState::UAVStorageImage, {0, 0, 1, 1});
         ctx->m_cmd->attachBindlessReferenceCompute(
             m_emitDepthTargetsPass, 1, primaryView.m_viewBindlessRef);
         ctx->m_cmd->attachBindlessReferenceCompute(
@@ -1135,6 +1227,9 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
   auto &combinePass = m_visibilityCombinePass;
 
   combinePass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    cmd->imageBarrier(perView.m_visibilityDepth_Combined.get(),
+                      RhiResourceState::Undefined,
+                      RhiResourceState::UAVStorageImage, {0, 0, 1, 1});
     struct CombinePassPushConst {
       uint32_t hwVisUAVId;
       uint32_t hwDepthSRVId;
@@ -1884,6 +1979,36 @@ SyaroRenderer::prepareAggregatedShadowData(PerFrameData &perframeData) {
   }
 }
 
+IFRIT_APIDECL void SyaroRenderer::fsr2Setup(PerFrameData &perframeData,
+                                            RenderTargets *renderTargets) {
+  auto rhi = m_app->getRhiLayer();
+  uint32_t actualRtw = 0, actualRth = 0;
+  uint32_t outputRtw = 0, outputRth = 0;
+  getSupersampledRenderArea(renderTargets, &actualRtw, &actualRth);
+
+  auto outputArea = renderTargets->getRenderArea();
+  outputRtw = outputArea.width;
+  outputRth = outputArea.height;
+  if (perframeData.m_fsr2Data.m_fsr2Output != nullptr)
+    return;
+  perframeData.m_fsr2Data.m_fsr2Output = rhi->createRenderTargetTexture(
+      outputRtw, outputRth, RhiImageFormat::RHI_FORMAT_R16G16B16A16_SFLOAT,
+      RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
+          RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+
+  perframeData.m_fsr2Data.m_fsr2Sampler = rhi->createTrivialSampler();
+  perframeData.m_fsr2Data.m_fsr2OutputSRVId = rhi->registerCombinedImageSampler(
+      perframeData.m_fsr2Data.m_fsr2Output.get(),
+      perframeData.m_fsr2Data.m_fsr2Sampler.get());
+
+  GraphicsBackend::Rhi::FSR2::RhiFSR2InitialzeArgs args;
+  args.displayHeight = outputRth;
+  args.displayWidth = outputRtw;
+  args.maxRenderWidth = actualRtw;
+  args.maxRenderHeight = actualRth;
+  m_fsr2proc->init(args);
+}
+
 IFRIT_APIDECL void
 SyaroRenderer::taaHistorySetup(PerFrameData &perframeData,
                                RenderTargets *renderTargets) {
@@ -1978,6 +2103,7 @@ SyaroRenderer::render(
   // https://gpuopen.com/learn/rdna-performance-guide/#command-buffers
 
   auto start = std::chrono::high_resolution_clock::now();
+
   visibilityBufferSetup(perframeData, renderTargets);
   auto &primaryView = getPrimaryView(perframeData);
   buildPipelines(perframeData, GraphicsShaderPassType::Opaque,
@@ -1994,6 +2120,10 @@ SyaroRenderer::render(
   recreateGBuffers(perframeData, renderTargets);
   sphizBufferSetup(perframeData, renderTargets);
   taaHistorySetup(perframeData, renderTargets);
+
+  if (m_config->m_antiAliasingType == AntiAliasingType::FSR2) {
+    fsr2Setup(perframeData, renderTargets);
+  }
 
   auto start1 = std::chrono::high_resolution_clock::now();
   prepareAggregatedShadowData(perframeData);
@@ -2090,6 +2220,13 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
   auto &perframeData = m_perScenePerframe[scene];
 
   auto frameId = perframeData.m_frameId;
+  auto frameTimestampRaw = std::chrono::high_resolution_clock::now();
+  auto frameTimestampMicro =
+      std::chrono::duration_cast<std::chrono::microseconds>(
+          frameTimestampRaw.time_since_epoch());
+  auto frameTimestampMicroCount = frameTimestampMicro.count();
+  float frameTimestampMili = frameTimestampMicroCount / 1000.0f;
+  perframeData.m_frameTimestamp[frameId % 2] = frameTimestampMili;
 
   auto haltonX =
       RendererConsts::cHalton2[frameId % RendererConsts::cHalton2.size()];
@@ -2100,16 +2237,20 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
   getSupersampledRenderArea(renderTargets, &actualRw, &actualRh);
   auto width = actualRw;
   auto height = actualRh;
+  auto outputWidth = renderTargets->getRenderArea().width;
   SceneCollectConfig sceneConfig;
+  float jx, jy;
   if (config.m_antiAliasingType == AntiAliasingType::TAA) {
     sceneConfig.projectionTranslateX = (haltonX * 2.0f - 1.0f) / width;
     sceneConfig.projectionTranslateY = (haltonY * 2.0f - 1.0f) / height;
   } else if (config.m_antiAliasingType == AntiAliasingType::FSR2) {
-    float jx, jy;
+
     m_fsr2proc->getJitters(&jx, &jy, perframeData.m_frameId, actualRw,
-                           actualRh);
-    sceneConfig.projectionTranslateX = jx;
-    sceneConfig.projectionTranslateY = jy;
+                           outputWidth);
+    sceneConfig.projectionTranslateX = 2.0f * haltonX / width;
+
+    // Note that we use Y Down in proj cam
+    sceneConfig.projectionTranslateY = 2.0f * haltonY / height;
   } else {
     sceneConfig.projectionTranslateX = 0.0f;
     sceneConfig.projectionTranslateY = 0.0f;
@@ -2127,8 +2268,8 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
     perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5f;
     perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5f;
   } else {
-    perframeData.m_taaJitterX = sceneConfig.projectionTranslateX;
-    perframeData.m_taaJitterY = sceneConfig.projectionTranslateY;
+    perframeData.m_taaJitterX = jx;
+    perframeData.m_taaJitterY = jy;
   }
 
   auto ret = render(perframeData, renderTargets, cmdToWait);

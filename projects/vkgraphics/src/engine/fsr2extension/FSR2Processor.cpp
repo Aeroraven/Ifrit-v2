@@ -27,6 +27,7 @@ static void onFSR2Msg(FfxFsr2MsgType type, const wchar_t *message) {
   std::string msg(message, message + wcslen(message));
   if (type == FFX_FSR2_MESSAGE_TYPE_ERROR) {
     iError("FSR2_API_DEBUG_ERROR: {}", msg);
+    std::abort();
   } else if (type == FFX_FSR2_MESSAGE_TYPE_WARNING) {
     iWarn("FSR2_API_DEBUG_WARNING: {}", msg);
   } else {
@@ -41,7 +42,7 @@ IFRIT_APIDECL FSR2Processor::FSR2Processor(EngineContext *ctx) {
       ffxFsr2GetScratchMemorySizeVK(m_engineContext->getPhysicalDevice());
   m_context->scratchBuffer.resize(m_context->scratchSize);
   auto errorCode = ffxFsr2GetInterfaceVK(
-      &m_context->fsr2Interface, m_context->scratchBuffer.data(),
+      &m_context->initContext.callbacks, m_context->scratchBuffer.data(),
       m_context->scratchSize, m_engineContext->getPhysicalDevice(),
       vkGetDeviceProcAddr);
   if (errorCode != FFX_OK) {
@@ -73,13 +74,14 @@ FSR2Processor::init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) {
 }
 
 IFRIT_APIDECL void
-FSR2Processor::dispatch(Rhi::RhiCommandBuffer *cmd,
+FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
                         const Rhi::FSR2::RhiFSR2DispatchArgs &args) {
   FfxFsr2DispatchDescription dispatchParams = {};
   auto cmdVk = checked_cast<CommandBuffer>(cmd)->getCommandBuffer();
   auto colorImgVk = checked_cast<SingleDeviceImage>(args.color);
   auto depthImgVk = checked_cast<SingleDeviceImage>(args.depth);
   auto motionImgVk = checked_cast<SingleDeviceImage>(args.motion);
+  auto outputImgVk = checked_cast<SingleDeviceImage>(args.output);
 
   SingleDeviceImage *exposureImgVk = nullptr;
   SingleDeviceImage *reactiveMaskImgVk = nullptr;
@@ -108,6 +110,10 @@ FSR2Processor::dispatch(Rhi::RhiCommandBuffer *cmd,
       &m_context->fsr2ctx, motionImgVk->getImage(), motionImgVk->getImageView(),
       motionImgVk->getWidth(), motionImgVk->getHeight(),
       motionImgVk->getFormat(), L"FSR2_InputMotionVectors");
+  dispatchParams.output = ffxGetTextureResourceVK(
+      &m_context->fsr2ctx, outputImgVk->getImage(), outputImgVk->getImageView(),
+      outputImgVk->getWidth(), outputImgVk->getHeight(),
+      outputImgVk->getFormat(), L"FSR2_OutputColor");
   if (exposureImgVk) {
     dispatchParams.exposure = ffxGetTextureResourceVK(
         &m_context->fsr2ctx, exposureImgVk->getImage(),
@@ -149,6 +155,11 @@ FSR2Processor::dispatch(Rhi::RhiCommandBuffer *cmd,
   dispatchParams.jitterOffset.y = args.jitterY;
   dispatchParams.frameTimeDelta = args.deltaTime;
 
+  dispatchParams.motionVectorScale.x =
+      m_context->initContext.maxRenderSize.width;
+  dispatchParams.motionVectorScale.y =
+      m_context->initContext.maxRenderSize.height;
+
   dispatchParams.cameraNear = args.camNear;
   dispatchParams.cameraFar = args.camFar;
   dispatchParams.cameraFovAngleVertical = args.camFovY;
@@ -157,6 +168,12 @@ FSR2Processor::dispatch(Rhi::RhiCommandBuffer *cmd,
   dispatchParams.enableSharpening = false;
   dispatchParams.sharpness = 0.0f;
   dispatchParams.preExposure = 1.0f;
+
+  auto errorCode = ffxFsr2ContextDispatch(&m_context->fsr2ctx, &dispatchParams);
+  if (errorCode != FFX_OK) {
+    iError("Failed to dispatch FSR2, error code: {}", int(errorCode));
+    std::abort();
+  }
 }
 
 IFRIT_APIDECL void FSR2Processor::getJitters(float *jitterX, float *jitterY,

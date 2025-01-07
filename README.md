@@ -133,6 +133,7 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [precomputed_atmospheric_scattering](https://github.com/ebruneton/precomputed_atmospheric_scattering) | Atmospheric Scattering           | BSD-3-Clause         |
 | [gcem](https://github.com/kthohr/gcem)                       | Compile-time Math                | Apache 2.0           |
 | [spdlog](https://github.com/gabime/spdlog.git)               | Logging                          | MIT                  |
+| [fsr2](https://github.com/GPUOpen-Effects/FidelityFX-FSR2)   | Super Resolution                 | MIT                  |
 
 
 

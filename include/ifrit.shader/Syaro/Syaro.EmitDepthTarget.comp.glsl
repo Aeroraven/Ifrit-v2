@@ -204,15 +204,15 @@ void main(){
     vec4 vp = vec4(interpolate3(v0.xyz, v1.xyz, v2.xyz, bary),1.0);
     vec4 vpLast = projectionLast * worldToViewLast * localToWorldLast * vp;
     vec2 ndcVpLast = vpLast.xy / vpLast.w;
-    ndcVpLast = ndcVpLast * 0.5 + 0.5;
+    ndcVpLast = ndcVpLast;
 
     vec4 vpNowX = projNow * worldToView * localToWorld * vp;
     vec2 ndcVpNow = vpNowX.xy / vpNowX.w;
-    ndcVpNow = ndcVpNow * 0.5 + 0.5;
+    ndcVpNow = ndcVpNow;
 
 
     vec2 motionVector = ndcVpNow - ndcVpLast;
-    motionVector = motionVector* 2.0 - 1.0;
+    motionVector = motionVector;
 
     // Depth, this is just for debugging.
     vec4 vpScr = projectionLast * worldToViewLast * localToWorldLast * vp;

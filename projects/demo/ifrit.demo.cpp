@@ -85,7 +85,7 @@ public:
     auto bistroObj =
         m_assetManager->getAssetByName<GLTFAsset>("Bistro/untitled.gltf");
     // Renderer config
-    renderConfig.m_antiAliasingType = AntiAliasingType::None;
+    renderConfig.m_antiAliasingType = AntiAliasingType::FSR2;
     renderConfig.m_shadowConfig.m_maxDistance = 200.0f;
     renderConfig.m_superSamplingRate = 1.5f;
     // Scene
@@ -148,8 +148,8 @@ public:
                                 ->getGameObject(0);
     auto camera = cameraGameObject->getComponent<Transform>();
     timing = timing + 0.00f;
-    camera->setPosition({0.0f + movRight - movLeft + 0.5f * std::sin(timing),
-                         5.0f + movTop - movBottom, 5.25f + movFar - movNear});
+    camera->setPosition({5.0f + movRight - movLeft + 0.5f * std::sin(timing),
+                         2.0f + movTop - movBottom, 5.25f + movFar - movNear});
     camera->setRotation({0.0f, movRot, 0.0f});
     auto sFrameStart = renderer->beginFrame();
     auto renderComplete = renderer->render(
@@ -158,7 +158,7 @@ public:
     renderer->endFrame({renderComplete.get()});
 
     // sleep for 50ms
-    // std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(15));
   }
 
   void onEnd() override {}

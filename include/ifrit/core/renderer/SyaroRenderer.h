@@ -187,6 +187,7 @@ private:
                                    RenderTargets *renderTargets);
   void taaHistorySetup(PerFrameData &perframeData,
                        RenderTargets *renderTargets);
+  void fsr2Setup(PerFrameData &perframeData, RenderTargets *renderTargets);
   void createPostprocessTextures(uint32_t width, uint32_t height);
   void prepareAggregatedShadowData(PerFrameData &perframeData);
 

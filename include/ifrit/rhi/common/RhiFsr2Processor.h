@@ -51,7 +51,7 @@ public:
   virtual void init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) = 0;
   virtual void getJitters(float *jitterX, float *jitterY, uint32_t frameIdx,
                           uint32_t rtWidth, uint32_t rtHeight) = 0;
-  virtual void dispatch(Rhi::RhiCommandBuffer *cmd,
+  virtual void dispatch(const Rhi::RhiCommandBuffer *cmd,
                         const Rhi::FSR2::RhiFSR2DispatchArgs &args) = 0;
 };
 

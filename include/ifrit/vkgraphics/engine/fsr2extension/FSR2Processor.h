@@ -34,7 +34,7 @@ public:
   FSR2Processor(EngineContext *ctx);
   ~FSR2Processor();
   void init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) override;
-  void dispatch(Rhi::RhiCommandBuffer *cmd,
+  void dispatch(const Rhi::RhiCommandBuffer *cmd,
                 const Rhi::FSR2::RhiFSR2DispatchArgs &args) override;
   void getJitters(float *jitterX, float *jitterY, uint32_t frameIdx,
                   uint32_t rtWidth, uint32_t dispWidth) override;
