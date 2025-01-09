@@ -3,17 +3,23 @@
 ## Bugs
 
 - [ ] Syaro: no objects will got tested if first instance cull pass reject all objects using prev-frame hzb
-- [ ] Syaro: FSR2 flickering & ghosting, when moving
+
+  
 
 
 ## Artifacts
 
 - [ ] Syaro: TAA flickering for distant tiny objects
+
 - [ ] Syaro: LOD switching not smooth
   - [ ] Abrupt attribute change (causing lighting changes when lod switches)
-
+  - [ ] Losing thin objects when switching to low-lod objects
+  
 - [ ] Syaro: PCF shadow not smooth
+
 - [ ] Syaro: Too aggressive culling
+
+  
 
 
 ## Performance
@@ -29,6 +35,8 @@
     
 
 ## Resolved
+
+- Syaro: FSR2 flickering & ghosting, when moving (250110)
 
 - Syaro: incorrect startup (wrong view data for the first frame), referencing destroyed variable. (250103)
 

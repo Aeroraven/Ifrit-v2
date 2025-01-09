@@ -119,7 +119,7 @@ public:
     uint32_t numMeshes = 0;
     for (auto &prefab : prefabs) {
       numMeshes++;
-      if (numMeshes < 1050) {
+      if (numMeshes < 1000) {
         // continue;
       }
       node->addGameObjectTransferred(std::move(prefab->m_prefab));

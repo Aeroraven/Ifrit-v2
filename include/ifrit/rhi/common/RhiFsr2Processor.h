@@ -43,6 +43,7 @@ struct RhiFSR2DispatchArgs {
   float camNear;
   float camFar;
   float camFovY;
+  bool reset;
 };
 
 class IFRIT_APIDECL RhiFsr2Processor {

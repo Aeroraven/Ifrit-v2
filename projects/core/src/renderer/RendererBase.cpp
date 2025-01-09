@@ -64,7 +64,24 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     uint32_t actualRtWidth = 0, actualRtHeight = 0;
     getSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
 
+    // Check if camera changed
+    bool camChanged = false;
+
     auto &viewData = perframeData.m_views[0];
+    if (true) {
+      auto &viewData = perframeData.m_views[0];
+      auto worldToView = Math::transpose(camera->worldToCameraMatrix());
+      auto worldToViewLast = viewData.m_viewData.m_worldToView;
+      for (auto i = 0; i < 4; i++) {
+        for (auto j = 0; j < 4; j++) {
+          if (worldToView[i][j] != worldToViewLast[i][j]) {
+            camChanged = true;
+            break;
+          }
+        }
+      }
+    }
+    viewData.m_camMoved = camChanged;
     viewData.m_viewType = PerFrameData::ViewType::Primary;
     viewData.m_viewDataOld = viewData.m_viewData;
     viewData.m_viewData.m_worldToView =
@@ -646,6 +663,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       if (initLastFrameMatrix) {
         transform->onFrameCollecting();
       }
+
       if (initLastFrameMatrix || transformDirty.lastChanged) {
         MeshInstanceTransform modelLast;
         modelLast.model = Math::transpose(transform->getModelToWorldMatrix());

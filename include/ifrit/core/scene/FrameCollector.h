@@ -186,9 +186,11 @@ struct PerFrameData {
     std::shared_ptr<GPUUniformBuffer> m_viewBufferLast = nullptr;
     GPUBindlessRef *m_viewBindlessRef = nullptr;
     std::shared_ptr<GPUBindlessId> m_viewBufferId = nullptr;
+
     // Non-gpu data
     uint32_t m_renderWidth;
     uint32_t m_renderHeight;
+    bool m_camMoved;
 
     // visibility buffer
     std::shared_ptr<GPUTexture> m_visibilityBuffer_HW = nullptr;

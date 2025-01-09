@@ -164,7 +164,7 @@ FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
   dispatchParams.cameraFovAngleVertical = args.camFovY;
   dispatchParams.viewSpaceToMetersFactor = 1.0f;
 
-  dispatchParams.reset = false;
+  dispatchParams.reset = args.reset;
   dispatchParams.enableSharpening = true;
   dispatchParams.sharpness = 0.7f;
   dispatchParams.preExposure = 1.0f;

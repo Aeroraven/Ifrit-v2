@@ -622,6 +622,8 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
       args.transparencyMask = nullptr;
       args.output = perframeData.m_fsr2Data.m_fsr2Output.get();
 
+      args.reset = primaryView.m_camMoved;
+
       if (args.output == nullptr) {
         throw std::runtime_error("FSR2 output is null");
       }
@@ -1907,7 +1909,7 @@ SyaroRenderer::gatherAllInstances(PerFrameData &perframeData) {
     auto &perView = perframeData.m_views[k];
     if (perView.m_allFilteredMeshletsAllCount == nullptr) {
       perView.m_allFilteredMeshletsAllCount =
-          rhi->createBufferDevice(u32Size * 16, kbBufUsage_Indirect);
+          rhi->createBufferDevice(u32Size * 20, kbBufUsage_Indirect);
     }
     if (perView.m_allFilteredMeshletsMaxCount < totalMeshlets) {
       perView.m_allFilteredMeshletsMaxCount = totalMeshlets;
