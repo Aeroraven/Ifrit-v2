@@ -16,10 +16,9 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
-#include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include <array>
@@ -72,13 +71,11 @@ private:
   VkDescriptorPool m_bindlessPool;
   VkDescriptorSet m_bindlessSet;
 
-  std::vector<SingleBuffer *> m_uniformBuffers;
-  std::vector<SingleBuffer *> m_storageBuffers;
-  std::vector<std::pair<SingleDeviceImage *, Sampler *>>
-      m_combinedImageSamplers;
+  std::vector<VkBuffer> m_uniformBuffers;
+  std::vector<VkBuffer> m_storageBuffers;
+  std::vector<std::pair<VkImage, VkSampler>> m_combinedImageSamplers;
 
-  std::vector<std::pair<SingleDeviceImage *, Rhi::RhiImageSubResource>>
-      m_storageImages;
+  std::vector<std::pair<VkImage, Rhi::RhiImageSubResource>> m_storageImages;
 
   uint32_t m_minUniformBufferAlignment = 0;
 
@@ -170,6 +167,9 @@ public:
     auto buf = Ifrit::Common::Utility::checked_cast<SingleBuffer>(buffer);
     for (uint32_t i = 0; i < numCopies; i++) {
       auto p = m_descriptorManager->registerStorageBuffer(buf);
+      if (p == 9521) {
+        printf("9521 %d %p %p\n", loc, buffer, buf->getBuffer());
+      }
       m_indices[i][loc] = p;
     }
   }

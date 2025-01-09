@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/renderer/framegraph/FrameGraph.h"
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include <stdexcept>
 
@@ -31,6 +32,8 @@ IFRIT_APIDECL ResourceNodeId FrameGraph::addResource(const std::string &name) {
   node.name = name;
   node.isImported = false;
   m_resources.push_back(node);
+
+  // iInfo("Resource ID:{}  Name:{}", node.id, node.name);
   return node.id;
 }
 
@@ -65,50 +68,52 @@ FrameGraph::setImportedResource(ResourceNodeId id, FgTexture *texture,
   m_resources[id].importedTexture = texture;
   m_resources[id].type = FrameGraphResourceType::ResourceTexture;
   m_resources[id].subResource = subResource;
+
+  // iInfo("ID:{}  TextureHandle:{}", id, texture->getNativeHandle());
 }
 
 // Frame Graph compiler
 
 // Layout transition:
 // (pass)->(output:srcLayout)->(input:dstLayout)
-GraphicsBackend::Rhi::RhiResourceState
+GraphicsBackend::Rhi::RhiResourceState2
 getOutputResouceState(FrameGraphPassType passType,
                       FrameGraphResourceType resType, FgTexture *image,
                       FgBuffer *buffer,
-                      GraphicsBackend::Rhi::RhiResourceState parentState) {
-  if (parentState != GraphicsBackend::Rhi::RhiResourceState::Undefined) {
+                      GraphicsBackend::Rhi::RhiResourceState2 parentState) {
+  if (parentState != GraphicsBackend::Rhi::RhiResourceState2::Undefined) {
     return parentState;
   }
   if (resType == FrameGraphResourceType::ResourceBuffer) {
-    return GraphicsBackend::Rhi::RhiResourceState::UnorderedAccess;
+    return GraphicsBackend::Rhi::RhiResourceState2::UnorderedAccess;
   } else if (resType == FrameGraphResourceType::ResourceTexture) {
     if (passType == FrameGraphPassType::Graphics) {
       if (image->isDepthTexture()) {
-        return GraphicsBackend::Rhi::RhiResourceState::DepthStencilRenderTarget;
+        return GraphicsBackend::Rhi::RhiResourceState2::DepthStencilRT;
       } else {
-        return GraphicsBackend::Rhi::RhiResourceState::RenderTarget;
+        return GraphicsBackend::Rhi::RhiResourceState2::ColorRT;
       }
     } else if (passType == FrameGraphPassType::Compute) {
       // TODO: check if it's UAV or SRV
-      return GraphicsBackend::Rhi::RhiResourceState::Common;
+      return GraphicsBackend::Rhi::RhiResourceState2::Common;
     }
   }
-  return GraphicsBackend::Rhi::RhiResourceState::Undefined;
+  return GraphicsBackend::Rhi::RhiResourceState2::Undefined;
 }
-GraphicsBackend::Rhi::RhiResourceState
+GraphicsBackend::Rhi::RhiResourceState2
 getInputResourceState(FrameGraphPassType passType,
                       FrameGraphResourceType resType, FgTexture *image,
                       FgBuffer *buffer) {
   if (resType == FrameGraphResourceType::ResourceBuffer) {
-    return GraphicsBackend::Rhi::RhiResourceState::UnorderedAccess;
+    return GraphicsBackend::Rhi::RhiResourceState2::UnorderedAccess;
   } else if (resType == FrameGraphResourceType::ResourceTexture) {
     if (passType == FrameGraphPassType::Graphics) {
-      return GraphicsBackend::Rhi::RhiResourceState::PixelShaderResource;
+      return GraphicsBackend::Rhi::RhiResourceState2::ShaderRead;
     } else if (passType == FrameGraphPassType::Compute) {
-      return GraphicsBackend::Rhi::RhiResourceState::UnorderedAccess;
+      return GraphicsBackend::Rhi::RhiResourceState2::UnorderedAccess;
     }
   }
-  return GraphicsBackend::Rhi::RhiResourceState::Undefined;
+  return GraphicsBackend::Rhi::RhiResourceState2::Undefined;
 }
 
 IFRIT_APIDECL void
@@ -167,13 +172,13 @@ FrameGraphCompiler::compile(const FrameGraph &graph) {
   }
   // Resource aliasing might make incorrect resource state transition.
   // So, for each actual resource, we need to track its state
-  std::unordered_map<void *, GraphicsBackend::Rhi::RhiResourceState>
+  std::unordered_map<void *, GraphicsBackend::Rhi::RhiResourceState2>
       rawResourceState;
 
   // Topological sort to arrange passes
-  std::vector<GraphicsBackend::Rhi::RhiResourceState> resState(
+  std::vector<GraphicsBackend::Rhi::RhiResourceState2> resState(
       graph.m_resources.size(),
-      GraphicsBackend::Rhi::RhiResourceState::Undefined);
+      GraphicsBackend::Rhi::RhiResourceState2::Undefined);
 
   // Initialize barrier vectors
   for (auto i = 0; i < graph.m_passes.size(); i++) {
@@ -198,7 +203,7 @@ FrameGraphCompiler::compile(const FrameGraph &graph) {
       }
       if (rawResourceState.find(resPtr) == rawResourceState.end()) {
         rawResourceState[resPtr] =
-            GraphicsBackend::Rhi::RhiResourceState::Undefined;
+            GraphicsBackend::Rhi::RhiResourceState2::Undefined;
       }
       auto rawResState = rawResourceState[resPtr];
 
@@ -219,7 +224,7 @@ FrameGraphCompiler::compile(const FrameGraph &graph) {
       aliasBarrier.enableUAVBarrier = false;
       compiledGraph.m_outputAliasedResourcesBarriers[passId0].push_back(
           aliasBarrier);
-      if (rawResState != GraphicsBackend::Rhi::RhiResourceState::Undefined) {
+      if (rawResState != GraphicsBackend::Rhi::RhiResourceState2::Undefined) {
         if (srcState != rawResState) {
           // Make a transition barrier before executing the pass
           CompiledFrameGraph::ResourceBarriers aliasBarrier;
@@ -235,17 +240,17 @@ FrameGraphCompiler::compile(const FrameGraph &graph) {
 
       // Output->Input barriers
       // for all subsequent passes that uses this resource
-      auto dstStateAll = GraphicsBackend::Rhi::RhiResourceState::Undefined;
+      auto dstStateAll = GraphicsBackend::Rhi::RhiResourceState2::Undefined;
       for (auto &passId : outResToPass[resId]) {
         auto dstState =
             getInputResourceState(graph.m_passes[passId].type, resType,
                                   graph.m_resources[resId].importedTexture,
                                   graph.m_resources[resId].importedBuffer);
-        if (dstStateAll == GraphicsBackend::Rhi::RhiResourceState::Undefined) {
+        if (dstStateAll == GraphicsBackend::Rhi::RhiResourceState2::Undefined) {
           dstStateAll = dstState;
         } else {
           if (dstStateAll != dstState) {
-            dstStateAll = GraphicsBackend::Rhi::RhiResourceState::Common;
+            dstStateAll = GraphicsBackend::Rhi::RhiResourceState2::Common;
           }
         }
       }
@@ -253,7 +258,7 @@ FrameGraphCompiler::compile(const FrameGraph &graph) {
       // barrier layout transitions are specified, then check if it's needed
       // if not, then it's a UAV barrier
 
-      if (dstStateAll == GraphicsBackend::Rhi::RhiResourceState::Undefined) {
+      if (dstStateAll == GraphicsBackend::Rhi::RhiResourceState2::Undefined) {
         // no subsequent pass uses this resource
         CompiledFrameGraph::ResourceBarriers barrier;
         barrier.enableUAVBarrier = false;
@@ -271,7 +276,7 @@ FrameGraphCompiler::compile(const FrameGraph &graph) {
       }
 
       // if not undefined, make the resource state into dst state
-      if (dstStateAll != GraphicsBackend::Rhi::RhiResourceState::Undefined) {
+      if (dstStateAll != GraphicsBackend::Rhi::RhiResourceState2::Undefined) {
         rawResourceState[resPtr] = dstStateAll;
       }
 
@@ -338,9 +343,9 @@ IFRIT_APIDECL void FrameGraphExecutor::executeInSingleCmd(
     const GraphicsBackend::Rhi::RhiCommandBuffer *cmd,
     const CompiledFrameGraph &compiledGraph) {
 
-  std::vector<GraphicsBackend::Rhi::RhiResourceState> resState(
+  std::vector<GraphicsBackend::Rhi::RhiResourceState2> resState(
       compiledGraph.m_graph->m_resources.size(),
-      GraphicsBackend::Rhi::RhiResourceState::Undefined);
+      GraphicsBackend::Rhi::RhiResourceState2::Undefined);
 
   for (auto &passId : compiledGraph.m_passTopoOrder) {
     std::vector<GraphicsBackend::Rhi::RhiResourceBarrier>
@@ -382,7 +387,7 @@ IFRIT_APIDECL void FrameGraphExecutor::executeInSingleCmd(
       //        compiledGraph.m_graph->m_resources[resId].name.c_str(),
       //        static_cast<int>(srcState), static_cast<int>(dstState));
       if (resState[resId] !=
-              GraphicsBackend::Rhi::RhiResourceState::Undefined &&
+              GraphicsBackend::Rhi::RhiResourceState2::Undefined &&
           resState[resId] != srcState) {
         throw std::runtime_error("Resource state mismatch");
       }

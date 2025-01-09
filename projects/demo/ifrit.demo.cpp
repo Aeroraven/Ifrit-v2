@@ -109,7 +109,6 @@ public:
     auto lightGameObject = node->addGameObject("sun");
     auto light = lightGameObject->addComponent<Light>();
     auto lightTransform = lightGameObject->getComponent<Transform>();
-    // make light dir (0,-1,-1)=> eulerX=135deg
     lightTransform->setRotation(
         {120.0 / 180.0f * std::numbers::pi_v<float>, 0.0f, 0.0f});
     light->setShadowMap(true);
@@ -120,15 +119,15 @@ public:
     uint32_t numMeshes = 0;
     for (auto &prefab : prefabs) {
       numMeshes++;
-      if (numMeshes < 1000) {
-        // continue;
+      if (numMeshes < 1050) {
+         //continue;
       }
       node->addGameObjectTransferred(std::move(prefab->m_prefab));
     }
 
     // Render targets
     auto rt = m_rhiLayer.get();
-    depthImage = rt->createDepthRenderTexture(WINDOW_WIDTH, WINDOW_HEIGHT);
+    depthImage = rt->createDepthTexture(WINDOW_WIDTH, WINDOW_HEIGHT);
     swapchainImg = rt->getSwapchainImage();
     renderTargets = rt->createRenderTargets();
     colorAttachment =
@@ -147,8 +146,9 @@ public:
                                 ->getChildren()[0]
                                 ->getGameObject(0);
     auto camera = cameraGameObject->getComponent<Transform>();
-    timing = timing + 0.00f;
-    camera->setPosition({5.0f + movRight - movLeft + 0.5f * std::sin(timing),
+    timing = timing + 0.1f;
+    camera->setPosition({5.0f + 0.0f * sin(timing) + movRight - movLeft +
+                             0.0f * std::sin(timing),
                          2.0f + movTop - movBottom, 5.25f + movFar - movNear});
     camera->setRotation({0.0f, movRot, 0.0f});
     auto sFrameStart = renderer->beginFrame();

@@ -49,7 +49,7 @@ class IFRIT_APIDECL SyaroRenderer : public RendererBase {
 
 private:
   ComputePass *m_persistentCullingPass = nullptr;
-  GPUBuffer *m_indirectDrawBuffer = nullptr;
+  std::shared_ptr<GPUBuffer> m_indirectDrawBuffer = nullptr;
   std::shared_ptr<GPUBindId> m_indirectDrawBufferId = nullptr;
   GPUDescRef *m_persistCullDesc = nullptr;
 
@@ -146,7 +146,6 @@ private:
   std::unique_ptr<PostprocessPassCollection::PostFxGlobalFog> m_globalFogPass;
   std::unique_ptr<PostprocessPassCollection::PostFxGaussianHori> m_gaussianHori;
   std::unique_ptr<PostprocessPassCollection::PostFxGaussianVert> m_gaussianVert;
-  std::unique_ptr<PostprocessPassCollection::PostFxStockhamDFT2> m_stockhamDFT2;
   std::unique_ptr<PostprocessPassCollection::PostFxFFTConv2d> m_fftConv2d;
 
   // Render config

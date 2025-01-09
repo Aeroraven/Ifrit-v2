@@ -150,7 +150,7 @@ void main(){
     }
 
     // Last thread group, generate remaining mips
-    for(uint i=6;i<uHiZPushConstant.mipLevels;++i){
+    for(uint i=6;i<uHiZPushConstant.mipLevels-1;++i){
         uint mipWidth = uHiZPushConstant.width >> i;
         uint mipHeight = uHiZPushConstant.height >> i;
         uint blockSize = 32u;

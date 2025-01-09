@@ -140,38 +140,30 @@ RhiVulkanBackend::getFullScreenQuadVertexBuffer() const {
   return m_implDetails->m_fullScreenQuadVertexBuffer;
 }
 
-IFRIT_APIDECL Rhi::RhiBuffer *
-RhiVulkanBackend::createIndirectMeshDrawBufferDevice(uint32_t drawCalls,
-                                                     uint32_t usage) {
-  return m_implDetails->m_resourceManager->createIndirectMeshDrawBufferDevice(
-      drawCalls, usage);
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiBuffer>
+RhiVulkanBackend::createBufferDevice(uint32_t size, uint32_t usage) const {
+  BufferCreateInfo ci{};
+  ci.size = size;
+  ci.usage = usage;
+  ci.hostVisible = false;
+  return m_implDetails->m_resourceManager->createSimpleBufferUnmanaged(ci);
 }
-IFRIT_APIDECL Rhi::RhiBuffer *
-RhiVulkanBackend::createStorageBufferDevice(uint32_t size, uint32_t usage) {
-  return m_implDetails->m_resourceManager->createStorageBufferDevice(size,
-                                                                     usage);
-}
-IFRIT_APIDECL Rhi::RhiMultiBuffer *
-RhiVulkanBackend::createMultiBuffer(uint32_t size, uint32_t usage,
-                                    uint32_t numCopies) {
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiMultiBuffer>
+RhiVulkanBackend::createBufferCoherent(uint32_t size, uint32_t usage,
+                                       uint32_t numCopies) const {
   BufferCreateInfo ci{};
   ci.size = size;
   ci.usage = usage;
   ci.hostVisible = true;
-  return m_implDetails->m_resourceManager->createMultipleBuffer(ci, numCopies);
+  if (numCopies == ~0u) {
+    // Use num backbuffers
+    auto swapchain = checked_cast<Swapchain>(m_swapChain.get());
+    numCopies = swapchain->getNumBackbuffers();
+  }
+  return m_implDetails->m_resourceManager->createTracedMultipleBuffer(
+      ci, numCopies);
 }
-IFRIT_APIDECL Rhi::RhiMultiBuffer *
-RhiVulkanBackend::createUniformBufferShared(uint32_t size, bool hostVisible,
-                                            uint32_t extraFlags) {
-  return m_implDetails->m_resourceManager->createUniformBufferShared(
-      size, hostVisible, extraFlags);
-}
-IFRIT_APIDECL Rhi::RhiMultiBuffer *
-RhiVulkanBackend::createStorageBufferShared(uint32_t size, bool hostVisible,
-                                            uint32_t extraFlags) {
-  return m_implDetails->m_resourceManager->createStorageBufferShared(
-      size, hostVisible, extraFlags);
-}
+
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiStagedSingleBuffer>
 RhiVulkanBackend::createStagedSingleBuffer(Rhi::RhiBuffer *target) {
   // TODO: release memory, (not managed)
@@ -237,31 +229,23 @@ RhiVulkanBackend::createTexture2D(uint32_t width, uint32_t height,
 }
 
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture>
-RhiVulkanBackend::createDepthRenderTexture(uint32_t width, uint32_t height) {
+RhiVulkanBackend::createDepthTexture(uint32_t width, uint32_t height) {
   return m_implDetails->m_resourceManager->createDepthAttachment(width, height);
 }
 
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture>
-RhiVulkanBackend::createRenderTargetTexture(uint32_t width, uint32_t height,
-                                            Rhi::RhiImageFormat format,
-                                            uint32_t extraFlags) {
-  return m_implDetails->m_resourceManager->createRenderTargetTexture(
-      width, height, toVkFormat(format), extraFlags);
-}
-
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture>
-RhiVulkanBackend::createRenderTargetTexture3D(uint32_t width, uint32_t height,
-                                              uint32_t depth,
-                                              Rhi::RhiImageFormat format,
-                                              uint32_t extraFlags) {
-  return m_implDetails->m_resourceManager->createRenderTargetTexture3D(
+RhiVulkanBackend::createTexture3D(uint32_t width, uint32_t height,
+                                  uint32_t depth, Rhi::RhiImageFormat format,
+                                  uint32_t extraFlags) {
+  return m_implDetails->m_resourceManager->createTexture3D(
       width, height, depth, toVkFormat(format), extraFlags);
 };
 
-std::shared_ptr<Rhi::RhiTexture> RhiVulkanBackend::createRenderTargetMipTexture(
-    uint32_t width, uint32_t height, uint32_t mips, Rhi::RhiImageFormat format,
-    uint32_t extraFlags) {
-  return m_implDetails->m_resourceManager->createRenderTargetMipTexture(
+std::shared_ptr<Rhi::RhiTexture>
+RhiVulkanBackend::createMipMapTexture(uint32_t width, uint32_t height,
+                                      uint32_t mips, Rhi::RhiImageFormat format,
+                                      uint32_t extraFlags) {
+  return m_implDetails->m_resourceManager->createMipTexture(
       width, height, mips, toVkFormat(format), extraFlags);
 }
 

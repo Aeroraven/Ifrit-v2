@@ -41,18 +41,13 @@ public:
   std::shared_ptr<Rhi::RhiDeviceTimer> createDeviceTimer() override;
   std::shared_ptr<Rhi::RhiBuffer> createBuffer(uint32_t size, uint32_t usage,
                                                bool hostVisible) const override;
-  Rhi::RhiBuffer *createIndirectMeshDrawBufferDevice(uint32_t drawCalls,
-                                                     uint32_t usage) override;
-  Rhi::RhiBuffer *createStorageBufferDevice(uint32_t size,
-                                            uint32_t usage) override;
-  Rhi::RhiMultiBuffer *createMultiBuffer(uint32_t size, uint32_t usage,
-                                         uint32_t numCopies) override;
-  Rhi::RhiMultiBuffer *createUniformBufferShared(uint32_t size,
-                                                 bool hostVisible,
-                                                 uint32_t extraFlags) override;
-  Rhi::RhiMultiBuffer *createStorageBufferShared(uint32_t size,
-                                                 bool hostVisible,
-                                                 uint32_t extraFlags) override;
+  std::shared_ptr<Rhi::RhiBuffer>
+  createBufferDevice(uint32_t size, uint32_t usage) const override;
+
+  std::shared_ptr<Rhi::RhiMultiBuffer>
+  createBufferCoherent(uint32_t size, uint32_t usage,
+                       uint32_t numCopies = ~0u) const override;
+
   std::shared_ptr<Rhi::RhiStagedSingleBuffer>
   createStagedSingleBuffer(Rhi::RhiBuffer *target) override;
 
@@ -74,18 +69,12 @@ public:
   createTexture2D(uint32_t width, uint32_t height, Rhi::RhiImageFormat format,
                   uint32_t extraFlags) override;
 
-  std::shared_ptr<Rhi::RhiTexture>
-  createDepthRenderTexture(uint32_t width, uint32_t height) override;
+  std::shared_ptr<Rhi::RhiTexture> createDepthTexture(uint32_t width,
+                                                      uint32_t height) override;
 
   std::shared_ptr<Rhi::RhiTexture>
-  createRenderTargetTexture(uint32_t width, uint32_t height,
-                            Rhi::RhiImageFormat format,
-                            uint32_t extraFlags) override;
-
-  std::shared_ptr<Rhi::RhiTexture>
-  createRenderTargetTexture3D(uint32_t width, uint32_t height, uint32_t depth,
-                              Rhi::RhiImageFormat format,
-                              uint32_t extraFlags) override;
+  createTexture3D(uint32_t width, uint32_t height, uint32_t depth,
+                  Rhi::RhiImageFormat format, uint32_t extraFlags) override;
 
   std::shared_ptr<Rhi::RhiSampler> createTrivialSampler() override;
   std::shared_ptr<Rhi::RhiSampler>
@@ -94,13 +83,11 @@ public:
   createTrivialNearestSampler(bool repeat) override;
 
   std::shared_ptr<Rhi::RhiTexture>
-  createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,
-                               Rhi::RhiImageFormat format,
-                               uint32_t extraFlags) override;
+  createMipMapTexture(uint32_t width, uint32_t height, uint32_t mips,
+                      Rhi::RhiImageFormat format, uint32_t extraFlags) override;
 
   // Pass
   Rhi::RhiComputePass *createComputePass() override;
-
   Rhi::RhiGraphicsPass *createGraphicsPass() override;
 
   // Swapchain

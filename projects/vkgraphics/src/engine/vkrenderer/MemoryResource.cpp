@@ -274,7 +274,7 @@ IFRIT_APIDECL Sampler::~Sampler() {
 }
 
 // Class: ResourceManager
-IFRIT_APIDECL MultiBuffer *
+IFRIT_APIDECL std::shared_ptr<MultiBuffer>
 ResourceManager::createMultipleBuffer(const BufferCreateInfo &ci,
                                       uint32_t numCopies) {
   if (numCopies == UINT32_MAX) {
@@ -283,10 +283,9 @@ ResourceManager::createMultipleBuffer(const BufferCreateInfo &ci,
     }
     numCopies = m_defaultCopies;
   }
-  auto buffer = std::make_unique<MultiBuffer>(m_context, ci, numCopies);
-  auto ptr = buffer.get();
-  m_multiBuffer.push_back(std::move(buffer));
-  return ptr;
+  auto buffer = std::make_shared<MultiBuffer>(m_context, ci, numCopies);
+  m_multiBuffer.push_back(buffer);
+  return buffer;
 }
 
 IFRIT_APIDECL SingleBuffer *
@@ -324,7 +323,7 @@ ResourceManager::createSampler(const SamplerCreateInfo &ci) {
   return ptr;
 }
 
-IFRIT_APIDECL MultiBuffer *
+IFRIT_APIDECL std::shared_ptr<MultiBuffer>
 ResourceManager::createTracedMultipleBuffer(const BufferCreateInfo &ci,
                                             uint32_t numCopies) {
   if (numCopies == UINT32_MAX) {
@@ -333,11 +332,11 @@ ResourceManager::createTracedMultipleBuffer(const BufferCreateInfo &ci,
     }
     numCopies = m_defaultCopies;
   }
-  auto buffer = std::make_unique<MultiBuffer>(m_context, ci, numCopies);
+  auto buffer = std::make_shared<MultiBuffer>(m_context, ci, numCopies);
   auto ptr = buffer.get();
-  m_multiBuffer.push_back(std::move(buffer));
+  m_multiBuffer.push_back(buffer);
   m_multiBufferTraced.push_back(size_cast<int>(m_multiBuffer.size()) - 1);
-  return ptr;
+  return buffer;
 }
 
 IFRIT_APIDECL void ResourceManager::setActiveFrame(uint32_t frame) {
@@ -347,15 +346,15 @@ IFRIT_APIDECL void ResourceManager::setActiveFrame(uint32_t frame) {
 }
 
 // Shortcut methods
-IFRIT_APIDECL MultiBuffer *
-ResourceManager::createStorageBufferShared(uint32_t size, bool hostVisible,
-                                           VkFlags extraFlags) {
-  BufferCreateInfo ci{};
-  ci.size = size;
-  ci.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | extraFlags;
-  ci.hostVisible = hostVisible;
-  return createTracedMultipleBuffer(ci);
-}
+// IFRIT_APIDECL MultiBuffer *
+// ResourceManager::createStorageBufferShared(uint32_t size, bool hostVisible,
+//                                            VkFlags extraFlags) {
+//   BufferCreateInfo ci{};
+//   ci.size = size;
+//   ci.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | extraFlags;
+//   ci.hostVisible = hostVisible;
+//   return createTracedMultipleBuffer(ci);
+// }
 
 IFRIT_APIDECL SingleBuffer *
 ResourceManager::createStorageBufferDevice(uint32_t size, VkFlags extraFlags) {
@@ -377,15 +376,15 @@ ResourceManager::createIndirectMeshDrawBufferDevice(uint32_t numDrawCalls,
   return createSimpleBuffer(ci);
 }
 
-IFRIT_APIDECL MultiBuffer *
-ResourceManager::createUniformBufferShared(uint32_t size, bool hostVisible,
-                                           VkFlags extraFlags) {
-  BufferCreateInfo ci{};
-  ci.size = size;
-  ci.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | extraFlags;
-  ci.hostVisible = hostVisible;
-  return createTracedMultipleBuffer(ci);
-}
+// IFRIT_APIDECL MultiBuffer *
+// ResourceManager::createUniformBufferShared(uint32_t size, bool hostVisible,
+//                                            VkFlags extraFlags) {
+//   BufferCreateInfo ci{};
+//   ci.size = size;
+//   ci.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | extraFlags;
+//   ci.hostVisible = hostVisible;
+//   return createTracedMultipleBuffer(ci);
+// }
 
 IFRIT_APIDECL SingleBuffer *
 ResourceManager::createVertexBufferDevice(uint32_t size, VkFlags extraFlags) {
@@ -460,9 +459,9 @@ ResourceManager::createRenderTargetTexture(uint32_t width, uint32_t height,
 }
 
 IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>
-ResourceManager::createRenderTargetTexture3D(uint32_t width, uint32_t height,
-                                             uint32_t depth, VkFormat format,
-                                             VkImageUsageFlags extraUsage) {
+ResourceManager::createTexture3D(uint32_t width, uint32_t height,
+                                 uint32_t depth, VkFormat format,
+                                 VkImageUsageFlags extraUsage) {
   ImageCreateInfo ci{};
   ci.aspect = ImageAspect::Color;
   ci.type = ImageType::Image3D;
@@ -470,23 +469,21 @@ ResourceManager::createRenderTargetTexture3D(uint32_t width, uint32_t height,
   ci.width = width;
   ci.height = height;
   ci.depth = depth;
-  ci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
-             extraUsage;
+  ci.usage = extraUsage;
   ci.hostVisible = false;
   return createSimpleImageUnmanaged(ci);
 }
 
 std::shared_ptr<SingleDeviceImage>
-ResourceManager::createRenderTargetMipTexture(uint32_t width, uint32_t height,
-                                              uint32_t mips, VkFormat format,
-                                              VkImageUsageFlags extraUsage) {
+ResourceManager::createMipTexture(uint32_t width, uint32_t height,
+                                  uint32_t mips, VkFormat format,
+                                  VkImageUsageFlags extraUsage) {
   ImageCreateInfo ci{};
   ci.aspect = ImageAspect::Color;
   ci.format = format;
   ci.width = width;
   ci.height = height;
-  ci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
-             extraUsage;
+  ci.usage = extraUsage;
   ci.hostVisible = false;
   ci.mipLevels = mips;
   return createSimpleImageUnmanaged(ci);

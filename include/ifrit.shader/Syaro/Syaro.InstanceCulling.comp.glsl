@@ -73,7 +73,6 @@ layout(binding = 0, set = 3) uniform IndirectCompData{
     uint acceptRef;
     uint rejectRef;
     uint indRef;
-    uint pad;
 }uIndirectComp;
 
 // layout(binding = 0,set=4) uniform HizMips{

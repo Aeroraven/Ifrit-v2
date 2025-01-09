@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/math/simd/SimdVectors.h"
 #include "ifrit/core/renderer/RendererBase.h"
@@ -83,7 +82,7 @@ struct PbrAtmospherePerframe {
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
 
   PbrAtmosphereParameter m_atmosphereParams;
-  GPUBuffer *m_atmosphereParamsBuffer;
+  std::shared_ptr<GPUBuffer> m_atmosphereParamsBuffer;
 
   std::shared_ptr<GPUSampler> m_sampler;
   std::shared_ptr<GPUTexture> m_transmittance;

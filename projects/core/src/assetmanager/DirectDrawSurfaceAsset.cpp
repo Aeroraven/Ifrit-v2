@@ -183,12 +183,30 @@ parseDDS(std ::filesystem::path path, IApplication *app) {
   buffer->writeBuffer(data.data() + bodyOffset, requiredBodySize, 0);
   buffer->flush();
   buffer->unmap();
+
+  auto imageBarrier = [&](const RhiCommandBuffer *cmd, RhiTexture *tex,
+                          RhiResourceState2 src, RhiResourceState2 dst,
+                          RhiImageSubResource sub) {
+    RhiTransitionBarrier barrier;
+    barrier.m_texture = tex;
+    barrier.m_srcState = src;
+    barrier.m_dstState = dst;
+    barrier.m_subResource = sub;
+    barrier.m_type = RhiResourceType::Texture;
+
+    RhiResourceBarrier resBarrier;
+    resBarrier.m_type = RhiBarrierType::Transition;
+    resBarrier.m_transition = barrier;
+
+    cmd->resourceBarrier({resBarrier});
+  };
+
   tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-    cmd->imageBarrier(tex.get(), RhiResourceState::Undefined,
-                      RhiResourceState::CopyDest, {0, 0, 1, 1});
+    imageBarrier(cmd, tex.get(), RhiResourceState2::Undefined,
+                 RhiResourceState2::CopyDst, {0, 0, 1, 1});
     cmd->copyBufferToImage(buffer.get(), tex.get(), {0, 0, 1, 1});
-    cmd->imageBarrier(tex.get(), RhiResourceState::CopyDest,
-                      RhiResourceState::Common, {0, 0, 1, 1});
+    imageBarrier(cmd, tex.get(), RhiResourceState2::CopyDst,
+                 RhiResourceState2::Common, {0, 0, 1, 1});
   });
   return tex;
 }

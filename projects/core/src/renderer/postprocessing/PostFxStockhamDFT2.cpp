@@ -60,7 +60,7 @@ PostFxStockhamDFT2::renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId,
 
   if (m_tex1.find({p2Width, p2Height}) == m_tex1.end()) {
     auto rhi = m_app->getRhiLayer();
-    auto tex1 = rhi->createRenderTargetTexture(
+    auto tex1 = rhi->createTexture2D(
         p2Width, p2Height,
         GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
         GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);

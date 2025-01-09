@@ -163,9 +163,10 @@ public:
   void drawMeshTasksIndirect(const Rhi::RhiBuffer *buffer, uint32_t offset,
                              uint32_t drawCount,
                              uint32_t stride) const override;
-  void imageBarrier(const Rhi::RhiTexture *texture, Rhi::RhiResourceState src,
-                    Rhi::RhiResourceState dst,
-                    Rhi::RhiImageSubResource subResource) const override;
+
+  void imageBarrier(const Rhi::RhiTexture *texture, Rhi::RhiResourceState2 src,
+                    Rhi::RhiResourceState2 dst,
+                    Rhi::RhiImageSubResource subResource) const; // DEPRECATED
 
   void attachBindlessReferenceGraphics(
       Rhi::RhiGraphicsPass *pass, uint32_t setId,
@@ -186,10 +187,8 @@ public:
                              uint32_t firstVertex,
                              uint32_t firstInstance) const override;
 
-  virtual void uavBufferBarrier(const Rhi::RhiBuffer *buffer) const override;
-
-  virtual void uavBufferClear(const Rhi::RhiBuffer *buffer,
-                              uint32_t val) const override;
+  virtual void bufferClear(const Rhi::RhiBuffer *buffer,
+                           uint32_t val) const override;
 
   virtual void dispatchIndirect(const Rhi::RhiBuffer *buffer,
                                 uint32_t offset) const override;

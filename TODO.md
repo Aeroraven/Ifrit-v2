@@ -3,8 +3,7 @@
 ## Bugs
 
 - [ ] Syaro: no objects will got tested if first instance cull pass reject all objects using prev-frame hzb
-
-  
+- [ ] Syaro: FSR2 flickering & ghosting, when moving
 
 
 ## Artifacts

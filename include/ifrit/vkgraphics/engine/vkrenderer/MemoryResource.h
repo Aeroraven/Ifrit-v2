@@ -158,6 +158,7 @@ public:
   inline bool isDepthTexture() const override {
     return m_createInfo.aspect == ImageAspect::Depth;
   }
+  inline void *getNativeHandle() const override { return m_image; }
 };
 
 struct SamplerCreateInfo {
@@ -194,7 +195,7 @@ class IFRIT_APIDECL ResourceManager {
 protected:
   EngineContext *m_context;
   std::vector<std::unique_ptr<SingleBuffer>> m_simpleBuffer;
-  std::vector<std::unique_ptr<MultiBuffer>> m_multiBuffer;
+  std::vector<std::shared_ptr<MultiBuffer>> m_multiBuffer;
   std::vector<uint32_t> m_multiBufferTraced;
   std::vector<std::unique_ptr<SingleDeviceImage>> m_simpleImage;
   std::vector<std::unique_ptr<Sampler>> m_samplers;
@@ -206,10 +207,12 @@ public:
   ResourceManager(const ResourceManager &p) = delete;
   ResourceManager &operator=(const ResourceManager &p) = delete;
 
-  MultiBuffer *createMultipleBuffer(const BufferCreateInfo &ci,
-                                    uint32_t numCopies = UINT32_MAX);
-  MultiBuffer *createTracedMultipleBuffer(const BufferCreateInfo &ci,
-                                          uint32_t numCopies = UINT32_MAX);
+  std::shared_ptr<MultiBuffer>
+  createMultipleBuffer(const BufferCreateInfo &ci,
+                       uint32_t numCopies = UINT32_MAX);
+  std::shared_ptr<MultiBuffer>
+  createTracedMultipleBuffer(const BufferCreateInfo &ci,
+                             uint32_t numCopies = UINT32_MAX);
   SingleBuffer *createSimpleBuffer(const BufferCreateInfo &ci);
   SingleDeviceImage *createSimpleImage(const ImageCreateInfo &ci);
   Sampler *createSampler(const SamplerCreateInfo &ci);
@@ -231,8 +234,8 @@ public:
   // Create a storage buffer that used to transfer data from host side
   // EVERY FRAME. It accepts data from staging buffer or host. Double
   // buffering will be used in this buffer.
-  MultiBuffer *createStorageBufferShared(uint32_t size, bool hostVisible,
-                                         VkFlags extraFlags = 0);
+  // MultiBuffer *createStorageBufferShared(uint32_t size, bool hostVisible,
+  //                                        VkFlags extraFlags = 0);
 
   // Create a storage buffer that only works on GPU side.
   SingleBuffer *createStorageBufferDevice(uint32_t size,
@@ -243,8 +246,8 @@ public:
                                                    VkFlags extraFlags = 0);
 
   // Create a uniform buffer that will be used to transfer data from host
-  MultiBuffer *createUniformBufferShared(uint32_t size, bool hostVisible,
-                                         VkFlags extraFlags = 0);
+  // MultiBuffer *createUniformBufferShared(uint32_t size, bool hostVisible,
+  //                                        VkFlags extraFlags = 0);
 
   // Create a vertex buffer.
   SingleBuffer *createVertexBufferDevice(uint32_t size, VkFlags extraFlags = 0);
@@ -274,15 +277,13 @@ public:
                             VkImageUsageFlags extraUsage = 0);
 
   std::shared_ptr<SingleDeviceImage>
-  createRenderTargetTexture3D(uint32_t width, uint32_t height, uint32_t depth,
-                              VkFormat format,
-                              VkImageUsageFlags extraUsage = 0);
+  createTexture3D(uint32_t width, uint32_t height, uint32_t depth,
+                  VkFormat format, VkImageUsageFlags extraUsage = 0);
 
   // Create a readable render target texture with mipLevels
   std::shared_ptr<SingleDeviceImage>
-  createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,
-                               VkFormat format,
-                               VkImageUsageFlags extraUsage = 0);
+  createMipTexture(uint32_t width, uint32_t height, uint32_t mips,
+                   VkFormat format, VkImageUsageFlags extraUsage = 0);
 
   // Create a device only texture, intended for shader read.
   SingleDeviceImage *createTexture2DDevice(uint32_t width, uint32_t height,

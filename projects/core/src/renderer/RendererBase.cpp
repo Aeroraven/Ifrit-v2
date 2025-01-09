@@ -331,20 +331,20 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
 
     // auto targetFomrat = RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM;
     auto targetFomrat = RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT;
-    perframeData.m_gbuffer.m_albedo_materialFlags =
-        rhi->createRenderTargetTexture(actualRtWidth, actualRtHeight,
-                                       targetFomrat, targetUsage);
-    perframeData.m_gbuffer.m_emissive = rhi->createRenderTargetTexture(
+    perframeData.m_gbuffer.m_albedo_materialFlags = rhi->createTexture2D(
         actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
-    perframeData.m_gbuffer.m_normal_smoothness = rhi->createRenderTargetTexture(
+    perframeData.m_gbuffer.m_emissive = rhi->createTexture2D(
         actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
-    perframeData.m_gbuffer.m_specular_occlusion =
-        rhi->createRenderTargetTexture(actualRtWidth, actualRtHeight,
-                                       targetFomrat, targetUsage);
+    perframeData.m_gbuffer.m_normal_smoothness = rhi->createTexture2D(
+        actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+    perframeData.m_gbuffer.m_specular_occlusion = rhi->createTexture2D(
+        actualRtWidth, actualRtHeight, targetFomrat,
+        targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
     perframeData.m_gbuffer.m_specular_occlusion_intermediate =
-        rhi->createRenderTargetTexture(actualRtWidth, actualRtHeight,
-                                       targetFomrat, targetUsage);
-    perframeData.m_gbuffer.m_shadowMask = rhi->createRenderTargetTexture(
+        rhi->createTexture2D(
+            actualRtWidth, actualRtHeight, targetFomrat,
+            targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+    perframeData.m_gbuffer.m_shadowMask = rhi->createTexture2D(
         actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
 
     perframeData.m_gbuffer.m_gbufferSampler = rhi->createTrivialSampler();
@@ -407,11 +407,12 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
         perframeData.m_gbuffer.m_shadowMaskId->getActiveId();
 
     // Then gbuffer desc
-    perframeData.m_gbuffer.m_gbufferRefs = rhi->createStorageBufferDevice(
+    perframeData.m_gbuffer.m_gbufferRefs = rhi->createBufferDevice(
         sizeof(PerFrameData::GBufferDesc),
-        RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-    auto stagedBuf =
-        rhi->createStagedSingleBuffer(perframeData.m_gbuffer.m_gbufferRefs);
+        RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
+            RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    auto stagedBuf = rhi->createStagedSingleBuffer(
+        perframeData.m_gbuffer.m_gbufferRefs.get());
     auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
     tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
       stagedBuf->cmdCopyToDevice(cmd, &gbufferDesc,
@@ -419,7 +420,7 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
     });
     perframeData.m_gbuffer.m_gbufferDesc = rhi->createBindlessDescriptorRef();
     perframeData.m_gbuffer.m_gbufferDesc->addStorageBuffer(
-        perframeData.m_gbuffer.m_gbufferRefs, 0);
+        perframeData.m_gbuffer.m_gbufferRefs.get(), 0);
 
     // Then gbuffer desc for pixel shader
     perframeData.m_gbufferSampler = rhi->createTrivialSampler();
@@ -511,17 +512,22 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
     bool initLastFrameMatrix = false;
     auto &curView = perframeData.m_views[i];
     if (curView.m_viewBindlessRef == nullptr) {
-      curView.m_viewBuffer =
-          rhi->createUniformBufferShared(sizeof(PerFramePerViewData), true, 0);
+      curView.m_viewBuffer = rhi->createBufferCoherent(
+          sizeof(PerFramePerViewData),
+          RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
       curView.m_viewBindlessRef = rhi->createBindlessDescriptorRef();
-      curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBuffer, 0);
+      curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBuffer.get(),
+                                                  0);
+      curView.m_viewBufferLast = rhi->createBufferCoherent(
+          sizeof(PerFramePerViewData),
+          RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
-      curView.m_viewBufferLast =
-          rhi->createUniformBufferShared(sizeof(PerFramePerViewData), true, 0);
-      curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBufferLast, 1);
+      curView.m_viewBindlessRef->addUniformBuffer(
+          curView.m_viewBufferLast.get(), 1);
       initLastFrameMatrix = true;
 
-      curView.m_viewBufferId = rhi->registerUniformBuffer(curView.m_viewBuffer);
+      curView.m_viewBufferId =
+          rhi->registerUniformBuffer(curView.m_viewBuffer.get());
     }
 
     // Update view buffer
@@ -558,12 +564,14 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       // TODO/EMERGENCY: release old buffer
       shaderEffect.m_lastObjectCount = objectCount;
       shaderEffect.m_objectData.resize(objectCount);
-      shaderEffect.m_batchedObjectData = rhi->createStorageBufferShared(
-          sizeof(PerObjectData) * objectCount, true, 0);
+      shaderEffect.m_batchedObjectData = rhi->createBufferCoherent(
+          sizeof(PerObjectData) * objectCount,
+          RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+
       // TODO: update instead of recreate
       shaderEffect.m_batchedObjBufRef = rhi->createBindlessDescriptorRef();
       shaderEffect.m_batchedObjBufRef->addStorageBuffer(
-          shaderEffect.m_batchedObjectData, 0);
+          shaderEffect.m_batchedObjectData.get(), 0);
     }
 
     // preloading meshes
@@ -577,23 +585,25 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
     for (int i = 0; i < shaderEffect.m_materials.size(); i++) {
       // Setup transform buffers
       auto transform = shaderEffect.m_transforms[i];
-      RhiMultiBuffer *transformBuffer = nullptr;
-      RhiMultiBuffer *transformBufferLast = nullptr;
+      std::shared_ptr<RhiMultiBuffer> transformBuffer = nullptr;
+      std::shared_ptr<RhiMultiBuffer> transformBufferLast = nullptr;
       std::shared_ptr<RhiBindlessIdRef> bindlessRef = nullptr;
       std::shared_ptr<RhiBindlessIdRef> bindlessRefLast = nullptr;
       transform->getGPUResource(transformBuffer, transformBufferLast,
                                 bindlessRef, bindlessRefLast);
       bool initLastFrameMatrix = false;
       if (transformBuffer == nullptr) {
-        transformBuffer = rhi->createUniformBufferShared(
-            sizeof(MeshInstanceTransform), true, 0);
-        bindlessRef = rhi->registerUniformBuffer(transformBuffer);
+        transformBuffer = rhi->createBufferCoherent(
+            sizeof(MeshInstanceTransform),
+            RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        bindlessRef = rhi->registerUniformBuffer(transformBuffer.get());
         transform->setGPUResource(transformBuffer, transformBufferLast,
                                   bindlessRef, bindlessRefLast);
         initLastFrameMatrix = true;
-        transformBufferLast = rhi->createUniformBufferShared(
-            sizeof(MeshInstanceTransform), true, 0);
-        bindlessRefLast = rhi->registerUniformBuffer(transformBufferLast);
+        transformBufferLast = rhi->createBufferCoherent(
+            sizeof(MeshInstanceTransform),
+            RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        bindlessRefLast = rhi->registerUniformBuffer(transformBufferLast.get());
         transform->setGPUResource(transformBuffer, transformBufferLast,
                                   bindlessRef, bindlessRefLast);
       }
@@ -654,59 +664,60 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         meshDataRef->m_cpCounter.totalNumClusters =
             size_cast<uint32_t>(meshDataRef->m_clusterGroups.size());
 
-        meshResource.vertexBuffer = rhi->createStorageBufferDevice(
+        auto tmpUsage = RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
+                        RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        meshResource.vertexBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(meshDataRef->m_verticesAligned.size() *
                                 sizeof(ifloat4)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.normalBuffer = rhi->createStorageBufferDevice(
+            tmpUsage);
+        meshResource.normalBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(meshDataRef->m_normalsAligned.size() *
                                 sizeof(ifloat4)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.uvBuffer = rhi->createStorageBufferDevice(
+            tmpUsage);
+        meshResource.uvBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(meshDataRef->m_uvs.size() * sizeof(ifloat2)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.bvhNodeBuffer = rhi->createStorageBufferDevice(
+            tmpUsage);
+        meshResource.bvhNodeBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(
                 meshDataRef->m_bvhNodes.size() *
                 sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.clusterGroupBuffer = rhi->createStorageBufferDevice(
+            tmpUsage);
+        meshResource.clusterGroupBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(meshDataRef->m_clusterGroups.size() *
                                 sizeof(MeshProcLib::MeshProcess::ClusterGroup)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.meshletBuffer = rhi->createStorageBufferDevice(
+            tmpUsage);
+        meshResource.meshletBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(meshDataRef->m_meshlets.size() *
                                 sizeof(MeshData::MeshletData)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.meshletVertexBuffer = rhi->createStorageBufferDevice(
+            tmpUsage);
+        meshResource.meshletVertexBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(meshDataRef->m_meshletVertices.size() *
                                 sizeof(uint32_t)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.meshletIndexBuffer = rhi->createStorageBufferDevice(
+            tmpUsage);
+        meshResource.meshletIndexBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(meshDataRef->m_meshletTriangles.size() *
                                 sizeof(uint32_t)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.meshletInClusterBuffer = rhi->createStorageBufferDevice(
+            tmpUsage);
+        meshResource.meshletInClusterBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(meshDataRef->m_meshletInClusterGroup.size() *
                                 sizeof(uint32_t)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.cpCounterBuffer = rhi->createStorageBufferDevice(
-            size_cast<uint32_t>(sizeof(MeshData::GPUCPCounter)),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
-        meshResource.tangentBuffer = rhi->createStorageBufferDevice(
+            tmpUsage);
+        meshResource.cpCounterBuffer = rhi->createBufferDevice(
+            size_cast<uint32_t>(sizeof(MeshData::GPUCPCounter)), tmpUsage);
+        meshResource.tangentBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(sizeof(ifloat4) *
                                 meshDataRef->m_tangents.size()),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+            tmpUsage);
 
         auto materialDataSize = 0;
         auto &materialRef = shaderEffect.m_materials[i];
         if (materialRef->m_data.size() > 0) {
           haveMaterialData = true;
           materialDataSize = size_cast<uint32_t>(materialRef->m_data[0].size());
-          meshResource.materialDataBuffer = rhi->createStorageBufferDevice(
+          meshResource.materialDataBuffer = rhi->createBufferDevice(
               size_cast<uint32_t>(
                   shaderEffect.m_materials[i]->m_data[0].size()),
-              RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+              tmpUsage);
         } else {
           meshResource.materialDataBuffer = nullptr;
           iWarn("Material data not found for mesh {}", i);
@@ -714,30 +725,30 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
 
         // Indices in bindless descriptors
         meshResource.vertexBufferId =
-            rhi->registerStorageBuffer(meshResource.vertexBuffer);
+            rhi->registerStorageBuffer(meshResource.vertexBuffer.get());
         meshResource.normalBufferId =
-            rhi->registerStorageBuffer(meshResource.normalBuffer);
+            rhi->registerStorageBuffer(meshResource.normalBuffer.get());
         meshResource.uvBufferId =
-            rhi->registerStorageBuffer(meshResource.uvBuffer);
+            rhi->registerStorageBuffer(meshResource.uvBuffer.get());
         meshResource.bvhNodeBufferId =
-            rhi->registerStorageBuffer(meshResource.bvhNodeBuffer);
+            rhi->registerStorageBuffer(meshResource.bvhNodeBuffer.get());
         meshResource.clusterGroupBufferId =
-            rhi->registerStorageBuffer(meshResource.clusterGroupBuffer);
+            rhi->registerStorageBuffer(meshResource.clusterGroupBuffer.get());
         meshResource.meshletBufferId =
-            rhi->registerStorageBuffer(meshResource.meshletBuffer);
+            rhi->registerStorageBuffer(meshResource.meshletBuffer.get());
         meshResource.meshletVertexBufferId =
-            rhi->registerStorageBuffer(meshResource.meshletVertexBuffer);
+            rhi->registerStorageBuffer(meshResource.meshletVertexBuffer.get());
         meshResource.meshletIndexBufferId =
-            rhi->registerStorageBuffer(meshResource.meshletIndexBuffer);
-        meshResource.meshletInClusterBufferId =
-            rhi->registerStorageBuffer(meshResource.meshletInClusterBuffer);
+            rhi->registerStorageBuffer(meshResource.meshletIndexBuffer.get());
+        meshResource.meshletInClusterBufferId = rhi->registerStorageBuffer(
+            meshResource.meshletInClusterBuffer.get());
         meshResource.cpCounterBufferId =
-            rhi->registerStorageBuffer(meshResource.cpCounterBuffer);
+            rhi->registerStorageBuffer(meshResource.cpCounterBuffer.get());
         meshResource.tangentBufferId =
-            rhi->registerStorageBuffer(meshResource.tangentBuffer);
+            rhi->registerStorageBuffer(meshResource.tangentBuffer.get());
         if (haveMaterialData) {
           meshResource.materialDataBufferId =
-              rhi->registerStorageBuffer(meshResource.materialDataBuffer);
+              rhi->registerStorageBuffer(meshResource.materialDataBuffer.get());
         }
 
         // Here, we assume that no double bufferring is allowed
@@ -772,10 +783,10 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
             meshResource.tangentBufferId->getActiveId();
 
         // description for the whole mesh
-        meshResource.objectBuffer = rhi->createStorageBufferDevice(
-            sizeof(Mesh::GPUObjectBuffer), RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        meshResource.objectBuffer =
+            rhi->createBufferDevice(sizeof(Mesh::GPUObjectBuffer), tmpUsage);
         meshResource.objectBufferId =
-            rhi->registerStorageBuffer(meshResource.objectBuffer);
+            rhi->registerStorageBuffer(meshResource.objectBuffer.get());
 
         mesh->setGPUResource(meshResource);
       }
@@ -786,33 +797,35 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       meshInst->getGPUResource(instanceResource);
       auto &meshInstObjData = meshInst->m_resource.objectData;
       if (instanceResource.objectBuffer == nullptr) {
+
+        auto tmpUsage = RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
+                        RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         requireUpdate = true;
-        instanceResource.cpQueueBuffer = rhi->createStorageBufferDevice(
+        instanceResource.cpQueueBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(sizeof(uint32_t) *
                                 meshDataRef->m_bvhNodes.size()),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+            tmpUsage);
 
         auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0];
         if (meshDataRef->m_numMeshletsEachLod.size() > 1)
           safeNumMeshlets += meshDataRef->m_numMeshletsEachLod[1];
-        instanceResource.filteredMeshlets = rhi->createStorageBufferDevice(
-            sizeof(uint32_t) * safeNumMeshlets, 0);
+        instanceResource.filteredMeshlets = rhi->createBufferDevice(
+            sizeof(uint32_t) * safeNumMeshlets, tmpUsage);
 
         instanceResource.cpQueueBufferId =
-            rhi->registerStorageBuffer(instanceResource.cpQueueBuffer);
+            rhi->registerStorageBuffer(instanceResource.cpQueueBuffer.get());
         instanceResource.filteredMeshletsId =
-            rhi->registerStorageBuffer(instanceResource.filteredMeshlets);
+            rhi->registerStorageBuffer(instanceResource.filteredMeshlets.get());
 
         instanceResource.objectData.cpQueueBufferId =
             instanceResource.cpQueueBufferId->getActiveId();
         instanceResource.objectData.filteredMeshletsId =
             instanceResource.filteredMeshletsId->getActiveId();
 
-        instanceResource.objectBuffer = rhi->createStorageBufferDevice(
-            sizeof(MeshInstance::GPUObjectBuffer),
-            RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+        instanceResource.objectBuffer = rhi->createBufferDevice(
+            sizeof(MeshInstance::GPUObjectBuffer), tmpUsage);
         instanceResource.objectBufferId =
-            rhi->registerStorageBuffer(instanceResource.objectBuffer);
+            rhi->registerStorageBuffer(instanceResource.objectBuffer.get());
 
         meshInst->setGPUResource(instanceResource);
       }
@@ -833,7 +846,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
               pendingVertexBufferSizes.push_back(size);
             };
 #define enqueueStagedBuffer(name, vecBuffer)                                   \
-  auto staged##name = rhi->createStagedSingleBuffer(meshResource.name);        \
+  auto staged##name = rhi->createStagedSingleBuffer(meshResource.name.get());  \
   funcEnqueueStagedBuffer(                                                     \
       staged##name, meshDataRef->vecBuffer.data(),                             \
       size_cast<uint32_t>(                                                     \
@@ -852,7 +865,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         enqueueStagedBuffer(meshletInClusterBuffer, m_meshletInClusterGroup);
 
         auto stagedCPCounterBuffer =
-            rhi->createStagedSingleBuffer(meshResource.cpCounterBuffer);
+            rhi->createStagedSingleBuffer(meshResource.cpCounterBuffer.get());
         stagedBuffers.push_back(stagedCPCounterBuffer);
         pendingVertexBuffers.push_back(&meshDataRef->m_cpCounter);
         pendingVertexBufferSizes.push_back(sizeof(MeshData::GPUCPCounter));
@@ -860,8 +873,8 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         std::shared_ptr<RhiStagedSingleBuffer> stagedMaterialDataBuffer =
             nullptr;
         if (haveMaterialData) {
-          stagedMaterialDataBuffer =
-              rhi->createStagedSingleBuffer(meshResource.materialDataBuffer);
+          stagedMaterialDataBuffer = rhi->createStagedSingleBuffer(
+              meshResource.materialDataBuffer.get());
           stagedBuffers.push_back(stagedMaterialDataBuffer);
           pendingVertexBuffers.push_back(
               &shaderEffect.m_materials[i]->m_data[0][0]);
@@ -870,13 +883,13 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         }
 
         auto stagedObjectBuffer =
-            rhi->createStagedSingleBuffer(meshResource.objectBuffer);
+            rhi->createStagedSingleBuffer(meshResource.objectBuffer.get());
         stagedBuffers.push_back(stagedObjectBuffer);
         pendingVertexBuffers.push_back(&mesh->m_resource.objectData);
         pendingVertexBufferSizes.push_back(sizeof(Mesh::GPUObjectBuffer));
 
         auto stagedInstanceObjectBuffer =
-            rhi->createStagedSingleBuffer(instanceResource.objectBuffer);
+            rhi->createStagedSingleBuffer(instanceResource.objectBuffer.get());
         stagedBuffers.push_back(stagedInstanceObjectBuffer);
         pendingVertexBuffers.push_back(&meshInst->m_resource.objectData);
         pendingVertexBufferSizes.push_back(
@@ -923,8 +936,18 @@ RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
   auto sRenderComplete = rhi->getSwapchainRenderDoneEventHandler();
   auto cmd = drawq->runAsyncCommand(
       [&](const Rhi::RhiCommandBuffer *cmd) {
-        cmd->imageBarrier(swapchainImg, Rhi::RhiResourceState::RenderTarget,
-                          Rhi::RhiResourceState::Present, {0, 0, 1, 1});
+        Rhi::RhiTransitionBarrier barrier;
+        barrier.m_texture = swapchainImg;
+        barrier.m_type = Rhi::RhiResourceType::Texture;
+        barrier.m_srcState = Rhi::RhiResourceState2::ColorRT;
+        barrier.m_dstState = Rhi::RhiResourceState2::Present;
+        barrier.m_subResource = {0, 0, 1, 1};
+
+        Rhi::RhiResourceBarrier barrier2;
+        barrier2.m_type = Rhi::RhiBarrierType::Transition;
+        barrier2.m_transition = barrier;
+
+        cmd->resourceBarrier({barrier2});
       },
       cmdToWait, {sRenderComplete.get()});
   rhi->endFrame();

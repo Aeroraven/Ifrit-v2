@@ -95,9 +95,9 @@ void main(){
     float weightedAO = 0.0;
     float totalWeight = 0.0;
 
-    const float kRadiusPixel = 0.5;
-    const float kMaxRadiusPixel = 12.0;
-    float sampleStep = kMaxRadiusPixel/renderHeight/(cHBAOSampleSteps+1);
+    const float kRadiusPixel = 64.0;
+    const float kMaxRadiusPixel = 8.0;
+    float sampleStep = min(kRadiusPixel/vsDepth,kMaxRadiusPixel)/renderHeight/(cHBAOSampleSteps+1);
 
     mat2 rotMatBase = getRotationMatrix(rand);
     mat2 rotMatIncr = getRotationMatrix(kInvHbaoDirectionsRotOnce);
@@ -122,6 +122,6 @@ void main(){
 
     // store ao in alpha channel
     vec4 rawSmoothAO = vec4(0.0);
-    rawSmoothAO.a = 1.0 - weightedAO; 
+    rawSmoothAO.a = 1.0 - weightedAO;
     imageStore(GetUAVImage2DRGBA32F(pushConst.aoTex),ivec2(threadX,threadY),rawSmoothAO);
 }

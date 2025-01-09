@@ -50,20 +50,20 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
   if (m_depthStencilAttachment != nullptr) {
     auto depthSrcLayout = (m_depthStencilAttachment->getLoadOp() ==
                            Rhi::RhiRenderTargetLoadOp::Clear)
-                              ? Rhi::RhiResourceState::Undefined
-                              : Rhi::RhiResourceState::DepthStencilRenderTarget;
-    cmd->imageBarrier(
-        m_depthStencilAttachment->getRenderTarget(), depthSrcLayout,
-        Rhi::RhiResourceState::DepthStencilRenderTarget, {0, 0, 1, 1});
+                              ? Rhi::RhiResourceState2::Undefined
+                              : Rhi::RhiResourceState2::DepthStencilRT;
+    cmd->imageBarrier(m_depthStencilAttachment->getRenderTarget(),
+                      depthSrcLayout, Rhi::RhiResourceState2::DepthStencilRT,
+                      {0, 0, 1, 1});
   }
 
   for (auto attachment : m_colorAttachments) {
     auto srcLayout =
         (attachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear)
-            ? Rhi::RhiResourceState::Undefined
-            : Rhi::RhiResourceState::RenderTarget;
+            ? Rhi::RhiResourceState2::Undefined
+            : Rhi::RhiResourceState2::ColorRT;
     cmd->imageBarrier(attachment->getRenderTarget(), srcLayout,
-                      Rhi::RhiResourceState::RenderTarget, {0, 0, 1, 1});
+                      Rhi::RhiResourceState2::ColorRT, {0, 0, 1, 1});
   }
   auto exfunc = m_context->getExtensionFunction();
 

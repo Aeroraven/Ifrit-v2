@@ -103,9 +103,9 @@ struct CompiledFrameGraph {
   struct ResourceBarriers {
     bool enableUAVBarrier = false;
     bool enableTransitionBarrier = false;
-    GraphicsBackend::Rhi::RhiResourceState srcState;
-    GraphicsBackend::Rhi::RhiResourceState dstState =
-        GraphicsBackend::Rhi::RhiResourceState::Undefined;
+    GraphicsBackend::Rhi::RhiResourceState2 srcState;
+    GraphicsBackend::Rhi::RhiResourceState2 dstState =
+        GraphicsBackend::Rhi::RhiResourceState2::Undefined;
   };
   const FrameGraph *m_graph = nullptr;
   std::vector<uint32_t> m_passTopoOrder = {};

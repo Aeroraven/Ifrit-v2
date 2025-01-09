@@ -133,7 +133,7 @@ PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perframeData) {
   auto rhi = m_app->getRhiLayer();
   auto createPbrAtmoTex2D = [&](uint32_t width, uint32_t height) {
     using namespace GraphicsBackend::Rhi;
-    auto tex = rhi->createRenderTargetTexture(
+    auto tex = rhi->createTexture2D(
         width, height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
         RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
             RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
@@ -143,7 +143,7 @@ PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perframeData) {
   auto createPbrAtmoTex3D = [&](uint32_t width, uint32_t height,
                                 uint32_t depth) {
     using namespace GraphicsBackend::Rhi;
-    auto tex = rhi->createRenderTargetTexture3D(
+    auto tex = rhi->createTexture3D(
         width, height, depth, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
         RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
             RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
@@ -225,11 +225,13 @@ PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perframeData) {
       data->m_deltaRayleighScatteringCombSamplerId;
 
   // Copy atmo params to GPU
-  data->m_atmosphereParamsBuffer = rhi->createStorageBufferDevice(
+  data->m_atmosphereParamsBuffer = rhi->createBufferDevice(
       sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter),
-      GraphicsBackend::Rhi::RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT);
+      GraphicsBackend::Rhi::RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
+          GraphicsBackend::Rhi::RhiBufferUsage::
+              RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
   auto stagingBuffer =
-      rhi->createStagedSingleBuffer(data->m_atmosphereParamsBuffer);
+      rhi->createStagedSingleBuffer(data->m_atmosphereParamsBuffer.get());
   auto tq = rhi->getQueue(
       GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   tq->runSyncCommand([&](const GraphicsBackend::Rhi::RhiCommandBuffer *cmd) {
@@ -238,7 +240,7 @@ PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perframeData) {
         sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter), 0);
   });
   data->m_atmoParamId =
-      rhi->registerStorageBuffer(data->m_atmosphereParamsBuffer);
+      rhi->registerStorageBuffer(data->m_atmosphereParamsBuffer.get());
 
   // Last, a matrix to convert radiance to luminance
   data->luminanceFromRad = Math::identity();
@@ -575,8 +577,18 @@ PbrAtmosphereRenderer::renderInternal(
       GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
 
   auto toGeneralLayout = [&](const RhiCommandBuffer *cmd, RhiTexture *tex) {
-    cmd->imageBarrier(tex, RhiResourceState::Undefined,
-                      RhiResourceState::Common, {0, 0, 1, 1});
+    RhiTransitionBarrier tBarrier;
+    tBarrier.m_texture = tex;
+    tBarrier.m_type = RhiResourceType::Texture;
+    tBarrier.m_srcState = RhiResourceState2::Undefined;
+    tBarrier.m_dstState = RhiResourceState2::Common;
+    tBarrier.m_subResource = {0, 0, 1, 1};
+
+    RhiResourceBarrier barrier;
+    barrier.m_type = RhiBarrierType::Transition;
+    barrier.m_transition = tBarrier;
+
+    cmd->resourceBarrier({barrier});
   };
   auto task = cq->runAsyncCommand(
       [&](const RhiCommandBuffer *cmd) {

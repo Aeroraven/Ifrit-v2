@@ -153,8 +153,7 @@ FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
       m_context->initContext.maxRenderSize.height;
   dispatchParams.jitterOffset.x = args.jitterX;
   dispatchParams.jitterOffset.y = args.jitterY;
-  dispatchParams.frameTimeDelta = args.deltaTime;
-
+  dispatchParams.frameTimeDelta = args.deltaTime * 5.0f;
   dispatchParams.motionVectorScale.x =
       m_context->initContext.maxRenderSize.width;
   dispatchParams.motionVectorScale.y =
@@ -163,6 +162,7 @@ FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
   dispatchParams.cameraNear = args.camNear;
   dispatchParams.cameraFar = args.camFar;
   dispatchParams.cameraFovAngleVertical = args.camFovY;
+  dispatchParams.viewSpaceToMetersFactor = 1.0f;
 
   dispatchParams.reset = false;
   dispatchParams.enableSharpening = false;

@@ -90,15 +90,15 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
     using namespace Ifrit::GraphicsBackend::Rhi;
     auto res = std::make_unique<PostFxFFTConv2dResourceCollection>();
     auto rhi = m_app->getRhiLayer();
-    auto tex1 = rhi->createRenderTargetTexture(
+    auto tex1 = rhi->createTexture2D(
         p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
         RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
             RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
-    auto tex2 = rhi->createRenderTargetTexture(
+    auto tex2 = rhi->createTexture2D(
         p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
         RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
             RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
-    auto texTemp = rhi->createRenderTargetTexture(
+    auto texTemp = rhi->createTexture2D(
         p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
         RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
             RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
@@ -107,11 +107,11 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
     auto texTempId = rhi->registerUAVImage(texTemp.get(), {0, 0, 1, 1});
 
     auto texSampler = rhi->createTrivialSampler();
-    auto texGaussian = rhi->createRenderTargetTexture(
-        kernelWidth, kernelHeight,
-        RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
-            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+    auto texGaussian =
+        rhi->createTexture2D(kernelWidth, kernelHeight,
+                             RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+                             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
+                                 RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
     auto texGaussianId = rhi->registerUAVImage(texGaussian.get(), {0, 0, 1, 1});
     auto texGaussianSampId =
         rhi->registerCombinedImageSampler(texGaussian.get(), texSampler.get());

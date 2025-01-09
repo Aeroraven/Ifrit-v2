@@ -219,8 +219,8 @@ class IFRIT_APIDECL Transform : public Component,
 private:
   using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
-  GPUUniformBuffer *m_gpuBuffer = nullptr;
-  GPUUniformBuffer *m_gpuBufferLast = nullptr;
+  std::shared_ptr<GPUUniformBuffer> m_gpuBuffer = nullptr;
+  std::shared_ptr<GPUUniformBuffer> m_gpuBufferLast = nullptr;
   std::shared_ptr<GPUBindId> m_gpuBindlessRef = nullptr;
   std::shared_ptr<GPUBindId> m_gpuBindlessRefLast = nullptr;
 
@@ -272,7 +272,8 @@ public:
   float4x4 getModelToWorldMatrix();
   float4x4 getModelToWorldMatrixLast();
   inline ifloat3 getScaleLast() { return m_lastFrame.m_scale; }
-  inline void setGPUResource(GPUUniformBuffer *buffer, GPUUniformBuffer *last,
+  inline void setGPUResource(std::shared_ptr<GPUUniformBuffer> buffer,
+                             std::shared_ptr<GPUUniformBuffer> last,
                              std::shared_ptr<GPUBindId> &bindlessRef,
                              std::shared_ptr<GPUBindId> &bindlessRefLast) {
     m_gpuBuffer = buffer;
@@ -280,7 +281,8 @@ public:
     m_gpuBindlessRef = bindlessRef;
     m_gpuBindlessRefLast = bindlessRefLast;
   }
-  inline void getGPUResource(GPUUniformBuffer *&buffer, GPUUniformBuffer *&last,
+  inline void getGPUResource(std::shared_ptr<GPUUniformBuffer> &buffer,
+                             std::shared_ptr<GPUUniformBuffer> &last,
                              std::shared_ptr<GPUBindId> &bindlessRef,
                              std::shared_ptr<GPUBindId> &bindlessRefLast) {
     buffer = m_gpuBuffer;

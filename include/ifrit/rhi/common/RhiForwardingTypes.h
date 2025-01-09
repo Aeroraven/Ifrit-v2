@@ -332,7 +332,7 @@ enum class RhiCompareOp {
   Always
 };
 
-enum class RhiResourceState {
+enum class RhiResourceStateLegacy {
   Undefined,
   Common,
   RenderTarget,
@@ -344,4 +344,19 @@ enum class RhiResourceState {
   UnorderedAccess,
   PixelShaderResource,
 };
+
+enum class RhiResourceState2 {
+  Undefined,
+  Common,
+  ColorRT,
+  DepthStencilRT,
+  ShaderRead,
+  UnorderedAccess,
+  CopySrc,
+  CopyDst,
+  Present,
+
+  AutoTraced,
+};
+
 } // namespace Ifrit::GraphicsBackend::Rhi

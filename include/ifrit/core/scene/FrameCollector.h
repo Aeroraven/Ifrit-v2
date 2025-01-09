@@ -71,7 +71,8 @@ struct PerShaderEffectData {
   // Data to GPUs
   uint32_t m_lastObjectCount = ~0u;
   std::vector<PerObjectData> m_objectData;
-  Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer *m_batchedObjectData = nullptr;
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer>
+      m_batchedObjectData = nullptr;
   Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef *m_batchedObjBufRef =
       nullptr;
 };
@@ -106,7 +107,7 @@ struct ShadowMappingData {
   std::vector<SingleShadowView> m_shadowViews;
   uint32_t m_enabledShadowMaps = 0;
 
-  GPUUniformBuffer *m_allShadowData = nullptr;
+  std::shared_ptr<GPUUniformBuffer> m_allShadowData = nullptr;
   std::shared_ptr<GPUBindlessId> m_allShadowDataId;
 };
 
@@ -161,7 +162,7 @@ struct PerFrameData {
     GPUBarrier m_normal_smoothnessBarrier;
     GPUBarrier m_specular_occlusionBarrier;
 
-    GPUBuffer *m_gbufferRefs = nullptr;
+    std::shared_ptr<GPUBuffer> m_gbufferRefs = nullptr;
     GPUBindlessRef *m_gbufferDesc = nullptr;
 
     std::vector<GPUBarrier> m_gbufferBarrier;
@@ -170,8 +171,8 @@ struct PerFrameData {
   struct SinglePassHiZData {
     std::shared_ptr<GPUTexture> m_hizTexture = nullptr;
     std::vector<uint32_t> m_hizRefs;
-    GPUBuffer *m_hizRefBuffer = nullptr;
-    GPUBuffer *m_hizAtomics = nullptr;
+    std::shared_ptr<GPUBuffer> m_hizRefBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> m_hizAtomics = nullptr;
     GPUBindlessRef *m_hizDesc = nullptr;
     std::shared_ptr<GPUSampler> m_hizSampler = nullptr;
     uint32_t m_hizIters = 0;
@@ -184,8 +185,8 @@ struct PerFrameData {
 
     PerFramePerViewData m_viewData;
     PerFramePerViewData m_viewDataOld;
-    GPUUniformBuffer *m_viewBuffer = nullptr;
-    GPUUniformBuffer *m_viewBufferLast = nullptr;
+    std::shared_ptr<GPUUniformBuffer> m_viewBuffer = nullptr;
+    std::shared_ptr<GPUUniformBuffer> m_viewBufferLast = nullptr;
     GPUBindlessRef *m_viewBindlessRef = nullptr;
     std::shared_ptr<GPUBindlessId> m_viewBufferId = nullptr;
     // Non-gpu data
@@ -206,8 +207,8 @@ struct PerFrameData {
     // visibility buffer software. It's compute shader, so
     // not repeated decl required
     std::shared_ptr<GPUTexture> m_visibilityBuffer_SW = nullptr;
-    GPUBuffer *m_visPassDepth_SW = nullptr;
-    GPUBuffer *m_visPassDepthCASLock_SW = nullptr;
+    std::shared_ptr<GPUBuffer> m_visPassDepth_SW = nullptr;
+    std::shared_ptr<GPUBuffer> m_visPassDepthCASLock_SW = nullptr;
 
     std::shared_ptr<GPUBindlessId> m_visBufferIdUAV_SW = nullptr;
     std::shared_ptr<GPUBindlessId> m_visDepthId_SW = nullptr;
@@ -229,10 +230,10 @@ struct PerFrameData {
     std::shared_ptr<GPURTs> m_visRTs2_HW = nullptr;
 
     // all visible clusters
-    GPUBuffer *m_allFilteredMeshletsAllCount = nullptr;
+    std::shared_ptr<GPUBuffer> m_allFilteredMeshletsAllCount = nullptr;
 
-    GPUBuffer *m_allFilteredMeshletsHW = nullptr;
-    GPUBuffer *m_allFilteredMeshletsSW = nullptr;
+    std::shared_ptr<GPUBuffer> m_allFilteredMeshletsHW = nullptr;
+    std::shared_ptr<GPUBuffer> m_allFilteredMeshletsSW = nullptr;
 
     uint32_t m_allFilteredMeshlets_SWOffset = 0;
 
@@ -249,16 +250,16 @@ struct PerFrameData {
 
     std::vector<std::shared_ptr<GPUBindlessId>> m_hizTestMips;
     std::vector<uint32_t> m_hizTestMipsId;
-    GPUBuffer *m_hizTestMipsBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> m_hizTestMipsBuffer = nullptr;
     GPUBindlessRef *m_hizTestDesc = nullptr;
 
     // SPD HiZ
     SinglePassHiZData m_spHiZData;
 
     // Instance culling
-    GPUBuffer *m_instCullDiscardObj = nullptr;
-    GPUBuffer *m_instCullPassedObj = nullptr;
-    GPUBuffer *m_persistCullIndirectDispatch = nullptr;
+    std::shared_ptr<GPUBuffer> m_instCullDiscardObj = nullptr;
+    std::shared_ptr<GPUBuffer> m_instCullPassedObj = nullptr;
+    std::shared_ptr<GPUBuffer> m_persistCullIndirectDispatch = nullptr;
     GPUBindlessRef *m_instCullDesc = nullptr;
     uint32_t m_maxSupportedInstances = 0;
 
@@ -308,13 +309,12 @@ struct PerFrameData {
   GPUBindlessRef *m_velocityMaterialDesc = nullptr;
 
   // Material classify
-  GPUBuffer *m_matClassCountBuffer = nullptr;
-  GPUBuffer *m_matClassIndirectDispatchBuffer = nullptr;
-  GPUBuffer *m_matClassFinalBuffer = nullptr;
-  GPUBuffer *m_matClassPixelOffsetBuffer = nullptr;
+  std::shared_ptr<GPUBuffer> m_matClassCountBuffer = nullptr;
+  std::shared_ptr<GPUBuffer> m_matClassIndirectDispatchBuffer = nullptr;
+  std::shared_ptr<GPUBuffer> m_matClassFinalBuffer = nullptr;
+  std::shared_ptr<GPUBuffer> m_matClassPixelOffsetBuffer = nullptr;
   GPUBindlessRef *m_matClassDesc = nullptr;
   std::vector<GPUBarrier> m_matClassBarrier;
-  std::shared_ptr<GPUTexture> m_matClassDebug = nullptr;
   uint32_t m_matClassSupportedNumMaterials = 0;
   uint32_t m_matClassSupportedNumPixels = 0;
 

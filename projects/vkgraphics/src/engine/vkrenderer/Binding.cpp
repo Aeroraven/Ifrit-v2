@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -140,12 +139,12 @@ IFRIT_APIDECL uint32_t
 DescriptorManager::registerUniformBuffer(SingleBuffer *buffer) {
   // check if the buffer is already registered
   for (int i = 0; i < m_uniformBuffers.size(); i++) {
-    if (m_uniformBuffers[i] == buffer) {
+    if (m_uniformBuffers[i] == buffer->getBuffer()) {
       return i;
     }
   }
   auto handleId = size_cast<int>(m_uniformBuffers.size());
-  m_uniformBuffers.push_back(buffer);
+  m_uniformBuffers.push_back(buffer->getBuffer());
 
   VkDescriptorBufferInfo bufferInfo{};
   bufferInfo.buffer = buffer->getBuffer();
@@ -168,12 +167,12 @@ DescriptorManager::registerUniformBuffer(SingleBuffer *buffer) {
 IFRIT_APIDECL
 uint32_t DescriptorManager::registerStorageBuffer(SingleBuffer *buffer) {
   for (int i = 0; i < m_storageBuffers.size(); i++) {
-    if (m_storageBuffers[i] == buffer) {
+    if (m_storageBuffers[i] == buffer->getBuffer()) {
       return i;
     }
   }
   auto handleId = m_storageBuffers.size();
-  m_storageBuffers.push_back(buffer);
+  m_storageBuffers.push_back(buffer->getBuffer());
 
   VkDescriptorBufferInfo bufferInfo{};
   bufferInfo.buffer = buffer->getBuffer();
@@ -198,7 +197,7 @@ uint32_t
 DescriptorManager::registerStorageImage(SingleDeviceImage *image,
                                         Rhi::RhiImageSubResource subResource) {
   for (int i = 0; i < m_storageImages.size(); i++) {
-    if (m_storageImages[i].first == image) {
+    if (m_storageImages[i].first == image->getImage()) {
       auto &sub = m_storageImages[i].second;
       if (sub.mipLevel == subResource.mipLevel &&
           sub.arrayLayer == subResource.arrayLayer &&
@@ -220,13 +219,14 @@ DescriptorManager::registerStorageImage(SingleDeviceImage *image,
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.dstSet = m_bindlessSet;
   write.dstBinding = getUnderlying(Rhi::RhiDescriptorType::StorageImage);
-  write.dstArrayElement = size_cast<uint32_t>(handle);;
+  write.dstArrayElement = size_cast<uint32_t>(handle);
+  ;
   write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
   write.descriptorCount = 1;
   write.pImageInfo = &imageInfo;
 
   vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
-  m_storageImages.push_back({image, subResource});
+  m_storageImages.push_back({image->getImage(), subResource});
   return size_cast<uint32_t>(handle);
 }
 
@@ -235,13 +235,13 @@ uint32_t
 DescriptorManager::registerCombinedImageSampler(SingleDeviceImage *image,
                                                 Sampler *sampler) {
   for (int i = 0; i < m_combinedImageSamplers.size(); i++) {
-    if (m_combinedImageSamplers[i].first == image &&
-        m_combinedImageSamplers[i].second == sampler) {
+    if (m_combinedImageSamplers[i].first == image->getImage() &&
+        m_combinedImageSamplers[i].second == sampler->getSampler()) {
       return i;
     }
   }
   auto handleId = m_combinedImageSamplers.size();
-  m_combinedImageSamplers.push_back({image, sampler});
+  m_combinedImageSamplers.push_back({image->getImage(), sampler->getSampler()});
 
   VkDescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

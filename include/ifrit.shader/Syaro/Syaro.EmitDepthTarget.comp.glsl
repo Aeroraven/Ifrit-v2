@@ -206,7 +206,7 @@ void main(){
     vec2 ndcVpLast = vpLast.xy / vpLast.w;
     ndcVpLast = ndcVpLast;
 
-    vec4 vpNowX = projNow * worldToView * localToWorld * vp;
+    vec4 vpNowX = projNow* worldToView * localToWorld * vp;
     vec2 ndcVpNow = vpNowX.xy / vpNowX.w;
     ndcVpNow = ndcVpNow;
 
@@ -215,7 +215,7 @@ void main(){
     motionVector = motionVector;
 
     // Depth, this is just for debugging.
-    vec4 vpScr = projectionLast * worldToViewLast * localToWorldLast * vp;
+    vec4 vpScr = projNow* worldToViewLast * localToWorldLast * vp;
     float msDepth = vpScr.z / vpScr.w;
 
     // Material ID

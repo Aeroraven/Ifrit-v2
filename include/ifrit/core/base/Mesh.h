@@ -106,20 +106,20 @@ public:
   };
 
   struct GPUResource {
-    GPUBuffer *vertexBuffer = nullptr; // should be aligned
-    GPUBuffer *normalBuffer = nullptr; // should be aligned
-    GPUBuffer *uvBuffer = nullptr;
-    GPUBuffer *meshletBuffer = nullptr;
-    GPUBuffer *meshletVertexBuffer = nullptr;
-    GPUBuffer *meshletIndexBuffer = nullptr;
-    GPUBuffer *meshletCullBuffer = nullptr;
-    GPUBuffer *bvhNodeBuffer = nullptr;
-    GPUBuffer *clusterGroupBuffer = nullptr;
-    GPUBuffer *meshletInClusterBuffer = nullptr;
-    GPUBuffer *cpCounterBuffer = nullptr;
-    GPUBuffer *materialDataBuffer =
+    std::shared_ptr<GPUBuffer> vertexBuffer = nullptr; // should be aligned
+    std::shared_ptr<GPUBuffer> normalBuffer = nullptr; // should be aligned
+    std::shared_ptr<GPUBuffer> uvBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> meshletBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> meshletVertexBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> meshletIndexBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> meshletCullBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> bvhNodeBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> clusterGroupBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> meshletInClusterBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> cpCounterBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> materialDataBuffer =
         nullptr; // currently, opaque is used to hold material data
-    GPUBuffer *tangentBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> tangentBuffer = nullptr;
 
     std::shared_ptr<GPUBindId> vertexBufferId = nullptr;
     std::shared_ptr<GPUBindId> normalBufferId = nullptr;
@@ -136,7 +136,7 @@ public:
     std::shared_ptr<GPUBindId> tangentBufferId = nullptr;
 
     GPUObjectBuffer objectData;
-    GPUBuffer *objectBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> objectBuffer = nullptr;
     std::shared_ptr<GPUBindId> objectBufferId = nullptr;
   } m_resource;
   bool m_resourceDirty = true;
@@ -240,14 +240,14 @@ public:
   };
 
   struct GPUResource {
-    GPUBuffer *cpQueueBuffer = nullptr;
-    GPUBuffer *filteredMeshlets = nullptr;
+    std::shared_ptr<GPUBuffer> cpQueueBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> filteredMeshlets = nullptr;
 
     std::shared_ptr<GPUBindId> cpQueueBufferId = nullptr;
     std::shared_ptr<GPUBindId> filteredMeshletsId = nullptr;
 
     GPUObjectBuffer objectData;
-    GPUBuffer *objectBuffer = nullptr;
+    std::shared_ptr<GPUBuffer> objectBuffer = nullptr;
     std::shared_ptr<GPUBindId> objectBufferId = nullptr;
   } m_resource;
 

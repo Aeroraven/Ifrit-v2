@@ -127,8 +127,8 @@ struct RhiTransitionBarrier {
     RhiTexture *m_texture;
   };
   RhiImageSubResource m_subResource = {0, 0, 1, 1};
-  RhiResourceState m_srcState = RhiResourceState::Undefined;
-  RhiResourceState m_dstState = RhiResourceState::Undefined;
+  RhiResourceState2 m_srcState = RhiResourceState2::AutoTraced;
+  RhiResourceState2 m_dstState = RhiResourceState2::AutoTraced;
 
   RhiTransitionBarrier() { m_texture = nullptr; }
 };
@@ -166,20 +166,15 @@ public:
   // Create a general buffer
   virtual std::shared_ptr<RhiBuffer> createBuffer(uint32_t size, uint32_t usage,
                                                   bool hostVisible) const = 0;
-  virtual RhiBuffer *createIndirectMeshDrawBufferDevice(uint32_t drawCalls,
-                                                        uint32_t usage) = 0;
-  virtual RhiBuffer *createStorageBufferDevice(uint32_t size,
-                                               uint32_t usage) = 0;
-  virtual RhiMultiBuffer *createMultiBuffer(uint32_t size, uint32_t usage,
-                                            uint32_t numCopies) = 0;
-  virtual RhiMultiBuffer *createUniformBufferShared(uint32_t size,
-                                                    bool hostVisible,
-                                                    uint32_t extraFlags) = 0;
-  virtual RhiMultiBuffer *createStorageBufferShared(uint32_t size,
-                                                    bool hostVisible,
-                                                    uint32_t extraFlags) = 0;
+  virtual std::shared_ptr<RhiBuffer>
+  createBufferDevice(uint32_t size, uint32_t usage) const = 0;
+
+  virtual std::shared_ptr<RhiMultiBuffer>
+  createBufferCoherent(uint32_t size, uint32_t usage,
+                       uint32_t numCopies = ~0u) const = 0;
+
   virtual std::shared_ptr<Rhi::RhiTexture>
-  createDepthRenderTexture(uint32_t width, uint32_t height) = 0;
+  createDepthTexture(uint32_t width, uint32_t height) = 0;
 
   virtual std::shared_ptr<RhiBuffer> getFullScreenQuadVertexBuffer() const = 0;
 
@@ -188,22 +183,18 @@ public:
                                                       uint32_t height,
                                                       RhiImageFormat format,
                                                       uint32_t extraFlags) = 0;
-  virtual std::shared_ptr<RhiTexture>
-  createRenderTargetTexture(uint32_t width, uint32_t height,
-                            RhiImageFormat format, uint32_t extraFlags) = 0;
 
   virtual std::shared_ptr<RhiTexture>
-  createRenderTargetTexture3D(uint32_t width, uint32_t height, uint32_t depth,
-                              RhiImageFormat format, uint32_t extraFlags) = 0;
+  createTexture3D(uint32_t width, uint32_t height, uint32_t depth,
+                  RhiImageFormat format, uint32_t extraFlags) = 0;
 
   virtual std::shared_ptr<RhiTexture>
-  createRenderTargetMipTexture(uint32_t width, uint32_t height, uint32_t mips,
-                               RhiImageFormat format, uint32_t extraFlags) = 0;
+  createMipMapTexture(uint32_t width, uint32_t height, uint32_t mips,
+                      RhiImageFormat format, uint32_t extraFlags) = 0;
 
   virtual std::shared_ptr<RhiSampler> createTrivialSampler() = 0;
   virtual std::shared_ptr<RhiSampler>
   createTrivialBilinearSampler(bool repeat) = 0;
-
   virtual std::shared_ptr<RhiSampler>
   createTrivialNearestSampler(bool repeat) = 0;
 
@@ -300,6 +291,7 @@ public:
 class IFRIT_APIDECL RhiBuffer {
 protected:
   RhiDevice *m_context;
+  RhiResourceState2 m_state = RhiResourceState2::Undefined;
 
 public:
   virtual ~RhiBuffer() = default;
@@ -309,6 +301,7 @@ public:
   virtual void readBuffer(void *data, uint32_t size, uint32_t offset) = 0;
   virtual void writeBuffer(const void *data, uint32_t size,
                            uint32_t offset) = 0;
+  virtual inline RhiResourceState2 getState() const { return m_state; }
 };
 
 class IFRIT_APIDECL RhiMultiBuffer {
@@ -360,15 +353,9 @@ public:
                                      uint32_t offset, uint32_t drawCount,
                                      uint32_t stride) const = 0;
 
-  virtual void imageBarrier(const RhiTexture *texture, RhiResourceState src,
-                            RhiResourceState dst,
-                            RhiImageSubResource subResource) const = 0;
-
-  virtual void uavBufferBarrier(const RhiBuffer *buffer) const = 0;
-
   // Clear UAV storage buffer, considered as a transfer operation, typically
   // need a barrier for sync.
-  virtual void uavBufferClear(const RhiBuffer *buffer, uint32_t val) const = 0;
+  virtual void bufferClear(const RhiBuffer *buffer, uint32_t val) const = 0;
 
   virtual void
   attachBindlessReferenceGraphics(Rhi::RhiGraphicsPass *pass, uint32_t setId,
@@ -454,6 +441,7 @@ public:
 class IFRIT_APIDECL RhiTexture {
 protected:
   RhiDevice *m_context;
+  RhiResourceState2 m_state = RhiResourceState2::Undefined;
   bool m_rhiSwapchainImage = false;
 
 public:
@@ -461,6 +449,8 @@ public:
   virtual uint32_t getHeight() const = 0;
   virtual uint32_t getWidth() const = 0;
   virtual bool isDepthTexture() const = 0;
+  virtual inline RhiResourceState2 getState() const { return m_state; }
+  virtual void *getNativeHandle() const = 0;
 };
 
 // RHI pipeline
