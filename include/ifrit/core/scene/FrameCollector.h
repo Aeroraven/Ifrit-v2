@@ -145,8 +145,6 @@ struct PerFrameData {
     uint32_t m_rtHeight = 0;
     uint32_t m_rtCreated = 0;
 
-    std::shared_ptr<GPUSampler> m_gbufferSampler = nullptr;
-
     std::shared_ptr<GPUBindlessId> m_albedo_materialFlagsId;
     std::shared_ptr<GPUBindlessId> m_specular_occlusionId;
     std::shared_ptr<GPUBindlessId> m_specular_occlusion_sampId;
@@ -174,7 +172,6 @@ struct PerFrameData {
     std::shared_ptr<GPUBuffer> m_hizRefBuffer = nullptr;
     std::shared_ptr<GPUBuffer> m_hizAtomics = nullptr;
     GPUBindlessRef *m_hizDesc = nullptr;
-    std::shared_ptr<GPUSampler> m_hizSampler = nullptr;
     uint32_t m_hizIters = 0;
     uint32_t m_hizWidth = 0;
     uint32_t m_hizHeight = 0;
@@ -196,7 +193,6 @@ struct PerFrameData {
     // visibility buffer
     std::shared_ptr<GPUTexture> m_visibilityBuffer_HW = nullptr;
     std::shared_ptr<GPUTexture> m_visPassDepth_HW = nullptr;
-    std::shared_ptr<GPUSampler> m_visDepthSampler = nullptr;
     std::shared_ptr<GPUBindlessId> m_visBufferIdUAV_HW = nullptr;
 
     std::shared_ptr<GPUColorRT> m_visColorRT_HW = nullptr;
@@ -245,7 +241,6 @@ struct PerFrameData {
     std::shared_ptr<GPUTexture> m_hizTexture = nullptr;
     std::vector<GPUBindlessRef *> m_hizDescs;
     std::vector<GPUUniformBuffer *> m_hizTexSize;
-    std::shared_ptr<GPUSampler> m_hizDepthSampler = nullptr;
     uint32_t m_hizIter = 0;
 
     std::vector<std::shared_ptr<GPUBindlessId>> m_hizTestMips;
@@ -270,7 +265,6 @@ struct PerFrameData {
 
   struct FSR2ExtraData {
     std::shared_ptr<GPUTexture> m_fsr2Output = nullptr;
-    std::shared_ptr<GPUSampler> m_fsr2Sampler = nullptr;
     std::shared_ptr<GPUBindlessId> m_fsr2OutputSRVId = nullptr;
     uint32_t m_fsrFrameId = 0;
   };
@@ -292,15 +286,12 @@ struct PerFrameData {
   // GBuffer
   GBuffer m_gbuffer;
   GPUBindlessRef *m_gbufferDepthDesc;
-  std::shared_ptr<GPUSampler> m_gbufferDepthSampler = nullptr;
   std::shared_ptr<GPUBindlessId> m_gbufferDepthIdX = nullptr;
 
   // Gbuffer desc
-  std::shared_ptr<GPUSampler> m_gbufferSampler = nullptr;
   GPUBindlessRef *m_gbufferDescFrag = nullptr;
 
   // Visibility show
-  std::shared_ptr<GPUSampler> m_visibilitySampler = nullptr;
   GPUBindlessRef *m_visShowCombinedRef = nullptr;
 
   // Emit depth targets
@@ -325,9 +316,7 @@ struct PerFrameData {
   // TAA
   std::vector<PerFrameRenderTargets> m_taaHistory;
   std::shared_ptr<GPUTexture> m_taaUnresolved = nullptr;
-  std::shared_ptr<GPUSampler> m_taaHistorySampler = nullptr;
   GPUBindlessRef *m_taaHistoryDesc = nullptr;
-  std::shared_ptr<GPUSampler> m_taaSampler = nullptr;
   float m_taaJitterX = 0.0f;
   float m_taaJitterY = 0.0f;
 
@@ -346,7 +335,6 @@ struct PerFrameData {
   std::shared_ptr<GPUColorRT> m_deferShadowMaskRT;
   std::shared_ptr<GPURTs> m_deferShadowMaskRTs;
 
-  std::shared_ptr<GPUSampler> m_deferShadowMaskSampler = nullptr;
   std::shared_ptr<GPUBindlessId> m_deferShadowMaskId;
 };
 

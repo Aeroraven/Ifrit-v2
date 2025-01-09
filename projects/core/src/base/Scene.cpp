@@ -83,4 +83,25 @@ Scene::filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter) {
   }
   return result;
 }
+
+IFRIT_APIDECL std::vector<SceneObject *> Scene::filterObjectsUnsafe(
+    std::function<bool(std::shared_ptr<SceneObject>)> filter) {
+  std::vector<SceneObject *> result;
+  std::vector<SceneNode *> nodes;
+  nodes.push_back(m_root.get());
+  while (!nodes.empty()) {
+    auto node = nodes.back();
+    nodes.pop_back();
+    for (auto &child : node->getChildren()) {
+      nodes.push_back(child.get());
+    }
+    for (auto &obj : node->getGameObjects()) {
+      if (filter(obj)) {
+        result.push_back(obj.get());
+      }
+    }
+  }
+  return result;
+}
+
 } // namespace Ifrit::Core

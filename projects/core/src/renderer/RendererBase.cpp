@@ -23,8 +23,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/Light.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
+#include <mutex>
+
 using Ifrit::Common::Utility::size_cast;
 namespace Ifrit::Core {
+
+ImmutableRendererResources RendererBase::m_immRes = {};
+
+IFRIT_APIDECL void RendererBase::prepareImmutableResources() {
+  if (m_immRes.m_initialized) {
+    return;
+  }
+  std::lock_guard<std::mutex> lock(m_immRes.m_mutex);
+  if (m_immRes.m_linearSampler == nullptr) {
+    auto rhi = m_app->getRhiLayer();
+    m_immRes.m_linearSampler = rhi->createTrivialSampler();
+    m_immRes.m_nearestSampler = rhi->createTrivialSampler();
+  }
+}
+
 IFRIT_APIDECL void RendererBase::collectPerframeData(
     PerFrameData &perframeData, Scene *scene, Camera *camera,
     GraphicsShaderPassType passType, RenderTargets *renderTargets,
@@ -84,13 +101,14 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   }
 
   // Find lights that represent the sun
-  auto sunLights = scene->filterObjects([](std::shared_ptr<SceneObject> obj) {
-    auto light = obj->getComponentUnsafe<Light>();
-    if (!light) {
-      return false;
-    }
-    return light->getAffectPbrSky();
-  });
+  auto sunLights =
+      scene->filterObjectsUnsafe([](std::shared_ptr<SceneObject> obj) {
+        auto light = obj->getComponentUnsafe<Light>();
+        if (!light) {
+          return false;
+        }
+        return light->getAffectPbrSky();
+      });
   if (sunLights.size() > 1) {
     iError("Multiple sun lights found");
     throw std::runtime_error("Multiple sun lights found");
@@ -107,7 +125,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
 
   // Insert light view data, if shadow maps are enabled
   auto lightWithShadow =
-      scene->filterObjects([](std::shared_ptr<SceneObject> obj) -> bool {
+      scene->filterObjectsUnsafe([](std::shared_ptr<SceneObject> obj) -> bool {
         auto light = obj->getComponentUnsafe<Light>();
         if (!light) {
           return false;
@@ -347,8 +365,6 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
     perframeData.m_gbuffer.m_shadowMask = rhi->createTexture2D(
         actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
 
-    perframeData.m_gbuffer.m_gbufferSampler = rhi->createTrivialSampler();
-
     // Then bindless ids
     perframeData.m_gbuffer.m_albedo_materialFlagsId = rhi->registerUAVImage(
         perframeData.m_gbuffer.m_albedo_materialFlags.get(), {0, 0, 1, 1});
@@ -369,15 +385,15 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
     perframeData.m_gbuffer.m_normal_smoothness_sampId =
         rhi->registerCombinedImageSampler(
             perframeData.m_gbuffer.m_normal_smoothness.get(),
-            perframeData.m_gbuffer.m_gbufferSampler.get());
+            m_immRes.m_linearSampler.get());
     perframeData.m_gbuffer.m_specular_occlusion_sampId =
         rhi->registerCombinedImageSampler(
             perframeData.m_gbuffer.m_specular_occlusion.get(),
-            perframeData.m_gbuffer.m_gbufferSampler.get());
+            m_immRes.m_linearSampler.get());
     perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId =
         rhi->registerCombinedImageSampler(
             perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
-            perframeData.m_gbuffer.m_gbufferSampler.get());
+            m_immRes.m_linearSampler.get());
 
     // barriers
     perframeData.m_gbuffer.m_normal_smoothnessBarrier.m_type =
@@ -423,23 +439,22 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
         perframeData.m_gbuffer.m_gbufferRefs.get(), 0);
 
     // Then gbuffer desc for pixel shader
-    perframeData.m_gbufferSampler = rhi->createTrivialSampler();
     perframeData.m_gbufferDescFrag = rhi->createBindlessDescriptorRef();
     perframeData.m_gbufferDescFrag->addCombinedImageSampler(
         perframeData.m_gbuffer.m_albedo_materialFlags.get(),
-        perframeData.m_gbufferSampler.get(), 0);
+        m_immRes.m_linearSampler.get(), 0);
     perframeData.m_gbufferDescFrag->addCombinedImageSampler(
         perframeData.m_gbuffer.m_specular_occlusion.get(),
-        perframeData.m_gbufferSampler.get(), 1);
+        m_immRes.m_linearSampler.get(), 1);
     perframeData.m_gbufferDescFrag->addCombinedImageSampler(
         perframeData.m_gbuffer.m_normal_smoothness.get(),
-        perframeData.m_gbufferSampler.get(), 2);
+        m_immRes.m_linearSampler.get(), 2);
     perframeData.m_gbufferDescFrag->addCombinedImageSampler(
-        perframeData.m_gbuffer.m_emissive.get(),
-        perframeData.m_gbufferSampler.get(), 3);
+        perframeData.m_gbuffer.m_emissive.get(), m_immRes.m_linearSampler.get(),
+        3);
     perframeData.m_gbufferDescFrag->addCombinedImageSampler(
         perframeData.m_gbuffer.m_shadowMask.get(),
-        perframeData.m_gbufferSampler.get(), 4);
+        m_immRes.m_linearSampler.get(), 4);
 
     // Create a uav barrier for the gbuffer
     perframeData.m_gbuffer.m_gbufferBarrier.clear();

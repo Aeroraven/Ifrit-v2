@@ -26,11 +26,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/scene/FrameCollector.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
+#include <mutex>
+
 namespace Ifrit::Core {
 
 struct SceneCollectConfig {
   float projectionTranslateX = 0.0f;
   float projectionTranslateY = 0.0f;
+};
+
+struct ImmutableRendererResources {
+  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
+  std::mutex m_mutex;
+  bool m_initialized = false;
+  std::shared_ptr<GPUSampler> m_linearSampler = nullptr;
+  std::shared_ptr<GPUSampler> m_nearestSampler = nullptr;
 };
 
 enum class AntiAliasingType { None, TAA, FSR2 };
@@ -57,6 +67,7 @@ class IFRIT_APIDECL RendererBase {
 protected:
   IApplication *m_app;
   const RendererConfig *m_config = nullptr;
+  static ImmutableRendererResources m_immRes;
 
 protected:
   RendererBase(IApplication *app) : m_app(app) {}
@@ -71,6 +82,8 @@ protected:
         static_cast<uint32_t>(finalRenderTargets->getRenderArea().height /
                               m_config->m_superSamplingRate);
   }
+
+  virtual void prepareImmutableResources();
 
   virtual void buildPipelines(PerFrameData &perframeData,
                               GraphicsShaderPassType passType,

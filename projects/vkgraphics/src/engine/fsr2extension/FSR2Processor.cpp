@@ -165,8 +165,8 @@ FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
   dispatchParams.viewSpaceToMetersFactor = 1.0f;
 
   dispatchParams.reset = false;
-  dispatchParams.enableSharpening = false;
-  dispatchParams.sharpness = 0.0f;
+  dispatchParams.enableSharpening = true;
+  dispatchParams.sharpness = 0.7f;
   dispatchParams.preExposure = 1.0f;
 
   // First transition output to shader read. This should be untraced

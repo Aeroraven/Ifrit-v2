@@ -69,8 +69,12 @@ public:
   inline std::shared_ptr<SceneNode> getRootNode() { return m_root; }
 
   Camera *getMainCamera();
+
   std::vector<std::shared_ptr<SceneObject>>
   filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter);
+
+  std::vector<SceneObject *>
+  filterObjectsUnsafe(std::function<bool(std::shared_ptr<SceneObject>)> filter);
 
   IFRIT_STRUCT_SERIALIZE(m_root);
 };
