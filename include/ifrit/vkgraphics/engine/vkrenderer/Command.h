@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
@@ -24,20 +25,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <vector>
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
+
 class CommandBuffer;
 
 class IFRIT_APIDECL VertexBufferDescriptor : public Rhi::RhiVertexBufferView {
 public:
   std::vector<VkVertexInputAttributeDescription2EXT> m_attributes;
   std::vector<VkVertexInputBindingDescription2EXT> m_bindings;
-  inline void addBinding(std::vector<uint32_t> location,
+  inline void addBinding(std::vector<u32> location,
                          std::vector<Rhi::RhiImageFormat> format,
-                         std::vector<uint32_t> offset, uint32_t stride,
+                         std::vector<u32> offset, u32 stride,
                          Rhi::RhiVertexInputRate inputRate =
                              Rhi::RhiVertexInputRate::Vertex) override {
     VkVertexInputBindingDescription2EXT binding{};
-    binding.binding =
-        Ifrit::Common::Utility::size_cast<uint32_t>(m_bindings.size());
+    binding.binding = Ifrit::Common::Utility::size_cast<u32>(m_bindings.size());
     binding.stride = stride;
     binding.divisor = 1;
     binding.sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
@@ -49,7 +50,7 @@ public:
     }
     m_bindings.push_back(binding);
 
-    for (int i = 0; i < location.size(); i++) {
+    for (i32 i = 0; i < location.size(); i++) {
       VkVertexInputAttributeDescription2EXT attribute{};
       attribute.sType =
           VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
@@ -66,7 +67,7 @@ class IFRIT_APIDECL TimelineSemaphore {
 private:
   EngineContext *m_context;
   VkSemaphore m_semaphore;
-  uint64_t m_recordedCounter = 0;
+  u64 m_recordedCounter = 0;
 
 public:
   TimelineSemaphore(EngineContext *ctx);
@@ -78,7 +79,7 @@ class TimelineSemaphoreWait : public Rhi::RhiTaskSubmission {
 public:
   VkSemaphore m_semaphore;
   VkFence m_fence;
-  uint64_t m_value;
+  u64 m_value;
   VkFlags m_waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
   bool m_isSwapchainSemaphore = false;
   TimelineSemaphoreWait &operator=(const TimelineSemaphoreWait &other) {
@@ -118,15 +119,14 @@ class IFRIT_APIDECL CommandBuffer : public Rhi::RhiCommandBuffer {
 private:
   EngineContext *m_context;
   VkCommandBuffer m_commandBuffer;
-  uint32_t m_queueFamily;
+  u32 m_queueFamily;
 
 public:
-  CommandBuffer(EngineContext *ctx, VkCommandBuffer buffer,
-                uint32_t queueFamily)
+  CommandBuffer(EngineContext *ctx, VkCommandBuffer buffer, u32 queueFamily)
       : m_context(ctx), m_commandBuffer(buffer), m_queueFamily(queueFamily) {}
   virtual ~CommandBuffer() {}
 
-  inline uint32_t getQueueFamily() const { return m_queueFamily; }
+  inline u32 getQueueFamily() const { return m_queueFamily; }
   void beginRecord();
   void endRecord();
   void reset();
@@ -135,103 +135,94 @@ public:
   // Functionality
   void pipelineBarrier(const PipelineBarrier &barrier) const;
 
-  void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex,
-            uint32_t firstInstance) const;
+  void draw(u32 vertexCount, u32 instanceCount, u32 firstVertex,
+            u32 firstInstance) const;
 
-  void drawMeshTasks(uint32_t groupCountX, uint32_t groupCountY,
-                     uint32_t groupCountZ) const;
+  void drawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const;
 
-  void drawIndexed(uint32_t indexCount, uint32_t instanceCount,
-                   uint32_t firstIndex, int32_t vertexOffset,
-                   uint32_t firstInstance) const;
+  void drawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex,
+                   int32_t vertexOffset, u32 firstInstance) const;
 
   void copyBuffer(const Rhi::RhiBuffer *srcBuffer,
-                  const Rhi::RhiBuffer *dstBuffer, uint32_t size,
-                  uint32_t srcOffset = 0, uint32_t dstOffset = 0) const;
+                  const Rhi::RhiBuffer *dstBuffer, u32 size, u32 srcOffset = 0,
+                  u32 dstOffset = 0) const;
 
   void copyBufferToImageAllInternal(const Rhi::RhiBuffer *srcBuffer,
                                     VkImage dstImage, VkImageLayout dstLayout,
-                                    uint32_t width, uint32_t height,
-                                    uint32_t depth) const;
+                                    u32 width, u32 height, u32 depth) const;
 
   // Rhi compatible
   void
   setViewports(const std::vector<Rhi::RhiViewport> &viewport) const override;
   void setScissors(const std::vector<Rhi::RhiScissor> &scissor) const override;
-  void dispatch(uint32_t groupCountX, uint32_t groupCountY,
-                uint32_t groupCountZ) const override;
-  void drawMeshTasksIndirect(const Rhi::RhiBuffer *buffer, uint32_t offset,
-                             uint32_t drawCount,
-                             uint32_t stride) const override;
+  void dispatch(u32 groupCountX, u32 groupCountY,
+                u32 groupCountZ) const override;
+  void drawMeshTasksIndirect(const Rhi::RhiBuffer *buffer, u32 offset,
+                             u32 drawCount, u32 stride) const override;
 
-  void imageBarrier(const Rhi::RhiTexture *texture, Rhi::RhiResourceState2 src,
+  void imageBarrier(Rhi::RhiTexture *texture, Rhi::RhiResourceState2 src,
                     Rhi::RhiResourceState2 dst,
                     Rhi::RhiImageSubResource subResource) const; // DEPRECATED
 
   void attachBindlessReferenceGraphics(
-      Rhi::RhiGraphicsPass *pass, uint32_t setId,
+      Rhi::RhiGraphicsPass *pass, u32 setId,
       Rhi::RhiBindlessDescriptorRef *ref) const override;
 
   void attachBindlessReferenceCompute(
-      Rhi::RhiComputePass *pass, uint32_t setId,
+      Rhi::RhiComputePass *pass, u32 setId,
       Rhi::RhiBindlessDescriptorRef *ref) const override;
 
-  virtual void
+  void
   attachVertexBufferView(const Rhi::RhiVertexBufferView &view) const override;
 
-  virtual void attachVertexBuffers(
-      uint32_t firstSlot,
+  void attachVertexBuffers(
+      u32 firstSlot,
       const std::vector<Rhi::RhiBuffer *> &buffers) const override;
 
-  virtual void drawInstanced(uint32_t vertexCount, uint32_t instanceCount,
-                             uint32_t firstVertex,
-                             uint32_t firstInstance) const override;
+  void drawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex,
+                     u32 firstInstance) const override;
 
-  virtual void bufferClear(const Rhi::RhiBuffer *buffer,
-                           uint32_t val) const override;
+  void bufferClear(const Rhi::RhiBuffer *buffer, u32 val) const override;
 
-  virtual void dispatchIndirect(const Rhi::RhiBuffer *buffer,
-                                uint32_t offset) const override;
+  void dispatchIndirect(const Rhi::RhiBuffer *buffer,
+                        u32 offset) const override;
 
-  virtual void setPushConst(Rhi::RhiComputePass *pass, uint32_t offset,
-                            uint32_t size, const void *data) const override;
-  virtual void setPushConst(Rhi::RhiGraphicsPass *pass, uint32_t offset,
-                            uint32_t size, const void *data) const override;
-  virtual void
-  clearUAVImageFloat(const Rhi::RhiTexture *texture,
-                     Rhi::RhiImageSubResource subResource,
-                     const std::array<float, 4> &val) const override;
+  void setPushConst(Rhi::RhiComputePass *pass, u32 offset, u32 size,
+                    const void *data) const override;
+  void setPushConst(Rhi::RhiGraphicsPass *pass, u32 offset, u32 size,
+                    const void *data) const override;
+  void clearUAVImageFloat(const Rhi::RhiTexture *texture,
+                          Rhi::RhiImageSubResource subResource,
+                          const std::array<float, 4> &val) const override;
 
-  virtual void resourceBarrier(
+  void resourceBarrier(
       const std::vector<Rhi::RhiResourceBarrier> &barriers) const override;
 
-  virtual void globalMemoryBarrier() const override;
+  void globalMemoryBarrier() const override;
 
-  virtual void beginScope(const std::string &name) const override;
-  virtual void endScope() const override;
+  void beginScope(const std::string &name) const override;
+  void endScope() const override;
 
-  virtual void copyImage(const Rhi::RhiTexture *src,
-                         Rhi::RhiImageSubResource srcSub,
-                         const Rhi::RhiTexture *dst,
+  void copyImage(const Rhi::RhiTexture *src, Rhi::RhiImageSubResource srcSub,
+                 const Rhi::RhiTexture *dst,
+                 Rhi::RhiImageSubResource dstSub) const override;
+
+  void copyBufferToImage(const Rhi::RhiBuffer *src, const Rhi::RhiTexture *dst,
                          Rhi::RhiImageSubResource dstSub) const override;
-
-  virtual void
-  copyBufferToImage(const Rhi::RhiBuffer *src, const Rhi::RhiTexture *dst,
-                    Rhi::RhiImageSubResource dstSub) const override;
-  virtual void setCullMode(Rhi::RhiCullMode mode) const override;
+  void setCullMode(Rhi::RhiCullMode mode) const override;
 };
 
 class IFRIT_APIDECL CommandPool {
 private:
   EngineContext *m_context;
-  uint32_t m_queueFamily;
+  u32 m_queueFamily;
   VkCommandPool m_commandPool;
 
 protected:
   void init();
 
 public:
-  CommandPool(EngineContext *ctx, uint32_t chosenQueueFamily)
+  CommandPool(EngineContext *ctx, u32 chosenQueueFamily)
       : m_context(ctx), m_queueFamily(chosenQueueFamily) {
     init();
   }
@@ -244,23 +235,22 @@ class IFRIT_APIDECL Queue : public Rhi::RhiQueue {
 private:
   EngineContext *m_context;
   VkQueue m_queue;
-  uint32_t m_queueFamily;
-  uint32_t m_capability;
+  u32 m_queueFamily;
+  u32 m_capability;
   std::unique_ptr<CommandPool> m_commandPool;
   std::unique_ptr<TimelineSemaphore> m_timelineSemaphore;
   std::vector<std::unique_ptr<CommandBuffer>> m_cmdBufInUse;
-  uint64_t m_recordedCounter = 0;
+  u64 m_recordedCounter = 0;
   CommandBuffer *m_currentCommandBuffer = nullptr;
 
 public:
   Queue() { printf("Runtime Error:queue\n"); }
-  Queue(EngineContext *ctx, VkQueue queue, uint32_t queueFamily,
-        uint32_t capability);
+  Queue(EngineContext *ctx, VkQueue queue, u32 queueFamily, u32 capability);
 
   virtual ~Queue() {}
   inline VkQueue getQueue() const { return m_queue; }
-  inline uint32_t getQueueFamily() const { return m_queueFamily; }
-  inline uint32_t getCapability() const { return m_capability; }
+  inline u32 getQueueFamily() const { return m_queueFamily; }
+  inline u32 getCapability() const { return m_capability; }
 
   CommandBuffer *beginRecording();
   TimelineSemaphoreWait
@@ -301,9 +291,9 @@ struct CommandSubmissionInfo {
   CommandBuffer *m_commandBuffer;
   Queue *m_queue;
   std::vector<TimelineSemaphore *> m_waitSemaphore;
-  std::vector<uint64_t> m_waitValues;
+  std::vector<u64> m_waitValues;
   std::vector<TimelineSemaphore *> m_signalSemaphore;
-  std::vector<uint64_t> m_signalValues;
+  std::vector<u64> m_signalValues;
   std::vector<VkFlags> m_waitStages;
 };
 

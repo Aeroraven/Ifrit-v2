@@ -126,6 +126,7 @@ IFRIT_APIDECL void CommandBuffer::reset() {
 
 IFRIT_APIDECL void
 CommandBuffer::pipelineBarrier(const PipelineBarrier &barrier) const {
+  std::abort();
   vkCmdPipelineBarrier(m_commandBuffer, barrier.m_srcStage, barrier.m_dstStage,
                        barrier.m_dependencyFlags,
                        size_cast<int>(barrier.m_memoryBarriers.size()),
@@ -262,12 +263,15 @@ IFRIT_APIDECL void CommandBuffer::globalMemoryBarrier() const {
 
 // Rhi compatible
 IFRIT_APIDECL void CommandBuffer::imageBarrier(
-    const Rhi::RhiTexture *texture, Rhi::RhiResourceState2 src,
+    Rhi::RhiTexture *texture, Rhi::RhiResourceState2 src,
     Rhi::RhiResourceState2 dst, Rhi::RhiImageSubResource subResource) const {
   auto image = checked_cast<SingleDeviceImage>(texture);
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   // select old layout
+
+  _setTextureState(image, dst);
+  // if auto traced, we need to get the current state
   switch (src) {
   case Rhi::RhiResourceState2::Undefined:
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -619,6 +623,12 @@ void CommandBuffer::resourceBarrier(
     if (barrier.m_type == Rhi::RhiBarrierType::Transition) {
       auto resourceType = barrier.m_transition.m_type;
       auto srcState = barrier.m_transition.m_srcState;
+      if (srcState == Rhi::RhiResourceState2::AutoTraced) {
+        srcState = barrier.m_transition.m_texture->getState();
+      } else {
+        iError("Source state is not auto traced");
+        std::abort();
+      }
       auto dstState = barrier.m_transition.m_dstState;
       VkAccessFlags srcAccessMask, dstAccessMask;
       _resourceStateToAccessMask(srcState, srcAccessMask);
@@ -641,6 +651,14 @@ void CommandBuffer::resourceBarrier(
         auto subResource = barrier.m_transition.m_subResource;
         _resourceStateToImageLayout(srcState, srcLayout);
         _resourceStateToImageLayout(dstState, dstLayout);
+
+        if (srcState != barrier.m_transition.m_texture->getState() &&
+            srcState != Rhi::RhiResourceState2::Undefined) {
+          iError("Texture state mismatch, expected:{} actual:{}", i32(srcState),
+                 i32(barrier.m_transition.m_texture->getState()));
+          std::abort();
+        }
+        _setTextureState(barrier.m_transition.m_texture, dstState);
         auto image =
             checked_cast<SingleDeviceImage>(barrier.m_transition.m_texture);
         auto aspect = image->getAspect();
@@ -674,6 +692,17 @@ void CommandBuffer::resourceBarrier(
         bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         bufferBarriers.push_back(bufferBarrier);
       } else if (resourceType == Rhi::RhiResourceType::Texture) {
+
+        if (barrier.m_uav.m_texture->getState() !=
+            Rhi::RhiResourceState2::Common) {
+          iError("Texture state mismatch, expected:{} actual:{}",
+                 i32(Rhi::RhiResourceState2::Common),
+                 i32(barrier.m_uav.m_texture->getState()));
+          std::abort();
+        }
+        _setTextureState(barrier.m_uav.m_texture,
+                         Rhi::RhiResourceState2::Common);
+
         // WARNING: subresource unspecified
         VkImageMemoryBarrier imageBarrier{};
         imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

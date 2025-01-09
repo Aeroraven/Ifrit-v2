@@ -17,6 +17,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+
+#include "ifrit/common/base/IfritBase.h"
+
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -40,14 +43,14 @@ namespace Ifrit::GraphicsBackend::Rhi {
 
 // Structs
 struct RhiInitializeArguments {
-  std::function<const char **(uint32_t *)> m_extensionGetter;
+  std::function<const char **(u32 *)> m_extensionGetter;
   bool m_enableValidationLayer = true;
-  uint32_t m_surfaceWidth = -1;
-  uint32_t m_surfaceHeight = -1;
-  uint32_t m_expectedSwapchainImageCount = 3;
-  uint32_t m_expectedGraphicsQueueCount = 1;
-  uint32_t m_expectedComputeQueueCount = 1;
-  uint32_t m_expectedTransferQueueCount = 1;
+  u32 m_surfaceWidth = -1;
+  u32 m_surfaceHeight = -1;
+  u32 m_expectedSwapchainImageCount = 3;
+  u32 m_expectedGraphicsQueueCount = 1;
+  u32 m_expectedComputeQueueCount = 1;
+  u32 m_expectedTransferQueueCount = 1;
 #ifdef _WIN32
   struct {
     HINSTANCE m_hInstance;
@@ -73,41 +76,41 @@ struct RhiAttachmentBlendInfo {
 };
 
 struct RhiClearValue {
-  float m_color[4];
-  float m_depth;
-  uint32_t m_stencil;
+  f32 m_color[4];
+  f32 m_depth;
+  u32 m_stencil;
 };
 
 struct RhiViewport {
-  float x;
-  float y;
-  float width;
-  float height;
-  float minDepth;
-  float maxDepth;
+  f32 x;
+  f32 y;
+  f32 width;
+  f32 height;
+  f32 minDepth;
+  f32 maxDepth;
 };
 
 struct RhiScissor {
   int32_t x;
   int32_t y;
-  uint32_t width;
-  uint32_t height;
+  u32 width;
+  u32 height;
 };
 
 struct RhiImageSubResource {
-  uint32_t mipLevel;
-  uint32_t arrayLayer;
-  uint32_t mipCount = 1;
-  uint32_t layerCount = 1;
+  u32 mipLevel;
+  u32 arrayLayer;
+  u32 mipCount = 1;
+  u32 layerCount = 1;
 };
 
 struct RhiBindlessIdRef {
-  uint32_t activeFrame;
-  std::vector<uint32_t> ids;
+  u32 activeFrame;
+  std::vector<u32> ids;
 
-  inline uint32_t getActiveId() const { return ids[activeFrame]; }
+  inline u32 getActiveId() const { return ids[activeFrame]; }
 
-  inline void setFromId(uint32_t frame) { activeFrame = frame; }
+  inline void setFromId(u32 frame) { activeFrame = frame; }
 };
 
 enum class RhiBarrierType { UAVAccess, Transition };
@@ -147,7 +150,7 @@ struct RhiResourceBarrier {
 class IFRIT_APIDECL RhiBackendFactory {
 public:
   virtual ~RhiBackendFactory() = default;
-  virtual std::unique_ptr<Rhi::RhiBackend>
+  virtual std::unique_ptr<RhiBackend>
   createBackend(const RhiInitializeArguments &args) = 0;
 };
 
@@ -164,33 +167,33 @@ public:
   virtual void waitDeviceIdle() = 0;
 
   // Create a general buffer
-  virtual std::shared_ptr<RhiBuffer> createBuffer(uint32_t size, uint32_t usage,
+  virtual std::shared_ptr<RhiBuffer> createBuffer(u32 size, u32 usage,
                                                   bool hostVisible) const = 0;
-  virtual std::shared_ptr<RhiBuffer>
-  createBufferDevice(uint32_t size, uint32_t usage) const = 0;
+  virtual std::shared_ptr<RhiBuffer> createBufferDevice(u32 size,
+                                                        u32 usage) const = 0;
 
   virtual std::shared_ptr<RhiMultiBuffer>
-  createBufferCoherent(uint32_t size, uint32_t usage,
-                       uint32_t numCopies = ~0u) const = 0;
+  createBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const = 0;
 
-  virtual std::shared_ptr<Rhi::RhiTexture>
-  createDepthTexture(uint32_t width, uint32_t height) = 0;
+  virtual std::shared_ptr<RhiTexture> createDepthTexture(u32 width,
+                                                         u32 height) = 0;
 
   virtual std::shared_ptr<RhiBuffer> getFullScreenQuadVertexBuffer() const = 0;
 
   // Note that the texture created can only be accessed by the GPU
-  virtual std::shared_ptr<RhiTexture> createTexture2D(uint32_t width,
-                                                      uint32_t height,
+  virtual std::shared_ptr<RhiTexture> createTexture2D(u32 width, u32 height,
                                                       RhiImageFormat format,
-                                                      uint32_t extraFlags) = 0;
+                                                      u32 extraFlags) = 0;
 
-  virtual std::shared_ptr<RhiTexture>
-  createTexture3D(uint32_t width, uint32_t height, uint32_t depth,
-                  RhiImageFormat format, uint32_t extraFlags) = 0;
+  virtual std::shared_ptr<RhiTexture> createTexture3D(u32 width, u32 height,
+                                                      u32 depth,
+                                                      RhiImageFormat format,
+                                                      u32 extraFlags) = 0;
 
-  virtual std::shared_ptr<RhiTexture>
-  createMipMapTexture(uint32_t width, uint32_t height, uint32_t mips,
-                      RhiImageFormat format, uint32_t extraFlags) = 0;
+  virtual std::shared_ptr<RhiTexture> createMipMapTexture(u32 width, u32 height,
+                                                          u32 mips,
+                                                          RhiImageFormat format,
+                                                          u32 extraFlags) = 0;
 
   virtual std::shared_ptr<RhiSampler> createTrivialSampler() = 0;
   virtual std::shared_ptr<RhiSampler>
@@ -198,7 +201,7 @@ public:
   virtual std::shared_ptr<RhiSampler>
   createTrivialNearestSampler(bool repeat) = 0;
 
-  virtual std::shared_ptr<Rhi::RhiStagedSingleBuffer>
+  virtual std::shared_ptr<RhiStagedSingleBuffer>
   createStagedSingleBuffer(RhiBuffer *target) = 0;
 
   // Command execution
@@ -206,8 +209,8 @@ public:
   virtual RhiShader *createShader(const std::string &name,
                                   const std::vector<char> &code,
                                   const std::string &entry,
-                                  Rhi::RhiShaderStage stage,
-                                  Rhi::RhiShaderSourceType sourceType) = 0;
+                                  RhiShaderStage stage,
+                                  RhiShaderSourceType sourceType) = 0;
 
   // Pass execution
   virtual RhiComputePass *createComputePass() = 0;
@@ -233,19 +236,16 @@ public:
   virtual std::shared_ptr<RhiBindlessIdRef>
   registerStorageBufferShared(RhiMultiBuffer *buffer) = 0;
 
-  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
-  registerUAVImage(Rhi::RhiTexture *texture,
-                   Rhi::RhiImageSubResource subResource) = 0;
+  virtual std::shared_ptr<RhiBindlessIdRef>
+  registerUAVImage(RhiTexture *texture, RhiImageSubResource subResource) = 0;
 
-  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
-  registerCombinedImageSampler(Rhi::RhiTexture *texture,
-                               Rhi::RhiSampler *sampler) = 0;
+  virtual std::shared_ptr<RhiBindlessIdRef>
+  registerCombinedImageSampler(RhiTexture *texture, RhiSampler *sampler) = 0;
 
   // Render target
   virtual std::shared_ptr<RhiColorAttachment>
   createRenderTarget(RhiTexture *renderTarget, RhiClearValue clearValue,
-                     RhiRenderTargetLoadOp loadOp, uint32_t mip,
-                     uint32_t arrLayer) = 0;
+                     RhiRenderTargetLoadOp loadOp, u32 mip, u32 arrLayer) = 0;
 
   virtual std::shared_ptr<RhiDepthStencilAttachment>
   createRenderTargetDepthStencil(RhiTexture *renderTarget,
@@ -280,10 +280,10 @@ protected:
 public:
   virtual ~RhiSwapchain() = default;
   virtual void present() = 0;
-  virtual uint32_t acquireNextImage() = 0;
-  virtual uint32_t getNumBackbuffers() const = 0;
-  virtual uint32_t getCurrentFrameIndex() const = 0;
-  virtual uint32_t getCurrentImageIndex() const = 0;
+  virtual u32 acquireNextImage() = 0;
+  virtual u32 getNumBackbuffers() const = 0;
+  virtual u32 getCurrentFrameIndex() const = 0;
+  virtual u32 getCurrentImageIndex() const = 0;
 };
 
 // RHI memory resource
@@ -293,15 +293,19 @@ protected:
   RhiDevice *m_context;
   RhiResourceState2 m_state = RhiResourceState2::Undefined;
 
+private:
+  inline void setState(RhiResourceState2 state) { m_state = state; }
+
 public:
   virtual ~RhiBuffer() = default;
   virtual void map() = 0;
   virtual void unmap() = 0;
   virtual void flush() = 0;
-  virtual void readBuffer(void *data, uint32_t size, uint32_t offset) = 0;
-  virtual void writeBuffer(const void *data, uint32_t size,
-                           uint32_t offset) = 0;
+  virtual void readBuffer(void *data, u32 size, u32 offset) = 0;
+  virtual void writeBuffer(const void *data, u32 size, u32 offset) = 0;
   virtual inline RhiResourceState2 getState() const { return m_state; }
+
+  friend class RhiCommandBuffer;
 };
 
 class IFRIT_APIDECL RhiMultiBuffer {
@@ -309,8 +313,8 @@ protected:
   RhiDevice *m_context;
 
 public:
-  virtual Rhi::RhiBuffer *getActiveBuffer() = 0;
-  virtual Rhi::RhiBuffer *getActiveBufferRelative(uint32_t deltaFrame) = 0;
+  virtual RhiBuffer *getActiveBuffer() = 0;
+  virtual RhiBuffer *getActiveBufferRelative(u32 deltaFrame) = 0;
   virtual ~RhiMultiBuffer() = default;
 };
 
@@ -321,10 +325,32 @@ protected:
 public:
   virtual ~RhiStagedSingleBuffer() = default;
   virtual void cmdCopyToDevice(const RhiCommandBuffer *cmd, const void *data,
-                               uint32_t size, uint32_t localOffset) = 0;
+                               u32 size, u32 localOffset) = 0;
 };
 
 class RhiStagedMultiBuffer {};
+
+// RHI imaging
+
+class IFRIT_APIDECL RhiTexture {
+protected:
+  RhiDevice *m_context;
+  RhiResourceState2 m_state = RhiResourceState2::Undefined;
+  bool m_rhiSwapchainImage = false;
+
+private:
+  inline void setState(RhiResourceState2 state) { m_state = state; }
+
+public:
+  virtual ~RhiTexture() = default;
+  virtual u32 getHeight() const = 0;
+  virtual u32 getWidth() const = 0;
+  virtual bool isDepthTexture() const = 0;
+  virtual inline RhiResourceState2 getState() const { return m_state; }
+  virtual void *getNativeHandle() const = 0;
+
+  friend class RhiCommandBuffer;
+};
 
 // RHI command
 
@@ -339,54 +365,59 @@ class IFRIT_APIDECL RhiCommandBuffer {
 protected:
   RhiDevice *m_context;
 
+protected:
+  inline void _setTextureState(RhiTexture *texture,
+                               RhiResourceState2 state) const {
+    texture->setState(state);
+  }
+  inline void _setBufferState(RhiBuffer *buffer,
+                              RhiResourceState2 state) const {
+    buffer->setState(state);
+  }
+
 public:
   virtual void copyBuffer(const RhiBuffer *srcBuffer,
-                          const RhiBuffer *dstBuffer, uint32_t size,
-                          uint32_t srcOffset, uint32_t dstOffset) const = 0;
-  virtual void dispatch(uint32_t groupCountX, uint32_t groupCountY,
-                        uint32_t groupCountZ) const = 0;
-  virtual void
-  setViewports(const std::vector<Rhi::RhiViewport> &viewport) const = 0;
-  virtual void
-  setScissors(const std::vector<Rhi::RhiScissor> &scissor) const = 0;
-  virtual void drawMeshTasksIndirect(const Rhi::RhiBuffer *buffer,
-                                     uint32_t offset, uint32_t drawCount,
-                                     uint32_t stride) const = 0;
+                          const RhiBuffer *dstBuffer, u32 size, u32 srcOffset,
+                          u32 dstOffset) const = 0;
+  virtual void dispatch(u32 groupCountX, u32 groupCountY,
+                        u32 groupCountZ) const = 0;
+  virtual void setViewports(const std::vector<RhiViewport> &viewport) const = 0;
+  virtual void setScissors(const std::vector<RhiScissor> &scissor) const = 0;
+  virtual void drawMeshTasksIndirect(const RhiBuffer *buffer, u32 offset,
+                                     u32 drawCount, u32 stride) const = 0;
 
   // Clear UAV storage buffer, considered as a transfer operation, typically
   // need a barrier for sync.
-  virtual void bufferClear(const RhiBuffer *buffer, uint32_t val) const = 0;
+  virtual void bufferClear(const RhiBuffer *buffer, u32 val) const = 0;
 
   virtual void
-  attachBindlessReferenceGraphics(Rhi::RhiGraphicsPass *pass, uint32_t setId,
+  attachBindlessReferenceGraphics(RhiGraphicsPass *pass, u32 setId,
                                   RhiBindlessDescriptorRef *ref) const = 0;
 
   virtual void
-  attachBindlessReferenceCompute(Rhi::RhiComputePass *pass, uint32_t setId,
+  attachBindlessReferenceCompute(RhiComputePass *pass, u32 setId,
                                  RhiBindlessDescriptorRef *ref) const = 0;
 
   virtual void
   attachVertexBufferView(const RhiVertexBufferView &view) const = 0;
 
   virtual void
-  attachVertexBuffers(uint32_t firstSlot,
+  attachVertexBuffers(u32 firstSlot,
                       const std::vector<RhiBuffer *> &buffers) const = 0;
 
-  virtual void drawInstanced(uint32_t vertexCount, uint32_t instanceCount,
-                             uint32_t firstVertex,
-                             uint32_t firstInstance) const = 0;
+  virtual void drawInstanced(u32 vertexCount, u32 instanceCount,
+                             u32 firstVertex, u32 firstInstance) const = 0;
 
-  virtual void dispatchIndirect(const RhiBuffer *buffer,
-                                uint32_t offset) const = 0;
+  virtual void dispatchIndirect(const RhiBuffer *buffer, u32 offset) const = 0;
 
-  virtual void setPushConst(Rhi::RhiComputePass *pass, uint32_t offset,
-                            uint32_t size, const void *data) const = 0;
-  virtual void setPushConst(Rhi::RhiGraphicsPass *pass, uint32_t offset,
-                            uint32_t size, const void *data) const = 0;
+  virtual void setPushConst(RhiComputePass *pass, u32 offset, u32 size,
+                            const void *data) const = 0;
+  virtual void setPushConst(RhiGraphicsPass *pass, u32 offset, u32 size,
+                            const void *data) const = 0;
 
   virtual void clearUAVImageFloat(const RhiTexture *texture,
                                   RhiImageSubResource subResource,
-                                  const std::array<float, 4> &val) const = 0;
+                                  const std::array<f32, 4> &val) const = 0;
   virtual void
   resourceBarrier(const std::vector<RhiResourceBarrier> &barriers) const = 0;
 
@@ -433,31 +464,14 @@ public:
 class IFRIT_APIDECL RhiShader {
 public:
   virtual RhiShaderStage getStage() const = 0;
-  virtual uint32_t getNumDescriptorSets() const = 0;
-};
-
-// RHI imaging
-
-class IFRIT_APIDECL RhiTexture {
-protected:
-  RhiDevice *m_context;
-  RhiResourceState2 m_state = RhiResourceState2::Undefined;
-  bool m_rhiSwapchainImage = false;
-
-public:
-  virtual ~RhiTexture() = default;
-  virtual uint32_t getHeight() const = 0;
-  virtual uint32_t getWidth() const = 0;
-  virtual bool isDepthTexture() const = 0;
-  virtual inline RhiResourceState2 getState() const { return m_state; }
-  virtual void *getNativeHandle() const = 0;
+  virtual u32 getNumDescriptorSets() const = 0;
 };
 
 // RHI pipeline
 
 struct IFRIT_APIDECL RhiRenderPassContext {
   const RhiCommandBuffer *m_cmd;
-  uint32_t m_frame;
+  u32 m_frame;
 };
 
 class IFRIT_APIDECL RhiGeneralPassBase {};
@@ -469,17 +483,17 @@ public:
   virtual void setComputeShader(RhiShader *shader) = 0;
   virtual void
   setShaderBindingLayout(const std::vector<RhiDescriptorType> &layout) = 0;
-  virtual void addShaderStorageBuffer(RhiBuffer *buffer, uint32_t position,
+  virtual void addShaderStorageBuffer(RhiBuffer *buffer, u32 position,
                                       RhiResourceAccessType access) = 0;
-  virtual void addUniformBuffer(RhiMultiBuffer *buffer, uint32_t position) = 0;
-  virtual void setExecutionFunction(
-      std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
+  virtual void addUniformBuffer(RhiMultiBuffer *buffer, u32 position) = 0;
   virtual void
-  setRecordFunction(std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
+  setExecutionFunction(std::function<void(RhiRenderPassContext *)> func) = 0;
+  virtual void
+  setRecordFunction(std::function<void(RhiRenderPassContext *)> func) = 0;
 
-  virtual void run(const RhiCommandBuffer *cmd, uint32_t frameId) = 0;
-  virtual void setNumBindlessDescriptorSets(uint32_t num) = 0;
-  virtual void setPushConstSize(uint32_t size) = 0;
+  virtual void run(const RhiCommandBuffer *cmd, u32 frameId) = 0;
+  virtual void setNumBindlessDescriptorSets(u32 num) = 0;
+  virtual void setPushConstSize(u32 size) = 0;
 };
 
 class IFRIT_APIDECL RhiGraphicsPass : public RhiGeneralPassBase {
@@ -491,30 +505,28 @@ public:
   virtual void setVertexShader(RhiShader *shader) = 0;
   virtual void setPixelShader(RhiShader *shader) = 0;
   virtual void setRasterizerTopology(RhiRasterizerTopology topology) = 0;
-  virtual void setRenderArea(uint32_t x, uint32_t y, uint32_t width,
-                             uint32_t height) = 0;
+  virtual void setRenderArea(u32 x, u32 y, u32 width, u32 height) = 0;
   virtual void setDepthWrite(bool write) = 0;
   virtual void setDepthTestEnable(bool enable) = 0;
-  virtual void setDepthCompareOp(Rhi::RhiCompareOp compareOp) = 0;
+  virtual void setDepthCompareOp(RhiCompareOp compareOp) = 0;
 
-  virtual void
-  setRenderTargetFormat(const Rhi::RhiRenderTargetsFormat &format) = 0;
+  virtual void setRenderTargetFormat(const RhiRenderTargetsFormat &format) = 0;
   virtual void
   setShaderBindingLayout(const std::vector<RhiDescriptorType> &layout) = 0;
-  virtual void addShaderStorageBuffer(RhiBuffer *buffer, uint32_t position,
+  virtual void addShaderStorageBuffer(RhiBuffer *buffer, u32 position,
                                       RhiResourceAccessType access) = 0;
-  virtual void addUniformBuffer(RhiMultiBuffer *buffer, uint32_t position) = 0;
-  virtual void setExecutionFunction(
-      std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
+  virtual void addUniformBuffer(RhiMultiBuffer *buffer, u32 position) = 0;
   virtual void
-  setRecordFunction(std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
+  setExecutionFunction(std::function<void(RhiRenderPassContext *)> func) = 0;
+  virtual void
+  setRecordFunction(std::function<void(RhiRenderPassContext *)> func) = 0;
   virtual void setRecordFunctionPostRenderPass(
-      std::function<void(Rhi::RhiRenderPassContext *)> func) = 0;
+      std::function<void(RhiRenderPassContext *)> func) = 0;
 
   virtual void run(const RhiCommandBuffer *cmd, RhiRenderTargets *renderTargets,
-                   uint32_t frameId) = 0;
-  virtual void setNumBindlessDescriptorSets(uint32_t num) = 0;
-  virtual void setPushConstSize(uint32_t size) = 0;
+                   u32 frameId) = 0;
+  virtual void setNumBindlessDescriptorSets(u32 num) = 0;
+  virtual void setPushConstSize(u32 size) = 0;
 };
 
 class IFRIT_APIDECL RhiPassGraph {};
@@ -523,14 +535,13 @@ class IFRIT_APIDECL RhiPassGraph {};
 
 class IFRIT_APIDECL RhiBindlessDescriptorRef {
 public:
-  virtual void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t loc) = 0;
-  virtual void addStorageBuffer(Rhi::RhiMultiBuffer *buffer, uint32_t loc) = 0;
-  virtual void addStorageBuffer(Rhi::RhiBuffer *buffer, uint32_t loc) = 0;
-  virtual void addCombinedImageSampler(Rhi::RhiTexture *texture,
-                                       Rhi::RhiSampler *sampler,
-                                       uint32_t loc) = 0;
-  virtual void addUAVImage(Rhi::RhiTexture *texture,
-                           RhiImageSubResource subResource, uint32_t loc) = 0;
+  virtual void addUniformBuffer(RhiMultiBuffer *buffer, u32 loc) = 0;
+  virtual void addStorageBuffer(RhiMultiBuffer *buffer, u32 loc) = 0;
+  virtual void addStorageBuffer(RhiBuffer *buffer, u32 loc) = 0;
+  virtual void addCombinedImageSampler(RhiTexture *texture, RhiSampler *sampler,
+                                       u32 loc) = 0;
+  virtual void addUAVImage(RhiTexture *texture, RhiImageSubResource subResource,
+                           u32 loc) = 0;
 };
 
 // Rhi RenderTargets
@@ -541,19 +552,17 @@ struct IFRIT_APIDECL RhiRenderTargetsFormat {
 
 class IFRIT_APIDECL RhiRenderTargets {
 public:
-  virtual void setColorAttachments(
-      const std::vector<Rhi::RhiColorAttachment *> &attachments) = 0;
   virtual void
-  setDepthStencilAttachment(Rhi::RhiDepthStencilAttachment *attachment) = 0;
+  setColorAttachments(const std::vector<RhiColorAttachment *> &attachments) = 0;
   virtual void
-  beginRendering(const Rhi::RhiCommandBuffer *commandBuffer) const = 0;
-  virtual void
-  endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const = 0;
-  virtual void setRenderArea(Rhi::RhiScissor area) = 0;
+  setDepthStencilAttachment(RhiDepthStencilAttachment *attachment) = 0;
+  virtual void beginRendering(const RhiCommandBuffer *commandBuffer) const = 0;
+  virtual void endRendering(const RhiCommandBuffer *commandBuffer) const = 0;
+  virtual void setRenderArea(RhiScissor area) = 0;
   virtual RhiRenderTargetsFormat getFormat() const = 0;
-  virtual Rhi::RhiScissor getRenderArea() const = 0;
+  virtual RhiScissor getRenderArea() const = 0;
   virtual RhiDepthStencilAttachment *getDepthStencilAttachment() const = 0;
-  virtual RhiColorAttachment *getColorAttachment(uint32_t index) const = 0;
+  virtual RhiColorAttachment *getColorAttachment(u32 index) const = 0;
 };
 
 class IFRIT_APIDECL RhiColorAttachment {
@@ -574,17 +583,17 @@ protected:
 
 class IFRIT_APIDECL RhiVertexBufferView {
 protected:
-  virtual void addBinding(
-      std::vector<uint32_t> location, std::vector<Rhi::RhiImageFormat> format,
-      std::vector<uint32_t> offset, uint32_t stride,
-      Rhi::RhiVertexInputRate inputRate = Rhi::RhiVertexInputRate::Vertex) = 0;
+  virtual void
+  addBinding(std::vector<u32> location, std::vector<RhiImageFormat> format,
+             std::vector<u32> offset, u32 stride,
+             RhiVertexInputRate inputRate = RhiVertexInputRate::Vertex) = 0;
 };
 
 class IFRIT_APIDECL RhiDeviceTimer {
 public:
   virtual void start(const RhiCommandBuffer *cmd) = 0;
   virtual void stop(const RhiCommandBuffer *cmd) = 0;
-  virtual float getElapsedMs() = 0;
+  virtual f32 getElapsedMs() = 0;
 };
 
 } // namespace Ifrit::GraphicsBackend::Rhi

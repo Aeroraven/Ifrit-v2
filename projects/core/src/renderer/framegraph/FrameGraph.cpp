@@ -229,7 +229,8 @@ FrameGraphCompiler::compile(const FrameGraph &graph) {
           // Make a transition barrier before executing the pass
           CompiledFrameGraph::ResourceBarriers aliasBarrier;
           aliasBarrier.enableTransitionBarrier = true;
-          aliasBarrier.srcState = rawResState;
+          aliasBarrier.srcState = GraphicsBackend::Rhi::RhiResourceState2::
+              AutoTraced; // rawResState;
           aliasBarrier.dstState = srcState;
           compiledGraph.m_outputAliasedResourcesBarriers[passId0].back() =
               aliasBarrier;
@@ -266,7 +267,8 @@ FrameGraphCompiler::compile(const FrameGraph &graph) {
       } else if (srcState != dstStateAll) {
         CompiledFrameGraph::ResourceBarriers barrier;
         barrier.enableTransitionBarrier = true;
-        barrier.srcState = srcState;
+        barrier.srcState =
+            GraphicsBackend::Rhi::RhiResourceState2::AutoTraced; // srcState;
         barrier.dstState = dstStateAll;
         compiledGraph.m_passResourceBarriers[passId0].back() = barrier;
       } else {
@@ -318,7 +320,8 @@ toRhiResBarrier(const CompiledFrameGraph::ResourceBarriers &barrier,
       resBarrier.m_transition.m_texture = res.importedTexture;
       resBarrier.m_transition.m_subResource = res.subResource;
     }
-    resBarrier.m_transition.m_srcState = barrier.srcState;
+    resBarrier.m_transition.m_srcState = GraphicsBackend::Rhi::
+        RhiResourceState2::AutoTraced; // barrier.srcState;
     resBarrier.m_transition.m_dstState = barrier.dstState;
     valid = true;
   } else if (barrier.enableUAVBarrier) {

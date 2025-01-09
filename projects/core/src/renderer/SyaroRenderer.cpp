@@ -97,13 +97,12 @@ registerUAVBarriers(const std::vector<RhiBuffer *> &buffers,
 }
 
 void runImageBarrier(const RhiCommandBuffer *cmd, RhiTexture *texture,
-                     RhiResourceState2 src, RhiResourceState2 dst,
-                     RhiImageSubResource subResource) {
+                     RhiResourceState2 dst, RhiImageSubResource subResource) {
   std::vector<RhiResourceBarrier> barriers;
   RhiTransitionBarrier barrier;
   barrier.m_type = RhiResourceType::Texture;
   barrier.m_texture = texture;
-  barrier.m_srcState = src;
+  barrier.m_srcState = RhiResourceState2::AutoTraced;
   barrier.m_dstState = dst;
   barrier.m_subResource = subResource;
 
@@ -656,24 +655,19 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
   // transition input resources
   if (m_config->m_antiAliasingType == AntiAliasingType::FSR2) {
     runImageBarrier(cmd, perframeData.m_fsr2Data.m_fsr2Output.get(),
-                    RhiResourceState2::Undefined, RhiResourceState2::ShaderRead,
-                    {0, 0, 1, 1});
+                    RhiResourceState2::Common, {0, 0, 1, 1});
 
     auto motion = perframeData.m_motionVector.get();
     auto primaryView = getPrimaryView(perframeData);
     auto depth = primaryView.m_visibilityDepth_Combined.get();
 
-    runImageBarrier(cmd, motion, RhiResourceState2::Common,
-                    RhiResourceState2::ShaderRead, {0, 0, 1, 1});
-    runImageBarrier(cmd, depth, RhiResourceState2::Common,
-                    RhiResourceState2::ShaderRead, {0, 0, 1, 1});
+    runImageBarrier(cmd, motion, RhiResourceState2::ShaderRead, {0, 0, 1, 1});
+    runImageBarrier(cmd, depth, RhiResourceState2::ShaderRead, {0, 0, 1, 1});
   }
   runImageBarrier(cmd, m_postprocTex[{mainRtWidth, mainRtHeight}][0].get(),
-                  RhiResourceState2::Undefined, RhiResourceState2::ColorRT,
-                  {0, 0, 1, 1});
+                  RhiResourceState2::ColorRT, {0, 0, 1, 1});
   runImageBarrier(cmd, m_postprocTex[{mainRtWidth, mainRtHeight}][1].get(),
-                  RhiResourceState2::Undefined, RhiResourceState2::ColorRT,
-                  {0, 0, 1, 1});
+                  RhiResourceState2::ColorRT, {0, 0, 1, 1});
 
   // run!
   FrameGraphCompiler compiler;
@@ -1046,11 +1040,10 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
                                  RhiResourceState::Common, {0, 0, 1, 1});
 #endif
         runImageBarrier(ctx->m_cmd, perframeData.m_velocityMaterial.get(),
-                        RhiResourceState2::Undefined,
+
                         RhiResourceState2::UnorderedAccess, {0, 0, 1, 1});
         runImageBarrier(ctx->m_cmd, perframeData.m_motionVector.get(),
-                        RhiResourceState2::Undefined, RhiResourceState2::Common,
-                        {0, 0, 1, 1});
+                        RhiResourceState2::Common, {0, 0, 1, 1});
         ctx->m_cmd->clearUAVImageFloat(perframeData.m_motionVector.get(),
                                        {0, 0, 1, 1}, {0.0f, 0.0f, 0.0f, 0.0f});
         ctx->m_cmd->attachBindlessReferenceCompute(
@@ -1070,13 +1063,12 @@ IFRIT_APIDECL void SyaroRenderer::renderEmitDepthTargets(
         ctx->m_cmd->dispatch(wgX, wgY, 1);
 
         runImageBarrier(ctx->m_cmd, perframeData.m_velocityMaterial.get(),
-                        RhiResourceState2::UnorderedAccess,
+
                         RhiResourceState2::UnorderedAccess, {0, 0, 1, 1});
 
 #if !SYARO_ENABLE_SW_RASTERIZER
         runImageBarrier(ctx->m_cmd,
                         primaryView.m_visibilityDepth_Combined.get(),
-                        RhiResourceState2::Common,
                         RhiResourceState2::DepthStencilRT, {0, 0, 1, 1});
 #endif
       });
@@ -1274,10 +1266,8 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
   combinePass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     if (cullPass == CullingPass::First) {
       runImageBarrier(ctx->m_cmd, perView.m_visibilityBuffer_Combined.get(),
-                      RhiResourceState2::Undefined,
                       RhiResourceState2::UnorderedAccess, {0, 0, 1, 1});
       runImageBarrier(ctx->m_cmd, perView.m_visibilityDepth_Combined.get(),
-                      RhiResourceState2::Undefined,
                       RhiResourceState2::UnorderedAccess, {0, 0, 1, 1});
     }
     struct CombinePassPushConst {
@@ -1750,21 +1740,19 @@ SyaroRenderer::renderDefaultEmitGBuffer(PerFrameData &perframeData,
   m_defaultEmitGBufferPass->setRecordFunction([&](const RhiRenderPassContext
                                                       *ctx) {
     // first transition all gbuffer textures to UAV/Common
-    runImageBarrier(
-        ctx->m_cmd, perframeData.m_gbuffer.m_albedo_materialFlags.get(),
-        RhiResourceState2::Undefined, RhiResourceState2::Common, {0, 0, 1, 1});
-    runImageBarrier(
-        ctx->m_cmd, perframeData.m_gbuffer.m_normal_smoothness.get(),
-        RhiResourceState2::Undefined, RhiResourceState2::Common, {0, 0, 1, 1});
+    runImageBarrier(ctx->m_cmd,
+                    perframeData.m_gbuffer.m_albedo_materialFlags.get(),
+                    RhiResourceState2::Common, {0, 0, 1, 1});
+    runImageBarrier(ctx->m_cmd,
+                    perframeData.m_gbuffer.m_normal_smoothness.get(),
+                    RhiResourceState2::Common, {0, 0, 1, 1});
     runImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_emissive.get(),
-                    RhiResourceState2::Undefined, RhiResourceState2::Common,
-                    {0, 0, 1, 1});
-    runImageBarrier(
-        ctx->m_cmd, perframeData.m_gbuffer.m_specular_occlusion.get(),
-        RhiResourceState2::Undefined, RhiResourceState2::Common, {0, 0, 1, 1});
+                    RhiResourceState2::Common, {0, 0, 1, 1});
+    runImageBarrier(ctx->m_cmd,
+                    perframeData.m_gbuffer.m_specular_occlusion.get(),
+                    RhiResourceState2::Common, {0, 0, 1, 1});
     runImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_shadowMask.get(),
-                    RhiResourceState2::Undefined, RhiResourceState2::Common,
-                    {0, 0, 1, 1});
+                    RhiResourceState2::Common, {0, 0, 1, 1});
 
     // Clear gbuffer textures
     ctx->m_cmd->clearUAVImageFloat(

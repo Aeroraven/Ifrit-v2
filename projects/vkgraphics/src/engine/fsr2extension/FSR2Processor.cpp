@@ -169,6 +169,23 @@ FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
   dispatchParams.sharpness = 0.0f;
   dispatchParams.preExposure = 1.0f;
 
+  // First transition output to shader read. This should be untraced
+  VkImageMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  barrier.image = outputImgVk->getImage();
+  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  barrier.subresourceRange.layerCount = 1;
+  barrier.subresourceRange.levelCount = 1;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+  barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+  barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  vkCmdPipelineBarrier(cmdVk, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
+                       nullptr, 1, &barrier);
+
   auto errorCode = ffxFsr2ContextDispatch(&m_context->fsr2ctx, &dispatchParams);
   if (errorCode != FFX_OK) {
     iError("Failed to dispatch FSR2, error code: {}", int(errorCode));

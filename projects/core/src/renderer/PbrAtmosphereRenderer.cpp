@@ -580,7 +580,6 @@ PbrAtmosphereRenderer::renderInternal(
     RhiTransitionBarrier tBarrier;
     tBarrier.m_texture = tex;
     tBarrier.m_type = RhiResourceType::Texture;
-    tBarrier.m_srcState = RhiResourceState2::Undefined;
     tBarrier.m_dstState = RhiResourceState2::Common;
     tBarrier.m_subResource = {0, 0, 1, 1};
 

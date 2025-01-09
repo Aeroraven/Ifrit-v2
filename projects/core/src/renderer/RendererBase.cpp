@@ -939,7 +939,6 @@ RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
         Rhi::RhiTransitionBarrier barrier;
         barrier.m_texture = swapchainImg;
         barrier.m_type = Rhi::RhiResourceType::Texture;
-        barrier.m_srcState = Rhi::RhiResourceState2::ColorRT;
         barrier.m_dstState = Rhi::RhiResourceState2::Present;
         barrier.m_subResource = {0, 0, 1, 1};
 

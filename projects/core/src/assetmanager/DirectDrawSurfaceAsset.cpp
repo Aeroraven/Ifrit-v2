@@ -189,7 +189,6 @@ parseDDS(std ::filesystem::path path, IApplication *app) {
                           RhiImageSubResource sub) {
     RhiTransitionBarrier barrier;
     barrier.m_texture = tex;
-    barrier.m_srcState = src;
     barrier.m_dstState = dst;
     barrier.m_subResource = sub;
     barrier.m_type = RhiResourceType::Texture;
