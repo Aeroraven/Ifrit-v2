@@ -90,10 +90,11 @@ public:
   static std::shared_ptr<SceneObject> createPrefab();
 
   template <class T> void addComponent(std::shared_ptr<T> component) {
+    using Ifrit::Common::Utility::iTypeInfo;
     static_assert(std::is_base_of<Component, T>::value,
                   "T must be derived from Component");
-    auto typeName = typeid(T).name();
-    auto typeHash = typeid(T).hash_code();
+    auto typeName = iTypeInfo<T>::name;
+    auto typeHash = iTypeInfo<T>::hash;
     if (m_componentIndex.count(typeName) > 0) {
       iError("Component already exists");
       std::abort();
@@ -110,8 +111,10 @@ public:
   template <class T> std::shared_ptr<T> addComponent() {
     static_assert(std::is_base_of<Component, T>::value,
                   "T must be derived from Component");
-    auto typeName = typeid(T).name();
-    auto typeHash = typeid(T).hash_code();
+    using Ifrit::Common::Utility::iTypeInfo;
+    auto typeName = iTypeInfo<T>::name;
+    auto typeHash = iTypeInfo<T>::hash;
+    // printf("Add to %p: hash:%lld, %s\n", this, typeHash, typeName);
     if (m_componentIndex.count(typeName) > 0) {
       auto idx = m_componentIndex[typeName];
       return std::static_pointer_cast<T>(m_components[idx]);
@@ -130,7 +133,8 @@ public:
   template <class T> std::shared_ptr<T> getComponent() {
     static_assert(std::is_base_of<Component, T>::value,
                   "T must be derived from Component");
-    auto typeHash = typeid(T).hash_code();
+    using Ifrit::Common::Utility::iTypeInfo;
+    auto typeHash = iTypeInfo<T>::hash;
     if (m_componentsHashed.count(typeHash) == 0) {
       return nullptr;
     }
@@ -152,7 +156,8 @@ public:
   template <class T> T *getComponentUnsafe() {
     static_assert(std::is_base_of<Component, T>::value,
                   "T must be derived from Component");
-    auto typeHash = typeid(T).hash_code();
+    using Ifrit::Common::Utility::iTypeInfo;
+    auto typeHash = iTypeInfo<T>::hash;
     if (m_componentsHashed.count(typeHash) == 0) {
       return nullptr;
     }

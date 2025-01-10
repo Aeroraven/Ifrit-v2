@@ -74,7 +74,7 @@ public:
   filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter);
 
   std::vector<SceneObject *>
-  filterObjectsUnsafe(std::function<bool(std::shared_ptr<SceneObject>)> filter);
+  filterObjectsUnsafe(std::function<bool(SceneObject *)> filter);
 
   IFRIT_STRUCT_SERIALIZE(m_root);
 };

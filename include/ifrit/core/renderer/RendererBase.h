@@ -67,7 +67,7 @@ class IFRIT_APIDECL RendererBase {
 protected:
   IApplication *m_app;
   const RendererConfig *m_config = nullptr;
-  static ImmutableRendererResources m_immRes;
+  ImmutableRendererResources m_immRes;
 
 protected:
   RendererBase(IApplication *app) : m_app(app) {}

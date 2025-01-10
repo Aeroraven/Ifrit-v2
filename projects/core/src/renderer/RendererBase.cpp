@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 using Ifrit::Common::Utility::size_cast;
 namespace Ifrit::Core {
 
-ImmutableRendererResources RendererBase::m_immRes = {};
+// ImmutableRendererResources RendererBase::m_immRes = {};
 
 IFRIT_APIDECL void RendererBase::prepareImmutableResources() {
   if (m_immRes.m_initialized) {
@@ -118,14 +118,13 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   }
 
   // Find lights that represent the sun
-  auto sunLights =
-      scene->filterObjectsUnsafe([](std::shared_ptr<SceneObject> obj) {
-        auto light = obj->getComponentUnsafe<Light>();
-        if (!light) {
-          return false;
-        }
-        return light->getAffectPbrSky();
-      });
+  auto sunLights = scene->filterObjectsUnsafe([](SceneObject *obj) {
+    auto light = obj->getComponentUnsafe<Light>();
+    if (!light) {
+      return false;
+    }
+    return light->getAffectPbrSky();
+  });
   if (sunLights.size() > 1) {
     iError("Multiple sun lights found");
     throw std::runtime_error("Multiple sun lights found");
@@ -142,7 +141,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
 
   // Insert light view data, if shadow maps are enabled
   auto lightWithShadow =
-      scene->filterObjectsUnsafe([](std::shared_ptr<SceneObject> obj) -> bool {
+      scene->filterObjectsUnsafe([](SceneObject *obj) -> bool {
         auto light = obj->getComponentUnsafe<Light>();
         if (!light) {
           return false;
@@ -208,10 +207,10 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     effect.m_instances.clear();
   }
 
-  std::vector<std::shared_ptr<Material>> materials;
-  std::vector<std::shared_ptr<Mesh>> meshes;
-  std::vector<std::shared_ptr<Transform>> transforms;
-  std::vector<std::shared_ptr<MeshInstance>> instances;
+  std::vector<Material *> materials;
+  std::vector<Mesh *> meshes;
+  std::vector<Transform *> transforms;
+  std::vector<MeshInstance *> instances;
 
   std::vector<SceneNode *> nodes;
   nodes.push_back(scene->getRootNode().get());
@@ -229,10 +228,10 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
       }
       auto transform = obj->getComponent<Transform>();
       if (meshRenderer && meshFilter && transform) {
-        materials.push_back(meshRenderer->getMaterial());
-        meshes.push_back(meshFilter->getMesh());
-        transforms.push_back(transform);
-        instances.push_back(meshFilter->getMeshInstance());
+        materials.push_back(meshRenderer->getMaterial().get());
+        meshes.push_back(meshFilter->getMesh().get());
+        transforms.push_back(transform.get());
+        instances.push_back(meshFilter->getMeshInstance().get());
       } else {
         throw std::runtime_error(
             "MeshRenderer, MeshFilter, or Transform not found");

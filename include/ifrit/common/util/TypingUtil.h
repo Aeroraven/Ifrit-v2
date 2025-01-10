@@ -87,4 +87,40 @@ private:
   NonCopyable &operator=(const NonCopyable &) = delete;
 };
 
+template <class T> consteval inline static const char *getFuncName() {
+#ifdef _MSC_VER
+  return __FUNCSIG__;
+#else
+#ifdef __PRETTY_FUNCTION__
+  return __PRETTY_FUNCTION__;
+#else
+  static_assert(false, "Unsupported compiler");
+#endif
+#endif
+}
+
+template <unsigned E, unsigned N>
+consteval uint64_t funcNameHash(const char (&str)[N]) {
+  uint64_t hash = 0;
+  if constexpr (N == E)
+    return 0;
+  else {
+    return str[0] + 257 * funcNameHash<E + 1, N>(str);
+  }
+}
+
+template <class T> consteval uint64_t getFuncHashId() {
+  static_assert(!std::is_same_v<T, void>, "T must not be void");
+#ifdef _MSC_VER
+  return funcNameHash<0>(__FUNCSIG__);
+#else
+  return funcNameHash<0>(__PRETTY_FUNCTION__);
+#endif
+}
+
+template <class T> struct iTypeInfo {
+  static constexpr const char *name = getFuncName<T>();
+  static constexpr uint64_t hash = getFuncHashId<T>();
+};
+
 } // namespace Ifrit::Common::Utility

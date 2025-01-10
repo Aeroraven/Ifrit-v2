@@ -75,10 +75,6 @@ layout(binding = 0, set = 3) uniform IndirectCompData{
     uint indRef;
 }uIndirectComp;
 
-// layout(binding = 0,set=4) uniform HizMips{
-//     uint ref;
-// }uHizMipsRef;
-
 layout(binding = 0, set = 4) uniform HiZData{
     uint depthImg; // Depth image, with samplers
     uint hizRefs; // Reference to image views, UAVs 

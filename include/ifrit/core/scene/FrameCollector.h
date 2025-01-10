@@ -63,10 +63,10 @@ struct PerObjectData {
 };
 
 struct PerShaderEffectData {
-  std::vector<std::shared_ptr<Material>> m_materials;
-  std::vector<std::shared_ptr<Mesh>> m_meshes;
-  std::vector<std::shared_ptr<Transform>> m_transforms;
-  std::vector<std::shared_ptr<MeshInstance>> m_instances;
+  std::vector<Material *> m_materials;
+  std::vector<Mesh *> m_meshes;
+  std::vector<Transform *> m_transforms;
+  std::vector<MeshInstance *> m_instances;
 
   // Data to GPUs
   uint32_t m_lastObjectCount = ~0u;

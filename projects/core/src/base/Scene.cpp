@@ -84,8 +84,8 @@ Scene::filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter) {
   return result;
 }
 
-IFRIT_APIDECL std::vector<SceneObject *> Scene::filterObjectsUnsafe(
-    std::function<bool(std::shared_ptr<SceneObject>)> filter) {
+IFRIT_APIDECL std::vector<SceneObject *>
+Scene::filterObjectsUnsafe(std::function<bool(SceneObject *)> filter) {
   std::vector<SceneObject *> result;
   std::vector<SceneNode *> nodes;
   nodes.push_back(m_root.get());
@@ -96,7 +96,7 @@ IFRIT_APIDECL std::vector<SceneObject *> Scene::filterObjectsUnsafe(
       nodes.push_back(child.get());
     }
     for (auto &obj : node->getGameObjects()) {
-      if (filter(obj)) {
+      if (filter(obj.get())) {
         result.push_back(obj.get());
       }
     }
