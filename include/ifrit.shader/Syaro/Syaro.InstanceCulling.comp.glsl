@@ -237,8 +237,8 @@ bool occlusionCull(vec4 boundBall, float radius){
         return false;
     }
     // get lod to use
-    vec2 minUV = vec2(1.0,1.0);
-    vec2 maxUV = vec2(0.0,0.0);
+    vec2 minUV = vec2(5.0,5.0);
+    vec2 maxUV = vec2(-5.0,-5.0);
     float minZ = 1.0;
     for(int i = 0; i < 8; i++){
         minUV = min(minUV,projBoundBallUVz[i].xy);
@@ -248,14 +248,15 @@ bool occlusionCull(vec4 boundBall, float radius){
     if(minZ < 0.0){
         return false;
     }
-    uint rectW = uint((maxUV.x - minUV.x) * float(renderWidth));
-    uint rectH = uint((maxUV.y - minUV.y) * float(renderHeight));
-    float lod = clamp(log2(float(max(rectW,rectH))) ,0.0,float(totalLods - 1));
+    float rectW = float((maxUV.x - minUV.x) * float(renderWidth));
+    float rectH = float((maxUV.y - minUV.y) * float(renderHeight));
+    float lod = clamp(ceil(log2((max(rectW,rectH)))) ,0.0,float(totalLods - 1));
     uint lodIndex = uint(lod);
 
     // then fetch the hiz value
     uint lod0Width = roundUpPow2(renderWidth);
     uint lod0Height = roundUpPow2(renderHeight);
+
     float uvfactorX = float(renderWidth) / float(lod0Width);
     float uvfactorY = float(renderHeight) / float(lod0Height);
     vec2 uvfactor = vec2(uvfactorX,uvfactorY);
@@ -263,7 +264,8 @@ bool occlusionCull(vec4 boundBall, float radius){
     uint lodWidth = lod0Width >> lodIndex;
     uint lodHeight = lod0Height >> lodIndex;
     uvec2 minUVInt = uvec2(minUV * uvfactor * vec2(lodWidth,lodHeight));
-    
+    uvec2 maxUVInt = uvec2(maxUV * uvfactor * vec2(lodWidth,lodHeight));
+
     float depth1 = hizFetch(lodIndex,minUVInt.x,minUVInt.y);
     float depth2 = hizFetch(lodIndex,minUVInt.x + 1,minUVInt.y);
     float depth3 = hizFetch(lodIndex,minUVInt.x,minUVInt.y + 1);
@@ -338,12 +340,12 @@ void main(){
         }else{
             frustumCulled = frustumCullOrtho(viewBoundBall,boundBall.w*maxScale);
         }
-        if(!frustumCulled && !occlusionCulled ){
+        if(!frustumCulled && !occlusionCulled ){ // 
             // if accept
             uint acceptRef = uIndirectComp.acceptRef;
             uint acceptIndex = atomicAdd(GetResource(bHierCullDispatch,indirectDispatchRef).accepted,1);
             GetResource(bInstanceAccepted,acceptRef).data[acceptIndex] = instanceIndex;
-        }else if(!frustumCulled && occlusionCulled){ 
+        }else if(!frustumCulled){ 
             uint rejectRef = uIndirectComp.rejectRef;
             uint rejectIndex = atomicAdd(GetResource(bHierCullDispatch,indirectDispatchRef).totalRejected,1);
             GetResource(bInstanceRejected,rejectRef).data[rejectIndex] = instanceIndex;

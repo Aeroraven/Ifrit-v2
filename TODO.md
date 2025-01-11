@@ -13,11 +13,9 @@
 
 - [ ] Syaro: LOD switching not smooth
   - [ ] Abrupt attribute change (causing lighting changes when lod switches)
-  - [ ] Losing thin objects when switching to low-lod objects
+  - [x] <s>Losing thin objects when switching to low-lod objects</s>
   
 - [ ] Syaro: PCF shadow not smooth
-
-- [ ] Syaro: Too aggressive culling
 
   
 
@@ -36,7 +34,19 @@
 
 ## Resolved
 
-- Syaro: Losing thin objects when switching to low-lod objects, caused by wrong SW sampling location (250111)
+- Syaro: Missing meshes, caused by wrong HiZ mip selection (250111)
+
+  | After Fixing                                                 | Before Fixing                                                |
+  | ------------------------------------------------------------ | ------------------------------------------------------------ |
+  | ![image-20250111153548338](docs/imgtodo/image-20250111153548338.png) | ![image-20250111153512009](docs/imgtodo/image-20250111153512009.png) |
+
+- Syaro: Missing meshes, caused by wrong SW sampling location (250111)
+
+  | After Fixing                                                 | Before Fixing                                                |
+  | ------------------------------------------------------------ | ------------------------------------------------------------ |
+  | ![image-20250111144804794](docs/imgtodo/image-20250111144804794.png) | ![image-20250111144843767](docs/imgtodo/image-20250111144843767.png) |
+
+  
 
 - Syaro: FSR2 flickering & ghosting, when moving (250110)
 
