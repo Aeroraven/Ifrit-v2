@@ -65,4 +65,25 @@ float ifrit_signedDistToPlane(vec4 plane, vec4 point){
     return dot(plane.xyz,point.xyz) + plane.w;
 }
 
+
+float ifrit_perspectiveLerp(float v0, float v1, float z0, float z1, float t){
+  float lp = (1.0/z0 + (1.0/z1 - 1.0/z0) * t);
+  return (v0/z0 + (v1/z1 - v0/z0) * t) / lp;
+}
+
+vec2 ifrit_perspectiveLerp2D(vec2 v0, vec2 v1, float z0, float z1, float t){
+  float lp = (1.0/z0 + (1.0/z1 - 1.0/z0) * t);
+  return (v0/z0 + (v1/z1 - v0/z0) * t) / lp;
+}
+
+vec3 ifrit_perspectiveLerp3D(vec3 v0, vec3 v1, float z0, float z1, float t){
+  float lp = (1.0/z0 + (1.0/z1 - 1.0/z0) * t);
+  return (v0/z0 + (v1/z1 - v0/z0) * t) / lp;
+}
+
+vec4 ifrit_perspectiveLerp4D(vec4 v0, vec4 v1, float z0, float z1, float t){
+  float lp = (1.0/z0 + (1.0/z1 - 1.0/z0) * t);
+  return (v0/z0 + (v1/z1 - v0/z0) * t) / lp;
+}
+
 const float kPI = 3.14159265359;

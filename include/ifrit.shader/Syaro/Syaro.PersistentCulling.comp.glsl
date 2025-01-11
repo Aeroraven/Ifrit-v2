@@ -336,6 +336,7 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
 #if SYARO_ENABLE_SW_RASTERIZER
     // contribution division, planning move meshlets bbox smaller than 16px
     // to sw rasterization. Currently, just discard them.
+    //if(!true){
     if(pConst.rejectSwRaster == 0){
         // We don't want sw rasterizer got homogeneous clipping. So if sphere intersects
         // the near plane, we just discard it.

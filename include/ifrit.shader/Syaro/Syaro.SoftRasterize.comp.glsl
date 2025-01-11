@@ -200,13 +200,13 @@ void main(){
         vec2 uv1 = v1xy * 0.5 + 0.5;
         vec2 uv2 = v2xy * 0.5 + 0.5;
 
-        vec2 coord0 = uv0 * vec2(pConst.renderWidth, pConst.renderHeight) + 0.5;
-        vec2 coord1 = uv1 * vec2(pConst.renderWidth, pConst.renderHeight) + 0.5;
-        vec2 coord2 = uv2 * vec2(pConst.renderWidth, pConst.renderHeight) + 0.5;
+        vec2 coord0 = uv0 * vec2(pConst.renderWidth, pConst.renderHeight)+0.5;
+        vec2 coord1 = uv1 * vec2(pConst.renderWidth, pConst.renderHeight)+0.5;
+        vec2 coord2 = uv2 * vec2(pConst.renderWidth, pConst.renderHeight)+0.5;
 
-        uint minX = uint(min(min(coord0.x, coord1.x), coord2.x));
+        uint minX = uint(min(min(coord0.x, coord1.x), coord2.x))-1;
         uint maxX = uint(max(max(coord0.x, coord1.x), coord2.x))+1;
-        uint minY = uint(min(min(coord0.y, coord1.y), coord2.y));
+        uint minY = uint(min(min(coord0.y, coord1.y), coord2.y))-1;
         uint maxY = uint(max(max(coord0.y, coord1.y), coord2.y))+1;
 
         minX = clamp(minX, 0, pConst.renderWidth);
@@ -237,9 +237,9 @@ void main(){
         float invRw = 1.0 / float(pConst.renderWidth);
         float invRh = 1.0 / float(pConst.renderHeight);
         vec3 base = -cdx*p120x - cdy*p120y;
-        for(uint y = minY; y < maxY; y++){
-            for(uint x = minX; x < maxX; x++){
-                vec2 uvNdc = vec2(float(x) * invRw, float(y) * invRh) * 2.0 - 1.0;
+        for(uint y = minY; y <= maxY; y++){
+            for(uint x = minX; x <= maxX; x++){
+                vec2 uvNdc = vec2((float(x)+0.5) * invRw, (float(y)+0.5) * invRh) * 2.0 - 1.0;
                 vec3 a = cdx * uvNdc.x + cdy*uvNdc.y + base;
                 vec3 b = a*rcpW;
                 float h = dot(a,rcpW);

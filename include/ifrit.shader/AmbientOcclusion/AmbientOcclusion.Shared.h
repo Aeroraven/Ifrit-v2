@@ -36,6 +36,10 @@ IFRIT_AO_DEFINE_UINT(cHBAOThreadGroupSizeY, 16);
 IFRIT_AO_DEFINE_UINT(cHBAODirections, 8);
 IFRIT_AO_DEFINE_UINT(cHBAOSampleSteps, 6);
 
+IFRIT_AO_DEFINE_UINT(cSSGIThreadGroupSizeX, 16);
+IFRIT_AO_DEFINE_UINT(cSSGIThreadGroupSizeY, 16);
+IFRIT_AO_DEFINE_UINT(cSSGIBounces, 1);
+IFRIT_AO_DEFINE_UINT(cSSGISamples, 8);
 #ifdef __cplusplus
 } // namespace Ifrit::Core::Shaders::AmbientOcclusionConfig
 #endif

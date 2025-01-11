@@ -49,6 +49,16 @@ IFRIT_APIDECL void AmbientOcclusionPass::setupHBAOPass() {
   m_hbaoPass->setPushConstSize(sizeof(uint32_t) * 6);
 }
 
+IFRIT_APIDECL void AmbientOcclusionPass::setupSSGIPass() {
+  auto rhi = m_app->getRhiLayer();
+  auto shader = createShaderFromFile(
+      "SSGI.comp.glsl", "main", GraphicsBackend::Rhi::RhiShaderStage::Compute);
+  m_ssgiPass = rhi->createComputePass();
+  m_ssgiPass->setComputeShader(shader);
+  m_ssgiPass->setNumBindlessDescriptorSets(0);
+  m_ssgiPass->setPushConstSize(sizeof(uint32_t) * 10);
+}
+
 IFRIT_APIDECL void
 AmbientOcclusionPass::renderHBAO(const CommandBuffer *cmd, uint32_t width,
                                  uint32_t height, GPUBindId *depthSamp,
@@ -73,12 +83,61 @@ AmbientOcclusionPass::renderHBAO(const CommandBuffer *cmd, uint32_t width,
   pc.maxRadius = 1.0f;
 
   m_hbaoPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    using namespace Ifrit::Core::Shaders::AmbientOcclusionConfig;
     ctx->m_cmd->setPushConst(m_hbaoPass, 0, sizeof(HBAOPushConst), &pc);
-    uint32_t wgX = Ifrit::Math::ConstFunc::divRoundUp(width, 16);
-    uint32_t wgY = Ifrit::Math::ConstFunc::divRoundUp(height, 16);
+    uint32_t wgX =
+        Ifrit::Math::ConstFunc::divRoundUp(width, cHBAOThreadGroupSizeX);
+    uint32_t wgY =
+        Ifrit::Math::ConstFunc::divRoundUp(height, cHBAOThreadGroupSizeY);
     ctx->m_cmd->dispatch(wgX, wgY, 1);
   });
 
   m_hbaoPass->run(cmd, 0);
 }
+
+IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(
+    const CommandBuffer *cmd, uint32_t width, uint32_t height,
+    GPUBindId *perframeData, GPUBindId *depthHizUAV, GPUBindId *normalSRV,
+    GPUBindId *aoUAV, GPUBindId *albedoSRV, uint32_t hizTexW, uint32_t hizTexH,
+    uint32_t numLods) {
+  struct SSGIPushConst {
+    uint32_t perframe;
+    uint32_t normalTex;
+    uint32_t depthTex;
+    uint32_t aoTex;
+    uint32_t albedoTex;
+    uint32_t hizTexW;
+    uint32_t hizTexH;
+    uint32_t rtW;
+    uint32_t rtH;
+    uint32_t numLods;
+  } pc;
+
+  pc.perframe = perframeData->getActiveId();
+  pc.normalTex = normalSRV->getActiveId();
+  pc.depthTex = depthHizUAV->getActiveId();
+  pc.aoTex = aoUAV->getActiveId();
+  pc.albedoTex = albedoSRV->getActiveId();
+  pc.hizTexW = hizTexW;
+  pc.hizTexH = hizTexH;
+  pc.rtW = width;
+  pc.rtH = height;
+  pc.numLods = numLods;
+
+  if (m_ssgiPass == nullptr) {
+    setupSSGIPass();
+  }
+
+  m_ssgiPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
+    using namespace Ifrit::Core::Shaders::AmbientOcclusionConfig;
+    ctx->m_cmd->setPushConst(m_ssgiPass, 0, sizeof(SSGIPushConst), &pc);
+
+    uint32_t wgX =
+        Ifrit::Math::ConstFunc::divRoundUp(width, cSSGIThreadGroupSizeX);
+    uint32_t wgY =
+        Ifrit::Math::ConstFunc::divRoundUp(height, cSSGIThreadGroupSizeY);
+    ctx->m_cmd->dispatch(wgX, wgY, 1);
+  });
+}
+
 } // namespace Ifrit::Core

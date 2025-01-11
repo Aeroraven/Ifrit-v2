@@ -36,6 +36,8 @@
 
 ## Resolved
 
+- Syaro: Losing thin objects when switching to low-lod objects, caused by wrong SW sampling location (250111)
+
 - Syaro: FSR2 flickering & ghosting, when moving (250110)
 
 - Syaro: incorrect startup (wrong view data for the first frame), referencing destroyed variable. (250103)

@@ -70,6 +70,13 @@ void main(){
     }
 
     float maxDepth = min(hwDepth, swDepth); 
+    // Test: force output all sw, if swDepth is less than 1
+    // if(swDepth<1.0){
+    //     if(pc.outVisBufferId!=~0) imageStore(GetUAVImage2DR32UI(pc.outVisBufferId), ivec2(x,y), uvec4(swVis));
+    //     imageStore(GetUAVImage2DR32F(pc.outDepthBufferId), ivec2(x,y), vec4(swDepth));
+    //     return;
+    // }
+
     if(maxDepth>=1.0){
         // discard this pixel, set all to 0, and depth to 1.0
         if(pc.outVisBufferId!=~0) imageStore(GetUAVImage2DR32UI(pc.outVisBufferId), ivec2(x,y), uvec4(0));
