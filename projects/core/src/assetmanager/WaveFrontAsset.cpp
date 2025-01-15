@@ -200,7 +200,7 @@ WaveFrontAssetImporter::importAsset(const std::filesystem::path &path,
                                     AssetMetadata &metadata) {
   auto asset = std::make_shared<WaveFrontAsset>(metadata, path);
   m_assetManager->registerAsset(asset);
-  iInfo("Imported asset: [WaveFrontMesh] {}", metadata.m_uuid);
+  // iInfo("Imported asset: [WaveFrontMesh] {}", metadata.m_uuid);
 }
 
 } // namespace Ifrit::Core

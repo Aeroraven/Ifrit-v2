@@ -241,7 +241,7 @@ DirectDrawSurfaceAssetImporter::importAsset(const std::filesystem::path &path,
   auto asset = std::make_shared<DirectDrawSurfaceAsset>(
       metadata, path, m_assetManager->getApplication());
   m_assetManager->registerAsset(asset);
-  iInfo("Imported asset: [DDSTexture] {}", metadata.m_uuid);
+  // iInfo("Imported asset: [DDSTexture] {}", metadata.m_uuid);
 }
 
 } // namespace Ifrit::Core

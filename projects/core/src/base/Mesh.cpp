@@ -124,7 +124,7 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData,
 
     totalLods = miscInfo.totalLods;
 
-    iInfo("Loaded cached mesh VG for {}", meshData->identifier);
+    // iInfo("Loaded cached mesh VG for {}", meshData->identifier);
   }
   if (needToGenerateVG) {
     totalLods = meshProc.clusterLodHierachy(

@@ -81,7 +81,7 @@ ShaderAssetImporter::importAsset(const std::filesystem::path &path,
   auto asset = std::make_shared<ShaderAsset>(metadata, path,
                                              m_assetManager->getApplication());
   m_assetManager->registerAsset(asset);
-  iInfo("Imported asset: [Shader] {}", metadata.m_uuid);
+  // iInfo("Imported asset: [Shader] {}", metadata.m_uuid);
 }
 
 } // namespace Ifrit::Core

@@ -43,6 +43,8 @@ IFRIT_APIDECL bool GLFWWindowProvider::setup(size_t argWidth,
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   }
+  // disable window resizing
+  glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
   using Ifrit::Common::Utility::size_cast;
   window = glfwCreateWindow(size_cast<int>(argWidth), size_cast<int>(argHeight),
                             "Ifrit", nullptr, nullptr);

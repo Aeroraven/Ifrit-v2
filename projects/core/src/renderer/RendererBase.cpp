@@ -38,7 +38,7 @@ IFRIT_APIDECL void RendererBase::prepareImmutableResources() {
   if (m_immRes.m_linearSampler == nullptr) {
     auto rhi = m_app->getRhiLayer();
     m_immRes.m_linearSampler = rhi->createTrivialSampler();
-    m_immRes.m_nearestSampler = rhi->createTrivialSampler();
+    m_immRes.m_nearestSampler = rhi->createTrivialNearestSampler(false);
   }
 }
 

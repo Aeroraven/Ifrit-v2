@@ -29,6 +29,7 @@ Successor to following repos: [Ifrit](https://github.com/Aeroraven/Ifrit), [Aria
 - Support mesh shading pipeline (mesh  shaders), and raytracing shaders (like miss shader)
 - Support just-in-time compilation of HLSL SPIR-V shader code.
 - Covers culling (including contribution culling), MSAA (8x), mipmapping,  anisotropic filtering and shader derivatives (`ddx` & `ddy`)
+- Support texture sampling & cube mapping and texture lods.
 - For implementation details and performance, check [here](./projects/softgraphics/readme.md)
 
 

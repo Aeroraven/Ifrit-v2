@@ -722,6 +722,32 @@ SyaroRenderer::setupDeferredShadingPass(RenderTargets *renderTargets) {
   }
 }
 
+IFRIT_APIDECL void
+SyaroRenderer::setupDebugPasses(PerFrameData &perframeData,
+                                RenderTargets *renderTargets) {
+  auto rhi = m_app->getRhiLayer();
+  auto rtCfg = renderTargets->getFormat();
+
+  PipelineAttachmentConfigs paCfg;
+  paCfg.m_colorFormats = rtCfg.m_colorFormats;
+  paCfg.m_depthFormat = rtCfg.m_depthFormat;
+
+  if (m_triangleViewPass.find(paCfg) == m_triangleViewPass.end()) {
+    auto pass = rhi->createGraphicsPass();
+    auto vsShader = createShaderFromFile("Syaro.TriangleView.vert.glsl", "main",
+                                         RhiShaderStage::Vertex);
+    auto fsShader = createShaderFromFile("Syaro.TriangleView.frag.glsl", "main",
+                                         RhiShaderStage::Fragment);
+    pass->setVertexShader(vsShader);
+    pass->setPixelShader(fsShader);
+    pass->setNumBindlessDescriptorSets(0);
+    pass->setPushConstSize(u32Size);
+    pass->setRenderTargetFormat(rtCfg);
+
+    m_triangleViewPass[paCfg] = pass;
+  }
+}
+
 IFRIT_APIDECL void SyaroRenderer::setupTAAPass(RenderTargets *renderTargets) {
   auto rhi = m_app->getRhiLayer();
 
@@ -812,7 +838,7 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
     m_visibilityCombinePass = rhi->createComputePass();
     m_visibilityCombinePass->setComputeShader(csShader);
     m_visibilityCombinePass->setNumBindlessDescriptorSets(0);
-    m_visibilityCombinePass->setPushConstSize(u32Size * 8);
+    m_visibilityCombinePass->setPushConstSize(u32Size * 9);
   }
 #endif
 }
@@ -1279,6 +1305,7 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
       u32 rtHeight;
       u32 outVisUAVId;
       u32 outDepthUAVId;
+      u32 outMode;
     } pcCombine;
     pcCombine.rtWidth = perView.m_renderWidth;
     pcCombine.rtHeight = perView.m_renderHeight;
@@ -1291,6 +1318,8 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
     pcCombine.hwDepthSRVId = perView.m_visDepthId_HW->getActiveId();
     pcCombine.swVisUAVId = perView.m_visBufferIdUAV_SW->getActiveId();
     pcCombine.swDepthUAVId = perView.m_visDepthId_SW->getActiveId();
+    pcCombine.outMode =
+        m_config->m_visualizationType == RendererVisualizationType::SwHwMaps;
 
     constexpr auto wgSizeX = SyaroConfig::cCombineVisBufferThreadGroupSizeX;
     constexpr auto wgSizeY = SyaroConfig::cCombineVisBufferThreadGroupSizeY;
@@ -1366,6 +1395,28 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
   m_singlePassHiZPass->run(cmd, 0);
   cmd->endScope();
   cmd->endScope();
+}
+
+IFRIT_APIDECL void
+SyaroRenderer::renderTriangleView(PerFrameData &perframeData,
+                                  RenderTargets *renderTargets,
+                                  const GPUCmdBuffer *cmd) {
+  auto rhi = m_app->getRhiLayer();
+  auto &primaryView = getPrimaryView(perframeData);
+  setupDebugPasses(perframeData, renderTargets);
+
+  auto rtCfg = renderTargets->getFormat();
+  PipelineAttachmentConfigs cfg;
+  cfg.m_colorFormats = rtCfg.m_colorFormats;
+  cfg.m_depthFormat = rtCfg.m_depthFormat;
+
+  auto triangleView = m_triangleViewPass[cfg];
+  struct PushConst {
+    u32 visBufferSRV;
+  } pc;
+  pc.visBufferSRV = primaryView.m_visibilityBufferIdSRV_Combined->getActiveId();
+  RenderingUtil::enqueueFullScreenPass(cmd, rhi, triangleView, renderTargets,
+                                       {}, &pc, 1);
 }
 
 IFRIT_APIDECL void
@@ -1704,7 +1755,7 @@ SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeData,
       perView.m_visibilityBufferIdSRV_Combined =
           rhi->registerCombinedImageSampler(
               perView.m_visibilityBuffer_Combined.get(),
-              m_immRes.m_linearSampler.get());
+              m_immRes.m_nearestSampler.get());
       perView.m_visibilityDepthIdSRV_Combined =
           rhi->registerCombinedImageSampler(
               perView.m_visibilityDepth_Combined.get(),
@@ -2169,7 +2220,9 @@ SyaroRenderer::render(
       [&](const RhiCommandBuffer *cmd) {
         for (u32 i = 0; i < perframeData.m_views.size(); i++) {
           if (perframeData.m_views[i].m_viewType ==
-              PerFrameData::ViewType::Shadow) {
+                  PerFrameData::ViewType::Shadow &&
+              m_config->m_visualizationType ==
+                  RendererVisualizationType::Default) {
             cmd->beginScope("Syaro: Draw Call, Shadow View");
             cmd->globalMemoryBarrier();
             auto &perView = perframeData.m_views[i];
@@ -2190,9 +2243,14 @@ SyaroRenderer::render(
                                      renderTargets, cmd,
                                      PerFrameData::ViewType::Primary, ~0u);
             cmd->globalMemoryBarrier();
+            if (m_config->m_visualizationType !=
+                RendererVisualizationType::Default) {
+              return;
+            }
             renderEmitDepthTargets(perframeData, renderTargets, cmd);
             cmd->globalMemoryBarrier();
             renderMaterialClassify(perframeData, renderTargets, cmd);
+            cmd->globalMemoryBarrier();
             renderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
             cmd->globalMemoryBarrier();
             renderAmbientOccl(perframeData, renderTargets, cmd);
@@ -2202,12 +2260,28 @@ SyaroRenderer::render(
       },
       cmdToWaitBkp, {});
 
-  auto deferredTask = dq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
-        setupAndRunFrameGraph(perframeData, renderTargets, cmd);
-      },
-      {mainTask.get()}, {});
-  return mainTask;
+  if (m_config->m_visualizationType != RendererVisualizationType::Default) {
+    auto deferredTask = dq->runAsyncCommand(
+        [&](const RhiCommandBuffer *cmd) {
+          if (m_config->m_visualizationType ==
+                  RendererVisualizationType::Triangle ||
+              m_config->m_visualizationType ==
+                  RendererVisualizationType::SwHwMaps) {
+            cmd->globalMemoryBarrier();
+            renderTriangleView(perframeData, renderTargets, cmd);
+            return;
+          }
+        },
+        {mainTask.get()}, {});
+    return deferredTask;
+  } else {
+    auto deferredTask = dq->runAsyncCommand(
+        [&](const RhiCommandBuffer *cmd) {
+          setupAndRunFrameGraph(perframeData, renderTargets, cmd);
+        },
+        {mainTask.get()}, {});
+    return deferredTask;
+  }
 }
 
 IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
@@ -2262,6 +2336,14 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
     sceneConfig.projectionTranslateX = 0.0f;
     sceneConfig.projectionTranslateY = 0.0f;
   }
+
+  // If debug views, ignore all jitters
+  if (config.m_visualizationType != RendererVisualizationType::Default) {
+    perframeData.m_taaJitterX = 0;
+    perframeData.m_taaJitterY = 0;
+    sceneConfig.projectionTranslateX = 0.0f;
+    sceneConfig.projectionTranslateY = 0.0f;
+  }
   setRendererConfig(&config);
   collectPerframeData(perframeData, scene, camera,
                       GraphicsShaderPassType::Opaque, renderTargets,
@@ -2280,6 +2362,14 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
   } else {
     perframeData.m_taaJitterX = 0;
     perframeData.m_taaJitterY = 0;
+  }
+
+  // If debug views, ignore all jitters
+  if (config.m_visualizationType != RendererVisualizationType::Default) {
+    perframeData.m_taaJitterX = 0;
+    perframeData.m_taaJitterY = 0;
+    sceneConfig.projectionTranslateX = 0.0f;
+    sceneConfig.projectionTranslateY = 0.0f;
   }
 
   auto ret = render(perframeData, renderTargets, cmdToWait);

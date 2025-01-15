@@ -404,7 +404,7 @@ GLTFAssetImporter::importAsset(const std::filesystem::path &path,
   auto asset = std::make_shared<GLTFAsset>(metadata, path, m_assetManager);
   m_assetManager->registerAsset(asset);
 
-  iInfo("Imported asset: [GLTFObject] {}", metadata.m_uuid);
+  // iInfo("Imported asset: [GLTFObject] {}", metadata.m_uuid);
 }
 
 } // namespace Ifrit::Core

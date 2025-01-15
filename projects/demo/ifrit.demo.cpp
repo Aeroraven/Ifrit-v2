@@ -85,9 +85,11 @@ public:
     auto bistroObj =
         m_assetManager->getAssetByName<GLTFAsset>("Bistro/untitled.gltf");
     // Renderer config
+    renderConfig.m_visualizationType = RendererVisualizationType::Default;
     renderConfig.m_antiAliasingType = AntiAliasingType::FSR2;
     renderConfig.m_shadowConfig.m_maxDistance = 200.0f;
     renderConfig.m_superSamplingRate = 1.5f;
+
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");
     auto node = s->addSceneNode();
@@ -147,9 +149,9 @@ public:
                                 ->getGameObject(0);
     auto camera = cameraGameObject->getComponent<Transform>();
     timing = timing + 0.1f;
-    camera->setPosition({-4.5f + 0.0f * sin(timing) + movRight - movLeft +
+    camera->setPosition({0.0f + 0.0f * sin(timing) + movRight - movLeft +
                              0.0f * std::sin(timing),
-                         7.0f + movTop - movBottom, 5.25f + movFar - movNear});
+                         2.0f + movTop - movBottom, 2.05f + movFar - movNear});
     camera->setRotation({0.0f, movRot, 0.0f});
     auto sFrameStart = renderer->beginFrame();
     auto renderComplete = renderer->render(

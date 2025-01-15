@@ -148,6 +148,11 @@ private:
   std::unique_ptr<PostprocessPassCollection::PostFxGaussianVert> m_gaussianVert;
   std::unique_ptr<PostprocessPassCollection::PostFxFFTConv2d> m_fftConv2d;
 
+  // Intermediate views
+  std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
+                     PipelineAttachmentConfigsHash>
+      m_triangleViewPass;
+
   // Render config
   RendererConfig m_renderConfig;
 
@@ -190,6 +195,9 @@ private:
   void createPostprocessTextures(uint32_t width, uint32_t height);
   void prepareAggregatedShadowData(PerFrameData &perframeData);
 
+  void setupDebugPasses(PerFrameData &perframeData,
+                        RenderTargets *renderTargets);
+
   // Many passes are not material-dependent, so a unified instance buffer
   // might reduce calls
   void gatherAllInstances(PerFrameData &perframeData);
@@ -204,6 +212,10 @@ private:
                                 const GPUCmdBuffer *cmd,
                                 PerFrameData::ViewType filteredViewType,
                                 uint32_t idx);
+
+  void renderTriangleView(PerFrameData &perframeData,
+                          RenderTargets *renderTargets,
+                          const GPUCmdBuffer *cmd);
 
   void renderEmitDepthTargets(PerFrameData &perframeData,
                               RenderTargets *renderTargets,

@@ -40,6 +40,7 @@ layout(push_constant) uniform CombineVisBufferPushConstant{
     uint rtHeight;
     uint outVisBufferId;
     uint outDepthBufferId; // color image
+    uint outputMode; // 0-default, 1-sw/hw coloring
 }pc;
 
 RegisterStorage(bDepth,{
@@ -83,13 +84,24 @@ void main(){
         imageStore(GetUAVImage2DR32F(pc.outDepthBufferId), ivec2(x,y), vec4(1.0));
         return;
     }
-    if(swDepth<hwDepth){
-        if(pc.outVisBufferId!=~0) imageStore(GetUAVImage2DR32UI(pc.outVisBufferId), ivec2(x,y), uvec4(swVis));
-        imageStore(GetUAVImage2DR32F(pc.outDepthBufferId), ivec2(x,y), vec4(swDepth));
+    if(pc.outputMode==1){
+        if(swDepth<hwDepth){
+            if(pc.outVisBufferId!=~0) imageStore(GetUAVImage2DR32UI(pc.outVisBufferId), ivec2(x,y), uvec4(2));
+            imageStore(GetUAVImage2DR32F(pc.outDepthBufferId), ivec2(x,y), vec4(swDepth));
+        }else{
+            if(pc.outVisBufferId!=~0) imageStore(GetUAVImage2DR32UI(pc.outVisBufferId), ivec2(x,y), uvec4(3));
+            imageStore(GetUAVImage2DR32F(pc.outDepthBufferId), ivec2(x,y), vec4(hwDepth));
+        }
     }else{
-        if(pc.outVisBufferId!=~0) imageStore(GetUAVImage2DR32UI(pc.outVisBufferId), ivec2(x,y), uvec4(hwVis));
-        imageStore(GetUAVImage2DR32F(pc.outDepthBufferId), ivec2(x,y), vec4(hwDepth));
+        if(swDepth<hwDepth){
+            if(pc.outVisBufferId!=~0) imageStore(GetUAVImage2DR32UI(pc.outVisBufferId), ivec2(x,y), uvec4(swVis));
+            imageStore(GetUAVImage2DR32F(pc.outDepthBufferId), ivec2(x,y), vec4(swDepth));
+        }else{
+            if(pc.outVisBufferId!=~0) imageStore(GetUAVImage2DR32UI(pc.outVisBufferId), ivec2(x,y), uvec4(hwVis));
+            imageStore(GetUAVImage2DR32F(pc.outDepthBufferId), ivec2(x,y), vec4(hwDepth));
+        }
     }
+    
     
 }
 

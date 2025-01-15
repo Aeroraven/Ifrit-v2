@@ -44,6 +44,7 @@ struct ImmutableRendererResources {
 };
 
 enum class AntiAliasingType { None, TAA, FSR2 };
+enum class RendererVisualizationType { Default, Triangle, SwHwMaps };
 
 struct RendererConfig {
   struct ShadowConfig {
@@ -55,6 +56,8 @@ struct RendererConfig {
   };
 
   AntiAliasingType m_antiAliasingType = AntiAliasingType::None;
+  RendererVisualizationType m_visualizationType =
+      RendererVisualizationType::Default;
   ShadowConfig m_shadowConfig;
   float m_superSamplingRate = 1.0f;
 };
