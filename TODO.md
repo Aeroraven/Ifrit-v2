@@ -11,8 +11,8 @@
 
 - [ ] Syaro: TAA flickering for distant tiny objects
 
-- [ ] Syaro: LOD switching not smooth
-  - [ ] Abrupt attribute change (causing lighting changes when lod switches)
+- [ ] Syaro: LOD switching not smooth (confirming)
+  - [x] <s>Abrupt attribute change (causing lighting changes when lod switches)</s>
   - [x] <s>Losing thin objects when switching to low-lod objects</s>
   
 - [ ] Syaro: PCF shadow not smooth
@@ -33,6 +33,12 @@
     
 
 ## Resolved
+
+- Syaro: Alleviate abrupt attribute change between different mesh lods (250115)
+
+  | After Fixing                                       | Before Fixing                                      |
+  | -------------------------------------------------- | -------------------------------------------------- |
+  | ![image-20250111153548338](docs/imgtodo/nlod1.png) | ![image-20250111153512009](docs/imgtodo/nlod2.png) |
 
 - Syaro: Missing meshes, caused by wrong HiZ mip selection (250111)
 

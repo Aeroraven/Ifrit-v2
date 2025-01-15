@@ -438,12 +438,27 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
     auto targetIndexCount = static_cast<uint32_t>(aggregatedIndexBuffer.size() *
                                                   MESH_SIMPLIFICATION_RATE);
     float targetError = predefError * modelScale; // 0.01f;
-    auto simplifiedSize = meshopt_simplify(
-        simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(),
-        aggregatedIndexBuffer.size(),
-        reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
-        mesh.vertexCount, mesh.vertexStride, targetIndexCount, targetError,
-        option, &simplifyError);
+    size_t simplifiedSize = 0.0;
+
+    if (mesh.normalData == nullptr) {
+      simplifiedSize = meshopt_simplify(
+          simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(),
+          aggregatedIndexBuffer.size(),
+          reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
+          mesh.vertexCount, mesh.vertexStride, targetIndexCount, targetError,
+          option, &simplifyError);
+    } else {
+      float normalWeight[3] = {0.5f, 0.5f, 0.5f};
+      simplifiedSize = meshopt_simplifyWithAttributes(
+          simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(),
+          aggregatedIndexBuffer.size(),
+          reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
+          mesh.vertexCount, mesh.vertexStride,
+          reinterpret_cast<float *>(mesh.normalData), 3 * sizeof(float),
+          normalWeight, 3, nullptr, targetIndexCount, targetError, option,
+          &simplifyError);
+    }
+
     if (simplifiedSize == 0) {
       iError("Simplified size is 0, targetIndexCount: {}, targetError: {}",
              targetIndexCount, targetError);

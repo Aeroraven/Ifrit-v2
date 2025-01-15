@@ -149,10 +149,10 @@ public:
                                 ->getGameObject(0);
     auto camera = cameraGameObject->getComponent<Transform>();
     timing = timing + 0.1f;
-    camera->setPosition({0.0f + 0.0f * sin(timing) + movRight - movLeft +
+    camera->setPosition({-20.0f + 0.0f * sin(timing) + movRight - movLeft +
                              0.0f * std::sin(timing),
-                         2.0f + movTop - movBottom, 2.05f + movFar - movNear});
-    camera->setRotation({0.0f, movRot, 0.0f});
+                         8.0f + movTop - movBottom, 2.05f + movFar - movNear});
+    camera->setRotation({0.0f, movRot + 1.57f, 0.0f});
     auto sFrameStart = renderer->beginFrame();
     auto renderComplete = renderer->render(
         m_sceneAssetManager->getScene("TestScene2").get(), nullptr,
