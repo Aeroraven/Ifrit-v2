@@ -536,6 +536,15 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
 
         vec3 rNormal = tbn * vNormalRGB;
         data.vpNormalVS = rNormal;
+
+        // make this to be in view space. TODO: inverse transform
+        mat4 worldToView = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_worldToView;
+        mat4 localToWorld = GetResource(bLocalTransform, GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].transformRef).m_localToWorld;
+        mat4 localToView = worldToView * localToWorld;
+
+        data.vpNormalVS = normalize(data.vpNormalVS);
+        data.vpNormalVS = vec3(localToView * vec4(data.vpNormalVS,0.0));
+        data.vpNormalVS = normalize(data.vpNormalVS);
     }
 
     return data;

@@ -398,6 +398,10 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
         perframeData.m_gbuffer.m_shadowMask.get(), {0, 0, 1, 1});
 
     // sampler
+    perframeData.m_gbuffer.m_albedo_materialFlags_sampId =
+        rhi->registerCombinedImageSampler(
+            perframeData.m_gbuffer.m_albedo_materialFlags.get(),
+            m_immRes.m_linearSampler.get());
     perframeData.m_gbuffer.m_normal_smoothness_sampId =
         rhi->registerCombinedImageSampler(
             perframeData.m_gbuffer.m_normal_smoothness.get(),

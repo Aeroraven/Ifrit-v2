@@ -61,6 +61,7 @@ layout(push_constant) uniform HiZPushConstant{
     uint depthWidth;
     uint depthHeight;
     uint mipLevels;
+    uint minMode; // 0: max, 1: min
 }uHiZPushConstant;
 
 uint mortonDecodeX(uint code){
@@ -115,7 +116,12 @@ void main(){
                         float d3 = depthFetch(tileX,tileY+1);
                         float d4 = depthFetch(tileX+1,tileY+1);
 
-                        float maxDepth = max(max(d1,d2),max(d3,d4));
+                        float maxDepth = 0.0;
+                        if(uHiZPushConstant.minMode == 0){
+                            maxDepth = max(max(d1,d2),max(d3,d4));
+                        }else{
+                            maxDepth = min(min(d1,d2),min(d3,d4));
+                        }
 
                         // for compatibility, we store the depth in the first mip level.
                         imageStore(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i]),ivec2(tileX,tileY),vec4(d1,0.0,0.0,0.0));
@@ -131,7 +137,12 @@ void main(){
                         float d3 = imageLoad(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i]),ivec2(tileX,tileY+1)).r;
                         float d4 = imageLoad(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i]),ivec2(tileX+1,tileY+1)).r;
 
-                        float maxDepth = max(max(d1,d2),max(d3,d4));
+                        float maxDepth = 0.0;
+                        if(uHiZPushConstant.minMode == 0){
+                            maxDepth = max(max(d1,d2),max(d3,d4));
+                        }else{
+                            maxDepth = min(min(d1,d2),min(d3,d4));
+                        }
                         imageStore(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i+1]),ivec2(tileX/2,tileY/2),vec4(maxDepth,0.0,0.0,0.0));
                     }
                 }
@@ -170,7 +181,13 @@ void main(){
                     float d3 = imageLoad(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i]),ivec2(tileX,tileY2)).r;
                     float d4 = imageLoad(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i]),ivec2(tileX2,tileY2)).r;
 
-                    float maxDepth = max(max(d1,d2),max(d3,d4));
+                    float maxDepth = 0.0;
+                    if(uHiZPushConstant.minMode == 0){
+                        maxDepth = max(max(d1,d2),max(d3,d4));
+                    }else{
+                        maxDepth = min(min(d1,d2),min(d3,d4));
+                    }
+                    max(max(d1,d2),max(d3,d4));
                     imageStore(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i+1]),ivec2(tileX/2,tileY/2),vec4(maxDepth,0.0,0.0,0.0));
                 }
             }

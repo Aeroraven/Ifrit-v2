@@ -29,6 +29,9 @@ struct MaterialPassIndirectCommand{
     uint z;
 };
 
+RegisterStorage(bMaterialPassIndirectCommand,{
+    MaterialPassIndirectCommand data[];
+});
 RegisterStorage(bMaterialCounter,{
     uint totalCounter;
     uint pad;
@@ -41,9 +44,7 @@ RegisterStorage(bMaterialPixelList,{
 RegisterStorage(bPerPixelCounterOffset,{
     uint data[];
 });
-RegisterStorage(bMaterialPassIndirectCommand,{
-    MaterialPassIndirectCommand data[];
-});
+
 
 layout(binding = 0, set = 1) uniform MaterialPassData{
     uint materialDepthRef;

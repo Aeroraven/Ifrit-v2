@@ -611,8 +611,7 @@ SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeData,
         args.deltaTime =
             perframeData.m_frameTimestamp[perframeData.m_frameId % 2] -
             perframeData.m_frameTimestamp[(perframeData.m_frameId - 1) % 2];
-        // TODO;
-        args.deltaTime = 16.6f;
+        args.deltaTime = std::max(args.deltaTime, 16.6f);
       }
       args.exposure = nullptr;
       args.jitterX = perframeData.m_taaJitterX;
@@ -864,9 +863,7 @@ IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
 }
 
 IFRIT_APIDECL void SyaroRenderer::setupSinglePassHiZPass() {
-  auto rhi = m_app->getRhiLayer();
-  m_singlePassHiZPass = RenderingUtil::createComputePass(
-      rhi, "Syaro/Syaro.SinglePassHiZ.comp.glsl", 1, 5);
+  m_singlePassHiZProc = std::make_shared<SinglePassHiZPass>(m_app);
 }
 IFRIT_APIDECL void SyaroRenderer::setupEmitDepthTargetsPass() {
   auto rhi = m_app->getRhiLayer();
@@ -1006,9 +1003,6 @@ SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData,
   perframeData.m_gbufferDepthDesc = rhi->createBindlessDescriptorRef();
   perframeData.m_gbufferDepthDesc->addCombinedImageSampler(
       perframeData.m_velocityMaterial.get(), m_immRes.m_linearSampler.get(), 0);
-  perframeData.m_gbufferDepthIdX = rhi->registerCombinedImageSampler(
-      primaryView.m_visibilityDepth_Combined.get(),
-      m_immRes.m_linearSampler.get());
 }
 
 IFRIT_APIDECL void
@@ -1330,23 +1324,6 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
     ctx->m_cmd->dispatch(tgX, tgY, 1);
   });
 
-  // auto &primaryView = getPrimaryView(perframeData);
-  auto width = perView.m_renderWidth;
-  auto height = perView.m_renderHeight;
-  u32 pushConst[5] = {perView.m_spHiZData.m_hizWidth,
-                      perView.m_spHiZData.m_hizHeight, width, height,
-                      perView.m_spHiZData.m_hizIters};
-  m_singlePassHiZPass->setRecordFunction([&](RhiRenderPassContext *ctx) {
-    ctx->m_cmd->attachBindlessReferenceCompute(m_singlePassHiZPass, 1,
-                                               perView.m_spHiZData.m_hizDesc);
-    ctx->m_cmd->setPushConst(m_singlePassHiZPass, 0, u32Size * 5,
-                             &pushConst[0]);
-    auto tgX =
-        (perView.m_spHiZData.m_hizWidth + cSPHiZTileSize - 1) / cSPHiZTileSize;
-    auto tgY =
-        (perView.m_spHiZData.m_hizHeight + cSPHiZTileSize - 1) / cSPHiZTileSize;
-    ctx->m_cmd->dispatch(tgX, tgY, 1);
-  });
   if (cullPass == CullingPass::First) {
     cmd->beginScope("Syaro: Cull Rasterize I");
   } else {
@@ -1392,7 +1369,9 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(
 
   cmd->globalMemoryBarrier();
   cmd->beginScope("Syaro: HiZ Pass");
-  m_singlePassHiZPass->run(cmd, 0);
+  m_singlePassHiZProc->runHiZPass(perView.m_spHiZData, cmd,
+                                  perView.m_renderWidth, perView.m_renderHeight,
+                                  false);
   cmd->endScope();
   cmd->endScope();
 }
@@ -1475,11 +1454,16 @@ SyaroRenderer::renderMaterialClassify(PerFrameData &perframeData,
 
   // Start rendering
   cmd->beginScope("Syaro: Material Classification");
+  cmd->globalMemoryBarrier();
   m_matclassCountPass->run(cmd, 0);
   cmd->resourceBarrier(perframeData.m_matClassBarrier);
+  cmd->globalMemoryBarrier();
   m_matclassReservePass->run(cmd, 0);
   cmd->resourceBarrier(perframeData.m_matClassBarrier);
+  cmd->globalMemoryBarrier();
   m_matclassScatterPass->run(cmd, 0);
+  cmd->resourceBarrier(perframeData.m_matClassBarrier);
+  cmd->globalMemoryBarrier();
   cmd->endScope();
 }
 
@@ -1489,76 +1473,6 @@ IFRIT_APIDECL void SyaroRenderer::setupDefaultEmitGBufferPass() {
       rhi, "Syaro/Syaro.EmitGBuffer.Default.comp.glsl", 6, 3);
 }
 
-IFRIT_APIDECL void SyaroRenderer::hizBufferSetup(PerFrameData &perframeData,
-                                                 RenderTargets *renderTargets) {
-  for (u32 k = 0; k < perframeData.m_views.size(); k++) {
-    auto &perView = perframeData.m_views[k];
-    auto width = perView.m_renderWidth;
-    auto height = perView.m_renderHeight;
-    bool cond = (perView.m_hizTexture == nullptr);
-    if (!cond && (perView.m_hizTexture->getWidth() != width ||
-                  perView.m_hizTexture->getHeight() != height)) {
-      cond = true;
-    }
-    if (!cond) {
-      return;
-    }
-    auto rhi = m_app->getRhiLayer();
-    auto maxMip = int(std::floor(std::log2(std::max(width, height))) + 1);
-    perView.m_hizTexture = rhi->createMipMapTexture(
-        width, height, maxMip, kbImFmt_R32F, kbImUsage_UAV);
-    u32 rWidth = perView.m_renderWidth;
-    u32 rHeight = perView.m_renderHeight;
-
-    for (int i = 0; i < maxMip; i++) {
-      auto desc = rhi->createBindlessDescriptorRef();
-      auto hizTexSize = rhi->createBufferDevice(
-          sizeof(GPUHiZDesc),
-          RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
-              RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-      GPUHiZDesc hizDesc = {rWidth, rHeight};
-      auto stagedBuf = rhi->createStagedSingleBuffer(hizTexSize.get());
-      auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
-      tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-        stagedBuf->cmdCopyToDevice(cmd, &hizDesc, sizeof(GPUHiZDesc), 0);
-      });
-      rWidth = std::max(1u, rWidth / 2);
-      rHeight = std::max(1u, rHeight / 2);
-      desc->addCombinedImageSampler(perView.m_visibilityDepth_Combined.get(),
-                                    m_immRes.m_linearSampler.get(), 0);
-      desc->addUAVImage(perView.m_hizTexture.get(),
-                        {static_cast<u32>(std::max(0, i - 1)), 0, 1, 1}, 1);
-      desc->addUAVImage(perView.m_hizTexture.get(),
-                        {static_cast<u32>(i), 0, 1, 1}, 2);
-      desc->addStorageBuffer(hizTexSize.get(), 3);
-      perView.m_hizDescs.push_back(desc);
-    }
-    perView.m_hizIter = maxMip;
-
-    // For hiz-testing, we need to create a descriptor for the hiz
-    // texture Seems UAV/Storage image does not support mip-levels
-    for (int i = 0; i < maxMip; i++) {
-      perView.m_hizTestMips.push_back(rhi->registerUAVImage(
-          perView.m_hizTexture.get(), {static_cast<u32>(i), 0, 1, 1}));
-      perView.m_hizTestMipsId.push_back(
-          perView.m_hizTestMips.back()->getActiveId());
-    }
-    perView.m_hizTestMipsBuffer =
-        rhi->createBufferDevice(u32Size * maxMip, kbBufUsage_SSBO_CopyDest);
-
-    auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
-    auto staged =
-        rhi->createStagedSingleBuffer(perView.m_hizTestMipsBuffer.get());
-    tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-      staged->cmdCopyToDevice(cmd, perView.m_hizTestMipsId.data(),
-                              u32Size * maxMip, 0);
-    });
-    perView.m_hizTestDesc = rhi->createBindlessDescriptorRef();
-    perView.m_hizTestDesc->addStorageBuffer(perView.m_hizTestMipsBuffer.get(),
-                                            0);
-  }
-}
-
 IFRIT_APIDECL void
 SyaroRenderer::sphizBufferSetup(PerFrameData &perframeData,
                                 RenderTargets *renderTargets) {
@@ -1566,59 +1480,22 @@ SyaroRenderer::sphizBufferSetup(PerFrameData &perframeData,
     auto &perView = perframeData.m_views[k];
     auto width = perView.m_renderWidth;
     auto height = perView.m_renderHeight;
-    bool cond = (perView.m_spHiZData.m_hizTexture == nullptr);
-
-    // Make width and heights power of 2
     auto rWidth = 1 << (int)std::ceil(std::log2(width));
     auto rHeight = 1 << (int)std::ceil(std::log2(height));
-    if (!cond && (perView.m_spHiZData.m_hizTexture->getWidth() != rWidth ||
-                  perView.m_spHiZData.m_hizTexture->getHeight() != rHeight)) {
-      cond = true;
+    // Max-HiZ required by instance cull
+    if (m_singlePassHiZProc->checkResourceToRebuild(perView.m_spHiZData, width,
+                                                    height)) {
+      m_singlePassHiZProc->prepareHiZResources(
+          perView.m_spHiZData, perView.m_visibilityDepth_Combined.get(),
+          m_immRes.m_linearSampler.get(), rWidth, rHeight);
     }
-    if (!cond) {
-      return;
+    // Min-HiZ required by ssgi
+    if (m_singlePassHiZProc->checkResourceToRebuild(perView.m_spHiZDataMin,
+                                                    width, height)) {
+      m_singlePassHiZProc->prepareHiZResources(
+          perView.m_spHiZDataMin, perView.m_visibilityDepth_Combined.get(),
+          m_immRes.m_linearSampler.get(), rWidth, rHeight);
     }
-    auto rhi = m_app->getRhiLayer();
-    auto maxMip = int(std::floor(std::log2(std::max(rWidth, rHeight))) + 1);
-    perView.m_spHiZData.m_hizTexture = rhi->createMipMapTexture(
-        rWidth, rHeight, maxMip, kbImFmt_R32F, kbImUsage_UAV);
-
-    // The first bit is for spd atomics
-    perView.m_spHiZData.m_hizRefs.push_back(0);
-    for (int i = 0; i < maxMip; i++) {
-      auto bindlessId =
-          rhi->registerUAVImage(perView.m_spHiZData.m_hizTexture.get(),
-                                {static_cast<u32>(i), 0, 1, 1});
-      perView.m_spHiZData.m_hizRefs.push_back(bindlessId->getActiveId());
-    }
-    perView.m_spHiZData.m_hizRefBuffer =
-        rhi->createBufferDevice(u32Size * perView.m_spHiZData.m_hizRefs.size(),
-                                kbBufUsage_SSBO_CopyDest);
-    perView.m_spHiZData.m_hizAtomics =
-        rhi->createBufferDevice(u32Size * perView.m_spHiZData.m_hizRefs.size(),
-                                kbBufUsage_SSBO_CopyDest);
-
-    auto staged =
-        rhi->createStagedSingleBuffer(perView.m_spHiZData.m_hizRefBuffer.get());
-    auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
-    tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-      staged->cmdCopyToDevice(
-          cmd, perView.m_spHiZData.m_hizRefs.data(),
-          size_cast<u32>(u32Size * perView.m_spHiZData.m_hizRefs.size()), 0);
-    });
-
-    perView.m_spHiZData.m_hizDesc = rhi->createBindlessDescriptorRef();
-    perView.m_spHiZData.m_hizDesc->addStorageBuffer(
-        perView.m_spHiZData.m_hizRefBuffer.get(), 1);
-    perView.m_spHiZData.m_hizDesc->addCombinedImageSampler(
-        perView.m_visibilityDepth_Combined.get(),
-        m_immRes.m_linearSampler.get(), 0);
-    perView.m_spHiZData.m_hizDesc->addStorageBuffer(
-        perView.m_spHiZData.m_hizAtomics.get(), 2);
-
-    perView.m_spHiZData.m_hizIters = maxMip;
-    perView.m_spHiZData.m_hizWidth = rWidth;
-    perView.m_spHiZData.m_hizHeight = rHeight;
   }
 }
 
@@ -1862,43 +1739,62 @@ SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData,
                                  const GPUCmdBuffer *cmd) {
   auto primaryView = getPrimaryView(perframeData);
 
+  auto albedoSamp = perframeData.m_gbuffer.m_albedo_materialFlags_sampId;
   auto normalSamp = perframeData.m_gbuffer.m_normal_smoothness_sampId;
-  auto depthSamp = perframeData.m_gbufferDepthIdX;
+  auto depthSamp = primaryView.m_visibilityDepthIdSRV_Combined;
   auto perframe = primaryView.m_viewBufferId;
   auto ao = perframeData.m_gbuffer.m_specular_occlusionId;
 
   u32 width = primaryView.m_renderWidth;
   u32 height = primaryView.m_renderHeight;
+
+  auto aoBlurFunc = [&]() {
+    // Blurring AO
+    auto rhi = m_app->getRhiLayer();
+    cmd->globalMemoryBarrier();
+    auto colorRT1 = rhi->createRenderTarget(
+        perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
+        {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Clear, 0, 0);
+    auto colorRT2 = rhi->createRenderTarget(
+        perframeData.m_gbuffer.m_specular_occlusion.get(), {{0, 0, 0, 0}},
+        RhiRenderTargetLoadOp::Clear, 0, 0);
+    auto rt1 = rhi->createRenderTargets();
+    rt1->setColorAttachments({colorRT1.get()});
+    rt1->setRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
+    auto rt2 = rhi->createRenderTargets();
+    rt2->setColorAttachments({colorRT2.get()});
+    rt2->setRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
+
+    m_gaussianHori->renderPostFx(
+        cmd, rt1.get(),
+        perframeData.m_gbuffer.m_specular_occlusion_sampId.get(), 5);
+    m_gaussianVert->renderPostFx(
+        cmd, rt2.get(),
+        perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId.get(),
+        5);
+    cmd->endScope();
+  };
+
   cmd->beginScope("Syaro: Ambient Occlusion");
   cmd->resourceBarrier({perframeData.m_gbuffer.m_normal_smoothnessBarrier,
                         perframeData.m_gbuffer.m_specular_occlusionBarrier});
-  m_aoPass->renderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(),
-                       ao.get(), perframe.get());
-  cmd->resourceBarrier({perframeData.m_gbuffer.m_specular_occlusionBarrier});
-
-  // Blurring AO
-  auto rhi = m_app->getRhiLayer();
+  if (m_config->m_indirectLightingType == IndirectLightingType::HBAO) {
+    m_aoPass->renderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(),
+                         ao.get(), perframe.get());
+    cmd->resourceBarrier({perframeData.m_gbuffer.m_specular_occlusionBarrier});
+    aoBlurFunc();
+  } else if (m_config->m_indirectLightingType == IndirectLightingType::SSGI) {
+    m_singlePassHiZProc->runHiZPass(primaryView.m_spHiZDataMin, cmd, width,
+                                    height, true);
+    cmd->globalMemoryBarrier();
+    m_aoPass->renderSSGI(cmd, width, height, primaryView.m_viewBufferId.get(),
+                         primaryView.m_spHiZDataMin.m_hizRefBufferId.get(),
+                         normalSamp.get(), ao.get(), albedoSamp.get(),
+                         primaryView.m_spHiZDataMin.m_hizWidth,
+                         primaryView.m_spHiZDataMin.m_hizHeight,
+                         primaryView.m_spHiZDataMin.m_hizIters);
+  }
   cmd->globalMemoryBarrier();
-  auto colorRT1 = rhi->createRenderTarget(
-      perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
-      {{0, 0, 0, 0}}, RhiRenderTargetLoadOp::Clear, 0, 0);
-  auto colorRT2 = rhi->createRenderTarget(
-      perframeData.m_gbuffer.m_specular_occlusion.get(), {{0, 0, 0, 0}},
-      RhiRenderTargetLoadOp::Clear, 0, 0);
-  auto rt1 = rhi->createRenderTargets();
-  rt1->setColorAttachments({colorRT1.get()});
-  rt1->setRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
-  auto rt2 = rhi->createRenderTargets();
-  rt2->setColorAttachments({colorRT2.get()});
-  rt2->setRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
-
-  m_gaussianHori->renderPostFx(
-      cmd, rt1.get(), perframeData.m_gbuffer.m_specular_occlusion_sampId.get(),
-      5);
-  m_gaussianVert->renderPostFx(
-      cmd, rt2.get(),
-      perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId.get(), 5);
-  cmd->endScope();
 }
 
 IFRIT_APIDECL void
@@ -2152,9 +2048,9 @@ SyaroRenderer::render(
 
   // According to
   // lunarg(https://www.lunasdk.org/manual/rhi/command_queues_and_command_buffers/)
-  // graphics queue can submit dispatch and transfer commands,
-  // but compute queue can only submit compute/transfer commands.
-  // Following posts suggests reduce command buffer submission to
+  // graphics queue can accept dispatch and transfer commands,
+  // but compute queue can only accept compute/transfer commands.
+  // Following posts suggests to reduce command buffer submission to
   // improve performance
   // https://zeux.io/2020/02/27/writing-an-efficient-vulkan-renderer/
   // https://gpuopen.com/learn/rdna-performance-guide/#command-buffers
@@ -2171,7 +2067,6 @@ SyaroRenderer::render(
   recreateInstanceCullingBuffers(
       perframeData,
       size_cast<u32>(perframeData.m_allInstanceData.m_objectData.size()));
-  hizBufferSetup(perframeData, renderTargets);
   depthTargetsSetup(perframeData, renderTargets);
   materialClassifyBufferSetup(perframeData, renderTargets);
   recreateGBuffers(perframeData, renderTargets);

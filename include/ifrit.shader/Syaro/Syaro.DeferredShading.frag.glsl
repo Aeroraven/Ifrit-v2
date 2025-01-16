@@ -92,6 +92,7 @@ void main(){
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
     float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
     float ao = texture(GetSampler2D(uGBufferRefs.specular_occlusion),texCoord).a;
+    vec3 aoN = texture(GetSampler2D(uGBufferRefs.specular_occlusion),texCoord).rgb;
     mat4 clipToWorld = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_clipToWorld;
     float depth = texture(GetSampler2D(pc.depthTexRef),texCoord).r;
 
@@ -105,9 +106,10 @@ void main(){
     vec4 worldPos = clipToWorld * ndcPos;
     worldPos /= worldPos.w;
     viewPos /= viewPos.w;
-    normal = (worldToView * vec4(normalize(normal * 2.0 - 1.0),0.0)).xyz;
+    normal = (vec4(normalize(normal * 2.0 - 1.0),0.0)).xyz;
 
     vec3 sundir = -normalize(pc.sundir.xyz);
+    //sundir.x = -sundir.x;
     vec3 lightDir = (worldToView * vec4(sundir,0.0)).xyz;
     //normalize(vec3(0.612372,0.500000,0.612372));
 

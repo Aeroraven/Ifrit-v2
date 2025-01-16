@@ -29,6 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "postprocessing/PostFxGlobalFog.h"
 #include "postprocessing/PostFxStockhamDFT2.h"
 
+#include "commonpass/SinglePassHiZ.h"
+
 namespace Ifrit::Core {
 class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
@@ -62,7 +64,8 @@ private:
   ComputePass *m_instanceCullingPass = nullptr;
 
   // Single pass HiZ
-  ComputePass *m_singlePassHiZPass = nullptr;
+  std::shared_ptr<SinglePassHiZPass> m_singlePassHiZProc = nullptr;
+
   constexpr static uint32_t cSPHiZGroupSizeX = 256;
   constexpr static uint32_t cSPHiZTileSize = 64;
 
@@ -180,7 +183,6 @@ private:
   void setupDeferredShadingPass(RenderTargets *renderTargets);
   void setupTAAPass(RenderTargets *renderTargets);
 
-  void hizBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
   void sphizBufferSetup(PerFrameData &perframeData,
                         RenderTargets *renderTargets);
   void visibilityBufferSetup(PerFrameData &perframeData,

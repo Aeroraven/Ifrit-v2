@@ -45,6 +45,7 @@ struct ImmutableRendererResources {
 
 enum class AntiAliasingType { None, TAA, FSR2 };
 enum class RendererVisualizationType { Default, Triangle, SwHwMaps };
+enum class IndirectLightingType { HBAO, SSGI };
 
 struct RendererConfig {
   struct ShadowConfig {
@@ -56,6 +57,7 @@ struct RendererConfig {
   };
 
   AntiAliasingType m_antiAliasingType = AntiAliasingType::None;
+  IndirectLightingType m_indirectLightingType = IndirectLightingType::HBAO;
   RendererVisualizationType m_visualizationType =
       RendererVisualizationType::Default;
   ShadowConfig m_shadowConfig;

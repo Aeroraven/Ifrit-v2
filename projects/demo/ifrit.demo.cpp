@@ -160,7 +160,7 @@ public:
     renderer->endFrame({renderComplete.get()});
 
     // sleep for 50ms
-    // std::this_thread::sleep_for(std::chrono::milliseconds(15));
+   // std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
   void onEnd() override {}

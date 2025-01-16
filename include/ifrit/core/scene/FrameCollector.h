@@ -146,6 +146,7 @@ struct PerFrameData {
     uint32_t m_rtCreated = 0;
 
     std::shared_ptr<GPUBindlessId> m_albedo_materialFlagsId;
+    std::shared_ptr<GPUBindlessId> m_albedo_materialFlags_sampId;
     std::shared_ptr<GPUBindlessId> m_specular_occlusionId;
     std::shared_ptr<GPUBindlessId> m_specular_occlusion_sampId;
     std::shared_ptr<GPUBindlessId> m_specular_occlusion_intermediateId;
@@ -170,6 +171,7 @@ struct PerFrameData {
     std::shared_ptr<GPUTexture> m_hizTexture = nullptr;
     std::vector<uint32_t> m_hizRefs;
     std::shared_ptr<GPUBuffer> m_hizRefBuffer = nullptr;
+    std::shared_ptr<GPUBindlessId> m_hizRefBufferId = nullptr;
     std::shared_ptr<GPUBuffer> m_hizAtomics = nullptr;
     GPUBindlessRef *m_hizDesc = nullptr;
     uint32_t m_hizIters = 0;
@@ -239,19 +241,9 @@ struct PerFrameData {
     uint32_t m_requireMaxFilteredMeshlets = 0;
     GPUBindlessRef *m_allFilteredMeshletsDesc = nullptr;
 
-    // Hiz buffer
-    std::shared_ptr<GPUTexture> m_hizTexture = nullptr;
-    std::vector<GPUBindlessRef *> m_hizDescs;
-    std::vector<GPUUniformBuffer *> m_hizTexSize;
-    uint32_t m_hizIter = 0;
-
-    std::vector<std::shared_ptr<GPUBindlessId>> m_hizTestMips;
-    std::vector<uint32_t> m_hizTestMipsId;
-    std::shared_ptr<GPUBuffer> m_hizTestMipsBuffer = nullptr;
-    GPUBindlessRef *m_hizTestDesc = nullptr;
-
     // SPD HiZ
     SinglePassHiZData m_spHiZData;
+    SinglePassHiZData m_spHiZDataMin;
 
     // Instance culling
     std::shared_ptr<GPUBuffer> m_instCullDiscardObj = nullptr;
@@ -288,13 +280,9 @@ struct PerFrameData {
   // GBuffer
   GBuffer m_gbuffer;
   GPUBindlessRef *m_gbufferDepthDesc;
-  std::shared_ptr<GPUBindlessId> m_gbufferDepthIdX = nullptr;
 
   // Gbuffer desc
   GPUBindlessRef *m_gbufferDescFrag = nullptr;
-
-  // Visibility show
-  GPUBindlessRef *m_visShowCombinedRef = nullptr;
 
   // Emit depth targets
   std::shared_ptr<GPUTexture> m_velocityMaterial = nullptr;

@@ -95,7 +95,7 @@ void main(){
     float weightedAO = 0.0;
     float totalWeight = 0.0;
 
-    const float kRadiusPixel = 64.0;
+    const float kRadiusPixel = 32.0;
     const float kMaxRadiusPixel = 8.0;
     float sampleStep = min(kRadiusPixel/vsDepth,kMaxRadiusPixel)/renderHeight/(cHBAOSampleSteps+1);
 
@@ -121,7 +121,7 @@ void main(){
     weightedAO *= kInvHbaoDirections;
 
     // store ao in alpha channel
-    vec4 rawSmoothAO = vec4(0.0);
+    vec4 rawSmoothAO = vec4(vsNormal,1.0);
     rawSmoothAO.a = 1.0 - weightedAO;
     imageStore(GetUAVImage2DRGBA32F(pushConst.aoTex),ivec2(threadX,threadY),rawSmoothAO);
 }
