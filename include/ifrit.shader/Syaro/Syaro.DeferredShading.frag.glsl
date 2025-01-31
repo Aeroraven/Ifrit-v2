@@ -134,12 +134,15 @@ void main(){
 
     float PIx = 3.14159265359;
     vec3 specular = dpbr_cookTorranceBRDF(F,G,D,NdotV,NdotL);
-    vec3 Lo = (kD * albedo / PIx + specular) * NdotL * 2.3;
+    vec3 indirect = vec3(aoN);
+    vec3 Lo = ((kD/PIx)* albedo+ specular) * NdotL * 2.3;
+    vec3 LInd = indirect;
 
     vec3 ambient = vec3(0.12) * albedo * pow(ao,1.5);
     float shadow = texture(GetSampler2D(pc.shadowTexRef),texCoord).r;
 
     //This is incorrect, but it's used for test if shadow mapping works
-    vec3 color = ambient + Lo * shadow;
+    vec3 color = Lo * shadow + ambient; //+ LInd * pow(ao,1.5);
+    //vec3 color = LInd;
     outColor = vec4(color,1.0);
 }

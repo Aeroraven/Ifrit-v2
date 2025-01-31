@@ -184,6 +184,10 @@ IFRIT_APIDECL void SyaroRenderer::setupPostprocessPassAndTextures() {
   m_fftConv2d =
       std::make_unique<PostprocessPassCollection::PostFxFFTConv2d>(m_app);
 
+  m_jointBilateralFilter =
+      std::make_unique<PostprocessPassCollection::PostFxJointBilaterialFilter>(
+          m_app);
+
   // tex and samplers
   m_postprocTexSampler = m_app->getRhiLayer()->createTrivialSampler();
 
@@ -1744,6 +1748,13 @@ SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData,
   auto depthSamp = primaryView.m_visibilityDepthIdSRV_Combined;
   auto perframe = primaryView.m_viewBufferId;
   auto ao = perframeData.m_gbuffer.m_specular_occlusionId;
+  auto aoIntermediate =
+      perframeData.m_gbuffer.m_specular_occlusion_intermediateId;
+  auto aoIntermediateSRV =
+      perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId;
+
+  auto aoRT = perframeData.m_gbuffer.m_specular_occlusion_RTs;
+  auto fsr2samp = perframeData.m_fsr2Data.m_fsr2OutputSRVId;
 
   u32 width = primaryView.m_renderWidth;
   u32 height = primaryView.m_renderHeight;
@@ -1772,7 +1783,6 @@ SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData,
         cmd, rt2.get(),
         perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId.get(),
         5);
-    cmd->endScope();
   };
 
   cmd->beginScope("Syaro: Ambient Occlusion");
@@ -1784,17 +1794,30 @@ SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData,
     cmd->resourceBarrier({perframeData.m_gbuffer.m_specular_occlusionBarrier});
     aoBlurFunc();
   } else if (m_config->m_indirectLightingType == IndirectLightingType::SSGI) {
+    m_aoPass->renderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(),
+                         ao.get(), perframe.get());
+    cmd->resourceBarrier({perframeData.m_gbuffer.m_specular_occlusionBarrier});
+    aoBlurFunc();
+    cmd->globalMemoryBarrier();
     m_singlePassHiZProc->runHiZPass(primaryView.m_spHiZDataMin, cmd, width,
                                     height, true);
     cmd->globalMemoryBarrier();
-    m_aoPass->renderSSGI(cmd, width, height, primaryView.m_viewBufferId.get(),
-                         primaryView.m_spHiZDataMin.m_hizRefBufferId.get(),
-                         normalSamp.get(), ao.get(), albedoSamp.get(),
-                         primaryView.m_spHiZDataMin.m_hizWidth,
-                         primaryView.m_spHiZDataMin.m_hizHeight,
-                         primaryView.m_spHiZDataMin.m_hizIters);
+    m_aoPass->renderSSGI(
+        cmd, width, height, primaryView.m_viewBufferId.get(),
+        primaryView.m_spHiZDataMin.m_hizRefBufferId.get(),
+        primaryView.m_spHiZData.m_hizRefBufferId.get(), normalSamp.get(),
+        aoIntermediate.get(), albedoSamp.get(),
+        primaryView.m_spHiZDataMin.m_hizWidth,
+        primaryView.m_spHiZDataMin.m_hizHeight,
+        primaryView.m_spHiZDataMin.m_hizIters, m_immRes.m_blueNoiseSRV.get());
+
+    cmd->globalMemoryBarrier();
+    m_jointBilateralFilter->renderPostFx(cmd, aoRT.get(),
+                                         aoIntermediateSRV.get(),
+                                         normalSamp.get(), depthSamp.get(), 0);
   }
   cmd->globalMemoryBarrier();
+  cmd->endScope();
 }
 
 IFRIT_APIDECL void
@@ -1961,12 +1984,14 @@ IFRIT_APIDECL void SyaroRenderer::fsr2Setup(PerFrameData &perframeData,
       perframeData.m_fsr2Data.m_fsr2Output.get(),
       m_immRes.m_linearSampler.get());
 
-  GraphicsBackend::Rhi::FSR2::RhiFSR2InitialzeArgs args;
-  args.displayHeight = outputRth;
-  args.displayWidth = outputRtw;
-  args.maxRenderWidth = actualRtw;
-  args.maxRenderHeight = actualRth;
-  m_fsr2proc->init(args);
+  if (m_config->m_antiAliasingType == AntiAliasingType::FSR2) {
+    GraphicsBackend::Rhi::FSR2::RhiFSR2InitialzeArgs args;
+    args.displayHeight = outputRth;
+    args.displayWidth = outputRtw;
+    args.maxRenderWidth = actualRtw;
+    args.maxRenderHeight = actualRth;
+    m_fsr2proc->init(args);
+  }
 }
 
 IFRIT_APIDECL void
@@ -2072,10 +2097,7 @@ SyaroRenderer::render(
   recreateGBuffers(perframeData, renderTargets);
   sphizBufferSetup(perframeData, renderTargets);
   taaHistorySetup(perframeData, renderTargets);
-
-  if (m_config->m_antiAliasingType == AntiAliasingType::FSR2) {
-    fsr2Setup(perframeData, renderTargets);
-  }
+  fsr2Setup(perframeData, renderTargets);
 
   auto start1 = std::chrono::high_resolution_clock::now();
   prepareAggregatedShadowData(perframeData);
@@ -2230,6 +2252,9 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
   } else {
     sceneConfig.projectionTranslateX = 0.0f;
     sceneConfig.projectionTranslateY = 0.0f;
+
+    // sceneConfig.projectionTranslateX = (haltonX * 2.0f - 1.0f) / width;
+    // sceneConfig.projectionTranslateY = (haltonY * 2.0f - 1.0f) / height;
   }
 
   // If debug views, ignore all jitters
@@ -2257,6 +2282,8 @@ SyaroRenderer::render(Scene *scene, Camera *camera,
   } else {
     perframeData.m_taaJitterX = 0;
     perframeData.m_taaJitterY = 0;
+    // perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5f;
+    // perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5f;
   }
 
   // If debug views, ignore all jitters

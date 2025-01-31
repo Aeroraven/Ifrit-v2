@@ -37,10 +37,15 @@ struct SceneCollectConfig {
 
 struct ImmutableRendererResources {
   using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
+  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
   std::mutex m_mutex;
   bool m_initialized = false;
   std::shared_ptr<GPUSampler> m_linearSampler = nullptr;
   std::shared_ptr<GPUSampler> m_nearestSampler = nullptr;
+
+  std::shared_ptr<GPUTexture> m_blueNoise = nullptr;
+  std::shared_ptr<GPUBindId> m_blueNoiseSRV = nullptr;
 };
 
 enum class AntiAliasingType { None, TAA, FSR2 };

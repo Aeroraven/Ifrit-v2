@@ -56,7 +56,7 @@ IFRIT_APIDECL void AmbientOcclusionPass::setupSSGIPass() {
   m_ssgiPass = rhi->createComputePass();
   m_ssgiPass->setComputeShader(shader);
   m_ssgiPass->setNumBindlessDescriptorSets(0);
-  m_ssgiPass->setPushConstSize(sizeof(uint32_t) * 10);
+  m_ssgiPass->setPushConstSize(sizeof(uint32_t) * 12);
 }
 
 IFRIT_APIDECL void
@@ -97,13 +97,15 @@ AmbientOcclusionPass::renderHBAO(const CommandBuffer *cmd, uint32_t width,
 
 IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(
     const CommandBuffer *cmd, uint32_t width, uint32_t height,
-    GPUBindId *perframeData, GPUBindId *depthHizUAV, GPUBindId *normalSRV,
-    GPUBindId *aoUAV, GPUBindId *albedoSRV, uint32_t hizTexW, uint32_t hizTexH,
-    uint32_t numLods) {
+    GPUBindId *perframeData, GPUBindId *depthHizMinUAV,
+    GPUBindId *depthHizMaxUAV, GPUBindId *normalSRV, GPUBindId *aoUAV,
+    GPUBindId *albedoSRV, uint32_t hizTexW, uint32_t hizTexH, uint32_t numLods,
+    GPUBindId *blueNoiseSRV) {
   struct SSGIPushConst {
     uint32_t perframe;
     uint32_t normalTex;
-    uint32_t depthTex;
+    uint32_t depthTexMin;
+    uint32_t depthTexMax;
     uint32_t aoTex;
     uint32_t albedoTex;
     uint32_t hizTexW;
@@ -111,11 +113,13 @@ IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(
     uint32_t rtW;
     uint32_t rtH;
     uint32_t numLods;
+    uint32_t blueNoiseSRV;
   } pc;
 
   pc.perframe = perframeData->getActiveId();
   pc.normalTex = normalSRV->getActiveId();
-  pc.depthTex = depthHizUAV->getActiveId();
+  pc.depthTexMin = depthHizMinUAV->getActiveId();
+  pc.depthTexMax = depthHizMaxUAV->getActiveId();
   pc.aoTex = aoUAV->getActiveId();
   pc.albedoTex = albedoSRV->getActiveId();
   pc.hizTexW = hizTexW;
@@ -123,6 +127,7 @@ IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(
   pc.rtW = width;
   pc.rtH = height;
   pc.numLods = numLods;
+  pc.blueNoiseSRV = blueNoiseSRV->getActiveId();
 
   if (m_ssgiPass == nullptr) {
     setupSSGIPass();
@@ -138,6 +143,7 @@ IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(
         Ifrit::Math::ConstFunc::divRoundUp(height, cSSGIThreadGroupSizeY);
     ctx->m_cmd->dispatch(wgX, wgY, 1);
   });
+  m_ssgiPass->run(cmd, 0);
 }
 
 } // namespace Ifrit::Core

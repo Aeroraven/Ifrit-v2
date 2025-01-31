@@ -81,6 +81,7 @@ uvec2 mortonDecode(uint code){
 
 float depthFetch(uint x,uint y){
     if(x >= uHiZPushConstant.depthWidth || y >= uHiZPushConstant.depthHeight){
+        if(uHiZPushConstant.minMode == 1) return 0.0;
         return 1.0;
     }
     return texelFetch(GetSampler2D(uHiZData.depthImg),ivec2(x,y),0).r;

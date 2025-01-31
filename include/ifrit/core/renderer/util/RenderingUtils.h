@@ -50,4 +50,10 @@ IFRIT_APIDECL void enqueueFullScreenPass(
         &vBindlessDescs,
     const void *pPushConst, uint32_t numPushConsts);
 
+IFRIT_APIDECL void warpRenderTargets(
+    GraphicsBackend::Rhi::RhiBackend *rhi,
+    GraphicsBackend::Rhi::RhiTexture *vTex,
+    std::shared_ptr<GraphicsBackend::Rhi::RhiColorAttachment> &vCA,
+    std::shared_ptr<GraphicsBackend::Rhi::RhiRenderTargets> &vRT);
+
 } // namespace Ifrit::Core::RenderingUtil

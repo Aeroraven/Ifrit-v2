@@ -39,7 +39,12 @@ IFRIT_AO_DEFINE_UINT(cHBAOSampleSteps, 6);
 IFRIT_AO_DEFINE_UINT(cSSGIThreadGroupSizeX, 16);
 IFRIT_AO_DEFINE_UINT(cSSGIThreadGroupSizeY, 16);
 IFRIT_AO_DEFINE_UINT(cSSGIBounces, 1);
-IFRIT_AO_DEFINE_UINT(cSSGISamples, 8);
+IFRIT_AO_DEFINE_UINT(cSSGISamples, 64);
+
+#define SSGI_USE_HIERARCHICAL_Z 1
+#define SSGI_RAY_MAX_DISTANCE 2.0f
+#define SSGI_FALLBACK_TO_SSR 0
+
 #ifdef __cplusplus
 } // namespace Ifrit::Core::Shaders::AmbientOcclusionConfig
 #endif

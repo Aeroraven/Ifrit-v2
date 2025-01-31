@@ -61,6 +61,24 @@ float ifrit_recoverViewSpaceDepth(float screenZ, float nearPlane, float farPlane
   return (2.0 * nearPlane * farPlane) / ( - screenZ * (farPlane - nearPlane) + (farPlane + nearPlane));
 }
 
+float ifrit_viewZToClipZ(float viewZ, float zNear, float zFar){
+  float dz = zFar/(zFar-zNear)*viewZ - zFar*zNear/(zFar-zNear);
+  return dz/viewZ;
+}
+
+float ifrit_clipZToViewZ(float clipZ, float zNear, float zFar){
+  // w =(f/(f-n)*z - f*n/(f-n))/z
+  // w = f/(f-n) - f*n/(f-n)/z
+  // zw = fz/(f-n) - f*n/(f-n)
+  // fn/(f-n) = z(f/(f-n) - w)
+  // z = fn/(f-n)/(f/(f-n) - w)
+  
+
+  float fn_mul = zFar*zNear;
+  float fn_sub = zFar-zNear;  
+  return fn_mul/(zFar-clipZ*fn_sub);
+}
+
 float ifrit_signedDistToPlane(vec4 plane, vec4 point){
     return dot(plane.xyz,point.xyz) + plane.w;
 }

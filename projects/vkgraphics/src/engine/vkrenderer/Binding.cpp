@@ -256,7 +256,7 @@ DescriptorManager::registerCombinedImageSampler(SingleDeviceImage *image,
   write.dstArrayElement = size_cast<uint32_t>(handleId);
   write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   write.descriptorCount = 1;
-  write.pImageInfo = &imageInfo;
+  write.pImageInfo = &imageInfo;    
 
   vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
   return size_cast<uint32_t>(handleId);

@@ -86,6 +86,7 @@ public:
         m_assetManager->getAssetByName<GLTFAsset>("Bistro/untitled.gltf");
     // Renderer config
     renderConfig.m_visualizationType = RendererVisualizationType::Default;
+    renderConfig.m_indirectLightingType = IndirectLightingType::HBAO;
     renderConfig.m_antiAliasingType = AntiAliasingType::FSR2;
     renderConfig.m_shadowConfig.m_maxDistance = 200.0f;
     renderConfig.m_superSamplingRate = 1.5f;
@@ -160,7 +161,7 @@ public:
     renderer->endFrame({renderComplete.get()});
 
     // sleep for 50ms
-   // std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
   void onEnd() override {}

@@ -23,6 +23,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/Light.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
+#include "ifrit/core/renderer/util/NoiseUtils.h"
+#include "ifrit/core/renderer/util/RenderingUtils.h"
+
 #include <mutex>
 
 using Ifrit::Common::Utility::size_cast;
@@ -35,10 +38,18 @@ IFRIT_APIDECL void RendererBase::prepareImmutableResources() {
     return;
   }
   std::lock_guard<std::mutex> lock(m_immRes.m_mutex);
+  auto rhi = m_app->getRhiLayer();
   if (m_immRes.m_linearSampler == nullptr) {
-    auto rhi = m_app->getRhiLayer();
+
     m_immRes.m_linearSampler = rhi->createTrivialSampler();
     m_immRes.m_nearestSampler = rhi->createTrivialNearestSampler(false);
+  }
+
+  // Load blue noise texture
+  if (m_immRes.m_blueNoise == nullptr) {
+    m_immRes.m_blueNoise = RenderingUtil::loadBlueNoise(rhi);
+    m_immRes.m_blueNoiseSRV = rhi->registerCombinedImageSampler(
+        m_immRes.m_blueNoise.get(), m_immRes.m_linearSampler.get());
   }
 }
 
@@ -414,6 +425,12 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
         rhi->registerCombinedImageSampler(
             perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
             m_immRes.m_linearSampler.get());
+
+    // color rts
+    RenderingUtil::warpRenderTargets(
+        rhi, perframeData.m_gbuffer.m_specular_occlusion.get(),
+        perframeData.m_gbuffer.m_specular_occlusion_colorRT,
+        perframeData.m_gbuffer.m_specular_occlusion_RTs);
 
     // barriers
     perframeData.m_gbuffer.m_normal_smoothnessBarrier.m_type =

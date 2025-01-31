@@ -27,7 +27,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "postprocessing/PostFxGaussianHori.h"
 #include "postprocessing/PostFxGaussianVert.h"
 #include "postprocessing/PostFxGlobalFog.h"
+#include "postprocessing/PostFxJointBilaterialFilter.h"
 #include "postprocessing/PostFxStockhamDFT2.h"
+
 
 #include "commonpass/SinglePassHiZ.h"
 
@@ -150,6 +152,8 @@ private:
   std::unique_ptr<PostprocessPassCollection::PostFxGaussianHori> m_gaussianHori;
   std::unique_ptr<PostprocessPassCollection::PostFxGaussianVert> m_gaussianVert;
   std::unique_ptr<PostprocessPassCollection::PostFxFFTConv2d> m_fftConv2d;
+  std::unique_ptr<PostprocessPassCollection::PostFxJointBilaterialFilter>
+      m_jointBilateralFilter;
 
   // Intermediate views
   std::unordered_map<PipelineAttachmentConfigs, DrawPass *,

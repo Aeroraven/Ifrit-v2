@@ -72,4 +72,16 @@ IFRIT_APIDECL void enqueueFullScreenPass(
 
   pass->run(cmd, rt, 0);
 }
+IFRIT_APIDECL void warpRenderTargets(
+    GraphicsBackend::Rhi::RhiBackend *rhi,
+    GraphicsBackend::Rhi::RhiTexture *vTex,
+    std::shared_ptr<GraphicsBackend::Rhi::RhiColorAttachment> &vCA,
+    std::shared_ptr<GraphicsBackend::Rhi::RhiRenderTargets> &vRT) {
+  vCA = rhi->createRenderTarget(
+      vTex, {0.0f, 0.0f, 0.0f, 0.0f},
+      GraphicsBackend::Rhi::RhiRenderTargetLoadOp::Clear, 0, 0);
+  vRT = rhi->createRenderTargets();
+  vRT->setColorAttachments({vCA.get()});
+  vRT->setRenderArea({0, 0, vTex->getWidth(), vTex->getHeight()});
+}
 } // namespace Ifrit::Core::RenderingUtil

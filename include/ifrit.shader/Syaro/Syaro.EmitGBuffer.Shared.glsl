@@ -530,7 +530,7 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
 
         vec4 vNormal = texture(GetSampler2D(normalTexId), data.vpUV.xy);
         vec2 vNormalRG = vNormal.rg * 2.0 - 1.0;
-        float vNormalZ = sqrt(1.0-vNormalRG.r*vNormalRG.r-vNormalRG.g*vNormalRG.g);
+        float vNormalZ = sqrt(1.0-min(1.0,vNormalRG.r*vNormalRG.r+vNormalRG.g*vNormalRG.g));
 
         vec3 vNormalRGB = vec3(vNormalRG,vNormalZ);
 
@@ -545,6 +545,8 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
         data.vpNormalVS = normalize(data.vpNormalVS);
         data.vpNormalVS = vec3(localToView * vec4(data.vpNormalVS,0.0));
         data.vpNormalVS = normalize(data.vpNormalVS);
+
+        //data.vpNormalVS = normalize(vec3(1.0,0.0,-1.0));
     }
 
     return data;

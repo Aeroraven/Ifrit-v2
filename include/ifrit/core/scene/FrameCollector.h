@@ -156,6 +156,9 @@ struct PerFrameData {
     std::shared_ptr<GPUBindlessId> m_emissiveId;
     std::shared_ptr<GPUBindlessId> m_shadowMaskId;
 
+    std::shared_ptr<GPUColorRT> m_specular_occlusion_colorRT;
+    std::shared_ptr<GPURTs> m_specular_occlusion_RTs;
+
     std::shared_ptr<GPUBindlessId> m_depth_sampId;
 
     GPUBarrier m_normal_smoothnessBarrier;

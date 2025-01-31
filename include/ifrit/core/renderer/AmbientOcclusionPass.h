@@ -48,8 +48,9 @@ public:
                   GPUBindId *perframeData);
 
   void renderSSGI(const CommandBuffer *cmd, uint32_t width, uint32_t height,
-                  GPUBindId *perframeData, GPUBindId *depthHizUAV,
-                  GPUBindId *normalSRV, GPUBindId *aoUAV, GPUBindId *albedoSRV,
-                  uint32_t hizTexW, uint32_t hizTexH, uint32_t numLods);
+                  GPUBindId *perframeData, GPUBindId *depthHizMinUAV,
+                  GPUBindId *depthHizMaxUAV, GPUBindId *normalSRV,
+                  GPUBindId *aoUAV, GPUBindId *albedoSRV, uint32_t hizTexW,
+                  uint32_t hizTexH, uint32_t numLods, GPUBindId *blueNoiseSRV);
 };
 } // namespace Ifrit::Core
