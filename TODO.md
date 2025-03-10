@@ -1,20 +1,24 @@
 # Ifrit-v2 /  TODO 
 
+## Warning 
+
+## High Priority 
+
+- [ ] CMake: compatibility for different environments
+
 ## Bugs
 
 - [ ] Syaro: no objects will got tested if first instance cull pass reject all objects using prev-frame hzb
-
-  
+- [ ] Syaro: Nanite's BVH has not been implemented correctly yet
 
 
 ## Artifacts
-
+- [ ] Syaro: FSR2 flickering when moving.
+- [ ] Syaro: SSGI denoising cannot work with TAA/FSR2 
 - [ ] Syaro: TAA flickering for distant tiny objects
-
-- [ ] Syaro: LOD switching not smooth (confirming)
+- [x] Syaro: LOD switching not smooth
   - [x] <s>Abrupt attribute change (causing lighting changes when lod switches)</s>
   - [x] <s>Losing thin objects when switching to low-lod objects</s>
-  
 - [ ] Syaro: PCF shadow not smooth
 
   

@@ -458,6 +458,7 @@ IFRIT_APIDECL void EngineContext::init() {
   allocatorCI.physicalDevice = m_physicalDevice;
   allocatorCI.device = m_device;
   allocatorCI.instance = m_instance;
+  allocatorCI.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
   vmaCreateAllocator(&allocatorCI, &m_allocator);
 
   loadExtensionFunction();

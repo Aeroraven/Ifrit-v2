@@ -40,6 +40,13 @@ IFRIT_APIDECL void SingleBuffer::init() {
                                   &allocCI, &m_buffer, &m_allocation,
                                   &m_allocInfo),
                   "Failed to create buffer");
+
+  // Query device address
+  VkBufferDeviceAddressInfo bufferDeviceAI{};
+  bufferDeviceAI.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+  bufferDeviceAI.buffer = m_buffer;
+  m_deviceAddress =
+      vkGetBufferDeviceAddress(m_context->getDevice(), &bufferDeviceAI);
 }
 IFRIT_APIDECL SingleBuffer::~SingleBuffer() {
   vmaDestroyBuffer(m_context->getAllocator(), m_buffer, m_allocation);
@@ -66,6 +73,10 @@ IFRIT_APIDECL void SingleBuffer::writeBuffer(const void *data, uint32_t size,
 }
 IFRIT_APIDECL void SingleBuffer::flush() {
   vmaFlushAllocation(m_context->getAllocator(), m_allocation, 0, VK_WHOLE_SIZE);
+}
+
+IFRIT_APIDECL Rhi::RhiDeviceAddr SingleBuffer::getDeviceAddress() const {
+  return m_deviceAddress;
 }
 
 // Class: MultiBuffer

@@ -41,6 +41,7 @@ protected:
   BufferCreateInfo m_createInfo;
   char *m_mappedMemory = nullptr;
   bool m_created = false;
+  u64 m_deviceAddress = 0;
 
 protected:
   void init();
@@ -62,6 +63,8 @@ public:
   inline VkFlags getUsage() const { return m_createInfo.usage; }
   inline uint32_t getSize() const { return m_createInfo.size; }
   inline BufferCreateInfo getCreateInfo() const { return m_createInfo; }
+
+  virtual Rhi::RhiDeviceAddr getDeviceAddress() const;
 };
 
 class IFRIT_APIDECL MultiBuffer : public Rhi::RhiMultiBuffer {

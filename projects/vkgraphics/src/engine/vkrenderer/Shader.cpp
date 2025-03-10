@@ -146,6 +146,23 @@ IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx,
     m_stageCI.stage = VK_SHADER_STAGE_TASK_BIT_EXT;
     kind = shaderc_task_shader;
   }
+  // Raytracing
+  else if (ci.stage == Rhi::RhiShaderStage::RTRayGen) {
+    m_stageCI.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+    kind = shaderc_raygen_shader;
+  } else if (ci.stage == Rhi::RhiShaderStage::RTClosestHit) {
+    m_stageCI.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    kind = shaderc_closesthit_shader;
+  } else if (ci.stage == Rhi::RhiShaderStage::RTMiss) {
+    m_stageCI.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+    kind = shaderc_miss_shader;
+  } else if (ci.stage == Rhi::RhiShaderStage::RTAnyHit) {
+    m_stageCI.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+    kind = shaderc_anyhit_shader;
+  } else if (ci.stage == Rhi::RhiShaderStage::RTIntersection) {
+    m_stageCI.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+    kind = shaderc_intersection_shader;
+  }
 
   std::vector<uint32_t> compiledCode;
   if (ci.sourceType == Rhi::RhiShaderSourceType::GLSLCode) {

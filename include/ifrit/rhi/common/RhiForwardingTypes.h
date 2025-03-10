@@ -43,6 +43,15 @@ struct RhiImageSubResource;
 
 class RhiDeviceTimer;
 
+// Raytracing types
+struct RhiRTShaderGroup;
+struct RhiRTGeometryReference; // Geometry
+class RhiRTInstance;           // BLAS
+class RhiRTScene;              // TLAS
+class RhiRTShaderBindingTable; // SBT
+class RhiRTPipeline;           // Pipeline
+class RhiRTPass;
+
 // Enums
 enum RhiBufferUsage {
   RHI_BUFFER_USAGE_TRANSFER_SRC_BIT = 0x00000001,
@@ -294,7 +303,19 @@ enum RhiImageFormat {
   RHI_FORMAT_ASTC_12x12_SRGB_BLOCK = 184
 };
 
-enum class RhiShaderStage { Vertex, Fragment, Compute, Mesh, Task };
+enum class RhiShaderStage {
+  Vertex,
+  Fragment,
+  Compute,
+  Mesh,
+  Task,
+  RTRayGen,
+  RTMiss,
+  RTAnyHit,
+  RTClosestHit,
+  RTIntersection,
+  RTCallable,
+};
 enum class RhiShaderSourceType { GLSLCode, Binary };
 enum class RhiVertexInputRate { Vertex, Instance };
 

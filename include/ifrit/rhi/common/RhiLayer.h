@@ -41,6 +41,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::GraphicsBackend::Rhi {
 
+using RhiDeviceAddr = u64;
+
 // Structs
 struct RhiInitializeArguments {
   std::function<const char **(u32 *)> m_extensionGetter;
@@ -264,6 +266,14 @@ public:
 
   // Extensions
   virtual std::unique_ptr<FSR2::RhiFsr2Processor> createFsr2Processor() = 0;
+
+  // Raytracing
+  virtual std::unique_ptr<RhiRTInstance> createTLAS() = 0;
+  virtual std::unique_ptr<RhiRTScene> createBLAS() = 0;
+  virtual std::unique_ptr<RhiRTShaderBindingTable>
+  createShaderBindingTable() = 0;
+
+  virtual std::unique_ptr<RhiRTPass> createRaytracingPass() = 0;
 };
 
 // RHI device
@@ -304,6 +314,8 @@ public:
   virtual void readBuffer(void *data, u32 size, u32 offset) = 0;
   virtual void writeBuffer(const void *data, u32 size, u32 offset) = 0;
   virtual inline RhiResourceState2 getState() const { return m_state; }
+
+  virtual RhiDeviceAddr getDeviceAddress() const = 0;
 
   friend class RhiCommandBuffer;
 };
@@ -594,6 +606,49 @@ public:
   virtual void start(const RhiCommandBuffer *cmd) = 0;
   virtual void stop(const RhiCommandBuffer *cmd) = 0;
   virtual f32 getElapsedMs() = 0;
+};
+
+// Raytracing types
+struct IFRIT_APIDECL RhiRTGeometryReference {
+  RhiDeviceAddr m_vertex;
+  RhiDeviceAddr m_index;
+  RhiDeviceAddr m_transform;
+  u32 m_numVertices;
+  u32 m_numIndices;
+  u32 m_vertexComponents = 3;
+  u32 m_vertexStride = 12;
+};
+
+struct IFRIT_APIDECL RhiRTShaderGroup {
+  RhiShader *m_generalShader = nullptr;
+  RhiShader *m_closestHitShader = nullptr;
+  RhiShader *m_anyHitShader = nullptr;
+  RhiShader *m_intersectionShader = nullptr;
+};
+
+class IFRIT_APIDECL RhiRTInstance {
+public:
+  virtual RhiDeviceAddr getDeviceAddress() const = 0;
+};
+
+class IFRIT_APIDECL RhiRTScene {
+public:
+  virtual RhiDeviceAddr getDeviceAddress() const = 0;
+};
+
+class IFRIT_APIDECL RhiRTShaderBindingTable {
+public:
+  virtual void _polymorphismPlaceHolder() {}
+};
+
+class IFRIT_APIDECL RhiRTPipeline {
+public:
+  virtual void _polymorphismPlaceHolder() {}
+};
+
+class IFRIT_APIDECL RhiRTPass : public RhiGeneralPassBase {
+public:
+  virtual void _polymorphismPlaceHolder() {}
 };
 
 } // namespace Ifrit::GraphicsBackend::Rhi

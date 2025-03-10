@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include <array>
 #include <cstdint>
@@ -64,5 +63,10 @@ constexpr T binLerp(const std::array<T, N> bins, const std::array<T, N> values,
 
 // Integer division, rounding up
 constexpr auto divRoundUp(auto a, auto b) { return (a + b - 1) / b; }
+
+// Upper align
+constexpr auto alignUp(auto csize, auto alignSize) {
+  return (csize + alignSize - 1) & ~(alignSize - 1);
+}
 
 } // namespace Ifrit::Math::ConstFunc
