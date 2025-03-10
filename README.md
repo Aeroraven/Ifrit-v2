@@ -1,8 +1,15 @@
 # Ifrit-v2
 
+> **Low Update Frequency**
+> 
+> I am struggling to meet the requirement for my graduation. 
+> So the update will be postponed until the issue is resolved.
+
+
 > **注意事项 / Note**
 > 
 > 这还不是一个完整的版本，许多Commit中的内容并不是完整或正确的实现，已知的问题参见 TODO.md
+>
 > This is not a complete project, many features are not implemented correctly. To view known bugs, refer to TODO.md
 
 Some toys about real-time rendering. Currently, it contains:
