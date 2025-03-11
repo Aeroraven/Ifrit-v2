@@ -138,6 +138,20 @@ IFRIT_APIDECL void EngineContext::loadExtensionFunction() {
               m_device);
   // loadExtFunc(m_extf.p_vkCmdSetCullModeEXT, "vkCmdSetCullModeEXT", m_device);
 
+  loadExtFunc(m_extf.p_vkGetRayTracingShaderGroupHandlesKHR,
+              "vkGetRayTracingShaderGroupHandlesKHR", m_device);
+  loadExtFunc(m_extf.p_vkCreateAccelerationStructureKHR,
+              "vkCreateAccelerationStructureKHR", m_device);
+  loadExtFunc(m_extf.p_vkCmdBuildAccelerationStructuresKHR,
+              "vkCmdBuildAccelerationStructuresKHR", m_device);
+  loadExtFunc(m_extf.p_vkGetAccelerationStructureDeviceAddressKHR,
+              "vkGetAccelerationStructureDeviceAddressKHR", m_device);
+  loadExtFunc(m_extf.p_vkGetAccelerationStructureBuildSizesKHR,
+              "vkGetAccelerationStructureBuildSizesKHR", m_device);
+  loadExtFunc(m_extf.p_vkCmdTraceRaysKHR, "vkCmdTraceRaysKHR", m_device);
+  loadExtFunc(m_extf.p_vkCreateRayTracingPipelinesKHR,
+              "vkCreateRayTracingPipelinesKHR", m_device);
+
   vkrDebug("Extension functions loaded");
 }
 IFRIT_APIDECL
@@ -331,6 +345,7 @@ IFRIT_APIDECL void EngineContext::init() {
   deviceFeatures12.shaderSharedInt64Atomics = VK_TRUE;
   deviceFeatures12.shaderBufferInt64Atomics = VK_TRUE;
   deviceFeatures12.shaderFloat16 = VK_TRUE;
+  deviceFeatures12.bufferDeviceAddress = VK_TRUE;
   deviceFeatures12.pNext = &deviceFeaturesDynamic;
 
   deviceFeaturesDynamic.sType =

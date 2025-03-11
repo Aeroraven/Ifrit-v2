@@ -89,7 +89,8 @@ IFRIT_APIDECL void BottomLevelAS::prepareGeometryData(
   buildInfo.pGeometries = geometries.data();
 
   VkAccelerationStructureBuildSizesInfoKHR sizeInfo = {};
-  vkGetAccelerationStructureBuildSizesKHR(
+  auto pfns = m_context->getExtensionFunction();
+  pfns.p_vkGetAccelerationStructureBuildSizesKHR(
       m_context->getDevice(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
       &buildInfo, primitiveCounts.data(), &sizeInfo);
 
@@ -107,8 +108,8 @@ IFRIT_APIDECL void BottomLevelAS::prepareGeometryData(
   asCI.buffer = m_blasBuffer->getBuffer();
   asCI.size = sizeInfo.accelerationStructureSize;
   asCI.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-  vkrVulkanAssert(vkCreateAccelerationStructureKHR(m_context->getDevice(),
-                                                   &asCI, nullptr, &m_as),
+  vkrVulkanAssert(pfns.p_vkCreateAccelerationStructureKHR(
+                      m_context->getDevice(), &asCI, nullptr, &m_as),
                   "Failed to create BLAS");
 
   // Build BLAS
@@ -123,15 +124,15 @@ IFRIT_APIDECL void BottomLevelAS::prepareGeometryData(
   buildInfo.scratchData.deviceAddress = m_scratchBuffer->getDeviceAddress();
   buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 
-  vkCmdBuildAccelerationStructuresKHR(cmd->getCommandBuffer(), 1, &buildInfo,
-                                      pBuildRanges.data());
+  pfns.p_vkCmdBuildAccelerationStructuresKHR(cmd->getCommandBuffer(), 1,
+                                             &buildInfo, pBuildRanges.data());
 
   // Get device address
   VkAccelerationStructureDeviceAddressInfoKHR addressInfo = {};
   addressInfo.sType =
       VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
   addressInfo.accelerationStructure = m_as;
-  m_deviceAddress = vkGetAccelerationStructureDeviceAddressKHR(
+  m_deviceAddress = pfns.p_vkGetAccelerationStructureDeviceAddressKHR(
       m_context->getDevice(), &addressInfo);
 }
 
@@ -192,10 +193,12 @@ IFRIT_APIDECL void TopLevelAS::prepareInstanceData(
   buildInfo.geometryCount = numInstances;
   buildInfo.pGeometries = geometries.data();
 
+  auto pfns = m_context->getExtensionFunction();
+
   VkAccelerationStructureBuildSizesInfoKHR sizeInfo = {};
   sizeInfo.sType =
       VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
-  vkGetAccelerationStructureBuildSizesKHR(
+  pfns.p_vkGetAccelerationStructureBuildSizesKHR(
       m_context->getDevice(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
       &buildInfo, &numInstances, &sizeInfo);
 
@@ -213,8 +216,8 @@ IFRIT_APIDECL void TopLevelAS::prepareInstanceData(
   asCI.buffer = m_tlasBuffer->getBuffer();
   asCI.size = sizeInfo.accelerationStructureSize;
   asCI.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-  vkrVulkanAssert(vkCreateAccelerationStructureKHR(m_context->getDevice(),
-                                                   &asCI, nullptr, &m_as),
+  vkrVulkanAssert(pfns.p_vkCreateAccelerationStructureKHR(
+                      m_context->getDevice(), &asCI, nullptr, &m_as),
                   "Failed to create TLAS");
 
   // Build TLAS
@@ -229,8 +232,8 @@ IFRIT_APIDECL void TopLevelAS::prepareInstanceData(
   buildInfo.scratchData.deviceAddress = m_scratchBuffer->getDeviceAddress();
   buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 
-  vkCmdBuildAccelerationStructuresKHR(cmd->getCommandBuffer(), 1, &buildInfo,
-                                      pBuildRanges.data());
+  pfns.p_vkCmdBuildAccelerationStructuresKHR(cmd->getCommandBuffer(), 1,
+                                             &buildInfo, pBuildRanges.data());
 
   // Get device address
   VkAccelerationStructureDeviceAddressInfoKHR addressInfo = {};
@@ -238,7 +241,7 @@ IFRIT_APIDECL void TopLevelAS::prepareInstanceData(
       VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
   addressInfo.accelerationStructure = m_as;
 
-  m_deviceAddress = vkGetAccelerationStructureDeviceAddressKHR(
+  m_deviceAddress = pfns.p_vkGetAccelerationStructureDeviceAddressKHR(
       m_context->getDevice(), &addressInfo);
 }
 
@@ -361,6 +364,8 @@ ShaderBindingTable::getStridedRegions() const {
 
 IFRIT_APIDECL void RaytracingPipeline::init() {
   using namespace Common::Utility;
+  auto pfns = m_context->getExtensionFunction();
+
   VkRayTracingPipelineCreateInfoKHR pipelineCI = {};
   pipelineCI.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
 
@@ -400,7 +405,7 @@ IFRIT_APIDECL void RaytracingPipeline::init() {
                   "Failed to create pipeline layout");
 
   // Create pipeline
-  vkrVulkanAssert(vkCreateRayTracingPipelinesKHR(
+  vkrVulkanAssert(pfns.p_vkCreateRayTracingPipelinesKHR(
                       m_context->getDevice(), VK_NULL_HANDLE, VK_NULL_HANDLE, 1,
                       &pipelineCI, nullptr, &m_pipeline),
                   "Failed to create raytracing pipeline");
@@ -417,7 +422,7 @@ IFRIT_APIDECL void RaytracingPipeline::init() {
   auto sbtHandleSize = totalGroups * alignedHandleSize;
 
   std::vector<char> shaderGroupHandles(sbtHandleSize);
-  vkGetRayTracingShaderGroupHandlesKHR(
+  pfns.p_vkGetRayTracingShaderGroupHandlesKHR(
       m_context->getDevice(), m_pipeline, 0,
       m_rtContext->getAlignedShaderGroupHandleSize(), sbtHandleSize,
       shaderGroupHandles.data());
@@ -459,6 +464,7 @@ IFRIT_APIDECL uint64_t RaytracingPipelineCache::raytracingPipelineHash(
   for (auto &layout : ci.descriptorSetLayouts) {
     hash ^= hashFunc(reinterpret_cast<u64>(layout));
   }
+  return hash;
 }
 
 IFRIT_APIDECL bool RaytracingPipelineCache::raytracingPipelineEqual(
@@ -579,6 +585,7 @@ IFRIT_APIDECL void RaytracingPass::build() {
 }
 
 IFRIT_APIDECL void RaytracingPass::run(const Rhi::RhiCommandBuffer *cmd) {
+  auto pfns = m_context->getExtensionFunction();
   using namespace Common::Utility;
   if (m_pipeline == nullptr) {
     build();
@@ -615,9 +622,9 @@ IFRIT_APIDECL void RaytracingPass::run(const Rhi::RhiCommandBuffer *cmd) {
   auto hitGroupRegion = getStridedRegion(m_hitGroupId);
   auto callableRegion = getStridedRegion(m_callableId);
 
-  vkCmdTraceRaysKHR(cmdx, &raygenRegion, &missRegion, &hitGroupRegion,
-                    &callableRegion, m_regionWidth, m_regionHeight,
-                    m_regionDepth);
+  pfns.p_vkCmdTraceRaysKHR(cmdx, &raygenRegion, &missRegion, &hitGroupRegion,
+                           &callableRegion, m_regionWidth, m_regionHeight,
+                           m_regionDepth);
 }
 
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

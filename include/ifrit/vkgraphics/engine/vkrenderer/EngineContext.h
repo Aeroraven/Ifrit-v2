@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/util/ApiConv.h"
 #include "ifrit/rhi/common/RhiLayer.h"
@@ -71,6 +70,17 @@ struct IFRIT_APIDECL ExtensionFunction {
   PFN_vkCmdBeginDebugUtilsLabelEXT p_vkCmdBeginDebugUtilsLabelEXT;
   PFN_vkCmdEndDebugUtilsLabelEXT p_vkCmdEndDebugUtilsLabelEXT;
   PFN_vkCmdSetCullModeEXT p_vkCmdSetCullModeEXT;
+
+  PFN_vkGetRayTracingShaderGroupHandlesKHR
+      p_vkGetRayTracingShaderGroupHandlesKHR;
+  PFN_vkCreateAccelerationStructureKHR p_vkCreateAccelerationStructureKHR;
+  PFN_vkCmdBuildAccelerationStructuresKHR p_vkCmdBuildAccelerationStructuresKHR;
+  PFN_vkGetAccelerationStructureDeviceAddressKHR
+      p_vkGetAccelerationStructureDeviceAddressKHR;
+  PFN_vkGetAccelerationStructureBuildSizesKHR
+      p_vkGetAccelerationStructureBuildSizesKHR;
+  PFN_vkCmdTraceRaysKHR p_vkCmdTraceRaysKHR;
+  PFN_vkCreateRayTracingPipelinesKHR p_vkCreateRayTracingPipelinesKHR;
 };
 
 class IFRIT_APIDECL EngineContext : public Rhi::RhiDevice {
@@ -98,6 +108,10 @@ private:
       VK_KHR_SPIRV_1_4_EXTENSION_NAME,
       VK_EXT_MESH_SHADER_EXTENSION_NAME,
       VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,
+      VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+      VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+      VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+      VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
       VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
   VmaAllocator m_allocator;
   ExtensionFunction m_extf;

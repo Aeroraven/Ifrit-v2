@@ -30,6 +30,8 @@ IFRIT_APIDECL void SingleBuffer::init() {
   bufferCI.usage = m_createInfo.usage;
   bufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+  bool hasDeviceSideAddr =
+      m_createInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
   VmaAllocationCreateInfo allocCI{};
   allocCI.usage = VMA_MEMORY_USAGE_AUTO;
   if (m_createInfo.hostVisible) {
@@ -45,8 +47,11 @@ IFRIT_APIDECL void SingleBuffer::init() {
   VkBufferDeviceAddressInfo bufferDeviceAI{};
   bufferDeviceAI.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
   bufferDeviceAI.buffer = m_buffer;
-  m_deviceAddress =
-      vkGetBufferDeviceAddress(m_context->getDevice(), &bufferDeviceAI);
+  if (hasDeviceSideAddr)
+    m_deviceAddress =
+        vkGetBufferDeviceAddress(m_context->getDevice(), &bufferDeviceAI);
+  else
+    m_deviceAddress = 0;
 }
 IFRIT_APIDECL SingleBuffer::~SingleBuffer() {
   vmaDestroyBuffer(m_context->getAllocator(), m_buffer, m_allocation);

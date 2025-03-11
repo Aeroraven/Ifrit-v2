@@ -146,6 +146,18 @@ public:
   // Extension
   virtual std::unique_ptr<Rhi::FSR2::RhiFsr2Processor>
   createFsr2Processor() override;
+
+  // Raytracing
+  virtual std::unique_ptr<Rhi::RhiRTInstance> createTLAS() { return nullptr; }
+  virtual std::unique_ptr<Rhi::RhiRTScene> createBLAS() { return nullptr; }
+  virtual std::unique_ptr<Rhi::RhiRTShaderBindingTable>
+  createShaderBindingTable() {
+    return nullptr;
+  }
+
+  virtual std::unique_ptr<Rhi::RhiRTPass> createRaytracingPass() {
+    return nullptr;
+  }
 };
 
 class IFRIT_APIDECL RhiVulkanBackendBuilder

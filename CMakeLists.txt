@@ -4,27 +4,27 @@ project(Ifrit-v2x)
 # Note following paths should be set to the correct paths on your system
 # Fallback paths will be used if `find_package` fails to find the package 
 set(IFRIT_GLOBAL_LLVM_DIR_LINUX "/usr/local/llvm-10/")
-if(MSVC)
-    set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "C:/llvm-project-msvc/")
-else()
-    set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "C:/llvm-project/")
-endif()
+set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "C:/llvm-project/")
 set(IFRIT_GLOBAL_CUDA_DIR_WINDOWS "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/")
-set(IFRIT_GLOBAL_GLFW_DIR_WINDOWS "C:/Program Files (x86)/GLFW/")
 
+# Set global flags
 set(IFRIT_GLOBAL_INTEGRATED_BUILD_FLAG 1)
+set(IFRIT_GLOBAL_DISABLE_LLVM 1)
 
 # Find LLVM
-find_package(LLVM 10...<12 CONFIG QUIET)
-if(LLVM_FOUND)
-    # update llvm directories
-    set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "${LLVM_INCLUDE_DIRS}/../")
-    set(IFRIT_GLOBAL_LLVM_DIR_LINUX "${LLVM_INCLUDE_DIRS}/../")
+if (IFRIT_GLOBAL_DISABLE_LLVM)
+    message(STATUS "[Ifrit/Deps] LLVM disabled. Using pre-defined paths.")
 else()
-    # warning message
-    message(STATUS "[Ifrit/Deps] LLVM package not found. Using pre-defined paths.")
+    find_package(LLVM 10...<12 CONFIG QUIET)
+    if(LLVM_FOUND)
+        # update llvm directories
+        set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "${LLVM_INCLUDE_DIRS}/../")
+        set(IFRIT_GLOBAL_LLVM_DIR_LINUX "${LLVM_INCLUDE_DIRS}/../")
+    else()
+        # warning message
+        message(STATUS "[Ifrit/Deps] LLVM package not found. Using pre-defined paths.")
+    endif()
 endif()
-
 
 # set build output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
