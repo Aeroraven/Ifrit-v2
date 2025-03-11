@@ -4,7 +4,7 @@
 ## Refactoring
 
 - [ ] All: 重构 (+20250311)
-  - [ ] Deps: 移除FSR2的子模块
+  - [x] Deps: 移除FSR2的子模块
   - [ ] All: 将所有非性能关键的Raw Pointers迁移到智能指针
   - [ ] All: 命名和类型规范
     - [ ] All: 替换 clang-format 格式
