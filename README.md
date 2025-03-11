@@ -87,7 +87,6 @@ Following dependencies should be manually configured. Other dependencies will be
 
 - Vulkan SDK 1.3 (with shaderc combined)
   - Core Features 1.3
-    - Or following extensions: `KHR_timeline_semaphore`, `KHR_dynamic_rendering`, `EXT_vertex_input_dynamic_state`, `EXT_color_write_enable`, `EXT_extended_dynamic_state3`,`EXT_extended_dynamic_state2`, `EXT_descriptor_indexing`, `KHR_spirv_1_4`, `EXT_host_query_reset`, `KHR_shader_float_controls`
   - with `EXT_mesh_shader` extension
 
 **Soft Renderer** 
@@ -120,10 +119,9 @@ To run the demo
 ```
 
 
-
-
-
 ## 3. References & Acknowledgements
+
+### 3.1 Dependencies
 
 This project relies on following open-source projects. Corresponding licenses are in `licenses` folder.
 

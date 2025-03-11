@@ -3,7 +3,25 @@
 
 ## Refactoring
 
-- [ ] CMake: 跨环境兼容性
+- [ ] All: 重构 (+20250311)
+  - [ ] Deps: 移除FSR2的子模块
+  - [ ] All: 将所有非性能关键的Raw Pointers迁移到智能指针
+  - [ ] All: 命名和类型规范
+    - [ ] All: 替换 clang-format 格式
+    - [ ] All: 精简类型名称 `uint32_t` -> `u32`
+    - [ ] All: 构造函数尽可能使用初始化替代赋值
+    - [ ] All: 继承NonCopyable
+  - [ ] Rhi: 移除该层级的Render Graph
+    - [ ] Rhi/VkGraphics: 移除该层级内的Render Graph逻辑
+  - [ ] Core: 移除Frame Graph对原状态的追踪
+  - [ ] Common: 将所有向量类型的宏定义替换为using或typedef
+  - [ ] Common/Math: 整理文件位置
+  - [ ] Rhi/VkGraphcis: 移除Resource Manager对Buffer和Texture的引用
+  - [ ] All: 头文件的非公有/共享内容，移动至对应cpp文件
+    - [ ] Rhi/VkGraphics: 移动Vulkan扩展名称到对应cpp文件
+
+
+- [ ] CMake: 跨环境兼容性 (+20250310)
   - [ ] IRCompile: 移除硬编码LLVM地址
 
 ## Bugs
@@ -11,6 +29,8 @@
 - [ ] Syaro: 如果第一次Instance Cull拒绝了所有的instance，导致后续Kernel不执行
 - [ ] Syaro: Nanite's 的BVH错误实现
 - [ ] Syaro: 缓存文件夹未正确创建 (+20250311)
+- [ ] Core: SIMD 没有被正确启用 (+20250311)
+
 
 
 ## Artifacts
