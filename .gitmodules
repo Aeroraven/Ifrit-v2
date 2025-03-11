@@ -33,4 +33,4 @@
 	url = git@github.com:syoyo/tinygltf.git
 [submodule "dependencies/fsr2"]
 	path = dependencies/fsr2
-	url = git@github.com:GPUOpen-Effects/FidelityFX-FSR2.git
+	url = git@github.com:Aeroraven/fsr2-fork.git
