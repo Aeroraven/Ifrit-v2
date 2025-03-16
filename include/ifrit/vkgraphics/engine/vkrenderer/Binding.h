@@ -128,71 +128,17 @@ private:
 
 public:
   DescriptorBindlessIndices(EngineContext *ctx, DescriptorManager *manager, u32 copies)
-      : m_context(ctx), m_descriptorManager(manager) {
+      : m_context(ctx), m_descriptorManager(manager), numCopies(copies) {
     m_indices.resize(copies);
-    numCopies = copies;
   }
 
-  inline virtual void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, u32 loc) override {
-    auto buf = Ifrit::Common::Utility::checked_cast<MultiBuffer>(buffer);
-    for (u32 i = 0; i < numCopies; i++) {
-      auto p = m_descriptorManager->registerUniformBuffer(buf->getBuffer(i));
-      m_indices[i][loc] = p;
-    }
-  }
+  virtual void addUniformBuffer(Rhi::RhiMultiBuffer *buffer, u32 loc) override;
+  virtual void addStorageBuffer(Rhi::RhiMultiBuffer *buffer, u32 loc) override;
+  virtual void addStorageBuffer(Rhi::RhiBuffer *buffer, u32 loc) override;
+  virtual void addCombinedImageSampler(Rhi::RhiTexture *texture, Rhi::RhiSampler *sampler, u32 loc) override;
+  virtual void addUAVImage(Rhi::RhiTexture *texture, Rhi::RhiImageSubResource subResource, u32 loc) override;
 
-  inline virtual void addStorageBuffer(Rhi::RhiMultiBuffer *buffer, u32 loc) override {
-    auto buf = Ifrit::Common::Utility::checked_cast<MultiBuffer>(buffer);
-    for (u32 i = 0; i < numCopies; i++) {
-      auto p = m_descriptorManager->registerStorageBuffer(buf->getBuffer(i));
-      m_indices[i][loc] = p;
-    }
-  }
-
-  inline virtual void addStorageBuffer(Rhi::RhiBuffer *buffer, u32 loc) override {
-    auto buf = Ifrit::Common::Utility::checked_cast<SingleBuffer>(buffer);
-    for (u32 i = 0; i < numCopies; i++) {
-      auto p = m_descriptorManager->registerStorageBuffer(buf);
-      if (p == 9521) {
-        printf("9521 %d %p %p\n", loc, buffer, buf->getBuffer());
-      }
-      m_indices[i][loc] = p;
-    }
-  }
-
-  inline virtual void addCombinedImageSampler(Rhi::RhiTexture *texture, Rhi::RhiSampler *sampler, u32 loc) override {
-    auto tex = Ifrit::Common::Utility::checked_cast<SingleDeviceImage>(texture);
-    auto sam = Ifrit::Common::Utility::checked_cast<Sampler>(sampler);
-    for (u32 i = 0; i < numCopies; i++) {
-      auto p = m_descriptorManager->registerCombinedImageSampler(tex, sam);
-      m_indices[i][loc] = p;
-    }
-  }
-
-  inline virtual void addUAVImage(Rhi::RhiTexture *texture, Rhi::RhiImageSubResource subResource, u32 loc) override {
-    auto tex = Ifrit::Common::Utility::checked_cast<SingleDeviceImage>(texture);
-    for (u32 i = 0; i < numCopies; i++) {
-      auto p = m_descriptorManager->registerStorageImage(tex, subResource);
-      m_indices[i][loc] = p;
-    }
-  }
-
-  inline void buildRanges() {
-    using Ifrit::Common::Utility::size_cast;
-    if (m_bindRange.size() == 0) {
-      m_bindRange.resize(numCopies);
-      for (u32 i = 0; i < numCopies; i++) {
-        std::vector<u32> uniformData;
-        auto numKeys = m_indices[i].size();
-        uniformData.resize(numKeys);
-        for (auto &[k, v] : m_indices[i]) {
-          uniformData[k] = v;
-        }
-        auto ptr = reinterpret_cast<const char *>(uniformData.data());
-        m_bindRange[i] = m_descriptorManager->registerBindlessParameterRaw(ptr, size_cast<u32>(numKeys * sizeof(u32)));
-      }
-    }
-  }
+  void buildRanges();
 
   inline virtual VkDescriptorSet getRangeSet(u32 frame) {
     buildRanges();
@@ -205,7 +151,6 @@ public:
   }
 
   inline void setActiveFrame(u32 frame) { activeFrame = frame; }
-
   inline u32 getActiveRangeOffset() { return getRangeOffset(activeFrame); }
   inline VkDescriptorSet getActiveRangeSet() { return getRangeSet(activeFrame); }
 };

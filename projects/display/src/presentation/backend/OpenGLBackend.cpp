@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/display/presentation/backend/OpenGLBackend.h"
+#include "ifrit/common/logging/Logging.h"
 
 static const char *vertexShaderCodeF = R"(
 #version 330
@@ -70,12 +71,12 @@ IFRIT_APIDECL OpenGLBackend::OpenGLBackend() {
   glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
   if (!success) {
     glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-    printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED %s\n", infoLog);
+    iError("ERROR::SHADER::VERTEX::COMPILATION_FAILED {}\n", infoLog);
   }
   glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
   if (!success) {
     glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-    printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED %s\n", infoLog);
+    iError("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED {}\n", infoLog);
   }
 
   shaderProgram = glCreateProgram();
@@ -88,7 +89,7 @@ IFRIT_APIDECL OpenGLBackend::OpenGLBackend() {
   glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linkSuccess);
   if (!linkSuccess) {
     glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-    printf("ERROR::SHADER::PROGRAM::LINK_FAILED %s\n", infoLog);
+    iError("ERROR::SHADER::PROGRAM::LINKING_FAILED {}\n", infoLog);
   }
 
   glGenVertexArrays(1, &VAO);

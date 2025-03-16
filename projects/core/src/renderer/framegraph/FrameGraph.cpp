@@ -144,17 +144,11 @@ IFRIT_APIDECL CompiledFrameGraph FrameGraphCompiler::compile(const FrameGraph &g
     for (auto &resId : pass.inputResources) {
       if (resPassDependencies[resId] > 0) {
         numResToWait++;
-        // printf("Pass %d(%s) depends on resource %d(%s)\n", pass.id,
-        //        pass.name.c_str(), resId,
-        //        graph.m_resources[resId].name.c_str());
       }
     }
     for (auto &resId : pass.dependentResources) {
       if (resPassDependencies[resId] > 0) {
         numResToWait++;
-        // printf("Pass %d(%s) depends on resource %d(%s)\n", pass.id,
-        //        pass.name.c_str(), resId,
-        //        graph.m_resources[resId].name.c_str());
       }
     }
     passResDepenedencies[pass.id] = numResToWait;
@@ -178,8 +172,6 @@ IFRIT_APIDECL CompiledFrameGraph FrameGraphCompiler::compile(const FrameGraph &g
 
   while (!rootPasses.empty()) {
     auto passId0 = rootPasses.back();
-    // printf("Processing pass %d(%s)\n", passId0,
-    //        graph.m_passes[passId0].name.c_str());
     rootPasses.pop_back();
     compiledGraph.m_passTopoOrder.push_back(passId0);
     for (auto j = 0; auto &resId : graph.m_passes[passId0].outputResources) {
@@ -332,14 +324,6 @@ IFRIT_APIDECL void FrameGraphExecutor::executeInSingleCmd(const GraphicsBackend:
     for (auto i = 0; auto &resId : pass.outputResources) {
 
       if (compiledGraph.m_outputAliasedResourcesBarriers[passId][i].enableTransitionBarrier) {
-        // printf("Aliased resource %d(%s), Pass %d(%s): %d -> %d\n", resId,
-        //        compiledGraph.m_graph->m_resources[resId].name.c_str(),
-        //        passId, pass.name.c_str(), static_cast<int>(
-        //            compiledGraph.m_outputAliasedResourcesBarriers[passId][i]
-        //                .srcState),
-        //        static_cast<int>(
-        //            compiledGraph.m_outputAliasedResourcesBarriers[passId][i]
-        //                .dstState));
         bool valid = false;
         auto resBarrier = toRhiResBarrier(compiledGraph.m_outputAliasedResourcesBarriers[passId][i],
                                           compiledGraph.m_graph->m_resources[resId], valid);
@@ -357,10 +341,6 @@ IFRIT_APIDECL void FrameGraphExecutor::executeInSingleCmd(const GraphicsBackend:
       auto srcState = compiledGraph.m_passResourceBarriers[passId][i].srcState;
       auto dstState = compiledGraph.m_passResourceBarriers[passId][i].dstState;
 
-      // printf("Pass %d(%s): Resource %d(%s): %d -> %d\n", passId,
-      //        compiledGraph.m_graph->m_passes[passId].name.c_str(), resId,
-      //        compiledGraph.m_graph->m_resources[resId].name.c_str(),
-      //        static_cast<int>(srcState), static_cast<int>(dstState));
       if (resState[resId] != GraphicsBackend::Rhi::RhiResourceState2::Undefined && resState[resId] != srcState) {
         throw std::runtime_error("Resource state mismatch");
       }

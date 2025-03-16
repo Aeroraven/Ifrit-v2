@@ -293,7 +293,6 @@ public:
     if (!p->m_usingAsset) {
       m_rawData = p;
     }
-    // printf("Replacing:%p->%p", m_attribute.get(), p.get());
     m_attribute = p;
   }
   inline virtual std::vector<AssetReference *> getAssetReferences() override {

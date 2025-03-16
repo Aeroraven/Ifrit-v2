@@ -79,7 +79,6 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(const PerFrameData::PerViewData &perV
                                  camPosOriginal.z - std::fmodf(camPosOriginal.z, texelSize)};
     auto camPosSnappedWorld = matmul(viewOriginalInv, ifloat4{camPosSnapped.x, camPosSnapped.y, camPosSnapped.z, 1.0f});
     auto newCenter = ifloat3{camPosSnappedWorld.x, camPosSnappedWorld.y, camPosSnappedWorld.z};
-    // printf("New center: %f %f %f\n", newCenter.x, newCenter.y, newCenter.z);
     view = lookAt(newCenter, newCenter + lightFront, lightCamUp);
 
     CSMSingleSplitResult result;
