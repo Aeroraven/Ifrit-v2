@@ -16,9 +16,9 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "../definition/CoreDefs.h"
+#include "ifrit/common/base/IfritBase.h"
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::Core::Utility {
 
@@ -27,11 +27,8 @@ concept CoreUtilIsIntegerType = std::is_integral_v<T>;
 
 template <typename... Args> class CoreUtilZipContainer {
 private:
-  template <typename T>
-  using ContainerIteratorTp = decltype(std::begin(std::declval<T &>()));
-  template <typename T>
-  using ContainerIteratorValTp =
-      std::iterator_traits<ContainerIteratorTp<T>>::value_type;
+  template <typename T> using ContainerIteratorTp = decltype(std::begin(std::declval<T &>()));
+  template <typename T> using ContainerIteratorValTp = std::iterator_traits<ContainerIteratorTp<T>>::value_type;
 
   using GroupIteratorTp = std::tuple<ContainerIteratorTp<Args>...>;
   using GroupIteratorValTp = std::tuple<ContainerIteratorValTp<Args>...>;
@@ -51,9 +48,7 @@ public:
     std::unique_ptr<GroupIteratorTp> curIters;
 
   public:
-    iterator(const GroupIteratorTp &iterators) {
-      this->curIters = std::make_unique<GroupIteratorTp>(iterators);
-    }
+    iterator(const GroupIteratorTp &iterators) { this->curIters = std::make_unique<GroupIteratorTp>(iterators); }
     iterator(const iterator &other) {
       GroupIteratorTp pIters = *other.curIters;
       this->curIters = std::make_unique<GroupIteratorTp>(pIters);
@@ -70,25 +65,17 @@ public:
     bool operator==(iterator p) const { return *curIters == *p.curIters; }
     bool operator!=(iterator p) const { return *curIters != *p.curIters; }
     GroupIteratorValTp operator*() const {
-      return std::apply([](auto &...p) { return std::make_tuple(*p...); },
-                        *(this->curIters));
+      return std::apply([](auto &...p) { return std::make_tuple(*p...); }, *(this->curIters));
     }
   };
 
 public:
-  CoreUtilZipContainer(Args... args) {
-    this->tuples =
-        std::make_unique<std::tuple<Args...>>(std::make_tuple(args...));
-  }
+  CoreUtilZipContainer(Args... args) { this->tuples = std::make_unique<std::tuple<Args...>>(std::make_tuple(args...)); }
   iterator begin() {
-    return iterator(
-        std::apply([](auto &...p) { return std::make_tuple((p.begin())...); },
-                   *(this->tuples)));
+    return iterator(std::apply([](auto &...p) { return std::make_tuple((p.begin())...); }, *(this->tuples)));
   }
   iterator end() {
-    return iterator(
-        std::apply([](auto &...p) { return std::make_tuple((p.end())...); },
-                   *(this->tuples)));
+    return iterator(std::apply([](auto &...p) { return std::make_tuple((p.end())...); }, *(this->tuples)));
   }
 };
 template <typename T>
@@ -128,12 +115,8 @@ public:
       this->curVal += this->step;
       return copyIter;
     }
-    bool operator==(iterator p) const {
-      return std::min(this->curVal, this->end) == p.curVal;
-    }
-    bool operator!=(iterator p) const {
-      return std::min(this->curVal, this->end) != p.curVal;
-    }
+    bool operator==(iterator p) const { return std::min(this->curVal, this->end) == p.curVal; }
+    bool operator!=(iterator p) const { return std::min(this->curVal, this->end) != p.curVal; }
     T operator*() const { return this->curVal; }
   };
 
@@ -166,11 +149,9 @@ public:
   size_t size() { return (this->endv - this->start) / this->step; }
 };
 
-template <typename... Args> void CoreUtilPrint(Args... args) {
-  ((std::cout << args << " "), ...);
-}
+template <typename... Args> void CoreUtilPrint(Args... args) { ((std::cout << args << " "), ...); }
 
-inline uint32_t byteSwapU32(uint32_t x) {
+inline u32 byteSwapU32(u32 x) {
 #ifdef _MSC_VER
   return _byteswap_ulong(x);
 #else
@@ -185,8 +166,7 @@ inline int byteSwapI32(int x) {
 }
 
 struct PairHash {
-  template <class T1, class T2>
-  std::size_t operator()(const std::pair<T1, T2> &p) const {
+  template <class T1, class T2> std::size_t operator()(const std::pair<T1, T2> &p) const {
     // https://stackoverflow.com/questions/32685540/why-cant-i-compile-an-unordered-map-with-a-pair-as-key
     auto h1 = std::hash<T1>{}(p.first);
     auto h2 = std::hash<T2>{}(p.second);

@@ -50,8 +50,7 @@ ExitOnError ExitOnErr;
 
 static ThreadSafeModule optimizeModule(ThreadSafeModule M) {
   // Create a function pass manager.
-  auto FPM =
-      std::make_unique<legacy::FunctionPassManager>(M.getModuleUnlocked());
+  auto FPM = std::make_unique<legacy::FunctionPassManager>(M.getModuleUnlocked());
 
   // Add some optimizations.
   FPM->add(createPromoteMemoryToRegisterPass());
@@ -75,8 +74,7 @@ static ThreadSafeModule optimizeModule(ThreadSafeModule M) {
 }
 
 struct IfritCompLLVMExecutionSession {
-  std::unique_ptr<legacy::PassManager> PM =
-      std::make_unique<legacy::PassManager>();
+  std::unique_ptr<legacy::PassManager> PM = std::make_unique<legacy::PassManager>();
 
   std::unique_ptr<LLVMContext> llvmCtx;
   ThreadSafeModule tsModule;
@@ -87,16 +85,14 @@ struct IfritCompLLVMExecutionSession {
   void loadIR(std::string irCode) {
     jit = ExitOnErr(jitBuilder.create());
     jit->getMainJITDylib().addGenerator(
-        cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(
-            jit->getDataLayout().getGlobalPrefix())));
+        cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(jit->getDataLayout().getGlobalPrefix())));
     llvmCtx = std::make_unique<LLVMContext>();
     auto M = parseIR(*MemoryBuffer::getMemBuffer(irCode), Err, *llvmCtx);
     if (!M) {
       Err.print("IfritLLVMExecutionSession: Fail to parse IR:", errs());
       exit(1);
     }
-    tsModule =
-        optimizeModule(ThreadSafeModule(std::move(M), std::move(llvmCtx)));
+    tsModule = optimizeModule(ThreadSafeModule(std::move(M), std::move(llvmCtx)));
     ExitOnErr(jit->addIRModule(std::move(tsModule)));
     ready = true;
   }
@@ -128,15 +124,14 @@ IfritCom_LlvmExec_Create(const char *ir, const char *identifier) {
 #endif
 }
 
-IFRIT_COM_LE_API void IFRIT_COM_LE_API_CALLCONV
-IfritCom_LlvmExec_Destroy(IfritCompLLVMExecutionSession *session) {
+IFRIT_COM_LE_API void IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Destroy(IfritCompLLVMExecutionSession *session) {
 #ifndef IFRIT_IGNORE_IRCOMPILE
   delete session;
 #endif
 }
 
-IFRIT_COM_LE_API void *IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Lookup(
-    IfritCompLLVMExecutionSession *session, const char *symbol) {
+IFRIT_COM_LE_API void *IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Lookup(IfritCompLLVMExecutionSession *session,
+                                                                          const char *symbol) {
 #ifndef IFRIT_IGNORE_IRCOMPILE
   return session->lookupSymbol(symbol);
 #else

@@ -36,8 +36,7 @@ using namespace Ifrit::Core;
 using namespace Ifrit::Common::Utility;
 
 // Glfw key function here
-float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0,
-      movNear = 0, movRot = 0;
+float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0, movNear = 0, movRot = 0;
 
 void key_callback(int key, int scancode, int action, int mods) {
   auto scale = 0.12f;
@@ -82,8 +81,7 @@ public:
   void onStart() override {
     renderer = std::make_shared<SyaroRenderer>(this);
     m_windowProvider->registerKeyCallback(key_callback);
-    auto bistroObj =
-        m_assetManager->getAssetByName<GLTFAsset>("Bistro/untitled.gltf");
+    auto bistroObj = m_assetManager->getAssetByName<GLTFAsset>("Bistro/untitled.gltf");
     // Renderer config
     renderConfig.m_visualizationType = RendererVisualizationType::Default;
     renderConfig.m_indirectLightingType = IndirectLightingType::HBAO;
@@ -112,8 +110,7 @@ public:
     auto lightGameObject = node->addGameObject("sun");
     auto light = lightGameObject->addComponent<Light>();
     auto lightTransform = lightGameObject->getComponent<Transform>();
-    lightTransform->setRotation(
-        {120.0 / 180.0f * std::numbers::pi_v<float>, 0.0f, 0.0f});
+    lightTransform->setRotation({120.0 / 180.0f * std::numbers::pi_v<float>, 0.0f, 0.0f});
     light->setShadowMap(true);
     light->setShadowMapResolution(2048);
     light->setAffectPbrSky(true);
@@ -134,30 +131,24 @@ public:
     swapchainImg = rt->getSwapchainImage();
     renderTargets = rt->createRenderTargets();
     colorAttachment =
-        rt->createRenderTarget(swapchainImg, {0.0f, 0.0f, 0.0f, 1.0f},
-                               RhiRenderTargetLoadOp::Clear, 0, 0);
-    depthAttachment = rt->createRenderTargetDepthStencil(
-        depthImage.get(), {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
+        rt->createRenderTarget(swapchainImg, {0.0f, 0.0f, 0.0f, 1.0f}, RhiRenderTargetLoadOp::Clear, 0, 0);
+    depthAttachment = rt->createRenderTargetDepthStencil(depthImage.get(), {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
     renderTargets->setColorAttachments({colorAttachment.get()});
     renderTargets->setDepthStencilAttachment(depthAttachment.get());
     renderTargets->setRenderArea(scissor);
   }
 
   void onUpdate() override {
-    auto cameraGameObject = m_sceneAssetManager->getScene("TestScene2")
-                                ->getRootNode()
-                                ->getChildren()[0]
-                                ->getGameObject(0);
+    auto cameraGameObject =
+        m_sceneAssetManager->getScene("TestScene2")->getRootNode()->getChildren()[0]->getGameObject(0);
     auto camera = cameraGameObject->getComponent<Transform>();
     timing = timing + 0.1f;
-    camera->setPosition({-20.0f + 0.0f * sin(timing) + movRight - movLeft +
-                             0.0f * std::sin(timing),
+    camera->setPosition({-20.0f + 0.0f * sin(timing) + movRight - movLeft + 0.0f * std::sin(timing),
                          8.0f + movTop - movBottom, 2.05f + movFar - movNear});
     camera->setRotation({0.0f, movRot + 1.57f, 0.0f});
     auto sFrameStart = renderer->beginFrame();
-    auto renderComplete = renderer->render(
-        m_sceneAssetManager->getScene("TestScene2").get(), nullptr,
-        renderTargets.get(), renderConfig, {sFrameStart.get()});
+    auto renderComplete = renderer->render(m_sceneAssetManager->getScene("TestScene2").get(), nullptr,
+                                           renderTargets.get(), renderConfig, {sFrameStart.get()});
     renderer->endFrame({renderComplete.get()});
 
     // sleep for 50ms

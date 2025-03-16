@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/core/assetmanager/Asset.h"
 #include "ifrit/core/base/ApplicationInterface.h"
 #include "ifrit/core/scene/SceneAssetManager.h"
@@ -33,18 +34,17 @@ struct ApplicationCreateInfo {
   std::string m_version;
   std::string m_cachePath;
   ApplicationRhiType m_rhiType = ApplicationRhiType::Vulkan;
-  ApplicationDisplayProvider m_displayProvider =
-      ApplicationDisplayProvider::GLFW;
-  uint32_t m_width = 1980;
-  uint32_t m_height = 1080;
+  ApplicationDisplayProvider m_displayProvider = ApplicationDisplayProvider::GLFW;
+  u32 m_width = 1980;
+  u32 m_height = 1080;
   std::string m_assetPath;
   std::string m_scenePath;
 
-  uint32_t m_rhiGraphicsQueueCount = 1;
-  uint32_t m_rhiTransferQueueCount = 1;
-  uint32_t m_rhiComputeQueueCount = 1;
-  uint32_t m_rhiNumBackBuffers = 2;
-  uint32_t m_rhiDebugMode = 0;
+  u32 m_rhiGraphicsQueueCount = 1;
+  u32 m_rhiTransferQueueCount = 1;
+  u32 m_rhiComputeQueueCount = 1;
+  u32 m_rhiNumBackBuffers = 2;
+  u32 m_rhiDebugMode = 0;
 };
 class IFRIT_APIDECL Application : public IApplication {
 protected:
@@ -67,13 +67,8 @@ public:
   virtual void onEnd() override {}
   void run(const ApplicationCreateInfo &info);
 
-  inline virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *
-  getRhiLayer() override {
-    return m_rhiLayer.get();
-  }
+  inline virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() override { return m_rhiLayer.get(); }
 
-  inline std::string getCacheDirectory() const override {
-    return m_info.m_cachePath;
-  }
+  inline std::string getCacheDirectory() const override { return m_info.m_cachePath; }
 };
 } // namespace Ifrit::Core

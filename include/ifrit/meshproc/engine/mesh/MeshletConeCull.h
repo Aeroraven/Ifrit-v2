@@ -16,9 +16,9 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "MeshClusterBase.h"
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/math/LinalgOps.h"
 #include "ifrit/common/util/ApiConv.h"
 #include <meshoptimizer/src/meshoptimizer.h>
@@ -35,12 +35,9 @@ namespace Ifrit::MeshProcLib::MeshProcess {
 class IFRIT_MESHPROC_API MeshletConeCullProc {
 
 public:
-  void createNormalCones(const MeshDescriptor &meshDesc,
-                         const std::vector<iint4> &meshlets,
-                         const std::vector<uint32_t> &meshletVertices,
-                         const std::vector<uint8_t> &meshletTriangles,
-                         std::vector<ifloat4> &normalConeAxisCutoff,
-                         std::vector<ifloat4> &normalConeApex,
+  void createNormalCones(const MeshDescriptor &meshDesc, const std::vector<iint4> &meshlets,
+                         const std::vector<u32> &meshletVertices, const std::vector<uint8_t> &meshletTriangles,
+                         std::vector<ifloat4> &normalConeAxisCutoff, std::vector<ifloat4> &normalConeApex,
                          std::vector<ifloat4> &boundSphere);
 };
 

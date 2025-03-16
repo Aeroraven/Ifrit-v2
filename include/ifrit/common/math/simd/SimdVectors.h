@@ -16,18 +16,17 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "../../util/ApiConv.h"
 #include "../VectorDefs.h"
+#include "ifrit/common/base/IfritBase.h"
 #include <algorithm>
+#include <cmath>
 #include <concepts>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
 #include <type_traits>
-
 
 #ifndef IFRIT_USE_SIMD_128
 #ifdef _MSC_VER
@@ -46,21 +45,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Math::SIMD {
 // Placeholder for machines without SIMD support
 struct SimdContainerPlaceholder {
-  uint32_t x, y, z, w;
+  u32 x, y, z, w;
 };
 
 template <typename T>
-concept SimdElement32 =
-    requires(T x) { std::is_same_v<T, float> || std::is_same_v<T, int>; };
+concept SimdElement32 = requires(T x) { std::is_same_v<T, float> || std::is_same_v<T, int>; };
 
 #ifdef IFRIT_USE_SIMD_128
 template <typename T>
-concept SimdContainer =
-    requires(T x) { std::is_same_v<T, __m128> || std::is_same_v<T, __m128i>; };
+concept SimdContainer = requires(T x) { std::is_same_v<T, __m128> || std::is_same_v<T, __m128i>; };
 #else
 template <typename T>
-concept SimdContainer =
-    requires(T x) { std::is_same_v<T, SimdContainerPlaceholder>; };
+concept SimdContainer = requires(T x) { std::is_same_v<T, SimdContainerPlaceholder>; };
 #endif
 
 inline void reportNoSimdSupportError() {
@@ -210,44 +206,44 @@ struct alignas(16) SimdVector {
   }
 
 #ifdef IFRIT_USE_SIMD_128
-#define SIMD_VECTOR_OPERATOR_1(op, insName)                                    \
-  inline SimdVector operator op(const SimdVector &v) const {                   \
-    if constexpr (std::is_same_v<S, __m128>)                                   \
-      return _mm_##insName##_ps(dataf, v.dataf);                               \
-    else if constexpr (std::is_same_v<S, __m128i>)                             \
-      return _mm_##insName##_epi32(dataf, v.dataf);                            \
+#define SIMD_VECTOR_OPERATOR_1(op, insName)                                                                            \
+  inline SimdVector operator op(const SimdVector &v) const {                                                           \
+    if constexpr (std::is_same_v<S, __m128>)                                                                           \
+      return _mm_##insName##_ps(dataf, v.dataf);                                                                       \
+    else if constexpr (std::is_same_v<S, __m128i>)                                                                     \
+      return _mm_##insName##_epi32(dataf, v.dataf);                                                                    \
   }
-#define SIMD_VECTOR_OPERATOR_2(op, insName)                                    \
-  inline SimdVector &operator op(const SimdVector &v) {                        \
-    if constexpr (std::is_same_v<S, __m128>)                                   \
-      dataf = _mm_##insName##_ps(dataf, v.dataf);                              \
-    else if constexpr (std::is_same_v<S, __m128i>)                             \
-      dataf = _mm_##insName##_epi32(dataf, v.dataf);                           \
-    return *this;                                                              \
+#define SIMD_VECTOR_OPERATOR_2(op, insName)                                                                            \
+  inline SimdVector &operator op(const SimdVector &v) {                                                                \
+    if constexpr (std::is_same_v<S, __m128>)                                                                           \
+      dataf = _mm_##insName##_ps(dataf, v.dataf);                                                                      \
+    else if constexpr (std::is_same_v<S, __m128i>)                                                                     \
+      dataf = _mm_##insName##_epi32(dataf, v.dataf);                                                                   \
+    return *this;                                                                                                      \
   }
 #else
-#define SIMD_VECTOR_OPERATOR_1(op, insName)                                    \
-  inline SimdVector operator op(const SimdVector &v) const {                   \
-    SimdVector r;                                                              \
-    if constexpr (V >= 4)                                                      \
-      r.w = w op v.w;                                                          \
-    if constexpr (V >= 3)                                                      \
-      r.z = z op v.z;                                                          \
-    if constexpr (V >= 2)                                                      \
-      r.y = y op v.y;                                                          \
-    r.x = x op v.x;                                                            \
-    return r;                                                                  \
+#define SIMD_VECTOR_OPERATOR_1(op, insName)                                                                            \
+  inline SimdVector operator op(const SimdVector &v) const {                                                           \
+    SimdVector r;                                                                                                      \
+    if constexpr (V >= 4)                                                                                              \
+      r.w = w op v.w;                                                                                                  \
+    if constexpr (V >= 3)                                                                                              \
+      r.z = z op v.z;                                                                                                  \
+    if constexpr (V >= 2)                                                                                              \
+      r.y = y op v.y;                                                                                                  \
+    r.x = x op v.x;                                                                                                    \
+    return r;                                                                                                          \
   }
-#define SIMD_VECTOR_OPERATOR_2(op, insName)                                    \
-  inline SimdVector &operator op(const SimdVector &v) {                        \
-    if constexpr (V >= 4)                                                      \
-      w op v.w;                                                                \
-    if constexpr (V >= 3)                                                      \
-      z op v.z;                                                                \
-    if constexpr (V >= 2)                                                      \
-      y op v.y;                                                                \
-    x op v.x;                                                                  \
-    return *this;                                                              \
+#define SIMD_VECTOR_OPERATOR_2(op, insName)                                                                            \
+  inline SimdVector &operator op(const SimdVector &v) {                                                                \
+    if constexpr (V >= 4)                                                                                              \
+      w op v.w;                                                                                                        \
+    if constexpr (V >= 3)                                                                                              \
+      z op v.z;                                                                                                        \
+    if constexpr (V >= 2)                                                                                              \
+      y op v.y;                                                                                                        \
+    x op v.x;                                                                                                          \
+    return *this;                                                                                                      \
   }
 #endif
   SIMD_VECTOR_OPERATOR_1(+, add);
@@ -285,12 +281,10 @@ struct alignas(16) SimdVector {
   inline SimdVector &cross_(const SimdVector &v) {
 #ifdef IFRIT_USE_SIMD_128
     if constexpr (std::is_same_v<S, __m128>) {
-      dataf = _mm_sub_ps(
-          _mm_mul_ps(_mm_shuffle_ps(dataf, dataf, _MM_SHUFFLE(3, 0, 2, 1)),
-                     _mm_shuffle_ps(v.dataf, v.dataf, _MM_SHUFFLE(3, 1, 0, 2))),
-          _mm_mul_ps(
-              _mm_shuffle_ps(dataf, dataf, _MM_SHUFFLE(3, 1, 0, 2)),
-              _mm_shuffle_ps(v.dataf, v.dataf, _MM_SHUFFLE(3, 0, 2, 1))));
+      dataf = _mm_sub_ps(_mm_mul_ps(_mm_shuffle_ps(dataf, dataf, _MM_SHUFFLE(3, 0, 2, 1)),
+                                    _mm_shuffle_ps(v.dataf, v.dataf, _MM_SHUFFLE(3, 1, 0, 2))),
+                         _mm_mul_ps(_mm_shuffle_ps(dataf, dataf, _MM_SHUFFLE(3, 1, 0, 2)),
+                                    _mm_shuffle_ps(v.dataf, v.dataf, _MM_SHUFFLE(3, 0, 2, 1))));
     } else {
       reportNoSimdSupportError();
     }
@@ -344,8 +338,7 @@ inline static __m128 cross_product(__m128 const &vec0, __m128 const &vec1) {
 #endif
 
 template <typename T, typename S, int V>
-inline SimdVector<T, S, V> cross(const SimdVector<T, S, V> &a,
-                                 const SimdVector<T, S, V> &b) {
+inline SimdVector<T, S, V> cross(const SimdVector<T, S, V> &a, const SimdVector<T, S, V> &b) {
   SimdVector<T, S, V> r;
   static_assert(V == 3, "Cross product is only defined for 3D vectors");
 #ifdef IFRIT_USE_SIMD_128
@@ -364,8 +357,7 @@ inline SimdVector<T, S, V> cross(const SimdVector<T, S, V> &a,
 
 // FMA
 template <typename T, typename S, int V>
-inline SimdVector<T, S, V> fma(const SimdVector<T, S, V> &a,
-                               const SimdVector<T, S, V> &b,
+inline SimdVector<T, S, V> fma(const SimdVector<T, S, V> &a, const SimdVector<T, S, V> &b,
                                const SimdVector<T, S, V> &c) {
   SimdVector<T, S, V> r;
 #ifdef IFRIT_USE_SIMD_128
@@ -387,8 +379,7 @@ inline SimdVector<T, S, V> fma(const SimdVector<T, S, V> &a,
 }
 
 template <typename T, typename S, int V>
-inline SimdVector<T, S, V> fma(const SimdVector<T, S, V> &a, T b,
-                               const SimdVector<T, S, V> &c) {
+inline SimdVector<T, S, V> fma(const SimdVector<T, S, V> &a, T b, const SimdVector<T, S, V> &c) {
   SimdVector<T, S, V> r;
 #ifdef IFRIT_USE_SIMD_128
   if constexpr (std::is_same_v<S, __m128>) {
@@ -409,8 +400,7 @@ inline SimdVector<T, S, V> fma(const SimdVector<T, S, V> &a, T b,
 }
 
 // Dot
-template <typename T, typename S, int V>
-inline T dot(const SimdVector<T, S, V> &a, const SimdVector<T, S, V> &b) {
+template <typename T, typename S, int V> inline T dot(const SimdVector<T, S, V> &a, const SimdVector<T, S, V> &b) {
   T r = 0;
 #ifdef IFRIT_USE_SIMD_128
   if constexpr (std::is_same_v<S, __m128>) {
@@ -439,8 +429,7 @@ inline T dot(const SimdVector<T, S, V> &a, const SimdVector<T, S, V> &b) {
 
 // Element-wise max
 template <typename T, typename S, int V>
-inline SimdVector<T, S, V> max(const SimdVector<T, S, V> &a,
-                               const SimdVector<T, S, V> &b) {
+inline SimdVector<T, S, V> max(const SimdVector<T, S, V> &a, const SimdVector<T, S, V> &b) {
   SimdVector<T, S, V> r;
 #ifdef IFRIT_USE_SIMD_128
   if constexpr (std::is_same_v<S, __m128>) {
@@ -462,8 +451,7 @@ inline SimdVector<T, S, V> max(const SimdVector<T, S, V> &a,
 
 // Element-wise min
 template <typename T, typename S, int V>
-inline SimdVector<T, S, V> min(const SimdVector<T, S, V> &a,
-                               const SimdVector<T, S, V> &b) {
+inline SimdVector<T, S, V> min(const SimdVector<T, S, V> &a, const SimdVector<T, S, V> &b) {
   SimdVector<T, S, V> r;
 #ifdef IFRIT_USE_SIMD_128
   if constexpr (std::is_same_v<S, __m128>) {
@@ -484,8 +472,7 @@ inline SimdVector<T, S, V> min(const SimdVector<T, S, V> &a,
 }
 
 // elementAt
-template <typename T, typename S, int V>
-inline T elementAt(const SimdVector<T, S, V> &a, int index) {
+template <typename T, typename S, int V> inline T elementAt(const SimdVector<T, S, V> &a, int index) {
   if constexpr (V == 4) {
     if (index == 0)
       return a.x;
@@ -518,13 +505,11 @@ inline T elementAt(const SimdVector<T, S, V> &a, int index) {
 
 // lerp
 template <typename T, typename S, int V>
-inline SimdVector<T, S, V> lerp(const SimdVector<T, S, V> &a,
-                                const SimdVector<T, S, V> &b, const T &t) {
+inline SimdVector<T, S, V> lerp(const SimdVector<T, S, V> &a, const SimdVector<T, S, V> &b, const T &t) {
   SimdVector<T, S, V> r;
 #ifdef IFRIT_USE_SIMD_128
   if constexpr (std::is_same_v<S, __m128>) {
-    r.dataf = _mm_add_ps(
-        _mm_mul_ps(_mm_sub_ps(b.dataf, a.dataf), _mm_set1_ps(t)), a.dataf);
+    r.dataf = _mm_add_ps(_mm_mul_ps(_mm_sub_ps(b.dataf, a.dataf), _mm_set1_ps(t)), a.dataf);
   } else {
     reportNoSimdSupportError();
   }
@@ -541,8 +526,7 @@ inline SimdVector<T, S, V> lerp(const SimdVector<T, S, V> &a,
 }
 
 // reciprocal
-template <typename T, typename S, int V>
-inline SimdVector<T, S, V> reciprocal(const SimdVector<T, S, V> &a) {
+template <typename T, typename S, int V> inline SimdVector<T, S, V> reciprocal(const SimdVector<T, S, V> &a) {
   SimdVector<T, S, V> r;
 #ifdef IFRIT_USE_SIMD_128
   if constexpr (std::is_same_v<S, __m128>) {
@@ -563,13 +547,11 @@ inline SimdVector<T, S, V> reciprocal(const SimdVector<T, S, V> &a) {
 }
 
 // Normalize
-template <typename T, typename S, int V>
-inline SimdVector<T, S, V> normalize(const SimdVector<T, S, V> &a) {
+template <typename T, typename S, int V> inline SimdVector<T, S, V> normalize(const SimdVector<T, S, V> &a) {
   SimdVector<T, S, V> r;
 #ifdef IFRIT_USE_SIMD_128
   if constexpr (std::is_same_v<S, __m128>) {
-    r.dataf =
-        _mm_div_ps(a.dataf, _mm_sqrt_ps(_mm_dp_ps(a.dataf, a.dataf, 0x77)));
+    r.dataf = _mm_div_ps(a.dataf, _mm_sqrt_ps(_mm_dp_ps(a.dataf, a.dataf, 0x77)));
   } else {
     reportNoSimdSupportError();
   }
@@ -589,8 +571,7 @@ inline SimdVector<T, S, V> normalize(const SimdVector<T, S, V> &a) {
 }
 
 // Abs
-template <typename T, typename S, int V>
-inline SimdVector<T, S, V> abs(const SimdVector<T, S, V> &a) {
+template <typename T, typename S, int V> inline SimdVector<T, S, V> abs(const SimdVector<T, S, V> &a) {
   SimdVector<T, S, V> r;
 #ifdef IFRIT_USE_SIMD_128
   if constexpr (std::is_same_v<S, __m128>) {
@@ -612,14 +593,10 @@ inline SimdVector<T, S, V> abs(const SimdVector<T, S, V> &a) {
 }
 
 // Length
-template <typename T, typename S, int V>
-inline T length(const SimdVector<T, S, V> &a) {
-  return sqrt(dot(a, a));
-}
+template <typename T, typename S, int V> inline T length(const SimdVector<T, S, V> &a) { return sqrt(dot(a, a)); }
 
 // Horizontal sum ((a,b,c,d)=>(a+b+c+d))
-template <typename T, typename S, int V>
-inline T hsum(const SimdVector<T, S, V> &a) {
+template <typename T, typename S, int V> inline T hsum(const SimdVector<T, S, V> &a) {
   T r = 0;
 #ifdef IFRIT_USE_SIMD_128
   if constexpr (std::is_same_v<S, __m128>) {
@@ -650,8 +627,7 @@ inline T hsum(const SimdVector<T, S, V> &a) {
 
 // compare less than mask
 template <typename T, typename S, int V>
-inline int cmpltElements(const SimdVector<T, S, V> &a,
-                         const SimdVector<T, S, V> &b) {
+inline int cmpltElements(const SimdVector<T, S, V> &a, const SimdVector<T, S, V> &b) {
   int r;
   // cmpltos->movemask->popcnt
 #ifdef IFRIT_USE_SIMD_128
@@ -686,8 +662,7 @@ inline int cmpltElements(const SimdVector<T, S, V> &a,
 }
 
 // Rounding
-template <typename T, typename S, int V>
-inline SimdVector<T, S, V> round(const SimdVector<T, S, V> &a) {
+template <typename T, typename S, int V> inline SimdVector<T, S, V> round(const SimdVector<T, S, V> &a) {
   SimdVector<T, S, V> r;
 #ifdef IFRIT_USE_SIMD_128
   if constexpr (std::is_same_v<S, __m128>) {
@@ -721,9 +696,7 @@ using vint4 = SimdVector<int, SimdContainerPlaceholder, 4>;
 #endif
 // Type Conversion
 inline vfloat3 toSimdVector(const ifloat3 &v) { return vfloat3(v.x, v.y, v.z); }
-inline vfloat4 toSimdVector(const ifloat4 &v) {
-  return vfloat4(v.x, v.y, v.z, v.w);
-}
+inline vfloat4 toSimdVector(const ifloat4 &v) { return vfloat4(v.x, v.y, v.z, v.w); }
 } // namespace Ifrit::Math::SIMD
 
 #ifdef IFRIT_COMPILER_GCC

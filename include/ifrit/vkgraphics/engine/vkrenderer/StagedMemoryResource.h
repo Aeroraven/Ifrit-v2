@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
@@ -39,11 +39,8 @@ public:
 
   virtual ~StagedSingleBuffer() {}
   inline SingleBuffer *getBuffer() const { return m_buffer; }
-  inline SingleBuffer *getStagingBuffer() const {
-    return m_stagingBuffer.get();
-  }
-  void cmdCopyToDevice(const Rhi::RhiCommandBuffer *cmd, const void *data,
-                       uint32_t size, uint32_t localOffset) override;
+  inline SingleBuffer *getStagingBuffer() const { return m_stagingBuffer.get(); }
+  void cmdCopyToDevice(const Rhi::RhiCommandBuffer *cmd, const void *data, u32 size, u32 localOffset) override;
 };
 
 class IFRIT_APIDECL StagedSingleImage {
@@ -62,11 +59,8 @@ public:
 
   virtual ~StagedSingleImage() {}
   inline SingleDeviceImage *getImage() const { return m_image; }
-  inline SingleBuffer *getStagingBuffer() const {
-    return m_stagingBuffer.get();
-  }
-  void cmdCopyToDevice(CommandBuffer *cmd, const void *data,
-                       VkImageLayout srcLayout, VkImageLayout dstlayout,
+  inline SingleBuffer *getStagingBuffer() const { return m_stagingBuffer.get(); }
+  void cmdCopyToDevice(CommandBuffer *cmd, const void *data, VkImageLayout srcLayout, VkImageLayout dstlayout,
                        VkPipelineStageFlags dstStage, VkAccessFlags dstAccess);
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

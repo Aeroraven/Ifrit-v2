@@ -29,17 +29,14 @@ IFRIT_APIDECL ShaderAsset::ShaderRef *ShaderAsset::loadShader() {
   } else {
     m_loaded = true;
     std::ifstream file(m_path, std::ios::binary);
-    std::vector<char> data((std::istreambuf_iterator<char>(file)),
-                           std::istreambuf_iterator<char>());
+    std::vector<char> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
     auto rhi = m_app->getRhiLayer();
     GraphicsBackend::Rhi::RhiShaderStage stage;
     auto fileName = m_path.filename().string();
     // endswith .vert.glsl
     auto endsWith = [](const std::string &str, const std::string &suffix) {
-      return str.size() >= suffix.size() &&
-             str.compare(str.size() - suffix.size(), suffix.size(), suffix) ==
-                 0;
+      return str.size() >= suffix.size() && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
     };
     if (endsWith(fileName, ".vert.glsl")) {
       stage = GraphicsBackend::Rhi::RhiShaderStage::Vertex;
@@ -55,9 +52,7 @@ IFRIT_APIDECL ShaderAsset::ShaderRef *ShaderAsset::loadShader() {
       throw std::runtime_error("Unknown shader stage");
     }
 
-    auto p =
-        rhi->createShader(fileName, data, "main", stage,
-                          GraphicsBackend::Rhi::RhiShaderSourceType::GLSLCode);
+    auto p = rhi->createShader(fileName, data, "main", stage, GraphicsBackend::Rhi::RhiShaderSourceType::GLSLCode);
     // TODO: eliminate raw pointer
     m_selfData = p;
     return m_selfData;
@@ -65,21 +60,14 @@ IFRIT_APIDECL ShaderAsset::ShaderRef *ShaderAsset::loadShader() {
 }
 
 // Importer
-IFRIT_APIDECL void
-ShaderAssetImporter::processMetadata(AssetMetadata &metadata) {
+IFRIT_APIDECL void ShaderAssetImporter::processMetadata(AssetMetadata &metadata) {
   metadata.m_importer = IMPORTER_NAME;
 }
 
-IFRIT_APIDECL std::vector<std::string>
-ShaderAssetImporter::getSupportedExtensionNames() {
-  return {".glsl"};
-}
+IFRIT_APIDECL std::vector<std::string> ShaderAssetImporter::getSupportedExtensionNames() { return {".glsl"}; }
 
-IFRIT_APIDECL void
-ShaderAssetImporter::importAsset(const std::filesystem::path &path,
-                                 AssetMetadata &metadata) {
-  auto asset = std::make_shared<ShaderAsset>(metadata, path,
-                                             m_assetManager->getApplication());
+IFRIT_APIDECL void ShaderAssetImporter::importAsset(const std::filesystem::path &path, AssetMetadata &metadata) {
+  auto asset = std::make_shared<ShaderAsset>(metadata, path, m_assetManager->getApplication());
   m_assetManager->registerAsset(asset);
   // iInfo("Imported asset: [Shader] {}", metadata.m_uuid);
 }

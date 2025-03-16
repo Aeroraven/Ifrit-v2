@@ -48,15 +48,14 @@ IFRIT_APIDECL void RendererBase::prepareImmutableResources() {
   // Load blue noise texture
   if (m_immRes.m_blueNoise == nullptr) {
     m_immRes.m_blueNoise = RenderingUtil::loadBlueNoise(rhi);
-    m_immRes.m_blueNoiseSRV = rhi->registerCombinedImageSampler(
-        m_immRes.m_blueNoise.get(), m_immRes.m_linearSampler.get());
+    m_immRes.m_blueNoiseSRV =
+        rhi->registerCombinedImageSampler(m_immRes.m_blueNoise.get(), m_immRes.m_linearSampler.get());
   }
 }
 
-IFRIT_APIDECL void RendererBase::collectPerframeData(
-    PerFrameData &perframeData, Scene *scene, Camera *camera,
-    GraphicsShaderPassType passType, RenderTargets *renderTargets,
-    const SceneCollectConfig &config) {
+IFRIT_APIDECL void RendererBase::collectPerframeData(PerFrameData &perframeData, Scene *scene, Camera *camera,
+                                                     GraphicsShaderPassType passType, RenderTargets *renderTargets,
+                                                     const SceneCollectConfig &config) {
   using Ifrit::Common::Utility::size_cast;
 
   Logging::assertion(m_config != nullptr, "Renderer config is not set");
@@ -95,23 +94,19 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     viewData.m_camMoved = camChanged;
     viewData.m_viewType = PerFrameData::ViewType::Primary;
     viewData.m_viewDataOld = viewData.m_viewData;
-    viewData.m_viewData.m_worldToView =
-        Math::transpose(camera->worldToCameraMatrix());
-    viewData.m_viewData.m_perspective =
-        Math::transpose(camera->projectionMatrix());
+    viewData.m_viewData.m_worldToView = Math::transpose(camera->worldToCameraMatrix());
+    viewData.m_viewData.m_perspective = Math::transpose(camera->projectionMatrix());
     viewData.m_viewData.m_perspective[2][0] += config.projectionTranslateX;
     viewData.m_viewData.m_perspective[2][1] += config.projectionTranslateY;
-    viewData.m_viewData.m_worldToClip = Math::transpose(
-        Math::matmul(Math::transpose(viewData.m_viewData.m_perspective),
-                     Math::transpose(viewData.m_viewData.m_worldToView)));
-    viewData.m_viewData.m_viewToWorld = Math::transpose(
-        Math::inverse4(Math::transpose(viewData.m_viewData.m_worldToView)));
+    viewData.m_viewData.m_worldToClip = Math::transpose(Math::matmul(
+        Math::transpose(viewData.m_viewData.m_perspective), Math::transpose(viewData.m_viewData.m_worldToView)));
+    viewData.m_viewData.m_viewToWorld =
+        Math::transpose(Math::inverse4(Math::transpose(viewData.m_viewData.m_worldToView)));
     viewData.m_viewData.m_cameraAspect = camera->getAspect();
     viewData.m_viewData.m_inversePerspective =
-        Math::transpose(Ifrit::Math::inverse4(
-            Math::transpose(viewData.m_viewData.m_perspective)));
-    viewData.m_viewData.m_clipToWorld = Math::transpose(
-        Math::inverse4(Math::transpose(viewData.m_viewData.m_worldToClip)));
+        Math::transpose(Ifrit::Math::inverse4(Math::transpose(viewData.m_viewData.m_perspective)));
+    viewData.m_viewData.m_clipToWorld =
+        Math::transpose(Math::inverse4(Math::transpose(viewData.m_viewData.m_worldToClip)));
     auto cameraTransform = camera->getParent()->getComponentUnsafe<Transform>();
     if (cameraTransform == nullptr) {
       throw std::runtime_error("Camera has no transform");
@@ -124,8 +119,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     viewData.m_viewData.m_cameraFovX = camera->getFov();
     viewData.m_viewData.m_cameraFovY = camera->getFov();
     viewData.m_viewData.m_cameraOrthoSize = camera->getOrthoSpaceSize();
-    viewData.m_viewData.m_viewCameraType =
-        camera->getCameraType() == CameraType::Orthographic ? 1.0f : 0.0f;
+    viewData.m_viewData.m_viewCameraType = camera->getCameraType() == CameraType::Orthographic ? 1.0f : 0.0f;
   }
 
   // Find lights that represent the sun
@@ -151,29 +145,24 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
   }
 
   // Insert light view data, if shadow maps are enabled
-  auto lightWithShadow =
-      scene->filterObjectsUnsafe([](SceneObject *obj) -> bool {
-        auto light = obj->getComponentUnsafe<Light>();
-        if (!light) {
-          return false;
-        }
-        auto shadow = light->getShadowMap();
-        return shadow;
-      });
+  auto lightWithShadow = scene->filterObjectsUnsafe([](SceneObject *obj) -> bool {
+    auto light = obj->getComponentUnsafe<Light>();
+    if (!light) {
+      return false;
+    }
+    auto shadow = light->getShadowMap();
+    return shadow;
+  });
 
-  auto shadowViewCounts = size_cast<uint32_t>(lightWithShadow.size()) *
-                          m_config->m_shadowConfig.m_csmCount;
+  auto shadowViewCounts = size_cast<uint32_t>(lightWithShadow.size()) * m_config->m_shadowConfig.m_csmCount;
 
   if (perframeData.m_views.size() < 1 + shadowViewCounts) {
     perframeData.m_views.resize(1 + shadowViewCounts);
   }
-  if (perframeData.m_shadowData2.m_shadowViews.size() <
-      m_config->m_shadowConfig.k_maxShadowMaps) {
-    perframeData.m_shadowData2.m_shadowViews.resize(
-        m_config->m_shadowConfig.k_maxShadowMaps);
+  if (perframeData.m_shadowData2.m_shadowViews.size() < m_config->m_shadowConfig.k_maxShadowMaps) {
+    perframeData.m_shadowData2.m_shadowViews.resize(m_config->m_shadowConfig.k_maxShadowMaps);
   }
-  perframeData.m_shadowData2.m_enabledShadowMaps =
-      size_cast<uint32_t>(lightWithShadow.size());
+  perframeData.m_shadowData2.m_enabledShadowMaps = size_cast<uint32_t>(lightWithShadow.size());
   for (auto di = 0, dj = 0; auto &lightObj : lightWithShadow) {
     // Temporarily, we assume that all lights are directional lights
     auto light = lightObj->getComponentUnsafe<Light>();
@@ -186,20 +175,16 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     std::array<float, 4> splitStart, splitEnd;
     auto &viewData = perframeData.m_views[0];
     auto csmViews = RenderingUtil::CascadeShadowMapping::fillCSMViews(
-        viewData, *light, light->getShadowMapResolution(), *lightTransform,
-        m_config->m_shadowConfig.m_csmCount, maxDist, csmSplits, csmBorders,
-        splitStart, splitEnd);
+        viewData, *light, light->getShadowMapResolution(), *lightTransform, m_config->m_shadowConfig.m_csmCount,
+        maxDist, csmSplits, csmBorders, splitStart, splitEnd);
 
-    perframeData.m_shadowData2.m_shadowViews[di].m_csmSplits =
-        m_config->m_shadowConfig.m_csmCount;
+    perframeData.m_shadowData2.m_shadowViews[di].m_csmSplits = m_config->m_shadowConfig.m_csmCount;
     perframeData.m_shadowData2.m_shadowViews[di].m_csmStart = splitStart;
     perframeData.m_shadowData2.m_shadowViews[di].m_csmEnd = splitEnd;
     for (auto i = 0; auto &csmView : csmViews) {
       perframeData.m_views[1 + dj].m_viewData = csmView.m_viewData;
-      perframeData.m_views[1 + dj].m_renderHeight =
-          static_cast<uint32_t>(csmView.m_viewData.m_renderHeightf);
-      perframeData.m_views[1 + dj].m_renderWidth =
-          static_cast<uint32_t>(csmView.m_viewData.m_renderWidthf);
+      perframeData.m_views[1 + dj].m_renderHeight = static_cast<uint32_t>(csmView.m_viewData.m_renderHeightf);
+      perframeData.m_views[1 + dj].m_renderWidth = static_cast<uint32_t>(csmView.m_viewData.m_renderWidthf);
       perframeData.m_views[1 + dj].m_viewType = PerFrameData::ViewType::Shadow;
       perframeData.m_shadowData2.m_shadowViews[di].m_viewMapping[i] = dj + 1;
       dj++;
@@ -244,8 +229,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
         transforms.push_back(transform.get());
         instances.push_back(meshFilter->getMeshInstance().get());
       } else {
-        throw std::runtime_error(
-            "MeshRenderer, MeshFilter, or Transform not found");
+        throw std::runtime_error("MeshRenderer, MeshFilter, or Transform not found");
       }
     }
   }
@@ -266,8 +250,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     effect.m_type = material->m_effectTemplates[passType].m_type;
 
     if (perframeData.m_shaderEffectMap.count(effect) == 0) {
-      perframeData.m_shaderEffectMap[effect] =
-          size_cast<uint32_t>(perframeData.m_shaderEffectData.size());
+      perframeData.m_shaderEffectMap[effect] = size_cast<uint32_t>(perframeData.m_shaderEffectData.size());
       perframeData.m_shaderEffectData.push_back(PerShaderEffectData{});
     }
     auto id = perframeData.m_shaderEffectMap[effect];
@@ -280,14 +263,12 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(
     shaderEffectData.m_instances.push_back(instance);
   }
 
-  auto elapsed =
-      std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
   // iDebug("CPU time, Collecting per frame data, shader effects: {} ms",
   //       elapsed.count() / 1000.0f);
   return;
 }
-IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,
-                                                GraphicsShaderPassType passType,
+IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData, GraphicsShaderPassType passType,
                                                 RenderTargets *renderTargets) {
   using namespace Ifrit::GraphicsBackend::Rhi;
   for (auto &shaderEffectId : perframeData.m_enabledEffects) {
@@ -312,14 +293,12 @@ IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,
       continue;
     }
     auto rtFormats = renderTargets->getFormat();
-    PipelineAttachmentConfigs paConfig = {rtFormats.m_depthFormat,
-                                          rtFormats.m_colorFormats};
+    PipelineAttachmentConfigs paConfig = {rtFormats.m_depthFormat, rtFormats.m_colorFormats};
 
     if (ref.m_drawPasses.count(paConfig) > 0) {
       continue;
     }
-    RhiShader *vertexShader = nullptr, *fragmentShader = nullptr,
-              *taskShader = nullptr, *meshShader = nullptr;
+    RhiShader *vertexShader = nullptr, *fragmentShader = nullptr, *taskShader = nullptr, *meshShader = nullptr;
     auto rhi = m_app->getRhiLayer();
     auto pass = rhi->createGraphicsPass();
     uint32_t maxSets = 0;
@@ -350,9 +329,7 @@ IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData,
   }
 }
 
-IFRIT_APIDECL void
-RendererBase::recreateGBuffers(PerFrameData &perframeData,
-                               RenderTargets *renderTargets) {
+IFRIT_APIDECL void RendererBase::recreateGBuffers(PerFrameData &perframeData, RenderTargets *renderTargets) {
   using namespace Ifrit::GraphicsBackend::Rhi;
   auto rhi = m_app->getRhiLayer();
   auto rtArea = renderTargets->getRenderArea();
@@ -362,143 +339,108 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
   getSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
 
   if (!needRecreate) {
-    needRecreate = (perframeData.m_gbuffer.m_rtWidth != actualRtWidth ||
-                    perframeData.m_gbuffer.m_rtHeight != actualRtHeight);
+    needRecreate =
+        (perframeData.m_gbuffer.m_rtWidth != actualRtWidth || perframeData.m_gbuffer.m_rtHeight != actualRtHeight);
   }
   if (needRecreate) {
     perframeData.m_gbuffer.m_rtCreated = 1;
     perframeData.m_gbuffer.m_rtWidth = actualRtWidth;
     perframeData.m_gbuffer.m_rtHeight = actualRtHeight;
 
-    auto targetUsage = RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
-                       RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
+    auto targetUsage = RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
                        RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     // auto targetFomrat = RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM;
     auto targetFomrat = RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT;
-    perframeData.m_gbuffer.m_albedo_materialFlags = rhi->createTexture2D(
-        actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
-    perframeData.m_gbuffer.m_emissive = rhi->createTexture2D(
-        actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
-    perframeData.m_gbuffer.m_normal_smoothness = rhi->createTexture2D(
-        actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+    perframeData.m_gbuffer.m_albedo_materialFlags =
+        rhi->createTexture2D(actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+    perframeData.m_gbuffer.m_emissive = rhi->createTexture2D(actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+    perframeData.m_gbuffer.m_normal_smoothness =
+        rhi->createTexture2D(actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
     perframeData.m_gbuffer.m_specular_occlusion = rhi->createTexture2D(
-        actualRtWidth, actualRtHeight, targetFomrat,
-        targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-    perframeData.m_gbuffer.m_specular_occlusion_intermediate =
-        rhi->createTexture2D(
-            actualRtWidth, actualRtHeight, targetFomrat,
-            targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-    perframeData.m_gbuffer.m_shadowMask = rhi->createTexture2D(
-        actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+        actualRtWidth, actualRtHeight, targetFomrat, targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+    perframeData.m_gbuffer.m_specular_occlusion_intermediate = rhi->createTexture2D(
+        actualRtWidth, actualRtHeight, targetFomrat, targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+    perframeData.m_gbuffer.m_shadowMask =
+        rhi->createTexture2D(actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
 
     // Then bindless ids
-    perframeData.m_gbuffer.m_albedo_materialFlagsId = rhi->registerUAVImage(
-        perframeData.m_gbuffer.m_albedo_materialFlags.get(), {0, 0, 1, 1});
-    perframeData.m_gbuffer.m_emissiveId = rhi->registerUAVImage(
-        perframeData.m_gbuffer.m_emissive.get(), {0, 0, 1, 1});
-    perframeData.m_gbuffer.m_normal_smoothnessId = rhi->registerUAVImage(
-        perframeData.m_gbuffer.m_normal_smoothness.get(), {0, 0, 1, 1});
-    perframeData.m_gbuffer.m_specular_occlusionId = rhi->registerUAVImage(
-        perframeData.m_gbuffer.m_specular_occlusion.get(), {0, 0, 1, 1});
+    perframeData.m_gbuffer.m_albedo_materialFlagsId =
+        rhi->registerUAVImage(perframeData.m_gbuffer.m_albedo_materialFlags.get(), {0, 0, 1, 1});
+    perframeData.m_gbuffer.m_emissiveId = rhi->registerUAVImage(perframeData.m_gbuffer.m_emissive.get(), {0, 0, 1, 1});
+    perframeData.m_gbuffer.m_normal_smoothnessId =
+        rhi->registerUAVImage(perframeData.m_gbuffer.m_normal_smoothness.get(), {0, 0, 1, 1});
+    perframeData.m_gbuffer.m_specular_occlusionId =
+        rhi->registerUAVImage(perframeData.m_gbuffer.m_specular_occlusion.get(), {0, 0, 1, 1});
     perframeData.m_gbuffer.m_specular_occlusion_intermediateId =
-        rhi->registerUAVImage(
-            perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
-            {0, 0, 1, 1});
-    perframeData.m_gbuffer.m_shadowMaskId = rhi->registerUAVImage(
-        perframeData.m_gbuffer.m_shadowMask.get(), {0, 0, 1, 1});
+        rhi->registerUAVImage(perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(), {0, 0, 1, 1});
+    perframeData.m_gbuffer.m_shadowMaskId =
+        rhi->registerUAVImage(perframeData.m_gbuffer.m_shadowMask.get(), {0, 0, 1, 1});
 
     // sampler
-    perframeData.m_gbuffer.m_albedo_materialFlags_sampId =
-        rhi->registerCombinedImageSampler(
-            perframeData.m_gbuffer.m_albedo_materialFlags.get(),
-            m_immRes.m_linearSampler.get());
-    perframeData.m_gbuffer.m_normal_smoothness_sampId =
-        rhi->registerCombinedImageSampler(
-            perframeData.m_gbuffer.m_normal_smoothness.get(),
-            m_immRes.m_linearSampler.get());
-    perframeData.m_gbuffer.m_specular_occlusion_sampId =
-        rhi->registerCombinedImageSampler(
-            perframeData.m_gbuffer.m_specular_occlusion.get(),
-            m_immRes.m_linearSampler.get());
-    perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId =
-        rhi->registerCombinedImageSampler(
-            perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
-            m_immRes.m_linearSampler.get());
+    perframeData.m_gbuffer.m_albedo_materialFlags_sampId = rhi->registerCombinedImageSampler(
+        perframeData.m_gbuffer.m_albedo_materialFlags.get(), m_immRes.m_linearSampler.get());
+    perframeData.m_gbuffer.m_normal_smoothness_sampId = rhi->registerCombinedImageSampler(
+        perframeData.m_gbuffer.m_normal_smoothness.get(), m_immRes.m_linearSampler.get());
+    perframeData.m_gbuffer.m_specular_occlusion_sampId = rhi->registerCombinedImageSampler(
+        perframeData.m_gbuffer.m_specular_occlusion.get(), m_immRes.m_linearSampler.get());
+    perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId = rhi->registerCombinedImageSampler(
+        perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(), m_immRes.m_linearSampler.get());
 
     // color rts
-    RenderingUtil::warpRenderTargets(
-        rhi, perframeData.m_gbuffer.m_specular_occlusion.get(),
-        perframeData.m_gbuffer.m_specular_occlusion_colorRT,
-        perframeData.m_gbuffer.m_specular_occlusion_RTs);
+    RenderingUtil::warpRenderTargets(rhi, perframeData.m_gbuffer.m_specular_occlusion.get(),
+                                     perframeData.m_gbuffer.m_specular_occlusion_colorRT,
+                                     perframeData.m_gbuffer.m_specular_occlusion_RTs);
 
     // barriers
-    perframeData.m_gbuffer.m_normal_smoothnessBarrier.m_type =
-        RhiBarrierType::UAVAccess;
+    perframeData.m_gbuffer.m_normal_smoothnessBarrier.m_type = RhiBarrierType::UAVAccess;
     perframeData.m_gbuffer.m_normal_smoothnessBarrier.m_uav.m_texture =
         perframeData.m_gbuffer.m_normal_smoothness.get();
-    perframeData.m_gbuffer.m_normal_smoothnessBarrier.m_uav.m_type =
-        RhiResourceType::Texture;
+    perframeData.m_gbuffer.m_normal_smoothnessBarrier.m_uav.m_type = RhiResourceType::Texture;
 
-    perframeData.m_gbuffer.m_specular_occlusionBarrier.m_type =
-        RhiBarrierType::UAVAccess;
+    perframeData.m_gbuffer.m_specular_occlusionBarrier.m_type = RhiBarrierType::UAVAccess;
     perframeData.m_gbuffer.m_specular_occlusionBarrier.m_uav.m_texture =
         perframeData.m_gbuffer.m_specular_occlusion.get();
-    perframeData.m_gbuffer.m_specular_occlusionBarrier.m_uav.m_type =
-        RhiResourceType::Texture;
+    perframeData.m_gbuffer.m_specular_occlusionBarrier.m_uav.m_type = RhiResourceType::Texture;
 
     // Then gbuffer refs
     PerFrameData::GBufferDesc gbufferDesc;
-    gbufferDesc.m_albedo_materialFlags =
-        perframeData.m_gbuffer.m_albedo_materialFlagsId->getActiveId();
+    gbufferDesc.m_albedo_materialFlags = perframeData.m_gbuffer.m_albedo_materialFlagsId->getActiveId();
     gbufferDesc.m_emissive = perframeData.m_gbuffer.m_emissiveId->getActiveId();
-    gbufferDesc.m_normal_smoothness =
-        perframeData.m_gbuffer.m_normal_smoothnessId->getActiveId();
-    gbufferDesc.m_specular_occlusion =
-        perframeData.m_gbuffer.m_specular_occlusionId->getActiveId();
-    gbufferDesc.m_shadowMask =
-        perframeData.m_gbuffer.m_shadowMaskId->getActiveId();
+    gbufferDesc.m_normal_smoothness = perframeData.m_gbuffer.m_normal_smoothnessId->getActiveId();
+    gbufferDesc.m_specular_occlusion = perframeData.m_gbuffer.m_specular_occlusionId->getActiveId();
+    gbufferDesc.m_shadowMask = perframeData.m_gbuffer.m_shadowMaskId->getActiveId();
 
     // Then gbuffer desc
     perframeData.m_gbuffer.m_gbufferRefs = rhi->createBufferDevice(
         sizeof(PerFrameData::GBufferDesc),
-        RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
-            RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    auto stagedBuf = rhi->createStagedSingleBuffer(
-        perframeData.m_gbuffer.m_gbufferRefs.get());
+        RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT | RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    auto stagedBuf = rhi->createStagedSingleBuffer(perframeData.m_gbuffer.m_gbufferRefs.get());
     auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
     tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-      stagedBuf->cmdCopyToDevice(cmd, &gbufferDesc,
-                                 sizeof(PerFrameData::GBufferDesc), 0);
+      stagedBuf->cmdCopyToDevice(cmd, &gbufferDesc, sizeof(PerFrameData::GBufferDesc), 0);
     });
     perframeData.m_gbuffer.m_gbufferDesc = rhi->createBindlessDescriptorRef();
-    perframeData.m_gbuffer.m_gbufferDesc->addStorageBuffer(
-        perframeData.m_gbuffer.m_gbufferRefs.get(), 0);
+    perframeData.m_gbuffer.m_gbufferDesc->addStorageBuffer(perframeData.m_gbuffer.m_gbufferRefs.get(), 0);
 
     // Then gbuffer desc for pixel shader
     perframeData.m_gbufferDescFrag = rhi->createBindlessDescriptorRef();
-    perframeData.m_gbufferDescFrag->addCombinedImageSampler(
-        perframeData.m_gbuffer.m_albedo_materialFlags.get(),
-        m_immRes.m_linearSampler.get(), 0);
-    perframeData.m_gbufferDescFrag->addCombinedImageSampler(
-        perframeData.m_gbuffer.m_specular_occlusion.get(),
-        m_immRes.m_linearSampler.get(), 1);
-    perframeData.m_gbufferDescFrag->addCombinedImageSampler(
-        perframeData.m_gbuffer.m_normal_smoothness.get(),
-        m_immRes.m_linearSampler.get(), 2);
-    perframeData.m_gbufferDescFrag->addCombinedImageSampler(
-        perframeData.m_gbuffer.m_emissive.get(), m_immRes.m_linearSampler.get(),
-        3);
-    perframeData.m_gbufferDescFrag->addCombinedImageSampler(
-        perframeData.m_gbuffer.m_shadowMask.get(),
-        m_immRes.m_linearSampler.get(), 4);
+    perframeData.m_gbufferDescFrag->addCombinedImageSampler(perframeData.m_gbuffer.m_albedo_materialFlags.get(),
+                                                            m_immRes.m_linearSampler.get(), 0);
+    perframeData.m_gbufferDescFrag->addCombinedImageSampler(perframeData.m_gbuffer.m_specular_occlusion.get(),
+                                                            m_immRes.m_linearSampler.get(), 1);
+    perframeData.m_gbufferDescFrag->addCombinedImageSampler(perframeData.m_gbuffer.m_normal_smoothness.get(),
+                                                            m_immRes.m_linearSampler.get(), 2);
+    perframeData.m_gbufferDescFrag->addCombinedImageSampler(perframeData.m_gbuffer.m_emissive.get(),
+                                                            m_immRes.m_linearSampler.get(), 3);
+    perframeData.m_gbufferDescFrag->addCombinedImageSampler(perframeData.m_gbuffer.m_shadowMask.get(),
+                                                            m_immRes.m_linearSampler.get(), 4);
 
     // Create a uav barrier for the gbuffer
     perframeData.m_gbuffer.m_gbufferBarrier.clear();
     RhiResourceBarrier bAlbedo;
     bAlbedo.m_type = RhiBarrierType::UAVAccess;
-    bAlbedo.m_uav.m_texture =
-        perframeData.m_gbuffer.m_albedo_materialFlags.get();
+    bAlbedo.m_uav.m_texture = perframeData.m_gbuffer.m_albedo_materialFlags.get();
     bAlbedo.m_uav.m_type = RhiResourceType::Texture;
 
     RhiResourceBarrier bEmissive;
@@ -513,8 +455,7 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
 
     RhiResourceBarrier bSpecular;
     bSpecular.m_type = RhiBarrierType::UAVAccess;
-    bSpecular.m_uav.m_texture =
-        perframeData.m_gbuffer.m_specular_occlusion.get();
+    bSpecular.m_uav.m_texture = perframeData.m_gbuffer.m_specular_occlusion.get();
     bSpecular.m_uav.m_type = RhiResourceType::Texture;
 
     RhiResourceBarrier bShadow;
@@ -530,29 +471,23 @@ RendererBase::recreateGBuffers(PerFrameData &perframeData,
   }
 }
 
-IFRIT_APIDECL void
-RendererBase::prepareDeviceResources(PerFrameData &perframeData,
-                                     RenderTargets *renderTargets) {
+IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeData, RenderTargets *renderTargets) {
   using namespace Ifrit::GraphicsBackend::Rhi;
   auto rhi = m_app->getRhiLayer();
   auto renderArea = renderTargets->getRenderArea();
 
   uint32_t actualRenderWidth = 0.0;
   uint32_t actualRenderHeight = 0.0;
-  getSupersampledRenderArea(renderTargets, &actualRenderWidth,
-                            &actualRenderHeight);
+  getSupersampledRenderArea(renderTargets, &actualRenderWidth, &actualRenderHeight);
 
   auto &primaryView = perframeData.m_views[0];
   primaryView.m_viewType = PerFrameData::ViewType::Primary;
-  primaryView.m_viewData.m_renderHeightf =
-      static_cast<float>(actualRenderHeight);
+  primaryView.m_viewData.m_renderHeightf = static_cast<float>(actualRenderHeight);
   primaryView.m_viewData.m_renderWidthf = static_cast<float>(actualRenderWidth);
   primaryView.m_renderHeight = actualRenderHeight;
   primaryView.m_renderWidth = actualRenderWidth;
   primaryView.m_viewData.m_hizLods =
-      std::floor(std::log2(static_cast<float>(
-          std::max(actualRenderWidth, actualRenderHeight)))) +
-      1.0f;
+      std::floor(std::log2(static_cast<float>(std::max(actualRenderWidth, actualRenderHeight)))) + 1.0f;
 
   // Shadow views data has been filled in collectPerframeData
 
@@ -564,22 +499,17 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
     bool initLastFrameMatrix = false;
     auto &curView = perframeData.m_views[i];
     if (curView.m_viewBindlessRef == nullptr) {
-      curView.m_viewBuffer = rhi->createBufferCoherent(
-          sizeof(PerFramePerViewData),
-          RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+      curView.m_viewBuffer =
+          rhi->createBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
       curView.m_viewBindlessRef = rhi->createBindlessDescriptorRef();
-      curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBuffer.get(),
-                                                  0);
-      curView.m_viewBufferLast = rhi->createBufferCoherent(
-          sizeof(PerFramePerViewData),
-          RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+      curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBuffer.get(), 0);
+      curView.m_viewBufferLast =
+          rhi->createBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
-      curView.m_viewBindlessRef->addUniformBuffer(
-          curView.m_viewBufferLast.get(), 1);
+      curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBufferLast.get(), 1);
       initLastFrameMatrix = true;
 
-      curView.m_viewBufferId =
-          rhi->registerUniformBuffer(curView.m_viewBuffer.get());
+      curView.m_viewBufferId = rhi->registerUniformBuffer(curView.m_viewBuffer.get());
     }
 
     // Update view buffer
@@ -587,8 +517,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
     auto viewBuffer = curView.m_viewBuffer;
     auto viewBufferAct = viewBuffer->getActiveBuffer();
     viewBufferAct->map();
-    viewBufferAct->writeBuffer(&curView.m_viewData, sizeof(PerFramePerViewData),
-                               0);
+    viewBufferAct->writeBuffer(&curView.m_viewData, sizeof(PerFramePerViewData), 0);
     viewBufferAct->flush();
     viewBufferAct->unmap();
 
@@ -599,8 +528,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
     auto viewBufferLast = curView.m_viewBufferLast;
     auto viewBufferLastAct = viewBufferLast->getActiveBuffer();
     viewBufferLastAct->map();
-    viewBufferLastAct->writeBuffer(&curView.m_viewDataOld,
-                                   sizeof(PerFramePerViewData), 0);
+    viewBufferLastAct->writeBuffer(&curView.m_viewDataOld, sizeof(PerFramePerViewData), 0);
     viewBufferLastAct->flush();
     viewBufferLastAct->unmap();
   }
@@ -616,22 +544,19 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       // TODO/EMERGENCY: release old buffer
       shaderEffect.m_lastObjectCount = objectCount;
       shaderEffect.m_objectData.resize(objectCount);
-      shaderEffect.m_batchedObjectData = rhi->createBufferCoherent(
-          sizeof(PerObjectData) * objectCount,
-          RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+      shaderEffect.m_batchedObjectData = rhi->createBufferCoherent(sizeof(PerObjectData) * objectCount,
+                                                                   RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
       // TODO: update instead of recreate
       shaderEffect.m_batchedObjBufRef = rhi->createBindlessDescriptorRef();
-      shaderEffect.m_batchedObjBufRef->addStorageBuffer(
-          shaderEffect.m_batchedObjectData.get(), 0);
+      shaderEffect.m_batchedObjBufRef->addStorageBuffer(shaderEffect.m_batchedObjectData.get(), 0);
     }
 
     // preloading meshes
-    Ifrit::Common::Utility::unordered_for<size_t>(
-        0, shaderEffect.m_materials.size(), [&](size_t x) {
-          auto mesh = shaderEffect.m_meshes[x];
-          // auto meshDataRef = mesh->loadMesh();
-        });
+    Ifrit::Common::Utility::unordered_for<size_t>(0, shaderEffect.m_materials.size(), [&](size_t x) {
+      auto mesh = shaderEffect.m_meshes[x];
+      // auto meshDataRef = mesh->loadMesh();
+    });
 
     // load meshes
     for (int i = 0; i < shaderEffect.m_materials.size(); i++) {
@@ -641,23 +566,18 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       std::shared_ptr<RhiMultiBuffer> transformBufferLast = nullptr;
       std::shared_ptr<RhiBindlessIdRef> bindlessRef = nullptr;
       std::shared_ptr<RhiBindlessIdRef> bindlessRefLast = nullptr;
-      transform->getGPUResource(transformBuffer, transformBufferLast,
-                                bindlessRef, bindlessRefLast);
+      transform->getGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
       bool initLastFrameMatrix = false;
       if (transformBuffer == nullptr) {
-        transformBuffer = rhi->createBufferCoherent(
-            sizeof(MeshInstanceTransform),
-            RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        transformBuffer = rhi->createBufferCoherent(sizeof(MeshInstanceTransform),
+                                                    RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
         bindlessRef = rhi->registerUniformBuffer(transformBuffer.get());
-        transform->setGPUResource(transformBuffer, transformBufferLast,
-                                  bindlessRef, bindlessRefLast);
+        transform->setGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
         initLastFrameMatrix = true;
-        transformBufferLast = rhi->createBufferCoherent(
-            sizeof(MeshInstanceTransform),
-            RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        transformBufferLast = rhi->createBufferCoherent(sizeof(MeshInstanceTransform),
+                                                        RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
         bindlessRefLast = rhi->registerUniformBuffer(transformBufferLast.get());
-        transform->setGPUResource(transformBuffer, transformBufferLast,
-                                  bindlessRef, bindlessRefLast);
+        transform->setGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
       }
       // update uniform buffer, TODO: dirty flag
       auto transformDirty = transform->getDirtyFlag();
@@ -665,8 +585,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         MeshInstanceTransform model;
         // Transpose is required because glsl uses column major matrices
         model.model = Math::transpose(transform->getModelToWorldMatrix());
-        model.invModel =
-            Math::transpose(Math::inverse4(transform->getModelToWorldMatrix()));
+        model.invModel = Math::transpose(Math::inverse4(transform->getModelToWorldMatrix()));
         auto scale = transform->getScale();
         model.maxScale = std::max(scale.x, std::max(scale.y, scale.z));
 
@@ -676,8 +595,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         buf->flush();
         buf->unmap();
         shaderEffect.m_objectData[i].transformRef = bindlessRef->getActiveId();
-        shaderEffect.m_objectData[i].transformRefLast =
-            bindlessRefLast->getActiveId();
+        shaderEffect.m_objectData[i].transformRefLast = bindlessRefLast->getActiveId();
       }
 
       if (initLastFrameMatrix) {
@@ -687,11 +605,9 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       if (initLastFrameMatrix || transformDirty.lastChanged) {
         MeshInstanceTransform modelLast;
         modelLast.model = Math::transpose(transform->getModelToWorldMatrix());
-        modelLast.invModel =
-            Math::transpose(Math::inverse4(transform->getModelToWorldMatrix()));
+        modelLast.invModel = Math::transpose(Math::inverse4(transform->getModelToWorldMatrix()));
         auto lastScale = transform->getScaleLast();
-        modelLast.maxScale =
-            std::max(lastScale.x, std::max(lastScale.y, lastScale.z));
+        modelLast.maxScale = std::max(lastScale.x, std::max(lastScale.y, lastScale.z));
         auto bufLast = transformBufferLast->getActiveBuffer();
         bufLast->map();
         bufLast->writeBuffer(&modelLast, sizeof(MeshInstanceTransform), 0);
@@ -711,135 +627,85 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       if (meshResource.objectBufferId == nullptr || mesh->m_resourceDirty) {
         requireUpdate = true;
         mesh->m_resourceDirty = false;
-        meshDataRef->m_cpCounter.totalBvhNodes =
-            size_cast<uint32_t>(meshDataRef->m_bvhNodes.size());
+        meshDataRef->m_cpCounter.totalBvhNodes = size_cast<uint32_t>(meshDataRef->m_bvhNodes.size());
         meshDataRef->m_cpCounter.totalLods = meshDataRef->m_maxLod;
-        meshDataRef->m_cpCounter.totalNumClusters =
-            size_cast<uint32_t>(meshDataRef->m_clusterGroups.size());
+        meshDataRef->m_cpCounter.totalNumClusters = size_cast<uint32_t>(meshDataRef->m_clusterGroups.size());
 
-        auto tmpUsage = RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
-                        RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        auto tmpUsage = RHI_BUFFER_USAGE_TRANSFER_DST_BIT | RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         meshResource.vertexBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_verticesAligned.size() *
-                                sizeof(ifloat4)),
-            tmpUsage);
+            size_cast<uint32_t>(meshDataRef->m_verticesAligned.size() * sizeof(ifloat4)), tmpUsage);
         meshResource.normalBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_normalsAligned.size() *
-                                sizeof(ifloat4)),
-            tmpUsage);
-        meshResource.uvBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_uvs.size() * sizeof(ifloat2)),
-            tmpUsage);
+            size_cast<uint32_t>(meshDataRef->m_normalsAligned.size() * sizeof(ifloat4)), tmpUsage);
+        meshResource.uvBuffer =
+            rhi->createBufferDevice(size_cast<uint32_t>(meshDataRef->m_uvs.size() * sizeof(ifloat2)), tmpUsage);
         meshResource.bvhNodeBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(
-                meshDataRef->m_bvhNodes.size() *
-                sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
+            size_cast<uint32_t>(meshDataRef->m_bvhNodes.size() * sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
             tmpUsage);
         meshResource.clusterGroupBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_clusterGroups.size() *
-                                sizeof(MeshProcLib::MeshProcess::ClusterGroup)),
+            size_cast<uint32_t>(meshDataRef->m_clusterGroups.size() * sizeof(MeshProcLib::MeshProcess::ClusterGroup)),
             tmpUsage);
         meshResource.meshletBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_meshlets.size() *
-                                sizeof(MeshData::MeshletData)),
-            tmpUsage);
+            size_cast<uint32_t>(meshDataRef->m_meshlets.size() * sizeof(MeshData::MeshletData)), tmpUsage);
         meshResource.meshletVertexBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_meshletVertices.size() *
-                                sizeof(uint32_t)),
-            tmpUsage);
+            size_cast<uint32_t>(meshDataRef->m_meshletVertices.size() * sizeof(uint32_t)), tmpUsage);
         meshResource.meshletIndexBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_meshletTriangles.size() *
-                                sizeof(uint32_t)),
-            tmpUsage);
+            size_cast<uint32_t>(meshDataRef->m_meshletTriangles.size() * sizeof(uint32_t)), tmpUsage);
         meshResource.meshletInClusterBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_meshletInClusterGroup.size() *
-                                sizeof(uint32_t)),
-            tmpUsage);
-        meshResource.cpCounterBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(sizeof(MeshData::GPUCPCounter)), tmpUsage);
-        meshResource.tangentBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(sizeof(ifloat4) *
-                                meshDataRef->m_tangents.size()),
-            tmpUsage);
+            size_cast<uint32_t>(meshDataRef->m_meshletInClusterGroup.size() * sizeof(uint32_t)), tmpUsage);
+        meshResource.cpCounterBuffer =
+            rhi->createBufferDevice(size_cast<uint32_t>(sizeof(MeshData::GPUCPCounter)), tmpUsage);
+        meshResource.tangentBuffer =
+            rhi->createBufferDevice(size_cast<uint32_t>(sizeof(ifloat4) * meshDataRef->m_tangents.size()), tmpUsage);
 
         auto materialDataSize = 0;
         auto &materialRef = shaderEffect.m_materials[i];
         if (materialRef->m_data.size() > 0) {
           haveMaterialData = true;
           materialDataSize = size_cast<uint32_t>(materialRef->m_data[0].size());
-          meshResource.materialDataBuffer = rhi->createBufferDevice(
-              size_cast<uint32_t>(
-                  shaderEffect.m_materials[i]->m_data[0].size()),
-              tmpUsage);
+          meshResource.materialDataBuffer =
+              rhi->createBufferDevice(size_cast<uint32_t>(shaderEffect.m_materials[i]->m_data[0].size()), tmpUsage);
         } else {
           meshResource.materialDataBuffer = nullptr;
           iWarn("Material data not found for mesh {}", i);
         }
 
         // Indices in bindless descriptors
-        meshResource.vertexBufferId =
-            rhi->registerStorageBuffer(meshResource.vertexBuffer.get());
-        meshResource.normalBufferId =
-            rhi->registerStorageBuffer(meshResource.normalBuffer.get());
-        meshResource.uvBufferId =
-            rhi->registerStorageBuffer(meshResource.uvBuffer.get());
-        meshResource.bvhNodeBufferId =
-            rhi->registerStorageBuffer(meshResource.bvhNodeBuffer.get());
-        meshResource.clusterGroupBufferId =
-            rhi->registerStorageBuffer(meshResource.clusterGroupBuffer.get());
-        meshResource.meshletBufferId =
-            rhi->registerStorageBuffer(meshResource.meshletBuffer.get());
-        meshResource.meshletVertexBufferId =
-            rhi->registerStorageBuffer(meshResource.meshletVertexBuffer.get());
-        meshResource.meshletIndexBufferId =
-            rhi->registerStorageBuffer(meshResource.meshletIndexBuffer.get());
-        meshResource.meshletInClusterBufferId = rhi->registerStorageBuffer(
-            meshResource.meshletInClusterBuffer.get());
-        meshResource.cpCounterBufferId =
-            rhi->registerStorageBuffer(meshResource.cpCounterBuffer.get());
-        meshResource.tangentBufferId =
-            rhi->registerStorageBuffer(meshResource.tangentBuffer.get());
+        meshResource.vertexBufferId = rhi->registerStorageBuffer(meshResource.vertexBuffer.get());
+        meshResource.normalBufferId = rhi->registerStorageBuffer(meshResource.normalBuffer.get());
+        meshResource.uvBufferId = rhi->registerStorageBuffer(meshResource.uvBuffer.get());
+        meshResource.bvhNodeBufferId = rhi->registerStorageBuffer(meshResource.bvhNodeBuffer.get());
+        meshResource.clusterGroupBufferId = rhi->registerStorageBuffer(meshResource.clusterGroupBuffer.get());
+        meshResource.meshletBufferId = rhi->registerStorageBuffer(meshResource.meshletBuffer.get());
+        meshResource.meshletVertexBufferId = rhi->registerStorageBuffer(meshResource.meshletVertexBuffer.get());
+        meshResource.meshletIndexBufferId = rhi->registerStorageBuffer(meshResource.meshletIndexBuffer.get());
+        meshResource.meshletInClusterBufferId = rhi->registerStorageBuffer(meshResource.meshletInClusterBuffer.get());
+        meshResource.cpCounterBufferId = rhi->registerStorageBuffer(meshResource.cpCounterBuffer.get());
+        meshResource.tangentBufferId = rhi->registerStorageBuffer(meshResource.tangentBuffer.get());
         if (haveMaterialData) {
-          meshResource.materialDataBufferId =
-              rhi->registerStorageBuffer(meshResource.materialDataBuffer.get());
+          meshResource.materialDataBufferId = rhi->registerStorageBuffer(meshResource.materialDataBuffer.get());
         }
 
         // Here, we assume that no double bufferring is allowed
         // meaning no CPU-GPU data transfer is allowed for mesh data after
         // initialization
         Mesh::GPUObjectBuffer &objectBuffer = meshResource.objectData;
-        objectBuffer.vertexBufferId =
-            meshResource.vertexBufferId->getActiveId();
-        objectBuffer.normalBufferId =
-            meshResource.normalBufferId->getActiveId();
+        objectBuffer.vertexBufferId = meshResource.vertexBufferId->getActiveId();
+        objectBuffer.normalBufferId = meshResource.normalBufferId->getActiveId();
         objectBuffer.uvBufferId = meshResource.uvBufferId->getActiveId();
-        objectBuffer.bvhNodeBufferId =
-            meshResource.bvhNodeBufferId->getActiveId();
-        objectBuffer.clusterGroupBufferId =
-            meshResource.clusterGroupBufferId->getActiveId();
-        objectBuffer.meshletBufferId =
-            meshResource.meshletBufferId->getActiveId();
-        objectBuffer.meshletVertexBufferId =
-            meshResource.meshletVertexBufferId->getActiveId();
-        objectBuffer.meshletIndexBufferId =
-            meshResource.meshletIndexBufferId->getActiveId();
-        objectBuffer.meshletInClusterBufferId =
-            meshResource.meshletInClusterBufferId->getActiveId();
-        objectBuffer.cpCounterBufferId =
-            meshResource.cpCounterBufferId->getActiveId();
-        objectBuffer.boundingSphere =
-            mesh->getBoundingSphere(meshDataRef->m_vertices);
-        objectBuffer.materialDataId =
-            haveMaterialData ? meshResource.materialDataBufferId->getActiveId()
-                             : 0;
-        objectBuffer.tangentBufferId =
-            meshResource.tangentBufferId->getActiveId();
+        objectBuffer.bvhNodeBufferId = meshResource.bvhNodeBufferId->getActiveId();
+        objectBuffer.clusterGroupBufferId = meshResource.clusterGroupBufferId->getActiveId();
+        objectBuffer.meshletBufferId = meshResource.meshletBufferId->getActiveId();
+        objectBuffer.meshletVertexBufferId = meshResource.meshletVertexBufferId->getActiveId();
+        objectBuffer.meshletIndexBufferId = meshResource.meshletIndexBufferId->getActiveId();
+        objectBuffer.meshletInClusterBufferId = meshResource.meshletInClusterBufferId->getActiveId();
+        objectBuffer.cpCounterBufferId = meshResource.cpCounterBufferId->getActiveId();
+        objectBuffer.boundingSphere = mesh->getBoundingSphere(meshDataRef->m_vertices);
+        objectBuffer.materialDataId = haveMaterialData ? meshResource.materialDataBufferId->getActiveId() : 0;
+        objectBuffer.tangentBufferId = meshResource.tangentBufferId->getActiveId();
 
         // description for the whole mesh
-        meshResource.objectBuffer =
-            rhi->createBufferDevice(sizeof(Mesh::GPUObjectBuffer), tmpUsage);
-        meshResource.objectBufferId =
-            rhi->registerStorageBuffer(meshResource.objectBuffer.get());
+        meshResource.objectBuffer = rhi->createBufferDevice(sizeof(Mesh::GPUObjectBuffer), tmpUsage);
+        meshResource.objectBufferId = rhi->registerStorageBuffer(meshResource.objectBuffer.get());
 
         mesh->setGPUResource(meshResource);
       }
@@ -851,60 +717,45 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
       auto &meshInstObjData = meshInst->m_resource.objectData;
       if (instanceResource.objectBuffer == nullptr) {
 
-        auto tmpUsage = RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
-                        RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        auto tmpUsage = RHI_BUFFER_USAGE_TRANSFER_DST_BIT | RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         requireUpdate = true;
-        instanceResource.cpQueueBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(sizeof(uint32_t) *
-                                meshDataRef->m_bvhNodes.size()),
-            tmpUsage);
+        instanceResource.cpQueueBuffer =
+            rhi->createBufferDevice(size_cast<uint32_t>(sizeof(uint32_t) * meshDataRef->m_bvhNodes.size()), tmpUsage);
 
         auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0];
         if (meshDataRef->m_numMeshletsEachLod.size() > 1)
           safeNumMeshlets += meshDataRef->m_numMeshletsEachLod[1];
-        instanceResource.filteredMeshlets = rhi->createBufferDevice(
-            sizeof(uint32_t) * safeNumMeshlets, tmpUsage);
+        instanceResource.filteredMeshlets = rhi->createBufferDevice(sizeof(uint32_t) * safeNumMeshlets, tmpUsage);
 
-        instanceResource.cpQueueBufferId =
-            rhi->registerStorageBuffer(instanceResource.cpQueueBuffer.get());
-        instanceResource.filteredMeshletsId =
-            rhi->registerStorageBuffer(instanceResource.filteredMeshlets.get());
+        instanceResource.cpQueueBufferId = rhi->registerStorageBuffer(instanceResource.cpQueueBuffer.get());
+        instanceResource.filteredMeshletsId = rhi->registerStorageBuffer(instanceResource.filteredMeshlets.get());
 
-        instanceResource.objectData.cpQueueBufferId =
-            instanceResource.cpQueueBufferId->getActiveId();
-        instanceResource.objectData.filteredMeshletsId =
-            instanceResource.filteredMeshletsId->getActiveId();
+        instanceResource.objectData.cpQueueBufferId = instanceResource.cpQueueBufferId->getActiveId();
+        instanceResource.objectData.filteredMeshletsId = instanceResource.filteredMeshletsId->getActiveId();
 
-        instanceResource.objectBuffer = rhi->createBufferDevice(
-            sizeof(MeshInstance::GPUObjectBuffer), tmpUsage);
-        instanceResource.objectBufferId =
-            rhi->registerStorageBuffer(instanceResource.objectBuffer.get());
+        instanceResource.objectBuffer = rhi->createBufferDevice(sizeof(MeshInstance::GPUObjectBuffer), tmpUsage);
+        instanceResource.objectBufferId = rhi->registerStorageBuffer(instanceResource.objectBuffer.get());
 
         meshInst->setGPUResource(instanceResource);
       }
 
-      shaderEffect.m_objectData[i].objectDataRef =
-          meshResource.objectBufferId->getActiveId();
-      shaderEffect.m_objectData[i].instanceDataRef =
-          meshInst->m_resource.objectBufferId->getActiveId();
+      shaderEffect.m_objectData[i].objectDataRef = meshResource.objectBufferId->getActiveId();
+      shaderEffect.m_objectData[i].instanceDataRef = meshInst->m_resource.objectBufferId->getActiveId();
       shaderEffect.m_objectData[i].materialId = curShaderMaterialId;
 
       // update vertex buffer, TODO: dirty flag
       if (requireUpdate) {
-        auto funcEnqueueStagedBuffer =
-            [&](std::shared_ptr<RhiStagedSingleBuffer> stagedBuffer, void *data,
-                uint32_t size) {
-              stagedBuffers.push_back(stagedBuffer);
-              pendingVertexBuffers.push_back(data);
-              pendingVertexBufferSizes.push_back(size);
-            };
-#define enqueueStagedBuffer(name, vecBuffer)                                   \
-  auto staged##name = rhi->createStagedSingleBuffer(meshResource.name.get());  \
-  funcEnqueueStagedBuffer(                                                     \
-      staged##name, meshDataRef->vecBuffer.data(),                             \
-      size_cast<uint32_t>(                                                     \
-          meshDataRef->vecBuffer.size() *                                      \
-          sizeof(decltype(meshDataRef->vecBuffer)::value_type)))
+        auto funcEnqueueStagedBuffer = [&](std::shared_ptr<RhiStagedSingleBuffer> stagedBuffer, void *data,
+                                           uint32_t size) {
+          stagedBuffers.push_back(stagedBuffer);
+          pendingVertexBuffers.push_back(data);
+          pendingVertexBufferSizes.push_back(size);
+        };
+#define enqueueStagedBuffer(name, vecBuffer)                                                                           \
+  auto staged##name = rhi->createStagedSingleBuffer(meshResource.name.get());                                          \
+  funcEnqueueStagedBuffer(                                                                                             \
+      staged##name, meshDataRef->vecBuffer.data(),                                                                     \
+      size_cast<uint32_t>(meshDataRef->vecBuffer.size() * sizeof(decltype(meshDataRef->vecBuffer)::value_type)))
 
         enqueueStagedBuffer(vertexBuffer, m_verticesAligned);
         enqueueStagedBuffer(normalBuffer, m_normalsAligned);
@@ -917,36 +768,28 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
         enqueueStagedBuffer(meshletIndexBuffer, m_meshletTriangles);
         enqueueStagedBuffer(meshletInClusterBuffer, m_meshletInClusterGroup);
 
-        auto stagedCPCounterBuffer =
-            rhi->createStagedSingleBuffer(meshResource.cpCounterBuffer.get());
+        auto stagedCPCounterBuffer = rhi->createStagedSingleBuffer(meshResource.cpCounterBuffer.get());
         stagedBuffers.push_back(stagedCPCounterBuffer);
         pendingVertexBuffers.push_back(&meshDataRef->m_cpCounter);
         pendingVertexBufferSizes.push_back(sizeof(MeshData::GPUCPCounter));
 
-        std::shared_ptr<RhiStagedSingleBuffer> stagedMaterialDataBuffer =
-            nullptr;
+        std::shared_ptr<RhiStagedSingleBuffer> stagedMaterialDataBuffer = nullptr;
         if (haveMaterialData) {
-          stagedMaterialDataBuffer = rhi->createStagedSingleBuffer(
-              meshResource.materialDataBuffer.get());
+          stagedMaterialDataBuffer = rhi->createStagedSingleBuffer(meshResource.materialDataBuffer.get());
           stagedBuffers.push_back(stagedMaterialDataBuffer);
-          pendingVertexBuffers.push_back(
-              &shaderEffect.m_materials[i]->m_data[0][0]);
-          pendingVertexBufferSizes.push_back(
-              shaderEffect.m_materials[i]->m_data[0].size());
+          pendingVertexBuffers.push_back(&shaderEffect.m_materials[i]->m_data[0][0]);
+          pendingVertexBufferSizes.push_back(shaderEffect.m_materials[i]->m_data[0].size());
         }
 
-        auto stagedObjectBuffer =
-            rhi->createStagedSingleBuffer(meshResource.objectBuffer.get());
+        auto stagedObjectBuffer = rhi->createStagedSingleBuffer(meshResource.objectBuffer.get());
         stagedBuffers.push_back(stagedObjectBuffer);
         pendingVertexBuffers.push_back(&mesh->m_resource.objectData);
         pendingVertexBufferSizes.push_back(sizeof(Mesh::GPUObjectBuffer));
 
-        auto stagedInstanceObjectBuffer =
-            rhi->createStagedSingleBuffer(instanceResource.objectBuffer.get());
+        auto stagedInstanceObjectBuffer = rhi->createStagedSingleBuffer(instanceResource.objectBuffer.get());
         stagedBuffers.push_back(stagedInstanceObjectBuffer);
         pendingVertexBuffers.push_back(&meshInst->m_resource.objectData);
-        pendingVertexBufferSizes.push_back(
-            sizeof(MeshInstance::GPUObjectBuffer));
+        pendingVertexBufferSizes.push_back(sizeof(MeshInstance::GPUObjectBuffer));
 
 #undef enqueueStagedBuffer
       }
@@ -956,8 +799,7 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
     auto batchedObjectData = shaderEffect.m_batchedObjectData;
     auto batchedObjectDataAct = batchedObjectData->getActiveBuffer();
     batchedObjectDataAct->map();
-    batchedObjectDataAct->writeBuffer(shaderEffect.m_objectData.data(),
-                                      sizeof(PerObjectData) * objectCount, 0);
+    batchedObjectDataAct->writeBuffer(shaderEffect.m_objectData.data(), sizeof(PerObjectData) * objectCount, 0);
     batchedObjectDataAct->flush();
     batchedObjectDataAct->unmap();
 
@@ -968,20 +810,17 @@ RendererBase::prepareDeviceResources(PerFrameData &perframeData,
     auto queue = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
     queue->runSyncCommand([&](const RhiCommandBuffer *cmd) {
       for (int i = 0; i < stagedBuffers.size(); i++) {
-        stagedBuffers[i]->cmdCopyToDevice(cmd, pendingVertexBuffers[i],
-                                          pendingVertexBufferSizes[i], 0);
+        stagedBuffers[i]->cmdCopyToDevice(cmd, pendingVertexBuffers[i], pendingVertexBufferSizes[i], 0);
       }
     });
   }
 }
 
-IFRIT_APIDECL void
-RendererBase::updateLastFrameTransforms(PerFrameData &perframeData) {
+IFRIT_APIDECL void RendererBase::updateLastFrameTransforms(PerFrameData &perframeData) {
   throw std::runtime_error("Deprecated");
 }
 
-IFRIT_APIDECL void
-RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
+IFRIT_APIDECL void RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
   auto rhi = m_app->getRhiLayer();
   using namespace Ifrit::GraphicsBackend;
   auto drawq = rhi->getQueue(Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
@@ -1005,8 +844,7 @@ RendererBase::endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait) {
   rhi->endFrame();
 }
 
-IFRIT_APIDECL std::unique_ptr<RendererBase::GPUCommandSubmission>
-RendererBase::beginFrame() {
+IFRIT_APIDECL std::unique_ptr<RendererBase::GPUCommandSubmission> RendererBase::beginFrame() {
   auto rhi = m_app->getRhiLayer();
   rhi->beginFrame();
   return rhi->getSwapchainFrameReadyEventHandler();

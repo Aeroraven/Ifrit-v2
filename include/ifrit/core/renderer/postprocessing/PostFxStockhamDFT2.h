@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/Hash.h"
 #include "ifrit/core/renderer/PostprocessPass.h"
 #include <unordered_map>
@@ -31,25 +32,21 @@ class IFRIT_APIDECL PostFxStockhamDFT2 : public PostprocessPass {
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
 
   // I know this is UGLY
-  std::unordered_map<std::pair<uint32_t, uint32_t>, std::shared_ptr<GPUTexture>,
-                     Ifrit::Common::Utility::PairwiseHash<uint32_t, uint32_t>>
+  std::unordered_map<std::pair<u32, u32>, std::shared_ptr<GPUTexture>, Ifrit::Common::Utility::PairwiseHash<u32, u32>>
       m_tex1;
 
-  std::unordered_map<std::pair<uint32_t, uint32_t>, std::shared_ptr<GPUBindId>,
-                     Ifrit::Common::Utility::PairwiseHash<uint32_t, uint32_t>>
+  std::unordered_map<std::pair<u32, u32>, std::shared_ptr<GPUBindId>, Ifrit::Common::Utility::PairwiseHash<u32, u32>>
       m_tex1Id;
 
   ComputePass *m_testBlurPipeline = nullptr;
 
 public:
   PostFxStockhamDFT2(IApplication *app);
-  void renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId,
-                    GPUBindId *dstUAVImg, uint32_t width, uint32_t height,
-                    uint32_t downscale);
+  void renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId, GPUBindId *dstUAVImg, u32 width, u32 height,
+                    u32 downscale);
 
 private:
-  void runCommand(const GPUCmdBuffer *cmd, uint32_t wgX, uint32_t wgY,
-                  const void *pc);
+  void runCommand(const GPUCmdBuffer *cmd, u32 wgX, u32 wgY, const void *pc);
 };
 
 } // namespace Ifrit::Core::PostprocessPassCollection

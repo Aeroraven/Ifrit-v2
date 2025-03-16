@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/Hash.h"
 #include "ifrit/core/renderer/PostprocessPass.h"
 #include <unordered_map>
@@ -45,8 +46,7 @@ struct PostFxFFTConv2dResourceCollection {
   std::shared_ptr<GPUBindId> m_texGaussianSampId;
 
   PostFxFFTConv2dResourceCollection() = default;
-  PostFxFFTConv2dResourceCollection(const PostFxFFTConv2dResourceCollection &) =
-      default;
+  PostFxFFTConv2dResourceCollection(const PostFxFFTConv2dResourceCollection &) = default;
 };
 
 class IFRIT_APIDECL PostFxFFTConv2d : public PostprocessPass {
@@ -57,9 +57,8 @@ class IFRIT_APIDECL PostFxFFTConv2d : public PostprocessPass {
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
 
   // I know this is UGLY
-  std::unordered_map<std::pair<uint32_t, uint32_t>,
-                     PostFxFFTConv2dResourceCollection,
-                     Ifrit::Common::Utility::PairwiseHash<uint32_t, uint32_t>>
+  std::unordered_map<std::pair<u32, u32>, PostFxFFTConv2dResourceCollection,
+                     Ifrit::Common::Utility::PairwiseHash<u32, u32>>
       m_resMap;
 
   ComputePass *m_upsamplePipeline = nullptr;
@@ -68,10 +67,8 @@ class IFRIT_APIDECL PostFxFFTConv2d : public PostprocessPass {
 public:
   PostFxFFTConv2d(IApplication *app);
   ~PostFxFFTConv2d();
-  void renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId,
-                    GPUBindId *dstUAVImg, GPUBindId *kernelSampId,
-                    uint32_t srcWidth, uint32_t srcHeight, uint32_t kernelWidth,
-                    uint32_t kernelHeight, uint32_t srcDownscale);
+  void renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId, GPUBindId *dstUAVImg, GPUBindId *kernelSampId,
+                    u32 srcWidth, u32 srcHeight, u32 kernelWidth, u32 kernelHeight, u32 srcDownscale);
 };
 
 } // namespace Ifrit::Core::PostprocessPassCollection

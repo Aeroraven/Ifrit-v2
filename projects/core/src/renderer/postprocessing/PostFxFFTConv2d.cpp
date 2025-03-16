@@ -32,14 +32,12 @@ IFRIT_APIDECL PostFxFFTConv2d::PostFxFFTConv2d(IApplication *app)
   auto rhi = app->getRhiLayer();
   m_upsamplePipeline = rhi->createComputePass();
 
-  auto shader = createShaderFromFile("FFTConv2d.Upsample.comp.glsl", "main",
-                                     RhiShaderStage::Compute);
+  auto shader = createShaderFromFile("FFTConv2d.Upsample.comp.glsl", "main", RhiShaderStage::Compute);
   m_upsamplePipeline->setComputeShader(shader);
   m_upsamplePipeline->setPushConstSize(17 * sizeof(uint32_t));
   m_upsamplePipeline->setNumBindlessDescriptorSets(0);
 
-  auto gshader = createShaderFromFile("GaussianKernelGenerate.comp.glsl",
-                                      "main", RhiShaderStage::Compute);
+  auto gshader = createShaderFromFile("GaussianKernelGenerate.comp.glsl", "main", RhiShaderStage::Compute);
   m_gaussianPipeline = rhi->createComputePass();
   m_gaussianPipeline->setComputeShader(gshader);
   m_gaussianPipeline->setPushConstSize(4 * sizeof(uint32_t));
@@ -48,17 +46,15 @@ IFRIT_APIDECL PostFxFFTConv2d::PostFxFFTConv2d(IApplication *app)
 
 IFRIT_APIDECL PostFxFFTConv2d::~PostFxFFTConv2d() {}
 
-IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
-    const GPUCmdBuffer *cmd, GPUBindId *srcSampId, GPUBindId *dstUAVImg,
-    GPUBindId *kernelSampId, uint32_t srcWidth, uint32_t srcHeight,
-    uint32_t kernelWidth, uint32_t kernelHeight, uint32_t srcDownscale) {
+IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId, GPUBindId *dstUAVImg,
+                                                 GPUBindId *kernelSampId, uint32_t srcWidth, uint32_t srcHeight,
+                                                 uint32_t kernelWidth, uint32_t kernelHeight, uint32_t srcDownscale) {
   // todo
 
   auto imageX = srcWidth / srcDownscale, imageY = srcHeight / srcDownscale;
   auto imagePaddingX = kernelWidth / 2, imagePaddingY = kernelHeight / 2;
 
-  auto imagePaddedX = imageX + imagePaddingX * 2,
-       imagePaddedY = imageY + imagePaddingY * 2;
+  auto imagePaddedX = imageX + imagePaddingX * 2, imagePaddedY = imageY + imagePaddingY * 2;
 
   auto kenelPaddingXLo = imagePaddedX / 2 - imageX / 2;
   auto kenelPaddingYLo = imagePaddedY / 2 - imageY / 2;
@@ -76,11 +72,9 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
   auto p2Width = 1 << logP2Width;
   auto p2Height = 1 << logP2Height;
 
-  if (p2Width > FFTConv2DConfig::cMaxSupportedTextureSize ||
-      p2Height > FFTConv2DConfig::cMaxSupportedTextureSize) {
+  if (p2Width > FFTConv2DConfig::cMaxSupportedTextureSize || p2Height > FFTConv2DConfig::cMaxSupportedTextureSize) {
     iInfo("Padded image size is: {}x{}", imagePaddedX, imagePaddedY);
-    iError("FFTConv2d: Image size too large, max {}x{}. Got {}x{}",
-           FFTConv2DConfig::cMaxSupportedTextureSize,
+    iError("FFTConv2d: Image size too large, max {}x{}. Got {}x{}", FFTConv2DConfig::cMaxSupportedTextureSize,
            FFTConv2DConfig::cMaxSupportedTextureSize, p2Width, p2Height);
     return;
   }
@@ -90,36 +84,29 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
     using namespace Ifrit::GraphicsBackend::Rhi;
     auto res = std::make_unique<PostFxFFTConv2dResourceCollection>();
     auto rhi = m_app->getRhiLayer();
-    auto tex1 = rhi->createTexture2D(
-        p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
-            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
-    auto tex2 = rhi->createTexture2D(
-        p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
-            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
-    auto texTemp = rhi->createTexture2D(
-        p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
-            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+    auto tex1 =
+        rhi->createTexture2D(p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+                             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+    auto tex2 =
+        rhi->createTexture2D(p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+                             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+    auto texTemp =
+        rhi->createTexture2D(p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+                             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
     auto tex1Id = rhi->registerUAVImage(tex1.get(), {0, 0, 1, 1});
     auto tex2Id = rhi->registerUAVImage(tex2.get(), {0, 0, 1, 1});
     auto texTempId = rhi->registerUAVImage(texTemp.get(), {0, 0, 1, 1});
 
     auto texSampler = rhi->createTrivialSampler();
     auto texGaussian =
-        rhi->createTexture2D(kernelWidth, kernelHeight,
-                             RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-                             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT |
-                                 RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+        rhi->createTexture2D(kernelWidth, kernelHeight, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+                             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
     auto texGaussianId = rhi->registerUAVImage(texGaussian.get(), {0, 0, 1, 1});
-    auto texGaussianSampId =
-        rhi->registerCombinedImageSampler(texGaussian.get(), texSampler.get());
+    auto texGaussianSampId = rhi->registerCombinedImageSampler(texGaussian.get(), texSampler.get());
 
     res->m_tex1 = tex1;
     res->m_tex1Id = tex1Id;
-    res->m_tex1IdSamp =
-        rhi->registerCombinedImageSampler(tex1.get(), texSampler.get());
+    res->m_tex1IdSamp = rhi->registerCombinedImageSampler(tex1.get(), texSampler.get());
     res->m_tex2 = tex2;
     res->m_tex2Id = tex2Id;
     res->m_texTemp = texTemp;
@@ -160,8 +147,7 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
   pc.kernRtH = kernelHeight;
   pc.srcImage = srcSampId->getActiveId();
   pc.srcIntermImage = m_resMap[{p2Width, p2Height}].m_tex1Id->getActiveId();
-  pc.srcIntermImageSamp =
-      m_resMap[{p2Width, p2Height}].m_tex1IdSamp->getActiveId();
+  pc.srcIntermImageSamp = m_resMap[{p2Width, p2Height}].m_tex1IdSamp->getActiveId();
   pc.kernImage = 0; // kernelSampId->getActiveId();
   pc.kernIntermImage = m_resMap[{p2Width, p2Height}].m_tex2Id->getActiveId();
   pc.dstImage = dstUAVImg->getActiveId();
@@ -173,8 +159,7 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
   if (kernelSampId != nullptr) {
     pc.kernImage = kernelSampId->getActiveId();
   } else {
-    pc.kernImage =
-        m_resMap[{p2Width, p2Height}].m_texGaussianSampId->getActiveId();
+    pc.kernImage = m_resMap[{p2Width, p2Height}].m_texGaussianSampId->getActiveId();
 
     struct PushConstBlur {
       uint32_t blurKernW;
@@ -187,14 +172,11 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
     pcb.srcImgId = m_resMap[{p2Width, p2Height}].m_texGaussianId->getActiveId();
     if (firstTime) {
       cmd->beginScope("Postprocess: FFTConv2D, GaussianBlur");
-      m_gaussianPipeline->setRecordFunction(
-          [&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
-            cmd->setPushConst(m_gaussianPipeline, 0, 4 * sizeof(uint32_t),
-                              &pcb);
-            ctx->m_cmd->dispatch(
-                Ifrit::Math::ConstFunc::divRoundUp(p2Width, 8),
-                Ifrit::Math::ConstFunc::divRoundUp(p2Height, 8), 1);
-          });
+      m_gaussianPipeline->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
+        cmd->setPushConst(m_gaussianPipeline, 0, 4 * sizeof(uint32_t), &pcb);
+        ctx->m_cmd->dispatch(Ifrit::Math::ConstFunc::divRoundUp(p2Width, 8),
+                             Ifrit::Math::ConstFunc::divRoundUp(p2Height, 8), 1);
+      });
       m_gaussianPipeline->run(cmd, 0);
       cmd->globalMemoryBarrier();
       cmd->endScope();
@@ -205,14 +187,12 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
     iError("FFTConv2d: Image size must be square");
     return;
   }
-  auto wgX = Ifrit::Math::ConstFunc::divRoundUp(
-      p2Width / 2, FFTConv2DConfig::cThreadGroupSizeX);
+  auto wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Width / 2, FFTConv2DConfig::cThreadGroupSizeX);
   auto wgY = p2Height;
   cmd->beginScope("Postprocess: FFTConv2D");
   const char *scopeNames[7] = {
-      "Postprocess: FFTConv2D, SrcFFT-X",  "Postprocess: FFTConv2D, SrcFFT-Y",
-      "Postprocess: FFTConv2D, KernFFT-X", "Postprocess: FFTConv2D, KernFFT-Y",
-      "Postprocess: FFTConv2D, Multiply",  "Postprocess: FFTConv2D, IFFT-Y",
+      "Postprocess: FFTConv2D, SrcFFT-X",  "Postprocess: FFTConv2D, SrcFFT-Y", "Postprocess: FFTConv2D, KernFFT-X",
+      "Postprocess: FFTConv2D, KernFFT-Y", "Postprocess: FFTConv2D, Multiply", "Postprocess: FFTConv2D, IFFT-Y",
       "Postprocess: FFTConv2D, IFFT-X",
   };
   for (uint32_t i = 0u; i < 7u; i++) {
@@ -221,12 +201,11 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
         continue;
     }
     cmd->beginScope(scopeNames[i]);
-    m_computePipeline->setRecordFunction(
-        [&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
-          pc.fftStep = i;
-          cmd->setPushConst(m_computePipeline, 0, 16 * sizeof(uint32_t), &pc);
-          ctx->m_cmd->dispatch(wgX, wgY, 1);
-        });
+    m_computePipeline->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
+      pc.fftStep = i;
+      cmd->setPushConst(m_computePipeline, 0, 16 * sizeof(uint32_t), &pc);
+      ctx->m_cmd->dispatch(wgX, wgY, 1);
+    });
     m_computePipeline->run(cmd, 0);
     cmd->globalMemoryBarrier();
     cmd->endScope();
@@ -235,12 +214,11 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(
   cmd->beginScope("Postprocess: FFTConv2D, Upsample");
   auto dwgX = Ifrit::Math::ConstFunc::divRoundUp(srcWidth, 8);
   auto dwgY = Ifrit::Math::ConstFunc::divRoundUp(srcHeight, 8);
-  m_upsamplePipeline->setRecordFunction(
-      [&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
-        pc.tempImage = m_resMap[{p2Width, p2Height}].m_texTempId->getActiveId();
-        cmd->setPushConst(m_upsamplePipeline, 0, 17 * sizeof(uint32_t), &pc);
-        ctx->m_cmd->dispatch(dwgX, dwgY, 1);
-      });
+  m_upsamplePipeline->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
+    pc.tempImage = m_resMap[{p2Width, p2Height}].m_texTempId->getActiveId();
+    cmd->setPushConst(m_upsamplePipeline, 0, 17 * sizeof(uint32_t), &pc);
+    ctx->m_cmd->dispatch(dwgX, dwgY, 1);
+  });
   m_upsamplePipeline->run(cmd, 0);
   cmd->globalMemoryBarrier();
   cmd->endScope();

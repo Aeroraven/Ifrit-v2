@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "PbrAtmosphereRenderer.h"
 #include "RendererBase.h"
 #include "framegraph/FrameGraph.h"
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/Hash.h"
 #include "postprocessing/PostFxAcesTonemapping.h"
 #include "postprocessing/PostFxFFTConv2d.h"
@@ -29,7 +30,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "postprocessing/PostFxGlobalFog.h"
 #include "postprocessing/PostFxJointBilaterialFilter.h"
 #include "postprocessing/PostFxStockhamDFT2.h"
-
 
 #include "commonpass/SinglePassHiZ.h"
 
@@ -68,26 +68,24 @@ private:
   // Single pass HiZ
   std::shared_ptr<SinglePassHiZPass> m_singlePassHiZProc = nullptr;
 
-  constexpr static uint32_t cSPHiZGroupSizeX = 256;
-  constexpr static uint32_t cSPHiZTileSize = 64;
+  constexpr static u32 cSPHiZGroupSizeX = 256;
+  constexpr static u32 cSPHiZTileSize = 64;
 
   // Emit depth targets
   ComputePass *m_emitDepthTargetsPass = nullptr;
-  constexpr static uint32_t cEmitDepthGroupSizeX = 16;
-  constexpr static uint32_t cEmitDepthGroupSizeY = 16;
+  constexpr static u32 cEmitDepthGroupSizeX = 16;
+  constexpr static u32 cEmitDepthGroupSizeY = 16;
 
   // Material classify
   ComputePass *m_matclassCountPass = nullptr;
   ComputePass *m_matclassReservePass = nullptr;
   ComputePass *m_matclassScatterPass = nullptr;
-  constexpr static uint32_t cMatClassQuadSize = 2;
-  constexpr static uint32_t cMatClassGroupSizeCountScatterX = 8;
-  constexpr static uint32_t cMatClassGroupSizeCountScatterY = 8;
-  constexpr static uint32_t cMatClassGroupSizeReserveX = 128;
-  constexpr static uint32_t cMatClassCounterBufferSizeBase =
-      2 * sizeof(uint32_t);
-  constexpr static uint32_t cMatClassCounterBufferSizeMult =
-      2 * sizeof(uint32_t);
+  constexpr static u32 cMatClassQuadSize = 2;
+  constexpr static u32 cMatClassGroupSizeCountScatterX = 8;
+  constexpr static u32 cMatClassGroupSizeCountScatterY = 8;
+  constexpr static u32 cMatClassGroupSizeReserveX = 128;
+  constexpr static u32 cMatClassCounterBufferSizeBase = 2 * sizeof(u32);
+  constexpr static u32 cMatClassCounterBufferSizeMult = 2 * sizeof(u32);
 
   // Emit GBuffer, pass here is for default / debugging
   ComputePass *m_defaultEmitGBufferPass = nullptr;
@@ -98,18 +96,13 @@ private:
   // TAA
   ComputePass *m_taaHistoryPass = nullptr;
   constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat cTAAFormat =
-      Ifrit::GraphicsBackend::Rhi::RhiImageFormat::
-          RHI_FORMAT_R32G32B32A32_SFLOAT;
+      Ifrit::GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT;
   // Finally, deferred pass
-  std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
-                     PipelineAttachmentConfigsHash>
-      m_deferredShadingPass;
+  std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_deferredShadingPass;
 
   DrawPass *m_deferredShadowPass = nullptr;
 
-  std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
-                     PipelineAttachmentConfigsHash>
-      m_taaPass;
+  std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_taaPass;
 
   // FSR2
   std::unique_ptr<GraphicsBackend::Rhi::FSR2::RhiFsr2Processor> m_fsr2proc;
@@ -126,52 +119,36 @@ private:
   std::shared_ptr<AmbientOcclusionPass> m_aoPass;
 
   // Postprocess, just 2 textures and 1 sampler is required.
-  using PairHash = Ifrit::Common::Utility::PairwiseHash<uint32_t, uint32_t>;
-  std::unordered_map<std::pair<uint32_t, uint32_t>,
-                     std::array<std::shared_ptr<GPUTexture>, 2>, PairHash>
-      m_postprocTex;
-  std::unordered_map<std::pair<uint32_t, uint32_t>,
-                     std::array<std::shared_ptr<GPUBindId>, 2>, PairHash>
-      m_postprocTexId;
-  std::unordered_map<std::pair<uint32_t, uint32_t>,
-                     std::array<std::shared_ptr<GPUBindId>, 2>, PairHash>
-      m_postprocTexIdComp;
-  std::unordered_map<std::pair<uint32_t, uint32_t>,
-                     std::array<std::shared_ptr<GPUColorRT>, 2>, PairHash>
-      m_postprocColorRT;
-  std::unordered_map<std::pair<uint32_t, uint32_t>,
-                     std::array<std::shared_ptr<GPURTs>, 2>, PairHash>
-      m_postprocRTs;
+  using PairHash = Ifrit::Common::Utility::PairwiseHash<u32, u32>;
+  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUTexture>, 2>, PairHash> m_postprocTex;
+  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUBindId>, 2>, PairHash> m_postprocTexId;
+  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUBindId>, 2>, PairHash> m_postprocTexIdComp;
+  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUColorRT>, 2>, PairHash> m_postprocColorRT;
+  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPURTs>, 2>, PairHash> m_postprocRTs;
   std::shared_ptr<GPUSampler> m_postprocTexSampler;
   std::shared_ptr<GPUBindId> m_postprocTexSamplerId;
 
   // All postprocess passes required
-  std::unique_ptr<PostprocessPassCollection::PostFxAcesToneMapping>
-      m_acesToneMapping;
+  std::unique_ptr<PostprocessPassCollection::PostFxAcesToneMapping> m_acesToneMapping;
   std::unique_ptr<PostprocessPassCollection::PostFxGlobalFog> m_globalFogPass;
   std::unique_ptr<PostprocessPassCollection::PostFxGaussianHori> m_gaussianHori;
   std::unique_ptr<PostprocessPassCollection::PostFxGaussianVert> m_gaussianVert;
   std::unique_ptr<PostprocessPassCollection::PostFxFFTConv2d> m_fftConv2d;
-  std::unique_ptr<PostprocessPassCollection::PostFxJointBilaterialFilter>
-      m_jointBilateralFilter;
+  std::unique_ptr<PostprocessPassCollection::PostFxJointBilaterialFilter> m_jointBilateralFilter;
 
   // Intermediate views
-  std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
-                     PipelineAttachmentConfigsHash>
-      m_triangleViewPass;
+  std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_triangleViewPass;
 
   // Render config
   RendererConfig m_renderConfig;
 
 private:
   // Util functions
-  GPUShader *createShaderFromFile(const std::string &shaderPath,
-                                  const std::string &entry,
+  GPUShader *createShaderFromFile(const std::string &shaderPath, const std::string &entry,
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
 
   // Setup functions
-  void recreateInstanceCullingBuffers(PerFrameData &perframe,
-                                      uint32_t newMaxInstances);
+  void recreateInstanceCullingBuffers(PerFrameData &perframe, u32 newMaxInstances);
   void setupInstanceCullingPass();
   void setupPersistentCullingPass();
   void setupVisibilityPass();
@@ -187,22 +164,16 @@ private:
   void setupDeferredShadingPass(RenderTargets *renderTargets);
   void setupTAAPass(RenderTargets *renderTargets);
 
-  void sphizBufferSetup(PerFrameData &perframeData,
-                        RenderTargets *renderTargets);
-  void visibilityBufferSetup(PerFrameData &perframeData,
-                             RenderTargets *renderTargets);
-  void depthTargetsSetup(PerFrameData &perframeData,
-                         RenderTargets *renderTargets);
-  void materialClassifyBufferSetup(PerFrameData &perframeData,
-                                   RenderTargets *renderTargets);
-  void taaHistorySetup(PerFrameData &perframeData,
-                       RenderTargets *renderTargets);
+  void sphizBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
+  void visibilityBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
+  void depthTargetsSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
+  void materialClassifyBufferSetup(PerFrameData &perframeData, RenderTargets *renderTargets);
+  void taaHistorySetup(PerFrameData &perframeData, RenderTargets *renderTargets);
   void fsr2Setup(PerFrameData &perframeData, RenderTargets *renderTargets);
-  void createPostprocessTextures(uint32_t width, uint32_t height);
+  void createPostprocessTextures(u32 width, u32 height);
   void prepareAggregatedShadowData(PerFrameData &perframeData);
 
-  void setupDebugPasses(PerFrameData &perframeData,
-                        RenderTargets *renderTargets);
+  void setupDebugPasses(PerFrameData &perframeData, RenderTargets *renderTargets);
 
   // Many passes are not material-dependent, so a unified instance buffer
   // might reduce calls
@@ -212,41 +183,25 @@ private:
 
 private:
   // Decompose the rendering procedure into many parts
-  void renderTwoPassOcclCulling(CullingPass cullPass,
-                                PerFrameData &perframeData,
-                                RenderTargets *renderTargets,
-                                const GPUCmdBuffer *cmd,
-                                PerFrameData::ViewType filteredViewType,
-                                uint32_t idx);
+  void renderTwoPassOcclCulling(CullingPass cullPass, PerFrameData &perframeData, RenderTargets *renderTargets,
+                                const GPUCmdBuffer *cmd, PerFrameData::ViewType filteredViewType, u32 idx);
 
-  void renderTriangleView(PerFrameData &perframeData,
-                          RenderTargets *renderTargets,
-                          const GPUCmdBuffer *cmd);
+  void renderTriangleView(PerFrameData &perframeData, RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
-  void renderEmitDepthTargets(PerFrameData &perframeData,
-                              RenderTargets *renderTargets,
-                              const GPUCmdBuffer *cmd);
+  void renderEmitDepthTargets(PerFrameData &perframeData, RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
-  void renderMaterialClassify(PerFrameData &perframeData,
-                              RenderTargets *renderTargets,
-                              const GPUCmdBuffer *cmd);
+  void renderMaterialClassify(PerFrameData &perframeData, RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
   // This is for debugging. The proc should be material-specific
-  void renderDefaultEmitGBuffer(PerFrameData &perframeData,
-                                RenderTargets *renderTargets,
-                                const GPUCmdBuffer *cmd);
+  void renderDefaultEmitGBuffer(PerFrameData &perframeData, RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
-  void renderAmbientOccl(PerFrameData &perframeData,
-                         RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
+  void renderAmbientOccl(PerFrameData &perframeData, RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
   // Frame graph
-  void setupAndRunFrameGraph(PerFrameData &perframeData,
-                             RenderTargets *renderTargets,
-                             const GPUCmdBuffer *cmd);
+  void setupAndRunFrameGraph(PerFrameData &perframeData, RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
-  virtual std::unique_ptr<GPUCommandSubmission>
-  render(PerFrameData &perframeData, RenderTargets *renderTargets,
-         const std::vector<GPUCommandSubmission *> &cmdToWait);
+  virtual std::unique_ptr<GPUCommandSubmission> render(PerFrameData &perframeData, RenderTargets *renderTargets,
+                                                       const std::vector<GPUCommandSubmission *> &cmdToWait);
 
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {
@@ -264,9 +219,8 @@ public:
     m_aoPass = std::make_shared<AmbientOcclusionPass>(app);
   }
 
-  virtual std::unique_ptr<GPUCommandSubmission>
-  render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
-         const RendererConfig &config,
-         const std::vector<GPUCommandSubmission *> &cmdToWait) override;
+  virtual std::unique_ptr<GPUCommandSubmission> render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
+                                                       const RendererConfig &config,
+                                                       const std::vector<GPUCommandSubmission *> &cmdToWait) override;
 };
 } // namespace Ifrit::Core

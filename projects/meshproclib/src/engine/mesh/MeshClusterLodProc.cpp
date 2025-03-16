@@ -75,58 +75,48 @@ std::tuple<uint32_t, uint32_t> unpackUnorderedPair(uint64_t pair) {
 
 void freeUnusedMemoryInCotenxt(ClusterLodGeneratorContext &ctx) {
   auto maxMeshlets = ctx.totalMeshlets;
-  auto maxVertexCount = ctx.meshletsRaw[maxMeshlets - 1].vertex_offset +
-                        ctx.meshletsRaw[maxMeshlets - 1].vertex_count;
-  auto maxTriangleCount = ctx.meshletsRaw[maxMeshlets - 1].triangle_offset +
-                          ctx.meshletsRaw[maxMeshlets - 1].triangle_count * 3;
+  auto maxVertexCount = ctx.meshletsRaw[maxMeshlets - 1].vertex_offset + ctx.meshletsRaw[maxMeshlets - 1].vertex_count;
+  auto maxTriangleCount =
+      ctx.meshletsRaw[maxMeshlets - 1].triangle_offset + ctx.meshletsRaw[maxMeshlets - 1].triangle_count * 3;
   ctx.meshletsRaw.resize(maxMeshlets);
   ctx.meshletVertices.resize(maxVertexCount);
   ctx.meshletTriangles.resize(maxTriangleCount);
 }
-void freeUnusedMemoryInCotenxt2(std::vector<meshopt_Meshlet> &meshletsRaw,
-                                std::vector<uint32_t> &meshletVertices,
-                                std::vector<uint8_t> &meshletTriangles,
-                                int totalMeshlets) {
+void freeUnusedMemoryInCotenxt2(std::vector<meshopt_Meshlet> &meshletsRaw, std::vector<uint32_t> &meshletVertices,
+                                std::vector<uint8_t> &meshletTriangles, int totalMeshlets) {
   auto maxMeshlets = totalMeshlets;
-  auto maxVertexCount = meshletsRaw[maxMeshlets - 1].vertex_offset +
-                        meshletsRaw[maxMeshlets - 1].vertex_count;
-  auto maxTriangleCount = meshletsRaw[maxMeshlets - 1].triangle_offset +
-                          meshletsRaw[maxMeshlets - 1].triangle_count * 3;
+  auto maxVertexCount = meshletsRaw[maxMeshlets - 1].vertex_offset + meshletsRaw[maxMeshlets - 1].vertex_count;
+  auto maxTriangleCount =
+      meshletsRaw[maxMeshlets - 1].triangle_offset + meshletsRaw[maxMeshlets - 1].triangle_count * 3;
   meshletsRaw.resize(maxMeshlets);
   meshletVertices.resize(maxVertexCount);
   meshletTriangles.resize(maxTriangleCount);
 }
 
-void getBoundingBoxForCluster(const MeshDescriptor &mesh,
-                              const std::vector<uint32_t> index, vfloat3 &bMin,
+void getBoundingBoxForCluster(const MeshDescriptor &mesh, const std::vector<uint32_t> index, vfloat3 &bMin,
                               vfloat3 &bMax) {
   bMax = vfloat3(-std::numeric_limits<float>::max());
   bMin = vfloat3(std::numeric_limits<float>::max());
 
   for (int i = 0; i < index.size(); i++) {
-    ifloat3 *pos = reinterpret_cast<ifloat3 *>(
-        mesh.vertexData + mesh.positionOffset + mesh.vertexStride * index[i]);
+    ifloat3 *pos = reinterpret_cast<ifloat3 *>(mesh.vertexData + mesh.positionOffset + mesh.vertexStride * index[i]);
     bMax = max(bMax, vfloat3(pos->x, pos->y, pos->z));
     bMin = min(bMin, vfloat3(pos->x, pos->y, pos->z));
   }
 }
 
 // First step, decompose the mesh into meshlets. [Mesh->Meshlet]
-void initialMeshletGeneration(const MeshDescriptor &mesh,
-                              ClusterLodGeneratorContext &ctx) {
-  auto maxMeshlets = meshopt_buildMeshletsBound(
-      mesh.indexCount, VERTICES_PER_MESHLET, TRIANGLES_PER_MESHLET);
+void initialMeshletGeneration(const MeshDescriptor &mesh, ClusterLodGeneratorContext &ctx) {
+  auto maxMeshlets = meshopt_buildMeshletsBound(mesh.indexCount, VERTICES_PER_MESHLET, TRIANGLES_PER_MESHLET);
   ctx.meshletsRaw.resize(maxMeshlets);
   ctx.meshletVertices.resize(maxMeshlets * VERTICES_PER_MESHLET);
   ctx.meshletTriangles.resize(maxMeshlets * TRIANGLES_PER_MESHLET * 3);
 
-  auto meshletCount = meshopt_buildMeshlets(
-      ctx.meshletsRaw.data(), ctx.meshletVertices.data(),
-      ctx.meshletTriangles.data(), reinterpret_cast<uint32_t *>(mesh.indexData),
-      mesh.indexCount,
-      reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
-      mesh.vertexCount, mesh.vertexStride, VERTICES_PER_MESHLET,
-      TRIANGLES_PER_MESHLET, 0.0f);
+  auto meshletCount =
+      meshopt_buildMeshlets(ctx.meshletsRaw.data(), ctx.meshletVertices.data(), ctx.meshletTriangles.data(),
+                            reinterpret_cast<uint32_t *>(mesh.indexData), mesh.indexCount,
+                            reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset), mesh.vertexCount,
+                            mesh.vertexStride, VERTICES_PER_MESHLET, TRIANGLES_PER_MESHLET, 0.0f);
 
   ctx.totalMeshlets = Ifrit::Common::Utility::size_cast<int>(meshletCount);
 
@@ -137,22 +127,15 @@ void initialMeshletGeneration(const MeshDescriptor &mesh,
     std::vector<uint32_t> actualIndices;
     for (uint32_t j = 0; j < ctx.meshletsRaw[i].triangle_count; j++) {
       auto base = ctx.meshletsRaw[i].triangle_offset + j * 3;
-      actualIndices.push_back(
-          ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                              ctx.meshletTriangles[base + 0]]);
-      actualIndices.push_back(
-          ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                              ctx.meshletTriangles[base + 1]]);
-      actualIndices.push_back(
-          ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                              ctx.meshletTriangles[base + 2]]);
+      actualIndices.push_back(ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 0]]);
+      actualIndices.push_back(ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 1]]);
+      actualIndices.push_back(ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 2]]);
     }
     vfloat3 bMin, bMax;
     getBoundingBoxForCluster(mesh, actualIndices, bMin, bMax);
     float bRadius = length(bMax - bMin) * 0.5f;
     vfloat3 bCenter = (bMax + bMin) * 0.5f;
-    ctx.lodCullData[i].selfSphere =
-        ifloat4(bCenter.x, bCenter.y, bCenter.z, bRadius);
+    ctx.lodCullData[i].selfSphere = ifloat4(bCenter.x, bCenter.y, bCenter.z, bRadius);
     ctx.lodCullData[i].selfError = 0.0f;
     ctx.childClusterId[i] = UINT32_MAX;
   }
@@ -180,12 +163,9 @@ void metisValidation(ClusterLodGeneratorContext &ctx) {
         std::unordered_set<uint64_t> edgeSetB;
         for (uint32_t k = 0; k < ctx.meshletsRaw[i].triangle_count; k++) {
           auto base = ctx.meshletsRaw[i].triangle_offset + k * 3;
-          auto a = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                                       ctx.meshletTriangles[base + 0]];
-          auto b = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                                       ctx.meshletTriangles[base + 1]];
-          auto c = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                                       ctx.meshletTriangles[base + 2]];
+          auto a = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 0]];
+          auto b = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 1]];
+          auto c = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 2]];
           auto pair1 = packUnorderedPair(a, b);
           auto pair2 = packUnorderedPair(b, c);
           auto pair3 = packUnorderedPair(c, a);
@@ -196,12 +176,9 @@ void metisValidation(ClusterLodGeneratorContext &ctx) {
 
         for (uint32_t k = 0; k < ctx.meshletsRaw[j].triangle_count; k++) {
           auto base = ctx.meshletsRaw[j].triangle_offset + k * 3;
-          auto a = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset +
-                                       ctx.meshletTriangles[base + 0]];
-          auto b = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset +
-                                       ctx.meshletTriangles[base + 1]];
-          auto c = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset +
-                                       ctx.meshletTriangles[base + 2]];
+          auto a = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset + ctx.meshletTriangles[base + 0]];
+          auto b = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset + ctx.meshletTriangles[base + 1]];
+          auto c = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset + ctx.meshletTriangles[base + 2]];
           auto pair1 = packUnorderedPair(a, b);
           auto pair2 = packUnorderedPair(b, c);
           auto pair3 = packUnorderedPair(c, a);
@@ -237,9 +214,7 @@ void metisValidation(ClusterLodGeneratorContext &ctx) {
           q.pop_back();
           for (int i = 0; i < cluster.size(); i++) {
             if (visited[i] ||
-                std::find(edges.begin(), edges.end(),
-                          std::make_pair(cluster[v], cluster[i])) ==
-                    edges.end())
+                std::find(edges.begin(), edges.end(), std::make_pair(cluster[v], cluster[i])) == edges.end())
               continue;
             q.push_back(i);
             visited[i] = 1;
@@ -294,12 +269,9 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
     std::unordered_set<uint64_t> edgeSet;
     for (uint32_t j = 0; j < ctx.meshletsRaw[i].triangle_count; j++) {
       auto base = ctx.meshletsRaw[i].triangle_offset + j * 3;
-      auto a = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                                   ctx.meshletTriangles[base + 0]];
-      auto b = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                                   ctx.meshletTriangles[base + 1]];
-      auto c = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                                   ctx.meshletTriangles[base + 2]];
+      auto a = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 0]];
+      auto b = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 1]];
+      auto c = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 2]];
       auto pair1 = packUnorderedPair(a, b);
       auto pair2 = packUnorderedPair(b, c);
       auto pair3 = packUnorderedPair(c, a);
@@ -332,8 +304,7 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
     std::unordered_map<int, int> weightMap;
     for (int j = 0; j < meshletAdjacency[i].size(); j++) {
       if (weightMap.find(meshletAdjacency[i][j]) == weightMap.end()) {
-        weightMap[meshletAdjacency[i][j]] =
-            Ifrit::Common::Utility::size_cast<int>(localWeights.size());
+        weightMap[meshletAdjacency[i][j]] = Ifrit::Common::Utility::size_cast<int>(localWeights.size());
         localWeights.push_back(1);
         localAdjs.push_back(meshletAdjacency[i][j]);
       } else {
@@ -370,9 +341,8 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
 
   ctx.graphPartition.resize(ctx.totalMeshlets);
 
-  auto result = METIS_PartGraphKway(
-      &nvtxs, &ncon, xadjPtr, adjncyPtr, vwgt, vsize, adjwgt, &nparts, tpwgts,
-      ubvec, options, &edgeCut, ctx.graphPartition.data());
+  auto result = METIS_PartGraphKway(&nvtxs, &ncon, xadjPtr, adjncyPtr, vwgt, vsize, adjwgt, &nparts, tpwgts, ubvec,
+                                    options, &edgeCut, ctx.graphPartition.data());
   if (result != METIS_OK) {
     iError("METIS partition failed, error code: {}", result);
     std::abort();
@@ -382,10 +352,8 @@ void meshletAdjacencyGeneration(ClusterLodGeneratorContext &ctx) {
 
 // Third step, for each cluster group, generate an aggregated meshlet.
 // and then simplify the meshlet. [DAG->IndexBuffer (Simplify)]
-void clusterGroupSimplification(const MeshDescriptor &mesh,
-                                ClusterLodGeneratorContext &ctx,
-                                ClusterLodGeneratorContext &outCtx,
-                                float predefError) {
+void clusterGroupSimplification(const MeshDescriptor &mesh, ClusterLodGeneratorContext &ctx,
+                                ClusterLodGeneratorContext &outCtx, float predefError) {
   // Some questions here:
   // https://www.reddit.com/r/GraphicsProgramming/comments/12jv49o/nanitelike_lods_experiments/
   // The parentError is calculated in cluster-group level,
@@ -397,9 +365,8 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
   }
 
   // get scale
-  auto modelScale = meshopt_simplifyScale(
-      reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
-      mesh.vertexCount, mesh.vertexStride);
+  auto modelScale = meshopt_simplifyScale(reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
+                                          mesh.vertexCount, mesh.vertexStride);
 
   for (auto &[key, meshletsR] : clusterGroupToMeshletMap) {
     std::vector<uint32_t> aggregatedIndexBuffer;
@@ -408,12 +375,9 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
       auto base = ctx.meshletsRaw[i].triangle_offset;
       auto count = ctx.meshletsRaw[i].triangle_count;
       for (int j = 0; j < static_cast<int>(count); j++) {
-        auto a = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                                     ctx.meshletTriangles[base + j * 3 + 0]];
-        auto b = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                                     ctx.meshletTriangles[base + j * 3 + 1]];
-        auto c = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset +
-                                     ctx.meshletTriangles[base + j * 3 + 2]];
+        auto a = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + j * 3 + 0]];
+        auto b = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + j * 3 + 1]];
+        auto c = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + j * 3 + 2]];
         aggregatedIndexBuffer.push_back(a);
         aggregatedIndexBuffer.push_back(b);
         aggregatedIndexBuffer.push_back(c);
@@ -435,33 +399,26 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
     float simplifyError;
     // option: lockborder
     auto option = meshopt_SimplifyLockBorder | meshopt_SimplifyErrorAbsolute;
-    auto targetIndexCount = static_cast<uint32_t>(aggregatedIndexBuffer.size() *
-                                                  MESH_SIMPLIFICATION_RATE);
+    auto targetIndexCount = static_cast<uint32_t>(aggregatedIndexBuffer.size() * MESH_SIMPLIFICATION_RATE);
     float targetError = predefError * modelScale; // 0.01f;
     size_t simplifiedSize = 0.0;
 
     if (mesh.normalData == nullptr) {
-      simplifiedSize = meshopt_simplify(
-          simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(),
-          aggregatedIndexBuffer.size(),
-          reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
-          mesh.vertexCount, mesh.vertexStride, targetIndexCount, targetError,
-          option, &simplifyError);
+      simplifiedSize =
+          meshopt_simplify(simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(), aggregatedIndexBuffer.size(),
+                           reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset), mesh.vertexCount,
+                           mesh.vertexStride, targetIndexCount, targetError, option, &simplifyError);
     } else {
       float normalWeight[3] = {0.5f, 0.5f, 0.5f};
       simplifiedSize = meshopt_simplifyWithAttributes(
-          simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(),
-          aggregatedIndexBuffer.size(),
-          reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
-          mesh.vertexCount, mesh.vertexStride,
-          reinterpret_cast<float *>(mesh.normalData), 3 * sizeof(float),
-          normalWeight, 3, nullptr, targetIndexCount, targetError, option,
-          &simplifyError);
+          simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(), aggregatedIndexBuffer.size(),
+          reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset), mesh.vertexCount, mesh.vertexStride,
+          reinterpret_cast<float *>(mesh.normalData), 3 * sizeof(float), normalWeight, 3, nullptr, targetIndexCount,
+          targetError, option, &simplifyError);
     }
 
     if (simplifiedSize == 0) {
-      iError("Simplified size is 0, targetIndexCount: {}, targetError: {}",
-             targetIndexCount, targetError);
+      iError("Simplified size is 0, targetIndexCount: {}, targetError: {}", targetIndexCount, targetError);
       iInfo("SimplifiedIndexBuffer size: {}", simplifiedIndexBuffer.size());
       iInfo("AggregatedIndexBuffer size: {}", aggregatedIndexBuffer.size());
       std::abort();
@@ -477,21 +434,17 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
     std::vector<uint8_t> meshletTriangles;
 
     auto maxMeshlets =
-        meshopt_buildMeshletsBound(simplifiedIndexBuffer.size(),
-                                   VERTICES_PER_MESHLET, TRIANGLES_PER_MESHLET);
+        meshopt_buildMeshletsBound(simplifiedIndexBuffer.size(), VERTICES_PER_MESHLET, TRIANGLES_PER_MESHLET);
     meshlets.resize(maxMeshlets);
     meshletVertices.resize(maxMeshlets * VERTICES_PER_MESHLET);
     meshletTriangles.resize(maxMeshlets * TRIANGLES_PER_MESHLET * 3);
     auto meshletCount = meshopt_buildMeshlets(
-        meshlets.data(), meshletVertices.data(), meshletTriangles.data(),
-        simplifiedIndexBuffer.data(), simplifiedIndexBuffer.size(),
-        reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
-        mesh.vertexCount, mesh.vertexStride, VERTICES_PER_MESHLET,
-        TRIANGLES_PER_MESHLET, 0.0f);
+        meshlets.data(), meshletVertices.data(), meshletTriangles.data(), simplifiedIndexBuffer.data(),
+        simplifiedIndexBuffer.size(), reinterpret_cast<float *>(mesh.vertexData + mesh.positionOffset),
+        mesh.vertexCount, mesh.vertexStride, VERTICES_PER_MESHLET, TRIANGLES_PER_MESHLET, 0.0f);
 
-    freeUnusedMemoryInCotenxt2(
-        meshlets, meshletVertices, meshletTriangles,
-        Ifrit::Common::Utility::size_cast<uint32_t>(meshletCount));
+    freeUnusedMemoryInCotenxt2(meshlets, meshletVertices, meshletTriangles,
+                               Ifrit::Common::Utility::size_cast<uint32_t>(meshletCount));
 
     vfloat3 bMin, bMax;
     getBoundingBoxForCluster(mesh, aggregatedIndexBuffer, bMin, bMax);
@@ -505,8 +458,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
 
     auto accumulatedError = 0.0f;
     for (auto i : meshletsR) {
-      accumulatedError =
-          std::max(accumulatedError, ctx.lodCullData[i].selfError);
+      accumulatedError = std::max(accumulatedError, ctx.lodCullData[i].selfError);
     }
     targetErrorModel += accumulatedError;
 
@@ -523,8 +475,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
     // coherent bounding sphere and errors should be ensured in one cluster
     // group
     ClusterGroup curClusterGroup;
-    curClusterGroup.parentBoundingSphere =
-        ifloat4(bCenter.x, bCenter.y, bCenter.z, bRadius);
+    curClusterGroup.parentBoundingSphere = ifloat4(bCenter.x, bCenter.y, bCenter.z, bRadius);
     curClusterGroup.parentBoundingSphere.w = targetErrorModel;
     curClusterGroup.childMeshletSize = 1;
 
@@ -533,9 +484,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
       curClusterGroup.selfBoundingSphere = ctx.lodCullData[i].selfSphere;
       // curClusterGroup.selfBoundError = ctx.lodCullData[i].selfError;
       curClusterGroup.selfBoundingSphere.w = ctx.lodCullData[i].selfError;
-      curClusterGroup.childMeshletStart =
-          Ifrit::Common::Utility::size_cast<uint32_t>(
-              clusterGroupChildInsStart);
+      curClusterGroup.childMeshletStart = Ifrit::Common::Utility::size_cast<uint32_t>(clusterGroupChildInsStart);
       ctx.meshletsInClusterGroups.push_back(i);
       ctx.clusterGroups.push_back(curClusterGroup);
     }
@@ -554,20 +503,16 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
     // Copy the meshlets to the output context
     auto newMeshletVertexSize = 0;
     auto newMeshletTriangleSize = 0;
-    newMeshletVertexSize += meshlets[meshletCount - 1].vertex_offset +
-                            meshlets[meshletCount - 1].vertex_count;
-    newMeshletTriangleSize += meshlets[meshletCount - 1].triangle_offset +
-                              meshlets[meshletCount - 1].triangle_count * 3;
+    newMeshletVertexSize += meshlets[meshletCount - 1].vertex_offset + meshlets[meshletCount - 1].vertex_count;
+    newMeshletTriangleSize +=
+        meshlets[meshletCount - 1].triangle_offset + meshlets[meshletCount - 1].triangle_count * 3;
     auto newMeshletVertexOffset = outCtx.meshletVertices.size();
     auto newMeshletTriangleOffset = outCtx.meshletTriangles.size();
     auto newMeshletCount = outCtx.totalMeshlets + meshletCount;
     ctx.parentStart.push_back(outCtx.totalMeshlets);
-    ctx.parentSize.push_back(
-        Ifrit::Common::Utility::size_cast<uint32_t>(meshletCount));
-    outCtx.meshletVertices.resize(newMeshletVertexOffset +
-                                  newMeshletVertexSize);
-    outCtx.meshletTriangles.resize(newMeshletTriangleOffset +
-                                   newMeshletTriangleSize);
+    ctx.parentSize.push_back(Ifrit::Common::Utility::size_cast<uint32_t>(meshletCount));
+    outCtx.meshletVertices.resize(newMeshletVertexOffset + newMeshletVertexSize);
+    outCtx.meshletTriangles.resize(newMeshletTriangleOffset + newMeshletTriangleSize);
     outCtx.meshletsRaw.resize(newMeshletCount);
     outCtx.lodCullData.resize(newMeshletCount);
     outCtx.childClusterId.resize(newMeshletCount);
@@ -584,28 +529,21 @@ void clusterGroupSimplification(const MeshDescriptor &mesh,
       outCtx.lodCullData[outCtx.totalMeshlets + i] = meshletsCull[i];
       outCtx.childClusterId[outCtx.totalMeshlets + i] = key;
     }
-    outCtx.meshletVertices.insert(
-        outCtx.meshletVertices.begin() + newMeshletVertexOffset,
-        meshletVertices.begin(),
-        meshletVertices.begin() + newMeshletVertexSize);
+    outCtx.meshletVertices.insert(outCtx.meshletVertices.begin() + newMeshletVertexOffset, meshletVertices.begin(),
+                                  meshletVertices.begin() + newMeshletVertexSize);
 
     // iDebug("Simplified cluster group: {}, localError={}, center={},{},{}",
     // key,
     //        targetErrorModel, bCenter.x, bCenter.y, bCenter.z);
-    outCtx.meshletTriangles.insert(
-        outCtx.meshletTriangles.begin() + newMeshletTriangleOffset,
-        meshletTriangles.begin(),
-        meshletTriangles.begin() + newMeshletTriangleSize);
-    outCtx.totalMeshlets =
-        Ifrit::Common::Utility::size_cast<int>(newMeshletCount);
+    outCtx.meshletTriangles.insert(outCtx.meshletTriangles.begin() + newMeshletTriangleOffset, meshletTriangles.begin(),
+                                   meshletTriangles.begin() + newMeshletTriangleSize);
+    outCtx.totalMeshlets = Ifrit::Common::Utility::size_cast<int>(newMeshletCount);
     // break;
   }
 }
 
 // Finally, put all things together.
-int generateClusterLodHierachy(const MeshDescriptor &mesh,
-                               std::vector<ClusterLodGeneratorContext> &ctx,
-                               int maxLod) {
+int generateClusterLodHierachy(const MeshDescriptor &mesh, std::vector<ClusterLodGeneratorContext> &ctx, int maxLod) {
   ctx.resize(maxLod);
   initialMeshletGeneration(mesh, ctx[0]);
   for (int i = 1; i < maxLod; i++) {
@@ -626,8 +564,7 @@ int generateClusterLodHierachy(const MeshDescriptor &mesh,
   return maxLod;
 }
 
-void combineBuffer(const std::vector<ClusterLodGeneratorContext> &ctx,
-                   CombinedClusterLodBuffer &outCtx) {
+void combineBuffer(const std::vector<ClusterLodGeneratorContext> &ctx, CombinedClusterLodBuffer &outCtx) {
 
   int prevlevelMeshletCount = 0;
   int prevlevelVertexCount = 0;
@@ -638,19 +575,15 @@ void combineBuffer(const std::vector<ClusterLodGeneratorContext> &ctx,
     // Reserve spaces
     outCtx.meshletsRaw.resize(prevlevelMeshletCount + ctx[i].totalMeshlets);
     outCtx.meshletCull.resize(prevlevelMeshletCount + ctx[i].totalMeshlets);
-    outCtx.clusterGroups.resize(prevlevelClusterGroupCount +
-                                ctx[i].clusterGroups.size());
-    outCtx.meshletsInClusterGroups.resize(
-        prevlevelMeshletInGroupCount + ctx[i].meshletsInClusterGroups.size());
+    outCtx.clusterGroups.resize(prevlevelClusterGroupCount + ctx[i].clusterGroups.size());
+    outCtx.meshletsInClusterGroups.resize(prevlevelMeshletInGroupCount + ctx[i].meshletsInClusterGroups.size());
     for (int j = 0; j < ctx[i].clusterGroups.size(); j++) {
-      outCtx.clusterGroups[prevlevelClusterGroupCount + j] =
-          ctx[i].clusterGroups[j];
+      outCtx.clusterGroups[prevlevelClusterGroupCount + j] = ctx[i].clusterGroups[j];
       if (ctx[i].meshletsInClusterGroups.size() != ctx[i].totalMeshlets) {
         iError("Inconsistent data");
         std::abort();
       }
-      outCtx.clusterGroups[prevlevelClusterGroupCount + j].childMeshletStart +=
-          prevlevelMeshletInGroupCount;
+      outCtx.clusterGroups[prevlevelClusterGroupCount + j].childMeshletStart += prevlevelMeshletInGroupCount;
       outCtx.clusterGroups[prevlevelClusterGroupCount + j].lod = i;
       if (prevlevelMeshletInGroupCount != prevlevelMeshletCount) {
         iError("Inconsistent meshlet data");
@@ -661,40 +594,29 @@ void combineBuffer(const std::vector<ClusterLodGeneratorContext> &ctx,
     for (int j = 0; j < ctx[i].totalMeshlets; j++) {
       outCtx.meshletsRaw[prevlevelMeshletCount + j] =
           iint4(ctx[i].meshletsRaw[j].vertex_offset + prevlevelVertexCount,
-                ctx[i].meshletsRaw[j].triangle_offset + prevlevelTriangleCount,
-                ctx[i].meshletsRaw[j].vertex_count,
+                ctx[i].meshletsRaw[j].triangle_offset + prevlevelTriangleCount, ctx[i].meshletsRaw[j].vertex_count,
                 ctx[i].meshletsRaw[j].triangle_count);
       outCtx.meshletCull[prevlevelMeshletCount + j] = ctx[i].lodCullData[j];
     }
-    outCtx.graphPartition.insert(outCtx.graphPartition.end(),
-                                 ctx[i].graphPartition.begin(),
+    outCtx.graphPartition.insert(outCtx.graphPartition.end(), ctx[i].graphPartition.begin(),
                                  ctx[i].graphPartition.end());
-    outCtx.meshletVertices.insert(outCtx.meshletVertices.end(),
-                                  ctx[i].meshletVertices.begin(),
+    outCtx.meshletVertices.insert(outCtx.meshletVertices.end(), ctx[i].meshletVertices.begin(),
                                   ctx[i].meshletVertices.end());
-    outCtx.meshletTriangles.insert(outCtx.meshletTriangles.end(),
-                                   ctx[i].meshletTriangles.begin(),
+    outCtx.meshletTriangles.insert(outCtx.meshletTriangles.end(), ctx[i].meshletTriangles.begin(),
                                    ctx[i].meshletTriangles.end());
-    outCtx.meshletsInClusterGroups.insert(
-        outCtx.meshletsInClusterGroups.end(),
-        ctx[i].meshletsInClusterGroups.begin(),
-        ctx[i].meshletsInClusterGroups.end());
+    outCtx.meshletsInClusterGroups.insert(outCtx.meshletsInClusterGroups.end(), ctx[i].meshletsInClusterGroups.begin(),
+                                          ctx[i].meshletsInClusterGroups.end());
     for (int j = 0; j < ctx[i].meshletsInClusterGroups.size(); j++) {
       outCtx.meshletsInClusterGroups[prevlevelMeshletInGroupCount + j] =
           ctx[i].meshletsInClusterGroups[j] + prevlevelMeshletCount;
     }
 
     // TODO: Compat size
-    prevlevelMeshletCount +=
-        Ifrit::Common::Utility::size_cast<int>(ctx[i].meshletsRaw.size());
-    prevlevelVertexCount +=
-        Ifrit::Common::Utility::size_cast<int>(ctx[i].meshletVertices.size());
-    prevlevelTriangleCount +=
-        Ifrit::Common::Utility::size_cast<int>(ctx[i].meshletTriangles.size());
-    prevlevelClusterGroupCount +=
-        Ifrit::Common::Utility::size_cast<int>(ctx[i].clusterGroups.size());
-    prevlevelMeshletInGroupCount += Ifrit::Common::Utility::size_cast<int>(
-        ctx[i].meshletsInClusterGroups.size());
+    prevlevelMeshletCount += Ifrit::Common::Utility::size_cast<int>(ctx[i].meshletsRaw.size());
+    prevlevelVertexCount += Ifrit::Common::Utility::size_cast<int>(ctx[i].meshletVertices.size());
+    prevlevelTriangleCount += Ifrit::Common::Utility::size_cast<int>(ctx[i].meshletTriangles.size());
+    prevlevelClusterGroupCount += Ifrit::Common::Utility::size_cast<int>(ctx[i].clusterGroups.size());
+    prevlevelMeshletInGroupCount += Ifrit::Common::Utility::size_cast<int>(ctx[i].meshletsInClusterGroups.size());
   }
 }
 
@@ -732,8 +654,7 @@ struct ClusterGroupBVH {
 
 // Some bvh utility functions
 BoundingBoxPair getBoundingBox(const std::vector<ClusterGroup> &clusterGroups,
-                               const std::vector<uint32_t> &clusterGroupIndices,
-                               uint32_t start, uint32_t end) {
+                               const std::vector<uint32_t> &clusterGroupIndices, uint32_t start, uint32_t end) {
   vfloat3 bMaxA = vfloat3(-std::numeric_limits<float>::max());
   vfloat3 bMinA = vfloat3(std::numeric_limits<float>::max());
   vfloat3 bMaxP = vfloat3(-std::numeric_limits<float>::max());
@@ -741,8 +662,7 @@ BoundingBoxPair getBoundingBox(const std::vector<ClusterGroup> &clusterGroups,
 
   for (int k = start; k < static_cast<int>(end); k++) {
     auto i = clusterGroupIndices[k];
-    vfloat3 sphereCenter = vfloat3(clusterGroups[i].selfBoundingSphere.x,
-                                   clusterGroups[i].selfBoundingSphere.y,
+    vfloat3 sphereCenter = vfloat3(clusterGroups[i].selfBoundingSphere.x, clusterGroups[i].selfBoundingSphere.y,
                                    clusterGroups[i].selfBoundingSphere.z);
     vfloat3 maxPos = sphereCenter + clusterGroups[i].parentBoundingSphere.w;
     vfloat3 minPos = sphereCenter - clusterGroups[i].parentBoundingSphere.w;
@@ -769,9 +689,8 @@ int findLongestAxis(const BoundingBox &bbox) {
   return ret;
 }
 
-uint32_t nodeClustersPatition(const std::vector<ClusterGroup> &clusterGroups,
-                              std::vector<uint32_t> indices, uint32_t start,
-                              uint32_t end, float mid, uint32_t axis) {
+uint32_t nodeClustersPatition(const std::vector<ClusterGroup> &clusterGroups, std::vector<uint32_t> indices,
+                              uint32_t start, uint32_t end, float mid, uint32_t axis) {
   int l = start, r = end - 1;
   auto getElementCenter = [&](uint32_t idx) {
     auto sphere = clusterGroups[idx].parentBoundingSphere;
@@ -792,15 +711,12 @@ uint32_t nodeClustersPatition(const std::vector<ClusterGroup> &clusterGroups,
   return pivot;
 }
 
-uint32_t
-nodeClustersPatitionAlternative(const std::vector<ClusterGroup> &clusterGroups,
-                                std::vector<uint32_t> indices, uint32_t start,
-                                uint32_t end, uint32_t axis) {
+uint32_t nodeClustersPatitionAlternative(const std::vector<ClusterGroup> &clusterGroups, std::vector<uint32_t> indices,
+                                         uint32_t start, uint32_t end, uint32_t axis) {
   std::vector<float> candidates;
   for (int i = start; i < static_cast<int>(end); i++) {
     auto sphere = clusterGroups[indices[i]].parentBoundingSphere;
-    candidates.push_back(
-        elementAt(vfloat3(sphere.x, sphere.y, sphere.z), axis));
+    candidates.push_back(elementAt(vfloat3(sphere.x, sphere.y, sphere.z), axis));
   }
   // sort and find median
   std::sort(candidates.begin(), candidates.end());
@@ -809,8 +725,7 @@ nodeClustersPatitionAlternative(const std::vector<ClusterGroup> &clusterGroups,
 }
 
 // this builds a BVH2
-void initialBVHConstruction(ClusterGroupBVH &bvh,
-                            const std::vector<ClusterGroup> &clusterGroups) {
+void initialBVHConstruction(ClusterGroupBVH &bvh, const std::vector<ClusterGroup> &clusterGroups) {
   std::vector<ClusterGroupBVHNodeBuildData> q;
   // first, make bvh root
   bvh.root = std::make_unique<ClusterGroupBVHNode>();
@@ -821,8 +736,7 @@ void initialBVHConstruction(ClusterGroupBVH &bvh,
   ClusterGroupBVHNodeBuildData node;
   node.bvhNode = bvh.root.get();
   node.clusterStart = 0;
-  node.clusterEnd =
-      Ifrit::Common::Utility::size_cast<uint32_t>(clusterGroupIndices.size());
+  node.clusterEnd = Ifrit::Common::Utility::size_cast<uint32_t>(clusterGroupIndices.size());
   q.push_back(node);
 
   // iteratively build nodes
@@ -831,14 +745,12 @@ void initialBVHConstruction(ClusterGroupBVH &bvh,
     totalNodes++;
     auto curNode = q.back();
     q.pop_back();
-    auto bbox = getBoundingBox(clusterGroups, clusterGroupIndices,
-                               curNode.clusterStart, curNode.clusterEnd);
+    auto bbox = getBoundingBox(clusterGroups, clusterGroupIndices, curNode.clusterStart, curNode.clusterEnd);
     curNode.bvhNode->bbox = bbox.all;
     if (curNode.clusterEnd - curNode.clusterStart <= 1) {
       // already a leaf for bvh2
       curNode.bvhNode->isLeaf = true;
-      for (int i = curNode.clusterStart;
-           i < static_cast<int>(curNode.clusterEnd); i++) {
+      for (int i = curNode.clusterStart; i < static_cast<int>(curNode.clusterEnd); i++) {
         auto idx = clusterGroupIndices[i];
         curNode.bvhNode->childClusterGroups.push_back(&clusterGroups[idx]);
       }
@@ -846,17 +758,13 @@ void initialBVHConstruction(ClusterGroupBVH &bvh,
     }
 
     auto longestAxis = findLongestAxis(bbox.all);
-    auto midPartition =
-        elementAt((bbox.all.ma + bbox.all.mi) * 0.5, longestAxis);
-    auto leftNodeRightBoundIncl = nodeClustersPatition(
-        clusterGroups, clusterGroupIndices, curNode.clusterStart,
-        curNode.clusterEnd, midPartition, longestAxis);
-    if (leftNodeRightBoundIncl + 1 == curNode.clusterStart ||
-        leftNodeRightBoundIncl + 1 == curNode.clusterEnd) {
+    auto midPartition = elementAt((bbox.all.ma + bbox.all.mi) * 0.5, longestAxis);
+    auto leftNodeRightBoundIncl = nodeClustersPatition(clusterGroups, clusterGroupIndices, curNode.clusterStart,
+                                                       curNode.clusterEnd, midPartition, longestAxis);
+    if (leftNodeRightBoundIncl + 1 == curNode.clusterStart || leftNodeRightBoundIncl + 1 == curNode.clusterEnd) {
       // failed to partition
       curNode.bvhNode->isLeaf = true;
-      for (int i = curNode.clusterStart;
-           i < static_cast<int>(curNode.clusterEnd); i++) {
+      for (int i = curNode.clusterStart; i < static_cast<int>(curNode.clusterEnd); i++) {
         auto idx = clusterGroupIndices[i];
         curNode.bvhNode->childClusterGroups.push_back(&clusterGroups[idx]);
       }
@@ -899,9 +807,8 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
     IndirectChildrenSet(const IndirectChildrenSet &p) = delete;
   };
 
-  std::function<void(ClusterGroupBVHNode *, IndirectChildrenSet *, int)>
-      getChild = [&](ClusterGroupBVHNode *node, IndirectChildrenSet *indSet,
-                     int depth) {
+  std::function<void(ClusterGroupBVHNode *, IndirectChildrenSet *, int)> getChild =
+      [&](ClusterGroupBVHNode *node, IndirectChildrenSet *indSet, int depth) {
         if (node->isLeaf) {
           return;
         }
@@ -940,8 +847,7 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
     for (int i = 0; i < indChild.childNodes.size(); i++) {
       q.push_back(curNode->child[i].get());
     }
-    curNode->curChildren =
-        Ifrit::Common::Utility::size_cast<uint32_t>(indChild.childNodes.size());
+    curNode->curChildren = Ifrit::Common::Utility::size_cast<uint32_t>(indChild.childNodes.size());
   }
   iDebug("Total Nodes, after collapse:{}", totalNodes);
 
@@ -950,14 +856,12 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
     uint32_t subTreeSize = 0;
     float maxClusterError = 0.0f;
   };
-  std::function<DFSRet(ClusterGroupBVHNode *)> dfsSubTreeSize =
-      [&](ClusterGroupBVHNode *node) -> DFSRet {
+  std::function<DFSRet(ClusterGroupBVHNode *)> dfsSubTreeSize = [&](ClusterGroupBVHNode *node) -> DFSRet {
     if (node->isLeaf) {
       DFSRet ret;
       node->subTreeSize = 1;
       for (auto &clusterGroup : node->childClusterGroups) {
-        ret.maxClusterError =
-            std::max(ret.maxClusterError, clusterGroup->selfBoundingSphere.w);
+        ret.maxClusterError = std::max(ret.maxClusterError, clusterGroup->selfBoundingSphere.w);
       }
       node->maxClusterError = ret.maxClusterError;
       return ret;
@@ -967,8 +871,7 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
     for (uint32_t i = 0; i < node->curChildren; i++) {
       auto childRet = dfsSubTreeSize(node->child[i].get());
       ret.subTreeSize += childRet.subTreeSize;
-      ret.maxClusterError =
-          std::max(ret.maxClusterError, node->child[i]->maxClusterError);
+      ret.maxClusterError = std::max(ret.maxClusterError, node->child[i]->maxClusterError);
 
       // merge all leaf nodes' cluster groups
       if (node->child[i]->isLeaf) {
@@ -989,8 +892,7 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
     for (uint32_t i = 0; i < node->curChildren; i++) {
       node->child[i] = nullptr;
     }
-    node->curChildren =
-        Ifrit::Common::Utility::size_cast<uint32_t>(newChildren.size());
+    node->curChildren = Ifrit::Common::Utility::size_cast<uint32_t>(newChildren.size());
     for (uint32_t i = 0; i < node->curChildren; i++) {
       node->child[i] = std::move(newChildren[i]);
     }
@@ -1004,8 +906,7 @@ void bvhCollapse(ClusterGroupBVH &bvh) {
 
 // Flatten the bvh to make it compatible with GPU
 
-void bvhFlatten(const ClusterGroupBVH &bvh,
-                std::vector<FlattenedBVHNode> &flattenedNodes,
+void bvhFlatten(const ClusterGroupBVH &bvh, std::vector<FlattenedBVHNode> &flattenedNodes,
                 std::vector<ClusterGroup> &rearrangedClusterGroups) {
 
   std::queue<ClusterGroupBVHNode *> q;
@@ -1020,14 +921,10 @@ void bvhFlatten(const ClusterGroupBVH &bvh,
     FlattenedBVHNode newNode{};
     auto sphereCenter = (curNode->bbox.ma + curNode->bbox.mi) * 0.5f;
     auto sphereRadius = length(curNode->bbox.ma - curNode->bbox.mi) * 0.5f;
-    newNode.boundSphere =
-        ifloat4(sphereCenter.x, sphereCenter.y, sphereCenter.z,
-                static_cast<float>(sphereRadius));
+    newNode.boundSphere = ifloat4(sphereCenter.x, sphereCenter.y, sphereCenter.z, static_cast<float>(sphereRadius));
     newNode.numChildNodes = curNode->curChildren;
-    newNode.clusterGroupStart = Ifrit::Common::Utility::size_cast<uint32_t>(
-        rearrangedClusterGroups.size());
-    newNode.clusterGroupSize = Ifrit::Common::Utility::size_cast<uint32_t>(
-        curNode->childClusterGroups.size());
+    newNode.clusterGroupStart = Ifrit::Common::Utility::size_cast<uint32_t>(rearrangedClusterGroups.size());
+    newNode.clusterGroupSize = Ifrit::Common::Utility::size_cast<uint32_t>(curNode->childClusterGroups.size());
     newNode.subTreeSize = curNode->subTreeSize;
     newNode.maxClusterError = curNode->maxClusterError;
     for (int i = 0; i < static_cast<int>(curNode->curChildren); i++) {
@@ -1042,18 +939,17 @@ void bvhFlatten(const ClusterGroupBVH &bvh,
 }
 
 // Class defs
-IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(
-    const MeshDescriptor &mesh, CombinedClusterLodBuffer &meshletData,
-    std::vector<ClusterGroup> &clusterGroupData,
-    std::vector<FlattenedBVHNode> &flattenedNodes, int maxLod) {
+IFRIT_APIDECL int MeshClusterLodProc::clusterLodHierachy(const MeshDescriptor &mesh,
+                                                         CombinedClusterLodBuffer &meshletData,
+                                                         std::vector<ClusterGroup> &clusterGroupData,
+                                                         std::vector<FlattenedBVHNode> &flattenedNodes, int maxLod) {
 
   std::vector<ClusterLodGeneratorContext> ctx;
   auto p = generateClusterLodHierachy(mesh, ctx, maxLod + 1);
   ctx.pop_back();
   ctx.resize(p);
   for (auto i = 0; i < ctx.size(); i++) {
-    meshletData.numClustersEachLod.push_back(
-        Ifrit::Common::Utility::size_cast<uint32_t>(ctx[i].meshletsRaw.size()));
+    meshletData.numClustersEachLod.push_back(Ifrit::Common::Utility::size_cast<uint32_t>(ctx[i].meshletsRaw.size()));
   }
   combineBuffer(ctx, meshletData);
   ClusterGroupBVH bvh;

@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/math/VectorDefs.h"
 #include "ifrit/core/base/Material.h"
 #include "ifrit/core/base/Mesh.h"
@@ -55,11 +56,11 @@ struct PerFramePerViewData {
 };
 
 struct PerObjectData {
-  uint32_t transformRef = 0;
-  uint32_t objectDataRef = 0;
-  uint32_t instanceDataRef = 0;
-  uint32_t transformRefLast = 0;
-  uint32_t materialId = 0;
+  u32 transformRef = 0;
+  u32 objectDataRef = 0;
+  u32 instanceDataRef = 0;
+  u32 transformRefLast = 0;
+  u32 materialId = 0;
 };
 
 struct PerShaderEffectData {
@@ -69,12 +70,10 @@ struct PerShaderEffectData {
   std::vector<MeshInstance *> m_instances;
 
   // Data to GPUs
-  uint32_t m_lastObjectCount = ~0u;
+  u32 m_lastObjectCount = ~0u;
   std::vector<PerObjectData> m_objectData;
-  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer>
-      m_batchedObjectData = nullptr;
-  Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef *m_batchedObjBufRef =
-      nullptr;
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer> m_batchedObjectData = nullptr;
+  Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef *m_batchedObjBufRef = nullptr;
 };
 
 struct PerFrameRenderTargets {
@@ -84,10 +83,9 @@ struct PerFrameRenderTargets {
   Ifrit::GraphicsBackend::Rhi::RhiTexture *m_depthRT;
 
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiColorAttachment> m_colorRTRef;
-  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDepthStencilAttachment>
-      m_depthRTRef;
+  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDepthStencilAttachment> m_depthRTRef;
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiRenderTargets> m_rts;
-  uint32_t m_width = 0, m_height = 0;
+  u32 m_width = 0, m_height = 0;
 };
 
 struct ShadowMappingData {
@@ -96,16 +94,16 @@ struct ShadowMappingData {
   using GPUBindlessId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
 
   struct SingleShadowView {
-    std::array<uint32_t, 4> m_viewRef;
-    std::array<uint32_t, 4> m_texRef;
+    std::array<u32, 4> m_viewRef;
+    std::array<u32, 4> m_texRef;
 
-    std::array<uint32_t, 4> m_viewMapping;
+    std::array<u32, 4> m_viewMapping;
     std::array<float, 4> m_csmStart;
     std::array<float, 4> m_csmEnd;
-    uint32_t m_csmSplits;
+    u32 m_csmSplits;
   };
   std::vector<SingleShadowView> m_shadowViews;
-  uint32_t m_enabledShadowMaps = 0;
+  u32 m_enabledShadowMaps = 0;
 
   std::shared_ptr<GPUUniformBuffer> m_allShadowData = nullptr;
   std::shared_ptr<GPUBindlessId> m_allShadowDataId;
@@ -126,11 +124,11 @@ struct PerFrameData {
   enum class ViewType { Invisible, Primary, Display, Shadow };
 
   struct GBufferDesc {
-    uint32_t m_albedo_materialFlags;
-    uint32_t m_specular_occlusion;
-    uint32_t m_normal_smoothness;
-    uint32_t m_emissive;
-    uint32_t m_shadowMask;
+    u32 m_albedo_materialFlags;
+    u32 m_specular_occlusion;
+    u32 m_normal_smoothness;
+    u32 m_emissive;
+    u32 m_shadowMask;
   };
 
   struct GBuffer {
@@ -141,9 +139,9 @@ struct PerFrameData {
     std::shared_ptr<GPUTexture> m_emissive;
     std::shared_ptr<GPUTexture> m_shadowMask;
 
-    uint32_t m_rtWidth = 0;
-    uint32_t m_rtHeight = 0;
-    uint32_t m_rtCreated = 0;
+    u32 m_rtWidth = 0;
+    u32 m_rtHeight = 0;
+    u32 m_rtCreated = 0;
 
     std::shared_ptr<GPUBindlessId> m_albedo_materialFlagsId;
     std::shared_ptr<GPUBindlessId> m_albedo_materialFlags_sampId;
@@ -172,14 +170,14 @@ struct PerFrameData {
 
   struct SinglePassHiZData {
     std::shared_ptr<GPUTexture> m_hizTexture = nullptr;
-    std::vector<uint32_t> m_hizRefs;
+    std::vector<u32> m_hizRefs;
     std::shared_ptr<GPUBuffer> m_hizRefBuffer = nullptr;
     std::shared_ptr<GPUBindlessId> m_hizRefBufferId = nullptr;
     std::shared_ptr<GPUBuffer> m_hizAtomics = nullptr;
     GPUBindlessRef *m_hizDesc = nullptr;
-    uint32_t m_hizIters = 0;
-    uint32_t m_hizWidth = 0;
-    uint32_t m_hizHeight = 0;
+    u32 m_hizIters = 0;
+    u32 m_hizWidth = 0;
+    u32 m_hizHeight = 0;
   };
 
   struct PerViewData {
@@ -193,8 +191,8 @@ struct PerFrameData {
     std::shared_ptr<GPUBindlessId> m_viewBufferId = nullptr;
 
     // Non-gpu data
-    uint32_t m_renderWidth;
-    uint32_t m_renderHeight;
+    u32 m_renderWidth;
+    u32 m_renderHeight;
     bool m_camMoved;
 
     // visibility buffer
@@ -238,10 +236,10 @@ struct PerFrameData {
     std::shared_ptr<GPUBuffer> m_allFilteredMeshletsHW = nullptr;
     std::shared_ptr<GPUBuffer> m_allFilteredMeshletsSW = nullptr;
 
-    uint32_t m_allFilteredMeshlets_SWOffset = 0;
+    u32 m_allFilteredMeshlets_SWOffset = 0;
 
-    uint32_t m_allFilteredMeshletsMaxCount = 0;
-    uint32_t m_requireMaxFilteredMeshlets = 0;
+    u32 m_allFilteredMeshletsMaxCount = 0;
+    u32 m_requireMaxFilteredMeshlets = 0;
     GPUBindlessRef *m_allFilteredMeshletsDesc = nullptr;
 
     // SPD HiZ
@@ -253,7 +251,7 @@ struct PerFrameData {
     std::shared_ptr<GPUBuffer> m_instCullPassedObj = nullptr;
     std::shared_ptr<GPUBuffer> m_persistCullIndirectDispatch = nullptr;
     GPUBindlessRef *m_instCullDesc = nullptr;
-    uint32_t m_maxSupportedInstances = 0;
+    u32 m_maxSupportedInstances = 0;
 
     // Inst-Persist barrier
     std::vector<GPUBarrier> m_persistCullBarrier;
@@ -263,17 +261,15 @@ struct PerFrameData {
   struct FSR2ExtraData {
     std::shared_ptr<GPUTexture> m_fsr2Output = nullptr;
     std::shared_ptr<GPUBindlessId> m_fsr2OutputSRVId = nullptr;
-    uint32_t m_fsrFrameId = 0;
+    u32 m_fsrFrameId = 0;
   };
 
-  constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat
-      c_visibilityFormat =
-          Ifrit::GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32_UINT;
+  constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat c_visibilityFormat =
+      Ifrit::GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32_UINT;
 
-  std::unordered_set<uint32_t> m_enabledEffects;
+  std::unordered_set<u32> m_enabledEffects;
   std::vector<PerShaderEffectData> m_shaderEffectData;
-  std::unordered_map<ShaderEffect, uint32_t, ShaderEffectHash>
-      m_shaderEffectMap;
+  std::unordered_map<ShaderEffect, u32, ShaderEffectHash> m_shaderEffectMap;
   PerShaderEffectData m_allInstanceData;
 
   // Per view data. Here for simplicity, assume 0 is the primary view
@@ -299,11 +295,11 @@ struct PerFrameData {
   std::shared_ptr<GPUBuffer> m_matClassPixelOffsetBuffer = nullptr;
   GPUBindlessRef *m_matClassDesc = nullptr;
   std::vector<GPUBarrier> m_matClassBarrier;
-  uint32_t m_matClassSupportedNumMaterials = 0;
-  uint32_t m_matClassSupportedNumPixels = 0;
+  u32 m_matClassSupportedNumMaterials = 0;
+  u32 m_matClassSupportedNumPixels = 0;
 
   // For history
-  uint32_t m_frameId = 0;
+  u32 m_frameId = 0;
   float m_frameTimestamp[2] = {0.0f, 0.0f};
 
   // TAA

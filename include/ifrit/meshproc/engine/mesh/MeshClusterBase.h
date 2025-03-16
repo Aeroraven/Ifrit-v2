@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/math/LinalgOps.h"
 #include "ifrit/common/serialization/MathTypeSerialization.h"
 #include "ifrit/common/serialization/SerialInterface.h"
@@ -28,36 +29,34 @@ struct MeshletCullData {
   ifloat4 parentSphere;
   float selfError = INFINITY;
   float parentError = INFINITY;
-  uint32_t lod = 0;
-  uint32_t dummy = 0;
+  u32 lod = 0;
+  u32 dummy = 0;
 
   IFRIT_STRUCT_SERIALIZE(selfSphere, parentSphere, selfError, parentError, lod);
 };
 struct ClusterGroup {
   ifloat4 selfBoundingSphere;
   ifloat4 parentBoundingSphere; // No need for this, maybe
-  uint32_t childMeshletStart;
-  uint32_t childMeshletSize;
-  uint32_t lod;
-  uint32_t dummy1;
+  u32 childMeshletStart;
+  u32 childMeshletSize;
+  u32 lod;
+  u32 dummy1;
 
-  IFRIT_STRUCT_SERIALIZE(selfBoundingSphere, parentBoundingSphere,
-                         childMeshletStart, childMeshletSize, lod);
+  IFRIT_STRUCT_SERIALIZE(selfBoundingSphere, parentBoundingSphere, childMeshletStart, childMeshletSize, lod);
 };
 struct FlattenedBVHNode {
   ifloat4 boundSphere;
-  uint32_t numChildNodes;
-  uint32_t clusterGroupStart;
-  uint32_t clusterGroupSize;
-  uint32_t subTreeSize;
-  uint32_t childNodes[BVH_CHILDREN];
+  u32 numChildNodes;
+  u32 clusterGroupStart;
+  u32 clusterGroupSize;
+  u32 subTreeSize;
+  u32 childNodes[BVH_CHILDREN];
   float maxClusterError;
-  uint32_t pad1;
-  uint32_t pad2;
-  uint32_t pad3;
+  u32 pad1;
+  u32 pad2;
+  u32 pad3;
 
-  IFRIT_STRUCT_SERIALIZE(boundSphere, numChildNodes, clusterGroupStart,
-                         clusterGroupSize, subTreeSize, childNodes,
+  IFRIT_STRUCT_SERIALIZE(boundSphere, numChildNodes, clusterGroupStart, clusterGroupSize, subTreeSize, childNodes,
                          maxClusterError);
 };
 struct MeshDescriptor {

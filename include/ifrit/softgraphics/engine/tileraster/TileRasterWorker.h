@@ -16,9 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
-
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterRenderer.h"
 
@@ -58,7 +57,7 @@ protected:
   std::atomic<TileRasterStage> status;
 
 private:
-  uint32_t workerId;
+  u32 workerId;
   TileRasterRenderer *rendererReference;
   std::unique_ptr<std::thread> execWorker;
   std::shared_ptr<TileRasterContext> context;
@@ -86,8 +85,7 @@ private:
   bool frag = false;
 
 public:
-  TileRasterWorker(uint32_t workerId, TileRasterRenderer *renderer,
-                   std::shared_ptr<TileRasterContext> context);
+  TileRasterWorker(u32 workerId, TileRasterRenderer *renderer, std::shared_ptr<TileRasterContext> context);
 
 protected:
   friend class TileRasterRenderer;
@@ -96,75 +94,47 @@ protected:
   void drawCallWithClear() IFRIT_AP_NOTHROW;
   void release();
 
-  bool triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1,
-                           Ifrit::Math::SIMD::vfloat4 v2,
-                           Ifrit::Math::SIMD::vfloat4 v3,
+  bool triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3,
                            Ifrit::Math::SIMD::vfloat4 &bbox) IFRIT_AP_NOTHROW;
-  uint32_t
-  triangleHomogeneousClip(const int primitiveId, Ifrit::Math::SIMD::vfloat4 v1,
-                          Ifrit::Math::SIMD::vfloat4 v2,
-                          Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
-  bool triangleCulling(Ifrit::Math::SIMD::vfloat4 v1,
-                       Ifrit::Math::SIMD::vfloat4 v2,
+  u32 triangleHomogeneousClip(const int primitiveId, Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2,
+                              Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
+  bool triangleCulling(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2,
                        Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
-  void executeBinner(const int primitiveId,
-                     const AssembledTriangleProposalRasterStage &atp,
+  void executeBinner(const int primitiveId, const AssembledTriangleProposalRasterStage &atp,
                      Ifrit::Math::SIMD::vfloat4 bbox) IFRIT_AP_NOTHROW;
 
   void vertexProcessing(TileRasterRenderer *renderer) IFRIT_AP_NOTHROW;
   void geometryProcessing(TileRasterRenderer *renderer) IFRIT_AP_NOTHROW;
-  void tiledProcessing(TileRasterRenderer *renderer,
-                       bool clearDepth) IFRIT_AP_NOTHROW;
+  void tiledProcessing(TileRasterRenderer *renderer, bool clearDepth) IFRIT_AP_NOTHROW;
 
-  void rasterizationSingleTile(TileRasterRenderer *renderer,
-                               int tileId) IFRIT_AP_NOTHROW;
-  void sortOrderProcessingSingleTile(TileRasterRenderer *renderer,
-                                     int tileId) IFRIT_AP_NOTHROW;
-  void fragmentProcessingSingleTile(TileRasterRenderer *renderer,
-                                    bool clearedDepth,
-                                    int tileId) IFRIT_AP_NOTHROW;
+  void rasterizationSingleTile(TileRasterRenderer *renderer, int tileId) IFRIT_AP_NOTHROW;
+  void sortOrderProcessingSingleTile(TileRasterRenderer *renderer, int tileId) IFRIT_AP_NOTHROW;
+  void fragmentProcessingSingleTile(TileRasterRenderer *renderer, bool clearedDepth, int tileId) IFRIT_AP_NOTHROW;
 
   void threadStart();
 
-  template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc,
-            bool tpOnlyTaggingPass>
-  void pixelShading(const AssembledTriangleProposalShadeStage &atp,
-                    const int dx, const int dy,
+  template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
+  void pixelShading(const AssembledTriangleProposalShadeStage &atp, const int dx, const int dy,
                     const PixelShadingFuncArgs &args) IFRIT_AP_NOTHROW;
 
-  template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc,
-            bool tpOnlyTaggingPass>
-  void
-  pixelShadingSingleQuad(const AssembledTriangleProposalShadeStage &atp,
-                         int quadMask, const int dx, const int dy,
-                         const PixelShadingFuncArgs &args) IFRIT_AP_NOTHROW;
+  template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
+  void pixelShadingSingleQuad(const AssembledTriangleProposalShadeStage &atp, int quadMask, const int dx, const int dy,
+                              const PixelShadingFuncArgs &args) IFRIT_AP_NOTHROW;
 
-  template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc,
-            bool tpOnlyTaggingPass>
-  void
-  pixelShadingSIMD256Grouped(const AssembledTriangleProposalShadeStage &atp,
-                             int groupsX, int groupsY, const int dx,
-                             const int dy,
-                             const PixelShadingFuncArgs &args) IFRIT_AP_NOTHROW;
+  template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
+  void pixelShadingSIMD256Grouped(const AssembledTriangleProposalShadeStage &atp, int groupsX, int groupsY,
+                                  const int dx, const int dy, const PixelShadingFuncArgs &args) IFRIT_AP_NOTHROW;
 
-  template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc,
-            bool tpOnlyTaggingPass>
-  void pixelShadingSIMD128(const AssembledTriangleProposalShadeStage &atp,
-                           const int dx, const int dy,
+  template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
+  void pixelShadingSIMD128(const AssembledTriangleProposalShadeStage &atp, const int dx, const int dy,
                            const PixelShadingFuncArgs &args) IFRIT_AP_NOTHROW;
 
-  template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc,
-            bool tpOnlyTaggingPass>
-  void pixelShadingSIMD256(const AssembledTriangleProposalShadeStage &atp,
-                           const int dx, const int dy,
+  template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
+  void pixelShadingSIMD256(const AssembledTriangleProposalShadeStage &atp, const int dx, const int dy,
                            const PixelShadingFuncArgs &args) IFRIT_AP_NOTHROW;
 
-  void
-  pixelShadingFromTagBuffer(const int dx, const int dy,
-                            const PixelShadingFuncArgs &args) IFRIT_AP_NOTHROW;
-  void pixelShadingFromTagBufferQuadInvo(const int dx, const int dy,
-                                         const PixelShadingFuncArgs &args)
-      IFRIT_AP_NOTHROW;
+  void pixelShadingFromTagBuffer(const int dx, const int dy, const PixelShadingFuncArgs &args) IFRIT_AP_NOTHROW;
+  void pixelShadingFromTagBufferQuadInvo(const int dx, const int dy, const PixelShadingFuncArgs &args) IFRIT_AP_NOTHROW;
 
   inline int getTileID(int x, int y) IFRIT_AP_NOTHROW {
     return (unsigned)y * (unsigned)context->numTilesX + (unsigned)x;

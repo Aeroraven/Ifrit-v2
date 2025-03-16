@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include <vulkan/vulkan.h>
 #ifdef _WIN32
@@ -24,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #else
 #include <vulkan/vulkan_xlib.h>
 #endif
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <vector>
 
@@ -41,20 +41,20 @@ private:
   void *m_hWnd;
   VkSurfaceKHR m_surface;
   VkQueue m_presentQueue;
-  uint32_t m_presentQueueFamilyIndex;
+  u32 m_presentQueueFamilyIndex;
   SwapChainSupportDetails m_supportDetails;
   VkSurfaceFormatKHR m_preferredSurfaceFormat;
   VkPresentModeKHR m_preferredPresentMode;
   VkExtent2D m_extent;
-  uint32_t m_backbufferCount = 0;
+  u32 m_backbufferCount = 0;
 
   VkSwapchainKHR m_swapchain;
 
   std::vector<VkImage> m_images;
   std::vector<VkImageView> m_imageViews;
 
-  uint32_t m_currentFrame = 0;
-  uint32_t m_imageIndex = 0;
+  u32 m_currentFrame = 0;
+  u32 m_imageIndex = 0;
   std::vector<VkSemaphore> m_imageAvailableSemaphores;
   std::vector<VkSemaphore> m_renderingFinishSemaphores;
   std::vector<VkFence> m_inFlightFences;
@@ -66,40 +66,26 @@ protected:
 public:
   Swapchain(Rhi::RhiDevice *context);
   ~Swapchain();
-  uint32_t acquireNextImage() override;
+  u32 acquireNextImage() override;
   void present() override;
 
   inline VkQueue getPresentQueue() const { return m_presentQueue; }
-  inline VkFence getCurrentFrameFence() const {
-    return m_inFlightFences[m_currentFrame];
-  }
+  inline VkFence getCurrentFrameFence() const { return m_inFlightFences[m_currentFrame]; }
   inline VkSemaphore getImageAvailableSemaphoreCurrentFrame() const {
     return m_imageAvailableSemaphores[m_currentFrame];
   }
   inline VkSemaphore getRenderingFinishSemaphoreCurrentFrame() const {
     return m_renderingFinishSemaphores[m_currentFrame];
   }
-  inline VkSemaphore getImageAvailableSemaphore(uint32_t index) const {
-    return m_imageAvailableSemaphores[index];
-  }
+  inline VkSemaphore getImageAvailableSemaphore(u32 index) const { return m_imageAvailableSemaphores[index]; }
 
   inline VkImage getCurrentImage() const { return m_images[m_imageIndex]; }
-  inline VkImageView getCurrentImageView() const {
-    return m_imageViews[m_imageIndex];
-  }
-  inline VkFormat getPreferredFormat() const {
-    return m_preferredSurfaceFormat.format;
-  }
+  inline VkImageView getCurrentImageView() const { return m_imageViews[m_imageIndex]; }
+  inline VkFormat getPreferredFormat() const { return m_preferredSurfaceFormat.format; }
 
-  inline uint32_t getQueueFamily() const { return m_presentQueueFamilyIndex; }
-  inline uint32_t getNumBackbuffers() const override {
-    return m_backbufferCount;
-  }
-  inline uint32_t getCurrentFrameIndex() const override {
-    return m_currentFrame;
-  }
-  inline uint32_t getCurrentImageIndex() const override {
-    return m_currentFrame;
-  }
+  inline u32 getQueueFamily() const { return m_presentQueueFamilyIndex; }
+  inline u32 getNumBackbuffers() const override { return m_backbufferCount; }
+  inline u32 getCurrentFrameIndex() const override { return m_currentFrame; }
+  inline u32 getCurrentImageIndex() const override { return m_currentFrame; }
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

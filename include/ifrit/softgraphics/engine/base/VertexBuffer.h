@@ -16,9 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
-
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/softgraphics/core/utility/CoreUtils.h"
 #include "ifrit/softgraphics/engine/base/TypeDescriptor.h"
@@ -51,24 +50,19 @@ public:
   inline int getElementSize() const { return elementSize; }
 
   /* Templates */
-  template <class T>
-  inline T getValue(const int index, const int attribute) const {
+  template <class T> inline T getValue(const int index, const int attribute) const {
     size_t dOffset = context->offsets[attribute] + index * elementSize;
-    const char *data =
-        reinterpret_cast<const char *>(&context->buffer[dOffset]);
+    const char *data = reinterpret_cast<const char *>(&context->buffer[dOffset]);
     return *reinterpret_cast<const T *>(data);
   }
 
-  template <class T>
-  inline const T *getValuePtr(const int index, const int attribute) const {
+  template <class T> inline const T *getValuePtr(const int index, const int attribute) const {
     size_t dOffset = context->offsets[attribute] + index * elementSize;
-    const char *data =
-        reinterpret_cast<const char *>(&context->buffer[dOffset]);
+    const char *data = reinterpret_cast<const char *>(&context->buffer[dOffset]);
     return reinterpret_cast<const T *>(data);
   }
 
-  template <class T>
-  inline T setValue(const int index, const int attribute, const T value) {
+  template <class T> inline T setValue(const int index, const int attribute, const T value) {
     size_t dOffset = context->offsets[attribute] + index * elementSize;
     char *data = reinterpret_cast<char *>(&context->buffer[dOffset]);
     *reinterpret_cast<T *>(data) = value;
@@ -76,18 +70,15 @@ public:
   }
 
   /* Inline */
-  inline char *getBufferUnsafe() const {
-    return (char *)context->buffer.data();
-  }
+  inline char *getBufferUnsafe() const { return (char *)context->buffer.data(); }
 
-  inline uint32_t getBufferSize() const {
+  inline u32 getBufferSize() const {
     using namespace Ifrit::Common::Utility;
     return size_cast<int>(context->buffer.size());
   }
 
   /* DLL Compatible */
   void setLayoutCompatible(const TypeDescriptor *layouts, int num);
-  void setValueFloat4Compatible(const int index, const int attribute,
-                                const ifloat4 value);
+  void setValueFloat4Compatible(const int index, const int attribute, const ifloat4 value);
 };
 } // namespace Ifrit::GraphicsBackend::SoftGraphics

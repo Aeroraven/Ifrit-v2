@@ -27,22 +27,19 @@ using namespace Ifrit::GraphicsBackend::Rhi;
 
 namespace Ifrit::Core {
 IFRIT_APIDECL AmbientOcclusionPass::GPUShader *
-AmbientOcclusionPass::createShaderFromFile(
-    const std::string &shaderPath, const std::string &entry,
-    GraphicsBackend::Rhi::RhiShaderStage stage) {
+AmbientOcclusionPass::createShaderFromFile(const std::string &shaderPath, const std::string &entry,
+                                           GraphicsBackend::Rhi::RhiShaderStage stage) {
   auto rhi = m_app->getRhiLayer();
   std::string shaderBasePath = IFRIT_CORELIB_SHARED_SHADER_PATH;
   auto path = shaderBasePath + "/AmbientOcclusion/" + shaderPath;
   auto shaderCode = Ifrit::Common::Utility::readTextFile(path);
   std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
-  return rhi->createShader(shaderPath, shaderCodeVec, entry, stage,
-                           RhiShaderSourceType::GLSLCode);
+  return rhi->createShader(shaderPath, shaderCodeVec, entry, stage, RhiShaderSourceType::GLSLCode);
 }
 
 IFRIT_APIDECL void AmbientOcclusionPass::setupHBAOPass() {
   auto rhi = m_app->getRhiLayer();
-  auto shader = createShaderFromFile(
-      "HBAO.comp.glsl", "main", GraphicsBackend::Rhi::RhiShaderStage::Compute);
+  auto shader = createShaderFromFile("HBAO.comp.glsl", "main", GraphicsBackend::Rhi::RhiShaderStage::Compute);
   m_hbaoPass = rhi->createComputePass();
   m_hbaoPass->setComputeShader(shader);
   m_hbaoPass->setNumBindlessDescriptorSets(0);
@@ -51,19 +48,16 @@ IFRIT_APIDECL void AmbientOcclusionPass::setupHBAOPass() {
 
 IFRIT_APIDECL void AmbientOcclusionPass::setupSSGIPass() {
   auto rhi = m_app->getRhiLayer();
-  auto shader = createShaderFromFile(
-      "SSGI.comp.glsl", "main", GraphicsBackend::Rhi::RhiShaderStage::Compute);
+  auto shader = createShaderFromFile("SSGI.comp.glsl", "main", GraphicsBackend::Rhi::RhiShaderStage::Compute);
   m_ssgiPass = rhi->createComputePass();
   m_ssgiPass->setComputeShader(shader);
   m_ssgiPass->setNumBindlessDescriptorSets(0);
   m_ssgiPass->setPushConstSize(sizeof(uint32_t) * 12);
 }
 
-IFRIT_APIDECL void
-AmbientOcclusionPass::renderHBAO(const CommandBuffer *cmd, uint32_t width,
-                                 uint32_t height, GPUBindId *depthSamp,
-                                 GPUBindId *normalSamp, GPUBindId *aoTex,
-                                 GPUBindId *perframeData) {
+IFRIT_APIDECL void AmbientOcclusionPass::renderHBAO(const CommandBuffer *cmd, uint32_t width, uint32_t height,
+                                                    GPUBindId *depthSamp, GPUBindId *normalSamp, GPUBindId *aoTex,
+                                                    GPUBindId *perframeData) {
   if (m_hbaoPass == nullptr) {
     setupHBAOPass();
   }
@@ -85,22 +79,19 @@ AmbientOcclusionPass::renderHBAO(const CommandBuffer *cmd, uint32_t width,
   m_hbaoPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     using namespace Ifrit::Core::Shaders::AmbientOcclusionConfig;
     ctx->m_cmd->setPushConst(m_hbaoPass, 0, sizeof(HBAOPushConst), &pc);
-    uint32_t wgX =
-        Ifrit::Math::ConstFunc::divRoundUp(width, cHBAOThreadGroupSizeX);
-    uint32_t wgY =
-        Ifrit::Math::ConstFunc::divRoundUp(height, cHBAOThreadGroupSizeY);
+    uint32_t wgX = Ifrit::Math::ConstFunc::divRoundUp(width, cHBAOThreadGroupSizeX);
+    uint32_t wgY = Ifrit::Math::ConstFunc::divRoundUp(height, cHBAOThreadGroupSizeY);
     ctx->m_cmd->dispatch(wgX, wgY, 1);
   });
 
   m_hbaoPass->run(cmd, 0);
 }
 
-IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(
-    const CommandBuffer *cmd, uint32_t width, uint32_t height,
-    GPUBindId *perframeData, GPUBindId *depthHizMinUAV,
-    GPUBindId *depthHizMaxUAV, GPUBindId *normalSRV, GPUBindId *aoUAV,
-    GPUBindId *albedoSRV, uint32_t hizTexW, uint32_t hizTexH, uint32_t numLods,
-    GPUBindId *blueNoiseSRV) {
+IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(const CommandBuffer *cmd, uint32_t width, uint32_t height,
+                                                    GPUBindId *perframeData, GPUBindId *depthHizMinUAV,
+                                                    GPUBindId *depthHizMaxUAV, GPUBindId *normalSRV, GPUBindId *aoUAV,
+                                                    GPUBindId *albedoSRV, uint32_t hizTexW, uint32_t hizTexH,
+                                                    uint32_t numLods, GPUBindId *blueNoiseSRV) {
   struct SSGIPushConst {
     uint32_t perframe;
     uint32_t normalTex;
@@ -137,10 +128,8 @@ IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(
     using namespace Ifrit::Core::Shaders::AmbientOcclusionConfig;
     ctx->m_cmd->setPushConst(m_ssgiPass, 0, sizeof(SSGIPushConst), &pc);
 
-    uint32_t wgX =
-        Ifrit::Math::ConstFunc::divRoundUp(width, cSSGIThreadGroupSizeX);
-    uint32_t wgY =
-        Ifrit::Math::ConstFunc::divRoundUp(height, cSSGIThreadGroupSizeY);
+    uint32_t wgX = Ifrit::Math::ConstFunc::divRoundUp(width, cSSGIThreadGroupSizeX);
+    uint32_t wgY = Ifrit::Math::ConstFunc::divRoundUp(height, cSSGIThreadGroupSizeY);
     ctx->m_cmd->dispatch(wgX, wgY, 1);
   });
   m_ssgiPass->run(cmd, 0);

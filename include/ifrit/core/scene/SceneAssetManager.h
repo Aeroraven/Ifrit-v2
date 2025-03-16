@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/core/assetmanager/Asset.h"
 #include "ifrit/core/base/Scene.h"
 #include <filesystem>
@@ -31,8 +31,7 @@ class SceneAssetManager;
 class IFRIT_APIDECL SceneAsset : public Asset {
 public:
   std::shared_ptr<Scene> m_scene;
-  SceneAsset(AssetMetadata metadata, std::filesystem::path path)
-      : Asset(metadata, path) {}
+  SceneAsset(AssetMetadata metadata, std::filesystem::path path) : Asset(metadata, path) {}
   inline std::shared_ptr<Scene> getScene() { return m_scene; }
 };
 
@@ -45,8 +44,7 @@ public:
   SceneAssetImporter(AssetManager *manager, SceneAssetManager *sceneManager)
       : AssetImporter(manager), m_sceneAssetManager(sceneManager) {}
   void processMetadata(AssetMetadata &metadata) override;
-  void importAsset(const std::filesystem::path &path,
-                   AssetMetadata &metadata) override;
+  void importAsset(const std::filesystem::path &path, AssetMetadata &metadata) override;
   std::vector<std::string> getSupportedExtensionNames() override;
 };
 
@@ -54,8 +52,8 @@ class IFRIT_APIDECL SceneAssetManager {
 private:
   std::shared_ptr<SceneAssetImporter> m_sceneImporter;
   std::vector<std::shared_ptr<Scene>> m_scenes;
-  std::vector<uint32_t> m_sceneAssetLoaded;
-  std::unordered_map<std::string, uint32_t> m_scenesIndex;
+  std::vector<u32> m_sceneAssetLoaded;
+  std::unordered_map<std::string, u32> m_scenesIndex;
   std::shared_ptr<Scene> m_activeScene;
   std::filesystem::path m_sceneDataPath;
   AssetManager *m_assetManager;
@@ -69,9 +67,7 @@ public:
   void loadScenes();
   void registerScene(std::string name, std::shared_ptr<Scene> scene);
   std::shared_ptr<Scene> createScene(std::string name);
-  inline std::shared_ptr<SceneAssetImporter> getImporter() {
-    return m_sceneImporter;
-  }
+  inline std::shared_ptr<SceneAssetImporter> getImporter() { return m_sceneImporter; }
   inline std::shared_ptr<Scene> getScene(std::string name) {
     if (m_scenesIndex.count(name) == 0) {
       throw std::runtime_error("Scene does not exist");
@@ -81,8 +77,6 @@ public:
     }
     return m_scenes[m_scenesIndex[name]];
   }
-  inline bool checkSceneExists(std::string name) {
-    return m_scenesIndex.count(name) != 0;
-  }
+  inline bool checkSceneExists(std::string name) { return m_scenesIndex.count(name) != 0; }
 };
 } // namespace Ifrit::Core

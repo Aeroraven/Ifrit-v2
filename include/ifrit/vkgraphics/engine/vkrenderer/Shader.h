@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
@@ -55,13 +55,13 @@ public:
   ~ShaderModule();
   VkShaderModule getModule() const;
   VkPipelineShaderStageCreateInfo getStageCI() const;
-  inline uint32_t getCodeSize() const {
+  inline u32 getCodeSize() const {
     using namespace Ifrit::Common::Utility;
-    return size_cast<uint32_t>(m_ci.code.size());
+    return size_cast<u32>(m_ci.code.size());
   }
-  inline uint32_t getNumDescriptorSets() const override {
+  inline u32 getNumDescriptorSets() const override {
     using namespace Ifrit::Common::Utility;
-    return size_cast<uint32_t>(m_reflectSets.size());
+    return size_cast<u32>(m_reflectSets.size());
   }
   virtual Rhi::RhiShaderStage getStage() const override { return m_ci.stage; }
 

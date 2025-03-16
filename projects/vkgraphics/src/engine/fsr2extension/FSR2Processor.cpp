@@ -38,34 +38,29 @@ static void onFSR2Msg(FfxFsr2MsgType type, const wchar_t *message) {
 IFRIT_APIDECL FSR2Processor::FSR2Processor(EngineContext *ctx) {
   m_engineContext = ctx;
   m_context = new FSR2Context();
-  m_context->scratchSize =
-      ffxFsr2GetScratchMemorySizeVK(m_engineContext->getPhysicalDevice());
+  m_context->scratchSize = ffxFsr2GetScratchMemorySizeVK(m_engineContext->getPhysicalDevice());
   m_context->scratchBuffer.resize(m_context->scratchSize);
-  auto errorCode = ffxFsr2GetInterfaceVK(
-      &m_context->initContext.callbacks, m_context->scratchBuffer.data(),
-      m_context->scratchSize, m_engineContext->getPhysicalDevice(),
-      vkGetDeviceProcAddr);
+  auto errorCode =
+      ffxFsr2GetInterfaceVK(&m_context->initContext.callbacks, m_context->scratchBuffer.data(), m_context->scratchSize,
+                            m_engineContext->getPhysicalDevice(), vkGetDeviceProcAddr);
   if (errorCode != FFX_OK) {
     iError("Failed to get FSR2 interface, error code: {}", int(errorCode));
     std::abort();
   }
 }
 
-IFRIT_APIDECL void
-FSR2Processor::init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) {
+IFRIT_APIDECL void FSR2Processor::init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) {
   m_context->initContext.device = ffxGetDeviceVK(m_engineContext->getDevice());
   m_context->initContext.maxRenderSize.width = args.maxRenderWidth;
   m_context->initContext.maxRenderSize.height = args.maxRenderHeight;
   m_context->initContext.displaySize.width = args.displayWidth;
   m_context->initContext.displaySize.height = args.displayHeight;
-  m_context->initContext.flags =
-      FFX_FSR2_ENABLE_AUTO_EXPOSURE | FFX_FSR2_ENABLE_DEBUG_CHECKING;
+  m_context->initContext.flags = FFX_FSR2_ENABLE_AUTO_EXPOSURE | FFX_FSR2_ENABLE_DEBUG_CHECKING;
   // hdr
   m_context->initContext.flags |= FFX_FSR2_ENABLE_HIGH_DYNAMIC_RANGE;
   m_context->initContext.fpMessage = onFSR2Msg;
 
-  auto errorCode =
-      ffxFsr2ContextCreate(&m_context->fsr2ctx, &m_context->initContext);
+  auto errorCode = ffxFsr2ContextCreate(&m_context->fsr2ctx, &m_context->initContext);
   if (errorCode != FFX_OK) {
     iError("Failed to create FSR2 context, error code: {}", int(errorCode));
     std::abort();
@@ -73,9 +68,8 @@ FSR2Processor::init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) {
   m_context->fsr2Initialized = true;
 }
 
-IFRIT_APIDECL void
-FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
-                        const Rhi::FSR2::RhiFSR2DispatchArgs &args) {
+IFRIT_APIDECL void FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
+                                           const Rhi::FSR2::RhiFSR2DispatchArgs &args) {
   FfxFsr2DispatchDescription dispatchParams = {};
   auto cmdVk = checked_cast<CommandBuffer>(cmd)->getCommandBuffer();
   auto colorImgVk = checked_cast<SingleDeviceImage>(args.color);
@@ -93,71 +87,55 @@ FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
     reactiveMaskImgVk = checked_cast<SingleDeviceImage>(args.reactiveMask);
   }
   if (args.transparencyMask) {
-    transparencyMaskImgVk =
-        checked_cast<SingleDeviceImage>(args.transparencyMask);
+    transparencyMaskImgVk = checked_cast<SingleDeviceImage>(args.transparencyMask);
   }
 
   dispatchParams.commandList = ffxGetCommandListVK(cmdVk);
-  dispatchParams.color = ffxGetTextureResourceVK(
-      &m_context->fsr2ctx, colorImgVk->getImage(), colorImgVk->getImageView(),
-      colorImgVk->getWidth(), colorImgVk->getHeight(), colorImgVk->getFormat(),
-      L"FSR2_InputColor");
-  dispatchParams.depth = ffxGetTextureResourceVK(
-      &m_context->fsr2ctx, depthImgVk->getImage(), depthImgVk->getImageView(),
-      depthImgVk->getWidth(), depthImgVk->getHeight(), depthImgVk->getFormat(),
-      L"FSR2_InputDepth");
+  dispatchParams.color = ffxGetTextureResourceVK(&m_context->fsr2ctx, colorImgVk->getImage(),
+                                                 colorImgVk->getImageView(), colorImgVk->getWidth(),
+                                                 colorImgVk->getHeight(), colorImgVk->getFormat(), L"FSR2_InputColor");
+  dispatchParams.depth = ffxGetTextureResourceVK(&m_context->fsr2ctx, depthImgVk->getImage(),
+                                                 depthImgVk->getImageView(), depthImgVk->getWidth(),
+                                                 depthImgVk->getHeight(), depthImgVk->getFormat(), L"FSR2_InputDepth");
   dispatchParams.motionVectors = ffxGetTextureResourceVK(
-      &m_context->fsr2ctx, motionImgVk->getImage(), motionImgVk->getImageView(),
-      motionImgVk->getWidth(), motionImgVk->getHeight(),
-      motionImgVk->getFormat(), L"FSR2_InputMotionVectors");
+      &m_context->fsr2ctx, motionImgVk->getImage(), motionImgVk->getImageView(), motionImgVk->getWidth(),
+      motionImgVk->getHeight(), motionImgVk->getFormat(), L"FSR2_InputMotionVectors");
   dispatchParams.output = ffxGetTextureResourceVK(
-      &m_context->fsr2ctx, outputImgVk->getImage(), outputImgVk->getImageView(),
-      outputImgVk->getWidth(), outputImgVk->getHeight(),
-      outputImgVk->getFormat(), L"FSR2_OutputColor");
+      &m_context->fsr2ctx, outputImgVk->getImage(), outputImgVk->getImageView(), outputImgVk->getWidth(),
+      outputImgVk->getHeight(), outputImgVk->getFormat(), L"FSR2_OutputColor");
   if (exposureImgVk) {
     dispatchParams.exposure = ffxGetTextureResourceVK(
-        &m_context->fsr2ctx, exposureImgVk->getImage(),
-        exposureImgVk->getImageView(), exposureImgVk->getWidth(),
-        exposureImgVk->getHeight(), exposureImgVk->getFormat(),
-        L"FSR2_InputExposure");
+        &m_context->fsr2ctx, exposureImgVk->getImage(), exposureImgVk->getImageView(), exposureImgVk->getWidth(),
+        exposureImgVk->getHeight(), exposureImgVk->getFormat(), L"FSR2_InputExposure");
   } else {
-    dispatchParams.exposure = ffxGetTextureResourceVK(
-        &m_context->fsr2ctx, nullptr, nullptr, 1, 1, VK_FORMAT_UNDEFINED,
-        L"FSR2_EmptyInputExposure");
+    dispatchParams.exposure = ffxGetTextureResourceVK(&m_context->fsr2ctx, nullptr, nullptr, 1, 1, VK_FORMAT_UNDEFINED,
+                                                      L"FSR2_EmptyInputExposure");
   }
   if (reactiveMaskImgVk) {
-    dispatchParams.reactive = ffxGetTextureResourceVK(
-        &m_context->fsr2ctx, reactiveMaskImgVk->getImage(),
-        reactiveMaskImgVk->getImageView(), reactiveMaskImgVk->getWidth(),
-        reactiveMaskImgVk->getHeight(), reactiveMaskImgVk->getFormat(),
-        L"FSR2_InputReactiveMap");
+    dispatchParams.reactive =
+        ffxGetTextureResourceVK(&m_context->fsr2ctx, reactiveMaskImgVk->getImage(), reactiveMaskImgVk->getImageView(),
+                                reactiveMaskImgVk->getWidth(), reactiveMaskImgVk->getHeight(),
+                                reactiveMaskImgVk->getFormat(), L"FSR2_InputReactiveMap");
   } else {
-    dispatchParams.reactive = ffxGetTextureResourceVK(
-        &m_context->fsr2ctx, nullptr, nullptr, 1, 1, VK_FORMAT_UNDEFINED,
-        L"FSR2_EmptyInputReactiveMap");
+    dispatchParams.reactive = ffxGetTextureResourceVK(&m_context->fsr2ctx, nullptr, nullptr, 1, 1, VK_FORMAT_UNDEFINED,
+                                                      L"FSR2_EmptyInputReactiveMap");
   }
   if (transparencyMaskImgVk) {
     dispatchParams.transparencyAndComposition = ffxGetTextureResourceVK(
-        &m_context->fsr2ctx, transparencyMaskImgVk->getImage(),
-        transparencyMaskImgVk->getImageView(),
-        transparencyMaskImgVk->getWidth(), transparencyMaskImgVk->getHeight(),
-        transparencyMaskImgVk->getFormat(),
+        &m_context->fsr2ctx, transparencyMaskImgVk->getImage(), transparencyMaskImgVk->getImageView(),
+        transparencyMaskImgVk->getWidth(), transparencyMaskImgVk->getHeight(), transparencyMaskImgVk->getFormat(),
         L"FSR2_TransparencyAndCompositionMap");
   } else {
     dispatchParams.transparencyAndComposition = ffxGetTextureResourceVK(
-        &m_context->fsr2ctx, nullptr, nullptr, 1, 1, VK_FORMAT_UNDEFINED,
-        L"FSR2_EmptyTransparencyAndCompositionMap");
+        &m_context->fsr2ctx, nullptr, nullptr, 1, 1, VK_FORMAT_UNDEFINED, L"FSR2_EmptyTransparencyAndCompositionMap");
   }
   dispatchParams.renderSize.width = m_context->initContext.maxRenderSize.width;
-  dispatchParams.renderSize.height =
-      m_context->initContext.maxRenderSize.height;
+  dispatchParams.renderSize.height = m_context->initContext.maxRenderSize.height;
   dispatchParams.jitterOffset.x = args.jitterX;
   dispatchParams.jitterOffset.y = args.jitterY;
   dispatchParams.frameTimeDelta = args.deltaTime * 5.0f;
-  dispatchParams.motionVectorScale.x =
-      m_context->initContext.maxRenderSize.width;
-  dispatchParams.motionVectorScale.y =
-      m_context->initContext.maxRenderSize.height;
+  dispatchParams.motionVectorScale.x = m_context->initContext.maxRenderSize.width;
+  dispatchParams.motionVectorScale.y = m_context->initContext.maxRenderSize.height;
 
   dispatchParams.cameraNear = args.camNear;
   dispatchParams.cameraFar = args.camFar;
@@ -182,8 +160,7 @@ FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
   barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
   barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
   barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  vkCmdPipelineBarrier(cmdVk, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
+  vkCmdPipelineBarrier(cmdVk, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
                        nullptr, 1, &barrier);
 
   auto errorCode = ffxFsr2ContextDispatch(&m_context->fsr2ctx, &dispatchParams);
@@ -193,9 +170,7 @@ FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
   }
 }
 
-IFRIT_APIDECL void FSR2Processor::getJitters(float *jitterX, float *jitterY,
-                                             uint32_t frameIdx,
-                                             uint32_t rtWidth,
+IFRIT_APIDECL void FSR2Processor::getJitters(float *jitterX, float *jitterY, uint32_t frameIdx, uint32_t rtWidth,
                                              uint32_t dispWidth) {
   auto phase = ffxFsr2GetJitterPhaseCount(rtWidth, dispWidth);
   ffxFsr2GetJitterOffset(jitterX, jitterY, frameIdx, phase);

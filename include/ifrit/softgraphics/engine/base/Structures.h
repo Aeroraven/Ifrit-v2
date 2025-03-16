@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/engine/base/Constants.h"
 namespace Ifrit::GraphicsBackend::SoftGraphics {
 // Buffer
@@ -35,9 +35,9 @@ struct IFRIT_APIDECL IfritRayDesc {
 
 // Other
 struct IFRIT_APIDECL IfritExtent3D {
-  uint32_t width = 0;
-  uint32_t height = 0;
-  uint32_t depth = 0;
+  u32 width = 0;
+  u32 height = 0;
+  u32 depth = 0;
 };
 struct IFRIT_APIDECL IfritOffset3D {
   int32_t x;
@@ -56,13 +56,13 @@ struct IFRIT_APIDECL IfritSamplerT {
 struct IFRIT_APIDECL IfritImageCreateInfo {
   IfritExtent3D extent;
   IfritImageTiling tilingMode = IF_IMAGE_TILING_LINEAR;
-  uint32_t mipLevels = 0;
-  uint32_t arrayLayers = 1;
+  u32 mipLevels = 0;
+  u32 arrayLayers = 1;
   IfritFormat format = IF_FORMAT_R32G32B32A32_SFLOAT;
 };
 struct IFRIT_APIDECL IfritImageSubresourceLayers {
-  uint32_t mipLevel = 0;
-  uint32_t baseArrayLayer = 0;
+  u32 mipLevel = 0;
+  u32 baseArrayLayer = 0;
 };
 struct IFRIT_APIDECL IfritImageBlit {
   IfritImageSubresourceLayers srcSubresource;
@@ -73,7 +73,7 @@ struct IFRIT_APIDECL IfritImageBlit {
   IfritExtent3D dstExtentEd;
 };
 struct IFRIT_APIDECL IfritBufferImageCopy {
-  uint32_t bufferOffset;
+  u32 bufferOffset;
   IfritImageSubresourceLayers imageSubresource;
   IfritOffset3D imageOffset;
   IfritExtent3D imageExtent;

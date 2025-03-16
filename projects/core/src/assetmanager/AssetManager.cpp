@@ -49,13 +49,11 @@ IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
     metaData.m_name = path.filename().generic_string();
     Common::Utility::generateUuid(metaData.m_uuid);
     // check if importer is registered for this file extension
-    if (m_extensionImporterMap.find(path.extension().generic_string()) ==
-        m_extensionImporterMap.end()) {
+    if (m_extensionImporterMap.find(path.extension().generic_string()) == m_extensionImporterMap.end()) {
       iWarn("No importer found for file: {}", path.generic_string());
       return;
     }
-    auto importerName =
-        m_extensionImporterMap[path.extension().generic_string()];
+    auto importerName = m_extensionImporterMap[path.extension().generic_string()];
     auto importer = m_importers[importerName];
     importer->processMetadata(metaData);
     std::string serialized;
@@ -71,8 +69,7 @@ IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
   file.seekg(0, std::ios::end);
   serialized.reserve(file.tellg());
   file.seekg(0, std::ios::beg);
-  serialized.assign((std::istreambuf_iterator<char>(file)),
-                    std::istreambuf_iterator<char>());
+  serialized.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
   AssetMetadata metadata;
   metadataDeserialization(serialized, metadata);
   auto importerName = metadata.m_importer;
@@ -85,8 +82,7 @@ IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
   importer->importAsset(path, metadata);
 }
 
-IFRIT_APIDECL void
-AssetManager::loadAssetDirectory(const std::filesystem::path &path) {
+IFRIT_APIDECL void AssetManager::loadAssetDirectory(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
     auto s = path.generic_string();
     iWarn("Path does not exist: {}", s);
@@ -105,14 +101,12 @@ AssetManager::loadAssetDirectory(const std::filesystem::path &path) {
   }
 }
 
-IFRIT_APIDECL std::shared_ptr<Asset>
-AssetManager::requestAssetIntenal(const std::filesystem::path &path) {
+IFRIT_APIDECL std::shared_ptr<Asset> AssetManager::requestAssetIntenal(const std::filesystem::path &path) {
   auto relativePath = std::filesystem::relative(path, basePath);
   if (m_nameToUuid.find(relativePath.generic_string()) == m_nameToUuid.end()) {
     // load the asset
     loadAsset(path);
-    if (m_nameToUuid.find(relativePath.generic_string()) ==
-        m_nameToUuid.end()) {
+    if (m_nameToUuid.find(relativePath.generic_string()) == m_nameToUuid.end()) {
       iError("Asset not found: {}", path.generic_string());
       return nullptr;
     }
@@ -126,9 +120,8 @@ AssetManager::requestAssetIntenal(const std::filesystem::path &path) {
   return it->second;
 }
 
-IFRIT_APIDECL void
-AssetManager::registerImporter(const std::string &importerName,
-                               std::shared_ptr<AssetImporter> importer) {
+IFRIT_APIDECL void AssetManager::registerImporter(const std::string &importerName,
+                                                  std::shared_ptr<AssetImporter> importer) {
   m_importers[importerName] = importer;
   auto extensions = importer->getSupportedExtensionNames();
   for (auto &ext : extensions) {
@@ -136,16 +129,12 @@ AssetManager::registerImporter(const std::string &importerName,
   }
 }
 
-IFRIT_APIDECL AssetManager::AssetManager(std::filesystem::path path,
-                                         IApplication *app) {
+IFRIT_APIDECL AssetManager::AssetManager(std::filesystem::path path, IApplication *app) {
   // register default importers
   // TODO: maybe weak_ptr should be used, but i am too lazy to do that
-  registerImporter(WaveFrontAssetImporter::IMPORTER_NAME,
-                   std::make_shared<WaveFrontAssetImporter>(this));
-  registerImporter(ShaderAssetImporter::IMPORTER_NAME,
-                   std::make_shared<ShaderAssetImporter>(this));
-  registerImporter(GLTFAssetImporter::IMPORTER_NAME,
-                   std::make_shared<GLTFAssetImporter>(this));
+  registerImporter(WaveFrontAssetImporter::IMPORTER_NAME, std::make_shared<WaveFrontAssetImporter>(this));
+  registerImporter(ShaderAssetImporter::IMPORTER_NAME, std::make_shared<ShaderAssetImporter>(this));
+  registerImporter(GLTFAssetImporter::IMPORTER_NAME, std::make_shared<GLTFAssetImporter>(this));
   registerImporter(DirectDrawSurfaceAssetImporter::IMPORTER_NAME,
                    std::make_shared<DirectDrawSurfaceAssetImporter>(this));
   basePath = path;
@@ -153,16 +142,13 @@ IFRIT_APIDECL AssetManager::AssetManager(std::filesystem::path path,
   // loadAssetDirectory(basePath);
 }
 
-IFRIT_APIDECL std::string
-AssetManager::metadataSerialization(AssetMetadata &metadata) {
+IFRIT_APIDECL std::string AssetManager::metadataSerialization(AssetMetadata &metadata) {
   std::string serialized;
   Ifrit::Common::Serialization::serialize(metadata, serialized);
   return serialized;
 }
 
-IFRIT_APIDECL void
-AssetManager::metadataDeserialization(const std::string &serialized,
-                                      AssetMetadata &metadata) {
+IFRIT_APIDECL void AssetManager::metadataDeserialization(const std::string &serialized, AssetMetadata &metadata) {
   Ifrit::Common::Serialization::deserialize(serialized, metadata);
 }
 

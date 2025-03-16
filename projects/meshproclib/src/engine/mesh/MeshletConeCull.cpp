@@ -21,15 +21,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <stdexcept>
 namespace Ifrit::MeshProcLib::MeshProcess {
 
-void MeshletConeCullProc::createNormalCones(
-    const MeshDescriptor &meshDesc, const std::vector<iint4> &meshlets,
-    const std::vector<uint32_t> &meshletVertices,
-    const std::vector<uint8_t> &meshletTriangles,
-    std::vector<ifloat4> &normalConeAxisCutoff,
-    std::vector<ifloat4> &normalConeApex, std::vector<ifloat4> &boundSphere) {
+void MeshletConeCullProc::createNormalCones(const MeshDescriptor &meshDesc, const std::vector<iint4> &meshlets,
+                                            const std::vector<uint32_t> &meshletVertices,
+                                            const std::vector<uint8_t> &meshletTriangles,
+                                            std::vector<ifloat4> &normalConeAxisCutoff,
+                                            std::vector<ifloat4> &normalConeApex, std::vector<ifloat4> &boundSphere) {
   using namespace Ifrit::Math::SIMD;
-  if (meshDesc.vertexData == nullptr || meshDesc.indexData == nullptr ||
-      meshDesc.normalData == nullptr) {
+  if (meshDesc.vertexData == nullptr || meshDesc.indexData == nullptr || meshDesc.normalData == nullptr) {
     throw std::runtime_error("Invalid mesh descriptor");
     return;
   }
@@ -44,17 +42,12 @@ void MeshletConeCullProc::createNormalCones(
     meshopt_Bounds bounds;
     const auto meshletVertStart = meshletVertices.data() + vertexOffset;
     const auto meshletTriStart = meshletTriangles.data() + triangleOffset;
-    bounds = meshopt_computeMeshletBounds(
-        meshletVertStart, meshletTriStart, triangleCount,
-        (float *)meshDesc.vertexData, meshDesc.vertexCount,
-        meshDesc.vertexStride);
+    bounds = meshopt_computeMeshletBounds(meshletVertStart, meshletTriStart, triangleCount,
+                                          (float *)meshDesc.vertexData, meshDesc.vertexCount, meshDesc.vertexStride);
 
-    normalConeAxisCutoff.push_back({bounds.cone_axis[0], bounds.cone_axis[1],
-                                    bounds.cone_axis[2], bounds.cone_cutoff});
-    normalConeApex.push_back(
-        {bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2], 0.0f});
-    boundSphere.push_back(
-        {bounds.center[0], bounds.center[1], bounds.center[2], bounds.radius});
+    normalConeAxisCutoff.push_back({bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2], bounds.cone_cutoff});
+    normalConeApex.push_back({bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2], 0.0f});
+    boundSphere.push_back({bounds.center[0], bounds.center[1], bounds.center[2], bounds.radius});
   }
 }
 

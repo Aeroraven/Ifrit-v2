@@ -27,10 +27,29 @@ using namespace Ifrit::Common::Utility;
 #include <vma/vk_mem_alloc.h>
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
-bool enableExtension(
-    bool mandatory, const char *extension,
-    const std::vector<VkExtensionProperties> &availableExtensions,
-    std::vector<const char *> &targetExtension) {
+
+std::vector<const char *> m_instanceExtension = {VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME};
+std::vector<const char *> m_deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                                                VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+                                                VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+                                                VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
+                                                VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME,
+                                                VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
+                                                VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME,
+                                                VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+                                                VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME,
+                                                VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+                                                VK_EXT_MESH_SHADER_EXTENSION_NAME,
+                                                VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,
+                                                VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+                                                VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+                                                VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+                                                VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+                                                VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
+
+bool enableExtension(bool mandatory, const char *extension,
+                     const std::vector<VkExtensionProperties> &availableExtensions,
+                     std::vector<const char *> &targetExtension) {
   for (auto ext : availableExtensions) {
     if (strcmp(ext.extensionName, extension) == 0) {
       targetExtension.push_back(extension);
@@ -48,8 +67,7 @@ bool enableExtension(
   }
   return false;
 }
-bool enableLayer(bool mandatory, const char *layer,
-                 const std::vector<VkLayerProperties> &availableLayers,
+bool enableLayer(bool mandatory, const char *layer, const std::vector<VkLayerProperties> &availableLayers,
                  std::vector<const char *> &targetLayers) {
   for (auto lay : availableLayers) {
     if (strcmp(lay.layerName, layer) == 0) {
@@ -72,12 +90,11 @@ int physicalDeviceRanking(const VkPhysicalDevice &device) {
   score += properties.limits.maxImageDimension2D;
   return score;
 }
-static VKAPI_ATTR VkBool32 VKAPI_CALL
-debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-              VkDebugUtilsMessageTypeFlagsEXT messageType,
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                    VkDebugUtilsMessageTypeFlagsEXT messageType,
 
-              const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-              void *pUserData) {
+                                                    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                                    void *pUserData) {
   if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
     iError("Validation layer called");
     iError(pCallbackData->pMessage);
@@ -94,71 +111,49 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   return VK_FALSE;
 }
 // START CLASS DEFINITION
-template <typename T>
-void loadExtFunc(T &extf, const char *name, VkDevice device) {
+template <typename T> void loadExtFunc(T &extf, const char *name, VkDevice device) {
   extf = (T)vkGetDeviceProcAddr(device, name);
   if (!extf) {
     iError("Failed to load extension function: {}", name);
   }
 }
 
+IFRIT_APIDECL const std::vector<const char *> EngineContext::getDeviceExtensions() const { return m_deviceExtensions; }
+
 IFRIT_APIDECL void EngineContext::loadExtensionFunction() {
-  loadExtFunc(m_extf.p_vkCmdSetDepthTestEnable, "vkCmdSetDepthTestEnable",
-              m_device);
-  loadExtFunc(m_extf.p_vkCmdSetDepthWriteEnable, "vkCmdSetDepthWriteEnable",
-              m_device);
-  loadExtFunc(m_extf.p_vkCmdSetDepthCompareOp, "vkCmdSetDepthCompareOp",
-              m_device);
-  loadExtFunc(m_extf.p_vkCmdSetDepthBoundsTestEnable,
-              "vkCmdSetDepthBoundsTestEnable", m_device);
-  loadExtFunc(m_extf.p_vkCmdSetStencilTestEnable, "vkCmdSetStencilTestEnable",
-              m_device);
+  loadExtFunc(m_extf.p_vkCmdSetDepthTestEnable, "vkCmdSetDepthTestEnable", m_device);
+  loadExtFunc(m_extf.p_vkCmdSetDepthWriteEnable, "vkCmdSetDepthWriteEnable", m_device);
+  loadExtFunc(m_extf.p_vkCmdSetDepthCompareOp, "vkCmdSetDepthCompareOp", m_device);
+  loadExtFunc(m_extf.p_vkCmdSetDepthBoundsTestEnable, "vkCmdSetDepthBoundsTestEnable", m_device);
+  loadExtFunc(m_extf.p_vkCmdSetStencilTestEnable, "vkCmdSetStencilTestEnable", m_device);
   loadExtFunc(m_extf.p_vkCmdSetStencilOp, "vkCmdSetStencilOp", m_device);
 
-  loadExtFunc(m_extf.p_vkCmdSetColorBlendEnableEXT,
-              "vkCmdSetColorBlendEnableEXT", m_device);
-  loadExtFunc(m_extf.p_vkCmdSetColorWriteEnableEXT,
-              "vkCmdSetColorWriteEnableEXT", m_device);
-  loadExtFunc(m_extf.p_vkCmdSetColorWriteMaskEXT, "vkCmdSetColorWriteMaskEXT",
-              m_device);
-  loadExtFunc(m_extf.p_vkCmdSetColorBlendEquationEXT,
-              "vkCmdSetColorBlendEquationEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdSetColorBlendEnableEXT, "vkCmdSetColorBlendEnableEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdSetColorWriteEnableEXT, "vkCmdSetColorWriteEnableEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdSetColorWriteMaskEXT, "vkCmdSetColorWriteMaskEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdSetColorBlendEquationEXT, "vkCmdSetColorBlendEquationEXT", m_device);
   loadExtFunc(m_extf.p_vkCmdSetLogicOpEXT, "vkCmdSetLogicOpEXT", m_device);
-  loadExtFunc(m_extf.p_vkCmdSetLogicOpEnableEXT, "vkCmdSetLogicOpEnableEXT",
-              m_device);
-  loadExtFunc(m_extf.p_vkCmdSetVertexInputEXT, "vkCmdSetVertexInputEXT",
-              m_device);
-  loadExtFunc(m_extf.p_vkCmdDrawMeshTasksEXT, "vkCmdDrawMeshTasksEXT",
-              m_device);
-  loadExtFunc(m_extf.p_vkCmdDrawMeshTasksIndirectEXT,
-              "vkCmdDrawMeshTasksIndirectEXT", m_device);
-  loadExtFunc(m_extf.p_vkCmdBeginDebugUtilsLabelEXT,
-              "vkCmdBeginDebugUtilsLabelEXT", m_device);
-  loadExtFunc(m_extf.p_vkCmdEndDebugUtilsLabelEXT, "vkCmdEndDebugUtilsLabelEXT",
-              m_device);
+  loadExtFunc(m_extf.p_vkCmdSetLogicOpEnableEXT, "vkCmdSetLogicOpEnableEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdSetVertexInputEXT, "vkCmdSetVertexInputEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdDrawMeshTasksEXT, "vkCmdDrawMeshTasksEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdDrawMeshTasksIndirectEXT, "vkCmdDrawMeshTasksIndirectEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdBeginDebugUtilsLabelEXT, "vkCmdBeginDebugUtilsLabelEXT", m_device);
+  loadExtFunc(m_extf.p_vkCmdEndDebugUtilsLabelEXT, "vkCmdEndDebugUtilsLabelEXT", m_device);
   // loadExtFunc(m_extf.p_vkCmdSetCullModeEXT, "vkCmdSetCullModeEXT", m_device);
 
-  loadExtFunc(m_extf.p_vkGetRayTracingShaderGroupHandlesKHR,
-              "vkGetRayTracingShaderGroupHandlesKHR", m_device);
-  loadExtFunc(m_extf.p_vkCreateAccelerationStructureKHR,
-              "vkCreateAccelerationStructureKHR", m_device);
-  loadExtFunc(m_extf.p_vkCmdBuildAccelerationStructuresKHR,
-              "vkCmdBuildAccelerationStructuresKHR", m_device);
-  loadExtFunc(m_extf.p_vkGetAccelerationStructureDeviceAddressKHR,
-              "vkGetAccelerationStructureDeviceAddressKHR", m_device);
-  loadExtFunc(m_extf.p_vkGetAccelerationStructureBuildSizesKHR,
-              "vkGetAccelerationStructureBuildSizesKHR", m_device);
+  loadExtFunc(m_extf.p_vkGetRayTracingShaderGroupHandlesKHR, "vkGetRayTracingShaderGroupHandlesKHR", m_device);
+  loadExtFunc(m_extf.p_vkCreateAccelerationStructureKHR, "vkCreateAccelerationStructureKHR", m_device);
+  loadExtFunc(m_extf.p_vkCmdBuildAccelerationStructuresKHR, "vkCmdBuildAccelerationStructuresKHR", m_device);
+  loadExtFunc(m_extf.p_vkGetAccelerationStructureDeviceAddressKHR, "vkGetAccelerationStructureDeviceAddressKHR",
+              m_device);
+  loadExtFunc(m_extf.p_vkGetAccelerationStructureBuildSizesKHR, "vkGetAccelerationStructureBuildSizesKHR", m_device);
   loadExtFunc(m_extf.p_vkCmdTraceRaysKHR, "vkCmdTraceRaysKHR", m_device);
-  loadExtFunc(m_extf.p_vkCreateRayTracingPipelinesKHR,
-              "vkCreateRayTracingPipelinesKHR", m_device);
+  loadExtFunc(m_extf.p_vkCreateRayTracingPipelinesKHR, "vkCreateRayTracingPipelinesKHR", m_device);
 
   vkrDebug("Extension functions loaded");
 }
 IFRIT_APIDECL
-EngineContext::EngineContext(const Rhi::RhiInitializeArguments &args)
-    : m_args(args) {
-  init();
-}
+EngineContext::EngineContext(const Rhi::RhiInitializeArguments &args) : m_args(args) { init(); }
 IFRIT_APIDECL void EngineContext::waitIdle() { vkDeviceWaitIdle(m_device); }
 IFRIT_APIDECL void EngineContext::init() {
   VkApplicationInfo appInfo = {};
@@ -179,45 +174,37 @@ IFRIT_APIDECL void EngineContext::init() {
 
   // Instance : Extensions
   uint32_t extensionCount = 0;
-  vkrVulkanAssert(
-      vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr),
-      "Failed to enumerate instance extensions");
+  vkrVulkanAssert(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr),
+                  "Failed to enumerate instance extensions");
   std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-  vkrVulkanAssert(vkEnumerateInstanceExtensionProperties(
-                      nullptr, &extensionCount, availableExtensions.data()),
+  vkrVulkanAssert(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.data()),
                   "Failed to enumerate instance extensions");
   std::vector<const char *> targetExtensions;
 
   if (m_args.m_extensionGetter) {
     uint32_t extensionCountExtra = 0;
-    const char **extensionsExtra =
-        m_args.m_extensionGetter(&extensionCountExtra);
+    const char **extensionsExtra = m_args.m_extensionGetter(&extensionCountExtra);
     for (uint32_t i = 0; i < extensionCountExtra; i++) {
-      enableExtension(true, extensionsExtra[i], availableExtensions,
-                      targetExtensions);
+      enableExtension(true, extensionsExtra[i], availableExtensions, targetExtensions);
     }
   }
 
   if (m_args.m_enableValidationLayer) {
-    enableExtension(true, VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-                    availableExtensions, targetExtensions);
+    enableExtension(true, VK_EXT_DEBUG_UTILS_EXTENSION_NAME, availableExtensions, targetExtensions);
   }
   for (auto ext : m_instanceExtension) {
     enableExtension(true, ext, availableExtensions, targetExtensions);
   }
 
-  instanceCI.enabledExtensionCount =
-      size_cast<uint32_t>(targetExtensions.size());
+  instanceCI.enabledExtensionCount = size_cast<uint32_t>(targetExtensions.size());
   instanceCI.ppEnabledExtensionNames = targetExtensions.data();
 
   // Instance : Layers
   uint32_t layerCount = 0;
-  vkrVulkanAssert(vkEnumerateInstanceLayerProperties(&layerCount, nullptr),
-                  "Failed to enumerate instance layers");
+  vkrVulkanAssert(vkEnumerateInstanceLayerProperties(&layerCount, nullptr), "Failed to enumerate instance layers");
   std::vector<VkLayerProperties> availableLayers(layerCount);
-  vkrVulkanAssert(
-      vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()),
-      "Failed to enumerate instance layers");
+  vkrVulkanAssert(vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()),
+                  "Failed to enumerate instance layers");
   std::vector<const char *> targetLayers;
 
   if (m_args.m_enableValidationLayer) {
@@ -226,8 +213,7 @@ IFRIT_APIDECL void EngineContext::init() {
   instanceCI.enabledLayerCount = size_cast<uint32_t>(targetLayers.size());
   instanceCI.ppEnabledLayerNames = targetLayers.data();
 
-  vkrVulkanAssert(vkCreateInstance(&instanceCI, nullptr, &m_instance),
-                  "Failed to create Vulkan instance");
+  vkrVulkanAssert(vkCreateInstance(&instanceCI, nullptr, &m_instance), "Failed to create Vulkan instance");
   vkrDebug("Instance created");
 
   // Debug Messenger
@@ -237,17 +223,14 @@ IFRIT_APIDECL void EngineContext::init() {
     debugCI.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    debugCI.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                          VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+    debugCI.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     debugCI.pfnUserCallback = debugCallback;
     debugCI.pUserData = nullptr;
 
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-        m_instance, "vkCreateDebugUtilsMessengerEXT");
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT");
     if (func) {
-      vkrVulkanAssert(func(m_instance, &debugCI, nullptr, &m_debugMessenger),
-                      "Failed to create debug messenger");
+      vkrVulkanAssert(func(m_instance, &debugCI, nullptr, &m_debugMessenger), "Failed to create debug messenger");
     } else {
       vkrError("Failed to create debug messenger");
     }
@@ -255,12 +238,10 @@ IFRIT_APIDECL void EngineContext::init() {
 
   // Physical Device
   uint32_t physicalDeviceCount = 0;
-  vkrVulkanAssert(
-      vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, nullptr),
-      "Failed to enumerate physical devices");
+  vkrVulkanAssert(vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, nullptr),
+                  "Failed to enumerate physical devices");
   std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
-  vkrVulkanAssert(vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount,
-                                             physicalDevices.data()),
+  vkrVulkanAssert(vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, physicalDevices.data()),
                   "Failed to enumerate physical devices");
 
   VkPhysicalDevice bestDevice = VK_NULL_HANDLE;
@@ -283,11 +264,9 @@ IFRIT_APIDECL void EngineContext::init() {
 
   // Queue Family
   uint32_t queueFamilyCount = 0;
-  vkGetPhysicalDeviceQueueFamilyProperties(bestDevice, &queueFamilyCount,
-                                           nullptr);
+  vkGetPhysicalDeviceQueueFamilyProperties(bestDevice, &queueFamilyCount, nullptr);
   std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-  vkGetPhysicalDeviceQueueFamilyProperties(bestDevice, &queueFamilyCount,
-                                           queueFamilies.data());
+  vkGetPhysicalDeviceQueueFamilyProperties(bestDevice, &queueFamilyCount, queueFamilies.data());
   for (uint32_t i = 0; i < queueFamilyCount; i++) {
     DeviceQueueInfo::DeviceQueueFamily family;
     family.m_familyIndex = i;
@@ -313,22 +292,16 @@ IFRIT_APIDECL void EngineContext::init() {
   VkPhysicalDeviceFeatures deviceFeatures = {};
   VkPhysicalDeviceVulkan12Features deviceFeatures12 = {};
   VkPhysicalDeviceDynamicRenderingFeaturesKHR deviceFeaturesDynamic = {};
-  VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT
-      deviceFeaturesDynamicVertexInput = {};
-  VkPhysicalDeviceExtendedDynamicState3FeaturesEXT
-      deviceFeaturesExtendedDynamicState3 = {};
-  VkPhysicalDeviceExtendedDynamicState2FeaturesEXT
-      deviceFeaturesExtendedState2 = {};
-  VkPhysicalDeviceExtendedDynamicStateFeaturesEXT deviceFeaturesExtendedState =
-      {};
-  VkPhysicalDeviceColorWriteEnableFeaturesEXT deviceFeaturesColorWriteEnable =
-      {};
+  VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT deviceFeaturesDynamicVertexInput = {};
+  VkPhysicalDeviceExtendedDynamicState3FeaturesEXT deviceFeaturesExtendedDynamicState3 = {};
+  VkPhysicalDeviceExtendedDynamicState2FeaturesEXT deviceFeaturesExtendedState2 = {};
+  VkPhysicalDeviceExtendedDynamicStateFeaturesEXT deviceFeaturesExtendedState = {};
+  VkPhysicalDeviceColorWriteEnableFeaturesEXT deviceFeaturesColorWriteEnable = {};
   VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures{};
   VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
   VkPhysicalDeviceHostQueryResetFeaturesEXT hostQueryResetFeatures{};
 
-  deviceFeatures12.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+  deviceFeatures12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
   deviceFeatures12.timelineSemaphore = VK_TRUE;
   deviceFeatures12.descriptorIndexing = VK_TRUE;
   deviceFeatures12.descriptorBindingPartiallyBound = VK_TRUE;
@@ -348,46 +321,35 @@ IFRIT_APIDECL void EngineContext::init() {
   deviceFeatures12.bufferDeviceAddress = VK_TRUE;
   deviceFeatures12.pNext = &deviceFeaturesDynamic;
 
-  deviceFeaturesDynamic.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+  deviceFeaturesDynamic.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
   deviceFeaturesDynamic.dynamicRendering = VK_TRUE;
   deviceFeaturesDynamic.pNext = &deviceFeaturesDynamicVertexInput;
 
-  deviceFeaturesDynamicVertexInput.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT;
+  deviceFeaturesDynamicVertexInput.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT;
   deviceFeaturesDynamicVertexInput.vertexInputDynamicState = VK_TRUE;
   deviceFeaturesDynamicVertexInput.pNext = &deviceFeaturesExtendedDynamicState3;
 
-  deviceFeaturesExtendedDynamicState3.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
-  deviceFeaturesExtendedDynamicState3.extendedDynamicState3ColorBlendEnable =
-      VK_TRUE;
-  deviceFeaturesExtendedDynamicState3.extendedDynamicState3LogicOpEnable =
-      VK_TRUE;
-  deviceFeaturesExtendedDynamicState3.extendedDynamicState3ColorBlendEquation =
-      VK_TRUE;
-  deviceFeaturesExtendedDynamicState3.extendedDynamicState3ColorWriteMask =
-      VK_TRUE;
+  deviceFeaturesExtendedDynamicState3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+  deviceFeaturesExtendedDynamicState3.extendedDynamicState3ColorBlendEnable = VK_TRUE;
+  deviceFeaturesExtendedDynamicState3.extendedDynamicState3LogicOpEnable = VK_TRUE;
+  deviceFeaturesExtendedDynamicState3.extendedDynamicState3ColorBlendEquation = VK_TRUE;
+  deviceFeaturesExtendedDynamicState3.extendedDynamicState3ColorWriteMask = VK_TRUE;
   deviceFeaturesExtendedDynamicState3.pNext = &deviceFeaturesExtendedState2;
 
-  deviceFeaturesExtendedState2.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
+  deviceFeaturesExtendedState2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
   deviceFeaturesExtendedState2.extendedDynamicState2 = VK_TRUE;
   deviceFeaturesExtendedState2.extendedDynamicState2LogicOp = VK_TRUE;
   deviceFeaturesExtendedState2.pNext = &deviceFeaturesExtendedState;
 
-  deviceFeaturesExtendedState.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
+  deviceFeaturesExtendedState.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
   deviceFeaturesExtendedState.extendedDynamicState = VK_TRUE;
   deviceFeaturesExtendedState.pNext = &deviceFeaturesColorWriteEnable;
 
-  deviceFeaturesColorWriteEnable.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COLOR_WRITE_ENABLE_FEATURES_EXT;
+  deviceFeaturesColorWriteEnable.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COLOR_WRITE_ENABLE_FEATURES_EXT;
   deviceFeaturesColorWriteEnable.colorWriteEnable = VK_TRUE;
   deviceFeaturesColorWriteEnable.pNext = &meshShaderFeatures;
 
-  meshShaderFeatures.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+  meshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
   meshShaderFeatures.taskShader = VK_TRUE;
   meshShaderFeatures.meshShader = VK_TRUE;
 
@@ -407,44 +369,34 @@ IFRIT_APIDECL void EngineContext::init() {
   // Device : Extensions
   std::vector<const char *> targetDeviceExtensions;
   uint32_t extensionCountDevice = 0;
-  vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(
-                      bestDevice, nullptr, &extensionCountDevice, nullptr),
+  vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(bestDevice, nullptr, &extensionCountDevice, nullptr),
                   "Failed to enumerate device extensions");
-  std::vector<VkExtensionProperties> availableExtensionsDevice(
-      extensionCountDevice);
-  vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(
-                      bestDevice, nullptr, &extensionCountDevice,
-                      availableExtensionsDevice.data()),
+  std::vector<VkExtensionProperties> availableExtensionsDevice(extensionCountDevice);
+  vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(bestDevice, nullptr, &extensionCountDevice,
+                                                       availableExtensionsDevice.data()),
                   "Failed to enumerate device extensions");
   for (auto extension : m_deviceExtensions) {
-    enableExtension(true, extension, availableExtensionsDevice,
-                    targetDeviceExtensions);
+    enableExtension(true, extension, availableExtensionsDevice, targetDeviceExtensions);
   }
 
-  deviceCI.enabledExtensionCount =
-      size_cast<uint32_t>(targetDeviceExtensions.size());
+  deviceCI.enabledExtensionCount = size_cast<uint32_t>(targetDeviceExtensions.size());
   deviceCI.ppEnabledExtensionNames = targetDeviceExtensions.data();
 
   // Device : Layers
   uint32_t layerCountDevice = 0;
-  vkrVulkanAssert(
-      vkEnumerateDeviceLayerProperties(bestDevice, &layerCountDevice, nullptr),
-      "Failed to enumerate device layers");
+  vkrVulkanAssert(vkEnumerateDeviceLayerProperties(bestDevice, &layerCountDevice, nullptr),
+                  "Failed to enumerate device layers");
   std::vector<VkLayerProperties> availableLayersDevice(layerCountDevice);
-  vkrVulkanAssert(
-      vkEnumerateDeviceLayerProperties(bestDevice, &layerCountDevice,
-                                       availableLayersDevice.data()),
-      "Failed to enumerate device layers");
+  vkrVulkanAssert(vkEnumerateDeviceLayerProperties(bestDevice, &layerCountDevice, availableLayersDevice.data()),
+                  "Failed to enumerate device layers");
   std::vector<const char *> targetLayersDevice;
 
   if (m_args.m_enableValidationLayer) {
-    enableLayer(true, s_validationLayerName, availableLayersDevice,
-                targetLayersDevice);
+    enableLayer(true, s_validationLayerName, availableLayersDevice, targetLayersDevice);
   }
   deviceCI.enabledLayerCount = size_cast<uint32_t>(targetLayersDevice.size());
   deviceCI.ppEnabledLayerNames = targetLayersDevice.data();
-  vkrVulkanAssert(vkCreateDevice(bestDevice, &deviceCI, nullptr, &m_device),
-                  "Failed to create logical device");
+  vkrVulkanAssert(vkCreateDevice(bestDevice, &deviceCI, nullptr, &m_device), "Failed to create logical device");
   vkrDebug("Logical device created");
 
   // Retrieve Queues
@@ -486,8 +438,8 @@ void EngineContext::destructor() {
   vmaDestroyAllocator(m_allocator);
   vkDestroyDevice(m_device, nullptr);
   if (m_args.m_enableValidationLayer) {
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-        m_instance, "vkDestroyDebugUtilsMessengerEXT");
+    auto func =
+        (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func) {
       func(m_instance, m_debugMessenger, nullptr);
     }

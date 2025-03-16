@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/bufferman/BufferManager.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterContext.h"
@@ -45,9 +45,7 @@ enum class TileRasterStage {
 };
 class TileRasterWorker;
 
-class TileRasterRenderer
-    : public Renderer,
-      public std::enable_shared_from_this<TileRasterRenderer> {
+class TileRasterRenderer : public Renderer, public std::enable_shared_from_this<TileRasterRenderer> {
 
 private:
   bool shaderBindingDirtyFlag = true;
@@ -56,21 +54,19 @@ private:
   std::vector<std::unique_ptr<TileRasterWorker>> workers;
   std::unique_ptr<TileRasterWorker> selfOwningWorker;
   std::mutex lock;
-  std::atomic<uint32_t> unresolvedTileRaster = 0;
-  std::atomic<uint32_t> unresolvedTileFragmentShading = 0;
-  std::atomic<uint32_t> unresolvedTileSort = 0;
-  std::atomic<uint32_t> unresolvedChunkVertex = 0;
-  std::atomic<uint32_t> unresolvedChunkGeometry = 0;
+  std::atomic<u32> unresolvedTileRaster = 0;
+  std::atomic<u32> unresolvedTileFragmentShading = 0;
+  std::atomic<u32> unresolvedTileSort = 0;
+  std::atomic<u32> unresolvedChunkVertex = 0;
+  std::atomic<u32> unresolvedChunkGeometry = 0;
 
   bool initialized = false;
 
 protected:
   void createWorkers();
   void resetWorkers(TileRasterStage expectedStage);
-  void statusTransitionBarrier2(TileRasterStage waitOn,
-                                TileRasterStage proceedTo);
-  void statusTransitionBarrier3(TileRasterStage waitOn,
-                                TileRasterStage proceedTo);
+  void statusTransitionBarrier2(TileRasterStage waitOn, TileRasterStage proceedTo);
+  void statusTransitionBarrier3(TileRasterStage waitOn, TileRasterStage proceedTo);
 
   int fetchUnresolvedChunkVertex();
   int fetchUnresolvedChunkGeometry();
@@ -90,12 +86,9 @@ public:
   IFRIT_APIDECL void bindVertexBuffer(const VertexBuffer &vertexBuffer);
   IFRIT_APIDECL void bindIndexBuffer(BufferManager::IfritBuffer indexBuffer);
   IFRIT_APIDECL void bindVertexShader(VertexShader &vertexShader);
-  IFRIT_APIDECL void
-  bindVertexShaderLegacy(VertexShader &vertexShader,
-                         VaryingDescriptor &varyingDescriptor);
+  IFRIT_APIDECL void bindVertexShaderLegacy(VertexShader &vertexShader, VaryingDescriptor &varyingDescriptor);
   IFRIT_APIDECL void bindFragmentShader(FragmentShader &fragmentShader);
-  IFRIT_APIDECL void bindUniformBuffer(int binding, int set,
-                                       BufferManager::IfritBuffer pBuffer);
+  IFRIT_APIDECL void bindUniformBuffer(int binding, int set, BufferManager::IfritBuffer pBuffer);
   IFRIT_APIDECL void setBlendFunc(IfritColorAttachmentBlendState state);
   IFRIT_APIDECL void setDepthFunc(IfritCompareOp depthFunc);
 
@@ -103,8 +96,7 @@ public:
   IFRIT_APIDECL void optsetForceDeterministic(bool opt);
   IFRIT_APIDECL void optsetDepthTestEnable(bool opt);
 
-  IFRIT_APIDECL void drawElements(int vertexCount,
-                                  bool clearFramebuffer) IFRIT_AP_NOTHROW;
+  IFRIT_APIDECL void drawElements(int vertexCount, bool clearFramebuffer) IFRIT_AP_NOTHROW;
   IFRIT_APIDECL void clear();
   IFRIT_APIDECL void init();
 };

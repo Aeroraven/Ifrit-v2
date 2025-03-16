@@ -25,10 +25,8 @@ using Ifrit::Common::Utility::size_cast;
 
 namespace Ifrit::Core {
 
-void loadWaveFrontObject(const char *path, std::vector<ifloat3> &vertices,
-                         std::vector<ifloat3> &normals,
-                         std::vector<ifloat2> &uvs,
-                         std::vector<uint32_t> &indices) {
+void loadWaveFrontObject(const char *path, std::vector<ifloat3> &vertices, std::vector<ifloat3> &normals,
+                         std::vector<ifloat2> &uvs, std::vector<uint32_t> &indices) {
 
   // This section is auto-generated from Copilot
   std::ifstream file(path);
@@ -73,9 +71,7 @@ void loadWaveFrontObject(const char *path, std::vector<ifloat3> &vertices,
     indices[i] = interIdx[i];
   }
 }
-std::vector<ifloat3> remapNormals(std::vector<ifloat3> normals,
-                                  std::vector<uint32_t> indices,
-                                  int numVertices) {
+std::vector<ifloat3> remapNormals(std::vector<ifloat3> normals, std::vector<uint32_t> indices, int numVertices) {
   using namespace Ifrit::Math;
   std::vector<ifloat3> retNormals;
   std::vector<int> counters;
@@ -101,8 +97,7 @@ std::vector<ifloat3> remapNormals(std::vector<ifloat3> normals,
   return retNormals;
 }
 
-std::vector<ifloat2> remapUVs(std::vector<ifloat2> uvs,
-                              std::vector<uint32_t> indices, int numVertices) {
+std::vector<ifloat2> remapUVs(std::vector<ifloat2> uvs, std::vector<uint32_t> indices, int numVertices) {
   std::vector<ifloat2> retNormals;
   std::vector<int> counters;
   retNormals.clear();
@@ -139,8 +134,7 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
     std::vector<uint32_t> indices;
     auto rawPath = m_path.generic_string();
     loadWaveFrontObject(rawPath.c_str(), vertices, normals, uvs, indices);
-    remappedNormals =
-        remapNormals(normals, indices, size_cast<int>(vertices.size()));
+    remappedNormals = remapNormals(normals, indices, size_cast<int>(vertices.size()));
     if (uvs.size() != 0) {
       remappedUVs = remapUVs(uvs, indices, size_cast<int>(vertices.size()));
     } else {
@@ -162,11 +156,8 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
     m_selfData->m_verticesAligned.resize(vertices.size());
     m_selfData->m_normalsAligned.resize(vertices.size());
     for (int i = 0; i < vertices.size(); i++) {
-      m_selfData->m_verticesAligned[i] =
-          ifloat4(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
-      m_selfData->m_normalsAligned[i] =
-          ifloat4(remappedNormals[i].x, remappedNormals[i].y,
-                  remappedNormals[i].z, 1.0);
+      m_selfData->m_verticesAligned[i] = ifloat4(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
+      m_selfData->m_normalsAligned[i] = ifloat4(remappedNormals[i].x, remappedNormals[i].y, remappedNormals[i].z, 1.0);
     }
     this->createMeshLodHierarchy(m_selfData, "");
   }
@@ -185,19 +176,13 @@ IFRIT_APIDECL MeshData *WaveFrontAsset::loadMeshUnsafe() {
 }
 
 // Importer
-IFRIT_APIDECL void
-WaveFrontAssetImporter::processMetadata(AssetMetadata &metadata) {
+IFRIT_APIDECL void WaveFrontAssetImporter::processMetadata(AssetMetadata &metadata) {
   metadata.m_importer = IMPORTER_NAME;
 }
 
-IFRIT_APIDECL std::vector<std::string>
-WaveFrontAssetImporter::getSupportedExtensionNames() {
-  return {".obj"};
-}
+IFRIT_APIDECL std::vector<std::string> WaveFrontAssetImporter::getSupportedExtensionNames() { return {".obj"}; }
 
-IFRIT_APIDECL void
-WaveFrontAssetImporter::importAsset(const std::filesystem::path &path,
-                                    AssetMetadata &metadata) {
+IFRIT_APIDECL void WaveFrontAssetImporter::importAsset(const std::filesystem::path &path, AssetMetadata &metadata) {
   auto asset = std::make_shared<WaveFrontAsset>(metadata, path);
   m_assetManager->registerAsset(asset);
   // iInfo("Imported asset: [WaveFrontMesh] {}", metadata.m_uuid);

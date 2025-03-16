@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 
@@ -25,19 +25,18 @@ namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
 // Referenced from: https://pavelsmejkal.net/Posts/GPUTimingBasics
 
-class IFRIT_APIDECL DeviceTimer
-    : public Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer {
+class IFRIT_APIDECL DeviceTimer : public Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer {
 private:
-  uint32_t m_numFrameInFlight;
+  u32 m_numFrameInFlight;
   EngineContext *m_context;
   std::vector<VkQueryPool> m_queryPools;
-  std::vector<uint64_t> m_timestampsStart;
-  std::vector<uint64_t> m_timestampsEnd;
-  uint32_t m_currentFrame = 0;
+  std::vector<u64> m_timestampsStart;
+  std::vector<u64> m_timestampsEnd;
+  u32 m_currentFrame = 0;
   float m_elapsedMs = 0;
 
 public:
-  DeviceTimer(EngineContext *ctx, uint32_t numFrameInFlight);
+  DeviceTimer(EngineContext *ctx, u32 numFrameInFlight);
   virtual ~DeviceTimer();
   virtual void start(const Rhi::RhiCommandBuffer *cmd) override;
   virtual void stop(const Rhi::RhiCommandBuffer *cmd) override;

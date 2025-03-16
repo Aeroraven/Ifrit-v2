@@ -38,8 +38,7 @@ IFRIT_APIDECL void Swapchain::init() {
   surfaceCI.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
   surfaceCI.hinstance = (HINSTANCE)m_hInstance;
   surfaceCI.hwnd = (HWND)m_hWnd;
-  vkrVulkanAssert(vkCreateWin32SurfaceKHR(m_context->getInstance(), &surfaceCI,
-                                          nullptr, &m_surface),
+  vkrVulkanAssert(vkCreateWin32SurfaceKHR(m_context->getInstance(), &surfaceCI, nullptr, &m_surface),
                   "Failed to create window surface");
 #else
   // TODO: Implement for linux
@@ -52,15 +51,12 @@ IFRIT_APIDECL void Swapchain::init() {
   for (int i = 0; i < queueData.m_queueFamilies.size(); i++) {
     VkBool32 presentSupport = VK_FALSE;
     VkBool32 swapchainSupport = VK_FALSE;
-    vkGetPhysicalDeviceSurfaceSupportKHR(m_context->getPhysicalDevice(), i,
-                                         m_surface, &presentSupport);
+    vkGetPhysicalDeviceSurfaceSupportKHR(m_context->getPhysicalDevice(), i, m_surface, &presentSupport);
     {
       uint32_t extensionCount = 0;
-      vkEnumerateDeviceExtensionProperties(m_context->getPhysicalDevice(),
-                                           nullptr, &extensionCount, nullptr);
+      vkEnumerateDeviceExtensionProperties(m_context->getPhysicalDevice(), nullptr, &extensionCount, nullptr);
       std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-      vkEnumerateDeviceExtensionProperties(m_context->getPhysicalDevice(),
-                                           nullptr, &extensionCount,
+      vkEnumerateDeviceExtensionProperties(m_context->getPhysicalDevice(), nullptr, &extensionCount,
                                            availableExtensions.data());
       bool allSupported = true;
       for (auto extension : deviceExtensions) {
@@ -93,36 +89,29 @@ IFRIT_APIDECL void Swapchain::init() {
   vkrDebug("Queue specified");
 
   // Swapchain support details
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_context->getPhysicalDevice(),
-                                            m_surface,
-                                            &m_supportDetails.capabilities);
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_context->getPhysicalDevice(), m_surface, &m_supportDetails.capabilities);
   {
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(m_context->getPhysicalDevice(),
-                                         m_surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(m_context->getPhysicalDevice(), m_surface, &formatCount, nullptr);
     vkrAssert(formatCount != 0, "No surface formats found");
     m_supportDetails.formats.resize(formatCount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(m_context->getPhysicalDevice(),
-                                         m_surface, &formatCount,
+    vkGetPhysicalDeviceSurfaceFormatsKHR(m_context->getPhysicalDevice(), m_surface, &formatCount,
                                          m_supportDetails.formats.data());
   }
   {
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(
-        m_context->getPhysicalDevice(), m_surface, &presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(m_context->getPhysicalDevice(), m_surface, &presentModeCount, nullptr);
     vkrAssert(presentModeCount != 0, "No present modes found");
     m_supportDetails.presentModes.resize(presentModeCount);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(
-        m_context->getPhysicalDevice(), m_surface, &presentModeCount,
-        m_supportDetails.presentModes.data());
+    vkGetPhysicalDeviceSurfacePresentModesKHR(m_context->getPhysicalDevice(), m_surface, &presentModeCount,
+                                              m_supportDetails.presentModes.data());
   }
 
   // Choose format
   // TODO: HDR support
   bool found = false;
   for (auto &format : m_supportDetails.formats) {
-    if (format.format == VK_FORMAT_B8G8R8A8_SRGB &&
-        format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+    if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
       m_preferredSurfaceFormat = format;
       found = true;
       break;
@@ -154,19 +143,16 @@ IFRIT_APIDECL void Swapchain::init() {
     auto width = m_context->getArgs().m_surfaceWidth;
     auto height = m_context->getArgs().m_surfaceHeight;
     m_extent = {width, height};
-    m_extent.width = std::clamp(
-        m_extent.width, m_supportDetails.capabilities.minImageExtent.width,
-        m_supportDetails.capabilities.maxImageExtent.width);
-    m_extent.height = std::clamp(
-        m_extent.height, m_supportDetails.capabilities.minImageExtent.height,
-        m_supportDetails.capabilities.maxImageExtent.height);
+    m_extent.width = std::clamp(m_extent.width, m_supportDetails.capabilities.minImageExtent.width,
+                                m_supportDetails.capabilities.maxImageExtent.width);
+    m_extent.height = std::clamp(m_extent.height, m_supportDetails.capabilities.minImageExtent.height,
+                                 m_supportDetails.capabilities.maxImageExtent.height);
   }
 
   // Backbuffer count
   m_backbufferCount = m_context->getArgs().m_expectedSwapchainImageCount;
-  m_backbufferCount =
-      std::clamp(m_backbufferCount, m_supportDetails.capabilities.minImageCount,
-                 m_supportDetails.capabilities.maxImageCount);
+  m_backbufferCount = std::clamp(m_backbufferCount, m_supportDetails.capabilities.minImageCount,
+                                 m_supportDetails.capabilities.maxImageCount);
 
   // Create swapchain
   VkSwapchainCreateInfoKHR swapchainCI{};
@@ -177,8 +163,7 @@ IFRIT_APIDECL void Swapchain::init() {
   swapchainCI.imageColorSpace = m_preferredSurfaceFormat.colorSpace;
   swapchainCI.imageExtent = m_extent;
   swapchainCI.imageArrayLayers = 1;
-  swapchainCI.imageUsage =
-      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
   // Note: Beware of queue family ownership
   swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -191,17 +176,14 @@ IFRIT_APIDECL void Swapchain::init() {
   swapchainCI.clipped = VK_TRUE;
   swapchainCI.oldSwapchain = VK_NULL_HANDLE;
 
-  vkrVulkanAssert(vkCreateSwapchainKHR(m_context->getDevice(), &swapchainCI,
-                                       nullptr, &m_swapchain),
+  vkrVulkanAssert(vkCreateSwapchainKHR(m_context->getDevice(), &swapchainCI, nullptr, &m_swapchain),
                   "Failed to create swapchain");
 
   // Retrieve images
   uint32_t imageCount;
-  vkGetSwapchainImagesKHR(m_context->getDevice(), m_swapchain, &imageCount,
-                          nullptr);
+  vkGetSwapchainImagesKHR(m_context->getDevice(), m_swapchain, &imageCount, nullptr);
   m_images.resize(imageCount);
-  vkGetSwapchainImagesKHR(m_context->getDevice(), m_swapchain, &imageCount,
-                          m_images.data());
+  vkGetSwapchainImagesKHR(m_context->getDevice(), m_swapchain, &imageCount, m_images.data());
 
   // Create image views
   m_imageViews.resize(imageCount);
@@ -220,8 +202,7 @@ IFRIT_APIDECL void Swapchain::init() {
     imageViewCI.subresourceRange.levelCount = 1;
     imageViewCI.subresourceRange.baseArrayLayer = 0;
     imageViewCI.subresourceRange.layerCount = 1;
-    vkrVulkanAssert(vkCreateImageView(m_context->getDevice(), &imageViewCI,
-                                      nullptr, &m_imageViews[i]),
+    vkrVulkanAssert(vkCreateImageView(m_context->getDevice(), &imageViewCI, nullptr, &m_imageViews[i]),
                     "Failed to create image view");
   }
 
@@ -237,14 +218,11 @@ IFRIT_APIDECL void Swapchain::init() {
   fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
   for (uint32_t i = 0; i < m_backbufferCount; i++) {
-    vkrVulkanAssert(vkCreateSemaphore(m_context->getDevice(), &semaphoreCI,
-                                      nullptr, &m_imageAvailableSemaphores[i]),
+    vkrVulkanAssert(vkCreateSemaphore(m_context->getDevice(), &semaphoreCI, nullptr, &m_imageAvailableSemaphores[i]),
                     "Failed to create semaphore");
-    vkrVulkanAssert(vkCreateFence(m_context->getDevice(), &fenceCI, nullptr,
-                                  &m_inFlightFences[i]),
+    vkrVulkanAssert(vkCreateFence(m_context->getDevice(), &fenceCI, nullptr, &m_inFlightFences[i]),
                     "Failed to create fence");
-    vkrVulkanAssert(vkCreateSemaphore(m_context->getDevice(), &semaphoreCI,
-                                      nullptr, &m_renderingFinishSemaphores[i]),
+    vkrVulkanAssert(vkCreateSemaphore(m_context->getDevice(), &semaphoreCI, nullptr, &m_renderingFinishSemaphores[i]),
                     "Failed to create semaphore");
   }
 
@@ -259,28 +237,23 @@ IFRIT_APIDECL void Swapchain::destructor() {
   vkDestroySurfaceKHR(m_context->getInstance(), m_surface, nullptr);
 
   for (uint32_t i = 0; i < m_backbufferCount; i++) {
-    vkDestroySemaphore(m_context->getDevice(), m_imageAvailableSemaphores[i],
-                       nullptr);
-    vkDestroySemaphore(m_context->getDevice(), m_renderingFinishSemaphores[i],
-                       nullptr);
+    vkDestroySemaphore(m_context->getDevice(), m_imageAvailableSemaphores[i], nullptr);
+    vkDestroySemaphore(m_context->getDevice(), m_renderingFinishSemaphores[i], nullptr);
     vkDestroyFence(m_context->getDevice(), m_inFlightFences[i], nullptr);
   }
 }
 
-IFRIT_APIDECL Swapchain::Swapchain(Rhi::RhiDevice *context)
-    : m_context(checked_cast<EngineContext>(context)) {
+IFRIT_APIDECL Swapchain::Swapchain(Rhi::RhiDevice *context) : m_context(checked_cast<EngineContext>(context)) {
   init();
 }
 
 IFRIT_APIDECL Swapchain::~Swapchain() { destructor(); }
 
 IFRIT_APIDECL uint32_t Swapchain::acquireNextImage() {
-  vkWaitForFences(m_context->getDevice(), 1, &m_inFlightFences[m_currentFrame],
-                  VK_TRUE, UINT64_MAX);
+  vkWaitForFences(m_context->getDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
   vkResetFences(m_context->getDevice(), 1, &m_inFlightFences[m_currentFrame]);
   uint32_t imageIndex;
-  vkAcquireNextImageKHR(m_context->getDevice(), m_swapchain, UINT64_MAX,
-                        m_imageAvailableSemaphores[m_currentFrame],
+  vkAcquireNextImageKHR(m_context->getDevice(), m_swapchain, UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame],
                         VK_NULL_HANDLE, &imageIndex);
   m_imageIndex = imageIndex;
   return imageIndex;

@@ -16,20 +16,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #ifdef IFRIT_FEATURE_CUDA
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/core/cuda/CudaUtils.cuh"
 #include "ifrit/softgraphics/core/definition/CoreDefs.h"
 #include "ifrit/softgraphics/engine/base/TypeDescriptor.h"
-
 
 #include "ifrit/softgraphics/engine/base/Constants.h"
 #include "ifrit/softgraphics/engine/base/Shaders.h"
 #include "ifrit/softgraphics/engine/base/Structures.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterCommon.h"
 #include "ifrit/softgraphics/engine/tilerastercuda/TileRasterDeviceContextCuda.cuh"
-
 
 namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 enum GeometryGenerationPipelineType {
@@ -48,7 +46,7 @@ struct RenderingInvocationArgumentSet {
   ifloat4 **dColorBuffer;
   ifloat4 **dHostColorBuffer;
   ifloat4 **hColorBuffer;
-  uint32_t dHostColorBufferSize;
+  u32 dHostColorBufferSize;
   float *dDepthBuffer;
   ifloat4 *dPositionBuffer;
   TileRasterDeviceContext *deviceContext;
@@ -66,45 +64,33 @@ struct RenderingInvocationArgumentSet {
   GeometryGenerationPipelineType gGeometryPipelineType;
   int gMeshShaderAttributes;
 };
-void invokeCudaRenderingClear(const RenderingInvocationArgumentSet &args)
-    IFRIT_AP_NOTHROW;
-void invokeCudaRendering(const RenderingInvocationArgumentSet &args)
-    IFRIT_AP_NOTHROW;
+void invokeCudaRenderingClear(const RenderingInvocationArgumentSet &args) IFRIT_AP_NOTHROW;
+void invokeCudaRendering(const RenderingInvocationArgumentSet &args) IFRIT_AP_NOTHROW;
 
-void invokeFragmentShaderUpdate(FragmentShader *dFragmentShader)
-    IFRIT_AP_NOTHROW;
-void updateFrameBufferConstants(uint32_t width, uint32_t height);
-void updateScissorTestData(const ifloat4 *scissorAreas, int numScissors,
-                           bool scissorEnable);
+void invokeFragmentShaderUpdate(FragmentShader *dFragmentShader) IFRIT_AP_NOTHROW;
+void updateFrameBufferConstants(u32 width, u32 height);
+void updateScissorTestData(const ifloat4 *scissorAreas, int numScissors, bool scissorEnable);
 void initCudaRendering();
-void updateVertexLayout(TypeDescriptorEnum *dVertexTypeDescriptor,
-                        int attrCounts);
+void updateVertexLayout(TypeDescriptorEnum *dVertexTypeDescriptor, int attrCounts);
 
-int *getIndexBufferDeviceAddr(const int *hIndexBuffer, uint32_t indexBufferSize,
-                              int *dOldIndexBuffer);
-char *getVertexBufferDeviceAddr(const char *hVertexBuffer, uint32_t bufferSize,
-                                char *dOldBuffer);
-TypeDescriptorEnum *
-getTypeDescriptorDeviceAddr(const TypeDescriptorEnum *hBuffer,
-                            uint32_t bufferSize,
-                            TypeDescriptorEnum *dOldBuffer);
-float *getDepthBufferDeviceAddr(uint32_t bufferSize, float *dOldBuffer);
-ifloat4 *getPositionBufferDeviceAddr(uint32_t bufferSize, ifloat4 *dOldBuffer);
-void getColorBufferDeviceAddr(const std::vector<ifloat4 *> &hColorBuffer,
-                              std::vector<ifloat4 *> &dhColorBuffer,
-                              ifloat4 **&dColorBuffer, uint32_t bufferSize,
-                              std::vector<ifloat4 *> &dhOldColorBuffer,
+int *getIndexBufferDeviceAddr(const int *hIndexBuffer, u32 indexBufferSize, int *dOldIndexBuffer);
+char *getVertexBufferDeviceAddr(const char *hVertexBuffer, u32 bufferSize, char *dOldBuffer);
+TypeDescriptorEnum *getTypeDescriptorDeviceAddr(const TypeDescriptorEnum *hBuffer, u32 bufferSize,
+                                                TypeDescriptorEnum *dOldBuffer);
+float *getDepthBufferDeviceAddr(u32 bufferSize, float *dOldBuffer);
+ifloat4 *getPositionBufferDeviceAddr(u32 bufferSize, ifloat4 *dOldBuffer);
+void getColorBufferDeviceAddr(const std::vector<ifloat4 *> &hColorBuffer, std::vector<ifloat4 *> &dhColorBuffer,
+                              ifloat4 **&dColorBuffer, u32 bufferSize, std::vector<ifloat4 *> &dhOldColorBuffer,
                               ifloat4 **dOldBuffer);
-void updateAttributes(uint32_t attributeCounts);
-void updateVarying(uint32_t varyingCounts);
-void updateVertexCount(uint32_t vertexCount);
+void updateAttributes(u32 attributeCounts);
+void updateVarying(u32 varyingCounts);
+void updateVertexCount(u32 vertexCount);
 
-char *deviceMalloc(uint32_t size);
+char *deviceMalloc(u32 size);
 void deviceFree(char *ptr);
-void createTexture(uint32_t texId, const IfritImageCreateInfo &createInfo,
-                   float *data);
-void createSampler(uint32_t slotId, const IfritSamplerT &samplerState);
-void createDeviceBuffer(uint32_t slotId, int bufferSize);
+void createTexture(u32 texId, const IfritImageCreateInfo &createInfo, float *data);
+void createSampler(u32 slotId, const IfritSamplerT &samplerState);
+void createDeviceBuffer(u32 slotId, int bufferSize);
 void copyHostBufferToBuffer(const void *srcBuffer, int dstSlot, int size);
 
 void setBlendFunc(IfritColorAttachmentBlendState blendState);

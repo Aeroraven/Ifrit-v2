@@ -16,17 +16,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/core/scene/SceneManager.h"
 #include "ifrit/common/util/TypingUtil.h"
 
 using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::Core {
-IFRIT_APIDECL void
-SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene,
-                                  Camera *camera,
-                                  GraphicsShaderPassType passType) {
+IFRIT_APIDECL void SceneManager::collectPerframeData(PerFrameData &perframeData, Scene *scene, Camera *camera,
+                                                     GraphicsShaderPassType passType) {
   throw std::runtime_error("Deprecated");
 }
 } // namespace Ifrit::Core

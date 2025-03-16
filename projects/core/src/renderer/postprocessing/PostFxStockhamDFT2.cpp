@@ -10,22 +10,17 @@ namespace Ifrit::Core::PostprocessPassCollection {
 IFRIT_APIDECL PostFxStockhamDFT2::PostFxStockhamDFT2(IApplication *app)
     : PostprocessPass(app, {"StockhamDFT2.comp.glsl", 12, 1, true}) {}
 
-IFRIT_APIDECL void PostFxStockhamDFT2::runCommand(const GPUCmdBuffer *cmd,
-                                                  uint32_t wgX, uint32_t wgY,
-                                                  const void *pc) {
-  m_computePipeline->setRecordFunction(
-      [&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
-        cmd->setPushConst(m_computePipeline, 0, 12 * sizeof(uint32_t), pc);
-        ctx->m_cmd->dispatch(wgX, wgY, 1);
-      });
+IFRIT_APIDECL void PostFxStockhamDFT2::runCommand(const GPUCmdBuffer *cmd, uint32_t wgX, uint32_t wgY, const void *pc) {
+  m_computePipeline->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
+    cmd->setPushConst(m_computePipeline, 0, 12 * sizeof(uint32_t), pc);
+    ctx->m_cmd->dispatch(wgX, wgY, 1);
+  });
   m_computePipeline->run(cmd, 0);
   cmd->globalMemoryBarrier();
 }
 
-IFRIT_APIDECL void
-PostFxStockhamDFT2::renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId,
-                                 GPUBindId *dstUAVImg, uint32_t width,
-                                 uint32_t height, uint32_t downscale) {
+IFRIT_APIDECL void PostFxStockhamDFT2::renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId, GPUBindId *dstUAVImg,
+                                                    uint32_t width, uint32_t height, uint32_t downscale) {
   // Round to pow of 2
   struct PushConst {
     uint32_t logW;
@@ -60,13 +55,11 @@ PostFxStockhamDFT2::renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId,
 
   if (m_tex1.find({p2Width, p2Height}) == m_tex1.end()) {
     auto rhi = m_app->getRhiLayer();
-    auto tex1 = rhi->createTexture2D(
-        p2Width, p2Height,
-        GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-        GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+    auto tex1 =
+        rhi->createTexture2D(p2Width, p2Height, GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+                             GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
     m_tex1[{p2Width, p2Height}] = tex1;
-    m_tex1Id[{p2Width, p2Height}] =
-        rhi->registerUAVImage(tex1.get(), {0, 0, 1, 1});
+    m_tex1Id[{p2Width, p2Height}] = rhi->registerUAVImage(tex1.get(), {0, 0, 1, 1});
   }
 
   auto tx1Id = m_tex1Id[{p2Width, p2Height}]->getActiveId();

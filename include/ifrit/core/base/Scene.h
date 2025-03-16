@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/core/base/Camera.h"
 #include "ifrit/core/base/Component.h"
 
@@ -33,14 +33,9 @@ public:
   virtual ~SceneNode() = default;
   std::shared_ptr<SceneNode> addChildNode();
   std::shared_ptr<SceneObject> addGameObject(const std::string &name);
-  std::shared_ptr<SceneObject>
-  addGameObjectTransferred(std::shared_ptr<SceneObject> &&obj);
-  inline std::shared_ptr<SceneNode> getSceneNode(uint32_t x) {
-    return m_children.at(x);
-  }
-  inline std::shared_ptr<SceneObject> getGameObject(uint32_t x) {
-    return m_gameObjects.at(x);
-  }
+  std::shared_ptr<SceneObject> addGameObjectTransferred(std::shared_ptr<SceneObject> &&obj);
+  inline std::shared_ptr<SceneNode> getSceneNode(u32 x) { return m_children.at(x); }
+  inline std::shared_ptr<SceneObject> getGameObject(u32 x) { return m_gameObjects.at(x); }
   inline std::vector<std::shared_ptr<SceneNode>> getChildren() {
     std::vector<std::shared_ptr<SceneNode>> x;
     for (auto &y : m_children) {
@@ -70,11 +65,9 @@ public:
 
   Camera *getMainCamera();
 
-  std::vector<std::shared_ptr<SceneObject>>
-  filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter);
+  std::vector<std::shared_ptr<SceneObject>> filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter);
 
-  std::vector<SceneObject *>
-  filterObjectsUnsafe(std::function<bool(SceneObject *)> filter);
+  std::vector<SceneObject *> filterObjectsUnsafe(std::function<bool(SceneObject *)> filter);
 
   IFRIT_STRUCT_SERIALIZE(m_root);
 };

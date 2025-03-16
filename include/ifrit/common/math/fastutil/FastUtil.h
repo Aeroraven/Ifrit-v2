@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "../../util/ApiConv.h"
+#include "ifrit/common/base/IfritBase.h"
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
@@ -24,13 +25,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <cstdint>
 
 namespace Ifrit::Math::FastUtil {
-inline uint64_t i32Pack(uint32_t x, uint32_t y) {
-  return (uint64_t)x | ((uint64_t)y << 32);
-}
-inline uint32_t i32UnpackFromi64First(uint64_t x) { return (uint32_t)x; }
-inline uint32_t i32UnpackFromi64Second(uint64_t x) {
-  return (uint32_t)(x >> 32);
-}
+inline u64 i32Pack(u32 x, u32 y) { return (u64)x | ((u64)y << 32); }
+inline u32 i32UnpackFromi64First(u64 x) { return (u32)x; }
+inline u32 i32UnpackFromi64Second(u64 x) { return (u32)(x >> 32); }
 
 // This function aims to provide an optimized std fill for dword
 // Some times std::fill is not optimized for qword under MSVC compiler  (no rep
@@ -38,10 +35,8 @@ inline uint32_t i32UnpackFromi64Second(uint64_t x) {
 template <class T> inline void memsetDword(T *src, T value, size_t counts) {
 #ifdef _MSC_VER
   if constexpr (sizeof(T) == 4) {
-    static_assert(sizeof(unsigned long) == 4,
-                  "Unexpected size of unsigned long");
-    __stosd((unsigned long *)src, std::bit_cast<unsigned long, T>(value),
-            counts);
+    static_assert(sizeof(unsigned long) == 4, "Unexpected size of unsigned long");
+    __stosd((unsigned long *)src, std::bit_cast<unsigned long, T>(value), counts);
   } else {
     std::fill(src, src + counts, value);
   }
@@ -71,8 +66,6 @@ template <class T> inline int qclz(T x) {
 }
 
 // Returns the log2 of x, rounded down. If x is 0, the result is undefined.
-template <class T> inline int qlog2(T x) {
-  return (((sizeof(T) * 8)) - 1) - qclz(x);
-}
+template <class T> inline int qlog2(T x) { return (((sizeof(T) * 8)) - 1) - qclz(x); }
 
 } // namespace Ifrit::Math::FastUtil

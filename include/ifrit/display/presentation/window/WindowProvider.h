@@ -16,13 +16,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/ApiConv.h"
 #include <cstdint>
 #include <functional>
 #include <string>
-
 
 namespace Ifrit::Display::Window {
 class IFRIT_APIDECL WindowProvider {
@@ -37,11 +36,9 @@ public:
   virtual size_t getHeight() const;
   virtual void loop(const std::function<void(int *)> &func) = 0;
   virtual void setTitle(const std::string &title) = 0;
-  virtual const char **getVkRequiredInstanceExtensions(uint32_t *count) {
-    return nullptr;
-  };
+  virtual const char **getVkRequiredInstanceExtensions(u32 *count) { return nullptr; };
   virtual void *getWindowObject() { return nullptr; };
   virtual void *getGLFWWindow() { return nullptr; };
-  virtual void registerKeyCallback(std::function<void(int, int, int, int)>){}
+  virtual void registerKeyCallback(std::function<void(int, int, int, int)>) {}
 };
 } // namespace Ifrit::Display::Window

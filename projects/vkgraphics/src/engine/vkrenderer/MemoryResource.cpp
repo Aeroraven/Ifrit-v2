@@ -30,49 +30,40 @@ IFRIT_APIDECL void SingleBuffer::init() {
   bufferCI.usage = m_createInfo.usage;
   bufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  bool hasDeviceSideAddr =
-      m_createInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+  bool hasDeviceSideAddr = m_createInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
   VmaAllocationCreateInfo allocCI{};
   allocCI.usage = VMA_MEMORY_USAGE_AUTO;
   if (m_createInfo.hostVisible) {
-    allocCI.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-                     VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    allocCI.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
   }
-  vkrVulkanAssert(vmaCreateBuffer(m_context->getAllocator(), &bufferCI,
-                                  &allocCI, &m_buffer, &m_allocation,
-                                  &m_allocInfo),
-                  "Failed to create buffer");
+  vkrVulkanAssert(
+      vmaCreateBuffer(m_context->getAllocator(), &bufferCI, &allocCI, &m_buffer, &m_allocation, &m_allocInfo),
+      "Failed to create buffer");
 
   // Query device address
   VkBufferDeviceAddressInfo bufferDeviceAI{};
   bufferDeviceAI.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
   bufferDeviceAI.buffer = m_buffer;
   if (hasDeviceSideAddr)
-    m_deviceAddress =
-        vkGetBufferDeviceAddress(m_context->getDevice(), &bufferDeviceAI);
+    m_deviceAddress = vkGetBufferDeviceAddress(m_context->getDevice(), &bufferDeviceAI);
   else
     m_deviceAddress = 0;
 }
-IFRIT_APIDECL SingleBuffer::~SingleBuffer() {
-  vmaDestroyBuffer(m_context->getAllocator(), m_buffer, m_allocation);
-}
+IFRIT_APIDECL SingleBuffer::~SingleBuffer() { vmaDestroyBuffer(m_context->getAllocator(), m_buffer, m_allocation); }
 IFRIT_APIDECL void SingleBuffer::map() {
   vkrAssert(m_createInfo.hostVisible, "Buffer must be host visible to map");
-  vmaMapMemory(m_context->getAllocator(), m_allocation,
-               (void **)&m_mappedMemory);
+  vmaMapMemory(m_context->getAllocator(), m_allocation, (void **)&m_mappedMemory);
 }
 IFRIT_APIDECL void SingleBuffer::unmap() {
   vkrAssert(m_mappedMemory, "Buffer must be mapped to unmap");
   vmaUnmapMemory(m_context->getAllocator(), m_allocation);
   m_mappedMemory = nullptr;
 }
-IFRIT_APIDECL void SingleBuffer::readBuffer(void *data, uint32_t size,
-                                            uint32_t offset) {
+IFRIT_APIDECL void SingleBuffer::readBuffer(void *data, uint32_t size, uint32_t offset) {
   vkrAssert(m_mappedMemory, "Buffer must be mapped to copy data");
   memcpy(m_mappedMemory + offset, data, size);
 }
-IFRIT_APIDECL void SingleBuffer::writeBuffer(const void *data, uint32_t size,
-                                             uint32_t offset) {
+IFRIT_APIDECL void SingleBuffer::writeBuffer(const void *data, uint32_t size, uint32_t offset) {
   vkrAssert(m_mappedMemory, "Buffer must be mapped to copy data");
   memcpy((void *)(m_mappedMemory + offset), data, size);
 }
@@ -80,14 +71,10 @@ IFRIT_APIDECL void SingleBuffer::flush() {
   vmaFlushAllocation(m_context->getAllocator(), m_allocation, 0, VK_WHOLE_SIZE);
 }
 
-IFRIT_APIDECL Rhi::RhiDeviceAddr SingleBuffer::getDeviceAddress() const {
-  return m_deviceAddress;
-}
+IFRIT_APIDECL Rhi::RhiDeviceAddr SingleBuffer::getDeviceAddress() const { return m_deviceAddress; }
 
 // Class: MultiBuffer
-IFRIT_APIDECL MultiBuffer::MultiBuffer(EngineContext *ctx,
-                                       const BufferCreateInfo &ci,
-                                       uint32_t numCopies)
+IFRIT_APIDECL MultiBuffer::MultiBuffer(EngineContext *ctx, const BufferCreateInfo &ci, uint32_t numCopies)
     : m_context(ctx), m_createInfo(ci) {
   for (uint32_t i = 0; i < numCopies; i++) {
     m_buffersOwning.push_back(std::make_unique<SingleBuffer>(ctx, ci));
@@ -96,36 +83,27 @@ IFRIT_APIDECL MultiBuffer::MultiBuffer(EngineContext *ctx,
 }
 
 IFRIT_APIDECL
-MultiBuffer::MultiBuffer(EngineContext *ctx,
-                         const std::vector<SingleBuffer *> &buffers) {
+MultiBuffer::MultiBuffer(EngineContext *ctx, const std::vector<SingleBuffer *> &buffers) {
   // Assert all buffers have the same create info
   m_context = ctx;
   m_buffers = buffers;
   m_createInfo = buffers[0]->getCreateInfo();
   for (auto &buffer : buffers) {
-    vkrAssert(buffer->getCreateInfo().size == m_createInfo.size,
-              "Buffer size must be the same");
-    vkrAssert(buffer->getCreateInfo().usage == m_createInfo.usage,
-              "Buffer usage must be the same");
+    vkrAssert(buffer->getCreateInfo().size == m_createInfo.size, "Buffer size must be the same");
+    vkrAssert(buffer->getCreateInfo().usage == m_createInfo.usage, "Buffer usage must be the same");
   }
 }
-IFRIT_APIDECL SingleBuffer *MultiBuffer::getBuffer(uint32_t index) {
-  return m_buffers[index];
-}
+IFRIT_APIDECL SingleBuffer *MultiBuffer::getBuffer(uint32_t index) { return m_buffers[index]; }
 
 // Class: Image
 IFRIT_APIDECL VkFormat SingleDeviceImage::getFormat() const { return m_format; }
 IFRIT_APIDECL VkImage SingleDeviceImage::getImage() const { return m_image; }
-IFRIT_APIDECL VkImageView SingleDeviceImage::getImageView() {
-  return m_imageView;
-}
+IFRIT_APIDECL VkImageView SingleDeviceImage::getImageView() { return m_imageView; }
 
-IFRIT_APIDECL VkImageView SingleDeviceImage::getImageViewMipLayer(
-    uint32_t mipLevel, uint32_t layer, uint32_t mipRange, uint32_t layerRange) {
-  auto key = (static_cast<uint64_t>(mipLevel) << 16) |
-             (static_cast<uint64_t>(layer) << 32) |
-             (static_cast<uint64_t>(mipRange) << 48) |
-             (static_cast<uint64_t>(layerRange) << 56);
+IFRIT_APIDECL VkImageView SingleDeviceImage::getImageViewMipLayer(uint32_t mipLevel, uint32_t layer, uint32_t mipRange,
+                                                                  uint32_t layerRange) {
+  auto key = (static_cast<uint64_t>(mipLevel) << 16) | (static_cast<uint64_t>(layer) << 32) |
+             (static_cast<uint64_t>(mipRange) << 48) | (static_cast<uint64_t>(layerRange) << 56);
   if (m_managedImageViews.count(key)) {
     return m_managedImageViews[key];
   }
@@ -156,8 +134,7 @@ IFRIT_APIDECL VkImageView SingleDeviceImage::getImageViewMipLayer(
   imageViewCI.subresourceRange.layerCount = layerRange;
 
   VkImageView imageView;
-  vkrVulkanAssert(vkCreateImageView(m_context->getDevice(), &imageViewCI,
-                                    nullptr, &imageView),
+  vkrVulkanAssert(vkCreateImageView(m_context->getDevice(), &imageViewCI, nullptr, &imageView),
                   "Failed to create image view");
   m_managedImageViews[key] = imageView;
   return imageView;
@@ -171,8 +148,7 @@ IFRIT_APIDECL SingleDeviceImage::~SingleDeviceImage() {
     }
   }
 }
-IFRIT_APIDECL SingleDeviceImage::SingleDeviceImage(EngineContext *ctx,
-                                                   const ImageCreateInfo &ci) {
+IFRIT_APIDECL SingleDeviceImage::SingleDeviceImage(EngineContext *ctx, const ImageCreateInfo &ci) {
   m_context = ctx;
   m_createInfo = ci;
   VkImageCreateInfo imageCI{};
@@ -203,24 +179,21 @@ IFRIT_APIDECL SingleDeviceImage::SingleDeviceImage(EngineContext *ctx,
   VmaAllocationCreateInfo allocCI{};
   allocCI.usage = VMA_MEMORY_USAGE_AUTO;
   if (ci.hostVisible) {
-    allocCI.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-                     VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    allocCI.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
   }
-  vkrVulkanAssert(vmaCreateImage(ctx->getAllocator(), &imageCI, &allocCI,
-                                 &m_image, &m_allocation, &m_allocInfo),
+  vkrVulkanAssert(vmaCreateImage(ctx->getAllocator(), &imageCI, &allocCI, &m_image, &m_allocation, &m_allocInfo),
                   "Failed to create image");
   m_imageView = this->getImageViewMipLayer(0, 0, ci.mipLevels, ci.arrayLayers);
   m_created = true;
 }
 
 IFRIT_APIDECL uint32_t SingleDeviceImage::getSize() {
-  auto pixelNums =
-      m_createInfo.width * m_createInfo.height * m_createInfo.depth;
+  auto pixelNums = m_createInfo.width * m_createInfo.height * m_createInfo.depth;
   auto pixelSize = 0;
 
-#define FORMAT_MAP(format, pxSize)                                             \
-  case format:                                                                 \
-    pixelSize = pxSize;                                                        \
+#define FORMAT_MAP(format, pxSize)                                                                                     \
+  case format:                                                                                                         \
+    pixelSize = pxSize;                                                                                                \
     break;
   switch (m_createInfo.format) {
     FORMAT_MAP(VK_FORMAT_R8G8B8A8_UNORM, 4)
@@ -246,8 +219,7 @@ IFRIT_APIDECL uint32_t SingleDeviceImage::getSize() {
 }
 
 // Class: Sampler
-IFRIT_APIDECL Sampler::Sampler(EngineContext *ctx,
-                               const SamplerCreateInfo &ci) {
+IFRIT_APIDECL Sampler::Sampler(EngineContext *ctx, const SamplerCreateInfo &ci) {
   m_context = ctx;
   VkSamplerCreateInfo samplerCI{};
   samplerCI.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -266,8 +238,7 @@ IFRIT_APIDECL Sampler::Sampler(EngineContext *ctx,
     samplerCI.anisotropyEnable = VK_TRUE;
     samplerCI.maxAnisotropy = ci.maxAnisotropy;
     if (samplerCI.maxAnisotropy < 0.0f) {
-      samplerCI.maxAnisotropy =
-          ctx->getPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+      samplerCI.maxAnisotropy = ctx->getPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
     }
   }
 
@@ -280,19 +251,14 @@ IFRIT_APIDECL Sampler::Sampler(EngineContext *ctx,
   samplerCI.minLod = ci.minLod;
   samplerCI.maxLod = ci.maxLod;
 
-  vkrVulkanAssert(
-      vkCreateSampler(ctx->getDevice(), &samplerCI, nullptr, &m_sampler),
-      "Failed to create sampler");
+  vkrVulkanAssert(vkCreateSampler(ctx->getDevice(), &samplerCI, nullptr, &m_sampler), "Failed to create sampler");
 }
 
-IFRIT_APIDECL Sampler::~Sampler() {
-  vkDestroySampler(m_context->getDevice(), m_sampler, nullptr);
-}
+IFRIT_APIDECL Sampler::~Sampler() { vkDestroySampler(m_context->getDevice(), m_sampler, nullptr); }
 
 // Class: ResourceManager
-IFRIT_APIDECL std::shared_ptr<MultiBuffer>
-ResourceManager::createMultipleBuffer(const BufferCreateInfo &ci,
-                                      uint32_t numCopies) {
+IFRIT_APIDECL std::shared_ptr<MultiBuffer> ResourceManager::createMultipleBuffer(const BufferCreateInfo &ci,
+                                                                                 uint32_t numCopies) {
   if (numCopies == UINT32_MAX) {
     if (m_defaultCopies == -1) {
       vkrError("No default copies set for multiple buffer");
@@ -304,15 +270,13 @@ ResourceManager::createMultipleBuffer(const BufferCreateInfo &ci,
   return buffer;
 }
 
-IFRIT_APIDECL SingleBuffer *
-ResourceManager::createSimpleBuffer(const BufferCreateInfo &ci) {
+IFRIT_APIDECL SingleBuffer *ResourceManager::createSimpleBuffer(const BufferCreateInfo &ci) {
   auto buffer = std::make_unique<SingleBuffer>(m_context, ci);
   auto ptr = buffer.get();
   m_simpleBuffer.push_back(std::move(buffer));
   return ptr;
 }
-IFRIT_APIDECL SingleDeviceImage *
-ResourceManager::createSimpleImage(const ImageCreateInfo &ci) {
+IFRIT_APIDECL SingleDeviceImage *ResourceManager::createSimpleImage(const ImageCreateInfo &ci) {
   auto image = std::make_unique<SingleDeviceImage>(m_context, ci);
   auto ptr = image.get();
   m_simpleImage.push_back(std::move(image));
@@ -325,23 +289,20 @@ ResourceManager::createSimpleImageUnmanaged(const ImageCreateInfo &ci) {
   return image;
 }
 
-IFRIT_APIDECL std::shared_ptr<SingleBuffer>
-ResourceManager::createSimpleBufferUnmanaged(const BufferCreateInfo &ci) {
+IFRIT_APIDECL std::shared_ptr<SingleBuffer> ResourceManager::createSimpleBufferUnmanaged(const BufferCreateInfo &ci) {
   auto buffer = std::make_shared<SingleBuffer>(m_context, ci);
   return buffer;
 }
 
-IFRIT_APIDECL Sampler *
-ResourceManager::createSampler(const SamplerCreateInfo &ci) {
+IFRIT_APIDECL Sampler *ResourceManager::createSampler(const SamplerCreateInfo &ci) {
   auto sampler = std::make_unique<Sampler>(m_context, ci);
   auto ptr = sampler.get();
   m_samplers.push_back(std::move(sampler));
   return ptr;
 }
 
-IFRIT_APIDECL std::shared_ptr<MultiBuffer>
-ResourceManager::createTracedMultipleBuffer(const BufferCreateInfo &ci,
-                                            uint32_t numCopies) {
+IFRIT_APIDECL std::shared_ptr<MultiBuffer> ResourceManager::createTracedMultipleBuffer(const BufferCreateInfo &ci,
+                                                                                       uint32_t numCopies) {
   if (numCopies == UINT32_MAX) {
     if (m_defaultCopies == -1) {
       vkrError("No default copies set for multiple buffer");
@@ -372,8 +333,7 @@ IFRIT_APIDECL void ResourceManager::setActiveFrame(uint32_t frame) {
 //   return createTracedMultipleBuffer(ci);
 // }
 
-IFRIT_APIDECL SingleBuffer *
-ResourceManager::createStorageBufferDevice(uint32_t size, VkFlags extraFlags) {
+IFRIT_APIDECL SingleBuffer *ResourceManager::createStorageBufferDevice(uint32_t size, VkFlags extraFlags) {
   BufferCreateInfo ci{};
   ci.size = size;
   ci.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | extraFlags;
@@ -381,13 +341,11 @@ ResourceManager::createStorageBufferDevice(uint32_t size, VkFlags extraFlags) {
   return createSimpleBuffer(ci);
 }
 
-IFRIT_APIDECL SingleBuffer *
-ResourceManager::createIndirectMeshDrawBufferDevice(uint32_t numDrawCalls,
-                                                    VkFlags extraFlags) {
+IFRIT_APIDECL SingleBuffer *ResourceManager::createIndirectMeshDrawBufferDevice(uint32_t numDrawCalls,
+                                                                                VkFlags extraFlags) {
   BufferCreateInfo ci{};
   ci.size = numDrawCalls * sizeof(VkDrawMeshTasksIndirectCommandEXT);
-  ci.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
-             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | extraFlags;
+  ci.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | extraFlags;
   ci.hostVisible = false;
   return createSimpleBuffer(ci);
 }
@@ -402,8 +360,7 @@ ResourceManager::createIndirectMeshDrawBufferDevice(uint32_t numDrawCalls,
 //   return createTracedMultipleBuffer(ci);
 // }
 
-IFRIT_APIDECL SingleBuffer *
-ResourceManager::createVertexBufferDevice(uint32_t size, VkFlags extraFlags) {
+IFRIT_APIDECL SingleBuffer *ResourceManager::createVertexBufferDevice(uint32_t size, VkFlags extraFlags) {
   BufferCreateInfo ci{};
   ci.size = size;
   ci.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | extraFlags;
@@ -411,8 +368,7 @@ ResourceManager::createVertexBufferDevice(uint32_t size, VkFlags extraFlags) {
   return createSimpleBuffer(ci);
 }
 
-IFRIT_APIDECL SingleBuffer *
-ResourceManager::createIndexBufferDevice(uint32_t size, VkFlags extraFlags) {
+IFRIT_APIDECL SingleBuffer *ResourceManager::createIndexBufferDevice(uint32_t size, VkFlags extraFlags) {
   BufferCreateInfo ci{};
   ci.size = size;
   ci.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | extraFlags;
@@ -421,8 +377,7 @@ ResourceManager::createIndexBufferDevice(uint32_t size, VkFlags extraFlags) {
 }
 
 IFRIT_APIDECL
-MultiBuffer *ResourceManager::createProxyMultiBuffer(
-    const std::vector<SingleBuffer *> &buffers) {
+MultiBuffer *ResourceManager::createProxyMultiBuffer(const std::vector<SingleBuffer *> &buffers) {
   auto tmp = new MultiBuffer(m_context, buffers);
   auto buffer = std::make_unique<MultiBuffer>(m_context, buffers);
   auto ptr = buffer.get();
@@ -431,23 +386,19 @@ MultiBuffer *ResourceManager::createProxyMultiBuffer(
 }
 
 IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>
-ResourceManager::createDepthAttachment(uint32_t width, uint32_t height,
-                                       VkFormat format,
-                                       VkImageUsageFlags extraUsage) {
+ResourceManager::createDepthAttachment(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags extraUsage) {
   ImageCreateInfo ci{};
   ci.aspect = ImageAspect::Depth;
   ci.format = format;
   ci.width = width;
   ci.height = height;
-  ci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
-             VK_IMAGE_USAGE_SAMPLED_BIT | extraUsage;
+  ci.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | extraUsage;
   ci.hostVisible = false;
   return createSimpleImageUnmanaged(ci);
 }
 
 IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>
-ResourceManager::createTexture2DDeviceUnmanaged(uint32_t width, uint32_t height,
-                                                VkFormat format,
+ResourceManager::createTexture2DDeviceUnmanaged(uint32_t width, uint32_t height, VkFormat format,
                                                 VkImageUsageFlags extraUsage) {
   ImageCreateInfo ci{};
   ci.aspect = ImageAspect::Color;
@@ -460,24 +411,21 @@ ResourceManager::createTexture2DDeviceUnmanaged(uint32_t width, uint32_t height,
 }
 
 IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>
-ResourceManager::createRenderTargetTexture(uint32_t width, uint32_t height,
-                                           VkFormat format,
+ResourceManager::createRenderTargetTexture(uint32_t width, uint32_t height, VkFormat format,
                                            VkImageUsageFlags extraUsage) {
   ImageCreateInfo ci{};
   ci.aspect = ImageAspect::Color;
   ci.format = format;
   ci.width = width;
   ci.height = height;
-  ci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
-             extraUsage;
+  ci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | extraUsage;
   ci.hostVisible = false;
   return createSimpleImageUnmanaged(ci);
 }
 
-IFRIT_APIDECL std::shared_ptr<SingleDeviceImage>
-ResourceManager::createTexture3D(uint32_t width, uint32_t height,
-                                 uint32_t depth, VkFormat format,
-                                 VkImageUsageFlags extraUsage) {
+IFRIT_APIDECL std::shared_ptr<SingleDeviceImage> ResourceManager::createTexture3D(uint32_t width, uint32_t height,
+                                                                                  uint32_t depth, VkFormat format,
+                                                                                  VkImageUsageFlags extraUsage) {
   ImageCreateInfo ci{};
   ci.aspect = ImageAspect::Color;
   ci.type = ImageType::Image3D;
@@ -490,10 +438,8 @@ ResourceManager::createTexture3D(uint32_t width, uint32_t height,
   return createSimpleImageUnmanaged(ci);
 }
 
-std::shared_ptr<SingleDeviceImage>
-ResourceManager::createMipTexture(uint32_t width, uint32_t height,
-                                  uint32_t mips, VkFormat format,
-                                  VkImageUsageFlags extraUsage) {
+std::shared_ptr<SingleDeviceImage> ResourceManager::createMipTexture(uint32_t width, uint32_t height, uint32_t mips,
+                                                                     VkFormat format, VkImageUsageFlags extraUsage) {
   ImageCreateInfo ci{};
   ci.aspect = ImageAspect::Color;
   ci.format = format;
@@ -505,8 +451,8 @@ ResourceManager::createMipTexture(uint32_t width, uint32_t height,
   return createSimpleImageUnmanaged(ci);
 }
 
-IFRIT_APIDECL SingleDeviceImage *ResourceManager::createTexture2DDevice(
-    uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage) {
+IFRIT_APIDECL SingleDeviceImage *ResourceManager::createTexture2DDevice(uint32_t width, uint32_t height,
+                                                                        VkFormat format, VkImageUsageFlags usage) {
   ImageCreateInfo ci{};
   ci.aspect = ImageAspect::Color;
   ci.format = format;
@@ -517,8 +463,7 @@ IFRIT_APIDECL SingleDeviceImage *ResourceManager::createTexture2DDevice(
   return createSimpleImage(ci);
 }
 
-IFRIT_APIDECL std::shared_ptr<Sampler>
-ResourceManager::createTrivialRenderTargetSampler() {
+IFRIT_APIDECL std::shared_ptr<Sampler> ResourceManager::createTrivialRenderTargetSampler() {
   SamplerCreateInfo ci{};
   ci.magFilter = VK_FILTER_LINEAR;
   ci.minFilter = VK_FILTER_LINEAR;
@@ -539,8 +484,7 @@ ResourceManager::createTrivialRenderTargetSampler() {
   return sampler;
 }
 
-IFRIT_APIDECL std::shared_ptr<Sampler>
-ResourceManager::createTrivialBilinearSampler(bool repeat) {
+IFRIT_APIDECL std::shared_ptr<Sampler> ResourceManager::createTrivialBilinearSampler(bool repeat) {
   SamplerCreateInfo ci{};
   ci.magFilter = VK_FILTER_LINEAR;
   ci.minFilter = VK_FILTER_LINEAR;
@@ -569,8 +513,7 @@ ResourceManager::createTrivialBilinearSampler(bool repeat) {
 }
 
 IFRIT_APIDECL
-std::shared_ptr<Sampler>
-ResourceManager::createTrivialNearestSampler(bool repeat) {
+std::shared_ptr<Sampler> ResourceManager::createTrivialNearestSampler(bool repeat) {
   SamplerCreateInfo ci{};
   ci.magFilter = VK_FILTER_NEAREST;
   ci.minFilter = VK_FILTER_NEAREST;

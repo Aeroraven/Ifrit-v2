@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMContext.h"
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMExtInstRegistry.h"
 #include "ifrit/softgraphics/engine/shadervm/spirvvec/SpvMdBase.h"
@@ -33,11 +33,9 @@ enum SpVcQuadGroupedIRStage {
 
 class SpVcQuadGroupedIRGenerator;
 
-typedef void (*SpVcDefinitionPassHandler)(int pc, std::vector<uint32_t> params,
-                                          SpVcVMGeneratorContext *ctx,
+typedef void (*SpVcDefinitionPassHandler)(int pc, std::vector<u32> params, SpVcVMGeneratorContext *ctx,
                                           SpVcQuadGroupedIRGenerator *irg);
-typedef void (*SpVcConversionPassHandler)(int pc, std::vector<uint32_t> params,
-                                          SpVcVMGeneratorContext *ctx,
+typedef void (*SpVcConversionPassHandler)(int pc, std::vector<u32> params, SpVcVMGeneratorContext *ctx,
                                           SpVcQuadGroupedIRGenerator *irg);
 
 enum SpVcDataflowDependencySpecial {
@@ -54,12 +52,10 @@ struct SpVcDataflowDependency {
 
 class SpVcQuadGroupedIRGenerator {
 private:
-  using SpVcSpirBytecode =
-      Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::SpvVMContext;
+  using SpVcSpirBytecode = Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::SpvVMContext;
   SpVcSpirBytecode *mRaw;
   SpVcVMGeneratorContext *mCtx;
-  Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::SpvVMExtRegistry
-      mExtInstGen;
+  Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::SpvVMExtRegistry mExtInstGen;
 
   std::unordered_map<int, SpVcDefinitionPassHandler> mDefinitionPassHandlers;
   std::unordered_map<int, SpVcConversionPassHandler> mConvPassHandlers;
@@ -71,8 +67,7 @@ private:
   int curVarMask = 0;
 
 public:
-  void bindBytecode(SpVcSpirBytecode *bytecode,
-                    SpVcVMGeneratorContext *context);
+  void bindBytecode(SpVcSpirBytecode *bytecode, SpVcVMGeneratorContext *context);
 
   void performBlockPass();
   void init();
@@ -114,15 +109,13 @@ public:
   void popNewStack();
 
   SpVcVMGenVariable *createExecutionMaskVar();
-  SpVcVMGenVariable *getVariableSafe(uint32_t id);
+  SpVcVMGenVariable *getVariableSafe(u32 id);
 
   std::string getParsingProgress();
   void setCurrentProgCounter(int pc);
   void setCurrentPass(SpVcQuadGroupedIRStage stage);
   std::string allocateLlvmVarName();
-  inline Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::
-      SpvVMExtRegistry *
-      getExtRegistry() {
+  inline Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv::SpvVMExtRegistry *getExtRegistry() {
     return &mExtInstGen;
   }
 

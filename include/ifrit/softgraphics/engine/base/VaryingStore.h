@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreDefs.h"
 #include "ifrit/softgraphics/core/definition/CoreTypes.h"
 
@@ -25,7 +25,7 @@ namespace Ifrit::GraphicsBackend::SoftGraphics {
 union IFRIT_APIDECL VaryingStore {
   float vf;
   int vi;
-  uint32_t vui;
+  u32 vui;
   ifloat2 vf2;
   ifloat3 vf3;
   ifloat4 vf4;

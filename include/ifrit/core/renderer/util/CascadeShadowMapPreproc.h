@@ -16,6 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/math/LinalgOps.h"
 #include "ifrit/common/math/constfunc/ConstFunc.h"
 #include "ifrit/common/util/FileOps.h"
@@ -29,9 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Core::RenderingUtil::CascadeShadowMapping {
 
-constexpr uint32_t kDefaultCSMCount = 4;
-constexpr std::array<float, 4> kDefaultCSMSplits = {0.067f, 0.133f, 0.267f,
-                                                    0.533f};
+constexpr u32 kDefaultCSMCount = 4;
+constexpr std::array<float, 4> kDefaultCSMSplits = {0.067f, 0.133f, 0.267f, 0.533f};
 constexpr std::array<float, 4> kDefaultCSMBorders = {0.08f, 0.05f, 0.0f, 0.0f};
 
 struct CSMSingleSplitResult {
@@ -52,18 +52,13 @@ struct CSMResult {
   std::array<float, 4> m_splitEnd;
 };
 
-IFRIT_APIDECL CSMResult calculateCSMSplits(
-    const Ifrit::Core::PerFrameData::PerViewData &perView,
-    uint32_t shadowResolution, ifloat3 lightFront, uint32_t splitCount,
-    float maxDistance, const std::vector<float> &splits,
-    const std::vector<float> &borders);
+IFRIT_APIDECL CSMResult calculateCSMSplits(const Ifrit::Core::PerFrameData::PerViewData &perView, u32 shadowResolution,
+                                           ifloat3 lightFront, u32 splitCount, float maxDistance,
+                                           const std::vector<float> &splits, const std::vector<float> &borders);
 
 IFRIT_APIDECL std::vector<PerFrameData::PerViewData>
-fillCSMViews(const Ifrit::Core::PerFrameData::PerViewData &perView,
-             Light &light, uint32_t shadowResolution, Transform &lightTransform,
-             uint32_t splitCount, float maxDistance,
-             const std::vector<float> &splits,
-             const std::vector<float> &borders,
-             std::array<float, 4> &splitStart, std::array<float, 4> &splitEnd);
+fillCSMViews(const Ifrit::Core::PerFrameData::PerViewData &perView, Light &light, u32 shadowResolution,
+             Transform &lightTransform, u32 splitCount, float maxDistance, const std::vector<float> &splits,
+             const std::vector<float> &borders, std::array<float, 4> &splitStart, std::array<float, 4> &splitEnd);
 
 } // namespace Ifrit::Core::RenderingUtil::CascadeShadowMapping

@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/math/constfunc/ConstFunc.h"
 #include "ifrit/common/util/ApiConv.h"
 #include "ifrit/rhi/common/RhiLayer.h"
@@ -32,8 +33,8 @@ namespace Ifrit::Core {
 // future.
 // Some references from: https://zhuanlan.zhihu.com/p/147207161
 
-using ResourceNodeId = uint32_t;
-using PassNodeId = uint32_t;
+using ResourceNodeId = u32;
+using PassNodeId = u32;
 using FgBuffer = GraphicsBackend::Rhi::RhiBuffer;
 using FgTexture = GraphicsBackend::Rhi::RhiTexture;
 using FgTextureSubResource = GraphicsBackend::Rhi::RhiImageSubResource;
@@ -84,14 +85,11 @@ private:
 
 public:
   ResourceNodeId addResource(const std::string &name);
-  PassNodeId addPass(const std::string &name, FrameGraphPassType type,
-                     const std::vector<ResourceNodeId> &inputs,
-                     const std::vector<ResourceNodeId> &outputs,
-                     const std::vector<ResourceNodeId> &dependencies);
+  PassNodeId addPass(const std::string &name, FrameGraphPassType type, const std::vector<ResourceNodeId> &inputs,
+                     const std::vector<ResourceNodeId> &outputs, const std::vector<ResourceNodeId> &dependencies);
 
   void setImportedResource(ResourceNodeId id, FgBuffer *buffer);
-  void setImportedResource(ResourceNodeId id, FgTexture *texture,
-                           const FgTextureSubResource &subResource);
+  void setImportedResource(ResourceNodeId id, FgTexture *texture, const FgTextureSubResource &subResource);
 
   void setExecutionFunction(PassNodeId id, std::function<void()> func);
 
@@ -104,15 +102,13 @@ struct CompiledFrameGraph {
     bool enableUAVBarrier = false;
     bool enableTransitionBarrier = false;
     GraphicsBackend::Rhi::RhiResourceState2 srcState;
-    GraphicsBackend::Rhi::RhiResourceState2 dstState =
-        GraphicsBackend::Rhi::RhiResourceState2::Undefined;
+    GraphicsBackend::Rhi::RhiResourceState2 dstState = GraphicsBackend::Rhi::RhiResourceState2::Undefined;
   };
   const FrameGraph *m_graph = nullptr;
-  std::vector<uint32_t> m_passTopoOrder = {};
+  std::vector<u32> m_passTopoOrder = {};
   std::vector<std::vector<ResourceBarriers>> m_passResourceBarriers = {};
-  std::vector<std::vector<ResourceBarriers>> m_outputAliasedResourcesBarriers =
-      {};
-  std::vector<std::vector<uint32_t>> m_inputResourceDependencies = {};
+  std::vector<std::vector<ResourceBarriers>> m_outputAliasedResourcesBarriers = {};
+  std::vector<std::vector<u32>> m_inputResourceDependencies = {};
 };
 
 class IFRIT_APIDECL FrameGraphCompiler {
@@ -124,8 +120,7 @@ public:
 class IFRIT_APIDECL FrameGraphExecutor {
 private:
 public:
-  void executeInSingleCmd(const GraphicsBackend::Rhi::RhiCommandBuffer *cmd,
-                          const CompiledFrameGraph &compiledGraph);
+  void executeInSingleCmd(const GraphicsBackend::Rhi::RhiCommandBuffer *cmd, const CompiledFrameGraph &compiledGraph);
 };
 
 } // namespace Ifrit::Core

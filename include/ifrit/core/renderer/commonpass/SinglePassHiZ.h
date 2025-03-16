@@ -1,4 +1,5 @@
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/base/ApplicationInterface.h"
 #include "ifrit/core/base/Scene.h"
@@ -19,14 +20,10 @@ protected:
 
 public:
   SinglePassHiZPass(IApplication *app);
-  virtual void prepareHiZResources(PerFrameData::SinglePassHiZData &data,
-                                   GPUTexture *depthTexture,
-                                   GPUSampler *sampler, uint32_t rtWidth,
-                                   uint32_t rtHeight);
-  virtual bool checkResourceToRebuild(PerFrameData::SinglePassHiZData &data,
-                                      uint32_t rtWidth, uint32_t rtHeight);
-  virtual void runHiZPass(const PerFrameData::SinglePassHiZData &data,
-                          const GPUCmdBuffer *cmd, uint32_t rtWidth,
-                          uint32_t rtHeight, bool minMode);
+  virtual void prepareHiZResources(PerFrameData::SinglePassHiZData &data, GPUTexture *depthTexture, GPUSampler *sampler,
+                                   u32 rtWidth, u32 rtHeight);
+  virtual bool checkResourceToRebuild(PerFrameData::SinglePassHiZData &data, u32 rtWidth, u32 rtHeight);
+  virtual void runHiZPass(const PerFrameData::SinglePassHiZData &data, const GPUCmdBuffer *cmd, u32 rtWidth,
+                          u32 rtHeight, bool minMode);
 };
 } // namespace Ifrit::Core

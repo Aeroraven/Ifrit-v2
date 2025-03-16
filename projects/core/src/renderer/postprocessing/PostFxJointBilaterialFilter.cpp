@@ -9,9 +9,9 @@ IFRIT_APIDECL
 PostFxJointBilaterialFilter::PostFxJointBilaterialFilter(IApplication *app)
     : PostprocessPass(app, {"JointBilaterialFilter.frag.glsl", 4, 1}) {}
 
-IFRIT_APIDECL void PostFxJointBilaterialFilter::renderPostFx(
-    const GPUCmdBuffer *cmd, RenderTargets *renderTargets, GPUBindId *colorSRV,
-    GPUBindId *normalSRV, GPUBindId *depthSRV, uint32_t kernelSize) {
+IFRIT_APIDECL void PostFxJointBilaterialFilter::renderPostFx(const GPUCmdBuffer *cmd, RenderTargets *renderTargets,
+                                                             GPUBindId *colorSRV, GPUBindId *normalSRV,
+                                                             GPUBindId *depthSRV, uint32_t kernelSize) {
   struct PushConst {
     u32 colorSRV;
     u32 normalSRV;
@@ -24,8 +24,7 @@ IFRIT_APIDECL void PostFxJointBilaterialFilter::renderPostFx(
       depthSRV->getActiveId(),
       kernelSize,
   };
-  renderInternal(nullptr, renderTargets, cmd, &pushConst, {},
-                 "Postprocess: Joint Bilaterial Filter");
+  renderInternal(nullptr, renderTargets, cmd, &pushConst, {}, "Postprocess: Joint Bilaterial Filter");
 }
 
 } // namespace Ifrit::Core::PostprocessPassCollection

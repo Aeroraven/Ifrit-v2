@@ -27,27 +27,22 @@ using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::Core {
 // Importer
-IFRIT_APIDECL void
-SceneAssetImporter::processMetadata(AssetMetadata &metadata) {
+IFRIT_APIDECL void SceneAssetImporter::processMetadata(AssetMetadata &metadata) {
   metadata.m_importer = IMPORTER_NAME;
 };
 
-IFRIT_APIDECL std::vector<std::string>
-SceneAssetImporter::getSupportedExtensionNames() {
+IFRIT_APIDECL std::vector<std::string> SceneAssetImporter::getSupportedExtensionNames() {
   return {cSceneFileExtension};
 };
 
-IFRIT_APIDECL void
-SceneAssetImporter::importAsset(const std::filesystem::path &path,
-                                AssetMetadata &metadata) {
+IFRIT_APIDECL void SceneAssetImporter::importAsset(const std::filesystem::path &path, AssetMetadata &metadata) {
   auto asset = std::make_shared<SceneAsset>(metadata, path);
   std::string fileReaded;
   std::ifstream file(path);
   file.seekg(0, std::ios::end);
   fileReaded.reserve(file.tellg());
   file.seekg(0, std::ios::beg);
-  fileReaded.assign((std::istreambuf_iterator<char>(file)),
-                    std::istreambuf_iterator<char>());
+  fileReaded.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
   file.close();
   std::shared_ptr<Scene> x;
   Ifrit::Common::Serialization::deserialize(fileReaded, x);
@@ -62,8 +57,7 @@ SceneAssetImporter::importAsset(const std::filesystem::path &path,
 }
 
 // Manager
-IFRIT_APIDECL void
-SceneAssetManager::attachAssetResources(std::shared_ptr<Scene> &scene) {
+IFRIT_APIDECL void SceneAssetManager::attachAssetResources(std::shared_ptr<Scene> &scene) {
   std::vector<std::shared_ptr<Component>> components;
   std::vector<SceneNode *> nodes;
   nodes.push_back(scene->getRootNode().get());
@@ -94,8 +88,7 @@ SceneAssetManager::attachAssetResources(std::shared_ptr<Scene> &scene) {
   }
 }
 
-IFRIT_APIDECL SceneAssetManager::SceneAssetManager(std::filesystem::path path,
-                                                   AssetManager *assetman)
+IFRIT_APIDECL SceneAssetManager::SceneAssetManager(std::filesystem::path path, AssetManager *assetman)
     : m_sceneDataPath(path), m_assetManager(assetman) {
   m_sceneImporter = std::make_shared<SceneAssetImporter>(assetman, this);
   assetman->registerImporter(m_sceneImporter->IMPORTER_NAME, m_sceneImporter);
@@ -128,8 +121,7 @@ IFRIT_APIDECL void SceneAssetManager::loadScenes() {
     file.seekg(0, std::ios::end);
     serialized.reserve(file.tellg());
     file.seekg(0, std::ios::beg);
-    serialized.assign((std::istreambuf_iterator<char>(file)),
-                      std::istreambuf_iterator<char>());
+    serialized.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     std::shared_ptr<Scene> scene;
     deserialize(serialized, scene);
     // use the name of the file as the key, extension removed
@@ -140,8 +132,7 @@ IFRIT_APIDECL void SceneAssetManager::loadScenes() {
   }
 }
 
-IFRIT_APIDECL std::shared_ptr<Scene>
-SceneAssetManager::createScene(std::string name) {
+IFRIT_APIDECL std::shared_ptr<Scene> SceneAssetManager::createScene(std::string name) {
   auto scene = std::make_shared<Scene>();
   // m_scenes[name] = scene;
   m_scenesIndex[name] = size_cast<uint32_t>(m_scenes.size());
@@ -150,9 +141,7 @@ SceneAssetManager::createScene(std::string name) {
   return scene;
 }
 
-IFRIT_APIDECL void
-SceneAssetManager::registerScene(std::string name,
-                                 std::shared_ptr<Scene> scene) {
+IFRIT_APIDECL void SceneAssetManager::registerScene(std::string name, std::shared_ptr<Scene> scene) {
   // m_scenes[name] = scene;
   m_scenesIndex[name] = size_cast<uint32_t>(m_scenes.size());
   m_scenes.push_back(scene);

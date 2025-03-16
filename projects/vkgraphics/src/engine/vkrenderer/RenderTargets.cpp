@@ -23,47 +23,37 @@ using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
-Rhi::RhiImageFormat toRhiFormat(VkFormat rawFormat) {
-  return static_cast<Rhi::RhiImageFormat>(rawFormat);
-}
+Rhi::RhiImageFormat toRhiFormat(VkFormat rawFormat) { return static_cast<Rhi::RhiImageFormat>(rawFormat); }
 
-IFRIT_APIDECL void RenderTargets::setColorAttachments(
-    const std::vector<Rhi::RhiColorAttachment *> &attachments) {
+IFRIT_APIDECL void RenderTargets::setColorAttachments(const std::vector<Rhi::RhiColorAttachment *> &attachments) {
   m_colorAttachments.clear();
   for (auto attachment : attachments) {
     m_colorAttachments.push_back(static_cast<ColorAttachment *>(attachment));
   }
 }
 
-IFRIT_APIDECL void RenderTargets::setDepthStencilAttachment(
-    Rhi::RhiDepthStencilAttachment *attachment) {
+IFRIT_APIDECL void RenderTargets::setDepthStencilAttachment(Rhi::RhiDepthStencilAttachment *attachment) {
   m_depthStencilAttachment = static_cast<DepthStencilAttachment *>(attachment);
 }
 
-IFRIT_APIDECL void RenderTargets::beginRendering(
-    const Rhi::RhiCommandBuffer *commandBuffer) const {
+IFRIT_APIDECL void RenderTargets::beginRendering(const Rhi::RhiCommandBuffer *commandBuffer) const {
   auto cmd = checked_cast<CommandBuffer>(commandBuffer);
   auto cmdraw = cmd->getCommandBuffer();
 
   // other kind of layout transition should be handled by the
   // render graph or explicitly by the user.
   if (m_depthStencilAttachment != nullptr) {
-    auto depthSrcLayout = (m_depthStencilAttachment->getLoadOp() ==
-                           Rhi::RhiRenderTargetLoadOp::Clear)
+    auto depthSrcLayout = (m_depthStencilAttachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear)
                               ? Rhi::RhiResourceState2::Undefined
                               : Rhi::RhiResourceState2::DepthStencilRT;
-    cmd->imageBarrier(m_depthStencilAttachment->getRenderTarget(),
-                      depthSrcLayout, Rhi::RhiResourceState2::DepthStencilRT,
-                      {0, 0, 1, 1});
+    cmd->imageBarrier(m_depthStencilAttachment->getRenderTarget(), depthSrcLayout,
+                      Rhi::RhiResourceState2::DepthStencilRT, {0, 0, 1, 1});
   }
 
   for (auto attachment : m_colorAttachments) {
-    auto srcLayout =
-        (attachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear)
-            ? Rhi::RhiResourceState2::Undefined
-            : Rhi::RhiResourceState2::ColorRT;
-    cmd->imageBarrier(attachment->getRenderTarget(), srcLayout,
-                      Rhi::RhiResourceState2::ColorRT, {0, 0, 1, 1});
+    auto srcLayout = (attachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear) ? Rhi::RhiResourceState2::Undefined
+                                                                                    : Rhi::RhiResourceState2::ColorRT;
+    cmd->imageBarrier(attachment->getRenderTarget(), srcLayout, Rhi::RhiResourceState2::ColorRT, {0, 0, 1, 1});
   }
   auto exfunc = m_context->getExtensionFunction();
 
@@ -72,17 +62,13 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
   VkRenderingAttachmentInfoKHR depthAttachmentInfo{};
   if (m_depthStencilAttachment) {
     VkClearValue clearValue;
-    clearValue.depthStencil.depth =
-        m_depthStencilAttachment->getClearValue().m_depth;
-    clearValue.depthStencil.stencil =
-        m_depthStencilAttachment->getClearValue().m_stencil;
+    clearValue.depthStencil.depth = m_depthStencilAttachment->getClearValue().m_depth;
+    clearValue.depthStencil.stencil = m_depthStencilAttachment->getClearValue().m_stencil;
 
     VkAttachmentLoadOp loadOp;
-    if (m_depthStencilAttachment->getLoadOp() ==
-        Rhi::RhiRenderTargetLoadOp::Clear) {
+    if (m_depthStencilAttachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear) {
       loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    } else if (m_depthStencilAttachment->getLoadOp() ==
-               Rhi::RhiRenderTargetLoadOp::DontCare) {
+    } else if (m_depthStencilAttachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::DontCare) {
       loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     } else {
       loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -93,8 +79,7 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
     depthAttachmentInfo.loadOp = loadOp;
     depthAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     depthAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    depthAttachmentInfo.imageView =
-        m_depthStencilAttachment->getRenderTargetInternal()->getImageView();
+    depthAttachmentInfo.imageView = m_depthStencilAttachment->getRenderTargetInternal()->getImageView();
   }
   for (auto attachment : m_colorAttachments) {
     VkClearValue clearValue;
@@ -106,8 +91,7 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
     VkAttachmentLoadOp loadOp;
     if (attachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear) {
       loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    } else if (attachment->getLoadOp() ==
-               Rhi::RhiRenderTargetLoadOp::DontCare) {
+    } else if (attachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::DontCare) {
       loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     } else {
       loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -121,9 +105,7 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
     attachmentInfo.loadOp = loadOp;
     attachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    attachmentInfo.imageView =
-        attachment->getRenderTargetInternal()->getImageViewMipLayer(
-            tgtMip, tgtArrLayer, 1, 1);
+    attachmentInfo.imageView = attachment->getRenderTargetInternal()->getImageViewMipLayer(tgtMip, tgtArrLayer, 1, 1);
     colorAttachmentInfos.push_back(attachmentInfo);
   }
   VkRect2D renderArea;
@@ -134,11 +116,9 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
   renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
   renderingInfo.renderArea = renderArea;
   renderingInfo.layerCount = 1;
-  renderingInfo.colorAttachmentCount =
-      size_cast<uint32_t>(m_colorAttachments.size());
+  renderingInfo.colorAttachmentCount = size_cast<uint32_t>(m_colorAttachments.size());
   renderingInfo.pColorAttachments = colorAttachmentInfos.data();
-  renderingInfo.pDepthAttachment =
-      m_depthStencilAttachment ? &depthAttachmentInfo : nullptr;
+  renderingInfo.pDepthAttachment = m_depthStencilAttachment ? &depthAttachmentInfo : nullptr;
 
   vkCmdBeginRendering(cmdraw, &renderingInfo);
 
@@ -158,34 +138,23 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
     VkColorBlendEquationEXT colorBlendEquation{};
     colorBlendEquation.alphaBlendOp = TOVKBLENDOP(blendInfo.m_alphaBlendOp);
     colorBlendEquation.colorBlendOp = TOVKBLENDOP(blendInfo.m_colorBlendOp);
-    colorBlendEquation.dstAlphaBlendFactor =
-        TOVKBLENDFACTOR(blendInfo.m_dstAlphaBlendFactor);
-    colorBlendEquation.dstColorBlendFactor =
-        TOVKBLENDFACTOR(blendInfo.m_dstColorBlendFactor);
-    colorBlendEquation.srcAlphaBlendFactor =
-        TOVKBLENDFACTOR(blendInfo.m_srcAlphaBlendFactor);
-    colorBlendEquation.srcColorBlendFactor =
-        TOVKBLENDFACTOR(blendInfo.m_srcColorBlendFactor);
+    colorBlendEquation.dstAlphaBlendFactor = TOVKBLENDFACTOR(blendInfo.m_dstAlphaBlendFactor);
+    colorBlendEquation.dstColorBlendFactor = TOVKBLENDFACTOR(blendInfo.m_dstColorBlendFactor);
+    colorBlendEquation.srcAlphaBlendFactor = TOVKBLENDFACTOR(blendInfo.m_srcAlphaBlendFactor);
+    colorBlendEquation.srcColorBlendFactor = TOVKBLENDFACTOR(blendInfo.m_srcColorBlendFactor);
     blendEquations.push_back(colorBlendEquation);
-    colorWriteMask.push_back(
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
+    colorWriteMask.push_back(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                             VK_COLOR_COMPONENT_A_BIT);
   }
 #undef TOVKBLENDOP
 #undef TOVKBLENDFACTOR
   if (m_colorAttachments.size() > 0) {
-    exfunc.p_vkCmdSetColorWriteEnableEXT(
-        cmdraw, size_cast<uint32_t>(m_colorAttachments.size()),
-        colorWrite.data());
-    exfunc.p_vkCmdSetColorBlendEnableEXT(
-        cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
-        blendEnable.data());
-    exfunc.p_vkCmdSetColorBlendEquationEXT(
-        cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
-        blendEquations.data());
-    exfunc.p_vkCmdSetColorWriteMaskEXT(
-        cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
-        colorWriteMask.data());
+    exfunc.p_vkCmdSetColorWriteEnableEXT(cmdraw, size_cast<uint32_t>(m_colorAttachments.size()), colorWrite.data());
+    exfunc.p_vkCmdSetColorBlendEnableEXT(cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()), blendEnable.data());
+    exfunc.p_vkCmdSetColorBlendEquationEXT(cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
+                                           blendEquations.data());
+    exfunc.p_vkCmdSetColorWriteMaskEXT(cmdraw, 0, size_cast<uint32_t>(m_colorAttachments.size()),
+                                       colorWriteMask.data());
   }
 
   // Set default viewport & scissor
@@ -219,8 +188,7 @@ IFRIT_APIDECL void RenderTargets::beginRendering(
   }
 }
 
-IFRIT_APIDECL void
-RenderTargets::endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const {
+IFRIT_APIDECL void RenderTargets::endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const {
   auto cmd = checked_cast<CommandBuffer>(commandBuffer);
   auto cmdraw = cmd->getCommandBuffer();
   vkCmdEndRendering(cmdraw);
@@ -229,20 +197,16 @@ RenderTargets::endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const {
 IFRIT_APIDECL Rhi::RhiRenderTargetsFormat RenderTargets::getFormat() const {
   Rhi::RhiRenderTargetsFormat format;
   if (m_depthStencilAttachment) {
-    format.m_depthFormat = toRhiFormat(
-        m_depthStencilAttachment->getRenderTargetInternal()->getFormat());
+    format.m_depthFormat = toRhiFormat(m_depthStencilAttachment->getRenderTargetInternal()->getFormat());
   } else {
     format.m_depthFormat = Rhi::RhiImageFormat::RHI_FORMAT_UNDEFINED;
   }
   for (auto attachment : m_colorAttachments) {
-    format.m_colorFormats.push_back(
-        toRhiFormat(attachment->getRenderTargetInternal()->getFormat()));
+    format.m_colorFormats.push_back(toRhiFormat(attachment->getRenderTargetInternal()->getFormat()));
   }
   return format;
 }
 
-IFRIT_APIDECL Rhi::RhiScissor RenderTargets::getRenderArea() const {
-  return m_renderArea;
-}
+IFRIT_APIDECL Rhi::RhiScissor RenderTargets::getRenderArea() const { return m_renderArea; }
 
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

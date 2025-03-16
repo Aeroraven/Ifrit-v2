@@ -16,9 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
-
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/core/data/Image.h"
 #include "ifrit/softgraphics/engine/base/FrameBuffer.h"
 #include "ifrit/softgraphics/engine/base/Renderer.h"
@@ -30,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::TileRaster {
 struct TileRasterContextRasterQueueProposal {
-  uint32_t workerId;
+  u32 workerId;
   int primId;
 };
 struct AssembledTriangleProposalShadeStage {
@@ -63,9 +62,7 @@ public:
   VertexShader *vertexShader;
   VaryingDescriptor *varyingDescriptor;
   FragmentShader *fragmentShader;
-  std::unordered_map<
-      std::pair<int, int>, const void *,
-      Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::PairHash>
+  std::unordered_map<std::pair<int, int>, const void *, Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::PairHash>
       uniformMapping;
 
   // Cached attributes
@@ -81,15 +78,12 @@ public:
   VertexShader *threadSafeVS[TileRasterContext::numThreads + 1];
   FragmentShader *threadSafeFS[TileRasterContext::numThreads + 1];
 
-  std::unique_ptr<VertexShader>
-      threadSafeVSOwningSection[TileRasterContext::numThreads + 1];
-  std::unique_ptr<FragmentShader>
-      threadSafeFSOwningSection[TileRasterContext::numThreads + 1];
+  std::unique_ptr<VertexShader> threadSafeVSOwningSection[TileRasterContext::numThreads + 1];
+  std::unique_ptr<FragmentShader> threadSafeFSOwningSection[TileRasterContext::numThreads + 1];
 
   // Resources
   std::unique_ptr<VertexShaderResult> vertexShaderResult;
-  std::vector<std::vector<int>>
-      rasterizerQueue[TileRasterContext::numThreads + 1];
+  std::vector<std::vector<int>> rasterizerQueue[TileRasterContext::numThreads + 1];
   std::vector<std::vector<int>> coverQueue[TileRasterContext::numThreads + 1];
 
   // Sorted List
@@ -109,9 +103,7 @@ public:
   bool optDepthTestEnableII = true;
 
   // Geometry
-  std::vector<AssembledTriangleProposalRasterStage>
-      assembledTrianglesRaster[TileRasterContext::numThreads + 1];
-  std::vector<AssembledTriangleProposalShadeStage>
-      assembledTrianglesShade[TileRasterContext::numThreads + 1];
+  std::vector<AssembledTriangleProposalRasterStage> assembledTrianglesRaster[TileRasterContext::numThreads + 1];
+  std::vector<AssembledTriangleProposalShadeStage> assembledTrianglesShade[TileRasterContext::numThreads + 1];
 };
 } // namespace Ifrit::GraphicsBackend::SoftGraphics::TileRaster

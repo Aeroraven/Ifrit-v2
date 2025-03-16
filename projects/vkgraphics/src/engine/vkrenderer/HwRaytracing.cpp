@@ -10,32 +10,24 @@ IFRIT_APIDECL HwRaytracingContext::HwRaytracingContext(EngineContext *ctx) {
   m_context = ctx;
   VkPhysicalDeviceProperties2 properties2 = {};
   properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-  m_rtProperties.sType =
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+  m_rtProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
   properties2.pNext = &m_rtProperties;
   vkGetPhysicalDeviceProperties2(ctx->getPhysicalDevice(), &properties2);
 }
 
-IFRIT_APIDECL VkPhysicalDeviceRayTracingPipelinePropertiesKHR
-HwRaytracingContext::getProperties() const {
+IFRIT_APIDECL VkPhysicalDeviceRayTracingPipelinePropertiesKHR HwRaytracingContext::getProperties() const {
   return m_rtProperties;
 }
 
-IFRIT_APIDECL u32 HwRaytracingContext::getShaderGroupHandleSize() const {
-  return m_rtProperties.shaderGroupHandleSize;
-}
+IFRIT_APIDECL u32 HwRaytracingContext::getShaderGroupHandleSize() const { return m_rtProperties.shaderGroupHandleSize; }
 
 IFRIT_APIDECL u32 HwRaytracingContext::getAlignedShaderGroupHandleSize() const {
-  return Math::ConstFunc::alignUp(m_rtProperties.shaderGroupHandleSize,
-                                  m_rtProperties.shaderGroupHandleAlignment);
+  return Math::ConstFunc::alignUp(m_rtProperties.shaderGroupHandleSize, m_rtProperties.shaderGroupHandleAlignment);
 }
 
-IFRIT_APIDECL BottomLevelAS::BottomLevelAS(EngineContext *ctx) {
-  m_context = ctx;
-}
-IFRIT_APIDECL void BottomLevelAS::prepareGeometryData(
-    const std::vector<Rhi::RhiRTGeometryReference> &geometry,
-    CommandBuffer *cmd) {
+IFRIT_APIDECL BottomLevelAS::BottomLevelAS(EngineContext *ctx) { m_context = ctx; }
+IFRIT_APIDECL void BottomLevelAS::prepareGeometryData(const std::vector<Rhi::RhiRTGeometryReference> &geometry,
+                                                      CommandBuffer *cmd) {
   // TODO
   std::vector<VkAccelerationStructureGeometryKHR> geometries;
   std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRanges;
@@ -46,21 +38,18 @@ IFRIT_APIDECL void BottomLevelAS::prepareGeometryData(
     geometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
     geometryInfo.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
     geometryInfo.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
-    geometryInfo.geometry.triangles.sType =
-        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+    geometryInfo.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
     if (geo.m_vertexComponents == 3) {
       geometryInfo.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
     } else if (geo.m_vertexComponents == 4) {
-      geometryInfo.geometry.triangles.vertexFormat =
-          VK_FORMAT_R32G32B32A32_SFLOAT;
+      geometryInfo.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
     }
     geometryInfo.geometry.triangles.vertexData.deviceAddress = geo.m_vertex;
     geometryInfo.geometry.triangles.vertexStride = geo.m_vertexStride;
     geometryInfo.geometry.triangles.maxVertex = geo.m_numVertices;
     geometryInfo.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
     geometryInfo.geometry.triangles.indexData.deviceAddress = geo.m_index;
-    geometryInfo.geometry.triangles.transformData.deviceAddress =
-        geo.m_transform;
+    geometryInfo.geometry.triangles.transformData.deviceAddress = geo.m_transform;
     geometries.push_back(geometryInfo);
 
     primitiveCounts.push_back(geo.m_numIndices / 3);
@@ -81,8 +70,7 @@ IFRIT_APIDECL void BottomLevelAS::prepareGeometryData(
 
   // Prepare BLAS Info
   VkAccelerationStructureBuildGeometryInfoKHR buildInfo = {};
-  buildInfo.sType =
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+  buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
   buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
   buildInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
   buildInfo.geometryCount = geometries.size();
@@ -90,16 +78,16 @@ IFRIT_APIDECL void BottomLevelAS::prepareGeometryData(
 
   VkAccelerationStructureBuildSizesInfoKHR sizeInfo = {};
   auto pfns = m_context->getExtensionFunction();
-  pfns.p_vkGetAccelerationStructureBuildSizesKHR(
-      m_context->getDevice(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-      &buildInfo, primitiveCounts.data(), &sizeInfo);
+  pfns.p_vkGetAccelerationStructureBuildSizesKHR(m_context->getDevice(),
+                                                 VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo,
+                                                 primitiveCounts.data(), &sizeInfo);
 
   // Create buffer
   BufferCreateInfo blasBufferCI;
   blasBufferCI.size = sizeInfo.accelerationStructureSize;
   blasBufferCI.hostVisible = false;
-  blasBufferCI.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-                       VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+  blasBufferCI.usage =
+      VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
   m_blasBuffer = std::make_shared<SingleBuffer>(m_context, blasBufferCI);
 
   // Create BLAS
@@ -108,45 +96,37 @@ IFRIT_APIDECL void BottomLevelAS::prepareGeometryData(
   asCI.buffer = m_blasBuffer->getBuffer();
   asCI.size = sizeInfo.accelerationStructureSize;
   asCI.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-  vkrVulkanAssert(pfns.p_vkCreateAccelerationStructureKHR(
-                      m_context->getDevice(), &asCI, nullptr, &m_as),
+  vkrVulkanAssert(pfns.p_vkCreateAccelerationStructureKHR(m_context->getDevice(), &asCI, nullptr, &m_as),
                   "Failed to create BLAS");
 
   // Build BLAS
   BufferCreateInfo scratchBufferCI;
   scratchBufferCI.size = sizeInfo.buildScratchSize;
   scratchBufferCI.hostVisible = false;
-  scratchBufferCI.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+  scratchBufferCI.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
   m_scratchBuffer = std::make_shared<SingleBuffer>(m_context, scratchBufferCI);
 
   buildInfo.dstAccelerationStructure = m_as;
   buildInfo.scratchData.deviceAddress = m_scratchBuffer->getDeviceAddress();
   buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 
-  pfns.p_vkCmdBuildAccelerationStructuresKHR(cmd->getCommandBuffer(), 1,
-                                             &buildInfo, pBuildRanges.data());
+  pfns.p_vkCmdBuildAccelerationStructuresKHR(cmd->getCommandBuffer(), 1, &buildInfo, pBuildRanges.data());
 
   // Get device address
   VkAccelerationStructureDeviceAddressInfoKHR addressInfo = {};
-  addressInfo.sType =
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+  addressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
   addressInfo.accelerationStructure = m_as;
-  m_deviceAddress = pfns.p_vkGetAccelerationStructureDeviceAddressKHR(
-      m_context->getDevice(), &addressInfo);
+  m_deviceAddress = pfns.p_vkGetAccelerationStructureDeviceAddressKHR(m_context->getDevice(), &addressInfo);
 }
 
-IFRIT_APIDECL Rhi::RhiDeviceAddr BottomLevelAS::getDeviceAddress() const {
-  return m_deviceAddress;
-}
+IFRIT_APIDECL Rhi::RhiDeviceAddr BottomLevelAS::getDeviceAddress() const { return m_deviceAddress; }
 
 IFRIT_APIDECL TopLevelAS::TopLevelAS(EngineContext *ctx) { m_context = ctx; }
 
-IFRIT_APIDECL void TopLevelAS::prepareInstanceData(
-    const std::vector<Rhi::RhiRTInstance> &instances, CommandBuffer *cmd) {
+IFRIT_APIDECL void TopLevelAS::prepareInstanceData(const std::vector<Rhi::RhiRTInstance> &instances,
+                                                   CommandBuffer *cmd) {
   // TODO
-  VkTransformMatrixKHR transformMatrix = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f,
-                                          0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f};
+  VkTransformMatrixKHR transformMatrix = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f};
   std::vector<VkAccelerationStructureInstanceKHR> instanceData;
   std::vector<VkAccelerationStructureGeometryKHR> geometries;
   std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRanges;
@@ -165,11 +145,9 @@ IFRIT_APIDECL void TopLevelAS::prepareInstanceData(
     geometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
     geometryInfo.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
     geometryInfo.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
-    geometryInfo.geometry.instances.sType =
-        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+    geometryInfo.geometry.instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
     geometryInfo.geometry.instances.arrayOfPointers = VK_FALSE;
-    geometryInfo.geometry.instances.data.deviceAddress =
-        inst.getDeviceAddress();
+    geometryInfo.geometry.instances.data.deviceAddress = inst.getDeviceAddress();
     geometries.push_back(geometryInfo);
 
     VkAccelerationStructureBuildRangeInfoKHR buildRange = {};
@@ -186,8 +164,7 @@ IFRIT_APIDECL void TopLevelAS::prepareInstanceData(
 
   u32 numInstances = instances.size();
   VkAccelerationStructureBuildGeometryInfoKHR buildInfo = {};
-  buildInfo.sType =
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+  buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
   buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
   buildInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
   buildInfo.geometryCount = numInstances;
@@ -196,18 +173,16 @@ IFRIT_APIDECL void TopLevelAS::prepareInstanceData(
   auto pfns = m_context->getExtensionFunction();
 
   VkAccelerationStructureBuildSizesInfoKHR sizeInfo = {};
-  sizeInfo.sType =
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
+  sizeInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
   pfns.p_vkGetAccelerationStructureBuildSizesKHR(
-      m_context->getDevice(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-      &buildInfo, &numInstances, &sizeInfo);
+      m_context->getDevice(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo, &numInstances, &sizeInfo);
 
   // Create As buffer
   BufferCreateInfo tlasBufferCI;
   tlasBufferCI.size = sizeInfo.accelerationStructureSize;
   tlasBufferCI.hostVisible = false;
-  tlasBufferCI.usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-                       VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+  tlasBufferCI.usage =
+      VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
   m_tlasBuffer = std::make_shared<SingleBuffer>(m_context, tlasBufferCI);
 
   // Create TLAS
@@ -216,54 +191,43 @@ IFRIT_APIDECL void TopLevelAS::prepareInstanceData(
   asCI.buffer = m_tlasBuffer->getBuffer();
   asCI.size = sizeInfo.accelerationStructureSize;
   asCI.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-  vkrVulkanAssert(pfns.p_vkCreateAccelerationStructureKHR(
-                      m_context->getDevice(), &asCI, nullptr, &m_as),
+  vkrVulkanAssert(pfns.p_vkCreateAccelerationStructureKHR(m_context->getDevice(), &asCI, nullptr, &m_as),
                   "Failed to create TLAS");
 
   // Build TLAS
   BufferCreateInfo scratchBufferCI;
   scratchBufferCI.size = sizeInfo.buildScratchSize;
   scratchBufferCI.hostVisible = false;
-  scratchBufferCI.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+  scratchBufferCI.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
   m_scratchBuffer = std::make_shared<SingleBuffer>(m_context, scratchBufferCI);
 
   buildInfo.dstAccelerationStructure = m_as;
   buildInfo.scratchData.deviceAddress = m_scratchBuffer->getDeviceAddress();
   buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 
-  pfns.p_vkCmdBuildAccelerationStructuresKHR(cmd->getCommandBuffer(), 1,
-                                             &buildInfo, pBuildRanges.data());
+  pfns.p_vkCmdBuildAccelerationStructuresKHR(cmd->getCommandBuffer(), 1, &buildInfo, pBuildRanges.data());
 
   // Get device address
   VkAccelerationStructureDeviceAddressInfoKHR addressInfo = {};
-  addressInfo.sType =
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+  addressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
   addressInfo.accelerationStructure = m_as;
 
-  m_deviceAddress = pfns.p_vkGetAccelerationStructureDeviceAddressKHR(
-      m_context->getDevice(), &addressInfo);
+  m_deviceAddress = pfns.p_vkGetAccelerationStructureDeviceAddressKHR(m_context->getDevice(), &addressInfo);
 }
 
-IFRIT_APIDECL Rhi::RhiDeviceAddr TopLevelAS::getDeviceAddress() const {
-  return m_deviceAddress;
-}
+IFRIT_APIDECL Rhi::RhiDeviceAddr TopLevelAS::getDeviceAddress() const { return m_deviceAddress; }
 
 IFRIT_APIDECL
-ShaderBindingTable::ShaderBindingTable(EngineContext *ctx,
-                                       HwRaytracingContext *rtContext)
+ShaderBindingTable::ShaderBindingTable(EngineContext *ctx, HwRaytracingContext *rtContext)
     : m_context(ctx), m_rtContext(rtContext) {}
 
-IFRIT_APIDECL void ShaderBindingTable::appendShaderBindingTable(
-    const std::vector<Rhi::RhiRTShaderGroup> &groups) {
+IFRIT_APIDECL void ShaderBindingTable::appendShaderBindingTable(const std::vector<Rhi::RhiRTShaderGroup> &groups) {
 
   auto numShaders = groups.size();
   BufferCreateInfo sbtBufferCI{};
-  sbtBufferCI.size =
-      numShaders * m_rtContext->getAlignedShaderGroupHandleSize();
+  sbtBufferCI.size = numShaders * m_rtContext->getAlignedShaderGroupHandleSize();
   sbtBufferCI.hostVisible = true;
-  sbtBufferCI.usage = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
-                      VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+  sbtBufferCI.usage = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
   auto sbtBuffer = std::make_shared<SingleBuffer>(m_context, sbtBufferCI);
 
   VkStridedDeviceAddressRegionKHR stridedRegion = {};
@@ -277,8 +241,8 @@ IFRIT_APIDECL void ShaderBindingTable::appendShaderBindingTable(
   sbtBuffer->map();
 }
 
-IFRIT_APIDECL void ShaderBindingTable::prepareShaderBindingTable(
-    const std::vector<std::vector<Rhi::RhiRTShaderGroup>> &groups) {
+IFRIT_APIDECL void
+ShaderBindingTable::prepareShaderBindingTable(const std::vector<std::vector<Rhi::RhiRTShaderGroup>> &groups) {
   std::unordered_map<const Rhi::RhiShader *, u32> shaderMap;
 
   auto insertShader = [&](const Rhi::RhiShader *shader) {
@@ -325,8 +289,7 @@ IFRIT_APIDECL void ShaderBindingTable::prepareShaderBindingTable(
     u32 numGroups = group.size();
     for (auto &shader : group) {
       hasHitShaders = false;
-      if (shader.m_closestHitShader != nullptr ||
-          shader.m_anyHitShader != nullptr ||
+      if (shader.m_closestHitShader != nullptr || shader.m_anyHitShader != nullptr ||
           shader.m_intersectionShader != nullptr) {
         hasHitShaders = true;
       }
@@ -338,8 +301,7 @@ IFRIT_APIDECL void ShaderBindingTable::prepareShaderBindingTable(
       groupCI.generalShader = lookupShaderIndex(shader.m_generalShader);
       groupCI.closestHitShader = lookupShaderIndex(shader.m_closestHitShader);
       groupCI.anyHitShader = lookupShaderIndex(shader.m_anyHitShader);
-      groupCI.intersectionShader =
-          lookupShaderIndex(shader.m_intersectionShader);
+      groupCI.intersectionShader = lookupShaderIndex(shader.m_intersectionShader);
 
       m_shaderGroupsCI.push_back(groupCI);
     }
@@ -347,18 +309,13 @@ IFRIT_APIDECL void ShaderBindingTable::prepareShaderBindingTable(
   }
 }
 
-IFRIT_APIDECL std::vector<const Rhi::RhiShader *>
-ShaderBindingTable::getShaders() const {
-  return m_shaders;
-}
+IFRIT_APIDECL std::vector<const Rhi::RhiShader *> ShaderBindingTable::getShaders() const { return m_shaders; }
 
-IFRIT_APIDECL std::vector<VkRayTracingShaderGroupCreateInfoKHR>
-ShaderBindingTable::getShaderGroupsCI() const {
+IFRIT_APIDECL std::vector<VkRayTracingShaderGroupCreateInfoKHR> ShaderBindingTable::getShaderGroupsCI() const {
   return m_shaderGroupsCI;
 }
 
-IFRIT_APIDECL std::vector<VkStridedDeviceAddressRegionKHR>
-ShaderBindingTable::getStridedRegions() const {
+IFRIT_APIDECL std::vector<VkStridedDeviceAddressRegionKHR> ShaderBindingTable::getStridedRegions() const {
   return m_stridedRegions;
 }
 
@@ -388,8 +345,7 @@ IFRIT_APIDECL void RaytracingPipeline::init() {
   // Create layout
   VkPipelineLayoutCreateInfo layoutCI = {};
   layoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  layoutCI.setLayoutCount =
-      size_cast<u32>(m_createInfo.descriptorSetLayouts.size());
+  layoutCI.setLayoutCount = size_cast<u32>(m_createInfo.descriptorSetLayouts.size());
   layoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
   VkPushConstantRange pushConstantRange = {};
   if (m_createInfo.pushConstSize > 0) {
@@ -400,14 +356,12 @@ IFRIT_APIDECL void RaytracingPipeline::init() {
     layoutCI.pPushConstantRanges = &pushConstantRange;
   }
 
-  vkrVulkanAssert(vkCreatePipelineLayout(m_context->getDevice(), &layoutCI,
-                                         nullptr, &m_layout),
+  vkrVulkanAssert(vkCreatePipelineLayout(m_context->getDevice(), &layoutCI, nullptr, &m_layout),
                   "Failed to create pipeline layout");
 
   // Create pipeline
-  vkrVulkanAssert(pfns.p_vkCreateRayTracingPipelinesKHR(
-                      m_context->getDevice(), VK_NULL_HANDLE, VK_NULL_HANDLE, 1,
-                      &pipelineCI, nullptr, &m_pipeline),
+  vkrVulkanAssert(pfns.p_vkCreateRayTracingPipelinesKHR(m_context->getDevice(), VK_NULL_HANDLE, VK_NULL_HANDLE, 1,
+                                                        &pipelineCI, nullptr, &m_pipeline),
                   "Failed to create raytracing pipeline");
 
   // Prepare handles
@@ -422,10 +376,9 @@ IFRIT_APIDECL void RaytracingPipeline::init() {
   auto sbtHandleSize = totalGroups * alignedHandleSize;
 
   std::vector<char> shaderGroupHandles(sbtHandleSize);
-  pfns.p_vkGetRayTracingShaderGroupHandlesKHR(
-      m_context->getDevice(), m_pipeline, 0,
-      m_rtContext->getAlignedShaderGroupHandleSize(), sbtHandleSize,
-      shaderGroupHandles.data());
+  pfns.p_vkGetRayTracingShaderGroupHandlesKHR(m_context->getDevice(), m_pipeline, 0,
+                                              m_rtContext->getAlignedShaderGroupHandleSize(), sbtHandleSize,
+                                              shaderGroupHandles.data());
 
   auto curOffset = 0;
   for (auto i = 0; i < numGroups.size(); i++) {
@@ -438,8 +391,7 @@ IFRIT_APIDECL void RaytracingPipeline::init() {
   }
 }
 
-IFRIT_APIDECL uint64_t RaytracingPipelineCache::raytracingPipelineHash(
-    const RaytracePipelineCreateInfo &ci) {
+IFRIT_APIDECL uint64_t RaytracingPipelineCache::raytracingPipelineHash(const RaytracePipelineCreateInfo &ci) {
   using namespace Common::Utility;
   if (ci.sbt == nullptr) {
     vkrError("Shader binding table is null");
@@ -467,8 +419,8 @@ IFRIT_APIDECL uint64_t RaytracingPipelineCache::raytracingPipelineHash(
   return hash;
 }
 
-IFRIT_APIDECL bool RaytracingPipelineCache::raytracingPipelineEqual(
-    const RaytracePipelineCreateInfo &a, const RaytracePipelineCreateInfo &b) {
+IFRIT_APIDECL bool RaytracingPipelineCache::raytracingPipelineEqual(const RaytracePipelineCreateInfo &a,
+                                                                    const RaytracePipelineCreateInfo &b) {
   if (a.sbt->getShaders() != b.sbt->getShaders()) {
     return false;
   }
@@ -493,24 +445,20 @@ IFRIT_APIDECL bool RaytracingPipelineCache::raytracingPipelineEqual(
     if (shaderGroupCIA[i].generalShader != shaderGroupCIB[i].generalShader) {
       return false;
     }
-    if (shaderGroupCIA[i].closestHitShader !=
-        shaderGroupCIB[i].closestHitShader) {
+    if (shaderGroupCIA[i].closestHitShader != shaderGroupCIB[i].closestHitShader) {
       return false;
     }
     if (shaderGroupCIA[i].anyHitShader != shaderGroupCIB[i].anyHitShader) {
       return false;
     }
-    if (shaderGroupCIA[i].intersectionShader !=
-        shaderGroupCIB[i].intersectionShader) {
+    if (shaderGroupCIA[i].intersectionShader != shaderGroupCIB[i].intersectionShader) {
       return false;
     }
   }
   return true;
 }
 
-IFRIT_APIDECL RaytracingPipeline *
-RaytracingPipelineCache::getRaytracingPipeline(
-    const RaytracePipelineCreateInfo &ci) {
+IFRIT_APIDECL RaytracingPipeline *RaytracingPipelineCache::getRaytracingPipeline(const RaytracePipelineCreateInfo &ci) {
   auto hash = raytracingPipelineHash(ci);
   if (m_rtPipelineHash.find(hash) != m_rtPipelineHash.end()) {
     auto &pipelineIndices = m_rtPipelineHash[hash];
@@ -521,8 +469,7 @@ RaytracingPipelineCache::getRaytracingPipeline(
     }
   }
 
-  auto pipeline =
-      std::make_unique<RaytracingPipeline>(m_context, m_rtContext, ci);
+  auto pipeline = std::make_unique<RaytracingPipeline>(m_context, m_rtContext, ci);
   m_raytracingPipelines.push_back(std::move(pipeline));
   m_raytracingPipelineCI.push_back(ci);
   m_rtPipelineHash[hash].push_back(m_raytracingPipelines.size() - 1);
@@ -531,38 +478,27 @@ RaytracingPipelineCache::getRaytracingPipeline(
 
 // RaytracingPass
 
-IFRIT_APIDECL void RaytracingPass::setMaxRecursion(u32 maxRecursion) {
-  m_maxRecursion = maxRecursion;
-}
+IFRIT_APIDECL void RaytracingPass::setMaxRecursion(u32 maxRecursion) { m_maxRecursion = maxRecursion; }
 
-IFRIT_APIDECL void
-RaytracingPass::setNumBindlessDescriptors(u32 numDescriptors) {
+IFRIT_APIDECL void RaytracingPass::setNumBindlessDescriptors(u32 numDescriptors) {
   m_numBindlessDescriptors = numDescriptors;
 }
 
-IFRIT_APIDECL void RaytracingPass::setPushConstSize(u32 size) {
-  m_pushConstSize = size;
-}
+IFRIT_APIDECL void RaytracingPass::setPushConstSize(u32 size) { m_pushConstSize = size; }
 
-IFRIT_APIDECL void
-RaytracingPass::setShaderGroups(Rhi::RhiRTShaderBindingTable *sbt) {
-  m_sbt = sbt;
-}
+IFRIT_APIDECL void RaytracingPass::setShaderGroups(Rhi::RhiRTShaderBindingTable *sbt) { m_sbt = sbt; }
 
-IFRIT_APIDECL void RaytracingPass::setTraceRegion(u32 width, u32 height,
-                                                  u32 depth) {
+IFRIT_APIDECL void RaytracingPass::setTraceRegion(u32 width, u32 height, u32 depth) {
   m_regionWidth = width;
   m_regionHeight = height;
   m_regionDepth = depth;
 }
 
-IFRIT_APIDECL void RaytracingPass::setRecordFunction(
-    std::function<void(Rhi::RhiRenderPassContext *)> func) {
+IFRIT_APIDECL void RaytracingPass::setRecordFunction(std::function<void(Rhi::RhiRenderPassContext *)> func) {
   m_recordFunc = func;
 }
 
-IFRIT_APIDECL void RaytracingPass::setShaderIds(u32 rayGen, u32 miss,
-                                                u32 hitGroup, u32 callable) {
+IFRIT_APIDECL void RaytracingPass::setShaderIds(u32 rayGen, u32 miss, u32 hitGroup, u32 callable) {
   m_rayGenId = rayGen;
   m_missId = miss;
   m_hitGroupId = hitGroup;
@@ -577,8 +513,7 @@ IFRIT_APIDECL void RaytracingPass::build() {
   ci.maxRecursion = m_maxRecursion;
   ci.pushConstSize = m_pushConstSize;
   for (int i = 0; i < m_numBindlessDescriptors; i++) {
-    ci.descriptorSetLayouts.push_back(
-        m_descriptorManager->getParameterDescriptorSetLayout());
+    ci.descriptorSetLayouts.push_back(m_descriptorManager->getParameterDescriptorSetLayout());
   }
 
   m_pipeline = m_pipelineCache->getRaytracingPipeline(ci);
@@ -594,11 +529,9 @@ IFRIT_APIDECL void RaytracingPass::run(const Rhi::RhiCommandBuffer *cmd) {
   auto cmdx = cmdraw->getCommandBuffer();
 
   auto bindlessSet = m_descriptorManager->getBindlessSet();
-  vkCmdBindDescriptorSets(cmdx, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-                          m_pipeline->getLayout(), 0, 1, &bindlessSet, 0,
+  vkCmdBindDescriptorSets(cmdx, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline->getLayout(), 0, 1, &bindlessSet, 0,
                           nullptr);
-  vkCmdBindPipeline(cmdx, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-                    m_pipeline->getPipeline());
+  vkCmdBindPipeline(cmdx, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline->getPipeline());
   Rhi::RhiRenderPassContext m_passContext;
   m_passContext.m_cmd = cmdraw;
   m_passContext.m_frame = 0;
@@ -622,9 +555,8 @@ IFRIT_APIDECL void RaytracingPass::run(const Rhi::RhiCommandBuffer *cmd) {
   auto hitGroupRegion = getStridedRegion(m_hitGroupId);
   auto callableRegion = getStridedRegion(m_callableId);
 
-  pfns.p_vkCmdTraceRaysKHR(cmdx, &raygenRegion, &missRegion, &hitGroupRegion,
-                           &callableRegion, m_regionWidth, m_regionHeight,
-                           m_regionDepth);
+  pfns.p_vkCmdTraceRaysKHR(cmdx, &raygenRegion, &missRegion, &hitGroupRegion, &callableRegion, m_regionWidth,
+                           m_regionHeight, m_regionDepth);
 }
 
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

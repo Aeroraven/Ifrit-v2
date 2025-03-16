@@ -16,20 +16,16 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::Utility::Loader {
 class WavefrontLoader {
 public:
-  void loadObject(const char *path, std::vector<ifloat3> &vertices,
-                  std::vector<ifloat3> &normals, std::vector<ifloat2> &uvs,
-                  std::vector<uint32_t> &indices);
-  std::vector<ifloat3> remapNormals(std::vector<ifloat3> normals,
-                                    std::vector<uint32_t> indices,
-                                    int numVertices);
-  std::vector<ifloat2> remapUVs(std::vector<ifloat2> uvs,
-                                std::vector<uint32_t> indices, int numVertices);
+  void loadObject(const char *path, std::vector<ifloat3> &vertices, std::vector<ifloat3> &normals,
+                  std::vector<ifloat2> &uvs, std::vector<u32> &indices);
+  std::vector<ifloat3> remapNormals(std::vector<ifloat3> normals, std::vector<u32> indices, int numVertices);
+  std::vector<ifloat2> remapUVs(std::vector<ifloat2> uvs, std::vector<u32> indices, int numVertices);
 };
 } // namespace Ifrit::GraphicsBackend::SoftGraphics::Utility::Loader

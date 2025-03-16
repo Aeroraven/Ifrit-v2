@@ -18,15 +18,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "RhiForwardingTypes.h"
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/ApiConv.h"
 #include <cstdint>
+
 namespace Ifrit::GraphicsBackend::Rhi::FSR2 {
 
 struct RhiFSR2InitialzeArgs {
-  uint32_t maxRenderWidth;
-  uint32_t maxRenderHeight;
-  uint32_t displayWidth;
-  uint32_t displayHeight;
+  u32 maxRenderWidth;
+  u32 maxRenderHeight;
+  u32 displayWidth;
+  u32 displayHeight;
 };
 
 struct RhiFSR2DispatchArgs {
@@ -50,10 +52,8 @@ class IFRIT_APIDECL RhiFsr2Processor {
 public:
   virtual ~RhiFsr2Processor() = default;
   virtual void init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) = 0;
-  virtual void getJitters(float *jitterX, float *jitterY, uint32_t frameIdx,
-                          uint32_t rtWidth, uint32_t rtHeight) = 0;
-  virtual void dispatch(const Rhi::RhiCommandBuffer *cmd,
-                        const Rhi::FSR2::RhiFSR2DispatchArgs &args) = 0;
+  virtual void getJitters(float *jitterX, float *jitterY, u32 frameIdx, u32 rtWidth, u32 rtHeight) = 0;
+  virtual void dispatch(const Rhi::RhiCommandBuffer *cmd, const Rhi::FSR2::RhiFSR2DispatchArgs &args) = 0;
 };
 
 } // namespace Ifrit::GraphicsBackend::Rhi::FSR2

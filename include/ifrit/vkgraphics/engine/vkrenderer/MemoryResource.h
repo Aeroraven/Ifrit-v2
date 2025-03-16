@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
@@ -27,7 +28,7 @@ namespace Ifrit::GraphicsBackend::VulkanGraphics {
 enum class BufferMemoryType { DeviceLocal, HostLocal };
 
 struct BufferCreateInfo {
-  uint32_t size;
+  u32 size;
   VkFlags usage;
   bool hostVisible = false;
 };
@@ -48,20 +49,18 @@ protected:
 
 public:
   SingleBuffer() : m_created(false) {}
-  SingleBuffer(EngineContext *ctx, const BufferCreateInfo &ci)
-      : m_context(ctx), m_createInfo(ci), m_created(true) {
+  SingleBuffer(EngineContext *ctx, const BufferCreateInfo &ci) : m_context(ctx), m_createInfo(ci), m_created(true) {
     init();
   }
   virtual ~SingleBuffer();
   virtual void map() override;
   virtual void unmap() override;
-  virtual void readBuffer(void *data, uint32_t size, uint32_t offset) override;
-  virtual void writeBuffer(const void *data, uint32_t size,
-                           uint32_t offset) override;
+  virtual void readBuffer(void *data, u32 size, u32 offset) override;
+  virtual void writeBuffer(const void *data, u32 size, u32 offset) override;
   virtual void flush() override;
   inline VkBuffer getBuffer() const { return m_buffer; }
   inline VkFlags getUsage() const { return m_createInfo.usage; }
-  inline uint32_t getSize() const { return m_createInfo.size; }
+  inline u32 getSize() const { return m_createInfo.size; }
   inline BufferCreateInfo getCreateInfo() const { return m_createInfo; }
 
   virtual Rhi::RhiDeviceAddr getDeviceAddress() const;
@@ -73,29 +72,26 @@ protected:
   std::vector<SingleBuffer *> m_buffers;
   BufferCreateInfo m_createInfo;
   EngineContext *m_context;
-  uint32_t m_activeFrame = 0;
+  u32 m_activeFrame = 0;
 
 public:
-  MultiBuffer(EngineContext *ctx, const BufferCreateInfo &ci,
-              uint32_t numCopies);
+  MultiBuffer(EngineContext *ctx, const BufferCreateInfo &ci, u32 numCopies);
   MultiBuffer(const MultiBuffer &p) = delete;
   MultiBuffer(EngineContext *ctx, const std::vector<SingleBuffer *> &buffers);
   MultiBuffer &operator=(const MultiBuffer &p) = delete;
-  SingleBuffer *getBuffer(uint32_t index);
-  inline Rhi::RhiBuffer *getActiveBuffer() override {
-    return m_buffers[m_activeFrame];
-  }
+  SingleBuffer *getBuffer(u32 index);
+  inline Rhi::RhiBuffer *getActiveBuffer() override { return m_buffers[m_activeFrame]; }
   inline void advanceFrame() {
     m_activeFrame++;
     m_activeFrame %= m_buffers.size();
   }
-  inline uint32_t getActiveFrame() { return m_activeFrame; }
-  inline void setActiveFrame(uint32_t frame) { m_activeFrame = frame; }
-  inline uint32_t getBufferCount() {
+  inline u32 getActiveFrame() { return m_activeFrame; }
+  inline void setActiveFrame(u32 frame) { m_activeFrame = frame; }
+  inline u32 getBufferCount() {
     using namespace Ifrit::Common::Utility;
     return size_cast<int>(m_buffers.size());
   }
-  inline Rhi::RhiBuffer *getActiveBufferRelative(uint32_t deltaFrame) override {
+  inline Rhi::RhiBuffer *getActiveBufferRelative(u32 deltaFrame) override {
     return m_buffers[(m_activeFrame + deltaFrame) % m_buffers.size()];
   }
 };
@@ -108,11 +104,11 @@ struct ImageCreateInfo {
   VkImageUsageFlags usage;
   ImageAspect aspect = ImageAspect::Color;
   ImageType type = ImageType::Image2D;
-  uint32_t width;
-  uint32_t height;
-  uint32_t depth = 1;
-  uint32_t mipLevels = 1;
-  uint32_t arrayLayers = 1;
+  u32 width;
+  u32 height;
+  u32 depth = 1;
+  u32 mipLevels = 1;
+  u32 arrayLayers = 1;
   bool hostVisible = false;
 };
 
@@ -128,7 +124,7 @@ protected:
   bool m_isSwapchainImage = false;
   bool m_created = false;
 
-  std::unordered_map<uint64_t, VkImageView> m_managedImageViews;
+  std::unordered_map<u64, VkImageView> m_managedImageViews;
 
 public:
   SingleDeviceImage() {}
@@ -138,14 +134,12 @@ public:
   virtual VkFormat getFormat() const;
   virtual VkImage getImage() const;
   virtual VkImageView getImageView();
-  virtual VkImageView getImageViewMipLayer(uint32_t mipLevel, uint32_t layer,
-                                           uint32_t mipRange,
-                                           uint32_t layerRange);
+  virtual VkImageView getImageViewMipLayer(u32 mipLevel, u32 layer, u32 mipRange, u32 layerRange);
   inline bool getIsSwapchainImage() { return m_isSwapchainImage; }
-  uint32_t getSize();
-  inline uint32_t getWidth() const override { return m_createInfo.width; }
-  inline uint32_t getHeight() const override { return m_createInfo.height; }
-  inline uint32_t getDepth() const { return m_createInfo.depth; }
+  u32 getSize();
+  inline u32 getWidth() const override { return m_createInfo.width; }
+  inline u32 getHeight() const override { return m_createInfo.height; }
+  inline u32 getDepth() const { return m_createInfo.depth; }
   inline VkImageAspectFlags getAspect() const {
     if (m_createInfo.aspect == ImageAspect::Color) {
       return VK_IMAGE_ASPECT_COLOR_BIT;
@@ -156,11 +150,9 @@ public:
     }
     return VK_IMAGE_ASPECT_COLOR_BIT;
   }
-  inline uint32_t getMipLevels() { return m_createInfo.mipLevels; }
-  inline uint32_t getArrayLayers() { return m_createInfo.arrayLayers; }
-  inline bool isDepthTexture() const override {
-    return m_createInfo.aspect == ImageAspect::Depth;
-  }
+  inline u32 getMipLevels() { return m_createInfo.mipLevels; }
+  inline u32 getArrayLayers() { return m_createInfo.arrayLayers; }
+  inline bool isDepthTexture() const override { return m_createInfo.aspect == ImageAspect::Depth; }
   inline void *getNativeHandle() const override { return m_image; }
 };
 
@@ -199,7 +191,7 @@ protected:
   EngineContext *m_context;
   std::vector<std::unique_ptr<SingleBuffer>> m_simpleBuffer;
   std::vector<std::shared_ptr<MultiBuffer>> m_multiBuffer;
-  std::vector<uint32_t> m_multiBufferTraced;
+  std::vector<u32> m_multiBufferTraced;
   std::vector<std::unique_ptr<SingleDeviceImage>> m_simpleImage;
   std::vector<std::unique_ptr<Sampler>> m_samplers;
   int32_t m_defaultCopies = -1;
@@ -210,88 +202,71 @@ public:
   ResourceManager(const ResourceManager &p) = delete;
   ResourceManager &operator=(const ResourceManager &p) = delete;
 
-  std::shared_ptr<MultiBuffer>
-  createMultipleBuffer(const BufferCreateInfo &ci,
-                       uint32_t numCopies = UINT32_MAX);
-  std::shared_ptr<MultiBuffer>
-  createTracedMultipleBuffer(const BufferCreateInfo &ci,
-                             uint32_t numCopies = UINT32_MAX);
+  std::shared_ptr<MultiBuffer> createMultipleBuffer(const BufferCreateInfo &ci, u32 numCopies = UINT32_MAX);
+  std::shared_ptr<MultiBuffer> createTracedMultipleBuffer(const BufferCreateInfo &ci, u32 numCopies = UINT32_MAX);
   SingleBuffer *createSimpleBuffer(const BufferCreateInfo &ci);
   SingleDeviceImage *createSimpleImage(const ImageCreateInfo &ci);
   Sampler *createSampler(const SamplerCreateInfo &ci);
 
-  void setActiveFrame(uint32_t frame);
+  void setActiveFrame(u32 frame);
   inline void setDefaultCopies(int32_t copies) { m_defaultCopies = copies; }
 
   // Previous design is TOO UGLY, it saves UNUSED buffer and image
   // for new interfaces, following methods will be used to create mem resources
   // TODO: refactor the code
-  std::shared_ptr<SingleDeviceImage>
-  createSimpleImageUnmanaged(const ImageCreateInfo &ci);
+  std::shared_ptr<SingleDeviceImage> createSimpleImageUnmanaged(const ImageCreateInfo &ci);
 
-  std::shared_ptr<SingleBuffer>
-  createSimpleBufferUnmanaged(const BufferCreateInfo &ci);
+  std::shared_ptr<SingleBuffer> createSimpleBufferUnmanaged(const BufferCreateInfo &ci);
 
   // Quick shortcuts
 
   // Create a storage buffer that used to transfer data from host side
   // EVERY FRAME. It accepts data from staging buffer or host. Double
   // buffering will be used in this buffer.
-  // MultiBuffer *createStorageBufferShared(uint32_t size, bool hostVisible,
+  // MultiBuffer *createStorageBufferShared(u32 size, bool hostVisible,
   //                                        VkFlags extraFlags = 0);
 
   // Create a storage buffer that only works on GPU side.
-  SingleBuffer *createStorageBufferDevice(uint32_t size,
-                                          VkFlags extraFlags = 0);
+  SingleBuffer *createStorageBufferDevice(u32 size, VkFlags extraFlags = 0);
 
   // Create a indirect mesh draw buffer and the target for compute shader
-  SingleBuffer *createIndirectMeshDrawBufferDevice(uint32_t numDrawCalls,
-                                                   VkFlags extraFlags = 0);
+  SingleBuffer *createIndirectMeshDrawBufferDevice(u32 numDrawCalls, VkFlags extraFlags = 0);
 
   // Create a uniform buffer that will be used to transfer data from host
-  // MultiBuffer *createUniformBufferShared(uint32_t size, bool hostVisible,
+  // MultiBuffer *createUniformBufferShared(u32 size, bool hostVisible,
   //                                        VkFlags extraFlags = 0);
 
   // Create a vertex buffer.
-  SingleBuffer *createVertexBufferDevice(uint32_t size, VkFlags extraFlags = 0);
+  SingleBuffer *createVertexBufferDevice(u32 size, VkFlags extraFlags = 0);
 
   // Create an index buffer.
-  SingleBuffer *createIndexBufferDevice(uint32_t size, VkFlags extraFlags = 0);
+  SingleBuffer *createIndexBufferDevice(u32 size, VkFlags extraFlags = 0);
 
   // Create an proxy multi buffer
-  MultiBuffer *
-  createProxyMultiBuffer(const std::vector<SingleBuffer *> &buffers);
+  MultiBuffer *createProxyMultiBuffer(const std::vector<SingleBuffer *> &buffers);
 
   // Create a depth attachment
-  std::shared_ptr<SingleDeviceImage>
-  createDepthAttachment(uint32_t width, uint32_t height,
-                        VkFormat format = VK_FORMAT_D32_SFLOAT,
-                        VkImageUsageFlags extraUsage = 0);
+  std::shared_ptr<SingleDeviceImage> createDepthAttachment(u32 width, u32 height,
+                                                           VkFormat format = VK_FORMAT_D32_SFLOAT,
+                                                           VkImageUsageFlags extraUsage = 0);
 
   // Create a simple 2D texture, without mipmaps
-  std::shared_ptr<SingleDeviceImage>
-  createTexture2DDeviceUnmanaged(uint32_t width, uint32_t height,
-                                 VkFormat format,
-                                 VkImageUsageFlags extraUsage = 0);
+  std::shared_ptr<SingleDeviceImage> createTexture2DDeviceUnmanaged(u32 width, u32 height, VkFormat format,
+                                                                    VkImageUsageFlags extraUsage = 0);
 
   // Create a readable render target texture
-  std::shared_ptr<SingleDeviceImage>
-  createRenderTargetTexture(uint32_t width, uint32_t height, VkFormat format,
-                            VkImageUsageFlags extraUsage = 0);
+  std::shared_ptr<SingleDeviceImage> createRenderTargetTexture(u32 width, u32 height, VkFormat format,
+                                                               VkImageUsageFlags extraUsage = 0);
 
-  std::shared_ptr<SingleDeviceImage>
-  createTexture3D(uint32_t width, uint32_t height, uint32_t depth,
-                  VkFormat format, VkImageUsageFlags extraUsage = 0);
+  std::shared_ptr<SingleDeviceImage> createTexture3D(u32 width, u32 height, u32 depth, VkFormat format,
+                                                     VkImageUsageFlags extraUsage = 0);
 
   // Create a readable render target texture with mipLevels
-  std::shared_ptr<SingleDeviceImage>
-  createMipTexture(uint32_t width, uint32_t height, uint32_t mips,
-                   VkFormat format, VkImageUsageFlags extraUsage = 0);
+  std::shared_ptr<SingleDeviceImage> createMipTexture(u32 width, u32 height, u32 mips, VkFormat format,
+                                                      VkImageUsageFlags extraUsage = 0);
 
   // Create a device only texture, intended for shader read.
-  SingleDeviceImage *createTexture2DDevice(uint32_t width, uint32_t height,
-                                           VkFormat format,
-                                           VkImageUsageFlags extraUsage = 0);
+  SingleDeviceImage *createTexture2DDevice(u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage = 0);
 
   // Create a simple sampler
   std::shared_ptr<Sampler> createTrivialRenderTargetSampler();

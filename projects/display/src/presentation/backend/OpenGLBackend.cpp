@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/display/presentation/backend/OpenGLBackend.h"
 
 static const char *vertexShaderCodeF = R"(
@@ -53,10 +52,8 @@ IFRIT_APIDECL void OpenGLBackend::draw() {
   glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 IFRIT_APIDECL OpenGLBackend::OpenGLBackend() {
-  vertexShaderCode =
-      vertexShaderCode.empty() ? vertexShaderCodeF : vertexShaderCode;
-  fragmentShaderCode =
-      fragmentShaderCode.empty() ? fragmentShaderCodeF : fragmentShaderCode;
+  vertexShaderCode = vertexShaderCode.empty() ? vertexShaderCodeF : vertexShaderCode;
+  fragmentShaderCode = fragmentShaderCode.empty() ? fragmentShaderCodeF : fragmentShaderCode;
   vertexShader = glCreateShader(GL_VERTEX_SHADER);
   const char *vertexShaderCodeCStr = vertexShaderCode.c_str();
   glShaderSource(vertexShader, 1, &vertexShaderCodeCStr, NULL);
@@ -99,8 +96,7 @@ IFRIT_APIDECL OpenGLBackend::OpenGLBackend() {
 
   glGenBuffers(1, &VBO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float),
-               vertices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
@@ -115,24 +111,19 @@ IFRIT_APIDECL OpenGLBackend::OpenGLBackend() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
-IFRIT_APIDECL void OpenGLBackend::updateTexture(const float *image,
-                                                int channels, int width,
-                                                int height) {
+IFRIT_APIDECL void OpenGLBackend::updateTexture(const float *image, int channels, int width, int height) {
   const static float *ptr = nullptr;
   glBindTexture(GL_TEXTURE_2D, texture);
   auto data = image;
   if (ptr != data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT,
-                 data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, data);
     ptr = image;
   } else {
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_FLOAT,
-                    data);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_FLOAT, data);
   }
   // glGenerateMipmap(GL_TEXTURE_2D);
 }
-IFRIT_APIDECL void OpenGLBackend::setViewport(int32_t x, int32_t y,
-                                              int32_t width, int32_t height) {
+IFRIT_APIDECL void OpenGLBackend::setViewport(int32_t x, int32_t y, int32_t width, int32_t height) {
   glViewport(x, y, width, height);
 }
 } // namespace Ifrit::Display::Backend

@@ -44,8 +44,7 @@ inline float4x4 matmul(const float4x4 &a, const float4x4 &b) {
   float4x4 result;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      result[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j] +
-                     a[i][3] * b[3][j];
+      result[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j] + a[i][3] * b[3][j];
     }
   }
   return result;
@@ -135,8 +134,7 @@ inline float4x4 perspective(float fovy, float aspect, float zNear, float zFar) {
   result[3][3] = 0;
   return result;
 }
-inline float4x4 perspectiveNegateY(float fovy, float aspect, float zNear,
-                                   float zFar) {
+inline float4x4 perspectiveNegateY(float fovy, float aspect, float zNear, float zFar) {
   float4x4 result;
   float halfFovy = fovy / 2.0f;
   float nTop = zNear * tan(halfFovy);
@@ -161,8 +159,7 @@ inline float4x4 perspectiveNegateY(float fovy, float aspect, float zNear,
   result[3][3] = 0;
   return result;
 }
-inline float4x4 orthographicNegateY(float orthoSize, float aspect, float zNear,
-                                    float zFar) {
+inline float4x4 orthographicNegateY(float orthoSize, float aspect, float zNear, float zFar) {
   float4x4 result;
   float nTop = orthoSize / 2;
   float nRight = nTop * aspect;
@@ -227,15 +224,13 @@ inline ifloat3 eulerFromRotationMatrix(const float4x4 &q) {
   // https://stackoverflow.com/questions/15022630/how-to-calculate-the-angle-from-rotation-matrix
   ifloat3 euler;
   euler.x = std::atan2(q[2][1], q[2][2]);
-  euler.y =
-      std::atan2(-q[2][0], std::sqrt(q[2][1] * q[2][1] + q[2][2] * q[2][2]));
+  euler.y = std::atan2(-q[2][0], std::sqrt(q[2][1] * q[2][1] + q[2][2] * q[2][2]));
   euler.z = std::atan2(q[1][0], q[0][0]);
   return euler;
 }
 
 // Always assume the homogeneous part of the matrix (that is A[3][3]) is 1
-inline void recoverTransformInfo(const float4x4 &q, ifloat3 &scale,
-                                 ifloat3 &translation, ifloat3 &rotation) {
+inline void recoverTransformInfo(const float4x4 &q, ifloat3 &scale, ifloat3 &translation, ifloat3 &rotation) {
   translation.x = q[0][3];
   translation.y = q[1][3];
   translation.z = q[2][3];
@@ -314,9 +309,7 @@ inline float4x4 inverse4(const float4x4 &p) {
   return inv;
 }
 
-inline float4x4 getTransformMat(const ifloat3 &scale,
-                                const ifloat3 &translation,
-                                const ifloat3 &rotation) {
+inline float4x4 getTransformMat(const ifloat3 &scale, const ifloat3 &translation, const ifloat3 &rotation) {
   float4x4 result = identity();
   result = matmul(scale3D(scale), result);
   result = matmul(axisAngleRotation({1, 0, 0}, rotation.x), result);

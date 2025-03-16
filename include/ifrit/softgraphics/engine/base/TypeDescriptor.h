@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/math/VectorDefs.h"
 #include "ifrit/softgraphics/core/definition/CoreTypes.h"
 
@@ -38,12 +38,11 @@ enum TypeDescriptorEnum {
   IFTP_UINT4
 };
 struct IFRIT_APIDECL TypeDescriptor {
-  uint32_t size;
+  u32 size;
   TypeDescriptorEnum type;
 };
 
-template <typename T, TypeDescriptorEnum U>
-struct IFRIT_APIDECL TypeDescriptorImpl : TypeDescriptor {
+template <typename T, TypeDescriptorEnum U> struct IFRIT_APIDECL TypeDescriptorImpl : TypeDescriptor {
   TypeDescriptorImpl() {
     this->size = sizeof(T);
     this->type = U;

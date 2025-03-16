@@ -16,22 +16,13 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
-enum SpvVMCtxEndian {
-  IFSP_UNDEFINED = 0,
-  IFSP_LITTLE_ENDIAN = 1,
-  IFSP_BIG_ENDIAN = 2,
-  IFSP_MAX_ENUM = 3
-};
+enum SpvVMCtxEndian { IFSP_UNDEFINED = 0, IFSP_LITTLE_ENDIAN = 1, IFSP_BIG_ENDIAN = 2, IFSP_MAX_ENUM = 3 };
 enum SpvVMIntermediateReprAttribute { IFSP_IR_SOURCE_TYPE };
-enum SpvVMMatrixLayout {
-  IFSP_MATL_UNDEF,
-  IFSP_MATL_COLMAJOR,
-  IFSP_MATL_ROWMAJOR
-};
+enum SpvVMMatrixLayout { IFSP_MATL_UNDEF, IFSP_MATL_COLMAJOR, IFSP_MATL_ROWMAJOR };
 enum SpvVMIntermediateReprExpTargetType {
   IFSP_IRTARGET_UNSPECIFIED,
   IFSP_IRTARGET_INTERMEDIATE_UNDEF,
@@ -60,9 +51,9 @@ enum SpvVMIntermediateReprExpTargetDeclType {
   IFSP_IRTARGET_DECL_ACCELERATION_STRUCTURE
 };
 struct SpvVMCtxInstruction {
-  uint32_t opCode;
-  uint32_t opWordCounts;
-  std::vector<uint32_t> opParams;
+  u32 opCode;
+  u32 opWordCounts;
+  std::vector<u32> opParams;
 };
 
 struct SpvVMIntermediateReprBlock {
@@ -121,8 +112,7 @@ struct SpvVMIntermediateReprExpTarget {
   bool isMergedBlock = false;
 
   SpvVMIntermediateReprExpTargetType exprType = IFSP_IRTARGET_UNSPECIFIED;
-  SpvVMIntermediateReprExpTargetDeclType declType =
-      IFSP_IRTARGET_DECL_UNSPECIFIED;
+  SpvVMIntermediateReprExpTargetDeclType declType = IFSP_IRTARGET_DECL_UNSPECIFIED;
 
   std::string name;
   std::string debugString;
@@ -154,7 +144,7 @@ struct SpvVMIntermediateReprExpTarget {
 };
 struct SpvVMIntermediateRepresentation {
   SpvVMIntermediateReprBlock *root = nullptr;
-  std::unordered_map<uint32_t, SpvVMIntermediateReprExpTarget> targets;
+  std::unordered_map<u32, SpvVMIntermediateReprExpTarget> targets;
   std::unordered_map<SpvVMIntermediateReprAttribute, int> attributes;
   int addressingModel;
   int memoryModel;
@@ -180,11 +170,11 @@ struct SpvVMIntermediateRepresentation {
 };
 
 struct SpvVMContext {
-  uint32_t headerMagic;
-  uint32_t headerVersion;
-  uint32_t headerGenerator;
-  uint32_t headerBound;
-  uint32_t headerSchema;
+  u32 headerMagic;
+  u32 headerVersion;
+  u32 headerGenerator;
+  u32 headerBound;
+  u32 headerSchema;
   SpvVMCtxEndian endianBytecode;
   SpvVMCtxEndian endianParserNative;
   std::vector<SpvVMCtxInstruction> instructions;

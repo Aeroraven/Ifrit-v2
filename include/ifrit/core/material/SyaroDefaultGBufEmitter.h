@@ -1,13 +1,13 @@
 #pragma once
-
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/core/application/Application.h"
 #include "ifrit/core/base/Material.h"
 
 namespace Ifrit::Core {
 
 struct SyaroDefaultGBufEmitterData {
-  uint32_t m_albedoId;
-  uint32_t m_normalMapId;
+  u32 m_albedoId;
+  u32 m_normalMapId;
 };
 
 class IFRIT_APIDECL SyaroDefaultGBufEmitter : public Material {
@@ -21,7 +21,7 @@ public:
   void buildMaterial();
   ~SyaroDefaultGBufEmitter() = default;
 
-  inline void setAlbedoId(uint32_t id) { m_materialData.m_albedoId = id; }
-  inline void setNormalMapId(uint32_t id) { m_materialData.m_normalMapId = id; }
+  inline void setAlbedoId(u32 id) { m_materialData.m_albedoId = id; }
+  inline void setNormalMapId(u32 id) { m_materialData.m_normalMapId = id; }
 };
 } // namespace Ifrit::Core

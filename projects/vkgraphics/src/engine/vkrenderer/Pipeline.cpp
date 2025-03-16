@@ -24,34 +24,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
-template <typename E>
-constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
+template <typename E> constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
   return static_cast<typename std::underlying_type<E>::type>(e);
 }
 
 IFRIT_APIDECL void GraphicsPipeline::init() {
   // Dynamic states
-  std::vector<VkDynamicState> dynamicStates = {
-      VK_DYNAMIC_STATE_VIEWPORT,
-      VK_DYNAMIC_STATE_SCISSOR,
-      VK_DYNAMIC_STATE_CULL_MODE_EXT,
-      VK_DYNAMIC_STATE_FRONT_FACE_EXT,
-      VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT, //
-      VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT,
-      VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT,
-      VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT,
-      VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT,
-      VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT,
-      VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT,
-      VK_DYNAMIC_STATE_STENCIL_OP_EXT,
-      VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT, // f
-      VK_DYNAMIC_STATE_LOGIC_OP_EXT,
-      VK_DYNAMIC_STATE_BLEND_CONSTANTS,
-      VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT,
-      VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT};
+  std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT,
+                                               VK_DYNAMIC_STATE_SCISSOR,
+                                               VK_DYNAMIC_STATE_CULL_MODE_EXT,
+                                               VK_DYNAMIC_STATE_FRONT_FACE_EXT,
+                                               VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT, //
+                                               VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT,
+                                               VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT,
+                                               VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT,
+                                               VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT,
+                                               VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT,
+                                               VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT,
+                                               VK_DYNAMIC_STATE_STENCIL_OP_EXT,
+                                               VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT, // f
+                                               VK_DYNAMIC_STATE_LOGIC_OP_EXT,
+                                               VK_DYNAMIC_STATE_BLEND_CONSTANTS,
+                                               VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT,
+                                               VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT};
 
-  if (m_createInfo.geomGenType ==
-      Rhi::RhiGeometryGenerationType::Conventional) {
+  if (m_createInfo.geomGenType == Rhi::RhiGeometryGenerationType::Conventional) {
     dynamicStates.push_back(VK_DYNAMIC_STATE_VERTEX_INPUT_EXT);
   }
 
@@ -62,8 +59,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
 
   // Input assembly
   VkPipelineInputAssemblyStateCreateInfo inputAssemblyCI{};
-  inputAssemblyCI.sType =
-      VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+  inputAssemblyCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
   if (m_createInfo.topology == Rhi::RhiRasterizerTopology::TriangleList) {
     inputAssemblyCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   } else if (m_createInfo.topology == Rhi::RhiRasterizerTopology::Line) {
@@ -82,8 +78,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
 
   // Rasterization
   VkPipelineRasterizationStateCreateInfo rasterizationCI{};
-  rasterizationCI.sType =
-      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+  rasterizationCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   rasterizationCI.depthClampEnable = VK_FALSE;
   rasterizationCI.rasterizerDiscardEnable = VK_FALSE;
   rasterizationCI.polygonMode = VK_POLYGON_MODE_FILL;
@@ -94,8 +89,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
 
   // Multisampling
   VkPipelineMultisampleStateCreateInfo multisampleCI{};
-  multisampleCI.sType =
-      VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+  multisampleCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
   multisampleCI.sampleShadingEnable = VK_FALSE;
   multisampleCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -103,8 +97,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   bool reqDepth = m_createInfo.depthAttachmentFormat != VK_FORMAT_UNDEFINED;
   VkPipelineRenderingCreateInfo renderCI{};
   renderCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-  renderCI.colorAttachmentCount =
-      size_cast<int>(m_createInfo.colorAttachmentFormats.size());
+  renderCI.colorAttachmentCount = size_cast<int>(m_createInfo.colorAttachmentFormats.size());
   renderCI.pColorAttachmentFormats = m_createInfo.colorAttachmentFormats.data();
   renderCI.depthAttachmentFormat = m_createInfo.depthAttachmentFormat;
   renderCI.stencilAttachmentFormat = m_createInfo.stencilAttachmentFormat;
@@ -115,8 +108,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   for (int i = 0; i < m_createInfo.colorAttachmentFormats.size(); i++) {
     VkPipelineColorBlendAttachmentState attachment{};
     attachment.colorWriteMask =
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     attachment.blendEnable = VK_FALSE;
     colorBlendAttachment.push_back(attachment);
   }
@@ -129,8 +121,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
 
   // Depth Stencil
   VkPipelineDepthStencilStateCreateInfo depthStencilCI{};
-  depthStencilCI.sType =
-      VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+  depthStencilCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
   depthStencilCI.depthTestEnable = VK_FALSE;
   depthStencilCI.depthWriteEnable = VK_FALSE;
   depthStencilCI.depthCompareOp = VK_COMPARE_OP_ALWAYS;
@@ -140,8 +131,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
   // TODO: Pipeline layout
   VkPipelineLayoutCreateInfo pipelineLayoutCI{};
   pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutCI.setLayoutCount =
-      size_cast<int>(m_createInfo.descriptorSetLayouts.size());
+  pipelineLayoutCI.setLayoutCount = size_cast<int>(m_createInfo.descriptorSetLayouts.size());
   pipelineLayoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
   pipelineLayoutCI.pushConstantRangeCount = 0;
   pipelineLayoutCI.pPushConstantRanges = nullptr;
@@ -153,8 +143,7 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
     pipelineLayoutCI.pushConstantRangeCount = 1;
     pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
   }
-  vkrVulkanAssert(vkCreatePipelineLayout(m_context->getDevice(),
-                                         &pipelineLayoutCI, nullptr, &m_layout),
+  vkrVulkanAssert(vkCreatePipelineLayout(m_context->getDevice(), &pipelineLayoutCI, nullptr, &m_layout),
                   "Failed to create pipeline layout");
   m_layoutCreated = true;
 
@@ -247,11 +236,9 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
     cacheCI.pInitialData = cacheData.data();
   }
 
-  vkrVulkanAssert(vkCreatePipelineCache(device, &cacheCI, nullptr, &cache),
-                  "Failed to create pipeline cache");
+  vkrVulkanAssert(vkCreatePipelineCache(device, &cacheCI, nullptr, &cache), "Failed to create pipeline cache");
 
-  auto res = vkCreateGraphicsPipelines(device, cache, 1, &pipelineCI, nullptr,
-                                       &m_pipeline);
+  auto res = vkCreateGraphicsPipelines(device, cache, 1, &pipelineCI, nullptr, &m_pipeline);
   vkrVulkanAssert(res, "Failed to create graphics pipeline");
 
   if (!cacheExists) {
@@ -259,13 +246,11 @@ IFRIT_APIDECL void GraphicsPipeline::init() {
     vkrVulkanAssert(vkGetPipelineCacheData(device, cache, &cacheSize, nullptr),
                     "Failed to get pipeline cache data size");
     cacheData.resize(cacheSize);
-    vkrVulkanAssert(
-        vkGetPipelineCacheData(device, cache, &cacheSize, cacheData.data()),
-        "Failed to get pipeline cache data");
+    vkrVulkanAssert(vkGetPipelineCacheData(device, cache, &cacheSize, cacheData.data()),
+                    "Failed to get pipeline cache data");
 
     std::ofstream cacheFile(cachePath, std::ios::binary);
-    cacheFile.write(reinterpret_cast<const char *>(cacheData.data()),
-                    cacheSize);
+    cacheFile.write(reinterpret_cast<const char *>(cacheData.data()), cacheSize);
     cacheFile.close();
   }
   m_pipelineCreated = true;
@@ -283,8 +268,7 @@ IFRIT_APIDECL GraphicsPipeline::~GraphicsPipeline() {
 IFRIT_APIDECL void ComputePipeline::init() {
   VkPipelineLayoutCreateInfo pipelineLayoutCI{};
   pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutCI.setLayoutCount =
-      size_cast<int>(m_createInfo.descriptorSetLayouts.size());
+  pipelineLayoutCI.setLayoutCount = size_cast<int>(m_createInfo.descriptorSetLayouts.size());
   pipelineLayoutCI.pSetLayouts = m_createInfo.descriptorSetLayouts.data();
   pipelineLayoutCI.pushConstantRangeCount = 0;
   pipelineLayoutCI.pPushConstantRanges = nullptr;
@@ -296,8 +280,7 @@ IFRIT_APIDECL void ComputePipeline::init() {
     pipelineLayoutCI.pushConstantRangeCount = 1;
     pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
   }
-  vkrVulkanAssert(vkCreatePipelineLayout(m_context->getDevice(),
-                                         &pipelineLayoutCI, nullptr, &m_layout),
+  vkrVulkanAssert(vkCreatePipelineLayout(m_context->getDevice(), &pipelineLayoutCI, nullptr, &m_layout),
                   "Failed to create pipeline layout");
   m_layoutCreated = true;
 
@@ -350,29 +333,24 @@ IFRIT_APIDECL void ComputePipeline::init() {
     cacheCI.pInitialData = cacheData.data();
   }
 
-  vkrVulkanAssert(
-      vkCreatePipelineCache(m_context->getDevice(), &cacheCI, nullptr, &cache),
-      "Failed to create pipeline cache");
+  vkrVulkanAssert(vkCreatePipelineCache(m_context->getDevice(), &cacheCI, nullptr, &cache),
+                  "Failed to create pipeline cache");
 
-  auto res = vkCreateComputePipelines(m_context->getDevice(), cache, 1,
-                                      &pipelineCI, nullptr, &m_pipeline);
+  auto res = vkCreateComputePipelines(m_context->getDevice(), cache, 1, &pipelineCI, nullptr, &m_pipeline);
   vkrVulkanAssert(res, "Failed to create compute pipeline");
   m_pipelineCreated = true;
 
   // Save the cache data
   if (!cacheExists) {
     size_t cacheSize = 0;
-    vkrVulkanAssert(vkGetPipelineCacheData(m_context->getDevice(), cache,
-                                           &cacheSize, nullptr),
+    vkrVulkanAssert(vkGetPipelineCacheData(m_context->getDevice(), cache, &cacheSize, nullptr),
                     "Failed to get pipeline cache data size");
     cacheData.resize(cacheSize);
-    vkrVulkanAssert(vkGetPipelineCacheData(m_context->getDevice(), cache,
-                                           &cacheSize, cacheData.data()),
+    vkrVulkanAssert(vkGetPipelineCacheData(m_context->getDevice(), cache, &cacheSize, cacheData.data()),
                     "Failed to get pipeline cache data");
 
     std::ofstream cacheFile(cachePath, std::ios::binary);
-    cacheFile.write(reinterpret_cast<const char *>(cacheData.data()),
-                    cacheSize);
+    cacheFile.write(reinterpret_cast<const char *>(cacheData.data()), cacheSize);
     cacheFile.close();
   }
 }
@@ -387,11 +365,9 @@ IFRIT_APIDECL ComputePipeline::~ComputePipeline() {
 }
 
 // Class : Pipeline Cache
-IFRIT_APIDECL PipelineCache::PipelineCache(EngineContext *context)
-    : m_context(context) {}
+IFRIT_APIDECL PipelineCache::PipelineCache(EngineContext *context) : m_context(context) {}
 
-IFRIT_APIDECL uint64_t
-PipelineCache::graphicsPipelineHash(const GraphicsPipelineCreateInfo &ci) {
+IFRIT_APIDECL uint64_t PipelineCache::graphicsPipelineHash(const GraphicsPipelineCreateInfo &ci) {
   uint64_t hash = 0x9e3779b9;
   std::hash<uint64_t> hashFunc;
   for (int i = 0; i < ci.shaderModules.size(); i++) {
@@ -414,8 +390,7 @@ PipelineCache::graphicsPipelineHash(const GraphicsPipelineCreateInfo &ci) {
   return hash;
 }
 
-IFRIT_APIDECL uint64_t
-PipelineCache::computePipelineHash(const ComputePipelineCreateInfo &ci) {
+IFRIT_APIDECL uint64_t PipelineCache::computePipelineHash(const ComputePipelineCreateInfo &ci) {
   uint64_t hash = 0x9e3779b9;
   std::hash<uint64_t> hashFunc;
   auto pStage = ci.shaderModules;
@@ -427,9 +402,8 @@ PipelineCache::computePipelineHash(const ComputePipelineCreateInfo &ci) {
   return hash;
 }
 
-IFRIT_APIDECL bool
-PipelineCache::graphicsPipelineEqual(const GraphicsPipelineCreateInfo &a,
-                                     const GraphicsPipelineCreateInfo &b) {
+IFRIT_APIDECL bool PipelineCache::graphicsPipelineEqual(const GraphicsPipelineCreateInfo &a,
+                                                        const GraphicsPipelineCreateInfo &b) {
   if (a.shaderModules.size() != b.shaderModules.size())
     return false;
   for (int i = 0; i < a.shaderModules.size(); i++) {
@@ -465,9 +439,8 @@ PipelineCache::graphicsPipelineEqual(const GraphicsPipelineCreateInfo &a,
   return true;
 }
 
-IFRIT_APIDECL bool
-PipelineCache::computePipelineEqual(const ComputePipelineCreateInfo &a,
-                                    const ComputePipelineCreateInfo &b) {
+IFRIT_APIDECL bool PipelineCache::computePipelineEqual(const ComputePipelineCreateInfo &a,
+                                                       const ComputePipelineCreateInfo &b) {
   if (a.shaderModules != b.shaderModules)
     return false;
   if (a.descriptorSetLayouts.size() != b.descriptorSetLayouts.size())
@@ -482,8 +455,7 @@ PipelineCache::computePipelineEqual(const ComputePipelineCreateInfo &a,
   return true;
 }
 
-IFRIT_APIDECL GraphicsPipeline *
-PipelineCache::getGraphicsPipeline(const GraphicsPipelineCreateInfo &ci) {
+IFRIT_APIDECL GraphicsPipeline *PipelineCache::getGraphicsPipeline(const GraphicsPipelineCreateInfo &ci) {
   uint64_t hash = graphicsPipelineHash(ci);
   for (int i = 0; i < m_graphicsPipelineMap[hash].size(); i++) {
     int index = m_graphicsPipelineMap[hash][i];
@@ -495,13 +467,11 @@ PipelineCache::getGraphicsPipeline(const GraphicsPipelineCreateInfo &ci) {
   m_graphicsPipelineCI.push_back(ci);
   auto &&p = std::make_unique<GraphicsPipeline>(m_context, ci);
   m_graphicsPipelines.push_back(std::move(p));
-  m_graphicsPipelineMap[hash].push_back(
-      size_cast<int>(m_graphicsPipelines.size()) - 1);
+  m_graphicsPipelineMap[hash].push_back(size_cast<int>(m_graphicsPipelines.size()) - 1);
   return m_graphicsPipelines.back().get();
 }
 
-IFRIT_APIDECL ComputePipeline *
-PipelineCache::getComputePipeline(const ComputePipelineCreateInfo &ci) {
+IFRIT_APIDECL ComputePipeline *PipelineCache::getComputePipeline(const ComputePipelineCreateInfo &ci) {
   uint64_t hash = computePipelineHash(ci);
   for (int i = 0; i < m_computePipelineMap[hash].size(); i++) {
     int index = m_computePipelineMap[hash][i];
@@ -513,8 +483,7 @@ PipelineCache::getComputePipeline(const ComputePipelineCreateInfo &ci) {
   m_computePipelineCI.push_back(ci);
   auto &&p = std::make_unique<ComputePipeline>(m_context, ci);
   m_computePipelines.push_back(std::move(p));
-  m_computePipelineMap[hash].push_back(
-      size_cast<int>(m_computePipelines.size()) - 1);
+  m_computePipelineMap[hash].push_back(size_cast<int>(m_computePipelines.size()) - 1);
   return m_computePipelines.back().get();
 }
 

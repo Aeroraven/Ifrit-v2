@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/base/ApplicationInterface.h"
 #include "ifrit/core/base/Scene.h"
@@ -37,20 +38,16 @@ private:
 
   void setupHBAOPass();
   void setupSSGIPass();
-  GPUShader *createShaderFromFile(const std::string &shaderPath,
-                                  const std::string &entry,
+  GPUShader *createShaderFromFile(const std::string &shaderPath, const std::string &entry,
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
 
 public:
   AmbientOcclusionPass(IApplication *app) : m_app(app) {}
-  void renderHBAO(const CommandBuffer *cmd, uint32_t width, uint32_t height,
-                  GPUBindId *depthSamp, GPUBindId *normalSamp, GPUBindId *aoTex,
-                  GPUBindId *perframeData);
+  void renderHBAO(const CommandBuffer *cmd, u32 width, u32 height, GPUBindId *depthSamp, GPUBindId *normalSamp,
+                  GPUBindId *aoTex, GPUBindId *perframeData);
 
-  void renderSSGI(const CommandBuffer *cmd, uint32_t width, uint32_t height,
-                  GPUBindId *perframeData, GPUBindId *depthHizMinUAV,
-                  GPUBindId *depthHizMaxUAV, GPUBindId *normalSRV,
-                  GPUBindId *aoUAV, GPUBindId *albedoSRV, uint32_t hizTexW,
-                  uint32_t hizTexH, uint32_t numLods, GPUBindId *blueNoiseSRV);
+  void renderSSGI(const CommandBuffer *cmd, u32 width, u32 height, GPUBindId *perframeData, GPUBindId *depthHizMinUAV,
+                  GPUBindId *depthHizMaxUAV, GPUBindId *normalSRV, GPUBindId *aoUAV, GPUBindId *albedoSRV, u32 hizTexW,
+                  u32 hizTexH, u32 numLods, GPUBindId *blueNoiseSRV);
 };
 } // namespace Ifrit::Core

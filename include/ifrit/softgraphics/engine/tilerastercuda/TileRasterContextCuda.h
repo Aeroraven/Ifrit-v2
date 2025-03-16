@@ -16,8 +16,9 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
+
 #include "ifrit/softgraphics/core/definition/CoreDefs.h"
 #include "ifrit/softgraphics/core/definition/CoreTypes.h"
 
@@ -79,9 +80,9 @@ public:
   TileBinProposal ***dCoverQueue = nullptr;
   AssembledTriangleProposal **dAssembledTriangles = nullptr;
 
-  uint32_t **dRasterizerQueueSize = nullptr;
-  uint32_t **dCoverQueueSize = nullptr;
-  uint32_t *dAssembledTrianglesSize = nullptr;
+  u32 **dRasterizerQueueSize = nullptr;
+  u32 **dCoverQueueSize = nullptr;
+  u32 *dAssembledTrianglesSize = nullptr;
 
   irect2Df *dTileBounds = nullptr;
 };

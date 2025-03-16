@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/ApiConv.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
@@ -39,52 +40,37 @@ public:
 
   void waitDeviceIdle() override;
   std::shared_ptr<Rhi::RhiDeviceTimer> createDeviceTimer() override;
-  std::shared_ptr<Rhi::RhiBuffer> createBuffer(uint32_t size, uint32_t usage,
-                                               bool hostVisible) const override;
-  std::shared_ptr<Rhi::RhiBuffer>
-  createBufferDevice(uint32_t size, uint32_t usage) const override;
+  std::shared_ptr<Rhi::RhiBuffer> createBuffer(u32 size, u32 usage, bool hostVisible) const override;
+  std::shared_ptr<Rhi::RhiBuffer> createBufferDevice(u32 size, u32 usage) const override;
 
-  std::shared_ptr<Rhi::RhiMultiBuffer>
-  createBufferCoherent(uint32_t size, uint32_t usage,
-                       uint32_t numCopies = ~0u) const override;
+  std::shared_ptr<Rhi::RhiMultiBuffer> createBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const override;
 
-  std::shared_ptr<Rhi::RhiStagedSingleBuffer>
-  createStagedSingleBuffer(Rhi::RhiBuffer *target) override;
+  std::shared_ptr<Rhi::RhiStagedSingleBuffer> createStagedSingleBuffer(Rhi::RhiBuffer *target) override;
 
-  std::shared_ptr<Rhi::RhiBuffer>
-  getFullScreenQuadVertexBuffer() const override;
+  std::shared_ptr<Rhi::RhiBuffer> getFullScreenQuadVertexBuffer() const override;
 
   // Command execution
   Rhi::RhiQueue *getQueue(Rhi::RhiQueueCapability req) override;
 
   // Shader
-  Rhi::RhiShader *createShader(const std::string &name,
-                               const std::vector<char> &code,
-                               const std::string &entry,
-                               Rhi::RhiShaderStage stage,
-                               Rhi::RhiShaderSourceType sourceType) override;
+  Rhi::RhiShader *createShader(const std::string &name, const std::vector<char> &code, const std::string &entry,
+                               Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
 
   // Texture
-  std::shared_ptr<Rhi::RhiTexture>
-  createTexture2D(uint32_t width, uint32_t height, Rhi::RhiImageFormat format,
-                  uint32_t extraFlags) override;
+  std::shared_ptr<Rhi::RhiTexture> createTexture2D(u32 width, u32 height, Rhi::RhiImageFormat format,
+                                                   u32 extraFlags) override;
 
-  std::shared_ptr<Rhi::RhiTexture> createDepthTexture(uint32_t width,
-                                                      uint32_t height) override;
+  std::shared_ptr<Rhi::RhiTexture> createDepthTexture(u32 width, u32 height) override;
 
-  std::shared_ptr<Rhi::RhiTexture>
-  createTexture3D(uint32_t width, uint32_t height, uint32_t depth,
-                  Rhi::RhiImageFormat format, uint32_t extraFlags) override;
+  std::shared_ptr<Rhi::RhiTexture> createTexture3D(u32 width, u32 height, u32 depth, Rhi::RhiImageFormat format,
+                                                   u32 extraFlags) override;
 
   std::shared_ptr<Rhi::RhiSampler> createTrivialSampler() override;
-  std::shared_ptr<Rhi::RhiSampler>
-  createTrivialBilinearSampler(bool repeat) override;
-  std::shared_ptr<Rhi::RhiSampler>
-  createTrivialNearestSampler(bool repeat) override;
+  std::shared_ptr<Rhi::RhiSampler> createTrivialBilinearSampler(bool repeat) override;
+  std::shared_ptr<Rhi::RhiSampler> createTrivialNearestSampler(bool repeat) override;
 
-  std::shared_ptr<Rhi::RhiTexture>
-  createMipMapTexture(uint32_t width, uint32_t height, uint32_t mips,
-                      Rhi::RhiImageFormat format, uint32_t extraFlags) override;
+  std::shared_ptr<Rhi::RhiTexture> createMipMapTexture(u32 width, u32 height, u32 mips, Rhi::RhiImageFormat format,
+                                                       u32 extraFlags) override;
 
   // Pass
   Rhi::RhiComputePass *createComputePass() override;
@@ -94,77 +80,57 @@ public:
   Rhi::RhiTexture *getSwapchainImage() override;
   void beginFrame() override;
   void endFrame() override;
-  std::unique_ptr<Rhi::RhiTaskSubmission>
-  getSwapchainFrameReadyEventHandler() override;
-  std::unique_ptr<Rhi::RhiTaskSubmission>
-  getSwapchainRenderDoneEventHandler() override;
+  std::unique_ptr<Rhi::RhiTaskSubmission> getSwapchainFrameReadyEventHandler() override;
+  std::unique_ptr<Rhi::RhiTaskSubmission> getSwapchainRenderDoneEventHandler() override;
 
   // Descriptor
   virtual Rhi::RhiBindlessDescriptorRef *createBindlessDescriptorRef() override;
 
-  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
-  registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) override;
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef> registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) override;
 
-  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
-  registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) override;
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef> registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) override;
 
-  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
-  registerStorageBuffer(Rhi::RhiBuffer *buffer) override;
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef> registerStorageBuffer(Rhi::RhiBuffer *buffer) override;
 
-  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
-  registerUAVImage(Rhi::RhiTexture *texture,
-                   Rhi::RhiImageSubResource subResource) override;
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef> registerUAVImage(Rhi::RhiTexture *texture,
+                                                                  Rhi::RhiImageSubResource subResource) override;
 
-  virtual std::shared_ptr<Rhi::RhiBindlessIdRef>
-  registerCombinedImageSampler(Rhi::RhiTexture *texture,
-                               Rhi::RhiSampler *sampler) override;
+  virtual std::shared_ptr<Rhi::RhiBindlessIdRef> registerCombinedImageSampler(Rhi::RhiTexture *texture,
+                                                                              Rhi::RhiSampler *sampler) override;
 
   // Render targets
-  virtual std::shared_ptr<Rhi::RhiColorAttachment>
-  createRenderTarget(Rhi::RhiTexture *renderTarget,
-                     Rhi::RhiClearValue clearValue,
-                     Rhi::RhiRenderTargetLoadOp loadOp, uint32_t mips,
-                     uint32_t layers) override;
+  virtual std::shared_ptr<Rhi::RhiColorAttachment> createRenderTarget(Rhi::RhiTexture *renderTarget,
+                                                                      Rhi::RhiClearValue clearValue,
+                                                                      Rhi::RhiRenderTargetLoadOp loadOp, u32 mips,
+                                                                      u32 layers) override;
 
   virtual std::shared_ptr<Rhi::RhiDepthStencilAttachment>
-  createRenderTargetDepthStencil(Rhi::RhiTexture *renderTarget,
-                                 Rhi::RhiClearValue clearValue,
+  createRenderTargetDepthStencil(Rhi::RhiTexture *renderTarget, Rhi::RhiClearValue clearValue,
                                  Rhi::RhiRenderTargetLoadOp loadOp) override;
 
   virtual std::shared_ptr<Rhi::RhiRenderTargets> createRenderTargets() override;
 
   // Vertex buffer
-  virtual std::shared_ptr<Rhi::RhiVertexBufferView>
-  createVertexBufferView() override;
-  virtual std::shared_ptr<Rhi::RhiVertexBufferView>
-  getFullScreenQuadVertexBufferView() const override;
+  virtual std::shared_ptr<Rhi::RhiVertexBufferView> createVertexBufferView() override;
+  virtual std::shared_ptr<Rhi::RhiVertexBufferView> getFullScreenQuadVertexBufferView() const override;
 
   // Cache
   virtual void setCacheDirectory(const std::string &dir) override;
   virtual std::string getCacheDirectory() const override;
 
   // Extension
-  virtual std::unique_ptr<Rhi::FSR2::RhiFsr2Processor>
-  createFsr2Processor() override;
+  virtual std::unique_ptr<Rhi::FSR2::RhiFsr2Processor> createFsr2Processor() override;
 
   // Raytracing
   virtual std::unique_ptr<Rhi::RhiRTInstance> createTLAS() { return nullptr; }
   virtual std::unique_ptr<Rhi::RhiRTScene> createBLAS() { return nullptr; }
-  virtual std::unique_ptr<Rhi::RhiRTShaderBindingTable>
-  createShaderBindingTable() {
-    return nullptr;
-  }
+  virtual std::unique_ptr<Rhi::RhiRTShaderBindingTable> createShaderBindingTable() { return nullptr; }
 
-  virtual std::unique_ptr<Rhi::RhiRTPass> createRaytracingPass() {
-    return nullptr;
-  }
+  virtual std::unique_ptr<Rhi::RhiRTPass> createRaytracingPass() { return nullptr; }
 };
 
-class IFRIT_APIDECL RhiVulkanBackendBuilder
-    : public Rhi::RhiBackendFactory,
-      public Common::Utility::NonCopyable {
+class IFRIT_APIDECL RhiVulkanBackendBuilder : public Rhi::RhiBackendFactory, public Common::Utility::NonCopyable {
 public:
-  std::unique_ptr<Rhi::RhiBackend>
-  createBackend(const Rhi::RhiInitializeArguments &args) override;
+  std::unique_ptr<Rhi::RhiBackend> createBackend(const Rhi::RhiInitializeArguments &args) override;
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

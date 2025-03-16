@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "AssetReference.h"
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/math/VectorDefs.h"
 #include "ifrit/common/serialization/MathTypeSerialization.h"
@@ -33,10 +34,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <unordered_map>
 #include <vector>
 
-#define IFRIT_COMPONENT_SERIALIZE(...)                                         \
-  IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject, __VA_ARGS__)
-#define IFRIT_COMPONENT_REGISTER(x)                                            \
-  IFRIT_DERIVED_REGISTER(x);                                                   \
+#define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject, __VA_ARGS__)
+#define IFRIT_COMPONENT_REGISTER(x)                                                                                    \
+  IFRIT_DERIVED_REGISTER(x);                                                                                           \
   IFRIT_INHERIT_REGISTER(Ifrit::Core::Component, x);
 
 namespace Ifrit::Core {
@@ -71,16 +71,15 @@ class Transform;
 // TODO: for performance considerations, components container is not consistent
 // across different build envs.
 
-class IFRIT_APIDECL SceneObject
-    : public Ifrit::Common::Utility::NonCopyable,
-      public std::enable_shared_from_this<SceneObject> {
+class IFRIT_APIDECL SceneObject : public Ifrit::Common::Utility::NonCopyable,
+                                  public std::enable_shared_from_this<SceneObject> {
 protected:
   ComponentIdentifier m_id;
   std::string m_name;
   // std::unordered_map<std::string, std::shared_ptr<Component>> m_components;
   std::vector<std::shared_ptr<Component>> m_components;
-  std::unordered_map<std::string, uint32_t> m_componentIndex;
-  std::unordered_map<size_t, uint32_t> m_componentsHashed;
+  std::unordered_map<std::string, u32> m_componentIndex;
+  std::unordered_map<size_t, u32> m_componentsHashed;
 
 public:
   SceneObject();
@@ -91,8 +90,7 @@ public:
 
   template <class T> void addComponent(std::shared_ptr<T> component) {
     using Ifrit::Common::Utility::iTypeInfo;
-    static_assert(std::is_base_of<Component, T>::value,
-                  "T must be derived from Component");
+    static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
     auto typeName = iTypeInfo<T>::name;
     auto typeHash = iTypeInfo<T>::hash;
     if (m_componentIndex.count(typeName) > 0) {
@@ -109,8 +107,7 @@ public:
   }
 
   template <class T> std::shared_ptr<T> addComponent() {
-    static_assert(std::is_base_of<Component, T>::value,
-                  "T must be derived from Component");
+    static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
     using Ifrit::Common::Utility::iTypeInfo;
     auto typeName = iTypeInfo<T>::name;
     auto typeHash = iTypeInfo<T>::hash;
@@ -131,8 +128,7 @@ public:
   }
 
   template <class T> std::shared_ptr<T> getComponent() {
-    static_assert(std::is_base_of<Component, T>::value,
-                  "T must be derived from Component");
+    static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
     using Ifrit::Common::Utility::iTypeInfo;
     auto typeHash = iTypeInfo<T>::hash;
     if (m_componentsHashed.count(typeHash) == 0) {
@@ -154,8 +150,7 @@ public:
   // Unsafe version of getComponent, use with caution. It's intended to be used
   // in performance-critical code.
   template <class T> T *getComponentUnsafe() {
-    static_assert(std::is_base_of<Component, T>::value,
-                  "T must be derived from Component");
+    static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
     using Ifrit::Common::Utility::iTypeInfo;
     auto typeHash = iTypeInfo<T>::hash;
     if (m_componentsHashed.count(typeHash) == 0) {
@@ -165,13 +160,10 @@ public:
     return static_cast<T *>(m_components[itIndex].get());
   }
 
-  inline std::vector<std::shared_ptr<Component>> getAllComponents() {
-    return m_components;
-  }
+  inline std::vector<std::shared_ptr<Component>> getAllComponents() { return m_components; }
 
   inline void setName(const std::string &name) { m_name = name; }
-  IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components, m_componentIndex,
-                         m_componentsHashed);
+  IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components, m_componentIndex, m_componentsHashed);
 };
 
 // Here, SceneObjectPrefab is a type alias for SceneObject.
@@ -200,13 +192,10 @@ public:
   inline void setName(const std::string &name) { m_id.m_name = name; }
   inline std::string getName() const { return m_id.m_name; }
   inline std::string getUUID() const { return m_id.m_uuid; }
-  inline std::shared_ptr<SceneObject> getParent() const {
-    return m_parentObject.lock();
-  }
+  inline std::shared_ptr<SceneObject> getParent() const { return m_parentObject.lock(); }
 
   virtual std::vector<AssetReference *> getAssetReferences() { return {}; }
-  virtual void setAssetReferencedAttributes(
-      const std::vector<std::shared_ptr<IAssetCompatible>> &out) {}
+  virtual void setAssetReferencedAttributes(const std::vector<std::shared_ptr<IAssetCompatible>> &out) {}
 
   IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject);
 };
@@ -219,8 +208,7 @@ struct TransformAttribute {
   IFRIT_STRUCT_SERIALIZE(m_position, m_rotation, m_scale);
 };
 
-class IFRIT_APIDECL Transform : public Component,
-                                public AttributeOwner<TransformAttribute> {
+class IFRIT_APIDECL Transform : public Component, public AttributeOwner<TransformAttribute> {
 private:
   using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
@@ -238,8 +226,7 @@ private:
 
 public:
   Transform(){};
-  Transform(std::shared_ptr<SceneObject> parent)
-      : Component(parent), AttributeOwner<TransformAttribute>() {}
+  Transform(std::shared_ptr<SceneObject> parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
   std::string serialize() override { return serializeAttribute(); }
   void deserialize() override { deserializeAttribute(); }
 
@@ -277,19 +264,15 @@ public:
   float4x4 getModelToWorldMatrix();
   float4x4 getModelToWorldMatrixLast();
   inline ifloat3 getScaleLast() { return m_lastFrame.m_scale; }
-  inline void setGPUResource(std::shared_ptr<GPUUniformBuffer> buffer,
-                             std::shared_ptr<GPUUniformBuffer> last,
-                             std::shared_ptr<GPUBindId> &bindlessRef,
-                             std::shared_ptr<GPUBindId> &bindlessRefLast) {
+  inline void setGPUResource(std::shared_ptr<GPUUniformBuffer> buffer, std::shared_ptr<GPUUniformBuffer> last,
+                             std::shared_ptr<GPUBindId> &bindlessRef, std::shared_ptr<GPUBindId> &bindlessRefLast) {
     m_gpuBuffer = buffer;
     m_gpuBufferLast = last;
     m_gpuBindlessRef = bindlessRef;
     m_gpuBindlessRefLast = bindlessRefLast;
   }
-  inline void getGPUResource(std::shared_ptr<GPUUniformBuffer> &buffer,
-                             std::shared_ptr<GPUUniformBuffer> &last,
-                             std::shared_ptr<GPUBindId> &bindlessRef,
-                             std::shared_ptr<GPUBindId> &bindlessRefLast) {
+  inline void getGPUResource(std::shared_ptr<GPUUniformBuffer> &buffer, std::shared_ptr<GPUUniformBuffer> &last,
+                             std::shared_ptr<GPUBindId> &bindlessRef, std::shared_ptr<GPUBindId> &bindlessRefLast) {
     buffer = m_gpuBuffer;
     last = m_gpuBufferLast;
     bindlessRef = m_gpuBindlessRef;

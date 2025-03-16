@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/ApiConv.h"
 #include <memory>
 #include <stdexcept>
@@ -56,8 +57,7 @@ template <typename T, typename U> const T *checked_cast(const U *ptr) {
 #endif
 }
 
-template <typename T, typename U>
-std::shared_ptr<T> checked_pointer_cast(const std::shared_ptr<U> &ptr) {
+template <typename T, typename U> std::shared_ptr<T> checked_pointer_cast(const std::shared_ptr<U> &ptr) {
 #ifdef _DEBUG
   // dynamic cast
   if (ptr == nullptr) {
@@ -99,9 +99,8 @@ template <class T> consteval inline static const char *getFuncName() {
 #endif
 }
 
-template <unsigned E, unsigned N>
-consteval uint64_t funcNameHash(const char (&str)[N]) {
-  uint64_t hash = 0;
+template <unsigned E, unsigned N> consteval u64 funcNameHash(const char (&str)[N]) {
+  u64 hash = 0;
   if constexpr (N == E)
     return 0;
   else {
@@ -109,7 +108,7 @@ consteval uint64_t funcNameHash(const char (&str)[N]) {
   }
 }
 
-template <class T> consteval uint64_t getFuncHashId() {
+template <class T> consteval u64 getFuncHashId() {
   static_assert(!std::is_same_v<T, void>, "T must not be void");
 #ifdef _MSC_VER
   return funcNameHash<0>(__FUNCSIG__);
@@ -120,7 +119,7 @@ template <class T> consteval uint64_t getFuncHashId() {
 
 template <class T> struct iTypeInfo {
   static constexpr const char *name = getFuncName<T>();
-  static constexpr uint64_t hash = getFuncHashId<T>();
+  static constexpr u64 hash = getFuncHashId<T>();
 };
 
 } // namespace Ifrit::Common::Utility

@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/math/simd/SimdVectors.h"
 #include "ifrit/core/renderer/RendererBase.h"
 #include "ifrit/rhi/common/RhiLayer.h"
@@ -27,11 +28,11 @@ namespace Ifrit::Core {
 
 struct PbrAtmosphereResourceDesc {
   ifloat4 groundAlbedo;
-  uint32_t atmo;
-  uint32_t texTransmittance;
-  uint32_t texIrradiance;
-  uint32_t texScattering;
-  uint32_t texMieScattering;
+  u32 atmo;
+  u32 texTransmittance;
+  u32 texIrradiance;
+  u32 texScattering;
+  u32 texMieScattering;
   float earthRadius;
   float bottomAtmoRadius;
 };
@@ -143,8 +144,7 @@ protected:
   void setupMultipleScatteringPass();
 
   void preparePerframeData(PerFrameData &perframeData);
-  GPUShader *createShaderFromFile(const std::string &shaderPath,
-                                  const std::string &entry,
+  GPUShader *createShaderFromFile(const std::string &shaderPath, const std::string &entry,
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
 
 public:
@@ -157,16 +157,14 @@ public:
     setupMultipleScatteringPass();
   }
 
-  virtual std::unique_ptr<GPUCommandSubmission>
-  render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
-         const RendererConfig &config,
-         const std::vector<GPUCommandSubmission *> &cmdToWait) override {
+  virtual std::unique_ptr<GPUCommandSubmission> render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
+                                                       const RendererConfig &config,
+                                                       const std::vector<GPUCommandSubmission *> &cmdToWait) override {
     throw std::runtime_error("Not implemented");
   }
 
-  virtual std::unique_ptr<GPUCommandSubmission>
-  renderInternal(PerFrameData &perframe,
-                 const std::vector<GPUCommandSubmission *> &cmdToWait);
+  virtual std::unique_ptr<GPUCommandSubmission> renderInternal(PerFrameData &perframe,
+                                                               const std::vector<GPUCommandSubmission *> &cmdToWait);
 
   virtual PbrAtmosphereResourceDesc getResourceDesc(PerFrameData &perframe);
 };

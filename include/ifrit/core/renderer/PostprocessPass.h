@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"h
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/base/ApplicationInterface.h"
 #include "ifrit/core/base/Scene.h"
@@ -26,8 +27,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core {
 struct PostprocessPassConfig {
   std::string fragPath;
-  uint32_t numPushConstants;
-  uint32_t numDescriptorSets;
+  u32 numPushConstants;
+  u32 numDescriptorSets;
   bool isComputeShader = false;
 };
 
@@ -43,21 +44,17 @@ protected:
 protected:
   PostprocessPassConfig m_cfg;
   IApplication *m_app;
-  std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
-                     PipelineAttachmentConfigsHash>
-      m_renderPipelines;
+  std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_renderPipelines;
   ComputePass *m_computePipeline = nullptr;
 
-  GPUShader *createShaderFromFile(const std::string &shaderPath,
-                                  const std::string &entry,
+  GPUShader *createShaderFromFile(const std::string &shaderPath, const std::string &entry,
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
   DrawPass *setupRenderPipeline(RenderTargets *renderTargets);
   ComputePass *setupComputePipeline();
 
 protected:
-  void renderInternal(PerFrameData *perframeData, RenderTargets *renderTargets,
-                      const GPUCmdBuffer *cmd, const void *pushConstants,
-                      const std::vector<GPUBindlessRef *> &bindDescs,
+  void renderInternal(PerFrameData *perframeData, RenderTargets *renderTargets, const GPUCmdBuffer *cmd,
+                      const void *pushConstants, const std::vector<GPUBindlessRef *> &bindDescs,
                       const std::string &scopeName);
 
 public:

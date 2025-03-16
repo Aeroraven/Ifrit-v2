@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/serialization/SerialInterface.h"
 #include "ifrit/common/util/ApiConv.h"
 #include "ifrit/core/base/AssetReference.h"
@@ -65,9 +66,7 @@ public:
   ShaderEffectType m_type = ShaderEffectType::Graphics;
   std::vector<Shader *> m_shaders;
   std::vector<AssetReference> m_shaderReferences;
-  std::unordered_map<PipelineAttachmentConfigs, DrawPass *,
-                     PipelineAttachmentConfigsHash>
-      m_drawPasses;
+  std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_drawPasses;
   ComputePass *m_computePass = nullptr;
 
   IFRIT_STRUCT_SERIALIZE(m_shaderReferences);
@@ -100,9 +99,7 @@ public:
   std::string m_uuid;
   std::vector<std::vector<char>> m_data;
   std::unordered_map<GraphicsShaderPassType, ShaderEffect> m_effectTemplates;
-  std::unordered_map<GraphicsShaderPassType,
-                     std::unordered_map<std::string, uint32_t>>
-      m_shaderParameters;
+  std::unordered_map<GraphicsShaderPassType, std::unordered_map<std::string, u32>> m_shaderParameters;
   IFRIT_STRUCT_SERIALIZE(m_effectTemplates, m_data, m_shaderParameters);
 };
 

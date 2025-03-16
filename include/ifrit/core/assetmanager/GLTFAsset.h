@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/core/assetmanager/Asset.h"
 #include "ifrit/core/base/Mesh.h"
 
@@ -28,19 +29,18 @@ class GLTFAssetImporter;
 class IFRIT_APIDECL GLTFMesh : public Mesh {
 private:
   GLTFAsset *m_asset;
-  uint32_t m_meshId;
-  uint32_t m_primitiveId;
-  uint32_t m_nodeId;
+  u32 m_meshId;
+  u32 m_primitiveId;
+  u32 m_nodeId;
   std::shared_ptr<MeshData> m_selfData;
   MeshData *m_selfDataRaw = nullptr;
   bool m_loaded = false;
   std::string m_cachePath;
 
 public:
-  GLTFMesh(AssetMetadata *metadata, GLTFAsset *asset, uint32_t meshId,
-           uint32_t primitiveId, uint32_t nodeId, const std::string &cachePath)
-      : m_asset(asset), m_meshId(meshId), m_primitiveId(primitiveId),
-        m_nodeId(nodeId), m_cachePath(cachePath) {
+  GLTFMesh(AssetMetadata *metadata, GLTFAsset *asset, u32 meshId, u32 primitiveId, u32 nodeId,
+           const std::string &cachePath)
+      : m_asset(asset), m_meshId(meshId), m_primitiveId(primitiveId), m_nodeId(nodeId), m_cachePath(cachePath) {
     m_assetReference.m_fileId = metadata->m_fileId;
     m_assetReference.m_name = metadata->m_name;
     m_assetReference.m_uuid = metadata->m_uuid;
@@ -55,12 +55,11 @@ public:
 class IFRIT_APIDECL GLTFPrefab {
 public:
   GLTFAsset *m_asset;
-  uint32_t m_meshId;
-  uint32_t m_primitiveId;
-  uint32_t m_nodeId;
+  u32 m_meshId;
+  u32 m_primitiveId;
+  u32 m_nodeId;
   std::shared_ptr<SceneObjectPrefab> m_prefab;
-  GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset, uint32_t meshId,
-             uint32_t primitiveId, uint32_t nodeId,
+  GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset, u32 meshId, u32 primitiveId, u32 nodeId,
              const float4x4 &parentTransform);
 };
 
@@ -77,17 +76,14 @@ private:
   inline AssetMetadata &getMetadata() { return m_metadata; }
 
 public:
-  GLTFAsset(AssetMetadata metadata, std::filesystem::path path,
-            AssetManager *m_manager)
+  GLTFAsset(AssetMetadata metadata, std::filesystem::path path, AssetManager *m_manager)
       : Asset(metadata, path), m_metadata(metadata), m_path(path) {
     loadGLTF(m_manager);
   }
   ~GLTFAsset();
   void loadGLTF(AssetManager *m_manager);
   GLTFInternalData *getInternalData();
-  inline std::vector<std::shared_ptr<GLTFPrefab>> getPrefabs() {
-    return m_prefabs;
-  }
+  inline std::vector<std::shared_ptr<GLTFPrefab>> getPrefabs() { return m_prefabs; }
 
   friend class GLTFMesh;
   friend class GLTFPrefab;
@@ -98,8 +94,7 @@ public:
   constexpr static const char *IMPORTER_NAME = "GLTFAssetImporter";
   GLTFAssetImporter(AssetManager *manager) : AssetImporter(manager) {}
   void processMetadata(AssetMetadata &metadata) override;
-  void importAsset(const std::filesystem::path &path,
-                   AssetMetadata &metadata) override;
+  void importAsset(const std::filesystem::path &path, AssetMetadata &metadata) override;
   std::vector<std::string> getSupportedExtensionNames() override;
 };
 } // namespace Ifrit::Core

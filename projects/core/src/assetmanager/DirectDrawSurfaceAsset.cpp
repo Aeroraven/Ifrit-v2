@@ -22,9 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <fstream>
 
 #ifndef MAKEFOURCC
-#define MAKEFOURCC(ch0, ch1, ch2, ch3)                                         \
-  ((uint32_t)(char)(ch0) | ((uint32_t)(char)(ch1) << 8) |                      \
-   ((uint32_t)(char)(ch2) << 16) | ((uint32_t)(char)(ch3) << 24))
+#define MAKEFOURCC(ch0, ch1, ch2, ch3)                                                                                 \
+  ((uint32_t)(char)(ch0) | ((uint32_t)(char)(ch1) << 8) | ((uint32_t)(char)(ch2) << 16) | ((uint32_t)(char)(ch3) << 24))
 #endif
 
 namespace Ifrit::Core {
@@ -76,8 +75,7 @@ enum class DDSCompressedType {
   ATI2,
 };
 
-std::shared_ptr<GraphicsBackend::Rhi::RhiTexture>
-parseDDS(std ::filesystem::path path, IApplication *app) {
+std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> parseDDS(std ::filesystem::path path, IApplication *app) {
   std::ifstream ifs;
   ifs.open(path, std::ios::binary);
   if (!ifs.is_open()) {
@@ -112,12 +110,11 @@ parseDDS(std ::filesystem::path path, IApplication *app) {
   // Check DX10 header
   if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', '1', '0')) {
     iInfo("DX10 header detected");
-    header10 = reinterpret_cast<DDS_HEADER_DXT10 *>(data.data() + 4 +
-                                                    sizeof(DDS_HEADER));
+    header10 = reinterpret_cast<DDS_HEADER_DXT10 *>(data.data() + 4 + sizeof(DDS_HEADER));
     iInfo("DX10 Header: dxgiFormat: {}, resourceDimension: {}, miscFlag: {}, "
           "arraySize: {}, miscFlags2: {}",
-          header10->dxgiFormat, header10->resourceDimension, header10->miscFlag,
-          header10->arraySize, header10->miscFlags2);
+          header10->dxgiFormat, header10->resourceDimension, header10->miscFlag, header10->arraySize,
+          header10->miscFlags2);
     bodyOffset += sizeof(DDS_HEADER_DXT10);
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '1')) {
 
@@ -158,8 +155,7 @@ parseDDS(std ::filesystem::path path, IApplication *app) {
 
   auto rhi = app->getRhiLayer();
   auto tex =
-      rhi->createTexture2D(header->dwWidth, header->dwHeight, format,
-                           RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+      rhi->createTexture2D(header->dwWidth, header->dwHeight, format, RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   auto totalBodySize = data.size() - bodyOffset;
@@ -172,20 +168,16 @@ parseDDS(std ::filesystem::path path, IApplication *app) {
     requiredBodySize = header->dwPitchOrLinearSize;
   }
   if (totalBodySize < requiredBodySize) {
-    iError("Invalid body size: {}, required: {}", totalBodySize,
-           requiredBodySize);
+    iError("Invalid body size: {}, required: {}", totalBodySize, requiredBodySize);
     std::abort();
   }
-  auto buffer = rhi->createBuffer(
-      requiredBodySize, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      true);
+  auto buffer = rhi->createBuffer(requiredBodySize, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_SRC_BIT, true);
   buffer->map();
   buffer->writeBuffer(data.data() + bodyOffset, requiredBodySize, 0);
   buffer->flush();
   buffer->unmap();
 
-  auto imageBarrier = [&](const RhiCommandBuffer *cmd, RhiTexture *tex,
-                          RhiResourceState2 src, RhiResourceState2 dst,
+  auto imageBarrier = [&](const RhiCommandBuffer *cmd, RhiTexture *tex, RhiResourceState2 src, RhiResourceState2 dst,
                           RhiImageSubResource sub) {
     RhiTransitionBarrier barrier;
     barrier.m_texture = tex;
@@ -201,23 +193,20 @@ parseDDS(std ::filesystem::path path, IApplication *app) {
   };
 
   tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-    imageBarrier(cmd, tex.get(), RhiResourceState2::Undefined,
-                 RhiResourceState2::CopyDst, {0, 0, 1, 1});
+    imageBarrier(cmd, tex.get(), RhiResourceState2::Undefined, RhiResourceState2::CopyDst, {0, 0, 1, 1});
     cmd->copyBufferToImage(buffer.get(), tex.get(), {0, 0, 1, 1});
-    imageBarrier(cmd, tex.get(), RhiResourceState2::CopyDst,
-                 RhiResourceState2::Common, {0, 0, 1, 1});
+    imageBarrier(cmd, tex.get(), RhiResourceState2::CopyDst, RhiResourceState2::Common, {0, 0, 1, 1});
   });
   return tex;
 }
 
-IFRIT_APIDECL DirectDrawSurfaceAsset::DirectDrawSurfaceAsset(
-    AssetMetadata metadata, std::filesystem::path path, IApplication *app)
+IFRIT_APIDECL DirectDrawSurfaceAsset::DirectDrawSurfaceAsset(AssetMetadata metadata, std::filesystem::path path,
+                                                             IApplication *app)
     : TextureAsset(metadata, path), m_app(app) {
   // Pass
 }
 
-IFRIT_APIDECL std::shared_ptr<GraphicsBackend::Rhi::RhiTexture>
-DirectDrawSurfaceAsset::getTexture() {
+IFRIT_APIDECL std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> DirectDrawSurfaceAsset::getTexture() {
   if (!m_texture) {
     m_texture = parseDDS(m_path, m_app);
   }
@@ -225,21 +214,15 @@ DirectDrawSurfaceAsset::getTexture() {
 }
 
 // Importer
-IFRIT_APIDECL void
-DirectDrawSurfaceAssetImporter::processMetadata(AssetMetadata &metadata) {
+IFRIT_APIDECL void DirectDrawSurfaceAssetImporter::processMetadata(AssetMetadata &metadata) {
   metadata.m_importer = IMPORTER_NAME;
 }
 
-IFRIT_APIDECL std::vector<std::string>
-DirectDrawSurfaceAssetImporter::getSupportedExtensionNames() {
-  return {".dds"};
-}
+IFRIT_APIDECL std::vector<std::string> DirectDrawSurfaceAssetImporter::getSupportedExtensionNames() { return {".dds"}; }
 
-IFRIT_APIDECL void
-DirectDrawSurfaceAssetImporter::importAsset(const std::filesystem::path &path,
-                                            AssetMetadata &metadata) {
-  auto asset = std::make_shared<DirectDrawSurfaceAsset>(
-      metadata, path, m_assetManager->getApplication());
+IFRIT_APIDECL void DirectDrawSurfaceAssetImporter::importAsset(const std::filesystem::path &path,
+                                                               AssetMetadata &metadata) {
+  auto asset = std::make_shared<DirectDrawSurfaceAsset>(metadata, path, m_assetManager->getApplication());
   m_assetManager->registerAsset(asset);
   // iInfo("Imported asset: [DDSTexture] {}", metadata.m_uuid);
 }

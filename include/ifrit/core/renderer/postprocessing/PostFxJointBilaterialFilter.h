@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/core/renderer/PostprocessPass.h"
 
 namespace Ifrit::Core::PostprocessPassCollection {
@@ -27,9 +28,8 @@ class IFRIT_APIDECL PostFxJointBilaterialFilter : public PostprocessPass {
 
 public:
   PostFxJointBilaterialFilter(IApplication *app);
-  void renderPostFx(const GPUCmdBuffer *cmd, RenderTargets *renderTargets,
-                    GPUBindId *colorSRV, GPUBindId *normalSRV,
-                    GPUBindId *depthSRV, uint32_t kernelSize);
+  void renderPostFx(const GPUCmdBuffer *cmd, RenderTargets *renderTargets, GPUBindId *colorSRV, GPUBindId *normalSRV,
+                    GPUBindId *depthSRV, u32 kernelSize);
 };
 
 } // namespace Ifrit::Core::PostprocessPassCollection

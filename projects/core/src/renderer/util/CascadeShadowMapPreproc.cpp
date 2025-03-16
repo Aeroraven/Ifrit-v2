@@ -21,10 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Core::RenderingUtil::CascadeShadowMapping {
 
-IFRIT_APIDECL CSMResult calculateCSMSplits(
-    const PerFrameData::PerViewData &perView, uint32_t shadowResolution,
-    ifloat3 lightFront, uint32_t splitCount, float maxDistance,
-    const std::vector<float> &splits, const std::vector<float> &borders) {
+IFRIT_APIDECL CSMResult calculateCSMSplits(const PerFrameData::PerViewData &perView, uint32_t shadowResolution,
+                                           ifloat3 lightFront, uint32_t splitCount, float maxDistance,
+                                           const std::vector<float> &splits, const std::vector<float> &borders) {
 
   using namespace Ifrit::Math;
 
@@ -64,29 +63,22 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
     ifloat3 rCenter;
     auto worldToView = Math::transpose(perView.m_viewData.m_worldToView);
     auto viewToWorld = inverse4((worldToView));
-    getFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, viewToWorld,
-                                 vApex, lightFront, 1e2f, rZFar, rOrthoSize,
-                                 rCenter, rCullOrthoX, rCullOrthoY);
+    getFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, viewToWorld, vApex, lightFront, 1e2f, rZFar,
+                                 rOrthoSize, rCenter, rCullOrthoX, rCullOrthoY);
     auto lightCamUp = ifloat3{0.0f, 1.0f, 0.0f};
     auto proj = orthographicNegateY(rOrthoSize, 1.0, 0.1f, rZFar);
     auto view = lookAt(rCenter, rCenter + lightFront, lightCamUp);
 
     // To alleviate shadow flickering, we need to snap the light camera to texel
-    auto viewOriginal =
-        lookAt(ifloat3{0.0f, 0.0f, 0.0f}, lightFront, lightCamUp);
+    auto viewOriginal = lookAt(ifloat3{0.0f, 0.0f, 0.0f}, lightFront, lightCamUp);
     auto viewOriginalInv = inverse4(viewOriginal);
-    auto camPosOriginal =
-        matmul(viewOriginal, ifloat4{rCenter.x, rCenter.y, rCenter.z, 1.0f});
+    auto camPosOriginal = matmul(viewOriginal, ifloat4{rCenter.x, rCenter.y, rCenter.z, 1.0f});
     float texelSize = rOrthoSize / shadowResolution;
-    auto camPosSnapped =
-        ifloat3{camPosOriginal.x - std::fmodf(camPosOriginal.x, texelSize),
-                camPosOriginal.y - std::fmodf(camPosOriginal.y, texelSize),
-                camPosOriginal.z - std::fmodf(camPosOriginal.z, texelSize)};
-    auto camPosSnappedWorld =
-        matmul(viewOriginalInv, ifloat4{camPosSnapped.x, camPosSnapped.y,
-                                        camPosSnapped.z, 1.0f});
-    auto newCenter = ifloat3{camPosSnappedWorld.x, camPosSnappedWorld.y,
-                             camPosSnappedWorld.z};
+    auto camPosSnapped = ifloat3{camPosOriginal.x - std::fmodf(camPosOriginal.x, texelSize),
+                                 camPosOriginal.y - std::fmodf(camPosOriginal.y, texelSize),
+                                 camPosOriginal.z - std::fmodf(camPosOriginal.z, texelSize)};
+    auto camPosSnappedWorld = matmul(viewOriginalInv, ifloat4{camPosSnapped.x, camPosSnapped.y, camPosSnapped.z, 1.0f});
+    auto newCenter = ifloat3{camPosSnappedWorld.x, camPosSnappedWorld.y, camPosSnappedWorld.z};
     // printf("New center: %f %f %f\n", newCenter.x, newCenter.y, newCenter.z);
     view = lookAt(newCenter, newCenter + lightFront, lightCamUp);
 
@@ -113,18 +105,14 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(
 }
 
 IFRIT_APIDECL std::vector<PerFrameData::PerViewData>
-fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
-             uint32_t shadowResolution, Transform &lightTransform,
-             uint32_t splitCount, float maxDistance,
-             const std::vector<float> &splits,
-             const std::vector<float> &borders,
-             std::array<float, 4> &splitStart, std::array<float, 4> &splitEnd) {
+fillCSMViews(const PerFrameData::PerViewData &perView, Light &light, uint32_t shadowResolution,
+             Transform &lightTransform, uint32_t splitCount, float maxDistance, const std::vector<float> &splits,
+             const std::vector<float> &borders, std::array<float, 4> &splitStart, std::array<float, 4> &splitEnd) {
   auto lightTransformMat = lightTransform.getModelToWorldMatrix();
   auto lightDirRaw = ifloat4{0.0f, 0.0f, 1.0f, 0.0f};
   auto lightDir = Math::matmul(lightTransformMat, lightDirRaw);
   auto lightDir3 = ifloat3{lightDir.x, lightDir.y, lightDir.z};
-  auto csmResult = calculateCSMSplits(perView, shadowResolution, lightDir3,
-                                      splitCount, maxDistance, splits, borders);
+  auto csmResult = calculateCSMSplits(perView, shadowResolution, lightDir3, splitCount, maxDistance, splits, borders);
 
   std::vector<PerFrameData::PerViewData> views;
   for (auto i = 0u; i < splitCount; i++) {
@@ -134,13 +122,11 @@ fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
     view.m_viewData.m_worldToView = Math::transpose(split.m_view);
     view.m_viewData.m_perspective = Math::transpose(split.m_proj);
     view.m_viewData.m_worldToClip = Math::transpose(
-        Math::matmul(Math::transpose(view.m_viewData.m_perspective),
-                     Math::transpose(view.m_viewData.m_worldToView)));
+        Math::matmul(Math::transpose(view.m_viewData.m_perspective), Math::transpose(view.m_viewData.m_worldToView)));
     view.m_viewData.m_cameraAspect = 1.0f;
-    view.m_viewData.m_inversePerspective = Math::transpose(
-        Ifrit::Math::inverse4(Math::transpose(view.m_viewData.m_perspective)));
-    view.m_viewData.m_clipToWorld = Math::transpose(
-        Math::inverse4(Math::transpose(view.m_viewData.m_worldToClip)));
+    view.m_viewData.m_inversePerspective =
+        Math::transpose(Ifrit::Math::inverse4(Math::transpose(view.m_viewData.m_perspective)));
+    view.m_viewData.m_clipToWorld = Math::transpose(Math::inverse4(Math::transpose(view.m_viewData.m_worldToClip)));
     view.m_viewData.m_cameraPosition = split.m_lightCamPos;
     view.m_viewData.m_cameraFront = {lightDir.x, lightDir.y, lightDir.z, 0.0f};
     view.m_viewData.m_cameraNear = split.m_near;
@@ -151,14 +137,12 @@ fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
     view.m_viewData.m_cullCamOrthoSizeX = split.m_clipOrthoSizeX;
     view.m_viewData.m_cullCamOrthoSizeY = split.m_clipOrthoSizeY;
     view.m_viewData.m_viewCameraType = 1.0f;
-    view.m_viewData.m_viewToWorld = Math::transpose(
-        Math::inverse4(Math::transpose(view.m_viewData.m_worldToView)));
+    view.m_viewData.m_viewToWorld = Math::transpose(Math::inverse4(Math::transpose(view.m_viewData.m_worldToView)));
 
     auto shadowMapSize = light.getShadowMapResolution();
     view.m_viewData.m_renderHeightf = static_cast<float>(shadowMapSize);
     view.m_viewData.m_renderWidthf = static_cast<float>(shadowMapSize);
-    view.m_viewData.m_hizLods =
-        std::floor(std::log2(1.0f * shadowMapSize)) + 1.0f;
+    view.m_viewData.m_hizLods = std::floor(std::log2(1.0f * shadowMapSize)) + 1.0f;
 
     views.push_back(view);
   }

@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/display/dependencies/GLAD/glad/glad.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include <deque>
@@ -60,9 +61,9 @@ public:
   virtual void setTitle(const std::string &title) override;
 
   // For Vulkan
-  const char **getVkRequiredInstanceExtensions(uint32_t *count) override;
+  const char **getVkRequiredInstanceExtensions(u32 *count) override;
   void *getWindowObject() override;
-  std::pair<uint32_t, uint32_t> getFramebufferSize();
+  std::pair<u32, u32> getFramebufferSize();
   void *getGLFWWindow() override;
 
   void callGlfwInit() {
@@ -72,10 +73,7 @@ public:
       throw std::runtime_error("GLFW fails");
     }
   }
-  virtual void
-      registerKeyCallback(std::function<void(int, int, int, int)>) override;
-  inline std::function<void(int, int, int, int)> getKeyCallBack() {
-    return keyCallBack;
-  }
+  virtual void registerKeyCallback(std::function<void(int, int, int, int)>) override;
+  inline std::function<void(int, int, int, int)> getKeyCallBack() { return keyCallBack; }
 };
 } // namespace Ifrit::Display::Window

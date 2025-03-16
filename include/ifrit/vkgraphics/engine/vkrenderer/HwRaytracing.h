@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
@@ -53,9 +54,7 @@ private:
 
 public:
   BottomLevelAS(EngineContext *ctx);
-  void
-  prepareGeometryData(const std::vector<Rhi::RhiRTGeometryReference> &geometry,
-                      CommandBuffer *cmd);
+  void prepareGeometryData(const std::vector<Rhi::RhiRTGeometryReference> &geometry, CommandBuffer *cmd);
   virtual Rhi::RhiDeviceAddr getDeviceAddress() const override;
 };
 
@@ -69,8 +68,7 @@ private:
 
 public:
   TopLevelAS(EngineContext *ctx);
-  void prepareInstanceData(const std::vector<Rhi::RhiRTInstance> &instances,
-                           CommandBuffer *cmd);
+  void prepareInstanceData(const std::vector<Rhi::RhiRTInstance> &instances, CommandBuffer *cmd);
   virtual Rhi::RhiDeviceAddr getDeviceAddress() const override;
 };
 
@@ -87,20 +85,16 @@ private:
   std::vector<u32> m_numGroups;
 
 private:
-  void
-  appendShaderBindingTable(const std::vector<Rhi::RhiRTShaderGroup> &groups);
+  void appendShaderBindingTable(const std::vector<Rhi::RhiRTShaderGroup> &groups);
 
 public:
   ShaderBindingTable(EngineContext *ctx, HwRaytracingContext *rtContext);
-  void prepareShaderBindingTable(
-      const std::vector<std::vector<Rhi::RhiRTShaderGroup>> &groups);
+  void prepareShaderBindingTable(const std::vector<std::vector<Rhi::RhiRTShaderGroup>> &groups);
   std::vector<const Rhi::RhiShader *> getShaders() const;
   std::vector<VkRayTracingShaderGroupCreateInfoKHR> getShaderGroupsCI() const;
   std::vector<VkStridedDeviceAddressRegionKHR> getStridedRegions() const;
 
-  inline SingleBuffer *getSbtBuffer(u32 index) {
-    return m_shaderBuffers[index].get();
-  }
+  inline SingleBuffer *getSbtBuffer(u32 index) { return m_shaderBuffers[index].get(); }
 
   inline std::vector<u32> getNumGroups() { return m_numGroups; }
 };
@@ -118,8 +112,7 @@ public:
   HwRaytracingContext *m_rtContext;
 
 public:
-  RaytracingPipeline(EngineContext *ctx, HwRaytracingContext *rtctx,
-                     const RaytracePipelineCreateInfo &ci)
+  RaytracingPipeline(EngineContext *ctx, HwRaytracingContext *rtctx, const RaytracePipelineCreateInfo &ci)
       : PipelineBase(ctx), m_createInfo(ci), m_rtContext(rtctx) {
     init();
   }
@@ -135,19 +128,16 @@ private:
 
   std::vector<std::unique_ptr<RaytracingPipeline>> m_raytracingPipelines;
   std::vector<RaytracePipelineCreateInfo> m_raytracingPipelineCI;
-  std::unordered_map<uint64_t, std::vector<int>> m_rtPipelineHash;
+  std::unordered_map<u64, std::vector<int>> m_rtPipelineHash;
 
 public:
-  RaytracingPipelineCache(EngineContext *ctx, HwRaytracingContext *rtctx)
-      : m_context(ctx), m_rtContext(rtctx) {}
+  RaytracingPipelineCache(EngineContext *ctx, HwRaytracingContext *rtctx) : m_context(ctx), m_rtContext(rtctx) {}
   RaytracingPipelineCache(const RaytracingPipelineCache &p) = delete;
   RaytracingPipelineCache &operator=(const RaytracingPipelineCache &p) = delete;
 
-  uint64_t raytracingPipelineHash(const RaytracePipelineCreateInfo &ci);
-  bool raytracingPipelineEqual(const RaytracePipelineCreateInfo &a,
-                               const RaytracePipelineCreateInfo &b);
-  RaytracingPipeline *
-  getRaytracingPipeline(const RaytracePipelineCreateInfo &ci);
+  u64 raytracingPipelineHash(const RaytracePipelineCreateInfo &ci);
+  bool raytracingPipelineEqual(const RaytracePipelineCreateInfo &a, const RaytracePipelineCreateInfo &b);
+  RaytracingPipeline *getRaytracingPipeline(const RaytracePipelineCreateInfo &ci);
 };
 
 class IFRIT_APIDECL RaytracingPass : public Rhi::RhiRTPass {
@@ -175,10 +165,8 @@ private:
   u32 m_regionDepth = 0;
 
 public:
-  RaytracingPass(EngineContext *context, DescriptorManager *descriptorManager,
-                 RaytracingPipelineCache *pipelineCache)
-      : m_context(context), m_descriptorManager(descriptorManager),
-        m_pipelineCache(pipelineCache) {}
+  RaytracingPass(EngineContext *context, DescriptorManager *descriptorManager, RaytracingPipelineCache *pipelineCache)
+      : m_context(context), m_descriptorManager(descriptorManager), m_pipelineCache(pipelineCache) {}
 
   void setShaderGroups(Rhi::RhiRTShaderBindingTable *sbt);
   void setMaxRecursion(u32 maxRecursion);

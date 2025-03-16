@@ -10,7 +10,7 @@ set(IFRIT_GLOBAL_CUDA_DIR_WINDOWS "C:/Program Files/NVIDIA GPU Computing Toolkit
 # Set global flags
 set(IFRIT_GLOBAL_INTEGRATED_BUILD_FLAG 1)
 set(IFRIT_GLOBAL_DISABLE_LLVM 1)
-
+ 
 # Find LLVM
 if (IFRIT_GLOBAL_DISABLE_LLVM)
     message(STATUS "[Ifrit/Deps] LLVM disabled. Using pre-defined paths.")

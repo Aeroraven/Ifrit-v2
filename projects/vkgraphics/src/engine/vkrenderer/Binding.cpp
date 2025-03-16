@@ -27,15 +27,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
-template <typename E>
-constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
+template <typename E> constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
   return static_cast<typename std::underlying_type<E>::type>(e);
 }
 
 IFRIT_APIDECL void DescriptorManager::destructor() {
   vkDestroyDescriptorPool(m_context->getDevice(), m_bindlessPool, nullptr);
-  vkDestroyDescriptorSetLayout(m_context->getDevice(), m_bindlessLayout,
-                               nullptr);
+  vkDestroyDescriptorSetLayout(m_context->getDevice(), m_bindlessLayout, nullptr);
   // iterates m_bindRages and delete descriptor pool and layout
   for (auto &range : m_bindRanges) {
     vkDestroyDescriptorPool(m_context->getDevice(), range->m_pool, nullptr);
@@ -43,16 +41,13 @@ IFRIT_APIDECL void DescriptorManager::destructor() {
 
   if (m_currentBindRange) {
     if (m_currentBindRange->m_pool != VK_NULL_HANDLE)
-      vkDestroyDescriptorPool(m_context->getDevice(),
-                              m_currentBindRange->m_pool, nullptr);
+      vkDestroyDescriptorPool(m_context->getDevice(), m_currentBindRange->m_pool, nullptr);
   }
   if (m_layoutShared != VK_NULL_HANDLE) {
-    vkDestroyDescriptorSetLayout(m_context->getDevice(), m_layoutShared,
-                                 nullptr);
+    vkDestroyDescriptorSetLayout(m_context->getDevice(), m_layoutShared, nullptr);
   }
 }
-IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx)
-    : m_context(ctx) {
+IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx) : m_context(ctx) {
   for (int i = 0; i < cMaxDescriptorType; i++) {
     m_bindings[i].binding = i;
     m_bindings[i].descriptorType = cDescriptorTypeDetails[i].type;
@@ -60,12 +55,10 @@ IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx)
     m_bindings[i].stageFlags = VK_SHADER_STAGE_ALL;
     m_bindings[i].pImmutableSamplers = nullptr;
 
-    m_bindingFlags[i] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-                        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+    m_bindingFlags[i] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
   }
   VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCI{};
-  bindingFlagsCI.sType =
-      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+  bindingFlagsCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
   bindingFlagsCI.bindingCount = cMaxDescriptorType;
   bindingFlagsCI.pBindingFlags = m_bindingFlags.data();
 
@@ -76,8 +69,7 @@ IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx)
   layoutCI.pNext = &bindingFlagsCI;
   layoutCI.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
-  vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->getDevice(), &layoutCI,
-                                              nullptr, &m_bindlessLayout),
+  vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->getDevice(), &layoutCI, nullptr, &m_bindlessLayout),
                   "Failed to create descriptor set layout");
 
   std::array<VkDescriptorPoolSize, cMaxDescriptorType> poolSizes;
@@ -93,8 +85,7 @@ IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx)
   poolCI.poolSizeCount = cMaxDescriptorType;
   poolCI.pPoolSizes = poolSizes.data();
 
-  vkrVulkanAssert(vkCreateDescriptorPool(m_context->getDevice(), &poolCI,
-                                         nullptr, &m_bindlessPool),
+  vkrVulkanAssert(vkCreateDescriptorPool(m_context->getDevice(), &poolCI, nullptr, &m_bindlessPool),
                   "Failed to create descriptor pool");
 
   // Allocate descriptor set
@@ -104,15 +95,13 @@ IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx)
   allocInfo.descriptorSetCount = 1;
   allocInfo.pSetLayouts = &m_bindlessLayout;
 
-  vkrVulkanAssert(vkAllocateDescriptorSets(m_context->getDevice(), &allocInfo,
-                                           &m_bindlessSet),
+  vkrVulkanAssert(vkAllocateDescriptorSets(m_context->getDevice(), &allocInfo, &m_bindlessSet),
                   "Failed to allocate descriptor set");
 
   // Query alignment for dynamic uniform buffer
   VkPhysicalDeviceProperties properties;
   vkGetPhysicalDeviceProperties(m_context->getPhysicalDevice(), &properties);
-  m_minUniformBufferAlignment =
-      size_cast<int>(properties.limits.minUniformBufferOffsetAlignment);
+  m_minUniformBufferAlignment = size_cast<int>(properties.limits.minUniformBufferOffsetAlignment);
 
   m_currentBindRange = std::make_unique<DescriptorBindRangeData>();
 
@@ -129,14 +118,11 @@ IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx)
   layoutCI2.bindingCount = 1;
   layoutCI2.pBindings = &m_bindingShared;
 
-  vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->getDevice(),
-                                              &layoutCI2, nullptr,
-                                              &m_layoutShared),
+  vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->getDevice(), &layoutCI2, nullptr, &m_layoutShared),
                   "Failed to create descriptor set layout");
 }
 
-IFRIT_APIDECL uint32_t
-DescriptorManager::registerUniformBuffer(SingleBuffer *buffer) {
+IFRIT_APIDECL uint32_t DescriptorManager::registerUniformBuffer(SingleBuffer *buffer) {
   // check if the buffer is already registered
   for (int i = 0; i < m_uniformBuffers.size(); i++) {
     if (m_uniformBuffers[i] == buffer->getBuffer()) {
@@ -193,16 +179,12 @@ uint32_t DescriptorManager::registerStorageBuffer(SingleBuffer *buffer) {
 }
 
 IFRIT_APIDECL
-uint32_t
-DescriptorManager::registerStorageImage(SingleDeviceImage *image,
-                                        Rhi::RhiImageSubResource subResource) {
+uint32_t DescriptorManager::registerStorageImage(SingleDeviceImage *image, Rhi::RhiImageSubResource subResource) {
   for (int i = 0; i < m_storageImages.size(); i++) {
     if (m_storageImages[i].first == image->getImage()) {
       auto &sub = m_storageImages[i].second;
-      if (sub.mipLevel == subResource.mipLevel &&
-          sub.arrayLayer == subResource.arrayLayer &&
-          sub.mipCount == subResource.mipCount &&
-          sub.layerCount == subResource.layerCount) {
+      if (sub.mipLevel == subResource.mipLevel && sub.arrayLayer == subResource.arrayLayer &&
+          sub.mipCount == subResource.mipCount && sub.layerCount == subResource.layerCount) {
         return i;
       }
     }
@@ -210,9 +192,8 @@ DescriptorManager::registerStorageImage(SingleDeviceImage *image,
   auto handle = m_storageImages.size();
   VkDescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-  imageInfo.imageView =
-      image->getImageViewMipLayer(subResource.mipLevel, subResource.arrayLayer,
-                                  subResource.mipCount, subResource.layerCount);
+  imageInfo.imageView = image->getImageViewMipLayer(subResource.mipLevel, subResource.arrayLayer, subResource.mipCount,
+                                                    subResource.layerCount);
   imageInfo.sampler = VK_NULL_HANDLE;
 
   VkWriteDescriptorSet write{};
@@ -231,9 +212,7 @@ DescriptorManager::registerStorageImage(SingleDeviceImage *image,
 }
 
 IFRIT_APIDECL
-uint32_t
-DescriptorManager::registerCombinedImageSampler(SingleDeviceImage *image,
-                                                Sampler *sampler) {
+uint32_t DescriptorManager::registerCombinedImageSampler(SingleDeviceImage *image, Sampler *sampler) {
   for (int i = 0; i < m_combinedImageSamplers.size(); i++) {
     if (m_combinedImageSamplers[i].first == image->getImage() &&
         m_combinedImageSamplers[i].second == sampler->getSampler()) {
@@ -251,27 +230,23 @@ DescriptorManager::registerCombinedImageSampler(SingleDeviceImage *image,
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.dstSet = m_bindlessSet;
-  write.dstBinding =
-      getUnderlying(Rhi::RhiDescriptorType::CombinedImageSampler);
+  write.dstBinding = getUnderlying(Rhi::RhiDescriptorType::CombinedImageSampler);
   write.dstArrayElement = size_cast<uint32_t>(handleId);
   write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   write.descriptorCount = 1;
-  write.pImageInfo = &imageInfo;    
+  write.pImageInfo = &imageInfo;
 
   vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
   return size_cast<uint32_t>(handleId);
 }
 
-IFRIT_APIDECL DescriptorBindRange
-DescriptorManager::registerBindlessParameterRaw(const char *data,
-                                                uint32_t size) {
+IFRIT_APIDECL DescriptorBindRange DescriptorManager::registerBindlessParameterRaw(const char *data, uint32_t size) {
   auto offset = m_currentBindRange->m_currentOffset;
   auto rangeId = m_currentBindRange->m_ranges.size();
 
   auto paddedSize = size;
   if (size % m_minUniformBufferAlignment != 0) {
-    paddedSize +=
-        m_minUniformBufferAlignment - (size % m_minUniformBufferAlignment);
+    paddedSize += m_minUniformBufferAlignment - (size % m_minUniformBufferAlignment);
   }
   m_currentBindRange->m_currentOffset += paddedSize;
 
@@ -295,8 +270,7 @@ IFRIT_APIDECL void DescriptorManager::buildBindlessParameter() {
   m_currentBindRange->m_buffer->map();
   for (int i = 0; i < m_currentBindRange->m_ranges.size(); i++) {
     auto &range = m_currentBindRange->m_ranges[i];
-    m_currentBindRange->m_buffer->writeBuffer(range.data.data(), range.bytes,
-                                              range.offset);
+    m_currentBindRange->m_buffer->writeBuffer(range.data.data(), range.bytes, range.offset);
   }
   m_currentBindRange->m_buffer->flush();
   m_currentBindRange->m_buffer->unmap();
@@ -313,8 +287,7 @@ IFRIT_APIDECL void DescriptorManager::buildBindlessParameter() {
   poolCI.poolSizeCount = 1;
   poolCI.pPoolSizes = &poolSize;
 
-  vkrVulkanAssert(vkCreateDescriptorPool(m_context->getDevice(), &poolCI,
-                                         nullptr, &m_currentBindRange->m_pool),
+  vkrVulkanAssert(vkCreateDescriptorPool(m_context->getDevice(), &poolCI, nullptr, &m_currentBindRange->m_pool),
                   "Failed to create descriptor pool");
 
   // Allocate descriptor set
@@ -324,8 +297,7 @@ IFRIT_APIDECL void DescriptorManager::buildBindlessParameter() {
   allocInfo.descriptorSetCount = 1;
   allocInfo.pSetLayouts = &m_layoutShared;
 
-  vkrVulkanAssert(vkAllocateDescriptorSets(m_context->getDevice(), &allocInfo,
-                                           &m_currentBindRange->m_set),
+  vkrVulkanAssert(vkAllocateDescriptorSets(m_context->getDevice(), &allocInfo, &m_currentBindRange->m_set),
                   "Failed to allocate descriptor set");
 
   // Update descriptor set

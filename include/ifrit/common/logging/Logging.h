@@ -82,8 +82,7 @@ inline void registerLoggerModule(const std::string &name) {
   spdlog::register_logger(logger);
 }
 
-inline std::shared_ptr<spdlog::logger>
-getLoggerModule(const std::string &name) {
+inline std::shared_ptr<spdlog::logger> getLoggerModule(const std::string &name) {
   auto logger = spdlog::get(name);
   if (!logger) {
     registerLoggerModule(name);
@@ -92,37 +91,30 @@ getLoggerModule(const std::string &name) {
   return logger;
 }
 
-template <typename... Args>
-inline void info2(const char *moduleName, std::format_string<Args...> fmt,
-                  Args &&...args) {
+template <typename... Args> inline void info2(const char *moduleName, std::format_string<Args...> fmt, Args &&...args) {
   auto formatted = std::format(fmt, std::forward<Args>(args)...);
   getLoggerModule(moduleName)->info(formatted);
 }
 
-template <typename... Args>
-inline void warn2(const char *moduleName, std::format_string<Args...> fmt,
-                  Args &&...args) {
+template <typename... Args> inline void warn2(const char *moduleName, std::format_string<Args...> fmt, Args &&...args) {
   auto formatted = std::format(fmt, std::forward<Args>(args)...);
   getLoggerModule(moduleName)->warn(formatted);
 }
 
 template <typename... Args>
-inline void error2(const char *moduleName, std::format_string<Args...> fmt,
-                   Args &&...args) {
+inline void error2(const char *moduleName, std::format_string<Args...> fmt, Args &&...args) {
   auto formatted = std::format(fmt, std::forward<Args>(args)...);
   getLoggerModule(moduleName)->error(formatted);
 }
 
 template <typename... Args>
-inline void debug2(const char *moduleName, std::format_string<Args...> fmt,
-                   Args &&...args) {
+inline void debug2(const char *moduleName, std::format_string<Args...> fmt, Args &&...args) {
   auto formatted = std::format(fmt, std::forward<Args>(args)...);
   getLoggerModule(moduleName)->debug(formatted);
 }
 
 template <typename... Args>
-inline void trace2(const char *moduleName, std::format_string<Args...> fmt,
-                   Args &&...args) {
+inline void trace2(const char *moduleName, std::format_string<Args...> fmt, Args &&...args) {
   auto formatted = std::format(fmt, std::forward<Args>(args)...);
   getLoggerModule(moduleName)->trace(formatted);
 }
@@ -148,8 +140,7 @@ template <typename T> inline void trace2(const char *moduleName, const T &msg) {
   getLoggerModule(moduleName)->trace(msg);
 }
 
-template <typename T>
-inline void assertion2(const char *moduleName, bool condition, const T &msg) {
+template <typename T> inline void assertion2(const char *moduleName, bool condition, const T &msg) {
   if (!condition) {
     getLoggerModule(moduleName)->error(msg);
     throw std::runtime_error(msg);
@@ -171,8 +162,7 @@ inline void assertion2(const char *moduleName, bool condition, const T &msg) {
 #define iError(...) Logging::error2(IFRIT_LOG_MODULE_NAME, __VA_ARGS__)
 #define iDebug(...) Logging::debug2(IFRIT_LOG_MODULE_NAME, __VA_ARGS__)
 #define iTrace(...) Logging::trace2(IFRIT_LOG_MODULE_NAME, __VA_ARGS__)
-#define iAssertion(condition, ...)                                             \
-  Logging::assertion2(IFRIT_LOG_MODULE_NAME, condition, __VA_ARGS__)
+#define iAssertion(condition, ...) Logging::assertion2(IFRIT_LOG_MODULE_NAME, condition, __VA_ARGS__)
 #else
 static_assert(false, "IFRIT_LOG_MODULE_NAME is not defined");
 #endif

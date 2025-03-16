@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "AssetReference.h"
 #include "Component.h"
 #include "Material.h"
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/meshproc/engine/mesh/MeshClusterBase.h"
 #include "ifrit/rhi/common/RhiLayer.h"
@@ -27,17 +28,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core {
 struct MeshData {
   struct GPUCPCounter {
-    uint32_t totalBvhNodes;
-    uint32_t totalNumClusters;
-    uint32_t totalLods;
-    uint32_t pad1;
+    u32 totalBvhNodes;
+    u32 totalNumClusters;
+    u32 totalLods;
+    u32 pad1;
   };
 
   struct MeshletData {
-    uint32_t vertexOffset;
-    uint32_t triangleOffset;
-    uint32_t vertexCount;
-    uint32_t triangleCount;
+    u32 vertexOffset;
+    u32 triangleOffset;
+    u32 vertexCount;
+    u32 triangleCount;
     ifloat4 normalConeAxisCutoff;
     ifloat4 normalConeApex;
     ifloat4 boundSphere;
@@ -50,26 +51,25 @@ struct MeshData {
   std::vector<ifloat4> m_normalsAligned;
   std::vector<ifloat2> m_uvs;
   std::vector<ifloat4> m_tangents;
-  std::vector<uint32_t> m_indices;
+  std::vector<u32> m_indices;
 
   // Cluster data
   std::vector<MeshletData> m_meshlets;
   std::vector<ifloat4> m_normalsCone;
   std::vector<ifloat4> m_normalsConeApex;
   std::vector<ifloat4> m_boundSphere;
-  std::vector<uint32_t> m_meshletTriangles;
-  std::vector<uint32_t> m_meshletVertices;
-  std::vector<uint32_t> m_meshletInClusterGroup;
+  std::vector<u32> m_meshletTriangles;
+  std::vector<u32> m_meshletVertices;
+  std::vector<u32> m_meshletInClusterGroup;
   std::vector<Ifrit::MeshProcLib::MeshProcess::MeshletCullData> m_meshCullData;
-  std::vector<Ifrit::MeshProcLib::MeshProcess::FlattenedBVHNode>
-      m_bvhNodes; // seems not suitable to be here
+  std::vector<Ifrit::MeshProcLib::MeshProcess::FlattenedBVHNode> m_bvhNodes; // seems not suitable to be here
   std::vector<Ifrit::MeshProcLib::MeshProcess::ClusterGroup> m_clusterGroups;
 
   // Num meshlets in each lod
-  std::vector<uint32_t> m_numMeshletsEachLod;
+  std::vector<u32> m_numMeshletsEachLod;
 
   GPUCPCounter m_cpCounter;
-  uint32_t m_maxLod;
+  u32 m_maxLod;
 
   IFRIT_STRUCT_SERIALIZE(m_vertices, m_normals, m_uvs, m_tangents, m_indices);
 };
@@ -80,29 +80,28 @@ struct MeshInstanceTransform {
   float maxScale;
 };
 
-class IFRIT_APIDECL Mesh : public AssetReferenceContainer,
-                           public IAssetCompatible {
+class IFRIT_APIDECL Mesh : public AssetReferenceContainer, public IAssetCompatible {
   using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
 
 public:
   struct GPUObjectBuffer {
     ifloat4 boundingSphere;
-    uint32_t vertexBufferId;
-    uint32_t normalBufferId;
-    uint32_t tangentBufferId;
-    uint32_t uvBufferId;
-    uint32_t meshletBufferId;
-    uint32_t meshletVertexBufferId;
-    uint32_t meshletIndexBufferId;
-    uint32_t meshletCullBufferId;
-    uint32_t bvhNodeBufferId;
-    uint32_t clusterGroupBufferId;
-    uint32_t meshletInClusterBufferId;
-    uint32_t cpCounterBufferId;
-    uint32_t materialDataId;
-    uint32_t pad2;
-    uint32_t pad3;
+    u32 vertexBufferId;
+    u32 normalBufferId;
+    u32 tangentBufferId;
+    u32 uvBufferId;
+    u32 meshletBufferId;
+    u32 meshletVertexBufferId;
+    u32 meshletIndexBufferId;
+    u32 meshletCullBufferId;
+    u32 bvhNodeBufferId;
+    u32 clusterGroupBufferId;
+    u32 meshletInClusterBufferId;
+    u32 cpCounterBufferId;
+    u32 materialDataId;
+    u32 pad2;
+    u32 pad3;
   };
 
   struct GPUResource {
@@ -117,8 +116,7 @@ public:
     std::shared_ptr<GPUBuffer> clusterGroupBuffer = nullptr;
     std::shared_ptr<GPUBuffer> meshletInClusterBuffer = nullptr;
     std::shared_ptr<GPUBuffer> cpCounterBuffer = nullptr;
-    std::shared_ptr<GPUBuffer> materialDataBuffer =
-        nullptr; // currently, opaque is used to hold material data
+    std::shared_ptr<GPUBuffer> materialDataBuffer = nullptr; // currently, opaque is used to hold material data
     std::shared_ptr<GPUBuffer> tangentBuffer = nullptr;
 
     std::shared_ptr<GPUBindId> vertexBufferId = nullptr;
@@ -216,8 +214,7 @@ public:
     resource.objectData = m_resource.objectData;
   }
   // TODO: static method
-  virtual void createMeshLodHierarchy(std::shared_ptr<MeshData> meshData,
-                                      const std::string &cachePath);
+  virtual void createMeshLodHierarchy(std::shared_ptr<MeshData> meshData, const std::string &cachePath);
   virtual ifloat4 getBoundingSphere(const std::vector<ifloat3> &vertices);
 
   IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
@@ -233,10 +230,10 @@ class IFRIT_APIDECL MeshInstance {
 
 public:
   struct GPUObjectBuffer {
-    uint32_t cpQueueBufferId;
-    uint32_t cpCounterBufferId;
-    uint32_t filteredMeshletsId;
-    uint32_t pad;
+    u32 cpQueueBufferId;
+    u32 cpCounterBufferId;
+    u32 filteredMeshletsId;
+    u32 pad;
   };
 
   struct GPUResource {
@@ -286,9 +283,7 @@ private:
 
 public:
   MeshFilter() { m_instance = std::make_shared<MeshInstance>(); }
-  MeshFilter(std::shared_ptr<SceneObject> owner) : Component(owner) {
-    m_instance = std::make_shared<MeshInstance>();
-  }
+  MeshFilter(std::shared_ptr<SceneObject> owner) : Component(owner) { m_instance = std::make_shared<MeshInstance>(); }
   virtual ~MeshFilter() = default;
   inline std::string serialize() override { return ""; }
   inline void deserialize() override {}
@@ -306,8 +301,7 @@ public:
       return {};
     return {&m_meshReference};
   }
-  inline virtual void setAssetReferencedAttributes(
-      const std::vector<std::shared_ptr<IAssetCompatible>> &out) override {
+  inline virtual void setAssetReferencedAttributes(const std::vector<std::shared_ptr<IAssetCompatible>> &out) override {
     if (m_meshReference.m_usingAsset) {
       auto mesh = Ifrit::Common::Utility::checked_pointer_cast<Mesh>(out[0]);
       m_attribute = mesh;

@@ -16,18 +16,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/math/simd/SimdVectors.h"
 #include "ifrit/softgraphics/core/definition/CoreDefs.h"
 #include "ifrit/softgraphics/core/definition/CoreTypes.h"
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::TileRaster {
-enum class TileRasterHomogeneousClipping {
-  DISABLE,
-  SIMPLE_DISCARD,
-  HOMOGENEOUS_CLIPPING
-};
+enum class TileRasterHomogeneousClipping { DISABLE, SIMPLE_DISCARD, HOMOGENEOUS_CLIPPING };
 
 enum class TileRasterFrontFace { CLOCKWISE, COUNTER_CLOCKWISE };
 
@@ -57,12 +53,12 @@ struct TriangleZW {
 };
 
 struct AssembledTriangleProposalReference {
-  uint32_t workerId;
+  u32 workerId;
   int primId;
 };
 
 struct TileBinProposal {
-  uint64_t tile;
+  u64 tile;
   TileRasterLevel level;
   int clipTrianglePacked;
 };

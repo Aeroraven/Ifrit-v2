@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "../../util/ApiConv.h"
 #include <cstdint>
@@ -45,8 +44,7 @@ inline __m256 fillAllOne_256() {
 
 // Gather 32 floats from memory and store into 4 differents 256-bit registers
 // With stride of 4.
-inline void gather32Fp32_stride4_256(float *data, __m256 &r0, __m256 &r1,
-                                     __m256 &r2, __m256 &r3) {
+inline void gather32Fp32_stride4_256(float *data, __m256 &r0, __m256 &r1, __m256 &r2, __m256 &r3) {
   // I do not know whether this is optimal
   constexpr bool useInstruction = false;
   if constexpr (useInstruction) {

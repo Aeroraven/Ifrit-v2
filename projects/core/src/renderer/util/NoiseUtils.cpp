@@ -8,8 +8,7 @@
 #undef STB_IMAGE_IMPLEMENTATION
 
 namespace Ifrit::Core::RenderingUtil {
-IFRIT_APIDECL std::shared_ptr<GraphicsBackend::Rhi::RhiTexture>
-loadBlueNoise(GraphicsBackend::Rhi::RhiBackend *rhi) {
+IFRIT_APIDECL std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> loadBlueNoise(GraphicsBackend::Rhi::RhiBackend *rhi) {
   auto path = IFRIT_CORELIB_SHARED_ASSET_PATH "/NoiseTexture/BlueNoiseRGBA.png";
   i32 width, height, channels;
   auto data = stbi_load(path, &width, &height, &channels, 4);
@@ -17,22 +16,16 @@ loadBlueNoise(GraphicsBackend::Rhi::RhiBackend *rhi) {
     iError("Failed to load blue noise texture");
     return nullptr;
   }
-  auto tex = rhi->createTexture2D(
-      width, height,
-      GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM,
-      GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
-          GraphicsBackend::Rhi::RhiImageUsage::
-              RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
-  auto buf = rhi->createBuffer(
-      width * height * 4,
-      GraphicsBackend::Rhi::RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      true);
+  auto tex = rhi->createTexture2D(width, height, GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM,
+                                  GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
+                                      GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+  auto buf = rhi->createBuffer(width * height * 4,
+                               GraphicsBackend::Rhi::RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_SRC_BIT, true);
   buf->map();
   buf->writeBuffer(data, width * height * 4, 0);
   buf->flush();
   buf->unmap();
-  auto tq = rhi->getQueue(
-      GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+  auto tq = rhi->getQueue(GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   tq->runSyncCommand([&](const GraphicsBackend::Rhi::RhiCommandBuffer *cmd) {
     GraphicsBackend::Rhi::RhiTransitionBarrier barrier;
     barrier.m_texture = tex.get();
@@ -48,8 +41,7 @@ loadBlueNoise(GraphicsBackend::Rhi::RhiBackend *rhi) {
     cmd->resourceBarrier({barrier2});
     cmd->copyBufferToImage(buf.get(), tex.get(), {0, 0, 1, 1});
 
-    barrier2.m_transition.m_dstState =
-        GraphicsBackend::Rhi::RhiResourceState2::ShaderRead;
+    barrier2.m_transition.m_dstState = GraphicsBackend::Rhi::RhiResourceState2::ShaderRead;
     cmd->resourceBarrier({barrier2});
   });
   return tex;

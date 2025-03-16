@@ -16,8 +16,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::Core::Data {
@@ -44,17 +44,14 @@ public:
     data = new T[width * height * channel];
 #endif
   }
-  Image(size_t width, size_t height, size_t channel)
-      : width(width), height(height), channel(channel) {
+  Image(size_t width, size_t height, size_t channel) : width(width), height(height), channel(channel) {
     data = new T[width * height * channel];
   }
-  Image(const Image &other)
-      : width(other.width), height(other.height), channel(other.channel) {
+  Image(const Image &other) : width(other.width), height(other.height), channel(other.channel) {
     data = new T[width * height * channel];
     memcpy(data, other.data, width * height * channel * sizeof(T));
   }
-  Image(Image &&other) noexcept
-      : width(other.width), height(other.height), channel(other.channel) {
+  Image(Image &&other) noexcept : width(other.width), height(other.height), channel(other.channel) {
     data = other.data;
     other.data = nullptr;
   }
@@ -73,8 +70,7 @@ public:
     }
   }
 
-  void fillAreaRGBA(size_t x, size_t y, size_t w, size_t h, const T &r,
-                    const T &g, const T &b, const T &a) {
+  void fillAreaRGBA(size_t x, size_t y, size_t w, size_t h, const T &r, const T &g, const T &b, const T &a) {
     for (size_t i = y; i < y + h; i++) {
       for (size_t j = x; j < x + w; j++) {
         data[i * width * channel + j * channel + 0] = r;
@@ -85,8 +81,7 @@ public:
     }
   }
 
-  inline void fillPixelRGBA(size_t x, size_t y, const T &r, const T &g,
-                            const T &b, const T &a) {
+  inline void fillPixelRGBA(size_t x, size_t y, const T &r, const T &g, const T &b, const T &a) {
     // ifritAssert(x < width && y < height, "Pixel out of range");
     data[y * width * channel + x * channel + 0] = r;
     data[y * width * channel + x * channel + 1] = g;
@@ -98,9 +93,7 @@ public:
     _mm_store_ps(&data[y * width * channel + x * channel], ps);
   }
 
-  inline T *getPixelRGBAUnsafe(size_t x, size_t y) {
-    return &data[y * width * channel + x * channel];
-  }
+  inline T *getPixelRGBAUnsafe(size_t x, size_t y) { return &data[y * width * channel + x * channel]; }
 
   void fillArea(size_t x, size_t y, size_t w, size_t h, const T &value) {
     // ifritAssert(x + w <= width && y + h <= height, "Area out of range");
@@ -113,8 +106,7 @@ public:
     }
   }
 
-  void fillAreaF(float ndcX, float ndcY, float ndcW, float ndcH,
-                 const T &value) {
+  void fillAreaF(float ndcX, float ndcY, float ndcW, float ndcH, const T &value) {
     size_t x = ndcX * width;
     size_t y = ndcY * height;
     size_t w = ndcW * width;
@@ -127,8 +119,7 @@ public:
   void clearImage(T value = 0) {
     const auto dataPtr = data;
     const auto dataSize = width * height * channel;
-    if constexpr (std::is_same_v<T, char> &&
-                  !std::is_same_v<T, unsigned char>) {
+    if constexpr (std::is_same_v<T, char> && !std::is_same_v<T, unsigned char>) {
       memset(dataPtr, value, dataSize * sizeof(T));
     } else {
       if (value != 0)
@@ -149,13 +140,10 @@ public:
   void clearImageMultithread(T value, int workerId, int totalWorkers) {
     const auto dataPtr = data;
     const auto dataSizeSt = width * height * channel * workerId / totalWorkers;
-    const auto dataSizeEd =
-        width * height * channel * (workerId + 1) / totalWorkers;
+    const auto dataSizeEd = width * height * channel * (workerId + 1) / totalWorkers;
 
-    if constexpr (std::is_same_v<T, char> &&
-                  !std::is_same_v<T, unsigned char>) {
-      memset(dataPtr + dataSizeSt, value,
-             (dataSizeEd - dataSizeSt) * sizeof(T));
+    if constexpr (std::is_same_v<T, char> && !std::is_same_v<T, unsigned char>) {
+      memset(dataPtr + dataSizeSt, value, (dataSizeEd - dataSizeSt) * sizeof(T));
     } else {
       auto st = data + dataSizeSt;
       auto ed = data + dataSizeEd;
@@ -186,18 +174,13 @@ public:
   void clearImageZeroMultiThread(int workerId, int totalWorkers) {
     const auto dataPtr = data;
     const auto dataSizeSt = width * height * channel * workerId / totalWorkers;
-    const auto dataSizeEd =
-        width * height * channel * (workerId + 1) / totalWorkers;
+    const auto dataSizeEd = width * height * channel * (workerId + 1) / totalWorkers;
     memset(dataPtr + dataSizeSt, 0, (dataSizeEd - dataSizeSt) * sizeof(T));
   }
 
-  inline T &operator()(size_t x, size_t y, size_t c) {
-    return data[y * width * channel + x * channel + c];
-  }
+  inline T &operator()(size_t x, size_t y, size_t c) { return data[y * width * channel + x * channel + c]; }
 
-  const T &operator()(size_t x, size_t y, size_t c) const {
-    return data[y * width * channel + x * channel + c];
-  }
+  const T &operator()(size_t x, size_t y, size_t c) const { return data[y * width * channel + x * channel + c]; }
 
   const T *getData() const { return data; }
 
@@ -215,8 +198,8 @@ public:
 using ImageF32 = Image<float>;
 using ImageU8 = Image<uint8_t>;
 using ImageU16 = Image<uint16_t>;
-using ImageU32 = Image<uint32_t>;
-using ImageU64 = Image<uint64_t>;
+using ImageU32 = Image<u32>;
+using ImageU64 = Image<u64>;
 using ImageI8 = Image<int8_t>;
 using ImageI16 = Image<int16_t>;
 using ImageI32 = Image<int32_t>;

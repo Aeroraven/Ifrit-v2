@@ -21,10 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Core::RenderingUtil {
 
-IFRIT_APIDECL GraphicsBackend::Rhi::RhiShader *
-loadShaderFromFile(GraphicsBackend::Rhi::RhiBackend *rhi,
-                   const char *shaderPath, const char *entryPoint,
-                   GraphicsBackend::Rhi::RhiShaderStage stage) {
+IFRIT_APIDECL GraphicsBackend::Rhi::RhiShader *loadShaderFromFile(GraphicsBackend::Rhi::RhiBackend *rhi,
+                                                                  const char *shaderPath, const char *entryPoint,
+                                                                  GraphicsBackend::Rhi::RhiShaderStage stage) {
   std::string shaderBasePath = IFRIT_CORELIB_SHARED_SHADER_PATH;
   auto path = shaderBasePath + "/" + shaderPath;
   auto shaderCode = Ifrit::Common::Utility::readTextFile(path);
@@ -33,11 +32,10 @@ loadShaderFromFile(GraphicsBackend::Rhi::RhiBackend *rhi,
                            GraphicsBackend::Rhi::RhiShaderSourceType::GLSLCode);
 }
 
-IFRIT_APIDECL GraphicsBackend::Rhi::RhiComputePass *
-createComputePass(GraphicsBackend::Rhi::RhiBackend *rhi, const char *shaderPath,
-                  uint32_t numBindlessDescs, uint32_t numPushConsts) {
-  auto shader = loadShaderFromFile(
-      rhi, shaderPath, "main", GraphicsBackend::Rhi::RhiShaderStage::Compute);
+IFRIT_APIDECL GraphicsBackend::Rhi::RhiComputePass *createComputePass(GraphicsBackend::Rhi::RhiBackend *rhi,
+                                                                      const char *shaderPath, uint32_t numBindlessDescs,
+                                                                      uint32_t numPushConsts) {
+  auto shader = loadShaderFromFile(rhi, shaderPath, "main", GraphicsBackend::Rhi::RhiShaderStage::Compute);
   auto pass = rhi->createComputePass();
   pass->setComputeShader(shader);
   pass->setNumBindlessDescriptorSets(numBindlessDescs);
@@ -45,41 +43,31 @@ createComputePass(GraphicsBackend::Rhi::RhiBackend *rhi, const char *shaderPath,
   return pass;
 }
 
-IFRIT_APIDECL void enqueueFullScreenPass(
-    const GraphicsBackend::Rhi::RhiCommandBuffer *cmd,
-    GraphicsBackend::Rhi::RhiBackend *rhi,
-    GraphicsBackend::Rhi::RhiGraphicsPass *pass,
-    GraphicsBackend::Rhi::RhiRenderTargets *rt,
-    const std::vector<GraphicsBackend::Rhi::RhiBindlessDescriptorRef *>
-        &vBindlessDescs,
-    const void *pPushConst, uint32_t numPushConsts) {
+IFRIT_APIDECL void
+enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandBuffer *cmd, GraphicsBackend::Rhi::RhiBackend *rhi,
+                      GraphicsBackend::Rhi::RhiGraphicsPass *pass, GraphicsBackend::Rhi::RhiRenderTargets *rt,
+                      const std::vector<GraphicsBackend::Rhi::RhiBindlessDescriptorRef *> &vBindlessDescs,
+                      const void *pPushConst, uint32_t numPushConsts) {
 
-  pass->setRecordFunction(
-      [&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
-        for (auto i = 1; auto &desc : vBindlessDescs) {
-          ctx->m_cmd->attachBindlessReferenceGraphics(pass, i++, desc);
-        }
-        ctx->m_cmd->setPushConst(pass, 0, numPushConsts * sizeof(uint32_t),
-                                 pPushConst);
+  pass->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
+    for (auto i = 1; auto &desc : vBindlessDescs) {
+      ctx->m_cmd->attachBindlessReferenceGraphics(pass, i++, desc);
+    }
+    ctx->m_cmd->setPushConst(pass, 0, numPushConsts * sizeof(uint32_t), pPushConst);
 
-        // TODO: this should be done in vertex shader. Buffer is not needed
-        ctx->m_cmd->attachVertexBufferView(
-            *rhi->getFullScreenQuadVertexBufferView());
-        ctx->m_cmd->attachVertexBuffers(
-            0, {rhi->getFullScreenQuadVertexBuffer().get()});
-        ctx->m_cmd->drawInstanced(3, 1, 0, 0);
-      });
+    // TODO: this should be done in vertex shader. Buffer is not needed
+    ctx->m_cmd->attachVertexBufferView(*rhi->getFullScreenQuadVertexBufferView());
+    ctx->m_cmd->attachVertexBuffers(0, {rhi->getFullScreenQuadVertexBuffer().get()});
+    ctx->m_cmd->drawInstanced(3, 1, 0, 0);
+  });
 
   pass->run(cmd, rt, 0);
 }
-IFRIT_APIDECL void warpRenderTargets(
-    GraphicsBackend::Rhi::RhiBackend *rhi,
-    GraphicsBackend::Rhi::RhiTexture *vTex,
-    std::shared_ptr<GraphicsBackend::Rhi::RhiColorAttachment> &vCA,
-    std::shared_ptr<GraphicsBackend::Rhi::RhiRenderTargets> &vRT) {
-  vCA = rhi->createRenderTarget(
-      vTex, {0.0f, 0.0f, 0.0f, 0.0f},
-      GraphicsBackend::Rhi::RhiRenderTargetLoadOp::Clear, 0, 0);
+IFRIT_APIDECL void warpRenderTargets(GraphicsBackend::Rhi::RhiBackend *rhi, GraphicsBackend::Rhi::RhiTexture *vTex,
+                                     std::shared_ptr<GraphicsBackend::Rhi::RhiColorAttachment> &vCA,
+                                     std::shared_ptr<GraphicsBackend::Rhi::RhiRenderTargets> &vRT) {
+  vCA =
+      rhi->createRenderTarget(vTex, {0.0f, 0.0f, 0.0f, 0.0f}, GraphicsBackend::Rhi::RhiRenderTargetLoadOp::Clear, 0, 0);
   vRT = rhi->createRenderTargets();
   vRT->setColorAttachments({vCA.get()});
   vRT->setRenderArea({0, 0, vTex->getWidth(), vTex->getHeight()});
