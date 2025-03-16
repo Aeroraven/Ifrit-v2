@@ -1,9 +1,5 @@
 # Ifrit-v2 /  TODO 
 
-Todo list is untraced
-
-## Resolved
-
 ### 2025.01
 - Syaro: 缓解LoD切换时的顶点属性突变 (250115)
 
