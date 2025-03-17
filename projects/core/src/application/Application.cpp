@@ -85,10 +85,16 @@ IFRIT_APIDECL void Application::start() {
   m_assetManager->loadAssetDirectory();
   m_sceneManager = std::make_shared<SceneManager>(this);
 
+  // Input System
+  m_inputSystem = std::make_shared<InputSystem>(this);
+
   onStart();
 }
 
-IFRIT_APIDECL void Application::update() { onUpdate(); }
+IFRIT_APIDECL void Application::update() {
+  onUpdate();
+  m_inputSystem->onFrameUpdate();
+}
 
 IFRIT_APIDECL void Application::end() {
   m_rhiLayer->waitDeviceIdle();

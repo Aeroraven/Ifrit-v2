@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/base/IfritBase.h"
 #include "ifrit/core/assetmanager/Asset.h"
 #include "ifrit/core/base/ApplicationInterface.h"
+#include "ifrit/core/input/InputSystem.h"
 #include "ifrit/core/scene/SceneAssetManager.h"
 #include "ifrit/core/scene/SceneManager.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
@@ -51,6 +52,7 @@ protected:
   std::shared_ptr<AssetManager> m_assetManager;
   std::shared_ptr<SceneManager> m_sceneManager;
   std::shared_ptr<SceneAssetManager> m_sceneAssetManager;
+  std::shared_ptr<InputSystem> m_inputSystem;
   std::unique_ptr<GraphicsBackend::Rhi::RhiBackend> m_rhiLayer;
   std::unique_ptr<Display::Window::WindowProvider> m_windowProvider;
   ApplicationCreateInfo m_info;
@@ -68,7 +70,7 @@ public:
   void run(const ApplicationCreateInfo &info);
 
   inline virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() override { return m_rhiLayer.get(); }
-
+  inline virtual Ifrit::Display::Window::WindowProvider *getWindowProvider() override { return m_windowProvider.get(); }
   inline std::string getCacheDirectory() const override { return m_info.m_cachePath; }
 };
 } // namespace Ifrit::Core

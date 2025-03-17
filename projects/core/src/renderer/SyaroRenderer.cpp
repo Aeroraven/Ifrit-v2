@@ -1754,7 +1754,6 @@ SyaroRenderer::render(PerFrameData &perframeData, SyaroRenderer::RenderTargets *
   prepareAggregatedShadowData(perframeData);
   auto end1 = std::chrono::high_resolution_clock::now();
   auto elapsed1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
-  // iDebug("CPU time, Aggregate shadow: {} ms", elapsed1.count() / 1000.0f);
 
   // Then draw
   auto rhi = m_app->getRhiLayer();
@@ -1880,9 +1879,6 @@ SyaroRenderer::render(Scene *scene, Camera *camera, RenderTargets *renderTargets
   } else {
     sceneConfig.projectionTranslateX = 0.0f;
     sceneConfig.projectionTranslateY = 0.0f;
-
-    // sceneConfig.projectionTranslateX = (haltonX * 2.0f - 1.0f) / width;
-    // sceneConfig.projectionTranslateY = (haltonY * 2.0f - 1.0f) / height;
   }
 
   // If debug views, ignore all jitters
@@ -1907,8 +1903,6 @@ SyaroRenderer::render(Scene *scene, Camera *camera, RenderTargets *renderTargets
   } else {
     perframeData.m_taaJitterX = 0;
     perframeData.m_taaJitterY = 0;
-    // perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5f;
-    // perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5f;
   }
 
   // If debug views, ignore all jitters

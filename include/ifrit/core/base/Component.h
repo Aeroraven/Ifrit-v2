@@ -185,6 +185,7 @@ public:
   virtual void onPreRender() {}
   virtual void onPostRender() {}
 
+  virtual void onFrameCollecting() {}
   virtual void onStart() {}
   virtual void onUpdate() {}
   virtual void onEnd() {}

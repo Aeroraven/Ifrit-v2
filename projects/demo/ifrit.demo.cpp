@@ -38,33 +38,6 @@ using namespace Ifrit::Common::Utility;
 // Glfw key function here
 float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0, movNear = 0, movRot = 0;
 
-void key_callback(int key, int scancode, int action, int mods) {
-  auto scale = 0.12f;
-  if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movLeft += scale;
-
-  if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movRight += scale;
-
-  if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movTop += scale;
-
-  if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movBottom += scale;
-
-  if (key == GLFW_KEY_E && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movFar += scale;
-
-  if (key == GLFW_KEY_F && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movNear += scale;
-
-  if (key == GLFW_KEY_Z && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movRot += scale * 0.03f;
-
-  if (key == GLFW_KEY_X && (action == GLFW_REPEAT || action == GLFW_PRESS))
-    movRot -= scale * 0.03f;
-}
-
 class DemoApplication : public Ifrit::Core::Application {
 private:
   RhiScissor scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
@@ -80,7 +53,6 @@ private:
 public:
   void onStart() override {
     renderer = std::make_shared<SyaroRenderer>(this);
-    m_windowProvider->registerKeyCallback(key_callback);
     auto bistroObj = m_assetManager->getAssetByName<GLTFAsset>("Bistro/untitled.gltf");
     // Renderer config
     renderConfig.m_visualizationType = RendererVisualizationType::Default;
@@ -115,14 +87,9 @@ public:
     light->setShadowMapResolution(2048);
     light->setAffectPbrSky(true);
 
-    auto prefabs = bistroObj->getPrefabs();
-    uint32_t numMeshes = 0;
-    for (auto &prefab : prefabs) {
-      numMeshes++;
-      if (numMeshes < 1000) {
-        // continue;
-      }
-      node->addGameObjectTransferred(std::move(prefab->m_prefab));
+    auto meshes = bistroObj->getPrefabs();
+    for (auto &m : meshes) {
+      node->addGameObjectTransferred(std::move(m->m_prefab));
     }
 
     // Render targets
@@ -139,6 +106,27 @@ public:
   }
 
   void onUpdate() override {
+    {
+      auto scale = 0.12f;
+      auto inputSystem = m_inputSystem.get();
+      if (inputSystem->isKeyPressed(GLFW_KEY_A))
+        movLeft += scale;
+      if (inputSystem->isKeyPressed(GLFW_KEY_D))
+        movRight += scale;
+      if (inputSystem->isKeyPressed(GLFW_KEY_W))
+        movTop += scale;
+      if (inputSystem->isKeyPressed(GLFW_KEY_S))
+        movBottom += scale;
+      if (inputSystem->isKeyPressed(GLFW_KEY_E))
+        movFar += scale;
+      if (inputSystem->isKeyPressed(GLFW_KEY_F))
+        movNear += scale;
+      if (inputSystem->isKeyPressed(GLFW_KEY_Z))
+        movRot += scale * 0.03f;
+      if (inputSystem->isKeyPressed(GLFW_KEY_X))
+        movRot -= scale * 0.03f;
+    }
+
     auto cameraGameObject =
         m_sceneAssetManager->getScene("TestScene2")->getRootNode()->getChildren()[0]->getGameObject(0);
     auto camera = cameraGameObject->getComponent<Transform>();
@@ -150,9 +138,6 @@ public:
     auto renderComplete = renderer->render(m_sceneAssetManager->getScene("TestScene2").get(), nullptr,
                                            renderTargets.get(), renderConfig, {sFrameStart.get()});
     renderer->endFrame({renderComplete.get()});
-
-    // sleep for 50ms
-    // std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
   void onEnd() override {}

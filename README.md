@@ -54,8 +54,6 @@ Successor to following repos: [Ifrit](https://github.com/Aeroraven/Ifrit), [Aria
 
 ## 2. Setup / Run
 
-> **WARN**: **Compiling files inside `dev` branch might yield UNEXPECTED result. (Known bugs are NOT resolved yet)**  
-
 ### 2.1 Clone the Repository
 
 ```bash

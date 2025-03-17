@@ -17,18 +17,31 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/display/presentation/window/WindowProvider.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/ApplicationInterface.h"
+#include <array>
 
 namespace Ifrit::Core {
-class IApplication {
-public:
-  virtual void onStart() = 0;
-  virtual void onUpdate() = 0;
-  virtual void onEnd() = 0;
 
-  virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() = 0;
-  virtual Ifrit::Display::Window::WindowProvider *getWindowProvider() = 0;
-  virtual std::string getCacheDirectory() const = 0;
+class IFRIT_APIDECL InputSystem {
+private:
+  struct KeyStatus {
+    u8 stat = 0;
+  };
+  enum class KeyStatusEnum { Pressed = 1, Released = 0 };
+  std::array<KeyStatus, 349> m_keyStatus;
+  IApplication *m_app;
+
+public:
+  InputSystem(IApplication *app) : m_app(app) { init(); }
+  virtual ~InputSystem() = default;
+  bool isKeyPressed(u32 key) { return m_keyStatus[key].stat == 1; }
+  bool isKeyReleased(u32 key) { return m_keyStatus[key].stat == 0; }
+  void onFrameUpdate();
+  void updateKeyStatus(u32 key, u8 status) { m_keyStatus[key].stat = status; }
+
+private:
+  void init();
 };
+
 } // namespace Ifrit::Core
