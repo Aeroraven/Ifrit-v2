@@ -1,12 +1,14 @@
 #include "ifrit/core/input/InputSystem.h"
 #include "ifrit/common/base/IfritBase.h"
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
 
 using namespace Ifrit;
 using namespace Ifrit::Core;
 
-void key_callback_glfw_input_system(GLFWwindow *window, int key, int scancode, int action, int mods) {
-  auto activeInputSystem = static_cast<InputSystem *>(glfwGetWindowUserPointer(window));
+static InputSystem *activeInputSystem = nullptr;
+
+void key_callback_glfw_input_system(int key, int scancode, int action, int mods) {
   if (action == GLFW_PRESS || action == GLFW_REPEAT) {
     activeInputSystem->updateKeyStatus(key, 1);
   }
@@ -19,10 +21,11 @@ IFRIT_APIDECL void InputSystem::init() {
     key.stat = 0;
   }
   using namespace Ifrit::Display::Window;
-  auto windowHandle =
-      static_cast<GLFWwindow *>(static_cast<GLFWWindowProvider *>(m_app->getWindowProvider())->getGLFWWindow());
-  glfwSetKeyCallback(windowHandle, key_callback_glfw_input_system);
-  glfwSetWindowUserPointer(windowHandle, this);
+  activeInputSystem = this;
+  auto windowProvider = static_cast<GLFWWindowProvider *>(m_app->getWindowProvider());
+  auto windowHandle = static_cast<GLFWwindow *>(windowProvider->getGLFWWindow());
+  windowProvider->registerKeyCallback(key_callback_glfw_input_system);
+  iInfo("Input system initialized");
 }
 
 IFRIT_APIDECL void InputSystem::onFrameUpdate() {

@@ -84,7 +84,7 @@ Following dependencies should be manually configured. Other dependencies will be
 ### 2.3 Quick Start For Syaro Demo
 
 ```shell
-cmake -S . -B ./build
+cmake -S . -B ./build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build ./build
 ```
 
