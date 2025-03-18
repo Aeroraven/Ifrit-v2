@@ -37,6 +37,7 @@ IFRIT_APIDECL void RendererBase::prepareImmutableResources() {
   if (m_immRes.m_initialized) {
     return;
   }
+  m_immRes.m_initialized = true;
   std::lock_guard<std::mutex> lock(m_immRes.m_mutex);
   auto rhi = m_app->getRhiLayer();
   if (m_immRes.m_linearSampler == nullptr) {
@@ -553,10 +554,8 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
     }
 
     // preloading meshes
-    Ifrit::Common::Utility::unordered_for<size_t>(0, shaderEffect.m_materials.size(), [&](size_t x) {
-      auto mesh = shaderEffect.m_meshes[x];
-      // auto meshDataRef = mesh->loadMesh();
-    });
+    Ifrit::Common::Utility::unordered_for<size_t>(0, shaderEffect.m_materials.size(),
+                                                  [&](size_t x) { auto mesh = shaderEffect.m_meshes[x]; });
 
     // load meshes
     for (int i = 0; i < shaderEffect.m_materials.size(); i++) {

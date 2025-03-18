@@ -57,7 +57,7 @@ public:
     // Renderer config
     renderConfig.m_visualizationType = RendererVisualizationType::Default;
     renderConfig.m_indirectLightingType = IndirectLightingType::HBAO;
-    renderConfig.m_antiAliasingType = AntiAliasingType::FSR2;
+    renderConfig.m_antiAliasingType = AntiAliasingType::None;
     renderConfig.m_shadowConfig.m_maxDistance = 200.0f;
     renderConfig.m_superSamplingRate = 1.5f;
 
@@ -127,16 +127,15 @@ public:
         movRot -= scale * 0.03f;
     }
 
-    auto cameraGameObject =
-        m_sceneAssetManager->getScene("TestScene2")->getRootNode()->getChildren()[0]->getGameObject(0);
+    auto scene = m_sceneAssetManager->getScene("TestScene2");
+    auto cameraGameObject = scene->getRootNode()->getChildren()[0]->getGameObject(0);
     auto camera = cameraGameObject->getComponent<Transform>();
     timing = timing + 0.1f;
-    camera->setPosition({-20.0f + 0.0f * sin(timing) + movRight - movLeft + 0.0f * std::sin(timing),
-                         8.0f + movTop - movBottom, 2.05f + movFar - movNear});
+    camera->setPosition({-20.0f + movRight - movLeft, 8.0f + movTop - movBottom, 2.05f + movFar - movNear});
     camera->setRotation({0.0f, movRot + 1.57f, 0.0f});
     auto sFrameStart = renderer->beginFrame();
-    auto renderComplete = renderer->render(m_sceneAssetManager->getScene("TestScene2").get(), nullptr,
-                                           renderTargets.get(), renderConfig, {sFrameStart.get()});
+    auto renderComplete =
+        renderer->render(scene.get(), nullptr, renderTargets.get(), renderConfig, {sFrameStart.get()});
     renderer->endFrame({renderComplete.get()});
   }
 

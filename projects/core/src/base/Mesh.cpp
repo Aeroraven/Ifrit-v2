@@ -35,9 +35,7 @@ struct CreateMeshLodHierMiscInfo {
   IFRIT_STRUCT_SERIALIZE(totalLods);
 };
 
-IFRIT_APIDECL void
-Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData,
-                             const std::string &cachePath) {
+IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData, const std::string &cachePath) {
   using namespace Ifrit::MeshProcLib::MeshProcess;
   using namespace Ifrit::Common::Utility;
   const size_t max_vertices = 64;
@@ -127,8 +125,7 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData,
     // iInfo("Loaded cached mesh VG for {}", meshData->identifier);
   }
   if (needToGenerateVG) {
-    totalLods = meshProc.clusterLodHierachy(
-        meshDesc, meshletData, clusterGroupData, bvhNodes, MAX_LOD);
+    totalLods = meshProc.clusterLodHierachy(meshDesc, meshletData, clusterGroupData, bvhNodes, MAX_LOD);
     if (needToStoreVG) {
       std::string cclBuffer;
       Ifrit::Common::Serialization::serializeBinary(meshletData, cclBuffer);
@@ -148,10 +145,9 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData,
     }
   }
 
-  coneCullProc.createNormalCones(
-      meshDesc, meshletData.meshletsRaw, meshletData.meshletVertices,
-      meshletData.meshletTriangles, meshData->m_normalsCone,
-      meshData->m_normalsConeApex, meshData->m_boundSphere);
+  coneCullProc.createNormalCones(meshDesc, meshletData.meshletsRaw, meshletData.meshletVertices,
+                                 meshletData.meshletTriangles, meshData->m_normalsCone, meshData->m_normalsConeApex,
+                                 meshData->m_boundSphere);
 
   auto meshlet_triangles = meshletData.meshletTriangles;
   auto meshlets = meshletData.meshletsRaw;
@@ -199,14 +195,11 @@ Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData,
   meshData->m_maxLod = totalLods;
 }
 
-IFRIT_APIDECL ifloat4
-Mesh::getBoundingSphere(const std::vector<ifloat3> &vertices) {
-  vfloat3 minv = {std::numeric_limits<float>::max(),
-                  std::numeric_limits<float>::max(),
+IFRIT_APIDECL ifloat4 Mesh::getBoundingSphere(const std::vector<ifloat3> &vertices) {
+  vfloat3 minv = {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
                   std::numeric_limits<float>::max()};
-  vfloat3 maxv = {std::numeric_limits<float>::min(),
-                  std::numeric_limits<float>::min(),
-                  std::numeric_limits<float>::min()};
+  vfloat3 maxv = {-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
+                  -std::numeric_limits<float>::max()};
   for (auto &v : vertices) {
     minv = min(minv, vfloat3{v.x, v.y, v.z});
     maxv = max(maxv, vfloat3{v.x, v.y, v.z});
