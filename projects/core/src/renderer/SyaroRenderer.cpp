@@ -1782,7 +1782,8 @@ SyaroRenderer::render(PerFrameData &perframeData, SyaroRenderer::RenderTargets *
       [&](const RhiCommandBuffer *cmd) {
         for (u32 i = 0; i < perframeData.m_views.size(); i++) {
           if (perframeData.m_views[i].m_viewType == PerFrameData::ViewType::Shadow &&
-              m_config->m_visualizationType == RendererVisualizationType::Default) {
+              m_config->m_visualizationType == RendererVisualizationType::Default &&
+              m_renderRole == SyaroRenderRole::SYARO_FULL) {
             cmd->beginScope("Syaro: Draw Call, Shadow View");
             cmd->globalMemoryBarrier();
             auto &perView = perframeData.m_views[i];
@@ -1807,30 +1808,36 @@ SyaroRenderer::render(PerFrameData &perframeData, SyaroRenderer::RenderTargets *
             cmd->globalMemoryBarrier();
             renderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
             cmd->globalMemoryBarrier();
-            renderAmbientOccl(perframeData, renderTargets, cmd);
+            if (m_renderRole == SyaroRenderRole::SYARO_FULL) {
+              renderAmbientOccl(perframeData, renderTargets, cmd);
+            }
             cmd->endScope();
           }
         }
       },
       cmdToWaitBkp, {});
 
-  if (m_config->m_visualizationType != RendererVisualizationType::Default) {
-    auto deferredTask = dq->runAsyncCommand(
-        [&](const RhiCommandBuffer *cmd) {
-          if (m_config->m_visualizationType == RendererVisualizationType::Triangle ||
-              m_config->m_visualizationType == RendererVisualizationType::SwHwMaps) {
-            cmd->globalMemoryBarrier();
-            renderTriangleView(perframeData, renderTargets, cmd);
-            return;
-          }
-        },
-        {mainTask.get()}, {});
-    return deferredTask;
+  if (m_renderRole == SyaroRenderRole::SYARO_FULL) {
+    if (m_config->m_visualizationType != RendererVisualizationType::Default) {
+      auto deferredTask = dq->runAsyncCommand(
+          [&](const RhiCommandBuffer *cmd) {
+            if (m_config->m_visualizationType == RendererVisualizationType::Triangle ||
+                m_config->m_visualizationType == RendererVisualizationType::SwHwMaps) {
+              cmd->globalMemoryBarrier();
+              renderTriangleView(perframeData, renderTargets, cmd);
+              return;
+            }
+          },
+          {mainTask.get()}, {});
+      return deferredTask;
+    } else {
+      auto deferredTask = dq->runAsyncCommand(
+          [&](const RhiCommandBuffer *cmd) { setupAndRunFrameGraph(perframeData, renderTargets, cmd); },
+          {mainTask.get()}, {});
+      return deferredTask;
+    }
   } else {
-    auto deferredTask = dq->runAsyncCommand(
-        [&](const RhiCommandBuffer *cmd) { setupAndRunFrameGraph(perframeData, renderTargets, cmd); }, {mainTask.get()},
-        {});
-    return deferredTask;
+    return mainTask;
   }
 }
 

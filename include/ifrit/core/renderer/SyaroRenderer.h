@@ -34,6 +34,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "commonpass/SinglePassHiZ.h"
 
 namespace Ifrit::Core {
+
+enum class SyaroRenderRole { SYARO_FULL, SYARO_DEFERRED_GBUFFER };
+
 class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUCommandSubmission = Ifrit::GraphicsBackend::Rhi::RhiTaskSubmission;
@@ -52,6 +55,10 @@ class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   enum class CullingPass { First, Second };
 
 private:
+  // Renderer Role
+  SyaroRenderRole m_renderRole = SyaroRenderRole::SYARO_FULL;
+
+  // Base
   ComputePass *m_persistentCullingPass = nullptr;
   std::shared_ptr<GPUBuffer> m_indirectDrawBuffer = nullptr;
   std::shared_ptr<GPUBindId> m_indirectDrawBufferId = nullptr;
@@ -218,7 +225,8 @@ public:
 
     m_aoPass = std::make_shared<AmbientOcclusionPass>(app);
   }
-
+  inline void setRenderRole(SyaroRenderRole role) { m_renderRole = role; }
+  inline PerFrameData getPerframeData(Scene *scene) { return m_perScenePerframe[scene]; }
   virtual std::unique_ptr<GPUCommandSubmission> render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
                                                        const RendererConfig &config,
                                                        const std::vector<GPUCommandSubmission *> &cmdToWait) override;
