@@ -50,6 +50,10 @@ Successor to following repos: [Ifrit](https://github.com/Aeroraven/Ifrit), [Aria
   - Cascaded Shadow Mapping
   - Temporal Anti-aliasing
   - Convolution Bloom (Fast Fourier Transform)
+
+### 1.3 Ayanami: Something about GI
+
+- It's planning to implement some GI algorithms.
     
 
 ## 2. Setup / Run
@@ -82,6 +86,8 @@ Following dependencies should be manually configured. Other dependencies will be
   - Known compiler issues with CUDA 12.4 with MSVC compiler
 
 ### 2.3 Quick Start For Syaro Demo
+
+> To run soft renderer demo, checkout another branch.
 
 ```shell
 cmake -S . -B ./build -DCMAKE_BUILD_TYPE=RelWithDebInfo

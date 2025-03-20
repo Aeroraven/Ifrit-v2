@@ -19,6 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include <cstdint>
+#ifdef __cplusplus
+#include <memory>
+#include <vector>
+#endif
 
 #define IF_SIZEOF_RETURN_TYPE u32
 
@@ -43,6 +47,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define IF_NOEXCEPT noexcept
 #else
 #define IF_NOEXCEPT
+#endif
+#endif
+
+// forceinline
+#if _MSC_VER >= 1900
+#define IF_FORCEINLINE __forceinline
+#else
+#if __cplusplus >= 201703L
+#define IF_FORCEINLINE inline
+#else
+#define IF_FORCEINLINE
 #endif
 #endif
 
@@ -101,6 +116,12 @@ IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE usizeSize = IF_TYPE_SIZEOF(usize);
 
 #define isizeSize IF_TYPE_SIZEOF(isize)
 #define usizeSize IF_TYPE_SIZEOF(usize)
+#endif
+
+#ifdef __cplusplus
+template <typename T> using Vec = std::vector<T>;
+template <typename T> using Ref = std::shared_ptr<T>;
+template <typename T> using Uref = std::unique_ptr<T>;
 #endif
 
 } // namespace Ifrit

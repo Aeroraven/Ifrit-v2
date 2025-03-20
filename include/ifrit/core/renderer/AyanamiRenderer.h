@@ -33,6 +33,8 @@ using Ifrit::Common::Utility::size_cast;
 using Ifrit::Math::ConstFunc::divRoundUp;
 
 namespace Ifrit::Core {
+
+struct AyanamiRendererResources;
 class IFRIT_APIDECL AyanamiRenderer : public RendererBase {
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUCommandSubmission = Ifrit::GraphicsBackend::Rhi::RhiTaskSubmission;
@@ -50,12 +52,20 @@ class IFRIT_APIDECL AyanamiRenderer : public RendererBase {
 
 private:
   std::unique_ptr<SyaroRenderer> m_gbufferRenderer;
+  AyanamiRendererResources *m_resources = nullptr;
+
+private:
+  void initRenderer();
 
 public:
-  AyanamiRenderer(IApplication *app) : RendererBase(app), m_gbufferRenderer(std::make_unique<SyaroRenderer>(app)) {}
+  AyanamiRenderer(IApplication *app) : RendererBase(app), m_gbufferRenderer(std::make_unique<SyaroRenderer>(app)) {
+    m_gbufferRenderer->setRenderRole(SyaroRenderRole::SYARO_DEFERRED_GBUFFER);
+    initRenderer();
+  }
+  virtual ~AyanamiRenderer();
   virtual std::unique_ptr<GPUCommandSubmission> render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
                                                        const RendererConfig &config,
-                                                       const std::vector<GPUCommandSubmission *> &cmdToWait) override{};
+                                                       const std::vector<GPUCommandSubmission *> &cmdToWait) override;
 };
 
 } // namespace Ifrit::Core

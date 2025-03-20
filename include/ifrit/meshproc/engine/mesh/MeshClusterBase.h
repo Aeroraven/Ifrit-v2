@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/math/LinalgOps.h"
 #include "ifrit/common/serialization/MathTypeSerialization.h"
 #include "ifrit/common/serialization/SerialInterface.h"
+#include "ifrit/meshproc/engine/base/MeshDesc.h"
 
 namespace Ifrit::MeshProcLib::MeshProcess {
 constexpr int BVH_CHILDREN = 8; // or 4
@@ -58,16 +59,6 @@ struct FlattenedBVHNode {
 
   IFRIT_STRUCT_SERIALIZE(boundSphere, numChildNodes, clusterGroupStart, clusterGroupSize, subTreeSize, childNodes,
                          maxClusterError);
-};
-struct MeshDescriptor {
-  char *vertexData;
-  char *indexData;
-  char *normalData;
-  int vertexCount;
-  int indexCount;
-  int vertexStride;
-  int positionOffset;
-  int normalStride;
 };
 
 } // namespace Ifrit::MeshProcLib::MeshProcess

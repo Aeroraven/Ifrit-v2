@@ -87,6 +87,15 @@ private:
   NonCopyable &operator=(const NonCopyable &) = delete;
 };
 
+struct IFRIT_APIDECL NonCopyableStruct {
+  NonCopyableStruct() = default;
+  ~NonCopyableStruct() = default;
+
+private:
+  NonCopyableStruct(const NonCopyableStruct &) = delete;
+  NonCopyableStruct &operator=(const NonCopyableStruct &) = delete;
+};
+
 template <class T> consteval inline static const char *getFuncName() {
 #ifdef _MSC_VER
   return __FUNCSIG__;
