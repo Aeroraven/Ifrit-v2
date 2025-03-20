@@ -21,10 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Core {
-class TextureAsset : public Asset {
+class IFRIT_APIDECL TextureAsset : public Asset {
 public:
-  TextureAsset(AssetMetadata metadata, std::filesystem::path path)
-      : Asset(metadata, path) {}
+  TextureAsset(AssetMetadata metadata, std::filesystem::path path) : Asset(metadata, path) {}
   virtual std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> getTexture() = 0;
 };
 

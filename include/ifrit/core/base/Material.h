@@ -92,7 +92,7 @@ public:
   }
 };
 
-class Material : public IAssetCompatible {
+class IFRIT_APIDECL Material : public IAssetCompatible {
 
 public:
   std::string m_name;

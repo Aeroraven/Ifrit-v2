@@ -175,6 +175,9 @@ protected:
   ComponentIdentifier m_id;
   std::weak_ptr<SceneObject> m_parentObject;
 
+private:
+  SceneObject *m_parentObjectRaw = nullptr;
+
 public:
   Component(){}; // for deserializatioin
   Component(std::shared_ptr<SceneObject> parentObject);
@@ -197,6 +200,10 @@ public:
 
   virtual std::vector<AssetReference *> getAssetReferences() { return {}; }
   virtual void setAssetReferencedAttributes(const std::vector<std::shared_ptr<IAssetCompatible>> &out) {}
+
+  // This function is intended to be used in performance-critical code.
+  // Use with caution.
+  inline SceneObject *getParentUnsafe() { return m_parentObjectRaw; }
 
   IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject);
 };

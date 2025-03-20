@@ -289,39 +289,40 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
         auto &gltfMaterial = rawGLTFData.materials[primitive.material];
         auto &normalData = gltfMaterial.normalTexture;
         auto &pbrData = gltfMaterial.pbrMetallicRoughness;
-        auto baseColorIndex = pbrData.baseColorTexture.index;
-        auto normalTexIndex = normalData.index;
+        auto baseColorIndexTex = pbrData.baseColorTexture.index;
+        auto normalTexIndexTex = normalData.index;
+        auto baseColorIndex = rawGLTFData.textures[baseColorIndexTex].source;
+        auto normalTexIndex = rawGLTFData.textures[normalTexIndexTex].source;
         auto baseColorURI = rawGLTFData.images[baseColorIndex].uri;
         auto normalTexURI = rawGLTFData.images[normalTexIndex].uri;
 
         auto texPathBase = gltfDir / baseColorURI;
         auto texBase = m_manager->requestAsset<Asset>(texPathBase);
+        auto material = std::make_shared<SyaroDefaultGBufEmitter>(m_manager->getApplication());
+
         auto texCastedBase = std::dynamic_pointer_cast<TextureAsset>(texBase);
         if (!texCastedBase) {
-          iError("GLTFAsset: invalid texture asset");
-          std::abort();
+          iWarn("GLTFAsset: invalid texture asset");
+        } else {
+          auto albedoId = rhi->registerCombinedImageSampler(texCastedBase->getTexture().get(),
+                                                            m_internalData->defaultSampler.get());
+          material->setAlbedoId(albedoId->getActiveId());
         }
 
         auto texPathNormal = gltfDir / normalTexURI;
         auto texNormal = m_manager->requestAsset<Asset>(texPathNormal);
         auto texCastedNormal = std::dynamic_pointer_cast<TextureAsset>(texNormal);
         if (!texCastedNormal) {
-          iError("GLTFAsset: invalid texture asset");
-          std::abort();
+          iWarn("GLTFAsset: invalid texture asset");
+        } else {
+          auto normalId = rhi->registerCombinedImageSampler(texCastedNormal->getTexture().get(),
+                                                            m_internalData->defaultSampler.get());
+          material->setNormalMapId(normalId->getActiveId());
         }
 
         auto meshRenderer = prefab->m_prefab->addComponent<MeshRenderer>();
-        auto material = std::make_shared<SyaroDefaultGBufEmitter>(m_manager->getApplication());
-        auto albedoId =
-            rhi->registerCombinedImageSampler(texCastedBase->getTexture().get(), m_internalData->defaultSampler.get());
-        auto normalId = rhi->registerCombinedImageSampler(texCastedNormal->getTexture().get(),
-                                                          m_internalData->defaultSampler.get());
-
-        material->setAlbedoId(albedoId->getActiveId());
-        material->setNormalMapId(normalId->getActiveId());
         material->buildMaterial();
         meshRenderer->setMaterial(material);
-
         m_prefabs.push_back(std::move(prefab));
         j++;
       }

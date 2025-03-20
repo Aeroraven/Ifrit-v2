@@ -20,6 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define IFRIT_MESHPROC_IMPORT
 #include "ifrit/meshproc/engine/mesh/MeshClusterLodProc.h"
 #include "ifrit/meshproc/engine/mesh/MeshletConeCull.h"
+
+#include "ifrit/meshproc/engine/base/MeshDesc.h"
+
 #undef IFRIT_MESHPROC_IMPORT
 #include "ifrit/common/math/simd/SimdVectors.h"
 #include "ifrit/common/util/FileOps.h"
@@ -36,6 +39,7 @@ struct CreateMeshLodHierMiscInfo {
 };
 
 IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData, const std::string &cachePath) {
+  using namespace Ifrit::MeshProcLib;
   using namespace Ifrit::MeshProcLib::MeshProcess;
   using namespace Ifrit::Common::Utility;
   const size_t max_vertices = 64;
@@ -48,12 +52,12 @@ IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshDa
 
   MeshDescriptor meshDesc;
   meshDesc.indexCount = size_cast<int>(meshData->m_indices.size());
-  meshDesc.indexData = reinterpret_cast<char *>(meshData->m_indices.data());
+  meshDesc.indexData = reinterpret_cast<i8 *>(meshData->m_indices.data());
   meshDesc.positionOffset = 0;
   meshDesc.vertexCount = size_cast<int>(meshData->m_vertices.size());
-  meshDesc.vertexData = reinterpret_cast<char *>(meshData->m_vertices.data());
+  meshDesc.vertexData = reinterpret_cast<i8 *>(meshData->m_vertices.data());
   meshDesc.vertexStride = sizeof(ifloat3);
-  meshDesc.normalData = reinterpret_cast<char *>(meshData->m_normals.data());
+  meshDesc.normalData = reinterpret_cast<i8 *>(meshData->m_normals.data());
   meshDesc.normalStride = sizeof(ifloat3);
 
   auto chosenLod = MAX_LOD - 1;

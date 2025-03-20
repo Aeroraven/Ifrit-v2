@@ -35,6 +35,7 @@ AyanamiRenderer::render(Scene *scene, Camera *camera, RenderTargets *renderTarge
   // Generate GBuffer first
   auto gbufferTask = m_gbufferRenderer->render(scene, camera, renderTargets, config, cmdToWait);
   auto perframeData = m_gbufferRenderer->getPerframeData(scene);
+  return nullptr;
 }
 
 } // namespace Ifrit::Core

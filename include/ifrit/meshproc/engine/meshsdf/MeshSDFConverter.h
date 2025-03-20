@@ -38,6 +38,8 @@ struct SignedDistanceField {
   i32 width;
   i32 height;
   i32 depth;
+
+  IFRIT_STRUCT_SERIALIZE(sdfData, width, height, depth);
 };
 
 IFRIT_MESHPROC_API void convertMeshToSDF(const MeshDescriptor &meshDesc, SignedDistanceField &sdf, u32 sdfWidth,

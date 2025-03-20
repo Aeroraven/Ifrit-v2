@@ -51,7 +51,7 @@ Successor to following repos: [Ifrit](https://github.com/Aeroraven/Ifrit), [Aria
   - Temporal Anti-aliasing
   - Convolution Bloom (Fast Fourier Transform)
 
-### 1.3 Ayanami: Something about GI
+### 1.3 Ayanami: Maybe Something about Global Illumination
 
 - It's planning to implement some GI algorithms.
     
@@ -96,10 +96,10 @@ cmake --build ./build
 
 To run the demo
 
-- Download `lumberyard-bistro` , convert it into `gltf` format with name 'untitled.gltf', then place it in the `project/demo/Asset/Bistro` directory, with dds textures in `textures` subfolder.
+- Download `lumberyard-bistro` , convert it into `gltf` format with name `untitled.gltf`, then place it in the `project/demo/Asset/Bistro` directory, with dds textures in `textures` subfolder.
 
 ```shell
-./bin/ifrit.demo
+./bin/ifrit.demo.syaro.exe
 ```
 
 

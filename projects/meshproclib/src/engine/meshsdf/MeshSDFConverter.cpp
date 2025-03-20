@@ -66,6 +66,10 @@ IF_FORCEINLINE void computeMeshBoundingBox(Mesh2SDFTempData &data) {
   }
 }
 
+IF_FORCEINLINE vfloat3 getTriangleNormal(const vfloat3 &a, const vfloat3 &b, const vfloat3 &c) {
+  return normalize(cross(b - a, c - a));
+}
+
 IF_FORCEINLINE void computeTriangleBoundingBox(Mesh2SDFTempData &data) {
   const u32 indexCount = data.meshNumIndices;
   data.asTriBboxMin.resize(indexCount / 3);
@@ -73,9 +77,9 @@ IF_FORCEINLINE void computeTriangleBoundingBox(Mesh2SDFTempData &data) {
   data.asTriBboxMid.resize(indexCount / 3);
   data.asTriNormals.resize(indexCount / 3);
   for (u32 i = 0; i < indexCount; i += 3) {
-    u32 i0 = data.asTriIndices[i + 0];
-    u32 i1 = data.asTriIndices[i + 1];
-    u32 i2 = data.asTriIndices[i + 2];
+    u32 i0 = data.meshIxBuffer[i + 0];
+    u32 i1 = data.meshIxBuffer[i + 1];
+    u32 i2 = data.meshIxBuffer[i + 2];
     f32 v0X = data.meshVxBuffer[i0 * data.meshVxStride + 0];
     f32 v0Y = data.meshVxBuffer[i0 * data.meshVxStride + 1];
     f32 v0Z = data.meshVxBuffer[i0 * data.meshVxStride + 2];
@@ -141,10 +145,6 @@ IF_FORCEINLINE vfloat3 pointDistToTriangle(const vfloat3 &p, const vfloat3 &a, c
   const f32 v = vb * denom;
   const f32 w = vc * denom;
   return a + ab * v + ac * w;
-}
-
-IF_FORCEINLINE vfloat3 getTriangleNormal(const vfloat3 &a, const vfloat3 &b, const vfloat3 &c) {
-  return normalize(cross(b - a, c - a));
 }
 
 void calculateAsChildBbox(const Mesh2SDFTempData &data, Uref<BVHNode> &node) {
@@ -242,9 +242,17 @@ void getSignedDistanceToMeshRecur(const Mesh2SDFTempData &data, const vfloat3 &p
     // child node, check distance to triangle
     for (u32 i = node->startIdx; i < node->endIdx; i++) {
       auto triId = data.asTriIndices[i];
-      auto v0 = data.meshVxBuffer[triId * 3 + 0];
-      auto v1 = data.meshVxBuffer[triId * 3 + 1];
-      auto v2 = data.meshVxBuffer[triId * 3 + 2];
+      auto i0 = data.meshIxBuffer[triId * 3 + 0];
+      auto i1 = data.meshIxBuffer[triId * 3 + 1];
+      auto i2 = data.meshIxBuffer[triId * 3 + 2];
+
+      auto v0 = vfloat3(data.meshVxBuffer[i0 * data.meshVxStride + 0], data.meshVxBuffer[i0 * data.meshVxStride + 1],
+                        data.meshVxBuffer[i0 * data.meshVxStride + 2]);
+      auto v1 = vfloat3(data.meshVxBuffer[i1 * data.meshVxStride + 0], data.meshVxBuffer[i1 * data.meshVxStride + 1],
+                        data.meshVxBuffer[i1 * data.meshVxStride + 2]);
+      auto v2 = vfloat3(data.meshVxBuffer[i2 * data.meshVxStride + 0], data.meshVxBuffer[i2 * data.meshVxStride + 1],
+                        data.meshVxBuffer[i2 * data.meshVxStride + 2]);
+
       auto vNormal = data.asTriNormals[triId];
       auto nearestPt = pointDistToTriangle(p, v0, v1, v2);
       auto vDist = p - nearestPt;
@@ -277,7 +285,7 @@ IFRIT_MESHPROC_API void convertMeshToSDF(const MeshDescriptor &meshDesc, SignedD
   computeTriangleBoundingBox(data);
 
   // build accel structure
-  data.asTriIndices.resize(meshDesc.indexCount);
+  data.asTriIndices.resize(meshDesc.indexCount / 3);
   for (u32 i = 0; i < meshDesc.indexCount / 3; i++) {
     data.asTriIndices[i] = i;
   }

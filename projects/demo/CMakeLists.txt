@@ -21,13 +21,16 @@ add_definitions(-DIFRIT_DEMO_CACHE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Cache/")
 # endif()
 
 # add executable
-add_executable(ifrit.demo ifrit.demo.cpp)
+add_executable(ifrit.demo.syaro ifrit.demo.syaro.cpp)
+add_executable(ifrit.demo.ayanami ifrit.demo.ayanami.cpp)
 
 include_directories(${IFRIT_PROJECT_SUBDIR}/softrenderer/include)
 include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_link_libraries(ifrit.demo meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer ifrit.core)
+    target_link_libraries(ifrit.demo.syaro meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer ifrit.core)
+    target_link_libraries(ifrit.demo.ayanami meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer ifrit.core)
 else()
-    target_link_libraries(ifrit.demo meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer ifrit.core dl pthread)
+    target_link_libraries(ifrit.demo.syaro meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer ifrit.core dl pthread)
+    target_link_libraries(ifrit.demo.ayanami meshoptimizer ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer ifrit.core dl pthread)
 endif()

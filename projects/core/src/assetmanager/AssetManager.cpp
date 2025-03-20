@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/assetmanager/DirectDrawSurfaceAsset.h"
 #include "ifrit/core/assetmanager/GLTFAsset.h"
 #include "ifrit/core/assetmanager/ShaderAsset.h"
+#include "ifrit/core/assetmanager/TrivialImageAsset.h"
 #include "ifrit/core/assetmanager/WaveFrontAsset.h"
 #include "ifrit/core/base/ApplicationInterface.h"
 #include <fstream>
@@ -137,6 +138,7 @@ IFRIT_APIDECL AssetManager::AssetManager(std::filesystem::path path, IApplicatio
   registerImporter(GLTFAssetImporter::IMPORTER_NAME, std::make_shared<GLTFAssetImporter>(this));
   registerImporter(DirectDrawSurfaceAssetImporter::IMPORTER_NAME,
                    std::make_shared<DirectDrawSurfaceAssetImporter>(this));
+  registerImporter(TrivialImageAssetImporter::IMPORTER_NAME, std::make_shared<TrivialImageAssetImporter>(this));
   basePath = path;
   m_app = app;
   // loadAssetDirectory(basePath);

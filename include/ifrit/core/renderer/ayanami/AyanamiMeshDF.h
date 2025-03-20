@@ -16,22 +16,29 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#pragma once
-#include "ifrit/core/application/Application.h"
-#include "ifrit/core/assetmanager/Asset.h"
-#include "ifrit/core/assetmanager/GLTFAsset.h"
-#include "ifrit/core/assetmanager/ShaderAsset.h"
-#include "ifrit/core/assetmanager/WaveFrontAsset.h"
-#include "ifrit/core/base/Camera.h"
 #include "ifrit/core/base/Component.h"
-#include "ifrit/core/base/Light.h"
-#include "ifrit/core/base/Material.h"
-#include "ifrit/core/base/Mesh.h"
-#include "ifrit/core/base/Scene.h"
-#include "ifrit/core/renderer/AyanamiRenderer.h"
-#include "ifrit/core/renderer/SyaroRenderer.h"
-#include "ifrit/core/scene/FrameCollector.h"
-#include "ifrit/core/scene/SceneAssetManager.h"
-#include "ifrit/core/scene/SceneManager.h"
 
-#include "ifrit/core/renderer/ayanami/AyanamiMeshDF.h"
+namespace Ifrit::Core::Ayanami {
+class IFRIT_APIDECL AyanamiMeshDF : public Component {
+private:
+  Vec<f32> m_sdfData;
+  u32 m_sdWidth;
+  u32 m_sdHeight;
+  u32 m_sdDepth;
+
+public:
+  AyanamiMeshDF() {}
+  AyanamiMeshDF(std::shared_ptr<SceneObject> owner) : Component(owner) {}
+  virtual ~AyanamiMeshDF() = default;
+
+  inline std::string serialize() override { return ""; }
+  inline void deserialize() override {}
+
+public:
+  void buildMeshDF(const std::string_view &cachePath);
+  IFRIT_COMPONENT_SERIALIZE(m_sdWidth, m_sdHeight, m_sdDepth);
+};
+
+} // namespace Ifrit::Core::Ayanami
+
+IFRIT_COMPONENT_REGISTER(Ifrit::Core::Ayanami::AyanamiMeshDF)

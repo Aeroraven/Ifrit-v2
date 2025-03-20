@@ -22,7 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <atomic>
 #include <random>
 
-
 using namespace Ifrit::Math;
 
 namespace Ifrit::Core {
@@ -35,14 +34,11 @@ IFRIT_APIDECL std::shared_ptr<SceneObject> SceneObject::createPrefab() {
 }
 
 IFRIT_APIDECL
-Component::Component(std::shared_ptr<SceneObject> parent)
-    : m_parentObject(parent) {
+Component::Component(std::shared_ptr<SceneObject> parent) : m_parentObject(parent), m_parentObjectRaw(parent.get()) {
   Ifrit::Common::Utility::generateUuid(m_id.m_uuid);
 }
 IFRIT_APIDECL void SceneObject::initialize() { addComponent<Transform>(); }
-IFRIT_APIDECL SceneObject::SceneObject() {
-  Ifrit::Common::Utility::generateUuid(m_id.m_uuid);
-}
+IFRIT_APIDECL SceneObject::SceneObject() { Ifrit::Common::Utility::generateUuid(m_id.m_uuid); }
 
 IFRIT_APIDECL float4x4 Transform::getModelToWorldMatrix() {
   float4x4 model = identity();
