@@ -115,6 +115,18 @@ public:
     auto camera = cameraGameObject->getComponent<Transform>();
     camera->setPosition({-4.0f, 4.0f, -18.0f});
 
+    auto childs = scene->getRootNode()->getChildren();
+    auto go = childs[0]->getGameObjects();
+    for (auto &g : go) {
+      if (g->getComponent<MeshFilter>() == nullptr)
+        continue;
+      auto t = g->getComponent<Transform>();
+      auto r = t->getRotation();
+      r.y += 0.01f;
+      t->setRotation(r);
+    }
+    timing += 0.01f;
+
     auto sFrameStart = renderer->beginFrame();
     auto renderComplete =
         renderer->render(scene.get(), nullptr, renderTargets.get(), renderConfig, {sFrameStart.get()});

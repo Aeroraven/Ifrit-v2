@@ -38,6 +38,11 @@ RegisterStorage(bMeshDFMeta,{
     MeshDFMeta data;
 });
 
+RegisterUniform(bLocalTransform,{
+    mat4 m_localToWorld;
+    mat4 m_worldToLocal;
+    float m_maxScale;
+});
 
 layout(push_constant) uniform PushConstant{
     uint perframeId;
@@ -93,8 +98,13 @@ void main(){
 
     vec3 lb = meta.bboxMin.xyz;
     vec3 rt = meta.bboxMax.xyz;
+
     vec3 d = rayDir;
     vec3 o = camPos;
+
+    mat4 worldToLocal = GetResource(bLocalTransform, desc0.transformId).m_worldToLocal;
+    o = (worldToLocal * vec4(o, 1.0)).xyz;
+    d = (worldToLocal * vec4(d, 0.0)).xyz;
 
     float t;
     bool hit = rayboxIntersection(o,d,lb,rt,t);

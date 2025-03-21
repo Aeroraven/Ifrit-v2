@@ -17,30 +17,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/util/TypingUtil.h"
-#include "ifrit/core/scene/FrameCollector.h"
-#include "ifrit/core/scene/SceneManager.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/common/base/IfritBase.h"
 
 namespace Ifrit::Core::Ayanami {
-
-struct AyanamiSceneResources;
-
-class IFRIT_APIDECL AyanamiSceneAggregator : public Common::Utility::NonCopyable {
-private:
-  GraphicsBackend::Rhi::RhiBackend *m_rhi;
-  AyanamiSceneResources *m_sceneResources = nullptr;
-
-private:
-  void init();
-  void destroy();
-
-public:
-  AyanamiSceneAggregator(GraphicsBackend::Rhi::RhiBackend *rhi) : m_rhi(rhi) { init(); }
-  ~AyanamiSceneAggregator() { destroy(); }
-
-  void collectScene(Scene *scene);
-  u32 getGatheredBufferId();
+struct AyanamiRenderConfig {
+  u32 m_globalDFClipmapLevels = 4;
+  u32 m_globalDFClipmapResolution = 256; // 16MB per clipmap level
+  float m_globalDFBaseExtent = 20.0f;    // 2500.0 in the original code
 };
-
 } // namespace Ifrit::Core::Ayanami

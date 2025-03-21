@@ -107,6 +107,9 @@ To run the demo
 
 See [ACKNOWLEDGEMENTS.md](./ACKNOWLEDGEMENTS.md) for more details.
 
+Some ideas might be borrowed from Unreal Engine. However, due to the license compatibility (AGPL-v3 vs. Unreal Engine's EULA), 
+the code is not copied (or used in other predefined forms) from the Unreal Engine source code.
+
 ## 4. License
 
 Licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html). The copy for license can be found in the root directory. 

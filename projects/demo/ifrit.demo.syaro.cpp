@@ -57,9 +57,9 @@ public:
     // Renderer config
     renderConfig.m_visualizationType = RendererVisualizationType::Default;
     renderConfig.m_indirectLightingType = IndirectLightingType::HBAO;
-    renderConfig.m_antiAliasingType = AntiAliasingType::FSR2;
+    renderConfig.m_antiAliasingType = AntiAliasingType::TAA;
     renderConfig.m_shadowConfig.m_maxDistance = 200.0f;
-    renderConfig.m_superSamplingRate = 1.5f;
+    renderConfig.m_superSamplingRate = 1.0f;
 
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");

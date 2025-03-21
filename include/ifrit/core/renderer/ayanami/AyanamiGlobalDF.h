@@ -17,30 +17,31 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/common/math/LinalgOps.h"
 #include "ifrit/common/util/TypingUtil.h"
-#include "ifrit/core/scene/FrameCollector.h"
-#include "ifrit/core/scene/SceneManager.h"
+#include "ifrit/core/renderer/ayanami/AyanamiRenderConfig.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Core::Ayanami {
 
-struct AyanamiSceneResources;
+struct IFRIT_APIDECL AyanamiGlobalDFClipmap : public Common::Utility::NonCopyable {
+  using GPUTexture = GraphicsBackend::Rhi::RhiTexture;
+  ifloat3 m_worldBound;
+  u32 m_clipmapSize;
 
-class IFRIT_APIDECL AyanamiSceneAggregator : public Common::Utility::NonCopyable {
-private:
-  GraphicsBackend::Rhi::RhiBackend *m_rhi;
-  AyanamiSceneResources *m_sceneResources = nullptr;
+  // I don't think this is a good design, but it's the most stupid and straightforward way to do it
+  // That means ignoring paging, streaming and atlas.
+  Ref<GPUTexture> m_clipmapTexture;
+};
 
+class IFRIT_APIDECL AyanamiGlobalDF : public Common::Utility::NonCopyable {
 private:
-  void init();
-  void destroy();
+  Vec<Vec<AyanamiGlobalDFClipmap>> m_clipmaps;
 
 public:
-  AyanamiSceneAggregator(GraphicsBackend::Rhi::RhiBackend *rhi) : m_rhi(rhi) { init(); }
-  ~AyanamiSceneAggregator() { destroy(); }
-
-  void collectScene(Scene *scene);
-  u32 getGatheredBufferId();
+  // AyanamiGlobalDF(const AyanamiRenderConfig &config);
+  // ~AyanamiGlobalDF() = default;
 };
 
 } // namespace Ifrit::Core::Ayanami

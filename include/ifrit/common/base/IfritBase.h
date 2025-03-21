@@ -20,8 +20,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include <cstdint>
 #ifdef __cplusplus
+#include <map>
 #include <memory>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
+
 #endif
 
 #define IF_SIZEOF_RETURN_TYPE u32
@@ -122,6 +127,10 @@ IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE usizeSize = IF_TYPE_SIZEOF(usize);
 template <typename T> using Vec = std::vector<T>;
 template <typename T> using Ref = std::shared_ptr<T>;
 template <typename T> using Uref = std::unique_ptr<T>;
+template <typename T> using Set = std::set<T>;
+template <typename T> using HashSet = std::unordered_set<T>;
+template <typename K, typename V> using Map = std::map<K, V>;
+template <typename K, typename V> using HashMap = std::unordered_map<K, V>;
 #endif
 
 } // namespace Ifrit

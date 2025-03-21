@@ -578,9 +578,10 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
         bindlessRefLast = rhi->registerUniformBuffer(transformBufferLast.get());
         transform->setGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
       }
+
       // update uniform buffer, TODO: dirty flag
       auto transformDirty = transform->getDirtyFlag();
-      if (transformDirty.changed) {
+      if (transformDirty.changed || transformDirty.lastChanged) {
         MeshInstanceTransform model;
         // Transpose is required because glsl uses column major matrices
         model.model = Math::transpose(transform->getModelToWorldMatrix());
@@ -598,7 +599,7 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
       }
 
       if (initLastFrameMatrix) {
-        transform->onFrameCollecting();
+        // transform->onFrameCollecting();
       }
 
       if (initLastFrameMatrix || transformDirty.lastChanged) {
