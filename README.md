@@ -3,7 +3,8 @@
 Some toys about real-time rendering. Currently, it contains:
 
 - **Soft-Renderer**: CUDA / Multithreaded CPU Software Rasterizer & Ray-tracer, with JIT support.
-- **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details.
+- **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details. (Under development)
+- **Ayanami**: A planned project for Global Illumination. (Under development)
 
 
 | <center>Software Renderer / Mesh Shading</center>                        | <center>Software Renderer / CUDA Renderer</center> |
