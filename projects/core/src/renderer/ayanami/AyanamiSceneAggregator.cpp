@@ -82,7 +82,7 @@ IFRIT_APIDECL void AyanamiSceneAggregator::collectScene(Scene *scene) {
     m_sceneResources->m_m_mdfAllInstancesAllocSize = m_sceneResources->m_meshMetaIds.size();
     m_sceneResources->m_mdfAllInstances = m_rhi->createBufferCoherent(
         sizeof(AyanamiSceneResources::MDFDescriptor) * m_sceneResources->m_m_mdfAllInstancesAllocSize,
-        GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopyDst ||
+        GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopyDst |
             GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO);
   }
 
@@ -94,6 +94,10 @@ IFRIT_APIDECL void AyanamiSceneAggregator::collectScene(Scene *scene) {
       size_cast<u32>(m_sceneResources->m_meshMetaIds.size() * sizeof(AyanamiSceneResources::MDFDescriptor)), 0);
   activeBuf->flush();
   activeBuf->unmap();
+
+  // set id
+  m_sceneResources->m_mdfAllInstancesBindId =
+      m_rhi->registerStorageBufferShared(m_sceneResources->m_mdfAllInstances.get());
 }
 
 IFRIT_APIDECL u32 AyanamiSceneAggregator::getGatheredBufferId() {

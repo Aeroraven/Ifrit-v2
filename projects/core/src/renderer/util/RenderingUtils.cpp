@@ -68,7 +68,7 @@ enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandBuffer *cmd, Graphic
       ctx->m_cmd->attachBindlessReferenceGraphics(pass, i++, desc);
     }
     if (numPushConsts > 0)
-      ctx->m_cmd->setPushConst(pass, 0, numPushConsts * sizeof(uint32_t), pPushConst);
+      ctx->m_cmd->setPushConst(pass, 0, numPushConsts * sizeof(u32), pPushConst);
 
     // TODO: this should be done in vertex shader. Buffer is not needed
     ctx->m_cmd->attachVertexBufferView(*rhi->getFullScreenQuadVertexBufferView());

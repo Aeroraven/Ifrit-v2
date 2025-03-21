@@ -31,6 +31,7 @@ struct AyanamiMeshDFResource {
     u32 sdfId;
   };
   using GPUTexture = GraphicsBackend::Rhi::RhiTexture;
+  using GPUSampler = GraphicsBackend::Rhi::RhiSampler;
   using GPUBuffer = GraphicsBackend::Rhi::RhiBuffer;
   using GPUBindId = GraphicsBackend::Rhi::RhiBindlessIdRef;
 
@@ -38,6 +39,7 @@ struct AyanamiMeshDFResource {
   Ref<GPUBindId> sdfTextureBindId;
   Ref<GPUBuffer> sdfMetaBuffer;
   Ref<GPUBindId> sdfMetaBufferBindId;
+  Ref<GPUSampler> sdfSampler; // this design is not a good idea, should be removed in the future
 };
 
 // AyanamiMeshDF stores mesh-level signed distance field data

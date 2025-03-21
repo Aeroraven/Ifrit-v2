@@ -294,6 +294,11 @@ IFRIT_MESHPROC_API void convertMeshToSDF(const MeshDescriptor &meshDesc, SignedD
   computeMeshBoundingBox(data);
   computeTriangleBoundingBox(data);
 
+  // dilate the bbox by a small amount, like 5%
+  auto bboxDilate = (data.bboxMax - data.bboxMin) * 0.05f;
+  data.bboxMin -= bboxDilate;
+  data.bboxMax += bboxDilate;
+
   // build accel structure
   data.asTriIndices.resize(meshDesc.indexCount / 3);
   for (u32 i = 0; i < meshDesc.indexCount / 3; i++) {
@@ -312,9 +317,9 @@ IFRIT_MESHPROC_API void convertMeshToSDF(const MeshDescriptor &meshDesc, SignedD
     auto depth = el / (sdfWidth * sdfHeight);
     auto height = (el % (sdfWidth * sdfHeight)) / sdfWidth;
     auto width = (el % (sdfWidth * sdfHeight)) % sdfWidth;
-    f32 x = (f32)width / (f32)sdfWidth + 0.5f;
-    f32 y = (f32)height / (f32)sdfHeight + 0.5f;
-    f32 z = (f32)depth / (f32)sdfDepth + 0.5f;
+    f32 x = ((f32)width + 0.5f) / (f32)sdfWidth;
+    f32 y = ((f32)height + 0.5f) / (f32)sdfHeight;
+    f32 z = ((f32)depth + 0.5f) / (f32)sdfDepth;
     f32 lx = std::lerp(data.bboxMin.x, data.bboxMax.x, x);
     f32 ly = std::lerp(data.bboxMin.y, data.bboxMax.y, y);
     f32 lz = std::lerp(data.bboxMin.z, data.bboxMax.z, z);

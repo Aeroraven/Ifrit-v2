@@ -50,6 +50,10 @@ class IFRIT_APIDECL AyanamiRenderer : public RendererBase {
   using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandBuffer;
   using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
 
+  // Perframe data maintained by the renderer, this is unsafe
+  // This will be dropped in the future
+  std::unordered_map<Scene *, PerFrameData> m_perScenePerframe;
+
 private:
   std::unique_ptr<SyaroRenderer> m_gbufferRenderer;
   AyanamiRendererResources *m_resources = nullptr;
@@ -57,7 +61,7 @@ private:
 private:
   void initRenderer();
   void prepareResources(RenderTargets *renderTargets, const RendererConfig &config);
-  void setupAndRunFrameGraph(RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
+  void setupAndRunFrameGraph(PerFrameData &perframe, RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
 public:
   AyanamiRenderer(IApplication *app) : RendererBase(app), m_gbufferRenderer(std::make_unique<SyaroRenderer>(app)) {

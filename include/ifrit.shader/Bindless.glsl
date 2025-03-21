@@ -61,6 +61,10 @@ layout(binding = IFRIT_BINDLESS_BINDING_STORAGE_IMAGE, set = IFRIT_BINDLESS_SET_
 #define IFRIT_UAV_IMAGE3D_RGBA32F_NAME _ifrit_bindlessNaming(uav_image3d_rgba32f)
 layout(binding = IFRIT_BINDLESS_BINDING_STORAGE_IMAGE, set = IFRIT_BINDLESS_SET_ID, rgba32f) uniform image3D IFRIT_UAV_IMAGE3D_RGBA32F_NAME[];
 
+#define IFRIT_UAV_IMAGE3D_R32F_NAME _ifrit_bindlessNaming(uav_image3d_r32f)
+layout(binding = IFRIT_BINDLESS_BINDING_STORAGE_IMAGE, set = IFRIT_BINDLESS_SET_ID, r32f) uniform image3D IFRIT_UAV_IMAGE3D_R32F_NAME[];
+
+
 #define GetResource(name,id) _ifrit_bindlessNaming(name)[(id)]
 #define GetSampler2D(id) IFRIT_BINDLESS_SAMPLER2D_NAME[(id)]
 #define GetSampler3D(id) IFRIT_BINDLESS_SAMPLER3D_NAME[(id)]
@@ -70,4 +74,5 @@ layout(binding = IFRIT_BINDLESS_BINDING_STORAGE_IMAGE, set = IFRIT_BINDLESS_SET_
 #define GetUAVImage2DR32UI(id) IFRIT_UAV_IMAGE2D_R32UI_NAME[(id)]
 #define GetUAVImage2DRGBA32F(id) IFRIT_UAV_IMAGE2D_RGBA32F_NAME[(id)]
 #define GetUAVImage3DRGBA32F(id) IFRIT_UAV_IMAGE3D_RGBA32F_NAME[(id)]
+#define GetUAVImage3DR32F(id) IFRIT_UAV_IMAGE3D_R32F_NAME[(id)]
 #define GetUAVImage2DRGBA8(id) IFRIT_UAV_IMAGE2D_RGBA8_NAME[(id)]

@@ -15,3 +15,17 @@ GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+struct MeshDFDesc{
+    uint mdfMetaId;
+    uint transformId;
+};
+
+struct MeshDFMeta{
+    vec4 bboxMin;
+    vec4 bboxMax;
+    uint width;
+    uint height;
+    uint depth;
+    uint sdfId;
+};

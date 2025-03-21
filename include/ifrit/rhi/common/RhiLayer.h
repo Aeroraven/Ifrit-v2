@@ -47,6 +47,7 @@ using RhiDeviceAddr = u64;
 struct RhiInitializeArguments {
   std::function<const char **(u32 *)> m_extensionGetter;
   bool m_enableValidationLayer = true;
+  bool m_enableHardwareRayTracing = false;
   u32 m_surfaceWidth = -1;
   u32 m_surfaceHeight = -1;
   u32 m_expectedSwapchainImageCount = 3;

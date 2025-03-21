@@ -89,6 +89,8 @@ public:
       auto t = m->m_prefab;
       auto meshDF = t->addComponent<Ayanami::AyanamiMeshDF>();
       meshDF->buildMeshDF(getCacheDirectory());
+      auto transform = t->getComponent<Transform>();
+      auto mat = transform->getModelToWorldMatrix();
       node->addGameObjectTransferred(std::move(m->m_prefab));
     }
 
@@ -109,6 +111,10 @@ public:
 
   void onUpdate() override {
     auto scene = m_sceneAssetManager->getScene("TestScene2");
+    auto cameraGameObject = scene->getRootNode()->getChildren()[0]->getGameObject(0);
+    auto camera = cameraGameObject->getComponent<Transform>();
+    camera->setPosition({-4.0f, 4.0f, -18.0f});
+
     auto sFrameStart = renderer->beginFrame();
     auto renderComplete =
         renderer->render(scene.get(), nullptr, renderTargets.get(), renderConfig, {sFrameStart.get()});

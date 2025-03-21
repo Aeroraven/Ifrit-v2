@@ -19,10 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #version 450
 
-// Simple Temporary Anti-Aliasing
-// Implementation might be incorrect, but it works for now.
-// 
-// Reference: https://zhuanlan.zhihu.com/p/425233743
 
 layout(location = 0) in vec2 texCoord;
 
@@ -30,6 +26,11 @@ layout(location = 0) out vec4 outColor;
 
 #include "Bindless.glsl"
 
+layout(push_constant) uniform PushConstant{
+    uint rayMarchResult;
+} pc;
+
 void main(){
-    outColor = vec4(texCoord, 0.0, 1.0);
+    vec4 color = texture(GetSampler2D(pc.rayMarchResult), texCoord);
+    outColor = vec4(color.xyz, 1.0);
 }

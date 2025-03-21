@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 // Implementation might be incorrect, but it works for now.
 // 
 // Reference: https://zhuanlan.zhihu.com/p/425233743
+// Better reference to HDRP/URP's pipeline: frontmost velocity + variance clamp box
 
 layout(location = 0) in vec2 texCoord;
 

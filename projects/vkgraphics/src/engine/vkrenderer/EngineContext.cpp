@@ -41,11 +41,11 @@ std::vector<const char *> m_deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
                                                 VK_KHR_SPIRV_1_4_EXTENSION_NAME,
                                                 VK_EXT_MESH_SHADER_EXTENSION_NAME,
                                                 VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,
-                                                VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-                                                VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-                                                VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-                                                VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
                                                 VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
+
+std::vector<const char *> m_deviceExtensionsExtended = {
+    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+    VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME};
 
 bool enableExtension(bool mandatory, const char *extension,
                      const std::vector<VkExtensionProperties> &availableExtensions,
@@ -377,6 +377,14 @@ IFRIT_APIDECL void EngineContext::init() {
                   "Failed to enumerate device extensions");
   for (auto extension : m_deviceExtensions) {
     enableExtension(true, extension, availableExtensionsDevice, targetDeviceExtensions);
+  }
+  if (m_args.m_enableHardwareRayTracing) {
+    iInfo("Hardware ray tracing enabled");
+    for (auto extension : m_deviceExtensionsExtended) {
+      enableExtension(true, extension, availableExtensionsDevice, targetDeviceExtensions);
+    }
+  } else {
+    iInfo("Hardware ray tracing disabled");
   }
 
   deviceCI.enabledExtensionCount = size_cast<uint32_t>(targetDeviceExtensions.size());
