@@ -290,6 +290,18 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
         auto &normalData = gltfMaterial.normalTexture;
         auto &pbrData = gltfMaterial.pbrMetallicRoughness;
         auto baseColorIndexTex = pbrData.baseColorTexture.index;
+        if (baseColorIndexTex == -1) {
+          // find diffuse texture
+          auto extensionExists = gltfMaterial.extensions.find("KHR_materials_pbrSpecularGlossiness");
+          if (extensionExists != gltfMaterial.extensions.end()) {
+            auto &extension = gltfMaterial.extensions["KHR_materials_pbrSpecularGlossiness"];
+            auto diffuseExists = extension.Has("diffuseTexture");
+            if (diffuseExists) {
+              auto &diffuseTexture = extension.Get("diffuseTexture");
+              baseColorIndexTex = diffuseTexture.Get("index").Get<i32>();
+            }
+          }
+        }
         auto normalTexIndexTex = normalData.index;
         auto baseColorIndex = rawGLTFData.textures[baseColorIndexTex].source;
         auto normalTexIndex = rawGLTFData.textures[normalTexIndexTex].source;

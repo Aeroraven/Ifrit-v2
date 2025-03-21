@@ -4,10 +4,14 @@
 #include <functional>
 #include <ranges>
 namespace Ifrit::Common::Utility {
-template <class T>
-void unordered_for(T start, T end, std::function<void(T)> func) {
+template <class T> void unordered_for(T start, T end, std::function<void(T)> func) {
   auto rng = std::ranges::views::iota(start, end);
-  std::for_each(std::execution::par_unseq, rng.begin(), rng.end(),
-                [func](T x) { func(x); });
+  std::for_each(std::execution::par_unseq, rng.begin(), rng.end(), [func](T x) { func(x); });
+}
+
+template <class T> void sequential_for(int start, int end, std::function<void(T)> func) {
+  for (int i = start; i < end; i++) {
+    func(i);
+  }
 }
 } // namespace Ifrit::Common::Utility

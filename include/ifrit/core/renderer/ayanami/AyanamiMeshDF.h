@@ -25,6 +25,8 @@ private:
   u32 m_sdWidth;
   u32 m_sdHeight;
   u32 m_sdDepth;
+  ifloat3 m_sdBoxMin;
+  ifloat3 m_sdBoxMax;
 
 public:
   AyanamiMeshDF() {}
@@ -36,7 +38,7 @@ public:
 
 public:
   void buildMeshDF(const std::string_view &cachePath);
-  IFRIT_COMPONENT_SERIALIZE(m_sdWidth, m_sdHeight, m_sdDepth);
+  IFRIT_COMPONENT_SERIALIZE(m_sdWidth, m_sdHeight, m_sdDepth, m_sdBoxMin, m_sdBoxMax);
 };
 
 } // namespace Ifrit::Core::Ayanami

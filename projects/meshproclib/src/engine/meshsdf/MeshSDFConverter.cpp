@@ -16,6 +16,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/meshproc/engine/meshsdf/MeshSDFConverter.h"
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/common/math/simd/SimdVectors.h"
 #include "ifrit/common/util/Parallel.h"
 #include "ifrit/common/util/TypingUtil.h"
@@ -232,10 +233,15 @@ void getSignedDistanceToMeshRecur(const Mesh2SDFTempData &data, const vfloat3 &p
     // Non child node, check distance to bbox
     auto leftChildDist = getDistanceToBbox(p, leftChild->bboxMin, leftChild->bboxMax);
     auto rightChildDist = getDistanceToBbox(p, rightChild->bboxMin, rightChild->bboxMax);
-    if (leftChildDist < rightChildDist && leftChildDist < std::abs(tgtDist)) {
+    if (leftChildDist <= rightChildDist && leftChildDist < std::abs(tgtDist)) {
       getSignedDistanceToMeshRecur(data, p, leftChild, tgtDist);
-      if (std::abs(tgtDist) > leftChildDist) {
+      if (std::abs(tgtDist) > rightChildDist) {
         getSignedDistanceToMeshRecur(data, p, rightChild, tgtDist);
+      }
+    } else if (rightChildDist < leftChildDist && rightChildDist < std::abs(tgtDist)) {
+      getSignedDistanceToMeshRecur(data, p, rightChild, tgtDist);
+      if (std::abs(tgtDist) > leftChildDist) {
+        getSignedDistanceToMeshRecur(data, p, leftChild, tgtDist);
       }
     }
   } else {
@@ -312,6 +318,8 @@ IFRIT_MESHPROC_API void convertMeshToSDF(const MeshDescriptor &meshDesc, SignedD
     f32 dist = getSignedDistanceToMesh(data, p);
     sdf.sdfData[el] = dist;
   });
+  sdf.bboxMin = ifloat3(data.bboxMin.x, data.bboxMin.y, data.bboxMin.z);
+  sdf.bboxMax = ifloat3(data.bboxMax.x, data.bboxMax.y, data.bboxMax.z);
 }
 
 } // namespace Ifrit::MeshProcLib::MeshSDFProcess

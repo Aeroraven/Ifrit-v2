@@ -92,6 +92,8 @@ IFRIT_APIDECL void AyanamiMeshDF::buildMeshDF(const std::string_view &cachePath)
     m_sdWidth = sdf.width;
     m_sdHeight = sdf.height;
     m_sdDepth = sdf.depth;
+    m_sdBoxMin = ifloat3(sdf.bboxMin.x, sdf.bboxMin.y, sdf.bboxMin.z);
+    m_sdBoxMax = ifloat3(sdf.bboxMax.x, sdf.bboxMax.y, sdf.bboxMax.z);
   }
 }
 

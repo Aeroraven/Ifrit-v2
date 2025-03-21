@@ -57,7 +57,7 @@ public:
   void onStart() override {
     iInfo("DemoApplication::onStart()");
 
-    auto bistroObj = m_assetManager->getAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf");
+    auto bistroObj = m_assetManager->getAssetByName<GLTFAsset>("Fox/scene.gltf");
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");
     auto node = s->addSceneNode();
@@ -103,9 +103,11 @@ public:
     renderTargets->setColorAttachments({colorAttachment.get()});
     renderTargets->setDepthStencilAttachment(depthAttachment.get());
     renderTargets->setRenderArea(scissor);
+
+    iInfo("Done");
   }
 
-  void onUpdate() override { printf("Hello World"); }
+  void onUpdate() override { }
 
   void onEnd() override {}
 };
