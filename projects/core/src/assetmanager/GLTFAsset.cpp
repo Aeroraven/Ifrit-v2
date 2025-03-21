@@ -206,6 +206,14 @@ IFRIT_APIDECL MeshData *GLTFMesh::loadMeshUnsafe() {
 
 // Asset class
 
+IFRIT_APIDECL void GLTFAsset::requestLoad() {
+  if (!m_loaded) {
+    m_loaded = true;
+    loadGLTF(m_manager);
+    
+  }
+}
+
 IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
   m_internalData = new GLTFInternalData();
   auto rhi = m_manager->getApplication()->getRhiLayer();
@@ -349,7 +357,10 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
   }
 }
 
-IFRIT_APIDECL GLTFInternalData *GLTFAsset::getInternalData() { return m_internalData; }
+IFRIT_APIDECL GLTFInternalData *GLTFAsset::getInternalData() {
+  requestLoad();
+  return m_internalData;
+}
 
 IFRIT_APIDECL GLTFAsset::~GLTFAsset() {
   if (m_internalData) {

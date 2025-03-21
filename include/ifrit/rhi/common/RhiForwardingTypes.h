@@ -54,16 +54,16 @@ class RhiRTPass;
 
 // Enums
 enum RhiBufferUsage {
-  RHI_BUFFER_USAGE_TRANSFER_SRC_BIT = 0x00000001,
-  RHI_BUFFER_USAGE_TRANSFER_DST_BIT = 0x00000002,
-  RHI_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT = 0x00000004,
-  RHI_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT = 0x00000008,
-  RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT = 0x00000010,
-  RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT = 0x00000020,
-  RHI_BUFFER_USAGE_INDEX_BUFFER_BIT = 0x00000040,
-  RHI_BUFFER_USAGE_VERTEX_BUFFER_BIT = 0x00000080,
-  RHI_BUFFER_USAGE_INDIRECT_BUFFER_BIT = 0x00000100,
-  RHI_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT = 0x00020000,
+  RhiBufferUsage_CopySrc = 0x00000001,
+  RhiBufferUsage_CopyDst = 0x00000002,
+  RhiBufferUsage_UniformTexel = 0x00000004,
+  RhiBufferUsage_StorageTexel = 0x00000008,
+  RhiBufferUsage_Uniform = 0x00000010,
+  RhiBufferUsage_SSBO = 0x00000020,
+  RhiBufferUsage_Index = 0x00000040,
+  RhiBufferUsage_Vertex = 0x00000080,
+  RhiBufferUsage_Indirect = 0x00000100,
+  RhiBufferUsage_DeviceAddr = 0x00020000,
 };
 
 enum RhiImageUsage {
@@ -321,13 +321,7 @@ enum class RhiVertexInputRate { Vertex, Instance };
 
 enum class RhiDescriptorBindPoint { Compute, Graphics };
 
-enum class RhiDescriptorType {
-  UniformBuffer,
-  StorageBuffer,
-  CombinedImageSampler,
-  StorageImage,
-  MaxEnum
-};
+enum class RhiDescriptorType { UniformBuffer, StorageBuffer, CombinedImageSampler, StorageImage, MaxEnum };
 
 enum class RhiResourceAccessType {
   Read,
@@ -342,16 +336,7 @@ enum class RhiRasterizerTopology { TriangleList, Line, Point };
 enum class RhiGeometryGenerationType { Conventional, Mesh };
 
 enum class RhiResourceType { Buffer, Texture };
-enum class RhiCompareOp {
-  Never,
-  Less,
-  Equal,
-  LessOrEqual,
-  Greater,
-  NotEqual,
-  GreaterOrEqual,
-  Always
-};
+enum class RhiCompareOp { Never, Less, Equal, LessOrEqual, Greater, NotEqual, GreaterOrEqual, Always };
 
 enum class RhiResourceStateLegacy {
   Undefined,

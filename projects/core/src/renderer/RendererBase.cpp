@@ -413,9 +413,9 @@ IFRIT_APIDECL void RendererBase::recreateGBuffers(PerFrameData &perframeData, Re
     gbufferDesc.m_shadowMask = perframeData.m_gbuffer.m_shadowMaskId->getActiveId();
 
     // Then gbuffer desc
-    perframeData.m_gbuffer.m_gbufferRefs = rhi->createBufferDevice(
-        sizeof(PerFrameData::GBufferDesc),
-        RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT | RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    perframeData.m_gbuffer.m_gbufferRefs =
+        rhi->createBufferDevice(sizeof(PerFrameData::GBufferDesc),
+                                RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO);
     auto stagedBuf = rhi->createStagedSingleBuffer(perframeData.m_gbuffer.m_gbufferRefs.get());
     auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
     tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
@@ -501,11 +501,11 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
     auto &curView = perframeData.m_views[i];
     if (curView.m_viewBindlessRef == nullptr) {
       curView.m_viewBuffer =
-          rhi->createBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+          rhi->createBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RhiBufferUsage_Uniform);
       curView.m_viewBindlessRef = rhi->createBindlessDescriptorRef();
       curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBuffer.get(), 0);
       curView.m_viewBufferLast =
-          rhi->createBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+          rhi->createBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RhiBufferUsage_Uniform);
 
       curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBufferLast.get(), 1);
       initLastFrameMatrix = true;
@@ -545,8 +545,8 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
       // TODO/EMERGENCY: release old buffer
       shaderEffect.m_lastObjectCount = objectCount;
       shaderEffect.m_objectData.resize(objectCount);
-      shaderEffect.m_batchedObjectData = rhi->createBufferCoherent(sizeof(PerObjectData) * objectCount,
-                                                                   RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+      shaderEffect.m_batchedObjectData =
+          rhi->createBufferCoherent(sizeof(PerObjectData) * objectCount, RhiBufferUsage::RhiBufferUsage_SSBO);
 
       // TODO: update instead of recreate
       shaderEffect.m_batchedObjBufRef = rhi->createBindlessDescriptorRef();
@@ -568,13 +568,13 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
       transform->getGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
       bool initLastFrameMatrix = false;
       if (transformBuffer == nullptr) {
-        transformBuffer = rhi->createBufferCoherent(sizeof(MeshInstanceTransform),
-                                                    RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        transformBuffer =
+            rhi->createBufferCoherent(sizeof(MeshInstanceTransform), RhiBufferUsage::RhiBufferUsage_Uniform);
         bindlessRef = rhi->registerUniformBuffer(transformBuffer.get());
         transform->setGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
         initLastFrameMatrix = true;
-        transformBufferLast = rhi->createBufferCoherent(sizeof(MeshInstanceTransform),
-                                                        RhiBufferUsage::RHI_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        transformBufferLast =
+            rhi->createBufferCoherent(sizeof(MeshInstanceTransform), RhiBufferUsage::RhiBufferUsage_Uniform);
         bindlessRefLast = rhi->registerUniformBuffer(transformBufferLast.get());
         transform->setGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
       }
@@ -630,7 +630,7 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
         meshDataRef->m_cpCounter.totalLods = meshDataRef->m_maxLod;
         meshDataRef->m_cpCounter.totalNumClusters = size_cast<uint32_t>(meshDataRef->m_clusterGroups.size());
 
-        auto tmpUsage = RHI_BUFFER_USAGE_TRANSFER_DST_BIT | RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        auto tmpUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
         meshResource.vertexBuffer = rhi->createBufferDevice(
             size_cast<uint32_t>(meshDataRef->m_verticesAligned.size() * sizeof(ifloat4)), tmpUsage);
         meshResource.normalBuffer = rhi->createBufferDevice(
@@ -716,7 +716,7 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
       auto &meshInstObjData = meshInst->m_resource.objectData;
       if (instanceResource.objectBuffer == nullptr) {
 
-        auto tmpUsage = RHI_BUFFER_USAGE_TRANSFER_DST_BIT | RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        auto tmpUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
         requireUpdate = true;
         instanceResource.cpQueueBuffer =
             rhi->createBufferDevice(size_cast<uint32_t>(sizeof(uint32_t) * meshDataRef->m_bvhNodes.size()), tmpUsage);

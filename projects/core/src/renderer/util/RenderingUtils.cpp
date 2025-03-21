@@ -43,6 +43,20 @@ IFRIT_APIDECL GraphicsBackend::Rhi::RhiComputePass *createComputePass(GraphicsBa
   return pass;
 }
 
+IFRIT_APIDECL GraphicsBackend::Rhi::RhiGraphicsPass *
+createGraphicsPass(GraphicsBackend::Rhi::RhiBackend *rhi, const char *vsPath, const char *fsPath, u32 numBindlessDescs,
+                   u32 numPushConsts, const GraphicsBackend::Rhi::RhiRenderTargetsFormat &vFmts) {
+  auto vs = loadShaderFromFile(rhi, vsPath, "main", GraphicsBackend::Rhi::RhiShaderStage::Vertex);
+  auto fs = loadShaderFromFile(rhi, fsPath, "main", GraphicsBackend::Rhi::RhiShaderStage::Fragment);
+  auto pass = rhi->createGraphicsPass();
+  pass->setVertexShader(vs);
+  pass->setPixelShader(fs);
+  pass->setNumBindlessDescriptorSets(numBindlessDescs);
+  pass->setPushConstSize(numPushConsts * sizeof(u32));
+  pass->setRenderTargetFormat(vFmts);
+  return pass;
+}
+
 IFRIT_APIDECL void
 enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandBuffer *cmd, GraphicsBackend::Rhi::RhiBackend *rhi,
                       GraphicsBackend::Rhi::RhiGraphicsPass *pass, GraphicsBackend::Rhi::RhiRenderTargets *rt,
@@ -53,7 +67,8 @@ enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandBuffer *cmd, Graphic
     for (auto i = 1; auto &desc : vBindlessDescs) {
       ctx->m_cmd->attachBindlessReferenceGraphics(pass, i++, desc);
     }
-    ctx->m_cmd->setPushConst(pass, 0, numPushConsts * sizeof(uint32_t), pPushConst);
+    if (numPushConsts > 0)
+      ctx->m_cmd->setPushConst(pass, 0, numPushConsts * sizeof(uint32_t), pPushConst);
 
     // TODO: this should be done in vertex shader. Buffer is not needed
     ctx->m_cmd->attachVertexBufferView(*rhi->getFullScreenQuadVertexBufferView());

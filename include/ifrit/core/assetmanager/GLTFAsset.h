@@ -72,18 +72,25 @@ private:
   std::vector<std::shared_ptr<GLTFPrefab>> m_prefabs;
   GLTFInternalData *m_internalData = nullptr;
 
+  AssetManager *m_manager;
+
 private:
   inline AssetMetadata &getMetadata() { return m_metadata; }
 
 public:
-  GLTFAsset(AssetMetadata metadata, std::filesystem::path path, AssetManager *m_manager)
+  GLTFAsset(AssetMetadata metadata, std::filesystem::path path, AssetManager *manager)
       : Asset(metadata, path), m_metadata(metadata), m_path(path) {
-    loadGLTF(m_manager);
+    // loadGLTF(m_manager);
+    m_manager = manager;
   }
   ~GLTFAsset();
   void loadGLTF(AssetManager *m_manager);
+  void requestLoad();
   GLTFInternalData *getInternalData();
-  inline std::vector<std::shared_ptr<GLTFPrefab>> getPrefabs() { return m_prefabs; }
+  inline std::vector<std::shared_ptr<GLTFPrefab>> getPrefabs() {
+    requestLoad();
+    return m_prefabs;
+  }
 
   friend class GLTFMesh;
   friend class GLTFPrefab;

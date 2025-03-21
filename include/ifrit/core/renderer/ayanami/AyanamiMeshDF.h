@@ -17,8 +17,31 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/base/Component.h"
+#include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Core::Ayanami {
+
+struct AyanamiMeshDFResource {
+  struct SDFMeta {
+    ifloat4 bboxMin;
+    ifloat4 bboxMax;
+    u32 width;
+    u32 height;
+    u32 depth;
+    u32 sdfId;
+  };
+  using GPUTexture = GraphicsBackend::Rhi::RhiTexture;
+  using GPUBuffer = GraphicsBackend::Rhi::RhiBuffer;
+  using GPUBindId = GraphicsBackend::Rhi::RhiBindlessIdRef;
+
+  Ref<GPUTexture> sdfTexture;
+  Ref<GPUBindId> sdfTextureBindId;
+  Ref<GPUBuffer> sdfMetaBuffer;
+  Ref<GPUBindId> sdfMetaBufferBindId;
+};
+
+// AyanamiMeshDF stores mesh-level signed distance field data
+// This is used for mesh-based raymarching
 class IFRIT_APIDECL AyanamiMeshDF : public Component {
 private:
   Vec<f32> m_sdfData;
@@ -27,6 +50,9 @@ private:
   u32 m_sdDepth;
   ifloat3 m_sdBoxMin;
   ifloat3 m_sdBoxMax;
+  bool m_isBuilt = false;
+
+  Uref<AyanamiMeshDFResource> m_gpuResource = nullptr;
 
 public:
   AyanamiMeshDF() {}
@@ -38,6 +64,8 @@ public:
 
 public:
   void buildMeshDF(const std::string_view &cachePath);
+  void buildGPUResource(GraphicsBackend::Rhi::RhiBackend *rhi);
+  inline u32 getMetaBufferId() const { return m_gpuResource->sdfMetaBufferBindId->getActiveId(); }
   IFRIT_COMPONENT_SERIALIZE(m_sdWidth, m_sdHeight, m_sdDepth, m_sdBoxMin, m_sdBoxMax);
 };
 

@@ -48,7 +48,7 @@ private:
   std::shared_ptr<RhiColorAttachment> colorAttachment;
   std::shared_ptr<RhiTexture> depthImage;
   std::shared_ptr<RhiDepthStencilAttachment> depthAttachment;
-  std::shared_ptr<SyaroRenderer> renderer;
+  std::shared_ptr<AyanamiRenderer> renderer;
   RhiTexture *swapchainImg;
   RendererConfig renderConfig;
   float timing = 0;
@@ -56,7 +56,7 @@ private:
 public:
   void onStart() override {
     iInfo("DemoApplication::onStart()");
-
+    renderer = std::make_shared<AyanamiRenderer>(this);
     auto bistroObj = m_assetManager->getAssetByName<GLTFAsset>("Fox/scene.gltf");
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");
@@ -107,7 +107,13 @@ public:
     iInfo("Done");
   }
 
-  void onUpdate() override { }
+  void onUpdate() override {
+    auto scene = m_sceneAssetManager->getScene("TestScene2");
+    auto sFrameStart = renderer->beginFrame();
+    auto renderComplete =
+        renderer->render(scene.get(), nullptr, renderTargets.get(), renderConfig, {sFrameStart.get()});
+    renderer->endFrame({renderComplete.get()});
+  }
 
   void onEnd() override {}
 };

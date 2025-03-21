@@ -94,6 +94,49 @@ IFRIT_APIDECL void AyanamiMeshDF::buildMeshDF(const std::string_view &cachePath)
     m_sdDepth = sdf.depth;
     m_sdBoxMin = ifloat3(sdf.bboxMin.x, sdf.bboxMin.y, sdf.bboxMin.z);
     m_sdBoxMax = ifloat3(sdf.bboxMax.x, sdf.bboxMax.y, sdf.bboxMax.z);
+    m_isBuilt = true;
+  }
+}
+
+IFRIT_APIDECL void AyanamiMeshDF::buildGPUResource(GraphicsBackend::Rhi::RhiBackend *rhi) {
+  if (m_gpuResource == nullptr) {
+    if (m_isBuilt == false) {
+      iError("AyanamiMeshDF::buildGPUResource() requires mesh to be built first");
+      std::abort();
+    }
+    m_gpuResource = std::make_unique<AyanamiMeshDFResource>();
+    using namespace Ifrit::GraphicsBackend::Rhi;
+    auto volumeSize = m_sdWidth * m_sdHeight * m_sdDepth;
+    auto deviceVolume =
+        rhi->createBuffer(volumeSize * sizeof(f32),
+                          RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_CopySrc, true);
+    deviceVolume->map();
+    deviceVolume->writeBuffer(m_sdfData.data(), volumeSize * sizeof(f32), 0);
+    deviceVolume->flush();
+    deviceVolume->unmap();
+    m_gpuResource->sdfTexture = rhi->createTexture3D(
+        m_sdWidth, m_sdHeight, m_sdDepth, RhiImageFormat::RHI_FORMAT_R32_SFLOAT,
+        RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+    m_gpuResource->sdfTextureBindId = rhi->registerUAVImage(m_gpuResource->sdfTexture.get(), {0, 0, 1, 1});
+    m_gpuResource->sdfMetaBuffer =
+        rhi->createBuffer(sizeof(AyanamiMeshDFResource::SDFMeta),
+                          RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO, true);
+    m_gpuResource->sdfMetaBufferBindId = rhi->registerStorageBuffer(m_gpuResource->sdfMetaBuffer.get());
+
+    auto stagedMetaBuffer = rhi->createStagedSingleBuffer(m_gpuResource->sdfMetaBuffer.get());
+    AyanamiMeshDFResource::SDFMeta sdfMeta;
+    sdfMeta.bboxMin = ifloat4(m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z, 0);
+    sdfMeta.bboxMax = ifloat4(m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z, 0);
+    sdfMeta.width = m_sdWidth;
+    sdfMeta.height = m_sdHeight;
+    sdfMeta.depth = m_sdDepth;
+    sdfMeta.sdfId = m_gpuResource->sdfTextureBindId->getActiveId();
+
+    auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+    tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
+      cmd->copyBufferToImage(deviceVolume.get(), m_gpuResource->sdfTexture.get(), {0, 0, 1, 1});
+      stagedMetaBuffer->cmdCopyToDevice(cmd, &sdfMeta, sizeof(AyanamiMeshDFResource::SDFMeta), 0);
+    });
   }
 }
 

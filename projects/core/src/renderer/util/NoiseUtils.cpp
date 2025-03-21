@@ -19,8 +19,7 @@ IFRIT_APIDECL std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> loadBlueNoise(Gr
   auto tex = rhi->createTexture2D(width, height, GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM,
                                   GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
                                       GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
-  auto buf = rhi->createBuffer(width * height * 4,
-                               GraphicsBackend::Rhi::RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_SRC_BIT, true);
+  auto buf = rhi->createBuffer(width * height * 4, GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true);
   buf->map();
   buf->writeBuffer(data, width * height * 4, 0);
   buf->flush();

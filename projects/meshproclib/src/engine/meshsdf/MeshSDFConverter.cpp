@@ -279,6 +279,10 @@ f32 getSignedDistanceToMesh(const Mesh2SDFTempData &data, const vfloat3 &p) {
 
 IFRIT_MESHPROC_API void convertMeshToSDF(const MeshDescriptor &meshDesc, SignedDistanceField &sdf, u32 sdfWidth,
                                          u32 sdfHeight, u32 sdfDepth) {
+  // TODO: this is a trivial implementation, that has worse performance O(NM), where N is the number of voxels and M is
+  // the number of triangles, although AS approach is used.
+  // However, mesh df is generated offline. Better approach like "Jump Flooding" should be considered later.
+
   Mesh2SDFTempData data;
   data.bboxMin = vfloat3(FLT_MAX);
   data.bboxMax = vfloat3(-FLT_MAX);

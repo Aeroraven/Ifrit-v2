@@ -185,8 +185,8 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perf
   // Copy atmo params to GPU
   data->m_atmosphereParamsBuffer =
       rhi->createBufferDevice(sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter),
-                              GraphicsBackend::Rhi::RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_DST_BIT |
-                                  GraphicsBackend::Rhi::RhiBufferUsage::RHI_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+                              GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopyDst |
+                                  GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO);
   auto stagingBuffer = rhi->createStagedSingleBuffer(data->m_atmosphereParamsBuffer.get());
   auto tq = rhi->getQueue(GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   tq->runSyncCommand([&](const GraphicsBackend::Rhi::RhiCommandBuffer *cmd) {

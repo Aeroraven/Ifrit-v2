@@ -171,7 +171,7 @@ std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> parseDDS(std ::filesystem::pat
     iError("Invalid body size: {}, required: {}", totalBodySize, requiredBodySize);
     std::abort();
   }
-  auto buffer = rhi->createBuffer(requiredBodySize, RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_SRC_BIT, true);
+  auto buffer = rhi->createBuffer(requiredBodySize, RhiBufferUsage::RhiBufferUsage_CopySrc, true);
   buffer->map();
   buffer->writeBuffer(data.data() + bodyOffset, requiredBodySize, 0);
   buffer->flush();

@@ -41,6 +41,10 @@ IFRIT_APIDECL GraphicsBackend::Rhi::RhiComputePass *createComputePass(GraphicsBa
                                                                       const char *shaderPath, u32 numBindlessDescs,
                                                                       u32 numPushConsts);
 
+IFRIT_APIDECL GraphicsBackend::Rhi::RhiGraphicsPass *
+createGraphicsPass(GraphicsBackend::Rhi::RhiBackend *rhi, const char *vsPath, const char *fsPath, u32 numBindlessDescs,
+                   u32 numPushConsts, const GraphicsBackend::Rhi::RhiRenderTargetsFormat &vFmts);
+
 IFRIT_APIDECL void
 enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandBuffer *cmd, GraphicsBackend::Rhi::RhiBackend *rhi,
                       GraphicsBackend::Rhi::RhiGraphicsPass *pass, GraphicsBackend::Rhi::RhiRenderTargets *rt,

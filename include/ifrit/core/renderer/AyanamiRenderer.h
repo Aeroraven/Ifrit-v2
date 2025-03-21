@@ -56,6 +56,8 @@ private:
 
 private:
   void initRenderer();
+  void prepareResources(RenderTargets *renderTargets, const RendererConfig &config);
+  void setupAndRunFrameGraph(RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
 public:
   AyanamiRenderer(IApplication *app) : RendererBase(app), m_gbufferRenderer(std::make_unique<SyaroRenderer>(app)) {

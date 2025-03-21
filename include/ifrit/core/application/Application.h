@@ -49,11 +49,12 @@ struct ApplicationCreateInfo {
 };
 class IFRIT_APIDECL Application : public IApplication {
 protected:
+  std::unique_ptr<GraphicsBackend::Rhi::RhiBackend> m_rhiLayer; // should be destroyed last
+
   std::shared_ptr<AssetManager> m_assetManager;
   std::shared_ptr<SceneManager> m_sceneManager;
   std::shared_ptr<SceneAssetManager> m_sceneAssetManager;
   std::shared_ptr<InputSystem> m_inputSystem;
-  std::unique_ptr<GraphicsBackend::Rhi::RhiBackend> m_rhiLayer;
   std::unique_ptr<Display::Window::WindowProvider> m_windowProvider;
   ApplicationCreateInfo m_info;
 

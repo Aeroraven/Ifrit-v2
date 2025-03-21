@@ -37,8 +37,7 @@ std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> parseTex(std ::filesystem::pat
                                   GraphicsBackend::Rhi::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
   auto tq = rhi->getQueue(GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   auto totalSize = width * height * 4;
-  auto buffer =
-      rhi->createBuffer(totalSize, GraphicsBackend::Rhi::RhiBufferUsage::RHI_BUFFER_USAGE_TRANSFER_SRC_BIT, true);
+  auto buffer = rhi->createBuffer(totalSize, GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true);
   buffer->map();
   buffer->writeBuffer(data, totalSize, 0);
   buffer->flush();

@@ -200,7 +200,7 @@ IFRIT_APIDECL void CommandBuffer::copyBufferToImage(const Rhi::RhiBuffer *src, c
   region.imageSubresource.baseArrayLayer = dstSub.arrayLayer;
   region.imageSubresource.layerCount = dstSub.layerCount;
   region.imageOffset = {0, 0, 0};
-  region.imageExtent = {image->getWidth(), image->getHeight(), 1};
+  region.imageExtent = {image->getWidth(), image->getHeight(), image->getDepth()};
 
   auto buffer = checked_cast<SingleBuffer>(src)->getBuffer();
   vkCmdCopyBufferToImage(m_commandBuffer, buffer, image->getImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
