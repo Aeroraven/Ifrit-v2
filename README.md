@@ -14,14 +14,22 @@ Some toys about real-time rendering. Currently, it contains:
 | ![](docs/img/syaro_clodvisb.png)                             | ![](docs/img/syaro_clod1.png)                      |
 | <center>**Syaro / Timing**</center>                          | <center>**Ayanami / Mesh Distance Field**</center> |
 | <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" />  | ![](docs/img/ayanami_meshdf.png)                   |
-| <center>**Soft Renderer / Profile View**</center>            | <center>**Syaro / Debug View**</center>            |
+| <center>**Soft Renderer / Profile ** (Nsight Compute)</center> | <center>**Syaro / Debug ** (RenderDoc)</center>    |
 | ![](docs/img/soft_nscp.png)                                  | ![](docs/img/syaro_diag.png)                       |
 
-To visualize LoD change, refer to `docs/img/syaro_lod.mkv`
+To visualize Syaro's LoD change, refer to `docs/img/syaro_lod.mkv`
 
-Check  **[`GALLERY.md`](./docs/gallery.md)** for more examples.
+Check  **[`GALLERY.md`](./docs/gallery.md)** for more examples for software renderer.
 
-Successor to following repos: [Ifrit](https://github.com/Aeroraven/Ifrit), [Aria](https://github.com/Aeroraven/Aria) , [Iris (Tiny Renderer CPP)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris)  & [Iris (Tiny Renderer C#)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/TinyRenderer)
+
+
+This repository is the successor to my following repositories: 
+
+- [Aria](https://github.com/Aeroraven/Aria): Some scenes and toys about using WebGL2 and Vulkan.
+
+- [Ifrit-v1](https://github.com/Aeroraven/Ifrit): An console drawing helper for course projects that uses Java.
+  - Still, Ifrit-v2 soft renderer supports console display (like Windows Powershell).
+- [Iris (Tiny Renderer C#)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/TinyRenderer): Personal replicate for Tiny Renderer.
 
 
 
@@ -54,7 +62,7 @@ Successor to following repos: [Ifrit](https://github.com/Aeroraven/Ifrit), [Aria
   - Horizon-Based Ambient Occlusion
   - Cascaded Shadow Mapping
   - Temporal Anti-aliasing
-  - Convolution Bloom (Fast Fourier Transform)
+  - Convolution Bloom
 
 ### 1.3 Ayanami: Maybe Something about Global Illumination
 
@@ -82,13 +90,13 @@ Following dependencies should be manually configured. Other dependencies will be
 - Vulkan SDK 1.3 (with shaderc combined)
   - Core Features 1.3
   - with `EXT_mesh_shader` extension
-  - with `KHR_ray_tracing` extension (3 related extensions included)
+  - <s>with `KHR_ray_tracing` extension (3 related extensions included)</s>
 
 **Soft Renderer** 
 
 - LLVM >= 11.0
 - CUDA >= 12.5
-  - Known compiler issues with CUDA 12.4 with MSVC compiler
+  - Known compiler issues with CUDA 12.4 with MSVC compiler (fixed in CUDA 12.5)
 
 ### 2.3 Quick Start For Syaro Demo
 
@@ -112,8 +120,7 @@ To run the demo
 
 See [ACKNOWLEDGEMENTS.md](./ACKNOWLEDGEMENTS.md) for more details.
 
-Some ideas might be borrowed from Unreal Engine. However, due to the license compatibility (AGPL-v3 vs. Unreal Engine's EULA), 
-the code is not copied (or used in other predefined forms) from the Unreal Engine source code.
+Some ideas might be borrowed from Unreal Engine. However, due to the license compatibility (AGPL-v3 vs. Unreal Engine's EULA), the code is not copied (or used in other predefined forms) from the Unreal Engine source code.
 
 ## 4. License
 
