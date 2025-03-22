@@ -1,10 +1,24 @@
 # Ifrit-v2
 
+
 Some toys about real-time rendering. Currently, it contains:
 
 - **Soft-Renderer**: CUDA / Multithreaded CPU Software Rasterizer & Ray-tracer, with JIT support.
 - **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details. (Under development)
 - **Ayanami**: A planned project for Global Illumination. (Under planning)
+<br/><br/>
+- [Ifrit-v2](#ifrit-v2)
+  * [1. Features Supported](#1-features-supported)
+    + [1.1 Soft Renderer](#11-parallelized-soft-renderer)
+    + [1.2 Syaro](#12-syaro--virtual-geometry-based-deferred-renderer)
+    + [1.3 Ayanami](#13-ayanami--maybe-something-about-global-illumination)
+  * [2. Setup / Run](#2-setup---run)
+    + [2.1 Clone the Repository](#21-clone-the-repository)
+    + [2.2 Install Dependencies](#22-install-dependencies)
+    + [2.3 Quick Start For Syaro Demo](#23-quick-start-for-syaro-demo)
+  * [3. References & Acknowledgements](#3-references---acknowledgements)
+  * [4. License](#4-license)
+
 
 
 | <center>Soft Renderer / Mesh Shading</center>                | <center>Soft Renderer / CUDA Renderer</center>     |
@@ -14,7 +28,7 @@ Some toys about real-time rendering. Currently, it contains:
 | ![](docs/img/syaro_clodvisb.png)                             | ![](docs/img/syaro_clod1.png)                      |
 | <center>**Syaro / Timing**</center>                          | <center>**Ayanami / Mesh Distance Field**</center> |
 | <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" />  | ![](docs/img/ayanami_meshdf.png)                   |
-| <center>**Soft Renderer / Profile ** (Nsight Compute)</center> | <center>**Syaro / Debug ** (RenderDoc)</center>    |
+| <center>**Soft Renderer / Profile** (Nsight Compute)</center> | <center>**Syaro / Debug** (RenderDoc)</center>     |
 | ![](docs/img/soft_nscp.png)                                  | ![](docs/img/syaro_diag.png)                       |
 
 To visualize Syaro's LoD change, refer to `docs/img/syaro_lod.mkv`
