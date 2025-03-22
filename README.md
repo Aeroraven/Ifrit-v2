@@ -41,7 +41,7 @@ This repository is the successor to my following repositories:
 
 - [Aria](https://github.com/Aeroraven/Aria): Some scenes and toys about using WebGL2 and Vulkan.
 
-- [Ifrit-v1](https://github.com/Aeroraven/Ifrit): An console drawing helper for course projects that uses Java.
+- [Ifrit-v1](https://github.com/Aeroraven/Ifrit): An console drawing helper for course projects that use Java.
   - Still, Ifrit-v2 soft renderer supports console display (like Windows Powershell).
 - Iris ([C#](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/TinyRenderer) / [C++](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris)): Personal replicate for Tiny Renderer.
 
