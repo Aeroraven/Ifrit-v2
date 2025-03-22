@@ -111,7 +111,7 @@ void main(){
     vec3 hitp = o + d*t;
     bool finalHit = false;
     bool outp = false;
-    vec3 normalEps = vec3(0.001, 0.001, 0.001);
+    vec3 normalEps = vec3(0.02, 0.02, 0.02);
     vec3 normal = vec3(0.0, 0.0, 0.0);
 
     // Begin sdf tracing

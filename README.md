@@ -4,16 +4,20 @@ Some toys about real-time rendering. Currently, it contains:
 
 - **Soft-Renderer**: CUDA / Multithreaded CPU Software Rasterizer & Ray-tracer, with JIT support.
 - **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details. (Under development)
-- **Ayanami**: A planned project for Global Illumination. (Under development)
+- **Ayanami**: A planned project for Global Illumination. (Under planning)
 
 
-| <center>Software Renderer / Mesh Shading</center>                        | <center>Software Renderer / CUDA Renderer</center> |
-| ------------------------------------------------------- | --------------------------------- |
-| ![](docs/img/img_demo3.png)                             | ![](docs/img/img_demo1.png)       |
+| <center>Soft Renderer / Mesh Shading</center>                | <center>Soft Renderer / CUDA Renderer</center>     |
+| ------------------------------------------------------------ | -------------------------------------------------- |
+| ![](docs/img/img_demo3.png)                                  | ![](docs/img/img_demo1.png)                        |
 | <center>**Syaro / Cull Rasterize Visibility Buffer (R32_UINT)**</center> | <center>**Syaro / Final Output**</center>          |
-| ![](docs/img/syaro_clodvisb.png)                        | ![](docs/img/syaro_clod1.png)     |
+| ![](docs/img/syaro_clodvisb.png)                             | ![](docs/img/syaro_clod1.png)                      |
+| <center>**Syaro / Timing**</center>                          | <center>**Ayanami / Mesh Distance Field**</center> |
+| <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" />  | ![](docs/img/ayanami_meshdf.png)                   |
+| <center>**Soft Renderer / Profile View**</center>            | <center>**Syaro / Debug View**</center>            |
+| ![](docs/img/soft_nscp.png)                                  | ![](docs/img/syaro_diag.png)                       |
 
-
+To visualize LoD change, refer to `docs/img/syaro_lod.mkv`
 
 Check  **[`GALLERY.md`](./docs/gallery.md)** for more examples.
 
@@ -55,7 +59,7 @@ Successor to following repos: [Ifrit](https://github.com/Aeroraven/Ifrit), [Aria
 ### 1.3 Ayanami: Maybe Something about Global Illumination
 
 - It's planning to implement some GI algorithms.
-    
+  
 
 ## 2. Setup / Run
 
