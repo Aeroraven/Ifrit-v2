@@ -21,7 +21,7 @@ To visualize Syaro's LoD change, refer to `docs/img/syaro_lod.mkv`
 
 Check  **[`GALLERY.md`](./docs/gallery.md)** for more examples for software renderer.
 
-
+<br/><br/>
 
 This repository is the successor to my following repositories: 
 
@@ -29,7 +29,7 @@ This repository is the successor to my following repositories:
 
 - [Ifrit-v1](https://github.com/Aeroraven/Ifrit): An console drawing helper for course projects that uses Java.
   - Still, Ifrit-v2 soft renderer supports console display (like Windows Powershell).
-- [Iris (Tiny Renderer C#)](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/TinyRenderer): Personal replicate for Tiny Renderer.
+- Iris ([C#](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/TinyRenderer) / [C++](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris)): Personal replicate for Tiny Renderer.
 
 
 
