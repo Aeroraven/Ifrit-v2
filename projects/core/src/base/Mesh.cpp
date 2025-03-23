@@ -173,6 +173,7 @@ IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshDa
     meshData->m_meshlets[i].triangleOffset = meshlets[i].y;
     meshData->m_meshlets[i].vertexCount = meshlets[i].z;
     meshData->m_meshlets[i].triangleCount = meshlets[i].w;
+    meshData->m_meshlets[i].selfErrorSphere = meshletData.selfErrorSphereW[i];
   }
 
   uint32_t totalTriangles = 0;

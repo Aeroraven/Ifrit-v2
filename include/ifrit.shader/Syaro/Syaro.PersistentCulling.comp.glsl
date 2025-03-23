@@ -184,6 +184,7 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
         return true;
     }
     
+    // Note that, we discard a cluster group if "Parent Error<=threshold"
     bool parentRejected = true;
     if(group.lod != totalLod-1){
         vec4 viewSpaceCenter = mvMat * vec4(parentSphereCenter,1.0);
@@ -196,12 +197,13 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
             parentProjectedRadius = parentSphereRadius * camAspect / orthoSize;
         }
         parentProjectedRadius*=rtHeight;
-        parentRejected = parentProjectedRadius > 1.0;
+        parentRejected = parentProjectedRadius > SYARO_SHADER_SHARED_DAG_CULL_THRESHOLD;
     }
     if(!parentRejected){
         return false;
     }
 
+#if SYARO_SHADER_SHARED_CLUSTER_GROUP_LEVEL_REMOVAL
     bool selfRejected = false;
     if(group.lod != 0){
         vec4 viewSpaceCenter = mvMat * vec4(selfSphereCenter,1.0);
@@ -213,10 +215,12 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
             selfProjectedRadius = selfSphereRadius * camAspect / orthoSize;
         }
         selfProjectedRadius*=rtHeight;
-        selfRejected = selfProjectedRadius > 1.0;
+        selfRejected = selfProjectedRadius > SYARO_SHADER_SHARED_DAG_CULL_THRESHOLD;
     }
     return !selfRejected;
-
+#else
+    return true;
+#endif
 }
 
 
@@ -291,27 +295,55 @@ bool frustumCullOrtho(vec4 boundBall, float radius){
     return false;
 }
 
-void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFovY){
-    ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
-    uint objId =getObjId();
-    int numMeshlets = 1; //int(group.childMeshletCount);
-    uint pos = 0;
-
-    bool bMeshletCulled = false;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
-    uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
-    uint meshletId = GetResource(bMeshletsInClusterGroup,micRef).data[group.childMeshletStart];
-
-#if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
+void enqueueClusterGroupSingleMeshlet(uint meshletRef, uint objId, uint meshletId, uint clusterRef, uint micRef, float tanHalfFovY,uint lod){
+    
+    Meshlet meshlet = GetResource(bMeshlet,meshletRef).data[meshletId];
     uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
     uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
     mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
     float maxScale = GetResource(bLocalTransform,trans).m_maxScale;
     mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
     mat4 mv = view * model;
+
+#if SYARO_SHADER_SHARED_CLUSTER_GROUP_LEVEL_REMOVAL
+    // here nothing should be done. this is a debug branch.
+
+#else
+    // this is a cluster of a cluster group, so if this cluster should be culled,
+    // we will have "ClusterError > threshold".
     
+
+    // Get view cam type
+    float viewCamType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
+    float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+    float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
+    float rtHeight = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderHeight;
+    float tanfovy = tanHalfFovY;
+
+    vec4 selfErrorSphere = meshlet.selfErrorSphere;
+    float selfSphereRadius = selfErrorSphere.w * maxScale;
+    bool selfRejected = false;
+    if(lod != 0){
+        vec4 viewSpaceCenter = mv * vec4(selfErrorSphere.xyz,1.0);
+        vec3 viewSpaceCenter3 = viewSpaceCenter.xyz / viewSpaceCenter.w;
+        float selfProjectedRadius;
+        if(viewCamType == 0){
+            selfProjectedRadius = computeProjectedRadius(tanfovy,length(viewSpaceCenter3),selfSphereRadius);
+        }else{
+            selfProjectedRadius = selfSphereRadius * camAspect / orthoSize;
+        }
+        selfProjectedRadius*=rtHeight;
+        selfRejected = selfProjectedRadius > SYARO_SHADER_SHARED_DAG_CULL_THRESHOLD;
+    }
+    if(selfRejected){
+        return;
+    }
+#endif
+
+
+#if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
     // cone culling
-    Meshlet meshlet = GetResource(bMeshlet,meshletRef).data[meshletId];
+    
     vec4 normalConeAxis = model * vec4(meshlet.normalCone.xyz,0.0);
     vec4 normalConeApex = model * vec4(meshlet.normalConeApex.xyz,1.0);
     vec3 cameraPos = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraPosition.xyz;
@@ -322,6 +354,7 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
     }
 
     // frustum culling
+    bool bMeshletCulled = false;
     vec4 boundBall = mv * vec4(meshlet.boundSphere.xyz,1.0);
     float radius = meshlet.boundSphere.w*maxScale;
     if(camViewType > 0.5){
@@ -337,6 +370,7 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
     // contribution division, planning move meshlets bbox smaller than 16px
     // to sw rasterization. Currently, just discard them.
     //if(!true){
+    uint pos = 0;
     if(pConst.rejectSwRaster == 0){
         // We don't want sw rasterizer got homogeneous clipping. So if sphere intersects
         // the near plane, we just discard it.
@@ -373,9 +407,7 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
     }
     
 #endif
-
 #endif
-
     // End culling
     if(isSecondCullingPass()){
         uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1;
@@ -384,8 +416,25 @@ void enqueueClusterGroup(uint id, uint clusterRef, uint micRef, float tanHalfFov
     }else{
         pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1,1);
     }
-
     GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[pos] = ivec2(objId,meshletId);
+}
+
+void enqueueClusterGroupImpl(uint id, uint clusterRef, uint micRef, float tanHalfFovY){
+    ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
+    uint objId =getObjId();
+    int numMeshlets = int(group.childMeshletCount);
+    uint pos = 0;
+    bool bMeshletCulled = false;
+    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
+    for(uint i = 0;i<numMeshlets;i++){
+        uint meshletId = GetResource(bMeshletsInClusterGroup,micRef).data[group.childMeshletStart+i];
+        enqueueClusterGroupSingleMeshlet(meshletRef, objId,meshletId,clusterRef,micRef,tanHalfFovY,group.lod);
+    }
+}
+
+void enqueueClusterGroupEntry(uint id, uint clusterRef, uint micRef, float tanHalfFovY){
+    enqueueClusterGroupImpl(id,clusterRef,micRef,tanHalfFovY);
 }
 
 void main(){
@@ -487,7 +536,7 @@ void main(){
                         bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy,
                             viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY,maxScale);
                         if(clusterGroupVisible){ 
-                            enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
+                            enqueueClusterGroupEntry(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
                         }
                     }
                 }else{
@@ -509,7 +558,7 @@ void main(){
                     bool clusterGroupVisible = isClusterGroupVisible(node.clusterGroupStart + i,mv,rtHeight,tanfovy,
                         viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY,maxScale);
                     if(clusterGroupVisible){ 
-                        enqueueClusterGroup(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
+                        enqueueClusterGroupEntry(node.clusterGroupStart + i,clusterRef,micRef,tanfovy);
                     }
                 }
             }
@@ -520,7 +569,7 @@ void main(){
             bool clusterGroupVisible = isClusterGroupVisible(k,mv,rtHeight,tanfovy,
                 viewCamType,camAspect,orthoSize,cullOrthoX,cullOrthoY,maxScale);
             if(clusterGroupVisible){ 
-                enqueueClusterGroup(k,clusterRef,micRef,tanfovy);
+                enqueueClusterGroupEntry(k,clusterRef,micRef,tanfovy);
             }
         }
     }

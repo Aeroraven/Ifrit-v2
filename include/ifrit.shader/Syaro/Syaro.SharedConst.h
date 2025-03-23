@@ -63,6 +63,12 @@ namespace Ifrit::Core::SyaroConfig {
 // Whether to use reverse-z
 #define SYARO_SHADER_ENABLE_REVERSE_Z 0
 
+// Whether to limit a cluster group with solely one meshlet, this is a debug option
+#define SYARO_SHADER_SHARED_CLUSTER_GROUP_LEVEL_REMOVAL 0
+
+// The threshold for DAG culling. The default value should be 1.0f to make change invisible.
+#define SYARO_SHADER_SHARED_DAG_CULL_THRESHOLD 1.0f
+
 SYARO_DEFINE_UINT(cPersistentCullThreadGroupSizeX, 128);
 SYARO_DEFINE_UINT(cInstanceCullingThreadGroupSizeX, 64);
 
@@ -92,8 +98,7 @@ SYARO_DEFINE_UINT(cPersistentCullParallelStg_PersistThread, 1);
 SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop_BVH, 2);
 SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop_ClusterGroup, 3);
 
-SYARO_DEFINE_UINT(cPersistentCullParallelStg,
-                  cPersistentCullParallelStg_StridedLoop_ClusterGroup);
+SYARO_DEFINE_UINT(cPersistentCullParallelStg, cPersistentCullParallelStg_StridedLoop_ClusterGroup);
 
 SYARO_DEFINE_UINT(cCombineVisBufferThreadGroupSizeX, 16);
 SYARO_DEFINE_UINT(cCombineVisBufferThreadGroupSizeY, 16);

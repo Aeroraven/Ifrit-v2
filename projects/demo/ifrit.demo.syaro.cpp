@@ -88,7 +88,9 @@ public:
     light->setAffectPbrSky(true);
 
     auto meshes = bistroObj->getPrefabs();
+    auto numMeshes = 0;
     for (auto &m : meshes) {
+      numMeshes++;
       node->addGameObjectTransferred(std::move(m->m_prefab));
     }
 

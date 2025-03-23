@@ -35,48 +35,53 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::MeshProcLib::MeshProcess {
 
-struct ClusterLodGeneratorContext {
-  int totalMeshlets;
-  std::vector<meshopt_Meshlet> meshletsRaw;
-  std::vector<u32> meshletVertices;
-  std::vector<u8> meshletTriangles;
-  std::vector<i32> graphPartition;
-  std::vector<MeshletCullData> lodCullData;
+// This option disables DAG culling for cluster groups
+#define IFRIT_MESHPROC_CLUSTERLOD_IGNORE_CLUSTERGROUP 0
 
-  std::vector<u32> parentStart;
-  std::vector<u32> parentSize;
-  std::vector<u32> childClusterId;
+struct ClusterLodGeneratorContext {
+  i32 totalMeshlets;
+  Vec<meshopt_Meshlet> meshletsRaw;
+  Vec<u32> meshletVertices;
+  Vec<u8> meshletTriangles;
+  Vec<i32> graphPartition;
+  Vec<MeshletCullData> lodCullData;
+  Vec<ifloat4> selfErrorSphere;
+
+  Vec<u32> parentStart;
+  Vec<u32> parentSize;
+  Vec<u32> childClusterId;
 
   // cluster groups
-  std::vector<ClusterGroup> clusterGroups;
-  std::vector<u32> meshletsInClusterGroups;
+  Vec<ClusterGroup> clusterGroups;
+  Vec<u32> meshletsInClusterGroups;
 };
 
 struct CombinedClusterLodBuffer {
-  std::vector<iint4> meshletsRaw; // 2x offsets + 2x size
-  std::vector<u32> meshletVertices;
-  std::vector<u8> meshletTriangles;
-  std::vector<i32> graphPartition;
-  std::vector<u32> parentStart;
-  std::vector<u32> parentSize;
-  std::vector<MeshletCullData> meshletCull;
+  Vec<iint4> meshletsRaw; // 2x offsets + 2x size
+  Vec<u32> meshletVertices;
+  Vec<u8> meshletTriangles;
+  Vec<i32> graphPartition;
+  Vec<u32> parentStart;
+  Vec<u32> parentSize;
+  Vec<MeshletCullData> meshletCull;
+
+  Vec<ifloat4> selfErrorSphereW;
 
   // cluster groups
-  std::vector<ClusterGroup> clusterGroups;
-  std::vector<u32> meshletsInClusterGroups;
+  Vec<ClusterGroup> clusterGroups;
+  Vec<u32> meshletsInClusterGroups;
 
   // Num clusters for each lod
-  std::vector<u32> numClustersEachLod;
+  Vec<u32> numClustersEachLod;
 
   IFRIT_STRUCT_SERIALIZE(meshletsRaw, meshletVertices, meshletTriangles, graphPartition, parentStart, parentSize,
-                         meshletCull, clusterGroups, meshletsInClusterGroups, numClustersEachLod);
+                         meshletCull, selfErrorSphereW, clusterGroups, meshletsInClusterGroups, numClustersEachLod);
 };
 
 class IFRIT_MESHPROC_API MeshClusterLodProc {
 public:
-  int clusterLodHierachy(const MeshDescriptor &mesh, CombinedClusterLodBuffer &meshletData,
-                         std::vector<ClusterGroup> &clusterGroupData, std::vector<FlattenedBVHNode> &flattenedNodes,
-                         int maxLod);
+  i32 clusterLodHierachy(const MeshDescriptor &mesh, CombinedClusterLodBuffer &meshletData,
+                         Vec<ClusterGroup> &clusterGroupData, Vec<FlattenedBVHNode> &flattenedNodes, i32 maxLod);
 };
 
 } // namespace Ifrit::MeshProcLib::MeshProcess

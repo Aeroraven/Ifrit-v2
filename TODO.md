@@ -1,5 +1,8 @@
 # Ifrit-v2 /  TODO 
 
+### 2025.03
+- Syaro: 修复错误的Cluster Group Culling (250324)
+
 ### 2025.01
 - Syaro: 缓解LoD切换时的顶点属性突变 (250115)
 

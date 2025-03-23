@@ -167,7 +167,7 @@ public:
 };
 
 // Here, SceneObjectPrefab is a type alias for SceneObject.
-// It only indiecates that the object does not belong to the scene.
+// It only indicates that the object does not belong to the scene.
 using SceneObjectPrefab = SceneObject;
 
 class IFRIT_APIDECL Component : public Ifrit::Common::Utility::NonCopyable {

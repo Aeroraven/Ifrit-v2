@@ -42,6 +42,7 @@ struct MeshData {
     ifloat4 normalConeAxisCutoff;
     ifloat4 normalConeApex;
     ifloat4 boundSphere;
+    ifloat4 selfErrorSphere;
   };
   std::string identifier;
 

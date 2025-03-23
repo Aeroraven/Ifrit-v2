@@ -57,7 +57,7 @@ public:
   void onStart() override {
     iInfo("DemoApplication::onStart()");
     renderer = std::make_shared<AyanamiRenderer>(this);
-    auto bistroObj = m_assetManager->getAssetByName<GLTFAsset>("Fox/scene.gltf");
+    auto bistroObj = m_assetManager->getAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf");
     // Scene
     auto s = m_sceneAssetManager->createScene("TestScene2");
     auto node = s->addSceneNode();

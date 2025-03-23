@@ -26,6 +26,7 @@ struct Meshlet {
     vec4 normalCone;
     vec4 normalConeApex;
     vec4 boundSphere;
+    vec4 selfErrorSphere;
 };
 
 RegisterUniform(bLocalTransform,{
