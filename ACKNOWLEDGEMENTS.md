@@ -36,6 +36,9 @@ Some tools are used during the development.
 
 And some references that give inspirations. Thanks for their selfless dedications.
 
+**Overall**:
+1. https://www.unrealengine.com/
+
 **Software Rasterization**：
 
 1. https://tayfunkayhan.wordpress.com/2019/07/26/chasing-triangles-in-a-tile-based-rasterizer/
@@ -62,10 +65,12 @@ And some references that give inspirations. Thanks for their selfless dedication
 10. https://media.gdcvault.com/gdc2024/Slides/GDC+slide+presentations/Nanite+GPU+Driven+Materials.pdf
 11. https://www.slideshare.net/slideshow/optimizing-the-graphics-pipeline-with-compute-gdc-2016/59747720
 12. https://developer.nvidia.com/orca/amazon-lumberyard-bistro
+13. https://games-cn.org/games104-slides/
 
 **Global Illumination**
 1. https://advances.realtimerendering.com/s2022/SIGGRAPH2022-Advances-Lumen-Wright%20et%20al.pdf
 2. https://zhuanlan.zhihu.com/p/696464007
+
 
 ### 3.2 About naming
 All names are chosen randomly from some characters.
