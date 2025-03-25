@@ -35,10 +35,10 @@ namespace Ifrit::MeshProcLib::MeshProcess {
 class IFRIT_MESHPROC_API MeshletConeCullProc {
 
 public:
-  void createNormalCones(const MeshDescriptor &meshDesc, const std::vector<iint4> &meshlets,
+  void createNormalCones(const MeshDescriptor &meshDesc, const std::vector<Vector4i> &meshlets,
                          const std::vector<u32> &meshletVertices, const std::vector<uint8_t> &meshletTriangles,
-                         std::vector<ifloat4> &normalConeAxisCutoff, std::vector<ifloat4> &normalConeApex,
-                         std::vector<ifloat4> &boundSphere);
+                         std::vector<Vector4f> &normalConeAxisCutoff, std::vector<Vector4f> &normalConeApex,
+                         std::vector<Vector4f> &boundSphere);
 };
 
 } // namespace Ifrit::MeshProcLib::MeshProcess

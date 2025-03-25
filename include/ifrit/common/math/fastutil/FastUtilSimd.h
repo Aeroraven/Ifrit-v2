@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "../../util/ApiConv.h"
 #include <cstdint>
 
-namespace Ifrit::Math::FastUtil {
+namespace Ifrit::Math {
 #ifdef IFRIT_USE_SIMD_256
 // Approximated Reciprocal with Newton-Raphson method
 inline __m256 approxReciprocalNR_256(__m256 x) {
@@ -44,10 +44,10 @@ inline __m256 fillAllOne_256() {
 
 // Gather 32 floats from memory and store into 4 differents 256-bit registers
 // With stride of 4.
-inline void gather32Fp32_stride4_256(float *data, __m256 &r0, __m256 &r1, __m256 &r2, __m256 &r3) {
+inline void gather32Fp32_stride4_256(f32 *data, __m256 &r0, __m256 &r1, __m256 &r2, __m256 &r3) {
   // I do not know whether this is optimal
-  constexpr bool useInstruction = false;
-  if constexpr (useInstruction) {
+  IF_CONSTEXPR bool useInstruction = false;
+  if IF_CONSTEXPR (useInstruction) {
     auto pos = _mm256_setr_epi32(0, 4, 8, 12, 16, 20, 24, 28);
     r0 = _mm256_i32gather_ps(data, pos, 4);
     r1 = _mm256_i32gather_ps(data + 1, pos, 4);
@@ -76,24 +76,24 @@ inline void gather32Fp32_stride4_256(float *data, __m256 &r0, __m256 &r1, __m256
 
 #endif
 
-inline float approxReciprocal(float x) {
+inline f32 approxReciprocal(f32 x) {
 #ifdef IFRIT_USE_SIMD_128
   // https://codereview.stackexchange.com/questions/259771/fast-reciprocal-1-x
-  float r = _mm_cvtss_f32(_mm_rcp_ss(_mm_set_ss(x)));
+  f32 r = _mm_cvtss_f32(_mm_rcp_ss(_mm_set_ss(x)));
   r = r * (2 - r * x);
 #else
-  float r = 1.0f / x;
+  f32 r = 1.0f / x;
 #endif
   return r;
 }
-inline float fastApproxReciprocal(float x) {
+inline f32 fastApproxReciprocal(f32 x) {
 #ifdef IFRIT_USE_SIMD_128
   // https://codereview.stackexchange.com/questions/259771/fast-reciprocal-1-x
-  float r = _mm_cvtss_f32(_mm_rcp_ss(_mm_set_ss(x)));
+  f32 r = _mm_cvtss_f32(_mm_rcp_ss(_mm_set_ss(x)));
 #else
-  float r = 1.0f / x;
+  f32 r = 1.0f / x;
 #endif
   return r;
 }
 
-} // namespace Ifrit::Math::FastUtil
+} // namespace Ifrit::Math

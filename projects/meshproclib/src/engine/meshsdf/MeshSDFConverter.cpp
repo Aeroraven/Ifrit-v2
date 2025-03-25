@@ -30,8 +30,8 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess {
 IF_CONSTEXPR u32 cMinBvhChilds = 2;
 
 struct BVHNode : public Common::Utility::NonCopyableStruct {
-  vfloat3 bboxMin;
-  vfloat3 bboxMax;
+  SVector3f bboxMin;
+  SVector3f bboxMax;
   Uref<BVHNode> left;
   Uref<BVHNode> right;
   u32 startIdx;
@@ -39,8 +39,8 @@ struct BVHNode : public Common::Utility::NonCopyableStruct {
 };
 
 struct Mesh2SDFTempData : public Common::Utility::NonCopyableStruct {
-  vfloat3 bboxMin;
-  vfloat3 bboxMax;
+  SVector3f bboxMin;
+  SVector3f bboxMax;
   f32 *meshVxBuffer;
   u32 *meshIxBuffer;
   u32 meshVxStride;
@@ -49,10 +49,10 @@ struct Mesh2SDFTempData : public Common::Utility::NonCopyableStruct {
 
   Vec<u32> asTriIndices;
   Uref<BVHNode> asRoot;
-  Vec<vfloat3> asTriBboxMin;
-  Vec<vfloat3> asTriBboxMax;
-  Vec<vfloat3> asTriBboxMid;
-  Vec<vfloat3> asTriNormals;
+  Vec<SVector3f> asTriBboxMin;
+  Vec<SVector3f> asTriBboxMax;
+  Vec<SVector3f> asTriBboxMid;
+  Vec<SVector3f> asTriNormals;
 };
 
 IF_FORCEINLINE void computeMeshBoundingBox(Mesh2SDFTempData &data) {
@@ -61,13 +61,13 @@ IF_FORCEINLINE void computeMeshBoundingBox(Mesh2SDFTempData &data) {
     f32 vX = data.meshVxBuffer[i * data.meshVxStride + 0];
     f32 vY = data.meshVxBuffer[i * data.meshVxStride + 1];
     f32 vZ = data.meshVxBuffer[i * data.meshVxStride + 2];
-    vfloat3 vP = vfloat3(vX, vY, vZ);
+    SVector3f vP = SVector3f(vX, vY, vZ);
     data.bboxMin = min(data.bboxMin, vP);
     data.bboxMax = max(data.bboxMax, vP);
   }
 }
 
-IF_FORCEINLINE vfloat3 getTriangleNormal(const vfloat3 &a, const vfloat3 &b, const vfloat3 &c) {
+IF_FORCEINLINE SVector3f getTriangleNormal(const SVector3f &a, const SVector3f &b, const SVector3f &c) {
   return normalize(cross(b - a, c - a));
 }
 
@@ -90,18 +90,19 @@ IF_FORCEINLINE void computeTriangleBoundingBox(Mesh2SDFTempData &data) {
     f32 v2X = data.meshVxBuffer[i2 * data.meshVxStride + 0];
     f32 v2Y = data.meshVxBuffer[i2 * data.meshVxStride + 1];
     f32 v2Z = data.meshVxBuffer[i2 * data.meshVxStride + 2];
-    vfloat3 v0 = vfloat3(v0X, v0Y, v0Z);
-    vfloat3 v1 = vfloat3(v1X, v1Y, v1Z);
-    vfloat3 v2 = vfloat3(v2X, v2Y, v2Z);
-    vfloat3 triMin = min(min(v0, v1), v2);
-    vfloat3 triMax = max(max(v0, v1), v2);
+    SVector3f v0 = SVector3f(v0X, v0Y, v0Z);
+    SVector3f v1 = SVector3f(v1X, v1Y, v1Z);
+    SVector3f v2 = SVector3f(v2X, v2Y, v2Z);
+    SVector3f triMin = min(min(v0, v1), v2);
+    SVector3f triMax = max(max(v0, v1), v2);
     data.asTriBboxMin[i / 3] = triMin;
     data.asTriBboxMax[i / 3] = triMax;
     data.asTriBboxMid[i / 3] = (triMin + triMax) * 0.5f;
     data.asTriNormals[i / 3] = getTriangleNormal(v0, v1, v2);
   }
 }
-IF_FORCEINLINE vfloat3 pointDistToTriangle(const vfloat3 &p, const vfloat3 &a, const vfloat3 &b, const vfloat3 &c) {
+IF_FORCEINLINE SVector3f pointDistToTriangle(const SVector3f &p, const SVector3f &a, const SVector3f &b,
+                                             const SVector3f &c) {
   // Code from: https://github.com/RenderKit/embree/blob/master/tutorials/common/math/closest_point.h
   const auto ab = b - a;
   const auto ac = c - a;
@@ -149,8 +150,8 @@ IF_FORCEINLINE vfloat3 pointDistToTriangle(const vfloat3 &p, const vfloat3 &a, c
 }
 
 void calculateAsChildBbox(const Mesh2SDFTempData &data, Uref<BVHNode> &node) {
-  node->bboxMin = vfloat3(FLT_MAX);
-  node->bboxMax = vfloat3(-FLT_MAX);
+  node->bboxMin = SVector3f(FLT_MAX);
+  node->bboxMax = SVector3f(-FLT_MAX);
   for (u32 i = node->startIdx; i < node->endIdx; i++) {
     auto triId = data.asTriIndices[i];
     node->bboxMin = min(node->bboxMin, data.asTriBboxMin[triId]);
@@ -217,16 +218,16 @@ void buildAccelStruct(Mesh2SDFTempData &data) {
   buildAccelStructRecur(data, data.asRoot);
 }
 
-IF_FORCEINLINE f32 getDistanceToBbox(const vfloat3 &p, const vfloat3 &bboxMin, const vfloat3 &bboxMax) {
-  vfloat3 dxMin = bboxMin - p;
-  vfloat3 dxMax = p - bboxMax;
-  vfloat3 dxZero = vfloat3(0.0f);
-  vfloat3 dx = max(max(dxMin, dxMax), dxZero);
+IF_FORCEINLINE f32 getDistanceToBbox(const SVector3f &p, const SVector3f &bboxMin, const SVector3f &bboxMax) {
+  SVector3f dxMin = bboxMin - p;
+  SVector3f dxMax = p - bboxMax;
+  SVector3f dxZero = SVector3f(0.0f);
+  SVector3f dx = max(max(dxMin, dxMax), dxZero);
   f32 dist = length(dx);
   return dist;
 }
 
-void getSignedDistanceToMeshRecur(const Mesh2SDFTempData &data, const vfloat3 &p, BVHNode *node, f32 &tgtDist) {
+void getSignedDistanceToMeshRecur(const Mesh2SDFTempData &data, const SVector3f &p, BVHNode *node, f32 &tgtDist) {
   auto leftChild = node->left.get();
   auto rightChild = node->right.get();
   if (leftChild && rightChild) {
@@ -252,12 +253,12 @@ void getSignedDistanceToMeshRecur(const Mesh2SDFTempData &data, const vfloat3 &p
       auto i1 = data.meshIxBuffer[triId * 3 + 1];
       auto i2 = data.meshIxBuffer[triId * 3 + 2];
 
-      auto v0 = vfloat3(data.meshVxBuffer[i0 * data.meshVxStride + 0], data.meshVxBuffer[i0 * data.meshVxStride + 1],
-                        data.meshVxBuffer[i0 * data.meshVxStride + 2]);
-      auto v1 = vfloat3(data.meshVxBuffer[i1 * data.meshVxStride + 0], data.meshVxBuffer[i1 * data.meshVxStride + 1],
-                        data.meshVxBuffer[i1 * data.meshVxStride + 2]);
-      auto v2 = vfloat3(data.meshVxBuffer[i2 * data.meshVxStride + 0], data.meshVxBuffer[i2 * data.meshVxStride + 1],
-                        data.meshVxBuffer[i2 * data.meshVxStride + 2]);
+      auto v0 = SVector3f(data.meshVxBuffer[i0 * data.meshVxStride + 0], data.meshVxBuffer[i0 * data.meshVxStride + 1],
+                          data.meshVxBuffer[i0 * data.meshVxStride + 2]);
+      auto v1 = SVector3f(data.meshVxBuffer[i1 * data.meshVxStride + 0], data.meshVxBuffer[i1 * data.meshVxStride + 1],
+                          data.meshVxBuffer[i1 * data.meshVxStride + 2]);
+      auto v2 = SVector3f(data.meshVxBuffer[i2 * data.meshVxStride + 0], data.meshVxBuffer[i2 * data.meshVxStride + 1],
+                          data.meshVxBuffer[i2 * data.meshVxStride + 2]);
 
       auto vNormal = data.asTriNormals[triId];
       auto nearestPt = pointDistToTriangle(p, v0, v1, v2);
@@ -271,7 +272,7 @@ void getSignedDistanceToMeshRecur(const Mesh2SDFTempData &data, const vfloat3 &p
   }
 }
 
-f32 getSignedDistanceToMesh(const Mesh2SDFTempData &data, const vfloat3 &p) {
+f32 getSignedDistanceToMesh(const Mesh2SDFTempData &data, const SVector3f &p) {
   f32 tgtDist = FLT_MAX;
   getSignedDistanceToMeshRecur(data, p, data.asRoot.get(), tgtDist);
   return tgtDist;
@@ -284,8 +285,8 @@ IFRIT_MESHPROC_API void convertMeshToSDF(const MeshDescriptor &meshDesc, SignedD
   // However, mesh df is generated offline. Better approach like "Jump Flooding" should be considered later.
 
   Mesh2SDFTempData data;
-  data.bboxMin = vfloat3(FLT_MAX);
-  data.bboxMax = vfloat3(-FLT_MAX);
+  data.bboxMin = SVector3f(FLT_MAX);
+  data.bboxMax = SVector3f(-FLT_MAX);
   data.meshVxBuffer = reinterpret_cast<f32 *>(meshDesc.vertexData);
   data.meshIxBuffer = reinterpret_cast<u32 *>(meshDesc.indexData);
   data.meshVxStride = meshDesc.vertexStride / sizeof(f32);
@@ -323,12 +324,12 @@ IFRIT_MESHPROC_API void convertMeshToSDF(const MeshDescriptor &meshDesc, SignedD
     f32 lx = std::lerp(data.bboxMin.x, data.bboxMax.x, x);
     f32 ly = std::lerp(data.bboxMin.y, data.bboxMax.y, y);
     f32 lz = std::lerp(data.bboxMin.z, data.bboxMax.z, z);
-    vfloat3 p = vfloat3(lx, ly, lz);
+    SVector3f p = SVector3f(lx, ly, lz);
     f32 dist = getSignedDistanceToMesh(data, p);
     sdf.sdfData[el] = dist;
   });
-  sdf.bboxMin = ifloat3(data.bboxMin.x, data.bboxMin.y, data.bboxMin.z);
-  sdf.bboxMax = ifloat3(data.bboxMax.x, data.bboxMax.y, data.bboxMax.z);
+  sdf.bboxMin = Vector3f(data.bboxMin.x, data.bboxMin.y, data.bboxMin.z);
+  sdf.bboxMax = Vector3f(data.bboxMax.x, data.bboxMax.y, data.bboxMax.z);
 }
 
 } // namespace Ifrit::MeshProcLib::MeshSDFProcess

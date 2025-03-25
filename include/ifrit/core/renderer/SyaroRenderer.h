@@ -72,74 +72,73 @@ private:
   ComputePass *m_instanceCullingPass = nullptr;
 
   // Single pass HiZ
-  std::shared_ptr<SinglePassHiZPass> m_singlePassHiZProc = nullptr;
+  Ref<SinglePassHiZPass> m_singlePassHiZProc = nullptr;
 
-  constexpr static u32 cSPHiZGroupSizeX = 256;
-  constexpr static u32 cSPHiZTileSize = 64;
+  IF_CONSTEXPR static u32 cSPHiZGroupSizeX = 256;
+  IF_CONSTEXPR static u32 cSPHiZTileSize = 64;
 
   // Emit depth targets
   ComputePass *m_emitDepthTargetsPass = nullptr;
-  constexpr static u32 cEmitDepthGroupSizeX = 16;
-  constexpr static u32 cEmitDepthGroupSizeY = 16;
+  IF_CONSTEXPR static u32 cEmitDepthGroupSizeX = 16;
+  IF_CONSTEXPR static u32 cEmitDepthGroupSizeY = 16;
 
   // Material classify
   ComputePass *m_matclassCountPass = nullptr;
   ComputePass *m_matclassReservePass = nullptr;
   ComputePass *m_matclassScatterPass = nullptr;
-  constexpr static u32 cMatClassQuadSize = 2;
-  constexpr static u32 cMatClassGroupSizeCountScatterX = 8;
-  constexpr static u32 cMatClassGroupSizeCountScatterY = 8;
-  constexpr static u32 cMatClassGroupSizeReserveX = 128;
-  constexpr static u32 cMatClassCounterBufferSizeBase = 2 * sizeof(u32);
-  constexpr static u32 cMatClassCounterBufferSizeMult = 2 * sizeof(u32);
+  IF_CONSTEXPR static u32 cMatClassQuadSize = 2;
+  IF_CONSTEXPR static u32 cMatClassGroupSizeCountScatterX = 8;
+  IF_CONSTEXPR static u32 cMatClassGroupSizeCountScatterY = 8;
+  IF_CONSTEXPR static u32 cMatClassGroupSizeReserveX = 128;
+  IF_CONSTEXPR static u32 cMatClassCounterBufferSizeBase = 2 * sizeof(u32);
+  IF_CONSTEXPR static u32 cMatClassCounterBufferSizeMult = 2 * sizeof(u32);
 
   // Emit GBuffer, pass here is for default / debugging
   ComputePass *m_defaultEmitGBufferPass = nullptr;
 
   // Perframe data maintained by the renderer, this is unsafe
-  std::unordered_map<Scene *, PerFrameData> m_perScenePerframe;
+  HashMap<Scene *, PerFrameData> m_perScenePerframe;
 
   // TAA
   ComputePass *m_taaHistoryPass = nullptr;
-  constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat cTAAFormat =
+  IF_CONSTEXPR static Ifrit::GraphicsBackend::Rhi::RhiImageFormat cTAAFormat =
       Ifrit::GraphicsBackend::Rhi::RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT;
+
   // Finally, deferred pass
-  std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_deferredShadingPass;
-
+  CustomHashMap<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_deferredShadingPass;
   DrawPass *m_deferredShadowPass = nullptr;
-
-  std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_taaPass;
+  CustomHashMap<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_taaPass;
 
   // FSR2
-  std::unique_ptr<GraphicsBackend::Rhi::FSR2::RhiFsr2Processor> m_fsr2proc;
+  Uref<GraphicsBackend::Rhi::FSR2::RhiFsr2Processor> m_fsr2proc;
 
   // Atmosphere
   ComputePass *m_atmospherePass = nullptr;
-  std::shared_ptr<PbrAtmosphereRenderer> m_atmosphereRenderer;
+  Ref<PbrAtmosphereRenderer> m_atmosphereRenderer;
 
   // Timer
-  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer> m_timer;
-  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer> m_timerDefer;
+  Ref<Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer> m_timer;
+  Ref<Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer> m_timerDefer;
 
   // AO
-  std::shared_ptr<AmbientOcclusionPass> m_aoPass;
+  Ref<AmbientOcclusionPass> m_aoPass;
 
   // Postprocess, just 2 textures and 1 sampler is required.
   using PairHash = Ifrit::Common::Utility::PairwiseHash<u32, u32>;
   std::unordered_map<std::pair<u32, u32>, std::array<GPUTexture, 2>, PairHash> m_postprocTex;
-  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUBindId>, 2>, PairHash> m_postprocTexSRV;
-  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUColorRT>, 2>, PairHash> m_postprocColorRT;
-  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPURTs>, 2>, PairHash> m_postprocRTs;
+  std::unordered_map<std::pair<u32, u32>, std::array<Ref<GPUBindId>, 2>, PairHash> m_postprocTexSRV;
+  std::unordered_map<std::pair<u32, u32>, std::array<Ref<GPUColorRT>, 2>, PairHash> m_postprocColorRT;
+  std::unordered_map<std::pair<u32, u32>, std::array<Ref<GPURTs>, 2>, PairHash> m_postprocRTs;
   GPUSampler m_postprocTexSampler;
-  std::shared_ptr<GPUBindId> m_postprocTexSamplerId;
+  Ref<GPUBindId> m_postprocTexSamplerId;
 
   // All postprocess passes required
-  std::unique_ptr<PostprocessPassCollection::PostFxAcesToneMapping> m_acesToneMapping;
-  std::unique_ptr<PostprocessPassCollection::PostFxGlobalFog> m_globalFogPass;
-  std::unique_ptr<PostprocessPassCollection::PostFxGaussianHori> m_gaussianHori;
-  std::unique_ptr<PostprocessPassCollection::PostFxGaussianVert> m_gaussianVert;
-  std::unique_ptr<PostprocessPassCollection::PostFxFFTConv2d> m_fftConv2d;
-  std::unique_ptr<PostprocessPassCollection::PostFxJointBilaterialFilter> m_jointBilateralFilter;
+  Uref<PostprocessPassCollection::PostFxAcesToneMapping> m_acesToneMapping;
+  Uref<PostprocessPassCollection::PostFxGlobalFog> m_globalFogPass;
+  Uref<PostprocessPassCollection::PostFxGaussianHori> m_gaussianHori;
+  Uref<PostprocessPassCollection::PostFxGaussianVert> m_gaussianVert;
+  Uref<PostprocessPassCollection::PostFxFFTConv2d> m_fftConv2d;
+  Uref<PostprocessPassCollection::PostFxJointBilaterialFilter> m_jointBilateralFilter;
 
   // Intermediate views
   std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_triangleViewPass;
@@ -149,7 +148,7 @@ private:
 
 private:
   // Util functions
-  GPUShader *createShaderFromFile(const std::string &shaderPath, const std::string &entry,
+  GPUShader *createShaderFromFile(const String &shaderPath, const String &entry,
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
 
   // Setup functions
@@ -205,8 +204,8 @@ private:
   // Frame graph
   void setupAndRunFrameGraph(PerFrameData &perframeData, RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
 
-  virtual std::unique_ptr<GPUCommandSubmission> render(PerFrameData &perframeData, RenderTargets *renderTargets,
-                                                       const std::vector<GPUCommandSubmission *> &cmdToWait);
+  virtual Uref<GPUCommandSubmission> render(PerFrameData &perframeData, RenderTargets *renderTargets,
+                                            const Vec<GPUCommandSubmission *> &cmdToWait);
 
 public:
   SyaroRenderer(IApplication *app) : RendererBase(app) {
@@ -225,8 +224,8 @@ public:
   }
   inline void setRenderRole(SyaroRenderRole role) { m_renderRole = role; }
   inline PerFrameData getPerframeData(Scene *scene) { return m_perScenePerframe[scene]; }
-  virtual std::unique_ptr<GPUCommandSubmission> render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
-                                                       const RendererConfig &config,
-                                                       const std::vector<GPUCommandSubmission *> &cmdToWait) override;
+  virtual Uref<GPUCommandSubmission> render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
+                                            const RendererConfig &config,
+                                            const Vec<GPUCommandSubmission *> &cmdToWait) override;
 };
 } // namespace Ifrit::Core

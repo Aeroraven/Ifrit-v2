@@ -110,7 +110,7 @@ template <class T> consteval inline static const char *getFuncName() {
 
 template <unsigned E, unsigned N> consteval u64 funcNameHash(const char (&str)[N]) {
   u64 hash = 0;
-  if constexpr (N == E)
+  if IF_CONSTEXPR (N == E)
     return 0;
   else {
     return str[0] + 257 * funcNameHash<E + 1, N>(str);
@@ -127,8 +127,8 @@ template <class T> consteval u64 getFuncHashId() {
 }
 
 template <class T> struct iTypeInfo {
-  static constexpr const char *name = getFuncName<T>();
-  static constexpr u64 hash = getFuncHashId<T>();
+  static IF_CONSTEXPR const char *name = getFuncName<T>();
+  static IF_CONSTEXPR u64 hash = getFuncHashId<T>();
 };
 
 } // namespace Ifrit::Common::Utility

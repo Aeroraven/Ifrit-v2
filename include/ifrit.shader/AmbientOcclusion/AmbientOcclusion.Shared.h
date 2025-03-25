@@ -21,8 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #ifdef __cplusplus
 #include <cstdint>
-#define IFRIT_AO_DEFINE_UINT(x, y) constexpr uint32_t x = y;
-#define IFRIT_AO_DEFINE_INT(x, y) constexpr int32_t x = y;
+#define IFRIT_AO_DEFINE_UINT(x, y) IF_CONSTEXPR uint32_t x = y;
+#define IFRIT_AO_DEFINE_INT(x, y) IF_CONSTEXPR int32_t x = y;
 #define IFRIT_AO_DEFINE_FLOAT(x, y) constexpr float x = y;
 namespace Ifrit::Core::Shaders::AmbientOcclusionConfig {
 #else

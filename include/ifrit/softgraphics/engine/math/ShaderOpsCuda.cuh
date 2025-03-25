@@ -36,8 +36,8 @@ template <class T>
 IFRIT_DUAL inline T mirrorclamp(const T &x, const T &mi, const T &ma) {
   return (x >= ma) ? mi : ((x <= mi) ? ma : x);
 }
-IFRIT_DUAL inline float4x4 multiply(const float4x4 a, const float4x4 b) {
-  float4x4 result;
+IFRIT_DUAL inline Matrix4x4f multiply(const Matrix4x4f a, const Matrix4x4f b) {
+  Matrix4x4f result;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       result[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j] +
@@ -64,8 +64,8 @@ IFRIT_DUAL inline float3 normalize(float3 a) {
 IFRIT_DUAL inline float dot(float3 a, float3 b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
-IFRIT_DUAL inline float4x4 transpose(float4x4 a) {
-  float4x4 result;
+IFRIT_DUAL inline Matrix4x4f transpose(Matrix4x4f a) {
+  Matrix4x4f result;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       result[i][j] = a[j][i];
@@ -109,7 +109,7 @@ IFRIT_DUAL inline T lerp(const T &a, const T &b, const T &t) {
 }
 
 template <typename T>
-IFRIT_DUAL inline T multiply(const float4x4 a, const T b) {
+IFRIT_DUAL inline T multiply(const Matrix4x4f a, const T b) {
   T result;
   result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z + a[0][3] * b.w;
   result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z + a[1][3] * b.w;
@@ -117,11 +117,11 @@ IFRIT_DUAL inline T multiply(const float4x4 a, const T b) {
   result.w = a[3][0] * b.x + a[3][1] * b.y + a[3][2] * b.z + a[3][3] * b.w;
   return result;
 }
-IFRIT_DUAL inline float4x4 lookAt(float3 eye, float3 center, float3 up) {
+IFRIT_DUAL inline Matrix4x4f lookAt(float3 eye, float3 center, float3 up) {
   float3 f = normalize(sub(center, eye));
   float3 s = normalize(cross(f, up));
   float3 u = cross(s, f);
-  float4x4 result;
+  Matrix4x4f result;
   result[0][0] = s.x;
   result[0][1] = s.y;
   result[0][2] = s.z;
@@ -138,7 +138,7 @@ IFRIT_DUAL inline float4x4 lookAt(float3 eye, float3 center, float3 up) {
   result[3][1] = 0;
   result[3][2] = 0;
   result[3][3] = 1;
-  float4x4 trans;
+  Matrix4x4f trans;
   for (int i = 0; i <= 3; i++) {
     trans[i][0] = 0;
     trans[i][1] = 0;
@@ -154,9 +154,9 @@ IFRIT_DUAL inline float4x4 lookAt(float3 eye, float3 center, float3 up) {
   trans[2][2] = 1;
   return multiply(result, trans);
 }
-IFRIT_DUAL inline float4x4 perspective(float fovy, float aspect, float zNear,
+IFRIT_DUAL inline Matrix4x4f perspective(float fovy, float aspect, float zNear,
                                        float zFar) {
-  float4x4 result;
+  Matrix4x4f result;
   float halfFovy = fovy / 2.0f;
   float nTop = zNear * tan(halfFovy);
   float nRight = nTop * aspect;

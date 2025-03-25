@@ -43,23 +43,23 @@ struct RenderingInvocationArgumentSet {
   VertexShader *dVertexShader;
   FragmentShader *dFragmentShader;
   GeometryShader *dGeometryShader;
-  ifloat4 **dColorBuffer;
-  ifloat4 **dHostColorBuffer;
-  ifloat4 **hColorBuffer;
+  Vector4f **dColorBuffer;
+  Vector4f **dHostColorBuffer;
+  Vector4f **hColorBuffer;
   u32 dHostColorBufferSize;
   float *dDepthBuffer;
-  ifloat4 *dPositionBuffer;
+  Vector4f *dPositionBuffer;
   TileRasterDeviceContext *deviceContext;
   int totalIndices;
   bool doubleBuffering;
-  ifloat4 **dLastColorBuffer;
+  Vector4f **dLastColorBuffer;
   IfritPolygonMode polygonMode = IF_POLYGON_MODE_FILL;
-  ifloat4 *hClearColors;
+  Vector4f *hClearColors;
   float hClearDepth;
 
   MeshShader *dMeshShader;
   TaskShader *dTaskShader;
-  iint3 gMeshShaderLocalSize;
+  Vector3i gMeshShaderLocalSize;
   int gMeshShaderNumWorkGroups;
   GeometryGenerationPipelineType gGeometryPipelineType;
   int gMeshShaderAttributes;
@@ -69,7 +69,7 @@ void invokeCudaRendering(const RenderingInvocationArgumentSet &args) IFRIT_AP_NO
 
 void invokeFragmentShaderUpdate(FragmentShader *dFragmentShader) IFRIT_AP_NOTHROW;
 void updateFrameBufferConstants(u32 width, u32 height);
-void updateScissorTestData(const ifloat4 *scissorAreas, int numScissors, bool scissorEnable);
+void updateScissorTestData(const Vector4f *scissorAreas, int numScissors, bool scissorEnable);
 void initCudaRendering();
 void updateVertexLayout(TypeDescriptorEnum *dVertexTypeDescriptor, int attrCounts);
 
@@ -78,10 +78,10 @@ char *getVertexBufferDeviceAddr(const char *hVertexBuffer, u32 bufferSize, char 
 TypeDescriptorEnum *getTypeDescriptorDeviceAddr(const TypeDescriptorEnum *hBuffer, u32 bufferSize,
                                                 TypeDescriptorEnum *dOldBuffer);
 float *getDepthBufferDeviceAddr(u32 bufferSize, float *dOldBuffer);
-ifloat4 *getPositionBufferDeviceAddr(u32 bufferSize, ifloat4 *dOldBuffer);
-void getColorBufferDeviceAddr(const std::vector<ifloat4 *> &hColorBuffer, std::vector<ifloat4 *> &dhColorBuffer,
-                              ifloat4 **&dColorBuffer, u32 bufferSize, std::vector<ifloat4 *> &dhOldColorBuffer,
-                              ifloat4 **dOldBuffer);
+Vector4f *getPositionBufferDeviceAddr(u32 bufferSize, Vector4f *dOldBuffer);
+void getColorBufferDeviceAddr(const std::vector<Vector4f *> &hColorBuffer, std::vector<Vector4f *> &dhColorBuffer,
+                              Vector4f **&dColorBuffer, u32 bufferSize, std::vector<Vector4f *> &dhOldColorBuffer,
+                              Vector4f **dOldBuffer);
 void updateAttributes(u32 attributeCounts);
 void updateVarying(u32 varyingCounts);
 void updateVertexCount(u32 vertexCount);

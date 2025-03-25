@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/raytracer/TrivialRaytracerWorker.h"
 #include "ifrit/common/math/VectorOps.h"
 #include "ifrit/common/math/simd/SimdVectors.h"
@@ -70,9 +69,9 @@ void TrivialRaytracerWorker::tracingProcess() {
         for (int k = 0; k < context->tileDepth; k++) {
           if (tileZ * context->tileDepth + k >= context->traceRegion.z)
             break;
-          iint3 invocation = iint3(tileX * context->tileWidth + i,
-                                   tileY * context->tileHeight + j,
-                                   tileZ * context->tileDepth + k);
+          Vector3i invocation = Vector3i(tileX * context->tileWidth + i,
+                                         tileY * context->tileHeight + j,
+                                         tileZ * context->tileDepth + k);
           context->perWorkerRaygen[workerId]->execute(
               invocation, context->traceRegion, this);
         }

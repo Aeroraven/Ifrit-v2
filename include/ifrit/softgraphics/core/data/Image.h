@@ -119,7 +119,7 @@ public:
   void clearImage(T value = 0) {
     const auto dataPtr = data;
     const auto dataSize = width * height * channel;
-    if constexpr (std::is_same_v<T, char> && !std::is_same_v<T, unsigned char>) {
+    if IF_CONSTEXPR (std::is_same_v<T, char> && !std::is_same_v<T, unsigned char>) {
       memset(dataPtr, value, dataSize * sizeof(T));
     } else {
       if (value != 0)
@@ -142,14 +142,14 @@ public:
     const auto dataSizeSt = width * height * channel * workerId / totalWorkers;
     const auto dataSizeEd = width * height * channel * (workerId + 1) / totalWorkers;
 
-    if constexpr (std::is_same_v<T, char> && !std::is_same_v<T, unsigned char>) {
+    if IF_CONSTEXPR (std::is_same_v<T, char> && !std::is_same_v<T, unsigned char>) {
       memset(dataPtr + dataSizeSt, value, (dataSizeEd - dataSizeSt) * sizeof(T));
     } else {
       auto st = data + dataSizeSt;
       auto ed = data + dataSizeEd;
 #ifdef _MSC_VER
       // Check if satisfies 0x(pp)(pp)(pp)(pp)
-      if constexpr (sizeof(T) == 4) {
+      if IF_CONSTEXPR (sizeof(T) == 4) {
         auto hex = std::bit_cast<unsigned, T>(value);
         if (hex == (hex & 0xFF) * 0x01010101) {
           memset(st, (hex & 0xFF), (ed - st) * sizeof(T));
@@ -184,15 +184,15 @@ public:
 
   const T *getData() const { return data; }
 
-  constexpr size_t getSizeOf() const { return sizeof(T); }
+  IF_CONSTEXPR size_t getSizeOf() const { return sizeof(T); }
 
-  constexpr size_t getWidth() const { return width; }
+  IF_CONSTEXPR size_t getWidth() const { return width; }
 
-  constexpr size_t getHeight() const { return height; }
+  IF_CONSTEXPR size_t getHeight() const { return height; }
 
-  constexpr size_t getChannel() const { return channel; }
+  IF_CONSTEXPR size_t getChannel() const { return channel; }
 
-  constexpr size_t getSize() const { return width * height * channel; }
+  IF_CONSTEXPR size_t getSize() const { return width * height * channel; }
 };
 
 using ImageF32 = Image<float>;

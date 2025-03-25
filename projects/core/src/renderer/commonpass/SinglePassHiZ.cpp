@@ -7,7 +7,7 @@
 namespace Ifrit::Core {
 using namespace RenderingUtil;
 using namespace GraphicsBackend::Rhi;
-using namespace Math::ConstFunc;
+using namespace Math;
 
 IF_CONSTEXPR auto kbImUsage_UAV_SRV = RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT;
 IF_CONSTEXPR auto kbImUsage_UAV_SRV_CopyDest =
@@ -94,7 +94,7 @@ IFRIT_APIDECL void SinglePassHiZPass::runHiZPass(const PerFrameData::SinglePassH
   pc.m_hizIters = data.m_hizIters;
   pc.m_minMode = minMode ? 1 : 0;
 
-  constexpr static u32 cSPHiZTileSize = 64;
+  IF_CONSTEXPR static u32 cSPHiZTileSize = 64;
 
   m_singlePassHiZPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     ctx->m_cmd->attachBindlessReferenceCompute(m_singlePassHiZPass, 1, data.m_hizDesc);

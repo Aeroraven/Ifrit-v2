@@ -52,9 +52,9 @@ IFRIT_APIDECL void AyanamiMeshDF::buildMeshDF(const std::string_view &cachePath)
     meshDesc.positionOffset = 0;
     meshDesc.vertexCount = size_cast<int>(meshData->m_vertices.size());
     meshDesc.vertexData = reinterpret_cast<i8 *>(meshData->m_vertices.data());
-    meshDesc.vertexStride = sizeof(ifloat3);
+    meshDesc.vertexStride = sizeof(Vector3f);
     meshDesc.normalData = reinterpret_cast<i8 *>(meshData->m_normals.data());
-    meshDesc.normalStride = sizeof(ifloat3);
+    meshDesc.normalStride = sizeof(Vector3f);
 
     auto serialMeshDFName = "core.ayanami.meshdf_1." + meshData->identifier + ".cache";
     bool hasCachedDF = false;
@@ -92,8 +92,8 @@ IFRIT_APIDECL void AyanamiMeshDF::buildMeshDF(const std::string_view &cachePath)
     m_sdWidth = sdf.width;
     m_sdHeight = sdf.height;
     m_sdDepth = sdf.depth;
-    m_sdBoxMin = ifloat3(sdf.bboxMin.x, sdf.bboxMin.y, sdf.bboxMin.z);
-    m_sdBoxMax = ifloat3(sdf.bboxMax.x, sdf.bboxMax.y, sdf.bboxMax.z);
+    m_sdBoxMin = Vector3f(sdf.bboxMin.x, sdf.bboxMin.y, sdf.bboxMin.z);
+    m_sdBoxMax = Vector3f(sdf.bboxMax.x, sdf.bboxMax.y, sdf.bboxMax.z);
     m_isBuilt = true;
 
     iInfo("Mesh BBoxMin: {} {} {}", m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z);
@@ -131,8 +131,8 @@ IFRIT_APIDECL void AyanamiMeshDF::buildGPUResource(GraphicsBackend::Rhi::RhiBack
 
     auto stagedMetaBuffer = rhi->createStagedSingleBuffer(m_gpuResource->sdfMetaBuffer.get());
     AyanamiMeshDFResource::SDFMeta sdfMeta;
-    sdfMeta.bboxMin = ifloat4(m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z, 0);
-    sdfMeta.bboxMax = ifloat4(m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z, 0);
+    sdfMeta.bboxMin = Vector4f(m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z, 0);
+    sdfMeta.bboxMax = Vector4f(m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z, 0);
     sdfMeta.width = m_sdWidth;
     sdfMeta.height = m_sdHeight;
     sdfMeta.depth = m_sdDepth;

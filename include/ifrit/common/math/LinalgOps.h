@@ -19,12 +19,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "../util/ApiConv.h"
 #include "VectorOps.h"
+#include "ifrit/common/base/IfritBase.h"
 #include <cmath>
 #include <numbers>
 
+
 namespace Ifrit::Math {
-inline float4x4 transpose(const float4x4 &a) {
-  float4x4 result;
+IF_FORCEINLINE Matrix4x4f transpose(const Matrix4x4f &a) {
+  Matrix4x4f result;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       result[i][j] = a[j][i];
@@ -32,16 +34,16 @@ inline float4x4 transpose(const float4x4 &a) {
   }
   return result;
 }
-inline ifloat4 matmul(const float4x4 &a, const ifloat4 &b) {
-  ifloat4 result;
+IF_FORCEINLINE Vector4f matmul(const Matrix4x4f &a, const Vector4f &b) {
+  Vector4f result;
   result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z + a[0][3] * b.w;
   result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z + a[1][3] * b.w;
   result.z = a[2][0] * b.x + a[2][1] * b.y + a[2][2] * b.z + a[2][3] * b.w;
   result.w = a[3][0] * b.x + a[3][1] * b.y + a[3][2] * b.z + a[3][3] * b.w;
   return result;
 }
-inline float4x4 matmul(const float4x4 &a, const float4x4 &b) {
-  float4x4 result;
+IF_FORCEINLINE Matrix4x4f matmul(const Matrix4x4f &a, const Matrix4x4f &b) {
+  Matrix4x4f result;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       result[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j] + a[i][3] * b[3][j];
@@ -49,10 +51,10 @@ inline float4x4 matmul(const float4x4 &a, const float4x4 &b) {
   }
   return result;
 }
-inline float4x4 axisAngleRotation(const ifloat3 &axis, float angle) {
-  float c = cos(angle), s = sin(angle);
-  float t = 1 - c, x = axis.x, y = axis.y, z = axis.z;
-  float4x4 ret;
+IF_FORCEINLINE Matrix4x4f axisAngleRotation(const Vector3f &axis, f32 angle) {
+  f32 c = cos(angle), s = sin(angle);
+  f32 t = 1 - c, x = axis.x, y = axis.y, z = axis.z;
+  Matrix4x4f ret;
   ret[0][0] = t * x * x + c;
   ret[0][1] = t * x * y + s * z;
   ret[0][2] = t * x * z - s * y;
@@ -72,11 +74,11 @@ inline float4x4 axisAngleRotation(const ifloat3 &axis, float angle) {
   ret = transpose(ret);
   return ret;
 }
-inline float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up) {
-  ifloat3 f = normalize((center - eye));
-  ifloat3 s = normalize(cross(f, up));
-  ifloat3 u = cross(s, f);
-  float4x4 result;
+IF_FORCEINLINE Matrix4x4f lookAt(Vector3f eye, Vector3f center, Vector3f up) {
+  Vector3f f = normalize((center - eye));
+  Vector3f s = normalize(cross(f, up));
+  Vector3f u = cross(s, f);
+  Matrix4x4f result;
   result[0][0] = s.x;
   result[0][1] = s.y;
   result[0][2] = s.z;
@@ -93,7 +95,7 @@ inline float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up) {
   result[3][1] = 0;
   result[3][2] = 0;
   result[3][3] = 1;
-  float4x4 trans;
+  Matrix4x4f trans;
   for (int i = 0; i <= 3; i++) {
     trans[i][0] = 0;
     trans[i][1] = 0;
@@ -109,13 +111,13 @@ inline float4x4 lookAt(ifloat3 eye, ifloat3 center, ifloat3 up) {
   trans[2][2] = 1;
   return matmul(result, trans);
 }
-inline float4x4 perspective(float fovy, float aspect, float zNear, float zFar) {
-  float4x4 result;
-  float halfFovy = fovy / 2.0f;
-  float nTop = zNear * tan(halfFovy);
-  float nRight = nTop * aspect;
-  float nLeft = -nRight;
-  float nBottom = -nTop;
+IF_FORCEINLINE Matrix4x4f perspective(f32 fovy, f32 aspect, f32 zNear, f32 zFar) {
+  Matrix4x4f result;
+  f32 halfFovy = fovy / 2.0f;
+  f32 nTop = zNear * tan(halfFovy);
+  f32 nRight = nTop * aspect;
+  f32 nLeft = -nRight;
+  f32 nBottom = -nTop;
   result[0][0] = 2 * zNear / (nRight - nLeft);
   result[1][0] = 0;
   result[2][0] = 0;
@@ -134,13 +136,13 @@ inline float4x4 perspective(float fovy, float aspect, float zNear, float zFar) {
   result[3][3] = 0;
   return result;
 }
-inline float4x4 perspectiveNegateY(float fovy, float aspect, float zNear, float zFar) {
-  float4x4 result;
-  float halfFovy = fovy / 2.0f;
-  float nTop = zNear * tan(halfFovy);
-  float nRight = nTop * aspect;
-  float nLeft = -nRight;
-  float nBottom = -nTop;
+IF_FORCEINLINE Matrix4x4f perspectiveNegateY(f32 fovy, f32 aspect, f32 zNear, f32 zFar) {
+  Matrix4x4f result;
+  f32 halfFovy = fovy / 2.0f;
+  f32 nTop = zNear * tan(halfFovy);
+  f32 nRight = nTop * aspect;
+  f32 nLeft = -nRight;
+  f32 nBottom = -nTop;
   result[0][0] = 2 * zNear / (nRight - nLeft);
   result[1][0] = 0;
   result[2][0] = 0;
@@ -159,12 +161,12 @@ inline float4x4 perspectiveNegateY(float fovy, float aspect, float zNear, float 
   result[3][3] = 0;
   return result;
 }
-inline float4x4 orthographicNegateY(float orthoSize, float aspect, float zNear, float zFar) {
-  float4x4 result;
-  float nTop = orthoSize / 2;
-  float nRight = nTop * aspect;
-  float nLeft = -nRight;
-  float nBottom = -nTop;
+IF_FORCEINLINE Matrix4x4f orthographicNegateY(f32 orthoSize, f32 aspect, f32 zNear, f32 zFar) {
+  Matrix4x4f result;
+  f32 nTop = orthoSize / 2;
+  f32 nRight = nTop * aspect;
+  f32 nLeft = -nRight;
+  f32 nBottom = -nTop;
   result[0][0] = 2 / (nRight - nLeft);
   result[1][0] = 0;
   result[2][0] = 0;
@@ -184,8 +186,8 @@ inline float4x4 orthographicNegateY(float orthoSize, float aspect, float zNear, 
   return result;
 }
 
-inline float4x4 identity() {
-  float4x4 result;
+IF_FORCEINLINE Matrix4x4f identity4() {
+  Matrix4x4f result;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       result[i][j] = i == j ? 1.0f : 0.0f;
@@ -194,35 +196,35 @@ inline float4x4 identity() {
   return result;
 }
 
-inline float4x4 eulerAngleToMatrix(const ifloat3 &euler) {
-  float4x4 result = identity();
+IF_FORCEINLINE Matrix4x4f eulerAngleToMatrix(const Vector3f &euler) {
+  Matrix4x4f result = identity4();
   result = matmul(axisAngleRotation({1, 0, 0}, euler.x), result);
   result = matmul(axisAngleRotation({0, 1, 0}, euler.y), result);
   result = matmul(axisAngleRotation({0, 0, 1}, euler.z), result);
   return result;
 }
 
-inline ifloat3 quaternionToEuler(const ifloat4 &q) {
-  ifloat3 euler;
-  float sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
-  float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+IF_FORCEINLINE Vector3f quaternionToEuler(const Vector4f &q) {
+  Vector3f euler;
+  f32 sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+  f32 cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
   euler.x = atan2(sinr_cosp, cosr_cosp);
-  float sinp = 2 * (q.w * q.y - q.z * q.x);
+  f32 sinp = 2 * (q.w * q.y - q.z * q.x);
   if (std::abs(sinp) >= 1)
-    euler.y = std::copysign(std::numbers::pi_v<float> / 2, sinp);
+    euler.y = std::copysign(std::numbers::pi_v<f32> / 2, sinp);
   else
     euler.y = asin(sinp);
-  float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-  float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+  f32 siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+  f32 cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
   euler.z = atan2(siny_cosp, cosy_cosp);
   return euler;
 }
 
 // Get the rotation matrix from a matrix, only 3x3 part is used
 // Always assume the 3x3 matrix is orthogonal
-inline ifloat3 eulerFromRotationMatrix(const float4x4 &q) {
+IF_FORCEINLINE Vector3f eulerFromRotationMatrix(const Matrix4x4f &q) {
   // https://stackoverflow.com/questions/15022630/how-to-calculate-the-angle-from-rotation-matrix
-  ifloat3 euler;
+  Vector3f euler;
   euler.x = std::atan2(q[2][1], q[2][2]);
   euler.y = std::atan2(-q[2][0], std::sqrt(q[2][1] * q[2][1] + q[2][2] * q[2][2]));
   euler.z = std::atan2(q[1][0], q[0][0]);
@@ -230,16 +232,17 @@ inline ifloat3 eulerFromRotationMatrix(const float4x4 &q) {
 }
 
 // Always assume the homogeneous part of the matrix (that is A[3][3]) is 1
-inline void recoverTransformInfo(const float4x4 &q, ifloat3 &scale, ifloat3 &translation, ifloat3 &rotation) {
+IF_FORCEINLINE void recoverTransformInfo(const Matrix4x4f &q, Vector3f &scale, Vector3f &translation,
+                                         Vector3f &rotation) {
   translation.x = q[0][3];
   translation.y = q[1][3];
   translation.z = q[2][3];
-  scale.x = length(ifloat3{q[0][0], q[1][0], q[2][0]});
-  scale.y = length(ifloat3{q[0][1], q[1][1], q[2][1]});
-  scale.z = length(ifloat3{q[0][2], q[1][2], q[2][2]});
-  float4x4 normalizedRotMat;
+  scale.x = length(Vector3f{q[0][0], q[1][0], q[2][0]});
+  scale.y = length(Vector3f{q[0][1], q[1][1], q[2][1]});
+  scale.z = length(Vector3f{q[0][2], q[1][2], q[2][2]});
+  Matrix4x4f normalizedRotMat;
   for (int i = 0; i < 3; i++) {
-    float len = length(ifloat3{q[0][i], q[1][i], q[2][i]});
+    f32 len = length(Vector3f{q[0][i], q[1][i], q[2][i]});
     for (int j = 0; j < 3; j++) {
       normalizedRotMat[j][i] = q[j][i] / len;
     }
@@ -247,23 +250,23 @@ inline void recoverTransformInfo(const float4x4 &q, ifloat3 &scale, ifloat3 &tra
   rotation = eulerFromRotationMatrix(normalizedRotMat);
 }
 
-inline float4x4 translate3D(const ifloat3 &t) {
-  float4x4 result = identity();
+IF_FORCEINLINE Matrix4x4f translate3D(const Vector3f &t) {
+  Matrix4x4f result = identity4();
   result[0][3] = t.x;
   result[1][3] = t.y;
   result[2][3] = t.z;
   return result;
 }
 
-inline float4x4 scale3D(const ifloat3 &s) {
-  float4x4 result = identity();
+IF_FORCEINLINE Matrix4x4f scale3D(const Vector3f &s) {
+  Matrix4x4f result = identity4();
   result[0][0] = s.x;
   result[1][1] = s.y;
   result[2][2] = s.z;
   return result;
 }
 
-inline float4x4 inverse4(const float4x4 &p) {
+IF_FORCEINLINE Matrix4x4f inverse4(const Matrix4x4f &p) {
   // From: https://stackoverflow.com/questions/1148309/inverting-a-4x4-matrix
   // Translated by copilot (AI)
   auto a2323 = p[2][2] * p[3][3] - p[2][3] * p[3][2];
@@ -289,7 +292,7 @@ inline float4x4 inverse4(const float4x4 &p) {
              p[0][2] * (p[1][0] * a1323 - p[1][1] * a0323 + p[1][3] * a0123) -
              p[0][3] * (p[1][0] * a1223 - p[1][1] * a0223 + p[1][2] * a0123);
   auto invdet = 1 / det;
-  float4x4 inv;
+  Matrix4x4f inv;
   inv[0][0] = invdet * (p[1][1] * a2323 - p[1][2] * a1323 + p[1][3] * a1223);
   inv[0][1] = -invdet * (p[0][1] * a2323 - p[0][2] * a1323 + p[0][3] * a1223);
   inv[0][2] = invdet * (p[0][1] * a2313 - p[0][2] * a1313 + p[0][3] * a1213);
@@ -309,8 +312,9 @@ inline float4x4 inverse4(const float4x4 &p) {
   return inv;
 }
 
-inline float4x4 getTransformMat(const ifloat3 &scale, const ifloat3 &translation, const ifloat3 &rotation) {
-  float4x4 result = identity();
+IF_FORCEINLINE Matrix4x4f getTransformMat(const Vector3f &scale, const Vector3f &translation,
+                                          const Vector3f &rotation) {
+  Matrix4x4f result = identity4();
   result = matmul(scale3D(scale), result);
   result = matmul(axisAngleRotation({1, 0, 0}, rotation.x), result);
   result = matmul(axisAngleRotation({0, 1, 0}, rotation.y), result);
@@ -319,19 +323,19 @@ inline float4x4 getTransformMat(const ifloat3 &scale, const ifloat3 &translation
   return result;
 }
 
-inline float4x4 quaternionToRotMatrix(const ifloat4 &q) {
-  float4x4 result;
-  float sqw = q.w * q.w;
-  float sqx = q.x * q.x;
-  float sqy = q.y * q.y;
-  float sqz = q.z * q.z;
-  float invs = 1 / (sqx + sqy + sqz + sqw);
+IF_FORCEINLINE Matrix4x4f quaternionToRotMatrix(const Vector4f &q) {
+  Matrix4x4f result;
+  f32 sqw = q.w * q.w;
+  f32 sqx = q.x * q.x;
+  f32 sqy = q.y * q.y;
+  f32 sqz = q.z * q.z;
+  f32 invs = 1 / (sqx + sqy + sqz + sqw);
   result[0][0] = (sqx - sqy - sqz + sqw) * invs;
   result[1][1] = (-sqx + sqy - sqz + sqw) * invs;
   result[2][2] = (-sqx - sqy + sqz + sqw) * invs;
 
-  float tmp1 = q.x * q.y;
-  float tmp2 = q.z * q.w;
+  f32 tmp1 = q.x * q.y;
+  f32 tmp2 = q.z * q.w;
   result[1][0] = 2.0f * (tmp1 + tmp2) * invs;
   result[0][1] = 2.0f * (tmp1 - tmp2) * invs;
 

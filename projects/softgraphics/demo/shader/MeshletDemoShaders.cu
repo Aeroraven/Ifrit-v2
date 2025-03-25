@@ -27,15 +27,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 
 namespace Ifrit::Demo::MeshletDemo {
-	void MeshletDemoCuMS::execute(iint3 localInvocation, int workGroupId, const void* inTaskShaderPayload, Ifrit::SoftRenderer::VaryingStore* outVaryings, ifloat4* outPos,
+	void MeshletDemoCuMS::execute(Vector3i localInvocation, int workGroupId, const void* inTaskShaderPayload, Ifrit::SoftRenderer::VaryingStore* outVaryings, Vector4f* outPos,
 		int* outIndices, int& outNumVertices, int& outNumIndices) {
 
 		using namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA;
-		float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 1000));
-		float4x4 mvp = multiply(proj, view);
+		Matrix4x4f view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
+		Matrix4x4f proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 1000));
+		Matrix4x4f mvp = multiply(proj, view);
 
-		auto vertexData = reinterpret_cast<ifloat4*>(getBufferPtr(0));
+		auto vertexData = reinterpret_cast<Vector4f*>(getBufferPtr(0));
 		auto indexData = reinterpret_cast<int*>(getBufferPtr(1));
 		auto vertOffsets = reinterpret_cast<int*>(getBufferPtr(2));
 		auto indOffsets = reinterpret_cast<int*>(getBufferPtr(3));
@@ -63,7 +63,7 @@ namespace Ifrit::Demo::MeshletDemo {
 	}
 
 	IFRIT_DUAL void MeshletDemoCuTS::execute(int workGroupId,void* outTaskShaderPayload,
-		iint3* outMeshWorkGroups,int& outNumMeshWorkGroups) {
+		Vector3i* outMeshWorkGroups,int& outNumMeshWorkGroups) {
 
 		using namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA;
 		outNumMeshWorkGroups = 0;

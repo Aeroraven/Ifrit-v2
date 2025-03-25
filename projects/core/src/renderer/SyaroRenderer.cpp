@@ -32,7 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit::GraphicsBackend::Rhi;
 using Ifrit::Common::Utility::size_cast;
-using Ifrit::Math::ConstFunc::divRoundUp;
+using Ifrit::Math::divRoundUp;
 
 // Frequently used image usages
 IF_CONSTEXPR auto kbImUsage_UAV_SRV = RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT;
@@ -354,7 +354,7 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
     auto atmoData = m_atmosphereRenderer->getResourceDesc(perframeData);
     auto rhi = m_app->getRhiLayer();
     struct AtmoPushConst {
-      ifloat4 sundir;
+      Vector4f sundir;
       u32 m_perframe;
       u32 m_outTex;
       u32 m_depthTex;
@@ -368,8 +368,8 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
     pushConst.m_depthTex = primaryView.m_visibilityDepthIdSRV_Combined->getActiveId();
     m_atmospherePass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
       ctx->m_cmd->setPushConst(m_atmospherePass, 0, sizeof(AtmoPushConst), &pushConst);
-      auto wgX = Math::ConstFunc::divRoundUp(primaryView.m_renderWidth, SyaroConfig::cAtmoRenderThreadGroupSizeX);
-      auto wgY = Math::ConstFunc::divRoundUp(primaryView.m_renderHeight, SyaroConfig::cAtmoRenderThreadGroupSizeY);
+      auto wgX = Math::divRoundUp(primaryView.m_renderWidth, SyaroConfig::cAtmoRenderThreadGroupSizeX);
+      auto wgY = Math::divRoundUp(primaryView.m_renderHeight, SyaroConfig::cAtmoRenderThreadGroupSizeY);
       ctx->m_cmd->dispatch(wgX, wgY, 1);
     });
     cmd->beginScope("Syaro: Atmosphere");
@@ -418,7 +418,7 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
     paCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
     auto pass = m_deferredShadingPass[paCfg];
     struct DeferPushConst {
-      ifloat4 sundir;
+      Vector4f sundir;
       u32 shadowMapDataRef;
       u32 numShadowMaps;
       u32 depthTexRef;
@@ -664,7 +664,7 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
   auto rhi = m_app->getRhiLayer();
 
   // Hardware Rasterize
-  if constexpr (true) {
+  if IF_CONSTEXPR (true) {
     auto tsShader = createShaderFromFile("Syaro.VisBuffer.task.glsl", "main", RhiShaderStage::Task);
     auto msShader = createShaderFromFile("Syaro.VisBuffer.mesh.glsl", "main", RhiShaderStage::Mesh);
     auto msShaderDepth = createShaderFromFile("Syaro.VisBufferDepth.mesh.glsl", "main", RhiShaderStage::Mesh);
@@ -1108,11 +1108,11 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(CullingPass cullPass,
     pcCombine.swDepthUAVId = perView.m_visPassDepth_SW->getDescId();
     pcCombine.outMode = m_config->m_visualizationType == RendererVisualizationType::SwHwMaps;
 
-    constexpr auto wgSizeX = SyaroConfig::cCombineVisBufferThreadGroupSizeX;
-    constexpr auto wgSizeY = SyaroConfig::cCombineVisBufferThreadGroupSizeY;
+    IF_CONSTEXPR auto wgSizeX = SyaroConfig::cCombineVisBufferThreadGroupSizeX;
+    IF_CONSTEXPR auto wgSizeY = SyaroConfig::cCombineVisBufferThreadGroupSizeY;
 
-    auto tgX = Math::ConstFunc::divRoundUp(pcCombine.rtWidth, wgSizeX);
-    auto tgY = Math::ConstFunc::divRoundUp(pcCombine.rtHeight, wgSizeY);
+    auto tgX = Math::divRoundUp(pcCombine.rtWidth, wgSizeX);
+    auto tgY = Math::divRoundUp(pcCombine.rtHeight, wgSizeY);
     cmd->setPushConst(combinePass, 0, sizeof(pcCombine), &pcCombine);
     ctx->m_cmd->dispatch(tgX, tgY, 1);
   });
@@ -1198,8 +1198,8 @@ IFRIT_APIDECL void SyaroRenderer::renderMaterialClassify(PerFrameData &perframeD
   auto height = actualRtHeight;
   u32 pcData[3] = {width, height, totalMaterials};
 
-  constexpr u32 pTileWidth = cMatClassQuadSize * cMatClassGroupSizeCountScatterX;
-  constexpr u32 pTileHeight = cMatClassQuadSize * cMatClassGroupSizeCountScatterY;
+  IF_CONSTEXPR u32 pTileWidth = cMatClassQuadSize * cMatClassGroupSizeCountScatterX;
+  IF_CONSTEXPR u32 pTileHeight = cMatClassQuadSize * cMatClassGroupSizeCountScatterY;
 
   // Counting
   auto wgX = (width + pTileWidth - 1) / pTileWidth;
@@ -1301,7 +1301,7 @@ IFRIT_APIDECL void SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeDa
     // buffer
 
     // For HW rasterizer
-    if constexpr (true) {
+    if IF_CONSTEXPR (true) {
       auto visBufferHW = rhi->createTexture2D("Syaro_VisBufferHW", visWidth, visHeight,
                                               PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV_RT, true);
       auto visDepthHW = rhi->createDepthTexture("Syaro_VisDepthHW", visWidth, visHeight, false);
@@ -1560,10 +1560,10 @@ IFRIT_APIDECL void SyaroRenderer::gatherAllInstances(PerFrameData &perframeData)
     }
     if (perView.m_allFilteredMeshletsMaxCount < totalMeshlets) {
       perView.m_allFilteredMeshletsMaxCount = totalMeshlets;
-      constexpr u32 bufMultiplier = 1 + SYARO_ENABLE_SW_RASTERIZER;
+      IF_CONSTEXPR u32 bufMultiplier = 1 + SYARO_ENABLE_SW_RASTERIZER;
       if (allFilteredMeshletsHW == nullptr) {
         allFilteredMeshletsHW =
-            rhi->createBufferDevice("Syaro_FilteredClusterHW", totalMeshlets * bufMultiplier * sizeof(iint2) + 2,
+            rhi->createBufferDevice("Syaro_FilteredClusterHW", totalMeshlets * bufMultiplier * sizeof(Vector2i) + 2,
                                     kbBufUsage_SSBO_CopyDest, true);
       }
       perView.m_allFilteredMeshletsHW = allFilteredMeshletsHW;

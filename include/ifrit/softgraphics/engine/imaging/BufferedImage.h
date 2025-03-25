@@ -27,7 +27,7 @@ enum class BufferedImageTiling { TILING_LINEAR, TILING_TILED };
 enum class BufferedImageFormat { FORMAT_R8G8B8A8_UINT, FORMAT_R32G32B32A32_SFLOAT };
 
 struct BufferedImageConfig {
-  static constexpr u32 TILE_SIZE = 16;
+  static IF_CONSTEXPR u32 TILE_SIZE = 16;
 };
 
 struct BufferedImageCreateInfo {

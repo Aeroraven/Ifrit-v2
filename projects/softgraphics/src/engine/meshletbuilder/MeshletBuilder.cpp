@@ -16,29 +16,28 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/meshletbuilder/MeshletBuilder.h"
 #include "ifrit/common/util/TypingUtil.h"
 using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::MeshletBuilder::Impl {
 struct MbTriangle {
-  iint3 ind;
-  ifloat3 normal;
-  ifloat3 centroid;
+  Vector3i ind;
+  Vector3f normal;
+  Vector3f centroid;
 };
 
 struct MbCurrentMeshlet {
   std::vector<int> isvertexUsed;
   std::vector<int> usedVertices;
   std::vector<int> triangleContained;
-  ifloat3 sumCentroid = {0.0f, 0.0f, 0.0f};
-  ifloat3 sumNormal = {0.0f, 0.0f, 0.0f};
+  Vector3f sumCentroid = {0.0f, 0.0f, 0.0f};
+  Vector3f sumNormal = {0.0f, 0.0f, 0.0f};
   float invSumNormal = 0.0f;
 };
 
 struct MbContext {
-  std::vector<ifloat4> vertices;
+  std::vector<Vector4f> vertices;
   std::vector<MbTriangle> triangles;
   std::vector<std::vector<int>> adjMaps;
   std::vector<int> remainActiveAdj;
@@ -52,15 +51,15 @@ struct MbContext {
 void initializeContext(MbContext *ctx, const VertexBuffer &vbuf,
                        const std::vector<int> &ibuf, int posAttrId) {
 
-  auto cross = [](ifloat3 a, ifloat3 b) {
-    return ifloat3{a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
-                   a.x * b.y - a.y * b.x};
+  auto cross = [](Vector3f a, Vector3f b) {
+    return Vector3f{a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
+                    a.x * b.y - a.y * b.x};
   };
-  auto centroid = [](ifloat4 a, ifloat4 b, ifloat4 c) {
-    return ifloat3{(a.x + b.x + c.x) / 3, (a.y + b.y + c.y) / 3,
-                   (a.z + b.z + c.z) / 3};
+  auto centroid = [](Vector4f a, Vector4f b, Vector4f c) {
+    return Vector3f{(a.x + b.x + c.x) / 3, (a.y + b.y + c.y) / 3,
+                    (a.z + b.z + c.z) / 3};
   };
-  auto veclength = [](ifloat3 a) {
+  auto veclength = [](Vector3f a) {
     return sqrtf(a.x * a.x + a.y * a.y + a.z * a.z);
   };
 
@@ -72,22 +71,22 @@ void initializeContext(MbContext *ctx, const VertexBuffer &vbuf,
   ctx->remainActiveAdj.resize(totVerts);
   ctx->triangleEmitted.resize(totTris);
   for (int i = 0; i < totVerts; i++) {
-    auto v = vbuf.getValue<ifloat4>(i, posAttrId);
+    auto v = vbuf.getValue<Vector4f>(i, posAttrId);
     ctx->vertices[i] = v;
     ctx->adjMaps[i].clear();
   }
   for (int i = 0; i < totTris; i++) {
-    iint3 ind = {ibuf[i * 3], ibuf[i * 3 + 1], ibuf[i * 3 + 2]};
+    Vector3i ind = {ibuf[i * 3], ibuf[i * 3 + 1], ibuf[i * 3 + 2]};
     auto pa = ctx->vertices[ind.x], pb = ctx->vertices[ind.y],
          pc = ctx->vertices[ind.z];
-    ifloat3 papb = {pa.x - pb.x, pa.y - pb.y, pa.z - pb.z};
-    ifloat3 papc = {pa.x - pc.x, pa.y - pc.y, pa.z - pc.z};
-    ifloat3 normal = cross(papb, papc);
+    Vector3f papb = {pa.x - pb.x, pa.y - pb.y, pa.z - pb.z};
+    Vector3f papc = {pa.x - pc.x, pa.y - pc.y, pa.z - pc.z};
+    Vector3f normal = cross(papb, papc);
     float normalLen = veclength(normal);
     normal.x /= normalLen;
     normal.y /= normalLen;
     normal.z /= normalLen;
-    ifloat3 center = centroid(pa, pb, pc);
+    Vector3f center = centroid(pa, pb, pc);
 
     ctx->triangles[i].centroid = center;
     ctx->triangles[i].ind = ind;
@@ -110,10 +109,10 @@ void initializeContext(MbContext *ctx, const VertexBuffer &vbuf,
 int meshletExpansion(const MbContext &ctx, const MbCurrentMeshlet &meshlet) {
   // Algo Process Reference:
   // https://github.com/zeux/meshoptimizer/blob/master/src/clusterizer.cpp
-  ifloat3 clusterNormal = {meshlet.sumNormal.x * meshlet.invSumNormal,
-                           meshlet.sumNormal.y * meshlet.invSumNormal,
-                           meshlet.sumNormal.z * meshlet.invSumNormal};
-  ifloat3 clusterCentroid = {
+  Vector3f clusterNormal = {meshlet.sumNormal.x * meshlet.invSumNormal,
+                            meshlet.sumNormal.y * meshlet.invSumNormal,
+                            meshlet.sumNormal.z * meshlet.invSumNormal};
+  Vector3f clusterCentroid = {
       meshlet.sumCentroid.x / meshlet.triangleContained.size(),
       meshlet.sumCentroid.y / meshlet.triangleContained.size(),
       meshlet.sumCentroid.z / meshlet.triangleContained.size()};
@@ -230,7 +229,7 @@ void writeGenratedMeshlet(MbContext *ctx, const MbCurrentMeshlet &meshlet) {
   emitMeshlet->vbufs.setVertexCount(size_cast<int>(totalVerts));
   emitMeshlet->vbufs.setLayout(
       {TypeDescriptors.FLOAT4, TypeDescriptors.FLOAT4});
-  ifloat4 dcolor;
+  Vector4f dcolor;
   dcolor.x = 1.0f * rand() / RAND_MAX;
   dcolor.y = 1.0f * rand() / RAND_MAX;
   dcolor.z = 1.0f * rand() / RAND_MAX;
@@ -249,9 +248,9 @@ void writeGenratedMeshlet(MbContext *ctx, const MbCurrentMeshlet &meshlet) {
     indices.push_back(vmap[tri.ind.z]);
   }
   for (int i = 0; i < totalVerts; i++) {
-    emitMeshlet->vbufs.setValue<ifloat4>(
+    emitMeshlet->vbufs.setValue<Vector4f>(
         i, 0, ctx->vertices[meshlet.usedVertices[i]]);
-    emitMeshlet->vbufs.setValue<ifloat4>(i, 1, dcolor);
+    emitMeshlet->vbufs.setValue<Vector4f>(i, 1, dcolor);
   }
   ctx->generatedMeshlets->push_back(std::move(emitMeshlet));
 }
@@ -319,9 +318,9 @@ IFRIT_APIDECL void TrivialMeshletBuilder::mergeMeshlet(
   for (auto &m : meshlets) {
     for (int i = 0; i < m->vbufs.getVertexCount(); i++) {
       outData.vbufs.setValue(accuOffset + i, 0,
-                             m->vbufs.getValue<ifloat4>(i, 0));
+                             m->vbufs.getValue<Vector4f>(i, 0));
       outData.vbufs.setValue(accuOffset + i, 1,
-                             m->vbufs.getValue<ifloat4>(i, 1));
+                             m->vbufs.getValue<Vector4f>(i, 1));
     }
     for (int i = 0; i < m->ibufs.size(); i++) {
       outData.ibufs.push_back(m->ibufs[i] + accuOffset * autoIncre);

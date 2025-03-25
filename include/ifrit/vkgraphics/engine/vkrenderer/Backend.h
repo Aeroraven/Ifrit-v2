@@ -30,8 +30,8 @@ class IFRIT_APIDECL RhiVulkanBackend : public Rhi::RhiBackend {
 protected:
   // Note that destructor order matters here
   // https://isocpp.org/wiki/faq/dtors#order-dtors-for-members
-  std::unique_ptr<Rhi::RhiDevice> m_device;
-  std::unique_ptr<Rhi::RhiSwapchain> m_swapChain;
+  Uref<Rhi::RhiDevice> m_device;
+  Uref<Rhi::RhiSwapchain> m_swapChain;
   RhiVulkanBackendImplDetails *m_implDetails;
 
 public:
@@ -39,11 +39,11 @@ public:
   ~RhiVulkanBackend();
 
   void waitDeviceIdle() override;
-  std::shared_ptr<Rhi::RhiDeviceTimer> createDeviceTimer() override;
+  Ref<Rhi::RhiDeviceTimer> createDeviceTimer() override;
   Rhi::RhiBufferRef createBuffer(const String &name, u32 size, u32 usage, bool hostVisible, bool addUAV) const override;
   Rhi::RhiBufferRef createBufferDevice(const String &name, u32 size, u32 usage, bool addUAV) const override;
-  std::shared_ptr<Rhi::RhiMultiBuffer> createBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const override;
-  std::shared_ptr<Rhi::RhiStagedSingleBuffer> createStagedSingleBuffer(Rhi::RhiBuffer *target) override;
+  Ref<Rhi::RhiMultiBuffer> createBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const override;
+  Ref<Rhi::RhiStagedSingleBuffer> createStagedSingleBuffer(Rhi::RhiBuffer *target) override;
   Rhi::RhiBufferRef getFullScreenQuadVertexBuffer() const override;
 
   // Command execution
@@ -74,51 +74,50 @@ public:
   Rhi::RhiTexture *getSwapchainImage() override;
   void beginFrame() override;
   void endFrame() override;
-  std::unique_ptr<Rhi::RhiTaskSubmission> getSwapchainFrameReadyEventHandler() override;
-  std::unique_ptr<Rhi::RhiTaskSubmission> getSwapchainRenderDoneEventHandler() override;
+  Uref<Rhi::RhiTaskSubmission> getSwapchainFrameReadyEventHandler() override;
+  Uref<Rhi::RhiTaskSubmission> getSwapchainRenderDoneEventHandler() override;
 
   // Descriptor
   virtual Rhi::RhiBindlessDescriptorRef *createBindlessDescriptorRef() override;
-  virtual std::shared_ptr<Rhi::RhiDescHandleLegacy> registerUAVImage2(Rhi::RhiTexture *texture,
-                                                                      Rhi::RhiImageSubResource subResource) override;
-  virtual std::shared_ptr<Rhi::RhiDescHandleLegacy> registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) override;
-  virtual std::shared_ptr<Rhi::RhiDescHandleLegacy> registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) override;
-  virtual std::shared_ptr<Rhi::RhiDescHandleLegacy> registerCombinedImageSampler(Rhi::RhiTexture *texture,
-                                                                                 Rhi::RhiSampler *sampler) override;
+  virtual Ref<Rhi::RhiDescHandleLegacy> registerUAVImage2(Rhi::RhiTexture *texture,
+                                                          Rhi::RhiImageSubResource subResource) override;
+  virtual Ref<Rhi::RhiDescHandleLegacy> registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) override;
+  virtual Ref<Rhi::RhiDescHandleLegacy> registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) override;
+  virtual Ref<Rhi::RhiDescHandleLegacy> registerCombinedImageSampler(Rhi::RhiTexture *texture,
+                                                                     Rhi::RhiSampler *sampler) override;
 
   // Render targets
-  virtual std::shared_ptr<Rhi::RhiColorAttachment> createRenderTarget(Rhi::RhiTexture *renderTarget,
-                                                                      Rhi::RhiClearValue clearValue,
-                                                                      Rhi::RhiRenderTargetLoadOp loadOp, u32 mips,
-                                                                      u32 layers) override;
+  virtual Ref<Rhi::RhiColorAttachment> createRenderTarget(Rhi::RhiTexture *renderTarget, Rhi::RhiClearValue clearValue,
+                                                          Rhi::RhiRenderTargetLoadOp loadOp, u32 mips,
+                                                          u32 layers) override;
 
-  virtual std::shared_ptr<Rhi::RhiDepthStencilAttachment>
+  virtual Ref<Rhi::RhiDepthStencilAttachment>
   createRenderTargetDepthStencil(Rhi::RhiTexture *renderTarget, Rhi::RhiClearValue clearValue,
                                  Rhi::RhiRenderTargetLoadOp loadOp) override;
 
-  virtual std::shared_ptr<Rhi::RhiRenderTargets> createRenderTargets() override;
+  virtual Ref<Rhi::RhiRenderTargets> createRenderTargets() override;
 
   // Vertex buffer
-  virtual std::shared_ptr<Rhi::RhiVertexBufferView> createVertexBufferView() override;
-  virtual std::shared_ptr<Rhi::RhiVertexBufferView> getFullScreenQuadVertexBufferView() const override;
+  virtual Ref<Rhi::RhiVertexBufferView> createVertexBufferView() override;
+  virtual Ref<Rhi::RhiVertexBufferView> getFullScreenQuadVertexBufferView() const override;
 
   // Cache
   virtual void setCacheDirectory(const std::string &dir) override;
   virtual std::string getCacheDirectory() const override;
 
   // Extension
-  virtual std::unique_ptr<Rhi::FSR2::RhiFsr2Processor> createFsr2Processor() override;
+  virtual Uref<Rhi::FSR2::RhiFsr2Processor> createFsr2Processor() override;
 
   // Raytracing
-  virtual std::unique_ptr<Rhi::RhiRTInstance> createTLAS() { return nullptr; }
-  virtual std::unique_ptr<Rhi::RhiRTScene> createBLAS() { return nullptr; }
-  virtual std::unique_ptr<Rhi::RhiRTShaderBindingTable> createShaderBindingTable() { return nullptr; }
+  virtual Uref<Rhi::RhiRTInstance> createTLAS() { return nullptr; }
+  virtual Uref<Rhi::RhiRTScene> createBLAS() { return nullptr; }
+  virtual Uref<Rhi::RhiRTShaderBindingTable> createShaderBindingTable() { return nullptr; }
 
-  virtual std::unique_ptr<Rhi::RhiRTPass> createRaytracingPass() { return nullptr; }
+  virtual Uref<Rhi::RhiRTPass> createRaytracingPass() { return nullptr; }
 };
 
 class IFRIT_APIDECL RhiVulkanBackendBuilder : public Rhi::RhiBackendFactory, public Common::Utility::NonCopyable {
 public:
-  std::unique_ptr<Rhi::RhiBackend> createBackend(const Rhi::RhiInitializeArguments &args) override;
+  Uref<Rhi::RhiBackend> createBackend(const Rhi::RhiInitializeArguments &args) override;
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

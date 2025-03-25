@@ -10,11 +10,11 @@ namespace Ifrit::Demo::MeshletDemo {
 	class MeshletDemoCuMS : public  Ifrit::SoftRenderer::MeshShader {
 	public:
 		IFRIT_DUAL virtual void execute(
-			iint3 localInvocation,
+			Vector3i localInvocation,
 			int workGroupId,
 			const void* inTaskShaderPayload,
 			Ifrit::SoftRenderer::VaryingStore* outVaryings,
-			ifloat4* outPos,
+			Vector4f* outPos,
 			int* outIndices,
 			int& outNumVertices,
 			int& outNumIndices
@@ -27,7 +27,7 @@ namespace Ifrit::Demo::MeshletDemo {
 		IFRIT_DUAL virtual void execute(
 			int workGroupId,
 			void* outTaskShaderPayload,
-			iint3* outMeshWorkGroups,
+			Vector3i* outMeshWorkGroups,
 			int& outNumMeshWorkGroups
 		);
 		IFRIT_HOST virtual Ifrit::SoftRenderer::TaskShader* getCudaClone() override;

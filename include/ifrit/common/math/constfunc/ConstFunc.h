@@ -20,20 +20,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/base/IfritBase.h"
 #include <array>
 #include <cstdint>
-namespace Ifrit::Math::ConstFunc {
+namespace Ifrit::Math {
 
-template <typename T, typename U, u32 N> constexpr std::array<U, N> convertArray(const std::array<T, N> &arr) {
-  std::array<U, N> result;
+template <typename T, typename U, u32 N> IF_CONSTEXPR Array<U, N> convertArray(const Array<T, N> &arr) {
+  Array<U, N> result;
   for (u32 i = 0; i < N; ++i) {
     result[i] = static_cast<U>(arr[i]);
   }
   return result;
 }
 
-template <typename T, u32 N> constexpr std::array<T, N> uniformSampleIncl(T min, T max) {
-  std::array<T, N> result;
+template <typename T, u32 N> IF_CONSTEXPR Array<T, N> uniformSampleIncl(T min, T max) {
+  Array<T, N> result;
   for (u32 i = 0; i < N; ++i) {
-    float u = 1.0f * i / (N - 1);
+    f32 u = 1.0f * i / (N - 1);
     result[i] = min + u * (max - min);
   }
   return result;
@@ -42,7 +42,7 @@ template <typename T, u32 N> constexpr std::array<T, N> uniformSampleIncl(T min,
 // For N bins, and corresponding N values, give a point X to sample
 // Then, it samples the value at the bin that X falls into B[t]<=X<B[t+1]
 // and linearly interpolate the value between B[t] and B[t+1]
-template <typename T, u32 N> constexpr T binLerp(const std::array<T, N> bins, const std::array<T, N> values, T x) {
+template <typename T, u32 N> IF_CONSTEXPR T binLerp(const Array<T, N> bins, const Array<T, N> values, T x) {
   if (x <= bins[0]) {
     return values[0];
   }
@@ -59,9 +59,9 @@ template <typename T, u32 N> constexpr T binLerp(const std::array<T, N> bins, co
 }
 
 // Integer division, rounding up
-constexpr auto divRoundUp(auto a, auto b) { return (a + b - 1) / b; }
+IF_CONSTEXPR auto divRoundUp(auto a, auto b) { return (a + b - 1) / b; }
 
 // Upper align
-constexpr auto alignUp(auto csize, auto alignSize) { return (csize + alignSize - 1) & ~(alignSize - 1); }
+IF_CONSTEXPR auto alignUp(auto csize, auto alignSize) { return (csize + alignSize - 1) & ~(alignSize - 1); }
 
-} // namespace Ifrit::Math::ConstFunc
+} // namespace Ifrit::Math

@@ -70,7 +70,7 @@ public:
 
 class IFRIT_APIDECL RenderTargets : public Rhi::RhiRenderTargets {
 private:
-  std::vector<ColorAttachment *> m_colorAttachments;
+  Vec<ColorAttachment *> m_colorAttachments;
   DepthStencilAttachment *m_depthStencilAttachment = nullptr;
   EngineContext *m_context;
   Rhi::RhiScissor m_renderArea;
@@ -80,7 +80,7 @@ public:
   ~RenderTargets() = default;
 
   inline void setRenderArea(Rhi::RhiScissor area) override { m_renderArea = area; }
-  void setColorAttachments(const std::vector<Rhi::RhiColorAttachment *> &attachments) override;
+  void setColorAttachments(const Vec<Rhi::RhiColorAttachment *> &attachments) override;
   void setDepthStencilAttachment(Rhi::RhiDepthStencilAttachment *attachment) override;
   void beginRendering(const Rhi::RhiCommandList *commandBuffer) const override;
   void endRendering(const Rhi::RhiCommandList *commandBuffer) const override;

@@ -138,8 +138,8 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static uint32_t dAssembledTriangleCounterM2;
 
 	// Mesh Shader
-	IFRIT_DEVICE static iint3 dTaskShaderSubWorkGroups[CU_MESHSHADER_MAX_TASK_OUTPUT * CU_MESHSHADER_MAX_WORKGROUPS];
-	IFRIT_DEVICE static iint3 dTaskShaderSubWorkGroupsAfter[CU_MESHSHADER_MAX_TASK_OUTPUT * CU_MESHSHADER_MAX_WORKGROUPS];
+	IFRIT_DEVICE static Vector3i dTaskShaderSubWorkGroups[CU_MESHSHADER_MAX_TASK_OUTPUT * CU_MESHSHADER_MAX_WORKGROUPS];
+	IFRIT_DEVICE static Vector3i dTaskShaderSubWorkGroupsAfter[CU_MESHSHADER_MAX_TASK_OUTPUT * CU_MESHSHADER_MAX_WORKGROUPS];
 	IFRIT_DEVICE static int dTaskShaderSubWorkGroupsAfterBelong[CU_MESHSHADER_MAX_TASK_OUTPUT * CU_MESHSHADER_MAX_WORKGROUPS];
 	IFRIT_DEVICE static int dTaskShaderSubWorkGroupsNum[CU_MESHSHADER_MAX_WORKGROUPS];
 	IFRIT_DEVICE static int dTaskShaderSubWorkGroupsNumPrefixScan[CU_MESHSHADER_MAX_WORKGROUPS];
@@ -164,7 +164,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dMeshShaderAggOffsetIndexGlobal;
 
 	// Scissor Test
-	IFRIT_DEVICE static ifloat4 dScissorArea[CU_SCISSOR_MAX_COUNT];
+	IFRIT_DEVICE static Vector4f dScissorArea[CU_SCISSOR_MAX_COUNT];
 	IFRIT_DEVICE static int dScissorAreaNum;
 
 	// Depth Test
@@ -205,22 +205,22 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 	IFRIT_DEVICE static int dSmallTriangleCount = 0;
 
 	// MSAA Sample Sequence
-	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequence1x[1] = { {0.5f,0.5f} };
-	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequence2x[2] = { {0.75f,0.75f},{0.25f,0.25f} };
-	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequence4x[4] = { 
+	IFRIT_DEVICE IF_CONSTEXPR static float2 cMsaaSampleSequence1x[1] = { {0.5f,0.5f} };
+	IFRIT_DEVICE IF_CONSTEXPR static float2 cMsaaSampleSequence2x[2] = { {0.75f,0.75f},{0.25f,0.25f} };
+	IFRIT_DEVICE IF_CONSTEXPR static float2 cMsaaSampleSequence4x[4] = { 
 		{0.375f, 0.125f},{0.875f, 0.375f},{0.125f, 0.625f},{0.625f, 0.875f}
 	};
-	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequence8x[8] = {
+	IFRIT_DEVICE IF_CONSTEXPR static float2 cMsaaSampleSequence8x[8] = {
 		{0.5625f, 0.3125f},{0.4375f, 0.6875f},{0.8125f, 0.5625f},{0.3125f, 0.1875f},
 		{0.1875f, 0.8125f},{0.0625f, 0.4375f},{0.6875f, 0.9375f},{0.9375f, 0.0625f}
 	};
-	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequence16x[16] = {
+	IFRIT_DEVICE IF_CONSTEXPR static float2 cMsaaSampleSequence16x[16] = {
 		{0.5625f, 0.5625f},{0.4375f, 0.3125f},{0.3125f, 0.625f},{0.75f, 0.4375f},
 		{0.1875f, 0.375f},{0.625f, 0.8125f},{0.8125f, 0.6875f},{0.6875f, 0.1875f},
 		{0.375f, 0.875f},{0.5f, 0.0625f},{0.25f, 0.125f},{0.125f, 0.75f},
 		{0.0f, 0.5f},{0.9375f, 0.25f},{0.875f, 0.9375f},{0.0625f, 0.0f}
 	};
-	IFRIT_DEVICE constexpr static float2 cMsaaSampleSequenceAgg[31] = {
+	IFRIT_DEVICE IF_CONSTEXPR static float2 cMsaaSampleSequenceAgg[31] = {
 		{0.5f,0.5f},
 		{0.25f,0.25f},{0.75f,0.75f},
 
@@ -285,7 +285,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 		}
 
 		IFRIT_DEVICE void devGetAcceptRejectCoords(float4 edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3]) {
-			constexpr const int VLB = 0, VLT = 1, VRT = 3, VRB = 2;
+			IF_CONSTEXPR const int VLB = 0, VLT = 1, VRT = 3, VRB = 2;
 			for (int i = 0; i < 3; i++) {
 				bool normalRight = edgeCoefs[i].x < 0;
 				bool normalDown = edgeCoefs[i].y < 0;
@@ -349,21 +349,21 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			for (int i = 0; i < numVaryings; i++) {
 				varyingOutputPtrs[i] = dVaryingBuffer + globalInvoIdx * numVaryings + i;
 			}
-			vertexShader->execute(vertexInputPtrs, (ifloat4*)&dPosBuffer[globalInvoIdx], (ifloat4**)varyingOutputPtrs);
+			vertexShader->execute(vertexInputPtrs, (Vector4f*)&dPosBuffer[globalInvoIdx], (Vector4f**)varyingOutputPtrs);
 		}
 	}
 	namespace MeshShadingStage {
 		template<bool tpUseTaskShader>
 		IFRIT_DEVICE void devCallSingleMeshShader(int numPerVertexAttributes, MeshShader* meshShader, 
-			int workGroupId, int parentSubWorkGroupId, int parentId, iint3 localInvocation) {
+			int workGroupId, int parentSubWorkGroupId, int parentId, Vector3i localInvocation) {
 			int* pNumIndices = &(dMeshShaderNumIndices[workGroupId]);
 			int* pNumVertices = &(dMeshShaderNumVertices[workGroupId]);
 			VaryingStore* pOutVaryings = &(dMeshShaderVaryings[workGroupId * numPerVertexAttributes * CU_MESHSHADER_MAX_VERTICES]);
 			float4* pOutPos = &(dMeshShaderPosition[workGroupId * CU_MESHSHADER_MAX_VERTICES]);
 			int* pOutIndex = &(dMeshShaderIndices[workGroupId * CU_MESHSHADER_MAX_INDICES]);
 
-			ifloat4* pOutPosR = reinterpret_cast<ifloat4*>(pOutPos);
-			if constexpr (tpUseTaskShader) {
+			Vector4f* pOutPosR = reinterpret_cast<Vector4f*>(pOutPos);
+			if IF_CONSTEXPR (tpUseTaskShader) {
 				auto payloadAddr = &dTaskShaderPayload[CU_MESHSHADER_MAX_TASK_PAYLOAD_SIZE * parentId];
 				meshShader->execute(localInvocation, parentSubWorkGroupId, payloadAddr, pOutVaryings, pOutPosR, pOutIndex, *pNumVertices, *pNumIndices);
 			}
@@ -376,7 +376,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			int numPerVertexAttributes,
 			MeshShader* meshShader
 		) {
-			iint3 localInvocation = { threadIdx.x,threadIdx.y,threadIdx.z };
+			Vector3i localInvocation = { threadIdx.x,threadIdx.y,threadIdx.z };
 			int workGroupId = blockIdx.x;
 			devCallSingleMeshShader<false>(numPerVertexAttributes, meshShader, workGroupId, workGroupId,0, localInvocation);
 		}
@@ -452,7 +452,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			auto blockSizeLim = dTaskShaderSubWorkGroupsAfter[subGroupId];
 
 			if (threadIdx.x >= blockSizeLim.x || threadIdx.y >= blockSizeLim.y || threadIdx.z >= blockSizeLim.z)return;
-			iint3 localInvocation = { threadIdx.x,threadIdx.y,threadIdx.z };
+			Vector3i localInvocation = { threadIdx.x,threadIdx.y,threadIdx.z };
 
 			//printf("%d %d %d\n", subGroupId, parentWorkGroupIdStart, parentWorkGroupId);
 
@@ -471,7 +471,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 		}
 
 		IFRIT_KERNEL void meshShadingEntryPoint(
-			iint3 workGroupSize,
+			Vector3i workGroupSize,
 			int totalWorkGroups,
 			MeshShader* meshShader,
 			int numAttributes
@@ -527,9 +527,9 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			varyingPtr[threadIdx.x * 3 + 2] = dVaryingBuffer + dIndexBuffer[indexStart + 2] * csVaryingCounts;
 
 			geometryShader->execute(
-				(ifloat4**)(posPtr + 3 * threadIdx.x),
+				(Vector4f**)(posPtr + 3 * threadIdx.x),
 				(VaryingStore**)(varyingPtr + 3 * threadIdx.x),
-				(ifloat4*)(posOut + 3 * threadIdx.x),
+				(Vector4f*)(posOut + 3 * threadIdx.x),
 				(VaryingStore*)(varyingOut + 3 * threadIdx.x * csVaryingCounts),
 				outVertices + threadIdx.x
 			);
@@ -537,7 +537,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			int insPos = atomicAdd(&dGeometryShaderOutSize, outW);
 			for (int i = 0; i < outW; i++) {
 				dGeometryShaderOutPos[insPos + i] = (posOut + 3 * threadIdx.x)[i];
-				if constexpr (CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR) {
+				if IF_CONSTEXPR (CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR) {
 					dGeometryShaderOutSortKeys[insPos + i] = indexStart * CU_MAX_GS_OUT_VERTICES + i;
 				}
 				for (int j = 0; j < csVaryingCounts; j++) {
@@ -910,7 +910,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			auto curTileX = tileIdX * CU_TILE_WIDTH;
 			auto curTileY = tileIdY * CU_TILE_WIDTH;
 
-			constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			IF_CONSTEXPR int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
 
 			auto subTileIX = subTileId % numSubtilesX;
 			auto subTileIY = subTileId / numSubtilesX;
@@ -943,7 +943,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				criteriaX[2] = rsX3;
 				auto dorg = dAtriOriginalPrimId[primitiveSrcId];
 				auto dEps = CU_OPT_PATCH_STRICT_BOUNDARY ? CU_EPS * 1e5 : 0;
-				if constexpr (CU_PATCH_FI_240812) {
+				if IF_CONSTEXPR (CU_PATCH_FI_240812) {
 					dEps = CU_OPT_PATCH_STRICT_BOUNDARY ? 1e-8 : 0;
 				}
 				for (int i2 = 0; i2 < CU_EXPERIMENTAL_PIXELS_PER_SUBTILE; i2++) {
@@ -1000,7 +1000,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			auto curTileX = tileIdX * CU_TILE_WIDTH;
 			auto curTileY = tileIdY * CU_TILE_WIDTH;
 
-			constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			IF_CONSTEXPR int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
 
 			auto subTileIX = subTileId % numSubtilesX;
 			auto subTileIY = subTileId / numSubtilesX;
@@ -1278,7 +1278,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			const auto totalElements = dRasterQueueWorklistCounter;
 			const auto dispatchBlocks = (totalElements / CU_ELEMENTS_PER_SECOND_BINNER_BLOCK) + (totalElements % CU_ELEMENTS_PER_SECOND_BINNER_BLOCK != 0);
 			if (totalElements == 0)return;
-			if constexpr (CU_PROFILER_SECOND_BINNER_WORKQUEUE) {
+			if IF_CONSTEXPR (CU_PROFILER_SECOND_BINNER_WORKQUEUE) {
 				printf("Second Binner Work Queue Size: %d\n", totalElements);
 				printf("Dispatched Thread Blocks %d\n", dispatchBlocks);
 			}
@@ -1291,7 +1291,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			cudaMemcpyFromSymbol(&totalElements, dRasterQueueWorklistCounter, sizeof(int));
 			const auto dispatchBlocks = (totalElements / CU_ELEMENTS_PER_SECOND_BINNER_BLOCK) + (totalElements % CU_ELEMENTS_PER_SECOND_BINNER_BLOCK != 0);
 			if (totalElements == 0)return;
-			if constexpr (CU_PROFILER_SECOND_BINNER_WORKQUEUE) {
+			if IF_CONSTEXPR (CU_PROFILER_SECOND_BINNER_WORKQUEUE) {
 				printf("Second Binner Work Queue Size: %d\n", totalElements);
 				printf("Dispatched Thread Blocks %d\n", dispatchBlocks);
 			}
@@ -1342,7 +1342,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 		template<bool tpGeometryShaderEnabled,IfritCullMode tpCullMode, bool tpMsaaEnabled>
 		IFRIT_DEVICE void devGeometryCullClip(float4 v1, float4 v2, float4 v3, int primId) {
 			using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::lerp;
-			constexpr int possibleTris = 5;
+			IF_CONSTEXPR int possibleTris = 5;
 
 			IFRIT_SHARED TileRasterClipVertexCUDA retd[2 * CU_GEOMETRY_PROCESSING_THREADS];
 			IFRIT_SHARED int retdIndex[5 * CU_GEOMETRY_PROCESSING_THREADS];
@@ -1368,7 +1368,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				if (j == 1) pnBary.z = 1;
 				if (j == 2) pnBary.x = 1;
 
-				if constexpr (!CU_OPT_HOMOGENEOUS_DISCARD) {
+				if IF_CONSTEXPR (!CU_OPT_HOMOGENEOUS_DISCARD) {
 					if (npc * npn < 0) {
 						float numo = pc.pos.w;
 						float deno = -(pnPos.w - pc.pos.w);
@@ -1429,14 +1429,14 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					continue;
 				}
 
-				// TODO: templated constexpr
-				constexpr auto cullMode = tpCullMode;
-				if constexpr (cullMode == IF_CULL_MODE_BACK) {
+				// TODO: templated IF_CONSTEXPR
+				IF_CONSTEXPR auto cullMode = tpCullMode;
+				if IF_CONSTEXPR (cullMode == IF_CULL_MODE_BACK) {
 					if (!GeneralFunction::devTriangleCull(dv1, dv2, dv3)) {
 						continue;
 					}
 				}
-				if constexpr (cullMode == IF_CULL_MODE_FRONT) {
+				if IF_CONSTEXPR (cullMode == IF_CULL_MODE_FRONT) {
 					if (!GeneralFunction::devTriangleCull(dv3, dv2, dv1)) {
 						continue;
 					}
@@ -1447,10 +1447,10 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					b1 = b3;
 					b3 = bt;
 				}
-				if constexpr (cullMode == IF_CULL_MODE_FRONT_AND_BACK) {
+				if IF_CONSTEXPR (cullMode == IF_CULL_MODE_FRONT_AND_BACK) {
 					continue;
 				}
-				if constexpr (cullMode == IF_CULL_MODE_NONE) {
+				if IF_CONSTEXPR (cullMode == IF_CULL_MODE_NONE) {
 					if (!GeneralFunction::devTriangleCull(dv1, dv2, dv3)) {
 						auto dvt = dv1;
 						dv1 = dv3;
@@ -1461,8 +1461,8 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					}
 				}
 				
-				constexpr auto enableSmallPrimitiveCull = CU_OPT_SMALL_PRIMITIVE_CULL && !tpMsaaEnabled;
-				if constexpr (enableSmallPrimitiveCull) {
+				IF_CONSTEXPR auto enableSmallPrimitiveCull = CU_OPT_SMALL_PRIMITIVE_CULL && !tpMsaaEnabled;
+				if IF_CONSTEXPR (enableSmallPrimitiveCull) {
 					float4 bbox;
 					GeneralFunction::devGetBBox(dv1, dv2, dv3, bbox);
 					bbox.x = bbox.x * csFrameWidth;
@@ -1482,7 +1482,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				dAtriBaryCenter3[curIdx] = { b3.x,b3.y };
 				dAtriOriginalPrimId[curIdx] = primId;
 
-				if constexpr (tpGeometryShaderEnabled) {
+				if IF_CONSTEXPR (tpGeometryShaderEnabled) {
 					dAtriOriginalPrimId[curIdx] = dGeometryShaderOutSortKeys[primId * 3];
 					dAtriOriginalPrimIdGs[curIdx] = primId;
 				}
@@ -1491,7 +1491,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 		}
 		template <int geometryShaderEnabled,IfritCullMode tpCullMode,bool tpMsaaEnabled>
 		IFRIT_KERNEL void geometryClippingKernel(
-			ifloat4* IFRIT_RESTRICT_CUDA dPosBuffer,
+			Vector4f* IFRIT_RESTRICT_CUDA dPosBuffer,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			uint32_t startingIndexId,
 			uint32_t indexCount
@@ -1500,7 +1500,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			float4 v1, v2, v3;
 			int primId;
 			const auto globalInvoIdx = blockIdx.x * blockDim.x + threadIdx.x;
-			if constexpr (geometryShaderEnabled) {
+			if IF_CONSTEXPR (geometryShaderEnabled) {
 				if (globalInvoIdx >= indexCount / 3) return;
 				auto dGSPosBufferAligned = static_cast<float4*>(__builtin_assume_aligned(dGeometryShaderOutPos, 16));
 				v1 = dGSPosBufferAligned[globalInvoIdx * 3];
@@ -1595,7 +1595,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			const auto dAtriEdgeCoefs2Aligned = static_cast<float4*>(__builtin_assume_aligned(dAtriEdgeCoefs2, 16));
 			const auto dAtriEdgeCoefs3Aligned = dAtriEdgeCoefs3;
 
-			if constexpr (CU_PATCH_FI_240812) {
+			if IF_CONSTEXPR (CU_PATCH_FI_240812) {
 				dAtriEdgeCoefs1Aligned[globalInvo] = {
 					(float)(sV2V1y)*frameHeight,
 					(float)(sV2V1x)*frameWidth ,
@@ -1650,7 +1650,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			Vector4f** IFRIT_RESTRICT_CUDA dColorBuffer,
 			float* IFRIT_RESTRICT_CUDA dDepthBuffer,
 			ImplBlendCoefs blendParam,
 			ImplBlendCoefs blendParamAlpha,
@@ -1670,7 +1670,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			auto inTileY = pixelYS % CU_TILE_WIDTH;
 			auto inSubtileX = inTileX / CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			auto inSubtileY = inTileY / CU_EXPERIMENTAL_SUBTILE_WIDTH;
-			constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+			IF_CONSTEXPR int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
 			auto inSubtileId = inSubtileY * numSubtilesX + inSubtileX;
 
 			auto dwX = inTileX % CU_EXPERIMENTAL_SUBTILE_WIDTH;
@@ -1698,7 +1698,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			
 			// Scissor Test
 			bool scissorTestPass = true;
-			if constexpr (CU_SCISSOR_ENABLE) {
+			if IF_CONSTEXPR (CU_SCISSOR_ENABLE) {
 				bool flag = (dScissorAreaNum == 0);
 				for (int i = 0; i < dScissorAreaNum; i++) {
 					auto sci = dScissorArea[i];
@@ -1714,7 +1714,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			IFRIT_SHARED float colorOutputSingle[256 * 4];
 			IFRIT_SHARED float interpolatedVaryings[256 * 4 * CU_MAX_VARYINGS];
 			float candidateBary[3];
-			constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
+			IF_CONSTEXPR auto vertexStride = CU_TRIANGLE_STRIDE;
 			auto varyingCount = csVaryingCounts;
 			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
 			const auto pDx = pixelXS * 1.0f;
@@ -1741,7 +1741,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				float4 b12 = dAtriBaryCenter12[pId];
 				float2 b3 = dAtriBaryCenter3[pId];
 				int orgPrimId = dAtriOriginalPrimId[pId];
-				if constexpr (tpGeometryShaderEnabled) {
+				if IF_CONSTEXPR (tpGeometryShaderEnabled) {
 					orgPrimId = dAtriOriginalPrimIdGs[pId];
 				}
 
@@ -1765,7 +1765,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					vd = { 0,0,0,0 };
 					for (int j = 0; j < 3; j++) {
 						float4 vaf4;
-						if constexpr (tpGeometryShaderEnabled) {
+						if IF_CONSTEXPR (tpGeometryShaderEnabled) {
 							vaf4 = dGeometryShaderOutVaryings[orgPrimId * 3 * varyingCount + k + j * varyingCount];
 						}
 						else {
@@ -1776,7 +1776,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 						vd.z += vaf4.z * desiredBary[j];
 						vd.w += vaf4.w * desiredBary[j];
 					}
-					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadId);
+					auto dest = (Vector4fs256*)(interpolatedVaryings + 1024 * k + threadId);
 					dest->x = vd.x;
 					dest->y = vd.y;
 					dest->z = vd.z;
@@ -1789,25 +1789,25 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				bool depthTestCond = true;
 
 #define PS_DEPTHTEST \
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) depthTestCond = true; \
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) depthTestCond = false; \
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) depthTestCond = (tDepth < compareDepth); \
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) depthTestCond = (tDepth == compareDepth); \
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) depthTestCond = (tDepth > compareDepth); \
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL) depthTestCond = (tDepth <= compareDepth); \
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) depthTestCond = (tDepth >= compareDepth); \
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) depthTestCond = (tDepth != compareDepth); \
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_ALWAYS) depthTestCond = true; \
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_NEVER) depthTestCond = false; \
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_LESS) depthTestCond = (tDepth < compareDepth); \
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_EQUAL) depthTestCond = (tDepth == compareDepth); \
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_GREATER) depthTestCond = (tDepth > compareDepth); \
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL) depthTestCond = (tDepth <= compareDepth); \
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) depthTestCond = (tDepth >= compareDepth); \
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) depthTestCond = (tDepth != compareDepth); \
 				if (!depthTestCond)return;
 
 				PS_DEPTHTEST;
 				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, &tDepth);
 
 				PS_DEPTHTEST;
-				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
-				ifloat4 srcRgba;
-				ifloat4 dstRgba = col0[pixelYS * csFrameWidth + pixelXS];
-				ifloat4 mixRgba;
-				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadId))[0];
+				auto col0 = static_cast<Vector4f*>(__builtin_assume_aligned(dColorBuffer[0], 16));
+				Vector4f srcRgba;
+				Vector4f dstRgba = col0[pixelYS * csFrameWidth + pixelXS];
+				Vector4f mixRgba;
+				Vector4fs256 midOutput = ((Vector4fs256*)(colorOutputSingle + threadId))[0];
 				srcRgba.x = midOutput.x;
 				srcRgba.y = midOutput.y;
 				srcRgba.z = midOutput.z;
@@ -1827,7 +1827,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				col0[pixelYS * csFrameWidth + pixelXS] = mixRgba;
 				dDepthBuffer[pixelYS * csFrameWidth + pixelXS] = tDepth;
 				compareDepth = tDepth;
-				if constexpr (CU_PROFILER_OVERDRAW) {
+				if IF_CONSTEXPR (CU_PROFILER_OVERDRAW) {
 					atomicAdd(&dOverDrawCounter, 1);
 				}
 			};
@@ -1902,7 +1902,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			Vector4f** IFRIT_RESTRICT_CUDA dColorBuffer,
 			float* IFRIT_RESTRICT_CUDA dDepthBuffer,
 			int* dTagBuffer,
 			int msaaSamples
@@ -1949,7 +1949,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 
 			// Scissor Test
 			bool scissorTestPass = true;
-			if constexpr (CU_SCISSOR_ENABLE) {
+			if IF_CONSTEXPR (CU_SCISSOR_ENABLE) {
 				bool flag = (dScissorAreaNum == 0);
 				for (int i = 0; i < dScissorAreaNum; i++) {
 					auto sci = dScissorArea[i];
@@ -1973,7 +1973,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 
 			auto zPrePass = [&](int primId,int subsample) {
 				
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_NEVER) return;
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_NEVER) return;
 				float interpolatedDepth;
 				float2 v12 = dAtriDepthVal12[primId];
 				float v3 = dAtriDepthVal3[primId];
@@ -1983,13 +1983,13 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				auto& localCandPrim = (subsample < 0) ? candidatePrim : candidatePrimSubsample[subsample];
 	
 #define PLACE_COND(cond) if ((cond)) { localDepthVal = interpolatedDepth; localCandPrim = primId;}
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS) PLACE_COND(interpolatedDepth < localDepthVal);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL)PLACE_COND(interpolatedDepth <= localDepthVal);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_EQUAL) PLACE_COND(interpolatedDepth == localDepthVal);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER) PLACE_COND(interpolatedDepth > localDepthVal);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) PLACE_COND(interpolatedDepth >= localDepthVal);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) PLACE_COND(interpolatedDepth != localDepthVal);
-				if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_LESS) PLACE_COND(interpolatedDepth < localDepthVal);
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_LESS_OR_EQUAL)PLACE_COND(interpolatedDepth <= localDepthVal);
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_EQUAL) PLACE_COND(interpolatedDepth == localDepthVal);
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_GREATER) PLACE_COND(interpolatedDepth > localDepthVal);
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_GREATER_OR_EQUAL) PLACE_COND(interpolatedDepth >= localDepthVal);
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_NOT_EQUAL) PLACE_COND(interpolatedDepth != localDepthVal);
+				if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
 					auto& localOrgPrimIdRef = (subsample < 0) ? localOrgPrimId : localOrgPrimIdSubsample[subsample];
 					if (dAtriOriginalPrimId[primId] < localOrgPrimIdRef) {
 						localDepthVal = interpolatedDepth;
@@ -1998,13 +1998,13 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					}
 				}
 #undef PLACE_COND
-				if constexpr (CU_PROFILER_OVERDRAW) {
+				if IF_CONSTEXPR (CU_PROFILER_OVERDRAW) {
 					atomicAdd(&dOverZTestCounter, 1);
 				}
 			};
 
 			// Large Bin Level
-			if constexpr (true) {
+			if IF_CONSTEXPR (true) {
 				int startIndex = dCoverQueueSuperTileFullM3Start[superTileId];
 				int totlSize = dCoverQueueSuperTileFullM3CurInd[superTileId];
 				for (int i = startIndex; i < totlSize; i++) {
@@ -2014,7 +2014,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			}
 
 			// Bin Level
-			if constexpr (true) {
+			if IF_CONSTEXPR (true) {
 				int startIndex = dCoverQueueFullM2Start[binId];
 				int totlSize = dCoverQueueFullM2CurInd[binId];
 				for (int i = startIndex; i < totlSize; i++) {
@@ -2024,10 +2024,10 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			}
 
 			// Pixel Level
-			if constexpr (true) {
+			if IF_CONSTEXPR (true) {
 				auto curTileX = tileX * CU_TILE_WIDTH;
 				auto curTileY = tileY * CU_TILE_WIDTH;
-				constexpr int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
+				IF_CONSTEXPR int numSubtilesX = CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH;
 				int inTileX = pixelXS - curTileX;
 				int inTileY = pixelYS - curTileY;
 				int inSubTileX = inTileX / CU_EXPERIMENTAL_SUBTILE_WIDTH;
@@ -2055,11 +2055,11 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 						
 					}
 					else {
-						if constexpr (CU_PROFILER_OVERDRAW) {
+						if IF_CONSTEXPR (CU_PROFILER_OVERDRAW) {
 							atomicAdd(&dIrrelevantPixel, 1);
 						}
 					}
-					if constexpr (CU_PROFILER_OVERDRAW) {
+					if IF_CONSTEXPR (CU_PROFILER_OVERDRAW) {
 						atomicAdd(&dTotalBinnedPixel, 1);
 					}
 				}
@@ -2068,7 +2068,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			if (msaaEnabled) {
 				for (int i = 0; i < msaaSamples; i++) {
 #define PLACE_COND_TAGBUFFER(depthFunc,op) \
-					if constexpr (tpDepthFunc == depthFunc){ \
+					if IF_CONSTEXPR (tpDepthFunc == depthFunc){ \
 						if (localDepthBuffer op localDepthBufferSubsample[i]) { \
 								localDepthBufferSubsample[i] = localDepthBuffer; \
 								candidatePrimSubsample[i] = candidatePrim; \
@@ -2082,7 +2082,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					PLACE_COND_TAGBUFFER(IF_COMPARE_OP_EQUAL, == );
 					PLACE_COND_TAGBUFFER(IF_COMPARE_OP_NOT_EQUAL, != );
 
-					if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
+					if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
 						if (localOrgPrimId < localOrgPrimIdSubsample[i]) {
 							localOrgPrimIdSubsample[i] = localOrgPrimId;
 							localDepthBufferSubsample[i] = localDepthBuffer;
@@ -2096,7 +2096,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 
 			// Write Z Buffer
 			int depthIndex = (pixelYS * frameWidth + pixelXS);
-			if constexpr (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
+			if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_ALWAYS) {
 				if (candidatePrim != -1) {
 					if (msaaEnabled) {
 						for (int i = 0; i < msaaSamples; i++) {
@@ -2146,7 +2146,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			Vector4f** IFRIT_RESTRICT_CUDA dColorBuffer,
 			float* IFRIT_RESTRICT_CUDA dDepthBuffer,
 			int* dTagBuffer,
 			int msaaSamples
@@ -2160,7 +2160,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 
 			if (pixelXS >= csFrameWidth || pixelYS >= csFrameHeight)return;
 			float pDx = 1.0f * pixelXS, pDy = 1.0f * pixelYS;
-			constexpr auto vertexStride = CU_TRIANGLE_STRIDE;
+			IF_CONSTEXPR auto vertexStride = CU_TRIANGLE_STRIDE;
 			auto varyingCount = csVaryingCounts;
 			
 			const auto threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -2178,7 +2178,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				float4 b12 = dAtriBaryCenter12[pId];
 				float2 b3 = dAtriBaryCenter3[pId];
 				int orgPrimId = dAtriOriginalPrimId[pId];
-				if constexpr (geometryShaderEnabled) {
+				if IF_CONSTEXPR (geometryShaderEnabled) {
 					orgPrimId = dAtriOriginalPrimIdGs[pId];
 				}
 
@@ -2202,7 +2202,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					vd = { 0,0,0,0 };
 					for (int j = 0; j < 3; j++) {
 						float4 vaf4;
-						if constexpr (geometryShaderEnabled) {
+						if IF_CONSTEXPR (geometryShaderEnabled) {
 							vaf4 = dGeometryShaderOutVaryings[orgPrimId * 3 * varyingCount + k + j * varyingCount];
 						}
 						else {
@@ -2213,7 +2213,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 						vd.z += vaf4.z * desiredBary[j];
 						vd.w += vaf4.w * desiredBary[j];
 					}
-					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadId);
+					auto dest = (Vector4fs256*)(interpolatedVaryings + 1024 * k + threadId);
 					dest->x = vd.x;
 					dest->y = vd.y;
 					dest->z = vd.z;
@@ -2224,9 +2224,9 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				}
 				float depthVal = dDepthBuffer[pixelYS * csFrameWidth + pixelXS];
 				fragmentShader->execute(interpolatedVaryings + threadId, colorOutputSingle + threadId, &depthVal);
-				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
-				ifloat4 finalRgba;
-				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadId))[0];
+				auto col0 = static_cast<Vector4f*>(__builtin_assume_aligned(dColorBuffer[0], 16));
+				Vector4f finalRgba;
+				Vector4fs256 midOutput = ((Vector4fs256*)(colorOutputSingle + threadId))[0];
 				finalRgba.x = midOutput.x;
 				finalRgba.y = midOutput.y;
 				finalRgba.z = midOutput.z;
@@ -2244,7 +2244,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					col0[pixelYS * csFrameWidth + pixelXS] = finalRgba;
 				}
 
-				if constexpr (CU_PROFILER_OVERDRAW) {
+				if IF_CONSTEXPR (CU_PROFILER_OVERDRAW) {
 					atomicAdd(&dOverDrawCounter, 1);
 				}
 			};
@@ -2260,7 +2260,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				int quadIdx = (quadY * CU_MAX_FRAMEBUFFER_WIDTH + quadX) * 4;
 
 				// Seems O(n2) is too time-consuming
-				if constexpr (CU_OPT_SHADER_DERIVATIVES) {
+				if IF_CONSTEXPR (CU_OPT_SHADER_DERIVATIVES) {
 					for (int i = 0; i < 4 * msaaSamples; i++) {
 						auto tagId = dTagBuffer[quadIdx * msaaSamples + i];
 						dw[i] = tagId;
@@ -2296,7 +2296,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				int quadY = (threadIdx.z + blockDim.z * blockIdx.z);
 				int quadIdx = (quadY * CU_MAX_FRAMEBUFFER_WIDTH + quadX) * 4;
 				int selfV = dTagBuffer[quadIdx + quadInternal];
-				if constexpr (CU_OPT_SHADER_DERIVATIVES) {
+				if IF_CONSTEXPR (CU_OPT_SHADER_DERIVATIVES) {
 					for (int i = 0; i < 4; i++) {
 						int tagId = dTagBuffer[quadIdx + i];
 						dw[i] = tagId;
@@ -2317,9 +2317,9 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 		}
 
 		IFRIT_KERNEL void pixelMultisampleCoverageModulationKernel(
-			ifloat4** IFRIT_RESTRICT_CUDA dColorBufferTarget,
+			Vector4f** IFRIT_RESTRICT_CUDA dColorBufferTarget,
 			float* IFRIT_RESTRICT_CUDA dDepthBufferTarget,
-			ifloat4** IFRIT_RESTRICT_CUDA dColorBufferMSAA,
+			Vector4f** IFRIT_RESTRICT_CUDA dColorBufferMSAA,
 			float* IFRIT_RESTRICT_CUDA dDepthBufferMSAA,
 			int numColorBuffers,
 			int numMsaaSamples,
@@ -2334,7 +2334,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 
 			// Resolve Color
 			for (int i = 0; i < numColorBuffers; i++) {
-				ifloat4 sumColor = { 0.0f,0.0f,0.0f,0.0f };
+				Vector4f sumColor = { 0.0f,0.0f,0.0f,0.0f };
 				for (int j = 0; j < numMsaaSamples; j++) {
 					auto msaaColor = dColorBufferMSAA[i][invoId * numMsaaSamples + j];
 					sumColor.x += msaaColor.x;
@@ -2387,7 +2387,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				dCoverQueueSuperTileFullM3TotlCands = 0;
 				dCoverQueueFullM2GlobalSize = 0;
 			}
-			if constexpr (CU_PROFILER_OVERDRAW) {
+			if IF_CONSTEXPR (CU_PROFILER_OVERDRAW) {
 				if (blockIdx.x == 0 && threadIdx.x == 0) {
 					printf("Overdraw Rate:%f (%d)\n", dOverDrawCounter * 1.0f / 2048.0f / 2048.0f, dOverDrawCounter);
 					printf("ZTest Rate:%f (%d)\n", dOverZTestCounter * 1.0f / 2048.0f / 2048.0f, dOverZTestCounter);
@@ -2428,7 +2428,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				dCoverQueueFullM2Size[globalInvocation] = 0;
 			}
 
-			if constexpr (CU_PROFILER_SECOND_BINNER_UTILIZATION) {
+			if IF_CONSTEXPR (CU_PROFILER_SECOND_BINNER_UTILIZATION) {
 				if (globalInvocation == 0) {
 					printf("Second Binner Actual Utilization: %f (%d/%d)\n",
 						1.0f * dSecondBinnerActiveReqs / dSecondBinnerTotalReqs, dSecondBinnerActiveReqs, dSecondBinnerTotalReqs);
@@ -2441,7 +2441,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				if (resetTriangle) {
 					dAssembledTriangleCounterM2 = 0;
 					dGeometryShaderOutSize = 0;
-					if constexpr (CU_PROFILER_TRIANGLE_SETUP) {
+					if IF_CONSTEXPR (CU_PROFILER_TRIANGLE_SETUP) {
 						printf("Primitive Queue Occupation: %f (%d/%d)\n",
 							1.0f * dAssembledTriangleCounterM2 / (CU_SINGLE_TIME_TRIANGLE * 2), dAssembledTriangleCounterM2, CU_SINGLE_TIME_TRIANGLE * 2);
 					}
@@ -2461,13 +2461,13 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 		IFRIT_KERNEL void unifiedRasterEngineStageIIFilledTriangleKernel(
 			int* dIndexBuffer,
 			const float4* dVaryingBuffer,
-			ifloat4** dColorBuffer,
+			Vector4f** dColorBuffer,
 			float* dDepthBuffer,
 			GeometryShader* dGeometryShader,
 			FragmentShader* dFragmentShader,
 			bool isTailCall
 		) {
-			if constexpr (CU_OPT_II_SKIP_ON_FEW_GEOMETRIES) {
+			if IF_CONSTEXPR (CU_OPT_II_SKIP_ON_FEW_GEOMETRIES) {
 				if (!isTailCall && dAssembledTriangleCounterM2 < CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT) {
 					return;
 				}
@@ -2510,7 +2510,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				int dispZ = (CU_TILE_WIDTH / CU_EXPERIMENTAL_SUBTILE_WIDTH) + (CU_TILE_WIDTH % CU_EXPERIMENTAL_SUBTILE_WIDTH != 0);
 				
 				// Sort
-				if constexpr (CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR) {
+				if IF_CONSTEXPR (CU_OPT_FORCE_DETERMINISTIC_BEHAVIOR) {
 					Impl::TriangleSortStage::sortEntryKernel CU_KARG2(1, 1)();
 				}
 				else {
@@ -2569,13 +2569,13 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 
 						if (dGeometryShader == nullptr) {
 							PIXEL_TAG_FUNC_COND_COLLECTION;
-							if constexpr (CU_MSAA_ENABLED) {
+							if IF_CONSTEXPR (CU_MSAA_ENABLED) {
 								if (csMsaaSampleBits == IfritSampleCountFlagBits::IF_SAMPLE_COUNT_1_BIT) {
 									Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
 										dFragmentShader, dIndexBuffer, dVaryingBuffer, dColorBuffer, dDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
 								}
 								else {
-									auto msaaColorBuffer = (ifloat4**)&ContextManagement::dActiveContext.dTemporarayColorBuffer;
+									auto msaaColorBuffer = (Vector4f**)&ContextManagement::dActiveContext.dTemporarayColorBuffer;
 									auto msaaDepthBuffer = ContextManagement::dActiveContext.dTemporarayDepthBuffer;
 									Impl::TriangleFragmentStage::pixelShadingExecKernel<0> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
 										dFragmentShader, dIndexBuffer, dVaryingBuffer, msaaColorBuffer, msaaDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
@@ -2594,8 +2594,8 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 						}
 						else {
 							PIXEL_TAG_FUNC_COND_COLLECTION;
-							if constexpr (CU_MSAA_ENABLED) {
-								auto msaaColorBuffer = (ifloat4**)&ContextManagement::dActiveContext.dTemporarayColorBuffer;
+							if IF_CONSTEXPR (CU_MSAA_ENABLED) {
+								auto msaaColorBuffer = (Vector4f**)&ContextManagement::dActiveContext.dTemporarayColorBuffer;
 								auto msaaDepthBuffer = ContextManagement::dActiveContext.dTemporarayDepthBuffer;
 								Impl::TriangleFragmentStage::pixelShadingExecKernel<1> CU_KARG2(dim3(1, quadX, quadY), dim3(4, 8, 8)) (
 									dFragmentShader, dIndexBuffer, dVaryingBuffer, msaaColorBuffer, msaaDepthBuffer, activatedTagBuffer, csMsaaSampleBits);
@@ -2623,17 +2623,17 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 
 		IFRIT_KERNEL void unifiedFilledTriangleRasterEngineKernel(
 			int totalIndices,
-			ifloat4* dPositionBuffer,
+			Vector4f* dPositionBuffer,
 			int* dIndexBuffer,
 			const float4* dVaryingBuffer,
-			ifloat4** dColorBuffer,
+			Vector4f** dColorBuffer,
 			float* dDepthBuffer,
 			GeometryShader* dGeometryShader,
 			FragmentShader* dFragmentShader
 		) {
 			if (totalIndices == -1) {
 				totalIndices = dMeshShaderAggOffsetIndexGlobal;
-				dPositionBuffer = reinterpret_cast<ifloat4*>(dMeshShaderPositionAfter);
+				dPositionBuffer = reinterpret_cast<Vector4f*>(dMeshShaderPositionAfter);
 				dIndexBuffer = dMeshShaderIndicesAfter;
 				dVaryingBuffer = reinterpret_cast<float4*>(dMeshShaderVaryingsAfter);
 			}
@@ -2670,10 +2670,10 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 
 		IFRIT_HOST void unifiedFilledTriangleRasterEngineProfileEntry(
 			int totalIndices,
-			ifloat4* dPositionBuffer,
+			Vector4f* dPositionBuffer,
 			int* dIndexBuffer,
 			const float4* dVaryingBuffer,
-			ifloat4** dColorBuffer,
+			Vector4f** dColorBuffer,
 			float* dDepthBuffer,
 			GeometryShader* dGeometryShader,
 			FragmentShader* dFragmentShader,
@@ -2709,7 +2709,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				uint32_t dAssembledTriangleCounterM2Host = 0;
 				cudaDeviceSynchronize();
 				cudaMemcpyFromSymbol(&dAssembledTriangleCounterM2Host, dAssembledTriangleCounterM2, sizeof(uint32_t));
-				if constexpr (CU_OPT_II_SKIP_ON_FEW_GEOMETRIES) {
+				if IF_CONSTEXPR (CU_OPT_II_SKIP_ON_FEW_GEOMETRIES) {
 					if (!isTailCall && dAssembledTriangleCounterM2Host < CU_EXPERIMENTAL_II_FEW_GEOMETRIES_LIMIT) {
 						continue;
 					}
@@ -2767,7 +2767,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					}
 					Impl::TriangleMiscStage::resetLargeTileKernel CU_KARG4(CU_MAX_TILE_X * CU_MAX_SUBTILES_PER_TILE, CU_MAX_TILE_X, 0, compStream)(isLast);
 				}
-				if constexpr (CU_PROFILER_SMALL_TRIANGLE_OVERHEAD) {
+				if IF_CONSTEXPR (CU_PROFILER_SMALL_TRIANGLE_OVERHEAD) {
 					auto dSmallTriangleCountHost = 0;
 					cudaMemcpyFromSymbol(&dSmallTriangleCountHost, dSmallTriangleCount, sizeof(uint32_t));
 					printf("Small Triangle Rate:%f (%d/%d)\n", 1.0f * dSmallTriangleCountHost / dAssembledTriangleCounterM2Host, dSmallTriangleCountHost, dAssembledTriangleCounterM2Host);
@@ -2780,7 +2780,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 	namespace PointRasterizationStage {
 		template <int geometryShaderEnabled>
 		IFRIT_KERNEL void pointRasterizationInsertKernel(
-			ifloat4* IFRIT_RESTRICT_CUDA dPosBuffer,
+			Vector4f* IFRIT_RESTRICT_CUDA dPosBuffer,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			uint32_t startingIndexId,
 			uint32_t indexCount
@@ -2790,7 +2790,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			if (globalInvo >= indexCount)return;
 			int index;
 			float4 v;
-			if constexpr (geometryShaderEnabled) {
+			if IF_CONSTEXPR (geometryShaderEnabled) {
 				index = globalInvo;
 				v = dGeometryShaderOutPos[index];
 			}
@@ -2849,7 +2849,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			Vector4f** IFRIT_RESTRICT_CUDA dColorBuffer,
 			float* IFRIT_RESTRICT_CUDA dDepthBuffer
 		) {
 			//TODO: must be 256 threads
@@ -2866,14 +2866,14 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			auto shadingPass = [&](int primId) {
 				auto varyingCount = csVaryingCounts;
 				int orgPrimId = dAtriOriginalPrimId[primId];
-				if constexpr (geometryShaderEnabled) {
+				if IF_CONSTEXPR (geometryShaderEnabled) {
 					orgPrimId = dAtriOriginalPrimIdGs[primId];
 				}
 				for (int k = 0; k < varyingCount; k++) {
 					float4 vd;
 					vd = { 0,0,0,0 };
 					float4 vaf4;
-					if constexpr (geometryShaderEnabled) {
+					if IF_CONSTEXPR (geometryShaderEnabled) {
 						vaf4 = dGeometryShaderOutVaryings[orgPrimId * varyingCount + k];
 					}
 					else {
@@ -2883,16 +2883,16 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					vd.y = vaf4.y;
 					vd.z = vaf4.z;
 					vd.w = vaf4.w;
-					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * k + threadIdx.x);
+					auto dest = (Vector4fs256*)(interpolatedVaryings + 1024 * k + threadIdx.x);
 					dest->x = vd.x;
 					dest->y = vd.y;
 					dest->z = vd.z;
 					dest->w = vd.w;
 				}
 				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x, &localDepth);
-				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
-				ifloat4 finalRgba;
-				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadIdx.x))[0];
+				auto col0 = static_cast<Vector4f*>(__builtin_assume_aligned(dColorBuffer[0], 16));
+				Vector4f finalRgba;
+				Vector4fs256 midOutput = ((Vector4fs256*)(colorOutputSingle + threadIdx.x))[0];
 				finalRgba.x = midOutput.x;
 				finalRgba.y = midOutput.y;
 				finalRgba.z = midOutput.z;
@@ -2931,10 +2931,10 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 	namespace PointPipeline {
 		IFRIT_KERNEL void unifiedPointRasterEngineKernel(
 			int totalIndices,
-			ifloat4* dPositionBuffer,
+			Vector4f* dPositionBuffer,
 			int* dIndexBuffer,
 			const float4* dVaryingBuffer,
-			ifloat4** dColorBuffer,
+			Vector4f** dColorBuffer,
 			float* dDepthBuffer,
 			GeometryShader* dGeometryShader,
 			FragmentShader* dFragmentShader
@@ -3019,7 +3019,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 		}
 		template <int geometryShaderEnabled>
 		IFRIT_KERNEL void lineGeometryAssemblyKernel(
-			ifloat4* IFRIT_RESTRICT_CUDA dPosBuffer,
+			Vector4f* IFRIT_RESTRICT_CUDA dPosBuffer,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			uint32_t startingIndexId,
 			uint32_t indexCount
@@ -3030,7 +3030,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			if (globalInvoIdx >= indexCount / CU_TRIANGLE_STRIDE) return;
 			const auto indexStart = globalInvoIdx * CU_TRIANGLE_STRIDE + startingIndexId;
 
-			if constexpr (geometryShaderEnabled) {
+			if IF_CONSTEXPR (geometryShaderEnabled) {
 				if (globalInvoIdx >= indexCount / 3) return;
 				auto dGSPosBufferAligned = static_cast<float4*>(__builtin_assume_aligned(dGeometryShaderOutPos, 16));
 				v1 = dGSPosBufferAligned[globalInvoIdx * 3];
@@ -3165,7 +3165,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			FragmentShader* fragmentShader,
 			int* IFRIT_RESTRICT_CUDA dIndexBuffer,
 			const float4* IFRIT_RESTRICT_CUDA dVaryingBuffer,
-			ifloat4** IFRIT_RESTRICT_CUDA dColorBuffer,
+			Vector4f** IFRIT_RESTRICT_CUDA dColorBuffer,
 			float* IFRIT_RESTRICT_CUDA dDepthBuffer
 		) {
 			//TODO: Faster Perspective Interpolation
@@ -3209,7 +3209,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				orgPrimId /= 3;
 
 				int idx1, idx2;
-				if constexpr (geometryShaderEnabled) {
+				if IF_CONSTEXPR (geometryShaderEnabled) {
 					idx1 = orgPrimId * CU_TRIANGLE_STRIDE + intPrimId;
 					idx2 = orgPrimId * CU_TRIANGLE_STRIDE + (intPrimId + 1) % 3;
 				}
@@ -3220,7 +3220,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				
 				for (int i = 0; i < csVaryingCounts; i++) {
 					float4 vary1, vary2;
-					if constexpr (geometryShaderEnabled) {
+					if IF_CONSTEXPR (geometryShaderEnabled) {
 						vary1 = dGeometryShaderOutVaryings[idx1 * csVaryingCounts + i];
 						vary2 = dGeometryShaderOutVaryings[idx2 * csVaryingCounts + i];
 					}
@@ -3243,16 +3243,16 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 					vd.z = (percent * (vary2.z - vary1.z) + vary1.z) * zt;
 					vd.w = (percent * (vary2.w - vary1.w) + vary1.w) * zt;
 
-					auto dest = (ifloat4s256*)(interpolatedVaryings + 1024 * i + threadIdx.x);
+					auto dest = (Vector4fs256*)(interpolatedVaryings + 1024 * i + threadIdx.x);
 					dest->x = vd.x;
 					dest->y = vd.y;
 					dest->z = vd.z;
 					dest->w = vd.w;
 				}
 				fragmentShader->execute(interpolatedVaryings + threadIdx.x, colorOutputSingle + threadIdx.x, &localDepth);
-				auto col0 = static_cast<ifloat4*>(__builtin_assume_aligned(dColorBuffer[0], 16));
-				ifloat4 finalRgba;
-				ifloat4s256 midOutput = ((ifloat4s256*)(colorOutputSingle + threadIdx.x))[0];
+				auto col0 = static_cast<Vector4f*>(__builtin_assume_aligned(dColorBuffer[0], 16));
+				Vector4f finalRgba;
+				Vector4fs256 midOutput = ((Vector4fs256*)(colorOutputSingle + threadIdx.x))[0];
 				finalRgba.x = midOutput.x;
 				finalRgba.y = midOutput.y;
 				finalRgba.z = midOutput.z;
@@ -3293,10 +3293,10 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 	}
 	namespace LinePipeline {
 		IFRIT_KERNEL void unifiedLineRasterEngineKernel(int totalIndices,
-			ifloat4* dPositionBuffer,
+			Vector4f* dPositionBuffer,
 			int* dIndexBuffer,
 			const float4* dVaryingBuffer,
-			ifloat4** dColorBuffer,
+			Vector4f** dColorBuffer,
 			float* dDepthBuffer,
 			GeometryShader* dGeometryShader,
 			FragmentShader* dFragmentShader
@@ -3344,7 +3344,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				return;
 			}
 			bool scissorTestPass = true;
-			if constexpr (CU_SCISSOR_ENABLE) {
+			if IF_CONSTEXPR (CU_SCISSOR_ENABLE) {
 				bool flag = (dScissorAreaNum == 0);
 				for (int i = 0; i < dScissorAreaNum; i++) {
 					auto sci = dScissorArea[i];
@@ -3370,7 +3370,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				return;
 			}
 			bool scissorTestPass = true;
-			if constexpr (CU_SCISSOR_ENABLE) {
+			if IF_CONSTEXPR (CU_SCISSOR_ENABLE) {
 				bool flag = (dScissorAreaNum == 0);
 				for (int i = 0; i < dScissorAreaNum; i++) {
 					auto sci = dScissorArea[i];
@@ -3402,7 +3402,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				return;
 			}
 			bool scissorTestPass = true;
-			if constexpr (CU_SCISSOR_ENABLE) {
+			if IF_CONSTEXPR (CU_SCISSOR_ENABLE) {
 				bool flag = (dScissorAreaNum == 0);
 				for (int i = 0; i < dScissorAreaNum; i++) {
 					auto sci = dScissorArea[i];
@@ -3643,22 +3643,22 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 		return dBuffer;
 	}
 
-	ifloat4* getPositionBufferDeviceAddr(uint32_t bufferSize, ifloat4* dOldBuffer) {
+	Vector4f* getPositionBufferDeviceAddr(uint32_t bufferSize, Vector4f* dOldBuffer) {
 		if(dOldBuffer != nullptr) {
 			cudaFree(dOldBuffer);
 		}
-		ifloat4* dBuffer;
-		cudaMalloc(&dBuffer, bufferSize * sizeof(ifloat4));
+		Vector4f* dBuffer;
+		cudaMalloc(&dBuffer, bufferSize * sizeof(Vector4f));
 		return dBuffer;
 	}
 
 	void getColorBufferDeviceAddr(
-		const std::vector<ifloat4*>& hColorBuffer,
-		std::vector<ifloat4*>& dhColorBuffer,
-		ifloat4**& dColorBuffer,
+		const std::vector<Vector4f*>& hColorBuffer,
+		std::vector<Vector4f*>& dhColorBuffer,
+		Vector4f**& dColorBuffer,
 		uint32_t bufferSize,
-		std::vector<ifloat4*>& dhOldColorBuffer,
-		ifloat4** dOldBuffer
+		std::vector<Vector4f*>& dhOldColorBuffer,
+		Vector4f** dOldBuffer
 	) {
 		//TODO: POTENTIAL BUGS & CUDA DEVICE MEMORY LEAK
 		if (dOldBuffer != nullptr) {
@@ -3666,12 +3666,12 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 		}
 		dhColorBuffer.resize(hColorBuffer.size());
 
-		cudaMalloc(&dColorBuffer, hColorBuffer.size() * sizeof(ifloat4*));
+		cudaMalloc(&dColorBuffer, hColorBuffer.size() * sizeof(Vector4f*));
 		for (int i = 0; i < hColorBuffer.size(); i++) {
-			cudaMalloc(&dhColorBuffer[i], bufferSize * sizeof(ifloat4));
-			cudaMemcpy(dhColorBuffer[i], hColorBuffer[i], bufferSize * sizeof(ifloat4), cudaMemcpyHostToDevice);
+			cudaMalloc(&dhColorBuffer[i], bufferSize * sizeof(Vector4f));
+			cudaMemcpy(dhColorBuffer[i], hColorBuffer[i], bufferSize * sizeof(Vector4f), cudaMemcpyHostToDevice);
 		}
-		cudaMemcpy(dColorBuffer, dhColorBuffer.data(), hColorBuffer.size() * sizeof(ifloat4*), cudaMemcpyHostToDevice);
+		cudaMemcpy(dColorBuffer, dhColorBuffer.data(), hColorBuffer.size() * sizeof(Vector4f*), cudaMemcpyHostToDevice);
 	}
 
 	void updateFrameBufferConstants(uint32_t width,uint32_t height) {
@@ -3685,9 +3685,9 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 		Impl::hsFrameWidth = width;
 	}
 
-	void updateScissorTestData(const ifloat4* scissorAreas, int numScissors, bool scissorEnable) {
+	void updateScissorTestData(const Vector4f* scissorAreas, int numScissors, bool scissorEnable) {
 		for (int i = 0; i < numScissors; i++) {
-			cudaMemcpyToSymbol(Impl::dScissorArea, &scissorAreas[i], sizeof(ifloat4), sizeof(ifloat4) * i);
+			cudaMemcpyToSymbol(Impl::dScissorArea, &scissorAreas[i], sizeof(Vector4f), sizeof(Vector4f) * i);
 		}
 		if (!scissorEnable) numScissors = 0;
 		cudaMemcpyToSymbol(Impl::dScissorAreaNum, &numScissors, sizeof(int));
@@ -3749,13 +3749,13 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 			int cof = 0;
 			Impl::hsVertexOffsets[i] = Impl::hsTotalVertexOffsets;
 			if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_FLOAT1) cof = sizeof(float);
-			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_FLOAT2) cof = sizeof(ifloat2);
-			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_FLOAT3) cof = sizeof(ifloat3);
-			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_FLOAT4)cof = sizeof(ifloat4);
+			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_FLOAT2) cof = sizeof(Vector2f);
+			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_FLOAT3) cof = sizeof(Vector3f);
+			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_FLOAT4)cof = sizeof(Vector4f);
 			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_INT1) cof = sizeof(int);
-			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_INT2) cof = sizeof(iint2);
-			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_INT3) cof = sizeof(iint3);
-			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_INT4) cof = sizeof(iint4);
+			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_INT2) cof = sizeof(Vector2i);
+			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_INT3) cof = sizeof(Vector3i);
+			else if (dVertexTypeDescriptor[i] == TypeDescriptorEnum::IFTP_INT4) cof = sizeof(Vector4i);
 			Impl::hsTotalVertexOffsets += cof;
 			cudaMemcpyToSymbol(Impl::csVertexOffsets, &Impl::hsVertexOffsets[i], sizeof(Impl::hsVertexOffsets[0]), sizeof(Impl::hsVertexOffsets[0]) * i);
 		}
@@ -3763,7 +3763,7 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 	}
 
 	void invokeFilledTriangleProcessing(const RenderingInvocationArgumentSet& args, cudaStream_t& computeStream) {
-		if constexpr (CU_PROFILER_II_CPU_NSIGHT) {
+		if IF_CONSTEXPR (CU_PROFILER_II_CPU_NSIGHT) {
 			Impl::TrianglePipeline::unifiedFilledTriangleRasterEngineProfileEntry(
 				args.totalIndices, args.dPositionBuffer, args.dIndexBuffer, args.deviceContext->dVaryingBufferM2,
 				args.dColorBuffer, args.dDepthBuffer, args.dGeometryShader, args.dFragmentShader, computeStream);
@@ -3794,7 +3794,7 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 	}
 
 	void invokePointProcessing(const RenderingInvocationArgumentSet& args, cudaStream_t& computeStream) {
-		if constexpr (CU_PROFILER_II_CPU_NSIGHT) {
+		if IF_CONSTEXPR (CU_PROFILER_II_CPU_NSIGHT) {
 			printf("Profiler for point mode is not supported now\n");
 			std::abort();
 		}
@@ -3806,7 +3806,7 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 	}
 
 	void invokeLineProcessing(const RenderingInvocationArgumentSet& args, cudaStream_t& computeStream) {
-		if constexpr (CU_PROFILER_II_CPU_NSIGHT) {
+		if IF_CONSTEXPR (CU_PROFILER_II_CPU_NSIGHT) {
 			printf("Profiler for line mode is not supported now\n");
 			std::abort();
 		}
@@ -3818,7 +3818,7 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 	}
 
 	void invokeCudaRenderingClear(const RenderingInvocationArgumentSet& args) IFRIT_AP_NOTHROW {
-		constexpr int dispatchThreadsX = 8, dispatchThreadsY = 8;
+		IF_CONSTEXPR int dispatchThreadsX = 8, dispatchThreadsY = 8;
 		int dispatchBlocksX = (Impl::hsFrameWidth / dispatchThreadsX) + ((Impl::hsFrameWidth % dispatchThreadsX) != 0);
 		int dispatchBlocksY = (Impl::hsFrameHeight / dispatchThreadsY) + ((Impl::hsFrameHeight % dispatchThreadsY) != 0);
 
@@ -3840,7 +3840,7 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 		static cudaEvent_t  copyStart, copyEnd;
 
 		if (secondPass == 1) {
-			if constexpr (CU_OPT_CUDA_PROFILE) {
+			if IF_CONSTEXPR (CU_OPT_CUDA_PROFILE) {
 				cudaProfilerStart();
 			}
 			secondPass = 2;
@@ -3898,8 +3898,8 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 		std::chrono::high_resolution_clock::time_point end2 = std::chrono::high_resolution_clock::now();
 		if (args.doubleBuffering) {
 			for (int i = 0; i < args.dHostColorBufferSize; i++) {
-				if constexpr (CU_PROFILER_ENABLE_MEMCPY) {
-					cudaMemcpyAsync(args.hColorBuffer[i], args.dLastColorBuffer[i], Impl::hsFrameWidth * Impl::hsFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost, copyStream);
+				if IF_CONSTEXPR (CU_PROFILER_ENABLE_MEMCPY) {
+					cudaMemcpyAsync(args.hColorBuffer[i], args.dLastColorBuffer[i], Impl::hsFrameWidth * Impl::hsFrameHeight * sizeof(Vector4f), cudaMemcpyDeviceToHost, copyStream);
 				}
 			}
 		}
@@ -3909,7 +3909,7 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 		}
 		if (!args.doubleBuffering) {
 			for (int i = 0; i < args.dHostColorBufferSize; i++) {
-				cudaMemcpy(args.hColorBuffer[i], args.dHostColorBuffer[i], Impl::hsFrameWidth * Impl::hsFrameHeight * sizeof(ifloat4), cudaMemcpyDeviceToHost);
+				cudaMemcpy(args.hColorBuffer[i], args.dHostColorBuffer[i], Impl::hsFrameWidth * Impl::hsFrameHeight * sizeof(Vector4f), cudaMemcpyDeviceToHost);
 			}
 		}
 	}

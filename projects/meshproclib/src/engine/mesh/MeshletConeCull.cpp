@@ -21,11 +21,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <stdexcept>
 namespace Ifrit::MeshProcLib::MeshProcess {
 
-void MeshletConeCullProc::createNormalCones(const MeshDescriptor &meshDesc, const std::vector<iint4> &meshlets,
+void MeshletConeCullProc::createNormalCones(const MeshDescriptor &meshDesc, const std::vector<Vector4i> &meshlets,
                                             const std::vector<uint32_t> &meshletVertices,
                                             const std::vector<uint8_t> &meshletTriangles,
-                                            std::vector<ifloat4> &normalConeAxisCutoff,
-                                            std::vector<ifloat4> &normalConeApex, std::vector<ifloat4> &boundSphere) {
+                                            std::vector<Vector4f> &normalConeAxisCutoff,
+                                            std::vector<Vector4f> &normalConeApex, std::vector<Vector4f> &boundSphere) {
   using namespace Ifrit::Math::SIMD;
   if (meshDesc.vertexData == nullptr || meshDesc.indexData == nullptr || meshDesc.normalData == nullptr) {
     throw std::runtime_error("Invalid mesh descriptor");
@@ -33,7 +33,7 @@ void MeshletConeCullProc::createNormalCones(const MeshDescriptor &meshDesc, cons
   }
 
   for (uint32_t i = 0; i < meshlets.size(); i++) {
-    const iint4 &meshlet = meshlets[i];
+    const Vector4i &meshlet = meshlets[i];
     auto vertexCount = meshlet.z;
     auto triangleCount = meshlet.w;
     auto vertexOffset = meshlet.x;

@@ -30,8 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 struct SwapChainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
-  std::vector<VkSurfaceFormatKHR> formats;
-  std::vector<VkPresentModeKHR> presentModes;
+  Vec<VkSurfaceFormatKHR> formats;
+  Vec<VkPresentModeKHR> presentModes;
 };
 
 class IFRIT_APIDECL Swapchain : public Rhi::RhiSwapchain {
@@ -50,14 +50,14 @@ private:
 
   VkSwapchainKHR m_swapchain;
 
-  std::vector<VkImage> m_images;
-  std::vector<VkImageView> m_imageViews;
+  Vec<VkImage> m_images;
+  Vec<VkImageView> m_imageViews;
 
   u32 m_currentFrame = 0;
   u32 m_imageIndex = 0;
-  std::vector<VkSemaphore> m_imageAvailableSemaphores;
-  std::vector<VkSemaphore> m_renderingFinishSemaphores;
-  std::vector<VkFence> m_inFlightFences;
+  Vec<VkSemaphore> m_imageAvailableSemaphores;
+  Vec<VkSemaphore> m_renderingFinishSemaphores;
+  Vec<VkFence> m_inFlightFences;
 
 protected:
   void init();

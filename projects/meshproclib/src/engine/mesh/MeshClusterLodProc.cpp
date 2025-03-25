@@ -50,10 +50,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 using namespace Ifrit::Math::SIMD;
 
 namespace Ifrit::MeshProcLib::MeshProcess {
-constexpr int CLUSTER_GROUP_SIZE = 4;
-constexpr int TRIANGLES_PER_MESHLET = 128;
-constexpr int VERTICES_PER_MESHLET = 128;
-constexpr float MESH_SIMPLIFICATION_RATE = 0.5f;
+IF_CONSTEXPR int CLUSTER_GROUP_SIZE = 4;
+IF_CONSTEXPR int TRIANGLES_PER_MESHLET = 128;
+IF_CONSTEXPR int VERTICES_PER_MESHLET = 128;
+IF_CONSTEXPR float MESH_SIMPLIFICATION_RATE = 0.5f;
 
 // Meshlet definition
 
@@ -92,14 +92,14 @@ void freeUnusedMemoryInCotenxt2(Vec<meshopt_Meshlet> &meshletsRaw, Vec<u32> &mes
   meshletTriangles.resize(maxTriangleCount);
 }
 
-void getBoundingBoxForCluster(const MeshDescriptor &mesh, const Vec<u32> index, vfloat3 &bMin, vfloat3 &bMax) {
-  bMax = vfloat3(-std::numeric_limits<float>::max());
-  bMin = vfloat3(std::numeric_limits<float>::max());
+void getBoundingBoxForCluster(const MeshDescriptor &mesh, const Vec<u32> index, SVector3f &bMin, SVector3f &bMax) {
+  bMax = SVector3f(-std::numeric_limits<float>::max());
+  bMin = SVector3f(std::numeric_limits<float>::max());
 
   for (int i = 0; i < index.size(); i++) {
-    ifloat3 *pos = reinterpret_cast<ifloat3 *>(mesh.vertexData + mesh.positionOffset + mesh.vertexStride * index[i]);
-    bMax = max(bMax, vfloat3(pos->x, pos->y, pos->z));
-    bMin = min(bMin, vfloat3(pos->x, pos->y, pos->z));
+    Vector3f *pos = reinterpret_cast<Vector3f *>(mesh.vertexData + mesh.positionOffset + mesh.vertexStride * index[i]);
+    bMax = max(bMax, SVector3f(pos->x, pos->y, pos->z));
+    bMin = min(bMin, SVector3f(pos->x, pos->y, pos->z));
   }
 }
 
@@ -129,16 +129,16 @@ void initialMeshletGeneration(const MeshDescriptor &mesh, ClusterLodGeneratorCon
       actualIndices.push_back(ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 1]]);
       actualIndices.push_back(ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 2]]);
     }
-    vfloat3 bMin, bMax;
+    SVector3f bMin, bMax;
     getBoundingBoxForCluster(mesh, actualIndices, bMin, bMax);
     float bRadius = length(bMax - bMin) * 0.5f;
-    vfloat3 bCenter = (bMax + bMin) * 0.5f;
-    ctx.lodCullData[i].selfSphere = ifloat4(bCenter.x, bCenter.y, bCenter.z, bRadius);
+    SVector3f bCenter = (bMax + bMin) * 0.5f;
+    ctx.lodCullData[i].selfSphere = Vector4f(bCenter.x, bCenter.y, bCenter.z, bRadius);
     ctx.lodCullData[i].selfError = 0.0f;
     ctx.childClusterId[i] = UINT32_MAX;
 
     // follows nanite, lod0's error radius should be negative
-    ctx.selfErrorSphere.push_back(ifloat4(bCenter.x, bCenter.y, bCenter.z, -100.0f));
+    ctx.selfErrorSphere.push_back(Vector4f(bCenter.x, bCenter.y, bCenter.z, -100.0f));
   }
 
   freeUnusedMemoryInCotenxt(ctx);
@@ -451,10 +451,10 @@ void clusterGroupSimplification(const MeshDescriptor &mesh, ClusterLodGeneratorC
     freeUnusedMemoryInCotenxt2(meshlets, meshletVertices, meshletTriangles,
                                Ifrit::Common::Utility::size_cast<u32>(meshletCount));
 
-    vfloat3 bMin, bMax;
+    SVector3f bMin, bMax;
     getBoundingBoxForCluster(mesh, aggregatedIndexBuffer, bMin, bMax);
     f32 bRadius = length(bMax - bMin) * 0.5f;
-    vfloat3 bCenter = (bMax + bMin) * 0.5f;
+    SVector3f bCenter = (bMax + bMin) * 0.5f;
 
     // for lod x, set cluster group data, uses last lod data
     // write child nodes with parent data
@@ -480,7 +480,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh, ClusterLodGeneratorC
 
 #if IFRIT_MESHPROC_CLUSTERLOD_IGNORE_CLUSTERGROUP
     ClusterGroup curClusterGroup;
-    curClusterGroup.parentBoundingSphere = ifloat4(bCenter.x, bCenter.y, bCenter.z, bRadius);
+    curClusterGroup.parentBoundingSphere = Vector4f(bCenter.x, bCenter.y, bCenter.z, bRadius);
     curClusterGroup.parentBoundingSphere.w = targetErrorModel;
     curClusterGroup.childMeshletSize = 1;
 
@@ -492,7 +492,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh, ClusterLodGeneratorC
     }
 #else
     ClusterGroup curClusterGroup;
-    curClusterGroup.parentBoundingSphere = ifloat4(bCenter.x, bCenter.y, bCenter.z, bRadius);
+    curClusterGroup.parentBoundingSphere = Vector4f(bCenter.x, bCenter.y, bCenter.z, bRadius);
     curClusterGroup.parentBoundingSphere.w = targetErrorModel;
     curClusterGroup.childMeshletSize = Ifrit::Common::Utility::size_cast<u32>(meshletsR.size());
     curClusterGroup.childMeshletStart = Ifrit::Common::Utility::size_cast<u32>(ctx.meshletsInClusterGroups.size());
@@ -543,7 +543,7 @@ void clusterGroupSimplification(const MeshDescriptor &mesh, ClusterLodGeneratorC
           Ifrit::Common::Utility::size_cast<u32>(newMeshletTriangleOffset);
       outCtx.lodCullData[outCtx.totalMeshlets + i] = meshletsCull[i];
       outCtx.childClusterId[outCtx.totalMeshlets + i] = key;
-      outCtx.selfErrorSphere[outCtx.totalMeshlets + i] = ifloat4(bCenter.x, bCenter.y, bCenter.z, targetErrorModel);
+      outCtx.selfErrorSphere[outCtx.totalMeshlets + i] = Vector4f(bCenter.x, bCenter.y, bCenter.z, targetErrorModel);
     }
     outCtx.meshletVertices.insert(outCtx.meshletVertices.begin() + newMeshletVertexOffset, meshletVertices.begin(),
                                   meshletVertices.begin() + newMeshletVertexSize);
@@ -607,9 +607,9 @@ void combineBuffer(const Vec<ClusterLodGeneratorContext> &ctx, CombinedClusterLo
 
     for (int j = 0; j < ctx[i].totalMeshlets; j++) {
       outCtx.meshletsRaw[prevlevelMeshletCount + j] =
-          iint4(ctx[i].meshletsRaw[j].vertex_offset + prevlevelVertexCount,
-                ctx[i].meshletsRaw[j].triangle_offset + prevlevelTriangleCount, ctx[i].meshletsRaw[j].vertex_count,
-                ctx[i].meshletsRaw[j].triangle_count);
+          Vector4i(ctx[i].meshletsRaw[j].vertex_offset + prevlevelVertexCount,
+                   ctx[i].meshletsRaw[j].triangle_offset + prevlevelTriangleCount, ctx[i].meshletsRaw[j].vertex_count,
+                   ctx[i].meshletsRaw[j].triangle_count);
       outCtx.selfErrorSphereW[prevlevelMeshletCount + j] = ctx[i].selfErrorSphere[j];
       outCtx.meshletCull[prevlevelMeshletCount + j] = ctx[i].lodCullData[j];
     }
@@ -639,8 +639,8 @@ void combineBuffer(const Vec<ClusterLodGeneratorContext> &ctx, CombinedClusterLo
 // Runtime LoD selection starts, using BVH8(or BVH4) to cull cluster groups
 
 struct BoundingBox {
-  vfloat3 mi;
-  vfloat3 ma;
+  SVector3f mi;
+  SVector3f ma;
 };
 
 struct BoundingBoxPair {
@@ -671,17 +671,17 @@ struct ClusterGroupBVH {
 // Some bvh utility functions
 BoundingBoxPair getBoundingBox(const Vec<ClusterGroup> &clusterGroups, const Vec<u32> &clusterGroupIndices, u32 start,
                                u32 end) {
-  vfloat3 bMaxA = vfloat3(-std::numeric_limits<float>::max());
-  vfloat3 bMinA = vfloat3(std::numeric_limits<float>::max());
-  vfloat3 bMaxP = vfloat3(-std::numeric_limits<float>::max());
-  vfloat3 bMinP = vfloat3(std::numeric_limits<float>::max());
+  SVector3f bMaxA = SVector3f(-std::numeric_limits<float>::max());
+  SVector3f bMinA = SVector3f(std::numeric_limits<float>::max());
+  SVector3f bMaxP = SVector3f(-std::numeric_limits<float>::max());
+  SVector3f bMinP = SVector3f(std::numeric_limits<float>::max());
 
   for (int k = start; k < static_cast<i32>(end); k++) {
     auto i = clusterGroupIndices[k];
-    vfloat3 sphereCenter = vfloat3(clusterGroups[i].parentBoundingSphere.x, clusterGroups[i].parentBoundingSphere.y,
-                                   clusterGroups[i].parentBoundingSphere.z);
-    vfloat3 maxPos = sphereCenter + clusterGroups[i].parentBoundingSphere.w;
-    vfloat3 minPos = sphereCenter - clusterGroups[i].parentBoundingSphere.w;
+    SVector3f sphereCenter = SVector3f(clusterGroups[i].parentBoundingSphere.x, clusterGroups[i].parentBoundingSphere.y,
+                                       clusterGroups[i].parentBoundingSphere.z);
+    SVector3f maxPos = sphereCenter + clusterGroups[i].parentBoundingSphere.w;
+    SVector3f minPos = sphereCenter - clusterGroups[i].parentBoundingSphere.w;
     bMaxA = max(maxPos, bMaxA);
     bMinA = min(minPos, bMinA);
     bMaxP = max(sphereCenter, bMaxP);
@@ -710,7 +710,7 @@ u32 nodeClustersPatition(const Vec<ClusterGroup> &clusterGroups, Vec<u32> indice
   int l = start, r = end - 1;
   auto getElementCenter = [&](u32 idx) {
     auto sphere = clusterGroups[idx].parentBoundingSphere;
-    return vfloat3(sphere.x, sphere.y, sphere.z);
+    return SVector3f(sphere.x, sphere.y, sphere.z);
   };
   while (l < r) {
     while (l < r && elementAt(getElementCenter(indices[l]), axis) < mid)
@@ -732,7 +732,7 @@ u32 nodeClustersPatitionAlternative(const Vec<ClusterGroup> &clusterGroups, Vec<
   Vec<float> candidates;
   for (int i = start; i < static_cast<int>(end); i++) {
     auto sphere = clusterGroups[indices[i]].parentBoundingSphere;
-    candidates.push_back(elementAt(vfloat3(sphere.x, sphere.y, sphere.z), axis));
+    candidates.push_back(elementAt(SVector3f(sphere.x, sphere.y, sphere.z), axis));
   }
   // sort and find median
   std::sort(candidates.begin(), candidates.end());
@@ -812,7 +812,7 @@ consteval u32 getBvhCollapseExtraDepth() { return xlog2(BVH_CHILDREN); }
 void bvhCollapse(ClusterGroupBVH &bvh) {
   Vec<ClusterGroupBVHNode *> q;
   q.push_back(bvh.root.get());
-  constexpr auto extDepth = getBvhCollapseExtraDepth();
+  IF_CONSTEXPR auto extDepth = getBvhCollapseExtraDepth();
 
   struct IndirectChildrenSet {
     // after collapse, these nodes will be deleted
@@ -937,7 +937,7 @@ void bvhFlatten(const ClusterGroupBVH &bvh, Vec<FlattenedBVHNode> &flattenedNode
     FlattenedBVHNode newNode{};
     auto sphereCenter = (curNode->bbox.ma + curNode->bbox.mi) * 0.5f;
     auto sphereRadius = length(curNode->bbox.ma - curNode->bbox.mi) * 0.5f;
-    newNode.boundSphere = ifloat4(sphereCenter.x, sphereCenter.y, sphereCenter.z, static_cast<float>(sphereRadius));
+    newNode.boundSphere = Vector4f(sphereCenter.x, sphereCenter.y, sphereCenter.z, static_cast<float>(sphereRadius));
     newNode.numChildNodes = curNode->curChildren;
     newNode.clusterGroupStart = Ifrit::Common::Utility::size_cast<u32>(rearrangedClusterGroups.size());
     newNode.clusterGroupSize = Ifrit::Common::Utility::size_cast<u32>(curNode->childClusterGroups.size());

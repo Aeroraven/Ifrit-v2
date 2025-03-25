@@ -27,8 +27,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::GraphicsBackend::SoftGraphics {
 struct VertexShaderResultContext {
-  std::vector<ifloat4> position;
-  std::vector<std::vector<Ifrit::Math::SIMD::vfloat4>> varyings;
+  std::vector<Vector4f> position;
+  std::vector<std::vector<Ifrit::Math::SIMD::SVector4f>> varyings;
   std::vector<TypeDescriptor> varyingDescriptors;
 };
 class IFRIT_APIDECL VertexShaderResult {
@@ -40,7 +40,7 @@ private:
 public:
   VertexShaderResult(u32 vertexCount, u32 varyingCount);
   ~VertexShaderResult();
-  ifloat4 *getPositionBuffer();
+  Vector4f *getPositionBuffer();
   void initializeVaryingBufferFromShader(const TypeDescriptor &typeDescriptor, int id);
   void setVertexCount(const u32 vertexCount);
 
@@ -51,6 +51,6 @@ public:
     context->varyingDescriptors.resize(count * 2);
   }
   inline void initializeVaryingBuffer(int id) { context->varyings[id].resize(vertexCount); }
-  inline Ifrit::Math::SIMD::vfloat4 *getVaryingBuffer(int id) { return context->varyings[id].data(); }
+  inline Ifrit::Math::SIMD::SVector4f *getVaryingBuffer(int id) { return context->varyings[id].data(); }
 };
 } // namespace Ifrit::GraphicsBackend::SoftGraphics

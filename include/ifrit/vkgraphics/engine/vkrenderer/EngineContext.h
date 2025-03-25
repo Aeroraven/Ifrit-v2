@@ -36,9 +36,7 @@ private:
   std::queue<Rhi::RhiDeviceResource *> m_deleteQueue;
 
 public:
-  virtual void addResourceToDeleteQueue(Rhi::RhiDeviceResource *resource) {
-    m_deleteQueue.push(resource);
-  }
+  virtual void addResourceToDeleteQueue(Rhi::RhiDeviceResource *resource) { m_deleteQueue.push(resource); }
 
   virtual i32 processDeleteQueue() {
     i32 count = 0;
@@ -108,7 +106,7 @@ struct IFRIT_APIDECL ExtensionFunction {
 
 class IFRIT_APIDECL EngineContext : public Rhi::RhiDevice {
 private:
-  constexpr static const char *s_validationLayerName = "VK_LAYER_KHRONOS_validation";
+  IF_CONSTEXPR static const char *s_validationLayerName = "VK_LAYER_KHRONOS_validation";
   Rhi::RhiInitializeArguments m_args;
   VkInstance m_instance;
   VkDebugUtilsMessengerEXT m_debugMessenger;

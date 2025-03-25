@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/base/VertexBuffer.h"
 #include "ifrit/softgraphics/engine/base/TypeDescriptor.h"
 
@@ -75,10 +74,10 @@ VertexBuffer::setLayoutCompatible(const TypeDescriptor *layouts, int num) {
   }
   setLayout(clayouts);
 }
-IFRIT_APIDECL void VertexBuffer::setValueFloat4Compatible(const int index,
-                                                          const int attribute,
-                                                          const ifloat4 value) {
-  this->setValue<ifloat4>(index, attribute, value);
+IFRIT_APIDECL void
+VertexBuffer::setValueFloat4Compatible(const int index, const int attribute,
+                                       const Vector4f value) {
+  this->setValue<Vector4f>(index, attribute, value);
 }
 
 } // namespace Ifrit::GraphicsBackend::SoftGraphics

@@ -112,7 +112,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(PerFrameData &perframeData,
       throw std::runtime_error("Camera has no transform");
     }
     auto pos = cameraTransform->getPosition();
-    viewData.m_viewData.m_cameraPosition = ifloat4{pos.x, pos.y, pos.z, 1.0f};
+    viewData.m_viewData.m_cameraPosition = Vector4f{pos.x, pos.y, pos.z, 1.0f};
     viewData.m_viewData.m_cameraFront = camera->getFront();
     viewData.m_viewData.m_cameraNear = camera->getNear();
     viewData.m_viewData.m_cameraFar = camera->getFar();
@@ -136,7 +136,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(PerFrameData &perframeData,
   }
   if (sunLights.size() == 1) {
     auto transform = sunLights[0]->getComponentUnsafe<Transform>();
-    ifloat4 front = {0.0f, 0.0f, 1.0f, 0.0f};
+    Vector4f front = {0.0f, 0.0f, 1.0f, 0.0f};
     auto rotation = transform->getRotation();
     auto rotMatrix = Math::eulerAngleToMatrix(rotation);
     front = Math::matmul(rotMatrix, front);
@@ -621,11 +621,11 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
 
         auto tmpUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
         meshResource.vertexBuffer = rhi->createBufferDevice(
-            "Mesh_Vertex", size_cast<u32>(meshDataRef->m_verticesAligned.size() * sizeof(ifloat4)), tmpUsage, true);
+            "Mesh_Vertex", size_cast<u32>(meshDataRef->m_verticesAligned.size() * sizeof(Vector4f)), tmpUsage, true);
         meshResource.normalBuffer = rhi->createBufferDevice(
-            "Mesh_Normal", size_cast<u32>(meshDataRef->m_normalsAligned.size() * sizeof(ifloat4)), tmpUsage, true);
+            "Mesh_Normal", size_cast<u32>(meshDataRef->m_normalsAligned.size() * sizeof(Vector4f)), tmpUsage, true);
         meshResource.uvBuffer = rhi->createBufferDevice(
-            "Mesh_UV", size_cast<u32>(meshDataRef->m_uvs.size() * sizeof(ifloat2)), tmpUsage, true);
+            "Mesh_UV", size_cast<u32>(meshDataRef->m_uvs.size() * sizeof(Vector2f)), tmpUsage, true);
         meshResource.bvhNodeBuffer = rhi->createBufferDevice(
             "Mesh_BVHNode",
             size_cast<u32>(meshDataRef->m_bvhNodes.size() * sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
@@ -647,7 +647,7 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
         meshResource.cpCounterBuffer =
             rhi->createBufferDevice("Mesh_CpCounter", size_cast<u32>(sizeof(MeshData::GPUCPCounter)), tmpUsage, true);
         meshResource.tangentBuffer = rhi->createBufferDevice(
-            "Mesh_Tangent", size_cast<u32>(sizeof(ifloat4) * meshDataRef->m_tangents.size()), tmpUsage, true);
+            "Mesh_Tangent", size_cast<u32>(sizeof(Vector4f) * meshDataRef->m_tangents.size()), tmpUsage, true);
 
         auto materialDataSize = 0;
         auto &materialRef = shaderEffect.m_materials[i];

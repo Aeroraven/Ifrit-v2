@@ -52,8 +52,7 @@ class IFRIT_APIDECL PostFxFFTConv2d : public PostprocessPass {
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
 
   // I know this is UGLY
-  std::unordered_map<std::pair<u32, u32>, PostFxFFTConv2dResourceCollection,
-                     Ifrit::Common::Utility::PairwiseHash<u32, u32>>
+  CustomHashMap<std::pair<u32, u32>, PostFxFFTConv2dResourceCollection, Ifrit::Common::Utility::PairwiseHash<u32, u32>>
       m_resMap;
 
   ComputePass *m_upsamplePipeline = nullptr;

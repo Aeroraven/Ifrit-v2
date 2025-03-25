@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/imaging/BufferedImageSampler.h"
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging {
@@ -50,7 +49,7 @@ inline void processWarpMode2D(IfritSamplerAddressMode mode, float &u,
   }
 }
 void BufferedImageSampler::sample2DDirect(float u, float v, int lod,
-                                          iint2 offset,
+                                          Vector2i offset,
                                           const LayeredBufferedImage &image,
                                           void *pixel) const {
   float wpU = u, wpV = v;
@@ -62,7 +61,7 @@ void BufferedImageSampler::sample2DDirect(float u, float v, int lod,
   image.getLayer(lod).getPixel2D(x + offset.x, y + offset.y, pixel);
 }
 void BufferedImageSampler::sample3DDirect(float u, float v, float w, int lod,
-                                          iint3 offset,
+                                          Vector3i offset,
                                           const LayeredBufferedImage &image,
                                           void *pixel) const {
   float wpU = u, wpV = v, wpW = w;
@@ -78,7 +77,7 @@ void BufferedImageSampler::sample3DDirect(float u, float v, float w, int lod,
                                  pixel);
 }
 void BufferedImageSampler::sample2DLod(float u, float v, float lod,
-                                       iint2 offset,
+                                       Vector2i offset,
                                        const LayeredBufferedImage &image,
                                        void *pixel) const {
   auto minLod = int(floor(lod));
@@ -86,7 +85,7 @@ void BufferedImageSampler::sample2DLod(float u, float v, float lod,
   sample2DDirect(u, v, minLod, offset, image, pixel);
 }
 void BufferedImageSampler::sample3DLod(float u, float v, float w, float lod,
-                                       iint3 offset,
+                                       Vector3i offset,
                                        const LayeredBufferedImage &image,
                                        void *pixel) const {
   auto minLod = int(floor(lod));
@@ -94,11 +93,11 @@ void BufferedImageSampler::sample3DLod(float u, float v, float w, float lod,
   sample3DDirect(u, v, w, minLod, offset, image, pixel);
 }
 void BufferedImageSampler::sample2DLodSi(float u, float v, float lod,
-                                         iint2 offset, void *pixel) const {
+                                         Vector2i offset, void *pixel) const {
   sample2DLod(u, v, lod, offset, sImg, pixel);
 }
 void BufferedImageSampler::sample3DLodSi(float u, float v, float w, float lod,
-                                         iint3 offset, void *pixel) const {
+                                         Vector3i offset, void *pixel) const {
   sample3DLod(u, v, w, lod, offset, sImg, pixel);
 }
 } // namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging

@@ -38,7 +38,7 @@ private:
 
   void setupHBAOPass();
   void setupSSGIPass();
-  GPUShader *createShaderFromFile(const std::string &shaderPath, const std::string &entry,
+  GPUShader *createShaderFromFile(const String &shaderPath, const String &entry,
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
 
 public:

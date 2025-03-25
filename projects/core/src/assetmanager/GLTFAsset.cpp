@@ -41,7 +41,7 @@ struct GLTFInternalData {
 
 // Mesh class
 IFRIT_APIDECL GLTFPrefab::GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset, u32 meshId, u32 primitiveId, u32 nodeId,
-                                     const float4x4 &parentTransform)
+                                     const Matrix4x4f &parentTransform)
     : m_asset(asset), m_meshId(meshId), m_primitiveId(primitiveId), m_nodeId(nodeId) {
   m_prefab = SceneObject::createPrefab();
 
@@ -70,7 +70,7 @@ IFRIT_APIDECL GLTFPrefab::GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset, 
     rotY = static_cast<float>(gltfNode.rotation[1]);
     rotZ = static_cast<float>(gltfNode.rotation[2]);
     rotW = static_cast<float>(gltfNode.rotation[3]);
-    ifloat3 euler = Math::quaternionToEuler({rotX, rotY, rotZ, rotW});
+    Vector3f euler = Math::quaternionToEuler({rotX, rotY, rotZ, rotW});
     rotX = euler.x;
     rotY = euler.y;
     rotZ = euler.z;
@@ -79,7 +79,7 @@ IFRIT_APIDECL GLTFPrefab::GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset, 
   auto localTransform = Math::getTransformMat({scaleX, scaleY, scaleZ}, {posX, posY, posZ}, {rotX, rotY, rotZ});
   auto combinedTransform = Math::matmul(parentTransform, localTransform);
 
-  ifloat3 newScale, newTranslation, newRotation;
+  Vector3f newScale, newTranslation, newRotation;
   Math::recoverTransformInfo(combinedTransform, newScale, newTranslation, newRotation);
   transform->setPosition(newTranslation);
   transform->setRotation(newRotation);
@@ -248,7 +248,7 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
 
   auto rawGLTFData = m_internalData->model;
 
-  Fn<void(int, float4x4)> traverseNode = [&](int nodeId, float4x4 parentTransform) {
+  Fn<void(int, Matrix4x4f)> traverseNode = [&](int nodeId, Matrix4x4f parentTransform) {
     auto &node = rawGLTFData.nodes[nodeId];
     auto translationX = 0.0f, translationY = 0.0f, translationZ = 0.0f;
     auto scaleX = 1.0f, scaleY = 1.0f, scaleZ = 1.0f;
@@ -269,7 +269,7 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
       rotZ = static_cast<float>(node.rotation[2]);
       rotW = static_cast<float>(node.rotation[3]);
       if (node.rotation.size() == 4) {
-        ifloat3 euler = Math::quaternionToEuler({rotX, rotY, rotZ, rotW});
+        Vector3f euler = Math::quaternionToEuler({rotX, rotY, rotZ, rotW});
         rotX = euler.x;
         rotY = euler.y;
         rotZ = euler.z;
@@ -350,7 +350,7 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
   // Get nodes from scenes
   for (auto &scene : rawGLTFData.scenes) {
     for (auto &nodeId : scene.nodes) {
-      traverseNode(nodeId, Math::identity());
+      traverseNode(nodeId, Math::identity4());
     }
   }
 }

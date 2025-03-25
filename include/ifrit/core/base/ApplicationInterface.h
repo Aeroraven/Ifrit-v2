@@ -29,6 +29,6 @@ public:
 
   virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() = 0;
   virtual Ifrit::Display::Window::WindowProvider *getWindowProvider() = 0;
-  virtual std::string getCacheDirectory() const = 0;
+  virtual String getCacheDirectory() const = 0;
 };
 } // namespace Ifrit::Core

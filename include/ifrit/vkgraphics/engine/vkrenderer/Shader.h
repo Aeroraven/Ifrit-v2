@@ -29,11 +29,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
 struct ShaderModuleCI {
-  std::vector<char> code;
-  std::string entryPoint;
+  Vec<char> code;
+  String entryPoint;
   Rhi::RhiShaderStage stage;
   Rhi::RhiShaderSourceType sourceType;
-  std::string fileName;
+  String fileName;
 };
 
 class IFRIT_APIDECL ShaderModule : public Rhi::RhiShader {
@@ -42,13 +42,13 @@ private:
   VkPipelineShaderStageCreateInfo m_stageCI{};
   EngineContext *m_context;
   ShaderModuleCI m_ci;
-  std::string m_entryPoint;
+  String m_entryPoint;
   SpvReflectShaderModule m_reflectModule;
-  std::vector<SpvReflectDescriptorSet *> m_reflectSets;
+  Vec<SpvReflectDescriptorSet *> m_reflectSets;
   bool m_reflectionCreated = false;
 
   // Intended for pipeline cache
-  std::string m_signature;
+  String m_signature;
 
 public:
   ShaderModule(EngineContext *ctx, const ShaderModuleCI &ci);
@@ -69,6 +69,6 @@ public:
   void recoverReflectionData();
 
   // get signature
-  inline std::string getSignature() const { return m_signature; }
+  inline String getSignature() const { return m_signature; }
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

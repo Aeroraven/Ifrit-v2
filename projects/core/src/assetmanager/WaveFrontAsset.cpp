@@ -25,7 +25,7 @@ using Ifrit::Common::Utility::size_cast;
 
 namespace Ifrit::Core {
 
-void loadWaveFrontObject(const char *path, Vec<ifloat3> &vertices, Vec<ifloat3> &normals, Vec<ifloat2> &uvs,
+void loadWaveFrontObject(const char *path, Vec<Vector3f> &vertices, Vec<Vector3f> &normals, Vec<Vector2f> &uvs,
                          Vec<u32> &indices) {
 
   // This section is auto-generated from Copilot
@@ -38,15 +38,15 @@ void loadWaveFrontObject(const char *path, Vec<ifloat3> &vertices, Vec<ifloat3> 
     iss >> type;
 
     if (type == "v") {
-      ifloat3 vertex;
+      Vector3f vertex;
       iss >> vertex.x >> vertex.y >> vertex.z;
       vertices.push_back(vertex);
     } else if (type == "vn") {
-      ifloat3 normal;
+      Vector3f normal;
       iss >> normal.x >> normal.y >> normal.z;
       normals.push_back(normal);
     } else if (type == "vt") {
-      ifloat2 uv;
+      Vector2f uv;
       iss >> uv.x >> uv.y;
       uvs.push_back(uv);
     } else if (type == "f") {
@@ -71,9 +71,9 @@ void loadWaveFrontObject(const char *path, Vec<ifloat3> &vertices, Vec<ifloat3> 
     indices[i] = interIdx[i];
   }
 }
-Vec<ifloat3> remapNormals(Vec<ifloat3> normals, Vec<u32> indices, int numVertices) {
+Vec<Vector3f> remapNormals(Vec<Vector3f> normals, Vec<u32> indices, int numVertices) {
   using namespace Ifrit::Math;
-  Vec<ifloat3> retNormals;
+  Vec<Vector3f> retNormals;
   Vec<int> counters;
   retNormals.clear();
   counters.clear();
@@ -97,8 +97,8 @@ Vec<ifloat3> remapNormals(Vec<ifloat3> normals, Vec<u32> indices, int numVertice
   return retNormals;
 }
 
-Vec<ifloat2> remapUVs(Vec<ifloat2> uvs, Vec<u32> indices, int numVertices) {
-  Vec<ifloat2> retNormals;
+Vec<Vector2f> remapUVs(Vec<Vector2f> uvs, Vec<u32> indices, int numVertices) {
+  Vec<Vector2f> retNormals;
   Vec<int> counters;
   retNormals.clear();
   counters.clear();
@@ -125,11 +125,11 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
   } else {
     m_loaded = true;
     m_selfData = std::make_shared<MeshData>();
-    Vec<ifloat3> vertices;
-    Vec<ifloat3> normals;
-    Vec<ifloat3> remappedNormals;
-    Vec<ifloat2> uvs;
-    Vec<ifloat2> remappedUVs;
+    Vec<Vector3f> vertices;
+    Vec<Vector3f> normals;
+    Vec<Vector3f> remappedNormals;
+    Vec<Vector2f> uvs;
+    Vec<Vector2f> remappedUVs;
     Vec<u32> remappedIndices;
     Vec<u32> indices;
     auto rawPath = m_path.generic_string();
@@ -156,8 +156,8 @@ IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::loadMesh() {
     m_selfData->m_verticesAligned.resize(vertices.size());
     m_selfData->m_normalsAligned.resize(vertices.size());
     for (int i = 0; i < vertices.size(); i++) {
-      m_selfData->m_verticesAligned[i] = ifloat4(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
-      m_selfData->m_normalsAligned[i] = ifloat4(remappedNormals[i].x, remappedNormals[i].y, remappedNormals[i].z, 1.0);
+      m_selfData->m_verticesAligned[i] = Vector4f(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
+      m_selfData->m_normalsAligned[i] = Vector4f(remappedNormals[i].x, remappedNormals[i].y, remappedNormals[i].z, 1.0);
     }
     this->createMeshLodHierarchy(m_selfData, "");
   }

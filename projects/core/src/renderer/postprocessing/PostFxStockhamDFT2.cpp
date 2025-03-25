@@ -43,8 +43,8 @@ IFRIT_APIDECL void PostFxStockhamDFT2::renderPostFx(const GPUCmdBuffer *cmd, GPU
     uint32_t dstImgId;
   } pcb;
 
-  using Ifrit::Math::FastUtil::qclz;
-  using Ifrit::Math::FastUtil::qlog2;
+  using Ifrit::Math::qclz;
+  using Ifrit::Math::qlog2;
   auto p2Width = 1 << (32 - qclz(width / downscale - 1));
   auto p2Height = 1 << (32 - qclz(height / downscale - 1));
 
@@ -78,13 +78,13 @@ IFRIT_APIDECL void PostFxStockhamDFT2::renderPostFx(const GPUCmdBuffer *cmd, GPU
     pc.dftMode = 0;
     cmd->beginScope("Postprocess: Stockham DFT2, DFT-X");
     pc.orientation = 1;
-    wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Width / 2, 256);
+    wgX = Ifrit::Math::divRoundUp(p2Width / 2, 256);
     wgY = p2Height;
     runCommand(cmd, wgX, wgY, &pc);
     cmd->endScope();
     cmd->beginScope("Postprocess: Stockham DFT2, DFT-Y");
     pc.orientation = 0;
-    wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Height / 2, 256);
+    wgX = Ifrit::Math::divRoundUp(p2Height / 2, 256);
     wgY = p2Width;
     runCommand(cmd, wgX, wgY, &pc);
     cmd->endScope();
@@ -93,13 +93,13 @@ IFRIT_APIDECL void PostFxStockhamDFT2::renderPostFx(const GPUCmdBuffer *cmd, GPU
     pc.dftMode = 1;
     cmd->beginScope("Postprocess: Stockham DFT2, IDFT-Y");
     pc.orientation = 0;
-    wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Height / 2, 256);
+    wgX = Ifrit::Math::divRoundUp(p2Height / 2, 256);
     wgY = p2Width;
     runCommand(cmd, wgX, wgY, &pc);
     cmd->endScope();
     cmd->beginScope("Postprocess: Stockham DFT2, IDFT-X");
     pc.orientation = 1;
-    wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Width / 2, 256);
+    wgX = Ifrit::Math::divRoundUp(p2Width / 2, 256);
     wgY = p2Height;
     runCommand(cmd, wgX, wgY, &pc);
     cmd->endScope();

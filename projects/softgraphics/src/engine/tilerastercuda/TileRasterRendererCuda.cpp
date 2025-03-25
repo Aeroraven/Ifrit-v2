@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #ifdef IFRIT_FEATURE_CUDA
 #include "ifrit/softgraphics/engine/tilerastercuda/TileRasterRendererCuda.h"
 #include "ifrit/softgraphics/engine/tilerastercuda/TileRasterConstantsCuda.h"
@@ -48,8 +47,8 @@ TileRasterRendererCuda::bindFrameBuffer(FrameBuffer &frameBuffer,
   this->deviceDepthBuffer =
       Invocation::getDepthBufferDeviceAddr(pixelCount, this->deviceDepthBuffer);
 
-  std::vector<ifloat4 *> hColorBuffer = {
-      (ifloat4 *)frameBuffer.getColorAttachment(0)->getData()};
+  std::vector<Vector4f *> hColorBuffer = {
+      (Vector4f *)frameBuffer.getColorAttachment(0)->getData()};
 
   Invocation::getColorBufferDeviceAddr(
       hColorBuffer, this->deviceHostColorBuffers[0], this->deviceColorBuffer[0],
@@ -138,7 +137,7 @@ TileRasterRendererCuda::bindGeometryShader(GeometryShader *geometryShader) {
 IFRIT_APIDECL void
 TileRasterRendererCuda::bindMeshShader(MeshShader *meshShader,
                                        VaryingDescriptor &varyingDescriptor,
-                                       iint3 localSize) {
+                                       Vector3i localSize) {
   context->meshShader = meshShader;
   context->meshShaderAttributCnt = varyingDescriptor.getVaryingCounts();
   if (context->taskShader == nullptr) {
@@ -192,7 +191,7 @@ IFRIT_APIDECL void TileRasterRendererCuda::setDepthTestEnable(bool option) {
   }
 }
 IFRIT_APIDECL void
-TileRasterRendererCuda::setScissors(const std::vector<ifloat4> &scissors) {
+TileRasterRendererCuda::setScissors(const std::vector<Vector4f> &scissors) {
   context->scissorAreas = scissors;
   Invocation::updateScissorTestData(scissors.data(), scissors.size(),
                                     context->scissorTestEnable);
@@ -211,14 +210,14 @@ TileRasterRendererCuda::setMsaaSamples(IfritSampleCountFlagBits msaaSamples) {
   Invocation::setMsaaSampleBits(msaaSamples);
 }
 IFRIT_APIDECL void
-TileRasterRendererCuda::setClearValues(const std::vector<ifloat4> &clearColors,
+TileRasterRendererCuda::setClearValues(const std::vector<Vector4f> &clearColors,
                                        float clearDepth) {
   ctxClearColors = clearColors;
   ctxClearDepth = clearDepth;
 }
 IFRIT_APIDECL void TileRasterRendererCuda::clear() {
-  // ifloat4* colorBuffer =
-  // (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
+  // Vector4f* colorBuffer =
+  // (Vector4f*)context->frameBuffer->getColorAttachment(0)->getData();
   int totalIndices = 0;
   if (totalIndices)
     totalIndices = context->indexBuffer->size();
@@ -282,8 +281,8 @@ void TileRasterRendererCuda::internalRender(
     needFragmentShaderUpdate = false;
   }
 
-  // ifloat4* colorBuffer =
-  // (ifloat4*)context->frameBuffer->getColorAttachment(0)->getData();
+  // Vector4f* colorBuffer =
+  // (Vector4f*)context->frameBuffer->getColorAttachment(0)->getData();
   int totalIndices = 0;
   if (context->indexBuffer)
     totalIndices = context->indexBuffer->size();

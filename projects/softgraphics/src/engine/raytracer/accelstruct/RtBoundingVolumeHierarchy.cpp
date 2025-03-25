@@ -22,8 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/util/TypingUtil.h"
 #include <queue>
 
-
-constexpr bool PROFILE_CNT = false;
+IF_CONSTEXPR bool PROFILE_CNT = false;
 
 using namespace Ifrit::Math::SIMD;
 using Ifrit::Common::Utility::size_cast;
@@ -39,12 +38,11 @@ static std::atomic<int> earlyReject = 0;
 enum BVHSplitType { BST_TRIVIAL, BST_SAH };
 
 enum BVHRayTriangleIntersectAlgo { BVH_RAYTRI_MOLLER, BVH_RAYTRI_BALDWIN };
-static constexpr BVHSplitType splitType = BST_SAH;
-static constexpr int maxDepth = 32;
-static constexpr int sahBuckets = 15;
+static IF_CONSTEXPR BVHSplitType splitType = BST_SAH;
+static IF_CONSTEXPR int maxDepth = 32;
+static IF_CONSTEXPR int sahBuckets = 15;
 
-inline float procRayBoxIntersection(const RayInternal &ray,
-                                    const BoundingBox &bbox) {
+inline float procRayBoxIntersection(const RayInternal &ray, const BoundingBox &bbox) {
   using namespace Ifrit::Math;
   auto t1 = (bbox.bmin - ray.o) * ray.invr;
   auto t2 = (bbox.bmax - ray.o) * ray.invr;
@@ -57,8 +55,8 @@ inline float procRayBoxIntersection(const RayInternal &ray,
   return tmin;
 }
 
-int procFindSplit(int start, int end, int axis, float mid,
-                  std::vector<vfloat3> &centers, std::vector<int> &belonging) {
+int procFindSplit(int start, int end, int axis, float mid, std::vector<SVector3f> &centers,
+                  std::vector<int> &belonging) {
   using namespace Ifrit::Math;
   int l = start, r = end;
 
@@ -77,9 +75,7 @@ int procFindSplit(int start, int end, int axis, float mid,
   return pivot;
 }
 
-void procBuildBvhNode(int size, BVHNode *root,
-                      const std::vector<BoundingBox> &bboxes,
-                      std::vector<vfloat3> &centers,
+void procBuildBvhNode(int size, BVHNode *root, const std::vector<BoundingBox> &bboxes, std::vector<SVector3f> &centers,
                       std::vector<int> &belonging, std::vector<int> &indices) {
 
   using namespace Ifrit::Math;
@@ -89,23 +85,19 @@ void procBuildBvhNode(int size, BVHNode *root,
 
   while (!q.empty()) {
     profNodes++;
-    auto largestBBox = vfloat3(-std::numeric_limits<float>::max(),
-                               -std::numeric_limits<float>::max(),
-                               -std::numeric_limits<float>::max());
+    auto largestBBox = SVector3f(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
+                                 -std::numeric_limits<float>::max());
     auto &[node, depth, start] = q.front();
     BoundingBox &bbox = node->bbox;
-    bbox.bmax = vfloat3(-std::numeric_limits<float>::max(),
-                        -std::numeric_limits<float>::max(),
-                        -std::numeric_limits<float>::max());
-    bbox.bmin = vfloat3(std::numeric_limits<float>::max(),
-                        std::numeric_limits<float>::max(),
-                        std::numeric_limits<float>::max());
+    bbox.bmax = SVector3f(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
+                          -std::numeric_limits<float>::max());
+    bbox.bmin = SVector3f(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
+                          std::numeric_limits<float>::max());
 
     for (int i = 0; i < node->elementSize; i++) {
       bbox.bmax = max(bbox.bmax, bboxes[belonging[start + i]].bmax);
       bbox.bmin = min(bbox.bmin, bboxes[belonging[start + i]].bmin);
-      largestBBox = max(largestBBox, bboxes[belonging[start + i]].bmax -
-                                         bboxes[belonging[start + i]].bmin);
+      largestBBox = max(largestBBox, bboxes[belonging[start + i]].bmax - bboxes[belonging[start + i]].bmin);
     }
     node->startPos = start;
     if (depth >= maxDepth || node->elementSize <= 1) {
@@ -128,15 +120,12 @@ void procBuildBvhNode(int size, BVHNode *root,
       if (diff.z > diff.y && diff.z > diff.x)
         axis = 2;
       float midvp = elementAt(midv, axis);
-      pivot = procFindSplit(start, start + node->elementSize - 1, axis, midvp,
-                            centers, belonging);
+      pivot = procFindSplit(start, start + node->elementSize - 1, axis, midvp, centers, belonging);
     } else if (splitType == BST_SAH) {
       auto diff = bbox.bmax - bbox.bmin;
-      constexpr float unbalancedLeafPenalty = 80.0f;
-      auto minCost = (node->elementSize == 2)
-                         ? 1e30
-                         : diff.x * diff.y * diff.z * 2.0 * node->elementSize +
-                               unbalancedLeafPenalty;
+      IF_CONSTEXPR float unbalancedLeafPenalty = 80.0f;
+      auto minCost =
+          (node->elementSize == 2) ? 1e30 : diff.x * diff.y * diff.z * 2.0 * node->elementSize + unbalancedLeafPenalty;
 
       int baxis = 0;
       if (diff.y > diff.x)
@@ -148,23 +137,18 @@ void procBuildBvhNode(int size, BVHNode *root,
         for (int i = 1; i < sahBuckets; i++) {
           auto midv = lerp(bbox.bmin, bbox.bmax, 1.0f * i / sahBuckets);
           float midvp = elementAt(midv, axis);
-          pivot = procFindSplit(start, start + node->elementSize - 1, axis,
-                                midvp, centers, belonging);
+          pivot = procFindSplit(start, start + node->elementSize - 1, axis, midvp, centers, belonging);
 
           BoundingBox bLeft, bRight;
           // Bounding boxes
-          bLeft.bmax = vfloat3(-std::numeric_limits<float>::max(),
-                               -std::numeric_limits<float>::max(),
-                               -std::numeric_limits<float>::max());
-          bLeft.bmin = vfloat3(std::numeric_limits<float>::max(),
-                               std::numeric_limits<float>::max(),
-                               std::numeric_limits<float>::max());
-          bRight.bmax = vfloat3(-std::numeric_limits<float>::max(),
-                                -std::numeric_limits<float>::max(),
-                                -std::numeric_limits<float>::max());
-          bRight.bmin = vfloat3(std::numeric_limits<float>::max(),
-                                std::numeric_limits<float>::max(),
-                                std::numeric_limits<float>::max());
+          bLeft.bmax = SVector3f(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
+                                 -std::numeric_limits<float>::max());
+          bLeft.bmin = SVector3f(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
+                                 std::numeric_limits<float>::max());
+          bRight.bmax = SVector3f(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
+                                  -std::numeric_limits<float>::max());
+          bRight.bmin = SVector3f(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
+                                  std::numeric_limits<float>::max());
 
           for (int j = start; j <= pivot; j++) {
             auto idx = belonging[j];
@@ -184,10 +168,7 @@ void procBuildBvhNode(int size, BVHNode *root,
           auto lnc = pivot - start + 1;
           auto rcost = spRight * rnc;
           auto lcost = spLeft * lnc;
-          auto penaltyUnbalancedLeaf =
-              ((lnc <= 1 && rnc > 2) || (rnc <= 1 && lnc > 2))
-                  ? unbalancedLeafPenalty
-                  : 0.0f;
+          auto penaltyUnbalancedLeaf = ((lnc <= 1 && rnc > 2) || (rnc <= 1 && lnc > 2)) ? unbalancedLeafPenalty : 0.0f;
           auto cost = lcost + rcost + penaltyUnbalancedLeaf;
 
           if (cost < minCost && !std::isnan(lcost) && !std::isnan(rcost)) {
@@ -201,8 +182,7 @@ void procBuildBvhNode(int size, BVHNode *root,
       if (bestAxis == -1) {
         pivot = -2;
       } else {
-        pivot = procFindSplit(start, start + node->elementSize - 1, bestAxis,
-                              bestPivot, centers, belonging);
+        pivot = procFindSplit(start, start + node->elementSize - 1, bestAxis, bestPivot, centers, belonging);
       }
     }
 
@@ -211,10 +191,8 @@ void procBuildBvhNode(int size, BVHNode *root,
     node->left->elementSize = pivot - start + 1;
     node->right->elementSize = node->elementSize - node->left->elementSize;
 
-    bool isUnbalancedLeaf =
-        pivot > 0 &&
-        abs(node->left->elementSize - node->right->elementSize) > 2 &&
-        (node->left->elementSize <= 1 || node->right->elementSize <= 1);
+    bool isUnbalancedLeaf = pivot > 0 && abs(node->left->elementSize - node->right->elementSize) > 2 &&
+                            (node->left->elementSize <= 1 || node->right->elementSize <= 1);
     auto cA = (node->left->elementSize > 1 || node->right->elementSize > 1);
     auto cB = (node->left->elementSize == 1 && node->right->elementSize == 1);
 
@@ -236,53 +214,47 @@ void procBuildBvhNode(int size, BVHNode *root,
   ifritLog1("BVH Built, Total Nodes:", profNodes);
 }
 
-vfloat3 getElementCenterBLAS(int index, const std::vector<vfloat3> &data) {
+SVector3f getElementCenterBLAS(int index, const std::vector<SVector3f> &data) {
   using namespace Ifrit::Math;
-  vfloat3 v0 = (data)[index * 3];
-  vfloat3 v1 = (data)[index * 3 + 1];
-  vfloat3 v2 = (data)[index * 3 + 2];
+  SVector3f v0 = (data)[index * 3];
+  SVector3f v1 = (data)[index * 3 + 1];
+  SVector3f v2 = (data)[index * 3 + 2];
   BoundingBox bbox;
   bbox.bmin = min(min(v0, v1), v2);
   bbox.bmax = max(max(v0, v1), v2);
   return (bbox.bmin + bbox.bmax) * 0.5f;
 }
 
-BoundingBox getElementBboxBLAS(int index, const std::vector<vfloat3> &data) {
+BoundingBox getElementBboxBLAS(int index, const std::vector<SVector3f> &data) {
   using namespace Ifrit::Math;
-  vfloat3 v0 = (data)[index * 3];
-  vfloat3 v1 = (data)[index * 3 + 1];
-  vfloat3 v2 = (data)[index * 3 + 2];
+  SVector3f v0 = (data)[index * 3];
+  SVector3f v1 = (data)[index * 3 + 1];
+  SVector3f v2 = (data)[index * 3 + 2];
   BoundingBox bbox;
   bbox.bmin = min(min(v0, v1), v2);
   bbox.bmax = max(max(v0, v1), v2);
   return bbox;
 }
 
-BoundingBox getElementBboxTLAS(
-    int index,
-    const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data) {
+BoundingBox getElementBboxTLAS(int index, const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data) {
   auto x = data[index]->getRootBbox();
   return x;
 }
-vfloat3 getElementCenterTLAS(
-    int index,
-    const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data) {
+SVector3f getElementCenterTLAS(int index, const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data) {
   using namespace Ifrit::Math;
   auto bbox = data[index]->getRootBbox();
   auto cx = (bbox.bmax + bbox.bmin) * 0.5f;
   return cx;
 }
 
-void procBuildBvhTLAS(
-    std::unique_ptr<BVHNode> &root, int size, std::vector<BoundingBox> &bboxes,
-    std::vector<int> &indices, std::vector<vfloat3> &centers,
-    std::vector<int> &belonging,
-    const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data) {
+void procBuildBvhTLAS(std::unique_ptr<BVHNode> &root, int size, std::vector<BoundingBox> &bboxes,
+                      std::vector<int> &indices, std::vector<SVector3f> &centers, std::vector<int> &belonging,
+                      const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data) {
   root = std::make_unique<BVHNode>();
 
   bboxes = std::vector<BoundingBox>(size);
   indices = std::vector<int>(size);
-  centers = std::vector<vfloat3>(size);
+  centers = std::vector<SVector3f>(size);
   belonging = std::vector<int>(size);
   for (int i = 0; i < size; i++) {
     bboxes[i] = getElementBboxTLAS(i, data);
@@ -292,20 +264,20 @@ void procBuildBvhTLAS(
   root->elementSize = size;
   procBuildBvhNode(size, root.get(), bboxes, centers, belonging, indices);
 }
-inline RayHit procRayElementIntersectionBalwin(
-    const RayInternal &ray, int index, const std::vector<vfloat4> &tmat1,
-    const std::vector<vfloat4> &tmat2, const std::vector<vfloat4> &tmat3) {
+inline RayHit procRayElementIntersectionBalwin(const RayInternal &ray, int index, const std::vector<SVector4f> &tmat1,
+                                               const std::vector<SVector4f> &tmat2,
+                                               const std::vector<SVector4f> &tmat3) {
   RayHit rh;
   rh.id = -1;
   rh.t = std::numeric_limits<float>::max();
-  vfloat4 ro = vfloat4(ray.o, 1.0f);
-  vfloat4 rd = vfloat4(ray.r, 0.0f);
+  SVector4f ro = SVector4f(ray.o, 1.0f);
+  SVector4f rd = SVector4f(ray.r, 0.0f);
   float s = dot(tmat3[index], ro);
   float d = dot(tmat3[index], rd);
   float t = -s / d;
   if (t < 0)
     return rh;
-  vfloat4 p = fma(rd, t, ro);
+  SVector4f p = fma(rd, t, ro);
   p.w = 1;
   float u = dot(tmat1[index], p);
   float v = dot(tmat2[index], p);
@@ -317,25 +289,23 @@ inline RayHit procRayElementIntersectionBalwin(
   rh.t = t;
   return rh;
 }
-inline RayHit
-procRayElementIntersectionMoller(const RayInternal &ray, int index,
-                                 const std::vector<vfloat3> &data) {
+inline RayHit procRayElementIntersectionMoller(const RayInternal &ray, int index, const std::vector<SVector3f> &data) {
   RayHit proposal;
   proposal.id = -1;
   proposal.t = std::numeric_limits<float>::max();
-  vfloat3 v0 = data[index * 3];
-  vfloat3 e1 = data[index * 3 + 1];
-  vfloat3 e2 = data[index * 3 + 2];
-  vfloat3 p = cross(ray.r, e2);
+  SVector3f v0 = data[index * 3];
+  SVector3f e1 = data[index * 3 + 1];
+  SVector3f e2 = data[index * 3 + 2];
+  SVector3f p = cross(ray.r, e2);
   float det = dot(e1, p);
   using namespace Ifrit::Math;
   if (det > std::numeric_limits<float>::epsilon()) {
-    vfloat3 t = ray.o - v0;
+    SVector3f t = ray.o - v0;
     float u = dot(t, p);
     if (u < 0 || u > det) {
       return proposal;
     }
-    vfloat3 q = cross(t, e1);
+    SVector3f q = cross(t, e1);
     float v = dot(ray.r, q);
     if (v < 0 || u + v > det) {
       return proposal;
@@ -346,12 +316,12 @@ procRayElementIntersectionMoller(const RayInternal &ray, int index,
     proposal.t = dist / det;
     return proposal;
   } else if (det < -std::numeric_limits<float>::epsilon()) {
-    vfloat3 t = ray.o - v0;
+    SVector3f t = ray.o - v0;
     float u = dot(t, p);
     if (u > 0 || u < det) {
       return proposal;
     }
-    vfloat3 q = cross(t, e1);
+    SVector3f q = cross(t, e1);
     float v = dot(ray.r, q);
     if (v > 0 || u + v < det) {
       return proposal;
@@ -365,31 +335,28 @@ procRayElementIntersectionMoller(const RayInternal &ray, int index,
   return proposal;
 }
 
-inline RayHit procQueryRayIntersectionTLAS(
-    const RayInternal &ray, float tmin, float tmax,
-    const std::vector<int> &belonging, bool doRootBoxIgnore, BVHNode *root,
-    const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data)
-    IFRIT_AP_NOTHROW {
+inline RayHit
+procQueryRayIntersectionTLAS(const RayInternal &ray, float tmin, float tmax, const std::vector<int> &belonging,
+                             bool doRootBoxIgnore, BVHNode *root,
+                             const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data) IFRIT_AP_NOTHROW {
   return {};
 }
 } // namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer {
-void BoundingVolumeHierarchyBottomLevelAS::bufferData(
-    const std::vector<ifloat3> &vecData) {
-  this->data = std::vector<vfloat3>(vecData.size());
+void BoundingVolumeHierarchyBottomLevelAS::bufferData(const std::vector<Vector3f> &vecData) {
+  this->data = std::vector<SVector3f>(vecData.size());
   for (int i = 0; i < vecData.size(); i++) {
-    this->data[i] = vfloat3(vecData[i].x, vecData[i].y, vecData[i].z);
+    this->data[i] = SVector3f(vecData[i].x, vecData[i].y, vecData[i].z);
   }
   size = size_cast<int>(vecData.size()) / 3;
 }
-RayHit BoundingVolumeHierarchyBottomLevelAS::queryIntersection(
-    const RayInternal &ray, float tmin, float tmax) const {
+RayHit BoundingVolumeHierarchyBottomLevelAS::queryIntersection(const RayInternal &ray, float tmin, float tmax) const {
   using namespace Ifrit::Math;
   RayHit prop;
   prop.id = -1;
   prop.t = std::numeric_limits<float>::max();
-  constexpr auto dfsStackSize = Impl::maxDepth * 2 + 1;
+  IF_CONSTEXPR auto dfsStackSize = Impl::maxDepth * 2 + 1;
   std::tuple<BVHNode *, float> q[dfsStackSize];
   int qPos = 0;
 
@@ -444,7 +411,7 @@ void BoundingVolumeHierarchyBottomLevelAS::buildAccelerationStructure() {
 
   bboxes = std::vector<BoundingBox>(size);
   indices = std::vector<int>(size);
-  centers = std::vector<vfloat3>(size);
+  centers = std::vector<SVector3f>(size);
   belonging = std::vector<int>(size);
   for (int i = 0; i < size; i++) {
     bboxes[i] = Impl::getElementBboxBLAS(i, data);
@@ -461,52 +428,44 @@ void BoundingVolumeHierarchyBottomLevelAS::buildAccelerationStructure() {
   balwinTmat3.resize(size);
   for (int i = 0; i < size * 3; i += 3) {
     auto id = i / 3;
-    vfloat3 v0 = vfloat3(data[i]);
-    vfloat3 v1 = vfloat3(data[i + 1]);
-    vfloat3 v2 = vfloat3(data[i + 2]);
+    SVector3f v0 = SVector3f(data[i]);
+    SVector3f v1 = SVector3f(data[i + 1]);
+    SVector3f v2 = SVector3f(data[i + 2]);
     auto e1 = v1 - v0;
     auto e2 = v2 - v0;
     auto n = cross(e1, e2);
     auto an = abs(n);
     auto num = -dot(n, v0);
     if (an.x > an.y && an.x > an.z) {
-      balwinTmat1[id] =
-          vfloat4(0, e2.z, -e2.y, v2.y * v0.z - v2.z * v0.y) / n.x;
-      balwinTmat2[id] =
-          vfloat4(0, -e1.z, e1.y, v1.z * v0.y - v1.y * v0.z) / n.x;
-      balwinTmat3[id] = vfloat4(n.x, n.y, n.z, num) / n.x;
+      balwinTmat1[id] = SVector4f(0, e2.z, -e2.y, v2.y * v0.z - v2.z * v0.y) / n.x;
+      balwinTmat2[id] = SVector4f(0, -e1.z, e1.y, v1.z * v0.y - v1.y * v0.z) / n.x;
+      balwinTmat3[id] = SVector4f(n.x, n.y, n.z, num) / n.x;
     } else if (an.y > an.z) {
-      balwinTmat1[id] =
-          vfloat4(-e2.z, 0, e2.x, v2.z * v0.x - v2.x * v0.z) / n.y;
-      balwinTmat2[id] =
-          vfloat4(e1.z, 0, -e1.x, v1.x * v0.z - v1.z * v0.x) / n.y;
-      balwinTmat3[id] = vfloat4(n.x, n.y, n.z, num) / n.y;
+      balwinTmat1[id] = SVector4f(-e2.z, 0, e2.x, v2.z * v0.x - v2.x * v0.z) / n.y;
+      balwinTmat2[id] = SVector4f(e1.z, 0, -e1.x, v1.x * v0.z - v1.z * v0.x) / n.y;
+      balwinTmat3[id] = SVector4f(n.x, n.y, n.z, num) / n.y;
     } else {
-      balwinTmat1[id] =
-          vfloat4(e2.y, -e2.x, 0, v2.x * v0.y - v2.y * v0.x) / n.z;
-      balwinTmat2[id] =
-          vfloat4(-e1.y, e1.x, 0, v1.y * v0.x - v1.x * v0.y) / n.z;
-      balwinTmat3[id] = vfloat4(n.x, n.y, n.z, num) / n.z;
+      balwinTmat1[id] = SVector4f(e2.y, -e2.x, 0, v2.x * v0.y - v2.y * v0.x) / n.z;
+      balwinTmat2[id] = SVector4f(-e1.y, e1.x, 0, v1.y * v0.x - v1.x * v0.y) / n.z;
+      balwinTmat3[id] = SVector4f(n.x, n.y, n.z, num) / n.z;
     }
   }
 
   // Precompute edge
   for (int i = 0; i < size * 3; i += 3) {
-    vfloat3 v0 = vfloat3(data[i]);
-    vfloat3 v1 = vfloat3(data[i + 1]);
-    vfloat3 v2 = vfloat3(data[i + 2]);
+    SVector3f v0 = SVector3f(data[i]);
+    SVector3f v1 = SVector3f(data[i + 1]);
+    SVector3f v2 = SVector3f(data[i + 2]);
     data[i + 1] = v1 - v0;
     data[i + 2] = v2 - v0;
   }
 }
 
-void BoundingVolumeHierarchyTopLevelAS::bufferData(
-    const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data) {
+void BoundingVolumeHierarchyTopLevelAS::bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data) {
   this->data = data;
   this->size = size_cast<int>(data.size());
 }
-RayHit BoundingVolumeHierarchyTopLevelAS::queryIntersection(
-    const RayInternal &ray, float tmin, float tmax) const {
+RayHit BoundingVolumeHierarchyTopLevelAS::queryIntersection(const RayInternal &ray, float tmin, float tmax) const {
   using namespace Ifrit::Math;
   RayHit prop;
   prop.id = -1;
@@ -517,7 +476,7 @@ RayHit BoundingVolumeHierarchyTopLevelAS::queryIntersection(
   if (rootHit < 0) {
     return prop;
   }
-  constexpr auto dfsStackSize = Impl::maxDepth * 2 + 1;
+  IF_CONSTEXPR auto dfsStackSize = Impl::maxDepth * 2 + 1;
   std::tuple<BVHNode *, float> q[dfsStackSize];
   int qPos = 0;
 
@@ -575,29 +534,21 @@ void BoundingVolumeHierarchyTopLevelAS::buildAccelerationStructure() {
 
 int getProfileCnt() {
   return totalTime;
-  if constexpr (PROFILE_CNT) {
+  if IF_CONSTEXPR (PROFILE_CNT) {
     int v = Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::intersect;
-    int vv =
-        Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::validIntersect;
-    int bv =
-        Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::boxIntersect;
+    int vv = Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::validIntersect;
+    int bv = Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::boxIntersect;
     int er = Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::earlyReject;
-    int cv =
-        Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::competeIntersect;
-    printf("Total Intersect:%d, Valid Intersect:%d , Overtest Rate:%f\n", v, vv,
-           1.0f * vv / v);
+    int cv = Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::competeIntersect;
+    printf("Total Intersect:%d, Valid Intersect:%d , Overtest Rate:%f\n", v, vv, 1.0f * vv / v);
     printf("Compete Intersect:%d \n", cv);
-    printf("Total Box Intersect:%d Box/Triangle Ratio: %f\n", bv,
-           1.0f * bv / v);
+    printf("Total Box Intersect:%d Box/Triangle Ratio: %f\n", bv, 1.0f * bv / v);
     printf("Early Reject: %d\n\n", er);
 
     Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::intersect.store(0);
-    Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::competeIntersect
-        .store(0);
-    Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::validIntersect.store(
-        0);
-    Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::boxIntersect.store(
-        0);
+    Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::competeIntersect.store(0);
+    Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::validIntersect.store(0);
+    Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::boxIntersect.store(0);
     Ifrit::GraphicsBackend::SoftGraphics::Raytracer::Impl::earlyReject.store(0);
     return v;
   }

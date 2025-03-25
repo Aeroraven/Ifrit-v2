@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "RtShaders.h"
 #include "ifrit/softgraphics/core/data/Image.h"
@@ -26,19 +25,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer {
 struct TrivialRaytracerContext {
-  constexpr static int numThreads = 16;
+  IF_CONSTEXPR static int numThreads = 16;
 
-  constexpr static int tileWidth = 32;
-  constexpr static int tileHeight = 32;
-  constexpr static int tileDepth = 1;
-  constexpr static int maxDepth = 15;
+  IF_CONSTEXPR static int tileWidth = 32;
+  IF_CONSTEXPR static int tileHeight = 32;
+  IF_CONSTEXPR static int tileDepth = 1;
+  IF_CONSTEXPR static int maxDepth = 15;
 
   int numTileX, numTileY, numTileZ;
   int totalTiles;
 
-  std::unordered_map<
-      std::pair<int, int>, const void *,
-      Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::PairHash>
+  std::unordered_map<std::pair<int, int>, const void *, Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::PairHash>
       uniformMapping;
 
   // TODO: Shader binding table & Shader groups
@@ -54,7 +51,7 @@ struct TrivialRaytracerContext {
 
   const BoundingVolumeHierarchyTopLevelAS *accelerationStructure;
 
-  iint3 traceRegion;
+  Vector3i traceRegion;
 
   Ifrit::GraphicsBackend::SoftGraphics::Core::Data::ImageF32 *testImage;
 };

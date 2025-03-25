@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/shadervm/spirvvec/SpvMdShader.h"
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec {
@@ -123,16 +122,16 @@ IFRIT_HOST void SpvVecFragmentShader::executeInQuad(const void **varyings,
     for (int i = 0; i < sISize; i++) {
       auto sA = refSIT[i];
       auto sC = ptrSCT + i;
-      *((ifloat4 *)sA) = *((ifloat4 *)sC);
+      *((Vector4f *)sA) = *((Vector4f *)sC);
     }
   }
   auto shaderEntry = (void (*)())this->symbolTables.entry;
   shaderEntry();
   for (int T = 0; T < SpVcQuadSize; T++) {
-    auto ptrColorOutputT = (ifloat4 *)colorOutput[T];
+    auto ptrColorOutputT = (Vector4f *)colorOutput[T];
     auto &refSOT = sO[T];
     for (int i = 0; i < sOSize; i++) {
-      *(ptrColorOutputT + i) = *((ifloat4 *)refSOT[i]);
+      *(ptrColorOutputT + i) = *((Vector4f *)refSOT[i]);
     }
   }
 }

@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/raytracer/TrivialRaytracer.h"
 #include "ifrit/softgraphics/engine/raytracer/TrivialRaytracerWorker.h"
 
@@ -86,7 +85,7 @@ void TrivialRaytracer::bindUniformBuffer(int binding, int set,
 }
 void TrivialRaytracer::traceRays(uint32_t width, uint32_t height,
                                  uint32_t depth) {
-  context->traceRegion = iint3(width, height, depth);
+  context->traceRegion = Vector3i(width, height, depth);
   context->numTileX = (width + context->tileWidth - 1) / context->tileWidth;
   context->numTileY = (height + context->tileHeight - 1) / context->tileHeight;
   context->numTileZ = (depth + context->tileDepth - 1) / context->tileDepth;

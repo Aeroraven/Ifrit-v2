@@ -26,12 +26,12 @@ union IFRIT_APIDECL VaryingStore {
   float vf;
   int vi;
   u32 vui;
-  ifloat2 vf2;
-  ifloat3 vf3;
-  ifloat4 vf4;
-  iint2 vi2;
-  iint3 vi3;
-  iint4 vi4;
-  iuint2 vui2;
+  Vector2f vf2;
+  Vector3f vf3;
+  Vector4f vf4;
+  Vector2i vi2;
+  Vector3i vi3;
+  Vector4i vi4;
+  Vector2u vui2;
 };
 } // namespace Ifrit::GraphicsBackend::SoftGraphics

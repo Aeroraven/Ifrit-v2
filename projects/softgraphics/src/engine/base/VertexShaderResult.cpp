@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/base/VertexShaderResult.h"
 
 namespace Ifrit::GraphicsBackend::SoftGraphics {
@@ -31,7 +30,7 @@ IFRIT_APIDECL VertexShaderResult::~VertexShaderResult() {
   delete this->context;
 }
 
-IFRIT_APIDECL ifloat4 *VertexShaderResult::getPositionBuffer() {
+IFRIT_APIDECL Vector4f *VertexShaderResult::getPositionBuffer() {
   return context->position.data();
 }
 IFRIT_APIDECL void VertexShaderResult::initializeVaryingBufferFromShader(
@@ -42,7 +41,7 @@ IFRIT_APIDECL void VertexShaderResult::initializeVaryingBufferFromShader(
 IFRIT_APIDECL void VertexShaderResult::setVertexCount(const uint32_t vcnt) {
   this->vertexCount = vcnt;
   for (auto &varying : context->varyings) {
-    varying.resize(vertexCount * sizeof(ifloat4));
+    varying.resize(vertexCount * sizeof(Vector4f));
     context->varyingDescriptors.resize(context->varyings.size());
   }
   context->position.resize(vertexCount);

@@ -40,16 +40,16 @@ Component::Component(Ref<SceneObject> parent) : m_parentObject(parent), m_parent
 IFRIT_APIDECL void SceneObject::initialize() { addComponent<Transform>(); }
 IFRIT_APIDECL SceneObject::SceneObject() { Ifrit::Common::Utility::generateUuid(m_id.m_uuid); }
 
-IFRIT_APIDECL float4x4 Transform::getModelToWorldMatrix() {
-  float4x4 model = identity();
+IFRIT_APIDECL Matrix4x4f Transform::getModelToWorldMatrix() {
+  Matrix4x4f model = identity4();
   model = matmul(scale3D(m_attributes.m_scale), model);
   model = matmul(eulerAngleToMatrix(m_attributes.m_rotation), model);
   model = matmul(translate3D(m_attributes.m_position), model);
   return model;
 }
 
-IFRIT_APIDECL float4x4 Transform::getModelToWorldMatrixLast() {
-  float4x4 model = identity();
+IFRIT_APIDECL Matrix4x4f Transform::getModelToWorldMatrixLast() {
+  Matrix4x4f model = identity4();
   model = matmul(scale3D(m_lastFrame.m_scale), model);
   model = matmul(eulerAngleToMatrix(m_lastFrame.m_rotation), model);
   model = matmul(translate3D(m_lastFrame.m_position), model);

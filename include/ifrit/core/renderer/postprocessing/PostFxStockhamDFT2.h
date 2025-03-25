@@ -31,7 +31,7 @@ class IFRIT_APIDECL PostFxStockhamDFT2 : public PostprocessPass {
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
 
   // I know this is UGLY
-  std::unordered_map<std::pair<u32, u32>, GPUTexture, Ifrit::Common::Utility::PairwiseHash<u32, u32>> m_tex1;
+  CustomHashMap<std::pair<u32, u32>, GPUTexture, Ifrit::Common::Utility::PairwiseHash<u32, u32>> m_tex1;
 
   ComputePass *m_testBlurPipeline = nullptr;
 

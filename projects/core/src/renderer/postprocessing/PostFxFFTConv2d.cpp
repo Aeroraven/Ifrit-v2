@@ -61,8 +61,8 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
   auto kenelPaddingXHi = imagePaddedX - imageX - kenelPaddingXLo;
   auto kenelPaddingYHi = imagePaddedY - imageY - kenelPaddingYLo;
 
-  using Ifrit::Math::FastUtil::qclz;
-  using Ifrit::Math::FastUtil::qlog2;
+  using Ifrit::Math::qclz;
+  using Ifrit::Math::qlog2;
   auto logP2Width = 32 - qclz(imagePaddedX - 1);
   auto logP2Height = 32 - qclz(imagePaddedY - 1);
 
@@ -166,8 +166,7 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
       cmd->beginScope("Postprocess: FFTConv2D, GaussianBlur");
       m_gaussianPipeline->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
         cmd->setPushConst(m_gaussianPipeline, 0, 4 * sizeof(u32), &pcb);
-        ctx->m_cmd->dispatch(Ifrit::Math::ConstFunc::divRoundUp(p2Width, 8),
-                             Ifrit::Math::ConstFunc::divRoundUp(p2Height, 8), 1);
+        ctx->m_cmd->dispatch(Ifrit::Math::divRoundUp(p2Width, 8), Ifrit::Math::divRoundUp(p2Height, 8), 1);
       });
       m_gaussianPipeline->run(cmd, 0);
       cmd->globalMemoryBarrier();
@@ -179,7 +178,7 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
     iError("FFTConv2d: Image size must be square");
     return;
   }
-  auto wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Width / 2, FFTConv2DConfig::cThreadGroupSizeX);
+  auto wgX = Ifrit::Math::divRoundUp(p2Width / 2, FFTConv2DConfig::cThreadGroupSizeX);
   auto wgY = p2Height;
   cmd->beginScope("Postprocess: FFTConv2D");
   const char *scopeNames[7] = {
@@ -204,8 +203,8 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
   }
 
   cmd->beginScope("Postprocess: FFTConv2D, Upsample");
-  auto dwgX = Ifrit::Math::ConstFunc::divRoundUp(srcWidth, 8);
-  auto dwgY = Ifrit::Math::ConstFunc::divRoundUp(srcHeight, 8);
+  auto dwgX = Ifrit::Math::divRoundUp(srcWidth, 8);
+  auto dwgY = Ifrit::Math::divRoundUp(srcHeight, 8);
   m_upsamplePipeline->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
     pc.tempImage = m_resMap[{p2Width, p2Height}].m_texTemp->getDescId();
     cmd->setPushConst(m_upsamplePipeline, 0, 17 * sizeof(u32), &pc);

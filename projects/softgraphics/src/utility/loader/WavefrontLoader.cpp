@@ -16,15 +16,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/utility/loader/WavefrontLoader.h"
 #include "ifrit/common/math/VectorOps.h"
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::Utility::Loader {
-std::vector<ifloat2> WavefrontLoader::remapUVs(std::vector<ifloat2> uvs,
-                                               std::vector<uint32_t> indices,
-                                               int numVertices) {
-  std::vector<ifloat2> retNormals;
+std::vector<Vector2f> WavefrontLoader::remapUVs(std::vector<Vector2f> uvs,
+                                                std::vector<uint32_t> indices,
+                                                int numVertices) {
+  std::vector<Vector2f> retNormals;
   std::vector<int> counters;
   retNormals.clear();
   counters.clear();
@@ -43,11 +42,11 @@ std::vector<ifloat2> WavefrontLoader::remapUVs(std::vector<ifloat2> uvs,
   }
   return retNormals;
 }
-std::vector<ifloat3>
-WavefrontLoader::remapNormals(std::vector<ifloat3> normals,
+std::vector<Vector3f>
+WavefrontLoader::remapNormals(std::vector<Vector3f> normals,
                               std::vector<uint32_t> indices, int numVertices) {
   using namespace Ifrit::Math;
-  std::vector<ifloat3> retNormals;
+  std::vector<Vector3f> retNormals;
   std::vector<int> counters;
   retNormals.clear();
   counters.clear();
@@ -71,9 +70,9 @@ WavefrontLoader::remapNormals(std::vector<ifloat3> normals,
   return retNormals;
 }
 void WavefrontLoader::loadObject(const char *path,
-                                 std::vector<ifloat3> &vertices,
-                                 std::vector<ifloat3> &normals,
-                                 std::vector<ifloat2> &uvs,
+                                 std::vector<Vector3f> &vertices,
+                                 std::vector<Vector3f> &normals,
+                                 std::vector<Vector2f> &uvs,
                                  std::vector<uint32_t> &indices) {
 
   // This section is auto-generated from Copilot
@@ -87,15 +86,15 @@ void WavefrontLoader::loadObject(const char *path,
     iss >> type;
 
     if (type == "v") {
-      ifloat3 vertex;
+      Vector3f vertex;
       iss >> vertex.x >> vertex.y >> vertex.z;
       vertices.push_back(vertex);
     } else if (type == "vn") {
-      ifloat3 normal;
+      Vector3f normal;
       iss >> normal.x >> normal.y >> normal.z;
       normals.push_back(normal);
     } else if (type == "vt") {
-      ifloat2 uv;
+      Vector2f uv;
       iss >> uv.x >> uv.y;
       uvs.push_back(uv);
     } else if (type == "f") {

@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
@@ -29,7 +28,7 @@ int getProfileCnt();
 namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer {
 
 struct BoundingBox {
-  Ifrit::Math::SIMD::vfloat3 bmin, bmax;
+  Ifrit::Math::SIMD::SVector3f bmin, bmax;
 };
 
 struct BVHNode {
@@ -41,22 +40,21 @@ struct BVHNode {
 
 class IFRIT_APIDECL BoundingVolumeHierarchyBottomLevelAS {
 private:
-  std::vector<Ifrit::Math::SIMD::vfloat3> data;
+  std::vector<Ifrit::Math::SIMD::SVector3f> data;
   std::unique_ptr<BVHNode> root;
   std::vector<BoundingBox> bboxes;
-  std::vector<Ifrit::Math::SIMD::vfloat3> centers;
+  std::vector<Ifrit::Math::SIMD::SVector3f> centers;
   std::vector<int> belonging;
   std::vector<int> indices;
   int size;
 
-  std::vector<Ifrit::Math::SIMD::vfloat4> balwinTmat1, balwinTmat2, balwinTmat3;
+  std::vector<Ifrit::Math::SIMD::SVector4f> balwinTmat1, balwinTmat2, balwinTmat3;
 
 public:
   BoundingVolumeHierarchyBottomLevelAS() = default;
   ~BoundingVolumeHierarchyBottomLevelAS() = default;
-  void bufferData(const std::vector<ifloat3> &data);
-  RayHit queryIntersection(const RayInternal &ray, float tmin,
-                           float tmax) const;
+  void bufferData(const std::vector<Vector3f> &data);
+  RayHit queryIntersection(const RayInternal &ray, float tmin, float tmax) const;
   void buildAccelerationStructure();
 
   inline BoundingBox getRootBbox() { return root->bbox; }
@@ -67,7 +65,7 @@ private:
   std::vector<BoundingVolumeHierarchyBottomLevelAS *> data;
   std::unique_ptr<BVHNode> root;
   std::vector<BoundingBox> bboxes;
-  std::vector<Ifrit::Math::SIMD::vfloat3> centers;
+  std::vector<Ifrit::Math::SIMD::SVector3f> centers;
   std::vector<int> belonging;
   std::vector<int> indices;
   int size;
@@ -75,10 +73,8 @@ private:
 public:
   BoundingVolumeHierarchyTopLevelAS() = default;
   ~BoundingVolumeHierarchyTopLevelAS() = default;
-  void
-  bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data);
-  RayHit queryIntersection(const RayInternal &ray, float tmin,
-                           float tmax) const;
+  void bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS *> &data);
+  RayHit queryIntersection(const RayInternal &ray, float tmin, float tmax) const;
   void buildAccelerationStructure();
 };
 } // namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer

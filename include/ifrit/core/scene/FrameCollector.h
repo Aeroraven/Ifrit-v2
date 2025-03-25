@@ -32,27 +32,27 @@ namespace Ifrit::Core {
 // It's renderer-specific and should be moved to the renderer.
 
 struct PerFramePerViewData {
-  float4x4 m_worldToView;
-  float4x4 m_perspective;
-  float4x4 m_worldToClip;
-  float4x4 m_inversePerspective;
-  float4x4 m_clipToWorld;
-  float4x4 m_viewToWorld;
-  ifloat4 m_cameraPosition;
-  ifloat4 m_cameraFront;
-  float m_renderWidthf;
-  float m_renderHeightf;
-  float m_cameraNear;
-  float m_cameraFar;
-  float m_cameraFovX;
-  float m_cameraFovY;
-  float m_cameraAspect;
-  float m_cameraOrthoSize;
-  float m_hizLods;
-  float m_viewCameraType; // 0: perspective, 1: ortho
+  Matrix4x4f m_worldToView;
+  Matrix4x4f m_perspective;
+  Matrix4x4f m_worldToClip;
+  Matrix4x4f m_inversePerspective;
+  Matrix4x4f m_clipToWorld;
+  Matrix4x4f m_viewToWorld;
+  Vector4f m_cameraPosition;
+  Vector4f m_cameraFront;
+  f32 m_renderWidthf;
+  f32 m_renderHeightf;
+  f32 m_cameraNear;
+  f32 m_cameraFar;
+  f32 m_cameraFovX;
+  f32 m_cameraFovY;
+  f32 m_cameraAspect;
+  f32 m_cameraOrthoSize;
+  f32 m_hizLods;
+  f32 m_viewCameraType; // 0: perspective, 1: ortho
 
-  float m_cullCamOrthoSizeX;
-  float m_cullCamOrthoSizeY;
+  f32 m_cullCamOrthoSizeX;
+  f32 m_cullCamOrthoSizeY;
 };
 
 struct PerObjectData {
@@ -97,8 +97,8 @@ struct ShadowMappingData {
     std::array<u32, 4> m_texRef;
 
     std::array<u32, 4> m_viewMapping;
-    std::array<float, 4> m_csmStart;
-    std::array<float, 4> m_csmEnd;
+    std::array<f32, 4> m_csmStart;
+    std::array<f32, 4> m_csmEnd;
     u32 m_csmSplits;
   };
   Vec<SingleShadowView> m_shadowViews;
@@ -249,12 +249,12 @@ struct PerFrameData {
     u32 m_fsrFrameId = 0;
   };
 
-  constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat c_visibilityFormat =
+  IF_CONSTEXPR static Ifrit::GraphicsBackend::Rhi::RhiImageFormat c_visibilityFormat =
       Ifrit::GraphicsBackend::Rhi::RhiImageFormat::RhiImgFmt_R32_UINT;
 
-  std::unordered_set<u32> m_enabledEffects;
+  HashSet<u32> m_enabledEffects;
   Vec<PerShaderEffectData> m_shaderEffectData;
-  std::unordered_map<ShaderEffect, u32, ShaderEffectHash> m_shaderEffectMap;
+  CustomHashMap<ShaderEffect, u32, ShaderEffectHash> m_shaderEffectMap;
   PerShaderEffectData m_allInstanceData;
 
   // Per view data. Here for simplicity, assume 0 is the primary view
@@ -285,14 +285,14 @@ struct PerFrameData {
 
   // For history
   u32 m_frameId = 0;
-  float m_frameTimestamp[2] = {0.0f, 0.0f};
+  f32 m_frameTimestamp[2] = {0.0f, 0.0f};
 
   // TAA
   Vec<PerFrameRenderTargets> m_taaHistory;
   GPUTexture m_taaUnresolved = nullptr;
   GPUBindlessRef *m_taaHistoryDesc = nullptr;
-  float m_taaJitterX = 0.0f;
-  float m_taaJitterY = 0.0f;
+  f32 m_taaJitterX = 0.0f;
+  f32 m_taaJitterY = 0.0f;
 
   // FSR2
   FSR2ExtraData m_fsr2Data;
@@ -300,7 +300,7 @@ struct PerFrameData {
   // Atmosphere
   Ref<void> m_atmosphereData = nullptr;
   GPUTexture m_atmoOutput;
-  ifloat4 m_sunDir;
+  Vector4f m_sunDir;
 
   // Shadow mapping
   ShadowMappingData m_shadowData2;

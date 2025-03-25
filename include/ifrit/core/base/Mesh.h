@@ -39,26 +39,26 @@ struct MeshData {
     u32 triangleOffset;
     u32 vertexCount;
     u32 triangleCount;
-    ifloat4 normalConeAxisCutoff;
-    ifloat4 normalConeApex;
-    ifloat4 boundSphere;
-    ifloat4 selfErrorSphere;
+    Vector4f normalConeAxisCutoff;
+    Vector4f normalConeApex;
+    Vector4f boundSphere;
+    Vector4f selfErrorSphere;
   };
   String identifier;
 
-  Vec<ifloat3> m_vertices;
-  Vec<ifloat4> m_verticesAligned;
-  Vec<ifloat3> m_normals;
-  Vec<ifloat4> m_normalsAligned;
-  Vec<ifloat2> m_uvs;
-  Vec<ifloat4> m_tangents;
+  Vec<Vector3f> m_vertices;
+  Vec<Vector4f> m_verticesAligned;
+  Vec<Vector3f> m_normals;
+  Vec<Vector4f> m_normalsAligned;
+  Vec<Vector2f> m_uvs;
+  Vec<Vector4f> m_tangents;
   Vec<u32> m_indices;
 
   // Cluster data
   Vec<MeshletData> m_meshlets;
-  Vec<ifloat4> m_normalsCone;
-  Vec<ifloat4> m_normalsConeApex;
-  Vec<ifloat4> m_boundSphere;
+  Vec<Vector4f> m_normalsCone;
+  Vec<Vector4f> m_normalsConeApex;
+  Vec<Vector4f> m_boundSphere;
   Vec<u32> m_meshletTriangles;
   Vec<u32> m_meshletVertices;
   Vec<u32> m_meshletInClusterGroup;
@@ -76,9 +76,9 @@ struct MeshData {
 };
 
 struct MeshInstanceTransform {
-  float4x4 model;
-  float4x4 invModel;
-  float maxScale;
+  Matrix4x4f model;
+  Matrix4x4f invModel;
+  f32 maxScale;
 };
 
 class IFRIT_APIDECL Mesh : public AssetReferenceContainer, public IAssetCompatible {
@@ -87,7 +87,7 @@ class IFRIT_APIDECL Mesh : public AssetReferenceContainer, public IAssetCompatib
 
 public:
   struct GPUObjectBuffer {
-    ifloat4 boundingSphere;
+    Vector4f boundingSphere;
     u32 vertexBufferId;
     u32 normalBufferId;
     u32 tangentBufferId;
@@ -174,7 +174,7 @@ public:
   }
   // TODO: static method
   virtual void createMeshLodHierarchy(std::shared_ptr<MeshData> meshData, const String &cachePath);
-  virtual ifloat4 getBoundingSphere(const Vec<ifloat3> &vertices);
+  virtual Vector4f getBoundingSphere(const Vec<Vector3f> &vertices);
 
   IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
 };

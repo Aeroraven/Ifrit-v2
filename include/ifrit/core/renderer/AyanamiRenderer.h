@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit::GraphicsBackend::Rhi;
 using Ifrit::Common::Utility::size_cast;
-using Ifrit::Math::ConstFunc::divRoundUp;
+using Ifrit::Math::divRoundUp;
 
 namespace Ifrit::Core {
 
@@ -52,10 +52,10 @@ class IFRIT_APIDECL AyanamiRenderer : public RendererBase {
 
   // Perframe data maintained by the renderer, this is unsafe
   // This will be dropped in the future
-  std::unordered_map<Scene *, PerFrameData> m_perScenePerframe;
+  HashMap<Scene *, PerFrameData> m_perScenePerframe;
 
 private:
-  std::unique_ptr<SyaroRenderer> m_gbufferRenderer;
+  Uref<SyaroRenderer> m_gbufferRenderer;
   AyanamiRendererResources *m_resources = nullptr;
 
 private:
@@ -71,7 +71,7 @@ public:
   virtual ~AyanamiRenderer();
   virtual std::unique_ptr<GPUCommandSubmission> render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
                                                        const RendererConfig &config,
-                                                       const std::vector<GPUCommandSubmission *> &cmdToWait) override;
+                                                       const Vec<GPUCommandSubmission *> &cmdToWait) override;
 };
 
 } // namespace Ifrit::Core

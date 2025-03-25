@@ -65,7 +65,7 @@ public:
                                   const Array<f32, 4> &val) const = 0;
   virtual void resourceBarrier(const Vec<RhiResourceBarrier> &barriers) const = 0;
   virtual void globalMemoryBarrier() const = 0;
-  virtual void beginScope(const std::string &name) const = 0;
+  virtual void beginScope(const String &name) const = 0;
   virtual void endScope() const = 0;
   virtual void copyImage(const RhiTexture *src, RhiImageSubResource srcSub, const RhiTexture *dst,
                          RhiImageSubResource dstSub) const = 0;

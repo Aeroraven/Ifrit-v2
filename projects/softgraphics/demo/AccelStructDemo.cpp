@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "AccelStructDemo.h"
 #include "engine/comllvmrt/WrappedLLVMRuntime.h"
 #include "engine/raytracer/RtShaders.h"
@@ -52,13 +51,12 @@ namespace Ifrit::Demo::AccelStructDemo {
 static std::shared_ptr<ImageF32> image;
 
 struct Payload {
-  ifloat4 color;
+  Vector4f color;
 };
 
 class DemoRayGen : public RayGenShader {
 public:
-  IFRIT_DUAL virtual void execute(const iint3 &inputInvocation,
-                                  const iint3 &dimension, void *context) {
+  IFRIT_DUAL virtual void execute(const Vector3i &inputInvocation, const Vector3i &dimension, void *context) {
     float dx = 1.0f * inputInvocation.x / dimension.x;
     float dy = 1.0f * inputInvocation.y / dimension.y;
     float dz = 1.0f * inputInvocation.z / dimension.z;
@@ -66,15 +64,12 @@ public:
     float ry = 0.25f * dy - 0.125f + 0.1f;
     float rz = -1.0f;
     Payload payload;
-    ifritShaderOps_Raytracer_TraceRay({rx, ry, rz}, 0, 0, 0, 0, 0, 0, 0.001f,
-                                      {0.0f, 0.0f, 1.0f}, 900000.0f, &payload,
+    ifritShaderOps_Raytracer_TraceRay({rx, ry, rz}, 0, 0, 0, 0, 0, 0, 0.001f, {0.0f, 0.0f, 1.0f}, 900000.0f, &payload,
                                       context);
-    image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x,
-                         payload.color.y, payload.color.z, payload.color.w);
+    image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y, payload.color.z,
+                         payload.color.w);
   }
-  IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() {
-    return std::make_unique<DemoRayGen>();
-  }
+  IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() { return std::make_unique<DemoRayGen>(); }
 };
 
 class DemoClosetHit : public CloseHitShader {
@@ -82,8 +77,7 @@ private:
   void *payload;
 
 public:
-  IFRIT_DUAL virtual void execute(const RayHit &hitAttribute,
-                                  const RayInternal &ray, void *context) {
+  IFRIT_DUAL virtual void execute(const RayHit &hitAttribute, const RayInternal &ray, void *context) {
     auto p = reinterpret_cast<Payload *>(payload);
     p->color = {1.0f, 0.0f, 0.0f, 1.0f};
   }
@@ -97,9 +91,7 @@ public:
       payload = execStack.back().payloadPtr;
     }
   }
-  IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy() {
-    return std::make_unique<DemoClosetHit>();
-  }
+  IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy() { return std::make_unique<DemoClosetHit>(); }
 };
 
 class DemoMiss : public MissShader {
@@ -122,20 +114,18 @@ public:
     }
   }
 
-  IFRIT_HOST virtual std::unique_ptr<MissShader> getThreadLocalCopy() {
-    return std::make_unique<DemoMiss>();
-  }
+  IFRIT_HOST virtual std::unique_ptr<MissShader> getThreadLocalCopy() { return std::make_unique<DemoMiss>(); }
 };
 
 int mainCpu() {
   using namespace Ifrit::SoftRenderer::ShaderVM::Spirv;
 
   WavefrontLoader loader;
-  std::vector<ifloat3> posRaw;
-  std::vector<ifloat3> normal;
-  std::vector<ifloat2> uv;
+  std::vector<Vector3f> posRaw;
+  std::vector<Vector3f> normal;
+  std::vector<Vector2f> uv;
   std::vector<uint32_t> index;
-  std::vector<ifloat3> procNormal;
+  std::vector<Vector3f> procNormal;
 
   loader.loadObject(IFRIT_ASSET_PATH "/bunny.obj", posRaw, normal, uv, index);
 
@@ -144,7 +134,7 @@ int mainCpu() {
   for (int i = 0; i < index.size(); i += 3) {
     indexBuffer[i / 3] = index[i];
   }
-  std::vector<ifloat3> pos;
+  std::vector<Vector3f> pos;
   for (int i = 0; i < indexBuffer.size(); i++) {
     pos.push_back(posRaw[indexBuffer[i]]);
   }
@@ -158,17 +148,15 @@ int mainCpu() {
   tlas.bufferData(blasArray);
   tlas.buildAccelerationStructure();
 
-  std::shared_ptr<TrivialRaytracer> raytracer =
-      std::make_shared<TrivialRaytracer>();
+  std::shared_ptr<TrivialRaytracer> raytracer = std::make_shared<TrivialRaytracer>();
   raytracer->init();
   raytracer->bindAccelerationStructure(&tlas);
 
-  constexpr int DEMO_RESOLUTION = 1024;
+  IF_CONSTEXPR int DEMO_RESOLUTION = 1024;
   image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
   raytracer->bindTestImage(image.get());
 
-  std::shared_ptr<TrivialBufferManager> bufferman =
-      std::make_shared<TrivialBufferManager>();
+  std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
   bufferman->init();
 
   auto imageptrv = image.get();
@@ -179,12 +167,9 @@ int mainCpu() {
   SpvVMReader reader;
   WrappedLLVMRuntimeBuilder builder;
 
-  auto rgenCode =
-      reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rgen.spv");
-  auto rmissCode =
-      reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rmiss.spv");
-  auto rchitCode =
-      reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rchit.spv");
+  auto rgenCode = reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rgen.spv");
+  auto rmissCode = reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rmiss.spv");
+  auto rchitCode = reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rchit.spv");
 
 #if 1
   SpvRaygenShader raygen(builder, rgenCode);
@@ -206,19 +191,14 @@ int mainCpu() {
   windowProvider.setTitle("Ifrit-v2 CPU Multithreading");
 
   OpenGLBackend backend;
-  backend.setViewport(0, 0, windowProvider.getWidth(),
-                      windowProvider.getHeight());
+  backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
 
   ifritLog1("Start");
   windowProvider.loop([&](int *coreTime) {
-    std::chrono::high_resolution_clock::time_point start =
-        std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
     raytracer->traceRays(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
-    std::chrono::high_resolution_clock::time_point end =
-        std::chrono::high_resolution_clock::now();
-    *coreTime =
-        (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-            .count();
+    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+    *coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     backend.updateTexture(*image);
     backend.draw();
   });
@@ -231,11 +211,11 @@ int mainCpuSpirv() {
     float ps;
     cin >> ps;
     auto stTime2 = std::chrono::high_resolution_clock::now();
-    auto src2 = ifloat3(0.0f, 0.0f, 0.0f);
-    auto a2 = ifloat3(1.0f, ps, 1.0f);
-    auto b2 = ifloat3(ps, 2.0f, 1.0f);
-    auto c2 = ifloat3(1.0, 1.0, 1.0f);
-    auto d2 = ifloat3(1.0, 1.0, 1.0f);
+    auto src2 = Vector3f(0.0f, 0.0f, 0.0f);
+    auto a2 = Vector3f(1.0f, ps, 1.0f);
+    auto b2 = Vector3f(ps, 2.0f, 1.0f);
+    auto c2 = Vector3f(1.0, 1.0, 1.0f);
+    auto d2 = Vector3f(1.0, 1.0, 1.0f);
     for (long long i = 0; i < 8000000000; i++) {
       if (i % 2 == 0) {
         src2 += cross(a2, b2) * c2 + d2;
@@ -244,22 +224,17 @@ int mainCpuSpirv() {
       }
     }
     auto edTime2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Normal Time: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 -
-                                                                       stTime2)
-                     .count()
+    std::cout << "Normal Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count()
               << std::endl;
-    auto normalTime =
-        std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2)
-            .count();
+    auto normalTime = std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count();
     printf("%f %f %f\n", src2.x, src2.y, src2.z);
 
     auto stTime = std::chrono::high_resolution_clock::now();
-    auto src = vfloat3(0.0f, 0.0f, 0.0f);
-    auto a = vfloat3(1.0f, ps, 1.0f);
-    auto b = vfloat3(ps, 2.0f, 1.0f);
-    auto c = vfloat3(1.0, 1.0, 1.0f);
-    auto d = vfloat3(1.0, 1.0, 1.0f);
+    auto src = SVector3f(0.0f, 0.0f, 0.0f);
+    auto a = SVector3f(1.0f, ps, 1.0f);
+    auto b = SVector3f(ps, 2.0f, 1.0f);
+    auto c = SVector3f(1.0, 1.0, 1.0f);
+    auto d = SVector3f(1.0, 1.0, 1.0f);
     for (long long i = 0; i < 8000000000; i++) {
       if (i % 2 == 0) {
         src += fma(cross(a, b), c, d);
@@ -268,14 +243,9 @@ int mainCpuSpirv() {
       }
     }
     auto edTime = std::chrono::high_resolution_clock::now();
-    std::cout << "SIMD Time: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(edTime -
-                                                                       stTime)
-                     .count()
+    std::cout << "SIMD Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(edTime - stTime).count()
               << std::endl;
-    auto simdTime =
-        std::chrono::duration_cast<std::chrono::milliseconds>(edTime - stTime)
-            .count();
+    auto simdTime = std::chrono::duration_cast<std::chrono::milliseconds>(edTime - stTime).count();
     printf("%f %f %f\n", src.x, src.y, src.z);
 
     printf("Speedup: %f\n", (float)normalTime / (float)simdTime);

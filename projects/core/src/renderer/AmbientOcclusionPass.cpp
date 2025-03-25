@@ -79,8 +79,8 @@ IFRIT_APIDECL void AmbientOcclusionPass::renderHBAO(const CommandBuffer *cmd, u3
   m_hbaoPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     using namespace Ifrit::Core::Shaders::AmbientOcclusionConfig;
     ctx->m_cmd->setPushConst(m_hbaoPass, 0, sizeof(HBAOPushConst), &pc);
-    u32 wgX = Ifrit::Math::ConstFunc::divRoundUp(width, cHBAOThreadGroupSizeX);
-    u32 wgY = Ifrit::Math::ConstFunc::divRoundUp(height, cHBAOThreadGroupSizeY);
+    u32 wgX = Ifrit::Math::divRoundUp(width, cHBAOThreadGroupSizeX);
+    u32 wgY = Ifrit::Math::divRoundUp(height, cHBAOThreadGroupSizeY);
     ctx->m_cmd->dispatch(wgX, wgY, 1);
   });
 
@@ -127,8 +127,8 @@ IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(const CommandBuffer *cmd, u3
     using namespace Ifrit::Core::Shaders::AmbientOcclusionConfig;
     ctx->m_cmd->setPushConst(m_ssgiPass, 0, sizeof(SSGIPushConst), &pc);
 
-    u32 wgX = Ifrit::Math::ConstFunc::divRoundUp(width, cSSGIThreadGroupSizeX);
-    u32 wgY = Ifrit::Math::ConstFunc::divRoundUp(height, cSSGIThreadGroupSizeY);
+    u32 wgX = Ifrit::Math::divRoundUp(width, cSSGIThreadGroupSizeX);
+    u32 wgY = Ifrit::Math::divRoundUp(height, cSSGIThreadGroupSizeY);
     ctx->m_cmd->dispatch(wgX, wgY, 1);
   });
   m_ssgiPass->run(cmd, 0);

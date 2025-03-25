@@ -28,17 +28,17 @@ struct AssembledTriangleRef {
   int vertexReferences[3];
 };
 
-constexpr auto tagbufferSizeX = TileRasterContext::tileWidth;
+IF_CONSTEXPR auto tagbufferSizeX = TileRasterContext::tileWidth;
 
 struct TagBufferContextVec2 {
   float x, y;
 };
 
 struct TagBufferContext {
-  Ifrit::Math::SIMD::vfloat3 tagBufferBary[tagbufferSizeX * tagbufferSizeX];
-  Ifrit::Math::SIMD::vfloat3 atpBx[tagbufferSizeX * tagbufferSizeX];
-  Ifrit::Math::SIMD::vfloat3 atpBy[tagbufferSizeX * tagbufferSizeX];
-  Ifrit::Math::SIMD::vfloat4 atpF1F2[tagbufferSizeX * tagbufferSizeX];
+  Ifrit::Math::SIMD::SVector3f tagBufferBary[tagbufferSizeX * tagbufferSizeX];
+  Ifrit::Math::SIMD::SVector3f atpBx[tagbufferSizeX * tagbufferSizeX];
+  Ifrit::Math::SIMD::SVector3f atpBy[tagbufferSizeX * tagbufferSizeX];
+  Ifrit::Math::SIMD::SVector4f atpF1F2[tagbufferSizeX * tagbufferSizeX];
   TagBufferContextVec2 atpF3[tagbufferSizeX * tagbufferSizeX];
   int valid[tagbufferSizeX * tagbufferSizeX];
 };
@@ -62,10 +62,10 @@ private:
   std::unique_ptr<std::thread> execWorker;
   std::shared_ptr<TileRasterContext> context;
 
-  std::vector<Ifrit::Math::SIMD::vfloat4> interpolatedVaryings;
+  std::vector<Ifrit::Math::SIMD::SVector4f> interpolatedVaryings;
   std::vector<const void *> interpolatedVaryingsAddr;
 
-  std::vector<ifloat4> colorOutput = std::vector<ifloat4>(1);
+  std::vector<Vector4f> colorOutput = std::vector<Vector4f>(1);
   std::vector<AssembledTriangleProposal> generatedTriangle;
 
   // Hold Cache
@@ -94,14 +94,14 @@ protected:
   void drawCallWithClear() IFRIT_AP_NOTHROW;
   void release();
 
-  bool triangleFrustumClip(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2, Ifrit::Math::SIMD::vfloat4 v3,
-                           Ifrit::Math::SIMD::vfloat4 &bbox) IFRIT_AP_NOTHROW;
-  u32 triangleHomogeneousClip(const int primitiveId, Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2,
-                              Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
-  bool triangleCulling(Ifrit::Math::SIMD::vfloat4 v1, Ifrit::Math::SIMD::vfloat4 v2,
-                       Ifrit::Math::SIMD::vfloat4 v3) IFRIT_AP_NOTHROW;
+  bool triangleFrustumClip(Ifrit::Math::SIMD::SVector4f v1, Ifrit::Math::SIMD::SVector4f v2,
+                           Ifrit::Math::SIMD::SVector4f v3, Ifrit::Math::SIMD::SVector4f &bbox) IFRIT_AP_NOTHROW;
+  u32 triangleHomogeneousClip(const int primitiveId, Ifrit::Math::SIMD::SVector4f v1, Ifrit::Math::SIMD::SVector4f v2,
+                              Ifrit::Math::SIMD::SVector4f v3) IFRIT_AP_NOTHROW;
+  bool triangleCulling(Ifrit::Math::SIMD::SVector4f v1, Ifrit::Math::SIMD::SVector4f v2,
+                       Ifrit::Math::SIMD::SVector4f v3) IFRIT_AP_NOTHROW;
   void executeBinner(const int primitiveId, const AssembledTriangleProposalRasterStage &atp,
-                     Ifrit::Math::SIMD::vfloat4 bbox) IFRIT_AP_NOTHROW;
+                     Ifrit::Math::SIMD::SVector4f bbox) IFRIT_AP_NOTHROW;
 
   void vertexProcessing(TileRasterRenderer *renderer) IFRIT_AP_NOTHROW;
   void geometryProcessing(TileRasterRenderer *renderer) IFRIT_AP_NOTHROW;

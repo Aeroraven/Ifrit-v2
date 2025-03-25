@@ -45,14 +45,15 @@ IFRIT_APIDECL GraphicsBackend::Rhi::RhiGraphicsPass *
 createGraphicsPass(GraphicsBackend::Rhi::RhiBackend *rhi, const char *vsPath, const char *fsPath, u32 numBindlessDescs,
                    u32 numPushConsts, const GraphicsBackend::Rhi::RhiRenderTargetsFormat &vFmts);
 
-IFRIT_APIDECL void
-enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandList *cmd, GraphicsBackend::Rhi::RhiBackend *rhi,
-                      GraphicsBackend::Rhi::RhiGraphicsPass *pass, GraphicsBackend::Rhi::RhiRenderTargets *rt,
-                      const std::vector<GraphicsBackend::Rhi::RhiBindlessDescriptorRef *> &vBindlessDescs,
-                      const void *pPushConst, u32 numPushConsts);
+IFRIT_APIDECL void enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandList *cmd,
+                                         GraphicsBackend::Rhi::RhiBackend *rhi,
+                                         GraphicsBackend::Rhi::RhiGraphicsPass *pass,
+                                         GraphicsBackend::Rhi::RhiRenderTargets *rt,
+                                         const Vec<GraphicsBackend::Rhi::RhiBindlessDescriptorRef *> &vBindlessDescs,
+                                         const void *pPushConst, u32 numPushConsts);
 
 IFRIT_APIDECL void warpRenderTargets(GraphicsBackend::Rhi::RhiBackend *rhi, GraphicsBackend::Rhi::RhiTexture *vTex,
-                                     std::shared_ptr<GraphicsBackend::Rhi::RhiColorAttachment> &vCA,
-                                     std::shared_ptr<GraphicsBackend::Rhi::RhiRenderTargets> &vRT);
+                                     Ref<GraphicsBackend::Rhi::RhiColorAttachment> &vCA,
+                                     Ref<GraphicsBackend::Rhi::RhiRenderTargets> &vRT);
 
 } // namespace Ifrit::Core::RenderingUtil

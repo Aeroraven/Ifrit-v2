@@ -79,6 +79,6 @@ public:
 
   /* DLL Compatible */
   void setLayoutCompatible(const TypeDescriptor *layouts, int num);
-  void setValueFloat4Compatible(const int index, const int attribute, const ifloat4 value);
+  void setValueFloat4Compatible(const int index, const int attribute, const Vector4f value);
 };
 } // namespace Ifrit::GraphicsBackend::SoftGraphics

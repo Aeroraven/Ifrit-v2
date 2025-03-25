@@ -49,13 +49,13 @@ public:
   // == mesh shader ==
   MeshShader *meshShader = nullptr;
   TaskShader *taskShader = nullptr;
-  iint3 meshShaderBlockSize;
+  Vector3i meshShaderBlockSize;
   int meshShaderAttributCnt;
   int meshShaderNumWorkGroups;
 
   // == scissor test ==
   bool scissorTestEnable = false;
-  std::vector<ifloat4> scissorAreas;
+  std::vector<Vector4f> scissorAreas;
 
   // == blend state ==
   IfritColorAttachmentBlendState blendState;

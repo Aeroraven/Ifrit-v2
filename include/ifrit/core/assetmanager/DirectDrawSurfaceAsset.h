@@ -38,10 +38,10 @@ private:
   IApplication *m_app;
 
 public:
-  constexpr static const char *IMPORTER_NAME = "DirectDrawSurfaceAssetImporter";
+  IF_CONSTEXPR static const char *IMPORTER_NAME = "DirectDrawSurfaceAssetImporter";
   DirectDrawSurfaceAssetImporter(AssetManager *manager) : AssetImporter(manager), m_app(manager->getApplication()) {}
   void processMetadata(AssetMetadata &metadata) override;
   void importAsset(const std::filesystem::path &path, AssetMetadata &metadata) override;
-  std::vector<std::string> getSupportedExtensionNames() override;
+  Vec<String> getSupportedExtensionNames() override;
 };
 } // namespace Ifrit::Core

@@ -209,9 +209,9 @@ public:
 };
 
 struct TransformAttribute {
-  ifloat3 m_position = ifloat3{0.0f, 0.0f, 0.0f};
-  ifloat3 m_rotation = ifloat3{0.0f, 0.0f, 0.0f};
-  ifloat3 m_scale = ifloat3{1.0f, 1.0f, 1.0f};
+  Vector3f m_position = Vector3f{0.0f, 0.0f, 0.0f};
+  Vector3f m_rotation = Vector3f{0.0f, 0.0f, 0.0f};
+  Vector3f m_scale = Vector3f{1.0f, 1.0f, 1.0f};
 
   IFRIT_STRUCT_SERIALIZE(m_position, m_rotation, m_scale);
 };
@@ -247,20 +247,20 @@ public:
   }
 
   // getters
-  inline ifloat3 getPosition() const { return m_attributes.m_position; }
-  inline ifloat3 getRotation() const { return m_attributes.m_rotation; }
-  inline ifloat3 getScale() const { return m_attributes.m_scale; }
+  inline Vector3f getPosition() const { return m_attributes.m_position; }
+  inline Vector3f getRotation() const { return m_attributes.m_rotation; }
+  inline Vector3f getScale() const { return m_attributes.m_scale; }
 
   // setters
-  inline void setPosition(const ifloat3 &pos) {
+  inline void setPosition(const Vector3f &pos) {
     m_attributes.m_position = pos;
     m_dirty.changed = true;
   }
-  inline void setRotation(const ifloat3 &rot) {
+  inline void setRotation(const Vector3f &rot) {
     m_attributes.m_rotation = rot;
     m_dirty.changed = true;
   }
-  inline void setScale(const ifloat3 &scale) {
+  inline void setScale(const Vector3f &scale) {
     m_attributes.m_scale = scale;
     m_dirty.changed = true;
   }
@@ -269,9 +269,9 @@ public:
 
   inline DirtyFlag getDirtyFlag() { return m_dirty; }
 
-  float4x4 getModelToWorldMatrix();
-  float4x4 getModelToWorldMatrixLast();
-  inline ifloat3 getScaleLast() { return m_lastFrame.m_scale; }
+  Matrix4x4f getModelToWorldMatrix();
+  Matrix4x4f getModelToWorldMatrixLast();
+  inline Vector3f getScaleLast() { return m_lastFrame.m_scale; }
   inline void setGPUResource(Ref<GPUUniformBuffer> buffer, Ref<GPUUniformBuffer> last, Ref<GPUBindId> &bindlessRef,
                              Ref<GPUBindId> &bindlessRefLast) {
     m_gpuBuffer = buffer;

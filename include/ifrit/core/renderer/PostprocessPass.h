@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Core {
 struct PostprocessPassConfig {
-  std::string fragPath;
+  String fragPath;
   u32 numPushConstants;
   u32 numDescriptorSets;
   bool isComputeShader = false;
@@ -47,15 +47,14 @@ protected:
   std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_renderPipelines;
   ComputePass *m_computePipeline = nullptr;
 
-  GPUShader *createShaderFromFile(const std::string &shaderPath, const std::string &entry,
+  GPUShader *createShaderFromFile(const String &shaderPath, const String &entry,
                                   GraphicsBackend::Rhi::RhiShaderStage stage);
   DrawPass *setupRenderPipeline(RenderTargets *renderTargets);
   ComputePass *setupComputePipeline();
 
 protected:
   void renderInternal(PerFrameData *perframeData, RenderTargets *renderTargets, const GPUCmdBuffer *cmd,
-                      const void *pushConstants, const std::vector<GPUBindlessRef *> &bindDescs,
-                      const std::string &scopeName);
+                      const void *pushConstants, const Vec<GPUBindlessRef *> &bindDescs, const String &scopeName);
 
 public:
   PostprocessPass(IApplication *app, const PostprocessPassConfig &cfg);

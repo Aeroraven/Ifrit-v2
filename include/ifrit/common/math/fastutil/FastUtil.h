@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <bit>
 #include <cstdint>
 
-namespace Ifrit::Math::FastUtil {
+namespace Ifrit::Math {
 inline u64 i32Pack(u32 x, u32 y) { return (u64)x | ((u64)y << 32); }
 inline u32 i32UnpackFromi64First(u64 x) { return (u32)x; }
 inline u32 i32UnpackFromi64Second(u64 x) { return (u32)(x >> 32); }
@@ -34,7 +34,7 @@ inline u32 i32UnpackFromi64Second(u64 x) { return (u32)(x >> 32); }
 // stos or sse)
 template <class T> inline void memsetDword(T *src, T value, size_t counts) {
 #ifdef _MSC_VER
-  if constexpr (sizeof(T) == 4) {
+  if IF_CONSTEXPR (sizeof(T) == 4) {
     static_assert(sizeof(unsigned long) == 4, "Unexpected size of unsigned long");
     __stosd((unsigned long *)src, std::bit_cast<unsigned long, T>(value), counts);
   } else {
@@ -47,13 +47,13 @@ template <class T> inline void memsetDword(T *src, T value, size_t counts) {
 
 // Returns the number of leading 0-bits in x, starting at the most significant
 // bit position. If x is 0, the result is undefined.
-template <class T> inline int qclz(T x) {
+template <class T> inline i32 qclz(T x) {
 #ifdef _MSC_VER
-  if constexpr (sizeof(T) == 4) {
+  if IF_CONSTEXPR (sizeof(T) == 4) {
     unsigned long r = 0;
     _BitScanReverse(&r, x);
     return 31 - r;
-  } else if constexpr (sizeof(T) == 8) {
+  } else if IF_CONSTEXPR (sizeof(T) == 8) {
     unsigned long r = 0;
     _BitScanReverse64(&r, x);
     return 63 - r;
@@ -66,6 +66,6 @@ template <class T> inline int qclz(T x) {
 }
 
 // Returns the log2 of x, rounded down. If x is 0, the result is undefined.
-template <class T> inline int qlog2(T x) { return (((sizeof(T) * 8)) - 1) - qclz(x); }
+template <class T> inline i32 qlog2(T x) { return (((sizeof(T) * 8)) - 1) - qclz(x); }
 
-} // namespace Ifrit::Math::FastUtil
+} // namespace Ifrit::Math

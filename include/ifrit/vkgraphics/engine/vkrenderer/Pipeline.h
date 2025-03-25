@@ -29,17 +29,17 @@ struct GraphicsPipelineCreateInfo {
   u32 viewportCount;
   u32 scissorCount;
   Rhi::RhiRasterizerTopology topology;
-  std::vector<VkFormat> colorAttachmentFormats;
+  Vec<VkFormat> colorAttachmentFormats;
   VkFormat depthAttachmentFormat;
   VkFormat stencilAttachmentFormat;
-  std::vector<ShaderModule *> shaderModules;
-  std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+  Vec<ShaderModule *> shaderModules;
+  Vec<VkDescriptorSetLayout> descriptorSetLayouts;
   Rhi::RhiGeometryGenerationType geomGenType = Rhi::RhiGeometryGenerationType::Conventional;
   u32 pushConstSize = 0;
 };
 struct ComputePipelineCreateInfo {
   ShaderModule *shaderModules;
-  std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+  Vec<VkDescriptorSetLayout> descriptorSetLayouts;
   u32 pushConstSize = 0;
 };
 
@@ -90,13 +90,13 @@ public:
 class IFRIT_APIDECL PipelineCache {
 private:
   EngineContext *m_context;
-  std::vector<std::unique_ptr<GraphicsPipeline>> m_graphicsPipelines;
-  std::vector<GraphicsPipelineCreateInfo> m_graphicsPipelineCI;
-  std::unordered_map<u64, std::vector<int>> m_graphicsPipelineMap;
+  Vec<Uref<GraphicsPipeline>> m_graphicsPipelines;
+  Vec<GraphicsPipelineCreateInfo> m_graphicsPipelineCI;
+  HashMap<u64, Vec<int>> m_graphicsPipelineMap;
 
-  std::vector<std::unique_ptr<ComputePipeline>> m_computePipelines;
-  std::vector<ComputePipelineCreateInfo> m_computePipelineCI;
-  std::unordered_map<u64, std::vector<int>> m_computePipelineMap;
+  Vec<Uref<ComputePipeline>> m_computePipelines;
+  Vec<ComputePipelineCreateInfo> m_computePipelineCI;
+  HashMap<u64, Vec<int>> m_computePipelineMap;
 
 public:
   PipelineCache(EngineContext *context);

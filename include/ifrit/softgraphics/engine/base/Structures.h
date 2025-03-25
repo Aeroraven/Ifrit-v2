@@ -27,8 +27,8 @@ struct IFRIT_APIDECL IfritBufferCreateInfo {
 
 // Runtime Deps
 struct IFRIT_APIDECL IfritRayDesc {
-  ifloat3 Origin;
-  ifloat3 Direction;
+  Vector3f Origin;
+  Vector3f Direction;
   float TMin;
   float TMax;
 };

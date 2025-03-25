@@ -38,8 +38,8 @@ struct SignedDistanceField {
   i32 width;
   i32 height;
   i32 depth;
-  ifloat3 bboxMin;
-  ifloat3 bboxMax;
+  Vector3f bboxMin;
+  Vector3f bboxMax;
   IFRIT_STRUCT_SERIALIZE(sdfData, width, height, depth, bboxMin, bboxMax);
 };
 

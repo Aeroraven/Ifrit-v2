@@ -29,9 +29,9 @@ class IFRIT_APIDECL DeviceTimer : public Ifrit::GraphicsBackend::Rhi::RhiDeviceT
 private:
   u32 m_numFrameInFlight;
   EngineContext *m_context;
-  std::vector<VkQueryPool> m_queryPools;
-  std::vector<u64> m_timestampsStart;
-  std::vector<u64> m_timestampsEnd;
+  Vec<VkQueryPool> m_queryPools;
+  Vec<u64> m_timestampsStart;
+  Vec<u64> m_timestampsEnd;
   u32 m_currentFrame = 0;
   float m_elapsedMs = 0;
 

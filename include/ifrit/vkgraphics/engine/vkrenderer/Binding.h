@@ -36,7 +36,7 @@ struct DescriptorTypeDetails {
 IF_CONSTEXPR u32 cMaxDescriptorType =
     static_cast<typename std::underlying_type<Rhi::RhiDescriptorType>::type>(Rhi::RhiDescriptorType::MaxEnum);
 
-IF_CONSTEXPR std::array<DescriptorTypeDetails, cMaxDescriptorType> cDescriptorTypeDetails = {
+IF_CONSTEXPR Array<DescriptorTypeDetails, cMaxDescriptorType> cDescriptorTypeDetails = {
     {{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 40000},
      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 40000},
      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 40000},
@@ -49,12 +49,12 @@ struct DescriptorBindRange {
 
 struct DescriptorBindRangeData {
   struct Range {
-    std::vector<char> data;
+    Vec<char> data;
     u32 offset;
     u32 bytes;
   };
   u32 m_currentOffset = 0;
-  std::vector<Range> m_ranges;
+  Vec<Range> m_ranges;
   VkDescriptorPool m_pool{};
   VkDescriptorSet m_set{};
 
@@ -64,21 +64,21 @@ struct DescriptorBindRangeData {
 class IFRIT_APIDECL DescriptorManager {
 private:
   EngineContext *m_context;
-  std::array<VkDescriptorSetLayoutBinding, cMaxDescriptorType> m_bindings;
-  std::array<VkDescriptorBindingFlagsEXT, cMaxDescriptorType> m_bindingFlags;
+  Array<VkDescriptorSetLayoutBinding, cMaxDescriptorType> m_bindings;
+  Array<VkDescriptorBindingFlagsEXT, cMaxDescriptorType> m_bindingFlags;
   VkDescriptorSetLayout m_bindlessLayout;
   VkDescriptorPool m_bindlessPool;
   VkDescriptorSet m_bindlessSet;
 
-  std::vector<VkBuffer> m_uniformBuffers;
-  std::vector<VkBuffer> m_storageBuffers;
-  std::vector<std::pair<VkImage, VkSampler>> m_combinedImageSamplers;
+  Vec<VkBuffer> m_uniformBuffers;
+  Vec<VkBuffer> m_storageBuffers;
+  Vec<std::pair<VkImage, VkSampler>> m_combinedImageSamplers;
 
-  std::vector<std::pair<VkImage, Rhi::RhiImageSubResource>> m_storageImages;
+  Vec<std::pair<VkImage, Rhi::RhiImageSubResource>> m_storageImages;
 
   u32 m_minUniformBufferAlignment = 0;
 
-  std::vector<std::unique_ptr<DescriptorBindRangeData>> m_bindRanges;
+  Vec<std::unique_ptr<DescriptorBindRangeData>> m_bindRanges;
   std::unique_ptr<DescriptorBindRangeData> m_currentBindRange;
 
   VkDescriptorSetLayout m_layoutShared = VK_NULL_HANDLE;
@@ -119,10 +119,10 @@ class IFRIT_APIDECL DescriptorBindlessIndices : public Rhi::RhiBindlessDescripto
 private:
   EngineContext *m_context;
   DescriptorManager *m_descriptorManager;
-  std::vector<VkDescriptorSet> m_set;
-  std::vector<DescriptorBindRange> m_bindRange;
+  Vec<VkDescriptorSet> m_set;
+  Vec<DescriptorBindRange> m_bindRange;
 
-  std::vector<std::map<u32, u32>> m_indices;
+  Vec<Map<u32, u32>> m_indices;
   u32 numCopies;
   u32 activeFrame = 0;
 

@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMContext.h"
@@ -24,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <stack>
 
 namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::SpirvVec {
-constexpr int SpVcQuadSize = 4;
+IF_CONSTEXPR int SpVcQuadSize = 4;
 enum class SpVcVMTypeEnum {
   SPVC_TYPE_UNDEFINED,
   SPVC_TYPE_BOOL,
@@ -59,8 +58,7 @@ enum SpVcBlockTypeEnum {
   SPVC_BLOCK_SELECTION_BODY_FIRST = 0x2,
   SPVC_BLOCK_SELECTION_MERGE = 0x4,
   SPVC_BLOCK_LOOP_HEADER = 0x8,
-  SPVC_BLOCK_LOOP_BREAK =
-      0x10, // Loop break contains branch to loop merge section
+  SPVC_BLOCK_LOOP_BREAK = 0x10, // Loop break contains branch to loop merge section
   SPVC_BLOCK_LOOP_CONTINUE = 0x20,
   SPVC_BLOCK_LOOP_BODY = 0x40,
   SPVC_BLOCK_LOOP_MERGE = 0x80,
@@ -87,7 +85,7 @@ enum SpVcStructuredControlFlowIndication {
   SPVC_STRUCTCFG_LOOP_MERGE = 0x2,
 };
 
-constexpr int SPVC_QUAD_SIZE = 4;
+IF_CONSTEXPR int SPVC_QUAD_SIZE = 4;
 
 class SpVcGenInstruction;
 struct SpVcVMGenBlock;

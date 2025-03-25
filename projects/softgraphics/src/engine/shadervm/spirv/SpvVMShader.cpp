@@ -16,12 +16,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMShader.h"
 #include "ifrit/common/util/TypingUtil.h"
 using namespace Ifrit::Common::Utility;
 extern "C" {
-struct alignas(16) iint3Aligned {
+struct alignas(16) Vector3iAligned {
   int x, y, z;
 };
 }
@@ -160,8 +159,8 @@ IFRIT_HOST void SpvFragmentShader::updateUniformData(int binding, int set,
   memcpy(uniformData.first, pData, uniformData.second);
 }
 
-void SpvVertexShader::execute(const void *const *input, ifloat4 *outPos,
-                              ifloat4 *const *outVaryings) {
+void SpvVertexShader::execute(const void *const *input, Vector4f *outPos,
+                              Vector4f *const *outVaryings) {
   // TODO: Input & Output
   auto &sI = symbolTables.inputs;
   auto &sO = symbolTables.outputs;
@@ -176,7 +175,7 @@ void SpvVertexShader::execute(const void *const *input, ifloat4 *outPos,
   for (int i = 0; i < sOSize; i++) {
     memcpy(outVaryings[i], sO[i], sOb[i]);
   }
-  auto ptrPos = (ifloat4 *)symbolTables.builtinPosition;
+  auto ptrPos = (Vector4f *)symbolTables.builtinPosition;
   if (ptrPos) {
     *outPos = *ptrPos;
   }
@@ -197,7 +196,7 @@ void SpvFragmentShader::execute(const void *varyings, void *colorOutput,
   }
   cEntry();
   for (int i = 0; i < sOSize; i++) {
-    *((ifloat4 *)colorOutput + i) = *((ifloat4 *)sO[i]);
+    *((Vector4f *)colorOutput + i) = *((Vector4f *)sO[i]);
   }
 }
 IFRIT_HOST FragmentShader *SpvFragmentShader::getCudaClone() {
@@ -223,13 +222,13 @@ SpvRaygenShader::SpvRaygenShader(const ShaderRuntimeBuilder &runtime,
     : SpvRuntimeBackend(runtime, irByteCode) {
   isThreadSafe = false;
 }
-IFRIT_DUAL void SpvRaygenShader::execute(const iint3 &inputInvocation,
-                                         const iint3 &dimension,
+IFRIT_DUAL void SpvRaygenShader::execute(const Vector3i &inputInvocation,
+                                         const Vector3i &dimension,
                                          void *context) {
   if (symbolTables.builtinLaunchId)
-    memcpy(symbolTables.builtinLaunchId, &inputInvocation, sizeof(iint3));
+    memcpy(symbolTables.builtinLaunchId, &inputInvocation, sizeof(Vector3i));
   if (symbolTables.builtinLaunchSize)
-    memcpy(symbolTables.builtinLaunchSize, &dimension, sizeof(iint3));
+    memcpy(symbolTables.builtinLaunchSize, &dimension, sizeof(Vector3i));
   if (symbolTables.builtinContext)
     memcpy(symbolTables.builtinContext, &context, sizeof(void *));
   auto shaderEntry = (void (*)())this->symbolTables.entry;

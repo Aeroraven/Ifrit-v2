@@ -45,7 +45,7 @@ struct ClusterLodGeneratorContext {
   Vec<u8> meshletTriangles;
   Vec<i32> graphPartition;
   Vec<MeshletCullData> lodCullData;
-  Vec<ifloat4> selfErrorSphere;
+  Vec<Vector4f> selfErrorSphere;
 
   Vec<u32> parentStart;
   Vec<u32> parentSize;
@@ -57,7 +57,7 @@ struct ClusterLodGeneratorContext {
 };
 
 struct CombinedClusterLodBuffer {
-  Vec<iint4> meshletsRaw; // 2x offsets + 2x size
+  Vec<Vector4i> meshletsRaw; // 2x offsets + 2x size
   Vec<u32> meshletVertices;
   Vec<u8> meshletTriangles;
   Vec<i32> graphPartition;
@@ -65,7 +65,7 @@ struct CombinedClusterLodBuffer {
   Vec<u32> parentSize;
   Vec<MeshletCullData> meshletCull;
 
-  Vec<ifloat4> selfErrorSphereW;
+  Vec<Vector4f> selfErrorSphereW;
 
   // cluster groups
   Vec<ClusterGroup> clusterGroups;

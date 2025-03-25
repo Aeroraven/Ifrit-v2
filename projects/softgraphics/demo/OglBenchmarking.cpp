@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "OglBenchmarking.h"
 #include "dependency/GLAD/glad/glad.h"
 #include "ifrit/common/math/LinalgOps.h"
@@ -29,11 +28,11 @@ namespace Ifrit::Demo::OglBenchmarking {
 int mainCpu() {
   // load sponza
   WavefrontLoader loader;
-  std::vector<ifloat3> pos;
-  std::vector<ifloat3> normal;
-  std::vector<ifloat2> uv;
+  std::vector<Vector3f> pos;
+  std::vector<Vector3f> normal;
+  std::vector<Vector2f> uv;
   std::vector<uint32_t> index;
-  std::vector<ifloat3> procNormal;
+  std::vector<Vector3f> procNormal;
   loader.loadObject(IFRIT_ASSET_PATH "/bunny.obj", pos, normal, uv, index);
   procNormal = loader.remapNormals(normal, index, pos.size());
 
@@ -62,17 +61,17 @@ int mainCpu() {
     indexBuffer[i / 3] = index[i];
   }
 
-  std::vector<ifloat4> pos4;
+  std::vector<Vector4f> pos4;
   pos4.resize(pos.size());
   for (int i = 0; i < pos.size(); i++) {
-    pos4[i] = ifloat4(pos[i].x, pos[i].y, pos[i].z, 1);
+    pos4[i] = Vector4f(pos[i].x, pos[i].y, pos[i].z, 1);
   }
 
-  std::vector<ifloat4> normal4;
+  std::vector<Vector4f> normal4;
   normal4.resize(procNormal.size());
   for (int i = 0; i < procNormal.size(); i++) {
     normal4[i] =
-        ifloat4(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0.5f);
+        Vector4f(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0.5f);
   }
 
   GLFWWindowProvider windowProvider;
@@ -88,7 +87,7 @@ int mainCpu() {
   glBindVertexArray(VAO);
 
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, pos4.size() * sizeof(ifloat4), pos4.data(),
+  glBufferData(GL_ARRAY_BUFFER, pos4.size() * sizeof(Vector4f), pos4.data(),
                GL_STATIC_DRAW);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -101,18 +100,19 @@ int mainCpu() {
   unsigned int VBO2;
   glGenBuffers(1, &VBO2);
   glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-  glBufferData(GL_ARRAY_BUFFER, normal4.size() * sizeof(ifloat4),
+  glBufferData(GL_ARRAY_BUFFER, normal4.size() * sizeof(Vector4f),
                normal4.data(), GL_STATIC_DRAW);
   glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(1);
 
   // uniform buffer & bind
-  float4x4 view = (lookAt({0, 0.1, 0.25}, {0, 0.1, 0.0}, {0, 1, 0}));
-  // float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
-  // float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
-  // float4x4 view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
-  float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
-  float4x4 mvp = transpose(matmul(proj, view));
+  Matrix4x4f view = (lookAt({0, 0.1, 0.25}, {0, 0.1, 0.0}, {0, 1, 0}));
+  // Matrix4x4f view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
+  // Matrix4x4f view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
+  // Matrix4x4f view = (lookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
+  Matrix4x4f proj =
+      (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
+  Matrix4x4f mvp = transpose(matmul(proj, view));
 
   // opengl: create shaders
   unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -157,7 +157,7 @@ int mainCpu() {
   unsigned int uniformBuffer;
   glGenBuffers(1, &uniformBuffer);
   glBindBuffer(GL_UNIFORM_BUFFER, uniformBuffer);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(float4x4), &mvp, GL_STATIC_DRAW);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(Matrix4x4f), &mvp, GL_STATIC_DRAW);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, uniformBuffer);
 
   // opengl: render loop

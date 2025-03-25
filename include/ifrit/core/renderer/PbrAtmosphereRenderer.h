@@ -27,14 +27,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core {
 
 struct PbrAtmosphereResourceDesc {
-  ifloat4 groundAlbedo;
+  Vector4f groundAlbedo;
   u32 atmo;
   u32 texTransmittance;
   u32 texIrradiance;
   u32 texScattering;
   u32 texMieScattering;
-  float earthRadius;
-  float bottomAtmoRadius;
+  f32 earthRadius;
+  f32 bottomAtmoRadius;
 };
 struct PbrAtmospherePerframe {
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTextureRef;
@@ -42,14 +42,14 @@ struct PbrAtmospherePerframe {
   using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBufferRef;
 
   struct PbrAtmosphereDensiyProfileLayer {
-    float width;
-    float expTerm;
-    float expScale;   // Inv
-    float linearTerm; // Inv
-    float constantTerm;
-    float pad0 = 114.0f;
-    float pad1 = 115.0f;
-    float pad2 = 116.0f;
+    f32 width;
+    f32 expTerm;
+    f32 expScale;   // Inv
+    f32 linearTerm; // Inv
+    f32 constantTerm;
+    f32 pad0 = 114.0f;
+    f32 pad1 = 115.0f;
+    f32 pad2 = 116.0f;
   };
 
   struct PbrAtmosphereDensityProfile {
@@ -58,21 +58,21 @@ struct PbrAtmospherePerframe {
 
   class PbrAtmosphereParameter {
   public:
-    using vec3 = Math::SIMD::vfloat3;
-    using vec4 = Math::SIMD::vfloat4;
+    using vec3 = Math::SIMD::SVector3f;
+    using vec4 = Math::SIMD::SVector4f;
     // some vectors here should be aligned with shader lang std
-    // so, we use aligned vfloat3 here
+    // so, we use aligned SVector3f here
     PbrAtmosphereDensityProfile rayleighDensity;
     PbrAtmosphereDensityProfile mieDensity;
     PbrAtmosphereDensityProfile absorptionDensity;
-    float sunAngularRadius;
-    float bottomRadius;
-    float topRadius;
-    float miePhaseFunctionG;
-    float muSMin;
-    float pad0;
-    float pad1;
-    float pad2;
+    f32 sunAngularRadius;
+    f32 bottomRadius;
+    f32 topRadius;
+    f32 miePhaseFunctionG;
+    f32 muSMin;
+    f32 pad0;
+    f32 pad1;
+    f32 pad2;
     vec3 solarIrradiance;
     vec3 rayleighScattering;
     vec3 mieScattering;
@@ -96,27 +96,27 @@ struct PbrAtmospherePerframe {
   GPUTexture m_deltaMultipleScattering;
   GPUTexture m_optionalSingleMieScattering;
 
-  // std::shared_ptr<GPUBindId> m_transmittanceId;
-  // std::shared_ptr<GPUBindId> m_deltaIrradianceId;
-  // std::shared_ptr<GPUBindId> m_deltaRayleighScatteringId;
-  // std::shared_ptr<GPUBindId> m_deltaMieScatteringId;
-  // std::shared_ptr<GPUBindId> m_deltaScatteringDensityId;
-  // std::shared_ptr<GPUBindId> m_irradianceId;
-  // std::shared_ptr<GPUBindId> m_scatteringId;
-  // std::shared_ptr<GPUBindId> m_deltaMultipleScatteringId;
-  // std::shared_ptr<GPUBindId> m_optionalSingleMieScatteringId;
+  // Ref<GPUBindId> m_transmittanceId;
+  // Ref<GPUBindId> m_deltaIrradianceId;
+  // Ref<GPUBindId> m_deltaRayleighScatteringId;
+  // Ref<GPUBindId> m_deltaMieScatteringId;
+  // Ref<GPUBindId> m_deltaScatteringDensityId;
+  // Ref<GPUBindId> m_irradianceId;
+  // Ref<GPUBindId> m_scatteringId;
+  // Ref<GPUBindId> m_deltaMultipleScatteringId;
+  // Ref<GPUBindId> m_optionalSingleMieScatteringId;
 
-  std::shared_ptr<GPUBindId> m_transmittanceCombSamplerId;
-  std::shared_ptr<GPUBindId> m_deltaIrradianceCombSamplerId;
-  std::shared_ptr<GPUBindId> m_deltaRayleighScatteringCombSamplerId;
-  std::shared_ptr<GPUBindId> m_deltaMieScatteringCombSamplerId;
-  std::shared_ptr<GPUBindId> m_deltaScatteringDensityCombSamplerId;
-  std::shared_ptr<GPUBindId> m_irradianceCombSamplerId;
-  std::shared_ptr<GPUBindId> m_scatteringCombSamplerId;
-  std::shared_ptr<GPUBindId> m_deltaMultipleScatteringCombSamplerId;
-  std::shared_ptr<GPUBindId> m_optionalSingleMieScatteringCombSamplerId;
+  Ref<GPUBindId> m_transmittanceCombSamplerId;
+  Ref<GPUBindId> m_deltaIrradianceCombSamplerId;
+  Ref<GPUBindId> m_deltaRayleighScatteringCombSamplerId;
+  Ref<GPUBindId> m_deltaMieScatteringCombSamplerId;
+  Ref<GPUBindId> m_deltaScatteringDensityCombSamplerId;
+  Ref<GPUBindId> m_irradianceCombSamplerId;
+  Ref<GPUBindId> m_scatteringCombSamplerId;
+  Ref<GPUBindId> m_deltaMultipleScatteringCombSamplerId;
+  Ref<GPUBindId> m_optionalSingleMieScatteringCombSamplerId;
 
-  float4x4 luminanceFromRad;
+  Matrix4x4f luminanceFromRad;
 };
 
 class IFRIT_APIDECL PbrAtmosphereRenderer : public RendererBase {

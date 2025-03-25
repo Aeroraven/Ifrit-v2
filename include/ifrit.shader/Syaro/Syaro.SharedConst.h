@@ -23,8 +23,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #ifdef __cplusplus
 #include <cstdint>
-#define SYARO_DEFINE_UINT(x, y) constexpr uint32_t x = y;
-#define SYARO_DEFINE_FLOAT(x, y) constexpr float x = y;
+#define SYARO_DEFINE_UINT(x, y) IF_CONSTEXPR uint32_t x = y;
+#define SYARO_DEFINE_FLOAT(x, y) IF_CONSTEXPR float x = y;
 
 namespace Ifrit::Core::SyaroConfig {
 

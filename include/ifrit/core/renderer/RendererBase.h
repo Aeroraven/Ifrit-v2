@@ -32,8 +32,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core {
 
 struct SceneCollectConfig {
-  float projectionTranslateX = 0.0f;
-  float projectionTranslateY = 0.0f;
+  f32 projectionTranslateX = 0.0f;
+  f32 projectionTranslateY = 0.0f;
 };
 
 struct ImmutableRendererResources {
@@ -54,18 +54,18 @@ enum class IndirectLightingType { HBAO, SSGI };
 
 struct RendererConfig {
   struct ShadowConfig {
-    constexpr static u32 k_maxShadowMaps = 256;
-    float m_maxDistance = 5.0f;
+    IF_CONSTEXPR static u32 k_maxShadowMaps = 256;
+    f32 m_maxDistance = 5.0f;
     u32 m_csmCount = 4;
-    std::array<float, 4> m_csmSplits = {0.067f, 0.133f, 0.267f, 0.533f};
-    std::array<float, 4> m_csmBorders = {0.08f, 0.05f, 0.0f, 0.0f};
+    Array<f32, 4> m_csmSplits = {0.067f, 0.133f, 0.267f, 0.533f};
+    Array<f32, 4> m_csmBorders = {0.08f, 0.05f, 0.0f, 0.0f};
   };
 
   AntiAliasingType m_antiAliasingType = AntiAliasingType::None;
   IndirectLightingType m_indirectLightingType = IndirectLightingType::HBAO;
   RendererVisualizationType m_visualizationType = RendererVisualizationType::Default;
   ShadowConfig m_shadowConfig;
-  float m_superSamplingRate = 1.0f;
+  f32 m_superSamplingRate = 1.0f;
 };
 
 // TODO: move render graph to here
@@ -101,11 +101,11 @@ protected:
   inline void setRendererConfig(const RendererConfig *config) { m_config = config; }
 
 public:
-  virtual std::unique_ptr<GPUCommandSubmission> render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
-                                                       const RendererConfig &config,
-                                                       const std::vector<GPUCommandSubmission *> &cmdToWait) = 0;
+  virtual Uref<GPUCommandSubmission> render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
+                                            const RendererConfig &config,
+                                            const Vec<GPUCommandSubmission *> &cmdToWait) = 0;
 
-  virtual void endFrame(const std::vector<GPUCommandSubmission *> &cmdToWait);
-  virtual std::unique_ptr<GPUCommandSubmission> beginFrame();
+  virtual void endFrame(const Vec<GPUCommandSubmission *> &cmdToWait);
+  virtual Uref<GPUCommandSubmission> beginFrame();
 };
 } // namespace Ifrit::Core

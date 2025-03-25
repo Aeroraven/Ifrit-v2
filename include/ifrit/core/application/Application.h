@@ -31,15 +31,15 @@ enum class ApplicationRhiType { Vulkan, DX12, OpenGL, Software };
 enum class ApplicationDisplayProvider { GLFW };
 
 struct ApplicationCreateInfo {
-  std::string m_name;
-  std::string m_version;
-  std::string m_cachePath;
+  String m_name;
+  String m_version;
+  String m_cachePath;
   ApplicationRhiType m_rhiType = ApplicationRhiType::Vulkan;
   ApplicationDisplayProvider m_displayProvider = ApplicationDisplayProvider::GLFW;
   u32 m_width = 1980;
   u32 m_height = 1080;
-  std::string m_assetPath;
-  std::string m_scenePath;
+  String m_assetPath;
+  String m_scenePath;
 
   u32 m_rhiGraphicsQueueCount = 1;
   u32 m_rhiTransferQueueCount = 1;
@@ -49,13 +49,13 @@ struct ApplicationCreateInfo {
 };
 class IFRIT_APIDECL Application : public IApplication {
 protected:
-  std::unique_ptr<GraphicsBackend::Rhi::RhiBackend> m_rhiLayer; // should be destroyed last
+  Uref<GraphicsBackend::Rhi::RhiBackend> m_rhiLayer; // should be destroyed last
 
-  std::shared_ptr<AssetManager> m_assetManager;
-  std::shared_ptr<SceneManager> m_sceneManager;
-  std::shared_ptr<SceneAssetManager> m_sceneAssetManager;
-  std::shared_ptr<InputSystem> m_inputSystem;
-  std::unique_ptr<Display::Window::WindowProvider> m_windowProvider;
+  Ref<AssetManager> m_assetManager;
+  Ref<SceneManager> m_sceneManager;
+  Ref<SceneAssetManager> m_sceneAssetManager;
+  Ref<InputSystem> m_inputSystem;
+  Uref<Display::Window::WindowProvider> m_windowProvider;
   ApplicationCreateInfo m_info;
 
 private:
@@ -72,6 +72,6 @@ public:
 
   inline virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() override { return m_rhiLayer.get(); }
   inline virtual Ifrit::Display::Window::WindowProvider *getWindowProvider() override { return m_windowProvider.get(); }
-  inline std::string getCacheDirectory() const override { return m_info.m_cachePath; }
+  inline String getCacheDirectory() const override { return m_info.m_cachePath; }
 };
 } // namespace Ifrit::Core

@@ -22,7 +22,7 @@ IFRIT_APIDECL VkPhysicalDeviceRayTracingPipelinePropertiesKHR HwRaytracingContex
 IFRIT_APIDECL u32 HwRaytracingContext::getShaderGroupHandleSize() const { return m_rtProperties.shaderGroupHandleSize; }
 
 IFRIT_APIDECL u32 HwRaytracingContext::getAlignedShaderGroupHandleSize() const {
-  return Math::ConstFunc::alignUp(m_rtProperties.shaderGroupHandleSize, m_rtProperties.shaderGroupHandleAlignment);
+  return Math::alignUp(m_rtProperties.shaderGroupHandleSize, m_rtProperties.shaderGroupHandleAlignment);
 }
 
 IFRIT_APIDECL BottomLevelAS::BottomLevelAS(EngineContext *ctx) { m_context = ctx; }

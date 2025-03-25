@@ -23,21 +23,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "engine/math/ShaderBuiltinCuda.cuh"
 
 namespace Ifrit::Demo::DemoDefault {
-	IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) {
+	IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) {
 		using namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA;
-		//float4x4 view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
-		//float4x4 view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
-		//float4x4 view = (lookAt({ 0,0.1,1.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-		float4x4 view = (lookAt({ 0.08,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));  //fox
-		//float4x4 view = (lookAt({ 0.0,0.6,-1.5 }, { 0,0.4,0.0 }, { 0,1,0 }));  //af 
+		//Matrix4x4f view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
+		//Matrix4x4f view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
+		//Matrix4x4f view = (lookAt({ 0,0.1,1.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
+		Matrix4x4f view = (lookAt({ 0.08,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));  //fox
+		//Matrix4x4f view = (lookAt({ 0.0,0.6,-1.5 }, { 0,0.4,0.0 }, { 0,1,0 }));  //af 
 		 
-		//float4x4 view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-		//float4x4 view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
-		//float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 10.0, 3000));
+		//Matrix4x4f view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
+		//Matrix4x4f view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
+		//Matrix4x4f proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 10.0, 3000));
 
-		//float4x4 view = (lookAt({ 0,1.5,0}, { -100,1.5,0 }, { 0,1,0 }));
-		float4x4 proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 1000));
-		float4x4 mvp = multiply(proj, view);
+		//Matrix4x4f view = (lookAt({ 0,1.5,0}, { -100,1.5,0 }, { 0,1,0 }));
+		Matrix4x4f proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 1000));
+		Matrix4x4f mvp = multiply(proj, view);
 		auto s = isbReadFloat4(input[0]);
 		auto p = multiply(mvp, s);
 		*outPos = p;
@@ -58,7 +58,7 @@ namespace Ifrit::Demo::DemoDefault {
 		auto result = isbcuReadPsVarying(varyings, 0);
 		auto& co = isbcuReadPsColorOut(colorOutput, 0);
 		//auto dco = isbcuSampleTexLod(0, 0, float2( result.x, 1.0f - result.y ),2.5f); 
-		//auto dcl = static_cast<const ifloat4s256*>(varyings);
+		//auto dcl = static_cast<const Vector4fs256*>(varyings);
 		//float2 uv = { dcl[1].x,dcl[1].y };
 		//auto dco = texture(0, 0, dcl, 1);
 
@@ -79,8 +79,8 @@ namespace Ifrit::Demo::DemoDefault {
 		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<DemoFragmentShaderCuda>(this);
 	}
 
-	IFRIT_DUAL void DemoGeometryShaderCuda::execute(const ifloat4* const* inPos, const Ifrit::SoftRenderer::VaryingStore* const* inVaryings,
-		ifloat4* outPos, Ifrit::SoftRenderer::VaryingStore* outVaryings, int* outSize) {
+	IFRIT_DUAL void DemoGeometryShaderCuda::execute(const Vector4f* const* inPos, const Ifrit::SoftRenderer::VaryingStore* const* inVaryings,
+		Vector4f* outPos, Ifrit::SoftRenderer::VaryingStore* outVaryings, int* outSize) {
 		outPos[0] = *inPos[0];
 		outPos[1] = *inPos[1];
 		outPos[2] = *inPos[2];

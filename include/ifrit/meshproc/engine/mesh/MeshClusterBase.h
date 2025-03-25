@@ -24,10 +24,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/meshproc/engine/base/MeshDesc.h"
 
 namespace Ifrit::MeshProcLib::MeshProcess {
-constexpr int BVH_CHILDREN = 8; // or 4
+IF_CONSTEXPR int BVH_CHILDREN = 8; // or 4
 struct MeshletCullData {
-  ifloat4 selfSphere;
-  ifloat4 parentSphere;
+  Vector4f selfSphere;
+  Vector4f parentSphere;
   float selfError = INFINITY;
   float parentError = INFINITY;
   u32 lod = 0;
@@ -36,8 +36,8 @@ struct MeshletCullData {
   IFRIT_STRUCT_SERIALIZE(selfSphere, parentSphere, selfError, parentError, lod);
 };
 struct ClusterGroup {
-  ifloat4 selfBoundingSphere;
-  ifloat4 parentBoundingSphere; // No need for this, maybe
+  Vector4f selfBoundingSphere;
+  Vector4f parentBoundingSphere; // No need for this, maybe
   u32 childMeshletStart;
   u32 childMeshletSize;
   u32 lod;
@@ -46,7 +46,7 @@ struct ClusterGroup {
   IFRIT_STRUCT_SERIALIZE(selfBoundingSphere, parentBoundingSphere, childMeshletStart, childMeshletSize, lod);
 };
 struct FlattenedBVHNode {
-  ifloat4 boundSphere;
+  Vector4f boundSphere;
   u32 numChildNodes;
   u32 clusterGroupStart;
   u32 clusterGroupSize;

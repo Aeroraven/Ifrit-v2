@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/raytracer/shaderops/RtShaderOps.h"
 #include "ifrit/common/math/simd/SimdVectors.h"
 #include "ifrit/softgraphics/engine/base/RaytracerBase.h"
@@ -35,8 +34,8 @@ IFRIT_APIDECL_FORCED void ifritShaderOps_Raytracer_TraceRay(
   using namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer;
 
   RayInternal ray;
-  ray.o = vfloat3(rayOrigin.x, rayOrigin.y, rayOrigin.z);
-  ray.r = vfloat3(rayDirection.x, rayDirection.y, rayDirection.z);
+  ray.o = SVector3f(rayOrigin.x, rayOrigin.y, rayOrigin.z);
+  ray.r = SVector3f(rayDirection.x, rayDirection.y, rayDirection.z);
   ray.invr = reciprocal(ray.r);
   auto worker = reinterpret_cast<TrivialRaytracerWorker *>(context);
   worker->tracingRecursiveProcess(ray, payload, worker->getTracingDepth() + 1,

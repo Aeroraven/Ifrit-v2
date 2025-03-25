@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/export/EngineCommonExport.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
@@ -155,7 +154,7 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrAllocateVertexBuffer(
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetVertexBufferValueFloat4(
     IFRIT_BASENS::VertexBuffer *pInstance, int index, int attr,
     void *value) IFRIT_EXPORT_COMPAT_NOTHROW {
-  auto fvalue = static_cast<ifloat4 *>(value);
+  auto fvalue = static_cast<Vector4f *>(value);
   pInstance->setValueFloat4Compatible(index, attr, *fvalue);
 }
 

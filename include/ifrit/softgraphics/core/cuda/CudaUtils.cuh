@@ -65,12 +65,12 @@ private:
   T *vecData = nullptr;
 
 public:
-  constexpr size_t size() const noexcept { return vectorSize; }
-  constexpr size_t capacity() const noexcept { return vectorCapacity; }
-  constexpr T *data() noexcept { return vecData; }
-  constexpr const T *data() const noexcept { return vecData; }
-  constexpr T &operator[](size_t idx) noexcept { return vecData[idx]; }
-  constexpr const T &operator[](size_t idx) const noexcept {
+  IF_CONSTEXPR size_t size() const noexcept { return vectorSize; }
+  IF_CONSTEXPR size_t capacity() const noexcept { return vectorCapacity; }
+  IF_CONSTEXPR T *data() noexcept { return vecData; }
+  IF_CONSTEXPR const T *data() const noexcept { return vecData; }
+  IF_CONSTEXPR T &operator[](size_t idx) noexcept { return vecData[idx]; }
+  IF_CONSTEXPR const T &operator[](size_t idx) const noexcept {
     return vecData[idx];
   }
   void reserve(size_t n) {

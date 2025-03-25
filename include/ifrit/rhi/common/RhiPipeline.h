@@ -33,7 +33,7 @@ class IFRIT_APIDECL RhiComputePass : public RhiGeneralPassBase {
 public:
   virtual ~RhiComputePass() = default;
   virtual void setComputeShader(RhiShader *shader) = 0;
-  virtual void setShaderBindingLayout(const std::vector<RhiDescriptorType> &layout) = 0;
+  virtual void setShaderBindingLayout(const Vec<RhiDescriptorType> &layout) = 0;
   virtual void addShaderStorageBuffer(RhiBuffer *buffer, u32 position, RhiResourceAccessType access) = 0;
   virtual void addUniformBuffer(RhiMultiBuffer *buffer, u32 position) = 0;
   virtual void setExecutionFunction(Fn<void(RhiRenderPassContext *)> func) = 0;
@@ -59,7 +59,7 @@ public:
   virtual void setDepthCompareOp(RhiCompareOp compareOp) = 0;
 
   virtual void setRenderTargetFormat(const RhiRenderTargetsFormat &format) = 0;
-  virtual void setShaderBindingLayout(const std::vector<RhiDescriptorType> &layout) = 0;
+  virtual void setShaderBindingLayout(const Vec<RhiDescriptorType> &layout) = 0;
   virtual void addShaderStorageBuffer(RhiBuffer *buffer, u32 position, RhiResourceAccessType access) = 0;
   virtual void addUniformBuffer(RhiMultiBuffer *buffer, u32 position) = 0;
   virtual void setExecutionFunction(Fn<void(RhiRenderPassContext *)> func) = 0;

@@ -30,10 +30,10 @@ class CommandBuffer;
 
 class IFRIT_APIDECL VertexBufferDescriptor : public Rhi::RhiVertexBufferView {
 public:
-  std::vector<VkVertexInputAttributeDescription2EXT> m_attributes;
-  std::vector<VkVertexInputBindingDescription2EXT> m_bindings;
-  inline void addBinding(std::vector<u32> location, std::vector<Rhi::RhiImageFormat> format, std::vector<u32> offset,
-                         u32 stride, Rhi::RhiVertexInputRate inputRate = Rhi::RhiVertexInputRate::Vertex) override {
+  Vec<VkVertexInputAttributeDescription2EXT> m_attributes;
+  Vec<VkVertexInputBindingDescription2EXT> m_bindings;
+  inline void addBinding(Vec<u32> location, Vec<Rhi::RhiImageFormat> format, Vec<u32> offset, u32 stride,
+                         Rhi::RhiVertexInputRate inputRate = Rhi::RhiVertexInputRate::Vertex) override {
     VkVertexInputBindingDescription2EXT binding{};
     binding.binding = Ifrit::Common::Utility::size_cast<u32>(m_bindings.size());
     binding.stride = stride;
@@ -93,9 +93,9 @@ private:
   VkPipelineStageFlags m_srcStage;
   VkPipelineStageFlags m_dstStage;
   VkDependencyFlags m_dependencyFlags;
-  std::vector<VkMemoryBarrier> m_memoryBarriers;
-  std::vector<VkBufferMemoryBarrier> m_bufferMemoryBarriers;
-  std::vector<VkImageMemoryBarrier> m_imageMemoryBarriers;
+  Vec<VkMemoryBarrier> m_memoryBarriers;
+  Vec<VkBufferMemoryBarrier> m_bufferMemoryBarriers;
+  Vec<VkImageMemoryBarrier> m_imageMemoryBarriers;
 
 public:
   PipelineBarrier(EngineContext *ctx, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage,
@@ -142,8 +142,8 @@ public:
                                     u32 width, u32 height, u32 depth) const;
 
   // Rhi compatible
-  void setViewports(const std::vector<Rhi::RhiViewport> &viewport) const override;
-  void setScissors(const std::vector<Rhi::RhiScissor> &scissor) const override;
+  void setViewports(const Vec<Rhi::RhiViewport> &viewport) const override;
+  void setScissors(const Vec<Rhi::RhiScissor> &scissor) const override;
   void dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const override;
   void drawMeshTasksIndirect(const Rhi::RhiBuffer *buffer, u32 offset, u32 drawCount, u32 stride) const override;
 
@@ -158,7 +158,7 @@ public:
 
   void attachVertexBufferView(const Rhi::RhiVertexBufferView &view) const override;
 
-  void attachVertexBuffers(u32 firstSlot, const std::vector<Rhi::RhiBuffer *> &buffers) const override;
+  void attachVertexBuffers(u32 firstSlot, const Vec<Rhi::RhiBuffer *> &buffers) const override;
 
   void drawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const override;
 
@@ -171,7 +171,7 @@ public:
   void clearUAVImageFloat(const Rhi::RhiTexture *texture, Rhi::RhiImageSubResource subResource,
                           const std::array<float, 4> &val) const override;
 
-  void resourceBarrier(const std::vector<Rhi::RhiResourceBarrier> &barriers) const override;
+  void resourceBarrier(const Vec<Rhi::RhiResourceBarrier> &barriers) const override;
 
   void globalMemoryBarrier() const override;
 
@@ -198,8 +198,8 @@ protected:
 public:
   CommandPool(EngineContext *ctx, u32 chosenQueueFamily) : m_context(ctx), m_queueFamily(chosenQueueFamily) { init(); }
   ~CommandPool();
-  std::shared_ptr<CommandBuffer> allocateCommandBuffer();
-  std::unique_ptr<CommandBuffer> allocateCommandBufferUnique();
+  Ref<CommandBuffer> allocateCommandBuffer();
+  Uref<CommandBuffer> allocateCommandBufferUnique();
 };
 
 class IFRIT_APIDECL Queue : public Rhi::RhiQueue {
@@ -208,9 +208,9 @@ private:
   VkQueue m_queue;
   u32 m_queueFamily;
   u32 m_capability;
-  std::unique_ptr<CommandPool> m_commandPool;
-  std::unique_ptr<TimelineSemaphore> m_timelineSemaphore;
-  std::vector<std::unique_ptr<CommandBuffer>> m_cmdBufInUse;
+  Uref<CommandPool> m_commandPool;
+  Uref<TimelineSemaphore> m_timelineSemaphore;
+  Vec<Uref<CommandBuffer>> m_cmdBufInUse;
   u64 m_recordedCounter = 0;
   CommandBuffer *m_currentCommandBuffer = nullptr;
 
@@ -224,7 +224,7 @@ public:
   inline u32 getCapability() const { return m_capability; }
 
   CommandBuffer *beginRecording();
-  TimelineSemaphoreWait submitCommand(const std::vector<TimelineSemaphoreWait> &waitSemaphores, VkFence fence,
+  TimelineSemaphoreWait submitCommand(const Vec<TimelineSemaphoreWait> &waitSemaphores, VkFence fence,
                                       VkSemaphore swapchainSemaphore = nullptr);
   void waitIdle();
   void counterReset();
@@ -232,10 +232,9 @@ public:
   // for rhi layers override
   void runSyncCommand(std::function<void(const Rhi::RhiCommandList *)> func) override;
 
-  std::unique_ptr<Rhi::RhiTaskSubmission>
-  runAsyncCommand(std::function<void(const Rhi::RhiCommandList *)> func,
-                  const std::vector<Rhi::RhiTaskSubmission *> &waitOn,
-                  const std::vector<Rhi::RhiTaskSubmission *> &toIssue) override;
+  Uref<Rhi::RhiTaskSubmission> runAsyncCommand(std::function<void(const Rhi::RhiCommandList *)> func,
+                                               const Vec<Rhi::RhiTaskSubmission *> &waitOn,
+                                               const Vec<Rhi::RhiTaskSubmission *> &toIssue) override;
 
   void hostWaitEvent(Rhi::RhiTaskSubmission *event) override;
 };
@@ -243,7 +242,7 @@ public:
 class IFRIT_APIDECL QueueCollections {
 private:
   EngineContext *m_context;
-  std::vector<std::unique_ptr<Queue>> m_queues;
+  Vec<Uref<Queue>> m_queues;
 
 public:
   QueueCollections(EngineContext *ctx) : m_context(ctx) {}
@@ -251,26 +250,26 @@ public:
   QueueCollections &operator=(const QueueCollections &p) = delete;
 
   void loadQueues();
-  std::vector<Queue *> getGraphicsQueues();
-  std::vector<Queue *> getComputeQueues();
-  std::vector<Queue *> getTransferQueues();
+  Vec<Queue *> getGraphicsQueues();
+  Vec<Queue *> getComputeQueues();
+  Vec<Queue *> getTransferQueues();
 };
 
 struct CommandSubmissionInfo {
   CommandBuffer *m_commandBuffer;
   Queue *m_queue;
-  std::vector<TimelineSemaphore *> m_waitSemaphore;
-  std::vector<u64> m_waitValues;
-  std::vector<TimelineSemaphore *> m_signalSemaphore;
-  std::vector<u64> m_signalValues;
-  std::vector<VkFlags> m_waitStages;
+  Vec<TimelineSemaphore *> m_waitSemaphore;
+  Vec<u64> m_waitValues;
+  Vec<TimelineSemaphore *> m_signalSemaphore;
+  Vec<u64> m_signalValues;
+  Vec<VkFlags> m_waitStages;
 };
 
 class IFRIT_APIDECL CommandSubmissionList {
 private:
   EngineContext *m_context;
-  std::vector<CommandSubmissionInfo> m_submissions;
-  std::unique_ptr<TimelineSemaphore> m_hostSyncSemaphore = nullptr;
+  Vec<CommandSubmissionInfo> m_submissions;
+  Uref<TimelineSemaphore> m_hostSyncSemaphore = nullptr;
 
 public:
   CommandSubmissionList(EngineContext *ctx);

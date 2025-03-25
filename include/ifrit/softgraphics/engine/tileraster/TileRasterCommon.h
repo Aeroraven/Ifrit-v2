@@ -37,16 +37,16 @@ enum class TileRasterLevel {
 };
 
 struct AssembledTriangleProposal {
-  Ifrit::Math::SIMD::vfloat3 vz, vw;
-  Ifrit::Math::SIMD::vfloat3 bx, by;     // b1, b2, b3;
-  Ifrit::Math::SIMD::vfloat4 f1, f2, f3; // Interpolate Bases
-  Ifrit::Math::SIMD::vfloat3 e1, e2, e3; // Edge Coefs
+  Ifrit::Math::SIMD::SVector3f vz, vw;
+  Ifrit::Math::SIMD::SVector3f bx, by;     // b1, b2, b3;
+  Ifrit::Math::SIMD::SVector4f f1, f2, f3; // Interpolate Bases
+  Ifrit::Math::SIMD::SVector3f e1, e2, e3; // Edge Coefs
   int originalPrimitive;
 };
 
 struct PendingTriangleProposalCUDA {
-  ifloat4 v1, v2, v3;
-  ifloat3 b1, b2, b3;
+  Vector4f v1, v2, v3;
+  Vector3f b1, b2, b3;
 };
 struct TriangleZW {
   float z, w;
@@ -64,13 +64,13 @@ struct TileBinProposal {
 };
 
 struct TileBinProposalCUDA {
-  ishort2 tile;
-  ishort2 tileEnd;
+  Vector2s tile;
+  Vector2s tileEnd;
   int primId;
 };
 
 struct TilePixelProposalCUDA {
-  ishort2 px;
+  Vector2s px;
   int primId;
 };
 
@@ -86,7 +86,7 @@ struct TilePixelProposalExperimentalCUDA {
 };
 
 struct PrimitiveEdgeCoefs {
-  ifloat3 coef[3];
+  Vector3f coef[3];
 };
 
 class TileRasterDeviceConstants {
@@ -109,6 +109,6 @@ struct TileRasterClipVertexCUDA {
 #endif
 
 struct AlphaBlendingCoefs {
-  ifloat4 s, d;
+  Vector4f s, d;
 };
 } // namespace Ifrit::GraphicsBackend::SoftGraphics::TileRaster

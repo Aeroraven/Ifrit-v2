@@ -22,37 +22,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 using namespace Ifrit::Math;
 
 namespace Ifrit::Core {
-IFRIT_APIDECL float4x4 Camera::worldToCameraMatrix() const {
+IFRIT_APIDECL Matrix4x4f Camera::worldToCameraMatrix() const {
   auto p = getParent();
   auto transform = p->getComponent<Transform>();
   auto pos = transform->getPosition();
   auto rot = transform->getRotation();
-  ifloat4 frontRaw = ifloat4{0.0f, 0.0f, 1.0f, 0.0f};
+  Vector4f frontRaw = Vector4f{0.0f, 0.0f, 1.0f, 0.0f};
   auto rotationMatrix = eulerAngleToMatrix(rot);
   auto front = matmul(rotationMatrix, frontRaw);
-  auto upRaw = ifloat4{0.0f, 1.0f, 0.0f, 0.0f};
+  auto upRaw = Vector4f{0.0f, 1.0f, 0.0f, 0.0f};
   auto up = matmul(rotationMatrix, upRaw);
-  auto center = pos + ifloat3{front.x, front.y, front.z};
-  return (
-      lookAt(ifloat3{pos.x, pos.y, pos.z}, center, ifloat3{up.x, up.y, up.z}));
+  auto center = pos + Vector3f{front.x, front.y, front.z};
+  return (lookAt(Vector3f{pos.x, pos.y, pos.z}, center, Vector3f{up.x, up.y, up.z}));
 }
-IFRIT_APIDECL float4x4 Camera::projectionMatrix() const {
+IFRIT_APIDECL Matrix4x4f Camera::projectionMatrix() const {
   auto data = m_attributes;
   if (data.m_type == CameraType::Perspective) {
-    return (
-        perspectiveNegateY(data.m_fov, data.m_aspect, data.m_near, data.m_far));
+    return (perspectiveNegateY(data.m_fov, data.m_aspect, data.m_near, data.m_far));
   } else {
-    return (orthographicNegateY(data.m_orthoSpaceSize, data.m_aspect,
-                                data.m_near, data.m_far));
+    return (orthographicNegateY(data.m_orthoSpaceSize, data.m_aspect, data.m_near, data.m_far));
   }
 }
 
-IFRIT_APIDECL ifloat4 Camera::getFront() const {
+IFRIT_APIDECL Vector4f Camera::getFront() const {
   auto p = getParent();
   auto transform = p->getComponent<Transform>();
   auto pos = transform->getPosition();
   auto rot = transform->getRotation();
-  ifloat4 frontRaw = ifloat4{0.0f, 0.0f, 1.0f, 0.0f};
+  Vector4f frontRaw = Vector4f{0.0f, 0.0f, 1.0f, 0.0f};
   auto rotationMatrix = eulerAngleToMatrix(rot);
   auto front = matmul(rotationMatrix, frontRaw);
   return front;

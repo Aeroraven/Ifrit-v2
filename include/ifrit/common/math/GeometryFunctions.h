@@ -25,8 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Math {
 
-inline ifloat4 getFrustumBoundingSphere(float fovy, float aspect, float fNear, float fFar, ifloat3 apex) {
-  float halfFov = fovy / 2.0f;
+IF_FORCEINLINE Vector4f getFrustumBoundingSphere(f32 fovy, f32 aspect, f32 fNear, f32 fFar, Vector3f apex) {
+  f32 halfFov = fovy / 2.0f;
   auto halfHeightNear = fNear * std::tan(halfFov);
   auto halfWidthNear = halfHeightNear * aspect;
   auto halfHeightFar = fFar * std::tan(halfFov);
@@ -44,21 +44,21 @@ inline ifloat4 getFrustumBoundingSphere(float fovy, float aspect, float fNear, f
   auto x = (radiusFar * radiusFar - radiusNear * radiusNear + l * (fFar + fNear)) / (2 * l);
   auto zCenter = x;
   auto sphereRadius = std::sqrt(radiusNear * radiusNear + (x - fNear) * (x - fNear));
-  ifloat3 center = {apex.x, apex.y, zCenter + apex.z};
+  Vector3f center = {apex.x, apex.y, zCenter + apex.z};
   return {center.x, center.y, center.z, sphereRadius};
 }
 
-inline void getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear, float zFar, float4x4 viewToWorld,
-                                         ifloat3 apex, ifloat3 rayDir, float reqResultZNear, float &resZFar,
-                                         float &resOrthoSize, ifloat3 &resCenter, float &resCullOrthoX,
-                                         float &resCullOrthoY) {
-  float halfFov = fovy / 2.0f;
+IF_FORCEINLINE void getFrustumBoundingBoxWithRay(f32 fovy, f32 aspect, f32 zNear, f32 zFar, Matrix4x4f viewToWorld,
+                                                 Vector3f apex, Vector3f rayDir, f32 reqResultZNear, f32 &resZFar,
+                                                 f32 &resOrthoSize, Vector3f &resCenter, f32 &resCullOrthoX,
+                                                 f32 &resCullOrthoY) {
+  f32 halfFov = fovy / 2.0f;
   auto halfHeightNear = zNear * std::tan(halfFov);
   auto halfWidthNear = halfHeightNear * aspect;
   auto halfHeightFar = zFar * std::tan(halfFov);
   auto halfWidthFar = halfHeightFar * aspect;
 
-  std::vector<ifloat4> worldSpacePts;
+  std::vector<Vector4f> worldSpacePts;
   worldSpacePts.push_back({halfWidthNear, halfHeightNear, zNear, 1.0f});
   worldSpacePts.push_back({-halfWidthNear, halfHeightNear, zNear, 1.0f});
   worldSpacePts.push_back({halfWidthNear, -halfHeightNear, zNear, 1.0f});
@@ -81,21 +81,21 @@ inline void getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear, 
     pt = bpt;
   }
 
-  float projMinX = std::numeric_limits<float>::max();
-  float projMaxX = -std::numeric_limits<float>::max();
-  float projMinY = std::numeric_limits<float>::max();
-  float projMaxY = -std::numeric_limits<float>::max();
-  float projMinZ = std::numeric_limits<float>::max();
-  float projMaxZ = -std::numeric_limits<float>::max();
+  f32 projMinX = std::numeric_limits<f32>::max();
+  f32 projMaxX = -std::numeric_limits<f32>::max();
+  f32 projMinY = std::numeric_limits<f32>::max();
+  f32 projMaxY = -std::numeric_limits<f32>::max();
+  f32 projMinZ = std::numeric_limits<f32>::max();
+  f32 projMaxZ = -std::numeric_limits<f32>::max();
 
-  ifloat3 dLookAtCenter = ifloat3{0.0f, 0.0f, 0.0f};
-  ifloat3 dUp = ifloat3{0.0f, 1.0f, 0.0f};
-  ifloat3 dRay = rayDir;
+  Vector3f dLookAtCenter = Vector3f{0.0f, 0.0f, 0.0f};
+  Vector3f dUp = Vector3f{0.0f, 1.0f, 0.0f};
+  Vector3f dRay = rayDir;
 
-  float4x4 dTestView = lookAt(dLookAtCenter, dRay, dUp);
-  float4x4 dTestViewToWorld = inverse4(dTestView);
+  Matrix4x4f dTestView = lookAt(dLookAtCenter, dRay, dUp);
+  Matrix4x4f dTestViewToWorld = inverse4(dTestView);
 
-  std::vector<ifloat4> viewSpacePts;
+  std::vector<Vector4f> viewSpacePts;
   for (auto &pt : worldSpacePts) {
     auto viewSpacePt = matmul(dTestView, pt);
     viewSpacePts.push_back(viewSpacePt);
@@ -108,13 +108,13 @@ inline void getFrustumBoundingBoxWithRay(float fovy, float aspect, float zNear, 
   }
 
   // AABB center in viewspace
-  auto center = ifloat3{(projMinX + projMaxX) / 2.0f, (projMinY + projMaxY) / 2.0f, (projMinZ + projMaxZ) / 2.0f};
+  auto center = Vector3f{(projMinX + projMaxX) / 2.0f, (projMinY + projMaxY) / 2.0f, (projMinZ + projMaxZ) / 2.0f};
   auto orthoSize = std::max(projMaxX - projMinX, projMaxY - projMinY);
   auto orthoSizeZ = (projMaxZ - projMinZ) * 0.5f + reqResultZNear;
   auto orthoSizeZFar = (projMaxZ - projMinZ) + reqResultZNear;
-  auto worldCenter = matmul(dTestViewToWorld, ifloat4{center.x, center.y, center.z, 1.0f});
-  auto reqCamPos = ifloat3{worldCenter.x - orthoSizeZ * dRay.x, worldCenter.y - orthoSizeZ * dRay.y,
-                           worldCenter.z - orthoSizeZ * dRay.z};
+  auto worldCenter = matmul(dTestViewToWorld, Vector4f{center.x, center.y, center.z, 1.0f});
+  auto reqCamPos = Vector3f{worldCenter.x - orthoSizeZ * dRay.x, worldCenter.y - orthoSizeZ * dRay.y,
+                            worldCenter.z - orthoSizeZ * dRay.z};
   // Return
   resZFar = orthoSizeZFar;
   resOrthoSize = maxDist;

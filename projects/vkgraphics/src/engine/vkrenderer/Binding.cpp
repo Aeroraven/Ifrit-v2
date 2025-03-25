@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 using namespace Ifrit::Common::Utility;
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
-template <typename E> constexpr typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
+template <typename E> IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
   return static_cast<typename std::underlying_type<E>::type>(e);
 }
 

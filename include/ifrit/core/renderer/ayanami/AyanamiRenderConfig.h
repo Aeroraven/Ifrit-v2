@@ -23,6 +23,6 @@ namespace Ifrit::Core::Ayanami {
 struct AyanamiRenderConfig {
   u32 m_globalDFClipmapLevels = 4;
   u32 m_globalDFClipmapResolution = 256; // 16MB per clipmap level
-  float m_globalDFBaseExtent = 20.0f;    // 2500.0 in the original code
+  f32 m_globalDFBaseExtent = 20.0f;      // 2500.0 in the original code
 };
 } // namespace Ifrit::Core::Ayanami

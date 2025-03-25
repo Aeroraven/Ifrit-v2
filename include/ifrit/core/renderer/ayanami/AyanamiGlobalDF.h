@@ -27,7 +27,7 @@ namespace Ifrit::Core::Ayanami {
 
 struct IFRIT_APIDECL AyanamiGlobalDFClipmap : public Common::Utility::NonCopyable {
   using GPUTexture = GraphicsBackend::Rhi::RhiTexture;
-  ifloat3 m_worldBound;
+  Vector3f m_worldBound;
   u32 m_clipmapSize;
 
   // I don't think this is a good design, but it's the most stupid and straightforward way to do it

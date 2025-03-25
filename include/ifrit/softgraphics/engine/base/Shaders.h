@@ -38,7 +38,7 @@ public:
 
 class IFRIT_APIDECL VertexShader : public ShaderBase {
 public:
-  IFRIT_DUAL virtual void execute(const void *const *input, ifloat4 *outPos, ifloat4 *const *outVaryings) = 0;
+  IFRIT_DUAL virtual void execute(const void *const *input, Vector4f *outPos, Vector4f *const *outVaryings) = 0;
   IFRIT_DUAL virtual ~VertexShader() = default;
   IFRIT_HOST virtual VertexShader *getCudaClone() { return nullptr; };
   IFRIT_HOST virtual std::unique_ptr<VertexShader> getThreadLocalCopy() { return nullptr; };
@@ -71,16 +71,16 @@ class IFRIT_APIDECL GeometryShader : public ShaderBase {
 public:
   GeometryShaderTopology atTopology = IGST_TRIANGLES;
   u32 atMaxVertices = 4;
-  IFRIT_DUAL virtual void execute(const ifloat4 *const *inPos, const VaryingStore *const *inVaryings, ifloat4 *outPos,
+  IFRIT_DUAL virtual void execute(const Vector4f *const *inPos, const VaryingStore *const *inVaryings, Vector4f *outPos,
                                   VaryingStore *outVaryings, int *outSize) = 0;
   IFRIT_HOST virtual GeometryShader *getCudaClone() { return nullptr; };
 };
 
 class IFRIT_APIDECL HullShader : public ShaderBase {
 public:
-  IFRIT_DUAL virtual void executeMain(const ifloat4 **inputPos, const VaryingStore **inputVaryings, ifloat4 *outPos,
+  IFRIT_DUAL virtual void executeMain(const Vector4f **inputPos, const VaryingStore **inputVaryings, Vector4f *outPos,
                                       VaryingStore *outVaryings, int invocationId, int patchId) = 0;
-  IFRIT_DUAL virtual void executePatchFunc(const ifloat4 **inputPos, const VaryingStore **inputVaryings,
+  IFRIT_DUAL virtual void executePatchFunc(const Vector4f **inputPos, const VaryingStore **inputVaryings,
                                            int *outerTessLevels, int *innerTessLevels, int invocationId,
                                            int patchId) = 0;
   IFRIT_HOST virtual HullShader *getCudaClone() { return nullptr; };
@@ -88,22 +88,22 @@ public:
 
 class IFRIT_APIDECL MeshShader : public ShaderBase {
 public:
-  IFRIT_DUAL virtual void execute(iint3 localInvocation, int workGroupId, const void *inTaskShaderPayload,
-                                  VaryingStore *outVaryings, ifloat4 *outPos, int *outIndices, int &outNumVertices,
+  IFRIT_DUAL virtual void execute(Vector3i localInvocation, int workGroupId, const void *inTaskShaderPayload,
+                                  VaryingStore *outVaryings, Vector4f *outPos, int *outIndices, int &outNumVertices,
                                   int &outNumIndices) = 0;
   IFRIT_HOST virtual MeshShader *getCudaClone() { return nullptr; };
 };
 
 class IFRIT_APIDECL TaskShader : public ShaderBase {
 public:
-  IFRIT_DUAL virtual void execute(int workGroupId, void *outTaskShaderPayload, iint3 *outMeshWorkGroups,
+  IFRIT_DUAL virtual void execute(int workGroupId, void *outTaskShaderPayload, Vector3i *outMeshWorkGroups,
                                   int &outNumMeshWorkGroups) = 0;
   IFRIT_HOST virtual TaskShader *getCudaClone() { return nullptr; };
 };
 
 /* Function Delegates & C-ABI Compatible */
-typedef void (*VertexShaderFunctionalPtr)(const void *const *input, ifloat4 *outPos, ifloat4 *const *outVaryings);
+typedef void (*VertexShaderFunctionalPtr)(const void *const *input, Vector4f *outPos, Vector4f *const *outVaryings);
 typedef void (*FragmentShaderFunctionalPtr)(const void *varyings, void *colorOutput, float *fragmentDepth);
-typedef void (*GeometryShaderFunctionalPtr)(const ifloat4 *const *inPos, const ifloat4 *const *inVaryings,
-                                            ifloat4 *outPos, VaryingStore *outVaryings, int *outSize);
+typedef void (*GeometryShaderFunctionalPtr)(const Vector4f *const *inPos, const Vector4f *const *inVaryings,
+                                            Vector4f *outPos, VaryingStore *outVaryings, int *outSize);
 } // namespace Ifrit::GraphicsBackend::SoftGraphics

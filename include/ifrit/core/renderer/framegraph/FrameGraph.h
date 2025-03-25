@@ -55,12 +55,12 @@ enum class FrameGraphPassType {
 
 struct ResourceNode {
   ResourceNodeId id;
-  std::string name;
+  String name;
   bool isImported;
   FrameGraphResourceType type;
 
-  std::shared_ptr<FgBuffer> selfBuffer;
-  std::shared_ptr<FgTexture> selfTexture;
+  Ref<FgBuffer> selfBuffer;
+  Ref<FgTexture> selfTexture;
   FgBuffer *importedBuffer;
   FgTexture *importedTexture;
 
@@ -70,28 +70,28 @@ struct ResourceNode {
 struct PassNode {
   PassNodeId id;
   FrameGraphPassType type;
-  std::string name;
+  String name;
   bool isImported;
-  std::function<void()> passFunction;
-  std::vector<ResourceNodeId> inputResources;
-  std::vector<ResourceNodeId> outputResources;
-  std::vector<ResourceNodeId> dependentResources;
+  Fn<void()> passFunction;
+  Vec<ResourceNodeId> inputResources;
+  Vec<ResourceNodeId> outputResources;
+  Vec<ResourceNodeId> dependentResources;
 };
 
 class IFRIT_APIDECL FrameGraph {
 private:
-  std::vector<ResourceNode> m_resources;
-  std::vector<PassNode> m_passes;
+  Vec<ResourceNode> m_resources;
+  Vec<PassNode> m_passes;
 
 public:
-  ResourceNodeId addResource(const std::string &name);
-  PassNodeId addPass(const std::string &name, FrameGraphPassType type, const std::vector<ResourceNodeId> &inputs,
-                     const std::vector<ResourceNodeId> &outputs, const std::vector<ResourceNodeId> &dependencies);
+  ResourceNodeId addResource(const String &name);
+  PassNodeId addPass(const String &name, FrameGraphPassType type, const Vec<ResourceNodeId> &inputs,
+                     const Vec<ResourceNodeId> &outputs, const Vec<ResourceNodeId> &dependencies);
 
   void setImportedResource(ResourceNodeId id, FgBuffer *buffer);
   void setImportedResource(ResourceNodeId id, FgTexture *texture, const FgTextureSubResource &subResource);
 
-  void setExecutionFunction(PassNodeId id, std::function<void()> func);
+  void setExecutionFunction(PassNodeId id, Fn<void()> func);
 
   friend class FrameGraphCompiler;
   friend class FrameGraphExecutor;
@@ -105,10 +105,10 @@ struct CompiledFrameGraph {
     GraphicsBackend::Rhi::RhiResourceState dstState = GraphicsBackend::Rhi::RhiResourceState::Undefined;
   };
   const FrameGraph *m_graph = nullptr;
-  std::vector<u32> m_passTopoOrder = {};
-  std::vector<std::vector<ResourceBarriers>> m_passResourceBarriers = {};
-  std::vector<std::vector<ResourceBarriers>> m_outputAliasedResourcesBarriers = {};
-  std::vector<std::vector<u32>> m_inputResourceDependencies = {};
+  Vec<u32> m_passTopoOrder = {};
+  Vec<Vec<ResourceBarriers>> m_passResourceBarriers = {};
+  Vec<Vec<ResourceBarriers>> m_outputAliasedResourcesBarriers = {};
+  Vec<Vec<u32>> m_inputResourceDependencies = {};
 };
 
 class IFRIT_APIDECL FrameGraphCompiler {

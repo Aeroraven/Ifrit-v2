@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/math/VectorOps.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
@@ -27,26 +26,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::GraphicsBackend::SoftGraphics {
 struct Ray {
-  Ifrit::Math::SIMD::vfloat3 o;
-  Ifrit::Math::SIMD::vfloat3 r;
+  Ifrit::Math::SIMD::SVector3f o;
+  Ifrit::Math::SIMD::SVector3f r;
 };
 
 struct RayInternal {
-  Ifrit::Math::SIMD::vfloat3 o;
-  Ifrit::Math::SIMD::vfloat3 r;
-  Ifrit::Math::SIMD::vfloat3 invr;
+  Ifrit::Math::SIMD::SVector3f o;
+  Ifrit::Math::SIMD::SVector3f r;
+  Ifrit::Math::SIMD::SVector3f invr;
 };
 
 struct RayHit {
-  ifloat3 p;
+  Vector3f p;
   float t;
   int id;
 };
 
 template <class T> class BufferredAccelerationStructure {
 public:
-  virtual RayHit queryIntersection(const RayInternal &ray, float tmin,
-                                   float tmax) const = 0;
+  virtual RayHit queryIntersection(const RayInternal &ray, float tmin, float tmax) const = 0;
   virtual void buildAccelerationStructure() = 0;
   virtual void bufferData(const std::vector<T> &data) = 0;
 };

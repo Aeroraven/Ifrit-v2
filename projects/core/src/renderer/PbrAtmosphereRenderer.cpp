@@ -26,18 +26,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core {
 
 template <u32 N>
-inline consteval ifloat3 interpolateSpectrum(const std::array<float, N> waveLengths, const std::array<float, N> values,
-                                             float scale) {
-  constexpr float kLamR = static_cast<float>(Util::PbrAtmoConstants::kLambdaR);
-  constexpr float kLamG = static_cast<float>(Util::PbrAtmoConstants::kLambdaG);
-  constexpr float kLamB = static_cast<float>(Util::PbrAtmoConstants::kLambdaB);
-  float valR = Math::ConstFunc::binLerp(waveLengths, values, kLamR) * scale;
-  float valG = Math::ConstFunc::binLerp(waveLengths, values, kLamG) * scale;
-  float valB = Math::ConstFunc::binLerp(waveLengths, values, kLamB) * scale;
+inline consteval Vector3f interpolateSpectrum(const std::array<float, N> waveLengths, const std::array<float, N> values,
+                                              float scale) {
+  IF_CONSTEXPR float kLamR = static_cast<float>(Util::PbrAtmoConstants::kLambdaR);
+  IF_CONSTEXPR float kLamG = static_cast<float>(Util::PbrAtmoConstants::kLambdaG);
+  IF_CONSTEXPR float kLamB = static_cast<float>(Util::PbrAtmoConstants::kLambdaB);
+  float valR = Math::binLerp(waveLengths, values, kLamR) * scale;
+  float valG = Math::binLerp(waveLengths, values, kLamG) * scale;
+  float valB = Math::binLerp(waveLengths, values, kLamB) * scale;
   return {valR, valG, valB};
 }
 
-Math::SIMD::vfloat3 toVec3(const ifloat3 &v) { return {v.x, v.y, v.z}; }
+Math::SIMD::SVector3f toVec3(const Vector3f &v) { return {v.x, v.y, v.z}; }
 
 IFRIT_APIDECL void PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perframeData) {
   // todo: implement
@@ -47,40 +47,39 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perf
   auto data = std::make_shared<PbrAtmospherePerframe>();
   perframeData.m_atmosphereData = data;
 
-  constexpr auto solarIrradiance = Util::PbrAtmoConstants::getSolarIrradiance();
-  constexpr auto rayleighScattering = Util::PbrAtmoConstants::getRayleighScattering();
-  constexpr auto mieScattering = Util::PbrAtmoConstants::getMieScattering();
-  constexpr auto mieExtinction = Util::PbrAtmoConstants::getMieExtinction();
-  constexpr auto absorptionExtinction = Util::PbrAtmoConstants::getAbsorptionExtinction();
+  IF_CONSTEXPR auto solarIrradiance = Util::PbrAtmoConstants::getSolarIrradiance();
+  IF_CONSTEXPR auto rayleighScattering = Util::PbrAtmoConstants::getRayleighScattering();
+  IF_CONSTEXPR auto mieScattering = Util::PbrAtmoConstants::getMieScattering();
+  IF_CONSTEXPR auto mieExtinction = Util::PbrAtmoConstants::getMieExtinction();
+  IF_CONSTEXPR auto absorptionExtinction = Util::PbrAtmoConstants::getAbsorptionExtinction();
 
-  constexpr auto km = 1e3;
-  constexpr auto kmX = 1e0;
-  constexpr auto degToRad = std::numbers::pi_v<float> / 180.0f;
-  constexpr auto sunAngularRadius = 0.2678 * degToRad;
-  constexpr auto bottomRadius = 6360.0 * km;
-  constexpr auto topRadius = 6420.0 * km;
+  IF_CONSTEXPR auto km = 1e3;
+  IF_CONSTEXPR auto kmX = 1e0;
+  IF_CONSTEXPR auto degToRad = std::numbers::pi_v<float> / 180.0f;
+  IF_CONSTEXPR auto sunAngularRadius = 0.2678 * degToRad;
+  IF_CONSTEXPR auto bottomRadius = 6360.0 * km;
+  IF_CONSTEXPR auto topRadius = 6420.0 * km;
 
   using DensityProfileLayer = PbrAtmospherePerframe::PbrAtmosphereDensiyProfileLayer;
-  constexpr DensityProfileLayer rayleighLayer1 = {
+  IF_CONSTEXPR DensityProfileLayer rayleighLayer1 = {
       0.0f, 1.0f, static_cast<float>(-1.0 / Util::PbrAtmoConstants::kRayleighScaleHeight * km), 0.0, 0.0f};
-  constexpr DensityProfileLayer mieLayer1 = {
+  IF_CONSTEXPR DensityProfileLayer mieLayer1 = {
       0.0f, 1.0f, static_cast<float>(-1.0 / Util::PbrAtmoConstants::kMieScaleHeight * km), 0.0f, 0.0f};
 
-  constexpr DensityProfileLayer absorptionLayer0 = {static_cast<float>(25.0 * kmX), 0.0, 0.0,
-                                                    static_cast<float>(1.0 / (15.0 * kmX)), -2.0f / 3.0f};
-  constexpr DensityProfileLayer absorptionLayer1 = {0.0f, 0.0f, 0.0f, static_cast<float>(-1.0 / (15.0 * kmX)),
-                                                    8.0f / 3.0f};
-  constexpr auto muSMin = gcem::cos(102.0 * degToRad);
+  IF_CONSTEXPR DensityProfileLayer absorptionLayer0 = {static_cast<float>(25.0 * kmX), 0.0, 0.0,
+                                                       static_cast<float>(1.0 / (15.0 * kmX)), -2.0f / 3.0f};
+  IF_CONSTEXPR DensityProfileLayer absorptionLayer1 = {0.0f, 0.0f, 0.0f, static_cast<float>(-1.0 / (15.0 * kmX)),
+                                                       8.0f / 3.0f};
+  IF_CONSTEXPR auto muSMin = gcem::cos(102.0 * degToRad);
 
-  constexpr ifloat3 earthCenter = {0.0f, 0.0f, static_cast<float>(-bottomRadius)};
-  constexpr ifloat3 groundAlbedo = {0.1f, 0.1f, 0.1f};
-  constexpr ifloat2 sunSize = {static_cast<float>(gcem::tan(sunAngularRadius)),
-                               static_cast<float>(gcem::cos(sunAngularRadius))};
+  IF_CONSTEXPR Vector3f earthCenter = {0.0f, 0.0f, static_cast<float>(-bottomRadius)};
+  IF_CONSTEXPR Vector3f groundAlbedo = {0.1f, 0.1f, 0.1f};
+  IF_CONSTEXPR Vector2f sunSize = {static_cast<float>(gcem::tan(sunAngularRadius)),
+                                   static_cast<float>(gcem::cos(sunAngularRadius))};
 
   // Now filling in the data (params)
-  constexpr auto solarIrradianceFloat =
-      Math::ConstFunc::convertArray<double, float, solarIrradiance.size()>(solarIrradiance);
-  constexpr auto waveLengthToSample = Math::ConstFunc::uniformSampleIncl<float, solarIrradiance.size()>(
+  IF_CONSTEXPR auto solarIrradianceFloat = Math::convertArray<double, float, solarIrradiance.size()>(solarIrradiance);
+  IF_CONSTEXPR auto waveLengthToSample = Math::uniformSampleIncl<float, solarIrradiance.size()>(
       Util::PbrAtmoConstants::kLambdaMin, Util::PbrAtmoConstants::kLambdaMax);
 
   data->m_atmosphereParams.solarIrradiance =
@@ -185,7 +184,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perf
                                    sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter), 0);
   });
   // Last, a matrix to convert radiance to luminance
-  data->luminanceFromRad = Math::identity();
+  data->luminanceFromRad = Math::identity4();
 }
 
 IFRIT_APIDECL PbrAtmosphereRenderer::GPUShader *
@@ -226,7 +225,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::setupSingleScatteringPass() {
   m_singleScatteringPass = rhi->createComputePass();
   m_singleScatteringPass->setComputeShader(shader);
   m_singleScatteringPass->setNumBindlessDescriptorSets(0);
-  m_singleScatteringPass->setPushConstSize(sizeof(u32) * 6 + sizeof(float4x4));
+  m_singleScatteringPass->setPushConstSize(sizeof(u32) * 6 + sizeof(Matrix4x4f));
 }
 
 IFRIT_APIDECL void PbrAtmosphereRenderer::setupScatteringDensityPass() {
@@ -246,7 +245,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::setupIndirectIrradiancePass() {
   m_indirectIrradiancePass = rhi->createComputePass();
   m_indirectIrradiancePass->setComputeShader(shader);
   m_indirectIrradiancePass->setNumBindlessDescriptorSets(0);
-  m_indirectIrradiancePass->setPushConstSize(sizeof(u32) * 7 + sizeof(float4x4));
+  m_indirectIrradiancePass->setPushConstSize(sizeof(u32) * 7 + sizeof(Matrix4x4f));
 }
 
 IFRIT_APIDECL void PbrAtmosphereRenderer::setupMultipleScatteringPass() {
@@ -256,12 +255,12 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::setupMultipleScatteringPass() {
   m_multipleScatteringPass = rhi->createComputePass();
   m_multipleScatteringPass->setComputeShader(shader);
   m_multipleScatteringPass->setNumBindlessDescriptorSets(0);
-  m_multipleScatteringPass->setPushConstSize(sizeof(u32) * 5 + sizeof(float4x4));
+  m_multipleScatteringPass->setPushConstSize(sizeof(u32) * 5 + sizeof(Matrix4x4f));
 }
 
 IFRIT_APIDECL std::unique_ptr<PbrAtmosphereRenderer::GPUCommandSubmission>
 PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<GPUCommandSubmission *> &cmdToWait) {
-  using namespace Ifrit::Math::ConstFunc;
+  using namespace Ifrit::Math;
   using namespace GraphicsBackend::Rhi;
 
   preparePerframeData(perframe);
@@ -275,9 +274,9 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
   pcTransmittance.transmittanceRef = data->m_transmittance->getDescId();
   m_transmittancePrecomputePass->setRecordFunction([&](RhiRenderPassContext *ctx) {
     ctx->m_cmd->setPushConst(m_transmittancePrecomputePass, 0, sizeof(pcTransmittance), &pcTransmittance);
-    constexpr auto wgX =
+    IF_CONSTEXPR auto wgX =
         divRoundUp(AtmospherePASConfig::TRANSMITTANCE_TEXTURE_WIDTH, AtmospherePASConfig::cPasTransmittanceTGX);
-    constexpr auto wgY =
+    IF_CONSTEXPR auto wgY =
         divRoundUp(AtmospherePASConfig::TRANSMITTANCE_TEXTURE_HEIGHT, AtmospherePASConfig::cPasTransmittanceTGY);
     ctx->m_cmd->dispatch(wgX, wgY, 1);
   });
@@ -305,16 +304,16 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
   pcIrradiance.deltaIrradianceRef = data->m_deltaIrradiance->getDescId();
   m_irradiancePrecomputePass->setRecordFunction([&](RhiRenderPassContext *ctx) {
     ctx->m_cmd->setPushConst(m_irradiancePrecomputePass, 0, sizeof(pcIrradiance), &pcIrradiance);
-    constexpr auto wgX =
+    IF_CONSTEXPR auto wgX =
         divRoundUp(AtmospherePASConfig::IRRADIANCE_TEXTURE_WIDTH, AtmospherePASConfig::cPasIrradianceTGX);
-    constexpr auto wgY =
+    IF_CONSTEXPR auto wgY =
         divRoundUp(AtmospherePASConfig::IRRADIANCE_TEXTURE_HEIGHT, AtmospherePASConfig::cPasIrradianceTGY);
     ctx->m_cmd->dispatch(wgX, wgY, 1);
   });
 
   // Step3. precompute single scattering
   struct PushConstSingleScatteringStruct {
-    float4x4 lumFromRad;
+    Matrix4x4f lumFromRad;
     u32 atmoData;
     u32 deltaRayleigh;
     u32 deltaMie;
@@ -323,7 +322,7 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
     u32 transmittanceSampler;
   } pSingleScattering;
 
-  pSingleScattering.lumFromRad = Math::identity();
+  pSingleScattering.lumFromRad = Math::identity4();
   pSingleScattering.atmoData = data->m_atmosphereParamsBuffer->getDescId();
   pSingleScattering.deltaRayleigh = data->m_deltaRayleighScattering->getDescId();
   pSingleScattering.deltaMie = data->m_deltaMieScattering->getDescId();
@@ -332,11 +331,11 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
   pSingleScattering.transmittanceSampler = data->m_transmittanceCombSamplerId->getActiveId();
   m_singleScatteringPass->setRecordFunction([&](RhiRenderPassContext *ctx) {
     ctx->m_cmd->setPushConst(m_singleScatteringPass, 0, sizeof(pSingleScattering), &pSingleScattering);
-    constexpr auto wgX =
+    IF_CONSTEXPR auto wgX =
         divRoundUp(AtmospherePASConfig::SCATTERING_TEXTURE_WIDTH, AtmospherePASConfig::cPasSingleScatteringTGX);
-    constexpr auto wgY =
+    IF_CONSTEXPR auto wgY =
         divRoundUp(AtmospherePASConfig::SCATTERING_TEXTURE_HEIGHT, AtmospherePASConfig::cPasSingleScatteringTGY);
-    constexpr auto wgZ =
+    IF_CONSTEXPR auto wgZ =
         divRoundUp(AtmospherePASConfig::SCATTERING_TEXTURE_DEPTH, AtmospherePASConfig::cPasSingleScatteringTGZ);
     ctx->m_cmd->dispatch(wgX, wgY, wgZ);
   });
@@ -362,7 +361,7 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
   } pScatteringDensity;
 
   struct PushConstIndirectIrradianceStruct {
-    float4x4 lumFromRad;
+    Matrix4x4f lumFromRad;
     u32 atmoData;
     u32 deltaIrradiance;
     u32 irradiance;
@@ -373,7 +372,7 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
   } pIndirectIrradiance;
 
   struct PushConstMultipleScatteringStruct {
-    float4x4 lumFromRad;
+    Matrix4x4f lumFromRad;
     u32 atmoData;
     u32 deltaMultipleScattering;
     u32 scattering;
@@ -391,7 +390,7 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
     pScatteringDensity.scatterDensity = data->m_deltaScatteringDensity->getDescId();
     pScatteringDensity.scatterOrder = order;
 
-    pIndirectIrradiance.lumFromRad = Math::identity();
+    pIndirectIrradiance.lumFromRad = Math::identity4();
     pIndirectIrradiance.atmoData = data->m_atmosphereParamsBuffer->getDescId();
     pIndirectIrradiance.deltaIrradiance = data->m_deltaIrradiance->getDescId();
     pIndirectIrradiance.irradiance = data->m_irradiance->getDescId();
@@ -400,7 +399,7 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
     pIndirectIrradiance.multipleScatteringSamp = data->m_deltaMultipleScatteringCombSamplerId->getActiveId();
     pIndirectIrradiance.scatteringOrder = order - 1;
 
-    pMultipleScattering.lumFromRad = Math::identity();
+    pMultipleScattering.lumFromRad = Math::identity4();
     pMultipleScattering.atmoData = data->m_atmosphereParamsBuffer->getDescId();
     pMultipleScattering.deltaMultipleScattering = data->m_deltaMultipleScattering->getDescId();
     pMultipleScattering.scattering = data->m_scattering->getDescId();
@@ -409,31 +408,31 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
 
     m_scatteringDensity->setRecordFunction([&](RhiRenderPassContext *ctx) {
       ctx->m_cmd->setPushConst(m_scatteringDensity, 0, sizeof(pScatteringDensity), &pScatteringDensity);
-      constexpr auto wgX =
+      IF_CONSTEXPR auto wgX =
           divRoundUp(AtmospherePASConfig::SCATTERING_TEXTURE_WIDTH, AtmospherePASConfig::cPasScatteringDensityTGX);
-      constexpr auto wgY =
+      IF_CONSTEXPR auto wgY =
           divRoundUp(AtmospherePASConfig::SCATTERING_TEXTURE_HEIGHT, AtmospherePASConfig::cPasScatteringDensityTGY);
-      constexpr auto wgZ =
+      IF_CONSTEXPR auto wgZ =
           divRoundUp(AtmospherePASConfig::SCATTERING_TEXTURE_DEPTH, AtmospherePASConfig::cPasScatteringDensityTGZ);
       ctx->m_cmd->dispatch(wgX, wgY, wgZ);
     });
 
     m_indirectIrradiancePass->setRecordFunction([&](RhiRenderPassContext *ctx) {
       ctx->m_cmd->setPushConst(m_indirectIrradiancePass, 0, sizeof(pIndirectIrradiance), &pIndirectIrradiance);
-      constexpr auto wgX =
+      IF_CONSTEXPR auto wgX =
           divRoundUp(AtmospherePASConfig::IRRADIANCE_TEXTURE_WIDTH, AtmospherePASConfig::cPasIndirectIrradianceTGX);
-      constexpr auto wgY =
+      IF_CONSTEXPR auto wgY =
           divRoundUp(AtmospherePASConfig::IRRADIANCE_TEXTURE_HEIGHT, AtmospherePASConfig::cPasIndirectIrradianceTGY);
       ctx->m_cmd->dispatch(wgX, wgY, 1);
     });
 
     m_multipleScatteringPass->setRecordFunction([&](RhiRenderPassContext *ctx) {
       ctx->m_cmd->setPushConst(m_multipleScatteringPass, 0, sizeof(pMultipleScattering), &pMultipleScattering);
-      constexpr auto wgX =
+      IF_CONSTEXPR auto wgX =
           divRoundUp(AtmospherePASConfig::SCATTERING_TEXTURE_WIDTH, AtmospherePASConfig::cPasMultipleScatteringTGX);
-      constexpr auto wgY =
+      IF_CONSTEXPR auto wgY =
           divRoundUp(AtmospherePASConfig::SCATTERING_TEXTURE_HEIGHT, AtmospherePASConfig::cPasMultipleScatteringTGY);
-      constexpr auto wgZ =
+      IF_CONSTEXPR auto wgZ =
           divRoundUp(AtmospherePASConfig::SCATTERING_TEXTURE_DEPTH, AtmospherePASConfig::cPasMultipleScatteringTGZ);
       ctx->m_cmd->dispatch(wgX, wgY, wgZ);
     });
@@ -503,7 +502,7 @@ IFRIT_APIDECL PbrAtmosphereResourceDesc PbrAtmosphereRenderer::getResourceDesc(P
   desc.texTransmittance = data->m_transmittanceCombSamplerId->getActiveId();
   desc.earthRadius = data->m_atmosphereParams.bottomRadius;
   desc.bottomAtmoRadius = data->m_atmosphereParams.bottomRadius;
-  desc.groundAlbedo = ifloat4(0.1f, 0.1f, 0.1f, 1.0f);
+  desc.groundAlbedo = Vector4f(0.1f, 0.1f, 0.1f, 1.0f);
   return desc;
 }
 

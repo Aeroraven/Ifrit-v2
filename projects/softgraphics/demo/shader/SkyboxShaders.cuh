@@ -9,7 +9,7 @@
 namespace Ifrit::Demo::Skybox {
 	class SkyboxVS : public  Ifrit::SoftRenderer::VertexShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) override;
+		IFRIT_DUAL virtual void execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) override;
 		IFRIT_HOST virtual Ifrit::SoftRenderer::VertexShader* getCudaClone() override;
 	};
 

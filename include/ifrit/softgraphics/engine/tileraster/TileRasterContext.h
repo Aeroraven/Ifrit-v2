@@ -33,26 +33,26 @@ struct TileRasterContextRasterQueueProposal {
   int primId;
 };
 struct AssembledTriangleProposalShadeStage {
-  Ifrit::Math::SIMD::vfloat4 f1, f2, f3; // Interpolate Bases
-  Ifrit::Math::SIMD::vfloat3 bx, by;
+  Ifrit::Math::SIMD::SVector4f f1, f2, f3; // Interpolate Bases
+  Ifrit::Math::SIMD::SVector3f bx, by;
   int originalPrimitive;
 };
 struct AssembledTriangleProposalRasterStage {
-  Ifrit::Math::SIMD::vfloat3 e1, e2, e3; // Edge Coefs
+  Ifrit::Math::SIMD::SVector3f e1, e2, e3; // Edge Coefs
 };
 
 class TileRasterContext {
 public:
   // Config
-  constexpr static int numThreads = 16;
-  constexpr static int vertexStride = 3;
-  constexpr static int tileWidth = 16;
-  constexpr static int subtileBlockWidth = 4;
-  constexpr static int numSubtilesPerTileX = tileWidth / subtileBlockWidth;
-  constexpr static int vsChunkSize = 48;
-  constexpr static int gsChunkSize = 128;
+  IF_CONSTEXPR static int numThreads = 16;
+  IF_CONSTEXPR static int vertexStride = 3;
+  IF_CONSTEXPR static int tileWidth = 16;
+  IF_CONSTEXPR static int subtileBlockWidth = 4;
+  IF_CONSTEXPR static int numSubtilesPerTileX = tileWidth / subtileBlockWidth;
+  IF_CONSTEXPR static int vsChunkSize = 48;
+  IF_CONSTEXPR static int gsChunkSize = 128;
 
-  constexpr static int workerReprBits = 8;
+  IF_CONSTEXPR static int workerReprBits = 8;
 
   // Non-owning Bindings
   FrameBuffer *frameBuffer;

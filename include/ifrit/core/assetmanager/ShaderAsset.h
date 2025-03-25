@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/core/assetmanager/Asset.h"
 #include "ifrit/core/base/ApplicationInterface.h"
@@ -30,8 +29,7 @@ private:
   IApplication *m_app;
 
 public:
-  ShaderAsset(AssetMetadata metadata, std::filesystem::path path,
-              IApplication *app)
+  ShaderAsset(AssetMetadata metadata, std::filesystem::path path, IApplication *app)
       : Asset(metadata, path), m_app(app) {}
 
   ShaderRef *loadShader();
@@ -41,12 +39,10 @@ private:
   IApplication *m_app;
 
 public:
-  constexpr static const char *IMPORTER_NAME = "ShaderImporter";
-  ShaderAssetImporter(AssetManager *manager)
-      : AssetImporter(manager), m_app(manager->getApplication()) {}
+  IF_CONSTEXPR static const char *IMPORTER_NAME = "ShaderImporter";
+  ShaderAssetImporter(AssetManager *manager) : AssetImporter(manager), m_app(manager->getApplication()) {}
   void processMetadata(AssetMetadata &metadata) override;
-  void importAsset(const std::filesystem::path &path,
-                   AssetMetadata &metadata) override;
-  std::vector<std::string> getSupportedExtensionNames() override;
+  void importAsset(const std::filesystem::path &path, AssetMetadata &metadata) override;
+  Vec<String> getSupportedExtensionNames() override;
 };
 } // namespace Ifrit::Core

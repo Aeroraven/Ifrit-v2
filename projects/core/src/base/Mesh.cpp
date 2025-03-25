@@ -45,7 +45,7 @@ IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshDa
   const size_t max_vertices = 64;
   const size_t max_triangles = 124;
   const float cone_weight = 0.0f;
-  constexpr int MAX_LOD = 10;
+  IF_CONSTEXPR int MAX_LOD = 10;
 
   MeshClusterLodProc meshProc;
   MeshletConeCullProc coneCullProc;
@@ -56,9 +56,9 @@ IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshDa
   meshDesc.positionOffset = 0;
   meshDesc.vertexCount = size_cast<int>(meshData->m_vertices.size());
   meshDesc.vertexData = reinterpret_cast<i8 *>(meshData->m_vertices.data());
-  meshDesc.vertexStride = sizeof(ifloat3);
+  meshDesc.vertexStride = sizeof(Vector3f);
   meshDesc.normalData = reinterpret_cast<i8 *>(meshData->m_normals.data());
-  meshDesc.normalStride = sizeof(ifloat3);
+  meshDesc.normalStride = sizeof(Vector3f);
 
   auto chosenLod = MAX_LOD - 1;
   auto totalLods = 0;
@@ -200,14 +200,14 @@ IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshDa
   meshData->m_maxLod = totalLods;
 }
 
-IFRIT_APIDECL ifloat4 Mesh::getBoundingSphere(const std::vector<ifloat3> &vertices) {
-  vfloat3 minv = {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
-                  std::numeric_limits<float>::max()};
-  vfloat3 maxv = {-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
-                  -std::numeric_limits<float>::max()};
+IFRIT_APIDECL Vector4f Mesh::getBoundingSphere(const std::vector<Vector3f> &vertices) {
+  SVector3f minv = {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
+                    std::numeric_limits<float>::max()};
+  SVector3f maxv = {-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
+                    -std::numeric_limits<float>::max()};
   for (auto &v : vertices) {
-    minv = min(minv, vfloat3{v.x, v.y, v.z});
-    maxv = max(maxv, vfloat3{v.x, v.y, v.z});
+    minv = min(minv, SVector3f{v.x, v.y, v.z});
+    maxv = max(maxv, SVector3f{v.x, v.y, v.z});
   }
   auto center = (minv + maxv) * 0.5f;
   auto radius = length(maxv - center);

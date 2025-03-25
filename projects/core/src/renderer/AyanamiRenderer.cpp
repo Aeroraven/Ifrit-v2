@@ -112,7 +112,7 @@ IFRIT_APIDECL void AyanamiRenderer::setupAndRunFrameGraph(PerFrameData &perframe
 
     m_resources->m_raymarchPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
       cmd->setPushConst(m_resources->m_raymarchPass, 0, sizeof(RayMarchPc), &pc);
-      cmd->dispatch(Math::ConstFunc::divRoundUp(rtWidth, 8), Math::ConstFunc::divRoundUp(rtHeight, 8), 1);
+      cmd->dispatch(Math::divRoundUp(rtWidth, 8), Math::divRoundUp(rtHeight, 8), 1);
     });
     m_resources->m_raymarchPass->run(cmd, 0);
   });

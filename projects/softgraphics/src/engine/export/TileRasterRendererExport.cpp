@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/export/TileRasterRendererExport.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/bufferman/BufferManager.h"
@@ -40,8 +39,8 @@ struct TileRasterRendererWrapper {
 class VertexShaderFunctionalWrapper : virtual public VertexShader {
 public:
   VertexShaderFunctionalPtr func = nullptr;
-  virtual void execute(const void *const *input, ifloat4 *outPos,
-                       ifloat4 *const *outVaryings) override {
+  virtual void execute(const void *const *input, Vector4f *outPos,
+                       Vector4f *const *outVaryings) override {
     if (func)
       func(input, outPos, outVaryings);
   }

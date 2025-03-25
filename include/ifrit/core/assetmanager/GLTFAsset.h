@@ -32,14 +32,13 @@ private:
   u32 m_meshId;
   u32 m_primitiveId;
   u32 m_nodeId;
-  std::shared_ptr<MeshData> m_selfData;
+  Ref<MeshData> m_selfData;
   MeshData *m_selfDataRaw = nullptr;
   bool m_loaded = false;
-  std::string m_cachePath;
+  String m_cachePath;
 
 public:
-  GLTFMesh(AssetMetadata *metadata, GLTFAsset *asset, u32 meshId, u32 primitiveId, u32 nodeId,
-           const std::string &cachePath)
+  GLTFMesh(AssetMetadata *metadata, GLTFAsset *asset, u32 meshId, u32 primitiveId, u32 nodeId, const String &cachePath)
       : m_asset(asset), m_meshId(meshId), m_primitiveId(primitiveId), m_nodeId(nodeId), m_cachePath(cachePath) {
     m_assetReference.m_fileId = metadata->m_fileId;
     m_assetReference.m_name = metadata->m_name;
@@ -48,7 +47,7 @@ public:
     m_usingAsset = true;
   }
 
-  virtual std::shared_ptr<MeshData> loadMesh() override;
+  virtual Ref<MeshData> loadMesh() override;
   virtual MeshData *loadMeshUnsafe() override;
 };
 
@@ -58,9 +57,9 @@ public:
   u32 m_meshId;
   u32 m_primitiveId;
   u32 m_nodeId;
-  std::shared_ptr<SceneObjectPrefab> m_prefab;
+  Ref<SceneObjectPrefab> m_prefab;
   GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset, u32 meshId, u32 primitiveId, u32 nodeId,
-             const float4x4 &parentTransform);
+             const Matrix4x4f &parentTransform);
 };
 
 class IFRIT_APIDECL GLTFAsset : public Asset {
@@ -68,8 +67,8 @@ private:
   bool m_loaded = false;
   AssetMetadata m_metadata;
   std::filesystem::path m_path;
-  std::vector<std::shared_ptr<GLTFMesh>> m_meshes;
-  std::vector<std::shared_ptr<GLTFPrefab>> m_prefabs;
+  Vec<Ref<GLTFMesh>> m_meshes;
+  Vec<Ref<GLTFPrefab>> m_prefabs;
   GLTFInternalData *m_internalData = nullptr;
 
   AssetManager *m_manager;
@@ -87,7 +86,7 @@ public:
   void loadGLTF(AssetManager *m_manager);
   void requestLoad();
   GLTFInternalData *getInternalData();
-  inline std::vector<std::shared_ptr<GLTFPrefab>> getPrefabs() {
+  inline Vec<Ref<GLTFPrefab>> getPrefabs() {
     requestLoad();
     return m_prefabs;
   }
@@ -98,10 +97,10 @@ public:
 
 class IFRIT_APIDECL GLTFAssetImporter : public AssetImporter {
 public:
-  constexpr static const char *IMPORTER_NAME = "GLTFAssetImporter";
+  IF_CONSTEXPR static const char *IMPORTER_NAME = "GLTFAssetImporter";
   GLTFAssetImporter(AssetManager *manager) : AssetImporter(manager) {}
   void processMetadata(AssetMetadata &metadata) override;
   void importAsset(const std::filesystem::path &path, AssetMetadata &metadata) override;
-  std::vector<std::string> getSupportedExtensionNames() override;
+  Vec<String> getSupportedExtensionNames() override;
 };
 } // namespace Ifrit::Core

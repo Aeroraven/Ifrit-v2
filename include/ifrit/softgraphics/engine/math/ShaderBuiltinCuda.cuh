@@ -30,10 +30,10 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 	using TextureObject = int;
 	using SamplerState = int;
 	using BufferObject = int;
-	using DifferentiableCollection = const ifloat4s256*;
+	using DifferentiableCollection = const Vector4fs256*;
 	using DifferentiableVarId = int;
 
-	IFRIT_DEVICE inline float4 pixelDfDx_s256Device(const ifloat4s256* varyings, int varyId) {
+	IFRIT_DEVICE inline float4 pixelDfDx_s256Device(const Vector4fs256* varyings, int varyId) {
 		const float* ptr = reinterpret_cast<const float*>(varyings);
 		const auto threadX = threadIdx.x;
 		const auto internalX = threadX % 4;
@@ -41,8 +41,8 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 		const auto offY = threadX & 2;
 		ptr = ptr + offY;
 
-		const auto ptrLeft = reinterpret_cast<const ifloat4s256*>(ptr);
-		const auto ptrRight = reinterpret_cast<const ifloat4s256*>(ptr + 1);
+		const auto ptrLeft = reinterpret_cast<const Vector4fs256*>(ptr);
+		const auto ptrRight = reinterpret_cast<const Vector4fs256*>(ptr + 1);
 		const auto leftObj = ptrLeft[varyId];
 		const auto rightObj = ptrRight[varyId];
 
@@ -54,7 +54,7 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 		return ret;
 	}
 
-	IFRIT_DEVICE inline float4 pixelDfDy_s256Device(const ifloat4s256* varyings, int varyId) {
+	IFRIT_DEVICE inline float4 pixelDfDy_s256Device(const Vector4fs256* varyings, int varyId) {
 		const float* ptr = reinterpret_cast<const float*>(varyings);
 		const auto threadX = threadIdx.x;
 		const auto internalX = threadX % 4;
@@ -62,8 +62,8 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 		const auto offX = threadX & 1;
 		ptr = ptr + offX;
 
-		const auto ptrLeft = reinterpret_cast<const ifloat4s256*>(ptr);
-		const auto ptrRight = reinterpret_cast<const ifloat4s256*>(ptr + 2);
+		const auto ptrLeft = reinterpret_cast<const Vector4fs256*>(ptr);
+		const auto ptrRight = reinterpret_cast<const Vector4fs256*>(ptr + 2);
 		const auto leftObj = ptrLeft[varyId];
 		const auto rightObj = ptrRight[varyId];
 
@@ -75,7 +75,7 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 		return ret;
 	}
 
-	IFRIT_DUAL inline float4 pixelDfDx_s256(const ifloat4s256* varyings, int varyId) {
+	IFRIT_DUAL inline float4 pixelDfDx_s256(const Vector4fs256* varyings, int varyId) {
 #ifdef __CUDA_ARCH__
 		return pixelDfDx_s256Device(varyings, varyId);
 #else
@@ -84,7 +84,7 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 #endif
 	}
 
-	IFRIT_DUAL inline float4 pixelDfDy_s256(const ifloat4s256* varyings, int varyId) {
+	IFRIT_DUAL inline float4 pixelDfDy_s256(const Vector4fs256* varyings, int varyId) {
 #ifdef __CUDA_ARCH__
 		return pixelDfDy_s256Device(varyings, varyId);
 #else
@@ -272,9 +272,9 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 		}
 
 		IFRIT_DUAL inline float4 textureImplAdaptiveLodFromAttr(const IfritSamplerT& sampler, const float4* texData,
-			int texOw, int texOh, int texLayers, const float lodBias, const int2& offset, const ifloat4s256* varyings, int varyId) {
+			int texOw, int texOh, int texLayers, const float lodBias, const int2& offset, const Vector4fs256* varyings, int varyId) {
 			
-			auto uvRaw = ((const ifloat4s256*)(varyings))[varyId];
+			auto uvRaw = ((const Vector4fs256*)(varyings))[varyId];
 			float2 uv = { uvRaw.x,uvRaw.y };
 			auto dx = pixelDfDx_s256(varyings, varyId);
 			auto dy = pixelDfDy_s256(varyings, varyId);
@@ -283,8 +283,8 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 			return textureImplAdaptiveLod(sampler, texData, texOw, texOh, texLayers, uv, ndx, ndy, lodBias, offset);
 		}
 		IFRIT_DUAL inline float4 textureImplAnisotropicFilterFromAttr(const IfritSamplerT& sampler, const float4* texData,
-			int texOw, int texOh, int texLayers, float maxAniso, float lodBias, const int2& offset, const ifloat4s256* varyings, int varyId) {
-			auto uvRaw = ((const ifloat4s256*)(varyings))[varyId];
+			int texOw, int texOh, int texLayers, float maxAniso, float lodBias, const int2& offset, const Vector4fs256* varyings, int varyId) {
+			auto uvRaw = ((const Vector4fs256*)(varyings))[varyId];
 			float2 uv = { uvRaw.x,uvRaw.y };
 			auto dx = pixelDfDx_s256(varyings, varyId);
 			auto dy = pixelDfDy_s256(varyings, varyId);
@@ -401,7 +401,7 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 #endif
 	}
 
-	IFRIT_DUAL inline void emitMeshTask(iint3 blockSize, iint3* appendList, int& appendSize) {
+	IFRIT_DUAL inline void emitMeshTask(Vector3i blockSize, Vector3i* appendList, int& appendSize) {
 #ifndef __CUDA_ARCH__
 		printf("This function is not available under CPU Mode.");
 #else
@@ -410,9 +410,9 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 	}
 }
 
-#define isbcuReadPsVarying(x,y)  ((const ifloat4s256*)(x))[(y)]
-#define isbcuReadPsColorOut(x,y)  ((ifloat4s256*)(x))[(y)]
-#define isbcuDfDx(x,y)  (Ifrit::SoftRenderer::Math::ShaderOps::CUDA::pixelDfDx_s256(((const ifloat4s256*)(x)),(y)))
-#define isbcuDfDy(x,y)  (Ifrit::SoftRenderer::Math::ShaderOps::CUDA::pixelDfDy_s256(((const ifloat4s256*)(x)),(y)))
+#define isbcuReadPsVarying(x,y)  ((const Vector4fs256*)(x))[(y)]
+#define isbcuReadPsColorOut(x,y)  ((Vector4fs256*)(x))[(y)]
+#define isbcuDfDx(x,y)  (Ifrit::SoftRenderer::Math::ShaderOps::CUDA::pixelDfDx_s256(((const Vector4fs256*)(x)),(y)))
+#define isbcuDfDy(x,y)  (Ifrit::SoftRenderer::Math::ShaderOps::CUDA::pixelDfDy_s256(((const Vector4fs256*)(x)),(y)))
 
 #endif

@@ -16,14 +16,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 
-#define isbSampleTexSimple(id, x, y)                                           \
-  ((float4 *)(atTexture[(id)]))[int((y)*atTextureHei[(id)]) *                  \
-                                    atTextureWid[(id)] +                       \
-                                int((x)*atTextureWid[(id)])]
-#define isbReadFloat4(x) (*reinterpret_cast<const ifloat4 *>((x)))
+#define isbSampleTexSimple(id, x, y)                                                                                   \
+  ((float4 *)(atTexture[(id)]))[int((y)*atTextureHei[(id)]) * atTextureWid[(id)] + int((x)*atTextureWid[(id)])]
+#define isbReadFloat4(x) (*reinterpret_cast<const Vector4f *>((x)))
 
 #define isbReadGsVarying(x, y) (inVaryings[(x)][(y)])
 #define isbStoreGsVarying(x, y, d, v) (outVaryings[(x) * (d) + (y)] = (v))

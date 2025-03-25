@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core::RenderingUtil::CascadeShadowMapping {
 
 IFRIT_APIDECL CSMResult calculateCSMSplits(const PerFrameData::PerViewData &perView, u32 shadowResolution,
-                                           ifloat3 lightFront, u32 splitCount, float maxDistance,
+                                           Vector3f lightFront, u32 splitCount, float maxDistance,
                                            const Vec<float> &splits, const Vec<float> &borders) {
 
   using namespace Ifrit::Math;
@@ -47,7 +47,7 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(const PerFrameData::PerViewData &perV
   }
 
   // Calculate frustum bounding spheres
-  Vec<ifloat4> boundSpheres;
+  Vec<Vector4f> boundSpheres;
   auto camAspect = perView.m_viewData.m_cameraAspect;
   auto camFovY = perView.m_viewData.m_cameraFovY;
   auto camPos = perView.m_viewData.m_cameraPosition;
@@ -57,28 +57,29 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(const PerFrameData::PerViewData &perV
   for (auto i = 0u; i < splitCount; i++) {
     auto vNear = std::max(1e-4f, splitStartMeter[i]);
     auto vFar = splitEndMeter[i];
-    auto vApex = ifloat3{camPos.x, camPos.y, camPos.z};
+    auto vApex = Vector3f{camPos.x, camPos.y, camPos.z};
     auto rZFar = 0.0f, rOrthoSize = 0.0f;
     auto rCullOrthoX = 0.0f, rCullOrthoY = 0.0f;
-    ifloat3 rCenter;
+    Vector3f rCenter;
     auto worldToView = Math::transpose(perView.m_viewData.m_worldToView);
     auto viewToWorld = inverse4((worldToView));
     getFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, viewToWorld, vApex, lightFront, 1e2f, rZFar,
                                  rOrthoSize, rCenter, rCullOrthoX, rCullOrthoY);
-    auto lightCamUp = ifloat3{0.0f, 1.0f, 0.0f};
+    auto lightCamUp = Vector3f{0.0f, 1.0f, 0.0f};
     auto proj = orthographicNegateY(rOrthoSize, 1.0, 0.1f, rZFar);
     auto view = lookAt(rCenter, rCenter + lightFront, lightCamUp);
 
     // To alleviate shadow flickering, we need to snap the light camera to texel
-    auto viewOriginal = lookAt(ifloat3{0.0f, 0.0f, 0.0f}, lightFront, lightCamUp);
+    auto viewOriginal = lookAt(Vector3f{0.0f, 0.0f, 0.0f}, lightFront, lightCamUp);
     auto viewOriginalInv = inverse4(viewOriginal);
-    auto camPosOriginal = matmul(viewOriginal, ifloat4{rCenter.x, rCenter.y, rCenter.z, 1.0f});
+    auto camPosOriginal = matmul(viewOriginal, Vector4f{rCenter.x, rCenter.y, rCenter.z, 1.0f});
     float texelSize = rOrthoSize / shadowResolution;
-    auto camPosSnapped = ifloat3{camPosOriginal.x - std::fmodf(camPosOriginal.x, texelSize),
-                                 camPosOriginal.y - std::fmodf(camPosOriginal.y, texelSize),
-                                 camPosOriginal.z - std::fmodf(camPosOriginal.z, texelSize)};
-    auto camPosSnappedWorld = matmul(viewOriginalInv, ifloat4{camPosSnapped.x, camPosSnapped.y, camPosSnapped.z, 1.0f});
-    auto newCenter = ifloat3{camPosSnappedWorld.x, camPosSnappedWorld.y, camPosSnappedWorld.z};
+    auto camPosSnapped = Vector3f{camPosOriginal.x - std::fmodf(camPosOriginal.x, texelSize),
+                                  camPosOriginal.y - std::fmodf(camPosOriginal.y, texelSize),
+                                  camPosOriginal.z - std::fmodf(camPosOriginal.z, texelSize)};
+    auto camPosSnappedWorld =
+        matmul(viewOriginalInv, Vector4f{camPosSnapped.x, camPosSnapped.y, camPosSnapped.z, 1.0f});
+    auto newCenter = Vector3f{camPosSnappedWorld.x, camPosSnappedWorld.y, camPosSnappedWorld.z};
     view = lookAt(newCenter, newCenter + lightFront, lightCamUp);
 
     CSMSingleSplitResult result;
@@ -109,9 +110,9 @@ IFRIT_APIDECL Vec<PerFrameData::PerViewData> fillCSMViews(const PerFrameData::Pe
                                                           const Vec<float> &borders, std::array<float, 4> &splitStart,
                                                           std::array<float, 4> &splitEnd) {
   auto lightTransformMat = lightTransform.getModelToWorldMatrix();
-  auto lightDirRaw = ifloat4{0.0f, 0.0f, 1.0f, 0.0f};
+  auto lightDirRaw = Vector4f{0.0f, 0.0f, 1.0f, 0.0f};
   auto lightDir = Math::matmul(lightTransformMat, lightDirRaw);
-  auto lightDir3 = ifloat3{lightDir.x, lightDir.y, lightDir.z};
+  auto lightDir3 = Vector3f{lightDir.x, lightDir.y, lightDir.z};
   auto csmResult = calculateCSMSplits(perView, shadowResolution, lightDir3, splitCount, maxDistance, splits, borders);
 
   Vec<PerFrameData::PerViewData> views;

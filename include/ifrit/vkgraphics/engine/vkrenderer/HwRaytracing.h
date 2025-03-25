@@ -48,13 +48,13 @@ class IFRIT_APIDECL BottomLevelAS : public Rhi::RhiRTInstance {
 private:
   VkAccelerationStructureKHR m_as = VK_NULL_HANDLE;
   EngineContext *m_context;
-  std::shared_ptr<SingleBuffer> m_blasBuffer = nullptr;
-  std::shared_ptr<SingleBuffer> m_scratchBuffer = nullptr;
+  Ref<SingleBuffer> m_blasBuffer = nullptr;
+  Ref<SingleBuffer> m_scratchBuffer = nullptr;
   Rhi::RhiDeviceAddr m_deviceAddress = 0;
 
 public:
   BottomLevelAS(EngineContext *ctx);
-  void prepareGeometryData(const std::vector<Rhi::RhiRTGeometryReference> &geometry, CommandBuffer *cmd);
+  void prepareGeometryData(const Vec<Rhi::RhiRTGeometryReference> &geometry, CommandBuffer *cmd);
   virtual Rhi::RhiDeviceAddr getDeviceAddress() const override;
 };
 
@@ -62,13 +62,13 @@ class IFRIT_APIDECL TopLevelAS : public Rhi::RhiRTScene {
 private:
   VkAccelerationStructureKHR m_as = VK_NULL_HANDLE;
   EngineContext *m_context;
-  std::shared_ptr<SingleBuffer> m_tlasBuffer = nullptr;
-  std::shared_ptr<SingleBuffer> m_scratchBuffer = nullptr;
+  Ref<SingleBuffer> m_tlasBuffer = nullptr;
+  Ref<SingleBuffer> m_scratchBuffer = nullptr;
   Rhi::RhiDeviceAddr m_deviceAddress = 0;
 
 public:
   TopLevelAS(EngineContext *ctx);
-  void prepareInstanceData(const std::vector<Rhi::RhiRTInstance> &instances, CommandBuffer *cmd);
+  void prepareInstanceData(const Vec<Rhi::RhiRTInstance> &instances, CommandBuffer *cmd);
   virtual Rhi::RhiDeviceAddr getDeviceAddress() const override;
 };
 
@@ -76,32 +76,32 @@ class IFRIT_APIDECL ShaderBindingTable : public Rhi::RhiRTShaderBindingTable {
 private:
   EngineContext *m_context;
   HwRaytracingContext *m_rtContext;
-  std::shared_ptr<SingleBuffer> m_sbtBuffer = nullptr;
+  Ref<SingleBuffer> m_sbtBuffer = nullptr;
 
-  std::vector<std::shared_ptr<SingleBuffer>> m_shaderBuffers;
-  std::vector<VkStridedDeviceAddressRegionKHR> m_stridedRegions;
-  std::vector<const Rhi::RhiShader *> m_shaders;
-  std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_shaderGroupsCI;
-  std::vector<u32> m_numGroups;
+  Vec<Ref<SingleBuffer>> m_shaderBuffers;
+  Vec<VkStridedDeviceAddressRegionKHR> m_stridedRegions;
+  Vec<const Rhi::RhiShader *> m_shaders;
+  Vec<VkRayTracingShaderGroupCreateInfoKHR> m_shaderGroupsCI;
+  Vec<u32> m_numGroups;
 
 private:
-  void appendShaderBindingTable(const std::vector<Rhi::RhiRTShaderGroup> &groups);
+  void appendShaderBindingTable(const Vec<Rhi::RhiRTShaderGroup> &groups);
 
 public:
   ShaderBindingTable(EngineContext *ctx, HwRaytracingContext *rtContext);
-  void prepareShaderBindingTable(const std::vector<std::vector<Rhi::RhiRTShaderGroup>> &groups);
-  std::vector<const Rhi::RhiShader *> getShaders() const;
-  std::vector<VkRayTracingShaderGroupCreateInfoKHR> getShaderGroupsCI() const;
-  std::vector<VkStridedDeviceAddressRegionKHR> getStridedRegions() const;
+  void prepareShaderBindingTable(const Vec<Vec<Rhi::RhiRTShaderGroup>> &groups);
+  Vec<const Rhi::RhiShader *> getShaders() const;
+  Vec<VkRayTracingShaderGroupCreateInfoKHR> getShaderGroupsCI() const;
+  Vec<VkStridedDeviceAddressRegionKHR> getStridedRegions() const;
 
   inline SingleBuffer *getSbtBuffer(u32 index) { return m_shaderBuffers[index].get(); }
 
-  inline std::vector<u32> getNumGroups() { return m_numGroups; }
+  inline Vec<u32> getNumGroups() { return m_numGroups; }
 };
 
 struct RaytracePipelineCreateInfo {
   ShaderBindingTable *sbt;
-  std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+  Vec<VkDescriptorSetLayout> descriptorSetLayouts;
   u32 pushConstSize = 0;
   u32 maxRecursion = 1;
 };
@@ -126,9 +126,9 @@ private:
   EngineContext *m_context;
   HwRaytracingContext *m_rtContext;
 
-  std::vector<std::unique_ptr<RaytracingPipeline>> m_raytracingPipelines;
-  std::vector<RaytracePipelineCreateInfo> m_raytracingPipelineCI;
-  std::unordered_map<u64, std::vector<int>> m_rtPipelineHash;
+  Vec<std::unique_ptr<RaytracingPipeline>> m_raytracingPipelines;
+  Vec<RaytracePipelineCreateInfo> m_raytracingPipelineCI;
+  HashMap<u64, Vec<int>> m_rtPipelineHash;
 
 public:
   RaytracingPipelineCache(EngineContext *ctx, HwRaytracingContext *rtctx) : m_context(ctx), m_rtContext(rtctx) {}

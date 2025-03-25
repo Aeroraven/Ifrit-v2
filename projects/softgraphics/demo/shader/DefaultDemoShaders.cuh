@@ -9,7 +9,7 @@
 namespace Ifrit::Demo::DemoDefault {
 	class DemoVertexShaderCuda : public  Ifrit::SoftRenderer::VertexShader {
 	public:
-		IFRIT_DUAL virtual void execute(const void* const* input, ifloat4* outPos, ifloat4* const* outVaryings) override;
+		IFRIT_DUAL virtual void execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) override;
 		IFRIT_HOST virtual Ifrit::SoftRenderer::VertexShader* getCudaClone() override;
 	};
 
@@ -23,9 +23,9 @@ namespace Ifrit::Demo::DemoDefault {
 	public:
 		uint32_t atMaxVertices = 4;
 		IFRIT_DUAL virtual void execute(
-			const ifloat4* const* inPos,
+			const Vector4f* const* inPos,
 			const Ifrit::SoftRenderer::VaryingStore* const* inVaryings,
-			ifloat4* outPos,
+			Vector4f* outPos,
 			Ifrit::SoftRenderer::VaryingStore* outVaryings,
 			int* outSize
 		) override;

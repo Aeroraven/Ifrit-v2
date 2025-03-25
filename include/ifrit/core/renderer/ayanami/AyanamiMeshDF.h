@@ -23,8 +23,8 @@ namespace Ifrit::Core::Ayanami {
 
 struct AyanamiMeshDFResource {
   struct SDFMeta {
-    ifloat4 bboxMin;
-    ifloat4 bboxMax;
+    Vector4f bboxMin;
+    Vector4f bboxMax;
     u32 width;
     u32 height;
     u32 depth;
@@ -50,8 +50,8 @@ private:
   u32 m_sdWidth;
   u32 m_sdHeight;
   u32 m_sdDepth;
-  ifloat3 m_sdBoxMin;
-  ifloat3 m_sdBoxMax;
+  Vector3f m_sdBoxMin;
+  Vector3f m_sdBoxMax;
   bool m_isBuilt = false;
 
   Uref<AyanamiMeshDFResource> m_gpuResource = nullptr;

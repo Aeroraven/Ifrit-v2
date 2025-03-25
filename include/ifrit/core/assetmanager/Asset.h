@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <string>
 
 namespace Ifrit::Core {
-constexpr const char *cMetadataFileExtension = ".meta";
+IF_CONSTEXPR const char *cMetadataFileExtension = ".meta";
 
 class AssetManager;
 
@@ -45,31 +45,28 @@ enum class AssetType {
 
 // Just a placeholder for now
 struct AssetMetadata {
-  std::string m_uuid;
-  std::string m_name;
-  std::string m_fileId;
-  std::string m_importer;
-  std::vector<std::string> m_dependenciesId;
-  std::unordered_map<std::string, std::string> m_importerOptions;
-  IFRIT_STRUCT_SERIALIZE(m_uuid, m_name, m_fileId, m_importer,
-                         m_importerOptions);
+  String m_uuid;
+  String m_name;
+  String m_fileId;
+  String m_importer;
+  Vec<String> m_dependenciesId;
+  HashMap<String, String> m_importerOptions;
+  IFRIT_STRUCT_SERIALIZE(m_uuid, m_name, m_fileId, m_importer, m_importerOptions);
 };
 
 class AssetImporter;
 
-class IFRIT_APIDECL Asset : public std::enable_shared_from_this<Asset>,
-                            public IAssetCompatible {
+class IFRIT_APIDECL Asset : public std::enable_shared_from_this<Asset>, public IAssetCompatible {
 protected:
   AssetMetadata m_metadata;
   std::filesystem::path m_path;
 
 public:
-  Asset(AssetMetadata metadata, std::filesystem::path path)
-      : m_metadata(metadata), m_path(path) {}
+  Asset(AssetMetadata metadata, std::filesystem::path path) : m_metadata(metadata), m_path(path) {}
 
-  const std::string &getUuid() const { return m_metadata.m_uuid; }
-  const std::string &getName() const { return m_metadata.m_name; }
-  const std::string &getFileId() const { return m_metadata.m_fileId; }
+  const String &getUuid() const { return m_metadata.m_uuid; }
+  const String &getName() const { return m_metadata.m_name; }
+  const String &getFileId() const { return m_metadata.m_fileId; }
   virtual void _polyHolder() {}
 };
 
@@ -79,29 +76,24 @@ protected:
 
 public:
   AssetImporter(AssetManager *manager) : m_assetManager(manager) {}
-  virtual AssetMetadata
-  requestDependencyMeta(const std::filesystem::path &path) {
-    return AssetMetadata();
-  }
-  virtual void importAsset(const std::filesystem::path &path,
-                           AssetMetadata &metadata) = 0;
+  virtual AssetMetadata requestDependencyMeta(const std::filesystem::path &path) { return AssetMetadata(); }
+  virtual void importAsset(const std::filesystem::path &path, AssetMetadata &metadata) = 0;
   virtual void processMetadata(AssetMetadata &metadata) = 0;
-  virtual std::vector<std::string> getSupportedExtensionNames() = 0;
+  virtual Vec<String> getSupportedExtensionNames() = 0;
 };
 
 class IFRIT_APIDECL AssetManager {
 private:
-  std::unordered_map<std::string, std::shared_ptr<Asset>> m_assets;
-  std::unordered_map<std::string, std::string> m_nameToUuid;
-  std::unordered_map<std::string, std::shared_ptr<AssetImporter>> m_importers;
-  std::unordered_map<std::string, std::string> m_extensionImporterMap;
+  HashMap<String, Ref<Asset>> m_assets;
+  HashMap<String, String> m_nameToUuid;
+  HashMap<String, Ref<AssetImporter>> m_importers;
+  HashMap<String, String> m_extensionImporterMap;
   std::filesystem::path basePath;
   IApplication *m_app;
 
 private:
-  std::string metadataSerialization(AssetMetadata &metadata);
-  void metadataDeserialization(const std::string &serialized,
-                               AssetMetadata &metadata);
+  String metadataSerialization(AssetMetadata &metadata);
+  void metadataDeserialization(const String &serialized, AssetMetadata &metadata);
 
 public:
   AssetManager(std::filesystem::path path, IApplication *app);
@@ -111,13 +103,11 @@ public:
   inline void loadAssetDirectory() { loadAssetDirectory(basePath); }
   inline IApplication *getApplication() { return m_app; }
 
-  void registerImporter(const std::string &extensionName,
-                        std::shared_ptr<AssetImporter> importer);
-  void registerAsset(std::shared_ptr<Asset> asset);
+  void registerImporter(const String &extensionName, Ref<AssetImporter> importer);
+  void registerAsset(Ref<Asset> asset);
 
-  std::shared_ptr<Asset> requestAssetIntenal(const std::filesystem::path &path);
-  template <typename T>
-  std::shared_ptr<T> requestAsset(const std::filesystem::path &path) {
+  Ref<Asset> requestAssetIntenal(const std::filesystem::path &path);
+  template <typename T> Ref<T> requestAsset(const std::filesystem::path &path) {
     auto asset = requestAssetIntenal(path);
     if (!asset) {
       return nullptr;
@@ -125,7 +115,7 @@ public:
     return std::dynamic_pointer_cast<T>(asset);
   }
 
-  template <typename T> std::shared_ptr<T> getAsset(const std::string &uuid) {
+  template <typename T> Ref<T> getAsset(const String &uuid) {
     auto it = m_assets.find(uuid);
     if (it == m_assets.end()) {
       return nullptr;
@@ -133,8 +123,7 @@ public:
     return std::dynamic_pointer_cast<T>(it->second);
   }
 
-  template <typename T>
-  std::shared_ptr<T> getAssetByName(const std::string &name) {
+  template <typename T> Ref<T> getAssetByName(const String &name) {
     auto it = m_nameToUuid.find(name);
     if (it == m_nameToUuid.end()) {
       return nullptr;
