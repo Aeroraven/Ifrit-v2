@@ -116,7 +116,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perf
   auto createPbrAtmoTex2D = [&](uint32_t width, uint32_t height) {
     using namespace GraphicsBackend::Rhi;
     auto tex =
-        rhi->createTexture2D(width, height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        rhi->createTexture2D("PbrAtmo_Tex2D", width, height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
                              RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
                                  RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
     return tex;
@@ -124,7 +124,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perf
   auto createPbrAtmoTex3D = [&](uint32_t width, uint32_t height, uint32_t depth) {
     using namespace GraphicsBackend::Rhi;
     auto tex =
-        rhi->createTexture3D(width, height, depth, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        rhi->createTexture3D("PbrAtmo_Tex3D", width, height, depth, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
                              RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
                                  RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
     return tex;
@@ -184,12 +184,12 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perf
 
   // Copy atmo params to GPU
   data->m_atmosphereParamsBuffer =
-      rhi->createBufferDevice(sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter),
+      rhi->createBufferDevice("PbrAtmo_Params", sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter),
                               GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopyDst |
                                   GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO);
   auto stagingBuffer = rhi->createStagedSingleBuffer(data->m_atmosphereParamsBuffer.get());
   auto tq = rhi->getQueue(GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
-  tq->runSyncCommand([&](const GraphicsBackend::Rhi::RhiCommandBuffer *cmd) {
+  tq->runSyncCommand([&](const GraphicsBackend::Rhi::RhiCommandList *cmd) {
     stagingBuffer->cmdCopyToDevice(cmd, &data->m_atmosphereParams,
                                    sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter), 0);
   });
@@ -450,7 +450,7 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
     });
   };
 
-  auto runCmdOrder = [&](const RhiCommandBuffer *cmd, uint32_t order) {
+  auto runCmdOrder = [&](const RhiCommandList *cmd, uint32_t order) {
     recordCmdOrder(order);
     cmd->resourceBarrier({singleRayleighScatterBarrier, singleMieScatterBarrier, scatteringBarrier, irradianceBarrier,
                           deltaIrradianceBarrier, multipleScatteringBarrier});
@@ -465,11 +465,11 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
   // Final, run
   auto cq = m_app->getRhiLayer()->getQueue(GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
 
-  auto toGeneralLayout = [&](const RhiCommandBuffer *cmd, RhiTexture *tex) {
+  auto toGeneralLayout = [&](const RhiCommandList *cmd, RhiTexture *tex) {
     RhiTransitionBarrier tBarrier;
     tBarrier.m_texture = tex;
     tBarrier.m_type = RhiResourceType::Texture;
-    tBarrier.m_dstState = RhiResourceState2::Common;
+    tBarrier.m_dstState = RhiResourceState::Common;
     tBarrier.m_subResource = {0, 0, 1, 1};
 
     RhiResourceBarrier barrier;
@@ -479,7 +479,7 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
     cmd->resourceBarrier({barrier});
   };
   auto task = cq->runAsyncCommand(
-      [&](const RhiCommandBuffer *cmd) {
+      [&](const RhiCommandList *cmd) {
         cmd->beginScope("Precompute Atmosphere Scattering");
         toGeneralLayout(cmd, data->m_transmittance.get());
         toGeneralLayout(cmd, data->m_deltaIrradiance.get());

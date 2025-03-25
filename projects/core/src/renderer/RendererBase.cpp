@@ -41,7 +41,6 @@ IFRIT_APIDECL void RendererBase::prepareImmutableResources() {
   std::lock_guard<std::mutex> lock(m_immRes.m_mutex);
   auto rhi = m_app->getRhiLayer();
   if (m_immRes.m_linearSampler == nullptr) {
-
     m_immRes.m_linearSampler = rhi->createTrivialSampler();
     m_immRes.m_nearestSampler = rhi->createTrivialNearestSampler(false);
   }
@@ -72,7 +71,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(PerFrameData &perframeData,
   }
   if (true) {
     auto rtArea = renderTargets->getRenderArea();
-    uint32_t actualRtWidth = 0, actualRtHeight = 0;
+    u32 actualRtWidth = 0, actualRtHeight = 0;
     getSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
 
     // Check if camera changed
@@ -155,7 +154,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(PerFrameData &perframeData,
     return shadow;
   });
 
-  auto shadowViewCounts = size_cast<uint32_t>(lightWithShadow.size()) * m_config->m_shadowConfig.m_csmCount;
+  auto shadowViewCounts = size_cast<u32>(lightWithShadow.size()) * m_config->m_shadowConfig.m_csmCount;
 
   if (perframeData.m_views.size() < 1 + shadowViewCounts) {
     perframeData.m_views.resize(1 + shadowViewCounts);
@@ -163,7 +162,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(PerFrameData &perframeData,
   if (perframeData.m_shadowData2.m_shadowViews.size() < m_config->m_shadowConfig.k_maxShadowMaps) {
     perframeData.m_shadowData2.m_shadowViews.resize(m_config->m_shadowConfig.k_maxShadowMaps);
   }
-  perframeData.m_shadowData2.m_enabledShadowMaps = size_cast<uint32_t>(lightWithShadow.size());
+  perframeData.m_shadowData2.m_enabledShadowMaps = size_cast<u32>(lightWithShadow.size());
   for (auto di = 0, dj = 0; auto &lightObj : lightWithShadow) {
     // Temporarily, we assume that all lights are directional lights
     auto light = lightObj->getComponentUnsafe<Light>();
@@ -184,8 +183,8 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(PerFrameData &perframeData,
     perframeData.m_shadowData2.m_shadowViews[di].m_csmEnd = splitEnd;
     for (auto i = 0; auto &csmView : csmViews) {
       perframeData.m_views[1 + dj].m_viewData = csmView.m_viewData;
-      perframeData.m_views[1 + dj].m_renderHeight = static_cast<uint32_t>(csmView.m_viewData.m_renderHeightf);
-      perframeData.m_views[1 + dj].m_renderWidth = static_cast<uint32_t>(csmView.m_viewData.m_renderWidthf);
+      perframeData.m_views[1 + dj].m_renderHeight = static_cast<u32>(csmView.m_viewData.m_renderHeightf);
+      perframeData.m_views[1 + dj].m_renderWidth = static_cast<u32>(csmView.m_viewData.m_renderWidthf);
       perframeData.m_views[1 + dj].m_viewType = PerFrameData::ViewType::Shadow;
       perframeData.m_shadowData2.m_shadowViews[di].m_viewMapping[i] = dj + 1;
       dj++;
@@ -251,7 +250,7 @@ IFRIT_APIDECL void RendererBase::collectPerframeData(PerFrameData &perframeData,
     effect.m_type = material->m_effectTemplates[passType].m_type;
 
     if (perframeData.m_shaderEffectMap.count(effect) == 0) {
-      perframeData.m_shaderEffectMap[effect] = size_cast<uint32_t>(perframeData.m_shaderEffectData.size());
+      perframeData.m_shaderEffectMap[effect] = size_cast<u32>(perframeData.m_shaderEffectData.size());
       perframeData.m_shaderEffectData.push_back(PerShaderEffectData{});
     }
     auto id = perframeData.m_shaderEffectMap[effect];
@@ -302,7 +301,7 @@ IFRIT_APIDECL void RendererBase::buildPipelines(PerFrameData &perframeData, Grap
     RhiShader *vertexShader = nullptr, *fragmentShader = nullptr, *taskShader = nullptr, *meshShader = nullptr;
     auto rhi = m_app->getRhiLayer();
     auto pass = rhi->createGraphicsPass();
-    uint32_t maxSets = 0;
+    u32 maxSets = 0;
     for (auto &shader : ref.m_shaders) {
       if (shader->getStage() == RhiShaderStage::Vertex) {
         vertexShader = shader;
@@ -336,7 +335,7 @@ IFRIT_APIDECL void RendererBase::recreateGBuffers(PerFrameData &perframeData, Re
   auto rtArea = renderTargets->getRenderArea();
   auto needRecreate = (perframeData.m_gbuffer.m_rtCreated == 0);
 
-  uint32_t actualRtWidth = 0, actualRtHeight = 0;
+  u32 actualRtWidth = 0, actualRtHeight = 0;
   getSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
 
   if (!needRecreate) {
@@ -354,16 +353,19 @@ IFRIT_APIDECL void RendererBase::recreateGBuffers(PerFrameData &perframeData, Re
     // auto targetFomrat = RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM;
     auto targetFomrat = RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT;
     perframeData.m_gbuffer.m_albedo_materialFlags =
-        rhi->createTexture2D(actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
-    perframeData.m_gbuffer.m_emissive = rhi->createTexture2D(actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+        rhi->createTexture2D("Render_GAlbedo", actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+    perframeData.m_gbuffer.m_emissive =
+        rhi->createTexture2D("Render_GEmissive", actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
     perframeData.m_gbuffer.m_normal_smoothness =
-        rhi->createTexture2D(actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
-    perframeData.m_gbuffer.m_specular_occlusion = rhi->createTexture2D(
-        actualRtWidth, actualRtHeight, targetFomrat, targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-    perframeData.m_gbuffer.m_specular_occlusion_intermediate = rhi->createTexture2D(
-        actualRtWidth, actualRtHeight, targetFomrat, targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+        rhi->createTexture2D("Render_GNormSmooth", actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+    perframeData.m_gbuffer.m_specular_occlusion =
+        rhi->createTexture2D("Render_GSpecOccl", actualRtWidth, actualRtHeight, targetFomrat,
+                             targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+    perframeData.m_gbuffer.m_specular_occlusion_intermediate =
+        rhi->createTexture2D("Render_GSpecOccl_Intm", actualRtWidth, actualRtHeight, targetFomrat,
+                             targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
     perframeData.m_gbuffer.m_shadowMask =
-        rhi->createTexture2D(actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+        rhi->createTexture2D("Render_GShadowMask", actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
 
     // Then bindless ids
     perframeData.m_gbuffer.m_albedo_materialFlagsId =
@@ -414,11 +416,11 @@ IFRIT_APIDECL void RendererBase::recreateGBuffers(PerFrameData &perframeData, Re
 
     // Then gbuffer desc
     perframeData.m_gbuffer.m_gbufferRefs =
-        rhi->createBufferDevice(sizeof(PerFrameData::GBufferDesc),
+        rhi->createBufferDevice("Render_GbufferRef", sizeof(PerFrameData::GBufferDesc),
                                 RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO);
     auto stagedBuf = rhi->createStagedSingleBuffer(perframeData.m_gbuffer.m_gbufferRefs.get());
     auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
-    tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
+    tq->runSyncCommand([&](const RhiCommandList *cmd) {
       stagedBuf->cmdCopyToDevice(cmd, &gbufferDesc, sizeof(PerFrameData::GBufferDesc), 0);
     });
     perframeData.m_gbuffer.m_gbufferDesc = rhi->createBindlessDescriptorRef();
@@ -477,8 +479,8 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
   auto rhi = m_app->getRhiLayer();
   auto renderArea = renderTargets->getRenderArea();
 
-  uint32_t actualRenderWidth = 0.0;
-  uint32_t actualRenderHeight = 0.0;
+  u32 actualRenderWidth = 0;
+  u32 actualRenderHeight = 0;
   getSupersampledRenderArea(renderTargets, &actualRenderWidth, &actualRenderHeight);
 
   auto &primaryView = perframeData.m_views[0];
@@ -494,9 +496,9 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
 
   std::vector<std::shared_ptr<RhiStagedSingleBuffer>> stagedBuffers;
   std::vector<void *> pendingVertexBuffers;
-  std::vector<uint32_t> pendingVertexBufferSizes;
+  std::vector<u32> pendingVertexBufferSizes;
 
-  for (uint32_t i = 0; i < perframeData.m_views.size(); i++) {
+  for (u32 i = 0; i < perframeData.m_views.size(); i++) {
     bool initLastFrameMatrix = false;
     auto &curView = perframeData.m_views[i];
     if (curView.m_viewBindlessRef == nullptr) {
@@ -535,12 +537,12 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
   }
 
   // Per effect data
-  uint32_t curShaderMaterialId = 0;
+  u32 curShaderMaterialId = 0;
   for (auto &shaderEffectId : perframeData.m_enabledEffects) {
     auto &shaderEffect = perframeData.m_shaderEffectData[shaderEffectId];
     // find whether batched object data should be recreated
     auto lastObjectCount = shaderEffect.m_lastObjectCount;
-    auto objectCount = size_cast<uint32_t>(shaderEffect.m_materials.size());
+    auto objectCount = size_cast<u32>(shaderEffect.m_materials.size());
     if (lastObjectCount != objectCount || lastObjectCount == ~0u) {
       // TODO/EMERGENCY: release old buffer
       shaderEffect.m_lastObjectCount = objectCount;
@@ -627,43 +629,46 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
       if (meshResource.objectBufferId == nullptr || mesh->m_resourceDirty) {
         requireUpdate = true;
         mesh->m_resourceDirty = false;
-        meshDataRef->m_cpCounter.totalBvhNodes = size_cast<uint32_t>(meshDataRef->m_bvhNodes.size());
+        meshDataRef->m_cpCounter.totalBvhNodes = size_cast<u32>(meshDataRef->m_bvhNodes.size());
         meshDataRef->m_cpCounter.totalLods = meshDataRef->m_maxLod;
-        meshDataRef->m_cpCounter.totalNumClusters = size_cast<uint32_t>(meshDataRef->m_clusterGroups.size());
+        meshDataRef->m_cpCounter.totalNumClusters = size_cast<u32>(meshDataRef->m_clusterGroups.size());
 
         auto tmpUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
         meshResource.vertexBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_verticesAligned.size() * sizeof(ifloat4)), tmpUsage);
+            "Mesh_Vertex", size_cast<u32>(meshDataRef->m_verticesAligned.size() * sizeof(ifloat4)), tmpUsage);
         meshResource.normalBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_normalsAligned.size() * sizeof(ifloat4)), tmpUsage);
+            "Mesh_Normal", size_cast<u32>(meshDataRef->m_normalsAligned.size() * sizeof(ifloat4)), tmpUsage);
         meshResource.uvBuffer =
-            rhi->createBufferDevice(size_cast<uint32_t>(meshDataRef->m_uvs.size() * sizeof(ifloat2)), tmpUsage);
+            rhi->createBufferDevice("Mesh_UV", size_cast<u32>(meshDataRef->m_uvs.size() * sizeof(ifloat2)), tmpUsage);
         meshResource.bvhNodeBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_bvhNodes.size() * sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
+            "Mesh_BVHNode",
+            size_cast<u32>(meshDataRef->m_bvhNodes.size() * sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
             tmpUsage);
         meshResource.clusterGroupBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_clusterGroups.size() * sizeof(MeshProcLib::MeshProcess::ClusterGroup)),
+            "Mesh_ClusterGroup",
+            size_cast<u32>(meshDataRef->m_clusterGroups.size() * sizeof(MeshProcLib::MeshProcess::ClusterGroup)),
             tmpUsage);
         meshResource.meshletBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_meshlets.size() * sizeof(MeshData::MeshletData)), tmpUsage);
+            "Mesh_Cluster", size_cast<u32>(meshDataRef->m_meshlets.size() * sizeof(MeshData::MeshletData)), tmpUsage);
         meshResource.meshletVertexBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_meshletVertices.size() * sizeof(uint32_t)), tmpUsage);
+            "Mesh_ClusterVertex", size_cast<u32>(meshDataRef->m_meshletVertices.size() * sizeof(u32)), tmpUsage);
         meshResource.meshletIndexBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_meshletTriangles.size() * sizeof(uint32_t)), tmpUsage);
+            "Mesh_ClusterIndex", size_cast<u32>(meshDataRef->m_meshletTriangles.size() * sizeof(u32)), tmpUsage);
         meshResource.meshletInClusterBuffer = rhi->createBufferDevice(
-            size_cast<uint32_t>(meshDataRef->m_meshletInClusterGroup.size() * sizeof(uint32_t)), tmpUsage);
+            "Mesh_ClusterInGroups", size_cast<u32>(meshDataRef->m_meshletInClusterGroup.size() * sizeof(u32)),
+            tmpUsage);
         meshResource.cpCounterBuffer =
-            rhi->createBufferDevice(size_cast<uint32_t>(sizeof(MeshData::GPUCPCounter)), tmpUsage);
-        meshResource.tangentBuffer =
-            rhi->createBufferDevice(size_cast<uint32_t>(sizeof(ifloat4) * meshDataRef->m_tangents.size()), tmpUsage);
+            rhi->createBufferDevice("Mesh_CpCounter", size_cast<u32>(sizeof(MeshData::GPUCPCounter)), tmpUsage);
+        meshResource.tangentBuffer = rhi->createBufferDevice(
+            "Mesh_Tangent", size_cast<u32>(sizeof(ifloat4) * meshDataRef->m_tangents.size()), tmpUsage);
 
         auto materialDataSize = 0;
         auto &materialRef = shaderEffect.m_materials[i];
         if (materialRef->m_data.size() > 0) {
           haveMaterialData = true;
-          materialDataSize = size_cast<uint32_t>(materialRef->m_data[0].size());
-          meshResource.materialDataBuffer =
-              rhi->createBufferDevice(size_cast<uint32_t>(shaderEffect.m_materials[i]->m_data[0].size()), tmpUsage);
+          materialDataSize = size_cast<u32>(materialRef->m_data[0].size());
+          meshResource.materialDataBuffer = rhi->createBufferDevice(
+              "MaterialData", size_cast<u32>(shaderEffect.m_materials[i]->m_data[0].size()), tmpUsage);
         } else {
           meshResource.materialDataBuffer = nullptr;
           iWarn("Material data not found for mesh {}", i);
@@ -704,7 +709,7 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
         objectBuffer.tangentBufferId = meshResource.tangentBufferId->getActiveId();
 
         // description for the whole mesh
-        meshResource.objectBuffer = rhi->createBufferDevice(sizeof(Mesh::GPUObjectBuffer), tmpUsage);
+        meshResource.objectBuffer = rhi->createBufferDevice("ObjectBuffer", sizeof(Mesh::GPUObjectBuffer), tmpUsage);
         meshResource.objectBufferId = rhi->registerStorageBuffer(meshResource.objectBuffer.get());
 
         mesh->setGPUResource(meshResource);
@@ -719,13 +724,14 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
 
         auto tmpUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
         requireUpdate = true;
-        instanceResource.cpQueueBuffer =
-            rhi->createBufferDevice(size_cast<uint32_t>(sizeof(uint32_t) * meshDataRef->m_bvhNodes.size()), tmpUsage);
+        instanceResource.cpQueueBuffer = rhi->createBufferDevice(
+            "Render_CpQueue", size_cast<u32>(sizeof(u32) * meshDataRef->m_bvhNodes.size()), tmpUsage);
 
         auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0];
         if (meshDataRef->m_numMeshletsEachLod.size() > 1)
           safeNumMeshlets += meshDataRef->m_numMeshletsEachLod[1];
-        instanceResource.filteredMeshlets = rhi->createBufferDevice(sizeof(uint32_t) * safeNumMeshlets, tmpUsage);
+        instanceResource.filteredMeshlets =
+            rhi->createBufferDevice("Render_FilteredClsters", sizeof(u32) * safeNumMeshlets, tmpUsage);
 
         instanceResource.cpQueueBufferId = rhi->registerStorageBuffer(instanceResource.cpQueueBuffer.get());
         instanceResource.filteredMeshletsId = rhi->registerStorageBuffer(instanceResource.filteredMeshlets.get());
@@ -733,7 +739,8 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
         instanceResource.objectData.cpQueueBufferId = instanceResource.cpQueueBufferId->getActiveId();
         instanceResource.objectData.filteredMeshletsId = instanceResource.filteredMeshletsId->getActiveId();
 
-        instanceResource.objectBuffer = rhi->createBufferDevice(sizeof(MeshInstance::GPUObjectBuffer), tmpUsage);
+        instanceResource.objectBuffer =
+            rhi->createBufferDevice("Render_Objects", sizeof(MeshInstance::GPUObjectBuffer), tmpUsage);
         instanceResource.objectBufferId = rhi->registerStorageBuffer(instanceResource.objectBuffer.get());
 
         meshInst->setGPUResource(instanceResource);
@@ -745,8 +752,7 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
 
       // update vertex buffer, TODO: dirty flag
       if (requireUpdate) {
-        auto funcEnqueueStagedBuffer = [&](std::shared_ptr<RhiStagedSingleBuffer> stagedBuffer, void *data,
-                                           uint32_t size) {
+        auto funcEnqueueStagedBuffer = [&](std::shared_ptr<RhiStagedSingleBuffer> stagedBuffer, void *data, u32 size) {
           stagedBuffers.push_back(stagedBuffer);
           pendingVertexBuffers.push_back(data);
           pendingVertexBufferSizes.push_back(size);
@@ -755,7 +761,7 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
   auto staged##name = rhi->createStagedSingleBuffer(meshResource.name.get());                                          \
   funcEnqueueStagedBuffer(                                                                                             \
       staged##name, meshDataRef->vecBuffer.data(),                                                                     \
-      size_cast<uint32_t>(meshDataRef->vecBuffer.size() * sizeof(decltype(meshDataRef->vecBuffer)::value_type)))
+      size_cast<u32>(meshDataRef->vecBuffer.size() * sizeof(decltype(meshDataRef->vecBuffer)::value_type)))
 
         enqueueStagedBuffer(vertexBuffer, m_verticesAligned);
         enqueueStagedBuffer(normalBuffer, m_normalsAligned);
@@ -808,7 +814,7 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
   // Issue a command buffer to copy data to GPU
   if (stagedBuffers.size() > 0) {
     auto queue = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
-    queue->runSyncCommand([&](const RhiCommandBuffer *cmd) {
+    queue->runSyncCommand([&](const RhiCommandList *cmd) {
       for (int i = 0; i < stagedBuffers.size(); i++) {
         stagedBuffers[i]->cmdCopyToDevice(cmd, pendingVertexBuffers[i], pendingVertexBufferSizes[i], 0);
       }
@@ -827,11 +833,11 @@ IFRIT_APIDECL void RendererBase::endFrame(const std::vector<GPUCommandSubmission
   auto swapchainImg = rhi->getSwapchainImage();
   auto sRenderComplete = rhi->getSwapchainRenderDoneEventHandler();
   auto cmd = drawq->runAsyncCommand(
-      [&](const Rhi::RhiCommandBuffer *cmd) {
+      [&](const Rhi::RhiCommandList *cmd) {
         Rhi::RhiTransitionBarrier barrier;
         barrier.m_texture = swapchainImg;
         barrier.m_type = Rhi::RhiResourceType::Texture;
-        barrier.m_dstState = Rhi::RhiResourceState2::Present;
+        barrier.m_dstState = Rhi::RhiResourceState::Present;
         barrier.m_subResource = {0, 0, 1, 1};
 
         Rhi::RhiResourceBarrier barrier2;

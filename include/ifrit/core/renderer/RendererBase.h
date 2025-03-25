@@ -37,15 +37,14 @@ struct SceneCollectConfig {
 };
 
 struct ImmutableRendererResources {
-  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
-  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
+  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSamplerRef;
+  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTextureRef;
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
   std::mutex m_mutex;
   bool m_initialized = false;
-  std::shared_ptr<GPUSampler> m_linearSampler = nullptr;
-  std::shared_ptr<GPUSampler> m_nearestSampler = nullptr;
-
-  std::shared_ptr<GPUTexture> m_blueNoise = nullptr;
+  GPUSampler m_linearSampler;
+  GPUSampler m_nearestSampler;
+  GPUTexture m_blueNoise;
   std::shared_ptr<GPUBindId> m_blueNoiseSRV = nullptr;
 };
 

@@ -46,7 +46,7 @@ createGraphicsPass(GraphicsBackend::Rhi::RhiBackend *rhi, const char *vsPath, co
                    u32 numPushConsts, const GraphicsBackend::Rhi::RhiRenderTargetsFormat &vFmts);
 
 IFRIT_APIDECL void
-enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandBuffer *cmd, GraphicsBackend::Rhi::RhiBackend *rhi,
+enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandList *cmd, GraphicsBackend::Rhi::RhiBackend *rhi,
                       GraphicsBackend::Rhi::RhiGraphicsPass *pass, GraphicsBackend::Rhi::RhiRenderTargets *rt,
                       const std::vector<GraphicsBackend::Rhi::RhiBindlessDescriptorRef *> &vBindlessDescs,
                       const void *pPushConst, u32 numPushConsts);

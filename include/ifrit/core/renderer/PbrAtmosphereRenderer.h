@@ -37,9 +37,9 @@ struct PbrAtmosphereResourceDesc {
   float bottomAtmoRadius;
 };
 struct PbrAtmospherePerframe {
-  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
-  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
-  using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
+  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTextureRef;
+  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSamplerRef;
+  using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBufferRef;
 
   struct PbrAtmosphereDensiyProfileLayer {
     float width;
@@ -83,18 +83,18 @@ struct PbrAtmospherePerframe {
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
 
   PbrAtmosphereParameter m_atmosphereParams;
-  std::shared_ptr<GPUBuffer> m_atmosphereParamsBuffer;
+  GPUBuffer m_atmosphereParamsBuffer;
 
-  std::shared_ptr<GPUSampler> m_sampler;
-  std::shared_ptr<GPUTexture> m_transmittance;
-  std::shared_ptr<GPUTexture> m_deltaIrradiance;
-  std::shared_ptr<GPUTexture> m_deltaRayleighScattering;
-  std::shared_ptr<GPUTexture> m_deltaMieScattering;
-  std::shared_ptr<GPUTexture> m_deltaScatteringDensity;
-  std::shared_ptr<GPUTexture> m_irradiance;
-  std::shared_ptr<GPUTexture> m_scattering;
-  std::shared_ptr<GPUTexture> m_deltaMultipleScattering;
-  std::shared_ptr<GPUTexture> m_optionalSingleMieScattering;
+  GPUSampler m_sampler;
+  GPUTexture m_transmittance;
+  GPUTexture m_deltaIrradiance;
+  GPUTexture m_deltaRayleighScattering;
+  GPUTexture m_deltaMieScattering;
+  GPUTexture m_deltaScatteringDensity;
+  GPUTexture m_irradiance;
+  GPUTexture m_scattering;
+  GPUTexture m_deltaMultipleScattering;
+  GPUTexture m_optionalSingleMieScattering;
 
   std::shared_ptr<GPUBindId> m_transmittanceId;
   std::shared_ptr<GPUBindId> m_deltaIrradianceId;

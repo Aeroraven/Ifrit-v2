@@ -172,8 +172,11 @@ IFRIT_APIDECL void EngineContext::init() {
   instanceCI.enabledLayerCount = 0;
   instanceCI.ppEnabledLayerNames = nullptr;
 
+  // Create delete queue
+  m_deleteQueue = std::make_unique<ResourceDeleteQueue>();
+
   // Instance : Extensions
-  uint32_t extensionCount = 0;
+  u32 extensionCount = 0;
   vkrVulkanAssert(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr),
                   "Failed to enumerate instance extensions");
   std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -182,9 +185,9 @@ IFRIT_APIDECL void EngineContext::init() {
   std::vector<const char *> targetExtensions;
 
   if (m_args.m_extensionGetter) {
-    uint32_t extensionCountExtra = 0;
+    u32 extensionCountExtra = 0;
     const char **extensionsExtra = m_args.m_extensionGetter(&extensionCountExtra);
-    for (uint32_t i = 0; i < extensionCountExtra; i++) {
+    for (u32 i = 0; i < extensionCountExtra; i++) {
       enableExtension(true, extensionsExtra[i], availableExtensions, targetExtensions);
     }
   }
@@ -196,11 +199,11 @@ IFRIT_APIDECL void EngineContext::init() {
     enableExtension(true, ext, availableExtensions, targetExtensions);
   }
 
-  instanceCI.enabledExtensionCount = size_cast<uint32_t>(targetExtensions.size());
+  instanceCI.enabledExtensionCount = size_cast<u32>(targetExtensions.size());
   instanceCI.ppEnabledExtensionNames = targetExtensions.data();
 
   // Instance : Layers
-  uint32_t layerCount = 0;
+  u32 layerCount = 0;
   vkrVulkanAssert(vkEnumerateInstanceLayerProperties(&layerCount, nullptr), "Failed to enumerate instance layers");
   std::vector<VkLayerProperties> availableLayers(layerCount);
   vkrVulkanAssert(vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()),
@@ -210,7 +213,7 @@ IFRIT_APIDECL void EngineContext::init() {
   if (m_args.m_enableValidationLayer) {
     enableLayer(true, s_validationLayerName, availableLayers, targetLayers);
   }
-  instanceCI.enabledLayerCount = size_cast<uint32_t>(targetLayers.size());
+  instanceCI.enabledLayerCount = size_cast<u32>(targetLayers.size());
   instanceCI.ppEnabledLayerNames = targetLayers.data();
 
   vkrVulkanAssert(vkCreateInstance(&instanceCI, nullptr, &m_instance), "Failed to create Vulkan instance");
@@ -237,7 +240,7 @@ IFRIT_APIDECL void EngineContext::init() {
   }
 
   // Physical Device
-  uint32_t physicalDeviceCount = 0;
+  u32 physicalDeviceCount = 0;
   vkrVulkanAssert(vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, nullptr),
                   "Failed to enumerate physical devices");
   std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
@@ -263,11 +266,11 @@ IFRIT_APIDECL void EngineContext::init() {
   vkGetPhysicalDeviceProperties(m_physicalDevice, &m_phyDeviceProperties);
 
   // Queue Family
-  uint32_t queueFamilyCount = 0;
+  u32 queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(bestDevice, &queueFamilyCount, nullptr);
   std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
   vkGetPhysicalDeviceQueueFamilyProperties(bestDevice, &queueFamilyCount, queueFamilies.data());
-  for (uint32_t i = 0; i < queueFamilyCount; i++) {
+  for (u32 i = 0; i < queueFamilyCount; i++) {
     DeviceQueueInfo::DeviceQueueFamily family;
     family.m_familyIndex = i;
     family.m_queueCount = queueFamilies[i].queueCount;
@@ -361,14 +364,14 @@ IFRIT_APIDECL void EngineContext::init() {
 
   VkDeviceCreateInfo deviceCI = {};
   deviceCI.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  deviceCI.queueCreateInfoCount = size_cast<uint32_t>(queueCreateInfos.size());
+  deviceCI.queueCreateInfoCount = size_cast<u32>(queueCreateInfos.size());
   deviceCI.pQueueCreateInfos = queueCreateInfos.data();
   deviceCI.pEnabledFeatures = &deviceFeatures;
   deviceCI.pNext = &deviceFeatures12;
 
   // Device : Extensions
   std::vector<const char *> targetDeviceExtensions;
-  uint32_t extensionCountDevice = 0;
+  u32 extensionCountDevice = 0;
   vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(bestDevice, nullptr, &extensionCountDevice, nullptr),
                   "Failed to enumerate device extensions");
   std::vector<VkExtensionProperties> availableExtensionsDevice(extensionCountDevice);
@@ -387,11 +390,11 @@ IFRIT_APIDECL void EngineContext::init() {
     iInfo("Hardware ray tracing disabled");
   }
 
-  deviceCI.enabledExtensionCount = size_cast<uint32_t>(targetDeviceExtensions.size());
+  deviceCI.enabledExtensionCount = size_cast<u32>(targetDeviceExtensions.size());
   deviceCI.ppEnabledExtensionNames = targetDeviceExtensions.data();
 
   // Device : Layers
-  uint32_t layerCountDevice = 0;
+  u32 layerCountDevice = 0;
   vkrVulkanAssert(vkEnumerateDeviceLayerProperties(bestDevice, &layerCountDevice, nullptr),
                   "Failed to enumerate device layers");
   std::vector<VkLayerProperties> availableLayersDevice(layerCountDevice);
@@ -402,14 +405,14 @@ IFRIT_APIDECL void EngineContext::init() {
   if (m_args.m_enableValidationLayer) {
     enableLayer(true, s_validationLayerName, availableLayersDevice, targetLayersDevice);
   }
-  deviceCI.enabledLayerCount = size_cast<uint32_t>(targetLayersDevice.size());
+  deviceCI.enabledLayerCount = size_cast<u32>(targetLayersDevice.size());
   deviceCI.ppEnabledLayerNames = targetLayersDevice.data();
   vkrVulkanAssert(vkCreateDevice(bestDevice, &deviceCI, nullptr, &m_device), "Failed to create logical device");
   vkrDebug("Logical device created");
 
   // Retrieve Queues
-  for (uint32_t i = 0; i < m_queueInfo.m_queueFamilies.size(); i++) {
-    for (uint32_t j = 0; j < m_queueInfo.m_queueFamilies[i].m_queueCount; j++) {
+  for (u32 i = 0; i < m_queueInfo.m_queueFamilies.size(); i++) {
+    for (u32 j = 0; j < m_queueInfo.m_queueFamilies[i].m_queueCount; j++) {
       DeviceQueueInfo::DeviceQueue queue;
       vkGetDeviceQueue(m_device, i, j, &queue.m_queue);
       queue.m_familyIndex = i;

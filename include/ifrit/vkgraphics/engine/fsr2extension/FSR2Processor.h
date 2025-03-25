@@ -34,7 +34,7 @@ public:
   FSR2Processor(EngineContext *ctx);
   ~FSR2Processor();
   void init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) override;
-  void dispatch(const Rhi::RhiCommandBuffer *cmd, const Rhi::FSR2::RhiFSR2DispatchArgs &args) override;
+  void dispatch(const Rhi::RhiCommandList *cmd, const Rhi::FSR2::RhiFSR2DispatchArgs &args) override;
   void getJitters(float *jitterX, float *jitterY, u32 frameIdx, u32 rtWidth, u32 dispWidth) override;
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics::FSR2

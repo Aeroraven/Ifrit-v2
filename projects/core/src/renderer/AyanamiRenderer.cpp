@@ -31,10 +31,10 @@ using namespace Ifrit::Core::Ayanami;
 struct AyanamiRendererResources {
   using DrawPass = GraphicsBackend::Rhi::RhiGraphicsPass;
   using ComputePass = GraphicsBackend::Rhi::RhiComputePass;
-  using GPUTexture = GraphicsBackend::Rhi::RhiTexture;
+  using GPUTexture = GraphicsBackend::Rhi::RhiTextureRef;
   using GPUBindId = GraphicsBackend::Rhi::RhiBindlessIdRef;
 
-  Ref<GPUTexture> m_raymarchOutput = nullptr;
+  GPUTexture m_raymarchOutput = nullptr;
   Ref<GPUBindId> m_raymarchOutputUAVBindId;
   Ref<GPUBindId> m_raymarchOutputSRVBindId;
 
@@ -74,7 +74,7 @@ IFRIT_APIDECL void AyanamiRenderer::prepareResources(RenderTargets *renderTarget
   if (m_resources->m_raymarchOutput == nullptr) {
     auto sampler = m_immRes.m_linearSampler;
     m_resources->m_raymarchOutput =
-        rhi->createTexture2D(width, height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        rhi->createTexture2D("Ayanami_Raymarch", width, height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
                              RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
     m_resources->m_raymarchOutputUAVBindId = rhi->registerUAVImage(m_resources->m_raymarchOutput.get(), {0, 0, 1, 1});
     m_resources->m_raymarchOutputSRVBindId =

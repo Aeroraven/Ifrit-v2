@@ -68,8 +68,7 @@ IFRIT_APIDECL void FSR2Processor::init(const Rhi::FSR2::RhiFSR2InitialzeArgs &ar
   m_context->fsr2Initialized = true;
 }
 
-IFRIT_APIDECL void FSR2Processor::dispatch(const Rhi::RhiCommandBuffer *cmd,
-                                           const Rhi::FSR2::RhiFSR2DispatchArgs &args) {
+IFRIT_APIDECL void FSR2Processor::dispatch(const Rhi::RhiCommandList *cmd, const Rhi::FSR2::RhiFSR2DispatchArgs &args) {
   FfxFsr2DispatchDescription dispatchParams = {};
   auto cmdVk = checked_cast<CommandBuffer>(cmd)->getCommandBuffer();
   auto colorImgVk = checked_cast<SingleDeviceImage>(args.color);

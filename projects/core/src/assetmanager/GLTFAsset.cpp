@@ -36,7 +36,7 @@ namespace Ifrit::Core {
 
 struct GLTFInternalData {
   tinygltf::Model model;
-  std::shared_ptr<GraphicsBackend::Rhi::RhiSampler> defaultSampler;
+  GraphicsBackend::Rhi::RhiSamplerRef defaultSampler;
 };
 
 // Mesh class
@@ -210,7 +210,6 @@ IFRIT_APIDECL void GLTFAsset::requestLoad() {
   if (!m_loaded) {
     m_loaded = true;
     loadGLTF(m_manager);
-    
   }
 }
 

@@ -101,8 +101,8 @@ struct CompiledFrameGraph {
   struct ResourceBarriers {
     bool enableUAVBarrier = false;
     bool enableTransitionBarrier = false;
-    GraphicsBackend::Rhi::RhiResourceState2 srcState;
-    GraphicsBackend::Rhi::RhiResourceState2 dstState = GraphicsBackend::Rhi::RhiResourceState2::Undefined;
+    GraphicsBackend::Rhi::RhiResourceState srcState;
+    GraphicsBackend::Rhi::RhiResourceState dstState = GraphicsBackend::Rhi::RhiResourceState::Undefined;
   };
   const FrameGraph *m_graph = nullptr;
   std::vector<u32> m_passTopoOrder = {};
@@ -120,7 +120,7 @@ public:
 class IFRIT_APIDECL FrameGraphExecutor {
 private:
 public:
-  void executeInSingleCmd(const GraphicsBackend::Rhi::RhiCommandBuffer *cmd, const CompiledFrameGraph &compiledGraph);
+  void executeInSingleCmd(const GraphicsBackend::Rhi::RhiCommandList *cmd, const CompiledFrameGraph &compiledGraph);
 };
 
 } // namespace Ifrit::Core

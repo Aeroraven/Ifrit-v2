@@ -181,7 +181,7 @@ protected:
   void build();
 
 public:
-  void run(const Rhi::RhiCommandBuffer *cmd);
+  void run(const Rhi::RhiCommandList *cmd);
 };
 
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

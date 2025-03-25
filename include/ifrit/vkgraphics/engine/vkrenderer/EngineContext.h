@@ -31,6 +31,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
+class IFRIT_APIDECL ResourceDeleteQueue : public Rhi::IRhiDeviceResourceDeleteQueue {
+private:
+  std::queue<Rhi::RhiDeviceResource *> m_deleteQueue;
+
+public:
+  virtual void addResourceToDeleteQueue(Rhi::RhiDeviceResource *resource) {
+    m_deleteQueue.push(resource);
+  }
+
+  virtual i32 processDeleteQueue() {
+    i32 count = 0;
+    while (!m_deleteQueue.empty()) {
+      auto resource = m_deleteQueue.front();
+      m_deleteQueue.pop();
+      if (!resource->getDebugName().empty())
+        iDebug("Deleting resource: {}", resource->getDebugName());
+      delete resource;
+      count++;
+    }
+    return count;
+  }
+
+  virtual ~ResourceDeleteQueue() { processDeleteQueue(); }
+};
+
 struct IFRIT_APIDECL DeviceQueueInfo {
   struct DeviceQueueFamily {
     u32 m_familyIndex;
@@ -95,6 +120,8 @@ private:
   ExtensionFunction m_extf;
   VkPhysicalDeviceProperties m_phyDeviceProperties{};
 
+  Uref<ResourceDeleteQueue> m_deleteQueue;
+
   std::string cacheDirectory = "";
 
 private:
@@ -123,5 +150,7 @@ public:
   inline const std::string &getCacheDirectory() const { return cacheDirectory; }
   void setCacheDirectory(const std::string &dir) { cacheDirectory = dir; }
   inline bool isDebugMode() { return m_args.m_enableValidationLayer; }
+
+  inline ResourceDeleteQueue *getDeleteQueue() { return m_deleteQueue.get(); }
 };
 } // namespace Ifrit::GraphicsBackend::VulkanGraphics

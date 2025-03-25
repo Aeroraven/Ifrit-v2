@@ -11,9 +11,9 @@ IFRIT_APIDECL void PostFxGlobalFog::renderPostFx(const GPUCmdBuffer *cmd, Render
                                                  GPUBindId *inputTexCombSampler, GPUBindId *inputDepthTexCombSampler,
                                                  GPUBindId *inputViewUniform) {
   struct PushConst {
-    uint32_t inputTexCombSampler;
-    uint32_t inputDepthTexCombSampler;
-    uint32_t inputViewUniform;
+    u32 inputTexCombSampler;
+    u32 inputDepthTexCombSampler;
+    u32 inputViewUniform;
   };
   PushConst pushConst = {inputTexCombSampler->getActiveId(), inputDepthTexCombSampler->getActiveId(),
                          inputViewUniform->getActiveId()};

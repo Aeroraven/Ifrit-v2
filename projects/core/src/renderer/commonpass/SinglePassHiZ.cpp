@@ -28,8 +28,8 @@ IFRIT_APIDECL SinglePassHiZPass::SinglePassHiZPass(IApplication *app) {
   m_singlePassHiZPass = createComputePass(rhi, "CommonPass/SinglePassHzb.comp.glsl", 1, 6);
 }
 
-IFRIT_APIDECL bool SinglePassHiZPass::checkResourceToRebuild(PerFrameData::SinglePassHiZData &data, uint32_t rtWidth,
-                                                             uint32_t rtHeight) {
+IFRIT_APIDECL bool SinglePassHiZPass::checkResourceToRebuild(PerFrameData::SinglePassHiZData &data, u32 rtWidth,
+                                                             u32 rtHeight) {
   bool cond = (data.m_hizTexture == nullptr);
 
   // Make width and heights power of 2
@@ -44,12 +44,12 @@ IFRIT_APIDECL bool SinglePassHiZPass::checkResourceToRebuild(PerFrameData::Singl
 }
 
 IFRIT_APIDECL void SinglePassHiZPass::prepareHiZResources(PerFrameData::SinglePassHiZData &data,
-                                                          GPUTexture *depthTexture, GPUSampler *sampler,
-                                                          uint32_t rtWidth, uint32_t rtHeight) {
+                                                          GPUTexture *depthTexture, GPUSampler *sampler, u32 rtWidth,
+                                                          u32 rtHeight) {
   auto rhi = m_app->getRhiLayer();
   auto maxMip = int(std::floor(std::log2(std::max(rtWidth, rtHeight))) + 1);
-  data.m_hizTexture =
-      rhi->createMipMapTexture(rtWidth, rtHeight, maxMip, RhiImageFormat::RHI_FORMAT_R32_SFLOAT, kbImUsage_UAV);
+  data.m_hizTexture = rhi->createMipMapTexture("SHiZ_Tex", rtWidth, rtHeight, maxMip,
+                                               RhiImageFormat::RHI_FORMAT_R32_SFLOAT, kbImUsage_UAV);
 
   data.m_hizRefs.resize(0);
   data.m_hizRefs.push_back(0);
@@ -57,8 +57,9 @@ IFRIT_APIDECL void SinglePassHiZPass::prepareHiZResources(PerFrameData::SinglePa
     auto bindlessId = rhi->registerUAVImage(data.m_hizTexture.get(), {static_cast<u32>(i), 0, 1, 1});
     data.m_hizRefs.push_back(bindlessId->getActiveId());
   }
-  data.m_hizRefBuffer = rhi->createBufferDevice(u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest);
-  data.m_hizAtomics = rhi->createBufferDevice(u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest);
+  data.m_hizRefBuffer = rhi->createBufferDevice("SHiZ_Ref", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest);
+  data.m_hizAtomics =
+      rhi->createBufferDevice("SHiZ_Atmoics", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest);
   auto staged = rhi->createStagedSingleBuffer(data.m_hizRefBuffer.get());
   auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   tq->runSyncCommand([&](const GPUCmdBuffer *cmd) {
@@ -78,7 +79,7 @@ IFRIT_APIDECL void SinglePassHiZPass::prepareHiZResources(PerFrameData::SinglePa
 }
 
 IFRIT_APIDECL void SinglePassHiZPass::runHiZPass(const PerFrameData::SinglePassHiZData &data, const GPUCmdBuffer *cmd,
-                                                 uint32_t rtWidth, uint32_t rtHeight, bool minMode) {
+                                                 u32 rtWidth, u32 rtHeight, bool minMode) {
   struct SpHizPushConst {
     u32 m_hizWidth;
     u32 m_hizHeight;
@@ -94,7 +95,7 @@ IFRIT_APIDECL void SinglePassHiZPass::runHiZPass(const PerFrameData::SinglePassH
   pc.m_hizIters = data.m_hizIters;
   pc.m_minMode = minMode ? 1 : 0;
 
-  constexpr static uint32_t cSPHiZTileSize = 64;
+  constexpr static u32 cSPHiZTileSize = 64;
 
   m_singlePassHiZPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     ctx->m_cmd->attachBindlessReferenceCompute(m_singlePassHiZPass, 1, data.m_hizDesc);

@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Core {
 
-std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> parseTex(std ::filesystem::path path, IApplication *app) {
+GraphicsBackend::Rhi::RhiTextureRef parseTex(std ::filesystem::path path, IApplication *app) {
   // read image use stb
   i32 width, height, channels;
   auto data = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
@@ -33,18 +33,20 @@ std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> parseTex(std ::filesystem::pat
     return nullptr;
   }
   auto rhi = app->getRhiLayer();
-  auto tex = rhi->createTexture2D(width, height, GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R8G8B8A8_UINT,
-                                  GraphicsBackend::Rhi::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+  auto tex =
+      rhi->createTexture2D("Asset_Img", width, height, GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R8G8B8A8_UINT,
+                           GraphicsBackend::Rhi::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
   auto tq = rhi->getQueue(GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   auto totalSize = width * height * 4;
-  auto buffer = rhi->createBuffer(totalSize, GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true);
+  auto buffer =
+      rhi->createBuffer("Asset_Buf", totalSize, GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true);
   buffer->map();
   buffer->writeBuffer(data, totalSize, 0);
   buffer->flush();
   buffer->unmap();
 
   using namespace GraphicsBackend::Rhi;
-  auto imageBarrier = [&](const RhiCommandBuffer *cmd, RhiTexture *tex, RhiResourceState2 src, RhiResourceState2 dst,
+  auto imageBarrier = [&](const RhiCommandList *cmd, RhiTexture *tex, RhiResourceState src, RhiResourceState dst,
                           RhiImageSubResource sub) {
     RhiTransitionBarrier barrier;
     barrier.m_texture = tex;
@@ -59,10 +61,10 @@ std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> parseTex(std ::filesystem::pat
     cmd->resourceBarrier({resBarrier});
   };
   // iInfo("Loading image: {}", path.string());
-  tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-    imageBarrier(cmd, tex.get(), RhiResourceState2::Undefined, RhiResourceState2::CopyDst, {0, 0, 1, 1});
+  tq->runSyncCommand([&](const RhiCommandList *cmd) {
+    imageBarrier(cmd, tex.get(), RhiResourceState::Undefined, RhiResourceState::CopyDst, {0, 0, 1, 1});
     cmd->copyBufferToImage(buffer.get(), tex.get(), {0, 0, 1, 1});
-    imageBarrier(cmd, tex.get(), RhiResourceState2::CopyDst, RhiResourceState2::Common, {0, 0, 1, 1});
+    imageBarrier(cmd, tex.get(), RhiResourceState::CopyDst, RhiResourceState::Common, {0, 0, 1, 1});
   });
   // iInfo("Image loaded: {}", path.string());
   stbi_image_free(data);
@@ -75,8 +77,8 @@ IFRIT_APIDECL TrivialImageAsset::TrivialImageAsset(AssetMetadata metadata, std::
   // Pass
 }
 
-IFRIT_APIDECL std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> TrivialImageAsset::getTexture() {
-  if (!m_texture) {
+IFRIT_APIDECL GraphicsBackend::Rhi::RhiTextureRef TrivialImageAsset::getTexture() {
+  if (m_texture == nullptr) {
     m_texture = parseTex(m_path, m_app);
   }
   return m_texture;
@@ -87,7 +89,7 @@ IFRIT_APIDECL void TrivialImageAssetImporter::processMetadata(AssetMetadata &met
   metadata.m_importer = IMPORTER_NAME;
 }
 
-IFRIT_APIDECL std::vector<std::string> TrivialImageAssetImporter::getSupportedExtensionNames() { return {".png"}; }
+IFRIT_APIDECL Vec<std::string> TrivialImageAssetImporter::getSupportedExtensionNames() { return {".png"}; }
 
 IFRIT_APIDECL void TrivialImageAssetImporter::importAsset(const std::filesystem::path &path, AssetMetadata &metadata) {
   auto asset = std::make_shared<TrivialImageAsset>(metadata, path, m_assetManager->getApplication());

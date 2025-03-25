@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Timer.h"
 
+#include "ifrit/common/logging/Logging.h"
 #include "ifrit/vkgraphics/engine/fsr2extension/FSR2Processor.h"
 
 using namespace Ifrit::Common::Utility;
@@ -49,7 +50,7 @@ struct RhiVulkanBackendImplDetails : public NonCopyable {
   std::vector<std::shared_ptr<Rhi::RhiBindlessIdRef>> m_bindlessIdRefs;
 
   // some utility buffers
-  std::shared_ptr<SingleBuffer> m_fullScreenQuadVertexBuffer;
+  Rhi::RhiBufferRef m_fullScreenQuadVertexBuffer;
   std::shared_ptr<VertexBufferDescriptor> m_fullScreenQuadVertexBufferDescriptor;
 
   // timers
@@ -79,10 +80,11 @@ RhiVulkanBackend::RhiVulkanBackend(const Rhi::RhiInitializeArguments &args) {
   ci.hostVisible = false;
   m_implDetails->m_fullScreenQuadVertexBuffer = m_implDetails->m_resourceManager->createSimpleBufferUnmanaged(ci);
 
-  StagedSingleBuffer stagedQuadBuffer(engineContext, m_implDetails->m_fullScreenQuadVertexBuffer.get());
+  auto singleBufferPtr = checked_cast<SingleBuffer>(m_implDetails->m_fullScreenQuadVertexBuffer.get());
+  StagedSingleBuffer stagedQuadBuffer(engineContext, singleBufferPtr);
 
   auto transferQueue = m_implDetails->m_commandExecutor->getQueue(QueueRequirement::Transfer);
-  transferQueue->runSyncCommand([&](const Rhi::RhiCommandBuffer *cmd) {
+  transferQueue->runSyncCommand([&](const Rhi::RhiCommandList *cmd) {
     float data[] = {
         0.0f, 0.0f, //
         4.0f, 0.0f, //
@@ -108,30 +110,32 @@ IFRIT_APIDECL std::shared_ptr<Rhi::RhiDeviceTimer> RhiVulkanBackend::createDevic
   return p;
 }
 
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiBuffer> RhiVulkanBackend::createBuffer(uint32_t size, uint32_t usage,
-                                                                             bool hostVisible) const {
+IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::createBuffer(const String &name, u32 size, u32 usage,
+                                                               bool hostVisible) const {
   BufferCreateInfo ci{};
   ci.size = size;
   ci.usage = usage;
   ci.hostVisible = hostVisible;
   auto p = m_implDetails->m_resourceManager->createSimpleBufferUnmanaged(ci);
+  p->setDebugName(name);
   return p;
 }
 
-std::shared_ptr<Rhi::RhiBuffer> RhiVulkanBackend::getFullScreenQuadVertexBuffer() const {
+IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::getFullScreenQuadVertexBuffer() const {
   return m_implDetails->m_fullScreenQuadVertexBuffer;
 }
 
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiBuffer> RhiVulkanBackend::createBufferDevice(uint32_t size,
-                                                                                   uint32_t usage) const {
+IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::createBufferDevice(const String &name, u32 size, u32 usage) const {
   BufferCreateInfo ci{};
   ci.size = size;
   ci.usage = usage;
   ci.hostVisible = false;
-  return m_implDetails->m_resourceManager->createSimpleBufferUnmanaged(ci);
+  auto p = m_implDetails->m_resourceManager->createSimpleBufferUnmanaged(ci);
+  p->setDebugName(name);
+  return p;
 }
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiMultiBuffer> RhiVulkanBackend::createBufferCoherent(uint32_t size, uint32_t usage,
-                                                                                          uint32_t numCopies) const {
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiMultiBuffer> RhiVulkanBackend::createBufferCoherent(u32 size, u32 usage,
+                                                                                          u32 numCopies) const {
   BufferCreateInfo ci{};
   ci.size = size;
   ci.usage = usage;
@@ -196,38 +200,44 @@ IFRIT_APIDECL Rhi::RhiShader *RhiVulkanBackend::createShader(const std::string &
   return ptr;
 }
 
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture>
-RhiVulkanBackend::createTexture2D(uint32_t width, uint32_t height, Rhi::RhiImageFormat format, uint32_t extraFlags) {
-  return m_implDetails->m_resourceManager->createTexture2DDeviceUnmanaged(width, height, toVkFormat(format),
-                                                                          extraFlags);
+IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::createTexture2D(const String &name, u32 width, u32 height,
+                                                                   Rhi::RhiImageFormat format, u32 extraFlags) {
+  auto p =
+      m_implDetails->m_resourceManager->createTexture2DDeviceUnmanaged(width, height, toVkFormat(format), extraFlags);
+  p->setDebugName(name);
+  return p;
 }
 
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture> RhiVulkanBackend::createDepthTexture(uint32_t width, uint32_t height) {
-  return m_implDetails->m_resourceManager->createDepthAttachment(width, height);
+IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::createDepthTexture(const String &name, u32 width, u32 height) {
+  auto p = m_implDetails->m_resourceManager->createDepthAttachment(width, height);
+  p->setDebugName(name);
+  return p;
 }
 
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiTexture> RhiVulkanBackend::createTexture3D(uint32_t width, uint32_t height,
-                                                                                 uint32_t depth,
-                                                                                 Rhi::RhiImageFormat format,
-                                                                                 uint32_t extraFlags) {
-  return m_implDetails->m_resourceManager->createTexture3D(width, height, depth, toVkFormat(format), extraFlags);
+IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::createTexture3D(const String &name, u32 width, u32 height, u32 depth,
+                                                                   Rhi::RhiImageFormat format, u32 extraFlags) {
+  auto p = m_implDetails->m_resourceManager->createTexture3D(width, height, depth, toVkFormat(format), extraFlags);
+  p->setDebugName(name);
+  return p;
 };
 
-std::shared_ptr<Rhi::RhiTexture> RhiVulkanBackend::createMipMapTexture(uint32_t width, uint32_t height, uint32_t mips,
-                                                                       Rhi::RhiImageFormat format,
-                                                                       uint32_t extraFlags) {
-  return m_implDetails->m_resourceManager->createMipTexture(width, height, mips, toVkFormat(format), extraFlags);
+IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::createMipMapTexture(const String &name, u32 width, u32 height,
+                                                                       u32 mips, Rhi::RhiImageFormat format,
+                                                                       u32 extraFlags) {
+  auto p = m_implDetails->m_resourceManager->createMipTexture(width, height, mips, toVkFormat(format), extraFlags);
+  p->setDebugName(name);
+  return p;
 }
 
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiSampler> RhiVulkanBackend::createTrivialSampler() {
+IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::createTrivialSampler() {
   return m_implDetails->m_resourceManager->createTrivialRenderTargetSampler();
 }
 
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiSampler> RhiVulkanBackend::createTrivialBilinearSampler(bool repeat) {
+IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::createTrivialBilinearSampler(bool repeat) {
   return m_implDetails->m_resourceManager->createTrivialBilinearSampler(repeat);
 }
 
-std::shared_ptr<Rhi::RhiSampler> RhiVulkanBackend::createTrivialNearestSampler(bool repeat) {
+IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::createTrivialNearestSampler(bool repeat) {
   return m_implDetails->m_resourceManager->createTrivialNearestSampler(repeat);
 }
 
@@ -273,6 +283,14 @@ IFRIT_APIDECL void RhiVulkanBackend::beginFrame() {
   for (auto &timer : m_implDetails->m_deviceTimers) {
     timer->frameProceed();
   }
+
+  // get engine context
+  auto engineContext = checked_cast<EngineContext>(m_device.get());
+  auto deleteList = engineContext->getDeleteQueue();
+  auto nums = deleteList->processDeleteQueue();
+  if (nums > 0) {
+    iDebug("Deleted {} resources", nums);
+  }
 }
 IFRIT_APIDECL void RhiVulkanBackend::endFrame() { m_implDetails->m_commandExecutor->endFrame(); }
 IFRIT_APIDECL std::unique_ptr<Rhi::RhiTaskSubmission> RhiVulkanBackend::getSwapchainFrameReadyEventHandler() {
@@ -297,7 +315,7 @@ IFRIT_APIDECL std::unique_ptr<Rhi::RhiTaskSubmission> RhiVulkanBackend::getSwapc
 std::shared_ptr<Rhi::RhiColorAttachment> RhiVulkanBackend::createRenderTarget(Rhi::RhiTexture *renderTarget,
                                                                               Rhi::RhiClearValue clearValue,
                                                                               Rhi::RhiRenderTargetLoadOp loadOp,
-                                                                              uint32_t mips, uint32_t layers) {
+                                                                              u32 mips, u32 layers) {
   auto attachment = std::make_shared<ColorAttachment>(renderTarget, clearValue, loadOp, mips, layers);
   return attachment;
 }
@@ -327,11 +345,11 @@ IFRIT_APIDECL Rhi::RhiBindlessDescriptorRef *RhiVulkanBackend::createBindlessDes
 
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef>
 RhiVulkanBackend::registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) {
-  std::vector<uint32_t> ids;
+  std::vector<u32> ids;
   auto descriptorManager = m_implDetails->m_descriptorManager.get();
   auto multiBuffer = checked_cast<MultiBuffer>(buffer);
   auto numBackbuffers = m_swapChain->getNumBackbuffers();
-  for (uint32_t i = 0; i < numBackbuffers; i++) {
+  for (u32 i = 0; i < numBackbuffers; i++) {
     auto id = descriptorManager->registerUniformBuffer(multiBuffer->getBuffer(i));
     ids.push_back(id);
   }
@@ -378,11 +396,11 @@ IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef> RhiVulkanBackend::registerS
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef>
 RhiVulkanBackend::registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) {
   // TODO
-  std::vector<uint32_t> ids;
+  std::vector<u32> ids;
   auto descriptorManager = m_implDetails->m_descriptorManager.get();
   auto multiBuffer = checked_cast<MultiBuffer>(buffer);
   auto numBackbuffers = m_swapChain->getNumBackbuffers();
-  for (uint32_t i = 0; i < numBackbuffers; i++) {
+  for (u32 i = 0; i < numBackbuffers; i++) {
     auto id = descriptorManager->registerStorageBuffer(multiBuffer->getBuffer(i));
     ids.push_back(id);
   }

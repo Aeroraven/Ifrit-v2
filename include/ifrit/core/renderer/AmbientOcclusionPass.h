@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core {
 class IFRIT_APIDECL AmbientOcclusionPass {
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
-  using CommandBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandBuffer;
+  using CommandBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandList;
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
   using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
 

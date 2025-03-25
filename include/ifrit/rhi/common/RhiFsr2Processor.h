@@ -1,7 +1,7 @@
 
 /*
 Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
+Copyright (C) 2024-2025 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -53,7 +53,7 @@ public:
   virtual ~RhiFsr2Processor() = default;
   virtual void init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) = 0;
   virtual void getJitters(float *jitterX, float *jitterY, u32 frameIdx, u32 rtWidth, u32 rtHeight) = 0;
-  virtual void dispatch(const Rhi::RhiCommandBuffer *cmd, const Rhi::FSR2::RhiFSR2DispatchArgs &args) = 0;
+  virtual void dispatch(const Rhi::RhiCommandList *cmd, const Rhi::FSR2::RhiFSR2DispatchArgs &args) = 0;
 };
 
 } // namespace Ifrit::GraphicsBackend::Rhi::FSR2

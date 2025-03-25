@@ -77,7 +77,7 @@ struct PerShaderEffectData {
 };
 
 struct PerFrameRenderTargets {
-  std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiTexture> m_colorRT;
+  Ifrit::GraphicsBackend::Rhi::RhiTextureRef m_colorRT;
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef> m_colorRTId;
   std::shared_ptr<Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef> m_colorRTIdSRV;
   Ifrit::GraphicsBackend::Rhi::RhiTexture *m_depthRT;
@@ -111,10 +111,10 @@ struct ShadowMappingData {
 
 struct PerFrameData {
   using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
-  using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
+  using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBufferRef;
   using GPUBindlessRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
   using GPUBindlessId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
-  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
+  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTextureRef;
   using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
   using GPUDepthRT = Ifrit::GraphicsBackend::Rhi::RhiDepthStencilAttachment;
   using GPURTs = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
@@ -132,12 +132,12 @@ struct PerFrameData {
   };
 
   struct GBuffer {
-    std::shared_ptr<GPUTexture> m_albedo_materialFlags;
-    std::shared_ptr<GPUTexture> m_specular_occlusion;
-    std::shared_ptr<GPUTexture> m_specular_occlusion_intermediate;
-    std::shared_ptr<GPUTexture> m_normal_smoothness;
-    std::shared_ptr<GPUTexture> m_emissive;
-    std::shared_ptr<GPUTexture> m_shadowMask;
+    GPUTexture m_albedo_materialFlags;
+    GPUTexture m_specular_occlusion;
+    GPUTexture m_specular_occlusion_intermediate;
+    GPUTexture m_normal_smoothness;
+    GPUTexture m_emissive;
+    GPUTexture m_shadowMask;
 
     u32 m_rtWidth = 0;
     u32 m_rtHeight = 0;
@@ -162,18 +162,18 @@ struct PerFrameData {
     GPUBarrier m_normal_smoothnessBarrier;
     GPUBarrier m_specular_occlusionBarrier;
 
-    std::shared_ptr<GPUBuffer> m_gbufferRefs = nullptr;
+    GPUBuffer m_gbufferRefs = nullptr;
     GPUBindlessRef *m_gbufferDesc = nullptr;
 
     std::vector<GPUBarrier> m_gbufferBarrier;
   };
 
   struct SinglePassHiZData {
-    std::shared_ptr<GPUTexture> m_hizTexture = nullptr;
+    GPUTexture m_hizTexture = nullptr;
     std::vector<u32> m_hizRefs;
-    std::shared_ptr<GPUBuffer> m_hizRefBuffer = nullptr;
+    GPUBuffer m_hizRefBuffer = nullptr;
     std::shared_ptr<GPUBindlessId> m_hizRefBufferId = nullptr;
-    std::shared_ptr<GPUBuffer> m_hizAtomics = nullptr;
+    GPUBuffer m_hizAtomics = nullptr;
     GPUBindlessRef *m_hizDesc = nullptr;
     u32 m_hizIters = 0;
     u32 m_hizWidth = 0;
@@ -196,8 +196,8 @@ struct PerFrameData {
     bool m_camMoved;
 
     // visibility buffer
-    std::shared_ptr<GPUTexture> m_visibilityBuffer_HW = nullptr;
-    std::shared_ptr<GPUTexture> m_visPassDepth_HW = nullptr;
+    GPUTexture m_visibilityBuffer_HW = nullptr;
+    GPUTexture m_visPassDepth_HW = nullptr;
     std::shared_ptr<GPUBindlessId> m_visBufferIdUAV_HW = nullptr;
 
     std::shared_ptr<GPUColorRT> m_visColorRT_HW = nullptr;
@@ -207,17 +207,17 @@ struct PerFrameData {
 
     // visibility buffer software. It's compute shader, so
     // not repeated decl required
-    std::shared_ptr<GPUTexture> m_visibilityBuffer_SW = nullptr;
-    std::shared_ptr<GPUBuffer> m_visPassDepth_SW = nullptr;
-    std::shared_ptr<GPUBuffer> m_visPassDepthCASLock_SW = nullptr;
+    GPUTexture m_visibilityBuffer_SW = nullptr;
+    GPUBuffer m_visPassDepth_SW = nullptr;
+    GPUBuffer m_visPassDepthCASLock_SW = nullptr;
 
     std::shared_ptr<GPUBindlessId> m_visBufferIdUAV_SW = nullptr;
     std::shared_ptr<GPUBindlessId> m_visDepthId_SW = nullptr;
     std::shared_ptr<GPUBindlessId> m_visDepthCASLockId_SW = nullptr;
 
     // combined visibility buffer is required
-    std::shared_ptr<GPUTexture> m_visibilityBuffer_Combined = nullptr;
-    std::shared_ptr<GPUTexture> m_visibilityDepth_Combined = nullptr;
+    GPUTexture m_visibilityBuffer_Combined = nullptr;
+    GPUTexture m_visibilityDepth_Combined = nullptr;
 
     std::shared_ptr<GPUBindlessId> m_visibilityBufferIdUAV_Combined = nullptr;
     std::shared_ptr<GPUBindlessId> m_visibilityDepthIdUAV_Combined = nullptr;
@@ -231,10 +231,10 @@ struct PerFrameData {
     std::shared_ptr<GPURTs> m_visRTs2_HW = nullptr;
 
     // all visible clusters
-    std::shared_ptr<GPUBuffer> m_allFilteredMeshletsAllCount = nullptr;
+    GPUBuffer m_allFilteredMeshletsAllCount = nullptr;
 
-    std::shared_ptr<GPUBuffer> m_allFilteredMeshletsHW = nullptr;
-    std::shared_ptr<GPUBuffer> m_allFilteredMeshletsSW = nullptr;
+    GPUBuffer m_allFilteredMeshletsHW = nullptr;
+    GPUBuffer m_allFilteredMeshletsSW = nullptr;
 
     u32 m_allFilteredMeshlets_SWOffset = 0;
 
@@ -247,9 +247,9 @@ struct PerFrameData {
     SinglePassHiZData m_spHiZDataMin;
 
     // Instance culling
-    std::shared_ptr<GPUBuffer> m_instCullDiscardObj = nullptr;
-    std::shared_ptr<GPUBuffer> m_instCullPassedObj = nullptr;
-    std::shared_ptr<GPUBuffer> m_persistCullIndirectDispatch = nullptr;
+    GPUBuffer m_instCullDiscardObj = nullptr;
+    GPUBuffer m_instCullPassedObj = nullptr;
+    GPUBuffer m_persistCullIndirectDispatch = nullptr;
     GPUBindlessRef *m_instCullDesc = nullptr;
     u32 m_maxSupportedInstances = 0;
 
@@ -259,7 +259,7 @@ struct PerFrameData {
   };
 
   struct FSR2ExtraData {
-    std::shared_ptr<GPUTexture> m_fsr2Output = nullptr;
+    GPUTexture m_fsr2Output = nullptr;
     std::shared_ptr<GPUBindlessId> m_fsr2OutputSRVId = nullptr;
     u32 m_fsrFrameId = 0;
   };
@@ -284,15 +284,15 @@ struct PerFrameData {
   GPUBindlessRef *m_gbufferDescFrag = nullptr;
 
   // Emit depth targets
-  std::shared_ptr<GPUTexture> m_velocityMaterial = nullptr;
-  std::shared_ptr<GPUTexture> m_motionVector = nullptr;
+  GPUTexture m_velocityMaterial = nullptr;
+  GPUTexture m_motionVector = nullptr;
   GPUBindlessRef *m_velocityMaterialDesc = nullptr;
 
   // Material classify
-  std::shared_ptr<GPUBuffer> m_matClassCountBuffer = nullptr;
-  std::shared_ptr<GPUBuffer> m_matClassIndirectDispatchBuffer = nullptr;
-  std::shared_ptr<GPUBuffer> m_matClassFinalBuffer = nullptr;
-  std::shared_ptr<GPUBuffer> m_matClassPixelOffsetBuffer = nullptr;
+  GPUBuffer m_matClassCountBuffer = nullptr;
+  GPUBuffer m_matClassIndirectDispatchBuffer = nullptr;
+  GPUBuffer m_matClassFinalBuffer = nullptr;
+  GPUBuffer m_matClassPixelOffsetBuffer = nullptr;
   GPUBindlessRef *m_matClassDesc = nullptr;
   std::vector<GPUBarrier> m_matClassBarrier;
   u32 m_matClassSupportedNumMaterials = 0;
@@ -304,7 +304,7 @@ struct PerFrameData {
 
   // TAA
   std::vector<PerFrameRenderTargets> m_taaHistory;
-  std::shared_ptr<GPUTexture> m_taaUnresolved = nullptr;
+  GPUTexture m_taaUnresolved = nullptr;
   GPUBindlessRef *m_taaHistoryDesc = nullptr;
   float m_taaJitterX = 0.0f;
   float m_taaJitterY = 0.0f;
@@ -314,13 +314,13 @@ struct PerFrameData {
 
   // Atmosphere
   std::shared_ptr<void> m_atmosphereData = nullptr;
-  std::shared_ptr<GPUTexture> m_atmoOutput;
+  GPUTexture m_atmoOutput;
   std::shared_ptr<GPUBindlessId> m_atmoOutputId;
   ifloat4 m_sunDir;
 
   // Shadow mapping
   ShadowMappingData m_shadowData2;
-  std::shared_ptr<GPUTexture> m_deferShadowMask = nullptr;
+  GPUTexture m_deferShadowMask = nullptr;
   std::shared_ptr<GPUColorRT> m_deferShadowMaskRT;
   std::shared_ptr<GPURTs> m_deferShadowMaskRTs;
 

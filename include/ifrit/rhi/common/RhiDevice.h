@@ -1,7 +1,7 @@
 
 /*
 Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
+Copyright (C) 2024-2025 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,14 +17,25 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/assetmanager/Asset.h"
-#include "ifrit/rhi/common/RhiLayer.h"
 
-namespace Ifrit::Core {
-class IFRIT_APIDECL TextureAsset : public Asset {
-public:
-  TextureAsset(AssetMetadata metadata, std::filesystem::path path) : Asset(metadata, path) {}
-  virtual GraphicsBackend::Rhi::RhiTextureRef getTexture() = 0;
+#include "RhiBaseTypes.h"
+
+namespace Ifrit::GraphicsBackend::Rhi {
+class IFRIT_APIDECL RhiDevice {
+protected:
+  virtual int _polymorphismPlaceHolder() { return 0; }
 };
 
-} // namespace Ifrit::Core
+class IFRIT_APIDECL RhiSwapchain {
+protected:
+  RhiDevice *m_context;
+
+public:
+  virtual ~RhiSwapchain() = default;
+  virtual void present() = 0;
+  virtual u32 acquireNextImage() = 0;
+  virtual u32 getNumBackbuffers() const = 0;
+  virtual u32 getCurrentFrameIndex() const = 0;
+  virtual u32 getCurrentImageIndex() const = 0;
+};
+} // namespace Ifrit::GraphicsBackend::Rhi

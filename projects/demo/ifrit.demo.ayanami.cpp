@@ -46,7 +46,7 @@ private:
   RhiScissor scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
   std::shared_ptr<RhiRenderTargets> renderTargets;
   std::shared_ptr<RhiColorAttachment> colorAttachment;
-  std::shared_ptr<RhiTexture> depthImage;
+  RhiTextureRef depthImage;
   std::shared_ptr<RhiDepthStencilAttachment> depthAttachment;
   std::shared_ptr<AyanamiRenderer> renderer;
   RhiTexture *swapchainImg;
@@ -96,7 +96,7 @@ public:
 
     // Render targets
     auto rt = m_rhiLayer.get();
-    depthImage = rt->createDepthTexture(WINDOW_WIDTH, WINDOW_HEIGHT);
+    depthImage = rt->createDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT);
     swapchainImg = rt->getSwapchainImage();
     renderTargets = rt->createRenderTargets();
     colorAttachment =

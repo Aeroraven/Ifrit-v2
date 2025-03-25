@@ -111,7 +111,7 @@ IFRIT_APIDECL void AyanamiMeshDF::buildGPUResource(GraphicsBackend::Rhi::RhiBack
     using namespace Ifrit::GraphicsBackend::Rhi;
     auto volumeSize = m_sdWidth * m_sdHeight * m_sdDepth;
     auto deviceVolume =
-        rhi->createBuffer(volumeSize * sizeof(f32),
+        rhi->createBuffer("Ayanami_DFVolume", volumeSize * sizeof(f32),
                           RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_CopySrc, true);
     deviceVolume->map();
     deviceVolume->writeBuffer(m_sdfData.data(), volumeSize * sizeof(f32), 0);
@@ -119,13 +119,13 @@ IFRIT_APIDECL void AyanamiMeshDF::buildGPUResource(GraphicsBackend::Rhi::RhiBack
     deviceVolume->unmap();
     m_gpuResource->sdfSampler = rhi->createTrivialBilinearSampler(false);
     m_gpuResource->sdfTexture = rhi->createTexture3D(
-        m_sdWidth, m_sdHeight, m_sdDepth, RhiImageFormat::RHI_FORMAT_R32_SFLOAT,
+        "Ayanami_DFTexture", m_sdWidth, m_sdHeight, m_sdDepth, RhiImageFormat::RHI_FORMAT_R32_SFLOAT,
         RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT |
             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
     m_gpuResource->sdfTextureBindId =
         rhi->registerCombinedImageSampler(m_gpuResource->sdfTexture.get(), m_gpuResource->sdfSampler.get());
     m_gpuResource->sdfMetaBuffer =
-        rhi->createBuffer(sizeof(AyanamiMeshDFResource::SDFMeta),
+        rhi->createBuffer("Ayanami_DFMeta", sizeof(AyanamiMeshDFResource::SDFMeta),
                           RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO, true);
     m_gpuResource->sdfMetaBufferBindId = rhi->registerStorageBuffer(m_gpuResource->sdfMetaBuffer.get());
 
@@ -139,13 +139,13 @@ IFRIT_APIDECL void AyanamiMeshDF::buildGPUResource(GraphicsBackend::Rhi::RhiBack
     sdfMeta.sdfId = m_gpuResource->sdfTextureBindId->getActiveId();
 
     auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
-    tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
+    tq->runSyncCommand([&](const RhiCommandList *cmd) {
       RhiResourceBarrier barrier;
       barrier.m_type = RhiBarrierType::Transition;
       barrier.m_transition.m_type = RhiResourceType::Texture;
       barrier.m_transition.m_texture = m_gpuResource->sdfTexture.get();
-      barrier.m_transition.m_srcState = RhiResourceState2::AutoTraced;
-      barrier.m_transition.m_dstState = RhiResourceState2::CopyDst;
+      barrier.m_transition.m_srcState = RhiResourceState::AutoTraced;
+      barrier.m_transition.m_dstState = RhiResourceState::CopyDst;
       barrier.m_transition.m_subResource = {0, 0, 1, 1};
 
       cmd->resourceBarrier({barrier});

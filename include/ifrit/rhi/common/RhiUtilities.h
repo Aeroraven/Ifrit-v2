@@ -17,14 +17,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/assetmanager/Asset.h"
-#include "ifrit/rhi/common/RhiLayer.h"
 
-namespace Ifrit::Core {
-class IFRIT_APIDECL TextureAsset : public Asset {
+#include "RhiBaseTypes.h"
+
+namespace Ifrit::GraphicsBackend::Rhi {
+class IFRIT_APIDECL RhiDeviceTimer {
 public:
-  TextureAsset(AssetMetadata metadata, std::filesystem::path path) : Asset(metadata, path) {}
-  virtual GraphicsBackend::Rhi::RhiTextureRef getTexture() = 0;
+  virtual void start(const RhiCommandList *cmd) = 0;
+  virtual void stop(const RhiCommandList *cmd) = 0;
+  virtual f32 getElapsedMs() = 0;
 };
-
-} // namespace Ifrit::Core
+} // namespace Ifrit::GraphicsBackend::Rhi

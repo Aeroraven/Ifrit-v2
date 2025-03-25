@@ -27,11 +27,11 @@ class IFRIT_APIDECL TrivialImageAsset : public TextureAsset {
 private:
   bool m_loaded = false;
   IApplication *m_app;
-  std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> m_texture = nullptr;
+  GraphicsBackend::Rhi::RhiTextureRef m_texture = nullptr;
 
 public:
   TrivialImageAsset(AssetMetadata metadata, std::filesystem::path path, IApplication *app);
-  std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> getTexture() override;
+  GraphicsBackend::Rhi::RhiTextureRef getTexture() override;
 };
 class IFRIT_APIDECL TrivialImageAssetImporter : public AssetImporter {
 private:

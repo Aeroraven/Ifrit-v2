@@ -10,7 +10,7 @@ namespace Ifrit::Core {
 
 class IFRIT_APIDECL SinglePassHiZPass {
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
-  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandBuffer;
+  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandList;
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
   using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
 

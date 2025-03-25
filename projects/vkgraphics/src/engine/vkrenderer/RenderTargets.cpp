@@ -36,7 +36,7 @@ IFRIT_APIDECL void RenderTargets::setDepthStencilAttachment(Rhi::RhiDepthStencil
   m_depthStencilAttachment = static_cast<DepthStencilAttachment *>(attachment);
 }
 
-IFRIT_APIDECL void RenderTargets::beginRendering(const Rhi::RhiCommandBuffer *commandBuffer) const {
+IFRIT_APIDECL void RenderTargets::beginRendering(const Rhi::RhiCommandList *commandBuffer) const {
   auto cmd = checked_cast<CommandBuffer>(commandBuffer);
   auto cmdraw = cmd->getCommandBuffer();
 
@@ -44,16 +44,16 @@ IFRIT_APIDECL void RenderTargets::beginRendering(const Rhi::RhiCommandBuffer *co
   // render graph or explicitly by the user.
   if (m_depthStencilAttachment != nullptr) {
     auto depthSrcLayout = (m_depthStencilAttachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear)
-                              ? Rhi::RhiResourceState2::Undefined
-                              : Rhi::RhiResourceState2::DepthStencilRT;
+                              ? Rhi::RhiResourceState::Undefined
+                              : Rhi::RhiResourceState::DepthStencilRT;
     cmd->imageBarrier(m_depthStencilAttachment->getRenderTarget(), depthSrcLayout,
-                      Rhi::RhiResourceState2::DepthStencilRT, {0, 0, 1, 1});
+                      Rhi::RhiResourceState::DepthStencilRT, {0, 0, 1, 1});
   }
 
   for (auto attachment : m_colorAttachments) {
-    auto srcLayout = (attachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear) ? Rhi::RhiResourceState2::Undefined
-                                                                                    : Rhi::RhiResourceState2::ColorRT;
-    cmd->imageBarrier(attachment->getRenderTarget(), srcLayout, Rhi::RhiResourceState2::ColorRT, {0, 0, 1, 1});
+    auto srcLayout = (attachment->getLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear) ? Rhi::RhiResourceState::Undefined
+                                                                                    : Rhi::RhiResourceState::ColorRT;
+    cmd->imageBarrier(attachment->getRenderTarget(), srcLayout, Rhi::RhiResourceState::ColorRT, {0, 0, 1, 1});
   }
   auto exfunc = m_context->getExtensionFunction();
 
@@ -188,7 +188,7 @@ IFRIT_APIDECL void RenderTargets::beginRendering(const Rhi::RhiCommandBuffer *co
   }
 }
 
-IFRIT_APIDECL void RenderTargets::endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const {
+IFRIT_APIDECL void RenderTargets::endRendering(const Rhi::RhiCommandList *commandBuffer) const {
   auto cmd = checked_cast<CommandBuffer>(commandBuffer);
   auto cmdraw = cmd->getCommandBuffer();
   vkCmdEndRendering(cmdraw);

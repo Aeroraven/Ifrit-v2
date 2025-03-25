@@ -43,13 +43,13 @@ IFRIT_APIDECL DeviceTimer::~DeviceTimer() {
   }
 }
 
-IFRIT_APIDECL void DeviceTimer::start(const Rhi::RhiCommandBuffer *cmd) {
+IFRIT_APIDECL void DeviceTimer::start(const Rhi::RhiCommandList *cmd) {
   auto cmdBuf = Ifrit::Common::Utility::checked_cast<CommandBuffer>(cmd);
   auto curFrame = m_currentFrame;
   vkCmdWriteTimestamp(cmdBuf->getCommandBuffer(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_queryPools[curFrame], 0);
 }
 
-IFRIT_APIDECL void DeviceTimer::stop(const Rhi::RhiCommandBuffer *cmd) {
+IFRIT_APIDECL void DeviceTimer::stop(const Rhi::RhiCommandList *cmd) {
   auto cmdBuf = Ifrit::Common::Utility::checked_cast<CommandBuffer>(cmd);
   auto curFrame = m_currentFrame;
   vkCmdWriteTimestamp(cmdBuf->getCommandBuffer(), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_queryPools[curFrame], 1);

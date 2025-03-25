@@ -17,14 +17,25 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/assetmanager/Asset.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "RhiBaseTypes.h"
 
-namespace Ifrit::Core {
-class IFRIT_APIDECL TextureAsset : public Asset {
+namespace Ifrit::GraphicsBackend::Rhi {
+class IFRIT_APIDECL RhiShader {
 public:
-  TextureAsset(AssetMetadata metadata, std::filesystem::path path) : Asset(metadata, path) {}
-  virtual GraphicsBackend::Rhi::RhiTextureRef getTexture() = 0;
+  virtual RhiShaderStage getStage() const = 0;
+  virtual u32 getNumDescriptorSets() const = 0;
 };
 
-} // namespace Ifrit::Core
+class IFRIT_APIDECL RhiRTShaderBindingTable {
+public:
+  virtual void _polymorphismPlaceHolder() {}
+};
+
+struct IFRIT_APIDECL RhiRTShaderGroup {
+  RhiShader *m_generalShader = nullptr;
+  RhiShader *m_closestHitShader = nullptr;
+  RhiShader *m_anyHitShader = nullptr;
+  RhiShader *m_intersectionShader = nullptr;
+};
+
+} // namespace Ifrit::GraphicsBackend::Rhi

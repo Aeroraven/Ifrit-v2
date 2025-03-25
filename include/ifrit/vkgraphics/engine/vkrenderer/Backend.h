@@ -40,14 +40,11 @@ public:
 
   void waitDeviceIdle() override;
   std::shared_ptr<Rhi::RhiDeviceTimer> createDeviceTimer() override;
-  std::shared_ptr<Rhi::RhiBuffer> createBuffer(u32 size, u32 usage, bool hostVisible) const override;
-  std::shared_ptr<Rhi::RhiBuffer> createBufferDevice(u32 size, u32 usage) const override;
-
+  Rhi::RhiBufferRef createBuffer(const String &name, u32 size, u32 usage, bool hostVisible) const override;
+  Rhi::RhiBufferRef createBufferDevice(const String &name, u32 size, u32 usage) const override;
   std::shared_ptr<Rhi::RhiMultiBuffer> createBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const override;
-
   std::shared_ptr<Rhi::RhiStagedSingleBuffer> createStagedSingleBuffer(Rhi::RhiBuffer *target) override;
-
-  std::shared_ptr<Rhi::RhiBuffer> getFullScreenQuadVertexBuffer() const override;
+  Rhi::RhiBufferRef getFullScreenQuadVertexBuffer() const override;
 
   // Command execution
   Rhi::RhiQueue *getQueue(Rhi::RhiQueueCapability req) override;
@@ -57,20 +54,17 @@ public:
                                Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
 
   // Texture
-  std::shared_ptr<Rhi::RhiTexture> createTexture2D(u32 width, u32 height, Rhi::RhiImageFormat format,
-                                                   u32 extraFlags) override;
+  Rhi::RhiTextureRef createTexture2D(const String &name, u32 width, u32 height, Rhi::RhiImageFormat format,
+                                     u32 extraFlags) override;
+  Rhi::RhiTextureRef createDepthTexture(const String &name, u32 width, u32 height) override;
+  Rhi::RhiTextureRef createTexture3D(const String &name, u32 width, u32 height, u32 depth, Rhi::RhiImageFormat format,
+                                     u32 extraFlags) override;
+  Rhi::RhiSamplerRef createTrivialSampler() override;
+  Rhi::RhiSamplerRef createTrivialBilinearSampler(bool repeat) override;
+  Rhi::RhiSamplerRef createTrivialNearestSampler(bool repeat) override;
 
-  std::shared_ptr<Rhi::RhiTexture> createDepthTexture(u32 width, u32 height) override;
-
-  std::shared_ptr<Rhi::RhiTexture> createTexture3D(u32 width, u32 height, u32 depth, Rhi::RhiImageFormat format,
-                                                   u32 extraFlags) override;
-
-  std::shared_ptr<Rhi::RhiSampler> createTrivialSampler() override;
-  std::shared_ptr<Rhi::RhiSampler> createTrivialBilinearSampler(bool repeat) override;
-  std::shared_ptr<Rhi::RhiSampler> createTrivialNearestSampler(bool repeat) override;
-
-  std::shared_ptr<Rhi::RhiTexture> createMipMapTexture(u32 width, u32 height, u32 mips, Rhi::RhiImageFormat format,
-                                                       u32 extraFlags) override;
+  Rhi::RhiTextureRef createMipMapTexture(const String &name, u32 width, u32 height, u32 mips,
+                                         Rhi::RhiImageFormat format, u32 extraFlags) override;
 
   // Pass
   Rhi::RhiComputePass *createComputePass() override;
@@ -87,14 +81,10 @@ public:
   virtual Rhi::RhiBindlessDescriptorRef *createBindlessDescriptorRef() override;
 
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef> registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) override;
-
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef> registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) override;
-
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef> registerStorageBuffer(Rhi::RhiBuffer *buffer) override;
-
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef> registerUAVImage(Rhi::RhiTexture *texture,
                                                                   Rhi::RhiImageSubResource subResource) override;
-
   virtual std::shared_ptr<Rhi::RhiBindlessIdRef> registerCombinedImageSampler(Rhi::RhiTexture *texture,
                                                                               Rhi::RhiSampler *sampler) override;
 

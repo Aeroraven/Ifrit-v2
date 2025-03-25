@@ -25,6 +25,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <bit>
 
 namespace Ifrit::Core::RenderingUtil {
-IFRIT_APIDECL std::shared_ptr<GraphicsBackend::Rhi::RhiTexture>
-loadBlueNoise(GraphicsBackend::Rhi::RhiBackend *rhi);
+IFRIT_APIDECL GraphicsBackend::Rhi::RhiTextureRef loadBlueNoise(GraphicsBackend::Rhi::RhiBackend *rhi);
 } // namespace Ifrit::Core::RenderingUtil

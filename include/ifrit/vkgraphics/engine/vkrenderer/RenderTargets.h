@@ -82,8 +82,8 @@ public:
   inline void setRenderArea(Rhi::RhiScissor area) override { m_renderArea = area; }
   void setColorAttachments(const std::vector<Rhi::RhiColorAttachment *> &attachments) override;
   void setDepthStencilAttachment(Rhi::RhiDepthStencilAttachment *attachment) override;
-  void beginRendering(const Rhi::RhiCommandBuffer *commandBuffer) const override;
-  void endRendering(const Rhi::RhiCommandBuffer *commandBuffer) const override;
+  void beginRendering(const Rhi::RhiCommandList *commandBuffer) const override;
+  void endRendering(const Rhi::RhiCommandList *commandBuffer) const override;
   Rhi::RhiRenderTargetsFormat getFormat() const override;
   virtual Rhi::RhiScissor getRenderArea() const override;
   inline Rhi::RhiDepthStencilAttachment *getDepthStencilAttachment() const override { return m_depthStencilAttachment; }

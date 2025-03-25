@@ -47,7 +47,7 @@ class IFRIT_APIDECL AyanamiRenderer : public RendererBase {
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
   using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
   using GPURTs = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
-  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandBuffer;
+  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandList;
   using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
 
   // Perframe data maintained by the renderer, this is unsafe

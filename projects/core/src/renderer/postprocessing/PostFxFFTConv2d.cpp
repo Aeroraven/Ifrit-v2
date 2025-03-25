@@ -34,21 +34,21 @@ IFRIT_APIDECL PostFxFFTConv2d::PostFxFFTConv2d(IApplication *app)
 
   auto shader = createShaderFromFile("FFTConv2d.Upsample.comp.glsl", "main", RhiShaderStage::Compute);
   m_upsamplePipeline->setComputeShader(shader);
-  m_upsamplePipeline->setPushConstSize(17 * sizeof(uint32_t));
+  m_upsamplePipeline->setPushConstSize(17 * sizeof(u32));
   m_upsamplePipeline->setNumBindlessDescriptorSets(0);
 
   auto gshader = createShaderFromFile("GaussianKernelGenerate.comp.glsl", "main", RhiShaderStage::Compute);
   m_gaussianPipeline = rhi->createComputePass();
   m_gaussianPipeline->setComputeShader(gshader);
-  m_gaussianPipeline->setPushConstSize(4 * sizeof(uint32_t));
+  m_gaussianPipeline->setPushConstSize(4 * sizeof(u32));
   m_gaussianPipeline->setNumBindlessDescriptorSets(0);
 }
 
 IFRIT_APIDECL PostFxFFTConv2d::~PostFxFFTConv2d() {}
 
 IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId, GPUBindId *dstUAVImg,
-                                                 GPUBindId *kernelSampId, uint32_t srcWidth, uint32_t srcHeight,
-                                                 uint32_t kernelWidth, uint32_t kernelHeight, uint32_t srcDownscale) {
+                                                 GPUBindId *kernelSampId, u32 srcWidth, u32 srcHeight, u32 kernelWidth,
+                                                 u32 kernelHeight, u32 srcDownscale) {
   // todo
 
   auto imageX = srcWidth / srcDownscale, imageY = srcHeight / srcDownscale;
@@ -85,22 +85,22 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
     auto res = std::make_unique<PostFxFFTConv2dResourceCollection>();
     auto rhi = m_app->getRhiLayer();
     auto tex1 =
-        rhi->createTexture2D(p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        rhi->createTexture2D("PostFx_Conv_Tex1", p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
                              RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
     auto tex2 =
-        rhi->createTexture2D(p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        rhi->createTexture2D("PostFx_Conv_Tex2", p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
                              RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
-    auto texTemp =
-        rhi->createTexture2D(p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-                             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+    auto texTemp = rhi->createTexture2D(
+        "PostFx_Conv_TexTemp", p2Width * 2, p2Height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
     auto tex1Id = rhi->registerUAVImage(tex1.get(), {0, 0, 1, 1});
     auto tex2Id = rhi->registerUAVImage(tex2.get(), {0, 0, 1, 1});
     auto texTempId = rhi->registerUAVImage(texTemp.get(), {0, 0, 1, 1});
 
     auto texSampler = rhi->createTrivialSampler();
-    auto texGaussian =
-        rhi->createTexture2D(kernelWidth, kernelHeight, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-                             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
+    auto texGaussian = rhi->createTexture2D(
+        "PostFx_Conv_TexGaussian", kernelWidth, kernelHeight, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
     auto texGaussianId = rhi->registerUAVImage(texGaussian.get(), {0, 0, 1, 1});
     auto texGaussianSampId = rhi->registerCombinedImageSampler(texGaussian.get(), texSampler.get());
 
@@ -120,23 +120,23 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
   }
 
   struct PushConst {
-    uint32_t srcDownScale;
-    uint32_t kernDownScale;
-    uint32_t srcRtW;
-    uint32_t srcRtH;
-    uint32_t kernRtW;
-    uint32_t kernRtH;
-    uint32_t srcImage;
-    uint32_t srcIntermImage;
-    uint32_t kernImage;
-    uint32_t kernIntermImage;
-    uint32_t dstImage;
-    uint32_t tempImage;
-    uint32_t fftTexSizeWLog;
-    uint32_t fftTexSizeHLog;
-    uint32_t fftStep;
-    uint32_t bloomMix;
-    uint32_t srcIntermImageSamp;
+    u32 srcDownScale;
+    u32 kernDownScale;
+    u32 srcRtW;
+    u32 srcRtH;
+    u32 kernRtW;
+    u32 kernRtH;
+    u32 srcImage;
+    u32 srcIntermImage;
+    u32 kernImage;
+    u32 kernIntermImage;
+    u32 dstImage;
+    u32 tempImage;
+    u32 fftTexSizeWLog;
+    u32 fftTexSizeHLog;
+    u32 fftStep;
+    u32 bloomMix;
+    u32 srcIntermImageSamp;
   } pc;
 
   pc.srcDownScale = srcDownscale;
@@ -162,9 +162,9 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
     pc.kernImage = m_resMap[{p2Width, p2Height}].m_texGaussianSampId->getActiveId();
 
     struct PushConstBlur {
-      uint32_t blurKernW;
-      uint32_t blurKernH;
-      uint32_t srcImgId;
+      u32 blurKernW;
+      u32 blurKernH;
+      u32 srcImgId;
       float sigma = 10.0f;
     } pcb;
     pcb.blurKernW = kernelWidth;
@@ -173,7 +173,7 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
     if (firstTime) {
       cmd->beginScope("Postprocess: FFTConv2D, GaussianBlur");
       m_gaussianPipeline->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
-        cmd->setPushConst(m_gaussianPipeline, 0, 4 * sizeof(uint32_t), &pcb);
+        cmd->setPushConst(m_gaussianPipeline, 0, 4 * sizeof(u32), &pcb);
         ctx->m_cmd->dispatch(Ifrit::Math::ConstFunc::divRoundUp(p2Width, 8),
                              Ifrit::Math::ConstFunc::divRoundUp(p2Height, 8), 1);
       });
@@ -195,7 +195,7 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
       "Postprocess: FFTConv2D, KernFFT-Y", "Postprocess: FFTConv2D, Multiply", "Postprocess: FFTConv2D, IFFT-Y",
       "Postprocess: FFTConv2D, IFFT-X",
   };
-  for (uint32_t i = 0u; i < 7u; i++) {
+  for (u32 i = 0u; i < 7u; i++) {
     if (!firstTime) {
       if (i == 2u || i == 3u)
         continue;
@@ -203,7 +203,7 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
     cmd->beginScope(scopeNames[i]);
     m_computePipeline->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
       pc.fftStep = i;
-      cmd->setPushConst(m_computePipeline, 0, 16 * sizeof(uint32_t), &pc);
+      cmd->setPushConst(m_computePipeline, 0, 16 * sizeof(u32), &pc);
       ctx->m_cmd->dispatch(wgX, wgY, 1);
     });
     m_computePipeline->run(cmd, 0);
@@ -216,7 +216,7 @@ IFRIT_APIDECL void PostFxFFTConv2d::renderPostFx(const GPUCmdBuffer *cmd, GPUBin
   auto dwgY = Ifrit::Math::ConstFunc::divRoundUp(srcHeight, 8);
   m_upsamplePipeline->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
     pc.tempImage = m_resMap[{p2Width, p2Height}].m_texTempId->getActiveId();
-    cmd->setPushConst(m_upsamplePipeline, 0, 17 * sizeof(uint32_t), &pc);
+    cmd->setPushConst(m_upsamplePipeline, 0, 17 * sizeof(u32), &pc);
     ctx->m_cmd->dispatch(dwgX, dwgY, 1);
   });
   m_upsamplePipeline->run(cmd, 0);

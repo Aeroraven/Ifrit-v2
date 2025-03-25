@@ -27,12 +27,11 @@ class IFRIT_APIDECL DirectDrawSurfaceAsset : public TextureAsset {
 private:
   bool m_loaded = false;
   IApplication *m_app;
-  std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> m_texture = nullptr;
+  GraphicsBackend::Rhi::RhiTextureRef m_texture = nullptr;
 
 public:
-  DirectDrawSurfaceAsset(AssetMetadata metadata, std::filesystem::path path,
-                         IApplication *app);
-  std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> getTexture() override;
+  DirectDrawSurfaceAsset(AssetMetadata metadata, std::filesystem::path path, IApplication *app);
+  GraphicsBackend::Rhi::RhiTextureRef getTexture() override;
 };
 class IFRIT_APIDECL DirectDrawSurfaceAssetImporter : public AssetImporter {
 private:
@@ -40,11 +39,9 @@ private:
 
 public:
   constexpr static const char *IMPORTER_NAME = "DirectDrawSurfaceAssetImporter";
-  DirectDrawSurfaceAssetImporter(AssetManager *manager)
-      : AssetImporter(manager), m_app(manager->getApplication()) {}
+  DirectDrawSurfaceAssetImporter(AssetManager *manager) : AssetImporter(manager), m_app(manager->getApplication()) {}
   void processMetadata(AssetMetadata &metadata) override;
-  void importAsset(const std::filesystem::path &path,
-                   AssetMetadata &metadata) override;
+  void importAsset(const std::filesystem::path &path, AssetMetadata &metadata) override;
   std::vector<std::string> getSupportedExtensionNames() override;
 };
 } // namespace Ifrit::Core

@@ -38,7 +38,7 @@ protected:
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
-  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandBuffer;
+  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandList;
   using GPUBindlessRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
 
 protected:

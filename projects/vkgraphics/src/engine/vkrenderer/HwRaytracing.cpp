@@ -519,7 +519,7 @@ IFRIT_APIDECL void RaytracingPass::build() {
   m_pipeline = m_pipelineCache->getRaytracingPipeline(ci);
 }
 
-IFRIT_APIDECL void RaytracingPass::run(const Rhi::RhiCommandBuffer *cmd) {
+IFRIT_APIDECL void RaytracingPass::run(const Rhi::RhiCommandList *cmd) {
   auto pfns = m_context->getExtensionFunction();
   using namespace Common::Utility;
   if (m_pipeline == nullptr) {

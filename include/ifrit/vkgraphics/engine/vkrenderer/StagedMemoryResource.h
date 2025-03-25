@@ -26,9 +26,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 class IFRIT_APIDECL StagedSingleBuffer : public Rhi::RhiStagedSingleBuffer {
 protected:
-  std::unique_ptr<SingleBuffer> m_bufferUnique;
+  Rhi::RhiBufferRef m_bufferUnique;
   SingleBuffer *m_buffer;
-  std::unique_ptr<SingleBuffer> m_stagingBuffer;
+  Rhi::RhiBufferRef m_stagingBuffer;
   EngineContext *m_context;
 
 public:
@@ -38,16 +38,14 @@ public:
   StagedSingleBuffer &operator=(const StagedSingleBuffer &p) = delete;
 
   virtual ~StagedSingleBuffer() {}
-  inline SingleBuffer *getBuffer() const { return m_buffer; }
-  inline SingleBuffer *getStagingBuffer() const { return m_stagingBuffer.get(); }
-  void cmdCopyToDevice(const Rhi::RhiCommandBuffer *cmd, const void *data, u32 size, u32 localOffset) override;
+  void cmdCopyToDevice(const Rhi::RhiCommandList *cmd, const void *data, u32 size, u32 localOffset) override;
 };
 
 class IFRIT_APIDECL StagedSingleImage {
 protected:
-  std::unique_ptr<SingleDeviceImage> m_imageUnique;
+  Rhi::RhiTextureRef m_imageUnique;
   SingleDeviceImage *m_image;
-  std::unique_ptr<SingleBuffer> m_stagingBuffer;
+  Rhi::RhiBufferRef m_stagingBuffer;
   EngineContext *m_context;
 
 public:
@@ -58,8 +56,6 @@ public:
   StagedSingleImage &operator=(const StagedSingleImage &p) = delete;
 
   virtual ~StagedSingleImage() {}
-  inline SingleDeviceImage *getImage() const { return m_image; }
-  inline SingleBuffer *getStagingBuffer() const { return m_stagingBuffer.get(); }
   void cmdCopyToDevice(CommandBuffer *cmd, const void *data, VkImageLayout srcLayout, VkImageLayout dstlayout,
                        VkPipelineStageFlags dstStage, VkAccessFlags dstAccess);
 };

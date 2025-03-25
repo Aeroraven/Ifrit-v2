@@ -75,7 +75,7 @@ enum class DDSCompressedType {
   ATI2,
 };
 
-std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> parseDDS(std ::filesystem::path path, IApplication *app) {
+GraphicsBackend::Rhi::RhiTextureRef parseDDS(std ::filesystem::path path, IApplication *app) {
   std::ifstream ifs;
   ifs.open(path, std::ios::binary);
   if (!ifs.is_open()) {
@@ -154,8 +154,8 @@ std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> parseDDS(std ::filesystem::pat
   }
 
   auto rhi = app->getRhiLayer();
-  auto tex =
-      rhi->createTexture2D(header->dwWidth, header->dwHeight, format, RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+  auto tex = rhi->createTexture2D("Asset_Tex", header->dwWidth, header->dwHeight, format,
+                                  RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   auto totalBodySize = data.size() - bodyOffset;
@@ -171,13 +171,13 @@ std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> parseDDS(std ::filesystem::pat
     iError("Invalid body size: {}, required: {}", totalBodySize, requiredBodySize);
     std::abort();
   }
-  auto buffer = rhi->createBuffer(requiredBodySize, RhiBufferUsage::RhiBufferUsage_CopySrc, true);
+  auto buffer = rhi->createBuffer("Asset_Buf", requiredBodySize, RhiBufferUsage::RhiBufferUsage_CopySrc, true);
   buffer->map();
   buffer->writeBuffer(data.data() + bodyOffset, requiredBodySize, 0);
   buffer->flush();
   buffer->unmap();
 
-  auto imageBarrier = [&](const RhiCommandBuffer *cmd, RhiTexture *tex, RhiResourceState2 src, RhiResourceState2 dst,
+  auto imageBarrier = [&](const RhiCommandList *cmd, RhiTexture *tex, RhiResourceState src, RhiResourceState dst,
                           RhiImageSubResource sub) {
     RhiTransitionBarrier barrier;
     barrier.m_texture = tex;
@@ -192,10 +192,10 @@ std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> parseDDS(std ::filesystem::pat
     cmd->resourceBarrier({resBarrier});
   };
 
-  tq->runSyncCommand([&](const RhiCommandBuffer *cmd) {
-    imageBarrier(cmd, tex.get(), RhiResourceState2::Undefined, RhiResourceState2::CopyDst, {0, 0, 1, 1});
+  tq->runSyncCommand([&](const RhiCommandList *cmd) {
+    imageBarrier(cmd, tex.get(), RhiResourceState::Undefined, RhiResourceState::CopyDst, {0, 0, 1, 1});
     cmd->copyBufferToImage(buffer.get(), tex.get(), {0, 0, 1, 1});
-    imageBarrier(cmd, tex.get(), RhiResourceState2::CopyDst, RhiResourceState2::Common, {0, 0, 1, 1});
+    imageBarrier(cmd, tex.get(), RhiResourceState::CopyDst, RhiResourceState::Common, {0, 0, 1, 1});
   });
   return tex;
 }
@@ -206,8 +206,8 @@ IFRIT_APIDECL DirectDrawSurfaceAsset::DirectDrawSurfaceAsset(AssetMetadata metad
   // Pass
 }
 
-IFRIT_APIDECL std::shared_ptr<GraphicsBackend::Rhi::RhiTexture> DirectDrawSurfaceAsset::getTexture() {
-  if (!m_texture) {
+IFRIT_APIDECL GraphicsBackend::Rhi::RhiTextureRef DirectDrawSurfaceAsset::getTexture() {
+  if (m_texture == nullptr) {
     m_texture = parseDDS(m_path, m_app);
   }
   return m_texture;

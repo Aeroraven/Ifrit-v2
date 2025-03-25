@@ -38,8 +38,8 @@ private:
 public:
   DeviceTimer(EngineContext *ctx, u32 numFrameInFlight);
   virtual ~DeviceTimer();
-  virtual void start(const Rhi::RhiCommandBuffer *cmd) override;
-  virtual void stop(const Rhi::RhiCommandBuffer *cmd) override;
+  virtual void start(const Rhi::RhiCommandList *cmd) override;
+  virtual void stop(const Rhi::RhiCommandList *cmd) override;
   virtual float getElapsedMs() override;
   virtual void frameProceed();
 };

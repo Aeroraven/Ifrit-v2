@@ -40,17 +40,17 @@ enum class SyaroRenderRole { SYARO_FULL, SYARO_DEFERRED_GBUFFER };
 class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUCommandSubmission = Ifrit::GraphicsBackend::Rhi::RhiTaskSubmission;
-  using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
+  using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBufferRef;
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
   using GPUDescRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
   using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;
   using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
-  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
+  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTextureRef;
   using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
   using GPURTs = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
-  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandBuffer;
-  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
+  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandList;
+  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSamplerRef;
 
   enum class CullingPass { First, Second };
 
@@ -60,7 +60,7 @@ private:
 
   // Base
   ComputePass *m_persistentCullingPass = nullptr;
-  std::shared_ptr<GPUBuffer> m_indirectDrawBuffer = nullptr;
+  GPUBuffer m_indirectDrawBuffer = nullptr;
   std::shared_ptr<GPUBindId> m_indirectDrawBufferId = nullptr;
   GPUDescRef *m_persistCullDesc = nullptr;
 
@@ -127,12 +127,12 @@ private:
 
   // Postprocess, just 2 textures and 1 sampler is required.
   using PairHash = Ifrit::Common::Utility::PairwiseHash<u32, u32>;
-  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUTexture>, 2>, PairHash> m_postprocTex;
+  std::unordered_map<std::pair<u32, u32>, std::array<GPUTexture, 2>, PairHash> m_postprocTex;
   std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUBindId>, 2>, PairHash> m_postprocTexId;
   std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUBindId>, 2>, PairHash> m_postprocTexIdComp;
   std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUColorRT>, 2>, PairHash> m_postprocColorRT;
   std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPURTs>, 2>, PairHash> m_postprocRTs;
-  std::shared_ptr<GPUSampler> m_postprocTexSampler;
+  GPUSampler m_postprocTexSampler;
   std::shared_ptr<GPUBindId> m_postprocTexSamplerId;
 
   // All postprocess passes required

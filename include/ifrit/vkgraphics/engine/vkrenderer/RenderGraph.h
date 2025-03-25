@@ -70,7 +70,9 @@ private:
   Swapchain *m_swapchain;
 
 public:
-  SwapchainImageResource(Swapchain *swapchain) : m_swapchain(swapchain) { m_isSwapchainImage = true; }
+  SwapchainImageResource(Swapchain *swapchain) : SingleDeviceImage(nullptr), m_swapchain(swapchain) {
+    m_isSwapchainImage = true;
+  }
   virtual ~SwapchainImageResource() {}
   virtual VkFormat getFormat() const override;
   virtual VkImage getImage() const override;
@@ -407,7 +409,7 @@ public:
   }
   inline VkPipelineLayout getPipelineLayout() { return m_pipeline->getLayout(); }
 
-  void run(const Rhi::RhiCommandBuffer *cmd, Rhi::RhiRenderTargets *renderTargets, u32 frameId) override;
+  void run(const Rhi::RhiCommandList *cmd, Rhi::RhiRenderTargets *renderTargets, u32 frameId) override;
 
   inline virtual void setNumBindlessDescriptorSets(u32 num) override { setNumBindlessDescriptorSets_base(num); }
 };
@@ -454,7 +456,7 @@ public:
   inline void setRecordFunction(std::function<void(Rhi::RhiRenderPassContext *)> func) override {
     setRecordFunction_base(func);
   }
-  void run(const Rhi::RhiCommandBuffer *cmd, u32 frameId) override;
+  void run(const Rhi::RhiCommandList *cmd, u32 frameId) override;
   inline VkPipelineLayout getPipelineLayout() { return m_pipeline->getLayout(); }
   inline virtual void setNumBindlessDescriptorSets(u32 num) override { setNumBindlessDescriptorSets_base(num); }
 };
@@ -465,7 +467,7 @@ struct RegisteredResourceGraphState {
   u32 rwDeps;
 };
 
-class IFRIT_APIDECL RenderGraph : public Rhi::RhiPassGraph {
+class IFRIT_APIDECL RenderGraph {
 private:
   EngineContext *m_context;
   DescriptorManager *m_descriptorManager;

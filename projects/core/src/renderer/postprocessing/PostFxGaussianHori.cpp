@@ -7,10 +7,10 @@ IFRIT_APIDECL PostFxGaussianHori::PostFxGaussianHori(IApplication *app)
     : PostprocessPass(app, {"GaussianVert.frag.glsl", 2, 1}) {}
 
 IFRIT_APIDECL void PostFxGaussianHori::renderPostFx(const GPUCmdBuffer *cmd, RenderTargets *renderTargets,
-                                                    GPUBindId *inputTexCombSampler, uint32_t kernelSize) {
+                                                    GPUBindId *inputTexCombSampler, u32 kernelSize) {
   struct PushConst {
-    uint32_t inputTexCombSampler;
-    uint32_t kernelSize;
+    u32 inputTexCombSampler;
+    u32 kernelSize;
   };
   PushConst pushConst = {
       inputTexCombSampler->getActiveId(),

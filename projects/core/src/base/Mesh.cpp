@@ -33,7 +33,7 @@ using namespace Ifrit::Math::SIMD;
 namespace Ifrit::Core {
 
 struct CreateMeshLodHierMiscInfo {
-  uint32_t totalLods;
+  u32 totalLods;
 
   IFRIT_STRUCT_SERIALIZE(totalLods);
 };
@@ -176,13 +176,13 @@ IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshDa
     meshData->m_meshlets[i].selfErrorSphere = meshletData.selfErrorSphereW[i];
   }
 
-  uint32_t totalTriangles = 0;
+  u32 totalTriangles = 0;
   for (size_t i = 0; i < meshlet_count; i++) {
     auto orgOffset = meshData->m_meshlets[i].triangleOffset;
     meshData->m_meshlets[i].triangleOffset = totalTriangles;
     totalTriangles += meshData->m_meshlets[i].triangleCount;
     for (size_t j = 0; j < meshData->m_meshlets[i].triangleCount; j++) {
-      uint32_t packedTriangle = 0;
+      u32 packedTriangle = 0;
       packedTriangle |= meshlet_triangles[orgOffset + j * 3];
       packedTriangle |= meshlet_triangles[orgOffset + j * 3 + 1] << 8;
       packedTriangle |= meshlet_triangles[orgOffset + j * 3 + 2] << 16;

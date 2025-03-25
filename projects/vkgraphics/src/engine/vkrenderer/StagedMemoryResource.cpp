@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
+#include "ifrit/common/util/TypingUtil.h"
 
 namespace Ifrit::GraphicsBackend::VulkanGraphics {
 
@@ -27,22 +28,27 @@ IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext *ctx, SingleB
   stagingCI.size = buffer->getSize();
   stagingCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
   stagingCI.hostVisible = true;
-  m_stagingBuffer = std::make_unique<SingleBuffer>(ctx, stagingCI);
+  auto stagePtr = new SingleBuffer(ctx, stagingCI);
+  m_stagingBuffer = Rhi::makeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
 }
 IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext *ctx, const BufferCreateInfo &ci) : m_context(ctx) {
+
+  using namespace Ifrit::Common::Utility;
   BufferCreateInfo ci2 = ci;
   ci2.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-  m_bufferUnique = std::make_unique<SingleBuffer>(ctx, ci2);
-  m_buffer = m_bufferUnique.get();
+  auto stagePtr = new SingleBuffer(ctx, ci2);
+  m_bufferUnique = Rhi::makeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
+  m_buffer = checked_cast<SingleBuffer>(m_bufferUnique.get());
 
   BufferCreateInfo stagingCI = ci;
   stagingCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
   stagingCI.hostVisible = true;
-  m_stagingBuffer = std::make_unique<SingleBuffer>(ctx, stagingCI);
+  auto stagePtr2 = new SingleBuffer(ctx, stagingCI);
+  m_stagingBuffer = Rhi::makeRhiCountRef<Rhi::RhiBuffer>(stagePtr2);
 }
 
-IFRIT_APIDECL void StagedSingleBuffer::cmdCopyToDevice(const Rhi::RhiCommandBuffer *cmd, const void *data,
-                                                       uint32_t size, uint32_t localOffset) {
+IFRIT_APIDECL void StagedSingleBuffer::cmdCopyToDevice(const Rhi::RhiCommandList *cmd, const void *data, uint32_t size,
+                                                       uint32_t localOffset) {
   m_stagingBuffer->map();
   m_stagingBuffer->writeBuffer((void *)data, size, 0);
   m_stagingBuffer->flush();
@@ -56,20 +62,24 @@ IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext *ctx, SingleDev
   stagingCI.size = image->getSize();
   stagingCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
   stagingCI.hostVisible = true;
-  m_stagingBuffer = std::make_unique<SingleBuffer>(ctx, stagingCI);
+  auto stagePtr = new SingleBuffer(ctx, stagingCI);
+  m_stagingBuffer = Rhi::makeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
 }
 
 IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext *ctx, const ImageCreateInfo &ci) : m_context(ctx) {
+  using namespace Ifrit::Common::Utility;
   ImageCreateInfo ci2 = ci;
   ci2.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-  m_imageUnique = std::make_unique<SingleDeviceImage>(ctx, ci2);
-  m_image = m_imageUnique.get();
+  auto stagePtr = new SingleDeviceImage(ctx, ci2);
+  m_imageUnique = Rhi::makeRhiCountRef<Rhi::RhiTexture>(stagePtr);
+  m_image = checked_cast<SingleDeviceImage>(m_imageUnique.get());
 
   BufferCreateInfo stagingCI{};
   stagingCI.size = m_image->getSize();
   stagingCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
   stagingCI.hostVisible = true;
-  m_stagingBuffer = std::make_unique<SingleBuffer>(ctx, stagingCI);
+  auto stagePtr2 = new SingleBuffer(ctx, stagingCI);
+  m_stagingBuffer = Rhi::makeRhiCountRef<Rhi::RhiBuffer>(stagePtr2);
 }
 
 IFRIT_APIDECL void StagedSingleImage::cmdCopyToDevice(CommandBuffer *cmd, const void *data, VkImageLayout srcLayout,

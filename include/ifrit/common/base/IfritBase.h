@@ -20,9 +20,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include <cstdint>
 #ifdef __cplusplus
+#include <array>
+#include <atomic>
+#include <functional>
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -124,6 +128,7 @@ IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE usizeSize = IF_TYPE_SIZEOF(usize);
 #endif
 
 #ifdef __cplusplus
+template <typename T, u32 V> using Array = std::array<T, V>;
 template <typename T> using Vec = std::vector<T>;
 template <typename T> using Ref = std::shared_ptr<T>;
 template <typename T> using Uref = std::unique_ptr<T>;
@@ -131,6 +136,9 @@ template <typename T> using Set = std::set<T>;
 template <typename T> using HashSet = std::unordered_set<T>;
 template <typename K, typename V> using Map = std::map<K, V>;
 template <typename K, typename V> using HashMap = std::unordered_map<K, V>;
+template <typename T> using Fn = std::function<T>;
+template <typename T> using Atomic = std::atomic<T>;
+using String = std::string;
 #endif
 
 } // namespace Ifrit

@@ -55,9 +55,9 @@ IFRIT_APIDECL void PostFxStockhamDFT2::renderPostFx(const GPUCmdBuffer *cmd, GPU
 
   if (m_tex1.find({p2Width, p2Height}) == m_tex1.end()) {
     auto rhi = m_app->getRhiLayer();
-    auto tex1 =
-        rhi->createTexture2D(p2Width, p2Height, GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-                             GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+    auto tex1 = rhi->createTexture2D("PostFx_DFT2_Tex", p2Width, p2Height,
+                                     GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+                                     GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
     m_tex1[{p2Width, p2Height}] = tex1;
     m_tex1Id[{p2Width, p2Height}] = rhi->registerUAVImage(tex1.get(), {0, 0, 1, 1});
   }

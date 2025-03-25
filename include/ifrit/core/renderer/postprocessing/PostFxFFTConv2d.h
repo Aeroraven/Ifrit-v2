@@ -28,20 +28,20 @@ struct PostFxFFTConv2dSubpasses;
 
 struct PostFxFFTConv2dResourceCollection {
   using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
-  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
+  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTextureRef;
   using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
-  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
+  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSamplerRef;
 
-  std::shared_ptr<GPUTexture> m_tex1;
+  GPUTexture m_tex1;
   std::shared_ptr<GPUBindId> m_tex1Id;
   std::shared_ptr<GPUBindId> m_tex1IdSamp;
-  std::shared_ptr<GPUTexture> m_tex2;
+  GPUTexture m_tex2;
   std::shared_ptr<GPUBindId> m_tex2Id;
-  std::shared_ptr<GPUTexture> m_texTemp;
+  GPUTexture m_texTemp;
   std::shared_ptr<GPUBindId> m_texTempId;
 
-  std::shared_ptr<GPUTexture> m_texGaussian;
-  std::shared_ptr<GPUSampler> m_texGaussianSampler;
+  GPUTexture m_texGaussian;
+  GPUSampler m_texGaussianSampler;
   std::shared_ptr<GPUBindId> m_texGaussianId;
   std::shared_ptr<GPUBindId> m_texGaussianSampId;
 

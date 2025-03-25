@@ -390,7 +390,7 @@ IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers) {
 
 IFRIT_APIDECL uint32_t GraphicsPass::getRequiredQueueCapability() { return VK_QUEUE_GRAPHICS_BIT; }
 
-IFRIT_APIDECL void ComputePass::run(const Rhi::RhiCommandBuffer *cmd, uint32_t frameId) {
+IFRIT_APIDECL void ComputePass::run(const Rhi::RhiCommandList *cmd, uint32_t frameId) {
   if (m_passBuilt == false) {
     build(0);
   }
@@ -434,7 +434,7 @@ IFRIT_APIDECL void ComputePass::record() {
   }
 }
 
-IFRIT_APIDECL void GraphicsPass::run(const Rhi::RhiCommandBuffer *cmd, Rhi::RhiRenderTargets *renderTargets,
+IFRIT_APIDECL void GraphicsPass::run(const Rhi::RhiCommandList *cmd, Rhi::RhiRenderTargets *renderTargets,
                                      uint32_t frameId) {
   if (m_passBuilt == false) {
     build(0);

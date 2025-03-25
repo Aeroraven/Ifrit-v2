@@ -109,7 +109,7 @@ public:
   friend class CommandBuffer;
 };
 
-class IFRIT_APIDECL CommandBuffer : public Rhi::RhiCommandBuffer {
+class IFRIT_APIDECL CommandBuffer : public Rhi::RhiCommandList {
 private:
   EngineContext *m_context;
   VkCommandBuffer m_commandBuffer;
@@ -147,7 +147,7 @@ public:
   void dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const override;
   void drawMeshTasksIndirect(const Rhi::RhiBuffer *buffer, u32 offset, u32 drawCount, u32 stride) const override;
 
-  void imageBarrier(Rhi::RhiTexture *texture, Rhi::RhiResourceState2 src, Rhi::RhiResourceState2 dst,
+  void imageBarrier(Rhi::RhiTexture *texture, Rhi::RhiResourceState src, Rhi::RhiResourceState dst,
                     Rhi::RhiImageSubResource subResource) const; // DEPRECATED
 
   void attachBindlessReferenceGraphics(Rhi::RhiGraphicsPass *pass, u32 setId,
@@ -230,10 +230,10 @@ public:
   void counterReset();
 
   // for rhi layers override
-  void runSyncCommand(std::function<void(const Rhi::RhiCommandBuffer *)> func) override;
+  void runSyncCommand(std::function<void(const Rhi::RhiCommandList *)> func) override;
 
   std::unique_ptr<Rhi::RhiTaskSubmission>
-  runAsyncCommand(std::function<void(const Rhi::RhiCommandBuffer *)> func,
+  runAsyncCommand(std::function<void(const Rhi::RhiCommandList *)> func,
                   const std::vector<Rhi::RhiTaskSubmission *> &waitOn,
                   const std::vector<Rhi::RhiTaskSubmission *> &toIssue) override;
 

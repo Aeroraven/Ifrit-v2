@@ -216,8 +216,8 @@ IFRIT_APIDECL void CommandBuffer::globalMemoryBarrier() const {
 }
 
 // Rhi compatible
-IFRIT_APIDECL void CommandBuffer::imageBarrier(Rhi::RhiTexture *texture, Rhi::RhiResourceState2 src,
-                                               Rhi::RhiResourceState2 dst, Rhi::RhiImageSubResource subResource) const {
+IFRIT_APIDECL void CommandBuffer::imageBarrier(Rhi::RhiTexture *texture, Rhi::RhiResourceState src,
+                                               Rhi::RhiResourceState dst, Rhi::RhiImageSubResource subResource) const {
   auto image = checked_cast<SingleDeviceImage>(texture);
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -226,7 +226,7 @@ IFRIT_APIDECL void CommandBuffer::imageBarrier(Rhi::RhiTexture *texture, Rhi::Rh
   _setTextureState(image, dst);
   // if auto traced, we need to get the current state
   switch (src) {
-  case Rhi::RhiResourceState2::Undefined:
+  case Rhi::RhiResourceState::Undefined:
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT |
                             VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
@@ -234,37 +234,37 @@ IFRIT_APIDECL void CommandBuffer::imageBarrier(Rhi::RhiTexture *texture, Rhi::Rh
                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
                             VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
     break;
-  case Rhi::RhiResourceState2::Common:
+  case Rhi::RhiResourceState::Common:
     barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT |
                             VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::ShaderRead:
+  case Rhi::RhiResourceState::ShaderRead:
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT |
                             VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::ColorRT:
+  case Rhi::RhiResourceState::ColorRT:
     barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     break;
-  case Rhi::RhiResourceState2::Present:
+  case Rhi::RhiResourceState::Present:
     barrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::UnorderedAccess:
+  case Rhi::RhiResourceState::UnorderedAccess:
     barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::DepthStencilRT:
+  case Rhi::RhiResourceState::DepthStencilRT:
     barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::CopySrc:
+  case Rhi::RhiResourceState::CopySrc:
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::CopyDst:
+  case Rhi::RhiResourceState::CopyDst:
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
     break;
@@ -274,7 +274,7 @@ IFRIT_APIDECL void CommandBuffer::imageBarrier(Rhi::RhiTexture *texture, Rhi::Rh
   }
   // select new layout
   switch (dst) {
-  case Rhi::RhiResourceState2::Undefined:
+  case Rhi::RhiResourceState::Undefined:
     barrier.newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     barrier.dstAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT |
                             VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
@@ -282,39 +282,39 @@ IFRIT_APIDECL void CommandBuffer::imageBarrier(Rhi::RhiTexture *texture, Rhi::Rh
                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
                             VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
     break;
-  case Rhi::RhiResourceState2::Common:
+  case Rhi::RhiResourceState::Common:
     barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT |
                             VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::ShaderRead:
+  case Rhi::RhiResourceState::ShaderRead:
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT |
                             VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::ColorRT:
+  case Rhi::RhiResourceState::ColorRT:
     barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     break;
-  case Rhi::RhiResourceState2::DepthStencilRT:
+  case Rhi::RhiResourceState::DepthStencilRT:
     barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     break;
-  case Rhi::RhiResourceState2::Present:
+  case Rhi::RhiResourceState::Present:
     barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::UnorderedAccess:
+  case Rhi::RhiResourceState::UnorderedAccess:
     barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
     break;
 
-  case Rhi::RhiResourceState2::CopySrc:
+  case Rhi::RhiResourceState::CopySrc:
     barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     break;
 
-  case Rhi::RhiResourceState2::CopyDst:
+  case Rhi::RhiResourceState::CopyDst:
     barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     break;
@@ -445,38 +445,38 @@ IFRIT_APIDECL void CommandBuffer::copyImage(const Rhi::RhiTexture *src, Rhi::Rhi
                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 };
 
-void _resourceStateToAccessMask(Rhi::RhiResourceState2 state, VkAccessFlags &dstAccessMask) {
+void _resourceStateToAccessMask(Rhi::RhiResourceState state, VkAccessFlags &dstAccessMask) {
   switch (state) {
-  case Rhi::RhiResourceState2::Undefined:
+  case Rhi::RhiResourceState::Undefined:
     dstAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT |
                     VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT |
                     VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
                     VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
                     VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
     break;
-  case Rhi::RhiResourceState2::Common:
+  case Rhi::RhiResourceState::Common:
     dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT |
                     VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::ColorRT:
+  case Rhi::RhiResourceState::ColorRT:
     dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     break;
-  case Rhi::RhiResourceState2::Present:
+  case Rhi::RhiResourceState::Present:
     dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::DepthStencilRT:
+  case Rhi::RhiResourceState::DepthStencilRT:
     dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     break;
-  case Rhi::RhiResourceState2::UnorderedAccess:
+  case Rhi::RhiResourceState::UnorderedAccess:
     dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::CopySrc:
+  case Rhi::RhiResourceState::CopySrc:
     dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     break;
-  case Rhi::RhiResourceState2::CopyDst:
+  case Rhi::RhiResourceState::CopyDst:
     dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     break;
-  case Rhi::RhiResourceState2::ShaderRead:
+  case Rhi::RhiResourceState::ShaderRead:
     dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     break;
   default:
@@ -484,33 +484,33 @@ void _resourceStateToAccessMask(Rhi::RhiResourceState2 state, VkAccessFlags &dst
   }
 }
 
-void _resourceStateToImageLayout(Rhi::RhiResourceState2 state, VkImageLayout &dstLayout) {
+void _resourceStateToImageLayout(Rhi::RhiResourceState state, VkImageLayout &dstLayout) {
   switch (state) {
-  case Rhi::RhiResourceState2::Undefined:
+  case Rhi::RhiResourceState::Undefined:
     dstLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     break;
-  case Rhi::RhiResourceState2::Common:
+  case Rhi::RhiResourceState::Common:
     dstLayout = VK_IMAGE_LAYOUT_GENERAL;
     break;
-  case Rhi::RhiResourceState2::ColorRT:
+  case Rhi::RhiResourceState::ColorRT:
     dstLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     break;
-  case Rhi::RhiResourceState2::Present:
+  case Rhi::RhiResourceState::Present:
     dstLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     break;
-  case Rhi::RhiResourceState2::DepthStencilRT:
+  case Rhi::RhiResourceState::DepthStencilRT:
     dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     break;
-  case Rhi::RhiResourceState2::UnorderedAccess:
+  case Rhi::RhiResourceState::UnorderedAccess:
     dstLayout = VK_IMAGE_LAYOUT_GENERAL;
     break;
-  case Rhi::RhiResourceState2::CopySrc:
+  case Rhi::RhiResourceState::CopySrc:
     dstLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     break;
-  case Rhi::RhiResourceState2::CopyDst:
+  case Rhi::RhiResourceState::CopyDst:
     dstLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     break;
-  case Rhi::RhiResourceState2::ShaderRead:
+  case Rhi::RhiResourceState::ShaderRead:
     dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     break;
   default:
@@ -527,7 +527,7 @@ void CommandBuffer::resourceBarrier(const std::vector<Rhi::RhiResourceBarrier> &
     if (barrier.m_type == Rhi::RhiBarrierType::Transition) {
       auto resourceType = barrier.m_transition.m_type;
       auto srcState = barrier.m_transition.m_srcState;
-      if (srcState == Rhi::RhiResourceState2::AutoTraced) {
+      if (srcState == Rhi::RhiResourceState::AutoTraced) {
         srcState = barrier.m_transition.m_texture->getState();
       } else {
         iError("Source state is not auto traced");
@@ -554,7 +554,7 @@ void CommandBuffer::resourceBarrier(const std::vector<Rhi::RhiResourceBarrier> &
         _resourceStateToImageLayout(srcState, srcLayout);
         _resourceStateToImageLayout(dstState, dstLayout);
 
-        if (srcState != barrier.m_transition.m_texture->getState() && srcState != Rhi::RhiResourceState2::Undefined) {
+        if (srcState != barrier.m_transition.m_texture->getState() && srcState != Rhi::RhiResourceState::Undefined) {
           iError("Texture state mismatch, expected:{} actual:{}", i32(srcState),
                  i32(barrier.m_transition.m_texture->getState()));
           std::abort();
@@ -590,12 +590,12 @@ void CommandBuffer::resourceBarrier(const std::vector<Rhi::RhiResourceBarrier> &
         bufferBarriers.push_back(bufferBarrier);
       } else if (resourceType == Rhi::RhiResourceType::Texture) {
 
-        if (barrier.m_uav.m_texture->getState() != Rhi::RhiResourceState2::Common) {
-          iError("Texture state mismatch, expected:{} actual:{}", i32(Rhi::RhiResourceState2::Common),
+        if (barrier.m_uav.m_texture->getState() != Rhi::RhiResourceState::Common) {
+          iError("Texture state mismatch, expected:{} actual:{}", i32(Rhi::RhiResourceState::Common),
                  i32(barrier.m_uav.m_texture->getState()));
           std::abort();
         }
-        _setTextureState(barrier.m_uav.m_texture, Rhi::RhiResourceState2::Common);
+        _setTextureState(barrier.m_uav.m_texture, Rhi::RhiResourceState::Common);
 
         // WARNING: subresource unspecified
         VkImageMemoryBarrier imageBarrier{};
@@ -798,14 +798,14 @@ IFRIT_APIDECL void CommandSubmissionList::submit(bool hostSync) {
   }
 }
 
-void Queue::runSyncCommand(std::function<void(const Rhi::RhiCommandBuffer *)> func) {
+void Queue::runSyncCommand(std::function<void(const Rhi::RhiCommandList *)> func) {
   auto cmd = beginRecording();
   func(cmd);
   submitCommand({}, VK_NULL_HANDLE);
   waitIdle();
 }
 
-std::unique_ptr<Rhi::RhiTaskSubmission> Queue::runAsyncCommand(std::function<void(const Rhi::RhiCommandBuffer *)> func,
+std::unique_ptr<Rhi::RhiTaskSubmission> Queue::runAsyncCommand(std::function<void(const Rhi::RhiCommandList *)> func,
                                                                const std::vector<Rhi::RhiTaskSubmission *> &waitOn,
                                                                const std::vector<Rhi::RhiTaskSubmission *> &toIssue) {
   auto cmd = beginRecording();
