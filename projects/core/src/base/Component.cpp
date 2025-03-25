@@ -26,7 +26,7 @@ using namespace Ifrit::Math;
 
 namespace Ifrit::Core {
 
-IFRIT_APIDECL std::shared_ptr<SceneObject> SceneObject::createPrefab() {
+IFRIT_APIDECL Ref<SceneObject> SceneObject::createPrefab() {
   auto prefab = std::make_shared<SceneObjectPrefab>();
   prefab->initialize();
   prefab->addComponent<Transform>();
@@ -34,7 +34,7 @@ IFRIT_APIDECL std::shared_ptr<SceneObject> SceneObject::createPrefab() {
 }
 
 IFRIT_APIDECL
-Component::Component(std::shared_ptr<SceneObject> parent) : m_parentObject(parent), m_parentObjectRaw(parent.get()) {
+Component::Component(Ref<SceneObject> parent) : m_parentObject(parent), m_parentObjectRaw(parent.get()) {
   Ifrit::Common::Utility::generateUuid(m_id.m_uuid);
 }
 IFRIT_APIDECL void SceneObject::initialize() { addComponent<Transform>(); }

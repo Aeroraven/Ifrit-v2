@@ -7,7 +7,7 @@ SyaroDefaultGBufEmitter::SyaroDefaultGBufEmitter(IApplication *app) : Material()
   m_materialData.m_albedoId = ~0u;
   if (m_shader == nullptr) {
     auto rhi = app->getRhiLayer();
-    std::string shaderBasePath = IFRIT_CORELIB_SHARED_SHADER_PATH;
+    String shaderBasePath = IFRIT_CORELIB_SHARED_SHADER_PATH;
     auto path = shaderBasePath + "/Syaro/Syaro.EmitGBuffer.Default.comp.glsl";
     auto shaderCode = Ifrit::Common::Utility::readTextFile(path);
     std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());

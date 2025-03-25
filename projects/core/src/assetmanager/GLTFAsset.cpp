@@ -40,8 +40,8 @@ struct GLTFInternalData {
 };
 
 // Mesh class
-IFRIT_APIDECL GLTFPrefab::GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset, uint32_t meshId, uint32_t primitiveId,
-                                     uint32_t nodeId, const float4x4 &parentTransform)
+IFRIT_APIDECL GLTFPrefab::GLTFPrefab(AssetMetadata *metadata, GLTFAsset *asset, u32 meshId, u32 primitiveId, u32 nodeId,
+                                     const float4x4 &parentTransform)
     : m_asset(asset), m_meshId(meshId), m_primitiveId(primitiveId), m_nodeId(nodeId) {
   m_prefab = SceneObject::createPrefab();
 
@@ -140,17 +140,17 @@ IFRIT_APIDECL std::shared_ptr<MeshData> GLTFMesh::loadMesh() {
                                                 accessorTexcoord.byteOffset);
   auto tangentData =
       reinterpret_cast<float *>(tangentBuffer.data.data() + tangentBufferView.byteOffset + accessorTangent.byteOffset);
-  auto indicesData = reinterpret_cast<uint32_t *>(indicesBuffer.data.data() + indicesBufferView.byteOffset +
-                                                  accessorIndices.byteOffset);
+  auto indicesData =
+      reinterpret_cast<u32 *>(indicesBuffer.data.data() + indicesBufferView.byteOffset + accessorIndices.byteOffset);
   auto indicesDataUshort = reinterpret_cast<uint16_t *>(indicesBuffer.data.data() + indicesBufferView.byteOffset +
                                                         accessorIndices.byteOffset);
 
-  auto posDataSize = size_cast<uint32_t>(accessorPos.count * 3);
-  auto normalDataSize = size_cast<uint32_t>(accessorNormal.count * 3);
-  auto texcoordDataSize = size_cast<uint32_t>(accessorTexcoord.count * 2);
-  auto indicesDataSize = size_cast<uint32_t>(accessorIndices.count);
+  auto posDataSize = size_cast<u32>(accessorPos.count * 3);
+  auto normalDataSize = size_cast<u32>(accessorNormal.count * 3);
+  auto texcoordDataSize = size_cast<u32>(accessorTexcoord.count * 2);
+  auto indicesDataSize = size_cast<u32>(accessorIndices.count);
   auto tangentStride = tangent3 ? 3 : 4;
-  auto tangentDataSize = size_cast<uint32_t>(accessorTangent.count * tangentStride);
+  auto tangentDataSize = size_cast<u32>(accessorTangent.count * tangentStride);
 
   m_selfData->m_vertices.resize(accessorPos.count);
   m_selfData->m_verticesAligned.resize(accessorPos.count);
@@ -220,8 +220,8 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
     m_internalData->defaultSampler = rhi->createTrivialBilinearSampler(true);
   }
   tinygltf::TinyGLTF loader;
-  std::string err;
-  std::string warn;
+  String err;
+  String warn;
   bool ret = loader.LoadASCIIFromFile(&m_internalData->model, &err, &warn, m_path.string());
   if (!warn.empty()) {
     iWarn("GLTFAsset: {}", warn);
@@ -230,8 +230,7 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
     iError("GLTFAsset: {}", err);
   }
   // Create meshes
-  std::unordered_map<std::pair<uint32_t, uint32_t>, uint32_t, Ifrit::Common::Utility::PairwiseHash<uint32_t, uint32_t>>
-      meshHash;
+  std::unordered_map<std::pair<u32, u32>, u32, Ifrit::Common::Utility::PairwiseHash<u32, u32>> meshHash;
   auto cachePath = m_manager->getApplication()->getCacheDirectory();
   for (auto i = 0; auto &mesh : m_internalData->model.meshes) {
     for (auto j = 0; auto &primitive : mesh.primitives) {
@@ -249,7 +248,7 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
 
   auto rawGLTFData = m_internalData->model;
 
-  std::function<void(int, float4x4)> traverseNode = [&](int nodeId, float4x4 parentTransform) {
+  Fn<void(int, float4x4)> traverseNode = [&](int nodeId, float4x4 parentTransform) {
     auto &node = rawGLTFData.nodes[nodeId];
     auto translationX = 0.0f, translationY = 0.0f, translationZ = 0.0f;
     auto scaleX = 1.0f, scaleY = 1.0f, scaleZ = 1.0f;
@@ -290,7 +289,7 @@ IFRIT_APIDECL void GLTFAsset::loadGLTF(AssetManager *m_manager) {
       for (auto j = 0; auto &primitive : rawGLTFData.meshes[node.mesh].primitives) {
         auto prefab = std::make_shared<GLTFPrefab>(&m_metadata, this, node.mesh, j, nodeId, parentTransform);
         auto meshFilter = prefab->m_prefab->addComponent<MeshFilter>();
-        auto mesh = m_meshes[meshHash[{size_cast<uint32_t>(node.mesh), j}]];
+        auto mesh = m_meshes[meshHash[{size_cast<u32>(node.mesh), j}]];
         meshFilter->setMesh(mesh);
 
         auto &gltfMaterial = rawGLTFData.materials[primitive.material];
@@ -370,7 +369,7 @@ IFRIT_APIDECL GLTFAsset::~GLTFAsset() {
 // Importer
 IFRIT_APIDECL void GLTFAssetImporter::processMetadata(AssetMetadata &metadata) { metadata.m_importer = IMPORTER_NAME; }
 
-IFRIT_APIDECL std::vector<std::string> GLTFAssetImporter::getSupportedExtensionNames() { return {".gltf", ".glb"}; }
+IFRIT_APIDECL std::vector<String> GLTFAssetImporter::getSupportedExtensionNames() { return {".gltf", ".glb"}; }
 
 IFRIT_APIDECL void GLTFAssetImporter::importAsset(const std::filesystem::path &path, AssetMetadata &metadata) {
   auto asset = std::make_shared<GLTFAsset>(metadata, path, m_assetManager);

@@ -37,7 +37,7 @@ enum class ShaderEffectType { Graphics, Compute };
 
 struct PipelineAttachmentConfigs {
   Ifrit::GraphicsBackend::Rhi::RhiImageFormat m_depthFormat;
-  std::vector<Ifrit::GraphicsBackend::Rhi::RhiImageFormat> m_colorFormats;
+  Vec<Ifrit::GraphicsBackend::Rhi::RhiImageFormat> m_colorFormats;
 
   inline bool operator==(const PipelineAttachmentConfigs &other) const {
     auto res = m_depthFormat == other.m_depthFormat;
@@ -64,9 +64,9 @@ class ShaderEffect {
 
 public:
   ShaderEffectType m_type = ShaderEffectType::Graphics;
-  std::vector<Shader *> m_shaders;
-  std::vector<AssetReference> m_shaderReferences;
-  std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_drawPasses;
+  Vec<Shader *> m_shaders;
+  Vec<AssetReference> m_shaderReferences;
+  CustomHashMap<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_drawPasses;
   ComputePass *m_computePass = nullptr;
 
   IFRIT_STRUCT_SERIALIZE(m_shaderReferences);
@@ -86,7 +86,7 @@ public:
   size_t operator()(const ShaderEffect &effect) const {
     size_t hash = 0;
     for (const auto &ref : effect.m_shaderReferences) {
-      hash ^= std::hash<std::string>()(ref.m_uuid);
+      hash ^= std::hash<String>()(ref.m_uuid);
     }
     return hash;
   }
@@ -95,11 +95,11 @@ public:
 class IFRIT_APIDECL Material : public IAssetCompatible {
 
 public:
-  std::string m_name;
-  std::string m_uuid;
-  std::vector<std::vector<char>> m_data;
-  std::unordered_map<GraphicsShaderPassType, ShaderEffect> m_effectTemplates;
-  std::unordered_map<GraphicsShaderPassType, std::unordered_map<std::string, u32>> m_shaderParameters;
+  String m_name;
+  String m_uuid;
+  Vec<Vec<char>> m_data;
+  HashMap<GraphicsShaderPassType, ShaderEffect> m_effectTemplates;
+  HashMap<GraphicsShaderPassType, HashMap<String, u32>> m_shaderParameters;
   IFRIT_STRUCT_SERIALIZE(m_effectTemplates, m_data, m_shaderParameters);
 };
 

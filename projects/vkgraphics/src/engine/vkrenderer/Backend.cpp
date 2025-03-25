@@ -47,7 +47,7 @@ struct RhiVulkanBackendImplDetails : public NonCopyable {
   std::vector<std::unique_ptr<DescriptorBindlessIndices>> m_bindlessIndices;
 
   // managed descriptors
-  std::vector<std::shared_ptr<Rhi::RhiBindlessIdRef>> m_bindlessIdRefs;
+  std::vector<std::shared_ptr<Rhi::RhiDescHandleLegacy>> m_bindlessIdRefs;
 
   // some utility buffers
   Rhi::RhiBufferRef m_fullScreenQuadVertexBuffer;
@@ -93,8 +93,8 @@ RhiVulkanBackend::RhiVulkanBackend(const Rhi::RhiInitializeArguments &args) {
     stagedQuadBuffer.cmdCopyToDevice(cmd, data, sizeof(data), 0);
   });
   m_implDetails->m_fullScreenQuadVertexBufferDescriptor = std::make_shared<VertexBufferDescriptor>();
-  m_implDetails->m_fullScreenQuadVertexBufferDescriptor->addBinding(
-      {0}, {Rhi::RhiImageFormat::RHI_FORMAT_R32G32_SFLOAT}, {0}, 2 * sizeof(float));
+  m_implDetails->m_fullScreenQuadVertexBufferDescriptor->addBinding({0}, {Rhi::RhiImageFormat::RhiImgFmt_R32G32_SFLOAT},
+                                                                    {0}, 2 * sizeof(float));
 }
 
 IFRIT_APIDECL void RhiVulkanBackend::waitDeviceIdle() {
@@ -111,13 +111,20 @@ IFRIT_APIDECL std::shared_ptr<Rhi::RhiDeviceTimer> RhiVulkanBackend::createDevic
 }
 
 IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::createBuffer(const String &name, u32 size, u32 usage,
-                                                               bool hostVisible) const {
+                                                               bool hostVisible, bool addUAV) const {
   BufferCreateInfo ci{};
   ci.size = size;
   ci.usage = usage;
   ci.hostVisible = hostVisible;
   auto p = m_implDetails->m_resourceManager->createSimpleBufferUnmanaged(ci);
   p->setDebugName(name);
+
+  if (addUAV) {
+    auto buffer = checked_cast<SingleBuffer>(p.get());
+    auto descriptorManager = (m_implDetails->m_descriptorManager.get());
+    auto id = descriptorManager->registerStorageBuffer(buffer);
+    p->setDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageBuffer, id));
+  }
   return p;
 }
 
@@ -125,13 +132,20 @@ IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::getFullScreenQuadVertexBuffer(
   return m_implDetails->m_fullScreenQuadVertexBuffer;
 }
 
-IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::createBufferDevice(const String &name, u32 size, u32 usage) const {
+IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::createBufferDevice(const String &name, u32 size, u32 usage,
+                                                                     bool addUAV) const {
   BufferCreateInfo ci{};
   ci.size = size;
   ci.usage = usage;
   ci.hostVisible = false;
   auto p = m_implDetails->m_resourceManager->createSimpleBufferUnmanaged(ci);
   p->setDebugName(name);
+  if (addUAV) {
+    auto buffer = checked_cast<SingleBuffer>(p.get());
+    auto descriptorManager = (m_implDetails->m_descriptorManager.get());
+    auto id = descriptorManager->registerStorageBuffer(buffer);
+    p->setDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageBuffer, id));
+  }
   return p;
 }
 IFRIT_APIDECL std::shared_ptr<Rhi::RhiMultiBuffer> RhiVulkanBackend::createBufferCoherent(u32 size, u32 usage,
@@ -201,31 +215,58 @@ IFRIT_APIDECL Rhi::RhiShader *RhiVulkanBackend::createShader(const std::string &
 }
 
 IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::createTexture2D(const String &name, u32 width, u32 height,
-                                                                   Rhi::RhiImageFormat format, u32 extraFlags) {
+                                                                   Rhi::RhiImageFormat format, u32 extraFlags,
+                                                                   bool addUAV) {
   auto p =
       m_implDetails->m_resourceManager->createTexture2DDeviceUnmanaged(width, height, toVkFormat(format), extraFlags);
   p->setDebugName(name);
+  if (addUAV) {
+    auto texture = checked_cast<SingleDeviceImage>(p.get());
+    auto descriptorManager = (m_implDetails->m_descriptorManager.get());
+    auto id = descriptorManager->registerStorageImage(texture, {0, 0, 1, 1});
+    p->setDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, id));
+  }
   return p;
 }
 
-IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::createDepthTexture(const String &name, u32 width, u32 height) {
+IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::createDepthTexture(const String &name, u32 width, u32 height,
+                                                                      bool addUAV) {
   auto p = m_implDetails->m_resourceManager->createDepthAttachment(width, height);
   p->setDebugName(name);
+  if (addUAV) {
+    auto texture = checked_cast<SingleDeviceImage>(p.get());
+    auto descriptorManager = (m_implDetails->m_descriptorManager.get());
+    auto id = descriptorManager->registerStorageImage(texture, {0, 0, 1, 1});
+    p->setDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, id));
+  }
   return p;
 }
 
 IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::createTexture3D(const String &name, u32 width, u32 height, u32 depth,
-                                                                   Rhi::RhiImageFormat format, u32 extraFlags) {
+                                                                   Rhi::RhiImageFormat format, u32 extraFlags,
+                                                                   bool addUAV) {
   auto p = m_implDetails->m_resourceManager->createTexture3D(width, height, depth, toVkFormat(format), extraFlags);
   p->setDebugName(name);
+  if (addUAV) {
+    auto texture = checked_cast<SingleDeviceImage>(p.get());
+    auto descriptorManager = (m_implDetails->m_descriptorManager.get());
+    auto id = descriptorManager->registerStorageImage(texture, {0, 0, 1, 1});
+    p->setDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, id));
+  }
   return p;
 };
 
 IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::createMipMapTexture(const String &name, u32 width, u32 height,
                                                                        u32 mips, Rhi::RhiImageFormat format,
-                                                                       u32 extraFlags) {
+                                                                       u32 extraFlags, bool addUAV) {
   auto p = m_implDetails->m_resourceManager->createMipTexture(width, height, mips, toVkFormat(format), extraFlags);
   p->setDebugName(name);
+  if (addUAV) {
+    auto texture = checked_cast<SingleDeviceImage>(p.get());
+    auto descriptorManager = (m_implDetails->m_descriptorManager.get());
+    auto id = descriptorManager->registerStorageImage(texture, {0, 0, 1, 1});
+    p->setDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, id));
+  }
   return p;
 }
 
@@ -343,7 +384,7 @@ IFRIT_APIDECL Rhi::RhiBindlessDescriptorRef *RhiVulkanBackend::createBindlessDes
   return ptr;
 }
 
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef>
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiDescHandleLegacy>
 RhiVulkanBackend::registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) {
   std::vector<u32> ids;
   auto descriptorManager = m_implDetails->m_descriptorManager.get();
@@ -353,47 +394,37 @@ RhiVulkanBackend::registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) {
     auto id = descriptorManager->registerUniformBuffer(multiBuffer->getBuffer(i));
     ids.push_back(id);
   }
-  auto p = std::make_shared<Rhi::RhiBindlessIdRef>();
+  auto p = std::make_shared<Rhi::RhiDescHandleLegacy>();
   p->ids = ids;
   p->activeFrame = m_swapChain->getCurrentImageIndex();
   m_implDetails->m_bindlessIdRefs.push_back(p);
   return p;
 }
 
-std::shared_ptr<Rhi::RhiBindlessIdRef> RhiVulkanBackend::registerCombinedImageSampler(Rhi::RhiTexture *texture,
-                                                                                      Rhi::RhiSampler *sampler) {
+std::shared_ptr<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::registerCombinedImageSampler(Rhi::RhiTexture *texture,
+                                                                                         Rhi::RhiSampler *sampler) {
   auto descriptorManager = m_implDetails->m_descriptorManager.get();
   auto tex = checked_cast<SingleDeviceImage>(texture);
   auto sam = checked_cast<Sampler>(sampler);
   auto id = descriptorManager->registerCombinedImageSampler(tex, sam);
-  auto p = std::make_shared<Rhi::RhiBindlessIdRef>();
+  auto p = std::make_shared<Rhi::RhiDescHandleLegacy>();
   p->ids.push_back(id);
   p->activeFrame = 0;
   return p;
 }
 
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef>
-RhiVulkanBackend::registerUAVImage(Rhi::RhiTexture *texture, Rhi::RhiImageSubResource subResource) {
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiDescHandleLegacy>
+RhiVulkanBackend::registerUAVImage2(Rhi::RhiTexture *texture, Rhi::RhiImageSubResource subResource) {
   auto descriptorManager = m_implDetails->m_descriptorManager.get();
   auto tex = checked_cast<SingleDeviceImage>(texture);
   auto id = descriptorManager->registerStorageImage(tex, subResource);
-  auto p = std::make_shared<Rhi::RhiBindlessIdRef>();
+  auto p = std::make_shared<Rhi::RhiDescHandleLegacy>();
   p->ids.push_back(id);
   p->activeFrame = 0;
   return p;
 }
 
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef> RhiVulkanBackend::registerStorageBuffer(Rhi::RhiBuffer *buffer) {
-  auto descriptorManager = m_implDetails->m_descriptorManager.get();
-  auto buf = checked_cast<SingleBuffer>(buffer);
-  auto id = descriptorManager->registerStorageBuffer(buf);
-  auto p = std::make_shared<Rhi::RhiBindlessIdRef>();
-  p->ids.push_back(id);
-  p->activeFrame = 0;
-  return p;
-}
-
-IFRIT_APIDECL std::shared_ptr<Rhi::RhiBindlessIdRef>
+IFRIT_APIDECL std::shared_ptr<Rhi::RhiDescHandleLegacy>
 RhiVulkanBackend::registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) {
   // TODO
   std::vector<u32> ids;
@@ -404,7 +435,7 @@ RhiVulkanBackend::registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) {
     auto id = descriptorManager->registerStorageBuffer(multiBuffer->getBuffer(i));
     ids.push_back(id);
   }
-  auto p = std::make_shared<Rhi::RhiBindlessIdRef>();
+  auto p = std::make_shared<Rhi::RhiDescHandleLegacy>();
   p->ids = ids;
   p->activeFrame = m_swapChain->getCurrentImageIndex();
   m_implDetails->m_bindlessIdRefs.push_back(p);

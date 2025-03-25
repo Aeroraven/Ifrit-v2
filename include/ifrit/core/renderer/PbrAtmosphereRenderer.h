@@ -80,7 +80,7 @@ struct PbrAtmospherePerframe {
     vec3 absorptionExtinction;
     vec3 groundAlbedo;
   };
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
 
   PbrAtmosphereParameter m_atmosphereParams;
   GPUBuffer m_atmosphereParamsBuffer;
@@ -96,15 +96,15 @@ struct PbrAtmospherePerframe {
   GPUTexture m_deltaMultipleScattering;
   GPUTexture m_optionalSingleMieScattering;
 
-  std::shared_ptr<GPUBindId> m_transmittanceId;
-  std::shared_ptr<GPUBindId> m_deltaIrradianceId;
-  std::shared_ptr<GPUBindId> m_deltaRayleighScatteringId;
-  std::shared_ptr<GPUBindId> m_deltaMieScatteringId;
-  std::shared_ptr<GPUBindId> m_deltaScatteringDensityId;
-  std::shared_ptr<GPUBindId> m_irradianceId;
-  std::shared_ptr<GPUBindId> m_scatteringId;
-  std::shared_ptr<GPUBindId> m_deltaMultipleScatteringId;
-  std::shared_ptr<GPUBindId> m_optionalSingleMieScatteringId;
+  // std::shared_ptr<GPUBindId> m_transmittanceId;
+  // std::shared_ptr<GPUBindId> m_deltaIrradianceId;
+  // std::shared_ptr<GPUBindId> m_deltaRayleighScatteringId;
+  // std::shared_ptr<GPUBindId> m_deltaMieScatteringId;
+  // std::shared_ptr<GPUBindId> m_deltaScatteringDensityId;
+  // std::shared_ptr<GPUBindId> m_irradianceId;
+  // std::shared_ptr<GPUBindId> m_scatteringId;
+  // std::shared_ptr<GPUBindId> m_deltaMultipleScatteringId;
+  // std::shared_ptr<GPUBindId> m_optionalSingleMieScatteringId;
 
   std::shared_ptr<GPUBindId> m_transmittanceCombSamplerId;
   std::shared_ptr<GPUBindId> m_deltaIrradianceCombSamplerId;
@@ -115,8 +115,6 @@ struct PbrAtmospherePerframe {
   std::shared_ptr<GPUBindId> m_scatteringCombSamplerId;
   std::shared_ptr<GPUBindId> m_deltaMultipleScatteringCombSamplerId;
   std::shared_ptr<GPUBindId> m_optionalSingleMieScatteringCombSamplerId;
-
-  std::shared_ptr<GPUBindId> m_atmoParamId;
 
   float4x4 luminanceFromRad;
 };

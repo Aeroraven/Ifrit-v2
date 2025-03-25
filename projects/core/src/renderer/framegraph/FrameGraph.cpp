@@ -25,7 +25,7 @@ using Ifrit::Common::Utility::size_cast;
 
 namespace Ifrit::Core {
 
-IFRIT_APIDECL ResourceNodeId FrameGraph::addResource(const std::string &name) {
+IFRIT_APIDECL ResourceNodeId FrameGraph::addResource(const String &name) {
   ResourceNode node;
   node.id = size_cast<u32>(m_resources.size());
   node.type = FrameGraphResourceType::Undefined;
@@ -37,10 +37,9 @@ IFRIT_APIDECL ResourceNodeId FrameGraph::addResource(const std::string &name) {
   return node.id;
 }
 
-IFRIT_APIDECL PassNodeId FrameGraph::addPass(const std::string &name, FrameGraphPassType type,
-                                             const std::vector<ResourceNodeId> &inputs,
-                                             const std::vector<ResourceNodeId> &outputs,
-                                             const std::vector<ResourceNodeId> &dependencies) {
+IFRIT_APIDECL PassNodeId FrameGraph::addPass(const String &name, FrameGraphPassType type,
+                                             const Vec<ResourceNodeId> &inputs, const Vec<ResourceNodeId> &outputs,
+                                             const Vec<ResourceNodeId> &dependencies) {
   PassNode node;
   node.type = type;
   node.id = size_cast<u32>(m_passes.size());
@@ -120,11 +119,11 @@ IFRIT_APIDECL CompiledFrameGraph FrameGraphCompiler::compile(const FrameGraph &g
   compiledGraph.m_passTopoOrder = {};
   compiledGraph.m_passResourceBarriers = {};
   compiledGraph.m_graph = &graph;
-  std::vector<u32> resPassDependencies(graph.m_resources.size(), 0);
-  std::vector<u32> passResDepenedencies(graph.m_passes.size(), 0);
-  std::vector<u32> rootPasses;
-  std::vector<std::vector<u32>> outResToPass(graph.m_resources.size());
-  std::vector<std::vector<u32>> outResToPassDeps(graph.m_resources.size());
+  Vec<u32> resPassDependencies(graph.m_resources.size(), 0);
+  Vec<u32> passResDepenedencies(graph.m_passes.size(), 0);
+  Vec<u32> rootPasses;
+  Vec<Vec<u32>> outResToPass(graph.m_resources.size());
+  Vec<Vec<u32>> outResToPassDeps(graph.m_resources.size());
 
   for (const auto &pass : graph.m_passes) {
     for (auto &resId : pass.inputResources) {
@@ -161,8 +160,8 @@ IFRIT_APIDECL CompiledFrameGraph FrameGraphCompiler::compile(const FrameGraph &g
   std::unordered_map<void *, GraphicsBackend::Rhi::RhiResourceState> rawResourceState;
 
   // Topological sort to arrange passes
-  std::vector<GraphicsBackend::Rhi::RhiResourceState> resState(graph.m_resources.size(),
-                                                               GraphicsBackend::Rhi::RhiResourceState::Undefined);
+  Vec<GraphicsBackend::Rhi::RhiResourceState> resState(graph.m_resources.size(),
+                                                       GraphicsBackend::Rhi::RhiResourceState::Undefined);
 
   // Initialize barrier vectors
   for (auto i = 0; i < graph.m_passes.size(); i++) {
@@ -314,11 +313,11 @@ GraphicsBackend::Rhi::RhiResourceBarrier toRhiResBarrier(const CompiledFrameGrap
 IFRIT_APIDECL void FrameGraphExecutor::executeInSingleCmd(const GraphicsBackend::Rhi::RhiCommandList *cmd,
                                                           const CompiledFrameGraph &compiledGraph) {
 
-  std::vector<GraphicsBackend::Rhi::RhiResourceState> resState(compiledGraph.m_graph->m_resources.size(),
-                                                               GraphicsBackend::Rhi::RhiResourceState::Undefined);
+  Vec<GraphicsBackend::Rhi::RhiResourceState> resState(compiledGraph.m_graph->m_resources.size(),
+                                                       GraphicsBackend::Rhi::RhiResourceState::Undefined);
 
   for (auto &passId : compiledGraph.m_passTopoOrder) {
-    std::vector<GraphicsBackend::Rhi::RhiResourceBarrier> outputAliasingBarriers;
+    Vec<GraphicsBackend::Rhi::RhiResourceBarrier> outputAliasingBarriers;
     auto &pass = compiledGraph.m_graph->m_passes[passId];
     // For output aliased resources, make the transition barrier
     for (auto i = 0; auto &resId : pass.outputResources) {
@@ -336,7 +335,7 @@ IFRIT_APIDECL void FrameGraphExecutor::executeInSingleCmd(const GraphicsBackend:
     // Execute the pass
     pass.passFunction();
     // Update the resource state
-    std::vector<GraphicsBackend::Rhi::RhiResourceBarrier> barriers;
+    Vec<GraphicsBackend::Rhi::RhiResourceBarrier> barriers;
     for (auto i = 0; auto &resId : pass.outputResources) {
       auto srcState = compiledGraph.m_passResourceBarriers[passId][i].srcState;
       auto dstState = compiledGraph.m_passResourceBarriers[passId][i].dstState;

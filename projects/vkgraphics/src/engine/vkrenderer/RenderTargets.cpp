@@ -199,7 +199,7 @@ IFRIT_APIDECL Rhi::RhiRenderTargetsFormat RenderTargets::getFormat() const {
   if (m_depthStencilAttachment) {
     format.m_depthFormat = toRhiFormat(m_depthStencilAttachment->getRenderTargetInternal()->getFormat());
   } else {
-    format.m_depthFormat = Rhi::RhiImageFormat::RHI_FORMAT_UNDEFINED;
+    format.m_depthFormat = Rhi::RhiImageFormat::RhiImgFmt_UNDEFINED;
   }
   for (auto attachment : m_colorAttachments) {
     format.m_colorFormats.push_back(toRhiFormat(attachment->getRenderTargetInternal()->getFormat()));

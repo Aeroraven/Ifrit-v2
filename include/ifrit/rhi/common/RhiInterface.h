@@ -75,19 +75,19 @@ public:
   virtual void waitDeviceIdle() = 0;
 
   // Create a general buffer
-  virtual RhiBufferRef createBuffer(const String &name, u32 size, u32 usage, bool hostVisible) const = 0;
-  virtual RhiBufferRef createBufferDevice(const String &name, u32 size, u32 usage) const = 0;
+  virtual RhiBufferRef createBuffer(const String &name, u32 size, u32 usage, bool hostVisible, bool addUAV) const = 0;
+  virtual RhiBufferRef createBufferDevice(const String &name, u32 size, u32 usage, bool addUAV) const = 0;
   virtual std::shared_ptr<RhiMultiBuffer> createBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const = 0;
-  virtual RhiTextureRef createDepthTexture(const String &name, u32 width, u32 height) = 0;
   virtual RhiBufferRef getFullScreenQuadVertexBuffer() const = 0;
 
   // Note that the texture created can only be accessed by the GPU
+  virtual RhiTextureRef createDepthTexture(const String &name, u32 width, u32 height, bool addUAV) = 0;
   virtual RhiTextureRef createTexture2D(const String &name, u32 width, u32 height, RhiImageFormat format,
-                                        u32 extraFlags) = 0;
+                                        u32 extraFlags, bool addUAV) = 0;
   virtual RhiTextureRef createTexture3D(const String &name, u32 width, u32 height, u32 depth, RhiImageFormat format,
-                                        u32 extraFlags) = 0;
+                                        u32 extraFlags, bool addUAV) = 0;
   virtual RhiTextureRef createMipMapTexture(const String &name, u32 width, u32 height, u32 mips, RhiImageFormat format,
-                                            u32 extraFlags) = 0;
+                                            u32 extraFlags, bool addUAV) = 0;
   virtual RhiSamplerRef createTrivialSampler() = 0;
   virtual RhiSamplerRef createTrivialBilinearSampler(bool repeat) = 0;
   virtual RhiSamplerRef createTrivialNearestSampler(bool repeat) = 0;
@@ -110,13 +110,14 @@ public:
   virtual std::unique_ptr<RhiTaskSubmission> getSwapchainFrameReadyEventHandler() = 0;
   virtual std::unique_ptr<RhiTaskSubmission> getSwapchainRenderDoneEventHandler() = 0;
 
-  // Descriptor
+  // Descriptor, these are deprecated.
   virtual RhiBindlessDescriptorRef *createBindlessDescriptorRef() = 0;
-  virtual std::shared_ptr<RhiBindlessIdRef> registerUniformBuffer(RhiMultiBuffer *buffer) = 0;
-  virtual std::shared_ptr<RhiBindlessIdRef> registerStorageBuffer(RhiBuffer *buffer) = 0;
-  virtual std::shared_ptr<RhiBindlessIdRef> registerStorageBufferShared(RhiMultiBuffer *buffer) = 0;
-  virtual std::shared_ptr<RhiBindlessIdRef> registerUAVImage(RhiTexture *texture, RhiImageSubResource subResource) = 0;
-  virtual std::shared_ptr<RhiBindlessIdRef> registerCombinedImageSampler(RhiTexture *texture, RhiSampler *sampler) = 0;
+  virtual std::shared_ptr<Rhi::RhiDescHandleLegacy> registerUAVImage2(Rhi::RhiTexture *texture,
+                                                                      Rhi::RhiImageSubResource subResource) = 0;
+  virtual std::shared_ptr<RhiDescHandleLegacy> registerUniformBuffer(RhiMultiBuffer *buffer) = 0;
+  virtual std::shared_ptr<RhiDescHandleLegacy> registerStorageBufferShared(RhiMultiBuffer *buffer) = 0;
+  virtual std::shared_ptr<RhiDescHandleLegacy> registerCombinedImageSampler(RhiTexture *texture,
+                                                                            RhiSampler *sampler) = 0;
 
   // Render target
   virtual std::shared_ptr<RhiColorAttachment> createRenderTarget(RhiTexture *renderTarget, RhiClearValue clearValue,

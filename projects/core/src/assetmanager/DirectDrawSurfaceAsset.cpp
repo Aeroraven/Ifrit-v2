@@ -85,7 +85,7 @@ GraphicsBackend::Rhi::RhiTextureRef parseDDS(std ::filesystem::path path, IAppli
   ifs.seekg(0, std::ios::end);
   auto size = ifs.tellg();
   ifs.seekg(0, std::ios::beg);
-  std::vector<char> data(size);
+  Vec<char> data(size);
   ifs.read(data.data(), size);
   ifs.close();
 
@@ -101,7 +101,7 @@ GraphicsBackend::Rhi::RhiTextureRef parseDDS(std ::filesystem::path path, IAppli
   DDS_HEADER *header = reinterpret_cast<DDS_HEADER *>(data.data() + 4);
   DDS_HEADER_DXT10 *header10 = nullptr;
   DDSCompressedType compressedType = DDSCompressedType::Unknown;
-  RhiImageFormat format = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+  RhiImageFormat format = RhiImageFormat::RhiImgFmt_UNDEFINED;
   bool hasAlpha = false;
 
   bodyOffset += sizeof(DDS_HEADER);
@@ -120,28 +120,28 @@ GraphicsBackend::Rhi::RhiTextureRef parseDDS(std ::filesystem::path path, IAppli
 
     compressedType = DDSCompressedType::DXT1;
     if (hasAlpha) {
-      format = RhiImageFormat::RHI_FORMAT_BC1_RGBA_UNORM_BLOCK;
+      format = RhiImageFormat::RhiImgFmt_BC1_RGBA_UNORM_BLOCK;
     } else {
-      format = RhiImageFormat::RHI_FORMAT_BC1_RGB_UNORM_BLOCK;
+      format = RhiImageFormat::RhiImgFmt_BC1_RGB_UNORM_BLOCK;
     }
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '2')) {
     compressedType = DDSCompressedType::DXT2;
-    format = RhiImageFormat::RHI_FORMAT_BC2_UNORM_BLOCK;
+    format = RhiImageFormat::RhiImgFmt_BC2_UNORM_BLOCK;
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '3')) {
     compressedType = DDSCompressedType::DXT3;
-    format = RhiImageFormat::RHI_FORMAT_BC2_UNORM_BLOCK;
+    format = RhiImageFormat::RhiImgFmt_BC2_UNORM_BLOCK;
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '4')) {
     compressedType = DDSCompressedType::DXT4;
-    format = RhiImageFormat::RHI_FORMAT_BC3_UNORM_BLOCK;
+    format = RhiImageFormat::RhiImgFmt_BC3_UNORM_BLOCK;
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', 'T', '5')) {
     compressedType = DDSCompressedType::DXT5;
-    format = RhiImageFormat::RHI_FORMAT_BC3_UNORM_BLOCK;
+    format = RhiImageFormat::RhiImgFmt_BC3_UNORM_BLOCK;
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('A', 'T', 'I', '1')) {
     compressedType = DDSCompressedType::ATI1;
-    format = RhiImageFormat::RHI_FORMAT_BC4_UNORM_BLOCK;
+    format = RhiImageFormat::RhiImgFmt_BC4_UNORM_BLOCK;
   } else if (header->ddspf.dwFourCC == MAKEFOURCC('A', 'T', 'I', '2')) {
     compressedType = DDSCompressedType::ATI2;
-    format = RhiImageFormat::RHI_FORMAT_BC5_UNORM_BLOCK;
+    format = RhiImageFormat::RhiImgFmt_BC5_UNORM_BLOCK;
   } else {
     char fourcc[5];
     fourcc[0] = (header->ddspf.dwFourCC >> 0) & 0xFF;
@@ -155,12 +155,12 @@ GraphicsBackend::Rhi::RhiTextureRef parseDDS(std ::filesystem::path path, IAppli
 
   auto rhi = app->getRhiLayer();
   auto tex = rhi->createTexture2D("Asset_Tex", header->dwWidth, header->dwHeight, format,
-                                  RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+                                  RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT, false);
 
   auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   auto totalBodySize = data.size() - bodyOffset;
   auto requiredBodySize = header->dwPitchOrLinearSize * header->dwHeight;
-  if (format == RhiImageFormat::RHI_FORMAT_UNDEFINED) {
+  if (format == RhiImageFormat::RhiImgFmt_UNDEFINED) {
     iError("Invalid format");
     std::abort();
   } else {
@@ -171,7 +171,7 @@ GraphicsBackend::Rhi::RhiTextureRef parseDDS(std ::filesystem::path path, IAppli
     iError("Invalid body size: {}, required: {}", totalBodySize, requiredBodySize);
     std::abort();
   }
-  auto buffer = rhi->createBuffer("Asset_Buf", requiredBodySize, RhiBufferUsage::RhiBufferUsage_CopySrc, true);
+  auto buffer = rhi->createBuffer("Asset_Buf", requiredBodySize, RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
   buffer->map();
   buffer->writeBuffer(data.data() + bodyOffset, requiredBodySize, 0);
   buffer->flush();
@@ -218,7 +218,7 @@ IFRIT_APIDECL void DirectDrawSurfaceAssetImporter::processMetadata(AssetMetadata
   metadata.m_importer = IMPORTER_NAME;
 }
 
-IFRIT_APIDECL std::vector<std::string> DirectDrawSurfaceAssetImporter::getSupportedExtensionNames() { return {".dds"}; }
+IFRIT_APIDECL Vec<String> DirectDrawSurfaceAssetImporter::getSupportedExtensionNames() { return {".dds"}; }
 
 IFRIT_APIDECL void DirectDrawSurfaceAssetImporter::importAsset(const std::filesystem::path &path,
                                                                AssetMetadata &metadata) {

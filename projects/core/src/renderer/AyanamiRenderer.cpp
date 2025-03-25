@@ -32,10 +32,9 @@ struct AyanamiRendererResources {
   using DrawPass = GraphicsBackend::Rhi::RhiGraphicsPass;
   using ComputePass = GraphicsBackend::Rhi::RhiComputePass;
   using GPUTexture = GraphicsBackend::Rhi::RhiTextureRef;
-  using GPUBindId = GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = GraphicsBackend::Rhi::RhiDescHandleLegacy;
 
   GPUTexture m_raymarchOutput = nullptr;
-  Ref<GPUBindId> m_raymarchOutputUAVBindId;
   Ref<GPUBindId> m_raymarchOutputSRVBindId;
 
   FrameGraphCompiler m_fgCompiler;
@@ -73,10 +72,9 @@ IFRIT_APIDECL void AyanamiRenderer::prepareResources(RenderTargets *renderTarget
   // Resources
   if (m_resources->m_raymarchOutput == nullptr) {
     auto sampler = m_immRes.m_linearSampler;
-    m_resources->m_raymarchOutput =
-        rhi->createTexture2D("Ayanami_Raymarch", width, height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-                             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT);
-    m_resources->m_raymarchOutputUAVBindId = rhi->registerUAVImage(m_resources->m_raymarchOutput.get(), {0, 0, 1, 1});
+    m_resources->m_raymarchOutput = rhi->createTexture2D(
+        "Ayanami_Raymarch", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT, true);
     m_resources->m_raymarchOutputSRVBindId =
         rhi->registerCombinedImageSampler(m_resources->m_raymarchOutput.get(), sampler.get());
   }
@@ -108,7 +106,7 @@ IFRIT_APIDECL void AyanamiRenderer::setupAndRunFrameGraph(PerFrameData &perframe
     } pc;
     pc.rtH = rtHeight;
     pc.rtW = rtWidth;
-    pc.output = m_resources->m_raymarchOutputUAVBindId->getActiveId();
+    pc.output = m_resources->m_raymarchOutput->getDescId();
     pc.descId = m_resources->m_sceneAggregator->getGatheredBufferId();
     pc.perframeId = perframe.m_views[0].m_viewBufferId->getActiveId();
 

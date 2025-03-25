@@ -20,13 +20,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/Component.h"
 namespace Ifrit::Core {
 
-IFRIT_APIDECL std::shared_ptr<SceneNode> SceneNode::addChildNode() {
+IFRIT_APIDECL Ref<SceneNode> SceneNode::addChildNode() {
   auto node = std::make_shared<SceneNode>();
   m_children.push_back(node);
   return node;
 }
-IFRIT_APIDECL std::shared_ptr<SceneObject>
-SceneNode::addGameObject(const std::string &name) {
+IFRIT_APIDECL Ref<SceneObject> SceneNode::addGameObject(const String &name) {
   auto obj = std::make_shared<SceneObject>();
   obj->initialize();
   obj->setName(name);
@@ -34,18 +33,15 @@ SceneNode::addGameObject(const std::string &name) {
   return obj;
 }
 
-IFRIT_APIDECL std::shared_ptr<SceneObject>
-SceneNode::addGameObjectTransferred(std::shared_ptr<SceneObject> &&obj) {
+IFRIT_APIDECL Ref<SceneObject> SceneNode::addGameObjectTransferred(Ref<SceneObject> &&obj) {
   m_gameObjects.push_back(std::move(obj));
   return obj;
 }
 
-IFRIT_APIDECL std::shared_ptr<SceneNode> Scene::addSceneNode() {
-  return m_root->addChildNode();
-}
+IFRIT_APIDECL Ref<SceneNode> Scene::addSceneNode() { return m_root->addChildNode(); }
 
 IFRIT_APIDECL Camera *Scene::getMainCamera() {
-  std::vector<SceneNode *> nodes;
+  Vec<SceneNode *> nodes;
   nodes.push_back(m_root.get());
   while (!nodes.empty()) {
     auto node = nodes.back();
@@ -64,10 +60,9 @@ IFRIT_APIDECL Camera *Scene::getMainCamera() {
   return nullptr;
 }
 
-IFRIT_APIDECL std::vector<std::shared_ptr<SceneObject>>
-Scene::filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter) {
-  std::vector<std::shared_ptr<SceneObject>> result;
-  std::vector<SceneNode *> nodes;
+IFRIT_APIDECL Vec<Ref<SceneObject>> Scene::filterObjects(std::function<bool(Ref<SceneObject>)> filter) {
+  Vec<Ref<SceneObject>> result;
+  Vec<SceneNode *> nodes;
   nodes.push_back(m_root.get());
   while (!nodes.empty()) {
     auto node = nodes.back();
@@ -84,10 +79,9 @@ Scene::filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter) {
   return result;
 }
 
-IFRIT_APIDECL std::vector<SceneObject *>
-Scene::filterObjectsUnsafe(std::function<bool(SceneObject *)> filter) {
-  std::vector<SceneObject *> result;
-  std::vector<SceneNode *> nodes;
+IFRIT_APIDECL Vec<SceneObject *> Scene::filterObjectsUnsafe(std::function<bool(SceneObject *)> filter) {
+  Vec<SceneObject *> result;
+  Vec<SceneNode *> nodes;
   nodes.push_back(m_root.get());
   while (!nodes.empty()) {
     auto node = nodes.back();

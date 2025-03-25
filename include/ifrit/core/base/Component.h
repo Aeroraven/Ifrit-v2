@@ -42,8 +42,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core {
 
 struct ComponentIdentifier {
-  std::string m_uuid;
-  std::string m_name;
+  String m_uuid;
+  String m_name;
 
   IFRIT_STRUCT_SERIALIZE(m_uuid, m_name)
 };
@@ -53,13 +53,13 @@ protected:
   T m_attributes{};
 
 public:
-  inline std::string serializeAttribute() {
-    std::string serialized;
+  inline String serializeAttribute() {
+    String serialized;
     Ifrit::Common::Serialization::serialize(m_attributes, serialized);
     return serialized;
   }
   inline void deserializeAttribute() {
-    std::string serialized;
+    String serialized;
     Ifrit::Common::Serialization::deserialize(serialized, m_attributes);
   }
 };
@@ -75,20 +75,20 @@ class IFRIT_APIDECL SceneObject : public Ifrit::Common::Utility::NonCopyable,
                                   public std::enable_shared_from_this<SceneObject> {
 protected:
   ComponentIdentifier m_id;
-  std::string m_name;
-  // std::unordered_map<std::string, std::shared_ptr<Component>> m_components;
-  std::vector<std::shared_ptr<Component>> m_components;
-  std::unordered_map<std::string, u32> m_componentIndex;
-  std::unordered_map<size_t, u32> m_componentsHashed;
+  String m_name;
+  // HashMap<String, Ref<Component>> m_components;
+  Vec<Ref<Component>> m_components;
+  HashMap<String, u32> m_componentIndex;
+  HashMap<size_t, u32> m_componentsHashed;
 
 public:
   SceneObject();
   virtual ~SceneObject() = default;
   void initialize();
 
-  static std::shared_ptr<SceneObject> createPrefab();
+  static Ref<SceneObject> createPrefab();
 
-  template <class T> void addComponent(std::shared_ptr<T> component) {
+  template <class T> void addComponent(Ref<T> component) {
     using Ifrit::Common::Utility::iTypeInfo;
     static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
     auto typeName = iTypeInfo<T>::name;
@@ -106,7 +106,7 @@ public:
     m_componentsHashed[typeHash] = m_components.size() - 1;
   }
 
-  template <class T> std::shared_ptr<T> addComponent() {
+  template <class T> Ref<T> addComponent() {
     static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
     using Ifrit::Common::Utility::iTypeInfo;
     auto typeName = iTypeInfo<T>::name;
@@ -127,7 +127,7 @@ public:
     return ret;
   }
 
-  template <class T> std::shared_ptr<T> getComponent() {
+  template <class T> Ref<T> getComponent() {
     static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
     using Ifrit::Common::Utility::iTypeInfo;
     auto typeHash = iTypeInfo<T>::hash;
@@ -160,9 +160,9 @@ public:
     return static_cast<T *>(m_components[itIndex].get());
   }
 
-  inline std::vector<std::shared_ptr<Component>> getAllComponents() { return m_components; }
+  inline Vec<Ref<Component>> getAllComponents() { return m_components; }
 
-  inline void setName(const std::string &name) { m_name = name; }
+  inline void setName(const String &name) { m_name = name; }
   IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components, m_componentIndex, m_componentsHashed);
 };
 
@@ -180,9 +180,9 @@ private:
 
 public:
   Component(){}; // for deserializatioin
-  Component(std::shared_ptr<SceneObject> parentObject);
+  Component(Ref<SceneObject> parentObject);
   virtual ~Component() = default;
-  virtual std::string serialize() = 0;
+  virtual String serialize() = 0;
   virtual void deserialize() = 0;
 
   virtual void onPreRender() {}
@@ -193,13 +193,13 @@ public:
   virtual void onUpdate() {}
   virtual void onEnd() {}
 
-  inline void setName(const std::string &name) { m_id.m_name = name; }
-  inline std::string getName() const { return m_id.m_name; }
-  inline std::string getUUID() const { return m_id.m_uuid; }
-  inline std::shared_ptr<SceneObject> getParent() const { return m_parentObject.lock(); }
+  inline void setName(const String &name) { m_id.m_name = name; }
+  inline String getName() const { return m_id.m_name; }
+  inline String getUUID() const { return m_id.m_uuid; }
+  inline Ref<SceneObject> getParent() const { return m_parentObject.lock(); }
 
-  virtual std::vector<AssetReference *> getAssetReferences() { return {}; }
-  virtual void setAssetReferencedAttributes(const std::vector<std::shared_ptr<IAssetCompatible>> &out) {}
+  virtual Vec<AssetReference *> getAssetReferences() { return {}; }
+  virtual void setAssetReferencedAttributes(const Vec<Ref<IAssetCompatible>> &out) {}
 
   // This function is intended to be used in performance-critical code.
   // Use with caution.
@@ -219,11 +219,11 @@ struct TransformAttribute {
 class IFRIT_APIDECL Transform : public Component, public AttributeOwner<TransformAttribute> {
 private:
   using GPUUniformBuffer = Ifrit::GraphicsBackend::Rhi::RhiMultiBuffer;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
-  std::shared_ptr<GPUUniformBuffer> m_gpuBuffer = nullptr;
-  std::shared_ptr<GPUUniformBuffer> m_gpuBufferLast = nullptr;
-  std::shared_ptr<GPUBindId> m_gpuBindlessRef = nullptr;
-  std::shared_ptr<GPUBindId> m_gpuBindlessRefLast = nullptr;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
+  Ref<GPUUniformBuffer> m_gpuBuffer = nullptr;
+  Ref<GPUUniformBuffer> m_gpuBufferLast = nullptr;
+  Ref<GPUBindId> m_gpuBindlessRef = nullptr;
+  Ref<GPUBindId> m_gpuBindlessRefLast = nullptr;
 
   TransformAttribute m_lastFrame;
 
@@ -234,8 +234,8 @@ private:
 
 public:
   Transform(){};
-  Transform(std::shared_ptr<SceneObject> parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
-  std::string serialize() override { return serializeAttribute(); }
+  Transform(Ref<SceneObject> parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
+  String serialize() override { return serializeAttribute(); }
   void deserialize() override { deserializeAttribute(); }
 
   inline void onFrameCollecting() {
@@ -272,15 +272,15 @@ public:
   float4x4 getModelToWorldMatrix();
   float4x4 getModelToWorldMatrixLast();
   inline ifloat3 getScaleLast() { return m_lastFrame.m_scale; }
-  inline void setGPUResource(std::shared_ptr<GPUUniformBuffer> buffer, std::shared_ptr<GPUUniformBuffer> last,
-                             std::shared_ptr<GPUBindId> &bindlessRef, std::shared_ptr<GPUBindId> &bindlessRefLast) {
+  inline void setGPUResource(Ref<GPUUniformBuffer> buffer, Ref<GPUUniformBuffer> last, Ref<GPUBindId> &bindlessRef,
+                             Ref<GPUBindId> &bindlessRefLast) {
     m_gpuBuffer = buffer;
     m_gpuBufferLast = last;
     m_gpuBindlessRef = bindlessRef;
     m_gpuBindlessRefLast = bindlessRefLast;
   }
-  inline void getGPUResource(std::shared_ptr<GPUUniformBuffer> &buffer, std::shared_ptr<GPUUniformBuffer> &last,
-                             std::shared_ptr<GPUBindId> &bindlessRef, std::shared_ptr<GPUBindId> &bindlessRefLast) {
+  inline void getGPUResource(Ref<GPUUniformBuffer> &buffer, Ref<GPUUniformBuffer> &last, Ref<GPUBindId> &bindlessRef,
+                             Ref<GPUBindId> &bindlessRefLast) {
     buffer = m_gpuBuffer;
     last = m_gpuBufferLast;
     bindlessRef = m_gpuBindlessRef;

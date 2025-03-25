@@ -41,7 +41,7 @@ class IFRIT_APIDECL SyaroRenderer : public RendererBase {
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUCommandSubmission = Ifrit::GraphicsBackend::Rhi::RhiTaskSubmission;
   using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBufferRef;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
   using GPUDescRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
   using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;
@@ -61,7 +61,6 @@ private:
   // Base
   ComputePass *m_persistentCullingPass = nullptr;
   GPUBuffer m_indirectDrawBuffer = nullptr;
-  std::shared_ptr<GPUBindId> m_indirectDrawBufferId = nullptr;
   GPUDescRef *m_persistCullDesc = nullptr;
 
   DrawPass *m_visibilityPassHW = nullptr;
@@ -103,7 +102,7 @@ private:
   // TAA
   ComputePass *m_taaHistoryPass = nullptr;
   constexpr static Ifrit::GraphicsBackend::Rhi::RhiImageFormat cTAAFormat =
-      Ifrit::GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT;
+      Ifrit::GraphicsBackend::Rhi::RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT;
   // Finally, deferred pass
   std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_deferredShadingPass;
 
@@ -128,8 +127,7 @@ private:
   // Postprocess, just 2 textures and 1 sampler is required.
   using PairHash = Ifrit::Common::Utility::PairwiseHash<u32, u32>;
   std::unordered_map<std::pair<u32, u32>, std::array<GPUTexture, 2>, PairHash> m_postprocTex;
-  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUBindId>, 2>, PairHash> m_postprocTexId;
-  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUBindId>, 2>, PairHash> m_postprocTexIdComp;
+  std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUBindId>, 2>, PairHash> m_postprocTexSRV;
   std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPUColorRT>, 2>, PairHash> m_postprocColorRT;
   std::unordered_map<std::pair<u32, u32>, std::array<std::shared_ptr<GPURTs>, 2>, PairHash> m_postprocRTs;
   GPUSampler m_postprocTexSampler;

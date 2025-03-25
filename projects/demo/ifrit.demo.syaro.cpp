@@ -96,7 +96,7 @@ public:
 
     // Render targets
     auto rt = m_rhiLayer.get();
-    depthImage = rt->createDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT);
+    depthImage = rt->createDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT,false);
     swapchainImg = rt->getSwapchainImage();
     renderTargets = rt->createRenderTargets();
     colorAttachment =

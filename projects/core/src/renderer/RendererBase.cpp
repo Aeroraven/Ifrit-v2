@@ -350,35 +350,22 @@ IFRIT_APIDECL void RendererBase::recreateGBuffers(PerFrameData &perframeData, Re
     auto targetUsage = RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
                        RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-    // auto targetFomrat = RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM;
-    auto targetFomrat = RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT;
+    // auto targetFomrat = RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM;
+    auto targetFomrat = RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT;
     perframeData.m_gbuffer.m_albedo_materialFlags =
-        rhi->createTexture2D("Render_GAlbedo", actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+        rhi->createTexture2D("Render_GAlbedo", actualRtWidth, actualRtHeight, targetFomrat, targetUsage, true);
     perframeData.m_gbuffer.m_emissive =
-        rhi->createTexture2D("Render_GEmissive", actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+        rhi->createTexture2D("Render_GEmissive", actualRtWidth, actualRtHeight, targetFomrat, targetUsage, true);
     perframeData.m_gbuffer.m_normal_smoothness =
-        rhi->createTexture2D("Render_GNormSmooth", actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
+        rhi->createTexture2D("Render_GNormSmooth", actualRtWidth, actualRtHeight, targetFomrat, targetUsage, true);
     perframeData.m_gbuffer.m_specular_occlusion =
         rhi->createTexture2D("Render_GSpecOccl", actualRtWidth, actualRtHeight, targetFomrat,
-                             targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+                             targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, true);
     perframeData.m_gbuffer.m_specular_occlusion_intermediate =
         rhi->createTexture2D("Render_GSpecOccl_Intm", actualRtWidth, actualRtHeight, targetFomrat,
-                             targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+                             targetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, true);
     perframeData.m_gbuffer.m_shadowMask =
-        rhi->createTexture2D("Render_GShadowMask", actualRtWidth, actualRtHeight, targetFomrat, targetUsage);
-
-    // Then bindless ids
-    perframeData.m_gbuffer.m_albedo_materialFlagsId =
-        rhi->registerUAVImage(perframeData.m_gbuffer.m_albedo_materialFlags.get(), {0, 0, 1, 1});
-    perframeData.m_gbuffer.m_emissiveId = rhi->registerUAVImage(perframeData.m_gbuffer.m_emissive.get(), {0, 0, 1, 1});
-    perframeData.m_gbuffer.m_normal_smoothnessId =
-        rhi->registerUAVImage(perframeData.m_gbuffer.m_normal_smoothness.get(), {0, 0, 1, 1});
-    perframeData.m_gbuffer.m_specular_occlusionId =
-        rhi->registerUAVImage(perframeData.m_gbuffer.m_specular_occlusion.get(), {0, 0, 1, 1});
-    perframeData.m_gbuffer.m_specular_occlusion_intermediateId =
-        rhi->registerUAVImage(perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(), {0, 0, 1, 1});
-    perframeData.m_gbuffer.m_shadowMaskId =
-        rhi->registerUAVImage(perframeData.m_gbuffer.m_shadowMask.get(), {0, 0, 1, 1});
+        rhi->createTexture2D("Render_GShadowMask", actualRtWidth, actualRtHeight, targetFomrat, targetUsage, true);
 
     // sampler
     perframeData.m_gbuffer.m_albedo_materialFlags_sampId = rhi->registerCombinedImageSampler(
@@ -408,16 +395,16 @@ IFRIT_APIDECL void RendererBase::recreateGBuffers(PerFrameData &perframeData, Re
 
     // Then gbuffer refs
     PerFrameData::GBufferDesc gbufferDesc;
-    gbufferDesc.m_albedo_materialFlags = perframeData.m_gbuffer.m_albedo_materialFlagsId->getActiveId();
-    gbufferDesc.m_emissive = perframeData.m_gbuffer.m_emissiveId->getActiveId();
-    gbufferDesc.m_normal_smoothness = perframeData.m_gbuffer.m_normal_smoothnessId->getActiveId();
-    gbufferDesc.m_specular_occlusion = perframeData.m_gbuffer.m_specular_occlusionId->getActiveId();
-    gbufferDesc.m_shadowMask = perframeData.m_gbuffer.m_shadowMaskId->getActiveId();
+    gbufferDesc.m_albedo_materialFlags = perframeData.m_gbuffer.m_albedo_materialFlags->getDescId();
+    gbufferDesc.m_emissive = perframeData.m_gbuffer.m_emissive->getDescId();
+    gbufferDesc.m_normal_smoothness = perframeData.m_gbuffer.m_normal_smoothness->getDescId();
+    gbufferDesc.m_specular_occlusion = perframeData.m_gbuffer.m_specular_occlusion->getDescId();
+    gbufferDesc.m_shadowMask = perframeData.m_gbuffer.m_shadowMask->getDescId();
 
     // Then gbuffer desc
     perframeData.m_gbuffer.m_gbufferRefs =
         rhi->createBufferDevice("Render_GbufferRef", sizeof(PerFrameData::GBufferDesc),
-                                RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO);
+                                RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO, true);
     auto stagedBuf = rhi->createStagedSingleBuffer(perframeData.m_gbuffer.m_gbufferRefs.get());
     auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
     tq->runSyncCommand([&](const RhiCommandList *cmd) {
@@ -511,7 +498,6 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
 
       curView.m_viewBindlessRef->addUniformBuffer(curView.m_viewBufferLast.get(), 1);
       initLastFrameMatrix = true;
-
       curView.m_viewBufferId = rhi->registerUniformBuffer(curView.m_viewBuffer.get());
     }
 
@@ -565,8 +551,8 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
       auto transform = shaderEffect.m_transforms[i];
       std::shared_ptr<RhiMultiBuffer> transformBuffer = nullptr;
       std::shared_ptr<RhiMultiBuffer> transformBufferLast = nullptr;
-      std::shared_ptr<RhiBindlessIdRef> bindlessRef = nullptr;
-      std::shared_ptr<RhiBindlessIdRef> bindlessRefLast = nullptr;
+      std::shared_ptr<RhiDescHandleLegacy> bindlessRef = nullptr;
+      std::shared_ptr<RhiDescHandleLegacy> bindlessRefLast = nullptr;
       transform->getGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
       bool initLastFrameMatrix = false;
       if (transformBuffer == nullptr) {
@@ -626,7 +612,7 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
       bool haveMaterialData = false;
 
       mesh->getGPUResource(meshResource);
-      if (meshResource.objectBufferId == nullptr || mesh->m_resourceDirty) {
+      if (meshResource.objectBuffer == nullptr || mesh->m_resourceDirty) {
         requireUpdate = true;
         mesh->m_resourceDirty = false;
         meshDataRef->m_cpCounter.totalBvhNodes = size_cast<u32>(meshDataRef->m_bvhNodes.size());
@@ -635,32 +621,33 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
 
         auto tmpUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
         meshResource.vertexBuffer = rhi->createBufferDevice(
-            "Mesh_Vertex", size_cast<u32>(meshDataRef->m_verticesAligned.size() * sizeof(ifloat4)), tmpUsage);
+            "Mesh_Vertex", size_cast<u32>(meshDataRef->m_verticesAligned.size() * sizeof(ifloat4)), tmpUsage, true);
         meshResource.normalBuffer = rhi->createBufferDevice(
-            "Mesh_Normal", size_cast<u32>(meshDataRef->m_normalsAligned.size() * sizeof(ifloat4)), tmpUsage);
-        meshResource.uvBuffer =
-            rhi->createBufferDevice("Mesh_UV", size_cast<u32>(meshDataRef->m_uvs.size() * sizeof(ifloat2)), tmpUsage);
+            "Mesh_Normal", size_cast<u32>(meshDataRef->m_normalsAligned.size() * sizeof(ifloat4)), tmpUsage, true);
+        meshResource.uvBuffer = rhi->createBufferDevice(
+            "Mesh_UV", size_cast<u32>(meshDataRef->m_uvs.size() * sizeof(ifloat2)), tmpUsage, true);
         meshResource.bvhNodeBuffer = rhi->createBufferDevice(
             "Mesh_BVHNode",
             size_cast<u32>(meshDataRef->m_bvhNodes.size() * sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
-            tmpUsage);
+            tmpUsage, true);
         meshResource.clusterGroupBuffer = rhi->createBufferDevice(
             "Mesh_ClusterGroup",
             size_cast<u32>(meshDataRef->m_clusterGroups.size() * sizeof(MeshProcLib::MeshProcess::ClusterGroup)),
-            tmpUsage);
+            tmpUsage, true);
         meshResource.meshletBuffer = rhi->createBufferDevice(
-            "Mesh_Cluster", size_cast<u32>(meshDataRef->m_meshlets.size() * sizeof(MeshData::MeshletData)), tmpUsage);
+            "Mesh_Cluster", size_cast<u32>(meshDataRef->m_meshlets.size() * sizeof(MeshData::MeshletData)), tmpUsage,
+            true);
         meshResource.meshletVertexBuffer = rhi->createBufferDevice(
-            "Mesh_ClusterVertex", size_cast<u32>(meshDataRef->m_meshletVertices.size() * sizeof(u32)), tmpUsage);
+            "Mesh_ClusterVertex", size_cast<u32>(meshDataRef->m_meshletVertices.size() * sizeof(u32)), tmpUsage, true);
         meshResource.meshletIndexBuffer = rhi->createBufferDevice(
-            "Mesh_ClusterIndex", size_cast<u32>(meshDataRef->m_meshletTriangles.size() * sizeof(u32)), tmpUsage);
+            "Mesh_ClusterIndex", size_cast<u32>(meshDataRef->m_meshletTriangles.size() * sizeof(u32)), tmpUsage, true);
         meshResource.meshletInClusterBuffer = rhi->createBufferDevice(
-            "Mesh_ClusterInGroups", size_cast<u32>(meshDataRef->m_meshletInClusterGroup.size() * sizeof(u32)),
-            tmpUsage);
+            "Mesh_ClusterInGroups", size_cast<u32>(meshDataRef->m_meshletInClusterGroup.size() * sizeof(u32)), tmpUsage,
+            true);
         meshResource.cpCounterBuffer =
-            rhi->createBufferDevice("Mesh_CpCounter", size_cast<u32>(sizeof(MeshData::GPUCPCounter)), tmpUsage);
+            rhi->createBufferDevice("Mesh_CpCounter", size_cast<u32>(sizeof(MeshData::GPUCPCounter)), tmpUsage, true);
         meshResource.tangentBuffer = rhi->createBufferDevice(
-            "Mesh_Tangent", size_cast<u32>(sizeof(ifloat4) * meshDataRef->m_tangents.size()), tmpUsage);
+            "Mesh_Tangent", size_cast<u32>(sizeof(ifloat4) * meshDataRef->m_tangents.size()), tmpUsage, true);
 
         auto materialDataSize = 0;
         auto &materialRef = shaderEffect.m_materials[i];
@@ -668,49 +655,39 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
           haveMaterialData = true;
           materialDataSize = size_cast<u32>(materialRef->m_data[0].size());
           meshResource.materialDataBuffer = rhi->createBufferDevice(
-              "MaterialData", size_cast<u32>(shaderEffect.m_materials[i]->m_data[0].size()), tmpUsage);
+              "MaterialData", size_cast<u32>(shaderEffect.m_materials[i]->m_data[0].size()), tmpUsage, true);
         } else {
           meshResource.materialDataBuffer = nullptr;
           iWarn("Material data not found for mesh {}", i);
         }
 
         // Indices in bindless descriptors
-        meshResource.vertexBufferId = rhi->registerStorageBuffer(meshResource.vertexBuffer.get());
-        meshResource.normalBufferId = rhi->registerStorageBuffer(meshResource.normalBuffer.get());
-        meshResource.uvBufferId = rhi->registerStorageBuffer(meshResource.uvBuffer.get());
-        meshResource.bvhNodeBufferId = rhi->registerStorageBuffer(meshResource.bvhNodeBuffer.get());
-        meshResource.clusterGroupBufferId = rhi->registerStorageBuffer(meshResource.clusterGroupBuffer.get());
-        meshResource.meshletBufferId = rhi->registerStorageBuffer(meshResource.meshletBuffer.get());
-        meshResource.meshletVertexBufferId = rhi->registerStorageBuffer(meshResource.meshletVertexBuffer.get());
-        meshResource.meshletIndexBufferId = rhi->registerStorageBuffer(meshResource.meshletIndexBuffer.get());
-        meshResource.meshletInClusterBufferId = rhi->registerStorageBuffer(meshResource.meshletInClusterBuffer.get());
-        meshResource.cpCounterBufferId = rhi->registerStorageBuffer(meshResource.cpCounterBuffer.get());
-        meshResource.tangentBufferId = rhi->registerStorageBuffer(meshResource.tangentBuffer.get());
-        if (haveMaterialData) {
-          meshResource.materialDataBufferId = rhi->registerStorageBuffer(meshResource.materialDataBuffer.get());
-        }
+        meshResource.haveMaterialData = haveMaterialData;
+        // if (haveMaterialData) {
+        //   meshResource.materialDataBufferId = rhi->registerStorageBuffer(meshResource.materialDataBuffer.get());
+        // }
 
         // Here, we assume that no double bufferring is allowed
         // meaning no CPU-GPU data transfer is allowed for mesh data after
         // initialization
         Mesh::GPUObjectBuffer &objectBuffer = meshResource.objectData;
-        objectBuffer.vertexBufferId = meshResource.vertexBufferId->getActiveId();
-        objectBuffer.normalBufferId = meshResource.normalBufferId->getActiveId();
-        objectBuffer.uvBufferId = meshResource.uvBufferId->getActiveId();
-        objectBuffer.bvhNodeBufferId = meshResource.bvhNodeBufferId->getActiveId();
-        objectBuffer.clusterGroupBufferId = meshResource.clusterGroupBufferId->getActiveId();
-        objectBuffer.meshletBufferId = meshResource.meshletBufferId->getActiveId();
-        objectBuffer.meshletVertexBufferId = meshResource.meshletVertexBufferId->getActiveId();
-        objectBuffer.meshletIndexBufferId = meshResource.meshletIndexBufferId->getActiveId();
-        objectBuffer.meshletInClusterBufferId = meshResource.meshletInClusterBufferId->getActiveId();
-        objectBuffer.cpCounterBufferId = meshResource.cpCounterBufferId->getActiveId();
+        objectBuffer.vertexBufferId = meshResource.vertexBuffer->getDescId();
+        objectBuffer.normalBufferId = meshResource.normalBuffer->getDescId();
+        objectBuffer.uvBufferId = meshResource.uvBuffer->getDescId();
+        objectBuffer.bvhNodeBufferId = meshResource.bvhNodeBuffer->getDescId();
+        objectBuffer.clusterGroupBufferId = meshResource.clusterGroupBuffer->getDescId();
+        objectBuffer.meshletBufferId = meshResource.meshletBuffer->getDescId();
+        objectBuffer.meshletVertexBufferId = meshResource.meshletVertexBuffer->getDescId();
+        objectBuffer.meshletIndexBufferId = meshResource.meshletIndexBuffer->getDescId();
+        objectBuffer.meshletInClusterBufferId = meshResource.meshletInClusterBuffer->getDescId();
+        objectBuffer.cpCounterBufferId = meshResource.cpCounterBuffer->getDescId();
         objectBuffer.boundingSphere = mesh->getBoundingSphere(meshDataRef->m_vertices);
-        objectBuffer.materialDataId = haveMaterialData ? meshResource.materialDataBufferId->getActiveId() : 0;
-        objectBuffer.tangentBufferId = meshResource.tangentBufferId->getActiveId();
+        objectBuffer.materialDataId = haveMaterialData ? meshResource.materialDataBuffer->getDescId() : 0;
+        objectBuffer.tangentBufferId = meshResource.tangentBuffer->getDescId();
 
         // description for the whole mesh
-        meshResource.objectBuffer = rhi->createBufferDevice("ObjectBuffer", sizeof(Mesh::GPUObjectBuffer), tmpUsage);
-        meshResource.objectBufferId = rhi->registerStorageBuffer(meshResource.objectBuffer.get());
+        meshResource.objectBuffer =
+            rhi->createBufferDevice("ObjectBuffer", sizeof(Mesh::GPUObjectBuffer), tmpUsage, true);
 
         mesh->setGPUResource(meshResource);
       }
@@ -725,29 +702,25 @@ IFRIT_APIDECL void RendererBase::prepareDeviceResources(PerFrameData &perframeDa
         auto tmpUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
         requireUpdate = true;
         instanceResource.cpQueueBuffer = rhi->createBufferDevice(
-            "Render_CpQueue", size_cast<u32>(sizeof(u32) * meshDataRef->m_bvhNodes.size()), tmpUsage);
+            "Render_CpQueue", size_cast<u32>(sizeof(u32) * meshDataRef->m_bvhNodes.size()), tmpUsage, true);
 
         auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0];
         if (meshDataRef->m_numMeshletsEachLod.size() > 1)
           safeNumMeshlets += meshDataRef->m_numMeshletsEachLod[1];
         instanceResource.filteredMeshlets =
-            rhi->createBufferDevice("Render_FilteredClsters", sizeof(u32) * safeNumMeshlets, tmpUsage);
+            rhi->createBufferDevice("Render_FilteredClsters", sizeof(u32) * safeNumMeshlets, tmpUsage, true);
 
-        instanceResource.cpQueueBufferId = rhi->registerStorageBuffer(instanceResource.cpQueueBuffer.get());
-        instanceResource.filteredMeshletsId = rhi->registerStorageBuffer(instanceResource.filteredMeshlets.get());
-
-        instanceResource.objectData.cpQueueBufferId = instanceResource.cpQueueBufferId->getActiveId();
-        instanceResource.objectData.filteredMeshletsId = instanceResource.filteredMeshletsId->getActiveId();
+        instanceResource.objectData.cpQueueBufferId = instanceResource.cpQueueBuffer->getDescId();
+        instanceResource.objectData.filteredMeshletsId = instanceResource.filteredMeshlets->getDescId();
 
         instanceResource.objectBuffer =
-            rhi->createBufferDevice("Render_Objects", sizeof(MeshInstance::GPUObjectBuffer), tmpUsage);
-        instanceResource.objectBufferId = rhi->registerStorageBuffer(instanceResource.objectBuffer.get());
+            rhi->createBufferDevice("Render_Objects", sizeof(MeshInstance::GPUObjectBuffer), tmpUsage, true);
 
         meshInst->setGPUResource(instanceResource);
       }
 
-      shaderEffect.m_objectData[i].objectDataRef = meshResource.objectBufferId->getActiveId();
-      shaderEffect.m_objectData[i].instanceDataRef = meshInst->m_resource.objectBufferId->getActiveId();
+      shaderEffect.m_objectData[i].objectDataRef = meshResource.objectBuffer->getDescId();
+      shaderEffect.m_objectData[i].instanceDataRef = meshInst->m_resource.objectBuffer->getDescId();
       shaderEffect.m_objectData[i].materialId = curShaderMaterialId;
 
       // update vertex buffer, TODO: dirty flag

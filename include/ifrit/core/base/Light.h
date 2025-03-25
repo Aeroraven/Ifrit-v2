@@ -37,7 +37,7 @@ struct LightData {
 
 class IFRIT_APIDECL Light : public Component, public AttributeOwner<LightData> {
 public:
-  Light(std::shared_ptr<SceneObject> owner) : Component(owner), AttributeOwner() {}
+  Light(Ref<SceneObject> owner) : Component(owner), AttributeOwner() {}
   virtual ~Light() = default;
   inline std::string serialize() override { return serializeAttribute(); }
   inline void deserialize() override { deserializeAttribute(); }

@@ -61,7 +61,6 @@ public:
   virtual void dispatchIndirect(const RhiBuffer *buffer, u32 offset) const = 0;
   virtual void setPushConst(RhiComputePass *pass, u32 offset, u32 size, const void *data) const = 0;
   virtual void setPushConst(RhiGraphicsPass *pass, u32 offset, u32 size, const void *data) const = 0;
-
   virtual void clearUAVImageFloat(const RhiTexture *texture, RhiImageSubResource subResource,
                                   const Array<f32, 4> &val) const = 0;
   virtual void resourceBarrier(const Vec<RhiResourceBarrier> &barriers) const = 0;

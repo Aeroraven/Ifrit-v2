@@ -39,7 +39,7 @@ class IFRIT_APIDECL AyanamiRenderer : public RendererBase {
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUCommandSubmission = Ifrit::GraphicsBackend::Rhi::RhiTaskSubmission;
   using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
   using GPUDescRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
   using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;

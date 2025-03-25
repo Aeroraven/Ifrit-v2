@@ -30,11 +30,11 @@ void loadWaveFrontObject(const char *path, Vec<ifloat3> &vertices, Vec<ifloat3> 
 
   // This section is auto-generated from Copilot
   std::ifstream file(path);
-  std::string line;
+  String line;
   Vec<u32> interIdx;
   while (std::getline(file, line)) {
     std::istringstream iss(line);
-    std::string type;
+    String type;
     iss >> type;
 
     if (type == "v") {
@@ -50,11 +50,11 @@ void loadWaveFrontObject(const char *path, Vec<ifloat3> &vertices, Vec<ifloat3> 
       iss >> uv.x >> uv.y;
       uvs.push_back(uv);
     } else if (type == "f") {
-      std::string vertex;
+      String vertex;
       for (int i = 0; i < 3; i++) {
         iss >> vertex;
         std::istringstream vss(vertex);
-        std::string index;
+        String index;
         for (int j = 0; j < 3; j++) {
           std::getline(vss, index, '/');
           if (index.size() != 0) {
@@ -180,7 +180,7 @@ IFRIT_APIDECL void WaveFrontAssetImporter::processMetadata(AssetMetadata &metada
   metadata.m_importer = IMPORTER_NAME;
 }
 
-IFRIT_APIDECL Vec<std::string> WaveFrontAssetImporter::getSupportedExtensionNames() { return {".obj"}; }
+IFRIT_APIDECL Vec<String> WaveFrontAssetImporter::getSupportedExtensionNames() { return {".obj"}; }
 
 IFRIT_APIDECL void WaveFrontAssetImporter::importAsset(const std::filesystem::path &path, AssetMetadata &metadata) {
   auto asset = std::make_shared<WaveFrontAsset>(metadata, path);

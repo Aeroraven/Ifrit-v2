@@ -38,7 +38,7 @@ struct CreateMeshLodHierMiscInfo {
   IFRIT_STRUCT_SERIALIZE(totalLods);
 };
 
-IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData, const std::string &cachePath) {
+IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshData, const String &cachePath) {
   using namespace Ifrit::MeshProcLib;
   using namespace Ifrit::MeshProcLib::MeshProcess;
   using namespace Ifrit::Common::Utility;
@@ -108,10 +108,10 @@ IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshDa
   }
 
   if (ableToLoadCachedVG) {
-    std::string cclBuffer;
-    std::string fbnBuffer;
-    std::string cgBuffer;
-    std::string miscBuffer;
+    String cclBuffer;
+    String fbnBuffer;
+    String cgBuffer;
+    String miscBuffer;
 
     cclBuffer = Ifrit::Common::Utility::readBinaryFile(serialCCLPath);
     fbnBuffer = Ifrit::Common::Utility::readBinaryFile(serialFBNPath);
@@ -131,15 +131,15 @@ IFRIT_APIDECL void Mesh::createMeshLodHierarchy(std::shared_ptr<MeshData> meshDa
   if (needToGenerateVG) {
     totalLods = meshProc.clusterLodHierachy(meshDesc, meshletData, clusterGroupData, bvhNodes, MAX_LOD);
     if (needToStoreVG) {
-      std::string cclBuffer;
+      String cclBuffer;
       Ifrit::Common::Serialization::serializeBinary(meshletData, cclBuffer);
-      std::string fbnBuffer;
+      String fbnBuffer;
       Ifrit::Common::Serialization::serializeBinary(bvhNodes, fbnBuffer);
-      std::string cgBuffer;
+      String cgBuffer;
       Ifrit::Common::Serialization::serializeBinary(clusterGroupData, cgBuffer);
       CreateMeshLodHierMiscInfo miscInfo;
       miscInfo.totalLods = totalLods;
-      std::string miscBuffer;
+      String miscBuffer;
       Ifrit::Common::Serialization::serializeBinary(miscInfo, miscBuffer);
 
       Ifrit::Common::Utility::writeBinaryFile(serialCCLPath, cclBuffer);

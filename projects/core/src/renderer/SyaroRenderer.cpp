@@ -52,10 +52,10 @@ IF_CONSTEXPR auto kbBufUsage_SSBO_CopyDest = RhiBufferUsage_SSBO | RhiBufferUsag
 IF_CONSTEXPR auto kbBufUsage_SSBO = RhiBufferUsage_SSBO;
 
 // Frequently used image fmts
-IF_CONSTEXPR auto kbImFmt_RGBA32F = RHI_FORMAT_R32G32B32A32_SFLOAT;
-IF_CONSTEXPR auto kbImFmt_RGBA16F = RHI_FORMAT_R16G16B16A16_SFLOAT;
-IF_CONSTEXPR auto kbImFmt_RG32F = RHI_FORMAT_R32G32_SFLOAT;
-IF_CONSTEXPR auto kbImFmt_R32F = RHI_FORMAT_R32_SFLOAT;
+IF_CONSTEXPR auto kbImFmt_RGBA32F = RhiImgFmt_R32G32B32A32_SFLOAT;
+IF_CONSTEXPR auto kbImFmt_RGBA16F = RhiImgFmt_R16G16B16A16_SFLOAT;
+IF_CONSTEXPR auto kbImFmt_RG32F = RhiImgFmt_R32G32_SFLOAT;
+IF_CONSTEXPR auto kbImFmt_R32F = RhiImgFmt_R32_SFLOAT;
 
 namespace Ifrit::Core {
 
@@ -181,13 +181,12 @@ IFRIT_APIDECL void SyaroRenderer::createPostprocessTextures(u32 width, u32 heigh
     return;
   }
   for (u32 i = 0; i < 2; i++) {
-    auto tex = rhi->createTexture2D("Syaro_PostprocTex", width, height, rtFmt, kbImUsage_UAV_SRV_RT);
+    auto tex = rhi->createTexture2D("Syaro_PostprocTex", width, height, rtFmt, kbImUsage_UAV_SRV_RT, true);
     auto colorRT = rhi->createRenderTarget(tex.get(), {{0.0f, 0.0f, 0.0f, 1.0f}}, RhiRenderTargetLoadOp::Load, 0, 0);
     auto rts = rhi->createRenderTargets();
 
     m_postprocTex[{width, height}][i] = tex;
-    m_postprocTexId[{width, height}][i] = rhi->registerCombinedImageSampler(tex.get(), m_postprocTexSampler.get());
-    m_postprocTexIdComp[{width, height}][i] = rhi->registerUAVImage(tex.get(), {0, 0, 1, 1});
+    m_postprocTexSRV[{width, height}][i] = rhi->registerCombinedImageSampler(tex.get(), m_postprocTexSampler.get());
     m_postprocColorRT[{width, height}][i] = colorRT;
 
     RhiAttachmentBlendInfo blendInfo;
@@ -214,8 +213,8 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
     auto vsShader = createShaderFromFile("Syaro.DeferredShadow.vert.glsl", "main", RhiShaderStage::Vertex);
     auto fsShader = createShaderFromFile("Syaro.DeferredShadow.frag.glsl", "main", RhiShaderStage::Fragment);
     auto shadowRtCfg = renderTargets->getFormat();
-    shadowRtCfg.m_colorFormats = {RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT};
-    shadowRtCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+    shadowRtCfg.m_colorFormats = {RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT};
+    shadowRtCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
 
     m_deferredShadowPass = rhi->createGraphicsPass();
     m_deferredShadowPass->setVertexShader(vsShader);
@@ -350,7 +349,7 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
 
   // setup execution function
   fg.setExecutionFunction(passAtmosphere, [&]() {
-    auto postprocId = m_postprocTexIdComp[{mainRtWidth, mainRtHeight}][0];
+    auto postprocId = m_postprocTex[{mainRtWidth, mainRtHeight}][0]->getDescId();
     auto postprocTex = m_postprocTex[{mainRtWidth, mainRtHeight}][0];
     auto atmoData = m_atmosphereRenderer->getResourceDesc(perframeData);
     auto rhi = m_app->getRhiLayer();
@@ -364,7 +363,7 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
     } pushConst;
     pushConst.sundir = perframeData.m_sunDir;
     pushConst.m_perframe = primaryView.m_viewBufferId->getActiveId();
-    pushConst.m_outTex = postprocId->getActiveId();
+    pushConst.m_outTex = postprocId;
     pushConst.m_atmoData = atmoData;
     pushConst.m_depthTex = primaryView.m_visibilityDepthIdSRV_Combined->getActiveId();
     m_atmospherePass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
@@ -403,7 +402,7 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
   });
 
   fg.setExecutionFunction(passBlurShadowVert, [&]() {
-    auto postprocId = m_postprocTexId[{mainRtWidth, mainRtHeight}][1];
+    auto postprocId = m_postprocTexSRV[{mainRtWidth, mainRtHeight}][1];
     m_gaussianVert->renderPostFx(cmd, perframeData.m_deferShadowMaskRTs.get(), postprocId.get(), 3);
   });
 
@@ -416,7 +415,7 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
     PipelineAttachmentConfigs paCfg;
     auto rtCfg = curRT->getFormat();
     paCfg.m_colorFormats = rtCfg.m_colorFormats;
-    paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+    paCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
     auto pass = m_deferredShadingPass[paCfg];
     struct DeferPushConst {
       ifloat4 sundir;
@@ -438,7 +437,7 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
   });
   fg.setExecutionFunction(passGlobalFog, [&]() {
     auto fogRT = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_rts;
-    auto inputId = m_postprocTexId[{mainRtWidth, mainRtHeight}][0].get();
+    auto inputId = m_postprocTexSRV[{mainRtWidth, mainRtHeight}][0].get();
     auto inputDepthId = primaryView.m_visibilityDepthIdSRV_Combined.get();
     auto primaryViewId = primaryView.m_viewBufferId.get();
     m_globalFogPass->renderPostFx(cmd, fogRT.get(), inputId, inputDepthId, primaryViewId);
@@ -458,7 +457,7 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
       auto rtCfg = taaRT->getFormat();
       PipelineAttachmentConfigs paCfg;
       paCfg.m_colorFormats = rtCfg.m_colorFormats;
-      paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+      paCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
       auto pass = m_taaPass[paCfg];
       u32 jitterX = std::bit_cast<u32, float>(perframeData.m_taaJitterX);
       u32 jitterY = std::bit_cast<u32, float>(perframeData.m_taaJitterY);
@@ -474,8 +473,8 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
       cmd->beginScope("Syaro: Convolution Bloom");
       auto width = mainRtWidth;
       auto height = mainRtHeight;
-      auto postprocTex0Id = m_postprocTexId[{width, height}][0].get();
-      auto postprocTex1Id = m_postprocTexIdComp[{width, height}][1].get();
+      auto postprocTex0Id = m_postprocTexSRV[{width, height}][0].get();
+      auto postprocTex1Id = m_postprocTex[{width, height}][1]->getDescId();
       m_fftConv2d->renderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr, width, height, 51, 51, 4);
       cmd->endScope();
     });
@@ -485,7 +484,7 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
       auto width = mainRtWidth;
       auto height = mainRtHeight;
       auto postprocTex0Id = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRTIdSRV.get();
-      auto postprocTex1Id = m_postprocTexIdComp[{width, height}][1].get();
+      auto postprocTex1Id = m_postprocTex[{width, height}][1]->getDescId();
       m_fftConv2d->renderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr, width, height, 51, 51, 4);
       cmd->endScope();
     });
@@ -547,7 +546,7 @@ IFRIT_APIDECL void SyaroRenderer::setupAndRunFrameGraph(PerFrameData &perframeDa
     });
   } else {
     fg.setExecutionFunction(passToneMapping, [&]() {
-      m_acesToneMapping->renderPostFx(cmd, renderTargets, m_postprocTexId[{mainRtWidth, mainRtHeight}][0].get());
+      m_acesToneMapping->renderPostFx(cmd, renderTargets, m_postprocTexSRV[{mainRtWidth, mainRtHeight}][0].get());
     });
   }
 
@@ -591,10 +590,10 @@ IFRIT_APIDECL void SyaroRenderer::setupDeferredShadingPass(RenderTargets *render
   PipelineAttachmentConfigs paCfg;
   auto rtCfg = renderTargets->getFormat();
   paCfg.m_colorFormats = {cTAAFormat};
-  paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+  paCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
 
   rtCfg.m_colorFormats = paCfg.m_colorFormats;
-  rtCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+  rtCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
 
   DrawPass *pass = nullptr;
   if (m_deferredShadingPass.find(paCfg) != m_deferredShadingPass.end()) {
@@ -639,8 +638,8 @@ IFRIT_APIDECL void SyaroRenderer::setupTAAPass(RenderTargets *renderTargets) {
 
   PipelineAttachmentConfigs paCfg;
   auto rtCfg = renderTargets->getFormat();
-  paCfg.m_colorFormats = {cTAAFormat, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT};
-  paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+  paCfg.m_colorFormats = {cTAAFormat, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT};
+  paCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
   rtCfg.m_colorFormats = paCfg.m_colorFormats;
 
   DrawPass *pass = nullptr;
@@ -654,8 +653,8 @@ IFRIT_APIDECL void SyaroRenderer::setupTAAPass(RenderTargets *renderTargets) {
     pass->setPixelShader(fsShader);
     pass->setNumBindlessDescriptorSets(2);
     pass->setPushConstSize(u32Size * 5);
-    rtCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
-    paCfg.m_depthFormat = RhiImageFormat::RHI_FORMAT_UNDEFINED;
+    rtCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
+    paCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
     pass->setRenderTargetFormat(rtCfg);
     m_taaPass[paCfg] = pass;
   }
@@ -681,8 +680,8 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
     m_visibilityPassHW->setPushConstSize(u32Size);
 
     RhiRenderTargetsFormat rtFmt;
-    rtFmt.m_colorFormats = {RhiImageFormat::RHI_FORMAT_R32_UINT};
-    rtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
+    rtFmt.m_colorFormats = {RhiImageFormat::RhiImgFmt_R32_UINT};
+    rtFmt.m_depthFormat = RhiImageFormat::RhiImgFmt_D32_SFLOAT;
     m_visibilityPassHW->setRenderTargetFormat(rtFmt);
 
     m_depthOnlyVisibilityPassHW = rhi->createGraphicsPass();
@@ -695,7 +694,7 @@ IFRIT_APIDECL void SyaroRenderer::setupVisibilityPass() {
 
     RhiRenderTargetsFormat depthOnlyRtFmt;
     depthOnlyRtFmt.m_colorFormats = {};
-    depthOnlyRtFmt.m_depthFormat = RhiImageFormat::RHI_FORMAT_D32_SFLOAT;
+    depthOnlyRtFmt.m_depthFormat = RhiImageFormat::RhiImgFmt_D32_SFLOAT;
     m_depthOnlyVisibilityPassHW->setRenderTargetFormat(depthOnlyRtFmt);
   }
 
@@ -729,8 +728,7 @@ IFRIT_APIDECL void SyaroRenderer::setupPersistentCullingPass() {
   auto rhi = m_app->getRhiLayer();
   m_persistentCullingPass = RenderingUtil::createComputePass(rhi, "Syaro/Syaro.PersistentCulling.comp.glsl", 5, 3);
 
-  m_indirectDrawBuffer = rhi->createBufferDevice("Syaro_IndirectDraw", u32Size * 1, kbBufUsage_Indirect);
-  m_indirectDrawBufferId = rhi->registerStorageBuffer(m_indirectDrawBuffer.get());
+  m_indirectDrawBuffer = rhi->createBufferDevice("Syaro_IndirectDraw", u32Size * 1, kbBufUsage_Indirect, true);
   m_persistCullDesc = rhi->createBindlessDescriptorRef();
   m_persistCullDesc->addStorageBuffer(m_indirectDrawBuffer.get(), 0);
 }
@@ -781,16 +779,16 @@ IFRIT_APIDECL void SyaroRenderer::materialClassifyBufferSetup(PerFrameData &perf
                       cMatClassCounterBufferSizeMult * Ifrit::Common::Utility::size_cast<u32>(numMaterials);
 
     perframeData.m_matClassCountBuffer =
-        rhi->createBufferDevice("Syaro_MatClassCount", createSize, kbBufUsage_SSBO_CopyDest);
-    perframeData.m_matClassIndirectDispatchBuffer =
-        rhi->createBufferDevice("Syaro_MatClassCountIndirectDisp", u32Size * 4 * numMaterials, kbBufUsage_Indirect);
+        rhi->createBufferDevice("Syaro_MatClassCount", createSize, kbBufUsage_SSBO_CopyDest, true);
+    perframeData.m_matClassIndirectDispatchBuffer = rhi->createBufferDevice(
+        "Syaro_MatClassCountIndirectDisp", u32Size * 4 * numMaterials, kbBufUsage_Indirect, true);
   }
   if (needRecreatePixel) {
     perframeData.m_matClassSupportedNumPixels = totalSize;
     perframeData.m_matClassFinalBuffer =
-        rhi->createBufferDevice("Syaro_MatClassFinal", u32Size * totalSize, kbBufUsage_SSBO);
+        rhi->createBufferDevice("Syaro_MatClassFinal", u32Size * totalSize, kbBufUsage_SSBO, true);
     perframeData.m_matClassPixelOffsetBuffer =
-        rhi->createBufferDevice("Syaro_MatClassPixelOffset", u32Size * totalSize, kbBufUsage_SSBO_CopyDest);
+        rhi->createBufferDevice("Syaro_MatClassPixelOffset", u32Size * totalSize, kbBufUsage_SSBO_CopyDest, true);
   }
 
   if (needRecreate) {
@@ -837,10 +835,10 @@ IFRIT_APIDECL void SyaroRenderer::depthTargetsSetup(PerFrameData &perframeData, 
 
   if (perframeData.m_velocityMaterial != nullptr)
     return;
-  perframeData.m_velocityMaterial =
-      rhi->createTexture2D("Syaro_VelocityMat", actualRtWidth, actualRtHeight, kbImFmt_RGBA32F, kbImUsage_UAV_SRV);
-  perframeData.m_motionVector =
-      rhi->createTexture2D("Syaro_Motion", actualRtWidth, actualRtHeight, kbImFmt_RG32F, kbImUsage_UAV_SRV_CopyDest);
+  perframeData.m_velocityMaterial = rhi->createTexture2D("Syaro_VelocityMat", actualRtWidth, actualRtHeight,
+                                                         kbImFmt_RGBA32F, kbImUsage_UAV_SRV, true);
+  perframeData.m_motionVector = rhi->createTexture2D("Syaro_Motion", actualRtWidth, actualRtHeight, kbImFmt_RG32F,
+                                                     kbImUsage_UAV_SRV_CopyDest, true);
 
   perframeData.m_velocityMaterialDesc = rhi->createBindlessDescriptorRef();
   perframeData.m_velocityMaterialDesc->addUAVImage(perframeData.m_velocityMaterial.get(), {0, 0, 1, 1}, 0);
@@ -863,11 +861,11 @@ IFRIT_APIDECL void SyaroRenderer::recreateInstanceCullingBuffers(PerFrameData &p
       auto rhi = m_app->getRhiLayer();
       view.m_maxSupportedInstances = newMaxInstances;
       view.m_instCullDiscardObj =
-          rhi->createBufferDevice("Syaro_InstCullDiscard", u32Size * newMaxInstances, kbBufUsage_SSBO);
+          rhi->createBufferDevice("Syaro_InstCullDiscard", u32Size * newMaxInstances, kbBufUsage_SSBO, true);
       view.m_instCullPassedObj =
-          rhi->createBufferDevice("Syaro_InstCullPassed", u32Size * newMaxInstances, kbBufUsage_SSBO_CopyDest);
+          rhi->createBufferDevice("Syaro_InstCullPassed", u32Size * newMaxInstances, kbBufUsage_SSBO_CopyDest, true);
       view.m_persistCullIndirectDispatch =
-          rhi->createBufferDevice("Syaro_InstCullDispatch", u32Size * 12, kbBufUsage_Indirect);
+          rhi->createBufferDevice("Syaro_InstCullDispatch", u32Size * 12, kbBufUsage_Indirect, true);
 
       view.m_instCullDesc = rhi->createBindlessDescriptorRef();
       view.m_instCullDesc->addStorageBuffer(view.m_instCullDiscardObj.get(), 0);
@@ -1065,12 +1063,12 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(CullingPass cullPass,
       u32 casBufferId;
     } pcsw;
     pcsw.passNo = cullPass == CullingPass::First ? 0 : 1;
-    pcsw.depthBufferId = perView.m_visDepthId_SW->getActiveId();
-    pcsw.visBufferId = perView.m_visBufferIdUAV_SW->getActiveId();
+    pcsw.depthBufferId = perView.m_visPassDepth_SW->getDescId();
+    pcsw.visBufferId = perView.m_visibilityBuffer_SW->getDescId();
     pcsw.rtHeight = perView.m_renderHeight;
     pcsw.rtWidth = perView.m_renderWidth;
     pcsw.swOffset = perView.m_allFilteredMeshlets_SWOffset;
-    pcsw.casBufferId = perView.m_visDepthCASLockId_SW->getActiveId();
+    pcsw.casBufferId = perView.m_visPassDepthCASLock_SW->getDescId();
     ctx->m_cmd->setPushConst(visPassSW, 0, sizeof(SWPushConst), &pcsw);
     if (cullPass == CullingPass::First) {
       ctx->m_cmd->dispatchIndirect(perView.m_allFilteredMeshletsAllCount.get(), u32Size * 13);
@@ -1101,13 +1099,13 @@ IFRIT_APIDECL void SyaroRenderer::renderTwoPassOcclCulling(CullingPass cullPass,
     } pcCombine;
     pcCombine.rtWidth = perView.m_renderWidth;
     pcCombine.rtHeight = perView.m_renderHeight;
-    pcCombine.outVisUAVId = perView.m_visibilityBufferIdUAV_Combined->getActiveId();
-    pcCombine.outDepthUAVId = perView.m_visibilityDepthIdUAV_Combined->getActiveId();
+    pcCombine.outVisUAVId = perView.m_visibilityBuffer_Combined->getDescId();
+    pcCombine.outDepthUAVId = perView.m_visibilityDepth_Combined->getDescId();
     // Testing, not specifying sw ids
-    pcCombine.hwVisUAVId = perView.m_visBufferIdUAV_HW->getActiveId();
-    pcCombine.hwDepthSRVId = perView.m_visDepthId_HW->getActiveId();
-    pcCombine.swVisUAVId = perView.m_visBufferIdUAV_SW->getActiveId();
-    pcCombine.swDepthUAVId = perView.m_visDepthId_SW->getActiveId();
+    pcCombine.hwVisUAVId = perView.m_visibilityBuffer_HW->getDescId();
+    pcCombine.hwDepthSRVId = perView.m_visDepthIdSRV_HW->getActiveId();
+    pcCombine.swVisUAVId = perView.m_visibilityBuffer_SW->getDescId();
+    pcCombine.swDepthUAVId = perView.m_visPassDepth_SW->getDescId();
     pcCombine.outMode = m_config->m_visualizationType == RendererVisualizationType::SwHwMaps;
 
     constexpr auto wgSizeX = SyaroConfig::cCombineVisBufferThreadGroupSizeX;
@@ -1305,15 +1303,14 @@ IFRIT_APIDECL void SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeDa
     // For HW rasterizer
     if constexpr (true) {
       auto visBufferHW = rhi->createTexture2D("Syaro_VisBufferHW", visWidth, visHeight,
-                                              PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV_RT);
-      auto visDepthHW = rhi->createDepthTexture("Syaro_VisDepthHW", visWidth, visHeight);
+                                              PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV_RT, true);
+      auto visDepthHW = rhi->createDepthTexture("Syaro_VisDepthHW", visWidth, visHeight, false);
       auto visDepthSampler = rhi->createTrivialSampler();
       perView.m_visibilityBuffer_HW = visBufferHW;
-      perView.m_visBufferIdUAV_HW = rhi->registerUAVImage(perView.m_visibilityBuffer_HW.get(), {0, 0, 1, 1});
 
       // first pass rts
       perView.m_visPassDepth_HW = visDepthHW;
-      perView.m_visDepthId_HW =
+      perView.m_visDepthIdSRV_HW =
           rhi->registerCombinedImageSampler(perView.m_visPassDepth_HW.get(), m_immRes.m_linearSampler.get());
       perView.m_visDepthRT_HW =
           rhi->createRenderTargetDepthStencil(visDepthHW.get(), {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
@@ -1359,28 +1356,19 @@ IFRIT_APIDECL void SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeDa
     // For SW rasterizer
     if (SYARO_ENABLE_SW_RASTERIZER && perView.m_viewType == PerFrameData::ViewType::Primary) {
       perView.m_visibilityBuffer_SW = rhi->createTexture2D("Syaro_VisBufferSW", visWidth, visHeight,
-                                                           PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV);
+                                                           PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV, true);
       perView.m_visPassDepth_SW =
-          rhi->createBufferDevice("Syaro_VisDepthSW", u64Size * visWidth * visHeight, kbBufUsage_SSBO_CopyDest);
-
+          rhi->createBufferDevice("Syaro_VisDepthSW", u64Size * visWidth * visHeight, kbBufUsage_SSBO_CopyDest, true);
       perView.m_visPassDepthCASLock_SW =
-          rhi->createBufferDevice("Syaro_VisCasSW", f32Size * visWidth * visHeight, kbBufUsage_SSBO_CopyDest);
-
-      perView.m_visDepthId_SW = rhi->registerStorageBuffer(perView.m_visPassDepth_SW.get());
-      perView.m_visDepthCASLockId_SW = rhi->registerStorageBuffer(perView.m_visPassDepthCASLock_SW.get());
-      perView.m_visBufferIdUAV_SW = rhi->registerUAVImage(perView.m_visibilityBuffer_SW.get(), {0, 0, 1, 1});
+          rhi->createBufferDevice("Syaro_VisCasSW", f32Size * visWidth * visHeight, kbBufUsage_SSBO_CopyDest, true);
     }
 
     // For combined buffer
     if (SYARO_ENABLE_SW_RASTERIZER && perView.m_viewType == PerFrameData::ViewType::Primary) {
-      perView.m_visibilityBuffer_Combined = rhi->createTexture2D("Syaro_VisBufferComb", visWidth, visHeight,
-                                                                 PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV);
+      perView.m_visibilityBuffer_Combined = rhi->createTexture2D(
+          "Syaro_VisBufferComb", visWidth, visHeight, PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV, true);
       perView.m_visibilityDepth_Combined =
-          rhi->createTexture2D("Syaro_VisDepthComb", visWidth, visHeight, kbImFmt_R32F, kbImUsage_UAV_SRV);
-      perView.m_visibilityBufferIdUAV_Combined =
-          rhi->registerUAVImage(perView.m_visibilityBuffer_Combined.get(), {0, 0, 1, 1});
-      perView.m_visibilityDepthIdUAV_Combined =
-          rhi->registerUAVImage(perView.m_visibilityDepth_Combined.get(), {0, 0, 1, 1});
+          rhi->createTexture2D("Syaro_VisDepthComb", visWidth, visHeight, kbImFmt_R32F, kbImUsage_UAV_SRV, true);
       perView.m_visibilityBufferIdSRV_Combined =
           rhi->registerCombinedImageSampler(perView.m_visibilityBuffer_Combined.get(), m_immRes.m_nearestSampler.get());
       perView.m_visibilityDepthIdSRV_Combined =
@@ -1388,13 +1376,9 @@ IFRIT_APIDECL void SyaroRenderer::visibilityBufferSetup(PerFrameData &perframeDa
     } else {
       perView.m_visibilityDepth_Combined = perView.m_visPassDepth_HW;
       perView.m_visibilityBuffer_Combined = perView.m_visibilityBuffer_HW;
-      perView.m_visibilityDepthIdSRV_Combined = perView.m_visDepthId_HW;
+      perView.m_visibilityDepthIdSRV_Combined = perView.m_visDepthIdSRV_HW;
       perView.m_visibilityBufferIdSRV_Combined =
           rhi->registerCombinedImageSampler(perView.m_visibilityBuffer_Combined.get(), m_immRes.m_linearSampler.get());
-
-      // UAV is not needed for HW rasterizer
-      perView.m_visibilityBufferIdUAV_Combined = nullptr;
-      perView.m_visibilityDepthIdUAV_Combined = nullptr;
     }
   }
 }
@@ -1465,8 +1449,8 @@ IFRIT_APIDECL void SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData, 
   auto normalSamp = perframeData.m_gbuffer.m_normal_smoothness_sampId;
   auto depthSamp = primaryView.m_visibilityDepthIdSRV_Combined;
   auto perframe = primaryView.m_viewBufferId;
-  auto ao = perframeData.m_gbuffer.m_specular_occlusionId;
-  auto aoIntermediate = perframeData.m_gbuffer.m_specular_occlusion_intermediateId;
+  auto ao = perframeData.m_gbuffer.m_specular_occlusion->getDescId();
+  auto aoIntermediate = perframeData.m_gbuffer.m_specular_occlusion_intermediate->getDescId();
   auto aoIntermediateSRV = perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId;
 
   auto aoRT = perframeData.m_gbuffer.m_specular_occlusion_RTs;
@@ -1499,19 +1483,19 @@ IFRIT_APIDECL void SyaroRenderer::renderAmbientOccl(PerFrameData &perframeData, 
   cmd->resourceBarrier(
       {perframeData.m_gbuffer.m_normal_smoothnessBarrier, perframeData.m_gbuffer.m_specular_occlusionBarrier});
   if (m_config->m_indirectLightingType == IndirectLightingType::HBAO) {
-    m_aoPass->renderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(), ao.get(), perframe.get());
+    m_aoPass->renderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(), ao, perframe.get());
     cmd->resourceBarrier({perframeData.m_gbuffer.m_specular_occlusionBarrier});
     aoBlurFunc();
   } else if (m_config->m_indirectLightingType == IndirectLightingType::SSGI) {
-    m_aoPass->renderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(), ao.get(), perframe.get());
+    m_aoPass->renderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(), ao, perframe.get());
     cmd->resourceBarrier({perframeData.m_gbuffer.m_specular_occlusionBarrier});
     aoBlurFunc();
     cmd->globalMemoryBarrier();
     m_singlePassHiZProc->runHiZPass(primaryView.m_spHiZDataMin, cmd, width, height, true);
     cmd->globalMemoryBarrier();
     m_aoPass->renderSSGI(
-        cmd, width, height, primaryView.m_viewBufferId.get(), primaryView.m_spHiZDataMin.m_hizRefBufferId.get(),
-        primaryView.m_spHiZData.m_hizRefBufferId.get(), normalSamp.get(), aoIntermediate.get(), albedoSamp.get(),
+        cmd, width, height, primaryView.m_viewBufferId.get(), primaryView.m_spHiZDataMin.m_hizRefBuffer->getDescId(),
+        primaryView.m_spHiZData.m_hizRefBuffer->getDescId(), normalSamp.get(), aoIntermediate, albedoSamp.get(),
         primaryView.m_spHiZDataMin.m_hizWidth, primaryView.m_spHiZDataMin.m_hizHeight,
         primaryView.m_spHiZDataMin.m_hizIters, m_immRes.m_blueNoiseSRV.get());
 
@@ -1572,14 +1556,15 @@ IFRIT_APIDECL void SyaroRenderer::gatherAllInstances(PerFrameData &perframeData)
     auto &perView = perframeData.m_views[k];
     if (perView.m_allFilteredMeshletsAllCount == nullptr) {
       perView.m_allFilteredMeshletsAllCount =
-          rhi->createBufferDevice("Syaro_FilteredClusterCnt", u32Size * 20, kbBufUsage_Indirect);
+          rhi->createBufferDevice("Syaro_FilteredClusterCnt", u32Size * 20, kbBufUsage_Indirect, true);
     }
     if (perView.m_allFilteredMeshletsMaxCount < totalMeshlets) {
       perView.m_allFilteredMeshletsMaxCount = totalMeshlets;
       constexpr u32 bufMultiplier = 1 + SYARO_ENABLE_SW_RASTERIZER;
       if (allFilteredMeshletsHW == nullptr) {
-        allFilteredMeshletsHW = rhi->createBufferDevice(
-            "Syaro_FilteredClusterHW", totalMeshlets * bufMultiplier * sizeof(iint2) + 2, kbBufUsage_SSBO_CopyDest);
+        allFilteredMeshletsHW =
+            rhi->createBufferDevice("Syaro_FilteredClusterHW", totalMeshlets * bufMultiplier * sizeof(iint2) + 2,
+                                    kbBufUsage_SSBO_CopyDest, true);
       }
       perView.m_allFilteredMeshletsHW = allFilteredMeshletsHW;
 
@@ -1631,8 +1616,8 @@ IFRIT_APIDECL void SyaroRenderer::prepareAggregatedShadowData(PerFrameData &perf
   auto mainRtWidth = mainView.m_renderWidth;
   auto mainRtHeight = mainView.m_renderHeight;
   if (perframeData.m_deferShadowMask == nullptr) {
-    perframeData.m_deferShadowMask =
-        rhi->createTexture2D("Syaro_DeferShadow", mainRtWidth, mainRtHeight, kbImFmt_RGBA32F, kbImUsage_UAV_SRV_RT);
+    perframeData.m_deferShadowMask = rhi->createTexture2D("Syaro_DeferShadow", mainRtWidth, mainRtHeight,
+                                                          kbImFmt_RGBA32F, kbImUsage_UAV_SRV_RT, true);
 
     perframeData.m_deferShadowMaskRT = rhi->createRenderTarget(
         perframeData.m_deferShadowMask.get(), {{0.0f, 0.0f, 0.0f, 1.0f}}, RhiRenderTargetLoadOp::Clear, 0, 0);
@@ -1656,7 +1641,7 @@ IFRIT_APIDECL void SyaroRenderer::fsr2Setup(PerFrameData &perframeData, RenderTa
   if (perframeData.m_fsr2Data.m_fsr2Output != nullptr)
     return;
   perframeData.m_fsr2Data.m_fsr2Output =
-      rhi->createTexture2D("Syaro_FSR2Out", outputRtw, outputRth, kbImFmt_RGBA16F, kbImUsage_UAV_SRV);
+      rhi->createTexture2D("Syaro_FSR2Out", outputRtw, outputRth, kbImFmt_RGBA16F, kbImUsage_UAV_SRV, true);
 
   perframeData.m_fsr2Data.m_fsr2OutputSRVId =
       rhi->registerCombinedImageSampler(perframeData.m_fsr2Data.m_fsr2Output.get(), m_immRes.m_linearSampler.get());
@@ -1695,15 +1680,16 @@ IFRIT_APIDECL void SyaroRenderer::taaHistorySetup(PerFrameData &perframeData, Re
   auto rtFormat = renderTargets->getFormat();
 
   perframeData.m_taaUnresolved =
-      rhi->createTexture2D("Syaro_TAAUnresolved", width, height, cTAAFormat, kbImUsage_UAV_SRV_RT_CopySrc);
+      rhi->createTexture2D("Syaro_TAAUnresolved", width, height, cTAAFormat, kbImUsage_UAV_SRV_RT_CopySrc, true);
 
   perframeData.m_taaHistoryDesc->addCombinedImageSampler(perframeData.m_taaUnresolved.get(),
                                                          m_immRes.m_linearSampler.get(), 0);
   for (int i = 0; i < 2; i++) {
     // TODO: choose formats
     perframeData.m_taaHistory[i].m_colorRT =
-        rhi->createTexture2D("Syaro_TAAHistory", width, height, cTAAFormat, kbImUsage_UAV_SRV_RT_CopySrc);
-    perframeData.m_taaHistory[i].m_colorRTId = rhi->registerUAVImage(perframeData.m_taaUnresolved.get(), {0, 0, 1, 1});
+        rhi->createTexture2D("Syaro_TAAHistory", width, height, cTAAFormat, kbImUsage_UAV_SRV_RT_CopySrc, true);
+    // perframeData.m_taaHistory[i].m_colorRTId = rhi->registerUAVImage(perframeData.m_taaUnresolved.get(), {0, 0, 1,
+    // 1});
     perframeData.m_taaHistory[i].m_colorRTIdSRV =
         rhi->registerCombinedImageSampler(perframeData.m_taaUnresolved.get(), m_immRes.m_linearSampler.get());
 
@@ -1775,9 +1761,7 @@ SyaroRenderer::render(PerFrameData &perframeData, SyaroRenderer::RenderTargets *
     u32 actualRtw = 0, actualRth = 0;
     getSupersampledRenderArea(renderTargets, &actualRtw, &actualRth);
     perframeData.m_atmoOutput =
-        rhi->createTexture2D("Syaro_AtmoOutput", actualRtw, actualRth, kbImFmt_RGBA32F, kbImUsage_UAV_SRV);
-
-    perframeData.m_atmoOutputId = rhi->registerUAVImage(perframeData.m_atmoOutput.get(), {0, 0, 1, 1});
+        rhi->createTexture2D("Syaro_AtmoOutput", actualRtw, actualRth, kbImFmt_RGBA32F, kbImUsage_UAV_SRV, true);
 
     // Precompute only once
     pbrAtmoTask = this->m_atmosphereRenderer->renderInternal(perframeData, cmdToWait);

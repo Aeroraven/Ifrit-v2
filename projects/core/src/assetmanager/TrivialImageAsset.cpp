@@ -34,12 +34,12 @@ GraphicsBackend::Rhi::RhiTextureRef parseTex(std ::filesystem::path path, IAppli
   }
   auto rhi = app->getRhiLayer();
   auto tex =
-      rhi->createTexture2D("Asset_Img", width, height, GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R8G8B8A8_UINT,
-                           GraphicsBackend::Rhi::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+      rhi->createTexture2D("Asset_Img", width, height, GraphicsBackend::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UINT,
+                           GraphicsBackend::Rhi::RHI_IMAGE_USAGE_TRANSFER_DST_BIT, true);
   auto tq = rhi->getQueue(GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   auto totalSize = width * height * 4;
-  auto buffer =
-      rhi->createBuffer("Asset_Buf", totalSize, GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true);
+  auto buffer = rhi->createBuffer("Asset_Buf", totalSize, GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc,
+                                  true, true);
   buffer->map();
   buffer->writeBuffer(data, totalSize, 0);
   buffer->flush();

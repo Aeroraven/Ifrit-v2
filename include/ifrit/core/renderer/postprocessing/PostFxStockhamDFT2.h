@@ -25,17 +25,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core::PostprocessPassCollection {
 
 class IFRIT_APIDECL PostFxStockhamDFT2 : public PostprocessPass {
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTextureRef;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
 
   // I know this is UGLY
   std::unordered_map<std::pair<u32, u32>, GPUTexture, Ifrit::Common::Utility::PairwiseHash<u32, u32>> m_tex1;
-
-  std::unordered_map<std::pair<u32, u32>, std::shared_ptr<GPUBindId>, Ifrit::Common::Utility::PairwiseHash<u32, u32>>
-      m_tex1Id;
 
   ComputePass *m_testBlurPipeline = nullptr;
 

@@ -5,10 +5,10 @@
 using namespace Ifrit::GraphicsBackend::Rhi;
 namespace Ifrit::Core {
 IFRIT_APIDECL PostprocessPass::GPUShader *
-PostprocessPass::createShaderFromFile(const std::string &shaderPath, const std::string &entry,
+PostprocessPass::createShaderFromFile(const String &shaderPath, const String &entry,
                                       GraphicsBackend::Rhi::RhiShaderStage stage) {
   auto rhi = m_app->getRhiLayer();
-  std::string shaderBasePath = IFRIT_CORELIB_SHARED_SHADER_PATH;
+  String shaderBasePath = IFRIT_CORELIB_SHARED_SHADER_PATH;
   auto path = shaderBasePath + "/Postprocess/" + shaderPath;
   auto shaderCode = Ifrit::Common::Utility::readTextFile(path);
   std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
@@ -33,7 +33,7 @@ IFRIT_APIDECL PostprocessPass::DrawPass *PostprocessPass::setupRenderPipeline(Re
     pass->setPixelShader(fsShader);
     pass->setVertexShader(vsShader);
     pass->setNumBindlessDescriptorSets(m_cfg.numDescriptorSets);
-    pass->setPushConstSize(sizeof(uint32_t) * m_cfg.numPushConstants);
+    pass->setPushConstSize(sizeof(u32) * m_cfg.numPushConstants);
     pass->setRenderTargetFormat(rtCfg);
     m_renderPipelines[paCfg] = pass;
   }
@@ -47,7 +47,7 @@ IFRIT_APIDECL PostprocessPass::ComputePass *PostprocessPass::setupComputePipelin
     auto csShader = createShaderFromFile(m_cfg.fragPath, "main", RhiShaderStage::Compute);
     m_computePipeline->setNumBindlessDescriptorSets(m_cfg.numDescriptorSets);
     m_computePipeline->setComputeShader(csShader);
-    m_computePipeline->setPushConstSize(sizeof(uint32_t) * m_cfg.numPushConstants);
+    m_computePipeline->setPushConstSize(sizeof(u32) * m_cfg.numPushConstants);
   }
   return m_computePipeline;
 }
@@ -55,14 +55,14 @@ IFRIT_APIDECL PostprocessPass::ComputePass *PostprocessPass::setupComputePipelin
 IFRIT_APIDECL void PostprocessPass::renderInternal(PerFrameData *perframeData, RenderTargets *renderTargets,
                                                    const GPUCmdBuffer *cmd, const void *pushConstants,
                                                    const std::vector<GPUBindlessRef *> &bindDescs,
-                                                   const std::string &scopeName) {
+                                                   const String &scopeName) {
   auto pass = setupRenderPipeline(renderTargets);
   auto rhi = m_app->getRhiLayer();
   pass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
     for (auto i = 0; i < bindDescs.size(); i++) {
       ctx->m_cmd->attachBindlessReferenceGraphics(pass, i + 1, bindDescs[i]);
     }
-    ctx->m_cmd->setPushConst(pass, 0, m_cfg.numPushConstants * sizeof(uint32_t), pushConstants);
+    ctx->m_cmd->setPushConst(pass, 0, m_cfg.numPushConstants * sizeof(u32), pushConstants);
     ctx->m_cmd->attachVertexBufferView(*rhi->getFullScreenQuadVertexBufferView());
     ctx->m_cmd->attachVertexBuffers(0, {rhi->getFullScreenQuadVertexBuffer().get()});
     ctx->m_cmd->drawInstanced(3, 1, 0, 0);

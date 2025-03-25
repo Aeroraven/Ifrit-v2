@@ -18,12 +18,13 @@ IFRIT_APIDECL RhiTextureRef loadBlueNoise(GraphicsBackend::Rhi::RhiBackend *rhi)
     iError("Failed to load blue noise texture");
     return nullptr;
   }
-  auto tex = rhi->createTexture2D("Noise_Tex2D", width, height,
-                                  GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R8G8B8A8_UNORM,
-                                  GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
-                                      GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+  auto tex =
+      rhi->createTexture2D("Noise_Tex2D", width, height, GraphicsBackend::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
+                           GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
+                               GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT,
+                           false);
   auto buf = rhi->createBuffer("Noise_Buffer", width * height * 4,
-                               GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true);
+                               GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
   buf->map();
   buf->writeBuffer(data, width * height * 4, 0);
   buf->flush();

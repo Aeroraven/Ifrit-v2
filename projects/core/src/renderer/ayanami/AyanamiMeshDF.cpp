@@ -59,7 +59,7 @@ IFRIT_APIDECL void AyanamiMeshDF::buildMeshDF(const std::string_view &cachePath)
     auto serialMeshDFName = "core.ayanami.meshdf_1." + meshData->identifier + ".cache";
     bool hasCachedDF = false;
     bool shouldGenCachedDF = false;
-    auto cachePathStr = std::string(cachePath);
+    auto cachePathStr = String(cachePath);
 
     if (!std::filesystem::exists(cachePathStr)) {
       shouldGenCachedDF = true;
@@ -83,7 +83,7 @@ IFRIT_APIDECL void AyanamiMeshDF::buildMeshDF(const std::string_view &cachePath)
       convertMeshToSDF(meshDesc, sdf, cAyanamiMeshDFWidth, cAyanamiMeshDFWidth, cAyanamiMeshDFWidth);
       auto serialMeshDFPath = cachePathStr + serialMeshDFName;
       if (shouldGenCachedDF) {
-        std::string buffer;
+        String buffer;
         Ifrit::Common::Serialization::serializeBinary(sdf, buffer);
         Ifrit::Common::Utility::writeBinaryFile(serialMeshDFPath, buffer);
       }
@@ -112,22 +112,22 @@ IFRIT_APIDECL void AyanamiMeshDF::buildGPUResource(GraphicsBackend::Rhi::RhiBack
     auto volumeSize = m_sdWidth * m_sdHeight * m_sdDepth;
     auto deviceVolume =
         rhi->createBuffer("Ayanami_DFVolume", volumeSize * sizeof(f32),
-                          RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_CopySrc, true);
+                          RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_CopySrc, true, true);
     deviceVolume->map();
     deviceVolume->writeBuffer(m_sdfData.data(), volumeSize * sizeof(f32), 0);
     deviceVolume->flush();
     deviceVolume->unmap();
     m_gpuResource->sdfSampler = rhi->createTrivialBilinearSampler(false);
     m_gpuResource->sdfTexture = rhi->createTexture3D(
-        "Ayanami_DFTexture", m_sdWidth, m_sdHeight, m_sdDepth, RhiImageFormat::RHI_FORMAT_R32_SFLOAT,
+        "Ayanami_DFTexture", m_sdWidth, m_sdHeight, m_sdDepth, RhiImageFormat::RhiImgFmt_R32_SFLOAT,
         RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT |
-            RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+            RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT,
+        true);
     m_gpuResource->sdfTextureBindId =
         rhi->registerCombinedImageSampler(m_gpuResource->sdfTexture.get(), m_gpuResource->sdfSampler.get());
     m_gpuResource->sdfMetaBuffer =
         rhi->createBuffer("Ayanami_DFMeta", sizeof(AyanamiMeshDFResource::SDFMeta),
-                          RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO, true);
-    m_gpuResource->sdfMetaBufferBindId = rhi->registerStorageBuffer(m_gpuResource->sdfMetaBuffer.get());
+                          RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO, true, true);
 
     auto stagedMetaBuffer = rhi->createStagedSingleBuffer(m_gpuResource->sdfMetaBuffer.get());
     AyanamiMeshDFResource::SDFMeta sdfMeta;

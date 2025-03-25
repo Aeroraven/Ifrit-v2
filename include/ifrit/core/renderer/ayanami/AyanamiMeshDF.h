@@ -33,7 +33,7 @@ struct AyanamiMeshDFResource {
   using GPUTexture = GraphicsBackend::Rhi::RhiTextureRef;
   using GPUSampler = GraphicsBackend::Rhi::RhiSamplerRef;
   using GPUBuffer = GraphicsBackend::Rhi::RhiBufferRef;
-  using GPUBindId = GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = GraphicsBackend::Rhi::RhiDescHandleLegacy;
 
   GPUTexture sdfTexture;
   Ref<GPUBindId> sdfTextureBindId;

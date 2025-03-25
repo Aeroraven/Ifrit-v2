@@ -28,7 +28,7 @@ namespace Ifrit::Core {
 class IFRIT_APIDECL AmbientOcclusionPass {
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
   using CommandBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandList;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
   using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
 
 private:
@@ -44,10 +44,10 @@ private:
 public:
   AmbientOcclusionPass(IApplication *app) : m_app(app) {}
   void renderHBAO(const CommandBuffer *cmd, u32 width, u32 height, GPUBindId *depthSamp, GPUBindId *normalSamp,
-                  GPUBindId *aoTex, GPUBindId *perframeData);
+                  u32 aoTex, GPUBindId *perframeData);
 
-  void renderSSGI(const CommandBuffer *cmd, u32 width, u32 height, GPUBindId *perframeData, GPUBindId *depthHizMinUAV,
-                  GPUBindId *depthHizMaxUAV, GPUBindId *normalSRV, GPUBindId *aoUAV, GPUBindId *albedoSRV, u32 hizTexW,
-                  u32 hizTexH, u32 numLods, GPUBindId *blueNoiseSRV);
+  void renderSSGI(const CommandBuffer *cmd, u32 width, u32 height, GPUBindId *perframeData, u32 depthHizMinUAV,
+                  u32 depthHizMaxUAV, GPUBindId *normalSRV, u32 aoUAV, GPUBindId *albedoSRV, u32 hizTexW, u32 hizTexH,
+                  u32 numLods, GPUBindId *blueNoiseSRV);
 };
 } // namespace Ifrit::Core

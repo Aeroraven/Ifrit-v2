@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Core {
 
-template <uint32_t N>
+template <u32 N>
 inline consteval ifloat3 interpolateSpectrum(const std::array<float, N> waveLengths, const std::array<float, N> values,
                                              float scale) {
   constexpr float kLamR = static_cast<float>(Util::PbrAtmoConstants::kLambdaR);
@@ -113,20 +113,22 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perf
 
   // create textures
   auto rhi = m_app->getRhiLayer();
-  auto createPbrAtmoTex2D = [&](uint32_t width, uint32_t height) {
+  auto createPbrAtmoTex2D = [&](u32 width, u32 height) {
     using namespace GraphicsBackend::Rhi;
     auto tex =
-        rhi->createTexture2D("PbrAtmo_Tex2D", width, height, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        rhi->createTexture2D("PbrAtmo_Tex2D", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
                              RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
-                                 RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+                                 RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT,
+                             true);
     return tex;
   };
-  auto createPbrAtmoTex3D = [&](uint32_t width, uint32_t height, uint32_t depth) {
+  auto createPbrAtmoTex3D = [&](u32 width, u32 height, u32 depth) {
     using namespace GraphicsBackend::Rhi;
     auto tex =
-        rhi->createTexture3D("PbrAtmo_Tex3D", width, height, depth, RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
+        rhi->createTexture3D("PbrAtmo_Tex3D", width, height, depth, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
                              RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT |
-                                 RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT);
+                                 RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT,
+                             true);
     return tex;
   };
   data->m_sampler = rhi->createTrivialSampler();
@@ -153,18 +155,6 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perf
                          AtmospherePASConfig::SCATTERING_TEXTURE_DEPTH);
   data->m_deltaMultipleScattering = data->m_deltaRayleighScattering;
 
-  // bindless ids
-  data->m_transmittanceId = rhi->registerUAVImage(data->m_transmittance.get(), {0, 0, 1, 1});
-  data->m_deltaIrradianceId = rhi->registerUAVImage(data->m_deltaIrradiance.get(), {0, 0, 1, 1});
-  data->m_irradianceId = rhi->registerUAVImage(data->m_irradiance.get(), {0, 0, 1, 1});
-  data->m_scatteringId = rhi->registerUAVImage(data->m_scattering.get(), {0, 0, 1, 1});
-  data->m_optionalSingleMieScatteringId =
-      rhi->registerUAVImage(data->m_optionalSingleMieScattering.get(), {0, 0, 1, 1});
-  data->m_deltaRayleighScatteringId = rhi->registerUAVImage(data->m_deltaRayleighScattering.get(), {0, 0, 1, 1});
-  data->m_deltaMieScatteringId = rhi->registerUAVImage(data->m_deltaMieScattering.get(), {0, 0, 1, 1});
-  data->m_deltaScatteringDensityId = rhi->registerUAVImage(data->m_deltaScatteringDensity.get(), {0, 0, 1, 1});
-  data->m_deltaMultipleScatteringId = data->m_deltaRayleighScatteringId;
-
   // bindless ids for combined image sampler
   data->m_transmittanceCombSamplerId =
       rhi->registerCombinedImageSampler(data->m_transmittance.get(), data->m_sampler.get());
@@ -186,15 +176,14 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::preparePerframeData(PerFrameData &perf
   data->m_atmosphereParamsBuffer =
       rhi->createBufferDevice("PbrAtmo_Params", sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter),
                               GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_CopyDst |
-                                  GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO);
+                                  GraphicsBackend::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO,
+                              true);
   auto stagingBuffer = rhi->createStagedSingleBuffer(data->m_atmosphereParamsBuffer.get());
   auto tq = rhi->getQueue(GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   tq->runSyncCommand([&](const GraphicsBackend::Rhi::RhiCommandList *cmd) {
     stagingBuffer->cmdCopyToDevice(cmd, &data->m_atmosphereParams,
                                    sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter), 0);
   });
-  data->m_atmoParamId = rhi->registerStorageBuffer(data->m_atmosphereParamsBuffer.get());
-
   // Last, a matrix to convert radiance to luminance
   data->luminanceFromRad = Math::identity();
 }
@@ -217,7 +206,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::setupTransmittancePrecomputePass() {
   m_transmittancePrecomputePass = rhi->createComputePass();
   m_transmittancePrecomputePass->setComputeShader(shader);
   m_transmittancePrecomputePass->setNumBindlessDescriptorSets(0);
-  m_transmittancePrecomputePass->setPushConstSize(sizeof(uint32_t) * 2);
+  m_transmittancePrecomputePass->setPushConstSize(sizeof(u32) * 2);
 }
 
 IFRIT_APIDECL void PbrAtmosphereRenderer::setupIrradiancePrecomputePass() {
@@ -227,7 +216,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::setupIrradiancePrecomputePass() {
   m_irradiancePrecomputePass = rhi->createComputePass();
   m_irradiancePrecomputePass->setComputeShader(shader);
   m_irradiancePrecomputePass->setNumBindlessDescriptorSets(0);
-  m_irradiancePrecomputePass->setPushConstSize(sizeof(uint32_t) * 4);
+  m_irradiancePrecomputePass->setPushConstSize(sizeof(u32) * 4);
 }
 
 IFRIT_APIDECL void PbrAtmosphereRenderer::setupSingleScatteringPass() {
@@ -237,7 +226,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::setupSingleScatteringPass() {
   m_singleScatteringPass = rhi->createComputePass();
   m_singleScatteringPass->setComputeShader(shader);
   m_singleScatteringPass->setNumBindlessDescriptorSets(0);
-  m_singleScatteringPass->setPushConstSize(sizeof(uint32_t) * 6 + sizeof(float4x4));
+  m_singleScatteringPass->setPushConstSize(sizeof(u32) * 6 + sizeof(float4x4));
 }
 
 IFRIT_APIDECL void PbrAtmosphereRenderer::setupScatteringDensityPass() {
@@ -247,7 +236,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::setupScatteringDensityPass() {
   m_scatteringDensity = rhi->createComputePass();
   m_scatteringDensity->setComputeShader(shader);
   m_scatteringDensity->setNumBindlessDescriptorSets(0);
-  m_scatteringDensity->setPushConstSize(sizeof(uint32_t) * 8);
+  m_scatteringDensity->setPushConstSize(sizeof(u32) * 8);
 }
 
 IFRIT_APIDECL void PbrAtmosphereRenderer::setupIndirectIrradiancePass() {
@@ -257,7 +246,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::setupIndirectIrradiancePass() {
   m_indirectIrradiancePass = rhi->createComputePass();
   m_indirectIrradiancePass->setComputeShader(shader);
   m_indirectIrradiancePass->setNumBindlessDescriptorSets(0);
-  m_indirectIrradiancePass->setPushConstSize(sizeof(uint32_t) * 7 + sizeof(float4x4));
+  m_indirectIrradiancePass->setPushConstSize(sizeof(u32) * 7 + sizeof(float4x4));
 }
 
 IFRIT_APIDECL void PbrAtmosphereRenderer::setupMultipleScatteringPass() {
@@ -267,7 +256,7 @@ IFRIT_APIDECL void PbrAtmosphereRenderer::setupMultipleScatteringPass() {
   m_multipleScatteringPass = rhi->createComputePass();
   m_multipleScatteringPass->setComputeShader(shader);
   m_multipleScatteringPass->setNumBindlessDescriptorSets(0);
-  m_multipleScatteringPass->setPushConstSize(sizeof(uint32_t) * 5 + sizeof(float4x4));
+  m_multipleScatteringPass->setPushConstSize(sizeof(u32) * 5 + sizeof(float4x4));
 }
 
 IFRIT_APIDECL std::unique_ptr<PbrAtmosphereRenderer::GPUCommandSubmission>
@@ -278,12 +267,12 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
   preparePerframeData(perframe);
   // Step1. precompute transmittance
   struct PushConstTransmittanceStruct {
-    uint32_t atmoData;
-    uint32_t transmittanceRef;
+    u32 atmoData;
+    u32 transmittanceRef;
   } pcTransmittance;
   auto data = reinterpret_cast<PbrAtmospherePerframe *>(perframe.m_atmosphereData.get());
-  pcTransmittance.atmoData = data->m_atmoParamId->getActiveId();
-  pcTransmittance.transmittanceRef = data->m_transmittanceId->getActiveId();
+  pcTransmittance.atmoData = data->m_atmosphereParamsBuffer->getDescId();
+  pcTransmittance.transmittanceRef = data->m_transmittance->getDescId();
   m_transmittancePrecomputePass->setRecordFunction([&](RhiRenderPassContext *ctx) {
     ctx->m_cmd->setPushConst(m_transmittancePrecomputePass, 0, sizeof(pcTransmittance), &pcTransmittance);
     constexpr auto wgX =
@@ -304,16 +293,16 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
 
   // Step2. precompute irradiance
   struct PushConstIrradianceStruct {
-    uint32_t atmoData;
-    uint32_t transmittanceRef;
-    uint32_t irradianceRef;
-    uint32_t deltaIrradianceRef;
+    u32 atmoData;
+    u32 transmittanceRef;
+    u32 irradianceRef;
+    u32 deltaIrradianceRef;
   } pcIrradiance;
 
-  pcIrradiance.atmoData = data->m_atmoParamId->getActiveId();
+  pcIrradiance.atmoData = data->m_atmosphereParamsBuffer->getDescId();
   pcIrradiance.transmittanceRef = data->m_transmittanceCombSamplerId->getActiveId();
-  pcIrradiance.irradianceRef = data->m_irradianceId->getActiveId();
-  pcIrradiance.deltaIrradianceRef = data->m_deltaIrradianceId->getActiveId();
+  pcIrradiance.irradianceRef = data->m_irradiance->getDescId();
+  pcIrradiance.deltaIrradianceRef = data->m_deltaIrradiance->getDescId();
   m_irradiancePrecomputePass->setRecordFunction([&](RhiRenderPassContext *ctx) {
     ctx->m_cmd->setPushConst(m_irradiancePrecomputePass, 0, sizeof(pcIrradiance), &pcIrradiance);
     constexpr auto wgX =
@@ -326,20 +315,20 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
   // Step3. precompute single scattering
   struct PushConstSingleScatteringStruct {
     float4x4 lumFromRad;
-    uint32_t atmoData;
-    uint32_t deltaRayleigh;
-    uint32_t deltaMie;
-    uint32_t scattering;
-    uint32_t singleMieScattering;
-    uint32_t transmittanceSampler;
+    u32 atmoData;
+    u32 deltaRayleigh;
+    u32 deltaMie;
+    u32 scattering;
+    u32 singleMieScattering;
+    u32 transmittanceSampler;
   } pSingleScattering;
 
   pSingleScattering.lumFromRad = Math::identity();
-  pSingleScattering.atmoData = data->m_atmoParamId->getActiveId();
-  pSingleScattering.deltaRayleigh = data->m_deltaRayleighScatteringId->getActiveId();
-  pSingleScattering.deltaMie = data->m_deltaMieScatteringId->getActiveId();
-  pSingleScattering.scattering = data->m_scatteringId->getActiveId();
-  pSingleScattering.singleMieScattering = data->m_optionalSingleMieScatteringId->getActiveId();
+  pSingleScattering.atmoData = data->m_atmosphereParamsBuffer->getDescId();
+  pSingleScattering.deltaRayleigh = data->m_deltaRayleighScattering->getDescId();
+  pSingleScattering.deltaMie = data->m_deltaMieScattering->getDescId();
+  pSingleScattering.scattering = data->m_scattering->getDescId();
+  pSingleScattering.singleMieScattering = data->m_optionalSingleMieScattering->getDescId();
   pSingleScattering.transmittanceSampler = data->m_transmittanceCombSamplerId->getActiveId();
   m_singleScatteringPass->setRecordFunction([&](RhiRenderPassContext *ctx) {
     ctx->m_cmd->setPushConst(m_singleScatteringPass, 0, sizeof(pSingleScattering), &pSingleScattering);
@@ -362,59 +351,59 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
   auto scatterDensityBarrier = createUAVImageBarrier(data->m_deltaScatteringDensity.get());
 
   struct PushConstScatteringDensityStruct {
-    uint32_t atmoData;
-    uint32_t transmittanceSampler;
-    uint32_t singleRayleighScatterSampler;
-    uint32_t singleMieScatterSampler;
-    uint32_t multipleScatteringSampler;
-    uint32_t irradianceSampler;
-    uint32_t scatterDensity;
-    uint32_t scatterOrder;
+    u32 atmoData;
+    u32 transmittanceSampler;
+    u32 singleRayleighScatterSampler;
+    u32 singleMieScatterSampler;
+    u32 multipleScatteringSampler;
+    u32 irradianceSampler;
+    u32 scatterDensity;
+    u32 scatterOrder;
   } pScatteringDensity;
 
   struct PushConstIndirectIrradianceStruct {
     float4x4 lumFromRad;
-    uint32_t atmoData;
-    uint32_t deltaIrradiance;
-    uint32_t irradiance;
-    uint32_t singleRayleighScatteringSamp;
-    uint32_t singleMieScatteringSamp;
-    uint32_t multipleScatteringSamp;
-    uint32_t scatteringOrder;
+    u32 atmoData;
+    u32 deltaIrradiance;
+    u32 irradiance;
+    u32 singleRayleighScatteringSamp;
+    u32 singleMieScatteringSamp;
+    u32 multipleScatteringSamp;
+    u32 scatteringOrder;
   } pIndirectIrradiance;
 
   struct PushConstMultipleScatteringStruct {
     float4x4 lumFromRad;
-    uint32_t atmoData;
-    uint32_t deltaMultipleScattering;
-    uint32_t scattering;
-    uint32_t transmittanceSamp;
-    uint32_t scatteringDensitySamp;
+    u32 atmoData;
+    u32 deltaMultipleScattering;
+    u32 scattering;
+    u32 transmittanceSamp;
+    u32 scatteringDensitySamp;
   } pMultipleScattering;
 
-  auto recordCmdOrder = [&](uint32_t order) {
-    pScatteringDensity.atmoData = data->m_atmoParamId->getActiveId();
+  auto recordCmdOrder = [&](u32 order) {
+    pScatteringDensity.atmoData = data->m_atmosphereParamsBuffer->getDescId();
     pScatteringDensity.transmittanceSampler = data->m_transmittanceCombSamplerId->getActiveId();
     pScatteringDensity.singleRayleighScatterSampler = data->m_deltaRayleighScatteringCombSamplerId->getActiveId();
     pScatteringDensity.singleMieScatterSampler = data->m_deltaMieScatteringCombSamplerId->getActiveId();
     pScatteringDensity.multipleScatteringSampler = data->m_deltaMultipleScatteringCombSamplerId->getActiveId();
     pScatteringDensity.irradianceSampler = data->m_deltaIrradianceCombSamplerId->getActiveId();
-    pScatteringDensity.scatterDensity = data->m_deltaScatteringDensityId->getActiveId();
+    pScatteringDensity.scatterDensity = data->m_deltaScatteringDensity->getDescId();
     pScatteringDensity.scatterOrder = order;
 
     pIndirectIrradiance.lumFromRad = Math::identity();
-    pIndirectIrradiance.atmoData = data->m_atmoParamId->getActiveId();
-    pIndirectIrradiance.deltaIrradiance = data->m_deltaIrradianceId->getActiveId();
-    pIndirectIrradiance.irradiance = data->m_irradianceId->getActiveId();
+    pIndirectIrradiance.atmoData = data->m_atmosphereParamsBuffer->getDescId();
+    pIndirectIrradiance.deltaIrradiance = data->m_deltaIrradiance->getDescId();
+    pIndirectIrradiance.irradiance = data->m_irradiance->getDescId();
     pIndirectIrradiance.singleRayleighScatteringSamp = data->m_deltaRayleighScatteringCombSamplerId->getActiveId();
     pIndirectIrradiance.singleMieScatteringSamp = data->m_deltaMieScatteringCombSamplerId->getActiveId();
     pIndirectIrradiance.multipleScatteringSamp = data->m_deltaMultipleScatteringCombSamplerId->getActiveId();
     pIndirectIrradiance.scatteringOrder = order - 1;
 
     pMultipleScattering.lumFromRad = Math::identity();
-    pMultipleScattering.atmoData = data->m_atmoParamId->getActiveId();
-    pMultipleScattering.deltaMultipleScattering = data->m_deltaMultipleScatteringId->getActiveId();
-    pMultipleScattering.scattering = data->m_scatteringId->getActiveId();
+    pMultipleScattering.atmoData = data->m_atmosphereParamsBuffer->getDescId();
+    pMultipleScattering.deltaMultipleScattering = data->m_deltaMultipleScattering->getDescId();
+    pMultipleScattering.scattering = data->m_scattering->getDescId();
     pMultipleScattering.transmittanceSamp = data->m_transmittanceCombSamplerId->getActiveId();
     pMultipleScattering.scatteringDensitySamp = data->m_deltaScatteringDensityCombSamplerId->getActiveId();
 
@@ -450,7 +439,7 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
     });
   };
 
-  auto runCmdOrder = [&](const RhiCommandList *cmd, uint32_t order) {
+  auto runCmdOrder = [&](const RhiCommandList *cmd, u32 order) {
     recordCmdOrder(order);
     cmd->resourceBarrier({singleRayleighScatterBarrier, singleMieScatterBarrier, scatteringBarrier, irradianceBarrier,
                           deltaIrradianceBarrier, multipleScatteringBarrier});
@@ -495,7 +484,7 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
         cmd->resourceBarrier({transmittanceBarrier});
         m_irradiancePrecomputePass->run(cmd, 0);
         m_singleScatteringPass->run(cmd, 0);
-        for (uint32_t i = 2; i <= 4; i++) {
+        for (u32 i = 2; i <= 4; i++) {
           runCmdOrder(cmd, i);
         }
         cmd->endScope();
@@ -507,7 +496,7 @@ PbrAtmosphereRenderer::renderInternal(PerFrameData &perframe, const std::vector<
 IFRIT_APIDECL PbrAtmosphereResourceDesc PbrAtmosphereRenderer::getResourceDesc(PerFrameData &perframe) {
   PbrAtmosphereResourceDesc desc;
   auto data = reinterpret_cast<PbrAtmospherePerframe *>(perframe.m_atmosphereData.get());
-  desc.atmo = data->m_atmoParamId->getActiveId();
+  desc.atmo = data->m_atmosphereParamsBuffer->getDescId();
   desc.texIrradiance = data->m_irradianceCombSamplerId->getActiveId();
   desc.texMieScattering = data->m_optionalSingleMieScatteringCombSamplerId->getActiveId();
   desc.texScattering = data->m_scatteringCombSamplerId->getActiveId();

@@ -1,6 +1,9 @@
 # Ifrit-v2 /  TODO 
 
 ### 2025.03
+
+- RHI: RHI资源引用计数和待删除队列 (250325)
+
 - Syaro: 修复错误的Cluster Group Culling (250324)
 
 ### 2025.01

@@ -49,17 +49,18 @@ IFRIT_APIDECL void SinglePassHiZPass::prepareHiZResources(PerFrameData::SinglePa
   auto rhi = m_app->getRhiLayer();
   auto maxMip = int(std::floor(std::log2(std::max(rtWidth, rtHeight))) + 1);
   data.m_hizTexture = rhi->createMipMapTexture("SHiZ_Tex", rtWidth, rtHeight, maxMip,
-                                               RhiImageFormat::RHI_FORMAT_R32_SFLOAT, kbImUsage_UAV);
+                                               RhiImageFormat::RhiImgFmt_R32_SFLOAT, kbImUsage_UAV, true);
 
   data.m_hizRefs.resize(0);
   data.m_hizRefs.push_back(0);
   for (int i = 0; i < maxMip; i++) {
-    auto bindlessId = rhi->registerUAVImage(data.m_hizTexture.get(), {static_cast<u32>(i), 0, 1, 1});
+    auto bindlessId = rhi->registerUAVImage2(data.m_hizTexture.get(), {static_cast<u32>(i), 0, 1, 1});
     data.m_hizRefs.push_back(bindlessId->getActiveId());
   }
-  data.m_hizRefBuffer = rhi->createBufferDevice("SHiZ_Ref", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest);
+  data.m_hizRefBuffer =
+      rhi->createBufferDevice("SHiZ_Ref", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest, true);
   data.m_hizAtomics =
-      rhi->createBufferDevice("SHiZ_Atmoics", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest);
+      rhi->createBufferDevice("SHiZ_Atmoics", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest, true);
   auto staged = rhi->createStagedSingleBuffer(data.m_hizRefBuffer.get());
   auto tq = rhi->getQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
   tq->runSyncCommand([&](const GPUCmdBuffer *cmd) {
@@ -70,8 +71,6 @@ IFRIT_APIDECL void SinglePassHiZPass::prepareHiZResources(PerFrameData::SinglePa
   data.m_hizDesc->addStorageBuffer(data.m_hizRefBuffer.get(), 1);
   data.m_hizDesc->addCombinedImageSampler(depthTexture, sampler, 0);
   data.m_hizDesc->addStorageBuffer(data.m_hizAtomics.get(), 2);
-
-  data.m_hizRefBufferId = rhi->registerStorageBuffer(data.m_hizRefBuffer.get());
 
   data.m_hizWidth = rtWidth;
   data.m_hizHeight = rtHeight;

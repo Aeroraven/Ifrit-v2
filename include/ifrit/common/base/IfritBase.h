@@ -136,6 +136,7 @@ template <typename T> using Set = std::set<T>;
 template <typename T> using HashSet = std::unordered_set<T>;
 template <typename K, typename V> using Map = std::map<K, V>;
 template <typename K, typename V> using HashMap = std::unordered_map<K, V>;
+template <typename K, typename V, typename H> using CustomHashMap = std::unordered_map<K, V, H>;
 template <typename T> using Fn = std::function<T>;
 template <typename T> using Atomic = std::atomic<T>;
 using String = std::string;

@@ -24,22 +24,22 @@ namespace Ifrit::Core::RenderingUtil {
 IFRIT_APIDECL GraphicsBackend::Rhi::RhiShader *loadShaderFromFile(GraphicsBackend::Rhi::RhiBackend *rhi,
                                                                   const char *shaderPath, const char *entryPoint,
                                                                   GraphicsBackend::Rhi::RhiShaderStage stage) {
-  std::string shaderBasePath = IFRIT_CORELIB_SHARED_SHADER_PATH;
+  String shaderBasePath = IFRIT_CORELIB_SHARED_SHADER_PATH;
   auto path = shaderBasePath + "/" + shaderPath;
   auto shaderCode = Ifrit::Common::Utility::readTextFile(path);
-  std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
+  Vec<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
   return rhi->createShader(shaderPath, shaderCodeVec, entryPoint, stage,
                            GraphicsBackend::Rhi::RhiShaderSourceType::GLSLCode);
 }
 
 IFRIT_APIDECL GraphicsBackend::Rhi::RhiComputePass *createComputePass(GraphicsBackend::Rhi::RhiBackend *rhi,
-                                                                      const char *shaderPath, uint32_t numBindlessDescs,
-                                                                      uint32_t numPushConsts) {
+                                                                      const char *shaderPath, u32 numBindlessDescs,
+                                                                      u32 numPushConsts) {
   auto shader = loadShaderFromFile(rhi, shaderPath, "main", GraphicsBackend::Rhi::RhiShaderStage::Compute);
   auto pass = rhi->createComputePass();
   pass->setComputeShader(shader);
   pass->setNumBindlessDescriptorSets(numBindlessDescs);
-  pass->setPushConstSize(numPushConsts * sizeof(uint32_t));
+  pass->setPushConstSize(numPushConsts * sizeof(u32));
   return pass;
 }
 
@@ -57,11 +57,12 @@ createGraphicsPass(GraphicsBackend::Rhi::RhiBackend *rhi, const char *vsPath, co
   return pass;
 }
 
-IFRIT_APIDECL void
-enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandList *cmd, GraphicsBackend::Rhi::RhiBackend *rhi,
-                      GraphicsBackend::Rhi::RhiGraphicsPass *pass, GraphicsBackend::Rhi::RhiRenderTargets *rt,
-                      const std::vector<GraphicsBackend::Rhi::RhiBindlessDescriptorRef *> &vBindlessDescs,
-                      const void *pPushConst, uint32_t numPushConsts) {
+IFRIT_APIDECL void enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandList *cmd,
+                                         GraphicsBackend::Rhi::RhiBackend *rhi,
+                                         GraphicsBackend::Rhi::RhiGraphicsPass *pass,
+                                         GraphicsBackend::Rhi::RhiRenderTargets *rt,
+                                         const Vec<GraphicsBackend::Rhi::RhiBindlessDescriptorRef *> &vBindlessDescs,
+                                         const void *pPushConst, u32 numPushConsts) {
 
   pass->setRecordFunction([&](const GraphicsBackend::Rhi::RhiRenderPassContext *ctx) {
     for (auto i = 1; auto &desc : vBindlessDescs) {
@@ -79,8 +80,8 @@ enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandList *cmd, GraphicsB
   pass->run(cmd, rt, 0);
 }
 IFRIT_APIDECL void warpRenderTargets(GraphicsBackend::Rhi::RhiBackend *rhi, GraphicsBackend::Rhi::RhiTexture *vTex,
-                                     std::shared_ptr<GraphicsBackend::Rhi::RhiColorAttachment> &vCA,
-                                     std::shared_ptr<GraphicsBackend::Rhi::RhiRenderTargets> &vRT) {
+                                     Ref<GraphicsBackend::Rhi::RhiColorAttachment> &vCA,
+                                     Ref<GraphicsBackend::Rhi::RhiRenderTargets> &vRT) {
   vCA =
       rhi->createRenderTarget(vTex, {0.0f, 0.0f, 0.0f, 0.0f}, GraphicsBackend::Rhi::RhiRenderTargetLoadOp::Clear, 0, 0);
   vRT = rhi->createRenderTargets();

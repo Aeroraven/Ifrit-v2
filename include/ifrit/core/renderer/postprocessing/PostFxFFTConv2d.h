@@ -27,33 +27,28 @@ namespace Ifrit::Core::PostprocessPassCollection {
 struct PostFxFFTConv2dSubpasses;
 
 struct PostFxFFTConv2dResourceCollection {
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTextureRef;
   using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
   using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSamplerRef;
 
   GPUTexture m_tex1;
-  std::shared_ptr<GPUBindId> m_tex1Id;
-  std::shared_ptr<GPUBindId> m_tex1IdSamp;
+  Ref<GPUBindId> m_tex1IdSamp;
   GPUTexture m_tex2;
-  std::shared_ptr<GPUBindId> m_tex2Id;
   GPUTexture m_texTemp;
-  std::shared_ptr<GPUBindId> m_texTempId;
 
   GPUTexture m_texGaussian;
   GPUSampler m_texGaussianSampler;
-  std::shared_ptr<GPUBindId> m_texGaussianId;
-  std::shared_ptr<GPUBindId> m_texGaussianSampId;
+  Ref<GPUBindId> m_texGaussianSampId;
 
   PostFxFFTConv2dResourceCollection() = default;
   PostFxFFTConv2dResourceCollection(const PostFxFFTConv2dResourceCollection &) = default;
 };
 
 class IFRIT_APIDECL PostFxFFTConv2d : public PostprocessPass {
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
   using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
 
   // I know this is UGLY
@@ -67,8 +62,8 @@ class IFRIT_APIDECL PostFxFFTConv2d : public PostprocessPass {
 public:
   PostFxFFTConv2d(IApplication *app);
   ~PostFxFFTConv2d();
-  void renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId, GPUBindId *dstUAVImg, GPUBindId *kernelSampId,
-                    u32 srcWidth, u32 srcHeight, u32 kernelWidth, u32 kernelHeight, u32 srcDownscale);
+  void renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId, u32 dstUAVImg, GPUBindId *kernelSampId, u32 srcWidth,
+                    u32 srcHeight, u32 kernelWidth, u32 kernelHeight, u32 srcDownscale);
 };
 
 } // namespace Ifrit::Core::PostprocessPassCollection

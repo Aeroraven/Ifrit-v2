@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core::PostprocessPassCollection {
 
 class IFRIT_APIDECL PostFxGaussianHori : public PostprocessPass {
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
   using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
 
 public:

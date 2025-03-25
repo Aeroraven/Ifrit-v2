@@ -25,7 +25,7 @@ struct AyanamiSceneResources {
   using GPUTexture = GraphicsBackend::Rhi::RhiTexture;
   using GPUBuffer = GraphicsBackend::Rhi::RhiBuffer;
   using GPUMultiBuffer = GraphicsBackend::Rhi::RhiMultiBuffer;
-  using GPUBindId = GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = GraphicsBackend::Rhi::RhiDescHandleLegacy;
 
   struct MDFDescriptor {
     u32 m_mdfMetaId;
@@ -62,7 +62,7 @@ IFRIT_APIDECL void AyanamiSceneAggregator::collectScene(Scene *scene) {
       {
         using namespace Ifrit::GraphicsBackend::Rhi;
         Ref<RhiMultiBuffer> transformBuf, transformBufLast;
-        Ref<RhiBindlessIdRef> transformBindId, transformBindIdLast;
+        Ref<RhiDescHandleLegacy> transformBindId, transformBindIdLast;
         transform->getGPUResource(transformBuf, transformBufLast, transformBindId, transformBindIdLast);
         desc.m_transformId = transformBindId->getActiveId();
       }

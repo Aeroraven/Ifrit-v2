@@ -57,7 +57,7 @@ IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
     auto importerName = m_extensionImporterMap[path.extension().generic_string()];
     auto importer = m_importers[importerName];
     importer->processMetadata(metaData);
-    std::string serialized;
+    String serialized;
     serialized = metadataSerialization(metaData);
     std::ofstream file(metaPath);
     file << serialized;
@@ -66,7 +66,7 @@ IFRIT_APIDECL void AssetManager::loadAsset(const std::filesystem::path &path) {
 
   // Deserialize metadata and import asset
   std::ifstream file(metaPath);
-  std::string serialized;
+  String serialized;
   file.seekg(0, std::ios::end);
   serialized.reserve(file.tellg());
   file.seekg(0, std::ios::beg);
@@ -121,8 +121,7 @@ IFRIT_APIDECL std::shared_ptr<Asset> AssetManager::requestAssetIntenal(const std
   return it->second;
 }
 
-IFRIT_APIDECL void AssetManager::registerImporter(const std::string &importerName,
-                                                  std::shared_ptr<AssetImporter> importer) {
+IFRIT_APIDECL void AssetManager::registerImporter(const String &importerName, std::shared_ptr<AssetImporter> importer) {
   m_importers[importerName] = importer;
   auto extensions = importer->getSupportedExtensionNames();
   for (auto &ext : extensions) {
@@ -144,13 +143,13 @@ IFRIT_APIDECL AssetManager::AssetManager(std::filesystem::path path, IApplicatio
   // loadAssetDirectory(basePath);
 }
 
-IFRIT_APIDECL std::string AssetManager::metadataSerialization(AssetMetadata &metadata) {
-  std::string serialized;
+IFRIT_APIDECL String AssetManager::metadataSerialization(AssetMetadata &metadata) {
+  String serialized;
   Ifrit::Common::Serialization::serialize(metadata, serialized);
   return serialized;
 }
 
-IFRIT_APIDECL void AssetManager::metadataDeserialization(const std::string &serialized, AssetMetadata &metadata) {
+IFRIT_APIDECL void AssetManager::metadataDeserialization(const String &serialized, AssetMetadata &metadata) {
   Ifrit::Common::Serialization::deserialize(serialized, metadata);
 }
 

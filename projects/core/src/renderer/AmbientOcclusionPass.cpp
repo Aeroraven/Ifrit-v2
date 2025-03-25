@@ -56,7 +56,7 @@ IFRIT_APIDECL void AmbientOcclusionPass::setupSSGIPass() {
 }
 
 IFRIT_APIDECL void AmbientOcclusionPass::renderHBAO(const CommandBuffer *cmd, u32 width, u32 height,
-                                                    GPUBindId *depthSamp, GPUBindId *normalSamp, GPUBindId *aoTex,
+                                                    GPUBindId *depthSamp, GPUBindId *normalSamp, u32 aoTex,
                                                     GPUBindId *perframeData) {
   if (m_hbaoPass == nullptr) {
     setupHBAOPass();
@@ -72,7 +72,7 @@ IFRIT_APIDECL void AmbientOcclusionPass::renderHBAO(const CommandBuffer *cmd, u3
   pc.perframe = perframeData->getActiveId();
   pc.normalTex = normalSamp->getActiveId();
   pc.depthTex = depthSamp->getActiveId();
-  pc.aoTex = aoTex->getActiveId();
+  pc.aoTex = aoTex;
   pc.radius = 0.5f;
   pc.maxRadius = 1.0f;
 
@@ -88,10 +88,9 @@ IFRIT_APIDECL void AmbientOcclusionPass::renderHBAO(const CommandBuffer *cmd, u3
 }
 
 IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(const CommandBuffer *cmd, u32 width, u32 height,
-                                                    GPUBindId *perframeData, GPUBindId *depthHizMinUAV,
-                                                    GPUBindId *depthHizMaxUAV, GPUBindId *normalSRV, GPUBindId *aoUAV,
-                                                    GPUBindId *albedoSRV, u32 hizTexW, u32 hizTexH, u32 numLods,
-                                                    GPUBindId *blueNoiseSRV) {
+                                                    GPUBindId *perframeData, u32 depthHizMinUAV, u32 depthHizMaxUAV,
+                                                    GPUBindId *normalSRV, u32 aoUAV, GPUBindId *albedoSRV, u32 hizTexW,
+                                                    u32 hizTexH, u32 numLods, GPUBindId *blueNoiseSRV) {
   struct SSGIPushConst {
     u32 perframe;
     u32 normalTex;
@@ -109,9 +108,9 @@ IFRIT_APIDECL void AmbientOcclusionPass::renderSSGI(const CommandBuffer *cmd, u3
 
   pc.perframe = perframeData->getActiveId();
   pc.normalTex = normalSRV->getActiveId();
-  pc.depthTexMin = depthHizMinUAV->getActiveId();
-  pc.depthTexMax = depthHizMaxUAV->getActiveId();
-  pc.aoTex = aoUAV->getActiveId();
+  pc.depthTexMin = depthHizMinUAV;
+  pc.depthTexMax = depthHizMaxUAV;
+  pc.aoTex = aoUAV;
   pc.albedoTex = albedoSRV->getActiveId();
   pc.hizTexW = hizTexW;
   pc.hizTexH = hizTexH;

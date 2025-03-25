@@ -62,11 +62,25 @@ struct RhiImageSubResource {
   u32 layerCount = 1;
 };
 
-struct RhiBindlessIdRef {
+// Update 250326: This is a deprecated struct, the bindless descriptor index is disentangled with
+// the resource itself, causing the "Dangling Descriptor" issue (after the resource is destroyed)
+// Now for each resource, we maintain a descriptor handle with type and index
+struct RhiDescHandleLegacy {
   u32 activeFrame;
   Vec<u32> ids;
   inline u32 getActiveId() const { return ids[activeFrame]; }
   inline void setFromId(u32 frame) { activeFrame = frame; }
+};
+
+enum class RhiDescriptorHeapType : u32 { UniformBuffer, StorageBuffer, CombinedImageSampler, StorageImage, Invalid };
+
+struct RhiDescriptorHandle {
+  RhiDescriptorHeapType m_type;
+  u32 m_index;
+
+  RhiDescriptorHandle(RhiDescriptorHeapType type, u32 index) : m_type(type), m_index(index) {}
+  inline RhiDescriptorHeapType getType() const { return m_type; }
+  inline u32 getId() const { return m_index; }
 };
 
 } // namespace Ifrit::GraphicsBackend::Rhi

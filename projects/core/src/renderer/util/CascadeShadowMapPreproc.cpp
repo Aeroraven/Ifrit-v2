@@ -21,17 +21,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Core::RenderingUtil::CascadeShadowMapping {
 
-IFRIT_APIDECL CSMResult calculateCSMSplits(const PerFrameData::PerViewData &perView, uint32_t shadowResolution,
-                                           ifloat3 lightFront, uint32_t splitCount, float maxDistance,
-                                           const std::vector<float> &splits, const std::vector<float> &borders) {
+IFRIT_APIDECL CSMResult calculateCSMSplits(const PerFrameData::PerViewData &perView, u32 shadowResolution,
+                                           ifloat3 lightFront, u32 splitCount, float maxDistance,
+                                           const Vec<float> &splits, const Vec<float> &borders) {
 
   using namespace Ifrit::Math;
 
   Logging::assertion(splitCount <= 4, "Split count should be less than 4");
 
   // Prepare splits
-  std::vector<float> splitStartMeter;
-  std::vector<float> splitEndMeter;
+  Vec<float> splitStartMeter;
+  Vec<float> splitEndMeter;
 
   float accumSplit = 0.0f;
   for (auto i = 0u; i < splitCount; i++) {
@@ -47,13 +47,13 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(const PerFrameData::PerViewData &perV
   }
 
   // Calculate frustum bounding spheres
-  std::vector<ifloat4> boundSpheres;
+  Vec<ifloat4> boundSpheres;
   auto camAspect = perView.m_viewData.m_cameraAspect;
   auto camFovY = perView.m_viewData.m_cameraFovY;
   auto camPos = perView.m_viewData.m_cameraPosition;
 
   // Bound AABBs
-  std::vector<CSMSingleSplitResult> results;
+  Vec<CSMSingleSplitResult> results;
   for (auto i = 0u; i < splitCount; i++) {
     auto vNear = std::max(1e-4f, splitStartMeter[i]);
     auto vFar = splitEndMeter[i];
@@ -103,17 +103,18 @@ IFRIT_APIDECL CSMResult calculateCSMSplits(const PerFrameData::PerViewData &perV
   return resultf;
 }
 
-IFRIT_APIDECL std::vector<PerFrameData::PerViewData>
-fillCSMViews(const PerFrameData::PerViewData &perView, Light &light, uint32_t shadowResolution,
-             Transform &lightTransform, uint32_t splitCount, float maxDistance, const std::vector<float> &splits,
-             const std::vector<float> &borders, std::array<float, 4> &splitStart, std::array<float, 4> &splitEnd) {
+IFRIT_APIDECL Vec<PerFrameData::PerViewData> fillCSMViews(const PerFrameData::PerViewData &perView, Light &light,
+                                                          u32 shadowResolution, Transform &lightTransform,
+                                                          u32 splitCount, float maxDistance, const Vec<float> &splits,
+                                                          const Vec<float> &borders, std::array<float, 4> &splitStart,
+                                                          std::array<float, 4> &splitEnd) {
   auto lightTransformMat = lightTransform.getModelToWorldMatrix();
   auto lightDirRaw = ifloat4{0.0f, 0.0f, 1.0f, 0.0f};
   auto lightDir = Math::matmul(lightTransformMat, lightDirRaw);
   auto lightDir3 = ifloat3{lightDir.x, lightDir.y, lightDir.z};
   auto csmResult = calculateCSMSplits(perView, shadowResolution, lightDir3, splitCount, maxDistance, splits, borders);
 
-  std::vector<PerFrameData::PerViewData> views;
+  Vec<PerFrameData::PerViewData> views;
   for (auto i = 0u; i < splitCount; i++) {
     auto &split = csmResult.m_splits[i];
     auto view = perView;

@@ -37,13 +37,15 @@ class IFRIT_APIDECL RhiDeviceResource {
 private:
   Atomic<u32> m_refCount = 0;
   IRhiDeviceResourceDeleteQueue *m_deleteQueue;
-  u32 m_bindlessId;
+  RhiDescriptorHandle m_descHandle;
   bool m_isUnmanaged = false; // unmanaged resources are EXTERNAL resources
-  std::string m_debugName;
+  String m_debugName;
 
 public:
-  explicit RhiDeviceResource(nullptr_t v) : m_deleteQueue(nullptr), m_isUnmanaged(true) {}
-  RhiDeviceResource(IRhiDeviceResourceDeleteQueue *deleteQueue) : m_deleteQueue(deleteQueue) {}
+  explicit RhiDeviceResource(nullptr_t v)
+      : m_deleteQueue(nullptr), m_descHandle(RhiDescriptorHeapType::Invalid, ~0u), m_isUnmanaged(true) {}
+  RhiDeviceResource(IRhiDeviceResourceDeleteQueue *deleteQueue)
+      : m_deleteQueue(deleteQueue), m_descHandle(RhiDescriptorHeapType::Invalid, ~0u) {}
   virtual ~RhiDeviceResource() {}
 
   inline virtual void addRef() { m_refCount.fetch_add(1); }
@@ -54,11 +56,17 @@ public:
       }
     }
   }
-  inline virtual void markForDelete() { m_deleteQueue->addResourceToDeleteQueue(this); }
-  inline virtual void setResId(u32 id) { m_bindlessId = id; }
-  inline virtual u32 getResId() const { return m_bindlessId; }
-  inline virtual void setDebugName(const std::string &name) { m_debugName = name; }
-  inline virtual const std::string &getDebugName() const { return m_debugName; }
+  IF_FORCEINLINE virtual void markForDelete() { m_deleteQueue->addResourceToDeleteQueue(this); }
+  IF_FORCEINLINE virtual void setDescriptorHandle(const RhiDescriptorHandle &handle) { m_descHandle = handle; }
+  IF_FORCEINLINE virtual u32 getDescId() const {
+    if (m_descHandle.getType() == RhiDescriptorHeapType::Invalid) {
+      iError("Invalid descriptor handle");
+      return ~0u;
+    }
+    return m_descHandle.getId();
+  }
+  IF_FORCEINLINE virtual void setDebugName(const String &name) { m_debugName = name; }
+  IF_FORCEINLINE virtual const String &getDebugName() const { return m_debugName; }
 };
 
 class IFRIT_APIDECL RhiBuffer : public RhiDeviceResource {

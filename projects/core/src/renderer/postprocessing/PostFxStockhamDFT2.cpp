@@ -56,57 +56,54 @@ IFRIT_APIDECL void PostFxStockhamDFT2::renderPostFx(const GPUCmdBuffer *cmd, GPU
   if (m_tex1.find({p2Width, p2Height}) == m_tex1.end()) {
     auto rhi = m_app->getRhiLayer();
     auto tex1 = rhi->createTexture2D("PostFx_DFT2_Tex", p2Width, p2Height,
-                                     GraphicsBackend::Rhi::RhiImageFormat::RHI_FORMAT_R32G32B32A32_SFLOAT,
-                                     GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT);
+                                     GraphicsBackend::Rhi::RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                                     GraphicsBackend::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT, true);
     m_tex1[{p2Width, p2Height}] = tex1;
-    m_tex1Id[{p2Width, p2Height}] = rhi->registerUAVImage(tex1.get(), {0, 0, 1, 1});
+
+    pc.logW = qlog2(p2Width);
+    pc.logH = qlog2(p2Height);
+    pc.rtW = width;
+    pc.rtH = height;
+    pc.downscaleFactor = downscale;
+    pc.rawSampId = srcSampId->getActiveId();
+    pc.srcImgId = tex1->getDescId();
+    pc.dstImgId = tex1->getDescId();
+
+    auto reqNumItersX = pc.logW;
+    auto reqNumItersY = pc.logH;
+
+    // DFT
+    int wgX, wgY;
+
+    pc.dftMode = 0;
+    cmd->beginScope("Postprocess: Stockham DFT2, DFT-X");
+    pc.orientation = 1;
+    wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Width / 2, 256);
+    wgY = p2Height;
+    runCommand(cmd, wgX, wgY, &pc);
+    cmd->endScope();
+    cmd->beginScope("Postprocess: Stockham DFT2, DFT-Y");
+    pc.orientation = 0;
+    wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Height / 2, 256);
+    wgY = p2Width;
+    runCommand(cmd, wgX, wgY, &pc);
+    cmd->endScope();
+
+    // IDFT
+    pc.dftMode = 1;
+    cmd->beginScope("Postprocess: Stockham DFT2, IDFT-Y");
+    pc.orientation = 0;
+    wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Height / 2, 256);
+    wgY = p2Width;
+    runCommand(cmd, wgX, wgY, &pc);
+    cmd->endScope();
+    cmd->beginScope("Postprocess: Stockham DFT2, IDFT-X");
+    pc.orientation = 1;
+    wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Width / 2, 256);
+    wgY = p2Height;
+    runCommand(cmd, wgX, wgY, &pc);
+    cmd->endScope();
   }
-
-  auto tx1Id = m_tex1Id[{p2Width, p2Height}]->getActiveId();
-
-  pc.logW = qlog2(p2Width);
-  pc.logH = qlog2(p2Height);
-  pc.rtW = width;
-  pc.rtH = height;
-  pc.downscaleFactor = downscale;
-  pc.rawSampId = srcSampId->getActiveId();
-  pc.srcImgId = tx1Id;
-  pc.dstImgId = tx1Id;
-
-  auto reqNumItersX = pc.logW;
-  auto reqNumItersY = pc.logH;
-
-  // DFT
-  int wgX, wgY;
-
-  pc.dftMode = 0;
-  cmd->beginScope("Postprocess: Stockham DFT2, DFT-X");
-  pc.orientation = 1;
-  wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Width / 2, 256);
-  wgY = p2Height;
-  runCommand(cmd, wgX, wgY, &pc);
-  cmd->endScope();
-  cmd->beginScope("Postprocess: Stockham DFT2, DFT-Y");
-  pc.orientation = 0;
-  wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Height / 2, 256);
-  wgY = p2Width;
-  runCommand(cmd, wgX, wgY, &pc);
-  cmd->endScope();
-
-  // IDFT
-  pc.dftMode = 1;
-  cmd->beginScope("Postprocess: Stockham DFT2, IDFT-Y");
-  pc.orientation = 0;
-  wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Height / 2, 256);
-  wgY = p2Width;
-  runCommand(cmd, wgX, wgY, &pc);
-  cmd->endScope();
-  cmd->beginScope("Postprocess: Stockham DFT2, IDFT-X");
-  pc.orientation = 1;
-  wgX = Ifrit::Math::ConstFunc::divRoundUp(p2Width / 2, 256);
-  wgY = p2Height;
-  runCommand(cmd, wgX, wgY, &pc);
-  cmd->endScope();
 }
 
 } // namespace Ifrit::Core::PostprocessPassCollection

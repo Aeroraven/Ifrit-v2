@@ -44,30 +44,30 @@ struct MeshData {
     ifloat4 boundSphere;
     ifloat4 selfErrorSphere;
   };
-  std::string identifier;
+  String identifier;
 
-  std::vector<ifloat3> m_vertices;
-  std::vector<ifloat4> m_verticesAligned;
-  std::vector<ifloat3> m_normals;
-  std::vector<ifloat4> m_normalsAligned;
-  std::vector<ifloat2> m_uvs;
-  std::vector<ifloat4> m_tangents;
-  std::vector<u32> m_indices;
+  Vec<ifloat3> m_vertices;
+  Vec<ifloat4> m_verticesAligned;
+  Vec<ifloat3> m_normals;
+  Vec<ifloat4> m_normalsAligned;
+  Vec<ifloat2> m_uvs;
+  Vec<ifloat4> m_tangents;
+  Vec<u32> m_indices;
 
   // Cluster data
-  std::vector<MeshletData> m_meshlets;
-  std::vector<ifloat4> m_normalsCone;
-  std::vector<ifloat4> m_normalsConeApex;
-  std::vector<ifloat4> m_boundSphere;
-  std::vector<u32> m_meshletTriangles;
-  std::vector<u32> m_meshletVertices;
-  std::vector<u32> m_meshletInClusterGroup;
-  std::vector<Ifrit::MeshProcLib::MeshProcess::MeshletCullData> m_meshCullData;
-  std::vector<Ifrit::MeshProcLib::MeshProcess::FlattenedBVHNode> m_bvhNodes; // seems not suitable to be here
-  std::vector<Ifrit::MeshProcLib::MeshProcess::ClusterGroup> m_clusterGroups;
+  Vec<MeshletData> m_meshlets;
+  Vec<ifloat4> m_normalsCone;
+  Vec<ifloat4> m_normalsConeApex;
+  Vec<ifloat4> m_boundSphere;
+  Vec<u32> m_meshletTriangles;
+  Vec<u32> m_meshletVertices;
+  Vec<u32> m_meshletInClusterGroup;
+  Vec<Ifrit::MeshProcLib::MeshProcess::MeshletCullData> m_meshCullData;
+  Vec<Ifrit::MeshProcLib::MeshProcess::FlattenedBVHNode> m_bvhNodes; // seems not suitable to be here
+  Vec<Ifrit::MeshProcLib::MeshProcess::ClusterGroup> m_clusterGroups;
 
   // Num meshlets in each lod
-  std::vector<u32> m_numMeshletsEachLod;
+  Vec<u32> m_numMeshletsEachLod;
 
   GPUCPCounter m_cpCounter;
   u32 m_maxLod;
@@ -83,7 +83,7 @@ struct MeshInstanceTransform {
 
 class IFRIT_APIDECL Mesh : public AssetReferenceContainer, public IAssetCompatible {
   using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBufferRef;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
 
 public:
   struct GPUObjectBuffer {
@@ -120,23 +120,11 @@ public:
     GPUBuffer materialDataBuffer = nullptr; // currently, opaque is used to hold material data
     GPUBuffer tangentBuffer = nullptr;
 
-    std::shared_ptr<GPUBindId> vertexBufferId = nullptr;
-    std::shared_ptr<GPUBindId> normalBufferId = nullptr;
-    std::shared_ptr<GPUBindId> uvBufferId = nullptr;
-    std::shared_ptr<GPUBindId> meshletBufferId = nullptr;
-    std::shared_ptr<GPUBindId> meshletVertexBufferId = nullptr;
-    std::shared_ptr<GPUBindId> meshletIndexBufferId = nullptr;
-    std::shared_ptr<GPUBindId> meshletCullBufferId = nullptr;
-    std::shared_ptr<GPUBindId> bvhNodeBufferId = nullptr;
-    std::shared_ptr<GPUBindId> clusterGroupBufferId = nullptr;
-    std::shared_ptr<GPUBindId> meshletInClusterBufferId = nullptr;
-    std::shared_ptr<GPUBindId> cpCounterBufferId = nullptr;
-    std::shared_ptr<GPUBindId> materialDataBufferId = nullptr;
-    std::shared_ptr<GPUBindId> tangentBufferId = nullptr;
-
     GPUObjectBuffer objectData;
     GPUBuffer objectBuffer = nullptr;
-    std::shared_ptr<GPUBindId> objectBufferId = nullptr;
+
+    bool haveMaterialData = false;
+
   } m_resource;
   bool m_resourceDirty = true;
   std::shared_ptr<MeshData> m_data;
@@ -163,22 +151,7 @@ public:
     m_resource.materialDataBuffer = resource.materialDataBuffer;
     m_resource.tangentBuffer = resource.tangentBuffer;
 
-    m_resource.vertexBufferId = resource.vertexBufferId;
-    m_resource.normalBufferId = resource.normalBufferId;
-    m_resource.uvBufferId = resource.uvBufferId;
-    m_resource.meshletBufferId = resource.meshletBufferId;
-    m_resource.meshletVertexBufferId = resource.meshletVertexBufferId;
-    m_resource.meshletIndexBufferId = resource.meshletIndexBufferId;
-    m_resource.meshletCullBufferId = resource.meshletCullBufferId;
-    m_resource.bvhNodeBufferId = resource.bvhNodeBufferId;
-    m_resource.clusterGroupBufferId = resource.clusterGroupBufferId;
-    m_resource.meshletInClusterBufferId = resource.meshletInClusterBufferId;
-    m_resource.cpCounterBufferId = resource.cpCounterBufferId;
-    m_resource.materialDataBufferId = resource.materialDataBufferId;
-    m_resource.tangentBufferId = resource.tangentBufferId;
-
     m_resource.objectBuffer = resource.objectBuffer;
-    m_resource.objectBufferId = resource.objectBufferId;
     m_resource.objectData = resource.objectData;
   }
   inline void getGPUResource(GPUResource &resource) {
@@ -196,27 +169,12 @@ public:
     resource.materialDataBuffer = m_resource.materialDataBuffer;
     resource.tangentBuffer = m_resource.tangentBuffer;
 
-    resource.vertexBufferId = m_resource.vertexBufferId;
-    resource.normalBufferId = m_resource.normalBufferId;
-    resource.uvBufferId = m_resource.uvBufferId;
-    resource.meshletBufferId = m_resource.meshletBufferId;
-    resource.meshletVertexBufferId = m_resource.meshletVertexBufferId;
-    resource.meshletIndexBufferId = m_resource.meshletIndexBufferId;
-    resource.meshletCullBufferId = m_resource.meshletCullBufferId;
-    resource.bvhNodeBufferId = m_resource.bvhNodeBufferId;
-    resource.clusterGroupBufferId = m_resource.clusterGroupBufferId;
-    resource.meshletInClusterBufferId = m_resource.meshletInClusterBufferId;
-    resource.cpCounterBufferId = m_resource.cpCounterBufferId;
-    resource.materialDataBufferId = m_resource.materialDataBufferId;
-    resource.tangentBufferId = m_resource.tangentBufferId;
-
     resource.objectBuffer = m_resource.objectBuffer;
-    resource.objectBufferId = m_resource.objectBufferId;
     resource.objectData = m_resource.objectData;
   }
   // TODO: static method
-  virtual void createMeshLodHierarchy(std::shared_ptr<MeshData> meshData, const std::string &cachePath);
-  virtual ifloat4 getBoundingSphere(const std::vector<ifloat3> &vertices);
+  virtual void createMeshLodHierarchy(std::shared_ptr<MeshData> meshData, const String &cachePath);
+  virtual ifloat4 getBoundingSphere(const Vec<ifloat3> &vertices);
 
   IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
 };
@@ -227,7 +185,7 @@ public:
 // Migrating this into persistent culling pass's buffer might be an alternative
 class IFRIT_APIDECL MeshInstance {
   using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBufferRef;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
 
 public:
   struct GPUObjectBuffer {
@@ -240,35 +198,22 @@ public:
   struct GPUResource {
     GPUBuffer cpQueueBuffer = nullptr;
     GPUBuffer filteredMeshlets = nullptr;
-
-    std::shared_ptr<GPUBindId> cpQueueBufferId = nullptr;
-    std::shared_ptr<GPUBindId> filteredMeshletsId = nullptr;
-
     GPUObjectBuffer objectData;
     GPUBuffer objectBuffer = nullptr;
-    std::shared_ptr<GPUBindId> objectBufferId = nullptr;
   } m_resource;
 
   inline void setGPUResource(GPUResource &resource) {
     m_resource.filteredMeshlets = resource.filteredMeshlets;
     m_resource.cpQueueBuffer = resource.cpQueueBuffer;
 
-    m_resource.filteredMeshletsId = resource.filteredMeshletsId;
-    m_resource.cpQueueBufferId = resource.cpQueueBufferId;
-
     m_resource.objectBuffer = resource.objectBuffer;
-    m_resource.objectBufferId = resource.objectBufferId;
     m_resource.objectData = resource.objectData;
   }
   inline void getGPUResource(GPUResource &resource) {
     resource.filteredMeshlets = m_resource.filteredMeshlets;
     resource.cpQueueBuffer = m_resource.cpQueueBuffer;
 
-    resource.filteredMeshletsId = m_resource.filteredMeshletsId;
-    resource.cpQueueBufferId = m_resource.cpQueueBufferId;
-
     resource.objectBuffer = m_resource.objectBuffer;
-    resource.objectBufferId = m_resource.objectBufferId;
     resource.objectData = m_resource.objectData;
   }
 };
@@ -286,7 +231,7 @@ public:
   MeshFilter() { m_instance = std::make_shared<MeshInstance>(); }
   MeshFilter(std::shared_ptr<SceneObject> owner) : Component(owner) { m_instance = std::make_shared<MeshInstance>(); }
   virtual ~MeshFilter() = default;
-  inline std::string serialize() override { return ""; }
+  inline String serialize() override { return ""; }
   inline void deserialize() override {}
   void loadMesh();
   inline void setMesh(std::shared_ptr<Mesh> p) {
@@ -296,12 +241,12 @@ public:
     }
     m_attribute = p;
   }
-  inline virtual std::vector<AssetReference *> getAssetReferences() override {
+  inline virtual Vec<AssetReference *> getAssetReferences() override {
     if (m_meshReference.m_usingAsset == false)
       return {};
     return {&m_meshReference};
   }
-  inline virtual void setAssetReferencedAttributes(const std::vector<std::shared_ptr<IAssetCompatible>> &out) override {
+  inline virtual void setAssetReferencedAttributes(const Vec<std::shared_ptr<IAssetCompatible>> &out) override {
     if (m_meshReference.m_usingAsset) {
       auto mesh = Ifrit::Common::Utility::checked_pointer_cast<Mesh>(out[0]);
       m_attribute = mesh;
@@ -321,7 +266,7 @@ public:
   MeshRenderer() {} // for deserialization
   MeshRenderer(std::shared_ptr<SceneObject> owner) : Component(owner) {}
   virtual ~MeshRenderer() = default;
-  inline std::string serialize() override { return ""; }
+  inline String serialize() override { return ""; }
   inline void deserialize() override {}
   inline std::shared_ptr<Material> getMaterial() { return m_material; }
   inline void setMaterial(std::shared_ptr<Material> p) { m_material = p; }

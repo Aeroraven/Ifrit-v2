@@ -39,7 +39,7 @@ struct SceneCollectConfig {
 struct ImmutableRendererResources {
   using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSamplerRef;
   using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTextureRef;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiBindlessIdRef;
+  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
   std::mutex m_mutex;
   bool m_initialized = false;
   GPUSampler m_linearSampler;

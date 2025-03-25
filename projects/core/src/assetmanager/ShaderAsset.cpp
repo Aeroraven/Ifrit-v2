@@ -29,7 +29,7 @@ IFRIT_APIDECL ShaderAsset::ShaderRef *ShaderAsset::loadShader() {
   } else {
     m_loaded = true;
     std::ifstream file(m_path, std::ios::binary);
-    std::vector<char> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    Vec<char> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
     auto rhi = m_app->getRhiLayer();
     GraphicsBackend::Rhi::RhiShaderStage stage;
@@ -64,7 +64,7 @@ IFRIT_APIDECL void ShaderAssetImporter::processMetadata(AssetMetadata &metadata)
   metadata.m_importer = IMPORTER_NAME;
 }
 
-IFRIT_APIDECL std::vector<std::string> ShaderAssetImporter::getSupportedExtensionNames() { return {".glsl"}; }
+IFRIT_APIDECL Vec<std::string> ShaderAssetImporter::getSupportedExtensionNames() { return {".glsl"}; }
 
 IFRIT_APIDECL void ShaderAssetImporter::importAsset(const std::filesystem::path &path, AssetMetadata &metadata) {
   auto asset = std::make_shared<ShaderAsset>(metadata, path, m_assetManager->getApplication());

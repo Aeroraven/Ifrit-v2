@@ -25,26 +25,26 @@ namespace Ifrit::Core {
 
 class IFRIT_APIDECL SceneNode {
 protected:
-  std::vector<std::shared_ptr<SceneNode>> m_children;
-  std::vector<std::shared_ptr<SceneObject>> m_gameObjects;
+  Vec<Ref<SceneNode>> m_children;
+  Vec<Ref<SceneObject>> m_gameObjects;
 
 public:
   SceneNode() = default;
   virtual ~SceneNode() = default;
-  std::shared_ptr<SceneNode> addChildNode();
-  std::shared_ptr<SceneObject> addGameObject(const std::string &name);
-  std::shared_ptr<SceneObject> addGameObjectTransferred(std::shared_ptr<SceneObject> &&obj);
-  inline std::shared_ptr<SceneNode> getSceneNode(u32 x) { return m_children.at(x); }
-  inline std::shared_ptr<SceneObject> getGameObject(u32 x) { return m_gameObjects.at(x); }
-  inline std::vector<std::shared_ptr<SceneNode>> getChildren() {
-    std::vector<std::shared_ptr<SceneNode>> x;
+  Ref<SceneNode> addChildNode();
+  Ref<SceneObject> addGameObject(const std::string &name);
+  Ref<SceneObject> addGameObjectTransferred(Ref<SceneObject> &&obj);
+  inline Ref<SceneNode> getSceneNode(u32 x) { return m_children.at(x); }
+  inline Ref<SceneObject> getGameObject(u32 x) { return m_gameObjects.at(x); }
+  inline Vec<Ref<SceneNode>> getChildren() {
+    Vec<Ref<SceneNode>> x;
     for (auto &y : m_children) {
       x.push_back(y);
     }
     return x;
   }
-  inline std::vector<std::shared_ptr<SceneObject>> getGameObjects() {
-    std::vector<std::shared_ptr<SceneObject>> x;
+  inline Vec<Ref<SceneObject>> getGameObjects() {
+    Vec<Ref<SceneObject>> x;
     for (auto &y : m_gameObjects) {
       x.push_back(y);
     }
@@ -56,18 +56,15 @@ public:
 
 class IFRIT_APIDECL Scene {
 protected:
-  std::shared_ptr<SceneNode> m_root;
+  Ref<SceneNode> m_root;
 
 public:
   Scene() : m_root(std::make_shared<SceneNode>()) {}
-  std::shared_ptr<SceneNode> addSceneNode();
-  inline std::shared_ptr<SceneNode> getRootNode() { return m_root; }
-
+  Ref<SceneNode> addSceneNode();
+  inline Ref<SceneNode> getRootNode() { return m_root; }
   Camera *getMainCamera();
-
-  std::vector<std::shared_ptr<SceneObject>> filterObjects(std::function<bool(std::shared_ptr<SceneObject>)> filter);
-
-  std::vector<SceneObject *> filterObjectsUnsafe(std::function<bool(SceneObject *)> filter);
+  Vec<Ref<SceneObject>> filterObjects(Fn<bool(Ref<SceneObject>)> filter);
+  Vec<SceneObject *> filterObjectsUnsafe(Fn<bool(SceneObject *)> filter);
 
   IFRIT_STRUCT_SERIALIZE(m_root);
 };
