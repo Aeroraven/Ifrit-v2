@@ -23,84 +23,107 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/AssetReference.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
-namespace Ifrit::Core {
-class IShaderAsset {};
+namespace Ifrit::Core
+{
+    class IShaderAsset
+    {
+    };
 
-enum class GraphicsShaderPassType {
-  Opaque,
-  Transparent,
-  PostProcess,
-  DirectLighting,
-};
+    enum class GraphicsShaderPassType
+    {
+        Opaque,
+        Transparent,
+        PostProcess,
+        DirectLighting,
+    };
 
-enum class ShaderEffectType { Graphics, Compute };
+    enum class ShaderEffectType
+    {
+        Graphics,
+        Compute
+    };
 
-struct PipelineAttachmentConfigs {
-  Ifrit::GraphicsBackend::Rhi::RhiImageFormat m_depthFormat;
-  Vec<Ifrit::GraphicsBackend::Rhi::RhiImageFormat> m_colorFormats;
+    struct PipelineAttachmentConfigs
+    {
+        Graphics::Rhi::RhiImageFormat      m_depthFormat;
+        Vec<Graphics::Rhi::RhiImageFormat> m_colorFormats;
 
-  inline bool operator==(const PipelineAttachmentConfigs &other) const {
-    auto res = m_depthFormat == other.m_depthFormat;
-    res &= (m_colorFormats == other.m_colorFormats);
-    return res;
-  }
-};
+        inline bool                        operator==(const PipelineAttachmentConfigs& other) const
+        {
+            auto res = m_depthFormat == other.m_depthFormat;
+            res &= (m_colorFormats == other.m_colorFormats);
+            return res;
+        }
+    };
 
-struct PipelineAttachmentConfigsHash {
-  inline size_t operator()(const PipelineAttachmentConfigs &configs) const {
-    size_t hash = 0;
-    hash ^= std::hash<int>()(static_cast<int>(configs.m_depthFormat));
-    for (const auto &format : configs.m_colorFormats) {
-      hash ^= std::hash<int>()(static_cast<int>(format));
-    }
-    return hash;
-  }
-};
+    struct PipelineAttachmentConfigsHash
+    {
+        inline size_t operator()(const PipelineAttachmentConfigs& configs) const
+        {
+            size_t hash = 0;
+            hash ^= std::hash<int>()(static_cast<int>(configs.m_depthFormat));
+            for (const auto& format : configs.m_colorFormats)
+            {
+                hash ^= std::hash<int>()(static_cast<int>(format));
+            }
+            return hash;
+        }
+    };
 
-class ShaderEffect {
-  using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;
-  using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
-  using Shader = Ifrit::GraphicsBackend::Rhi::RhiShader;
+    using PipeConfig     = PipelineAttachmentConfigs;
+    using PipeConfigHash = PipelineAttachmentConfigsHash;
 
-public:
-  ShaderEffectType m_type = ShaderEffectType::Graphics;
-  Vec<Shader *> m_shaders;
-  Vec<AssetReference> m_shaderReferences;
-  CustomHashMap<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_drawPasses;
-  ComputePass *m_computePass = nullptr;
+    class ShaderEffect
+    {
+        using DrawPass    = Ifrit::Graphics::Rhi::RhiGraphicsPass;
+        using ComputePass = Ifrit::Graphics::Rhi::RhiComputePass;
+        using Shader      = Ifrit::Graphics::Rhi::RhiShader;
 
-  IFRIT_STRUCT_SERIALIZE(m_shaderReferences);
+    public:
+        ShaderEffectType                                     m_type = ShaderEffectType::Graphics;
+        Vec<Shader*>                                         m_shaders;
+        Vec<AssetReference>                                  m_shaderReferences;
+        CustomHashMap<PipeConfig, DrawPass*, PipeConfigHash> m_drawPasses;
+        ComputePass*                                         m_computePass = nullptr;
 
-  bool operator==(const ShaderEffect &other) const {
-    bool result = true;
-    result &= m_type == other.m_type;
-    for (size_t i = 0; i < m_shaderReferences.size(); i++) {
-      result &= m_shaderReferences[i] == other.m_shaderReferences[i];
-    }
-    return result;
-  }
-};
+        IFRIT_STRUCT_SERIALIZE(m_shaderReferences);
 
-class ShaderEffectHash {
-public:
-  size_t operator()(const ShaderEffect &effect) const {
-    size_t hash = 0;
-    for (const auto &ref : effect.m_shaderReferences) {
-      hash ^= std::hash<String>()(ref.m_uuid);
-    }
-    return hash;
-  }
-};
+        bool operator==(const ShaderEffect& other) const
+        {
+            bool result = true;
+            result &= m_type == other.m_type;
+            for (size_t i = 0; i < m_shaderReferences.size(); i++)
+            {
+                result &= m_shaderReferences[i] == other.m_shaderReferences[i];
+            }
+            return result;
+        }
+    };
 
-class IFRIT_APIDECL Material : public IAssetCompatible {
+    class ShaderEffectHash
+    {
+    public:
+        size_t operator()(const ShaderEffect& effect) const
+        {
+            size_t hash = 0;
+            for (const auto& ref : effect.m_shaderReferences)
+            {
+                hash ^= std::hash<String>()(ref.m_uuid);
+            }
+            return hash;
+        }
+    };
 
-public:
-  String m_name;
-  String m_uuid;
-  Vec<Vec<char>> m_data;
-  HashMap<GraphicsShaderPassType, ShaderEffect> m_effectTemplates;
-  HashMap<GraphicsShaderPassType, HashMap<String, u32>> m_shaderParameters;
-  IFRIT_STRUCT_SERIALIZE(m_effectTemplates, m_data, m_shaderParameters);
-};
+    class IFRIT_APIDECL Material : public IAssetCompatible
+    {
+
+    public:
+        String                                                m_name;
+        String                                                m_uuid;
+        Vec<Vec<char>>                                        m_data;
+        HashMap<GraphicsShaderPassType, ShaderEffect>         m_effectTemplates;
+        HashMap<GraphicsShaderPassType, HashMap<String, u32>> m_shaderParameters;
+        IFRIT_STRUCT_SERIALIZE(m_effectTemplates, m_data, m_shaderParameters);
+    };
 
 } // namespace Ifrit::Core

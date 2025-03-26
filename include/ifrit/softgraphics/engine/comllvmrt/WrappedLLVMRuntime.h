@@ -16,29 +16,31 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/ShaderRuntime.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics::ComLLVMRuntime {
-struct WrappedLLVMRuntimeContext;
-class WrappedLLVMRuntime : public ShaderRuntime {
-public:
-  WrappedLLVMRuntime();
-  ~WrappedLLVMRuntime();
-  static void initLlvmBackend();
-  virtual void loadIR(std::string irCode, std::string irIdentifier);
-  virtual void *lookupSymbol(std::string symbol);
-  virtual std::unique_ptr<ShaderRuntime> getThreadLocalCopy();
+namespace Ifrit::Graphics::SoftGraphics::ComLLVMRuntime
+{
+	struct WrappedLLVMRuntimeContext;
+	class WrappedLLVMRuntime : public ShaderRuntime
+	{
+	public:
+		WrappedLLVMRuntime();
+		~WrappedLLVMRuntime();
+		static void							   initLlvmBackend();
+		virtual void						   loadIR(std::string irCode, std::string irIdentifier);
+		virtual void*						   lookupSymbol(std::string symbol);
+		virtual std::unique_ptr<ShaderRuntime> getThreadLocalCopy();
 
-private:
-  WrappedLLVMRuntimeContext *session;
-};
+	private:
+		WrappedLLVMRuntimeContext* session;
+	};
 
-class WrappedLLVMRuntimeBuilder : public ShaderRuntimeBuilder {
-public:
-  WrappedLLVMRuntimeBuilder();
-  virtual std::unique_ptr<ShaderRuntime> buildRuntime() const override;
-};
-} // namespace Ifrit::GraphicsBackend::SoftGraphics::ComLLVMRuntime
+	class WrappedLLVMRuntimeBuilder : public ShaderRuntimeBuilder
+	{
+	public:
+		WrappedLLVMRuntimeBuilder();
+		virtual std::unique_ptr<ShaderRuntime> buildRuntime() const override;
+	};
+} // namespace Ifrit::Graphics::SoftGraphics::ComLLVMRuntime

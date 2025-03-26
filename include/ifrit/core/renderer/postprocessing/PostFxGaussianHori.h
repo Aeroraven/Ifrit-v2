@@ -20,16 +20,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/base/IfritBase.h"
 #include "ifrit/core/renderer/PostprocessPass.h"
 
-namespace Ifrit::Core::PostprocessPassCollection {
+namespace Ifrit::Core::PostprocessPassCollection
+{
 
-class IFRIT_APIDECL PostFxGaussianHori : public PostprocessPass {
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
-  using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
+    class IFRIT_APIDECL PostFxGaussianHori : public PostprocessPass
+    {
+        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
+        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
 
-public:
-  PostFxGaussianHori(IApplication *app);
-  void renderPostFx(const GPUCmdBuffer *cmd, RenderTargets *renderTargets, GPUBindId *inputTexCombSampler,
-                    u32 kernelSize);
-};
+    public:
+        PostFxGaussianHori(IApplication* app);
+        void RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets, GPUBindId* inputTexCombSampler,
+            u32 kernelSize);
+    };
 
 } // namespace Ifrit::Core::PostprocessPassCollection

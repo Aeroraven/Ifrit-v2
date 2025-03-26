@@ -21,27 +21,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/ApplicationInterface.h"
 #include <array>
 
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-class IFRIT_APIDECL InputSystem {
-private:
-  struct KeyStatus {
-    u8 stat = 0;
-  };
-  enum class KeyStatusEnum { Pressed = 1, Released = 0 };
-  std::array<KeyStatus, 349> m_keyStatus;
-  IApplication *m_app;
+    class IFRIT_APIDECL InputSystem
+    {
+    private:
+        struct KeyStatus
+        {
+            u8 stat = 0;
+        };
+        enum class KeyStatusEnum
+        {
+            Pressed  = 1,
+            Released = 0
+        };
+        Array<KeyStatus, 349> m_keyStatus;
+        IApplication*         m_app;
 
-public:
-  InputSystem(IApplication *app) : m_app(app) { init(); }
-  virtual ~InputSystem() = default;
-  bool isKeyPressed(u32 key) { return m_keyStatus[key].stat == 1; }
-  bool isKeyReleased(u32 key) { return m_keyStatus[key].stat == 0; }
-  void onFrameUpdate();
-  void updateKeyStatus(u32 key, u8 status) { m_keyStatus[key].stat = status; }
+    public:
+        InputSystem(IApplication* app)
+            : m_app(app) { Init(); }
+        virtual ~InputSystem() = default;
+        bool IsKeyPressed(u32 key) { return m_keyStatus[key].stat == 1; }
+        bool IsKeyReleased(u32 key) { return m_keyStatus[key].stat == 0; }
+        void OnFrameUpdate();
+        void UpdateKeyStatus(u32 key, u8 status) { m_keyStatus[key].stat = status; }
 
-private:
-  void init();
-};
+    private:
+        void Init();
+    };
 
 } // namespace Ifrit::Core

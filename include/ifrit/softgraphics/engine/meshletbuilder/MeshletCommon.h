@@ -16,14 +16,15 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/VertexBuffer.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics::MeshletBuilder {
-struct IFRIT_APIDECL Meshlet {
-  VertexBuffer vbufs;
-  std::vector<int> ibufs; // TODO: exporting c-style array
-};
-}; // namespace Ifrit::GraphicsBackend::SoftGraphics::MeshletBuilder
+namespace Ifrit::Graphics::SoftGraphics::MeshletBuilder
+{
+	struct IFRIT_APIDECL Meshlet
+	{
+		VertexBuffer	 vbufs;
+		std::vector<int> ibufs; // TODO: exporting c-style array
+	};
+}; // namespace Ifrit::Graphics::SoftGraphics::MeshletBuilder

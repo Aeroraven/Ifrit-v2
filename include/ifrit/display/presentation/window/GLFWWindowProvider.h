@@ -24,56 +24,62 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <stdexcept>
 
 #ifdef _WIN32
-#define VK_USE_PLATFORM_WIN32_KHR
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
+    #define VK_USE_PLATFORM_WIN32_KHR
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
 #endif
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #ifdef _WIN32
-#define GLFW_EXPOSE_NATIVE_WIN32
+    #define GLFW_EXPOSE_NATIVE_WIN32
 #else
-#define GLFW_EXPOSE_NATIVE_X11
+    #define GLFW_EXPOSE_NATIVE_X11
 #endif
 #include <GLFW/glfw3native.h>
 
-namespace Ifrit::Display::Window {
-struct GLFWWindowProviderInitArgs {
-  bool vulkanMode = false;
-};
-class IFRIT_APIDECL GLFWWindowProvider : public WindowProvider {
-protected:
-  GLFWwindow *window = nullptr;
-  std::deque<int> frameTimes;
-  std::deque<int> frameTimesCore;
-  int totalFrameTime = 0;
-  int totalFrameTimeCore = 0;
-  std::string title = "Ifrit-v2";
-  GLFWWindowProviderInitArgs m_args;
-  std::function<void(int, int, int, int)> keyCallBack;
+namespace Ifrit::Display::Window
+{
+    struct GLFWWindowProviderInitArgs
+    {
+        bool vulkanMode = false;
+    };
+    class IFRIT_APIDECL GLFWWindowProvider : public WindowProvider
+    {
+    protected:
+        GLFWwindow*                  window = nullptr;
+        std::deque<int>              frameTimes;
+        std::deque<int>              frameTimesCore;
+        int                          totalFrameTime     = 0;
+        int                          totalFrameTimeCore = 0;
+        String                       title              = "Ifrit-v2";
+        GLFWWindowProviderInitArgs   m_args;
+        Fn<void(int, int, int, int)> keyCallBack;
 
-public:
-  GLFWWindowProvider() = default;
-  GLFWWindowProvider(const GLFWWindowProviderInitArgs &args) : m_args(args) {}
-  virtual bool setup(size_t width, size_t height) override;
-  virtual void loop(const std::function<void(int *)> &func) override;
-  virtual void setTitle(const std::string &title) override;
+    public:
+        GLFWWindowProvider() = default;
+        GLFWWindowProvider(const GLFWWindowProviderInitArgs& args)
+            : m_args(args) {}
+        virtual bool        Setup(size_t width, size_t height) override;
+        virtual void        Loop(const std::function<void(int*)>& func) override;
+        virtual void        SetTitle(const std::string& title) override;
 
-  // For Vulkan
-  const char **getVkRequiredInstanceExtensions(u32 *count) override;
-  void *getWindowObject() override;
-  std::pair<u32, u32> getFramebufferSize();
-  void *getGLFWWindow() override;
+        // For Vulkan
+        const char**        GetVkRequiredInstanceExtensions(u32* count) override;
+        void*               GetWindowObject() override;
+        std::pair<u32, u32> GetFramebufferSize();
+        void*               GetGLFWWindow() override;
 
-  void callGlfwInit() {
-    auto x = glfwInit();
-    if (!x) {
-      printf("GLFW fails\n");
-      throw std::runtime_error("GLFW fails");
-    }
-  }
-  virtual void registerKeyCallback(std::function<void(int, int, int, int)>) override;
-  inline std::function<void(int, int, int, int)> getKeyCallBack() { return keyCallBack; }
-};
+        void                CallGlfwInit()
+        {
+            auto x = glfwInit();
+            if (!x)
+            {
+                printf("GLFW fails\n");
+                throw std::runtime_error("GLFW fails");
+            }
+        }
+        virtual void                                   RegisterKeyCallback(std::function<void(int, int, int, int)>) override;
+        inline std::function<void(int, int, int, int)> GetKeyCallBack() { return keyCallBack; }
+    };
 } // namespace Ifrit::Display::Window

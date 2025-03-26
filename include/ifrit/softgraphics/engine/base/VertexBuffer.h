@@ -22,63 +22,73 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/softgraphics/core/utility/CoreUtils.h"
 #include "ifrit/softgraphics/engine/base/TypeDescriptor.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics {
+namespace Ifrit::Graphics::SoftGraphics
+{
 
-struct VertexBufferContext {
-  std::vector<uint8_t> buffer;
-  std::vector<TypeDescriptor> layout;
-  std::vector<int> offsets;
-};
+    struct VertexBufferContext
+    {
+        std::vector<uint8_t>        buffer;
+        std::vector<TypeDescriptor> layout;
+        std::vector<int>            offsets;
+    };
 
-class IFRIT_APIDECL VertexBuffer {
-private:
-  VertexBufferContext *context;
-  int vertexCount;
-  int elementSize;
+    class IFRIT_APIDECL VertexBuffer
+    {
+    private:
+        VertexBufferContext* context;
+        int                  vertexCount;
+        int                  elementSize;
 
-public:
-  VertexBuffer();
-  ~VertexBuffer();
-  void setLayout(const std::vector<TypeDescriptor> &layout);
-  void allocateBuffer(const size_t numVertices);
-  void setVertexCount(const int vertexCount);
-  int getVertexCount() const;
-  int getAttributeCount() const;
-  TypeDescriptor getAttributeDescriptor(int index) const;
+    public:
+        VertexBuffer();
+        ~VertexBuffer();
+        void           setLayout(const std::vector<TypeDescriptor>& layout);
+        void           allocateBuffer(const size_t numVertices);
+        void           setVertexCount(const int vertexCount);
+        int            getVertexCount() const;
+        int            getAttributeCount() const;
+        TypeDescriptor getAttributeDescriptor(int index) const;
 
-  inline int getOffset(int i) const { return context->offsets[i]; }
-  inline int getElementSize() const { return elementSize; }
+        inline int     getOffset(int i) const { return context->offsets[i]; }
+        inline int     getElementSize() const { return elementSize; }
 
-  /* Templates */
-  template <class T> inline T getValue(const int index, const int attribute) const {
-    size_t dOffset = context->offsets[attribute] + index * elementSize;
-    const char *data = reinterpret_cast<const char *>(&context->buffer[dOffset]);
-    return *reinterpret_cast<const T *>(data);
-  }
+        /* Templates */
+        template <class T>
+        inline T getValue(const int index, const int attribute) const
+        {
+            size_t      dOffset = context->offsets[attribute] + index * elementSize;
+            const char* data    = reinterpret_cast<const char*>(&context->buffer[dOffset]);
+            return *reinterpret_cast<const T*>(data);
+        }
 
-  template <class T> inline const T *getValuePtr(const int index, const int attribute) const {
-    size_t dOffset = context->offsets[attribute] + index * elementSize;
-    const char *data = reinterpret_cast<const char *>(&context->buffer[dOffset]);
-    return reinterpret_cast<const T *>(data);
-  }
+        template <class T>
+        inline const T* getValuePtr(const int index, const int attribute) const
+        {
+            size_t      dOffset = context->offsets[attribute] + index * elementSize;
+            const char* data    = reinterpret_cast<const char*>(&context->buffer[dOffset]);
+            return reinterpret_cast<const T*>(data);
+        }
 
-  template <class T> inline T setValue(const int index, const int attribute, const T value) {
-    size_t dOffset = context->offsets[attribute] + index * elementSize;
-    char *data = reinterpret_cast<char *>(&context->buffer[dOffset]);
-    *reinterpret_cast<T *>(data) = value;
-    return value;
-  }
+        template <class T>
+        inline T setValue(const int index, const int attribute, const T value)
+        {
+            size_t dOffset              = context->offsets[attribute] + index * elementSize;
+            char*  data                 = reinterpret_cast<char*>(&context->buffer[dOffset]);
+            *reinterpret_cast<T*>(data) = value;
+            return value;
+        }
 
-  /* Inline */
-  inline char *getBufferUnsafe() const { return (char *)context->buffer.data(); }
+        /* Inline */
+        inline char* GetBufferUnsafe() const { return (char*)context->buffer.data(); }
 
-  inline u32 getBufferSize() const {
-    using namespace Ifrit::Common::Utility;
-    return size_cast<int>(context->buffer.size());
-  }
+        inline u32   GetBufferSize() const
+        {
+            using namespace Ifrit::Common::Utility;
+            return SizeCast<int>(context->buffer.size());
+        }
 
-  /* DLL Compatible */
-  void setLayoutCompatible(const TypeDescriptor *layouts, int num);
-  void setValueFloat4Compatible(const int index, const int attribute, const Vector4f value);
-};
-} // namespace Ifrit::GraphicsBackend::SoftGraphics
+        /* DLL Compatible */
+        void setLayoutCompatible(const TypeDescriptor* layouts, int num);
+        void setValueFloat4Compatible(const int index, const int attribute, const Vector4f value);
+    };
+} // namespace Ifrit::Graphics::SoftGraphics

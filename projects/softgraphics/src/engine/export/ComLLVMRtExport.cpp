@@ -16,17 +16,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/export/ComLLVMRtExport.h"
 #include "ifrit/softgraphics/engine/comllvmrt/WrappedLLVMRuntime.h"
 
-IFRIT_APIDECL_COMPAT void *IFRIT_APICALL ifvmCreateLLVMRuntimeBuilder()
-    IFRIT_EXPORT_COMPAT_NOTHROW {
-  return new Ifrit::GraphicsBackend::SoftGraphics::ComLLVMRuntime::
-      WrappedLLVMRuntimeBuilder();
+IFRIT_APIDECL_COMPAT void* IFRIT_APICALL ifvmCreateLLVMRuntimeBuilder()
+	IFRIT_EXPORT_COMPAT_NOTHROW
+{
+	return new Ifrit::Graphics::SoftGraphics::ComLLVMRuntime::
+		WrappedLLVMRuntimeBuilder();
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL ifvmDestroyLLVMRuntimeBuilder(void *p)
-    IFRIT_EXPORT_COMPAT_NOTHROW {
-  delete (Ifrit::GraphicsBackend::SoftGraphics::ComLLVMRuntime::
-              WrappedLLVMRuntimeBuilder *)p;
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL ifvmDestroyLLVMRuntimeBuilder(void* p)
+	IFRIT_EXPORT_COMPAT_NOTHROW
+{
+	delete (Ifrit::Graphics::SoftGraphics::ComLLVMRuntime::
+			WrappedLLVMRuntimeBuilder*)p;
 }

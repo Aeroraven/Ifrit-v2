@@ -18,9 +18,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/common/math/VectorOps.h"
-template <class Archive> void serialize(Archive &ar, Vector2f &v) { ar(v.x, v.y); }
-template <class Archive> void serialize(Archive &ar, Vector3f &v) { ar(v.x, v.y, v.z); }
-template <class Archive> void serialize(Archive &ar, Vector4f &v) { ar(v.x, v.y, v.z, v.w); }
-template <class Archive> void serialize(Archive &ar, Vector4i &v) { ar(v.x, v.y, v.z, v.w); }
-template <class Archive> void serialize(Archive &ar, Vector3i &v) { ar(v.x, v.y, v.z); }
-template <class Archive> void serialize(Archive &ar, Vector2i &v) { ar(v.x, v.y); }
+template <class Archive>
+void serialize(Archive& ar, Vector2f& v) { ar(v.x, v.y); }
+template <class Archive>
+void serialize(Archive& ar, Vector3f& v) { ar(v.x, v.y, v.z); }
+template <class Archive>
+void serialize(Archive& ar, Vector4f& v) { ar(v.x, v.y, v.z, v.w); }
+template <class Archive>
+void serialize(Archive& ar, Vector4i& v) { ar(v.x, v.y, v.z, v.w); }
+template <class Archive>
+void serialize(Archive& ar, Vector3i& v) { ar(v.x, v.y, v.z); }
+template <class Archive>
+void serialize(Archive& ar, Vector2i& v) { ar(v.x, v.y); }

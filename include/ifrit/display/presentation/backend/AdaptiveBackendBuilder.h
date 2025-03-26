@@ -16,14 +16,16 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/display/presentation/backend/BackendProvider.h"
 #include <memory>
 
-namespace Ifrit::Display::Backend {
-class IFRIT_APIDECL AdaptiveBackendBuilder {
-public:
-  std::unique_ptr<BackendProvider> buildUniqueBackend();
-};
+namespace Ifrit::Display::Backend
+{
+    class IFRIT_APIDECL AdaptiveBackendBuilder
+    {
+    public:
+        Uref<BackendProvider> BuildUniqueBackend();
+    };
 } // namespace Ifrit::Display::Backend

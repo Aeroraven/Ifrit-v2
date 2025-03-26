@@ -26,49 +26,54 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace Ifrit::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::Graphics::VulkanGraphics
+{
 
-struct ShaderModuleCI {
-  Vec<char> code;
-  String entryPoint;
-  Rhi::RhiShaderStage stage;
-  Rhi::RhiShaderSourceType sourceType;
-  String fileName;
-};
+    struct ShaderModuleCI
+    {
+        Vec<char>                code;
+        String                   entryPoint;
+        Rhi::RhiShaderStage      stage;
+        Rhi::RhiShaderSourceType sourceType;
+        String                   fileName;
+    };
 
-class IFRIT_APIDECL ShaderModule : public Rhi::RhiShader {
-private:
-  VkShaderModule m_module;
-  VkPipelineShaderStageCreateInfo m_stageCI{};
-  EngineContext *m_context;
-  ShaderModuleCI m_ci;
-  String m_entryPoint;
-  SpvReflectShaderModule m_reflectModule;
-  Vec<SpvReflectDescriptorSet *> m_reflectSets;
-  bool m_reflectionCreated = false;
+    class IFRIT_APIDECL ShaderModule : public Rhi::RhiShader
+    {
+    private:
+        VkShaderModule                  m_module;
+        VkPipelineShaderStageCreateInfo m_stageCI{};
+        EngineContext*                  m_context;
+        ShaderModuleCI                  m_ci;
+        String                          m_entryPoint;
+        SpvReflectShaderModule          m_reflectModule;
+        Vec<SpvReflectDescriptorSet*>   m_reflectSets;
+        bool                            m_reflectionCreated = false;
 
-  // Intended for pipeline cache
-  String m_signature;
+        // Intended for pipeline cache
+        String                          m_signature;
 
-public:
-  ShaderModule(EngineContext *ctx, const ShaderModuleCI &ci);
-  ~ShaderModule();
-  VkShaderModule getModule() const;
-  VkPipelineShaderStageCreateInfo getStageCI() const;
-  inline u32 getCodeSize() const {
-    using namespace Ifrit::Common::Utility;
-    return size_cast<u32>(m_ci.code.size());
-  }
-  inline u32 getNumDescriptorSets() const override {
-    using namespace Ifrit::Common::Utility;
-    return size_cast<u32>(m_reflectSets.size());
-  }
-  virtual Rhi::RhiShaderStage getStage() const override { return m_ci.stage; }
+    public:
+        ShaderModule(EngineContext* ctx, const ShaderModuleCI& ci);
+        ~ShaderModule();
+        VkShaderModule                  GetModule() const;
+        VkPipelineShaderStageCreateInfo GetStageCI() const;
+        inline u32                      GetCodeSize() const
+        {
+            using namespace Ifrit::Common::Utility;
+            return SizeCast<u32>(m_ci.code.size());
+        }
+        inline u32 GetNumDescriptorSets() const override
+        {
+            using namespace Ifrit::Common::Utility;
+            return SizeCast<u32>(m_reflectSets.size());
+        }
+        virtual Rhi::RhiShaderStage GetStage() const override { return m_ci.stage; }
 
-  void cacheReflectionData();
-  void recoverReflectionData();
+        void                        CacheReflectionData();
+        void                        RecoverReflectionData();
 
-  // get signature
-  inline String getSignature() const { return m_signature; }
-};
-} // namespace Ifrit::GraphicsBackend::VulkanGraphics
+        // get signature
+        inline String               GetSignature() const { return m_signature; }
+    };
+} // namespace Ifrit::Graphics::VulkanGraphics

@@ -31,14 +31,14 @@ namespace Ifrit::Demo::MeshletDemo {
 		int* outIndices, int& outNumVertices, int& outNumIndices) {
 
 		using namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA;
-		Matrix4x4f view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
+		Matrix4x4f view = (LookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
 		Matrix4x4f proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 1000));
 		Matrix4x4f mvp = multiply(proj, view);
 
-		auto vertexData = reinterpret_cast<Vector4f*>(getBufferPtr(0));
-		auto indexData = reinterpret_cast<int*>(getBufferPtr(1));
-		auto vertOffsets = reinterpret_cast<int*>(getBufferPtr(2));
-		auto indOffsets = reinterpret_cast<int*>(getBufferPtr(3));
+		auto vertexData = reinterpret_cast<Vector4f*>(GetBufferPtr(0));
+		auto indexData = reinterpret_cast<int*>(GetBufferPtr(1));
+		auto vertOffsets = reinterpret_cast<int*>(GetBufferPtr(2));
+		auto indOffsets = reinterpret_cast<int*>(GetBufferPtr(3));
 
 		auto rsWorkGroupId = *reinterpret_cast<const int*>(inTaskShaderPayload);
 
@@ -58,7 +58,7 @@ namespace Ifrit::Demo::MeshletDemo {
 			outIndices[i] = indexData[indStart+i];
 		}
 	}
-	IFRIT_HOST Ifrit::SoftRenderer::MeshShader* MeshletDemoCuMS::getCudaClone() {
+	IFRIT_HOST Ifrit::SoftRenderer::MeshShader* MeshletDemoCuMS::GetCudaClone() {
 		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuMS>(this);
 	}
 
@@ -74,7 +74,7 @@ namespace Ifrit::Demo::MeshletDemo {
 		
 	}
 
-	IFRIT_HOST Ifrit::SoftRenderer::TaskShader* MeshletDemoCuTS::getCudaClone() {
+	IFRIT_HOST Ifrit::SoftRenderer::TaskShader* MeshletDemoCuTS::GetCudaClone() {
 		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuTS>(this);
 
 	}
@@ -88,7 +88,7 @@ namespace Ifrit::Demo::MeshletDemo {
 		co.w = result.w;
 	}
 
-	IFRIT_HOST Ifrit::SoftRenderer::FragmentShader* MeshletDemoCuFS::getCudaClone() {
+	IFRIT_HOST Ifrit::SoftRenderer::FragmentShader* MeshletDemoCuFS::GetCudaClone() {
 		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<MeshletDemoCuFS>(this);
 	}
 }

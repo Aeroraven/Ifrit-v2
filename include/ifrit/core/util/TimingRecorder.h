@@ -20,20 +20,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/ApiConv.h"
 
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-class IFRIT_APIDECL TimingRecorder {
-private:
-  u64 m_curSystemTimeUs;
-  u64 m_curTimeUs;
-  u64 m_deltaTimeUs;
+    class IFRIT_APIDECL TimingRecorder
+    {
+    private:
+        u64 m_curSystemTimeUs;
+        u64 m_curTimeUs;
+        u64 m_deltaTimeUs;
 
-public:
-  void onUpdate();
+    public:
+        void       OnUpdate();
 
-  inline u64 getCurSystemTimeUs() const { return m_curSystemTimeUs; }
-  inline u64 getCurTimeUs() const { return m_curTimeUs; }
-  inline u64 getDeltaTimeUs() const { return m_deltaTimeUs; }
-};
+        inline u64 GetCurSystemTimeUs() const { return m_curSystemTimeUs; }
+        inline u64 GetCurTimeUs() const { return m_curTimeUs; }
+        inline u64 GetDeltaTimeUs() const { return m_deltaTimeUs; }
+    };
 
 } // namespace Ifrit::Core

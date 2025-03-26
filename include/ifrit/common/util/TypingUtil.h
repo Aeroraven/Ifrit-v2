@@ -22,113 +22,138 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <memory>
 #include <stdexcept>
 
-namespace Ifrit::Common::Utility {
+namespace Ifrit::Common::Utility
+{
 
-template <typename T, typename U> T *checked_cast(U *ptr) {
-  // Reference: NVIDIAGameWorks/nvrhi/blob/main/include/nvrhi/nvrhi.h
+    template <typename T, typename U>
+    T* CheckedCast(U* ptr)
+    {
+        // Reference: NVIDIAGameWorks/nvrhi/blob/main/include/nvrhi/nvrhi.h
 #ifdef _DEBUG
-  // dynamic cast
-  if (ptr == nullptr) {
-    return nullptr;
-  }
-  auto casted = dynamic_cast<T *>(ptr);
-  if (casted == nullptr) {
-    throw std::runtime_error("Invalid cast");
-  }
-  return casted;
+        // dynamic cast
+        if (ptr == nullptr)
+        {
+            return nullptr;
+        }
+        auto casted = dynamic_cast<T*>(ptr);
+        if (casted == nullptr)
+        {
+            throw std::runtime_error("Invalid cast");
+        }
+        return casted;
 #else
-  return static_cast<T *>(ptr);
+        return static_cast<T*>(ptr);
 #endif
-}
+    }
 
-template <typename T, typename U> const T *checked_cast(const U *ptr) {
+    template <typename T, typename U>
+    const T* CheckedCast(const U* ptr)
+    {
 #ifdef _DEBUG
-  // dynamic cast
-  if (ptr == nullptr) {
-    return nullptr;
-  }
-  auto casted = dynamic_cast<const T *>(ptr);
-  if (casted == nullptr) {
-    throw std::runtime_error("Invalid cast");
-  }
-  return casted;
+        // dynamic cast
+        if (ptr == nullptr)
+        {
+            return nullptr;
+        }
+        auto casted = dynamic_cast<const T*>(ptr);
+        if (casted == nullptr)
+        {
+            throw std::runtime_error("Invalid cast");
+        }
+        return casted;
 #else
-  return static_cast<const T *>(ptr);
+        return static_cast<const T*>(ptr);
 #endif
-}
+    }
 
-template <typename T, typename U> std::shared_ptr<T> checked_pointer_cast(const std::shared_ptr<U> &ptr) {
+    template <typename T, typename U>
+    std::shared_ptr<T> CheckedPointerCast(const std::shared_ptr<U>& ptr)
+    {
 #ifdef _DEBUG
-  // dynamic cast
-  if (ptr == nullptr) {
-    return nullptr;
-  }
-  auto casted = std::dynamic_pointer_cast<T>(ptr);
-  if (casted == nullptr) {
-    throw std::runtime_error("Invalid cast");
-  }
-  return casted;
+        // dynamic cast
+        if (ptr == nullptr)
+        {
+            return nullptr;
+        }
+        auto casted = std::dynamic_pointer_cast<T>(ptr);
+        if (casted == nullptr)
+        {
+            throw std::runtime_error("Invalid cast");
+        }
+        return casted;
 #else
-  return std::static_pointer_cast<T>(ptr);
+        return std::static_pointer_cast<T>(ptr);
 #endif
-}
+    }
 
-template <typename T> T size_cast(size_t size) { return static_cast<T>(size); }
+    template <typename T>
+    T                   SizeCast(size_t size) { return static_cast<T>(size); }
 
-// Non-copyable class:
-// https://www.boost.org/doc/libs/1_41_0/boost/noncopyable.hpp
-class IFRIT_APIDECL NonCopyable {
-protected:
-  NonCopyable() = default;
-  ~NonCopyable() = default;
+    // Non-copyable class:
+    // https://www.boost.org/doc/libs/1_41_0/boost/noncopyable.hpp
+    class IFRIT_APIDECL NonCopyable
+    {
+    protected:
+        NonCopyable()  = default;
+        ~NonCopyable() = default;
 
-private:
-  NonCopyable(const NonCopyable &) = delete;
-  NonCopyable &operator=(const NonCopyable &) = delete;
-};
+    private:
+        NonCopyable(const NonCopyable&)            = delete;
+        NonCopyable& operator=(const NonCopyable&) = delete;
+    };
 
-struct IFRIT_APIDECL NonCopyableStruct {
-  NonCopyableStruct() = default;
-  ~NonCopyableStruct() = default;
+    struct IFRIT_APIDECL NonCopyableStruct
+    {
+        NonCopyableStruct()  = default;
+        ~NonCopyableStruct() = default;
 
-private:
-  NonCopyableStruct(const NonCopyableStruct &) = delete;
-  NonCopyableStruct &operator=(const NonCopyableStruct &) = delete;
-};
+    private:
+        NonCopyableStruct(const NonCopyableStruct&)            = delete;
+        NonCopyableStruct& operator=(const NonCopyableStruct&) = delete;
+    };
 
-template <class T> consteval inline static const char *getFuncName() {
+    template <class T>
+    consteval inline static const char* GetFuncName()
+    {
 #ifdef _MSC_VER
-  return __FUNCSIG__;
+        return __FUNCSIG__;
 #else
-#ifdef __PRETTY_FUNCTION__
-  return __PRETTY_FUNCTION__;
-#else
-  static_assert(false, "Unsupported compiler");
+    #ifdef __PRETTY_FUNCTION__
+        return __PRETTY_FUNCTION__;
+    #else
+        static_assert(false, "Unsupported compiler");
+    #endif
 #endif
-#endif
-}
+    }
 
-template <unsigned E, unsigned N> consteval u64 funcNameHash(const char (&str)[N]) {
-  u64 hash = 0;
-  if IF_CONSTEXPR (N == E)
-    return 0;
-  else {
-    return str[0] + 257 * funcNameHash<E + 1, N>(str);
-  }
-}
+    template <unsigned E, unsigned N>
+    consteval u64 GetFuncNameHash(const char (&str)[N])
+    {
+        u64 hash = 0;
+        if IF_CONSTEXPR (N == E)
+            return 0;
+        else
+        {
+            return str[0] + 257 * GetFuncNameHash<E + 1, N>(str);
+        }
+    }
 
-template <class T> consteval u64 getFuncHashId() {
-  static_assert(!std::is_same_v<T, void>, "T must not be void");
+    template <class T>
+    consteval u64 GetFuncNameHashId()
+    {
+        static_assert(!std::is_same_v<T, void>, "T must not be void");
 #ifdef _MSC_VER
-  return funcNameHash<0>(__FUNCSIG__);
+        return GetFuncNameHash<0>(__FUNCSIG__);
 #else
-  return funcNameHash<0>(__PRETTY_FUNCTION__);
+        return GetFuncNameHash<0>(__PRETTY_FUNCTION__);
 #endif
-}
+    }
 
-template <class T> struct iTypeInfo {
-  static IF_CONSTEXPR const char *name = getFuncName<T>();
-  static IF_CONSTEXPR u64 hash = getFuncHashId<T>();
-};
+    template <class T>
+    struct RTypeInfo
+    {
+        static IF_CONSTEXPR const char* name = GetFuncName<T>();
+        static IF_CONSTEXPR u64         hash = GetFuncNameHashId<T>();
+    };
 
 } // namespace Ifrit::Common::Utility

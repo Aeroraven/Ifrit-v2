@@ -47,210 +47,239 @@ using namespace Ifrit::Math;
 using namespace Ifrit::Display::Window;
 using namespace Ifrit::Display::Backend;
 
-namespace Ifrit::Demo::AccelStructDemo {
-static std::shared_ptr<ImageF32> image;
+namespace Ifrit::Demo::AccelStructDemo
+{
+    static std::shared_ptr<ImageF32> image;
 
-struct Payload {
-  Vector4f color;
-};
+    struct Payload
+    {
+        Vector4f color;
+    };
 
-class DemoRayGen : public RayGenShader {
-public:
-  IFRIT_DUAL virtual void execute(const Vector3i &inputInvocation, const Vector3i &dimension, void *context) {
-    float dx = 1.0f * inputInvocation.x / dimension.x;
-    float dy = 1.0f * inputInvocation.y / dimension.y;
-    float dz = 1.0f * inputInvocation.z / dimension.z;
-    float rx = 0.25f * dx - 0.125f - 0.02f;
-    float ry = 0.25f * dy - 0.125f + 0.1f;
-    float rz = -1.0f;
-    Payload payload;
-    ifritShaderOps_Raytracer_TraceRay({rx, ry, rz}, 0, 0, 0, 0, 0, 0, 0.001f, {0.0f, 0.0f, 1.0f}, 900000.0f, &payload,
-                                      context);
-    image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y, payload.color.z,
-                         payload.color.w);
-  }
-  IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() { return std::make_unique<DemoRayGen>(); }
-};
+    class DemoRayGen : public RayGenShader
+    {
+    public:
+        IFRIT_DUAL virtual void execute(const Vector3i& inputInvocation, const Vector3i& dimension, void* context)
+        {
+            float   dx = 1.0f * inputInvocation.x / dimension.x;
+            float   dy = 1.0f * inputInvocation.y / dimension.y;
+            float   dz = 1.0f * inputInvocation.z / dimension.z;
+            float   rx = 0.25f * dx - 0.125f - 0.02f;
+            float   ry = 0.25f * dy - 0.125f + 0.1f;
+            float   rz = -1.0f;
+            Payload payload;
+            ifritShaderOps_Raytracer_TraceRay({ rx, ry, rz }, 0, 0, 0, 0, 0, 0, 0.001f, { 0.0f, 0.0f, 1.0f }, 900000.0f, &payload,
+                context);
+            image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y, payload.color.z,
+                payload.color.w);
+        }
+        IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() { return std::make_unique<DemoRayGen>(); }
+    };
 
-class DemoClosetHit : public CloseHitShader {
-private:
-  void *payload;
+    class DemoClosetHit : public CloseHitShader
+    {
+    private:
+        void* payload;
 
-public:
-  IFRIT_DUAL virtual void execute(const RayHit &hitAttribute, const RayInternal &ray, void *context) {
-    auto p = reinterpret_cast<Payload *>(payload);
-    p->color = {1.0f, 0.0f, 0.0f, 1.0f};
-  }
-  IFRIT_HOST virtual void onStackPushComplete() {
-    if (execStack.size()) {
-      payload = execStack.back().payloadPtr;
-    }
-  }
-  IFRIT_HOST virtual void onStackPopComplete() {
-    if (execStack.size()) {
-      payload = execStack.back().payloadPtr;
-    }
-  }
-  IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy() { return std::make_unique<DemoClosetHit>(); }
-};
+    public:
+        IFRIT_DUAL virtual void execute(const RayHit& hitAttribute, const RayInternal& ray, void* context)
+        {
+            auto p   = reinterpret_cast<Payload*>(payload);
+            p->color = { 1.0f, 0.0f, 0.0f, 1.0f };
+        }
+        IFRIT_HOST virtual void onStackPushComplete()
+        {
+            if (execStack.size())
+            {
+                payload = execStack.back().payloadPtr;
+            }
+        }
+        IFRIT_HOST virtual void onStackPopComplete()
+        {
+            if (execStack.size())
+            {
+                payload = execStack.back().payloadPtr;
+            }
+        }
+        IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy() { return std::make_unique<DemoClosetHit>(); }
+    };
 
-class DemoMiss : public MissShader {
-private:
-  void *payload;
+    class DemoMiss : public MissShader
+    {
+    private:
+        void* payload;
 
-public:
-  IFRIT_DUAL virtual void execute(void *context) {
-    auto p = reinterpret_cast<Payload *>(payload);
-    p->color = {0.0f, 1.0f, 0.0f, 1.0f};
-  }
-  IFRIT_HOST virtual void onStackPushComplete() {
-    if (execStack.size()) {
-      payload = execStack.back().payloadPtr;
-    }
-  }
-  IFRIT_HOST virtual void onStackPopComplete() {
-    if (execStack.size()) {
-      payload = execStack.back().payloadPtr;
-    }
-  }
+    public:
+        IFRIT_DUAL virtual void execute(void* context)
+        {
+            auto p   = reinterpret_cast<Payload*>(payload);
+            p->color = { 0.0f, 1.0f, 0.0f, 1.0f };
+        }
+        IFRIT_HOST virtual void onStackPushComplete()
+        {
+            if (execStack.size())
+            {
+                payload = execStack.back().payloadPtr;
+            }
+        }
+        IFRIT_HOST virtual void onStackPopComplete()
+        {
+            if (execStack.size())
+            {
+                payload = execStack.back().payloadPtr;
+            }
+        }
 
-  IFRIT_HOST virtual std::unique_ptr<MissShader> getThreadLocalCopy() { return std::make_unique<DemoMiss>(); }
-};
+        IFRIT_HOST virtual std::unique_ptr<MissShader> getThreadLocalCopy() { return std::make_unique<DemoMiss>(); }
+    };
 
-int mainCpu() {
-  using namespace Ifrit::SoftRenderer::ShaderVM::Spirv;
+    int mainCpu()
+    {
+        using namespace Ifrit::SoftRenderer::ShaderVM::Spirv;
 
-  WavefrontLoader loader;
-  std::vector<Vector3f> posRaw;
-  std::vector<Vector3f> normal;
-  std::vector<Vector2f> uv;
-  std::vector<uint32_t> index;
-  std::vector<Vector3f> procNormal;
+        WavefrontLoader       loader;
+        std::vector<Vector3f> posRaw;
+        std::vector<Vector3f> normal;
+        std::vector<Vector2f> uv;
+        std::vector<uint32_t> index;
+        std::vector<Vector3f> procNormal;
 
-  loader.loadObject(IFRIT_ASSET_PATH "/bunny.obj", posRaw, normal, uv, index);
+        loader.loadObject(IFRIT_ASSET_PATH "/bunny.obj", posRaw, normal, uv, index);
 
-  std::vector<int> indexBuffer = {0, 1, 2, 2, 3, 0};
-  indexBuffer.resize(index.size() / 3);
-  for (int i = 0; i < index.size(); i += 3) {
-    indexBuffer[i / 3] = index[i];
-  }
-  std::vector<Vector3f> pos;
-  for (int i = 0; i < indexBuffer.size(); i++) {
-    pos.push_back(posRaw[indexBuffer[i]]);
-  }
+        std::vector<int> indexBuffer = { 0, 1, 2, 2, 3, 0 };
+        indexBuffer.resize(index.size() / 3);
+        for (int i = 0; i < index.size(); i += 3)
+        {
+            indexBuffer[i / 3] = index[i];
+        }
+        std::vector<Vector3f> pos;
+        for (int i = 0; i < indexBuffer.size(); i++)
+        {
+            pos.push_back(posRaw[indexBuffer[i]]);
+        }
 
-  BoundingVolumeHierarchyBottomLevelAS blas;
-  blas.bufferData(pos);
-  blas.buildAccelerationStructure();
+        BoundingVolumeHierarchyBottomLevelAS blas;
+        blas.bufferData(pos);
+        blas.buildAccelerationStructure();
 
-  BoundingVolumeHierarchyTopLevelAS tlas;
-  std::vector<BoundingVolumeHierarchyBottomLevelAS *> blasArray = {&blas};
-  tlas.bufferData(blasArray);
-  tlas.buildAccelerationStructure();
+        BoundingVolumeHierarchyTopLevelAS                  tlas;
+        std::vector<BoundingVolumeHierarchyBottomLevelAS*> blasArray = { &blas };
+        tlas.bufferData(blasArray);
+        tlas.buildAccelerationStructure();
 
-  std::shared_ptr<TrivialRaytracer> raytracer = std::make_shared<TrivialRaytracer>();
-  raytracer->init();
-  raytracer->bindAccelerationStructure(&tlas);
+        std::shared_ptr<TrivialRaytracer> raytracer = std::make_shared<TrivialRaytracer>();
+        raytracer->Init();
+        raytracer->bindAccelerationStructure(&tlas);
 
-  IF_CONSTEXPR int DEMO_RESOLUTION = 1024;
-  image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
-  raytracer->bindTestImage(image.get());
+        IF_CONSTEXPR int DEMO_RESOLUTION = 1024;
+        image                            = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
+        raytracer->bindTestImage(image.get());
 
-  std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
-  bufferman->init();
+        std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
+        bufferman->Init();
 
-  auto imageptrv = image.get();
-  auto imageptr = bufferman->createBuffer({sizeof(image.get())});
-  bufferman->bufferData(imageptr, &imageptrv, 0, sizeof(image.get()));
+        auto imageptrv = image.get();
+        auto imageptr  = bufferman->CreateBuffer({ sizeof(image.get()) });
+        bufferman->bufferData(imageptr, &imageptrv, 0, sizeof(image.get()));
 
-  // DemoRayGen raygen;
-  SpvVMReader reader;
-  WrappedLLVMRuntimeBuilder builder;
+        // DemoRayGen raygen;
+        SpvVMReader               reader;
+        WrappedLLVMRuntimeBuilder builder;
 
-  auto rgenCode = reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rgen.spv");
-  auto rmissCode = reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rmiss.spv");
-  auto rchitCode = reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rchit.spv");
+        auto                      rgenCode  = reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rgen.spv");
+        auto                      rmissCode = reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rmiss.spv");
+        auto                      rchitCode = reader.readFile(IFRIT_ASSET_PATH "/shaders/raytracer/rtdemo.rchit.spv");
 
 #if 1
-  SpvRaygenShader raygen(builder, rgenCode);
-  SpvMissShader miss(builder, rmissCode);
-  SpvClosestHitShader hit(builder, rchitCode);
+        SpvRaygenShader     raygen(builder, rgenCode);
+        SpvMissShader       miss(builder, rmissCode);
+        SpvClosestHitShader hit(builder, rchitCode);
 #else
-  DemoRayGen raygen;
-  DemoClosetHit hit;
-  DemoMiss miss;
+        DemoRayGen    raygen;
+        DemoClosetHit hit;
+        DemoMiss      miss;
 #endif
 
-  raytracer->bindClosestHitShader(&hit);
-  raytracer->bindRaygenShader(&raygen);
-  raytracer->bindMissShader(&miss);
-  raytracer->bindUniformBuffer(0, 1, imageptr);
+        raytracer->bindClosestHitShader(&hit);
+        raytracer->bindRaygenShader(&raygen);
+        raytracer->bindMissShader(&miss);
+        raytracer->bindUniformBuffer(0, 1, imageptr);
 
-  GLFWWindowProvider windowProvider;
-  windowProvider.setup(1920, 1080);
-  windowProvider.setTitle("Ifrit-v2 CPU Multithreading");
+        GLFWWindowProvider windowProvider;
+        windowProvider.Setup(1920, 1080);
+        windowProvider.SetTitle("Ifrit-v2 CPU Multithreading");
 
-  OpenGLBackend backend;
-  backend.setViewport(0, 0, windowProvider.getWidth(), windowProvider.getHeight());
+        OpenGLBackend backend;
+        backend.SetViewport(0, 0, windowProvider.GetWidth(), windowProvider.GetHeight());
 
-  ifritLog1("Start");
-  windowProvider.loop([&](int *coreTime) {
-    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-    raytracer->traceRays(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
-    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-    *coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    backend.updateTexture(*image);
-    backend.draw();
-  });
+        ifritLog1("Start");
+        windowProvider.Loop([&](int* coreTime) {
+            std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+            raytracer->traceRays(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
+            std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+            *coreTime                                          = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            backend.UpdateTexture(*image);
+            backend.draw();
+        });
 
-  return 0;
-}
-
-int mainCpuSpirv() {
-  while (true) {
-    float ps;
-    cin >> ps;
-    auto stTime2 = std::chrono::high_resolution_clock::now();
-    auto src2 = Vector3f(0.0f, 0.0f, 0.0f);
-    auto a2 = Vector3f(1.0f, ps, 1.0f);
-    auto b2 = Vector3f(ps, 2.0f, 1.0f);
-    auto c2 = Vector3f(1.0, 1.0, 1.0f);
-    auto d2 = Vector3f(1.0, 1.0, 1.0f);
-    for (long long i = 0; i < 8000000000; i++) {
-      if (i % 2 == 0) {
-        src2 += cross(a2, b2) * c2 + d2;
-      } else {
-        src2 -= cross(b2, a2) * c2 + d2;
-      }
+        return 0;
     }
-    auto edTime2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Normal Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count()
-              << std::endl;
-    auto normalTime = std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count();
-    printf("%f %f %f\n", src2.x, src2.y, src2.z);
 
-    auto stTime = std::chrono::high_resolution_clock::now();
-    auto src = SVector3f(0.0f, 0.0f, 0.0f);
-    auto a = SVector3f(1.0f, ps, 1.0f);
-    auto b = SVector3f(ps, 2.0f, 1.0f);
-    auto c = SVector3f(1.0, 1.0, 1.0f);
-    auto d = SVector3f(1.0, 1.0, 1.0f);
-    for (long long i = 0; i < 8000000000; i++) {
-      if (i % 2 == 0) {
-        src += fma(cross(a, b), c, d);
-      } else {
-        src -= fma(cross(b, a), c, d);
-      }
+    int mainCpuSpirv()
+    {
+        while (true)
+        {
+            float ps;
+            cin >> ps;
+            auto stTime2 = std::chrono::high_resolution_clock::now();
+            auto src2    = Vector3f(0.0f, 0.0f, 0.0f);
+            auto a2      = Vector3f(1.0f, ps, 1.0f);
+            auto b2      = Vector3f(ps, 2.0f, 1.0f);
+            auto c2      = Vector3f(1.0, 1.0, 1.0f);
+            auto d2      = Vector3f(1.0, 1.0, 1.0f);
+            for (long long i = 0; i < 8000000000; i++)
+            {
+                if (i % 2 == 0)
+                {
+                    src2 += cross(a2, b2) * c2 + d2;
+                }
+                else
+                {
+                    src2 -= cross(b2, a2) * c2 + d2;
+                }
+            }
+            auto edTime2 = std::chrono::high_resolution_clock::now();
+            std::cout << "Normal Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count()
+                      << std::endl;
+            auto normalTime = std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count();
+            printf("%f %f %f\n", src2.x, src2.y, src2.z);
+
+            auto stTime = std::chrono::high_resolution_clock::now();
+            auto src    = SVector3f(0.0f, 0.0f, 0.0f);
+            auto a      = SVector3f(1.0f, ps, 1.0f);
+            auto b      = SVector3f(ps, 2.0f, 1.0f);
+            auto c      = SVector3f(1.0, 1.0, 1.0f);
+            auto d      = SVector3f(1.0, 1.0, 1.0f);
+            for (long long i = 0; i < 8000000000; i++)
+            {
+                if (i % 2 == 0)
+                {
+                    src += fma(cross(a, b), c, d);
+                }
+                else
+                {
+                    src -= fma(cross(b, a), c, d);
+                }
+            }
+            auto edTime = std::chrono::high_resolution_clock::now();
+            std::cout << "SIMD Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(edTime - stTime).count()
+                      << std::endl;
+            auto simdTime = std::chrono::duration_cast<std::chrono::milliseconds>(edTime - stTime).count();
+            printf("%f %f %f\n", src.x, src.y, src.z);
+
+            printf("Speedup: %f\n", (float)normalTime / (float)simdTime);
+        }
+
+        return 0;
     }
-    auto edTime = std::chrono::high_resolution_clock::now();
-    std::cout << "SIMD Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(edTime - stTime).count()
-              << std::endl;
-    auto simdTime = std::chrono::duration_cast<std::chrono::milliseconds>(edTime - stTime).count();
-    printf("%f %f %f\n", src.x, src.y, src.z);
-
-    printf("Speedup: %f\n", (float)normalTime / (float)simdTime);
-  }
-
-  return 0;
-}
 } // namespace Ifrit::Demo::AccelStructDemo

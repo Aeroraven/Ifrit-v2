@@ -25,17 +25,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Demo::DemoDefault {
 	IFRIT_DUAL void DemoVertexShaderCuda::execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) {
 		using namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA;
-		//Matrix4x4f view = (lookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
-		//Matrix4x4f view = (lookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
-		//Matrix4x4f view = (lookAt({ 0,0.1,1.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-		Matrix4x4f view = (lookAt({ 0.08,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));  //fox
-		//Matrix4x4f view = (lookAt({ 0.0,0.6,-1.5 }, { 0,0.4,0.0 }, { 0,1,0 }));  //af 
+		//Matrix4x4f view = (LookAt({ 0,1.5,5.25 }, { 0,1.5,0.0 }, { 0,1,0 }));
+		//Matrix4x4f view = (LookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
+		//Matrix4x4f view = (LookAt({ 0,0.1,1.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
+		Matrix4x4f view = (LookAt({ 0.08,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));  //fox
+		//Matrix4x4f view = (LookAt({ 0.0,0.6,-1.5 }, { 0,0.4,0.0 }, { 0,1,0 }));  //af 
 		 
-		//Matrix4x4f view = (lookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
-		//Matrix4x4f view = (lookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
+		//Matrix4x4f view = (LookAt({ 0,0.1,0.25 }, { 0,0.1,0.0 }, { 0,1,0 }));
+		//Matrix4x4f view = (LookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
 		//Matrix4x4f proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 10.0, 3000));
 
-		//Matrix4x4f view = (lookAt({ 0,1.5,0}, { -100,1.5,0 }, { 0,1,0 }));
+		//Matrix4x4f view = (LookAt({ 0,1.5,0}, { -100,1.5,0 }, { 0,1,0 }));
 		Matrix4x4f proj = (perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 1000));
 		Matrix4x4f mvp = multiply(proj, view);
 		auto s = isbReadFloat4(input[0]);
@@ -46,7 +46,7 @@ namespace Ifrit::Demo::DemoDefault {
 		(*outVaryings[1]).y = 1.0f - outVaryings[1]->y;
 	}
 
-	IFRIT_HOST Ifrit::SoftRenderer::VertexShader* DemoVertexShaderCuda::getCudaClone() {
+	IFRIT_HOST Ifrit::SoftRenderer::VertexShader* DemoVertexShaderCuda::GetCudaClone() {
 		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<DemoVertexShaderCuda>(this);
 	}
 
@@ -75,7 +75,7 @@ namespace Ifrit::Demo::DemoDefault {
 		//printf("%f %f %f %f\n", result.x, result.y, result.z, result.w);
 	}
 
-	IFRIT_HOST Ifrit::SoftRenderer::FragmentShader* DemoFragmentShaderCuda::getCudaClone() {
+	IFRIT_HOST Ifrit::SoftRenderer::FragmentShader* DemoFragmentShaderCuda::GetCudaClone() {
 		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<DemoFragmentShaderCuda>(this);
 	}
 
@@ -98,7 +98,7 @@ namespace Ifrit::Demo::DemoDefault {
 		*outSize = 3;
 	}
 
-	IFRIT_HOST Ifrit::SoftRenderer::GeometryShader* DemoGeometryShaderCuda::getCudaClone() {
+	IFRIT_HOST Ifrit::SoftRenderer::GeometryShader* DemoGeometryShaderCuda::GetCudaClone() {
 		return  Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<DemoGeometryShaderCuda>(this);
 	}
 }

@@ -16,19 +16,19 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
+#include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/ApiConv.h"
 #include <cstdint>
 
-namespace Ifrit::Display::Backend {
-class IFRIT_APIDECL BackendProvider {
-public:
-  virtual ~BackendProvider() = default;
-  virtual void draw() = 0;
-  virtual void updateTexture(const float *image, int channels, int width,
-                             int height) = 0;
-  virtual void setViewport(int32_t x, int32_t y, int32_t width,
-                           int32_t height) = 0;
-};
+namespace Ifrit::Display::Backend
+{
+    class IFRIT_APIDECL BackendProvider
+    {
+    public:
+        virtual ~BackendProvider()                                                          = default;
+        virtual void Draw()                                                                 = 0;
+        virtual void UpdateTexture(const float* image, int channels, int width, int height) = 0;
+        virtual void SetViewport(i32 x, i32 y, i32 width, i32 height)                       = 0;
+    };
 } // namespace Ifrit::Display::Backend

@@ -22,38 +22,42 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/util/ApiConv.h"
 #include <cstdint>
 
-namespace Ifrit::GraphicsBackend::Rhi::FSR2 {
+namespace Ifrit::Graphics::Rhi::FSR2
+{
 
-struct RhiFSR2InitialzeArgs {
-  u32 maxRenderWidth;
-  u32 maxRenderHeight;
-  u32 displayWidth;
-  u32 displayHeight;
-};
+    struct RhiFSR2InitialzeArgs
+    {
+        u32 maxRenderWidth;
+        u32 maxRenderHeight;
+        u32 displayWidth;
+        u32 displayHeight;
+    };
 
-struct RhiFSR2DispatchArgs {
-  Rhi::RhiTexture *color;
-  Rhi::RhiTexture *depth;
-  Rhi::RhiTexture *motion;
-  Rhi::RhiTexture *exposure;
-  Rhi::RhiTexture *reactiveMask;
-  Rhi::RhiTexture *transparencyMask;
-  Rhi::RhiTexture *output;
-  float deltaTime;
-  float jitterX;
-  float jitterY;
-  float camNear;
-  float camFar;
-  float camFovY;
-  bool reset;
-};
+    struct RhiFSR2DispatchArgs
+    {
+        Rhi::RhiTexture* color;
+        Rhi::RhiTexture* depth;
+        Rhi::RhiTexture* motion;
+        Rhi::RhiTexture* exposure;
+        Rhi::RhiTexture* reactiveMask;
+        Rhi::RhiTexture* transparencyMask;
+        Rhi::RhiTexture* output;
+        float            deltaTime;
+        float            jitterX;
+        float            jitterY;
+        float            camNear;
+        float            camFar;
+        float            camFovY;
+        bool             reset;
+    };
 
-class IFRIT_APIDECL RhiFsr2Processor {
-public:
-  virtual ~RhiFsr2Processor() = default;
-  virtual void init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) = 0;
-  virtual void getJitters(float *jitterX, float *jitterY, u32 frameIdx, u32 rtWidth, u32 rtHeight) = 0;
-  virtual void dispatch(const Rhi::RhiCommandList *cmd, const Rhi::FSR2::RhiFSR2DispatchArgs &args) = 0;
-};
+    class IFRIT_APIDECL RhiFsr2Processor
+    {
+    public:
+        virtual ~RhiFsr2Processor()                                                                       = default;
+        virtual void Init(const Rhi::FSR2::RhiFSR2InitialzeArgs& args)                                    = 0;
+        virtual void GetJitters(float* jitterX, float* jitterY, u32 frameIdx, u32 rtWidth, u32 rtHeight)  = 0;
+        virtual void Dispatch(const Rhi::RhiCommandList* cmd, const Rhi::FSR2::RhiFSR2DispatchArgs& args) = 0;
+    };
 
-} // namespace Ifrit::GraphicsBackend::Rhi::FSR2
+} // namespace Ifrit::Graphics::Rhi::FSR2

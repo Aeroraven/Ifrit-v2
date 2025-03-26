@@ -19,103 +19,112 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 #include "ifrit/common/util/TypingUtil.h"
 
-namespace Ifrit::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::Graphics::VulkanGraphics
+{
 
-IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext *ctx, SingleBuffer *buffer) {
-  m_context = ctx;
-  m_buffer = buffer;
-  BufferCreateInfo stagingCI{};
-  stagingCI.size = buffer->getSize();
-  stagingCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  stagingCI.hostVisible = true;
-  auto stagePtr = new SingleBuffer(ctx, stagingCI);
-  m_stagingBuffer = Rhi::makeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
-}
-IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext *ctx, const BufferCreateInfo &ci) : m_context(ctx) {
+    IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext* ctx, SingleBuffer* buffer)
+    {
+        m_context = ctx;
+        m_buffer  = buffer;
+        BufferCreateInfo stagingCI{};
+        stagingCI.size        = buffer->GetSize();
+        stagingCI.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        stagingCI.hostVisible = true;
+        auto stagePtr         = new SingleBuffer(ctx, stagingCI);
+        m_stagingBuffer       = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
+    }
+    IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext* ctx, const BufferCreateInfo& ci)
+        : m_context(ctx)
+    {
 
-  using namespace Ifrit::Common::Utility;
-  BufferCreateInfo ci2 = ci;
-  ci2.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-  auto stagePtr = new SingleBuffer(ctx, ci2);
-  m_bufferUnique = Rhi::makeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
-  m_buffer = checked_cast<SingleBuffer>(m_bufferUnique.get());
+        using namespace Ifrit::Common::Utility;
+        BufferCreateInfo ci2 = ci;
+        ci2.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        auto stagePtr  = new SingleBuffer(ctx, ci2);
+        m_bufferUnique = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
+        m_buffer       = CheckedCast<SingleBuffer>(m_bufferUnique.get());
 
-  BufferCreateInfo stagingCI = ci;
-  stagingCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  stagingCI.hostVisible = true;
-  auto stagePtr2 = new SingleBuffer(ctx, stagingCI);
-  m_stagingBuffer = Rhi::makeRhiCountRef<Rhi::RhiBuffer>(stagePtr2);
-}
+        BufferCreateInfo stagingCI = ci;
+        stagingCI.usage            = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        stagingCI.hostVisible      = true;
+        auto stagePtr2             = new SingleBuffer(ctx, stagingCI);
+        m_stagingBuffer            = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(stagePtr2);
+    }
 
-IFRIT_APIDECL void StagedSingleBuffer::cmdCopyToDevice(const Rhi::RhiCommandList *cmd, const void *data, uint32_t size,
-                                                       uint32_t localOffset) {
-  m_stagingBuffer->map();
-  m_stagingBuffer->writeBuffer((void *)data, size, 0);
-  m_stagingBuffer->flush();
-  m_stagingBuffer->unmap();
-  cmd->copyBuffer(m_stagingBuffer.get(), m_buffer, size, 0, localOffset);
-}
+    IFRIT_APIDECL void StagedSingleBuffer::CmdCopyToDevice(const Rhi::RhiCommandList* cmd, const void* data, u32 size,
+        u32 localOffset)
+    {
+        m_stagingBuffer->MapMemory();
+        m_stagingBuffer->WriteBuffer((void*)data, size, 0);
+        m_stagingBuffer->FlushBuffer();
+        m_stagingBuffer->UnmapMemory();
+        cmd->CopyBuffer(m_stagingBuffer.get(), m_buffer, size, 0, localOffset);
+    }
 
-IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext *ctx, SingleDeviceImage *image)
-    : m_context(ctx), m_image(image) {
-  BufferCreateInfo stagingCI{};
-  stagingCI.size = image->getSize();
-  stagingCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  stagingCI.hostVisible = true;
-  auto stagePtr = new SingleBuffer(ctx, stagingCI);
-  m_stagingBuffer = Rhi::makeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
-}
+    IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext* ctx, SingleDeviceImage* image)
+        : m_context(ctx), m_image(image)
+    {
+        BufferCreateInfo stagingCI{};
+        stagingCI.size        = image->GetSize();
+        stagingCI.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        stagingCI.hostVisible = true;
+        auto stagePtr         = new SingleBuffer(ctx, stagingCI);
+        m_stagingBuffer       = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
+    }
 
-IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext *ctx, const ImageCreateInfo &ci) : m_context(ctx) {
-  using namespace Ifrit::Common::Utility;
-  ImageCreateInfo ci2 = ci;
-  ci2.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-  auto stagePtr = new SingleDeviceImage(ctx, ci2);
-  m_imageUnique = Rhi::makeRhiCountRef<Rhi::RhiTexture>(stagePtr);
-  m_image = checked_cast<SingleDeviceImage>(m_imageUnique.get());
+    IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext* ctx, const ImageCreateInfo& ci)
+        : m_context(ctx)
+    {
+        using namespace Ifrit::Common::Utility;
+        ImageCreateInfo ci2 = ci;
+        ci2.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        auto stagePtr = new SingleDeviceImage(ctx, ci2);
+        m_imageUnique = Rhi::MakeRhiCountRef<Rhi::RhiTexture>(stagePtr);
+        m_image       = CheckedCast<SingleDeviceImage>(m_imageUnique.get());
 
-  BufferCreateInfo stagingCI{};
-  stagingCI.size = m_image->getSize();
-  stagingCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  stagingCI.hostVisible = true;
-  auto stagePtr2 = new SingleBuffer(ctx, stagingCI);
-  m_stagingBuffer = Rhi::makeRhiCountRef<Rhi::RhiBuffer>(stagePtr2);
-}
+        BufferCreateInfo stagingCI{};
+        stagingCI.size        = m_image->GetSize();
+        stagingCI.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        stagingCI.hostVisible = true;
+        auto stagePtr2        = new SingleBuffer(ctx, stagingCI);
+        m_stagingBuffer       = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(stagePtr2);
+    }
 
-IFRIT_APIDECL void StagedSingleImage::cmdCopyToDevice(CommandBuffer *cmd, const void *data, VkImageLayout srcLayout,
-                                                      VkImageLayout dstLayout, VkPipelineStageFlags dstStage,
-                                                      VkAccessFlags dstAccess) {
-  m_stagingBuffer->map();
-  m_stagingBuffer->writeBuffer((void *)data, m_image->getSize(), 0);
-  m_stagingBuffer->flush();
-  m_stagingBuffer->unmap();
-  PipelineBarrier barrier(m_context, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0);
+    IFRIT_APIDECL void StagedSingleImage::CmdCopyToDevice(CommandBuffer* cmd, const void* data, VkImageLayout srcLayout,
+        VkImageLayout dstLayout, VkPipelineStageFlags dstStage,
+        VkAccessFlags dstAccess)
+    {
+        m_stagingBuffer->MapMemory();
+        m_stagingBuffer->WriteBuffer((void*)data, m_image->GetSize(), 0);
+        m_stagingBuffer->FlushBuffer();
+        m_stagingBuffer->UnmapMemory();
+        PipelineBarrier      barrier(m_context, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0);
 
-  VkImageMemoryBarrier imageBarrier{};
-  imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  imageBarrier.oldLayout = srcLayout;
-  imageBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-  imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  imageBarrier.image = m_image->getImage();
-  imageBarrier.subresourceRange.aspectMask = m_image->getAspect();
-  imageBarrier.subresourceRange.levelCount = 1;
-  imageBarrier.subresourceRange.layerCount = 1;
-  imageBarrier.srcAccessMask = 0;
-  imageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-  barrier.addImageMemoryBarrier(imageBarrier);
+        VkImageMemoryBarrier imageBarrier{};
+        imageBarrier.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        imageBarrier.oldLayout                   = srcLayout;
+        imageBarrier.newLayout                   = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        imageBarrier.srcQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
+        imageBarrier.dstQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
+        imageBarrier.image                       = m_image->GetImage();
+        imageBarrier.subresourceRange.aspectMask = m_image->GetAspect();
+        imageBarrier.subresourceRange.levelCount = 1;
+        imageBarrier.subresourceRange.layerCount = 1;
+        imageBarrier.srcAccessMask               = 0;
+        imageBarrier.dstAccessMask               = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.addImageMemoryBarrier(imageBarrier);
 
-  cmd->pipelineBarrier(barrier);
-  cmd->copyBufferToImageAllInternal(m_stagingBuffer.get(), m_image->getImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                    m_image->getWidth(), m_image->getHeight(), m_image->getDepth());
+        cmd->AddPipelineBarrier(barrier);
+        cmd->CopyBufferToImageAllInternal(m_stagingBuffer.get(), m_image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            m_image->GetWidth(), m_image->GetHeight(), m_image->GetDepth());
 
-  imageBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-  imageBarrier.newLayout = dstLayout;
-  imageBarrier.srcAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-  imageBarrier.dstAccessMask = dstAccess;
-  PipelineBarrier barrier2(m_context, VK_ACCESS_TRANSFER_WRITE_BIT, dstStage, 0);
-  barrier2.addImageMemoryBarrier(imageBarrier);
-  cmd->pipelineBarrier(barrier2);
-}
+        imageBarrier.oldLayout     = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        imageBarrier.newLayout     = dstLayout;
+        imageBarrier.srcAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        imageBarrier.dstAccessMask = dstAccess;
+        PipelineBarrier barrier2(m_context, VK_ACCESS_TRANSFER_WRITE_BIT, dstStage, 0);
+        barrier2.addImageMemoryBarrier(imageBarrier);
+        cmd->AddPipelineBarrier(barrier2);
+    }
 
-} // namespace Ifrit::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::Graphics::VulkanGraphics

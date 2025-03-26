@@ -20,12 +20,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics::Utility::Loader {
-class WavefrontLoader {
-public:
-  void loadObject(const char *path, std::vector<Vector3f> &vertices, std::vector<Vector3f> &normals,
-                  std::vector<Vector2f> &uvs, std::vector<u32> &indices);
-  std::vector<Vector3f> remapNormals(std::vector<Vector3f> normals, std::vector<u32> indices, int numVertices);
-  std::vector<Vector2f> remapUVs(std::vector<Vector2f> uvs, std::vector<u32> indices, int numVertices);
-};
-} // namespace Ifrit::GraphicsBackend::SoftGraphics::Utility::Loader
+namespace Ifrit::Graphics::SoftGraphics::Utility::Loader
+{
+    class WavefrontLoader
+    {
+    public:
+        void                  loadObject(const char* path, std::vector<Vector3f>& vertices, std::vector<Vector3f>& normals,
+                             std::vector<Vector2f>& uvs, std::vector<u32>& indices);
+        std::vector<Vector3f> RemapNormals(std::vector<Vector3f> normals, std::vector<u32> indices, int numVertices);
+        std::vector<Vector2f> RemapUVs(std::vector<Vector2f> uvs, std::vector<u32> indices, int numVertices);
+    };
+} // namespace Ifrit::Graphics::SoftGraphics::Utility::Loader

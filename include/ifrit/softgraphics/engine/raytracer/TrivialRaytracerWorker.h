@@ -16,41 +16,43 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "TrivialRaytracer.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/RaytracerBase.h"
 #include <stack>
 
-namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer {
-struct RaytracingShaderGlobalVarSection {
-  ShaderBase *shader;
-};
+namespace Ifrit::Graphics::SoftGraphics::Raytracer
+{
+	struct RaytracingShaderGlobalVarSection
+	{
+		ShaderBase* shader;
+	};
 
-class IFRIT_APIDECL TrivialRaytracerWorker {
-private:
-  int workerId;
-  std::atomic<TrivialRaytracerWorkerStatus> status;
-  TrivialRaytracer *renderer;
-  std::shared_ptr<TrivialRaytracerContext> context;
-  std::unique_ptr<std::thread> thread;
+	class IFRIT_APIDECL TrivialRaytracerWorker
+	{
+	private:
+		int											 workerId;
+		std::atomic<TrivialRaytracerWorkerStatus>	 status;
+		TrivialRaytracer*							 renderer;
+		std::shared_ptr<TrivialRaytracerContext>	 context;
+		std::unique_ptr<std::thread>				 thread;
 
-  std::stack<RaytracingShaderGlobalVarSection> execStack;
-  int recurDepth = 0;
+		std::stack<RaytracingShaderGlobalVarSection> execStack;
+		int											 recurDepth = 0;
 
-public:
-  friend class TrivialRaytracer;
-  TrivialRaytracerWorker(std::shared_ptr<TrivialRaytracer> renderer,
-                         std::shared_ptr<TrivialRaytracerContext> context,
-                         int workerId);
-  void run();
-  void threadCreate();
+	public:
+		friend class TrivialRaytracer;
+		TrivialRaytracerWorker(std::shared_ptr<TrivialRaytracer> renderer,
+			std::shared_ptr<TrivialRaytracerContext>			 context,
+			int													 workerId);
+		void Run();
+		void threadCreate();
 
-  void tracingProcess();
-  void tracingRecursiveProcess(const RayInternal &ray, void *payload, int depth,
-                               float tmin, float tmax);
+		void tracingProcess();
+		void tracingRecursiveProcess(const RayInternal& ray, void* payload, int depth,
+			float tmin, float tmax);
 
-  int getTracingDepth();
-};
-} // namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer
+		int	 getTracingDepth();
+	};
+} // namespace Ifrit::Graphics::SoftGraphics::Raytracer

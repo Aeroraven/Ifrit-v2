@@ -21,26 +21,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/softgraphics/engine/base/Structures.h"
 #include "ifrit/softgraphics/engine/imaging/LayeredBufferedImage.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging {
-class BufferedImageSampler {
-private:
-  const IfritSamplerT pCI;
-  const LayeredBufferedImage &sImg;
+namespace Ifrit::Graphics::SoftGraphics::Imaging
+{
+	class BufferedImageSampler
+	{
+	private:
+		const IfritSamplerT			pCI;
+		const LayeredBufferedImage& sImg;
 
-public:
-  // BufferedImageSampler(const IfritSamplerT& createInfo): pCI(createInfo) {};
-  BufferedImageSampler(const IfritSamplerT &createInfo, const LayeredBufferedImage &sI) : pCI(createInfo), sImg(sI){};
-  ~BufferedImageSampler() = default;
+	public:
+		// BufferedImageSampler(const IfritSamplerT& createInfo): pCI(createInfo) {};
+		BufferedImageSampler(const IfritSamplerT& createInfo, const LayeredBufferedImage& sI)
+			: pCI(createInfo), sImg(sI){};
+		~BufferedImageSampler() = default;
 
-  void sample2DDirect(float u, float v, int lod, Vector2i offset, const LayeredBufferedImage &image, void *pixel) const;
-  void sample3DDirect(float u, float v, float w, int lod, Vector3i offset, const LayeredBufferedImage &image,
-                      void *pixel) const;
+		void sample2DDirect(float u, float v, int lod, Vector2i offset, const LayeredBufferedImage& image, void* pixel) const;
+		void sample3DDirect(float u, float v, float w, int lod, Vector3i offset, const LayeredBufferedImage& image,
+			void* pixel) const;
 
-  void sample2DLod(float u, float v, float lod, Vector2i offset, const LayeredBufferedImage &image, void *pixel) const;
-  void sample3DLod(float u, float v, float w, float lod, Vector3i offset, const LayeredBufferedImage &image,
-                   void *pixel) const;
+		void sample2DLod(float u, float v, float lod, Vector2i offset, const LayeredBufferedImage& image, void* pixel) const;
+		void sample3DLod(float u, float v, float w, float lod, Vector3i offset, const LayeredBufferedImage& image,
+			void* pixel) const;
 
-  void sample2DLodSi(float u, float v, float lod, Vector2i offset, void *pixel) const;
-  void sample3DLodSi(float u, float v, float w, float lod, Vector3i offset, void *pixel) const;
-};
-} // namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging
+		void sample2DLodSi(float u, float v, float lod, Vector2i offset, void* pixel) const;
+		void sample3DLodSi(float u, float v, float w, float lod, Vector3i offset, void* pixel) const;
+	};
+} // namespace Ifrit::Graphics::SoftGraphics::Imaging

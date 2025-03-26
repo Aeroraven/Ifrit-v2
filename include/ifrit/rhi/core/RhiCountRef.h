@@ -20,77 +20,97 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/base/IfritBase.h"
 #include "ifrit/common/util/ApiConv.h"
 
-namespace Ifrit::GraphicsBackend::Rhi {
-template <class T> class IFRIT_APIDECL RhiCountRef {
-public:
-  using RefType = T *;
-  RefType m_ref;
+namespace Ifrit::Graphics::Rhi
+{
+    template <class T>
+    class IFRIT_APIDECL RhiCountRef
+    {
+    public:
+        using RefType = T*;
+        RefType m_ref;
 
-  RhiCountRef() : m_ref(nullptr) {}
-  RhiCountRef(nullptr_t n) : m_ref(nullptr) {}
-  RhiCountRef(const RhiCountRef &other) {
-    m_ref = other.m_ref;
-    if (m_ref) {
-      m_ref->addRef();
+        RhiCountRef()
+            : m_ref(nullptr) {}
+        RhiCountRef(nullptr_t n)
+            : m_ref(nullptr) {}
+        RhiCountRef(const RhiCountRef& other)
+        {
+            m_ref = other.m_ref;
+            if (m_ref)
+            {
+                m_ref->AddRef();
+            }
+        }
+
+        RhiCountRef(RhiCountRef&& other)
+        {
+            m_ref       = other.m_ref;
+            other.m_ref = nullptr;
+        }
+        RhiCountRef& operator=(RefType ref)
+        {
+            if (m_ref != ref)
+            {
+                auto oldRef = m_ref;
+                m_ref       = ref;
+                if (m_ref)
+                {
+                    m_ref->AddRef();
+                }
+                if (oldRef)
+                {
+                    oldRef->Release();
+                }
+            }
+            return *this;
+        }
+
+        RhiCountRef& operator=(const RhiCountRef& other) { return *this = other.m_ref; }
+        RhiCountRef& operator=(RhiCountRef&& other)
+        {
+
+            if (this != &other)
+            {
+                auto oldRef = m_ref;
+                m_ref       = other.m_ref;
+                other.m_ref = nullptr;
+                if (oldRef)
+                {
+                    oldRef->Release();
+                }
+            }
+            return *this;
+        }
+
+        ~RhiCountRef()
+        {
+            if (m_ref)
+            {
+                m_ref->Release();
+            }
+        }
+
+        RefType             operator->() const { return m_ref; }
+        RefType             get() const { return m_ref; }
+        RefType             get() { return m_ref; }
+
+        IF_FORCEINLINE bool operator==(const RhiCountRef& other) const { return m_ref == other.m_ref; }
+        IF_FORCEINLINE bool operator!=(const RhiCountRef& other) const { return m_ref != other.m_ref; }
+        IF_FORCEINLINE bool operator==(RefType other) const { return m_ref == other; }
+        IF_FORCEINLINE bool operator!=(RefType other) const { return m_ref != other; }
+    };
+
+    // TODO: it's a better idea to follow RAII pattern, like make_shared
+    template <class T>
+    RhiCountRef<T> MakeRhiCountRef(T* ref)
+    {
+        RhiCountRef<T> result;
+        result.m_ref = ref;
+        if (result.m_ref)
+        {
+            result.m_ref->AddRef();
+        }
+        return result;
     }
-  }
 
-  RhiCountRef(RhiCountRef &&other) {
-    m_ref = other.m_ref;
-    other.m_ref = nullptr;
-  }
-  RhiCountRef &operator=(RefType ref) {
-    if (m_ref != ref) {
-      auto oldRef = m_ref;
-      m_ref = ref;
-      if (m_ref) {
-        m_ref->addRef();
-      }
-      if (oldRef) {
-        oldRef->release();
-      }
-    }
-    return *this;
-  }
-
-  RhiCountRef &operator=(const RhiCountRef &other) { return *this = other.m_ref; }
-  RhiCountRef &operator=(RhiCountRef &&other) {
-
-    if (this != &other) {
-      auto oldRef = m_ref;
-      m_ref = other.m_ref;
-      other.m_ref = nullptr;
-      if (oldRef) {
-        oldRef->release();
-      }
-    }
-    return *this;
-  }
-
-  ~RhiCountRef() {
-    if (m_ref) {
-      m_ref->release();
-    }
-  }
-
-  RefType operator->() const { return m_ref; }
-  RefType get() const { return m_ref; }
-  RefType get() { return m_ref; }
-
-  IF_FORCEINLINE bool operator==(const RhiCountRef &other) const { return m_ref == other.m_ref; }
-  IF_FORCEINLINE bool operator!=(const RhiCountRef &other) const { return m_ref != other.m_ref; }
-  IF_FORCEINLINE bool operator==(RefType other) const { return m_ref == other; }
-  IF_FORCEINLINE bool operator!=(RefType other) const { return m_ref != other; }
-};
-
-// TODO: it's a better idea to follow RAII pattern, like make_shared
-template <class T> RhiCountRef<T> makeRhiCountRef(T *ref) {
-  RhiCountRef<T> result;
-  result.m_ref = ref;
-  if (result.m_ref) {
-    result.m_ref->addRef();
-  }
-  return result;
-}
-
-} // namespace Ifrit::GraphicsBackend::Rhi
+} // namespace Ifrit::Graphics::Rhi

@@ -22,25 +22,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/scene/SceneManager.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
-namespace Ifrit::Core::Ayanami {
+namespace Ifrit::Core::Ayanami
+{
 
-struct AyanamiSceneResources;
+    struct AyanamiSceneResources;
 
-class IFRIT_APIDECL AyanamiSceneAggregator : public Common::Utility::NonCopyable {
-private:
-  GraphicsBackend::Rhi::RhiBackend *m_rhi;
-  AyanamiSceneResources *m_sceneResources = nullptr;
+    class IFRIT_APIDECL AyanamiSceneAggregator : public Common::Utility::NonCopyable
+    {
+    private:
+        Graphics::Rhi::RhiBackend* m_rhi;
+        AyanamiSceneResources*     m_sceneResources = nullptr;
 
-private:
-  void init();
-  void destroy();
+    private:
+        void Init();
+        void destroy();
 
-public:
-  AyanamiSceneAggregator(GraphicsBackend::Rhi::RhiBackend *rhi) : m_rhi(rhi) { init(); }
-  ~AyanamiSceneAggregator() { destroy(); }
+    public:
+        AyanamiSceneAggregator(Graphics::Rhi::RhiBackend* rhi)
+            : m_rhi(rhi) { Init(); }
+        ~AyanamiSceneAggregator() { destroy(); }
 
-  void collectScene(Scene *scene);
-  u32 getGatheredBufferId();
-};
+        void CollectScene(Scene* scene);
+        u32  GetGatheredBufferId();
+    };
 
 } // namespace Ifrit::Core::Ayanami

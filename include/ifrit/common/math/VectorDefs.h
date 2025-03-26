@@ -21,35 +21,47 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "../util/CudaBaseDefs.h"
 #include <cstdint>
 
-template <class T> struct CoreVec2 {
-  T x, y;
+template <class T>
+struct CoreVec2
+{
+    T x, y;
 };
 
-template <class T> struct CoreVec3 {
-  T x, y, z;
+template <class T>
+struct CoreVec3
+{
+    T x, y, z;
 };
 
-template <class T> struct CoreVec4 {
-  T x, y, z, w;
+template <class T>
+struct CoreVec4
+{
+    T x, y, z, w;
 };
 
-template <class T> struct Rect2D {
-  T x, y, w, h;
+template <class T>
+struct Rect2D
+{
+    T x, y, w, h;
 };
 
-template <class T> struct Rect3D {
-  T x, y, z, w, h, d;
+template <class T>
+struct Rect3D
+{
+    T x, y, z, w, h, d;
 };
 
-template <class T, int U> struct CoreVec4Shared {
-  T x;
-  T xp[U - 1];
-  T y;
-  T yp[U - 1];
-  T z;
-  T zp[U - 1];
-  T w;
-  T wp[U - 1];
+template <class T, int U>
+struct CoreVec4Shared
+{
+    T x;
+    T xp[U - 1];
+    T y;
+    T yp[U - 1];
+    T z;
+    T zp[U - 1];
+    T w;
+    T wp[U - 1];
 };
 
 #define Vector4f CoreVec4<float>
@@ -82,35 +94,38 @@ template <class T, int U> struct CoreVec4Shared {
 #define igvec3 CoreVec3
 #define igvec4 CoreVec4
 
-template <class T> struct CoreMat4 {
-  T data[4][4];
-  IFRIT_DUAL const T *operator[](int i) const { return data[i]; }
-  IFRIT_DUAL T *operator[](int i) { return data[i]; }
+template <class T>
+struct CoreMat4
+{
+    T                   data[4][4];
+    IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
+    IFRIT_DUAL T*       operator[](int i) { return data[i]; }
 };
 template struct CoreMat4<float>;
 #define Matrix4x4f CoreMat4<float>
 
-extern "C" {
-template struct IFRIT_APIDECL Vector2f;
-template struct IFRIT_APIDECL Vector3f;
-template struct IFRIT_APIDECL Vector4f;
-template struct IFRIT_APIDECL Vector2d;
-template struct IFRIT_APIDECL Vector3d;
-template struct IFRIT_APIDECL Vector4d;
-template struct IFRIT_APIDECL Vector2i;
-template struct IFRIT_APIDECL Vector3i;
-template struct IFRIT_APIDECL Vector4i;
-template struct IFRIT_APIDECL Vector2s;
-template struct IFRIT_APIDECL Vector3s;
-template struct IFRIT_APIDECL Vector4s;
-template struct IFRIT_APIDECL Vector2u;
-template struct IFRIT_APIDECL Vector3u;
-template struct IFRIT_APIDECL Vector4u;
+extern "C"
+{
+    template struct IFRIT_APIDECL Vector2f;
+    template struct IFRIT_APIDECL Vector3f;
+    template struct IFRIT_APIDECL Vector4f;
+    template struct IFRIT_APIDECL Vector2d;
+    template struct IFRIT_APIDECL Vector3d;
+    template struct IFRIT_APIDECL Vector4d;
+    template struct IFRIT_APIDECL Vector2i;
+    template struct IFRIT_APIDECL Vector3i;
+    template struct IFRIT_APIDECL Vector4i;
+    template struct IFRIT_APIDECL Vector2s;
+    template struct IFRIT_APIDECL Vector3s;
+    template struct IFRIT_APIDECL Vector4s;
+    template struct IFRIT_APIDECL Vector2u;
+    template struct IFRIT_APIDECL Vector3u;
+    template struct IFRIT_APIDECL Vector4u;
 
-template struct IFRIT_APIDECL irect2Df;
-template struct IFRIT_APIDECL irect2Di;
-template struct IFRIT_APIDECL irect2Dui;
-template struct IFRIT_APIDECL irect3Df;
-template struct IFRIT_APIDECL irect3Di;
-template struct IFRIT_APIDECL irect3Dui;
+    template struct IFRIT_APIDECL irect2Df;
+    template struct IFRIT_APIDECL irect2Di;
+    template struct IFRIT_APIDECL irect2Dui;
+    template struct IFRIT_APIDECL irect3Df;
+    template struct IFRIT_APIDECL irect3Di;
+    template struct IFRIT_APIDECL irect3Dui;
 }

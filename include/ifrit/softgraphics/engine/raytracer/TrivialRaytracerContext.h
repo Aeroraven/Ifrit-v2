@@ -23,36 +23,38 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/softgraphics/engine/base/Shaders.h"
 #include "ifrit/softgraphics/engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer {
-struct TrivialRaytracerContext {
-  IF_CONSTEXPR static int numThreads = 16;
+namespace Ifrit::Graphics::SoftGraphics::Raytracer
+{
+	struct TrivialRaytracerContext
+	{
+		IF_CONSTEXPR static int numThreads = 16;
 
-  IF_CONSTEXPR static int tileWidth = 32;
-  IF_CONSTEXPR static int tileHeight = 32;
-  IF_CONSTEXPR static int tileDepth = 1;
-  IF_CONSTEXPR static int maxDepth = 15;
+		IF_CONSTEXPR static int tileWidth = 32;
+		IF_CONSTEXPR static int tileHeight = 32;
+		IF_CONSTEXPR static int tileDepth = 1;
+		IF_CONSTEXPR static int maxDepth = 15;
 
-  int numTileX, numTileY, numTileZ;
-  int totalTiles;
+		int						numTileX, numTileY, numTileZ;
+		int						totalTiles;
 
-  std::unordered_map<std::pair<int, int>, const void *, Ifrit::GraphicsBackend::SoftGraphics::Core::Utility::PairHash>
-      uniformMapping;
+		std::unordered_map<std::pair<int, int>, const void*, Ifrit::Graphics::SoftGraphics::Core::Utility::PairHash>
+															 uniformMapping;
 
-  // TODO: Shader binding table & Shader groups
-  RayGenShader *raygenShader;
-  MissShader *missShader;
-  CloseHitShader *closestHitShader;
-  CallableShader *callableShader;
+		// TODO: Shader binding table & Shader groups
+		RayGenShader*										 raygenShader;
+		MissShader*											 missShader;
+		CloseHitShader*										 closestHitShader;
+		CallableShader*										 callableShader;
 
-  std::atomic<int> dcnt = 0;
-  std::vector<std::unique_ptr<RayGenShader>> perWorkerRaygen;
-  std::vector<std::unique_ptr<CloseHitShader>> perWorkerRayhit;
-  std::vector<std::unique_ptr<MissShader>> perWorkerMiss;
+		std::atomic<int>									 dcnt = 0;
+		std::vector<std::unique_ptr<RayGenShader>>			 perWorkerRaygen;
+		std::vector<std::unique_ptr<CloseHitShader>>		 perWorkerRayhit;
+		std::vector<std::unique_ptr<MissShader>>			 perWorkerMiss;
 
-  const BoundingVolumeHierarchyTopLevelAS *accelerationStructure;
+		const BoundingVolumeHierarchyTopLevelAS*			 accelerationStructure;
 
-  Vector3i traceRegion;
+		Vector3i											 traceRegion;
 
-  Ifrit::GraphicsBackend::SoftGraphics::Core::Data::ImageF32 *testImage;
-};
-} // namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer
+		Ifrit::Graphics::SoftGraphics::Core::Data::ImageF32* testImage;
+	};
+} // namespace Ifrit::Graphics::SoftGraphics::Raytracer

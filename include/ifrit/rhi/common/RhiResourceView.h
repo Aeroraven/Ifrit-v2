@@ -20,39 +20,45 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "RhiBaseTypes.h"
 
-namespace Ifrit::GraphicsBackend::Rhi {
-struct IFRIT_APIDECL RhiRenderTargetsFormat {
-  RhiImageFormat m_depthFormat;
-  Vec<RhiImageFormat> m_colorFormats;
-};
+namespace Ifrit::Graphics::Rhi
+{
+    struct IFRIT_APIDECL RhiRenderTargetsFormat
+    {
+        RhiImageFormat      m_depthFormat;
+        Vec<RhiImageFormat> m_colorFormats;
+    };
 
-class IFRIT_APIDECL RhiRenderTargets {
-public:
-  virtual void setColorAttachments(const Vec<RhiColorAttachment *> &attachments) = 0;
-  virtual void setDepthStencilAttachment(RhiDepthStencilAttachment *attachment) = 0;
-  virtual void beginRendering(const RhiCommandList *commandBuffer) const = 0;
-  virtual void endRendering(const RhiCommandList *commandBuffer) const = 0;
-  virtual void setRenderArea(RhiScissor area) = 0;
-  virtual RhiRenderTargetsFormat getFormat() const = 0;
-  virtual RhiScissor getRenderArea() const = 0;
-  virtual RhiDepthStencilAttachment *getDepthStencilAttachment() const = 0;
-  virtual RhiColorAttachment *getColorAttachment(u32 index) const = 0;
-};
+    class IFRIT_APIDECL RhiRenderTargets
+    {
+    public:
+        virtual void                       SetColorAttachments(const Vec<RhiColorAttachment*>& attachments) = 0;
+        virtual void                       SetDepthStencilAttachment(RhiDepthStencilAttachment* attachment) = 0;
+        virtual void                       BeginRendering(const RhiCommandList* commandBuffer) const        = 0;
+        virtual void                       EndRendering(const RhiCommandList* commandBuffer) const          = 0;
+        virtual void                       SetRenderArea(RhiScissor area)                                   = 0;
+        virtual RhiRenderTargetsFormat     GetFormat() const                                                = 0;
+        virtual RhiScissor                 GetRenderArea() const                                            = 0;
+        virtual RhiDepthStencilAttachment* GetDepthStencilAttachment() const                                = 0;
+        virtual RhiColorAttachment*        GetColorAttachment(u32 index) const                              = 0;
+    };
 
-class IFRIT_APIDECL RhiColorAttachment {
-public:
-  virtual RhiTexture *getRenderTarget() const = 0;
-  virtual void setBlendInfo(const RhiAttachmentBlendInfo &info) = 0;
-};
+    class IFRIT_APIDECL RhiColorAttachment
+    {
+    public:
+        virtual RhiTexture* GetRenderTarget() const                          = 0;
+        virtual void        SetBlendInfo(const RhiAttachmentBlendInfo& info) = 0;
+    };
 
-class IFRIT_APIDECL RhiDepthStencilAttachment {
-public:
-  virtual RhiTexture *getTexture() const = 0;
-};
+    class IFRIT_APIDECL RhiDepthStencilAttachment
+    {
+    public:
+        virtual RhiTexture* GetTexture() const = 0;
+    };
 
-class IFRIT_APIDECL RhiVertexBufferView {
-protected:
-  virtual void addBinding(Vec<u32> location, Vec<RhiImageFormat> format, Vec<u32> offset, u32 stride,
-                          RhiVertexInputRate inputRate = RhiVertexInputRate::Vertex) = 0;
-};
-} // namespace Ifrit::GraphicsBackend::Rhi
+    class IFRIT_APIDECL RhiVertexBufferView
+    {
+    protected:
+        virtual void AddBinding(Vec<u32> location, Vec<RhiImageFormat> format, Vec<u32> offset, u32 stride,
+            RhiVertexInputRate inputRate = RhiVertexInputRate::Vertex) = 0;
+    };
+} // namespace Ifrit::Graphics::Rhi

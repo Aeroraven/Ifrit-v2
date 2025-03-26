@@ -27,23 +27,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <vector>
 
 #ifndef IFRIT_MESHPROC_IMPORT
-#define IFRIT_MESHPROC_API IFRIT_APIDECL
+    #define IFRIT_MESHPROC_API IFRIT_APIDECL
 #else
-#define IFRIT_MESHPROC_API IFRIT_APIDECL_IMPORT
+    #define IFRIT_MESHPROC_API IFRIT_APIDECL_IMPORT
 #endif
 
-namespace Ifrit::MeshProcLib::MeshSDFProcess {
-struct SignedDistanceField {
-  Vec<f32> sdfData;
-  i32 width;
-  i32 height;
-  i32 depth;
-  Vector3f bboxMin;
-  Vector3f bboxMax;
-  IFRIT_STRUCT_SERIALIZE(sdfData, width, height, depth, bboxMin, bboxMax);
-};
+namespace Ifrit::MeshProcLib::MeshSDFProcess
+{
+    struct SignedDistanceField
+    {
+        Vec<f32> sdfData;
+        i32      width;
+        i32      height;
+        i32      depth;
+        Vector3f bboxMin;
+        Vector3f bboxMax;
+        IFRIT_STRUCT_SERIALIZE(sdfData, width, height, depth, bboxMin, bboxMax);
+    };
 
-IFRIT_MESHPROC_API void convertMeshToSDF(const MeshDescriptor &meshDesc, SignedDistanceField &sdf, u32 sdfWidth,
-                                         u32 sdfHeight, u32 sdfDepth);
+    IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
+        u32 sdfHeight, u32 sdfDepth);
 
 } // namespace Ifrit::MeshProcLib::MeshSDFProcess

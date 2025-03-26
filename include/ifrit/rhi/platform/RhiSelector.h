@@ -22,11 +22,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/rhi/common/RhiLayer.h"
 #include <memory>
 
-namespace Ifrit::GraphicsBackend::Rhi {
-enum class RhiBackendType { Vulkan, DirectX, OpenGL, Software };
-class IFRIT_APIDECL RhiSelector {
-public:
-  std::unique_ptr<RhiBackend> createBackend(RhiBackendType,
-                                            const RhiInitializeArguments &args);
-};
-} // namespace Ifrit::GraphicsBackend::Rhi
+namespace Ifrit::Graphics::Rhi
+{
+    enum class RhiBackendType
+    {
+        Vulkan,
+        DirectX,
+        OpenGL,
+        Software
+    };
+    class IFRIT_APIDECL RhiSelector
+    {
+    public:
+        Uref<RhiBackend> CreateBackend(RhiBackendType, const RhiInitializeArguments& args);
+    };
+} // namespace Ifrit::Graphics::Rhi

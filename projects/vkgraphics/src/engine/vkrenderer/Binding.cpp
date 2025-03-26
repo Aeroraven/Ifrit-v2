@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #ifndef NOMINMAX
-#define NOMINMAX
+    #define NOMINMAX
 #endif
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
 #include "ifrit/common/util/TypingUtil.h"
@@ -26,363 +26,404 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit::Common::Utility;
 
-namespace Ifrit::GraphicsBackend::VulkanGraphics {
-template <typename E> IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept {
-  return static_cast<typename std::underlying_type<E>::type>(e);
-}
-
-IFRIT_APIDECL void DescriptorManager::destructor() {
-  vkDestroyDescriptorPool(m_context->getDevice(), m_bindlessPool, nullptr);
-  vkDestroyDescriptorSetLayout(m_context->getDevice(), m_bindlessLayout, nullptr);
-  // iterates m_bindRages and delete descriptor pool and layout
-  for (auto &range : m_bindRanges) {
-    vkDestroyDescriptorPool(m_context->getDevice(), range->m_pool, nullptr);
-  }
-
-  if (m_currentBindRange) {
-    if (m_currentBindRange->m_pool != VK_NULL_HANDLE)
-      vkDestroyDescriptorPool(m_context->getDevice(), m_currentBindRange->m_pool, nullptr);
-  }
-  if (m_layoutShared != VK_NULL_HANDLE) {
-    vkDestroyDescriptorSetLayout(m_context->getDevice(), m_layoutShared, nullptr);
-  }
-}
-IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext *ctx) : m_context(ctx) {
-  for (int i = 0; i < cMaxDescriptorType; i++) {
-    m_bindings[i].binding = i;
-    m_bindings[i].descriptorType = cDescriptorTypeDetails[i].type;
-    m_bindings[i].descriptorCount = cDescriptorTypeDetails[i].maxDescriptors;
-    m_bindings[i].stageFlags = VK_SHADER_STAGE_ALL;
-    m_bindings[i].pImmutableSamplers = nullptr;
-
-    m_bindingFlags[i] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-  }
-  VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCI{};
-  bindingFlagsCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-  bindingFlagsCI.bindingCount = cMaxDescriptorType;
-  bindingFlagsCI.pBindingFlags = m_bindingFlags.data();
-
-  VkDescriptorSetLayoutCreateInfo layoutCI{};
-  layoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutCI.bindingCount = cMaxDescriptorType;
-  layoutCI.pBindings = m_bindings.data();
-  layoutCI.pNext = &bindingFlagsCI;
-  layoutCI.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-
-  vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->getDevice(), &layoutCI, nullptr, &m_bindlessLayout),
-                  "Failed to create descriptor set layout");
-
-  std::array<VkDescriptorPoolSize, cMaxDescriptorType> poolSizes;
-  for (int i = 0; i < cMaxDescriptorType; i++) {
-    poolSizes[i].type = cDescriptorTypeDetails[i].type;
-    poolSizes[i].descriptorCount = cDescriptorTypeDetails[i].maxDescriptors;
-  }
-  // Create pool
-  VkDescriptorPoolCreateInfo poolCI{};
-  poolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolCI.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-  poolCI.maxSets = 1;
-  poolCI.poolSizeCount = cMaxDescriptorType;
-  poolCI.pPoolSizes = poolSizes.data();
-
-  vkrVulkanAssert(vkCreateDescriptorPool(m_context->getDevice(), &poolCI, nullptr, &m_bindlessPool),
-                  "Failed to create descriptor pool");
-
-  // Allocate descriptor set
-  VkDescriptorSetAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  allocInfo.descriptorPool = m_bindlessPool;
-  allocInfo.descriptorSetCount = 1;
-  allocInfo.pSetLayouts = &m_bindlessLayout;
-
-  vkrVulkanAssert(vkAllocateDescriptorSets(m_context->getDevice(), &allocInfo, &m_bindlessSet),
-                  "Failed to allocate descriptor set");
-
-  // Query alignment for dynamic uniform buffer
-  VkPhysicalDeviceProperties properties;
-  vkGetPhysicalDeviceProperties(m_context->getPhysicalDevice(), &properties);
-  m_minUniformBufferAlignment = size_cast<int>(properties.limits.minUniformBufferOffsetAlignment);
-
-  m_currentBindRange = std::make_unique<DescriptorBindRangeData>();
-
-  // Descriptor layout for bindless parameter
-  m_bindingShared.binding = 0;
-  m_bindingShared.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-  m_bindingShared.descriptorCount = 1;
-  m_bindingShared.stageFlags = VK_SHADER_STAGE_ALL;
-  m_bindingShared.pImmutableSamplers = nullptr;
-
-  // Create descriptor set layout
-  VkDescriptorSetLayoutCreateInfo layoutCI2{};
-  layoutCI2.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutCI2.bindingCount = 1;
-  layoutCI2.pBindings = &m_bindingShared;
-
-  vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->getDevice(), &layoutCI2, nullptr, &m_layoutShared),
-                  "Failed to create descriptor set layout");
-}
-
-IFRIT_APIDECL uint32_t DescriptorManager::registerUniformBuffer(SingleBuffer *buffer) {
-  // check if the buffer is already registered
-  for (int i = 0; i < m_uniformBuffers.size(); i++) {
-    if (m_uniformBuffers[i] == buffer->getBuffer()) {
-      return i;
+namespace Ifrit::Graphics::VulkanGraphics
+{
+    template <typename E>
+    IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
+    {
+        return static_cast<typename std::underlying_type<E>::type>(e);
     }
-  }
-  auto handleId = size_cast<int>(m_uniformBuffers.size());
-  m_uniformBuffers.push_back(buffer->getBuffer());
 
-  VkDescriptorBufferInfo bufferInfo{};
-  bufferInfo.buffer = buffer->getBuffer();
-  bufferInfo.offset = 0;
-  bufferInfo.range = VK_WHOLE_SIZE;
+    IFRIT_APIDECL void DescriptorManager::Destructor()
+    {
+        vkDestroyDescriptorPool(m_context->GetDevice(), m_bindlessPool, nullptr);
+        vkDestroyDescriptorSetLayout(m_context->GetDevice(), m_bindlessLayout, nullptr);
+        // iterates m_bindRages and delete descriptor pool and layout
+        for (auto& range : m_bindRanges)
+        {
+            vkDestroyDescriptorPool(m_context->GetDevice(), range->m_pool, nullptr);
+        }
 
-  VkWriteDescriptorSet write{};
-  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  write.dstSet = m_bindlessSet;
-  write.dstBinding = getUnderlying(Rhi::RhiDescriptorType::UniformBuffer);
-  write.dstArrayElement = handleId;
-  write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  write.descriptorCount = 1;
-  write.pBufferInfo = &bufferInfo;
-
-  vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
-  return handleId;
-}
-
-IFRIT_APIDECL
-uint32_t DescriptorManager::registerStorageBuffer(SingleBuffer *buffer) {
-  for (int i = 0; i < m_storageBuffers.size(); i++) {
-    if (m_storageBuffers[i] == buffer->getBuffer()) {
-      return i;
+        if (m_currentBindRange)
+        {
+            if (m_currentBindRange->m_pool != VK_NULL_HANDLE)
+                vkDestroyDescriptorPool(m_context->GetDevice(), m_currentBindRange->m_pool, nullptr);
+        }
+        if (m_layoutShared != VK_NULL_HANDLE)
+        {
+            vkDestroyDescriptorSetLayout(m_context->GetDevice(), m_layoutShared, nullptr);
+        }
     }
-  }
-  auto handleId = m_storageBuffers.size();
-  m_storageBuffers.push_back(buffer->getBuffer());
+    IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext* ctx)
+        : m_context(ctx)
+    {
+        for (int i = 0; i < cMaxDescriptorType; i++)
+        {
+            m_bindings[i].binding            = i;
+            m_bindings[i].descriptorType     = cDescriptorTypeDetails[i].type;
+            m_bindings[i].descriptorCount    = cDescriptorTypeDetails[i].maxDescriptors;
+            m_bindings[i].stageFlags         = VK_SHADER_STAGE_ALL;
+            m_bindings[i].pImmutableSamplers = nullptr;
 
-  VkDescriptorBufferInfo bufferInfo{};
-  bufferInfo.buffer = buffer->getBuffer();
-  bufferInfo.offset = 0;
-  bufferInfo.range = VK_WHOLE_SIZE;
+            m_bindingFlags[i] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+        }
+        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCI{};
+        bindingFlagsCI.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+        bindingFlagsCI.bindingCount  = cMaxDescriptorType;
+        bindingFlagsCI.pBindingFlags = m_bindingFlags.data();
 
-  VkWriteDescriptorSet write{};
-  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  write.dstSet = m_bindlessSet;
-  write.dstBinding = getUnderlying(Rhi::RhiDescriptorType::StorageBuffer);
-  write.dstArrayElement = size_cast<uint32_t>(handleId);
-  write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  write.descriptorCount = 1;
-  write.pBufferInfo = &bufferInfo;
+        VkDescriptorSetLayoutCreateInfo layoutCI{};
+        layoutCI.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutCI.bindingCount = cMaxDescriptorType;
+        layoutCI.pBindings    = m_bindings.data();
+        layoutCI.pNext        = &bindingFlagsCI;
+        layoutCI.flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
-  vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
-  return size_cast<uint32_t>(handleId);
-}
+        vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->GetDevice(), &layoutCI, nullptr, &m_bindlessLayout),
+            "Failed to create descriptor set layout");
 
-IFRIT_APIDECL
-uint32_t DescriptorManager::registerStorageImage(SingleDeviceImage *image, Rhi::RhiImageSubResource subResource) {
-  for (int i = 0; i < m_storageImages.size(); i++) {
-    if (m_storageImages[i].first == image->getImage()) {
-      auto &sub = m_storageImages[i].second;
-      if (sub.mipLevel == subResource.mipLevel && sub.arrayLayer == subResource.arrayLayer &&
-          sub.mipCount == subResource.mipCount && sub.layerCount == subResource.layerCount) {
-        return i;
-      }
+        std::array<VkDescriptorPoolSize, cMaxDescriptorType> poolSizes;
+        for (int i = 0; i < cMaxDescriptorType; i++)
+        {
+            poolSizes[i].type            = cDescriptorTypeDetails[i].type;
+            poolSizes[i].descriptorCount = cDescriptorTypeDetails[i].maxDescriptors;
+        }
+        // Create pool
+        VkDescriptorPoolCreateInfo poolCI{};
+        poolCI.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolCI.flags         = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+        poolCI.maxSets       = 1;
+        poolCI.poolSizeCount = cMaxDescriptorType;
+        poolCI.pPoolSizes    = poolSizes.data();
+
+        vkrVulkanAssert(vkCreateDescriptorPool(m_context->GetDevice(), &poolCI, nullptr, &m_bindlessPool),
+            "Failed to create descriptor pool");
+
+        // Allocate descriptor set
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool     = m_bindlessPool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts        = &m_bindlessLayout;
+
+        vkrVulkanAssert(vkAllocateDescriptorSets(m_context->GetDevice(), &allocInfo, &m_bindlessSet),
+            "Failed to allocate descriptor set");
+
+        // Query alignment for dynamic uniform buffer
+        VkPhysicalDeviceProperties properties;
+        vkGetPhysicalDeviceProperties(m_context->GetPhysicalDevice(), &properties);
+        m_minUniformBufferAlignment = SizeCast<int>(properties.limits.minUniformBufferOffsetAlignment);
+
+        m_currentBindRange = std::make_unique<DescriptorBindRangeData>();
+
+        // Descriptor layout for bindless parameter
+        m_bindingShared.binding            = 0;
+        m_bindingShared.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+        m_bindingShared.descriptorCount    = 1;
+        m_bindingShared.stageFlags         = VK_SHADER_STAGE_ALL;
+        m_bindingShared.pImmutableSamplers = nullptr;
+
+        // Create descriptor set layout
+        VkDescriptorSetLayoutCreateInfo layoutCI2{};
+        layoutCI2.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutCI2.bindingCount = 1;
+        layoutCI2.pBindings    = &m_bindingShared;
+
+        vkrVulkanAssert(vkCreateDescriptorSetLayout(m_context->GetDevice(), &layoutCI2, nullptr, &m_layoutShared),
+            "Failed to create descriptor set layout");
     }
-  }
-  auto handle = m_storageImages.size();
-  VkDescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-  imageInfo.imageView = image->getImageViewMipLayer(subResource.mipLevel, subResource.arrayLayer, subResource.mipCount,
-                                                    subResource.layerCount);
-  imageInfo.sampler = VK_NULL_HANDLE;
 
-  VkWriteDescriptorSet write{};
-  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  write.dstSet = m_bindlessSet;
-  write.dstBinding = getUnderlying(Rhi::RhiDescriptorType::StorageImage);
-  write.dstArrayElement = size_cast<uint32_t>(handle);
-  ;
-  write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-  write.descriptorCount = 1;
-  write.pImageInfo = &imageInfo;
+    IFRIT_APIDECL u32 DescriptorManager::RegisterUniformBuffer(SingleBuffer* buffer)
+    {
+        // check if the buffer is already registered
+        for (int i = 0; i < m_uniformBuffers.size(); i++)
+        {
+            if (m_uniformBuffers[i] == buffer->GetBuffer())
+            {
+                return i;
+            }
+        }
+        auto handleId = SizeCast<int>(m_uniformBuffers.size());
+        m_uniformBuffers.push_back(buffer->GetBuffer());
 
-  vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
-  m_storageImages.push_back({image->getImage(), subResource});
-  return size_cast<uint32_t>(handle);
-}
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = buffer->GetBuffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range  = VK_WHOLE_SIZE;
 
-IFRIT_APIDECL
-uint32_t DescriptorManager::registerCombinedImageSampler(SingleDeviceImage *image, Sampler *sampler) {
-  for (int i = 0; i < m_combinedImageSamplers.size(); i++) {
-    if (m_combinedImageSamplers[i].first == image->getImage() &&
-        m_combinedImageSamplers[i].second == sampler->getSampler()) {
-      return i;
+        VkWriteDescriptorSet write{};
+        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet          = m_bindlessSet;
+        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::UniformBuffer);
+        write.dstArrayElement = handleId;
+        write.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.descriptorCount = 1;
+        write.pBufferInfo     = &bufferInfo;
+
+        vkUpdateDescriptorSets(m_context->GetDevice(), 1, &write, 0, nullptr);
+        return handleId;
     }
-  }
-  auto handleId = m_combinedImageSamplers.size();
-  m_combinedImageSamplers.push_back({image->getImage(), sampler->getSampler()});
 
-  VkDescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  imageInfo.imageView = image->getImageView();
-  imageInfo.sampler = sampler->getSampler();
+    IFRIT_APIDECL
+    u32 DescriptorManager::RegisterStorageBuffer(SingleBuffer* buffer)
+    {
+        for (int i = 0; i < m_storageBuffers.size(); i++)
+        {
+            if (m_storageBuffers[i] == buffer->GetBuffer())
+            {
+                return i;
+            }
+        }
+        auto handleId = m_storageBuffers.size();
+        m_storageBuffers.push_back(buffer->GetBuffer());
 
-  VkWriteDescriptorSet write{};
-  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  write.dstSet = m_bindlessSet;
-  write.dstBinding = getUnderlying(Rhi::RhiDescriptorType::CombinedImageSampler);
-  write.dstArrayElement = size_cast<uint32_t>(handleId);
-  write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  write.descriptorCount = 1;
-  write.pImageInfo = &imageInfo;
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = buffer->GetBuffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range  = VK_WHOLE_SIZE;
 
-  vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
-  return size_cast<uint32_t>(handleId);
-}
+        VkWriteDescriptorSet write{};
+        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet          = m_bindlessSet;
+        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::StorageBuffer);
+        write.dstArrayElement = SizeCast<u32>(handleId);
+        write.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write.descriptorCount = 1;
+        write.pBufferInfo     = &bufferInfo;
 
-IFRIT_APIDECL DescriptorBindRange DescriptorManager::registerBindlessParameterRaw(const char *data, uint32_t size) {
-  auto offset = m_currentBindRange->m_currentOffset;
-  auto rangeId = m_currentBindRange->m_ranges.size();
-
-  auto paddedSize = size;
-  if (size % m_minUniformBufferAlignment != 0) {
-    paddedSize += m_minUniformBufferAlignment - (size % m_minUniformBufferAlignment);
-  }
-  m_currentBindRange->m_currentOffset += paddedSize;
-
-  DescriptorBindRangeData::Range range;
-  range.offset = offset;
-  range.bytes = size;
-  range.data.resize(size);
-  memcpy(range.data.data(), data, size);
-  m_currentBindRange->m_ranges.push_back(range);
-
-  return {static_cast<uint32_t>(m_bindRanges.size()), offset};
-}
-
-IFRIT_APIDECL void DescriptorManager::buildBindlessParameter() {
-  BufferCreateInfo ci{};
-  ci.size = m_currentBindRange->m_currentOffset;
-  ci.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-  ci.hostVisible = true;
-  m_currentBindRange->m_buffer = std::make_unique<SingleBuffer>(m_context, ci);
-
-  m_currentBindRange->m_buffer->map();
-  for (int i = 0; i < m_currentBindRange->m_ranges.size(); i++) {
-    auto &range = m_currentBindRange->m_ranges[i];
-    m_currentBindRange->m_buffer->writeBuffer(range.data.data(), range.bytes, range.offset);
-  }
-  m_currentBindRange->m_buffer->flush();
-  m_currentBindRange->m_buffer->unmap();
-
-  // Create pool
-  VkDescriptorPoolSize poolSize{};
-  poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-  poolSize.descriptorCount = 1;
-
-  VkDescriptorPoolCreateInfo poolCI{};
-  poolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolCI.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-  poolCI.maxSets = 1;
-  poolCI.poolSizeCount = 1;
-  poolCI.pPoolSizes = &poolSize;
-
-  vkrVulkanAssert(vkCreateDescriptorPool(m_context->getDevice(), &poolCI, nullptr, &m_currentBindRange->m_pool),
-                  "Failed to create descriptor pool");
-
-  // Allocate descriptor set
-  VkDescriptorSetAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  allocInfo.descriptorPool = m_currentBindRange->m_pool;
-  allocInfo.descriptorSetCount = 1;
-  allocInfo.pSetLayouts = &m_layoutShared;
-
-  vkrVulkanAssert(vkAllocateDescriptorSets(m_context->getDevice(), &allocInfo, &m_currentBindRange->m_set),
-                  "Failed to allocate descriptor set");
-
-  // Update descriptor set
-  uint32_t maxRange = 0;
-  for (int i = 0; i < m_currentBindRange->m_ranges.size(); i++) {
-    maxRange = std::max(maxRange, m_currentBindRange->m_ranges[i].bytes);
-  }
-  VkDescriptorBufferInfo bufferInfo{};
-  bufferInfo.buffer = m_currentBindRange->m_buffer->getBuffer();
-  bufferInfo.offset = 0;
-  bufferInfo.range = maxRange;
-
-  VkWriteDescriptorSet write{};
-  write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  write.dstSet = m_currentBindRange->m_set;
-  write.dstBinding = 0;
-  write.dstArrayElement = 0;
-  write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-  write.descriptorCount = 1;
-  write.pBufferInfo = &bufferInfo;
-
-  vkUpdateDescriptorSets(m_context->getDevice(), 1, &write, 0, nullptr);
-
-  m_bindRanges.push_back(std::move(m_currentBindRange));
-  m_currentBindRange = std::make_unique<DescriptorBindRangeData>();
-}
-
-IFRIT_APIDECL void DescriptorBindlessIndices::addUniformBuffer(Rhi::RhiMultiBuffer *buffer, u32 loc) {
-  auto buf = Ifrit::Common::Utility::checked_cast<MultiBuffer>(buffer);
-  for (u32 i = 0; i < numCopies; i++) {
-    auto p = m_descriptorManager->registerUniformBuffer(buf->getBuffer(i));
-    m_indices[i][loc] = p;
-  }
-}
-
-IFRIT_APIDECL void DescriptorBindlessIndices::addStorageBuffer(Rhi::RhiMultiBuffer *buffer, u32 loc) {
-  auto buf = Ifrit::Common::Utility::checked_cast<MultiBuffer>(buffer);
-  for (u32 i = 0; i < numCopies; i++) {
-    auto p = m_descriptorManager->registerStorageBuffer(buf->getBuffer(i));
-    m_indices[i][loc] = p;
-  }
-}
-
-IFRIT_APIDECL void DescriptorBindlessIndices::addStorageBuffer(Rhi::RhiBuffer *buffer, u32 loc) {
-  auto buf = Ifrit::Common::Utility::checked_cast<SingleBuffer>(buffer);
-  for (u32 i = 0; i < numCopies; i++) {
-    auto p = m_descriptorManager->registerStorageBuffer(buf);
-    m_indices[i][loc] = p;
-  }
-}
-
-IFRIT_APIDECL void DescriptorBindlessIndices::addCombinedImageSampler(Rhi::RhiTexture *texture,
-                                                                      Rhi::RhiSampler *sampler, u32 loc) {
-  auto tex = Ifrit::Common::Utility::checked_cast<SingleDeviceImage>(texture);
-  auto sam = Ifrit::Common::Utility::checked_cast<Sampler>(sampler);
-  for (u32 i = 0; i < numCopies; i++) {
-    auto p = m_descriptorManager->registerCombinedImageSampler(tex, sam);
-    m_indices[i][loc] = p;
-  }
-}
-
-IFRIT_APIDECL void DescriptorBindlessIndices::addUAVImage(Rhi::RhiTexture *texture,
-                                                          Rhi::RhiImageSubResource subResource, u32 loc) {
-  auto tex = Ifrit::Common::Utility::checked_cast<SingleDeviceImage>(texture);
-  for (u32 i = 0; i < numCopies; i++) {
-    auto p = m_descriptorManager->registerStorageImage(tex, subResource);
-    m_indices[i][loc] = p;
-  }
-}
-
-IFRIT_APIDECL void DescriptorBindlessIndices::buildRanges() {
-  using Ifrit::Common::Utility::size_cast;
-  if (m_bindRange.size() == 0) {
-    m_bindRange.resize(numCopies);
-    for (u32 i = 0; i < numCopies; i++) {
-      std::vector<u32> uniformData;
-      auto numKeys = m_indices[i].size();
-      uniformData.resize(numKeys);
-      for (auto &[k, v] : m_indices[i]) {
-        uniformData[k] = v;
-      }
-      auto ptr = reinterpret_cast<const char *>(uniformData.data());
-      m_bindRange[i] = m_descriptorManager->registerBindlessParameterRaw(ptr, size_cast<u32>(numKeys * sizeof(u32)));
+        vkUpdateDescriptorSets(m_context->GetDevice(), 1, &write, 0, nullptr);
+        return SizeCast<u32>(handleId);
     }
-  }
-}
 
-} // namespace Ifrit::GraphicsBackend::VulkanGraphics
+    IFRIT_APIDECL
+    u32 DescriptorManager::RegisterStorageImage(SingleDeviceImage* image, Rhi::RhiImageSubResource subResource)
+    {
+        for (int i = 0; i < m_storageImages.size(); i++)
+        {
+            if (m_storageImages[i].first == image->GetImage())
+            {
+                auto& sub = m_storageImages[i].second;
+                if (sub.mipLevel == subResource.mipLevel && sub.arrayLayer == subResource.arrayLayer && sub.mipCount == subResource.mipCount && sub.layerCount == subResource.layerCount)
+                {
+                    return i;
+                }
+            }
+        }
+        auto                  handle = m_storageImages.size();
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+        imageInfo.imageView   = image->GetImageViewMipLayer(subResource.mipLevel, subResource.arrayLayer, subResource.mipCount,
+              subResource.layerCount);
+        imageInfo.sampler     = VK_NULL_HANDLE;
+
+        VkWriteDescriptorSet write{};
+        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet          = m_bindlessSet;
+        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::StorageImage);
+        write.dstArrayElement = SizeCast<u32>(handle);
+        ;
+        write.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        write.descriptorCount = 1;
+        write.pImageInfo      = &imageInfo;
+
+        vkUpdateDescriptorSets(m_context->GetDevice(), 1, &write, 0, nullptr);
+        m_storageImages.push_back({ image->GetImage(), subResource });
+        return SizeCast<u32>(handle);
+    }
+
+    IFRIT_APIDECL
+    u32 DescriptorManager::RegisterCombinedImageSampler(SingleDeviceImage* image, Sampler* sampler)
+    {
+        for (int i = 0; i < m_combinedImageSamplers.size(); i++)
+        {
+            if (m_combinedImageSamplers[i].first == image->GetImage() && m_combinedImageSamplers[i].second == sampler->GetSampler())
+            {
+                return i;
+            }
+        }
+        auto handleId = m_combinedImageSamplers.size();
+        m_combinedImageSamplers.push_back({ image->GetImage(), sampler->GetSampler() });
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView   = image->GetImageView();
+        imageInfo.sampler     = sampler->GetSampler();
+
+        VkWriteDescriptorSet write{};
+        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet          = m_bindlessSet;
+        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::CombinedImageSampler);
+        write.dstArrayElement = SizeCast<u32>(handleId);
+        write.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write.descriptorCount = 1;
+        write.pImageInfo      = &imageInfo;
+
+        vkUpdateDescriptorSets(m_context->GetDevice(), 1, &write, 0, nullptr);
+        return SizeCast<u32>(handleId);
+    }
+
+    IFRIT_APIDECL DescriptorBindRange DescriptorManager::RegisterBindlessParameterRaw(const char* data, u32 size)
+    {
+        auto offset  = m_currentBindRange->m_currentOffset;
+        auto rangeId = m_currentBindRange->m_ranges.size();
+
+        auto paddedSize = size;
+        if (size % m_minUniformBufferAlignment != 0)
+        {
+            paddedSize += m_minUniformBufferAlignment - (size % m_minUniformBufferAlignment);
+        }
+        m_currentBindRange->m_currentOffset += paddedSize;
+
+        DescriptorBindRangeData::Range range;
+        range.offset = offset;
+        range.bytes  = size;
+        range.data.resize(size);
+        memcpy(range.data.data(), data, size);
+        m_currentBindRange->m_ranges.push_back(range);
+
+        return { static_cast<u32>(m_bindRanges.size()), offset };
+    }
+
+    IFRIT_APIDECL void DescriptorManager::BuildBindlessParameter()
+    {
+        BufferCreateInfo ci{};
+        ci.size                      = m_currentBindRange->m_currentOffset;
+        ci.usage                     = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        ci.hostVisible               = true;
+        m_currentBindRange->m_buffer = std::make_unique<SingleBuffer>(m_context, ci);
+
+        m_currentBindRange->m_buffer->MapMemory();
+        for (int i = 0; i < m_currentBindRange->m_ranges.size(); i++)
+        {
+            auto& range = m_currentBindRange->m_ranges[i];
+            m_currentBindRange->m_buffer->WriteBuffer(range.data.data(), range.bytes, range.offset);
+        }
+        m_currentBindRange->m_buffer->FlushBuffer();
+        m_currentBindRange->m_buffer->UnmapMemory();
+
+        // Create pool
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+        poolSize.descriptorCount = 1;
+
+        VkDescriptorPoolCreateInfo poolCI{};
+        poolCI.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolCI.flags         = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+        poolCI.maxSets       = 1;
+        poolCI.poolSizeCount = 1;
+        poolCI.pPoolSizes    = &poolSize;
+
+        vkrVulkanAssert(vkCreateDescriptorPool(m_context->GetDevice(), &poolCI, nullptr, &m_currentBindRange->m_pool),
+            "Failed to create descriptor pool");
+
+        // Allocate descriptor set
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool     = m_currentBindRange->m_pool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts        = &m_layoutShared;
+
+        vkrVulkanAssert(vkAllocateDescriptorSets(m_context->GetDevice(), &allocInfo, &m_currentBindRange->m_set),
+            "Failed to allocate descriptor set");
+
+        // Update descriptor set
+        u32 maxRange = 0;
+        for (int i = 0; i < m_currentBindRange->m_ranges.size(); i++)
+        {
+            maxRange = std::max(maxRange, m_currentBindRange->m_ranges[i].bytes);
+        }
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = m_currentBindRange->m_buffer->GetBuffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range  = maxRange;
+
+        VkWriteDescriptorSet write{};
+        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet          = m_currentBindRange->m_set;
+        write.dstBinding      = 0;
+        write.dstArrayElement = 0;
+        write.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+        write.descriptorCount = 1;
+        write.pBufferInfo     = &bufferInfo;
+
+        vkUpdateDescriptorSets(m_context->GetDevice(), 1, &write, 0, nullptr);
+
+        m_bindRanges.push_back(std::move(m_currentBindRange));
+        m_currentBindRange = std::make_unique<DescriptorBindRangeData>();
+    }
+
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddUniformBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc)
+    {
+        auto buf = Ifrit::Common::Utility::CheckedCast<MultiBuffer>(buffer);
+        for (u32 i = 0; i < numCopies; i++)
+        {
+            auto p            = m_descriptorManager->RegisterUniformBuffer(buf->GetBuffer(i));
+            m_indices[i][loc] = p;
+        }
+    }
+
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddStorageBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc)
+    {
+        auto buf = Ifrit::Common::Utility::CheckedCast<MultiBuffer>(buffer);
+        for (u32 i = 0; i < numCopies; i++)
+        {
+            auto p            = m_descriptorManager->RegisterStorageBuffer(buf->GetBuffer(i));
+            m_indices[i][loc] = p;
+        }
+    }
+
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddStorageBuffer(Rhi::RhiBuffer* buffer, u32 loc)
+    {
+        auto buf = Ifrit::Common::Utility::CheckedCast<SingleBuffer>(buffer);
+        for (u32 i = 0; i < numCopies; i++)
+        {
+            auto p            = m_descriptorManager->RegisterStorageBuffer(buf);
+            m_indices[i][loc] = p;
+        }
+    }
+
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddCombinedImageSampler(Rhi::RhiTexture* texture,
+        Rhi::RhiSampler* sampler, u32 loc)
+    {
+        auto tex = Ifrit::Common::Utility::CheckedCast<SingleDeviceImage>(texture);
+        auto sam = Ifrit::Common::Utility::CheckedCast<Sampler>(sampler);
+        for (u32 i = 0; i < numCopies; i++)
+        {
+            auto p            = m_descriptorManager->RegisterCombinedImageSampler(tex, sam);
+            m_indices[i][loc] = p;
+        }
+    }
+
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddUAVImage(Rhi::RhiTexture* texture,
+        Rhi::RhiImageSubResource subResource, u32 loc)
+    {
+        auto tex = Ifrit::Common::Utility::CheckedCast<SingleDeviceImage>(texture);
+        for (u32 i = 0; i < numCopies; i++)
+        {
+            auto p            = m_descriptorManager->RegisterStorageImage(tex, subResource);
+            m_indices[i][loc] = p;
+        }
+    }
+
+    IFRIT_APIDECL void DescriptorBindlessIndices::BuildRanges()
+    {
+        using Ifrit::Common::Utility::SizeCast;
+        if (m_bindRange.size() == 0)
+        {
+            m_bindRange.resize(numCopies);
+            for (u32 i = 0; i < numCopies; i++)
+            {
+                Vec<u32> uniformData;
+                auto     numKeys = m_indices[i].size();
+                uniformData.resize(numKeys);
+                for (auto& [k, v] : m_indices[i])
+                {
+                    uniformData[k] = v;
+                }
+                auto ptr       = reinterpret_cast<const char*>(uniformData.data());
+                m_bindRange[i] = m_descriptorManager->RegisterBindlessParameterRaw(ptr, SizeCast<u32>(numKeys * sizeof(u32)));
+            }
+        }
+    }
+
+} // namespace Ifrit::Graphics::VulkanGraphics

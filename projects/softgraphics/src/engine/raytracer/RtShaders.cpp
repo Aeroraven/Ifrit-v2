@@ -16,22 +16,24 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/raytracer/RtShaders.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer {
-IFRIT_HOST void RaytracerShaderExecutionStack::pushStack(const RayInternal &ray,
-                                                         const RayHit &rayHit,
-                                                         void *pPayload) {
-  RaytracerShaderStackElement el;
-  el.ray = ray;
-  el.payloadPtr = pPayload;
-  el.rayHit = rayHit;
-  execStack.push_back(el);
-  this->onStackPushComplete();
-}
-IFRIT_HOST void RaytracerShaderExecutionStack::popStack() {
-  execStack.pop_back();
-  this->onStackPopComplete();
-}
-} // namespace Ifrit::GraphicsBackend::SoftGraphics::Raytracer
+namespace Ifrit::Graphics::SoftGraphics::Raytracer
+{
+	IFRIT_HOST void RaytracerShaderExecutionStack::pushStack(const RayInternal& ray,
+		const RayHit&															rayHit,
+		void*																	pPayload)
+	{
+		RaytracerShaderStackElement el;
+		el.ray = ray;
+		el.payloadPtr = pPayload;
+		el.rayHit = rayHit;
+		execStack.push_back(el);
+		this->onStackPushComplete();
+	}
+	IFRIT_HOST void RaytracerShaderExecutionStack::popStack()
+	{
+		execStack.pop_back();
+		this->onStackPopComplete();
+	}
+} // namespace Ifrit::Graphics::SoftGraphics::Raytracer

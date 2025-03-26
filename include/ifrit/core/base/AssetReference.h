@@ -23,29 +23,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <memory>
 #include <string>
 
-namespace Ifrit::Core {
-struct AssetReference {
-  String m_fileId;
-  String m_uuid;
-  String m_name;
-  bool m_usingAsset = false;
-  IFRIT_STRUCT_SERIALIZE(m_fileId, m_uuid, m_name, m_usingAsset)
+namespace Ifrit::Core
+{
+    struct AssetReference
+    {
+        String m_fileId;
+        String m_uuid;
+        String m_name;
+        bool   m_usingAsset = false;
+        IFRIT_STRUCT_SERIALIZE(m_fileId, m_uuid, m_name, m_usingAsset)
 
-  bool operator==(const AssetReference &other) const { return m_uuid == other.m_uuid && m_name == other.m_name; }
-};
+        bool operator==(const AssetReference& other) const { return m_uuid == other.m_uuid && m_name == other.m_name; }
+    };
 
-class IFRIT_APIDECL IAssetCompatible {
-public:
-  virtual void _polyHolderAsset() {}
-};
+    class IFRIT_APIDECL IAssetCompatible
+    {
+    public:
+        virtual void _PolyHolderAsset() {}
+    };
 
-class AssetReferenceContainer {
-public:
-  AssetReference m_assetReference;
-  bool m_usingAsset = false;
-  std::weak_ptr<IAssetCompatible> m_asset;
+    class AssetReferenceContainer
+    {
+    public:
+        AssetReference                  m_assetReference;
+        bool                            m_usingAsset = false;
+        std::weak_ptr<IAssetCompatible> m_asset;
 
-  IFRIT_STRUCT_SERIALIZE(m_assetReference, m_usingAsset)
-};
+        IFRIT_STRUCT_SERIALIZE(m_assetReference, m_usingAsset)
+    };
 
 } // namespace Ifrit::Core

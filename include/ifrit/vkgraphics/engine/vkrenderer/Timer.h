@@ -21,27 +21,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 
-namespace Ifrit::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::Graphics::VulkanGraphics
+{
 
-// Referenced from: https://pavelsmejkal.net/Posts/GPUTimingBasics
+    // Referenced from: https://pavelsmejkal.net/Posts/GPUTimingBasics
 
-class IFRIT_APIDECL DeviceTimer : public Ifrit::GraphicsBackend::Rhi::RhiDeviceTimer {
-private:
-  u32 m_numFrameInFlight;
-  EngineContext *m_context;
-  Vec<VkQueryPool> m_queryPools;
-  Vec<u64> m_timestampsStart;
-  Vec<u64> m_timestampsEnd;
-  u32 m_currentFrame = 0;
-  float m_elapsedMs = 0;
+    class IFRIT_APIDECL DeviceTimer : public Ifrit::Graphics::Rhi::RhiDeviceTimer
+    {
+    private:
+        u32              m_numFrameInFlight;
+        EngineContext*   m_context;
+        Vec<VkQueryPool> m_queryPools;
+        Vec<u64>         m_timestampsStart;
+        Vec<u64>         m_timestampsEnd;
+        u32              m_currentFrame = 0;
+        float            m_elapsedMs    = 0;
 
-public:
-  DeviceTimer(EngineContext *ctx, u32 numFrameInFlight);
-  virtual ~DeviceTimer();
-  virtual void start(const Rhi::RhiCommandList *cmd) override;
-  virtual void stop(const Rhi::RhiCommandList *cmd) override;
-  virtual float getElapsedMs() override;
-  virtual void frameProceed();
-};
+    public:
+        DeviceTimer(EngineContext* ctx, u32 numFrameInFlight);
+        virtual ~DeviceTimer();
+        virtual void  Start(const Rhi::RhiCommandList* cmd) override;
+        virtual void  Stop(const Rhi::RhiCommandList* cmd) override;
+        virtual float GetElapsedMs() override;
+        virtual void  FrameProceed();
+    };
 
-} // namespace Ifrit::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::Graphics::VulkanGraphics

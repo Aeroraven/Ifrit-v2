@@ -24,30 +24,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/scene/FrameCollector.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
-namespace Ifrit::Core {
-class IFRIT_APIDECL AmbientOcclusionPass {
-  using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
-  using CommandBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandList;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
-  using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
+namespace Ifrit::Core
+{
+    class IFRIT_APIDECL AmbientOcclusionPass
+    {
+        using ComputePass   = Graphics::Rhi::RhiComputePass;
+        using CommandBuffer = Graphics::Rhi::RhiCommandList;
+        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUShader     = Graphics::Rhi::RhiShader;
 
-private:
-  IApplication *m_app;
-  ComputePass *m_hbaoPass = nullptr;
-  ComputePass *m_ssgiPass = nullptr;
+    private:
+        IApplication* m_app;
+        ComputePass*  m_hbaoPass = nullptr;
+        ComputePass*  m_ssgiPass = nullptr;
 
-  void setupHBAOPass();
-  void setupSSGIPass();
-  GPUShader *createShaderFromFile(const String &shaderPath, const String &entry,
-                                  GraphicsBackend::Rhi::RhiShaderStage stage);
+        void          SetupHBAOPass();
+        void          SetupSSGIPass();
+        GPUShader*    CreateShaderFromFile(const String& shaderPath, const String& entry,
+               Graphics::Rhi::RhiShaderStage stage);
 
-public:
-  AmbientOcclusionPass(IApplication *app) : m_app(app) {}
-  void renderHBAO(const CommandBuffer *cmd, u32 width, u32 height, GPUBindId *depthSamp, GPUBindId *normalSamp,
-                  u32 aoTex, GPUBindId *perframeData);
+    public:
+        AmbientOcclusionPass(IApplication* app)
+            : m_app(app) {}
+        void RenderHBAO(const CommandBuffer* cmd, u32 width, u32 height, GPUBindId* depthSamp, GPUBindId* normalSamp,
+            u32 aoTex, GPUBindId* perframeData);
 
-  void renderSSGI(const CommandBuffer *cmd, u32 width, u32 height, GPUBindId *perframeData, u32 depthHizMinUAV,
-                  u32 depthHizMaxUAV, GPUBindId *normalSRV, u32 aoUAV, GPUBindId *albedoSRV, u32 hizTexW, u32 hizTexH,
-                  u32 numLods, GPUBindId *blueNoiseSRV);
-};
+        void RenderSSGI(const CommandBuffer* cmd, u32 width, u32 height, GPUBindId* perframeData, u32 depthHizMinUAV,
+            u32 depthHizMaxUAV, GPUBindId* normalSRV, u32 aoUAV, GPUBindId* albedoSRV, u32 hizTexW, u32 hizTexH,
+            u32 numLods, GPUBindId* blueNoiseSRV);
+    };
 } // namespace Ifrit::Core

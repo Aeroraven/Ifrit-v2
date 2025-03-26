@@ -16,14 +16,15 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/display/presentation/window/AdaptiveWindowBuilder.h"
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
 
-namespace Ifrit::Display::Window {
-IFRIT_APIDECL std::unique_ptr<WindowProvider>
-AdaptiveWindowBuilder::buildUniqueWindowProvider() {
-  auto obj = std::make_unique<GLFWWindowProvider>();
-  return obj;
-}
+namespace Ifrit::Display::Window
+{
+    IFRIT_APIDECL std::unique_ptr<WindowProvider>
+                  AdaptiveWindowBuilder::buildUniqueWindowProvider()
+    {
+        auto obj = std::make_unique<GLFWWindowProvider>();
+        return obj;
+    }
 } // namespace Ifrit::Display::Window

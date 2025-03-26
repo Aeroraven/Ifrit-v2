@@ -18,161 +18,213 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/base/Scene.h"
 #include "ifrit/core/base/Component.h"
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-IFRIT_APIDECL Ref<SceneNode> SceneNode::addChildNode() {
-  auto node = std::make_shared<SceneNode>();
-  m_children.push_back(node);
-  return node;
-}
-IFRIT_APIDECL Ref<SceneObject> SceneNode::addGameObject(const String &name) {
-  auto obj = std::make_shared<SceneObject>();
-  obj->initialize();
-  obj->setName(name);
-  m_gameObjects.push_back(obj);
-  return obj;
-}
-
-IFRIT_APIDECL Ref<SceneObject> SceneNode::addGameObjectTransferred(Ref<SceneObject> &&obj) {
-  m_gameObjects.push_back(std::move(obj));
-  return obj;
-}
-
-IFRIT_APIDECL void SceneNode::onUpdate() {
-  for (auto &child : m_children) {
-    child->onUpdate();
-  }
-  for (auto &obj : m_gameObjects) {
-    for (auto &comp : obj->getAllComponents()) {
-      comp->onUpdate();
+    IFRIT_APIDECL Ref<SceneNode> SceneNode::AddChildNode()
+    {
+        auto node = std::make_shared<SceneNode>();
+        m_children.push_back(node);
+        return node;
     }
-  }
-}
-
-IFRIT_APIDECL void SceneNode::onComponentStart() {
-  for (auto &child : m_children) {
-    child->onComponentStart();
-  }
-  for (auto &obj : m_gameObjects) {
-    for (auto &comp : obj->getAllComponents()) {
-      comp->invokeStart();
+    IFRIT_APIDECL Ref<SceneObject> SceneNode::AddGameObject(const String& name)
+    {
+        auto obj = std::make_shared<SceneObject>();
+        obj->Initialize();
+        obj->SetName(name);
+        m_gameObjects.push_back(obj);
+        return obj;
     }
-  }
-}
 
-IFRIT_APIDECL void SceneNode::onComponentAwake() {
-  for (auto &child : m_children) {
-    child->onComponentAwake();
-  }
-  for (auto &obj : m_gameObjects) {
-    for (auto &comp : obj->getAllComponents()) {
-      comp->invokeAwake();
+    IFRIT_APIDECL Ref<SceneObject> SceneNode::AddGameObjectTransferred(Ref<SceneObject>&& obj)
+    {
+        m_gameObjects.push_back(std::move(obj));
+        return obj;
     }
-  }
-}
 
-IFRIT_APIDECL void SceneNode::onFixedUpdate() {
-  for (auto &child : m_children) {
-    child->onFixedUpdate();
-  }
-  for (auto &obj : m_gameObjects) {
-    for (auto &comp : obj->getAllComponents()) {
-      comp->onFixedUpdate();
+    IFRIT_APIDECL void SceneNode::OnUpdate()
+    {
+        for (auto& child : m_children)
+        {
+            child->OnUpdate();
+        }
+        for (auto& obj : m_gameObjects)
+        {
+            for (auto& comp : obj->GetAllComponents())
+            {
+                comp->OnUpdate();
+            }
+        }
     }
-  }
-}
 
-IFRIT_APIDECL Ref<SceneNode> Scene::addSceneNode() { return m_root->addChildNode(); }
-
-IFRIT_APIDECL Camera *Scene::getMainCamera() {
-  Vec<SceneNode *> nodes;
-  nodes.push_back(m_root.get());
-  while (!nodes.empty()) {
-    auto node = nodes.back();
-    nodes.pop_back();
-    for (auto &child : node->getChildren()) {
-      nodes.push_back(child.get());
+    IFRIT_APIDECL void SceneNode::OnComponentStart()
+    {
+        for (auto& child : m_children)
+        {
+            child->OnComponentStart();
+        }
+        for (auto& obj : m_gameObjects)
+        {
+            for (auto& comp : obj->GetAllComponents())
+            {
+                comp->InvokeStart();
+            }
+        }
     }
-    for (auto &obj : node->getGameObjects()) {
-      auto camera = obj->getComponent<Camera>();
-      if (camera) {
-        if (camera->isMainCamera())
-          return camera.get();
-      }
+
+    IFRIT_APIDECL void SceneNode::OnComponentAwake()
+    {
+        for (auto& child : m_children)
+        {
+            child->OnComponentAwake();
+        }
+        for (auto& obj : m_gameObjects)
+        {
+            for (auto& comp : obj->GetAllComponents())
+            {
+                comp->InvokeAwake();
+            }
+        }
     }
-  }
-  return nullptr;
-}
 
-IFRIT_APIDECL Vec<Ref<SceneObject>> Scene::filterObjects(Fn<bool(Ref<SceneObject>)> filter) {
-  Vec<Ref<SceneObject>> result;
-  Vec<SceneNode *> nodes;
-  nodes.push_back(m_root.get());
-  while (!nodes.empty()) {
-    auto node = nodes.back();
-    nodes.pop_back();
-    for (auto &child : node->getChildren()) {
-      nodes.push_back(child.get());
+    IFRIT_APIDECL void SceneNode::OnFixedUpdate()
+    {
+        for (auto& child : m_children)
+        {
+            child->OnFixedUpdate();
+        }
+        for (auto& obj : m_gameObjects)
+        {
+            for (auto& comp : obj->GetAllComponents())
+            {
+                comp->OnFixedUpdate();
+            }
+        }
     }
-    for (auto &obj : node->getGameObjects()) {
-      if (filter(obj)) {
-        result.push_back(obj);
-      }
+
+    IFRIT_APIDECL Ref<SceneNode> Scene::AddSceneNode()
+    {
+        return m_root->AddChildNode();
     }
-  }
-  return result;
-}
 
-IFRIT_APIDECL Vec<SceneObject *> Scene::filterObjectsUnsafe(Fn<bool(SceneObject *)> filter) {
-  Vec<SceneObject *> result;
-  Vec<SceneNode *> nodes;
-  nodes.push_back(m_root.get());
-  while (!nodes.empty()) {
-    auto node = nodes.back();
-    nodes.pop_back();
-    for (auto &child : node->getChildren()) {
-      nodes.push_back(child.get());
+    IFRIT_APIDECL Camera* Scene::GetMainCamera()
+    {
+        Vec<SceneNode*> nodes;
+        nodes.push_back(m_root.get());
+        while (!nodes.empty())
+        {
+            auto node = nodes.back();
+            nodes.pop_back();
+            for (auto& child : node->GetChildren())
+            {
+                nodes.push_back(child.get());
+            }
+            for (auto& obj : node->GetGameObjects())
+            {
+                auto camera = obj->GetComponent<Camera>();
+                if (camera)
+                {
+                    if (camera->IsMainCamera())
+                        return camera.get();
+                }
+            }
+        }
+        return nullptr;
     }
-    for (auto &obj : node->getGameObjects()) {
-      if (filter(obj.get())) {
-        result.push_back(obj.get());
-      }
+
+    IFRIT_APIDECL Vec<Ref<SceneObject>> Scene::FilterObjects(Fn<bool(Ref<SceneObject>)> filter)
+    {
+        Vec<Ref<SceneObject>> result;
+        Vec<SceneNode*>       nodes;
+        nodes.push_back(m_root.get());
+        while (!nodes.empty())
+        {
+            auto node = nodes.back();
+            nodes.pop_back();
+            for (auto& child : node->GetChildren())
+            {
+                nodes.push_back(child.get());
+            }
+            for (auto& obj : node->GetGameObjects())
+            {
+                if (filter(obj))
+                {
+                    result.push_back(obj);
+                }
+            }
+        }
+        return result;
     }
-  }
-  return result;
-}
 
-IFRIT_APIDECL void Scene::onUpdate() { m_root->onUpdate(); }
-IFRIT_APIDECL void Scene::onComponentAwake() { m_root->onComponentAwake(); }
-IFRIT_APIDECL void Scene::onComponentStart() { m_root->onComponentStart(); }
+    IFRIT_APIDECL Vec<SceneObject*> Scene::FilterObjectsUnsafe(Fn<bool(SceneObject*)> filter)
+    {
+        Vec<SceneObject*> result;
+        Vec<SceneNode*>   nodes;
+        nodes.push_back(m_root.get());
+        while (!nodes.empty())
+        {
+            auto node = nodes.back();
+            nodes.pop_back();
+            for (auto& child : node->GetChildren())
+            {
+                nodes.push_back(child.get());
+            }
+            for (auto& obj : node->GetGameObjects())
+            {
+                if (filter(obj.get()))
+                {
+                    result.push_back(obj.get());
+                }
+            }
+        }
+        return result;
+    }
 
-IFRIT_APIDECL void Scene::onFixedUpdate(TimingRecorder *stopwatch, u32 fixedUpdateRate, u32 maxCompensationFrames) {
-  auto lastTimeStamp = stopwatch->getCurTimeUs();
-  auto totalFrames = lastTimeStamp / fixedUpdateRate;
-  auto sourceFrame = m_curFixedFrame;
+    IFRIT_APIDECL void Scene::OnUpdate()
+    {
+        m_root->OnUpdate();
+    }
+    IFRIT_APIDECL void Scene::OnComponentAwake()
+    {
+        m_root->OnComponentAwake();
+    }
+    IFRIT_APIDECL void Scene::OnComponentStart()
+    {
+        m_root->OnComponentStart();
+    }
 
-  if (sourceFrame >= totalFrames) {
-    return;
-  }
-  auto framesToUpdate = totalFrames - sourceFrame;
-  if (framesToUpdate > maxCompensationFrames) {
-    framesToUpdate = maxCompensationFrames;
-  }
-  for (u32 i = 0; i < framesToUpdate; i++) {
-    m_root->onFixedUpdate();
-  }
-  m_curFixedFrame = totalFrames;
-}
+    IFRIT_APIDECL void Scene::OnFixedUpdate(TimingRecorder* stopwatch, u32 fixedUpdateRate, u32 maxCompensationFrames)
+    {
+        auto lastTimeStamp = stopwatch->GetCurTimeUs();
+        auto totalFrames   = lastTimeStamp / fixedUpdateRate;
+        auto sourceFrame   = m_curFixedFrame;
 
-IFRIT_APIDECL void Scene::invokeFrameUpdate() {
-  // TODO: the awake logic here is not correct.
-  // In Unity awake is called once after the system is initialized.
-  // Then if the system is initialized, components dynamically added to the scene will got
-  // the Awake called immediately, before GameObject.AddComponent<T> returns.
-  onComponentAwake();
+        if (sourceFrame >= totalFrames)
+        {
+            return;
+        }
+        auto framesToUpdate = totalFrames - sourceFrame;
+        if (framesToUpdate > maxCompensationFrames)
+        {
+            framesToUpdate = maxCompensationFrames;
+        }
+        for (u32 i = 0; i < framesToUpdate; i++)
+        {
+            m_root->OnFixedUpdate();
+        }
+        m_curFixedFrame = totalFrames;
+    }
 
-  onComponentStart();
-  onUpdate();
-}
+    IFRIT_APIDECL void Scene::InvokeFrameUpdate()
+    {
+        // TODO: the awake logic here is not correct.
+        // In Unity awake is called once after the system is initialized.
+        // Then if the system is initialized, components dynamically added to the scene will got
+        // the Awake called immediately, before GameObject.AddComponent<T> returns.
+        OnComponentAwake();
+
+        OnComponentStart();
+        OnUpdate();
+    }
 
 } // namespace Ifrit::Core

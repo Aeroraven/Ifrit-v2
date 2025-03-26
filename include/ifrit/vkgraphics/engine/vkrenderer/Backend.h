@@ -23,101 +23,101 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/rhi/common/RhiLayer.h"
 #include <memory>
 
-namespace Ifrit::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::Graphics::VulkanGraphics
+{
 
-struct RhiVulkanBackendImplDetails;
-class IFRIT_APIDECL RhiVulkanBackend : public Rhi::RhiBackend {
-protected:
-  // Note that destructor order matters here
-  // https://isocpp.org/wiki/faq/dtors#order-dtors-for-members
-  Uref<Rhi::RhiDevice> m_device;
-  Uref<Rhi::RhiSwapchain> m_swapChain;
-  RhiVulkanBackendImplDetails *m_implDetails;
+    struct RhiVulkanBackendImplDetails;
+    class IFRIT_APIDECL RhiVulkanBackend : public Rhi::RhiBackend
+    {
+    protected:
+        // Note that Destructor order matters here
+        // https://isocpp.org/wiki/faq/dtors#order-dtors-for-members
+        Uref<Rhi::RhiDevice>         m_device;
+        Uref<Rhi::RhiSwapchain>      m_swapChain;
+        RhiVulkanBackendImplDetails* m_implDetails;
 
-public:
-  RhiVulkanBackend(const Rhi::RhiInitializeArguments &args);
-  ~RhiVulkanBackend();
+    public:
+        RhiVulkanBackend(const Rhi::RhiInitializeArguments& args);
+        ~RhiVulkanBackend();
 
-  void waitDeviceIdle() override;
-  Ref<Rhi::RhiDeviceTimer> createDeviceTimer() override;
-  Rhi::RhiBufferRef createBuffer(const String &name, u32 size, u32 usage, bool hostVisible, bool addUAV) const override;
-  Rhi::RhiBufferRef createBufferDevice(const String &name, u32 size, u32 usage, bool addUAV) const override;
-  Ref<Rhi::RhiMultiBuffer> createBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const override;
-  Ref<Rhi::RhiStagedSingleBuffer> createStagedSingleBuffer(Rhi::RhiBuffer *target) override;
-  Rhi::RhiBufferRef getFullScreenQuadVertexBuffer() const override;
+        void                                   WaitDeviceIdle() override;
+        Ref<Rhi::RhiDeviceTimer>               CreateDeviceTimer() override;
+        Rhi::RhiBufferRef                      CreateBuffer(const String& name, u32 size, u32 usage, bool hostVisible, bool addUAV) const override;
+        Rhi::RhiBufferRef                      CreateBufferDevice(const String& name, u32 size, u32 usage, bool addUAV) const override;
+        Ref<Rhi::RhiMultiBuffer>               CreateBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const override;
+        Ref<Rhi::RhiStagedSingleBuffer>        CreateStagedSingleBuffer(Rhi::RhiBuffer* target) override;
+        Rhi::RhiBufferRef                      GetFullScreenQuadVertexBuffer() const override;
 
-  // Command execution
-  Rhi::RhiQueue *getQueue(Rhi::RhiQueueCapability req) override;
+        // Command execution
+        Rhi::RhiQueue*                         GetQueue(Rhi::RhiQueueCapability req) override;
 
-  // Shader
-  Rhi::RhiShader *createShader(const std::string &name, const std::vector<char> &code, const std::string &entry,
-                               Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
+        // Shader
+        Rhi::RhiShader*                        CreateShader(const String& name, const std::vector<char>& code, const String& entry, Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
 
-  // Texture
-  Rhi::RhiTextureRef createTexture2D(const String &name, u32 width, u32 height, Rhi::RhiImageFormat format,
-                                     u32 extraFlags, bool addUAV) override;
-  Rhi::RhiTextureRef createDepthTexture(const String &name, u32 width, u32 height, bool addUAV) override;
-  Rhi::RhiTextureRef createTexture3D(const String &name, u32 width, u32 height, u32 depth, Rhi::RhiImageFormat format,
-                                     u32 extraFlags, bool addUAV) override;
-  Rhi::RhiSamplerRef createTrivialSampler() override;
-  Rhi::RhiSamplerRef createTrivialBilinearSampler(bool repeat) override;
-  Rhi::RhiSamplerRef createTrivialNearestSampler(bool repeat) override;
+        // Texture
+        Rhi::RhiTextureRef                     CreateTexture2D(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
+        Rhi::RhiTextureRef                     CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV) override;
+        Rhi::RhiTextureRef                     CreateTexture3D(const String& name, u32 width, u32 height, u32 depth, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
+        Rhi::RhiSamplerRef                     CreateTrivialSampler() override;
+        Rhi::RhiSamplerRef                     CreateTrivialBilinearSampler(bool repeat) override;
+        Rhi::RhiSamplerRef                     CreateTrivialNearestSampler(bool repeat) override;
+        Rhi::RhiTextureRef                     CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
 
-  Rhi::RhiTextureRef createMipMapTexture(const String &name, u32 width, u32 height, u32 mips,
-                                         Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
+        // Pass
+        Rhi::RhiComputePass*                   CreateComputePass() override;
+        Rhi::RhiGraphicsPass*                  CreateGraphicsPass() override;
 
-  // Pass
-  Rhi::RhiComputePass *createComputePass() override;
-  Rhi::RhiGraphicsPass *createGraphicsPass() override;
+        // Swapchain
+        Rhi::RhiTexture*                       GetSwapchainImage() override;
+        void                                   BeginFrame() override;
+        void                                   EndFrame() override;
+        Uref<Rhi::RhiTaskSubmission>           GetSwapchainFrameReadyEventHandler() override;
+        Uref<Rhi::RhiTaskSubmission>           GetSwapchainRenderDoneEventHandler() override;
 
-  // Swapchain
-  Rhi::RhiTexture *getSwapchainImage() override;
-  void beginFrame() override;
-  void endFrame() override;
-  Uref<Rhi::RhiTaskSubmission> getSwapchainFrameReadyEventHandler() override;
-  Uref<Rhi::RhiTaskSubmission> getSwapchainRenderDoneEventHandler() override;
+        // Descriptor
+        virtual Rhi::RhiBindlessDescriptorRef* createBindlessDescriptorRef() override;
+        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterUAVImage2(Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
+        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer) override;
+        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterStorageBufferShared(Rhi::RhiMultiBuffer* buffer) override;
+        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterCombinedImageSampler(Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler) override;
 
-  // Descriptor
-  virtual Rhi::RhiBindlessDescriptorRef *createBindlessDescriptorRef() override;
-  virtual Ref<Rhi::RhiDescHandleLegacy> registerUAVImage2(Rhi::RhiTexture *texture,
-                                                          Rhi::RhiImageSubResource subResource) override;
-  virtual Ref<Rhi::RhiDescHandleLegacy> registerUniformBuffer(Rhi::RhiMultiBuffer *buffer) override;
-  virtual Ref<Rhi::RhiDescHandleLegacy> registerStorageBufferShared(Rhi::RhiMultiBuffer *buffer) override;
-  virtual Ref<Rhi::RhiDescHandleLegacy> registerCombinedImageSampler(Rhi::RhiTexture *texture,
-                                                                     Rhi::RhiSampler *sampler) override;
+        // Render targets
+        virtual Ref<Rhi::RhiColorAttachment>   CreateRenderTarget(
+              Rhi::RhiTexture*           renderTarget,
+              Rhi::RhiClearValue         clearValue,
+              Rhi::RhiRenderTargetLoadOp loadOp,
+              u32                        mips,
+              u32                        layers) override;
 
-  // Render targets
-  virtual Ref<Rhi::RhiColorAttachment> createRenderTarget(Rhi::RhiTexture *renderTarget, Rhi::RhiClearValue clearValue,
-                                                          Rhi::RhiRenderTargetLoadOp loadOp, u32 mips,
-                                                          u32 layers) override;
+        virtual Ref<Rhi::RhiDepthStencilAttachment> CreateRenderTarGetDepthStencil(
+            Rhi::RhiTexture*           renderTarget,
+            Rhi::RhiClearValue         clearValue,
+            Rhi::RhiRenderTargetLoadOp loadOp) override;
 
-  virtual Ref<Rhi::RhiDepthStencilAttachment>
-  createRenderTargetDepthStencil(Rhi::RhiTexture *renderTarget, Rhi::RhiClearValue clearValue,
-                                 Rhi::RhiRenderTargetLoadOp loadOp) override;
+        virtual Ref<Rhi::RhiRenderTargets>         CreateRenderTargets() override;
 
-  virtual Ref<Rhi::RhiRenderTargets> createRenderTargets() override;
+        // Vertex buffer
+        virtual Ref<Rhi::RhiVertexBufferView>      CreateVertexBufferView() override;
+        virtual Ref<Rhi::RhiVertexBufferView>      GetFullScreenQuadVertexBufferView() const override;
 
-  // Vertex buffer
-  virtual Ref<Rhi::RhiVertexBufferView> createVertexBufferView() override;
-  virtual Ref<Rhi::RhiVertexBufferView> getFullScreenQuadVertexBufferView() const override;
+        // Cache
+        virtual void                               SetCacheDirectory(const String& dir) override;
+        virtual String                             GetCacheDir() const override;
 
-  // Cache
-  virtual void setCacheDirectory(const std::string &dir) override;
-  virtual std::string getCacheDirectory() const override;
+        // Extension
+        virtual Uref<Rhi::FSR2::RhiFsr2Processor>  CreateFsr2Processor() override;
 
-  // Extension
-  virtual Uref<Rhi::FSR2::RhiFsr2Processor> createFsr2Processor() override;
+        // Raytracing
+        virtual Uref<Rhi::RhiRTInstance>           CreateTLAS() { return nullptr; }
+        virtual Uref<Rhi::RhiRTScene>              CreateBLAS() { return nullptr; }
+        virtual Uref<Rhi::RhiRTShaderBindingTable> CreateShaderBindingTable() { return nullptr; }
 
-  // Raytracing
-  virtual Uref<Rhi::RhiRTInstance> createTLAS() { return nullptr; }
-  virtual Uref<Rhi::RhiRTScene> createBLAS() { return nullptr; }
-  virtual Uref<Rhi::RhiRTShaderBindingTable> createShaderBindingTable() { return nullptr; }
+        virtual Uref<Rhi::RhiRTPass>               CreateRaytracingPass() { return nullptr; }
+    };
 
-  virtual Uref<Rhi::RhiRTPass> createRaytracingPass() { return nullptr; }
-};
-
-class IFRIT_APIDECL RhiVulkanBackendBuilder : public Rhi::RhiBackendFactory, public Common::Utility::NonCopyable {
-public:
-  Uref<Rhi::RhiBackend> createBackend(const Rhi::RhiInitializeArguments &args) override;
-};
-} // namespace Ifrit::GraphicsBackend::VulkanGraphics
+    class IFRIT_APIDECL RhiVulkanBackendBuilder : public Rhi::RhiBackendFactory, public Common::Utility::NonCopyable
+    {
+    public:
+        Uref<Rhi::RhiBackend> CreateBackend(const Rhi::RhiInitializeArguments& args) override;
+    };
+} // namespace Ifrit::Graphics::VulkanGraphics

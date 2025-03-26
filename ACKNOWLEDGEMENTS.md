@@ -71,6 +71,9 @@ And some references that give inspirations. Thanks for their selfless dedication
 1. https://advances.realtimerendering.com/s2022/SIGGRAPH2022-Advances-Lumen-Wright%20et%20al.pdf
 2. https://zhuanlan.zhihu.com/p/696464007
 
+**Coding**
+1. https://github.com/TensorWorks/UE-Clang-Format
+
 
 ### 3.2 About naming
 All names are chosen randomly from some characters.

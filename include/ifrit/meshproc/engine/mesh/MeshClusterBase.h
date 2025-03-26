@@ -23,42 +23,46 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/serialization/SerialInterface.h"
 #include "ifrit/meshproc/engine/base/MeshDesc.h"
 
-namespace Ifrit::MeshProcLib::MeshProcess {
-IF_CONSTEXPR int BVH_CHILDREN = 8; // or 4
-struct MeshletCullData {
-  Vector4f selfSphere;
-  Vector4f parentSphere;
-  float selfError = INFINITY;
-  float parentError = INFINITY;
-  u32 lod = 0;
-  u32 dummy = 0;
+namespace Ifrit::MeshProcLib::MeshProcess
+{
+    IF_CONSTEXPR int BVH_CHILDREN = 8; // or 4
+    struct MeshletCullData
+    {
+        Vector4f selfSphere;
+        Vector4f parentSphere;
+        float    selfError   = INFINITY;
+        float    parentError = INFINITY;
+        u32      lod         = 0;
+        u32      dummy       = 0;
 
-  IFRIT_STRUCT_SERIALIZE(selfSphere, parentSphere, selfError, parentError, lod);
-};
-struct ClusterGroup {
-  Vector4f selfBoundingSphere;
-  Vector4f parentBoundingSphere; // No need for this, maybe
-  u32 childMeshletStart;
-  u32 childMeshletSize;
-  u32 lod;
-  u32 dummy1;
+        IFRIT_STRUCT_SERIALIZE(selfSphere, parentSphere, selfError, parentError, lod);
+    };
+    struct ClusterGroup
+    {
+        Vector4f selfBoundingSphere;
+        Vector4f parentBoundingSphere; // No need for this, maybe
+        u32      childMeshletStart;
+        u32      childMeshletSize;
+        u32      lod;
+        u32      dummy1;
 
-  IFRIT_STRUCT_SERIALIZE(selfBoundingSphere, parentBoundingSphere, childMeshletStart, childMeshletSize, lod);
-};
-struct FlattenedBVHNode {
-  Vector4f boundSphere;
-  u32 numChildNodes;
-  u32 clusterGroupStart;
-  u32 clusterGroupSize;
-  u32 subTreeSize;
-  u32 childNodes[BVH_CHILDREN];
-  float maxClusterError;
-  u32 pad1;
-  u32 pad2;
-  u32 pad3;
+        IFRIT_STRUCT_SERIALIZE(selfBoundingSphere, parentBoundingSphere, childMeshletStart, childMeshletSize, lod);
+    };
+    struct FlattenedBVHNode
+    {
+        Vector4f boundSphere;
+        u32      numChildNodes;
+        u32      clusterGroupStart;
+        u32      clusterGroupSize;
+        u32      subTreeSize;
+        u32      childNodes[BVH_CHILDREN];
+        float    maxClusterError;
+        u32      pad1;
+        u32      pad2;
+        u32      pad3;
 
-  IFRIT_STRUCT_SERIALIZE(boundSphere, numChildNodes, clusterGroupStart, clusterGroupSize, subTreeSize, childNodes,
-                         maxClusterError);
-};
+        IFRIT_STRUCT_SERIALIZE(boundSphere, numChildNodes, clusterGroupStart, clusterGroupSize, subTreeSize, childNodes,
+            maxClusterError);
+    };
 
 } // namespace Ifrit::MeshProcLib::MeshProcess

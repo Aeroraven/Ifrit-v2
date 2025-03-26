@@ -16,11 +16,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/softgraphics/engine/imaging/LayeredBufferedImage.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging {
-void LayeredBufferedImage::addLayer(std::shared_ptr<BufferedImage> layer) {
-  layers.push_back(layer);
-}
-} // namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging
+namespace Ifrit::Graphics::SoftGraphics::Imaging
+{
+	void LayeredBufferedImage::addLayer(std::shared_ptr<BufferedImage> layer)
+	{
+		layers.push_back(layer);
+	}
+} // namespace Ifrit::Graphics::SoftGraphics::Imaging

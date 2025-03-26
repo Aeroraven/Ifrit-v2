@@ -22,23 +22,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/Scene.h"
 #include "ifrit/core/scene/FrameCollector.h"
 
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-class IFRIT_APIDECL SceneManager {
-private:
-  IApplication *m_app;
-  Ref<Scene> m_activeScene;
+    class IFRIT_APIDECL SceneManager
+    {
+    private:
+        IApplication* m_app;
+        Ref<Scene>    m_activeScene;
 
-public:
-  SceneManager(IApplication *app) : m_app(app) {}
-  virtual ~SceneManager() = default;
+    public:
+        SceneManager(IApplication* app)
+            : m_app(app) {}
+        virtual ~SceneManager() = default;
 
-  void collectPerframeData(PerFrameData &perframeData, Scene *scene, Camera *camera = nullptr,
-                           GraphicsShaderPassType passType = GraphicsShaderPassType::Opaque);
+        void              CollectPerframeData(PerFrameData& perframeData, Scene* scene, Camera* camera = nullptr,
+                         GraphicsShaderPassType passType = GraphicsShaderPassType::Opaque);
 
-  inline void setActiveScene(Ref<Scene> scene) { m_activeScene = scene; }
-  inline Ref<Scene> getActiveScene() { return m_activeScene; }
-  void invokeActiveSceneUpdate();
-};
+        inline void       SetActiveScene(Ref<Scene> scene) { m_activeScene = scene; }
+        inline Ref<Scene> GetActiveScene() { return m_activeScene; }
+        void              InvokeActiveSceneUpdate();
+    };
 
 } // namespace Ifrit::Core

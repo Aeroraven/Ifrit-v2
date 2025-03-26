@@ -22,26 +22,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/ApplicationInterface.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
-namespace Ifrit::Core {
-class IFRIT_APIDECL DirectDrawSurfaceAsset : public TextureAsset {
-private:
-  bool m_loaded = false;
-  IApplication *m_app;
-  GraphicsBackend::Rhi::RhiTextureRef m_texture = nullptr;
+namespace Ifrit::Core
+{
+    class IFRIT_APIDECL DirectDrawSurfaceAsset : public TextureAsset
+    {
+    private:
+        bool                         m_loaded = false;
+        IApplication*                m_app;
+        Graphics::Rhi::RhiTextureRef m_texture = nullptr;
 
-public:
-  DirectDrawSurfaceAsset(AssetMetadata metadata, std::filesystem::path path, IApplication *app);
-  GraphicsBackend::Rhi::RhiTextureRef getTexture() override;
-};
-class IFRIT_APIDECL DirectDrawSurfaceAssetImporter : public AssetImporter {
-private:
-  IApplication *m_app;
+    public:
+        DirectDrawSurfaceAsset(AssetMetadata metadata, std::filesystem::path path, IApplication* app);
+        Graphics::Rhi::RhiTextureRef GetTexture() override;
+    };
+    class IFRIT_APIDECL DirectDrawSurfaceAssetImporter : public AssetImporter
+    {
+    private:
+        IApplication* m_app;
 
-public:
-  IF_CONSTEXPR static const char *IMPORTER_NAME = "DirectDrawSurfaceAssetImporter";
-  DirectDrawSurfaceAssetImporter(AssetManager *manager) : AssetImporter(manager), m_app(manager->getApplication()) {}
-  void processMetadata(AssetMetadata &metadata) override;
-  void importAsset(const std::filesystem::path &path, AssetMetadata &metadata) override;
-  Vec<String> getSupportedExtensionNames() override;
-};
+    public:
+        IF_CONSTEXPR static const char* IMPORTER_NAME = "DirectDrawSurfaceAssetImporter";
+        DirectDrawSurfaceAssetImporter(AssetManager* manager)
+            : AssetImporter(manager), m_app(manager->GetApplication()) {}
+        void        ProcessMetadata(AssetMetadata& metadata) override;
+        void        ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata) override;
+        Vec<String> GetSupportedExtensionNames() override;
+    };
 } // namespace Ifrit::Core

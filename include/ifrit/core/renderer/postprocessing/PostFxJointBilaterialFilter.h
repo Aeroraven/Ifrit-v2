@@ -20,16 +20,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/base/IfritBase.h"
 #include "ifrit/core/renderer/PostprocessPass.h"
 
-namespace Ifrit::Core::PostprocessPassCollection {
+namespace Ifrit::Core::PostprocessPassCollection
+{
 
-class IFRIT_APIDECL PostFxJointBilaterialFilter : public PostprocessPass {
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
-  using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
+    class IFRIT_APIDECL PostFxJointBilaterialFilter : public PostprocessPass
+    {
+        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
+        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
 
-public:
-  PostFxJointBilaterialFilter(IApplication *app);
-  void renderPostFx(const GPUCmdBuffer *cmd, RenderTargets *renderTargets, GPUBindId *colorSRV, GPUBindId *normalSRV,
-                    GPUBindId *depthSRV, u32 kernelSize);
-};
+    public:
+        PostFxJointBilaterialFilter(IApplication* app);
+        void RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets, GPUBindId* colorSRV, GPUBindId* normalSRV,
+            GPUBindId* depthSRV, u32 kernelSize);
+    };
 
 } // namespace Ifrit::Core::PostprocessPassCollection

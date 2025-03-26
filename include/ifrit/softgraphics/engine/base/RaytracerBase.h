@@ -24,29 +24,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 // Order required
 #include "ifrit/common/math/simd/SimdVectors.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics {
-struct Ray {
-  Ifrit::Math::SIMD::SVector3f o;
-  Ifrit::Math::SIMD::SVector3f r;
-};
+namespace Ifrit::Graphics::SoftGraphics
+{
+	struct Ray
+	{
+		Ifrit::Math::SIMD::SVector3f o;
+		Ifrit::Math::SIMD::SVector3f r;
+	};
 
-struct RayInternal {
-  Ifrit::Math::SIMD::SVector3f o;
-  Ifrit::Math::SIMD::SVector3f r;
-  Ifrit::Math::SIMD::SVector3f invr;
-};
+	struct RayInternal
+	{
+		Ifrit::Math::SIMD::SVector3f o;
+		Ifrit::Math::SIMD::SVector3f r;
+		Ifrit::Math::SIMD::SVector3f invr;
+	};
 
-struct RayHit {
-  Vector3f p;
-  float t;
-  int id;
-};
+	struct RayHit
+	{
+		Vector3f p;
+		float	 t;
+		int		 id;
+	};
 
-template <class T> class BufferredAccelerationStructure {
-public:
-  virtual RayHit queryIntersection(const RayInternal &ray, float tmin, float tmax) const = 0;
-  virtual void buildAccelerationStructure() = 0;
-  virtual void bufferData(const std::vector<T> &data) = 0;
-};
+	template <class T>
+	class BufferredAccelerationStructure
+	{
+	public:
+		virtual RayHit queryIntersection(const RayInternal& ray, float tmin, float tmax) const = 0;
+		virtual void   buildAccelerationStructure() = 0;
+		virtual void   bufferData(const std::vector<T>& data) = 0;
+	};
 
-} // namespace Ifrit::GraphicsBackend::SoftGraphics
+} // namespace Ifrit::Graphics::SoftGraphics

@@ -16,14 +16,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/display/presentation/backend/AdaptiveBackendBuilder.h"
-#include "ifrit/display/presentation/backend/OpenGLBackend.h"
+#include "ifrit/common/logging/Logging.h"
+#include "ifrit/core/application/Application.h"
+#include "ifrit/display/presentation/window/WindowSelector.h"
+#include "ifrit/rhi/platform/RhiSelector.h"
 
-namespace Ifrit::Display::Backend
+namespace Ifrit::Core
 {
-    IFRIT_APIDECL std::unique_ptr<BackendProvider> AdaptiveBackendBuilder::BuildUniqueBackend()
+    class IFRIT_APIDECL RenderingInvoker
     {
-        auto obj = std::make_unique<OpenGLBackend>();
-        return obj;
-    }
-} // namespace Ifrit::Display::Backend
+    };
+} // namespace Ifrit::Core

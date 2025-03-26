@@ -25,130 +25,139 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 #ifdef _WIN32
-#include <Windows.h>
+    #include <Windows.h>
 #endif
 #include <functional>
 
-namespace Ifrit::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::Graphics::VulkanGraphics
+{
 
-class IFRIT_APIDECL ResourceDeleteQueue : public Rhi::IRhiDeviceResourceDeleteQueue {
-private:
-  std::queue<Rhi::RhiDeviceResource *> m_deleteQueue;
+    class IFRIT_APIDECL ResourceDeleteQueue : public Rhi::IRhiDeviceResourceDeleteQueue
+    {
+    private:
+        std::queue<Rhi::RhiDeviceResource*> m_deleteQueue;
 
-public:
-  virtual void addResourceToDeleteQueue(Rhi::RhiDeviceResource *resource) { m_deleteQueue.push(resource); }
+    public:
+        virtual void AddResourceToDeleteQueue(Rhi::RhiDeviceResource* resource) { m_deleteQueue.push(resource); }
 
-  virtual i32 processDeleteQueue() {
-    i32 count = 0;
-    while (!m_deleteQueue.empty()) {
-      auto resource = m_deleteQueue.front();
-      m_deleteQueue.pop();
-      if (!resource->getDebugName().empty())
-        iDebug("Deleting resource: {}", resource->getDebugName());
-      delete resource;
-      count++;
-    }
-    return count;
-  }
+        virtual i32  ProcessDeleteQueue()
+        {
+            i32 count = 0;
+            while (!m_deleteQueue.empty())
+            {
+                auto resource = m_deleteQueue.front();
+                m_deleteQueue.pop();
+                if (!resource->GetDebugName().empty())
+                    iDebug("Deleting resource: {}", resource->GetDebugName());
+                delete resource;
+                count++;
+            }
+            return count;
+        }
 
-  virtual ~ResourceDeleteQueue() { processDeleteQueue(); }
-};
+        virtual ~ResourceDeleteQueue() { ProcessDeleteQueue(); }
+    };
 
-struct IFRIT_APIDECL DeviceQueueInfo {
-  struct DeviceQueueFamily {
-    u32 m_familyIndex;
-    u32 m_queueCount;
-    VkFlags m_capability;
-  };
-  struct DeviceQueue {
-    VkQueue m_queue;
-    u32 m_familyIndex;
-    u32 m_queueIndex;
-  };
-  std::vector<DeviceQueueFamily> m_queueFamilies;
-  std::vector<DeviceQueue> m_graphicsQueues;
-  std::vector<DeviceQueue> m_computeQueues;
-  std::vector<DeviceQueue> m_transferQueues;
-  std::vector<DeviceQueue> m_allQueues;
-};
+    struct IFRIT_APIDECL DeviceQueueInfo
+    {
+        struct DeviceQueueFamily
+        {
+            u32     m_familyIndex;
+            u32     m_queueCount;
+            VkFlags m_capability;
+        };
+        struct DeviceQueue
+        {
+            VkQueue m_queue;
+            u32     m_familyIndex;
+            u32     m_queueIndex;
+        };
+        Vec<DeviceQueueFamily> m_queueFamilies;
+        Vec<DeviceQueue>       m_graphicsQueues;
+        Vec<DeviceQueue>       m_computeQueues;
+        Vec<DeviceQueue>       m_transferQueues;
+        Vec<DeviceQueue>       m_allQueues;
+    };
 
-struct IFRIT_APIDECL ExtensionFunction {
-  PFN_vkCmdSetDepthTestEnable p_vkCmdSetDepthTestEnable;
-  PFN_vkCmdSetDepthWriteEnable p_vkCmdSetDepthWriteEnable;
-  PFN_vkCmdSetDepthCompareOp p_vkCmdSetDepthCompareOp;
-  PFN_vkCmdSetDepthBoundsTestEnable p_vkCmdSetDepthBoundsTestEnable;
-  PFN_vkCmdSetStencilTestEnable p_vkCmdSetStencilTestEnable;
-  PFN_vkCmdSetStencilOp p_vkCmdSetStencilOp;
+    struct IFRIT_APIDECL ExtensionFunction
+    {
+        PFN_vkCmdSetDepthTestEnable                    p_vkCmdSetDepthTestEnable;
+        PFN_vkCmdSetDepthWriteEnable                   p_vkCmdSetDepthWriteEnable;
+        PFN_vkCmdSetDepthCompareOp                     p_vkCmdSetDepthCompareOp;
+        PFN_vkCmdSetDepthBoundsTestEnable              p_vkCmdSetDepthBoundsTestEnable;
+        PFN_vkCmdSetStencilTestEnable                  p_vkCmdSetStencilTestEnable;
+        PFN_vkCmdSetStencilOp                          p_vkCmdSetStencilOp;
 
-  PFN_vkCmdSetColorBlendEnableEXT p_vkCmdSetColorBlendEnableEXT;
-  PFN_vkCmdSetColorWriteEnableEXT p_vkCmdSetColorWriteEnableEXT;
-  PFN_vkCmdSetColorWriteMaskEXT p_vkCmdSetColorWriteMaskEXT;
-  PFN_vkCmdSetColorBlendEquationEXT p_vkCmdSetColorBlendEquationEXT;
-  PFN_vkCmdSetLogicOpEXT p_vkCmdSetLogicOpEXT;
-  PFN_vkCmdSetLogicOpEnableEXT p_vkCmdSetLogicOpEnableEXT;
-  PFN_vkCmdSetVertexInputEXT p_vkCmdSetVertexInputEXT;
+        PFN_vkCmdSetColorBlendEnableEXT                p_vkCmdSetColorBlendEnableEXT;
+        PFN_vkCmdSetColorWriteEnableEXT                p_vkCmdSetColorWriteEnableEXT;
+        PFN_vkCmdSetColorWriteMaskEXT                  p_vkCmdSetColorWriteMaskEXT;
+        PFN_vkCmdSetColorBlendEquationEXT              p_vkCmdSetColorBlendEquationEXT;
+        PFN_vkCmdSetLogicOpEXT                         p_vkCmdSetLogicOpEXT;
+        PFN_vkCmdSetLogicOpEnableEXT                   p_vkCmdSetLogicOpEnableEXT;
+        PFN_vkCmdSetVertexInputEXT                     p_vkCmdSetVertexInputEXT;
 
-  PFN_vkCmdDrawMeshTasksEXT p_vkCmdDrawMeshTasksEXT;
-  PFN_vkCmdDrawMeshTasksIndirectEXT p_vkCmdDrawMeshTasksIndirectEXT;
+        PFN_vkCmdDrawMeshTasksEXT                      p_vkCmdDrawMeshTasksEXT;
+        PFN_vkCmdDrawMeshTasksIndirectEXT              p_vkCmdDrawMeshTasksIndirectEXT;
 
-  PFN_vkCmdBeginDebugUtilsLabelEXT p_vkCmdBeginDebugUtilsLabelEXT;
-  PFN_vkCmdEndDebugUtilsLabelEXT p_vkCmdEndDebugUtilsLabelEXT;
-  PFN_vkCmdSetCullModeEXT p_vkCmdSetCullModeEXT;
+        PFN_vkCmdBeginDebugUtilsLabelEXT               p_vkCmdBeginDebugUtilsLabelEXT;
+        PFN_vkCmdEndDebugUtilsLabelEXT                 p_vkCmdEndDebugUtilsLabelEXT;
+        PFN_vkCmdSetCullModeEXT                        p_vkCmdSetCullModeEXT;
 
-  PFN_vkGetRayTracingShaderGroupHandlesKHR p_vkGetRayTracingShaderGroupHandlesKHR;
-  PFN_vkCreateAccelerationStructureKHR p_vkCreateAccelerationStructureKHR;
-  PFN_vkCmdBuildAccelerationStructuresKHR p_vkCmdBuildAccelerationStructuresKHR;
-  PFN_vkGetAccelerationStructureDeviceAddressKHR p_vkGetAccelerationStructureDeviceAddressKHR;
-  PFN_vkGetAccelerationStructureBuildSizesKHR p_vkGetAccelerationStructureBuildSizesKHR;
-  PFN_vkCmdTraceRaysKHR p_vkCmdTraceRaysKHR;
-  PFN_vkCreateRayTracingPipelinesKHR p_vkCreateRayTracingPipelinesKHR;
-};
+        PFN_vkGetRayTracingShaderGroupHandlesKHR       p_vkGetRayTracingShaderGroupHandlesKHR;
+        PFN_vkCreateAccelerationStructureKHR           p_vkCreateAccelerationStructureKHR;
+        PFN_vkCmdBuildAccelerationStructuresKHR        p_vkCmdBuildAccelerationStructuresKHR;
+        PFN_vkGetAccelerationStructureDeviceAddressKHR p_vkGetAccelerationStructureDeviceAddressKHR;
+        PFN_vkGetAccelerationStructureBuildSizesKHR    p_vkGetAccelerationStructureBuildSizesKHR;
+        PFN_vkCmdTraceRaysKHR                          p_vkCmdTraceRaysKHR;
+        PFN_vkCreateRayTracingPipelinesKHR             p_vkCreateRayTracingPipelinesKHR;
+    };
 
-class IFRIT_APIDECL EngineContext : public Rhi::RhiDevice {
-private:
-  IF_CONSTEXPR static const char *s_validationLayerName = "VK_LAYER_KHRONOS_validation";
-  Rhi::RhiInitializeArguments m_args;
-  VkInstance m_instance;
-  VkDebugUtilsMessengerEXT m_debugMessenger;
-  VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-  DeviceQueueInfo m_queueInfo;
-  VkDevice m_device;
+    class IFRIT_APIDECL EngineContext : public Rhi::RhiDevice
+    {
+    private:
+        IF_CONSTEXPR static const char* s_validationLayerName = "VK_LAYER_KHRONOS_validation";
+        Rhi::RhiInitializeArguments     m_args;
+        VkInstance                      m_instance;
+        VkDebugUtilsMessengerEXT        m_debugMessenger;
+        VkPhysicalDevice                m_physicalDevice = VK_NULL_HANDLE;
+        DeviceQueueInfo                 m_queueInfo;
+        VkDevice                        m_device;
 
-  VmaAllocator m_allocator;
-  ExtensionFunction m_extf;
-  VkPhysicalDeviceProperties m_phyDeviceProperties{};
+        VmaAllocator                    m_allocator;
+        ExtensionFunction               m_extf;
+        VkPhysicalDeviceProperties      m_phyDeviceProperties{};
 
-  Uref<ResourceDeleteQueue> m_deleteQueue;
+        Uref<ResourceDeleteQueue>       m_deleteQueue;
 
-  std::string cacheDirectory = "";
+        std::string                     cacheDirectory = "";
 
-private:
-  void init();
-  void loadExtensionFunction();
-  void destructor();
+    private:
+        void Init();
+        void loadExtensionFunction();
+        void Destructor();
 
-public:
-  EngineContext(const Rhi::RhiInitializeArguments &args);
-  ~EngineContext();
+    public:
+        EngineContext(const Rhi::RhiInitializeArguments& args);
+        ~EngineContext();
 
-  EngineContext(const EngineContext &) = delete;
-  EngineContext &operator=(const EngineContext &) = delete;
-  EngineContext(EngineContext &&) = delete;
+        EngineContext(const EngineContext&)            = delete;
+        EngineContext& operator=(const EngineContext&) = delete;
+        EngineContext(EngineContext&&)                 = delete;
 
-  inline VkInstance getInstance() const { return m_instance; }
-  inline VkPhysicalDevice getPhysicalDevice() const { return m_physicalDevice; }
-  inline VkDevice getDevice() const { return m_device; }
-  inline const DeviceQueueInfo &getQueueInfo() const { return m_queueInfo; }
-  inline const Rhi::RhiInitializeArguments &getArgs() const { return m_args; }
-  const std::vector<const char *> getDeviceExtensions() const;
-  inline const VmaAllocator &getAllocator() const { return m_allocator; }
-  void waitIdle();
-  inline const ExtensionFunction getExtensionFunction() const { return m_extf; }
-  inline const VkPhysicalDeviceProperties &getPhysicalDeviceProperties() const { return m_phyDeviceProperties; }
-  inline const std::string &getCacheDirectory() const { return cacheDirectory; }
-  void setCacheDirectory(const std::string &dir) { cacheDirectory = dir; }
-  inline bool isDebugMode() { return m_args.m_enableValidationLayer; }
+        inline VkInstance                         GetInstance() const { return m_instance; }
+        inline VkPhysicalDevice                   GetPhysicalDevice() const { return m_physicalDevice; }
+        inline VkDevice                           GetDevice() const { return m_device; }
+        inline const DeviceQueueInfo&             GetQueueInfo() const { return m_queueInfo; }
+        inline const Rhi::RhiInitializeArguments& GetArgs() const { return m_args; }
+        const Vec<const char*>                    GetDeviceExtensions() const;
+        inline const VmaAllocator&                GetAllocator() const { return m_allocator; }
+        void                                      WaitIdle();
+        inline const ExtensionFunction            GetExtensionFunction() const { return m_extf; }
+        inline const VkPhysicalDeviceProperties&  GetPhysicalDeviceProperties() const { return m_phyDeviceProperties; }
+        inline const std::string&                 GetCacheDir() const { return cacheDirectory; }
+        void                                      SetCacheDirectory(const std::string& dir) { cacheDirectory = dir; }
+        inline bool                               IsDebugMode() { return m_args.m_enableValidationLayer; }
 
-  inline ResourceDeleteQueue *getDeleteQueue() { return m_deleteQueue.get(); }
-};
-} // namespace Ifrit::GraphicsBackend::VulkanGraphics
+        inline ResourceDeleteQueue*               GetDeleteQueue() { return m_deleteQueue.get(); }
+    };
+} // namespace Ifrit::Graphics::VulkanGraphics

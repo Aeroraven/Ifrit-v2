@@ -25,32 +25,36 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 // Include order is strictly required here
 #include "ifrit/common/math/simd/SimdVectors.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics {
-struct VertexShaderResultContext {
-  std::vector<Vector4f> position;
-  std::vector<std::vector<Ifrit::Math::SIMD::SVector4f>> varyings;
-  std::vector<TypeDescriptor> varyingDescriptors;
-};
-class IFRIT_APIDECL VertexShaderResult {
-private:
-  VertexShaderResultContext *context;
-  u32 vertexCount;
-  u32 rawCounter = 0;
+namespace Ifrit::Graphics::SoftGraphics
+{
+	struct VertexShaderResultContext
+	{
+		std::vector<Vector4f>								   position;
+		std::vector<std::vector<Ifrit::Math::SIMD::SVector4f>> varyings;
+		std::vector<TypeDescriptor>							   varyingDescriptors;
+	};
+	class IFRIT_APIDECL VertexShaderResult
+	{
+	private:
+		VertexShaderResultContext* context;
+		u32						   vertexCount;
+		u32						   rawCounter = 0;
 
-public:
-  VertexShaderResult(u32 vertexCount, u32 varyingCount);
-  ~VertexShaderResult();
-  Vector4f *getPositionBuffer();
-  void initializeVaryingBufferFromShader(const TypeDescriptor &typeDescriptor, int id);
-  void setVertexCount(const u32 vertexCount);
+	public:
+		VertexShaderResult(u32 vertexCount, u32 varyingCount);
+		~VertexShaderResult();
+		Vector4f*	   getPositionBuffer();
+		void		   initializeVaryingBufferFromShader(const TypeDescriptor& typeDescriptor, int id);
+		void		   setVertexCount(const u32 vertexCount);
 
-  /* Inline */
-  TypeDescriptor getVaryingDescriptor(int id) const { return context->varyingDescriptors[id]; }
-  void allocateVaryings(int count) {
-    context->varyings.resize(count * 2);
-    context->varyingDescriptors.resize(count * 2);
-  }
-  inline void initializeVaryingBuffer(int id) { context->varyings[id].resize(vertexCount); }
-  inline Ifrit::Math::SIMD::SVector4f *getVaryingBuffer(int id) { return context->varyings[id].data(); }
-};
-} // namespace Ifrit::GraphicsBackend::SoftGraphics
+		/* Inline */
+		TypeDescriptor getVaryingDescriptor(int id) const { return context->varyingDescriptors[id]; }
+		void		   allocateVaryings(int count)
+		{
+			context->varyings.resize(count * 2);
+			context->varyingDescriptors.resize(count * 2);
+		}
+		inline void							 initializeVaryingBuffer(int id) { context->varyings[id].resize(vertexCount); }
+		inline Ifrit::Math::SIMD::SVector4f* getVaryingBuffer(int id) { return context->varyings[id].data(); }
+	};
+} // namespace Ifrit::Graphics::SoftGraphics

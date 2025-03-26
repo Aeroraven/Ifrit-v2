@@ -21,90 +21,98 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/display/presentation/window/WindowSelector.h"
 #include "ifrit/rhi/platform/RhiSelector.h"
 
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-IFRIT_APIDECL void Application::run(const ProjectProperty &info) {
-  m_info = info;
-  start();
-  m_windowProvider->loop([this](int *unused) { update(); });
-  end();
-}
+    IFRIT_APIDECL void Application::Run(const ProjectProperty& info)
+    {
+        m_info = info;
+        Start();
+        m_windowProvider->Loop([this](int* unused) { Update(); });
+        End();
+    }
 
-IFRIT_APIDECL void Application::start() {
+    IFRIT_APIDECL void Application::Start()
+    {
 
-  // Setup Window
-  Display::Window::WindowProviderSetupArgs winArgs;
-  winArgs.useVulkan = (m_info.m_rhiType == ApplicationRhiType::Vulkan);
-  Display::Window::WindowSelector selector;
+        // Setup Window
+        Display::Window::WindowProviderSetupArgs winArgs;
+        winArgs.useVulkan = (m_info.m_rhiType == AppRhiType::Vulkan);
+        Display::Window::WindowSelector     selector;
 
-  Display::Window::WindowProviderType providerType;
-  if (m_info.m_displayProvider == ApplicationDisplayProvider::GLFW) {
-    providerType = Display::Window::WindowProviderType::GLFW;
-  }
-  m_windowProvider = selector.createWindowProvider(providerType, winArgs);
-  m_windowProvider->setup(m_info.m_width, m_info.m_height);
+        Display::Window::WindowProviderType providerType;
+        if (m_info.m_displayProvider == AppDisplayProvider::GLFW)
+        {
+            providerType = Display::Window::WindowProviderType::GLFW;
+        }
+        m_windowProvider = selector.CreateWindowProvider(providerType, winArgs);
+        m_windowProvider->Setup(m_info.m_width, m_info.m_height);
 
-  // Setup RHI
-  GraphicsBackend::Rhi::RhiInitializeArguments rhiArgs;
-  rhiArgs.m_surfaceWidth = m_info.m_width;
-  rhiArgs.m_surfaceHeight = m_info.m_height;
-  rhiArgs.m_expectedComputeQueueCount = m_info.m_rhiComputeQueueCount;
-  rhiArgs.m_expectedGraphicsQueueCount = m_info.m_rhiGraphicsQueueCount;
-  rhiArgs.m_expectedTransferQueueCount = m_info.m_rhiTransferQueueCount;
-  rhiArgs.m_expectedSwapchainImageCount = m_info.m_rhiNumBackBuffers;
-  rhiArgs.m_enableValidationLayer = m_info.m_rhiDebugMode;
-  if (!m_info.m_rhiDebugMode) {
-    iWarn("Debug mode is disabled, validation layers are not enabled");
-  }
+        // Setup RHI
+        Graphics::Rhi::RhiInitializeArguments rhiArgs;
+        rhiArgs.m_surfaceWidth                = m_info.m_width;
+        rhiArgs.m_surfaceHeight               = m_info.m_height;
+        rhiArgs.m_expectedComputeQueueCount   = m_info.m_rhiComputeQueueCount;
+        rhiArgs.m_expectedGraphicsQueueCount  = m_info.m_rhiGraphicsQueueCount;
+        rhiArgs.m_expectedTransferQueueCount  = m_info.m_rhiTransferQueueCount;
+        rhiArgs.m_expectedSwapchainImageCount = m_info.m_rhiNumBackBuffers;
+        rhiArgs.m_enableValidationLayer       = m_info.m_rhiDebugMode;
+        if (!m_info.m_rhiDebugMode)
+        {
+            iWarn("Debug mode is disabled, validation layers are not enabled");
+        }
 #ifdef _WIN32
-  rhiArgs.m_win32.m_hInstance = GetModuleHandle(NULL);
-  rhiArgs.m_win32.m_hWnd = (HWND)m_windowProvider->getWindowObject();
+        rhiArgs.m_win32.m_hInstance = GetModuleHandle(NULL);
+        rhiArgs.m_win32.m_hWnd      = (HWND)m_windowProvider->GetWindowObject();
 #endif
-  if (m_info.m_rhiType == ApplicationRhiType::Vulkan)
-    rhiArgs.m_extensionGetter = [this](uint32_t *count) -> const char ** {
-      return m_windowProvider->getVkRequiredInstanceExtensions(count);
-    };
+        if (m_info.m_rhiType == AppRhiType::Vulkan)
+            rhiArgs.m_extensionGetter = [this](uint32_t* count) -> const char** {
+                return m_windowProvider->GetVkRequiredInstanceExtensions(count);
+            };
 
-  GraphicsBackend::Rhi::RhiSelector rhiSelector;
-  GraphicsBackend::Rhi::RhiBackendType rhiType;
-  switch (m_info.m_rhiType) {
-  case ApplicationRhiType::Vulkan:
-    rhiType = GraphicsBackend::Rhi::RhiBackendType::Vulkan;
-    break;
-  default:
-    throw std::runtime_error("RHI not supported");
-  }
-  m_rhiLayer = rhiSelector.createBackend(rhiType, rhiArgs);
+        Graphics::Rhi::RhiSelector    rhiSelector;
+        Graphics::Rhi::RhiBackendType rhiType;
+        switch (m_info.m_rhiType)
+        {
+            case AppRhiType::Vulkan:
+                rhiType = Graphics::Rhi::RhiBackendType::Vulkan;
+                break;
+            default:
+                throw std::runtime_error("RHI not supported");
+        }
+        m_rhiLayer = rhiSelector.CreateBackend(rhiType, rhiArgs);
 
-  // Setup RHI cache
-  m_rhiLayer->setCacheDirectory(m_info.m_cachePath);
+        // Setup RHI cache
+        m_rhiLayer->SetCacheDirectory(m_info.m_cachePath);
 
-  // Setup systems
-  m_assetManager = std::make_shared<AssetManager>(m_info.m_assetPath, this);
-  m_sceneAssetManager = std::make_shared<SceneAssetManager>(m_info.m_scenePath, m_assetManager.get());
-  m_assetManager->loadAssetDirectory();
-  iInfo("AssetManager: loaded assets");
-  m_sceneManager = std::make_shared<SceneManager>(this);
+        // Setup systems
+        m_assetManager      = std::make_shared<AssetManager>(m_info.m_assetPath, this);
+        m_sceneAssetManager = std::make_shared<SceneAssetManager>(m_info.m_scenePath, m_assetManager.get());
+        m_assetManager->LoadAssetDirectory();
+        iInfo("AssetManager: loaded assets");
+        m_sceneManager = std::make_shared<SceneManager>(this);
 
-  // Input System
-  m_inputSystem = std::make_shared<InputSystem>(this);
+        // Input System
+        m_inputSystem = std::make_shared<InputSystem>(this);
 
-  // Timing Recorder
-  m_timingRecorder = std::make_shared<TimingRecorder>();
+        // Timing Recorder
+        m_timingRecorder = std::make_shared<TimingRecorder>();
 
-  onStart();
-}
+        OnStart();
+    }
 
-IFRIT_APIDECL void Application::update() {
-  m_timingRecorder->onUpdate();
-  m_sceneManager->invokeActiveSceneUpdate();
-  onUpdate();
-  m_inputSystem->onFrameUpdate();
-}
+    IFRIT_APIDECL void Application::Update()
+    {
+        m_timingRecorder->OnUpdate();
+        m_sceneManager->InvokeActiveSceneUpdate();
+        OnUpdate();
+        m_inputSystem->OnFrameUpdate();
+    }
 
-IFRIT_APIDECL void Application::end() {
-  m_rhiLayer->waitDeviceIdle();
-  onEnd();
-}
+    IFRIT_APIDECL void Application::End()
+    {
+        m_rhiLayer->WaitDeviceIdle();
+        OnEnd();
+    }
 
 } // namespace Ifrit::Core

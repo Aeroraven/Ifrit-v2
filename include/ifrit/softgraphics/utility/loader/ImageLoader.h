@@ -16,14 +16,15 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics::Utility::Loader {
-class ImageLoader {
-public:
-  void loadRGBA(const char *fileName, std::vector<float> *bufferOut,
-                int *height, int *width);
-};
-} // namespace Ifrit::GraphicsBackend::SoftGraphics::Utility::Loader
+namespace Ifrit::Graphics::SoftGraphics::Utility::Loader
+{
+	class ImageLoader
+	{
+	public:
+		void loadRGBA(const char* fileName, std::vector<float>* bufferOut,
+			int* height, int* width);
+	};
+} // namespace Ifrit::Graphics::SoftGraphics::Utility::Loader

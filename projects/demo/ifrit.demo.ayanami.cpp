@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #ifndef IFRIT_DLL
-#define IFRIT_DLL
+    #define IFRIT_DLL
 #endif
 
 #include "ifrit/common/logging/Logging.h"
@@ -31,7 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define WINDOW_WIDTH 1980
 #define WINDOW_HEIGHT 1080
 
-using namespace Ifrit::GraphicsBackend::Rhi;
+using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::MeshProcLib::MeshProcess;
 using namespace Ifrit::Math;
 using namespace Ifrit::Core;
@@ -40,120 +40,127 @@ using namespace Ifrit::Common::Utility;
 // Glfw key function here
 float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0, movNear = 0, movRot = 0;
 
-namespace Ifrit {
-class DemoApplicationAyanami : public Ifrit::Core::Application {
-private:
-  RhiScissor scissor = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-  std::shared_ptr<RhiRenderTargets> renderTargets;
-  std::shared_ptr<RhiColorAttachment> colorAttachment;
-  RhiTextureRef depthImage;
-  std::shared_ptr<RhiDepthStencilAttachment> depthAttachment;
-  std::shared_ptr<AyanamiRenderer> renderer;
-  RhiTexture *swapchainImg;
-  RendererConfig renderConfig;
-  float timing = 0;
+namespace Ifrit
+{
+    class DemoApplicationAyanami : public Ifrit::Core::Application
+    {
+    private:
+        RhiScissor                            scissor = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
+        Ifrit::Ref<RhiRenderTargets>          renderTargets;
+        Ifrit::Ref<RhiColorAttachment>        colorAttachment;
+        RhiTextureRef                         depthImage;
+        Ifrit::Ref<RhiDepthStencilAttachment> depthAttachment;
+        Ifrit::Ref<AyanamiRenderer>           renderer;
+        RhiTexture*                           swapchainImg;
+        RendererConfig                        renderConfig;
+        float                                 timing = 0;
 
-public:
-  void onStart() override {
-    iInfo("DemoApplication::onStart()");
-    renderer = std::make_shared<AyanamiRenderer>(this);
-    auto bistroObj = m_assetManager->getAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf");
-    // Scene
-    auto s = m_sceneAssetManager->createScene("TestScene2");
-    auto node = s->addSceneNode();
+    public:
+        void OnStart() override
+        {
+            iInfo("DemoApplication::OnStart()");
+            renderer       = std::make_shared<AyanamiRenderer>(this);
+            auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf");
+            // Scene
+            auto s    = m_sceneAssetManager->CreateScene("TestScene2");
+            auto node = s->AddSceneNode();
 
-    auto cameraGameObject = node->addGameObject("camera");
-    auto camera = cameraGameObject->addComponent<Camera>();
-    camera->setCameraType(CameraType::Perspective);
-    camera->setMainCamera(true);
-    camera->setAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
-    camera->setFov(60.0f / 180.0f * std::numbers::pi_v<float>);
-    camera->setFar(200.0f);
-    camera->setNear(1.00f);
+            auto cameraGameObject = node->AddGameObject("camera");
+            auto camera           = cameraGameObject->AddComponent<Camera>();
+            camera->SetCameraType(CameraType::Perspective);
+            camera->SetMainCamera(true);
+            camera->SetAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
+            camera->SetFov(60.0f / 180.0f * std::numbers::pi_v<float>);
+            camera->SetFar(200.0f);
+            camera->SetNear(1.00f);
 
-    auto cameraTransform = cameraGameObject->getComponent<Transform>();
-    cameraTransform->setPosition({0.0f, 0.5f, -1.25f});
-    cameraTransform->setRotation({0.0f, 0.1f, 0.0f});
-    cameraTransform->setScale({1.0f, 1.0f, 1.0f});
+            auto cameraTransform = cameraGameObject->GetComponent<Transform>();
+            cameraTransform->SetPosition({ 0.0f, 0.5f, -1.25f });
+            cameraTransform->SetRotation({ 0.0f, 0.1f, 0.0f });
+            cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
 
-    auto lightGameObject = node->addGameObject("sun");
-    auto light = lightGameObject->addComponent<Light>();
-    auto lightTransform = lightGameObject->getComponent<Transform>();
-    lightTransform->setRotation({120.0 / 180.0f * std::numbers::pi_v<float>, 0.0f, 0.0f});
-    light->setShadowMap(true);
-    light->setShadowMapResolution(2048);
-    light->setAffectPbrSky(true);
+            auto lightGameObject = node->AddGameObject("sun");
+            auto light           = lightGameObject->AddComponent<Light>();
+            auto lightTransform  = lightGameObject->GetComponent<Transform>();
+            lightTransform->SetRotation({ 120.0 / 180.0f * std::numbers::pi_v<float>, 0.0f, 0.0f });
+            light->SetShadowMap(true);
+            light->SetShadowMapResolution(2048);
+            light->SetAffectPbrSky(true);
 
-    auto meshes = bistroObj->getPrefabs();
-    for (auto &m : meshes) {
-      auto t = m->m_prefab;
-      auto meshDF = t->addComponent<Ayanami::AyanamiMeshDF>();
-      meshDF->buildMeshDF(getCacheDirectory());
-      auto transform = t->getComponent<Transform>();
-      auto mat = transform->getModelToWorldMatrix();
-      node->addGameObjectTransferred(std::move(m->m_prefab));
-    }
+            auto meshes = bistroObj->GetLoadedMesh();
+            for (auto& m : meshes)
+            {
+                auto t      = m->m_prefab;
+                auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
+                meshDF->BuildMeshDF(GetCacheDir());
+                auto transform = t->GetComponent<Transform>();
+                auto mat       = transform->GetModelToWorldMatrix();
+                node->AddGameObjectTransferred(std::move(m->m_prefab));
+            }
 
-    // Render targets
-    auto rt = m_rhiLayer.get();
-    depthImage = rt->createDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT);
-    swapchainImg = rt->getSwapchainImage();
-    renderTargets = rt->createRenderTargets();
-    colorAttachment =
-        rt->createRenderTarget(swapchainImg, {0.0f, 0.0f, 0.0f, 1.0f}, RhiRenderTargetLoadOp::Clear, 0, 0);
-    depthAttachment = rt->createRenderTargetDepthStencil(depthImage.get(), {{}, 1.0f}, RhiRenderTargetLoadOp::Clear);
-    renderTargets->setColorAttachments({colorAttachment.get()});
-    renderTargets->setDepthStencilAttachment(depthAttachment.get());
-    renderTargets->setRenderArea(scissor);
+            // Render targets
+            auto rt       = m_rhiLayer.get();
+            depthImage    = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
+            swapchainImg  = rt->GetSwapchainImage();
+            renderTargets = rt->CreateRenderTargets();
+            colorAttachment =
+                rt->CreateRenderTarget(swapchainImg, { 0.0f, 0.0f, 0.0f, 1.0f }, RhiRenderTargetLoadOp::Clear, 0, 0);
+            depthAttachment = rt->CreateRenderTarGetDepthStencil(depthImage.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
+            renderTargets->SetColorAttachments({ colorAttachment.get() });
+            renderTargets->SetDepthStencilAttachment(depthAttachment.get());
+            renderTargets->SetRenderArea(scissor);
 
-    iInfo("Done");
-  }
+            iInfo("Done");
+        }
 
-  void onUpdate() override {
-    auto scene = m_sceneAssetManager->getScene("TestScene2");
-    auto cameraGameObject = scene->getRootNode()->getChildren()[0]->getGameObject(0);
-    auto camera = cameraGameObject->getComponent<Transform>();
-    camera->setPosition({-4.0f, 4.0f, -18.0f});
+        void OnUpdate() override
+        {
+            auto scene            = m_sceneAssetManager->GetScene("TestScene2");
+            auto cameraGameObject = scene->GetRootNode()->GetChildren()[0]->GetGameObject(0);
+            auto camera           = cameraGameObject->GetComponent<Transform>();
+            camera->SetPosition({ -4.0f, 4.0f, -18.0f });
 
-    auto childs = scene->getRootNode()->getChildren();
-    auto go = childs[0]->getGameObjects();
-    for (auto &g : go) {
-      if (g->getComponent<MeshFilter>() == nullptr)
-        continue;
-      auto t = g->getComponent<Transform>();
-      auto r = t->getRotation();
-      r.y += 0.01f;
-      t->setRotation(r);
-    }
-    timing += 0.01f;
+            auto childs = scene->GetRootNode()->GetChildren();
+            auto go     = childs[0]->GetGameObjects();
+            for (auto& g : go)
+            {
+                if (g->GetComponent<MeshFilter>() == nullptr)
+                    continue;
+                auto t = g->GetComponent<Transform>();
+                auto r = t->GetRotation();
+                r.y += 0.01f;
+                t->SetRotation(r);
+            }
+            timing += 0.01f;
 
-    auto sFrameStart = renderer->beginFrame();
-    auto renderComplete =
-        renderer->render(scene.get(), nullptr, renderTargets.get(), renderConfig, {sFrameStart.get()});
-    renderer->endFrame({renderComplete.get()});
-  }
+            auto sFrameStart = renderer->BeginFrame();
+            auto renderComplete =
+                renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { sFrameStart.get() });
+            renderer->EndFrame({ renderComplete.get() });
+        }
 
-  void onEnd() override {}
-};
+        void OnEnd() override {}
+    };
 } // namespace Ifrit
 
-int main() {
-  Ifrit::Core::ProjectProperty info;
-  info.m_assetPath = IFRIT_DEMO_ASSET_PATH;
-  info.m_scenePath = IFRIT_DEMO_SCENE_PATH;
-  info.m_displayProvider = Ifrit::Core::ApplicationDisplayProvider::GLFW;
-  info.m_rhiType = Ifrit::Core::ApplicationRhiType::Vulkan;
-  info.m_width = 1980;
-  info.m_height = 1080;
-  info.m_rhiComputeQueueCount = 1;
-  info.m_rhiGraphicsQueueCount = 1;
-  info.m_rhiTransferQueueCount = 1;
-  info.m_rhiNumBackBuffers = 2;
-  info.m_name = "Ifrit-v2";
-  info.m_cachePath = IFRIT_DEMO_CACHE_PATH;
-  info.m_rhiDebugMode = true;
+int main()
+{
+    Ifrit::Core::ProjectProperty info;
+    info.m_assetPath             = IFRIT_DEMO_ASSET_PATH;
+    info.m_scenePath             = IFRIT_DEMO_SCENE_PATH;
+    info.m_displayProvider       = Ifrit::Core::AppDisplayProvider::GLFW;
+    info.m_rhiType               = Ifrit::Core::AppRhiType::Vulkan;
+    info.m_width                 = 1980;
+    info.m_height                = 1080;
+    info.m_rhiComputeQueueCount  = 1;
+    info.m_rhiGraphicsQueueCount = 1;
+    info.m_rhiTransferQueueCount = 1;
+    info.m_rhiNumBackBuffers     = 2;
+    info.m_name                  = "Ifrit-v2";
+    info.m_cachePath             = IFRIT_DEMO_CACHE_PATH;
+    info.m_rhiDebugMode          = true;
 
-  Ifrit::DemoApplicationAyanami app;
-  app.run(info);
-  return 0;
+    Ifrit::DemoApplicationAyanami app;
+    app.Run(info);
+    return 0;
 }

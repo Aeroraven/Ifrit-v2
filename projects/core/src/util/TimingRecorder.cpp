@@ -19,18 +19,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/util/TimingRecorder.h"
 #include <chrono>
 
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-IFRIT_APIDECL void TimingRecorder::onUpdate() {
-  auto currentSysTimeUs =
-      std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
-  u64 currentSysTimeUsI64 = currentSysTimeUs.count();
-  if (m_curSystemTimeUs != 0) {
-    auto deltaTimeUs = currentSysTimeUsI64 - m_curSystemTimeUs;
-    m_deltaTimeUs = deltaTimeUs;
-    m_curTimeUs += deltaTimeUs;
-  }
-  m_curSystemTimeUs = currentSysTimeUsI64;
-}
+    IFRIT_APIDECL void TimingRecorder::OnUpdate()
+    {
+        auto currentSysTimeUs =
+            std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+        u64 currentSysTimeUsI64 = currentSysTimeUs.count();
+        if (m_curSystemTimeUs != 0)
+        {
+            auto deltaTimeUs = currentSysTimeUsI64 - m_curSystemTimeUs;
+            m_deltaTimeUs    = deltaTimeUs;
+            m_curTimeUs += deltaTimeUs;
+        }
+        m_curSystemTimeUs = currentSysTimeUsI64;
+    }
 
 } // namespace Ifrit::Core

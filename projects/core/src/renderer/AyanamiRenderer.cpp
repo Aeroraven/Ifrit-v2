@@ -23,135 +23,149 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/math/constfunc/ConstFunc.h"
 #include "ifrit/core/renderer/ayanami/AyanamiSceneAggregator.h"
 
-namespace Ifrit::Core {
-using namespace Ifrit::Common::Utility;
-using namespace Ifrit::Core::RenderingUtil;
-using namespace Ifrit::Core::Ayanami;
+namespace Ifrit::Core
+{
+    using namespace Ifrit::Common::Utility;
+    using namespace Ifrit::Core::RenderingUtil;
+    using namespace Ifrit::Core::Ayanami;
 
-struct AyanamiRendererResources {
-  using DrawPass = GraphicsBackend::Rhi::RhiGraphicsPass;
-  using ComputePass = GraphicsBackend::Rhi::RhiComputePass;
-  using GPUTexture = GraphicsBackend::Rhi::RhiTextureRef;
-  using GPUBindId = GraphicsBackend::Rhi::RhiDescHandleLegacy;
+    struct AyanamiRendererResources
+    {
+        using DrawPass    = Graphics::Rhi::RhiGraphicsPass;
+        using ComputePass = Graphics::Rhi::RhiComputePass;
+        using GPUTexture  = Graphics::Rhi::RhiTextureRef;
+        using GPUBindId   = Graphics::Rhi::RhiDescHandleLegacy;
 
-  GPUTexture m_raymarchOutput = nullptr;
-  Ref<GPUBindId> m_raymarchOutputSRVBindId;
+        GPUTexture                   m_raymarchOutput = nullptr;
+        Ref<GPUBindId>               m_raymarchOutputSRVBindId;
 
-  FrameGraphCompiler m_fgCompiler;
-  FrameGraphExecutor m_fgExecutor;
-  Uref<AyanamiSceneAggregator> m_sceneAggregator;
+        FrameGraphCompiler           m_fgCompiler;
+        FrameGraphExecutor           m_fgExecutor;
+        Uref<AyanamiSceneAggregator> m_sceneAggregator;
 
-  ComputePass *m_raymarchPass = nullptr;
-  DrawPass *m_debugPass = nullptr;
-};
+        ComputePass*                 m_raymarchPass = nullptr;
+        DrawPass*                    m_debugPass    = nullptr;
+    };
 
-IFRIT_APIDECL void AyanamiRenderer::initRenderer() {
-  m_resources = new AyanamiRendererResources();
-  m_resources->m_sceneAggregator = std::make_unique<AyanamiSceneAggregator>(m_app->getRhiLayer());
-}
-IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer() {
-  if (m_resources)
-    delete m_resources;
-}
+    IFRIT_APIDECL void AyanamiRenderer::InitRenderer()
+    {
+        m_resources                    = new AyanamiRendererResources();
+        m_resources->m_sceneAggregator = std::make_unique<AyanamiSceneAggregator>(m_app->GetRhi());
+    }
+    IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer()
+    {
+        if (m_resources)
+            delete m_resources;
+    }
 
-IFRIT_APIDECL void AyanamiRenderer::prepareResources(RenderTargets *renderTargets, const RendererConfig &config) {
-  auto rhi = m_app->getRhiLayer();
-  auto width = renderTargets->getRenderArea().width;
-  auto height = renderTargets->getRenderArea().height;
+    IFRIT_APIDECL void AyanamiRenderer::PrepareResources(RenderTargets* renderTargets, const RendererConfig& config)
+    {
+        auto rhi    = m_app->GetRhi();
+        auto width  = renderTargets->GetRenderArea().width;
+        auto height = renderTargets->GetRenderArea().height;
 
-  // Passes
-  if (m_resources->m_debugPass == nullptr) {
-    auto rtFmt = renderTargets->getFormat();
-    m_resources->m_debugPass = createGraphicsPass(rhi, "Ayanami/Ayanami.CopyPass.vert.glsl",
-                                                  "Ayanami/Ayanami.CopyPass.frag.glsl", 0, 1, rtFmt);
-  }
-  if (m_resources->m_raymarchPass == nullptr) {
-    m_resources->m_raymarchPass = createComputePass(rhi, "Ayanami/Ayanami.RayMarch.comp.glsl", 0, 5);
-  }
+        // Passes
+        if (m_resources->m_debugPass == nullptr)
+        {
+            auto rtFmt               = renderTargets->GetFormat();
+            m_resources->m_debugPass = CreateGraphicsPass(rhi, "Ayanami/Ayanami.CopyPass.vert.glsl",
+                "Ayanami/Ayanami.CopyPass.frag.glsl", 0, 1, rtFmt);
+        }
+        if (m_resources->m_raymarchPass == nullptr)
+        {
+            m_resources->m_raymarchPass = CreateComputePass(rhi, "Ayanami/Ayanami.RayMarch.comp.glsl", 0, 5);
+        }
 
-  // Resources
-  if (m_resources->m_raymarchOutput == nullptr) {
-    auto sampler = m_immRes.m_linearSampler;
-    m_resources->m_raymarchOutput = rhi->createTexture2D(
-        "Ayanami_Raymarch", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-        RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT, true);
-    m_resources->m_raymarchOutputSRVBindId =
-        rhi->registerCombinedImageSampler(m_resources->m_raymarchOutput.get(), sampler.get());
-  }
-}
+        // Resources
+        if (m_resources->m_raymarchOutput == nullptr)
+        {
+            using namespace Ifrit::Graphics::Rhi;
+            auto sampler                  = m_immRes.m_linearSampler;
+            m_resources->m_raymarchOutput = rhi->CreateTexture2D(
+                "Ayanami_Raymarch", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT, true);
+            m_resources->m_raymarchOutputSRVBindId =
+                rhi->RegisterCombinedImageSampler(m_resources->m_raymarchOutput.get(), sampler.get());
+        }
+    }
 
-IFRIT_APIDECL void AyanamiRenderer::setupAndRunFrameGraph(PerFrameData &perframe, RenderTargets *renderTargets,
-                                                          const GPUCmdBuffer *cmd) {
-  auto rtWidth = renderTargets->getRenderArea().width;
-  auto rtHeight = renderTargets->getRenderArea().height;
+    IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(PerFrameData& perframe, RenderTargets* renderTargets,
+        const GPUCmdBuffer* cmd)
+    {
+        auto       rtWidth  = renderTargets->GetRenderArea().width;
+        auto       rtHeight = renderTargets->GetRenderArea().height;
 
-  auto rhi = m_app->getRhiLayer();
-  FrameGraph fg;
-  auto resRaymarchOutput = fg.addResource("RaymarchOutput");
-  auto resRenderTargets = fg.addResource("RenderTargets");
+        auto       rhi = m_app->GetRhi();
+        FrameGraph fg;
+        auto       resRaymarchOutput = fg.AddResource("RaymarchOutput");
+        auto       resRenderTargets  = fg.AddResource("RenderTargets");
 
-  auto passRaymarch = fg.addPass("RaymarchPass", FrameGraphPassType::Compute, {}, {resRaymarchOutput}, {});
-  auto passDebug = fg.addPass("DebugPass", FrameGraphPassType::Graphics, {resRaymarchOutput}, {resRenderTargets}, {});
+        auto       passRaymarch = fg.AddPass("RaymarchPass", FrameGraphPassType::Compute, {}, { resRaymarchOutput }, {});
+        auto       passDebug    = fg.AddPass("DebugPass", FrameGraphPassType::Graphics, { resRaymarchOutput }, { resRenderTargets }, {});
 
-  fg.setImportedResource(resRaymarchOutput, m_resources->m_raymarchOutput.get(), {0, 0, 1, 1});
-  fg.setImportedResource(resRenderTargets, renderTargets->getColorAttachment(0)->getRenderTarget(), {0, 0, 1, 1});
+        fg.SetImportedResource(resRaymarchOutput, m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
+        fg.SetImportedResource(resRenderTargets, renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
 
-  fg.setExecutionFunction(passRaymarch, [&]() {
-    struct RayMarchPc {
-      u32 perframeId;
-      u32 descId;
-      u32 output;
-      u32 rtH;
-      u32 rtW;
-    } pc;
-    pc.rtH = rtHeight;
-    pc.rtW = rtWidth;
-    pc.output = m_resources->m_raymarchOutput->getDescId();
-    pc.descId = m_resources->m_sceneAggregator->getGatheredBufferId();
-    pc.perframeId = perframe.m_views[0].m_viewBufferId->getActiveId();
+        fg.SetExecutionFunction(passRaymarch, [&]() {
+            struct RayMarchPc
+            {
+                u32 perframeId;
+                u32 descId;
+                u32 output;
+                u32 rtH;
+                u32 rtW;
+            } pc;
+            pc.rtH        = rtHeight;
+            pc.rtW        = rtWidth;
+            pc.output     = m_resources->m_raymarchOutput->GetDescId();
+            pc.descId     = m_resources->m_sceneAggregator->GetGatheredBufferId();
+            pc.perframeId = perframe.m_views[0].m_viewBufferId->GetActiveId();
 
-    m_resources->m_raymarchPass->setRecordFunction([&](const RhiRenderPassContext *ctx) {
-      cmd->setPushConst(m_resources->m_raymarchPass, 0, sizeof(RayMarchPc), &pc);
-      cmd->dispatch(Math::divRoundUp(rtWidth, 8), Math::divRoundUp(rtHeight, 8), 1);
-    });
-    m_resources->m_raymarchPass->run(cmd, 0);
-  });
+            m_resources->m_raymarchPass->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
+                cmd->SetPushConst(m_resources->m_raymarchPass, 0, sizeof(RayMarchPc), &pc);
+                cmd->Dispatch(Math::DivRoundUp(rtWidth, 8), Math::DivRoundUp(rtHeight, 8), 1);
+            });
+            m_resources->m_raymarchPass->Run(cmd, 0);
+        });
 
-  fg.setExecutionFunction(passDebug, [&]() {
-    struct DispPc {
-      u32 raymarchOutput;
-    } pc;
-    pc.raymarchOutput = m_resources->m_raymarchOutputSRVBindId->getActiveId();
-    enqueueFullScreenPass(cmd, rhi, m_resources->m_debugPass, renderTargets, {}, &pc, 1);
-  });
-  auto compiledFg = m_resources->m_fgCompiler.compile(fg);
-  m_resources->m_fgExecutor.executeInSingleCmd(cmd, compiledFg);
-}
+        fg.SetExecutionFunction(passDebug, [&]() {
+            struct DispPc
+            {
+                u32 raymarchOutput;
+            } pc;
+            pc.raymarchOutput = m_resources->m_raymarchOutputSRVBindId->GetActiveId();
+            enqueueFullScreenPass(cmd, rhi, m_resources->m_debugPass, renderTargets, {}, &pc, 1);
+        });
+        auto compiledFg = m_resources->m_fgCompiler.Compile(fg);
+        m_resources->m_fgExecutor.ExecuteInSingleCmd(cmd, compiledFg);
+    }
 
-IFRIT_APIDECL std::unique_ptr<AyanamiRenderer::GPUCommandSubmission>
-AyanamiRenderer::render(Scene *scene, Camera *camera, RenderTargets *renderTargets, const RendererConfig &config,
-                        const std::vector<GPUCommandSubmission *> &cmdToWait) {
-  if (m_perScenePerframe.count(scene) == 0) {
-    m_perScenePerframe[scene] = PerFrameData();
-  }
-  m_config = &config;
-  auto &perframeData = m_perScenePerframe[scene];
+    IFRIT_APIDECL std::unique_ptr<AyanamiRenderer::GPUCommandSubmission>
+                  AyanamiRenderer::Render(Scene* scene, Camera* camera, RenderTargets* renderTargets, const RendererConfig& config,
+                      const std::vector<GPUCommandSubmission*>& cmdToWait)
+    {
+        if (m_perScenePerframe.count(scene) == 0)
+        {
+            m_perScenePerframe[scene] = PerFrameData();
+        }
+        m_config           = &config;
+        auto& perframeData = m_perScenePerframe[scene];
 
-  prepareImmutableResources();
-  prepareResources(renderTargets, config);
+        PrepareImmutableResources();
+        PrepareResources(renderTargets, config);
 
-  SceneCollectConfig sceneConfig;
-  sceneConfig.projectionTranslateX = 0;
-  sceneConfig.projectionTranslateY = 0;
-  collectPerframeData(perframeData, scene, camera, GraphicsShaderPassType::Opaque, renderTargets, sceneConfig);
-  prepareDeviceResources(perframeData, renderTargets);
-  m_resources->m_sceneAggregator->collectScene(scene);
+        SceneCollectConfig sceneConfig;
+        sceneConfig.projectionTranslateX = 0;
+        sceneConfig.projectionTranslateY = 0;
+        CollectPerframeData(perframeData, scene, camera, GraphicsShaderPassType::Opaque, renderTargets, sceneConfig);
+        PrepareDeviceResources(perframeData, renderTargets);
+        m_resources->m_sceneAggregator->CollectScene(scene);
 
-  auto rhi = m_app->getRhiLayer();
-  auto dq = rhi->getQueue(GraphicsBackend::Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
-  auto task = dq->runAsyncCommand(
-      [&](const GPUCmdBuffer *cmd) { setupAndRunFrameGraph(perframeData, renderTargets, cmd); }, cmdToWait, {});
-  return task;
-}
+        auto rhi  = m_app->GetRhi();
+        auto dq   = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+        auto task = dq->RunAsyncCommand(
+            [&](const GPUCmdBuffer* cmd) { SetupAndRunFrameGraph(perframeData, renderTargets, cmd); }, cmdToWait, {});
+        return task;
+    }
 
 } // namespace Ifrit::Core

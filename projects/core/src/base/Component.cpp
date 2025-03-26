@@ -24,58 +24,76 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit::Math;
 
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-IFRIT_APIDECL Ref<SceneObject> SceneObject::createPrefab() {
-  auto prefab = std::make_shared<SceneObjectPrefab>();
-  prefab->initialize();
-  prefab->addComponent<Transform>();
-  return prefab;
-}
+    IFRIT_APIDECL Ref<SceneObject> SceneObject::CreatePrefab()
+    {
+        auto prefab = std::make_shared<SceneObjectPrefab>();
+        prefab->Initialize();
+        prefab->AddComponent<Transform>();
+        return prefab;
+    }
 
-IFRIT_APIDECL
-Component::Component(Ref<SceneObject> parent) : m_parentObject(parent), m_parentObjectRaw(parent.get()) {
-  Ifrit::Common::Utility::generateUuid(m_id.m_uuid);
-}
-IFRIT_APIDECL void SceneObject::initialize() { addComponent<Transform>(); }
-IFRIT_APIDECL SceneObject::SceneObject() { Ifrit::Common::Utility::generateUuid(m_id.m_uuid); }
+    IFRIT_APIDECL
+    Component::Component(Ref<SceneObject> parent)
+        : m_parentObject(parent), m_parentObjectRaw(parent.get())
+    {
+        Ifrit::Common::Utility::GenerateUuid(m_id.m_uuid);
+    }
+    IFRIT_APIDECL void SceneObject::Initialize()
+    {
+        AddComponent<Transform>();
+    }
+    IFRIT_APIDECL SceneObject::SceneObject()
+    {
+        Ifrit::Common::Utility::GenerateUuid(m_id.m_uuid);
+    }
 
-IFRIT_APIDECL void Component::setEnable(bool enable) {
-  bool last = m_isEnabled;
-  m_isEnabled = enable;
-  if (!last && enable) {
-    m_shouldInvokeStart = true;
-  }
-}
+    IFRIT_APIDECL void Component::SetEnable(bool enable)
+    {
+        bool last   = m_isEnabled;
+        m_isEnabled = enable;
+        if (!last && enable)
+        {
+            m_shouldInvokeStart = true;
+        }
+    }
 
-IFRIT_APIDECL void Component::invokeStart() {
-  if (m_shouldInvokeStart) {
-    onStart();
-    m_shouldInvokeStart = false;
-  }
-}
+    IFRIT_APIDECL void Component::InvokeStart()
+    {
+        if (m_shouldInvokeStart)
+        {
+            OnStart();
+            m_shouldInvokeStart = false;
+        }
+    }
 
-IFRIT_APIDECL void Component::invokeAwake() {
-  if (m_shouldInvokeAwake) {
-    onAwake();
-    m_shouldInvokeAwake = false;
-  }
-}
+    IFRIT_APIDECL void Component::InvokeAwake()
+    {
+        if (m_shouldInvokeAwake)
+        {
+            OnAwake();
+            m_shouldInvokeAwake = false;
+        }
+    }
 
-IFRIT_APIDECL Matrix4x4f Transform::getModelToWorldMatrix() {
-  Matrix4x4f model = identity4();
-  model = matmul(scale3D(m_attributes.m_scale), model);
-  model = matmul(eulerAngleToMatrix(m_attributes.m_rotation), model);
-  model = matmul(translate3D(m_attributes.m_position), model);
-  return model;
-}
+    IFRIT_APIDECL Matrix4x4f Transform::GetModelToWorldMatrix()
+    {
+        Matrix4x4f model = Identity4();
+        model            = MatMul(Scale3D(m_attributes.m_scale), model);
+        model            = MatMul(EulerAngleToMatrix(m_attributes.m_rotation), model);
+        model            = MatMul(Translate3D(m_attributes.m_position), model);
+        return model;
+    }
 
-IFRIT_APIDECL Matrix4x4f Transform::getModelToWorldMatrixLast() {
-  Matrix4x4f model = identity4();
-  model = matmul(scale3D(m_lastFrame.m_scale), model);
-  model = matmul(eulerAngleToMatrix(m_lastFrame.m_rotation), model);
-  model = matmul(translate3D(m_lastFrame.m_position), model);
-  return model;
-}
+    IFRIT_APIDECL Matrix4x4f Transform::GetModelToWorldMatrixLast()
+    {
+        Matrix4x4f model = Identity4();
+        model            = MatMul(Scale3D(m_lastFrame.m_scale), model);
+        model            = MatMul(EulerAngleToMatrix(m_lastFrame.m_rotation), model);
+        model            = MatMul(Translate3D(m_lastFrame.m_position), model);
+        return model;
+    }
 
 } // namespace Ifrit::Core

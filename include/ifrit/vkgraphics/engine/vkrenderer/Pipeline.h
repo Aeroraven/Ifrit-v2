@@ -23,93 +23,105 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 #include <memory>
 
-namespace Ifrit::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::Graphics::VulkanGraphics
+{
 
-struct GraphicsPipelineCreateInfo {
-  u32 viewportCount;
-  u32 scissorCount;
-  Rhi::RhiRasterizerTopology topology;
-  Vec<VkFormat> colorAttachmentFormats;
-  VkFormat depthAttachmentFormat;
-  VkFormat stencilAttachmentFormat;
-  Vec<ShaderModule *> shaderModules;
-  Vec<VkDescriptorSetLayout> descriptorSetLayouts;
-  Rhi::RhiGeometryGenerationType geomGenType = Rhi::RhiGeometryGenerationType::Conventional;
-  u32 pushConstSize = 0;
-};
-struct ComputePipelineCreateInfo {
-  ShaderModule *shaderModules;
-  Vec<VkDescriptorSetLayout> descriptorSetLayouts;
-  u32 pushConstSize = 0;
-};
+    struct GraphicsPipelineCreateInfo
+    {
+        u32                            viewportCount;
+        u32                            scissorCount;
+        Rhi::RhiRasterizerTopology     topology;
+        Vec<VkFormat>                  colorAttachmentFormats;
+        VkFormat                       depthAttachmentFormat;
+        VkFormat                       stencilAttachmentFormat;
+        Vec<ShaderModule*>             shaderModules;
+        Vec<VkDescriptorSetLayout>     descriptorSetLayouts;
+        Rhi::RhiGeometryGenerationType geomGenType   = Rhi::RhiGeometryGenerationType::Conventional;
+        u32                            pushConstSize = 0;
+    };
+    struct ComputePipelineCreateInfo
+    {
+        ShaderModule*              shaderModules;
+        Vec<VkDescriptorSetLayout> descriptorSetLayouts;
+        u32                        pushConstSize = 0;
+    };
 
-class IFRIT_APIDECL PipelineBase {
-protected:
-  EngineContext *m_context;
-  VkPipeline m_pipeline;
-  VkPipelineLayout m_layout;
-  bool m_layoutCreated = false;
-  bool m_pipelineCreated = false;
+    class IFRIT_APIDECL PipelineBase
+    {
+    protected:
+        EngineContext*   m_context;
+        VkPipeline       m_pipeline;
+        VkPipelineLayout m_layout;
+        bool             m_layoutCreated   = false;
+        bool             m_pipelineCreated = false;
 
-public:
-  PipelineBase(EngineContext *ctx) : m_context(ctx) {}
-  virtual ~PipelineBase() {}
-  inline VkPipeline getPipeline() const { return m_pipeline; }
-  inline VkPipelineLayout getLayout() const { return m_layout; }
-};
+    public:
+        PipelineBase(EngineContext* ctx)
+            : m_context(ctx) {}
+        virtual ~PipelineBase() {}
+        inline VkPipeline       GetPipeline() const { return m_pipeline; }
+        inline VkPipelineLayout GetLayout() const { return m_layout; }
+    };
 
-class IFRIT_APIDECL GraphicsPipeline : public PipelineBase {
-private:
-  GraphicsPipelineCreateInfo m_createInfo;
+    class IFRIT_APIDECL GraphicsPipeline : public PipelineBase
+    {
+    private:
+        GraphicsPipelineCreateInfo m_createInfo;
 
-protected:
-  void init();
+    protected:
+        void Init();
 
-public:
-  GraphicsPipeline(EngineContext *ctx, const GraphicsPipelineCreateInfo &ci) : PipelineBase(ctx), m_createInfo(ci) {
-    init();
-  }
-  virtual ~GraphicsPipeline();
-};
+    public:
+        GraphicsPipeline(EngineContext* ctx, const GraphicsPipelineCreateInfo& ci)
+            : PipelineBase(ctx), m_createInfo(ci)
+        {
+            Init();
+        }
+        virtual ~GraphicsPipeline();
+    };
 
-class IFRIT_APIDECL ComputePipeline : public PipelineBase {
-private:
-  ComputePipelineCreateInfo m_createInfo;
+    class IFRIT_APIDECL ComputePipeline : public PipelineBase
+    {
+    private:
+        ComputePipelineCreateInfo m_createInfo;
 
-protected:
-  void init();
+    protected:
+        void Init();
 
-public:
-  ComputePipeline(EngineContext *ctx, const ComputePipelineCreateInfo &ci) : PipelineBase(ctx), m_createInfo(ci) {
-    init();
-  }
-  virtual ~ComputePipeline();
-};
+    public:
+        ComputePipeline(EngineContext* ctx, const ComputePipelineCreateInfo& ci)
+            : PipelineBase(ctx), m_createInfo(ci)
+        {
+            Init();
+        }
+        virtual ~ComputePipeline();
+    };
 
-// Reuse pipelines that share the same layout
-class IFRIT_APIDECL PipelineCache {
-private:
-  EngineContext *m_context;
-  Vec<Uref<GraphicsPipeline>> m_graphicsPipelines;
-  Vec<GraphicsPipelineCreateInfo> m_graphicsPipelineCI;
-  HashMap<u64, Vec<int>> m_graphicsPipelineMap;
+    // Reuse pipelines that share the same layout
+    class IFRIT_APIDECL PipelineCache
+    {
+    private:
+        EngineContext*                  m_context;
+        Vec<Uref<GraphicsPipeline>>     m_graphicsPipelines;
+        Vec<GraphicsPipelineCreateInfo> m_graphicsPipelineCI;
+        HashMap<u64, Vec<int>>          m_graphicsPipelineMap;
 
-  Vec<Uref<ComputePipeline>> m_computePipelines;
-  Vec<ComputePipelineCreateInfo> m_computePipelineCI;
-  HashMap<u64, Vec<int>> m_computePipelineMap;
+        Vec<Uref<ComputePipeline>>      m_computePipelines;
+        Vec<ComputePipelineCreateInfo>  m_computePipelineCI;
+        HashMap<u64, Vec<int>>          m_computePipelineMap;
 
-public:
-  PipelineCache(EngineContext *context);
-  PipelineCache(const PipelineCache &p) = delete;
-  PipelineCache &operator=(const PipelineCache &p) = delete;
+    public:
+        PipelineCache(EngineContext* context);
+        PipelineCache(const PipelineCache& p)               = delete;
+        PipelineCache&    operator=(const PipelineCache& p) = delete;
 
-  u64 graphicsPipelineHash(const GraphicsPipelineCreateInfo &ci);
-  bool graphicsPipelineEqual(const GraphicsPipelineCreateInfo &a, const GraphicsPipelineCreateInfo &b);
-  GraphicsPipeline *getGraphicsPipeline(const GraphicsPipelineCreateInfo &ci);
+        u64               GraphicsPipelineHash(const GraphicsPipelineCreateInfo& ci);
+        bool              GraphicsPipelineEqual(const GraphicsPipelineCreateInfo& a, const GraphicsPipelineCreateInfo& b);
+        GraphicsPipeline* GetGraphicsPipeline(const GraphicsPipelineCreateInfo& ci);
 
-  u64 computePipelineHash(const ComputePipelineCreateInfo &ci);
-  bool computePipelineEqual(const ComputePipelineCreateInfo &a, const ComputePipelineCreateInfo &b);
-  ComputePipeline *getComputePipeline(const ComputePipelineCreateInfo &ci);
-};
+        u64               ComputePipelineHash(const ComputePipelineCreateInfo& ci);
+        bool              ComputePipelineEqual(const ComputePipelineCreateInfo& a, const ComputePipelineCreateInfo& b);
+        ComputePipeline*  GetComputePipeline(const ComputePipelineCreateInfo& ci);
+    };
 
-} // namespace Ifrit::GraphicsBackend::VulkanGraphics
+} // namespace Ifrit::Graphics::VulkanGraphics

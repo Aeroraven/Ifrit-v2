@@ -49,14 +49,14 @@ IFRIT_DUAL inline Matrix4x4f multiply(const Matrix4x4f a, const Matrix4x4f b) {
 IFRIT_DUAL inline float4 abs(float4 x) {
   return {fabs(x.x), fabs(x.y), fabs(x.z), fabs(x.w)};
 }
-IFRIT_DUAL inline float4 normalize(float4 a) {
+IFRIT_DUAL inline float4 Normalize(float4 a) {
   float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w);
   return {a.x / length, a.y / length, a.z / length, a.w / length};
 }
 IFRIT_DUAL inline float3 cross(float3 a, float3 b) {
   return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
-IFRIT_DUAL inline float3 normalize(float3 a) {
+IFRIT_DUAL inline float3 Normalize(float3 a) {
   float length = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
   return {a.x / length, a.y / length, a.z / length};
 }
@@ -64,7 +64,7 @@ IFRIT_DUAL inline float3 normalize(float3 a) {
 IFRIT_DUAL inline float dot(float3 a, float3 b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
-IFRIT_DUAL inline Matrix4x4f transpose(Matrix4x4f a) {
+IFRIT_DUAL inline Matrix4x4f Transpose(Matrix4x4f a) {
   Matrix4x4f result;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -117,9 +117,9 @@ IFRIT_DUAL inline T multiply(const Matrix4x4f a, const T b) {
   result.w = a[3][0] * b.x + a[3][1] * b.y + a[3][2] * b.z + a[3][3] * b.w;
   return result;
 }
-IFRIT_DUAL inline Matrix4x4f lookAt(float3 eye, float3 center, float3 up) {
-  float3 f = normalize(sub(center, eye));
-  float3 s = normalize(cross(f, up));
+IFRIT_DUAL inline Matrix4x4f LookAt(float3 eye, float3 center, float3 up) {
+  float3 f = Normalize(sub(center, eye));
+  float3 s = Normalize(cross(f, up));
   float3 u = cross(s, f);
   Matrix4x4f result;
   result[0][0] = s.x;

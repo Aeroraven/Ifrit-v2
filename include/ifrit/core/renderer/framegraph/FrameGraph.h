@@ -25,102 +25,111 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <string>
 #include <vector>
 
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-// Migration of render graph from original RHI layer.
-// Intended to making automatic layout transitions and resource management
-// easier. Resource lifetime management and reuse will be considered in the
-// future.
-// Some references from: https://zhuanlan.zhihu.com/p/147207161
+    // Migration of render graph from original RHI layer.
+    // Intended to making automatic layout transitions and resource management
+    // easier. Resource lifetime management and reuse will be considered in the
+    // future.
+    // Some references from: https://zhuanlan.zhihu.com/p/147207161
 
-using ResourceNodeId = u32;
-using PassNodeId = u32;
-using FgBuffer = GraphicsBackend::Rhi::RhiBuffer;
-using FgTexture = GraphicsBackend::Rhi::RhiTexture;
-using FgTextureSubResource = GraphicsBackend::Rhi::RhiImageSubResource;
+    using ResourceNodeId       = u32;
+    using PassNodeId           = u32;
+    using FgBuffer             = Graphics::Rhi::RhiBuffer;
+    using FgTexture            = Graphics::Rhi::RhiTexture;
+    using FgTextureSubResource = Graphics::Rhi::RhiImageSubResource;
 
-class FrameGraphCompiler;
-class FrameGraphExecutor;
+    class FrameGraphCompiler;
+    class FrameGraphExecutor;
 
-enum class FrameGraphResourceType {
-  Undefined,
-  ResourceBuffer,
-  ResourceTexture,
-};
+    enum class FrameGraphResourceType
+    {
+        Undefined,
+        ResourceBuffer,
+        ResourceTexture,
+    };
 
-enum class FrameGraphPassType {
-  Compute,
-  Graphics,
-};
+    enum class FrameGraphPassType
+    {
+        Compute,
+        Graphics,
+    };
 
-struct ResourceNode {
-  ResourceNodeId id;
-  String name;
-  bool isImported;
-  FrameGraphResourceType type;
+    struct ResourceNode
+    {
+        ResourceNodeId         id;
+        String                 name;
+        bool                   isImported;
+        FrameGraphResourceType type;
 
-  Ref<FgBuffer> selfBuffer;
-  Ref<FgTexture> selfTexture;
-  FgBuffer *importedBuffer;
-  FgTexture *importedTexture;
+        Ref<FgBuffer>          selfBuffer;
+        Ref<FgTexture>         selfTexture;
+        FgBuffer*              importedBuffer;
+        FgTexture*             importedTexture;
 
-  FgTextureSubResource subResource;
-};
+        FgTextureSubResource   subResource;
+    };
 
-struct PassNode {
-  PassNodeId id;
-  FrameGraphPassType type;
-  String name;
-  bool isImported;
-  Fn<void()> passFunction;
-  Vec<ResourceNodeId> inputResources;
-  Vec<ResourceNodeId> outputResources;
-  Vec<ResourceNodeId> dependentResources;
-};
+    struct PassNode
+    {
+        PassNodeId          id;
+        FrameGraphPassType  type;
+        String              name;
+        bool                isImported;
+        Fn<void()>          passFunction;
+        Vec<ResourceNodeId> inputResources;
+        Vec<ResourceNodeId> outputResources;
+        Vec<ResourceNodeId> dependentResources;
+    };
 
-class IFRIT_APIDECL FrameGraph {
-private:
-  Vec<ResourceNode> m_resources;
-  Vec<PassNode> m_passes;
+    class IFRIT_APIDECL FrameGraph
+    {
+    private:
+        Vec<ResourceNode> m_resources;
+        Vec<PassNode>     m_passes;
 
-public:
-  ResourceNodeId addResource(const String &name);
-  PassNodeId addPass(const String &name, FrameGraphPassType type, const Vec<ResourceNodeId> &inputs,
-                     const Vec<ResourceNodeId> &outputs, const Vec<ResourceNodeId> &dependencies);
+    public:
+        ResourceNodeId AddResource(const String& name);
+        PassNodeId     AddPass(const String& name, FrameGraphPassType type, const Vec<ResourceNodeId>& inputs,
+                const Vec<ResourceNodeId>& outputs, const Vec<ResourceNodeId>& dependencies);
 
-  void setImportedResource(ResourceNodeId id, FgBuffer *buffer);
-  void setImportedResource(ResourceNodeId id, FgTexture *texture, const FgTextureSubResource &subResource);
+        void           SetImportedResource(ResourceNodeId id, FgBuffer* buffer);
+        void           SetImportedResource(ResourceNodeId id, FgTexture* texture, const FgTextureSubResource& subResource);
+        void           SetExecutionFunction(PassNodeId id, Fn<void()> func);
 
-  void setExecutionFunction(PassNodeId id, Fn<void()> func);
+        friend class FrameGraphCompiler;
+        friend class FrameGraphExecutor;
+    };
 
-  friend class FrameGraphCompiler;
-  friend class FrameGraphExecutor;
-};
+    struct CompiledFrameGraph
+    {
+        struct ResourceBarriers
+        {
+            bool                            enableUAVBarrier        = false;
+            bool                            enableTransitionBarrier = false;
+            Graphics::Rhi::RhiResourceState srcState;
+            Graphics::Rhi::RhiResourceState dstState = Graphics::Rhi::RhiResourceState::Undefined;
+        };
+        const FrameGraph*          m_graph                          = nullptr;
+        Vec<u32>                   m_passTopoOrder                  = {};
+        Vec<Vec<ResourceBarriers>> m_passResourceBarriers           = {};
+        Vec<Vec<ResourceBarriers>> m_outputAliasedResourcesBarriers = {};
+        Vec<Vec<u32>>              m_inputResourceDependencies      = {};
+    };
 
-struct CompiledFrameGraph {
-  struct ResourceBarriers {
-    bool enableUAVBarrier = false;
-    bool enableTransitionBarrier = false;
-    GraphicsBackend::Rhi::RhiResourceState srcState;
-    GraphicsBackend::Rhi::RhiResourceState dstState = GraphicsBackend::Rhi::RhiResourceState::Undefined;
-  };
-  const FrameGraph *m_graph = nullptr;
-  Vec<u32> m_passTopoOrder = {};
-  Vec<Vec<ResourceBarriers>> m_passResourceBarriers = {};
-  Vec<Vec<ResourceBarriers>> m_outputAliasedResourcesBarriers = {};
-  Vec<Vec<u32>> m_inputResourceDependencies = {};
-};
+    class IFRIT_APIDECL FrameGraphCompiler
+    {
+    private:
+    public:
+        CompiledFrameGraph Compile(const FrameGraph& graph);
+    };
 
-class IFRIT_APIDECL FrameGraphCompiler {
-private:
-public:
-  CompiledFrameGraph compile(const FrameGraph &graph);
-};
-
-class IFRIT_APIDECL FrameGraphExecutor {
-private:
-public:
-  void executeInSingleCmd(const GraphicsBackend::Rhi::RhiCommandList *cmd, const CompiledFrameGraph &compiledGraph);
-};
+    class IFRIT_APIDECL FrameGraphExecutor
+    {
+    private:
+    public:
+        void ExecuteInSingleCmd(const Graphics::Rhi::RhiCommandList* cmd, const CompiledFrameGraph& compiledGraph);
+    };
 
 } // namespace Ifrit::Core

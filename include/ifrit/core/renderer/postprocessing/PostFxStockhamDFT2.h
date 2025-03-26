@@ -22,26 +22,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/renderer/PostprocessPass.h"
 #include <unordered_map>
 
-namespace Ifrit::Core::PostprocessPassCollection {
+namespace Ifrit::Core::PostprocessPassCollection
+{
 
-class IFRIT_APIDECL PostFxStockhamDFT2 : public PostprocessPass {
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
-  using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
-  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTextureRef;
-  using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
+    class IFRIT_APIDECL PostFxStockhamDFT2 : public PostprocessPass
+    {
+        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
+        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
+        using GPUTexture    = Graphics::Rhi::RhiTextureRef;
+        using ComputePass   = Graphics::Rhi::RhiComputePass;
 
-  // I know this is UGLY
-  CustomHashMap<std::pair<u32, u32>, GPUTexture, Ifrit::Common::Utility::PairwiseHash<u32, u32>> m_tex1;
+        // I know this is UGLY
+        CustomHashMap<Pair<u32, u32>, GPUTexture, Common::Utility::PairwiseHash<u32, u32>> m_tex1;
+        ComputePass*                                                                       m_testBlurPipeline = nullptr;
 
-  ComputePass *m_testBlurPipeline = nullptr;
+    public:
+        PostFxStockhamDFT2(IApplication* app);
+        void RenderPostFx(const GPUCmdBuffer* cmd, GPUBindId* srcSampId, GPUBindId* dstUAVImg, u32 width, u32 height,
+            u32 downscale);
 
-public:
-  PostFxStockhamDFT2(IApplication *app);
-  void renderPostFx(const GPUCmdBuffer *cmd, GPUBindId *srcSampId, GPUBindId *dstUAVImg, u32 width, u32 height,
-                    u32 downscale);
-
-private:
-  void runCommand(const GPUCmdBuffer *cmd, u32 wgX, u32 wgY, const void *pc);
-};
+    private:
+        void RunCommand(const GPUCmdBuffer* cmd, u32 wgX, u32 wgY, const void* pc);
+    };
 
 } // namespace Ifrit::Core::PostprocessPassCollection

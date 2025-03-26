@@ -25,20 +25,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <vector>
 
 #ifndef IFRIT_MESHPROC_IMPORT
-#define IFRIT_MESHPROC_API IFRIT_APIDECL
+    #define IFRIT_MESHPROC_API IFRIT_APIDECL
 #else
-#define IFRIT_MESHPROC_API IFRIT_APIDECL_IMPORT
+    #define IFRIT_MESHPROC_API IFRIT_APIDECL_IMPORT
 #endif
 
-namespace Ifrit::MeshProcLib::MeshProcess {
+namespace Ifrit::MeshProcLib::MeshProcess
+{
 
-class IFRIT_MESHPROC_API MeshletConeCullProc {
+    class IFRIT_MESHPROC_API MeshletConeCullProc
+    {
 
-public:
-  void createNormalCones(const MeshDescriptor &meshDesc, const std::vector<Vector4i> &meshlets,
-                         const std::vector<u32> &meshletVertices, const std::vector<uint8_t> &meshletTriangles,
-                         std::vector<Vector4f> &normalConeAxisCutoff, std::vector<Vector4f> &normalConeApex,
-                         std::vector<Vector4f> &boundSphere);
-};
+    public:
+        void CreateNormalCones(const MeshDescriptor& meshDesc, const Vec<Vector4i>& meshlets,
+            const Vec<u32>& meshletVertices, const Vec<uint8_t>& meshletTriangles,
+            Vec<Vector4f>& normalConeAxisCutoff, Vec<Vector4f>& normalConeApex,
+            Vec<Vector4f>& boundSphere);
+    };
 
 } // namespace Ifrit::MeshProcLib::MeshProcess

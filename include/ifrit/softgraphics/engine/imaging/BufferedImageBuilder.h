@@ -16,17 +16,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/imaging/BufferedImage.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging {
-class IFRIT_APIDECL BufferedImageBuilder {
-public:
-  BufferedImageBuilder() = default;
-  ~BufferedImageBuilder() = default;
+namespace Ifrit::Graphics::SoftGraphics::Imaging
+{
+	class IFRIT_APIDECL BufferedImageBuilder
+	{
+	public:
+		BufferedImageBuilder() = default;
+		~BufferedImageBuilder() = default;
 
-  virtual std::shared_ptr<BufferedImage> build(const IfritImageCreateInfo &pCI);
-};
-} // namespace Ifrit::GraphicsBackend::SoftGraphics::Imaging
+		virtual std::shared_ptr<BufferedImage> build(const IfritImageCreateInfo& pCI);
+	};
+} // namespace Ifrit::Graphics::SoftGraphics::Imaging

@@ -19,23 +19,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "RhiBaseTypes.h"
 
-namespace Ifrit::GraphicsBackend::Rhi {
-class IFRIT_APIDECL RhiShader {
-public:
-  virtual RhiShaderStage getStage() const = 0;
-  virtual u32 getNumDescriptorSets() const = 0;
-};
+namespace Ifrit::Graphics::Rhi
+{
+    class IFRIT_APIDECL RhiShader
+    {
+    public:
+        virtual RhiShaderStage GetStage() const             = 0;
+        virtual u32            GetNumDescriptorSets() const = 0;
+    };
 
-class IFRIT_APIDECL RhiRTShaderBindingTable {
-public:
-  virtual void _polymorphismPlaceHolder() {}
-};
+    class IFRIT_APIDECL RhiRTShaderBindingTable
+    {
+    public:
+        virtual void _polymorphismPlaceHolder() {}
+    };
 
-struct IFRIT_APIDECL RhiRTShaderGroup {
-  RhiShader *m_generalShader = nullptr;
-  RhiShader *m_closestHitShader = nullptr;
-  RhiShader *m_anyHitShader = nullptr;
-  RhiShader *m_intersectionShader = nullptr;
-};
+    struct IFRIT_APIDECL RhiRTShaderGroup
+    {
+        RhiShader* m_generalShader      = nullptr;
+        RhiShader* m_closestHitShader   = nullptr;
+        RhiShader* m_anyHitShader       = nullptr;
+        RhiShader* m_intersectionShader = nullptr;
+    };
 
-} // namespace Ifrit::GraphicsBackend::Rhi
+} // namespace Ifrit::Graphics::Rhi

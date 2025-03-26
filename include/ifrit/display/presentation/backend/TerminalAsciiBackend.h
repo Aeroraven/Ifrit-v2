@@ -20,18 +20,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/base/IfritBase.h"
 #include "ifrit/display/presentation/backend/AbstractTerminalBackend.h"
 
-namespace Ifrit::Display::Backend {
-class IFRIT_APIDECL TerminalAsciiBackend : public AbstractTerminalBackend {
-private:
-  i32 consoleWidth;
-  i32 consoleHeight;
-  IF_CONSTEXPR static const char *ramp = R"($@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:," ^ `'. )";
-  std::string resultBuffer;
+namespace Ifrit::Display::Backend
+{
+    class IFRIT_APIDECL TerminalAsciiBackend : public AbstractTerminalBackend
+    {
+    private:
+        i32                             consoleWidth;
+        i32                             consoleHeight;
+        IF_CONSTEXPR static const char* ramp = R"($@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:," ^ `'. )";
+        String                          resultBuffer;
 
-public:
-  TerminalAsciiBackend(i32 cWid, i32 cHeight);
-  virtual void updateTexture(const f32 *image, i32 channels, i32 width, i32 height) override;
-  virtual void draw() override;
-  virtual void setViewport(i32, i32, i32, i32) override {}
-};
+    public:
+        TerminalAsciiBackend(i32 cWid, i32 cHeight);
+        virtual void UpdateTexture(const f32* image, i32 channels, i32 width, i32 height) override;
+        virtual void Draw() override;
+        virtual void SetViewport(i32, i32, i32, i32) override {}
+    };
 } // namespace Ifrit::Display::Backend

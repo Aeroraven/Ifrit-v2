@@ -20,13 +20,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/util/ApiConv.h"
 #include <tuple>
 
-namespace Ifrit::Common::Utility {
-// hash operator for std::pair
-template <class T1, class T2> struct PairwiseHash {
-  std::size_t operator()(const std::pair<T1, T2> &p) const {
-    auto h1 = std::hash<T1>{}(p.first);
-    auto h2 = std::hash<T2>{}(p.second);
-    return h1 ^ h2;
-  }
-};
+namespace Ifrit::Common::Utility
+{
+    // hash operator for std::pair
+    template <class T1, class T2>
+    struct PairwiseHash
+    {
+        std::size_t operator()(const std::pair<T1, T2>& p) const
+        {
+            auto h1 = std::hash<T1>{}(p.first);
+            auto h2 = std::hash<T2>{}(p.second);
+            return h1 ^ h2;
+        }
+    };
 } // namespace Ifrit::Common::Utility

@@ -21,34 +21,41 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "RhiBaseTypes.h"
 #include "RhiResource.h"
 
-namespace Ifrit::GraphicsBackend::Rhi {
-struct RhiUAVBarrier {
-  RhiResourceType m_type;
-  union {
-    RhiBuffer *m_buffer;
-    RhiTexture *m_texture;
-  };
-};
+namespace Ifrit::Graphics::Rhi
+{
+    struct RhiUAVBarrier
+    {
+        RhiResourceType m_type;
+        union
+        {
+            RhiBuffer*  m_buffer;
+            RhiTexture* m_texture;
+        };
+    };
 
-struct RhiTransitionBarrier {
-  RhiResourceType m_type;
-  union {
-    RhiBuffer *m_buffer = nullptr;
-    RhiTexture *m_texture;
-  };
-  RhiImageSubResource m_subResource = {0, 0, 1, 1};
-  RhiResourceState m_srcState = RhiResourceState::AutoTraced;
-  RhiResourceState m_dstState = RhiResourceState::AutoTraced;
+    struct RhiTransitionBarrier
+    {
+        RhiResourceType m_type;
+        union
+        {
+            RhiBuffer*  m_buffer = nullptr;
+            RhiTexture* m_texture;
+        };
+        RhiImageSubResource m_subResource = { 0, 0, 1, 1 };
+        RhiResourceState    m_srcState    = RhiResourceState::AutoTraced;
+        RhiResourceState    m_dstState    = RhiResourceState::AutoTraced;
 
-  RhiTransitionBarrier() { m_texture = nullptr; }
-};
+        RhiTransitionBarrier() { m_texture = nullptr; }
+    };
 
-struct RhiResourceBarrier {
-  RhiBarrierType m_type = RhiBarrierType::UAVAccess;
-  union {
-    RhiUAVBarrier m_uav;
-    RhiTransitionBarrier m_transition;
-  };
-  RhiResourceBarrier() { m_uav = {}; }
-};
-} // namespace Ifrit::GraphicsBackend::Rhi
+    struct RhiResourceBarrier
+    {
+        RhiBarrierType m_type = RhiBarrierType::UAVAccess;
+        union
+        {
+            RhiUAVBarrier        m_uav;
+            RhiTransitionBarrier m_transition;
+        };
+        RhiResourceBarrier() { m_uav = {}; }
+    };
+} // namespace Ifrit::Graphics::Rhi

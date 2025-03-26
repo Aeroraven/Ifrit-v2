@@ -24,40 +24,44 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/scene/FrameCollector.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
-namespace Ifrit::Core {
-struct PostprocessPassConfig {
-  String fragPath;
-  u32 numPushConstants;
-  u32 numDescriptorSets;
-  bool isComputeShader = false;
-};
+namespace Ifrit::Core
+{
+    struct PostprocessPassConfig
+    {
+        String fragPath;
+        u32    numPushConstants;
+        u32    numDescriptorSets;
+        bool   isComputeShader = false;
+    };
 
-class IFRIT_APIDECL PostprocessPass {
-protected:
-  using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;
-  using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
-  using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
-  using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
-  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandList;
-  using GPUBindlessRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
+    class IFRIT_APIDECL PostprocessPass
+    {
+    protected:
+        using DrawPass       = Graphics::Rhi::RhiGraphicsPass;
+        using ComputePass    = Graphics::Rhi::RhiComputePass;
+        using RenderTargets  = Graphics::Rhi::RhiRenderTargets;
+        using GPUShader      = Graphics::Rhi::RhiShader;
+        using GPUCmdBuffer   = Graphics::Rhi::RhiCommandList;
+        using GPUBindlessRef = Graphics::Rhi::RhiBindlessDescriptorRef;
 
-protected:
-  PostprocessPassConfig m_cfg;
-  IApplication *m_app;
-  std::unordered_map<PipelineAttachmentConfigs, DrawPass *, PipelineAttachmentConfigsHash> m_renderPipelines;
-  ComputePass *m_computePipeline = nullptr;
+    protected:
+        using PipeConfig = PipelineAttachmentConfigs;
+        using PipeHash   = PipelineAttachmentConfigsHash;
+        PostprocessPassConfig                          m_cfg;
+        IApplication*                                  m_app;
+        CustomHashMap<PipeConfig, DrawPass*, PipeHash> m_renderPipelines;
+        ComputePass*                                   m_computePipeline = nullptr;
 
-  GPUShader *createShaderFromFile(const String &shaderPath, const String &entry,
-                                  GraphicsBackend::Rhi::RhiShaderStage stage);
-  DrawPass *setupRenderPipeline(RenderTargets *renderTargets);
-  ComputePass *setupComputePipeline();
+    protected:
+        GPUShader*   CreateShaderFromFile(const String& shaderPath, const String& entry,
+              Graphics::Rhi::RhiShaderStage stage);
+        DrawPass*    SetupRenderPipeline(RenderTargets* renderTargets);
+        ComputePass* SetupComputePipeline();
+        void         RenderInternal(PerFrameData* perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd,
+                    const void* pushConstants, const Vec<GPUBindlessRef*>& bindDescs, const String& scopeName);
 
-protected:
-  void renderInternal(PerFrameData *perframeData, RenderTargets *renderTargets, const GPUCmdBuffer *cmd,
-                      const void *pushConstants, const Vec<GPUBindlessRef *> &bindDescs, const String &scopeName);
-
-public:
-  PostprocessPass(IApplication *app, const PostprocessPassConfig &cfg);
-  virtual ~PostprocessPass() = default;
-};
+    public:
+        PostprocessPass(IApplication* app, const PostprocessPassConfig& cfg);
+        virtual ~PostprocessPass() = default;
+    };
 } // namespace Ifrit::Core

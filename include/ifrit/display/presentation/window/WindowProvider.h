@@ -23,22 +23,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <functional>
 #include <string>
 
-namespace Ifrit::Display::Window {
-class IFRIT_APIDECL WindowProvider {
-protected:
-  size_t width;
-  size_t height;
+namespace Ifrit::Display::Window
+{
+    class IFRIT_APIDECL WindowProvider
+    {
+    protected:
+        size_t width;
+        size_t height;
 
-public:
-  virtual ~WindowProvider() = default;
-  virtual bool setup(size_t width, size_t height) = 0;
-  virtual size_t getWidth() const;
-  virtual size_t getHeight() const;
-  virtual void loop(const std::function<void(int *)> &func) = 0;
-  virtual void setTitle(const std::string &title) = 0;
-  virtual const char **getVkRequiredInstanceExtensions(u32 *count) { return nullptr; };
-  virtual void *getWindowObject() { return nullptr; };
-  virtual void *getGLFWWindow() { return nullptr; };
-  virtual void registerKeyCallback(std::function<void(int, int, int, int)>) {}
-};
+    public:
+        virtual ~WindowProvider()                               = default;
+        virtual bool         Setup(size_t width, size_t height) = 0;
+        virtual size_t       GetWidth() const;
+        virtual size_t       GetHeight() const;
+        virtual void         Loop(const std::function<void(int*)>& func) = 0;
+        virtual void         SetTitle(const std::string& title)          = 0;
+        virtual const char** GetVkRequiredInstanceExtensions(u32* count) { return nullptr; };
+        virtual void*        GetWindowObject() { return nullptr; };
+        virtual void*        GetGLFWWindow() { return nullptr; };
+        virtual void         RegisterKeyCallback(std::function<void(int, int, int, int)>) {}
+    };
 } // namespace Ifrit::Display::Window

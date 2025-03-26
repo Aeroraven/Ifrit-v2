@@ -16,19 +16,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 
-#define IFRIT_TRNS Ifrit::GraphicsBackend::SoftGraphics::TileRaster
-#define IFRIT_BASENS Ifrit::GraphicsBackend::SoftGraphics
+#define IFRIT_TRNS Ifrit::Graphics::SoftGraphics::TileRaster
+#define IFRIT_BASENS Ifrit::Graphics::SoftGraphics
 
 // Update v1
-IFRIT_APIDECL_COMPAT void *IFRIT_APICALL ifvmCreateLLVMRuntimeBuilder()
-    IFRIT_EXPORT_COMPAT_NOTHROW;
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL ifvmDestroyLLVMRuntimeBuilder(void *p)
-    IFRIT_EXPORT_COMPAT_NOTHROW;
+IFRIT_APIDECL_COMPAT void* IFRIT_APICALL ifvmCreateLLVMRuntimeBuilder()
+	IFRIT_EXPORT_COMPAT_NOTHROW;
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL ifvmDestroyLLVMRuntimeBuilder(void* p)
+	IFRIT_EXPORT_COMPAT_NOTHROW;
 
 #undef IFRIT_BASENS
 #undef IFRIT_TRNS

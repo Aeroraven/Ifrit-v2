@@ -20,22 +20,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "RhiBaseTypes.h"
 
-namespace Ifrit::GraphicsBackend::Rhi {
-class IFRIT_APIDECL RhiDevice {
-protected:
-  virtual int _polymorphismPlaceHolder() { return 0; }
-};
+namespace Ifrit::Graphics::Rhi
+{
+    class IFRIT_APIDECL RhiDevice
+    {
+    protected:
+        virtual int _polymorphismPlaceHolder() { return 0; }
+    };
 
-class IFRIT_APIDECL RhiSwapchain {
-protected:
-  RhiDevice *m_context;
+    class IFRIT_APIDECL RhiSwapchain
+    {
+    protected:
+        RhiDevice* m_context;
 
-public:
-  virtual ~RhiSwapchain() = default;
-  virtual void present() = 0;
-  virtual u32 acquireNextImage() = 0;
-  virtual u32 getNumBackbuffers() const = 0;
-  virtual u32 getCurrentFrameIndex() const = 0;
-  virtual u32 getCurrentImageIndex() const = 0;
-};
-} // namespace Ifrit::GraphicsBackend::Rhi
+    public:
+        virtual ~RhiSwapchain()                   = default;
+        virtual void Present()                    = 0;
+        virtual u32  AcquireNextImage()           = 0;
+        virtual u32  GetNumBackbuffers() const    = 0;
+        virtual u32  GetCurrentFrameIndex() const = 0;
+        virtual u32  GetCurrentImageIndex() const = 0;
+    };
+} // namespace Ifrit::Graphics::Rhi

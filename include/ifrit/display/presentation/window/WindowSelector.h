@@ -16,22 +16,25 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/common/util/ApiConv.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include <memory>
 
-namespace Ifrit::Display::Window {
-enum class WindowProviderType { GLFW };
+namespace Ifrit::Display::Window
+{
+    enum class WindowProviderType
+    {
+        GLFW
+    };
 
-struct WindowProviderSetupArgs {
-  bool useVulkan = false;
-};
-class IFRIT_APIDECL WindowSelector {
-public:
-  static std::unique_ptr<WindowProvider>
-  createWindowProvider(WindowProviderType type,
-                       const WindowProviderSetupArgs &args);
-};
+    struct WindowProviderSetupArgs
+    {
+        bool useVulkan = false;
+    };
+    class IFRIT_APIDECL WindowSelector
+    {
+    public:
+        static Uref<WindowProvider> CreateWindowProvider(WindowProviderType type, const WindowProviderSetupArgs& args);
+    };
 } // namespace Ifrit::Display::Window

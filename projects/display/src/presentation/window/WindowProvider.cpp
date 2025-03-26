@@ -16,10 +16,10 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #include "ifrit/display/presentation/window/WindowProvider.h"
 
-namespace Ifrit::Display::Window {
-IFRIT_APIDECL size_t WindowProvider::getWidth() const { return width; }
-IFRIT_APIDECL size_t WindowProvider::getHeight() const { return height; }
+namespace Ifrit::Display::Window
+{
+    IFRIT_APIDECL size_t WindowProvider::GetWidth() const { return width; }
+    IFRIT_APIDECL size_t WindowProvider::GetHeight() const { return height; }
 } // namespace Ifrit::Display::Window

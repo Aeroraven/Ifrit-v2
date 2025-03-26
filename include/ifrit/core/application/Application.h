@@ -28,36 +28,41 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include <string>
 
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-class IFRIT_APIDECL Application : public IApplication {
-protected:
-  Uref<GraphicsBackend::Rhi::RhiBackend> m_rhiLayer; // should be destroyed last
+    class IFRIT_APIDECL Application : public IApplication
+    {
+        using RhiBackend     = Graphics::Rhi::RhiBackend;
+        using WindowProvider = Display::Window::WindowProvider;
 
-  Ref<AssetManager> m_assetManager;
-  Ref<SceneManager> m_sceneManager;
-  Ref<SceneAssetManager> m_sceneAssetManager;
-  Ref<InputSystem> m_inputSystem;
-  Ref<TimingRecorder> m_timingRecorder;
-  Uref<Display::Window::WindowProvider> m_windowProvider;
-  ProjectProperty m_info;
+    protected:
+        Uref<RhiBackend>       m_rhiLayer; // should be destroyed last
 
-private:
-  void start();
-  void update();
-  void end();
-  inline bool applicationShouldClose() { return true; }
+        Ref<AssetManager>      m_assetManager;
+        Ref<SceneManager>      m_sceneManager;
+        Ref<SceneAssetManager> m_sceneAssetManager;
+        Ref<InputSystem>       m_inputSystem;
+        Ref<TimingRecorder>    m_timingRecorder;
+        Uref<WindowProvider>   m_windowProvider;
+        ProjectProperty        m_info;
 
-public:
-  virtual void onStart() override {}
-  virtual void onUpdate() override {}
-  virtual void onEnd() override {}
-  void run(const ProjectProperty &info);
+    private:
+        void        Start();
+        void        Update();
+        void        End();
+        inline bool ApplicationShouldClose() { return true; }
 
-  inline virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() override { return m_rhiLayer.get(); }
-  inline virtual Ifrit::Display::Window::WindowProvider *getWindowProvider() override { return m_windowProvider.get(); }
-  inline String getCacheDirectory() const override { return m_info.m_cachePath; }
-  inline TimingRecorder *getTimingRecorder() override { return m_timingRecorder.get(); }
-  inline const ProjectProperty &getProjectProperty() const override { return m_info; }
-};
+    public:
+        virtual void                   OnStart() override {}
+        virtual void                   OnUpdate() override {}
+        virtual void                   OnEnd() override {}
+        void                           Run(const ProjectProperty& info);
+
+        inline virtual RhiBackend*     GetRhi() override { return m_rhiLayer.get(); }
+        inline virtual WindowProvider* GetDisplay() override { return m_windowProvider.get(); }
+        inline String                  GetCacheDir() const override { return m_info.m_cachePath; }
+        inline TimingRecorder*         GetTimeRecorder() override { return m_timingRecorder.get(); }
+        inline const ProjectProperty&  GetProjectProperty() const override { return m_info; }
+    };
 } // namespace Ifrit::Core

@@ -16,16 +16,17 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "./SpvVMContext.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
-namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv {
-class SpvVMInterpreter {
-public:
-  void parseRawContext(SpvVMContext *context,
-                       SpvVMIntermediateRepresentation *outIr);
-  void exportLlvmIR(SpvVMIntermediateRepresentation *ir,
-                    std::string *outLlvmIR);
-};
-} // namespace Ifrit::GraphicsBackend::SoftGraphics::ShaderVM::Spirv
+namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
+{
+	class SpvVMInterpreter
+	{
+	public:
+		void parseRawContext(SpvVMContext*	 context,
+			SpvVMIntermediateRepresentation* outIr);
+		void exportLlvmIR(SpvVMIntermediateRepresentation* ir,
+			std::string*								   outLlvmIR);
+	};
+} // namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv

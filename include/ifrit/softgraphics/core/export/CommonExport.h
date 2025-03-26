@@ -16,19 +16,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/softgraphics/core/data/Image.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 
-#define IFRIT_CORENS Ifrit::GraphicsBackend::SoftGraphics::Core::Data
+#define IFRIT_CORENS Ifrit::Graphics::SoftGraphics::Core::Data
 
 /* Export Image.h */
-IFRIT_APIDECL_COMPAT IFRIT_CORENS::ImageF32 *IFRIT_APICALL ifcrCreateImageFP32(
-    size_t width, size_t height, size_t channel) IFRIT_EXPORT_COMPAT_NOTHROW;
+IFRIT_APIDECL_COMPAT IFRIT_CORENS::ImageF32* IFRIT_APICALL ifcrCreateImageFP32(
+	size_t width, size_t height, size_t channel) IFRIT_EXPORT_COMPAT_NOTHROW;
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL ifcrDestroyImageFP32(
-    IFRIT_CORENS::ImageF32 *pInstance) IFRIT_EXPORT_COMPAT_NOTHROW;
-IFRIT_APIDECL_COMPAT float *IFRIT_APICALL ifcrGetImageRawDataFP32(
-    IFRIT_CORENS::ImageF32 *pInstance) IFRIT_EXPORT_COMPAT_NOTHROW;
+	IFRIT_CORENS::ImageF32* pInstance) IFRIT_EXPORT_COMPAT_NOTHROW;
+IFRIT_APIDECL_COMPAT float* IFRIT_APICALL ifcrGetImageRawDataFP32(
+	IFRIT_CORENS::ImageF32* pInstance) IFRIT_EXPORT_COMPAT_NOTHROW;
 
 #undef IFRIT_CORENS

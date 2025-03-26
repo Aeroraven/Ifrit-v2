@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/display/dependencies/GLAD/glad/glad.h"
 #include "ifrit/display/presentation/backend/BackendProvider.h"
@@ -24,34 +23,61 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <string>
 #include <vector>
 
-namespace Ifrit::Display::Backend {
-class IFRIT_APIDECL OpenGLBackend : public BackendProvider {
-private:
-  std::string vertexShaderCode;
-  std::string fragmentShaderCode;
-  GLuint vertexShader;
-  GLuint fragmentShader;
-  GLuint shaderProgram;
+namespace Ifrit::Display::Backend
+{
+    class IFRIT_APIDECL OpenGLBackend : public BackendProvider
+    {
+    private:
+        String     vertexShaderCode;
+        String     fragmentShaderCode;
+        GLuint     vertexShader;
+        GLuint     fragmentShader;
+        GLuint     shaderProgram;
 
-  std::vector<float> vertices = {
-      -1.0f, -1.0f, 0.0f, -1.0, 1.0f,  0.0f, 1.0f,  1.0f,  0.0f,
-      1.0f,  1.0f,  0.0f, 1.0f, -1.0f, 0.0f, -1.0f, -1.0f, 0.0f,
-  };
+        Vec<float> vertices = {
+            -1.0f,
+            -1.0f,
+            0.0f,
+            -1.0,
+            1.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+            0.0f,
+            1.0f,
+            -1.0f,
+            0.0f,
+            -1.0f,
+            -1.0f,
+            0.0f,
+        };
 
-  std::vector<float> texCoords = {
-      0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-  };
+        Vec<float> texCoords = {
+            0.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            1.0f,
+            1.0f,
+            1.0f,
+            1.0f,
+            1.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+        };
 
-  GLuint VAO = 0;
-  GLuint VBO = 0;
-  GLuint texture = 0;
+        GLuint VAO     = 0;
+        GLuint VBO     = 0;
+        GLuint texture = 0;
 
-public:
-  OpenGLBackend();
-  virtual void draw() override;
-  virtual void updateTexture(const float *image, int channels, int width,
-                             int height) override;
-  virtual void setViewport(int32_t x, int32_t y, int32_t width,
-                           int32_t height) override;
-};
+    public:
+        OpenGLBackend();
+        virtual void Draw() override;
+        virtual void UpdateTexture(const float* image, int channels, int width, int height) override;
+        virtual void SetViewport(i32 x, i32 y, i32 width, i32 height) override;
+    };
 } // namespace Ifrit::Display::Backend

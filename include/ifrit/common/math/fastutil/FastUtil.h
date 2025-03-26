@@ -19,53 +19,79 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "../../util/ApiConv.h"
 #include "ifrit/common/base/IfritBase.h"
 #ifdef _MSC_VER
-#include <intrin.h>
+    #include <intrin.h>
 #endif
 #include <bit>
 #include <cstdint>
 
-namespace Ifrit::Math {
-inline u64 i32Pack(u32 x, u32 y) { return (u64)x | ((u64)y << 32); }
-inline u32 i32UnpackFromi64First(u64 x) { return (u32)x; }
-inline u32 i32UnpackFromi64Second(u64 x) { return (u32)(x >> 32); }
+namespace Ifrit::Math
+{
+    inline u64 IntegerPack32(u32 x, u32 y)
+    {
+        return (u64)x | ((u64)y << 32);
+    }
+    inline u32 IntegerUnpack32From64First(u64 x)
+    {
+        return (u32)x;
+    }
+    inline u32 IntegerUnpack32From64Second(u64 x)
+    {
+        return (u32)(x >> 32);
+    }
 
-// This function aims to provide an optimized std fill for dword
-// Some times std::fill is not optimized for qword under MSVC compiler  (no rep
-// stos or sse)
-template <class T> inline void memsetDword(T *src, T value, size_t counts) {
+    // This function aims to provide an optimized std fill for dword
+    // Some times std::fill is not optimized for qword under MSVC compiler  (no rep
+    // stos or sse)
+    template <class T>
+    inline void MemSetDword(T* src, T value, size_t counts)
+    {
 #ifdef _MSC_VER
-  if IF_CONSTEXPR (sizeof(T) == 4) {
-    static_assert(sizeof(unsigned long) == 4, "Unexpected size of unsigned long");
-    __stosd((unsigned long *)src, std::bit_cast<unsigned long, T>(value), counts);
-  } else {
-    std::fill(src, src + counts, value);
-  }
+        if IF_CONSTEXPR (sizeof(T) == 4)
+        {
+            static_assert(sizeof(unsigned long) == 4, "Unexpected size of unsigned long");
+            __stosd((unsigned long*)src, std::bit_cast<unsigned long, T>(value), counts);
+        }
+        else
+        {
+            std::fill(src, src + counts, value);
+        }
 #else
-  std::fill(src, src + counts, value);
+        std::fill(src, src + counts, value);
 #endif
-}
+    }
 
-// Returns the number of leading 0-bits in x, starting at the most significant
-// bit position. If x is 0, the result is undefined.
-template <class T> inline i32 qclz(T x) {
+    // Returns the number of leading 0-bits in x, starting at the most significant
+    // bit position. If x is 0, the result is undefined.
+    template <class T>
+    inline i32 CountLeadingZero(T x)
+    {
 #ifdef _MSC_VER
-  if IF_CONSTEXPR (sizeof(T) == 4) {
-    unsigned long r = 0;
-    _BitScanReverse(&r, x);
-    return 31 - r;
-  } else if IF_CONSTEXPR (sizeof(T) == 8) {
-    unsigned long r = 0;
-    _BitScanReverse64(&r, x);
-    return 63 - r;
-  } else {
-    static_assert(sizeof(T) == 4 || sizeof(T) == 8, "Unsupported size for clz");
-  }
+        if IF_CONSTEXPR (sizeof(T) == 4)
+        {
+            unsigned long r = 0;
+            _BitScanReverse(&r, x);
+            return 31 - r;
+        }
+        else if IF_CONSTEXPR (sizeof(T) == 8)
+        {
+            unsigned long r = 0;
+            _BitScanReverse64(&r, x);
+            return 63 - r;
+        }
+        else
+        {
+            static_assert(sizeof(T) == 4 || sizeof(T) == 8, "Unsupported size for clz");
+        }
 #else
-  return __builtin_clz(x);
+        return __builtin_clz(x);
 #endif
-}
+    }
 
-// Returns the log2 of x, rounded down. If x is 0, the result is undefined.
-template <class T> inline i32 qlog2(T x) { return (((sizeof(T) * 8)) - 1) - qclz(x); }
+    // Returns the log2 of x, rounded down. If x is 0, the result is undefined.
+    template <class T>
+    inline i32 IntegerLog2(T x)
+    {
+        return (((sizeof(T) * 8)) - 1) - CountLeadingZero(x);
+    }
 
 } // namespace Ifrit::Math

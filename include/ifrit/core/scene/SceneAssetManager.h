@@ -23,60 +23,68 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <filesystem>
 #include <stdexcept>
 
-namespace Ifrit::Core {
-IF_CONSTEXPR const char *cSceneFileExtension = ".scene";
+namespace Ifrit::Core
+{
+    IF_CONSTEXPR const char* cSceneFileExtension = ".scene";
 
-class SceneAssetManager;
+    class SceneAssetManager;
 
-class IFRIT_APIDECL SceneAsset : public Asset {
-public:
-  Ref<Scene> m_scene;
-  SceneAsset(AssetMetadata metadata, std::filesystem::path path) : Asset(metadata, path) {}
-  inline Ref<Scene> getScene() { return m_scene; }
-};
+    class IFRIT_APIDECL SceneAsset : public Asset
+    {
+    public:
+        Ref<Scene> m_scene;
+        SceneAsset(AssetMetadata metadata, std::filesystem::path path)
+            : Asset(metadata, path) {}
+        inline Ref<Scene> GetScene() { return m_scene; }
+    };
 
-class IFRIT_APIDECL SceneAssetImporter : public AssetImporter {
-protected:
-  SceneAssetManager *m_sceneAssetManager;
+    class IFRIT_APIDECL SceneAssetImporter : public AssetImporter
+    {
+    protected:
+        SceneAssetManager* m_sceneAssetManager;
 
-public:
-  IF_CONSTEXPR static const char *IMPORTER_NAME = "SceneImporter";
-  SceneAssetImporter(AssetManager *manager, SceneAssetManager *sceneManager)
-      : AssetImporter(manager), m_sceneAssetManager(sceneManager) {}
-  void processMetadata(AssetMetadata &metadata) override;
-  void importAsset(const std::filesystem::path &path, AssetMetadata &metadata) override;
-  Vec<String> getSupportedExtensionNames() override;
-};
+    public:
+        IF_CONSTEXPR static const char* IMPORTER_NAME = "SceneImporter";
+        SceneAssetImporter(AssetManager* manager, SceneAssetManager* sceneManager)
+            : AssetImporter(manager), m_sceneAssetManager(sceneManager) {}
+        void        ProcessMetadata(AssetMetadata& metadata) override;
+        void        ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata) override;
+        Vec<String> GetSupportedExtensionNames() override;
+    };
 
-class IFRIT_APIDECL SceneAssetManager {
-private:
-  Ref<SceneAssetImporter> m_sceneImporter;
-  Vec<Ref<Scene>> m_scenes;
-  Vec<u32> m_sceneAssetLoaded;
-  HashMap<String, u32> m_scenesIndex;
-  Ref<Scene> m_activeScene;
-  std::filesystem::path m_sceneDataPath;
-  AssetManager *m_assetManager;
+    class IFRIT_APIDECL SceneAssetManager
+    {
+    private:
+        Ref<SceneAssetImporter> m_sceneImporter;
+        Vec<Ref<Scene>>         m_scenes;
+        Vec<u32>                m_sceneAssetLoaded;
+        HashMap<String, u32>    m_scenesIndex;
+        Ref<Scene>              m_activeScene;
+        std::filesystem::path   m_sceneDataPath;
+        AssetManager*           m_assetManager;
 
-private:
-  void attachAssetResources(Ref<Scene> &scene);
+    private:
+        void AttachAssetResources(Ref<Scene>& scene);
 
-public:
-  SceneAssetManager(std::filesystem::path path, AssetManager *assetManager);
-  void saveScenes();
-  void loadScenes();
-  void registerScene(String name, Ref<Scene> scene);
-  Ref<Scene> createScene(String name);
-  inline Ref<SceneAssetImporter> getImporter() { return m_sceneImporter; }
-  inline Ref<Scene> getScene(String name) {
-    if (m_scenesIndex.count(name) == 0) {
-      throw std::runtime_error("Scene does not exist");
-    }
-    if (m_sceneAssetLoaded[m_scenesIndex[name]] == 0) {
-      attachAssetResources(m_scenes[m_scenesIndex[name]]);
-    }
-    return m_scenes[m_scenesIndex[name]];
-  }
-  inline bool checkSceneExists(String name) { return m_scenesIndex.count(name) != 0; }
-};
+    public:
+        SceneAssetManager(std::filesystem::path path, AssetManager* assetManager);
+        void                           SaveScenes();
+        void                           LoadScenes();
+        void                           RegisterScene(String name, Ref<Scene> scene);
+        Ref<Scene>                     CreateScene(String name);
+        inline Ref<SceneAssetImporter> GetImporter() { return m_sceneImporter; }
+        inline Ref<Scene>              GetScene(String name)
+        {
+            if (m_scenesIndex.count(name) == 0)
+            {
+                throw std::runtime_error("Scene does not exist");
+            }
+            if (m_sceneAssetLoaded[m_scenesIndex[name]] == 0)
+            {
+                AttachAssetResources(m_scenes[m_scenesIndex[name]]);
+            }
+            return m_scenes[m_scenesIndex[name]];
+        }
+        inline bool CheckIfSceneExists(String name) { return m_scenesIndex.count(name) != 0; }
+    };
 } // namespace Ifrit::Core

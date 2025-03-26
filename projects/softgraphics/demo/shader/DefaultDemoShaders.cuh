@@ -10,13 +10,13 @@ namespace Ifrit::Demo::DemoDefault {
 	class DemoVertexShaderCuda : public  Ifrit::SoftRenderer::VertexShader {
 	public:
 		IFRIT_DUAL virtual void execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) override;
-		IFRIT_HOST virtual Ifrit::SoftRenderer::VertexShader* getCudaClone() override;
+		IFRIT_HOST virtual Ifrit::SoftRenderer::VertexShader* GetCudaClone() override;
 	};
 
 	class DemoFragmentShaderCuda : public  Ifrit::SoftRenderer::FragmentShader {
 	public:
 		IFRIT_DUAL virtual void execute(const  void* varyings, void* colorOutput, float* fragmentDepth) override;
-		IFRIT_HOST virtual Ifrit::SoftRenderer::FragmentShader* getCudaClone() override;
+		IFRIT_HOST virtual Ifrit::SoftRenderer::FragmentShader* GetCudaClone() override;
 	};
 
 	class DemoGeometryShaderCuda : public Ifrit::SoftRenderer::GeometryShader {
@@ -29,7 +29,7 @@ namespace Ifrit::Demo::DemoDefault {
 			Ifrit::SoftRenderer::VaryingStore* outVaryings,
 			int* outSize
 		) override;
-		IFRIT_HOST virtual GeometryShader* getCudaClone();
+		IFRIT_HOST virtual GeometryShader* GetCudaClone();
 	};
 }
 #endif

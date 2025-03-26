@@ -1341,7 +1341,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 	namespace TriangleGeometryStage {
 		template<bool tpGeometryShaderEnabled,IfritCullMode tpCullMode, bool tpMsaaEnabled>
 		IFRIT_DEVICE void devGeometryCullClip(float4 v1, float4 v2, float4 v3, int primId) {
-			using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::lerp;
+			using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::Lerp;
 			IF_CONSTEXPR int possibleTris = 5;
 
 			IFRIT_SHARED TileRasterClipVertexCUDA retd[2 * CU_GEOMETRY_PROCESSING_THREADS];
@@ -1373,8 +1373,8 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 						float numo = pc.pos.w;
 						float deno = -(pnPos.w - pc.pos.w);
 						float t = (-1e-3f + numo) / deno;
-						float4 intersection = lerp(pc.pos, pnPos, t);
-						float3 barycenter = lerp(pc.barycenter, pnBary, t);
+						float4 intersection = Lerp(pc.pos, pnPos, t);
+						float3 barycenter = Lerp(pc.barycenter, pnBary, t);
 
 						TileRasterClipVertexCUDA newp;
 						newp.barycenter = barycenter;
@@ -1400,16 +1400,16 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 
 			const auto clipOdd = 0;
 
-#define normalizeVertex(v) v.w=1/v.w; v.x*=v.w; v.y*=v.w; v.z*=v.w;v.x=v.x*0.5f+0.5f;v.y=v.y*0.5f+0.5f;
-			normalizeVertex(v1);
-			normalizeVertex(v2);
-			normalizeVertex(v3);
+#define NormalizeVertex(v) v.w=1/v.w; v.x*=v.w; v.y*=v.w; v.z*=v.w;v.x=v.x*0.5f+0.5f;v.y=v.y*0.5f+0.5f;
+			NormalizeVertex(v1);
+			NormalizeVertex(v2);
+			NormalizeVertex(v3);
 
 #pragma unroll
 			for (int i = 3; i < retdTriCnt; i++) {
-				normalizeVertex(retd[i + retOffset - 3].pos);
+				NormalizeVertex(retd[i + retOffset - 3].pos);
 			}
-#undef normalizeVertex
+#undef NormalizeVertex
 
 			// Atomic Insertions
 			for (int i = 0; i < retCnt - 2; i++) {
@@ -1721,7 +1721,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 			const auto pDy = pixelYS * 1.0f;
 			float compareDepth = dDepthBuffer[pixelYS * csFrameWidth + pixelXS];
 
-			auto getDepth = [&](int primId) {
+			auto GetDepth = [&](int primId) {
 				float interpolatedDepth;
 				float2 v12 = dAtriDepthVal12[primId];
 				float v3 = dAtriDepthVal3[primId];
@@ -1785,7 +1785,7 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				if (isHelperInvocation) {
 					return;
 				}
-				auto tDepth = getDepth(pId);
+				auto tDepth = GetDepth(pId);
 				bool depthTestCond = true;
 
 #define PS_DEPTHTEST \
@@ -2979,9 +2979,9 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				float deno = v2.w - v1.w;
 				float numo = -1.0 + v2.w;
 				float t = numo / deno;
-				using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::lerp;
-				float4 intersection = lerp(v2, v1, t);
-				float4 barycenter = lerp(bary2, bary1, t);
+				using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::Lerp;
+				float4 intersection = Lerp(v2, v1, t);
+				float4 barycenter = Lerp(bary2, bary1, t);
 				v1 = intersection;
 				bary1 = barycenter;
 			}
@@ -2989,9 +2989,9 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				float deno = v1.w - v2.w;
 				float numo = -1.0 + v1.w;
 				float t = numo / deno;
-				using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::lerp;
-				float4 intersection = lerp(v1, v2, t);
-				float4 barycenter = lerp(bary1, bary2, t);
+				using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::Lerp;
+				float4 intersection = Lerp(v1, v2, t);
+				float4 barycenter = Lerp(bary1, bary2, t);
 				v2 = intersection;
 				bary2 = barycenter;
 			}
@@ -3263,8 +3263,8 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 				float4 v1 = dAtriInterpolBase1[primId];
 				float4 v2 = dAtriInterpolBase2[primId];
 				auto percent = getPercent(v1, v2);
-				using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::lerp;
-				auto zVal = lerp(v1.z, v2.z, percent);
+				using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::Lerp;
+				auto zVal = Lerp(v1.z, v2.z, percent);
 				if (zVal < localDepth) {
 					actPrim = primId;
 					localDepth = zVal;
@@ -3558,7 +3558,7 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 		cudaFree(ptr);
 	}
 
-	void createTexture(uint32_t texId, const IfritImageCreateInfo& createInfo, float* data) {
+	void CreateTexture(uint32_t texId, const IfritImageCreateInfo& createInfo, float* data) {
 		if (data != nullptr) {
 			printf("Data should not be specified\n");
 			std::abort();
@@ -3589,11 +3589,11 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 		cudaMemcpyToSymbol(Impl::csTextureArrayLayers, &Impl::hsTextureArrayLayers[texId], sizeof(int), sizeof(int) * texId);
 		cudaMemcpyToSymbol(Impl::csTextureWidth, &Impl::hsTextureWidth[texId], sizeof(int), sizeof(int)*texId);
 	}
-	void createSampler(uint32_t slotId, const IfritSamplerT& samplerState) {
+	void CreateSampler(uint32_t slotId, const IfritSamplerT& samplerState) {
 		Impl::hsSampler[slotId] = samplerState;
 		cudaMemcpyToSymbol(Impl::csSamplers, &samplerState, sizeof(samplerState), sizeof(samplerState) * slotId);
 	}
-	void createDeviceBuffer(uint32_t slotId, int bufferSize) {
+	void CreateDeviceBuffer(uint32_t slotId, int bufferSize) {
 		void* devicePtr;
 		cudaMalloc(&devicePtr, bufferSize);
 		Impl::hsGeneralBuffer[slotId] = (char*)devicePtr;
@@ -3634,7 +3634,7 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 		return dBuffer;
 	}
 
-	float* getDepthBufferDeviceAddr(uint32_t bufferSize, float* dOldBuffer) {
+	float* GetDepthBufferDeviceAddr(uint32_t bufferSize, float* dOldBuffer) {
 		if(dOldBuffer != nullptr) {
 			cudaFree(dOldBuffer);
 		}
@@ -3696,7 +3696,7 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 	void invokeFragmentShaderUpdate(FragmentShader* dFragmentShader) IFRIT_AP_NOTHROW {
 		Impl::MiscKernels::updateFragmentShaderKernel CU_KARG2(1, 1)(dFragmentShader);
 		cudaDeviceSynchronize();
-		//printf("Shader init done \n");
+		//printf("Shader Init done \n");
 	}
 
 	void updateVarying(uint32_t varyingCounts) {
@@ -3726,10 +3726,10 @@ namespace  Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {
 		cudaDeviceSynchronize();
 	}
 
-	void setDepthFunc(IfritCompareOp depthFunc) {
+	void SetDepthFunc(IfritCompareOp depthFunc) {
 		cudaMemcpyToSymbol(Impl::csDepthFunc, &depthFunc, sizeof(depthFunc));
 	}
-	void setCullMode(IfritCullMode cullMode) {
+	void SetCullMode(IfritCullMode cullMode) {
 		Impl::hsCullMode = cullMode;
 		cudaMemcpyToSymbol(Impl::csCullMode, &cullMode, sizeof(cullMode));
 	}

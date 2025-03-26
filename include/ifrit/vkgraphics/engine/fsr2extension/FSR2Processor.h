@@ -21,20 +21,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/util/ApiConv.h"
 #include "ifrit/rhi/common/RhiFsr2Processor.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
-namespace Ifrit::GraphicsBackend::VulkanGraphics::FSR2 {
-struct FSR2Context;
+namespace Ifrit::Graphics::VulkanGraphics::FSR2
+{
+    struct FSR2Context;
 
-class IFRIT_APIDECL FSR2Processor : public Rhi::FSR2::RhiFsr2Processor {
-private:
-  FSR2Context *m_context = nullptr;
-  EngineContext *m_engineContext = nullptr;
-  Rhi::FSR2::RhiFSR2InitialzeArgs m_args;
+    class IFRIT_APIDECL FSR2Processor : public Rhi::FSR2::RhiFsr2Processor
+    {
+    private:
+        FSR2Context*                    m_context       = nullptr;
+        EngineContext*                  m_engineContext = nullptr;
+        Rhi::FSR2::RhiFSR2InitialzeArgs m_args;
 
-public:
-  FSR2Processor(EngineContext *ctx);
-  ~FSR2Processor();
-  void init(const Rhi::FSR2::RhiFSR2InitialzeArgs &args) override;
-  void dispatch(const Rhi::RhiCommandList *cmd, const Rhi::FSR2::RhiFSR2DispatchArgs &args) override;
-  void getJitters(float *jitterX, float *jitterY, u32 frameIdx, u32 rtWidth, u32 dispWidth) override;
-};
-} // namespace Ifrit::GraphicsBackend::VulkanGraphics::FSR2
+    public:
+        FSR2Processor(EngineContext* ctx);
+        ~FSR2Processor();
+        void Init(const Rhi::FSR2::RhiFSR2InitialzeArgs& args) override;
+        void Dispatch(const Rhi::RhiCommandList* cmd, const Rhi::FSR2::RhiFSR2DispatchArgs& args) override;
+        void GetJitters(float* jitterX, float* jitterY, u32 frameIdx, u32 rtWidth, u32 dispWidth) override;
+    };
+} // namespace Ifrit::Graphics::VulkanGraphics::FSR2

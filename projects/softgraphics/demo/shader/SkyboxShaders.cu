@@ -26,7 +26,7 @@ namespace Ifrit::Demo::Skybox {
 	IFRIT_DUAL void SkyboxVS::execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) {
 		using namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA;
 		auto s = isbReadFloat4(input[0]);
-		Matrix4x4f view = (lookAt({ 0.0,0.0,0.0 }, { 0.0,0.0,-1.0 }, { 0,1.0,0 }));  
+		Matrix4x4f view = (LookAt({ 0.0,0.0,0.0 }, { 0.0,0.0,-1.0 }, { 0,1.0,0 }));  
 		Matrix4x4f proj = (perspective(30 * 3.14159 / 180, 2048.0 / 1152.0, 0.001, 1000));
 		Matrix4x4f mvp = multiply(proj, view);
 		auto p = multiply(mvp, s);
@@ -35,7 +35,7 @@ namespace Ifrit::Demo::Skybox {
 		*outVaryings[0] = isbReadFloat4(input[1]);
 	}
 
-	IFRIT_HOST Ifrit::SoftRenderer::VertexShader* SkyboxVS::getCudaClone() {
+	IFRIT_HOST Ifrit::SoftRenderer::VertexShader* SkyboxVS::GetCudaClone() {
 		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<SkyboxVS>(this);
 	}
 
@@ -53,7 +53,7 @@ namespace Ifrit::Demo::Skybox {
 		co.w = cl.w;
 	}
 
-	IFRIT_HOST Ifrit::SoftRenderer::FragmentShader* SkyboxFS::getCudaClone() {
+	IFRIT_HOST Ifrit::SoftRenderer::FragmentShader* SkyboxFS::GetCudaClone() {
 		return Ifrit::SoftRenderer::Core::CUDA::hostGetDeviceObjectCopy<SkyboxFS>(this);
 	}
 }

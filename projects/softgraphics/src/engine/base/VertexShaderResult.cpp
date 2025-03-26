@@ -18,32 +18,39 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/softgraphics/engine/base/VertexShaderResult.h"
 
-namespace Ifrit::GraphicsBackend::SoftGraphics {
+namespace Ifrit::Graphics::SoftGraphics
+{
 
-IFRIT_APIDECL VertexShaderResult::VertexShaderResult(uint32_t vertexCount,
-                                                     uint32_t varyingCount) {
-  this->context = new std::remove_pointer_t<decltype(this->context)>();
-  this->vertexCount = vertexCount;
-  this->context->varyings.resize(varyingCount);
-}
-IFRIT_APIDECL VertexShaderResult::~VertexShaderResult() {
-  delete this->context;
-}
+	IFRIT_APIDECL VertexShaderResult::VertexShaderResult(uint32_t vertexCount,
+		uint32_t												  varyingCount)
+	{
+		this->context = new std::remove_pointer_t<decltype(this->context)>();
+		this->vertexCount = vertexCount;
+		this->context->varyings.resize(varyingCount);
+	}
+	IFRIT_APIDECL VertexShaderResult::~VertexShaderResult()
+	{
+		delete this->context;
+	}
 
-IFRIT_APIDECL Vector4f *VertexShaderResult::getPositionBuffer() {
-  return context->position.data();
-}
-IFRIT_APIDECL void VertexShaderResult::initializeVaryingBufferFromShader(
-    const TypeDescriptor &typeDescriptor, int id) {
-  this->context->varyings[id].resize(vertexCount * typeDescriptor.size);
-  this->context->varyingDescriptors[id] = typeDescriptor;
-}
-IFRIT_APIDECL void VertexShaderResult::setVertexCount(const uint32_t vcnt) {
-  this->vertexCount = vcnt;
-  for (auto &varying : context->varyings) {
-    varying.resize(vertexCount * sizeof(Vector4f));
-    context->varyingDescriptors.resize(context->varyings.size());
-  }
-  context->position.resize(vertexCount);
-}
-} // namespace Ifrit::GraphicsBackend::SoftGraphics
+	IFRIT_APIDECL Vector4f* VertexShaderResult::getPositionBuffer()
+	{
+		return context->position.data();
+	}
+	IFRIT_APIDECL void VertexShaderResult::initializeVaryingBufferFromShader(
+		const TypeDescriptor& typeDescriptor, int id)
+	{
+		this->context->varyings[id].resize(vertexCount * typeDescriptor.size);
+		this->context->varyingDescriptors[id] = typeDescriptor;
+	}
+	IFRIT_APIDECL void VertexShaderResult::setVertexCount(const uint32_t vcnt)
+	{
+		this->vertexCount = vcnt;
+		for (auto& varying : context->varyings)
+		{
+			varying.resize(vertexCount * sizeof(Vector4f));
+			context->varyingDescriptors.resize(context->varyings.size());
+		}
+		context->position.resize(vertexCount);
+	}
+} // namespace Ifrit::Graphics::SoftGraphics

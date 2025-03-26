@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/display/presentation/backend/OpenGLBackend.h"
 #include "ifrit/common/logging/Logging.h"
 
-static const char *vertexShaderCodeF = R"(
+static const char* vertexShaderCodeF   = R"(
 #version 330
 layout(location=0)in vec3 position;
 
@@ -31,7 +31,7 @@ void main()
     texc = position.xy*0.5+0.5;
 }
 )";
-static const char *fragmentShaderCodeF = R"(
+static const char* fragmentShaderCodeF = R"(
 #version 330
 precision lowp float;
 in vec2 texc;
@@ -43,88 +43,99 @@ void main() {
 }
 )";
 
-namespace Ifrit::Display::Backend {
-IFRIT_APIDECL void OpenGLBackend::draw() {
-  glDepthFunc(GL_ALWAYS);
-  glUseProgram(shaderProgram);
-  glBindVertexArray(VAO);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glDrawArrays(GL_TRIANGLES, 0, 6);
-}
-IFRIT_APIDECL OpenGLBackend::OpenGLBackend() {
-  vertexShaderCode = vertexShaderCode.empty() ? vertexShaderCodeF : vertexShaderCode;
-  fragmentShaderCode = fragmentShaderCode.empty() ? fragmentShaderCodeF : fragmentShaderCode;
-  vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  const char *vertexShaderCodeCStr = vertexShaderCode.c_str();
-  glShaderSource(vertexShader, 1, &vertexShaderCodeCStr, NULL);
-  glCompileShader(vertexShader);
+namespace Ifrit::Display::Backend
+{
+    IFRIT_APIDECL void OpenGLBackend::Draw()
+    {
+        glDepthFunc(GL_ALWAYS);
+        glUseProgram(shaderProgram);
+        glBindVertexArray(VAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+    IFRIT_APIDECL OpenGLBackend::OpenGLBackend()
+    {
+        vertexShaderCode                 = vertexShaderCode.empty() ? vertexShaderCodeF : vertexShaderCode;
+        fragmentShaderCode               = fragmentShaderCode.empty() ? fragmentShaderCodeF : fragmentShaderCode;
+        vertexShader                     = glCreateShader(GL_VERTEX_SHADER);
+        const char* vertexShaderCodeCStr = vertexShaderCode.c_str();
+        glShaderSource(vertexShader, 1, &vertexShaderCodeCStr, NULL);
+        glCompileShader(vertexShader);
 
-  fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  const char *fragmentShaderCodeCStr = fragmentShaderCode.c_str();
-  glShaderSource(fragmentShader, 1, &fragmentShaderCodeCStr, NULL);
-  glCompileShader(fragmentShader);
+        fragmentShader                     = glCreateShader(GL_FRAGMENT_SHADER);
+        const char* fragmentShaderCodeCStr = fragmentShaderCode.c_str();
+        glShaderSource(fragmentShader, 1, &fragmentShaderCodeCStr, NULL);
+        glCompileShader(fragmentShader);
 
-  // Check for shader compile errors
-  int success;
-  char infoLog[512];
-  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-  if (!success) {
-    glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-    iError("ERROR::SHADER::VERTEX::COMPILATION_FAILED {}\n", infoLog);
-  }
-  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-  if (!success) {
-    glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-    iError("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED {}\n", infoLog);
-  }
+        // Check for shader compile errors
+        int  success;
+        char infoLog[512];
+        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+            iError("ERROR::SHADER::VERTEX::COMPILATION_FAILED {}\n", infoLog);
+        }
+        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+            iError("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED {}\n", infoLog);
+        }
 
-  shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-  glLinkProgram(shaderProgram);
-  glUseProgram(shaderProgram);
+        shaderProgram = glCreateProgram();
+        glAttachShader(shaderProgram, vertexShader);
+        glAttachShader(shaderProgram, fragmentShader);
+        glLinkProgram(shaderProgram);
+        glUseProgram(shaderProgram);
 
-  int linkSuccess;
-  glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linkSuccess);
-  if (!linkSuccess) {
-    glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-    iError("ERROR::SHADER::PROGRAM::LINKING_FAILED {}\n", infoLog);
-  }
+        int linkSuccess;
+        glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linkSuccess);
+        if (!linkSuccess)
+        {
+            glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+            iError("ERROR::SHADER::PROGRAM::LINKING_FAILED {}\n", infoLog);
+        }
 
-  glGenVertexArrays(1, &VAO);
-  glBindVertexArray(VAO);
+        glGenVertexArrays(1, &VAO);
+        glBindVertexArray(VAO);
 
-  glGenBuffers(1, &VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+        glGenBuffers(1, &VBO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
 
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
 
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-}
-IFRIT_APIDECL void OpenGLBackend::updateTexture(const float *image, int channels, int width, int height) {
-  const static float *ptr = nullptr;
-  glBindTexture(GL_TEXTURE_2D, texture);
-  auto data = image;
-  if (ptr != data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, data);
-    ptr = image;
-  } else {
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_FLOAT, data);
-  }
-  // glGenerateMipmap(GL_TEXTURE_2D);
-}
-IFRIT_APIDECL void OpenGLBackend::setViewport(int32_t x, int32_t y, int32_t width, int32_t height) {
-  glViewport(x, y, width, height);
-}
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+    IFRIT_APIDECL void OpenGLBackend::UpdateTexture(const float* image, int channels, int width, int height)
+    {
+        const static float* ptr = nullptr;
+        glBindTexture(GL_TEXTURE_2D, texture);
+        auto data = image;
+        if (ptr != data)
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, data);
+            ptr = image;
+        }
+        else
+        {
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_FLOAT, data);
+        }
+        // glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    IFRIT_APIDECL void OpenGLBackend::SetViewport(int32_t x, int32_t y, int32_t width, int32_t height)
+    {
+        glViewport(x, y, width, height);
+    }
 } // namespace Ifrit::Display::Backend

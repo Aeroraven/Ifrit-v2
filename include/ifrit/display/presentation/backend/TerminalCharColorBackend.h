@@ -16,22 +16,22 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/display/presentation/backend/AbstractTerminalBackend.h"
 
-namespace Ifrit::Display::Backend {
-class IFRIT_APIDECL TerminalCharColorBackend : public AbstractTerminalBackend {
-private:
-  int consoleWidth;
-  int consoleHeight;
-  std::string resultBuffer;
+namespace Ifrit::Display::Backend
+{
+    class IFRIT_APIDECL TerminalCharColorBackend : public AbstractTerminalBackend
+    {
+    private:
+        int    consoleWidth;
+        int    consoleHeight;
+        String resultBuffer;
 
-public:
-  TerminalCharColorBackend(int cWid, int cHeight);
-  virtual void updateTexture(const float *image, int channels, int width,
-                             int height) override;
-  virtual void draw() override;
-  virtual void setViewport(int32_t, int32_t, int32_t, int32_t) override {}
-};
+    public:
+        TerminalCharColorBackend(int cWid, int cHeight);
+        virtual void UpdateTexture(const float* image, int channels, int width, int height) override;
+        virtual void Draw() override;
+        virtual void SetViewport(i32, i32, i32, i32) override {}
+    };
 } // namespace Ifrit::Display::Backend

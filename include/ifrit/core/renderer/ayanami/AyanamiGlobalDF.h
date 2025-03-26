@@ -23,25 +23,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/renderer/ayanami/AyanamiRenderConfig.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
-namespace Ifrit::Core::Ayanami {
+namespace Ifrit::Core::Ayanami
+{
 
-struct IFRIT_APIDECL AyanamiGlobalDFClipmap : public Common::Utility::NonCopyable {
-  using GPUTexture = GraphicsBackend::Rhi::RhiTexture;
-  Vector3f m_worldBound;
-  u32 m_clipmapSize;
+    struct IFRIT_APIDECL AyanamiGlobalDFClipmap : public Common::Utility::NonCopyable
+    {
+        using GPUTexture = Graphics::Rhi::RhiTexture;
+        Vector3f        m_worldBound;
+        u32             m_clipmapSize;
 
-  // I don't think this is a good design, but it's the most stupid and straightforward way to do it
-  // That means ignoring paging, streaming and atlas.
-  Ref<GPUTexture> m_clipmapTexture;
-};
+        // I don't think this is a good design, but it's the most stupid and straightforward way to do it
+        // That means ignoring paging, streaming and atlas.
+        Ref<GPUTexture> m_clipmapTexture;
+    };
 
-class IFRIT_APIDECL AyanamiGlobalDF : public Common::Utility::NonCopyable {
-private:
-  Vec<Vec<AyanamiGlobalDFClipmap>> m_clipmaps;
+    class IFRIT_APIDECL AyanamiGlobalDF : public Common::Utility::NonCopyable
+    {
+    private:
+        Vec<Vec<AyanamiGlobalDFClipmap>> m_clipmaps;
 
-public:
-  // AyanamiGlobalDF(const AyanamiRenderConfig &config);
-  // ~AyanamiGlobalDF() = default;
-};
+    public:
+        // AyanamiGlobalDF(const AyanamiRenderConfig &config);
+        // ~AyanamiGlobalDF() = default;
+    };
 
 } // namespace Ifrit::Core::Ayanami

@@ -16,14 +16,15 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/display/presentation/backend/BackendProvider.h"
 #include <string>
 
-namespace Ifrit::Display::Backend {
-class IFRIT_APIDECL AbstractTerminalBackend : public BackendProvider {
-public:
-  virtual void setCursor(int x, int y, std::string &str);
-};
+namespace Ifrit::Display::Backend
+{
+    class IFRIT_APIDECL AbstractTerminalBackend : public BackendProvider
+    {
+    public:
+        virtual void SetCursor(int x, int y, std::string& str);
+    };
 } // namespace Ifrit::Display::Backend

@@ -19,36 +19,40 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/meshproc/engine/mesh/MeshletConeCull.h"
 #include "ifrit/common/math/simd/SimdVectors.h"
 #include <stdexcept>
-namespace Ifrit::MeshProcLib::MeshProcess {
+namespace Ifrit::MeshProcLib::MeshProcess
+{
 
-void MeshletConeCullProc::createNormalCones(const MeshDescriptor &meshDesc, const std::vector<Vector4i> &meshlets,
-                                            const std::vector<uint32_t> &meshletVertices,
-                                            const std::vector<uint8_t> &meshletTriangles,
-                                            std::vector<Vector4f> &normalConeAxisCutoff,
-                                            std::vector<Vector4f> &normalConeApex, std::vector<Vector4f> &boundSphere) {
-  using namespace Ifrit::Math::SIMD;
-  if (meshDesc.vertexData == nullptr || meshDesc.indexData == nullptr || meshDesc.normalData == nullptr) {
-    throw std::runtime_error("Invalid mesh descriptor");
-    return;
-  }
+    void MeshletConeCullProc::CreateNormalCones(const MeshDescriptor& meshDesc, const Vec<Vector4i>& meshlets,
+        const Vec<u32>& meshletVertices,
+        const Vec<u8>&  meshletTriangles,
+        Vec<Vector4f>&  normalConeAxisCutoff,
+        Vec<Vector4f>& normalConeApex, Vec<Vector4f>& boundSphere)
+    {
+        using namespace Ifrit::Math::SIMD;
+        if (meshDesc.vertexData == nullptr || meshDesc.indexData == nullptr || meshDesc.normalData == nullptr)
+        {
+            throw std::runtime_error("Invalid mesh descriptor");
+            return;
+        }
 
-  for (uint32_t i = 0; i < meshlets.size(); i++) {
-    const Vector4i &meshlet = meshlets[i];
-    auto vertexCount = meshlet.z;
-    auto triangleCount = meshlet.w;
-    auto vertexOffset = meshlet.x;
-    auto triangleOffset = meshlet.y;
+        for (u32 i = 0; i < meshlets.size(); i++)
+        {
+            const Vector4i& meshlet        = meshlets[i];
+            auto            vertexCount    = meshlet.z;
+            auto            triangleCount  = meshlet.w;
+            auto            vertexOffset   = meshlet.x;
+            auto            triangleOffset = meshlet.y;
 
-    meshopt_Bounds bounds;
-    const auto meshletVertStart = meshletVertices.data() + vertexOffset;
-    const auto meshletTriStart = meshletTriangles.data() + triangleOffset;
-    bounds = meshopt_computeMeshletBounds(meshletVertStart, meshletTriStart, triangleCount,
-                                          (float *)meshDesc.vertexData, meshDesc.vertexCount, meshDesc.vertexStride);
+            meshopt_Bounds  bounds;
+            const auto      meshletVertStart = meshletVertices.data() + vertexOffset;
+            const auto      meshletTriStart  = meshletTriangles.data() + triangleOffset;
+            bounds                           = meshopt_computeMeshletBounds(meshletVertStart, meshletTriStart, triangleCount,
+                                          (float*)meshDesc.vertexData, meshDesc.vertexCount, meshDesc.vertexStride);
 
-    normalConeAxisCutoff.push_back({bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2], bounds.cone_cutoff});
-    normalConeApex.push_back({bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2], 0.0f});
-    boundSphere.push_back({bounds.center[0], bounds.center[1], bounds.center[2], bounds.radius});
-  }
-}
+            normalConeAxisCutoff.push_back({ bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2], bounds.cone_cutoff });
+            normalConeApex.push_back({ bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2], 0.0f });
+            boundSphere.push_back({ bounds.center[0], bounds.center[1], bounds.center[2], bounds.radius });
+        }
+    }
 
 } // namespace Ifrit::MeshProcLib::MeshProcess

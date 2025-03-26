@@ -28,50 +28,53 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <algorithm>
 #include <bit>
 
-using namespace Ifrit::GraphicsBackend::Rhi;
-using Ifrit::Common::Utility::size_cast;
-using Ifrit::Math::divRoundUp;
+using Ifrit::Common::Utility::SizeCast;
+using Ifrit::Math::DivRoundUp;
 
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-struct AyanamiRendererResources;
-class IFRIT_APIDECL AyanamiRenderer : public RendererBase {
-  using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
-  using GPUCommandSubmission = Ifrit::GraphicsBackend::Rhi::RhiTaskSubmission;
-  using GPUBuffer = Ifrit::GraphicsBackend::Rhi::RhiBuffer;
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
-  using GPUDescRef = Ifrit::GraphicsBackend::Rhi::RhiBindlessDescriptorRef;
-  using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
-  using DrawPass = Ifrit::GraphicsBackend::Rhi::RhiGraphicsPass;
-  using GPUShader = Ifrit::GraphicsBackend::Rhi::RhiShader;
-  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
-  using GPUColorRT = Ifrit::GraphicsBackend::Rhi::RhiColorAttachment;
-  using GPURTs = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
-  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandList;
-  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
+    struct AyanamiRendererResources;
+    class IFRIT_APIDECL AyanamiRenderer : public RendererBase
+    {
+        using RenderTargets        = Graphics::Rhi::RhiRenderTargets;
+        using GPUCommandSubmission = Graphics::Rhi::RhiTaskSubmission;
+        using GPUBuffer            = Graphics::Rhi::RhiBuffer;
+        using GPUBindId            = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUDescRef           = Graphics::Rhi::RhiBindlessDescriptorRef;
+        using ComputePass          = Graphics::Rhi::RhiComputePass;
+        using DrawPass             = Graphics::Rhi::RhiGraphicsPass;
+        using GPUShader            = Graphics::Rhi::RhiShader;
+        using GPUTexture           = Graphics::Rhi::RhiTexture;
+        using GPUColorRT           = Graphics::Rhi::RhiColorAttachment;
+        using GPURTs               = Graphics::Rhi::RhiRenderTargets;
+        using GPUCmdBuffer         = Graphics::Rhi::RhiCommandList;
+        using GPUSampler           = Graphics::Rhi::RhiSampler;
 
-  // Perframe data maintained by the renderer, this is unsafe
-  // This will be dropped in the future
-  HashMap<Scene *, PerFrameData> m_perScenePerframe;
+        // Perframe data maintained by the renderer, this is unsafe
+        // This will be dropped in the future
+        HashMap<Scene*, PerFrameData> m_perScenePerframe;
 
-private:
-  Uref<SyaroRenderer> m_gbufferRenderer;
-  AyanamiRendererResources *m_resources = nullptr;
+    private:
+        Uref<SyaroRenderer>       m_gbufferRenderer;
+        AyanamiRendererResources* m_resources = nullptr;
 
-private:
-  void initRenderer();
-  void prepareResources(RenderTargets *renderTargets, const RendererConfig &config);
-  void setupAndRunFrameGraph(PerFrameData &perframe, RenderTargets *renderTargets, const GPUCmdBuffer *cmd);
+    private:
+        void InitRenderer();
+        void PrepareResources(RenderTargets* renderTargets, const RendererConfig& config);
+        void SetupAndRunFrameGraph(PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
 
-public:
-  AyanamiRenderer(IApplication *app) : RendererBase(app), m_gbufferRenderer(std::make_unique<SyaroRenderer>(app)) {
-    m_gbufferRenderer->setRenderRole(SyaroRenderRole::SYARO_DEFERRED_GBUFFER);
-    initRenderer();
-  }
-  virtual ~AyanamiRenderer();
-  virtual std::unique_ptr<GPUCommandSubmission> render(Scene *scene, Camera *camera, RenderTargets *renderTargets,
-                                                       const RendererConfig &config,
-                                                       const Vec<GPUCommandSubmission *> &cmdToWait) override;
-};
+    public:
+        AyanamiRenderer(IApplication* app)
+            : RendererBase(app), m_gbufferRenderer(std::make_unique<SyaroRenderer>(app))
+        {
+            m_gbufferRenderer->SetRenderRole(SyaroRenderRole::SYARO_DEFERRED_GBUFFER);
+            InitRenderer();
+        }
+        virtual ~AyanamiRenderer();
+        virtual std::unique_ptr<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
+            const RendererConfig&             config,
+            const Vec<GPUCommandSubmission*>& cmdToWait) override;
+    };
 
 } // namespace Ifrit::Core

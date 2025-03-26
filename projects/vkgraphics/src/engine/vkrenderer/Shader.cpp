@@ -26,242 +26,295 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <iostream>
 #include <shaderc/shaderc.hpp>
 
-namespace Ifrit::GraphicsBackend::VulkanGraphics {
+namespace Ifrit::Graphics::VulkanGraphics
+{
 
-class CustomShaderInclude : public shaderc::CompileOptions::IncluderInterface {
-private:
-  std::vector<std::string> m_includeDirs;
+    class CustomShaderInclude : public shaderc::CompileOptions::IncluderInterface
+    {
+    private:
+        Vec<String> m_includeDirs;
 
-public:
-  CustomShaderInclude(const std::string &shaderDir) : m_shaderDir(shaderDir) {}
+    public:
+        CustomShaderInclude(const String& shaderDir)
+            : m_shaderDir(shaderDir) {}
 
-  shaderc_include_result *GetInclude(const char *requested_source, shaderc_include_type type,
-                                     const char *requesting_source, size_t include_depth) override {
-    std::string full_path = m_shaderDir + "/" + requested_source;
-    m_includeDirs.push_back(full_path);
+        shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type,
+            const char* requesting_source, size_t include_depth) override
+        {
+            String full_path = m_shaderDir + "/" + requested_source;
+            m_includeDirs.push_back(full_path);
 
-    std::ifstream file(full_path);
-    if (!file.is_open()) {
-      return nullptr;
+            std::ifstream file(full_path);
+            if (!file.is_open())
+            {
+                return nullptr;
+            }
+            m_source                       = String((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            shaderc_include_result* result = new shaderc_include_result();
+            result->content                = m_source.c_str();
+            result->content_length         = m_source.size();
+            result->source_name            = m_includeDirs.back().c_str();
+            result->source_name_length     = m_includeDirs.back().size();
+            result->user_data              = nullptr;
+            return result;
+        }
+
+        void ReleaseInclude(shaderc_include_result* data) override { delete data; }
+
+    private:
+        String m_shaderDir;
+        String m_source;
+    };
+
+    String precompileShaderFile(const String& source_name, shaderc_shader_kind kind, const String& source)
+    {
+        shaderc::Compiler       compiler;
+        shaderc::CompileOptions options;
+        options.SetIncluder(std::make_unique<CustomShaderInclude>(IFRIT_VKGRAPHICS_SHARED_SHADER_PATH));
+        options.SetGenerateDebugInfo();
+        //  precompile
+        shaderc::PreprocessedSourceCompilationResult precompiledModule =
+            compiler.PreprocessGlsl(source, kind, source_name.c_str(), options);
+        if (precompiledModule.GetCompilationStatus() != shaderc_compilation_status_success)
+        {
+            std::cerr << source << std::endl;
+            std::cerr << precompiledModule.GetErrorMessage();
+            std::abort();
+        }
+
+        return String(precompiledModule.cbegin(), precompiledModule.cend());
     }
-    m_source = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    shaderc_include_result *result = new shaderc_include_result();
-    result->content = m_source.c_str();
-    result->content_length = m_source.size();
-    result->source_name = m_includeDirs.back().c_str();
-    result->source_name_length = m_includeDirs.back().size();
-    result->user_data = nullptr;
-    return result;
-  }
 
-  void ReleaseInclude(shaderc_include_result *data) override { delete data; }
+    Vec<u32> compileShaderFile(const String& source_name, shaderc_shader_kind kind,
+        const String& source, bool optimize = true)
+    {
+        shaderc::Compiler       compiler;
+        shaderc::CompileOptions options;
+        options.SetIncluder(std::make_unique<CustomShaderInclude>(IFRIT_VKGRAPHICS_SHARED_SHADER_PATH));
+        options.SetGenerateDebugInfo();
+        //  precompile
+        shaderc::PreprocessedSourceCompilationResult precompiledModule =
+            compiler.PreprocessGlsl(source, kind, source_name.c_str(), options);
+        if (precompiledModule.GetCompilationStatus() != shaderc_compilation_status_success)
+        {
+            std::cerr << source << std::endl;
+            std::cerr << precompiledModule.GetErrorMessage();
+            std::abort();
+        }
 
-private:
-  std::string m_shaderDir;
-  std::string m_source;
-};
+        String preCode(precompiledModule.cbegin(), precompiledModule.cend());
 
-std::string precompileShaderFile(const std::string &source_name, shaderc_shader_kind kind, const std::string &source) {
-  shaderc::Compiler compiler;
-  shaderc::CompileOptions options;
-  options.SetIncluder(std::make_unique<CustomShaderInclude>(IFRIT_VKGRAPHICS_SHARED_SHADER_PATH));
-  options.SetGenerateDebugInfo();
-  //  precompile
-  shaderc::PreprocessedSourceCompilationResult precompiledModule =
-      compiler.PreprocessGlsl(source, kind, source_name.c_str(), options);
-  if (precompiledModule.GetCompilationStatus() != shaderc_compilation_status_success) {
-    std::cerr << source << std::endl;
-    std::cerr << precompiledModule.GetErrorMessage();
-    std::abort();
-  }
+        if (optimize)
+            options.SetOptimizationLevel(shaderc_optimization_level_performance);
+        options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
 
-  return std::string(precompiledModule.cbegin(), precompiledModule.cend());
-}
+        shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(preCode, kind, source_name.c_str(), options);
 
-std::vector<uint32_t> compileShaderFile(const std::string &source_name, shaderc_shader_kind kind,
-                                        const std::string &source, bool optimize = true) {
-  shaderc::Compiler compiler;
-  shaderc::CompileOptions options;
-  options.SetIncluder(std::make_unique<CustomShaderInclude>(IFRIT_VKGRAPHICS_SHARED_SHADER_PATH));
-  options.SetGenerateDebugInfo();
-  //  precompile
-  shaderc::PreprocessedSourceCompilationResult precompiledModule =
-      compiler.PreprocessGlsl(source, kind, source_name.c_str(), options);
-  if (precompiledModule.GetCompilationStatus() != shaderc_compilation_status_success) {
-    std::cerr << source << std::endl;
-    std::cerr << precompiledModule.GetErrorMessage();
-    std::abort();
-  }
+        if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+        {
+            std::cerr << "During compilation of:" << source_name << std::endl;
+            std::cerr << module.GetErrorMessage();
 
-  std::string preCode(precompiledModule.cbegin(), precompiledModule.cend());
+            std::abort();
+            return Vec<u32>();
+        }
 
-  if (optimize)
-    options.SetOptimizationLevel(shaderc_optimization_level_performance);
-  options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
+        return { module.cbegin(), module.cend() };
+    }
 
-  shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(preCode, kind, source_name.c_str(), options);
+    IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext* ctx, const ShaderModuleCI& ci)
+    {
+        m_context = ctx;
+        VkShaderModuleCreateInfo moduleCI{};
+        shaderc_shader_kind      kind;
+        if (ci.stage == Rhi::RhiShaderStage::Vertex)
+        {
+            m_stageCI.stage = VK_SHADER_STAGE_VERTEX_BIT;
+            kind            = shaderc_vertex_shader;
+        }
+        else if (ci.stage == Rhi::RhiShaderStage::Fragment)
+        {
+            m_stageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            kind            = shaderc_fragment_shader;
+        }
+        else if (ci.stage == Rhi::RhiShaderStage::Compute)
+        {
+            m_stageCI.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+            kind            = shaderc_compute_shader;
+        }
+        else if (ci.stage == Rhi::RhiShaderStage::Mesh)
+        {
+            m_stageCI.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
+            kind            = shaderc_mesh_shader;
+        }
+        else if (ci.stage == Rhi::RhiShaderStage::Task)
+        {
+            m_stageCI.stage = VK_SHADER_STAGE_TASK_BIT_EXT;
+            kind            = shaderc_task_shader;
+        }
+        // Raytracing
+        else if (ci.stage == Rhi::RhiShaderStage::RTRayGen)
+        {
+            m_stageCI.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+            kind            = shaderc_raygen_shader;
+        }
+        else if (ci.stage == Rhi::RhiShaderStage::RTClosestHit)
+        {
+            m_stageCI.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+            kind            = shaderc_closesthit_shader;
+        }
+        else if (ci.stage == Rhi::RhiShaderStage::RTMiss)
+        {
+            m_stageCI.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+            kind            = shaderc_miss_shader;
+        }
+        else if (ci.stage == Rhi::RhiShaderStage::RTAnyHit)
+        {
+            m_stageCI.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+            kind            = shaderc_anyhit_shader;
+        }
+        else if (ci.stage == Rhi::RhiShaderStage::RTIntersection)
+        {
+            m_stageCI.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+            kind            = shaderc_intersection_shader;
+        }
 
-  if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
-    std::cerr << "During compilation of:" << source_name << std::endl;
-    std::cerr << module.GetErrorMessage();
+        Vec<u32> compiledCode;
+        if (ci.sourceType == Rhi::RhiShaderSourceType::GLSLCode)
+        {
 
-    std::abort();
-    return std::vector<uint32_t>();
-  }
+            auto   cacheDir = ctx->GetCacheDir();
 
-  return {module.cbegin(), module.cend()};
-}
+            // Shader cache is a temporary solution,
+            // PSO cache should be used in the future
+            SHA1   sha1;
+            String rawCode(ci.code.begin(), ci.code.end());
+            String precompiled;
+            precompiled = precompileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
+            sha1.update(precompiled);
+            auto hash   = sha1.final();
+            m_signature = hash;
 
-IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext *ctx, const ShaderModuleCI &ci) {
-  m_context = ctx;
-  VkShaderModuleCreateInfo moduleCI{};
-  shaderc_shader_kind kind;
-  if (ci.stage == Rhi::RhiShaderStage::Vertex) {
-    m_stageCI.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    kind = shaderc_vertex_shader;
-  } else if (ci.stage == Rhi::RhiShaderStage::Fragment) {
-    m_stageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    kind = shaderc_fragment_shader;
-  } else if (ci.stage == Rhi::RhiShaderStage::Compute) {
-    m_stageCI.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    kind = shaderc_compute_shader;
-  } else if (ci.stage == Rhi::RhiShaderStage::Mesh) {
-    m_stageCI.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
-    kind = shaderc_mesh_shader;
-  } else if (ci.stage == Rhi::RhiShaderStage::Task) {
-    m_stageCI.stage = VK_SHADER_STAGE_TASK_BIT_EXT;
-    kind = shaderc_task_shader;
-  }
-  // Raytracing
-  else if (ci.stage == Rhi::RhiShaderStage::RTRayGen) {
-    m_stageCI.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-    kind = shaderc_raygen_shader;
-  } else if (ci.stage == Rhi::RhiShaderStage::RTClosestHit) {
-    m_stageCI.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-    kind = shaderc_closesthit_shader;
-  } else if (ci.stage == Rhi::RhiShaderStage::RTMiss) {
-    m_stageCI.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
-    kind = shaderc_miss_shader;
-  } else if (ci.stage == Rhi::RhiShaderStage::RTAnyHit) {
-    m_stageCI.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
-    kind = shaderc_anyhit_shader;
-  } else if (ci.stage == Rhi::RhiShaderStage::RTIntersection) {
-    m_stageCI.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
-    kind = shaderc_intersection_shader;
-  }
+            if (cacheDir.empty())
+            {
+                compiledCode      = compileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
+                moduleCI.codeSize = compiledCode.size() * sizeof(u32);
+                moduleCI.pCode    = compiledCode.data();
+            }
+            else
+            {
+                String        cacheFile = cacheDir + "/vkgraphics.shader." + hash + ".cache";
+                // check if cache exists
+                std::ifstream cache(cacheFile, std::ios::binary);
+                if (cache.is_open())
+                {
+                    cache.seekg(0, std::ios::end);
+                    size_t size = cache.tellg();
+                    cache.seekg(0, std::ios::beg);
+                    compiledCode.resize(size / sizeof(u32));
+                    cache.read(reinterpret_cast<char*>(compiledCode.data()), size);
+                    cache.close();
+                }
+                else
+                {
+                    compiledCode = compileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
+                    std::ofstream cache(cacheFile, std::ios::binary);
+                    cache.write(reinterpret_cast<const char*>(compiledCode.data()), compiledCode.size() * sizeof(u32));
+                    cache.close();
+                }
+            }
+            moduleCI.codeSize = compiledCode.size() * sizeof(u32);
+            moduleCI.pCode    = compiledCode.data();
+        }
+        else
+        {
+            moduleCI.codeSize = ci.code.size();
+            moduleCI.pCode    = reinterpret_cast<const u32*>(ci.code.data());
+        }
+        VkDevice device = m_context->GetDevice();
+        moduleCI.sType  = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
-  std::vector<uint32_t> compiledCode;
-  if (ci.sourceType == Rhi::RhiShaderSourceType::GLSLCode) {
+        vkrVulkanAssert(vkCreateShaderModule(device, &moduleCI, nullptr, &m_module), "Failed to create shader module");
+        m_stageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 
-    auto cacheDir = ctx->getCacheDirectory();
+        m_ci             = ci;
+        m_stageCI.module = m_module;
+        m_stageCI.pName  = m_ci.entryPoint.c_str();
+        m_stageCI.flags  = 0;
+        m_stageCI.pNext  = nullptr;
+        // for spirv reflect
+        auto   cacheDir  = ctx->GetCacheDir();
+        String cacheFile = cacheDir + "/vkgraphics.shaderrefl." + m_signature + ".cache";
+        if (cacheDir.empty())
+        {
+            spvReflectCreateShaderModule(compiledCode.size() * sizeof(u32), compiledCode.data(), &m_reflectModule);
+            u32 numDescSets = 0;
+            spvReflectEnumerateDescriptorSets(&m_reflectModule, &numDescSets, nullptr);
+            m_reflectSets.resize(numDescSets);
+            spvReflectEnumerateDescriptorSets(&m_reflectModule, &numDescSets, m_reflectSets.data());
+        }
+        else
+        {
+            // check if cache exists
+            std::ifstream cache(cacheFile, std::ios::binary);
+            if (cache.is_open())
+            {
+                cache.close();
+                RecoverReflectionData();
+            }
+            else
+            {
+                spvReflectCreateShaderModule(moduleCI.codeSize, moduleCI.pCode, &m_reflectModule);
+                u32 numDescSets = 0;
+                spvReflectEnumerateDescriptorSets(&m_reflectModule, &numDescSets, nullptr);
+                m_reflectSets.resize(numDescSets);
+                spvReflectEnumerateDescriptorSets(&m_reflectModule, &numDescSets, m_reflectSets.data());
+                m_reflectionCreated = true;
+                CacheReflectionData();
+            }
+        }
+    }
 
-    // Shader cache is a temporary solution,
-    // PSO cache should be used in the future
-    SHA1 sha1;
-    std::string rawCode(ci.code.begin(), ci.code.end());
-    std::string precompiled;
-    precompiled = precompileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
-    sha1.update(precompiled);
-    auto hash = sha1.final();
-    m_signature = hash;
-
-    if (cacheDir.empty()) {
-      compiledCode = compileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
-      moduleCI.codeSize = compiledCode.size() * sizeof(uint32_t);
-      moduleCI.pCode = compiledCode.data();
-    } else {
-      std::string cacheFile = cacheDir + "/vkgraphics.shader." + hash + ".cache";
-      // check if cache exists
-      std::ifstream cache(cacheFile, std::ios::binary);
-      if (cache.is_open()) {
-        cache.seekg(0, std::ios::end);
-        size_t size = cache.tellg();
-        cache.seekg(0, std::ios::beg);
-        compiledCode.resize(size / sizeof(uint32_t));
-        cache.read(reinterpret_cast<char *>(compiledCode.data()), size);
-        cache.close();
-      } else {
-        compiledCode = compileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
+    IFRIT_APIDECL void ShaderModule::CacheReflectionData()
+    {
+        using Ifrit::Common::Utility::SizeCast;
+        // Currently, only writes the number of descriptor sets
+        auto          cacheDir  = m_context->GetCacheDir();
+        String        cacheFile = cacheDir + "/vkgraphics.shaderrefl." + m_signature + ".cache";
         std::ofstream cache(cacheFile, std::ios::binary);
-        cache.write(reinterpret_cast<const char *>(compiledCode.data()), compiledCode.size() * sizeof(uint32_t));
+        u32           numDescSets = SizeCast<u32>(m_reflectSets.size());
+        cache.write(reinterpret_cast<const char*>(&numDescSets), sizeof(u32));
         cache.close();
-      }
     }
-    moduleCI.codeSize = compiledCode.size() * sizeof(uint32_t);
-    moduleCI.pCode = compiledCode.data();
 
-  } else {
-    moduleCI.codeSize = ci.code.size();
-    moduleCI.pCode = reinterpret_cast<const uint32_t *>(ci.code.data());
-  }
-  VkDevice device = m_context->getDevice();
-  moduleCI.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-
-  vkrVulkanAssert(vkCreateShaderModule(device, &moduleCI, nullptr, &m_module), "Failed to create shader module");
-  m_stageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-
-  m_ci = ci;
-  m_stageCI.module = m_module;
-  m_stageCI.pName = m_ci.entryPoint.c_str();
-  m_stageCI.flags = 0;
-  m_stageCI.pNext = nullptr;
-  // for spirv reflect
-  auto cacheDir = ctx->getCacheDirectory();
-  std::string cacheFile = cacheDir + "/vkgraphics.shaderrefl." + m_signature + ".cache";
-  if (cacheDir.empty()) {
-    spvReflectCreateShaderModule(compiledCode.size() * sizeof(uint32_t), compiledCode.data(), &m_reflectModule);
-    uint32_t numDescSets = 0;
-    spvReflectEnumerateDescriptorSets(&m_reflectModule, &numDescSets, nullptr);
-    m_reflectSets.resize(numDescSets);
-    spvReflectEnumerateDescriptorSets(&m_reflectModule, &numDescSets, m_reflectSets.data());
-  } else {
-    // check if cache exists
-    std::ifstream cache(cacheFile, std::ios::binary);
-    if (cache.is_open()) {
-      cache.close();
-      recoverReflectionData();
-    } else {
-      spvReflectCreateShaderModule(moduleCI.codeSize, moduleCI.pCode, &m_reflectModule);
-      uint32_t numDescSets = 0;
-      spvReflectEnumerateDescriptorSets(&m_reflectModule, &numDescSets, nullptr);
-      m_reflectSets.resize(numDescSets);
-      spvReflectEnumerateDescriptorSets(&m_reflectModule, &numDescSets, m_reflectSets.data());
-      m_reflectionCreated = true;
-      cacheReflectionData();
+    IFRIT_APIDECL void ShaderModule::RecoverReflectionData()
+    {
+        auto          cacheDir  = m_context->GetCacheDir();
+        String        cacheFile = cacheDir + "/vkgraphics.shaderrefl." + m_signature + ".cache";
+        std::ifstream cache(cacheFile, std::ios::binary);
+        u32           numDescSets;
+        cache.read(reinterpret_cast<char*>(&numDescSets), sizeof(u32));
+        m_reflectSets.resize(numDescSets);
+        cache.close();
     }
-  }
-}
 
-IFRIT_APIDECL void ShaderModule::cacheReflectionData() {
-  using Ifrit::Common::Utility::size_cast;
-  // Currently, only writes the number of descriptor sets
-  auto cacheDir = m_context->getCacheDirectory();
-  std::string cacheFile = cacheDir + "/vkgraphics.shaderrefl." + m_signature + ".cache";
-  std::ofstream cache(cacheFile, std::ios::binary);
-  uint32_t numDescSets = size_cast<uint32_t>(m_reflectSets.size());
-  cache.write(reinterpret_cast<const char *>(&numDescSets), sizeof(uint32_t));
-  cache.close();
-}
+    IFRIT_APIDECL ShaderModule::~ShaderModule()
+    {
+        vkDestroyShaderModule(m_context->GetDevice(), m_module, nullptr);
+        m_module = VK_NULL_HANDLE;
+        if (m_reflectionCreated)
+        {
+            spvReflectDestroyShaderModule(&m_reflectModule);
+        }
+    }
 
-IFRIT_APIDECL void ShaderModule::recoverReflectionData() {
-  auto cacheDir = m_context->getCacheDirectory();
-  std::string cacheFile = cacheDir + "/vkgraphics.shaderrefl." + m_signature + ".cache";
-  std::ifstream cache(cacheFile, std::ios::binary);
-  uint32_t numDescSets;
-  cache.read(reinterpret_cast<char *>(&numDescSets), sizeof(uint32_t));
-  m_reflectSets.resize(numDescSets);
-  cache.close();
-}
+    IFRIT_APIDECL VkShaderModule ShaderModule::GetModule() const
+    {
+        return m_module;
+    }
 
-IFRIT_APIDECL ShaderModule::~ShaderModule() {
-  vkDestroyShaderModule(m_context->getDevice(), m_module, nullptr);
-  m_module = VK_NULL_HANDLE;
-  if (m_reflectionCreated) {
-    spvReflectDestroyShaderModule(&m_reflectModule);
-  }
-}
-
-IFRIT_APIDECL VkShaderModule ShaderModule::getModule() const { return m_module; }
-
-IFRIT_APIDECL VkPipelineShaderStageCreateInfo ShaderModule::getStageCI() const { return m_stageCI; }
-} // namespace Ifrit::GraphicsBackend::VulkanGraphics
+    IFRIT_APIDECL VkPipelineShaderStageCreateInfo ShaderModule::GetStageCI() const
+    {
+        return m_stageCI;
+    }
+} // namespace Ifrit::Graphics::VulkanGraphics

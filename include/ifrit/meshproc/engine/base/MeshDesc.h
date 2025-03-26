@@ -19,15 +19,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/common/base/IfritBase.h"
 
-namespace Ifrit::MeshProcLib {
-struct MeshDescriptor {
-  i8 *vertexData;
-  i8 *indexData;
-  i8 *normalData;
-  i32 vertexCount;
-  i32 indexCount;
-  i32 vertexStride;
-  i32 positionOffset;
-  i32 normalStride;
-};
+namespace Ifrit::MeshProcLib
+{
+    struct MeshDescriptor
+    {
+        i8* vertexData;
+        i8* indexData;
+        i8* normalData;
+        i32 vertexCount;
+        i32 indexCount;
+        i32 vertexStride;
+        i32 positionOffset;
+        i32 normalStride;
+    };
 } // namespace Ifrit::MeshProcLib

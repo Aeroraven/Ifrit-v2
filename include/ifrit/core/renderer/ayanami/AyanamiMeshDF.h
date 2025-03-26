@@ -19,57 +19,62 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/Component.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
-namespace Ifrit::Core::Ayanami {
+namespace Ifrit::Core::Ayanami
+{
 
-struct AyanamiMeshDFResource {
-  struct SDFMeta {
-    Vector4f bboxMin;
-    Vector4f bboxMax;
-    u32 width;
-    u32 height;
-    u32 depth;
-    u32 sdfId;
-  };
-  using GPUTexture = GraphicsBackend::Rhi::RhiTextureRef;
-  using GPUSampler = GraphicsBackend::Rhi::RhiSamplerRef;
-  using GPUBuffer = GraphicsBackend::Rhi::RhiBufferRef;
-  using GPUBindId = GraphicsBackend::Rhi::RhiDescHandleLegacy;
+    struct AyanamiMeshDFResource
+    {
+        struct SDFMeta
+        {
+            Vector4f bboxMin;
+            Vector4f bboxMax;
+            u32      width;
+            u32      height;
+            u32      depth;
+            u32      sdfId;
+        };
+        using GPUTexture = Graphics::Rhi::RhiTextureRef;
+        using GPUSampler = Graphics::Rhi::RhiSamplerRef;
+        using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
+        using GPUBindId  = Graphics::Rhi::RhiDescHandleLegacy;
 
-  GPUTexture sdfTexture;
-  Ref<GPUBindId> sdfTextureBindId;
-  GPUBuffer sdfMetaBuffer;
-  Ref<GPUBindId> sdfMetaBufferBindId;
-  GPUSampler sdfSampler; // this design is not a good idea, should be removed in the future
-};
+        GPUTexture     sdfTexture;
+        Ref<GPUBindId> sdfTextureBindId;
+        GPUBuffer      sdfMetaBuffer;
+        Ref<GPUBindId> sdfMetaBufferBindId;
+        GPUSampler     sdfSampler; // this design is not a good idea, should be removed in the future
+    };
 
-// AyanamiMeshDF stores mesh-level signed distance field data
-// This is used for mesh-based raymarching
-class IFRIT_APIDECL AyanamiMeshDF : public Component {
-private:
-  Vec<f32> m_sdfData;
-  u32 m_sdWidth;
-  u32 m_sdHeight;
-  u32 m_sdDepth;
-  Vector3f m_sdBoxMin;
-  Vector3f m_sdBoxMax;
-  bool m_isBuilt = false;
+    // AyanamiMeshDF stores mesh-level signed distance field data
+    // This is used for mesh-based raymarching
+    class IFRIT_APIDECL AyanamiMeshDF : public Component
+    {
+    private:
+        Vec<f32>                    m_sdfData;
+        u32                         m_sdWidth;
+        u32                         m_sdHeight;
+        u32                         m_sdDepth;
+        Vector3f                    m_sdBoxMin;
+        Vector3f                    m_sdBoxMax;
+        bool                        m_isBuilt = false;
 
-  Uref<AyanamiMeshDFResource> m_gpuResource = nullptr;
+        Uref<AyanamiMeshDFResource> m_gpuResource = nullptr;
 
-public:
-  AyanamiMeshDF() {}
-  AyanamiMeshDF(std::shared_ptr<SceneObject> owner) : Component(owner) {}
-  virtual ~AyanamiMeshDF() = default;
+    public:
+        AyanamiMeshDF() {}
+        AyanamiMeshDF(std::shared_ptr<SceneObject> owner)
+            : Component(owner) {}
+        virtual ~AyanamiMeshDF() = default;
 
-  inline std::string serialize() override { return ""; }
-  inline void deserialize() override {}
+        inline std::string Serialize() override { return ""; }
+        inline void        Deserialize() override {}
 
-public:
-  void buildMeshDF(const std::string_view &cachePath);
-  void buildGPUResource(GraphicsBackend::Rhi::RhiBackend *rhi);
-  inline u32 getMetaBufferId() const { return m_gpuResource->sdfMetaBufferBindId->getActiveId(); }
-  IFRIT_COMPONENT_SERIALIZE(m_sdWidth, m_sdHeight, m_sdDepth, m_sdBoxMin, m_sdBoxMax);
-};
+    public:
+        void       BuildMeshDF(const std::string_view& cachePath);
+        void       BuildGPUResource(Graphics::Rhi::RhiBackend* rhi);
+        inline u32 GetMetaBufferId() const { return m_gpuResource->sdfMetaBufferBindId->GetActiveId(); }
+        IFRIT_COMPONENT_SERIALIZE(m_sdWidth, m_sdHeight, m_sdDepth, m_sdBoxMin, m_sdBoxMax);
+    };
 
 } // namespace Ifrit::Core::Ayanami
 

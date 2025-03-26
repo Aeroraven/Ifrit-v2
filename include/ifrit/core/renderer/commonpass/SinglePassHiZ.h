@@ -6,24 +6,27 @@
 #include "ifrit/core/scene/FrameCollector.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
-namespace Ifrit::Core {
+namespace Ifrit::Core
+{
 
-class IFRIT_APIDECL SinglePassHiZPass {
-  using ComputePass = Ifrit::GraphicsBackend::Rhi::RhiComputePass;
-  using GPUCmdBuffer = Ifrit::GraphicsBackend::Rhi::RhiCommandList;
-  using GPUTexture = Ifrit::GraphicsBackend::Rhi::RhiTexture;
-  using GPUSampler = Ifrit::GraphicsBackend::Rhi::RhiSampler;
+    class IFRIT_APIDECL SinglePassHiZPass
+    {
+        using ComputePass  = Graphics::Rhi::RhiComputePass;
+        using GPUCmdBuffer = Graphics::Rhi::RhiCommandList;
+        using GPUTexture   = Graphics::Rhi::RhiTexture;
+        using GPUSampler   = Graphics::Rhi::RhiSampler;
 
-protected:
-  ComputePass *m_singlePassHiZPass = nullptr;
-  IApplication *m_app;
+    protected:
+        ComputePass*  m_singlePassHiZPass = nullptr;
+        IApplication* m_app;
 
-public:
-  SinglePassHiZPass(IApplication *app);
-  virtual void prepareHiZResources(PerFrameData::SinglePassHiZData &data, GPUTexture *depthTexture, GPUSampler *sampler,
-                                   u32 rtWidth, u32 rtHeight);
-  virtual bool checkResourceToRebuild(PerFrameData::SinglePassHiZData &data, u32 rtWidth, u32 rtHeight);
-  virtual void runHiZPass(const PerFrameData::SinglePassHiZData &data, const GPUCmdBuffer *cmd, u32 rtWidth,
-                          u32 rtHeight, bool minMode);
-};
+    public:
+        SinglePassHiZPass(IApplication* app);
+
+        virtual void PrepareHiZResources(PerFrameData::SinglePassHiZData& data, GPUTexture* depthTexture, GPUSampler* sampler,
+            u32 rtWidth, u32 rtHeight);
+        virtual bool CheckResourceToRebuild(PerFrameData::SinglePassHiZData& data, u32 rtWidth, u32 rtHeight);
+        virtual void RunHiZPass(const PerFrameData::SinglePassHiZData& data, const GPUCmdBuffer* cmd, u32 rtWidth,
+            u32 rtHeight, bool minMode);
+    };
 } // namespace Ifrit::Core

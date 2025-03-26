@@ -27,33 +27,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit.shader/Syaro/Syaro.SharedConst.h"
 
-namespace Ifrit::Core::RenderingUtil {
+namespace Ifrit::Core::RenderingUtil
+{
 
-// These functions are just used to reduce code duplication. Although
-// "RenderFeature" and "RenderPass" designs might be better, the current design
-// is intended to simplify the codebase.
+    // These functions are just used to reduce code duplication. Although
+    // "RenderFeature" and "RenderPass" designs might be better, the current design
+    // is intended to simplify the codebase.
 
-IFRIT_APIDECL GraphicsBackend::Rhi::RhiShader *loadShaderFromFile(GraphicsBackend::Rhi::RhiBackend *rhi,
-                                                                  const char *shaderPath, const char *entryPoint,
-                                                                  GraphicsBackend::Rhi::RhiShaderStage stage);
+    IFRIT_APIDECL Graphics::Rhi::RhiShader* LoadShaderFromFile(Graphics::Rhi::RhiBackend* rhi,
+        const char* shaderPath, const char* entryPoint,
+        Graphics::Rhi::RhiShaderStage stage);
 
-IFRIT_APIDECL GraphicsBackend::Rhi::RhiComputePass *createComputePass(GraphicsBackend::Rhi::RhiBackend *rhi,
-                                                                      const char *shaderPath, u32 numBindlessDescs,
-                                                                      u32 numPushConsts);
+    IFRIT_APIDECL Graphics::Rhi::RhiComputePass* CreateComputePass(Graphics::Rhi::RhiBackend* rhi,
+        const char* shaderPath, u32 numBindlessDescs,
+        u32 numPushConsts);
 
-IFRIT_APIDECL GraphicsBackend::Rhi::RhiGraphicsPass *
-createGraphicsPass(GraphicsBackend::Rhi::RhiBackend *rhi, const char *vsPath, const char *fsPath, u32 numBindlessDescs,
-                   u32 numPushConsts, const GraphicsBackend::Rhi::RhiRenderTargetsFormat &vFmts);
+    IFRIT_APIDECL                                Graphics::Rhi::RhiGraphicsPass*
+                                                 CreateGraphicsPass(Graphics::Rhi::RhiBackend* rhi, const char* vsPath, const char* fsPath, u32 numBindlessDescs,
+                                                     u32 numPushConsts, const Graphics::Rhi::RhiRenderTargetsFormat& vFmts);
 
-IFRIT_APIDECL void enqueueFullScreenPass(const GraphicsBackend::Rhi::RhiCommandList *cmd,
-                                         GraphicsBackend::Rhi::RhiBackend *rhi,
-                                         GraphicsBackend::Rhi::RhiGraphicsPass *pass,
-                                         GraphicsBackend::Rhi::RhiRenderTargets *rt,
-                                         const Vec<GraphicsBackend::Rhi::RhiBindlessDescriptorRef *> &vBindlessDescs,
-                                         const void *pPushConst, u32 numPushConsts);
+    IFRIT_APIDECL void                           enqueueFullScreenPass(const Graphics::Rhi::RhiCommandList* cmd,
+                                  Graphics::Rhi::RhiBackend*                                                rhi,
+                                  Graphics::Rhi::RhiGraphicsPass*                                           pass,
+                                  Graphics::Rhi::RhiRenderTargets*                                          rt,
+                                  const Vec<Graphics::Rhi::RhiBindlessDescriptorRef*>&                      vBindlessDescs,
+                                  const void* pPushConst, u32 numPushConsts);
 
-IFRIT_APIDECL void warpRenderTargets(GraphicsBackend::Rhi::RhiBackend *rhi, GraphicsBackend::Rhi::RhiTexture *vTex,
-                                     Ref<GraphicsBackend::Rhi::RhiColorAttachment> &vCA,
-                                     Ref<GraphicsBackend::Rhi::RhiRenderTargets> &vRT);
+    IFRIT_APIDECL void                           warpRenderTargets(Graphics::Rhi::RhiBackend* rhi, Graphics::Rhi::RhiTexture* vTex,
+                                  Ref<Graphics::Rhi::RhiColorAttachment>& vCA,
+                                  Ref<Graphics::Rhi::RhiRenderTargets>&   vRT);
 
 } // namespace Ifrit::Core::RenderingUtil

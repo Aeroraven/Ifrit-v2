@@ -19,7 +19,7 @@ namespace Ifrit::Demo::MeshletDemo {
 			int& outNumVertices,
 			int& outNumIndices
 		) override;
-		IFRIT_HOST virtual Ifrit::SoftRenderer::MeshShader* getCudaClone() override;
+		IFRIT_HOST virtual Ifrit::SoftRenderer::MeshShader* GetCudaClone() override;
 	};
 
 	class MeshletDemoCuTS : public  Ifrit::SoftRenderer::TaskShader {
@@ -30,13 +30,13 @@ namespace Ifrit::Demo::MeshletDemo {
 			Vector3i* outMeshWorkGroups,
 			int& outNumMeshWorkGroups
 		);
-		IFRIT_HOST virtual Ifrit::SoftRenderer::TaskShader* getCudaClone() override;
+		IFRIT_HOST virtual Ifrit::SoftRenderer::TaskShader* GetCudaClone() override;
 	};
 
 	class MeshletDemoCuFS : public  Ifrit::SoftRenderer::FragmentShader {
 	public:
 		IFRIT_DUAL virtual void execute(const  void* varyings, void* colorOutput, float* fragmentDepth) override;
-		IFRIT_HOST virtual Ifrit::SoftRenderer::FragmentShader* getCudaClone() override;
+		IFRIT_HOST virtual Ifrit::SoftRenderer::FragmentShader* GetCudaClone() override;
 	};
 }
 #endif

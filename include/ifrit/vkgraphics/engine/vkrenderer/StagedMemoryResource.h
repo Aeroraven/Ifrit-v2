@@ -23,40 +23,43 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 
-namespace Ifrit::GraphicsBackend::VulkanGraphics {
-class IFRIT_APIDECL StagedSingleBuffer : public Rhi::RhiStagedSingleBuffer {
-protected:
-  Rhi::RhiBufferRef m_bufferUnique;
-  SingleBuffer *m_buffer;
-  Rhi::RhiBufferRef m_stagingBuffer;
-  EngineContext *m_context;
+namespace Ifrit::Graphics::VulkanGraphics
+{
+    class IFRIT_APIDECL StagedSingleBuffer : public Rhi::RhiStagedSingleBuffer
+    {
+    protected:
+        Rhi::RhiBufferRef m_bufferUnique;
+        SingleBuffer*     m_buffer;
+        Rhi::RhiBufferRef m_stagingBuffer;
+        EngineContext*    m_context;
 
-public:
-  StagedSingleBuffer(EngineContext *ctx, SingleBuffer *buffer);
-  StagedSingleBuffer(EngineContext *ctx, const BufferCreateInfo &ci);
-  StagedSingleBuffer(const StagedSingleBuffer &p) = delete;
-  StagedSingleBuffer &operator=(const StagedSingleBuffer &p) = delete;
+    public:
+        StagedSingleBuffer(EngineContext* ctx, SingleBuffer* buffer);
+        StagedSingleBuffer(EngineContext* ctx, const BufferCreateInfo& ci);
+        StagedSingleBuffer(const StagedSingleBuffer& p)            = delete;
+        StagedSingleBuffer& operator=(const StagedSingleBuffer& p) = delete;
 
-  virtual ~StagedSingleBuffer() {}
-  void cmdCopyToDevice(const Rhi::RhiCommandList *cmd, const void *data, u32 size, u32 localOffset) override;
-};
+        virtual ~StagedSingleBuffer() {}
+        void CmdCopyToDevice(const Rhi::RhiCommandList* cmd, const void* data, u32 size, u32 localOffset) override;
+    };
 
-class IFRIT_APIDECL StagedSingleImage {
-protected:
-  Rhi::RhiTextureRef m_imageUnique;
-  SingleDeviceImage *m_image;
-  Rhi::RhiBufferRef m_stagingBuffer;
-  EngineContext *m_context;
+    class IFRIT_APIDECL StagedSingleImage
+    {
+    protected:
+        Rhi::RhiTextureRef m_imageUnique;
+        SingleDeviceImage* m_image;
+        Rhi::RhiBufferRef  m_stagingBuffer;
+        EngineContext*     m_context;
 
-public:
-  StagedSingleImage(EngineContext *ctx, SingleDeviceImage *image);
-  StagedSingleImage(EngineContext *ctx, const ImageCreateInfo &ci);
+    public:
+        StagedSingleImage(EngineContext* ctx, SingleDeviceImage* image);
+        StagedSingleImage(EngineContext* ctx, const ImageCreateInfo& ci);
 
-  StagedSingleImage(const StagedSingleImage &p) = delete;
-  StagedSingleImage &operator=(const StagedSingleImage &p) = delete;
+        StagedSingleImage(const StagedSingleImage& p)            = delete;
+        StagedSingleImage& operator=(const StagedSingleImage& p) = delete;
 
-  virtual ~StagedSingleImage() {}
-  void cmdCopyToDevice(CommandBuffer *cmd, const void *data, VkImageLayout srcLayout, VkImageLayout dstlayout,
-                       VkPipelineStageFlags dstStage, VkAccessFlags dstAccess);
-};
-} // namespace Ifrit::GraphicsBackend::VulkanGraphics
+        virtual ~StagedSingleImage() {}
+        void CmdCopyToDevice(CommandBuffer* cmd, const void* data, VkImageLayout srcLayout, VkImageLayout dstlayout,
+            VkPipelineStageFlags dstStage, VkAccessFlags dstAccess);
+    };
+} // namespace Ifrit::Graphics::VulkanGraphics

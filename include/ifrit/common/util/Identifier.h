@@ -16,15 +16,16 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #define UUID_SYSTEM_GENERATOR
 #include "stduuid/stduuid.h"
 
-namespace Ifrit::Common::Utility {
+namespace Ifrit::Common::Utility
+{
 
-inline void generateUuid(std::string &id) {
-  uuids::uuid idx = uuids::uuid_system_generator{}();
-  id = uuids::to_string(idx);
-}
+    inline void GenerateUuid(std::string& id)
+    {
+        uuids::uuid idx = uuids::uuid_system_generator{}();
+        id              = uuids::to_string(idx);
+    }
 } // namespace Ifrit::Common::Utility

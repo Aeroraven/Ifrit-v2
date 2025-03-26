@@ -56,10 +56,10 @@ namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation::Impl {
 		float4 c10 = isrc[min(srcIntY + 1, arg.srcHei - 1) * arg.srcWid + srcIntX];
 		float4 c11 = isrc[min(srcIntY + 1, arg.srcHei - 1) * arg.srcWid + min(srcIntX + 1, arg.srcWid - 1)];
 		
-		using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::lerp;
-		float4 c0x = lerp(c00, c01, pX);
-		float4 c1x = lerp(c10, c11, pX);
-		float4 result = lerp(c0x, c1x, pY);
+		using Ifrit::SoftRenderer::Math::ShaderOps::CUDA::Lerp;
+		float4 c0x = Lerp(c00, c01, pX);
+		float4 c1x = Lerp(c10, c11, pX);
+		float4 result = Lerp(c0x, c1x, pY);
 		idst[(curDstX + arg.dstCx) + (curDstY + arg.dstCy) * arg.dstWid] = result;
 		
 	}

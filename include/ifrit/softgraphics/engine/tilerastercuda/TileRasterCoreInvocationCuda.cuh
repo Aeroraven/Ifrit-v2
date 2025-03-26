@@ -77,7 +77,7 @@ int *getIndexBufferDeviceAddr(const int *hIndexBuffer, u32 indexBufferSize, int 
 char *getVertexBufferDeviceAddr(const char *hVertexBuffer, u32 bufferSize, char *dOldBuffer);
 TypeDescriptorEnum *getTypeDescriptorDeviceAddr(const TypeDescriptorEnum *hBuffer, u32 bufferSize,
                                                 TypeDescriptorEnum *dOldBuffer);
-float *getDepthBufferDeviceAddr(u32 bufferSize, float *dOldBuffer);
+float *GetDepthBufferDeviceAddr(u32 bufferSize, float *dOldBuffer);
 Vector4f *getPositionBufferDeviceAddr(u32 bufferSize, Vector4f *dOldBuffer);
 void getColorBufferDeviceAddr(const std::vector<Vector4f *> &hColorBuffer, std::vector<Vector4f *> &dhColorBuffer,
                               Vector4f **&dColorBuffer, u32 bufferSize, std::vector<Vector4f *> &dhOldColorBuffer,
@@ -88,14 +88,14 @@ void updateVertexCount(u32 vertexCount);
 
 char *deviceMalloc(u32 size);
 void deviceFree(char *ptr);
-void createTexture(u32 texId, const IfritImageCreateInfo &createInfo, float *data);
-void createSampler(u32 slotId, const IfritSamplerT &samplerState);
-void createDeviceBuffer(u32 slotId, int bufferSize);
+void CreateTexture(u32 texId, const IfritImageCreateInfo &createInfo, float *data);
+void CreateSampler(u32 slotId, const IfritSamplerT &samplerState);
+void CreateDeviceBuffer(u32 slotId, int bufferSize);
 void copyHostBufferToBuffer(const void *srcBuffer, int dstSlot, int size);
 
 void setBlendFunc(IfritColorAttachmentBlendState blendState);
-void setDepthFunc(IfritCompareOp depthFunc);
-void setCullMode(IfritCullMode cullMode);
+void SetDepthFunc(IfritCompareOp depthFunc);
+void SetCullMode(IfritCullMode cullMode);
 void setMsaaSampleBits(IfritSampleCountFlagBits sampleBits);
 } // namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation
 #endif

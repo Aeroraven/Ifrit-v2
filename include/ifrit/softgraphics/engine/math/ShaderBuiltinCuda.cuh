@@ -391,7 +391,7 @@ namespace Ifrit::SoftRenderer::Math::ShaderOps::CUDA {
 #endif
 	}
 
-	IFRIT_DUAL inline char* getBufferPtr(BufferObject buf) {
+	IFRIT_DUAL inline char* GetBufferPtr(BufferObject buf) {
 #ifndef __CUDA_ARCH__
 		printf("This function is not available under CPU Mode.");
 		return nullptr;

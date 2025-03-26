@@ -19,16 +19,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/core/renderer/PostprocessPass.h"
 
-namespace Ifrit::Core::PostprocessPassCollection {
+namespace Ifrit::Core::PostprocessPassCollection
+{
 
-class IFRIT_APIDECL PostFxGlobalFog : public PostprocessPass {
-  using GPUBindId = Ifrit::GraphicsBackend::Rhi::RhiDescHandleLegacy;
-  using RenderTargets = Ifrit::GraphicsBackend::Rhi::RhiRenderTargets;
+    class IFRIT_APIDECL PostFxGlobalFog : public PostprocessPass
+    {
+        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
+        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
 
-public:
-  PostFxGlobalFog(IApplication *app);
-  void renderPostFx(const GPUCmdBuffer *cmd, RenderTargets *renderTargets, GPUBindId *inputTexCombSampler,
-                    GPUBindId *inputDepthTexCombSampler, GPUBindId *inputViewUniform);
-};
+    public:
+        PostFxGlobalFog(IApplication* app);
+        void RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets, GPUBindId* inputTexCombSampler,
+            GPUBindId* inputDepthTexCombSampler, GPUBindId* inputViewUniform);
+    };
 
 } // namespace Ifrit::Core::PostprocessPassCollection
