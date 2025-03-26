@@ -1,7 +1,7 @@
 
 /*
 Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
+Copyright (C) 2024-2025 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,23 +16,21 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#pragma once
-#include "ifrit/core/application/ProjectProperty.h"
 #include "ifrit/core/util/TimingRecorder.h"
-#include "ifrit/display/presentation/window/WindowProvider.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include <chrono>
 
 namespace Ifrit::Core {
-class IApplication {
-public:
-  virtual void onStart() = 0;
-  virtual void onUpdate() = 0;
-  virtual void onEnd() = 0;
 
-  virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() = 0;
-  virtual Ifrit::Display::Window::WindowProvider *getWindowProvider() = 0;
-  virtual String getCacheDirectory() const = 0;
-  virtual TimingRecorder *getTimingRecorder() = 0;
-  virtual const ProjectProperty &getProjectProperty() const = 0;
-};
+IFRIT_APIDECL void TimingRecorder::onUpdate() {
+  auto currentSysTimeUs =
+      std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+  u64 currentSysTimeUsI64 = currentSysTimeUs.count();
+  if (m_curSystemTimeUs != 0) {
+    auto deltaTimeUs = currentSysTimeUsI64 - m_curSystemTimeUs;
+    m_deltaTimeUs = deltaTimeUs;
+    m_curTimeUs += deltaTimeUs;
+  }
+  m_curSystemTimeUs = currentSysTimeUsI64;
+}
+
 } // namespace Ifrit::Core

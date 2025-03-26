@@ -17,22 +17,34 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/application/ProjectProperty.h"
-#include "ifrit/core/util/TimingRecorder.h"
-#include "ifrit/display/presentation/window/WindowProvider.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/common/base/IfritBase.h"
 
 namespace Ifrit::Core {
-class IApplication {
-public:
-  virtual void onStart() = 0;
-  virtual void onUpdate() = 0;
-  virtual void onEnd() = 0;
+enum class ApplicationRhiType { Vulkan, DX12, OpenGL, Software };
+enum class ApplicationDisplayProvider { GLFW };
 
-  virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() = 0;
-  virtual Ifrit::Display::Window::WindowProvider *getWindowProvider() = 0;
-  virtual String getCacheDirectory() const = 0;
-  virtual TimingRecorder *getTimingRecorder() = 0;
-  virtual const ProjectProperty &getProjectProperty() const = 0;
+struct ProjectProperty {
+  String m_name;
+  String m_version;
+
+  ApplicationRhiType m_rhiType = ApplicationRhiType::Vulkan;
+  ApplicationDisplayProvider m_displayProvider = ApplicationDisplayProvider::GLFW;
+
+  u32 m_width = 1980;
+  u32 m_height = 1080;
+
+  String m_assetPath;
+  String m_scenePath;
+  String m_cachePath;
+
+  u32 m_rhiGraphicsQueueCount = 1;
+  u32 m_rhiTransferQueueCount = 1;
+  u32 m_rhiComputeQueueCount = 1;
+  u32 m_rhiNumBackBuffers = 2;
+  u32 m_rhiDebugMode = 0;
+
+  u32 m_fixedUpdateRate = 20000;           // 0.02s
+  u32 m_fixedUpdateCompensationLimit = 10; // allow max 10 frames
 };
+
 } // namespace Ifrit::Core

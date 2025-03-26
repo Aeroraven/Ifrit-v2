@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Core {
 
-IFRIT_APIDECL void Application::run(const ApplicationCreateInfo &info) {
+IFRIT_APIDECL void Application::run(const ProjectProperty &info) {
   m_info = info;
   start();
   m_windowProvider->loop([this](int *unused) { update(); });
@@ -89,10 +89,15 @@ IFRIT_APIDECL void Application::start() {
   // Input System
   m_inputSystem = std::make_shared<InputSystem>(this);
 
+  // Timing Recorder
+  m_timingRecorder = std::make_shared<TimingRecorder>();
+
   onStart();
 }
 
 IFRIT_APIDECL void Application::update() {
+  m_timingRecorder->onUpdate();
+  m_sceneManager->invokeActiveSceneUpdate();
   onUpdate();
   m_inputSystem->onFrameUpdate();
 }

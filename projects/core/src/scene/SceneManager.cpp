@@ -26,4 +26,18 @@ IFRIT_APIDECL void SceneManager::collectPerframeData(PerFrameData &perframeData,
                                                      GraphicsShaderPassType passType) {
   throw std::runtime_error("Deprecated");
 }
+
+IFRIT_APIDECL void SceneManager::invokeActiveSceneUpdate() {
+  auto scene = m_activeScene.get();
+  if (scene == nullptr) {
+    iError("No active scene");
+    std::abort();
+  }
+  auto property = m_app->getProjectProperty();
+  auto fixedUpdateRate = property.m_fixedUpdateRate;
+  auto maxCompensationFrames = property.m_fixedUpdateCompensationLimit;
+  auto stopwatch = m_app->getTimingRecorder();
+  scene->onFixedUpdate(stopwatch, fixedUpdateRate, maxCompensationFrames);
+  scene->onUpdate();
+}
 } // namespace Ifrit::Core

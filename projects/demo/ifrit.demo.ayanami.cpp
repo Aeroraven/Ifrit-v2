@@ -138,7 +138,7 @@ public:
 } // namespace Ifrit
 
 int main() {
-  Ifrit::Core::ApplicationCreateInfo info;
+  Ifrit::Core::ProjectProperty info;
   info.m_assetPath = IFRIT_DEMO_ASSET_PATH;
   info.m_scenePath = IFRIT_DEMO_SCENE_PATH;
   info.m_displayProvider = Ifrit::Core::ApplicationDisplayProvider::GLFW;

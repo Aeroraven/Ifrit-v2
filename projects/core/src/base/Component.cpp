@@ -40,6 +40,28 @@ Component::Component(Ref<SceneObject> parent) : m_parentObject(parent), m_parent
 IFRIT_APIDECL void SceneObject::initialize() { addComponent<Transform>(); }
 IFRIT_APIDECL SceneObject::SceneObject() { Ifrit::Common::Utility::generateUuid(m_id.m_uuid); }
 
+IFRIT_APIDECL void Component::setEnable(bool enable) {
+  bool last = m_isEnabled;
+  m_isEnabled = enable;
+  if (!last && enable) {
+    m_shouldInvokeStart = true;
+  }
+}
+
+IFRIT_APIDECL void Component::invokeStart() {
+  if (m_shouldInvokeStart) {
+    onStart();
+    m_shouldInvokeStart = false;
+  }
+}
+
+IFRIT_APIDECL void Component::invokeAwake() {
+  if (m_shouldInvokeAwake) {
+    onAwake();
+    m_shouldInvokeAwake = false;
+  }
+}
+
 IFRIT_APIDECL Matrix4x4f Transform::getModelToWorldMatrix() {
   Matrix4x4f model = identity4();
   model = matmul(scale3D(m_attributes.m_scale), model);

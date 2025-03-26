@@ -18,35 +18,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/application/ProjectProperty.h"
 #include "ifrit/core/assetmanager/Asset.h"
 #include "ifrit/core/base/ApplicationInterface.h"
 #include "ifrit/core/input/InputSystem.h"
 #include "ifrit/core/scene/SceneAssetManager.h"
 #include "ifrit/core/scene/SceneManager.h"
+#include "ifrit/core/util/TimingRecorder.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include <string>
 
 namespace Ifrit::Core {
-enum class ApplicationRhiType { Vulkan, DX12, OpenGL, Software };
-enum class ApplicationDisplayProvider { GLFW };
 
-struct ApplicationCreateInfo {
-  String m_name;
-  String m_version;
-  String m_cachePath;
-  ApplicationRhiType m_rhiType = ApplicationRhiType::Vulkan;
-  ApplicationDisplayProvider m_displayProvider = ApplicationDisplayProvider::GLFW;
-  u32 m_width = 1980;
-  u32 m_height = 1080;
-  String m_assetPath;
-  String m_scenePath;
-
-  u32 m_rhiGraphicsQueueCount = 1;
-  u32 m_rhiTransferQueueCount = 1;
-  u32 m_rhiComputeQueueCount = 1;
-  u32 m_rhiNumBackBuffers = 2;
-  u32 m_rhiDebugMode = 0;
-};
 class IFRIT_APIDECL Application : public IApplication {
 protected:
   Uref<GraphicsBackend::Rhi::RhiBackend> m_rhiLayer; // should be destroyed last
@@ -55,8 +38,9 @@ protected:
   Ref<SceneManager> m_sceneManager;
   Ref<SceneAssetManager> m_sceneAssetManager;
   Ref<InputSystem> m_inputSystem;
+  Ref<TimingRecorder> m_timingRecorder;
   Uref<Display::Window::WindowProvider> m_windowProvider;
-  ApplicationCreateInfo m_info;
+  ProjectProperty m_info;
 
 private:
   void start();
@@ -68,10 +52,12 @@ public:
   virtual void onStart() override {}
   virtual void onUpdate() override {}
   virtual void onEnd() override {}
-  void run(const ApplicationCreateInfo &info);
+  void run(const ProjectProperty &info);
 
   inline virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() override { return m_rhiLayer.get(); }
   inline virtual Ifrit::Display::Window::WindowProvider *getWindowProvider() override { return m_windowProvider.get(); }
   inline String getCacheDirectory() const override { return m_info.m_cachePath; }
+  inline TimingRecorder *getTimingRecorder() override { return m_timingRecorder.get(); }
+  inline const ProjectProperty &getProjectProperty() const override { return m_info; }
 };
 } // namespace Ifrit::Core

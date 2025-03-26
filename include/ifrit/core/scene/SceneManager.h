@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-
 #pragma once
 #include "ifrit/core/base/ApplicationInterface.h"
 #include "ifrit/core/base/Camera.h"
@@ -28,14 +27,18 @@ namespace Ifrit::Core {
 class IFRIT_APIDECL SceneManager {
 private:
   IApplication *m_app;
+  Ref<Scene> m_activeScene;
 
 public:
   SceneManager(IApplication *app) : m_app(app) {}
   virtual ~SceneManager() = default;
 
-  void collectPerframeData(
-      PerFrameData &perframeData, Scene *scene, Camera *camera = nullptr,
-      GraphicsShaderPassType passType = GraphicsShaderPassType::Opaque);
+  void collectPerframeData(PerFrameData &perframeData, Scene *scene, Camera *camera = nullptr,
+                           GraphicsShaderPassType passType = GraphicsShaderPassType::Opaque);
+
+  inline void setActiveScene(Ref<Scene> scene) { m_activeScene = scene; }
+  inline Ref<Scene> getActiveScene() { return m_activeScene; }
+  void invokeActiveSceneUpdate();
 };
 
 } // namespace Ifrit::Core

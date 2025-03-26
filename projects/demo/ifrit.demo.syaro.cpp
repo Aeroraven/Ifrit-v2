@@ -96,7 +96,7 @@ public:
 
     // Render targets
     auto rt = m_rhiLayer.get();
-    depthImage = rt->createDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT,false);
+    depthImage = rt->createDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
     swapchainImg = rt->getSwapchainImage();
     renderTargets = rt->createRenderTargets();
     colorAttachment =
@@ -105,6 +105,8 @@ public:
     renderTargets->setColorAttachments({colorAttachment.get()});
     renderTargets->setDepthStencilAttachment(depthAttachment.get());
     renderTargets->setRenderArea(scissor);
+
+    m_sceneManager->setActiveScene(s);
   }
 
   void onUpdate() override {
@@ -129,7 +131,7 @@ public:
         movRot -= scale * 0.03f;
     }
 
-    auto scene = m_sceneAssetManager->getScene("TestScene2");
+    auto scene = m_sceneManager->getActiveScene();
     auto cameraGameObject = scene->getRootNode()->getChildren()[0]->getGameObject(0);
     auto camera = cameraGameObject->getComponent<Transform>();
     timing = timing + 0.1f;
@@ -145,7 +147,7 @@ public:
 };
 
 int main() {
-  Ifrit::Core::ApplicationCreateInfo info;
+  Ifrit::Core::ProjectProperty info;
   info.m_assetPath = IFRIT_DEMO_ASSET_PATH;
   info.m_scenePath = IFRIT_DEMO_SCENE_PATH;
   info.m_displayProvider = Ifrit::Core::ApplicationDisplayProvider::GLFW;

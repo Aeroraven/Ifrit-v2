@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/base/IfritBase.h"
 #include "ifrit/core/base/Camera.h"
 #include "ifrit/core/base/Component.h"
+#include "ifrit/core/util/TimingRecorder.h"
 
 namespace Ifrit::Core {
 
@@ -32,8 +33,9 @@ public:
   SceneNode() = default;
   virtual ~SceneNode() = default;
   Ref<SceneNode> addChildNode();
-  Ref<SceneObject> addGameObject(const std::string &name);
+  Ref<SceneObject> addGameObject(const String &name);
   Ref<SceneObject> addGameObjectTransferred(Ref<SceneObject> &&obj);
+
   inline Ref<SceneNode> getSceneNode(u32 x) { return m_children.at(x); }
   inline Ref<SceneObject> getGameObject(u32 x) { return m_gameObjects.at(x); }
   inline Vec<Ref<SceneNode>> getChildren() {
@@ -51,20 +53,36 @@ public:
     return x;
   }
 
+  void onComponentStart();
+  void onComponentAwake();
+  void onUpdate();
+  void onFixedUpdate();
+
   IFRIT_STRUCT_SERIALIZE(m_children, m_gameObjects);
 };
 
 class IFRIT_APIDECL Scene {
 protected:
   Ref<SceneNode> m_root;
+  bool m_isAwake = false;
+  u64 m_curFixedFrame = 0;
 
 public:
   Scene() : m_root(std::make_shared<SceneNode>()) {}
-  Ref<SceneNode> addSceneNode();
+
   inline Ref<SceneNode> getRootNode() { return m_root; }
   Camera *getMainCamera();
+
+  Ref<SceneNode> addSceneNode();
   Vec<Ref<SceneObject>> filterObjects(Fn<bool(Ref<SceneObject>)> filter);
   Vec<SceneObject *> filterObjectsUnsafe(Fn<bool(SceneObject *)> filter);
+
+  void onComponentStart();
+  void onComponentAwake();
+  void onUpdate();
+  void onFixedUpdate(TimingRecorder *stopwatch, u32 fixedUpdateRate, u32 maxCompensationFrames);
+
+  void invokeFrameUpdate();
 
   IFRIT_STRUCT_SERIALIZE(m_root);
 };

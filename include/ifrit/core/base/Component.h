@@ -111,7 +111,6 @@ public:
     using Ifrit::Common::Utility::iTypeInfo;
     auto typeName = iTypeInfo<T>::name;
     auto typeHash = iTypeInfo<T>::hash;
-    // printf("Add to %p: hash:%lld, %s\n", this, typeHash, typeName);
     if (m_componentIndex.count(typeName) > 0) {
       auto idx = m_componentIndex[typeName];
       return std::static_pointer_cast<T>(m_components[idx]);
@@ -174,6 +173,9 @@ class IFRIT_APIDECL Component : public Ifrit::Common::Utility::NonCopyable {
 protected:
   ComponentIdentifier m_id;
   std::weak_ptr<SceneObject> m_parentObject;
+  bool m_isEnabled = true;
+  bool m_shouldInvokeStart = true;
+  bool m_shouldInvokeAwake = true;
 
 private:
   SceneObject *m_parentObjectRaw = nullptr;
@@ -182,24 +184,29 @@ public:
   Component(){}; // for deserializatioin
   Component(Ref<SceneObject> parentObject);
   virtual ~Component() = default;
+
   virtual String serialize() = 0;
   virtual void deserialize() = 0;
 
-  virtual void onPreRender() {}
-  virtual void onPostRender() {}
-
   virtual void onFrameCollecting() {}
+  virtual void onAwake() {}
   virtual void onStart() {}
+  virtual void onFixedUpdate() {}
   virtual void onUpdate() {}
   virtual void onEnd() {}
 
   inline void setName(const String &name) { m_id.m_name = name; }
+  virtual void setAssetReferencedAttributes(const Vec<Ref<IAssetCompatible>> &out) {}
+  void setEnable(bool enable);
+
   inline String getName() const { return m_id.m_name; }
   inline String getUUID() const { return m_id.m_uuid; }
   inline Ref<SceneObject> getParent() const { return m_parentObject.lock(); }
-
   virtual Vec<AssetReference *> getAssetReferences() { return {}; }
-  virtual void setAssetReferencedAttributes(const Vec<Ref<IAssetCompatible>> &out) {}
+  inline bool isEnabled() const { return m_isEnabled; }
+
+  void invokeStart();
+  void invokeAwake();
 
   // This function is intended to be used in performance-critical code.
   // Use with caution.
@@ -224,7 +231,6 @@ private:
   Ref<GPUUniformBuffer> m_gpuBufferLast = nullptr;
   Ref<GPUBindId> m_gpuBindlessRef = nullptr;
   Ref<GPUBindId> m_gpuBindlessRefLast = nullptr;
-
   TransformAttribute m_lastFrame;
 
   struct DirtyFlag {
@@ -235,6 +241,7 @@ private:
 public:
   Transform(){};
   Transform(Ref<SceneObject> parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
+
   String serialize() override { return serializeAttribute(); }
   void deserialize() override { deserializeAttribute(); }
 

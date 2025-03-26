@@ -1,7 +1,7 @@
 
 /*
 Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
+Copyright (C) 2024-2025 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,22 +17,23 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/application/ProjectProperty.h"
-#include "ifrit/core/util/TimingRecorder.h"
-#include "ifrit/display/presentation/window/WindowProvider.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/common/util/ApiConv.h"
 
 namespace Ifrit::Core {
-class IApplication {
-public:
-  virtual void onStart() = 0;
-  virtual void onUpdate() = 0;
-  virtual void onEnd() = 0;
 
-  virtual Ifrit::GraphicsBackend::Rhi::RhiBackend *getRhiLayer() = 0;
-  virtual Ifrit::Display::Window::WindowProvider *getWindowProvider() = 0;
-  virtual String getCacheDirectory() const = 0;
-  virtual TimingRecorder *getTimingRecorder() = 0;
-  virtual const ProjectProperty &getProjectProperty() const = 0;
+class IFRIT_APIDECL TimingRecorder {
+private:
+  u64 m_curSystemTimeUs;
+  u64 m_curTimeUs;
+  u64 m_deltaTimeUs;
+
+public:
+  void onUpdate();
+
+  inline u64 getCurSystemTimeUs() const { return m_curSystemTimeUs; }
+  inline u64 getCurTimeUs() const { return m_curTimeUs; }
+  inline u64 getDeltaTimeUs() const { return m_deltaTimeUs; }
 };
+
 } // namespace Ifrit::Core
