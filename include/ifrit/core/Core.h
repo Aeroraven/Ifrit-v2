@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/assetmanager/WaveFrontAsset.h"
 #include "ifrit/core/base/Camera.h"
 #include "ifrit/core/base/Component.h"
+#include "ifrit/core/base/ActorBehavior.h"
 #include "ifrit/core/base/Light.h"
 #include "ifrit/core/base/Material.h"
 #include "ifrit/core/base/Mesh.h"

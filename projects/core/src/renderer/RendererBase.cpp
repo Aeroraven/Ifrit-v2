@@ -144,6 +144,7 @@ namespace Ifrit::Core
             {
                 return false;
             }
+            //printf("Light:%p\n", light);
             return light->GetAffectPbrSky();
         });
         if (sunLights.size() > 1)

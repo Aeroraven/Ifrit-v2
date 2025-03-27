@@ -22,34 +22,85 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/math/LinalgOps.h"
 #include "ifrit/common/util/TypingUtil.h"
 #include "ifrit/core/Core.h"
-#include "ifrit/display/presentation/window/GLFWWindowProvider.h"
 #include <numbers>
 #include <thread>
 
 #define WINDOW_WIDTH 1980
 #define WINDOW_HEIGHT 1080
 
+using namespace Ifrit;
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::MeshProcLib::MeshProcess;
 using namespace Ifrit::Math;
 using namespace Ifrit::Core;
 using namespace Ifrit::Common::Utility;
 
-// Glfw key function here
-float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0, movNear = 0, movRot = 0;
+class CameraMovingScript : public ActorBehavior
+{
+    using ActorBehavior::ActorBehavior;
 
-class DemoApplication : public Ifrit::Core::Application
+private:
+    f32          m_movLeft   = 0.0f;
+    f32          m_movRight  = 0.0f;
+    f32          m_movTop    = 0.0f;
+    f32          m_movBottom = 0.0f;
+    f32          m_movFar    = 0.0f;
+    f32          m_movNear   = 0.0f;
+    f32          m_movRot    = 0.0f;
+
+    InputSystem* m_inputSystem;
+
+public:
+    void SetInputSystem(InputSystem* inputSystem)
+    {
+        m_inputSystem = inputSystem;
+    }
+
+    void OnUpdate() override
+    {
+        auto scale       = 0.12f;
+        auto inputSystem = m_inputSystem;
+        if (inputSystem->IsKeyPressed(InputKeyCode::A))
+            m_movLeft += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::D))
+            m_movRight += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::W))
+            m_movTop += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::S))
+            m_movBottom += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::E))
+            m_movFar += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::F))
+            m_movNear += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::Z))
+            m_movRot += scale * 0.03f;
+        if (inputSystem->IsKeyPressed(InputKeyCode::X))
+            m_movRot -= scale * 0.03f;
+
+        auto parent = this->GetParentUnsafe();
+        auto camera = parent->GetComponent<Transform>();
+        if (camera)
+        {
+            camera->SetPosition({ -20.0f + m_movRight - m_movLeft,
+                8.0f + m_movTop - m_movBottom,
+                2.05f + m_movFar - m_movNear });
+            camera->SetRotation({ 0.0f, m_movRot + 1.57f, 0.0f });
+        }
+    }
+};
+
+class DemoApplication : public Application
 {
 private:
-    RhiScissor                            scissor = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
-    Ifrit::Ref<RhiRenderTargets>          renderTargets;
-    Ifrit::Ref<RhiColorAttachment>        colorAttachment;
-    RhiTextureRef                         depthImage;
-    Ifrit::Ref<RhiDepthStencilAttachment> depthAttachment;
-    Ifrit::Ref<SyaroRenderer>             renderer;
-    RhiTexture*                           swapchainImg;
-    RendererConfig                        renderConfig;
-    float                                 timing = 0;
+    RhiScissor                     scissor = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
+    Ref<RhiRenderTargets>          renderTargets;
+    Ref<RhiColorAttachment>        colorAttachment;
+    RhiTextureRef                  depthImage;
+    Ref<RhiDepthStencilAttachment> depthAttachment;
+    Ref<SyaroRenderer>             renderer;
+    RhiTexture*                    swapchainImg;
+    RendererConfig                 renderConfig;
+    float                          timing = 0;
 
 public:
     void OnStart() override
@@ -76,6 +127,9 @@ public:
         camera->SetFar(200.0f);
         camera->SetNear(1.00f);
 
+        auto cameraMover = cameraGameObject->AddComponent<CameraMovingScript>();
+        cameraMover->SetInputSystem(m_inputSystem.get());
+
         auto cameraTransform = cameraGameObject->GetComponent<Transform>();
         cameraTransform->SetPosition({ 0.0f, 0.5f, -1.25f });
         cameraTransform->SetRotation({ 0.0f, 0.1f, 0.0f });
@@ -98,12 +152,12 @@ public:
         }
 
         // Render targets
-        auto rt       = m_rhiLayer.get();
-        depthImage    = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
-        swapchainImg  = rt->GetSwapchainImage();
-        renderTargets = rt->CreateRenderTargets();
-        colorAttachment =
-            rt->CreateRenderTarget(swapchainImg, { 0.0f, 0.0f, 0.0f, 1.0f }, RhiRenderTargetLoadOp::Clear, 0, 0);
+        auto rt         = m_rhiLayer.get();
+        depthImage      = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
+        swapchainImg    = rt->GetSwapchainImage();
+        renderTargets   = rt->CreateRenderTargets();
+        colorAttachment = rt->CreateRenderTarget(swapchainImg, { 0.0f, 0.0f, 0.0f, 1.0f },
+            RhiRenderTargetLoadOp::Clear, 0, 0);
         depthAttachment = rt->CreateRenderTarGetDepthStencil(depthImage.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
         renderTargets->SetColorAttachments({ colorAttachment.get() });
         renderTargets->SetDepthStencilAttachment(depthAttachment.get());
@@ -114,33 +168,8 @@ public:
 
     void OnUpdate() override
     {
-        {
-            auto scale       = 0.12f;
-            auto inputSystem = m_inputSystem.get();
-            if (inputSystem->IsKeyPressed(GLFW_KEY_A))
-                movLeft += scale;
-            if (inputSystem->IsKeyPressed(GLFW_KEY_D))
-                movRight += scale;
-            if (inputSystem->IsKeyPressed(GLFW_KEY_W))
-                movTop += scale;
-            if (inputSystem->IsKeyPressed(GLFW_KEY_S))
-                movBottom += scale;
-            if (inputSystem->IsKeyPressed(GLFW_KEY_E))
-                movFar += scale;
-            if (inputSystem->IsKeyPressed(GLFW_KEY_F))
-                movNear += scale;
-            if (inputSystem->IsKeyPressed(GLFW_KEY_Z))
-                movRot += scale * 0.03f;
-            if (inputSystem->IsKeyPressed(GLFW_KEY_X))
-                movRot -= scale * 0.03f;
-        }
-
-        auto scene            = m_sceneManager->GetActiveScene();
-        auto cameraGameObject = scene->GetRootNode()->GetChildren()[0]->GetGameObject(0);
-        auto camera           = cameraGameObject->GetComponent<Transform>();
-        timing                = timing + 0.1f;
-        camera->SetPosition({ -20.0f + movRight - movLeft, 8.0f + movTop - movBottom, 2.05f + movFar - movNear });
-        camera->SetRotation({ 0.0f, movRot + 1.57f, 0.0f });
+        auto scene       = m_sceneManager->GetActiveScene();
+        timing           = timing + 0.1f;
         auto sFrameStart = renderer->BeginFrame();
         auto renderComplete =
             renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { sFrameStart.get() });
@@ -152,11 +181,11 @@ public:
 
 int main()
 {
-    Ifrit::Core::ProjectProperty info;
+    ProjectProperty info;
     info.m_assetPath             = IFRIT_DEMO_ASSET_PATH;
     info.m_scenePath             = IFRIT_DEMO_SCENE_PATH;
-    info.m_displayProvider       = Ifrit::Core::AppDisplayProvider::GLFW;
-    info.m_rhiType               = Ifrit::Core::AppRhiType::Vulkan;
+    info.m_displayProvider       = AppDisplayProvider::GLFW;
+    info.m_rhiType               = AppRhiType::Vulkan;
     info.m_width                 = 1980;
     info.m_height                = 1080;
     info.m_rhiComputeQueueCount  = 1;

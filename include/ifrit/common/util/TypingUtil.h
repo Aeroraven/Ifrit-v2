@@ -129,12 +129,11 @@ namespace Ifrit::Common::Utility
     template <unsigned E, unsigned N>
     consteval u64 GetFuncNameHash(const char (&str)[N])
     {
-        u64 hash = 0;
         if IF_CONSTEXPR (N == E)
-            return 0;
+            return 1;
         else
         {
-            return str[0] + 257 * GetFuncNameHash<E + 1, N>(str);
+            return (str[E] + 1) + 257 * GetFuncNameHash<E + 1, N>(str);
         }
     }
 
