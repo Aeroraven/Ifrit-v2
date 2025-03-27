@@ -60,7 +60,7 @@ namespace Ifrit
         {
             iInfo("DemoApplication::OnStart()");
             renderer       = std::make_shared<AyanamiRenderer>(this);
-            auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf");
+            auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Fox/scene.gltf"); // BistroInterior/Untitled.gltf
             // Scene
             auto s    = m_sceneAssetManager->CreateScene("TestScene2");
             auto node = s->AddSceneNode();
@@ -93,10 +93,10 @@ namespace Ifrit
             for (auto& m : meshes)
             {
                 numMeshes++;
-                if (numMeshes < 100)
-                    continue;
-                if (numMeshes > 112)
-                    break;
+                // if (numMeshes < 100)
+                //     continue;
+                // if (numMeshes > 112)
+                //     break;
                 auto t      = m->m_prefab;
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
                 meshDF->BuildMeshDF(GetCacheDir());

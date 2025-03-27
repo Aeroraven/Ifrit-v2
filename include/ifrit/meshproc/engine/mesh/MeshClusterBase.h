@@ -30,8 +30,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
     {
         Vector4f selfSphere;
         Vector4f parentSphere;
-        float    selfError   = INFINITY;
-        float    parentError = INFINITY;
+        f32      selfError   = INFINITY;
+        f32      parentError = INFINITY;
         u32      lod         = 0;
         u32      dummy       = 0;
 
@@ -56,7 +56,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
         u32      clusterGroupSize;
         u32      subTreeSize;
         u32      childNodes[BVH_CHILDREN];
-        float    maxClusterError;
+        f32      maxClusterError;
         u32      pad1;
         u32      pad2;
         u32      pad3;

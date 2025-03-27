@@ -34,6 +34,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::MeshProcLib::MeshSDFProcess
 {
+    enum class SDFGenerateMethod
+    {
+        Trivial,
+        RayTracing
+    };
+
     struct SignedDistanceField
     {
         Vec<f32> sdfData;
@@ -46,6 +52,6 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
     };
 
     IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
-        u32 sdfHeight, u32 sdfDepth);
+        u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method);
 
 } // namespace Ifrit::MeshProcLib::MeshSDFProcess

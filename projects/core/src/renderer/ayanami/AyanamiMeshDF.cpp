@@ -72,6 +72,7 @@ namespace Ifrit::Core::Ayanami
             {
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 hasCachedDF           = std::filesystem::exists(serialMeshDFPath);
+                hasCachedDF           = false;
                 if (hasCachedDF)
                 {
                     shouldGenCachedDF = false;
@@ -92,7 +93,9 @@ namespace Ifrit::Core::Ayanami
             else
             {
                 iInfo("Building mesh distance field for {}", meshData->identifier);
-                ConvertMeshToSDF(meshDesc, sdf, cAyanamiMeshDFWidth, cAyanamiMeshDFWidth, cAyanamiMeshDFWidth);
+                ConvertMeshToSDF(meshDesc, sdf, cAyanamiMeshDFWidth, cAyanamiMeshDFWidth, cAyanamiMeshDFWidth,
+                    MeshProcLib::MeshSDFProcess::SDFGenerateMethod::RayTracing);
+
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 if (shouldGenCachedDF)
                 {

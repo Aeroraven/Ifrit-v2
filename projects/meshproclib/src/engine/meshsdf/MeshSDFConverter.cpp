@@ -20,6 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/common/math/simd/SimdVectors.h"
 #include "ifrit/common/util/Parallel.h"
 #include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/common/math/VectorOps.h"
+#include "ifrit/common/math/SphericalSampling.h"
+
+#include <random>
 
 // TODO: Use algo in following paper
 // Reference: https://www2.imm.dtu.dk/pubdb/edoc/imm1289.pdf
@@ -28,7 +32,7 @@ using namespace Ifrit::Math::SIMD;
 namespace Ifrit::MeshProcLib::MeshSDFProcess
 {
 
-    IF_CONSTEXPR u32 cMinBvhChilds = 2;
+    IF_CONSTEXPR u32 cMinBvhChilds = 32;
 
     struct BVHNode : public Common::Utility::NonCopyableStruct
     {
@@ -109,7 +113,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             data.asTriNormals[i / 3] = getTriangleNormal(v0, v1, v2);
         }
     }
-    IF_FORCEINLINE SVector3f pointDistToTriangle(const SVector3f& p, const SVector3f& a, const SVector3f& b,
+    IF_FORCEINLINE SVector3f PointDistToTriangle(const SVector3f& p, const SVector3f& a, const SVector3f& b,
         const SVector3f& c)
     {
         // Code from: https://github.com/RenderKit/embree/blob/master/tutorials/common/math/closest_point.h
@@ -161,7 +165,56 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         return a + ab * v + ac * w;
     }
 
-    void calculateAsChildBbox(const Mesh2SDFTempData& data, Uref<BVHNode>& node)
+    IF_FORCEINLINE f32 RayTrianleIntersection(const Vector3f& rayO, const Vector3f& rayD,
+        const Vector3f& a, const Vector3f& b, const Vector3f& c)
+    {
+        using namespace Ifrit::Math;
+
+        const f32 EPSILON = 0.000001f;
+
+        Vector3f  edge1 = b - a;
+        Vector3f  edge2 = c - a;
+
+        Vector3f  h   = Cross(rayD, edge2);
+        f32       det = Dot(edge1, h);
+
+        if (det > -EPSILON && det < EPSILON)
+            return FLT_MAX;
+
+        f32      invDet = 1.0f / det;
+
+        // Calculate distance from vertex a to ray origin
+        Vector3f s = rayO - a;
+
+        f32      u = Dot(s, h) * invDet;
+        if (u < 0.0f || u > 1.0f)
+            return FLT_MAX;
+
+        Vector3f q = Cross(s, edge1);
+        f32      v = Dot(rayD, q) * invDet;
+        if (v < 0.0f || u + v > 1.0f)
+            return FLT_MAX;
+
+        f32 t = Dot(edge2, q) * invDet;
+
+        return t;
+    }
+
+    IF_FORCEINLINE bool RayBoxIntersect(const SVector3f& rayO, const SVector3f& rayD, const SVector3f& bboxMin,
+        const SVector3f& bboxMax, f32 tmin, f32 tmax)
+    {
+        using namespace Ifrit::Math;
+        using namespace Ifrit::Math::SIMD;
+
+        SVector3f invDir = SVector3f(1.0f) / rayD;
+        SVector3f t0     = (bboxMin - rayO) * invDir;
+        SVector3f t1     = (bboxMax - rayO) * invDir;
+        tmin             = std::max(std::max(std::min(t0.x, t1.x), std::min(t0.y, t1.y)), std::min(t0.z, t1.z));
+        tmax             = std::min(std::min(std::max(t0.x, t1.x), std::max(t0.y, t1.y)), std::max(t0.z, t1.z));
+        return tmax > tmin;
+    }
+
+    void CalculateAsChildBbox(const Mesh2SDFTempData& data, Uref<BVHNode>& node)
     {
         node->bboxMin = SVector3f(FLT_MAX);
         node->bboxMax = SVector3f(-FLT_MAX);
@@ -173,7 +226,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         }
     }
 
-    void buildAccelStructRecur(Mesh2SDFTempData& data, Uref<BVHNode>& node)
+    void BuildAccelStructRecur(Mesh2SDFTempData& data, Uref<BVHNode>& node)
     {
         auto numChildren = node->endIdx - node->startIdx;
         if (numChildren <= cMinBvhChilds)
@@ -196,13 +249,21 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         // Inplace rearrange
         auto leftIdx  = node->startIdx;
         auto rightIdx = node->endIdx - 1;
+
+        f32  totalMid = 0;
+        for (u32 i = node->startIdx; i < node->endIdx; i++)
+        {
+            totalMid += ElementAt(data.asTriBboxMid[data.asTriIndices[i]], longestAxis);
+        }
+        f32 avgMid = totalMid / numChildren;
+
         while (leftIdx < rightIdx)
         {
-            while (leftIdx < rightIdx && ElementAt(data.asTriBboxMid[leftIdx], longestAxis) < ElementAt(mid, longestAxis))
+            while (leftIdx < rightIdx && ElementAt(data.asTriBboxMid[data.asTriIndices[leftIdx]], longestAxis) < avgMid)
             {
                 leftIdx++;
             }
-            while (leftIdx < rightIdx && ElementAt(data.asTriBboxMid[rightIdx], longestAxis) >= ElementAt(mid, longestAxis))
+            while (leftIdx < rightIdx && ElementAt(data.asTriBboxMid[data.asTriIndices[rightIdx]], longestAxis) >= avgMid)
             {
                 rightIdx--;
             }
@@ -213,7 +274,18 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
                 rightIdx--;
             }
         }
-        if (leftIdx == node->startIdx || leftIdx == node->endIdx)
+        if (leftIdx == node->startIdx || leftIdx == node->endIdx || rightIdx == node->endIdx - 1)
+        {
+            if (node->endIdx - node->startIdx > 128)
+            {
+                iWarn("Large BVH node with {} children, leftIdx:{}, rightIdx:{} | st:{}, ed:{}", node->endIdx - node->startIdx,
+                    leftIdx, rightIdx, node->startIdx, node->endIdx);
+                iWarn("AvgMid: {}", avgMid);
+            }
+            return;
+        }
+
+        if (node->endIdx - node->startIdx < cMinBvhChilds)
         {
             return;
         }
@@ -221,28 +293,28 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         node->left           = std::make_unique<BVHNode>();
         node->left->startIdx = node->startIdx;
         node->left->endIdx   = leftIdx;
-        calculateAsChildBbox(data, node->left);
+        CalculateAsChildBbox(data, node->left);
 
         node->right           = std::make_unique<BVHNode>();
         node->right->startIdx = leftIdx;
         node->right->endIdx   = node->endIdx;
-        calculateAsChildBbox(data, node->right);
+        CalculateAsChildBbox(data, node->right);
 
-        buildAccelStructRecur(data, node->left);
-        buildAccelStructRecur(data, node->right);
+        BuildAccelStructRecur(data, node->left);
+        BuildAccelStructRecur(data, node->right);
     }
 
-    void buildAccelStruct(Mesh2SDFTempData& data)
+    void BuildAccelStruct(Mesh2SDFTempData& data)
     {
         data.asRoot           = std::make_unique<BVHNode>();
         data.asRoot->bboxMin  = data.bboxMin;
         data.asRoot->bboxMax  = data.bboxMax;
         data.asRoot->startIdx = 0;
         data.asRoot->endIdx   = data.asTriIndices.size();
-        buildAccelStructRecur(data, data.asRoot);
+        BuildAccelStructRecur(data, data.asRoot);
     }
 
-    IF_FORCEINLINE f32 getDistanceToBbox(const SVector3f& p, const SVector3f& bboxMin, const SVector3f& bboxMax)
+    IF_FORCEINLINE f32 GetDistanceToBbox(const SVector3f& p, const SVector3f& bboxMin, const SVector3f& bboxMax)
     {
         SVector3f dxMin  = bboxMin - p;
         SVector3f dxMax  = p - bboxMax;
@@ -252,29 +324,29 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         return dist;
     }
 
-    void getSignedDistanceToMeshRecur(const Mesh2SDFTempData& data, const SVector3f& p, BVHNode* node, f32& tgtDist)
+    void GetSignedDistanceToMeshRecur(const Mesh2SDFTempData& data, const SVector3f& p, BVHNode* node, f32& tgtDist)
     {
         auto leftChild  = node->left.get();
         auto rightChild = node->right.get();
         if (leftChild && rightChild)
         {
             // Non child node, check distance to bbox
-            auto leftChildDist  = getDistanceToBbox(p, leftChild->bboxMin, leftChild->bboxMax);
-            auto rightChildDist = getDistanceToBbox(p, rightChild->bboxMin, rightChild->bboxMax);
+            auto leftChildDist  = GetDistanceToBbox(p, leftChild->bboxMin, leftChild->bboxMax);
+            auto rightChildDist = GetDistanceToBbox(p, rightChild->bboxMin, rightChild->bboxMax);
             if (leftChildDist <= rightChildDist && leftChildDist < std::abs(tgtDist))
             {
-                getSignedDistanceToMeshRecur(data, p, leftChild, tgtDist);
+                GetSignedDistanceToMeshRecur(data, p, leftChild, tgtDist);
                 if (std::abs(tgtDist) > rightChildDist)
                 {
-                    getSignedDistanceToMeshRecur(data, p, rightChild, tgtDist);
+                    GetSignedDistanceToMeshRecur(data, p, rightChild, tgtDist);
                 }
             }
             else if (rightChildDist < leftChildDist && rightChildDist < std::abs(tgtDist))
             {
-                getSignedDistanceToMeshRecur(data, p, rightChild, tgtDist);
+                GetSignedDistanceToMeshRecur(data, p, rightChild, tgtDist);
                 if (std::abs(tgtDist) > leftChildDist)
                 {
-                    getSignedDistanceToMeshRecur(data, p, leftChild, tgtDist);
+                    GetSignedDistanceToMeshRecur(data, p, leftChild, tgtDist);
                 }
             }
         }
@@ -296,7 +368,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
                     data.meshVxBuffer[i2 * data.meshVxStride + 2]);
 
                 auto vNormal   = data.asTriNormals[triId];
-                auto nearestPt = pointDistToTriangle(p, v0, v1, v2);
+                auto nearestPt = PointDistToTriangle(p, v0, v1, v2);
                 auto vDist     = p - nearestPt;
                 auto sign      = Dot(vDist, vNormal) > 0.0f ? 1.0f : -1.0f;
                 auto dist      = Length(vDist) * sign;
@@ -308,15 +380,139 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         }
     }
 
-    f32 getSignedDistanceToMesh(const Mesh2SDFTempData& data, const SVector3f& p)
+    f32 GetSignedDistanceToMesh(const Mesh2SDFTempData& data, const SVector3f& p)
     {
         f32 tgtDist = FLT_MAX;
-        getSignedDistanceToMeshRecur(data, p, data.asRoot.get(), tgtDist);
+        GetSignedDistanceToMeshRecur(data, p, data.asRoot.get(), tgtDist);
         return tgtDist;
     }
 
-    IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
-        u32 sdfHeight, u32 sdfDepth)
+    void GetSignedDistanceToMeshRayTraceSingleRayRecur(
+        BVHNode*                node,
+        const Mesh2SDFTempData& data,
+        const SVector3f&        p,
+        const SVector3f&        dir,
+        Vector4f&               collResult)
+    {
+        // printf("Tracing: %p, L:%d, R:%d\n", node, node->startIdx, node->endIdx);
+        auto leftChild  = node->left.get();
+        auto rightChild = node->right.get();
+        if (leftChild && rightChild)
+        {
+            // Non child node, check distance to bbox
+
+            bool rayIntersectLeft  = RayBoxIntersect(p, dir, leftChild->bboxMin, leftChild->bboxMax, 0.0f, FLT_MAX);
+            bool rayIntersectRight = RayBoxIntersect(p, dir, rightChild->bboxMin, rightChild->bboxMax, 0.0f, FLT_MAX);
+
+            if (rayIntersectLeft)
+            {
+                GetSignedDistanceToMeshRayTraceSingleRayRecur(leftChild, data, p, dir, collResult);
+            }
+            if (rayIntersectRight)
+            {
+                GetSignedDistanceToMeshRayTraceSingleRayRecur(rightChild, data, p, dir, collResult);
+            }
+        }
+        else
+        {
+            // child node, check distance to triangle
+            for (u32 i = node->startIdx; i < node->endIdx; i++)
+            {
+                auto triId = data.asTriIndices[i];
+                auto i0    = data.meshIxBuffer[triId * 3 + 0];
+                auto i1    = data.meshIxBuffer[triId * 3 + 1];
+                auto i2    = data.meshIxBuffer[triId * 3 + 2];
+
+                auto v0 = SVector3f(data.meshVxBuffer[i0 * data.meshVxStride + 0], data.meshVxBuffer[i0 * data.meshVxStride + 1],
+                    data.meshVxBuffer[i0 * data.meshVxStride + 2]);
+                auto v1 = SVector3f(data.meshVxBuffer[i1 * data.meshVxStride + 0], data.meshVxBuffer[i1 * data.meshVxStride + 1],
+                    data.meshVxBuffer[i1 * data.meshVxStride + 2]);
+                auto v2 = SVector3f(data.meshVxBuffer[i2 * data.meshVxStride + 0], data.meshVxBuffer[i2 * data.meshVxStride + 1],
+                    data.meshVxBuffer[i2 * data.meshVxStride + 2]);
+
+                auto vNormal = data.asTriNormals[triId];
+
+                auto tP   = Vector3f(p.x, p.y, p.z);
+                auto tD   = Vector3f(dir.x, dir.y, dir.z);
+                auto t0   = Vector3f(v0.x, v0.y, v0.z);
+                auto t1   = Vector3f(v1.x, v1.y, v1.z);
+                auto t2   = Vector3f(v2.x, v2.y, v2.z);
+                auto dist = RayTrianleIntersection(tP, tD, t0, t1, t2);
+                if (dist < 0.0f)
+                {
+                    continue;
+                }
+                // printf("Dist: %f\n", dist);
+                auto svDot = Dot(vNormal, dir);
+                if (svDot > 0.0f)
+                {
+                    dist = -dist;
+                }
+
+                if (std::abs(dist) < std::abs(collResult.w))
+                {
+                    collResult = Vector4f(vNormal.x, vNormal.y, vNormal.z, dist);
+                }
+            }
+        }
+    }
+
+    f32 GetSignedDistanceToMeshRayTraceSingleRay(const Mesh2SDFTempData& data, const SVector3f& p, const SVector3f& dir)
+    {
+        Vector4f collResult = Vector4f(0.0f, 0.0f, 0.0f, FLT_MAX);
+        auto     root       = data.asRoot.get();
+        GetSignedDistanceToMeshRayTraceSingleRayRecur(root, data, p, dir, collResult);
+
+        // printf("Coll: %f %f %f %f\n", collResult.x, collResult.y, collResult.z, collResult.w);
+        return collResult.w;
+    }
+
+    f32 GetSignedDistanceToMeshRayTrace(const Mesh2SDFTempData& data, const SVector3f& p, const Vec<Vector3f>& samples)
+    {
+        auto optimalDistance = FLT_MAX;
+        auto pT              = Vector3f(p.x, p.y, p.z);
+
+        u32  hit        = 0;
+        u32  numSamples = Common::Utility::SizeCast<u32>(samples.size());
+
+        // Follow unreal's Mesh DF implementation, it judges whether the ray hits the backside of the triangle to determine
+        // whether the point is inside the mesh.
+        u32  hitBackside = 0;
+
+        // Check each sample
+        for (auto& sample : samples)
+        {
+            using namespace Ifrit::Math;
+
+            auto dir = Math::Normalize(sample);
+            auto pV  = pT - dir * 1e-4f;
+
+            auto dist    = GetSignedDistanceToMeshRayTraceSingleRay(data, p, SVector3f(dir.x, dir.y, dir.z));
+            auto distAbs = std::abs(dist);
+            if (distAbs < optimalDistance)
+            {
+                optimalDistance = distAbs;
+            }
+            if (dist < FLT_MAX)
+            {
+                hit++;
+                if (dist < 0.0f)
+                {
+                    hitBackside++;
+                }
+            }
+        }
+
+        if (hit > 0 && hitBackside > 0.25f * numSamples)
+        {
+            // If all samples hit the backside of the triangle, the point is inside the mesh
+            optimalDistance = -optimalDistance;
+        }
+        return optimalDistance;
+    }
+
+    IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf,
+        u32 sdfWidth, u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method)
     {
         // TODO: this is a trivial implementation, that has worse performance O(NM), where N is the number of voxels and M is
         // the number of triangles, although AS approach is used.
@@ -334,7 +530,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         computeTriangleBoundingBox(data);
 
         // dilate the bbox by a small amount, like 5%
-        auto bboxDilate = (data.bboxMax - data.bboxMin) * 0.05f;
+        auto bboxDilate = (data.bboxMax - data.bboxMin) * 0.1f;
         data.bboxMin -= bboxDilate;
         data.bboxMax += bboxDilate;
 
@@ -344,7 +540,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         {
             data.asTriIndices[i] = i;
         }
-        buildAccelStruct(data);
+        BuildAccelStruct(data);
 
         // then, for each voxel, calculate the distance to the mesh
         sdf.width  = sdfWidth;
@@ -353,22 +549,75 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         sdf.sdfData.resize(sdfWidth * sdfHeight * sdfDepth);
         auto totalVoxels = sdfWidth * sdfHeight * sdfDepth;
 
-        Common::Utility::UnorderedFor<u32>(0, totalVoxels, [&](u32 el) {
-            auto      depth  = el / (sdfWidth * sdfHeight);
-            auto      height = (el % (sdfWidth * sdfHeight)) / sdfWidth;
-            auto      width  = (el % (sdfWidth * sdfHeight)) % sdfWidth;
-            f32       x      = ((f32)width + 0.5f) / (f32)sdfWidth;
-            f32       y      = ((f32)height + 0.5f) / (f32)sdfHeight;
-            f32       z      = ((f32)depth + 0.5f) / (f32)sdfDepth;
-            f32       lx     = std::lerp(data.bboxMin.x, data.bboxMax.x, x);
-            f32       ly     = std::lerp(data.bboxMin.y, data.bboxMax.y, y);
-            f32       lz     = std::lerp(data.bboxMin.z, data.bboxMax.z, z);
-            SVector3f p      = SVector3f(lx, ly, lz);
-            f32       dist   = getSignedDistanceToMesh(data, p);
-            sdf.sdfData[el]  = dist;
-        });
-        sdf.bboxMin = Vector3f(data.bboxMin.x, data.bboxMin.y, data.bboxMin.z);
-        sdf.bboxMax = Vector3f(data.bboxMax.x, data.bboxMax.y, data.bboxMax.z);
+        if (method == SDFGenerateMethod::Trivial)
+        {
+            Common::Utility::UnorderedFor<u32>(0, totalVoxels, [&](u32 el) {
+                auto      depth  = el / (sdfWidth * sdfHeight);
+                auto      height = (el % (sdfWidth * sdfHeight)) / sdfWidth;
+                auto      width  = (el % (sdfWidth * sdfHeight)) % sdfWidth;
+                f32       x      = ((f32)width + 0.5f) / (f32)sdfWidth;
+                f32       y      = ((f32)height + 0.5f) / (f32)sdfHeight;
+                f32       z      = ((f32)depth + 0.5f) / (f32)sdfDepth;
+                f32       lx     = std::lerp(data.bboxMin.x, data.bboxMax.x, x);
+                f32       ly     = std::lerp(data.bboxMin.y, data.bboxMax.y, y);
+                f32       lz     = std::lerp(data.bboxMin.z, data.bboxMax.z, z);
+                SVector3f p      = SVector3f(lx, ly, lz);
+                f32       dist   = GetSignedDistanceToMesh(data, p);
+                sdf.sdfData[el]  = dist;
+            });
+            sdf.bboxMin = Vector3f(data.bboxMin.x, data.bboxMin.y, data.bboxMin.z);
+            sdf.bboxMax = Vector3f(data.bboxMax.x, data.bboxMax.y, data.bboxMax.z);
+        }
+        else if (method == SDFGenerateMethod::RayTracing)
+        {
+            // random engine for sampling, uniform distribution for f32
+            std::random_device                  rd;
+            std::mt19937                        gen(rd());
+            std::uniform_real_distribution<f32> dis(0.0f, 1.0f);
+
+            Vec<Vector3f>                       samples;
+            constexpr u32                       sqrtNumSamples = 9;
+            constexpr u32                       numSamples     = sqrtNumSamples * sqrtNumSamples;
+            samples.reserve(numSamples);
+            for (u32 i = 0; i < numSamples; i++)
+            {
+                auto fractX = dis(gen);
+                auto fractY = dis(gen);
+
+                auto fX = i % sqrtNumSamples;
+                auto fY = i / sqrtNumSamples;
+
+                auto sX = (fX + fractX) / sqrtNumSamples;
+                auto sY = (fY + fractY) / sqrtNumSamples;
+
+                auto sample = Math::ConcentricOctahedralTransform(Vector2f(sX, sY));
+                samples.push_back(Vector3f(sample.x, sample.y, sample.z));
+            }
+
+            auto minBound = std::min(data.bboxMax.x - data.bboxMin.x,
+                std::min(data.bboxMax.y - data.bboxMin.y, data.bboxMax.z - data.bboxMin.z));
+
+            Common::Utility::UnorderedFor<u32>(0, totalVoxels, [&](u32 el) {
+                auto      depth  = el / (sdfWidth * sdfHeight);
+                auto      height = (el % (sdfWidth * sdfHeight)) / sdfWidth;
+                auto      width  = (el % (sdfWidth * sdfHeight)) % sdfWidth;
+                f32       x      = ((f32)width + 0.5f) / (f32)sdfWidth;
+                f32       y      = ((f32)height + 0.5f) / (f32)sdfHeight;
+                f32       z      = ((f32)depth + 0.5f) / (f32)sdfDepth;
+                f32       lx     = std::lerp(data.bboxMin.x, data.bboxMax.x, x);
+                f32       ly     = std::lerp(data.bboxMin.y, data.bboxMax.y, y);
+                f32       lz     = std::lerp(data.bboxMin.z, data.bboxMax.z, z);
+                SVector3f p      = SVector3f(lx, ly, lz);
+                f32       dist   = GetSignedDistanceToMeshRayTrace(data, p, samples);
+                if (dist == FLT_MAX)
+                {
+                    dist = minBound;
+                }
+                sdf.sdfData[el] = dist;
+            });
+            sdf.bboxMin = Vector3f(data.bboxMin.x, data.bboxMin.y, data.bboxMin.z);
+            sdf.bboxMax = Vector3f(data.bboxMax.x, data.bboxMax.y, data.bboxMax.z);
+        }
     }
 
 } // namespace Ifrit::MeshProcLib::MeshSDFProcess

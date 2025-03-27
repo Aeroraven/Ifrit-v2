@@ -38,7 +38,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
 
     public:
         void CreateNormalCones(const MeshDescriptor& meshDesc, const Vec<Vector4i>& meshlets,
-            const Vec<u32>& meshletVertices, const Vec<uint8_t>& meshletTriangles,
+            const Vec<u32>& meshletVertices, const Vec<u8>& meshletTriangles,
             Vec<Vector4f>& normalConeAxisCutoff, Vec<Vector4f>& normalConeApex,
             Vec<Vector4f>& boundSphere);
     };

@@ -137,7 +137,7 @@ void main(){
                 vec3 uvw= (hitp - lb) / (rt - lb);
                 uvw = clamp(uvw, 0.0, 1.0);
                 float sdf = texture(GetSampler3D(meta.sdfId), uvw).x;
-                if(abs(sdf) < 0.05){
+                if(abs(sdf) < 0.01){
                     finalHit = true;
 
                     float tval = length(hitp - o) / length(d);
