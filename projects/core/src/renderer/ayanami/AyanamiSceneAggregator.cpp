@@ -111,12 +111,17 @@ namespace Ifrit::Core::Ayanami
         return m_sceneResources->m_mdfAllInstancesBindId->GetActiveId();
     }
 
+    IFRIT_APIDECL u32 AyanamiSceneAggregator::GetNumGatheredInstances() const
+    {
+        return m_sceneResources->m_meshMetaIds.size();
+    }
+
     IFRIT_APIDECL void AyanamiSceneAggregator::Init()
     {
         m_sceneResources = new AyanamiSceneResources();
     }
 
-    IFRIT_APIDECL void AyanamiSceneAggregator::destroy()
+    IFRIT_APIDECL void AyanamiSceneAggregator::Destroy()
     {
         if (m_sceneResources != nullptr)
         {

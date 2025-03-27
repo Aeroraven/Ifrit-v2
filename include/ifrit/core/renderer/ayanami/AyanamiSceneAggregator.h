@@ -35,15 +35,16 @@ namespace Ifrit::Core::Ayanami
 
     private:
         void Init();
-        void destroy();
+        void Destroy();
 
     public:
         AyanamiSceneAggregator(Graphics::Rhi::RhiBackend* rhi)
             : m_rhi(rhi) { Init(); }
-        ~AyanamiSceneAggregator() { destroy(); }
+        ~AyanamiSceneAggregator() { Destroy(); }
 
         void CollectScene(Scene* scene);
         u32  GetGatheredBufferId();
+        u32  GetNumGatheredInstances() const;
     };
 
 } // namespace Ifrit::Core::Ayanami

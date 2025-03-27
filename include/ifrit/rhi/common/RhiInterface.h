@@ -128,7 +128,7 @@ namespace Ifrit::Graphics::Rhi
                   u32                   mip,
                   u32                   arrLayer) = 0;
 
-        virtual Ref<RhiDepthStencilAttachment> CreateRenderTarGetDepthStencil(
+        virtual Ref<RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
             RhiTexture*           renderTarget,
             RhiClearValue         clearValue,
             RhiRenderTargetLoadOp loadOp) = 0;

@@ -158,7 +158,7 @@ public:
         renderTargets   = rt->CreateRenderTargets();
         colorAttachment = rt->CreateRenderTarget(swapchainImg, { 0.0f, 0.0f, 0.0f, 1.0f },
             RhiRenderTargetLoadOp::Clear, 0, 0);
-        depthAttachment = rt->CreateRenderTarGetDepthStencil(depthImage.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
+        depthAttachment = rt->CreateRenderTargetDepthStencil(depthImage.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
         renderTargets->SetColorAttachments({ colorAttachment.get() });
         renderTargets->SetDepthStencilAttachment(depthAttachment.get());
         renderTargets->SetRenderArea(scissor);

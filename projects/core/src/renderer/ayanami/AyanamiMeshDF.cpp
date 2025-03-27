@@ -109,8 +109,8 @@ namespace Ifrit::Core::Ayanami
             m_sdBoxMax = Vector3f(sdf.bboxMax.x, sdf.bboxMax.y, sdf.bboxMax.z);
             m_isBuilt  = true;
 
-            iInfo("Mesh BBoxMin: {} {} {}", m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z);
-            iInfo("Mesh BBoxMax: {} {} {}", m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z);
+            // iInfo("Mesh BBoxMin: {} {} {}", m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z);
+            // iInfo("Mesh BBoxMax: {} {} {}", m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z);
         }
     }
 
@@ -128,7 +128,7 @@ namespace Ifrit::Core::Ayanami
             auto volumeSize = m_sdWidth * m_sdHeight * m_sdDepth;
             auto deviceVolume =
                 rhi->CreateBuffer("Ayanami_DFVolume", volumeSize * sizeof(f32),
-                    RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_CopySrc, true, true);
+                    RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
             deviceVolume->MapMemory();
             deviceVolume->WriteBuffer(m_sdfData.data(), volumeSize * sizeof(f32), 0);
             deviceVolume->FlushBuffer();

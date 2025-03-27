@@ -250,13 +250,13 @@ namespace Ifrit::Graphics::VulkanGraphics
         Rhi::RhiTextureRef CreateTexture2DDeviceUnmanaged(u32 width, u32 height, VkFormat format,
             VkImageUsageFlags extraUsage = 0);
 
-        Rhi::RhiTextureRef CreateRenderTarGetTexture(u32 width, u32 height, VkFormat format,
+        Rhi::RhiTextureRef CreateRenderTargetTexture(u32 width, u32 height, VkFormat format,
             VkImageUsageFlags extraUsage = 0);
         Rhi::RhiTextureRef CreateTexture3D(u32 width, u32 height, u32 depth, VkFormat format,
             VkImageUsageFlags extraUsage = 0);
         Rhi::RhiTextureRef createMipTexture(u32 width, u32 height, u32 mips, VkFormat format,
             VkImageUsageFlags extraUsage = 0);
-        Rhi::RhiSamplerRef CreateTrivialRenderTarGetSampler();
+        Rhi::RhiSamplerRef CreateTrivialRenderTargetSampler();
         Rhi::RhiSamplerRef CreateTrivialBilinearSampler(bool repeat);
         Rhi::RhiSamplerRef CreateTrivialNearestSampler(bool repeat);
     };

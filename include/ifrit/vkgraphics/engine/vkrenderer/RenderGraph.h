@@ -347,7 +347,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     protected:
         // RenderPassAttachment m_depthAttachment;
         // Vec<RenderPassAttachment> m_colorAttachments;
-        Rhi::RhiRenderTargetsFormat  m_renderTarGetFormat;
+        Rhi::RhiRenderTargetsFormat  m_renderTargetFormat;
 
         PipelineCache*               m_pipelineCache;
 
@@ -391,7 +391,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         void         record(Ifrit::Graphics::VulkanGraphics::RenderTargets* renderTarget);
 
-        void         SetRenderTarGetFormat(const Rhi::RhiRenderTargetsFormat& format) override;
+        void         SetRenderTargetFormat(const Rhi::RhiRenderTargetsFormat& format) override;
 
         void         SetVertexShader(Rhi::RhiShader* shader) override;
         void         SetPixelShader(Rhi::RhiShader* shader) override;

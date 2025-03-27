@@ -46,6 +46,7 @@ RegisterUniform(bLocalTransform,{
 
 layout(push_constant) uniform PushConstant{
     uint perframeId;
+    uint totalInsts;
     uint descId;
     uint outTex;
     uint rtH;
@@ -92,57 +93,73 @@ void main(){
     float tanFov = tan(fov * 0.5);
     vec3 rayDir = normalize(vec3(ndcX * tanFov, ndcY * tanFov, 1.0));
 
-    MeshDFDesc desc0 = GetResource(bMeshDFDesc, pc.descId).data[0];
-    uint mdfMetaId = desc0.mdfMetaId;
-    MeshDFMeta meta = GetResource(bMeshDFMeta, mdfMetaId).data;
-
-    vec3 lb = meta.bboxMin.xyz;
-    vec3 rt = meta.bboxMax.xyz;
-
-    vec3 d = rayDir;
-    vec3 o = camPos;
-
-    mat4 worldToLocal = GetResource(bLocalTransform, desc0.transformId).m_worldToLocal;
-    o = (worldToLocal * vec4(o, 1.0)).xyz;
-    d = (worldToLocal * vec4(d, 0.0)).xyz;
-
-    float t;
-    bool hit = rayboxIntersection(o,d,lb,rt,t);
-    vec3 hitp = o + d*t;
-    bool finalHit = false;
-    bool outp = false;
-    vec3 normalEps = vec3(0.02, 0.02, 0.02);
     vec3 normal = vec3(0.0, 0.0, 0.0);
+    float bestT = 1000000.0;
 
-    // Begin sdf tracing
-    if(hit){
-        for(int i=0;i<200;i++){
-            // get sdf value
-            vec3 uvw= (hitp - lb) / (rt - lb);
-            uvw = clamp(uvw, 0.0, 1.0);
-            float sdf = texture(GetSampler3D(meta.sdfId), uvw).x;
-            if(abs(sdf) < 0.05){
-                finalHit = true;
+    for(int T=0;T<pc.totalInsts;T++){
+        MeshDFDesc desc0 = GetResource(bMeshDFDesc, pc.descId).data[T];
+        mat4 worldToLocal = GetResource(bLocalTransform, desc0.transformId).m_worldToLocal;
+        uint mdfMetaId = desc0.mdfMetaId;
+        MeshDFMeta meta = GetResource(bMeshDFMeta, mdfMetaId).data;
 
-                float dx1 = texture(GetSampler3D(meta.sdfId), uvw + vec3(normalEps.x, 0.0, 0.0)).x;
-                float dx2 = texture(GetSampler3D(meta.sdfId), uvw - vec3(normalEps.x, 0.0, 0.0)).x;
-                float dy1 = texture(GetSampler3D(meta.sdfId), uvw + vec3(0.0, normalEps.y, 0.0)).x;
-                float dy2 = texture(GetSampler3D(meta.sdfId), uvw - vec3(0.0, normalEps.y, 0.0)).x;
-                float dz1 = texture(GetSampler3D(meta.sdfId), uvw + vec3(0.0, 0.0, normalEps.z)).x;
-                float dz2 = texture(GetSampler3D(meta.sdfId), uvw - vec3(0.0, 0.0, normalEps.z)).x;
-                normal.x = dx1 - dx2;
-                normal.y = dy1 - dy2;
-                normal.z = dz1 - dz2;
-                normal = normalize(normal);
-                break;
+        vec3 lb = meta.bboxMin.xyz;
+        vec3 rt = meta.bboxMax.xyz;
+
+        vec3 d = rayDir;
+        vec3 o = camPos;
+        float dLen = length(d);
+
+        
+        vec4 pO = vec4(o, 1.0);
+        pO = worldToLocal * pO;
+        pO = pO / pO.w;
+
+        vec4 pO2 = vec4(o + d, 1.0);
+        pO2 = worldToLocal * pO2;
+        pO2 = pO2 / pO2.w;
+
+        d = pO2.xyz - pO.xyz;
+        o = pO.xyz;
+
+        vec3 nD = normalize(d);
+
+        float t;
+        bool hit = rayboxIntersection(o,d,lb,rt,t);
+        vec3 hitp = o + d*t;
+        bool finalHit = false;
+        bool outp = false;
+        vec3 normalEps = vec3(0.02, 0.02, 0.02);
+
+        // Begin sdf tracing
+        if(hit){
+            for(int i=0;i<400;i++){
+                // get sdf value
+                vec3 uvw= (hitp - lb) / (rt - lb);
+                uvw = clamp(uvw, 0.0, 1.0);
+                float sdf = texture(GetSampler3D(meta.sdfId), uvw).x;
+                if(abs(sdf) < 0.05){
+                    finalHit = true;
+
+                    float tval = length(hitp - o) / length(d);
+                    if(tval < bestT){
+                        float dx1 = texture(GetSampler3D(meta.sdfId), uvw + vec3(normalEps.x, 0.0, 0.0)).x;
+                        float dx2 = texture(GetSampler3D(meta.sdfId), uvw - vec3(normalEps.x, 0.0, 0.0)).x;
+                        float dy1 = texture(GetSampler3D(meta.sdfId), uvw + vec3(0.0, normalEps.y, 0.0)).x;
+                        float dy2 = texture(GetSampler3D(meta.sdfId), uvw - vec3(0.0, normalEps.y, 0.0)).x;
+                        float dz1 = texture(GetSampler3D(meta.sdfId), uvw + vec3(0.0, 0.0, normalEps.z)).x;
+                        float dz2 = texture(GetSampler3D(meta.sdfId), uvw - vec3(0.0, 0.0, normalEps.z)).x;
+                        normal.x = dx1 - dx2;
+                        normal.y = dy1 - dy2;
+                        normal.z = dz1 - dz2;
+                        normal = normalize(normal);
+                        bestT = tval;
+                    }
+                   
+                    break;
+                }
+                hitp += sdf * nD ;
             }
-            hitp += sdf * d ;
         }
     }
-
-    if(finalHit){
-        imageStore(GetUAVImage2DR32F(pc.outTex), ivec2(tX, tY), vec4(abs(normal),1.0));
-    }else{
-        imageStore(GetUAVImage2DR32F(pc.outTex), ivec2(tX, tY), vec4(0.0, 0.0, 0.0, 1.0));
-    }
+    imageStore(GetUAVImage2DR32F(pc.outTex), ivec2(tX, tY), vec4(abs(normal),1.0));
 }

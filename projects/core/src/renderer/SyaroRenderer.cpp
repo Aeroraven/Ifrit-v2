@@ -238,7 +238,7 @@ namespace Ifrit::Core
             m_deferredShadowPass->SetPixelShader(fsShader);
             m_deferredShadowPass->SetNumBindlessDescriptorSets(3);
             m_deferredShadowPass->SetPushConstSize(3 * u32Size);
-            m_deferredShadowPass->SetRenderTarGetFormat(shadowRtCfg);
+            m_deferredShadowPass->SetRenderTargetFormat(shadowRtCfg);
         }
 
         // declare frame graph
@@ -658,7 +658,7 @@ namespace Ifrit::Core
             pass->SetPixelShader(fsShader);
             pass->SetNumBindlessDescriptorSets(3);
             pass->SetPushConstSize(8 * u32Size);
-            pass->SetRenderTarGetFormat(rtCfg);
+            pass->SetRenderTargetFormat(rtCfg);
             m_deferredShadingPass[paCfg] = pass;
         }
     }
@@ -681,7 +681,7 @@ namespace Ifrit::Core
             pass->SetPixelShader(fsShader);
             pass->SetNumBindlessDescriptorSets(0);
             pass->SetPushConstSize(u32Size);
-            pass->SetRenderTarGetFormat(rtCfg);
+            pass->SetRenderTargetFormat(rtCfg);
 
             m_triangleViewPass[paCfg] = pass;
         }
@@ -713,7 +713,7 @@ namespace Ifrit::Core
             pass->SetPushConstSize(u32Size * 5);
             rtCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
             paCfg.m_depthFormat = RhiImageFormat::RhiImgFmt_UNDEFINED;
-            pass->SetRenderTarGetFormat(rtCfg);
+            pass->SetRenderTargetFormat(rtCfg);
             m_taaPass[paCfg] = pass;
         }
     }
@@ -742,7 +742,7 @@ namespace Ifrit::Core
             RhiRenderTargetsFormat rtFmt;
             rtFmt.m_colorFormats = { RhiImageFormat::RhiImgFmt_R32_UINT };
             rtFmt.m_depthFormat  = RhiImageFormat::RhiImgFmt_D32_SFLOAT;
-            m_visibilityPassHW->SetRenderTarGetFormat(rtFmt);
+            m_visibilityPassHW->SetRenderTargetFormat(rtFmt);
 
             m_depthOnlyVisibilityPassHW = rhi->CreateGraphicsPass();
 #if !SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
@@ -755,7 +755,7 @@ namespace Ifrit::Core
             RhiRenderTargetsFormat depthOnlyRtFmt;
             depthOnlyRtFmt.m_colorFormats = {};
             depthOnlyRtFmt.m_depthFormat  = RhiImageFormat::RhiImgFmt_D32_SFLOAT;
-            m_depthOnlyVisibilityPassHW->SetRenderTarGetFormat(depthOnlyRtFmt);
+            m_depthOnlyVisibilityPassHW->SetRenderTargetFormat(depthOnlyRtFmt);
         }
 
 #if SYARO_ENABLE_SW_RASTERIZER
@@ -1443,7 +1443,7 @@ namespace Ifrit::Core
                 perView.m_visDepthIdSRV_HW =
                     rhi->RegisterCombinedImageSampler(perView.m_visPassDepth_HW.get(), m_immRes.m_linearSampler.get());
                 perView.m_visDepthRT_HW =
-                    rhi->CreateRenderTarGetDepthStencil(visDepthHW.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
+                    rhi->CreateRenderTargetDepthStencil(visDepthHW.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
 
                 perView.m_visRTs_HW = rhi->CreateRenderTargets();
                 if (perView.m_viewType == PerFrameData::ViewType::Primary)
@@ -1468,7 +1468,7 @@ namespace Ifrit::Core
 
                 // second pass rts
                 perView.m_visDepthRT2_HW =
-                    rhi->CreateRenderTarGetDepthStencil(visDepthHW.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Load);
+                    rhi->CreateRenderTargetDepthStencil(visDepthHW.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Load);
                 perView.m_visRTs2_HW = rhi->CreateRenderTargets();
                 if (perView.m_viewType == PerFrameData::ViewType::Primary)
                 {

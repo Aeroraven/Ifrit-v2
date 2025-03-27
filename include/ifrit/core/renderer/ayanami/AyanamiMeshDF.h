@@ -41,7 +41,6 @@ namespace Ifrit::Core::Ayanami
         GPUTexture     sdfTexture;
         Ref<GPUBindId> sdfTextureBindId;
         GPUBuffer      sdfMetaBuffer;
-        Ref<GPUBindId> sdfMetaBufferBindId;
         GPUSampler     sdfSampler; // this design is not a good idea, should be removed in the future
     };
 
@@ -72,7 +71,7 @@ namespace Ifrit::Core::Ayanami
     public:
         void       BuildMeshDF(const std::string_view& cachePath);
         void       BuildGPUResource(Graphics::Rhi::RhiBackend* rhi);
-        inline u32 GetMetaBufferId() const { return m_gpuResource->sdfMetaBufferBindId->GetActiveId(); }
+        inline u32 GetMetaBufferId() const { return m_gpuResource->sdfMetaBuffer->GetDescId(); }
         IFRIT_COMPONENT_SERIALIZE(m_sdWidth, m_sdHeight, m_sdDepth, m_sdBoxMin, m_sdBoxMax);
     };
 

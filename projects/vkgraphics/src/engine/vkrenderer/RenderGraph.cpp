@@ -238,9 +238,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         DescriptorManager* descriptorManager, RegisteredResourceMapper* mapper)
         : RenderGraphPass(context, descriptorManager, mapper), m_pipelineCache(pipelineCache) {}
 
-    IFRIT_APIDECL void GraphicsPass::SetRenderTarGetFormat(const Rhi::RhiRenderTargetsFormat& format)
+    IFRIT_APIDECL void GraphicsPass::SetRenderTargetFormat(const Rhi::RhiRenderTargetsFormat& format)
     {
-        m_renderTarGetFormat = format;
+        m_renderTargetFormat = format;
     }
 
     IFRIT_APIDECL void GraphicsPass::SetVertexShader(Rhi::RhiShader* shader)
@@ -469,12 +469,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.scissorCount            = 1;
         ci.topology                = m_topology;
         ci.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
-        ci.depthAttachmentFormat   = toVkFormat(m_renderTarGetFormat.m_depthFormat);
+        ci.depthAttachmentFormat   = toVkFormat(m_renderTargetFormat.m_depthFormat);
         ci.pushConstSize           = m_pushConstSize;
 
-        for (int i = 0; i < m_renderTarGetFormat.m_colorFormats.size(); i++)
+        for (int i = 0; i < m_renderTargetFormat.m_colorFormats.size(); i++)
         {
-            ci.colorAttachmentFormats.push_back(toVkFormat(m_renderTarGetFormat.m_colorFormats[i]));
+            ci.colorAttachmentFormats.push_back(toVkFormat(m_renderTargetFormat.m_colorFormats[i]));
         }
         ci.descriptorSetLayouts.push_back(m_descriptorManager->GetBindlessLayout());
         for (uint32_t i = 0; i < m_numBindlessDescriptorSets; i++)

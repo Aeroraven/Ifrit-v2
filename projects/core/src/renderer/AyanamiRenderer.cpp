@@ -73,7 +73,7 @@ namespace Ifrit::Core
         }
         if (m_resources->m_raymarchPass == nullptr)
         {
-            m_resources->m_raymarchPass = CreateComputePass(rhi, "Ayanami/Ayanami.RayMarch.comp.glsl", 0, 5);
+            m_resources->m_raymarchPass = CreateComputePass(rhi, "Ayanami/Ayanami.RayMarch.comp.glsl", 0, 6);
         }
 
         // Resources
@@ -92,11 +92,13 @@ namespace Ifrit::Core
     IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(PerFrameData& perframe, RenderTargets* renderTargets,
         const GPUCmdBuffer* cmd)
     {
+        FrameGraph fg;
+
         auto       rtWidth  = renderTargets->GetRenderArea().width;
         auto       rtHeight = renderTargets->GetRenderArea().height;
 
         auto       rhi = m_app->GetRhi();
-        FrameGraph fg;
+
         auto       resRaymarchOutput = fg.AddResource("RaymarchOutput");
         auto       resRenderTargets  = fg.AddResource("RenderTargets");
 
@@ -110,6 +112,7 @@ namespace Ifrit::Core
             struct RayMarchPc
             {
                 u32 perframeId;
+                u32 totalInsts;
                 u32 descId;
                 u32 output;
                 u32 rtH;
@@ -117,6 +120,7 @@ namespace Ifrit::Core
             } pc;
             pc.rtH        = rtHeight;
             pc.rtW        = rtWidth;
+            pc.totalInsts = m_resources->m_sceneAggregator->GetNumGatheredInstances();
             pc.output     = m_resources->m_raymarchOutput->GetDescId();
             pc.descId     = m_resources->m_sceneAggregator->GetGatheredBufferId();
             pc.perframeId = perframe.m_views[0].m_viewBufferId->GetActiveId();

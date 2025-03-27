@@ -89,7 +89,7 @@ namespace Ifrit::Graphics::VulkanGraphics
               u32                        mips,
               u32                        layers) override;
 
-        virtual Ref<Rhi::RhiDepthStencilAttachment> CreateRenderTarGetDepthStencil(
+        virtual Ref<Rhi::RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
             Rhi::RhiTexture*           renderTarget,
             Rhi::RhiClearValue         clearValue,
             Rhi::RhiRenderTargetLoadOp loadOp) override;

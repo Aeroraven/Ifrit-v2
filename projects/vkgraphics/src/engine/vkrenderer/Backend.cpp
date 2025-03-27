@@ -308,7 +308,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::CreateTrivialSampler()
     {
-        return m_implDetails->m_resourceManager->CreateTrivialRenderTarGetSampler();
+        return m_implDetails->m_resourceManager->CreateTrivialRenderTargetSampler();
     }
 
     IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::CreateTrivialBilinearSampler(bool repeat)
@@ -417,7 +417,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     Ref<Rhi::RhiDepthStencilAttachment>
-    RhiVulkanBackend::CreateRenderTarGetDepthStencil(Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue,
+    RhiVulkanBackend::CreateRenderTargetDepthStencil(Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue,
         Rhi::RhiRenderTargetLoadOp loadOp)
     {
         auto attachment = std::make_shared<DepthStencilAttachment>(renderTarget, clearValue, loadOp);

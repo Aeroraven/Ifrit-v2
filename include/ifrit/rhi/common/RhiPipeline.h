@@ -64,7 +64,7 @@ namespace Ifrit::Graphics::Rhi
         virtual void SetDepthTestEnable(bool enable)                       = 0;
         virtual void SetDepthCompareOp(RhiCompareOp compareOp)             = 0;
 
-        virtual void SetRenderTarGetFormat(const RhiRenderTargetsFormat& format)                           = 0;
+        virtual void SetRenderTargetFormat(const RhiRenderTargetsFormat& format)                           = 0;
         virtual void SetShaderBindingLayout(const Vec<RhiDescriptorType>& layout)                          = 0;
         virtual void AddShaderStorageBuffer(RhiBuffer* buffer, u32 position, RhiResourceAccessType access) = 0;
         virtual void AddUniformBuffer(RhiMultiBuffer* buffer, u32 position)                                = 0;

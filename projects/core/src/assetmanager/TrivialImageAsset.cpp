@@ -38,11 +38,11 @@ namespace Ifrit::Core
         auto rhi = app->GetRhi();
         auto tex =
             rhi->CreateTexture2D("Asset_Img", width, height, Graphics::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UINT,
-                Graphics::Rhi::RHI_IMAGE_USAGE_TRANSFER_DST_BIT, true);
+                Graphics::Rhi::RHI_IMAGE_USAGE_TRANSFER_DST_BIT, false);
         auto tq        = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
         auto totalSize = width * height * 4;
         auto buffer    = rhi->CreateBuffer("Asset_Buf", totalSize, Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc,
-               true, true);
+               true, false);
         buffer->MapMemory();
         buffer->WriteBuffer(data, totalSize, 0);
         buffer->FlushBuffer();

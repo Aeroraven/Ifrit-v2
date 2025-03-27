@@ -57,7 +57,7 @@ namespace Ifrit::Core::RenderingUtil
         pass->SetPixelShader(fs);
         pass->SetNumBindlessDescriptorSets(numBindlessDescs);
         pass->SetPushConstSize(numPushConsts * sizeof(u32));
-        pass->SetRenderTarGetFormat(vFmts);
+        pass->SetRenderTargetFormat(vFmts);
         return pass;
     }
 

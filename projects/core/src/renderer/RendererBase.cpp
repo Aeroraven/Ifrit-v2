@@ -144,7 +144,7 @@ namespace Ifrit::Core
             {
                 return false;
             }
-            //printf("Light:%p\n", light);
+            // printf("Light:%p\n", light);
             return light->GetAffectPbrSky();
         });
         if (sunLights.size() > 1)
@@ -371,7 +371,7 @@ namespace Ifrit::Core
                 throw std::runtime_error("No descriptor sets found in shader");
             }
             pass->SetNumBindlessDescriptorSets(maxSets - 1);
-            pass->SetRenderTarGetFormat(rtFormats);
+            pass->SetRenderTargetFormat(rtFormats);
             for (auto& material : shaderEffect.m_materials)
             {
                 material->m_effectTemplates[passType].m_drawPasses[paConfig] = pass;

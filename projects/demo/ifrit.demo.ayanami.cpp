@@ -88,8 +88,15 @@ namespace Ifrit
             light->SetAffectPbrSky(true);
 
             auto meshes = bistroObj->GetLoadedMesh();
+
+            auto numMeshes = 0;
             for (auto& m : meshes)
             {
+                numMeshes++;
+                if (numMeshes < 100)
+                    continue;
+                if (numMeshes > 112)
+                    break;
                 auto t      = m->m_prefab;
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
                 meshDF->BuildMeshDF(GetCacheDir());
@@ -105,11 +112,12 @@ namespace Ifrit
             renderTargets = rt->CreateRenderTargets();
             colorAttachment =
                 rt->CreateRenderTarget(swapchainImg, { 0.0f, 0.0f, 0.0f, 1.0f }, RhiRenderTargetLoadOp::Clear, 0, 0);
-            depthAttachment = rt->CreateRenderTarGetDepthStencil(depthImage.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
+            depthAttachment = rt->CreateRenderTargetDepthStencil(depthImage.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
             renderTargets->SetColorAttachments({ colorAttachment.get() });
             renderTargets->SetDepthStencilAttachment(depthAttachment.get());
             renderTargets->SetRenderArea(scissor);
 
+            m_sceneManager->SetActiveScene(s);
             iInfo("Done");
         }
 

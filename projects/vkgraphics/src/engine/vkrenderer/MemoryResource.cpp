@@ -413,7 +413,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateRenderTarGetTexture(u32 width, u32 height, VkFormat format,
+    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateRenderTargetTexture(u32 width, u32 height, VkFormat format,
         VkImageUsageFlags extraUsage)
     {
         ImageCreateInfo ci{};
@@ -455,7 +455,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiSamplerRef ResourceManager::CreateTrivialRenderTarGetSampler()
+    IFRIT_APIDECL Rhi::RhiSamplerRef ResourceManager::CreateTrivialRenderTargetSampler()
     {
         SamplerCreateInfo ci{};
         ci.magFilter               = VK_FILTER_LINEAR;

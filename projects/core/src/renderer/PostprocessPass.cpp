@@ -40,7 +40,7 @@ namespace Ifrit::Core
             pass->SetVertexShader(vsShader);
             pass->SetNumBindlessDescriptorSets(m_cfg.numDescriptorSets);
             pass->SetPushConstSize(sizeof(u32) * m_cfg.numPushConstants);
-            pass->SetRenderTarGetFormat(rtCfg);
+            pass->SetRenderTargetFormat(rtCfg);
             m_renderPipelines[paCfg] = pass;
         }
         return pass;
