@@ -43,7 +43,7 @@ namespace Ifrit::Math
     // Some times std::fill is not optimized for qword under MSVC compiler  (no rep
     // stos or sse)
     template <class T>
-    inline void MemSetDword(T* src, T value, size_t counts)
+    IF_CONSTEXPR void MemSetDword(T* src, T value, size_t counts)
     {
 #ifdef _MSC_VER
         if IF_CONSTEXPR (sizeof(T) == 4)

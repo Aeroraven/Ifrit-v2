@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define WINDOW_WIDTH 1980
 #define WINDOW_HEIGHT 1080
 
+using namespace Ifrit;
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::MeshProcLib::MeshProcess;
 using namespace Ifrit::Math;
@@ -38,7 +39,59 @@ using namespace Ifrit::Core;
 using namespace Ifrit::Common::Utility;
 
 // Glfw key function here
-float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0, movNear = 0, movRot = 0;
+class CameraMovingScript : public ActorBehavior
+{
+    using ActorBehavior::ActorBehavior;
+
+private:
+    f32          m_movLeft   = 0.0f;
+    f32          m_movRight  = 0.0f;
+    f32          m_movTop    = 0.0f;
+    f32          m_movBottom = 0.0f;
+    f32          m_movFar    = 0.0f;
+    f32          m_movNear   = 0.0f;
+    f32          m_movRot    = 0.0f;
+
+    InputSystem* m_inputSystem;
+
+public:
+    void SetInputSystem(InputSystem* inputSystem)
+    {
+        m_inputSystem = inputSystem;
+    }
+
+    void OnUpdate() override
+    {
+        auto scale       = 0.12f;
+        auto inputSystem = m_inputSystem;
+        if (inputSystem->IsKeyPressed(InputKeyCode::A))
+            m_movLeft += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::D))
+            m_movRight += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::W))
+            m_movTop += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::S))
+            m_movBottom += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::E))
+            m_movFar += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::F))
+            m_movNear += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::Z))
+            m_movRot += scale * 0.09f;
+        if (inputSystem->IsKeyPressed(InputKeyCode::X))
+            m_movRot -= scale * 0.09f;
+
+        auto parent = this->GetParentUnsafe();
+        auto camera = parent->GetComponent<Transform>();
+        if (camera)
+        {
+            camera->SetPosition({ -0.0f + m_movRight - m_movLeft,
+                2.0f + m_movTop - m_movBottom,
+                -12.0f + m_movFar - m_movNear });
+            camera->SetRotation({ 0.0f, m_movRot + 1.57f, 0.0f });
+        }
+    }
+};
 
 namespace Ifrit
 {
@@ -63,12 +116,12 @@ namespace Ifrit
             Ayanami::AyanamiRenderConfig ayaConfig;
             ayaConfig.m_globalDFClipmapLevels     = 1;
             ayaConfig.m_globalDFClipmapResolution = 256;
-            ayaConfig.m_globalDFBaseExtent        = 8.0f;
+            ayaConfig.m_globalDFBaseExtent        = 16.0f;
 
             renderer       = std::make_shared<AyanamiRenderer>(this, ayaConfig);
             auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf"); //
             // auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Fox/scene.gltf"); //
-            //  Scene
+            //   Scene
             auto s    = m_sceneAssetManager->CreateScene("TestScene2");
             auto node = s->AddSceneNode();
 
@@ -85,6 +138,10 @@ namespace Ifrit
             cameraTransform->SetPosition({ 0.0f, 0.5f, -1.25f });
             cameraTransform->SetRotation({ 0.0f, 0.1f, 0.0f });
             cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
+            cameraTransform->SetPosition({ 0.0f, 2.0f, -0.0f });
+
+            auto cameraMover = cameraGameObject->AddComponent<CameraMovingScript>();
+            cameraMover->SetInputSystem(m_inputSystem.get());
 
             auto lightGameObject = node->AddGameObject("sun");
             auto light           = lightGameObject->AddComponent<Light>();
@@ -100,10 +157,10 @@ namespace Ifrit
             for (auto& m : meshes)
             {
                 numMeshes++;
-                // if (numMeshes < 100)
-                //     continue;
-                // if (numMeshes > 612)
-                //     break;
+                //if (numMeshes < 50)
+                //    continue;
+                //if (numMeshes > 1012)
+                //    break;
                 auto t      = m->m_prefab;
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
                 meshDF->BuildMeshDF(GetCacheDir());
@@ -130,25 +187,7 @@ namespace Ifrit
 
         void OnUpdate() override
         {
-            auto scene            = m_sceneAssetManager->GetScene("TestScene2");
-            auto cameraGameObject = scene->GetRootNode()->GetChildren()[0]->GetGameObject(0);
-            auto camera           = cameraGameObject->GetComponent<Transform>();
-            // camera->SetPosition({ -4.0f, 4.0f, -16.0f });
-            camera->SetPosition({ 0.0f, 2.0f, -0.0f });
-
-            auto childs = scene->GetRootNode()->GetChildren();
-            auto go     = childs[0]->GetGameObjects();
-            for (auto& g : go)
-            {
-                if (g->GetComponent<MeshFilter>() == nullptr)
-                    continue;
-                auto t = g->GetComponent<Transform>();
-                auto r = t->GetRotation();
-                r.y += 0.01f;
-                t->SetRotation(r);
-            }
-            timing += 0.01f;
-
+            auto scene       = m_sceneManager->GetActiveScene();
             auto sFrameStart = renderer->BeginFrame();
             auto renderComplete =
                 renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { sFrameStart.get() });

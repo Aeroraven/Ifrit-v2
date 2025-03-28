@@ -71,6 +71,15 @@ void main(){
     float fov = GetResource(bPerframe, pc.m_PerFrameId).data.m_cameraFovX;
     float aspect = GetResource(bPerframe, pc.m_PerFrameId).data.m_cameraAspect;
     vec3 camPos = GetResource(bPerframe, pc.m_PerFrameId).data.m_cameraPosition.xyz;
+    vec3 camFront = GetResource(bPerframe, pc.m_PerFrameId).data.m_cameraFront.xyz;
+
+    // get rotation matrix front (0,0,1) to camFront
+    vec3 zAxis = normalize(camFront);
+    vec3 xAxis = normalize(cross(vec3(0.0, 1.0, 0.0), zAxis));
+    vec3 yAxis = normalize(cross(zAxis, xAxis));
+    mat3 rotation = mat3(xAxis, yAxis, zAxis);
+
+
     int tX = int(gl_GlobalInvocationID.x);
     int tY = int(gl_GlobalInvocationID.y);
     if(tX >= pc.m_RtW || tY >= pc.m_RtH) return;
@@ -79,6 +88,7 @@ void main(){
     float ndcY = 1.0 - 2.0 * (float(tY)+0.5) / float(pc.m_RtH);
     float tanFov = tan(fov * 0.5);
     vec3 rayDir = normalize(vec3(ndcX * tanFov, ndcY * tanFov, 1.0));
+    rayDir = normalize(rotation * rayDir);
 
     vec3 normal = vec3(0.0, 0.0, 0.0);
     float bestT = 1000000.0;
@@ -90,6 +100,8 @@ void main(){
 
     float t;
     bool hit = rayboxIntersection(rayOrigin, rayDir, lb, rt, t);
+
+    t = max(t, 0.0);
     vec3 normalEps = vec3(0.02, 0.02, 0.02);
     bool found = false;
     
@@ -99,9 +111,9 @@ void main(){
             vec3 p = rayOrigin + rayDir*t;
             vec3 uvw = (p - lb) / (rt - lb);
             uvw = clamp(uvw, vec3(0.0), vec3(1.0));
-            float sdf = texture(GetSampler3D(pc.m_GlobalDFId), uvw).r;
+            float sdf = texture(GetSampler3D(pc.m_GlobalDFId), uvw).r - 0.015;
 
-            if(abs(sdf) < 0.001){
+            if(abs(sdf) < 0.04){
                 found = true;
                 float dx1 = texture(GetSampler3D(pc.m_GlobalDFId), uvw + vec3(normalEps.x, 0.0, 0.0)).r;
                 float dx2 = texture(GetSampler3D(pc.m_GlobalDFId), uvw - vec3(normalEps.x, 0.0, 0.0)).r;
@@ -118,7 +130,7 @@ void main(){
                 break;
             }
 
-            t += sdf;
+            t += sdf * 0.25;
         }
     }
     

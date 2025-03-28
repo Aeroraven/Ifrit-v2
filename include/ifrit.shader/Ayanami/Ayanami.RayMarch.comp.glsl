@@ -84,6 +84,14 @@ void main(){
     float fov = GetResource(bPerframe, pc.perframeId).data.m_cameraFovX;
     float aspect = GetResource(bPerframe, pc.perframeId).data.m_cameraAspect;
     vec3 camPos = GetResource(bPerframe, pc.perframeId).data.m_cameraPosition.xyz;
+    vec3 camFront = GetResource(bPerframe, pc.perframeId).data.m_cameraFront.xyz;
+
+    // get rotation matrix front (0,0,1) to camFront
+    vec3 zAxis = normalize(camFront);
+    vec3 xAxis = normalize(cross(vec3(0.0, 1.0, 0.0), zAxis));
+    vec3 yAxis = normalize(cross(zAxis, xAxis));
+    mat3 rotation = mat3(xAxis, yAxis, zAxis);
+
     int tX = int(gl_GlobalInvocationID.x);
     int tY = int(gl_GlobalInvocationID.y);
     if(tX >= pc.rtW || tY >= pc.rtH) return;
@@ -92,6 +100,7 @@ void main(){
     float ndcY = 1.0 - 2.0 * (float(tY)+0.5) / float(pc.rtH);
     float tanFov = tan(fov * 0.5);
     vec3 rayDir = normalize(vec3(ndcX * tanFov, ndcY * tanFov, 1.0));
+    rayDir = normalize(rotation * rayDir);
 
     vec3 normal = vec3(0.0, 0.0, 0.0);
     float bestT = 1000000.0;
@@ -125,6 +134,8 @@ void main(){
 
         float t;
         bool hit = rayboxIntersection(o,d,lb,rt,t);
+
+        t= max(t, 0.0);
         vec3 hitp = o + d*t;
         bool finalHit = false;
         bool outp = false;
