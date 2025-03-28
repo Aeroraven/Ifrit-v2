@@ -60,7 +60,7 @@ namespace Ifrit
         {
             iInfo("DemoApplication::OnStart()");
             renderer       = std::make_shared<AyanamiRenderer>(this);
-            auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Fox/scene.gltf"); // BistroInterior/Untitled.gltf
+            auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf"); //
             // Scene
             auto s    = m_sceneAssetManager->CreateScene("TestScene2");
             auto node = s->AddSceneNode();
@@ -126,7 +126,8 @@ namespace Ifrit
             auto scene            = m_sceneAssetManager->GetScene("TestScene2");
             auto cameraGameObject = scene->GetRootNode()->GetChildren()[0]->GetGameObject(0);
             auto camera           = cameraGameObject->GetComponent<Transform>();
-            camera->SetPosition({ -4.0f, 4.0f, -18.0f });
+            // camera->SetPosition({ -4.0f, 4.0f, -18.0f });
+            camera->SetPosition({ 0.0f, 2.0f, -0.0f });
 
             auto childs = scene->GetRootNode()->GetChildren();
             auto go     = childs[0]->GetGameObjects();

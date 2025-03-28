@@ -62,7 +62,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         Vec<SVector3f> asTriNormals;
     };
 
-    IF_FORCEINLINE void computeMeshBoundingBox(Mesh2SDFTempData& data)
+    IF_FORCEINLINE void ComputeMeshBoundingBox(Mesh2SDFTempData& data)
     {
         const u32 vertexCount = data.meshNumVerices;
         for (u32 i = 0; i < vertexCount; i++)
@@ -81,7 +81,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         return Normalize(Cross(b - a, c - a));
     }
 
-    IF_FORCEINLINE void computeTriangleBoundingBox(Mesh2SDFTempData& data)
+    IF_FORCEINLINE void ComputeTriangleBoundingBox(Mesh2SDFTempData& data)
     {
         const u32 indexCount = data.meshNumIndices;
         data.asTriBboxMin.resize(indexCount / 3);
@@ -518,6 +518,8 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         // the number of triangles, although AS approach is used.
         // However, mesh df is generated offline. Better approach like "Jump Flooding" should be considered later.
 
+        iDebug("Converting mesh to SDF: V={} I={}", meshDesc.vertexCount, meshDesc.indexCount);
+
         Mesh2SDFTempData data;
         data.bboxMin        = SVector3f(FLT_MAX);
         data.bboxMax        = SVector3f(-FLT_MAX);
@@ -526,8 +528,8 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         data.meshVxStride   = meshDesc.vertexStride / sizeof(f32);
         data.meshNumVerices = meshDesc.vertexCount;
         data.meshNumIndices = meshDesc.indexCount;
-        computeMeshBoundingBox(data);
-        computeTriangleBoundingBox(data);
+        ComputeMeshBoundingBox(data);
+        ComputeTriangleBoundingBox(data);
 
         // dilate the bbox by a small amount, like 5%
         auto bboxDilate = (data.bboxMax - data.bboxMin) * 0.1f;
@@ -576,7 +578,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             std::uniform_real_distribution<f32> dis(0.0f, 1.0f);
 
             Vec<Vector3f>                       samples;
-            constexpr u32                       sqrtNumSamples = 9;
+            constexpr u32                       sqrtNumSamples = 7;
             constexpr u32                       numSamples     = sqrtNumSamples * sqrtNumSamples;
             samples.reserve(numSamples);
             for (u32 i = 0; i < numSamples; i++)
@@ -598,22 +600,20 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
                 std::min(data.bboxMax.y - data.bboxMin.y, data.bboxMax.z - data.bboxMin.z));
 
             Common::Utility::UnorderedFor<u32>(0, totalVoxels, [&](u32 el) {
-                auto      depth  = el / (sdfWidth * sdfHeight);
-                auto      height = (el % (sdfWidth * sdfHeight)) / sdfWidth;
-                auto      width  = (el % (sdfWidth * sdfHeight)) % sdfWidth;
-                f32       x      = ((f32)width + 0.5f) / (f32)sdfWidth;
-                f32       y      = ((f32)height + 0.5f) / (f32)sdfHeight;
-                f32       z      = ((f32)depth + 0.5f) / (f32)sdfDepth;
-                f32       lx     = std::lerp(data.bboxMin.x, data.bboxMax.x, x);
-                f32       ly     = std::lerp(data.bboxMin.y, data.bboxMax.y, y);
-                f32       lz     = std::lerp(data.bboxMin.z, data.bboxMax.z, z);
-                SVector3f p      = SVector3f(lx, ly, lz);
-                f32       dist   = GetSignedDistanceToMeshRayTrace(data, p, samples);
-                if (dist == FLT_MAX)
-                {
-                    dist = minBound;
-                }
-                sdf.sdfData[el] = dist;
+                auto      depth    = el / (sdfWidth * sdfHeight);
+                auto      height   = (el % (sdfWidth * sdfHeight)) / sdfWidth;
+                auto      width    = (el % (sdfWidth * sdfHeight)) % sdfWidth;
+                f32       x        = ((f32)width + 0.5f) / (f32)sdfWidth;
+                f32       y        = ((f32)height + 0.5f) / (f32)sdfHeight;
+                f32       z        = ((f32)depth + 0.5f) / (f32)sdfDepth;
+                f32       lx       = std::lerp(data.bboxMin.x, data.bboxMax.x, x);
+                f32       ly       = std::lerp(data.bboxMin.y, data.bboxMax.y, y);
+                f32       lz       = std::lerp(data.bboxMin.z, data.bboxMax.z, z);
+                SVector3f p        = SVector3f(lx, ly, lz);
+                f32       distSign = GetSignedDistanceToMeshRayTrace(data, p, samples);
+                f32       dist     = std::abs(GetSignedDistanceToMesh(data, p));
+                dist               = (distSign > 0.0f) ? dist : -dist;
+                sdf.sdfData[el]    = dist;
             });
             sdf.bboxMin = Vector3f(data.bboxMin.x, data.bboxMin.y, data.bboxMin.z);
             sdf.bboxMax = Vector3f(data.bboxMax.x, data.bboxMax.y, data.bboxMax.z);

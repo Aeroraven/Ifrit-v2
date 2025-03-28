@@ -72,7 +72,7 @@ namespace Ifrit::Core::Ayanami
             {
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 hasCachedDF           = std::filesystem::exists(serialMeshDFPath);
-                hasCachedDF           = false;
+                // hasCachedDF           = false;
                 if (hasCachedDF)
                 {
                     shouldGenCachedDF = false;
