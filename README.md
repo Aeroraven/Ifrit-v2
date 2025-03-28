@@ -27,7 +27,7 @@ Some toys about real-time rendering. Currently, it contains:
 | <center>**Syaro / Cull Rasterize Visibility Buffer (R32_UINT)**</center> | <center>**Syaro / Final Output**</center>          |
 | ![](docs/img/syaro_clodvisb.png)                             | ![](docs/img/syaro_clod1.png)                      |
 | <center>**Syaro / Timing**</center>                          | <center>**Ayanami / Mesh Distance Field**</center> |
-| <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" />  | ![](docs/img/ayanami_meshdf.png)                   |
+| <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" />  | ![](docs/img/ayanami_meshdf2.png)                  |
 | <center>**Soft Renderer / Profile** (Nsight Compute)</center> | <center>**Syaro / Debug** (RenderDoc)</center>     |
 | ![](docs/img/soft_nscp.png)                                  | ![](docs/img/syaro_diag.png)                       |
 

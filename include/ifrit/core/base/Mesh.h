@@ -83,7 +83,7 @@ namespace Ifrit::Core
     {
         Matrix4x4f model;
         Matrix4x4f invModel;
-        f32        maxScale;
+        Vector4f   maxScale;
     };
 
     class IFRIT_APIDECL Mesh : public AssetReferenceContainer, public IAssetCompatible

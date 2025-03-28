@@ -42,26 +42,33 @@ float movLeft = 0, movRight = 0, movTop = 0, movBottom = 0, movFar = 0, movNear 
 
 namespace Ifrit
 {
-    class DemoApplicationAyanami : public Ifrit::Core::Application
+    class DemoApplicationAyanami : public Core::Application
     {
     private:
-        RhiScissor                            scissor = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
-        Ifrit::Ref<RhiRenderTargets>          renderTargets;
-        Ifrit::Ref<RhiColorAttachment>        colorAttachment;
-        RhiTextureRef                         depthImage;
-        Ifrit::Ref<RhiDepthStencilAttachment> depthAttachment;
-        Ifrit::Ref<AyanamiRenderer>           renderer;
-        RhiTexture*                           swapchainImg;
-        RendererConfig                        renderConfig;
-        float                                 timing = 0;
+        RhiScissor                     scissor = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
+        Ref<RhiRenderTargets>          renderTargets;
+        Ref<RhiColorAttachment>        colorAttachment;
+        RhiTextureRef                  depthImage;
+        Ref<RhiDepthStencilAttachment> depthAttachment;
+        Ref<AyanamiRenderer>           renderer;
+        RhiTexture*                    swapchainImg;
+        RendererConfig                 renderConfig;
+        float                          timing = 0;
 
     public:
         void OnStart() override
         {
             iInfo("DemoApplication::OnStart()");
-            renderer       = std::make_shared<AyanamiRenderer>(this);
+
+            Ayanami::AyanamiRenderConfig ayaConfig;
+            ayaConfig.m_globalDFClipmapLevels     = 1;
+            ayaConfig.m_globalDFClipmapResolution = 256;
+            ayaConfig.m_globalDFBaseExtent        = 8.0f;
+
+            renderer       = std::make_shared<AyanamiRenderer>(this, ayaConfig);
             auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf"); //
-            // Scene
+            // auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Fox/scene.gltf"); //
+            //  Scene
             auto s    = m_sceneAssetManager->CreateScene("TestScene2");
             auto node = s->AddSceneNode();
 
@@ -95,7 +102,7 @@ namespace Ifrit
                 numMeshes++;
                 // if (numMeshes < 100)
                 //     continue;
-                // if (numMeshes > 112)
+                // if (numMeshes > 612)
                 //     break;
                 auto t      = m->m_prefab;
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
@@ -126,7 +133,7 @@ namespace Ifrit
             auto scene            = m_sceneAssetManager->GetScene("TestScene2");
             auto cameraGameObject = scene->GetRootNode()->GetChildren()[0]->GetGameObject(0);
             auto camera           = cameraGameObject->GetComponent<Transform>();
-            // camera->SetPosition({ -4.0f, 4.0f, -18.0f });
+            // camera->SetPosition({ -4.0f, 4.0f, -16.0f });
             camera->SetPosition({ 0.0f, 2.0f, -0.0f });
 
             auto childs = scene->GetRootNode()->GetChildren();
@@ -154,11 +161,13 @@ namespace Ifrit
 
 int main()
 {
-    Ifrit::Core::ProjectProperty info;
+    using namespace Ifrit;
+
+    Core::ProjectProperty info;
     info.m_assetPath             = IFRIT_DEMO_ASSET_PATH;
     info.m_scenePath             = IFRIT_DEMO_SCENE_PATH;
-    info.m_displayProvider       = Ifrit::Core::AppDisplayProvider::GLFW;
-    info.m_rhiType               = Ifrit::Core::AppRhiType::Vulkan;
+    info.m_displayProvider       = Core::AppDisplayProvider::GLFW;
+    info.m_rhiType               = Core::AppRhiType::Vulkan;
     info.m_width                 = 1980;
     info.m_height                = 1080;
     info.m_rhiComputeQueueCount  = 1;
@@ -169,7 +178,7 @@ int main()
     info.m_cachePath             = IFRIT_DEMO_CACHE_PATH;
     info.m_rhiDebugMode          = true;
 
-    Ifrit::DemoApplicationAyanami app;
+    DemoApplicationAyanami app;
     app.Run(info);
     return 0;
 }

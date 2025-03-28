@@ -28,23 +28,42 @@ namespace Ifrit::Core::Ayanami
 
     struct IFRIT_APIDECL AyanamiGlobalDFClipmap : public Common::Utility::NonCopyable
     {
-        using GPUTexture = Graphics::Rhi::RhiTexture;
-        Vector3f        m_worldBound;
-        u32             m_clipmapSize;
+        using GPUTexture    = Graphics::Rhi::RhiTextureRef;
+        using GPUSamplerRef = Graphics::Rhi::RhiSamplerRef;
+        using GPUResId      = Graphics::Rhi::RhiDescHandleLegacy;
+        Vector3f      m_worldBoundMin;
+        Vector3f      m_worldBoundMax;
+        u32           m_clipmapSize;
 
         // I don't think this is a good design, but it's the most stupid and straightforward way to do it
         // That means ignoring paging, streaming and atlas.
-        Ref<GPUTexture> m_clipmapTexture;
+        GPUTexture    m_clipmapTexture;
+        GPUSamplerRef m_clipmapSampler;
+        Ref<GPUResId> m_clipmapSRV;
+
+        AyanamiGlobalDFClipmap() {}
     };
 
     class IFRIT_APIDECL AyanamiGlobalDF : public Common::Utility::NonCopyable
     {
     private:
-        Vec<Vec<AyanamiGlobalDFClipmap>> m_clipmaps;
+        using GPUTexture = Graphics::Rhi::RhiTextureRef;
+
+        Graphics::Rhi::RhiBackend*        m_rhi;
+        Graphics::Rhi::RhiComputePass*    m_updateClipmapPass = nullptr;
+        Graphics::Rhi::RhiComputePass*    m_raymarchPass      = nullptr;
+        Vec<Uref<AyanamiGlobalDFClipmap>> m_TestClipMaps;
 
     public:
-        // AyanamiGlobalDF(const AyanamiRenderConfig &config);
-        // ~AyanamiGlobalDF() = default;
+        AyanamiGlobalDF(const AyanamiRenderConfig& config, Graphics::Rhi::RhiBackend* rhi);
+        ~AyanamiGlobalDF() = default;
+
+        void       AddClipmapUpdate(const Graphics::Rhi::RhiCommandList* cmdList, u32 clipmapLevel, u32 perFrameDataId,
+                  u32 numMeshes, u32 meshDFListId);
+
+        void       AddRayMarchPass(const Graphics::Rhi::RhiCommandList* cmdList, u32 clipmapLevel, u32 perFrameDataId,
+                  u32 outTextureId, Vector2u outTextureSize);
+        GPUTexture GetClipmapVolume(u32 clipmapLevel);
     };
 
 } // namespace Ifrit::Core::Ayanami

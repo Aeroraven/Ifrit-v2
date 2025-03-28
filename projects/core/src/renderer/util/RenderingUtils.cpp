@@ -61,7 +61,7 @@ namespace Ifrit::Core::RenderingUtil
         return pass;
     }
 
-    IFRIT_APIDECL void enqueueFullScreenPass(const Graphics::Rhi::RhiCommandList* cmd,
+    IFRIT_APIDECL void EnqueueFullScreenPass(const Graphics::Rhi::RhiCommandList* cmd,
         Graphics::Rhi::RhiBackend*                                                rhi,
         Graphics::Rhi::RhiGraphicsPass*                                           pass,
         Graphics::Rhi::RhiRenderTargets*                                          rt,

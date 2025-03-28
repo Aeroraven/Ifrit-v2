@@ -46,7 +46,7 @@ namespace Ifrit::Core::RenderingUtil
                                                  CreateGraphicsPass(Graphics::Rhi::RhiBackend* rhi, const char* vsPath, const char* fsPath, u32 numBindlessDescs,
                                                      u32 numPushConsts, const Graphics::Rhi::RhiRenderTargetsFormat& vFmts);
 
-    IFRIT_APIDECL void                           enqueueFullScreenPass(const Graphics::Rhi::RhiCommandList* cmd,
+    IFRIT_APIDECL void                           EnqueueFullScreenPass(const Graphics::Rhi::RhiCommandList* cmd,
                                   Graphics::Rhi::RhiBackend*                                                rhi,
                                   Graphics::Rhi::RhiGraphicsPass*                                           pass,
                                   Graphics::Rhi::RhiRenderTargets*                                          rt,

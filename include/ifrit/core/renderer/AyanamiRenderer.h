@@ -28,6 +28,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <algorithm>
 #include <bit>
 
+#include "ayanami/AyanamiGlobalDF.h"
+
 using Ifrit::Common::Utility::SizeCast;
 using Ifrit::Math::DivRoundUp;
 
@@ -37,6 +39,7 @@ namespace Ifrit::Core
     struct AyanamiRendererResources;
     class IFRIT_APIDECL AyanamiRenderer : public RendererBase
     {
+
         using RenderTargets        = Graphics::Rhi::RhiRenderTargets;
         using GPUCommandSubmission = Graphics::Rhi::RhiTaskSubmission;
         using GPUBuffer            = Graphics::Rhi::RhiBuffer;
@@ -56,8 +59,11 @@ namespace Ifrit::Core
         HashMap<Scene*, PerFrameData> m_perScenePerframe;
 
     private:
-        Uref<SyaroRenderer>       m_gbufferRenderer;
-        AyanamiRendererResources* m_resources = nullptr;
+        Uref<SyaroRenderer>            m_gbufferRenderer;
+        AyanamiRendererResources*      m_resources = nullptr;
+
+        Ayanami::AyanamiRenderConfig   m_selfRenderConfig;
+        Uref<Ayanami::AyanamiGlobalDF> m_globalDF = nullptr;
 
     private:
         void InitRenderer();
@@ -65,14 +71,16 @@ namespace Ifrit::Core
         void SetupAndRunFrameGraph(PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
 
     public:
-        AyanamiRenderer(IApplication* app)
-            : RendererBase(app), m_gbufferRenderer(std::make_unique<SyaroRenderer>(app))
+        AyanamiRenderer(IApplication* app, Ayanami::AyanamiRenderConfig config)
+            : RendererBase(app), m_gbufferRenderer(std::make_unique<SyaroRenderer>(app)), m_selfRenderConfig(config)
         {
             m_gbufferRenderer->SetRenderRole(SyaroRenderRole::SYARO_DEFERRED_GBUFFER);
             InitRenderer();
+            m_globalDF = std::make_unique<Ayanami::AyanamiGlobalDF>(config, app->GetRhi());
         }
         virtual ~AyanamiRenderer();
-        virtual std::unique_ptr<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
+
+        virtual Uref<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
             const RendererConfig&             config,
             const Vec<GPUCommandSubmission*>& cmdToWait) override;
     };

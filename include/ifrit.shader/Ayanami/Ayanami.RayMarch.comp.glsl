@@ -41,7 +41,7 @@ RegisterStorage(bMeshDFMeta,{
 RegisterUniform(bLocalTransform,{
     mat4 m_localToWorld;
     mat4 m_worldToLocal;
-    float m_maxScale;
+    vec4 m_maxScale;
 });
 
 layout(push_constant) uniform PushConstant{
@@ -98,8 +98,8 @@ void main(){
 
     for(int T=0;T<pc.totalInsts;T++){
         MeshDFDesc desc0 = GetResource(bMeshDFDesc, pc.descId).data[T];
-        mat4 worldToLocal = GetResource(bLocalTransform, desc0.transformId).m_worldToLocal;
-        uint mdfMetaId = desc0.mdfMetaId;
+        mat4 worldToLocal = GetResource(bLocalTransform, desc0.m_TransformId).m_worldToLocal;
+        uint mdfMetaId = desc0.m_MdfMetaId;
         MeshDFMeta meta = GetResource(bMeshDFMeta, mdfMetaId).data;
 
         vec3 lb = meta.bboxMin.xyz;

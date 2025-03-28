@@ -22,15 +22,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define SYARO_SHADER_SHARED_CONST_H
 
 #ifdef __cplusplus
-#include <cstdint>
-#define SYARO_DEFINE_UINT(x, y) IF_CONSTEXPR uint32_t x = y;
-#define SYARO_DEFINE_FLOAT(x, y) IF_CONSTEXPR float x = y;
+    #include <cstdint>
+    #define SYARO_DEFINE_UINT(x, y) IF_CONSTEXPR uint32_t x = y;
+    #define SYARO_DEFINE_FLOAT(x, y) IF_CONSTEXPR float x = y;
 
-namespace Ifrit::Core::SyaroConfig {
+namespace Ifrit::Core::SyaroConfig
+{
 
 #else
-#define SYARO_DEFINE_UINT(x, y) const uint x = y
-#define SYARO_DEFINE_FLOAT(x, y) const float x = y
+    #define SYARO_DEFINE_UINT(x, y) const uint x = y
+    #define SYARO_DEFINE_FLOAT(x, y) const float x = y
 
 #endif
 
@@ -69,47 +70,47 @@ namespace Ifrit::Core::SyaroConfig {
 // The threshold for DAG culling. The default value should be 1.0f to make change invisible.
 #define SYARO_SHADER_SHARED_DAG_CULL_THRESHOLD 1.0f
 
-SYARO_DEFINE_UINT(cPersistentCullThreadGroupSizeX, 128);
-SYARO_DEFINE_UINT(cInstanceCullingThreadGroupSizeX, 64);
+    SYARO_DEFINE_UINT(cPersistentCullThreadGroupSizeX, 128);
+    SYARO_DEFINE_UINT(cInstanceCullingThreadGroupSizeX, 64);
 
-SYARO_DEFINE_UINT(cMeshRasterizeThreadGroupSizeX, 128);
-SYARO_DEFINE_UINT(cMeshRasterizeMaxVertexSize, 128);
-SYARO_DEFINE_UINT(cMeshRasterizeMaxPrimitiveSize, 128);
-SYARO_DEFINE_UINT(cMeshRasterizeTaskPayloadSize, 32);
-SYARO_DEFINE_UINT(cMeshRasterizeTaskThreadGroupSize, 128);
+    SYARO_DEFINE_UINT(cMeshRasterizeThreadGroupSizeX, 128);
+    SYARO_DEFINE_UINT(cMeshRasterizeMaxVertexSize, 128);
+    SYARO_DEFINE_UINT(cMeshRasterizeMaxPrimitiveSize, 128);
+    SYARO_DEFINE_UINT(cMeshRasterizeTaskPayloadSize, 32);
+    SYARO_DEFINE_UINT(cMeshRasterizeTaskThreadGroupSize, 128);
 
-SYARO_DEFINE_UINT(cEmitDepthTargetThreadGroupSizeX, 16);
-SYARO_DEFINE_UINT(cEmitDepthTargetThreadGroupSizeY, 16);
+    SYARO_DEFINE_UINT(cEmitDepthTargetThreadGroupSizeX, 16);
+    SYARO_DEFINE_UINT(cEmitDepthTargetThreadGroupSizeY, 16);
 
-SYARO_DEFINE_UINT(cHiZThreadGroupSize, 256);
+    SYARO_DEFINE_UINT(cHiZThreadGroupSize, 256);
 
-SYARO_DEFINE_UINT(cClassifyMaterialCountThreadGroupSizeX, 8);
-SYARO_DEFINE_UINT(cClassifyMaterialCountThreadGroupSizeY, 8);
+    SYARO_DEFINE_UINT(cClassifyMaterialCountThreadGroupSizeX, 8);
+    SYARO_DEFINE_UINT(cClassifyMaterialCountThreadGroupSizeY, 8);
 
-SYARO_DEFINE_UINT(cClassifyMaterialScatterThreadGroupSizeX, 8);
-SYARO_DEFINE_UINT(cClassifyMaterialScatterThreadGroupSizeY, 8);
+    SYARO_DEFINE_UINT(cClassifyMaterialScatterThreadGroupSizeX, 8);
+    SYARO_DEFINE_UINT(cClassifyMaterialScatterThreadGroupSizeY, 8);
 
-SYARO_DEFINE_UINT(cEmitGbufThreadGroupSizeX, 256);
+    SYARO_DEFINE_UINT(cEmitGbufThreadGroupSizeX, 256);
 
-SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeX, 16);
-SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeY, 16);
+    SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeX, 16);
+    SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeY, 16);
 
-SYARO_DEFINE_UINT(cPersistentCullParallelStg_PersistThread, 1);
-SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop_BVH, 2);
-SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop_ClusterGroup, 3);
+    SYARO_DEFINE_UINT(cPersistentCullParallelStg_PersistThread, 1);
+    SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop_BVH, 2);
+    SYARO_DEFINE_UINT(cPersistentCullParallelStg_StridedLoop_ClusterGroup, 3);
 
-SYARO_DEFINE_UINT(cPersistentCullParallelStg, cPersistentCullParallelStg_StridedLoop_ClusterGroup);
+    SYARO_DEFINE_UINT(cPersistentCullParallelStg, cPersistentCullParallelStg_StridedLoop_ClusterGroup);
 
-SYARO_DEFINE_UINT(cCombineVisBufferThreadGroupSizeX, 16);
-SYARO_DEFINE_UINT(cCombineVisBufferThreadGroupSizeY, 16);
+    SYARO_DEFINE_UINT(cCombineVisBufferThreadGroupSizeX, 16);
+    SYARO_DEFINE_UINT(cCombineVisBufferThreadGroupSizeY, 16);
 
 #define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_SAMPLING 1
 #define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_NUM_SAMPLES 32
 
 #ifdef __cplusplus
 } // namespace Ifrit::Core::Syaro
-#undef SYARO_DEFINE_UINT
-#undef SYARO_DEFINE_FLOAT
+    #undef SYARO_DEFINE_UINT
+    #undef SYARO_DEFINE_FLOAT
 #endif
 
 #endif

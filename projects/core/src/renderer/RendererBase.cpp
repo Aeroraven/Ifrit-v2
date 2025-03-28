@@ -636,7 +636,7 @@ namespace Ifrit::Core
                     model.model    = Math::Transpose(transform->GetModelToWorldMatrix());
                     model.invModel = Math::Transpose(Math::Inverse4(transform->GetModelToWorldMatrix()));
                     auto scale     = transform->GetScale();
-                    model.maxScale = std::max(scale.x, std::max(scale.y, scale.z));
+                    model.maxScale = Vector4f(scale.x, scale.y, scale.z, 0.0); // std::max(scale.x, std::max(scale.y, scale.z));
 
                     auto buf = transformBuffer->GetActiveBuffer();
                     buf->MapMemory();
@@ -658,7 +658,7 @@ namespace Ifrit::Core
                     modelLast.model    = Math::Transpose(transform->GetModelToWorldMatrix());
                     modelLast.invModel = Math::Transpose(Math::Inverse4(transform->GetModelToWorldMatrix()));
                     auto lastScale     = transform->GetScaleLast();
-                    modelLast.maxScale = std::max(lastScale.x, std::max(lastScale.y, lastScale.z));
+                    modelLast.maxScale = Vector4f(lastScale.x, lastScale.y, lastScale.z, 0.0); // std::max(lastScale.x, std::max(lastScale.y, lastScale.z));
                     auto bufLast       = transformBufferLast->GetActiveBuffer();
                     bufLast->MapMemory();
                     bufLast->WriteBuffer(&modelLast, sizeof(MeshInstanceTransform), 0);

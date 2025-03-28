@@ -419,7 +419,7 @@ namespace Ifrit::Core
             cmd->BeginScope("Syaro: Deferred Shadowing");
 
             auto targetRT = perframeData.m_deferShadowMaskRTs.get();
-            RenderingUtil::enqueueFullScreenPass(
+            RenderingUtil::EnqueueFullScreenPass(
                 cmd, rhi, m_deferredShadowPass, targetRT,
                 { perframeData.m_gbufferDescFrag, perframeData.m_gbufferDepthDesc, primaryView.m_viewBindlessRef }, &pc, 3);
             cmd->EndScope();
@@ -462,7 +462,7 @@ namespace Ifrit::Core
             pc.depthTexRef      = primaryView.m_visibilityDepthIdSRV_Combined->GetActiveId();
             pc.shadowTexRef     = perframeData.m_deferShadowMaskId->GetActiveId();
             cmd->BeginScope("Syaro: Deferred Shading");
-            RenderingUtil::enqueueFullScreenPass(
+            RenderingUtil::EnqueueFullScreenPass(
                 cmd, rhi, pass, postprocRT0.get(),
                 { perframeData.m_gbufferDescFrag, perframeData.m_gbufferDepthDesc, primaryView.m_viewBindlessRef }, &pc, 8);
             cmd->EndScope();
@@ -502,7 +502,7 @@ namespace Ifrit::Core
                     jitterY,
                 };
                 cmd->BeginScope("Syaro: TAA Resolve");
-                RenderingUtil::enqueueFullScreenPass(cmd, rhi, pass, taaRT.get(),
+                RenderingUtil::EnqueueFullScreenPass(cmd, rhi, pass, taaRT.get(),
                     { perframeData.m_taaHistoryDesc, perframeData.m_gbufferDepthDesc }, pconst, 3);
                 cmd->EndScope();
             });
@@ -1299,7 +1299,7 @@ namespace Ifrit::Core
             u32 visBufferSRV;
         } pc;
         pc.visBufferSRV = primaryView.m_visibilityBufferIdSRV_Combined->GetActiveId();
-        RenderingUtil::enqueueFullScreenPass(cmd, rhi, triangleView, renderTargets, {}, &pc, 1);
+        RenderingUtil::EnqueueFullScreenPass(cmd, rhi, triangleView, renderTargets, {}, &pc, 1);
     }
 
     IFRIT_APIDECL void SyaroRenderer::RenderMaterialClassify(PerFrameData& perframeData, RenderTargets* renderTargets,
