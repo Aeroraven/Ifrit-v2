@@ -25,52 +25,82 @@ using Ifrit::Common::Utility::SizeCast;
 
 namespace Ifrit::Core
 {
-
-    IFRIT_APIDECL ResourceNodeId FrameGraph::AddResource(const String& name)
+    IFRIT_APIDECL ResourceNode& ResourceNode::SetImportedResource(FgBuffer* buffer)
     {
-        ResourceNode node;
-        node.id         = SizeCast<u32>(m_resources.size());
-        node.type       = FrameGraphResourceType::Undefined;
-        node.name       = name;
-        node.isImported = false;
+        isImported     = true;
+        importedBuffer = buffer;
+        type           = FrameGraphResourceType::ResourceBuffer;
+        return *this;
+    }
+
+    IFRIT_APIDECL ResourceNode& ResourceNode::SetImportedResource(FgTexture* texture, const FgTextureSubResource& subResource)
+    {
+        isImported        = true;
+        importedTexture   = texture;
+        type              = FrameGraphResourceType::ResourceTexture;
+        this->subResource = subResource;
+        return *this;
+    }
+
+    IFRIT_APIDECL PassNode& PassNode::SetExecutionFunction(Fn<void(const FrameGraphPassContext&)> func)
+    {
+        passFunction = func;
+        return *this;
+    }
+
+    IFRIT_APIDECL PassNode& PassNode::AddReadResource(const ResourceNode& res)
+    {
+        inputResources.push_back(res.id);
+        return *this;
+    }
+    IFRIT_APIDECL PassNode& PassNode::AddWriteResource(const ResourceNode& res)
+    {
+        outputResources.push_back(res.id);
+        return *this;
+    }
+    IFRIT_APIDECL PassNode& PassNode::AddDependentResource(const ResourceNode& res)
+    {
+        dependentResources.push_back(res.id);
+        return *this;
+    }
+
+    IFRIT_APIDECL FrameGraphBuilder::~FrameGraphBuilder()
+    {
+        for (auto& res : m_resources)
+        {
+            delete res;
+        }
+        for (auto& pass : m_passes)
+        {
+            delete pass;
+        }
+    }
+
+    IFRIT_APIDECL ResourceNode& FrameGraphBuilder::AddResource(const String& name)
+    {
+        ResourceNode* node = new ResourceNode();
+        node->id           = SizeCast<u32>(m_resources.size());
+        node->type         = FrameGraphResourceType::Undefined;
+        node->name         = name;
+        node->isImported   = false;
         m_resources.push_back(node);
 
         // iInfo("Resource ID:{}  Name:{}", node.id, node.name);
-        return node.id;
+        return *node;
     }
 
-    IFRIT_APIDECL PassNodeId FrameGraph::AddPass(const String& name, FrameGraphPassType type,
-        const Vec<ResourceNodeId>& inputs, const Vec<ResourceNodeId>& outputs,
-        const Vec<ResourceNodeId>& dependencies)
+    IFRIT_APIDECL PassNode& FrameGraphBuilder::AddPass(const String& name, FrameGraphPassType type)
     {
-        PassNode node;
-        node.type               = type;
-        node.id                 = SizeCast<u32>(m_passes.size());
-        node.name               = name;
-        node.isImported         = false;
-        node.inputResources     = inputs;
-        node.outputResources    = outputs;
-        node.dependentResources = dependencies;
+        PassNode* node   = new PassNode();
+        node->type       = type;
+        node->id         = SizeCast<u32>(m_passes.size());
+        node->name       = name;
+        node->isImported = false;
+        // node.inputResources     = inputs;
+        // node.outputResources    = outputs;
+        // node.dependentResources = dependencies;
         m_passes.push_back(node);
-        return node.id;
-    }
-
-    IFRIT_APIDECL void FrameGraph::SetImportedResource(ResourceNodeId id, FgBuffer* buffer)
-    {
-        m_resources[id].isImported     = true;
-        m_resources[id].importedBuffer = buffer;
-        m_resources[id].type           = FrameGraphResourceType::ResourceBuffer;
-    }
-
-    IFRIT_APIDECL void FrameGraph::SetImportedResource(ResourceNodeId id, FgTexture* texture,
-        const FgTextureSubResource& subResource)
-    {
-        m_resources[id].isImported      = true;
-        m_resources[id].importedTexture = texture;
-        m_resources[id].type            = FrameGraphResourceType::ResourceTexture;
-        m_resources[id].subResource     = subResource;
-
-        // iInfo("ID:{}  TextureHandle:{}", id, texture->GetNativeHandle());
+        return *node;
     }
 
     // Frame Graph compiler
@@ -112,7 +142,7 @@ namespace Ifrit::Core
         return Graphics::Rhi::RhiResourceState::Undefined;
     }
     Graphics::Rhi::RhiResourceState
-    getInputResourceState(FrameGraphPassType passType, FrameGraphResourceType resType, FgTexture* image, FgBuffer* buffer)
+    GetInputResourceState(FrameGraphPassType passType, FrameGraphResourceType resType, FgTexture* image, FgBuffer* buffer)
     {
         if (resType == FrameGraphResourceType::ResourceBuffer)
         {
@@ -132,12 +162,7 @@ namespace Ifrit::Core
         return Graphics::Rhi::RhiResourceState::Undefined;
     }
 
-    IFRIT_APIDECL void FrameGraph::SetExecutionFunction(PassNodeId id, std::function<void()> func)
-    {
-        m_passes[id].passFunction = func;
-    }
-
-    IFRIT_APIDECL CompiledFrameGraph FrameGraphCompiler::Compile(const FrameGraph& graph)
+    IFRIT_APIDECL CompiledFrameGraph FrameGraphCompiler::Compile(const FrameGraphBuilder& graph)
     {
         CompiledFrameGraph compiledGraph          = {};
         compiledGraph.m_inputResourceDependencies = {};
@@ -150,20 +175,20 @@ namespace Ifrit::Core
         Vec<Vec<u32>> outResToPass(graph.m_resources.size());
         Vec<Vec<u32>> outResToPassDeps(graph.m_resources.size());
 
-        for (const auto& pass : graph.m_passes)
+        for (const auto pass : graph.m_passes)
         {
-            for (auto& resId : pass.inputResources)
+            for (auto& resId : pass->inputResources)
             {
-                outResToPass[resId].push_back(pass.id);
+                outResToPass[resId].push_back(pass->id);
             }
-            for (auto& resId : pass.dependentResources)
+            for (auto& resId : pass->dependentResources)
             {
-                outResToPassDeps[resId].push_back(pass.id);
+                outResToPassDeps[resId].push_back(pass->id);
             }
         }
         for (const auto& pass : graph.m_passes)
         {
-            for (auto& resId : pass.outputResources)
+            for (auto& resId : pass->outputResources)
             {
                 resPassDependencies[resId]++;
             }
@@ -171,24 +196,24 @@ namespace Ifrit::Core
         for (const auto& pass : graph.m_passes)
         {
             u32 numResToWait = 0;
-            for (auto& resId : pass.inputResources)
+            for (auto& resId : pass->inputResources)
             {
                 if (resPassDependencies[resId] > 0)
                 {
                     numResToWait++;
                 }
             }
-            for (auto& resId : pass.dependentResources)
+            for (auto& resId : pass->dependentResources)
             {
                 if (resPassDependencies[resId] > 0)
                 {
                     numResToWait++;
                 }
             }
-            passResDepenedencies[pass.id] = numResToWait;
+            passResDepenedencies[pass->id] = numResToWait;
             if (numResToWait == 0)
             {
-                rootPasses.push_back(pass.id);
+                rootPasses.push_back(pass->id);
             }
         }
         // Resource aliasing might make incorrect resource state transition.
@@ -211,16 +236,16 @@ namespace Ifrit::Core
             auto passId0 = rootPasses.back();
             rootPasses.pop_back();
             compiledGraph.m_passTopoOrder.push_back(passId0);
-            for (auto j = 0; auto& resId : graph.m_passes[passId0].outputResources)
+            for (auto j = 0; auto& resId : graph.m_passes[passId0]->outputResources)
             {
                 void* resPtr = nullptr;
-                if (graph.m_resources[resId].type == FrameGraphResourceType::ResourceBuffer)
+                if (graph.m_resources[resId]->type == FrameGraphResourceType::ResourceBuffer)
                 {
-                    resPtr = graph.m_resources[resId].importedBuffer;
+                    resPtr = graph.m_resources[resId]->importedBuffer;
                 }
-                else if (graph.m_resources[resId].type == FrameGraphResourceType::ResourceTexture)
+                else if (graph.m_resources[resId]->type == FrameGraphResourceType::ResourceTexture)
                 {
-                    resPtr = graph.m_resources[resId].importedTexture;
+                    resPtr = graph.m_resources[resId]->importedTexture;
                 }
                 if (rawResourceState.find(resPtr) == rawResourceState.end())
                 {
@@ -232,13 +257,15 @@ namespace Ifrit::Core
                 CompiledFrameGraph::ResourceBarriers barrier;
                 compiledGraph.m_passResourceBarriers[passId0].push_back(barrier);
 
-                auto                                 resType   = graph.m_resources[resId].type;
+                // TODO
+                auto                                 resType   = graph.m_resources[resId]->type;
                 auto&                                pass      = graph.m_passes[passId0];
                 auto                                 resLayout = resState[resId];
 
-                auto                                 srcState = getOutputResouceState(pass.type, resType, graph.m_resources[resId].importedTexture,
-                                                    graph.m_resources[resId].importedBuffer, resLayout);
+                auto                                 srcState = getOutputResouceState(pass->type, resType, graph.m_resources[resId]->importedTexture,
+                                                    graph.m_resources[resId]->importedBuffer, resLayout);
 
+                // Barrier
                 CompiledFrameGraph::ResourceBarriers aliasBarrier;
                 aliasBarrier.enableTransitionBarrier = false;
                 aliasBarrier.enableUAVBarrier        = false;
@@ -264,8 +291,8 @@ namespace Ifrit::Core
                 for (auto& passId : outResToPass[resId])
                 {
                     auto dstState =
-                        getInputResourceState(graph.m_passes[passId].type, resType, graph.m_resources[resId].importedTexture,
-                            graph.m_resources[resId].importedBuffer);
+                        GetInputResourceState(graph.m_passes[passId]->type, resType, graph.m_resources[resId]->importedTexture,
+                            graph.m_resources[resId]->importedBuffer);
                     if (dstStateAll == Graphics::Rhi::RhiResourceState::Undefined)
                     {
                         dstStateAll = dstState;
@@ -336,7 +363,7 @@ namespace Ifrit::Core
         return compiledGraph;
     }
 
-    Graphics::Rhi::RhiResourceBarrier toRhiResBarrier(const CompiledFrameGraph::ResourceBarriers& barrier,
+    Graphics::Rhi::RhiResourceBarrier FrameGraphExecutor::ToRhiResBarrier(const CompiledFrameGraph::ResourceBarriers& barrier,
         const ResourceNode& res, bool& valid)
     {
         Graphics::Rhi::RhiResourceBarrier resBarrier;
@@ -393,14 +420,14 @@ namespace Ifrit::Core
             Vec<Graphics::Rhi::RhiResourceBarrier> outputAliasingBarriers;
             auto&                                  pass = compiledGraph.m_graph->m_passes[passId];
             // For output aliased resources, make the transition barrier
-            for (auto i = 0; auto& resId : pass.outputResources)
+            for (auto i = 0; auto& resId : pass->outputResources)
             {
 
                 if (compiledGraph.m_outputAliasedResourcesBarriers[passId][i].enableTransitionBarrier)
                 {
                     bool valid      = false;
-                    auto resBarrier = toRhiResBarrier(compiledGraph.m_outputAliasedResourcesBarriers[passId][i],
-                        compiledGraph.m_graph->m_resources[resId], valid);
+                    auto resBarrier = ToRhiResBarrier(compiledGraph.m_outputAliasedResourcesBarriers[passId][i],
+                        *compiledGraph.m_graph->m_resources[resId], valid);
                     outputAliasingBarriers.push_back(resBarrier);
                 }
                 i++;
@@ -408,10 +435,14 @@ namespace Ifrit::Core
             cmd->AddResourceBarrier(outputAliasingBarriers);
 
             // Execute the pass
-            pass.passFunction();
+            FrameGraphPassContext passContext;
+            passContext.m_CmdList = cmd;
+
+            pass->passFunction(passContext);
+
             // Update the resource state
             Vec<Graphics::Rhi::RhiResourceBarrier> barriers;
-            for (auto i = 0; auto& resId : pass.outputResources)
+            for (auto i = 0; auto& resId : pass->outputResources)
             {
                 auto srcState = compiledGraph.m_passResourceBarriers[passId][i].srcState;
                 auto dstState = compiledGraph.m_passResourceBarriers[passId][i].dstState;
@@ -426,8 +457,8 @@ namespace Ifrit::Core
                     throw std::runtime_error("Buggy design! Resource barrier can't be both transition and UAV");
                 }
                 bool valid      = false;
-                auto resBarrier = toRhiResBarrier(compiledGraph.m_passResourceBarriers[passId][i],
-                    compiledGraph.m_graph->m_resources[resId], valid);
+                auto resBarrier = ToRhiResBarrier(compiledGraph.m_passResourceBarriers[passId][i],
+                    *compiledGraph.m_graph->m_resources[resId], valid);
                 if (valid)
                     barriers.push_back(resBarrier);
                 i++;

@@ -56,8 +56,14 @@ namespace Ifrit::Core
         Graphics,
     };
 
-    struct ResourceNode
+    struct FrameGraphPassContext
     {
+        const Graphics::Rhi::RhiCommandList* m_CmdList;
+    };
+
+    struct IFRIT_APIDECL ResourceNode
+    {
+    private:
         ResourceNodeId         id;
         String                 name;
         bool                   isImported;
@@ -69,34 +75,54 @@ namespace Ifrit::Core
         FgTexture*             importedTexture;
 
         FgTextureSubResource   subResource;
-    };
-
-    struct PassNode
-    {
-        PassNodeId          id;
-        FrameGraphPassType  type;
-        String              name;
-        bool                isImported;
-        Fn<void()>          passFunction;
-        Vec<ResourceNodeId> inputResources;
-        Vec<ResourceNodeId> outputResources;
-        Vec<ResourceNodeId> dependentResources;
-    };
-
-    class IFRIT_APIDECL FrameGraph
-    {
-    private:
-        Vec<ResourceNode> m_resources;
-        Vec<PassNode>     m_passes;
 
     public:
-        ResourceNodeId AddResource(const String& name);
-        PassNodeId     AddPass(const String& name, FrameGraphPassType type, const Vec<ResourceNodeId>& inputs,
-                const Vec<ResourceNodeId>& outputs, const Vec<ResourceNodeId>& dependencies);
+        friend class FrameGraphCompiler;
+        friend class FrameGraphExecutor;
+        friend class FrameGraphBuilder;
+        friend struct PassNode;
 
-        void           SetImportedResource(ResourceNodeId id, FgBuffer* buffer);
-        void           SetImportedResource(ResourceNodeId id, FgTexture* texture, const FgTextureSubResource& subResource);
-        void           SetExecutionFunction(PassNodeId id, Fn<void()> func);
+    public:
+        ResourceNode& SetImportedResource(FgBuffer* buffer);
+        ResourceNode& SetImportedResource(FgTexture* texture, const FgTextureSubResource& subResource);
+    };
+
+    struct IFRIT_APIDECL PassNode
+    {
+    private:
+        PassNodeId                             id;
+        FrameGraphPassType                     type;
+        String                                 name;
+        bool                                   isImported;
+        Fn<void(const FrameGraphPassContext&)> passFunction;
+        Vec<ResourceNodeId>                    inputResources;
+        Vec<ResourceNodeId>                    outputResources;
+        Vec<ResourceNodeId>                    dependentResources;
+
+    public:
+        friend class FrameGraphCompiler;
+        friend class FrameGraphExecutor;
+        friend class FrameGraphBuilder;
+
+        PassNode& AddReadResource(const ResourceNode& res);
+        PassNode& AddWriteResource(const ResourceNode& res);
+        PassNode& SetExecutionFunction(Fn<void(const FrameGraphPassContext&)> func);
+
+        // Legacy Interface, should be removed in the future.
+        PassNode& AddDependentResource(const ResourceNode& res);
+    };
+
+    class IFRIT_APIDECL FrameGraphBuilder
+    {
+    private:
+        Vec<ResourceNode*> m_resources;
+        Vec<PassNode*>     m_passes;
+
+    public:
+        ~FrameGraphBuilder();
+
+        ResourceNode& AddResource(const String& name);
+        PassNode&     AddPass(const String& name, FrameGraphPassType type);
 
         friend class FrameGraphCompiler;
         friend class FrameGraphExecutor;
@@ -111,7 +137,7 @@ namespace Ifrit::Core
             Graphics::Rhi::RhiResourceState srcState;
             Graphics::Rhi::RhiResourceState dstState = Graphics::Rhi::RhiResourceState::Undefined;
         };
-        const FrameGraph*          m_graph                          = nullptr;
+        const FrameGraphBuilder*   m_graph                          = nullptr;
         Vec<u32>                   m_passTopoOrder                  = {};
         Vec<Vec<ResourceBarriers>> m_passResourceBarriers           = {};
         Vec<Vec<ResourceBarriers>> m_outputAliasedResourcesBarriers = {};
@@ -122,14 +148,16 @@ namespace Ifrit::Core
     {
     private:
     public:
-        CompiledFrameGraph Compile(const FrameGraph& graph);
+        CompiledFrameGraph Compile(const FrameGraphBuilder& graph);
     };
 
     class IFRIT_APIDECL FrameGraphExecutor
     {
-    private:
     public:
         void ExecuteInSingleCmd(const Graphics::Rhi::RhiCommandList* cmd, const CompiledFrameGraph& compiledGraph);
+
+    private:
+        Graphics::Rhi::RhiResourceBarrier ToRhiResBarrier(const CompiledFrameGraph::ResourceBarriers& barrier, const ResourceNode& res, bool& valid);
     };
 
 } // namespace Ifrit::Core

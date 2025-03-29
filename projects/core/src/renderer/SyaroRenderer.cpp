@@ -241,102 +241,6 @@ namespace Ifrit::Core
             m_deferredShadowPass->SetRenderTargetFormat(shadowRtCfg);
         }
 
-        // declare frame graph
-        FrameGraph                  fg;
-
-        std::vector<ResourceNodeId> resShadowMapTexs;
-        std::vector<u32>            shadowMapTexIds;
-        for (auto id = 0; auto& view : perframeData.m_views)
-        {
-            if (view.m_viewType == PerFrameData::ViewType::Shadow)
-            {
-                auto resId = fg.AddResource("ShadowMapTex" + std::to_string(id));
-                resShadowMapTexs.push_back(resId);
-                shadowMapTexIds.push_back(id);
-            }
-            id++;
-        }
-        auto                        resAtmosphereOutput = fg.AddResource("AtmosphereOutput");
-
-        auto                        resGbufferAlbedoMaterial   = fg.AddResource("GbufferAlbedoMaterial");
-        auto                        resGbufferNormalSmoothness = fg.AddResource("GbufferNormalSmoothness");
-        auto                        resGbufferSpecularAO       = fg.AddResource("GbufferSpecularAO");
-        auto                        resMotionDepth             = fg.AddResource("MotionDepth");
-
-        auto                        resDeferredShadowOutput            = fg.AddResource("DeferredShadowOutput");
-        auto                        resBlurredShadowIntermediateOutput = fg.AddResource("BlurredShadowIntermediateOutput");
-        auto                        resBlurredShadowOutput             = fg.AddResource("BlurredShadowOutput");
-
-        auto                        resPrimaryViewDepth      = fg.AddResource("PrimaryViewDepth");
-        auto                        resDeferredShadingOutput = fg.AddResource("DeferredShadingOutput");
-        auto                        resGlobalFogOutput       = fg.AddResource("GlobalFogOutput");
-        auto                        resTAAFrameOutput        = fg.AddResource("TAAFrameOutput");
-        auto                        resTAAHistoryOutput      = fg.AddResource("TAAHistoryOutput");
-        auto                        resFinalOutput           = fg.AddResource("FinalOutput");
-
-        auto                        resBloomOutput = fg.AddResource("BloomOutput");
-        auto                        resFsr2Output  = fg.AddResource("Fsr2Output");
-
-        std::vector<ResourceNodeId> resGbufferShadowReq = { resGbufferAlbedoMaterial, resGbufferNormalSmoothness,
-            resGbufferSpecularAO, resMotionDepth, resPrimaryViewDepth };
-        for (auto& x : resShadowMapTexs)
-        {
-            resGbufferShadowReq.push_back(x);
-        }
-
-        std::vector<ResourceNodeId> resGbuffer = resGbufferShadowReq;
-        resGbuffer.push_back(resBlurredShadowOutput);
-
-        // add passes
-        auto passAtmosphere =
-            fg.AddPass("Atmosphere", FrameGraphPassType::Graphics, { resPrimaryViewDepth }, { resAtmosphereOutput }, {});
-
-        auto       passDeferredShadow = fg.AddPass("DeferredShadow", FrameGraphPassType::Graphics, resGbufferShadowReq,
-                  { resDeferredShadowOutput }, { resAtmosphereOutput });
-
-        auto       passBlurShadowHori = fg.AddPass("BlurShadowHori", FrameGraphPassType::Graphics, { resDeferredShadowOutput },
-                  { resBlurredShadowIntermediateOutput }, {});
-
-        auto       passBlurShadowVert = fg.AddPass("BlurShadowVert", FrameGraphPassType::Graphics,
-                  { resBlurredShadowIntermediateOutput }, { resBlurredShadowOutput }, {});
-
-        auto       passDeferredShading = fg.AddPass("DeferredShading", FrameGraphPassType::Graphics, resGbuffer,
-                  { resDeferredShadingOutput }, { resAtmosphereOutput });
-        PassNodeId passGlobalFog;
-        PassNodeId passTAAResolve;
-        PassNodeId passConvBloom;
-        PassNodeId passFsr2Dispatch = 0;
-        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
-        {
-            passGlobalFog    = fg.AddPass("GlobalFog", FrameGraphPassType::Graphics,
-                   { resPrimaryViewDepth, resDeferredShadingOutput }, { resGlobalFogOutput }, {});
-            passConvBloom    = fg.AddPass("ConvBloom", FrameGraphPassType::Graphics, { resGlobalFogOutput }, { resBloomOutput }, {});
-            passFsr2Dispatch = fg.AddPass("FSR2Dispatch", FrameGraphPassType::Compute, { resBloomOutput }, { resFsr2Output }, {});
-        }
-        else if (m_config->m_antiAliasingType == AntiAliasingType::TAA)
-        {
-            passGlobalFog  = fg.AddPass("GlobalFog", FrameGraphPassType::Graphics,
-                 { resPrimaryViewDepth, resDeferredShadingOutput }, { resGlobalFogOutput }, {});
-            passTAAResolve = fg.AddPass("TAAResolve", FrameGraphPassType::Graphics, { resGlobalFogOutput },
-                { resTAAFrameOutput, resTAAHistoryOutput }, {});
-            passConvBloom  = fg.AddPass("ConvBloom", FrameGraphPassType::Graphics, { resTAAFrameOutput }, { resBloomOutput }, {});
-        }
-        else
-        {
-            passGlobalFog = fg.AddPass("GlobalFog", FrameGraphPassType::Graphics,
-                { resPrimaryViewDepth, resDeferredShadingOutput }, { resGlobalFogOutput }, {});
-            passConvBloom = fg.AddPass("ConvBloom", FrameGraphPassType::Graphics, { resGlobalFogOutput }, { resBloomOutput }, {});
-        }
-        PassNodeId passToneMapping;
-        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
-        {
-            passToneMapping = fg.AddPass("ToneMapping", FrameGraphPassType::Graphics, { resFsr2Output }, { resFinalOutput }, {});
-        }
-        else
-        {
-            passToneMapping = fg.AddPass("ToneMapping", FrameGraphPassType::Graphics, { resBloomOutput }, { resFinalOutput }, {});
-        }
-
         // binding resources to pass
         auto& primaryView  = GetPrimaryView(perframeData);
         auto  rhi          = m_app->GetRhi();
@@ -344,40 +248,198 @@ namespace Ifrit::Core
         auto  mainRtHeight = primaryView.m_renderHeight;
         CreatePostprocessTextures(mainRtWidth, mainRtHeight);
 
-        fg.SetImportedResource(resAtmosphereOutput, m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resGbufferAlbedoMaterial, perframeData.m_gbuffer.m_albedo_materialFlags.get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resGbufferNormalSmoothness, perframeData.m_gbuffer.m_normal_smoothness.get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resGbufferSpecularAO, perframeData.m_gbuffer.m_specular_occlusion.get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resMotionDepth, perframeData.m_velocityMaterial.get(), { 0, 0, 1, 1 });
-        for (auto i = 0; auto& x : resShadowMapTexs)
+        // declare frame graph
+        FrameGraphBuilder  fg;
+
+        Vec<ResourceNode*> resShadowMapTexs;
+        Vec<u32>           shadowMapTexIds;
+
+        for (auto id = 0; auto& view : perframeData.m_views)
         {
-            auto viewId = shadowMapTexIds[i];
-            fg.SetImportedResource(x, perframeData.m_views[viewId].m_visibilityDepth_Combined.get(), { 0, 0, 1, 1 });
-            i++;
+            if (view.m_viewType == PerFrameData::ViewType::Shadow)
+            {
+                auto& resId = fg.AddResource("ShadowMapTex" + std::to_string(id))
+                                  .SetImportedResource(view.m_visibilityDepth_Combined.get(), { 0, 0, 1, 1 });
+                resShadowMapTexs.push_back(&resId);
+                shadowMapTexIds.push_back(id);
+            }
+            id++;
         }
-        fg.SetImportedResource(resDeferredShadowOutput, perframeData.m_deferShadowMask.get(), { 0, 0, 1, 1 });
 
-        fg.SetImportedResource(resBlurredShadowIntermediateOutput, m_postprocTex[{ mainRtWidth, mainRtHeight }][1].get(),
-            { 0, 0, 1, 1 });
+        // Some Resources
+        auto& resAtmosphereOutput =
+            fg.AddResource("AtmosphereOutput")
+                .SetImportedResource(m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get(), { 0, 0, 1, 1 });
 
-        fg.SetImportedResource(resBlurredShadowOutput, perframeData.m_deferShadowMask.get(), { 0, 0, 1, 1 });
+        auto& resGbufferAlbedoMaterial =
+            fg.AddResource("GbufferAlbedoMaterial")
+                .SetImportedResource(perframeData.m_gbuffer.m_albedo_materialFlags.get(), { 0, 0, 1, 1 });
 
-        fg.SetImportedResource(resPrimaryViewDepth, primaryView.m_visibilityDepth_Combined.get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resDeferredShadingOutput, m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resGlobalFogOutput, perframeData.m_taaUnresolved.get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resTAAFrameOutput, m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resTAAHistoryOutput, perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(),
-            { 0, 0, 1, 1 });
-        fg.SetImportedResource(resBloomOutput, m_postprocTex[{ mainRtWidth, mainRtHeight }][1].get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resFinalOutput, renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
+        auto& resGbufferNormalSmoothness =
+            fg.AddResource("GbufferNormalSmoothness")
+                .SetImportedResource(perframeData.m_gbuffer.m_normal_smoothness.get(), { 0, 0, 1, 1 });
+
+        auto& resGbufferSpecularAO =
+            fg.AddResource("GbufferSpecularAO")
+                .SetImportedResource(perframeData.m_gbuffer.m_specular_occlusion.get(), { 0, 0, 1, 1 });
+
+        auto& resMotionDepth =
+            fg.AddResource("MotionDepth")
+                .SetImportedResource(perframeData.m_velocityMaterial.get(), { 0, 0, 1, 1 });
+
+        auto& resDeferredShadowOutput =
+            fg.AddResource("DeferredShadowOutput")
+                .SetImportedResource(perframeData.m_deferShadowMask.get(), { 0, 0, 1, 1 });
+
+        auto& resBlurredShadowIntermediateOutput =
+            fg.AddResource("BlurredShadowIntermediateOutput")
+                .SetImportedResource(m_postprocTex[{ mainRtWidth, mainRtHeight }][1].get(), { 0, 0, 1, 1 });
+
+        auto& resBlurredShadowOutput =
+            fg.AddResource("BlurredShadowOutput")
+                .SetImportedResource(perframeData.m_deferShadowMask.get(), { 0, 0, 1, 1 });
+
+        auto& resPrimaryViewDepth =
+            fg.AddResource("PrimaryViewDepth")
+                .SetImportedResource(primaryView.m_visibilityDepth_Combined.get(), { 0, 0, 1, 1 });
+
+        auto& resDeferredShadingOutput =
+            fg.AddResource("DeferredShadingOutput")
+                .SetImportedResource(m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get(), { 0, 0, 1, 1 });
+
+        auto& resGlobalFogOutput =
+            fg.AddResource("GlobalFogOutput")
+                .SetImportedResource(perframeData.m_taaUnresolved.get(), { 0, 0, 1, 1 });
+
+        auto& resTAAFrameOutput =
+            fg.AddResource("TAAFrameOutput")
+                .SetImportedResource(m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get(), { 0, 0, 1, 1 });
+
+        auto& resTAAHistoryOutput =
+            fg.AddResource("TAAHistoryOutput")
+                .SetImportedResource(perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(), { 0, 0, 1, 1 });
+
+        auto& resFinalOutput =
+            fg.AddResource("FinalOutput")
+                .SetImportedResource(renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
+
+        auto& resBloomOutput =
+            fg.AddResource("BloomOutput")
+                .SetImportedResource(m_postprocTex[{ mainRtWidth, mainRtHeight }][1].get(), { 0, 0, 1, 1 });
+
+        auto& resFsr2Output =
+            fg.AddResource("Fsr2Output");
+
+        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
+            resFsr2Output.SetImportedResource(perframeData.m_fsr2Data.m_fsr2Output.get(), { 0, 0, 1, 1 });
+
+        // PASS START!
+        auto& passAtmosphere =
+            fg.AddPass("Atmosphere", FrameGraphPassType::Graphics)
+                .AddReadResource(resPrimaryViewDepth)
+                .AddWriteResource(resAtmosphereOutput);
+
+        auto& passDeferredShadow = fg.AddPass("DeferredShadow", FrameGraphPassType::Graphics)
+                                       .AddReadResource(resGbufferAlbedoMaterial)
+                                       .AddReadResource(resGbufferNormalSmoothness)
+                                       .AddReadResource(resGbufferSpecularAO)
+                                       .AddReadResource(resMotionDepth)
+                                       .AddReadResource(resPrimaryViewDepth)
+                                       .AddWriteResource(resDeferredShadowOutput)
+                                       .AddDependentResource(resAtmosphereOutput);
+        for (auto& x : resShadowMapTexs)
+        {
+            passDeferredShadow.AddReadResource(*x);
+        }
+
+        auto& passBlurShadowHori = fg.AddPass("BlurShadowHori", FrameGraphPassType::Graphics)
+                                       .AddReadResource(resDeferredShadowOutput)
+                                       .AddWriteResource(resBlurredShadowIntermediateOutput);
+
+        auto& passBlurShadowVert = fg.AddPass("BlurShadowVert", FrameGraphPassType::Graphics)
+                                       .AddReadResource(resBlurredShadowIntermediateOutput)
+                                       .AddWriteResource(resBlurredShadowOutput);
+
+        auto& passDeferredShading = fg.AddPass("DeferredShading", FrameGraphPassType::Graphics)
+                                        .AddReadResource(resBlurredShadowOutput)
+                                        .AddReadResource(resGbufferAlbedoMaterial)
+                                        .AddReadResource(resGbufferNormalSmoothness)
+                                        .AddReadResource(resGbufferSpecularAO)
+                                        .AddReadResource(resMotionDepth)
+                                        .AddReadResource(resPrimaryViewDepth)
+                                        .AddWriteResource(resDeferredShadingOutput)
+                                        .AddDependentResource(resAtmosphereOutput);
+        for (auto& x : resShadowMapTexs)
+        {
+            passDeferredShading.AddReadResource(*x);
+        }
+
+        // Postprocesses
+        auto& passGlobalFog    = fg.AddPass("GlobalFog", FrameGraphPassType::Graphics);
+        auto& passTAAResolve   = fg.AddPass("TAAResolve", FrameGraphPassType::Graphics);
+        auto& passConvBloom    = fg.AddPass("ConvBloom", FrameGraphPassType::Graphics);
+        auto& passFsr2Dispatch = fg.AddPass("FSR2Dispatch", FrameGraphPassType::Compute);
+        auto& passToneMapping  = fg.AddPass("ToneMapping", FrameGraphPassType::Graphics);
 
         if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
         {
-            fg.SetImportedResource(resFsr2Output, perframeData.m_fsr2Data.m_fsr2Output.get(), { 0, 0, 1, 1 });
+            passGlobalFog.AddReadResource(resPrimaryViewDepth)
+                .AddReadResource(resDeferredShadingOutput)
+                .AddWriteResource(resGlobalFogOutput);
+
+            passConvBloom
+                .AddReadResource(resGlobalFogOutput)
+                .AddWriteResource(resBloomOutput);
+
+            passFsr2Dispatch
+                .AddReadResource(resBloomOutput)
+                .AddWriteResource(resFsr2Output);
+        }
+        else if (m_config->m_antiAliasingType == AntiAliasingType::TAA)
+        {
+            passGlobalFog
+                .AddReadResource(resPrimaryViewDepth)
+                .AddReadResource(resDeferredShadingOutput)
+                .AddWriteResource(resGlobalFogOutput);
+
+            passTAAResolve
+                .AddReadResource(resGlobalFogOutput)
+                .AddWriteResource(resTAAFrameOutput)
+                .AddWriteResource(resTAAHistoryOutput);
+
+            passConvBloom
+                .AddReadResource(resTAAFrameOutput)
+                .AddWriteResource(resBloomOutput);
+        }
+        else
+        {
+            passGlobalFog
+                .AddReadResource(resPrimaryViewDepth)
+                .AddReadResource(resDeferredShadingOutput)
+                .AddWriteResource(resGlobalFogOutput);
+
+            passConvBloom
+                .AddReadResource(resGlobalFogOutput)
+                .AddWriteResource(resBloomOutput);
         }
 
-        // setup execution function
-        fg.SetExecutionFunction(passAtmosphere, [&]() {
+        // Tonemapping
+        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
+        {
+            passToneMapping
+                .AddReadResource(resFsr2Output)
+                .AddWriteResource(resFinalOutput);
+        }
+        else
+        {
+            passToneMapping
+                .AddReadResource(resBloomOutput)
+                .AddWriteResource(resFinalOutput);
+        }
+
+        // Pass Exec
+        passAtmosphere.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+            auto commandList = data.m_CmdList;
             auto postprocId  = m_postprocTex[{ mainRtWidth, mainRtHeight }][0]->GetDescId();
             auto postprocTex = m_postprocTex[{ mainRtWidth, mainRtHeight }][0];
             auto atmoData    = m_atmosphereRenderer->GetResourceDesc(perframeData);
@@ -402,11 +464,13 @@ namespace Ifrit::Core
                 auto wgY = Math::DivRoundUp(primaryView.m_renderHeight, SyaroConfig::cAtmoRenderThreadGroupSizeY);
                 ctx->m_cmd->Dispatch(wgX, wgY, 1);
             });
-            cmd->BeginScope("Syaro: Atmosphere");
-            m_atmospherePass->Run(cmd, 0);
-            cmd->EndScope();
+            commandList->BeginScope("Syaro: Atmosphere");
+            m_atmospherePass->Run(commandList, 0);
+            commandList->EndScope();
         });
-        fg.SetExecutionFunction(passDeferredShadow, [&]() {
+
+        passDeferredShadow.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+            auto commandList = data.m_CmdList;
             struct DeferPushConst
             {
                 u32 shadowMapDataRef;
@@ -416,30 +480,30 @@ namespace Ifrit::Core
             pc.numShadowMaps    = perframeData.m_shadowData2.m_enabledShadowMaps;
             pc.shadowMapDataRef = perframeData.m_shadowData2.m_allShadowDataId->GetActiveId();
             pc.depthTexRef      = primaryView.m_visibilityDepthIdSRV_Combined->GetActiveId();
-            cmd->BeginScope("Syaro: Deferred Shadowing");
+            commandList->BeginScope("Syaro: Deferred Shadowing");
 
             auto targetRT = perframeData.m_deferShadowMaskRTs.get();
             RenderingUtil::EnqueueFullScreenPass(
-                cmd, rhi, m_deferredShadowPass, targetRT,
+                commandList, rhi, m_deferredShadowPass, targetRT,
                 { perframeData.m_gbufferDescFrag, perframeData.m_gbufferDepthDesc, primaryView.m_viewBindlessRef }, &pc, 3);
-            cmd->EndScope();
+            commandList->EndScope();
         });
 
-        fg.SetExecutionFunction(passBlurShadowHori, [&]() {
+        passBlurShadowHori.SetExecutionFunction([&](const FrameGraphPassContext& data) {
             auto postprocRTs   = m_postprocRTs[{ mainRtWidth, mainRtHeight }];
             auto postprocRT1   = postprocRTs[1];
             auto deferShadowId = perframeData.m_deferShadowMaskId.get();
-            m_gaussianHori->RenderPostFx(cmd, postprocRT1.get(), deferShadowId, 3);
+            m_gaussianHori->RenderPostFx(data.m_CmdList, postprocRT1.get(), deferShadowId, 3);
         });
 
-        fg.SetExecutionFunction(passBlurShadowVert, [&]() {
+        passBlurShadowVert.SetExecutionFunction([&](const FrameGraphPassContext& data) {
             auto postprocId = m_postprocTexSRV[{ mainRtWidth, mainRtHeight }][1];
-            m_gaussianVert->RenderPostFx(cmd, perframeData.m_deferShadowMaskRTs.get(), postprocId.get(), 3);
+            m_gaussianVert->RenderPostFx(data.m_CmdList, perframeData.m_deferShadowMaskRTs.get(), postprocId.get(), 3);
         });
 
-        fg.SetExecutionFunction(passDeferredShading, [&]() {
+        passDeferredShading.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+            auto commandList = data.m_CmdList;
             SetupDeferredShadingPass(renderTargets);
-
             auto                      postprocRTs = m_postprocRTs[{ mainRtWidth, mainRtHeight }];
             auto                      postprocRT0 = postprocRTs[0];
             auto                      curRT       = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_rts;
@@ -461,23 +525,25 @@ namespace Ifrit::Core
             pc.shadowMapDataRef = perframeData.m_shadowData2.m_allShadowDataId->GetActiveId();
             pc.depthTexRef      = primaryView.m_visibilityDepthIdSRV_Combined->GetActiveId();
             pc.shadowTexRef     = perframeData.m_deferShadowMaskId->GetActiveId();
-            cmd->BeginScope("Syaro: Deferred Shading");
+            commandList->BeginScope("Syaro: Deferred Shading");
             RenderingUtil::EnqueueFullScreenPass(
-                cmd, rhi, pass, postprocRT0.get(),
+                commandList, rhi, pass, postprocRT0.get(),
                 { perframeData.m_gbufferDescFrag, perframeData.m_gbufferDepthDesc, primaryView.m_viewBindlessRef }, &pc, 8);
-            cmd->EndScope();
+            commandList->EndScope();
         });
-        fg.SetExecutionFunction(passGlobalFog, [&]() {
+
+        passGlobalFog.SetExecutionFunction([&](const FrameGraphPassContext& data) {
             auto fogRT         = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_rts;
             auto inputId       = m_postprocTexSRV[{ mainRtWidth, mainRtHeight }][0].get();
             auto inputDepthId  = primaryView.m_visibilityDepthIdSRV_Combined.get();
             auto primaryViewId = primaryView.m_viewBufferId.get();
-            m_globalFogPass->RenderPostFx(cmd, fogRT.get(), inputId, inputDepthId, primaryViewId);
+            m_globalFogPass->RenderPostFx(data.m_CmdList, fogRT.get(), inputId, inputDepthId, primaryViewId);
         });
 
         if (m_config->m_antiAliasingType == AntiAliasingType::TAA)
         {
-            fg.SetExecutionFunction(passTAAResolve, [&]() {
+            passTAAResolve.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+                auto commandList     = data.m_CmdList;
                 auto taaRT           = rhi->CreateRenderTargets();
                 auto taaCurTarget    = rhi->CreateRenderTarget(perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(),
                        {}, RhiRenderTargetLoadOp::Clear, 0, 0);
@@ -501,43 +567,46 @@ namespace Ifrit::Core
                     jitterX,
                     jitterY,
                 };
-                cmd->BeginScope("Syaro: TAA Resolve");
-                RenderingUtil::EnqueueFullScreenPass(cmd, rhi, pass, taaRT.get(),
+                commandList->BeginScope("Syaro: TAA Resolve");
+                RenderingUtil::EnqueueFullScreenPass(commandList, rhi, pass, taaRT.get(),
                     { perframeData.m_taaHistoryDesc, perframeData.m_gbufferDepthDesc }, pconst, 3);
-                cmd->EndScope();
+                commandList->EndScope();
             });
-            fg.SetExecutionFunction(passConvBloom, [&]() {
-                cmd->BeginScope("Syaro: Convolution Bloom");
+
+            passConvBloom.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+                auto commandList = data.m_CmdList;
+                commandList->BeginScope("Syaro: Convolution Bloom");
                 auto width          = mainRtWidth;
                 auto height         = mainRtHeight;
                 auto postprocTex0Id = m_postprocTexSRV[{ width, height }][0].get();
                 auto postprocTex1Id = m_postprocTex[{ width, height }][1]->GetDescId();
-                m_fftConv2d->RenderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr, width, height, 51, 51, 4);
-                cmd->EndScope();
+                m_fftConv2d->RenderPostFx(commandList, postprocTex0Id, postprocTex1Id, nullptr, width, height, 51, 51, 4);
+                commandList->EndScope();
             });
         }
         else
         {
-            fg.SetExecutionFunction(passConvBloom, [&]() {
-                cmd->BeginScope("Syaro: Convolution Bloom");
+            passTAAResolve.SetExecutionFunction([&](const FrameGraphPassContext& data) {});
+            passConvBloom.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+                auto commandList = data.m_CmdList;
+                commandList->BeginScope("Syaro: Convolution Bloom");
                 auto width          = mainRtWidth;
                 auto height         = mainRtHeight;
                 auto postprocTex0Id = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRTIdSRV.get();
                 auto postprocTex1Id = m_postprocTex[{ width, height }][1]->GetDescId();
-                m_fftConv2d->RenderPostFx(cmd, postprocTex0Id, postprocTex1Id, nullptr, width, height, 51, 51, 4);
-                cmd->EndScope();
+                m_fftConv2d->RenderPostFx(commandList, postprocTex0Id, postprocTex1Id, nullptr, width, height, 51, 51, 4);
+                commandList->EndScope();
             });
         }
 
-        // TODO, place fsr2 here
         if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
         {
-            fg.SetExecutionFunction(passFsr2Dispatch, [&]() {
-                cmd->BeginScope("Syaro: FSR2 Dispatch");
-                auto                                     color  = m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get();
-                auto                                     depth  = primaryView.m_visibilityDepth_Combined.get();
-                auto                                     motion = perframeData.m_motionVector.get();
-
+            passFsr2Dispatch.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+                auto commandList = data.m_CmdList;
+                commandList->BeginScope("Syaro: FSR2 Dispatch");
+                auto                                     color    = m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get();
+                auto                                     depth    = primaryView.m_visibilityDepth_Combined.get();
+                auto                                     motion   = perframeData.m_motionVector.get();
                 auto                                     mainView = GetPrimaryView(perframeData);
                 Graphics::Rhi::FSR2::RhiFSR2DispatchArgs args;
                 args.camFar  = mainView.m_viewData.m_cameraFar;
@@ -570,13 +639,15 @@ namespace Ifrit::Core
                     throw std::runtime_error("FSR2 output is null");
                 }
 
-                cmd->BeginScope("Syaro: FSR2 Dispatch, Impl");
-                m_fsr2proc->Dispatch(cmd, args);
-                cmd->EndScope();
-                cmd->EndScope();
-
-                // make output transist to render target
+                commandList->BeginScope("Syaro: FSR2 Dispatch, Impl");
+                m_fsr2proc->Dispatch(commandList, args);
+                commandList->EndScope();
+                commandList->EndScope();
             });
+        }
+        else
+        {
+            passFsr2Dispatch.SetExecutionFunction([&](const FrameGraphPassContext& data) {});
         }
 
         if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
@@ -585,14 +656,14 @@ namespace Ifrit::Core
             auto width      = renderArea.width;
             auto height     = renderArea.height;
 
-            fg.SetExecutionFunction(passToneMapping, [&]() {
-                m_acesToneMapping->RenderPostFx(cmd, renderTargets, perframeData.m_fsr2Data.m_fsr2OutputSRVId.get());
+            passToneMapping.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+                m_acesToneMapping->RenderPostFx(data.m_CmdList, renderTargets, perframeData.m_fsr2Data.m_fsr2OutputSRVId.get());
             });
         }
         else
         {
-            fg.SetExecutionFunction(passToneMapping, [&]() {
-                m_acesToneMapping->RenderPostFx(cmd, renderTargets, m_postprocTexSRV[{ mainRtWidth, mainRtHeight }][0].get());
+            passToneMapping.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+                m_acesToneMapping->RenderPostFx(data.m_CmdList, renderTargets, m_postprocTexSRV[{ mainRtWidth, mainRtHeight }][0].get());
             });
         }
 

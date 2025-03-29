@@ -95,50 +95,66 @@ namespace Ifrit::Core
     IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(PerFrameData& perframe, RenderTargets* renderTargets,
         const GPUCmdBuffer* cmd)
     {
-        FrameGraph fg;
+        FrameGraphBuilder fg;
 
-        auto       rtWidth  = renderTargets->GetRenderArea().width;
-        auto       rtHeight = renderTargets->GetRenderArea().height;
+        auto              rtWidth  = renderTargets->GetRenderArea().width;
+        auto              rtHeight = renderTargets->GetRenderArea().height;
 
-        auto       rhi = m_app->GetRhi();
+        auto              rhi = m_app->GetRhi();
 
-        auto       resRaymarchOutput = fg.AddResource("RaymarchOutput");
-        auto       resGlobalDFGen    = fg.AddResource("GlobalDFGen");
-        auto       resRenderTargets  = fg.AddResource("RenderTargets");
+        auto&             resRaymarchOutput =
+            fg.AddResource("RaymarchOutput")
+                .SetImportedResource(m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
+        auto& resGlobalDFGen = fg.AddResource("GlobalDFGen")
+                                   .SetImportedResource(m_globalDF->GetClipmapVolume(0).get(), { 0, 0, 1, 1 });
+        auto& resRenderTargets = fg.AddResource("RenderTargets")
+                                     .SetImportedResource(renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
 
-        PassNodeId passGlobalDFGen;
-        PassNodeId passRaymarch;
-        PassNodeId passDebug;
+        auto& passGlobalDFGen = fg.AddPass("GlobalDFGen", FrameGraphPassType::Compute);
+        auto& passRaymarch    = fg.AddPass("RaymarchPass", FrameGraphPassType::Compute);
+        auto& passDebug       = fg.AddPass("DebugPass", FrameGraphPassType::Graphics);
 
         if (!m_resources->m_inited)
         {
-            passGlobalDFGen = fg.AddPass("GlobalDFGen", FrameGraphPassType::Compute, {}, { resGlobalDFGen }, {});
-            passRaymarch    = fg.AddPass("RaymarchPass", FrameGraphPassType::Compute, { resGlobalDFGen }, { resRaymarchOutput }, {});
-            passDebug       = fg.AddPass("DebugPass", FrameGraphPassType::Graphics, { resRaymarchOutput }, { resRenderTargets }, {});
+            passGlobalDFGen
+                .AddWriteResource(resGlobalDFGen);
+
+            passRaymarch
+                .AddReadResource(resGlobalDFGen)
+                .AddWriteResource(resRaymarchOutput);
+
+            passDebug
+                .AddReadResource(resRaymarchOutput)
+                .AddWriteResource(resRenderTargets);
         }
         else
         {
-            passRaymarch = fg.AddPass("RaymarchPass", FrameGraphPassType::Compute, {}, { resRaymarchOutput }, {});
-            passDebug    = fg.AddPass("DebugPass", FrameGraphPassType::Graphics, { resRaymarchOutput }, { resRenderTargets }, {});
-        }
+            passRaymarch
+                .AddReadResource(resGlobalDFGen)
+                .AddWriteResource(resRaymarchOutput);
 
-        fg.SetImportedResource(resRaymarchOutput, m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resGlobalDFGen, m_globalDF->GetClipmapVolume(0).get(), { 0, 0, 1, 1 });
-        fg.SetImportedResource(resRenderTargets, renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
+            passGlobalDFGen
+                .AddReadResource(resRaymarchOutput)
+                .AddWriteResource(resGlobalDFGen);
+        }
 
         if (!m_resources->m_inited)
         {
-            fg.SetExecutionFunction(passGlobalDFGen, [&]() {
-                m_globalDF->AddClipmapUpdate(cmd, 0, perframe.m_views[0].m_viewBufferId->GetActiveId(),
+            passGlobalDFGen.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+                m_globalDF->AddClipmapUpdate(data.m_CmdList, 0, perframe.m_views[0].m_viewBufferId->GetActiveId(),
                     m_resources->m_sceneAggregator->GetNumGatheredInstances(),
                     m_resources->m_sceneAggregator->GetGatheredBufferId());
             });
         }
+        else
+        {
+            passGlobalDFGen.SetExecutionFunction([&](const FrameGraphPassContext& data) {});
+        }
 
-        fg.SetExecutionFunction(passRaymarch, [&]() {
+        passRaymarch.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+            auto commandList = data.m_CmdList;
             if (m_resources->m_debugShowMeshDF)
             {
-
                 struct RayMarchPc
                 {
                     u32 perframeId;
@@ -156,32 +172,34 @@ namespace Ifrit::Core
                 pc.perframeId = perframe.m_views[0].m_viewBufferId->GetActiveId();
 
                 m_resources->m_raymarchPass->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
-                    cmd->SetPushConst(m_resources->m_raymarchPass, 0, sizeof(RayMarchPc), &pc);
-                    cmd->Dispatch(Math::DivRoundUp(rtWidth, 8), Math::DivRoundUp(rtHeight, 8), 1);
+                    commandList->SetPushConst(m_resources->m_raymarchPass, 0, sizeof(RayMarchPc), &pc);
+                    commandList->Dispatch(Math::DivRoundUp(rtWidth, 8), Math::DivRoundUp(rtHeight, 8), 1);
                 });
-                m_resources->m_raymarchPass->Run(cmd, 0);
+                m_resources->m_raymarchPass->Run(commandList, 0);
             }
             else
             {
-                m_globalDF->AddRayMarchPass(cmd, 0, perframe.m_views[0].m_viewBufferId->GetActiveId(),
+                m_globalDF->AddRayMarchPass(commandList, 0, perframe.m_views[0].m_viewBufferId->GetActiveId(),
                     m_resources->m_raymarchOutput->GetDescId(), { rtWidth, rtHeight });
             }
         });
 
-        fg.SetExecutionFunction(passDebug, [&]() {
+        passDebug.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+            auto commandList = data.m_CmdList;
             struct DispPc
             {
                 u32 raymarchOutput;
             } pc;
             pc.raymarchOutput = m_resources->m_raymarchOutputSRVBindId->GetActiveId();
-            EnqueueFullScreenPass(cmd, rhi, m_resources->m_debugPass, renderTargets, {}, &pc, 1);
+            EnqueueFullScreenPass(commandList, rhi, m_resources->m_debugPass, renderTargets, {}, &pc, 1);
         });
+
         auto compiledFg = m_resources->m_fgCompiler.Compile(fg);
         m_resources->m_fgExecutor.ExecuteInSingleCmd(cmd, compiledFg);
         m_resources->m_inited = true;
     }
 
-    IFRIT_APIDECL std::unique_ptr<AyanamiRenderer::GPUCommandSubmission>
+    IFRIT_APIDECL Uref<AyanamiRenderer::GPUCommandSubmission>
                   AyanamiRenderer::Render(Scene* scene, Camera* camera, RenderTargets* renderTargets, const RendererConfig& config,
                       const std::vector<GPUCommandSubmission*>& cmdToWait)
     {
