@@ -72,9 +72,12 @@ namespace Ifrit::Core
 
         // Num meshlets in each lod
         Vec<u32>                                        m_numMeshletsEachLod;
-
         GPUCPCounter                                    m_cpCounter;
         u32                                             m_maxLod;
+
+        // Some static data
+        Vector3f                                        m_BoundingBoxMin;
+        Vector3f                                        m_BoundingBoxMax;
 
         IFRIT_STRUCT_SERIALIZE(m_vertices, m_normals, m_uvs, m_tangents, m_indices);
     };
@@ -108,7 +111,7 @@ namespace Ifrit::Core
             u32      meshletInClusterBufferId;
             u32      cpCounterBufferId;
             u32      materialDataId;
-            u32      pad2;
+            u32      indexBufferId;
             u32      pad3;
         };
 
@@ -127,6 +130,7 @@ namespace Ifrit::Core
             GPUBuffer       cpCounterBuffer        = nullptr;
             GPUBuffer       materialDataBuffer     = nullptr; // currently, opaque is used to hold material data
             GPUBuffer       tangentBuffer          = nullptr;
+            GPUBuffer       indexBuffer            = nullptr;
 
             GPUObjectBuffer objectData;
             GPUBuffer       objectBuffer = nullptr;
@@ -159,6 +163,7 @@ namespace Ifrit::Core
             m_resource.cpCounterBuffer        = resource.cpCounterBuffer;
             m_resource.materialDataBuffer     = resource.materialDataBuffer;
             m_resource.tangentBuffer          = resource.tangentBuffer;
+            m_resource.indexBuffer            = resource.indexBuffer;
 
             m_resource.objectBuffer = resource.objectBuffer;
             m_resource.objectData   = resource.objectData;
@@ -178,6 +183,7 @@ namespace Ifrit::Core
             resource.cpCounterBuffer        = m_resource.cpCounterBuffer;
             resource.materialDataBuffer     = m_resource.materialDataBuffer;
             resource.tangentBuffer          = m_resource.tangentBuffer;
+            resource.indexBuffer            = m_resource.indexBuffer;
 
             resource.objectBuffer = m_resource.objectBuffer;
             resource.objectData   = m_resource.objectData;
@@ -282,7 +288,7 @@ namespace Ifrit::Core
     class MeshRenderer : public Component
     {
     private:
-        Ref<Material>  m_material;
+        Ref<Material>  m_material = nullptr;
         AssetReference m_materialReference;
 
     public:

@@ -48,6 +48,7 @@ namespace Ifrit::Graphics::Rhi
         virtual void SetViewports(const Vec<RhiViewport>& viewport) const                                                             = 0;
         virtual void SetScissors(const Vec<RhiScissor>& scissor) const                                                                = 0;
         virtual void DrawMeshTasksIndirect(const RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const                      = 0;
+        virtual void DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const    = 0;
 
         // Clear UAV storage buffer, considered as a transfer operation, typically
         // need a barrier for sync.
@@ -56,6 +57,7 @@ namespace Ifrit::Graphics::Rhi
         virtual void AttachBindlessRefCompute(RhiComputePass* pass, u32 setId, RhiBindlessDescriptorRef* ref) const                        = 0;
         virtual void AttachVertexBufferView(const RhiVertexBufferView& view) const                                                         = 0;
         virtual void AttachVertexBuffers(u32 firstSlot, const Vec<RhiBuffer*>& buffers) const                                              = 0;
+        virtual void AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const                                                                 = 0;
         virtual void DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const                           = 0;
         virtual void DispatchIndirect(const RhiBuffer* buffer, u32 offset) const                                                           = 0;
         virtual void SetPushConst(RhiComputePass* pass, u32 offset, u32 size, const void* data) const                                      = 0;

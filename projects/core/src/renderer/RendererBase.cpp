@@ -712,6 +712,8 @@ namespace Ifrit::Core
                         rhi->CreateBufferDevice("Mesh_CpCounter", SizeCast<u32>(sizeof(MeshData::GPUCPCounter)), tmpUsage, true);
                     meshResource.tangentBuffer = rhi->CreateBufferDevice(
                         "Mesh_Tangent", SizeCast<u32>(sizeof(Vector4f) * meshDataRef->m_tangents.size()), tmpUsage, true);
+                    meshResource.indexBuffer = rhi->CreateBufferDevice(
+                        "Mesh_Index", SizeCast<u32>(sizeof(u32) * meshDataRef->m_indices.size()), tmpUsage, true);
 
                     auto  materialDataSize = 0;
                     auto& materialRef      = shaderEffect.m_materials[i];
@@ -751,6 +753,7 @@ namespace Ifrit::Core
                     objectBuffer.boundingSphere           = mesh->GetBoundingSphere(meshDataRef->m_vertices);
                     objectBuffer.materialDataId           = haveMaterialData ? meshResource.materialDataBuffer->GetDescId() : 0;
                     objectBuffer.tangentBufferId          = meshResource.tangentBuffer->GetDescId();
+                    objectBuffer.indexBufferId            = meshResource.indexBuffer->GetDescId();
 
                     // description for the whole mesh
                     meshResource.objectBuffer =
@@ -809,6 +812,7 @@ namespace Ifrit::Core
                     enqueueStagedBuffer(normalBuffer, m_normalsAligned);
                     enqueueStagedBuffer(uvBuffer, m_uvs);
                     enqueueStagedBuffer(tangentBuffer, m_tangents);
+                    enqueueStagedBuffer(indexBuffer, m_indices);
                     enqueueStagedBuffer(bvhNodeBuffer, m_bvhNodes);
                     enqueueStagedBuffer(clusterGroupBuffer, m_clusterGroups);
                     enqueueStagedBuffer(meshletBuffer, m_meshlets);

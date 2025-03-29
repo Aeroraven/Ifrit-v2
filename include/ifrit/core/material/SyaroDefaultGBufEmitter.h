@@ -27,5 +27,7 @@ namespace Ifrit::Core
 
         inline void SetAlbedoId(u32 id) { m_materialData.m_albedoId = id; }
         inline void SetNormalMapId(u32 id) { m_materialData.m_normalMapId = id; }
+        inline u32  GetAlbedoId() const { return m_materialData.m_albedoId; }
+        inline u32  GetNormalMapId() const { return m_materialData.m_normalMapId; }
     };
 } // namespace Ifrit::Core

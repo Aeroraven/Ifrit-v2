@@ -142,14 +142,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         void                   AddPipelineBarrier(const PipelineBarrier& barrier) const;
 
         void                   Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const;
-
         void                   DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const;
-
-        void                   DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const;
+        void                   DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const override;
 
         void                   CopyBuffer(const Rhi::RhiBuffer* srcBuffer, const Rhi::RhiBuffer* dstBuffer, u32 size, u32 srcOffset = 0,
                               u32 dstOffset = 0) const;
-
         void                   CopyBufferToImageAllInternal(const Rhi::RhiBuffer* srcBuffer, VkImage dstImage, VkImageLayout dstLayout,
                               u32 width, u32 height, u32 depth) const;
 
@@ -166,6 +163,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         void                   AttachBindlessRefCompute(Rhi::RhiComputePass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const override;
         void                   AttachVertexBufferView(const Rhi::RhiVertexBufferView& view) const override;
         void                   AttachVertexBuffers(u32 firstSlot, const Vec<Rhi::RhiBuffer*>& buffers) const override;
+        void                   AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const override;
         void                   DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const override;
         void                   BufferClear(const Rhi::RhiBuffer* buffer, u32 val) const override;
         void                   DispatchIndirect(const Rhi::RhiBuffer* buffer, u32 offset) const override;

@@ -201,7 +201,7 @@ namespace Ifrit::Core
 
     IFRIT_APIDECL Uref<AyanamiRenderer::GPUCommandSubmission>
                   AyanamiRenderer::Render(Scene* scene, Camera* camera, RenderTargets* renderTargets, const RendererConfig& config,
-                      const std::vector<GPUCommandSubmission*>& cmdToWait)
+                      const Vec<GPUCommandSubmission*>& cmdToWait)
     {
         if (m_perScenePerframe.count(scene) == 0)
         {

@@ -170,10 +170,20 @@ namespace Ifrit::Core
         m_selfData->m_indices.resize(accessorIndices.count);
         m_selfData->m_tangents.resize(accessorTangent.count);
 
+        Vector3f maxPos = { -1e10f, -1e10f, -1e10f };
+        Vector3f minPos = { 1e10f, 1e10f, 1e10f };
+
         for (auto i = 0; i < accessorPos.count; i++)
         {
             m_selfData->m_vertices[i]        = { posData[i * 3], posData[i * 3 + 1], posData[i * 3 + 2] };
             m_selfData->m_verticesAligned[i] = { posData[i * 3], posData[i * 3 + 1], posData[i * 3 + 2], 1.0f };
+
+            maxPos.x = std::max(maxPos.x, m_selfData->m_vertices[i].x);
+            maxPos.y = std::max(maxPos.y, m_selfData->m_vertices[i].y);
+            maxPos.z = std::max(maxPos.z, m_selfData->m_vertices[i].z);
+            minPos.x = std::min(minPos.x, m_selfData->m_vertices[i].x);
+            minPos.y = std::min(minPos.y, m_selfData->m_vertices[i].y);
+            minPos.z = std::min(minPos.z, m_selfData->m_vertices[i].z);
         }
         for (auto i = 0; i < accessorNormal.count; i++)
         {
@@ -209,6 +219,9 @@ namespace Ifrit::Core
         {
             iError("GLTFMesh: index component type not supported");
         }
+        m_selfData->m_BoundingBoxMax = maxPos;
+        m_selfData->m_BoundingBoxMin = minPos;
+
         this->CreateMeshLodHierarchy(m_selfData, m_cachePath);
         m_loaded      = true;
         m_selfDataRaw = m_selfData.get();

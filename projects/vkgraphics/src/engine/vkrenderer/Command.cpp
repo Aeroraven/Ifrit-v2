@@ -407,6 +407,12 @@ namespace Ifrit::Graphics::VulkanGraphics
             offsets.data());
     }
 
+    IFRIT_APIDECL void CommandBuffer::AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const
+    {
+        auto buf = CheckedCast<SingleBuffer>(buffer)->GetBuffer();
+        vkCmdBindIndexBuffer(m_commandBuffer, buf, 0, VK_INDEX_TYPE_UINT32);
+    }
+
     IFRIT_APIDECL void CommandBuffer::DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex,
         u32 firstInstance) const
     {

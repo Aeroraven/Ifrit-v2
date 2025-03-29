@@ -57,7 +57,7 @@ namespace Ifrit::Graphics::Rhi
 
     class IFRIT_APIDECL RhiVertexBufferView
     {
-    protected:
+    public:
         virtual void AddBinding(Vec<u32> location, Vec<RhiImageFormat> format, Vec<u32> offset, u32 stride,
             RhiVertexInputRate inputRate = RhiVertexInputRate::Vertex) = 0;
     };

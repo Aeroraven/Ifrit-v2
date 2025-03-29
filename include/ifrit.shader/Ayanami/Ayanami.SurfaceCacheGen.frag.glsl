@@ -16,16 +16,5 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#pragma once
-#include "ifrit/common/base/IfritBase.h"
-
-namespace Ifrit::Core::Ayanami
-{
-    struct AyanamiRenderConfig
-    {
-        u32 m_globalDFClipmapLevels     = 4;
-        u32 m_globalDFClipmapResolution = 256;   // 16MB per clipmap level
-        f32 m_globalDFBaseExtent        = 20.0f; // 2500.0 in the original code
-        u32 m_surfaceCacheResolution    = 8192;
-    };
-} // namespace Ifrit::Core::Ayanami
+#version 450
+#extension GL_GOOGLE_include_directive : require
