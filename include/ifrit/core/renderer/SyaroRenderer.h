@@ -36,11 +36,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Core
 {
 
-    enum class SyaroRenderRole
+    enum SyaroRenderRole
     {
-        FullProcess,
-        DeferredGbuffer,
-        ShadowPass
+        Shading     = 0x1,
+        GBuffer     = 0x2,
+        Shadowing   = 0x4,
+        FullProcess = Shading | GBuffer | Shadowing,
     };
 
     class IFRIT_APIDECL SyaroRenderer : public RendererBase
@@ -71,7 +72,7 @@ namespace Ifrit::Core
         using PerViewData = PerFrameData::PerViewData;
 
         // Renderer Role
-        SyaroRenderRole                                   m_renderRole = SyaroRenderRole::FullProcess;
+        u32                                               m_renderRole = SyaroRenderRole::FullProcess;
 
         // Base
         ComputePass*                                      m_persistentCullingPass = nullptr;
@@ -229,7 +230,7 @@ namespace Ifrit::Core
 
             m_aoPass = std::make_shared<AmbientOcclusionPass>(app);
         }
-        inline void                        SetRenderRole(SyaroRenderRole role) { m_renderRole = role; }
+        inline void                        SetRenderRole(u32 role) { m_renderRole = role; }
         virtual Uref<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
             const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait) override;
     };

@@ -44,6 +44,9 @@ namespace Ifrit::Core::Ayanami::Config
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFCompositeTileSize, 8);
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFRayMarchTileSize, 16);
 
+    AYANAMI_DEFINE_UINT(kAyanamiRadianceInjectionObjectsPerBlock, 8);
+    AYANAMI_DEFINE_UINT(kAyanamiRadianceInjectionCardSizePerBlock, 8);
+
 #ifdef __cplusplus
 } // namespace Ifrit::Core::AYANAMI
     #undef AYANAMI_DEFINE_UINT

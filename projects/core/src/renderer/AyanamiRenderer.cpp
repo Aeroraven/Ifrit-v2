@@ -229,18 +229,20 @@ namespace Ifrit::Core
         PrepareImmutableResources();
         PrepareResources(renderTargets, config);
 
-        SceneCollectConfig sceneConfig;
-        sceneConfig.projectionTranslateX = 0;
-        sceneConfig.projectionTranslateY = 0;
-        CollectPerframeData(perframeData, scene, camera, GraphicsShaderPassType::Opaque, renderTargets, sceneConfig);
-        PrepareDeviceResources(perframeData, renderTargets);
+        // Simply launch syaro's rendering for Gbuffer and shadowing
+        // Now only directional light is considered, so no light culling is required
+        auto vgTaskTimestamp = m_vgRenderer->Render(scene, camera, renderTargets, config, cmdToWait);
+
+        // Start the main process
         m_resources->m_sceneAggregator->CollectScene(scene);
         m_resources->m_surfaceCacheManager->UpdateSceneCache(scene);
+        auto rhi = m_app->GetRhi();
+        auto dq  = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
 
-        auto rhi  = m_app->GetRhi();
-        auto dq   = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
         auto task = dq->RunAsyncCommand(
-            [&](const GPUCmdBuffer* cmd) { SetupAndRunFrameGraph(perframeData, renderTargets, cmd); }, cmdToWait, {});
+            [&](const GPUCmdBuffer* cmd) { SetupAndRunFrameGraph(perframeData, renderTargets, cmd); },
+            { vgTaskTimestamp.get() }, {});
+
         return task;
     }
 

@@ -84,7 +84,7 @@ void main(){
     int tY = int(gl_GlobalInvocationID.y);
     if(tX >= pc.m_RtW || tY >= pc.m_RtH) return;
 
-    float ndcX = (2.0 * (float(tX)+0.5) / float(pc.m_RtW) - 1.0) * aspect;
+    float ndcX = -(2.0 * (float(tX)+0.5) / float(pc.m_RtW) - 1.0) * aspect;
     float ndcY = 1.0 - 2.0 * (float(tY)+0.5) / float(pc.m_RtH);
     float tanFov = tan(fov * 0.5);
     vec3 rayDir = normalize(vec3(ndcX * tanFov, ndcY * tanFov, 1.0));

@@ -2021,47 +2021,52 @@ namespace Ifrit::Core
                 for (u32 i = 0; i < perframeData.m_views.size(); i++)
                 {
                     if (perframeData.m_views[i].m_viewType == PerFrameData::ViewType::Shadow
-                        && m_config->m_visualizationType == RendererVisualizationType::Default
-                        && m_renderRole == SyaroRenderRole::FullProcess)
+                        && m_config->m_visualizationType == RendererVisualizationType::Default)
                     {
-                        cmd->BeginScope("Syaro: Draw Call, Shadow View");
-                        cmd->GlobalMemoryBarrier();
-                        auto& perView = perframeData.m_views[i];
-                        RenderTwoPassOcclCulling(
-                            CullingPass::First, perframeData, renderTargets, cmd, PerFrameData::ViewType::Shadow, i);
-                        RenderTwoPassOcclCulling(
-                            CullingPass::Second, perframeData, renderTargets, cmd, PerFrameData::ViewType::Shadow, i);
-                        cmd->EndScope();
+                        if ((m_renderRole & SyaroRenderRole::Shadowing))
+                        {
+                            cmd->BeginScope("Syaro: Draw Call, Shadow View");
+                            cmd->GlobalMemoryBarrier();
+                            auto& perView = perframeData.m_views[i];
+                            RenderTwoPassOcclCulling(CullingPass::First, perframeData, renderTargets, cmd,
+                                PerFrameData::ViewType::Shadow, i);
+                            RenderTwoPassOcclCulling(CullingPass::Second, perframeData, renderTargets, cmd,
+                                PerFrameData::ViewType::Shadow, i);
+                            cmd->EndScope();
+                        }
                     }
                     else if (perframeData.m_views[i].m_viewType == PerFrameData::ViewType::Primary)
                     {
-                        cmd->BeginScope("Syaro: Draw Call, Main View");
-                        RenderTwoPassOcclCulling(
-                            CullingPass::First, perframeData, renderTargets, cmd, PerFrameData::ViewType::Primary, ~0u);
-                        RenderTwoPassOcclCulling(CullingPass::Second, perframeData, renderTargets, cmd,
-                            PerFrameData::ViewType::Primary, ~0u);
-                        cmd->GlobalMemoryBarrier();
-                        if (m_config->m_visualizationType != RendererVisualizationType::Default)
+                        if ((m_renderRole & SyaroRenderRole::GBuffer))
                         {
-                            return;
+                            cmd->BeginScope("Syaro: Draw Call, Main View");
+                            RenderTwoPassOcclCulling(CullingPass::First, perframeData, renderTargets, cmd,
+                                PerFrameData::ViewType::Primary, ~0u);
+                            RenderTwoPassOcclCulling(CullingPass::Second, perframeData, renderTargets, cmd,
+                                PerFrameData::ViewType::Primary, ~0u);
+                            cmd->GlobalMemoryBarrier();
+                            if (m_config->m_visualizationType != RendererVisualizationType::Default)
+                            {
+                                return;
+                            }
+                            RenderEmitDepthTargets(perframeData, renderTargets, cmd);
+                            cmd->GlobalMemoryBarrier();
+                            RenderMaterialClassify(perframeData, renderTargets, cmd);
+                            cmd->GlobalMemoryBarrier();
+                            RenderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
+                            cmd->GlobalMemoryBarrier();
+                            if (m_renderRole == SyaroRenderRole::FullProcess)
+                            {
+                                RenderAmbientOccl(perframeData, renderTargets, cmd);
+                            }
+                            cmd->EndScope();
                         }
-                        RenderEmitDepthTargets(perframeData, renderTargets, cmd);
-                        cmd->GlobalMemoryBarrier();
-                        RenderMaterialClassify(perframeData, renderTargets, cmd);
-                        cmd->GlobalMemoryBarrier();
-                        RenderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
-                        cmd->GlobalMemoryBarrier();
-                        if (m_renderRole == SyaroRenderRole::FullProcess)
-                        {
-                            RenderAmbientOccl(perframeData, renderTargets, cmd);
-                        }
-                        cmd->EndScope();
                     }
                 }
             },
             cmdToWaitBkp, {});
 
-        if (m_renderRole == SyaroRenderRole::FullProcess)
+        if (m_renderRole & SyaroRenderRole::Shading)
         {
             if (m_config->m_visualizationType != RendererVisualizationType::Default)
             {
@@ -2182,7 +2187,11 @@ namespace Ifrit::Core
         }
 
         auto ret = Render(perframeData, renderTargets, cmdToWait);
-        perframeData.m_frameId++;
+
+        if (m_renderRole & SyaroRenderRole::FullProcess)
+        {
+            perframeData.m_frameId++;
+        }
 
         auto end      = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

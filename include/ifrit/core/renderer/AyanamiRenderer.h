@@ -56,7 +56,7 @@ namespace Ifrit::Core
         using GPUSampler           = Graphics::Rhi::RhiSampler;
 
     private:
-        Uref<SyaroRenderer>            m_gbufferRenderer;
+        Uref<SyaroRenderer>            m_vgRenderer;
         AyanamiRendererResources*      m_resources = nullptr;
 
         Ayanami::AyanamiRenderConfig   m_selfRenderConfig;
@@ -69,9 +69,9 @@ namespace Ifrit::Core
 
     public:
         AyanamiRenderer(IApplication* app, Ayanami::AyanamiRenderConfig config)
-            : RendererBase(app), m_gbufferRenderer(std::make_unique<SyaroRenderer>(app)), m_selfRenderConfig(config)
+            : RendererBase(app), m_vgRenderer(std::make_unique<SyaroRenderer>(app)), m_selfRenderConfig(config)
         {
-            m_gbufferRenderer->SetRenderRole(SyaroRenderRole::DeferredGbuffer);
+            m_vgRenderer->SetRenderRole(SyaroRenderRole::GBuffer | SyaroRenderRole::Shadowing);
             InitRenderer();
             m_globalDF = std::make_unique<Ayanami::AyanamiGlobalDF>(config, app->GetRhi());
         }
