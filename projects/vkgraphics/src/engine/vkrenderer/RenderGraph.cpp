@@ -1050,6 +1050,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL void CommandExecutor::BeginFrame()
     {
         m_swapchain->AcquireNextImage();
+        m_swapchainImageResource->ForceResetState();
     }
     IFRIT_APIDECL void CommandExecutor::EndFrame()
     {

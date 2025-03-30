@@ -18,3 +18,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #version 450
 #extension GL_GOOGLE_include_directive : require
+
+#include "Base.glsl"
+#include "Bindless.glsl"
+
+RegisterStorage(BAllCardData,{
+    mat4 m_VP[];
+});
+
+layout(location = 0) out vec2 TexCoord;
+
+layout(push_constant) uniform PushConstants {
+    uint albedoId;
+    uint normalId;
+    uint objectId;
+    uint cardId;
+    uint vertexId;
+    uint uvId;
+    uint AllCardDataId;
+} PushConst;
+
+void main(){
+    uint inIndex = gl_VertexIndex;
+    vec4 pos = ReadVertexPosition(PushConst.vertexId, inIndex);
+    vec2 uv = ReadVertexUV(PushConst.uvId, inIndex);
+    mat4 m_VP = GetResource(BAllCardData, PushConst.AllCardDataId).m_VP[PushConst.cardId];
+
+    vec4 worldPos = pos * m_VP;
+    TexCoord = vec2(uv.x, uv.y);
+    gl_Position = worldPos;
+}

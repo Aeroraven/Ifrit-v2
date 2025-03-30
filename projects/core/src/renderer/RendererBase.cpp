@@ -684,6 +684,7 @@ namespace Ifrit::Core
                     meshDataRef->m_cpCounter.totalNumClusters = SizeCast<u32>(meshDataRef->m_clusterGroups.size());
 
                     auto tmpUsage             = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
+                    auto tmpUsageIdx          = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO | RhiBufferUsage_Index;
                     meshResource.vertexBuffer = rhi->CreateBufferDevice(
                         "Mesh_Vertex", SizeCast<u32>(meshDataRef->m_verticesAligned.size() * sizeof(Vector4f)), tmpUsage, true);
                     meshResource.normalBuffer = rhi->CreateBufferDevice(
@@ -713,7 +714,7 @@ namespace Ifrit::Core
                     meshResource.tangentBuffer = rhi->CreateBufferDevice(
                         "Mesh_Tangent", SizeCast<u32>(sizeof(Vector4f) * meshDataRef->m_tangents.size()), tmpUsage, true);
                     meshResource.indexBuffer = rhi->CreateBufferDevice(
-                        "Mesh_Index", SizeCast<u32>(sizeof(u32) * meshDataRef->m_indices.size()), tmpUsage, true);
+                        "Mesh_Index", SizeCast<u32>(sizeof(u32) * meshDataRef->m_indices.size()), tmpUsageIdx, true);
 
                     auto  materialDataSize = 0;
                     auto& materialRef      = shaderEffect.m_materials[i];

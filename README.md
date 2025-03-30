@@ -42,6 +42,20 @@ Check  **[`GALLERY.md`](./docs/gallery.md)** for more examples for software rend
 This repository is the successor to my following repositories: 
 
 - [Aria](https://github.com/Aeroraven/Aria): Some scenes and toys about using WebGL2 and Vulkan.
+  - Following features implemented in Aria/Vulkan might be considered to move into this repository:
+    - Hardware Ray Tracing
+    - NPR Shading
+      - Outline (Post-Processing / Back Facing)
+      - Rim Lighting
+    - Post Processing
+      - FXAA
+      - Kawase Blur
+      - Global Fog
+      - SSAO
+      - SSGI/SSR
+    - Volumetric Lighting
+    - Procedural Generator
+      - GPU Marching Cubes
 
 - [Ifrit-v1](https://github.com/Aeroraven/Ifrit): An console drawing helper for course projects that use Java.
   - Still, Ifrit-v2 soft renderer supports console display (like Windows Powershell).

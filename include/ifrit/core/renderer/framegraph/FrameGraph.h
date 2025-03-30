@@ -56,6 +56,18 @@ namespace Ifrit::Core
         Graphics,
     };
 
+    enum class FrameGraphCompileMode
+    {
+        Unordered, // Planned To be Removed
+        Sequential
+    };
+
+    enum class FrameGraphResourceInitState
+    {
+        Manual,
+        Uninitialized,
+    };
+
     struct FrameGraphPassContext
     {
         const Graphics::Rhi::RhiCommandList* m_CmdList;
@@ -115,8 +127,10 @@ namespace Ifrit::Core
     class IFRIT_APIDECL FrameGraphBuilder
     {
     private:
-        Vec<ResourceNode*> m_resources;
-        Vec<PassNode*>     m_passes;
+        Vec<ResourceNode*>          m_resources;
+        Vec<PassNode*>              m_passes;
+        FrameGraphCompileMode       m_compileMode       = FrameGraphCompileMode::Sequential;
+        FrameGraphResourceInitState m_resourceInitState = FrameGraphResourceInitState::Manual;
 
     public:
         ~FrameGraphBuilder();
@@ -130,18 +144,23 @@ namespace Ifrit::Core
 
     struct CompiledFrameGraph
     {
-        struct ResourceBarriers
+        struct ResourceBarrier
         {
+            u32                             m_ResId                 = ~0u;
             bool                            enableUAVBarrier        = false;
             bool                            enableTransitionBarrier = false;
             Graphics::Rhi::RhiResourceState srcState;
             Graphics::Rhi::RhiResourceState dstState = Graphics::Rhi::RhiResourceState::Undefined;
         };
-        const FrameGraphBuilder*   m_graph                          = nullptr;
-        Vec<u32>                   m_passTopoOrder                  = {};
-        Vec<Vec<ResourceBarriers>> m_passResourceBarriers           = {};
-        Vec<Vec<ResourceBarriers>> m_outputAliasedResourcesBarriers = {};
-        Vec<Vec<u32>>              m_inputResourceDependencies      = {};
+        FrameGraphResourceInitState m_resourceInitState = FrameGraphResourceInitState::Manual;
+        const FrameGraphBuilder*    m_graph             = nullptr;
+        Vec<Vec<ResourceBarrier>>   m_inputBarriers     = {};
+
+        // Vec<u32>                    m_passTopoOrder                  = {};
+        // Vec<Vec<ResourceBarriers>>  m_passResourceBarriers           = {};
+        // Vec<Vec<ResourceBarriers>>  m_outputAliasedResourcesBarriers = {};
+        // Vec<Vec<ResourceBarriers>>  m_extInputBarriers               = {};
+        // Vec<Vec<u32>>               m_inputResourceDependencies      = {};
     };
 
     class IFRIT_APIDECL FrameGraphCompiler
@@ -157,7 +176,7 @@ namespace Ifrit::Core
         void ExecuteInSingleCmd(const Graphics::Rhi::RhiCommandList* cmd, const CompiledFrameGraph& compiledGraph);
 
     private:
-        Graphics::Rhi::RhiResourceBarrier ToRhiResBarrier(const CompiledFrameGraph::ResourceBarriers& barrier, const ResourceNode& res, bool& valid);
+        Graphics::Rhi::RhiResourceBarrier ToRhiResBarrier(const CompiledFrameGraph::ResourceBarrier& barrier, const ResourceNode& res, bool& valid);
     };
 
 } // namespace Ifrit::Core

@@ -607,6 +607,7 @@ namespace Ifrit::Graphics::VulkanGraphics
                     {
                         iError("Texture state mismatch, expected:{} actual:{}", i32(srcState),
                             i32(barrier.m_transition.m_texture->GetState()));
+
                         std::abort();
                     }
                     _setTextureState(barrier.m_transition.m_texture, dstState);
@@ -681,7 +682,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         label.pLabelName = name.c_str();
         label.color[0]   = 1.0f;
         label.color[1]   = 1.0f;
-        label.color[2]   = 0.0f;
+        label.color[2]   = 1.0f;
         label.color[3]   = 1.0f;
         auto exfun       = m_context->GetExtensionFunction();
         if (m_context->IsDebugMode())

@@ -36,3 +36,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/scene/SceneManager.h"
 
 #include "ifrit/core/renderer/ayanami/AyanamiMeshDF.h"
+#include "ifrit/core/renderer/ayanami/AyanamiMeshMarker.h"

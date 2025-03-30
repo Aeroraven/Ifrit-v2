@@ -84,6 +84,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         virtual VkImage     GetImage() const override;
         virtual VkImageView GetImageView() override;
         virtual VkImageView GetImageViewMipLayer(u32 mip, u32 layer, u32 mipRange, u32 layerRange) override;
+        inline void         ForceResetState() { m_state = Rhi::RhiResourceState::Undefined; }
     };
 
     struct RenderPassResourceTransition

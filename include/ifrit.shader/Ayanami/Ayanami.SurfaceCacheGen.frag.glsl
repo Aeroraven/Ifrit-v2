@@ -18,3 +18,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #version 450
 #extension GL_GOOGLE_include_directive : require
+
+layout(location = 0) in vec2 TexCoord;
+layout(location = 0) out vec4 OutColor;
+
+layout(push_constant) uniform PushConstants {
+    uint albedoId;
+    uint normalId;
+    uint objectId;
+    uint cardId;
+    uint vertexId;
+    uint uvId;
+    uint AllCardDataId;
+} PushConst;
+
+void main(){
+    OutColor = vec4(TexCoord,0.0,1.0);
+}

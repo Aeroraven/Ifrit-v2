@@ -76,3 +76,14 @@ layout(binding = IFRIT_BINDLESS_BINDING_STORAGE_IMAGE, set = IFRIT_BINDLESS_SET_
 #define GetUAVImage3DRGBA32F(id) IFRIT_UAV_IMAGE3D_RGBA32F_NAME[(id)]
 #define GetUAVImage3DR32F(id) IFRIT_UAV_IMAGE3D_R32F_NAME[(id)]
 #define GetUAVImage2DRGBA8(id) IFRIT_UAV_IMAGE2D_RGBA8_NAME[(id)]
+
+RegisterStorage(bIfritInternal_VerticesPos,{
+    vec4 position[];
+});
+
+RegisterStorage(bIfritInternal_VerticesUV,{
+    vec2 uv[];
+});
+
+#define ReadVertexPosition(objId,vertexId) GetResource(bIfritInternal_VerticesPos,objId).position[vertexId]
+#define ReadVertexUV(objId,vertexId) GetResource(bIfritInternal_VerticesUV,objId).uv[vertexId]

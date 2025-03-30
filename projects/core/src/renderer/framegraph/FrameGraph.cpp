@@ -107,7 +107,7 @@ namespace Ifrit::Core
 
     // Layout transition:
     // (pass)->(output:srcLayout)->(input:dstLayout)
-    Graphics::Rhi::RhiResourceState getOutputResouceState(FrameGraphPassType passType,
+    Graphics::Rhi::RhiResourceState GetOutputResouceState(FrameGraphPassType passType,
         FrameGraphResourceType resType, FgTexture* image,
         FgBuffer*                       buffer,
         Graphics::Rhi::RhiResourceState parentState)
@@ -162,208 +162,174 @@ namespace Ifrit::Core
         return Graphics::Rhi::RhiResourceState::Undefined;
     }
 
-    IFRIT_APIDECL CompiledFrameGraph FrameGraphCompiler::Compile(const FrameGraphBuilder& graph)
+    Graphics::Rhi::RhiResourceState
+    GetDesiredOutputLayout(FrameGraphPassType passType, FrameGraphResourceType resType, FgTexture* image, FgBuffer* buffer)
     {
-        CompiledFrameGraph compiledGraph          = {};
-        compiledGraph.m_inputResourceDependencies = {};
-        compiledGraph.m_passTopoOrder             = {};
-        compiledGraph.m_passResourceBarriers      = {};
-        compiledGraph.m_graph                     = &graph;
-        Vec<u32>      resPassDependencies(graph.m_resources.size(), 0);
-        Vec<u32>      passResDepenedencies(graph.m_passes.size(), 0);
-        Vec<u32>      rootPasses;
-        Vec<Vec<u32>> outResToPass(graph.m_resources.size());
-        Vec<Vec<u32>> outResToPassDeps(graph.m_resources.size());
-
-        for (const auto pass : graph.m_passes)
+        if (resType == FrameGraphResourceType::ResourceBuffer)
         {
-            for (auto& resId : pass->inputResources)
-            {
-                outResToPass[resId].push_back(pass->id);
-            }
-            for (auto& resId : pass->dependentResources)
-            {
-                outResToPassDeps[resId].push_back(pass->id);
-            }
+            return Graphics::Rhi::RhiResourceState::UnorderedAccess;
         }
-        for (const auto& pass : graph.m_passes)
+        else if (resType == FrameGraphResourceType::ResourceTexture)
         {
-            for (auto& resId : pass->outputResources)
+            if (passType == FrameGraphPassType::Graphics)
             {
-                resPassDependencies[resId]++;
-            }
-        }
-        for (const auto& pass : graph.m_passes)
-        {
-            u32 numResToWait = 0;
-            for (auto& resId : pass->inputResources)
-            {
-                if (resPassDependencies[resId] > 0)
+                if (image->IsDepthTexture())
                 {
-                    numResToWait++;
-                }
-            }
-            for (auto& resId : pass->dependentResources)
-            {
-                if (resPassDependencies[resId] > 0)
-                {
-                    numResToWait++;
-                }
-            }
-            passResDepenedencies[pass->id] = numResToWait;
-            if (numResToWait == 0)
-            {
-                rootPasses.push_back(pass->id);
-            }
-        }
-        // Resource aliasing might make incorrect resource state transition.
-        // So, for each actual resource, we need to track its state
-        std::unordered_map<void*, Graphics::Rhi::RhiResourceState> rawResourceState;
-
-        // Topological sort to arrange passes
-        Vec<Graphics::Rhi::RhiResourceState>                       resState(graph.m_resources.size(),
-                                  Graphics::Rhi::RhiResourceState::Undefined);
-
-        // Initialize barrier vectors
-        for (auto i = 0; i < graph.m_passes.size(); i++)
-        {
-            compiledGraph.m_passResourceBarriers.push_back({});
-            compiledGraph.m_outputAliasedResourcesBarriers.push_back({});
-        }
-
-        while (!rootPasses.empty())
-        {
-            auto passId0 = rootPasses.back();
-            rootPasses.pop_back();
-            compiledGraph.m_passTopoOrder.push_back(passId0);
-            for (auto j = 0; auto& resId : graph.m_passes[passId0]->outputResources)
-            {
-                void* resPtr = nullptr;
-                if (graph.m_resources[resId]->type == FrameGraphResourceType::ResourceBuffer)
-                {
-                    resPtr = graph.m_resources[resId]->importedBuffer;
-                }
-                else if (graph.m_resources[resId]->type == FrameGraphResourceType::ResourceTexture)
-                {
-                    resPtr = graph.m_resources[resId]->importedTexture;
-                }
-                if (rawResourceState.find(resPtr) == rawResourceState.end())
-                {
-                    rawResourceState[resPtr] = Graphics::Rhi::RhiResourceState::Undefined;
-                }
-                auto rawResState = rawResourceState[resPtr];
-
-                resPassDependencies[resId]--;
-                CompiledFrameGraph::ResourceBarriers barrier;
-                compiledGraph.m_passResourceBarriers[passId0].push_back(barrier);
-
-                // TODO
-                auto                                 resType   = graph.m_resources[resId]->type;
-                auto&                                pass      = graph.m_passes[passId0];
-                auto                                 resLayout = resState[resId];
-
-                auto                                 srcState = getOutputResouceState(pass->type, resType, graph.m_resources[resId]->importedTexture,
-                                                    graph.m_resources[resId]->importedBuffer, resLayout);
-
-                // Barrier
-                CompiledFrameGraph::ResourceBarriers aliasBarrier;
-                aliasBarrier.enableTransitionBarrier = false;
-                aliasBarrier.enableUAVBarrier        = false;
-                compiledGraph.m_outputAliasedResourcesBarriers[passId0].push_back(aliasBarrier);
-                if (rawResState != Graphics::Rhi::RhiResourceState::Undefined)
-                {
-                    if (srcState != rawResState)
-                    {
-                        // Make a transition barrier before executing the pass
-                        CompiledFrameGraph::ResourceBarriers aliasBarrier;
-                        aliasBarrier.enableTransitionBarrier                           = true;
-                        aliasBarrier.srcState                                          = Graphics::Rhi::RhiResourceState::AutoTraced; // rawResState;
-                        aliasBarrier.dstState                                          = srcState;
-                        compiledGraph.m_outputAliasedResourcesBarriers[passId0].back() = aliasBarrier;
-                    }
-                }
-                // make the raw state into src state
-                rawResourceState[resPtr] = srcState;
-
-                // Output->Input barriers
-                // for all subsequent passes that uses this resource
-                auto dstStateAll = Graphics::Rhi::RhiResourceState::Undefined;
-                for (auto& passId : outResToPass[resId])
-                {
-                    auto dstState =
-                        GetInputResourceState(graph.m_passes[passId]->type, resType, graph.m_resources[resId]->importedTexture,
-                            graph.m_resources[resId]->importedBuffer);
-                    if (dstStateAll == Graphics::Rhi::RhiResourceState::Undefined)
-                    {
-                        dstStateAll = dstState;
-                    }
-                    else
-                    {
-                        if (dstStateAll != dstState)
-                        {
-                            dstStateAll = Graphics::Rhi::RhiResourceState::Common;
-                        }
-                    }
-                }
-
-                // barrier layout transitions are specified, then check if it's needed
-                // if not, then it's a UAV barrier
-
-                if (dstStateAll == Graphics::Rhi::RhiResourceState::Undefined)
-                {
-                    // no subsequent pass uses this resource
-                    CompiledFrameGraph::ResourceBarriers barrier;
-                    barrier.enableUAVBarrier                             = false;
-                    compiledGraph.m_passResourceBarriers[passId0].back() = barrier;
-                }
-                else if (srcState != dstStateAll)
-                {
-                    CompiledFrameGraph::ResourceBarriers barrier;
-                    barrier.enableTransitionBarrier                      = true;
-                    barrier.srcState                                     = Graphics::Rhi::RhiResourceState::AutoTraced; // srcState;
-                    barrier.dstState                                     = dstStateAll;
-                    compiledGraph.m_passResourceBarriers[passId0].back() = barrier;
+                    return Graphics::Rhi::RhiResourceState::DepthStencilRT;
                 }
                 else
                 {
-                    CompiledFrameGraph::ResourceBarriers barrier;
-                    barrier.enableUAVBarrier                             = true;
-                    compiledGraph.m_passResourceBarriers[passId0].back() = barrier;
+                    return Graphics::Rhi::RhiResourceState::ColorRT;
+                }
+            }
+            else if (passType == FrameGraphPassType::Compute)
+            {
+                return Graphics::Rhi::RhiResourceState::UnorderedAccess;
+            }
+        }
+        return Graphics::Rhi::RhiResourceState::Undefined;
+    }
+
+    IFRIT_APIDECL CompiledFrameGraph FrameGraphCompiler::Compile(const FrameGraphBuilder& graph)
+    {
+        using namespace Ifrit::Graphics::Rhi;
+
+        CompiledFrameGraph compiledGraph = {};
+        compiledGraph.m_inputBarriers    = {};
+        compiledGraph.m_graph            = &graph;
+
+        if (graph.m_compileMode == FrameGraphCompileMode::Unordered)
+        {
+            iError("Not supported any longer.");
+            std::abort();
+        }
+
+        Vec<RhiResourceState>            resState(graph.m_resources.size(), RhiResourceState::Undefined);
+
+        HashMap<void*, RhiResourceState> rawResourceState;
+        HashMap<void*, bool>             rawResourceIsWriting;
+
+        for (const auto& pass : graph.m_passes)
+        {
+            compiledGraph.m_inputBarriers.push_back({});
+            // Make transitions for read resources
+            for (auto& resId : pass->inputResources)
+            {
+                auto& res           = graph.m_resources[resId];
+                auto  desiredLayout = GetInputResourceState(pass->type, res->type, res->importedTexture, res->importedBuffer);
+
+                // Get aliased resource state
+                void* resPtr = nullptr;
+                if (res->type == FrameGraphResourceType::ResourceBuffer)
+                {
+                    resPtr = res->importedBuffer;
+                }
+                else if (res->type == FrameGraphResourceType::ResourceTexture)
+                {
+                    resPtr = res->importedTexture;
+                }
+                if (rawResourceState.find(resPtr) == rawResourceState.end())
+                {
+                    rawResourceState[resPtr]     = Graphics::Rhi::RhiResourceState::Undefined;
+                    rawResourceIsWriting[resPtr] = false;
                 }
 
-                // if not undefined, make the resource state into dst state
-                if (dstStateAll != Graphics::Rhi::RhiResourceState::Undefined)
+                auto rawResState = rawResourceState[resPtr];
+                // Check if input state meets the desired state
+                if (desiredLayout != rawResState)
                 {
-                    rawResourceState[resPtr] = dstStateAll;
+                    if (desiredLayout == Graphics::Rhi::RhiResourceState::Undefined && graph.m_resourceInitState == FrameGraphResourceInitState::Uninitialized)
+                    {
+                        // If the layout is managed by user, then we don't need to do anything
+                        // Just set the state to undefined
+                        CompiledFrameGraph::ResourceBarrier aliasBarrier;
+                        aliasBarrier.m_ResId                 = resId;
+                        aliasBarrier.enableTransitionBarrier = true;
+                        aliasBarrier.srcState                = Graphics::Rhi::RhiResourceState::AutoTraced; // rawResState;
+                        aliasBarrier.dstState                = desiredLayout;
+                        compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
+                    }
+                    else if (desiredLayout != Graphics::Rhi::RhiResourceState::Undefined)
+                    {
+                        // Here we need to make a transition barrier
+                        CompiledFrameGraph::ResourceBarrier aliasBarrier;
+                        aliasBarrier.m_ResId                 = resId;
+                        aliasBarrier.enableTransitionBarrier = true;
+                        aliasBarrier.srcState                = Graphics::Rhi::RhiResourceState::AutoTraced; // rawResState;
+                        aliasBarrier.dstState                = desiredLayout;
+                        compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
+                    }
+                    else
+                    {
+                        if (rawResourceIsWriting[resPtr])
+                        {
+                            // If the resource is writing, then we need to make a uav barrier to prevent RAW
+                            CompiledFrameGraph::ResourceBarrier aliasBarrier;
+                            aliasBarrier.m_ResId          = resId;
+                            aliasBarrier.enableUAVBarrier = true;
+                            compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
+                        }
+                    }
+                    rawResourceState[resPtr]     = desiredLayout;
+                    rawResourceIsWriting[resPtr] = false;
                 }
+            }
 
-                if (resPassDependencies[resId] == 0)
+            // Make transitions for write resources
+            for (auto& resId : pass->outputResources)
+            {
+                auto& res           = graph.m_resources[resId];
+                auto  desiredLayout = GetDesiredOutputLayout(pass->type, res->type, res->importedTexture, res->importedBuffer);
+
+                // Get aliased resource state
+                void* resPtr = nullptr;
+                if (res->type == FrameGraphResourceType::ResourceBuffer)
                 {
-                    for (auto& passId : outResToPass[resId])
-                    {
-                        // A relation (parent)->(output)->(child) is established
-                        passResDepenedencies[passId]--;
-                        if (passResDepenedencies[passId] == 0)
-                        {
-                            rootPasses.push_back(passId);
-                        }
-                    }
-                    for (auto& passId : outResToPassDeps[resId])
-                    {
-                        passResDepenedencies[passId]--;
-                        if (passResDepenedencies[passId] == 0)
-                        {
-                            rootPasses.push_back(passId);
-                        }
-                    }
+                    resPtr = res->importedBuffer;
                 }
-                j++;
+                else if (res->type == FrameGraphResourceType::ResourceTexture)
+                {
+                    resPtr = res->importedTexture;
+                }
+                if (rawResourceState.find(resPtr) == rawResourceState.end())
+                {
+                    rawResourceState[resPtr]     = Graphics::Rhi::RhiResourceState::Undefined;
+                    rawResourceIsWriting[resPtr] = true;
+                }
+                auto rawResState = rawResourceState[resPtr];
+
+                // Check if input state meets the desired state
+                if (desiredLayout != rawResState)
+                {
+                    if (desiredLayout == Graphics::Rhi::RhiResourceState::Undefined && graph.m_resourceInitState == FrameGraphResourceInitState::Uninitialized)
+                    {
+                        // If the layout is managed by user, then we don't need to do anything
+                        // Just set the state to undefined
+                        CompiledFrameGraph::ResourceBarrier aliasBarrier;
+                        aliasBarrier.m_ResId                 = resId;
+                        aliasBarrier.enableTransitionBarrier = true;
+                        aliasBarrier.srcState                = Graphics::Rhi::RhiResourceState::AutoTraced; // rawResState;
+                        aliasBarrier.dstState                = desiredLayout;
+                        compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
+                    }
+                    else if (desiredLayout != Graphics::Rhi::RhiResourceState::Undefined)
+                    {
+                        // Here we need to make a transition barrier
+                        CompiledFrameGraph::ResourceBarrier aliasBarrier;
+                        aliasBarrier.m_ResId                 = resId;
+                        aliasBarrier.enableTransitionBarrier = true;
+                        aliasBarrier.srcState                = Graphics::Rhi::RhiResourceState::AutoTraced; // rawResState;
+                        aliasBarrier.dstState                = desiredLayout;
+                        compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
+                    }
+                    rawResourceState[resPtr] = desiredLayout;
+                }
             }
         }
         return compiledGraph;
     }
 
-    Graphics::Rhi::RhiResourceBarrier FrameGraphExecutor::ToRhiResBarrier(const CompiledFrameGraph::ResourceBarriers& barrier,
+    Graphics::Rhi::RhiResourceBarrier FrameGraphExecutor::ToRhiResBarrier(const CompiledFrameGraph::ResourceBarrier& barrier,
         const ResourceNode& res, bool& valid)
     {
         Graphics::Rhi::RhiResourceBarrier resBarrier;
@@ -411,59 +377,23 @@ namespace Ifrit::Core
     IFRIT_APIDECL void FrameGraphExecutor::ExecuteInSingleCmd(const Graphics::Rhi::RhiCommandList* cmd,
         const CompiledFrameGraph&                                                                  compiledGraph)
     {
-
-        Vec<Graphics::Rhi::RhiResourceState> resState(compiledGraph.m_graph->m_resources.size(),
-            Graphics::Rhi::RhiResourceState::Undefined);
-
-        for (auto& passId : compiledGraph.m_passTopoOrder)
+        using namespace Ifrit::Graphics::Rhi;
+        for (auto pass : compiledGraph.m_graph->m_passes)
         {
-            Vec<Graphics::Rhi::RhiResourceBarrier> outputAliasingBarriers;
-            auto&                                  pass = compiledGraph.m_graph->m_passes[passId];
-            // For output aliased resources, make the transition barrier
-            for (auto i = 0; auto& resId : pass->outputResources)
+            Vec<RhiResourceBarrier> outputBarriers;
+            for (auto& barrier : compiledGraph.m_inputBarriers[pass->id])
             {
-
-                if (compiledGraph.m_outputAliasedResourcesBarriers[passId][i].enableTransitionBarrier)
-                {
-                    bool valid      = false;
-                    auto resBarrier = ToRhiResBarrier(compiledGraph.m_outputAliasedResourcesBarriers[passId][i],
-                        *compiledGraph.m_graph->m_resources[resId], valid);
-                    outputAliasingBarriers.push_back(resBarrier);
-                }
-                i++;
+                bool valid      = false;
+                auto resBarrier = ToRhiResBarrier(barrier, *compiledGraph.m_graph->m_resources[barrier.m_ResId], valid);
+                if (valid)
+                    outputBarriers.push_back(resBarrier);
             }
-            cmd->AddResourceBarrier(outputAliasingBarriers);
+            cmd->AddResourceBarrier(outputBarriers);
 
-            // Execute the pass
             FrameGraphPassContext passContext;
             passContext.m_CmdList = cmd;
 
             pass->passFunction(passContext);
-
-            // Update the resource state
-            Vec<Graphics::Rhi::RhiResourceBarrier> barriers;
-            for (auto i = 0; auto& resId : pass->outputResources)
-            {
-                auto srcState = compiledGraph.m_passResourceBarriers[passId][i].srcState;
-                auto dstState = compiledGraph.m_passResourceBarriers[passId][i].dstState;
-
-                if (resState[resId] != Graphics::Rhi::RhiResourceState::Undefined && resState[resId] != srcState)
-                {
-                    throw std::runtime_error("Resource state mismatch");
-                }
-                resState[resId] = compiledGraph.m_passResourceBarriers[passId][i].dstState;
-                if (compiledGraph.m_passResourceBarriers[passId][i].enableTransitionBarrier && compiledGraph.m_passResourceBarriers[passId][i].enableUAVBarrier)
-                {
-                    throw std::runtime_error("Buggy design! Resource barrier can't be both transition and UAV");
-                }
-                bool valid      = false;
-                auto resBarrier = ToRhiResBarrier(compiledGraph.m_passResourceBarriers[passId][i],
-                    *compiledGraph.m_graph->m_resources[resId], valid);
-                if (valid)
-                    barriers.push_back(resBarrier);
-                i++;
-            }
-            cmd->AddResourceBarrier(barriers);
         }
     }
 

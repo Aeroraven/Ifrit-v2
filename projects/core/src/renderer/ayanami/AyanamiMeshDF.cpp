@@ -157,7 +157,7 @@ namespace Ifrit::Core::Ayanami
             sdfMeta.sdfId   = m_gpuResource->sdfTextureBindId->GetActiveId();
 
             auto tq = rhi->GetQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
-            tq->RunSyncCommand([&](const RhiCommandList* cmd) {
+             tq->RunSyncCommand([&](const RhiCommandList* cmd) {
                 RhiResourceBarrier barrier;
                 barrier.m_type                     = RhiBarrierType::Transition;
                 barrier.m_transition.m_type        = RhiResourceType::Texture;

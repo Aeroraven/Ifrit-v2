@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/common/math/constfunc/ConstFunc.h"
 #include "ifrit/core/renderer/ayanami/AyanamiSceneAggregator.h"
+#include "ifrit/core/renderer/ayanami/AyanamiTrivialSurfaceCache.h"
 
 namespace Ifrit::Core
 {
@@ -36,24 +37,27 @@ namespace Ifrit::Core
         using GPUTexture  = Graphics::Rhi::RhiTextureRef;
         using GPUBindId   = Graphics::Rhi::RhiDescHandleLegacy;
 
-        GPUTexture                   m_raymarchOutput = nullptr;
-        Ref<GPUBindId>               m_raymarchOutputSRVBindId;
+        GPUTexture                              m_raymarchOutput = nullptr;
+        Ref<GPUBindId>                          m_raymarchOutputSRVBindId;
 
-        FrameGraphCompiler           m_fgCompiler;
-        FrameGraphExecutor           m_fgExecutor;
-        Uref<AyanamiSceneAggregator> m_sceneAggregator;
+        FrameGraphCompiler                      m_fgCompiler;
+        FrameGraphExecutor                      m_fgExecutor;
+        Uref<AyanamiSceneAggregator>            m_sceneAggregator;
+        Uref<AyanamiTrivialSurfaceCacheManager> m_surfaceCacheManager = nullptr;
 
-        ComputePass*                 m_raymarchPass = nullptr;
-        DrawPass*                    m_debugPass    = nullptr;
+        ComputePass*                            m_raymarchPass = nullptr;
+        DrawPass*                               m_debugPass    = nullptr;
 
-        bool                         m_inited          = false;
-        bool                         m_debugShowMeshDF = false;
+        bool                                    m_inited          = false;
+        bool                                    m_debugShowMeshDF = false;
     };
 
     IFRIT_APIDECL void AyanamiRenderer::InitRenderer()
     {
         m_resources                    = new AyanamiRendererResources();
         m_resources->m_sceneAggregator = std::make_unique<AyanamiSceneAggregator>(m_app->GetRhi());
+        m_resources->m_surfaceCacheManager =
+            std::make_unique<AyanamiTrivialSurfaceCacheManager>(m_selfRenderConfig, m_app);
     }
     IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer()
     {
@@ -96,20 +100,27 @@ namespace Ifrit::Core
         const GPUCmdBuffer* cmd)
     {
         FrameGraphBuilder fg;
-
         auto              rtWidth  = renderTargets->GetRenderArea().width;
         auto              rtHeight = renderTargets->GetRenderArea().height;
+        auto              rhi      = m_app->GetRhi();
 
-        auto              rhi = m_app->GetRhi();
+        if IF_CONSTEXPR (false)
+            iWarn("Just here to make clang-format happy");
 
-        auto&             resRaymarchOutput =
+        auto& resSurfaceCacheAlbedo = fg.AddResource("SurfaceCacheAlbedo")
+                                          .SetImportedResource(m_resources->m_surfaceCacheManager->GetAlbedoAtlas().get(), { 0, 0, 1, 1 });
+        auto& resRaymarchOutput =
             fg.AddResource("RaymarchOutput")
                 .SetImportedResource(m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
+
         auto& resGlobalDFGen = fg.AddResource("GlobalDFGen")
                                    .SetImportedResource(m_globalDF->GetClipmapVolume(0).get(), { 0, 0, 1, 1 });
+
         auto& resRenderTargets = fg.AddResource("RenderTargets")
                                      .SetImportedResource(renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
 
+        auto& passSurfaceCacheGen = fg.AddPass("SurfaceCacheGen", FrameGraphPassType::Graphics)
+                                        .AddWriteResource(resSurfaceCacheAlbedo);
         auto& passGlobalDFGen = fg.AddPass("GlobalDFGen", FrameGraphPassType::Compute);
         auto& passRaymarch    = fg.AddPass("RaymarchPass", FrameGraphPassType::Compute);
         auto& passDebug       = fg.AddPass("DebugPass", FrameGraphPassType::Graphics);
@@ -133,9 +144,9 @@ namespace Ifrit::Core
                 .AddReadResource(resGlobalDFGen)
                 .AddWriteResource(resRaymarchOutput);
 
-            passGlobalDFGen
+            passDebug
                 .AddReadResource(resRaymarchOutput)
-                .AddWriteResource(resGlobalDFGen);
+                .AddWriteResource(resRenderTargets);
         }
 
         if (!m_resources->m_inited)
@@ -150,6 +161,11 @@ namespace Ifrit::Core
         {
             passGlobalDFGen.SetExecutionFunction([&](const FrameGraphPassContext& data) {});
         }
+
+        passSurfaceCacheGen.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+            auto commandList = data.m_CmdList;
+            m_resources->m_surfaceCacheManager->UpdateSurfaceCacheAtlas(commandList);
+        });
 
         passRaymarch.SetExecutionFunction([&](const FrameGraphPassContext& data) {
             auto commandList = data.m_CmdList;
@@ -219,6 +235,7 @@ namespace Ifrit::Core
         CollectPerframeData(perframeData, scene, camera, GraphicsShaderPassType::Opaque, renderTargets, sceneConfig);
         PrepareDeviceResources(perframeData, renderTargets);
         m_resources->m_sceneAggregator->CollectScene(scene);
+        m_resources->m_surfaceCacheManager->UpdateSceneCache(scene);
 
         auto rhi  = m_app->GetRhi();
         auto dq   = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);

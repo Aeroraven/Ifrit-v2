@@ -41,8 +41,9 @@ namespace Ifrit::Core::Ayanami
         AyanamiTrivialSurfaceCacheManager(const AyanamiRenderConfig& config, IApplication* app);
         ~AyanamiTrivialSurfaceCacheManager();
 
-        void UpdateSceneCache(Scene* scene);
-        void PrepareImmutableResource();
-        void UpdateSurfaceCacheAtlas(const Graphics::Rhi::RhiCommandList* cmdList);
+        void                         UpdateSceneCache(Scene* scene);
+        void                         PrepareImmutableResource();
+        void                         UpdateSurfaceCacheAtlas(const Graphics::Rhi::RhiCommandList* cmdList);
+        Graphics::Rhi::RhiTextureRef GetAlbedoAtlas();
     };
 } // namespace Ifrit::Core::Ayanami
