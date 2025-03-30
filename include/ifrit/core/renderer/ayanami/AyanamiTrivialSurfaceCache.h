@@ -45,5 +45,7 @@ namespace Ifrit::Core::Ayanami
         void                         PrepareImmutableResource();
         void                         UpdateSurfaceCacheAtlas(const Graphics::Rhi::RhiCommandList* cmdList);
         Graphics::Rhi::RhiTextureRef GetAlbedoAtlas();
+        Graphics::Rhi::RhiTextureRef GetNormalAtlas();
+        Graphics::Rhi::RhiTextureRef GetDepthAtlas();
     };
 } // namespace Ifrit::Core::Ayanami

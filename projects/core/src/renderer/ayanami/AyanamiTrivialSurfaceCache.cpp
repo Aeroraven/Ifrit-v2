@@ -55,6 +55,8 @@ namespace Ifrit::Core::Ayanami
         RhiBufferRef m_CardVertexBuffer;
         RhiBufferRef m_CardIndexBuffer;
         RhiBufferRef m_CardUVBuffer;
+        RhiBufferRef m_CardTangentBuffer;
+        RhiBufferRef m_CardNormalBuffer;
         u32          m_ObjectBufferId;
         u32          m_IndexCounts;
 
@@ -73,36 +75,39 @@ namespace Ifrit::Core::Ayanami
 
     struct AyanamiTrivialSurfaceCacheManagerResource
     {
-        bool                        m_Inited             = false;
-        bool                        m_RequireGpuDataSync = false;
+        bool                           m_Inited             = false;
+        bool                           m_RequireGpuDataSync = false;
 
-        RhiTextureRef               m_SceneCacheAlbdeoAtlas;
-        RhiTextureRef               m_SceneCacheNormalAtlas;
-        RhiTextureRef               m_SceneCacheEmissionAtlas;
-        RhiTextureRef               m_SceneCacheSpecularAtlas;
-        Atomic<u32>                 m_MeshCardIndex = 0;
+        RhiTextureRef                  m_SceneCacheAlbdeoAtlas;
+        RhiTextureRef                  m_SceneCacheNormalAtlas;
+        RhiTextureRef                  m_SceneCacheEmissionAtlas;
+        RhiTextureRef                  m_SceneCacheSpecularAtlas;
+        RhiTextureRef                  m_SceneCacheTemporaryDepth;
+        Atomic<u32>                    m_MeshCardIndex = 0;
 
-        Vec<ManagedMeshCard>        m_MeshCards;
-        Vec<u32>                    m_MeshCardTasks;
-        Vec<ManagedMeshCardGPUData> m_MeshCardGPUData;
+        Vec<ManagedMeshCard>           m_MeshCards;
+        Vec<u32>                       m_MeshCardTasks;
+        Vec<ManagedMeshCardGPUData>    m_MeshCardGPUData;
 
         // Here, mipmaps will be considered later. Now, we only use 1 mipmap level.
-        u32                         m_AtlasElementSize    = 64;
-        u32                         m_CurrentAtlasElement = 0;
+        u32                            m_AtlasElementSize    = 64;
+        u32                            m_CurrentAtlasElement = 0;
 
         // TODO: this stores the matrixs for the observer view;
         // I hope it to be uniform for compatibility. However, the data is too large.
         // So, we need to use a storage buffer to store the data.
-        RhiBufferRef                m_ObserveDeviceData;
+        RhiBufferRef                   m_ObserveDeviceData;
 
-        Ref<RhiVertexBufferView>    m_SurfaceCachePassBinding;
-        RhiGraphicsPass*            m_SurfaceCachePass = nullptr;
+        Ref<RhiVertexBufferView>       m_SurfaceCachePassBinding;
+        RhiGraphicsPass*               m_SurfaceCachePass = nullptr;
 
-        Ref<RhiRenderTargets>       m_SurfaceCachePassRTs;
-        Ref<RhiColorAttachment>     m_SurfaceCachePassAlbedoRT;
+        Ref<RhiRenderTargets>          m_SurfaceCachePassRTs;
+        Ref<RhiColorAttachment>        m_SurfaceCachePassAlbedoRT;
+        Ref<RhiColorAttachment>        m_SurfaceCachePassNormalRT;
+        Ref<RhiDepthStencilAttachment> m_SurfaceCachePassDepthRT;
 
         // Debug Controls
-        bool                        m_ForceSurfaceCacheRegeneration = false;
+        bool                           m_ForceSurfaceCacheRegeneration = false;
     };
 
     AyanamiTrivialSurfaceCacheManager::AyanamiTrivialSurfaceCacheManager(const AyanamiRenderConfig& config, IApplication* app)
@@ -171,10 +176,12 @@ namespace Ifrit::Core::Ayanami
                 auto meshResource = Mesh::GPUResource();
                 meshWrapper->GetGPUResource(meshResource);
 
-                auto vertexBuffer = meshResource.vertexBuffer;
-                auto indexBuffer  = meshResource.indexBuffer;
-                auto uvBuffer     = meshResource.uvBuffer;
-                auto indexCounts  = meshData->m_indices.size();
+                auto vertexBuffer  = meshResource.vertexBuffer;
+                auto indexBuffer   = meshResource.indexBuffer;
+                auto uvBuffer      = meshResource.uvBuffer;
+                auto tangentBuffer = meshResource.tangentBuffer;
+                auto normalBuffer  = meshResource.normalBuffer;
+                auto indexCounts   = meshData->m_indices.size();
 
                 if (vertexBuffer == nullptr || indexBuffer == nullptr)
                 {
@@ -189,22 +196,27 @@ namespace Ifrit::Core::Ayanami
                 auto          meshBBoxSize   = meshBBoxMax - meshBBoxMin;
                 auto          meshBBoxExtent = meshBBoxSize * 0.5f;
 
+                auto&         meshVertices = meshData->m_verticesAligned;
+
                 Array<f32, 3> meshBBoxExtentArr = { meshBBoxExtent.x, meshBBoxExtent.y, meshBBoxExtent.z };
 
                 printf("Mesh Extent: %f %f %f\n", meshBBoxExtent.x, meshBBoxExtent.y, meshBBoxExtent.z);
-
+                printf("Mesh Center: %f %f %f\n", meshBBoxCenter.x, meshBBoxCenter.y, meshBBoxCenter.z);
                 ManagedMeshCard card;
                 for (u32 i = 0; i < 6; i++)
                 {
-                    auto slotId             = allocId + i;
-                    card.m_Object           = obj;
-                    card.m_CardDirection    = kCardDirections[i];
-                    card.m_ObjectScale      = obj->GetComponent<Transform>()->GetScale();
-                    card.m_CardVertexBuffer = vertexBuffer;
-                    card.m_CardIndexBuffer  = indexBuffer;
-                    card.m_IndexCounts      = indexCounts;
-                    card.m_CardUVBuffer     = uvBuffer;
-                    card.m_ObjectBufferId   = objectBufferId;
+                    auto slotId              = allocId + i;
+                    card.m_Object            = obj;
+                    card.m_CardDirection     = kCardDirections[i];
+                    card.m_ObjectScale       = obj->GetComponent<Transform>()->GetScale();
+                    card.m_CardVertexBuffer  = vertexBuffer;
+                    card.m_CardIndexBuffer   = indexBuffer;
+                    card.m_CardTangentBuffer = tangentBuffer;
+                    card.m_CardNormalBuffer  = normalBuffer;
+
+                    card.m_IndexCounts    = indexCounts;
+                    card.m_CardUVBuffer   = uvBuffer;
+                    card.m_ObjectBufferId = objectBufferId;
 
                     auto elementsPerRow   = m_Resolution / m_Resources->m_AtlasElementSize;
                     auto index_X          = slotId % elementsPerRow;
@@ -223,15 +235,16 @@ namespace Ifrit::Core::Ayanami
 
                     // LookAt & Ortho
                     f32        viewNearPlane = 0.1f;
-                    Vector3f   viewLocation  = meshBBoxCenter - card.m_CardDirection * cardExtent - viewNearPlane;
-                    Vector3f   viewUp        = kCardLookAtUps[i];
-                    Vector3f   viewTarget    = meshBBoxCenter;
-                    Matrix4x4f viewMatrix    = LookAt(viewLocation, viewTarget, viewUp);
+                    Vector3f   viewLocation  = meshBBoxCenter - card.m_CardDirection * cardExtent - card.m_CardDirection * viewNearPlane;
+
+                    Vector3f   viewUp     = kCardLookAtUps[i];
+                    Vector3f   viewTarget = meshBBoxCenter;
+                    Matrix4x4f viewMatrix = LookAt(viewLocation, viewTarget, viewUp);
 
                     f32        viewAspect = cardExtent.x / cardExtent.y;
-                    Matrix4x4f viewOrtho  = OrthographicNegateY(cardExtent.y, viewAspect, viewNearPlane, cardExtent.z * 2.0f + viewNearPlane);
-                    Matrix4x4f viewProj   = MatMul(viewOrtho, viewMatrix);
+                    Matrix4x4f viewOrtho  = OrthographicNegateY(cardExtent.y * 2.0, viewAspect, viewNearPlane, cardExtent.z * 2.0f + viewNearPlane);
 
+                    Matrix4x4f viewProj = viewOrtho;
                     Matrix4x4f viewVP   = MatMul(viewProj, viewMatrix);
                     card.m_ObserverView = viewMatrix;
                     card.m_ObserverProj = viewOrtho;
@@ -240,11 +253,12 @@ namespace Ifrit::Core::Ayanami
                     card.m_TempAlbedoId = albedoId;
                     card.m_TempNormalId = normalId;
 
-                    m_Resources->m_MeshCardGPUData[slotId].m_ObserverVP = viewVP;
+                    m_Resources->m_MeshCardGPUData[slotId].m_ObserverVP = Transpose(viewVP);
                     m_Resources->m_MeshCards[slotId]                    = card;
                     m_Resources->m_RequireGpuDataSync                   = true;
 
                     m_Resources->m_MeshCardTasks.push_back(slotId);
+                    // std::abort();
                 }
             }
         }
@@ -307,21 +321,25 @@ namespace Ifrit::Core::Ayanami
                 struct PushConst
                 {
                     u32 albedoId;
-                    u32 normalId;
+                    u32 normalTexId;
                     u32 objectId;
                     u32 cardId;
                     u32 vertexId;
                     u32 uvId;
                     u32 allCardDataId;
+                    u32 tangentId;
+                    u32 normalId;
                 } pc;
 
                 pc.albedoId      = card.m_TempAlbedoId;
-                pc.normalId      = card.m_TempNormalId;
+                pc.normalTexId   = card.m_TempNormalId;
                 pc.objectId      = card.m_ObjectBufferId;
                 pc.cardId        = id;
                 pc.vertexId      = card.m_CardVertexBuffer->GetDescId();
                 pc.uvId          = card.m_CardUVBuffer->GetDescId();
                 pc.allCardDataId = m_Resources->m_ObserveDeviceData->GetDescId();
+                pc.tangentId     = card.m_CardTangentBuffer->GetDescId();
+                pc.normalId      = card.m_CardNormalBuffer->GetDescId();
 
                 cmd->SetPushConst(m_Resources->m_SurfaceCachePass, 0, sizeof(PushConst), &pc);
                 cmd->DrawIndexed(card.m_IndexCounts, 1, 0, 0, 0);
@@ -356,6 +374,10 @@ namespace Ifrit::Core::Ayanami
             RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, true);
 
+        // A depth buffer is required for the surface cache pass
+        m_Resources->m_SceneCacheTemporaryDepth = rhi->CreateDepthTexture(
+            "AyanamiTrivialSurfaceCache_DepthAtlas", m_Resolution, m_Resolution, false);
+
         auto maxAtlasSlots              = m_Resolution * m_Resolution / m_Resources->m_AtlasElementSize / m_Resources->m_AtlasElementSize;
         auto requiredObserverBufferSize = maxAtlasSlots * sizeof(ManagedMeshCardGPUData);
 
@@ -376,14 +398,24 @@ namespace Ifrit::Core::Ayanami
         rtFmt.m_colorFormats.push_back(RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM);
 
         m_Resources->m_SurfaceCachePass = CreateGraphicsPass(rhi, "Ayanami/Ayanami.SurfaceCacheGen.vert.glsl",
-            "Ayanami/Ayanami.SurfaceCacheGen.frag.glsl", 0, 7, rtFmt);
+            "Ayanami/Ayanami.SurfaceCacheGen.frag.glsl", 0, 9, rtFmt);
 
         // RTs
+        // TODO: To invalidate the cache, LOAD op is not a good practice?
         m_Resources->m_SurfaceCachePassRTs      = rhi->CreateRenderTargets();
         m_Resources->m_SurfaceCachePassAlbedoRT = rhi->CreateRenderTarget(
             m_Resources->m_SceneCacheAlbdeoAtlas.get(), { 0, 0, 1, 1 },
             RhiRenderTargetLoadOp::Load, 0, 0);
-        m_Resources->m_SurfaceCachePassRTs->SetColorAttachments({ m_Resources->m_SurfaceCachePassAlbedoRT.get() });
+        m_Resources->m_SurfaceCachePassNormalRT = rhi->CreateRenderTarget(
+            m_Resources->m_SceneCacheNormalAtlas.get(), { 0, 0, 1, 1 },
+            RhiRenderTargetLoadOp::Load, 0, 0);
+        m_Resources->m_SurfaceCachePassDepthRT = rhi->CreateRenderTargetDepthStencil(
+            m_Resources->m_SceneCacheTemporaryDepth.get(), { {}, 1.0f },
+            RhiRenderTargetLoadOp::Clear);
+
+        m_Resources->m_SurfaceCachePassRTs->SetColorAttachments({ m_Resources->m_SurfaceCachePassAlbedoRT.get(),
+            m_Resources->m_SurfaceCachePassNormalRT.get() });
+        m_Resources->m_SurfaceCachePassRTs->SetDepthStencilAttachment(m_Resources->m_SurfaceCachePassDepthRT.get());
 
         m_Resources->m_SurfaceCachePass->SetRenderTargetFormat(m_Resources->m_SurfaceCachePassRTs->GetFormat());
         m_Resources->m_SurfaceCachePassRTs->SetRenderArea({ 0, 0, m_Resolution, m_Resolution });
@@ -393,5 +425,15 @@ namespace Ifrit::Core::Ayanami
     IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetAlbedoAtlas()
     {
         return m_Resources->m_SceneCacheAlbdeoAtlas;
+    }
+
+    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetNormalAtlas()
+    {
+        return m_Resources->m_SceneCacheNormalAtlas;
+    }
+
+    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetDepthAtlas()
+    {
+        return m_Resources->m_SceneCacheTemporaryDepth;
     }
 } // namespace Ifrit::Core::Ayanami

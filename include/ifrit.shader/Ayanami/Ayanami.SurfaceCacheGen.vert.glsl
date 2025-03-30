@@ -27,24 +27,32 @@ RegisterStorage(BAllCardData,{
 });
 
 layout(location = 0) out vec2 TexCoord;
+layout(location = 1) out vec3 Normal;
+layout(location = 2) out vec4 Tangent;
 
 layout(push_constant) uniform PushConstants {
     uint albedoId;
-    uint normalId;
+    uint NormalTexId;
     uint objectId;
     uint cardId;
     uint vertexId;
     uint uvId;
     uint AllCardDataId;
+    uint TangentId;
+    uint NormalBufId;
 } PushConst;
 
 void main(){
     uint inIndex = gl_VertexIndex;
     vec4 pos = ReadVertexPosition(PushConst.vertexId, inIndex);
     vec2 uv = ReadVertexUV(PushConst.uvId, inIndex);
+    vec3 normal = ReadVertexNormal(PushConst.NormalBufId, inIndex).xyz;
+    vec4 tangent = ReadVertexTangent(PushConst.TangentId, inIndex);
     mat4 m_VP = GetResource(BAllCardData, PushConst.AllCardDataId).m_VP[PushConst.cardId];
 
-    vec4 worldPos = pos * m_VP;
+    vec4 worldPos = m_VP * pos;
+    Normal = normalize(normal);
+    Tangent = tangent;
     TexCoord = vec2(uv.x, uv.y);
     gl_Position = worldPos;
 }

@@ -137,6 +137,7 @@ namespace Ifrit::Core
 
         ResourceNode& AddResource(const String& name);
         PassNode&     AddPass(const String& name, FrameGraphPassType type);
+        void          SetResourceInitState(FrameGraphResourceInitState state) { m_resourceInitState = state; }
 
         friend class FrameGraphCompiler;
         friend class FrameGraphExecutor;

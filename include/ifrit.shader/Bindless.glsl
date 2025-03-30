@@ -81,9 +81,19 @@ RegisterStorage(bIfritInternal_VerticesPos,{
     vec4 position[];
 });
 
+RegisterStorage(bIfritInternal_NormalPos,{
+    vec4 normal[];
+});
+
+RegisterStorage(bIfritInternal_TangentPos,{
+    vec4 tangent[];
+});
+
 RegisterStorage(bIfritInternal_VerticesUV,{
     vec2 uv[];
 });
 
 #define ReadVertexPosition(objId,vertexId) GetResource(bIfritInternal_VerticesPos,objId).position[vertexId]
+#define ReadVertexNormal(objId,vertexId) GetResource(bIfritInternal_NormalPos,objId).normal[vertexId]
+#define ReadVertexTangent(objId,vertexId) GetResource(bIfritInternal_TangentPos,objId).tangent[vertexId]
 #define ReadVertexUV(objId,vertexId) GetResource(bIfritInternal_VerticesUV,objId).uv[vertexId]

@@ -19,19 +19,41 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
+#include "Base.glsl"
+#include "Bindless.glsl"
+
 layout(location = 0) in vec2 TexCoord;
+layout(location = 1) in vec3 Normal;
+layout(location = 2) in vec4 Tangent;
+
 layout(location = 0) out vec4 OutColor;
+layout(location = 1) out vec4 OutNormal;
 
 layout(push_constant) uniform PushConstants {
     uint albedoId;
-    uint normalId;
+    uint NormalTexId;
     uint objectId;
     uint cardId;
     uint vertexId;
     uint uvId;
     uint AllCardDataId;
+    uint TangentId;
+    uint NormalBufId;
 } PushConst;
 
 void main(){
-    OutColor = vec4(TexCoord,0.0,1.0);
+    vec4 albedo = texture(GetSampler2D(PushConst.albedoId), TexCoord);
+    vec4 normal = texture(GetSampler2D(PushConst.NormalTexId), TexCoord);
+    vec3 normalMap = normal.rgb * 2.0 - 1.0;
+
+    vec3 tangent = normalize(Tangent.xyz);
+    tangent = normalize(tangent - dot(tangent, Normal) * Normal);
+    vec3 bitangent = cross(Normal, tangent);
+    mat3 TBN = mat3(tangent, bitangent, Normal);
+
+    vec3 normalLocal = normalize(TBN * normalMap);
+    normalLocal = normalLocal * 0.5 + 0.5;
+
+    OutColor = albedo;
+    OutNormal = vec4(normalLocal, normal.a);
 }

@@ -88,7 +88,7 @@ namespace Ifrit::Core::Ayanami
             cmd->Dispatch(tgX, tgX, tgX);
         });
 
-        cmdList->BeginScope("Ayanami:GlobalDFComposite");
+        cmdList->BeginScope("Ayanami: GlobalDFComposite");
         m_updateClipmapPass->Run(cmdList, 0);
         cmdList->EndScope();
     }
@@ -130,7 +130,7 @@ namespace Ifrit::Core::Ayanami
             cmd->Dispatch(tgX, tgY, 1);
         });
 
-        cmdList->BeginScope("Ayanami:GlobalDFRayMarch");
+        cmdList->BeginScope("Ayanami: GlobalDFRayMarch");
         m_raymarchPass->Run(cmdList, 0);
         cmdList->EndScope();
     }

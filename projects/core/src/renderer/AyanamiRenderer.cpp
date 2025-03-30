@@ -100,27 +100,43 @@ namespace Ifrit::Core
         const GPUCmdBuffer* cmd)
     {
         FrameGraphBuilder fg;
-        auto              rtWidth  = renderTargets->GetRenderArea().width;
-        auto              rtHeight = renderTargets->GetRenderArea().height;
-        auto              rhi      = m_app->GetRhi();
+        fg.SetResourceInitState(FrameGraphResourceInitState::Uninitialized);
+
+        auto rtWidth  = renderTargets->GetRenderArea().width;
+        auto rtHeight = renderTargets->GetRenderArea().height;
+        auto rhi      = m_app->GetRhi();
 
         if IF_CONSTEXPR (false)
             iWarn("Just here to make clang-format happy");
 
-        auto& resSurfaceCacheAlbedo = fg.AddResource("SurfaceCacheAlbedo")
-                                          .SetImportedResource(m_resources->m_surfaceCacheManager->GetAlbedoAtlas().get(), { 0, 0, 1, 1 });
+        auto& resSurfaceCacheAlbedo =
+            fg.AddResource("SurfaceCacheAlbedo")
+                .SetImportedResource(m_resources->m_surfaceCacheManager->GetAlbedoAtlas().get(), { 0, 0, 1, 1 });
+        auto& resSurfaceCacheNormal =
+            fg.AddResource("SurfaceCacheNormal")
+                .SetImportedResource(m_resources->m_surfaceCacheManager->GetNormalAtlas().get(), { 0, 0, 1, 1 });
+        auto& resSuraceCacheDepth =
+            fg.AddResource("SurfaceCacheDepth")
+                .SetImportedResource(m_resources->m_surfaceCacheManager->GetDepthAtlas().get(), { 0, 0, 1, 1 });
+
         auto& resRaymarchOutput =
             fg.AddResource("RaymarchOutput")
                 .SetImportedResource(m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
 
-        auto& resGlobalDFGen = fg.AddResource("GlobalDFGen")
-                                   .SetImportedResource(m_globalDF->GetClipmapVolume(0).get(), { 0, 0, 1, 1 });
+        auto& resGlobalDFGen =
+            fg.AddResource("GlobalDFGen")
+                .SetImportedResource(m_globalDF->GetClipmapVolume(0).get(), { 0, 0, 1, 1 });
 
-        auto& resRenderTargets = fg.AddResource("RenderTargets")
-                                     .SetImportedResource(renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
+        auto& resRenderTargets =
+            fg.AddResource("RenderTargets")
+                .SetImportedResource(renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
 
-        auto& passSurfaceCacheGen = fg.AddPass("SurfaceCacheGen", FrameGraphPassType::Graphics)
-                                        .AddWriteResource(resSurfaceCacheAlbedo);
+        auto& passSurfaceCacheGen =
+            fg.AddPass("SurfaceCacheGen", FrameGraphPassType::Graphics)
+                .AddWriteResource(resSurfaceCacheAlbedo)
+                .AddWriteResource(resSurfaceCacheNormal)
+                .AddWriteResource(resSuraceCacheDepth);
+
         auto& passGlobalDFGen = fg.AddPass("GlobalDFGen", FrameGraphPassType::Compute);
         auto& passRaymarch    = fg.AddPass("RaymarchPass", FrameGraphPassType::Compute);
         auto& passDebug       = fg.AddPass("DebugPass", FrameGraphPassType::Graphics);

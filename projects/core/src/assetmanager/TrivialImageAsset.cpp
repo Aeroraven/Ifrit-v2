@@ -37,7 +37,7 @@ namespace Ifrit::Core
         }
         auto rhi = app->GetRhi();
         auto tex =
-            rhi->CreateTexture2D("Asset_Img", width, height, Graphics::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UINT,
+            rhi->CreateTexture2D("Asset_Img", width, height, Graphics::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
                 Graphics::Rhi::RHI_IMAGE_USAGE_TRANSFER_DST_BIT, false);
         auto tq        = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
         auto totalSize = width * height * 4;
