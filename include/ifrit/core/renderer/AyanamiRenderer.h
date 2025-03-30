@@ -16,6 +16,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
+#pragma once
 #include "ifrit/common/base/IfritBase.h"
 
 #include "ifrit/common/logging/Logging.h"
@@ -54,10 +55,6 @@ namespace Ifrit::Core
         using GPUCmdBuffer         = Graphics::Rhi::RhiCommandList;
         using GPUSampler           = Graphics::Rhi::RhiSampler;
 
-        // Perframe data maintained by the renderer, this is unsafe
-        // This will be dropped in the future
-        HashMap<Scene*, PerFrameData> m_perScenePerframe;
-
     private:
         Uref<SyaroRenderer>            m_gbufferRenderer;
         AyanamiRendererResources*      m_resources = nullptr;
@@ -74,15 +71,14 @@ namespace Ifrit::Core
         AyanamiRenderer(IApplication* app, Ayanami::AyanamiRenderConfig config)
             : RendererBase(app), m_gbufferRenderer(std::make_unique<SyaroRenderer>(app)), m_selfRenderConfig(config)
         {
-            m_gbufferRenderer->SetRenderRole(SyaroRenderRole::SYARO_DEFERRED_GBUFFER);
+            m_gbufferRenderer->SetRenderRole(SyaroRenderRole::DeferredGbuffer);
             InitRenderer();
             m_globalDF = std::make_unique<Ayanami::AyanamiGlobalDF>(config, app->GetRhi());
         }
         virtual ~AyanamiRenderer();
 
         virtual Uref<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
-            const RendererConfig&             config,
-            const Vec<GPUCommandSubmission*>& cmdToWait) override;
+            const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait) override;
     };
 
 } // namespace Ifrit::Core

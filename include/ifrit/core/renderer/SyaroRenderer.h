@@ -38,8 +38,9 @@ namespace Ifrit::Core
 
     enum class SyaroRenderRole
     {
-        SYARO_FULL,
-        SYARO_DEFERRED_GBUFFER
+        FullProcess,
+        DeferredGbuffer,
+        ShadowPass
     };
 
     class IFRIT_APIDECL SyaroRenderer : public RendererBase
@@ -70,7 +71,7 @@ namespace Ifrit::Core
         using PerViewData = PerFrameData::PerViewData;
 
         // Renderer Role
-        SyaroRenderRole                                   m_renderRole = SyaroRenderRole::SYARO_FULL;
+        SyaroRenderRole                                   m_renderRole = SyaroRenderRole::FullProcess;
 
         // Base
         ComputePass*                                      m_persistentCullingPass = nullptr;
@@ -109,9 +110,6 @@ namespace Ifrit::Core
 
         // Emit GBuffer, pass here is for default / debugging
         ComputePass*                                      m_defaultEmitGBufferPass = nullptr;
-
-        // Perframe data maintained by the renderer, this is unsafe
-        HashMap<Scene*, PerFrameData>                     m_perScenePerframe;
 
         // TAA
         ComputePass*                                      m_taaHistoryPass = nullptr;
@@ -162,8 +160,8 @@ namespace Ifrit::Core
 
     private:
         // Util functions
-        GPUShader*   CreateShaderFromFile(const String& shaderPath, const String& entry,
-              Graphics::Rhi::RhiShaderStage stage);
+        GPUShader* CreateShaderFromFile(
+            const String& shaderPath, const String& entry, Graphics::Rhi::RhiShaderStage stage);
 
         // Setup functions
         void         RecreateInstanceCullingBuffers(PerFrameData& perframe, u32 newMaxInstances);
@@ -206,17 +204,17 @@ namespace Ifrit::Core
         void RenderTriangleView(PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
         void RenderEmitDepthTargets(PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
         void RenderMaterialClassify(PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
-        void RenderDefaultEmitGBuffer(PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
+        void RenderDefaultEmitGBuffer(
+            PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
         void RenderAmbientOccl(PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
         void SetupAndRunFrameGraph(PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
 
     private:
-        virtual Uref<GPUCommandSubmission> Render(PerFrameData& perframeData, RenderTargets* renderTargets,
-            const Vec<GPUCommandSubmission*>& cmdToWait);
+        virtual Uref<GPUCommandSubmission> Render(
+            PerFrameData& perframeData, RenderTargets* renderTargets, const Vec<GPUCommandSubmission*>& cmdToWait);
 
     public:
-        SyaroRenderer(IApplication* app)
-            : RendererBase(app)
+        SyaroRenderer(IApplication* app) : RendererBase(app)
         {
             SetupPersistentCullingPass();
             SetupVisibilityPass();
@@ -232,9 +230,7 @@ namespace Ifrit::Core
             m_aoPass = std::make_shared<AmbientOcclusionPass>(app);
         }
         inline void                        SetRenderRole(SyaroRenderRole role) { m_renderRole = role; }
-        inline PerFrameData                GetPerframeData(Scene* scene) { return m_perScenePerframe[scene]; }
         virtual Uref<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
-            const RendererConfig&             config,
-            const Vec<GPUCommandSubmission*>& cmdToWait) override;
+            const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait) override;
     };
 } // namespace Ifrit::Core

@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/Camera.h"
 #include "ifrit/core/base/Component.h"
 #include "ifrit/core/util/TimingRecorder.h"
+#include "ifrit/core/scene/FrameCollector.h"
 
 namespace Ifrit::Core
 {
@@ -70,13 +71,13 @@ namespace Ifrit::Core
     class IFRIT_APIDECL Scene
     {
     protected:
-        Ref<SceneNode> m_root;
-        bool           m_isAwake       = false;
-        u64            m_curFixedFrame = 0;
+        Ref<SceneNode>    m_root;
+        bool              m_isAwake       = false;
+        u64               m_curFixedFrame = 0;
+        Ref<PerFrameData> m_perFrameData;
 
     public:
-        Scene()
-            : m_root(std::make_shared<SceneNode>()) {}
+        Scene();
 
         inline Ref<SceneNode> GetRootNode() { return m_root; }
         Camera*               GetMainCamera();
@@ -92,6 +93,7 @@ namespace Ifrit::Core
 
         void                  InvokeFrameUpdate();
 
+        Ref<PerFrameData>     GetPerFrameData() { return m_perFrameData; }
         IFRIT_STRUCT_SERIALIZE(m_root);
     };
 

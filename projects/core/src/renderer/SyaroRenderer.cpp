@@ -38,7 +38,8 @@ using Ifrit::Math::DivRoundUp;
 IF_CONSTEXPR auto kbImUsage_UAV_SRV = RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT;
 IF_CONSTEXPR auto kbImUsage_UAV_SRV_CopyDest =
     RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT | RHI_IMAGE_USAGE_TRANSFER_DST_BIT;
-IF_CONSTEXPR auto kbImUsage_UAV_SRV_RT_CopySrc = RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT | RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | RHI_IMAGE_USAGE_TRANSFER_SRC_BIT;
+IF_CONSTEXPR auto kbImUsage_UAV_SRV_RT_CopySrc = RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT
+    | RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | RHI_IMAGE_USAGE_TRANSFER_SRC_BIT;
 IF_CONSTEXPR auto kbImUsage_UAV_SRV_RT =
     RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT | RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 IF_CONSTEXPR auto kbImUsage_SRV_DEPTH = RHI_IMAGE_USAGE_SAMPLED_BIT | RHI_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -64,8 +65,8 @@ namespace Ifrit::Core
         u32 m_height;
     };
 
-    std::vector<RhiResourceBarrier> RegisterUAVBarriers(const std::vector<RhiBuffer*>& buffers,
-        const std::vector<RhiTexture*>&                                                textures)
+    std::vector<RhiResourceBarrier> RegisterUAVBarriers(
+        const std::vector<RhiBuffer*>& buffers, const std::vector<RhiTexture*>& textures)
     {
         std::vector<RhiResourceBarrier> barriers;
         for (auto& buffer : buffers)
@@ -91,8 +92,8 @@ namespace Ifrit::Core
         return barriers;
     }
 
-    void runImageBarrier(const RhiCommandList* cmd, RhiTexture* texture, RhiResourceState dst,
-        RhiImageSubResource subResource)
+    void runImageBarrier(
+        const RhiCommandList* cmd, RhiTexture* texture, RhiResourceState dst, RhiImageSubResource subResource)
     {
         std::vector<RhiResourceBarrier> barriers;
         RhiTransitionBarrier            barrier;
@@ -156,9 +157,8 @@ namespace Ifrit::Core
         m_timerDefer    = deferTimer;
     }
 
-    IFRIT_APIDECL SyaroRenderer::GPUShader*
-                  SyaroRenderer::CreateShaderFromFile(const std::string& shaderPath, const std::string& entry,
-                      Graphics::Rhi::RhiShaderStage stage)
+    IFRIT_APIDECL SyaroRenderer::GPUShader* SyaroRenderer::CreateShaderFromFile(
+        const std::string& shaderPath, const std::string& entry, Graphics::Rhi::RhiShaderStage stage)
     {
         auto              rhi            = m_app->GetRhi();
         std::string       shaderBasePath = IFRIT_CORELIB_SHARED_SHADER_PATH;
@@ -196,12 +196,14 @@ namespace Ifrit::Core
         }
         for (u32 i = 0; i < 2; i++)
         {
-            auto tex     = rhi->CreateTexture2D("Syaro_PostprocTex", width, height, rtFmt, kbImUsage_UAV_SRV_RT, true);
-            auto colorRT = rhi->CreateRenderTarget(tex.get(), { { 0.0f, 0.0f, 0.0f, 1.0f } }, RhiRenderTargetLoadOp::Load, 0, 0);
-            auto rts     = rhi->CreateRenderTargets();
+            auto tex = rhi->CreateTexture2D("Syaro_PostprocTex", width, height, rtFmt, kbImUsage_UAV_SRV_RT, true);
+            auto colorRT =
+                rhi->CreateRenderTarget(tex.get(), { { 0.0f, 0.0f, 0.0f, 1.0f } }, RhiRenderTargetLoadOp::Load, 0, 0);
+            auto rts = rhi->CreateRenderTargets();
 
-            m_postprocTex[{ width, height }][i]     = tex;
-            m_postprocTexSRV[{ width, height }][i]  = rhi->RegisterCombinedImageSampler(tex.get(), m_postprocTexSampler.get());
+            m_postprocTex[{ width, height }][i] = tex;
+            m_postprocTexSRV[{ width, height }][i] =
+                rhi->RegisterCombinedImageSampler(tex.get(), m_postprocTexSampler.get());
             m_postprocColorRT[{ width, height }][i] = colorRT;
 
             RhiAttachmentBlendInfo blendInfo;
@@ -220,16 +222,16 @@ namespace Ifrit::Core
         }
     }
 
-    IFRIT_APIDECL void SyaroRenderer::SetupAndRunFrameGraph(PerFrameData& perframeData, RenderTargets* renderTargets,
-        const GPUCmdBuffer* cmd)
+    IFRIT_APIDECL void SyaroRenderer::SetupAndRunFrameGraph(
+        PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
         // some pipelines
         if (m_deferredShadowPass == nullptr)
         {
-            auto rhi                   = m_app->GetRhi();
-            auto vsShader              = CreateShaderFromFile("Syaro.DeferredShadow.vert.glsl", "main", RhiShaderStage::Vertex);
-            auto fsShader              = CreateShaderFromFile("Syaro.DeferredShadow.frag.glsl", "main", RhiShaderStage::Fragment);
-            auto shadowRtCfg           = renderTargets->GetFormat();
+            auto rhi         = m_app->GetRhi();
+            auto vsShader    = CreateShaderFromFile("Syaro.DeferredShadow.vert.glsl", "main", RhiShaderStage::Vertex);
+            auto fsShader    = CreateShaderFromFile("Syaro.DeferredShadow.frag.glsl", "main", RhiShaderStage::Fragment);
+            auto shadowRtCfg = renderTargets->GetFormat();
             shadowRtCfg.m_colorFormats = { RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT };
             shadowRtCfg.m_depthFormat  = RhiImageFormat::RhiImgFmt_UNDEFINED;
 
@@ -284,20 +286,17 @@ namespace Ifrit::Core
                 .SetImportedResource(perframeData.m_gbuffer.m_specular_occlusion.get(), { 0, 0, 1, 1 });
 
         auto& resMotionDepth =
-            fg.AddResource("MotionDepth")
-                .SetImportedResource(perframeData.m_velocityMaterial.get(), { 0, 0, 1, 1 });
+            fg.AddResource("MotionDepth").SetImportedResource(perframeData.m_velocityMaterial.get(), { 0, 0, 1, 1 });
 
-        auto& resDeferredShadowOutput =
-            fg.AddResource("DeferredShadowOutput")
-                .SetImportedResource(perframeData.m_deferShadowMask.get(), { 0, 0, 1, 1 });
+        auto& resDeferredShadowOutput = fg.AddResource("DeferredShadowOutput")
+                                            .SetImportedResource(perframeData.m_deferShadowMask.get(), { 0, 0, 1, 1 });
 
         auto& resBlurredShadowIntermediateOutput =
             fg.AddResource("BlurredShadowIntermediateOutput")
                 .SetImportedResource(m_postprocTex[{ mainRtWidth, mainRtHeight }][1].get(), { 0, 0, 1, 1 });
 
-        auto& resBlurredShadowOutput =
-            fg.AddResource("BlurredShadowOutput")
-                .SetImportedResource(perframeData.m_deferShadowMask.get(), { 0, 0, 1, 1 });
+        auto& resBlurredShadowOutput = fg.AddResource("BlurredShadowOutput")
+                                           .SetImportedResource(perframeData.m_deferShadowMask.get(), { 0, 0, 1, 1 });
 
         auto& resPrimaryViewDepth =
             fg.AddResource("PrimaryViewDepth")
@@ -308,8 +307,7 @@ namespace Ifrit::Core
                 .SetImportedResource(m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get(), { 0, 0, 1, 1 });
 
         auto& resGlobalFogOutput =
-            fg.AddResource("GlobalFogOutput")
-                .SetImportedResource(perframeData.m_taaUnresolved.get(), { 0, 0, 1, 1 });
+            fg.AddResource("GlobalFogOutput").SetImportedResource(perframeData.m_taaUnresolved.get(), { 0, 0, 1, 1 });
 
         auto& resTAAFrameOutput =
             fg.AddResource("TAAFrameOutput")
@@ -317,7 +315,8 @@ namespace Ifrit::Core
 
         auto& resTAAHistoryOutput =
             fg.AddResource("TAAHistoryOutput")
-                .SetImportedResource(perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(), { 0, 0, 1, 1 });
+                .SetImportedResource(
+                    perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(), { 0, 0, 1, 1 });
 
         auto& resFinalOutput =
             fg.AddResource("FinalOutput")
@@ -327,17 +326,15 @@ namespace Ifrit::Core
             fg.AddResource("BloomOutput")
                 .SetImportedResource(m_postprocTex[{ mainRtWidth, mainRtHeight }][1].get(), { 0, 0, 1, 1 });
 
-        auto& resFsr2Output =
-            fg.AddResource("Fsr2Output");
+        auto& resFsr2Output = fg.AddResource("Fsr2Output");
 
         if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
             resFsr2Output.SetImportedResource(perframeData.m_fsr2Data.m_fsr2Output.get(), { 0, 0, 1, 1 });
 
         // PASS START!
-        auto& passAtmosphere =
-            fg.AddPass("Atmosphere", FrameGraphPassType::Graphics)
-                .AddReadResource(resPrimaryViewDepth)
-                .AddWriteResource(resAtmosphereOutput);
+        auto& passAtmosphere = fg.AddPass("Atmosphere", FrameGraphPassType::Graphics)
+                                   .AddReadResource(resPrimaryViewDepth)
+                                   .AddWriteResource(resAtmosphereOutput);
 
         auto& passDeferredShadow = fg.AddPass("DeferredShadow", FrameGraphPassType::Graphics)
                                        .AddReadResource(resGbufferAlbedoMaterial)
@@ -387,54 +384,39 @@ namespace Ifrit::Core
                 .AddReadResource(resDeferredShadingOutput)
                 .AddWriteResource(resGlobalFogOutput);
 
-            passConvBloom
-                .AddReadResource(resGlobalFogOutput)
-                .AddWriteResource(resBloomOutput);
+            passConvBloom.AddReadResource(resGlobalFogOutput).AddWriteResource(resBloomOutput);
 
-            passFsr2Dispatch
-                .AddReadResource(resBloomOutput)
-                .AddWriteResource(resFsr2Output);
+            passFsr2Dispatch.AddReadResource(resBloomOutput).AddWriteResource(resFsr2Output);
         }
         else if (m_config->m_antiAliasingType == AntiAliasingType::TAA)
         {
-            passGlobalFog
-                .AddReadResource(resPrimaryViewDepth)
+            passGlobalFog.AddReadResource(resPrimaryViewDepth)
                 .AddReadResource(resDeferredShadingOutput)
                 .AddWriteResource(resGlobalFogOutput);
 
-            passTAAResolve
-                .AddReadResource(resGlobalFogOutput)
+            passTAAResolve.AddReadResource(resGlobalFogOutput)
                 .AddWriteResource(resTAAFrameOutput)
                 .AddWriteResource(resTAAHistoryOutput);
 
-            passConvBloom
-                .AddReadResource(resTAAFrameOutput)
-                .AddWriteResource(resBloomOutput);
+            passConvBloom.AddReadResource(resTAAFrameOutput).AddWriteResource(resBloomOutput);
         }
         else
         {
-            passGlobalFog
-                .AddReadResource(resPrimaryViewDepth)
+            passGlobalFog.AddReadResource(resPrimaryViewDepth)
                 .AddReadResource(resDeferredShadingOutput)
                 .AddWriteResource(resGlobalFogOutput);
 
-            passConvBloom
-                .AddReadResource(resGlobalFogOutput)
-                .AddWriteResource(resBloomOutput);
+            passConvBloom.AddReadResource(resGlobalFogOutput).AddWriteResource(resBloomOutput);
         }
 
         // Tonemapping
         if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
         {
-            passToneMapping
-                .AddReadResource(resFsr2Output)
-                .AddWriteResource(resFinalOutput);
+            passToneMapping.AddReadResource(resFsr2Output).AddWriteResource(resFinalOutput);
         }
         else
         {
-            passToneMapping
-                .AddReadResource(resBloomOutput)
-                .AddWriteResource(resFinalOutput);
+            passToneMapping.AddReadResource(resBloomOutput).AddWriteResource(resFinalOutput);
         }
 
         // Pass Exec
@@ -483,9 +465,9 @@ namespace Ifrit::Core
             commandList->BeginScope("Syaro: Deferred Shadowing");
 
             auto targetRT = perframeData.m_deferShadowMaskRTs.get();
-            RenderingUtil::EnqueueFullScreenPass(
-                commandList, rhi, m_deferredShadowPass, targetRT,
-                { perframeData.m_gbufferDescFrag, perframeData.m_gbufferDepthDesc, primaryView.m_viewBindlessRef }, &pc, 3);
+            RenderingUtil::EnqueueFullScreenPass(commandList, rhi, m_deferredShadowPass, targetRT,
+                { perframeData.m_gbufferDescFrag, perframeData.m_gbufferDepthDesc, primaryView.m_viewBindlessRef }, &pc,
+                3);
             commandList->EndScope();
         });
 
@@ -526,9 +508,9 @@ namespace Ifrit::Core
             pc.depthTexRef      = primaryView.m_visibilityDepthIdSRV_Combined->GetActiveId();
             pc.shadowTexRef     = perframeData.m_deferShadowMaskId->GetActiveId();
             commandList->BeginScope("Syaro: Deferred Shading");
-            RenderingUtil::EnqueueFullScreenPass(
-                commandList, rhi, pass, postprocRT0.get(),
-                { perframeData.m_gbufferDescFrag, perframeData.m_gbufferDepthDesc, primaryView.m_viewBindlessRef }, &pc, 8);
+            RenderingUtil::EnqueueFullScreenPass(commandList, rhi, pass, postprocRT0.get(),
+                { perframeData.m_gbufferDescFrag, perframeData.m_gbufferDepthDesc, primaryView.m_viewBindlessRef }, &pc,
+                8);
             commandList->EndScope();
         });
 
@@ -543,10 +525,11 @@ namespace Ifrit::Core
         if (m_config->m_antiAliasingType == AntiAliasingType::TAA)
         {
             passTAAResolve.SetExecutionFunction([&](const FrameGraphPassContext& data) {
-                auto commandList     = data.m_CmdList;
-                auto taaRT           = rhi->CreateRenderTargets();
-                auto taaCurTarget    = rhi->CreateRenderTarget(perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(),
-                       {}, RhiRenderTargetLoadOp::Clear, 0, 0);
+                auto commandList = data.m_CmdList;
+                auto taaRT       = rhi->CreateRenderTargets();
+                auto taaCurTarget =
+                    rhi->CreateRenderTarget(perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRT.get(), {},
+                        RhiRenderTargetLoadOp::Clear, 0, 0);
                 auto taaRenderTarget = m_postprocColorRT[{ mainRtWidth, mainRtHeight }][0].get();
 
                 taaRT->SetColorAttachments({ taaCurTarget.get(), taaRenderTarget });
@@ -580,7 +563,8 @@ namespace Ifrit::Core
                 auto height         = mainRtHeight;
                 auto postprocTex0Id = m_postprocTexSRV[{ width, height }][0].get();
                 auto postprocTex1Id = m_postprocTex[{ width, height }][1]->GetDescId();
-                m_fftConv2d->RenderPostFx(commandList, postprocTex0Id, postprocTex1Id, nullptr, width, height, 51, 51, 4);
+                m_fftConv2d->RenderPostFx(
+                    commandList, postprocTex0Id, postprocTex1Id, nullptr, width, height, 51, 51, 4);
                 commandList->EndScope();
             });
         }
@@ -594,7 +578,8 @@ namespace Ifrit::Core
                 auto height         = mainRtHeight;
                 auto postprocTex0Id = perframeData.m_taaHistory[perframeData.m_frameId % 2].m_colorRTIdSRV.get();
                 auto postprocTex1Id = m_postprocTex[{ width, height }][1]->GetDescId();
-                m_fftConv2d->RenderPostFx(commandList, postprocTex0Id, postprocTex1Id, nullptr, width, height, 51, 51, 4);
+                m_fftConv2d->RenderPostFx(
+                    commandList, postprocTex0Id, postprocTex1Id, nullptr, width, height, 51, 51, 4);
                 commandList->EndScope();
             });
         }
@@ -604,9 +589,9 @@ namespace Ifrit::Core
             passFsr2Dispatch.SetExecutionFunction([&](const FrameGraphPassContext& data) {
                 auto commandList = data.m_CmdList;
                 commandList->BeginScope("Syaro: FSR2 Dispatch");
-                auto                                     color    = m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get();
-                auto                                     depth    = primaryView.m_visibilityDepth_Combined.get();
-                auto                                     motion   = perframeData.m_motionVector.get();
+                auto                                     color  = m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get();
+                auto                                     depth  = primaryView.m_visibilityDepth_Combined.get();
+                auto                                     motion = perframeData.m_motionVector.get();
                 auto                                     mainView = GetPrimaryView(perframeData);
                 Graphics::Rhi::FSR2::RhiFSR2DispatchArgs args;
                 args.camFar  = mainView.m_viewData.m_cameraFar;
@@ -621,7 +606,8 @@ namespace Ifrit::Core
                 else
                 {
                     // TODO: precision loss
-                    args.deltaTime = perframeData.m_frameTimestamp[perframeData.m_frameId % 2] - perframeData.m_frameTimestamp[(perframeData.m_frameId - 1) % 2];
+                    args.deltaTime = perframeData.m_frameTimestamp[perframeData.m_frameId % 2]
+                        - perframeData.m_frameTimestamp[(perframeData.m_frameId - 1) % 2];
                     args.deltaTime = std::max(args.deltaTime, 16.6f);
                 }
                 args.exposure         = nullptr;
@@ -657,13 +643,15 @@ namespace Ifrit::Core
             auto height     = renderArea.height;
 
             passToneMapping.SetExecutionFunction([&](const FrameGraphPassContext& data) {
-                m_acesToneMapping->RenderPostFx(data.m_CmdList, renderTargets, perframeData.m_fsr2Data.m_fsr2OutputSRVId.get());
+                m_acesToneMapping->RenderPostFx(
+                    data.m_CmdList, renderTargets, perframeData.m_fsr2Data.m_fsr2OutputSRVId.get());
             });
         }
         else
         {
             passToneMapping.SetExecutionFunction([&](const FrameGraphPassContext& data) {
-                m_acesToneMapping->RenderPostFx(data.m_CmdList, renderTargets, m_postprocTexSRV[{ mainRtWidth, mainRtHeight }][0].get());
+                m_acesToneMapping->RenderPostFx(
+                    data.m_CmdList, renderTargets, m_postprocTexSRV[{ mainRtWidth, mainRtHeight }][0].get());
             });
         }
 
@@ -679,8 +667,10 @@ namespace Ifrit::Core
             runImageBarrier(cmd, motion, RhiResourceState::ShaderRead, { 0, 0, 1, 1 });
             runImageBarrier(cmd, depth, RhiResourceState::ShaderRead, { 0, 0, 1, 1 });
         }
-        runImageBarrier(cmd, m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get(), RhiResourceState::ColorRT, { 0, 0, 1, 1 });
-        runImageBarrier(cmd, m_postprocTex[{ mainRtWidth, mainRtHeight }][1].get(), RhiResourceState::ColorRT, { 0, 0, 1, 1 });
+        runImageBarrier(
+            cmd, m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get(), RhiResourceState::ColorRT, { 0, 0, 1, 1 });
+        runImageBarrier(
+            cmd, m_postprocTex[{ mainRtWidth, mainRtHeight }][1].get(), RhiResourceState::ColorRT, { 0, 0, 1, 1 });
 
         // run!
         FrameGraphCompiler compiler;
@@ -843,7 +833,7 @@ namespace Ifrit::Core
         // Combine software and hardware rasterize results
         if (true)
         {
-            auto csShader           = CreateShaderFromFile("Syaro.CombineVisBuffer.comp.glsl", "main", RhiShaderStage::Compute);
+            auto csShader = CreateShaderFromFile("Syaro.CombineVisBuffer.comp.glsl", "main", RhiShaderStage::Compute);
             m_visibilityCombinePass = rhi->CreateComputePass();
             m_visibilityCombinePass->SetComputeShader(csShader);
             m_visibilityCombinePass->SetNumBindlessDescriptorSets(0);
@@ -860,8 +850,9 @@ namespace Ifrit::Core
 
     IFRIT_APIDECL void SyaroRenderer::SetupPersistentCullingPass()
     {
-        auto rhi                = m_app->GetRhi();
-        m_persistentCullingPass = RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.PersistentCulling.comp.glsl", 5, 3);
+        auto rhi = m_app->GetRhi();
+        m_persistentCullingPass =
+            RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.PersistentCulling.comp.glsl", 5, 3);
 
         m_indirectDrawBuffer = rhi->CreateBufferDevice("Syaro_IndirectDraw", u32Size * 1, kbBufUsage_Indirect, true);
         m_persistCullDesc    = rhi->createBindlessDescriptorRef();
@@ -880,14 +871,17 @@ namespace Ifrit::Core
 
     IFRIT_APIDECL void SyaroRenderer::SetupMaterialClassifyPass()
     {
-        auto rhi              = m_app->GetRhi();
-        m_matclassCountPass   = RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.ClassifyMaterial.Count.comp.glsl", 1, 3);
-        m_matclassReservePass = RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.ClassifyMaterial.Reserve.comp.glsl", 1, 3);
-        m_matclassScatterPass = RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.ClassifyMaterial.Scatter.comp.glsl", 1, 3);
+        auto rhi = m_app->GetRhi();
+        m_matclassCountPass =
+            RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.ClassifyMaterial.Count.comp.glsl", 1, 3);
+        m_matclassReservePass =
+            RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.ClassifyMaterial.Reserve.comp.glsl", 1, 3);
+        m_matclassScatterPass =
+            RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.ClassifyMaterial.Scatter.comp.glsl", 1, 3);
     }
 
-    IFRIT_APIDECL void SyaroRenderer::MaterialClassifyBufferSetup(PerFrameData& perframeData,
-        RenderTargets*                                                          renderTargets)
+    IFRIT_APIDECL void SyaroRenderer::MaterialClassifyBufferSetup(
+        PerFrameData& perframeData, RenderTargets* renderTargets)
     {
         auto numMaterials = perframeData.m_enabledEffects.size();
         auto rhi          = m_app->GetRhi();
@@ -901,7 +895,8 @@ namespace Ifrit::Core
         bool needRecreate      = false;
         bool needRecreateMat   = false;
         bool needRecreatePixel = false;
-        if (perframeData.m_matClassSupportedNumMaterials < numMaterials || perframeData.m_matClassCountBuffer == nullptr)
+        if (perframeData.m_matClassSupportedNumMaterials < numMaterials
+            || perframeData.m_matClassCountBuffer == nullptr)
         {
             needRecreate    = true;
             needRecreateMat = true;
@@ -918,7 +913,8 @@ namespace Ifrit::Core
         if (needRecreateMat)
         {
             perframeData.m_matClassSupportedNumMaterials = Ifrit::Common::Utility::SizeCast<u32>(numMaterials);
-            auto CreateSize                              = cMatClassCounterBufferSizeBase + cMatClassCounterBufferSizeMult * Ifrit::Common::Utility::SizeCast<u32>(numMaterials);
+            auto CreateSize                              = cMatClassCounterBufferSizeBase
+                + cMatClassCounterBufferSizeMult * Ifrit::Common::Utility::SizeCast<u32>(numMaterials);
 
             perframeData.m_matClassCountBuffer =
                 rhi->CreateBufferDevice("Syaro_MatClassCount", CreateSize, kbBufUsage_SSBO_CopyDest, true);
@@ -930,8 +926,8 @@ namespace Ifrit::Core
             perframeData.m_matClassSupportedNumPixels = totalSize;
             perframeData.m_matClassFinalBuffer =
                 rhi->CreateBufferDevice("Syaro_MatClassFinal", u32Size * totalSize, kbBufUsage_SSBO, true);
-            perframeData.m_matClassPixelOffsetBuffer =
-                rhi->CreateBufferDevice("Syaro_MatClassPixelOffset", u32Size * totalSize, kbBufUsage_SSBO_CopyDest, true);
+            perframeData.m_matClassPixelOffsetBuffer = rhi->CreateBufferDevice(
+                "Syaro_MatClassPixelOffset", u32Size * totalSize, kbBufUsage_SSBO_CopyDest, true);
         }
 
         if (needRecreate)
@@ -980,23 +976,23 @@ namespace Ifrit::Core
 
         if (perframeData.m_velocityMaterial != nullptr)
             return;
-        perframeData.m_velocityMaterial = rhi->CreateTexture2D("Syaro_VelocityMat", actualRtWidth, actualRtHeight,
-            kbImFmt_RGBA32F, kbImUsage_UAV_SRV, true);
-        perframeData.m_motionVector     = rhi->CreateTexture2D("Syaro_Motion", actualRtWidth, actualRtHeight, kbImFmt_RG32F,
-                kbImUsage_UAV_SRV_CopyDest, true);
+        perframeData.m_velocityMaterial = rhi->CreateTexture2D(
+            "Syaro_VelocityMat", actualRtWidth, actualRtHeight, kbImFmt_RGBA32F, kbImUsage_UAV_SRV, true);
+        perframeData.m_motionVector = rhi->CreateTexture2D(
+            "Syaro_Motion", actualRtWidth, actualRtHeight, kbImFmt_RG32F, kbImUsage_UAV_SRV_CopyDest, true);
 
         perframeData.m_velocityMaterialDesc = rhi->createBindlessDescriptorRef();
         perframeData.m_velocityMaterialDesc->AddUAVImage(perframeData.m_velocityMaterial.get(), { 0, 0, 1, 1 }, 0);
 
         auto& primaryView = GetPrimaryView(perframeData);
-        perframeData.m_velocityMaterialDesc->AddCombinedImageSampler(primaryView.m_visibilityBuffer_Combined.get(),
-            m_immRes.m_linearSampler.get(), 1);
+        perframeData.m_velocityMaterialDesc->AddCombinedImageSampler(
+            primaryView.m_visibilityBuffer_Combined.get(), m_immRes.m_linearSampler.get(), 1);
         perframeData.m_velocityMaterialDesc->AddUAVImage(perframeData.m_motionVector.get(), { 0, 0, 1, 1 }, 2);
 
         // For gbuffer, depth is required to reconstruct position
         perframeData.m_gbufferDepthDesc = rhi->createBindlessDescriptorRef();
-        perframeData.m_gbufferDepthDesc->AddCombinedImageSampler(perframeData.m_velocityMaterial.get(),
-            m_immRes.m_linearSampler.get(), 0);
+        perframeData.m_gbufferDepthDesc->AddCombinedImageSampler(
+            perframeData.m_velocityMaterial.get(), m_immRes.m_linearSampler.get(), 0);
     }
 
     IFRIT_APIDECL void SyaroRenderer::RecreateInstanceCullingBuffers(PerFrameData& perframe, u32 newMaxInstances)
@@ -1010,8 +1006,8 @@ namespace Ifrit::Core
                 view.m_maxSupportedInstances = newMaxInstances;
                 view.m_instCullDiscardObj =
                     rhi->CreateBufferDevice("Syaro_InstCullDiscard", u32Size * newMaxInstances, kbBufUsage_SSBO, true);
-                view.m_instCullPassedObj =
-                    rhi->CreateBufferDevice("Syaro_InstCullPassed", u32Size * newMaxInstances, kbBufUsage_SSBO_CopyDest, true);
+                view.m_instCullPassedObj = rhi->CreateBufferDevice(
+                    "Syaro_InstCullPassed", u32Size * newMaxInstances, kbBufUsage_SSBO_CopyDest, true);
                 view.m_persistCullIndirectDispatch =
                     rhi->CreateBufferDevice("Syaro_InstCullDispatch", u32Size * 12, kbBufUsage_Indirect, true);
 
@@ -1022,9 +1018,10 @@ namespace Ifrit::Core
 
                 // create barriers
                 view.m_persistCullBarrier.clear();
-                view.m_persistCullBarrier = RegisterUAVBarriers(
-                    { view.m_instCullDiscardObj.get(), view.m_instCullPassedObj.get(), view.m_persistCullIndirectDispatch.get() },
-                    {});
+                view.m_persistCullBarrier =
+                    RegisterUAVBarriers({ view.m_instCullDiscardObj.get(), view.m_instCullPassedObj.get(),
+                                            view.m_persistCullIndirectDispatch.get() },
+                        {});
 
                 view.m_visibilityBarrier.clear();
                 view.m_visibilityBarrier =
@@ -1035,9 +1032,8 @@ namespace Ifrit::Core
         }
     }
 
-    IFRIT_APIDECL void SyaroRenderer::RenderEmitDepthTargets(PerFrameData& perframeData,
-        SyaroRenderer::RenderTargets*                                      renderTargets,
-        const GPUCmdBuffer*                                                cmd)
+    IFRIT_APIDECL void SyaroRenderer::RenderEmitDepthTargets(
+        PerFrameData& perframeData, SyaroRenderer::RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
         auto  rhi         = m_app->GetRhi();
         auto& primaryView = GetPrimaryView(perframeData);
@@ -1046,8 +1042,8 @@ namespace Ifrit::Core
 #if !SYARO_ENABLE_SW_RASTERIZER
             // This barrier is intentionally for layout transition. Sync barrier is
             // issued via GlobalMemoryBarrier
-            ctx->m_cmd->AddImageBarrier(primaryView.m_visibilityDepth_Combined.get(), RhiResourceState::DepthStencilRenderTarget,
-                RhiResourceState::Common, { 0, 0, 1, 1 });
+            ctx->m_cmd->AddImageBarrier(primaryView.m_visibilityDepth_Combined.get(),
+                RhiResourceState::DepthStencilRenderTarget, RhiResourceState::Common, { 0, 0, 1, 1 });
 #endif
             runImageBarrier(ctx->m_cmd, perframeData.m_velocityMaterial.get(),
 
@@ -1055,8 +1051,8 @@ namespace Ifrit::Core
             runImageBarrier(ctx->m_cmd, perframeData.m_motionVector.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
             ctx->m_cmd->ClearUAVTexFloat(perframeData.m_motionVector.get(), { 0, 0, 1, 1 }, { 0.0f, 0.0f, 0.0f, 0.0f });
             ctx->m_cmd->AttachBindlessRefCompute(m_emitDepthTargetsPass, 1, primaryView.m_viewBindlessRef);
-            ctx->m_cmd->AttachBindlessRefCompute(m_emitDepthTargetsPass, 2,
-                perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+            ctx->m_cmd->AttachBindlessRefCompute(
+                m_emitDepthTargetsPass, 2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
             ctx->m_cmd->AttachBindlessRefCompute(m_emitDepthTargetsPass, 3, primaryView.m_allFilteredMeshletsDesc);
             ctx->m_cmd->AttachBindlessRefCompute(m_emitDepthTargetsPass, 4, perframeData.m_velocityMaterialDesc);
             u32 pcData[2] = { primaryView.m_renderWidth, primaryView.m_renderHeight };
@@ -1080,8 +1076,7 @@ namespace Ifrit::Core
         cmd->EndScope();
     }
     IFRIT_APIDECL void SyaroRenderer::RenderTwoPassOcclCulling(CullingPass cullPass, PerFrameData& perframeData,
-        RenderTargets* renderTargets, const GPUCmdBuffer* cmd,
-        PerFrameData::ViewType filteredViewType, u32 idx)
+        RenderTargets* renderTargets, const GPUCmdBuffer* cmd, PerFrameData::ViewType filteredViewType, u32 idx)
     {
         auto                                                 rhi       = m_app->GetRhi();
         int                                                  pcData[2] = { 0, 1 };
@@ -1117,8 +1112,8 @@ namespace Ifrit::Core
             }
             runUAVBufferBarrier(ctx->m_cmd, perView.m_persistCullIndirectDispatch.get());
             ctx->m_cmd->AttachBindlessRefCompute(m_instanceCullingPass, 1, perView.m_viewBindlessRef);
-            ctx->m_cmd->AttachBindlessRefCompute(m_instanceCullingPass, 2,
-                perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+            ctx->m_cmd->AttachBindlessRefCompute(
+                m_instanceCullingPass, 2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
             ctx->m_cmd->AttachBindlessRefCompute(m_instanceCullingPass, 3, perView.m_instCullDesc);
             ctx->m_cmd->AttachBindlessRefCompute(m_instanceCullingPass, 4, perView.m_spHiZData.m_hizDesc);
 
@@ -1153,8 +1148,8 @@ namespace Ifrit::Core
             runUAVBufferBarrier(ctx->m_cmd, m_indirectDrawBuffer.get());
             // bind view buffer
             ctx->m_cmd->AttachBindlessRefCompute(m_persistentCullingPass, 1, perView.m_viewBindlessRef);
-            ctx->m_cmd->AttachBindlessRefCompute(m_persistentCullingPass, 2,
-                perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+            ctx->m_cmd->AttachBindlessRefCompute(
+                m_persistentCullingPass, 2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
             ctx->m_cmd->AttachBindlessRefCompute(m_persistentCullingPass, 3, m_persistCullDesc);
             ctx->m_cmd->AttachBindlessRefCompute(m_persistentCullingPass, 4, perView.m_allFilteredMeshletsDesc);
             ctx->m_cmd->AttachBindlessRefCompute(m_persistentCullingPass, 5, perView.m_instCullDesc);
@@ -1257,8 +1252,8 @@ namespace Ifrit::Core
         combinePass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
             if (cullPass == CullingPass::First)
             {
-                runImageBarrier(ctx->m_cmd, perView.m_visibilityBuffer_Combined.get(), RhiResourceState::UnorderedAccess,
-                    { 0, 0, 1, 1 });
+                runImageBarrier(ctx->m_cmd, perView.m_visibilityBuffer_Combined.get(),
+                    RhiResourceState::UnorderedAccess, { 0, 0, 1, 1 });
                 runImageBarrier(ctx->m_cmd, perView.m_visibilityDepth_Combined.get(), RhiResourceState::UnorderedAccess,
                     { 0, 0, 1, 1 });
             }
@@ -1352,8 +1347,8 @@ namespace Ifrit::Core
         cmd->EndScope();
     }
 
-    IFRIT_APIDECL void SyaroRenderer::RenderTriangleView(PerFrameData& perframeData, RenderTargets* renderTargets,
-        const GPUCmdBuffer* cmd)
+    IFRIT_APIDECL void SyaroRenderer::RenderTriangleView(
+        PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
         auto  rhi         = m_app->GetRhi();
         auto& primaryView = GetPrimaryView(perframeData);
@@ -1373,8 +1368,8 @@ namespace Ifrit::Core
         RenderingUtil::EnqueueFullScreenPass(cmd, rhi, triangleView, renderTargets, {}, &pc, 1);
     }
 
-    IFRIT_APIDECL void SyaroRenderer::RenderMaterialClassify(PerFrameData& perframeData, RenderTargets* renderTargets,
-        const GPUCmdBuffer* cmd)
+    IFRIT_APIDECL void SyaroRenderer::RenderMaterialClassify(
+        PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
         auto rhi            = m_app->GetRhi();
         auto totalMaterials = SizeCast<u32>(perframeData.m_enabledEffects.size());
@@ -1433,8 +1428,9 @@ namespace Ifrit::Core
 
     IFRIT_APIDECL void SyaroRenderer::SetupDefaultEmitGBufferPass()
     {
-        auto rhi                 = m_app->GetRhi();
-        m_defaultEmitGBufferPass = RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.EmitGBuffer.Default.comp.glsl", 6, 3);
+        auto rhi = m_app->GetRhi();
+        m_defaultEmitGBufferPass =
+            RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.EmitGBuffer.Default.comp.glsl", 6, 3);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SphizBufferSetup(PerFrameData& perframeData, RenderTargets* renderTargets)
@@ -1455,8 +1451,8 @@ namespace Ifrit::Core
             // Min-HiZ required by ssgi
             if (m_singlePassHiZProc->CheckResourceToRebuild(perView.m_spHiZDataMin, width, height))
             {
-                m_singlePassHiZProc->PrepareHiZResources(perView.m_spHiZDataMin, perView.m_visibilityDepth_Combined.get(),
-                    m_immRes.m_linearSampler.get(), rWidth, rHeight);
+                m_singlePassHiZProc->PrepareHiZResources(perView.m_spHiZDataMin,
+                    perView.m_visibilityDepth_Combined.get(), m_immRes.m_linearSampler.get(), rWidth, rHeight);
             }
         }
     }
@@ -1519,8 +1515,8 @@ namespace Ifrit::Core
                 perView.m_visRTs_HW = rhi->CreateRenderTargets();
                 if (perView.m_viewType == PerFrameData::ViewType::Primary)
                 {
-                    perView.m_visColorRT_HW =
-                        rhi->CreateRenderTarget(visBufferHW.get(), { { 0, 0, 0, 0 } }, RhiRenderTargetLoadOp::Clear, 0, 0);
+                    perView.m_visColorRT_HW = rhi->CreateRenderTarget(
+                        visBufferHW.get(), { { 0, 0, 0, 0 } }, RhiRenderTargetLoadOp::Clear, 0, 0);
                     perView.m_visRTs_HW->SetColorAttachments({ perView.m_visColorRT_HW.get() });
                 }
                 else
@@ -1543,8 +1539,8 @@ namespace Ifrit::Core
                 perView.m_visRTs2_HW = rhi->CreateRenderTargets();
                 if (perView.m_viewType == PerFrameData::ViewType::Primary)
                 {
-                    perView.m_visColorRT2_HW =
-                        rhi->CreateRenderTarget(visBufferHW.get(), { { 0, 0, 0, 0 } }, RhiRenderTargetLoadOp::Load, 0, 0);
+                    perView.m_visColorRT2_HW = rhi->CreateRenderTarget(
+                        visBufferHW.get(), { { 0, 0, 0, 0 } }, RhiRenderTargetLoadOp::Load, 0, 0);
                     perView.m_visRTs2_HW->SetColorAttachments({ perView.m_visColorRT2_HW.get() });
                 }
                 else
@@ -1567,59 +1563,63 @@ namespace Ifrit::Core
             {
                 perView.m_visibilityBuffer_SW = rhi->CreateTexture2D("Syaro_VisBufferSW", visWidth, visHeight,
                     PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV, true);
-                perView.m_visPassDepth_SW =
-                    rhi->CreateBufferDevice("Syaro_VisDepthSW", u64Size * visWidth * visHeight, kbBufUsage_SSBO_CopyDest, true);
-                perView.m_visPassDepthCASLock_SW =
-                    rhi->CreateBufferDevice("Syaro_VisCasSW", f32Size * visWidth * visHeight, kbBufUsage_SSBO_CopyDest, true);
+                perView.m_visPassDepth_SW     = rhi->CreateBufferDevice(
+                    "Syaro_VisDepthSW", u64Size * visWidth * visHeight, kbBufUsage_SSBO_CopyDest, true);
+                perView.m_visPassDepthCASLock_SW = rhi->CreateBufferDevice(
+                    "Syaro_VisCasSW", f32Size * visWidth * visHeight, kbBufUsage_SSBO_CopyDest, true);
             }
 
             // For combined buffer
             if (SYARO_ENABLE_SW_RASTERIZER && perView.m_viewType == PerFrameData::ViewType::Primary)
             {
-                perView.m_visibilityBuffer_Combined = rhi->CreateTexture2D(
-                    "Syaro_VisBufferComb", visWidth, visHeight, PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV, true);
-                perView.m_visibilityDepth_Combined =
-                    rhi->CreateTexture2D("Syaro_VisDepthComb", visWidth, visHeight, kbImFmt_R32F, kbImUsage_UAV_SRV, true);
-                perView.m_visibilityBufferIdSRV_Combined =
-                    rhi->RegisterCombinedImageSampler(perView.m_visibilityBuffer_Combined.get(), m_immRes.m_nearestSampler.get());
-                perView.m_visibilityDepthIdSRV_Combined =
-                    rhi->RegisterCombinedImageSampler(perView.m_visibilityDepth_Combined.get(), m_immRes.m_linearSampler.get());
+                perView.m_visibilityBuffer_Combined = rhi->CreateTexture2D("Syaro_VisBufferComb", visWidth, visHeight,
+                    PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV, true);
+                perView.m_visibilityDepth_Combined  = rhi->CreateTexture2D(
+                    "Syaro_VisDepthComb", visWidth, visHeight, kbImFmt_R32F, kbImUsage_UAV_SRV, true);
+                perView.m_visibilityBufferIdSRV_Combined = rhi->RegisterCombinedImageSampler(
+                    perView.m_visibilityBuffer_Combined.get(), m_immRes.m_nearestSampler.get());
+                perView.m_visibilityDepthIdSRV_Combined = rhi->RegisterCombinedImageSampler(
+                    perView.m_visibilityDepth_Combined.get(), m_immRes.m_linearSampler.get());
             }
             else
             {
-                perView.m_visibilityDepth_Combined      = perView.m_visPassDepth_HW;
-                perView.m_visibilityBuffer_Combined     = perView.m_visibilityBuffer_HW;
-                perView.m_visibilityDepthIdSRV_Combined = perView.m_visDepthIdSRV_HW;
-                perView.m_visibilityBufferIdSRV_Combined =
-                    rhi->RegisterCombinedImageSampler(perView.m_visibilityBuffer_Combined.get(), m_immRes.m_linearSampler.get());
+                perView.m_visibilityDepth_Combined       = perView.m_visPassDepth_HW;
+                perView.m_visibilityBuffer_Combined      = perView.m_visibilityBuffer_HW;
+                perView.m_visibilityDepthIdSRV_Combined  = perView.m_visDepthIdSRV_HW;
+                perView.m_visibilityBufferIdSRV_Combined = rhi->RegisterCombinedImageSampler(
+                    perView.m_visibilityBuffer_Combined.get(), m_immRes.m_linearSampler.get());
             }
         }
     }
 
-    IFRIT_APIDECL void SyaroRenderer::RenderDefaultEmitGBuffer(PerFrameData& perframeData, RenderTargets* renderTargets,
-        const GPUCmdBuffer* cmd)
+    IFRIT_APIDECL void SyaroRenderer::RenderDefaultEmitGBuffer(
+        PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
         auto numMaterials = perframeData.m_enabledEffects.size();
         m_defaultEmitGBufferPass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
             // first transition all gbuffer textures to UAV/Common
             runImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_albedo_materialFlags.get(), RhiResourceState::Common,
                 { 0, 0, 1, 1 });
-            runImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_normal_smoothness.get(), RhiResourceState::Common,
-                { 0, 0, 1, 1 });
-            runImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_emissive.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
+            runImageBarrier(
+                ctx->m_cmd, perframeData.m_gbuffer.m_normal_smoothness.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
+            runImageBarrier(
+                ctx->m_cmd, perframeData.m_gbuffer.m_emissive.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
             runImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_specular_occlusion.get(), RhiResourceState::Common,
                 { 0, 0, 1, 1 });
-            runImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_shadowMask.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
+            runImageBarrier(
+                ctx->m_cmd, perframeData.m_gbuffer.m_shadowMask.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
 
             // Clear gbuffer textures
-            ctx->m_cmd->ClearUAVTexFloat(perframeData.m_gbuffer.m_albedo_materialFlags.get(), { 0, 0, 1, 1 },
-                { 0.0f, 0.0f, 0.0f, 0.0f });
-            ctx->m_cmd->ClearUAVTexFloat(perframeData.m_gbuffer.m_normal_smoothness.get(), { 0, 0, 1, 1 },
-                { 0.0f, 0.0f, 0.0f, 0.0f });
-            ctx->m_cmd->ClearUAVTexFloat(perframeData.m_gbuffer.m_emissive.get(), { 0, 0, 1, 1 }, { 0.0f, 0.0f, 0.0f, 0.0f });
-            ctx->m_cmd->ClearUAVTexFloat(perframeData.m_gbuffer.m_specular_occlusion.get(), { 0, 0, 1, 1 },
-                { 0.0f, 0.0f, 0.0f, 0.0f });
-            ctx->m_cmd->ClearUAVTexFloat(perframeData.m_gbuffer.m_shadowMask.get(), { 0, 0, 1, 1 }, { 0.0f, 0.0f, 0.0f, 0.0f });
+            ctx->m_cmd->ClearUAVTexFloat(
+                perframeData.m_gbuffer.m_albedo_materialFlags.get(), { 0, 0, 1, 1 }, { 0.0f, 0.0f, 0.0f, 0.0f });
+            ctx->m_cmd->ClearUAVTexFloat(
+                perframeData.m_gbuffer.m_normal_smoothness.get(), { 0, 0, 1, 1 }, { 0.0f, 0.0f, 0.0f, 0.0f });
+            ctx->m_cmd->ClearUAVTexFloat(
+                perframeData.m_gbuffer.m_emissive.get(), { 0, 0, 1, 1 }, { 0.0f, 0.0f, 0.0f, 0.0f });
+            ctx->m_cmd->ClearUAVTexFloat(
+                perframeData.m_gbuffer.m_specular_occlusion.get(), { 0, 0, 1, 1 }, { 0.0f, 0.0f, 0.0f, 0.0f });
+            ctx->m_cmd->ClearUAVTexFloat(
+                perframeData.m_gbuffer.m_shadowMask.get(), { 0, 0, 1, 1 }, { 0.0f, 0.0f, 0.0f, 0.0f });
             ctx->m_cmd->AddResourceBarrier(perframeData.m_gbuffer.m_gbufferBarrier);
 
             // For each material, make
@@ -1633,9 +1633,10 @@ namespace Ifrit::Core
                 ctx->m_cmd->AttachBindlessRefCompute(m_defaultEmitGBufferPass, 1, perframeData.m_matClassDesc);
                 ctx->m_cmd->AttachBindlessRefCompute(m_defaultEmitGBufferPass, 2, perframeData.m_gbuffer.m_gbufferDesc);
                 ctx->m_cmd->AttachBindlessRefCompute(m_defaultEmitGBufferPass, 3, primaryView.m_viewBindlessRef);
-                ctx->m_cmd->AttachBindlessRefCompute(m_defaultEmitGBufferPass, 4,
-                    perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
-                ctx->m_cmd->AttachBindlessRefCompute(m_defaultEmitGBufferPass, 5, primaryView.m_allFilteredMeshletsDesc);
+                ctx->m_cmd->AttachBindlessRefCompute(
+                    m_defaultEmitGBufferPass, 4, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+                ctx->m_cmd->AttachBindlessRefCompute(
+                    m_defaultEmitGBufferPass, 5, primaryView.m_allFilteredMeshletsDesc);
                 ctx->m_cmd->AttachBindlessRefCompute(m_defaultEmitGBufferPass, 6, perframeData.m_velocityMaterialDesc);
 
                 pcData[0] = i;
@@ -1656,8 +1657,8 @@ namespace Ifrit::Core
         cmd->EndScope();
     }
 
-    IFRIT_APIDECL void SyaroRenderer::RenderAmbientOccl(PerFrameData& perframeData, RenderTargets* renderTargets,
-        const GPUCmdBuffer* cmd)
+    IFRIT_APIDECL void SyaroRenderer::RenderAmbientOccl(
+        PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
         auto primaryView = GetPrimaryView(perframeData);
 
@@ -1681,8 +1682,8 @@ namespace Ifrit::Core
             cmd->GlobalMemoryBarrier();
             auto colorRT1 = rhi->CreateRenderTarget(perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
                 { { 0, 0, 0, 0 } }, RhiRenderTargetLoadOp::Clear, 0, 0);
-            auto colorRT2 = rhi->CreateRenderTarget(perframeData.m_gbuffer.m_specular_occlusion.get(), { { 0, 0, 0, 0 } },
-                RhiRenderTargetLoadOp::Clear, 0, 0);
+            auto colorRT2 = rhi->CreateRenderTarget(perframeData.m_gbuffer.m_specular_occlusion.get(),
+                { { 0, 0, 0, 0 } }, RhiRenderTargetLoadOp::Clear, 0, 0);
             auto rt1      = rhi->CreateRenderTargets();
             rt1->SetColorAttachments({ colorRT1.get() });
             rt1->SetRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
@@ -1691,8 +1692,8 @@ namespace Ifrit::Core
             rt2->SetRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
 
             m_gaussianHori->RenderPostFx(cmd, rt1.get(), perframeData.m_gbuffer.m_specular_occlusion_sampId.get(), 5);
-            m_gaussianVert->RenderPostFx(cmd, rt2.get(), perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId.get(),
-                5);
+            m_gaussianVert->RenderPostFx(
+                cmd, rt2.get(), perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId.get(), 5);
         };
 
         cmd->BeginScope("Syaro: Ambient Occlusion");
@@ -1712,15 +1713,15 @@ namespace Ifrit::Core
             cmd->GlobalMemoryBarrier();
             m_singlePassHiZProc->RunHiZPass(primaryView.m_spHiZDataMin, cmd, width, height, true);
             cmd->GlobalMemoryBarrier();
-            m_aoPass->RenderSSGI(
-                cmd, width, height, primaryView.m_viewBufferId.get(), primaryView.m_spHiZDataMin.m_hizRefBuffer->GetDescId(),
+            m_aoPass->RenderSSGI(cmd, width, height, primaryView.m_viewBufferId.get(),
+                primaryView.m_spHiZDataMin.m_hizRefBuffer->GetDescId(),
                 primaryView.m_spHiZData.m_hizRefBuffer->GetDescId(), normalSamp.get(), aoIntermediate, albedoSamp.get(),
                 primaryView.m_spHiZDataMin.m_hizWidth, primaryView.m_spHiZDataMin.m_hizHeight,
                 primaryView.m_spHiZDataMin.m_hizIters, m_immRes.m_blueNoiseSRV.get());
 
             cmd->GlobalMemoryBarrier();
-            m_jointBilateralFilter->RenderPostFx(cmd, aoRT.get(), aoIntermediateSRV.get(), normalSamp.get(), depthSamp.get(),
-                0);
+            m_jointBilateralFilter->RenderPostFx(
+                cmd, aoRT.get(), aoIntermediateSRV.get(), normalSamp.get(), depthSamp.get(), 0);
         }
         cmd->GlobalMemoryBarrier();
         cmd->EndScope();
@@ -1792,9 +1793,8 @@ namespace Ifrit::Core
                 IF_CONSTEXPR u32 bufMultiplier        = 1 + SYARO_ENABLE_SW_RASTERIZER;
                 if (allFilteredMeshletsHW == nullptr)
                 {
-                    allFilteredMeshletsHW =
-                        rhi->CreateBufferDevice("Syaro_FilteredClusterHW", totalMeshlets * bufMultiplier * sizeof(Vector2i) + 2,
-                            kbBufUsage_SSBO_CopyDest, true);
+                    allFilteredMeshletsHW = rhi->CreateBufferDevice("Syaro_FilteredClusterHW",
+                        totalMeshlets * bufMultiplier * sizeof(Vector2i) + 2, kbBufUsage_SSBO_CopyDest, true);
                 }
                 perView.m_allFilteredMeshletsHW = allFilteredMeshletsHW;
 
@@ -1826,8 +1826,8 @@ namespace Ifrit::Core
 
         if (shadowData.m_allShadowData == nullptr)
         {
-            shadowData.m_allShadowData   = rhi->CreateBufferCoherent(256 * sizeof(decltype(shadowData.m_shadowViews)::value_type),
-                  kbBufUsage_SSBO_CopyDest);
+            shadowData.m_allShadowData = rhi->CreateBufferCoherent(
+                256 * sizeof(decltype(shadowData.m_shadowViews)::value_type), kbBufUsage_SSBO_CopyDest);
             shadowData.m_allShadowDataId = rhi->RegisterStorageBufferShared(shadowData.m_allShadowData.get());
         }
         for (auto d = 0; auto& x : shadowData.m_shadowViews)
@@ -1841,8 +1841,7 @@ namespace Ifrit::Core
         }
         auto p = shadowData.m_allShadowData->GetActiveBuffer();
         p->MapMemory();
-        p->WriteBuffer(
-            shadowData.m_shadowViews.data(),
+        p->WriteBuffer(shadowData.m_shadowViews.data(),
             SizeCast<u32>(shadowData.m_shadowViews.size() * sizeof(decltype(shadowData.m_shadowViews)::value_type)), 0);
         p->FlushBuffer();
         p->UnmapMemory();
@@ -1852,11 +1851,11 @@ namespace Ifrit::Core
         auto mainRtHeight = mainView.m_renderHeight;
         if (perframeData.m_deferShadowMask == nullptr)
         {
-            perframeData.m_deferShadowMask = rhi->CreateTexture2D("Syaro_DeferShadow", mainRtWidth, mainRtHeight,
-                kbImFmt_RGBA32F, kbImUsage_UAV_SRV_RT, true);
+            perframeData.m_deferShadowMask = rhi->CreateTexture2D(
+                "Syaro_DeferShadow", mainRtWidth, mainRtHeight, kbImFmt_RGBA32F, kbImUsage_UAV_SRV_RT, true);
 
-            perframeData.m_deferShadowMaskRT = rhi->CreateRenderTarget(
-                perframeData.m_deferShadowMask.get(), { { 0.0f, 0.0f, 0.0f, 1.0f } }, RhiRenderTargetLoadOp::Clear, 0, 0);
+            perframeData.m_deferShadowMaskRT  = rhi->CreateRenderTarget(perframeData.m_deferShadowMask.get(),
+                 { { 0.0f, 0.0f, 0.0f, 1.0f } }, RhiRenderTargetLoadOp::Clear, 0, 0);
             perframeData.m_deferShadowMaskRTs = rhi->CreateRenderTargets();
             perframeData.m_deferShadowMaskRTs->SetColorAttachments({ perframeData.m_deferShadowMaskRT.get() });
             perframeData.m_deferShadowMaskRTs->SetRenderArea({ 0, 0, u32(mainRtWidth), u32(mainRtHeight) });
@@ -1880,8 +1879,8 @@ namespace Ifrit::Core
         perframeData.m_fsr2Data.m_fsr2Output =
             rhi->CreateTexture2D("Syaro_FSR2Out", outputRtw, outputRth, kbImFmt_RGBA16F, kbImUsage_UAV_SRV, true);
 
-        perframeData.m_fsr2Data.m_fsr2OutputSRVId =
-            rhi->RegisterCombinedImageSampler(perframeData.m_fsr2Data.m_fsr2Output.get(), m_immRes.m_linearSampler.get());
+        perframeData.m_fsr2Data.m_fsr2OutputSRVId = rhi->RegisterCombinedImageSampler(
+            perframeData.m_fsr2Data.m_fsr2Output.get(), m_immRes.m_linearSampler.get());
 
         if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
         {
@@ -1907,7 +1906,8 @@ namespace Ifrit::Core
         auto needRecreate = (perframeData.m_taaHistory.size() == 0);
         if (!needRecreate)
         {
-            needRecreate = (perframeData.m_taaHistory[0].m_width != width || perframeData.m_taaHistory[0].m_height != height);
+            needRecreate =
+                (perframeData.m_taaHistory[0].m_width != width || perframeData.m_taaHistory[0].m_height != height);
         }
         if (!needRecreate)
         {
@@ -1923,21 +1923,21 @@ namespace Ifrit::Core
         perframeData.m_taaUnresolved =
             rhi->CreateTexture2D("Syaro_TAAUnresolved", width, height, cTAAFormat, kbImUsage_UAV_SRV_RT_CopySrc, true);
 
-        perframeData.m_taaHistoryDesc->AddCombinedImageSampler(perframeData.m_taaUnresolved.get(),
-            m_immRes.m_linearSampler.get(), 0);
+        perframeData.m_taaHistoryDesc->AddCombinedImageSampler(
+            perframeData.m_taaUnresolved.get(), m_immRes.m_linearSampler.get(), 0);
         for (int i = 0; i < 2; i++)
         {
             // TODO: choose formats
             perframeData.m_taaHistory[i].m_colorRT =
                 rhi->CreateTexture2D("Syaro_TAAHistory", width, height, cTAAFormat, kbImUsage_UAV_SRV_RT_CopySrc, true);
-            // perframeData.m_taaHistory[i].m_colorRTId = rhi->RegisterUAVImage(perframeData.m_taaUnresolved.get(), {0, 0, 1,
-            // 1});
+            // perframeData.m_taaHistory[i].m_colorRTId = rhi->RegisterUAVImage(perframeData.m_taaUnresolved.get(), {0,
+            // 0, 1, 1});
             perframeData.m_taaHistory[i].m_colorRTIdSRV =
                 rhi->RegisterCombinedImageSampler(perframeData.m_taaUnresolved.get(), m_immRes.m_linearSampler.get());
 
             // TODO: clear values
-            perframeData.m_taaHistory[i].m_colorRTRef =
-                rhi->CreateRenderTarget(perframeData.m_taaUnresolved.get(), { { 0, 0, 0, 0 } }, RhiRenderTargetLoadOp::Clear, 0, 0);
+            perframeData.m_taaHistory[i].m_colorRTRef = rhi->CreateRenderTarget(
+                perframeData.m_taaUnresolved.get(), { { 0, 0, 0, 0 } }, RhiRenderTargetLoadOp::Clear, 0, 0);
 
             RhiAttachmentBlendInfo blendInfo;
             blendInfo.m_blendEnable         = false;
@@ -1950,17 +1950,17 @@ namespace Ifrit::Core
             perframeData.m_taaHistory[i].m_colorRTRef->SetBlendInfo(blendInfo);
 
             perframeData.m_taaHistory[i].m_rts = rhi->CreateRenderTargets();
-            perframeData.m_taaHistory[i].m_rts->SetColorAttachments({ perframeData.m_taaHistory[i].m_colorRTRef.get() });
+            perframeData.m_taaHistory[i].m_rts->SetColorAttachments(
+                { perframeData.m_taaHistory[i].m_colorRTRef.get() });
             perframeData.m_taaHistory[i].m_rts->SetRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
 
-            perframeData.m_taaHistoryDesc->AddCombinedImageSampler(perframeData.m_taaHistory[i].m_colorRT.get(),
-                m_immRes.m_linearSampler.get(), i + 1);
+            perframeData.m_taaHistoryDesc->AddCombinedImageSampler(
+                perframeData.m_taaHistory[i].m_colorRT.get(), m_immRes.m_linearSampler.get(), i + 1);
         }
     }
 
-    IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
-                  SyaroRenderer::Render(PerFrameData& perframeData, SyaroRenderer::RenderTargets* renderTargets,
-                      const std::vector<SyaroRenderer::GPUCommandSubmission*>& cmdToWait)
+    IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission> SyaroRenderer::Render(PerFrameData& perframeData,
+        SyaroRenderer::RenderTargets* renderTargets, const std::vector<SyaroRenderer::GPUCommandSubmission*>& cmdToWait)
     {
 
         // According to
@@ -1990,22 +1990,22 @@ namespace Ifrit::Core
 
         auto start1 = std::chrono::high_resolution_clock::now();
         PrepareAggregatedShadowData(perframeData);
-        auto                               end1     = std::chrono::high_resolution_clock::now();
-        auto                               elapsed1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
+        auto                            end1     = std::chrono::high_resolution_clock::now();
+        auto                            elapsed1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
 
         // Then draw
-        auto                               rhi = m_app->GetRhi();
-        auto                               dq  = rhi->GetQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+        auto                            rhi = m_app->GetRhi();
+        auto                            dq  = rhi->GetQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
 
-        std::vector<RhiTaskSubmission*>    cmdToWaitBkp = cmdToWait;
+        std::vector<RhiTaskSubmission*> cmdToWaitBkp = cmdToWait;
         std::unique_ptr<RhiTaskSubmission> pbrAtmoTask;
         if (perframeData.m_atmosphereData == nullptr)
         {
             // Need to create an atmosphere output texture
             u32 actualRtw = 0, actualRth = 0;
             GetSupersampledRenderArea(renderTargets, &actualRtw, &actualRth);
-            perframeData.m_atmoOutput =
-                rhi->CreateTexture2D("Syaro_AtmoOutput", actualRtw, actualRth, kbImFmt_RGBA32F, kbImUsage_UAV_SRV, true);
+            perframeData.m_atmoOutput = rhi->CreateTexture2D(
+                "Syaro_AtmoOutput", actualRtw, actualRth, kbImFmt_RGBA32F, kbImUsage_UAV_SRV, true);
 
             // Precompute only once
             pbrAtmoTask  = this->m_atmosphereRenderer->RenderInternal(perframeData, cmdToWait);
@@ -2020,22 +2020,24 @@ namespace Ifrit::Core
             [&](const RhiCommandList* cmd) {
                 for (u32 i = 0; i < perframeData.m_views.size(); i++)
                 {
-                    if (perframeData.m_views[i].m_viewType == PerFrameData::ViewType::Shadow && m_config->m_visualizationType == RendererVisualizationType::Default && m_renderRole == SyaroRenderRole::SYARO_FULL)
+                    if (perframeData.m_views[i].m_viewType == PerFrameData::ViewType::Shadow
+                        && m_config->m_visualizationType == RendererVisualizationType::Default
+                        && m_renderRole == SyaroRenderRole::FullProcess)
                     {
                         cmd->BeginScope("Syaro: Draw Call, Shadow View");
                         cmd->GlobalMemoryBarrier();
                         auto& perView = perframeData.m_views[i];
-                        RenderTwoPassOcclCulling(CullingPass::First, perframeData, renderTargets, cmd,
-                            PerFrameData::ViewType::Shadow, i);
-                        RenderTwoPassOcclCulling(CullingPass::Second, perframeData, renderTargets, cmd,
-                            PerFrameData::ViewType::Shadow, i);
+                        RenderTwoPassOcclCulling(
+                            CullingPass::First, perframeData, renderTargets, cmd, PerFrameData::ViewType::Shadow, i);
+                        RenderTwoPassOcclCulling(
+                            CullingPass::Second, perframeData, renderTargets, cmd, PerFrameData::ViewType::Shadow, i);
                         cmd->EndScope();
                     }
                     else if (perframeData.m_views[i].m_viewType == PerFrameData::ViewType::Primary)
                     {
                         cmd->BeginScope("Syaro: Draw Call, Main View");
-                        RenderTwoPassOcclCulling(CullingPass::First, perframeData, renderTargets, cmd,
-                            PerFrameData::ViewType::Primary, ~0u);
+                        RenderTwoPassOcclCulling(
+                            CullingPass::First, perframeData, renderTargets, cmd, PerFrameData::ViewType::Primary, ~0u);
                         RenderTwoPassOcclCulling(CullingPass::Second, perframeData, renderTargets, cmd,
                             PerFrameData::ViewType::Primary, ~0u);
                         cmd->GlobalMemoryBarrier();
@@ -2049,7 +2051,7 @@ namespace Ifrit::Core
                         cmd->GlobalMemoryBarrier();
                         RenderDefaultEmitGBuffer(perframeData, renderTargets, cmd);
                         cmd->GlobalMemoryBarrier();
-                        if (m_renderRole == SyaroRenderRole::SYARO_FULL)
+                        if (m_renderRole == SyaroRenderRole::FullProcess)
                         {
                             RenderAmbientOccl(perframeData, renderTargets, cmd);
                         }
@@ -2059,13 +2061,14 @@ namespace Ifrit::Core
             },
             cmdToWaitBkp, {});
 
-        if (m_renderRole == SyaroRenderRole::SYARO_FULL)
+        if (m_renderRole == SyaroRenderRole::FullProcess)
         {
             if (m_config->m_visualizationType != RendererVisualizationType::Default)
             {
                 auto deferredTask = dq->RunAsyncCommand(
                     [&](const RhiCommandList* cmd) {
-                        if (m_config->m_visualizationType == RendererVisualizationType::Triangle || m_config->m_visualizationType == RendererVisualizationType::SwHwMaps)
+                        if (m_config->m_visualizationType == RendererVisualizationType::Triangle
+                            || m_config->m_visualizationType == RendererVisualizationType::SwHwMaps)
                         {
                             cmd->GlobalMemoryBarrier();
                             RenderTriangleView(perframeData, renderTargets, cmd);
@@ -2078,8 +2081,8 @@ namespace Ifrit::Core
             else
             {
                 auto deferredTask = dq->RunAsyncCommand(
-                    [&](const RhiCommandList* cmd) { SetupAndRunFrameGraph(perframeData, renderTargets, cmd); }, { mainTask.get() },
-                    {});
+                    [&](const RhiCommandList* cmd) { SetupAndRunFrameGraph(perframeData, renderTargets, cmd); },
+                    { mainTask.get() }, {});
                 return deferredTask;
             }
         }
@@ -2089,21 +2092,17 @@ namespace Ifrit::Core
         }
     }
 
-    IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission>
-                  SyaroRenderer::Render(Scene* scene, Camera* camera, RenderTargets* renderTargets, const RendererConfig& config,
-                      const std::vector<GPUCommandSubmission*>& cmdToWait)
+    IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission> SyaroRenderer::Render(Scene* scene,
+        Camera* camera, RenderTargets* renderTargets, const RendererConfig& config,
+        const std::vector<GPUCommandSubmission*>& cmdToWait)
     {
 
         auto start = std::chrono::high_resolution_clock::now();
         PrepareImmutableResources();
 
-        if (m_perScenePerframe.count(scene) == 0)
-        {
-            m_perScenePerframe[scene] = PerFrameData();
-        }
         m_renderConfig     = config;
         m_config           = &config;
-        auto& perframeData = m_perScenePerframe[scene];
+        auto& perframeData = *scene->GetPerFrameData();
 
         auto  frameId           = perframeData.m_frameId;
         auto  frameTimestampRaw = std::chrono::high_resolution_clock::now();

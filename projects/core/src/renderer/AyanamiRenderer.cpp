@@ -75,8 +75,8 @@ namespace Ifrit::Core
         if (m_resources->m_debugPass == nullptr)
         {
             auto rtFmt               = renderTargets->GetFormat();
-            m_resources->m_debugPass = CreateGraphicsPass(rhi, "Ayanami/Ayanami.CopyPass.vert.glsl",
-                "Ayanami/Ayanami.CopyPass.frag.glsl", 0, 1, rtFmt);
+            m_resources->m_debugPass = CreateGraphicsPass(
+                rhi, "Ayanami/Ayanami.CopyPass.vert.glsl", "Ayanami/Ayanami.CopyPass.frag.glsl", 0, 1, rtFmt);
         }
         if (m_resources->m_raymarchPass == nullptr)
         {
@@ -87,17 +87,17 @@ namespace Ifrit::Core
         if (m_resources->m_raymarchOutput == nullptr)
         {
             using namespace Ifrit::Graphics::Rhi;
-            auto sampler                  = m_immRes.m_linearSampler;
-            m_resources->m_raymarchOutput = rhi->CreateTexture2D(
-                "Ayanami_Raymarch", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT, true);
+            auto sampler = m_immRes.m_linearSampler;
+            m_resources->m_raymarchOutput =
+                rhi->CreateTexture2D("Ayanami_Raymarch", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                    RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT, true);
             m_resources->m_raymarchOutputSRVBindId =
                 rhi->RegisterCombinedImageSampler(m_resources->m_raymarchOutput.get(), sampler.get());
         }
     }
 
-    IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(PerFrameData& perframe, RenderTargets* renderTargets,
-        const GPUCmdBuffer* cmd)
+    IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(
+        PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
         FrameGraphBuilder fg;
         fg.SetResourceInitState(FrameGraphResourceInitState::Uninitialized);
@@ -120,22 +120,19 @@ namespace Ifrit::Core
                 .SetImportedResource(m_resources->m_surfaceCacheManager->GetDepthAtlas().get(), { 0, 0, 1, 1 });
 
         auto& resRaymarchOutput =
-            fg.AddResource("RaymarchOutput")
-                .SetImportedResource(m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
+            fg.AddResource("RaymarchOutput").SetImportedResource(m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
 
         auto& resGlobalDFGen =
-            fg.AddResource("GlobalDFGen")
-                .SetImportedResource(m_globalDF->GetClipmapVolume(0).get(), { 0, 0, 1, 1 });
+            fg.AddResource("GlobalDFGen").SetImportedResource(m_globalDF->GetClipmapVolume(0).get(), { 0, 0, 1, 1 });
 
         auto& resRenderTargets =
             fg.AddResource("RenderTargets")
                 .SetImportedResource(renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
 
-        auto& passSurfaceCacheGen =
-            fg.AddPass("SurfaceCacheGen", FrameGraphPassType::Graphics)
-                .AddWriteResource(resSurfaceCacheAlbedo)
-                .AddWriteResource(resSurfaceCacheNormal)
-                .AddWriteResource(resSuraceCacheDepth);
+        auto& passSurfaceCacheGen = fg.AddPass("SurfaceCacheGen", FrameGraphPassType::Graphics)
+                                        .AddWriteResource(resSurfaceCacheAlbedo)
+                                        .AddWriteResource(resSurfaceCacheNormal)
+                                        .AddWriteResource(resSuraceCacheDepth);
 
         auto& passGlobalDFGen = fg.AddPass("GlobalDFGen", FrameGraphPassType::Compute);
         auto& passRaymarch    = fg.AddPass("RaymarchPass", FrameGraphPassType::Compute);
@@ -143,26 +140,17 @@ namespace Ifrit::Core
 
         if (!m_resources->m_inited)
         {
-            passGlobalDFGen
-                .AddWriteResource(resGlobalDFGen);
+            passGlobalDFGen.AddWriteResource(resGlobalDFGen);
 
-            passRaymarch
-                .AddReadResource(resGlobalDFGen)
-                .AddWriteResource(resRaymarchOutput);
+            passRaymarch.AddReadResource(resGlobalDFGen).AddWriteResource(resRaymarchOutput);
 
-            passDebug
-                .AddReadResource(resRaymarchOutput)
-                .AddWriteResource(resRenderTargets);
+            passDebug.AddReadResource(resRaymarchOutput).AddWriteResource(resRenderTargets);
         }
         else
         {
-            passRaymarch
-                .AddReadResource(resGlobalDFGen)
-                .AddWriteResource(resRaymarchOutput);
+            passRaymarch.AddReadResource(resGlobalDFGen).AddWriteResource(resRaymarchOutput);
 
-            passDebug
-                .AddReadResource(resRaymarchOutput)
-                .AddWriteResource(resRenderTargets);
+            passDebug.AddReadResource(resRaymarchOutput).AddWriteResource(resRenderTargets);
         }
 
         if (!m_resources->m_inited)
@@ -231,16 +219,12 @@ namespace Ifrit::Core
         m_resources->m_inited = true;
     }
 
-    IFRIT_APIDECL Uref<AyanamiRenderer::GPUCommandSubmission>
-                  AyanamiRenderer::Render(Scene* scene, Camera* camera, RenderTargets* renderTargets, const RendererConfig& config,
-                      const Vec<GPUCommandSubmission*>& cmdToWait)
+    IFRIT_APIDECL Uref<AyanamiRenderer::GPUCommandSubmission> AyanamiRenderer::Render(Scene* scene, Camera* camera,
+        RenderTargets* renderTargets, const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait)
     {
-        if (m_perScenePerframe.count(scene) == 0)
-        {
-            m_perScenePerframe[scene] = PerFrameData();
-        }
+
         m_config           = &config;
-        auto& perframeData = m_perScenePerframe[scene];
+        auto& perframeData = *scene->GetPerFrameData();
 
         PrepareImmutableResources();
         PrepareResources(renderTargets, config);

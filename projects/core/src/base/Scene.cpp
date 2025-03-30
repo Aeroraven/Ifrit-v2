@@ -102,12 +102,9 @@ namespace Ifrit::Core
         }
     }
 
-    IFRIT_APIDECL Ref<SceneNode> Scene::AddSceneNode()
-    {
-        return m_root->AddChildNode();
-    }
+    IFRIT_APIDECL Ref<SceneNode> Scene::AddSceneNode() { return m_root->AddChildNode(); }
 
-    IFRIT_APIDECL Camera* Scene::GetMainCamera()
+    IFRIT_APIDECL Camera*        Scene::GetMainCamera()
     {
         Vec<SceneNode*> nodes;
         nodes.push_back(m_root.get());
@@ -180,18 +177,9 @@ namespace Ifrit::Core
         return result;
     }
 
-    IFRIT_APIDECL void Scene::OnUpdate()
-    {
-        m_root->OnUpdate();
-    }
-    IFRIT_APIDECL void Scene::OnComponentAwake()
-    {
-        m_root->OnComponentAwake();
-    }
-    IFRIT_APIDECL void Scene::OnComponentStart()
-    {
-        m_root->OnComponentStart();
-    }
+    IFRIT_APIDECL void Scene::OnUpdate() { m_root->OnUpdate(); }
+    IFRIT_APIDECL void Scene::OnComponentAwake() { m_root->OnComponentAwake(); }
+    IFRIT_APIDECL void Scene::OnComponentStart() { m_root->OnComponentStart(); }
 
     IFRIT_APIDECL void Scene::OnFixedUpdate(TimingRecorder* stopwatch, u32 fixedUpdateRate, u32 maxCompensationFrames)
     {
@@ -225,6 +213,11 @@ namespace Ifrit::Core
 
         OnComponentStart();
         OnUpdate();
+    }
+
+    IFRIT_APIDECL Scene::Scene()
+        : m_root(std::make_shared<SceneNode>()), m_perFrameData(std::make_shared<PerFrameData>())
+    {
     }
 
 } // namespace Ifrit::Core
