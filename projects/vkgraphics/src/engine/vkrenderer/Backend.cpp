@@ -17,23 +17,20 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderTargets.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Timer.h"
 
-#include "ifrit/common/logging/Logging.h"
+#include "ifrit/core/logging/Logging.h"
 #include "ifrit/vkgraphics/engine/fsr2extension/FSR2Processor.h"
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 namespace Ifrit::Graphics::VulkanGraphics
 {
-    inline VkFormat toVkFormat(Rhi::RhiImageFormat format)
-    {
-        return static_cast<VkFormat>(format);
-    }
+    inline VkFormat toVkFormat(Rhi::RhiImageFormat format) { return static_cast<VkFormat>(format); }
 
     struct RhiVulkanBackendImplDetails : public NonCopyable
     {
@@ -76,17 +73,17 @@ namespace Ifrit::Graphics::VulkanGraphics
             engineContext, swapchain, m_implDetails->m_descriptorManager.get(), m_implDetails->m_resourceManager.get());
         m_implDetails->m_pipelineCache = std::make_unique<PipelineCache>(engineContext);
         m_implDetails->m_mapper        = std::make_unique<RegisteredResourceMapper>();
-        m_implDetails->m_commandExecutor->setQueues(1, args.m_expectedGraphicsQueueCount, args.m_expectedComputeQueueCount,
-            args.m_expectedTransferQueueCount);
+        m_implDetails->m_commandExecutor->setQueues(
+            1, args.m_expectedGraphicsQueueCount, args.m_expectedComputeQueueCount, args.m_expectedTransferQueueCount);
 
         // All done, then make a full screen quad buffer
         BufferCreateInfo ci{}; // One Triangle,
-        ci.size                                     = 3 * 2 * sizeof(float);
-        ci.usage                                    = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        ci.hostVisible                              = false;
+        ci.size        = 3 * 2 * sizeof(float);
+        ci.usage       = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        ci.hostVisible = false;
         m_implDetails->m_fullScreenQuadVertexBuffer = m_implDetails->m_resourceManager->CreateSimpleBufferUnmanaged(ci);
 
-        auto               singleBufferPtr = CheckedCast<SingleBuffer>(m_implDetails->m_fullScreenQuadVertexBuffer.get());
+        auto singleBufferPtr = CheckedCast<SingleBuffer>(m_implDetails->m_fullScreenQuadVertexBuffer.get());
         StagedSingleBuffer stagedQuadBuffer(engineContext, singleBufferPtr);
 
         auto               transferQueue = m_implDetails->m_commandExecutor->GetQueue(QueueRequirement::Transfer);
@@ -99,8 +96,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             stagedQuadBuffer.CmdCopyToDevice(cmd, data, sizeof(data), 0);
         });
         m_implDetails->m_fullScreenQuadVertexBufferDescriptor = std::make_shared<VertexBufferDescriptor>();
-        m_implDetails->m_fullScreenQuadVertexBufferDescriptor->AddBinding({ 0 }, { Rhi::RhiImageFormat::RhiImgFmt_R32G32_SFLOAT },
-            { 0 }, 2 * sizeof(float));
+        m_implDetails->m_fullScreenQuadVertexBufferDescriptor->AddBinding(
+            { 0 }, { Rhi::RhiImageFormat::RhiImgFmt_R32G32_SFLOAT }, { 0 }, 2 * sizeof(float));
     }
 
     IFRIT_APIDECL void RhiVulkanBackend::WaitDeviceIdle()
@@ -113,13 +110,13 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
         auto swapchain        = CheckedCast<Swapchain>(m_swapChain.get());
         auto numFrameInFlight = swapchain->GetNumBackbuffers();
-        auto p                = std::make_shared<DeviceTimer>(CheckedCast<EngineContext>(m_device.get()), numFrameInFlight);
+        auto p = std::make_shared<DeviceTimer>(CheckedCast<EngineContext>(m_device.get()), numFrameInFlight);
         m_implDetails->m_deviceTimers.push_back(p);
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::CreateBuffer(const String& name, u32 size, u32 usage,
-        bool hostVisible, bool addUAV) const
+    IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::CreateBuffer(
+        const String& name, u32 size, u32 usage, bool hostVisible, bool addUAV) const
     {
         BufferCreateInfo ci{};
         ci.size        = size;
@@ -143,8 +140,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return m_implDetails->m_fullScreenQuadVertexBuffer;
     }
 
-    IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::CreateBufferDevice(const String& name, u32 size, u32 usage,
-        bool addUAV) const
+    IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::CreateBufferDevice(
+        const String& name, u32 size, u32 usage, bool addUAV) const
     {
         BufferCreateInfo ci{};
         ci.size        = size;
@@ -161,8 +158,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         return p;
     }
-    IFRIT_APIDECL Ref<Rhi::RhiMultiBuffer> RhiVulkanBackend::CreateBufferCoherent(u32 size, u32 usage,
-        u32 numCopies) const
+    IFRIT_APIDECL Ref<Rhi::RhiMultiBuffer> RhiVulkanBackend::CreateBufferCoherent(
+        u32 size, u32 usage, u32 numCopies) const
     {
         BufferCreateInfo ci{};
         ci.size        = size;
@@ -177,8 +174,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return m_implDetails->m_resourceManager->CreateTracedMultipleBuffer(ci, numCopies);
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiStagedSingleBuffer>
-                  RhiVulkanBackend::CreateStagedSingleBuffer(Rhi::RhiBuffer* target)
+    IFRIT_APIDECL Ref<Rhi::RhiStagedSingleBuffer> RhiVulkanBackend::CreateStagedSingleBuffer(Rhi::RhiBuffer* target)
     {
         // TODO: release memory, (not managed)
         auto buffer        = CheckedCast<SingleBuffer>(target);
@@ -202,19 +198,24 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             reqs = QueueRequirement::Transfer;
         }
-        else if (req == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT))
+        else if (req
+            == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT))
         {
             reqs = QueueRequirement::Graphics_Compute;
         }
-        else if (req == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT))
+        else if (req
+            == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT))
         {
             reqs = QueueRequirement::Graphics_Transfer;
         }
-        else if (req == (Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT))
+        else if (req
+            == (Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT))
         {
             reqs = QueueRequirement::Compute_Transfer;
         }
-        else if (req == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT))
+        else if (req
+            == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT
+                | Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT))
         {
             reqs = QueueRequirement::Universal;
         }
@@ -227,8 +228,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL Rhi::RhiShader* RhiVulkanBackend::CreateShader(const std::string& name, const Vec<char>& code,
-        const std::string& entry, Rhi::RhiShaderStage stage,
-        Rhi::RhiShaderSourceType sourceType)
+        const std::string& entry, Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType)
     {
         ShaderModuleCI ci{};
         ci.code           = code;
@@ -242,12 +242,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         return ptr;
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateTexture2D(const String& name, u32 width, u32 height,
-        Rhi::RhiImageFormat format, u32 extraFlags,
-        bool addUAV)
+    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateTexture2D(
+        const String& name, u32 width, u32 height, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV)
     {
-        auto p =
-            m_implDetails->m_resourceManager->CreateTexture2DDeviceUnmanaged(width, height, toVkFormat(format), extraFlags);
+        auto p = m_implDetails->m_resourceManager->CreateTexture2DDeviceUnmanaged(
+            width, height, toVkFormat(format), extraFlags);
         p->SetDebugName(name);
         if (addUAV)
         {
@@ -259,8 +258,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateDepthTexture(const String& name, u32 width, u32 height,
-        bool addUAV)
+    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateDepthTexture(
+        const String& name, u32 width, u32 height, bool addUAV)
     {
         auto p = m_implDetails->m_resourceManager->CreateDepthAttachment(width, height);
         p->SetDebugName(name);
@@ -274,11 +273,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateTexture3D(const String& name, u32 width, u32 height, u32 depth,
-        Rhi::RhiImageFormat format, u32 extraFlags,
-        bool addUAV)
+    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateTexture3D(
+        const String& name, u32 width, u32 height, u32 depth, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV)
     {
-        auto p = m_implDetails->m_resourceManager->CreateTexture3D(width, height, depth, toVkFormat(format), extraFlags);
+        auto p =
+            m_implDetails->m_resourceManager->CreateTexture3D(width, height, depth, toVkFormat(format), extraFlags);
         p->SetDebugName(name);
         if (addUAV)
         {
@@ -290,11 +289,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     };
 
-    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateMipMapTexture(const String& name, u32 width, u32 height,
-        u32 mips, Rhi::RhiImageFormat format,
-        u32 extraFlags, bool addUAV)
+    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateMipMapTexture(
+        const String& name, u32 width, u32 height, u32 mips, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV)
     {
-        auto p = m_implDetails->m_resourceManager->createMipTexture(width, height, mips, toVkFormat(format), extraFlags);
+        auto p =
+            m_implDetails->m_resourceManager->createMipTexture(width, height, mips, toVkFormat(format), extraFlags);
         p->SetDebugName(name);
         if (addUAV)
         {
@@ -323,10 +322,10 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL Rhi::RhiComputePass* RhiVulkanBackend::CreateComputePass()
     {
-        auto pass =
-            std::make_unique<ComputePass>(CheckedCast<EngineContext>(m_device.get()), m_implDetails->m_pipelineCache.get(),
-                m_implDetails->m_descriptorManager.get(), m_implDetails->m_mapper.get());
-        auto ptr = pass.get();
+        auto pass = std::make_unique<ComputePass>(CheckedCast<EngineContext>(m_device.get()),
+            m_implDetails->m_pipelineCache.get(), m_implDetails->m_descriptorManager.get(),
+            m_implDetails->m_mapper.get());
+        auto ptr  = pass.get();
         ptr->SetDefaultNumMultiBuffers(m_swapChain->GetNumBackbuffers());
         m_implDetails->m_computePasses.push_back(std::move(pass));
         return ptr;
@@ -334,10 +333,10 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL Rhi::RhiGraphicsPass* RhiVulkanBackend::CreateGraphicsPass()
     {
-        auto pass =
-            std::make_unique<GraphicsPass>(CheckedCast<EngineContext>(m_device.get()), m_implDetails->m_pipelineCache.get(),
-                m_implDetails->m_descriptorManager.get(), m_implDetails->m_mapper.get());
-        auto ptr = pass.get();
+        auto pass = std::make_unique<GraphicsPass>(CheckedCast<EngineContext>(m_device.get()),
+            m_implDetails->m_pipelineCache.get(), m_implDetails->m_descriptorManager.get(),
+            m_implDetails->m_mapper.get());
+        auto ptr  = pass.get();
         ptr->SetDefaultNumMultiBuffers(m_swapChain->GetNumBackbuffers());
         m_implDetails->m_graphicsPasses.push_back(std::move(pass));
         return ptr;
@@ -382,10 +381,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             iDebug("Deleted {} resources", nums);
         }
     }
-    IFRIT_APIDECL void RhiVulkanBackend::EndFrame()
-    {
-        m_implDetails->m_commandExecutor->EndFrame();
-    }
+    IFRIT_APIDECL void RhiVulkanBackend::EndFrame() { m_implDetails->m_commandExecutor->EndFrame(); }
     IFRIT_APIDECL Uref<Rhi::RhiTaskSubmission> RhiVulkanBackend::GetSwapchainFrameReadyEventHandler()
     {
         auto                  swapchain = CheckedCast<Swapchain>(m_swapChain.get());
@@ -408,17 +404,14 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     Ref<Rhi::RhiColorAttachment> RhiVulkanBackend::CreateRenderTarget(Rhi::RhiTexture* renderTarget,
-        Rhi::RhiClearValue                                                             clearValue,
-        Rhi::RhiRenderTargetLoadOp                                                     loadOp,
-        u32 mips, u32 layers)
+        Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers)
     {
         auto attachment = std::make_shared<ColorAttachment>(renderTarget, clearValue, loadOp, mips, layers);
         return attachment;
     }
 
-    Ref<Rhi::RhiDepthStencilAttachment>
-    RhiVulkanBackend::CreateRenderTargetDepthStencil(Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue,
-        Rhi::RhiRenderTargetLoadOp loadOp)
+    Ref<Rhi::RhiDepthStencilAttachment> RhiVulkanBackend::CreateRenderTargetDepthStencil(
+        Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp)
     {
         auto attachment = std::make_shared<DepthStencilAttachment>(renderTarget, clearValue, loadOp);
         return attachment;
@@ -430,23 +423,18 @@ namespace Ifrit::Graphics::VulkanGraphics
         return std::make_shared<RenderTargets>(ctx);
     }
 
-    IFRIT_APIDECL RhiVulkanBackend::~RhiVulkanBackend()
-    {
-        delete m_implDetails;
-    }
+    IFRIT_APIDECL RhiVulkanBackend::~RhiVulkanBackend() { delete m_implDetails; }
 
     IFRIT_APIDECL Rhi::RhiBindlessDescriptorRef* RhiVulkanBackend::createBindlessDescriptorRef()
     {
         auto ref = std::make_unique<DescriptorBindlessIndices>(CheckedCast<EngineContext>(m_device.get()),
-            m_implDetails->m_descriptorManager.get(),
-            m_swapChain->GetNumBackbuffers());
+            m_implDetails->m_descriptorManager.get(), m_swapChain->GetNumBackbuffers());
         auto ptr = ref.get();
         m_implDetails->m_bindlessIndices.push_back(std::move(ref));
         return ptr;
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy>
-                  RhiVulkanBackend::RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer)
+    IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer)
     {
         Vec<u32> ids;
         auto     descriptorManager = m_implDetails->m_descriptorManager.get();
@@ -464,8 +452,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterCombinedImageSampler(Rhi::RhiTexture* texture,
-        Rhi::RhiSampler*                                                                          sampler)
+    Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterCombinedImageSampler(
+        Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler)
     {
         auto descriptorManager = m_implDetails->m_descriptorManager.get();
         auto tex               = CheckedCast<SingleDeviceImage>(texture);
@@ -477,8 +465,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy>
-                  RhiVulkanBackend::RegisterUAVImage2(Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource)
+    IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterUAVImage2(
+        Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource)
     {
         auto descriptorManager = m_implDetails->m_descriptorManager.get();
         auto tex               = CheckedCast<SingleDeviceImage>(texture);
@@ -489,8 +477,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy>
-                  RhiVulkanBackend::RegisterStorageBufferShared(Rhi::RhiMultiBuffer* buffer)
+    IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterStorageBufferShared(
+        Rhi::RhiMultiBuffer* buffer)
     {
         // TODO
         Vec<u32> ids;
@@ -537,8 +525,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return engineContext->GetCacheDir();
     }
 
-    IFRIT_APIDECL Uref<Rhi::RhiBackend>
-                  RhiVulkanBackendBuilder::CreateBackend(const Rhi::RhiInitializeArguments& args)
+    IFRIT_APIDECL Uref<Rhi::RhiBackend> RhiVulkanBackendBuilder::CreateBackend(const Rhi::RhiInitializeArguments& args)
     {
         return std::make_unique<RhiVulkanBackend>(args);
     }

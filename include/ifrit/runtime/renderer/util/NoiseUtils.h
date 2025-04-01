@@ -1,0 +1,30 @@
+
+/*
+Ifrit-v2
+Copyright (C) 2024 funkybirds(Aeroraven)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+#pragma once
+#include "ifrit/core/math/constfunc/ConstFunc.h"
+#include "ifrit/core/file/FileOps.h"
+#include "ifrit/runtime/renderer/RendererUtil.h"
+#include "ifrit/rhi/common/RhiLayer.h"
+#include <algorithm>
+#include <bit>
+
+namespace Ifrit::Runtime::RenderingUtil
+{
+    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef loadBlueNoise(Graphics::Rhi::RhiBackend* rhi);
+} // namespace Ifrit::Runtime::RenderingUtil

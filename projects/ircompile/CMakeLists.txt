@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
 string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
 
-include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/ProjectShared.cmake)
+include(${IFRIT_PROJECT_DIR}/projects/buildinfra/ProjectShared.cmake)
 # Reset to CXX14
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)

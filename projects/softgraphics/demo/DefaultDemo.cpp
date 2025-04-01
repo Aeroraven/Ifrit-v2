@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
-#include "ifrit/common/math/LinalgOps.h"
+#include "ifrit/core/math/LinalgOps.h"
 #include "presentation/backend/OpenGLBackend.h"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "presentation/backend/TerminalCharColorBackend.h"
@@ -75,7 +75,8 @@ namespace Ifrit::Demo::DemoDefault
     class DemoVertexShader : public VertexShader
     {
     public:
-        IFRIT_DUAL virtual void execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) override
+        IFRIT_DUAL virtual void execute(
+            const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) override
         {
             /*const auto radius = 0.3f;
             const auto vX = sin(globalTime) * radius;
@@ -217,7 +218,7 @@ namespace Ifrit::Demo::DemoDefault
                 std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
                 renderer->drawElements(indexBuffer.size(), true);
                 std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-                *coreTime                                          = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+                *coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
                 // printf("PassDone %d\n", *coreTime);
                 backend.UpdateTexture(*image);
                 backend.draw();
@@ -245,8 +246,8 @@ namespace Ifrit::Demo::DemoDefault
         procNormal = loader.RemapNormals(normal, index, pos.size());
         // procUv = loader.RemapUVs(uv, index, pos.size());
 
-        std::shared_ptr<ImageF32>               image1   = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4, true);
-        std::shared_ptr<ImageF32>               depth    = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
+        std::shared_ptr<ImageF32> image1 = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4, true);
+        std::shared_ptr<ImageF32> depth  = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
         std::shared_ptr<TileRasterRendererCuda> renderer = std::make_shared<TileRasterRendererCuda>();
         FrameBuffer                             frameBuffer;
         VertexBuffer                            vertexBuffer;
@@ -369,7 +370,7 @@ namespace Ifrit::Demo::DemoDefault
             renderer->clear();
             renderer->drawElements();
             std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-            *coreTime                                          = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            *coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             backend.UpdateTexture(*image1);
             backend.draw();
         });

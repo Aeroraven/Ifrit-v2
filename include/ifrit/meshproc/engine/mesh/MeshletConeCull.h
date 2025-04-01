@@ -18,9 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "MeshClusterBase.h"
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/math/LinalgOps.h"
-#include "ifrit/common/util/ApiConv.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/math/LinalgOps.h"
+#include "ifrit/core/platform/ApiConv.h"
 #include <meshoptimizer/src/meshoptimizer.h>
 #include <vector>
 
@@ -38,9 +38,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
 
     public:
         void CreateNormalCones(const MeshDescriptor& meshDesc, const Vec<Vector4i>& meshlets,
-            const Vec<u32>& meshletVertices, const Vec<u8>& meshletTriangles,
-            Vec<Vector4f>& normalConeAxisCutoff, Vec<Vector4f>& normalConeApex,
-            Vec<Vector4f>& boundSphere);
+            const Vec<u32>& meshletVertices, const Vec<u8>& meshletTriangles, Vec<Vector4f>& normalConeAxisCutoff,
+            Vec<Vector4f>& normalConeApex, Vec<Vector4f>& boundSphere);
     };
 
 } // namespace Ifrit::MeshProcLib::MeshProcess

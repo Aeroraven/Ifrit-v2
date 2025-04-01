@@ -17,10 +17,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 namespace Ifrit::Graphics::VulkanGraphics
 {
@@ -52,10 +52,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         else
             m_deviceAddress = 0;
     }
-    IFRIT_APIDECL SingleBuffer::~SingleBuffer()
-    {
-        vmaDestroyBuffer(m_context->GetAllocator(), m_buffer, m_allocation);
-    }
+    IFRIT_APIDECL SingleBuffer::~SingleBuffer() { vmaDestroyBuffer(m_context->GetAllocator(), m_buffer, m_allocation); }
     IFRIT_APIDECL void SingleBuffer::MapMemory()
     {
         vkrAssert(m_createInfo.hostVisible, "Buffer must be host visible to map");
@@ -82,10 +79,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         vmaFlushAllocation(m_context->GetAllocator(), m_allocation, 0, VK_WHOLE_SIZE);
     }
 
-    IFRIT_APIDECL Rhi::RhiDeviceAddr SingleBuffer::GetDeviceAddress() const
-    {
-        return m_deviceAddress;
-    }
+    IFRIT_APIDECL Rhi::RhiDeviceAddr SingleBuffer::GetDeviceAddress() const { return m_deviceAddress; }
 
     // Class: MultiBuffer
     IFRIT_APIDECL MultiBuffer::MultiBuffer(EngineContext* ctx, const BufferCreateInfo& ci, u32 numCopies)
@@ -94,35 +88,24 @@ namespace Ifrit::Graphics::VulkanGraphics
         for (u32 i = 0; i < numCopies; i++)
         {
             auto bufferPtr = new SingleBuffer(ctx, ci);
-            auto bufferRef = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(bufferPtr);
+            auto bufferRef = MakeCountRef<Rhi::RhiBuffer>(bufferPtr);
             m_buffersOwning.push_back(bufferRef);
             m_buffers.push_back(bufferPtr);
         }
     }
 
-    IFRIT_APIDECL SingleBuffer* MultiBuffer::GetBuffer(u32 index)
-    {
-        return m_buffers[index];
-    }
+    IFRIT_APIDECL SingleBuffer* MultiBuffer::GetBuffer(u32 index) { return m_buffers[index]; }
 
     // Class: Image
-    IFRIT_APIDECL VkFormat SingleDeviceImage::GetFormat() const
-    {
-        return m_format;
-    }
-    IFRIT_APIDECL VkImage SingleDeviceImage::GetImage() const
-    {
-        return m_image;
-    }
-    IFRIT_APIDECL VkImageView SingleDeviceImage::GetImageView()
-    {
-        return m_imageView;
-    }
+    IFRIT_APIDECL VkFormat      SingleDeviceImage::GetFormat() const { return m_format; }
+    IFRIT_APIDECL VkImage       SingleDeviceImage::GetImage() const { return m_image; }
+    IFRIT_APIDECL VkImageView   SingleDeviceImage::GetImageView() { return m_imageView; }
 
-    IFRIT_APIDECL VkImageView SingleDeviceImage::GetImageViewMipLayer(u32 mipLevel, u32 layer, u32 mipRange,
-        u32 layerRange)
+    IFRIT_APIDECL VkImageView   SingleDeviceImage::GetImageViewMipLayer(
+        u32 mipLevel, u32 layer, u32 mipRange, u32 layerRange)
     {
-        auto key = (static_cast<uint64_t>(mipLevel) << 16) | (static_cast<uint64_t>(layer) << 32) | (static_cast<uint64_t>(mipRange) << 48) | (static_cast<uint64_t>(layerRange) << 56);
+        auto key = (static_cast<uint64_t>(mipLevel) << 16) | (static_cast<uint64_t>(layer) << 32)
+            | (static_cast<uint64_t>(mipRange) << 48) | (static_cast<uint64_t>(layerRange) << 56);
         if (m_managedImageViews.count(key))
         {
             return m_managedImageViews[key];
@@ -304,14 +287,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkrVulkanAssert(vkCreateSampler(ctx->GetDevice(), &samplerCI, nullptr, &m_sampler), "Failed to create sampler");
     }
 
-    IFRIT_APIDECL Sampler::~Sampler()
-    {
-        vkDestroySampler(m_context->GetDevice(), m_sampler, nullptr);
-    }
+    IFRIT_APIDECL Sampler::~Sampler() { vkDestroySampler(m_context->GetDevice(), m_sampler, nullptr); }
 
     // Class: ResourceManager
-    IFRIT_APIDECL std::shared_ptr<MultiBuffer> ResourceManager::CreateMultipleBuffer(const BufferCreateInfo& ci,
-        u32                                                                                                  numCopies)
+    IFRIT_APIDECL std::shared_ptr<MultiBuffer> ResourceManager::CreateMultipleBuffer(
+        const BufferCreateInfo& ci, u32 numCopies)
     {
         if (numCopies == UINT32_MAX)
         {
@@ -329,19 +309,19 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateSimpleImageUnmanaged(const ImageCreateInfo& ci)
     {
         auto imagePtr = new SingleDeviceImage(m_context, ci);
-        auto image    = Rhi::MakeRhiCountRef<Rhi::RhiTexture>(imagePtr);
+        auto image    = MakeCountRef<Rhi::RhiTexture>(imagePtr);
         return image;
     }
 
     IFRIT_APIDECL Rhi::RhiBufferRef ResourceManager::CreateSimpleBufferUnmanaged(const BufferCreateInfo& ci)
     {
         auto bufferPtr = new SingleBuffer(m_context, ci);
-        auto buffer    = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(bufferPtr);
+        auto buffer    = MakeCountRef<Rhi::RhiBuffer>(bufferPtr);
         return buffer;
     }
 
-    IFRIT_APIDECL std::shared_ptr<MultiBuffer> ResourceManager::CreateTracedMultipleBuffer(const BufferCreateInfo& ci,
-        u32                                                                                                        numCopies)
+    IFRIT_APIDECL std::shared_ptr<MultiBuffer> ResourceManager::CreateTracedMultipleBuffer(
+        const BufferCreateInfo& ci, u32 numCopies)
     {
         if (numCopies == UINT32_MAX)
         {
@@ -387,8 +367,8 @@ namespace Ifrit::Graphics::VulkanGraphics
     //   return CreateTracedMultipleBuffer(ci);
     // }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateDepthAttachment(u32 width, u32 height, VkFormat format,
-        VkImageUsageFlags extraUsage)
+    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateDepthAttachment(
+        u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage)
     {
         ImageCreateInfo ci{};
         ci.aspect      = ImageAspect::Depth;
@@ -400,8 +380,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateTexture2DDeviceUnmanaged(u32 width, u32 height, VkFormat format,
-        VkImageUsageFlags extraUsage)
+    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateTexture2DDeviceUnmanaged(
+        u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage)
     {
         ImageCreateInfo ci{};
         ci.aspect      = ImageAspect::Color;
@@ -413,8 +393,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateRenderTargetTexture(u32 width, u32 height, VkFormat format,
-        VkImageUsageFlags extraUsage)
+    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateRenderTargetTexture(
+        u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage)
     {
         ImageCreateInfo ci{};
         ci.aspect      = ImageAspect::Color;
@@ -426,8 +406,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateTexture3D(u32 width, u32 height, u32 depth, VkFormat format,
-        VkImageUsageFlags extraUsage)
+    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateTexture3D(
+        u32 width, u32 height, u32 depth, VkFormat format, VkImageUsageFlags extraUsage)
     {
         ImageCreateInfo ci{};
         ci.aspect      = ImageAspect::Color;
@@ -441,8 +421,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::createMipTexture(u32 width, u32 height, u32 mips, VkFormat format,
-        VkImageUsageFlags extraUsage)
+    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::createMipTexture(
+        u32 width, u32 height, u32 mips, VkFormat format, VkImageUsageFlags extraUsage)
     {
         ImageCreateInfo ci{};
         ci.aspect      = ImageAspect::Color;
@@ -474,7 +454,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.minLod                  = 0.0f;
         ci.maxLod                  = 0.0f;
         auto samplerPtr            = new Sampler(m_context, ci);
-        auto sampler               = Rhi::MakeRhiCountRef<Rhi::RhiSampler>(samplerPtr);
+        auto sampler               = MakeCountRef<Rhi::RhiSampler>(samplerPtr);
         return sampler;
     }
 
@@ -507,7 +487,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.minLod                  = 0.0f;
         ci.maxLod                  = 0.0f;
         auto samplerPtr            = new Sampler(m_context, ci);
-        auto sampler               = Rhi::MakeRhiCountRef<Rhi::RhiSampler>(samplerPtr);
+        auto sampler               = MakeCountRef<Rhi::RhiSampler>(samplerPtr);
         return sampler;
     }
 
@@ -541,7 +521,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.minLod                  = 0.0f;
         ci.maxLod                  = 0.0f;
         auto samplerPtr            = new Sampler(m_context, ci);
-        auto sampler               = Rhi::MakeRhiCountRef<Rhi::RhiSampler>(samplerPtr);
+        auto sampler               = MakeCountRef<Rhi::RhiSampler>(samplerPtr);
         return sampler;
     }
 

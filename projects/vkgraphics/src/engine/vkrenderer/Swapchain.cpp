@@ -19,14 +19,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #ifdef _WIN32
     #include <windows.h>
 #endif
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Swapchain.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <algorithm>
 #include <array>
 #include <vector>
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 namespace Ifrit::Graphics::VulkanGraphics
 {
@@ -59,8 +59,8 @@ namespace Ifrit::Graphics::VulkanGraphics
                 u32 extensionCount = 0;
                 vkEnumerateDeviceExtensionProperties(m_context->GetPhysicalDevice(), nullptr, &extensionCount, nullptr);
                 std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-                vkEnumerateDeviceExtensionProperties(m_context->GetPhysicalDevice(), nullptr, &extensionCount,
-                    availableExtensions.data());
+                vkEnumerateDeviceExtensionProperties(
+                    m_context->GetPhysicalDevice(), nullptr, &extensionCount, availableExtensions.data());
                 bool allSupported = true;
                 for (auto extension : deviceExtensions)
                 {
@@ -99,22 +99,24 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkrDebug("Queue specified");
 
         // Swapchain support details
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_context->GetPhysicalDevice(), m_surface, &m_supportDetails.capabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            m_context->GetPhysicalDevice(), m_surface, &m_supportDetails.capabilities);
         {
             u32 formatCount;
             vkGetPhysicalDeviceSurfaceFormatsKHR(m_context->GetPhysicalDevice(), m_surface, &formatCount, nullptr);
             vkrAssert(formatCount != 0, "No surface formats found");
             m_supportDetails.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(m_context->GetPhysicalDevice(), m_surface, &formatCount,
-                m_supportDetails.formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(
+                m_context->GetPhysicalDevice(), m_surface, &formatCount, m_supportDetails.formats.data());
         }
         {
             u32 presentModeCount;
-            vkGetPhysicalDeviceSurfacePresentModesKHR(m_context->GetPhysicalDevice(), m_surface, &presentModeCount, nullptr);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(
+                m_context->GetPhysicalDevice(), m_surface, &presentModeCount, nullptr);
             vkrAssert(presentModeCount != 0, "No present modes found");
             m_supportDetails.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(m_context->GetPhysicalDevice(), m_surface, &presentModeCount,
-                m_supportDetails.presentModes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(
+                m_context->GetPhysicalDevice(), m_surface, &presentModeCount, m_supportDetails.presentModes.data());
         }
 
         // Choose format
@@ -239,11 +241,13 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         for (u32 i = 0; i < m_backbufferCount; i++)
         {
-            vkrVulkanAssert(vkCreateSemaphore(m_context->GetDevice(), &semaphoreCI, nullptr, &m_imageAvailableSemaphores[i]),
+            vkrVulkanAssert(
+                vkCreateSemaphore(m_context->GetDevice(), &semaphoreCI, nullptr, &m_imageAvailableSemaphores[i]),
                 "Failed to create semaphore");
             vkrVulkanAssert(vkCreateFence(m_context->GetDevice(), &fenceCI, nullptr, &m_inFlightFences[i]),
                 "Failed to create fence");
-            vkrVulkanAssert(vkCreateSemaphore(m_context->GetDevice(), &semaphoreCI, nullptr, &m_renderingFinishSemaphores[i]),
+            vkrVulkanAssert(
+                vkCreateSemaphore(m_context->GetDevice(), &semaphoreCI, nullptr, &m_renderingFinishSemaphores[i]),
                 "Failed to create semaphore");
         }
 
@@ -267,24 +271,20 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL Swapchain::Swapchain(Rhi::RhiDevice* context)
-        : m_context(CheckedCast<EngineContext>(context))
+    IFRIT_APIDECL Swapchain::Swapchain(Rhi::RhiDevice* context) : m_context(CheckedCast<EngineContext>(context))
     {
         Init();
     }
 
-    IFRIT_APIDECL Swapchain::~Swapchain()
-    {
-        Destructor();
-    }
+    IFRIT_APIDECL     Swapchain::~Swapchain() { Destructor(); }
 
     IFRIT_APIDECL u32 Swapchain::AcquireNextImage()
     {
         vkWaitForFences(m_context->GetDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
         vkResetFences(m_context->GetDevice(), 1, &m_inFlightFences[m_currentFrame]);
         u32 imageIndex;
-        vkAcquireNextImageKHR(m_context->GetDevice(), m_swapchain, UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame],
-            VK_NULL_HANDLE, &imageIndex);
+        vkAcquireNextImageKHR(m_context->GetDevice(), m_swapchain, UINT64_MAX,
+            m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
         m_imageIndex = imageIndex;
         return imageIndex;
     }

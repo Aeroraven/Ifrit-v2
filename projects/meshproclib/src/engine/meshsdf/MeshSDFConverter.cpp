@@ -16,12 +16,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/meshproc/engine/meshsdf/MeshSDFConverter.h"
-#include "ifrit/common/logging/Logging.h"
-#include "ifrit/common/math/simd/SimdVectors.h"
-#include "ifrit/common/util/Parallel.h"
-#include "ifrit/common/util/TypingUtil.h"
-#include "ifrit/common/math/VectorOps.h"
-#include "ifrit/common/math/SphericalSampling.h"
+#include "ifrit/core/logging/Logging.h"
+#include "ifrit/core/math/simd/SimdVectors.h"
+#include "ifrit/core/algo/Parallel.h"
+#include "ifrit/core/typing/Util.h"
+#include "ifrit/core/math/VectorOps.h"
+#include "ifrit/core/math/SphericalSampling.h"
 
 #include <random>
 
@@ -34,7 +34,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
 
     IF_CONSTEXPR u32 cMinBvhChilds = 32;
 
-    struct BVHNode : public Common::Utility::NonCopyableStruct
+    struct BVHNode : public NonCopyableStruct
     {
         SVector3f     bboxMin;
         SVector3f     bboxMax;
@@ -44,7 +44,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         u32           endIdx;
     };
 
-    struct Mesh2SDFTempData : public Common::Utility::NonCopyableStruct
+    struct Mesh2SDFTempData : public NonCopyableStruct
     {
         SVector3f      bboxMin;
         SVector3f      bboxMax;
@@ -113,8 +113,8 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             data.asTriNormals[i / 3] = getTriangleNormal(v0, v1, v2);
         }
     }
-    IF_FORCEINLINE SVector3f PointDistToTriangle(const SVector3f& p, const SVector3f& a, const SVector3f& b,
-        const SVector3f& c)
+    IF_FORCEINLINE SVector3f PointDistToTriangle(
+        const SVector3f& p, const SVector3f& a, const SVector3f& b, const SVector3f& c)
     {
         // Code from: https://github.com/RenderKit/embree/blob/master/tutorials/common/math/closest_point.h
         const auto ab = b - a;
@@ -165,8 +165,8 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         return a + ab * v + ac * w;
     }
 
-    IF_FORCEINLINE f32 RayTrianleIntersection(const Vector3f& rayO, const Vector3f& rayD,
-        const Vector3f& a, const Vector3f& b, const Vector3f& c)
+    IF_FORCEINLINE f32 RayTrianleIntersection(
+        const Vector3f& rayO, const Vector3f& rayD, const Vector3f& a, const Vector3f& b, const Vector3f& c)
     {
         using namespace Ifrit::Math;
 
@@ -263,7 +263,8 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             {
                 leftIdx++;
             }
-            while (leftIdx < rightIdx && ElementAt(data.asTriBboxMid[data.asTriIndices[rightIdx]], longestAxis) >= avgMid)
+            while (
+                leftIdx < rightIdx && ElementAt(data.asTriBboxMid[data.asTriIndices[rightIdx]], longestAxis) >= avgMid)
             {
                 rightIdx--;
             }
@@ -278,8 +279,8 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         {
             if (node->endIdx - node->startIdx > 128)
             {
-                iWarn("Large BVH node with {} children, leftIdx:{}, rightIdx:{} | st:{}, ed:{}", node->endIdx - node->startIdx,
-                    leftIdx, rightIdx, node->startIdx, node->endIdx);
+                iWarn("Large BVH node with {} children, leftIdx:{}, rightIdx:{} | st:{}, ed:{}",
+                    node->endIdx - node->startIdx, leftIdx, rightIdx, node->startIdx, node->endIdx);
                 iWarn("AvgMid: {}", avgMid);
             }
             return;
@@ -360,12 +361,12 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
                 auto i1    = data.meshIxBuffer[triId * 3 + 1];
                 auto i2    = data.meshIxBuffer[triId * 3 + 2];
 
-                auto v0 = SVector3f(data.meshVxBuffer[i0 * data.meshVxStride + 0], data.meshVxBuffer[i0 * data.meshVxStride + 1],
-                    data.meshVxBuffer[i0 * data.meshVxStride + 2]);
-                auto v1 = SVector3f(data.meshVxBuffer[i1 * data.meshVxStride + 0], data.meshVxBuffer[i1 * data.meshVxStride + 1],
-                    data.meshVxBuffer[i1 * data.meshVxStride + 2]);
-                auto v2 = SVector3f(data.meshVxBuffer[i2 * data.meshVxStride + 0], data.meshVxBuffer[i2 * data.meshVxStride + 1],
-                    data.meshVxBuffer[i2 * data.meshVxStride + 2]);
+                auto v0 = SVector3f(data.meshVxBuffer[i0 * data.meshVxStride + 0],
+                    data.meshVxBuffer[i0 * data.meshVxStride + 1], data.meshVxBuffer[i0 * data.meshVxStride + 2]);
+                auto v1 = SVector3f(data.meshVxBuffer[i1 * data.meshVxStride + 0],
+                    data.meshVxBuffer[i1 * data.meshVxStride + 1], data.meshVxBuffer[i1 * data.meshVxStride + 2]);
+                auto v2 = SVector3f(data.meshVxBuffer[i2 * data.meshVxStride + 0],
+                    data.meshVxBuffer[i2 * data.meshVxStride + 1], data.meshVxBuffer[i2 * data.meshVxStride + 2]);
 
                 auto vNormal   = data.asTriNormals[triId];
                 auto nearestPt = PointDistToTriangle(p, v0, v1, v2);
@@ -388,11 +389,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
     }
 
     void GetSignedDistanceToMeshRayTraceSingleRayRecur(
-        BVHNode*                node,
-        const Mesh2SDFTempData& data,
-        const SVector3f&        p,
-        const SVector3f&        dir,
-        Vector4f&               collResult)
+        BVHNode* node, const Mesh2SDFTempData& data, const SVector3f& p, const SVector3f& dir, Vector4f& collResult)
     {
         // printf("Tracing: %p, L:%d, R:%d\n", node, node->startIdx, node->endIdx);
         auto leftChild  = node->left.get();
@@ -423,12 +420,12 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
                 auto i1    = data.meshIxBuffer[triId * 3 + 1];
                 auto i2    = data.meshIxBuffer[triId * 3 + 2];
 
-                auto v0 = SVector3f(data.meshVxBuffer[i0 * data.meshVxStride + 0], data.meshVxBuffer[i0 * data.meshVxStride + 1],
-                    data.meshVxBuffer[i0 * data.meshVxStride + 2]);
-                auto v1 = SVector3f(data.meshVxBuffer[i1 * data.meshVxStride + 0], data.meshVxBuffer[i1 * data.meshVxStride + 1],
-                    data.meshVxBuffer[i1 * data.meshVxStride + 2]);
-                auto v2 = SVector3f(data.meshVxBuffer[i2 * data.meshVxStride + 0], data.meshVxBuffer[i2 * data.meshVxStride + 1],
-                    data.meshVxBuffer[i2 * data.meshVxStride + 2]);
+                auto v0 = SVector3f(data.meshVxBuffer[i0 * data.meshVxStride + 0],
+                    data.meshVxBuffer[i0 * data.meshVxStride + 1], data.meshVxBuffer[i0 * data.meshVxStride + 2]);
+                auto v1 = SVector3f(data.meshVxBuffer[i1 * data.meshVxStride + 0],
+                    data.meshVxBuffer[i1 * data.meshVxStride + 1], data.meshVxBuffer[i1 * data.meshVxStride + 2]);
+                auto v2 = SVector3f(data.meshVxBuffer[i2 * data.meshVxStride + 0],
+                    data.meshVxBuffer[i2 * data.meshVxStride + 1], data.meshVxBuffer[i2 * data.meshVxStride + 2]);
 
                 auto vNormal = data.asTriNormals[triId];
 
@@ -473,10 +470,10 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         auto pT              = Vector3f(p.x, p.y, p.z);
 
         u32  hit        = 0;
-        u32  numSamples = Common::Utility::SizeCast<u32>(samples.size());
+        u32  numSamples = SizeCast<u32>(samples.size());
 
-        // Follow unreal's Mesh DF implementation, it judges whether the ray hits the backside of the triangle to determine
-        // whether the point is inside the mesh.
+        // Follow unreal's Mesh DF implementation, it judges whether the ray hits the backside of the triangle to
+        // determine whether the point is inside the mesh.
         u32  hitBackside = 0;
 
         // Check each sample
@@ -511,12 +508,12 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         return optimalDistance;
     }
 
-    IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf,
-        u32 sdfWidth, u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method)
+    IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
+        u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method)
     {
-        // TODO: this is a trivial implementation, that has worse performance O(NM), where N is the number of voxels and M is
-        // the number of triangles, although AS approach is used.
-        // However, mesh df is generated offline. Better approach like "Jump Flooding" should be considered later.
+        // TODO: this is a trivial implementation, that has worse performance O(NM), where N is the number of voxels and
+        // M is the number of triangles, although AS approach is used. However, mesh df is generated offline. Better
+        // approach like "Jump Flooding" should be considered later.
 
         iDebug("Converting mesh to SDF: V={} I={}", meshDesc.vertexCount, meshDesc.indexCount);
 
@@ -553,7 +550,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
 
         if (method == SDFGenerateMethod::Trivial)
         {
-            Common::Utility::UnorderedFor<u32>(0, totalVoxels, [&](u32 el) {
+            UnorderedFor<u32>(0, totalVoxels, [&](u32 el) {
                 auto      depth  = el / (sdfWidth * sdfHeight);
                 auto      height = (el % (sdfWidth * sdfHeight)) / sdfWidth;
                 auto      width  = (el % (sdfWidth * sdfHeight)) % sdfWidth;
@@ -599,7 +596,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             auto minBound = std::min(data.bboxMax.x - data.bboxMin.x,
                 std::min(data.bboxMax.y - data.bboxMin.y, data.bboxMax.z - data.bboxMin.z));
 
-            Common::Utility::UnorderedFor<u32>(0, totalVoxels, [&](u32 el) {
+            UnorderedFor<u32>(0, totalVoxels, [&](u32 el) {
                 auto      depth    = el / (sdfWidth * sdfHeight);
                 auto      height   = (el % (sdfWidth * sdfHeight)) / sdfWidth;
                 auto      width    = (el % (sdfWidth * sdfHeight)) % sdfWidth;

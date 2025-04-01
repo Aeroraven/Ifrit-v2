@@ -17,10 +17,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/math/LinalgOps.h"
-#include "ifrit/common/serialization/MathTypeSerialization.h"
-#include "ifrit/common/serialization/SerialInterface.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/math/LinalgOps.h"
+#include "ifrit/core/serialization/MathTypeSerialization.h"
+#include "ifrit/core/serialization/SerialInterface.h"
 #include "ifrit/meshproc/engine/base/MeshDesc.h"
 
 namespace Ifrit::MeshProcLib::MeshProcess
@@ -61,8 +61,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
         u32      pad2;
         u32      pad3;
 
-        IFRIT_STRUCT_SERIALIZE(boundSphere, numChildNodes, clusterGroupStart, clusterGroupSize, subTreeSize, childNodes,
-            maxClusterError);
+        IFRIT_STRUCT_SERIALIZE(
+            boundSphere, numChildNodes, clusterGroupStart, clusterGroupSize, subTreeSize, childNodes, maxClusterError);
     };
 
 } // namespace Ifrit::MeshProcLib::MeshProcess

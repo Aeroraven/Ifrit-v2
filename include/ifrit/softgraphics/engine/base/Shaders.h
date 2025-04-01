@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/softgraphics/engine/base/Structures.h"
 #include "ifrit/softgraphics/engine/base/VaryingDescriptor.h"
 #include "ifrit/softgraphics/engine/base/VaryingStore.h"
@@ -47,10 +47,10 @@ namespace Ifrit::Graphics::SoftGraphics
     {
     public:
         IFRIT_DUAL virtual void execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) = 0;
-        IFRIT_DUAL virtual ~VertexShader()                                                                        = default;
-        IFRIT_HOST virtual VertexShader*                    GetCudaClone() { return nullptr; };
-        IFRIT_HOST virtual std::unique_ptr<VertexShader>    getThreadLocalCopy() { return nullptr; };
-        IFRIT_HOST virtual void                             updateUniformData(int binding, int set, const void* pData) {}
+        IFRIT_DUAL virtual ~VertexShader() = default;
+        IFRIT_HOST virtual VertexShader*                 GetCudaClone() { return nullptr; };
+        IFRIT_HOST virtual std::unique_ptr<VertexShader> getThreadLocalCopy() { return nullptr; };
+        IFRIT_HOST virtual void                          updateUniformData(int binding, int set, const void* pData) {}
         IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return {}; }
         IFRIT_HOST virtual VaryingDescriptor                getVaryingDescriptor() { return {}; }
     };
@@ -71,47 +71,45 @@ namespace Ifrit::Graphics::SoftGraphics
         };
 
         IFRIT_DUAL virtual ~FragmentShader() = default;
-        IFRIT_HOST virtual FragmentShader*                  GetCudaClone() { return nullptr; };
-        IFRIT_HOST virtual std::unique_ptr<FragmentShader>  getThreadLocalCopy() { return nullptr; };
-        IFRIT_HOST virtual void                             updateUniformData(int binding, int set, const void* pData) {}
+        IFRIT_HOST virtual FragmentShader*                 GetCudaClone() { return nullptr; };
+        IFRIT_HOST virtual std::unique_ptr<FragmentShader> getThreadLocalCopy() { return nullptr; };
+        IFRIT_HOST virtual void                            updateUniformData(int binding, int set, const void* pData) {}
         IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return {}; }
     };
 
     class IFRIT_APIDECL GeometryShader : public ShaderBase
     {
     public:
-        GeometryShaderTopology             atTopology           = IGST_TRIANGLES;
-        u32                                atMaxVertices        = 4;
-        IFRIT_DUAL virtual void            execute(const Vector4f* const* inPos, const VaryingStore* const* inVaryings, Vector4f* outPos,
-                       VaryingStore* outVaryings, int* outSize) = 0;
+        GeometryShaderTopology             atTopology                             = IGST_TRIANGLES;
+        u32                                atMaxVertices                          = 4;
+        IFRIT_DUAL virtual void            execute(const Vector4f* const* inPos, const VaryingStore* const* inVaryings,
+                       Vector4f* outPos, VaryingStore* outVaryings, int* outSize) = 0;
         IFRIT_HOST virtual GeometryShader* GetCudaClone() { return nullptr; };
     };
 
     class IFRIT_APIDECL HullShader : public ShaderBase
     {
     public:
-        IFRIT_DUAL virtual void        executeMain(const Vector4f** inputPos, const VaryingStore** inputVaryings, Vector4f* outPos,
-                   VaryingStore* outVaryings, int invocationId, int patchId) = 0;
+        IFRIT_DUAL virtual void        executeMain(const Vector4f** inputPos, const VaryingStore** inputVaryings,
+                   Vector4f* outPos, VaryingStore* outVaryings, int invocationId, int patchId) = 0;
         IFRIT_DUAL virtual void        executePatchFunc(const Vector4f** inputPos, const VaryingStore** inputVaryings,
-                   int* outerTessLevels, int* innerTessLevels, int invocationId,
-                   int patchId)                                              = 0;
+                   int* outerTessLevels, int* innerTessLevels, int invocationId, int patchId)  = 0;
         IFRIT_HOST virtual HullShader* GetCudaClone() { return nullptr; };
     };
 
     class IFRIT_APIDECL MeshShader : public ShaderBase
     {
     public:
-        IFRIT_DUAL virtual void        execute(Vector3i localInvocation, int workGroupId, const void* inTaskShaderPayload,
-                   VaryingStore* outVaryings, Vector4f* outPos, int* outIndices, int& outNumVertices,
-                   int& outNumIndices) = 0;
+        IFRIT_DUAL virtual void execute(Vector3i localInvocation, int workGroupId, const void* inTaskShaderPayload,
+            VaryingStore* outVaryings, Vector4f* outPos, int* outIndices, int& outNumVertices, int& outNumIndices) = 0;
         IFRIT_HOST virtual MeshShader* GetCudaClone() { return nullptr; };
     };
 
     class IFRIT_APIDECL TaskShader : public ShaderBase
     {
     public:
-        IFRIT_DUAL virtual void        execute(int workGroupId, void* outTaskShaderPayload, Vector3i* outMeshWorkGroups,
-                   int& outNumMeshWorkGroups) = 0;
+        IFRIT_DUAL virtual void execute(
+            int workGroupId, void* outTaskShaderPayload, Vector3i* outMeshWorkGroups, int& outNumMeshWorkGroups) = 0;
         IFRIT_HOST virtual TaskShader* GetCudaClone() { return nullptr; };
     };
 

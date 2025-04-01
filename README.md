@@ -4,18 +4,14 @@
 Some toys about real-time rendering. Currently, it contains:
 
 - **Soft-Renderer**: CUDA / Multithreaded CPU Software Rasterizer & Ray-tracer, with JIT support.
-- **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details. (Under development)
-- **Ayanami**: A planned project for Global Illumination. (Under planning)
-<br/><br/>
+- **Experimental Renderer**:
+  - **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details. (Under development)
+  - **Ayanami**: A planned project for Global Illumination. (Under planning)
+    <br/><br/>
+
 - [Ifrit-v2](#ifrit-v2)
   * [1. Features Supported](#1-features-supported)
-    + [1.1 Soft Renderer](#11-parallelized-soft-renderer)
-    + [1.2 Syaro](#12-syaro--virtual-geometry-based-deferred-renderer)
-    + [1.3 Ayanami](#13-ayanami--maybe-something-about-global-illumination)
   * [2. Setup / Run](#2-setup---run)
-    + [2.1 Clone the Repository](#21-clone-the-repository)
-    + [2.2 Install Dependencies](#22-install-dependencies)
-    + [2.3 Quick Start For Syaro Demo](#23-quick-start-for-syaro-demo)
   * [3. References & Acknowledgements](#3-references---acknowledgements)
   * [4. License](#4-license)
 
@@ -76,17 +72,18 @@ This repository is the successor to my following repositories:
 
 
 
-### 1.2 Syaro: Virtual-Geometry-based Deferred Renderer
+### 1.2 Experimental Renderer
 
-- Refactored version for [my original renderer](https://github.com/Aeroraven/Aria), improving pass management, synchronization primitives and descriptor bindings.
+Refactored version for [my original renderer](https://github.com/Aeroraven/Aria), improving pass management, synchronization primitives and descriptor bindings.
 
-  - Bindless Descriptors
-  - Dynamic Rendering
-  - Render Hardware Interface
-  - Render Graph
+- Bindless Descriptors
+- Dynamic Rendering
+- Render Hardware Interface
+- Render Graph
+
+#### 1.2.1 Syaro: Virtual-Geometry-based Deferred Renderer
 
 - Reproduced some features mentioned in Nanite's report: Two-pass occlusion culling, Mesh LoDs, Compute-shader-based SW rasterization.
-
 - Some extra features supported:
 
   - Horizon-Based Ambient Occlusion
@@ -94,10 +91,15 @@ This repository is the successor to my following repositories:
   - Temporal Anti-aliasing
   - Convolution Bloom
 
-### 1.3 Ayanami: Maybe Something about Global Illumination
+#### 1.2.2 Ayanami: Maybe Something about Global Illumination
 
 - It's planning to implement some GI algorithms.
-  
+- Currently, it covers:
+  - Distance Field Generation
+  - Surface Cache
+
+
+
 
 ## 2. Setup / Run
 
@@ -115,17 +117,16 @@ Following dependencies should be manually configured. Other dependencies will be
 - CMake >= 3.24
 - MSVC >= 19.29
 
-**Syaro**
+**Ifrit Runtime (Syaro/Ayanami)**
 
 - Vulkan SDK 1.3 (with shaderc combined)
   - Core Features 1.3
   - with `EXT_mesh_shader` extension
-  - <s>with `KHR_ray_tracing` extension (3 related extensions included)</s>
 
-**Soft Renderer** 
+**Ifrit Soft Renderer** 
 
 - LLVM >= 11.0
-- CUDA >= 12.5
+- CUDA >= 12.5 (Optional)
   - Known compiler issues with CUDA 12.4 with MSVC compiler (fixed in CUDA 12.5)
 
 ### 2.3 Quick Start For Syaro Demo
@@ -137,6 +138,8 @@ cmake -S . -B ./build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build ./build
 ```
 
+
+
 To run the demo
 
 - Download `lumberyard-bistro` , convert it into `gltf` format with name `untitled.gltf`, then place it in the `project/demo/Asset/Bistro` directory, with dds textures in `textures` subfolder.
@@ -146,13 +149,39 @@ To run the demo
 ```
 
 
-## 3. References & Acknowledgements
+
+## 3. Architecture
+
+The source files can be decomposed into following parts.
+
+| Module Name        | Functionality                                                |
+| ------------------ | ------------------------------------------------------------ |
+| ifrit.core         | Basic definitions, logging, serialization, typing utilities (like compilation time utils) |
+| ifrit.core.math    | Helper functions for SIMD and performance-oriented intrinsic <br/>Basic linalg supports |
+| ifrit.runtime      | Implementations of renderer.<br/>Basic supports for mesh, assets, components and rendering |
+| ifrit.demo         | Demo                                                         |
+| ifrit.display      | Platform-specific window support <br/>Provides view layer for renderers, like console display for soft renderer |
+| ifrit.external     | External dependencies building <br/>Contains FSR2            |
+| ifrit.ircompile    | Backend for JIT runtime<br/>Based on LLVM                    |
+| ifrit.meshproc     | Algorithms for mesh processing, <br/>Including mesh cluster culling data generation, mesh auto-lod and mesh-level signed distance field generation |
+| ifrit.rhi          | Backend-agnostic render hardware interface.                  |
+| ifrit.softgraphics | Implementation of soft renderer, with both MT-CPU and CUDA version |
+| ifrit.vkgraphics   | Vulkan backend                                               |
+
+
+
+
+
+## 4. References & Acknowledgements
 
 See [ACKNOWLEDGEMENTS.md](./ACKNOWLEDGEMENTS.md) for more details.
 
-Some ideas might be borrowed from Unreal Engine. However, due to the license compatibility (AGPL-v3 vs. Unreal Engine's EULA), the code is not copied (or used in other predefined forms) from the Unreal Engine source code.
+Some ideas might be borrowed from Unreal Engine (or its related SIG or GDC presents). However, due to the license compatibility (AGPL-v3 vs. Unreal Engine's EULA), the code is not copied (or used in other predefined forms) from the Unreal Engine source code.
 
-## 4. License
+
+
+
+
+## 5. License
 
 Licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html). The copy for license can be found in the root directory. 
-

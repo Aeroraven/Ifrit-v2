@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include "RhiBaseTypes.h"
-#include "ifrit/common/logging/Logging.h"
+#include "ifrit/core/logging/Logging.h"
 #include <queue>
 #include <cstddef>
 
@@ -47,9 +47,13 @@ namespace Ifrit::Graphics::Rhi
 
     public:
         explicit RhiDeviceResource(nullptr_t v)
-            : m_deleteQueue(nullptr), m_descHandle(RhiDescriptorHeapType::Invalid, ~0u), m_isUnmanaged(true) {}
+            : m_deleteQueue(nullptr), m_descHandle(RhiDescriptorHeapType::Invalid, ~0u), m_isUnmanaged(true)
+        {
+        }
         RhiDeviceResource(IRhiDeviceResourceDeleteQueue* deleteQueue)
-            : m_deleteQueue(deleteQueue), m_descHandle(RhiDescriptorHeapType::Invalid, ~0u) {}
+            : m_deleteQueue(deleteQueue), m_descHandle(RhiDescriptorHeapType::Invalid, ~0u)
+        {
+        }
         virtual ~RhiDeviceResource() {}
 
         inline virtual void AddRef() { m_refCount.fetch_add(1); }
@@ -88,8 +92,7 @@ namespace Ifrit::Graphics::Rhi
         inline void SetState(RhiResourceState state) { m_state = state; }
 
     public:
-        RhiBuffer(IRhiDeviceResourceDeleteQueue* deleteQueue)
-            : RhiDeviceResource(deleteQueue) {}
+        RhiBuffer(IRhiDeviceResourceDeleteQueue* deleteQueue) : RhiDeviceResource(deleteQueue) {}
         virtual ~RhiBuffer()                                                                = default;
         virtual void                    MapMemory()                                         = 0;
         virtual void                    UnmapMemory()                                       = 0;
@@ -110,8 +113,7 @@ namespace Ifrit::Graphics::Rhi
         IRhiDeviceResourceDeleteQueue* m_deleteQueue;
 
     public:
-        RhiMultiBuffer(IRhiDeviceResourceDeleteQueue* deleteQueue)
-            : m_deleteQueue(deleteQueue) {}
+        RhiMultiBuffer(IRhiDeviceResourceDeleteQueue* deleteQueue) : m_deleteQueue(deleteQueue) {}
         virtual RhiBuffer* GetActiveBuffer()                       = 0;
         virtual RhiBuffer* GetActiveBufferRelative(u32 deltaFrame) = 0;
         virtual ~RhiMultiBuffer()                                  = default;
@@ -142,10 +144,8 @@ namespace Ifrit::Graphics::Rhi
         inline void SetState(RhiResourceState state) { m_state = state; }
 
     public:
-        explicit RhiTexture(nullptr_t v)
-            : RhiDeviceResource(nullptr) {}
-        RhiTexture(IRhiDeviceResourceDeleteQueue* deleteQueue)
-            : RhiDeviceResource(deleteQueue) {}
+        explicit RhiTexture(nullptr_t v) : RhiDeviceResource(nullptr) {}
+        RhiTexture(IRhiDeviceResourceDeleteQueue* deleteQueue) : RhiDeviceResource(deleteQueue) {}
         virtual ~RhiTexture()                                  = default;
         virtual u32                     GetHeight() const      = 0;
         virtual u32                     GetWidth() const       = 0;
@@ -159,8 +159,7 @@ namespace Ifrit::Graphics::Rhi
     class IFRIT_APIDECL RhiSampler : public RhiDeviceResource
     {
     protected:
-        RhiSampler(IRhiDeviceResourceDeleteQueue* deleteQueue)
-            : RhiDeviceResource(deleteQueue) {}
+        RhiSampler(IRhiDeviceResourceDeleteQueue* deleteQueue) : RhiDeviceResource(deleteQueue) {}
         virtual int _polymorphismPlaceHolder() { return 0; }
     };
 

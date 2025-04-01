@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/softgraphics/engine/bufferman/BufferManager.h"
-#include "ifrit/common/util/TypingUtil.h"
-using namespace Ifrit::Common::Utility;
+#include "ifrit/core/typing/Util.h"
+using namespace Ifrit;
 
 namespace Ifrit::Graphics::SoftGraphics::BufferManager::Impl
 {
@@ -57,7 +57,8 @@ namespace Ifrit::Graphics::SoftGraphics::BufferManager::Impl
     void BufferManagerImpl::destroyBuffer(const IfritBuffer& buffer)
     {
         auto maintained = bufferMetadata[buffer.id].maintained;
-        if (maintained && buffer.id >= 0 && !buffer.manager.owner_before(wrapperObject) && !wrapperObject.owner_before(buffer.manager))
+        if (maintained && buffer.id >= 0 && !buffer.manager.owner_before(wrapperObject)
+            && !wrapperObject.owner_before(buffer.manager))
         {
             freeBufferIds.push(buffer.id);
             bufferMetadata[buffer.id].size       = 0;
@@ -91,8 +92,8 @@ namespace Ifrit::Graphics::SoftGraphics::BufferManager::Impl
         }
         memcpy(bufferMetadata[buffer.id].data.get() + offset, src, size);
     }
-    void BufferManagerImpl::bufferDataUnsafe(const IfritBuffer& buffer, const void* src, size_t offset,
-        size_t size) IFRIT_AP_NOTHROW
+    void BufferManagerImpl::bufferDataUnsafe(
+        const IfritBuffer& buffer, const void* src, size_t offset, size_t size) IFRIT_AP_NOTHROW
     {
         memcpy(bufferMetadata[buffer.id].data.get() + offset, src, size);
     }

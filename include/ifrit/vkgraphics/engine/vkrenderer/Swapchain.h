@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #else
     #include <vulkan/vulkan_xlib.h>
 #endif
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <vector>
 

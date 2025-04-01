@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMShader.h"
-#include "ifrit/common/util/TypingUtil.h"
-using namespace Ifrit::Common::Utility;
+#include "ifrit/core/typing/Util.h"
+using namespace Ifrit;
 extern "C"
 {
     struct alignas(16) Vector3iAligned
@@ -92,7 +92,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
         }
         if (svmir->shaderMaps.incomingRayPayloadKHR.size())
         {
-            this->symbolTables.incomingPayload     = this->runtime->lookupSymbol(svmir->shaderMaps.incomingRayPayloadKHR);
+            this->symbolTables.incomingPayload = this->runtime->lookupSymbol(svmir->shaderMaps.incomingRayPayloadKHR);
             this->symbolTables.incomingPayloadSize = svmir->shaderMaps.incomingRayPayloadKHRSize;
         }
         this->symbolTables.builtinContext = this->runtime->lookupSymbol("ifsp_builtin_context_ptr");
@@ -103,11 +103,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
     {
         isThreadSafe = false;
     }
-    SpvVertexShader::SpvVertexShader(const SpvVertexShader& p)
-        : SpvRuntimeBackend(p)
-    {
-        isThreadSafe = false;
-    }
+    SpvVertexShader::SpvVertexShader(const SpvVertexShader& p) : SpvRuntimeBackend(p) { isThreadSafe = false; }
     IFRIT_HOST std::unique_ptr<VertexShader> SpvVertexShader::getThreadLocalCopy()
     {
         auto copy = std::make_unique<SpvVertexShader>(*this);
@@ -147,8 +143,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
     {
         isThreadSafe = false;
     }
-    SpvFragmentShader::SpvFragmentShader(const SpvFragmentShader& p)
-        : SpvRuntimeBackend(p)
+    SpvFragmentShader::SpvFragmentShader(const SpvFragmentShader& p) : SpvRuntimeBackend(p)
     {
         isThreadSafe                 = false;
         this->allowDepthModification = p.allowDepthModification;
@@ -228,11 +223,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
         return ret;
     }
 
-    SpvRaygenShader::SpvRaygenShader(const SpvRaygenShader& p)
-        : SpvRuntimeBackend(p)
-    {
-        isThreadSafe = false;
-    }
+    SpvRaygenShader::SpvRaygenShader(const SpvRaygenShader& p) : SpvRuntimeBackend(p) { isThreadSafe = false; }
     SpvRaygenShader::SpvRaygenShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode)
         : SpvRuntimeBackend(runtime, irByteCode)
     {
@@ -275,11 +266,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
         return ret;
     }
 
-    SpvMissShader::SpvMissShader(const SpvMissShader& p)
-        : SpvRuntimeBackend(p)
-    {
-        isThreadSafe = false;
-    }
+    SpvMissShader::SpvMissShader(const SpvMissShader& p) : SpvRuntimeBackend(p) { isThreadSafe = false; }
     IFRIT_HOST void SpvMissShader::updateStack()
     {
         if (this->execStack.size() == 0)
@@ -333,16 +320,9 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
         }
         return ret;
     }
-    IFRIT_HOST void SpvMissShader::onStackPushComplete()
-    {
-        updateStack();
-    }
-    IFRIT_HOST void SpvMissShader::onStackPopComplete()
-    {
-        updateStack();
-    }
-    SpvClosestHitShader::SpvClosestHitShader(const SpvClosestHitShader& p)
-        : SpvRuntimeBackend(p)
+    IFRIT_HOST void SpvMissShader::onStackPushComplete() { updateStack(); }
+    IFRIT_HOST void SpvMissShader::onStackPopComplete() { updateStack(); }
+    SpvClosestHitShader::SpvClosestHitShader(const SpvClosestHitShader& p) : SpvRuntimeBackend(p)
     {
         isThreadSafe = false;
     }
@@ -399,12 +379,6 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
         }
         return ret;
     }
-    IFRIT_HOST void SpvClosestHitShader::onStackPushComplete()
-    {
-        updateStack();
-    }
-    IFRIT_HOST void SpvClosestHitShader::onStackPopComplete()
-    {
-        updateStack();
-    }
+    IFRIT_HOST void SpvClosestHitShader::onStackPushComplete() { updateStack(); }
+    IFRIT_HOST void SpvClosestHitShader::onStackPopComplete() { updateStack(); }
 } // namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv

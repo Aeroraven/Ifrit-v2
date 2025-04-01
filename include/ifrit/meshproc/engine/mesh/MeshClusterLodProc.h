@@ -18,11 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "MeshClusterBase.h"
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/math/LinalgOps.h"
-#include "ifrit/common/serialization/MathTypeSerialization.h"
-#include "ifrit/common/serialization/SerialInterface.h"
-#include "ifrit/common/util/ApiConv.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/math/LinalgOps.h"
+#include "ifrit/core/serialization/MathTypeSerialization.h"
+#include "ifrit/core/serialization/SerialInterface.h"
+#include "ifrit/core/platform/ApiConv.h"
 #include <cstdint>
 #include <meshoptimizer/src/meshoptimizer.h>
 #include <vector>

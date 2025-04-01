@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/softgraphics/engine/raytracer/TrivialRaytracerWorker.h"
-#include "ifrit/common/math/VectorOps.h"
-#include "ifrit/common/math/simd/SimdVectors.h"
+#include "ifrit/core/math/VectorOps.h"
+#include "ifrit/core/math/simd/SimdVectors.h"
 #include "ifrit/softgraphics/engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
 
 using namespace Ifrit::Math::SIMD;
@@ -26,8 +26,7 @@ using namespace Ifrit::Math::SIMD;
 namespace Ifrit::Graphics::SoftGraphics::Raytracer
 {
     TrivialRaytracerWorker::TrivialRaytracerWorker(
-        std::shared_ptr<TrivialRaytracer>        renderer,
-        std::shared_ptr<TrivialRaytracerContext> context, int workerId)
+        std::shared_ptr<TrivialRaytracer> renderer, std::shared_ptr<TrivialRaytracerContext> context, int workerId)
     {
         this->renderer = renderer.get();
         this->context  = context;
@@ -49,8 +48,7 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
             else if (st == TrivialRaytracerWorkerStatus::TRACING)
             {
                 tracingProcess();
-                status.store(TrivialRaytracerWorkerStatus::TRACING_SYNC,
-                    std::memory_order::relaxed);
+                status.store(TrivialRaytracerWorkerStatus::TRACING_SYNC, std::memory_order::relaxed);
             }
         }
     }
@@ -83,25 +81,21 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
                     {
                         if (tileZ * context->tileDepth + k >= context->traceRegion.z)
                             break;
-                        Vector3i invocation = Vector3i(tileX * context->tileWidth + i,
-                            tileY * context->tileHeight + j,
+                        Vector3i invocation = Vector3i(tileX * context->tileWidth + i, tileY * context->tileHeight + j,
                             tileZ * context->tileDepth + k);
-                        context->perWorkerRaygen[workerId]->execute(
-                            invocation, context->traceRegion, this);
+                        context->perWorkerRaygen[workerId]->execute(invocation, context->traceRegion, this);
                     }
                 }
             }
         }
     }
-    void TrivialRaytracerWorker::tracingRecursiveProcess(const RayInternal& ray,
-        void* payload, int depth,
-        float tmin, float tmax)
+    void TrivialRaytracerWorker::tracingRecursiveProcess(
+        const RayInternal& ray, void* payload, int depth, float tmin, float tmax)
     {
         using namespace Ifrit::Math;
         if (depth >= context->maxDepth)
             return;
-        auto collresult =
-            context->accelerationStructure->queryIntersection(ray, tmin, tmax);
+        auto collresult = context->accelerationStructure->queryIntersection(ray, tmin, tmax);
         recurDepth++;
         if (collresult.id == -1)
         {
@@ -120,8 +114,5 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
         }
         recurDepth--;
     }
-    int TrivialRaytracerWorker::getTracingDepth()
-    {
-        return recurDepth;
-    }
+    int TrivialRaytracerWorker::getTracingDepth() { return recurDepth; }
 } // namespace Ifrit::Graphics::SoftGraphics::Raytracer

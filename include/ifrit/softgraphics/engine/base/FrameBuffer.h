@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/softgraphics/core/data/Image.h"
 
 namespace Ifrit::Graphics::SoftGraphics

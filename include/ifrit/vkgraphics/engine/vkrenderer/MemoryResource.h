@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <memory>
@@ -98,7 +98,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline void SetActiveFrame(u32 frame) { m_activeFrame = frame; }
         inline u32  GetBufferCount()
         {
-            using namespace Ifrit::Common::Utility;
+            using namespace Ifrit;
             return SizeCast<int>(m_buffers.size());
         }
         inline Rhi::RhiBuffer* GetActiveBufferRelative(u32 deltaFrame) override
@@ -151,8 +151,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     public:
         virtual ~SingleDeviceImage();
-        explicit SingleDeviceImage(nullptr_t v)
-            : Rhi::RhiTexture(nullptr) {}
+        explicit SingleDeviceImage(nullptr_t v) : Rhi::RhiTexture(nullptr) {}
         SingleDeviceImage(EngineContext* ctx, const ImageCreateInfo& ci);
 
         virtual VkFormat          GetFormat() const;
@@ -227,8 +226,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         i32                   m_defaultCopies = -1;
 
     public:
-        ResourceManager(EngineContext* ctx)
-            : m_context(ctx) {}
+        ResourceManager(EngineContext* ctx) : m_context(ctx) {}
         virtual ~ResourceManager() {}
         ResourceManager(const ResourceManager& p)              = delete;
         ResourceManager&   operator=(const ResourceManager& p) = delete;
@@ -244,18 +242,18 @@ namespace Ifrit::Graphics::VulkanGraphics
         // TODO: refactor the code
         Rhi::RhiTextureRef CreateSimpleImageUnmanaged(const ImageCreateInfo& ci);
         Rhi::RhiBufferRef  CreateSimpleBufferUnmanaged(const BufferCreateInfo& ci);
-        Rhi::RhiTextureRef CreateDepthAttachment(u32 width, u32 height, VkFormat format = VK_FORMAT_D32_SFLOAT,
-            VkImageUsageFlags extraUsage = 0);
+        Rhi::RhiTextureRef CreateDepthAttachment(
+            u32 width, u32 height, VkFormat format = VK_FORMAT_D32_SFLOAT, VkImageUsageFlags extraUsage = 0);
 
-        Rhi::RhiTextureRef CreateTexture2DDeviceUnmanaged(u32 width, u32 height, VkFormat format,
-            VkImageUsageFlags extraUsage = 0);
+        Rhi::RhiTextureRef CreateTexture2DDeviceUnmanaged(
+            u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage = 0);
 
-        Rhi::RhiTextureRef CreateRenderTargetTexture(u32 width, u32 height, VkFormat format,
-            VkImageUsageFlags extraUsage = 0);
-        Rhi::RhiTextureRef CreateTexture3D(u32 width, u32 height, u32 depth, VkFormat format,
-            VkImageUsageFlags extraUsage = 0);
-        Rhi::RhiTextureRef createMipTexture(u32 width, u32 height, u32 mips, VkFormat format,
-            VkImageUsageFlags extraUsage = 0);
+        Rhi::RhiTextureRef CreateRenderTargetTexture(
+            u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage = 0);
+        Rhi::RhiTextureRef CreateTexture3D(
+            u32 width, u32 height, u32 depth, VkFormat format, VkImageUsageFlags extraUsage = 0);
+        Rhi::RhiTextureRef createMipTexture(
+            u32 width, u32 height, u32 mips, VkFormat format, VkImageUsageFlags extraUsage = 0);
         Rhi::RhiSamplerRef CreateTrivialRenderTargetSampler();
         Rhi::RhiSamplerRef CreateTrivialBilinearSampler(bool repeat);
         Rhi::RhiSamplerRef CreateTrivialNearestSampler(bool repeat);

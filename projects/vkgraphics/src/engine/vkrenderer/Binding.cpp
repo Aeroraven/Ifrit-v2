@@ -20,16 +20,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define NOMINMAX
 #endif
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <algorithm>
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 namespace Ifrit::Graphics::VulkanGraphics
 {
-    template <typename E>
-    IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
+    template <typename E> IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
     {
         return static_cast<typename std::underlying_type<E>::type>(e);
     }
@@ -54,8 +53,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             vkDestroyDescriptorSetLayout(m_context->GetDevice(), m_layoutShared, nullptr);
         }
     }
-    IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext* ctx)
-        : m_context(ctx)
+    IFRIT_APIDECL DescriptorManager::DescriptorManager(EngineContext* ctx) : m_context(ctx)
     {
         for (int i = 0; i < cMaxDescriptorType; i++)
         {
@@ -203,7 +201,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             if (m_storageImages[i].first == image->GetImage())
             {
                 auto& sub = m_storageImages[i].second;
-                if (sub.mipLevel == subResource.mipLevel && sub.arrayLayer == subResource.arrayLayer && sub.mipCount == subResource.mipCount && sub.layerCount == subResource.layerCount)
+                if (sub.mipLevel == subResource.mipLevel && sub.arrayLayer == subResource.arrayLayer
+                    && sub.mipCount == subResource.mipCount && sub.layerCount == subResource.layerCount)
                 {
                     return i;
                 }
@@ -212,9 +211,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto                  handle = m_storageImages.size();
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-        imageInfo.imageView   = image->GetImageViewMipLayer(subResource.mipLevel, subResource.arrayLayer, subResource.mipCount,
-              subResource.layerCount);
-        imageInfo.sampler     = VK_NULL_HANDLE;
+        imageInfo.imageView   = image->GetImageViewMipLayer(
+            subResource.mipLevel, subResource.arrayLayer, subResource.mipCount, subResource.layerCount);
+        imageInfo.sampler = VK_NULL_HANDLE;
 
         VkWriteDescriptorSet write{};
         write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -236,7 +235,8 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
         for (int i = 0; i < m_combinedImageSamplers.size(); i++)
         {
-            if (m_combinedImageSamplers[i].first == image->GetImage() && m_combinedImageSamplers[i].second == sampler->GetSampler())
+            if (m_combinedImageSamplers[i].first == image->GetImage()
+                && m_combinedImageSamplers[i].second == sampler->GetSampler())
             {
                 return i;
             }
@@ -354,7 +354,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL void DescriptorBindlessIndices::AddUniformBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc)
     {
-        auto buf = Ifrit::Common::Utility::CheckedCast<MultiBuffer>(buffer);
+        auto buf = Ifrit::CheckedCast<MultiBuffer>(buffer);
         for (u32 i = 0; i < numCopies; i++)
         {
             auto p            = m_descriptorManager->RegisterUniformBuffer(buf->GetBuffer(i));
@@ -364,7 +364,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL void DescriptorBindlessIndices::AddStorageBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc)
     {
-        auto buf = Ifrit::Common::Utility::CheckedCast<MultiBuffer>(buffer);
+        auto buf = Ifrit::CheckedCast<MultiBuffer>(buffer);
         for (u32 i = 0; i < numCopies; i++)
         {
             auto p            = m_descriptorManager->RegisterStorageBuffer(buf->GetBuffer(i));
@@ -374,7 +374,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL void DescriptorBindlessIndices::AddStorageBuffer(Rhi::RhiBuffer* buffer, u32 loc)
     {
-        auto buf = Ifrit::Common::Utility::CheckedCast<SingleBuffer>(buffer);
+        auto buf = Ifrit::CheckedCast<SingleBuffer>(buffer);
         for (u32 i = 0; i < numCopies; i++)
         {
             auto p            = m_descriptorManager->RegisterStorageBuffer(buf);
@@ -382,11 +382,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void DescriptorBindlessIndices::AddCombinedImageSampler(Rhi::RhiTexture* texture,
-        Rhi::RhiSampler* sampler, u32 loc)
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddCombinedImageSampler(
+        Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler, u32 loc)
     {
-        auto tex = Ifrit::Common::Utility::CheckedCast<SingleDeviceImage>(texture);
-        auto sam = Ifrit::Common::Utility::CheckedCast<Sampler>(sampler);
+        auto tex = Ifrit::CheckedCast<SingleDeviceImage>(texture);
+        auto sam = Ifrit::CheckedCast<Sampler>(sampler);
         for (u32 i = 0; i < numCopies; i++)
         {
             auto p            = m_descriptorManager->RegisterCombinedImageSampler(tex, sam);
@@ -394,10 +394,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void DescriptorBindlessIndices::AddUAVImage(Rhi::RhiTexture* texture,
-        Rhi::RhiImageSubResource subResource, u32 loc)
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddUAVImage(
+        Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, u32 loc)
     {
-        auto tex = Ifrit::Common::Utility::CheckedCast<SingleDeviceImage>(texture);
+        auto tex = Ifrit::CheckedCast<SingleDeviceImage>(texture);
         for (u32 i = 0; i < numCopies; i++)
         {
             auto p            = m_descriptorManager->RegisterStorageImage(tex, subResource);
@@ -407,7 +407,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL void DescriptorBindlessIndices::BuildRanges()
     {
-        using Ifrit::Common::Utility::SizeCast;
+        using Ifrit::SizeCast;
         if (m_bindRange.size() == 0)
         {
             m_bindRange.resize(numCopies);
@@ -420,8 +420,9 @@ namespace Ifrit::Graphics::VulkanGraphics
                 {
                     uniformData[k] = v;
                 }
-                auto ptr       = reinterpret_cast<const char*>(uniformData.data());
-                m_bindRange[i] = m_descriptorManager->RegisterBindlessParameterRaw(ptr, SizeCast<u32>(numKeys * sizeof(u32)));
+                auto ptr = reinterpret_cast<const char*>(uniformData.data());
+                m_bindRange[i] =
+                    m_descriptorManager->RegisterBindlessParameterRaw(ptr, SizeCast<u32>(numKeys * sizeof(u32)));
             }
         }
     }

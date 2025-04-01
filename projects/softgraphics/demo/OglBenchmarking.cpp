@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "OglBenchmarking.h"
 #include "dependency/GLAD/glad/glad.h"
-#include "ifrit/common/math/LinalgOps.h"
+#include "ifrit/core/math/LinalgOps.h"
 #include "presentation/window/GLFWWindowProvider.h"
 #include "utility/loader/WavefrontLoader.h"
 using namespace Ifrit::SoftRenderer::Utility::Loader;
@@ -41,11 +41,9 @@ namespace Ifrit::Demo::OglBenchmarking
         // load shader
         std::string  vertexShaderCode;
         std::string  fragmentShaderCode;
-        std::fstream vertexShaderFile(
-            IFRIT_SHADER_PATH "/opengl.benchmarking.sponza.vert.glsl", std::ios::in);
-        std::fstream fragmentShaderFile(
-            IFRIT_SHADER_PATH "/opengl.benchmarking.sponza.frag.glsl", std::ios::in);
-        std::string line;
+        std::fstream vertexShaderFile(IFRIT_SHADER_PATH "/opengl.benchmarking.sponza.vert.glsl", std::ios::in);
+        std::fstream fragmentShaderFile(IFRIT_SHADER_PATH "/opengl.benchmarking.sponza.frag.glsl", std::ios::in);
+        std::string  line;
 
         while (std::getline(vertexShaderFile, line))
         {
@@ -77,8 +75,7 @@ namespace Ifrit::Demo::OglBenchmarking
         normal4.resize(procNormal.size());
         for (int i = 0; i < procNormal.size(); i++)
         {
-            normal4[i] =
-                Vector4f(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0.5f);
+            normal4[i] = Vector4f(procNormal[i].x, procNormal[i].y, procNormal[i].z, 0.5f);
         }
 
         GLFWWindowProvider windowProvider;
@@ -94,12 +91,10 @@ namespace Ifrit::Demo::OglBenchmarking
         glBindVertexArray(VAO);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, pos4.size() * sizeof(Vector4f), pos4.data(),
-            GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, pos4.size() * sizeof(Vector4f), pos4.data(), GL_STATIC_DRAW);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.size() * sizeof(int),
-            indexBuffer.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.size() * sizeof(int), indexBuffer.data(), GL_STATIC_DRAW);
 
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
@@ -107,19 +102,17 @@ namespace Ifrit::Demo::OglBenchmarking
         unsigned int VBO2;
         glGenBuffers(1, &VBO2);
         glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-        glBufferData(GL_ARRAY_BUFFER, normal4.size() * sizeof(Vector4f),
-            normal4.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, normal4.size() * sizeof(Vector4f), normal4.data(), GL_STATIC_DRAW);
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(1);
 
         // uniform buffer & bind
-        Matrix4x4f view = (LookAt({ 0, 0.1, 0.25 }, { 0, 0.1, 0.0 }, { 0, 1, 0 }));
+        Matrix4x4f   view = (LookAt({ 0, 0.1, 0.25 }, { 0, 0.1, 0.0 }, { 0, 1, 0 }));
         // Matrix4x4f view = (LookAt({ 0,0.75,1.50 }, { 0,0.75,0.0 }, { 0,1,0 }));
         // Matrix4x4f view = (LookAt({ 500,300,0 }, { -100,300,-0 }, { 0,1,0 }));
         // Matrix4x4f view = (LookAt({ 0,1.5,0 }, { -100,1.5,0 }, { 0,1,0 }));
-        Matrix4x4f proj =
-            (Perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
-        Matrix4x4f   mvp = Transpose(MatMul(proj, view));
+        Matrix4x4f   proj = (Perspective(60 * 3.14159 / 180, 1920.0 / 1080.0, 0.1, 3000));
+        Matrix4x4f   mvp  = Transpose(MatMul(proj, view));
 
         // opengl: create shaders
         unsigned int vertexShader         = glCreateShader(GL_VERTEX_SHADER);
@@ -187,10 +180,8 @@ namespace Ifrit::Demo::OglBenchmarking
             glBindBuffer(GL_UNIFORM_BUFFER, uniformBuffer);
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, uniformBuffer);
             glDrawElements(GL_TRIANGLES, indexBuffer.size(), GL_UNSIGNED_INT, 0);
-            auto end = std::chrono::high_resolution_clock::now();
-            *coreTime =
-                (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-                    .count();
+            auto end  = std::chrono::high_resolution_clock::now();
+            *coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         });
         return 0;
     }

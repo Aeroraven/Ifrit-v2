@@ -23,11 +23,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #ifdef __cplusplus
     #include <cstdint>
-    #include "ifrit/common/base/IfritBase.h"
+    #include "ifrit/core/base/IfritBase.h"
     #define AYANAMI_DEFINE_UINT(x, y) IF_CONSTEXPR uint32_t x = y;
     #define AYANAMI_DEFINE_FLOAT(x, y) IF_CONSTEXPR float x = y;
 
-namespace Ifrit::Core::Ayanami::Config
+namespace Ifrit::Runtime::Ayanami::Config
 {
 
 #else
@@ -48,7 +48,7 @@ namespace Ifrit::Core::Ayanami::Config
     AYANAMI_DEFINE_UINT(kAyanamiRadianceInjectionCardSizePerBlock, 8);
 
 #ifdef __cplusplus
-} // namespace Ifrit::Core::AYANAMI
+} // namespace Ifrit::Runtime::AYANAMI
     #undef AYANAMI_DEFINE_UINT
     #undef AYANAMI_DEFINE_FLOAT
 #endif

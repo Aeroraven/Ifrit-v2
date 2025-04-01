@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/Structures.h"
 
@@ -68,8 +68,7 @@ namespace Ifrit::Graphics::SoftGraphics::Imaging
         virtual void getPixel2D(u32 x, u32 y, void* pixel) const        = 0;
     };
 
-    template <class Tp, class Allocator = std::allocator<Tp>>
-    class BufferedImageImpl : public BufferedImage
+    template <class Tp, class Allocator = std::allocator<Tp>> class BufferedImageImpl : public BufferedImage
     {
     protected:
         Tp*                       data;
@@ -98,20 +97,27 @@ namespace Ifrit::Graphics::SoftGraphics::Imaging
             const u32 tileY = y / BufferedImageConfig::TILE_SIZE;
             const u32 tileZ = z / BufferedImageConfig::TILE_SIZE;
             const u32 tileOffset =
-                (tileZ * (width / BufferedImageConfig::TILE_SIZE) * (height / BufferedImageConfig::TILE_SIZE) + tileY * (width / BufferedImageConfig::TILE_SIZE) + tileX) * (BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE) * channels;
+                (tileZ * (width / BufferedImageConfig::TILE_SIZE) * (height / BufferedImageConfig::TILE_SIZE)
+                    + tileY * (width / BufferedImageConfig::TILE_SIZE) + tileX)
+                * (BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE)
+                * channels;
             const u32 localX = x % BufferedImageConfig::TILE_SIZE;
             const u32 localY = y % BufferedImageConfig::TILE_SIZE;
             const u32 localZ = z % BufferedImageConfig::TILE_SIZE;
-            return tileOffset + (localZ * BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE + localY * BufferedImageConfig::TILE_SIZE + localX) * channels;
+            return tileOffset
+                + (localZ * BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE
+                      + localY * BufferedImageConfig::TILE_SIZE + localX)
+                * channels;
         }
 
         inline u32 getPixelOffset2DTiled(u32 x, u32 y) const
         {
             const u32 tileX      = x / BufferedImageConfig::TILE_SIZE;
             const u32 tileY      = y / BufferedImageConfig::TILE_SIZE;
-            const u32 tileOffset = (tileY * (width / BufferedImageConfig::TILE_SIZE) + tileX) * (BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE) * channels;
-            const u32 localX     = x % BufferedImageConfig::TILE_SIZE;
-            const u32 localY     = y % BufferedImageConfig::TILE_SIZE;
+            const u32 tileOffset = (tileY * (width / BufferedImageConfig::TILE_SIZE) + tileX)
+                * (BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE) * channels;
+            const u32 localX = x % BufferedImageConfig::TILE_SIZE;
+            const u32 localY = y % BufferedImageConfig::TILE_SIZE;
             return tileOffset + (localY * BufferedImageConfig::TILE_SIZE + localX) * channels;
         }
 
@@ -122,12 +128,14 @@ namespace Ifrit::Graphics::SoftGraphics::Imaging
             const u32 numTilesX = (width + BufferedImageConfig::TILE_SIZE - 1) / BufferedImageConfig::TILE_SIZE;
             const u32 numTilesY = (height + BufferedImageConfig::TILE_SIZE - 1) / BufferedImageConfig::TILE_SIZE;
             const u32 numTilesZ = (depth + BufferedImageConfig::TILE_SIZE - 1) / BufferedImageConfig::TILE_SIZE;
-            return numTilesX * numTilesY * numTilesZ * BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE * channels;
+            return numTilesX * numTilesY * numTilesZ * BufferedImageConfig::TILE_SIZE * BufferedImageConfig::TILE_SIZE
+                * BufferedImageConfig::TILE_SIZE * channels;
         }
 
         inline u32 getRequiredBufferSize() const
         {
-            return tiling == BufferedImageTiling::TILING_LINEAR ? getRequiredBufferSizeLinear() : getRequiredBufferSizeTiled();
+            return tiling == BufferedImageTiling::TILING_LINEAR ? getRequiredBufferSizeLinear()
+                                                                : getRequiredBufferSizeTiled();
         }
 
     public:
@@ -139,20 +147,19 @@ namespace Ifrit::Graphics::SoftGraphics::Imaging
 
         ~BufferedImageImpl() { allocator.deallocate(data, getRequiredBufferSize()); }
 
-        inline Tp*       getData() { return data; }
+        inline Tp*                       getData() { return data; }
 
-        inline const Tp* getData() const { return data; }
+        inline const Tp*                 getData() const { return data; }
 
-        inline u32       GetWidth() const { return width; }
+        inline u32                       GetWidth() const { return width; }
 
-        inline u32       GetHeight() const { return height; }
+        inline u32                       GetHeight() const { return height; }
 
-        inline u32       GetDepth() const { return depth; }
+        inline u32                       GetDepth() const { return depth; }
 
-        inline u32       getChannels() const { return channels; }
+        inline u32                       getChannels() const { return channels; }
 
-        template <class Tp2>
-        inline void loadFromPlainImage(const Tp2* plainImage)
+        template <class Tp2> inline void loadFromPlainImage(const Tp2* plainImage)
         {
             for (int x = 0; x < width; x++)
             {
@@ -173,8 +180,7 @@ namespace Ifrit::Graphics::SoftGraphics::Imaging
     class BufferedImageLinear : public BufferedImageImpl<Tp, Allocator>
     {
     public:
-        BufferedImageLinear(const BufferedImageCreateInfo& pCI)
-            : BufferedImageImpl<Tp, Allocator>(pCI) {}
+        BufferedImageLinear(const BufferedImageCreateInfo& pCI) : BufferedImageImpl<Tp, Allocator>(pCI) {}
 
     public:
         ~BufferedImageLinear() = default;
@@ -209,8 +215,7 @@ namespace Ifrit::Graphics::SoftGraphics::Imaging
     class BufferedImageTiled : public BufferedImageImpl<Tp, Allocator>
     {
     public:
-        BufferedImageTiled(const BufferedImageCreateInfo& pCI)
-            : BufferedImageImpl<Tp, Allocator>(pCI) {}
+        BufferedImageTiled(const BufferedImageCreateInfo& pCI) : BufferedImageImpl<Tp, Allocator>(pCI) {}
 
     public:
         ~BufferedImageTiled() = default;

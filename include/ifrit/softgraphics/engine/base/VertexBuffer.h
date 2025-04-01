@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/softgraphics/core/utility/CoreUtils.h"
 #include "ifrit/softgraphics/engine/base/TypeDescriptor.h"
 
@@ -42,35 +42,32 @@ namespace Ifrit::Graphics::SoftGraphics
     public:
         VertexBuffer();
         ~VertexBuffer();
-        void           setLayout(const std::vector<TypeDescriptor>& layout);
-        void           allocateBuffer(const size_t numVertices);
-        void           setVertexCount(const int vertexCount);
-        int            getVertexCount() const;
-        int            getAttributeCount() const;
-        TypeDescriptor getAttributeDescriptor(int index) const;
+        void                        setLayout(const std::vector<TypeDescriptor>& layout);
+        void                        allocateBuffer(const size_t numVertices);
+        void                        setVertexCount(const int vertexCount);
+        int                         getVertexCount() const;
+        int                         getAttributeCount() const;
+        TypeDescriptor              getAttributeDescriptor(int index) const;
 
-        inline int     getOffset(int i) const { return context->offsets[i]; }
-        inline int     getElementSize() const { return elementSize; }
+        inline int                  getOffset(int i) const { return context->offsets[i]; }
+        inline int                  getElementSize() const { return elementSize; }
 
         /* Templates */
-        template <class T>
-        inline T getValue(const int index, const int attribute) const
+        template <class T> inline T getValue(const int index, const int attribute) const
         {
             size_t      dOffset = context->offsets[attribute] + index * elementSize;
             const char* data    = reinterpret_cast<const char*>(&context->buffer[dOffset]);
             return *reinterpret_cast<const T*>(data);
         }
 
-        template <class T>
-        inline const T* getValuePtr(const int index, const int attribute) const
+        template <class T> inline const T* getValuePtr(const int index, const int attribute) const
         {
             size_t      dOffset = context->offsets[attribute] + index * elementSize;
             const char* data    = reinterpret_cast<const char*>(&context->buffer[dOffset]);
             return reinterpret_cast<const T*>(data);
         }
 
-        template <class T>
-        inline T setValue(const int index, const int attribute, const T value)
+        template <class T> inline T setValue(const int index, const int attribute, const T value)
         {
             size_t dOffset              = context->offsets[attribute] + index * elementSize;
             char*  data                 = reinterpret_cast<char*>(&context->buffer[dOffset]);
@@ -83,7 +80,7 @@ namespace Ifrit::Graphics::SoftGraphics
 
         inline u32   GetBufferSize() const
         {
-            using namespace Ifrit::Common::Utility;
+            using namespace Ifrit;
             return SizeCast<int>(context->buffer.size());
         }
 

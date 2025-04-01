@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMContext.h"
 #include "ifrit/softgraphics/engine/shadervm/spirv/SpvVMExtInstRegistry.h"
 #include "ifrit/softgraphics/engine/shadervm/spirvvec/SpvMdBase.h"
@@ -35,10 +35,10 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
 
     class SpVcQuadGroupedIRGenerator;
 
-    typedef void (*SpVcDefinitionPassHandler)(int pc, std::vector<u32> params, SpVcVMGeneratorContext* ctx,
-        SpVcQuadGroupedIRGenerator* irg);
-    typedef void (*SpVcConversionPassHandler)(int pc, std::vector<u32> params, SpVcVMGeneratorContext* ctx,
-        SpVcQuadGroupedIRGenerator* irg);
+    typedef void (*SpVcDefinitionPassHandler)(
+        int pc, std::vector<u32> params, SpVcVMGeneratorContext* ctx, SpVcQuadGroupedIRGenerator* irg);
+    typedef void (*SpVcConversionPassHandler)(
+        int pc, std::vector<u32> params, SpVcVMGeneratorContext* ctx, SpVcQuadGroupedIRGenerator* irg);
 
     enum SpVcDataflowDependencySpecial
     {
@@ -72,54 +72,54 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         int                                                              curVarMask = 0;
 
     public:
-        void                                                                     bindBytecode(SpVcSpirBytecode* bytecode, SpVcVMGeneratorContext* context);
+        void               bindBytecode(SpVcSpirBytecode* bytecode, SpVcVMGeneratorContext* context);
 
-        void                                                                     performBlockPass();
-        void                                                                     Init();
-        void                                                                     verbose();
+        void               performBlockPass();
+        void               Init();
+        void               verbose();
 
         // Defintion pass defines types and annotations for variables
-        void                                                                     performDefinitionPass();
-        void                                                                     performDefinitionPassRegister();
+        void               performDefinitionPass();
+        void               performDefinitionPassRegister();
 
         // Data flow dependency resolution
-        void                                                                     performDataflowResolutionPass();
-        void                                                                     performDataflowResolutionPassRegister();
+        void               performDataflowResolutionPass();
+        void               performDataflowResolutionPassRegister();
 
         // Mask injection pass
-        void                                                                     performMaskInjectionPass(int quadSize);
+        void               performMaskInjectionPass(int quadSize);
 
         // Type generation
-        void                                                                     performTypeGenerationPass();
+        void               performTypeGenerationPass();
 
         // Conversion pass converts raw bytecode to a intermediate representation,
         // with consideration of execution masks
-        void                                                                     performConversionPass();
-        void                                                                     performConversionPassRegister();
+        void               performConversionPass();
+        void               performConversionPassRegister();
 
         // Output generates final LLVM IR code
         // void performOutputPass();
-        void                                                                     performSymbolExport();
+        void               performSymbolExport();
 
-        void                                                                     parse();
-        std::string                                                              generateIR();
+        void               parse();
+        std::string        generateIR();
 
         // Utilities
-        SpVcVMGenBlock*                                                          getActiveBlock();
-        void                                                                     pushActiveBlock(SpVcVMGenBlock* block);
+        SpVcVMGenBlock*    getActiveBlock();
+        void               pushActiveBlock(SpVcVMGenBlock* block);
         // void popActiveBlock();
 
-        SpVcVMGenStack*                                                          getActiveStack();
-        void                                                                     pushNewStack();
-        void                                                                     popNewStack();
+        SpVcVMGenStack*    getActiveStack();
+        void               pushNewStack();
+        void               popNewStack();
 
-        SpVcVMGenVariable*                                                       createExecutionMaskVar();
-        SpVcVMGenVariable*                                                       getVariableSafe(u32 id);
+        SpVcVMGenVariable* createExecutionMaskVar();
+        SpVcVMGenVariable* getVariableSafe(u32 id);
 
-        std::string                                                              getParsingProgress();
-        void                                                                     setCurrentProgCounter(int pc);
-        void                                                                     setCurrentPass(SpVcQuadGroupedIRStage stage);
-        std::string                                                              allocateLlvmVarName();
+        std::string        getParsingProgress();
+        void               setCurrentProgCounter(int pc);
+        void               setCurrentPass(SpVcQuadGroupedIRStage stage);
+        std::string        allocateLlvmVarName();
         inline Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv::SpvVMExtRegistry* getExtRegistry()
         {
             return &mExtInstGen;

@@ -17,15 +17,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/meshproc/engine/mesh/MeshletConeCull.h"
-#include "ifrit/common/math/simd/SimdVectors.h"
+#include "ifrit/core/math/simd/SimdVectors.h"
 #include <stdexcept>
 namespace Ifrit::MeshProcLib::MeshProcess
 {
 
     void MeshletConeCullProc::CreateNormalCones(const MeshDescriptor& meshDesc, const Vec<Vector4i>& meshlets,
-        const Vec<u32>& meshletVertices,
-        const Vec<u8>&  meshletTriangles,
-        Vec<Vector4f>&  normalConeAxisCutoff,
+        const Vec<u32>& meshletVertices, const Vec<u8>& meshletTriangles, Vec<Vector4f>& normalConeAxisCutoff,
         Vec<Vector4f>& normalConeApex, Vec<Vector4f>& boundSphere)
     {
         using namespace Ifrit::Math::SIMD;
@@ -46,10 +44,11 @@ namespace Ifrit::MeshProcLib::MeshProcess
             meshopt_Bounds  bounds;
             const auto      meshletVertStart = meshletVertices.data() + vertexOffset;
             const auto      meshletTriStart  = meshletTriangles.data() + triangleOffset;
-            bounds                           = meshopt_computeMeshletBounds(meshletVertStart, meshletTriStart, triangleCount,
-                                          (float*)meshDesc.vertexData, meshDesc.vertexCount, meshDesc.vertexStride);
+            bounds = meshopt_computeMeshletBounds(meshletVertStart, meshletTriStart, triangleCount,
+                (float*)meshDesc.vertexData, meshDesc.vertexCount, meshDesc.vertexStride);
 
-            normalConeAxisCutoff.push_back({ bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2], bounds.cone_cutoff });
+            normalConeAxisCutoff.push_back(
+                { bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2], bounds.cone_cutoff });
             normalConeApex.push_back({ bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2], 0.0f });
             boundSphere.push_back({ bounds.center[0], bounds.center[1], bounds.center[2], bounds.radius });
         }

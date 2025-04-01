@@ -17,13 +17,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 
 namespace Ifrit::Graphics::SoftGraphics::Core::Data
 {
-    template <typename T>
-    class IFRIT_APIDECL Image
+    template <typename T> class IFRIT_APIDECL Image
     {
     private:
         T*           data = nullptr;
@@ -34,8 +33,7 @@ namespace Ifrit::Graphics::SoftGraphics::Core::Data
         const size_t channel;
 
     public:
-        Image()
-            : width(0), height(0), channel(0) {}
+        Image() : width(0), height(0), channel(0) {}
         Image(size_t width, size_t height, size_t channel, bool pinned)
             : width(width), height(height), channel(channel), isCudaPinned(pinned)
         {
@@ -52,19 +50,16 @@ namespace Ifrit::Graphics::SoftGraphics::Core::Data
             data = new T[width * height * channel];
 #endif
         }
-        Image(size_t width, size_t height, size_t channel)
-            : width(width), height(height), channel(channel)
+        Image(size_t width, size_t height, size_t channel) : width(width), height(height), channel(channel)
         {
             data = new T[width * height * channel];
         }
-        Image(const Image& other)
-            : width(other.width), height(other.height), channel(other.channel)
+        Image(const Image& other) : width(other.width), height(other.height), channel(other.channel)
         {
             data = new T[width * height * channel];
             memcpy(data, other.data, width * height * channel * sizeof(T));
         }
-        Image(Image&& other) noexcept
-            : width(other.width), height(other.height), channel(other.channel)
+        Image(Image&& other) noexcept : width(other.width), height(other.height), channel(other.channel)
         {
             data       = other.data;
             other.data = nullptr;
@@ -226,11 +221,11 @@ namespace Ifrit::Graphics::SoftGraphics::Core::Data
             memset(dataPtr + dataSizeSt, 0, (dataSizeEd - dataSizeSt) * sizeof(T));
         }
 
-        inline T&           operator()(size_t x, size_t y, size_t c) { return data[y * width * channel + x * channel + c]; }
+        inline T& operator()(size_t x, size_t y, size_t c) { return data[y * width * channel + x * channel + c]; }
 
-        const T&            operator()(size_t x, size_t y, size_t c) const { return data[y * width * channel + x * channel + c]; }
+        const T&  operator()(size_t x, size_t y, size_t c) const { return data[y * width * channel + x * channel + c]; }
 
-        const T*            getData() const { return data; }
+        const T*  getData() const { return data; }
 
         IF_CONSTEXPR size_t GetSizeOf() const { return sizeof(T); }
 

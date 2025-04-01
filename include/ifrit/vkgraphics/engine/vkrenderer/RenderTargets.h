@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 
@@ -37,16 +37,22 @@ namespace Ifrit::Graphics::VulkanGraphics
     public:
         ColorAttachment(Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp,
             u32 mip, u32 arrLayer)
-            : m_renderTarget(Ifrit::Common::Utility::CheckedCast<SingleDeviceImage>(renderTarget)), m_clearValue(clearValue), m_loadOp(loadOp), m_targetMip(mip), m_targetArrLayer(arrLayer) {}
+            : m_renderTarget(Ifrit::CheckedCast<SingleDeviceImage>(renderTarget))
+            , m_clearValue(clearValue)
+            , m_loadOp(loadOp)
+            , m_targetMip(mip)
+            , m_targetArrLayer(arrLayer)
+        {
+        }
 
-        inline SingleDeviceImage*          GetRenderTargetInternal() const { return m_renderTarget; }
-        inline Rhi::RhiTexture*            GetRenderTarget() const override { return m_renderTarget; }
-        inline Rhi::RhiClearValue          GetClearValue() const { return m_clearValue; }
-        inline Rhi::RhiRenderTargetLoadOp  GetLoadOp() const { return m_loadOp; }
-        inline u32                         GetTargetMip() const { return m_targetMip; }
-        inline u32                         GetTargetArrLayer() const { return m_targetArrLayer; }
+        inline SingleDeviceImage*         GetRenderTargetInternal() const { return m_renderTarget; }
+        inline Rhi::RhiTexture*           GetRenderTarget() const override { return m_renderTarget; }
+        inline Rhi::RhiClearValue         GetClearValue() const { return m_clearValue; }
+        inline Rhi::RhiRenderTargetLoadOp GetLoadOp() const { return m_loadOp; }
+        inline u32                        GetTargetMip() const { return m_targetMip; }
+        inline u32                        GetTargetArrLayer() const { return m_targetArrLayer; }
 
-        inline void                        SetBlendInfo(const Rhi::RhiAttachmentBlendInfo& info) override { m_blendInfo = info; }
+        inline void SetBlendInfo(const Rhi::RhiAttachmentBlendInfo& info) override { m_blendInfo = info; }
         inline Rhi::RhiAttachmentBlendInfo GetBlendInfo() const { return m_blendInfo; }
     };
 
@@ -58,9 +64,13 @@ namespace Ifrit::Graphics::VulkanGraphics
         Rhi::RhiRenderTargetLoadOp m_loadOp;
 
     public:
-        DepthStencilAttachment(Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue,
-            Rhi::RhiRenderTargetLoadOp loadOp)
-            : m_renderTarget(Ifrit::Common::Utility::CheckedCast<SingleDeviceImage>(renderTarget)), m_clearValue(clearValue), m_loadOp(loadOp) {}
+        DepthStencilAttachment(
+            Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp)
+            : m_renderTarget(Ifrit::CheckedCast<SingleDeviceImage>(renderTarget))
+            , m_clearValue(clearValue)
+            , m_loadOp(loadOp)
+        {
+        }
 
         inline SingleDeviceImage*         GetRenderTargetInternal() const { return m_renderTarget; }
         inline Rhi::RhiTexture*           GetRenderTarget() const { return m_renderTarget; }
@@ -78,18 +88,20 @@ namespace Ifrit::Graphics::VulkanGraphics
         Rhi::RhiScissor         m_renderArea;
 
     public:
-        RenderTargets(EngineContext* context)
-            : m_context(context) {}
+        RenderTargets(EngineContext* context) : m_context(context) {}
         ~RenderTargets() = default;
 
-        inline void                            SetRenderArea(Rhi::RhiScissor area) override { m_renderArea = area; }
-        void                                   SetColorAttachments(const Vec<Rhi::RhiColorAttachment*>& attachments) override;
-        void                                   SetDepthStencilAttachment(Rhi::RhiDepthStencilAttachment* attachment) override;
-        void                                   BeginRendering(const Rhi::RhiCommandList* commandBuffer) const override;
-        void                                   EndRendering(const Rhi::RhiCommandList* commandBuffer) const override;
-        Rhi::RhiRenderTargetsFormat            GetFormat() const override;
-        virtual Rhi::RhiScissor                GetRenderArea() const override;
-        inline Rhi::RhiDepthStencilAttachment* GetDepthStencilAttachment() const override { return m_depthStencilAttachment; }
-        inline Rhi::RhiColorAttachment*        GetColorAttachment(u32 index) const { return m_colorAttachments[index]; }
+        inline void                 SetRenderArea(Rhi::RhiScissor area) override { m_renderArea = area; }
+        void                        SetColorAttachments(const Vec<Rhi::RhiColorAttachment*>& attachments) override;
+        void                        SetDepthStencilAttachment(Rhi::RhiDepthStencilAttachment* attachment) override;
+        void                        BeginRendering(const Rhi::RhiCommandList* commandBuffer) const override;
+        void                        EndRendering(const Rhi::RhiCommandList* commandBuffer) const override;
+        Rhi::RhiRenderTargetsFormat GetFormat() const override;
+        virtual Rhi::RhiScissor     GetRenderArea() const override;
+        inline Rhi::RhiDepthStencilAttachment* GetDepthStencilAttachment() const override
+        {
+            return m_depthStencilAttachment;
+        }
+        inline Rhi::RhiColorAttachment* GetColorAttachment(u32 index) const { return m_colorAttachments[index]; }
     };
 } // namespace Ifrit::Graphics::VulkanGraphics

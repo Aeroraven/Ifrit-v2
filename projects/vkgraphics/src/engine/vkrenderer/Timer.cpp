@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/Timer.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
@@ -50,24 +50,22 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL void DeviceTimer::Start(const Rhi::RhiCommandList* cmd)
     {
-        auto cmdBuf   = Ifrit::Common::Utility::CheckedCast<CommandBuffer>(cmd);
+        auto cmdBuf   = Ifrit::CheckedCast<CommandBuffer>(cmd);
         auto curFrame = m_currentFrame;
         vkCmdWriteTimestamp(cmdBuf->GetCommandBuffer(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_queryPools[curFrame], 0);
     }
 
     IFRIT_APIDECL void DeviceTimer::Stop(const Rhi::RhiCommandList* cmd)
     {
-        auto cmdBuf   = Ifrit::Common::Utility::CheckedCast<CommandBuffer>(cmd);
+        auto cmdBuf   = Ifrit::CheckedCast<CommandBuffer>(cmd);
         auto curFrame = m_currentFrame;
-        vkCmdWriteTimestamp(cmdBuf->GetCommandBuffer(), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_queryPools[curFrame], 1);
+        vkCmdWriteTimestamp(
+            cmdBuf->GetCommandBuffer(), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_queryPools[curFrame], 1);
     }
 
-    IFRIT_APIDECL float DeviceTimer::GetElapsedMs()
-    {
-        return m_elapsedMs;
-    }
+    IFRIT_APIDECL float DeviceTimer::GetElapsedMs() { return m_elapsedMs; }
 
-    IFRIT_APIDECL void DeviceTimer::FrameProceed()
+    IFRIT_APIDECL void  DeviceTimer::FrameProceed()
     {
         m_currentFrame = (m_currentFrame + 1) % m_numFrameInFlight;
 
@@ -75,8 +73,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto     timeStampPeriod = m_context->GetPhysicalDeviceProperties().limits.timestampPeriod;
         auto     curFrame        = m_currentFrame;
         uint64_t ts[2];
-        vkGetQueryPoolResults(device, m_queryPools[curFrame], 0, 2, sizeof(uint64_t) * 2, ts, sizeof(uint64_t),
-            VK_QUERY_RESULT_64_BIT);
+        vkGetQueryPoolResults(
+            device, m_queryPools[curFrame], 0, 2, sizeof(uint64_t) * 2, ts, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
         float nanoToMs = 1.0f / 1000000.0f;
         m_elapsedMs    = static_cast<float>(ts[1] - ts[0]) * timeStampPeriod * nanoToMs;
         vkResetQueryPool(m_context->GetDevice(), m_queryPools[m_currentFrame], 0, 2);

@@ -17,60 +17,59 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/math/VectorDefs.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/math/VectorDefs.h"
 #include "ifrit/softgraphics/core/definition/CoreTypes.h"
 
 namespace Ifrit::Graphics::SoftGraphics
 {
-	enum TypeDescriptorEnum
-	{
-		IFTP_UNDEFINED,
-		IFTP_FLOAT1,
-		IFTP_FLOAT2,
-		IFTP_FLOAT3,
-		IFTP_FLOAT4,
-		IFTP_INT1,
-		IFTP_INT2,
-		IFTP_INT3,
-		IFTP_INT4,
-		IFTP_UINT1,
-		IFTP_UINT2,
-		IFTP_UINT3,
-		IFTP_UINT4
-	};
-	struct IFRIT_APIDECL TypeDescriptor
-	{
-		u32				   size;
-		TypeDescriptorEnum type;
-	};
+    enum TypeDescriptorEnum
+    {
+        IFTP_UNDEFINED,
+        IFTP_FLOAT1,
+        IFTP_FLOAT2,
+        IFTP_FLOAT3,
+        IFTP_FLOAT4,
+        IFTP_INT1,
+        IFTP_INT2,
+        IFTP_INT3,
+        IFTP_INT4,
+        IFTP_UINT1,
+        IFTP_UINT2,
+        IFTP_UINT3,
+        IFTP_UINT4
+    };
+    struct IFRIT_APIDECL TypeDescriptor
+    {
+        u32                size;
+        TypeDescriptorEnum type;
+    };
 
-	template <typename T, TypeDescriptorEnum U>
-	struct IFRIT_APIDECL TypeDescriptorImpl : TypeDescriptor
-	{
-		TypeDescriptorImpl()
-		{
-			this->size = sizeof(T);
-			this->type = U;
-		}
-	};
+    template <typename T, TypeDescriptorEnum U> struct IFRIT_APIDECL TypeDescriptorImpl : TypeDescriptor
+    {
+        TypeDescriptorImpl()
+        {
+            this->size = sizeof(T);
+            this->type = U;
+        }
+    };
 
-	class IFRIT_APIDECL TypeDescriptorsT
-	{
-	public:
-		TypeDescriptorImpl<float, TypeDescriptorEnum::IFTP_FLOAT1>		 FLOAT1;
-		TypeDescriptorImpl<Vector2f, TypeDescriptorEnum::IFTP_FLOAT2>	 FLOAT2;
-		TypeDescriptorImpl<Vector3f, TypeDescriptorEnum::IFTP_FLOAT3>	 FLOAT3;
-		TypeDescriptorImpl<Vector4f, TypeDescriptorEnum::IFTP_FLOAT4>	 FLOAT4;
-		TypeDescriptorImpl<int, TypeDescriptorEnum::IFTP_INT1>			 INT1;
-		TypeDescriptorImpl<Vector2i, TypeDescriptorEnum::IFTP_INT2>		 INT2;
-		TypeDescriptorImpl<Vector3i, TypeDescriptorEnum::IFTP_INT3>		 INT3;
-		TypeDescriptorImpl<Vector4i, TypeDescriptorEnum::IFTP_INT4>		 INT4;
-		TypeDescriptorImpl<unsigned int, TypeDescriptorEnum::IFTP_UINT1> UINT1;
-		TypeDescriptorImpl<Vector2u, TypeDescriptorEnum::IFTP_UINT2>	 UINT2;
-		TypeDescriptorImpl<Vector3u, TypeDescriptorEnum::IFTP_UINT3>	 UINT3;
-		TypeDescriptorImpl<Vector4u, TypeDescriptorEnum::IFTP_UINT4>	 UINT4;
-	};
+    class IFRIT_APIDECL TypeDescriptorsT
+    {
+    public:
+        TypeDescriptorImpl<float, TypeDescriptorEnum::IFTP_FLOAT1>       FLOAT1;
+        TypeDescriptorImpl<Vector2f, TypeDescriptorEnum::IFTP_FLOAT2>    FLOAT2;
+        TypeDescriptorImpl<Vector3f, TypeDescriptorEnum::IFTP_FLOAT3>    FLOAT3;
+        TypeDescriptorImpl<Vector4f, TypeDescriptorEnum::IFTP_FLOAT4>    FLOAT4;
+        TypeDescriptorImpl<int, TypeDescriptorEnum::IFTP_INT1>           INT1;
+        TypeDescriptorImpl<Vector2i, TypeDescriptorEnum::IFTP_INT2>      INT2;
+        TypeDescriptorImpl<Vector3i, TypeDescriptorEnum::IFTP_INT3>      INT3;
+        TypeDescriptorImpl<Vector4i, TypeDescriptorEnum::IFTP_INT4>      INT4;
+        TypeDescriptorImpl<unsigned int, TypeDescriptorEnum::IFTP_UINT1> UINT1;
+        TypeDescriptorImpl<Vector2u, TypeDescriptorEnum::IFTP_UINT2>     UINT2;
+        TypeDescriptorImpl<Vector3u, TypeDescriptorEnum::IFTP_UINT3>     UINT3;
+        TypeDescriptorImpl<Vector4u, TypeDescriptorEnum::IFTP_UINT4>     UINT4;
+    };
 
-	IFRIT_APIDECL extern TypeDescriptorsT TypeDescriptors;
+    IFRIT_APIDECL extern TypeDescriptorsT TypeDescriptors;
 } // namespace Ifrit::Graphics::SoftGraphics

@@ -18,8 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "RhiForwardingTypes.h"
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/util/ApiConv.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/platform/ApiConv.h"
 #include <cstdint>
 
 namespace Ifrit::Graphics::Rhi::FSR2

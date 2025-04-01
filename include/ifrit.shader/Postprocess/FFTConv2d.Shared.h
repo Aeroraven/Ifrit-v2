@@ -22,21 +22,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define IFRIT_FFTCONV2D_SHADER_SHARED_CONST_H
 
 #ifdef __cplusplus
-#include <cstdint>
-#define SYARO_DEFINE_UINT(x, y) IF_CONSTEXPR uint32_t x = y;
-#define SYARO_DEFINE_FLOAT(x, y) IF_CONSTEXPR float x = y;
+    #include <cstdint>
+    #define SYARO_DEFINE_UINT(x, y) IF_CONSTEXPR uint32_t x = y;
+    #define SYARO_DEFINE_FLOAT(x, y) IF_CONSTEXPR float x = y;
 
-namespace Ifrit::Core::FFTConv2DConfig {
+namespace Ifrit::Runtime::FFTConv2DConfig
+{
 
 #else
-#define SYARO_DEFINE_UINT(x, y) const uint x = y
-#define SYARO_DEFINE_FLOAT(x, y) const float x = y
+    #define SYARO_DEFINE_UINT(x, y) const uint x = y
+    #define SYARO_DEFINE_FLOAT(x, y) const float x = y
 #endif
 
-SYARO_DEFINE_UINT(cMaxSupportedTextureSize, 1024);
-SYARO_DEFINE_UINT(cMaxSupportedTextureSizeLog2, 10);
-SYARO_DEFINE_UINT(cMaxSupportedTextureSizeHalf, 512);
-SYARO_DEFINE_UINT(cThreadGroupSizeX, 512);
+    SYARO_DEFINE_UINT(cMaxSupportedTextureSize, 1024);
+    SYARO_DEFINE_UINT(cMaxSupportedTextureSizeLog2, 10);
+    SYARO_DEFINE_UINT(cMaxSupportedTextureSizeHalf, 512);
+    SYARO_DEFINE_UINT(cThreadGroupSizeX, 512);
 
 #ifdef __cplusplus
 }

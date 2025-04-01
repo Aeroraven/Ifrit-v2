@@ -17,15 +17,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/softgraphics/engine/tileraster/TileRasterWorker.h"
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/math/VectorOps.h"
-#include "ifrit/common/math/fastutil/FastUtil.h"
-#include "ifrit/common/math/fastutil/FastUtilSimd.h"
-#include "ifrit/common/math/simd/SimdVectors.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/math/VectorOps.h"
+#include "ifrit/core/math/fastutil/FastUtil.h"
+#include "ifrit/core/math/fastutil/FastUtilSimd.h"
+#include "ifrit/core/math/simd/SimdVectors.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/softgraphics/engine/base/Shaders.h"
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 using namespace Ifrit::Math;
 using namespace Ifrit::Math::SIMD;
@@ -37,16 +37,10 @@ using namespace Ifrit::Math::SIMD;
 namespace Ifrit::Graphics::SoftGraphics::TileRaster
 {
 
-    consteval f32 getInftyDepthValue() noexcept
-    {
-        return std::bit_cast<float, u32>(0x7f7f7f7f);
-    }
+    consteval f32 getInftyDepthValue() noexcept { return std::bit_cast<float, u32>(0x7f7f7f7f); }
 
-    inline int cvrsQueueWorkerId(int x)
-    {
-        return x >> (sizeof(int) * 8 - TileRasterContext::workerReprBits);
-    }
-    inline int cvrsQueuePrimitiveId(int x)
+    inline int    cvrsQueueWorkerId(int x) { return x >> (sizeof(int) * 8 - TileRasterContext::workerReprBits); }
+    inline int    cvrsQueuePrimitiveId(int x)
     {
         IF_CONSTEXPR int mask = ((1 << (sizeof(int) * 8 - TileRasterContext::workerReprBits)) - 1);
         return x & mask;
@@ -59,7 +53,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
     }
 
     IF_CONSTEXPR auto TOTAL_THREADS = TileRasterContext::numThreads + 1;
-    inline void       getAcceptRejectCoords(SVector3f edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3]) IFRIT_AP_NOTHROW
+    inline void       getAcceptRejectCoords(
+              SVector3f edgeCoefs[3], int chosenCoordTR[3], int chosenCoordTA[3]) IFRIT_AP_NOTHROW
     {
         IF_CONSTEXPR const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
         for (int i = 0; i < 3; i++)
@@ -70,8 +65,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             chosenCoordTA[i] = normalRight ? (normalDown ? VLT : VLB) : (normalDown ? VRT : VRB);
         }
     }
-    TileRasterWorker::TileRasterWorker(u32 workerId, TileRasterRenderer* renderer,
-        std::shared_ptr<TileRasterContext> context)
+    TileRasterWorker::TileRasterWorker(
+        u32 workerId, TileRasterRenderer* renderer, std::shared_ptr<TileRasterContext> context)
     {
         this->workerId          = workerId;
         this->rendererReference = renderer;
@@ -122,7 +117,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             ptrCtx->frameBuffer->GetColorAttachment(0)->clearImageZeroMultiThread(workerId, TOTAL_THREADS);
         }
         vertexProcessing(rawRenderer);
-        rawRenderer->statusTransitionBarrier2(TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);
+        rawRenderer->statusTransitionBarrier2(
+            TileRasterStage::VERTEX_SHADING_SYNC, TileRasterStage::GEOMETRY_PROCESSING);
         ptrCtx->assembledTrianglesRaster[workerId].clear();
         ptrCtx->assembledTrianglesShade[workerId].clear();
         auto& w1 = ptrCtx->rasterizerQueue[workerId];
@@ -133,11 +129,12 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             w2[j].clear();
         }
         geometryProcessing(rawRenderer);
-        rawRenderer->statusTransitionBarrier2(TileRasterStage::GEOMETRY_PROCESSING_SYNC, TileRasterStage::RASTERIZATION);
+        rawRenderer->statusTransitionBarrier2(
+            TileRasterStage::GEOMETRY_PROCESSING_SYNC, TileRasterStage::RASTERIZATION);
         tiledProcessing(rendererReference, withClear);
     }
-    u32 TileRasterWorker::triangleHomogeneousClip(const int primitiveId, SVector4f v1, SVector4f v2,
-        SVector4f v3) IFRIT_AP_NOTHROW
+    u32 TileRasterWorker::triangleHomogeneousClip(
+        const int primitiveId, SVector4f v1, SVector4f v2, SVector4f v3) IFRIT_AP_NOTHROW
     {
         IF_CONSTEXPR u32 clipIts = 1;
         struct TileRasterClipVertex
@@ -230,9 +227,12 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             const auto s1     = -sV3V2y - sV3V2x;
             const auto s2     = -sV1V3y - sV1V3x;
 
-            atriShade.f3  = { sV2V1y * csInvX, sV2V1x * csInvY, (-tv1.x * sV2V1y - tv1.y * sV2V1x + s3) * ar, tv3.z * tv3.w };
-            atriShade.f1  = { sV3V2y * csInvX, sV3V2x * csInvY, (-tv2.x * sV3V2y - tv2.y * sV3V2x + s1) * ar, tv1.z * tv1.w };
-            atriShade.f2  = { sV1V3y * csInvX, sV1V3x * csInvY, (-tv3.x * sV1V3y - tv3.y * sV1V3x + s2) * ar, tv2.z * tv2.w };
+            atriShade.f3  = { sV2V1y * csInvX, sV2V1x * csInvY, (-tv1.x * sV2V1y - tv1.y * sV2V1x + s3) * ar,
+                 tv3.z * tv3.w };
+            atriShade.f1  = { sV3V2y * csInvX, sV3V2x * csInvY, (-tv2.x * sV3V2y - tv2.y * sV3V2x + s1) * ar,
+                 tv1.z * tv1.w };
+            atriShade.f2  = { sV1V3y * csInvX, sV1V3x * csInvY, (-tv3.x * sV1V3y - tv3.y * sV1V3x + s2) * ar,
+                 tv2.z * tv2.w };
             atriRaster.e1 = { csFh * sV2V1y, csFw * sV2V1x, csFhFw * (tv2.x * tv1.y - tv1.x * tv2.y + s3 - EPS) };
             atriRaster.e2 = { csFh * sV3V2y, csFw * sV3V2x, csFhFw * (tv3.x * tv2.y - tv2.x * tv3.y + s1 - EPS) };
             atriRaster.e3 = { csFh * sV1V3y, csFw * sV1V3x, csFhFw * (tv1.x * tv3.y - tv3.x * tv1.y + s2 - EPS) };
@@ -311,8 +311,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             return false;
         return true;
     }
-    void TileRasterWorker::executeBinner(const int primitiveId, const AssembledTriangleProposalRasterStage& atp,
-        SVector4f bbox) IFRIT_AP_NOTHROW
+    void TileRasterWorker::executeBinner(
+        const int primitiveId, const AssembledTriangleProposalRasterStage& atp, SVector4f bbox) IFRIT_AP_NOTHROW
     {
         IF_CONSTEXPR const int VLB = 0, VLT = 1, VRT = 2, VRB = 3;
 
@@ -354,17 +354,17 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 int criteriaTA = 0;
 
 #ifdef IFRIT_USE_SIMD_128
-                SVector3f coefX = SVector3f(edgeCoefs[0].x, edgeCoefs[1].x, edgeCoefs[2].x);
-                SVector3f coefY = SVector3f(edgeCoefs[0].y, edgeCoefs[1].y, edgeCoefs[2].y);
-                SVector3f coefZ = SVector3f(edgeCoefs[0].z, edgeCoefs[1].z, edgeCoefs[2].z);
-                SVector3f tileCoordsX_TR =
-                    SVector3f(tileCoords[chosenCoordTR[0]].x, tileCoords[chosenCoordTR[1]].x, tileCoords[chosenCoordTR[2]].x);
-                SVector3f tileCoordsY_TR =
-                    SVector3f(tileCoords[chosenCoordTR[0]].y, tileCoords[chosenCoordTR[1]].y, tileCoords[chosenCoordTR[2]].y);
-                SVector3f tileCoordsX_TA =
-                    SVector3f(tileCoords[chosenCoordTA[0]].x, tileCoords[chosenCoordTA[1]].x, tileCoords[chosenCoordTA[2]].x);
-                SVector3f tileCoordsY_TA =
-                    SVector3f(tileCoords[chosenCoordTA[0]].y, tileCoords[chosenCoordTA[1]].y, tileCoords[chosenCoordTA[2]].y);
+                SVector3f coefX          = SVector3f(edgeCoefs[0].x, edgeCoefs[1].x, edgeCoefs[2].x);
+                SVector3f coefY          = SVector3f(edgeCoefs[0].y, edgeCoefs[1].y, edgeCoefs[2].y);
+                SVector3f coefZ          = SVector3f(edgeCoefs[0].z, edgeCoefs[1].z, edgeCoefs[2].z);
+                SVector3f tileCoordsX_TR = SVector3f(
+                    tileCoords[chosenCoordTR[0]].x, tileCoords[chosenCoordTR[1]].x, tileCoords[chosenCoordTR[2]].x);
+                SVector3f tileCoordsY_TR = SVector3f(
+                    tileCoords[chosenCoordTR[0]].y, tileCoords[chosenCoordTR[1]].y, tileCoords[chosenCoordTR[2]].y);
+                SVector3f tileCoordsX_TA = SVector3f(
+                    tileCoords[chosenCoordTA[0]].x, tileCoords[chosenCoordTA[1]].x, tileCoords[chosenCoordTA[2]].x);
+                SVector3f tileCoordsY_TA = SVector3f(
+                    tileCoords[chosenCoordTA[0]].y, tileCoords[chosenCoordTA[1]].y, tileCoords[chosenCoordTA[2]].y);
                 SVector3f criteriaTRLocal = Fma(coefX, tileCoordsX_TR, Fma(coefY, tileCoordsY_TR, coefZ));
                 SVector3f criteriaTALocal = Fma(coefX, tileCoordsX_TA, Fma(coefY, tileCoordsY_TA, coefZ));
                 criteriaTR += CmpltElements(criteriaTRLocal, zeroVec);
@@ -372,8 +372,10 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
 #else
                 for (int i = 0; i < 3; i++)
                 {
-                    f32 criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y + edgeCoefs[i].z;
-                    f32 criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y + edgeCoefs[i].z;
+                    f32 criteriaTRLocal = edgeCoefs[i].x * tileCoords[chosenCoordTR[i]].x
+                        + edgeCoefs[i].y * tileCoords[chosenCoordTR[i]].y + edgeCoefs[i].z;
+                    f32 criteriaTALocal = edgeCoefs[i].x * tileCoords[chosenCoordTA[i]].x
+                        + edgeCoefs[i].y * tileCoords[chosenCoordTA[i]].y + edgeCoefs[i].z;
                     if (criteriaTRLocal < 0)
                         criteriaTR += 1;
                     if (criteriaTALocal < 0)
@@ -904,7 +906,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                     tileCoordsX256[VRB] = subTileMaxX256;
                     for (int y = topBlock; y < bottomBlock; y += 2)
                     {
-                        __m256i y256           = _mm256_setr_epi32(y + 0, y + 0, y + 0, y + 0, y + 1, y + 1, y + 1, y + 1);
+                        __m256i y256 = _mm256_setr_epi32(y + 0, y + 0, y + 0, y + 0, y + 1, y + 1, y + 1, y + 1);
                         __m256i criteriaTR256  = _mm256_setzero_si256();
                         __m256i criteriaTA256  = _mm256_setzero_si256();
                         __m256  y256f          = _mm256_cvtepi32_ps(y256);
@@ -1000,10 +1002,12 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                             criteriaLocalTA128[k] = _mm_fmadd_ps(edgeCoefs128X[k], tileCoordsX128[chosenCoordTA[k]],
                                 _mm_mul_ps(edgeCoefs128Y[k], tileCoordsY128[chosenCoordTA[k]]));
 
-                            __m128i criteriaTRMask = _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTR128[k], edgeCoefs128Z[k]));
-                            __m128i criteriaTAMask = _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTA128[k], edgeCoefs128Z[k]));
-                            criteriaTR128          = _mm_add_epi32(criteriaTR128, criteriaTRMask);
-                            criteriaTA128          = _mm_add_epi32(criteriaTA128, criteriaTAMask);
+                            __m128i criteriaTRMask =
+                                _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTR128[k], edgeCoefs128Z[k]));
+                            __m128i criteriaTAMask =
+                                _mm_castps_si128(_mm_cmplt_ps(criteriaLocalTA128[k], edgeCoefs128Z[k]));
+                            criteriaTR128 = _mm_add_epi32(criteriaTR128, criteriaTRMask);
+                            criteriaTA128 = _mm_add_epi32(criteriaTA128, criteriaTAMask);
                         }
 
                         int criteriaTR[4], criteriaTA[4];
@@ -1056,8 +1060,9 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                                     for (int k = 0; k < 3; k++)
                                     {
                                         criteria256[k]  = _mm256_fmadd_ps(edgeCoefs256Y[k], dy256, criteria256X[k]);
-                                        auto acceptMask = _mm256_castps_si256(_mm256_cmp_ps(criteria256[k], edgeCoefs256Z[k], _CMP_LT_OS));
-                                        accept256       = _mm256_add_epi32(accept256, acceptMask);
+                                        auto acceptMask = _mm256_castps_si256(
+                                            _mm256_cmp_ps(criteria256[k], edgeCoefs256Z[k], _CMP_LT_OS));
+                                        accept256 = _mm256_add_epi32(accept256, acceptMask);
                                     }
                                     accept256           = _mm256_cmpeq_epi32(accept256, _mm256_set1_epi32(-3));
                                     auto accept256Mask8 = _mm256_movemask_epi8(accept256);
@@ -1108,10 +1113,11 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                                         __m128  criteria128[3];
                                         for (int k = 0; k < 3; k++)
                                         {
-                                            criteria128[k] =
-                                                _mm_add_ps(_mm_mul_ps(edgeCoefs128X[k], dx128), _mm_mul_ps(edgeCoefs128Y[k], dy128));
-                                            __m128i acceptMask = _mm_castps_si128(_mm_cmplt_ps(criteria128[k], edgeCoefs128Z[k]));
-                                            accept128          = _mm_add_epi32(accept128, acceptMask);
+                                            criteria128[k] = _mm_add_ps(_mm_mul_ps(edgeCoefs128X[k], dx128),
+                                                _mm_mul_ps(edgeCoefs128Y[k], dy128));
+                                            __m128i acceptMask =
+                                                _mm_castps_si128(_mm_cmplt_ps(criteria128[k], edgeCoefs128Z[k]));
+                                            accept128 = _mm_add_epi32(accept128, acceptMask);
                                         }
                                         accept128 = _mm_cmpeq_epi32(accept128, _mm_set1_epi32(-3));
 
@@ -1162,10 +1168,10 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                         tileCoords[VRT] = { (f32)subTileMaxX, (f32)subTileMinY, 1.0 };
                         for (int k = 0; k < 3; k++)
                         {
-                            f32 criteriaTRLocal =
-                                edgeCoefs[k].x * tileCoords[chosenCoordTR[k]].x + edgeCoefs[k].y * tileCoords[chosenCoordTR[k]].y;
-                            f32 criteriaTALocal =
-                                edgeCoefs[k].x * tileCoords[chosenCoordTA[k]].x + edgeCoefs[k].y * tileCoords[chosenCoordTA[k]].y;
+                            f32 criteriaTRLocal = edgeCoefs[k].x * tileCoords[chosenCoordTR[k]].x
+                                + edgeCoefs[k].y * tileCoords[chosenCoordTR[k]].y;
+                            f32 criteriaTALocal = edgeCoefs[k].x * tileCoords[chosenCoordTA[k]].x
+                                + edgeCoefs[k].y * tileCoords[chosenCoordTA[k]].y;
                             if (criteriaTRLocal < -edgeCoefs[k].z)
                                 criteriaTR += 1;
                             if (criteriaTALocal < -edgeCoefs[k].z)
@@ -1252,8 +1258,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
         std::sort(coverQueueLocal.begin(), coverQueueLocal.end(), sortCompareOp);
     }
 
-    void TileRasterWorker::fragmentProcessingSingleTile(TileRasterRenderer* renderer, bool clearedDepth,
-        int tileId) IFRIT_AP_NOTHROW
+    void TileRasterWorker::fragmentProcessingSingleTile(
+        TileRasterRenderer* renderer, bool clearedDepth, int tileId) IFRIT_AP_NOTHROW
     {
         auto                 curTile           = tileId;
         const auto           frameBufferWidth  = context->frameWidth;
@@ -1279,46 +1285,49 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
         curTileX2           = std::min(curTileX2, (int)frameBufferWidth);
         curTileY2           = std::min(curTileY2, (int)frameBufferHeight);
 
-        auto& atriShadeQueue              = context->assembledTrianglesShade;
-        auto  proposalProcessFuncTileOnly = [&]<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>(
-                                               AssembledTriangleProposalReference& proposal) {
-            const auto& triProposal = atriShadeQueue[proposal.workerId][proposal.primId];
+        auto& atriShadeQueue = context->assembledTrianglesShade;
+        auto  proposalProcessFuncTileOnly =
+            [&]<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>(
+                AssembledTriangleProposalReference& proposal) {
+                const auto& triProposal = atriShadeQueue[proposal.workerId][proposal.primId];
 #ifdef IFRIT_USE_SIMD_128
     #ifdef IFRIT_USE_SIMD_256
-            if IF_CONSTEXPR (tpOnlyTaggingPass)
-            {
-                pixelShadingSIMD256Grouped<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, 4, 8, curTileX1,
-                    curTileY1, pxArgs);
-            }
-            else
-            {
-                for (int dx = curTileX1; dx < curTileX2; dx += 4)
+                if IF_CONSTEXPR (tpOnlyTaggingPass)
+                {
+                    pixelShadingSIMD256Grouped<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                        triProposal, 4, 8, curTileX1, curTileY1, pxArgs);
+                }
+                else
+                {
+                    for (int dx = curTileX1; dx < curTileX2; dx += 4)
+                    {
+                        for (int dy = curTileY1; dy < curTileY2; dy += 2)
+                        {
+                            pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                                triProposal, dx, dy, pxArgs);
+                        }
+                    }
+                }
+    #else
+                for (int dx = curTileX1; dx < curTileX2; dx += 2)
                 {
                     for (int dy = curTileY1; dy < curTileY2; dy += 2)
                     {
-                        pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+                        pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                            triProposal, dx, dy, pxArgs);
                     }
                 }
-            }
-    #else
-            for (int dx = curTileX1; dx < curTileX2; dx += 2)
-            {
-                for (int dy = curTileY1; dy < curTileY2; dy += 2)
-                {
-                    pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
-                }
-            }
     #endif
 #else
-            for (int dx = curTileX1; dx < curTileX2; dx++)
-            {
-                for (int dy = curTileY1; dy < curTileY2; dy++)
+                for (int dx = curTileX1; dx < curTileX2; dx++)
                 {
-                    pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+                    for (int dy = curTileY1; dy < curTileY2; dy++)
+                    {
+                        pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+                    }
                 }
-            }
 #endif
-        };
+            };
         auto proposalProcessFunc = [&]<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>(
                                        TileBinProposal& proposal) {
             auto        propClipTriPacked   = proposal.clipTrianglePacked;
@@ -1340,19 +1349,23 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
 #endif
                 if IF_CONSTEXPR (true && tpOnlyTaggingPass && hasSimd128)
                 {
-                    pixelShadingSingleQuad<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dcx, tileXd, tileYd,
-                        pxArgs);
+                    pixelShadingSingleQuad<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                        triProposal, dcx, tileXd, tileYd, pxArgs);
                 }
                 else
                 {
                     if (dcx & 0xF)
-                        pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, tileXd, tileYd, pxArgs);
+                        pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                            triProposal, tileXd, tileYd, pxArgs);
                     if (dcx & 0xF0)
-                        pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, tileXd + 1, tileYd, pxArgs);
+                        pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                            triProposal, tileXd + 1, tileYd, pxArgs);
                     if (dcx & 0xF00)
-                        pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, tileXd, tileYd + 1, pxArgs);
+                        pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                            triProposal, tileXd, tileYd + 1, pxArgs);
                     if (dcx & 0xF000)
-                        pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, tileXd + 1, tileYd + 1, pxArgs);
+                        pixelShading<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                            triProposal, tileXd + 1, tileYd + 1, pxArgs);
                 }
             }
             else if (proposal.level == TileRasterLevel::PIXEL_PACK4X2)
@@ -1362,7 +1375,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 auto proposalTile = proposal.tile;
                 auto propX        = IntegerUnpack32From64First(proposalTile);
                 auto propY        = IntegerUnpack32From64Second(proposalTile);
-                pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, propX, propY, pxArgs);
+                pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                    triProposal, propX, propY, pxArgs);
     #else
                 auto proposalTile = proposal.tile;
                 auto propX        = IntegerUnpack32From64First(proposalTile);
@@ -1371,7 +1385,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 {
                     for (int dy = propY; dy <= propY + 1; dy++)
                     {
-                        pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+                        pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                            triProposal, dx, dy, pxArgs);
                     }
                 }
     #endif
@@ -1394,7 +1409,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 auto proposalTile = proposal.tile;
                 auto propX        = IntegerUnpack32From64First(proposalTile);
                 auto propY        = IntegerUnpack32From64Second(proposalTile);
-                pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, propX, propY, pxArgs);
+                pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                    triProposal, propX, propY, pxArgs);
 #else
                 auto proposalTile = proposal.tile;
                 auto propX        = IntegerUnpack32From64First(proposalTile);
@@ -1427,8 +1443,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
     #ifdef IFRIT_USE_SIMD_256
                 if IF_CONSTEXPR (tpOnlyTaggingPass)
                 {
-                    pixelShadingSIMD256Grouped<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, 1, 2, subTilePixelX,
-                        subTilePixelY, pxArgs);
+                    pixelShadingSIMD256Grouped<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                        triProposal, 1, 2, subTilePixelX, subTilePixelY, pxArgs);
                 }
                 else
                 {
@@ -1436,7 +1452,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                     {
                         for (int dy = subTilePixelY; dy < static_cast<int>(subTilePixelY2); dy += 2)
                         {
-                            pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+                            pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                                triProposal, dx, dy, pxArgs);
                         }
                     }
                 }
@@ -1445,7 +1462,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 {
                     for (int dy = subTilePixelY; dy < subTilePixelY2; dy += 2)
                     {
-                        pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+                        pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                            triProposal, dx, dy, pxArgs);
                     }
                 }
     #endif
@@ -1467,7 +1485,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 {
                     for (int dy = curTileY1; dy < curTileY2; dy += 2)
                     {
-                        pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+                        pixelShadingSIMD256<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                            triProposal, dx, dy, pxArgs);
                     }
                 }
     #else
@@ -1475,7 +1494,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 {
                     for (int dy = curTileY1; dy < curTileY2; dy += 2)
                     {
-                        pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(triProposal, dx, dy, pxArgs);
+                        pixelShadingSIMD128<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                            triProposal, dx, dy, pxArgs);
                     }
                 }
     #endif
@@ -1562,7 +1582,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
         {
             auto  coverQueueLocalSize = coverQueueLocal.size();
             auto& firstCoverQueue     = context->coverQueue;
-            auto  iterFunc            = [&]<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>() {
+            auto  iterFunc = [&]<bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>() {
                 auto  curTileX = (u32)curTile % (u32)context->numTilesX * context->tileWidth;
                 auto  curTileY = (u32)curTile / (u32)context->numTilesX * context->tileWidth;
                 auto& depthRef = (*context->frameBuffer->GetDepthAttachment());
@@ -1593,7 +1613,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                     {
                         auto dx = (i & 0xf);
                         auto dy = (i >> 4);
-                        if (dx + curTileX < static_cast<u32>(frameBufferWidth) && dy + curTileY < static_cast<u32>(frameBufferHeight))
+                        if (dx + curTileX < static_cast<u32>(frameBufferWidth)
+                            && dy + curTileY < static_cast<u32>(frameBufferHeight))
                         {
                             depthCache[dx + dy * tagbufferSizeX] = depthRef(curTileX + dx, curTileY + dy, 0);
                         }
@@ -1608,8 +1629,9 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                         auto                               proposal     = pq[j];
                         auto                               propPrimId   = cvrsQueuePrimitiveId(proposal);
                         auto                               propWorkerId = cvrsQueueWorkerId(proposal);
-                        AssembledTriangleProposalReference proposalX    = { static_cast<u32>(propWorkerId), propPrimId };
-                        proposalProcessFuncTileOnly.       operator()<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(proposalX);
+                        AssembledTriangleProposalReference proposalX = { static_cast<u32>(propWorkerId), propPrimId };
+                        proposalProcessFuncTileOnly.operator()<tpAlphaBlendEnable, tpDepthFunc, tpOnlyTaggingPass>(
+                            proposalX);
                     }
                 }
                 // TileLocal
@@ -1635,7 +1657,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 {
                     auto dx = (i & 0xf);
                     auto dy = (i >> 4);
-                    if (dx + curTileX < static_cast<u32>(frameBufferWidth) && dy + curTileY < static_cast<u32>(frameBufferHeight))
+                    if (dx + curTileX < static_cast<u32>(frameBufferWidth)
+                        && dy + curTileY < static_cast<u32>(frameBufferHeight))
                     {
                         depthRef(curTileX + dx, curTileY + dy, 0) = depthCache[dx + dy * tagbufferSizeX];
                     }
@@ -1655,13 +1678,10 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
 #undef IF_DECLPS_ITERFUNC
     }
 
-    void TileRasterWorker::threadStart()
-    {
-        execWorker = std::make_unique<std::thread>(&TileRasterWorker::Run, this);
-    }
+    void TileRasterWorker::threadStart() { execWorker = std::make_unique<std::thread>(&TileRasterWorker::Run, this); }
 
-    void TileRasterWorker::pixelShadingFromTagBufferQuadInvo(const int dxA, const int dyA,
-        const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
+    void TileRasterWorker::pixelShadingFromTagBufferQuadInvo(
+        const int dxA, const int dyA, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
     {
         auto       ptrCtx        = context.get();
         auto&      psEntry       = ptrCtx->threadSafeFS[workerId];
@@ -1697,10 +1717,10 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             { colorOutpQuad + 4, colorOutpQuad + 5, colorOutpQuad + 6, colorOutpQuad + 7 },
         };
 #ifdef IFRIT_USE_SIMD_256
-        __m256i dx256A = _mm256_set1_epi32(dxA);
-        __m256i dy256A = _mm256_set1_epi32(dyA);
-        __m256i dxId256T =
-            _mm256_setr_epi32(0, 1, 0 + tagbufferSizeX, 1 + tagbufferSizeX, 2, 3, 2 + tagbufferSizeX, 3 + tagbufferSizeX);
+        __m256i dx256A   = _mm256_set1_epi32(dxA);
+        __m256i dy256A   = _mm256_set1_epi32(dyA);
+        __m256i dxId256T = _mm256_setr_epi32(
+            0, 1, 0 + tagbufferSizeX, 1 + tagbufferSizeX, 2, 3, 2 + tagbufferSizeX, 3 + tagbufferSizeX);
 #endif
         auto ptrCol0 = args.colorAttachment0;
         for (int i = 0; i < tagbufferSizeX * tagbufferSizeX; i += (8 >> 1))
@@ -1726,8 +1746,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             __m256i dy256   = _mm256_add_epi32(dy256A, dy256T1);
     #else
             // no _mm256_and_epi32 but has _mm256_and_ps, so bitcast
-            __m256i dx256Tmp1 =
-                _mm256_castps_si256(_mm256_and_ps(_mm256_castsi256_ps(dxId256), _mm256_castsi256_ps(_mm256_set1_epi32(0xf))));
+            __m256i dx256Tmp1 = _mm256_castps_si256(
+                _mm256_and_ps(_mm256_castsi256_ps(dxId256), _mm256_castsi256_ps(_mm256_set1_epi32(0xf))));
             __m256i dx256     = _mm256_add_epi32(dx256A, dx256Tmp1);
             __m256i dx256Tmp2 = _mm256_srli_epi32(dxId256, 4);
             __m256i dy256     = _mm256_add_epi32(dy256A, dx256Tmp2);
@@ -1752,8 +1772,9 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             __m256  atpByZ = _mm256_i32gather_ps(((f32*)ptrAtpBy) + 2, gatherIdx, 4);
 
             // zCorr
-            __m256  interpolatedDepth = reqDepth ? _mm256_i32gather_ps((f32*)depthCache, dxId256, 4) : _mm256_setzero_ps();
-            __m256i tagBufferValid    = _mm256_i32gather_epi32((int*)ptrValid, dxId256, 4);
+            __m256  interpolatedDepth =
+                reqDepth ? _mm256_i32gather_ps((f32*)depthCache, dxId256, 4) : _mm256_setzero_ps();
+            __m256i tagBufferValid = _mm256_i32gather_epi32((int*)ptrValid, dxId256, 4);
 
             __m256i idxA     = _mm256_slli_epi32(tagBufferValid, 1);
             __m256i idx      = _mm256_add_epi32(tagBufferValid, idxA);
@@ -1826,13 +1847,16 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                     // 2 3 | 5 7
 
                     // Set baryVecs to the data of position 0 or 4
-                    f32     baryVecXsSelf  = baryVecXT[j];
-                    f32     baryVecYsSelf  = baryVecYT[j];
-                    f32     baryVecZsSelf  = baryVecZT[j];
-                    int     quadIndiceSelf = j & 0x3;
-                    f32     pos0_baryVecX  = baryVecXsSelf - (quadIndiceSelf & 1) * f1xT[j] - (quadIndiceSelf >> 0x1) * f1yT[j];
-                    f32     pos0_baryVecY  = baryVecYsSelf - (quadIndiceSelf & 1) * f2xT[j] - (quadIndiceSelf >> 0x1) * f2yT[j];
-                    f32     pos0_baryVecZ  = baryVecZsSelf - (quadIndiceSelf & 1) * f3xT[j] - (quadIndiceSelf >> 0x1) * f3yT[j];
+                    f32 baryVecXsSelf  = baryVecXT[j];
+                    f32 baryVecYsSelf  = baryVecYT[j];
+                    f32 baryVecZsSelf  = baryVecZT[j];
+                    int quadIndiceSelf = j & 0x3;
+                    f32 pos0_baryVecX =
+                        baryVecXsSelf - (quadIndiceSelf & 1) * f1xT[j] - (quadIndiceSelf >> 0x1) * f1yT[j];
+                    f32 pos0_baryVecY =
+                        baryVecYsSelf - (quadIndiceSelf & 1) * f2xT[j] - (quadIndiceSelf >> 0x1) * f2yT[j];
+                    f32 pos0_baryVecZ =
+                        baryVecZsSelf - (quadIndiceSelf & 1) * f3xT[j] - (quadIndiceSelf >> 0x1) * f3yT[j];
 
                     // Set baryVecs to the data of position 0 or 4
                     __m128i quadXOffset = _mm_setr_epi32(0, 1, 0, 1);
@@ -1859,12 +1883,12 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                     baryVecZs     = _mm_mul_ps(baryVecZs, zCorr);
 
                     __m128 desiredBaryR[3];
-                    desiredBaryR[0] = _mm_fmadd_ps(
-                        baryVecXs, _mm_set1_ps(atpBxXT[j]),
-                        _mm_fmadd_ps(baryVecYs, _mm_set1_ps(atpBxYT[j]), _mm_mul_ps(baryVecZs, _mm_set1_ps(atpBxZT[j]))));
-                    desiredBaryR[1] = _mm_fmadd_ps(
-                        baryVecXs, _mm_set1_ps(atpByXT[j]),
-                        _mm_fmadd_ps(baryVecYs, _mm_set1_ps(atpByYT[j]), _mm_mul_ps(baryVecZs, _mm_set1_ps(atpByZT[j]))));
+                    desiredBaryR[0] = _mm_fmadd_ps(baryVecXs, _mm_set1_ps(atpBxXT[j]),
+                        _mm_fmadd_ps(
+                            baryVecYs, _mm_set1_ps(atpBxYT[j]), _mm_mul_ps(baryVecZs, _mm_set1_ps(atpBxZT[j]))));
+                    desiredBaryR[1] = _mm_fmadd_ps(baryVecXs, _mm_set1_ps(atpByXT[j]),
+                        _mm_fmadd_ps(
+                            baryVecYs, _mm_set1_ps(atpByYT[j]), _mm_mul_ps(baryVecZs, _mm_set1_ps(atpByZT[j]))));
                     desiredBaryR[2] = _mm_sub_ps(_mm_set1_ps(1.0f), _mm_add_ps(desiredBaryR[0], desiredBaryR[1]));
 
                     f32 desiredBaryX[4], desiredBaryY[4], desiredBaryZ[4];
@@ -1892,7 +1916,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                     {
                         if (idxT[k] == idxT[j])
                         {
-                            args.colorAttachment0->fillPixelRGBA128ps(dx[k], dy[k], _mm_loadu_ps((f32*)(colorOutpQuad[k])));
+                            args.colorAttachment0->fillPixelRGBA128ps(
+                                dx[k], dy[k], _mm_loadu_ps((f32*)(colorOutpQuad[k])));
                         }
                     }
                 }
@@ -1904,8 +1929,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
         }
     }
 
-    void TileRasterWorker::pixelShadingFromTagBuffer(const int dxA, const int dyA,
-        const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
+    void TileRasterWorker::pixelShadingFromTagBuffer(
+        const int dxA, const int dyA, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
     {
         auto       ptrCtx        = context.get();
         auto&      psEntry       = ptrCtx->threadSafeFS[workerId];
@@ -1961,8 +1986,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             __m256i dy256   = _mm256_add_epi32(dy256A, dy256T1);
     #else
             // no _mm256_and_epi32 but has _mm256_and_ps, so bitcast
-            __m256i dx256Tmp1 =
-                _mm256_castps_si256(_mm256_and_ps(_mm256_castsi256_ps(dxId256), _mm256_castsi256_ps(_mm256_set1_epi32(0xf))));
+            __m256i dx256Tmp1 = _mm256_castps_si256(
+                _mm256_and_ps(_mm256_castsi256_ps(dxId256), _mm256_castsi256_ps(_mm256_set1_epi32(0xf))));
             __m256i dx256     = _mm256_add_epi32(dx256A, dx256Tmp1);
             __m256i dx256Tmp2 = _mm256_srli_epi32(dxId256, 4);
             __m256i dy256     = _mm256_add_epi32(dy256A, dx256Tmp2);
@@ -1986,9 +2011,10 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             __m256  atpByZ = _mm256_i32gather_ps(((f32*)ptrAtpBy) + 2, gatherIdx, 4);
 
             // zCorr
-            __m256  interpolatedDepth = reqDepth ? _mm256_i32gather_ps((f32*)depthCache, dxId256, 4) : _mm256_setzero_ps();
-            __m256i tagBufferValid =
-                _mm256_castps_si256(_mm256_loadu_ps((const f32*)ptrValid + i)); //_mm256_i32gather_epi32(ptrValid, dxId256, 4);
+            __m256  interpolatedDepth =
+                reqDepth ? _mm256_i32gather_ps((f32*)depthCache, dxId256, 4) : _mm256_setzero_ps();
+            __m256i tagBufferValid = _mm256_castps_si256(
+                _mm256_loadu_ps((const f32*)ptrValid + i)); //_mm256_i32gather_epi32(ptrValid, dxId256, 4);
 
             __m256i idxA     = _mm256_slli_epi32(tagBufferValid, 1);
             __m256i idx      = _mm256_add_epi32(tagBufferValid, idxA);
@@ -2087,8 +2113,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
     #ifdef IFRIT_USE_SIMD_128
             args.colorAttachment0->fillPixelRGBA128ps(dx, dy, _mm_loadu_ps((f32*)(&colorOutput[0])));
     #else
-            args.colorAttachment0->fillPixelRGBA(dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z,
-                colorOutput[0].w);
+            args.colorAttachment0->fillPixelRGBA(
+                dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
     #endif
 #endif
         }
@@ -2096,8 +2122,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
 
     template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
     void TileRasterWorker::pixelShadingSingleQuad(const AssembledTriangleProposalShadeStage& atp, int quadMask,
-        const int dx, const int dy,
-        const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
+        const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
     {
 #ifdef IFRIT_USE_SIMD_128
         if IF_CONSTEXPR (!tpOnlyTaggingPass)
@@ -2324,14 +2349,16 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             auto        srcRgba         = colorOutput[0];
             const auto& blendParam      = context->blendColorCoefs;
             const auto& blendParamAlpha = context->blendAlphaCoefs;
-            auto        mxSrcX =
-                (blendParam.s.x + blendParam.s.y * (1 - srcRgba.w) + blendParam.s.z * (1 - dstRgba[3])) * (1 - blendParam.s.w);
-            auto mxDstX =
-                (blendParam.d.x + blendParam.d.y * (1 - srcRgba.w) + blendParam.d.z * (1 - dstRgba[3])) * (1 - blendParam.d.w);
+            auto        mxSrcX = (blendParam.s.x + blendParam.s.y * (1 - srcRgba.w) + blendParam.s.z * (1 - dstRgba[3]))
+                * (1 - blendParam.s.w);
+            auto mxDstX = (blendParam.d.x + blendParam.d.y * (1 - srcRgba.w) + blendParam.d.z * (1 - dstRgba[3]))
+                * (1 - blendParam.d.w);
             auto mxSrcA =
-                (blendParamAlpha.s.x + blendParamAlpha.s.y * (1 - srcRgba.w) + blendParamAlpha.s.z * (1 - dstRgba[3])) * (1 - blendParamAlpha.s.w);
+                (blendParamAlpha.s.x + blendParamAlpha.s.y * (1 - srcRgba.w) + blendParamAlpha.s.z * (1 - dstRgba[3]))
+                * (1 - blendParamAlpha.s.w);
             auto mxDstA =
-                (blendParamAlpha.d.x + blendParamAlpha.d.y * (1 - srcRgba.w) + blendParamAlpha.d.z * (1 - dstRgba[3])) * (1 - blendParamAlpha.d.w);
+                (blendParamAlpha.d.x + blendParamAlpha.d.y * (1 - srcRgba.w) + blendParamAlpha.d.z * (1 - dstRgba[3]))
+                * (1 - blendParamAlpha.d.w);
 
             Vector4f mixRgba;
             mixRgba.x = dstRgba[0] * mxDstX + srcRgba.x * mxSrcX;
@@ -2349,8 +2376,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
 #ifdef IFRIT_USE_SIMD_128
             args.colorAttachment0->fillPixelRGBA128ps(dx, dy, _mm_loadu_ps((f32*)(&colorOutput[0])));
 #else
-            args.colorAttachment0->fillPixelRGBA(dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z,
-                colorOutput[0].w);
+            args.colorAttachment0->fillPixelRGBA(
+                dx, dy, colorOutput[0].x, colorOutput[0].y, colorOutput[0].z, colorOutput[0].w);
 #endif
         }
         // Depth Write
@@ -2359,8 +2386,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
     }
 
     template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
-    void TileRasterWorker::pixelShadingSIMD128(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy,
-        const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
+    void TileRasterWorker::pixelShadingSIMD128(const AssembledTriangleProposalShadeStage& atp, const int dx,
+        const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
     {
 #ifndef IFRIT_USE_SIMD_128
         ifritError("SIMD 128 not enabled");
@@ -2517,12 +2544,16 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 auto        srcRgba         = colorOutput[0];
                 const auto& blendParam      = context->blendColorCoefs;
                 const auto& blendParamAlpha = context->blendAlphaCoefs;
-                auto        mxSrcX          = (blendParam.s.x + blendParam.s.y * (1 - srcRgba.w) + blendParam.s.z * (1 - dstRgba[3])) * (1 - blendParam.s.w);
-                auto        mxDstX          = (blendParam.d.x + blendParam.d.y * (1 - srcRgba.w) + blendParam.d.z * (1 - dstRgba[3])) * (1 - blendParam.d.w);
-                auto        mxSrcA =
-                    (blendParamAlpha.s.x + blendParamAlpha.s.y * (1 - srcRgba.w) + blendParamAlpha.s.z * (1 - dstRgba[3])) * (1 - blendParamAlpha.s.w);
-                auto mxDstA =
-                    (blendParamAlpha.d.x + blendParamAlpha.d.y * (1 - srcRgba.w) + blendParamAlpha.d.z * (1 - dstRgba[3])) * (1 - blendParamAlpha.d.w);
+                auto mxSrcX = (blendParam.s.x + blendParam.s.y * (1 - srcRgba.w) + blendParam.s.z * (1 - dstRgba[3]))
+                    * (1 - blendParam.s.w);
+                auto mxDstX = (blendParam.d.x + blendParam.d.y * (1 - srcRgba.w) + blendParam.d.z * (1 - dstRgba[3]))
+                    * (1 - blendParam.d.w);
+                auto mxSrcA = (blendParamAlpha.s.x + blendParamAlpha.s.y * (1 - srcRgba.w)
+                                  + blendParamAlpha.s.z * (1 - dstRgba[3]))
+                    * (1 - blendParamAlpha.s.w);
+                auto mxDstA = (blendParamAlpha.d.x + blendParamAlpha.d.y * (1 - srcRgba.w)
+                                  + blendParamAlpha.d.z * (1 - dstRgba[3]))
+                    * (1 - blendParamAlpha.d.w);
 
                 Vector4f mixRgba;
                 mixRgba.x = dstRgba[0] * mxDstX + srcRgba.x * mxSrcX;
@@ -2543,8 +2574,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
     }
 
 #ifdef IFRIT_USE_SIMD_256
-    template <IfritCompareOp tpDepthFunc>
-    __m256 depthTestSIMD256(__m256 src, __m256 dst)
+    template <IfritCompareOp tpDepthFunc> __m256 depthTestSIMD256(__m256 src, __m256 dst)
     {
         if IF_CONSTEXPR (tpDepthFunc == IF_COMPARE_OP_ALWAYS)
         {
@@ -2583,8 +2613,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
 
     template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
     void TileRasterWorker::pixelShadingSIMD256Grouped(const AssembledTriangleProposalShadeStage& atp, int groupsX,
-        int groupsY, const int dx, const int dy,
-        const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
+        int groupsY, const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
     {
 #ifndef IFRIT_USE_SIMD_256
         ifritError("SIMD 256 (AVX2) not enabled");
@@ -2654,9 +2683,9 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 bary[1]            = _mm256_fmadd_ps(_mm256_set1_ps(tAtpF2.y), pDy, baryBase[1]);
                 bary[2]            = _mm256_fmadd_ps(_mm256_set1_ps(tAtpF3.y), pDy, baryBase[2]);
 
-                __m256 baryDivWSum = _mm256_add_ps(_mm256_add_ps(bary[0], bary[1]), bary[2]);
-                __m256 interpolatedDepth256 =
-                    _mm256_fmadd_ps(bary[0], posZ[0], _mm256_fmadd_ps(bary[1], posZ[1], _mm256_mul_ps(bary[2], posZ[2])));
+                __m256 baryDivWSum          = _mm256_add_ps(_mm256_add_ps(bary[0], bary[1]), bary[2]);
+                __m256 interpolatedDepth256 = _mm256_fmadd_ps(
+                    bary[0], posZ[0], _mm256_fmadd_ps(bary[1], posZ[1], _mm256_mul_ps(bary[2], posZ[2])));
                 __m256 depthCache256 = _mm256_i32gather_ps(depthCache, dxId256, 4);
 
                 f32    interpolatedDepth[8] = { 0 };
@@ -2696,8 +2725,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
     }
 
     template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
-    void TileRasterWorker::pixelShadingSIMD256(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy,
-        const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
+    void TileRasterWorker::pixelShadingSIMD256(const AssembledTriangleProposalShadeStage& atp, const int dx,
+        const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW
     {
 #ifndef IFRIT_USE_SIMD_256
         ifritError("SIMD 256 (AVX2) not enabled");
@@ -2776,10 +2805,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             if IF_CONSTEXPR (!tpOnlyTaggingPass)
             {
                 if (x >= fbWidth || y >= fbHeight)
-                    IFRIT_BRANCH_UNLIKELY
-                    {
-                        continue;
-                    }
+                    IFRIT_BRANCH_UNLIKELY { continue; }
             }
             u32        dxId = idPacked[i];
 
@@ -2861,12 +2887,16 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
                 auto        srcRgba         = colorOutput[0];
                 const auto& blendParam      = context->blendColorCoefs;
                 const auto& blendParamAlpha = context->blendAlphaCoefs;
-                auto        mxSrcX          = (blendParam.s.x + blendParam.s.y * (1 - srcRgba.w) + blendParam.s.z * (1 - dstRgba[3])) * (1 - blendParam.s.w);
-                auto        mxDstX          = (blendParam.d.x + blendParam.d.y * (1 - srcRgba.w) + blendParam.d.z * (1 - dstRgba[3])) * (1 - blendParam.d.w);
-                auto        mxSrcA =
-                    (blendParamAlpha.s.x + blendParamAlpha.s.y * (1 - srcRgba.w) + blendParamAlpha.s.z * (1 - dstRgba[3])) * (1 - blendParamAlpha.s.w);
-                auto mxDstA =
-                    (blendParamAlpha.d.x + blendParamAlpha.d.y * (1 - srcRgba.w) + blendParamAlpha.d.z * (1 - dstRgba[3])) * (1 - blendParamAlpha.d.w);
+                auto mxSrcX = (blendParam.s.x + blendParam.s.y * (1 - srcRgba.w) + blendParam.s.z * (1 - dstRgba[3]))
+                    * (1 - blendParam.s.w);
+                auto mxDstX = (blendParam.d.x + blendParam.d.y * (1 - srcRgba.w) + blendParam.d.z * (1 - dstRgba[3]))
+                    * (1 - blendParam.d.w);
+                auto mxSrcA = (blendParamAlpha.s.x + blendParamAlpha.s.y * (1 - srcRgba.w)
+                                  + blendParamAlpha.s.z * (1 - dstRgba[3]))
+                    * (1 - blendParamAlpha.s.w);
+                auto mxDstA = (blendParamAlpha.d.x + blendParamAlpha.d.y * (1 - srcRgba.w)
+                                  + blendParamAlpha.d.z * (1 - dstRgba[3]))
+                    * (1 - blendParamAlpha.d.w);
 
                 Vector4f mixRgba;
                 mixRgba.x = dstRgba[0] * mxDstX + srcRgba.x * mxSrcX;

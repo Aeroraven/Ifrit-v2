@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/softgraphics/engine/base/Structures.h"
 #ifdef IFRIT_FEATURE_CUDA
 namespace Ifrit::SoftRenderer::TileRaster::CUDA::Invocation {

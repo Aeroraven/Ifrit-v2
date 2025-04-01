@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
@@ -56,8 +56,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         bool             m_pipelineCreated = false;
 
     public:
-        PipelineBase(EngineContext* ctx)
-            : m_context(ctx) {}
+        PipelineBase(EngineContext* ctx) : m_context(ctx) {}
         virtual ~PipelineBase() {}
         inline VkPipeline       GetPipeline() const { return m_pipeline; }
         inline VkPipelineLayout GetLayout() const { return m_layout; }
@@ -72,8 +71,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         void Init();
 
     public:
-        GraphicsPipeline(EngineContext* ctx, const GraphicsPipelineCreateInfo& ci)
-            : PipelineBase(ctx), m_createInfo(ci)
+        GraphicsPipeline(EngineContext* ctx, const GraphicsPipelineCreateInfo& ci) : PipelineBase(ctx), m_createInfo(ci)
         {
             Init();
         }
@@ -89,8 +87,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         void Init();
 
     public:
-        ComputePipeline(EngineContext* ctx, const ComputePipelineCreateInfo& ci)
-            : PipelineBase(ctx), m_createInfo(ci)
+        ComputePipeline(EngineContext* ctx, const ComputePipelineCreateInfo& ci) : PipelineBase(ctx), m_createInfo(ci)
         {
             Init();
         }
@@ -112,11 +109,11 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     public:
         PipelineCache(EngineContext* context);
-        PipelineCache(const PipelineCache& p)               = delete;
-        PipelineCache&    operator=(const PipelineCache& p) = delete;
+        PipelineCache(const PipelineCache& p)            = delete;
+        PipelineCache& operator=(const PipelineCache& p) = delete;
 
-        u64               GraphicsPipelineHash(const GraphicsPipelineCreateInfo& ci);
-        bool              GraphicsPipelineEqual(const GraphicsPipelineCreateInfo& a, const GraphicsPipelineCreateInfo& b);
+        u64            GraphicsPipelineHash(const GraphicsPipelineCreateInfo& ci);
+        bool           GraphicsPipelineEqual(const GraphicsPipelineCreateInfo& a, const GraphicsPipelineCreateInfo& b);
         GraphicsPipeline* GetGraphicsPipeline(const GraphicsPipelineCreateInfo& ci);
 
         u64               ComputePipelineHash(const ComputePipelineCreateInfo& ci);

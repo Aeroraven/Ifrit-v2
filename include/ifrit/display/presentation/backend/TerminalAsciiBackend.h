@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/display/presentation/backend/AbstractTerminalBackend.h"
 
 namespace Ifrit::Display::Backend
@@ -27,8 +27,9 @@ namespace Ifrit::Display::Backend
     private:
         i32                             consoleWidth;
         i32                             consoleHeight;
-        IF_CONSTEXPR static const char* ramp = R"($@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:," ^ `'. )";
-        String                          resultBuffer;
+        IF_CONSTEXPR static const char* ramp =
+            R"($@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:," ^ `'. )";
+        String resultBuffer;
 
     public:
         TerminalAsciiBackend(i32 cWid, i32 cHeight);

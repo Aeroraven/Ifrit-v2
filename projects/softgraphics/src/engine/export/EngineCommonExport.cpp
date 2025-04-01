@@ -17,11 +17,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/softgraphics/engine/export/EngineCommonExport.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterRenderer.h"
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 #define IFRIT_BASENS Ifrit::Graphics::SoftGraphics
 #define IFRIT_CORENS Ifrit::Graphics::SoftGraphics::Core::Data
@@ -34,15 +34,14 @@ IFRIT_APIDECL_COMPAT IFRIT_BASENS::FrameBuffer* IFRIT_APICALL iftrCreateFrameBuf
     return new FrameBuffer();
 }
 
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyFrameBuffer(IFRIT_BASENS::FrameBuffer* pInstance)
-    IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyFrameBuffer(
+    IFRIT_BASENS::FrameBuffer* pInstance) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     delete pInstance;
 }
 
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetFrameBufferColorAttachmentFP32(IFRIT_BASENS::FrameBuffer* pInstance,
-    IFRIT_CORENS::ImageF32* const*                                                                       pImage,
-    size_t                                                                                               nums) IFRIT_EXPORT_COMPAT_NOTHROW
+    IFRIT_CORENS::ImageF32* const* pImage, size_t nums) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     pInstance->SetColorAttachmentsCompatible(pImage, SizeCast<int>(nums));
 }
@@ -57,15 +56,13 @@ IFRIT_APIDECL_COMPAT IFRIT_BASENS::VaryingDescriptor* IFRIT_APICALL iftrCreateVa
 {
     return new VaryingDescriptor();
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyVaryingDescriptor(IFRIT_BASENS::VaryingDescriptor* pInstance)
-    IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyVaryingDescriptor(
+    IFRIT_BASENS::VaryingDescriptor* pInstance) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     delete pInstance;
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL
-iftrWriteVaryingDescriptor(IFRIT_BASENS::VaryingDescriptor*             pInstance,
-    const Ifrit::Graphics::SoftGraphics::LibraryExport::ExportTypeDesc* pDesc,
-    size_t                                                              num) IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrWriteVaryingDescriptor(IFRIT_BASENS::VaryingDescriptor* pInstance,
+    const Ifrit::Graphics::SoftGraphics::LibraryExport::ExportTypeDesc* pDesc, size_t num) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     std::vector<TypeDescriptor> desc;
     for (int i = 0; i < num; i++)
@@ -104,15 +101,13 @@ IFRIT_APIDECL_COMPAT IFRIT_BASENS::VertexBuffer* IFRIT_APICALL iftrCreateVertexB
 {
     return new VertexBuffer();
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyVertexBuffer(IFRIT_BASENS::VertexBuffer* pInstance)
-    IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyVertexBuffer(
+    IFRIT_BASENS::VertexBuffer* pInstance) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     delete pInstance;
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL
-iftrSetVertexBufferLayout(IFRIT_BASENS::VertexBuffer*                   pInstance,
-    const Ifrit::Graphics::SoftGraphics::LibraryExport::ExportTypeDesc* pDesc,
-    size_t                                                              num) IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetVertexBufferLayout(IFRIT_BASENS::VertexBuffer* pInstance,
+    const Ifrit::Graphics::SoftGraphics::LibraryExport::ExportTypeDesc* pDesc, size_t num) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     std::vector<TypeDescriptor> desc;
     for (int i = 0; i < num; i++)
@@ -150,19 +145,18 @@ iftrSetVertexBufferLayout(IFRIT_BASENS::VertexBuffer*                   pInstanc
     }
     pInstance->setLayout(desc);
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetVertexBufferSize(IFRIT_BASENS::VertexBuffer* pInstance,
-    size_t                                                                                  num) IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetVertexBufferSize(
+    IFRIT_BASENS::VertexBuffer* pInstance, size_t num) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     pInstance->setVertexCount(static_cast<int>(num));
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrAllocateVertexBuffer(IFRIT_BASENS::VertexBuffer* pInstance)
-    IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrAllocateVertexBuffer(
+    IFRIT_BASENS::VertexBuffer* pInstance) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     pInstance->allocateBuffer(pInstance->getVertexCount());
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetVertexBufferValueFloat4(IFRIT_BASENS::VertexBuffer* pInstance, int index,
-    int   attr,
-    void* value) IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetVertexBufferValueFloat4(
+    IFRIT_BASENS::VertexBuffer* pInstance, int index, int attr, void* value) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     auto fvalue = static_cast<Vector4f*>(value);
     pInstance->setValueFloat4Compatible(index, attr, *fvalue);

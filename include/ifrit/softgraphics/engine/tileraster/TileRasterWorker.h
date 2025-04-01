@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterRenderer.h"
 
@@ -75,20 +75,20 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
         std::vector<AssembledTriangleProposal>    generatedTriangle;
 
         // Hold Cache
-        float                                     depthCache[TileRasterContext::tileWidth * TileRasterContext::tileWidth];
-        std::vector<TileBinProposal>              coverQueueLocal;
-        float                                     curTileHierZ = 0;
+        float                        depthCache[TileRasterContext::tileWidth * TileRasterContext::tileWidth];
+        std::vector<TileBinProposal> coverQueueLocal;
+        float                        curTileHierZ = 0;
 
         // Debug
-        int                                       totalDraws = 0;
-        int                                       reqDraws   = 0;
-        const float                               EPS        = 1e-8f;
-        const float                               EPS2       = 1e-8f;
+        int                          totalDraws = 0;
+        int                          reqDraws   = 0;
+        const float                  EPS        = 1e-8f;
+        const float                  EPS2       = 1e-8f;
 
-        bool                                      vert = false;
-        bool                                      geom = false;
-        bool                                      rast = false;
-        bool                                      frag = false;
+        bool                         vert = false;
+        bool                         geom = false;
+        bool                         rast = false;
+        bool                         frag = false;
 
     public:
         TileRasterWorker(u32 workerId, TileRasterRenderer* renderer, std::shared_ptr<TileRasterContext> context);
@@ -102,8 +102,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
 
         bool triangleFrustumClip(Ifrit::Math::SIMD::SVector4f v1, Ifrit::Math::SIMD::SVector4f v2,
             Ifrit::Math::SIMD::SVector4f v3, Ifrit::Math::SIMD::SVector4f& bbox) IFRIT_AP_NOTHROW;
-        u32  triangleHomogeneousClip(const int primitiveId, Ifrit::Math::SIMD::SVector4f v1, Ifrit::Math::SIMD::SVector4f v2,
-             Ifrit::Math::SIMD::SVector4f v3) IFRIT_AP_NOTHROW;
+        u32  triangleHomogeneousClip(const int primitiveId, Ifrit::Math::SIMD::SVector4f v1,
+             Ifrit::Math::SIMD::SVector4f v2, Ifrit::Math::SIMD::SVector4f v3) IFRIT_AP_NOTHROW;
         bool triangleCulling(Ifrit::Math::SIMD::SVector4f v1, Ifrit::Math::SIMD::SVector4f v2,
             Ifrit::Math::SIMD::SVector4f v3) IFRIT_AP_NOTHROW;
         void executeBinner(const int primitiveId, const AssembledTriangleProposalRasterStage& atp,
@@ -124,8 +124,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
         template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
-        void pixelShadingSingleQuad(const AssembledTriangleProposalShadeStage& atp, int quadMask, const int dx, const int dy,
-            const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+        void pixelShadingSingleQuad(const AssembledTriangleProposalShadeStage& atp, int quadMask, const int dx,
+            const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
         template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
         void pixelShadingSIMD256Grouped(const AssembledTriangleProposalShadeStage& atp, int groupsX, int groupsY,
@@ -136,11 +136,12 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
         template <bool tpAlphaBlendEnable, IfritCompareOp tpDepthFunc, bool tpOnlyTaggingPass>
-        void       pixelShadingSIMD256(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy,
-                  const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+        void pixelShadingSIMD256(const AssembledTriangleProposalShadeStage& atp, const int dx, const int dy,
+            const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
-        void       pixelShadingFromTagBuffer(const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
-        void       pixelShadingFromTagBufferQuadInvo(const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+        void pixelShadingFromTagBuffer(const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
+        void pixelShadingFromTagBufferQuadInvo(
+            const int dx, const int dy, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW;
 
         inline int getTileID(int x, int y) IFRIT_AP_NOTHROW
         {

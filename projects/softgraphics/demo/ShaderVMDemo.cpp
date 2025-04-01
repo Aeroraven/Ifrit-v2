@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
-#include "ifrit/common/math/LinalgOps.h"
+#include "ifrit/core/math/LinalgOps.h"
 #include "presentation/backend/OpenGLBackend.h"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "presentation/backend/TerminalCharColorBackend.h"
@@ -104,12 +104,12 @@ namespace Ifrit::Demo::ShaderVMDemo
         loader.loadObject(IFRIT_ASSET_PATH "/bunny.obj", pos, normal, uv, index);
         procNormal = loader.RemapNormals(normal, index, pos.size());
 
-        IF_CONSTEXPR int                      DEMO_RESOLUTION_X = 2048;
-        IF_CONSTEXPR int                      DEMO_RESOLUTION_Y = 2048;
-        std::shared_ptr<ImageF32>             image             = std::make_shared<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 4);
-        std::shared_ptr<ImageF32>             depth             = std::make_shared<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 1);
-        std::shared_ptr<TileRasterRenderer>   renderer          = std::make_shared<TileRasterRenderer>();
-        std::shared_ptr<TrivialBufferManager> bufferman         = std::make_shared<TrivialBufferManager>();
+        IF_CONSTEXPR int                    DEMO_RESOLUTION_X = 2048;
+        IF_CONSTEXPR int                    DEMO_RESOLUTION_Y = 2048;
+        std::shared_ptr<ImageF32>           image = std::make_shared<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 4);
+        std::shared_ptr<ImageF32>           depth = std::make_shared<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 1);
+        std::shared_ptr<TileRasterRenderer> renderer    = std::make_shared<TileRasterRenderer>();
+        std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
         bufferman->Init();
         FrameBuffer  frameBuffer;
 
@@ -184,12 +184,14 @@ namespace Ifrit::Demo::ShaderVMDemo
         backend.SetViewport(0, 0, windowProvider.GetWidth(), windowProvider.GetHeight());
         windowProvider.Loop([&](int* coreTime) {
             std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-            uniform.t1.x =
-                0.4f * std::sin((float)std::chrono::duration_cast<std::chrono::milliseconds>(start.time_since_epoch()).count() / 1000.0f);
+            uniform.t1.x                                         = 0.4f
+                * std::sin(
+                    (float)std::chrono::duration_cast<std::chrono::milliseconds>(start.time_since_epoch()).count()
+                    / 1000.0f);
             bufferman->bufferData(uniform1, &uniform, 0, sizeof(uniform));
             renderer->drawElements(indexBuffer.size(), true);
             std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-            *coreTime                                          = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            *coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             backend.UpdateTexture(*image);
             backend.draw();
         });

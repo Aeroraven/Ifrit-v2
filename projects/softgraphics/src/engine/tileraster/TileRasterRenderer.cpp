@@ -17,18 +17,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/softgraphics/engine/tileraster/TileRasterRenderer.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/softgraphics/engine/tileraster/TileRasterWorker.h"
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 namespace Ifrit::Graphics::SoftGraphics::TileRaster::Inline
 {
-    template <class T, class U>
-    auto ceilDiv(T a, U b)
-    {
-        return (a + b - 1) / b;
-    }
+    template <class T, class U> auto ceilDiv(T a, U b) { return (a + b - 1) / b; }
 } // namespace Ifrit::Graphics::SoftGraphics::TileRaster::Inline
 
 namespace Ifrit::Graphics::SoftGraphics::TileRaster
@@ -112,8 +108,8 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
         bindVertexShaderLegacy(vertexShader, *this->context->owningVaryingDesc);
     }
 
-    IFRIT_APIDECL void TileRasterRenderer::bindVertexShaderLegacy(VertexShader& vertexShader,
-        VaryingDescriptor&                                                      varyingDescriptor)
+    IFRIT_APIDECL void TileRasterRenderer::bindVertexShaderLegacy(
+        VertexShader& vertexShader, VaryingDescriptor& varyingDescriptor)
     {
         this->context->vertexShader      = &vertexShader;
         this->context->varyingDescriptor = &varyingDescriptor;
@@ -140,9 +136,9 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
     {
         if (varyingBufferDirtyFlag)
         {
-            context->vertexShaderResult = std::make_unique<VertexShaderResult>(context->vertexBuffer->getVertexCount(),
-                context->varyingDescriptor->getVaryingCounts());
-            shaderBindingDirtyFlag      = false;
+            context->vertexShaderResult = std::make_unique<VertexShaderResult>(
+                context->vertexBuffer->getVertexCount(), context->varyingDescriptor->getVaryingCounts());
+            shaderBindingDirtyFlag = false;
         }
         if (varyingBufferDirtyFlag)
         {
@@ -191,11 +187,14 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
             for (auto& worker : workers)
             {
                 auto expected = waitOn;
-                allOnBarrier =
-                    allOnBarrier && (worker->status.compare_exchange_weak(expected, proceedTo, std::memory_order::acq_rel) || (expected >= proceedTo));
+                allOnBarrier  = allOnBarrier
+                    && (worker->status.compare_exchange_weak(expected, proceedTo, std::memory_order::acq_rel)
+                        || (expected >= proceedTo));
             }
             auto expected = waitOn;
-            allOnBarrier  = allOnBarrier && (selfOwningWorker->status.compare_exchange_weak(expected, proceedTo, std::memory_order::acq_rel) || (expected >= proceedTo));
+            allOnBarrier  = allOnBarrier
+                && (selfOwningWorker->status.compare_exchange_weak(expected, proceedTo, std::memory_order::acq_rel)
+                    || (expected >= proceedTo));
             if (allOnBarrier)
                 break;
             std::this_thread::yield();
@@ -358,10 +357,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
         auto counter = unresolvedChunkGeometry.fetch_sub(1) - 1;
         return counter;
     }
-    IFRIT_APIDECL void TileRasterRenderer::optsetForceDeterministic(bool opt)
-    {
-        context->optForceDeterministic = opt;
-    }
+    IFRIT_APIDECL void TileRasterRenderer::optsetForceDeterministic(bool opt) { context->optForceDeterministic = opt; }
     IFRIT_APIDECL void TileRasterRenderer::optSetDepthTestEnable(bool opt)
     {
         context->optDepthTestEnableII = opt;

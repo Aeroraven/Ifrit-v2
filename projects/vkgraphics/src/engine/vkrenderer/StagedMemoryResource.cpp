@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 
 namespace Ifrit::Graphics::VulkanGraphics
 {
@@ -31,28 +31,28 @@ namespace Ifrit::Graphics::VulkanGraphics
         stagingCI.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         stagingCI.hostVisible = true;
         auto stagePtr         = new SingleBuffer(ctx, stagingCI);
-        m_stagingBuffer       = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
+        m_stagingBuffer       = MakeCountRef<Rhi::RhiBuffer>(stagePtr);
     }
     IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext* ctx, const BufferCreateInfo& ci)
         : m_context(ctx)
     {
 
-        using namespace Ifrit::Common::Utility;
+        using namespace Ifrit;
         BufferCreateInfo ci2 = ci;
         ci2.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         auto stagePtr  = new SingleBuffer(ctx, ci2);
-        m_bufferUnique = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
+        m_bufferUnique = MakeCountRef<Rhi::RhiBuffer>(stagePtr);
         m_buffer       = CheckedCast<SingleBuffer>(m_bufferUnique.get());
 
         BufferCreateInfo stagingCI = ci;
         stagingCI.usage            = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         stagingCI.hostVisible      = true;
         auto stagePtr2             = new SingleBuffer(ctx, stagingCI);
-        m_stagingBuffer            = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(stagePtr2);
+        m_stagingBuffer            = MakeCountRef<Rhi::RhiBuffer>(stagePtr2);
     }
 
-    IFRIT_APIDECL void StagedSingleBuffer::CmdCopyToDevice(const Rhi::RhiCommandList* cmd, const void* data, u32 size,
-        u32 localOffset)
+    IFRIT_APIDECL void StagedSingleBuffer::CmdCopyToDevice(
+        const Rhi::RhiCommandList* cmd, const void* data, u32 size, u32 localOffset)
     {
         m_stagingBuffer->MapMemory();
         m_stagingBuffer->WriteBuffer((void*)data, size, 0);
@@ -69,17 +69,16 @@ namespace Ifrit::Graphics::VulkanGraphics
         stagingCI.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         stagingCI.hostVisible = true;
         auto stagePtr         = new SingleBuffer(ctx, stagingCI);
-        m_stagingBuffer       = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(stagePtr);
+        m_stagingBuffer       = MakeCountRef<Rhi::RhiBuffer>(stagePtr);
     }
 
-    IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext* ctx, const ImageCreateInfo& ci)
-        : m_context(ctx)
+    IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext* ctx, const ImageCreateInfo& ci) : m_context(ctx)
     {
-        using namespace Ifrit::Common::Utility;
+        using namespace Ifrit;
         ImageCreateInfo ci2 = ci;
         ci2.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         auto stagePtr = new SingleDeviceImage(ctx, ci2);
-        m_imageUnique = Rhi::MakeRhiCountRef<Rhi::RhiTexture>(stagePtr);
+        m_imageUnique = MakeCountRef<Rhi::RhiTexture>(stagePtr);
         m_image       = CheckedCast<SingleDeviceImage>(m_imageUnique.get());
 
         BufferCreateInfo stagingCI{};
@@ -87,12 +86,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         stagingCI.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         stagingCI.hostVisible = true;
         auto stagePtr2        = new SingleBuffer(ctx, stagingCI);
-        m_stagingBuffer       = Rhi::MakeRhiCountRef<Rhi::RhiBuffer>(stagePtr2);
+        m_stagingBuffer       = MakeCountRef<Rhi::RhiBuffer>(stagePtr2);
     }
 
     IFRIT_APIDECL void StagedSingleImage::CmdCopyToDevice(CommandBuffer* cmd, const void* data, VkImageLayout srcLayout,
-        VkImageLayout dstLayout, VkPipelineStageFlags dstStage,
-        VkAccessFlags dstAccess)
+        VkImageLayout dstLayout, VkPipelineStageFlags dstStage, VkAccessFlags dstAccess)
     {
         m_stagingBuffer->MapMemory();
         m_stagingBuffer->WriteBuffer((void*)data, m_image->GetSize(), 0);
@@ -115,8 +113,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         barrier.addImageMemoryBarrier(imageBarrier);
 
         cmd->AddPipelineBarrier(barrier);
-        cmd->CopyBufferToImageAllInternal(m_stagingBuffer.get(), m_image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            m_image->GetWidth(), m_image->GetHeight(), m_image->GetDepth());
+        cmd->CopyBufferToImageAllInternal(m_stagingBuffer.get(), m_image->GetImage(),
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_image->GetWidth(), m_image->GetHeight(), m_image->GetDepth());
 
         imageBarrier.oldLayout     = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         imageBarrier.newLayout     = dstLayout;

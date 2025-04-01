@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/meshproc/engine/mesh/MeshClusterLodProc.h"
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 
 #if IFRIT_FEATURE_SIMD
     #include <emmintrin.h>
@@ -29,12 +29,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define IFRIT_USE_SIMD_256 1
 #endif
 
-#include "ifrit/common/logging/Logging.h"
+#include "ifrit/core/logging/Logging.h"
 
-#include "ifrit/common/math/VectorDefs.h"
-#include "ifrit/common/math/VectorOps.h"
-#include "ifrit/common/math/simd/SimdVectors.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/math/VectorDefs.h"
+#include "ifrit/core/math/VectorOps.h"
+#include "ifrit/core/math/simd/SimdVectors.h"
+#include "ifrit/core/typing/Util.h"
 #include <meshoptimizer/src/meshoptimizer.h>
 #include <metis.h>
 
@@ -64,13 +64,9 @@ namespace Ifrit::MeshProcLib::MeshProcess
         float    simplifyError;
     };
 
-    template <typename T>
-    T ceilDiv(T a, T b)
-    {
-        return (a + b - 1) / b;
-    }
+    template <typename T> T ceilDiv(T a, T b) { return (a + b - 1) / b; }
 
-    u64 PackUnorderedPair(u32 a, u32 b)
+    u64                     PackUnorderedPair(u32 a, u32 b)
     {
         if (a > b)
         {
@@ -78,23 +74,21 @@ namespace Ifrit::MeshProcLib::MeshProcess
         }
         return (u64(a) << 32) | b;
     }
-    std::tuple<u32, u32> UnpackUnorderedPair(u64 pair)
-    {
-        return std::make_tuple(pair >> 32, pair & 0xFFFFFFFFull);
-    }
+    std::tuple<u32, u32> UnpackUnorderedPair(u64 pair) { return std::make_tuple(pair >> 32, pair & 0xFFFFFFFFull); }
 
-    void FreeUnusedMemoryInCotenxt(ClusterLodGeneratorContext& ctx)
+    void                 FreeUnusedMemoryInCotenxt(ClusterLodGeneratorContext& ctx)
     {
-        auto maxMeshlets    = ctx.totalMeshlets;
-        auto maxVertexCount = ctx.meshletsRaw[maxMeshlets - 1].vertex_offset + ctx.meshletsRaw[maxMeshlets - 1].vertex_count;
+        auto maxMeshlets = ctx.totalMeshlets;
+        auto maxVertexCount =
+            ctx.meshletsRaw[maxMeshlets - 1].vertex_offset + ctx.meshletsRaw[maxMeshlets - 1].vertex_count;
         auto maxTriangleCount =
             ctx.meshletsRaw[maxMeshlets - 1].triangle_offset + ctx.meshletsRaw[maxMeshlets - 1].triangle_count * 3;
         ctx.meshletsRaw.resize(maxMeshlets);
         ctx.meshletVertices.resize(maxVertexCount);
         ctx.meshletTriangles.resize(maxTriangleCount);
     }
-    void FreeUnusedMemoryInCotenxt2(Vec<meshopt_Meshlet>& meshletsRaw, Vec<u32>& meshletVertices,
-        Vec<u8>& meshletTriangles, int totalMeshlets)
+    void FreeUnusedMemoryInCotenxt2(
+        Vec<meshopt_Meshlet>& meshletsRaw, Vec<u32>& meshletVertices, Vec<u8>& meshletTriangles, int totalMeshlets)
     {
         auto maxMeshlets    = totalMeshlets;
         auto maxVertexCount = meshletsRaw[maxMeshlets - 1].vertex_offset + meshletsRaw[maxMeshlets - 1].vertex_count;
@@ -112,9 +106,10 @@ namespace Ifrit::MeshProcLib::MeshProcess
 
         for (int i = 0; i < index.size(); i++)
         {
-            Vector3f* pos = reinterpret_cast<Vector3f*>(mesh.vertexData + mesh.positionOffset + mesh.vertexStride * index[i]);
-            bMax          = Max(bMax, SVector3f(pos->x, pos->y, pos->z));
-            bMin          = Min(bMin, SVector3f(pos->x, pos->y, pos->z));
+            Vector3f* pos =
+                reinterpret_cast<Vector3f*>(mesh.vertexData + mesh.positionOffset + mesh.vertexStride * index[i]);
+            bMax = Max(bMax, SVector3f(pos->x, pos->y, pos->z));
+            bMin = Min(bMin, SVector3f(pos->x, pos->y, pos->z));
         }
     }
 
@@ -126,13 +121,12 @@ namespace Ifrit::MeshProcLib::MeshProcess
         ctx.meshletVertices.resize(maxMeshlets * VERTICES_PER_MESHLET);
         ctx.meshletTriangles.resize(maxMeshlets * TRIANGLES_PER_MESHLET * 3);
 
-        auto meshletCount =
-            meshopt_buildMeshlets(ctx.meshletsRaw.data(), ctx.meshletVertices.data(), ctx.meshletTriangles.data(),
-                reinterpret_cast<u32*>(mesh.indexData), mesh.indexCount,
-                reinterpret_cast<float*>(mesh.vertexData + mesh.positionOffset), mesh.vertexCount,
-                mesh.vertexStride, VERTICES_PER_MESHLET, TRIANGLES_PER_MESHLET, 0.0f);
+        auto meshletCount = meshopt_buildMeshlets(ctx.meshletsRaw.data(), ctx.meshletVertices.data(),
+            ctx.meshletTriangles.data(), reinterpret_cast<u32*>(mesh.indexData), mesh.indexCount,
+            reinterpret_cast<float*>(mesh.vertexData + mesh.positionOffset), mesh.vertexCount, mesh.vertexStride,
+            VERTICES_PER_MESHLET, TRIANGLES_PER_MESHLET, 0.0f);
 
-        ctx.totalMeshlets = Ifrit::Common::Utility::SizeCast<int>(meshletCount);
+        ctx.totalMeshlets = Ifrit::SizeCast<int>(meshletCount);
 
         // write lod errors, 0 for initial meshlet
         ctx.lodCullData.resize(meshletCount);
@@ -143,9 +137,12 @@ namespace Ifrit::MeshProcLib::MeshProcess
             for (u32 j = 0; j < ctx.meshletsRaw[i].triangle_count; j++)
             {
                 auto base = ctx.meshletsRaw[i].triangle_offset + j * 3;
-                actualIndices.push_back(ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 0]]);
-                actualIndices.push_back(ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 1]]);
-                actualIndices.push_back(ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 2]]);
+                actualIndices.push_back(
+                    ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 0]]);
+                actualIndices.push_back(
+                    ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 1]]);
+                actualIndices.push_back(
+                    ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 2]]);
             }
             SVector3f bMin, bMax;
             GetBoundingBoxForCluster(mesh, actualIndices, bMin, bMax);
@@ -187,10 +184,10 @@ namespace Ifrit::MeshProcLib::MeshProcess
                     std::unordered_set<u64> edgeSetB;
                     for (u32 k = 0; k < ctx.meshletsRaw[i].triangle_count; k++)
                     {
-                        auto base  = ctx.meshletsRaw[i].triangle_offset + k * 3;
-                        auto a     = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 0]];
-                        auto b     = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 1]];
-                        auto c     = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 2]];
+                        auto base = ctx.meshletsRaw[i].triangle_offset + k * 3;
+                        auto a = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 0]];
+                        auto b = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 1]];
+                        auto c = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + 2]];
                         auto pair1 = PackUnorderedPair(a, b);
                         auto pair2 = PackUnorderedPair(b, c);
                         auto pair3 = PackUnorderedPair(c, a);
@@ -201,10 +198,10 @@ namespace Ifrit::MeshProcLib::MeshProcess
 
                     for (u32 k = 0; k < ctx.meshletsRaw[j].triangle_count; k++)
                     {
-                        auto base  = ctx.meshletsRaw[j].triangle_offset + k * 3;
-                        auto a     = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset + ctx.meshletTriangles[base + 0]];
-                        auto b     = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset + ctx.meshletTriangles[base + 1]];
-                        auto c     = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset + ctx.meshletTriangles[base + 2]];
+                        auto base = ctx.meshletsRaw[j].triangle_offset + k * 3;
+                        auto a = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset + ctx.meshletTriangles[base + 0]];
+                        auto b = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset + ctx.meshletTriangles[base + 1]];
+                        auto c = ctx.meshletVertices[ctx.meshletsRaw[j].vertex_offset + ctx.meshletTriangles[base + 2]];
                         auto pair1 = PackUnorderedPair(a, b);
                         auto pair2 = PackUnorderedPair(b, c);
                         auto pair3 = PackUnorderedPair(c, a);
@@ -246,7 +243,9 @@ namespace Ifrit::MeshProcLib::MeshProcess
                         q.pop_back();
                         for (int i = 0; i < cluster.size(); i++)
                         {
-                            if (visited[i] || std::find(edges.begin(), edges.end(), std::make_pair(cluster[v], cluster[i])) == edges.end())
+                            if (visited[i]
+                                || std::find(edges.begin(), edges.end(), std::make_pair(cluster[v], cluster[i]))
+                                    == edges.end())
                                 continue;
                             q.push_back(i);
                             visited[i] = 1;
@@ -352,7 +351,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
             {
                 if (weightMap.find(meshletAdjacency[i][j]) == weightMap.end())
                 {
-                    weightMap[meshletAdjacency[i][j]] = Ifrit::Common::Utility::SizeCast<int>(localWeights.size());
+                    weightMap[meshletAdjacency[i][j]] = Ifrit::SizeCast<int>(localWeights.size());
                     localWeights.push_back(1);
                     localAdjs.push_back(meshletAdjacency[i][j]);
                 }
@@ -367,7 +366,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
                 weights.push_back(localWeights[j]);
                 adjncy.push_back(localAdjs[j]);
             }
-            xadj.push_back(Ifrit::Common::Utility::SizeCast<int>(adjncy.size()));
+            xadj.push_back(Ifrit::SizeCast<int>(adjncy.size()));
         }
         ConnectivityCheck(meshletAdjacency);
         // Call METIS
@@ -392,8 +391,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
 
         ctx.graphPartition.resize(ctx.totalMeshlets);
 
-        auto result = METIS_PartGraphKway(&nvtxs, &ncon, xadjPtr, adjncyPtr, vwgt, vsize, adjwgt, &nparts, tpwgts, ubvec,
-            options, &edgeCut, ctx.graphPartition.data());
+        auto result = METIS_PartGraphKway(&nvtxs, &ncon, xadjPtr, adjncyPtr, vwgt, vsize, adjwgt, &nparts, tpwgts,
+            ubvec, options, &edgeCut, ctx.graphPartition.data());
         if (result != METIS_OK)
         {
             iError("METIS partition failed, error code: {}", result);
@@ -423,8 +422,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
         }
 
         // get scale
-        auto modelScale = meshopt_simplifyScale(reinterpret_cast<f32*>(mesh.vertexData + mesh.positionOffset),
-            mesh.vertexCount, mesh.vertexStride);
+        auto modelScale = meshopt_simplifyScale(
+            reinterpret_cast<f32*>(mesh.vertexData + mesh.positionOffset), mesh.vertexCount, mesh.vertexStride);
 
         for (auto& [key, meshletsR] : clusterGroupToMeshletMap)
         {
@@ -436,9 +435,12 @@ namespace Ifrit::MeshProcLib::MeshProcess
                 auto count = ctx.meshletsRaw[i].triangle_count;
                 for (int j = 0; j < static_cast<i32>(count); j++)
                 {
-                    auto a = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + j * 3 + 0]];
-                    auto b = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + j * 3 + 1]];
-                    auto c = ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + j * 3 + 2]];
+                    auto a =
+                        ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + j * 3 + 0]];
+                    auto b =
+                        ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + j * 3 + 1]];
+                    auto c =
+                        ctx.meshletVertices[ctx.meshletsRaw[i].vertex_offset + ctx.meshletTriangles[base + j * 3 + 2]];
                     aggregatedIndexBuffer.push_back(a);
                     aggregatedIndexBuffer.push_back(b);
                     aggregatedIndexBuffer.push_back(c);
@@ -468,19 +470,18 @@ namespace Ifrit::MeshProcLib::MeshProcess
 
             if (mesh.normalData == nullptr)
             {
-                simplifiedSize =
-                    meshopt_simplify(simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(), aggregatedIndexBuffer.size(),
-                        reinterpret_cast<f32*>(mesh.vertexData + mesh.positionOffset), mesh.vertexCount,
-                        mesh.vertexStride, targetIndexCount, targetError, option, &simplifyError);
+                simplifiedSize = meshopt_simplify(simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(),
+                    aggregatedIndexBuffer.size(), reinterpret_cast<f32*>(mesh.vertexData + mesh.positionOffset),
+                    mesh.vertexCount, mesh.vertexStride, targetIndexCount, targetError, option, &simplifyError);
             }
             else
             {
                 float normalWeight[3] = { 0.5f, 0.5f, 0.5f };
-                simplifiedSize        = meshopt_simplifyWithAttributes(
-                    simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(), aggregatedIndexBuffer.size(),
-                    reinterpret_cast<f32*>(mesh.vertexData + mesh.positionOffset), mesh.vertexCount, mesh.vertexStride,
-                    reinterpret_cast<f32*>(mesh.normalData), 3 * sizeof(f32), normalWeight, 3, nullptr, targetIndexCount,
-                    targetError, option, &simplifyError);
+                simplifiedSize =
+                    meshopt_simplifyWithAttributes(simplifiedIndexBuffer.data(), aggregatedIndexBuffer.data(),
+                        aggregatedIndexBuffer.size(), reinterpret_cast<f32*>(mesh.vertexData + mesh.positionOffset),
+                        mesh.vertexCount, mesh.vertexStride, reinterpret_cast<f32*>(mesh.normalData), 3 * sizeof(f32),
+                        normalWeight, 3, nullptr, targetIndexCount, targetError, option, &simplifyError);
             }
 
             if (simplifiedSize == 0)
@@ -505,13 +506,12 @@ namespace Ifrit::MeshProcLib::MeshProcess
             meshlets.resize(maxMeshlets);
             meshletVertices.resize(maxMeshlets * VERTICES_PER_MESHLET);
             meshletTriangles.resize(maxMeshlets * TRIANGLES_PER_MESHLET * 3);
-            auto meshletCount = meshopt_buildMeshlets(
-                meshlets.data(), meshletVertices.data(), meshletTriangles.data(), simplifiedIndexBuffer.data(),
-                simplifiedIndexBuffer.size(), reinterpret_cast<f32*>(mesh.vertexData + mesh.positionOffset), mesh.vertexCount,
-                mesh.vertexStride, VERTICES_PER_MESHLET, TRIANGLES_PER_MESHLET, 0.0f);
+            auto meshletCount = meshopt_buildMeshlets(meshlets.data(), meshletVertices.data(), meshletTriangles.data(),
+                simplifiedIndexBuffer.data(), simplifiedIndexBuffer.size(),
+                reinterpret_cast<f32*>(mesh.vertexData + mesh.positionOffset), mesh.vertexCount, mesh.vertexStride,
+                VERTICES_PER_MESHLET, TRIANGLES_PER_MESHLET, 0.0f);
 
-            FreeUnusedMemoryInCotenxt2(meshlets, meshletVertices, meshletTriangles,
-                Ifrit::Common::Utility::SizeCast<u32>(meshletCount));
+            FreeUnusedMemoryInCotenxt2(meshlets, meshletVertices, meshletTriangles, Ifrit::SizeCast<u32>(meshletCount));
 
             SVector3f bMin, bMax;
             GetBoundingBoxForCluster(mesh, aggregatedIndexBuffer, bMin, bMax);
@@ -551,7 +551,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
             for (auto i : meshletsR)
             {
                 auto clusterGroupChildInsStart    = ctx.meshletsInClusterGroups.size();
-                curClusterGroup.childMeshletStart = Ifrit::Common::Utility::SizeCast<u32>(clusterGroupChildInsStart);
+                curClusterGroup.childMeshletStart = Ifrit::SizeCast<u32>(clusterGroupChildInsStart);
                 ctx.meshletsInClusterGroups.push_back(i);
                 ctx.clusterGroups.push_back(curClusterGroup);
             }
@@ -559,8 +559,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
             ClusterGroup curClusterGroup;
             curClusterGroup.parentBoundingSphere   = Vector4f(bCenter.x, bCenter.y, bCenter.z, bRadius);
             curClusterGroup.parentBoundingSphere.w = targetErrorModel;
-            curClusterGroup.childMeshletSize       = Ifrit::Common::Utility::SizeCast<u32>(meshletsR.size());
-            curClusterGroup.childMeshletStart      = Ifrit::Common::Utility::SizeCast<u32>(ctx.meshletsInClusterGroups.size());
+            curClusterGroup.childMeshletSize       = Ifrit::SizeCast<u32>(meshletsR.size());
+            curClusterGroup.childMeshletStart      = Ifrit::SizeCast<u32>(ctx.meshletsInClusterGroups.size());
             for (auto i : meshletsR)
             {
                 ctx.meshletsInClusterGroups.push_back(i);
@@ -591,7 +591,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
             auto newMeshletCount          = outCtx.totalMeshlets + meshletCount;
 
             ctx.parentStart.push_back(outCtx.totalMeshlets);
-            ctx.parentSize.push_back(Ifrit::Common::Utility::SizeCast<u32>(meshletCount));
+            ctx.parentSize.push_back(Ifrit::SizeCast<u32>(meshletCount));
             outCtx.meshletVertices.resize(newMeshletVertexOffset + newMeshletVertexSize);
             outCtx.meshletTriangles.resize(newMeshletTriangleOffset + newMeshletTriangleSize);
             outCtx.meshletsRaw.resize(newMeshletCount);
@@ -606,19 +606,20 @@ namespace Ifrit::MeshProcLib::MeshProcess
                 auto count                                   = meshlets[i].triangle_count;
                 outCtx.meshletsRaw[outCtx.totalMeshlets + i] = meshlets[i];
                 outCtx.meshletsRaw[outCtx.totalMeshlets + i].vertex_offset +=
-                    Ifrit::Common::Utility::SizeCast<u32>(newMeshletVertexOffset);
+                    Ifrit::SizeCast<u32>(newMeshletVertexOffset);
                 outCtx.meshletsRaw[outCtx.totalMeshlets + i].triangle_offset +=
-                    Ifrit::Common::Utility::SizeCast<u32>(newMeshletTriangleOffset);
-                outCtx.lodCullData[outCtx.totalMeshlets + i]     = meshletsCull[i];
-                outCtx.childClusterId[outCtx.totalMeshlets + i]  = key;
-                outCtx.selfErrorSphere[outCtx.totalMeshlets + i] = Vector4f(bCenter.x, bCenter.y, bCenter.z, targetErrorModel);
+                    Ifrit::SizeCast<u32>(newMeshletTriangleOffset);
+                outCtx.lodCullData[outCtx.totalMeshlets + i]    = meshletsCull[i];
+                outCtx.childClusterId[outCtx.totalMeshlets + i] = key;
+                outCtx.selfErrorSphere[outCtx.totalMeshlets + i] =
+                    Vector4f(bCenter.x, bCenter.y, bCenter.z, targetErrorModel);
             }
-            outCtx.meshletVertices.insert(outCtx.meshletVertices.begin() + newMeshletVertexOffset, meshletVertices.begin(),
-                meshletVertices.begin() + newMeshletVertexSize);
+            outCtx.meshletVertices.insert(outCtx.meshletVertices.begin() + newMeshletVertexOffset,
+                meshletVertices.begin(), meshletVertices.begin() + newMeshletVertexSize);
 
-            outCtx.meshletTriangles.insert(outCtx.meshletTriangles.begin() + newMeshletTriangleOffset, meshletTriangles.begin(),
-                meshletTriangles.begin() + newMeshletTriangleSize);
-            outCtx.totalMeshlets = Ifrit::Common::Utility::SizeCast<int>(newMeshletCount);
+            outCtx.meshletTriangles.insert(outCtx.meshletTriangles.begin() + newMeshletTriangleOffset,
+                meshletTriangles.begin(), meshletTriangles.begin() + newMeshletTriangleSize);
+            outCtx.totalMeshlets = Ifrit::SizeCast<int>(newMeshletCount);
             // break;
         }
     }
@@ -686,19 +687,19 @@ namespace Ifrit::MeshProcLib::MeshProcess
             {
                 outCtx.meshletsRaw[prevlevelMeshletCount + j] =
                     Vector4i(ctx[i].meshletsRaw[j].vertex_offset + prevlevelVertexCount,
-                        ctx[i].meshletsRaw[j].triangle_offset + prevlevelTriangleCount, ctx[i].meshletsRaw[j].vertex_count,
-                        ctx[i].meshletsRaw[j].triangle_count);
+                        ctx[i].meshletsRaw[j].triangle_offset + prevlevelTriangleCount,
+                        ctx[i].meshletsRaw[j].vertex_count, ctx[i].meshletsRaw[j].triangle_count);
                 outCtx.selfErrorSphereW[prevlevelMeshletCount + j] = ctx[i].selfErrorSphere[j];
                 outCtx.meshletCull[prevlevelMeshletCount + j]      = ctx[i].lodCullData[j];
             }
-            outCtx.graphPartition.insert(outCtx.graphPartition.end(), ctx[i].graphPartition.begin(),
-                ctx[i].graphPartition.end());
-            outCtx.meshletVertices.insert(outCtx.meshletVertices.end(), ctx[i].meshletVertices.begin(),
-                ctx[i].meshletVertices.end());
-            outCtx.meshletTriangles.insert(outCtx.meshletTriangles.end(), ctx[i].meshletTriangles.begin(),
-                ctx[i].meshletTriangles.end());
-            outCtx.meshletsInClusterGroups.insert(outCtx.meshletsInClusterGroups.end(), ctx[i].meshletsInClusterGroups.begin(),
-                ctx[i].meshletsInClusterGroups.end());
+            outCtx.graphPartition.insert(
+                outCtx.graphPartition.end(), ctx[i].graphPartition.begin(), ctx[i].graphPartition.end());
+            outCtx.meshletVertices.insert(
+                outCtx.meshletVertices.end(), ctx[i].meshletVertices.begin(), ctx[i].meshletVertices.end());
+            outCtx.meshletTriangles.insert(
+                outCtx.meshletTriangles.end(), ctx[i].meshletTriangles.begin(), ctx[i].meshletTriangles.end());
+            outCtx.meshletsInClusterGroups.insert(outCtx.meshletsInClusterGroups.end(),
+                ctx[i].meshletsInClusterGroups.begin(), ctx[i].meshletsInClusterGroups.end());
             for (int j = 0; j < ctx[i].meshletsInClusterGroups.size(); j++)
             {
                 outCtx.meshletsInClusterGroups[prevlevelMeshletInGroupCount + j] =
@@ -706,11 +707,11 @@ namespace Ifrit::MeshProcLib::MeshProcess
             }
 
             // TODO: Compat size
-            prevlevelMeshletCount += Ifrit::Common::Utility::SizeCast<i32>(ctx[i].meshletsRaw.size());
-            prevlevelVertexCount += Ifrit::Common::Utility::SizeCast<i32>(ctx[i].meshletVertices.size());
-            prevlevelTriangleCount += Ifrit::Common::Utility::SizeCast<i32>(ctx[i].meshletTriangles.size());
-            prevlevelClusterGroupCount += Ifrit::Common::Utility::SizeCast<i32>(ctx[i].clusterGroups.size());
-            prevlevelMeshletInGroupCount += Ifrit::Common::Utility::SizeCast<i32>(ctx[i].meshletsInClusterGroups.size());
+            prevlevelMeshletCount += Ifrit::SizeCast<i32>(ctx[i].meshletsRaw.size());
+            prevlevelVertexCount += Ifrit::SizeCast<i32>(ctx[i].meshletVertices.size());
+            prevlevelTriangleCount += Ifrit::SizeCast<i32>(ctx[i].meshletTriangles.size());
+            prevlevelClusterGroupCount += Ifrit::SizeCast<i32>(ctx[i].clusterGroups.size());
+            prevlevelMeshletInGroupCount += Ifrit::SizeCast<i32>(ctx[i].meshletsInClusterGroups.size());
         }
         iInfo("Total cluster groups: {}", outCtx.clusterGroups.size());
     }
@@ -753,8 +754,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
     };
 
     // Some bvh utility functions
-    BoundingBoxPair getBoundingBox(const Vec<ClusterGroup>& clusterGroups, const Vec<u32>& clusterGroupIndices, u32 start,
-        u32 end)
+    BoundingBoxPair getBoundingBox(
+        const Vec<ClusterGroup>& clusterGroups, const Vec<u32>& clusterGroupIndices, u32 start, u32 end)
     {
         SVector3f bMaxA = SVector3f(-std::numeric_limits<float>::max());
         SVector3f bMinA = SVector3f(std::numeric_limits<float>::max());
@@ -764,8 +765,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
         for (int k = start; k < static_cast<i32>(end); k++)
         {
             auto      i            = clusterGroupIndices[k];
-            SVector3f sphereCenter = SVector3f(clusterGroups[i].parentBoundingSphere.x, clusterGroups[i].parentBoundingSphere.y,
-                clusterGroups[i].parentBoundingSphere.z);
+            SVector3f sphereCenter = SVector3f(clusterGroups[i].parentBoundingSphere.x,
+                clusterGroups[i].parentBoundingSphere.y, clusterGroups[i].parentBoundingSphere.z);
             SVector3f maxPos       = sphereCenter + clusterGroups[i].parentBoundingSphere.w;
             SVector3f minPos       = sphereCenter - clusterGroups[i].parentBoundingSphere.w;
             bMaxA                  = Max(maxPos, bMaxA);
@@ -794,8 +795,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
         return ret;
     }
 
-    u32 NodeClustersPatition(const Vec<ClusterGroup>& clusterGroups, Vec<u32> indices, u32 start, u32 end, float mid,
-        u32 axis)
+    u32 NodeClustersPatition(
+        const Vec<ClusterGroup>& clusterGroups, Vec<u32> indices, u32 start, u32 end, float mid, u32 axis)
     {
         int  l = start, r = end - 1;
         auto getElementCenter = [&](u32 idx) {
@@ -819,8 +820,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
         return pivot;
     }
 
-    u32 NodeClustersPatitionAlternative(const Vec<ClusterGroup>& clusterGroups, Vec<u32> indices, u32 start, u32 end,
-        u32 axis)
+    u32 NodeClustersPatitionAlternative(
+        const Vec<ClusterGroup>& clusterGroups, Vec<u32> indices, u32 start, u32 end, u32 axis)
     {
         Vec<float> candidates;
         for (int i = start; i < static_cast<int>(end); i++)
@@ -847,7 +848,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
         ClusterGroupBVHNodeBuildData node;
         node.bvhNode      = bvh.root.get();
         node.clusterStart = 0;
-        node.clusterEnd   = Ifrit::Common::Utility::SizeCast<u32>(clusterGroupIndices.size());
+        node.clusterEnd   = Ifrit::SizeCast<u32>(clusterGroupIndices.size());
         q.push_back(node);
 
         // iteratively build nodes
@@ -857,7 +858,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
             totalNodes++;
             auto curNode = q.back();
             q.pop_back();
-            auto bbox             = getBoundingBox(clusterGroups, clusterGroupIndices, curNode.clusterStart, curNode.clusterEnd);
+            auto bbox = getBoundingBox(clusterGroups, clusterGroupIndices, curNode.clusterStart, curNode.clusterEnd);
             curNode.bvhNode->bbox = bbox.all;
             if (curNode.clusterEnd - curNode.clusterStart <= 1)
             {
@@ -905,17 +906,11 @@ namespace Ifrit::MeshProcLib::MeshProcess
     }
 
     // utils for bvh collapse
-    consteval int Xlog2(int n)
-    {
-        return (n <= 1) ? 0 : 1 + Xlog2(n / 2);
-    }
-    consteval u32 GetBvhCollapseExtraDepth()
-    {
-        return Xlog2(BVH_CHILDREN);
-    }
+    consteval int Xlog2(int n) { return (n <= 1) ? 0 : 1 + Xlog2(n / 2); }
+    consteval u32 GetBvhCollapseExtraDepth() { return Xlog2(BVH_CHILDREN); }
 
     // collapse bvh2 into bvh4 or bvh8
-    void BvhCollapse(ClusterGroupBVH& bvh)
+    void          BvhCollapse(ClusterGroupBVH& bvh)
     {
         Vec<ClusterGroupBVHNode*> q;
         q.push_back(bvh.root.get());
@@ -982,7 +977,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
             {
                 q.push_back(curNode->child[i].get());
             }
-            curNode->curChildren = Ifrit::Common::Utility::SizeCast<u32>(indChild.childNodes.size());
+            curNode->curChildren = Ifrit::SizeCast<u32>(indChild.childNodes.size());
         }
         iDebug("Total Nodes, after collapse:{}", totalNodes);
 
@@ -1036,7 +1031,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
             {
                 node->child[i] = nullptr;
             }
-            node->curChildren = Ifrit::Common::Utility::SizeCast<u32>(newChildren.size());
+            node->curChildren = Ifrit::SizeCast<u32>(newChildren.size());
             for (u32 i = 0; i < node->curChildren; i++)
             {
                 node->child[i] = std::move(newChildren[i]);
@@ -1051,8 +1046,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
 
     // Flatten the bvh to make it compatible with GPU
 
-    void BvhFlatten(const ClusterGroupBVH& bvh, Vec<FlattenedBVHNode>& flattenedNodes,
-        Vec<ClusterGroup>& rearrangedClusterGroups)
+    void BvhFlatten(
+        const ClusterGroupBVH& bvh, Vec<FlattenedBVHNode>& flattenedNodes, Vec<ClusterGroup>& rearrangedClusterGroups)
     {
 
         std::queue<ClusterGroupBVHNode*> q;
@@ -1068,12 +1063,13 @@ namespace Ifrit::MeshProcLib::MeshProcess
             FlattenedBVHNode newNode{};
             auto             sphereCenter = (curNode->bbox.ma + curNode->bbox.mi) * 0.5f;
             auto             sphereRadius = Length(curNode->bbox.ma - curNode->bbox.mi) * 0.5f;
-            newNode.boundSphere           = Vector4f(sphereCenter.x, sphereCenter.y, sphereCenter.z, static_cast<float>(sphereRadius));
-            newNode.numChildNodes         = curNode->curChildren;
-            newNode.clusterGroupStart     = Ifrit::Common::Utility::SizeCast<u32>(rearrangedClusterGroups.size());
-            newNode.clusterGroupSize      = Ifrit::Common::Utility::SizeCast<u32>(curNode->childClusterGroups.size());
-            newNode.subTreeSize           = curNode->subTreeSize;
-            newNode.maxClusterError       = curNode->maxClusterError;
+            newNode.boundSphere =
+                Vector4f(sphereCenter.x, sphereCenter.y, sphereCenter.z, static_cast<float>(sphereRadius));
+            newNode.numChildNodes     = curNode->curChildren;
+            newNode.clusterGroupStart = Ifrit::SizeCast<u32>(rearrangedClusterGroups.size());
+            newNode.clusterGroupSize  = Ifrit::SizeCast<u32>(curNode->childClusterGroups.size());
+            newNode.subTreeSize       = curNode->subTreeSize;
+            newNode.maxClusterError   = curNode->maxClusterError;
             for (int i = 0; i < static_cast<int>(curNode->curChildren); i++)
             {
                 newNode.childNodes[i] = childId++;
@@ -1089,8 +1085,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
 
     // Class defs
     IFRIT_APIDECL int MeshClusterLodProc::ClusterLodHierachy(const MeshDescriptor& mesh,
-        CombinedClusterLodBuffer&                                                  meshletData,
-        Vec<ClusterGroup>&                                                         clusterGroupData,
+        CombinedClusterLodBuffer& meshletData, Vec<ClusterGroup>& clusterGroupData,
         Vec<FlattenedBVHNode>& flattenedNodes, int maxLod)
     {
 
@@ -1100,7 +1095,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
         ctx.resize(p);
         for (auto i = 0; i < ctx.size(); i++)
         {
-            meshletData.numClustersEachLod.push_back(Ifrit::Common::Utility::SizeCast<u32>(ctx[i].meshletsRaw.size()));
+            meshletData.numClustersEachLod.push_back(Ifrit::SizeCast<u32>(ctx[i].meshletsRaw.size()));
         }
         CombineBuffer(ctx, meshletData);
         ClusterGroupBVH bvh;

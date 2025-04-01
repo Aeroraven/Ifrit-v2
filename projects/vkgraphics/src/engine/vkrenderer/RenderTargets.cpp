@@ -17,19 +17,16 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderTargets.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 namespace Ifrit::Graphics::VulkanGraphics
 {
 
-    Rhi::RhiImageFormat toRhiFormat(VkFormat rawFormat)
-    {
-        return static_cast<Rhi::RhiImageFormat>(rawFormat);
-    }
+    Rhi::RhiImageFormat toRhiFormat(VkFormat rawFormat) { return static_cast<Rhi::RhiImageFormat>(rawFormat); }
 
-    IFRIT_APIDECL void RenderTargets::SetColorAttachments(const Vec<Rhi::RhiColorAttachment*>& attachments)
+    IFRIT_APIDECL void  RenderTargets::SetColorAttachments(const Vec<Rhi::RhiColorAttachment*>& attachments)
     {
         m_colorAttachments.clear();
         for (auto attachment : attachments)
@@ -61,9 +58,11 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         for (auto attachment : m_colorAttachments)
         {
-            auto srcLayout = (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear) ? Rhi::RhiResourceState::Undefined
-                                                                                            : Rhi::RhiResourceState::ColorRT;
-            cmd->AddImageBarrier(attachment->GetRenderTarget(), srcLayout, Rhi::RhiResourceState::ColorRT, { 0, 0, 1, 1 });
+            auto srcLayout = (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear)
+                ? Rhi::RhiResourceState::Undefined
+                : Rhi::RhiResourceState::ColorRT;
+            cmd->AddImageBarrier(
+                attachment->GetRenderTarget(), srcLayout, Rhi::RhiResourceState::ColorRT, { 0, 0, 1, 1 });
         }
         auto                              exfunc = m_context->GetExtensionFunction();
 
@@ -127,7 +126,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             attachmentInfo.loadOp      = loadOp;
             attachmentInfo.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
             attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-            attachmentInfo.imageView   = attachment->GetRenderTargetInternal()->GetImageViewMipLayer(tgtMip, tgtArrLayer, 1, 1);
+            attachmentInfo.imageView =
+                attachment->GetRenderTargetInternal()->GetImageViewMipLayer(tgtMip, tgtArrLayer, 1, 1);
             colorAttachmentInfos.push_back(attachmentInfo);
         }
         VkRect2D renderArea;
@@ -166,17 +166,21 @@ namespace Ifrit::Graphics::VulkanGraphics
             colorBlendEquation.srcAlphaBlendFactor = TOVKBLENDFACTOR(blendInfo.m_srcAlphaBlendFactor);
             colorBlendEquation.srcColorBlendFactor = TOVKBLENDFACTOR(blendInfo.m_srcColorBlendFactor);
             blendEquations.push_back(colorBlendEquation);
-            colorWriteMask.push_back(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
+            colorWriteMask.push_back(VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT
+                | VK_COLOR_COMPONENT_A_BIT);
         }
 #undef TOVKBLENDOP
 #undef TOVKBLENDFACTOR
         if (m_colorAttachments.size() > 0)
         {
-            exfunc.p_vkCmdSetColorWriteEnableEXT(cmdraw, SizeCast<uint32_t>(m_colorAttachments.size()), colorWrite.data());
-            exfunc.p_vkCmdSetColorBlendEnableEXT(cmdraw, 0, SizeCast<uint32_t>(m_colorAttachments.size()), blendEnable.data());
-            exfunc.p_vkCmdSetColorBlendEquationEXT(cmdraw, 0, SizeCast<uint32_t>(m_colorAttachments.size()),
-                blendEquations.data());
-            exfunc.p_vkCmdSetColorWriteMaskEXT(cmdraw, 0, SizeCast<uint32_t>(m_colorAttachments.size()), colorWriteMask.data());
+            exfunc.p_vkCmdSetColorWriteEnableEXT(
+                cmdraw, SizeCast<uint32_t>(m_colorAttachments.size()), colorWrite.data());
+            exfunc.p_vkCmdSetColorBlendEnableEXT(
+                cmdraw, 0, SizeCast<uint32_t>(m_colorAttachments.size()), blendEnable.data());
+            exfunc.p_vkCmdSetColorBlendEquationEXT(
+                cmdraw, 0, SizeCast<uint32_t>(m_colorAttachments.size()), blendEquations.data());
+            exfunc.p_vkCmdSetColorWriteMaskEXT(
+                cmdraw, 0, SizeCast<uint32_t>(m_colorAttachments.size()), colorWriteMask.data());
         }
 
         // Set default viewport & scissor
@@ -238,9 +242,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         return format;
     }
 
-    IFRIT_APIDECL Rhi::RhiScissor RenderTargets::GetRenderArea() const
-    {
-        return m_renderArea;
-    }
+    IFRIT_APIDECL Rhi::RhiScissor RenderTargets::GetRenderArea() const { return m_renderArea; }
 
 } // namespace Ifrit::Graphics::VulkanGraphics

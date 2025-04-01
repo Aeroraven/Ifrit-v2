@@ -19,9 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #ifndef IFRIT_DLL
     #define IFRIT_DLL
 #endif
-#include "ifrit/common/math/LinalgOps.h"
-#include "ifrit/common/util/TypingUtil.h"
-#include "ifrit/core/Core.h"
+#include "ifrit/core/math/LinalgOps.h"
+#include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/Runtime.h"
 #include <numbers>
 #include <thread>
 
@@ -32,8 +32,8 @@ using namespace Ifrit;
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::MeshProcLib::MeshProcess;
 using namespace Ifrit::Math;
-using namespace Ifrit::Core;
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit::Runtime;
+using namespace Ifrit;
 
 class CameraMovingScript : public ActorBehavior
 {
@@ -51,10 +51,7 @@ private:
     InputSystem* m_inputSystem;
 
 public:
-    void SetInputSystem(InputSystem* inputSystem)
-    {
-        m_inputSystem = inputSystem;
-    }
+    void SetInputSystem(InputSystem* inputSystem) { m_inputSystem = inputSystem; }
 
     void OnUpdate() override
     {
@@ -81,9 +78,8 @@ public:
         auto camera = parent->GetComponent<Transform>();
         if (camera)
         {
-            camera->SetPosition({ -20.0f + m_movRight - m_movLeft,
-                8.0f + m_movTop - m_movBottom,
-                2.05f + m_movFar - m_movNear });
+            camera->SetPosition(
+                { -20.0f + m_movRight - m_movLeft, 8.0f + m_movTop - m_movBottom, 2.05f + m_movFar - m_movNear });
             camera->SetRotation({ 0.0f, m_movRot + 1.57f, 0.0f });
         }
     }
@@ -143,7 +139,7 @@ public:
         light->SetShadowMapResolution(2048);
         light->SetAffectPbrSky(true);
 
-        auto meshes    = bistroObj->GetLoadedMesh();
+        auto meshes    = bistroObj->GetLoadedMesh(s.get());
         auto numMeshes = 0;
         for (auto& m : meshes)
         {
@@ -152,13 +148,14 @@ public:
         }
 
         // Render targets
-        auto rt         = m_rhiLayer.get();
-        depthImage      = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
-        swapchainImg    = rt->GetSwapchainImage();
-        renderTargets   = rt->CreateRenderTargets();
-        colorAttachment = rt->CreateRenderTarget(swapchainImg, { 0.0f, 0.0f, 0.0f, 1.0f },
-            RhiRenderTargetLoadOp::Clear, 0, 0);
-        depthAttachment = rt->CreateRenderTargetDepthStencil(depthImage.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
+        auto rt       = m_rhiLayer.get();
+        depthImage    = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
+        swapchainImg  = rt->GetSwapchainImage();
+        renderTargets = rt->CreateRenderTargets();
+        colorAttachment =
+            rt->CreateRenderTarget(swapchainImg, { 0.0f, 0.0f, 0.0f, 1.0f }, RhiRenderTargetLoadOp::Clear, 0, 0);
+        depthAttachment =
+            rt->CreateRenderTargetDepthStencil(depthImage.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
         renderTargets->SetColorAttachments({ colorAttachment.get() });
         renderTargets->SetDepthStencilAttachment(depthAttachment.get());
         renderTargets->SetRenderArea(scissor);

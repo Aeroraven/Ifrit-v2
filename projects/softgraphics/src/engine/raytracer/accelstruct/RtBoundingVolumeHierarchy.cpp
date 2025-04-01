@@ -17,15 +17,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/softgraphics/engine/raytracer/accelstruct/RtBoundingVolumeHierarchy.h"
-#include "ifrit/common/math/VectorOps.h"
-#include "ifrit/common/math/simd/SimdVectors.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/math/VectorOps.h"
+#include "ifrit/core/math/simd/SimdVectors.h"
+#include "ifrit/core/typing/Util.h"
 #include <queue>
 
 IF_CONSTEXPR bool PROFILE_CNT = false;
 
 using namespace Ifrit::Math::SIMD;
-using Ifrit::Common::Utility::SizeCast;
+using Ifrit::SizeCast;
 
 static auto totalTime = 0;
 namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
@@ -65,8 +65,8 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
         return tmin;
     }
 
-    int procFindSplit(int start, int end, int axis, float mid, std::vector<SVector3f>& centers,
-        std::vector<int>& belonging)
+    int procFindSplit(
+        int start, int end, int axis, float mid, std::vector<SVector3f>& centers, std::vector<int>& belonging)
     {
         using namespace Ifrit::Math;
         int l = start, r = end;
@@ -88,8 +88,8 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
         return pivot;
     }
 
-    void procBuildBvhNode(int size, BVHNode* root, const std::vector<BoundingBox>& bboxes, std::vector<SVector3f>& centers,
-        std::vector<int>& belonging, std::vector<int>& indices)
+    void procBuildBvhNode(int size, BVHNode* root, const std::vector<BoundingBox>& bboxes,
+        std::vector<SVector3f>& centers, std::vector<int>& belonging, std::vector<int>& indices)
     {
 
         using namespace Ifrit::Math;
@@ -100,14 +100,14 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
         while (!q.empty())
         {
             profNodes++;
-            auto largestBBox           = SVector3f(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
-                          -std::numeric_limits<float>::max());
+            auto largestBBox = SVector3f(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
+                -std::numeric_limits<float>::max());
             auto& [node, depth, start] = q.front();
             BoundingBox& bbox          = node->bbox;
-            bbox.bmax                  = SVector3f(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
-                                 -std::numeric_limits<float>::max());
-            bbox.bmin                  = SVector3f(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
-                                 std::numeric_limits<float>::max());
+            bbox.bmax = SVector3f(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
+                -std::numeric_limits<float>::max());
+            bbox.bmin = SVector3f(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
+                std::numeric_limits<float>::max());
 
             for (int i = 0; i < node->elementSize; i++)
             {
@@ -144,10 +144,11 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
             {
                 auto               diff                  = bbox.bmax - bbox.bmin;
                 IF_CONSTEXPR float unbalancedLeafPenalty = 80.0f;
-                auto               minCost =
-                    (node->elementSize == 2) ? 1e30 : diff.x * diff.y * diff.z * 2.0 * node->elementSize + unbalancedLeafPenalty;
+                auto               minCost               = (node->elementSize == 2)
+                                                ? 1e30
+                                                : diff.x * diff.y * diff.z * 2.0 * node->elementSize + unbalancedLeafPenalty;
 
-                int baxis = 0;
+                int                baxis = 0;
                 if (diff.y > diff.x)
                     baxis = 1;
                 if (diff.z > diff.y && diff.z > diff.x)
@@ -159,7 +160,7 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
                     {
                         auto  midv  = Lerp(bbox.bmin, bbox.bmax, 1.0f * i / sahBuckets);
                         float midvp = ElementAt(midv, axis);
-                        pivot       = procFindSplit(start, start + node->elementSize - 1, axis, midvp, centers, belonging);
+                        pivot = procFindSplit(start, start + node->elementSize - 1, axis, midvp, centers, belonging);
 
                         BoundingBox bLeft, bRight;
                         // Bounding boxes
@@ -184,16 +185,17 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
                             bRight.bmax = Max(bRight.bmax, bboxes[idx].bmax);
                             bRight.bmin = Min(bRight.bmin, bboxes[idx].bmin);
                         }
-                        auto dLeft                 = bLeft.bmax - bLeft.bmin;
-                        auto dRight                = bRight.bmax - bRight.bmin;
-                        auto spLeft                = dLeft.x * dLeft.y * dLeft.z * 2.0f;
-                        auto spRight               = dRight.x * dRight.y * dRight.z * 2.0f;
-                        auto rnc                   = (node->elementSize - (pivot - start + 1));
-                        auto lnc                   = pivot - start + 1;
-                        auto rcost                 = spRight * rnc;
-                        auto lcost                 = spLeft * lnc;
-                        auto penaltyUnbalancedLeaf = ((lnc <= 1 && rnc > 2) || (rnc <= 1 && lnc > 2)) ? unbalancedLeafPenalty : 0.0f;
-                        auto cost                  = lcost + rcost + penaltyUnbalancedLeaf;
+                        auto dLeft   = bLeft.bmax - bLeft.bmin;
+                        auto dRight  = bRight.bmax - bRight.bmin;
+                        auto spLeft  = dLeft.x * dLeft.y * dLeft.z * 2.0f;
+                        auto spRight = dRight.x * dRight.y * dRight.z * 2.0f;
+                        auto rnc     = (node->elementSize - (pivot - start + 1));
+                        auto lnc     = pivot - start + 1;
+                        auto rcost   = spRight * rnc;
+                        auto lcost   = spLeft * lnc;
+                        auto penaltyUnbalancedLeaf =
+                            ((lnc <= 1 && rnc > 2) || (rnc <= 1 && lnc > 2)) ? unbalancedLeafPenalty : 0.0f;
+                        auto cost = lcost + rcost + penaltyUnbalancedLeaf;
 
                         if (cost < minCost && !std::isnan(lcost) && !std::isnan(rcost))
                         {
@@ -210,7 +212,8 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
                 }
                 else
                 {
-                    pivot = procFindSplit(start, start + node->elementSize - 1, bestAxis, bestPivot, centers, belonging);
+                    pivot =
+                        procFindSplit(start, start + node->elementSize - 1, bestAxis, bestPivot, centers, belonging);
                 }
             }
 
@@ -219,9 +222,10 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
             node->left->elementSize  = pivot - start + 1;
             node->right->elementSize = node->elementSize - node->left->elementSize;
 
-            bool isUnbalancedLeaf = pivot > 0 && abs(node->left->elementSize - node->right->elementSize) > 2 && (node->left->elementSize <= 1 || node->right->elementSize <= 1);
-            auto cA               = (node->left->elementSize > 1 || node->right->elementSize > 1);
-            auto cB               = (node->left->elementSize == 1 && node->right->elementSize == 1);
+            bool isUnbalancedLeaf = pivot > 0 && abs(node->left->elementSize - node->right->elementSize) > 2
+                && (node->left->elementSize <= 1 || node->right->elementSize <= 1);
+            auto cA = (node->left->elementSize > 1 || node->right->elementSize > 1);
+            auto cB = (node->left->elementSize == 1 && node->right->elementSize == 1);
 
             if (isUnbalancedLeaf)
             {
@@ -303,9 +307,8 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
         root->elementSize = size;
         procBuildBvhNode(size, root.get(), bboxes, centers, belonging, indices);
     }
-    inline RayHit procRayElementIntersectionBalwin(const RayInternal& ray, int index, const std::vector<SVector4f>& tmat1,
-        const std::vector<SVector4f>& tmat2,
-        const std::vector<SVector4f>& tmat3)
+    inline RayHit procRayElementIntersectionBalwin(const RayInternal& ray, int index,
+        const std::vector<SVector4f>& tmat1, const std::vector<SVector4f>& tmat2, const std::vector<SVector4f>& tmat3)
     {
         RayHit rh;
         rh.id        = -1;
@@ -329,7 +332,8 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
         rh.t  = t;
         return rh;
     }
-    inline RayHit procRayElementIntersectionMoller(const RayInternal& ray, int index, const std::vector<SVector3f>& data)
+    inline RayHit procRayElementIntersectionMoller(
+        const RayInternal& ray, int index, const std::vector<SVector3f>& data)
     {
         RayHit proposal;
         proposal.id   = -1;
@@ -383,9 +387,8 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
         return proposal;
     }
 
-    inline RayHit
-    procQueryRayIntersectionTLAS(const RayInternal& ray, float tmin, float tmax, const std::vector<int>& belonging,
-        bool doRootBoxIgnore, BVHNode* root,
+    inline RayHit procQueryRayIntersectionTLAS(const RayInternal& ray, float tmin, float tmax,
+        const std::vector<int>& belonging, bool doRootBoxIgnore, BVHNode* root,
         const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& data) IFRIT_AP_NOTHROW
     {
         return {};

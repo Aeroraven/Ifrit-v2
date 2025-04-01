@@ -17,18 +17,17 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 namespace Ifrit::Graphics::VulkanGraphics
 {
-    IFRIT_APIDECL TimelineSemaphore::TimelineSemaphore(EngineContext* ctx)
-        : m_context(ctx)
+    IFRIT_APIDECL TimelineSemaphore::TimelineSemaphore(EngineContext* ctx) : m_context(ctx)
     {
         VkSemaphoreTypeCreateInfo timelineCI{};
         timelineCI.sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
@@ -56,10 +55,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             "Failed to create command pool");
     }
 
-    IFRIT_APIDECL CommandPool::~CommandPool()
-    {
-        vkDestroyCommandPool(m_context->GetDevice(), m_commandPool, nullptr);
-    }
+    IFRIT_APIDECL CommandPool::~CommandPool() { vkDestroyCommandPool(m_context->GetDevice(), m_commandPool, nullptr); }
 
     IFRIT_APIDECL std::shared_ptr<CommandBuffer> CommandPool::AllocateCommandBuffer()
     {
@@ -70,8 +66,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         bufferAI.commandBufferCount = 1;
 
         VkCommandBuffer buffer;
-        vkrVulkanAssert(vkAllocateCommandBuffers(m_context->GetDevice(), &bufferAI, &buffer),
-            "Failed to allocate command buffer");
+        vkrVulkanAssert(
+            vkAllocateCommandBuffers(m_context->GetDevice(), &bufferAI, &buffer), "Failed to allocate command buffer");
         return std::make_shared<CommandBuffer>(m_context, buffer, m_queueFamily);
     }
 
@@ -84,8 +80,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         bufferAI.commandBufferCount = 1;
 
         VkCommandBuffer buffer;
-        vkrVulkanAssert(vkAllocateCommandBuffers(m_context->GetDevice(), &bufferAI, &buffer),
-            "Failed to allocate command buffer");
+        vkrVulkanAssert(
+            vkAllocateCommandBuffers(m_context->GetDevice(), &bufferAI, &buffer), "Failed to allocate command buffer");
         return std::make_unique<CommandBuffer>(m_context, buffer, m_queueFamily);
     }
 
@@ -139,8 +135,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         Vec<VkViewport> vps;
         for (int i = 0; i < viewport.size(); i++)
         {
-            VkViewport s = { viewport[i].x, viewport[i].y, viewport[i].width,
-                viewport[i].height, viewport[i].minDepth, viewport[i].maxDepth };
+            VkViewport s = { viewport[i].x, viewport[i].y, viewport[i].width, viewport[i].height, viewport[i].minDepth,
+                viewport[i].maxDepth };
             vps.push_back(s);
         }
         vkCmdSetViewport(m_commandBuffer, 0, SizeCast<int>(vps.size()), vps.data());
@@ -157,14 +153,13 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdSetScissor(m_commandBuffer, 0, SizeCast<int>(scs.size()), scs.data());
     }
 
-    IFRIT_APIDECL void CommandBuffer::Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex,
-        u32 firstInstance) const
+    IFRIT_APIDECL void CommandBuffer::Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const
     {
         vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    IFRIT_APIDECL void CommandBuffer::DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex,
-        int32_t vertexOffset, u32 firstInstance) const
+    IFRIT_APIDECL void CommandBuffer::DrawIndexed(
+        u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const
     {
         vkCmdDrawIndexed(m_commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
@@ -174,21 +169,22 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdDispatch(m_commandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
-    IFRIT_APIDECL void CommandBuffer::DrawMeshTasks(u32 groupCountX, u32 groupCountY,
-        u32 groupCountZ) const
+    IFRIT_APIDECL void CommandBuffer::DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const
     {
-        m_context->GetExtensionFunction().p_vkCmdDrawMeshTasksEXT(m_commandBuffer, groupCountX, groupCountY, groupCountZ);
+        m_context->GetExtensionFunction().p_vkCmdDrawMeshTasksEXT(
+            m_commandBuffer, groupCountX, groupCountY, groupCountZ);
     }
 
-    IFRIT_APIDECL void CommandBuffer::DrawMeshTasksIndirect(const Rhi::RhiBuffer* buffer, u32 offset,
-        u32 drawCount, u32 stride) const
+    IFRIT_APIDECL void CommandBuffer::DrawMeshTasksIndirect(
+        const Rhi::RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const
     {
         auto buf = CheckedCast<SingleBuffer>(buffer)->GetBuffer();
-        m_context->GetExtensionFunction().p_vkCmdDrawMeshTasksIndirectEXT(m_commandBuffer, buf, offset, drawCount, stride);
+        m_context->GetExtensionFunction().p_vkCmdDrawMeshTasksIndirectEXT(
+            m_commandBuffer, buf, offset, drawCount, stride);
     }
 
-    IFRIT_APIDECL void CommandBuffer::CopyBuffer(const Rhi::RhiBuffer* srcBuffer, const Rhi::RhiBuffer* dstBuffer,
-        u32 size, u32 srcOffset, u32 dstOffset) const
+    IFRIT_APIDECL void CommandBuffer::CopyBuffer(
+        const Rhi::RhiBuffer* srcBuffer, const Rhi::RhiBuffer* dstBuffer, u32 size, u32 srcOffset, u32 dstOffset) const
     {
         VkBufferCopy copyRegion{};
         copyRegion.srcOffset = srcOffset;
@@ -200,8 +196,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL void CommandBuffer::CopyBufferToImageAllInternal(const Rhi::RhiBuffer* srcBuffer, VkImage dstImage,
-        VkImageLayout dstLayout, u32 width, u32 height,
-        u32 depth) const
+        VkImageLayout dstLayout, u32 width, u32 height, u32 depth) const
     {
         VkBufferImageCopy region{};
         region.bufferOffset                    = 0;
@@ -218,8 +213,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdCopyBufferToImage(m_commandBuffer, src, dstImage, dstLayout, 1, &region);
     }
 
-    IFRIT_APIDECL void CommandBuffer::CopyBufferToImage(const Rhi::RhiBuffer* src, const Rhi::RhiTexture* dst,
-        Rhi::RhiImageSubResource dstSub) const
+    IFRIT_APIDECL void CommandBuffer::CopyBufferToImage(
+        const Rhi::RhiBuffer* src, const Rhi::RhiTexture* dst, Rhi::RhiImageSubResource dstSub) const
     {
         auto              image = CheckedCast<SingleDeviceImage>(dst);
         VkBufferImageCopy region{};
@@ -234,7 +229,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         region.imageExtent                     = { image->GetWidth(), image->GetHeight(), image->GetDepth() };
 
         auto buffer = CheckedCast<SingleBuffer>(src)->GetBuffer();
-        vkCmdCopyBufferToImage(m_commandBuffer, buffer, image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        vkCmdCopyBufferToImage(
+            m_commandBuffer, buffer, image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     }
 
     IFRIT_APIDECL void CommandBuffer::GlobalMemoryBarrier() const
@@ -243,8 +239,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
         barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-        vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 1,
-            &barrier, 0, nullptr, 0, nullptr);
+        vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
+            1, &barrier, 0, nullptr, 0, nullptr);
     }
 
     // Rhi compatible
@@ -262,15 +258,24 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             case Rhi::RhiResourceState::Undefined:
                 barrier.oldLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
-                barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+                barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT
+                    | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT
+                    | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+                    | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+                    | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_MEMORY_READ_BIT
+                    | VK_ACCESS_MEMORY_WRITE_BIT;
                 break;
             case Rhi::RhiResourceState::Common:
                 barrier.oldLayout     = VK_IMAGE_LAYOUT_GENERAL;
-                barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+                barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT
+                    | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT
+                    | VK_ACCESS_TRANSFER_READ_BIT;
                 break;
             case Rhi::RhiResourceState::ShaderRead:
                 barrier.newLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT
+                    | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT
+                    | VK_ACCESS_TRANSFER_READ_BIT;
                 break;
             case Rhi::RhiResourceState::ColorRT:
                 barrier.oldLayout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -285,8 +290,9 @@ namespace Ifrit::Graphics::VulkanGraphics
                 barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
                 break;
             case Rhi::RhiResourceState::DepthStencilRT:
-                barrier.oldLayout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                barrier.srcAccessMask =
+                    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
                 break;
             case Rhi::RhiResourceState::CopySrc:
                 barrier.oldLayout     = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -305,15 +311,24 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             case Rhi::RhiResourceState::Undefined:
                 barrier.newLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
-                barrier.dstAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT
+                    | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT
+                    | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+                    | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+                    | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_MEMORY_READ_BIT
+                    | VK_ACCESS_MEMORY_WRITE_BIT;
                 break;
             case Rhi::RhiResourceState::Common:
                 barrier.newLayout     = VK_IMAGE_LAYOUT_GENERAL;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT
+                    | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT
+                    | VK_ACCESS_TRANSFER_READ_BIT;
                 break;
             case Rhi::RhiResourceState::ShaderRead:
                 barrier.newLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT
+                    | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT
+                    | VK_ACCESS_TRANSFER_READ_BIT;
                 break;
             case Rhi::RhiResourceState::ColorRT:
                 barrier.newLayout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -354,12 +369,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         barrier.subresourceRange.baseArrayLayer = subResource.arrayLayer;
         barrier.subresourceRange.baseMipLevel   = subResource.mipLevel;
 
-        vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0,
-            nullptr, 0, nullptr, 1, &barrier);
+        vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
+            0, nullptr, 0, nullptr, 1, &barrier);
     }
 
-    IFRIT_APIDECL void CommandBuffer::AttachBindlessRefGraphics(Rhi::RhiGraphicsPass* pass, u32 setId,
-        Rhi::RhiBindlessDescriptorRef* ref) const
+    IFRIT_APIDECL void CommandBuffer::AttachBindlessRefGraphics(
+        Rhi::RhiGraphicsPass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const
     {
 
         auto bindless     = CheckedCast<DescriptorBindlessIndices>(ref);
@@ -367,20 +382,20 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto set          = bindless->GetActiveRangeSet();
         auto offset       = bindless->GetActiveRangeOffset();
 
-        vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPass->GetPipelineLayout(), setId, 1,
-            &set, 1, &offset);
+        vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPass->GetPipelineLayout(),
+            setId, 1, &set, 1, &offset);
     }
 
-    IFRIT_APIDECL void CommandBuffer::AttachBindlessRefCompute(Rhi::RhiComputePass* pass, u32 setId,
-        Rhi::RhiBindlessDescriptorRef* ref) const
+    IFRIT_APIDECL void CommandBuffer::AttachBindlessRefCompute(
+        Rhi::RhiComputePass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const
     {
         auto bindless    = CheckedCast<DescriptorBindlessIndices>(ref);
         auto computePass = CheckedCast<ComputePass>(pass);
         auto set         = bindless->GetActiveRangeSet();
         auto offset      = bindless->GetActiveRangeOffset();
 
-        vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePass->GetPipelineLayout(), setId, 1,
-            &set, 1, &offset);
+        vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePass->GetPipelineLayout(),
+            setId, 1, &set, 1, &offset);
     }
 
     IFRIT_APIDECL void CommandBuffer::AttachVertexBufferView(const Rhi::RhiVertexBufferView& view) const
@@ -388,12 +403,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto vxDesc = CheckedCast<VertexBufferDescriptor>(&view);
         auto exfun  = m_context->GetExtensionFunction();
         exfun.p_vkCmdSetVertexInputEXT(m_commandBuffer, SizeCast<u32>(vxDesc->m_bindings.size()),
-            vxDesc->m_bindings.data(), SizeCast<u32>(vxDesc->m_attributes.size()),
-            vxDesc->m_attributes.data());
+            vxDesc->m_bindings.data(), SizeCast<u32>(vxDesc->m_attributes.size()), vxDesc->m_attributes.data());
     }
 
-    IFRIT_APIDECL void CommandBuffer::AttachVertexBuffers(u32 firstSlot,
-        const Vec<Rhi::RhiBuffer*>&                           buffers) const
+    IFRIT_APIDECL void CommandBuffer::AttachVertexBuffers(u32 firstSlot, const Vec<Rhi::RhiBuffer*>& buffers) const
     {
         Vec<VkBuffer>     vxbuffers;
         Vec<VkDeviceSize> offsets;
@@ -403,8 +416,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             vxbuffers.push_back(buffer->GetBuffer());
             offsets.push_back(0);
         }
-        vkCmdBindVertexBuffers(m_commandBuffer, firstSlot, SizeCast<u32>(buffers.size()), vxbuffers.data(),
-            offsets.data());
+        vkCmdBindVertexBuffers(
+            m_commandBuffer, firstSlot, SizeCast<u32>(buffers.size()), vxbuffers.data(), offsets.data());
     }
 
     IFRIT_APIDECL void CommandBuffer::AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const
@@ -413,8 +426,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdBindIndexBuffer(m_commandBuffer, buf, 0, VK_INDEX_TYPE_UINT32);
     }
 
-    IFRIT_APIDECL void CommandBuffer::DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex,
-        u32 firstInstance) const
+    IFRIT_APIDECL void CommandBuffer::DrawInstanced(
+        u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const
     {
         vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     }
@@ -431,22 +444,21 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdDispatchIndirect(m_commandBuffer, buf, offset);
     }
 
-    IFRIT_APIDECL void CommandBuffer::SetPushConst(Rhi::RhiComputePass* pass, u32 offset, u32 size,
-        const void* data) const
+    IFRIT_APIDECL void CommandBuffer::SetPushConst(
+        Rhi::RhiComputePass* pass, u32 offset, u32 size, const void* data) const
     {
         auto computePass = CheckedCast<ComputePass>(pass);
         vkCmdPushConstants(m_commandBuffer, computePass->GetPipelineLayout(), VK_SHADER_STAGE_ALL, offset, size, data);
     };
-    IFRIT_APIDECL void CommandBuffer::SetPushConst(Rhi::RhiGraphicsPass* pass, u32 offset, u32 size,
-        const void* data) const
+    IFRIT_APIDECL void CommandBuffer::SetPushConst(
+        Rhi::RhiGraphicsPass* pass, u32 offset, u32 size, const void* data) const
     {
         auto graphicsPass = CheckedCast<GraphicsPass>(pass);
         vkCmdPushConstants(m_commandBuffer, graphicsPass->GetPipelineLayout(), VK_SHADER_STAGE_ALL, offset, size, data);
     };
 
-    IFRIT_APIDECL void CommandBuffer::ClearUAVTexFloat(const Rhi::RhiTexture* texture,
-        Rhi::RhiImageSubResource                                              subResource,
-        const std::array<float, 4>&                                           val) const
+    IFRIT_APIDECL void CommandBuffer::ClearUAVTexFloat(
+        const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, const std::array<float, 4>& val) const
     {
         auto              image = CheckedCast<SingleDeviceImage>(texture);
         VkClearColorValue clearColor;
@@ -482,8 +494,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         region.extent.width                  = srcImage->GetWidth();
         region.extent.height                 = srcImage->GetHeight();
         region.extent.depth                  = srcImage->GetDepth();
-        vkCmdCopyImage(m_commandBuffer, srcImage->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage->GetImage(),
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        vkCmdCopyImage(m_commandBuffer, srcImage->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            dstImage->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     };
 
     void _resourceStateToAccessMask(Rhi::RhiResourceState state, VkAccessFlags& dstAccessMask)
@@ -491,10 +503,15 @@ namespace Ifrit::Graphics::VulkanGraphics
         switch (state)
         {
             case Rhi::RhiResourceState::Undefined:
-                dstAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+                dstAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT
+                    | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT
+                    | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+                    | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+                    | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
                 break;
             case Rhi::RhiResourceState::Common:
-                dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+                dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_MEMORY_READ_BIT
+                    | VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
                 break;
             case Rhi::RhiResourceState::ColorRT:
                 dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -603,7 +620,8 @@ namespace Ifrit::Graphics::VulkanGraphics
                     _resourceStateToImageLayout(srcState, srcLayout);
                     _resourceStateToImageLayout(dstState, dstLayout);
 
-                    if (srcState != barrier.m_transition.m_texture->GetState() && srcState != Rhi::RhiResourceState::Undefined)
+                    if (srcState != barrier.m_transition.m_texture->GetState()
+                        && srcState != Rhi::RhiResourceState::Undefined)
                     {
                         iError("Texture state mismatch, expected:{} actual:{}", i32(srcState),
                             i32(barrier.m_transition.m_texture->GetState()));
@@ -614,8 +632,8 @@ namespace Ifrit::Graphics::VulkanGraphics
                     auto                 image  = CheckedCast<SingleDeviceImage>(barrier.m_transition.m_texture);
                     auto                 aspect = image->GetAspect();
                     VkImageMemoryBarrier imageBarrier{};
-                    imageBarrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                    imageBarrier.image                           = CheckedCast<SingleDeviceImage>(barrier.m_transition.m_texture)->GetImage();
+                    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                    imageBarrier.image = CheckedCast<SingleDeviceImage>(barrier.m_transition.m_texture)->GetImage();
                     imageBarrier.subresourceRange.aspectMask     = aspect;
                     imageBarrier.subresourceRange.baseMipLevel   = subResource.mipLevel;
                     imageBarrier.subresourceRange.levelCount     = subResource.mipCount;
@@ -655,8 +673,8 @@ namespace Ifrit::Graphics::VulkanGraphics
 
                     // WARNING: subresource unspecified
                     VkImageMemoryBarrier imageBarrier{};
-                    imageBarrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                    imageBarrier.image                           = CheckedCast<SingleDeviceImage>(barrier.m_uav.m_texture)->GetImage();
+                    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                    imageBarrier.image = CheckedCast<SingleDeviceImage>(barrier.m_uav.m_texture)->GetImage();
                     imageBarrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
                     imageBarrier.subresourceRange.baseMipLevel   = 0;
                     imageBarrier.subresourceRange.levelCount     = 1;
@@ -670,8 +688,8 @@ namespace Ifrit::Graphics::VulkanGraphics
                 }
             }
         }
-        vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0,
-            nullptr, SizeCast<int>(bufferBarriers.size()), bufferBarriers.data(),
+        vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
+            0, nullptr, SizeCast<int>(bufferBarriers.size()), bufferBarriers.data(),
             SizeCast<int>(imageBarriers.size()), imageBarriers.data());
     }
 
@@ -741,8 +759,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    IFRIT_APIDECL TimelineSemaphoreWait Queue::SubmitCommand(const Vec<TimelineSemaphoreWait>& waitSemaphores,
-        VkFence fence, VkSemaphore swapchainSemaphore)
+    IFRIT_APIDECL TimelineSemaphoreWait Queue::SubmitCommand(
+        const Vec<TimelineSemaphoreWait>& waitSemaphores, VkFence fence, VkSemaphore swapchainSemaphore)
     {
         m_recordedCounter++;
         Vec<VkSemaphore>          waitSemaphoreHandles;
@@ -803,19 +821,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         return ret;
     }
 
-    IFRIT_APIDECL void Queue::WaitIdle()
-    {
-        vkQueueWaitIdle(m_queue);
-    }
+    IFRIT_APIDECL void Queue::WaitIdle() { vkQueueWaitIdle(m_queue); }
 
-    IFRIT_APIDECL void Queue::CounterReset()
-    {
-        m_recordedCounter = 0;
-    }
+    IFRIT_APIDECL void Queue::CounterReset() { m_recordedCounter = 0; }
 
     // Class: CommandSubmissionList
-    IFRIT_APIDECL CommandSubmissionList::CommandSubmissionList(EngineContext* ctx)
-        : m_context(ctx)
+    IFRIT_APIDECL      CommandSubmissionList::CommandSubmissionList(EngineContext* ctx) : m_context(ctx)
     {
         m_hostSyncSemaphore = std::make_unique<TimelineSemaphore>(ctx);
     }
@@ -889,8 +900,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     std::unique_ptr<Rhi::RhiTaskSubmission> Queue::RunAsyncCommand(std::function<void(const Rhi::RhiCommandList*)> func,
-        const Vec<Rhi::RhiTaskSubmission*>&                                                                        waitOn,
-        const Vec<Rhi::RhiTaskSubmission*>&                                                                        toIssue)
+        const Vec<Rhi::RhiTaskSubmission*>& waitOn, const Vec<Rhi::RhiTaskSubmission*>& toIssue)
     {
         auto cmd = BeginRecording();
         func(cmd);

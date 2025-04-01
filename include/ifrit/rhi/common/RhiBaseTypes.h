@@ -17,10 +17,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 
 #include "RhiForwardingTypes.h"
-#include "ifrit/common/util/ApiConv.h"
+#include "ifrit/core/platform/ApiConv.h"
 
 namespace Ifrit::Graphics::Rhi
 {
@@ -93,8 +93,7 @@ namespace Ifrit::Graphics::Rhi
         RhiDescriptorHeapType m_type;
         u32                   m_index;
 
-        RhiDescriptorHandle(RhiDescriptorHeapType type, u32 index)
-            : m_type(type), m_index(index) {}
+        RhiDescriptorHandle(RhiDescriptorHeapType type, u32 index) : m_type(type), m_index(index) {}
         inline RhiDescriptorHeapType GetType() const { return m_type; }
         inline u32                   GetId() const { return m_index; }
     };

@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/TypeDescriptor.h"
 #include "ifrit/softgraphics/engine/base/VertexBuffer.h"
@@ -27,33 +27,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Graphics::SoftGraphics
 {
 
-	struct VaryingDescriptorContext
-	{
-		std::vector<TypeDescriptor> varyingDescriptors;
-	};
+    struct VaryingDescriptorContext
+    {
+        std::vector<TypeDescriptor> varyingDescriptors;
+    };
 
-	class IFRIT_APIDECL VaryingDescriptor
-	{
-	protected:
-		VaryingDescriptorContext* context;
+    class IFRIT_APIDECL VaryingDescriptor
+    {
+    protected:
+        VaryingDescriptorContext* context;
 
-	public:
-		VaryingDescriptor();
-		VaryingDescriptor(const VaryingDescriptor& x) = delete;
-		VaryingDescriptor(VaryingDescriptor&& x) IFRIT_NOTHROW;
-		~VaryingDescriptor();
-		void	   setVaryingDescriptors(const std::vector<TypeDescriptor>& varyingDescriptors);
-		void	   applyVaryingDescriptors(VertexShaderResult* varyingBuffer);
+    public:
+        VaryingDescriptor();
+        VaryingDescriptor(const VaryingDescriptor& x) = delete;
+        VaryingDescriptor(VaryingDescriptor&& x) IFRIT_NOTHROW;
+        ~VaryingDescriptor();
+        void       setVaryingDescriptors(const std::vector<TypeDescriptor>& varyingDescriptors);
+        void       applyVaryingDescriptors(VertexShaderResult* varyingBuffer);
 
-		/* Inline */
-		inline u32 getVaryingCounts() const
-		{
-			using namespace Ifrit::Common::Utility;
-			return SizeCast<u32>(context->varyingDescriptors.size());
-		}
-		inline TypeDescriptor getVaryingDescriptor(int index) const { return context->varyingDescriptors[index]; }
+        /* Inline */
+        inline u32 getVaryingCounts() const
+        {
+            using namespace Ifrit;
+            return SizeCast<u32>(context->varyingDescriptors.size());
+        }
+        inline TypeDescriptor getVaryingDescriptor(int index) const { return context->varyingDescriptors[index]; }
 
-		/* DLL Compat */
-		void				  setVaryingDescriptorsCompatible(const TypeDescriptor* varyingDescriptors, int num);
-	};
+        /* DLL Compat */
+        void                  setVaryingDescriptorsCompatible(const TypeDescriptor* varyingDescriptors, int num);
+    };
 } // namespace Ifrit::Graphics::SoftGraphics

@@ -21,9 +21,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "Ayanami/Ayanami.Shared.glsl"
 
 RegisterStorage(BAllCardData,{
-    mat4 m_VP[];
+    CardData m_Mats[];
 });
 
 layout(location = 0) out vec2 TexCoord;
@@ -48,7 +49,7 @@ void main(){
     vec2 uv = ReadVertexUV(PushConst.uvId, inIndex);
     vec3 normal = ReadVertexNormal(PushConst.NormalBufId, inIndex).xyz;
     vec4 tangent = ReadVertexTangent(PushConst.TangentId, inIndex);
-    mat4 m_VP = GetResource(BAllCardData, PushConst.AllCardDataId).m_VP[PushConst.cardId];
+    mat4 m_VP = GetResource(BAllCardData, PushConst.AllCardDataId).m_Mats[PushConst.cardId].m_VP;
 
     vec4 worldPos = m_VP * pos;
     Normal = normalize(normal);

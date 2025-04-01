@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
 #pragma once
-#include "ifrit/common/math/VectorDefs.h"
+#include "ifrit/core/math/VectorDefs.h"
 #include "ifrit/softgraphics/core/definition/CoreDefs.h"
 #include "ifrit/softgraphics/core/definition/CoreTypes.h"
 

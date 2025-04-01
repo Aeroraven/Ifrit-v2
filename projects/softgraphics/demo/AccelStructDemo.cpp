@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "engine/shadervm/spirv/SpvVMReader.h"
 #include "engine/shadervm/spirv/SpvVMShader.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
-#include "ifrit/common/math/simd/SimdVectors.h"
+#include "ifrit/core/math/simd/SimdVectors.h"
 #include "presentation/backend/OpenGLBackend.h"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "presentation/backend/TerminalCharColorBackend.h"
@@ -68,10 +68,10 @@ namespace Ifrit::Demo::AccelStructDemo
             float   ry = 0.25f * dy - 0.125f + 0.1f;
             float   rz = -1.0f;
             Payload payload;
-            ifritShaderOps_Raytracer_TraceRay({ rx, ry, rz }, 0, 0, 0, 0, 0, 0, 0.001f, { 0.0f, 0.0f, 1.0f }, 900000.0f, &payload,
-                context);
-            image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y, payload.color.z,
-                payload.color.w);
+            ifritShaderOps_Raytracer_TraceRay(
+                { rx, ry, rz }, 0, 0, 0, 0, 0, 0, 0.001f, { 0.0f, 0.0f, 1.0f }, 900000.0f, &payload, context);
+            image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y,
+                payload.color.z, payload.color.w);
         }
         IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() { return std::make_unique<DemoRayGen>(); }
     };
@@ -101,7 +101,10 @@ namespace Ifrit::Demo::AccelStructDemo
                 payload = execStack.back().payloadPtr;
             }
         }
-        IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy() { return std::make_unique<DemoClosetHit>(); }
+        IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy()
+        {
+            return std::make_unique<DemoClosetHit>();
+        }
     };
 
     class DemoMiss : public MissShader
@@ -217,7 +220,7 @@ namespace Ifrit::Demo::AccelStructDemo
             std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
             raytracer->traceRays(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
             std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-            *coreTime                                          = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            *coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             backend.UpdateTexture(*image);
             backend.draw();
         });
@@ -249,8 +252,8 @@ namespace Ifrit::Demo::AccelStructDemo
                 }
             }
             auto edTime2 = std::chrono::high_resolution_clock::now();
-            std::cout << "Normal Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count()
-                      << std::endl;
+            std::cout << "Normal Time: "
+                      << std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count() << std::endl;
             auto normalTime = std::chrono::duration_cast<std::chrono::milliseconds>(edTime2 - stTime2).count();
             printf("%f %f %f\n", src2.x, src2.y, src2.z);
 

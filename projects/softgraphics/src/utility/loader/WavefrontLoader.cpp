@@ -17,13 +17,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/softgraphics/utility/loader/WavefrontLoader.h"
-#include "ifrit/common/math/VectorOps.h"
+#include "ifrit/core/math/VectorOps.h"
 
 namespace Ifrit::Graphics::SoftGraphics::Utility::Loader
 {
-    std::vector<Vector2f> WavefrontLoader::RemapUVs(std::vector<Vector2f> uvs,
-        std::vector<uint32_t>                                             indices,
-        int                                                               numVertices)
+    std::vector<Vector2f> WavefrontLoader::RemapUVs(
+        std::vector<Vector2f> uvs, std::vector<uint32_t> indices, int numVertices)
     {
         std::vector<Vector2f> retNormals;
         std::vector<int>      counters;
@@ -46,9 +45,8 @@ namespace Ifrit::Graphics::SoftGraphics::Utility::Loader
         }
         return retNormals;
     }
-    std::vector<Vector3f>
-    WavefrontLoader::RemapNormals(std::vector<Vector3f> normals,
-        std::vector<uint32_t> indices, int numVertices)
+    std::vector<Vector3f> WavefrontLoader::RemapNormals(
+        std::vector<Vector3f> normals, std::vector<uint32_t> indices, int numVertices)
     {
         using namespace Ifrit::Math;
         std::vector<Vector3f> retNormals;
@@ -77,11 +75,8 @@ namespace Ifrit::Graphics::SoftGraphics::Utility::Loader
         }
         return retNormals;
     }
-    void WavefrontLoader::loadObject(const char* path,
-        std::vector<Vector3f>&                   vertices,
-        std::vector<Vector3f>&                   normals,
-        std::vector<Vector2f>&                   uvs,
-        std::vector<uint32_t>&                   indices)
+    void WavefrontLoader::loadObject(const char* path, std::vector<Vector3f>& vertices, std::vector<Vector3f>& normals,
+        std::vector<Vector2f>& uvs, std::vector<uint32_t>& indices)
     {
 
         // This section is auto-generated from Copilot

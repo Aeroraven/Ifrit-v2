@@ -22,13 +22,44 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Base.glsl"
 #include "Bindless.glsl"
 #include "Ayanami/Ayanami.SharedConst.h"
+#include "Ayanami/Ayanami.Shared.glsl"
 
 layout(
-    local_size_x = kAyanamiRadianceInjectionObjectsPerBlock, 
+    local_size_x = kAyanamiRadianceInjectionCardSizePerBlock, 
     local_size_y = kAyanamiRadianceInjectionCardSizePerBlock, 
-    local_size_z = kAyanamiRadianceInjectionCardSizePerBlock
+    local_size_z = kAyanamiRadianceInjectionObjectsPerBlock 
     ) in;
-    
+
+layout(push_constant)  uniform PushConst{
+    uint totalCards;
+    uint cardResolution;
+    uint packedShadowMarkBits;
+    uint totalLights;
+    uint cardAtlasResolution;
+
+    uint lightDataId;
+    uint radianceOutId;
+    uint cardDataId;
+    uint depthAtlasSRVId;
+} PushConst;
+
+RegisterStorage(BAllCardData,{
+    CardData m_Mats[];
+});
+
 void main(){
+    uvec3 tID = gl_GlobalInvocationID;
+    uint maxCardsInLine = PushConst.cardAtlasResolution / PushConst.cardResolution;
+    uint cardIndex_X = tID.z % maxCardsInLine;
+    uint cardIndex_Y = tID.z / maxCardsInLine;
+    uvec2 cardOffset = uvec2(cardIndex_X * PushConst.cardResolution, cardIndex_Y * PushConst.cardResolution);
+    uvec2 tileOffset = uvec2(tID.x, tID.y);
+    uvec2 overallOffset = cardOffset + tileOffset;
+
+    uint cardIndex = tID.z;
+    uint tileIndex = tID.x + tID.y * gl_WorkGroupSize.x;
+
+
+    mat4 atlasToLocal = GetResource(BAllCardData, PushConst.cardDataId).m_Mats[cardIndex].m_VPInv;
     
 }

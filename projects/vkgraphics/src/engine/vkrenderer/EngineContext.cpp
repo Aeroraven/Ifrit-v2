@@ -17,11 +17,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <cstring>
 #include <vector>
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
@@ -30,28 +30,19 @@ namespace Ifrit::Graphics::VulkanGraphics
 {
 
     Vec<const char*> m_instanceExtension = { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
-    Vec<const char*> m_deviceExtensions  = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-         VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
-         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
-         VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
-         VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME,
-         VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
-         VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME,
-         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-         VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME,
-         VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-         VK_EXT_MESH_SHADER_EXTENSION_NAME,
-         VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,
-         VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME };
+    Vec<const char*> m_deviceExtensions  = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
+         VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME, VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
+         VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+         VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_EXT_MESH_SHADER_EXTENSION_NAME,
+         VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME };
 
-    Vec<const char*> m_deviceExtensionsExtended = {
-        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
-    };
+    Vec<const char*> m_deviceExtensionsExtended = { VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME };
 
-    bool enableExtension(bool mandatory, const char* extension,
-        const Vec<VkExtensionProperties>& availableExtensions,
-        Vec<const char*>&                 targetExtension)
+    bool enableExtension(bool mandatory, const char* extension, const Vec<VkExtensionProperties>& availableExtensions,
+        Vec<const char*>& targetExtension)
     {
         for (auto ext : availableExtensions)
         {
@@ -106,8 +97,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT                                                        messageType,
 
-        const VkDebugUtilsMessengerCallbackDataEXT*                                            pCallbackData,
-        void*                                                                                  pUserData)
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
     {
         if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
@@ -128,8 +118,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return VK_FALSE;
     }
     // START CLASS DEFINITION
-    template <typename T>
-    void loadExtFunc(T& extf, const char* name, VkDevice device)
+    template <typename T> void loadExtFunc(T& extf, const char* name, VkDevice device)
     {
         extf = (T)vkGetDeviceProcAddr(device, name);
         if (!extf)
@@ -138,12 +127,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL const Vec<const char*> EngineContext::GetDeviceExtensions() const
-    {
-        return m_deviceExtensions;
-    }
+    IFRIT_APIDECL const Vec<const char*> EngineContext::GetDeviceExtensions() const { return m_deviceExtensions; }
 
-    IFRIT_APIDECL void EngineContext::loadExtensionFunction()
+    IFRIT_APIDECL void                   EngineContext::loadExtensionFunction()
     {
         loadExtFunc(m_extf.p_vkCmdSetDepthTestEnable, "vkCmdSetDepthTestEnable", m_device);
         loadExtFunc(m_extf.p_vkCmdSetDepthWriteEnable, "vkCmdSetDepthWriteEnable", m_device);
@@ -170,22 +156,16 @@ namespace Ifrit::Graphics::VulkanGraphics
         loadExtFunc(m_extf.p_vkCmdBuildAccelerationStructuresKHR, "vkCmdBuildAccelerationStructuresKHR", m_device);
         loadExtFunc(m_extf.p_vkGetAccelerationStructureDeviceAddressKHR, "vkGetAccelerationStructureDeviceAddressKHR",
             m_device);
-        loadExtFunc(m_extf.p_vkGetAccelerationStructureBuildSizesKHR, "vkGetAccelerationStructureBuildSizesKHR", m_device);
+        loadExtFunc(
+            m_extf.p_vkGetAccelerationStructureBuildSizesKHR, "vkGetAccelerationStructureBuildSizesKHR", m_device);
         loadExtFunc(m_extf.p_vkCmdTraceRaysKHR, "vkCmdTraceRaysKHR", m_device);
         loadExtFunc(m_extf.p_vkCreateRayTracingPipelinesKHR, "vkCreateRayTracingPipelinesKHR", m_device);
 
         vkrDebug("Extension functions loaded");
     }
     IFRIT_APIDECL
-    EngineContext::EngineContext(const Rhi::RhiInitializeArguments& args)
-        : m_args(args)
-    {
-        Init();
-    }
-    IFRIT_APIDECL void EngineContext::WaitIdle()
-    {
-        vkDeviceWaitIdle(m_device);
-    }
+    EngineContext::EngineContext(const Rhi::RhiInitializeArguments& args) : m_args(args) { Init(); }
+    IFRIT_APIDECL void EngineContext::WaitIdle() { vkDeviceWaitIdle(m_device); }
     IFRIT_APIDECL void EngineContext::Init()
     {
         VkApplicationInfo appInfo  = {};
@@ -240,7 +220,8 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         // Instance : Layers
         u32 layerCount = 0;
-        vkrVulkanAssert(vkEnumerateInstanceLayerProperties(&layerCount, nullptr), "Failed to enumerate instance layers");
+        vkrVulkanAssert(
+            vkEnumerateInstanceLayerProperties(&layerCount, nullptr), "Failed to enumerate instance layers");
         Vec<VkLayerProperties> availableLayers(layerCount);
         vkrVulkanAssert(vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()),
             "Failed to enumerate instance layers");
@@ -261,15 +242,19 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             VkDebugUtilsMessengerCreateInfoEXT debugCI = {};
             debugCI.sType                              = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-            debugCI.messageSeverity                    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-            debugCI.messageType                        = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-            debugCI.pfnUserCallback                    = debugCallback;
-            debugCI.pUserData                          = nullptr;
+            debugCI.messageSeverity                    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+            debugCI.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+                | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+            debugCI.pfnUserCallback = debugCallback;
+            debugCI.pUserData       = nullptr;
 
-            auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT");
+            auto func =
+                (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT");
             if (func)
             {
-                vkrVulkanAssert(func(m_instance, &debugCI, nullptr, &m_debugMessenger), "Failed to create debug messenger");
+                vkrVulkanAssert(
+                    func(m_instance, &debugCI, nullptr, &m_debugMessenger), "Failed to create debug messenger");
             }
             else
             {
@@ -347,10 +332,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkPhysicalDeviceMeshShaderFeaturesEXT              meshShaderFeatures{};
         VkPhysicalDeviceHostQueryResetFeaturesEXT          hostQueryResetFeatures{};
 
-        deviceFeatures12.sType                                              = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-        deviceFeatures12.timelineSemaphore                                  = VK_TRUE;
-        deviceFeatures12.descriptorIndexing                                 = VK_TRUE;
-        deviceFeatures12.descriptorBindingPartiallyBound                    = VK_TRUE;
+        deviceFeatures12.sType                           = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+        deviceFeatures12.timelineSemaphore               = VK_TRUE;
+        deviceFeatures12.descriptorIndexing              = VK_TRUE;
+        deviceFeatures12.descriptorBindingPartiallyBound = VK_TRUE;
         deviceFeatures12.descriptorBindingSampledImageUpdateAfterBind       = VK_TRUE;
         deviceFeatures12.descriptorBindingStorageBufferUpdateAfterBind      = VK_TRUE;
         deviceFeatures12.descriptorBindingStorageImageUpdateAfterBind       = VK_TRUE;
@@ -371,27 +356,29 @@ namespace Ifrit::Graphics::VulkanGraphics
         deviceFeaturesDynamic.dynamicRendering = VK_TRUE;
         deviceFeaturesDynamic.pNext            = &deviceFeaturesDynamicVertexInput;
 
-        deviceFeaturesDynamicVertexInput.sType                   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT;
+        deviceFeaturesDynamicVertexInput.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT;
         deviceFeaturesDynamicVertexInput.vertexInputDynamicState = VK_TRUE;
         deviceFeaturesDynamicVertexInput.pNext                   = &deviceFeaturesExtendedDynamicState3;
 
-        deviceFeaturesExtendedDynamicState3.sType                                   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+        deviceFeaturesExtendedDynamicState3.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
         deviceFeaturesExtendedDynamicState3.extendedDynamicState3ColorBlendEnable   = VK_TRUE;
         deviceFeaturesExtendedDynamicState3.extendedDynamicState3LogicOpEnable      = VK_TRUE;
         deviceFeaturesExtendedDynamicState3.extendedDynamicState3ColorBlendEquation = VK_TRUE;
         deviceFeaturesExtendedDynamicState3.extendedDynamicState3ColorWriteMask     = VK_TRUE;
         deviceFeaturesExtendedDynamicState3.pNext                                   = &deviceFeaturesExtendedState2;
 
-        deviceFeaturesExtendedState2.sType                        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
+        deviceFeaturesExtendedState2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
         deviceFeaturesExtendedState2.extendedDynamicState2        = VK_TRUE;
         deviceFeaturesExtendedState2.extendedDynamicState2LogicOp = VK_TRUE;
         deviceFeaturesExtendedState2.pNext                        = &deviceFeaturesExtendedState;
 
-        deviceFeaturesExtendedState.sType                = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
+        deviceFeaturesExtendedState.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
         deviceFeaturesExtendedState.extendedDynamicState = VK_TRUE;
         deviceFeaturesExtendedState.pNext                = &deviceFeaturesColorWriteEnable;
 
-        deviceFeaturesColorWriteEnable.sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COLOR_WRITE_ENABLE_FEATURES_EXT;
+        deviceFeaturesColorWriteEnable.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COLOR_WRITE_ENABLE_FEATURES_EXT;
         deviceFeaturesColorWriteEnable.colorWriteEnable = VK_TRUE;
         deviceFeaturesColorWriteEnable.pNext            = &meshShaderFeatures;
 
@@ -418,8 +405,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(bestDevice, nullptr, &extensionCountDevice, nullptr),
             "Failed to enumerate device extensions");
         Vec<VkExtensionProperties> availableExtensionsDevice(extensionCountDevice);
-        vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(bestDevice, nullptr, &extensionCountDevice,
-                            availableExtensionsDevice.data()),
+        vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(
+                            bestDevice, nullptr, &extensionCountDevice, availableExtensionsDevice.data()),
             "Failed to enumerate device extensions");
         for (auto extension : m_deviceExtensions)
         {
@@ -505,8 +492,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkDestroyDevice(m_device, nullptr);
         if (m_args.m_enableValidationLayer)
         {
-            auto func =
-                (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT");
+            auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+                m_instance, "vkDestroyDebugUtilsMessengerEXT");
             if (func)
             {
                 func(m_instance, m_debugMessenger, nullptr);
@@ -515,8 +502,5 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkDestroyInstance(m_instance, nullptr);
     }
 
-    EngineContext::~EngineContext()
-    {
-        Destructor();
-    }
+    EngineContext::~EngineContext() { Destructor(); }
 } // namespace Ifrit::Graphics::VulkanGraphics

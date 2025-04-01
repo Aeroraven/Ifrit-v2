@@ -17,9 +17,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/util/ApiConv.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/platform/ApiConv.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include <memory>
 
@@ -40,59 +40,60 @@ namespace Ifrit::Graphics::VulkanGraphics
         RhiVulkanBackend(const Rhi::RhiInitializeArguments& args);
         ~RhiVulkanBackend();
 
-        void                                   WaitDeviceIdle() override;
-        Ref<Rhi::RhiDeviceTimer>               CreateDeviceTimer() override;
-        Rhi::RhiBufferRef                      CreateBuffer(const String& name, u32 size, u32 usage, bool hostVisible, bool addUAV) const override;
-        Rhi::RhiBufferRef                      CreateBufferDevice(const String& name, u32 size, u32 usage, bool addUAV) const override;
-        Ref<Rhi::RhiMultiBuffer>               CreateBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const override;
-        Ref<Rhi::RhiStagedSingleBuffer>        CreateStagedSingleBuffer(Rhi::RhiBuffer* target) override;
-        Rhi::RhiBufferRef                      GetFullScreenQuadVertexBuffer() const override;
+        void                     WaitDeviceIdle() override;
+        Ref<Rhi::RhiDeviceTimer> CreateDeviceTimer() override;
+        Rhi::RhiBufferRef        CreateBuffer(
+                   const String& name, u32 size, u32 usage, bool hostVisible, bool addUAV) const override;
+        Rhi::RhiBufferRef CreateBufferDevice(const String& name, u32 size, u32 usage, bool addUAV) const override;
+        Ref<Rhi::RhiMultiBuffer>        CreateBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const override;
+        Ref<Rhi::RhiStagedSingleBuffer> CreateStagedSingleBuffer(Rhi::RhiBuffer* target) override;
+        Rhi::RhiBufferRef               GetFullScreenQuadVertexBuffer() const override;
 
         // Command execution
-        Rhi::RhiQueue*                         GetQueue(Rhi::RhiQueueCapability req) override;
+        Rhi::RhiQueue*                  GetQueue(Rhi::RhiQueueCapability req) override;
 
         // Shader
-        Rhi::RhiShader*                        CreateShader(const String& name, const std::vector<char>& code, const String& entry, Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
+        Rhi::RhiShader*       CreateShader(const String& name, const std::vector<char>& code, const String& entry,
+                  Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
 
         // Texture
-        Rhi::RhiTextureRef                     CreateTexture2D(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
-        Rhi::RhiTextureRef                     CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV) override;
-        Rhi::RhiTextureRef                     CreateTexture3D(const String& name, u32 width, u32 height, u32 depth, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
-        Rhi::RhiSamplerRef                     CreateTrivialSampler() override;
-        Rhi::RhiSamplerRef                     CreateTrivialBilinearSampler(bool repeat) override;
-        Rhi::RhiSamplerRef                     CreateTrivialNearestSampler(bool repeat) override;
-        Rhi::RhiTextureRef                     CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
+        Rhi::RhiTextureRef    CreateTexture2D(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format,
+               u32 extraFlags, bool addUAV) override;
+        Rhi::RhiTextureRef    CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV) override;
+        Rhi::RhiTextureRef    CreateTexture3D(const String& name, u32 width, u32 height, u32 depth,
+               Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
+        Rhi::RhiSamplerRef    CreateTrivialSampler() override;
+        Rhi::RhiSamplerRef    CreateTrivialBilinearSampler(bool repeat) override;
+        Rhi::RhiSamplerRef    CreateTrivialNearestSampler(bool repeat) override;
+        Rhi::RhiTextureRef    CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips,
+               Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
 
         // Pass
-        Rhi::RhiComputePass*                   CreateComputePass() override;
-        Rhi::RhiGraphicsPass*                  CreateGraphicsPass() override;
+        Rhi::RhiComputePass*  CreateComputePass() override;
+        Rhi::RhiGraphicsPass* CreateGraphicsPass() override;
 
         // Swapchain
-        Rhi::RhiTexture*                       GetSwapchainImage() override;
-        void                                   BeginFrame() override;
-        void                                   EndFrame() override;
+        Rhi::RhiTexture*      GetSwapchainImage() override;
+        void                  BeginFrame() override;
+        void                  EndFrame() override;
         Uref<Rhi::RhiTaskSubmission>           GetSwapchainFrameReadyEventHandler() override;
         Uref<Rhi::RhiTaskSubmission>           GetSwapchainRenderDoneEventHandler() override;
 
         // Descriptor
         virtual Rhi::RhiBindlessDescriptorRef* createBindlessDescriptorRef() override;
-        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterUAVImage2(Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
-        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer) override;
-        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterStorageBufferShared(Rhi::RhiMultiBuffer* buffer) override;
-        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterCombinedImageSampler(Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler) override;
+        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterUAVImage2(
+             Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
+        virtual Ref<Rhi::RhiDescHandleLegacy> RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer) override;
+        virtual Ref<Rhi::RhiDescHandleLegacy> RegisterStorageBufferShared(Rhi::RhiMultiBuffer* buffer) override;
+        virtual Ref<Rhi::RhiDescHandleLegacy> RegisterCombinedImageSampler(
+            Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler) override;
 
         // Render targets
-        virtual Ref<Rhi::RhiColorAttachment>   CreateRenderTarget(
-              Rhi::RhiTexture*           renderTarget,
-              Rhi::RhiClearValue         clearValue,
-              Rhi::RhiRenderTargetLoadOp loadOp,
-              u32                        mips,
-              u32                        layers) override;
+        virtual Ref<Rhi::RhiColorAttachment>        CreateRenderTarget(Rhi::RhiTexture* renderTarget,
+                   Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers) override;
 
         virtual Ref<Rhi::RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
-            Rhi::RhiTexture*           renderTarget,
-            Rhi::RhiClearValue         clearValue,
-            Rhi::RhiRenderTargetLoadOp loadOp) override;
+            Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp) override;
 
         virtual Ref<Rhi::RhiRenderTargets>         CreateRenderTargets() override;
 
@@ -115,7 +116,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         virtual Uref<Rhi::RhiRTPass>               CreateRaytracingPass() { return nullptr; }
     };
 
-    class IFRIT_APIDECL RhiVulkanBackendBuilder : public Rhi::RhiBackendFactory, public Common::Utility::NonCopyable
+    class IFRIT_APIDECL RhiVulkanBackendBuilder : public Rhi::RhiBackendFactory, public NonCopyable
     {
     public:
         Uref<Rhi::RhiBackend> CreateBackend(const Rhi::RhiInitializeArguments& args) override;

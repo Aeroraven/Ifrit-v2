@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/softgraphics/engine/base/FrameBuffer.h"
-#include "ifrit/common/util/TypingUtil.h"
-using namespace Ifrit::Common::Utility;
+#include "ifrit/core/typing/Util.h"
+using namespace Ifrit;
 
 namespace Ifrit::Graphics::SoftGraphics
 {
@@ -33,14 +33,8 @@ namespace Ifrit::Graphics::SoftGraphics
         this->context->depthAttachment = &depthAttachment;
     }
 
-    IFRIT_APIDECL FrameBuffer::FrameBuffer()
-    {
-        this->context = new std::remove_pointer_t<decltype(this->context)>();
-    }
-    IFRIT_APIDECL FrameBuffer::~FrameBuffer()
-    {
-        delete this->context;
-    }
+    IFRIT_APIDECL FrameBuffer::FrameBuffer() { this->context = new std::remove_pointer_t<decltype(this->context)>(); }
+    IFRIT_APIDECL FrameBuffer::~FrameBuffer() { delete this->context; }
 
     /* DLL Compat */
 

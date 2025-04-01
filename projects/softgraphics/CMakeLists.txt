@@ -4,9 +4,9 @@ project(Ifrit-v2-Core LANGUAGES CXX C)
 set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
 string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
 
-include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/ProjectShared.cmake)
-include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/SIMDCheck.cmake)
-include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/GLFW3Resolve.cmake)
+include(${IFRIT_PROJECT_DIR}/projects/buildinfra/ProjectShared.cmake)
+include(${IFRIT_PROJECT_DIR}/projects/buildinfra/SIMDCheck.cmake)
+include(${IFRIT_PROJECT_DIR}/projects/buildinfra/GLFW3Resolve.cmake)
 
 set(IFRIT_SHADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/shader")
 set(IFRIT_ASSET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/asset")
@@ -45,7 +45,7 @@ else()
 endif()
 
 # If MinGW
-include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/WindowsLibConv.cmake)
+include(${IFRIT_PROJECT_DIR}/projects/buildinfra/WindowsLibConv.cmake)
 WindowsPrebuild(ifrit.softrenderer ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "libifrit.softrenderer")
 WindowsPostbuild(ifrit.softrenderer "libifrit.softrenderer.def" "libifrit.softrenderer.dll" "libifrit.softrenderer.lib" ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "x64")
 AddImpLib(ifrit.softrenderer ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "libifrit.softrenderer")

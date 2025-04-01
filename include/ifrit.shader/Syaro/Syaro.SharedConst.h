@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define SYARO_DEFINE_UINT(x, y) IF_CONSTEXPR uint32_t x = y;
     #define SYARO_DEFINE_FLOAT(x, y) IF_CONSTEXPR float x = y;
 
-namespace Ifrit::Core::SyaroConfig
+namespace Ifrit::Runtime::SyaroConfig
 {
 
 #else
@@ -108,7 +108,7 @@ namespace Ifrit::Core::SyaroConfig
 #define SYARO_DEFERRED_SHADOW_MAPPING_HALTON_PCF_NUM_SAMPLES 32
 
 #ifdef __cplusplus
-} // namespace Ifrit::Core::Syaro
+} // namespace Ifrit::Runtime::Syaro
     #undef SYARO_DEFINE_UINT
     #undef SYARO_DEFINE_FLOAT
 #endif

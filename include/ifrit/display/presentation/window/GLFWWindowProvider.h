@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/display/dependencies/GLAD/glad/glad.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include <deque>
@@ -58,8 +58,7 @@ namespace Ifrit::Display::Window
 
     public:
         GLFWWindowProvider() = default;
-        GLFWWindowProvider(const GLFWWindowProviderInitArgs& args)
-            : m_args(args) {}
+        GLFWWindowProvider(const GLFWWindowProviderInitArgs& args) : m_args(args) {}
         virtual bool        Setup(size_t width, size_t height) override;
         virtual void        Loop(const std::function<void(int*)>& func) override;
         virtual void        SetTitle(const std::string& title) override;
@@ -79,7 +78,7 @@ namespace Ifrit::Display::Window
                 throw std::runtime_error("GLFW fails");
             }
         }
-        virtual void                                   RegisterKeyCallback(std::function<void(int, int, int, int)>) override;
+        virtual void RegisterKeyCallback(std::function<void(int, int, int, int)>) override;
         inline std::function<void(int, int, int, int)> GetKeyCallBack() { return keyCallBack; }
     };
 } // namespace Ifrit::Display::Window

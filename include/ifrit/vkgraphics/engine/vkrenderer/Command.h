@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <memory>
@@ -34,11 +34,11 @@ namespace Ifrit::Graphics::VulkanGraphics
     public:
         Vec<VkVertexInputAttributeDescription2EXT> m_attributes;
         Vec<VkVertexInputBindingDescription2EXT>   m_bindings;
-        inline void                                AddBinding(Vec<u32> location, Vec<Rhi::RhiImageFormat> format, Vec<u32> offset, u32 stride,
-                                           Rhi::RhiVertexInputRate inputRate = Rhi::RhiVertexInputRate::Vertex) override
+        inline void AddBinding(Vec<u32> location, Vec<Rhi::RhiImageFormat> format, Vec<u32> offset, u32 stride,
+            Rhi::RhiVertexInputRate inputRate = Rhi::RhiVertexInputRate::Vertex) override
         {
             VkVertexInputBindingDescription2EXT binding{};
-            binding.binding = Ifrit::Common::Utility::SizeCast<u32>(m_bindings.size());
+            binding.binding = Ifrit::SizeCast<u32>(m_bindings.size());
             binding.stride  = stride;
             binding.divisor = 1;
             binding.sType   = VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
@@ -111,7 +111,9 @@ namespace Ifrit::Graphics::VulkanGraphics
     public:
         PipelineBarrier(EngineContext* ctx, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage,
             VkDependencyFlags dependencyFlags)
-            : m_context(ctx), m_srcStage(srcStage), m_dstStage(dstStage), m_dependencyFlags(dependencyFlags) {}
+            : m_context(ctx), m_srcStage(srcStage), m_dstStage(dstStage), m_dependencyFlags(dependencyFlags)
+        {
+        }
 
         void addMemoryBarrier(VkMemoryBarrier barrier);
         void addBufferMemoryBarrier(VkBufferMemoryBarrier barrier);
@@ -129,7 +131,9 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     public:
         CommandBuffer(EngineContext* ctx, VkCommandBuffer buffer, u32 queueFamily)
-            : m_context(ctx), m_commandBuffer(buffer), m_queueFamily(queueFamily) {}
+            : m_context(ctx), m_commandBuffer(buffer), m_queueFamily(queueFamily)
+        {
+        }
         virtual ~CommandBuffer() {}
 
         inline u32             GetQueueFamily() const { return m_queueFamily; }
@@ -143,42 +147,48 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         void                   Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const;
         void                   DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const;
-        void                   DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const override;
+        void                   DrawIndexed(
+                              u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const override;
 
-        void                   CopyBuffer(const Rhi::RhiBuffer* srcBuffer, const Rhi::RhiBuffer* dstBuffer, u32 size, u32 srcOffset = 0,
-                              u32 dstOffset = 0) const;
-        void                   CopyBufferToImageAllInternal(const Rhi::RhiBuffer* srcBuffer, VkImage dstImage, VkImageLayout dstLayout,
-                              u32 width, u32 height, u32 depth) const;
+        void CopyBuffer(const Rhi::RhiBuffer* srcBuffer, const Rhi::RhiBuffer* dstBuffer, u32 size, u32 srcOffset = 0,
+            u32 dstOffset = 0) const;
+        void CopyBufferToImageAllInternal(const Rhi::RhiBuffer* srcBuffer, VkImage dstImage, VkImageLayout dstLayout,
+            u32 width, u32 height, u32 depth) const;
 
         // Rhi compatible
-        void                   SetViewports(const Vec<Rhi::RhiViewport>& viewport) const override;
-        void                   SetScissors(const Vec<Rhi::RhiScissor>& scissor) const override;
-        void                   Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const override;
-        void                   DrawMeshTasksIndirect(const Rhi::RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const override;
+        void SetViewports(const Vec<Rhi::RhiViewport>& viewport) const override;
+        void SetScissors(const Vec<Rhi::RhiScissor>& scissor) const override;
+        void Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const override;
+        void DrawMeshTasksIndirect(const Rhi::RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const override;
 
-        void                   AddImageBarrier(Rhi::RhiTexture* texture, Rhi::RhiResourceState src, Rhi::RhiResourceState dst,
-                              Rhi::RhiImageSubResource subResource) const; // DEPRECATED
+        void AddImageBarrier(Rhi::RhiTexture* texture, Rhi::RhiResourceState src, Rhi::RhiResourceState dst,
+            Rhi::RhiImageSubResource subResource) const; // DEPRECATED
 
-        void                   AttachBindlessRefGraphics(Rhi::RhiGraphicsPass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const override;
-        void                   AttachBindlessRefCompute(Rhi::RhiComputePass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const override;
-        void                   AttachVertexBufferView(const Rhi::RhiVertexBufferView& view) const override;
-        void                   AttachVertexBuffers(u32 firstSlot, const Vec<Rhi::RhiBuffer*>& buffers) const override;
-        void                   AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const override;
-        void                   DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const override;
-        void                   BufferClear(const Rhi::RhiBuffer* buffer, u32 val) const override;
-        void                   DispatchIndirect(const Rhi::RhiBuffer* buffer, u32 offset) const override;
-        void                   SetPushConst(Rhi::RhiComputePass* pass, u32 offset, u32 size, const void* data) const override;
-        void                   SetPushConst(Rhi::RhiGraphicsPass* pass, u32 offset, u32 size, const void* data) const override;
-        void                   ClearUAVTexFloat(const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, const Array<float, 4>& val) const override;
-        void                   AddResourceBarrier(const Vec<Rhi::RhiResourceBarrier>& barriers) const override;
+        void AttachBindlessRefGraphics(
+            Rhi::RhiGraphicsPass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const override;
+        void AttachBindlessRefCompute(
+            Rhi::RhiComputePass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const override;
+        void AttachVertexBufferView(const Rhi::RhiVertexBufferView& view) const override;
+        void AttachVertexBuffers(u32 firstSlot, const Vec<Rhi::RhiBuffer*>& buffers) const override;
+        void AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const override;
+        void DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const override;
+        void BufferClear(const Rhi::RhiBuffer* buffer, u32 val) const override;
+        void DispatchIndirect(const Rhi::RhiBuffer* buffer, u32 offset) const override;
+        void SetPushConst(Rhi::RhiComputePass* pass, u32 offset, u32 size, const void* data) const override;
+        void SetPushConst(Rhi::RhiGraphicsPass* pass, u32 offset, u32 size, const void* data) const override;
+        void ClearUAVTexFloat(const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource,
+            const Array<float, 4>& val) const override;
+        void AddResourceBarrier(const Vec<Rhi::RhiResourceBarrier>& barriers) const override;
 
-        void                   GlobalMemoryBarrier() const override;
-        void                   BeginScope(const std::string& name) const override;
-        void                   EndScope() const override;
+        void GlobalMemoryBarrier() const override;
+        void BeginScope(const std::string& name) const override;
+        void EndScope() const override;
 
-        void                   CopyImage(const Rhi::RhiTexture* src, Rhi::RhiImageSubResource srcSub, const Rhi::RhiTexture* dst, Rhi::RhiImageSubResource dstSub) const override;
-        void                   CopyBufferToImage(const Rhi::RhiBuffer* src, const Rhi::RhiTexture* dst, Rhi::RhiImageSubResource dstSub) const override;
-        void                   SetCullMode(Rhi::RhiCullMode mode) const override;
+        void CopyImage(const Rhi::RhiTexture* src, Rhi::RhiImageSubResource srcSub, const Rhi::RhiTexture* dst,
+            Rhi::RhiImageSubResource dstSub) const override;
+        void CopyBufferToImage(
+            const Rhi::RhiBuffer* src, const Rhi::RhiTexture* dst, Rhi::RhiImageSubResource dstSub) const override;
+        void SetCullMode(Rhi::RhiCullMode mode) const override;
     };
 
     class IFRIT_APIDECL CommandPool
@@ -192,8 +202,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         void Init();
 
     public:
-        CommandPool(EngineContext* ctx, u32 chosenQueueFamily)
-            : m_context(ctx), m_queueFamily(chosenQueueFamily) { Init(); }
+        CommandPool(EngineContext* ctx, u32 chosenQueueFamily) : m_context(ctx), m_queueFamily(chosenQueueFamily)
+        {
+            Init();
+        }
         ~CommandPool();
         Ref<CommandBuffer>  AllocateCommandBuffer();
         Uref<CommandBuffer> AllocateCommandBufferUnique();
@@ -217,13 +229,13 @@ namespace Ifrit::Graphics::VulkanGraphics
         Queue(EngineContext* ctx, VkQueue queue, u32 queueFamily, u32 capability);
 
         virtual ~Queue() {}
-        inline VkQueue               GetQueue() const { return m_queue; }
-        inline u32                   GetQueueFamily() const { return m_queueFamily; }
-        inline u32                   GetCapability() const { return m_capability; }
+        inline VkQueue        GetQueue() const { return m_queue; }
+        inline u32            GetQueueFamily() const { return m_queueFamily; }
+        inline u32            GetCapability() const { return m_capability; }
 
-        CommandBuffer*               BeginRecording();
-        TimelineSemaphoreWait        SubmitCommand(const Vec<TimelineSemaphoreWait>& waitSemaphores, VkFence fence,
-                   VkSemaphore swapchainSemaphore = nullptr);
+        CommandBuffer*        BeginRecording();
+        TimelineSemaphoreWait SubmitCommand(
+            const Vec<TimelineSemaphoreWait>& waitSemaphores, VkFence fence, VkSemaphore swapchainSemaphore = nullptr);
         void                         WaitIdle();
         void                         CounterReset();
 
@@ -231,8 +243,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         void                         RunSyncCommand(std::function<void(const Rhi::RhiCommandList*)> func) override;
 
         Uref<Rhi::RhiTaskSubmission> RunAsyncCommand(std::function<void(const Rhi::RhiCommandList*)> func,
-            const Vec<Rhi::RhiTaskSubmission*>&                                                      waitOn,
-            const Vec<Rhi::RhiTaskSubmission*>&                                                      toIssue) override;
+            const Vec<Rhi::RhiTaskSubmission*>& waitOn, const Vec<Rhi::RhiTaskSubmission*>& toIssue) override;
 
         void                         HostWaitEvent(Rhi::RhiTaskSubmission* event) override;
     };
@@ -244,8 +255,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         Vec<Uref<Queue>> m_queues;
 
     public:
-        QueueCollections(EngineContext* ctx)
-            : m_context(ctx) {}
+        QueueCollections(EngineContext* ctx) : m_context(ctx) {}
         QueueCollections(const QueueCollections& p)            = delete; // copy constructor
         QueueCollections& operator=(const QueueCollections& p) = delete;
 

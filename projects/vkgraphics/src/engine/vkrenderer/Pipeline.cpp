@@ -17,16 +17,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/Pipeline.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include "sha1/sha1.hpp"
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 
 namespace Ifrit::Graphics::VulkanGraphics
 {
-    template <typename E>
-    IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
+    template <typename E> IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
     {
         return static_cast<typename std::underlying_type<E>::type>(e);
     }
@@ -34,22 +33,15 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL void GraphicsPipeline::Init()
     {
         // Dynamic states
-        Vec<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR,
-            VK_DYNAMIC_STATE_CULL_MODE_EXT,
-            VK_DYNAMIC_STATE_FRONT_FACE_EXT,
+        Vec<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
+            VK_DYNAMIC_STATE_CULL_MODE_EXT, VK_DYNAMIC_STATE_FRONT_FACE_EXT,
             VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT, //
-            VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT,
-            VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT,
-            VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT,
-            VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT,
-            VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT,
-            VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT,
+            VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT, VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT,
+            VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT, VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT,
+            VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT, VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT,
             VK_DYNAMIC_STATE_STENCIL_OP_EXT,
             VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT, // f
-            VK_DYNAMIC_STATE_LOGIC_OP_EXT,
-            VK_DYNAMIC_STATE_BLEND_CONSTANTS,
-            VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT,
+            VK_DYNAMIC_STATE_LOGIC_OP_EXT, VK_DYNAMIC_STATE_BLEND_CONSTANTS, VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT,
             VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT };
 
         if (m_createInfo.geomGenType == Rhi::RhiGeometryGenerationType::Conventional)
@@ -118,8 +110,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         for (int i = 0; i < m_createInfo.colorAttachmentFormats.size(); i++)
         {
             VkPipelineColorBlendAttachmentState attachment{};
-            attachment.colorWriteMask =
-                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT
+                | VK_COLOR_COMPONENT_A_BIT;
             attachment.blendEnable = VK_FALSE;
             colorBlendAttachment.push_back(attachment);
         }
@@ -262,8 +254,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         if (!cacheExists)
         {
             size_t cacheSize = 0;
-            vkrVulkanAssert(vkGetPipelineCacheData(device, cache, &cacheSize, nullptr),
-                "Failed to get pipeline cache data size");
+            vkrVulkanAssert(
+                vkGetPipelineCacheData(device, cache, &cacheSize, nullptr), "Failed to get pipeline cache data size");
             cacheData.resize(cacheSize);
             vkrVulkanAssert(vkGetPipelineCacheData(device, cache, &cacheSize, cacheData.data()),
                 "Failed to get pipeline cache data");
@@ -395,8 +387,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     // Class : Pipeline Cache
-    IFRIT_APIDECL PipelineCache::PipelineCache(EngineContext* context)
-        : m_context(context) {}
+    IFRIT_APIDECL          PipelineCache::PipelineCache(EngineContext* context) : m_context(context) {}
 
     IFRIT_APIDECL uint64_t PipelineCache::GraphicsPipelineHash(const GraphicsPipelineCreateInfo& ci)
     {
@@ -439,8 +430,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return hash;
     }
 
-    IFRIT_APIDECL bool PipelineCache::GraphicsPipelineEqual(const GraphicsPipelineCreateInfo& a,
-        const GraphicsPipelineCreateInfo&                                                     b)
+    IFRIT_APIDECL bool PipelineCache::GraphicsPipelineEqual(
+        const GraphicsPipelineCreateInfo& a, const GraphicsPipelineCreateInfo& b)
     {
         if (a.shaderModules.size() != b.shaderModules.size())
             return false;
@@ -481,8 +472,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return true;
     }
 
-    IFRIT_APIDECL bool PipelineCache::ComputePipelineEqual(const ComputePipelineCreateInfo& a,
-        const ComputePipelineCreateInfo&                                                    b)
+    IFRIT_APIDECL bool PipelineCache::ComputePipelineEqual(
+        const ComputePipelineCreateInfo& a, const ComputePipelineCreateInfo& b)
     {
         if (a.shaderModules != b.shaderModules)
             return false;

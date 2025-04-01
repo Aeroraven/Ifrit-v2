@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/display/presentation/backend/OpenGLBackend.h"
-#include "ifrit/common/logging/Logging.h"
+#include "ifrit/core/logging/Logging.h"
 
 static const char* vertexShaderCodeF   = R"(
 #version 330

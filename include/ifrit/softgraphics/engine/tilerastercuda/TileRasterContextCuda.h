@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 
 #include "ifrit/softgraphics/core/definition/CoreDefs.h"
 #include "ifrit/softgraphics/core/definition/CoreTypes.h"
@@ -33,59 +33,59 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Graphics::SoftGraphics::TileRaster::CUDA
 {
-	using namespace Ifrit::Graphics::SoftGraphics::TileRaster;
-	using namespace Ifrit::Graphics::SoftGraphics;
+    using namespace Ifrit::Graphics::SoftGraphics::TileRaster;
+    using namespace Ifrit::Graphics::SoftGraphics;
 
-	class TileRasterContextCuda
-	{
-	public:
-		// Non-owning Bindings
-		FrameBuffer*				   frameBuffer;
-		const VertexBuffer*			   vertexBuffer = nullptr;
-		const std::vector<int>*		   indexBuffer = nullptr;
-		VertexShader*				   vertexShader;
-		FragmentShader*				   fragmentShader;
-		GeometryShader*				   geometryShader;
-		VaryingDescriptor*			   varyingDescriptor;
+    class TileRasterContextCuda
+    {
+    public:
+        // Non-owning Bindings
+        FrameBuffer*                   frameBuffer;
+        const VertexBuffer*            vertexBuffer = nullptr;
+        const std::vector<int>*        indexBuffer  = nullptr;
+        VertexShader*                  vertexShader;
+        FragmentShader*                fragmentShader;
+        GeometryShader*                geometryShader;
+        VaryingDescriptor*             varyingDescriptor;
 
-		// == mesh shader ==
-		MeshShader*					   meshShader = nullptr;
-		TaskShader*					   taskShader = nullptr;
-		Vector3i					   meshShaderBlockSize;
-		int							   meshShaderAttributCnt;
-		int							   meshShaderNumWorkGroups;
+        // == mesh shader ==
+        MeshShader*                    meshShader = nullptr;
+        TaskShader*                    taskShader = nullptr;
+        Vector3i                       meshShaderBlockSize;
+        int                            meshShaderAttributCnt;
+        int                            meshShaderNumWorkGroups;
 
-		// == scissor test ==
-		bool						   scissorTestEnable = false;
-		std::vector<Vector4f>		   scissorAreas;
+        // == scissor test ==
+        bool                           scissorTestEnable = false;
+        std::vector<Vector4f>          scissorAreas;
 
-		// == blend state ==
-		IfritColorAttachmentBlendState blendState;
+        // == blend state ==
+        IfritColorAttachmentBlendState blendState;
 
-		// Constants
-		int							   vertexStride = 3;
-		int							   tileBlocksX = 64;
-		int							   subtileBlocksX = 4;
-		int							   vertexProcessingThreads = 128;
-		TileRasterDeviceConstants	   hostConstants;
+        // Constants
+        int                            vertexStride            = 3;
+        int                            tileBlocksX             = 64;
+        int                            subtileBlocksX          = 4;
+        int                            vertexProcessingThreads = 128;
+        TileRasterDeviceConstants      hostConstants;
 
-		// CUDA Contexts
-		TileRasterDeviceConstants*	   deviceConstants;
+        // CUDA Contexts
+        TileRasterDeviceConstants*     deviceConstants;
 
-		char**						   dVertexBuffer = nullptr;
-		int*						   dIndexBuffer = nullptr;
-		char**						   dVaryingBuffer = nullptr;
-		float**						   dColorBuffer = nullptr;
-		float*						   dDepthBuffer = nullptr;
+        char**                         dVertexBuffer  = nullptr;
+        int*                           dIndexBuffer   = nullptr;
+        char**                         dVaryingBuffer = nullptr;
+        float**                        dColorBuffer   = nullptr;
+        float*                         dDepthBuffer   = nullptr;
 
-		TileBinProposal***			   dRasterizerQueue = nullptr;
-		TileBinProposal***			   dCoverQueue = nullptr;
-		AssembledTriangleProposal**	   dAssembledTriangles = nullptr;
+        TileBinProposal***             dRasterizerQueue    = nullptr;
+        TileBinProposal***             dCoverQueue         = nullptr;
+        AssembledTriangleProposal**    dAssembledTriangles = nullptr;
 
-		u32**						   dRasterizerQueueSize = nullptr;
-		u32**						   dCoverQueueSize = nullptr;
-		u32*						   dAssembledTrianglesSize = nullptr;
+        u32**                          dRasterizerQueueSize    = nullptr;
+        u32**                          dCoverQueueSize         = nullptr;
+        u32*                           dAssembledTrianglesSize = nullptr;
 
-		irect2Df*					   dTileBounds = nullptr;
-	};
+        irect2Df*                      dTileBounds = nullptr;
+    };
 } // namespace Ifrit::Graphics::SoftGraphics::TileRaster::CUDA

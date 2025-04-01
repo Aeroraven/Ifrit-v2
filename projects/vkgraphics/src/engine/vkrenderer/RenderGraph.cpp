@@ -17,41 +17,28 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
-using namespace Ifrit::Common::Utility;
+using namespace Ifrit;
 namespace Ifrit::Graphics::VulkanGraphics
 {
-    inline VkFormat toVkFormat(Rhi::RhiImageFormat format)
-    {
-        return static_cast<VkFormat>(format);
-    }
+    inline VkFormat toVkFormat(Rhi::RhiImageFormat format) { return static_cast<VkFormat>(format); }
 
-    template <typename E>
-    IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
+    template <typename E> IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
     {
         return static_cast<typename std::underlying_type<E>::type>(e);
     }
     // Class : SwapchainImageResource
 
-    IFRIT_APIDECL VkFormat SwapchainImageResource::GetFormat() const
-    {
-        return m_swapchain->GetPreferredFormat();
-    }
+    IFRIT_APIDECL VkFormat    SwapchainImageResource::GetFormat() const { return m_swapchain->GetPreferredFormat(); }
 
-    IFRIT_APIDECL VkImage SwapchainImageResource::GetImage() const
-    {
-        return m_swapchain->GetCurrentImage();
-    }
+    IFRIT_APIDECL VkImage     SwapchainImageResource::GetImage() const { return m_swapchain->GetCurrentImage(); }
 
-    IFRIT_APIDECL VkImageView SwapchainImageResource::GetImageView()
-    {
-        return m_swapchain->GetCurrentImageView();
-    }
+    IFRIT_APIDECL VkImageView SwapchainImageResource::GetImageView() { return m_swapchain->GetCurrentImageView(); }
 
-    IFRIT_APIDECL VkImageView SwapchainImageResource::GetImageViewMipLayer(uint32_t mip, uint32_t layer, uint32_t mipRange,
-        uint32_t layerRange)
+    IFRIT_APIDECL VkImageView SwapchainImageResource::GetImageViewMipLayer(
+        uint32_t mip, uint32_t layer, uint32_t mipRange, uint32_t layerRange)
     {
         if (mipRange != 1 || layerRange != 1 || mip != 0 || layer != 0)
         {
@@ -61,8 +48,8 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     // Class : RegisteredResource
-    IFRIT_APIDECL void RegisteredResource::recordTransition(const RenderPassResourceTransition& transition,
-        uint32_t                                                                                queueFamily)
+    IFRIT_APIDECL void RegisteredResource::recordTransition(
+        const RenderPassResourceTransition& transition, uint32_t queueFamily)
     {
         m_currentLayout      = transition.m_newLayout;
         m_currentAccess      = transition.m_dstAccess;
@@ -78,15 +65,15 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     // Class : RenderGraphPass
 
-    IFRIT_APIDECL void RenderGraphPass::addInputResource(RegisteredResource* resource,
-        RenderPassResourceTransition                                         transition)
+    IFRIT_APIDECL void RenderGraphPass::addInputResource(
+        RegisteredResource* resource, RenderPassResourceTransition transition)
     {
         m_inputResources.push_back(resource);
         m_inputTransition.push_back(transition);
     }
 
-    IFRIT_APIDECL void RenderGraphPass::addOutputResource(RegisteredResource* resource,
-        RenderPassResourceTransition                                          transition)
+    IFRIT_APIDECL void RenderGraphPass::addOutputResource(
+        RegisteredResource* resource, RenderPassResourceTransition transition)
     {
         m_outputResources.push_back(resource);
         m_outputTransition.push_back(transition);
@@ -113,8 +100,8 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL
-    void RenderGraphPass::AddStorageBuffer_base(RegisteredBufferHandle* buffer, uint32_t position,
-        Rhi::RhiResourceAccessType access)
+    void RenderGraphPass::AddStorageBuffer_base(
+        RegisteredBufferHandle* buffer, uint32_t position, Rhi::RhiResourceAccessType access)
     {
         auto numCopies = buffer->GetNumBuffers();
         m_resourceDescriptorHandle[position].resize(numCopies);
@@ -131,14 +118,14 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_ssboAccess.push_back(access);
     }
 
-    IFRIT_APIDECL void RenderGraphPass::AddCombinedImageSampler(RegisteredImageHandle* image,
-        RegisteredSamplerHandle* sampler, uint32_t position)
+    IFRIT_APIDECL void RenderGraphPass::AddCombinedImageSampler(
+        RegisteredImageHandle* image, RegisteredSamplerHandle* sampler, uint32_t position)
     {
         auto numCopies = image->GetNumBuffers();
         m_resourceDescriptorHandle[position].resize(numCopies);
         for (int i = 0; i < static_cast<int>(numCopies); i++)
         {
-            auto v                                  = m_descriptorManager->RegisterCombinedImageSampler(image->GetImage(i), sampler->GetSampler());
+            auto v = m_descriptorManager->RegisterCombinedImageSampler(image->GetImage(i), sampler->GetSampler());
             m_resourceDescriptorHandle[position][i] = v;
         }
         // Add as input
@@ -193,12 +180,12 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
             m_descriptorBindRange[T] = m_descriptorManager->RegisterBindlessParameterRaw(
                 reinterpret_cast<const char*>(descriptorHandles.data()),
-                Ifrit::Common::Utility::SizeCast<uint32_t>(descriptorHandles.size()) * sizeof(uint32_t));
+                Ifrit::SizeCast<uint32_t>(descriptorHandles.size()) * sizeof(uint32_t));
         }
     }
 
-    IFRIT_APIDECL void
-    RenderGraphPass::SetRecordFunction_base(std::function<void(Rhi::RhiRenderPassContext*)> executeFunction)
+    IFRIT_APIDECL void RenderGraphPass::SetRecordFunction_base(
+        std::function<void(Rhi::RhiRenderPassContext*)> executeFunction)
     {
         m_recordFunction = executeFunction;
     }
@@ -216,15 +203,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL std::vector<RegisteredResource*>& RenderGraphPass::getInputResources()
-    {
-        return m_inputResources;
-    }
+    IFRIT_APIDECL std::vector<RegisteredResource*>& RenderGraphPass::getInputResources() { return m_inputResources; }
 
-    IFRIT_APIDECL std::vector<RegisteredResource*>& RenderGraphPass::getOutputResources()
-    {
-        return m_outputResources;
-    }
+    IFRIT_APIDECL std::vector<RegisteredResource*>& RenderGraphPass::getOutputResources() { return m_outputResources; }
 
     IFRIT_APIDECL void RenderGraphPass::withCommandBuffer(CommandBuffer* commandBuffer, std::function<void()> func)
     {
@@ -236,7 +217,9 @@ namespace Ifrit::Graphics::VulkanGraphics
     // Class : GraphicsPass
     IFRIT_APIDECL GraphicsPass::GraphicsPass(EngineContext* context, PipelineCache* pipelineCache,
         DescriptorManager* descriptorManager, RegisteredResourceMapper* mapper)
-        : RenderGraphPass(context, descriptorManager, mapper), m_pipelineCache(pipelineCache) {}
+        : RenderGraphPass(context, descriptorManager, mapper), m_pipelineCache(pipelineCache)
+    {
+    }
 
     IFRIT_APIDECL void GraphicsPass::SetRenderTargetFormat(const Rhi::RhiRenderTargetsFormat& format)
     {
@@ -253,20 +236,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_fragmentShader = CheckedCast<ShaderModule>(shader);
     }
 
-    IFRIT_APIDECL void GraphicsPass::setGeometryShader(ShaderModule* shader)
-    {
-        m_geometryShader = shader;
-    }
+    IFRIT_APIDECL void GraphicsPass::setGeometryShader(ShaderModule* shader) { m_geometryShader = shader; }
 
-    IFRIT_APIDECL void GraphicsPass::setTessControlShader(ShaderModule* shader)
-    {
-        m_tessControlShader = shader;
-    }
+    IFRIT_APIDECL void GraphicsPass::setTessControlShader(ShaderModule* shader) { m_tessControlShader = shader; }
 
-    IFRIT_APIDECL void GraphicsPass::setTessEvalShader(ShaderModule* shader)
-    {
-        m_tessEvalShader = shader;
-    }
+    IFRIT_APIDECL void GraphicsPass::setTessEvalShader(ShaderModule* shader) { m_tessEvalShader = shader; }
 
     IFRIT_APIDECL void GraphicsPass::SetTaskShader(Rhi::RhiShader* shader)
     {
@@ -283,14 +257,16 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_passContext.m_cmd   = m_commandBuffer;
         m_passContext.m_frame = m_activeFrame;
         renderTarget->BeginRendering(m_commandBuffer);
-        vkCmdBindPipeline(m_commandBuffer->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->GetPipeline());
+        vkCmdBindPipeline(
+            m_commandBuffer->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->GetPipeline());
         auto exfun = m_context->GetExtensionFunction();
         auto cmd   = m_commandBuffer->GetCommandBuffer();
         if (m_meshShader == nullptr)
         {
-            exfun.p_vkCmdSetVertexInputEXT(
-                cmd, SizeCast<uint32_t>(m_vertexBufferDescriptor.m_bindings.size()), m_vertexBufferDescriptor.m_bindings.data(),
-                SizeCast<uint32_t>(m_vertexBufferDescriptor.m_attributes.size()), m_vertexBufferDescriptor.m_attributes.data());
+            exfun.p_vkCmdSetVertexInputEXT(cmd, SizeCast<uint32_t>(m_vertexBufferDescriptor.m_bindings.size()),
+                m_vertexBufferDescriptor.m_bindings.data(),
+                SizeCast<uint32_t>(m_vertexBufferDescriptor.m_attributes.size()),
+                m_vertexBufferDescriptor.m_attributes.data());
 
             std::vector<VkBuffer>     vxbuffers;
             std::vector<VkDeviceSize> offsets;
@@ -301,8 +277,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
             if (vxbuffers.size() > 0)
             {
-                vkCmdBindVertexBuffers(cmd, 0, Ifrit::Common::Utility::SizeCast<uint32_t>(m_vertexBuffers.size()),
-                    vxbuffers.data(), offsets.data());
+                vkCmdBindVertexBuffers(
+                    cmd, 0, Ifrit::SizeCast<uint32_t>(m_vertexBuffers.size()), vxbuffers.data(), offsets.data());
             }
 
             if (m_indexBuffer)
@@ -312,14 +288,14 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
 
         auto bindlessSet = m_descriptorManager->GetBindlessSet();
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->GetLayout(), 0, 1, &bindlessSet, 0,
-            nullptr);
+        vkCmdBindDescriptorSets(
+            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->GetLayout(), 0, 1, &bindlessSet, 0, nullptr);
 
         exfun.p_vkCmdSetLogicOpEnableEXT(cmd, m_logicalOpEnable);
         exfun.p_vkCmdSetLogicOpEXT(cmd, m_logicOp);
         exfun.p_vkCmdSetStencilTestEnable(cmd, m_stencilEnable);
-        exfun.p_vkCmdSetStencilOp(cmd, m_stencilOp.faceMask, m_stencilOp.failOp, m_stencilOp.passOp, m_stencilOp.depthFailOp,
-            m_stencilOp.compareOp);
+        exfun.p_vkCmdSetStencilOp(cmd, m_stencilOp.faceMask, m_stencilOp.failOp, m_stencilOp.passOp,
+            m_stencilOp.depthFailOp, m_stencilOp.compareOp);
 
         exfun.p_vkCmdSetDepthBoundsTestEnable(cmd, m_depthBoundTestEnable);
         // exfun.p_vkCmdSetDepthCompareOp(cmd, m_depthCompareOp);
@@ -348,15 +324,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_renderArea.extent = { width, height };
     }
 
-    IFRIT_APIDECL void GraphicsPass::SetDepthWrite(bool write)
-    {
-        m_depthWrite = write;
-    }
+    IFRIT_APIDECL void GraphicsPass::SetDepthWrite(bool write) { m_depthWrite = write; }
 
-    IFRIT_APIDECL void GraphicsPass::SetDepthTestEnable(bool enable)
-    {
-        m_depthTestEnable = enable;
-    }
+    IFRIT_APIDECL void GraphicsPass::SetDepthTestEnable(bool enable) { m_depthTestEnable = enable; }
     IFRIT_APIDECL void GraphicsPass::SetDepthCompareOp(Rhi::RhiCompareOp compareOp)
     {
         VkCompareOp vkcmp;
@@ -403,8 +373,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         throw std::runtime_error("Deprecated");
     }
 
-    IFRIT_APIDECL void GraphicsPass::setVertexInput(const VertexBufferDescriptor& descriptor,
-        const std::vector<RegisteredBufferHandle*>&                               buffers)
+    IFRIT_APIDECL void GraphicsPass::setVertexInput(
+        const VertexBufferDescriptor& descriptor, const std::vector<RegisteredBufferHandle*>& buffers)
     {
         m_vertexBufferDescriptor = descriptor;
         m_vertexBuffers          = buffers;
@@ -485,12 +455,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         setBuilt();
     }
 
-    IFRIT_APIDECL uint32_t GraphicsPass::getRequiredQueueCapability()
-    {
-        return VK_QUEUE_GRAPHICS_BIT;
-    }
+    IFRIT_APIDECL uint32_t GraphicsPass::getRequiredQueueCapability() { return VK_QUEUE_GRAPHICS_BIT; }
 
-    IFRIT_APIDECL void ComputePass::Run(const Rhi::RhiCommandList* cmd, uint32_t frameId)
+    IFRIT_APIDECL void     ComputePass::Run(const Rhi::RhiCommandList* cmd, uint32_t frameId)
     {
         if (m_passBuilt == false)
         {
@@ -524,18 +491,16 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_shaderModule = p;
     }
 
-    IFRIT_APIDECL uint32_t ComputePass::getRequiredQueueCapability()
-    {
-        return VK_QUEUE_COMPUTE_BIT;
-    }
+    IFRIT_APIDECL uint32_t ComputePass::getRequiredQueueCapability() { return VK_QUEUE_COMPUTE_BIT; }
 
-    IFRIT_APIDECL void ComputePass::record()
+    IFRIT_APIDECL void     ComputePass::record()
     {
         m_passContext.m_cmd         = m_commandBuffer;
         m_passContext.m_frame       = m_activeFrame;
         VkCommandBuffer cmd         = m_commandBuffer->GetCommandBuffer();
         auto            bindlessSet = m_descriptorManager->GetBindlessSet();
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline->GetLayout(), 0, 1, &bindlessSet, 0, nullptr);
+        vkCmdBindDescriptorSets(
+            cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline->GetLayout(), 0, 1, &bindlessSet, 0, nullptr);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline->GetPipeline());
 
         if (m_recordFunction)
@@ -544,8 +509,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void GraphicsPass::Run(const Rhi::RhiCommandList* cmd, Rhi::RhiRenderTargets* renderTargets,
-        uint32_t frameId)
+    IFRIT_APIDECL void GraphicsPass::Run(
+        const Rhi::RhiCommandList* cmd, Rhi::RhiRenderTargets* renderTargets, uint32_t frameId)
     {
         if (m_passBuilt == false)
         {
@@ -569,16 +534,18 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL GraphicsPass* RenderGraph::addGraphicsPass()
     {
-        auto pass = std::make_unique<GraphicsPass>(m_context, m_pipelineCache.get(), m_descriptorManager, m_mapper.get());
-        auto ptr  = pass.get();
+        auto pass =
+            std::make_unique<GraphicsPass>(m_context, m_pipelineCache.get(), m_descriptorManager, m_mapper.get());
+        auto ptr = pass.get();
         m_passes.push_back(std::move(pass));
         return ptr;
     }
 
     IFRIT_APIDECL ComputePass* RenderGraph::addComputePass()
     {
-        auto pass = std::make_unique<ComputePass>(m_context, m_pipelineCache.get(), m_descriptorManager, m_mapper.get());
-        auto ptr  = pass.get();
+        auto pass =
+            std::make_unique<ComputePass>(m_context, m_pipelineCache.get(), m_descriptorManager, m_mapper.get());
+        auto ptr = pass.get();
         m_passes.push_back(std::move(pass));
         return ptr;
     }
@@ -745,15 +712,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL std::vector<std::vector<uint32_t>>& RenderGraph::getSubgraphs()
-    {
-        return m_subgraphs;
-    }
+    IFRIT_APIDECL std::vector<std::vector<uint32_t>>& RenderGraph::getSubgraphs() { return m_subgraphs; }
 
-    IFRIT_APIDECL void RenderGraph::resizeCommandBuffers(uint32_t size)
-    {
-        m_commandBuffers.resize(size);
-    }
+    IFRIT_APIDECL void RenderGraph::resizeCommandBuffers(uint32_t size) { m_commandBuffers.resize(size); }
 
     IFRIT_APIDECL void RenderGraph::buildPassDescriptors(uint32_t numMultiBuffer)
     {
@@ -773,7 +734,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return ptr;
     }
 
-    IFRIT_APIDECL void CommandExecutor::setQueues(bool reqPresentQueue, int numGraphics, int numCompute, int numTransfer)
+    IFRIT_APIDECL void CommandExecutor::setQueues(
+        bool reqPresentQueue, int numGraphics, int numCompute, int numTransfer)
     {
         if (m_queueCollections == nullptr)
         {
@@ -991,9 +953,9 @@ namespace Ifrit::Graphics::VulkanGraphics
                     wait.m_value     = 0;
                     wait.m_waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 
-                    auto                  renderFinishSemaphore = m_swapchain->GetRenderingFinishSemaphoreCurrentFrame();
+                    auto renderFinishSemaphore = m_swapchain->GetRenderingFinishSemaphoreCurrentFrame();
 
-                    auto                  fence = m_swapchain->GetCurrentFrameFence();
+                    auto fence = m_swapchain->GetCurrentFrameFence();
 
                     TimelineSemaphoreWait newWait;
                     if (j == 0)
@@ -1023,8 +985,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void CommandExecutor::runImmidiateCommand(std::function<void(CommandBuffer*)> func,
-        QueueRequirement                                                                        req)
+    IFRIT_APIDECL void CommandExecutor::runImmidiateCommand(
+        std::function<void(CommandBuffer*)> func, QueueRequirement req)
     {
         auto queue              = m_queues;
         auto requiredCapability = getUnderlying(req);
@@ -1052,10 +1014,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_swapchain->AcquireNextImage();
         m_swapchainImageResource->ForceResetState();
     }
-    IFRIT_APIDECL void CommandExecutor::EndFrame()
-    {
-        m_swapchain->Present();
-    }
+    IFRIT_APIDECL void   CommandExecutor::EndFrame() { m_swapchain->Present(); }
 
     IFRIT_APIDECL Queue* CommandExecutor::GetQueue(QueueRequirement req)
     {

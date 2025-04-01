@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include <chrono>
 #include <iostream>
 #include <sstream>
@@ -51,7 +51,7 @@ namespace Ifrit::Display::Window
         }
         // disable window resizing
         glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-        using Ifrit::Common::Utility::SizeCast;
+        using Ifrit::SizeCast;
         window = glfwCreateWindow(SizeCast<int>(argWidth), SizeCast<int>(argHeight), "Ifrit", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         auto keyFunc = [](GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -89,8 +89,9 @@ namespace Ifrit::Display::Window
 
             auto end           = std::chrono::high_resolution_clock::now();
             using durationType = decltype(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
-            frameTimes.push_back(Ifrit::Common::Utility::SizeCast<int>(std::max(
-                std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), static_cast<durationType>(1ll))));
+            frameTimes.push_back(Ifrit::SizeCast<int>(
+                std::max(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(),
+                    static_cast<durationType>(1ll))));
             if (repCore != -1)
                 frameTimesCore.push_back(repCore);
             else

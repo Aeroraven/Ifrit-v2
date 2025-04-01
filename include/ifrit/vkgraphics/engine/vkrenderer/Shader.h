@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "spirv_reflect/spirv_reflect.h"
@@ -60,12 +60,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkPipelineShaderStageCreateInfo GetStageCI() const;
         inline u32                      GetCodeSize() const
         {
-            using namespace Ifrit::Common::Utility;
+            using namespace Ifrit;
             return SizeCast<u32>(m_ci.code.size());
         }
         inline u32 GetNumDescriptorSets() const override
         {
-            using namespace Ifrit::Common::Utility;
+            using namespace Ifrit;
             return SizeCast<u32>(m_reflectSets.size());
         }
         virtual Rhi::RhiShaderStage GetStage() const override { return m_ci.stage; }

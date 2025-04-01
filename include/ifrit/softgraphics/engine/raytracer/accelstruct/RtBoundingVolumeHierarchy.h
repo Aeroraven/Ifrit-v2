@@ -21,65 +21,65 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/softgraphics/core/definition/CoreExports.h"
 #include "ifrit/softgraphics/engine/base/RaytracerBase.h"
 // Order required
-#include "ifrit/common/math/simd/SimdVectors.h"
+#include "ifrit/core/math/simd/SimdVectors.h"
 
 int getProfileCnt();
 
 namespace Ifrit::Graphics::SoftGraphics::Raytracer
 {
 
-	struct BoundingBox
-	{
-		Ifrit::Math::SIMD::SVector3f bmin, bmax;
-	};
+    struct BoundingBox
+    {
+        Ifrit::Math::SIMD::SVector3f bmin, bmax;
+    };
 
-	struct BVHNode
-	{
-		BoundingBox				 bbox;
-		std::unique_ptr<BVHNode> left = nullptr, right = nullptr;
-		int						 elementSize = 0;
-		int						 startPos = 0;
-	};
+    struct BVHNode
+    {
+        BoundingBox              bbox;
+        std::unique_ptr<BVHNode> left = nullptr, right = nullptr;
+        int                      elementSize = 0;
+        int                      startPos    = 0;
+    };
 
-	class IFRIT_APIDECL BoundingVolumeHierarchyBottomLevelAS
-	{
-	private:
-		std::vector<Ifrit::Math::SIMD::SVector3f> data;
-		std::unique_ptr<BVHNode>				  root;
-		std::vector<BoundingBox>				  bboxes;
-		std::vector<Ifrit::Math::SIMD::SVector3f> centers;
-		std::vector<int>						  belonging;
-		std::vector<int>						  indices;
-		int										  size;
+    class IFRIT_APIDECL BoundingVolumeHierarchyBottomLevelAS
+    {
+    private:
+        std::vector<Ifrit::Math::SIMD::SVector3f> data;
+        std::unique_ptr<BVHNode>                  root;
+        std::vector<BoundingBox>                  bboxes;
+        std::vector<Ifrit::Math::SIMD::SVector3f> centers;
+        std::vector<int>                          belonging;
+        std::vector<int>                          indices;
+        int                                       size;
 
-		std::vector<Ifrit::Math::SIMD::SVector4f> balwinTmat1, balwinTmat2, balwinTmat3;
+        std::vector<Ifrit::Math::SIMD::SVector4f> balwinTmat1, balwinTmat2, balwinTmat3;
 
-	public:
-		BoundingVolumeHierarchyBottomLevelAS() = default;
-		~BoundingVolumeHierarchyBottomLevelAS() = default;
-		void			   bufferData(const std::vector<Vector3f>& data);
-		RayHit			   queryIntersection(const RayInternal& ray, float tmin, float tmax) const;
-		void			   buildAccelerationStructure();
+    public:
+        BoundingVolumeHierarchyBottomLevelAS()  = default;
+        ~BoundingVolumeHierarchyBottomLevelAS() = default;
+        void               bufferData(const std::vector<Vector3f>& data);
+        RayHit             queryIntersection(const RayInternal& ray, float tmin, float tmax) const;
+        void               buildAccelerationStructure();
 
-		inline BoundingBox getRootBbox() { return root->bbox; }
-	};
+        inline BoundingBox getRootBbox() { return root->bbox; }
+    };
 
-	class IFRIT_APIDECL BoundingVolumeHierarchyTopLevelAS
-	{
-	private:
-		std::vector<BoundingVolumeHierarchyBottomLevelAS*> data;
-		std::unique_ptr<BVHNode>						   root;
-		std::vector<BoundingBox>						   bboxes;
-		std::vector<Ifrit::Math::SIMD::SVector3f>		   centers;
-		std::vector<int>								   belonging;
-		std::vector<int>								   indices;
-		int												   size;
+    class IFRIT_APIDECL BoundingVolumeHierarchyTopLevelAS
+    {
+    private:
+        std::vector<BoundingVolumeHierarchyBottomLevelAS*> data;
+        std::unique_ptr<BVHNode>                           root;
+        std::vector<BoundingBox>                           bboxes;
+        std::vector<Ifrit::Math::SIMD::SVector3f>          centers;
+        std::vector<int>                                   belonging;
+        std::vector<int>                                   indices;
+        int                                                size;
 
-	public:
-		BoundingVolumeHierarchyTopLevelAS() = default;
-		~BoundingVolumeHierarchyTopLevelAS() = default;
-		void   bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& data);
-		RayHit queryIntersection(const RayInternal& ray, float tmin, float tmax) const;
-		void   buildAccelerationStructure();
-	};
+    public:
+        BoundingVolumeHierarchyTopLevelAS()  = default;
+        ~BoundingVolumeHierarchyTopLevelAS() = default;
+        void   bufferData(const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& data);
+        RayHit queryIntersection(const RayInternal& ray, float tmin, float tmax) const;
+        void   buildAccelerationStructure();
+    };
 } // namespace Ifrit::Graphics::SoftGraphics::Raytracer

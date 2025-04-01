@@ -4,7 +4,7 @@ project(Ifrit-v2-MeshProcLib LANGUAGES CXX C)
 set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
 string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
 
-include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/ProjectShared.cmake)
+include(${IFRIT_PROJECT_DIR}/projects/buildinfra/ProjectShared.cmake)
 
 # Set output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${IFRIT_PROJECT_DIR}/bin)
@@ -27,7 +27,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 include(CheckCXXCompilerFlag)
 include(CheckCSourceCompiles)
 
-include(${IFRIT_PROJECT_DIR}/projects/common/buildinfra/SIMDCheck.cmake)
+include(${IFRIT_PROJECT_DIR}/projects/buildinfra/SIMDCheck.cmake)
 
 file(GLOB_RECURSE SOURCE_0 "include/*.h")
 file(GLOB_RECURSE SOURCE_1 "src/*.cpp")

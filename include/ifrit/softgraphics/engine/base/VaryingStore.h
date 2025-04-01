@@ -17,23 +17,23 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/softgraphics/core/definition/CoreDefs.h"
 #include "ifrit/softgraphics/core/definition/CoreTypes.h"
 
 namespace Ifrit::Graphics::SoftGraphics
 {
-	union IFRIT_APIDECL VaryingStore
-	{
-		float	 vf;
-		int		 vi;
-		u32		 vui;
-		Vector2f vf2;
-		Vector3f vf3;
-		Vector4f vf4;
-		Vector2i vi2;
-		Vector3i vi3;
-		Vector4i vi4;
-		Vector2u vui2;
-	};
+    union IFRIT_APIDECL VaryingStore
+    {
+        float    vf;
+        int      vi;
+        u32      vui;
+        Vector2f vf2;
+        Vector3f vf3;
+        Vector4f vf4;
+        Vector2i vi2;
+        Vector3i vi3;
+        Vector4i vi4;
+        Vector2u vui2;
+    };
 } // namespace Ifrit::Graphics::SoftGraphics

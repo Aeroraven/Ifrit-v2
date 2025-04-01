@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include <vulkan/vulkan.h>
-#include "ifrit/common/logging/Logging.h"
+#include "ifrit/core/logging/Logging.h"
 #include <stdexcept>
 namespace Ifrit::Graphics::VulkanGraphics
 {
@@ -30,10 +30,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             throw std::runtime_error(message);
         }
     }
-    inline void vkrDebug(const char* message)
-    {
-        iDebug(message);
-    }
+    inline void vkrDebug(const char* message) { iDebug(message); }
     inline void vkrVulkanAssert(VkResult result, const char* message)
     {
         if (result != VK_SUCCESS)
@@ -95,10 +92,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             throw std::runtime_error(message);
         }
     }
-    inline void vkrLog(const char* message)
-    {
-        iInfo(message);
-    }
+    inline void vkrLog(const char* message) { iInfo(message); }
     inline void vkrError(const char* message)
     {
         iError("Error:{}", message);

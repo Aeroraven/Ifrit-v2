@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "engine/tileraster/TileRasterWorker.h"
 #include "engine/tilerastercuda/TileRasterCoreInvocationCuda.cuh"
 #include "engine/tilerastercuda/TileRasterRendererCuda.h"
-#include "ifrit/common/math/LinalgOps.h"
+#include "ifrit/core/math/LinalgOps.h"
 #include "presentation/backend/AdaptiveBackendBuilder.h"
 #include "presentation/backend/TerminalAsciiBackend.h"
 #include "presentation/backend/TerminalCharColorBackend.h"
@@ -60,7 +60,8 @@ namespace Ifrit::Demo::MeshletDemo
     class MeshletDemoVS : public VertexShader
     {
     public:
-        IFRIT_DUAL virtual void execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) override
+        IFRIT_DUAL virtual void execute(
+            const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) override
         {
             auto s          = *reinterpret_cast<const Vector4f*>(input[0]);
             auto p          = MatMul(mvp, s);
@@ -99,8 +100,8 @@ namespace Ifrit::Demo::MeshletDemo
         loader.loadObject(IFRIT_ASSET_PATH "/bunny.obj", pos, normal, uv, index);
         procNormal = loader.RemapNormals(normal, index, pos.size());
 
-        std::shared_ptr<ImageF32>               image    = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
-        std::shared_ptr<ImageF32>               depth    = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
+        std::shared_ptr<ImageF32>               image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
+        std::shared_ptr<ImageF32>               depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
         std::shared_ptr<TileRasterRendererCuda> renderer = std::make_shared<TileRasterRendererCuda>();
         FrameBuffer                             frameBuffer;
 
@@ -183,7 +184,7 @@ namespace Ifrit::Demo::MeshletDemo
             renderer->clear();
             renderer->DrawMeshTasks(totalMeshlets, 0);
             std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-            *coreTime                                          = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            *coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             backend->UpdateTexture(*image);
             backend->draw();
         });
@@ -246,8 +247,8 @@ namespace Ifrit::Demo::MeshletDemo
         shared_ptr<TrivialBufferManager> bufferman = make_shared<TrivialBufferManager>();
         bufferman->Init();
         auto indexBuffer1 = bufferman->CreateBuffer({ sizeof(mergedMeshlet.ibufs[0]) * mergedMeshlet.ibufs.size() });
-        bufferman->bufferData(indexBuffer1, indexBuffer.data(), 0,
-            sizeof(mergedMeshlet.ibufs[0]) * mergedMeshlet.ibufs.size());
+        bufferman->bufferData(
+            indexBuffer1, indexBuffer.data(), 0, sizeof(mergedMeshlet.ibufs[0]) * mergedMeshlet.ibufs.size());
 
         renderer->bindIndexBuffer(indexBuffer1);
         renderer->optsetForceDeterministic(true);
@@ -271,7 +272,7 @@ namespace Ifrit::Demo::MeshletDemo
             std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
             renderer->drawElements(mergedMeshlet.ibufs.size(), true);
             std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-            *coreTime                                          = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            *coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             backend->UpdateTexture(*image);
             backend->draw();
         });

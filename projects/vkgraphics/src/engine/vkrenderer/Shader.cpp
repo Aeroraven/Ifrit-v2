@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "spirv_reflect/spirv_reflect.c"
 
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include "sha1/sha1.hpp"
@@ -35,8 +35,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         Vec<String> m_includeDirs;
 
     public:
-        CustomShaderInclude(const String& shaderDir)
-            : m_shaderDir(shaderDir) {}
+        CustomShaderInclude(const String& shaderDir) : m_shaderDir(shaderDir) {}
 
         shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type,
             const char* requesting_source, size_t include_depth) override
@@ -49,7 +48,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             {
                 return nullptr;
             }
-            m_source                       = String((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            m_source = String((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             shaderc_include_result* result = new shaderc_include_result();
             result->content                = m_source.c_str();
             result->content_length         = m_source.size();
@@ -85,8 +84,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return String(precompiledModule.cbegin(), precompiledModule.cend());
     }
 
-    Vec<u32> compileShaderFile(const String& source_name, shaderc_shader_kind kind,
-        const String& source, bool optimize = true)
+    Vec<u32> compileShaderFile(
+        const String& source_name, shaderc_shader_kind kind, const String& source, bool optimize = true)
     {
         shaderc::Compiler       compiler;
         shaderc::CompileOptions options;
@@ -277,7 +276,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL void ShaderModule::CacheReflectionData()
     {
-        using Ifrit::Common::Utility::SizeCast;
+        using Ifrit::SizeCast;
         // Currently, only writes the number of descriptor sets
         auto          cacheDir  = m_context->GetCacheDir();
         String        cacheFile = cacheDir + "/vkgraphics.shaderrefl." + m_signature + ".cache";
@@ -308,13 +307,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL VkShaderModule ShaderModule::GetModule() const
-    {
-        return m_module;
-    }
+    IFRIT_APIDECL VkShaderModule                  ShaderModule::GetModule() const { return m_module; }
 
-    IFRIT_APIDECL VkPipelineShaderStageCreateInfo ShaderModule::GetStageCI() const
-    {
-        return m_stageCI;
-    }
+    IFRIT_APIDECL VkPipelineShaderStageCreateInfo ShaderModule::GetStageCI() const { return m_stageCI; }
 } // namespace Ifrit::Graphics::VulkanGraphics

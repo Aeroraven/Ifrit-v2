@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/common/base/IfritBase.h"
-#include "ifrit/common/util/TypingUtil.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/typing/Util.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <memory>
@@ -57,7 +57,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     public:
         BottomLevelAS(EngineContext* ctx);
-        void                       PrepareGeometryData(const Vec<Rhi::RhiRTGeometryReference>& geometry, CommandBuffer* cmd);
+        void PrepareGeometryData(const Vec<Rhi::RhiRTGeometryReference>& geometry, CommandBuffer* cmd);
         virtual Rhi::RhiDeviceAddr GetDeviceAddress() const override;
     };
 
@@ -94,8 +94,8 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     public:
         ShaderBindingTable(EngineContext* ctx, HwRaytracingContext* rtContext);
-        void                                      PrepareShaderBindingTable(const Vec<Vec<Rhi::RhiRTShaderGroup>>& groups);
-        Vec<const Rhi::RhiShader*>                GetShaders() const;
+        void                       PrepareShaderBindingTable(const Vec<Vec<Rhi::RhiRTShaderGroup>>& groups);
+        Vec<const Rhi::RhiShader*> GetShaders() const;
         Vec<VkRayTracingShaderGroupCreateInfoKHR> GetShaderGroupsCI() const;
         Vec<VkStridedDeviceAddressRegionKHR>      GetStridedRegions() const;
 
@@ -140,14 +140,13 @@ namespace Ifrit::Graphics::VulkanGraphics
         HashMap<u64, Vec<int>>                   m_rtPipelineHash;
 
     public:
-        RaytracingPipelineCache(EngineContext* ctx, HwRaytracingContext* rtctx)
-            : m_context(ctx), m_rtContext(rtctx) {}
+        RaytracingPipelineCache(EngineContext* ctx, HwRaytracingContext* rtctx) : m_context(ctx), m_rtContext(rtctx) {}
         RaytracingPipelineCache(const RaytracingPipelineCache& p)            = delete;
         RaytracingPipelineCache& operator=(const RaytracingPipelineCache& p) = delete;
 
         u64                      RaytracingPipelineHash(const RaytracePipelineCreateInfo& ci);
-        bool                     RaytracingPipelineEqual(const RaytracePipelineCreateInfo& a, const RaytracePipelineCreateInfo& b);
-        RaytracingPipeline*      GetRaytracingPipeline(const RaytracePipelineCreateInfo& ci);
+        bool RaytracingPipelineEqual(const RaytracePipelineCreateInfo& a, const RaytracePipelineCreateInfo& b);
+        RaytracingPipeline* GetRaytracingPipeline(const RaytracePipelineCreateInfo& ci);
     };
 
     class IFRIT_APIDECL RaytracingPass : public Rhi::RhiRTPass
@@ -176,8 +175,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         u32                                             m_regionDepth  = 0;
 
     public:
-        RaytracingPass(EngineContext* context, DescriptorManager* descriptorManager, RaytracingPipelineCache* pipelineCache)
-            : m_context(context), m_descriptorManager(descriptorManager), m_pipelineCache(pipelineCache) {}
+        RaytracingPass(
+            EngineContext* context, DescriptorManager* descriptorManager, RaytracingPipelineCache* pipelineCache)
+            : m_context(context), m_descriptorManager(descriptorManager), m_pipelineCache(pipelineCache)
+        {
+        }
 
         void SetShaderGroups(Rhi::RhiRTShaderBindingTable* sbt);
         void SetMaxRecursion(u32 maxRecursion);
