@@ -28,6 +28,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <cstdlib>
 #include <type_traits>
 
+#if IFRIT_FEATURE_SIMD
+    #ifndef IFRIT_USE_SIMD_128
+        #include <emmintrin.h>
+        #include <immintrin.h>
+        #define IFRIT_USE_SIMD_128 1
+        #define IFRIT_USE_SIMD_128_EXPERIMENTAL 0
+    #endif
+#endif
+
 #ifndef IFRIT_USE_SIMD_128
     #ifdef _MSC_VER
         #pragma message("warning: SIMD not enabled")

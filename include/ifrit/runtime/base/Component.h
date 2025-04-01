@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "AssetReference.h"
 #include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/algo/Container.h"
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/math/VectorDefs.h"
 #include "ifrit/core/serialization/MathTypeSerialization.h"
@@ -98,7 +99,9 @@ namespace Ifrit::Runtime
         u32  AllocateId();
 
     private:
-        void                         SetComponentId(Ref<Component> component, u32 arrayPos, ComponentTypeHash typeHash);
+        void                 SetComponentId(Ref<Component> component, u32 arrayPos, ComponentTypeHash typeHash);
+        Vec<Ref<Component>>& GetComponentArray(ComponentTypeHash typeHash) { return m_ComponentArray[typeHash]; }
+
         template <typename T> Ref<T> CreateComponent(Ref<GameObject> parentObject)
         {
             static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
@@ -202,8 +205,7 @@ namespace Ifrit::Runtime
         IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components, m_componentIndex, m_componentsHashed);
     };
 
-    // Here, GameObjectPrefab is a type alias for GameObject.
-    // It only indicates that the object does not belong to the scene.
+    // This will change in the future
     using GameObjectPrefab = GameObject;
 
     class IFRIT_APIDECL Component : public Ifrit::NonCopyable

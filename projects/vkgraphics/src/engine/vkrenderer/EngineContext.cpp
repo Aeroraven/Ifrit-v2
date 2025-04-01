@@ -151,15 +151,19 @@ namespace Ifrit::Graphics::VulkanGraphics
         loadExtFunc(m_extf.p_vkCmdEndDebugUtilsLabelEXT, "vkCmdEndDebugUtilsLabelEXT", m_device);
         // loadExtFunc(m_extf.p_vkCmdSetCullModeEXT, "vkCmdSetCullModeEXT", m_device);
 
-        loadExtFunc(m_extf.p_vkGetRayTracingShaderGroupHandlesKHR, "vkGetRayTracingShaderGroupHandlesKHR", m_device);
-        loadExtFunc(m_extf.p_vkCreateAccelerationStructureKHR, "vkCreateAccelerationStructureKHR", m_device);
-        loadExtFunc(m_extf.p_vkCmdBuildAccelerationStructuresKHR, "vkCmdBuildAccelerationStructuresKHR", m_device);
-        loadExtFunc(m_extf.p_vkGetAccelerationStructureDeviceAddressKHR, "vkGetAccelerationStructureDeviceAddressKHR",
-            m_device);
-        loadExtFunc(
-            m_extf.p_vkGetAccelerationStructureBuildSizesKHR, "vkGetAccelerationStructureBuildSizesKHR", m_device);
-        loadExtFunc(m_extf.p_vkCmdTraceRaysKHR, "vkCmdTraceRaysKHR", m_device);
-        loadExtFunc(m_extf.p_vkCreateRayTracingPipelinesKHR, "vkCreateRayTracingPipelinesKHR", m_device);
+        if (m_args.m_enableHardwareRayTracing)
+        {
+            loadExtFunc(
+                m_extf.p_vkGetRayTracingShaderGroupHandlesKHR, "vkGetRayTracingShaderGroupHandlesKHR", m_device);
+            loadExtFunc(m_extf.p_vkCreateAccelerationStructureKHR, "vkCreateAccelerationStructureKHR", m_device);
+            loadExtFunc(m_extf.p_vkCmdBuildAccelerationStructuresKHR, "vkCmdBuildAccelerationStructuresKHR", m_device);
+            loadExtFunc(m_extf.p_vkGetAccelerationStructureDeviceAddressKHR,
+                "vkGetAccelerationStructureDeviceAddressKHR", m_device);
+            loadExtFunc(
+                m_extf.p_vkGetAccelerationStructureBuildSizesKHR, "vkGetAccelerationStructureBuildSizesKHR", m_device);
+            loadExtFunc(m_extf.p_vkCmdTraceRaysKHR, "vkCmdTraceRaysKHR", m_device);
+            loadExtFunc(m_extf.p_vkCreateRayTracingPipelinesKHR, "vkCreateRayTracingPipelinesKHR", m_device);
+        }
 
         vkrDebug("Extension functions loaded");
     }

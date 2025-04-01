@@ -72,7 +72,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit
 {
-
     typedef uint8_t   u8;
     typedef uint16_t  u16;
     typedef uint32_t  u32;
