@@ -88,7 +88,7 @@ namespace Ifrit::Runtime
 
         if (cfg.isComputeShader)
         {
-            iInfo("Creating compute shader pipeline");
+            // iInfo("Creating compute shader pipeline");
             SetupComputePipeline();
         }
     }

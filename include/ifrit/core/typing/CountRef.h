@@ -22,15 +22,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit
 {
-    template <class T> class IFRIT_APIDECL CountRef
+    template <class T> class IFRIT_APIDECL RCountRef
     {
     public:
         using RefType = T*;
         RefType m_ref;
 
-        CountRef() : m_ref(nullptr) {}
-        CountRef(nullptr_t n) : m_ref(nullptr) {}
-        CountRef(const CountRef& other)
+        RCountRef() : m_ref(nullptr) {}
+        RCountRef(nullptr_t n) : m_ref(nullptr) {}
+        RCountRef(const RCountRef& other)
         {
             m_ref = other.m_ref;
             if (m_ref)
@@ -39,12 +39,12 @@ namespace Ifrit
             }
         }
 
-        CountRef(CountRef&& other)
+        RCountRef(RCountRef&& other)
         {
             m_ref       = other.m_ref;
             other.m_ref = nullptr;
         }
-        CountRef& operator=(RefType ref)
+        RCountRef& operator=(RefType ref)
         {
             if (m_ref != ref)
             {
@@ -62,8 +62,8 @@ namespace Ifrit
             return *this;
         }
 
-        CountRef& operator=(const CountRef& other) { return *this = other.m_ref; }
-        CountRef& operator=(CountRef&& other)
+        RCountRef& operator=(const RCountRef& other) { return *this = other.m_ref; }
+        RCountRef& operator=(RCountRef&& other)
         {
 
             if (this != &other)
@@ -79,7 +79,7 @@ namespace Ifrit
             return *this;
         }
 
-        ~CountRef()
+        ~RCountRef()
         {
             if (m_ref)
             {
@@ -91,16 +91,16 @@ namespace Ifrit
         RefType             get() const { return m_ref; }
         RefType             get() { return m_ref; }
 
-        IF_FORCEINLINE bool operator==(const CountRef& other) const { return m_ref == other.m_ref; }
-        IF_FORCEINLINE bool operator!=(const CountRef& other) const { return m_ref != other.m_ref; }
+        IF_FORCEINLINE bool operator==(const RCountRef& other) const { return m_ref == other.m_ref; }
+        IF_FORCEINLINE bool operator!=(const RCountRef& other) const { return m_ref != other.m_ref; }
         IF_FORCEINLINE bool operator==(RefType other) const { return m_ref == other; }
         IF_FORCEINLINE bool operator!=(RefType other) const { return m_ref != other; }
     };
 
     // TODO: it's a better idea to follow RAII pattern, like make_shared
-    template <class T> CountRef<T> MakeCountRef(T* ref)
+    template <class T> RCountRef<T> MakeCountRef(T* ref)
     {
-        CountRef<T> result;
+        RCountRef<T> result;
         result.m_ref = ref;
         if (result.m_ref)
         {

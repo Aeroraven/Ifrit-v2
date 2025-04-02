@@ -24,6 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit
 {
+    template <typename T> IntPtr         ToIntPtr(T* ptr) { return reinterpret_cast<IntPtr>(ptr); }
+    template <typename T> T*             FromIntPtr(IntPtr ptr) { return reinterpret_cast<T*>(ptr); }
 
     template <typename T, typename U> T* CheckedCast(U* ptr)
     {

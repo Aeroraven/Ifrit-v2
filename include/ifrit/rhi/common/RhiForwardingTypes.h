@@ -443,8 +443,8 @@ namespace Ifrit::Graphics::Rhi
 
 namespace Ifrit::Graphics::Rhi
 {
-    using RhiTextureRef = CountRef<RhiTexture>;
-    using RhiSamplerRef = CountRef<RhiSampler>;
-    using RhiBufferRef  = CountRef<RhiBuffer>;
+    using RhiTextureRef = RCountRef<RhiTexture>;
+    using RhiSamplerRef = RCountRef<RhiSampler>;
+    using RhiBufferRef  = RCountRef<RhiBuffer>;
 
 } // namespace Ifrit::Graphics::Rhi

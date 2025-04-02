@@ -73,6 +73,7 @@ And some references that give inspirations. Thanks for their selfless dedication
 
 **Coding**
 1. https://github.com/TensorWorks/UE-Clang-Format
+2. https://zhuanlan.zhihu.com/p/352723264
 
 
 ### 3.2 About naming

@@ -18,4 +18,5 @@ namespace Ifrit
             func(i);
         }
     }
+
 } // namespace Ifrit
