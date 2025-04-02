@@ -184,4 +184,4 @@ Some ideas might be borrowed from Unreal Engine (or its related SIG or GDC prese
 
 ## 5. License
 
-It' **by default** licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html). The copy for license can be found in the root directory. 
+It's by default licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html). The copy for license can be found in the root directory. 
