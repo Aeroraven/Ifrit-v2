@@ -74,11 +74,11 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL Scene : public IComponentManagerKeeper
     {
     protected:
+        Ref<ComponentManager> m_componentManager; // This dtor should be called last
         Ref<SceneNode>        m_root;
         bool                  m_isAwake       = false;
         u64                   m_curFixedFrame = 0;
         Ref<PerFrameData>     m_perFrameData;
-        Ref<ComponentManager> m_componentManager;
 
     public:
         Scene();
