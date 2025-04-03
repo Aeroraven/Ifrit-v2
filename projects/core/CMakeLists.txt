@@ -14,9 +14,7 @@ file(GLOB_RECURSE IFRIT_CORELIB_HEADER_FILES ${IFRIT_PROJECT_DIR}"/include/ifrit
 # add api export
 add_definitions(-DIFRIT_DLL)
 add_definitions(-DIFRIT_API_EXPORT)
-add_definitions(-DIFRIT_RUNTIME_SHARED_SHADER_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.shader")
-add_definitions(-DIFRIT_RUNTIME_SHARED_ASSET_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.asset")
-add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.Runtime")
+add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.Core")
 
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/stb)
 
@@ -24,9 +22,9 @@ include_directories(${IFRIT_PROJECT_DIR}/dependencies/stb)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-add_library(ifrit.runtime SHARED ${IFRIT_CORELIB_SOURCE_FILES_CXX} ${IFRIT_CORELIB_SOURCE_FILES_C})
-target_link_libraries(ifrit.runtime ifrit.rhi ifrit.display ifrit.meshproclib ifrit.core ${FSR2_API_LIBRARIES})
-target_compile_options(ifrit.runtime
+add_library(ifrit.core SHARED ${IFRIT_CORELIB_SOURCE_FILES_CXX} ${IFRIT_CORELIB_SOURCE_FILES_C})
+target_link_libraries(ifrit.core )
+target_compile_options(ifrit.core
 	PRIVATE 
 	$<$<CXX_COMPILER_ID:MSVC>:/bigobj> 
 	$<$<CXX_COMPILER_ID:GNU>:-Wa,-mbig-obj>)

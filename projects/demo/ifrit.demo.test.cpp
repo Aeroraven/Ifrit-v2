@@ -2,6 +2,7 @@
 #include "ifrit/core/algo/ConcurrentQueue.h"
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/algo/Parallel.h"
+#include "ifrit/core/tasks/TaskScheduler.h"
 
 using namespace Ifrit;
 
@@ -20,10 +21,9 @@ namespace Ifrit::Test
     };
 } // namespace Ifrit::Test
 
-int main()
+void RpoolTest()
 {
     RPooledConcurrentQueue<Ifrit::Test::Cat> q;
-
     // Start 2 threads,each deque 500 elements
     Atomic<u64>                              count = 0;
     Ifrit::UnorderedFor<int>(0, 16, [&](int i) {
@@ -39,5 +39,32 @@ int main()
         }
     });
     printf("Total dequeued: %llu\n", count.load(std::memory_order::acquire));
+}
+
+void taskTest()
+{
+    TaskScheduler   scheduler(8);
+    Vec<TaskHandle> tasks;
+    iInfo("Starting task test");
+    for (int i = 0; i < 100; i++)
+    {
+        auto task = scheduler.EnqueueTask(
+            [](Task* task, void*) {
+                printf("Task %d is running\n", task->GetId());
+                std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 1000));
+            },
+            {}, nullptr);
+        tasks.push_back(task);
+    }
+
+    // Wait for all tasks to complete
+    for (auto& task : tasks)
+    {
+        scheduler.WaitForTask(task);
+    }
+}
+int main()
+{
+    taskTest();
     return 0;
-} // namespace Ifrit::Test
+}

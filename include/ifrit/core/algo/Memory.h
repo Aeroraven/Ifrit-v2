@@ -130,6 +130,8 @@ namespace Ifrit
 
     struct RIndexedPtr
     {
+        using Underlying = IntPtr;
+
         IntPtr m_Ptr = 0;
         operator IntPtr() const { return m_Ptr; }
         operator u64() const { return static_cast<u64>(m_Ptr); }
@@ -255,6 +257,8 @@ namespace Ifrit
                 return *this;
             }
 
+            RIndexedPtr GetIndex() const { return m_Index; }
+
             ~RObjectRef() { Release(); }
 
             T*   operator->() const { return m_Ref; }
@@ -286,7 +290,7 @@ namespace Ifrit
 
         template <typename... Args> Pair<T*, IntPtr> AllocateInternal(Args&&... args)
         {
-            auto id = m_VacantList.PopFront();
+            IntPtr id;
             while (id = m_VacantList.PopFront(), id == 0)
             {
                 std::lock_guard<std::mutex> lock(m_Mutex);
@@ -390,12 +394,13 @@ namespace Ifrit
         IF_FORCEINLINE u64 GetNextMemAllocSize() { return 16384; }
 
     public:
-        template <typename... Args> RObjectRef<T> Create(Args&&... args)
+        template <typename... Args> RObjectRef Create(Args&&... args)
         {
-            auto obj      = AllocateIndexed(std::forward<Args>(args)...);
+            auto obj = AllocateIndexed(std::forward<Args>(args)...);
+
             auto ref      = GetPtrFromIndex(obj);
             auto refCount = AllocateAtomic();
-            return RObjectRef<T>(obj, ref, refCount, this);
+            return RObjectRef(obj, ref, refCount, this);
         }
     };
 

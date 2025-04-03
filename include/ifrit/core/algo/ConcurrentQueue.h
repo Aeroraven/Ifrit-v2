@@ -51,9 +51,7 @@ namespace Ifrit
         };
 
     private:
-        // Head is hold by m_Dummy's m_Next
-        RPooledConcurrentQueueElement*             m_Dummy    = nullptr;
-        IntPtr                                     m_DummyPtr = IntPtr(0);
+        Atomic<IntPtr>                             m_Head     = 0;
         Atomic<IntPtr>                             m_Tail     = 0;
         Atomic<u64>                                m_RefCount = 0;
         RObjectPool<RPooledConcurrentQueueElement> m_Pool;
@@ -61,48 +59,69 @@ namespace Ifrit
     private:
         void EnqueueNode(RIndexedPtr nodeIndex)
         {
-            auto nodePtr    = m_Pool.GetPtrFromIndex(nodeIndex);
-            nodePtr->m_Next = 0;
+            auto qId     = nodeIndex.Ptr();
+            auto qPtr    = m_Pool.GetPtrFromIndex(nodeIndex);
+            qPtr->m_Next = 0;
 
-            IntPtr prev      = m_Tail.exchange(nodeIndex.Ptr(), std::memory_order::acq_rel);
-            auto   prevNode  = m_Pool.GetPtrFromIndex(RIndexedPtr(prev));
-            prevNode->m_Next = nodeIndex.Ptr();
+            bool succ;
+            auto pId  = m_Tail.load(std::memory_order::acquire);
+            auto pPtr = m_Pool.GetPtrFromIndex(RIndexedPtr(pId));
+            do
+            {
+                pId       = m_Tail.load(std::memory_order::acquire);
+                pPtr      = m_Pool.GetPtrFromIndex(RIndexedPtr(pId));
+                IntPtr ep = 0ull;
+                succ      = pPtr->m_Next.compare_exchange_strong(
+                    ep, qId, std::memory_order::acq_rel, std::memory_order::acquire);
+
+                if (!succ)
+                {
+                    auto expected = pId;
+                    auto tailPtr  = m_Pool.GetPtrFromIndex(RIndexedPtr(expected));
+                    auto pNext    = pPtr->m_Next.load(std::memory_order::acquire);
+                    m_Tail.compare_exchange_strong(
+                        expected, pNext, std::memory_order::acq_rel, std::memory_order::acquire);
+                }
+            }
+            while (!succ);
+            m_Tail.compare_exchange_strong(pId, qId, std::memory_order::acq_rel, std::memory_order::acquire);
             m_RefCount.fetch_add(1, std::memory_order::acq_rel);
         }
 
         RIndexedPtr DequeueNode()
         {
-            auto                           head        = m_Dummy->m_Next.load(std::memory_order::acquire);
-            IntPtr                         newHead     = 0;
-            IntPtr                         nextNodeIdx = 0;
-            RPooledConcurrentQueueElement* cHead;
-            RIndexedPtr                    cHeadIdxPtr;
-            RPooledConcurrentQueueElement* nextNode = nullptr;
+            auto pId  = m_Head.load();
+            auto pPtr = m_Pool.GetPtrFromIndex(RIndexedPtr(pId));
+
+            auto expected = pId;
+            auto pNext    = pPtr->m_Next.load(std::memory_order::acquire);
             do
             {
-                cHeadIdxPtr = RIndexedPtr(head);
-                cHead       = m_Pool.GetPtrFromIndex(RIndexedPtr(head));
-                if (cHead == nullptr)
+                pId  = m_Head.load(std::memory_order::acquire);
+                pPtr = m_Pool.GetPtrFromIndex(RIndexedPtr(pId));
+                if (pPtr->m_Next.load(std::memory_order::acquire) == 0)
                 {
                     return RIndexedPtr(0);
                 }
-                nextNodeIdx = cHead->m_Next.load(std::memory_order::acquire);
-                nextNode    = m_Pool.GetPtrFromIndex(RIndexedPtr(nextNodeIdx));
-                newHead     = nextNodeIdx;
+                expected = pId;
+                pNext    = pPtr->m_Next.load(std::memory_order::acquire);
             }
-            while (!m_Dummy->m_Next.compare_exchange_strong(
-                head, newHead, std::memory_order::acq_rel, std::memory_order::acquire));
+            while (!m_Head.compare_exchange_strong(
+                expected, pNext, std::memory_order::acq_rel, std::memory_order::acquire));
+
             m_RefCount.fetch_sub(1, std::memory_order::acq_rel);
-            return cHeadIdxPtr;
+            return RIndexedPtr(pPtr->m_Next.load());
         }
 
     public:
         RPooledConcurrentQueue()
         {
-            m_DummyPtr      = m_Pool.AllocateIndexed(nullptr);
-            m_Dummy         = m_Pool.GetPtrFromIndex({ m_DummyPtr });
+            auto m_DummyPtr = m_Pool.AllocateIndexed(nullptr);
+            auto m_Dummy    = m_Pool.GetPtrFromIndex({ m_DummyPtr });
             m_Dummy->m_Next = 0;
-            m_Tail          = m_DummyPtr;
+
+            m_Head.store(m_DummyPtr, std::memory_order::release);
+            m_Tail.store(m_DummyPtr, std::memory_order::release);
         }
         ~RPooledConcurrentQueue()
         {
@@ -110,6 +129,9 @@ namespace Ifrit
             {
                 DequeueNode();
             }
+            // Remaining one dummy node
+            auto dummyPtr = m_Head.load(std::memory_order::acquire);
+            m_Pool.DeallocateIndexed(RIndexedPtr(dummyPtr));
         }
 
         void Enqueue(T&& data)
@@ -128,7 +150,13 @@ namespace Ifrit
             auto nodeIdx = DequeueNode();
             if (nodeIdx == nullptr)
             {
-                throw std::runtime_error("Queue is empty");
+                // if default constructor is available,create a default object
+                if IF_CONSTEXPR (std::is_default_constructible_v<T>)
+                {
+                    return T();
+                }
+                throw std::runtime_error(
+                    "RPooledConcurrentQueue: Queue is empty. Add a default constructor to suppress this error.");
             }
             auto node = m_Pool.GetPtrFromIndex(nodeIdx);
             auto data = std::move(node->m_Data);
@@ -138,15 +166,28 @@ namespace Ifrit
 
         T Peek()
         {
-            auto node = m_Dummy->m_Next.load(std::memory_order::acquire);
-            if (node == 0)
+            auto headPtr = m_Pool.GetPtrFromIndex(m_Head.load(std::memory_order::acquire));
+            auto nextPtr = headPtr->m_Next.load(std::memory_order::acquire);
+            if (nextPtr == 0)
             {
-                throw std::runtime_error("Queue is empty");
+                // if default constructor is available,create a default object
+                if IF_CONSTEXPR (std::is_default_constructible_v<T>)
+                {
+                    return T();
+                }
+                throw std::runtime_error(
+                    "RPooledConcurrentQueue: Queue is empty. Add a default constructor to suppress this error.");
             }
-            auto nodePtr = m_Pool.GetPtrFromIndex(node);
-            return nodePtr->m_Data;
+            auto node = m_Pool.GetPtrFromIndex(nextPtr);
+            return node->m_Data;
         }
-        bool Empty() { return m_Dummy->m_Next.load(std::memory_order::acquire) == 0; }
-        u64  Size() { return m_RefCount.load(std::memory_order::acquire); }
+        bool Empty()
+        {
+            auto headPtr = m_Pool.GetPtrFromIndex(RIndexedPtr(m_Head.load(std::memory_order::acquire)));
+            auto nextPtr = headPtr->m_Next.load(std::memory_order::acquire);
+            return nextPtr == 0;
+        }
+
+        u64 Size() { return m_RefCount.load(std::memory_order::acquire); }
     };
 } // namespace Ifrit
