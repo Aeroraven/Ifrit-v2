@@ -32,6 +32,14 @@ using namespace Ifrit::Math::SIMD;
 
 namespace Ifrit::Runtime
 {
+    struct ConeCullData
+    {
+        Vec<Vector4f> m_normalsCone;
+        Vec<Vector4f> m_normalsConeApex;
+        Vec<Vector4f> m_boundSphere;
+
+        IFRIT_STRUCT_SERIALIZE(m_normalsCone, m_normalsConeApex, m_boundSphere);
+    };
 
     struct CreateMeshLodHierMiscInfo
     {
@@ -63,39 +71,50 @@ namespace Ifrit::Runtime
         meshDesc.normalData     = reinterpret_cast<i8*>(meshData->m_normals.data());
         meshDesc.normalStride   = sizeof(Vector3f);
 
-        auto                          chosenLod = MAX_LOD - 1;
-        auto                          totalLods = 0;
-        CombinedClusterLodBuffer      meshletData;
+        auto                     chosenLod = MAX_LOD - 1;
+        auto                     totalLods = 0;
+        CombinedClusterLodBuffer meshletData;
 
-        std::vector<FlattenedBVHNode> bvhNodes;
-        std::vector<ClusterGroup>     clusterGroupData;
+        Vec<FlattenedBVHNode>    bvhNodes;
+        Vec<ClusterGroup>        clusterGroupData;
 
-        bool                          ableToLoadCachedVG = false;
-        bool                          needToGenerateVG   = false;
-        bool                          needToStoreVG      = false;
+        bool                     ableToLoadCachedVG = false;
+        bool                     needToGenerateVG   = false;
+        bool                     needToStoreVG      = false;
 
-        auto                          serialCCLBufferName = "core.mesh.ccl." + meshData->identifier + ".cache";
-        auto                          serialFBNName       = "core.mesh.fbn." + meshData->identifier + ".cache";
-        auto                          serialCGName        = "core.mesh.cg." + meshData->identifier + ".cache";
-        auto                          serialMiscName      = "core.mesh.misc." + meshData->identifier + ".cache";
+        bool                     needToGenerateConeCull   = false;
+        bool                     needToStoreConeCull      = false;
+        bool                     ableToLoadCachedConeCull = false;
 
-        auto                          serialCCLPath  = cachePath + serialCCLBufferName;
-        auto                          serialFBNPath  = cachePath + serialFBNName;
-        auto                          serialCGPath   = cachePath + serialCGName;
-        auto                          serialMiscPath = cachePath + serialMiscName;
+        auto                     serialCCLBufferName = "core.mesh.ccl." + meshData->identifier + ".cache";
+        auto                     serialFBNName       = "core.mesh.fbn." + meshData->identifier + ".cache";
+        auto                     serialCGName        = "core.mesh.cg." + meshData->identifier + ".cache";
+        auto                     serialMiscName      = "core.mesh.misc." + meshData->identifier + ".cache";
+
+        auto                     serialConeCullName = "core.mesh.conecull." + meshData->identifier + ".cache";
+
+        auto                     serialCCLPath  = cachePath + serialCCLBufferName;
+        auto                     serialFBNPath  = cachePath + serialFBNName;
+        auto                     serialCGPath   = cachePath + serialCGName;
+        auto                     serialMiscPath = cachePath + serialMiscName;
+
+        auto                     serialConeCullPath = cachePath + serialConeCullName;
 
         if (meshData->identifier.empty())
         {
-            needToGenerateVG = true;
+            needToGenerateVG       = true;
+            needToGenerateConeCull = true;
         }
         else
         {
             if (cachePath.empty())
             {
-                needToGenerateVG = true;
+                needToGenerateVG       = true;
+                needToGenerateConeCull = true;
             }
             else
             {
+                // AUTOLOD
                 bool cclBufferExists = false;
                 bool fbnExists       = false;
                 bool cgExists        = false;
@@ -115,6 +134,18 @@ namespace Ifrit::Runtime
                 {
                     needToGenerateVG = true;
                     needToStoreVG    = true;
+                }
+
+                // CONECULL
+                bool coneCullBufferExists = std::filesystem::exists(serialConeCullPath);
+                if (coneCullBufferExists)
+                {
+                    ableToLoadCachedConeCull = true;
+                }
+                else
+                {
+                    needToGenerateConeCull = true;
+                    needToStoreConeCull    = true;
                 }
             }
         }
@@ -163,10 +194,31 @@ namespace Ifrit::Runtime
                 WriteBinaryFile(serialMiscPath, miscBuffer);
             }
         }
+        ConeCullData coneCullData;
 
-        coneCullProc.CreateNormalCones(meshDesc, meshletData.meshletsRaw, meshletData.meshletVertices,
-            meshletData.meshletTriangles, meshData->m_normalsCone, meshData->m_normalsConeApex,
-            meshData->m_boundSphere);
+        if (ableToLoadCachedConeCull)
+        {
+            String coneCullBuffer;
+            coneCullBuffer = ReadBinaryFile(serialConeCullPath);
+            Ifrit::Common::Serialization::DeserializeBinary(coneCullBuffer, coneCullData);
+        }
+
+        if (needToGenerateConeCull)
+        {
+
+            coneCullProc.CreateNormalCones(meshDesc, meshletData.meshletsRaw, meshletData.meshletVertices,
+                meshletData.meshletTriangles, coneCullData.m_normalsCone, coneCullData.m_normalsConeApex,
+                coneCullData.m_boundSphere);
+            if (needToStoreConeCull)
+            {
+                String coneCullBuffer;
+                Ifrit::Common::Serialization::SerializeBinary(coneCullData, coneCullBuffer);
+                WriteBinaryFile(serialConeCullPath, coneCullBuffer);
+            }
+        }
+        meshData->m_normalsCone     = std::move(coneCullData.m_normalsCone);
+        meshData->m_normalsConeApex = std::move(coneCullData.m_normalsConeApex);
+        meshData->m_boundSphere     = std::move(coneCullData.m_boundSphere);
 
         auto meshlet_triangles      = meshletData.meshletTriangles;
         auto meshlets               = meshletData.meshletsRaw;
@@ -219,7 +271,7 @@ namespace Ifrit::Runtime
         meshData->m_maxLod = totalLods;
     }
 
-    IFRIT_APIDECL Vector4f Mesh::GetBoundingSphere(const std::vector<Vector3f>& vertices)
+    IFRIT_APIDECL Vector4f Mesh::GetBoundingSphere(const Vec<Vector3f>& vertices)
     {
         SVector3f minv = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
             std::numeric_limits<float>::max() };

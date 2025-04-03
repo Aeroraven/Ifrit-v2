@@ -77,6 +77,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         Vec<VkBuffer>                                           m_uniformBuffers;
         Vec<VkBuffer>                                           m_storageBuffers;
+        HashMap<VkBuffer, u32>                                  m_storageBufferMap;
         Vec<Pair<VkImage, VkSampler>>                           m_combinedImageSamplers;
 
         Vec<Pair<VkImage, Rhi::RhiImageSubResource>>            m_storageImages;

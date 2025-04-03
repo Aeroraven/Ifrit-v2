@@ -165,15 +165,15 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL
     u32 DescriptorManager::RegisterStorageBuffer(SingleBuffer* buffer)
     {
-        for (int i = 0; i < m_storageBuffers.size(); i++)
+
+        if (m_storageBufferMap.find(buffer->GetBuffer()) != m_storageBufferMap.end())
         {
-            if (m_storageBuffers[i] == buffer->GetBuffer())
-            {
-                return i;
-            }
+            return m_storageBufferMap[buffer->GetBuffer()];
         }
+
         auto handleId = m_storageBuffers.size();
         m_storageBuffers.push_back(buffer->GetBuffer());
+        m_storageBufferMap[buffer->GetBuffer()] = handleId;
 
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = buffer->GetBuffer();
