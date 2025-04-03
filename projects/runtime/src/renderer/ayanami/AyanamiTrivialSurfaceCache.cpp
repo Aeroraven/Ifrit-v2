@@ -475,7 +475,7 @@ namespace Ifrit::Runtime::Ayanami
 
         // Radiance Cache Pass Related
         m_Resources->m_RadianceCachePass =
-            CreateComputePassInternal(m_App, Internal::kIntShaderTable.Ayanami.DirectRadianceInjectionCS, 0, 9);
+            CreateComputePassInternal(m_App, Internal::kIntShaderTable.Ayanami.DirectRadianceInjectionCS, 0, 11);
     }
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateRadianceCacheAtlas(
@@ -502,10 +502,13 @@ namespace Ifrit::Runtime::Ayanami
                 u32 radianceOutId;
                 u32 cardDataId;
                 u32 depthAtlasSRVId;
+
+                u32 worldObjTransforms;
+                u32 perframeId;
             } pc;
 
             pc.totalCards           = numCards;
-            pc.cardResolution       = m_Resolution;
+            pc.cardResolution       = m_Resources->m_AtlasElementSize;
             pc.packedShadowMarkBits = m_Resources->m_MaxPerTileLights;
             pc.totalLights          = perframe->m_shadowData2.m_enabledShadowMaps;
             pc.atlasResoultion      = m_Resolution;
@@ -514,6 +517,8 @@ namespace Ifrit::Runtime::Ayanami
             pc.radianceOutId   = m_Resources->m_SceneCacheRadianceAtlas->GetDescId();
             pc.cardDataId      = m_Resources->m_ObserveDeviceData->GetDescId();
             pc.depthAtlasSRVId = m_Resources->m_SceneCacheDepthSRV->GetActiveId();
+
+            pc.worldObjTransforms = m_Resources->m_ObserveDeviceDataCoherentBindId->GetActiveId();
 
             cmdList->SetPushConst(m_Resources->m_RadianceCachePass, 0, sizeof(PushConst), &pc);
             cmdList->Dispatch(tileGroups, tileGroups, cardGroups);
@@ -529,6 +534,15 @@ namespace Ifrit::Runtime::Ayanami
             auto transformId                                        = transform->GetActiveResourceId();
             m_Resources->m_MeshCardCoherentGPUData[i].m_TransformId = transformId;
         }
+        // Then update the coherent buffer
+        auto tq           = m_App->GetRhi()->GetQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+        auto tgt          = m_Resources->m_ObserveDeviceDataCoherent->GetActiveBuffer();
+        auto stagedBuffer = m_App->GetRhi()->CreateStagedSingleBuffer(tgt);
+        tq->RunSyncCommand([&](const RhiCommandList* cmd) {
+            stagedBuffer->CmdCopyToDevice(cmd, m_Resources->m_MeshCardCoherentGPUData.data(),
+                SizeCast<u32>(m_Resources->m_MeshCardCoherentGPUData.size() * sizeof(ManagedMeshCardCoherentGPUData)),
+                0);
+        });
     }
 
     IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetAlbedoAtlas()

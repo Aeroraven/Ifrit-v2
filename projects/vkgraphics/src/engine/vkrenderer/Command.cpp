@@ -82,6 +82,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkCommandBuffer buffer;
         vkrVulkanAssert(
             vkAllocateCommandBuffers(m_context->GetDevice(), &bufferAI, &buffer), "Failed to allocate command buffer");
+
         return std::make_unique<CommandBuffer>(m_context, buffer, m_queueFamily);
     }
 
@@ -747,14 +748,16 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             vkrError("Command buffer still in use");
         }
-        auto buffer = m_commandPool->AllocateCommandBufferUnique();
+        Uref<CommandBuffer> buffer;
+        buffer = m_commandPool->AllocateCommandBufferUnique();
+
         if (buffer == nullptr)
         {
             vkrError("Nullptr");
         }
         auto p                 = buffer.get();
         m_currentCommandBuffer = p;
-        m_cmdBufInUse.push_back(std::move(buffer));
+        m_cmdBufInUse.push(std::move(buffer));
         p->BeginRecord();
         return p;
     }
@@ -812,7 +815,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             vfence = fence;
         }
         vkrVulkanAssert(vkQueueSubmit(m_queue, 1, &submitInfo, vfence), "Failed to submit command buffer");
-        m_cmdBufInUse.pop_back();
+        // move the command buffer to the free list
+        m_cmdBufInUse.pop();
 
         TimelineSemaphoreWait ret;
         ret.m_semaphore = m_timelineSemaphore.get()->getSemaphore();

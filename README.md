@@ -38,20 +38,7 @@ Check  **[`GALLERY.md`](./docs/gallery.md)** for more examples for software rend
 This repository is the successor to my following repositories: 
 
 - [Aria](https://github.com/Aeroraven/Aria): Some scenes and toys about using WebGL2 and Vulkan.
-  - Following features implemented in Aria/Vulkan might be considered to move into this repository:
-    - Hardware Ray Tracing
-    - NPR Shading
-      - Outline (Post-Processing / Back Facing)
-      - Rim Lighting
-    - Post Processing
-      - FXAA
-      - Kawase Blur
-      - Global Fog
-      - SSAO
-      - SSGI/SSR
-    - Volumetric Lighting
-    - Procedural Generator
-      - GPU Marching Cubes
+  - Some features implemented in Aria/Vulkan might be considered to move into this repository, check [here](#4-future-plans) for more details.
 
 - [Ifrit-v1](https://github.com/Aeroraven/Ifrit): An console drawing helper for course projects that use Java.
   - Still, Ifrit-v2 soft renderer supports console display (like Windows Powershell).
@@ -80,10 +67,13 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 - Dynamic Rendering
 - Render Hardware Interface
 - Render Graph
+- Lock-free Resource Pool 
+  - Planning To Replace Legacy Allocators
+- Task System
 
 #### 1.2.1 Syaro: Virtual-Geometry-based Deferred Renderer
 
-- Reproduced some features mentioned in Nanite's report: Two-pass occlusion culling, Mesh LoDs, Compute-shader-based SW rasterization.
+- Reproduced some features mentioned in Nanite's report: Two-pass occlusion culling, Mesh LoDs, Compute-shader-based SW rasterization, Simple material classify pass.
 - Some extra features supported:
 
   - Horizon-Based Ambient Occlusion
@@ -169,19 +159,29 @@ The source files can be decomposed into following parts.
 | ifrit.vkgraphics   | Vulkan backend                                               |
 
 
+## 4. Future Plans
+Following features implemented in Aria/Vulkan might be considered to move into this repository:
+- Hardware Ray Tracing
+- NPR Shading
+  - Outline (Post-Processing / Back Facing)
+  - Rim Lighting
+- Post Processing
+  - FXAA
+  - Kawase Blur
+  - Global Fog
+  - SSAO
+  - SSGI/SSR
+- Volumetric Lighting
+- Procedural Generator
+  - GPU Marching Cubes
 
-
-
-## 4. References & Acknowledgements
+## 5. References & Acknowledgements
 
 See [ACKNOWLEDGEMENTS.md](./ACKNOWLEDGEMENTS.md) for more details.
 
 Some ideas might be borrowed from Unreal Engine (or its related SIG or GDC presents). However, due to the license compatibility (AGPL-v3 vs. Unreal Engine's EULA), the code is not copied (or used in other predefined forms) from the Unreal Engine source code.
 
 
-
-
-
-## 5. License
+## 6. License
 
 It's by default licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html). The copy for license can be found in the root directory. 

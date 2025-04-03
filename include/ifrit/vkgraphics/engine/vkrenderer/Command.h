@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <memory>
 #include <vector>
+#include <stack>
 
 namespace Ifrit::Graphics::VulkanGraphics
 {
@@ -214,15 +215,17 @@ namespace Ifrit::Graphics::VulkanGraphics
     class IFRIT_APIDECL Queue : public Rhi::RhiQueue
     {
     private:
-        EngineContext*           m_context;
-        VkQueue                  m_queue;
-        u32                      m_queueFamily;
-        u32                      m_capability;
-        Uref<CommandPool>        m_commandPool;
-        Uref<TimelineSemaphore>  m_timelineSemaphore;
-        Vec<Uref<CommandBuffer>> m_cmdBufInUse;
-        u64                      m_recordedCounter      = 0;
-        CommandBuffer*           m_currentCommandBuffer = nullptr;
+        EngineContext*                  m_context;
+        VkQueue                         m_queue;
+        u32                             m_queueFamily;
+        u32                             m_capability;
+        Uref<CommandPool>               m_commandPool;
+        Uref<TimelineSemaphore>         m_timelineSemaphore;
+        std::stack<Uref<CommandBuffer>> m_cmdBufInUse;
+        u64                             m_recordedCounter      = 0;
+        CommandBuffer*                  m_currentCommandBuffer = nullptr;
+
+        std::queue<Uref<CommandBuffer>> m_cmdBufFreeList;
 
     public:
         Queue() { printf("Runtime Error:queue\n"); }
