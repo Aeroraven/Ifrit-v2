@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/core/logging/Logging.h"
 #include <memory>
+#include <cstddef>
 
 namespace Ifrit
 {
@@ -142,8 +143,8 @@ namespace Ifrit
         bool    operator!=(const RIndexedPtr& other) const { return m_Ptr != other.m_Ptr; }
 
         // Check if is nullptr
-        bool    operator==(nullptr_t) const { return m_Ptr == 0; }
-        bool    operator!=(nullptr_t) const { return m_Ptr != 0; }
+        bool    operator==(decltype(nullptr) x) const { return m_Ptr == 0; }
+        bool    operator!=(decltype(nullptr) x) const { return m_Ptr != 0; }
     };
 
     template <typename T, typename Alloc = std::allocator<T>, typename AtomicAlloc = std::allocator<Atomic<u64>>>
@@ -195,6 +196,7 @@ namespace Ifrit
             }
 
         public:
+            RObjectRef(nullptr_t) : m_Index(0), m_Ref(nullptr), m_RefCount(nullptr), m_Pool(nullptr) {}
             RObjectRef() : m_Index(0), m_Ref(nullptr), m_RefCount(nullptr), m_Pool(nullptr) {}
             explicit RObjectRef(RIndexedPtr idx, T* ref, Atomic<u64>* refCount, RObjectPool* pool)
                 : m_Index(idx), m_Ref(ref), m_RefCount(refCount), m_Pool(pool)
@@ -211,6 +213,7 @@ namespace Ifrit
                 }
             }
 
+            
             RObjectRef(RObjectRef&& other) IF_NOEXCEPT :
                 m_Index(other.m_Index),
                 m_Ref(other.m_Ref),

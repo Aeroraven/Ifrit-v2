@@ -3,12 +3,13 @@
 
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/renderer/postprocessing/PostFxJointBilaterialFilter.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime::PostprocessPassCollection
 {
     IFRIT_APIDECL
     PostFxJointBilaterialFilter::PostFxJointBilaterialFilter(IApplication* app)
-        : PostprocessPass(app, { "JointBilaterialFilter.frag.glsl", 4, 1 })
+        : PostprocessPass(app, { Internal::kIntShaderTable.Postprocess.JointBilaterialFilterFS, 4, 1 })
     {
     }
 

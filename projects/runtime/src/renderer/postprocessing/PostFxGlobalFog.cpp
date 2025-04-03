@@ -1,12 +1,13 @@
 #pragma once
 #include "ifrit/runtime/renderer/postprocessing/PostFxGlobalFog.h"
 #include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime::PostprocessPassCollection
 {
 
     IFRIT_APIDECL PostFxGlobalFog::PostFxGlobalFog(IApplication* app)
-        : PostprocessPass(app, { "GlobalFog.frag.glsl", 3, 1 })
+        : PostprocessPass(app, { Internal::kIntShaderTable.Postprocess.GlobalFogFS, 3, 1 })
     {
     }
 

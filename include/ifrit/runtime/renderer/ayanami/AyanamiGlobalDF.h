@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiRenderConfig.h"
 #include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/runtime/base/ApplicationInterface.h"
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -49,13 +50,13 @@ namespace Ifrit::Runtime::Ayanami
     private:
         using GPUTexture = Graphics::Rhi::RhiTextureRef;
 
-        Graphics::Rhi::RhiBackend*        m_rhi;
+        IApplication*                     m_app;
         Graphics::Rhi::RhiComputePass*    m_updateClipmapPass = nullptr;
         Graphics::Rhi::RhiComputePass*    m_raymarchPass      = nullptr;
         Vec<Uref<AyanamiGlobalDFClipmap>> m_TestClipMaps;
 
     public:
-        AyanamiGlobalDF(const AyanamiRenderConfig& config, Graphics::Rhi::RhiBackend* rhi);
+        AyanamiGlobalDF(const AyanamiRenderConfig& config, IApplication* m_app);
         ~AyanamiGlobalDF() = default;
 
         void       AddClipmapUpdate(const Graphics::Rhi::RhiCommandList* cmdList, u32 clipmapLevel, u32 perFrameDataId,

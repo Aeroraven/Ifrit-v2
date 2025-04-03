@@ -73,7 +73,7 @@ namespace Ifrit::Runtime
         {
             m_vgRenderer->SetRenderRole(SyaroRenderRole::GBuffer | SyaroRenderRole::Shadowing);
             InitRenderer();
-            m_globalDF = std::make_unique<Ayanami::AyanamiGlobalDF>(config, app->GetRhi());
+            m_globalDF = std::make_unique<Ayanami::AyanamiGlobalDF>(config, app);
         }
         virtual ~AyanamiRenderer();
 

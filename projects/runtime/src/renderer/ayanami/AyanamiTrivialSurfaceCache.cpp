@@ -25,6 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+
 using namespace Ifrit::Graphics::Rhi;
 using Ifrit::Math::DivRoundUp;
 
@@ -443,14 +445,15 @@ namespace Ifrit::Runtime::Ayanami
         m_Resources->m_SurfaceCachePassBinding->AddBinding(
             { 0 }, { RhiImageFormat::RhiImgFmt_R32G32B32_SFLOAT }, { 0 }, 3 * sizeof(float));
 
-        using Ifrit::Runtime::RenderingUtil::CreateComputePass;
-        using Ifrit::Runtime::RenderingUtil::CreateGraphicsPass;
+        using Ifrit::Runtime::RenderingUtil::CreateComputePassInternal;
+        using Ifrit::Runtime::RenderingUtil::CreateGraphicsPassInternal;
 
         RhiRenderTargetsFormat rtFmt;
         rtFmt.m_colorFormats.push_back(RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM);
 
-        m_Resources->m_SurfaceCachePass = CreateGraphicsPass(
-            rhi, "Ayanami/Ayanami.SurfaceCacheGen.vert.glsl", "Ayanami/Ayanami.SurfaceCacheGen.frag.glsl", 0, 9, rtFmt);
+        m_Resources->m_SurfaceCachePass =
+            CreateGraphicsPassInternal(m_App, Internal::kIntShaderTable.Ayanami.SurfaceCacheGenVS,
+                Internal::kIntShaderTable.Ayanami.SurfaceCacheGenFS, 0, 9, rtFmt);
 
         // RTs
         // TODO: To invalidate the cache, LOAD op is not a good practice?
@@ -472,7 +475,7 @@ namespace Ifrit::Runtime::Ayanami
 
         // Radiance Cache Pass Related
         m_Resources->m_RadianceCachePass =
-            CreateComputePass(rhi, "Ayanami/Ayanami.DirectionalRadianceInjection.comp.glsl", 0, 9);
+            CreateComputePassInternal(m_App, Internal::kIntShaderTable.Ayanami.DirectRadianceInjectionCS, 0, 9);
     }
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateRadianceCacheAtlas(

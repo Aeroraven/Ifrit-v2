@@ -53,8 +53,7 @@ namespace Ifrit::Runtime
         ComputePass*                                   m_computePipeline = nullptr;
 
     protected:
-        GPUShader* CreateShaderFromFile(
-            const String& shaderPath, const String& entry, Graphics::Rhi::RhiShaderStage stage);
+        GPUShader*   CreateInternalShader(const char* name);
         DrawPass*    SetupRenderPipeline(RenderTargets* renderTargets);
         ComputePass* SetupComputePipeline();
         void         RenderInternal(PerFrameData* perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd,

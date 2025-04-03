@@ -40,8 +40,7 @@ namespace Ifrit::Runtime
 
         void          SetupHBAOPass();
         void          SetupSSGIPass();
-        GPUShader*    CreateShaderFromFile(
-               const String& shaderPath, const String& entry, Graphics::Rhi::RhiShaderStage stage);
+        GPUShader*    GetInternalShader(const char* name);
 
     public:
         AmbientOcclusionPass(IApplication* app) : m_app(app) {}

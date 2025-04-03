@@ -1,16 +1,12 @@
 #pragma once
 #include "ifrit/runtime/renderer/postprocessing/PostFxAcesTonemapping.h"
 #include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime::PostprocessPassCollection
 {
-    static PostprocessPassConfig kAcesToneMappingConfig = {
-        .fragPath          = "Postproc.AcesTonemapping.frag.glsl",
-        .numPushConstants  = Ifrit::SizeCast<u32>(sizeof(float) * 2),
-        .numDescriptorSets = 0,
-    };
     IFRIT_APIDECL PostFxAcesToneMapping::PostFxAcesToneMapping(IApplication* app)
-        : PostprocessPass(app, { "ACESToneMapping.frag.glsl", 1, 1 })
+        : PostprocessPass(app, { Internal::kIntShaderTable.Postprocess.ACESFS, 1, 1 })
     {
     }
 

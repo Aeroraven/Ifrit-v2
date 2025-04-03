@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/display/presentation/window/WindowSelector.h"
 #include "ifrit/rhi/platform/RhiSelector.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime
 {
@@ -84,6 +85,10 @@ namespace Ifrit::Runtime
 
         // Setup RHI cache
         m_rhiLayer->SetCacheDirectory(m_info.m_cachePath);
+
+        // Prepare internal shaders
+        m_shaderRegistry = std::make_shared<ShaderRegistry>(this);
+        Internal::RegisterRuntimeInternalShaders(m_shaderRegistry.get());
 
         // Setup systems
         m_assetManager      = std::make_shared<AssetManager>(m_info.m_assetPath, this);

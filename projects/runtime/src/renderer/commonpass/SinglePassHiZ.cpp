@@ -3,6 +3,7 @@
 #include "ifrit/core/math/constfunc/ConstFunc.h"
 #include "ifrit/runtime/renderer/commonpass/SinglePassHiZ.h"
 #include "ifrit/runtime/renderer/util/RenderingUtils.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime
 {
@@ -26,7 +27,7 @@ namespace Ifrit::Runtime
     {
         auto rhi            = app->GetRhi();
         m_app               = app;
-        m_singlePassHiZPass = CreateComputePass(rhi, "CommonPass/SinglePassHzb.comp.glsl", 1, 6);
+        m_singlePassHiZPass = CreateComputePassInternal(app, Internal::kIntShaderTable.Common.SinglePassHzbCS, 1, 6);
     }
 
     IFRIT_APIDECL bool SinglePassHiZPass::CheckResourceToRebuild(

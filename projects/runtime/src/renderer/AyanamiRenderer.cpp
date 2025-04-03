@@ -24,6 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiSceneAggregator.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiTrivialSurfaceCache.h"
 
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+
 namespace Ifrit::Runtime
 {
     using namespace Ifrit;
@@ -75,12 +77,13 @@ namespace Ifrit::Runtime
         if (m_resources->m_debugPass == nullptr)
         {
             auto rtFmt               = renderTargets->GetFormat();
-            m_resources->m_debugPass = CreateGraphicsPass(
-                rhi, "Ayanami/Ayanami.CopyPass.vert.glsl", "Ayanami/Ayanami.CopyPass.frag.glsl", 0, 1, rtFmt);
+            m_resources->m_debugPass = CreateGraphicsPassInternal(
+                m_app, Internal::kIntShaderTable.Ayanami.CopyVS, Internal::kIntShaderTable.Ayanami.CopyFS, 0, 1, rtFmt);
         }
         if (m_resources->m_raymarchPass == nullptr)
         {
-            m_resources->m_raymarchPass = CreateComputePass(rhi, "Ayanami/Ayanami.RayMarch.comp.glsl", 0, 6);
+            m_resources->m_raymarchPass =
+                CreateComputePassInternal(m_app, Internal::kIntShaderTable.Ayanami.RayMarchCS, 0, 6);
         }
 
         // Resources

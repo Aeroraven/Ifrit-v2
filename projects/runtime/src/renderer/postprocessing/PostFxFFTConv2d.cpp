@@ -23,23 +23,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/constfunc/ConstFunc.h"
 #include "ifrit/core/math/fastutil/FastUtil.h"
 #include "ifrit/runtime/renderer/postprocessing/PostFxStockhamDFT2.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime::PostprocessPassCollection
 {
 
     IFRIT_APIDECL PostFxFFTConv2d::PostFxFFTConv2d(IApplication* app)
-        : PostprocessPass(app, { "FFTConv2d.comp.glsl", 17, 1, true })
+        : PostprocessPass(app, { Internal::kIntShaderTable.Postprocess.FFTBloomCS, 17, 1, true })
     {
         using namespace Ifrit::Graphics::Rhi;
         auto rhi           = app->GetRhi();
         m_upsamplePipeline = rhi->CreateComputePass();
 
-        auto shader = CreateShaderFromFile("FFTConv2d.Upsample.comp.glsl", "main", RhiShaderStage::Compute);
+        auto shader = CreateInternalShader(Internal::kIntShaderTable.Postprocess.FFTBloomUpsampleCS);
         m_upsamplePipeline->SetComputeShader(shader);
         m_upsamplePipeline->SetPushConstSize(17 * sizeof(u32));
         m_upsamplePipeline->SetNumBindlessDescriptorSets(0);
 
-        auto gshader       = CreateShaderFromFile("GaussianKernelGenerate.comp.glsl", "main", RhiShaderStage::Compute);
+        auto gshader       = CreateInternalShader(Internal::kIntShaderTable.Postprocess.GaussianKernelGenerateCS);
         m_gaussianPipeline = rhi->CreateComputePass();
         m_gaussianPipeline->SetComputeShader(gshader);
         m_gaussianPipeline->SetPushConstSize(4 * sizeof(u32));

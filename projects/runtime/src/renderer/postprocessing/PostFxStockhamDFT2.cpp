@@ -4,12 +4,13 @@
 #include "ifrit/core/math/constfunc/ConstFunc.h"
 #include "ifrit/core/math/fastutil/FastUtil.h"
 #include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime::PostprocessPassCollection
 {
 
     IFRIT_APIDECL PostFxStockhamDFT2::PostFxStockhamDFT2(IApplication* app)
-        : PostprocessPass(app, { "StockhamDFT2.comp.glsl", 12, 1, true })
+        : PostprocessPass(app, { Internal::kIntShaderTable.Postprocess.StockhamDFT2CS, 12, 1, true })
     {
     }
 

@@ -49,7 +49,7 @@ void taskTest()
     for (int i = 0; i < 100; i++)
     {
         auto task = scheduler.EnqueueTask(
-            [](Task* task, void*) {
+            [&scheduler, &tasks, i](Task* task, void*) {
                 printf("Task %d is running\n", task->GetId());
                 std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 1000));
             },

@@ -37,7 +37,7 @@ void main(){
         float y = fragCoord.y;
         float gaussianWeight = 1.0 / sqrt(2.0 * 3.14159265359 * 1.0) * exp(-float(i * i) / (2.0 * 1.0));
         totalWeights += gaussianWeight;
-        color += texelFetch(GetSampler2D(pc.inputTexture), ivec2(x, y), 0).rgbas * gaussianWeight;
+        color += texelFetch(GetSampler2D(pc.inputTexture), ivec2(x, y), 0).rgba * gaussianWeight;
     }
     outColor = vec4(color / totalWeights);
 }

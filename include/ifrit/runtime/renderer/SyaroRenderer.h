@@ -161,8 +161,7 @@ namespace Ifrit::Runtime
 
     private:
         // Util functions
-        GPUShader* CreateShaderFromFile(
-            const String& shaderPath, const String& entry, Graphics::Rhi::RhiShaderStage stage);
+        GPUShader*   GetInternalShader(const char* shaderName);
 
         // Setup functions
         void         RecreateInstanceCullingBuffers(PerFrameData& perframe, u32 newMaxInstances);

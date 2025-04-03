@@ -30,6 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit.shader/Syaro/Syaro.SharedConst.h"
 
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+
 using namespace Ifrit::Graphics::Rhi;
 using Ifrit::SizeCast;
 using Ifrit::Math::DivRoundUp;
@@ -157,15 +159,10 @@ namespace Ifrit::Runtime
         m_timerDefer    = deferTimer;
     }
 
-    IFRIT_APIDECL SyaroRenderer::GPUShader* SyaroRenderer::CreateShaderFromFile(
-        const std::string& shaderPath, const std::string& entry, Graphics::Rhi::RhiShaderStage stage)
+    IFRIT_APIDECL SyaroRenderer::GPUShader* SyaroRenderer::GetInternalShader(const char* name)
     {
-        auto              rhi            = m_app->GetRhi();
-        std::string       shaderBasePath = IFRIT_RUNTIME_SHARED_SHADER_PATH;
-        auto              path           = shaderBasePath + "/Syaro/" + shaderPath;
-        auto              shaderCode     = ReadTextFile(path);
-        std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
-        return rhi->CreateShader(shaderPath, shaderCodeVec, entry, stage, RhiShaderSourceType::GLSLCode);
+        auto shaderRegistry = m_app->GetShaderRegistry();
+        return shaderRegistry->GetShader(name, 0);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SetupPostprocessPassAndTextures()
@@ -228,10 +225,10 @@ namespace Ifrit::Runtime
         // some pipelines
         if (m_deferredShadowPass == nullptr)
         {
-            auto rhi         = m_app->GetRhi();
-            auto vsShader    = CreateShaderFromFile("Syaro.DeferredShadow.vert.glsl", "main", RhiShaderStage::Vertex);
-            auto fsShader    = CreateShaderFromFile("Syaro.DeferredShadow.frag.glsl", "main", RhiShaderStage::Fragment);
-            auto shadowRtCfg = renderTargets->GetFormat();
+            auto rhi                   = m_app->GetRhi();
+            auto vsShader              = GetInternalShader(Internal::kIntShaderTable.Syaro.DeferredShadowingVS);
+            auto fsShader              = GetInternalShader(Internal::kIntShaderTable.Syaro.DeferredShadowingFS);
+            auto shadowRtCfg           = renderTargets->GetFormat();
             shadowRtCfg.m_colorFormats = { RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT };
             shadowRtCfg.m_depthFormat  = RhiImageFormat::RhiImgFmt_UNDEFINED;
 
@@ -686,7 +683,8 @@ namespace Ifrit::Runtime
     {
         m_atmosphereRenderer = std::make_shared<PbrAtmosphereRenderer>(m_app);
         auto rhi             = m_app->GetRhi();
-        m_atmospherePass     = RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.PbrAtmoRender.comp.glsl", 0, 19);
+        m_atmospherePass =
+            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.PbrAtmoRenderCS, 0, 19);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SetupDeferredShadingPass(RenderTargets* renderTargets)
@@ -713,8 +711,8 @@ namespace Ifrit::Runtime
         else
         {
             pass          = rhi->CreateGraphicsPass();
-            auto vsShader = CreateShaderFromFile("Syaro.DeferredShading.vert.glsl", "main", RhiShaderStage::Vertex);
-            auto fsShader = CreateShaderFromFile("Syaro.DeferredShading.frag.glsl", "main", RhiShaderStage::Fragment);
+            auto vsShader = GetInternalShader(Internal::kIntShaderTable.Syaro.DeferredShadingVS);
+            auto fsShader = GetInternalShader(Internal::kIntShaderTable.Syaro.DeferredShadingFS);
             pass->SetVertexShader(vsShader);
             pass->SetPixelShader(fsShader);
             pass->SetNumBindlessDescriptorSets(3);
@@ -736,8 +734,8 @@ namespace Ifrit::Runtime
         if (m_triangleViewPass.find(paCfg) == m_triangleViewPass.end())
         {
             auto pass     = rhi->CreateGraphicsPass();
-            auto vsShader = CreateShaderFromFile("Syaro.TriangleView.vert.glsl", "main", RhiShaderStage::Vertex);
-            auto fsShader = CreateShaderFromFile("Syaro.TriangleView.frag.glsl", "main", RhiShaderStage::Fragment);
+            auto vsShader = GetInternalShader(Internal::kIntShaderTable.Syaro.TriangleViewVS);
+            auto fsShader = GetInternalShader(Internal::kIntShaderTable.Syaro.TriangleViewFS);
             pass->SetVertexShader(vsShader);
             pass->SetPixelShader(fsShader);
             pass->SetNumBindlessDescriptorSets(0);
@@ -766,8 +764,8 @@ namespace Ifrit::Runtime
         else
         {
             pass          = rhi->CreateGraphicsPass();
-            auto vsShader = CreateShaderFromFile("Syaro.TAA.vert.glsl", "main", RhiShaderStage::Vertex);
-            auto fsShader = CreateShaderFromFile("Syaro.TAA.frag.glsl", "main", RhiShaderStage::Fragment);
+            auto vsShader = GetInternalShader(Internal::kIntShaderTable.Syaro.TAAVS);
+            auto fsShader = GetInternalShader(Internal::kIntShaderTable.Syaro.TAAFS);
             pass->SetVertexShader(vsShader);
             pass->SetPixelShader(fsShader);
             pass->SetNumBindlessDescriptorSets(2);
@@ -786,14 +784,18 @@ namespace Ifrit::Runtime
         // Hardware Rasterize
         if IF_CONSTEXPR (true)
         {
-            auto tsShader      = CreateShaderFromFile("Syaro.VisBuffer.task.glsl", "main", RhiShaderStage::Task);
-            auto msShader      = CreateShaderFromFile("Syaro.VisBuffer.mesh.glsl", "main", RhiShaderStage::Mesh);
-            auto msShaderDepth = CreateShaderFromFile("Syaro.VisBufferDepth.mesh.glsl", "main", RhiShaderStage::Mesh);
-            auto fsShader      = CreateShaderFromFile("Syaro.VisBuffer.frag.glsl", "main", RhiShaderStage::Fragment);
+
+            auto msShader      = GetInternalShader(Internal::kIntShaderTable.Syaro.VisBufferMS);
+            auto msShaderDepth = GetInternalShader(Internal::kIntShaderTable.Syaro.VisBufferDepthMS);
+            auto fsShader      = GetInternalShader(Internal::kIntShaderTable.Syaro.VisBufferFS);
 
             m_visibilityPassHW = rhi->CreateGraphicsPass();
+
 #if !SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
-            m_visibilityPassHW->SetTaskShader(tsShader);
+            static_assert(
+                false, "Shader meshlet cull in persistent cull is no longer to be supported in amplification shaders.");
+            // auto tsShader = CreateShaderFromFile("Syaro.VisBuffer.task.glsl", "main", RhiShaderStage::Task);
+            // m_visibilityPassHW->SetTaskShader(tsShader);
 #endif
             m_visibilityPassHW->SetMeshShader(msShader);
             m_visibilityPassHW->SetPixelShader(fsShader);
@@ -821,9 +823,8 @@ namespace Ifrit::Runtime
 
 #if SYARO_ENABLE_SW_RASTERIZER
         // Software Rasterize
-        if (true)
         {
-            auto csShader      = CreateShaderFromFile("Syaro.SoftRasterize.comp.glsl", "main", RhiShaderStage::Compute);
+            auto csShader      = GetInternalShader(Internal::kIntShaderTable.Syaro.SoftRasterizeCS);
             m_visibilityPassSW = rhi->CreateComputePass();
             m_visibilityPassSW->SetComputeShader(csShader);
             m_visibilityPassSW->SetNumBindlessDescriptorSets(3);
@@ -831,9 +832,8 @@ namespace Ifrit::Runtime
         }
 
         // Combine software and hardware rasterize results
-        if (true)
         {
-            auto csShader = CreateShaderFromFile("Syaro.CombineVisBuffer.comp.glsl", "main", RhiShaderStage::Compute);
+            auto csShader           = GetInternalShader(Internal::kIntShaderTable.Syaro.CombineVisBufferCS);
             m_visibilityCombinePass = rhi->CreateComputePass();
             m_visibilityCombinePass->SetComputeShader(csShader);
             m_visibilityCombinePass->SetNumBindlessDescriptorSets(0);
@@ -844,15 +844,15 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SyaroRenderer::SetupInstanceCullingPass()
     {
-        auto rhi              = m_app->GetRhi();
-        m_instanceCullingPass = RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.InstanceCulling.comp.glsl", 4, 2);
+        m_instanceCullingPass =
+            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.InstanceCullingCS, 4, 2);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SetupPersistentCullingPass()
     {
         auto rhi = m_app->GetRhi();
         m_persistentCullingPass =
-            RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.PersistentCulling.comp.glsl", 5, 3);
+            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.PersistentCullingCS, 5, 3);
 
         m_indirectDrawBuffer = rhi->CreateBufferDevice("Syaro_IndirectDraw", u32Size * 1, kbBufUsage_Indirect, true);
         m_persistCullDesc    = rhi->createBindlessDescriptorRef();
@@ -865,19 +865,20 @@ namespace Ifrit::Runtime
     }
     IFRIT_APIDECL void SyaroRenderer::SetupEmitDepthTargetsPass()
     {
-        auto rhi               = m_app->GetRhi();
-        m_emitDepthTargetsPass = RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.EmitDepthTarget.comp.glsl", 4, 2);
+        auto rhi = m_app->GetRhi();
+        m_emitDepthTargetsPass =
+            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.EmitDepthTargetCS, 4, 2);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SetupMaterialClassifyPass()
     {
-        auto rhi = m_app->GetRhi();
-        m_matclassCountPass =
-            RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.ClassifyMaterial.Count.comp.glsl", 1, 3);
-        m_matclassReservePass =
-            RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.ClassifyMaterial.Reserve.comp.glsl", 1, 3);
-        m_matclassScatterPass =
-            RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.ClassifyMaterial.Scatter.comp.glsl", 1, 3);
+        auto rhi            = m_app->GetRhi();
+        m_matclassCountPass = RenderingUtil::CreateComputePassInternal(
+            m_app, Internal::kIntShaderTable.Syaro.ClassifyMaterialCountCS, 1, 3);
+        m_matclassReservePass = RenderingUtil::CreateComputePassInternal(
+            m_app, Internal::kIntShaderTable.Syaro.ClassifyMaterialReserveCS, 1, 3);
+        m_matclassScatterPass = RenderingUtil::CreateComputePassInternal(
+            m_app, Internal::kIntShaderTable.Syaro.ClassifyMaterialScatterCS, 1, 3);
     }
 
     IFRIT_APIDECL void SyaroRenderer::MaterialClassifyBufferSetup(
@@ -1429,7 +1430,7 @@ namespace Ifrit::Runtime
     {
         auto rhi = m_app->GetRhi();
         m_defaultEmitGBufferPass =
-            RenderingUtil::CreateComputePass(rhi, "Syaro/Syaro.EmitGBuffer.Default.comp.glsl", 6, 3);
+            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.EmitGBufferCS, 6, 3);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SphizBufferSetup(PerFrameData& perframeData, RenderTargets* renderTargets)

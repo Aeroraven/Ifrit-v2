@@ -1,19 +1,15 @@
 #include "ifrit/runtime/renderer/PostprocessPass.h"
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/file/FileOps.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 using namespace Ifrit::Graphics::Rhi;
 namespace Ifrit::Runtime
 {
-    IFRIT_APIDECL PostprocessPass::GPUShader* PostprocessPass::CreateShaderFromFile(
-        const String& shaderPath, const String& entry, Graphics::Rhi::RhiShaderStage stage)
+    IFRIT_APIDECL PostprocessPass::GPUShader* PostprocessPass::CreateInternalShader(const char* name)
     {
-        auto              rhi            = m_app->GetRhi();
-        String            shaderBasePath = IFRIT_RUNTIME_SHARED_SHADER_PATH;
-        auto              path           = shaderBasePath + "/Postprocess/" + shaderPath;
-        auto              shaderCode     = ReadTextFile(path);
-        std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
-        return rhi->CreateShader(shaderPath, shaderCodeVec, entry, stage, RhiShaderSourceType::GLSLCode);
+        auto registry = m_app->GetShaderRegistry();
+        return registry->GetShader(name, 0);
     }
 
     IFRIT_APIDECL PostprocessPass::DrawPass* PostprocessPass::SetupRenderPipeline(RenderTargets* renderTargets)
@@ -33,8 +29,8 @@ namespace Ifrit::Runtime
         else
         {
             pass          = rhi->CreateGraphicsPass();
-            auto vsShader = CreateShaderFromFile("Postproc.Common.vert.glsl", "main", RhiShaderStage::Vertex);
-            auto fsShader = CreateShaderFromFile(m_cfg.fragPath, "main", RhiShaderStage::Fragment);
+            auto vsShader = CreateInternalShader(Internal::kIntShaderTable.PostprocessVertex.CommonVS);
+            auto fsShader = CreateInternalShader(m_cfg.fragPath.c_str());
             pass->SetPixelShader(fsShader);
             pass->SetVertexShader(vsShader);
             pass->SetNumBindlessDescriptorSets(m_cfg.numDescriptorSets);
@@ -51,7 +47,7 @@ namespace Ifrit::Runtime
         if (m_computePipeline == nullptr)
         {
             m_computePipeline = rhi->CreateComputePass();
-            auto csShader     = CreateShaderFromFile(m_cfg.fragPath, "main", RhiShaderStage::Compute);
+            auto csShader     = CreateInternalShader(m_cfg.fragPath.c_str());
             m_computePipeline->SetNumBindlessDescriptorSets(m_cfg.numDescriptorSets);
             m_computePipeline->SetComputeShader(csShader);
             m_computePipeline->SetPushConstSize(sizeof(u32) * m_cfg.numPushConstants);

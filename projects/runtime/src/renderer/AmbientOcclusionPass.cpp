@@ -23,25 +23,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/renderer/RendererUtil.h"
 
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+
 using namespace Ifrit::Graphics::Rhi;
 
 namespace Ifrit::Runtime
 {
-    IFRIT_APIDECL AmbientOcclusionPass::GPUShader* AmbientOcclusionPass::CreateShaderFromFile(
-        const std::string& shaderPath, const std::string& entry, Graphics::Rhi::RhiShaderStage stage)
+    IFRIT_APIDECL AmbientOcclusionPass::GPUShader* AmbientOcclusionPass::GetInternalShader(const char* name)
     {
-        auto              rhi            = m_app->GetRhi();
-        std::string       shaderBasePath = IFRIT_RUNTIME_SHARED_SHADER_PATH;
-        auto              path           = shaderBasePath + "/AmbientOcclusion/" + shaderPath;
-        auto              shaderCode     = ReadTextFile(path);
-        std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
-        return rhi->CreateShader(shaderPath, shaderCodeVec, entry, stage, RhiShaderSourceType::GLSLCode);
+        auto registry = m_app->GetShaderRegistry();
+        return registry->GetShader(name, 0);
     }
 
     IFRIT_APIDECL void AmbientOcclusionPass::SetupHBAOPass()
     {
         auto rhi    = m_app->GetRhi();
-        auto shader = CreateShaderFromFile("HBAO.comp.glsl", "main", Graphics::Rhi::RhiShaderStage::Compute);
+        auto shader = GetInternalShader(Internal::kIntShaderTable.GI.HBAOCS);
         m_hbaoPass  = rhi->CreateComputePass();
         m_hbaoPass->SetComputeShader(shader);
         m_hbaoPass->SetNumBindlessDescriptorSets(0);
@@ -51,7 +48,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void AmbientOcclusionPass::SetupSSGIPass()
     {
         auto rhi    = m_app->GetRhi();
-        auto shader = CreateShaderFromFile("SSGI.comp.glsl", "main", Graphics::Rhi::RhiShaderStage::Compute);
+        auto shader = GetInternalShader(Internal::kIntShaderTable.GI.SSGICS);
         m_ssgiPass  = rhi->CreateComputePass();
         m_ssgiPass->SetComputeShader(shader);
         m_ssgiPass->SetNumBindlessDescriptorSets(0);

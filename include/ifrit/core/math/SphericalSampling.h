@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Math
 {
-    Vector3f ConcentricOctahedralTransform(const Vector2f& sample)
+    inline Vector3f ConcentricOctahedralTransform(const Vector2f& sample)
     {
         // https://zhuanlan.zhihu.com/p/408898601
         // https://fileadmin.cs.lth.se/graphics/research/papers/2008/simdmapping/clarberg_simdmapping08_preprint.pdf

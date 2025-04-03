@@ -30,7 +30,7 @@ layout(
     local_size_z = kAyanamiRadianceInjectionObjectsPerBlock 
     ) in;
 
-layout(push_constant)  uniform PushConst{
+layout(push_constant)  uniform PushConstData{
     uint totalCards;
     uint cardResolution;
     uint packedShadowMarkBits;
@@ -48,18 +48,18 @@ RegisterStorage(BAllCardData,{
 });
 
 void main(){
-    uvec3 tID = gl_GlobalInvocationID;
-    uint maxCardsInLine = PushConst.cardAtlasResolution / PushConst.cardResolution;
-    uint cardIndex_X = tID.z % maxCardsInLine;
-    uint cardIndex_Y = tID.z / maxCardsInLine;
-    uvec2 cardOffset = uvec2(cardIndex_X * PushConst.cardResolution, cardIndex_Y * PushConst.cardResolution);
-    uvec2 tileOffset = uvec2(tID.x, tID.y);
-    uvec2 overallOffset = cardOffset + tileOffset;
+    // uvec3 tID = gl_GlobalInvocationID;
+    // uint maxCardsInLine = PushConst.cardAtlasResolution / PushConst.cardResolution;
+    // uint cardIndex_X = tID.z % maxCardsInLine;
+    // uint cardIndex_Y = tID.z / maxCardsInLine;
+    // uvec2 cardOffset = uvec2(cardIndex_X * PushConst.cardResolution, cardIndex_Y * PushConst.cardResolution);
+    // uvec2 tileOffset = uvec2(tID.x, tID.y);
+    // uvec2 overallOffset = cardOffset + tileOffset;
 
-    uint cardIndex = tID.z;
-    uint tileIndex = tID.x + tID.y * gl_WorkGroupSize.x;
+    // uint cardIndex = tID.z;
+    // uint tileIndex = tID.x + tID.y * gl_WorkGroupSize.x;
 
 
-    mat4 atlasToLocal = GetResource(BAllCardData, PushConst.cardDataId).m_Mats[cardIndex].m_VPInv;
+    // mat4 atlasToLocal = GetResource(BAllCardData, PushConst.cardDataId).m_Mats[cardIndex].m_VPInv;
     
 }

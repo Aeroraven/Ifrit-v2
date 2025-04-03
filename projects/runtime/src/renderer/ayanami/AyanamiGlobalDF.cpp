@@ -22,15 +22,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/constfunc/ConstFunc.h"
 
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 using namespace Ifrit::Math;
 
 namespace Ifrit::Runtime::Ayanami
 {
 
-    IFRIT_APIDECL AyanamiGlobalDF::AyanamiGlobalDF(const AyanamiRenderConfig& config, Graphics::Rhi::RhiBackend* rhi)
-        : m_rhi(rhi)
+    IFRIT_APIDECL AyanamiGlobalDF::AyanamiGlobalDF(const AyanamiRenderConfig& config, IApplication* app) : m_app(app)
     {
+        auto rhi = app->GetRhi();
         m_TestClipMaps.resize(config.m_globalDFClipmapLevels);
         for (u32 i = 0; i < config.m_globalDFClipmapLevels; i++)
         {
@@ -58,8 +59,8 @@ namespace Ifrit::Runtime::Ayanami
     {
         if (m_updateClipmapPass == nullptr)
         {
-            m_updateClipmapPass =
-                RenderingUtil::CreateComputePass(m_rhi, "Ayanami/Ayanami.TrivialGlobalDFComposite.comp.glsl", 0, 16);
+            m_updateClipmapPass = RenderingUtil::CreateComputePassInternal(
+                m_app, Internal::kIntShaderTable.Ayanami.TrivialGlobalDFCompCS, 0, 16);
         }
         auto& clipmap = m_TestClipMaps[clipmapLevel];
 
@@ -103,8 +104,8 @@ namespace Ifrit::Runtime::Ayanami
     {
         if (m_raymarchPass == nullptr)
         {
-            m_raymarchPass =
-                RenderingUtil::CreateComputePass(m_rhi, "Ayanami/Ayanami.GlobalDFRayMarch.comp.glsl", 0, 17);
+            m_raymarchPass = RenderingUtil::CreateComputePassInternal(
+                m_app, Internal::kIntShaderTable.Ayanami.GlobalDFRayMarchCS, 0, 17);
         }
 
         auto& clipmap = m_TestClipMaps[clipmapLevel];

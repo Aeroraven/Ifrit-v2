@@ -1,11 +1,12 @@
 #pragma once
 #include "ifrit/runtime/renderer/postprocessing/PostFxGaussianHori.h"
 #include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime::PostprocessPassCollection
 {
     IFRIT_APIDECL PostFxGaussianHori::PostFxGaussianHori(IApplication* app)
-        : PostprocessPass(app, { "GaussianVert.frag.glsl", 2, 1 })
+        : PostprocessPass(app, { Internal::kIntShaderTable.Postprocess.GaussianHoriFS, 2, 1 })
     {
     }
 

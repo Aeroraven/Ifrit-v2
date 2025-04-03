@@ -139,8 +139,7 @@ namespace Ifrit::Runtime
         void       SetupMultipleScatteringPass();
 
         void       PreparePerframeData(PerFrameData& perframeData);
-        GPUShader* CreateShaderFromFile(
-            const String& shaderPath, const String& entry, Graphics::Rhi::RhiShaderStage stage);
+        GPUShader* GetInternalShader(const char* name);
 
     public:
         PbrAtmosphereRenderer(IApplication* app) : RendererBase(app)

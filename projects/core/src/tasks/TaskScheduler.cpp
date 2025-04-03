@@ -153,7 +153,8 @@ namespace Ifrit
         RObjectPool<Task>                         m_TaskPool;
     };
 
-    IFRIT_APIDECL TaskScheduler::TaskScheduler(u32 numThreads) : m_Attributes(new TaskSchedulerAttributes())
+    IFRIT_APIDECL TaskScheduler::TaskScheduler(u32 numThreads, bool isSingleton)
+        : m_Attributes(new TaskSchedulerAttributes()), m_IsSingleton(isSingleton)
     {
         m_Attributes->m_Workers.reserve(numThreads);
         for (u32 i = 0; i < numThreads; ++i)
@@ -261,6 +262,10 @@ namespace Ifrit
 
     IFRIT_APIDECL TaskScheduler::~TaskScheduler()
     {
+        if (m_IsSingleton)
+        {
+            return;
+        }
         for (auto& worker : m_Attributes->m_Workers)
         {
             worker->m_Attributes->m_State = TaskWorkerState::Terminating;

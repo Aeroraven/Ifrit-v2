@@ -33,10 +33,13 @@ namespace Ifrit::Runtime::RenderingUtil
             shaderPath, shaderCodeVec, entryPoint, stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode);
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiComputePass* CreateComputePass(
-        Graphics::Rhi::RhiBackend* rhi, const char* shaderPath, u32 numBindlessDescs, u32 numPushConsts)
+    IFRIT_APIDECL Graphics::Rhi::RhiComputePass* CreateComputePassInternal(
+        IApplication* app, const char* shaderName, u32 numBindlessDescs, u32 numPushConsts)
     {
-        auto shader = LoadShaderFromFile(rhi, shaderPath, "main", Graphics::Rhi::RhiShaderStage::Compute);
+        auto rhi       = app->GetRhi();
+        auto shaderlib = app->GetShaderRegistry();
+
+        auto shader = shaderlib->GetShader(shaderName, 0);
         auto pass   = rhi->CreateComputePass();
         pass->SetComputeShader(shader);
         pass->SetNumBindlessDescriptorSets(numBindlessDescs);
@@ -44,11 +47,14 @@ namespace Ifrit::Runtime::RenderingUtil
         return pass;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiGraphicsPass* CreateGraphicsPass(Graphics::Rhi::RhiBackend* rhi, const char* vsPath,
-        const char* fsPath, u32 numBindlessDescs, u32 numPushConsts, const Graphics::Rhi::RhiRenderTargetsFormat& vFmts)
+    IFRIT_APIDECL Graphics::Rhi::RhiGraphicsPass* CreateGraphicsPassInternal(IApplication* app, const char* nameVS,
+        const char* nameFS, u32 numBindlessDescs, u32 numPushConsts, const Graphics::Rhi::RhiRenderTargetsFormat& vFmts)
     {
-        auto vs   = LoadShaderFromFile(rhi, vsPath, "main", Graphics::Rhi::RhiShaderStage::Vertex);
-        auto fs   = LoadShaderFromFile(rhi, fsPath, "main", Graphics::Rhi::RhiShaderStage::Fragment);
+        auto registry = app->GetShaderRegistry();
+        auto vs       = registry->GetShader(nameVS, 0);
+        auto fs       = registry->GetShader(nameFS, 0);
+        auto rhi      = app->GetRhi();
+
         auto pass = rhi->CreateGraphicsPass();
         pass->SetVertexShader(vs);
         pass->SetPixelShader(fs);

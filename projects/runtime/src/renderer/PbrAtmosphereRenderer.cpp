@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/constfunc/ConstFunc.h"
 #include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/util/PbrAtmoConstants.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include <numbers>
 
 namespace Ifrit::Runtime
@@ -188,22 +189,16 @@ namespace Ifrit::Runtime
         data->luminanceFromRad = Math::Identity4();
     }
 
-    IFRIT_APIDECL PbrAtmosphereRenderer::GPUShader* PbrAtmosphereRenderer::CreateShaderFromFile(
-        const String& shaderPath, const String& entry, Graphics::Rhi::RhiShaderStage stage)
+    IFRIT_APIDECL PbrAtmosphereRenderer::GPUShader* PbrAtmosphereRenderer::GetInternalShader(const char* name)
     {
-        auto      rhi            = m_app->GetRhi();
-        String    shaderBasePath = IFRIT_RUNTIME_SHARED_SHADER_PATH;
-        auto      path           = shaderBasePath + "/atmosphere/" + shaderPath;
-        auto      shaderCode     = ReadTextFile(path);
-        Vec<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
-        return rhi->CreateShader(path, shaderCodeVec, entry, stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode);
+        auto registry = m_app->GetShaderRegistry();
+        return registry->GetShader(name, 0);
     }
 
     IFRIT_APIDECL void PbrAtmosphereRenderer::SetupTransmittancePrecomputePass()
     {
-        auto rhi = m_app->GetRhi();
-        auto shader =
-            CreateShaderFromFile("PAS.ComputeTransmittance.comp.glsl", "main", Graphics::Rhi::RhiShaderStage::Compute);
+        auto rhi                      = m_app->GetRhi();
+        auto shader                   = GetInternalShader(Internal::kIntShaderTable.Atmosphere.PASTransmittanceCS);
         m_transmittancePrecomputePass = rhi->CreateComputePass();
         m_transmittancePrecomputePass->SetComputeShader(shader);
         m_transmittancePrecomputePass->SetNumBindlessDescriptorSets(0);
@@ -212,9 +207,8 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void PbrAtmosphereRenderer::SetupIrradiancePrecomputePass()
     {
-        auto rhi = m_app->GetRhi();
-        auto shader =
-            CreateShaderFromFile("PAS.ComputeIrradiance.comp.glsl", "main", Graphics::Rhi::RhiShaderStage::Compute);
+        auto rhi                   = m_app->GetRhi();
+        auto shader                = GetInternalShader(Internal::kIntShaderTable.Atmosphere.PASIrradianceCS);
         m_irradiancePrecomputePass = rhi->CreateComputePass();
         m_irradiancePrecomputePass->SetComputeShader(shader);
         m_irradiancePrecomputePass->SetNumBindlessDescriptorSets(0);
@@ -223,9 +217,8 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void PbrAtmosphereRenderer::SetupSingleScatteringPass()
     {
-        auto rhi    = m_app->GetRhi();
-        auto shader = CreateShaderFromFile(
-            "PAS.ComputeSingleScattering.comp.glsl", "main", Graphics::Rhi::RhiShaderStage::Compute);
+        auto rhi               = m_app->GetRhi();
+        auto shader            = GetInternalShader(Internal::kIntShaderTable.Atmosphere.PASSingleScatteringCS);
         m_singleScatteringPass = rhi->CreateComputePass();
         m_singleScatteringPass->SetComputeShader(shader);
         m_singleScatteringPass->SetNumBindlessDescriptorSets(0);
@@ -234,9 +227,8 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void PbrAtmosphereRenderer::SetupScatteringDensityPass()
     {
-        auto rhi    = m_app->GetRhi();
-        auto shader = CreateShaderFromFile(
-            "PAS.ComputeScatteringDensity.comp.glsl", "main", Graphics::Rhi::RhiShaderStage::Compute);
+        auto rhi            = m_app->GetRhi();
+        auto shader         = GetInternalShader(Internal::kIntShaderTable.Atmosphere.PASScatteringDensityCS);
         m_scatteringDensity = rhi->CreateComputePass();
         m_scatteringDensity->SetComputeShader(shader);
         m_scatteringDensity->SetNumBindlessDescriptorSets(0);
@@ -245,9 +237,8 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void PbrAtmosphereRenderer::SetupIndirectIrradiancePass()
     {
-        auto rhi    = m_app->GetRhi();
-        auto shader = CreateShaderFromFile(
-            "PAS.ComputeIndirectIrradiance.comp.glsl", "main", Graphics::Rhi::RhiShaderStage::Compute);
+        auto rhi                 = m_app->GetRhi();
+        auto shader              = GetInternalShader(Internal::kIntShaderTable.Atmosphere.PASIndirectRadianceCS);
         m_indirectIrradiancePass = rhi->CreateComputePass();
         m_indirectIrradiancePass->SetComputeShader(shader);
         m_indirectIrradiancePass->SetNumBindlessDescriptorSets(0);
@@ -256,9 +247,8 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void PbrAtmosphereRenderer::SetupMultipleScatteringPass()
     {
-        auto rhi    = m_app->GetRhi();
-        auto shader = CreateShaderFromFile(
-            "PAS.ComputeMultipleScattering.comp.glsl", "main", Graphics::Rhi::RhiShaderStage::Compute);
+        auto rhi                 = m_app->GetRhi();
+        auto shader              = GetInternalShader(Internal::kIntShaderTable.Atmosphere.PASMultipleScatteringCS);
         m_multipleScatteringPass = rhi->CreateComputePass();
         m_multipleScatteringPass->SetComputeShader(shader);
         m_multipleScatteringPass->SetNumBindlessDescriptorSets(0);

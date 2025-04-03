@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/vkgraphics/engine/fsr2extension/FSR2Processor.h"
 
+#include "ifrit/core/algo/ConcurrentVector.h"
 using namespace Ifrit;
 
 namespace Ifrit::Graphics::VulkanGraphics
@@ -34,29 +35,30 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     struct RhiVulkanBackendImplDetails : public NonCopyable
     {
-        Uref<CommandExecutor>                m_commandExecutor;
-        Uref<DescriptorManager>              m_descriptorManager;
-        Uref<ResourceManager>                m_resourceManager;
-        Vec<Uref<StagedSingleBuffer>>        m_stagedSingleBuffer;
-        Vec<Uref<ShaderModule>>              m_shaderModule;
-        Uref<PipelineCache>                  m_pipelineCache;
+        Uref<CommandExecutor>                       m_commandExecutor;
+        Uref<DescriptorManager>                     m_descriptorManager;
+        Uref<ResourceManager>                       m_resourceManager;
+        Vec<Uref<StagedSingleBuffer>>               m_stagedSingleBuffer;
+        Uref<PipelineCache>                         m_pipelineCache;
 
-        Uref<RegisteredResourceMapper>       m_mapper;
+        Uref<RegisteredResourceMapper>              m_mapper;
 
         // managed passes
-        Vec<Uref<ComputePass>>               m_computePasses;
-        Vec<Uref<GraphicsPass>>              m_graphicsPasses;
-        Vec<Uref<DescriptorBindlessIndices>> m_bindlessIndices;
+        Vec<Uref<ComputePass>>                      m_computePasses;
+        Vec<Uref<GraphicsPass>>                     m_graphicsPasses;
+        Vec<Uref<DescriptorBindlessIndices>>        m_bindlessIndices;
 
         // managed descriptors
-        Vec<Ref<Rhi::RhiDescHandleLegacy>>   m_bindlessIdRefs;
+        Vec<Ref<Rhi::RhiDescHandleLegacy>>          m_bindlessIdRefs;
 
         // some utility buffers
-        Rhi::RhiBufferRef                    m_fullScreenQuadVertexBuffer;
-        Ref<VertexBufferDescriptor>          m_fullScreenQuadVertexBufferDescriptor;
+        Rhi::RhiBufferRef                           m_fullScreenQuadVertexBuffer;
+        Ref<VertexBufferDescriptor>                 m_fullScreenQuadVertexBufferDescriptor;
 
         // timers
-        Vec<Ref<DeviceTimer>>                m_deviceTimers;
+        Vec<Ref<DeviceTimer>>                       m_deviceTimers;
+
+        RConcurrentGrowthVector<Uref<ShaderModule>> m_shaderModule;
     };
 
     IFRIT_APIDECL
@@ -238,7 +240,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.fileName       = name;
         auto shaderModule = std::make_unique<ShaderModule>(CheckedCast<EngineContext>(m_device.get()), ci);
         auto ptr          = shaderModule.get();
-        m_implDetails->m_shaderModule.push_back(std::move(shaderModule));
+        m_implDetails->m_shaderModule.PushBack(std::move(shaderModule));
         return ptr;
     }
 

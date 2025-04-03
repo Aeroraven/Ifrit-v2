@@ -45,6 +45,7 @@ namespace Ifrit::Runtime
         Ref<InputSystem>       m_inputSystem;
         Ref<TimingRecorder>    m_timingRecorder;
         Uref<WindowProvider>   m_windowProvider;
+        Ref<ShaderRegistry>    m_shaderRegistry;
         ProjectProperty        m_info;
 
     private:
@@ -64,5 +65,6 @@ namespace Ifrit::Runtime
         inline String                  GetCacheDir() const override { return m_info.m_cachePath; }
         inline TimingRecorder*         GetTimeRecorder() override { return m_timingRecorder.get(); }
         inline const ProjectProperty&  GetProjectProperty() const override { return m_info; }
+        inline ShaderRegistry*         GetShaderRegistry() override { return m_shaderRegistry.get(); }
     };
 } // namespace Ifrit::Runtime

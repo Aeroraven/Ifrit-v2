@@ -116,7 +116,8 @@ namespace Ifrit
         using TaskRef = RObjectPool<Task>::RObjectRef;
 
     private:
-        TaskSchedulerAttributes* m_Attributes = nullptr;
+        TaskSchedulerAttributes* m_Attributes  = nullptr;
+        bool                     m_IsSingleton = false;
 
     private:
         void        RegisterDependency(Task* parent, Task* child);
@@ -126,7 +127,7 @@ namespace Ifrit
         void        DereferenceTask(RIndexedPtr taskId);
 
     public:
-        TaskScheduler(u32 numWorkers);
+        TaskScheduler(u32 numWorkers, bool isSingleton = false);
         ~TaskScheduler();
         TaskRef EnqueueTask(Fn<void(Task*, void*)> fn, Vec<TaskRef> dependencies, void* payload);
         void    WaitForTask(TaskRef task);

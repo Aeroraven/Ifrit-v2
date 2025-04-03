@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/runtime/application/ProjectProperty.h"
 #include "ifrit/runtime/util/TimingRecorder.h"
+#include "ifrit/runtime/material/ShaderRegistry.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 
@@ -36,5 +37,6 @@ namespace Ifrit::Runtime
         virtual String                           GetCacheDir() const        = 0;
         virtual TimingRecorder*                  GetTimeRecorder()          = 0;
         virtual const ProjectProperty&           GetProjectProperty() const = 0;
+        virtual ShaderRegistry*                  GetShaderRegistry()        = 0;
     };
 } // namespace Ifrit::Runtime

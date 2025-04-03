@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <algorithm>
 #include <bit>
 
-#include "ifrit.shader/Syaro/Syaro.SharedConst.h"
+#include "ifrit/runtime/base/ApplicationInterface.h"
 
 namespace Ifrit::Runtime::RenderingUtil
 {
@@ -37,10 +37,10 @@ namespace Ifrit::Runtime::RenderingUtil
     IFRIT_APIDECL Graphics::Rhi::RhiShader* LoadShaderFromFile(Graphics::Rhi::RhiBackend* rhi, const char* shaderPath,
         const char* entryPoint, Graphics::Rhi::RhiShaderStage stage);
 
-    IFRIT_APIDECL Graphics::Rhi::RhiComputePass* CreateComputePass(
-        Graphics::Rhi::RhiBackend* rhi, const char* shaderPath, u32 numBindlessDescs, u32 numPushConsts);
+    IFRIT_APIDECL Graphics::Rhi::RhiComputePass* CreateComputePassInternal(
+        IApplication* app, const char* shaderName, u32 numBindlessDescs, u32 numPushConsts);
 
-    IFRIT_APIDECL Graphics::Rhi::RhiGraphicsPass* CreateGraphicsPass(Graphics::Rhi::RhiBackend* rhi, const char* vsPath,
+    IFRIT_APIDECL Graphics::Rhi::RhiGraphicsPass* CreateGraphicsPassInternal(IApplication* app, const char* vsPath,
         const char* fsPath, u32 numBindlessDescs, u32 numPushConsts,
         const Graphics::Rhi::RhiRenderTargetsFormat& vFmts);
 
