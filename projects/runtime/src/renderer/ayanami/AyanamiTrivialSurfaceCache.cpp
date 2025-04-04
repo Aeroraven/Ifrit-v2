@@ -101,6 +101,7 @@ namespace Ifrit::Runtime::Ayanami
         RhiBufferRef                        m_ShadowMaskOfflineBuffer;
 
         Ref<GPUBindId>                      m_SceneCacheDepthSRV;
+        Ref<GPUBindId>                      m_SceneCacheRadianceSRV;
 
         Atomic<u32>                         m_MeshCardIndex = 0;
 
@@ -213,19 +214,16 @@ namespace Ifrit::Runtime::Ayanami
                     std::abort();
                 }
 
-                auto          objectBufferId = meshResource.objectBuffer->GetDescId();
-                auto          meshBBoxMax    = meshData->m_BoundingBoxMax;
-                auto          meshBBoxMin    = meshData->m_BoundingBoxMin;
-                auto          meshBBoxCenter = (meshBBoxMax + meshBBoxMin) * 0.5f;
-                auto          meshBBoxSize   = meshBBoxMax - meshBBoxMin;
-                auto          meshBBoxExtent = meshBBoxSize * 0.5f;
+                auto            objectBufferId = meshResource.objectBuffer->GetDescId();
+                auto            meshBBoxMax    = meshData->m_BoundingBoxMax;
+                auto            meshBBoxMin    = meshData->m_BoundingBoxMin;
+                auto            meshBBoxCenter = (meshBBoxMax + meshBBoxMin) * 0.5f;
+                auto            meshBBoxSize   = meshBBoxMax - meshBBoxMin;
+                auto            meshBBoxExtent = meshBBoxSize * 0.5f;
 
-                auto&         meshVertices = meshData->m_verticesAligned;
+                auto&           meshVertices = meshData->m_verticesAligned;
 
-                Array<f32, 3> meshBBoxExtentArr = { meshBBoxExtent.x, meshBBoxExtent.y, meshBBoxExtent.z };
-
-                printf("Mesh Extent: %f %f %f\n", meshBBoxExtent.x, meshBBoxExtent.y, meshBBoxExtent.z);
-                printf("Mesh Center: %f %f %f\n", meshBBoxCenter.x, meshBBoxCenter.y, meshBBoxCenter.z);
+                Array<f32, 3>   meshBBoxExtentArr = { meshBBoxExtent.x, meshBBoxExtent.y, meshBBoxExtent.z };
                 ManagedMeshCard card;
                 for (u32 i = 0; i < 6; i++)
                 {
@@ -421,6 +419,9 @@ namespace Ifrit::Runtime::Ayanami
         m_Resources->m_SceneCacheDepthSRV = rhi->RegisterCombinedImageSampler(
             m_Resources->m_SceneCacheTemporaryDepth.get(), m_Resources->m_CommonSampler.get());
 
+        m_Resources->m_SceneCacheRadianceSRV = rhi->RegisterCombinedImageSampler(
+            m_Resources->m_SceneCacheRadianceAtlas.get(), m_Resources->m_CommonSampler.get());
+
         auto maxAtlasSlots =
             m_Resolution * m_Resolution / m_Resources->m_AtlasElementSize / m_Resources->m_AtlasElementSize;
         auto requiredObserverBufferSize = maxAtlasSlots * sizeof(ManagedMeshCardGPUData);
@@ -519,10 +520,16 @@ namespace Ifrit::Runtime::Ayanami
             pc.depthAtlasSRVId = m_Resources->m_SceneCacheDepthSRV->GetActiveId();
 
             pc.worldObjTransforms = m_Resources->m_ObserveDeviceDataCoherentBindId->GetActiveId();
+            pc.perframeId         = perframe->m_views[0].m_viewBufferId->GetActiveId();
 
             cmdList->SetPushConst(m_Resources->m_RadianceCachePass, 0, sizeof(PushConst), &pc);
             cmdList->Dispatch(tileGroups, tileGroups, cardGroups);
         });
+
+        cmdList->BeginScope("Ayanami: RadianceCacheGenPass");
+        UpdateSurfaceModelMatrix();
+        m_Resources->m_RadianceCachePass->Run(cmdList, 0);
+        cmdList->EndScope();
     }
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateSurfaceModelMatrix()
@@ -558,5 +565,15 @@ namespace Ifrit::Runtime::Ayanami
     IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetDepthAtlas()
     {
         return m_Resources->m_SceneCacheTemporaryDepth;
+    }
+
+    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetRadianceAtlas()
+    {
+        return m_Resources->m_SceneCacheRadianceAtlas;
+    }
+
+    IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetRadianceSRVId()
+    {
+        return m_Resources->m_SceneCacheRadianceSRV->GetActiveId();
     }
 } // namespace Ifrit::Runtime::Ayanami

@@ -32,5 +32,5 @@ layout(push_constant) uniform PushConstant{
 
 void main(){
     vec4 color = texture(GetSampler2D(pc.rayMarchResult), texCoord);
-    outColor = vec4(color.xyz, 1.0);
+    outColor = vec4(color.xxx, 1.0);
 }

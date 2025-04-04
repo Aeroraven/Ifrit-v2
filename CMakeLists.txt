@@ -57,3 +57,4 @@ add_dependencies(ifrit.runtime ifrit.rhi ifrit.display ifrit.meshproclib ifrit.c
 add_dependencies(ifrit.demo.syaro ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.runtime ifrit.rhi)
 add_dependencies(ifrit.demo.ayanami ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.runtime ifrit.rhi)
 add_dependencies(ifrit.demo.test ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.runtime ifrit.rhi)
+add_dependencies(ifrit.demo.memdiag ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.runtime ifrit.rhi)

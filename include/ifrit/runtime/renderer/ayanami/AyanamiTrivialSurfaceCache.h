@@ -49,5 +49,8 @@ namespace Ifrit::Runtime::Ayanami
         Graphics::Rhi::RhiTextureRef GetAlbedoAtlas();
         Graphics::Rhi::RhiTextureRef GetNormalAtlas();
         Graphics::Rhi::RhiTextureRef GetDepthAtlas();
+        Graphics::Rhi::RhiTextureRef GetRadianceAtlas();
+
+        u32                          GetRadianceSRVId();
     };
 } // namespace Ifrit::Runtime::Ayanami

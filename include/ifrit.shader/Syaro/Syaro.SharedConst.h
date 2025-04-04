@@ -44,8 +44,8 @@ namespace Ifrit::Runtime::SyaroConfig
 // frustum, for CSM, view frustum culling is larger than the actual view frustum
 // to avoid flickering. However, this makes about 107% useless area to be
 // rendered. This macro intends to reduce the culling frustum to the actual view
-// frustum.
-#define SYARO_SHADER_SHARED_EXPLICIT_ORTHO_FRUSTUM_CULL 1
+// frustum. EXPERIMENTAL, still buggy.
+#define SYARO_SHADER_SHARED_EXPLICIT_ORTHO_FRUSTUM_CULL 0
 
 // This macro determines whether to reuse the calculated triangle data during
 // the GBuffer emission. A thread will process 4 pixels (quad) at a time.

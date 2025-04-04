@@ -65,7 +65,8 @@ namespace Ifrit::Runtime
     private:
         void InitRenderer();
         void PrepareResources(RenderTargets* renderTargets, const RendererConfig& config);
-        void SetupAndRunFrameGraph(PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
+        void SetupAndRunFrameGraph(
+            Scene* scene, PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
 
     public:
         AyanamiRenderer(IApplication* app, Ayanami::AyanamiRenderConfig config)

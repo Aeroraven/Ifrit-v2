@@ -157,26 +157,6 @@ namespace Ifrit
             light->SetShadowMapResolution(2048);
             light->SetAffectPbrSky(true);
 
-            auto meshes = bistroObj->GetLoadedMesh(s.get());
-
-            auto numMeshes = 0;
-            for (auto& m : meshes)
-            {
-                numMeshes++;
-                if (numMeshes < 50)
-                    continue;
-                if (numMeshes > 212)
-                    break;
-                auto t      = m->m_prefab;
-                auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
-                meshDF->BuildMeshDF(GetCacheDir());
-                auto meshMarker = t->AddComponent<Ayanami::AyanamiMeshMarker>();
-
-                auto transform = t->GetComponent<Transform>();
-                auto mat       = transform->GetModelToWorldMatrix();
-                node->AddGameObjectTransferred(std::move(m->m_prefab));
-            }
-
             // Render targets
             auto rt       = m_rhiLayer.get();
             depthImage    = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
@@ -198,9 +178,7 @@ namespace Ifrit
         {
             auto scene       = m_sceneManager->GetActiveScene();
             auto sFrameStart = renderer->BeginFrame();
-            auto renderComplete =
-                renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { sFrameStart.get() });
-            renderer->EndFrame({ renderComplete.get() });
+            renderer->EndFrame({ sFrameStart.get() });
         }
 
         void OnEnd() override {}

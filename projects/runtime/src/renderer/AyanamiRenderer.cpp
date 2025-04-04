@@ -100,7 +100,7 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(
-        PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
+        Scene* scene, PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
         FrameGraphBuilder fg;
         fg.SetResourceInitState(FrameGraphResourceInitState::Uninitialized);
@@ -121,6 +121,9 @@ namespace Ifrit::Runtime
         auto& resSuraceCacheDepth =
             fg.AddResource("SurfaceCacheDepth")
                 .SetImportedResource(m_resources->m_surfaceCacheManager->GetDepthAtlas().get(), { 0, 0, 1, 1 });
+        auto& resDirectRadiance =
+            fg.AddResource("DirectRadiance")
+                .SetImportedResource(m_resources->m_surfaceCacheManager->GetRadianceAtlas().get(), { 0, 0, 1, 1 });
 
         auto& resRaymarchOutput =
             fg.AddResource("RaymarchOutput").SetImportedResource(m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
@@ -137,6 +140,9 @@ namespace Ifrit::Runtime
                                         .AddWriteResource(resSurfaceCacheNormal)
                                         .AddWriteResource(resSuraceCacheDepth);
 
+        auto& passRadianceCacheGen =
+            fg.AddPass("RadianceCacheGen", FrameGraphPassType::Compute).AddWriteResource(resDirectRadiance);
+
         auto& passGlobalDFGen = fg.AddPass("GlobalDFGen", FrameGraphPassType::Compute);
         auto& passRaymarch    = fg.AddPass("RaymarchPass", FrameGraphPassType::Compute);
         auto& passDebug       = fg.AddPass("DebugPass", FrameGraphPassType::Graphics);
@@ -144,17 +150,11 @@ namespace Ifrit::Runtime
         if (!m_resources->m_inited)
         {
             passGlobalDFGen.AddWriteResource(resGlobalDFGen);
-
-            passRaymarch.AddReadResource(resGlobalDFGen).AddWriteResource(resRaymarchOutput);
-
-            passDebug.AddReadResource(resRaymarchOutput).AddWriteResource(resRenderTargets);
         }
-        else
-        {
-            passRaymarch.AddReadResource(resGlobalDFGen).AddWriteResource(resRaymarchOutput);
-
-            passDebug.AddReadResource(resRaymarchOutput).AddWriteResource(resRenderTargets);
-        }
+        passRaymarch.AddReadResource(resGlobalDFGen).AddWriteResource(resRaymarchOutput);
+        passDebug.AddReadResource(resRaymarchOutput)
+            .AddReadResource(resDirectRadiance)
+            .AddWriteResource(resRenderTargets);
 
         if (!m_resources->m_inited)
         {
@@ -172,6 +172,11 @@ namespace Ifrit::Runtime
         passSurfaceCacheGen.SetExecutionFunction([&](const FrameGraphPassContext& data) {
             auto commandList = data.m_CmdList;
             m_resources->m_surfaceCacheManager->UpdateSurfaceCacheAtlas(commandList);
+        });
+
+        passRadianceCacheGen.SetExecutionFunction([&](const FrameGraphPassContext& data) {
+            auto commandList = data.m_CmdList;
+            m_resources->m_surfaceCacheManager->UpdateRadianceCacheAtlas(commandList, scene);
         });
 
         passRaymarch.SetExecutionFunction([&](const FrameGraphPassContext& data) {
@@ -213,7 +218,10 @@ namespace Ifrit::Runtime
             {
                 u32 raymarchOutput;
             } pc;
-            pc.raymarchOutput = m_resources->m_raymarchOutputSRVBindId->GetActiveId();
+            // pc.raymarchOutput = m_resources->m_raymarchOutputSRVBindId->GetActiveId();
+            pc.raymarchOutput = m_resources->m_surfaceCacheManager->GetRadianceSRVId();
+            // pc.raymarchOutput = perframe.m_shadowData2.m_shadowViews[0].m_texRef[3];
+            //  pc.raymarchOutput = perframe.m_views[0].m_visDepthIdSRV_HW->GetActiveId();
             EnqueueFullScreenPass(commandList, rhi, m_resources->m_debugPass, renderTargets, {}, &pc, 1);
         });
 
@@ -243,7 +251,7 @@ namespace Ifrit::Runtime
         auto dq  = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
 
         auto task = dq->RunAsyncCommand(
-            [&](const GPUCmdBuffer* cmd) { SetupAndRunFrameGraph(perframeData, renderTargets, cmd); },
+            [&](const GPUCmdBuffer* cmd) { SetupAndRunFrameGraph(scene, perframeData, renderTargets, cmd); },
             { vgTaskTimestamp.get() }, {});
 
         return task;

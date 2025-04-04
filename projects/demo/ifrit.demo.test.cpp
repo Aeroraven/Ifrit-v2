@@ -3,8 +3,9 @@
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/algo/Parallel.h"
 #include "ifrit/core/tasks/TaskScheduler.h"
-
+#include "ifrit/rhi/platform/RhiSelector.h"
 using namespace Ifrit;
+using namespace Ifrit::Graphics::Rhi;
 
 namespace Ifrit::Test
 {
@@ -63,6 +64,7 @@ void taskTest()
         scheduler.WaitForTask(task);
     }
 }
+
 int main()
 {
     taskTest();

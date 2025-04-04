@@ -33,5 +33,4 @@ struct MeshDFMeta{
 struct CardData{
     mat4 m_VP;
     mat4 m_VPInv;
-    uint m_ObjectId;
 };

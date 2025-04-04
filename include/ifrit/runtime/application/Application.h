@@ -39,8 +39,8 @@ namespace Ifrit::Runtime
     protected:
         Uref<RhiBackend>       m_rhiLayer; // should be destroyed last
 
-        Ref<AssetManager>      m_assetManager;
         Ref<SceneManager>      m_sceneManager;
+        Ref<AssetManager>      m_assetManager;
         Ref<SceneAssetManager> m_sceneAssetManager;
         Ref<InputSystem>       m_inputSystem;
         Ref<TimingRecorder>    m_timingRecorder;

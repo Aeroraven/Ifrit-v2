@@ -75,7 +75,7 @@ RegisterStorage(BShadowMaps,{
     ShadowMaps m_Data[];
 });
 
-RegisterStorage(BPerFrameData,{
+RegisterUniform(BPerFrameData,{
     PerFramePerViewData m_Data;
 });
 
@@ -112,8 +112,31 @@ uint Uvec4ToUint(uvec4 v, uint idx){
     }
 }
 
-float GlobalShadowVisibility(vec3 worldPos, vec3 viewPos){
-    float avgShadow = 10000.0;
+vec2 ShadowMapSingle(uint lightId, vec3 worldPos,uint csmIdx){
+    ShadowMaps shadowMap = GetResource(BShadowMaps,PushConst.lightDataId).m_Data[lightId];
+    uint viewRef = Uvec4ToUint(shadowMap.m_ViewRef,csmIdx);
+    uint shadowRef = Uvec4ToUint(shadowMap.m_ShadowRef,csmIdx);
+    mat4 lightView = GetResource(BPerFrameData,viewRef).m_Data.m_worldToView;
+    mat4 lightProj = GetResource(BPerFrameData,viewRef).m_Data.m_perspective;
+    mat4 lightVP = lightProj * lightView;
+
+    vec4 lightPos = lightVP * vec4(worldPos,1.0);
+    vec3 lightPosNDC = lightPos.xyz / lightPos.w;
+    vec2 lightPosNDCxy = lightPosNDC.xy * 0.5 + 0.5;
+
+    float shadowMapZ = texture(GetSampler2D(shadowRef), lightPosNDCxy.xy).r;
+    float refZ = lightPosNDC.z;
+    
+    //if ndc out of range, return 0 coverage to g
+    if(lightPosNDCxy.x < 0.0 || lightPosNDCxy.x > 1.0 || lightPosNDCxy.y < 0.0 || lightPosNDCxy.y > 1.0){
+        return vec2(0.0,0.0);
+    }
+    float shadowVis = (refZ < shadowMapZ - 1e-3) ? 1.0 : 0.0;
+    return vec2(shadowVis,1.0);
+}
+
+vec2 GlobalShadowVisibility(vec3 worldPos, vec3 viewPos){
+    vec2 avgShadow = vec2(0.0,0.0);
 
     for(int i = 0; i < PushConst.totalLights; i++){
         uint csmLevel = GetCSMSplitId(viewPos,i);
@@ -133,7 +156,7 @@ float GlobalShadowVisibility(vec3 worldPos, vec3 viewPos){
         uint viewRef = Uvec4ToUint(viewRef4,csmLevel);
         float lightOrthoSize = GetResource(BPerFrameData,viewRef).m_Data.m_cameraOrthoSize;
         
-        avgShadow = csmLevel;//TESTing
+        avgShadow += ShadowMapSingle(i,worldPos,csmLevel);
     }
     return avgShadow;
 }
@@ -175,7 +198,11 @@ void main(){
     mat4 worldToView = GetResource(BPerFrameData, PushConst.m_PerFrameId).m_Data.m_worldToView;
     vec4 viewPos = worldToView * worldPos;
 
-    float shadowVisibility = GlobalShadowVisibility(worldPos.xyz, viewPos.xyz);
+    float shadowVisibility = 0.0;
+    float shadowCoverage = 0.0;
+    vec2 shadowVisibilityAndCoverage = GlobalShadowVisibility(worldPos.xyz, viewPos.xyz);
+    shadowVisibility = shadowVisibilityAndCoverage.x;
+    shadowCoverage = shadowVisibilityAndCoverage.y;
 
-    imageStore(GetUAVImage2DR32F(PushConst.radianceOutId), ivec2(overallOffset), vec4(shadowVisibility, 0.0, 0.0, 1.0));
+    imageStore(GetUAVImage2DR32F(PushConst.radianceOutId), ivec2(overallOffset), vec4(shadowVisibility, shadowCoverage, 0.0, 1.0));
 }

@@ -184,6 +184,7 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
         return true;
     }
     
+    //return group.lod == 0;
     // Note that, we discard a cluster group if "Parent Error<=threshold"
     bool parentRejected = true;
     if(group.lod != totalLod-1){
@@ -290,7 +291,7 @@ bool frustumCullOrtho(vec4 boundBall, float radius){
     bool bottomCull = boundBall.y + radius < top;
 
     if(leftCull || rightCull || topCull || bottomCull){
-        return true;
+        //return true;
     }
     return false;
 }
