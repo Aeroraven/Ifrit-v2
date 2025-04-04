@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiTrivialSurfaceCache.h"
 
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
-
+#include "ifrit/runtime/renderer/ayanami/AyanamiDFShadowing.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 
 namespace Ifrit::Runtime
@@ -48,6 +48,7 @@ namespace Ifrit::Runtime
         FrameGraphExecutor                      m_fgExecutor;
         Uref<AyanamiSceneAggregator>            m_sceneAggregator;
         Uref<AyanamiTrivialSurfaceCacheManager> m_surfaceCacheManager = nullptr;
+        Uref<AyanamiDistanceFieldLighting>      m_DFLighting          = nullptr;
 
         ComputePass*                            m_raymarchPass = nullptr;
         DrawPass*                               m_debugPass    = nullptr;
@@ -62,6 +63,7 @@ namespace Ifrit::Runtime
         m_resources->m_sceneAggregator = std::make_unique<AyanamiSceneAggregator>(m_app->GetRhi());
         m_resources->m_surfaceCacheManager =
             std::make_unique<AyanamiTrivialSurfaceCacheManager>(m_selfRenderConfig, m_app);
+        m_resources->m_DFLighting = std::make_unique<AyanamiDistanceFieldLighting>(m_app->GetRhi());
     }
     IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer()
     {
@@ -146,13 +148,19 @@ namespace Ifrit::Runtime
                     m_resources->m_sceneAggregator->GetGatheredBufferId())
                 .AddWriteResource(resGlobalDFGen);
         }
-
+        // Pass Surface Cache + Radiance Injection (Camera View)
         m_resources->m_surfaceCacheManager->UpdateSurfaceCacheAtlas(fg)
             .AddWriteResource(resSurfaceCacheAlbedo)
             .AddWriteResource(resSurfaceCacheNormal)
             .AddWriteResource(resSuraceCacheDepth);
 
         m_resources->m_surfaceCacheManager->UpdateRadianceCacheAtlas(fg, scene).AddWriteResource(resDirectRadiance);
+
+        // Pass DF Culling (Incomplete)
+        m_resources->m_DFLighting->DistanceFieldShadowTileScatter(fg,
+            m_resources->m_sceneAggregator->GetGatheredBufferId(),
+            m_resources->m_sceneAggregator->GetNumGatheredInstances(), Vector4f(0, 0, 0, 24.0f), Vector3f(0, 0, -1),
+            64);
 
         // Pass RayMarch
         if (m_resources->m_debugShowMeshDF)

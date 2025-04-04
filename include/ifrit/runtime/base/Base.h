@@ -21,5 +21,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #ifndef IFRIT_MODULE_RUNTIME
     #define IFRIT_RUNTIME_API IFRIT_APIDECL_IMPORT
 #else
-    #define IFRIT_RUNTIME_API IFRIT_APIDECL_EXPORT
+    #define IFRIT_RUNTIME_API IFRIT_APIDECL
 #endif

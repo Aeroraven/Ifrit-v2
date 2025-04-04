@@ -56,6 +56,7 @@ namespace Ifrit::Runtime
     {
         Compute,
         Graphics,
+        Transfer
     };
 
     enum class FrameGraphCompileMode
@@ -99,8 +100,12 @@ namespace Ifrit::Runtime
         friend struct PassNode;
 
     public:
-        ResourceNode& SetImportedResource(FgBuffer* buffer);
-        ResourceNode& SetImportedResource(FgTexture* texture, const FgTextureSubResource& subResource);
+        ResourceNode&          SetImportedResource(FgBuffer* buffer);
+        ResourceNode&          SetImportedResource(FgTexture* texture, const FgTextureSubResource& subResource);
+
+        FrameGraphResourceType GetType() const { return type; }
+        FgBuffer*               GetBuffer() const { return importedBuffer; }
+        FgTexture*             GetTexture() const { return importedTexture; }
     };
 
     struct IFRIT_APIDECL PassNode
@@ -204,6 +209,8 @@ namespace Ifrit::Runtime
 
         ComputePassNode&  AddComputePass(const String& name, const String& shader, u32 pushConsts);
         GraphicsPassNode& AddGraphicsPass(const String& name, const String& vs, const String& fs, u32 pushConsts,
+            Graphics::Rhi::RhiRenderTargets* rts);
+        GraphicsPassNode& AddMeshGraphicsPass(const String& name, const String& ms, const String& fs, u32 pushConsts,
             Graphics::Rhi::RhiRenderTargets* rts);
 
         inline Graphics::Rhi::RhiBackend* GetRhi() const { return m_Rhi; }

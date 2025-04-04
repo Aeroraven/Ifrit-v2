@@ -50,6 +50,8 @@ namespace Ifrit::Runtime::Internal
         REG_FRAGMENT(IST.Ayanami.SurfaceCacheGenFS, "Ayanami/Ayanami.SurfaceCacheGen");
         REG_VERTEX(IST.Ayanami.SurfaceCacheGenVS, "Ayanami/Ayanami.SurfaceCacheGen");
         REG_COMPUTE(IST.Ayanami.TrivialGlobalDFCompCS, "Ayanami/Ayanami.TrivialGlobalDFComposite");
+        REG_MESH(IST.Ayanami.DFShadowTileCullingMS, "Ayanami/Ayanami.DFShadowTileCull");
+        REG_FRAGMENT(IST.Ayanami.DFShadowTileCullingFS, "Ayanami/Ayanami.DFShadowTileCull");
 
         // Common
         REG_COMPUTE(IST.Common.SinglePassHzbCS, "CommonPass/SinglePassHzb");

@@ -43,33 +43,40 @@ namespace Ifrit::Graphics::Rhi
         inline void _setBufferState(RhiBuffer* buffer, RhiResourceState state) const { buffer->SetState(state); }
 
     public:
-        virtual void CopyBuffer(const RhiBuffer* srcBuffer, const RhiBuffer* dstBuffer, u32 size, u32 srcOffset, u32 dstOffset) const = 0;
-        virtual void Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                                                = 0;
-        virtual void SetViewports(const Vec<RhiViewport>& viewport) const                                                             = 0;
-        virtual void SetScissors(const Vec<RhiScissor>& scissor) const                                                                = 0;
-        virtual void DrawMeshTasksIndirect(const RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const                      = 0;
-        virtual void DrawIndexed(u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const    = 0;
+        virtual void CopyBuffer(
+            const RhiBuffer* srcBuffer, const RhiBuffer* dstBuffer, u32 size, u32 srcOffset, u32 dstOffset) const = 0;
+        virtual void Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                            = 0;
+        virtual void SetViewports(const Vec<RhiViewport>& viewport) const                                         = 0;
+        virtual void SetScissors(const Vec<RhiScissor>& scissor) const                                            = 0;
+        virtual void DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                       = 0;
+        virtual void DrawMeshTasksIndirect(const RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const  = 0;
+        virtual void DrawIndexed(
+            u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const = 0;
 
         // Clear UAV storage buffer, considered as a transfer operation, typically
         // need a barrier for sync.
-        virtual void BufferClear(const RhiBuffer* buffer, u32 val) const                                                                   = 0;
-        virtual void AttachBindlessRefGraphics(RhiGraphicsPass* pass, u32 setId, RhiBindlessDescriptorRef* ref) const                      = 0;
-        virtual void AttachBindlessRefCompute(RhiComputePass* pass, u32 setId, RhiBindlessDescriptorRef* ref) const                        = 0;
-        virtual void AttachVertexBufferView(const RhiVertexBufferView& view) const                                                         = 0;
-        virtual void AttachVertexBuffers(u32 firstSlot, const Vec<RhiBuffer*>& buffers) const                                              = 0;
-        virtual void AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const                                                                 = 0;
-        virtual void DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const                           = 0;
-        virtual void DispatchIndirect(const RhiBuffer* buffer, u32 offset) const                                                           = 0;
-        virtual void SetPushConst(RhiComputePass* pass, u32 offset, u32 size, const void* data) const                                      = 0;
-        virtual void SetPushConst(RhiGraphicsPass* pass, u32 offset, u32 size, const void* data) const                                     = 0;
-        virtual void ClearUAVTexFloat(const RhiTexture* texture, RhiImageSubResource subResource, const Array<f32, 4>& val) const          = 0;
-        virtual void AddResourceBarrier(const Vec<RhiResourceBarrier>& barriers) const                                                     = 0;
-        virtual void GlobalMemoryBarrier() const                                                                                           = 0;
-        virtual void BeginScope(const String& name) const                                                                                  = 0;
-        virtual void EndScope() const                                                                                                      = 0;
-        virtual void CopyImage(const RhiTexture* src, RhiImageSubResource srcSub, const RhiTexture* dst, RhiImageSubResource dstSub) const = 0;
-        virtual void CopyBufferToImage(const RhiBuffer* src, const RhiTexture* dst, RhiImageSubResource dstSub) const                      = 0;
-        virtual void SetCullMode(RhiCullMode mode) const                                                                                   = 0;
+        virtual void BufferClear(const RhiBuffer* buffer, u32 val) const = 0;
+        virtual void AttachBindlessRefGraphics(
+            RhiGraphicsPass* pass, u32 setId, RhiBindlessDescriptorRef* ref) const                                  = 0;
+        virtual void AttachBindlessRefCompute(RhiComputePass* pass, u32 setId, RhiBindlessDescriptorRef* ref) const = 0;
+        virtual void AttachVertexBufferView(const RhiVertexBufferView& view) const                                  = 0;
+        virtual void AttachVertexBuffers(u32 firstSlot, const Vec<RhiBuffer*>& buffers) const                       = 0;
+        virtual void AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const                                          = 0;
+        virtual void DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const    = 0;
+        virtual void DispatchIndirect(const RhiBuffer* buffer, u32 offset) const                                    = 0;
+        virtual void SetPushConst(RhiComputePass* pass, u32 offset, u32 size, const void* data) const               = 0;
+        virtual void SetPushConst(RhiGraphicsPass* pass, u32 offset, u32 size, const void* data) const              = 0;
+        virtual void ClearUAVTexFloat(
+            const RhiTexture* texture, RhiImageSubResource subResource, const Array<f32, 4>& val) const = 0;
+        virtual void AddResourceBarrier(const Vec<RhiResourceBarrier>& barriers) const                  = 0;
+        virtual void GlobalMemoryBarrier() const                                                        = 0;
+        virtual void BeginScope(const String& name) const                                               = 0;
+        virtual void EndScope() const                                                                   = 0;
+        virtual void CopyImage(const RhiTexture* src, RhiImageSubResource srcSub, const RhiTexture* dst,
+            RhiImageSubResource dstSub) const                                                           = 0;
+        virtual void CopyBufferToImage(
+            const RhiBuffer* src, const RhiTexture* dst, RhiImageSubResource dstSub) const = 0;
+        virtual void SetCullMode(RhiCullMode mode) const                                   = 0;
     };
 
     class IFRIT_APIDECL RhiQueue
@@ -84,12 +91,10 @@ namespace Ifrit::Graphics::Rhi
         virtual void                    RunSyncCommand(Fn<void(const RhiCommandList*)> func) = 0;
 
         // Runs a command buffer, with CPU not waiting the GPU to finish
-        virtual Uref<RhiTaskSubmission> RunAsyncCommand(
-            Fn<void(const RhiCommandList*)> func,
-            const Vec<RhiTaskSubmission*>&  waitOn,
-            const Vec<RhiTaskSubmission*>&  toIssue) = 0;
+        virtual Uref<RhiTaskSubmission> RunAsyncCommand(Fn<void(const RhiCommandList*)> func,
+            const Vec<RhiTaskSubmission*>& waitOn, const Vec<RhiTaskSubmission*>& toIssue) = 0;
 
         // Host sync
-        virtual void HostWaitEvent(RhiTaskSubmission* event) = 0;
+        virtual void                    HostWaitEvent(RhiTaskSubmission* event) = 0;
     };
 } // namespace Ifrit::Graphics::Rhi

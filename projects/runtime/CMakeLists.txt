@@ -17,6 +17,7 @@ add_definitions(-DIFRIT_API_EXPORT)
 add_definitions(-DIFRIT_RUNTIME_SHARED_SHADER_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.shader")
 add_definitions(-DIFRIT_RUNTIME_SHARED_ASSET_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.asset")
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.Runtime")
+add_definitions(-DIFRIT_MODULE_RUNTIME)
 
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/stb)
 

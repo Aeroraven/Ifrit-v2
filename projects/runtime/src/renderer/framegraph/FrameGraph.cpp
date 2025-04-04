@@ -182,48 +182,44 @@ namespace Ifrit::Runtime
         return *pass;
     }
 
+    IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddMeshGraphicsPass(
+        const String& name, const String& ms, const String& fs, u32 pushConsts, Graphics::Rhi::RhiRenderTargets* rts)
+    {
+        auto gp = m_Rhi->CreateGraphicsPass2();
+        gp->SetMeshShader(m_ShaderRegistry->GetShader(ms, 0));
+        gp->SetPixelShader(m_ShaderRegistry->GetShader(fs, 0));
+        gp->SetPushConstSize(pushConsts * sizeof(u32));
+        gp->SetRenderTargetFormat(rts->GetFormat());
+
+        auto area = rts->GetRenderArea();
+        gp->SetRenderArea(area.x, area.y, area.width, area.height);
+
+        auto pass        = new GraphicsPassNode(std::move(gp));
+        pass->id         = SizeCast<u32>(m_passes.size());
+        pass->name       = name;
+        pass->isImported = false;
+        pass->type       = FrameGraphPassType::Graphics;
+        pass->SetRenderTargets(rts);
+
+        m_passes.push_back(pass);
+        return *pass;
+    }
+
     // Frame Graph compiler
 
-    // Layout transition:
-    // (pass)->(output:srcLayout)->(input:dstLayout)
-    Graphics::Rhi::RhiResourceState GetOutputResouceState(FrameGraphPassType passType, FrameGraphResourceType resType,
-        FgTexture* image, FgBuffer* buffer, Graphics::Rhi::RhiResourceState parentState)
-    {
-        if (parentState != Graphics::Rhi::RhiResourceState::Undefined)
-        {
-            return parentState;
-        }
-        if (resType == FrameGraphResourceType::ResourceBuffer)
-        {
-            return Graphics::Rhi::RhiResourceState::UnorderedAccess;
-        }
-        else if (resType == FrameGraphResourceType::ResourceTexture)
-        {
-            if (passType == FrameGraphPassType::Graphics)
-            {
-                if (image->IsDepthTexture())
-                {
-                    return Graphics::Rhi::RhiResourceState::DepthStencilRT;
-                }
-                else
-                {
-                    return Graphics::Rhi::RhiResourceState::ColorRT;
-                }
-            }
-            else if (passType == FrameGraphPassType::Compute)
-            {
-                // TODO: check if it's UAV or SRV
-                return Graphics::Rhi::RhiResourceState::Common;
-            }
-        }
-        return Graphics::Rhi::RhiResourceState::Undefined;
-    }
     Graphics::Rhi::RhiResourceState GetInputResourceState(
         FrameGraphPassType passType, FrameGraphResourceType resType, FgTexture* image, FgBuffer* buffer)
     {
         if (resType == FrameGraphResourceType::ResourceBuffer)
         {
-            return Graphics::Rhi::RhiResourceState::UnorderedAccess;
+            if (passType == FrameGraphPassType::Transfer)
+            {
+                return Graphics::Rhi::RhiResourceState::CopySrc;
+            }
+            else
+            {
+                return Graphics::Rhi::RhiResourceState::UnorderedAccess;
+            }
         }
         else if (resType == FrameGraphResourceType::ResourceTexture)
         {
@@ -235,6 +231,10 @@ namespace Ifrit::Runtime
             {
                 return Graphics::Rhi::RhiResourceState::UnorderedAccess;
             }
+            else if (passType == FrameGraphPassType::Transfer)
+            {
+                return Graphics::Rhi::RhiResourceState::CopySrc;
+            }
         }
         return Graphics::Rhi::RhiResourceState::Undefined;
     }
@@ -244,7 +244,14 @@ namespace Ifrit::Runtime
     {
         if (resType == FrameGraphResourceType::ResourceBuffer)
         {
-            return Graphics::Rhi::RhiResourceState::UnorderedAccess;
+            if (passType == FrameGraphPassType::Transfer)
+            {
+                return Graphics::Rhi::RhiResourceState::CopyDst;
+            }
+            else
+            {
+                return Graphics::Rhi::RhiResourceState::UnorderedAccess;
+            }
         }
         else if (resType == FrameGraphResourceType::ResourceTexture)
         {
@@ -262,6 +269,10 @@ namespace Ifrit::Runtime
             else if (passType == FrameGraphPassType::Compute)
             {
                 return Graphics::Rhi::RhiResourceState::UnorderedAccess;
+            }
+            else if (passType == FrameGraphPassType::Transfer)
+            {
+                return Graphics::Rhi::RhiResourceState::CopyDst;
             }
         }
         return Graphics::Rhi::RhiResourceState::Undefined;

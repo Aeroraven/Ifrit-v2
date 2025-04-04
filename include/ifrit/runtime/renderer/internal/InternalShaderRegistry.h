@@ -62,6 +62,8 @@ namespace Ifrit::Runtime::Internal
             SDEF SurfaceCacheGenFS         = DECLARE_FS("Ayanami/SurfaceCacheGen");
             SDEF SurfaceCacheGenVS         = DECLARE_VS("Ayanami/SurfaceCacheGen");
             SDEF TrivialGlobalDFCompCS     = DECLARE_CS("Ayanami/TrivialGlobalDFComp");
+            SDEF DFShadowTileCullingMS     = DECLARE_MS("Ayanami/DFShadowTileCulling");
+            SDEF DFShadowTileCullingFS     = DECLARE_FS("Ayanami/DFShadowTileCulling");
         } Ayanami;
 
         IF_CONSTEXPR static struct

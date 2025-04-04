@@ -147,7 +147,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         void                   AddPipelineBarrier(const PipelineBarrier& barrier) const;
 
         void                   Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const;
-        void                   DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const;
+        void                   DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const override;
         void                   DrawIndexed(
                               u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const override;
 
@@ -192,7 +192,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         void SetCullMode(Rhi::RhiCullMode mode) const override;
     };
 
-    class IFRIT_APIDECL CommandPool:NonCopyable
+    class IFRIT_APIDECL CommandPool : NonCopyable
     {
     private:
         EngineContext*           m_context;

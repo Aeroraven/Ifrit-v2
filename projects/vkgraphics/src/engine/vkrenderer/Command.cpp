@@ -623,7 +623,13 @@ namespace Ifrit::Graphics::VulkanGraphics
                 auto srcState     = barrier.m_transition.m_srcState;
                 if (srcState == Rhi::RhiResourceState::AutoTraced)
                 {
-                    srcState = barrier.m_transition.m_texture->GetState();
+                    if (barrier.m_transition.m_type == Rhi::RhiResourceType::Texture) {
+                        srcState = barrier.m_transition.m_texture->GetState();
+                    }
+                    else {
+                        srcState = barrier.m_transition.m_buffer->GetState();
+                    }
+                    
                 }
                 else
                 {

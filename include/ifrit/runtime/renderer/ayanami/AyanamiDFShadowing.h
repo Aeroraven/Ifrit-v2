@@ -24,9 +24,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime::Ayanami
 {
-    // IFRIT_RUNTIME_API void DistanceFieldTileScattering(FrameGraphBuilder& builder, Graphics::Rhi::RhiBuffer*
-    // meshDfList,
-    //     u32 totalMeshDfs, Vector4f sceneBound, Graphics::Rhi::RhiRenderTargets& target,
-    //     Graphics::Rhi::RhiBuffer* viewData, Graphics::Rhi::RhiBuffer* scatterOutput,
-    //     Graphics::Rhi::RhiBuffer* scatterAtomics, u32 tileSize);
-}
+    struct AyanamiDistanceFieldLightingPrivate;
+    class IFRIT_APIDECL AyanamiDistanceFieldLighting
+    {
+    private:
+        Graphics::Rhi::RhiBackend*           m_Rhi     = nullptr;
+        AyanamiDistanceFieldLightingPrivate* m_Private = nullptr;
+
+    public:
+        AyanamiDistanceFieldLighting(Graphics::Rhi::RhiBackend* rhi);
+        ~AyanamiDistanceFieldLighting();
+
+        GraphicsPassNode& DistanceFieldShadowTileScatter(FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs,
+            Vector4f sceneBound, Vector3f lightDir, u32 tileSize);
+    };
+} // namespace Ifrit::Runtime::Ayanami

@@ -48,6 +48,23 @@ namespace Ifrit::Runtime::FrameGraphUtils
         return pass;
     }
 
+    IFRIT_APIDECL GraphicsPassNode& AddMeshDrawPass(FrameGraphBuilder& builder, const String& name, const String& ms,
+        const String& fs, Graphics::Rhi::RhiRenderTargets* rts, Vector3i workGroups, const void* ptr, u32 pushConsts)
+    {
+        auto&   pass           = builder.AddMeshGraphicsPass(name, ms, fs, pushConsts, rts);
+        auto    rhi            = builder.GetRhi();
+        auto    underlyingPass = pass.GetPass();
+        Vec<u8> pushConstsData = PtrToVector(ptr, pushConsts * sizeof(u32));
+        pass.SetExecutionFunction(
+            [pushConsts, pushConstsData, rhi, underlyingPass, workGroups](const FrameGraphPassContext& ctx) {
+                auto cmd = ctx.m_CmdList;
+                if (pushConsts > 0)
+                    cmd->SetPushConst(underlyingPass, 0, pushConsts * sizeof(u32), pushConstsData.data());
+                cmd->DrawMeshTasks(workGroups.x, workGroups.y, workGroups.z);
+            });
+        return pass;
+    }
+
     IFRIT_APIDECL ComputePassNode& AddComputePass(FrameGraphBuilder& builder, const String& name, const String& shader,
         Vector3i workGroups, const void* ptr, u32 pushConsts)
     {
@@ -60,6 +77,23 @@ namespace Ifrit::Runtime::FrameGraphUtils
             if (pushConsts > 0)
                 cmd->SetPushConst(cp, 0, pushConsts * sizeof(u32), pushConstsData.data());
             cmd->Dispatch(workGroups.x, workGroups.y, workGroups.z);
+        });
+        return pass;
+    }
+
+    IFRIT_APIDECL PassNode& AddClearUAVPass(
+        FrameGraphBuilder& builder, const String& name, ResourceNode& buffer, u32 clearValue)
+    {
+        auto& pass = builder.AddPass(name, FrameGraphPassType::Transfer).AddWriteResource(buffer);
+        if (buffer.GetType() != FrameGraphResourceType::ResourceBuffer)
+        {
+            iError("FrameGraphUtils: Clear UAV pass only supports buffer resources.");
+            std::abort();
+        }
+        auto buf = buffer.GetBuffer();
+        pass.SetExecutionFunction([buf, clearValue](const FrameGraphPassContext& ctx) {
+            auto cmd = ctx.m_CmdList;
+            cmd->BufferClear(buf, clearValue);
         });
         return pass;
     }
