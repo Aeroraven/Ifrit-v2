@@ -601,20 +601,21 @@ namespace Ifrit::Graphics::VulkanGraphics
             m_swapchainImageResource = std::make_unique<SwapchainImageResource>(swapchain);
             m_resourceManager->SetDefaultCopies(swapchain->GetNumBackbuffers());
         }
-        CommandExecutor(const CommandExecutor& p)                   = delete;
-        CommandExecutor&        operator=(const CommandExecutor& p) = delete;
+        CommandExecutor(const CommandExecutor& p)            = delete;
+        CommandExecutor& operator=(const CommandExecutor& p) = delete;
 
-        RenderGraph*            CreateRenderGraph();
-        void                    setQueues(bool reqPresentQueue, int numGraphics, int numCompute, int numTransfer);
-        void                    syncMultiBufferStateWithSwapchain();
-        void                    runRenderGraph(RenderGraph* graph);
-        void                    runImmidiateCommand(Fn<void(CommandBuffer*)> func, QueueRequirement req);
+        RenderGraph*     CreateRenderGraph();
+        void setQueues(bool reqPresentQueue, int numGraphics, int numCompute, int numTransfer, i32 numFramesInFlight);
+        void syncMultiBufferStateWithSwapchain();
+        void runRenderGraph(RenderGraph* graph);
+        void runImmidiateCommand(Fn<void(CommandBuffer*)> func, QueueRequirement req);
         SwapchainImageResource* GetSwapchainImageResource();
         void                    BeginFrame();
         void                    EndFrame();
 
         // for rhi layers
         Queue*                  GetQueue(QueueRequirement req);
+        void                    QueueCollectionFrameAdvance();
     };
 
 } // namespace Ifrit::Graphics::VulkanGraphics

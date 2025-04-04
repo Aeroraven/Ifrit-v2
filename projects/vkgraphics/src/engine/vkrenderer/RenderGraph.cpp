@@ -735,12 +735,12 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL void CommandExecutor::setQueues(
-        bool reqPresentQueue, int numGraphics, int numCompute, int numTransfer)
+        bool reqPresentQueue, int numGraphics, int numCompute, int numTransfer, i32 numFramesInFlight)
     {
         if (m_queueCollections == nullptr)
         {
             m_queueCollections = std::make_unique<QueueCollections>(m_context);
-            m_queueCollections->LoadQueues();
+            m_queueCollections->LoadQueues(numFramesInFlight);
         }
         auto                graphicsQueues = m_queueCollections->GetGraphicsQueues();
         auto                computeQueues  = m_queueCollections->GetComputeQueues();
@@ -831,6 +831,14 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_queues.insert(m_queues.end(), m_queuesGraphics.begin(), m_queuesGraphics.end());
         m_queues.insert(m_queues.end(), m_queuesCompute.begin(), m_queuesCompute.end());
         m_queues.insert(m_queues.end(), m_queuesTransfer.begin(), m_queuesTransfer.end());
+    }
+
+    IFRIT_APIDECL void CommandExecutor::QueueCollectionFrameAdvance()
+    {
+        if (m_queueCollections != nullptr)
+        {
+            m_queueCollections->FrameAdvance();
+        }
     }
 
     IFRIT_APIDECL void CommandExecutor::compileGraph(RenderGraph* graph, uint32_t numMultiBuffers)
@@ -1013,6 +1021,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
         m_swapchain->AcquireNextImage();
         m_swapchainImageResource->ForceResetState();
+        QueueCollectionFrameAdvance();
     }
     IFRIT_APIDECL void   CommandExecutor::EndFrame() { m_swapchain->Present(); }
 

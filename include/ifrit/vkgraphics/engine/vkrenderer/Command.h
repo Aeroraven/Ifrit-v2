@@ -192,12 +192,15 @@ namespace Ifrit::Graphics::VulkanGraphics
         void SetCullMode(Rhi::RhiCullMode mode) const override;
     };
 
-    class IFRIT_APIDECL CommandPool
+    class IFRIT_APIDECL CommandPool:NonCopyable
     {
     private:
-        EngineContext* m_context;
-        u32            m_queueFamily;
-        VkCommandPool  m_commandPool;
+        EngineContext*           m_context;
+        u32                      m_queueFamily;
+        VkCommandPool            m_commandPool;
+
+        Vec<Uref<CommandBuffer>> m_AvailableCommandBuffers;
+        Vec<Uref<CommandBuffer>> m_InFlightCommandBuffers;
 
     protected:
         void Init();
@@ -210,26 +213,32 @@ namespace Ifrit::Graphics::VulkanGraphics
         ~CommandPool();
         Ref<CommandBuffer>  AllocateCommandBuffer();
         Uref<CommandBuffer> AllocateCommandBufferUnique();
+        void                ResetCommandPool();
+
+        void                EnqueueInFlightCommandBuffer(Uref<CommandBuffer>&& cmdBuf);
     };
 
-    class IFRIT_APIDECL Queue : public Rhi::RhiQueue
+    // Note that command buffers should be recycled in order to avoid memory leaks.
+    // https://developer.download.nvidia.com/gameworks/events/GDC2016/Vulkan_Essentials_GDC16_tlorach.pdf#page=15.00
+    class IFRIT_APIDECL Queue : public Rhi::RhiQueue, NonCopyable
     {
     private:
         EngineContext*                  m_context;
         VkQueue                         m_queue;
         u32                             m_queueFamily;
         u32                             m_capability;
-        Uref<CommandPool>               m_commandPool;
+        Vec<Uref<CommandPool>>          m_commandPools;
         Uref<TimelineSemaphore>         m_timelineSemaphore;
         std::stack<Uref<CommandBuffer>> m_cmdBufInUse;
         u64                             m_recordedCounter      = 0;
         CommandBuffer*                  m_currentCommandBuffer = nullptr;
 
-        std::queue<Uref<CommandBuffer>> m_cmdBufFreeList;
+        u32                             m_InFlightFrames = 0;
+        u32                             m_ActiveFrame    = 0; // The current frame that is being processed by the GPU.
 
     public:
         Queue() { printf("Runtime Error:queue\n"); }
-        Queue(EngineContext* ctx, VkQueue queue, u32 queueFamily, u32 capability);
+        Queue(EngineContext* ctx, VkQueue queue, u32 queueFamily, u32 capability, u32 inFlightFrames);
 
         virtual ~Queue() {}
         inline VkQueue        GetQueue() const { return m_queue; }
@@ -241,6 +250,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             const Vec<TimelineSemaphoreWait>& waitSemaphores, VkFence fence, VkSemaphore swapchainSemaphore = nullptr);
         void                         WaitIdle();
         void                         CounterReset();
+        void                         FrameAdvance();
 
         // for rhi layers override
         void                         RunSyncCommand(std::function<void(const Rhi::RhiCommandList*)> func) override;
@@ -262,7 +272,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         QueueCollections(const QueueCollections& p)            = delete; // copy constructor
         QueueCollections& operator=(const QueueCollections& p) = delete;
 
-        void              LoadQueues();
+        void              LoadQueues(u32 numFramesInFlight);
+        void              FrameAdvance();
         Vec<Queue*>       GetGraphicsQueues();
         Vec<Queue*>       GetComputeQueues();
         Vec<Queue*>       GetTransferQueues();

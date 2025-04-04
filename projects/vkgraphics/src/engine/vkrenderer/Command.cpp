@@ -55,10 +55,34 @@ namespace Ifrit::Graphics::VulkanGraphics
             "Failed to create command pool");
     }
 
+    IFRIT_APIDECL void CommandPool::ResetCommandPool()
+    {
+        // Free all command buffers in the pool
+        // vkrVulkanAssert(
+        //     vkResetCommandPool(m_context->GetDevice(), m_commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT),
+        //     "Failed to reset command pool");
+
+        // Make all in-flight command buffers available again
+        for (auto& cmdBuf : m_InFlightCommandBuffers)
+        {
+            auto vkbuf = cmdBuf->GetCommandBuffer();
+            vkrVulkanAssert(vkResetCommandBuffer(vkbuf, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT),
+                "Failed to reset command buffer");
+            m_AvailableCommandBuffers.push_back(std::move(cmdBuf));
+        }
+        m_InFlightCommandBuffers.clear();
+    }
+
+    IFRIT_APIDECL void CommandPool::EnqueueInFlightCommandBuffer(Uref<CommandBuffer>&& cmdBuf)
+    {
+        m_InFlightCommandBuffers.emplace_back(std::move(cmdBuf));
+    }
+
     IFRIT_APIDECL CommandPool::~CommandPool() { vkDestroyCommandPool(m_context->GetDevice(), m_commandPool, nullptr); }
 
-    IFRIT_APIDECL std::shared_ptr<CommandBuffer> CommandPool::AllocateCommandBuffer()
+    IFRIT_APIDECL Ref<CommandBuffer> CommandPool::AllocateCommandBuffer()
     {
+
         VkCommandBufferAllocateInfo bufferAI{};
         bufferAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         bufferAI.commandPool        = m_commandPool;
@@ -73,17 +97,26 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL std::unique_ptr<CommandBuffer> CommandPool::AllocateCommandBufferUnique()
     {
-        VkCommandBufferAllocateInfo bufferAI{};
-        bufferAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        bufferAI.commandPool        = m_commandPool;
-        bufferAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        bufferAI.commandBufferCount = 1;
+        if (m_AvailableCommandBuffers.empty())
+        {
+            VkCommandBufferAllocateInfo bufferAI{};
+            bufferAI.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            bufferAI.commandPool        = m_commandPool;
+            bufferAI.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            bufferAI.commandBufferCount = 1;
 
-        VkCommandBuffer buffer;
-        vkrVulkanAssert(
-            vkAllocateCommandBuffers(m_context->GetDevice(), &bufferAI, &buffer), "Failed to allocate command buffer");
+            VkCommandBuffer buffer;
+            vkrVulkanAssert(vkAllocateCommandBuffers(m_context->GetDevice(), &bufferAI, &buffer),
+                "Failed to allocate command buffer");
 
-        return std::make_unique<CommandBuffer>(m_context, buffer, m_queueFamily);
+            return std::make_unique<CommandBuffer>(m_context, buffer, m_queueFamily);
+        }
+        else
+        {
+            auto cmdBuf = std::move(m_AvailableCommandBuffers.back());
+            m_AvailableCommandBuffers.pop_back();
+            return cmdBuf;
+        }
     }
 
     // Class: Pipeline Barrier
@@ -735,11 +768,27 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdSetCullMode(m_commandBuffer, cullMode);
     }
     // Class: Queue
-    IFRIT_APIDECL Queue::Queue(EngineContext* ctx, VkQueue queue, u32 family, VkQueueFlags capability)
-        : m_context(ctx), m_queue(queue), m_queueFamily(family), m_capability(capability)
+    IFRIT_APIDECL Queue::Queue(
+        EngineContext* ctx, VkQueue queue, u32 family, VkQueueFlags capability, u32 m_InFlightFrames)
+        : m_context(ctx)
+        , m_queue(queue)
+        , m_queueFamily(family)
+        , m_capability(capability)
+        , m_InFlightFrames(m_InFlightFrames)
     {
-        m_commandPool       = std::make_unique<CommandPool>(ctx, family);
+        // m_commandPool       = std::make_unique<CommandPool>(ctx, family);
+        for (int i = 0; i < m_InFlightFrames; i++)
+        {
+            m_commandPools.push_back(std::make_unique<CommandPool>(ctx, family));
+        }
         m_timelineSemaphore = std::make_unique<TimelineSemaphore>(ctx);
+    }
+
+    IFRIT_APIDECL void Queue::FrameAdvance()
+    {
+        m_ActiveFrame    = (m_ActiveFrame + 1) % m_InFlightFrames;
+        auto currentPool = m_commandPools[m_ActiveFrame].get();
+        currentPool->ResetCommandPool();
     }
 
     IFRIT_APIDECL CommandBuffer* Queue::BeginRecording()
@@ -749,7 +798,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             vkrError("Command buffer still in use");
         }
         Uref<CommandBuffer> buffer;
-        buffer = m_commandPool->AllocateCommandBufferUnique();
+        buffer = m_commandPools[m_ActiveFrame]->AllocateCommandBufferUnique();
 
         if (buffer == nullptr)
         {
@@ -758,6 +807,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto p                 = buffer.get();
         m_currentCommandBuffer = p;
         m_cmdBufInUse.push(std::move(buffer));
+
         p->BeginRecord();
         return p;
     }
@@ -816,6 +866,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         vkrVulkanAssert(vkQueueSubmit(m_queue, 1, &submitInfo, vfence), "Failed to submit command buffer");
         // move the command buffer to the free list
+        Uref<CommandBuffer> cmdBuf = std::move(m_cmdBufInUse.top());
+        m_commandPools[m_ActiveFrame]->EnqueueInFlightCommandBuffer(std::move(cmdBuf));
         m_cmdBufInUse.pop();
 
         TimelineSemaphoreWait ret;
@@ -941,16 +993,26 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     // Queue Collections
-    IFRIT_APIDECL void QueueCollections::LoadQueues()
+    IFRIT_APIDECL void QueueCollections::LoadQueues(u32 numFramesInFlight)
     {
         auto& queueData = m_context->GetQueueInfo();
         for (int i = 0; i < queueData.m_allQueues.size(); i++)
         {
             auto queue           = queueData.m_allQueues[i];
             auto queueCapability = queueData.m_queueFamilies[queue.m_familyIndex].m_capability;
-            m_queues.push_back(std::make_unique<Queue>(m_context, queue.m_queue, queue.m_familyIndex, queueCapability));
+            m_queues.push_back(std::make_unique<Queue>(
+                m_context, queue.m_queue, queue.m_familyIndex, queueCapability, numFramesInFlight));
         }
     }
+
+    IFRIT_APIDECL void QueueCollections::FrameAdvance()
+    {
+        for (int i = 0; i < m_queues.size(); i++)
+        {
+            m_queues[i]->FrameAdvance();
+        }
+    }
+
     IFRIT_APIDECL Vec<Queue*> QueueCollections::GetGraphicsQueues()
     {
         Vec<Queue*> graphicsQueues;

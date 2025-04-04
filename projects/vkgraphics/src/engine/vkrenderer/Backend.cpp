@@ -75,8 +75,9 @@ namespace Ifrit::Graphics::VulkanGraphics
             engineContext, swapchain, m_implDetails->m_descriptorManager.get(), m_implDetails->m_resourceManager.get());
         m_implDetails->m_pipelineCache = std::make_unique<PipelineCache>(engineContext);
         m_implDetails->m_mapper        = std::make_unique<RegisteredResourceMapper>();
-        m_implDetails->m_commandExecutor->setQueues(
-            1, args.m_expectedGraphicsQueueCount, args.m_expectedComputeQueueCount, args.m_expectedTransferQueueCount);
+        m_implDetails->m_commandExecutor->setQueues(1, args.m_expectedGraphicsQueueCount,
+            args.m_expectedComputeQueueCount, args.m_expectedTransferQueueCount,
+            args.m_expectedSwapchainImageCount + 1);
 
         // All done, then make a full screen quad buffer
         BufferCreateInfo ci{}; // One Triangle,
