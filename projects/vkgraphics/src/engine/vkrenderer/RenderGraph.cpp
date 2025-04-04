@@ -65,57 +65,9 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     // Class : RenderGraphPass
 
-    IFRIT_APIDECL void RenderGraphPass::addInputResource(
-        RegisteredResource* resource, RenderPassResourceTransition transition)
-    {
-        m_inputResources.push_back(resource);
-        m_inputTransition.push_back(transition);
-    }
-
-    IFRIT_APIDECL void RenderGraphPass::addOutputResource(
-        RegisteredResource* resource, RenderPassResourceTransition transition)
-    {
-        m_outputResources.push_back(resource);
-        m_outputTransition.push_back(transition);
-    }
-
     IFRIT_APIDECL void RenderGraphPass::setPassDescriptorLayout_base(const std::vector<Rhi::RhiDescriptorType>& layout)
     {
         m_passDescriptorLayout = layout;
-    }
-
-    IFRIT_APIDECL void RenderGraphPass::AddUniformBuffer_base(RegisteredBufferHandle* buffer, uint32_t position)
-    {
-        auto numCopies = buffer->GetNumBuffers();
-        m_resourceDescriptorHandle[position].resize(numCopies);
-        for (int i = 0; i < static_cast<int>(numCopies); i++)
-        {
-            auto v                                  = m_descriptorManager->RegisterUniformBuffer(buffer->GetBuffer(i));
-            m_resourceDescriptorHandle[position][i] = v;
-        }
-        // Add as input
-        RenderPassResourceTransition transition{};
-        transition.m_required = false;
-        addInputResource(buffer, transition);
-    }
-
-    IFRIT_APIDECL
-    void RenderGraphPass::AddStorageBuffer_base(
-        RegisteredBufferHandle* buffer, uint32_t position, Rhi::RhiResourceAccessType access)
-    {
-        auto numCopies = buffer->GetNumBuffers();
-        m_resourceDescriptorHandle[position].resize(numCopies);
-        for (int i = 0; i < static_cast<int>(numCopies); i++)
-        {
-            auto v                                  = m_descriptorManager->RegisterStorageBuffer(buffer->GetBuffer(i));
-            m_resourceDescriptorHandle[position][i] = v;
-        }
-        // Add as input
-        RenderPassResourceTransition transition{};
-        transition.m_required = false;
-        addInputResource(buffer, transition);
-        m_ssbos.push_back(buffer);
-        m_ssboAccess.push_back(access);
     }
 
     IFRIT_APIDECL void RenderGraphPass::AddCombinedImageSampler(
@@ -131,8 +83,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         // Add as input
         RenderPassResourceTransition transition{};
         transition.m_required = false;
-        addInputResource(image, transition);
-        addInputResource(sampler, transition);
     }
 
     IFRIT_APIDECL void RenderGraphPass::buildDescriptorParamHandle(uint32_t numMultiBuffers)
@@ -382,12 +332,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             vkrError("Num of vertex buffers and descriptor bindings are not equal");
         }
-        RenderPassResourceTransition trans;
-        trans.m_required = false;
-        for (auto* x : buffers)
-        {
-            addInputResource(x, trans);
-        }
     }
 
     IFRIT_APIDECL
@@ -398,7 +342,6 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         RenderPassResourceTransition trans;
         trans.m_required = false;
-        addInputResource(buffer, trans);
     }
 
     IFRIT_APIDECL void GraphicsPass::build(uint32_t numMultiBuffers)
@@ -522,217 +465,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         record(CheckedCast<RenderTargets>(renderTargets));
     }
 
-    // Class: RenderGraph
-    IFRIT_APIDECL
-    RenderGraph::RenderGraph(EngineContext* context, DescriptorManager* descriptorManager)
-    {
-        m_context           = context;
-        m_descriptorManager = descriptorManager;
-        m_pipelineCache     = std::make_unique<PipelineCache>(context);
-        m_mapper            = std::make_unique<RegisteredResourceMapper>();
-    }
-
-    IFRIT_APIDECL GraphicsPass* RenderGraph::addGraphicsPass()
-    {
-        auto pass =
-            std::make_unique<GraphicsPass>(m_context, m_pipelineCache.get(), m_descriptorManager, m_mapper.get());
-        auto ptr = pass.get();
-        m_passes.push_back(std::move(pass));
-        return ptr;
-    }
-
-    IFRIT_APIDECL ComputePass* RenderGraph::addComputePass()
-    {
-        auto pass =
-            std::make_unique<ComputePass>(m_context, m_pipelineCache.get(), m_descriptorManager, m_mapper.get());
-        auto ptr = pass.get();
-        m_passes.push_back(std::move(pass));
-        return ptr;
-    }
-
-    IFRIT_APIDECL RegisteredBufferHandle* RenderGraph::registerBuffer(SingleBuffer* buffer)
-    {
-        auto p = m_mapper->GetBufferIndex(buffer);
-        auto s = dynamic_cast<RegisteredBufferHandle*>(p);
-        if (s == nullptr)
-        {
-            vkrError("Invalid buffer");
-        }
-        return s;
-    }
-
-    IFRIT_APIDECL RegisteredSamplerHandle* RenderGraph::RegisterSampler(Sampler* sampler)
-    {
-        auto registeredSampler = std::make_unique<RegisteredSamplerHandle>(sampler);
-        auto ptr               = registeredSampler.get();
-        m_resources.push_back(std::move(registeredSampler));
-        m_resourceMap[ptr] = SizeCast<uint32_t>(m_resources.size()) - 1;
-        return ptr;
-    }
-
-    IFRIT_APIDECL RegisteredBufferHandle* RenderGraph::registerBuffer(MultiBuffer* buffer)
-    {
-        auto p = m_mapper->getMultiBufferIndex(buffer);
-        auto s = dynamic_cast<RegisteredBufferHandle*>(p);
-        if (s == nullptr)
-        {
-            vkrError("Invalid buffer");
-        }
-        return s;
-    }
-
-    IFRIT_APIDECL RegisteredImageHandle* RenderGraph::registerImage(SingleDeviceImage* image)
-    {
-        if (image->GetIsSwapchainImage())
-        {
-            auto p = dynamic_cast<SwapchainImageResource*>(image);
-            if (p == nullptr)
-            {
-                vkrError("Invalid swapchain image");
-            }
-            auto registeredImage = std::make_unique<RegisteredSwapchainImage>(p);
-            auto ptr             = registeredImage.get();
-            m_resources.push_back(std::move(registeredImage));
-            m_resourceMap[ptr] = SizeCast<uint32_t>(m_resources.size()) - 1;
-            m_swapchainImageHandle.push_back(ptr);
-            return ptr;
-        }
-        else
-        {
-            auto registeredImage = std::make_unique<RegisteredImageHandle>(image);
-            auto ptr             = registeredImage.get();
-            m_resources.push_back(std::move(registeredImage));
-            m_resourceMap[ptr] = SizeCast<uint32_t>(m_resources.size()) - 1;
-            return ptr;
-        }
-        return nullptr;
-    }
-
-    IFRIT_APIDECL void RenderGraph::build(uint32_t numMultiBuffers)
-    {
-        // Build all passes
-        for (int i = 0; i < m_passes.size(); i++)
-        {
-            if (!m_passes[i]->isBuilt())
-            {
-                m_passes[i]->build(numMultiBuffers);
-            }
-        }
-        int numSubgraph = 0;
-        m_subgraphBelonging.resize(m_resources.size());
-        for (int i = 0; i < m_resources.size(); i++)
-        {
-            m_subgraphBelonging[i] = UINT32_MAX;
-        }
-
-        std::unordered_set<RegisteredResource*> dependencySet;
-        for (int i = 0; i < m_swapchainImageHandle.size(); i++)
-        {
-            dependencySet.insert(m_swapchainImageHandle[i]);
-        }
-        uint32_t assignedPass = 0;
-        while (true)
-        {
-            for (int i = SizeCast<int>(m_passes.size()) - 1; i >= 0; i--)
-            {
-                auto pass = m_passes[i].get();
-                if (m_subgraphBelonging[i] != UINT32_MAX)
-                    continue;
-                auto& inputResources  = pass->getInputResources();
-                auto& outputResources = pass->getOutputResources();
-
-                // If input or output contains object in dependency set
-                // then add all input and output resources to dependency set
-                bool  hasDependency = false;
-                for (int j = 0; j < inputResources.size(); j++)
-                {
-                    if (dependencySet.find(inputResources[j]) != dependencySet.end())
-                    {
-                        hasDependency = true;
-                        break;
-                    }
-                }
-                for (int j = 0; j < outputResources.size(); j++)
-                {
-                    if (dependencySet.find(outputResources[j]) != dependencySet.end())
-                    {
-                        hasDependency = true;
-                        break;
-                    }
-                }
-                if (hasDependency)
-                {
-                    for (int j = 0; j < inputResources.size(); j++)
-                    {
-                        dependencySet.insert(inputResources[j]);
-                    }
-                    for (int j = 0; j < outputResources.size(); j++)
-                    {
-                        dependencySet.insert(outputResources[j]);
-                    }
-                    m_subgraphBelonging[i] = numSubgraph;
-
-                    assignedPass++;
-                    // m_subgraphs[numSubgraph].push_back(i);
-                }
-            }
-
-            if (assignedPass != 0)
-                numSubgraph++;
-            if (assignedPass == m_passes.size())
-                break;
-            // Otherwise, find an unassigned pass that has no dependency
-            // and add it to the dependency set
-            dependencySet.clear();
-            for (int i = 0; i < m_passes.size(); i++)
-            {
-                if (m_subgraphBelonging[i] == UINT32_MAX)
-                {
-                    auto  pass            = m_passes[i].get();
-                    auto& inputResources  = pass->getInputResources();
-                    auto& outputResources = pass->getOutputResources();
-                    for (int j = 0; j < inputResources.size(); j++)
-                    {
-                        dependencySet.insert(inputResources[j]);
-                    }
-                    for (int j = 0; j < outputResources.size(); j++)
-                    {
-                        dependencySet.insert(outputResources[j]);
-                    }
-                }
-            }
-        }
-        m_assignedQueues.resize(numSubgraph);
-        // add to m_subgraphs
-        m_subgraphs.resize(numSubgraph);
-        m_subGraphOperatesOnSwapchain.resize(numSubgraph);
-        for (int i = 0; i < m_passes.size(); i++)
-        {
-            m_subgraphs[m_subgraphBelonging[i]].push_back(i);
-        }
-    }
-
-    IFRIT_APIDECL std::vector<std::vector<uint32_t>>& RenderGraph::getSubgraphs() { return m_subgraphs; }
-
-    IFRIT_APIDECL void RenderGraph::resizeCommandBuffers(uint32_t size) { m_commandBuffers.resize(size); }
-
-    IFRIT_APIDECL void RenderGraph::buildPassDescriptors(uint32_t numMultiBuffer)
-    {
-        for (int i = 0; i < m_passes.size(); i++)
-        {
-            auto p = m_passes[i].get();
-            p->buildDescriptorParamHandle(numMultiBuffer);
-        }
-    }
-
     // Class : CommandExecutor
-    IFRIT_APIDECL RenderGraph* CommandExecutor::CreateRenderGraph()
-    {
-        auto p   = std::make_unique<RenderGraph>(m_context, m_descriptorManager);
-        auto ptr = p.get();
-        m_renderGraph.push_back(std::move(p));
-        return ptr;
-    }
 
     IFRIT_APIDECL void CommandExecutor::setQueues(
         bool reqPresentQueue, int numGraphics, int numCompute, int numTransfer, i32 numFramesInFlight)
@@ -841,175 +574,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void CommandExecutor::compileGraph(RenderGraph* graph, uint32_t numMultiBuffers)
-    {
-        m_graph = graph;
-        if (m_graph->m_subgraphs.size() == 0)
-        {
-            graph->buildPassDescriptors(numMultiBuffers);
-            m_descriptorManager->BuildBindlessParameter();
-            graph->build(numMultiBuffers);
-        }
-        auto subgraphs = graph->getSubgraphs();
-        for (int i = 0; i < m_queues.size(); i++)
-        {
-            auto queue       = m_queues[i];
-            auto commandPool = std::make_unique<CommandPool>(m_context, queue->GetQueueFamily());
-            m_graph->m_commandPools.push_back(std::move(commandPool));
-        }
-
-        std::vector<uint32_t> queueAssignedTimes(m_queues.size(), 0);
-        for (int i = 0; i < subgraphs.size(); i++)
-        {
-            uint32_t requiredCapability = 0;
-            bool     operateOnSwapchain = false;
-            for (int j = 0; j < subgraphs[i].size(); j++)
-            {
-                auto pass = m_graph->m_passes[subgraphs[i][j]].get();
-                requiredCapability |= pass->getRequiredQueueCapability();
-                operateOnSwapchain |= pass->getOperatesOnSwapchain();
-            }
-            m_graph->m_subGraphOperatesOnSwapchain[i] = operateOnSwapchain;
-
-            // Find a queue that has the required capability,
-            // with the least number of assigned times
-            uint32_t queueIndex = UINT32_MAX;
-            for (int j = 0; j < m_queues.size(); j++)
-            {
-                if ((m_queues[j]->GetCapability() & requiredCapability) == requiredCapability)
-                {
-                    if (requiredCapability | VK_QUEUE_GRAPHICS_BIT)
-                    {
-                        queueIndex = j;
-                        break;
-                    }
-                    if (queueAssignedTimes[j] < queueAssignedTimes[queueIndex])
-                    {
-                        queueIndex = j;
-                    }
-                }
-            }
-            if (queueIndex == UINT32_MAX)
-            {
-                vkrError("No queue found for subgraph");
-            }
-            queueAssignedTimes[queueIndex]++;
-            m_graph->m_assignedQueues[i] = m_queues[queueIndex];
-        }
-        m_graph->m_comiled = true;
-    }
-
     IFRIT_APIDECL void CommandExecutor::syncMultiBufferStateWithSwapchain()
     {
         m_resourceManager->SetActiveFrame(m_swapchain->GetCurrentImageIndex());
-    }
-
-    IFRIT_APIDECL void CommandExecutor::runRenderGraph(RenderGraph* graph)
-    {
-        syncMultiBufferStateWithSwapchain();
-        auto numBackBuffers = m_swapchain->GetNumBackbuffers();
-        auto currentFrame   = m_swapchain->GetCurrentImageIndex();
-        if (!graph->m_comiled)
-        {
-            compileGraph(graph, numBackBuffers);
-        }
-
-        // perform 'execution' handlers attached on passes
-        for (int i = 0; i < m_graph->m_passes.size(); i++)
-        {
-            auto pass = m_graph->m_passes[i].get();
-            pass->SetActiveFrame(currentFrame);
-            pass->execute();
-        }
-
-        // for each subgraph, create a command buffer
-        auto subgraphs = graph->getSubgraphs();
-        for (int i = 0; i < subgraphs.size(); i++)
-        {
-            auto                  queue = m_graph->m_assignedQueues[i];
-            TimelineSemaphoreWait lastWait;
-            for (int j = 0; j < subgraphs[i].size(); j++)
-            {
-                auto commandBuffer = queue->BeginRecording();
-                auto pass          = m_graph->m_passes[subgraphs[i][j]].get();
-                pass->SetActiveFrame(currentFrame);
-                pass->withCommandBuffer(commandBuffer, [&pass]() { pass->record(); });
-
-                // TODO: Semaphores & Sync
-                if (m_graph->m_subGraphOperatesOnSwapchain[i] && j == subgraphs[i].size() - 1)
-                {
-                    // Make swapchain image in layout present
-                    PipelineBarrier      barrier(m_context, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0);
-                    VkImageMemoryBarrier imageBarrier{};
-                    imageBarrier.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                    imageBarrier.oldLayout                   = VK_IMAGE_LAYOUT_UNDEFINED;
-                    imageBarrier.newLayout                   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                    imageBarrier.srcQueueFamilyIndex         = queue->GetQueueFamily();
-                    imageBarrier.dstQueueFamilyIndex         = m_swapchain->GetQueueFamily();
-                    imageBarrier.image                       = m_swapchain->GetCurrentImage();
-                    imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                    imageBarrier.subresourceRange.levelCount = 1;
-                    imageBarrier.subresourceRange.layerCount = 1;
-                    imageBarrier.srcAccessMask               = 0;
-                    imageBarrier.dstAccessMask               = VK_ACCESS_MEMORY_READ_BIT;
-                    barrier.addImageMemoryBarrier(imageBarrier);
-                    commandBuffer->AddPipelineBarrier(barrier);
-
-                    TimelineSemaphoreWait wait;
-                    wait.m_semaphore = m_swapchain->GetImageAvailableSemaphoreCurrentFrame();
-                    wait.m_value     = 0;
-                    wait.m_waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-
-                    auto renderFinishSemaphore = m_swapchain->GetRenderingFinishSemaphoreCurrentFrame();
-
-                    auto fence = m_swapchain->GetCurrentFrameFence();
-
-                    TimelineSemaphoreWait newWait;
-                    if (j == 0)
-                    {
-                        newWait = queue->SubmitCommand({ wait }, fence, renderFinishSemaphore);
-                    }
-                    else
-                    {
-                        newWait = queue->SubmitCommand({ wait, lastWait }, fence, renderFinishSemaphore);
-                    }
-                    lastWait = newWait;
-                }
-                else
-                {
-                    TimelineSemaphoreWait newWait;
-                    if (j == 0)
-                    {
-                        newWait = queue->SubmitCommand({}, nullptr);
-                    }
-                    else
-                    {
-                        newWait = queue->SubmitCommand({ lastWait }, nullptr);
-                    }
-                    lastWait = newWait;
-                }
-            }
-        }
-    }
-
-    IFRIT_APIDECL void CommandExecutor::runImmidiateCommand(
-        std::function<void(CommandBuffer*)> func, QueueRequirement req)
-    {
-        auto queue              = m_queues;
-        auto requiredCapability = getUnderlying(req);
-        for (int i = 0; i < queue.size(); i++)
-        {
-            if ((queue[i]->GetCapability() & requiredCapability) == requiredCapability)
-            {
-                auto commandBuffer = queue[i]->BeginRecording();
-                func(commandBuffer);
-                queue[i]->SubmitCommand({}, nullptr);
-                queue[i]->WaitIdle();
-                return;
-            }
-        }
-        vkrError("No queue found for immediate command");
     }
 
     IFRIT_APIDECL SwapchainImageResource* CommandExecutor::GetSwapchainImageResource()

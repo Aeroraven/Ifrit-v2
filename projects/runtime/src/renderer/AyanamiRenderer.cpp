@@ -26,6 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
+#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+
 namespace Ifrit::Runtime
 {
     using namespace Ifrit;
@@ -102,7 +104,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(
         Scene* scene, PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
-        FrameGraphBuilder fg;
+        FrameGraphBuilder fg(m_app->GetShaderRegistry(), m_app->GetRhi());
         fg.SetResourceInitState(FrameGraphResourceInitState::Uninitialized);
 
         auto rtWidth  = renderTargets->GetRenderArea().width;
@@ -135,95 +137,69 @@ namespace Ifrit::Runtime
             fg.AddResource("RenderTargets")
                 .SetImportedResource(renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
 
-        auto& passSurfaceCacheGen = fg.AddPass("SurfaceCacheGen", FrameGraphPassType::Graphics)
-                                        .AddWriteResource(resSurfaceCacheAlbedo)
-                                        .AddWriteResource(resSurfaceCacheNormal)
-                                        .AddWriteResource(resSuraceCacheDepth);
-
-        auto& passRadianceCacheGen =
-            fg.AddPass("RadianceCacheGen", FrameGraphPassType::Compute).AddWriteResource(resDirectRadiance);
-
-        auto& passGlobalDFGen = fg.AddPass("GlobalDFGen", FrameGraphPassType::Compute);
-        auto& passRaymarch    = fg.AddPass("RaymarchPass", FrameGraphPassType::Compute);
-        auto& passDebug       = fg.AddPass("DebugPass", FrameGraphPassType::Graphics);
-
+        // Pass Global DF Generation
         if (!m_resources->m_inited)
         {
-            passGlobalDFGen.AddWriteResource(resGlobalDFGen);
-        }
-        passRaymarch.AddReadResource(resGlobalDFGen).AddWriteResource(resRaymarchOutput);
-        passDebug.AddReadResource(resRaymarchOutput)
-            .AddReadResource(resDirectRadiance)
-            .AddWriteResource(resRenderTargets);
-
-        if (!m_resources->m_inited)
-        {
-            passGlobalDFGen.SetExecutionFunction([&](const FrameGraphPassContext& data) {
-                m_globalDF->AddClipmapUpdate(data.m_CmdList, 0, perframe.m_views[0].m_viewBufferId->GetActiveId(),
+            m_globalDF
+                ->AddClipmapUpdate(fg, 0, perframe.m_views[0].m_viewBufferId->GetActiveId(),
                     m_resources->m_sceneAggregator->GetNumGatheredInstances(),
-                    m_resources->m_sceneAggregator->GetGatheredBufferId());
-            });
+                    m_resources->m_sceneAggregator->GetGatheredBufferId())
+                .AddWriteResource(resGlobalDFGen);
+        }
+
+        m_resources->m_surfaceCacheManager->UpdateSurfaceCacheAtlas(fg)
+            .AddWriteResource(resSurfaceCacheAlbedo)
+            .AddWriteResource(resSurfaceCacheNormal)
+            .AddWriteResource(resSuraceCacheDepth);
+
+        m_resources->m_surfaceCacheManager->UpdateRadianceCacheAtlas(fg, scene).AddWriteResource(resDirectRadiance);
+
+        // Pass RayMarch
+        if (m_resources->m_debugShowMeshDF)
+        {
+            struct RayMarchPc
+            {
+                u32 perframeId;
+                u32 totalInsts;
+                u32 descId;
+                u32 output;
+                u32 rtH;
+                u32 rtW;
+            } pc;
+            pc.rtH        = rtHeight;
+            pc.rtW        = rtWidth;
+            pc.totalInsts = m_resources->m_sceneAggregator->GetNumGatheredInstances();
+            pc.output     = m_resources->m_raymarchOutput->GetDescId();
+            pc.descId     = m_resources->m_sceneAggregator->GetGatheredBufferId();
+            pc.perframeId = perframe.m_views[0].m_viewBufferId->GetActiveId();
+
+            FrameGraphUtils::AddComputePass(fg, "Ayanami/RaymarchPass", Internal::kIntShaderTable.Ayanami.RayMarchCS,
+                Vector3i{ Math::DivRoundUp<i32>(rtWidth, 8), Math::DivRoundUp<i32>(rtHeight, 8), 1 }, &pc, 6)
+                .AddReadResource(resGlobalDFGen)
+                .AddWriteResource(resRaymarchOutput);
         }
         else
         {
-            passGlobalDFGen.SetExecutionFunction([&](const FrameGraphPassContext& data) {});
+            m_globalDF
+                ->AddRayMarchPass(fg, 0, perframe.m_views[0].m_viewBufferId->GetActiveId(),
+                    m_resources->m_raymarchOutput->GetDescId(), { rtWidth, rtHeight })
+                .AddReadResource(resGlobalDFGen)
+                .AddWriteResource(resRaymarchOutput);
         }
 
-        passSurfaceCacheGen.SetExecutionFunction([&](const FrameGraphPassContext& data) {
-            auto commandList = data.m_CmdList;
-            m_resources->m_surfaceCacheManager->UpdateSurfaceCacheAtlas(commandList);
-        });
-
-        passRadianceCacheGen.SetExecutionFunction([&](const FrameGraphPassContext& data) {
-            auto commandList = data.m_CmdList;
-            m_resources->m_surfaceCacheManager->UpdateRadianceCacheAtlas(commandList, scene);
-        });
-
-        passRaymarch.SetExecutionFunction([&](const FrameGraphPassContext& data) {
-            auto commandList = data.m_CmdList;
-            if (m_resources->m_debugShowMeshDF)
-            {
-                struct RayMarchPc
-                {
-                    u32 perframeId;
-                    u32 totalInsts;
-                    u32 descId;
-                    u32 output;
-                    u32 rtH;
-                    u32 rtW;
-                } pc;
-                pc.rtH        = rtHeight;
-                pc.rtW        = rtWidth;
-                pc.totalInsts = m_resources->m_sceneAggregator->GetNumGatheredInstances();
-                pc.output     = m_resources->m_raymarchOutput->GetDescId();
-                pc.descId     = m_resources->m_sceneAggregator->GetGatheredBufferId();
-                pc.perframeId = perframe.m_views[0].m_viewBufferId->GetActiveId();
-
-                m_resources->m_raymarchPass->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
-                    commandList->SetPushConst(m_resources->m_raymarchPass, 0, sizeof(RayMarchPc), &pc);
-                    commandList->Dispatch(Math::DivRoundUp(rtWidth, 8), Math::DivRoundUp(rtHeight, 8), 1);
-                });
-                m_resources->m_raymarchPass->Run(commandList, 0);
-            }
-            else
-            {
-                m_globalDF->AddRayMarchPass(commandList, 0, perframe.m_views[0].m_viewBufferId->GetActiveId(),
-                    m_resources->m_raymarchOutput->GetDescId(), { rtWidth, rtHeight });
-            }
-        });
-
-        passDebug.SetExecutionFunction([&](const FrameGraphPassContext& data) {
-            auto commandList = data.m_CmdList;
-            struct DispPc
+        // Pass Debug
+        {
+            struct DebugPassPc
             {
                 u32 raymarchOutput;
             } pc;
-            // pc.raymarchOutput = m_resources->m_raymarchOutputSRVBindId->GetActiveId();
             pc.raymarchOutput = m_resources->m_surfaceCacheManager->GetRadianceSRVId();
-            // pc.raymarchOutput = perframe.m_shadowData2.m_shadowViews[0].m_texRef[3];
-            //  pc.raymarchOutput = perframe.m_views[0].m_visDepthIdSRV_HW->GetActiveId();
-            EnqueueFullScreenPass(commandList, rhi, m_resources->m_debugPass, renderTargets, {}, &pc, 1);
-        });
+            FrameGraphUtils::AddFullScreenQuadPass(fg, "Ayanami/DebugPass", Internal::kIntShaderTable.Ayanami.CopyVS,
+                Internal::kIntShaderTable.Ayanami.CopyFS, renderTargets, &pc, 1)
+                .AddReadResource(resRaymarchOutput)
+                .AddReadResource(resDirectRadiance)
+                .AddWriteResource(resRenderTargets);
+        }
 
         auto compiledFg = m_resources->m_fgCompiler.Compile(fg);
         m_resources->m_fgExecutor.ExecuteInSingleCmd(cmd, compiledFg);

@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "AyanamiRenderConfig.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
 #include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -41,11 +42,11 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiTrivialSurfaceCacheManager(const AyanamiRenderConfig& config, IApplication* app);
         ~AyanamiTrivialSurfaceCacheManager();
 
-        void UpdateSceneCache(Scene* scene);
-        void PrepareImmutableResource();
-        void UpdateSurfaceCacheAtlas(const Graphics::Rhi::RhiCommandList* cmdList);
-        void UpdateRadianceCacheAtlas(const Graphics::Rhi::RhiCommandList* cmdList, Scene* scene);
-        void UpdateSurfaceModelMatrix();
+        void                         UpdateSceneCache(Scene* scene);
+        void                         PrepareImmutableResource();
+        GraphicsPassNode&            UpdateSurfaceCacheAtlas(FrameGraphBuilder& builder);
+        ComputePassNode&             UpdateRadianceCacheAtlas(FrameGraphBuilder& builder, Scene* scene);
+        void                         UpdateSurfaceModelMatrix();
         Graphics::Rhi::RhiTextureRef GetAlbedoAtlas();
         Graphics::Rhi::RhiTextureRef GetNormalAtlas();
         Graphics::Rhi::RhiTextureRef GetDepthAtlas();

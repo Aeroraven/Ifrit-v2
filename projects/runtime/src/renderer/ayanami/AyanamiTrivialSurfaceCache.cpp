@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 
 using namespace Ifrit::Graphics::Rhi;
 using Ifrit::Math::DivRoundUp;
@@ -314,13 +315,16 @@ namespace Ifrit::Runtime::Ayanami
         }
     }
 
-    IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateSurfaceCacheAtlas(
-        const Graphics::Rhi::RhiCommandList* cmdList)
+    IFRIT_APIDECL GraphicsPassNode& AyanamiTrivialSurfaceCacheManager::UpdateSurfaceCacheAtlas(
+        FrameGraphBuilder& builder)
     {
-        // Albedo , for simplicity
-        auto rhi = m_App->GetRhi();
-        m_Resources->m_SurfaceCachePass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
-            auto cmd = ctx->m_cmd;
+
+        auto& pass =
+            builder.AddGraphicsPass("Ayanami/SurfaceCacheGenPass", Internal::kIntShaderTable.Ayanami.SurfaceCacheGenVS,
+                Internal::kIntShaderTable.Ayanami.SurfaceCacheGenFS, 9, m_Resources->m_SurfaceCachePassRTs.get());
+
+        pass.SetExecutionFunction([this](const FrameGraphPassContext& ctx) {
+            auto cmd = ctx.m_CmdList;
 
             for (auto id : m_Resources->m_MeshCardTasks)
             {
@@ -368,14 +372,12 @@ namespace Ifrit::Runtime::Ayanami
                 pc.tangentId     = card.m_CardTangentBuffer->GetDescId();
                 pc.normalId      = card.m_CardNormalBuffer->GetDescId();
 
-                cmd->SetPushConst(m_Resources->m_SurfaceCachePass, 0, sizeof(PushConst), &pc);
+                auto vioPass = const_cast<Graphics::Rhi::RhiGraphicsPass*>(ctx.m_GraphicsPass);
+                cmd->SetPushConst(vioPass, 0, sizeof(PushConst), &pc);
                 cmd->DrawIndexed(card.m_IndexCounts, 1, 0, 0, 0);
             }
         });
-
-        cmdList->BeginScope("Ayanami: SurfaceCacheGenPass");
-        m_Resources->m_SurfaceCachePass->Run(cmdList, m_Resources->m_SurfaceCachePassRTs.get(), 0);
-        cmdList->EndScope();
+        return pass;
     }
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::PrepareImmutableResource()
@@ -406,7 +408,7 @@ namespace Ifrit::Runtime::Ayanami
                 | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             true);
         m_Resources->m_SceneCacheRadianceAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadianceAtlas",
-            m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8_UNORM,
+            m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R32G32_SFLOAT,
             RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT
                 | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             true);
@@ -479,57 +481,50 @@ namespace Ifrit::Runtime::Ayanami
             CreateComputePassInternal(m_App, Internal::kIntShaderTable.Ayanami.DirectRadianceInjectionCS, 0, 11);
     }
 
-    IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateRadianceCacheAtlas(
-        const Graphics::Rhi::RhiCommandList* cmdList, Scene* scene)
+    IFRIT_APIDECL ComputePassNode& AyanamiTrivialSurfaceCacheManager::UpdateRadianceCacheAtlas(
+        FrameGraphBuilder& builder, Scene* scene)
     {
         auto rhi        = m_App->GetRhi();
         auto numCards   = m_Resources->m_MeshCardIndex.load();
         auto cardGroups = DivRoundUp(numCards, Config::kAyanamiRadianceInjectionObjectsPerBlock);
         auto tileGroups =
             DivRoundUp(m_Resources->m_AtlasElementSize, Config::kAyanamiRadianceInjectionCardSizePerBlock);
-
         auto perframe = scene->GetPerFrameData();
+        struct PushConst
+        {
+            u32 totalCards;
+            u32 cardResolution;
+            u32 packedShadowMarkBits;
+            u32 totalLights;
+            u32 atlasResoultion;
 
-        m_Resources->m_RadianceCachePass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
-            struct PushConst
-            {
-                u32 totalCards;
-                u32 cardResolution;
-                u32 packedShadowMarkBits;
-                u32 totalLights;
-                u32 atlasResoultion;
+            u32 lightDataId;
+            u32 radianceOutId;
+            u32 cardDataId;
+            u32 depthAtlasSRVId;
 
-                u32 lightDataId;
-                u32 radianceOutId;
-                u32 cardDataId;
-                u32 depthAtlasSRVId;
+            u32 worldObjTransforms;
+            u32 perframeId;
+        } pc;
+        pc.totalCards           = numCards;
+        pc.cardResolution       = m_Resources->m_AtlasElementSize;
+        pc.packedShadowMarkBits = m_Resources->m_MaxPerTileLights;
+        pc.totalLights          = perframe->m_shadowData2.m_enabledShadowMaps;
+        pc.atlasResoultion      = m_Resolution;
 
-                u32 worldObjTransforms;
-                u32 perframeId;
-            } pc;
+        pc.lightDataId        = perframe->m_shadowData2.m_allShadowDataId->GetActiveId();
+        pc.radianceOutId      = m_Resources->m_SceneCacheRadianceAtlas->GetDescId();
+        pc.cardDataId         = m_Resources->m_ObserveDeviceData->GetDescId();
+        pc.depthAtlasSRVId    = m_Resources->m_SceneCacheDepthSRV->GetActiveId();
+        pc.worldObjTransforms = m_Resources->m_ObserveDeviceDataCoherentBindId->GetActiveId();
+        pc.perframeId         = perframe->m_views[0].m_viewBufferId->GetActiveId();
 
-            pc.totalCards           = numCards;
-            pc.cardResolution       = m_Resources->m_AtlasElementSize;
-            pc.packedShadowMarkBits = m_Resources->m_MaxPerTileLights;
-            pc.totalLights          = perframe->m_shadowData2.m_enabledShadowMaps;
-            pc.atlasResoultion      = m_Resolution;
-
-            pc.lightDataId     = perframe->m_shadowData2.m_allShadowDataId->GetActiveId();
-            pc.radianceOutId   = m_Resources->m_SceneCacheRadianceAtlas->GetDescId();
-            pc.cardDataId      = m_Resources->m_ObserveDeviceData->GetDescId();
-            pc.depthAtlasSRVId = m_Resources->m_SceneCacheDepthSRV->GetActiveId();
-
-            pc.worldObjTransforms = m_Resources->m_ObserveDeviceDataCoherentBindId->GetActiveId();
-            pc.perframeId         = perframe->m_views[0].m_viewBufferId->GetActiveId();
-
-            cmdList->SetPushConst(m_Resources->m_RadianceCachePass, 0, sizeof(PushConst), &pc);
-            cmdList->Dispatch(tileGroups, tileGroups, cardGroups);
-        });
-
-        cmdList->BeginScope("Ayanami: RadianceCacheGenPass");
         UpdateSurfaceModelMatrix();
-        m_Resources->m_RadianceCachePass->Run(cmdList, 0);
-        cmdList->EndScope();
+        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami/RadianceCacheGenPass",
+            Internal::kIntShaderTable.Ayanami.DirectRadianceInjectionCS,
+            Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, &pc, sizeof(PushConst) / sizeof(u32));
+
+        return pass;
     }
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateSurfaceModelMatrix()

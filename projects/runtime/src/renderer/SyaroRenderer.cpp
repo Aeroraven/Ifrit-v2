@@ -248,7 +248,7 @@ namespace Ifrit::Runtime
         CreatePostprocessTextures(mainRtWidth, mainRtHeight);
 
         // declare frame graph
-        FrameGraphBuilder  fg;
+        FrameGraphBuilder  fg(m_app->GetShaderRegistry(), m_app->GetRhi());
 
         Vec<ResourceNode*> resShadowMapTexs;
         Vec<u32>           shadowMapTexIds;

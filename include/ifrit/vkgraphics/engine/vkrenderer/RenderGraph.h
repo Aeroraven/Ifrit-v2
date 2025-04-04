@@ -42,7 +42,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Graphics::VulkanGraphics
 {
 
-    class RenderGraph;
     class CommandExecutor;
     // End declaration of classes
 
@@ -186,11 +185,11 @@ namespace Ifrit::Graphics::VulkanGraphics
     class IFRIT_APIDECL RegisteredResourceMapper : public Ifrit::NonCopyable
     {
     private:
-        Vec<Uref<RegisteredResource>>               m_resources;
-        std::unordered_map<SingleBuffer*, u32>      m_bufferMap;
-        std::unordered_map<SingleDeviceImage*, u32> m_imageMap;
-        std::unordered_map<MultiBuffer*, u32>       m_multiBufferMap;
-        std::unordered_map<Sampler*, u32>           m_samplerMap;
+        Vec<Uref<RegisteredResource>>    m_resources;
+        HashMap<SingleBuffer*, u32>      m_bufferMap;
+        HashMap<SingleDeviceImage*, u32> m_imageMap;
+        HashMap<MultiBuffer*, u32>       m_multiBufferMap;
+        HashMap<Sampler*, u32>           m_samplerMap;
         // swapchain
 
     public:
@@ -277,7 +276,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         bool                                 m_operateOnSwapchain = false;
         bool                                 m_passBuilt          = false;
 
-        std::unordered_map<u32, Vec<u32>>    m_resourceDescriptorHandle;
+        HashMap<u32, Vec<u32>>               m_resourceDescriptorHandle;
         Vec<Rhi::RhiDescriptorType>          m_passDescriptorLayout;
         Vec<DescriptorBindRange>             m_descriptorBindRange;
         Fn<void(Rhi::RhiRenderPassContext*)> m_recordFunction     = nullptr;
@@ -309,17 +308,16 @@ namespace Ifrit::Graphics::VulkanGraphics
             : m_context(context), m_descriptorManager(descriptorManager), m_mapper(mapper)
         {
         }
+        virtual ~RenderGraphPass() {}
         void         setPassDescriptorLayout_base(const Vec<Rhi::RhiDescriptorType>& layout);
 
         inline void  SetActiveFrame(u32 frame) { m_activeFrame = frame; }
-        virtual void addInputResource(RegisteredResource* resource, RenderPassResourceTransition transition);
-        virtual void addOutputResource(RegisteredResource* resource, RenderPassResourceTransition transition);
         virtual u32  getRequiredQueueCapability() = 0;
         virtual void withCommandBuffer(CommandBuffer* commandBuffer, Fn<void()> func);
 
-        void         AddUniformBuffer_base(RegisteredBufferHandle* buffer, u32 position);
+        // void         AddUniformBuffer_base(RegisteredBufferHandle* buffer, u32 position);
         void AddCombinedImageSampler(RegisteredImageHandle* image, RegisteredSamplerHandle* sampler, u32 position);
-        void AddStorageBuffer_base(RegisteredBufferHandle* buffer, u32 position, Rhi::RhiResourceAccessType access);
+        // void AddStorageBuffer_base(RegisteredBufferHandle* buffer, u32 position, Rhi::RhiResourceAccessType access);
 
         inline void         SetDefaultNumMultiBuffers(u32 x) { m_defaultMultibuffers = x; }
 
@@ -334,8 +332,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         virtual void        execute();
 
         inline virtual void SetNumBindlessDescriptorSets_base(u32 num) { m_numBindlessDescriptorSets = num; }
-
-        friend class RenderGraph;
     };
 
     // Graphics Pass performs rendering operations
@@ -426,7 +422,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto buf              = CheckedCast<SingleBuffer>(buffer);
             auto registeredBuffer = m_mapper->GetBufferIndex(buf);
             auto registered       = CheckedCast<RegisteredBufferHandle>(registeredBuffer);
-            AddStorageBuffer_base(registered, position, access);
+            std::abort();
+            // AddStorageBuffer_base(registered, position, access);
         }
         inline void AddUniformBuffer(Rhi::RhiMultiBuffer* buffer, u32 position)
         {
@@ -434,7 +431,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto buf              = CheckedCast<MultiBuffer>(buffer);
             auto registeredBuffer = m_mapper->getMultiBufferIndex(buf);
             auto registered       = CheckedCast<RegisteredBufferHandle>(registeredBuffer);
-            AddUniformBuffer_base(registered, position);
+            // AddUniformBuffer_base(registered, position);
         }
         inline void SetExecutionFunction(Fn<void(Rhi::RhiRenderPassContext*)> func) override
         {
@@ -488,7 +485,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto buf              = CheckedCast<SingleBuffer>(buffer);
             auto registeredBuffer = m_mapper->GetBufferIndex(buf);
             auto registered       = CheckedCast<RegisteredBufferHandle>(registeredBuffer);
-            AddStorageBuffer_base(registered, position, access);
+            std::abort();
+            // AddStorageBuffer_base(registered, position, access);
         }
         inline void AddUniformBuffer(Rhi::RhiMultiBuffer* buffer, u32 position)
         {
@@ -496,7 +494,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto buf              = CheckedCast<MultiBuffer>(buffer);
             auto registeredBuffer = m_mapper->getMultiBufferIndex(buf);
             auto registered       = CheckedCast<RegisteredBufferHandle>(registeredBuffer);
-            AddUniformBuffer_base(registered, position);
+            // AddUniformBuffer_base(registered, position);
         }
         inline void SetExecutionFunction(Fn<void(Rhi::RhiRenderPassContext*)> func) override
         {
@@ -518,55 +516,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         u32 rwDeps;
     };
 
-    class IFRIT_APIDECL RenderGraph
-    {
-    private:
-        EngineContext*                               m_context;
-        DescriptorManager*                           m_descriptorManager;
-        Vec<Uref<RenderGraphPass>>                   m_passes;
-        Vec<Uref<RegisteredResource>>                m_resources;
-        std::unordered_map<RegisteredResource*, u32> m_resourceMap;
-        Uref<PipelineCache>                          m_pipelineCache;
-
-        Uref<RegisteredResourceMapper>               m_mapper;
-
-        // Graph States
-        Vec<RegisteredResourceGraphState>            m_resourceGraphState;
-        Vec<RegisteredResource*>                     m_swapchainImageHandle;
-        Vec<u32>                                     m_subgraphBelonging;
-        Vec<Vec<u32>>                                m_subgraphs;
-
-        Vec<int>                                     m_subGraphOperatesOnSwapchain;
-
-        // Compilation
-        bool                                         m_comiled = false;
-        Vec<Uref<CommandPool>>                       m_commandPools;
-        Vec<CommandSubmissionList>                   m_submissionLists;
-        Vec<Uref<CommandBuffer>>                     m_commandBuffers;
-        Vec<Queue*>                                  m_assignedQueues;
-
-    protected:
-        Vec<Vec<u32>>& getSubgraphs();
-        void           resizeCommandBuffers(u32 size);
-        void           buildPassDescriptors(u32 numMultiBuffer);
-
-    public:
-        RenderGraph(EngineContext* context, DescriptorManager* descriptorManager);
-
-        GraphicsPass*            addGraphicsPass();
-        ComputePass*             addComputePass();
-
-        RegisteredBufferHandle*  registerBuffer(SingleBuffer* buffer);
-        RegisteredBufferHandle*  registerBuffer(MultiBuffer* buffer);
-        RegisteredImageHandle*   registerImage(SingleDeviceImage* image);
-        RegisteredSamplerHandle* RegisterSampler(Sampler* sampler);
-
-        void                     build(u32 numMultiBuffers);
-        void                     execute();
-
-        friend class CommandExecutor;
-    };
-
     class IFRIT_APIDECL CommandExecutor
     {
     private:
@@ -578,17 +527,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         Vec<Queue*>                  m_queuesTransfer;
         Vec<Queue*>                  m_queues;
 
-        RenderGraph*                 m_graph;
         Swapchain*                   m_swapchain;
         ResourceManager*             m_resourceManager;
 
         Uref<SwapchainImageResource> m_swapchainImageResource;
         Uref<QueueCollections>       m_queueCollections;
-
-        Vec<Uref<RenderGraph>>       m_renderGraph;
-
-    protected:
-        void compileGraph(RenderGraph* graph, u32 numMultiBuffers);
 
     public:
         CommandExecutor(EngineContext* context, Swapchain* swapchain, DescriptorManager* descriptorManager,
@@ -604,11 +547,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         CommandExecutor(const CommandExecutor& p)            = delete;
         CommandExecutor& operator=(const CommandExecutor& p) = delete;
 
-        RenderGraph*     CreateRenderGraph();
         void setQueues(bool reqPresentQueue, int numGraphics, int numCompute, int numTransfer, i32 numFramesInFlight);
         void syncMultiBufferStateWithSwapchain();
-        void runRenderGraph(RenderGraph* graph);
-        void runImmidiateCommand(Fn<void(CommandBuffer*)> func, QueueRequirement req);
         SwapchainImageResource* GetSwapchainImageResource();
         void                    BeginFrame();
         void                    EndFrame();

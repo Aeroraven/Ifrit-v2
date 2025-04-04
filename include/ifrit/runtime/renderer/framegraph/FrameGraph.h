@@ -25,6 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <string>
 #include <vector>
 
+#include "ifrit/runtime/material/ShaderRegistry.h"
+
 namespace Ifrit::Runtime
 {
 
@@ -70,7 +72,9 @@ namespace Ifrit::Runtime
 
     struct FrameGraphPassContext
     {
-        const Graphics::Rhi::RhiCommandList* m_CmdList;
+        const Graphics::Rhi::RhiCommandList*  m_CmdList;
+        const Graphics::Rhi::RhiGraphicsPass* m_GraphicsPass;
+        const Graphics::Rhi::RhiComputePass*  m_ComputePass;
     };
 
     struct IFRIT_APIDECL ResourceNode
@@ -101,7 +105,7 @@ namespace Ifrit::Runtime
 
     struct IFRIT_APIDECL PassNode
     {
-    private:
+    protected:
         PassNodeId                             id;
         FrameGraphPassType                     type;
         String                                 name;
@@ -118,10 +122,63 @@ namespace Ifrit::Runtime
 
         PassNode& AddReadResource(const ResourceNode& res);
         PassNode& AddWriteResource(const ResourceNode& res);
-        PassNode& SetExecutionFunction(Fn<void(const FrameGraphPassContext&)> func);
 
         // Legacy Interface, should be removed in the future.
         PassNode& AddDependentResource(const ResourceNode& res);
+
+        PassNode& SetExecutionFunction(Fn<void(const FrameGraphPassContext&)> func);
+
+    protected:
+        virtual void        Execute(const FrameGraphPassContext& ctx);
+        inline virtual void FillContext(FrameGraphPassContext& passContext)
+        {
+            passContext.m_ComputePass  = nullptr;
+            passContext.m_GraphicsPass = nullptr;
+        }
+    };
+
+    struct IFRIT_APIDECL ComputePassNode : public PassNode, NonCopyable
+    {
+    protected:
+        Uref<Graphics::Rhi::RhiComputePass> m_pass;
+
+    protected:
+        ComputePassNode(Uref<Graphics::Rhi::RhiComputePass>&& pass);
+        virtual void Execute(const FrameGraphPassContext& ctx) override;
+
+    public:
+        inline Graphics::Rhi::RhiComputePass* GetPass() { return m_pass.get(); }
+        inline virtual void                   FillContext(FrameGraphPassContext& passContext)
+        {
+            passContext.m_ComputePass  = m_pass.get();
+            passContext.m_GraphicsPass = nullptr;
+        }
+        friend class FrameGraphBuilder;
+    };
+
+    struct IFRIT_APIDECL GraphicsPassNode : public PassNode, NonCopyable
+    {
+    protected:
+        Uref<Graphics::Rhi::RhiGraphicsPass> m_pass;
+        Graphics::Rhi::RhiRenderTargets*     m_renderTargets = nullptr;
+
+    protected:
+        GraphicsPassNode(Uref<Graphics::Rhi::RhiGraphicsPass>&& pass);
+        inline GraphicsPassNode& SetRenderTargets(Graphics::Rhi::RhiRenderTargets* rts)
+        {
+            m_renderTargets = rts;
+            return *this;
+        }
+        virtual void Execute(const FrameGraphPassContext& ctx) override;
+
+    public:
+        inline Graphics::Rhi::RhiGraphicsPass* GetPass() { return m_pass.get(); }
+        inline virtual void                    FillContext(FrameGraphPassContext& passContext)
+        {
+            passContext.m_ComputePass  = nullptr;
+            passContext.m_GraphicsPass = m_pass.get();
+        }
+        friend class FrameGraphBuilder;
     };
 
     class IFRIT_APIDECL FrameGraphBuilder
@@ -131,13 +188,25 @@ namespace Ifrit::Runtime
         Vec<PassNode*>              m_passes;
         FrameGraphCompileMode       m_compileMode       = FrameGraphCompileMode::Sequential;
         FrameGraphResourceInitState m_resourceInitState = FrameGraphResourceInitState::Manual;
+        ShaderRegistry*             m_ShaderRegistry    = nullptr;
+        Graphics::Rhi::RhiBackend*  m_Rhi               = nullptr;
 
     public:
+        FrameGraphBuilder(ShaderRegistry* shaderRegistry, Graphics::Rhi::RhiBackend* rhi)
+            : m_ShaderRegistry(shaderRegistry), m_Rhi(rhi)
+        {
+        }
         ~FrameGraphBuilder();
 
-        ResourceNode& AddResource(const String& name);
-        PassNode&     AddPass(const String& name, FrameGraphPassType type);
-        void          SetResourceInitState(FrameGraphResourceInitState state) { m_resourceInitState = state; }
+        ResourceNode&     AddResource(const String& name);
+        PassNode&         AddPass(const String& name, FrameGraphPassType type);
+        void              SetResourceInitState(FrameGraphResourceInitState state) { m_resourceInitState = state; }
+
+        ComputePassNode&  AddComputePass(const String& name, const String& shader, u32 pushConsts);
+        GraphicsPassNode& AddGraphicsPass(const String& name, const String& vs, const String& fs, u32 pushConsts,
+            Graphics::Rhi::RhiRenderTargets* rts);
+
+        inline Graphics::Rhi::RhiBackend* GetRhi() const { return m_Rhi; }
 
         friend class FrameGraphCompiler;
         friend class FrameGraphExecutor;

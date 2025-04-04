@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiRenderConfig.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
+#include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -59,12 +60,12 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiGlobalDF(const AyanamiRenderConfig& config, IApplication* m_app);
         ~AyanamiGlobalDF() = default;
 
-        void       AddClipmapUpdate(const Graphics::Rhi::RhiCommandList* cmdList, u32 clipmapLevel, u32 perFrameDataId,
-                  u32 numMeshes, u32 meshDFListId);
+        ComputePassNode& AddClipmapUpdate(
+            FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId, u32 numMeshes, u32 meshDFListId);
 
-        void       AddRayMarchPass(const Graphics::Rhi::RhiCommandList* cmdList, u32 clipmapLevel, u32 perFrameDataId,
-                  u32 outTextureId, Vector2u outTextureSize);
-        GPUTexture GetClipmapVolume(u32 clipmapLevel);
+        ComputePassNode& AddRayMarchPass(FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId,
+            u32 outTextureId, Vector2u outTextureSize);
+        GPUTexture       GetClipmapVolume(u32 clipmapLevel);
     };
 
 } // namespace Ifrit::Runtime::Ayanami

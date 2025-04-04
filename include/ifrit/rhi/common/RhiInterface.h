@@ -76,62 +76,65 @@ namespace Ifrit::Graphics::Rhi
         virtual ~RhiBackend() = default;
         // Timer
 
-        virtual Ref<RhiDeviceTimer>           CreateDeviceTimer() = 0;
+        virtual Ref<RhiDeviceTimer> CreateDeviceTimer() = 0;
         // Memory resource
-        virtual void                          WaitDeviceIdle() = 0;
+        virtual void                WaitDeviceIdle() = 0;
 
         // Create a general buffer
-        virtual RhiBufferRef                  CreateBuffer(const String& name, u32 size, u32 usage, bool hostVisible, bool addUAV) const = 0;
-        virtual RhiBufferRef                  CreateBufferDevice(const String& name, u32 size, u32 usage, bool addUAV) const             = 0;
-        virtual Ref<RhiMultiBuffer>           CreateBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const                       = 0;
-        virtual RhiBufferRef                  GetFullScreenQuadVertexBuffer() const                                                      = 0;
+        virtual RhiBufferRef        CreateBuffer(
+                   const String& name, u32 size, u32 usage, bool hostVisible, bool addUAV) const                   = 0;
+        virtual RhiBufferRef        CreateBufferDevice(const String& name, u32 size, u32 usage, bool addUAV) const = 0;
+        virtual Ref<RhiMultiBuffer> CreateBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const           = 0;
+        virtual RhiBufferRef        GetFullScreenQuadVertexBuffer() const                                          = 0;
 
         // Note that the texture created can only be accessed by the GPU
-        virtual RhiTextureRef                 CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV)                                                   = 0;
-        virtual RhiTextureRef                 CreateTexture2D(const String& name, u32 width, u32 height, RhiImageFormat format, u32 extraFlags, bool addUAV)               = 0;
-        virtual RhiTextureRef                 CreateTexture3D(const String& name, u32 width, u32 height, u32 depth, RhiImageFormat format, u32 extraFlags, bool addUAV)    = 0;
-        virtual RhiTextureRef                 CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips, RhiImageFormat format, u32 extraFlags, bool addUAV) = 0;
-        virtual RhiSamplerRef                 CreateTrivialSampler()                                                                                                       = 0;
-        virtual RhiSamplerRef                 CreateTrivialBilinearSampler(bool repeat)                                                                                    = 0;
-        virtual RhiSamplerRef                 CreateTrivialNearestSampler(bool repeat)                                                                                     = 0;
+        virtual RhiTextureRef       CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV) = 0;
+        virtual RhiTextureRef       CreateTexture2D(
+                  const String& name, u32 width, u32 height, RhiImageFormat format, u32 extraFlags, bool addUAV) = 0;
+        virtual RhiTextureRef              CreateTexture3D(const String& name, u32 width, u32 height, u32 depth,
+                         RhiImageFormat format, u32 extraFlags, bool addUAV)                                     = 0;
+        virtual RhiTextureRef              CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips,
+                         RhiImageFormat format, u32 extraFlags, bool addUAV)                                     = 0;
+        virtual RhiSamplerRef              CreateTrivialSampler()                                                = 0;
+        virtual RhiSamplerRef              CreateTrivialBilinearSampler(bool repeat)                             = 0;
+        virtual RhiSamplerRef              CreateTrivialNearestSampler(bool repeat)                              = 0;
 
-        virtual Ref<RhiStagedSingleBuffer>    CreateStagedSingleBuffer(RhiBuffer* target) = 0;
+        virtual Ref<RhiStagedSingleBuffer> CreateStagedSingleBuffer(RhiBuffer* target) = 0;
 
         // Command execution
-        virtual RhiQueue*                     GetQueue(RhiQueueCapability req)       = 0;
-        virtual RhiShader*                    CreateShader(const String& name, const Vec<char>& code, const String& entry,
-                               RhiShaderStage stage, RhiShaderSourceType sourceType) = 0;
+        virtual RhiQueue*                  GetQueue(RhiQueueCapability req)       = 0;
+        virtual RhiShader*                 CreateShader(const String& name, const Vec<char>& code, const String& entry,
+                            RhiShaderStage stage, RhiShaderSourceType sourceType) = 0;
+
+        // Pass execution, Deprecated
+        virtual RhiComputePass*            CreateComputePass()  = 0;
+        virtual RhiGraphicsPass*           CreateGraphicsPass() = 0;
 
         // Pass execution
-        virtual RhiComputePass*               CreateComputePass()  = 0;
-        virtual RhiGraphicsPass*              CreateGraphicsPass() = 0;
+        virtual Uref<RhiComputePass>       CreateComputePass2()  = 0;
+        virtual Uref<RhiGraphicsPass>      CreateGraphicsPass2() = 0;
 
         // Swapchain
-        virtual RhiTexture*                   GetSwapchainImage()                  = 0;
-        virtual void                          BeginFrame()                         = 0;
-        virtual void                          EndFrame()                           = 0;
-        virtual Uref<RhiTaskSubmission>       GetSwapchainFrameReadyEventHandler() = 0;
-        virtual Uref<RhiTaskSubmission>       GetSwapchainRenderDoneEventHandler() = 0;
+        virtual RhiTexture*                GetSwapchainImage()                  = 0;
+        virtual void                       BeginFrame()                         = 0;
+        virtual void                       EndFrame()                           = 0;
+        virtual Uref<RhiTaskSubmission>    GetSwapchainFrameReadyEventHandler() = 0;
+        virtual Uref<RhiTaskSubmission>    GetSwapchainRenderDoneEventHandler() = 0;
 
         // Descriptor, these are deprecated.
-        virtual RhiBindlessDescriptorRef*     createBindlessDescriptorRef()                                                     = 0;
-        virtual Ref<Rhi::RhiDescHandleLegacy> RegisterUAVImage2(Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) = 0;
-        virtual Ref<RhiDescHandleLegacy>      RegisterUniformBuffer(RhiMultiBuffer* buffer)                                     = 0;
-        virtual Ref<RhiDescHandleLegacy>      RegisterStorageBufferShared(RhiMultiBuffer* buffer)                               = 0;
-        virtual Ref<RhiDescHandleLegacy>      RegisterCombinedImageSampler(RhiTexture* texture, RhiSampler* sampler)            = 0;
+        virtual RhiBindlessDescriptorRef*  createBindlessDescriptorRef() = 0;
+        virtual Ref<Rhi::RhiDescHandleLegacy> RegisterUAVImage2(
+            Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource)                                     = 0;
+        virtual Ref<RhiDescHandleLegacy> RegisterUniformBuffer(RhiMultiBuffer* buffer)                          = 0;
+        virtual Ref<RhiDescHandleLegacy> RegisterStorageBufferShared(RhiMultiBuffer* buffer)                    = 0;
+        virtual Ref<RhiDescHandleLegacy> RegisterCombinedImageSampler(RhiTexture* texture, RhiSampler* sampler) = 0;
 
         // Render target
-        virtual Ref<RhiColorAttachment>       CreateRenderTarget(
-                  RhiTexture*           renderTarget,
-                  RhiClearValue         clearValue,
-                  RhiRenderTargetLoadOp loadOp,
-                  u32                   mip,
-                  u32                   arrLayer) = 0;
+        virtual Ref<RhiColorAttachment>  CreateRenderTarget(RhiTexture* renderTarget, RhiClearValue clearValue,
+             RhiRenderTargetLoadOp loadOp, u32 mip, u32 arrLayer) = 0;
 
         virtual Ref<RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
-            RhiTexture*           renderTarget,
-            RhiClearValue         clearValue,
-            RhiRenderTargetLoadOp loadOp) = 0;
+            RhiTexture* renderTarget, RhiClearValue clearValue, RhiRenderTargetLoadOp loadOp) = 0;
 
         virtual Ref<RhiRenderTargets>         CreateRenderTargets() = 0;
 

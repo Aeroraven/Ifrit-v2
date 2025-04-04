@@ -65,6 +65,44 @@ namespace Ifrit::Runtime
         return *this;
     }
 
+    IFRIT_APIDECL void PassNode::Execute(const FrameGraphPassContext& ctx)
+    {
+        ctx.m_CmdList->BeginScope(String("Ifrit/RDG: [Common] ") + name);
+        if (passFunction)
+        {
+            passFunction(ctx);
+        }
+        ctx.m_CmdList->EndScope();
+    }
+
+    // Specialized nodes
+    IFRIT_APIDECL GraphicsPassNode::GraphicsPassNode(Uref<Graphics::Rhi::RhiGraphicsPass>&& pass)
+        : m_pass(std::move(pass))
+    {
+    }
+
+    IFRIT_APIDECL void GraphicsPassNode::Execute(const FrameGraphPassContext& ctx)
+    {
+        m_pass->SetRecordFunction(
+            [this, &ctx](const Graphics::Rhi::RhiRenderPassContext* ct) { this->passFunction(ctx); });
+        ctx.m_CmdList->BeginScope(String("Ifrit/RDG: [Draw] ") + name);
+        m_pass->Run(ctx.m_CmdList, this->m_renderTargets, 0);
+        ctx.m_CmdList->EndScope();
+    }
+
+    IFRIT_APIDECL ComputePassNode::ComputePassNode(Uref<Graphics::Rhi::RhiComputePass>&& pass) : m_pass(std::move(pass))
+    {
+    }
+
+    IFRIT_APIDECL void ComputePassNode::Execute(const FrameGraphPassContext& ctx)
+    {
+        m_pass->SetRecordFunction(
+            [this, &ctx](const Graphics::Rhi::RhiRenderPassContext* ct) { this->passFunction(ctx); });
+        ctx.m_CmdList->BeginScope(String("Ifrit/RDG: [Compute] ") + name);
+        m_pass->Run(ctx.m_CmdList, 0);
+        ctx.m_CmdList->EndScope();
+    }
+
     IFRIT_APIDECL FrameGraphBuilder::~FrameGraphBuilder()
     {
         for (auto& res : m_resources)
@@ -102,6 +140,46 @@ namespace Ifrit::Runtime
         // node.dependentResources = dependencies;
         m_passes.push_back(node);
         return *node;
+    }
+
+    IFRIT_APIDECL ComputePassNode& FrameGraphBuilder::AddComputePass(
+        const String& name, const String& shader, u32 pushConsts)
+    {
+        auto cp = m_Rhi->CreateComputePass2();
+        cp->SetComputeShader(m_ShaderRegistry->GetShader(shader, 0));
+        cp->SetPushConstSize(pushConsts * sizeof(u32));
+
+        auto pass        = new ComputePassNode(std::move(cp));
+        pass->id         = SizeCast<u32>(m_passes.size());
+        pass->name       = name;
+        pass->isImported = false;
+        pass->type       = FrameGraphPassType::Compute;
+
+        m_passes.push_back(pass);
+        return *pass;
+    }
+
+    IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddGraphicsPass(
+        const String& name, const String& vs, const String& fs, u32 pushConsts, Graphics::Rhi::RhiRenderTargets* rts)
+    {
+        auto gp = m_Rhi->CreateGraphicsPass2();
+        gp->SetVertexShader(m_ShaderRegistry->GetShader(vs, 0));
+        gp->SetPixelShader(m_ShaderRegistry->GetShader(fs, 0));
+        gp->SetPushConstSize(pushConsts * sizeof(u32));
+        gp->SetRenderTargetFormat(rts->GetFormat());
+
+        auto area = rts->GetRenderArea();
+        gp->SetRenderArea(area.x, area.y, area.width, area.height);
+
+        auto pass        = new GraphicsPassNode(std::move(gp));
+        pass->id         = SizeCast<u32>(m_passes.size());
+        pass->name       = name;
+        pass->isImported = false;
+        pass->type       = FrameGraphPassType::Graphics;
+        pass->SetRenderTargets(rts);
+
+        m_passes.push_back(pass);
+        return *pass;
     }
 
     // Frame Graph compiler
@@ -380,6 +458,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void FrameGraphExecutor::ExecuteInSingleCmd(
         const Graphics::Rhi::RhiCommandList* cmd, const CompiledFrameGraph& compiledGraph)
     {
+        cmd->BeginScope("Ifrit/RDG: Render Graph Execution");
         using namespace Ifrit::Graphics::Rhi;
         for (auto pass : compiledGraph.m_graph->m_passes)
         {
@@ -396,8 +475,10 @@ namespace Ifrit::Runtime
             FrameGraphPassContext passContext;
             passContext.m_CmdList = cmd;
 
-            pass->passFunction(passContext);
+            pass->FillContext(passContext);
+            pass->Execute(passContext);
         }
+        cmd->EndScope();
     }
 
 } // namespace Ifrit::Runtime

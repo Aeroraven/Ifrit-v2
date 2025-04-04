@@ -323,6 +323,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return m_implDetails->m_resourceManager->CreateTrivialNearestSampler(repeat);
     }
 
+    // Deprecating
     IFRIT_APIDECL Rhi::RhiComputePass* RhiVulkanBackend::CreateComputePass()
     {
         auto pass = std::make_unique<ComputePass>(CheckedCast<EngineContext>(m_device.get()),
@@ -334,6 +335,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return ptr;
     }
 
+    // Deprecating
     IFRIT_APIDECL Rhi::RhiGraphicsPass* RhiVulkanBackend::CreateGraphicsPass()
     {
         auto pass = std::make_unique<GraphicsPass>(CheckedCast<EngineContext>(m_device.get()),
@@ -343,6 +345,25 @@ namespace Ifrit::Graphics::VulkanGraphics
         ptr->SetDefaultNumMultiBuffers(m_swapChain->GetNumBackbuffers());
         m_implDetails->m_graphicsPasses.push_back(std::move(pass));
         return ptr;
+    }
+
+    IFRIT_APIDECL Uref<Rhi::RhiComputePass> RhiVulkanBackend::CreateComputePass2()
+    {
+        auto pass = std::make_unique<ComputePass>(CheckedCast<EngineContext>(m_device.get()),
+            m_implDetails->m_pipelineCache.get(), m_implDetails->m_descriptorManager.get(),
+            m_implDetails->m_mapper.get());
+        auto ptr  = pass.get();
+        ptr->SetDefaultNumMultiBuffers(m_swapChain->GetNumBackbuffers());
+        return pass;
+    }
+    IFRIT_APIDECL Uref<Rhi::RhiGraphicsPass> RhiVulkanBackend::CreateGraphicsPass2()
+    {
+        auto pass = std::make_unique<GraphicsPass>(CheckedCast<EngineContext>(m_device.get()),
+            m_implDetails->m_pipelineCache.get(), m_implDetails->m_descriptorManager.get(),
+            m_implDetails->m_mapper.get());
+        auto ptr  = pass.get();
+        ptr->SetDefaultNumMultiBuffers(m_swapChain->GetNumBackbuffers());
+        return pass;
     }
 
     IFRIT_APIDECL Rhi::RhiTexture* RhiVulkanBackend::GetSwapchainImage()

@@ -195,6 +195,11 @@ void main(){
     // 1. light visibility
     // 2. light coverage (from camera view) , because shadow maps are 'camera-centric'.
 
+    if(tileOffsetNdcZ == 1.0){
+        imageStore(GetUAVImage2DR32F(PushConst.radianceOutId), ivec2(overallOffset), vec4(0.0, 0.0, 0.0, 1.0));
+        return;
+    }
+
     mat4 worldToView = GetResource(BPerFrameData, PushConst.m_PerFrameId).m_Data.m_worldToView;
     vec4 viewPos = worldToView * worldPos;
 
@@ -202,7 +207,7 @@ void main(){
     float shadowCoverage = 0.0;
     vec2 shadowVisibilityAndCoverage = GlobalShadowVisibility(worldPos.xyz, viewPos.xyz);
     shadowVisibility = shadowVisibilityAndCoverage.x;
-    shadowCoverage = shadowVisibilityAndCoverage.y;
+    shadowCoverage = shadowVisibilityAndCoverage.y+0.5;
 
     imageStore(GetUAVImage2DR32F(PushConst.radianceOutId), ivec2(overallOffset), vec4(shadowVisibility, shadowCoverage, 0.0, 1.0));
 }
