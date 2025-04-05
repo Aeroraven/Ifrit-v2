@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime::FrameGraphUtils
 {
@@ -35,6 +36,25 @@ namespace Ifrit::Runtime::FrameGraphUtils
         auto&   pass           = builder.AddGraphicsPass(name, vs, fs, pushConsts, rts);
         auto    rhi            = builder.GetRhi();
         auto    underlyingPass = pass.GetPass();
+        Vec<u8> pushConstsData = PtrToVector(ptr, pushConsts * sizeof(u32));
+        // DO NOT USE REFERENCES HERE.
+        pass.SetExecutionFunction([pushConsts, pushConstsData, rhi, underlyingPass](const FrameGraphPassContext& ctx) {
+            auto cmd = ctx.m_CmdList;
+            if (pushConsts > 0)
+                cmd->SetPushConst(underlyingPass, 0, pushConsts * sizeof(u32), pushConstsData.data());
+            cmd->AttachVertexBufferView(*rhi->GetFullScreenQuadVertexBufferView());
+            cmd->AttachVertexBuffers(0, { rhi->GetFullScreenQuadVertexBuffer().get() });
+            cmd->DrawInstanced(3, 1, 0, 0);
+        });
+        return pass;
+    }
+
+    IFRIT_RUNTIME_API GraphicsPassNode& AddPostProcessPass(FrameGraphBuilder& builder, const String& name,
+        const String& fs, Graphics::Rhi::RhiRenderTargets* rts, const void* ptr, u32 pushConsts)
+    {
+        auto& pass = builder.AddGraphicsPass(name, Internal::kIntShaderTable.Common.FullScreenVS, fs, pushConsts, rts);
+        auto  rhi  = builder.GetRhi();
+        auto  underlyingPass   = pass.GetPass();
         Vec<u8> pushConstsData = PtrToVector(ptr, pushConsts * sizeof(u32));
         // DO NOT USE REFERENCES HERE.
         pass.SetExecutionFunction([pushConsts, pushConstsData, rhi, underlyingPass](const FrameGraphPassContext& ctx) {

@@ -378,6 +378,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkIndexType                  m_indexType;
         Rhi::RhiRasterizerTopology   m_topology = Rhi::RhiRasterizerTopology::TriangleList;
 
+        u32                          m_MsaaSamples = 1;
+
     public:
         GraphicsPass(EngineContext* context, PipelineCache* pipelineCache, DescriptorManager* descriptorManager,
             RegisteredResourceMapper* mapper);
@@ -401,6 +403,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         void SetDepthTestEnable(bool enable) override;
         void SetDepthCompareOp(Rhi::RhiCompareOp compareOp) override;
         void SetRasterizerTopology(Rhi::RhiRasterizerTopology topology) override;
+
+        void SetMsaaSamples(u32 samples) override;
 
         void setVertexInput(const VertexBufferDescriptor& descriptor, const Vec<RegisteredBufferHandle*>& buffers);
         void setIndexInput(RegisteredBufferHandle* buffer, VkIndexType type);

@@ -198,7 +198,36 @@ namespace Ifrit::Graphics::VulkanGraphics
         imageCI.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
         imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageCI.flags         = 0;
-        m_format              = ci.format;
+
+        // Resolve samples
+        switch (ci.samples)
+        {
+            case 1:
+                imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+                break;
+            case 2:
+                imageCI.samples = VK_SAMPLE_COUNT_2_BIT;
+                break;
+            case 4:
+                imageCI.samples = VK_SAMPLE_COUNT_4_BIT;
+                break;
+            case 8:
+                imageCI.samples = VK_SAMPLE_COUNT_8_BIT;
+                break;
+            case 16:
+                imageCI.samples = VK_SAMPLE_COUNT_16_BIT;
+                break;
+            case 32:
+                imageCI.samples = VK_SAMPLE_COUNT_32_BIT;
+                break;
+            case 64:
+                imageCI.samples = VK_SAMPLE_COUNT_64_BIT;
+                break;
+            default:
+                vkrError("Unsupported sample count");
+        }
+
+        m_format = ci.format;
         VmaAllocationCreateInfo allocCI{};
         allocCI.usage = VMA_MEMORY_USAGE_AUTO;
         if (ci.hostVisible)
@@ -381,7 +410,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateTexture2DDeviceUnmanaged(
-        u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage)
+        u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage, u32 samples)
     {
         ImageCreateInfo ci{};
         ci.aspect      = ImageAspect::Color;
@@ -390,6 +419,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.height      = height;
         ci.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | extraUsage;
         ci.hostVisible = false;
+        ci.samples     = samples;
         return CreateSimpleImageUnmanaged(ci);
     }
 

@@ -91,13 +91,15 @@ namespace Ifrit::Graphics::Rhi
         virtual RhiTextureRef       CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV) = 0;
         virtual RhiTextureRef       CreateTexture2D(
                   const String& name, u32 width, u32 height, RhiImageFormat format, u32 extraFlags, bool addUAV) = 0;
+        virtual RhiTextureRef CreateTexture2DMsaa(
+            const String& name, u32 width, u32 height, RhiImageFormat format, u32 extraFlags, u32 samples) = 0;
         virtual RhiTextureRef              CreateTexture3D(const String& name, u32 width, u32 height, u32 depth,
-                         RhiImageFormat format, u32 extraFlags, bool addUAV)                                     = 0;
+                         RhiImageFormat format, u32 extraFlags, bool addUAV)                               = 0;
         virtual RhiTextureRef              CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips,
-                         RhiImageFormat format, u32 extraFlags, bool addUAV)                                     = 0;
-        virtual RhiSamplerRef              CreateTrivialSampler()                                                = 0;
-        virtual RhiSamplerRef              CreateTrivialBilinearSampler(bool repeat)                             = 0;
-        virtual RhiSamplerRef              CreateTrivialNearestSampler(bool repeat)                              = 0;
+                         RhiImageFormat format, u32 extraFlags, bool addUAV)                               = 0;
+        virtual RhiSamplerRef              CreateTrivialSampler()                                          = 0;
+        virtual RhiSamplerRef              CreateTrivialBilinearSampler(bool repeat)                       = 0;
+        virtual RhiSamplerRef              CreateTrivialNearestSampler(bool repeat)                        = 0;
 
         virtual Ref<RhiStagedSingleBuffer> CreateStagedSingleBuffer(RhiBuffer* target) = 0;
 

@@ -113,6 +113,8 @@ namespace Ifrit::Runtime
 
         Ref<GPUUniformBuffer> m_allShadowData = nullptr;
         Ref<GPUBindId>        m_allShadowDataId;
+
+        Vec<Vector3f>         m_LightFronts;
     };
 
     struct PerFrameData

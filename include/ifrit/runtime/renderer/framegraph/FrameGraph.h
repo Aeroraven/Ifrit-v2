@@ -104,7 +104,7 @@ namespace Ifrit::Runtime
         ResourceNode&          SetImportedResource(FgTexture* texture, const FgTextureSubResource& subResource);
 
         FrameGraphResourceType GetType() const { return type; }
-        FgBuffer*               GetBuffer() const { return importedBuffer; }
+        FgBuffer*              GetBuffer() const { return importedBuffer; }
         FgTexture*             GetTexture() const { return importedTexture; }
     };
 
@@ -214,6 +214,7 @@ namespace Ifrit::Runtime
             Graphics::Rhi::RhiRenderTargets* rts);
 
         inline Graphics::Rhi::RhiBackend* GetRhi() const { return m_Rhi; }
+        inline ShaderRegistry*            GetShaderRegistry() const { return m_ShaderRegistry; }
 
         friend class FrameGraphCompiler;
         friend class FrameGraphExecutor;

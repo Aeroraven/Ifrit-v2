@@ -22,8 +22,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime::FrameGraphUtils
 {
+
+    template <typename T> u32           GetPushConstSize() { return sizeof(T) / sizeof(u32); }
+
     IFRIT_RUNTIME_API GraphicsPassNode& AddFullScreenQuadPass(FrameGraphBuilder& builder, const String& name,
         const String& vs, const String& fs, Graphics::Rhi::RhiRenderTargets* rts, const void* ptr, u32 pushConsts);
+
+    IFRIT_RUNTIME_API GraphicsPassNode& AddPostProcessPass(FrameGraphBuilder& builder, const String& name,
+        const String& fs, Graphics::Rhi::RhiRenderTargets* rts, const void* ptr, u32 pushConsts);
 
     IFRIT_RUNTIME_API GraphicsPassNode& AddMeshDrawPass(FrameGraphBuilder& builder, const String& name,
         const String& ms, const String& fs, Graphics::Rhi::RhiRenderTargets* rts, Vector3i workGroups, const void* ptr,

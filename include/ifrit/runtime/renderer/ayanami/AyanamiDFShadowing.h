@@ -37,5 +37,9 @@ namespace Ifrit::Runtime::Ayanami
 
         GraphicsPassNode& DistanceFieldShadowTileScatter(FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs,
             Vector4f sceneBound, Vector3f lightDir, u32 tileSize);
+
+        GraphicsPassNode& DistanceFieldShadowRender(FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs,
+            u32 depthSRV, u32 perframe, Graphics::Rhi::RhiRenderTargets* rts, Vector4f sceneBound, Vector3f lightDir,
+            u32 tileSize, float softness);
     };
 } // namespace Ifrit::Runtime::Ayanami

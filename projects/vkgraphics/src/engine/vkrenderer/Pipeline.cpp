@@ -91,9 +91,34 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         // Multisampling
         VkPipelineMultisampleStateCreateInfo multisampleCI{};
-        multisampleCI.sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleCI.sampleShadingEnable  = VK_FALSE;
-        multisampleCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        multisampleCI.sType               = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampleCI.sampleShadingEnable = VK_FALSE;
+        switch (m_createInfo.msaaSamples)
+        {
+            case 1:
+                multisampleCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+                break;
+            case 2:
+                multisampleCI.rasterizationSamples = VK_SAMPLE_COUNT_2_BIT;
+                break;
+            case 4:
+                multisampleCI.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+                break;
+            case 8:
+                multisampleCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
+                break;
+            case 16:
+                multisampleCI.rasterizationSamples = VK_SAMPLE_COUNT_16_BIT;
+                break;
+            case 32:
+                multisampleCI.rasterizationSamples = VK_SAMPLE_COUNT_32_BIT;
+                break;
+            case 64:
+                multisampleCI.rasterizationSamples = VK_SAMPLE_COUNT_64_BIT;
+                break;
+            default:
+                vkrError("Unsupported sample count");
+        }
 
         // Render Info
         bool                          reqDepth = m_createInfo.depthAttachmentFormat != VK_FORMAT_UNDEFINED;
@@ -211,6 +236,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         sha1.update(std::to_string(getUnderlying(m_createInfo.geomGenType)));
         sha1.update(",push:");
         sha1.update(std::to_string(m_createInfo.pushConstSize));
+        sha1.update(",msaa:");
+        sha1.update(std::to_string(m_createInfo.msaaSamples));
         auto                      digest = sha1.final();
 
         // Cache
@@ -413,6 +440,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         hash ^= hashFunc(getUnderlying(ci.geomGenType));
         hash ^= hashFunc(ci.pushConstSize);
+        hash ^= hashFunc(ci.msaaSamples);
         return hash;
     }
 
@@ -465,6 +493,10 @@ namespace Ifrit::Graphics::VulkanGraphics
                 return false;
         }
         if (a.pushConstSize != b.pushConstSize)
+        {
+            return false;
+        }
+        if (a.msaaSamples != b.msaaSamples)
         {
             return false;
         }

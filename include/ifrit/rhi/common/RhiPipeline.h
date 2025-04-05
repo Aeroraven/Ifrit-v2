@@ -63,6 +63,7 @@ namespace Ifrit::Graphics::Rhi
         virtual void SetDepthWrite(bool write)                             = 0;
         virtual void SetDepthTestEnable(bool enable)                       = 0;
         virtual void SetDepthCompareOp(RhiCompareOp compareOp)             = 0;
+        virtual void SetMsaaSamples(u32 samples)                           = 0;
 
         virtual void SetRenderTargetFormat(const RhiRenderTargetsFormat& format)                           = 0;
         virtual void SetShaderBindingLayout(const Vec<RhiDescriptorType>& layout)                          = 0;

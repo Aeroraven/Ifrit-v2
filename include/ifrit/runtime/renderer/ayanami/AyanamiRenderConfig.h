@@ -27,7 +27,7 @@ namespace Ifrit::Runtime::Ayanami
         u32  m_globalDFClipmapResolution = 256;   // 16MB per clipmap level
         f32  m_globalDFBaseExtent        = 20.0f; // 2500.0 in the original code
 
-        u32  m_SurfaceCacheResolution       = 2048;
+        u32  m_SurfaceCacheResolution       = 8192;
         u32  m_RadiancePassMaxPerTileLights = 8;
 
         bool m_DebugForceSurfaceCacheRegen = true;

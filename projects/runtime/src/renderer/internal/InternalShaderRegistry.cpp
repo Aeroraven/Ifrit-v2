@@ -52,8 +52,11 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE(IST.Ayanami.TrivialGlobalDFCompCS, "Ayanami/Ayanami.TrivialGlobalDFComposite");
         REG_MESH(IST.Ayanami.DFShadowTileCullingMS, "Ayanami/Ayanami.DFShadowTileCull");
         REG_FRAGMENT(IST.Ayanami.DFShadowTileCullingFS, "Ayanami/Ayanami.DFShadowTileCull");
+        REG_FRAGMENT(IST.Ayanami.DFShadowFS, "Ayanami/Ayanami.DFShadow");
+        REG_FRAGMENT(IST.Ayanami.TestDeferShadingFS, "Ayanami/Ayanami.TestDeferShading");
 
         // Common
+        REG_VERTEX(IST.Common.FullScreenVS, "CommonPass/FullScreen");
         REG_COMPUTE(IST.Common.SinglePassHzbCS, "CommonPass/SinglePassHzb");
 
         // PostProcessing

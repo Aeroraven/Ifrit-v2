@@ -83,9 +83,9 @@ public:
         if (camera)
         {
             // 11.519989 2.360000 -5.760006
-            camera->SetPosition({ 8.639989f + m_movRight - m_movLeft, 1.520000f + m_movTop - m_movBottom,
-                -5.760006f + m_movFar - m_movNear });
-            camera->SetRotation({ 0.0f, m_movRot + 1.57f + 3.39f, 0.0f });
+            camera->SetPosition({ 3.239989f + m_movRight - m_movLeft, 2.240000f + m_movTop - m_movBottom,
+                -6.000006f + m_movFar - m_movNear });
+            camera->SetRotation({ 0.0f, m_movRot + 6.91f, 0.0f });
 
             // if print q, print the position and rotation
             if (m_inputSystem->IsKeyPressed(InputKeyCode::Q))
@@ -152,7 +152,7 @@ namespace Ifrit
             auto lightGameObject = node->AddGameObject("sun");
             auto light           = lightGameObject->AddComponent<Light>();
             auto lightTransform  = lightGameObject->GetComponent<Transform>();
-            lightTransform->SetRotation({ 120.0 / 180.0f * std::numbers::pi_v<float>, 0.0f, 0.0f });
+            lightTransform->SetRotation({ 60.0 / 180.0f * std::numbers::pi_v<float>, 0.0f, 0.0f });
             light->SetShadowMap(true);
             light->SetShadowMapResolution(2048);
             light->SetAffectPbrSky(true);
@@ -163,7 +163,7 @@ namespace Ifrit
             for (auto& m : meshes)
             {
                 numMeshes++;
-                if (numMeshes < 50)
+                if (numMeshes < 200)
                     continue;
                 if (numMeshes > 212)
                     break;
@@ -173,7 +173,10 @@ namespace Ifrit
                 auto meshMarker = t->AddComponent<Ayanami::AyanamiMeshMarker>();
 
                 auto transform = t->GetComponent<Transform>();
-                auto mat       = transform->GetModelToWorldMatrix();
+                transform->SetRotation({ 0.0f, 0.0f, 0.0f });
+                transform->SetPosition({ 0.0f, 0.0f, 0.0f });
+                transform->SetScale({ 0.01f, 0.01f, 0.01f });
+                auto mat = transform->GetModelToWorldMatrix();
                 node->AddGameObjectTransferred(std::move(m->m_prefab));
             }
 

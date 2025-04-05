@@ -184,6 +184,10 @@ namespace Ifrit::Runtime
         {
             perframeData.m_shadowData2.m_shadowViews.resize(m_config->m_shadowConfig.k_maxShadowMaps);
         }
+        if (perframeData.m_shadowData2.m_LightFronts.size() < m_config->m_shadowConfig.k_maxShadowMaps)
+        {
+            perframeData.m_shadowData2.m_LightFronts.resize(m_config->m_shadowConfig.k_maxShadowMaps);
+        }
         perframeData.m_shadowData2.m_enabledShadowMaps = SizeCast<u32>(lightWithShadow.size());
         for (auto di = 0, dj = 0; auto& lightObj : lightWithShadow)
         {
@@ -204,6 +208,11 @@ namespace Ifrit::Runtime
             perframeData.m_shadowData2.m_shadowViews[di].m_csmSplits = m_config->m_shadowConfig.m_csmCount;
             perframeData.m_shadowData2.m_shadowViews[di].m_csmStart  = splitStart;
             perframeData.m_shadowData2.m_shadowViews[di].m_csmEnd    = splitEnd;
+
+            Vector4f lightFront                          = { 0.0f, 0.0f, 1.0f, 0.0f };
+            auto     rotation                            = lightTransform->GetModelToWorldMatrix();
+            auto     rotVec                              = Math::MatMul(rotation, lightFront);
+            perframeData.m_shadowData2.m_LightFronts[di] = Vector3f(rotVec.x, rotVec.y, rotVec.z);
             for (auto i = 0; auto& csmView : csmViews)
             {
                 perframeData.m_views[1 + dj].m_viewData     = csmView.m_viewData;

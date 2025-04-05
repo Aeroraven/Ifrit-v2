@@ -261,6 +261,15 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
+    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateTexture2DMsaa(
+        const String& name, u32 width, u32 height, Rhi::RhiImageFormat format, u32 extraFlags, u32 samples)
+    {
+        auto p = m_implDetails->m_resourceManager->CreateTexture2DDeviceUnmanaged(
+            width, height, toVkFormat(format), extraFlags, samples);
+        p->SetDebugName(name);
+        return p;
+    }
+
     IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateDepthTexture(
         const String& name, u32 width, u32 height, bool addUAV)
     {

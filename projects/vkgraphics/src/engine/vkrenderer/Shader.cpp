@@ -291,8 +291,14 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto          cacheDir  = m_context->GetCacheDir();
         String        cacheFile = cacheDir + "/vkgraphics.shaderrefl." + m_signature + ".cache";
         std::ifstream cache(cacheFile, std::ios::binary);
-        u32           numDescSets;
+        if (!cache.is_open())
+        {
+            iError("Failed to open shader reflection cache file: {}", cacheFile);
+            std::abort();
+        }
+        u32 numDescSets = 0;
         cache.read(reinterpret_cast<char*>(&numDescSets), sizeof(u32));
+
         m_reflectSets.resize(numDescSets);
         cache.close();
     }

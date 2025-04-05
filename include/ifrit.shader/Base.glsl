@@ -104,4 +104,32 @@ vec4 ifrit_perspectiveLerp4D(vec4 v0, vec4 v1, float z0, float z1, float t){
   return (v0/z0 + (v1/z1 - v0/z0) * t) / lp;
 }
 
+bool ifrit_RayboxIntersection(vec3 o,vec3 d,vec3 lb,vec3 rt, out float t){
+    // from: https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
+    vec3 dirfrac;
+    dirfrac.x = 1.0f / d.x;
+    dirfrac.y = 1.0f / d.y;
+    dirfrac.z = 1.0f / d.z;
+    float t1 = (lb.x - o.x)*dirfrac.x;
+    float t2 = (rt.x - o.x)*dirfrac.x;
+    float t3 = (lb.y - o.y)*dirfrac.y;
+    float t4 = (rt.y - o.y)*dirfrac.y;
+    float t5 = (lb.z - o.z)*dirfrac.z;
+    float t6 = (rt.z - o.z)*dirfrac.z;
+
+    float tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
+    float tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
+    if (tmax < 0){
+        t = tmax;
+        return false;
+    }
+    if (tmin > tmax){
+        t = tmax;
+        return false;
+    }
+    t = tmin;
+    return true;
+}
+
+
 const float kPI = 3.14159265359;

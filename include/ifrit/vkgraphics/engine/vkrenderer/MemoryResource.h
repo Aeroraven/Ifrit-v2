@@ -131,6 +131,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         u32               depth       = 1;
         u32               mipLevels   = 1;
         u32               arrayLayers = 1;
+        u32               samples     = 1;
         bool              hostVisible = false;
     };
 
@@ -162,7 +163,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         u32                       GetSize();
         inline u32                GetWidth() const override { return m_createInfo.width; }
         inline u32                GetHeight() const override { return m_createInfo.height; }
-        inline u32                GetDepth() const { return m_createInfo.depth; }
+        inline u32                GetDepth() const override { return m_createInfo.depth; }
+        inline u32                GetSamples() const override { return m_createInfo.samples; }
         inline VkImageAspectFlags GetAspect() const
         {
             if (m_createInfo.aspect == ImageAspect::Color)
@@ -246,7 +248,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             u32 width, u32 height, VkFormat format = VK_FORMAT_D32_SFLOAT, VkImageUsageFlags extraUsage = 0);
 
         Rhi::RhiTextureRef CreateTexture2DDeviceUnmanaged(
-            u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage = 0);
+            u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage = 0, u32 samples = 1);
 
         Rhi::RhiTextureRef CreateRenderTargetTexture(
             u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage = 0);

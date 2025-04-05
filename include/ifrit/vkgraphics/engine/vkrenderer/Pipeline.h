@@ -38,6 +38,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         Vec<VkDescriptorSetLayout>     descriptorSetLayouts;
         Rhi::RhiGeometryGenerationType geomGenType   = Rhi::RhiGeometryGenerationType::Conventional;
         u32                            pushConstSize = 0;
+        u32                            msaaSamples   = 1;
     };
     struct ComputePipelineCreateInfo
     {

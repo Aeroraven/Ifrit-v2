@@ -149,9 +149,11 @@ namespace Ifrit::Graphics::Rhi
         virtual ~RhiTexture()                                  = default;
         virtual u32                     GetHeight() const      = 0;
         virtual u32                     GetWidth() const       = 0;
+        virtual u32                     GetDepth() const       = 0;
         virtual bool                    IsDepthTexture() const = 0;
         virtual inline RhiResourceState GetState() const { return m_state; }
         virtual void*                   GetNativeHandle() const = 0;
+        virtual u32                     GetSamples() const      = 0;
 
         friend class RhiCommandList;
     };

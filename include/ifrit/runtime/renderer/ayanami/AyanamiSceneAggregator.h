@@ -33,6 +33,12 @@ namespace Ifrit::Runtime::Ayanami
         Graphics::Rhi::RhiBackend* m_rhi;
         AyanamiSceneResources*     m_sceneResources = nullptr;
 
+    public:
+        struct AggregatedLights
+        {
+            Vec<Vector3f> m_LightFronts;
+        };
+
     private:
         void Init();
         void Destroy();
@@ -41,9 +47,12 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiSceneAggregator(Graphics::Rhi::RhiBackend* rhi) : m_rhi(rhi) { Init(); }
         ~AyanamiSceneAggregator() { Destroy(); }
 
-        void CollectScene(Scene* scene);
-        u32  GetGatheredBufferId();
-        u32  GetNumGatheredInstances() const;
+        void             CollectScene(Scene* scene);
+        u32              GetGatheredBufferId();
+        u32              GetNumGatheredInstances() const;
+
+        Vector4f         GetSceneBoundSphere() const;
+        AggregatedLights GetAggregatedLights() const;
     };
 
 } // namespace Ifrit::Runtime::Ayanami

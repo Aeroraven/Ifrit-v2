@@ -194,6 +194,9 @@ namespace Ifrit::Runtime
         auto area = rts->GetRenderArea();
         gp->SetRenderArea(area.x, area.y, area.width, area.height);
 
+        auto rtx = rts->GetColorAttachment(0);
+        gp->SetMsaaSamples(rtx->GetRenderTarget()->GetSamples());
+
         auto pass        = new GraphicsPassNode(std::move(gp));
         pass->id         = SizeCast<u32>(m_passes.size());
         pass->name       = name;

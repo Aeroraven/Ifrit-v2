@@ -64,10 +64,13 @@ namespace Ifrit::Runtime::Internal
             SDEF TrivialGlobalDFCompCS     = DECLARE_CS("Ayanami/TrivialGlobalDFComp");
             SDEF DFShadowTileCullingMS     = DECLARE_MS("Ayanami/DFShadowTileCulling");
             SDEF DFShadowTileCullingFS     = DECLARE_FS("Ayanami/DFShadowTileCulling");
+            SDEF DFShadowFS                = DECLARE_FS("Ayanami/DFShadow");
+            SDEF TestDeferShadingFS        = DECLARE_FS("Ayanami/TestDeferShading");
         } Ayanami;
 
         IF_CONSTEXPR static struct
         {
+            SDEF FullScreenVS    = DECLARE_VS("Common/FullScreen");
             SDEF SinglePassHzbCS = DECLARE_CS("Common/SinglePassHiZ");
         } Common;
 

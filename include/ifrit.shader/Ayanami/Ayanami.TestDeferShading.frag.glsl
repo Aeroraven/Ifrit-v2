@@ -18,20 +18,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
 #version 450
+#extension GL_GOOGLE_include_directive : require
 
-
-layout(location = 0) in vec2 texCoord;
-
-layout(location = 0) out vec4 outColor;
-
+#include "Base.glsl"
 #include "Bindless.glsl"
 
-layout(push_constant) uniform PushConstant{
-    uint rayMarchResult;
-} pc;
+layout(location = 0) in vec2 texCoord;
+layout(location = 0) out vec4 outColor;
+
+layout(push_constant) uniform UPushConstant{
+    vec4 m_LightDir; // In WS
+    uint m_NormalSRV; // In VS
+    uint m_PerFrameId;
+} PushConst;
+
+RegisterUniform(BPerFrameData,{
+    PerFramePerViewData data;
+});
 
 
 void main(){
-    vec4 color = texture(GetSampler2D(pc.rayMarchResult), texCoord);
-    outColor = vec4(color.xyz, 1.0);
+    mat4 viewToWorld = GetResource(BPerFrameData, PushConst.m_PerFrameId).data.m_viewToWorld;
+    vec3 normal = texture(GetSampler2D(PushConst.m_NormalSRV), texCoord).xyz;
+    normal = normalize(normal * 2.0 - 1.0);
+    normal = normalize((viewToWorld * vec4(normal, 0.0)).xyz);
+
+    vec3 light = normalize(PushConst.m_LightDir.xyz);
+    float dotProduct = max(0.0, dot(normal, -light));
+
+    vec3 color = vec3(dotProduct, dotProduct, dotProduct);
+    outColor = vec4(color, 1.0);
 }

@@ -18,20 +18,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
 #version 450
+#extension GL_GOOGLE_include_directive : require
 
-
-layout(location = 0) in vec2 texCoord;
-
-layout(location = 0) out vec4 outColor;
-
+#include "Base.glsl"
 #include "Bindless.glsl"
 
-layout(push_constant) uniform PushConstant{
-    uint rayMarchResult;
-} pc;
-
+layout(location = 0) in vec2 inPosition;
+layout(location = 0) out vec2 texCoord;
 
 void main(){
-    vec4 color = texture(GetSampler2D(pc.rayMarchResult), texCoord);
-    outColor = vec4(color.xyz, 1.0);
+    gl_Position = vec4(inPosition - vec2(1.0), 0.0, 1.0);
+    texCoord = inPosition * 0.5 ;
 }

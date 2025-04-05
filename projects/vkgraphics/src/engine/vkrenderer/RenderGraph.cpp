@@ -318,6 +318,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_topology = topology;
     }
 
+    IFRIT_APIDECL void GraphicsPass::SetMsaaSamples(u32 samples) { m_MsaaSamples = samples; }
+
     IFRIT_APIDECL void GraphicsPass::setColorWrite(const std::vector<uint32_t>& write)
     {
         throw std::runtime_error("Deprecated");
@@ -384,6 +386,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
         ci.depthAttachmentFormat   = toVkFormat(m_renderTargetFormat.m_depthFormat);
         ci.pushConstSize           = m_pushConstSize;
+        ci.msaaSamples             = m_MsaaSamples;
 
         for (int i = 0; i < m_renderTargetFormat.m_colorFormats.size(); i++)
         {

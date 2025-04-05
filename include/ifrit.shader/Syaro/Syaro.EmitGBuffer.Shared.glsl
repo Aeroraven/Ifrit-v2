@@ -529,9 +529,16 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
         mat3 tbn = mat3(tangent,bitangent,normal);
 
         vec4 vNormal = texture(GetSampler2D(normalTexId), data.vpUV.xy);
-        vec2 vNormalRG = vNormal.rg * 2.0 - 1.0;
-        float vNormalZ = sqrt(1.0-min(1.0,vNormalRG.r*vNormalRG.r+vNormalRG.g*vNormalRG.g));
+        vec2 vNormalRG;
+        float vNormalZ;
 
+        if(vNormal.b == 0.0){
+            vNormalRG = vNormal.rg * 2.0 - 1.0;
+            vNormalZ = sqrt(1.0-min(1.0,vNormalRG.r*vNormalRG.r+vNormalRG.g*vNormalRG.g));
+        }else{
+            vNormalRG = vNormal.rg * 2.0 - 1.0;
+            vNormalZ = vNormal.b * 2.0 - 1.0;
+        }
         vec3 vNormalRGB = vec3(vNormalRG,vNormalZ);
 
         vec3 rNormal = tbn * vNormalRGB;
@@ -547,6 +554,12 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
         data.vpNormalVS = normalize(data.vpNormalVS);
 
         //data.vpNormalVS = normalize(vec3(1.0,0.0,-1.0));
+    }else{
+        mat4 localToWorld = GetResource(bLocalTransform, GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].transformRef).m_localToWorld;
+        mat4 worldToView = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_worldToView;
+        mat4 localToView = worldToView * localToWorld;
+        vec4 normalVS = localToView * vec4(normalLocal,0.0);
+        data.vpNormalVS = normalize(vec3(normalVS));
     }
 
     return data;
