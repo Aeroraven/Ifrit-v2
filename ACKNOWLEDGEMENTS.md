@@ -23,6 +23,9 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [gcem](https://github.com/kthohr/gcem)                       | Compile-time Math                | Apache 2.0           |
 | [spdlog](https://github.com/gabime/spdlog.git)               | Logging                          | MIT                  |
 | [fsr2](https://github.com/GPUOpen-Effects/FidelityFX-FSR2)   | Super Resolution                 | MIT                  |
+| [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) * | Texture Compression              | Apache 2.0           |
+
+*. License files can be obtained in submodule after you git clone this repository.
 
 
 

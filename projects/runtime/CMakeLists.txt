@@ -26,7 +26,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_library(ifrit.runtime SHARED ${IFRIT_CORELIB_SOURCE_FILES_CXX} ${IFRIT_CORELIB_SOURCE_FILES_C})
-target_link_libraries(ifrit.runtime ifrit.rhi ifrit.display ifrit.meshproclib ifrit.core ${FSR2_API_LIBRARIES})
+target_link_libraries(ifrit.runtime 
+	ifrit.rhi 
+	ifrit.display 
+	ifrit.meshproclib 
+	ifrit.core 
+	ifrit.imaging
+	${FSR2_API_LIBRARIES})
 target_compile_options(ifrit.runtime
 	PRIVATE 
 	$<$<CXX_COMPILER_ID:MSVC>:/bigobj> 

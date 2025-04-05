@@ -11,7 +11,7 @@ set(IFRIT_GLOBAL_CUDA_DIR_WINDOWS "C:/Program Files/NVIDIA GPU Computing Toolkit
 set(IFRIT_GLOBAL_INTEGRATED_BUILD_FLAG 1)
 set(IFRIT_GLOBAL_DISABLE_LLVM 1)
  
-# Find LLVM
+# llvm
 if (IFRIT_GLOBAL_DISABLE_LLVM)
     message(STATUS "[Ifrit/Deps] LLVM disabled. Using pre-defined paths.")
 else()
@@ -33,14 +33,23 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# ffx_fsr2_api_vk_x64 and ffx_fsr2_api_x64 dependencies
+# fsr2
 set(FSR2_API_LIBRARIES ffx_fsr2_api_vk_x64 ffx_fsr2_api_x64)
 
+# ktx
+set(KTX_FEATURE_TESTS OFF CACHE BOOL "Disable KTX feature tests" FORCE)
+set(KTX_FEATURE_TOOLS_CTS OFF CACHE BOOL "Disable KTX tests" FORCE)
+set(KTX_FEATURE_TOOLS OFF CACHE BOOL "Disable KTX tools" FORCE)
+
+# start building
 add_subdirectory(dependencies/glfw)
 add_subdirectory(dependencies/meshoptimizer)
 add_subdirectory(dependencies/gklib)
 add_subdirectory(dependencies/metis)
+add_subdirectory(dependencies/ktxsoftware)
+
 add_subdirectory(projects/core)
+add_subdirectory(projects/imaging)
 add_subdirectory(projects/display)
 add_subdirectory(projects/ircompile)
 add_subdirectory(projects/softgraphics)
@@ -53,8 +62,19 @@ add_subdirectory(projects/demo)
 
 add_dependencies(ifrit.meshproclib meshoptimizer metis)
 add_dependencies(ifrit.softrenderer ifrit.ircompile)
+add_dependencies(ifrit.imaging ktx)
 add_dependencies(ifrit.runtime ifrit.rhi ifrit.display ifrit.meshproclib ifrit.core ${FSR2_API_LIBRARIES})
-add_dependencies(ifrit.demo.syaro ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.runtime ifrit.rhi)
-add_dependencies(ifrit.demo.ayanami ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.runtime ifrit.rhi)
-add_dependencies(ifrit.demo.test ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.runtime ifrit.rhi)
-add_dependencies(ifrit.demo.memdiag ifrit.vkrenderer ifrit.meshproclib ifrit.softrenderer ifrit.display ifrit.runtime ifrit.rhi)
+
+set(DEMO_DEPENDENCIES 
+    ifrit.vkrenderer 
+    ifrit.meshproclib 
+    ifrit.softrenderer 
+    ifrit.display 
+    ifrit.runtime 
+    ifrit.rhi
+    ifrit.imaging
+)
+add_dependencies(ifrit.demo.syaro ${DEMO_DEPENDENCIES})
+add_dependencies(ifrit.demo.ayanami ${DEMO_DEPENDENCIES})
+add_dependencies(ifrit.demo.test ${DEMO_DEPENDENCIES})
+add_dependencies(ifrit.demo.memdiag ${DEMO_DEPENDENCIES})

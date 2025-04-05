@@ -74,6 +74,7 @@ namespace Ifrit::Graphics::Rhi
             if (m_descHandle.GetType() == RhiDescriptorHeapType::Invalid)
             {
                 iError("Invalid descriptor handle");
+                std::abort();
                 return ~0u;
             }
             return m_descHandle.GetId();

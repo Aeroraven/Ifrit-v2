@@ -388,28 +388,20 @@ namespace Ifrit::Runtime::Ayanami
         m_Resources->m_CommonSampler = rhi->CreateTrivialBilinearSampler(true);
 
         m_Resources->m_SceneCacheAlbdeoAtlas   = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_AlbedoAtlas",
-              m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8B8_UNORM,
-              RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT
-                  | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-              true);
+              m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
+              RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, false);
         m_Resources->m_SceneCacheNormalAtlas   = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_NormalAtlas",
               m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8_SNORM,
-              RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT
-                  | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-              true);
+              RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, false);
         m_Resources->m_SceneCacheEmissionAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_EmissionAtlas",
             m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8_UNORM,
-            RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT
-                | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            true);
+            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, false);
         m_Resources->m_SceneCacheSpecularAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_SpecularAtlas",
             m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8_UNORM,
-            RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT
-                | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            true);
+            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, false);
         m_Resources->m_SceneCacheRadianceAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadianceAtlas",
             m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8_UNORM,
-            RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT
+            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT
                 | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             true);
 
