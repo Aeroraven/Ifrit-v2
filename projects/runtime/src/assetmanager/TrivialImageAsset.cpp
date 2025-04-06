@@ -29,62 +29,83 @@ namespace Ifrit::Runtime
     Graphics::Rhi::RhiTextureRef ParseTex(std ::filesystem::path path, IApplication* app, const String& uuid)
     {
         // read image use stb
-        i32  width, height, channels;
-        u32  texSize;
-        u8*  data        = nullptr;
-        bool endsWithPng = path.extension() == ".png";
-        bool fromStb     = true;
-        auto defaultFmt  = Graphics::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM;
+        i32          width, height, channels;
+        u32          texSize;
+        u8*          dataRaw = nullptr;
+        RSizedBuffer data;
+        bool         endsWithPng = path.extension() == ".png";
+        bool         isNormalMap = path.string().ends_with("Normal.png");
+        auto         defaultFmt  = Graphics::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM;
         if (endsWithPng)
         {
             using namespace Ifrit::Imaging::Compress;
-            String cacheFile     = app->GetCacheDir() + "/asset.bc7." + uuid + ".cache";
-            bool   fileExists    = std::filesystem::exists(cacheFile);
-            bool   shouldGenAtsc = false;
+            String cacheFile = app->GetCacheDir() + "/asset.bc7." + uuid + ".cache";
+            if (isNormalMap)
+            {
+                cacheFile  = app->GetCacheDir() + "/asset.bc5." + uuid + ".cache";
+                defaultFmt = Graphics::Rhi::RhiImageFormat::RhiImgFmt_BC5_UNORM_BLOCK;
+            }
+            bool fileExists          = std::filesystem::exists(cacheFile);
+            bool shouldGenCompressed = false;
             if (!fileExists)
             {
-                shouldGenAtsc = true;
+                shouldGenCompressed = true;
             }
 
-            if (shouldGenAtsc)
+            if (shouldGenCompressed)
             {
-                iInfo("Compressing image to Bc7 format: {}", uuid);
+                iInfo("Compressing image to BCn format: {}", uuid);
                 // read png file
-                data = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
-                if (!data)
+                dataRaw = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
+                if (!dataRaw)
                 {
                     iError("Failed to load image: {}", path.string());
                     return nullptr;
                 }
-                // write atsc file
-                WriteTex2DToBc7File(
-                    data, width * height * 4, cacheFile, TextureFormat::RGBA8_UNORM, width, height, 1, 0);
-                iInfo("Compressed image to Bc7 format: {}", cacheFile);
-                stbi_image_free(data);
-                
+
+                if (isNormalMap)
+                {
+                    RSizedBuffer inputData(dataRaw, width * height * 4);
+                    RSizedBuffer normalRG;
+                    DiscardBAChannel(inputData, normalRG, width, height, 1, 4, sizeof(u8));
+                    WriteTex2DToBlockCompressedFile(
+                        normalRG, cacheFile, TextureFormat::RG8_UNORM, width, height, 1, CompressionAlgo::BC5);
+                    iInfo("Compressed image to BC5 format: {}", cacheFile);
+                }
+                else
+                {
+                    RSizedBuffer inputData(dataRaw, width * height * 4);
+                    WriteTex2DToBlockCompressedFile(
+                        inputData, cacheFile, TextureFormat::RGBA8_UNORM, width, height, 1, CompressionAlgo::BC7);
+                    iInfo("Compressed image to BC7 format: {}", cacheFile);
+                }
+                stbi_image_free(dataRaw);
             }
+
             defaultFmt = Graphics::Rhi::RhiImageFormat::RhiImgFmt_BC7_UNORM_BLOCK;
-            // read atsc file
+            if (isNormalMap)
+            {
+                defaultFmt = Graphics::Rhi::RhiImageFormat::RhiImgFmt_BC5_UNORM_BLOCK;
+            }
             TextureFormat fmt;
             u32           baseWidth, baseHeight, baseDepth;
-            // TODO: memory leaks here!!!
-            ReadBc7Tex2DFromFile((void**)&data, texSize, cacheFile, fmt, baseWidth, baseHeight, baseDepth);
-            texSize  = texSize;
+            ReadBlockCompressedTex2DFromFile(data, cacheFile, baseWidth, baseHeight, baseDepth);
+            texSize  = data.GetSize();
             height   = baseHeight;
             width    = baseWidth;
-            channels = 4;
-            fromStb  = false;
+            channels = (isNormalMap) ? 2 : 4;
         }
         else
         {
-            data = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
-            if (!data)
+            dataRaw = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
+            if (!dataRaw)
             {
                 iError("Failed to load image: {}", path.string());
                 return nullptr;
             }
             texSize = width * height * 4;
-            fromStb = true;
+            data.CopyFromRaw(dataRaw, texSize);
+            stbi_image_free(dataRaw);
         }
 
         auto rhi = app->GetRhi();
@@ -94,7 +115,7 @@ namespace Ifrit::Runtime
         auto buffer =
             rhi->CreateBuffer("Asset_Buf", texSize, Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
         buffer->MapMemory();
-        buffer->WriteBuffer(data, texSize, 0);
+        buffer->WriteBuffer(data.GetData(), texSize, 0);
         buffer->FlushBuffer();
         buffer->UnmapMemory();
 
@@ -119,16 +140,6 @@ namespace Ifrit::Runtime
             cmd->CopyBufferToImage(buffer.get(), tex.get(), { 0, 0, 1, 1 });
             imageBarrier(cmd, tex.get(), RhiResourceState::CopyDst, RhiResourceState::Common, { 0, 0, 1, 1 });
         });
-        // iInfo("Image loaded: {}", path.string());
-        if (!fromStb)
-        {
-            delete[] data;
-        }
-        else
-        {
-            stbi_image_free(data);
-        }
-
         return tex;
     }
 
