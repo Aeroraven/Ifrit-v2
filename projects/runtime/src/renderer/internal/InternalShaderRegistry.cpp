@@ -55,6 +55,7 @@ namespace Ifrit::Runtime::Internal
         REG_FRAGMENT(IST.Ayanami.DFShadowFS, "Ayanami/Ayanami.DFShadow");
         REG_FRAGMENT(IST.Ayanami.TestDeferShadingFS, "Ayanami/Ayanami.TestDeferShading");
         REG_COMPUTE(IST.Ayanami.DFRadianceInjectionCS, "Ayanami/Ayanami.DFRadianceInjection");
+        REG_COMPUTE(IST.Ayanami.ObjectGridCompositionCS, "Ayanami/Ayanami.ObjectGridComposition");
 
         // Common
         REG_VERTEX(IST.Common.FullScreenVS, "CommonPass/FullScreen");

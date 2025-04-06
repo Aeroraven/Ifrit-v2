@@ -67,6 +67,7 @@ namespace Ifrit::Runtime::Internal
             SDEF DFShadowFS                = DECLARE_FS("Ayanami/DFShadow");
             SDEF TestDeferShadingFS        = DECLARE_FS("Ayanami/TestDeferShading");
             SDEF DFRadianceInjectionCS     = DECLARE_CS("Ayanami/DFRadianceInjection");
+            SDEF ObjectGridCompositionCS   = DECLARE_CS("Ayanami/ObjectGridComposition");
         } Ayanami;
 
         IF_CONSTEXPR static struct

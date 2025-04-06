@@ -33,6 +33,8 @@ namespace Ifrit::Runtime::Ayanami
         using GPUTexture    = Graphics::Rhi::RhiTextureRef;
         using GPUSamplerRef = Graphics::Rhi::RhiSamplerRef;
         using GPUResId      = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUBuffer     = Graphics::Rhi::RhiBufferRef;
+
         Vector3f      m_worldBoundMin;
         Vector3f      m_worldBoundMax;
         u32           m_clipmapSize;
@@ -42,6 +44,8 @@ namespace Ifrit::Runtime::Ayanami
         GPUTexture    m_clipmapTexture;
         GPUSamplerRef m_clipmapSampler;
         Ref<GPUResId> m_clipmapSRV;
+
+        GPUBuffer     m_objectGridBuffer;
 
         AyanamiGlobalDFClipmap() {}
     };
@@ -65,7 +69,11 @@ namespace Ifrit::Runtime::Ayanami
 
         ComputePassNode& AddRayMarchPass(FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId,
             u32 outTextureId, Vector2u outTextureSize);
-        GPUTexture       GetClipmapVolume(u32 clipmapLevel);
+
+        ComputePassNode& AddObjectGridCompositionPass(
+            FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId, u32 numMeshes, u32 meshDFListId);
+
+        GPUTexture GetClipmapVolume(u32 clipmapLevel);
     };
 
 } // namespace Ifrit::Runtime::Ayanami

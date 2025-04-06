@@ -35,17 +35,22 @@ namespace Ifrit::Runtime::Ayanami::Config
     #define AYANAMI_DEFINE_FLOAT(x, y) const float x = y
 #endif
 
-// SDF expanding. This is used to expand the SDF volume to avoid artifacts in thin geometry.
-#define AYANAMI_ENABLE_SDF_EXPAND 1
+    // SDF expanding. This is used to expand the SDF volume to avoid artifacts in thin geometry.
+    AYANAMI_DEFINE_UINT(kAyanami_SDFExpand, 1);
+    AYANAMI_DEFINE_FLOAT(kAyanami_SDFExpandRatio, 0.1f);
 
-    // Constants for Ayanami
-    AYANAMI_DEFINE_FLOAT(kAyanamiSDFExpandRatio, 0.1f);
+    // Object grid constants. Represents the alternative to the voxel lighting datastructure.
+    AYANAMI_DEFINE_UINT(kAyanami_MaxObjectPerGridCell, 4);
+    AYANAMI_DEFINE_FLOAT(kAyanami_ObjectGridCellQueryInterpolationRange, 3.0f);
 
+    // Kernel Sizes
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFCompositeTileSize, 8);
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFRayMarchTileSize, 16);
 
     AYANAMI_DEFINE_UINT(kAyanamiRadianceInjectionObjectsPerBlock, 8);
     AYANAMI_DEFINE_UINT(kAyanamiRadianceInjectionCardSizePerBlock, 8);
+
+    AYANAMI_DEFINE_UINT(kAyanamiObjectGridTileSize, 4);
 
 #ifdef __cplusplus
 } // namespace Ifrit::Runtime::AYANAMI

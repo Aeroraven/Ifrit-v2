@@ -16,23 +16,22 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#pragma once
-#include "ifrit/core/base/IfritBase.h"
+#version 450
+#extension GL_GOOGLE_include_directive : require
 
-namespace Ifrit::Runtime::Ayanami
-{
-    struct AyanamiRenderConfig
-    {
-        u32  m_globalDFClipmapLevels     = 4;
-        u32  m_globalDFClipmapResolution = 256;   // 16MB per clipmap level
-        f32  m_globalDFBaseExtent        = 20.0f; // 2500.0 in the original code
+#include "Base.glsl"
+#include "Bindless.glsl"
+#include "Ayanami/Ayanami.SharedConst.h"
+#include "Ayanami/Ayanami.Shared.glsl"
 
-        u32  m_SurfaceCacheResolution       = 8192;
-        u32  m_RadiancePassMaxPerTileLights = 8;
+layout(
+    local_size_x = kAyanamiObjectGridTileSize, 
+    local_size_y = kAyanamiObjectGridTileSize, 
+    local_size_z = kAyanamiObjectGridTileSize 
+) in;
 
-        u32  m_VoxelExtentPerGlobalClipMap = 64; // object grids
-
-        bool m_DebugForceSurfaceCacheRegen = false;
-        bool m_DebugRunDFSS                = false;
-    };
-} // namespace Ifrit::Runtime::Ayanami
+// Almost no resources about this. So stuffs are all personal guess.
+// I cannot ensure this is correct. >_<
+void main(){
+    // TODO
+}

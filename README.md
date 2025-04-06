@@ -31,7 +31,7 @@ Some toys about real-time rendering. Currently, it contains:
 
 To visualize Syaro's LoD change, refer to `docs/img/syaro_lod.mkv`
 
-Check  **[`GALLERY.md`](./GALLERY.md)** for more picturess.
+Check  **[`GALLERY.md`](./GALLERY.md)** for more pictures.
 
 <br/><br/>
 

@@ -53,6 +53,13 @@ namespace Ifrit::Runtime::Ayanami
             m_TestClipMaps[i]->m_clipmapSampler = rhi->CreateTrivialBilinearSampler(false);
             m_TestClipMaps[i]->m_clipmapSRV     = rhi->RegisterCombinedImageSampler(
                 m_TestClipMaps[i]->m_clipmapTexture.get(), m_TestClipMaps[i]->m_clipmapSampler.get());
+
+            // Voxel Lighting Resources
+            u32 totalVoxels = config.m_VoxelExtentPerGlobalClipMap * config.m_VoxelExtentPerGlobalClipMap
+                * config.m_VoxelExtentPerGlobalClipMap;
+            m_TestClipMaps[i]->m_objectGridBuffer = rhi->CreateBuffer("Ayanami_GlobalDF_ObjectGrid",
+                totalVoxels * sizeof(u32) * Config::kAyanami_MaxObjectPerGridCell,
+                Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_StorageTexel, false, true);
         }
     }
 
@@ -118,6 +125,14 @@ namespace Ifrit::Runtime::Ayanami
             Vector3i{ DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize),
                 DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize), 1 },
             &pc, sizeof(RayMarchPc) / sizeof(u32));
+        return pass;
+    }
+
+    IFRIT_APIDECL ComputePassNode& AyanamiGlobalDF::AddObjectGridCompositionPass(
+        FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId, u32 numMeshes, u32 meshDFListId)
+    {
+        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.ObjectGridComposition",
+            Internal::kIntShaderTable.Ayanami.ObjectGridCompositionCS, Vector3i{ 1, 1, 1 }, nullptr, 0);
         return pass;
     }
 
