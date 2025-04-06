@@ -30,6 +30,6 @@ namespace Ifrit::Runtime::Ayanami
         u32  m_SurfaceCacheResolution       = 8192;
         u32  m_RadiancePassMaxPerTileLights = 8;
 
-        bool m_DebugForceSurfaceCacheRegen = true;
+        bool m_DebugForceSurfaceCacheRegen = false;
     };
 } // namespace Ifrit::Runtime::Ayanami

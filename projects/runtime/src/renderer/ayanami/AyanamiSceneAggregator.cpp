@@ -93,19 +93,22 @@ namespace Ifrit::Runtime::Ayanami
                     f32      z = (i & 4) ? bboxMax.z : bboxMin.z;
                     Vector4f v = MatMul(modelMat, Vector4f(x, y, z, 1.0f));
                     v          = v / v.w;
-                    minX       = std::min(minX, v.x);
-                    maxX       = std::max(maxX, v.x);
-                    minY       = std::min(minY, v.y);
-                    maxY       = std::max(maxY, v.y);
-                    minZ       = std::min(minZ, v.z);
-                    maxZ       = std::max(maxZ, v.z);
+                    // printf("v: %f %f %f %f\n", v.x, v.y, v.z, v.w);
+                    minX = std::min(minX, v.x);
+                    maxX = std::max(maxX, v.x);
+                    minY = std::min(minY, v.y);
+                    maxY = std::max(maxY, v.y);
+                    minZ = std::min(minZ, v.z);
+                    maxZ = std::max(maxZ, v.z);
                 }
             }
 
             using namespace Ifrit::Math;
-            Vector3f          bboxCenter = (bboxMax + bboxMin) * 0.5f;
-            Vector3f          bboxExtent = (bboxMax - bboxMin) * 0.5f;
-            Vector4f          bboxSphere = Vector4f(bboxCenter.x, bboxCenter.y, bboxCenter.z, Length(bboxExtent));
+            Vector3f center               = Vector3f((minX + maxX) * 0.5f, (minY + maxY) * 0.5f, (minZ + maxZ) * 0.5f);
+            Vector3f size                 = Vector3f(maxX - minX, maxY - minY, maxZ - minZ);
+            float    radius               = Length(size) * 0.5f;
+            m_sceneResources->m_BoundBall = Vector4f(center.x, center.y, center.z, radius);
+            // printf("BoundBall: %f %f %f %f\n", center.x, center.y, center.z, radius);
 
             // TODO: non-directional light
             AggregatedLights  lights;

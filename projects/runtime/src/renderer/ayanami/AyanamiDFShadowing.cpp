@@ -67,7 +67,7 @@ namespace Ifrit::Runtime::Ayanami
         if (!m_Private->m_ScatterOutputTex.get())
         {
             m_Private->m_ScatterOutputTex = m_Rhi->CreateTexture2DMsaa("ScatterOutputTex", tileSize, tileSize,
-                RhiImageFormat::RhiImgFmt_B8G8R8A8_SRGB, RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 8);
+                RhiImageFormat::RhiImgFmt_B8G8R8A8_SRGB, RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1);
             m_Private->m_RTColor          = m_Rhi->CreateRenderTarget(
                 m_Private->m_ScatterOutputTex.get(), { 0, 0, 1, 1 }, RhiRenderTargetLoadOp::Clear, 0, 0);
             m_Private->m_RTs = m_Rhi->CreateRenderTargets();
@@ -93,9 +93,15 @@ namespace Ifrit::Runtime::Ayanami
         Vector3f   up       = Vector3f(0.0f, 1.0f, 0.0f);
         Matrix4x4f lookAt   = LookAt(eye, center, up);
         Matrix4x4f proj     = OrthographicNegateY(sceneBound.w * 2, 1.0f, 0.01f, 0.01f + sceneBound.w * 2);
-        Matrix4x4f viewProj = MatMul(lookAt, proj);
+        Matrix4x4f viewProj = MatMul(proj, lookAt);
 
-        pc.m_VP               = viewProj;
+        if (sceneBound.w < 1e-4f)
+        {
+            iError("Scene bound is too small, please check the scene or the light direction.");
+            std::abort();
+        }
+
+        pc.m_VP               = Transpose(viewProj);
         pc.m_NumMeshDF        = totalMeshDfs;
         pc.m_MeshDFDescListId = meshDfList;
         pc.m_NumTilesWidth    = 64;
@@ -148,12 +154,12 @@ namespace Ifrit::Runtime::Ayanami
         Vector3f   up       = Vector3f(0.0f, 1.0f, 0.0f);
         Matrix4x4f lookAt   = LookAt(eye, center, up);
         Matrix4x4f proj     = OrthographicNegateY(sceneBound.w * 2, 1.0f, 0.01f, 0.01f + sceneBound.w * 2);
-        Matrix4x4f viewProj = MatMul(lookAt, proj);
+        Matrix4x4f viewProj = Transpose(MatMul(proj, lookAt));
 
-        pc.m_LightVP          = viewProj;
+        pc.m_LightVP          = (viewProj);
         pc.m_LightDir         = Vector4f(normDir.x, normDir.y, normDir.z, 0.0f);
         pc.m_TileDFAtomics    = m_Private->m_TileAtomicsBuf->GetDescId();
-        pc.m_TileDFList       = meshDfList;
+        pc.m_TileDFList       = m_Private->m_ScatterOutputBuf->GetDescId();
         pc.m_TotalDFCount     = totalMeshDfs;
         pc.m_TileSize         = tileSize;
         pc.m_PerFrameId       = perframe;

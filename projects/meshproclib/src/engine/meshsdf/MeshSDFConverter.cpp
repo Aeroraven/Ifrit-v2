@@ -509,7 +509,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
     }
 
     IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
-        u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method)
+        u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method, bool twoSided)
     {
         // TODO: this is a trivial implementation, that has worse performance O(NM), where N is the number of voxels and
         // M is the number of triangles, although AS approach is used. However, mesh df is generated offline. Better
@@ -562,7 +562,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
                 f32       lz     = std::lerp(data.bboxMin.z, data.bboxMax.z, z);
                 SVector3f p      = SVector3f(lx, ly, lz);
                 f32       dist   = GetSignedDistanceToMesh(data, p);
-                sdf.sdfData[el]  = dist;
+                sdf.sdfData[el]  = twoSided ? std::abs(dist) : dist;
             });
             sdf.bboxMin = Vector3f(data.bboxMin.x, data.bboxMin.y, data.bboxMin.z);
             sdf.bboxMax = Vector3f(data.bboxMax.x, data.bboxMax.y, data.bboxMax.z);
@@ -575,7 +575,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             std::uniform_real_distribution<f32> dis(0.0f, 1.0f);
 
             Vec<Vector3f>                       samples;
-            constexpr u32                       sqrtNumSamples = 7;
+            constexpr u32                       sqrtNumSamples = 9;
             constexpr u32                       numSamples     = sqrtNumSamples * sqrtNumSamples;
             samples.reserve(numSamples);
             for (u32 i = 0; i < numSamples; i++)
@@ -610,7 +610,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
                 f32       distSign = GetSignedDistanceToMeshRayTrace(data, p, samples);
                 f32       dist     = std::abs(GetSignedDistanceToMesh(data, p));
                 dist               = (distSign > 0.0f) ? dist : -dist;
-                sdf.sdfData[el]    = dist;
+                sdf.sdfData[el]    = twoSided ? std::abs(dist) : dist;
             });
             sdf.bboxMin = Vector3f(data.bboxMin.x, data.bboxMin.y, data.bboxMin.z);
             sdf.bboxMax = Vector3f(data.bboxMax.x, data.bboxMax.y, data.bboxMax.z);

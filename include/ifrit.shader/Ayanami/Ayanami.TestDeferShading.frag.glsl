@@ -30,6 +30,7 @@ layout(push_constant) uniform UPushConstant{
     vec4 m_LightDir; // In WS
     uint m_NormalSRV; // In VS
     uint m_PerFrameId;
+    uint m_ShadowMapSRV;
 } PushConst;
 
 RegisterUniform(BPerFrameData,{
@@ -40,12 +41,17 @@ RegisterUniform(BPerFrameData,{
 void main(){
     mat4 viewToWorld = GetResource(BPerFrameData, PushConst.m_PerFrameId).data.m_viewToWorld;
     vec3 normal = texture(GetSampler2D(PushConst.m_NormalSRV), texCoord).xyz;
+    if(normal.x == 0.0 && normal.y == 0.0 && normal.z == 0.0){
+        outColor = vec4(1.0, 1.0, 0.0, 1.0);
+        return;
+    }
     normal = normalize(normal * 2.0 - 1.0);
     normal = normalize((viewToWorld * vec4(normal, 0.0)).xyz);
 
+    float shadow = texture(GetSampler2D(PushConst.m_ShadowMapSRV), texCoord).r;
     vec3 light = normalize(PushConst.m_LightDir.xyz);
-    float dotProduct = max(0.0, dot(normal, -light));
+    float dotProduct = max(0.0, dot(normal, -light))* shadow;
 
-    vec3 color = vec3(dotProduct, dotProduct, dotProduct);
+    vec3 color = vec3(dotProduct, dotProduct, dotProduct)+ 0.1;
     outColor = vec4(color, 1.0);
 }

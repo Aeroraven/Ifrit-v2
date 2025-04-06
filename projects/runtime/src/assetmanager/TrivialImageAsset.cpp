@@ -109,11 +109,11 @@ namespace Ifrit::Runtime
         }
 
         auto rhi = app->GetRhi();
-        auto tex = rhi->CreateTexture2D(
-            "Asset_Img", width, height, defaultFmt, Graphics::Rhi::RHI_IMAGE_USAGE_TRANSFER_DST_BIT, false);
+        auto tex =
+            rhi->CreateTexture2D("", width, height, defaultFmt, Graphics::Rhi::RHI_IMAGE_USAGE_TRANSFER_DST_BIT, false);
         auto tq = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
         auto buffer =
-            rhi->CreateBuffer("Asset_Buf", texSize, Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
+            rhi->CreateBuffer("", texSize, Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
         buffer->MapMemory();
         buffer->WriteBuffer(data.GetData(), texSize, 0);
         buffer->FlushBuffer();

@@ -64,6 +64,11 @@ namespace Ifrit::Runtime
         RhiSamplerRef                           m_DeferShadingOutSampler = nullptr;
         Ref<ColorRT>                            m_DeferShadingOutRT      = nullptr;
         Ref<GPURT>                              m_DeferShadingOutRTs     = nullptr;
+
+        GPUTexture                              m_DfssOut          = nullptr;
+        Ref<GPUBindId>                          m_DfssOutSRVBindId = nullptr;
+        Ref<ColorRT>                            m_DfssOutRT        = nullptr;
+        Ref<GPURT>                              m_DfssOutRTs       = nullptr;
     };
 
     IFRIT_APIDECL void AyanamiRenderer::InitRenderer()
@@ -126,6 +131,21 @@ namespace Ifrit::Runtime
             m_resources->m_DeferShadingOutSRV     = rhi->RegisterCombinedImageSampler(
                 m_resources->m_DeferShadingOut.get(), m_resources->m_DeferShadingOutSampler.get());
         }
+
+        if (m_resources->m_DfssOut == nullptr)
+        {
+            m_resources->m_DfssOut =
+                rhi->CreateTexture2D("Ayanami_DFSSOut", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                    RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT, false);
+            m_resources->m_DfssOutRT = rhi->CreateRenderTarget(
+                m_resources->m_DfssOut.get(), { 0, 0, 1, 1 }, RhiRenderTargetLoadOp::Clear, 0, 0);
+            m_resources->m_DfssOutRTs = rhi->CreateRenderTargets();
+            m_resources->m_DfssOutRTs->SetColorAttachments({ m_resources->m_DfssOutRT.get() });
+            m_resources->m_DfssOutRTs->SetRenderArea({ 0, 0, width, height });
+
+            m_resources->m_DfssOutSRVBindId = rhi->RegisterCombinedImageSampler(
+                m_resources->m_DfssOut.get(), m_resources->m_DeferShadingOutSampler.get());
+        }
     }
 
     IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(
@@ -167,8 +187,14 @@ namespace Ifrit::Runtime
         auto& resDeferOut =
             fg.AddResource("DeferShadingOut").SetImportedResource(m_resources->m_DeferShadingOut.get(), { 0, 0, 1, 1 });
 
-        auto& c = fg.AddResource("GBufferNormal")
-                      .SetImportedResource(perframe.m_gbuffer.m_normal_smoothness.get(), { 0, 0, 1, 1 });
+        auto& resGNormal = fg.AddResource("GBufferNormal")
+                               .SetImportedResource(perframe.m_gbuffer.m_normal_smoothness.get(), { 0, 0, 1, 1 });
+
+        auto& resGDepth =
+            fg.AddResource("GBufferDepth")
+                .SetImportedResource(perframe.m_views[0].m_visibilityDepth_Combined.get(), { 0, 0, 1, 1 });
+
+        auto& resDfssOut = fg.AddResource("DfssOut").SetImportedResource(m_resources->m_DfssOut.get(), { 0, 0, 1, 1 });
 
         // Pass Global DF Generation
         if (!m_resources->m_inited)
@@ -233,6 +259,15 @@ namespace Ifrit::Runtime
                 .AddReadResource(resGlobalDFGen)
                 .AddWriteResource(resRaymarchOutput);
         }
+        // Pass DFSS
+        m_resources->m_DFLighting
+            ->DistanceFieldShadowRender(fg, m_resources->m_sceneAggregator->GetGatheredBufferId(),
+                m_resources->m_sceneAggregator->GetNumGatheredInstances(),
+                perframe.m_views[0].m_visibilityDepthIdSRV_Combined->GetActiveId(),
+                perframe.m_views[0].m_viewBufferId->GetActiveId(), m_resources->m_DfssOutRTs.get(), sceneBound,
+                sceneLight, 64, 2)
+            .AddWriteResource(resDfssOut)
+            .AddReadResource(resGDepth);
 
         // Pass Defered Shading
         {
@@ -241,16 +276,18 @@ namespace Ifrit::Runtime
                 Vector4f lightDir;
                 u32      normalSRV;
                 u32      perframeId;
+                u32      shadowMapSRV;
             } pc;
-            pc.normalSRV  = perframe.m_gbuffer.m_normal_smoothness_sampId->GetActiveId();
-            pc.perframeId = perframe.m_views[0].m_viewBufferId->GetActiveId();
-            auto l        = sceneLights.m_LightFronts[0];
-            pc.lightDir   = Vector4f{ l.x, l.y, l.z, 0.0f };
-
+            pc.normalSRV    = perframe.m_gbuffer.m_normal_smoothness_sampId->GetActiveId();
+            pc.perframeId   = perframe.m_views[0].m_viewBufferId->GetActiveId();
+            auto l          = sceneLights.m_LightFronts[0];
+            pc.lightDir     = Vector4f{ l.x, l.y, l.z, 0.0f };
+            pc.shadowMapSRV = m_resources->m_DfssOutSRVBindId->GetActiveId();
             FrameGraphUtils::AddPostProcessPass(fg, "Ayanami/DeferredShading",
                 Internal::kIntShaderTable.Ayanami.TestDeferShadingFS, m_resources->m_DeferShadingOutRTs.get(), &pc,
                 FrameGraphUtils::GetPushConstSize<DeferShadingPc>())
                 .AddWriteResource(resDeferOut)
+                .AddReadResource(resDfssOut)
                 .AddReadResource(resSurfaceCacheNormal);
         }
 

@@ -52,6 +52,6 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
     };
 
     IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
-        u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method);
+        u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method, bool twoSided);
 
 } // namespace Ifrit::MeshProcLib::MeshSDFProcess

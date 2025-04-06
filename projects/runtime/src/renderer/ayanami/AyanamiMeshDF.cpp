@@ -94,7 +94,7 @@ namespace Ifrit::Runtime::Ayanami
             {
                 iInfo("Building mesh distance field for {}", meshData->identifier);
                 ConvertMeshToSDF(meshDesc, sdf, cAyanamiMeshDFWidth, cAyanamiMeshDFWidth, cAyanamiMeshDFWidth,
-                    MeshProcLib::MeshSDFProcess::SDFGenerateMethod::RayTracing);
+                    MeshProcLib::MeshSDFProcess::SDFGenerateMethod::RayTracing, false);
 
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 if (shouldGenCachedDF)

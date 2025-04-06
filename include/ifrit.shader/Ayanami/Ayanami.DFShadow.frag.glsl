@@ -68,7 +68,6 @@ RegisterUniform(BPerFrameData,{
 });
 
 
-
 float RayMarchingForObject(uint meshDFId, vec3 rayOriginWS){
     MeshDFDesc desc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[meshDFId];
     MeshDFMeta meta = GetResource(BMeshDFMeta, desc.m_MdfMetaId).m_Data;
@@ -77,13 +76,16 @@ float RayMarchingForObject(uint meshDFId, vec3 rayOriginWS){
     uint sdfId = meta.sdfId;
     vec3 lb = meta.bboxMin.xyz;
     vec3 rt = meta.bboxMax.xyz;
+    vec3 extent = rt - lb;
+    float maxExtent = min(min(extent.x, extent.y), extent.z);
     vec3 rayDir = normalize(-PushConst.m_LightDir.xyz);
 
-    vec4 pO = vec4(rayOriginWS, 1.0);
+    float advance = 0.01;
+    vec4 pO = vec4(rayOriginWS + rayDir * advance, 1.0);
     pO = worldToLocal * pO;
     pO = pO / pO.w;
 
-    vec4 pD = vec4(rayOriginWS + rayDir, 1.0);
+    vec4 pD = vec4(rayOriginWS + rayDir * (1.0+advance), 1.0);
     pD = worldToLocal * pD;
     pD = pD / pD.w;
 
@@ -92,31 +94,38 @@ float RayMarchingForObject(uint meshDFId, vec3 rayOriginWS){
     vec3 nD = normalize(d);
 
     float t;
-    bool hit = ifrit_RayboxIntersection(o,d,lb,rt,t);
+    bool hit = ifrit_RayboxIntersection(o,nD,lb,rt,t);
     t = max(0.0,t);
-    vec3 hitp = o + d * t;
-    float bestT = 1e10;
+
+    vec3 hitp = o + nD * t;
     float retShadow = 1.0;
-    bool finalHit = false;
+    float selfBias = 0e-4*maxExtent;
+    float volBias = 1e-3*maxExtent;
     if(hit){
-        for(int i=0;i<400;i++){
+        for(int i=0;i<80;i++){
             vec3 uvw= (hitp - lb) / (rt - lb);
             uvw = clamp(uvw, 0.0, 1.0);
-            float sdf = texture(GetSampler3D(meta.sdfId), uvw).x-1.0;
-            if(abs(sdf) < 0.5){
-                finalHit = true;
-                float tval = length(hitp - o) / length(d);
-                if(tval < bestT){
-                    bestT = tval;
-                }
-                retShadow = 0.0;
-                break;
-            }
-            hitp += sdf * d;
-            retShadow = min(retShadow, PushConst.m_ShadowCoefK*abs(sdf)/length(hitp-o));
+            float sdf = texture(GetSampler3D(meta.sdfId), uvw).x-volBias;
+            t+= max(1e-4*maxExtent,abs(sdf)* 0.5) ;
+            hitp = o + nD * t;
+            
+            retShadow = min(retShadow, PushConst.m_ShadowCoefK*abs(sdf)/(abs(t)+1e-6)*100.0);
+            // if(abs(sdf)<2e-1){
+            //     break;
+            // }
         }
     }
     return retShadow;
+}
+
+float RayMarchingForAllGrid(uint gridId, vec3 rayOriginWS){
+    float shadowAttn = 1.0;
+    uint tileOffset = PushConst.m_TotalDFCount * gridId;
+    uint dfInTile = GetResource(BTileAtomics, PushConst.m_TileDFAtomics).m_Data[gridId];
+    for(uint i=0;i<PushConst.m_TotalDFCount;i++){
+        shadowAttn = min(shadowAttn,RayMarchingForObject(i, rayOriginWS));
+    }
+    return shadowAttn;
 }
 
 float RayMarchingForGrid(uint gridId, vec3 rayOriginWS){

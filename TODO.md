@@ -1,18 +1,28 @@
 # Ifrit-v2 /  TODO 
 
-### 2025.04
+### Pending
+
+- Ayanami: 非封闭网格(尤其是One-sided Mesh)的MDF存在较严重Artifact.
+  - 可行参考：https://advances.realtimerendering.com/s2022/SIGGRAPH2022-Advances-Lumen-Wright%20et%20al.pdf
+  - 可行缓解：(A) UDF + DF Expansion (B) Virtual Surface
+
+
+
+### Resolved
+
+#### 2025.04
 
 - VkGraphics: 修复AllocateCommandBuffer导致的内存泄漏 (250404)
   - 参考：https://developer.download.nvidia.com/gameworks/events/GDC2016/Vulkan_Essentials_GDC16_tlorach.pdf#page=25.00
 
 
-### 2025.03
+#### 2025.03
 
 - RHI: RHI资源引用计数和待删除队列 (250325)
 
 - Syaro: 修复错误的Cluster Group Culling (250324)
 
-### 2025.01
+#### 2025.01
 - Syaro: 缓解LoD切换时的顶点属性突变 (250115)
 
   | After Fixing                                       | Before Fixing                                      |

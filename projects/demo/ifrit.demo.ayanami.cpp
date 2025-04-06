@@ -74,9 +74,9 @@ public:
         if (inputSystem->IsKeyPressed(InputKeyCode::F))
             m_movNear += scale;
         if (inputSystem->IsKeyPressed(InputKeyCode::Z))
-            m_movRot += scale * 0.09f;
+            m_movRot += scale * 0.2f;
         if (inputSystem->IsKeyPressed(InputKeyCode::X))
-            m_movRot -= scale * 0.09f;
+            m_movRot -= scale * 0.2f;
 
         auto parent = this->GetParentUnsafe();
         auto camera = parent->GetComponent<Transform>();
@@ -95,6 +95,50 @@ public:
                 iInfo("Camera Position: {}, {}, {}", pos.x, pos.y, pos.z);
                 iInfo("Camera Rotation: {}, {}, {}", rot.x, rot.y, rot.z);
             }
+        }
+    }
+};
+
+class LightRotScript : public ActorBehavior
+{
+    using ActorBehavior::ActorBehavior;
+
+private:
+    f32          m_rotX     = 13.0f;
+    f32          m_rotY     = 2.0f;
+    f32          m_rotZ     = 0.0f;
+    f32          m_rotSpeed = 0.1f;
+
+    InputSystem* m_inputSystem;
+
+public:
+    void SetInputSystem(InputSystem* inputSystem) { m_inputSystem = inputSystem; }
+    void OnUpdate() override
+    {
+        auto parent = this->GetParentUnsafe();
+        auto light  = parent->GetComponent<Transform>();
+        if (light)
+        {
+            if (m_inputSystem->IsKeyPressed(InputKeyCode::Q))
+            {
+                auto pos = light->GetPosition();
+                auto rot = light->GetRotation();
+                iInfo("Light Position: {}, {}, {}", pos.x, pos.y, pos.z);
+                iInfo("Light Rotation: {}, {}, {}", rot.x, rot.y, rot.z);
+            }
+            if (m_inputSystem->IsKeyPressed(InputKeyCode::U))
+            {
+                m_rotZ += m_rotSpeed;
+            }
+            if (m_inputSystem->IsKeyPressed(InputKeyCode::J))
+            {
+                m_rotX += m_rotSpeed;
+            }
+            if (m_inputSystem->IsKeyPressed(InputKeyCode::I))
+            {
+                m_rotY += m_rotSpeed;
+            }
+            light->SetRotation({ m_rotX, m_rotY, m_rotZ });
         }
     }
 };
@@ -157,13 +201,18 @@ namespace Ifrit
             light->SetShadowMapResolution(2048);
             light->SetAffectPbrSky(true);
 
+            auto lightRotScript = lightGameObject->AddComponent<LightRotScript>();
+            lightRotScript->SetInputSystem(m_inputSystem.get());
+
             auto meshes = bistroObj->GetLoadedMesh(s.get());
 
             auto numMeshes = 0;
             for (auto& m : meshes)
             {
                 numMeshes++;
-                if (numMeshes < 100)
+                if (numMeshes < 630)
+                    continue;
+                if (numMeshes >= 639 && numMeshes < 750)
                     continue;
                 if (numMeshes > 812)
                     break;
@@ -194,7 +243,6 @@ namespace Ifrit
             renderTargets->SetRenderArea(scissor);
 
             m_sceneManager->SetActiveScene(s);
-            iInfo("Done");
         }
 
         void OnUpdate() override
@@ -204,6 +252,7 @@ namespace Ifrit
             auto renderComplete =
                 renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { sFrameStart.get() });
             renderer->EndFrame({ renderComplete.get() });
+            // std::abort();
         }
 
         void OnEnd() override {}
