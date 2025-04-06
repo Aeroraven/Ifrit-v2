@@ -53,5 +53,11 @@ namespace Ifrit::Runtime::Ayanami
         Graphics::Rhi::RhiTextureRef GetRadianceAtlas();
 
         u32                          GetRadianceSRVId();
+        u32                          GetDepthSRVId();
+        Graphics::Rhi::RhiBufferRef  GetCardDataBuffer();
+        u32                          GetCardResolution();
+        u32                          GetCardAtlasResolution();
+        u32                          GetWorldMatsId();
+        u32                          GetNumCards();
     };
 } // namespace Ifrit::Runtime::Ayanami

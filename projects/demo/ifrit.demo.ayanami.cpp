@@ -212,7 +212,7 @@ namespace Ifrit
                 numMeshes++;
                 if (numMeshes < 630)
                     continue;
-                if (numMeshes >= 639 && numMeshes < 750)
+                if (numMeshes >= 700 && numMeshes < 750)
                     continue;
                 if (numMeshes > 812)
                     break;

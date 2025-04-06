@@ -127,6 +127,7 @@ namespace Ifrit::Runtime
 
         PassNode& AddReadResource(const ResourceNode& res);
         PassNode& AddWriteResource(const ResourceNode& res);
+        PassNode& AddReadWriteResource(const ResourceNode& res);
 
         // Legacy Interface, should be removed in the future.
         PassNode& AddDependentResource(const ResourceNode& res);

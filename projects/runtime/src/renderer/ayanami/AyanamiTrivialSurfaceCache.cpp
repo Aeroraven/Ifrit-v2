@@ -376,6 +376,11 @@ namespace Ifrit::Runtime::Ayanami
                 cmd->SetPushConst(vioPass, 0, sizeof(PushConst), &pc);
                 cmd->DrawIndexed(card.m_IndexCounts, 1, 0, 0, 0);
             }
+
+            if (!m_Resources->m_ForceSurfaceCacheRegeneration)
+            {
+                m_Resources->m_MeshCardTasks.clear();
+            }
         });
         return pass;
     }
@@ -512,7 +517,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.perframeId         = perframe->m_views[0].m_viewBufferId->GetActiveId();
 
         UpdateSurfaceModelMatrix();
-        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami/RadianceCacheGenPass",
+        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.RadianceCacheGenPass",
             Internal::kIntShaderTable.Ayanami.DirectRadianceInjectionCS,
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, &pc, sizeof(PushConst) / sizeof(u32));
 
@@ -563,4 +568,19 @@ namespace Ifrit::Runtime::Ayanami
     {
         return m_Resources->m_SceneCacheRadianceSRV->GetActiveId();
     }
+    IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetDepthSRVId()
+    {
+        return m_Resources->m_SceneCacheDepthSRV->GetActiveId();
+    }
+    IFRIT_APIDECL Graphics::Rhi::RhiBufferRef AyanamiTrivialSurfaceCacheManager::GetCardDataBuffer()
+    {
+        return m_Resources->m_ObserveDeviceData;
+    }
+    IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetCardResolution() { return m_Resources->m_AtlasElementSize; }
+    IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetCardAtlasResolution() { return m_Resolution; }
+    IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetWorldMatsId()
+    {
+        return m_Resources->m_ObserveDeviceDataCoherentBindId->GetActiveId();
+    }
+    IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetNumCards() { return m_Resources->m_MeshCardIndex.load(); }
 } // namespace Ifrit::Runtime::Ayanami

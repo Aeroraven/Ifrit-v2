@@ -31,7 +31,7 @@ Some toys about real-time rendering. Currently, it contains:
 
 To visualize Syaro's LoD change, refer to `docs/img/syaro_lod.mkv`
 
-Check  **[`GALLERY.md`](./gallery.md)** for more picturess.
+Check  **[`GALLERY.md`](./GALLERY.md)** for more picturess.
 
 <br/><br/>
 
@@ -70,6 +70,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 - Lock-free Resource Pool 
   - Planning To Replace Legacy Allocators
 - Task System
+- Texture Compression Supports
 
 #### 1.2.1 Syaro: Virtual-Geometry-based Deferred Renderer
 
@@ -88,7 +89,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
   - Distance Field Generation*
     - Distance Field Shadow Culling
     - Distance Field Soft Shadow (DFSS)
-  - Surface Cache
+  - Surface Cache + Radiance Cache
 
 
 

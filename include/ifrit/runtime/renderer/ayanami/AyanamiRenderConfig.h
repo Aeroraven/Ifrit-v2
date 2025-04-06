@@ -31,5 +31,6 @@ namespace Ifrit::Runtime::Ayanami
         u32  m_RadiancePassMaxPerTileLights = 8;
 
         bool m_DebugForceSurfaceCacheRegen = false;
+        bool m_DebugRunDFSS                = false;
     };
 } // namespace Ifrit::Runtime::Ayanami

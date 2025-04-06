@@ -59,6 +59,12 @@ namespace Ifrit::Runtime
         outputResources.push_back(res.id);
         return *this;
     }
+    IFRIT_APIDECL PassNode& PassNode::AddReadWriteResource(const ResourceNode& res)
+    {
+        inputResources.push_back(res.id);
+        outputResources.push_back(res.id);
+        return *this;
+    }
     IFRIT_APIDECL PassNode& PassNode::AddDependentResource(const ResourceNode& res)
     {
         dependentResources.push_back(res.id);

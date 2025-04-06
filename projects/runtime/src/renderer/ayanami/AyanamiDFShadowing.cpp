@@ -19,6 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiDFShadowing.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
+
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::Math;
 
@@ -39,6 +41,18 @@ namespace Ifrit::Runtime::Ayanami
         ResourceNode*           m_ResScatterOutput    = nullptr;
         ResourceNode*           m_ResScatterOutputTex = nullptr;
     };
+
+    static Matrix4x4f GetLightViewProj(Vector4f sceneBound, Vector3f lightDir)
+    {
+        Vector3f   normDir  = Normalize(lightDir);
+        Vector3f   center   = Vector3f(sceneBound.x, sceneBound.y, sceneBound.z);
+        Vector3f   eye      = center - (normDir * sceneBound.w) - 0.01f;
+        Vector3f   up       = Vector3f(0.0f, 1.0f, 0.0f);
+        Matrix4x4f lookAt   = LookAt(eye, center, up);
+        Matrix4x4f proj     = OrthographicNegateY(sceneBound.w * 2, 1.0f, 0.01f, 0.01f + sceneBound.w * 2);
+        Matrix4x4f viewProj = MatMul(proj, lookAt);
+        return Transpose(viewProj);
+    }
 
     IFRIT_APIDECL GraphicsPassNode& AyanamiDistanceFieldLighting::DistanceFieldShadowTileScatter(
         FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs, Vector4f sceneBound, Vector3f lightDir,
@@ -87,21 +101,13 @@ namespace Ifrit::Runtime::Ayanami
 
         } pc;
 
-        Vector3f   normDir  = Normalize(lightDir);
-        Vector3f   center   = Vector3f(sceneBound.x, sceneBound.y, sceneBound.z);
-        Vector3f   eye      = center - (normDir * sceneBound.w) - 0.01f;
-        Vector3f   up       = Vector3f(0.0f, 1.0f, 0.0f);
-        Matrix4x4f lookAt   = LookAt(eye, center, up);
-        Matrix4x4f proj     = OrthographicNegateY(sceneBound.w * 2, 1.0f, 0.01f, 0.01f + sceneBound.w * 2);
-        Matrix4x4f viewProj = MatMul(proj, lookAt);
-
         if (sceneBound.w < 1e-4f)
         {
             iError("Scene bound is too small, please check the scene or the light direction.");
             std::abort();
         }
 
-        pc.m_VP               = Transpose(viewProj);
+        pc.m_VP               = GetLightViewProj(sceneBound, lightDir);
         pc.m_NumMeshDF        = totalMeshDfs;
         pc.m_MeshDFDescListId = meshDfList;
         pc.m_NumTilesWidth    = 64;
@@ -116,9 +122,9 @@ namespace Ifrit::Runtime::Ayanami
             &builder.AddResource("ayainternal_ScatterOutputTex")
                  .SetImportedResource(m_Private->m_ScatterOutputTex.get(), { 0, 0, 1, 1 });
 
-        FrameGraphUtils::AddClearUAVPass(builder, "Ayanami/DFShadowCullCleanup", *m_Private->m_ResAtomic, 0);
+        FrameGraphUtils::AddClearUAVPass(builder, "Ayanami.DFShadowCullCleanup", *m_Private->m_ResAtomic, 0);
 
-        auto& pass = FrameGraphUtils::AddMeshDrawPass(builder, "Ayanami/DFShadowTileCull",
+        auto& pass = FrameGraphUtils::AddMeshDrawPass(builder, "Ayanami.DFShadowTileCull",
             Internal::kIntShaderTable.Ayanami.DFShadowTileCullingMS,
             Internal::kIntShaderTable.Ayanami.DFShadowTileCullingFS, m_Private->m_RTs.get(),
             Vector3i{ (i32)totalMeshDfs, 1, 1 }, &pc, FrameGraphUtils::GetPushConstSize<PushConst>());
@@ -148,15 +154,8 @@ namespace Ifrit::Runtime::Ayanami
             f32        m_ShadowCoefK; // This controls DFSS softness.
         } pc;
 
-        Vector3f   normDir  = Normalize(lightDir);
-        Vector3f   center   = Vector3f(sceneBound.x, sceneBound.y, sceneBound.z);
-        Vector3f   eye      = center - (normDir * sceneBound.w) - 0.01f;
-        Vector3f   up       = Vector3f(0.0f, 1.0f, 0.0f);
-        Matrix4x4f lookAt   = LookAt(eye, center, up);
-        Matrix4x4f proj     = OrthographicNegateY(sceneBound.w * 2, 1.0f, 0.01f, 0.01f + sceneBound.w * 2);
-        Matrix4x4f viewProj = Transpose(MatMul(proj, lookAt));
-
-        pc.m_LightVP          = (viewProj);
+        auto normDir          = Normalize(lightDir);
+        pc.m_LightVP          = GetLightViewProj(sceneBound, lightDir);
         pc.m_LightDir         = Vector4f(normDir.x, normDir.y, normDir.z, 0.0f);
         pc.m_TileDFAtomics    = m_Private->m_TileAtomicsBuf->GetDescId();
         pc.m_TileDFList       = m_Private->m_ScatterOutputBuf->GetDescId();
@@ -167,8 +166,63 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MeshDFDescListId = meshDfList;
         pc.m_ShadowCoefK      = softness;
 
-        auto& pass = FrameGraphUtils::AddPostProcessPass(builder, "Ayanami/DFSS",
+        auto& pass = FrameGraphUtils::AddPostProcessPass(builder, "Ayanami.DFSS",
             Internal::kIntShaderTable.Ayanami.DFShadowFS, rts, &pc, FrameGraphUtils::GetPushConstSize<PushConst>());
+        pass.AddReadResource(*m_Private->m_ResAtomic).AddReadResource(*m_Private->m_ResScatterOutput);
+        return pass;
+    }
+
+    IFRIT_APIDECL ComputePassNode& AyanamiDistanceFieldLighting::AddDistanceFieldRadianceCachePass(
+        FrameGraphBuilder& builder, u32 meshDfList, u32 numTotalMdf, u32 depthAtlasSRV, Vector4f sceneBound,
+        Vector3f lightDir, u32 radianceUAV, u32 cardDataId, u32 cardRes, u32 cardAtlasRes, u32 numCards, u32 worldObjId,
+        u32 shadowCullTileSize, float softness)
+    {
+        struct PushConst
+        {
+            Matrix4x4f m_ShadowLightVP;
+            Vector4f   m_ShadowLightDir;
+
+            u32        m_TotalCards;
+            u32        m_CardResolution;
+            u32        m_CardAtlasResolution;
+
+            u32        m_RadianceUAV;
+            u32        m_CardDataId;
+            u32        m_DepthAtlasSRVId;
+
+            u32        m_WorldObjId;
+
+            u32        m_ShadowCullTileDFAtomics;
+            u32        m_ShadowCullTileDFList;
+            u32        m_ShadowCullTileSize;
+            u32        m_ShadowCullTotalDFs;
+            u32        m_MeshDFDescListId;
+            f32        m_ShadowCoefK;
+        } pc;
+
+        auto normDir                 = Normalize(lightDir);
+        pc.m_ShadowLightVP           = GetLightViewProj(sceneBound, lightDir);
+        pc.m_ShadowLightDir          = Vector4f(normDir.x, normDir.y, normDir.z, 0.0f);
+        pc.m_TotalCards              = numCards;
+        pc.m_CardResolution          = cardRes;
+        pc.m_CardAtlasResolution     = cardAtlasRes;
+        pc.m_RadianceUAV             = radianceUAV;
+        pc.m_CardDataId              = cardDataId;
+        pc.m_DepthAtlasSRVId         = depthAtlasSRV;
+        pc.m_WorldObjId              = worldObjId;
+        pc.m_ShadowCullTileDFAtomics = m_Private->m_TileAtomicsBuf->GetDescId();
+        pc.m_ShadowCullTileDFList    = m_Private->m_ScatterOutputBuf->GetDescId();
+        pc.m_ShadowCullTileSize      = shadowCullTileSize;
+        pc.m_ShadowCullTotalDFs      = numTotalMdf;
+        pc.m_MeshDFDescListId        = meshDfList;
+        pc.m_ShadowCoefK             = softness;
+
+        auto  cardGroups = DivRoundUp(numCards, Config::kAyanamiRadianceInjectionObjectsPerBlock);
+        auto  tileGroups = DivRoundUp(cardRes, Config::kAyanamiRadianceInjectionCardSizePerBlock);
+
+        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.DFRadianceCachePass",
+            Internal::kIntShaderTable.Ayanami.DFRadianceInjectionCS,
+            Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, &pc, sizeof(PushConst) / sizeof(u32));
         pass.AddReadResource(*m_Private->m_ResAtomic).AddReadResource(*m_Private->m_ResScatterOutput);
         return pass;
     }

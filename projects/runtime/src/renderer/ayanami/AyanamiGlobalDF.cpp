@@ -82,7 +82,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_NumMeshDF        = numMeshes;
         pc.m_MeshDFDescListId = meshDFListId;
 
-        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami/GlobalDFComposite",
+        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.GlobalDFComposite",
             Internal::kIntShaderTable.Ayanami.TrivialGlobalDFCompCS, Vector3i{ (i32)tgX, (i32)tgX, 1 }, &pc,
             sizeof(PushConst) / sizeof(u32));
         return pass;
@@ -113,7 +113,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_RtH    = outTextureSize.y;
         pc.m_RtW    = outTextureSize.x;
 
-        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami/GlobalDFRayMarch",
+        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.GlobalDFRayMarch",
             Internal::kIntShaderTable.Ayanami.GlobalDFRayMarchCS,
             Vector3i{ DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize),
                 DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize), 1 },

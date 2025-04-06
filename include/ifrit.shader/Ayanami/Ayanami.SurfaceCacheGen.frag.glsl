@@ -26,7 +26,7 @@ layout(location = 0) in vec2 TexCoord;
 layout(location = 1) in vec3 Normal;
 layout(location = 2) in vec4 Tangent;
 
-layout(location = 0) out vec3 OutColor;
+layout(location = 0) out vec4 OutColor;
 layout(location = 1) out vec2 OutNormal;
 
 layout(push_constant) uniform PushConstants {
@@ -54,6 +54,6 @@ void main(){
     vec3 normalLocal = normalize(TBN * normalMap);
     normalLocal = normalLocal * 0.5 + 0.5;
 
-    OutColor = albedo.xyz;
+    OutColor = albedo.xyzw;
     OutNormal = normalLocal.xy;
 }

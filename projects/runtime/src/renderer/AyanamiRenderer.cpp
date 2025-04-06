@@ -71,6 +71,23 @@ namespace Ifrit::Runtime
         Ref<GPURT>                              m_DfssOutRTs       = nullptr;
     };
 
+    static ComputePassNode& AddDFRadianceInjectPass(FrameGraphBuilder& builder, AyanamiRendererResources* res,
+        Vector4f sceneBound, Vector3f lightDir, u32 cullTileSize, float softness, ResourceNode& radianceAtlas,
+        ResourceNode& depthAtlas)
+    {
+
+        auto& pass =
+            res->m_DFLighting->AddDistanceFieldRadianceCachePass(builder, res->m_sceneAggregator->GetGatheredBufferId(),
+                res->m_sceneAggregator->GetNumGatheredInstances(), res->m_surfaceCacheManager->GetDepthSRVId(),
+                sceneBound, lightDir, res->m_surfaceCacheManager->GetRadianceAtlas()->GetDescId(),
+                res->m_surfaceCacheManager->GetCardDataBuffer()->GetDescId(),
+                res->m_surfaceCacheManager->GetCardResolution(), res->m_surfaceCacheManager->GetCardAtlasResolution(),
+                res->m_surfaceCacheManager->GetNumCards(), res->m_surfaceCacheManager->GetWorldMatsId(), cullTileSize,
+                softness);
+        pass.AddReadWriteResource(radianceAtlas).AddReadResource(depthAtlas);
+        return pass;
+    }
+
     IFRIT_APIDECL void AyanamiRenderer::InitRenderer()
     {
         m_resources                    = new AyanamiRendererResources();
@@ -173,27 +190,20 @@ namespace Ifrit::Runtime
         auto& resDirectRadiance =
             fg.AddResource("DirectRadiance")
                 .SetImportedResource(m_resources->m_surfaceCacheManager->GetRadianceAtlas().get(), { 0, 0, 1, 1 });
-
         auto& resRaymarchOutput =
             fg.AddResource("RaymarchOutput").SetImportedResource(m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
-
         auto& resGlobalDFGen =
             fg.AddResource("GlobalDFGen").SetImportedResource(m_globalDF->GetClipmapVolume(0).get(), { 0, 0, 1, 1 });
-
         auto& resRenderTargets =
             fg.AddResource("RenderTargets")
                 .SetImportedResource(renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
-
         auto& resDeferOut =
             fg.AddResource("DeferShadingOut").SetImportedResource(m_resources->m_DeferShadingOut.get(), { 0, 0, 1, 1 });
-
         auto& resGNormal = fg.AddResource("GBufferNormal")
                                .SetImportedResource(perframe.m_gbuffer.m_normal_smoothness.get(), { 0, 0, 1, 1 });
-
         auto& resGDepth =
             fg.AddResource("GBufferDepth")
                 .SetImportedResource(perframe.m_views[0].m_visibilityDepth_Combined.get(), { 0, 0, 1, 1 });
-
         auto& resDfssOut = fg.AddResource("DfssOut").SetImportedResource(m_resources->m_DfssOut.get(), { 0, 0, 1, 1 });
 
         // Pass Global DF Generation
@@ -206,14 +216,18 @@ namespace Ifrit::Runtime
                 .AddWriteResource(resGlobalDFGen);
         }
         // Pass Surface Cache + Radiance Injection (Camera View)
-        m_resources->m_surfaceCacheManager->UpdateSurfaceCacheAtlas(fg)
-            .AddWriteResource(resSurfaceCacheAlbedo)
-            .AddWriteResource(resSurfaceCacheNormal)
-            .AddWriteResource(resSuraceCacheDepth);
+        if (!m_resources->m_inited)
+        {
+            // todo: dynamic update
+            m_resources->m_surfaceCacheManager->UpdateSurfaceCacheAtlas(fg)
+                .AddWriteResource(resSurfaceCacheAlbedo)
+                .AddWriteResource(resSurfaceCacheNormal)
+                .AddWriteResource(resSuraceCacheDepth);
+        }
 
         m_resources->m_surfaceCacheManager->UpdateRadianceCacheAtlas(fg, scene).AddWriteResource(resDirectRadiance);
 
-        // Pass DF Culling (Incomplete)
+        // Pass DF Culling
         auto sceneBound  = m_resources->m_sceneAggregator->GetSceneBoundSphere();
         auto sceneLights = m_resources->m_sceneAggregator->GetAggregatedLights();
         if (sceneLights.m_LightFronts.size() != 1)
@@ -226,6 +240,10 @@ namespace Ifrit::Runtime
         m_resources->m_DFLighting->DistanceFieldShadowTileScatter(fg,
             m_resources->m_sceneAggregator->GetGatheredBufferId(),
             m_resources->m_sceneAggregator->GetNumGatheredInstances(), sceneBound, sceneLight, 64);
+
+        // Pass DF Radiance Injection (World Space)
+        AddDFRadianceInjectPass(
+            fg, m_resources, sceneBound, sceneLight, 64, 2.0f, resDirectRadiance, resSurfaceCacheNormal);
 
         // Pass RayMarch
         if (m_resources->m_debugShowMeshDF)
@@ -246,7 +264,7 @@ namespace Ifrit::Runtime
             pc.descId     = m_resources->m_sceneAggregator->GetGatheredBufferId();
             pc.perframeId = perframe.m_views[0].m_viewBufferId->GetActiveId();
 
-            FrameGraphUtils::AddComputePass(fg, "Ayanami/RaymarchPass", Internal::kIntShaderTable.Ayanami.RayMarchCS,
+            FrameGraphUtils::AddComputePass(fg, "Ayanami.RaymarchPass", Internal::kIntShaderTable.Ayanami.RayMarchCS,
                 Vector3i{ Math::DivRoundUp<i32>(rtWidth, 8), Math::DivRoundUp<i32>(rtHeight, 8), 1 }, &pc, 6)
                 .AddReadResource(resGlobalDFGen)
                 .AddWriteResource(resRaymarchOutput);
@@ -283,7 +301,7 @@ namespace Ifrit::Runtime
             auto l          = sceneLights.m_LightFronts[0];
             pc.lightDir     = Vector4f{ l.x, l.y, l.z, 0.0f };
             pc.shadowMapSRV = m_resources->m_DfssOutSRVBindId->GetActiveId();
-            FrameGraphUtils::AddPostProcessPass(fg, "Ayanami/DeferredShading",
+            FrameGraphUtils::AddPostProcessPass(fg, "Ayanami.DeferredShading",
                 Internal::kIntShaderTable.Ayanami.TestDeferShadingFS, m_resources->m_DeferShadingOutRTs.get(), &pc,
                 FrameGraphUtils::GetPushConstSize<DeferShadingPc>())
                 .AddWriteResource(resDeferOut)
@@ -297,8 +315,9 @@ namespace Ifrit::Runtime
             {
                 u32 raymarchOutput;
             } pc;
-            pc.raymarchOutput = m_resources->m_DeferShadingOutSRV->GetActiveId();
-            FrameGraphUtils::AddFullScreenQuadPass(fg, "Ayanami/DebugPass", Internal::kIntShaderTable.Ayanami.CopyVS,
+            // pc.raymarchOutput = m_resources->m_DeferShadingOutSRV->GetActiveId();
+            pc.raymarchOutput = m_resources->m_surfaceCacheManager->GetRadianceSRVId();
+            FrameGraphUtils::AddFullScreenQuadPass(fg, "Ayanami.DebugPass", Internal::kIntShaderTable.Ayanami.CopyVS,
                 Internal::kIntShaderTable.Ayanami.CopyFS, renderTargets, &pc, 1)
                 .AddReadResource(resRaymarchOutput)
                 .AddReadResource(resDirectRadiance)

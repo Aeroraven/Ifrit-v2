@@ -30,7 +30,7 @@ layout(
     local_size_y = kAyanamiRadianceInjectionCardSizePerBlock, 
     local_size_z = kAyanamiRadianceInjectionObjectsPerBlock 
     ) in;
-
+ 
 layout(push_constant)  uniform PushConstData{
     uint totalCards;
     uint cardResolution;
@@ -180,7 +180,7 @@ void main(){
     mat4 localToWorld = GetResource(BLocalTransform, transformId).m_LocalToWorld;
     mat4 atlasToWorld = localToWorld * atlasToLocal;
 
-    vec2 tileOffsetToNDCxy = (vec2(tileOffset)+0.5) / vec2(PushConst.cardAtlasResolution);
+    vec2 tileOffsetToNDCxy = (vec2(tileOffset)+0.5) / vec2(PushConst.cardResolution);
     tileOffsetToNDCxy = tileOffsetToNDCxy * 2.0 - 1.0;
 
     vec2 atlasSampleUV = (overallOffset+0.5) / vec2(PushConst.cardAtlasResolution);
@@ -207,7 +207,7 @@ void main(){
     float shadowCoverage = 0.0;
     vec2 shadowVisibilityAndCoverage = GlobalShadowVisibility(worldPos.xyz, viewPos.xyz);
     shadowVisibility = shadowVisibilityAndCoverage.x;
-    shadowCoverage = shadowVisibilityAndCoverage.y+0.5;
+    shadowCoverage = shadowVisibilityAndCoverage.y;
 
     imageStore(GetUAVImage2DR32F(PushConst.radianceOutId), ivec2(overallOffset), vec4(shadowVisibility, shadowCoverage, 0.0, 1.0));
 }
