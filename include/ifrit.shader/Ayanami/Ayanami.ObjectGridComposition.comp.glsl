@@ -146,7 +146,7 @@ void main(){
     uint CellLoc = ifrit_ToCellId(CellId, uvec3(PushConst.m_VoxelsPerClipMapWidth));
     GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellLoc] = uvec4(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF);
     barrier();
-    for(uint T=0; T<1; T++){
+    for(uint T=0; T<NumCullingPasses; T++){
 
         if(ifrit_IsFirstLane()){
             LocalSharedCullResultCount = 0;

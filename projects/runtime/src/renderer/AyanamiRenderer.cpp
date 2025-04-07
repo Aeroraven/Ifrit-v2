@@ -190,6 +190,11 @@ namespace Ifrit::Runtime
         auto& resDirectRadiance =
             fg.AddResource("DirectRadiance")
                 .SetImportedResource(m_resources->m_surfaceCacheManager->GetRadianceAtlas().get(), { 0, 0, 1, 1 });
+        auto& resTracedRadiance =
+            fg.AddResource("TracedRadiance")
+                .SetImportedResource(
+                    m_resources->m_surfaceCacheManager->GetTracedRadianceAtlas().get(), { 0, 0, 1, 1 });
+
         auto& resRaymarchOutput =
             fg.AddResource("RaymarchOutput").SetImportedResource(m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
         auto& resGlobalDFGen =
@@ -248,6 +253,16 @@ namespace Ifrit::Runtime
         // Pass Voxel Construction (Object Grids)
         m_globalDF->AddObjectGridCompositionPass(fg, 0, m_resources->m_sceneAggregator->GetNumGatheredInstances(),
             m_resources->m_sceneAggregator->GetGatheredBufferId());
+
+        // Pass Indirect Radiance
+        auto globalDFSrvId = m_globalDF->GetClipmapVolumeSRV(0);
+        m_resources->m_surfaceCacheManager
+            ->UpdateIndirectRadianceCacheAtlas(
+                fg, scene, globalDFSrvId, m_resources->m_sceneAggregator->GetGatheredBufferId())
+            .AddWriteResource(resTracedRadiance)
+            .AddReadResource(resGlobalDFGen)
+            .AddReadResource(resSurfaceCacheNormal)
+            .AddReadResource(resSuraceCacheDepth);
 
         // Pass RayMarch
         if (m_resources->m_debugShowMeshDF)

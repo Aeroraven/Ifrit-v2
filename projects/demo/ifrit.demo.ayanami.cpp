@@ -24,7 +24,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/LinalgOps.h"
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/Runtime.h"
-#include "ifrit/display/presentation/window/GLFWWindowProvider.h"
 #include <numbers>
 #include <thread>
 

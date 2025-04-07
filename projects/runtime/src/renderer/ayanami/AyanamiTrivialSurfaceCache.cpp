@@ -96,6 +96,7 @@ namespace Ifrit::Runtime::Ayanami
         RhiTextureRef                       m_SceneCacheSpecularAtlas;
         RhiTextureRef                       m_SceneCacheTemporaryDepth;
         RhiTextureRef                       m_SceneCacheRadianceAtlas;
+        RhiTextureRef                       m_SceneCacheIndirrectRadianceAtlas;
 
         // This marks whether a texel (thread group) on surface cache should use
         // offline shadow map or not.
@@ -103,6 +104,7 @@ namespace Ifrit::Runtime::Ayanami
 
         Ref<GPUBindId>                      m_SceneCacheDepthSRV;
         Ref<GPUBindId>                      m_SceneCacheRadianceSRV;
+        Ref<GPUBindId>                      m_SceneCacheNormalSRV;
 
         Atomic<u32>                         m_MeshCardIndex = 0;
 
@@ -409,6 +411,12 @@ namespace Ifrit::Runtime::Ayanami
             RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT
                 | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             true);
+        m_Resources->m_SceneCacheIndirrectRadianceAtlas =
+            rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_IndirectRadianceAtlas", m_Resolution, m_Resolution,
+                RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
+                RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT
+                    | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                true);
 
         // A depth buffer is required for the surface cache pass
         m_Resources->m_SceneCacheTemporaryDepth =
@@ -420,6 +428,9 @@ namespace Ifrit::Runtime::Ayanami
 
         m_Resources->m_SceneCacheRadianceSRV = rhi->RegisterCombinedImageSampler(
             m_Resources->m_SceneCacheRadianceAtlas.get(), m_Resources->m_CommonSampler.get());
+
+        m_Resources->m_SceneCacheNormalSRV = rhi->RegisterCombinedImageSampler(
+            m_Resources->m_SceneCacheNormalAtlas.get(), m_Resources->m_CommonSampler.get());
 
         auto maxAtlasSlots =
             m_Resolution * m_Resolution / m_Resources->m_AtlasElementSize / m_Resources->m_AtlasElementSize;
@@ -524,6 +535,43 @@ namespace Ifrit::Runtime::Ayanami
         return pass;
     }
 
+    IFRIT_APIDECL ComputePassNode& AyanamiTrivialSurfaceCacheManager::UpdateIndirectRadianceCacheAtlas(
+        FrameGraphBuilder& builder, Scene* scene, u32 globalDFSRV, u32 meshDFList)
+    {
+        struct PushConst
+        {
+            Vector2f m_TraceCoordJitter;
+            Vector2f m_ProbeCenterJitter;
+            u32      m_TraceRadianceAtlasUAV;
+            u32      m_GlobalDFSRV;
+            u32      m_CardResolution;
+            u32      m_CardAtlasResolution;
+            u32      m_CardDepthAtlasSRV;
+            u32      m_CardNormalAtlasSRV;
+            u32      m_AllCardObjDataId;
+            u32      m_AllMeshDFDataId;
+            u32      m_NumTotalCards;
+        } pc;
+
+        pc.m_TraceCoordJitter      = Vector2f(0.0f, 0.0f);
+        pc.m_ProbeCenterJitter     = Vector2f(0.0f, 0.0f);
+        pc.m_TraceRadianceAtlasUAV = m_Resources->m_SceneCacheIndirrectRadianceAtlas->GetDescId();
+        pc.m_GlobalDFSRV           = globalDFSRV;
+        pc.m_CardResolution        = m_Resources->m_AtlasElementSize;
+        pc.m_CardAtlasResolution   = m_Resolution;
+        pc.m_CardDepthAtlasSRV     = m_Resources->m_SceneCacheDepthSRV->GetActiveId();
+        pc.m_CardNormalAtlasSRV    = m_Resources->m_SceneCacheNormalSRV->GetActiveId();
+        pc.m_AllCardObjDataId      = m_Resources->m_ObserveDeviceData->GetDescId();
+        pc.m_AllMeshDFDataId       = meshDFList;
+        pc.m_NumTotalCards         = m_Resources->m_MeshCardIndex.load();
+
+        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.RadiosityGenPass",
+            Internal::kIntShaderTable.Ayanami.RadiosityTraceCS, Vector3i{ 0, 1, 1 }, &pc,
+            FrameGraphUtils::GetPushConstSize<PushConst>());
+
+        return pass;
+    }
+
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateSurfaceModelMatrix()
     {
         for (int i = 0; i < m_Resources->m_MeshCardIndex; i++)
@@ -562,6 +610,11 @@ namespace Ifrit::Runtime::Ayanami
     IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetRadianceAtlas()
     {
         return m_Resources->m_SceneCacheRadianceAtlas;
+    }
+
+    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetTracedRadianceAtlas()
+    {
+        return m_Resources->m_SceneCacheIndirrectRadianceAtlas;
     }
 
     IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetRadianceSRVId()

@@ -56,6 +56,8 @@ struct PerObjectData {
   uint materialId;
 };
 
+const float kPI = 3.14159265359;
+
 float ifrit_recoverViewSpaceDepth(float screenZ, float nearPlane, float farPlane){
   // Near->0 (Scr), Far->1 (Scr)
   return (2.0 * nearPlane * farPlane) / ( - screenZ * (farPlane - nearPlane) + (farPlane + nearPlane));
@@ -144,4 +146,29 @@ float ifrit_AabbSquaredDistance(vec3 center1, vec3 extent1, vec3 center2, vec3 e
     return dot(d,d);
 }
 
-const float kPI = 3.14159265359;
+vec4 ifrit_SampleCosineHemisphereWithPDF(vec2 uv){
+    float phi = uv.x * 2.0 * kPI;
+    float cosTheta = sqrt(uv.y);
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    vec4 ret;
+    ret.x = cos(phi) * sinTheta;
+    ret.y = sin(phi) * sinTheta;
+    ret.z = cosTheta;
+    ret.w = cosTheta / kPI; // PDF
+    return ret;
+}
+
+mat3 ifrit_FrisvadONB(vec3 normal){
+    // https://graphics.pixar.com/library/OrthonormalB/paper.pdf
+    if(normal.z<-0.99999){
+        vec3 t1 = vec3(0.0,-1.0,0.0);
+        vec3 b1 = vec3(-1.0,0.0,0.0);
+        return mat3(t1,b1,normal);
+    }else{
+        float a = 1.0/(1.0+normal.z);
+        float b = -normal.x*normal.y*a;
+        vec3 t1 = vec3(1.0-normal.x*normal.x*a, b, -normal.x);
+        vec3 b1 = vec3(b, 1.0-normal.y*normal.y*a, -normal.y);
+        return mat3(t1,b1,normal);
+    }
+}

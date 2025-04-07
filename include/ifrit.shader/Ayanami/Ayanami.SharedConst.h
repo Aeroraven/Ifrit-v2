@@ -45,6 +45,14 @@ namespace Ifrit::Runtime::Ayanami::Config
     // might affect shared memory x_x! & 1 for atomic
     AYANAMI_DEFINE_UINT(kAyanami_ObjectGridCellMaxCullObjPerPass, 511);
 
+    // Radiosity processing
+    AYANAMI_DEFINE_UINT(kAyanami_CardTileWidth, 8);
+    AYANAMI_DEFINE_UINT(kAyanami_RadiosityProbesPerCardTileWidth, 2);
+    AYANAMI_DEFINE_UINT(kAyanami_RadiosityTracesPerCardTile, 64);
+    AYANAMI_DEFINE_UINT(kAyanami_RadiosityTracesPerProbe, 16);
+    AYANAMI_DEFINE_UINT(kAyanami_RadiosityTracesPerProbeSqrt, 4);
+    AYANAMI_DEFINE_UINT(kAyanami_RadiosityProbHemiRes, 4);
+
     // Kernel Sizes
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFCompositeTileSize, 8);
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFRayMarchTileSize, 16);
@@ -53,6 +61,7 @@ namespace Ifrit::Runtime::Ayanami::Config
     AYANAMI_DEFINE_UINT(kAyanamiRadianceInjectionCardSizePerBlock, 8);
 
     AYANAMI_DEFINE_UINT(kAyanamiObjectGridTileSize, 4);
+    AYANAMI_DEFINE_UINT(kAyanamiRadiosityTraceKernelSize, kAyanami_RadiosityTracesPerCardTile);
 
 #ifdef __cplusplus
 } // namespace Ifrit::Runtime::AYANAMI

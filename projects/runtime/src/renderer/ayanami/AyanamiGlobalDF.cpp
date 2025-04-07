@@ -160,4 +160,9 @@ namespace Ifrit::Runtime::Ayanami
         return m_TestClipMaps[clipmapLevel]->m_clipmapTexture;
     }
 
+    IFRIT_APIDECL u32 AyanamiGlobalDF::GetClipmapVolumeSRV(u32 clipmapLevel)
+    {
+        return m_TestClipMaps[clipmapLevel]->m_clipmapSRV->GetActiveId();
+    }
+
 } // namespace Ifrit::Runtime::Ayanami

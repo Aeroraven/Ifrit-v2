@@ -74,6 +74,8 @@ namespace Ifrit::Runtime::Ayanami
             FrameGraphBuilder& builder, u32 clipmapLevel, u32 numMeshes, u32 meshDFListId);
 
         GPUTexture GetClipmapVolume(u32 clipmapLevel);
+
+        u32        GetClipmapVolumeSRV(u32 clipmapLevel);
     };
 
 } // namespace Ifrit::Runtime::Ayanami

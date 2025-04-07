@@ -42,15 +42,19 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiTrivialSurfaceCacheManager(const AyanamiRenderConfig& config, IApplication* app);
         ~AyanamiTrivialSurfaceCacheManager();
 
-        void                         UpdateSceneCache(Scene* scene);
-        void                         PrepareImmutableResource();
-        GraphicsPassNode&            UpdateSurfaceCacheAtlas(FrameGraphBuilder& builder);
-        ComputePassNode&             UpdateRadianceCacheAtlas(FrameGraphBuilder& builder, Scene* scene);
-        void                         UpdateSurfaceModelMatrix();
+        void              UpdateSceneCache(Scene* scene);
+        void              PrepareImmutableResource();
+        GraphicsPassNode& UpdateSurfaceCacheAtlas(FrameGraphBuilder& builder);
+        ComputePassNode&  UpdateRadianceCacheAtlas(FrameGraphBuilder& builder, Scene* scene);
+        void              UpdateSurfaceModelMatrix();
+        ComputePassNode&  UpdateIndirectRadianceCacheAtlas(
+             FrameGraphBuilder& builder, Scene* scene, u32 globalDFSRV, u32 meshDFList);
+
         Graphics::Rhi::RhiTextureRef GetAlbedoAtlas();
         Graphics::Rhi::RhiTextureRef GetNormalAtlas();
         Graphics::Rhi::RhiTextureRef GetDepthAtlas();
         Graphics::Rhi::RhiTextureRef GetRadianceAtlas();
+        Graphics::Rhi::RhiTextureRef GetTracedRadianceAtlas();
 
         u32                          GetRadianceSRVId();
         u32                          GetDepthSRVId();
