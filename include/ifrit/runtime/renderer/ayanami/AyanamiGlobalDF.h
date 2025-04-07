@@ -46,7 +46,7 @@ namespace Ifrit::Runtime::Ayanami
         Ref<GPUResId> m_clipmapSRV;
 
         GPUBuffer     m_objectGridBuffer;
-
+        u32           m_VoxelsPerWidth;
         AyanamiGlobalDFClipmap() {}
     };
 
@@ -71,7 +71,7 @@ namespace Ifrit::Runtime::Ayanami
             u32 outTextureId, Vector2u outTextureSize);
 
         ComputePassNode& AddObjectGridCompositionPass(
-            FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId, u32 numMeshes, u32 meshDFListId);
+            FrameGraphBuilder& builder, u32 clipmapLevel, u32 numMeshes, u32 meshDFListId);
 
         GPUTexture GetClipmapVolume(u32 clipmapLevel);
     };

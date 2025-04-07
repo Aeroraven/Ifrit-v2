@@ -57,6 +57,7 @@ namespace Ifrit::Runtime::Ayanami
             // Voxel Lighting Resources
             u32 totalVoxels = config.m_VoxelExtentPerGlobalClipMap * config.m_VoxelExtentPerGlobalClipMap
                 * config.m_VoxelExtentPerGlobalClipMap;
+            m_TestClipMaps[i]->m_VoxelsPerWidth   = config.m_VoxelExtentPerGlobalClipMap;
             m_TestClipMaps[i]->m_objectGridBuffer = rhi->CreateBuffer("Ayanami_GlobalDF_ObjectGrid",
                 totalVoxels * sizeof(u32) * Config::kAyanami_MaxObjectPerGridCell,
                 Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO, false, true);
@@ -129,10 +130,28 @@ namespace Ifrit::Runtime::Ayanami
     }
 
     IFRIT_APIDECL ComputePassNode& AyanamiGlobalDF::AddObjectGridCompositionPass(
-        FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId, u32 numMeshes, u32 meshDFListId)
+        FrameGraphBuilder& builder, u32 clipmapLevel, u32 numMeshes, u32 meshDFListId)
     {
+        struct PushConst
+        {
+            u32 m_NumTotalMeshDF;
+            u32 m_MeshDFDescListId;
+            f32 m_ClipMapRadius;
+            u32 m_VoxelsPerClipMapWidth;
+            u32 m_CellDataId;
+        } pc;
+
+        pc.m_NumTotalMeshDF        = numMeshes;
+        pc.m_MeshDFDescListId      = meshDFListId;
+        pc.m_ClipMapRadius         = m_TestClipMaps[clipmapLevel]->m_worldBoundMax.z;
+        pc.m_VoxelsPerClipMapWidth = m_TestClipMaps[clipmapLevel]->m_VoxelsPerWidth;
+        pc.m_CellDataId            = m_TestClipMaps[clipmapLevel]->m_objectGridBuffer->GetDescId();
+
+        u32 groupsX =
+            DivRoundUp<u32, u32>(m_TestClipMaps[clipmapLevel]->m_VoxelsPerWidth, Config::kAyanamiObjectGridTileSize);
         auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.ObjectGridComposition",
-            Internal::kIntShaderTable.Ayanami.ObjectGridCompositionCS, Vector3i{ 1, 1, 1 }, nullptr, 0);
+            Internal::kIntShaderTable.Ayanami.ObjectGridCompositionCS,
+            Vector3i{ (int)groupsX, (int)groupsX, (int)groupsX }, &pc, FrameGraphUtils::GetPushConstSize<PushConst>());
         return pass;
     }
 

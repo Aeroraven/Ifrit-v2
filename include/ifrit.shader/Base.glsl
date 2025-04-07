@@ -131,5 +131,17 @@ bool ifrit_RayboxIntersection(vec3 o,vec3 d,vec3 lb,vec3 rt, out float t){
     return true;
 }
 
+uint ifrit_DivRoundUp(uint a, uint b){
+    return (a + b - 1) / b;
+}
+
+uint ifrit_ToCellId(uvec3 tileId, uvec3 worldSize){
+    return tileId.z*worldSize.x*worldSize.y+(tileId.z+tileId.y)*worldSize.x+tileId.x;
+}
+
+float ifrit_AabbSquaredDistance(vec3 center1, vec3 extent1, vec3 center2, vec3 extent2){
+    vec3 d = max(abs(center1 - center2) - (extent1 + extent2),vec3(0.0));
+    return dot(d,d);
+}
 
 const float kPI = 3.14159265359;

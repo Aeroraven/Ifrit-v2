@@ -42,6 +42,8 @@ namespace Ifrit::Runtime::Ayanami::Config
     // Object grid constants. Represents the alternative to the voxel lighting datastructure.
     AYANAMI_DEFINE_UINT(kAyanami_MaxObjectPerGridCell, 4);
     AYANAMI_DEFINE_FLOAT(kAyanami_ObjectGridCellQueryInterpolationRange, 3.0f);
+    // might affect shared memory x_x! & 1 for atomic
+    AYANAMI_DEFINE_UINT(kAyanami_ObjectGridCellMaxCullObjPerPass, 511);
 
     // Kernel Sizes
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFCompositeTileSize, 8);

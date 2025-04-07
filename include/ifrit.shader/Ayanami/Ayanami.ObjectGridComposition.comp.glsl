@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Bindless.glsl"
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
+#include "ComputeUtils.glsl"
 
 layout(
     local_size_x = kAyanamiObjectGridTileSize, 
@@ -30,8 +31,178 @@ layout(
     local_size_z = kAyanamiObjectGridTileSize 
 ) in;
 
+layout(push_constant) uniform UPushConstant{
+    uint m_NumTotalMeshDF;
+    uint m_MeshDFDescListId;
+    float m_ClipMapRadius;
+    uint m_VoxelsPerClipMapWidth;
+    uint m_CellDataId;
+} PushConst;
+
+RegisterStorage(BMeshDFDesc,{
+    MeshDFDesc m_Data[];
+});
+
+RegisterStorage(BMeshDFMeta,{
+    MeshDFMeta m_Data;
+});
+
+RegisterUniform(BLocalTransform,{
+    mat4 m_LocalToWorld;
+    mat4 m_WorldToLocal;
+    float m_MaxScale;
+});
+
+RegisterStorage(BObjectCell,{
+    uvec4 m_Cell[];
+});
+
+shared uint LocalSharedCullResult[kAyanami_ObjectGridCellMaxCullObjPerPass];
+shared uint LocalSharedCullResultCount;
+
+float ClosestDistanceToSDF(MeshDFMeta MdfMeta, vec3 QueryPos, vec3 MeshScale, mat4 WorldToLocal){
+    uint SDFId = MdfMeta.sdfId;
+    float MeshMaxScale = max(MeshScale.x, max(MeshScale.y, MeshScale.z));
+
+    vec4 CellLocalCoord = WorldToLocal*vec4(QueryPos, 1.0);
+    vec3 CellLocalCoord3 = CellLocalCoord.xyz/CellLocalCoord.w;
+
+    vec3 MeshBBoxMin = MdfMeta.bboxMin.xyz;
+    vec3 MeshBBoxMax = MdfMeta.bboxMax.xyz;
+    vec3 MeshBBoxCenter = (MeshBBoxMin+MeshBBoxMax)*0.5;
+    vec3 MeshBBoxExtent = (MeshBBoxMax-MeshBBoxMin)*0.5;
+
+    vec3 CellLocalCoord3RelativeToCenter = CellLocalCoord3-MeshBBoxCenter;
+    vec3 ToBox = (abs(CellLocalCoord3RelativeToCenter)-MeshBBoxExtent) * MeshScale;
+
+    float ToBoxOut = length(max(ToBox, vec3(0.0)));
+    float ToBoxIn = min(max(ToBox.x,max(ToBox.y,ToBox.z)), 0.0);
+    float ToBoxAll = ToBoxOut + ToBoxIn;
+    float ToBoxAllPositive = max(ToBoxAll, 0.0);
+
+
+    vec3 ClampedPos = clamp(CellLocalCoord3RelativeToCenter, -MeshBBoxExtent, MeshBBoxExtent);
+    ClampedPos = ClampedPos + MeshBBoxCenter;
+
+    vec3 ClampedUVW = (ClampedPos-MeshBBoxMin)/(MeshBBoxMax-MeshBBoxMin);
+
+    float SdfVal = texture(GetSampler3D(SDFId), ClampedUVW).r * MeshMaxScale;
+    float TotalSdf = max(SdfVal + ToBoxAllPositive,ToBoxAll);
+    return TotalSdf;
+}
+
+uint PackCellData(uint MeshId,float HitDist,float CellWidth){
+    uint HitDistInt = uint(HitDist / CellWidth * 0xFF);
+    return (MeshId & 0xFFFFFF) | (HitDistInt << 24);
+}
+
+void AddObjectToGridCell(uint MeshId, uint CellId, float HitDist,float CellWidth){
+    uint MaxIndex = 0;
+    uvec4 CellData = GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId];
+    uint PackedData = PackCellData(MeshId, HitDist, CellWidth);
+    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
+        MaxIndex = max(MaxIndex, CellData[i]);
+    }
+    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
+        if(CellData[i] == MaxIndex){
+            if(PackedData < CellData[i]){
+                CellData[i] = PackedData;
+                GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId] = CellData;
+                break;
+            }
+        }
+    }
+    
+}
+
+
 // Almost no resources about this. So stuffs are all personal guess.
 // I cannot ensure this is correct. >_<
 void main(){
-    // TODO
+    uvec3 TileId = gl_WorkGroupID;
+    uvec3 CellId = gl_GlobalInvocationID;
+    uint LocalId = ifrit_ToCellId(uvec3(gl_LocalInvocationID),uvec3(gl_WorkGroupSize));
+    uint LocalSize = gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z;
+
+    uint NumCullingPasses = ifrit_DivRoundUp(PushConst.m_NumTotalMeshDF, kAyanami_ObjectGridCellMaxCullObjPerPass);
+    uint NumObjectGridTiles = kAyanamiObjectGridTileSize / PushConst.m_VoxelsPerClipMapWidth;
+
+    vec3 TileOffsetInCells = vec3(TileId) / NumObjectGridTiles;
+    vec3 TileOffsetInCellsNext = vec3(TileId + 1) / NumObjectGridTiles;
+
+    vec3 TileCenterCoord  = ((TileOffsetInCells + TileOffsetInCellsNext) * 0.5) * 2.0 - 1.0;
+    TileCenterCoord *= PushConst.m_ClipMapRadius;
+    vec3 TileExtent = (TileOffsetInCellsNext - TileOffsetInCells) * 2.0 * PushConst.m_ClipMapRadius;
+
+    float CellWidth = PushConst.m_ClipMapRadius * 2.0 / float(PushConst.m_VoxelsPerClipMapWidth);
+    vec3 CellCenterCoord = (vec3(CellId) + vec3(0.5)) * CellWidth;
+    vec3 CellExtent = vec3(1.0) * CellWidth;
+
+    float CullingAcceptTh = 1.44 * CellWidth + kAyanami_ObjectGridCellQueryInterpolationRange * CellWidth;
+    float CullingAcceptThSq = CullingAcceptTh * CullingAcceptTh;
+    float CellCullingAcceptTh = kAyanami_ObjectGridCellQueryInterpolationRange * CellWidth;
+    float CellCullingAcceptThSq = CellCullingAcceptTh * CellCullingAcceptTh;
+
+    uint CellLoc = ifrit_ToCellId(CellId, uvec3(PushConst.m_VoxelsPerClipMapWidth));
+    GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellLoc] = uvec4(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF);
+    barrier();
+    for(uint T=0; T<1; T++){
+
+        if(ifrit_IsFirstLane()){
+            LocalSharedCullResultCount = 0;
+        }
+        barrier();
+
+        // Cull mdfs to Tiles
+        uint i;
+        uint startId = T * kAyanami_ObjectGridCellMaxCullObjPerPass;
+        uint endId = min(startId + kAyanami_ObjectGridCellMaxCullObjPerPass, PushConst.m_NumTotalMeshDF);
+        for(i=startId+LocalId; i<endId; i+= LocalSize){
+            MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[i];
+            MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
+            mat4 localToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
+
+            vec3 BoxLT = MdfMeta.bboxMin.xyz;
+            vec3 BoxRB = MdfMeta.bboxMax.xyz;
+            vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
+            vec3 BoxExtentMS = (BoxRB - BoxLT);
+
+            vec3 BoxCenterWS = (localToWorld * vec4(BoxCenterMS, 1.0)).xyz;
+            vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale;
+
+            float SqDist = ifrit_AabbSquaredDistance(TileCenterCoord, TileExtent, BoxCenterWS, BoxExtentWS);
+            if(SqDist < CullingAcceptThSq){
+                uint LocalIndex = atomicAdd(LocalSharedCullResultCount, 1);
+                if(LocalIndex < kAyanami_ObjectGridCellMaxCullObjPerPass){
+                    LocalSharedCullResult[LocalIndex] = i;
+                }
+            }
+        }
+        barrier();
+        // compose mdfs to Cells
+        for(i=0;i<LocalSharedCullResultCount;i++){
+            uint MeshId = LocalSharedCullResult[i];
+            MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
+            MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
+            mat4 localToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
+            mat4 WorldToLocal = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_WorldToLocal;
+            vec3 BoxLT = MdfMeta.bboxMin.xyz;
+            vec3 BoxRB = MdfMeta.bboxMax.xyz;
+            vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
+            vec3 BoxExtentMS = (BoxRB - BoxLT);
+
+            vec3 BoxCenterWS = (localToWorld * vec4(BoxCenterMS, 1.0)).xyz;
+            vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale;
+
+            float SqDist = ifrit_AabbSquaredDistance(CellCenterCoord, CellExtent, BoxCenterWS, BoxExtentWS);
+            if(SqDist < CellCullingAcceptThSq){
+                //might be a candidate to this grid
+                vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale);
+                float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
+                AddObjectToGridCell(MeshId, CellLoc, HitDist,CellWidth);
+                
+            }
+        }
+        barrier();
+    }
 }

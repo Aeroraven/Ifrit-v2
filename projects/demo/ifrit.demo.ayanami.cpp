@@ -210,12 +210,12 @@ namespace Ifrit
             for (auto& m : meshes)
             {
                 numMeshes++;
-                // if (numMeshes < 630)
-                //     continue;
-                // if (numMeshes >= 700 && numMeshes < 750)
-                //     continue;
-                // if (numMeshes > 812)
-                //     break;
+                if (numMeshes < 630)
+                    continue;
+                if (numMeshes >= 700 && numMeshes < 750)
+                    continue;
+                if (numMeshes > 812)
+                    break;
                 auto t      = m->m_prefab;
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
                 meshDF->BuildMeshDF(GetCacheDir());

@@ -242,8 +242,12 @@ namespace Ifrit::Runtime
             m_resources->m_sceneAggregator->GetNumGatheredInstances(), sceneBound, sceneLight, 64);
 
         // Pass DF Radiance Injection (World Space)
-        // AddDFRadianceInjectPass(
-        //     fg, m_resources, sceneBound, sceneLight, 64, 2.0f, resDirectRadiance, resSurfaceCacheNormal);
+        AddDFRadianceInjectPass(
+            fg, m_resources, sceneBound, sceneLight, 64, 2.0f, resDirectRadiance, resSurfaceCacheNormal);
+
+        // Pass Voxel Construction (Object Grids)
+        m_globalDF->AddObjectGridCompositionPass(fg, 0, m_resources->m_sceneAggregator->GetNumGatheredInstances(),
+            m_resources->m_sceneAggregator->GetGatheredBufferId());
 
         // Pass RayMarch
         if (m_resources->m_debugShowMeshDF)
