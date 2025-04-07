@@ -12,7 +12,16 @@
 
 #### 2025.04
 
+- Ayanami: 缓解 DF Shadow Culling 的错误和重复问题 (250407)
+
+  | After Fixing                                                 | Before Fixing                           |
+  | ------------------------------------------------------------ | --------------------------------------- |
+  | <img src="docs/imgtodo/2025-04-07 095430.png" style="zoom:80%;" /> | ![](docs/imgtodo/2025-04-07 093307.png) |
+
+    
+
 - VkGraphics: 修复AllocateCommandBuffer导致的内存泄漏 (250404)
+  
   - 参考：https://developer.download.nvidia.com/gameworks/events/GDC2016/Vulkan_Essentials_GDC16_tlorach.pdf#page=25.00
 
 

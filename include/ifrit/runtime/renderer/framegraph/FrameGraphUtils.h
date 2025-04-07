@@ -22,6 +22,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime::FrameGraphUtils
 {
+    struct GraphicsPassArgs
+    {
+        Graphics::Rhi::RhiCullMode m_CullMode = Graphics::Rhi::RhiCullMode::Back;
+    };
 
     template <typename T> u32           GetPushConstSize() { return sizeof(T) / sizeof(u32); }
 
@@ -33,7 +37,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
 
     IFRIT_RUNTIME_API GraphicsPassNode& AddMeshDrawPass(FrameGraphBuilder& builder, const String& name,
         const String& ms, const String& fs, Graphics::Rhi::RhiRenderTargets* rts, Vector3i workGroups, const void* ptr,
-        u32 pushConsts);
+        u32 pushConsts, const GraphicsPassArgs& args);
 
     IFRIT_RUNTIME_API ComputePassNode&  AddComputePass(FrameGraphBuilder& builder, const String& name,
          const String& shader, Vector3i workGroups, const void* ptr, u32 pushConsts);

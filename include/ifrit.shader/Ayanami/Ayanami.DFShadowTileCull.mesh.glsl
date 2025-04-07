@@ -57,17 +57,17 @@ layout(location = 0) out flat uint meshIdX[];
 
 uvec3 kTriangleLUT[12] = {
     uvec3(0, 1, 2), 
-    uvec3(0, 2, 3),
-    uvec3(4, 5, 6),
+    uvec3(1, 3, 2),
+    uvec3(5, 4, 7),
     uvec3(4, 6, 7),
-    uvec3(0, 1, 5),
-    uvec3(0, 5, 4),
-    uvec3(1, 2, 6),
-    uvec3(1, 6, 5),
-    uvec3(2, 3, 7),
-    uvec3(2, 7, 6),
-    uvec3(3, 0, 4),
-    uvec3(3, 4, 7)
+    uvec3(4, 5, 0),
+    uvec3(5, 1, 0),
+    uvec3(4, 0, 6),
+    uvec3(0, 2, 6),
+    uvec3(1, 5, 3),
+    uvec3(5, 7, 3),
+    uvec3(2, 3, 6),
+    uvec3(3, 7, 6)
 };
 void main(){
     uint localThreadId = gl_LocalInvocationID.x;

@@ -242,8 +242,8 @@ namespace Ifrit::Runtime
             m_resources->m_sceneAggregator->GetNumGatheredInstances(), sceneBound, sceneLight, 64);
 
         // Pass DF Radiance Injection (World Space)
-        AddDFRadianceInjectPass(
-            fg, m_resources, sceneBound, sceneLight, 64, 2.0f, resDirectRadiance, resSurfaceCacheNormal);
+        // AddDFRadianceInjectPass(
+        //     fg, m_resources, sceneBound, sceneLight, 64, 2.0f, resDirectRadiance, resSurfaceCacheNormal);
 
         // Pass RayMarch
         if (m_resources->m_debugShowMeshDF)
@@ -315,8 +315,8 @@ namespace Ifrit::Runtime
             {
                 u32 raymarchOutput;
             } pc;
-            // pc.raymarchOutput = m_resources->m_DeferShadingOutSRV->GetActiveId();
-            pc.raymarchOutput = m_resources->m_surfaceCacheManager->GetRadianceSRVId();
+            pc.raymarchOutput = m_resources->m_DeferShadingOutSRV->GetActiveId();
+            // pc.raymarchOutput = m_resources->m_surfaceCacheManager->GetRadianceSRVId();
             FrameGraphUtils::AddFullScreenQuadPass(fg, "Ayanami.DebugPass", Internal::kIntShaderTable.Ayanami.CopyVS,
                 Internal::kIntShaderTable.Ayanami.CopyFS, renderTargets, &pc, 1)
                 .AddReadResource(resRaymarchOutput)

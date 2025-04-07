@@ -59,7 +59,7 @@ namespace Ifrit::Runtime::Ayanami
                 * config.m_VoxelExtentPerGlobalClipMap;
             m_TestClipMaps[i]->m_objectGridBuffer = rhi->CreateBuffer("Ayanami_GlobalDF_ObjectGrid",
                 totalVoxels * sizeof(u32) * Config::kAyanami_MaxObjectPerGridCell,
-                Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_StorageTexel, false, true);
+                Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO, false, true);
         }
     }
 

@@ -69,15 +69,18 @@ namespace Ifrit::Runtime::FrameGraphUtils
     }
 
     IFRIT_APIDECL GraphicsPassNode& AddMeshDrawPass(FrameGraphBuilder& builder, const String& name, const String& ms,
-        const String& fs, Graphics::Rhi::RhiRenderTargets* rts, Vector3i workGroups, const void* ptr, u32 pushConsts)
+        const String& fs, Graphics::Rhi::RhiRenderTargets* rts, Vector3i workGroups, const void* ptr, u32 pushConsts,
+        const GraphicsPassArgs& args)
     {
         auto&   pass           = builder.AddMeshGraphicsPass(name, ms, fs, pushConsts, rts);
         auto    rhi            = builder.GetRhi();
         auto    underlyingPass = pass.GetPass();
         Vec<u8> pushConstsData = PtrToVector(ptr, pushConsts * sizeof(u32));
         pass.SetExecutionFunction(
-            [pushConsts, pushConstsData, rhi, underlyingPass, workGroups](const FrameGraphPassContext& ctx) {
+            [pushConsts, pushConstsData, rhi, underlyingPass, workGroups, args](const FrameGraphPassContext& ctx) {
                 auto cmd = ctx.m_CmdList;
+                if (args.m_CullMode != Graphics::Rhi::RhiCullMode::None)
+                    cmd->SetCullMode(args.m_CullMode);
                 if (pushConsts > 0)
                     cmd->SetPushConst(underlyingPass, 0, pushConsts * sizeof(u32), pushConstsData.data());
                 cmd->DrawMeshTasks(workGroups.x, workGroups.y, workGroups.z);

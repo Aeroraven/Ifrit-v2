@@ -102,15 +102,14 @@ float RayMarchingForObject(uint meshDFId, vec3 rayOriginWS){
     float selfBias = 0e-4*maxExtent;
     float volBias = 1e-3*maxExtent;
     if(hit){
-        for(int i=0;i<20;i++){
+        for(int i=0;i<32;i++){
             vec3 uvw= (hitp - lb) / (rt - lb);
             uvw = clamp(uvw, 0.0, 1.0);
             float sdf = texture(GetSampler3D(meta.sdfId), uvw).x-volBias;
             t+= max(1e-4*maxExtent,abs(sdf)* 0.5) ;
             hitp = o + nD * t;
-            
             retShadow = min(retShadow, PushConst.m_ShadowCoefK*abs(sdf)/(abs(t)+1e-6)*100.0);
-            if(abs(sdf)<1e-1){
+            if(abs(sdf)<1e-2){
                 break;
             }
         }

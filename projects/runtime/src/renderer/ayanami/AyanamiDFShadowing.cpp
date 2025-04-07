@@ -124,10 +124,15 @@ namespace Ifrit::Runtime::Ayanami
 
         FrameGraphUtils::AddClearUAVPass(builder, "Ayanami.DFShadowCullCleanup", *m_Private->m_ResAtomic, 0);
 
+        FrameGraphUtils::GraphicsPassArgs args;
+        args.m_CullMode = Graphics::Rhi::RhiCullMode::Front;
+
         auto& pass = FrameGraphUtils::AddMeshDrawPass(builder, "Ayanami.DFShadowTileCull",
             Internal::kIntShaderTable.Ayanami.DFShadowTileCullingMS,
             Internal::kIntShaderTable.Ayanami.DFShadowTileCullingFS, m_Private->m_RTs.get(),
-            Vector3i{ (i32)totalMeshDfs, 1, 1 }, &pc, FrameGraphUtils::GetPushConstSize<PushConst>());
+            Vector3i{ (i32)totalMeshDfs, 1, 1 }, &pc, FrameGraphUtils::GetPushConstSize<PushConst>(), args);
+        auto  pipe = pass.GetPass();
+
         pass.AddWriteResource(*m_Private->m_ResAtomic)
             .AddReadResource(*m_Private->m_ResScatterOutput)
             .AddReadResource(*m_Private->m_ResScatterOutputTex);
