@@ -51,21 +51,18 @@ namespace Ifrit::Graphics::Rhi
         virtual void DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                       = 0;
         virtual void DrawMeshTasksIndirect(const RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const  = 0;
         virtual void DrawIndexed(
-            u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const = 0;
+            u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance) const = 0;
 
         // Clear UAV storage buffer, considered as a transfer operation, typically
         // need a barrier for sync.
-        virtual void BufferClear(const RhiBuffer* buffer, u32 val) const = 0;
-        virtual void AttachBindlessRefGraphics(
-            RhiGraphicsPass* pass, u32 setId, RhiBindlessDescriptorRef* ref) const                                  = 0;
-        virtual void AttachBindlessRefCompute(RhiComputePass* pass, u32 setId, RhiBindlessDescriptorRef* ref) const = 0;
-        virtual void AttachVertexBufferView(const RhiVertexBufferView& view) const                                  = 0;
-        virtual void AttachVertexBuffers(u32 firstSlot, const Vec<RhiBuffer*>& buffers) const                       = 0;
-        virtual void AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const                                          = 0;
-        virtual void DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const    = 0;
-        virtual void DispatchIndirect(const RhiBuffer* buffer, u32 offset) const                                    = 0;
-        virtual void SetPushConst(RhiComputePass* pass, u32 offset, u32 size, const void* data) const               = 0;
-        virtual void SetPushConst(RhiGraphicsPass* pass, u32 offset, u32 size, const void* data) const              = 0;
+        virtual void BufferClear(const RhiBuffer* buffer, u32 val) const                                         = 0;
+        virtual void AttachUniformRef(u32 setId, RhiBindlessDescriptorRef* ref) const                            = 0;
+        virtual void AttachVertexBufferView(const RhiVertexBufferView& view) const                               = 0;
+        virtual void AttachVertexBuffers(u32 firstSlot, const Vec<RhiBuffer*>& buffers) const                    = 0;
+        virtual void AttachIndexBuffer(const RhiBuffer* buffer) const                                            = 0;
+        virtual void DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const = 0;
+        virtual void DispatchIndirect(const RhiBuffer* buffer, u32 offset) const                                 = 0;
+        virtual void SetPushConst(const void* data, u32 offset, u32 size) const                                  = 0;
         virtual void ClearUAVTexFloat(
             const RhiTexture* texture, RhiImageSubResource subResource, const Array<f32, 4>& val) const = 0;
         virtual void AddResourceBarrier(const Vec<RhiResourceBarrier>& barriers) const                  = 0;

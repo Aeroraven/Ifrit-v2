@@ -106,12 +106,12 @@ namespace Ifrit::Runtime::PostprocessPassCollection
                       RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead, true);
             auto texGaussianSampId = rhi->RegisterCombinedImageSampler(texGaussian.get(), texSampler.get());
 
-            res->m_tex1               = tex1;
-            res->m_tex1IdSamp         = rhi->RegisterCombinedImageSampler(tex1.get(), texSampler.get());
-            res->m_tex2               = tex2;
-            res->m_texTemp            = texTemp;
-            res->m_texGaussian        = texGaussian;
-            res->m_texGaussianSampId  = texGaussianSampId;
+            res->m_tex1              = tex1;
+            res->m_tex1IdSamp        = rhi->RegisterCombinedImageSampler(tex1.get(), texSampler.get());
+            res->m_tex2              = tex2;
+            res->m_texTemp           = texTemp;
+            res->m_texGaussian       = texGaussian;
+            res->m_texGaussianSampId = texGaussianSampId;
 
             m_resMap[{ p2Width, p2Height }] = *res;
         }
@@ -176,7 +176,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             {
                 cmd->BeginScope("Postprocess: FFTConv2D, GaussianBlur");
                 m_gaussianPipeline->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
-                    cmd->SetPushConst(m_gaussianPipeline, 0, 4 * sizeof(u32), &pcb);
+                    cmd->SetPushConst(&pcb, 0, 4 * sizeof(u32));
                     ctx->m_cmd->Dispatch(Ifrit::Math::DivRoundUp(p2Width, 8), Ifrit::Math::DivRoundUp(p2Height, 8), 1);
                 });
                 m_gaussianPipeline->Run(cmd, 0);
@@ -212,7 +212,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             cmd->BeginScope(scopeNames[i]);
             m_computePipeline->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
                 pc.fftStep = i;
-                cmd->SetPushConst(m_computePipeline, 0, 16 * sizeof(u32), &pc);
+                cmd->SetPushConst(&pc, 0, 16 * sizeof(u32));
                 ctx->m_cmd->Dispatch(wgX, wgY, 1);
             });
             m_computePipeline->Run(cmd, 0);
@@ -225,7 +225,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
         auto dwgY = Ifrit::Math::DivRoundUp(srcHeight, 8);
         m_upsamplePipeline->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
             pc.tempImage = m_resMap[{ p2Width, p2Height }].m_texTemp->GetDescId();
-            cmd->SetPushConst(m_upsamplePipeline, 0, 17 * sizeof(u32), &pc);
+            cmd->SetPushConst(&pc, 0, 17 * sizeof(u32));
             ctx->m_cmd->Dispatch(dwgX, dwgY, 1);
         });
         m_upsamplePipeline->Run(cmd, 0);

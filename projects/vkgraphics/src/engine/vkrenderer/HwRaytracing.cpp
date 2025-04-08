@@ -575,7 +575,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.sbt           = CheckedCast<ShaderBindingTable>(m_sbt);
         ci.maxRecursion  = m_maxRecursion;
         ci.pushConstSize = m_pushConstSize;
-        for (int i = 0; i < m_numBindlessDescriptors; i++)
+        for (u32 i = 0; i < m_numBindlessDescriptors; i++)
         {
             ci.descriptorSetLayouts.push_back(m_descriptorManager->GetParameterDescriptorSetLayout());
         }

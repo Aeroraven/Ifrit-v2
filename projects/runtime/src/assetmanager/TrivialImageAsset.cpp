@@ -87,7 +87,7 @@ namespace Ifrit::Runtime
             {
                 defaultFmt = Graphics::Rhi::RhiImageFormat::RhiImgFmt_BC5_UNORM_BLOCK;
             }
-            TextureFormat fmt;
+            //TextureFormat fmt;
             u32           baseWidth, baseHeight, baseDepth;
             ReadBlockCompressedTex2DFromFile(data, cacheFile, baseWidth, baseHeight, baseDepth);
             texSize  = data.GetSize();

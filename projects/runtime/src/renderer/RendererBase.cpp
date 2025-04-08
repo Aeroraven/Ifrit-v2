@@ -468,11 +468,11 @@ namespace Ifrit::Runtime
             tq->RunSyncCommand([&](const RhiCommandList* cmd) {
                 stagedBuf->CmdCopyToDevice(cmd, &gbufferDesc, sizeof(PerFrameData::GBufferDesc), 0);
             });
-            perframeData.m_gbuffer.m_gbufferDesc = rhi->createBindlessDescriptorRef();
+            perframeData.m_gbuffer.m_gbufferDesc = rhi->CreateBindlessDescriptorRef();
             perframeData.m_gbuffer.m_gbufferDesc->AddStorageBuffer(perframeData.m_gbuffer.m_gbufferRefs.get(), 0);
 
             // Then gbuffer desc for pixel shader
-            perframeData.m_gbufferDescFrag = rhi->createBindlessDescriptorRef();
+            perframeData.m_gbufferDescFrag = rhi->CreateBindlessDescriptorRef();
             perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
                 perframeData.m_gbuffer.m_albedo_materialFlags.get(), linearSampler.get(), 0);
             perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
@@ -552,7 +552,7 @@ namespace Ifrit::Runtime
             {
                 curView.m_viewBuffer =
                     rhi->CreateBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RhiBufferUsage_Uniform);
-                curView.m_viewBindlessRef = rhi->createBindlessDescriptorRef();
+                curView.m_viewBindlessRef = rhi->CreateBindlessDescriptorRef();
                 curView.m_viewBindlessRef->AddUniformBuffer(curView.m_viewBuffer.get(), 0);
                 curView.m_viewBufferLast =
                     rhi->CreateBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RhiBufferUsage_Uniform);
@@ -601,7 +601,7 @@ namespace Ifrit::Runtime
                     rhi->CreateBufferCoherent(sizeof(PerObjectData) * objectCount, RhiBufferUsage::RhiBufferUsage_SSBO);
 
                 // TODO: update instead of recreate
-                shaderEffect.m_batchedObjBufRef = rhi->createBindlessDescriptorRef();
+                shaderEffect.m_batchedObjBufRef = rhi->CreateBindlessDescriptorRef();
                 shaderEffect.m_batchedObjBufRef->AddStorageBuffer(shaderEffect.m_batchedObjectData.get(), 0);
             }
 

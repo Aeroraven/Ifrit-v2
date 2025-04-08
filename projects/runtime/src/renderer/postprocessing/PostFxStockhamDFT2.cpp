@@ -17,7 +17,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
     IFRIT_APIDECL void PostFxStockhamDFT2::RunCommand(const GPUCmdBuffer* cmd, u32 wgX, u32 wgY, const void* pc)
     {
         m_computePipeline->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
-            cmd->SetPushConst(m_computePipeline, 0, 12 * sizeof(u32), pc);
+            cmd->SetPushConst(pc, 0, 12 * sizeof(u32));
             ctx->m_cmd->Dispatch(wgX, wgY, 1);
         });
         m_computePipeline->Run(cmd, 0);

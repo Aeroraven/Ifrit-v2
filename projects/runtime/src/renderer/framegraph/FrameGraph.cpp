@@ -230,8 +230,46 @@ namespace Ifrit::Runtime
         return node;
     }
 
-    u32                             FrameGraphBuilder::GetUAV(const ResourceNode& res) { return 0; }
-    u32                             FrameGraphBuilder::GetSRV(const ResourceNode& res) { return 0; }
+    Graphics::Rhi::RhiUAVDesc FrameGraphBuilder::GetUAV(const ResourceNode& res)
+    {
+        iAssertion(!res.isImported, "FrameGraphBuilder: GetUAV() called on imported resource.");
+
+        if (res.type == FrameGraphResourceType::ResourceBuffer)
+        {
+            iAssertion(res.selfBuffer,
+                "FrameGraphBuilder: GetUAV() called on buffer resource that is not created. Lifetime is corrupted.");
+            return m_Rhi->GetUAVDescriptor(res.selfBuffer);
+        }
+        else if (res.type == FrameGraphResourceType::ResourceTexture)
+        {
+            iAssertion(res.selfTexture,
+                "FrameGraphBuilder: GetUAV() called on texture resource that is not created. Lifetime is corrupted.");
+            return m_Rhi->GetUAVDescriptor(res.selfTexture);
+        }
+        iError("FrameGraphBuilder: GetUAV() called on resource that is not a buffer or texture.");
+        std::abort();
+        return 0;
+    }
+
+    Graphics::Rhi::RhiSRVDesc FrameGraphBuilder::GetSRV(const ResourceNode& res)
+    {
+        iAssertion(!res.isImported, "FrameGraphBuilder: GetSRV() called on imported resource.");
+        if (res.type == FrameGraphResourceType::ResourceBuffer)
+        {
+            iAssertion(res.selfBuffer,
+                "FrameGraphBuilder: GetSRV() called on buffer resource that is not created. Lifetime is corrupted.");
+            return m_Rhi->GetSRVDescriptor(res.selfBuffer);
+        }
+        else if (res.type == FrameGraphResourceType::ResourceTexture)
+        {
+            iAssertion(res.selfTexture,
+                "FrameGraphBuilder: GetSRV() called on texture resource that is not created. Lifetime is corrupted.");
+            return m_Rhi->GetSRVDescriptor(res.selfTexture);
+        }
+        iError("FrameGraphBuilder: GetSRV() called on resource that is not a buffer or texture.");
+        std::abort();
+        return 0;
+    }
 
     // Frame Graph compiler
 

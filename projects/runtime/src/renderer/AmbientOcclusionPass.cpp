@@ -80,7 +80,7 @@ namespace Ifrit::Runtime
 
         m_hbaoPass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
             using namespace Ifrit::Runtime::Shaders::AmbientOcclusionConfig;
-            ctx->m_cmd->SetPushConst(m_hbaoPass, 0, sizeof(HBAOPushConst), &pc);
+            ctx->m_cmd->SetPushConst(&pc, 0, sizeof(HBAOPushConst));
             u32 wgX = Ifrit::Math::DivRoundUp(width, cHBAOThreadGroupSizeX);
             u32 wgY = Ifrit::Math::DivRoundUp(height, cHBAOThreadGroupSizeY);
             ctx->m_cmd->Dispatch(wgX, wgY, 1);
@@ -129,7 +129,7 @@ namespace Ifrit::Runtime
 
         m_ssgiPass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
             using namespace Ifrit::Runtime::Shaders::AmbientOcclusionConfig;
-            ctx->m_cmd->SetPushConst(m_ssgiPass, 0, sizeof(SSGIPushConst), &pc);
+            ctx->m_cmd->SetPushConst(&pc, 0, sizeof(SSGIPushConst));
 
             u32 wgX = Ifrit::Math::DivRoundUp(width, cSSGIThreadGroupSizeX);
             u32 wgY = Ifrit::Math::DivRoundUp(height, cSSGIThreadGroupSizeY);

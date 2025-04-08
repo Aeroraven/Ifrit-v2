@@ -72,10 +72,10 @@ namespace Ifrit::Runtime::RenderingUtil
         pass->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
             for (auto i = 1; auto& desc : vBindlessDescs)
             {
-                ctx->m_cmd->AttachBindlessRefGraphics(pass, i++, desc);
+                ctx->m_cmd->AttachUniformRef(i++, desc);
             }
             if (numPushConsts > 0)
-                ctx->m_cmd->SetPushConst(pass, 0, numPushConsts * sizeof(u32), pPushConst);
+                ctx->m_cmd->SetPushConst(pPushConst, 0, numPushConsts * sizeof(u32));
 
             // TODO: this should be done in vertex shader. Buffer is not needed
             ctx->m_cmd->AttachVertexBufferView(*rhi->GetFullScreenQuadVertexBufferView());

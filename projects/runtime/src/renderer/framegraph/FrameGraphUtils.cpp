@@ -41,7 +41,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
         pass.SetExecutionFunction([pushConsts, pushConstsData, rhi, underlyingPass](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
             if (pushConsts > 0)
-                cmd->SetPushConst(underlyingPass, 0, pushConsts * sizeof(u32), pushConstsData.data());
+                cmd->SetPushConst(pushConstsData.data(), 0, pushConsts * sizeof(u32));
             cmd->AttachVertexBufferView(*rhi->GetFullScreenQuadVertexBufferView());
             cmd->AttachVertexBuffers(0, { rhi->GetFullScreenQuadVertexBuffer().get() });
             cmd->DrawInstanced(3, 1, 0, 0);
@@ -60,7 +60,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
         pass.SetExecutionFunction([pushConsts, pushConstsData, rhi, underlyingPass](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
             if (pushConsts > 0)
-                cmd->SetPushConst(underlyingPass, 0, pushConsts * sizeof(u32), pushConstsData.data());
+                cmd->SetPushConst(pushConstsData.data(), 0, pushConsts * sizeof(u32));
             cmd->AttachVertexBufferView(*rhi->GetFullScreenQuadVertexBufferView());
             cmd->AttachVertexBuffers(0, { rhi->GetFullScreenQuadVertexBuffer().get() });
             cmd->DrawInstanced(3, 1, 0, 0);
@@ -82,7 +82,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
                 if (args.m_CullMode != Graphics::Rhi::RhiCullMode::None)
                     cmd->SetCullMode(args.m_CullMode);
                 if (pushConsts > 0)
-                    cmd->SetPushConst(underlyingPass, 0, pushConsts * sizeof(u32), pushConstsData.data());
+                    cmd->SetPushConst(pushConstsData.data(), 0, pushConsts * sizeof(u32));
                 cmd->DrawMeshTasks(workGroups.x, workGroups.y, workGroups.z);
             });
         return pass;
@@ -98,7 +98,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
         pass.SetExecutionFunction([workGroups, pushConsts, pushConstsData, rhi, cp](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
             if (pushConsts > 0)
-                cmd->SetPushConst(cp, 0, pushConsts * sizeof(u32), pushConstsData.data());
+                cmd->SetPushConst(pushConstsData.data(), 0, pushConsts * sizeof(u32));
             cmd->Dispatch(workGroups.x, workGroups.y, workGroups.z);
         });
         return pass;

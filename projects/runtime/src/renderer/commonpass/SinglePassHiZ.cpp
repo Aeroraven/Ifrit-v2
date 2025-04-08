@@ -59,8 +59,7 @@ namespace Ifrit::Runtime
         data.m_hizRefs.push_back(0);
         for (int i = 0; i < maxMip; i++)
         {
-            auto bindlessId = rhi->RegisterUAVImage2(data.m_hizTexture.get(), { static_cast<u32>(i), 0, 1, 1 });
-            data.m_hizRefs.push_back(bindlessId->GetActiveId());
+            data.m_hizRefs.push_back(rhi->GetUAVDescriptor(data.m_hizTexture.get(), { static_cast<u32>(i), 0, 1, 1 }));
         }
         data.m_hizRefBuffer =
             rhi->CreateBufferDevice("SHiZ_Ref", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest, true);
@@ -72,7 +71,7 @@ namespace Ifrit::Runtime
             staged->CmdCopyToDevice(cmd, data.m_hizRefs.data(), u32Size * data.m_hizRefs.size(), 0);
         });
 
-        data.m_hizDesc = rhi->createBindlessDescriptorRef();
+        data.m_hizDesc = rhi->CreateBindlessDescriptorRef();
         data.m_hizDesc->AddStorageBuffer(data.m_hizRefBuffer.get(), 1);
         data.m_hizDesc->AddCombinedImageSampler(depthTexture, sampler, 0);
         data.m_hizDesc->AddStorageBuffer(data.m_hizAtomics.get(), 2);
@@ -104,8 +103,8 @@ namespace Ifrit::Runtime
         IF_CONSTEXPR static u32 cSPHiZTileSize = 64;
 
         m_singlePassHiZPass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
-            ctx->m_cmd->AttachBindlessRefCompute(m_singlePassHiZPass, 1, data.m_hizDesc);
-            ctx->m_cmd->SetPushConst(m_singlePassHiZPass, 0, u32Size * 6, &pc);
+            ctx->m_cmd->AttachUniformRef(1, data.m_hizDesc);
+            ctx->m_cmd->SetPushConst(&pc, 0, u32Size * 6);
             auto tgX = DivRoundUp(data.m_hizWidth, cSPHiZTileSize);
             auto tgY = DivRoundUp(data.m_hizHeight, cSPHiZTileSize);
             ctx->m_cmd->Dispatch(tgX, tgY, 1);

@@ -86,13 +86,21 @@ namespace Ifrit::Graphics::VulkanGraphics
         Uref<Rhi::RhiTaskSubmission>           GetSwapchainRenderDoneEventHandler() override;
 
         // Descriptor
-        virtual Rhi::RhiBindlessDescriptorRef* createBindlessDescriptorRef() override;
-        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterUAVImage2(
-             Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
-        virtual Ref<Rhi::RhiDescHandleLegacy> RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer) override;
-        virtual Ref<Rhi::RhiDescHandleLegacy> RegisterStorageBufferShared(Rhi::RhiMultiBuffer* buffer) override;
-        virtual Ref<Rhi::RhiDescHandleLegacy> RegisterCombinedImageSampler(
-            Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler) override;
+        virtual Rhi::RhiBindlessDescriptorRef* CreateBindlessDescriptorRef() override;
+        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer) override;
+        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterStorageBufferShared(Rhi::RhiMultiBuffer* buffer) override;
+        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterCombinedImageSampler(
+             Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler) override;
+
+        // Descriptor, refactored
+        virtual Rhi::RhiSRVDesc GetSRVDescriptor(
+            Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
+        virtual Rhi::RhiUAVDesc GetUAVDescriptor(
+            Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
+        virtual Rhi::RhiSRVDesc                     GetSRVDescriptor(Rhi::RhiTexture* texture) override;
+        virtual Rhi::RhiUAVDesc                     GetUAVDescriptor(Rhi::RhiTexture* texture) override;
+        virtual Rhi::RhiSRVDesc                     GetSRVDescriptor(Rhi::RhiBuffer* buffer) override;
+        virtual Rhi::RhiUAVDesc                     GetUAVDescriptor(Rhi::RhiBuffer* buffer) override;
 
         // Render targets
         virtual Ref<Rhi::RhiColorAttachment>        CreateRenderTarget(Rhi::RhiTexture* renderTarget,

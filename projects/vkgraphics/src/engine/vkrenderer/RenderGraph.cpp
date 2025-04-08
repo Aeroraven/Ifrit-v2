@@ -207,6 +207,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_passContext.m_cmd   = m_commandBuffer;
         m_passContext.m_frame = m_activeFrame;
         renderTarget->BeginRendering(m_commandBuffer);
+
+        auto vcmd = const_cast<CommandBuffer*>(m_commandBuffer);
+        vcmd->BindGraphicsInternal(this);
+
         vkCmdBindPipeline(
             m_commandBuffer->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->GetPipeline());
         auto exfun = m_context->GetExtensionFunction();
@@ -445,6 +449,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_passContext.m_frame       = m_activeFrame;
         VkCommandBuffer cmd         = m_commandBuffer->GetCommandBuffer();
         auto            bindlessSet = m_descriptorManager->GetBindlessSet();
+
+        auto            vcmd = const_cast<CommandBuffer*>(m_commandBuffer);
+        vcmd->BindComputeInternal(this);
+
         vkCmdBindDescriptorSets(
             cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline->GetLayout(), 0, 1, &bindlessSet, 0, nullptr);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline->GetPipeline());

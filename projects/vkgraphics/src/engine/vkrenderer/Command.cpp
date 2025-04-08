@@ -136,6 +136,24 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     // Class: CommandBuffer
+    struct CommandListContextPrivate
+    {
+        enum class BoundType
+        {
+            None,
+            Graphics,
+            Compute,
+        };
+        BoundType m_BoundType = BoundType::None;
+        union
+        {
+            Rhi::RhiGraphicsPass* m_GraphicsPass;
+            Rhi::RhiComputePass*  m_ComputePass;
+        } m_BoundPass;
+    };
+
+    IFRIT_APIDECL void CommandBuffer::InitPost() { m_CmdContext = new CommandListContextPrivate(); }
+    IFRIT_APIDECL void CommandBuffer::DestroyPost() { delete m_CmdContext; }
     IFRIT_APIDECL void CommandBuffer::BeginRecord()
     {
         VkCommandBufferBeginInfo beginInfo{};
@@ -162,6 +180,18 @@ namespace Ifrit::Graphics::VulkanGraphics
             SizeCast<int>(barrier.m_memoryBarriers.size()), barrier.m_memoryBarriers.data(),
             SizeCast<int>(barrier.m_bufferMemoryBarriers.size()), barrier.m_bufferMemoryBarriers.data(),
             SizeCast<int>(barrier.m_imageMemoryBarriers.size()), barrier.m_imageMemoryBarriers.data());
+    }
+
+    IFRIT_APIDECL void CommandBuffer::BindGraphicsInternal(Rhi::RhiGraphicsPass* pass)
+    {
+        m_CmdContext->m_BoundType                = CommandListContextPrivate::BoundType::Graphics;
+        m_CmdContext->m_BoundPass.m_GraphicsPass = pass;
+    }
+
+    IFRIT_APIDECL void CommandBuffer::BindComputeInternal(Rhi::RhiComputePass* pass)
+    {
+        m_CmdContext->m_BoundType               = CommandListContextPrivate::BoundType::Compute;
+        m_CmdContext->m_BoundPass.m_ComputePass = pass;
     }
 
     IFRIT_APIDECL void CommandBuffer::SetViewports(const Vec<Rhi::RhiViewport>& viewport) const
@@ -407,29 +437,32 @@ namespace Ifrit::Graphics::VulkanGraphics
             0, nullptr, 0, nullptr, 1, &barrier);
     }
 
-    IFRIT_APIDECL void CommandBuffer::AttachBindlessRefGraphics(
-        Rhi::RhiGraphicsPass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const
+    IFRIT_APIDECL void CommandBuffer::AttachUniformRef(u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const
     {
+        if (m_CmdContext->m_BoundType != CommandListContextPrivate::BoundType::Graphics)
+        {
+            auto bindless     = CheckedCast<DescriptorBindlessIndices>(ref);
+            auto graphicsPass = CheckedCast<GraphicsPass>(m_CmdContext->m_BoundPass.m_GraphicsPass);
+            auto set          = bindless->GetActiveRangeSet();
+            auto offset       = bindless->GetActiveRangeOffset();
 
-        auto bindless     = CheckedCast<DescriptorBindlessIndices>(ref);
-        auto graphicsPass = CheckedCast<GraphicsPass>(pass);
-        auto set          = bindless->GetActiveRangeSet();
-        auto offset       = bindless->GetActiveRangeOffset();
+            vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPass->GetPipelineLayout(),
+                setId, 1, &set, 1, &offset);
+        }
+        else if (m_CmdContext->m_BoundType != CommandListContextPrivate::BoundType::Compute)
+        {
+            auto bindless    = CheckedCast<DescriptorBindlessIndices>(ref);
+            auto computePass = CheckedCast<ComputePass>(m_CmdContext->m_BoundPass.m_ComputePass);
+            auto set         = bindless->GetActiveRangeSet();
+            auto offset      = bindless->GetActiveRangeOffset();
 
-        vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPass->GetPipelineLayout(),
-            setId, 1, &set, 1, &offset);
-    }
-
-    IFRIT_APIDECL void CommandBuffer::AttachBindlessRefCompute(
-        Rhi::RhiComputePass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const
-    {
-        auto bindless    = CheckedCast<DescriptorBindlessIndices>(ref);
-        auto computePass = CheckedCast<ComputePass>(pass);
-        auto set         = bindless->GetActiveRangeSet();
-        auto offset      = bindless->GetActiveRangeOffset();
-
-        vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePass->GetPipelineLayout(),
-            setId, 1, &set, 1, &offset);
+            vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePass->GetPipelineLayout(),
+                setId, 1, &set, 1, &offset);
+        }
+        else
+        {
+            vkrError("Invalid command buffer bound type");
+        }
     }
 
     IFRIT_APIDECL void CommandBuffer::AttachVertexBufferView(const Rhi::RhiVertexBufferView& view) const
@@ -478,17 +511,26 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdDispatchIndirect(m_commandBuffer, buf, offset);
     }
 
-    IFRIT_APIDECL void CommandBuffer::SetPushConst(
-        Rhi::RhiComputePass* pass, u32 offset, u32 size, const void* data) const
+    IFRIT_APIDECL void CommandBuffer::SetPushConst(const void* data, u32 offset, u32 size) const
     {
-        auto computePass = CheckedCast<ComputePass>(pass);
-        vkCmdPushConstants(m_commandBuffer, computePass->GetPipelineLayout(), VK_SHADER_STAGE_ALL, offset, size, data);
-    };
-    IFRIT_APIDECL void CommandBuffer::SetPushConst(
-        Rhi::RhiGraphicsPass* pass, u32 offset, u32 size, const void* data) const
-    {
-        auto graphicsPass = CheckedCast<GraphicsPass>(pass);
-        vkCmdPushConstants(m_commandBuffer, graphicsPass->GetPipelineLayout(), VK_SHADER_STAGE_ALL, offset, size, data);
+        if (m_CmdContext->m_BoundType == CommandListContextPrivate::BoundType::Graphics)
+        {
+            auto graphicsPass = CheckedCast<GraphicsPass>(m_CmdContext->m_BoundPass.m_GraphicsPass);
+            vkCmdPushConstants(
+                m_commandBuffer, graphicsPass->GetPipelineLayout(), VK_SHADER_STAGE_ALL, offset, size, data);
+            return;
+        }
+        else if (m_CmdContext->m_BoundType == CommandListContextPrivate::BoundType::Compute)
+        {
+            auto computePass = CheckedCast<ComputePass>(m_CmdContext->m_BoundPass.m_ComputePass);
+            vkCmdPushConstants(
+                m_commandBuffer, computePass->GetPipelineLayout(), VK_SHADER_STAGE_ALL, offset, size, data);
+            return;
+        }
+        else
+        {
+            vkrError("Invalid command buffer bound type");
+        }
     };
 
     IFRIT_APIDECL void CommandBuffer::ClearUAVTexFloat(
@@ -623,13 +665,14 @@ namespace Ifrit::Graphics::VulkanGraphics
                 auto srcState     = barrier.m_transition.m_srcState;
                 if (srcState == Rhi::RhiResourceState::AutoTraced)
                 {
-                    if (barrier.m_transition.m_type == Rhi::RhiResourceType::Texture) {
+                    if (barrier.m_transition.m_type == Rhi::RhiResourceType::Texture)
+                    {
                         srcState = barrier.m_transition.m_texture->GetState();
                     }
-                    else {
+                    else
+                    {
                         srcState = barrier.m_transition.m_buffer->GetState();
                     }
-                    
                 }
                 else
                 {
@@ -783,7 +826,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         , m_InFlightFrames(m_InFlightFrames)
     {
         // m_commandPool       = std::make_unique<CommandPool>(ctx, family);
-        for (int i = 0; i < m_InFlightFrames; i++)
+        for (u32 i = 0; i < m_InFlightFrames; i++)
         {
             m_commandPools.push_back(std::make_unique<CommandPool>(ctx, family));
         }

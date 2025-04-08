@@ -495,7 +495,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL RhiVulkanBackend::~RhiVulkanBackend() { delete m_implDetails; }
 
-    IFRIT_APIDECL Rhi::RhiBindlessDescriptorRef* RhiVulkanBackend::createBindlessDescriptorRef()
+    IFRIT_APIDECL Rhi::RhiBindlessDescriptorRef* RhiVulkanBackend::CreateBindlessDescriptorRef()
     {
         auto ref = std::make_unique<DescriptorBindlessIndices>(CheckedCast<EngineContext>(m_device.get()),
             m_implDetails->m_descriptorManager.get(), m_swapChain->GetNumBackbuffers());
@@ -535,18 +535,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterUAVImage2(
-        Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource)
-    {
-        auto descriptorManager = m_implDetails->m_descriptorManager.get();
-        auto tex               = CheckedCast<SingleDeviceImage>(texture);
-        auto id                = descriptorManager->RegisterStorageImage(tex, subResource);
-        auto p                 = std::make_shared<Rhi::RhiDescHandleLegacy>();
-        p->ids.push_back(id);
-        p->activeFrame = 0;
-        return p;
-    }
-
     IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterStorageBufferShared(
         Rhi::RhiMultiBuffer* buffer)
     {
@@ -564,6 +552,61 @@ namespace Ifrit::Graphics::VulkanGraphics
         p->ids         = ids;
         p->activeFrame = m_swapChain->GetCurrentImageIndex();
         m_implDetails->m_bindlessIdRefs.push_back(p);
+        return p;
+    }
+
+    IFRIT_APIDECL Rhi::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(
+        Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource)
+    {
+        auto dm  = m_implDetails->m_descriptorManager.get();
+        auto tex = CheckedCast<SingleDeviceImage>(texture);
+        auto p   = dm->RegisterSampledImage(tex, subResource);
+        return p;
+    }
+    IFRIT_APIDECL Rhi::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(
+        Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource)
+    {
+        if (texture->GetDescId())
+        {
+            return texture->GetDescId();
+        }
+        auto dm  = m_implDetails->m_descriptorManager.get();
+        auto tex = CheckedCast<SingleDeviceImage>(texture);
+        auto p   = dm->RegisterStorageImage(tex, subResource);
+        texture->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, p));
+        return p;
+    }
+    IFRIT_APIDECL Rhi::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(Rhi::RhiTexture* texture)
+    {
+        return GetSRVDescriptor(texture, { 0, 0, 1, 1 });
+    }
+    IFRIT_APIDECL Rhi::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(Rhi::RhiTexture* texture)
+    {
+        return GetUAVDescriptor(texture, { 0, 0, 1, 1 });
+    }
+    IFRIT_APIDECL Rhi::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(Rhi::RhiBuffer* buffer)
+    {
+        // vulkan seems to not support buffer SRV, so we just return UAV
+        if (buffer->GetDescId())
+        {
+            return buffer->GetDescId();
+        }
+        auto dm  = m_implDetails->m_descriptorManager.get();
+        auto buf = CheckedCast<SingleBuffer>(buffer);
+        auto p   = dm->RegisterStorageBuffer(buf);
+        buffer->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageBuffer, p));
+        return p;
+    }
+    IFRIT_APIDECL Rhi::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(Rhi::RhiBuffer* buffer)
+    {
+        if (buffer->GetDescId())
+        {
+            return buffer->GetDescId();
+        }
+        auto dm  = m_implDetails->m_descriptorManager.get();
+        auto buf = CheckedCast<SingleBuffer>(buffer);
+        auto p   = dm->RegisterStorageBuffer(buf);
+        buffer->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageBuffer, p));
         return p;
     }
 

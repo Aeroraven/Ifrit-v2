@@ -373,7 +373,7 @@ namespace Ifrit::Runtime::Ayanami
                 pc.normalId      = card.m_CardNormalBuffer->GetDescId();
 
                 auto vioPass = const_cast<Graphics::Rhi::RhiGraphicsPass*>(ctx.m_GraphicsPass);
-                cmd->SetPushConst(vioPass, 0, sizeof(PushConst), &pc);
+                cmd->SetPushConst(&pc, 0, sizeof(PushConst));
                 cmd->DrawIndexed(card.m_IndexCounts, 1, 0, 0, 0);
             }
 

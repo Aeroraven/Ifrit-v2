@@ -241,8 +241,8 @@ namespace Ifrit::Runtime
         ResourceNode&     DeclareTexture(const String& name, const FrameGraphTextureDesc& desc);
         ResourceNode&     DeclareBuffer(const String& name, const FrameGraphBufferDesc& desc);
 
-        u32               GetUAV(const ResourceNode& res);
-        u32               GetSRV(const ResourceNode& res);
+        Graphics::Rhi::RhiUAVDesc         GetUAV(const ResourceNode& res);
+        Graphics::Rhi::RhiSRVDesc         GetSRV(const ResourceNode& res);
 
         inline Graphics::Rhi::RhiBackend* GetRhi() const { return m_Rhi; }
         inline ShaderRegistry*            GetShaderRegistry() const { return m_ShaderRegistry; }

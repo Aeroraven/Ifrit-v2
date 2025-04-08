@@ -125,16 +125,22 @@ namespace Ifrit::Graphics::Rhi
         virtual Uref<RhiTaskSubmission>    GetSwapchainRenderDoneEventHandler() = 0;
 
         // Descriptor, these are deprecated.
-        virtual RhiBindlessDescriptorRef*  createBindlessDescriptorRef() = 0;
-        virtual Ref<Rhi::RhiDescHandleLegacy> RegisterUAVImage2(
-            Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource)                                     = 0;
-        virtual Ref<RhiDescHandleLegacy> RegisterUniformBuffer(RhiMultiBuffer* buffer)                          = 0;
-        virtual Ref<RhiDescHandleLegacy> RegisterStorageBufferShared(RhiMultiBuffer* buffer)                    = 0;
-        virtual Ref<RhiDescHandleLegacy> RegisterCombinedImageSampler(RhiTexture* texture, RhiSampler* sampler) = 0;
+        virtual RhiBindlessDescriptorRef*  CreateBindlessDescriptorRef()                                          = 0;
+        virtual Ref<RhiDescHandleLegacy>   RegisterUniformBuffer(RhiMultiBuffer* buffer)                          = 0;
+        virtual Ref<RhiDescHandleLegacy>   RegisterStorageBufferShared(RhiMultiBuffer* buffer)                    = 0;
+        virtual Ref<RhiDescHandleLegacy>   RegisterCombinedImageSampler(RhiTexture* texture, RhiSampler* sampler) = 0;
+
+        // Descriptors
+        virtual RhiSRVDesc                 GetSRVDescriptor(RhiTexture* texture, RhiImageSubResource subResource) = 0;
+        virtual RhiUAVDesc                 GetUAVDescriptor(RhiTexture* texture, RhiImageSubResource subResource) = 0;
+        virtual RhiSRVDesc                 GetSRVDescriptor(RhiTexture* texture)                                  = 0;
+        virtual RhiUAVDesc                 GetUAVDescriptor(RhiTexture* texture)                                  = 0;
+        virtual RhiSRVDesc                 GetSRVDescriptor(RhiBuffer* buffer)                                    = 0;
+        virtual RhiUAVDesc                 GetUAVDescriptor(RhiBuffer* buffer)                                    = 0;
 
         // Render target
-        virtual Ref<RhiColorAttachment>  CreateRenderTarget(RhiTexture* renderTarget, RhiClearValue clearValue,
-             RhiRenderTargetLoadOp loadOp, u32 mip, u32 arrLayer) = 0;
+        virtual Ref<RhiColorAttachment>    CreateRenderTarget(RhiTexture* renderTarget, RhiClearValue clearValue,
+               RhiRenderTargetLoadOp loadOp, u32 mip, u32 arrLayer) = 0;
 
         virtual Ref<RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
             RhiTexture* renderTarget, RhiClearValue clearValue, RhiRenderTargetLoadOp loadOp) = 0;

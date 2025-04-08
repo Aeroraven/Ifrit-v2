@@ -64,9 +64,9 @@ namespace Ifrit::Runtime
         pass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
             for (auto i = 0; i < bindDescs.size(); i++)
             {
-                ctx->m_cmd->AttachBindlessRefGraphics(pass, i + 1, bindDescs[i]);
+                ctx->m_cmd->AttachUniformRef(i + 1, bindDescs[i]);
             }
-            ctx->m_cmd->SetPushConst(pass, 0, m_cfg.numPushConstants * sizeof(u32), pushConstants);
+            ctx->m_cmd->SetPushConst(pushConstants, 0, m_cfg.numPushConstants * sizeof(u32));
             ctx->m_cmd->AttachVertexBufferView(*rhi->GetFullScreenQuadVertexBufferView());
             ctx->m_cmd->AttachVertexBuffers(0, { rhi->GetFullScreenQuadVertexBuffer().get() });
             ctx->m_cmd->DrawInstanced(3, 1, 0, 0);

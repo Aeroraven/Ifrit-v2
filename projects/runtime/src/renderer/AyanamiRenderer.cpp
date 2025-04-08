@@ -60,7 +60,7 @@ namespace Ifrit::Runtime
         bool                                    m_debugShowMeshDF = false;
 
         GPUTexture                              m_DeferShadingOut    = nullptr;
-        Ref<GPUBindId>                          m_DeferShadingOutSRV = nullptr;
+        RhiSRVDesc                              m_DeferShadingOutSRV = 0;
         Ref<ColorRT>                            m_DeferShadingOutRT  = nullptr;
         Ref<GPURT>                              m_DeferShadingOutRTs = nullptr;
 
@@ -147,8 +147,8 @@ namespace Ifrit::Runtime
             m_resources->m_DeferShadingOutRTs->SetColorAttachments({ m_resources->m_DeferShadingOutRT.get() });
             m_resources->m_DeferShadingOutRTs->SetRenderArea({ 0, 0, width, height });
 
-            m_resources->m_DeferShadingOutSRV = rhi->RegisterCombinedImageSampler(
-                m_resources->m_DeferShadingOut.get(), m_app->GetSharedRenderResource()->GetLinearRepeatSampler().get());
+            m_resources->m_DeferShadingOutSRV =
+                rhi->GetSRVDescriptor(m_resources->m_DeferShadingOut.get(), { 0, 0, 1, 1 });
         }
 
         if (m_resources->m_DfssOut == nullptr)
@@ -336,7 +336,7 @@ namespace Ifrit::Runtime
             {
                 u32 raymarchOutput;
             } pc;
-            pc.raymarchOutput = m_resources->m_DeferShadingOutSRV->GetActiveId();
+            pc.raymarchOutput = m_resources->m_DeferShadingOutSRV;
             // pc.raymarchOutput = m_resources->m_surfaceCacheManager->GetRadianceSRVId();
             FrameGraphUtils::AddFullScreenQuadPass(fg, "Ayanami.DebugPass", Internal::kIntShaderTable.Ayanami.CopyVS,
                 Internal::kIntShaderTable.Ayanami.CopyFS, renderTargets, &pc, 1)

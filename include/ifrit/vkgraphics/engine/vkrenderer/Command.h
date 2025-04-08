@@ -123,19 +123,26 @@ namespace Ifrit::Graphics::VulkanGraphics
         friend class CommandBuffer;
     };
 
+    struct CommandListContextPrivate;
+
     class IFRIT_APIDECL CommandBuffer : public Rhi::RhiCommandList
     {
     private:
-        EngineContext*  m_context;
-        VkCommandBuffer m_commandBuffer;
-        u32             m_queueFamily;
+        EngineContext*             m_context;
+        VkCommandBuffer            m_commandBuffer;
+        u32                        m_queueFamily;
+        CommandListContextPrivate* m_CmdContext;
 
     public:
         CommandBuffer(EngineContext* ctx, VkCommandBuffer buffer, u32 queueFamily)
             : m_context(ctx), m_commandBuffer(buffer), m_queueFamily(queueFamily)
         {
+            InitPost();
         }
-        virtual ~CommandBuffer() {}
+        virtual ~CommandBuffer() { DestroyPost(); }
+
+        void                   InitPost();
+        void                   DestroyPost();
 
         inline u32             GetQueueFamily() const { return m_queueFamily; }
         void                   BeginRecord();
@@ -156,6 +163,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         void CopyBufferToImageAllInternal(const Rhi::RhiBuffer* srcBuffer, VkImage dstImage, VkImageLayout dstLayout,
             u32 width, u32 height, u32 depth) const;
 
+        void BindGraphicsInternal(Rhi::RhiGraphicsPass* pipeline);
+        void BindComputeInternal(Rhi::RhiComputePass* pipeline);
+
         // Rhi compatible
         void SetViewports(const Vec<Rhi::RhiViewport>& viewport) const override;
         void SetScissors(const Vec<Rhi::RhiScissor>& scissor) const override;
@@ -165,18 +175,15 @@ namespace Ifrit::Graphics::VulkanGraphics
         void AddImageBarrier(Rhi::RhiTexture* texture, Rhi::RhiResourceState src, Rhi::RhiResourceState dst,
             Rhi::RhiImageSubResource subResource) const; // DEPRECATED
 
-        void AttachBindlessRefGraphics(
-            Rhi::RhiGraphicsPass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const override;
-        void AttachBindlessRefCompute(
-            Rhi::RhiComputePass* pass, u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const override;
+        void AttachUniformRef(u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const override;
+
         void AttachVertexBufferView(const Rhi::RhiVertexBufferView& view) const override;
         void AttachVertexBuffers(u32 firstSlot, const Vec<Rhi::RhiBuffer*>& buffers) const override;
         void AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const override;
         void DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const override;
         void BufferClear(const Rhi::RhiBuffer* buffer, u32 val) const override;
         void DispatchIndirect(const Rhi::RhiBuffer* buffer, u32 offset) const override;
-        void SetPushConst(Rhi::RhiComputePass* pass, u32 offset, u32 size, const void* data) const override;
-        void SetPushConst(Rhi::RhiGraphicsPass* pass, u32 offset, u32 size, const void* data) const override;
+        void SetPushConst(const void* data, u32 offset, u32 size) const override;
         void ClearUAVTexFloat(const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource,
             const Array<float, 4>& val) const override;
         void AddResourceBarrier(const Vec<Rhi::RhiResourceBarrier>& barriers) const override;

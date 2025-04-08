@@ -436,7 +436,7 @@ namespace Ifrit::Runtime
             pushConst.m_atmoData = atmoData;
             pushConst.m_depthTex = primaryView.m_visibilityDepthIdSRV_Combined->GetActiveId();
             m_atmospherePass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
-                ctx->m_cmd->SetPushConst(m_atmospherePass, 0, sizeof(AtmoPushConst), &pushConst);
+                ctx->m_cmd->SetPushConst(&pushConst, 0, sizeof(AtmoPushConst));
                 auto wgX = Math::DivRoundUp(primaryView.m_renderWidth, SyaroConfig::cAtmoRenderThreadGroupSizeX);
                 auto wgY = Math::DivRoundUp(primaryView.m_renderHeight, SyaroConfig::cAtmoRenderThreadGroupSizeY);
                 ctx->m_cmd->Dispatch(wgX, wgY, 1);
@@ -853,7 +853,7 @@ namespace Ifrit::Runtime
             RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.PersistentCullingCS, 5, 3);
 
         m_indirectDrawBuffer = rhi->CreateBufferDevice("Syaro_IndirectDraw", u32Size * 1, kbBufUsage_Indirect, true);
-        m_persistCullDesc    = rhi->createBindlessDescriptorRef();
+        m_persistCullDesc    = rhi->CreateBindlessDescriptorRef();
         m_persistCullDesc->AddStorageBuffer(m_indirectDrawBuffer.get(), 0);
     }
 
@@ -931,7 +931,7 @@ namespace Ifrit::Runtime
 
         if (needRecreate)
         {
-            perframeData.m_matClassDesc = rhi->createBindlessDescriptorRef();
+            perframeData.m_matClassDesc = rhi->CreateBindlessDescriptorRef();
             perframeData.m_matClassDesc->AddUAVImage(perframeData.m_velocityMaterial.get(), { 0, 0, 1, 1 }, 0);
             perframeData.m_matClassDesc->AddStorageBuffer(perframeData.m_matClassCountBuffer.get(), 1);
             perframeData.m_matClassDesc->AddStorageBuffer(perframeData.m_matClassFinalBuffer.get(), 2);
@@ -981,7 +981,7 @@ namespace Ifrit::Runtime
         perframeData.m_motionVector = rhi->CreateTexture2D(
             "Syaro_Motion", actualRtWidth, actualRtHeight, kbImFmt_RG32F, kbImUsage_UAV_SRV_CopyDest, true);
 
-        perframeData.m_velocityMaterialDesc = rhi->createBindlessDescriptorRef();
+        perframeData.m_velocityMaterialDesc = rhi->CreateBindlessDescriptorRef();
         perframeData.m_velocityMaterialDesc->AddUAVImage(perframeData.m_velocityMaterial.get(), { 0, 0, 1, 1 }, 0);
 
         auto& primaryView = GetPrimaryView(perframeData);
@@ -990,7 +990,7 @@ namespace Ifrit::Runtime
         perframeData.m_velocityMaterialDesc->AddUAVImage(perframeData.m_motionVector.get(), { 0, 0, 1, 1 }, 2);
 
         // For gbuffer, depth is required to reconstruct position
-        perframeData.m_gbufferDepthDesc = rhi->createBindlessDescriptorRef();
+        perframeData.m_gbufferDepthDesc = rhi->CreateBindlessDescriptorRef();
         perframeData.m_gbufferDepthDesc->AddCombinedImageSampler(
             perframeData.m_velocityMaterial.get(), linearSampler.get(), 0);
     }
@@ -1011,7 +1011,7 @@ namespace Ifrit::Runtime
                 view.m_persistCullIndirectDispatch =
                     rhi->CreateBufferDevice("Syaro_InstCullDispatch", u32Size * 12, kbBufUsage_Indirect, true);
 
-                view.m_instCullDesc = rhi->createBindlessDescriptorRef();
+                view.m_instCullDesc = rhi->CreateBindlessDescriptorRef();
                 view.m_instCullDesc->AddStorageBuffer(view.m_instCullDiscardObj.get(), 0);
                 view.m_instCullDesc->AddStorageBuffer(view.m_instCullPassedObj.get(), 1);
                 view.m_instCullDesc->AddStorageBuffer(view.m_persistCullIndirectDispatch.get(), 2);
@@ -1050,13 +1050,12 @@ namespace Ifrit::Runtime
                 RhiResourceState::UnorderedAccess, { 0, 0, 1, 1 });
             runImageBarrier(ctx->m_cmd, perframeData.m_motionVector.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
             ctx->m_cmd->ClearUAVTexFloat(perframeData.m_motionVector.get(), { 0, 0, 1, 1 }, { 0.0f, 0.0f, 0.0f, 0.0f });
-            ctx->m_cmd->AttachBindlessRefCompute(m_emitDepthTargetsPass, 1, primaryView.m_viewBindlessRef);
-            ctx->m_cmd->AttachBindlessRefCompute(
-                m_emitDepthTargetsPass, 2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
-            ctx->m_cmd->AttachBindlessRefCompute(m_emitDepthTargetsPass, 3, primaryView.m_allFilteredMeshletsDesc);
-            ctx->m_cmd->AttachBindlessRefCompute(m_emitDepthTargetsPass, 4, perframeData.m_velocityMaterialDesc);
+            ctx->m_cmd->AttachUniformRef(1, primaryView.m_viewBindlessRef);
+            ctx->m_cmd->AttachUniformRef(2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+            ctx->m_cmd->AttachUniformRef(3, primaryView.m_allFilteredMeshletsDesc);
+            ctx->m_cmd->AttachUniformRef(4, perframeData.m_velocityMaterialDesc);
             u32 pcData[2] = { primaryView.m_renderWidth, primaryView.m_renderHeight };
-            ctx->m_cmd->SetPushConst(m_emitDepthTargetsPass, 0, u32Size * 2, &pcData[0]);
+            ctx->m_cmd->SetPushConst(&pcData[0], 0, u32Size * 2);
             u32 wgX = (pcData[0] + cEmitDepthGroupSizeX - 1) / cEmitDepthGroupSizeX;
             u32 wgY = (pcData[1] + cEmitDepthGroupSizeY - 1) / cEmitDepthGroupSizeY;
             ctx->m_cmd->Dispatch(wgX, wgY, 1);
@@ -1110,21 +1109,20 @@ namespace Ifrit::Runtime
                 ctx->m_cmd->BufferClear(perView.m_persistCullIndirectDispatch.get(), 0);
             }
             runUAVBufferBarrier(ctx->m_cmd, perView.m_persistCullIndirectDispatch.get());
-            ctx->m_cmd->AttachBindlessRefCompute(m_instanceCullingPass, 1, perView.m_viewBindlessRef);
-            ctx->m_cmd->AttachBindlessRefCompute(
-                m_instanceCullingPass, 2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
-            ctx->m_cmd->AttachBindlessRefCompute(m_instanceCullingPass, 3, perView.m_instCullDesc);
-            ctx->m_cmd->AttachBindlessRefCompute(m_instanceCullingPass, 4, perView.m_spHiZData.m_hizDesc);
+            ctx->m_cmd->AttachUniformRef(1, perView.m_viewBindlessRef);
+            ctx->m_cmd->AttachUniformRef(2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+            ctx->m_cmd->AttachUniformRef(3, perView.m_instCullDesc);
+            ctx->m_cmd->AttachUniformRef(4, perView.m_spHiZData.m_hizDesc);
 
             if (cullPass == CullingPass::First)
             {
-                ctx->m_cmd->SetPushConst(m_instanceCullingPass, 0, u32Size * 2, &pcDataInstCull[0]);
+                ctx->m_cmd->SetPushConst(&pcDataInstCull[0], 0, u32Size * 2);
                 auto tgx = DivRoundUp(SizeCast<u32>(numObjs), SyaroConfig::cInstanceCullingThreadGroupSizeX);
                 ctx->m_cmd->Dispatch(tgx, 1, 1);
             }
             else if (cullPass == CullingPass::Second)
             {
-                ctx->m_cmd->SetPushConst(m_instanceCullingPass, 0, u32Size * 2, &pcDataInstCull[2]);
+                ctx->m_cmd->SetPushConst(&pcDataInstCull[2], 0, u32Size * 2);
                 ctx->m_cmd->DispatchIndirect(perView.m_persistCullIndirectDispatch.get(), 3 * u32Size);
             }
         });
@@ -1146,12 +1144,11 @@ namespace Ifrit::Runtime
             runUAVBufferBarrier(ctx->m_cmd, perView.m_allFilteredMeshletsAllCount.get());
             runUAVBufferBarrier(ctx->m_cmd, m_indirectDrawBuffer.get());
             // bind view buffer
-            ctx->m_cmd->AttachBindlessRefCompute(m_persistentCullingPass, 1, perView.m_viewBindlessRef);
-            ctx->m_cmd->AttachBindlessRefCompute(
-                m_persistentCullingPass, 2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
-            ctx->m_cmd->AttachBindlessRefCompute(m_persistentCullingPass, 3, m_persistCullDesc);
-            ctx->m_cmd->AttachBindlessRefCompute(m_persistentCullingPass, 4, perView.m_allFilteredMeshletsDesc);
-            ctx->m_cmd->AttachBindlessRefCompute(m_persistentCullingPass, 5, perView.m_instCullDesc);
+            ctx->m_cmd->AttachUniformRef(1, perView.m_viewBindlessRef);
+            ctx->m_cmd->AttachUniformRef(2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
+            ctx->m_cmd->AttachUniformRef(3, m_persistCullDesc);
+            ctx->m_cmd->AttachUniformRef(4, perView.m_allFilteredMeshletsDesc);
+            ctx->m_cmd->AttachUniformRef(5, perView.m_instCullDesc);
             if (perView.m_viewType == PerFrameData::ViewType::Primary)
             {
                 pcPersistCull.rejectSwRaster = 0;
@@ -1165,7 +1162,7 @@ namespace Ifrit::Runtime
                 pcPersistCull.passNo   = 0;
                 pcPersistCull.swOffset = perView.m_allFilteredMeshlets_SWOffset;
 
-                ctx->m_cmd->SetPushConst(m_persistentCullingPass, 0, sizeof(PersistCullPushConst), &pcPersistCull);
+                ctx->m_cmd->SetPushConst(&pcPersistCull, 0, sizeof(PersistCullPushConst));
                 ctx->m_cmd->DispatchIndirect(perView.m_persistCullIndirectDispatch.get(), 0);
             }
             else if (cullPass == CullingPass::Second)
@@ -1173,7 +1170,7 @@ namespace Ifrit::Runtime
                 pcPersistCull.passNo   = 1;
                 pcPersistCull.swOffset = perView.m_allFilteredMeshlets_SWOffset;
 
-                ctx->m_cmd->SetPushConst(m_persistentCullingPass, 0, sizeof(PersistCullPushConst), &pcPersistCull);
+                ctx->m_cmd->SetPushConst(&pcPersistCull, 0, sizeof(PersistCullPushConst));
                 ctx->m_cmd->DispatchIndirect(perView.m_persistCullIndirectDispatch.get(), 6 * u32Size);
             }
         });
@@ -1182,18 +1179,18 @@ namespace Ifrit::Runtime
             (filteredViewType == PerFrameData::ViewType::Primary) ? m_visibilityPassHW : m_depthOnlyVisibilityPassHW;
         visPassHW->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
             // bind view buffer
-            ctx->m_cmd->AttachBindlessRefGraphics(visPassHW, 1, perView.m_viewBindlessRef);
-            ctx->m_cmd->AttachBindlessRefGraphics(visPassHW, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
+            ctx->m_cmd->AttachUniformRef(1, perView.m_viewBindlessRef);
+            ctx->m_cmd->AttachUniformRef(2, perframeData.m_allInstanceData.m_batchedObjBufRef);
             ctx->m_cmd->SetCullMode(RhiCullMode::Back);
-            ctx->m_cmd->AttachBindlessRefGraphics(visPassHW, 3, perView.m_allFilteredMeshletsDesc);
+            ctx->m_cmd->AttachUniformRef(3, perView.m_allFilteredMeshletsDesc);
             if (cullPass == CullingPass::First)
             {
-                ctx->m_cmd->SetPushConst(visPassHW, 0, u32Size, &pcData[0]);
+                ctx->m_cmd->SetPushConst(&pcData[0], 0, u32Size);
                 ctx->m_cmd->DrawMeshTasksIndirect(perView.m_allFilteredMeshletsAllCount.get(), u32Size * 3, 1, 0);
             }
             else
             {
-                ctx->m_cmd->SetPushConst(visPassHW, 0, u32Size, &pcData[1]);
+                ctx->m_cmd->SetPushConst(&pcData[1], 0, u32Size);
                 ctx->m_cmd->DrawMeshTasksIndirect(perView.m_allFilteredMeshletsAllCount.get(), u32Size * 0, 1, 0);
             }
         });
@@ -1214,9 +1211,9 @@ namespace Ifrit::Runtime
             runUAVBufferBarrier(ctx->m_cmd, perView.m_visPassDepth_SW.get());
             runUAVBufferBarrier(ctx->m_cmd, perView.m_visPassDepthCASLock_SW.get());
             // bind view buffer
-            ctx->m_cmd->AttachBindlessRefCompute(visPassSW, 1, perView.m_viewBindlessRef);
-            ctx->m_cmd->AttachBindlessRefCompute(visPassSW, 2, perframeData.m_allInstanceData.m_batchedObjBufRef);
-            ctx->m_cmd->AttachBindlessRefCompute(visPassSW, 3, perView.m_allFilteredMeshletsDesc);
+            ctx->m_cmd->AttachUniformRef(1, perView.m_viewBindlessRef);
+            ctx->m_cmd->AttachUniformRef(2, perframeData.m_allInstanceData.m_batchedObjBufRef);
+            ctx->m_cmd->AttachUniformRef(3, perView.m_allFilteredMeshletsDesc);
 
             struct SWPushConst
             {
@@ -1235,7 +1232,7 @@ namespace Ifrit::Runtime
             pcsw.rtWidth       = perView.m_renderWidth;
             pcsw.swOffset      = perView.m_allFilteredMeshlets_SWOffset;
             pcsw.casBufferId   = perView.m_visPassDepthCASLock_SW->GetDescId();
-            ctx->m_cmd->SetPushConst(visPassSW, 0, sizeof(SWPushConst), &pcsw);
+            ctx->m_cmd->SetPushConst(&pcsw, 0, sizeof(SWPushConst));
             if (cullPass == CullingPass::First)
             {
                 ctx->m_cmd->DispatchIndirect(perView.m_allFilteredMeshletsAllCount.get(), u32Size * 13);
@@ -1284,7 +1281,7 @@ namespace Ifrit::Runtime
 
             auto              tgX = Math::DivRoundUp(pcCombine.rtWidth, wgSizeX);
             auto              tgY = Math::DivRoundUp(pcCombine.rtHeight, wgSizeY);
-            cmd->SetPushConst(combinePass, 0, sizeof(pcCombine), &pcCombine);
+            cmd->SetPushConst(&pcCombine, 0, sizeof(pcCombine));
             ctx->m_cmd->Dispatch(tgX, tgY, 1);
         });
 
@@ -1390,23 +1387,23 @@ namespace Ifrit::Runtime
             ctx->m_cmd->BufferClear(perframeData.m_matClassCountBuffer.get(), 0);
             runUAVBufferBarrier(ctx->m_cmd, perframeData.m_matClassCountBuffer.get());
 
-            ctx->m_cmd->AttachBindlessRefCompute(m_matclassCountPass, 1, perframeData.m_matClassDesc);
-            ctx->m_cmd->SetPushConst(m_matclassCountPass, 0, u32Size * 3, &pcData[0]);
+            ctx->m_cmd->AttachUniformRef(1, perframeData.m_matClassDesc);
+            ctx->m_cmd->SetPushConst(&pcData[0], 0, u32Size * 3);
             ctx->m_cmd->Dispatch(wgX, wgY, 1);
         });
 
         // Reserving
         auto wgX2 = (totalMaterials + cMatClassGroupSizeReserveX - 1) / cMatClassGroupSizeReserveX;
         m_matclassReservePass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
-            ctx->m_cmd->AttachBindlessRefCompute(m_matclassReservePass, 1, perframeData.m_matClassDesc);
-            ctx->m_cmd->SetPushConst(m_matclassReservePass, 0, u32Size * 3, &pcData[0]);
+            ctx->m_cmd->AttachUniformRef(1, perframeData.m_matClassDesc);
+            ctx->m_cmd->SetPushConst(&pcData[0], 0, u32Size * 3);
             ctx->m_cmd->Dispatch(wgX2, 1, 1);
         });
 
         // Scatter
         m_matclassScatterPass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
-            ctx->m_cmd->AttachBindlessRefCompute(m_matclassScatterPass, 1, perframeData.m_matClassDesc);
-            ctx->m_cmd->SetPushConst(m_matclassScatterPass, 0, u32Size * 3, &pcData[0]);
+            ctx->m_cmd->AttachUniformRef(1, perframeData.m_matClassDesc);
+            ctx->m_cmd->SetPushConst(&pcData[0], 0, u32Size * 3);
             ctx->m_cmd->Dispatch(wgX, wgY, 1);
         });
 
@@ -1631,17 +1628,15 @@ namespace Ifrit::Runtime
             auto& primaryView = GetPrimaryView(perframeData);
             for (int i = 0; i < numMaterials; i++)
             {
-                ctx->m_cmd->AttachBindlessRefCompute(m_defaultEmitGBufferPass, 1, perframeData.m_matClassDesc);
-                ctx->m_cmd->AttachBindlessRefCompute(m_defaultEmitGBufferPass, 2, perframeData.m_gbuffer.m_gbufferDesc);
-                ctx->m_cmd->AttachBindlessRefCompute(m_defaultEmitGBufferPass, 3, primaryView.m_viewBindlessRef);
-                ctx->m_cmd->AttachBindlessRefCompute(
-                    m_defaultEmitGBufferPass, 4, perframeData.m_shaderEffectData[i].m_batchedObjBufRef);
-                ctx->m_cmd->AttachBindlessRefCompute(
-                    m_defaultEmitGBufferPass, 5, primaryView.m_allFilteredMeshletsDesc);
-                ctx->m_cmd->AttachBindlessRefCompute(m_defaultEmitGBufferPass, 6, perframeData.m_velocityMaterialDesc);
+                ctx->m_cmd->AttachUniformRef(1, perframeData.m_matClassDesc);
+                ctx->m_cmd->AttachUniformRef(2, perframeData.m_gbuffer.m_gbufferDesc);
+                ctx->m_cmd->AttachUniformRef(3, primaryView.m_viewBindlessRef);
+                ctx->m_cmd->AttachUniformRef(4, perframeData.m_shaderEffectData[i].m_batchedObjBufRef);
+                ctx->m_cmd->AttachUniformRef(5, primaryView.m_allFilteredMeshletsDesc);
+                ctx->m_cmd->AttachUniformRef(6, perframeData.m_velocityMaterialDesc);
 
                 pcData[0] = i;
-                ctx->m_cmd->SetPushConst(m_defaultEmitGBufferPass, 0, u32Size * 3, &pcData[0]);
+                ctx->m_cmd->SetPushConst(&pcData[0], 0, u32Size * 3);
                 RhiResourceBarrier barrierCountBuffer;
                 barrierCountBuffer.m_type         = RhiBarrierType::UAVAccess;
                 barrierCountBuffer.m_uav.m_buffer = perframeData.m_matClassCountBuffer.get();
@@ -1743,7 +1738,7 @@ namespace Ifrit::Runtime
             perframeData.m_allInstanceData.m_lastObjectCount = totalInstances;
             perframeData.m_allInstanceData.m_batchedObjectData =
                 rhi->CreateBufferCoherent(totalInstances * sizeof(PerObjectData), kbBufUsage_SSBO);
-            perframeData.m_allInstanceData.m_batchedObjBufRef = rhi->createBindlessDescriptorRef();
+            perframeData.m_allInstanceData.m_batchedObjBufRef = rhi->CreateBindlessDescriptorRef();
             auto buf                                          = perframeData.m_allInstanceData.m_batchedObjectData;
             perframeData.m_allInstanceData.m_batchedObjBufRef->AddStorageBuffer(buf.get(), 0);
         }
@@ -1808,7 +1803,7 @@ namespace Ifrit::Runtime
                 perView.m_allFilteredMeshletsSW        = allFilteredMeshletsSW;
 #endif
 
-                perView.m_allFilteredMeshletsDesc = rhi->createBindlessDescriptorRef();
+                perView.m_allFilteredMeshletsDesc = rhi->CreateBindlessDescriptorRef();
                 perView.m_allFilteredMeshletsDesc->AddStorageBuffer(perView.m_allFilteredMeshletsHW.get(), 0);
 #if SYARO_ENABLE_SW_RASTERIZER
                 perView.m_allFilteredMeshletsDesc->AddStorageBuffer(perView.m_allFilteredMeshletsSW.get(), 1);
@@ -1922,7 +1917,7 @@ namespace Ifrit::Runtime
         perframeData.m_taaHistory.resize(2);
         perframeData.m_taaHistory[0].m_width  = width;
         perframeData.m_taaHistory[0].m_height = height;
-        perframeData.m_taaHistoryDesc         = rhi->createBindlessDescriptorRef();
+        perframeData.m_taaHistoryDesc         = rhi->CreateBindlessDescriptorRef();
         auto rtFormat                         = renderTargets->GetFormat();
 
         perframeData.m_taaUnresolved =

@@ -45,6 +45,9 @@ namespace Ifrit::Runtime
         {
             return m_Size == other.m_Size && m_Usage == other.m_Usage;
         }
+
+        FrameGraphBufferDesc(u32 size, u32 usage) : m_Size(size), m_Usage(usage) {}
+        FrameGraphBufferDesc() : m_Size(0), m_Usage(0) {}
     };
 
     struct FrameGraphTextureDesc
@@ -73,6 +76,19 @@ namespace Ifrit::Runtime
         {
             return m_Width == other.m_Width && m_Height == other.m_Height && m_Depth == other.m_Depth
                 && m_Format == other.m_Format && m_Usage == other.m_Usage;
+        }
+
+        FrameGraphTextureDesc(u32 width, u32 height, u32 depth, Graphics::Rhi::RhiImageFormat format, u32 usage)
+            : m_Width(width), m_Height(height), m_Depth(depth), m_Format(format), m_Usage(usage)
+        {
+        }
+        FrameGraphTextureDesc()
+            : m_Width(0)
+            , m_Height(0)
+            , m_Depth(0)
+            , m_Format(Graphics::Rhi::RhiImageFormat::RhiImgFmt_UNDEFINED)
+            , m_Usage(0)
+        {
         }
     };
 

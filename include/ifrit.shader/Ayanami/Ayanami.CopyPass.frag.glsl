@@ -25,13 +25,13 @@ layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
 
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 layout(push_constant) uniform PushConstant{
     uint rayMarchResult;
 } pc;
 
-
 void main(){
-    vec4 color = texture(GetSampler2D(pc.rayMarchResult), texCoord);
+    vec4 color = SampleTexture2D(pc.rayMarchResult,sLinearClamp,texCoord);
     outColor = vec4(color.xyz, 1.0);
 }

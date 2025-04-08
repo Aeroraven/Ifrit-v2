@@ -271,7 +271,7 @@ namespace Ifrit::Runtime
         pcTransmittance.atmoData         = data->m_atmosphereParamsBuffer->GetDescId();
         pcTransmittance.transmittanceRef = data->m_transmittance->GetDescId();
         m_transmittancePrecomputePass->SetRecordFunction([&](RhiRenderPassContext* ctx) {
-            ctx->m_cmd->SetPushConst(m_transmittancePrecomputePass, 0, sizeof(pcTransmittance), &pcTransmittance);
+            ctx->m_cmd->SetPushConst(&pcTransmittance, 0, sizeof(pcTransmittance));
             IF_CONSTEXPR auto wgX =
                 DivRoundUp(AtmospherePASConfig::TRANSMITTANCE_TEXTURE_WIDTH, AtmospherePASConfig::cPasTransmittanceTGX);
             IF_CONSTEXPR auto wgY = DivRoundUp(
@@ -302,7 +302,7 @@ namespace Ifrit::Runtime
         pcIrradiance.irradianceRef      = data->m_irradiance->GetDescId();
         pcIrradiance.deltaIrradianceRef = data->m_deltaIrradiance->GetDescId();
         m_irradiancePrecomputePass->SetRecordFunction([&](RhiRenderPassContext* ctx) {
-            ctx->m_cmd->SetPushConst(m_irradiancePrecomputePass, 0, sizeof(pcIrradiance), &pcIrradiance);
+            ctx->m_cmd->SetPushConst(&pcIrradiance, 0, sizeof(pcIrradiance));
             IF_CONSTEXPR auto wgX =
                 DivRoundUp(AtmospherePASConfig::IRRADIANCE_TEXTURE_WIDTH, AtmospherePASConfig::cPasIrradianceTGX);
             IF_CONSTEXPR auto wgY =
@@ -330,7 +330,7 @@ namespace Ifrit::Runtime
         pSingleScattering.singleMieScattering  = data->m_optionalSingleMieScattering->GetDescId();
         pSingleScattering.transmittanceSampler = data->m_transmittanceCombSamplerId->GetActiveId();
         m_singleScatteringPass->SetRecordFunction([&](RhiRenderPassContext* ctx) {
-            ctx->m_cmd->SetPushConst(m_singleScatteringPass, 0, sizeof(pSingleScattering), &pSingleScattering);
+            ctx->m_cmd->SetPushConst(&pSingleScattering, 0, sizeof(pSingleScattering));
             IF_CONSTEXPR auto wgX =
                 DivRoundUp(AtmospherePASConfig::SCATTERING_TEXTURE_WIDTH, AtmospherePASConfig::cPasSingleScatteringTGX);
             IF_CONSTEXPR auto wgY = DivRoundUp(
@@ -412,7 +412,7 @@ namespace Ifrit::Runtime
             pMultipleScattering.scatteringDensitySamp   = data->m_deltaScatteringDensityCombSamplerId->GetActiveId();
 
             m_scatteringDensity->SetRecordFunction([&](RhiRenderPassContext* ctx) {
-                ctx->m_cmd->SetPushConst(m_scatteringDensity, 0, sizeof(pScatteringDensity), &pScatteringDensity);
+                ctx->m_cmd->SetPushConst(&pScatteringDensity, 0, sizeof(pScatteringDensity));
                 IF_CONSTEXPR auto wgX = DivRoundUp(
                     AtmospherePASConfig::SCATTERING_TEXTURE_WIDTH, AtmospherePASConfig::cPasScatteringDensityTGX);
                 IF_CONSTEXPR auto wgY = DivRoundUp(
@@ -423,8 +423,7 @@ namespace Ifrit::Runtime
             });
 
             m_indirectIrradiancePass->SetRecordFunction([&](RhiRenderPassContext* ctx) {
-                ctx->m_cmd->SetPushConst(
-                    m_indirectIrradiancePass, 0, sizeof(pIndirectIrradiance), &pIndirectIrradiance);
+                ctx->m_cmd->SetPushConst(&pIndirectIrradiance, 0, sizeof(pIndirectIrradiance));
                 IF_CONSTEXPR auto wgX = DivRoundUp(
                     AtmospherePASConfig::IRRADIANCE_TEXTURE_WIDTH, AtmospherePASConfig::cPasIndirectIrradianceTGX);
                 IF_CONSTEXPR auto wgY = DivRoundUp(
@@ -433,8 +432,7 @@ namespace Ifrit::Runtime
             });
 
             m_multipleScatteringPass->SetRecordFunction([&](RhiRenderPassContext* ctx) {
-                ctx->m_cmd->SetPushConst(
-                    m_multipleScatteringPass, 0, sizeof(pMultipleScattering), &pMultipleScattering);
+                ctx->m_cmd->SetPushConst(&pMultipleScattering, 0, sizeof(pMultipleScattering));
                 IF_CONSTEXPR auto wgX = DivRoundUp(
                     AtmospherePASConfig::SCATTERING_TEXTURE_WIDTH, AtmospherePASConfig::cPasMultipleScatteringTGX);
                 IF_CONSTEXPR auto wgY = DivRoundUp(
