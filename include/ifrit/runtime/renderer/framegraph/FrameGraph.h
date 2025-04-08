@@ -45,6 +45,7 @@ namespace Ifrit::Runtime
 
     class FrameGraphCompiler;
     class FrameGraphExecutor;
+    class IFrameGraphDescRegistry;
 
     enum class FrameGraphResourceType
     {
@@ -74,6 +75,7 @@ namespace Ifrit::Runtime
 
     struct FrameGraphPassContext
     {
+        const IFrameGraphDescRegistry*        m_FgDesc;
         const Graphics::Rhi::RhiCommandList*  m_CmdList;
         const Graphics::Rhi::RhiGraphicsPass* m_GraphicsPass;
         const Graphics::Rhi::RhiComputePass*  m_ComputePass;
@@ -277,7 +279,14 @@ namespace Ifrit::Runtime
         friend class FrameGraphBuilder;
     };
 
-    class IFRIT_APIDECL FrameGraphBuilder
+    class IFRIT_APIDECL IFrameGraphDescRegistry
+    {
+    public:
+        virtual Graphics::Rhi::RhiUAVDesc GetUAV(const ResourceNode& res) const = 0;
+        virtual Graphics::Rhi::RhiSRVDesc GetSRV(const ResourceNode& res) const = 0;
+    };
+
+    class IFRIT_APIDECL FrameGraphBuilder : public IFrameGraphDescRegistry
     {
     private:
         Vec<ResourceNode*>          m_resources;
@@ -308,8 +317,12 @@ namespace Ifrit::Runtime
         ResourceNode&     DeclareTexture(const String& name, const FrameGraphTextureDesc& desc);
         ResourceNode&     DeclareBuffer(const String& name, const FrameGraphBufferDesc& desc);
 
-        Graphics::Rhi::RhiUAVDesc         GetUAV(const ResourceNode& res);
-        Graphics::Rhi::RhiSRVDesc         GetSRV(const ResourceNode& res);
+        ResourceNode&     ImportTexture(
+                const String& name, FgTexture* texture, const FgTextureSubResource& subResource = { 0, 0, 1, 1 });
+        ResourceNode&                     ImportBuffer(const String& name, FgBuffer* buffer);
+
+        Graphics::Rhi::RhiUAVDesc         GetUAV(const ResourceNode& res) const override;
+        Graphics::Rhi::RhiSRVDesc         GetSRV(const ResourceNode& res) const override;
 
         inline Graphics::Rhi::RhiBackend* GetRhi() const { return m_Rhi; }
         inline ShaderRegistry*            GetShaderRegistry() const { return m_ShaderRegistry; }

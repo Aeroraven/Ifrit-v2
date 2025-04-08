@@ -61,12 +61,6 @@ namespace Ifrit::Runtime
         bool                                    m_inited          = false;
         bool                                    m_debugShowMeshDF = false;
 
-        GPUTexture                              m_DeferShadingOut    = nullptr;
-        RhiSRVDesc                              m_DeferShadingOutSRV = 0;
-
-        GPUTexture                              m_DfssOut          = nullptr;
-        Ref<GPUBindId>                          m_DfssOutSRVBindId = nullptr;
-
         Ref<FrameGraphResourcePool>             m_ResourcePool = nullptr;
     };
 
@@ -134,26 +128,6 @@ namespace Ifrit::Runtime
             m_resources->m_raymarchOutputSRVBindId =
                 rhi->RegisterCombinedImageSampler(m_resources->m_raymarchOutput.get(), sampler.get());
         }
-
-        if (m_resources->m_DeferShadingOut == nullptr)
-        {
-            m_resources->m_DeferShadingOut = rhi->CreateTexture2D("Ayanami_DeferShadingOut", width, height,
-                RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                RhiImageUsage::RhiImgUsage_RenderTarget | RhiImgUsage_ShaderRead, false);
-
-            m_resources->m_DeferShadingOutSRV =
-                rhi->GetSRVDescriptor(m_resources->m_DeferShadingOut.get(), { 0, 0, 1, 1 });
-        }
-
-        if (m_resources->m_DfssOut == nullptr)
-        {
-            m_resources->m_DfssOut =
-                rhi->CreateTexture2D("Ayanami_DFSSOut", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                    RhiImageUsage::RhiImgUsage_RenderTarget | RhiImgUsage_ShaderRead, false);
-
-            m_resources->m_DfssOutSRVBindId = rhi->RegisterCombinedImageSampler(
-                m_resources->m_DfssOut.get(), m_app->GetSharedRenderResource()->GetLinearRepeatSampler().get());
-        }
     }
 
     IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(
@@ -169,38 +143,32 @@ namespace Ifrit::Runtime
         if IF_CONSTEXPR (false)
             iWarn("Just here to make clang-format happy");
 
+        // Import resources
         auto& resSurfaceCacheAlbedo =
-            fg.AddResource("SurfaceCacheAlbedo")
-                .SetImportedResource(m_resources->m_surfaceCacheManager->GetAlbedoAtlas().get(), { 0, 0, 1, 1 });
+            fg.ImportTexture("SurfaceCacheAlbedo", m_resources->m_surfaceCacheManager->GetAlbedoAtlas().get());
         auto& resSurfaceCacheNormal =
-            fg.AddResource("SurfaceCacheNormal")
-                .SetImportedResource(m_resources->m_surfaceCacheManager->GetNormalAtlas().get(), { 0, 0, 1, 1 });
+            fg.ImportTexture("SurfaceCacheNormal", m_resources->m_surfaceCacheManager->GetNormalAtlas().get());
         auto& resSuraceCacheDepth =
-            fg.AddResource("SurfaceCacheDepth")
-                .SetImportedResource(m_resources->m_surfaceCacheManager->GetDepthAtlas().get(), { 0, 0, 1, 1 });
+            fg.ImportTexture("SurfaceCacheDepth", m_resources->m_surfaceCacheManager->GetDepthAtlas().get());
         auto& resDirectRadiance =
-            fg.AddResource("DirectRadiance")
-                .SetImportedResource(m_resources->m_surfaceCacheManager->GetRadianceAtlas().get(), { 0, 0, 1, 1 });
+            fg.ImportTexture("DirectRadiance", m_resources->m_surfaceCacheManager->GetRadianceAtlas().get());
         auto& resTracedRadiance =
-            fg.AddResource("TracedRadiance")
-                .SetImportedResource(
-                    m_resources->m_surfaceCacheManager->GetTracedRadianceAtlas().get(), { 0, 0, 1, 1 });
-
-        auto& resRaymarchOutput =
-            fg.AddResource("RaymarchOutput").SetImportedResource(m_resources->m_raymarchOutput.get(), { 0, 0, 1, 1 });
-        auto& resGlobalDFGen =
-            fg.AddResource("GlobalDFGen").SetImportedResource(m_globalDF->GetClipmapVolume(0).get(), { 0, 0, 1, 1 });
+            fg.ImportTexture("TracedRadiance", m_resources->m_surfaceCacheManager->GetTracedRadianceAtlas().get());
+        auto& resRaymarchOutput = fg.ImportTexture("RaymarchOutput", m_resources->m_raymarchOutput.get());
+        auto& resGlobalDFGen    = fg.ImportTexture("GlobalDFGen", m_globalDF->GetClipmapVolume(0).get());
         auto& resRenderTargets =
-            fg.AddResource("RenderTargets")
-                .SetImportedResource(renderTargets->GetColorAttachment(0)->GetRenderTarget(), { 0, 0, 1, 1 });
-        auto& resDeferOut =
-            fg.AddResource("DeferShadingOut").SetImportedResource(m_resources->m_DeferShadingOut.get(), { 0, 0, 1, 1 });
-        auto& resGNormal = fg.AddResource("GBufferNormal")
-                               .SetImportedResource(perframe.m_gbuffer.m_normal_smoothness.get(), { 0, 0, 1, 1 });
-        auto& resGDepth =
-            fg.AddResource("GBufferDepth")
-                .SetImportedResource(perframe.m_views[0].m_visibilityDepth_Combined.get(), { 0, 0, 1, 1 });
-        auto& resDfssOut = fg.AddResource("DfssOut").SetImportedResource(m_resources->m_DfssOut.get(), { 0, 0, 1, 1 });
+            fg.ImportTexture("RenderTargets", renderTargets->GetColorAttachment(0)->GetRenderTarget());
+        auto& resGNormal = fg.ImportTexture("GBufferNormal", perframe.m_gbuffer.m_normal_smoothness.get());
+        auto& resGDepth  = fg.ImportTexture("GBufferDepth", perframe.m_views[0].m_visibilityDepth_Combined.get());
+
+        // Managed resources
+        auto& resDfssOut = fg.DeclareTexture("DFSSOut",
+            FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead));
+
+        auto& resDeferOut = fg.DeclareTexture("DeferShadingOut",
+            FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead));
 
         // Pass Global DF Generation
         if (!m_resources->m_inited)
@@ -304,16 +272,18 @@ namespace Ifrit::Runtime
                 Vector4f lightDir;
                 u32      normalSRV;
                 u32      perframeId;
-                u32      shadowMapSRV;
+                u32      m_ShadowMapSRV = 0;
             } pc;
-            pc.normalSRV    = perframe.m_gbuffer.m_normal_smoothness_sampId->GetActiveId();
-            pc.perframeId   = perframe.m_views[0].m_viewBufferId->GetActiveId();
-            auto l          = sceneLights.m_LightFronts[0];
-            pc.lightDir     = Vector4f{ l.x, l.y, l.z, 0.0f };
-            pc.shadowMapSRV = m_resources->m_DfssOutSRVBindId->GetActiveId();
+            pc.normalSRV  = perframe.m_gbuffer.m_normal_smoothness_sampId->GetActiveId();
+            pc.perframeId = perframe.m_views[0].m_viewBufferId->GetActiveId();
+            auto l        = sceneLights.m_LightFronts[0];
+            pc.lightDir   = Vector4f{ l.x, l.y, l.z, 0.0f };
             AddPostProcessPass<PushConst>(fg, "Ayanami.DeferredShading",
                 Internal::kIntShaderTable.Ayanami.TestDeferShadingFS, pc,
-                [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); })
+                [&resDfssOut](PushConst data, const FrameGraphPassContext& ctx) {
+                    data.m_ShadowMapSRV = ctx.m_FgDesc->GetSRV(resDfssOut);
+                    SetRootSignature(data, ctx);
+                })
                 .AddRenderTarget(resDeferOut)
                 .AddReadResource(resDfssOut)
                 .AddReadResource(resSurfaceCacheNormal);
@@ -323,13 +293,14 @@ namespace Ifrit::Runtime
         {
             struct PushConst
             {
-                u32 raymarchOutput;
+                u32 raymarchOutput = 0;
             } pc;
-            pc.raymarchOutput = m_resources->m_DeferShadingOutSRV;
-            // pc.raymarchOutput = m_resources->m_surfaceCacheManager->GetRadianceSRVId();
             AddFullScreenQuadPass<PushConst>(fg, "Ayanami.DebugPass", Internal::kIntShaderTable.Ayanami.CopyVS,
                 Internal::kIntShaderTable.Ayanami.CopyFS, pc,
-                [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); })
+                [&resDeferOut](PushConst data, const FrameGraphPassContext& ctx) {
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDeferOut);
+                    SetRootSignature(data, ctx);
+                })
                 .AddRenderTarget(resRenderTargets)
                 .AddReadResource(resRaymarchOutput)
                 .AddReadResource(resDirectRadiance)

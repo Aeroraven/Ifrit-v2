@@ -118,7 +118,7 @@ namespace Ifrit::Runtime
         for (auto id : m_ManagedTextures)
         {
             auto ptr = m_TexturePool.GetPtrFromIndex(id);
-            m_BufferPool.DeallocateIndexed(id);
+            m_TexturePool.DeallocateIndexed(id);
         }
     }
 

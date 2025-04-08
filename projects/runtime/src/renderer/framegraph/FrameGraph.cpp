@@ -290,7 +290,7 @@ namespace Ifrit::Runtime
         return *pass;
     }
 
-    ResourceNode& FrameGraphBuilder::DeclareTexture(const String& name, const FrameGraphTextureDesc& desc)
+    IFRIT_APIDECL ResourceNode& FrameGraphBuilder::DeclareTexture(const String& name, const FrameGraphTextureDesc& desc)
     {
         auto& node = AddResource(name);
         node.type  = FrameGraphResourceType::ResourceTexture;
@@ -298,7 +298,7 @@ namespace Ifrit::Runtime
         return node;
     }
 
-    ResourceNode& FrameGraphBuilder::DeclareBuffer(const String& name, const FrameGraphBufferDesc& desc)
+    IFRIT_APIDECL ResourceNode& FrameGraphBuilder::DeclareBuffer(const String& name, const FrameGraphBufferDesc& desc)
     {
         auto& node = AddResource(name);
         node.type  = FrameGraphResourceType::ResourceBuffer;
@@ -306,7 +306,21 @@ namespace Ifrit::Runtime
         return node;
     }
 
-    Graphics::Rhi::RhiUAVDesc FrameGraphBuilder::GetUAV(const ResourceNode& res)
+    ResourceNode& FrameGraphBuilder::ImportTexture(
+        const String& name, FgTexture* texture, const FgTextureSubResource& subResource)
+    {
+        auto& node = AddResource(name);
+        node.SetImportedResource(texture, subResource);
+        return node;
+    }
+    ResourceNode& FrameGraphBuilder::ImportBuffer(const String& name, FgBuffer* buffer)
+    {
+        auto& node = AddResource(name);
+        node.SetImportedResource(buffer);
+        return node;
+    }
+
+    Graphics::Rhi::RhiUAVDesc FrameGraphBuilder::GetUAV(const ResourceNode& res) const
     {
         iAssertion(!res.isImported, "FrameGraphBuilder: GetUAV() called on imported resource.");
 
@@ -327,7 +341,7 @@ namespace Ifrit::Runtime
         return 0;
     }
 
-    Graphics::Rhi::RhiSRVDesc FrameGraphBuilder::GetSRV(const ResourceNode& res)
+    Graphics::Rhi::RhiSRVDesc FrameGraphBuilder::GetSRV(const ResourceNode& res) const
     {
         iAssertion(!res.isImported, "FrameGraphBuilder: GetSRV() called on imported resource.");
         if (res.type == FrameGraphResourceType::ResourceBuffer)
@@ -461,10 +475,12 @@ namespace Ifrit::Runtime
             for (auto& resId : pass->inputResources)
             {
                 resourceBeginUse[resId] = std::min(resourceBeginUse[resId], i);
+                resourceEndUse[resId]   = std::max(resourceEndUse[resId], i);
             }
             for (auto& resId : pass->outputResources)
             {
-                resourceEndUse[resId] = std::max(resourceEndUse[resId], i);
+                resourceEndUse[resId]   = std::max(resourceEndUse[resId], i);
+                resourceBeginUse[resId] = std::min(resourceBeginUse[resId], i);
             }
         }
 
@@ -475,6 +491,8 @@ namespace Ifrit::Runtime
                 continue;
             }
             auto res = graph.m_resources[i];
+            // iInfo("FrameGraph: Resource {} is used from {} to {}.", res->name, resourceBeginUse[i],
+            // resourceEndUse[i]);
             graph.m_passes[resourceBeginUse[i]]->m_ResourceCreateRequest.push_back(i);
             graph.m_passes[resourceEndUse[i]]->m_ResourceReleaseRequest.push_back(i);
         }
@@ -761,6 +779,7 @@ namespace Ifrit::Runtime
 
             FrameGraphPassContext passContext;
             passContext.m_CmdList = cmd;
+            passContext.m_FgDesc  = compiledGraph.m_graph;
 
             pass->FillContext(passContext);
             pass->Execute(passContext);

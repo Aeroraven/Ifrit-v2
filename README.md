@@ -67,8 +67,8 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 - Dynamic Rendering
 - Render Hardware Interface
 - Render Graph
-- Lock-free Resource Pool 
-  - Planning To Replace Legacy Allocators
+  - Lock-free Resource Pool & Primary Resource Reuse 
+  - Simple Lifetime Tracking & State Tracking
 - Task System
 - Texture Compression Supports
 
@@ -85,6 +85,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 #### 1.2.2 Ayanami: Maybe Something about Global Illumination
 
 - It's planning to implement some GI algorithms.
+- Fully driven by the render graph.
 - Currently, it covers:
   - Distance Field Generation*
     - Distance Field Shadow Culling

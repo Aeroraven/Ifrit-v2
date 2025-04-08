@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
@@ -48,7 +50,7 @@ void main(){
     normal = normalize(normal * 2.0 - 1.0);
     normal = normalize((viewToWorld * vec4(normal, 0.0)).xyz);
 
-    float shadow = texture(GetSampler2D(PushConst.m_ShadowMapSRV), texCoord).r;
+    float shadow = SampleTexture2D(PushConst.m_ShadowMapSRV,sLinearClamp,texCoord).r; //texture(GetSampler2D(PushConst.m_ShadowMapSRV), texCoord).r;
     vec3 light = normalize(PushConst.m_LightDir.xyz);
     float dotProduct = max(0.0, dot(normal, -light))* shadow;
 
