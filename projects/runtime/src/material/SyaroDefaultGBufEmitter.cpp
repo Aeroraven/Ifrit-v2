@@ -1,6 +1,6 @@
 #include "ifrit/runtime/material/SyaroDefaultGBufEmitter.h"
 #include "ifrit/core/file/FileOps.h"
-
+#include "ifrit/runtime/base/ApplicationInterface.h"
 namespace Ifrit::Runtime
 {
     IFRIT_APIDECL

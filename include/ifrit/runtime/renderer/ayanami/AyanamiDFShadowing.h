@@ -39,8 +39,7 @@ namespace Ifrit::Runtime::Ayanami
             Vector4f sceneBound, Vector3f lightDir, u32 tileSize);
 
         GraphicsPassNode& DistanceFieldShadowRender(FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs,
-            u32 depthSRV, u32 perframe, Graphics::Rhi::RhiRenderTargets* rts, Vector4f sceneBound, Vector3f lightDir,
-            u32 tileSize, float softness);
+            u32 depthSRV, u32 perframe, Vector4f sceneBound, Vector3f lightDir, u32 tileSize, float softness);
 
         ComputePassNode&  AddDistanceFieldRadianceCachePass(FrameGraphBuilder& builder, u32 meshDfList, u32 numTotalMdf,
              u32 depthAtlasSRV, Vector4f sceneBound, Vector3f lightDir, u32 radianceUAV, u32 cardDataId, u32 cardRes,

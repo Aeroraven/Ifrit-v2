@@ -439,7 +439,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL void CommandBuffer::AttachUniformRef(u32 setId, Rhi::RhiBindlessDescriptorRef* ref) const
     {
-        if (m_CmdContext->m_BoundType != CommandListContextPrivate::BoundType::Graphics)
+        if (m_CmdContext->m_BoundType == CommandListContextPrivate::BoundType::Graphics)
         {
             auto bindless     = CheckedCast<DescriptorBindlessIndices>(ref);
             auto graphicsPass = CheckedCast<GraphicsPass>(m_CmdContext->m_BoundPass.m_GraphicsPass);
@@ -449,7 +449,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPass->GetPipelineLayout(),
                 setId, 1, &set, 1, &offset);
         }
-        else if (m_CmdContext->m_BoundType != CommandListContextPrivate::BoundType::Compute)
+        else if (m_CmdContext->m_BoundType == CommandListContextPrivate::BoundType::Compute)
         {
             auto bindless    = CheckedCast<DescriptorBindlessIndices>(ref);
             auto computePass = CheckedCast<ComputePass>(m_CmdContext->m_BoundPass.m_ComputePass);

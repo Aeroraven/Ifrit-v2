@@ -185,6 +185,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline u32   getArrayLayers() { return m_createInfo.arrayLayers; }
         inline bool  IsDepthTexture() const override { return m_createInfo.aspect == ImageAspect::Depth; }
         inline void* GetNativeHandle() const override { return m_image; }
+
+        virtual Rhi::RhiImageFormat GetImageFormat() const override
+        {
+            return static_cast<Rhi::RhiImageFormat>(m_format);
+        }
+        virtual u32 GetUsage() const override { return m_createInfo.usage; }
     };
 
     struct SamplerCreateInfo

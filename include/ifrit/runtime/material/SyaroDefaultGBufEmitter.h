@@ -1,6 +1,6 @@
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
-#include "ifrit/runtime/application/Application.h"
+#include "ifrit/runtime/forwarding/FwdBase.h"
 #include "ifrit/runtime/base/Material.h"
 
 namespace Ifrit::Runtime

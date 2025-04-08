@@ -92,5 +92,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline u32         GetNumBackbuffers() const override { return m_backbufferCount; }
         inline u32         GetCurrentFrameIndex() const override { return m_currentFrame; }
         inline u32         GetCurrentImageIndex() const override { return m_currentFrame; }
+
+        inline u32         GetWidth() const { return m_extent.width; }
+        inline u32         GetHeight() const { return m_extent.height; }
     };
 } // namespace Ifrit::Graphics::VulkanGraphics

@@ -670,7 +670,7 @@ namespace Ifrit::Runtime
         // run!
         FrameGraphCompiler compiler;
         auto               compiledGraph = compiler.Compile(fg);
-        FrameGraphExecutor executor;
+        FrameGraphExecutor executor(m_app->GetRhi());
 
         cmd->BeginScope("Syaro: Deferred Shading");
         executor.ExecuteInSingleCmd(cmd, compiledGraph);

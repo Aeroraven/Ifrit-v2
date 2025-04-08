@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ifrit/core/tasks/TaskScheduler.h"
 #include "ifrit/core/global/GlobalInstances.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
+#include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Runtime
 {
@@ -69,11 +70,11 @@ namespace Ifrit::Runtime
             m_Data->m_CompilingShaders.fetch_add(1, std::memory_order::acq_rel);
             m_Data->m_ShaderMap[sName].m_Status = ShaderRegistryData::ShaderStatus::Uncompiled;
 
-            auto taskExecutor  = GetTaskScheduler();
+            auto taskExecutor                       = GetTaskScheduler();
             m_Data->m_ShaderMap[sName].m_TaskHandle = taskExecutor->EnqueueTask(
-                [sPath,sName,sEntry,stage,this](Task* task, void* data) {
-                    auto shaderPath    = String(IFRIT_RUNTIME_SHARED_SHADER_PATH) + "/" + sPath;
-                    auto shaderCode    = ReadTextFile(shaderPath);
+                [sPath, sName, sEntry, stage, this](Task* task, void* data) {
+                    auto shaderPath = String(IFRIT_RUNTIME_SHARED_SHADER_PATH) + "/" + sPath;
+                    auto shaderCode = ReadTextFile(shaderPath);
                     if (shaderCode.size() == 0)
                     {
                         printf("Cannot read file %s\n", shaderPath.c_str());

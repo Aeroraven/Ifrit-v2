@@ -18,8 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
-#include "ifrit/runtime/base/ApplicationInterface.h"
-#include <array>
+#include "ifrit/runtime/forwarding/FwdBase.h"
+#include "ifrit/runtime/base/Base.h"
 
 namespace Ifrit::Runtime
 {
@@ -134,7 +134,7 @@ namespace Ifrit::Runtime
         Menu         = 348
     };
 
-    class IFRIT_APIDECL InputSystem
+    class IFRIT_RUNTIME_API InputSystem
     {
     private:
         struct KeyStatus
@@ -150,8 +150,8 @@ namespace Ifrit::Runtime
         IApplication*         m_app;
 
     public:
-        InputSystem(IApplication* app) : m_app(app) { Init(); }
-        virtual ~InputSystem() = default;
+        InputSystem(IApplication* app);
+        virtual ~InputSystem();
         bool IsKeyPressed(InputKeyCode key) { return m_keyStatus[static_cast<int>(key)].stat == 1; }
         bool IsKeyReleased(InputKeyCode key) { return m_keyStatus[static_cast<int>(key)].stat == 0; }
         void OnFrameUpdate();

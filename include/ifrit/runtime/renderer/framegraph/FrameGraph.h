@@ -108,10 +108,60 @@ namespace Ifrit::Runtime
         ResourceNode&          SetImportedResource(FgTexture* texture, const FgTextureSubResource& subResource);
 
         FrameGraphResourceType GetType() const { return type; }
-        FgBuffer*              GetBuffer() const { return importedBuffer; }
-        FgTexture*             GetTexture() const { return importedTexture; }
-        bool                   IsImported() const { return isImported; }
-        FrameGraphTextureDesc  GetManagedTextureDesc() const { return textureDesc; }
+
+        FgBuffer*              GetBuffer() const
+        {
+            if (isImported)
+            {
+                return importedBuffer;
+            }
+            else
+            {
+                if (selfBuffer == nullptr)
+                {
+                    iError(
+                        "FrameGraphBuilder: GetBuffer() called on buffer resource that is not created. Lifetime is corrupted.");
+                    std::abort();
+                }
+                return selfBuffer;
+            }
+        }
+        FgTexture* GetTexture() const
+        {
+            if (isImported)
+            {
+                return importedTexture;
+            }
+            else
+            {
+                if (selfTexture == nullptr)
+                {
+                    iError(
+                        "FrameGraphBuilder: GetTexture() called on texture resource that is not created. Lifetime is corrupted.");
+                    std::abort();
+                }
+                return selfTexture;
+            }
+        }
+        bool                          IsImported() const { return isImported; }
+        FrameGraphTextureDesc         GetManagedTextureDesc() const { return textureDesc; }
+
+        Graphics::Rhi::RhiImageFormat GetTextureFormat()
+        {
+            if (type == FrameGraphResourceType::ResourceBuffer)
+            {
+                iError("FrameGraphBuilder: GetTextureFormat() called on buffer resource.");
+                std::abort();
+            }
+            if (isImported)
+            {
+                return importedTexture->GetImageFormat();
+            }
+            else
+            {
+                return textureDesc.m_Format;
+            }
+        }
 
     private:
         void SetManagedResource(FrameGraphBufferDesc desc)
@@ -152,11 +202,11 @@ namespace Ifrit::Runtime
 
         // Legacy Interface, should be removed in the future.
         PassNode& AddDependentResource(const ResourceNode& res);
-
         PassNode& SetExecutionFunction(Fn<void(const FrameGraphPassContext&)> func);
 
     protected:
         virtual void        Execute(const FrameGraphPassContext& ctx);
+        virtual void        OnAfterResourceAllocated(Graphics::Rhi::RhiBackend* rhiBackend) {}
         inline virtual void FillContext(FrameGraphPassContext& passContext)
         {
             passContext.m_ComputePass  = nullptr;
@@ -185,18 +235,32 @@ namespace Ifrit::Runtime
 
     struct IFRIT_APIDECL GraphicsPassNode : public PassNode, NonCopyable
     {
+        using LoadOp = Graphics::Rhi::RhiRenderTargetLoadOp;
+
     protected:
-        Uref<Graphics::Rhi::RhiGraphicsPass> m_pass;
-        Graphics::Rhi::RhiRenderTargets*     m_renderTargets = nullptr;
+        Uref<Graphics::Rhi::RhiGraphicsPass>          m_pass;
+
+        Vec<ResourceNode*>                            m_RenderTarget;
+        Vec<LoadOp>                                   m_ColorLoadOp;
+        Vec<Vector4f>                                 m_ColorClearValue;
+        ResourceNode*                                 m_DepthTarget = nullptr;
+        LoadOp                                        m_DepthLoadOp;
+        f32                                           m_DepthClearValue;
+
+        Vec<Ref<Graphics::Rhi::RhiColorAttachment>>   m_RhiColorRTs;
+        Ref<Graphics::Rhi::RhiDepthStencilAttachment> m_RhiDepthRT;
+        Ref<Graphics::Rhi::RhiRenderTargets>          m_RhiRTs;
+        Graphics::Rhi::RhiScissor                     m_Scissor    = { 0, 0, 0, 0 };
+        bool                                          m_RTComposed = false;
 
     protected:
         GraphicsPassNode(Uref<Graphics::Rhi::RhiGraphicsPass>&& pass);
-        inline GraphicsPassNode& SetRenderTargets(Graphics::Rhi::RhiRenderTargets* rts)
-        {
-            m_renderTargets = rts;
-            return *this;
-        }
         virtual void Execute(const FrameGraphPassContext& ctx) override;
+        void         ComposeRenderTargets(Graphics::Rhi::RhiBackend* rhiBackend);
+        virtual void OnAfterResourceAllocated(Graphics::Rhi::RhiBackend* rhiBackend) override
+        {
+            ComposeRenderTargets(rhiBackend);
+        }
 
     public:
         inline Graphics::Rhi::RhiGraphicsPass* GetPass() { return m_pass.get(); }
@@ -205,6 +269,11 @@ namespace Ifrit::Runtime
             passContext.m_ComputePass  = nullptr;
             passContext.m_GraphicsPass = m_pass.get();
         }
+
+        GraphicsPassNode& AddRenderTarget(
+            ResourceNode& res, LoadOp loadOp = LoadOp::Clear, Vector4f clearValue = { 0, 0, 0, 0 });
+        GraphicsPassNode& AddDepthTarget(ResourceNode& res, LoadOp loadOp = LoadOp::Clear, f32 clearValue = 1.0f);
+
         friend class FrameGraphBuilder;
     };
 
@@ -233,10 +302,8 @@ namespace Ifrit::Runtime
         void              SetResourceInitState(FrameGraphResourceInitState state) { m_resourceInitState = state; }
 
         ComputePassNode&  AddComputePass(const String& name, const String& shader, u32 pushConsts);
-        GraphicsPassNode& AddGraphicsPass(const String& name, const String& vs, const String& fs, u32 pushConsts,
-            Graphics::Rhi::RhiRenderTargets* rts);
-        GraphicsPassNode& AddMeshGraphicsPass(const String& name, const String& ms, const String& fs, u32 pushConsts,
-            Graphics::Rhi::RhiRenderTargets* rts);
+        GraphicsPassNode& AddGraphicsPass(const String& name, const String& vs, const String& fs, u32 pushConsts);
+        GraphicsPassNode& AddMeshGraphicsPass(const String& name, const String& ms, const String& fs, u32 pushConsts);
 
         ResourceNode&     DeclareTexture(const String& name, const FrameGraphTextureDesc& desc);
         ResourceNode&     DeclareBuffer(const String& name, const FrameGraphBufferDesc& desc);
@@ -276,9 +343,11 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL FrameGraphExecutor
     {
     public:
+        FrameGraphExecutor(Graphics::Rhi::RhiBackend* rhiBackend) : m_RhiBackend(rhiBackend) {}
         void ExecuteInSingleCmd(const Graphics::Rhi::RhiCommandList* cmd, const CompiledFrameGraph& compiledGraph);
 
     private:
+        Graphics::Rhi::RhiBackend*        m_RhiBackend = nullptr;
         Graphics::Rhi::RhiResourceBarrier ToRhiResBarrier(
             const CompiledFrameGraph::ResourceBarrier& barrier, const ResourceNode& res, bool& valid);
     };

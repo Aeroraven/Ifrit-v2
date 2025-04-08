@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ifrit/runtime/renderer/AmbientOcclusionPass.h"
 #include "ifrit.shader/AmbientOcclusion/AmbientOcclusion.Shared.h"
 #include "ifrit/core/math/constfunc/ConstFunc.h"
-#include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/renderer/RendererUtil.h"
 
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"

@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::Math;
+using namespace Ifrit::Runtime::FrameGraphUtils;
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -127,22 +128,25 @@ namespace Ifrit::Runtime::Ayanami
         FrameGraphUtils::GraphicsPassArgs args;
         args.m_CullMode = Graphics::Rhi::RhiCullMode::Front;
 
-        auto& pass = FrameGraphUtils::AddMeshDrawPass(builder, "Ayanami.DFShadowTileCull",
+        auto& pass = AddMeshDrawPass<PushConst>(builder, "Ayanami.DFShadowTileCull",
             Internal::kIntShaderTable.Ayanami.DFShadowTileCullingMS,
-            Internal::kIntShaderTable.Ayanami.DFShadowTileCullingFS, m_Private->m_RTs.get(),
-            Vector3i{ (i32)totalMeshDfs, 1, 1 }, &pc, FrameGraphUtils::GetPushConstSize<PushConst>(), args);
-        auto  pipe = pass.GetPass();
+            Internal::kIntShaderTable.Ayanami.DFShadowTileCullingFS, Vector3i{ (i32)totalMeshDfs, 1, 1 }, args, pc,
+            [](PushConst data, const FrameGraphPassContext& ctx) {
+                ctx.m_CmdList->SetCullMode(Graphics::Rhi::RhiCullMode::Front);
+                SetRootSignature<PushConst>(data, ctx);
+            });
 
-        pass.AddWriteResource(*m_Private->m_ResAtomic)
-            .AddReadResource(*m_Private->m_ResScatterOutput)
-            .AddReadResource(*m_Private->m_ResScatterOutputTex);
+        auto  pipe = pass.GetPass();
+        pass.AddRenderTarget(*m_Private->m_ResScatterOutputTex)
+            .AddWriteResource(*m_Private->m_ResAtomic)
+            .AddReadResource(*m_Private->m_ResScatterOutput);
 
         return pass;
     }
 
     IFRIT_APIDECL GraphicsPassNode& AyanamiDistanceFieldLighting::DistanceFieldShadowRender(FrameGraphBuilder& builder,
-        u32 meshDfList, u32 totalMeshDfs, u32 depthSRV, u32 perframe, Graphics::Rhi::RhiRenderTargets* rts,
-        Vector4f sceneBound, Vector3f lightDir, u32 tileSize, float softness)
+        u32 meshDfList, u32 totalMeshDfs, u32 depthSRV, u32 perframe, Vector4f sceneBound, Vector3f lightDir,
+        u32 tileSize, float softness)
     {
         using namespace Ifrit::Math;
         struct PushConst
@@ -171,8 +175,9 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MeshDFDescListId = meshDfList;
         pc.m_ShadowCoefK      = softness;
 
-        auto& pass = FrameGraphUtils::AddPostProcessPass(builder, "Ayanami.DFSS",
-            Internal::kIntShaderTable.Ayanami.DFShadowFS, rts, &pc, FrameGraphUtils::GetPushConstSize<PushConst>());
+        auto& pass =
+            AddPostProcessPass<PushConst>(builder, "Ayanami.DFSS", Internal::kIntShaderTable.Ayanami.DFShadowFS, pc,
+                [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
         pass.AddReadResource(*m_Private->m_ResAtomic).AddReadResource(*m_Private->m_ResScatterOutput);
         return pass;
     }
@@ -225,9 +230,10 @@ namespace Ifrit::Runtime::Ayanami
         auto  cardGroups = DivRoundUp(numCards, Config::kAyanamiRadianceInjectionObjectsPerBlock);
         auto  tileGroups = DivRoundUp(cardRes, Config::kAyanamiRadianceInjectionCardSizePerBlock);
 
-        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.DFRadianceCachePass",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.DFRadianceCachePass",
             Internal::kIntShaderTable.Ayanami.DFRadianceInjectionCS,
-            Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, &pc, sizeof(PushConst) / sizeof(u32));
+            Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
+            [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
         pass.AddReadResource(*m_Private->m_ResAtomic).AddReadResource(*m_Private->m_ResScatterOutput);
         return pass;
     }

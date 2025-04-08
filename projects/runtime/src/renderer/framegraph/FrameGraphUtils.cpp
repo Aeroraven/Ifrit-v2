@@ -31,17 +31,15 @@ namespace Ifrit::Runtime::FrameGraphUtils
     }
 
     IFRIT_APIDECL GraphicsPassNode& AddFullScreenQuadPass(FrameGraphBuilder& builder, const String& name,
-        const String& vs, const String& fs, Graphics::Rhi::RhiRenderTargets* rts, const void* ptr, u32 pushConsts)
+        const String& vs, const String& fs, u32 pushConsts, FnPassFunction onCall)
     {
-        auto&   pass           = builder.AddGraphicsPass(name, vs, fs, pushConsts, rts);
-        auto    rhi            = builder.GetRhi();
-        auto    underlyingPass = pass.GetPass();
-        Vec<u8> pushConstsData = PtrToVector(ptr, pushConsts * sizeof(u32));
+        auto& pass           = builder.AddGraphicsPass(name, vs, fs, pushConsts);
+        auto  rhi            = builder.GetRhi();
+        auto  underlyingPass = pass.GetPass();
         // DO NOT USE REFERENCES HERE.
-        pass.SetExecutionFunction([pushConsts, pushConstsData, rhi, underlyingPass](const FrameGraphPassContext& ctx) {
+        pass.SetExecutionFunction([onCall, rhi](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
-            if (pushConsts > 0)
-                cmd->SetPushConst(pushConstsData.data(), 0, pushConsts * sizeof(u32));
+            onCall(ctx);
             cmd->AttachVertexBufferView(*rhi->GetFullScreenQuadVertexBufferView());
             cmd->AttachVertexBuffers(0, { rhi->GetFullScreenQuadVertexBuffer().get() });
             cmd->DrawInstanced(3, 1, 0, 0);
@@ -49,18 +47,15 @@ namespace Ifrit::Runtime::FrameGraphUtils
         return pass;
     }
 
-    IFRIT_RUNTIME_API GraphicsPassNode& AddPostProcessPass(FrameGraphBuilder& builder, const String& name,
-        const String& fs, Graphics::Rhi::RhiRenderTargets* rts, const void* ptr, u32 pushConsts)
+    IFRIT_RUNTIME_API GraphicsPassNode& AddPostProcessPass(
+        FrameGraphBuilder& builder, const String& name, const String& fs, u32 pushConsts, FnPassFunction onCall)
     {
-        auto& pass = builder.AddGraphicsPass(name, Internal::kIntShaderTable.Common.FullScreenVS, fs, pushConsts, rts);
+        auto& pass = builder.AddGraphicsPass(name, Internal::kIntShaderTable.Common.FullScreenVS, fs, pushConsts);
         auto  rhi  = builder.GetRhi();
-        auto  underlyingPass   = pass.GetPass();
-        Vec<u8> pushConstsData = PtrToVector(ptr, pushConsts * sizeof(u32));
-        // DO NOT USE REFERENCES HERE.
-        pass.SetExecutionFunction([pushConsts, pushConstsData, rhi, underlyingPass](const FrameGraphPassContext& ctx) {
+        auto  underlyingPass = pass.GetPass();
+        pass.SetExecutionFunction([rhi, onCall](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
-            if (pushConsts > 0)
-                cmd->SetPushConst(pushConstsData.data(), 0, pushConsts * sizeof(u32));
+            onCall(ctx);
             cmd->AttachVertexBufferView(*rhi->GetFullScreenQuadVertexBufferView());
             cmd->AttachVertexBuffers(0, { rhi->GetFullScreenQuadVertexBuffer().get() });
             cmd->DrawInstanced(3, 1, 0, 0);
@@ -69,36 +64,30 @@ namespace Ifrit::Runtime::FrameGraphUtils
     }
 
     IFRIT_APIDECL GraphicsPassNode& AddMeshDrawPass(FrameGraphBuilder& builder, const String& name, const String& ms,
-        const String& fs, Graphics::Rhi::RhiRenderTargets* rts, Vector3i workGroups, const void* ptr, u32 pushConsts,
-        const GraphicsPassArgs& args)
+        const String& fs, Vector3i workGroups, u32 pushConsts, const GraphicsPassArgs& args, FnPassFunction onCall)
     {
-        auto&   pass           = builder.AddMeshGraphicsPass(name, ms, fs, pushConsts, rts);
-        auto    rhi            = builder.GetRhi();
-        auto    underlyingPass = pass.GetPass();
-        Vec<u8> pushConstsData = PtrToVector(ptr, pushConsts * sizeof(u32));
-        pass.SetExecutionFunction(
-            [pushConsts, pushConstsData, rhi, underlyingPass, workGroups, args](const FrameGraphPassContext& ctx) {
-                auto cmd = ctx.m_CmdList;
-                if (args.m_CullMode != Graphics::Rhi::RhiCullMode::None)
-                    cmd->SetCullMode(args.m_CullMode);
-                if (pushConsts > 0)
-                    cmd->SetPushConst(pushConstsData.data(), 0, pushConsts * sizeof(u32));
-                cmd->DrawMeshTasks(workGroups.x, workGroups.y, workGroups.z);
-            });
+        auto& pass           = builder.AddMeshGraphicsPass(name, ms, fs, pushConsts);
+        auto  rhi            = builder.GetRhi();
+        auto  underlyingPass = pass.GetPass();
+        pass.SetExecutionFunction([onCall, workGroups, args](const FrameGraphPassContext& ctx) {
+            auto cmd = ctx.m_CmdList;
+            onCall(ctx);
+            if (args.m_CullMode != Graphics::Rhi::RhiCullMode::None)
+                cmd->SetCullMode(args.m_CullMode);
+            cmd->DrawMeshTasks(workGroups.x, workGroups.y, workGroups.z);
+        });
         return pass;
     }
 
     IFRIT_APIDECL ComputePassNode& AddComputePass(FrameGraphBuilder& builder, const String& name, const String& shader,
-        Vector3i workGroups, const void* ptr, u32 pushConsts)
+        Vector3i workGroups, u32 pushConsts, FnPassFunction onCall)
     {
-        auto&   pass           = builder.AddComputePass(name, shader, pushConsts);
-        auto    rhi            = builder.GetRhi();
-        auto    cp             = pass.GetPass();
-        Vec<u8> pushConstsData = PtrToVector(ptr, pushConsts * sizeof(u32));
-        pass.SetExecutionFunction([workGroups, pushConsts, pushConstsData, rhi, cp](const FrameGraphPassContext& ctx) {
+        auto& pass = builder.AddComputePass(name, shader, pushConsts);
+        auto  rhi  = builder.GetRhi();
+        auto  cp   = pass.GetPass();
+        pass.SetExecutionFunction([workGroups, pushConsts, onCall, cp](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
-            if (pushConsts > 0)
-                cmd->SetPushConst(pushConstsData.data(), 0, pushConsts * sizeof(u32));
+            onCall(ctx);
             cmd->Dispatch(workGroups.x, workGroups.y, workGroups.z);
         });
         return pass;

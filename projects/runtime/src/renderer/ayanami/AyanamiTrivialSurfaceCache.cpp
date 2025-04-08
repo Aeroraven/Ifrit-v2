@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit::Graphics::Rhi;
 using Ifrit::Math::DivRoundUp;
+using namespace Ifrit::Runtime::FrameGraphUtils;
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -124,15 +125,6 @@ namespace Ifrit::Runtime::Ayanami
         Ref<GPUBindId>                      m_ObserveDeviceDataCoherentBindId;
 
         Ref<RhiVertexBufferView>            m_SurfaceCachePassBinding;
-        RhiGraphicsPass*                    m_SurfaceCachePass = nullptr;
-
-        Ref<RhiRenderTargets>               m_SurfaceCachePassRTs;
-        Ref<RhiColorAttachment>             m_SurfaceCachePassAlbedoRT;
-        Ref<RhiColorAttachment>             m_SurfaceCachePassNormalRT;
-        Ref<RhiDepthStencilAttachment>      m_SurfaceCachePassDepthRT;
-
-        // Radiance pass (direct lighting)
-        RhiComputePass*                     m_RadianceCachePass = nullptr;
 
         // Debug Controls
         bool                                m_ForceSurfaceCacheRegeneration = false;
@@ -321,7 +313,7 @@ namespace Ifrit::Runtime::Ayanami
 
         auto& pass =
             builder.AddGraphicsPass("Ayanami/SurfaceCacheGenPass", Internal::kIntShaderTable.Ayanami.SurfaceCacheGenVS,
-                Internal::kIntShaderTable.Ayanami.SurfaceCacheGenFS, 9, m_Resources->m_SurfaceCachePassRTs.get());
+                Internal::kIntShaderTable.Ayanami.SurfaceCacheGenFS, 9);
 
         pass.SetExecutionFunction([this](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
@@ -460,31 +452,8 @@ namespace Ifrit::Runtime::Ayanami
         RhiRenderTargetsFormat rtFmt;
         rtFmt.m_colorFormats.push_back(RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM);
 
-        m_Resources->m_SurfaceCachePass =
-            CreateGraphicsPassInternal(m_App, Internal::kIntShaderTable.Ayanami.SurfaceCacheGenVS,
-                Internal::kIntShaderTable.Ayanami.SurfaceCacheGenFS, 0, 9, rtFmt);
-
         // RTs
         // TODO: To invalidate the cache, LOAD op is not a good practice?
-        m_Resources->m_SurfaceCachePassRTs      = rhi->CreateRenderTargets();
-        m_Resources->m_SurfaceCachePassAlbedoRT = rhi->CreateRenderTarget(
-            m_Resources->m_SceneCacheAlbdeoAtlas.get(), { 0, 0, 1, 1 }, RhiRenderTargetLoadOp::Load, 0, 0);
-        m_Resources->m_SurfaceCachePassNormalRT = rhi->CreateRenderTarget(
-            m_Resources->m_SceneCacheNormalAtlas.get(), { 0, 0, 1, 1 }, RhiRenderTargetLoadOp::Load, 0, 0);
-        m_Resources->m_SurfaceCachePassDepthRT = rhi->CreateRenderTargetDepthStencil(
-            m_Resources->m_SceneCacheTemporaryDepth.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
-
-        m_Resources->m_SurfaceCachePassRTs->SetColorAttachments(
-            { m_Resources->m_SurfaceCachePassAlbedoRT.get(), m_Resources->m_SurfaceCachePassNormalRT.get() });
-        m_Resources->m_SurfaceCachePassRTs->SetDepthStencilAttachment(m_Resources->m_SurfaceCachePassDepthRT.get());
-
-        m_Resources->m_SurfaceCachePass->SetRenderTargetFormat(m_Resources->m_SurfaceCachePassRTs->GetFormat());
-        m_Resources->m_SurfaceCachePassRTs->SetRenderArea({ 0, 0, m_Resolution, m_Resolution });
-        m_Resources->m_Inited = true;
-
-        // Radiance Cache Pass Related
-        m_Resources->m_RadianceCachePass =
-            CreateComputePassInternal(m_App, Internal::kIntShaderTable.Ayanami.DirectRadianceInjectionCS, 0, 11);
     }
 
     IFRIT_APIDECL ComputePassNode& AyanamiTrivialSurfaceCacheManager::UpdateRadianceCacheAtlas(
@@ -526,9 +495,10 @@ namespace Ifrit::Runtime::Ayanami
         pc.perframeId         = perframe->m_views[0].m_viewBufferId->GetActiveId();
 
         UpdateSurfaceModelMatrix();
-        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.RadianceCacheGenPass",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadianceCacheGenPass",
             Internal::kIntShaderTable.Ayanami.DirectRadianceInjectionCS,
-            Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, &pc, sizeof(PushConst) / sizeof(u32));
+            Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
+            [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
 
         return pass;
     }
@@ -563,9 +533,9 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_AllMeshDFDataId       = meshDFList;
         pc.m_NumTotalCards         = m_Resources->m_MeshCardIndex.load();
 
-        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.RadiosityGenPass",
-            Internal::kIntShaderTable.Ayanami.RadiosityTraceCS, Vector3i{ 0, 1, 1 }, &pc,
-            FrameGraphUtils::GetPushConstSize<PushConst>());
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiosityGenPass",
+            Internal::kIntShaderTable.Ayanami.RadiosityTraceCS, Vector3i{ 0, 1, 1 }, pc,
+            [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
 
         return pass;
     }

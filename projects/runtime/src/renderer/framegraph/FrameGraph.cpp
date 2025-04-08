@@ -89,11 +89,100 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void GraphicsPassNode::Execute(const FrameGraphPassContext& ctx)
     {
+
         m_pass->SetRecordFunction(
             [this, &ctx](const Graphics::Rhi::RhiRenderPassContext* ct) { this->passFunction(ctx); });
         ctx.m_CmdList->BeginScope(String("Ifrit/RDG: [Draw] ") + name);
-        m_pass->Run(ctx.m_CmdList, this->m_renderTargets, 0);
+        m_pass->Run(ctx.m_CmdList, this->m_RhiRTs.get(), 0);
         ctx.m_CmdList->EndScope();
+    }
+
+    IFRIT_APIDECL void GraphicsPassNode::ComposeRenderTargets(Graphics::Rhi::RhiBackend* rhiBackend)
+    {
+        if (m_RTComposed)
+            return;
+        m_RhiRTs = rhiBackend->CreateRenderTargets();
+        Vec<Graphics::Rhi::RhiColorAttachment*> crts;
+        for (u32 i = 0; i < m_RenderTarget.size(); i++)
+        {
+            auto                         res = m_RenderTarget[i];
+            Graphics::Rhi::RhiClearValue clearValue;
+            clearValue.m_color[0] = m_ColorClearValue[i].x;
+            clearValue.m_color[1] = m_ColorClearValue[i].y;
+            clearValue.m_color[2] = m_ColorClearValue[i].z;
+            clearValue.m_color[3] = m_ColorClearValue[i].w;
+            auto rt = rhiBackend->CreateRenderTarget(res->GetTexture(), clearValue, m_ColorLoadOp[i], 0, 0);
+            crts.push_back(rt.get());
+            m_RhiColorRTs.push_back(rt);
+
+            if (i == 0)
+                m_RhiRTs->SetRenderArea({ 0, 0, res->GetTexture()->GetWidth(), res->GetTexture()->GetHeight() });
+        }
+        m_RhiRTs->SetColorAttachments(crts);
+        if (m_DepthTarget != nullptr)
+        {
+            Graphics::Rhi::RhiClearValue clearValue;
+            clearValue.m_depth = m_DepthClearValue;
+            auto rt =
+                rhiBackend->CreateRenderTargetDepthStencil(m_DepthTarget->GetTexture(), clearValue, m_DepthLoadOp);
+            m_RhiDepthRT = rt;
+            m_RhiRTs->SetDepthStencilAttachment(rt.get());
+        }
+        m_pass->SetRenderTargetFormat(m_RhiRTs->GetFormat());
+        if (m_Scissor.width == 0 && m_Scissor.height == 0)
+        {
+            auto rdArea      = m_RhiRTs->GetRenderArea();
+            m_Scissor.x      = rdArea.x;
+            m_Scissor.y      = rdArea.y;
+            m_Scissor.width  = rdArea.width;
+            m_Scissor.height = rdArea.height;
+            m_pass->SetRenderArea(m_Scissor.x, m_Scissor.y, m_Scissor.width, m_Scissor.height);
+        }
+
+        if (m_RhiColorRTs.size() == 0 && m_RhiDepthRT == nullptr)
+        {
+            iError("FrameGraph: No render targets are set for the pass: {}.", name);
+            std::abort();
+        }
+        if (m_Scissor.width == 0 && m_Scissor.height == 0)
+        {
+            iError("FrameGraph: No render area is set for the pass: {}.", name);
+            std::abort();
+        }
+        m_RTComposed = true;
+    }
+
+    IFRIT_APIDECL GraphicsPassNode& GraphicsPassNode::AddRenderTarget(
+        ResourceNode& res, LoadOp loadOp, Vector4f clearValue)
+    {
+        if (res.GetType() != FrameGraphResourceType::ResourceTexture)
+        {
+            iError("FrameGraph: Render target must be a texture resource.");
+            std::abort();
+        }
+        auto resPtr = &res;
+        m_RenderTarget.push_back(resPtr);
+        AddWriteResource(res);
+        m_ColorClearValue.push_back(clearValue);
+        m_ColorLoadOp.push_back(loadOp);
+
+        return *this;
+    }
+
+    IFRIT_APIDECL GraphicsPassNode& GraphicsPassNode::AddDepthTarget(ResourceNode& res, LoadOp loadOp, f32 clearValue)
+    {
+        if (res.GetType() != FrameGraphResourceType::ResourceTexture)
+        {
+            iError("FrameGraph: Depth target must be a texture resource.");
+            std::abort();
+        }
+        auto resPtr   = &res;
+        m_DepthTarget = resPtr;
+        AddWriteResource(res);
+        m_DepthLoadOp     = loadOp;
+        m_DepthClearValue = clearValue;
+
+        return *this;
     }
 
     IFRIT_APIDECL ComputePassNode::ComputePassNode(Uref<Graphics::Rhi::RhiComputePass>&& pass) : m_pass(std::move(pass))
@@ -166,49 +255,36 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddGraphicsPass(
-        const String& name, const String& vs, const String& fs, u32 pushConsts, Graphics::Rhi::RhiRenderTargets* rts)
+        const String& name, const String& vs, const String& fs, u32 pushConsts)
     {
         auto gp = m_Rhi->CreateGraphicsPass2();
         gp->SetVertexShader(m_ShaderRegistry->GetShader(vs, 0));
         gp->SetPixelShader(m_ShaderRegistry->GetShader(fs, 0));
         gp->SetPushConstSize(pushConsts * sizeof(u32));
-        gp->SetRenderTargetFormat(rts->GetFormat());
-
-        auto area = rts->GetRenderArea();
-        gp->SetRenderArea(area.x, area.y, area.width, area.height);
 
         auto pass        = new GraphicsPassNode(std::move(gp));
         pass->id         = SizeCast<u32>(m_passes.size());
         pass->name       = name;
         pass->isImported = false;
         pass->type       = FrameGraphPassType::Graphics;
-        pass->SetRenderTargets(rts);
 
         m_passes.push_back(pass);
         return *pass;
     }
 
     IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddMeshGraphicsPass(
-        const String& name, const String& ms, const String& fs, u32 pushConsts, Graphics::Rhi::RhiRenderTargets* rts)
+        const String& name, const String& ms, const String& fs, u32 pushConsts)
     {
         auto gp = m_Rhi->CreateGraphicsPass2();
         gp->SetMeshShader(m_ShaderRegistry->GetShader(ms, 0));
         gp->SetPixelShader(m_ShaderRegistry->GetShader(fs, 0));
         gp->SetPushConstSize(pushConsts * sizeof(u32));
-        gp->SetRenderTargetFormat(rts->GetFormat());
-
-        auto area = rts->GetRenderArea();
-        gp->SetRenderArea(area.x, area.y, area.width, area.height);
-
-        auto rtx = rts->GetColorAttachment(0);
-        gp->SetMsaaSamples(rtx->GetRenderTarget()->GetSamples());
 
         auto pass        = new GraphicsPassNode(std::move(gp));
         pass->id         = SizeCast<u32>(m_passes.size());
         pass->name       = name;
         pass->isImported = false;
         pass->type       = FrameGraphPassType::Graphics;
-        pass->SetRenderTargets(rts);
 
         m_passes.push_back(pass);
         return *pass;
@@ -646,7 +722,7 @@ namespace Ifrit::Runtime
     {
         cmd->BeginScope("Ifrit/RDG: Render Graph Execution");
         using namespace Ifrit::Graphics::Rhi;
-        for (auto pass : compiledGraph.m_graph->m_passes)
+        for (auto& pass : compiledGraph.m_graph->m_passes)
         {
             // PreExecute
             for (u32 i = 0; i < pass->m_ResourceCreateRequest.size(); i++)
@@ -668,6 +744,9 @@ namespace Ifrit::Runtime
                     res->subResource   = { 0, 0, 1, 1 };
                 }
             }
+
+            // After PreExecute
+            pass->OnAfterResourceAllocated(m_RhiBackend);
 
             // Execute
             Vec<RhiResourceBarrier> outputBarriers;

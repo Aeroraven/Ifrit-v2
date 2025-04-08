@@ -78,6 +78,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             m_isSwapchainImage = true;
         }
         virtual ~SwapchainImageResource() {}
+        virtual u32         GetWidth() const override { return m_swapchain->GetWidth(); }
+        virtual u32         GetHeight() const override { return m_swapchain->GetHeight(); }
         virtual VkFormat    GetFormat() const override;
         virtual VkImage     GetImage() const override;
         virtual VkImageView GetImageView() override;

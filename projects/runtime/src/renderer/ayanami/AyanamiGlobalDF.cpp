@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 
 using namespace Ifrit::Math;
+using namespace Ifrit::Runtime::FrameGraphUtils;
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -90,9 +91,9 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_NumMeshDF        = numMeshes;
         pc.m_MeshDFDescListId = meshDFListId;
 
-        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.GlobalDFComposite",
-            Internal::kIntShaderTable.Ayanami.TrivialGlobalDFCompCS, Vector3i{ (i32)tgX, (i32)tgX, 1 }, &pc,
-            sizeof(PushConst) / sizeof(u32));
+        auto& pass = FrameGraphUtils::AddComputePass<PushConst>(builder, "Ayanami.GlobalDFComposite",
+            Internal::kIntShaderTable.Ayanami.TrivialGlobalDFCompCS, Vector3i{ (i32)tgX, (i32)tgX, 1 }, pc,
+            [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
         return pass;
     }
 
@@ -100,7 +101,7 @@ namespace Ifrit::Runtime::Ayanami
         FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId, u32 outTextureId, Vector2u outTextureSize)
     {
         auto& clipmap = m_TestClipMaps[clipmapLevel];
-        struct RayMarchPc
+        struct PushConst
         {
             Vector4f m_GlobalDFBoxMin;
             Vector4f m_GlobalDFBoxMax;
@@ -116,16 +117,15 @@ namespace Ifrit::Runtime::Ayanami
             Vector4f(clipmap->m_worldBoundMin.x, clipmap->m_worldBoundMin.y, clipmap->m_worldBoundMin.z, 0);
         pc.m_PerFrameId = perFrameDataId;
         pc.m_GlobalDFId = clipmap->m_clipmapSRV->GetActiveId();
+        pc.m_OutTex     = outTextureId;
+        pc.m_RtH        = outTextureSize.y;
+        pc.m_RtW        = outTextureSize.x;
 
-        pc.m_OutTex = outTextureId;
-        pc.m_RtH    = outTextureSize.y;
-        pc.m_RtW    = outTextureSize.x;
-
-        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.GlobalDFRayMarch",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.GlobalDFRayMarch",
             Internal::kIntShaderTable.Ayanami.GlobalDFRayMarchCS,
             Vector3i{ DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize),
                 DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize), 1 },
-            &pc, sizeof(RayMarchPc) / sizeof(u32));
+            pc, [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
         return pass;
     }
 
@@ -149,9 +149,10 @@ namespace Ifrit::Runtime::Ayanami
 
         u32 groupsX =
             DivRoundUp<u32, u32>(m_TestClipMaps[clipmapLevel]->m_VoxelsPerWidth, Config::kAyanamiObjectGridTileSize);
-        auto& pass = FrameGraphUtils::AddComputePass(builder, "Ayanami.ObjectGridComposition",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.ObjectGridComposition",
             Internal::kIntShaderTable.Ayanami.ObjectGridCompositionCS,
-            Vector3i{ (int)groupsX, (int)groupsX, (int)groupsX }, &pc, FrameGraphUtils::GetPushConstSize<PushConst>());
+            Vector3i{ (int)groupsX, (int)groupsX, (int)groupsX }, pc,
+            [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
         return pass;
     }
 

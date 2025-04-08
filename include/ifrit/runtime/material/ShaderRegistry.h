@@ -18,12 +18,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #include "ifrit/core/PrecompiledHeaders.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/rhi/common/RhiForwardingTypes.h"
 #include "ifrit/runtime/base/Base.h"
+#include "ifrit/runtime/forwarding/FwdBase.h"
 
 namespace Ifrit::Runtime
 {
-    class IApplication;
 
     struct ShaderRegistryData;
     class IFRIT_APIDECL ShaderRegistry

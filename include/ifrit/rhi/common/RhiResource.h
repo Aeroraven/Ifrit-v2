@@ -155,6 +155,8 @@ namespace Ifrit::Graphics::Rhi
         virtual inline RhiResourceState GetState() const { return m_state; }
         virtual void*                   GetNativeHandle() const = 0;
         virtual u32                     GetSamples() const      = 0;
+        virtual RhiImageFormat          GetImageFormat() const  = 0;
+        virtual u32                     GetUsage() const        = 0;
 
         friend class RhiCommandList;
     };

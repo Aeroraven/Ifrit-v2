@@ -2,6 +2,7 @@
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
+#include "ifrit/runtime/base/ApplicationInterface.h"
 
 using namespace Ifrit;
 using namespace Ifrit::Runtime;
@@ -18,6 +19,8 @@ void                key_callback_glfw_input_system(int key, int scancode, int ac
 
 namespace Ifrit::Runtime
 {
+    IFRIT_APIDECL      InputSystem::InputSystem(IApplication* app) : m_app(app) { Init(); }
+    IFRIT_APIDECL      InputSystem::~InputSystem() {}
 
     IFRIT_APIDECL void InputSystem::Init()
     {
