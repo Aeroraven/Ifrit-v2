@@ -262,11 +262,12 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void GLTFAsset::LoadGLTF(AssetManager* m_manager, IComponentManagerKeeper* keeper)
     {
-        m_internalData = new GLTFInternalData();
-        auto rhi       = m_manager->GetApplication()->GetRhi();
+        m_internalData            = new GLTFInternalData();
+        auto rhi                  = m_manager->GetApplication()->GetRhi();
+        auto sharedRenderResource = m_manager->GetApplication()->GetSharedRenderResource();
         if (m_internalData->defaultSampler == nullptr)
         {
-            m_internalData->defaultSampler = rhi->CreateTrivialBilinearSampler(true);
+            m_internalData->defaultSampler = sharedRenderResource->GetLinearRepeatSampler();
         }
         tinygltf::TinyGLTF loader;
         String             err;

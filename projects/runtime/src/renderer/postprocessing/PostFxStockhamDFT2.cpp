@@ -67,7 +67,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             auto rhi                      = m_app->GetRhi();
             auto tex1                     = rhi->CreateTexture2D("PostFx_DFT2_Tex", p2Width, p2Height,
                                     Graphics::Rhi::RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                                    Graphics::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT, true);
+                                    Graphics::Rhi::RhiImageUsage::RhiImgUsage_UnorderedAccess, true);
             m_tex1[{ p2Width, p2Height }] = tex1;
 
             pc.logW            = IntegerLog2(p2Width);

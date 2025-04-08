@@ -83,8 +83,11 @@ namespace Ifrit::Graphics::Rhi
     {
         UniformBuffer,
         StorageBuffer,
+        ReadOnlyStorageBuffer,
         CombinedImageSampler,
         StorageImage,
+        SampledImage,
+        Sampler,
         Invalid
     };
 

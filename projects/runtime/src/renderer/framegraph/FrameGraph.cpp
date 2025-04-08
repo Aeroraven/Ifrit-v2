@@ -214,10 +214,28 @@ namespace Ifrit::Runtime
         return *pass;
     }
 
+    ResourceNode& FrameGraphBuilder::DeclareTexture(const String& name, const FrameGraphTextureDesc& desc)
+    {
+        auto& node = AddResource(name);
+        node.type  = FrameGraphResourceType::ResourceTexture;
+        node.SetManagedResource(desc);
+        return node;
+    }
+
+    ResourceNode& FrameGraphBuilder::DeclareBuffer(const String& name, const FrameGraphBufferDesc& desc)
+    {
+        auto& node = AddResource(name);
+        node.type  = FrameGraphResourceType::ResourceBuffer;
+        node.SetManagedResource(desc);
+        return node;
+    }
+
+    u32                             FrameGraphBuilder::GetUAV(const ResourceNode& res) { return 0; }
+    u32                             FrameGraphBuilder::GetSRV(const ResourceNode& res) { return 0; }
+
     // Frame Graph compiler
 
-    Graphics::Rhi::RhiResourceState GetInputResourceState(
-        FrameGraphPassType passType, FrameGraphResourceType resType, FgTexture* image, FgBuffer* buffer)
+    Graphics::Rhi::RhiResourceState GetInputResourceState(FrameGraphPassType passType, FrameGraphResourceType resType)
     {
         if (resType == FrameGraphResourceType::ResourceBuffer)
         {
@@ -249,7 +267,7 @@ namespace Ifrit::Runtime
     }
 
     Graphics::Rhi::RhiResourceState GetDesiredOutputLayout(
-        FrameGraphPassType passType, FrameGraphResourceType resType, FgTexture* image, FgBuffer* buffer)
+        FrameGraphPassType passType, FrameGraphResourceType resType, ResourceNode* image)
     {
         if (resType == FrameGraphResourceType::ResourceBuffer)
         {
@@ -266,13 +284,28 @@ namespace Ifrit::Runtime
         {
             if (passType == FrameGraphPassType::Graphics)
             {
-                if (image->IsDepthTexture())
+                if (image->IsImported())
                 {
-                    return Graphics::Rhi::RhiResourceState::DepthStencilRT;
+                    if (image->GetTexture()->IsDepthTexture())
+                    {
+                        return Graphics::Rhi::RhiResourceState::DepthStencilRT;
+                    }
+                    else
+                    {
+                        return Graphics::Rhi::RhiResourceState::ColorRT;
+                    }
                 }
                 else
                 {
-                    return Graphics::Rhi::RhiResourceState::ColorRT;
+                    auto desc = image->GetManagedTextureDesc();
+                    if (desc.m_Format == Graphics::Rhi::RhiImageFormat::RhiImgFmt_D32_SFLOAT)
+                    {
+                        return Graphics::Rhi::RhiResourceState::DepthStencilRT;
+                    }
+                    else
+                    {
+                        return Graphics::Rhi::RhiResourceState::ColorRT;
+                    }
                 }
             }
             else if (passType == FrameGraphPassType::Compute)
@@ -300,11 +333,44 @@ namespace Ifrit::Runtime
             iError("Not supported any longer.");
             std::abort();
         }
+        // Managed Resource Lifetime
+        Vec<u32> resourceBeginUse;
+        Vec<u32> resourceEndUse;
+        for (u32 i = 0; i < graph.m_resources.size(); i++)
+        {
+            resourceBeginUse.push_back(graph.m_resources.size());
+            resourceEndUse.push_back(0);
+        }
+        for (u32 i = 0; i < graph.m_passes.size(); i++)
+        {
+            auto& pass = graph.m_passes[i];
+            for (auto& resId : pass->inputResources)
+            {
+                resourceBeginUse[resId] = std::min(resourceBeginUse[resId], i);
+            }
+            for (auto& resId : pass->outputResources)
+            {
+                resourceEndUse[resId] = std::max(resourceEndUse[resId], i);
+            }
+        }
 
+        for (u32 i = 0; i < graph.m_resources.size(); i++)
+        {
+            if (graph.m_resources[i]->isImported)
+            {
+                continue;
+            }
+            auto res = graph.m_resources[i];
+            graph.m_passes[resourceBeginUse[i]]->m_ResourceCreateRequest.push_back(i);
+            graph.m_passes[resourceEndUse[i]]->m_ResourceReleaseRequest.push_back(i);
+        }
+
+        // Resource Barriers
         Vec<RhiResourceState>            resState(graph.m_resources.size(), RhiResourceState::Undefined);
-
         HashMap<void*, RhiResourceState> rawResourceState;
         HashMap<void*, bool>             rawResourceIsWriting;
+        Vec<RhiResourceState>            managedResourceState(graph.m_resources.size(), RhiResourceState::Undefined);
+        Vec<u32>                         managedResourceIsWriting(graph.m_resources.size(), 0);
 
         for (const auto& pass : graph.m_passes)
         {
@@ -312,27 +378,38 @@ namespace Ifrit::Runtime
             // Make transitions for read resources
             for (auto& resId : pass->inputResources)
             {
-                auto& res = graph.m_resources[resId];
-                auto  desiredLayout =
-                    GetInputResourceState(pass->type, res->type, res->importedTexture, res->importedBuffer);
+                auto& res           = graph.m_resources[resId];
+                auto  desiredLayout = GetInputResourceState(pass->type, res->type);
 
-                // Get aliased resource state
+                // Get aliased resource state, if it's imported
                 void* resPtr = nullptr;
-                if (res->type == FrameGraphResourceType::ResourceBuffer)
+                if (res->isImported)
                 {
-                    resPtr = res->importedBuffer;
-                }
-                else if (res->type == FrameGraphResourceType::ResourceTexture)
-                {
-                    resPtr = res->importedTexture;
-                }
-                if (rawResourceState.find(resPtr) == rawResourceState.end())
-                {
-                    rawResourceState[resPtr]     = Graphics::Rhi::RhiResourceState::Undefined;
-                    rawResourceIsWriting[resPtr] = false;
+                    if (res->type == FrameGraphResourceType::ResourceBuffer)
+                    {
+                        resPtr = res->importedBuffer;
+                    }
+                    else if (res->type == FrameGraphResourceType::ResourceTexture)
+                    {
+                        resPtr = res->importedTexture;
+                    }
+                    if (rawResourceState.find(resPtr) == rawResourceState.end())
+                    {
+                        rawResourceState[resPtr]     = Graphics::Rhi::RhiResourceState::Undefined;
+                        rawResourceIsWriting[resPtr] = false;
+                    }
                 }
 
-                auto rawResState = rawResourceState[resPtr];
+                Graphics::Rhi::RhiResourceState rawResState;
+                if (res->isImported)
+                {
+                    rawResState = rawResourceState[resPtr];
+                }
+                else
+                {
+                    rawResState = managedResourceState[resId];
+                }
+
                 // Check if input state meets the desired state
                 if (desiredLayout != rawResState)
                 {
@@ -360,7 +437,15 @@ namespace Ifrit::Runtime
                     }
                     else
                     {
-                        if (rawResourceIsWriting[resPtr])
+                        if (res->IsImported() && rawResourceIsWriting[resPtr])
+                        {
+                            // If the resource is writing, then we need to make a uav barrier to prevent RAW
+                            CompiledFrameGraph::ResourceBarrier aliasBarrier;
+                            aliasBarrier.m_ResId          = resId;
+                            aliasBarrier.enableUAVBarrier = true;
+                            compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
+                        }
+                        else if (!res->isImported && managedResourceIsWriting[resId] > 0)
                         {
                             // If the resource is writing, then we need to make a uav barrier to prevent RAW
                             CompiledFrameGraph::ResourceBarrier aliasBarrier;
@@ -369,35 +454,53 @@ namespace Ifrit::Runtime
                             compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
                         }
                     }
-                    rawResourceState[resPtr]     = desiredLayout;
-                    rawResourceIsWriting[resPtr] = false;
+                    if (res->isImported)
+                    {
+                        rawResourceState[resPtr]     = desiredLayout;
+                        rawResourceIsWriting[resPtr] = 0;
+                    }
+                    else
+                    {
+                        managedResourceState[resId]     = desiredLayout;
+                        managedResourceIsWriting[resId] = 0;
+                    }
                 }
             }
 
             // Make transitions for write resources
             for (auto& resId : pass->outputResources)
             {
-                auto& res = graph.m_resources[resId];
-                auto  desiredLayout =
-                    GetDesiredOutputLayout(pass->type, res->type, res->importedTexture, res->importedBuffer);
+                auto& res           = graph.m_resources[resId];
+                auto  desiredLayout = GetDesiredOutputLayout(pass->type, res->type, res);
 
                 // Get aliased resource state
                 void* resPtr = nullptr;
-                if (res->type == FrameGraphResourceType::ResourceBuffer)
+                if (res->isImported)
                 {
-                    resPtr = res->importedBuffer;
+                    if (res->type == FrameGraphResourceType::ResourceBuffer)
+                    {
+                        resPtr = res->importedBuffer;
+                    }
+                    else if (res->type == FrameGraphResourceType::ResourceTexture)
+                    {
+                        resPtr = res->importedTexture;
+                    }
+                    if (rawResourceState.find(resPtr) == rawResourceState.end())
+                    {
+                        rawResourceState[resPtr]     = Graphics::Rhi::RhiResourceState::Undefined;
+                        rawResourceIsWriting[resPtr] = true;
+                    }
                 }
-                else if (res->type == FrameGraphResourceType::ResourceTexture)
-                {
-                    resPtr = res->importedTexture;
-                }
-                if (rawResourceState.find(resPtr) == rawResourceState.end())
-                {
-                    rawResourceState[resPtr]     = Graphics::Rhi::RhiResourceState::Undefined;
-                    rawResourceIsWriting[resPtr] = true;
-                }
-                auto rawResState = rawResourceState[resPtr];
 
+                Graphics::Rhi::RhiResourceState rawResState;
+                if (res->isImported)
+                {
+                    rawResState = rawResourceState[resPtr];
+                }
+                else
+                {
+                    rawResState = managedResourceState[resId];
+                }
                 // Check if input state meets the desired state
                 if (desiredLayout != rawResState)
                 {
@@ -423,7 +526,16 @@ namespace Ifrit::Runtime
                         aliasBarrier.dstState = desiredLayout;
                         compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
                     }
-                    rawResourceState[resPtr] = desiredLayout;
+                    if (res->isImported)
+                    {
+                        rawResourceState[resPtr]     = desiredLayout;
+                        rawResourceIsWriting[resPtr] = 1;
+                    }
+                    else
+                    {
+                        managedResourceState[resId] = desiredLayout;
+                        managedResourceIsWriting[resId] += 1;
+                    }
                 }
             }
         }
@@ -441,15 +553,31 @@ namespace Ifrit::Runtime
             resBarrier.m_transition.m_type = res.type == FrameGraphResourceType::ResourceBuffer
                 ? Graphics::Rhi::RhiResourceType::Buffer
                 : Graphics::Rhi::RhiResourceType::Texture;
-            if (res.type == FrameGraphResourceType::ResourceBuffer)
+            if (res.isImported)
             {
-                resBarrier.m_transition.m_buffer = res.importedBuffer;
+                if (res.type == FrameGraphResourceType::ResourceBuffer)
+                {
+                    resBarrier.m_transition.m_buffer = res.importedBuffer;
+                }
+                else
+                {
+                    resBarrier.m_transition.m_texture     = res.importedTexture;
+                    resBarrier.m_transition.m_subResource = res.subResource;
+                }
             }
             else
             {
-                resBarrier.m_transition.m_texture     = res.importedTexture;
-                resBarrier.m_transition.m_subResource = res.subResource;
+                if (res.type == FrameGraphResourceType::ResourceBuffer)
+                {
+                    resBarrier.m_transition.m_buffer = res.selfBuffer;
+                }
+                else
+                {
+                    resBarrier.m_transition.m_texture     = res.selfTexture;
+                    resBarrier.m_transition.m_subResource = res.subResource;
+                }
             }
+
             resBarrier.m_transition.m_srcState = Graphics::Rhi::RhiResourceState::AutoTraced; // barrier.srcState;
             resBarrier.m_transition.m_dstState = barrier.dstState;
             valid                              = true;
@@ -482,6 +610,28 @@ namespace Ifrit::Runtime
         using namespace Ifrit::Graphics::Rhi;
         for (auto pass : compiledGraph.m_graph->m_passes)
         {
+            // PreExecute
+            for (u32 i = 0; i < pass->m_ResourceCreateRequest.size(); i++)
+            {
+                auto res = compiledGraph.m_graph->m_resources[pass->m_ResourceCreateRequest[i]];
+                iAssertion(!res->isImported, "Resource should not be imported.");
+
+                if (res->type == FrameGraphResourceType::ResourceBuffer)
+                {
+                    auto resAlloc      = compiledGraph.m_graph->m_ResourcePool->CreateBuffer(res->bufferDesc);
+                    res->m_PooledResId = resAlloc.m_PooledResId;
+                    res->selfBuffer    = resAlloc.m_Buffer;
+                }
+                else if (res->type == FrameGraphResourceType::ResourceTexture)
+                {
+                    auto resAlloc      = compiledGraph.m_graph->m_ResourcePool->CreateTexture(res->textureDesc);
+                    res->m_PooledResId = resAlloc.m_PooledResId;
+                    res->selfTexture   = resAlloc.m_Texture;
+                    res->subResource   = { 0, 0, 1, 1 };
+                }
+            }
+
+            // Execute
             Vec<RhiResourceBarrier> outputBarriers;
             for (auto& barrier : compiledGraph.m_inputBarriers[pass->id])
             {
@@ -497,6 +647,26 @@ namespace Ifrit::Runtime
 
             pass->FillContext(passContext);
             pass->Execute(passContext);
+
+            // PostExecute
+            for (u32 i = 0; i < pass->m_ResourceReleaseRequest.size(); i++)
+            {
+                auto res = compiledGraph.m_graph->m_resources[pass->m_ResourceReleaseRequest[i]];
+                iAssertion(!res->isImported, "Resource should not be imported.");
+
+                if (res->type == FrameGraphResourceType::ResourceBuffer)
+                {
+                    res->selfBuffer = nullptr;
+                    compiledGraph.m_graph->m_ResourcePool->ReleaseBuffer(res->m_PooledResId);
+                    res->m_PooledResId = RIndexedPtr(0);
+                }
+                else if (res->type == FrameGraphResourceType::ResourceTexture)
+                {
+                    res->selfTexture = nullptr;
+                    compiledGraph.m_graph->m_ResourcePool->ReleaseTexture(res->m_PooledResId);
+                    res->m_PooledResId = RIndexedPtr(0);
+                }
+            }
         }
         cmd->EndScope();
     }

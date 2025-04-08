@@ -86,6 +86,9 @@ namespace Ifrit::Runtime
         // Setup RHI cache
         m_rhiLayer->SetCacheDirectory(m_info.m_cachePath);
 
+        // Prepare shared render resource
+        m_SharedRenderResource = std::make_shared<SharedRenderResource>(m_rhiLayer.get());
+
         // Prepare internal shaders
         m_shaderRegistry = std::make_shared<ShaderRegistry>(this);
         Internal::RegisterRuntimeInternalShaders(m_shaderRegistry.get());

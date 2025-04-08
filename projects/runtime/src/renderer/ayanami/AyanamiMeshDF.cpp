@@ -117,8 +117,9 @@ namespace Ifrit::Runtime::Ayanami
         }
     }
 
-    IFRIT_APIDECL void AyanamiMeshDF::BuildGPUResource(Graphics::Rhi::RhiBackend* rhi)
+    IFRIT_APIDECL void AyanamiMeshDF::BuildGPUResource(Graphics::Rhi::RhiBackend* rhi, SharedRenderResource* sharedRes)
     {
+        auto linearClampSampler = sharedRes->GetLinearClampSampler();
         if (m_gpuResource == nullptr)
         {
             if (m_isBuilt == false)
@@ -135,14 +136,14 @@ namespace Ifrit::Runtime::Ayanami
             deviceVolume->WriteBuffer(m_sdfData.data(), volumeSize * sizeof(f32), 0);
             deviceVolume->FlushBuffer();
             deviceVolume->UnmapMemory();
-            m_gpuResource->sdfSampler = rhi->CreateTrivialBilinearSampler(false);
+
             m_gpuResource->sdfTexture = rhi->CreateTexture3D("Ayanami_DFTexture", m_sdWidth, m_sdHeight, m_sdDepth,
                 RhiImageFormat::RhiImgFmt_R32_SFLOAT,
-                RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT
-                    | RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT,
+                RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_CopyDst
+                    | RhiImageUsage::RhiImgUsage_UnorderedAccess,
                 true);
             m_gpuResource->sdfTextureBindId =
-                rhi->RegisterCombinedImageSampler(m_gpuResource->sdfTexture.get(), m_gpuResource->sdfSampler.get());
+                rhi->RegisterCombinedImageSampler(m_gpuResource->sdfTexture.get(), linearClampSampler.get());
             m_gpuResource->sdfMetaBuffer = rhi->CreateBuffer("Ayanami_DFMeta", sizeof(AyanamiMeshDFResource::SDFMeta),
                 RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO, true, true);
 
@@ -155,7 +156,7 @@ namespace Ifrit::Runtime::Ayanami
             sdfMeta.depth   = m_sdDepth;
             sdfMeta.sdfId   = m_gpuResource->sdfTextureBindId->GetActiveId();
 
-            auto tq = rhi->GetQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+            auto tq = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
             tq->RunSyncCommand([&](const RhiCommandList* cmd) {
                 RhiResourceBarrier barrier;
                 barrier.m_type                     = RhiBarrierType::Transition;

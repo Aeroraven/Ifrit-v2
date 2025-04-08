@@ -21,18 +21,17 @@ namespace Ifrit::Runtime::RenderingUtil
             iError("Failed to load blue noise texture");
             return nullptr;
         }
-        auto tex =
-            rhi->CreateTexture2D("Noise_Tex2D", width, height, Graphics::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
-                Graphics::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT
-                    | Graphics::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT,
-                false);
+        auto tex = rhi->CreateTexture2D("Noise_Tex2D", width, height,
+            Graphics::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
+            Graphics::Rhi::RhiImageUsage::RhiImgUsage_ShaderRead | Graphics::Rhi::RhiImageUsage::RhiImgUsage_CopyDst,
+            false);
         auto buf = rhi->CreateBuffer(
             "Noise_Buffer", width * height * 4, Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
         buf->MapMemory();
         buf->WriteBuffer(data, width * height * 4, 0);
         buf->FlushBuffer();
         buf->UnmapMemory();
-        auto tq = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+        auto tq = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RhiQueue_Transfer);
         tq->RunSyncCommand([&](const Graphics::Rhi::RhiCommandList* cmd) {
             Graphics::Rhi::RhiTransitionBarrier barrier;
             barrier.m_texture     = tex.get();

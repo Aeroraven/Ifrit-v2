@@ -182,10 +182,10 @@ namespace Ifrit::Runtime
         }
 
         auto rhi = app->GetRhi();
-        auto tex = rhi->CreateTexture2D("Asset_Tex", header->dwWidth, header->dwHeight, format,
-            RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT, false);
+        auto tex = rhi->CreateTexture2D(
+            "Asset_Tex", header->dwWidth, header->dwHeight, format, RhiImageUsage::RhiImgUsage_CopyDst, false);
 
-        auto tq               = rhi->GetQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+        auto tq               = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
         auto totalBodySize    = data.size() - bodyOffset;
         auto requiredBodySize = header->dwPitchOrLinearSize * header->dwHeight;
         if (format == RhiImageFormat::RhiImgFmt_UNDEFINED)

@@ -40,7 +40,9 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IF_CONSTEXPR Array<DescriptorTypeDetails, cMaxDescriptorType> cDescriptorTypeDetails = {
         { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 40000 }, { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 40000 },
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 40000 }, { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 40000 } }
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 40000 }, { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 40000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 40000 }, { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 40000 },
+            { VK_DESCRIPTOR_TYPE_SAMPLER, 40000 } }
     };
 
     struct DescriptorBindRange
@@ -65,30 +67,69 @@ namespace Ifrit::Graphics::VulkanGraphics
         Uref<SingleBuffer> m_buffer;
     };
 
+    struct DescriptorImageView
+    {
+        VkImageView              m_Image;
+        Rhi::RhiImageSubResource m_SubResource;
+
+        bool                     operator==(const DescriptorImageView& other) const
+        {
+            bool ret = true;
+            ret &= m_Image == other.m_Image;
+            ret &= (m_SubResource.mipLevel == other.m_SubResource.mipLevel);
+            ret &= (m_SubResource.arrayLayer == other.m_SubResource.arrayLayer);
+            ret &= (m_SubResource.layerCount == other.m_SubResource.layerCount);
+            ret &= (m_SubResource.mipCount == other.m_SubResource.mipCount);
+
+            return ret;
+        }
+
+        struct Hash
+        {
+            u32 operator()(const DescriptorImageView& desc) const
+            {
+                u32 hash = 0;
+                hash ^= std::hash<VkImageView>()(desc.m_Image);
+                hash ^= std::hash<u32>()(desc.m_SubResource.mipLevel);
+                hash ^= std::hash<u32>()(desc.m_SubResource.arrayLayer);
+                hash ^= std::hash<u32>()(desc.m_SubResource.layerCount);
+                hash ^= std::hash<u32>()(desc.m_SubResource.mipCount);
+                return hash;
+            }
+        };
+    };
+
     class IFRIT_APIDECL DescriptorManager
     {
     private:
-        EngineContext*                                          m_context;
-        Array<VkDescriptorSetLayoutBinding, cMaxDescriptorType> m_bindings;
-        Array<VkDescriptorBindingFlagsEXT, cMaxDescriptorType>  m_bindingFlags;
-        VkDescriptorSetLayout                                   m_bindlessLayout;
-        VkDescriptorPool                                        m_bindlessPool;
-        VkDescriptorSet                                         m_bindlessSet;
+        EngineContext*                                                     m_context;
+        Array<VkDescriptorSetLayoutBinding, cMaxDescriptorType>            m_bindings;
+        Array<VkDescriptorBindingFlagsEXT, cMaxDescriptorType>             m_bindingFlags;
+        VkDescriptorSetLayout                                              m_bindlessLayout;
+        VkDescriptorPool                                                   m_bindlessPool;
+        VkDescriptorSet                                                    m_bindlessSet;
 
-        Vec<VkBuffer>                                           m_uniformBuffers;
-        Vec<VkBuffer>                                           m_storageBuffers;
-        HashMap<VkBuffer, u32>                                  m_storageBufferMap;
-        Vec<Pair<VkImage, VkSampler>>                           m_combinedImageSamplers;
+        Vec<VkBuffer>                                                      m_uniformBuffers;
+        Vec<VkBuffer>                                                      m_storageBuffers;
+        HashMap<VkBuffer, u32>                                             m_storageBufferMap;
+        Vec<Pair<VkImage, VkSampler>>                                      m_combinedImageSamplers;
 
-        Vec<Pair<VkImage, Rhi::RhiImageSubResource>>            m_storageImages;
+        Vec<DescriptorImageView>                                           m_StorageImages;
+        CustomHashMap<DescriptorImageView, u32, DescriptorImageView::Hash> m_StorageImageMap;
 
-        u32                                                     m_minUniformBufferAlignment = 0;
+        Vec<VkSampler>                                                     m_IndependentSamplers;
+        HashMap<VkSampler, u32>                                            m_IndependentSamplerMap;
 
-        Vec<Uref<DescriptorBindRangeData>>                      m_bindRanges;
-        Uref<DescriptorBindRangeData>                           m_currentBindRange;
+        Vec<DescriptorImageView>                                           m_SampledImages;
+        CustomHashMap<DescriptorImageView, u32, DescriptorImageView::Hash> m_SampledImageMap;
 
-        VkDescriptorSetLayout                                   m_layoutShared = VK_NULL_HANDLE;
-        VkDescriptorSetLayoutBinding                            m_bindingShared{};
+        u32                                                                m_minUniformBufferAlignment = 0;
+
+        Vec<Uref<DescriptorBindRangeData>>                                 m_bindRanges;
+        Uref<DescriptorBindRangeData>                                      m_currentBindRange;
+
+        VkDescriptorSetLayout                                              m_layoutShared = VK_NULL_HANDLE;
+        VkDescriptorSetLayoutBinding                                       m_bindingShared{};
 
     protected:
         void Destructor();
@@ -102,9 +143,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         u32                    RegisterUniformBuffer(SingleBuffer* buffer);
         u32                    RegisterCombinedImageSampler(SingleDeviceImage* image, Sampler* sampler);
         u32                    RegisterStorageBuffer(SingleBuffer* buffer);
-        u32                    RegisterStorageImage(SingleDeviceImage* image, Rhi::RhiImageSubResource subResource);
-        DescriptorBindRange    RegisterBindlessParameterRaw(const char* data, u32 size);
 
+        u32                    RegisterStorageImage(SingleDeviceImage* image, Rhi::RhiImageSubResource subResource);
+        u32                    RegisterSampledImage(SingleDeviceImage* image, Rhi::RhiImageSubResource subResource);
+        u32                    RegisterSamplers(Sampler* sampler);
+
+        DescriptorBindRange    RegisterBindlessParameterRaw(const char* data, u32 size);
         void                   BuildBindlessParameter();
 
         inline VkDescriptorSet GetBindlessSet() const { return m_bindlessSet; }

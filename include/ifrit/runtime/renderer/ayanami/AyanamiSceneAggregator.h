@@ -31,7 +31,8 @@ namespace Ifrit::Runtime::Ayanami
     {
     private:
         Graphics::Rhi::RhiBackend* m_rhi;
-        AyanamiSceneResources*     m_sceneResources = nullptr;
+        SharedRenderResource*      m_SharedRenderResource = nullptr;
+        AyanamiSceneResources*     m_sceneResources       = nullptr;
 
     public:
         struct AggregatedLights
@@ -44,7 +45,11 @@ namespace Ifrit::Runtime::Ayanami
         void Destroy();
 
     public:
-        AyanamiSceneAggregator(Graphics::Rhi::RhiBackend* rhi) : m_rhi(rhi) { Init(); }
+        AyanamiSceneAggregator(Graphics::Rhi::RhiBackend* rhi, SharedRenderResource* sharedRes)
+            : m_rhi(rhi), m_SharedRenderResource(sharedRes)
+        {
+            Init();
+        }
         ~AyanamiSceneAggregator() { Destroy(); }
 
         void             CollectScene(Scene* scene);

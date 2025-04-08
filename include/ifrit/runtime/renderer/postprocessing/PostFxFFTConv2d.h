@@ -32,7 +32,6 @@ namespace Ifrit::Runtime::PostprocessPassCollection
         using GPUBindId  = Graphics::Rhi::RhiDescHandleLegacy;
         using GPUTexture = Graphics::Rhi::RhiTextureRef;
         using GPUShader  = Graphics::Rhi::RhiShader;
-        using GPUSampler = Graphics::Rhi::RhiSamplerRef;
 
         GPUTexture     m_tex1;
         Ref<GPUBindId> m_tex1IdSamp;
@@ -40,7 +39,6 @@ namespace Ifrit::Runtime::PostprocessPassCollection
         GPUTexture     m_texTemp;
 
         GPUTexture     m_texGaussian;
-        GPUSampler     m_texGaussianSampler;
         Ref<GPUBindId> m_texGaussianSampId;
 
         PostFxFFTConv2dResourceCollection()                                         = default;

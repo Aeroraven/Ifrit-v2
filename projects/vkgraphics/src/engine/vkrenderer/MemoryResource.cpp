@@ -440,8 +440,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         u32 width, u32 height, u32 depth, VkFormat format, VkImageUsageFlags extraUsage)
     {
         ImageCreateInfo ci{};
-        ci.aspect      = ImageAspect::Color;
-        ci.type        = ImageType::Image3D;
+        ci.aspect = ImageAspect::Color;
+        if (depth == 1)
+            ci.type = ImageType::Image2D;
+        else
+            ci.type = ImageType::Image3D;
         ci.format      = format;
         ci.width       = width;
         ci.height      = height;

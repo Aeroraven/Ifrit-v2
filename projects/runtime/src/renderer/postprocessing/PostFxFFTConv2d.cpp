@@ -87,22 +87,23 @@ namespace Ifrit::Runtime::PostprocessPassCollection
         {
             firstTime = true;
             using namespace Ifrit::Graphics::Rhi;
-            auto res     = std::make_unique<PostFxFFTConv2dResourceCollection>();
-            auto rhi     = m_app->GetRhi();
-            auto tex1    = rhi->CreateTexture2D("PostFx_Conv_Tex1", p2Width * 2, p2Height,
-                   RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                   RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT, true);
-            auto tex2    = rhi->CreateTexture2D("PostFx_Conv_Tex2", p2Width * 2, p2Height,
-                   RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                   RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT, true);
-            auto texTemp = rhi->CreateTexture2D("PostFx_Conv_TexTemp", p2Width * 2, p2Height,
-                RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT, true);
+            auto res           = std::make_unique<PostFxFFTConv2dResourceCollection>();
+            auto rhi           = m_app->GetRhi();
+            auto linearSampler = m_app->GetSharedRenderResource()->GetLinearRepeatSampler();
+            auto tex1          = rhi->CreateTexture2D("PostFx_Conv_Tex1", p2Width * 2, p2Height,
+                         RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                         RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead, true);
+            auto tex2          = rhi->CreateTexture2D("PostFx_Conv_Tex2", p2Width * 2, p2Height,
+                         RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                         RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead, true);
+            auto texTemp       = rhi->CreateTexture2D("PostFx_Conv_TexTemp", p2Width * 2, p2Height,
+                      RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                      RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead, true);
 
-            auto texSampler        = rhi->CreateTrivialSampler();
+            auto texSampler        = linearSampler;
             auto texGaussian       = rhi->CreateTexture2D("PostFx_Conv_TexGaussian", kernelWidth, kernelHeight,
                       RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                      RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT, true);
+                      RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead, true);
             auto texGaussianSampId = rhi->RegisterCombinedImageSampler(texGaussian.get(), texSampler.get());
 
             res->m_tex1               = tex1;
@@ -110,7 +111,6 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             res->m_tex2               = tex2;
             res->m_texTemp            = texTemp;
             res->m_texGaussian        = texGaussian;
-            res->m_texGaussianSampler = texSampler;
             res->m_texGaussianSampId  = texGaussianSampId;
 
             m_resMap[{ p2Width, p2Height }] = *res;

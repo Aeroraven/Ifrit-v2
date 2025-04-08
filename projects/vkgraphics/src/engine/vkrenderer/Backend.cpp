@@ -189,36 +189,33 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL Rhi::RhiQueue* RhiVulkanBackend::GetQueue(Rhi::RhiQueueCapability req)
     {
         QueueRequirement reqs;
-        if (req == Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT)
+        if (req == Rhi::RhiQueueCapability::RhiQueue_Graphics)
         {
             reqs = QueueRequirement::Graphics;
         }
-        else if (req == Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT)
+        else if (req == Rhi::RhiQueueCapability::RhiQueue_Compute)
         {
             reqs = QueueRequirement::Compute;
         }
-        else if (req == Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT)
+        else if (req == Rhi::RhiQueueCapability::RhiQueue_Transfer)
         {
             reqs = QueueRequirement::Transfer;
         }
-        else if (req
-            == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT))
+        else if (req == (Rhi::RhiQueueCapability::RhiQueue_Graphics | Rhi::RhiQueueCapability::RhiQueue_Compute))
         {
             reqs = QueueRequirement::Graphics_Compute;
         }
-        else if (req
-            == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT))
+        else if (req == (Rhi::RhiQueueCapability::RhiQueue_Graphics | Rhi::RhiQueueCapability::RhiQueue_Transfer))
         {
             reqs = QueueRequirement::Graphics_Transfer;
         }
-        else if (req
-            == (Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT))
+        else if (req == (Rhi::RhiQueueCapability::RhiQueue_Compute | Rhi::RhiQueueCapability::RhiQueue_Transfer))
         {
             reqs = QueueRequirement::Compute_Transfer;
         }
         else if (req
-            == (Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT | Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT
-                | Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT))
+            == (Rhi::RhiQueueCapability::RhiQueue_Graphics | Rhi::RhiQueueCapability::RhiQueue_Compute
+                | Rhi::RhiQueueCapability::RhiQueue_Transfer))
         {
             reqs = QueueRequirement::Universal;
         }
@@ -317,19 +314,59 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::CreateTrivialSampler()
-    {
-        return m_implDetails->m_resourceManager->CreateTrivialRenderTargetSampler();
-    }
+    // IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::CreateTrivialSampler()
+    // {
+    //     return m_implDetails->m_resourceManager->CreateTrivialRenderTargetSampler();
+    // }
 
-    IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::CreateTrivialBilinearSampler(bool repeat)
-    {
-        return m_implDetails->m_resourceManager->CreateTrivialBilinearSampler(repeat);
-    }
+    // IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::CreateTrivialBilinearSampler(bool repeat)
+    // {
+    //     return m_implDetails->m_resourceManager->CreateTrivialBilinearSampler(repeat);
+    // }
 
-    IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::CreateTrivialNearestSampler(bool repeat)
+    // IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::CreateTrivialNearestSampler(bool repeat)
+    // {
+    //     return m_implDetails->m_resourceManager->CreateTrivialNearestSampler(repeat);
+    // }
+
+    IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::CreateSampler(
+        Rhi::RhiSamplerFilter filter, Rhi::RhiSamplerWrapMode addressMode, bool addBinding)
     {
-        return m_implDetails->m_resourceManager->CreateTrivialNearestSampler(repeat);
+        Rhi::RhiSamplerRef sampler = nullptr;
+        if (filter == Rhi::RhiSamplerFilter::Linear)
+        {
+            if (addressMode == Rhi::RhiSamplerWrapMode::Clamp)
+            {
+                sampler = m_implDetails->m_resourceManager->CreateTrivialBilinearSampler(false);
+            }
+            else if (addressMode == Rhi::RhiSamplerWrapMode::Repeat)
+            {
+                sampler = m_implDetails->m_resourceManager->CreateTrivialBilinearSampler(true);
+            }
+        }
+        else if (filter == Rhi::RhiSamplerFilter::Nearest)
+        {
+            if (addressMode == Rhi::RhiSamplerWrapMode::Clamp)
+            {
+                sampler = m_implDetails->m_resourceManager->CreateTrivialNearestSampler(false);
+            }
+            else if (addressMode == Rhi::RhiSamplerWrapMode::Repeat)
+            {
+                sampler = m_implDetails->m_resourceManager->CreateTrivialNearestSampler(true);
+            }
+        }
+        else
+        {
+            throw std::runtime_error("Unsupported sampler filter or address mode");
+        }
+
+        if (addBinding)
+        {
+            auto samplerPtr = CheckedCast<Sampler>(sampler.get());
+            auto id         = m_implDetails->m_descriptorManager->RegisterSamplers(samplerPtr);
+            sampler->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::Sampler, id));
+        }
+        return sampler;
     }
 
     // Deprecating

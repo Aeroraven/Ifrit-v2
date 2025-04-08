@@ -26,6 +26,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit;
 
+// TODO: Current binding suffers from a problem resembling "ABA problem".
+// Buffers reallocated might share the same ID as the previous one, and the new buffer.
+// This makes a invalid referencing.
+
 namespace Ifrit::Graphics::VulkanGraphics
 {
     template <typename E> IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
@@ -183,7 +187,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkWriteDescriptorSet write{};
         write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.dstSet          = m_bindlessSet;
-        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::StorageBuffer);
+        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::RWStorageBuffer);
         write.dstArrayElement = SizeCast<u32>(handleId);
         write.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         write.descriptorCount = 1;
@@ -193,22 +197,80 @@ namespace Ifrit::Graphics::VulkanGraphics
         return SizeCast<u32>(handleId);
     }
 
+    IFRIT_APIDECL u32 DescriptorManager::RegisterSampledImage(
+        SingleDeviceImage* image, Rhi::RhiImageSubResource subResource)
+    {
+        auto imageViewHandle = image->GetImageViewMipLayer(
+            subResource.mipLevel, subResource.arrayLayer, subResource.mipCount, subResource.layerCount);
+        DescriptorImageView imgView = DescriptorImageView(imageViewHandle, subResource);
+
+        auto                it = m_SampledImageMap.find(imgView);
+        if (it != m_SampledImageMap.end())
+        {
+            return it->second;
+        }
+        auto handleId = m_SampledImages.size();
+        m_SampledImages.push_back(imgView);
+
+        m_SampledImageMap[imgView] = handleId;
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView   = imageViewHandle;
+        imageInfo.sampler     = VK_NULL_HANDLE;
+        VkWriteDescriptorSet write{};
+        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet          = m_bindlessSet;
+        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::SampledImage);
+        write.dstArrayElement = SizeCast<u32>(handleId);
+        write.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        write.descriptorCount = 1;
+        write.pImageInfo      = &imageInfo;
+        vkUpdateDescriptorSets(m_context->GetDevice(), 1, &write, 0, nullptr);
+        return SizeCast<u32>(handleId);
+    }
+    IFRIT_APIDECL u32 DescriptorManager::RegisterSamplers(Sampler* sampler)
+    {
+        auto samplerHandle = sampler->GetSampler();
+        auto it            = m_IndependentSamplerMap.find(samplerHandle);
+        if (it != m_IndependentSamplerMap.end())
+        {
+            return it->second;
+        }
+        auto handleId = m_IndependentSamplers.size();
+        m_IndependentSamplers.push_back(samplerHandle);
+        m_IndependentSamplerMap[samplerHandle] = handleId;
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView   = VK_NULL_HANDLE;
+        imageInfo.sampler     = samplerHandle;
+
+        VkWriteDescriptorSet write{};
+        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet          = m_bindlessSet;
+        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::Sampler);
+        write.dstArrayElement = SizeCast<u32>(handleId);
+        write.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER;
+        write.descriptorCount = 1;
+        write.pImageInfo      = &imageInfo;
+
+        vkUpdateDescriptorSets(m_context->GetDevice(), 1, &write, 0, nullptr);
+        return SizeCast<u32>(handleId);
+    }
+
     IFRIT_APIDECL
     u32 DescriptorManager::RegisterStorageImage(SingleDeviceImage* image, Rhi::RhiImageSubResource subResource)
     {
-        for (int i = 0; i < m_storageImages.size(); i++)
+        auto imageViewHandle = image->GetImageViewMipLayer(
+            subResource.mipLevel, subResource.arrayLayer, subResource.mipCount, subResource.layerCount);
+        DescriptorImageView imgView = DescriptorImageView(imageViewHandle, subResource);
+        auto                it      = m_StorageImageMap.find(imgView);
+        if (it != m_StorageImageMap.end())
         {
-            if (m_storageImages[i].first == image->GetImage())
-            {
-                auto& sub = m_storageImages[i].second;
-                if (sub.mipLevel == subResource.mipLevel && sub.arrayLayer == subResource.arrayLayer
-                    && sub.mipCount == subResource.mipCount && sub.layerCount == subResource.layerCount)
-                {
-                    return i;
-                }
-            }
+            return it->second;
         }
-        auto                  handle = m_storageImages.size();
+
+        auto                  handle = m_StorageImages.size();
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
         imageInfo.imageView   = image->GetImageViewMipLayer(
@@ -226,7 +288,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         write.pImageInfo      = &imageInfo;
 
         vkUpdateDescriptorSets(m_context->GetDevice(), 1, &write, 0, nullptr);
-        m_storageImages.push_back({ image->GetImage(), subResource });
+        m_StorageImages.push_back(imgView);
         return SizeCast<u32>(handle);
     }
 

@@ -122,8 +122,8 @@ namespace Ifrit::Runtime
             using namespace Graphics::Rhi;
             auto tex =
                 rhi->CreateTexture2D("PbrAtmo_Tex2D", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                    RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT
-                        | RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT,
+                    RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead
+                        | RhiImageUsage::RhiImgUsage_CopyDst,
                     true);
             return tex;
         };
@@ -131,12 +131,13 @@ namespace Ifrit::Runtime
             using namespace Graphics::Rhi;
             auto tex = rhi->CreateTexture3D("PbrAtmo_Tex3D", width, height, depth,
                 RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT
-                    | RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT,
+                RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead
+                    | RhiImageUsage::RhiImgUsage_CopyDst,
                 true);
             return tex;
         };
-        data->m_sampler       = rhi->CreateTrivialSampler();
+
+        auto sampler          = m_app->GetSharedRenderResource()->GetLinearRepeatSampler();
         data->m_transmittance = createPbrAtmoTex2D(
             AtmospherePASConfig::TRANSMITTANCE_TEXTURE_WIDTH, AtmospherePASConfig::TRANSMITTANCE_TEXTURE_HEIGHT);
         data->m_deltaIrradiance = createPbrAtmoTex2D(
@@ -157,21 +158,19 @@ namespace Ifrit::Runtime
 
         // bindless ids for combined image sampler
         data->m_transmittanceCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_transmittance.get(), data->m_sampler.get());
+            rhi->RegisterCombinedImageSampler(data->m_transmittance.get(), sampler.get());
         data->m_deltaIrradianceCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_deltaIrradiance.get(), data->m_sampler.get());
-        data->m_irradianceCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_irradiance.get(), data->m_sampler.get());
-        data->m_scatteringCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_scattering.get(), data->m_sampler.get());
+            rhi->RegisterCombinedImageSampler(data->m_deltaIrradiance.get(), sampler.get());
+        data->m_irradianceCombSamplerId = rhi->RegisterCombinedImageSampler(data->m_irradiance.get(), sampler.get());
+        data->m_scatteringCombSamplerId = rhi->RegisterCombinedImageSampler(data->m_scattering.get(), sampler.get());
         data->m_optionalSingleMieScatteringCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_optionalSingleMieScattering.get(), data->m_sampler.get());
+            rhi->RegisterCombinedImageSampler(data->m_optionalSingleMieScattering.get(), sampler.get());
         data->m_deltaRayleighScatteringCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_deltaRayleighScattering.get(), data->m_sampler.get());
+            rhi->RegisterCombinedImageSampler(data->m_deltaRayleighScattering.get(), sampler.get());
         data->m_deltaMieScatteringCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_deltaMieScattering.get(), data->m_sampler.get());
+            rhi->RegisterCombinedImageSampler(data->m_deltaMieScattering.get(), sampler.get());
         data->m_deltaScatteringDensityCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_deltaScatteringDensity.get(), data->m_sampler.get());
+            rhi->RegisterCombinedImageSampler(data->m_deltaScatteringDensity.get(), sampler.get());
         data->m_deltaMultipleScatteringCombSamplerId = data->m_deltaRayleighScatteringCombSamplerId;
 
         // Copy atmo params to GPU
@@ -180,7 +179,7 @@ namespace Ifrit::Runtime
             Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopyDst | Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO,
             true);
         auto stagingBuffer             = rhi->CreateStagedSingleBuffer(data->m_atmosphereParamsBuffer.get());
-        auto tq                        = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+        auto tq                        = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RhiQueue_Transfer);
         tq->RunSyncCommand([&](const Graphics::Rhi::RhiCommandList* cmd) {
             stagingBuffer->CmdCopyToDevice(
                 cmd, &data->m_atmosphereParams, sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter), 0);
@@ -459,7 +458,7 @@ namespace Ifrit::Runtime
         };
 
         // Final, run
-        auto cq = m_app->GetRhi()->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_COMPUTE_BIT);
+        auto cq = m_app->GetRhi()->GetQueue(Graphics::Rhi::RhiQueueCapability::RhiQueue_Compute);
 
         auto toGeneralLayout = [&](const RhiCommandList* cmd, RhiTexture* tex) {
             RhiTransitionBarrier tBarrier;

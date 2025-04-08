@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-
+#include "ifrit/core/platform/ApiConv.h"
 #ifndef IFRIT_MODULE_RUNTIME
     #define IFRIT_RUNTIME_API IFRIT_APIDECL_IMPORT
 #else

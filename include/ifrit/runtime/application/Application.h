@@ -37,16 +37,16 @@ namespace Ifrit::Runtime
         using WindowProvider = Display::Window::WindowProvider;
 
     protected:
-        Uref<RhiBackend>       m_rhiLayer; // should be destroyed last
-
-        Ref<SceneManager>      m_sceneManager;
-        Ref<AssetManager>      m_assetManager;
-        Ref<SceneAssetManager> m_sceneAssetManager;
-        Ref<InputSystem>       m_inputSystem;
-        Ref<TimingRecorder>    m_timingRecorder;
-        Uref<WindowProvider>   m_windowProvider;
-        Ref<ShaderRegistry>    m_shaderRegistry;
-        ProjectProperty        m_info;
+        Uref<RhiBackend>          m_rhiLayer; // should be destroyed last
+        Ref<SharedRenderResource> m_SharedRenderResource;
+        Ref<SceneManager>         m_sceneManager;
+        Ref<AssetManager>         m_assetManager;
+        Ref<SceneAssetManager>    m_sceneAssetManager;
+        Ref<InputSystem>          m_inputSystem;
+        Ref<TimingRecorder>       m_timingRecorder;
+        Uref<WindowProvider>      m_windowProvider;
+        Ref<ShaderRegistry>       m_shaderRegistry;
+        ProjectProperty           m_info;
 
     private:
         void        Start();
@@ -55,16 +55,17 @@ namespace Ifrit::Runtime
         inline bool ApplicationShouldClose() { return true; }
 
     public:
-        virtual void                   OnStart() override {}
-        virtual void                   OnUpdate() override {}
-        virtual void                   OnEnd() override {}
-        void                           Run(const ProjectProperty& info);
+        virtual void                         OnStart() override {}
+        virtual void                         OnUpdate() override {}
+        virtual void                         OnEnd() override {}
+        void                                 Run(const ProjectProperty& info);
 
-        inline virtual RhiBackend*     GetRhi() override { return m_rhiLayer.get(); }
-        inline virtual WindowProvider* GetDisplay() override { return m_windowProvider.get(); }
-        inline String                  GetCacheDir() const override { return m_info.m_cachePath; }
-        inline TimingRecorder*         GetTimeRecorder() override { return m_timingRecorder.get(); }
-        inline const ProjectProperty&  GetProjectProperty() const override { return m_info; }
-        inline ShaderRegistry*         GetShaderRegistry() override { return m_shaderRegistry.get(); }
+        inline virtual RhiBackend*           GetRhi() override { return m_rhiLayer.get(); }
+        inline virtual WindowProvider*       GetDisplay() override { return m_windowProvider.get(); }
+        inline String                        GetCacheDir() const override { return m_info.m_cachePath; }
+        inline TimingRecorder*               GetTimeRecorder() override { return m_timingRecorder.get(); }
+        inline const ProjectProperty&        GetProjectProperty() const override { return m_info; }
+        inline ShaderRegistry*               GetShaderRegistry() override { return m_shaderRegistry.get(); }
+        inline virtual SharedRenderResource* GetSharedRenderResource() override { return m_SharedRenderResource.get(); }
     };
 } // namespace Ifrit::Runtime

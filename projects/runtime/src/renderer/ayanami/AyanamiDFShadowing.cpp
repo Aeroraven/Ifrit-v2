@@ -81,7 +81,7 @@ namespace Ifrit::Runtime::Ayanami
         if (!m_Private->m_ScatterOutputTex.get())
         {
             m_Private->m_ScatterOutputTex = m_Rhi->CreateTexture2DMsaa("ScatterOutputTex", tileSize, tileSize,
-                RhiImageFormat::RhiImgFmt_B8G8R8A8_SRGB, RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1);
+                RhiImageFormat::RhiImgFmt_B8G8R8A8_SRGB, RhiImageUsage::RhiImgUsage_RenderTarget, 1);
             m_Private->m_RTColor          = m_Rhi->CreateRenderTarget(
                 m_Private->m_ScatterOutputTex.get(), { 0, 0, 1, 1 }, RhiRenderTargetLoadOp::Clear, 0, 0);
             m_Private->m_RTs = m_Rhi->CreateRenderTargets();

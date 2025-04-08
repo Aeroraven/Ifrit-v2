@@ -40,13 +40,10 @@ namespace Ifrit::Runtime
 
     struct ImmutableRendererResources
     {
-        using GPUSampler = Graphics::Rhi::RhiSamplerRef;
         using GPUTexture = Graphics::Rhi::RhiTextureRef;
         using GPUBindId  = Graphics::Rhi::RhiDescHandleLegacy;
         std::mutex                 m_mutex;
         bool                       m_initialized = false;
-        GPUSampler                 m_linearSampler;
-        GPUSampler                 m_nearestSampler;
         GPUTexture                 m_blueNoise;
         std::shared_ptr<GPUBindId> m_blueNoiseSRV = nullptr;
     };

@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/material/ShaderRegistry.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/runtime/renderer/SharedRenderResource.h"
 
 namespace Ifrit::Runtime
 {
@@ -38,5 +39,6 @@ namespace Ifrit::Runtime
         virtual TimingRecorder*                  GetTimeRecorder()          = 0;
         virtual const ProjectProperty&           GetProjectProperty() const = 0;
         virtual ShaderRegistry*                  GetShaderRegistry()        = 0;
+        virtual SharedRenderResource*            GetSharedRenderResource()  = 0;
     };
 } // namespace Ifrit::Runtime

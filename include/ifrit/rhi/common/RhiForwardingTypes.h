@@ -88,21 +88,21 @@ namespace Ifrit::Graphics::Rhi
 
     enum RhiImageUsage
     {
-        RHI_IMAGE_USAGE_TRANSFER_SRC_BIT             = 1,
-        RHI_IMAGE_USAGE_TRANSFER_DST_BIT             = 2,
-        RHI_IMAGE_USAGE_SAMPLED_BIT                  = 4,
-        RHI_IMAGE_USAGE_STORAGE_BIT                  = 8,
-        RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT         = 16,
-        RHI_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT = 32,
-        RHI_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT     = 64,
-        RHI_IMAGE_USAGE_INPUT_ATTACHMENT_BIT         = 128,
+        RhiImgUsage_CopySrc         = 1,
+        RhiImgUsage_CopyDst         = 2,
+        RhiImgUsage_ShaderRead      = 4,
+        RhiImgUsage_UnorderedAccess = 8,
+        RhiImgUsage_RenderTarget    = 16,
+        RhiImgUsage_Depth           = 32,
+        RhiImgUsage_Transient       = 64,
+        RhiImgUsage_InputAttachment = 128,
     };
 
     enum RhiQueueCapability
     {
-        RHI_QUEUE_GRAPHICS_BIT = 0x00000001,
-        RHI_QUEUE_COMPUTE_BIT  = 0x00000002,
-        RHI_QUEUE_TRANSFER_BIT = 0x00000004,
+        RhiQueue_Graphics = 0x00000001,
+        RhiQueue_Compute  = 0x00000002,
+        RhiQueue_Transfer = 0x00000004,
     };
 
     enum RhiBlendOp
@@ -361,10 +361,13 @@ namespace Ifrit::Graphics::Rhi
 
     enum class RhiDescriptorType
     {
-        UniformBuffer,
-        StorageBuffer,
-        CombinedImageSampler,
-        StorageImage,
+        UniformBuffer,        // CBV
+        StorageBuffer,        // SRV
+        RWStorageBuffer,      // UAV
+        CombinedImageSampler, // Considering compatibility problems
+        StorageImage,         // UAV
+        SampledImage,         // SRV
+        Sampler,
         MaxEnum
     };
 
@@ -437,6 +440,18 @@ namespace Ifrit::Graphics::Rhi
         Transition
     };
 
+    enum class RhiSamplerFilter
+    {
+        Nearest,
+        Linear
+    };
+
+    enum class RhiSamplerWrapMode
+    {
+        Clamp,
+        Repeat,
+    };
+
     using RhiDeviceAddr = u64;
 
 } // namespace Ifrit::Graphics::Rhi
@@ -447,4 +462,8 @@ namespace Ifrit::Graphics::Rhi
     using RhiSamplerRef = RCountRef<RhiSampler>;
     using RhiBufferRef  = RCountRef<RhiBuffer>;
 
+    using RhiSamplerDesc = u32;
+    using RhiCBVDesc     = u32;
+    using RhiSRVDesc     = u32;
+    using RhiUAVDesc     = u32;
 } // namespace Ifrit::Graphics::Rhi

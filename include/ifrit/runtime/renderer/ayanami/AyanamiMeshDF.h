@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/runtime/renderer/SharedRenderResource.h"
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -34,14 +35,15 @@ namespace Ifrit::Runtime::Ayanami
             u32      sdfId;
         };
         using GPUTexture = Graphics::Rhi::RhiTextureRef;
-        using GPUSampler = Graphics::Rhi::RhiSamplerRef;
         using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
         using GPUBindId  = Graphics::Rhi::RhiDescHandleLegacy;
 
         GPUTexture     sdfTexture;
         Ref<GPUBindId> sdfTextureBindId;
         GPUBuffer      sdfMetaBuffer;
-        GPUSampler     sdfSampler; // this design is not a good idea, should be removed in the future
+
+        // GPUSampler     sdfSampler; // this design is not a good idea, should be removed in the future
+        // Yes, it's removed now
     };
 
     // AyanamiMeshDF stores mesh-level signed distance field data
@@ -69,7 +71,7 @@ namespace Ifrit::Runtime::Ayanami
 
     public:
         void            BuildMeshDF(const std::string_view& cachePath);
-        void            BuildGPUResource(Graphics::Rhi::RhiBackend* rhi);
+        void            BuildGPUResource(Graphics::Rhi::RhiBackend* rhi, SharedRenderResource* sharedRes);
         inline u32      GetMetaBufferId() const { return m_gpuResource->sdfMetaBuffer->GetDescId(); }
         inline Vector3f GetBoxMin() const { return m_sdBoxMin; }
         inline Vector3f GetBoxMax() const { return m_sdBoxMax; }

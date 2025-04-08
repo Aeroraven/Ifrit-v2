@@ -33,7 +33,8 @@ namespace Ifrit::Runtime::Ayanami
 
     IFRIT_APIDECL AyanamiGlobalDF::AyanamiGlobalDF(const AyanamiRenderConfig& config, IApplication* app) : m_app(app)
     {
-        auto rhi = app->GetRhi();
+        auto rhi                = app->GetRhi();
+        auto linearClampSampler = app->GetSharedRenderResource()->GetLinearClampSampler();
         m_TestClipMaps.resize(config.m_globalDFClipmapLevels);
         for (u32 i = 0; i < config.m_globalDFClipmapLevels; i++)
         {
@@ -46,13 +47,12 @@ namespace Ifrit::Runtime::Ayanami
 
             m_TestClipMaps[i]->m_clipmapTexture = rhi->CreateTexture3D("Ayanami_GlobalDF", resolution, resolution,
                 resolution, Graphics::Rhi::RhiImageFormat::RhiImgFmt_R32_SFLOAT,
-                Graphics::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT
-                    | Graphics::Rhi::RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT,
+                Graphics::Rhi::RhiImageUsage::RhiImgUsage_UnorderedAccess
+                    | Graphics::Rhi::RhiImageUsage::RhiImgUsage_ShaderRead,
                 true);
 
-            m_TestClipMaps[i]->m_clipmapSampler = rhi->CreateTrivialBilinearSampler(false);
-            m_TestClipMaps[i]->m_clipmapSRV     = rhi->RegisterCombinedImageSampler(
-                m_TestClipMaps[i]->m_clipmapTexture.get(), m_TestClipMaps[i]->m_clipmapSampler.get());
+            m_TestClipMaps[i]->m_clipmapSRV =
+                rhi->RegisterCombinedImageSampler(m_TestClipMaps[i]->m_clipmapTexture.get(), linearClampSampler.get());
 
             // Voxel Lighting Resources
             u32 totalVoxels = config.m_VoxelExtentPerGlobalClipMap * config.m_VoxelExtentPerGlobalClipMap

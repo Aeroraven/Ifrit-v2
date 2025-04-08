@@ -43,18 +43,13 @@ namespace Ifrit::Runtime
         m_immRes.m_initialized = true;
         std::lock_guard<std::mutex> lock(m_immRes.m_mutex);
         auto                        rhi = m_app->GetRhi();
-        if (m_immRes.m_linearSampler == nullptr)
-        {
-            m_immRes.m_linearSampler  = rhi->CreateTrivialSampler();
-            m_immRes.m_nearestSampler = rhi->CreateTrivialNearestSampler(false);
-        }
 
         // Load blue noise texture
         if (m_immRes.m_blueNoise == nullptr)
         {
-            m_immRes.m_blueNoise = RenderingUtil::loadBlueNoise(rhi);
-            m_immRes.m_blueNoiseSRV =
-                rhi->RegisterCombinedImageSampler(m_immRes.m_blueNoise.get(), m_immRes.m_linearSampler.get());
+            m_immRes.m_blueNoise    = RenderingUtil::loadBlueNoise(rhi);
+            m_immRes.m_blueNoiseSRV = rhi->RegisterCombinedImageSampler(
+                m_immRes.m_blueNoise.get(), m_app->GetSharedRenderResource()->GetLinearRepeatSampler().get());
         }
     }
 
@@ -391,9 +386,10 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void RendererBase::RecreateGBuffers(PerFrameData& perframeData, RenderTargets* renderTargets)
     {
         using namespace Ifrit::Graphics::Rhi;
-        auto rhi          = m_app->GetRhi();
-        auto rtArea       = renderTargets->GetRenderArea();
-        auto needRecreate = (perframeData.m_gbuffer.m_rtCreated == 0);
+        auto rhi           = m_app->GetRhi();
+        auto rtArea        = renderTargets->GetRenderArea();
+        auto needRecreate  = (perframeData.m_gbuffer.m_rtCreated == 0);
+        auto linearSampler = m_app->GetSharedRenderResource()->GetLinearRepeatSampler();
 
         u32  actualRtWidth = 0, actualRtHeight = 0;
         GetSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
@@ -409,8 +405,10 @@ namespace Ifrit::Runtime
             perframeData.m_gbuffer.m_rtWidth   = actualRtWidth;
             perframeData.m_gbuffer.m_rtHeight  = actualRtHeight;
 
-            auto tarGetUsage = RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT
-                | RhiImageUsage::RHI_IMAGE_USAGE_TRANSFER_DST_BIT;
+            auto tarGetUsage = RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead
+                | RhiImageUsage::RhiImgUsage_CopyDst;
+
+            auto linearSampler = m_app->GetSharedRenderResource()->GetLinearRepeatSampler();
 
             // auto targetFomrat = RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM;
             auto targetFomrat = RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT;
@@ -421,22 +419,22 @@ namespace Ifrit::Runtime
             perframeData.m_gbuffer.m_normal_smoothness = rhi->CreateTexture2D(
                 "Render_GNormSmooth", actualRtWidth, actualRtHeight, targetFomrat, tarGetUsage, true);
             perframeData.m_gbuffer.m_specular_occlusion = rhi->CreateTexture2D("Render_GSpecOccl", actualRtWidth,
-                actualRtHeight, targetFomrat, tarGetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, true);
+                actualRtHeight, targetFomrat, tarGetUsage | RhiImageUsage::RhiImgUsage_RenderTarget, true);
             perframeData.m_gbuffer.m_specular_occlusion_intermediate =
                 rhi->CreateTexture2D("Render_GSpecOccl_Intm", actualRtWidth, actualRtHeight, targetFomrat,
-                    tarGetUsage | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, true);
+                    tarGetUsage | RhiImageUsage::RhiImgUsage_RenderTarget, true);
             perframeData.m_gbuffer.m_shadowMask = rhi->CreateTexture2D(
                 "Render_GShadowMask", actualRtWidth, actualRtHeight, targetFomrat, tarGetUsage, true);
 
             // sampler
             perframeData.m_gbuffer.m_albedo_materialFlags_sampId = rhi->RegisterCombinedImageSampler(
-                perframeData.m_gbuffer.m_albedo_materialFlags.get(), m_immRes.m_linearSampler.get());
+                perframeData.m_gbuffer.m_albedo_materialFlags.get(), linearSampler.get());
             perframeData.m_gbuffer.m_normal_smoothness_sampId = rhi->RegisterCombinedImageSampler(
-                perframeData.m_gbuffer.m_normal_smoothness.get(), m_immRes.m_linearSampler.get());
+                perframeData.m_gbuffer.m_normal_smoothness.get(), linearSampler.get());
             perframeData.m_gbuffer.m_specular_occlusion_sampId = rhi->RegisterCombinedImageSampler(
-                perframeData.m_gbuffer.m_specular_occlusion.get(), m_immRes.m_linearSampler.get());
+                perframeData.m_gbuffer.m_specular_occlusion.get(), linearSampler.get());
             perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId = rhi->RegisterCombinedImageSampler(
-                perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(), m_immRes.m_linearSampler.get());
+                perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(), linearSampler.get());
 
             // color rts
             RenderingUtil::warpRenderTargets(rhi, perframeData.m_gbuffer.m_specular_occlusion.get(),
@@ -466,7 +464,7 @@ namespace Ifrit::Runtime
                 rhi->CreateBufferDevice("Render_GbufferRef", sizeof(PerFrameData::GBufferDesc),
                     RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO, true);
             auto stagedBuf = rhi->CreateStagedSingleBuffer(perframeData.m_gbuffer.m_gbufferRefs.get());
-            auto tq        = rhi->GetQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+            auto tq        = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
             tq->RunSyncCommand([&](const RhiCommandList* cmd) {
                 stagedBuf->CmdCopyToDevice(cmd, &gbufferDesc, sizeof(PerFrameData::GBufferDesc), 0);
             });
@@ -476,15 +474,15 @@ namespace Ifrit::Runtime
             // Then gbuffer desc for pixel shader
             perframeData.m_gbufferDescFrag = rhi->createBindlessDescriptorRef();
             perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
-                perframeData.m_gbuffer.m_albedo_materialFlags.get(), m_immRes.m_linearSampler.get(), 0);
+                perframeData.m_gbuffer.m_albedo_materialFlags.get(), linearSampler.get(), 0);
             perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
-                perframeData.m_gbuffer.m_specular_occlusion.get(), m_immRes.m_linearSampler.get(), 1);
+                perframeData.m_gbuffer.m_specular_occlusion.get(), linearSampler.get(), 1);
             perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
-                perframeData.m_gbuffer.m_normal_smoothness.get(), m_immRes.m_linearSampler.get(), 2);
+                perframeData.m_gbuffer.m_normal_smoothness.get(), linearSampler.get(), 2);
             perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
-                perframeData.m_gbuffer.m_emissive.get(), m_immRes.m_linearSampler.get(), 3);
+                perframeData.m_gbuffer.m_emissive.get(), linearSampler.get(), 3);
             perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
-                perframeData.m_gbuffer.m_shadowMask.get(), m_immRes.m_linearSampler.get(), 4);
+                perframeData.m_gbuffer.m_shadowMask.get(), linearSampler.get(), 4);
 
             // Create a uav barrier for the gbuffer
             perframeData.m_gbuffer.m_gbufferBarrier.clear();
@@ -872,7 +870,7 @@ namespace Ifrit::Runtime
         // Issue a command buffer to copy data to GPU
         if (stagedBuffers.size() > 0)
         {
-            auto queue = rhi->GetQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+            auto queue = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
             queue->RunSyncCommand([&](const RhiCommandList* cmd) {
                 for (int i = 0; i < stagedBuffers.size(); i++)
                 {
@@ -891,7 +889,7 @@ namespace Ifrit::Runtime
     {
         auto rhi = m_app->GetRhi();
         using namespace Ifrit::Graphics;
-        auto drawq           = rhi->GetQueue(Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+        auto drawq           = rhi->GetQueue(Rhi::RhiQueueCapability::RhiQueue_Graphics);
         auto swapchainImg    = rhi->GetSwapchainImage();
         auto sRenderComplete = rhi->GetSwapchainRenderDoneEventHandler();
         auto cmd             = drawq->RunAsyncCommand(

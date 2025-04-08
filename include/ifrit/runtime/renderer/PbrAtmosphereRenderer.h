@@ -41,7 +41,6 @@ namespace Ifrit::Runtime
     struct PbrAtmospherePerframe
     {
         using GPUTexture = Graphics::Rhi::RhiTextureRef;
-        using GPUSampler = Graphics::Rhi::RhiSamplerRef;
         using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
 
         struct PbrAtmosphereDensiyProfileLayer
@@ -91,7 +90,6 @@ namespace Ifrit::Runtime
         PbrAtmosphereParameter m_atmosphereParams;
         GPUBuffer              m_atmosphereParamsBuffer;
 
-        GPUSampler             m_sampler;
         GPUTexture             m_transmittance;
         GPUTexture             m_deltaIrradiance;
         GPUTexture             m_deltaRayleighScattering;

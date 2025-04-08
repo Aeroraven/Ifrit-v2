@@ -69,7 +69,7 @@ namespace Ifrit::Runtime::Ayanami
                     std::abort();
                 }
                 // Collect mesh df data
-                meshDF->BuildGPUResource(m_rhi);
+                meshDF->BuildGPUResource(m_rhi, m_SharedRenderResource);
                 auto metaId = meshDF->GetMetaBufferId();
                 bboxMax     = meshDF->GetBoxMax();
                 bboxMin     = meshDF->GetBoxMin();

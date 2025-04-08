@@ -36,5 +36,7 @@ namespace Ifrit::Runtime::Ayanami
         GPUTexture outTexture, u32 cardAlbedoAtlas, u32 cardNormalAtlas, u32 cardRadianceAtlas, u32 totalCards,
         u32 cardResolution, u32 cardAtlasResolution, u32 cardDataBuffer)
     {
+        auto& node = builder.AddComputePass("Ayanami.Debug.RenderSceneFromCacheSurface", "", 0);
+        return node;
     }
 } // namespace Ifrit::Runtime::Ayanami

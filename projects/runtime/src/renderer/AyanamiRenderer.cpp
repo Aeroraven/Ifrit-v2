@@ -59,16 +59,17 @@ namespace Ifrit::Runtime
         bool                                    m_inited          = false;
         bool                                    m_debugShowMeshDF = false;
 
-        GPUTexture                              m_DeferShadingOut        = nullptr;
-        Ref<GPUBindId>                          m_DeferShadingOutSRV     = nullptr;
-        RhiSamplerRef                           m_DeferShadingOutSampler = nullptr;
-        Ref<ColorRT>                            m_DeferShadingOutRT      = nullptr;
-        Ref<GPURT>                              m_DeferShadingOutRTs     = nullptr;
+        GPUTexture                              m_DeferShadingOut    = nullptr;
+        Ref<GPUBindId>                          m_DeferShadingOutSRV = nullptr;
+        Ref<ColorRT>                            m_DeferShadingOutRT  = nullptr;
+        Ref<GPURT>                              m_DeferShadingOutRTs = nullptr;
 
         GPUTexture                              m_DfssOut          = nullptr;
         Ref<GPUBindId>                          m_DfssOutSRVBindId = nullptr;
         Ref<ColorRT>                            m_DfssOutRT        = nullptr;
         Ref<GPURT>                              m_DfssOutRTs       = nullptr;
+
+        Ref<FrameGraphResourcePool>             m_ResourcePool = nullptr;
     };
 
     static ComputePassNode& AddDFRadianceInjectPass(FrameGraphBuilder& builder, AyanamiRendererResources* res,
@@ -90,8 +91,10 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void AyanamiRenderer::InitRenderer()
     {
-        m_resources                    = new AyanamiRendererResources();
-        m_resources->m_sceneAggregator = std::make_unique<AyanamiSceneAggregator>(m_app->GetRhi());
+        m_resources                 = new AyanamiRendererResources();
+        m_resources->m_ResourcePool = std::make_shared<FrameGraphResourcePool>(m_app->GetRhi());
+        m_resources->m_sceneAggregator =
+            std::make_unique<AyanamiSceneAggregator>(m_app->GetRhi(), m_app->GetSharedRenderResource());
         m_resources->m_surfaceCacheManager =
             std::make_unique<AyanamiTrivialSurfaceCacheManager>(m_selfRenderConfig, m_app);
         m_resources->m_DFLighting = std::make_unique<AyanamiDistanceFieldLighting>(m_app->GetRhi());
@@ -125,10 +128,10 @@ namespace Ifrit::Runtime
         if (m_resources->m_raymarchOutput == nullptr)
         {
             using namespace Ifrit::Graphics::Rhi;
-            auto sampler = m_immRes.m_linearSampler;
+            auto sampler = m_app->GetSharedRenderResource()->GetLinearClampSampler();
             m_resources->m_raymarchOutput =
                 rhi->CreateTexture2D("Ayanami_Raymarch", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                    RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT | RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT, true);
+                    RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead, true);
             m_resources->m_raymarchOutputSRVBindId =
                 rhi->RegisterCombinedImageSampler(m_resources->m_raymarchOutput.get(), sampler.get());
         }
@@ -137,23 +140,22 @@ namespace Ifrit::Runtime
         {
             m_resources->m_DeferShadingOut   = rhi->CreateTexture2D("Ayanami_DeferShadingOut", width, height,
                   RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                  RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT, false);
+                  RhiImageUsage::RhiImgUsage_RenderTarget | RhiImgUsage_ShaderRead, false);
             m_resources->m_DeferShadingOutRT = rhi->CreateRenderTarget(
                 m_resources->m_DeferShadingOut.get(), { 0, 0, 1, 1 }, RhiRenderTargetLoadOp::Clear, 0, 0);
             m_resources->m_DeferShadingOutRTs = rhi->CreateRenderTargets();
             m_resources->m_DeferShadingOutRTs->SetColorAttachments({ m_resources->m_DeferShadingOutRT.get() });
             m_resources->m_DeferShadingOutRTs->SetRenderArea({ 0, 0, width, height });
 
-            m_resources->m_DeferShadingOutSampler = rhi->CreateTrivialBilinearSampler(true);
-            m_resources->m_DeferShadingOutSRV     = rhi->RegisterCombinedImageSampler(
-                m_resources->m_DeferShadingOut.get(), m_resources->m_DeferShadingOutSampler.get());
+            m_resources->m_DeferShadingOutSRV = rhi->RegisterCombinedImageSampler(
+                m_resources->m_DeferShadingOut.get(), m_app->GetSharedRenderResource()->GetLinearRepeatSampler().get());
         }
 
         if (m_resources->m_DfssOut == nullptr)
         {
             m_resources->m_DfssOut =
                 rhi->CreateTexture2D("Ayanami_DFSSOut", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                    RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT, false);
+                    RhiImageUsage::RhiImgUsage_RenderTarget | RhiImgUsage_ShaderRead, false);
             m_resources->m_DfssOutRT = rhi->CreateRenderTarget(
                 m_resources->m_DfssOut.get(), { 0, 0, 1, 1 }, RhiRenderTargetLoadOp::Clear, 0, 0);
             m_resources->m_DfssOutRTs = rhi->CreateRenderTargets();
@@ -161,14 +163,14 @@ namespace Ifrit::Runtime
             m_resources->m_DfssOutRTs->SetRenderArea({ 0, 0, width, height });
 
             m_resources->m_DfssOutSRVBindId = rhi->RegisterCombinedImageSampler(
-                m_resources->m_DfssOut.get(), m_resources->m_DeferShadingOutSampler.get());
+                m_resources->m_DfssOut.get(), m_app->GetSharedRenderResource()->GetLinearRepeatSampler().get());
         }
     }
 
     IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(
         Scene* scene, PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
-        FrameGraphBuilder fg(m_app->GetShaderRegistry(), m_app->GetRhi());
+        FrameGraphBuilder fg(m_app->GetShaderRegistry(), m_app->GetRhi(), m_resources->m_ResourcePool.get());
         fg.SetResourceInitState(FrameGraphResourceInitState::Uninitialized);
 
         auto rtWidth  = renderTargets->GetRenderArea().width;
@@ -367,7 +369,7 @@ namespace Ifrit::Runtime
         m_resources->m_sceneAggregator->CollectScene(scene);
         m_resources->m_surfaceCacheManager->UpdateSceneCache(scene);
         auto rhi = m_app->GetRhi();
-        auto dq  = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+        auto dq  = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RhiQueue_Graphics);
 
         auto task = dq->RunAsyncCommand(
             [&](const GPUCmdBuffer* cmd) { SetupAndRunFrameGraph(scene, perframeData, renderTargets, cmd); },

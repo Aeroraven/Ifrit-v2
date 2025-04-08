@@ -88,8 +88,6 @@ namespace Ifrit::Runtime::Ayanami
         bool                                m_Inited             = false;
         bool                                m_RequireGpuDataSync = false;
 
-        RhiSamplerRef                       m_CommonSampler;
-
         RhiTextureRef                       m_SceneCacheAlbdeoAtlas;
         RhiTextureRef                       m_SceneCacheNormalAtlas;
         RhiTextureRef                       m_SceneCacheEmissionAtlas;
@@ -296,7 +294,7 @@ namespace Ifrit::Runtime::Ayanami
         {
             using namespace Ifrit;
 
-            auto tq           = m_App->GetRhi()->GetQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+            auto tq           = m_App->GetRhi()->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
             auto stagedBuffer = m_App->GetRhi()->CreateStagedSingleBuffer(m_Resources->m_ObserveDeviceData.get());
             tq->RunSyncCommand([&](const RhiCommandList* cmd) {
                 stagedBuffer->CmdCopyToDevice(cmd, m_Resources->m_MeshCardGPUData.data(),
@@ -391,31 +389,31 @@ namespace Ifrit::Runtime::Ayanami
     {
         if (m_Resources->m_Inited)
             return;
-        auto rhi                     = m_App->GetRhi();
-        m_Resources->m_CommonSampler = rhi->CreateTrivialBilinearSampler(true);
+        auto rhi                 = m_App->GetRhi();
+        auto linearRepeatSampler = m_App->GetSharedRenderResource()->GetLinearRepeatSampler();
 
         m_Resources->m_SceneCacheAlbdeoAtlas   = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_AlbedoAtlas",
               m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
-              RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, false);
+              RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
         m_Resources->m_SceneCacheNormalAtlas   = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_NormalAtlas",
               m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8_SNORM,
-              RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, false);
+              RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
         m_Resources->m_SceneCacheEmissionAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_EmissionAtlas",
             m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8_UNORM,
-            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, false);
+            RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
         m_Resources->m_SceneCacheSpecularAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_SpecularAtlas",
             m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8_UNORM,
-            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, false);
+            RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
         m_Resources->m_SceneCacheRadianceAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadianceAtlas",
             m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8_UNORM,
-            RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT
-                | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess
+                | RhiImageUsage::RhiImgUsage_RenderTarget,
             true);
         m_Resources->m_SceneCacheIndirrectRadianceAtlas =
             rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_IndirectRadianceAtlas", m_Resolution, m_Resolution,
                 RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
-                RhiImageUsage::RHI_IMAGE_USAGE_SAMPLED_BIT | RhiImageUsage::RHI_IMAGE_USAGE_STORAGE_BIT
-                    | RhiImageUsage::RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess
+                    | RhiImageUsage::RhiImgUsage_RenderTarget,
                 true);
 
         // A depth buffer is required for the surface cache pass
@@ -423,14 +421,14 @@ namespace Ifrit::Runtime::Ayanami
             rhi->CreateDepthTexture("AyanamiTrivialSurfaceCache_DepthAtlas", m_Resolution, m_Resolution, false);
 
         // Shader read views
-        m_Resources->m_SceneCacheDepthSRV = rhi->RegisterCombinedImageSampler(
-            m_Resources->m_SceneCacheTemporaryDepth.get(), m_Resources->m_CommonSampler.get());
+        m_Resources->m_SceneCacheDepthSRV =
+            rhi->RegisterCombinedImageSampler(m_Resources->m_SceneCacheTemporaryDepth.get(), linearRepeatSampler.get());
 
-        m_Resources->m_SceneCacheRadianceSRV = rhi->RegisterCombinedImageSampler(
-            m_Resources->m_SceneCacheRadianceAtlas.get(), m_Resources->m_CommonSampler.get());
+        m_Resources->m_SceneCacheRadianceSRV =
+            rhi->RegisterCombinedImageSampler(m_Resources->m_SceneCacheRadianceAtlas.get(), linearRepeatSampler.get());
 
-        m_Resources->m_SceneCacheNormalSRV = rhi->RegisterCombinedImageSampler(
-            m_Resources->m_SceneCacheNormalAtlas.get(), m_Resources->m_CommonSampler.get());
+        m_Resources->m_SceneCacheNormalSRV =
+            rhi->RegisterCombinedImageSampler(m_Resources->m_SceneCacheNormalAtlas.get(), linearRepeatSampler.get());
 
         auto maxAtlasSlots =
             m_Resolution * m_Resolution / m_Resources->m_AtlasElementSize / m_Resources->m_AtlasElementSize;
@@ -582,7 +580,7 @@ namespace Ifrit::Runtime::Ayanami
             m_Resources->m_MeshCardCoherentGPUData[i].m_TransformId = transformId;
         }
         // Then update the coherent buffer
-        auto tq           = m_App->GetRhi()->GetQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+        auto tq           = m_App->GetRhi()->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
         auto tgt          = m_Resources->m_ObserveDeviceDataCoherent->GetActiveBuffer();
         auto stagedBuffer = m_App->GetRhi()->CreateStagedSingleBuffer(tgt);
         tq->RunSyncCommand([&](const RhiCommandList* cmd) {

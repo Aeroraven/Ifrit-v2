@@ -58,7 +58,6 @@ namespace Ifrit::Runtime
         using GPUColorRT           = Graphics::Rhi::RhiColorAttachment;
         using GPURTs               = Graphics::Rhi::RhiRenderTargets;
         using GPUCmdBuffer         = Graphics::Rhi::RhiCommandList;
-        using GPUSampler           = Graphics::Rhi::RhiSamplerRef;
 
         enum class CullingPass
         {
@@ -142,7 +141,6 @@ namespace Ifrit::Runtime
         CustomHashMap<Pair<u32, u32>, Array<Ref<GPUBindId>, 2>, PairHash>  m_postprocTexSRV;
         CustomHashMap<Pair<u32, u32>, Array<Ref<GPUColorRT>, 2>, PairHash> m_postprocColorRT;
         CustomHashMap<Pair<u32, u32>, Array<Ref<GPURTs>, 2>, PairHash>     m_postprocRTs;
-        GPUSampler                                                         m_postprocTexSampler;
         Ref<GPUBindId>                                                     m_postprocTexSamplerId;
 
         // All postprocess passes required
@@ -158,6 +156,9 @@ namespace Ifrit::Runtime
 
         // Render config
         RendererConfig                                                     m_renderConfig;
+
+        // Render res pool
+        Ref<FrameGraphResourcePool>                                        m_RenderResPool;
 
     private:
         // Util functions
@@ -227,7 +228,8 @@ namespace Ifrit::Runtime
             SetupPostprocessPassAndTextures();
             CreateTimer();
 
-            m_aoPass = std::make_shared<AmbientOcclusionPass>(app);
+            m_aoPass        = std::make_shared<AmbientOcclusionPass>(app);
+            m_RenderResPool = std::make_shared<FrameGraphResourcePool>(app->GetRhi());
         }
         inline void                        SetRenderRole(u32 role) { m_renderRole = role; }
         virtual Uref<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,

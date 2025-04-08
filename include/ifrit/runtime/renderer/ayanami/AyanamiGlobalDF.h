@@ -30,10 +30,9 @@ namespace Ifrit::Runtime::Ayanami
 
     struct IFRIT_APIDECL AyanamiGlobalDFClipmap : public NonCopyable
     {
-        using GPUTexture    = Graphics::Rhi::RhiTextureRef;
-        using GPUSamplerRef = Graphics::Rhi::RhiSamplerRef;
-        using GPUResId      = Graphics::Rhi::RhiDescHandleLegacy;
-        using GPUBuffer     = Graphics::Rhi::RhiBufferRef;
+        using GPUTexture = Graphics::Rhi::RhiTextureRef;
+        using GPUResId   = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
 
         Vector3f      m_worldBoundMin;
         Vector3f      m_worldBoundMax;
@@ -42,7 +41,6 @@ namespace Ifrit::Runtime::Ayanami
         // I don't think this is a good design, but it's the most stupid and straightforward way to do it
         // That means ignoring paging, streaming and atlas.
         GPUTexture    m_clipmapTexture;
-        GPUSamplerRef m_clipmapSampler;
         Ref<GPUResId> m_clipmapSRV;
 
         GPUBuffer     m_objectGridBuffer;

@@ -53,26 +53,27 @@ namespace Ifrit::Graphics::VulkanGraphics
         Rhi::RhiQueue*                  GetQueue(Rhi::RhiQueueCapability req) override;
 
         // Shader
-        Rhi::RhiShader*       CreateShader(const String& name, const std::vector<char>& code, const String& entry,
-                  Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
+        Rhi::RhiShader*    CreateShader(const String& name, const std::vector<char>& code, const String& entry,
+               Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
 
         // Texture
-        Rhi::RhiTextureRef    CreateTexture2D(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format,
-               u32 extraFlags, bool addUAV) override;
-        Rhi::RhiTextureRef    CreateTexture2DMsaa(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format,
-               u32 extraFlags, u32 samples) override;
-        Rhi::RhiTextureRef    CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV) override;
-        Rhi::RhiTextureRef    CreateTexture3D(const String& name, u32 width, u32 height, u32 depth,
-               Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
-        Rhi::RhiSamplerRef    CreateTrivialSampler() override;
-        Rhi::RhiSamplerRef    CreateTrivialBilinearSampler(bool repeat) override;
-        Rhi::RhiSamplerRef    CreateTrivialNearestSampler(bool repeat) override;
-        Rhi::RhiTextureRef    CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips,
-               Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
+        Rhi::RhiTextureRef CreateTexture2D(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format,
+            u32 extraFlags, bool addUAV) override;
+        Rhi::RhiTextureRef CreateTexture2DMsaa(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format,
+            u32 extraFlags, u32 samples) override;
+        Rhi::RhiTextureRef CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV) override;
+        Rhi::RhiTextureRef CreateTexture3D(const String& name, u32 width, u32 height, u32 depth,
+            Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
+
+        Rhi::RhiTextureRef CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips,
+            Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
+
+        Rhi::RhiSamplerRef CreateSampler(
+            Rhi::RhiSamplerFilter filter, Rhi::RhiSamplerWrapMode addressMode, bool addBinding) override;
 
         // Pass
-        Rhi::RhiComputePass*  CreateComputePass() override;
-        Rhi::RhiGraphicsPass* CreateGraphicsPass() override;
+        Rhi::RhiComputePass*                   CreateComputePass() override;
+        Rhi::RhiGraphicsPass*                  CreateGraphicsPass() override;
 
         Uref<Rhi::RhiComputePass>              CreateComputePass2() override;
         Uref<Rhi::RhiGraphicsPass>             CreateGraphicsPass2() override;

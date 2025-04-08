@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <vector>
 
 #include "ifrit/runtime/material/ShaderRegistry.h"
+#include "ifrit/runtime/renderer/framegraph/FrameGraphResourcePool.h"
 
 namespace Ifrit::Runtime
 {
@@ -86,12 +87,15 @@ namespace Ifrit::Runtime
         bool                   isImported;
         FrameGraphResourceType type;
 
-        Ref<FgBuffer>          selfBuffer;
-        Ref<FgTexture>         selfTexture;
+        FgBuffer*              selfBuffer;
+        FgTexture*             selfTexture;
         FgBuffer*              importedBuffer;
         FgTexture*             importedTexture;
 
         FgTextureSubResource   subResource;
+        FrameGraphBufferDesc   bufferDesc;
+        FrameGraphTextureDesc  textureDesc;
+        RIndexedPtr            m_PooledResId;
 
     public:
         friend class FrameGraphCompiler;
@@ -106,6 +110,20 @@ namespace Ifrit::Runtime
         FrameGraphResourceType GetType() const { return type; }
         FgBuffer*              GetBuffer() const { return importedBuffer; }
         FgTexture*             GetTexture() const { return importedTexture; }
+        bool                   IsImported() const { return isImported; }
+        FrameGraphTextureDesc  GetManagedTextureDesc() const { return textureDesc; }
+
+    private:
+        void SetManagedResource(FrameGraphBufferDesc desc)
+        {
+            bufferDesc = desc;
+            isImported = false;
+        };
+        void SetManagedResource(FrameGraphTextureDesc desc)
+        {
+            textureDesc = desc;
+            isImported  = false;
+        };
     };
 
     struct IFRIT_APIDECL PassNode
@@ -119,6 +137,9 @@ namespace Ifrit::Runtime
         Vec<ResourceNodeId>                    inputResources;
         Vec<ResourceNodeId>                    outputResources;
         Vec<ResourceNodeId>                    dependentResources;
+
+        Vec<ResourceNodeId>                    m_ResourceCreateRequest;
+        Vec<ResourceNodeId>                    m_ResourceReleaseRequest;
 
     public:
         friend class FrameGraphCompiler;
@@ -197,9 +218,12 @@ namespace Ifrit::Runtime
         ShaderRegistry*             m_ShaderRegistry    = nullptr;
         Graphics::Rhi::RhiBackend*  m_Rhi               = nullptr;
 
+        FrameGraphResourcePool*     m_ResourcePool = nullptr;
+
     public:
-        FrameGraphBuilder(ShaderRegistry* shaderRegistry, Graphics::Rhi::RhiBackend* rhi)
-            : m_ShaderRegistry(shaderRegistry), m_Rhi(rhi)
+        FrameGraphBuilder(
+            ShaderRegistry* shaderRegistry, Graphics::Rhi::RhiBackend* rhi, FrameGraphResourcePool* resourcePool)
+            : m_ShaderRegistry(shaderRegistry), m_Rhi(rhi), m_ResourcePool(resourcePool)
         {
         }
         ~FrameGraphBuilder();
@@ -213,6 +237,12 @@ namespace Ifrit::Runtime
             Graphics::Rhi::RhiRenderTargets* rts);
         GraphicsPassNode& AddMeshGraphicsPass(const String& name, const String& ms, const String& fs, u32 pushConsts,
             Graphics::Rhi::RhiRenderTargets* rts);
+
+        ResourceNode&     DeclareTexture(const String& name, const FrameGraphTextureDesc& desc);
+        ResourceNode&     DeclareBuffer(const String& name, const FrameGraphBufferDesc& desc);
+
+        u32               GetUAV(const ResourceNode& res);
+        u32               GetSRV(const ResourceNode& res);
 
         inline Graphics::Rhi::RhiBackend* GetRhi() const { return m_Rhi; }
         inline ShaderRegistry*            GetShaderRegistry() const { return m_ShaderRegistry; }
@@ -234,12 +264,6 @@ namespace Ifrit::Runtime
         FrameGraphResourceInitState m_resourceInitState = FrameGraphResourceInitState::Manual;
         const FrameGraphBuilder*    m_graph             = nullptr;
         Vec<Vec<ResourceBarrier>>   m_inputBarriers     = {};
-
-        // Vec<u32>                    m_passTopoOrder                  = {};
-        // Vec<Vec<ResourceBarriers>>  m_passResourceBarriers           = {};
-        // Vec<Vec<ResourceBarriers>>  m_outputAliasedResourcesBarriers = {};
-        // Vec<Vec<ResourceBarriers>>  m_extInputBarriers               = {};
-        // Vec<Vec<u32>>               m_inputResourceDependencies      = {};
     };
 
     class IFRIT_APIDECL FrameGraphCompiler

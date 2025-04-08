@@ -11,15 +11,15 @@ namespace Ifrit::Runtime
     using namespace Graphics::Rhi;
     using namespace Math;
 
-    IF_CONSTEXPR auto kbImUsage_UAV_SRV = RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT;
+    IF_CONSTEXPR auto kbImUsage_UAV_SRV = RhiImgUsage_UnorderedAccess | RhiImgUsage_ShaderRead;
     IF_CONSTEXPR auto kbImUsage_UAV_SRV_CopyDest =
-        RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT | RHI_IMAGE_USAGE_TRANSFER_DST_BIT;
-    IF_CONSTEXPR auto kbImUsage_UAV_SRV_RT_CopySrc = RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT
-        | RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | RHI_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        RhiImgUsage_UnorderedAccess | RhiImgUsage_ShaderRead | RhiImgUsage_CopyDst;
+    IF_CONSTEXPR auto kbImUsage_UAV_SRV_RT_CopySrc =
+        RhiImgUsage_UnorderedAccess | RhiImgUsage_ShaderRead | RhiImgUsage_RenderTarget | RhiImgUsage_CopySrc;
     IF_CONSTEXPR auto kbImUsage_UAV_SRV_RT =
-        RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT | RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    IF_CONSTEXPR auto kbImUsage_SRV_DEPTH = RHI_IMAGE_USAGE_SAMPLED_BIT | RHI_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    IF_CONSTEXPR auto kbImUsage_UAV       = RHI_IMAGE_USAGE_STORAGE_BIT;
+        RhiImgUsage_UnorderedAccess | RhiImgUsage_ShaderRead | RhiImgUsage_RenderTarget;
+    IF_CONSTEXPR auto kbImUsage_SRV_DEPTH = RhiImgUsage_ShaderRead | RhiImgUsage_Depth;
+    IF_CONSTEXPR auto kbImUsage_UAV       = RhiImgUsage_UnorderedAccess;
 
     IF_CONSTEXPR auto kbBufUsage_SSBO_CopyDest = RhiBufferUsage_SSBO | RhiBufferUsage_CopyDst;
 
@@ -67,7 +67,7 @@ namespace Ifrit::Runtime
         data.m_hizAtomics =
             rhi->CreateBufferDevice("SHiZ_Atmoics", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest, true);
         auto staged = rhi->CreateStagedSingleBuffer(data.m_hizRefBuffer.get());
-        auto tq     = rhi->GetQueue(RhiQueueCapability::RHI_QUEUE_TRANSFER_BIT);
+        auto tq     = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
         tq->RunSyncCommand([&](const GPUCmdBuffer* cmd) {
             staged->CmdCopyToDevice(cmd, data.m_hizRefs.data(), u32Size * data.m_hizRefs.size(), 0);
         });

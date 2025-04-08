@@ -37,15 +37,15 @@ using Ifrit::SizeCast;
 using Ifrit::Math::DivRoundUp;
 
 // Frequently used image usages
-IF_CONSTEXPR auto kbImUsage_UAV_SRV = RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT;
+IF_CONSTEXPR auto kbImUsage_UAV_SRV = RhiImgUsage_UnorderedAccess | RhiImgUsage_ShaderRead;
 IF_CONSTEXPR auto kbImUsage_UAV_SRV_CopyDest =
-    RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT | RHI_IMAGE_USAGE_TRANSFER_DST_BIT;
-IF_CONSTEXPR auto kbImUsage_UAV_SRV_RT_CopySrc = RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT
-    | RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | RHI_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    RhiImgUsage_UnorderedAccess | RhiImgUsage_ShaderRead | RhiImgUsage_CopyDst;
+IF_CONSTEXPR auto kbImUsage_UAV_SRV_RT_CopySrc =
+    RhiImgUsage_UnorderedAccess | RhiImgUsage_ShaderRead | RhiImgUsage_RenderTarget | RhiImgUsage_CopySrc;
 IF_CONSTEXPR auto kbImUsage_UAV_SRV_RT =
-    RHI_IMAGE_USAGE_STORAGE_BIT | RHI_IMAGE_USAGE_SAMPLED_BIT | RHI_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-IF_CONSTEXPR auto kbImUsage_SRV_DEPTH = RHI_IMAGE_USAGE_SAMPLED_BIT | RHI_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-IF_CONSTEXPR auto kbImUsage_UAV       = RHI_IMAGE_USAGE_STORAGE_BIT;
+    RhiImgUsage_UnorderedAccess | RhiImgUsage_ShaderRead | RhiImgUsage_RenderTarget;
+IF_CONSTEXPR auto kbImUsage_SRV_DEPTH = RhiImgUsage_ShaderRead | RhiImgUsage_Depth;
+IF_CONSTEXPR auto kbImUsage_UAV       = RhiImgUsage_UnorderedAccess;
 
 // Frequently used buffer usages
 IF_CONSTEXPR auto kbBufUsage_Indirect      = RhiBufferUsage_Indirect | RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
@@ -176,9 +176,6 @@ namespace Ifrit::Runtime
 
         m_jointBilateralFilter = std::make_unique<PostprocessPassCollection::PostFxJointBilaterialFilter>(m_app);
 
-        // tex and samplers
-        m_postprocTexSampler = m_app->GetRhi()->CreateTrivialSampler();
-
         // fsr2
         m_fsr2proc = m_app->GetRhi()->CreateFsr2Processor();
     }
@@ -191,6 +188,7 @@ namespace Ifrit::Runtime
         {
             return;
         }
+        auto postprocTexSampler = m_app->GetSharedRenderResource()->GetLinearClampSampler();
         for (u32 i = 0; i < 2; i++)
         {
             auto tex = rhi->CreateTexture2D("Syaro_PostprocTex", width, height, rtFmt, kbImUsage_UAV_SRV_RT, true);
@@ -200,7 +198,7 @@ namespace Ifrit::Runtime
 
             m_postprocTex[{ width, height }][i] = tex;
             m_postprocTexSRV[{ width, height }][i] =
-                rhi->RegisterCombinedImageSampler(tex.get(), m_postprocTexSampler.get());
+                rhi->RegisterCombinedImageSampler(tex.get(), postprocTexSampler.get());
             m_postprocColorRT[{ width, height }][i] = colorRT;
 
             RhiAttachmentBlendInfo blendInfo;
@@ -248,7 +246,7 @@ namespace Ifrit::Runtime
         CreatePostprocessTextures(mainRtWidth, mainRtHeight);
 
         // declare frame graph
-        FrameGraphBuilder  fg(m_app->GetShaderRegistry(), m_app->GetRhi());
+        FrameGraphBuilder  fg(m_app->GetShaderRegistry(), m_app->GetRhi(), m_RenderResPool.get());
 
         Vec<ResourceNode*> resShadowMapTexs;
         Vec<u32>           shadowMapTexIds;
@@ -970,7 +968,8 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SyaroRenderer::DepthTargetsSetup(PerFrameData& perframeData, RenderTargets* renderTargets)
     {
-        auto rhi = m_app->GetRhi();
+        auto rhi           = m_app->GetRhi();
+        auto linearSampler = m_app->GetSharedRenderResource()->GetLinearClampSampler();
 
         u32  actualRtWidth = 0, actualRtHeight = 0;
         GetSupersampledRenderArea(renderTargets, &actualRtWidth, &actualRtHeight);
@@ -987,13 +986,13 @@ namespace Ifrit::Runtime
 
         auto& primaryView = GetPrimaryView(perframeData);
         perframeData.m_velocityMaterialDesc->AddCombinedImageSampler(
-            primaryView.m_visibilityBuffer_Combined.get(), m_immRes.m_linearSampler.get(), 1);
+            primaryView.m_visibilityBuffer_Combined.get(), linearSampler.get(), 1);
         perframeData.m_velocityMaterialDesc->AddUAVImage(perframeData.m_motionVector.get(), { 0, 0, 1, 1 }, 2);
 
         // For gbuffer, depth is required to reconstruct position
         perframeData.m_gbufferDepthDesc = rhi->createBindlessDescriptorRef();
         perframeData.m_gbufferDepthDesc->AddCombinedImageSampler(
-            perframeData.m_velocityMaterial.get(), m_immRes.m_linearSampler.get(), 0);
+            perframeData.m_velocityMaterial.get(), linearSampler.get(), 0);
     }
 
     IFRIT_APIDECL void SyaroRenderer::RecreateInstanceCullingBuffers(PerFrameData& perframe, u32 newMaxInstances)
@@ -1435,6 +1434,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SyaroRenderer::SphizBufferSetup(PerFrameData& perframeData, RenderTargets* renderTargets)
     {
+        auto linearSampler = m_app->GetSharedRenderResource()->GetLinearClampSampler();
         for (u32 k = 0; k < perframeData.m_views.size(); k++)
         {
             auto& perView = perframeData.m_views[k];
@@ -1446,20 +1446,22 @@ namespace Ifrit::Runtime
             if (m_singlePassHiZProc->CheckResourceToRebuild(perView.m_spHiZData, width, height))
             {
                 m_singlePassHiZProc->PrepareHiZResources(perView.m_spHiZData, perView.m_visibilityDepth_Combined.get(),
-                    m_immRes.m_linearSampler.get(), rWidth, rHeight);
+                    linearSampler.get(), rWidth, rHeight);
             }
             // Min-HiZ required by ssgi
             if (m_singlePassHiZProc->CheckResourceToRebuild(perView.m_spHiZDataMin, width, height))
             {
                 m_singlePassHiZProc->PrepareHiZResources(perView.m_spHiZDataMin,
-                    perView.m_visibilityDepth_Combined.get(), m_immRes.m_linearSampler.get(), rWidth, rHeight);
+                    perView.m_visibilityDepth_Combined.get(), linearSampler.get(), rWidth, rHeight);
             }
         }
     }
 
     IFRIT_APIDECL void SyaroRenderer::VisibilityBufferSetup(PerFrameData& perframeData, RenderTargets* renderTargets)
     {
-        auto rhi = m_app->GetRhi();
+        auto rhi            = m_app->GetRhi();
+        auto linearSampler  = m_app->GetSharedRenderResource()->GetLinearClampSampler();
+        auto nearestSampler = m_app->GetSharedRenderResource()->GetNearestClampSampler();
 
         for (u32 k = 0; k < perframeData.m_views.size(); k++)
         {
@@ -1502,13 +1504,12 @@ namespace Ifrit::Runtime
                 auto visBufferHW              = rhi->CreateTexture2D("Syaro_VisBufferHW", visWidth, visHeight,
                                  PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV_RT, true);
                 auto visDepthHW               = rhi->CreateDepthTexture("Syaro_VisDepthHW", visWidth, visHeight, false);
-                auto visDepthSampler          = rhi->CreateTrivialSampler();
                 perView.m_visibilityBuffer_HW = visBufferHW;
 
                 // first pass rts
                 perView.m_visPassDepth_HW = visDepthHW;
                 perView.m_visDepthIdSRV_HW =
-                    rhi->RegisterCombinedImageSampler(perView.m_visPassDepth_HW.get(), m_immRes.m_linearSampler.get());
+                    rhi->RegisterCombinedImageSampler(perView.m_visPassDepth_HW.get(), linearSampler.get());
                 perView.m_visDepthRT_HW =
                     rhi->CreateRenderTargetDepthStencil(visDepthHW.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
 
@@ -1576,18 +1577,18 @@ namespace Ifrit::Runtime
                     PerFrameData::c_visibilityFormat, kbImUsage_UAV_SRV, true);
                 perView.m_visibilityDepth_Combined  = rhi->CreateTexture2D(
                     "Syaro_VisDepthComb", visWidth, visHeight, kbImFmt_R32F, kbImUsage_UAV_SRV, true);
-                perView.m_visibilityBufferIdSRV_Combined = rhi->RegisterCombinedImageSampler(
-                    perView.m_visibilityBuffer_Combined.get(), m_immRes.m_nearestSampler.get());
-                perView.m_visibilityDepthIdSRV_Combined = rhi->RegisterCombinedImageSampler(
-                    perView.m_visibilityDepth_Combined.get(), m_immRes.m_linearSampler.get());
+                perView.m_visibilityBufferIdSRV_Combined =
+                    rhi->RegisterCombinedImageSampler(perView.m_visibilityBuffer_Combined.get(), nearestSampler.get());
+                perView.m_visibilityDepthIdSRV_Combined =
+                    rhi->RegisterCombinedImageSampler(perView.m_visibilityDepth_Combined.get(), nearestSampler.get());
             }
             else
             {
-                perView.m_visibilityDepth_Combined       = perView.m_visPassDepth_HW;
-                perView.m_visibilityBuffer_Combined      = perView.m_visibilityBuffer_HW;
-                perView.m_visibilityDepthIdSRV_Combined  = perView.m_visDepthIdSRV_HW;
-                perView.m_visibilityBufferIdSRV_Combined = rhi->RegisterCombinedImageSampler(
-                    perView.m_visibilityBuffer_Combined.get(), m_immRes.m_linearSampler.get());
+                perView.m_visibilityDepth_Combined      = perView.m_visPassDepth_HW;
+                perView.m_visibilityBuffer_Combined     = perView.m_visibilityBuffer_HW;
+                perView.m_visibilityDepthIdSRV_Combined = perView.m_visDepthIdSRV_HW;
+                perView.m_visibilityBufferIdSRV_Combined =
+                    rhi->RegisterCombinedImageSampler(perView.m_visibilityBuffer_Combined.get(), nearestSampler.get());
             }
         }
     }
@@ -1821,8 +1822,9 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SyaroRenderer::PrepareAggregatedShadowData(PerFrameData& perframeData)
     {
-        auto& shadowData = perframeData.m_shadowData2;
-        auto  rhi        = m_app->GetRhi();
+        auto& shadowData    = perframeData.m_shadowData2;
+        auto  rhi           = m_app->GetRhi();
+        auto  linearSampler = m_app->GetSharedRenderResource()->GetLinearClampSampler();
 
         if (shadowData.m_allShadowData == nullptr)
         {
@@ -1860,13 +1862,15 @@ namespace Ifrit::Runtime
             perframeData.m_deferShadowMaskRTs->SetColorAttachments({ perframeData.m_deferShadowMaskRT.get() });
             perframeData.m_deferShadowMaskRTs->SetRenderArea({ 0, 0, u32(mainRtWidth), u32(mainRtHeight) });
             perframeData.m_deferShadowMaskId =
-                rhi->RegisterCombinedImageSampler(perframeData.m_deferShadowMask.get(), m_immRes.m_linearSampler.get());
+                rhi->RegisterCombinedImageSampler(perframeData.m_deferShadowMask.get(), linearSampler.get());
         }
     }
 
     IFRIT_APIDECL void SyaroRenderer::Fsr2Setup(PerFrameData& perframeData, RenderTargets* renderTargets)
     {
-        auto rhi       = m_app->GetRhi();
+        auto rhi           = m_app->GetRhi();
+        auto linearSampler = m_app->GetSharedRenderResource()->GetLinearClampSampler();
+
         u32  actualRtw = 0, actualRth = 0;
         u32  outputRtw = 0, outputRth = 0;
         GetSupersampledRenderArea(renderTargets, &actualRtw, &actualRth);
@@ -1879,8 +1883,8 @@ namespace Ifrit::Runtime
         perframeData.m_fsr2Data.m_fsr2Output =
             rhi->CreateTexture2D("Syaro_FSR2Out", outputRtw, outputRth, kbImFmt_RGBA16F, kbImUsage_UAV_SRV, true);
 
-        perframeData.m_fsr2Data.m_fsr2OutputSRVId = rhi->RegisterCombinedImageSampler(
-            perframeData.m_fsr2Data.m_fsr2Output.get(), m_immRes.m_linearSampler.get());
+        perframeData.m_fsr2Data.m_fsr2OutputSRVId =
+            rhi->RegisterCombinedImageSampler(perframeData.m_fsr2Data.m_fsr2Output.get(), linearSampler.get());
 
         if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
         {
@@ -1895,7 +1899,8 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SyaroRenderer::TaaHistorySetup(PerFrameData& perframeData, RenderTargets* renderTargets)
     {
-        auto rhi = m_app->GetRhi();
+        auto rhi           = m_app->GetRhi();
+        auto linearSampler = m_app->GetSharedRenderResource()->GetLinearClampSampler();
 
         u32  actualRtw = 0, actualRth = 0;
         GetSupersampledRenderArea(renderTargets, &actualRtw, &actualRth);
@@ -1924,7 +1929,7 @@ namespace Ifrit::Runtime
             rhi->CreateTexture2D("Syaro_TAAUnresolved", width, height, cTAAFormat, kbImUsage_UAV_SRV_RT_CopySrc, true);
 
         perframeData.m_taaHistoryDesc->AddCombinedImageSampler(
-            perframeData.m_taaUnresolved.get(), m_immRes.m_linearSampler.get(), 0);
+            perframeData.m_taaUnresolved.get(), linearSampler.get(), 0);
         for (int i = 0; i < 2; i++)
         {
             // TODO: choose formats
@@ -1933,7 +1938,7 @@ namespace Ifrit::Runtime
             // perframeData.m_taaHistory[i].m_colorRTId = rhi->RegisterUAVImage(perframeData.m_taaUnresolved.get(), {0,
             // 0, 1, 1});
             perframeData.m_taaHistory[i].m_colorRTIdSRV =
-                rhi->RegisterCombinedImageSampler(perframeData.m_taaUnresolved.get(), m_immRes.m_linearSampler.get());
+                rhi->RegisterCombinedImageSampler(perframeData.m_taaUnresolved.get(), linearSampler.get());
 
             // TODO: clear values
             perframeData.m_taaHistory[i].m_colorRTRef = rhi->CreateRenderTarget(
@@ -1955,7 +1960,7 @@ namespace Ifrit::Runtime
             perframeData.m_taaHistory[i].m_rts->SetRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
 
             perframeData.m_taaHistoryDesc->AddCombinedImageSampler(
-                perframeData.m_taaHistory[i].m_colorRT.get(), m_immRes.m_linearSampler.get(), i + 1);
+                perframeData.m_taaHistory[i].m_colorRT.get(), linearSampler.get(), i + 1);
         }
     }
 
@@ -1995,7 +2000,7 @@ namespace Ifrit::Runtime
 
         // Then draw
         auto                            rhi = m_app->GetRhi();
-        auto                            dq  = rhi->GetQueue(RhiQueueCapability::RHI_QUEUE_GRAPHICS_BIT);
+        auto                            dq  = rhi->GetQueue(RhiQueueCapability::RhiQueue_Graphics);
 
         std::vector<RhiTaskSubmission*> cmdToWaitBkp = cmdToWait;
         std::unique_ptr<RhiTaskSubmission> pbrAtmoTask;
