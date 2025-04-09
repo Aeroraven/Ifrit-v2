@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/constfunc/ConstFunc.h"
 
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
-#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 
@@ -91,7 +91,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MeshDFDescListId = meshDFListId;
 
         auto& pass = FrameGraphUtils::AddComputePass<PushConst>(builder, "Ayanami.GlobalDFComposite",
-            Internal::kIntShaderTable.Ayanami.TrivialGlobalDFCompCS, Vector3i{ (i32)tgX, (i32)tgX, (i32)tgX }, pc,
+            Internal::kIntShaderTableAyanami.TrivialGlobalDFCompCS, Vector3i{ (i32)tgX, (i32)tgX, (i32)tgX }, pc,
             [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
         return pass;
     }
@@ -121,7 +121,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_RtW        = outTextureSize.x;
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.GlobalDFRayMarch",
-            Internal::kIntShaderTable.Ayanami.GlobalDFRayMarchCS,
+            Internal::kIntShaderTableAyanami.GlobalDFRayMarchCS,
             Vector3i{ DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize),
                 DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize), 1 },
             pc, [outTexture](PushConst data, const FrameGraphPassContext& ctx) {
@@ -152,7 +152,7 @@ namespace Ifrit::Runtime::Ayanami
         u32 groupsX =
             DivRoundUp<u32, u32>(m_TestClipMaps[clipmapLevel]->m_VoxelsPerWidth, Config::kAyanamiObjectGridTileSize);
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.ObjectGridComposition",
-            Internal::kIntShaderTable.Ayanami.ObjectGridCompositionCS,
+            Internal::kIntShaderTableAyanami.ObjectGridCompositionCS,
             Vector3i{ (int)groupsX, (int)groupsX, (int)groupsX }, pc,
             [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
         return pass;

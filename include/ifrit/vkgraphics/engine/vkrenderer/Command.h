@@ -182,10 +182,13 @@ namespace Ifrit::Graphics::VulkanGraphics
         void AttachIndexBuffer(const Rhi::RhiBuffer* buffer) const override;
         void DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const override;
         void BufferClear(const Rhi::RhiBuffer* buffer, u32 val) const override;
+
         void DispatchIndirect(const Rhi::RhiBuffer* buffer, u32 offset) const override;
         void SetPushConst(const void* data, u32 offset, u32 size) const override;
         void ClearUAVTexFloat(const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource,
             const Array<float, 4>& val) const override;
+        void ClearUAVTexLong(
+            const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, u64 val) const override;
         void AddResourceBarrier(const Vec<Rhi::RhiResourceBarrier>& barriers) const override;
 
         void GlobalMemoryBarrier() const override;

@@ -102,11 +102,35 @@ namespace Ifrit::Runtime::FrameGraphUtils
             iError("FrameGraphUtils: Clear UAV pass only supports buffer resources.");
             std::abort();
         }
-        pass.SetExecutionFunction([&buffer, clearValue](const FrameGraphPassContext& ctx) {
-            auto buf = buffer.GetBuffer();
-            auto cmd = ctx.m_CmdList;
-            cmd->BufferClear(buf, clearValue);
-        });
+        else
+        {
+            pass.SetExecutionFunction([&buffer, clearValue](const FrameGraphPassContext& ctx) {
+                auto buf = buffer.GetBuffer();
+                auto cmd = ctx.m_CmdList;
+                cmd->BufferClear(buf, clearValue);
+            });
+        }
+
+        return pass;
+    }
+
+    IFRIT_APIDECL PassNode& AddClearUAVTexturePass(
+        FrameGraphBuilder& builder, const String& name, ResourceNode& texture, u64 clearValue)
+    {
+        auto& pass = builder.AddPass(name, FrameGraphPassType::Transfer).AddWriteResource(texture);
+        if (texture.GetType() != FrameGraphResourceType::ResourceTexture)
+        {
+            iError("FrameGraphUtils: Clear UAV pass only supports texture resources.");
+            std::abort();
+        }
+        else
+        {
+            pass.SetExecutionFunction([&texture, clearValue](const FrameGraphPassContext& ctx) {
+                auto cmd = ctx.m_CmdList;
+                cmd->ClearUAVTexLong(texture.GetTexture(), { 0, 0, 1, 1 }, clearValue);
+            });
+        }
+
         return pass;
     }
 

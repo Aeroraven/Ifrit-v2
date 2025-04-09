@@ -106,6 +106,7 @@ namespace Ifrit::Runtime
         friend struct PassNode;
 
     public:
+        // These two should be removed in the future.
         ResourceNode&          SetImportedResource(FgBuffer* buffer);
         ResourceNode&          SetImportedResource(FgTexture* texture, const FgTextureSubResource& subResource);
 
@@ -162,6 +163,57 @@ namespace Ifrit::Runtime
             else
             {
                 return textureDesc.m_Format;
+            }
+        }
+
+        u32 GetHeight() const
+        {
+            if (type == FrameGraphResourceType::ResourceBuffer)
+            {
+                iError("FrameGraphBuilder: GetHeight() called on buffer resource.");
+                std::abort();
+            }
+            if (isImported)
+            {
+                return importedTexture->GetHeight();
+            }
+            else
+            {
+                return textureDesc.m_Height;
+            }
+        }
+
+        u32 GetWidth() const
+        {
+            if (type == FrameGraphResourceType::ResourceBuffer)
+            {
+                iError("FrameGraphBuilder: GetWidth() called on buffer resource.");
+                std::abort();
+            }
+            if (isImported)
+            {
+                return importedTexture->GetWidth();
+            }
+            else
+            {
+                return textureDesc.m_Width;
+            }
+        }
+
+        u32 GetDepth() const
+        {
+            if (type == FrameGraphResourceType::ResourceBuffer)
+            {
+                iError("FrameGraphBuilder: GetDepth() called on buffer resource.");
+                std::abort();
+            }
+            if (isImported)
+            {
+                return importedTexture->GetDepth();
+            }
+            else
+            {
+                return textureDesc.m_Depth;
             }
         }
 

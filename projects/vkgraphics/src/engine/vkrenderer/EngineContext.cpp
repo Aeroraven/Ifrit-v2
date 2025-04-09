@@ -30,12 +30,22 @@ namespace Ifrit::Graphics::VulkanGraphics
 {
 
     Vec<const char*> m_instanceExtension = { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
-    Vec<const char*> m_deviceExtensions  = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
-         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
-         VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME, VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
-         VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-         VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_EXT_MESH_SHADER_EXTENSION_NAME,
-         VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME };
+    Vec<const char*> m_deviceExtensions  = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+        VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+        VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
+        VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME,
+        VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
+        VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+        VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME,
+        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+        VK_EXT_MESH_SHADER_EXTENSION_NAME,
+        VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,
+        VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+        VK_EXT_SHADER_IMAGE_ATOMIC_INT64_EXTENSION_NAME,
+    };
 
     Vec<const char*> m_deviceExtensionsExtended = { VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
@@ -335,6 +345,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkPhysicalDeviceDescriptorIndexingFeatures         descriptorIndexingFeatures{};
         VkPhysicalDeviceMeshShaderFeaturesEXT              meshShaderFeatures{};
         VkPhysicalDeviceHostQueryResetFeaturesEXT          hostQueryResetFeatures{};
+        VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT  shaderImageAtomicInt64Features{};
 
         deviceFeatures12.sType                           = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
         deviceFeatures12.timelineSemaphore               = VK_TRUE;
@@ -389,6 +400,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         meshShaderFeatures.sType      = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
         meshShaderFeatures.taskShader = VK_TRUE;
         meshShaderFeatures.meshShader = VK_TRUE;
+        meshShaderFeatures.pNext      = &shaderImageAtomicInt64Features;
+
+        shaderImageAtomicInt64Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_ATOMIC_INT64_FEATURES_EXT;
+        shaderImageAtomicInt64Features.shaderImageInt64Atomics = VK_TRUE;
 
         deviceFeatures.samplerAnisotropy = VK_TRUE;
         deviceFeatures.geometryShader    = VK_TRUE;

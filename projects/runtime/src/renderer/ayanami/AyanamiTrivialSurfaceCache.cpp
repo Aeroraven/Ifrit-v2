@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 
-#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 
 using namespace Ifrit::Graphics::Rhi;
@@ -260,7 +260,7 @@ namespace Ifrit::Runtime::Ayanami
                     // LookAt & Ortho
                     f32      viewNearPlane = 0.1f;
                     Vector3f viewLocation =
-                        meshBBoxCenter - card.m_CardDirection * cardExtent - card.m_CardDirection * viewNearPlane;
+                        meshBBoxCenter - card.m_CardDirection * cardExtent.z - card.m_CardDirection * viewNearPlane;
 
                     Vector3f   viewUp     = kCardLookAtUps[i];
                     Vector3f   viewTarget = meshBBoxCenter;
@@ -269,6 +269,9 @@ namespace Ifrit::Runtime::Ayanami
                     f32        viewAspect = cardExtent.x / cardExtent.y;
                     Matrix4x4f viewOrtho  = OrthographicNegateY(
                         cardExtent.y * 2.0, viewAspect, viewNearPlane, cardExtent.z * 2.0f + viewNearPlane);
+
+                    // printf("ViewExtent: %f, %f, %f\n", cardExtent.x, cardExtent.y, cardExtent.z);
+                    // printf("ViewCenter: %f, %f, %f\n", meshBBoxCenter.x, meshBBoxCenter.y, meshBBoxCenter.z);
 
                     Matrix4x4f viewProj = viewOrtho;
                     Matrix4x4f viewVP   = MatMul(viewProj, viewMatrix);
@@ -320,9 +323,8 @@ namespace Ifrit::Runtime::Ayanami
         FrameGraphBuilder& builder)
     {
 
-        auto& pass =
-            builder.AddGraphicsPass("Ayanami/SurfaceCacheGenPass", Internal::kIntShaderTable.Ayanami.SurfaceCacheGenVS,
-                Internal::kIntShaderTable.Ayanami.SurfaceCacheGenFS, 9);
+        auto& pass = builder.AddGraphicsPass("Ayanami/SurfaceCacheGenPass",
+            Internal::kIntShaderTableAyanami.SurfaceCacheGenVS, Internal::kIntShaderTableAyanami.SurfaceCacheGenFS, 9);
 
         pass.SetExecutionFunction([this](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
@@ -524,7 +526,7 @@ namespace Ifrit::Runtime::Ayanami
 
         UpdateSurfaceModelMatrix();
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadianceCacheGenPass",
-            Internal::kIntShaderTable.Ayanami.DirectRadianceInjectionCS,
+            Internal::kIntShaderTableAyanami.DirectRadianceInjectionCS,
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
             [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
         pass.AddWriteResource(*m_Resources->m_RDGSceneCacheRadianceAtlas)
@@ -564,7 +566,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_NumTotalCards         = m_Resources->m_MeshCardIndex.load();
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiosityGenPass",
-            Internal::kIntShaderTable.Ayanami.RadiosityTraceCS, Vector3i{ 0, 1, 1 }, pc,
+            Internal::kIntShaderTableAyanami.RadiosityTraceCS, Vector3i{ 0, 1, 1 }, pc,
             [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
 
         pass.AddWriteResource(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas)

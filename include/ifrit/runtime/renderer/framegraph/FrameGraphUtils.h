@@ -47,6 +47,8 @@ namespace Ifrit::Runtime::FrameGraphUtils
     IFRIT_RUNTIME_API PassNode&         AddClearUAVPass(
                 FrameGraphBuilder& builder, const String& name, ResourceNode& buffer, u32 clearValue);
 
+    IFRIT_RUNTIME_API PassNode& AddClearUAVTexturePass(
+        FrameGraphBuilder& builder, const String& name, ResourceNode& texture, u64 clearValue);
     // Templated Version
 
     template <typename PassData> using FnPassFunctionWithData = Fn<void(PassData, const FrameGraphPassContext&)>;

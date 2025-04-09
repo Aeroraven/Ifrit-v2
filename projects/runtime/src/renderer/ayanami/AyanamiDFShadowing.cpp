@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/ayanami/AyanamiDFShadowing.h"
-#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 
@@ -105,8 +105,8 @@ namespace Ifrit::Runtime::Ayanami
         args.m_CullMode = Graphics::Rhi::RhiCullMode::Front;
 
         auto& pass = AddMeshDrawPass<PushConst>(builder, "Ayanami.DFShadowTileCull",
-            Internal::kIntShaderTable.Ayanami.DFShadowTileCullingMS,
-            Internal::kIntShaderTable.Ayanami.DFShadowTileCullingFS, Vector3i{ (i32)totalMeshDfs, 1, 1 }, args, pc,
+            Internal::kIntShaderTableAyanami.DFShadowTileCullingMS,
+            Internal::kIntShaderTableAyanami.DFShadowTileCullingFS, Vector3i{ (i32)totalMeshDfs, 1, 1 }, args, pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 ctx.m_CmdList->SetCullMode(Graphics::Rhi::RhiCullMode::Front);
                 data.m_TileAtomics   = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);
@@ -151,8 +151,8 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MeshDFDescListId = meshDfList;
         pc.m_ShadowCoefK      = softness;
 
-        auto& pass = AddPostProcessPass<PushConst>(builder, "Ayanami.DFSS",
-            Internal::kIntShaderTable.Ayanami.DFShadowFS, pc, [this](PushConst data, const FrameGraphPassContext& ctx) {
+        auto& pass = AddPostProcessPass<PushConst>(builder, "Ayanami.DFSS", Internal::kIntShaderTableAyanami.DFShadowFS,
+            pc, [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_TileDFAtomics = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);
                 data.m_TileDFList    = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResScatterOutput);
                 SetRootSignature(data, ctx);
@@ -211,7 +211,7 @@ namespace Ifrit::Runtime::Ayanami
         auto  tileGroups = DivRoundUp(cardRes, Config::kAyanamiRadianceInjectionCardSizePerBlock);
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.DFRadianceCachePass",
-            Internal::kIntShaderTable.Ayanami.DFRadianceInjectionCS,
+            Internal::kIntShaderTableAyanami.DFRadianceInjectionCS,
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
             [this, depthAtlasTex, radianceTex](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_ShadowCullTileDFAtomics = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);

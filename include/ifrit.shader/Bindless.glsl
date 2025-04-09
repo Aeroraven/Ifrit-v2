@@ -53,6 +53,7 @@ layout(binding = IFRIT_BINDLESS_BINDING_COMBINED_SAMPLER, set = IFRIT_BINDLESS_S
 
 
 // UAV textures
+
 #define IFRIT_UAV_IMAGE2D_R32UI_NAME _ifrit_bindlessNaming(uav_image2d_r32ui)
 layout(binding = IFRIT_BINDLESS_BINDING_STORAGE_IMAGE, set = IFRIT_BINDLESS_SET_ID, r32ui) uniform uimage2D IFRIT_UAV_IMAGE2D_R32UI_NAME[];
 
@@ -71,6 +72,11 @@ layout(binding = IFRIT_BINDLESS_BINDING_STORAGE_IMAGE, set = IFRIT_BINDLESS_SET_
 #define IFRIT_UAV_IMAGE3D_R32F_NAME _ifrit_bindlessNaming(uav_image3d_r32f)
 layout(binding = IFRIT_BINDLESS_BINDING_STORAGE_IMAGE, set = IFRIT_BINDLESS_SET_ID, r32f) uniform image3D IFRIT_UAV_IMAGE3D_R32F_NAME[];
 
+#ifdef IFRIT_USE_INT64_IMAGE
+#define IFRIT_UAV_IMAGE2D_R64UI_NAME _ifrit_bindlessNaming(uav_image2d_r64ui)
+layout(binding = IFRIT_BINDLESS_BINDING_STORAGE_IMAGE, set = IFRIT_BINDLESS_SET_ID, r64ui) uniform u64image2D IFRIT_UAV_IMAGE2D_R64UI_NAME[];
+#endif
+
 // SRV textures
 #define IFRIT_SRV_TEXTURE2D_NAME _ifrit_bindlessNaming(srv_texture_2d)
 layout(binding = IFRIT_BINDLESS_BINDING_SAMPLED_IMAGE, set = IFRIT_BINDLESS_SET_ID) uniform texture2D IFRIT_SRV_TEXTURE2D_NAME[];
@@ -87,6 +93,7 @@ layout(binding = IFRIT_BINDLESS_BINDING_SAMPLER, set = IFRIT_BINDLESS_SET_ID) un
 #define GetSampler3D(id) IFRIT_BINDLESS_SAMPLER3D_NAME[(id)]
 #define GetSampler2DU(id) IFRIT_BINDLESS_SAMPLER2DU_NAME[(id)]
 
+#define GetUAVImage2DR64UI(id) IFRIT_UAV_IMAGE2D_R64UI_NAME[(id)]
 #define GetUAVImage2DR32F(id) IFRIT_UAV_IMAGE2D_R32F_NAME[(id)]
 #define GetUAVImage2DR32UI(id) IFRIT_UAV_IMAGE2D_R32UI_NAME[(id)]
 #define GetUAVImage2DRGBA32F(id) IFRIT_UAV_IMAGE2D_RGBA32F_NAME[(id)]

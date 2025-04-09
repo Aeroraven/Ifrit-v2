@@ -23,9 +23,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiSceneAggregator.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiTrivialSurfaceCache.h"
 
-#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiDFShadowing.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/renderer/ayanami//AyanamiDebugger.h"
 
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::Runtime::FrameGraphUtils;
@@ -51,6 +52,7 @@ namespace Ifrit::Runtime
         Uref<AyanamiSceneAggregator>            m_sceneAggregator;
         Uref<AyanamiTrivialSurfaceCacheManager> m_surfaceCacheManager = nullptr;
         Uref<AyanamiDistanceFieldLighting>      m_DFLighting          = nullptr;
+        Uref<AyanamiDebugger>                   m_Debugger            = nullptr;
 
         bool                                    m_inited          = false;
         bool                                    m_debugShowMeshDF = false;
@@ -83,6 +85,7 @@ namespace Ifrit::Runtime
             std::make_unique<AyanamiTrivialSurfaceCacheManager>(m_selfRenderConfig, m_app);
         m_resources->m_DFLighting      = std::make_unique<AyanamiDistanceFieldLighting>(m_app->GetRhi());
         m_resources->m_builderExecutor = std::make_unique<FrameGraphExecutor>(m_app->GetRhi());
+        m_resources->m_Debugger        = std::make_unique<AyanamiDebugger>(m_app->GetRhi());
     }
     IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer()
     {
@@ -124,12 +127,16 @@ namespace Ifrit::Runtime
         auto& resDeferOut       = builder.DeclareTexture("Ayanami.RDG.DeferShadingOut",
                   FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
                       RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead));
+        auto& resDebugSCOut     = builder.DeclareTexture("Ayanami.RDG.DebugSCOut",
+                FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                    RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead
+                        | RhiImageUsage::RhiImgUsage_UnorderedAccess));
 
         m_resources->m_surfaceCacheManager->InitContext(builder);
         m_resources->m_DFLighting->InitContext(builder, 64);
 
         // Pass Global DF Generation
-        if (true || !m_resources->m_inited)
+        if (!m_resources->m_inited)
         {
             m_globalDF
                 ->AddClipmapUpdate(builder, 0, perframe.m_views[0].m_viewBufferId->GetActiveId(),
@@ -138,7 +145,7 @@ namespace Ifrit::Runtime
                 .AddWriteResource(resGlobalDFGen);
         }
         // Pass Surface Cache + Radiance Injection (Camera View)
-        if (!m_resources->m_inited)
+        if (!m_resources->m_inited || m_selfRenderConfig.m_DebugForceSurfaceCacheRegen)
         {
             m_resources->m_surfaceCacheManager->UpdateSurfaceCacheAtlas(builder);
         }
@@ -190,7 +197,7 @@ namespace Ifrit::Runtime
             pc.descId     = m_resources->m_sceneAggregator->GetGatheredBufferId();
             pc.perframeId = perframe.m_views[0].m_viewBufferId->GetActiveId();
 
-            AddComputePass<PushConst>(builder, "Ayanami.RaymarchPass", Internal::kIntShaderTable.Ayanami.RayMarchCS,
+            AddComputePass<PushConst>(builder, "Ayanami.RaymarchPass", Internal::kIntShaderTableAyanami.RayMarchCS,
                 Vector3i{ Math::DivRoundUp<i32>(rtWidth, 8), Math::DivRoundUp<i32>(rtHeight, 8), 1 }, pc,
                 [&resRaymarchOutput](PushConst data, const FrameGraphPassContext& ctx) {
                     data.output = ctx.m_FgDesc->GetUAV(resRaymarchOutput);
@@ -230,7 +237,7 @@ namespace Ifrit::Runtime
             pc.perframeId = perframe.m_views[0].m_viewBufferId->GetActiveId();
             pc.lightDir   = Vector4f(sceneLights.m_LightFronts[0], 0.0f);
             AddPostProcessPass<PushConst>(builder, "Ayanami.DeferredShading",
-                Internal::kIntShaderTable.Ayanami.TestDeferShadingFS, pc,
+                Internal::kIntShaderTableAyanami.TestDeferShadingFS, pc,
                 [&resDfssOut](PushConst data, const FrameGraphPassContext& ctx) {
                     data.m_ShadowMapSRV = ctx.m_FgDesc->GetSRV(resDfssOut);
                     SetRootSignature(data, ctx);
@@ -238,6 +245,21 @@ namespace Ifrit::Runtime
                 .AddRenderTarget(resDeferOut)
                 .AddReadResource(resDfssOut)
                 .AddReadResource(resSurfaceCacheNormal);
+        }
+        // Pass Surface Cache Debug
+        {
+            auto& resAlbedoAtlas   = m_resources->m_surfaceCacheManager->GetRDGAlbedoAtlas();
+            auto& resNormalAtlas   = m_resources->m_surfaceCacheManager->GetRDGNormalAtlas();
+            auto& resRadianceAtlas = m_resources->m_surfaceCacheManager->GetRDGRadianceAtlas();
+            auto& resDepthAtlas    = m_resources->m_surfaceCacheManager->GetRDGDepthAtlas();
+
+            m_resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resAlbedoAtlas,
+                &resNormalAtlas, &resRadianceAtlas, &resDepthAtlas, m_resources->m_surfaceCacheManager->GetNumCards(),
+                m_resources->m_surfaceCacheManager->GetCardResolution(),
+                m_resources->m_surfaceCacheManager->GetCardAtlasResolution(),
+                m_resources->m_surfaceCacheManager->GetCardDataBuffer()->GetDescId(),
+                perframe.m_views[0].m_viewBufferId->GetActiveId(),
+                m_resources->m_sceneAggregator->GetGatheredBufferId());
         }
 
         // Pass Debug
@@ -247,16 +269,18 @@ namespace Ifrit::Runtime
             {
                 u32 raymarchOutput = 0;
             } pc;
-            AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass", Internal::kIntShaderTable.Ayanami.CopyVS,
-                Internal::kIntShaderTable.Ayanami.CopyFS, pc,
-                [&resDeferOut](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDeferOut);
+            AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass", Internal::kIntShaderTableAyanami.CopyVS,
+                Internal::kIntShaderTableAyanami.CopyFS, pc,
+                [&resDebugSCOut](PushConst data, const FrameGraphPassContext& ctx) {
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugSCOut);
                     SetRootSignature(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)
+                .AddReadResource(resDebugSCOut)
                 .AddReadResource(resRaymarchOutput)
                 .AddReadResource(resDirectRadiance)
-                .AddReadResource(resDeferOut);
+                .AddReadResource(resDeferOut)
+                .AddReadResource(resGNormal);
         }
 
         auto compiledFg = m_resources->m_builderCompiler.Compile(builder);

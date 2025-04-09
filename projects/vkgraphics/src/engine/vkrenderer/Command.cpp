@@ -551,6 +551,25 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdClearColorImage(m_commandBuffer, image->GetImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &range);
     }
 
+    IFRIT_APIDECL void CommandBuffer::ClearUAVTexLong(
+        const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, u64 val) const
+    {
+        auto              image = CheckedCast<SingleDeviceImage>(texture);
+        VkClearColorValue clearColor;
+        clearColor.uint32[0] = static_cast<u32>(val & 0xFFFFFFFF);
+        clearColor.uint32[1] = static_cast<u32>((val >> 32) & 0xFFFFFFFF);
+        clearColor.uint32[2] = static_cast<u32>(val & 0xFFFFFFFF);
+        clearColor.uint32[3] = static_cast<u32>((val >> 32) & 0xFFFFFFFF);
+        VkImageSubresourceRange range{};
+        range.aspectMask     = image->GetAspect();
+        range.baseMipLevel   = subResource.mipLevel;
+        range.levelCount     = subResource.mipCount;
+        range.baseArrayLayer = subResource.arrayLayer;
+        range.layerCount     = subResource.layerCount;
+        vkCmdClearColorImage(
+            m_commandBuffer, image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
+    }
+
     IFRIT_APIDECL void CommandBuffer::CopyImage(const Rhi::RhiTexture* src, Rhi::RhiImageSubResource srcSub,
         const Rhi::RhiTexture* dst, Rhi::RhiImageSubResource dstSub) const
     {

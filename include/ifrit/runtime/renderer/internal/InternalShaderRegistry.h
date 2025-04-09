@@ -54,26 +54,6 @@ namespace Ifrit::Runtime::Internal
 
         IF_CONSTEXPR static struct
         {
-            SDEF CopyFS                    = DECLARE_FS("Ayanami/Copy");
-            SDEF CopyVS                    = DECLARE_VS("Ayanami/Copy");
-            SDEF DirectRadianceInjectionCS = DECLARE_CS("Ayanami/DirectRadianceInjection");
-            SDEF GlobalDFRayMarchCS        = DECLARE_CS("Ayanami/GlobalDFRayMarch");
-            SDEF RayMarchCS                = DECLARE_CS("Ayanami/RayMarch");
-            SDEF SurfaceCacheGenFS         = DECLARE_FS("Ayanami/SurfaceCacheGen");
-            SDEF SurfaceCacheGenVS         = DECLARE_VS("Ayanami/SurfaceCacheGen");
-            SDEF TrivialGlobalDFCompCS     = DECLARE_CS("Ayanami/TrivialGlobalDFComp");
-            SDEF DFShadowTileCullingMS     = DECLARE_MS("Ayanami/DFShadowTileCulling");
-            SDEF DFShadowTileCullingFS     = DECLARE_FS("Ayanami/DFShadowTileCulling");
-            SDEF DFShadowFS                = DECLARE_FS("Ayanami/DFShadow");
-            SDEF TestDeferShadingFS        = DECLARE_FS("Ayanami/TestDeferShading");
-            SDEF DFRadianceInjectionCS     = DECLARE_CS("Ayanami/DFRadianceInjection");
-            SDEF ObjectGridCompositionCS   = DECLARE_CS("Ayanami/ObjectGridComposition");
-            SDEF RadiosityTraceCS          = DECLARE_CS("Ayanami/RadiosityTrace");
-            SDEF CacheDebugCS              = DECLARE_CS("Ayanami/CacheDebug");
-        } Ayanami;
-
-        IF_CONSTEXPR static struct
-        {
             SDEF FullScreenVS    = DECLARE_VS("Common/FullScreen");
             SDEF SinglePassHzbCS = DECLARE_CS("Common/SinglePassHiZ");
         } Common;

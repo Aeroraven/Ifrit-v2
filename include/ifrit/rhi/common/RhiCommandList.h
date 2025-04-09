@@ -64,13 +64,14 @@ namespace Ifrit::Graphics::Rhi
         virtual void DispatchIndirect(const RhiBuffer* buffer, u32 offset) const                                 = 0;
         virtual void SetPushConst(const void* data, u32 offset, u32 size) const                                  = 0;
         virtual void ClearUAVTexFloat(
-            const RhiTexture* texture, RhiImageSubResource subResource, const Array<f32, 4>& val) const = 0;
-        virtual void AddResourceBarrier(const Vec<RhiResourceBarrier>& barriers) const                  = 0;
-        virtual void GlobalMemoryBarrier() const                                                        = 0;
-        virtual void BeginScope(const String& name) const                                               = 0;
-        virtual void EndScope() const                                                                   = 0;
+            const RhiTexture* texture, RhiImageSubResource subResource, const Array<f32, 4>& val) const         = 0;
+        virtual void ClearUAVTexLong(const RhiTexture* texture, RhiImageSubResource subResource, u64 val) const = 0;
+        virtual void AddResourceBarrier(const Vec<RhiResourceBarrier>& barriers) const                          = 0;
+        virtual void GlobalMemoryBarrier() const                                                                = 0;
+        virtual void BeginScope(const String& name) const                                                       = 0;
+        virtual void EndScope() const                                                                           = 0;
         virtual void CopyImage(const RhiTexture* src, RhiImageSubResource srcSub, const RhiTexture* dst,
-            RhiImageSubResource dstSub) const                                                           = 0;
+            RhiImageSubResource dstSub) const                                                                   = 0;
         virtual void CopyBufferToImage(
             const RhiBuffer* src, const RhiTexture* dst, RhiImageSubResource dstSub) const = 0;
         virtual void SetCullMode(RhiCullMode mode) const                                   = 0;

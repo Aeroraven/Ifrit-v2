@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 
 namespace Ifrit::Runtime::Internal
 {
@@ -28,7 +29,8 @@ namespace Ifrit::Runtime::Internal
 #define REG_FRAGMENT(name, path) REG_SHADER(name, path ".frag.glsl", Graphics::Rhi::RhiShaderStage::Fragment)
 #define REG_MESH(name, path) REG_SHADER(name, path ".mesh.glsl", Graphics::Rhi::RhiShaderStage::Mesh)
 
-        const auto& IST = kIntShaderTable;
+        const auto& IST    = kIntShaderTable;
+        const auto& ISTAya = kIntShaderTableAyanami;
         // GI & AO
         REG_COMPUTE(IST.GI.HBAOCS, "AmbientOcclusion/HBAO");
         REG_COMPUTE(IST.GI.SSGICS, "AmbientOcclusion/SSGI");
@@ -42,22 +44,23 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE(IST.Atmosphere.PASTransmittanceCS, "Atmosphere/PAS.ComputeTransmittance");
 
         // Ayanami
-        REG_FRAGMENT(IST.Ayanami.CopyFS, "Ayanami/Ayanami.CopyPass");
-        REG_VERTEX(IST.Ayanami.CopyVS, "Ayanami/Ayanami.CopyPass");
-        REG_COMPUTE(IST.Ayanami.DirectRadianceInjectionCS, "Ayanami/Ayanami.DirectionalRadianceInjection");
-        REG_COMPUTE(IST.Ayanami.GlobalDFRayMarchCS, "Ayanami/Ayanami.GlobalDFRayMarch");
-        REG_COMPUTE(IST.Ayanami.RayMarchCS, "Ayanami/Ayanami.RayMarch");
-        REG_FRAGMENT(IST.Ayanami.SurfaceCacheGenFS, "Ayanami/Ayanami.SurfaceCacheGen");
-        REG_VERTEX(IST.Ayanami.SurfaceCacheGenVS, "Ayanami/Ayanami.SurfaceCacheGen");
-        REG_COMPUTE(IST.Ayanami.TrivialGlobalDFCompCS, "Ayanami/Ayanami.TrivialGlobalDFComposite");
-        REG_MESH(IST.Ayanami.DFShadowTileCullingMS, "Ayanami/Ayanami.DFShadowTileCull");
-        REG_FRAGMENT(IST.Ayanami.DFShadowTileCullingFS, "Ayanami/Ayanami.DFShadowTileCull");
-        REG_FRAGMENT(IST.Ayanami.DFShadowFS, "Ayanami/Ayanami.DFShadow");
-        REG_FRAGMENT(IST.Ayanami.TestDeferShadingFS, "Ayanami/Ayanami.TestDeferShading");
-        REG_COMPUTE(IST.Ayanami.DFRadianceInjectionCS, "Ayanami/Ayanami.DFRadianceInjection");
-        REG_COMPUTE(IST.Ayanami.ObjectGridCompositionCS, "Ayanami/Ayanami.ObjectGridComposition");
-        REG_COMPUTE(IST.Ayanami.CacheDebugCS, "Ayanami/Ayanami.CacheDebug");
-        REG_COMPUTE(IST.Ayanami.RadiosityTraceCS, "Ayanami/Ayanami.RadiosityTrace");
+        REG_FRAGMENT(ISTAya.CopyFS, "Ayanami/Ayanami.CopyPass");
+        REG_VERTEX(ISTAya.CopyVS, "Ayanami/Ayanami.CopyPass");
+        REG_COMPUTE(ISTAya.DirectRadianceInjectionCS, "Ayanami/Ayanami.DirectionalRadianceInjection");
+        REG_COMPUTE(ISTAya.GlobalDFRayMarchCS, "Ayanami/Ayanami.GlobalDFRayMarch");
+        REG_COMPUTE(ISTAya.RayMarchCS, "Ayanami/Ayanami.RayMarch");
+        REG_FRAGMENT(ISTAya.SurfaceCacheGenFS, "Ayanami/Ayanami.SurfaceCacheGen");
+        REG_VERTEX(ISTAya.SurfaceCacheGenVS, "Ayanami/Ayanami.SurfaceCacheGen");
+        REG_COMPUTE(ISTAya.TrivialGlobalDFCompCS, "Ayanami/Ayanami.TrivialGlobalDFComposite");
+        REG_MESH(ISTAya.DFShadowTileCullingMS, "Ayanami/Ayanami.DFShadowTileCull");
+        REG_FRAGMENT(ISTAya.DFShadowTileCullingFS, "Ayanami/Ayanami.DFShadowTileCull");
+        REG_FRAGMENT(ISTAya.DFShadowFS, "Ayanami/Ayanami.DFShadow");
+        REG_FRAGMENT(ISTAya.TestDeferShadingFS, "Ayanami/Ayanami.TestDeferShading");
+        REG_COMPUTE(ISTAya.DFRadianceInjectionCS, "Ayanami/Ayanami.DFRadianceInjection");
+        REG_COMPUTE(ISTAya.ObjectGridCompositionCS, "Ayanami/Ayanami.ObjectGridComposition");
+        REG_COMPUTE(ISTAya.DbgReconFromSurfaceCacheCS, "Ayanami/Ayanami.Debug.ReconFromSurfaceCache");
+        REG_COMPUTE(ISTAya.DbgSampleReconDepthCS, "Ayanami/Ayanami.Debug.SampleReconDepth");
+        REG_COMPUTE(ISTAya.RadiosityTraceCS, "Ayanami/Ayanami.RadiosityTrace");
 
         // Common
         REG_VERTEX(IST.Common.FullScreenVS, "CommonPass/FullScreen");

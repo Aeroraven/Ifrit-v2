@@ -111,13 +111,14 @@ Following dependencies should be manually configured. Other dependencies will be
 
 - OpenGL >= 4.6 
 - CMake >= 3.24
-- MSVC >= 19.29
+- MSVC >= 19.29 (`cpp20` Support Required)
 
 **Ifrit Runtime (Syaro/Ayanami)**
 
 - Vulkan SDK 1.3 (with shaderc combined)
   - Core Features 1.3
   - with `EXT_mesh_shader` extension
+  - with `EXT_shader_image_atomic_int64` extension
 
 **Ifrit Soft Renderer** 
 
