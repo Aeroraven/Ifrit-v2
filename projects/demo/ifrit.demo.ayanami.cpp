@@ -165,7 +165,7 @@ namespace Ifrit
             Ayanami::AyanamiRenderConfig ayaConfig;
             ayaConfig.m_globalDFClipmapLevels       = 1;
             ayaConfig.m_globalDFClipmapResolution   = 256;
-            ayaConfig.m_globalDFBaseExtent          = 16.0f;
+            ayaConfig.m_globalDFBaseExtent          = 14.0f;
             ayaConfig.m_DebugForceSurfaceCacheRegen = false;
 
             renderer       = std::make_shared<AyanamiRenderer>(this, ayaConfig);
@@ -210,10 +210,10 @@ namespace Ifrit
             for (auto& m : meshes)
             {
                 numMeshes++;
-                // if (numMeshes <= 631)
-                //     continue;
-                // if (numMeshes >= 633 && numMeshes < 750)
-                //     continue;
+                if (numMeshes <= 631)
+                    continue;
+                if (numMeshes >= 700 && numMeshes < 750)
+                    continue;
                 if (numMeshes > 812)
                     break;
                 auto t      = m->m_prefab;
@@ -228,7 +228,7 @@ namespace Ifrit
                 auto mat = transform->GetModelToWorldMatrix();
                 node->AddGameObjectTransferred(std::move(m->m_prefab));
             }
-
+            iInfo("Num meshes: {}", numMeshes);
             // Render targets
             auto rt       = m_rhiLayer.get();
             depthImage    = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);

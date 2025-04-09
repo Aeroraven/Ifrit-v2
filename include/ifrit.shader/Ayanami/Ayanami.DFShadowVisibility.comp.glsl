@@ -27,9 +27,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "SamplerUtils.SharedConst.h"
 
 layout(
-    local_size_x = kAyanamiRadianceInjectionCardSizePerBlock, 
-    local_size_y = kAyanamiRadianceInjectionCardSizePerBlock, 
-    local_size_z = kAyanamiRadianceInjectionObjectsPerBlock 
+    local_size_x = kAyanamiShadowVisibilityCardSizePerBlock, 
+    local_size_y = kAyanamiShadowVisibilityCardSizePerBlock, 
+    local_size_z = kAyanamiShadowVisibilityObjectsPerBlock 
 ) in;
 
 RegisterStorage(BAllCardData,{

@@ -33,7 +33,7 @@ namespace Ifrit::Runtime::Internal
     {
         SDEF CopyFS                     = DECLARE_FS("Ayanami/Copy");
         SDEF CopyVS                     = DECLARE_VS("Ayanami/Copy");
-        SDEF DirectRadianceInjectionCS  = DECLARE_CS("Ayanami/DirectRadianceInjection");
+        SDEF DirectShadowVisibilityCS   = DECLARE_CS("Ayanami/DirectShadowVisibility");
         SDEF GlobalDFRayMarchCS         = DECLARE_CS("Ayanami/GlobalDFRayMarch");
         SDEF RayMarchCS                 = DECLARE_CS("Ayanami/RayMarch");
         SDEF SurfaceCacheGenFS          = DECLARE_FS("Ayanami/SurfaceCacheGen");
@@ -43,11 +43,12 @@ namespace Ifrit::Runtime::Internal
         SDEF DFShadowTileCullingFS      = DECLARE_FS("Ayanami/DFShadowTileCulling");
         SDEF DFShadowFS                 = DECLARE_FS("Ayanami/DFShadow");
         SDEF TestDeferShadingFS         = DECLARE_FS("Ayanami/TestDeferShading");
-        SDEF DFRadianceInjectionCS      = DECLARE_CS("Ayanami/DFRadianceInjection");
+        SDEF DFShadowVisibilityCS       = DECLARE_CS("Ayanami/DFRadianceInjection");
         SDEF ObjectGridCompositionCS    = DECLARE_CS("Ayanami/ObjectGridComposition");
         SDEF RadiosityTraceCS           = DECLARE_CS("Ayanami/RadiosityTrace");
         SDEF DbgReconFromSurfaceCacheCS = DECLARE_CS("Ayanami/DbgReconFromSurfaceCache");
         SDEF DbgSampleReconDepthCS      = DECLARE_CS("Ayanami/DbgSampleReconDepthCS");
+        SDEF SurfaceCacheDirectLightCS  = DECLARE_CS("Ayanami/SurfaceCacheDirectLighting");
 
     } kIntShaderTableAyanami;
 

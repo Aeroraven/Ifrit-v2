@@ -51,11 +51,12 @@ namespace Ifrit::Runtime::Ayanami
         void              UpdateSurfaceModelMatrix();
         ComputePassNode&  UpdateIndirectRadianceCacheAtlas(
              FrameGraphBuilder& builder, Scene* scene, u32 globalDFSRV, u32 meshDFList);
+        void                        UpdateDirectLighting(FrameGraphBuilder& builder, u32 meshDFList, Vector3f lightDir);
 
         FGTextureNode&              GetRDGAlbedoAtlas();
         FGTextureNode&              GetRDGNormalAtlas();
         FGTextureNode&              GetRDGDepthAtlas();
-        FGTextureNode&              GetRDGRadianceAtlas();
+        FGTextureNode&              GetRDGShadowVisibilityAtlas();
         FGTextureNode&              GetRDGTracedRadianceAtlas();
 
         u32                         GetRadianceSRVId();

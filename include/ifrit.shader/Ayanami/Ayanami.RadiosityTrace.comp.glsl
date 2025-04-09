@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
 #include "ComputeUtils.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 layout(
     local_size_x = kAyanamiRadiosityTraceKernelSize, 
@@ -91,7 +92,7 @@ void RayTraceCoordToCardInfo(uint GThreadId, out uvec2 OffsetInCardTile,out uint
     TraceRayCoord = RayCoord;
 }
 
-mat4 GetCardMewshLocalToWorld(uint CardId){
+mat4 GetCardMeshLocalToWorld(uint CardId){
     uint MeshDFId = CardId / 6;
     MeshDFDesc MeshDesc = GetResource(BMeshDFDesc, PushConst.m_AllMeshDFDataId).m_Data[MeshDFId];
     MeshDFMeta MeshMeta = GetResource(BMeshDFMeta, PushConst.m_AllMeshDFDataId).m_Data;
@@ -110,8 +111,8 @@ CardSampledData SampleCard(uint CardId, uvec2 InCardUV, uvec2 AtlasUV){
     InCardUVF = InCardUVF * 2.0 - 1.0;
     AtlasUVF = AtlasUVF * 2.0 - 1.0;
 
-    float Depth = texture(GetSampler2D(PushConst.m_CardDepthAtlasSRV), AtlasUVF).r;
-    vec2 LocalNormalRG = texture(GetSampler2D(PushConst.m_CardNormalAtlasSRV), AtlasUVF).rg * 2.0 - 1.0;
+    float Depth = SampleTexture2D(PushConst.m_CardDepthAtlasSRV,sLinearClamp,AtlasUVF).r;
+    vec2 LocalNormalRG = SampleTexture2D(PushConst.m_CardNormalAtlasSRV,sLinearClamp,AtlasUVF).rg * 2.0 - 1.0;
     vec3 LocalNormal = normalize(vec3(LocalNormalRG, sqrt(1.0 - dot(LocalNormalRG, LocalNormalRG))));
 
     if(Depth == 1.0){
@@ -123,12 +124,14 @@ CardSampledData SampleCard(uint CardId, uvec2 InCardUV, uvec2 AtlasUV){
     }
 
     vec4 OrthoNDC = vec4(InCardUVF, Depth, 1.0);
-    mat4 CardViewToWorld = GetCardViewVPToWorld(CardId);
-    vec4 WorldPos = CardViewToWorld * OrthoNDC;
-    WorldPos /= WorldPos.w;
+    mat4 CardViewToLocal = GetCardViewVPToWorld(CardId);
+    vec4 LocalPos = CardViewToLocal * OrthoNDC;
+    LocalPos /= LocalPos.w;
 
-    mat4 CardMeshToWorld = GetCardMewshLocalToWorld(CardId);
+    mat4 CardMeshToWorld = GetCardMeshLocalToWorld(CardId);
     vec4 WorldNormal = CardMeshToWorld * vec4(LocalNormal, 0.0);
+    vec4 WorldPos = CardMeshToWorld * vec4(LocalPos.xyz, 1.0);
+    WorldPos /= WorldPos.w;
     WorldNormal = normalize(WorldNormal);
 
     CardSampledData SampledData;

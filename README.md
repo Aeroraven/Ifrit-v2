@@ -169,6 +169,7 @@ The source files can be decomposed into following parts.
 
 ## 4. Future Plans
 Following features implemented in Aria/Vulkan might be considered to move into this repository:
+
 - Hardware Ray Tracing
 - NPR Shading
   - Outline (Post-Processing / Back Facing)
@@ -182,6 +183,11 @@ Following features implemented in Aria/Vulkan might be considered to move into t
 - Volumetric Lighting
 - Procedural Generator
   - GPU Marching Cubes
+
+The architecture for subproject Syaro seems to be a little messy, following plans are scheduled:
+
+- Render-Graph-Driven Process
+- Redundant Dynamic Uniform Buffer Removal
 
 ## 5. References & Acknowledgements
 

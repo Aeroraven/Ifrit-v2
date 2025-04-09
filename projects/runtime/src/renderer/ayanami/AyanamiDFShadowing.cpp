@@ -207,11 +207,11 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MeshDFDescListId     = meshDfList;
         pc.m_ShadowCoefK          = softness;
 
-        auto  cardGroups = DivRoundUp(numCards, Config::kAyanamiRadianceInjectionObjectsPerBlock);
-        auto  tileGroups = DivRoundUp(cardRes, Config::kAyanamiRadianceInjectionCardSizePerBlock);
+        auto  cardGroups = DivRoundUp(numCards, Config::kAyanamiShadowVisibilityObjectsPerBlock);
+        auto  tileGroups = DivRoundUp(cardRes, Config::kAyanamiShadowVisibilityCardSizePerBlock);
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.DFRadianceCachePass",
-            Internal::kIntShaderTableAyanami.DFRadianceInjectionCS,
+            Internal::kIntShaderTableAyanami.DFShadowVisibilityCS,
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
             [this, depthAtlasTex, radianceTex](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_ShadowCullTileDFAtomics = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);

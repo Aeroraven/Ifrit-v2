@@ -67,7 +67,7 @@ namespace Ifrit::Runtime
         auto& pass =
             res->m_DFLighting->AddDistanceFieldRadianceCachePass(builder, res->m_sceneAggregator->GetGatheredBufferId(),
                 res->m_sceneAggregator->GetNumGatheredInstances(), &res->m_surfaceCacheManager->GetRDGDepthAtlas(),
-                sceneBound, lightDir, &res->m_surfaceCacheManager->GetRDGRadianceAtlas(),
+                sceneBound, lightDir, &res->m_surfaceCacheManager->GetRDGShadowVisibilityAtlas(),
                 res->m_surfaceCacheManager->GetCardDataBuffer()->GetDescId(),
                 res->m_surfaceCacheManager->GetCardResolution(), res->m_surfaceCacheManager->GetCardAtlasResolution(),
                 res->m_surfaceCacheManager->GetNumCards(), res->m_surfaceCacheManager->GetWorldMatsId(), cullTileSize,
@@ -165,8 +165,14 @@ namespace Ifrit::Runtime
             m_resources->m_sceneAggregator->GetGatheredBufferId(),
             m_resources->m_sceneAggregator->GetNumGatheredInstances(), sceneBound, sceneLight, 64);
 
+        // printf("Scene bound: %f %f %f %f\n", sceneBound.x, sceneBound.y, sceneBound.z, sceneBound.w);
+
         // Pass DF Radiance Injection (World Space)
         AddDFRadianceInjectPass(builder, m_resources, sceneBound, sceneLight, 64, 2.0f);
+
+        // Pass Direct Lighting
+        m_resources->m_surfaceCacheManager->UpdateDirectLighting(
+            builder, m_resources->m_sceneAggregator->GetGatheredBufferId(), sceneLight);
 
         // Pass Voxel Construction (Object Grids)
         m_globalDF->AddObjectGridCompositionPass(builder, 0, m_resources->m_sceneAggregator->GetNumGatheredInstances(),
@@ -250,7 +256,7 @@ namespace Ifrit::Runtime
         {
             auto& resAlbedoAtlas   = m_resources->m_surfaceCacheManager->GetRDGAlbedoAtlas();
             auto& resNormalAtlas   = m_resources->m_surfaceCacheManager->GetRDGNormalAtlas();
-            auto& resRadianceAtlas = m_resources->m_surfaceCacheManager->GetRDGRadianceAtlas();
+            auto& resRadianceAtlas = m_resources->m_surfaceCacheManager->GetRDGShadowVisibilityAtlas();
             auto& resDepthAtlas    = m_resources->m_surfaceCacheManager->GetRDGDepthAtlas();
 
             m_resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resAlbedoAtlas,
@@ -264,15 +270,15 @@ namespace Ifrit::Runtime
 
         // Pass Debug
         {
-            auto& resDirectRadiance = m_resources->m_surfaceCacheManager->GetRDGRadianceAtlas();
+            auto& resDirectRadiance = m_resources->m_surfaceCacheManager->GetRDGShadowVisibilityAtlas();
             struct PushConst
             {
                 u32 raymarchOutput = 0;
             } pc;
             AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass", Internal::kIntShaderTableAyanami.CopyVS,
                 Internal::kIntShaderTableAyanami.CopyFS, pc,
-                [&resDebugSCOut](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugSCOut);
+                [&resRaymarchOutput](PushConst data, const FrameGraphPassContext& ctx) {
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resRaymarchOutput);
                     SetRootSignature(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)

@@ -94,7 +94,8 @@ namespace Ifrit::Runtime::Ayanami
         RhiTextureRef                       m_SceneCacheEmissionAtlas;
         RhiTextureRef                       m_SceneCacheSpecularAtlas;
         RhiTextureRef                       m_SceneCacheTemporaryDepth;
-        RhiTextureRef                       m_SceneCacheRadianceAtlas;
+        RhiTextureRef                       m_SceneShadowVisibilityAtlas;
+        RhiTextureRef                       m_SceneDirectLightingAtlas;
         RhiTextureRef                       m_SceneCacheIndirrectRadianceAtlas;
 
         // This marks whether a texel (thread group) on surface cache should use
@@ -102,7 +103,7 @@ namespace Ifrit::Runtime::Ayanami
         RhiBufferRef                        m_ShadowMaskOfflineBuffer;
 
         Ref<GPUBindId>                      m_SceneCacheDepthSRV;
-        Ref<GPUBindId>                      m_SceneCacheRadianceSRV;
+        Ref<GPUBindId>                      m_SceneShadowVisibilitySRV;
         Ref<GPUBindId>                      m_SceneCacheNormalSRV;
 
         Atomic<u32>                         m_MeshCardIndex = 0;
@@ -134,7 +135,8 @@ namespace Ifrit::Runtime::Ayanami
         FGTextureNodeRef                    m_RDGSceneCacheNormalAtlas;
         FGTextureNodeRef                    m_RDGSceneCacheEmissionAtlas;
         FGTextureNodeRef                    m_RDGSceneCacheSpecularAtlas;
-        FGTextureNodeRef                    m_RDGSceneCacheRadianceAtlas;
+        FGTextureNodeRef                    m_RDGSceneShadowVisibilityAtlas;
+        FGTextureNodeRef                    m_RDGSceneDirectLighting;
         FGTextureNodeRef                    m_RDGSceneCacheIndirectRadianceAtlas;
         FGTextureNodeRef                    m_RDGSceneCacheTemporaryDepth;
     };
@@ -402,8 +404,10 @@ namespace Ifrit::Runtime::Ayanami
             &builder.ImportTexture("Ayanami.SceneCacheEmissionAtlas", m_Resources->m_SceneCacheEmissionAtlas.get());
         m_Resources->m_RDGSceneCacheSpecularAtlas =
             &builder.ImportTexture("Ayanami.SceneCacheSpecularAtlas", m_Resources->m_SceneCacheSpecularAtlas.get());
-        m_Resources->m_RDGSceneCacheRadianceAtlas =
-            &builder.ImportTexture("Ayanami.SceneCacheRadianceAtlas", m_Resources->m_SceneCacheRadianceAtlas.get());
+        m_Resources->m_RDGSceneShadowVisibilityAtlas = &builder.ImportTexture(
+            "Ayanami.SceneShadowVisibilityAtlas", m_Resources->m_SceneShadowVisibilityAtlas.get());
+        m_Resources->m_RDGSceneDirectLighting =
+            &builder.ImportTexture("Ayanami.SceneDirectLightingAtlas", m_Resources->m_SceneDirectLightingAtlas.get());
         m_Resources->m_RDGSceneCacheIndirectRadianceAtlas = &builder.ImportTexture(
             "Ayanami.SceneCacheIndirectRadianceAtlas", m_Resources->m_SceneCacheIndirrectRadianceAtlas.get());
         m_Resources->m_RDGSceneCacheTemporaryDepth =
@@ -417,23 +421,26 @@ namespace Ifrit::Runtime::Ayanami
         auto rhi                 = m_App->GetRhi();
         auto linearRepeatSampler = m_App->GetSharedRenderResource()->GetLinearRepeatSampler();
 
-        m_Resources->m_SceneCacheAlbdeoAtlas   = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_AlbedoAtlas",
-              m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
-              RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
-        m_Resources->m_SceneCacheNormalAtlas   = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_NormalAtlas",
-              m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8_SNORM,
-              RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
-        m_Resources->m_SceneCacheEmissionAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_EmissionAtlas",
-            m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8_UNORM,
-            RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
-        m_Resources->m_SceneCacheSpecularAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_SpecularAtlas",
-            m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8_UNORM,
-            RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
-        m_Resources->m_SceneCacheRadianceAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadianceAtlas",
+        m_Resources->m_SceneCacheAlbdeoAtlas      = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_AlbedoAtlas",
+                 m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
+                 RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
+        m_Resources->m_SceneCacheNormalAtlas      = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_NormalAtlas",
+                 m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8_SNORM,
+                 RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
+        m_Resources->m_SceneCacheEmissionAtlas    = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_EmissionAtlas",
+               m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8_UNORM,
+               RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
+        m_Resources->m_SceneCacheSpecularAtlas    = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_SpecularAtlas",
+               m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8_UNORM,
+               RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
+        m_Resources->m_SceneShadowVisibilityAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadianceAtlas",
             m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8_UNORM,
             RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess
                 | RhiImageUsage::RhiImgUsage_RenderTarget,
             true);
+        m_Resources->m_SceneDirectLightingAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_DirectLightingAtlas",
+            m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
+            RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess, true);
         m_Resources->m_SceneCacheIndirrectRadianceAtlas =
             rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_IndirectRadianceAtlas", m_Resolution, m_Resolution,
                 RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
@@ -449,8 +456,8 @@ namespace Ifrit::Runtime::Ayanami
         m_Resources->m_SceneCacheDepthSRV =
             rhi->RegisterCombinedImageSampler(m_Resources->m_SceneCacheTemporaryDepth.get(), linearRepeatSampler.get());
 
-        m_Resources->m_SceneCacheRadianceSRV =
-            rhi->RegisterCombinedImageSampler(m_Resources->m_SceneCacheRadianceAtlas.get(), linearRepeatSampler.get());
+        m_Resources->m_SceneShadowVisibilitySRV = rhi->RegisterCombinedImageSampler(
+            m_Resources->m_SceneShadowVisibilityAtlas.get(), linearRepeatSampler.get());
 
         m_Resources->m_SceneCacheNormalSRV =
             rhi->RegisterCombinedImageSampler(m_Resources->m_SceneCacheNormalAtlas.get(), linearRepeatSampler.get());
@@ -491,10 +498,9 @@ namespace Ifrit::Runtime::Ayanami
     {
         auto rhi        = m_App->GetRhi();
         auto numCards   = m_Resources->m_MeshCardIndex.load();
-        auto cardGroups = DivRoundUp(numCards, Config::kAyanamiRadianceInjectionObjectsPerBlock);
-        auto tileGroups =
-            DivRoundUp(m_Resources->m_AtlasElementSize, Config::kAyanamiRadianceInjectionCardSizePerBlock);
-        auto perframe = scene->GetPerFrameData();
+        auto cardGroups = DivRoundUp(numCards, Config::kAyanamiShadowVisibilityObjectsPerBlock);
+        auto tileGroups = DivRoundUp(m_Resources->m_AtlasElementSize, Config::kAyanamiShadowVisibilityCardSizePerBlock);
+        auto perframe   = scene->GetPerFrameData();
         struct PushConst
         {
             u32 totalCards;
@@ -510,6 +516,7 @@ namespace Ifrit::Runtime::Ayanami
 
             u32 worldObjTransforms;
             u32 perframeId;
+            u32 m_NormalAtlasSRV;
         } pc;
         pc.totalCards           = numCards;
         pc.cardResolution       = m_Resources->m_AtlasElementSize;
@@ -518,18 +525,23 @@ namespace Ifrit::Runtime::Ayanami
         pc.atlasResoultion      = m_Resolution;
 
         pc.lightDataId        = perframe->m_shadowData2.m_allShadowDataId->GetActiveId();
-        pc.radianceOutId      = m_Resources->m_SceneCacheRadianceAtlas->GetDescId();
+        pc.radianceOutId      = m_Resources->m_SceneShadowVisibilityAtlas->GetDescId();
         pc.cardDataId         = m_Resources->m_ObserveDeviceData->GetDescId();
         pc.depthAtlasSRVId    = m_Resources->m_SceneCacheDepthSRV->GetActiveId();
         pc.worldObjTransforms = m_Resources->m_ObserveDeviceDataCoherentBindId->GetActiveId();
         pc.perframeId         = perframe->m_views[0].m_viewBufferId->GetActiveId();
 
+        pc.m_NormalAtlasSRV = 0;
+
         UpdateSurfaceModelMatrix();
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadianceCacheGenPass",
-            Internal::kIntShaderTableAyanami.DirectRadianceInjectionCS,
+            Internal::kIntShaderTableAyanami.DirectShadowVisibilityCS,
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
-            [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
-        pass.AddWriteResource(*m_Resources->m_RDGSceneCacheRadianceAtlas)
+            [this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_NormalAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
+                SetRootSignature(data, ctx);
+            });
+        pass.AddWriteResource(*m_Resources->m_RDGSceneShadowVisibilityAtlas)
             .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth);
 
         return pass;
@@ -576,6 +588,45 @@ namespace Ifrit::Runtime::Ayanami
         return pass;
     }
 
+    IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateDirectLighting(
+        FrameGraphBuilder& builder, u32 meshDFList, Vector3f lightDir)
+    {
+        struct PushConst
+        {
+            Vector4f m_LightDir;
+            u32      m_DirectLightUAV;
+            u32      m_NormalAtlasSRV;
+            u32      m_ShadowMaskSRV;
+            u32      m_CardResolution;
+            u32      m_CardAtlasResolution;
+            u32      m_MeshDFDescListId;
+        } pc;
+        pc.m_DirectLightUAV      = 0;
+        pc.m_CardResolution      = m_Resources->m_AtlasElementSize;
+        pc.m_CardAtlasResolution = m_Resolution;
+        pc.m_MeshDFDescListId    = meshDFList;
+        pc.m_ShadowMaskSRV       = 0;
+        pc.m_NormalAtlasSRV      = 0;
+        pc.m_LightDir            = Vector4f(lightDir, 0.0f);
+
+        auto  numCards   = m_Resources->m_MeshCardIndex.load();
+        auto  cardGroups = DivRoundUp(numCards, Config::kAyanamiSCDirectLightObjectsPerBlock);
+        auto  tileGroups = DivRoundUp(m_Resources->m_AtlasElementSize, Config::kAyanamiSCDirectLightCardSizePerBlock);
+
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.SurfaceCacheDirectLighting",
+            Internal::kIntShaderTableAyanami.SurfaceCacheDirectLightCS,
+            Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
+            [this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_DirectLightUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneDirectLighting);
+                data.m_ShadowMaskSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneShadowVisibilityAtlas);
+                data.m_NormalAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
+                SetRootSignature(data, ctx);
+            })
+                         .AddWriteResource(*m_Resources->m_RDGSceneDirectLighting)
+                         .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
+                         .AddReadResource(*m_Resources->m_RDGSceneShadowVisibilityAtlas);
+    }
+
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateSurfaceModelMatrix()
     {
         for (int i = 0; i < m_Resources->m_MeshCardIndex; i++)
@@ -611,9 +662,9 @@ namespace Ifrit::Runtime::Ayanami
         return *m_Resources->m_RDGSceneCacheTemporaryDepth;
     }
 
-    IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGRadianceAtlas()
+    IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGShadowVisibilityAtlas()
     {
-        return *m_Resources->m_RDGSceneCacheRadianceAtlas;
+        return *m_Resources->m_RDGSceneShadowVisibilityAtlas;
     }
 
     IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGTracedRadianceAtlas()
@@ -623,7 +674,7 @@ namespace Ifrit::Runtime::Ayanami
 
     IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetRadianceSRVId()
     {
-        return m_Resources->m_SceneCacheRadianceSRV->GetActiveId();
+        return m_Resources->m_SceneShadowVisibilitySRV->GetActiveId();
     }
     IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetDepthSRVId()
     {

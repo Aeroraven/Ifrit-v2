@@ -103,18 +103,18 @@ void main(){
     bool hit = rayboxIntersection(rayOrigin, rayDir, lb, rt, t);
 
     t = max(t, 0.0);
-    vec3 normalEps = vec3(0.02, 0.02, 0.02);
+    vec3 normalEps = vec3(1.0/256.0, 1.0/256.0, 1.0/256.0)*0.5;
     bool found = false;
     
 
     if(hit){
-        for(int i=0;i<400;i++){
+        for(int i=0;i<200;i++){
             vec3 p = rayOrigin + rayDir*t;
             vec3 uvw = (p - lb) / (rt - lb);
             uvw = clamp(uvw, vec3(0.0), vec3(1.0));
-            float sdf = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw).r - 0.015;
+            float sdf = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw).r - 0.0225;
 
-            if(abs(sdf) < 0.04){
+            if(sdf < 0.0125){
                 found = true;
                 float dx1 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw + vec3(normalEps.x, 0.0, 0.0)).r;
                 float dx2 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw - vec3(normalEps.x, 0.0, 0.0)).r;
@@ -131,9 +131,9 @@ void main(){
                 break;
             }
 
-            t += sdf * 0.25;
+            t += max(1e-2,sdf * 0.5);
         }
     }
     
-    imageStore(GetUAVImage2DR32F(pc.m_OutTex), ivec2(tX, tY), vec4(abs(normal),1.0));
+    imageStore(GetUAVImage2DR32F(pc.m_OutTex), ivec2(tX, tY), vec4(normal*0.5+0.5,1.0));
 }

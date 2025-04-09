@@ -46,7 +46,7 @@ namespace Ifrit::Runtime::Internal
         // Ayanami
         REG_FRAGMENT(ISTAya.CopyFS, "Ayanami/Ayanami.CopyPass");
         REG_VERTEX(ISTAya.CopyVS, "Ayanami/Ayanami.CopyPass");
-        REG_COMPUTE(ISTAya.DirectRadianceInjectionCS, "Ayanami/Ayanami.DirectionalRadianceInjection");
+        REG_COMPUTE(ISTAya.DirectShadowVisibilityCS, "Ayanami/Ayanami.DirectionalShadowVisibility");
         REG_COMPUTE(ISTAya.GlobalDFRayMarchCS, "Ayanami/Ayanami.GlobalDFRayMarch");
         REG_COMPUTE(ISTAya.RayMarchCS, "Ayanami/Ayanami.RayMarch");
         REG_FRAGMENT(ISTAya.SurfaceCacheGenFS, "Ayanami/Ayanami.SurfaceCacheGen");
@@ -56,11 +56,12 @@ namespace Ifrit::Runtime::Internal
         REG_FRAGMENT(ISTAya.DFShadowTileCullingFS, "Ayanami/Ayanami.DFShadowTileCull");
         REG_FRAGMENT(ISTAya.DFShadowFS, "Ayanami/Ayanami.DFShadow");
         REG_FRAGMENT(ISTAya.TestDeferShadingFS, "Ayanami/Ayanami.TestDeferShading");
-        REG_COMPUTE(ISTAya.DFRadianceInjectionCS, "Ayanami/Ayanami.DFRadianceInjection");
+        REG_COMPUTE(ISTAya.DFShadowVisibilityCS, "Ayanami/Ayanami.DFShadowVisibility");
         REG_COMPUTE(ISTAya.ObjectGridCompositionCS, "Ayanami/Ayanami.ObjectGridComposition");
         REG_COMPUTE(ISTAya.DbgReconFromSurfaceCacheCS, "Ayanami/Ayanami.Debug.ReconFromSurfaceCache");
         REG_COMPUTE(ISTAya.DbgSampleReconDepthCS, "Ayanami/Ayanami.Debug.SampleReconDepth");
         REG_COMPUTE(ISTAya.RadiosityTraceCS, "Ayanami/Ayanami.RadiosityTrace");
+        REG_COMPUTE(ISTAya.SurfaceCacheDirectLightCS, "Ayanami/Ayanami.SurfaceCacheDirectLighting");
 
         // Common
         REG_VERTEX(IST.Common.FullScreenVS, "CommonPass/FullScreen");

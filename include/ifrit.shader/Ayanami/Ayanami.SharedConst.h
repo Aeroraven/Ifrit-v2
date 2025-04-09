@@ -57,14 +57,17 @@ namespace Ifrit::Runtime::Ayanami::Config
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFCompositeTileSize, 8);
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFRayMarchTileSize, 16);
 
-    AYANAMI_DEFINE_UINT(kAyanamiRadianceInjectionObjectsPerBlock, 8);
-    AYANAMI_DEFINE_UINT(kAyanamiRadianceInjectionCardSizePerBlock, 8);
+    AYANAMI_DEFINE_UINT(kAyanamiShadowVisibilityObjectsPerBlock, 8);
+    AYANAMI_DEFINE_UINT(kAyanamiShadowVisibilityCardSizePerBlock, 8);
 
     AYANAMI_DEFINE_UINT(kAyanamiObjectGridTileSize, 4);
     AYANAMI_DEFINE_UINT(kAyanamiRadiosityTraceKernelSize, kAyanami_RadiosityTracesPerCardTile);
 
     AYANAMI_DEFINE_UINT(kAyanamiReconFromSCTileSize, 8);
     AYANAMI_DEFINE_UINT(kAyanamiReconFromSCDepthTileSize, 8);
+
+    AYANAMI_DEFINE_UINT(kAyanamiSCDirectLightObjectsPerBlock, 8);
+    AYANAMI_DEFINE_UINT(kAyanamiSCDirectLightCardSizePerBlock, 8);
 
 #ifdef __cplusplus
 } // namespace Ifrit::Runtime::AYANAMI

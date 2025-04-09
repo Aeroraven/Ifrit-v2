@@ -26,9 +26,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Random/Random.WNoise2D.glsl"
 
 layout(
-    local_size_x = kAyanamiRadianceInjectionCardSizePerBlock, 
-    local_size_y = kAyanamiRadianceInjectionCardSizePerBlock, 
-    local_size_z = kAyanamiRadianceInjectionObjectsPerBlock 
+    local_size_x = kAyanamiShadowVisibilityCardSizePerBlock, 
+    local_size_y = kAyanamiShadowVisibilityCardSizePerBlock, 
+    local_size_z = kAyanamiShadowVisibilityObjectsPerBlock 
     ) in;
  
 layout(push_constant)  uniform PushConstData{
@@ -45,6 +45,7 @@ layout(push_constant)  uniform PushConstData{
 
     uint worldObjId;
     uint m_PerFrameId;
+    uint m_NormalAtlasSRV;
 } PushConst;
 
 RegisterStorage(BAllCardData,{
