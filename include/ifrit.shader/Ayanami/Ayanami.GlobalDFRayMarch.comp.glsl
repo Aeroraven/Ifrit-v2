@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Bindless.glsl"
 #include "Ayanami/Ayanami.Shared.glsl"
 #include "Ayanami/Ayanami.SharedConst.h"
+#include "SamplerUtils.SharedConst.h"
 
 layout(local_size_x = kAyanamiGlobalDFRayMarchTileSize, local_size_y = kAyanamiGlobalDFRayMarchTileSize, local_size_z = 1) in;
 
@@ -111,16 +112,16 @@ void main(){
             vec3 p = rayOrigin + rayDir*t;
             vec3 uvw = (p - lb) / (rt - lb);
             uvw = clamp(uvw, vec3(0.0), vec3(1.0));
-            float sdf = texture(GetSampler3D(pc.m_GlobalDFId), uvw).r - 0.015;
+            float sdf = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw).r - 0.015;
 
             if(abs(sdf) < 0.04){
                 found = true;
-                float dx1 = texture(GetSampler3D(pc.m_GlobalDFId), uvw + vec3(normalEps.x, 0.0, 0.0)).r;
-                float dx2 = texture(GetSampler3D(pc.m_GlobalDFId), uvw - vec3(normalEps.x, 0.0, 0.0)).r;
-                float dy1 = texture(GetSampler3D(pc.m_GlobalDFId), uvw + vec3(0.0, normalEps.y, 0.0)).r;
-                float dy2 = texture(GetSampler3D(pc.m_GlobalDFId), uvw - vec3(0.0, normalEps.y, 0.0)).r;
-                float dz1 = texture(GetSampler3D(pc.m_GlobalDFId), uvw + vec3(0.0, 0.0, normalEps.z)).r;
-                float dz2 = texture(GetSampler3D(pc.m_GlobalDFId), uvw - vec3(0.0, 0.0, normalEps.z)).r;
+                float dx1 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw + vec3(normalEps.x, 0.0, 0.0)).r;
+                float dx2 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw - vec3(normalEps.x, 0.0, 0.0)).r;
+                float dy1 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw + vec3(0.0, normalEps.y, 0.0)).r;
+                float dy2 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw - vec3(0.0, normalEps.y, 0.0)).r;
+                float dz1 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw + vec3(0.0, 0.0, normalEps.z)).r;
+                float dz2 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw - vec3(0.0, 0.0, normalEps.z)).r;
 
                 normal.x = (dx1 - dx2);
                 normal.y = (dy1 - dy2);

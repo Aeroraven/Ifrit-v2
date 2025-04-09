@@ -128,6 +128,15 @@ namespace Ifrit::Runtime::Ayanami
 
         // Debug Controls
         bool                                m_ForceSurfaceCacheRegeneration = false;
+
+        // Frame Graph Resources
+        FGTextureNodeRef                    m_RDGSceneCacheAlbedoAtlas;
+        FGTextureNodeRef                    m_RDGSceneCacheNormalAtlas;
+        FGTextureNodeRef                    m_RDGSceneCacheEmissionAtlas;
+        FGTextureNodeRef                    m_RDGSceneCacheSpecularAtlas;
+        FGTextureNodeRef                    m_RDGSceneCacheRadianceAtlas;
+        FGTextureNodeRef                    m_RDGSceneCacheIndirectRadianceAtlas;
+        FGTextureNodeRef                    m_RDGSceneCacheTemporaryDepth;
     };
 
     AyanamiTrivialSurfaceCacheManager::AyanamiTrivialSurfaceCacheManager(
@@ -374,7 +383,29 @@ namespace Ifrit::Runtime::Ayanami
                 m_Resources->m_MeshCardTasks.clear();
             }
         });
+        pass.AddRenderTarget(*m_Resources->m_RDGSceneCacheAlbedoAtlas)
+            .AddRenderTarget(*m_Resources->m_RDGSceneCacheNormalAtlas)
+            .AddDepthTarget(*m_Resources->m_RDGSceneCacheTemporaryDepth);
+
         return pass;
+    }
+
+    IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::InitContext(FrameGraphBuilder& builder)
+    {
+        m_Resources->m_RDGSceneCacheAlbedoAtlas =
+            &builder.ImportTexture("Ayanami.SceneCacheAlbedoAtlas", m_Resources->m_SceneCacheAlbdeoAtlas.get());
+        m_Resources->m_RDGSceneCacheNormalAtlas =
+            &builder.ImportTexture("Ayanami.SceneCacheNormalAtlas", m_Resources->m_SceneCacheNormalAtlas.get());
+        m_Resources->m_RDGSceneCacheEmissionAtlas =
+            &builder.ImportTexture("Ayanami.SceneCacheEmissionAtlas", m_Resources->m_SceneCacheEmissionAtlas.get());
+        m_Resources->m_RDGSceneCacheSpecularAtlas =
+            &builder.ImportTexture("Ayanami.SceneCacheSpecularAtlas", m_Resources->m_SceneCacheSpecularAtlas.get());
+        m_Resources->m_RDGSceneCacheRadianceAtlas =
+            &builder.ImportTexture("Ayanami.SceneCacheRadianceAtlas", m_Resources->m_SceneCacheRadianceAtlas.get());
+        m_Resources->m_RDGSceneCacheIndirectRadianceAtlas = &builder.ImportTexture(
+            "Ayanami.SceneCacheIndirectRadianceAtlas", m_Resources->m_SceneCacheIndirrectRadianceAtlas.get());
+        m_Resources->m_RDGSceneCacheTemporaryDepth =
+            &builder.ImportTexture("Ayanami.SceneCacheTemporaryDepth", m_Resources->m_SceneCacheTemporaryDepth.get());
     }
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::PrepareImmutableResource()
@@ -451,9 +482,6 @@ namespace Ifrit::Runtime::Ayanami
 
         RhiRenderTargetsFormat rtFmt;
         rtFmt.m_colorFormats.push_back(RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM);
-
-        // RTs
-        // TODO: To invalidate the cache, LOAD op is not a good practice?
     }
 
     IFRIT_APIDECL ComputePassNode& AyanamiTrivialSurfaceCacheManager::UpdateRadianceCacheAtlas(
@@ -499,6 +527,8 @@ namespace Ifrit::Runtime::Ayanami
             Internal::kIntShaderTable.Ayanami.DirectRadianceInjectionCS,
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
             [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
+        pass.AddWriteResource(*m_Resources->m_RDGSceneCacheRadianceAtlas)
+            .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth);
 
         return pass;
     }
@@ -537,6 +567,10 @@ namespace Ifrit::Runtime::Ayanami
             Internal::kIntShaderTable.Ayanami.RadiosityTraceCS, Vector3i{ 0, 1, 1 }, pc,
             [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
 
+        pass.AddWriteResource(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas)
+            .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
+            .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth);
+
         return pass;
     }
 
@@ -560,29 +594,29 @@ namespace Ifrit::Runtime::Ayanami
         });
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetAlbedoAtlas()
+    IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGAlbedoAtlas()
     {
-        return m_Resources->m_SceneCacheAlbdeoAtlas;
+        return *m_Resources->m_RDGSceneCacheAlbedoAtlas;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetNormalAtlas()
+    IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGNormalAtlas()
     {
-        return m_Resources->m_SceneCacheNormalAtlas;
+        return *m_Resources->m_RDGSceneCacheNormalAtlas;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetDepthAtlas()
+    IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGDepthAtlas()
     {
-        return m_Resources->m_SceneCacheTemporaryDepth;
+        return *m_Resources->m_RDGSceneCacheTemporaryDepth;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetRadianceAtlas()
+    IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGRadianceAtlas()
     {
-        return m_Resources->m_SceneCacheRadianceAtlas;
+        return *m_Resources->m_RDGSceneCacheRadianceAtlas;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef AyanamiTrivialSurfaceCacheManager::GetTracedRadianceAtlas()
+    IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGTracedRadianceAtlas()
     {
-        return m_Resources->m_SceneCacheIndirrectRadianceAtlas;
+        return *m_Resources->m_RDGSceneCacheIndirectRadianceAtlas;
     }
 
     IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetRadianceSRVId()

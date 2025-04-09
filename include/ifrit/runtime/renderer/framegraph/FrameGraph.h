@@ -178,6 +178,11 @@ namespace Ifrit::Runtime
         };
     };
 
+    using FGTextureNode    = ResourceNode;
+    using FGBufferNode     = ResourceNode;
+    using FGTextureNodeRef = ResourceNode*;
+    using FGBufferNodeRef  = ResourceNode*;
+
     struct IFRIT_APIDECL PassNode
     {
     protected:

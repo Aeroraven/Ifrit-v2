@@ -2018,6 +2018,7 @@ namespace Ifrit::Runtime
         start         = std::chrono::high_resolution_clock::now();
         auto mainTask = dq->RunAsyncCommand(
             [&](const RhiCommandList* cmd) {
+                cmd->BeginScope("Syaro: Scene Cull & GBuffer Pass");
                 for (u32 i = 0; i < perframeData.m_views.size(); i++)
                 {
                     if (perframeData.m_views[i].m_viewType == PerFrameData::ViewType::Shadow
@@ -2063,6 +2064,7 @@ namespace Ifrit::Runtime
                         }
                     }
                 }
+                cmd->EndScope();
             },
             cmdToWaitBkp, {});
 

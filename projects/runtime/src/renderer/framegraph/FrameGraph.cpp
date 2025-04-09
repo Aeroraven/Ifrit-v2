@@ -73,7 +73,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void PassNode::Execute(const FrameGraphPassContext& ctx)
     {
-        ctx.m_CmdList->BeginScope(String("Ifrit/RDG: [Common] ") + name);
+        ctx.m_CmdList->BeginScope(String("Ifrit.RDG.General: ") + name);
         if (passFunction)
         {
             passFunction(ctx);
@@ -92,7 +92,7 @@ namespace Ifrit::Runtime
 
         m_pass->SetRecordFunction(
             [this, &ctx](const Graphics::Rhi::RhiRenderPassContext* ct) { this->passFunction(ctx); });
-        ctx.m_CmdList->BeginScope(String("Ifrit/RDG: [Draw] ") + name);
+        ctx.m_CmdList->BeginScope(String("Ifrit.RDG.Draw: ") + name);
         m_pass->Run(ctx.m_CmdList, this->m_RhiRTs.get(), 0);
         ctx.m_CmdList->EndScope();
     }
@@ -193,7 +193,7 @@ namespace Ifrit::Runtime
     {
         m_pass->SetRecordFunction(
             [this, &ctx](const Graphics::Rhi::RhiRenderPassContext* ct) { this->passFunction(ctx); });
-        ctx.m_CmdList->BeginScope(String("Ifrit/RDG: [Compute] ") + name);
+        ctx.m_CmdList->BeginScope(String("Ifrit.RDG.Compute: ") + name);
         m_pass->Run(ctx.m_CmdList, 0);
         ctx.m_CmdList->EndScope();
     }
@@ -322,8 +322,17 @@ namespace Ifrit::Runtime
 
     Graphics::Rhi::RhiUAVDesc FrameGraphBuilder::GetUAV(const ResourceNode& res) const
     {
-        iAssertion(!res.isImported, "FrameGraphBuilder: GetUAV() called on imported resource.");
-
+        if (res.isImported)
+        {
+            if (res.type == FrameGraphResourceType::ResourceBuffer)
+            {
+                return m_Rhi->GetUAVDescriptor(res.importedBuffer);
+            }
+            else if (res.type == FrameGraphResourceType::ResourceTexture)
+            {
+                return m_Rhi->GetUAVDescriptor(res.importedTexture, res.subResource);
+            }
+        }
         if (res.type == FrameGraphResourceType::ResourceBuffer)
         {
             iAssertion(res.selfBuffer,
@@ -343,7 +352,17 @@ namespace Ifrit::Runtime
 
     Graphics::Rhi::RhiSRVDesc FrameGraphBuilder::GetSRV(const ResourceNode& res) const
     {
-        iAssertion(!res.isImported, "FrameGraphBuilder: GetSRV() called on imported resource.");
+        if (res.isImported)
+        {
+            if (res.type == FrameGraphResourceType::ResourceBuffer)
+            {
+                return m_Rhi->GetSRVDescriptor(res.importedBuffer);
+            }
+            else if (res.type == FrameGraphResourceType::ResourceTexture)
+            {
+                return m_Rhi->GetSRVDescriptor(res.importedTexture, res.subResource);
+            }
+        }
         if (res.type == FrameGraphResourceType::ResourceBuffer)
         {
             iAssertion(res.selfBuffer,
@@ -738,7 +757,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void FrameGraphExecutor::ExecuteInSingleCmd(
         const Graphics::Rhi::RhiCommandList* cmd, const CompiledFrameGraph& compiledGraph)
     {
-        cmd->BeginScope("Ifrit/RDG: Render Graph Execution");
+        cmd->BeginScope("Ifrit.RDG: Execute Render Graph");
         using namespace Ifrit::Graphics::Rhi;
         for (auto& pass : compiledGraph.m_graph->m_passes)
         {

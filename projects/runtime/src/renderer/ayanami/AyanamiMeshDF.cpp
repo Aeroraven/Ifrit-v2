@@ -25,9 +25,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #undef IFRIT_MESHPROC_IMPORT
 
 #include "ifrit/core/math/simd/SimdVectors.h"
+#include "ifrit/core/math/VectorOps.h"
 #include "ifrit/core/file/FileOps.h"
 #include "ifrit/core/typing/Util.h"
 #include <filesystem>
+
+using namespace Ifrit::Math;
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -112,8 +115,10 @@ namespace Ifrit::Runtime::Ayanami
             m_sdBoxMax = Vector3f(sdf.bboxMax.x, sdf.bboxMax.y, sdf.bboxMax.z);
             m_isBuilt  = true;
 
-            // iInfo("Mesh BBoxMin: {} {} {}", m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z);
-            // iInfo("Mesh BBoxMax: {} {} {}", m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z);
+            if (Any(Abs(m_sdBoxMax - m_sdBoxMin) < 1e-1f))
+            {
+                iWarn("Mesh SDF BBox is too small, please check the mesh data.");
+            }
         }
     }
 

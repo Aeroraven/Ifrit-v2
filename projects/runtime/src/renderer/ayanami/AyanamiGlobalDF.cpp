@@ -52,8 +52,7 @@ namespace Ifrit::Runtime::Ayanami
                     | Graphics::Rhi::RhiImageUsage::RhiImgUsage_ShaderRead,
                 true);
 
-            m_TestClipMaps[i]->m_clipmapSRV =
-                rhi->RegisterCombinedImageSampler(m_TestClipMaps[i]->m_clipmapTexture.get(), linearClampSampler.get());
+            m_TestClipMaps[i]->m_clipmapSRV = rhi->GetSRVDescriptor(m_TestClipMaps[i]->m_clipmapTexture.get());
 
             // Voxel Lighting Resources
             u32 totalVoxels = config.m_VoxelExtentPerGlobalClipMap * config.m_VoxelExtentPerGlobalClipMap
@@ -92,13 +91,13 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MeshDFDescListId = meshDFListId;
 
         auto& pass = FrameGraphUtils::AddComputePass<PushConst>(builder, "Ayanami.GlobalDFComposite",
-            Internal::kIntShaderTable.Ayanami.TrivialGlobalDFCompCS, Vector3i{ (i32)tgX, (i32)tgX, 1 }, pc,
+            Internal::kIntShaderTable.Ayanami.TrivialGlobalDFCompCS, Vector3i{ (i32)tgX, (i32)tgX, (i32)tgX }, pc,
             [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
         return pass;
     }
 
-    IFRIT_APIDECL ComputePassNode& AyanamiGlobalDF::AddRayMarchPass(
-        FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId, u32 outTextureId, Vector2u outTextureSize)
+    IFRIT_APIDECL ComputePassNode& AyanamiGlobalDF::AddRayMarchPass(FrameGraphBuilder& builder, u32 clipmapLevel,
+        u32 perFrameDataId, FGTextureNodeRef outTexture, Vector2u outTextureSize)
     {
         auto& clipmap = m_TestClipMaps[clipmapLevel];
         struct PushConst
@@ -116,8 +115,8 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_GlobalDFBoxMin =
             Vector4f(clipmap->m_worldBoundMin.x, clipmap->m_worldBoundMin.y, clipmap->m_worldBoundMin.z, 0);
         pc.m_PerFrameId = perFrameDataId;
-        pc.m_GlobalDFId = clipmap->m_clipmapSRV->GetActiveId();
-        pc.m_OutTex     = outTextureId;
+        pc.m_GlobalDFId = clipmap->m_clipmapSRV;
+        pc.m_OutTex     = 0;
         pc.m_RtH        = outTextureSize.y;
         pc.m_RtW        = outTextureSize.x;
 
@@ -125,7 +124,10 @@ namespace Ifrit::Runtime::Ayanami
             Internal::kIntShaderTable.Ayanami.GlobalDFRayMarchCS,
             Vector3i{ DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize),
                 DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize), 1 },
-            pc, [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
+            pc, [outTexture](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_OutTex = ctx.m_FgDesc->GetUAV(*outTexture);
+                SetRootSignature(data, ctx);
+            });
         return pass;
     }
 
@@ -161,9 +163,9 @@ namespace Ifrit::Runtime::Ayanami
         return m_TestClipMaps[clipmapLevel]->m_clipmapTexture;
     }
 
-    IFRIT_APIDECL u32 AyanamiGlobalDF::GetClipmapVolumeSRV(u32 clipmapLevel)
+    IFRIT_APIDECL Graphics::Rhi::RhiSRVDesc AyanamiGlobalDF::GetClipmapVolumeSRV(u32 clipmapLevel)
     {
-        return m_TestClipMaps[clipmapLevel]->m_clipmapSRV->GetActiveId();
+        return m_TestClipMaps[clipmapLevel]->m_clipmapSRV;
     }
 
 } // namespace Ifrit::Runtime::Ayanami

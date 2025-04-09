@@ -29,18 +29,12 @@ namespace Ifrit::Runtime::Ayanami
 {
     struct AyanamiDistanceFieldLightingPrivate
     {
-        constexpr static u32    kTileAtomicSize    = 64 * 64 * sizeof(u32);
-        constexpr static u32    kScatterOutputSize = 64 * 64 * 4096 * sizeof(u32);
+        constexpr static u32 kTileAtomicSize    = 64 * 64 * sizeof(u32);
+        constexpr static u32 kScatterOutputSize = 64 * 64 * 4096 * sizeof(u32);
 
-        RhiBufferRef            m_TileAtomicsBuf   = nullptr;
-        RhiBufferRef            m_ScatterOutputBuf = nullptr;
-        RhiTextureRef           m_ScatterOutputTex = nullptr;
-        Ref<RhiRenderTargets>   m_RTs              = nullptr;
-        Ref<RhiColorAttachment> m_RTColor          = nullptr;
-
-        ResourceNode*           m_ResAtomic           = nullptr;
-        ResourceNode*           m_ResScatterOutput    = nullptr;
-        ResourceNode*           m_ResScatterOutputTex = nullptr;
+        ResourceNode*        m_ResAtomic           = nullptr;
+        ResourceNode*        m_ResScatterOutput    = nullptr;
+        ResourceNode*        m_ResScatterOutputTex = nullptr;
     };
 
     static Matrix4x4f GetLightViewProj(Vector4f sceneBound, Vector3f lightDir)
@@ -55,6 +49,21 @@ namespace Ifrit::Runtime::Ayanami
         return Transpose(viewProj);
     }
 
+    IFRIT_APIDECL void AyanamiDistanceFieldLighting::InitContext(FrameGraphBuilder& builder, u32 tileSize)
+    {
+        m_Ctx->m_ResAtomic = &builder.DeclareBuffer("Ayamami.RDG.DFShadowAtomic",
+            FrameGraphBufferDesc(AyanamiDistanceFieldLightingPrivate::kTileAtomicSize,
+                RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO));
+
+        m_Ctx->m_ResScatterOutput = &builder.DeclareBuffer("Ayamami.RDG.DFShadowScatterOutput",
+            FrameGraphBufferDesc(
+                AyanamiDistanceFieldLightingPrivate::kScatterOutputSize, RhiBufferUsage::RhiBufferUsage_SSBO));
+
+        m_Ctx->m_ResScatterOutputTex = &builder.DeclareTexture("Ayamami.RDG.DFShadowScatterOutputTex",
+            FrameGraphTextureDesc(tileSize, tileSize, 1, RhiImageFormat::RhiImgFmt_B8G8R8A8_SRGB,
+                RhiImageUsage::RhiImgUsage_RenderTarget));
+    }
+
     IFRIT_APIDECL GraphicsPassNode& AyanamiDistanceFieldLighting::DistanceFieldShadowTileScatter(
         FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs, Vector4f sceneBound, Vector3f lightDir,
         u32 tileSize)
@@ -63,31 +72,6 @@ namespace Ifrit::Runtime::Ayanami
         {
             iError("Tile size or total mesh distance field exceeds the limit.");
             std::abort();
-        }
-
-        // Create the render targets if not already created
-        if (!m_Private->m_TileAtomicsBuf.get())
-        {
-            m_Private->m_TileAtomicsBuf =
-                m_Rhi->CreateBuffer("TileAtomicBuffer", AyanamiDistanceFieldLightingPrivate::kTileAtomicSize,
-                    RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO, false, true);
-        }
-        if (!m_Private->m_ScatterOutputBuf.get())
-        {
-            m_Private->m_ScatterOutputBuf =
-                m_Rhi->CreateBuffer("ScatterOutputBuffer", AyanamiDistanceFieldLightingPrivate::kScatterOutputSize,
-                    RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO, false, true);
-        }
-
-        if (!m_Private->m_ScatterOutputTex.get())
-        {
-            m_Private->m_ScatterOutputTex = m_Rhi->CreateTexture2DMsaa("ScatterOutputTex", tileSize, tileSize,
-                RhiImageFormat::RhiImgFmt_B8G8R8A8_SRGB, RhiImageUsage::RhiImgUsage_RenderTarget, 1);
-            m_Private->m_RTColor          = m_Rhi->CreateRenderTarget(
-                m_Private->m_ScatterOutputTex.get(), { 0, 0, 1, 1 }, RhiRenderTargetLoadOp::Clear, 0, 0);
-            m_Private->m_RTs = m_Rhi->CreateRenderTargets();
-            m_Private->m_RTs->SetColorAttachments({ m_Private->m_RTColor.get() });
-            m_Private->m_RTs->SetRenderArea({ 0, 0, tileSize, tileSize });
         }
 
         // Prepare the render targets
@@ -112,18 +96,10 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_NumMeshDF        = totalMeshDfs;
         pc.m_MeshDFDescListId = meshDfList;
         pc.m_NumTilesWidth    = 64;
-        pc.m_TileAtomics      = m_Private->m_TileAtomicsBuf->GetDescId();
-        pc.m_ScatterOutput    = m_Private->m_ScatterOutputBuf->GetDescId();
+        pc.m_TileAtomics      = 0;
+        pc.m_ScatterOutput    = 0;
 
-        m_Private->m_ResAtomic =
-            &builder.AddResource("ayainternal_TileAtomic").SetImportedResource(m_Private->m_TileAtomicsBuf.get());
-        m_Private->m_ResScatterOutput =
-            &builder.AddResource("ayainternal_ScatterOutput").SetImportedResource(m_Private->m_ScatterOutputBuf.get());
-        m_Private->m_ResScatterOutputTex =
-            &builder.AddResource("ayainternal_ScatterOutputTex")
-                 .SetImportedResource(m_Private->m_ScatterOutputTex.get(), { 0, 0, 1, 1 });
-
-        FrameGraphUtils::AddClearUAVPass(builder, "Ayanami.DFShadowCullCleanup", *m_Private->m_ResAtomic, 0);
+        FrameGraphUtils::AddClearUAVPass(builder, "Ayanami.DFShadowCullCleanup", *m_Ctx->m_ResAtomic, 0);
 
         FrameGraphUtils::GraphicsPassArgs args;
         args.m_CullMode = Graphics::Rhi::RhiCullMode::Front;
@@ -131,15 +107,15 @@ namespace Ifrit::Runtime::Ayanami
         auto& pass = AddMeshDrawPass<PushConst>(builder, "Ayanami.DFShadowTileCull",
             Internal::kIntShaderTable.Ayanami.DFShadowTileCullingMS,
             Internal::kIntShaderTable.Ayanami.DFShadowTileCullingFS, Vector3i{ (i32)totalMeshDfs, 1, 1 }, args, pc,
-            [](PushConst data, const FrameGraphPassContext& ctx) {
+            [this](PushConst data, const FrameGraphPassContext& ctx) {
                 ctx.m_CmdList->SetCullMode(Graphics::Rhi::RhiCullMode::Front);
+                data.m_TileAtomics   = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);
+                data.m_ScatterOutput = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResScatterOutput);
                 SetRootSignature<PushConst>(data, ctx);
             });
-
-        auto  pipe = pass.GetPass();
-        pass.AddRenderTarget(*m_Private->m_ResScatterOutputTex)
-            .AddWriteResource(*m_Private->m_ResAtomic)
-            .AddReadResource(*m_Private->m_ResScatterOutput);
+        pass.AddRenderTarget(*m_Ctx->m_ResScatterOutputTex)
+            .AddWriteResource(*m_Ctx->m_ResAtomic)
+            .AddReadResource(*m_Ctx->m_ResScatterOutput);
 
         return pass;
     }
@@ -166,8 +142,8 @@ namespace Ifrit::Runtime::Ayanami
         auto normDir          = Normalize(lightDir);
         pc.m_LightVP          = GetLightViewProj(sceneBound, lightDir);
         pc.m_LightDir         = Vector4f(normDir.x, normDir.y, normDir.z, 0.0f);
-        pc.m_TileDFAtomics    = m_Private->m_TileAtomicsBuf->GetDescId();
-        pc.m_TileDFList       = m_Private->m_ScatterOutputBuf->GetDescId();
+        pc.m_TileDFAtomics    = 0;
+        pc.m_TileDFList       = 0;
         pc.m_TotalDFCount     = totalMeshDfs;
         pc.m_TileSize         = tileSize;
         pc.m_PerFrameId       = perframe;
@@ -175,17 +151,20 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MeshDFDescListId = meshDfList;
         pc.m_ShadowCoefK      = softness;
 
-        auto& pass =
-            AddPostProcessPass<PushConst>(builder, "Ayanami.DFSS", Internal::kIntShaderTable.Ayanami.DFShadowFS, pc,
-                [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
-        pass.AddReadResource(*m_Private->m_ResAtomic).AddReadResource(*m_Private->m_ResScatterOutput);
+        auto& pass = AddPostProcessPass<PushConst>(builder, "Ayanami.DFSS",
+            Internal::kIntShaderTable.Ayanami.DFShadowFS, pc, [this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_TileDFAtomics = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);
+                data.m_TileDFList    = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResScatterOutput);
+                SetRootSignature(data, ctx);
+            });
+        pass.AddReadResource(*m_Ctx->m_ResAtomic).AddReadResource(*m_Ctx->m_ResScatterOutput);
         return pass;
     }
 
     IFRIT_APIDECL ComputePassNode& AyanamiDistanceFieldLighting::AddDistanceFieldRadianceCachePass(
-        FrameGraphBuilder& builder, u32 meshDfList, u32 numTotalMdf, u32 depthAtlasSRV, Vector4f sceneBound,
-        Vector3f lightDir, u32 radianceUAV, u32 cardDataId, u32 cardRes, u32 cardAtlasRes, u32 numCards, u32 worldObjId,
-        u32 shadowCullTileSize, float softness)
+        FrameGraphBuilder& builder, u32 meshDfList, u32 numTotalMdf, FGTextureNodeRef depthAtlasTex,
+        Vector4f sceneBound, Vector3f lightDir, FGTextureNodeRef radianceTex, u32 cardDataId, u32 cardRes,
+        u32 cardAtlasRes, u32 numCards, u32 worldObjId, u32 shadowCullTileSize, float softness)
     {
         struct PushConst
         {
@@ -216,16 +195,17 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_TotalCards              = numCards;
         pc.m_CardResolution          = cardRes;
         pc.m_CardAtlasResolution     = cardAtlasRes;
-        pc.m_RadianceUAV             = radianceUAV;
+        pc.m_RadianceUAV             = 0;
         pc.m_CardDataId              = cardDataId;
-        pc.m_DepthAtlasSRVId         = depthAtlasSRV;
+        pc.m_DepthAtlasSRVId         = 0;
         pc.m_WorldObjId              = worldObjId;
-        pc.m_ShadowCullTileDFAtomics = m_Private->m_TileAtomicsBuf->GetDescId();
-        pc.m_ShadowCullTileDFList    = m_Private->m_ScatterOutputBuf->GetDescId();
-        pc.m_ShadowCullTileSize      = shadowCullTileSize;
-        pc.m_ShadowCullTotalDFs      = numTotalMdf;
-        pc.m_MeshDFDescListId        = meshDfList;
-        pc.m_ShadowCoefK             = softness;
+        pc.m_ShadowCullTileDFAtomics = 0;
+        ;
+        pc.m_ShadowCullTileDFList = 0;
+        pc.m_ShadowCullTileSize   = shadowCullTileSize;
+        pc.m_ShadowCullTotalDFs   = numTotalMdf;
+        pc.m_MeshDFDescListId     = meshDfList;
+        pc.m_ShadowCoefK          = softness;
 
         auto  cardGroups = DivRoundUp(numCards, Config::kAyanamiRadianceInjectionObjectsPerBlock);
         auto  tileGroups = DivRoundUp(cardRes, Config::kAyanamiRadianceInjectionCardSizePerBlock);
@@ -233,16 +213,25 @@ namespace Ifrit::Runtime::Ayanami
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.DFRadianceCachePass",
             Internal::kIntShaderTable.Ayanami.DFRadianceInjectionCS,
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
-            [](PushConst data, const FrameGraphPassContext& ctx) { SetRootSignature(data, ctx); });
-        pass.AddReadResource(*m_Private->m_ResAtomic).AddReadResource(*m_Private->m_ResScatterOutput);
+            [this, depthAtlasTex, radianceTex](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_ShadowCullTileDFAtomics = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);
+                data.m_ShadowCullTileDFList    = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResScatterOutput);
+                data.m_DepthAtlasSRVId         = ctx.m_FgDesc->GetSRV(*depthAtlasTex);
+                data.m_RadianceUAV             = ctx.m_FgDesc->GetUAV(*radianceTex);
+                SetRootSignature(data, ctx);
+            });
+        pass.AddReadResource(*m_Ctx->m_ResAtomic)
+            .AddReadResource(*m_Ctx->m_ResScatterOutput)
+            .AddReadResource(*depthAtlasTex)
+            .AddWriteResource(*radianceTex);
         return pass;
     }
 
     IFRIT_APIDECL AyanamiDistanceFieldLighting::AyanamiDistanceFieldLighting(Graphics::Rhi::RhiBackend* rhi)
-        : m_Rhi(rhi), m_Private(new AyanamiDistanceFieldLightingPrivate())
+        : m_Rhi(rhi), m_Ctx(new AyanamiDistanceFieldLightingPrivate())
     {
     }
 
-    IFRIT_APIDECL AyanamiDistanceFieldLighting::~AyanamiDistanceFieldLighting() { delete m_Private; }
+    IFRIT_APIDECL AyanamiDistanceFieldLighting::~AyanamiDistanceFieldLighting() { delete m_Ctx; }
 
 } // namespace Ifrit::Runtime::Ayanami

@@ -33,18 +33,19 @@ namespace Ifrit::Runtime::Ayanami
         using GPUTexture = Graphics::Rhi::RhiTextureRef;
         using GPUResId   = Graphics::Rhi::RhiDescHandleLegacy;
         using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
+        using GPUSRVDesc = Graphics::Rhi::RhiSRVDesc;
 
-        Vector3f      m_worldBoundMin;
-        Vector3f      m_worldBoundMax;
-        u32           m_clipmapSize;
+        Vector3f   m_worldBoundMin;
+        Vector3f   m_worldBoundMax;
+        u32        m_clipmapSize;
 
         // I don't think this is a good design, but it's the most stupid and straightforward way to do it
         // That means ignoring paging, streaming and atlas.
-        GPUTexture    m_clipmapTexture;
-        Ref<GPUResId> m_clipmapSRV;
+        GPUTexture m_clipmapTexture;
+        GPUSRVDesc m_clipmapSRV;
 
-        GPUBuffer     m_objectGridBuffer;
-        u32           m_VoxelsPerWidth;
+        GPUBuffer  m_objectGridBuffer;
+        u32        m_VoxelsPerWidth;
         AyanamiGlobalDFClipmap() {}
     };
 
@@ -66,14 +67,14 @@ namespace Ifrit::Runtime::Ayanami
             FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId, u32 numMeshes, u32 meshDFListId);
 
         ComputePassNode& AddRayMarchPass(FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId,
-            u32 outTextureId, Vector2u outTextureSize);
+            FGTextureNodeRef outTexture, Vector2u outTextureSize);
 
         ComputePassNode& AddObjectGridCompositionPass(
             FrameGraphBuilder& builder, u32 clipmapLevel, u32 numMeshes, u32 meshDFListId);
 
-        GPUTexture GetClipmapVolume(u32 clipmapLevel);
+        GPUTexture                GetClipmapVolume(u32 clipmapLevel);
 
-        u32        GetClipmapVolumeSRV(u32 clipmapLevel);
+        Graphics::Rhi::RhiSRVDesc GetClipmapVolumeSRV(u32 clipmapLevel);
     };
 
 } // namespace Ifrit::Runtime::Ayanami

@@ -102,8 +102,8 @@ namespace Ifrit::Runtime::FrameGraphUtils
             iError("FrameGraphUtils: Clear UAV pass only supports buffer resources.");
             std::abort();
         }
-        auto buf = buffer.GetBuffer();
-        pass.SetExecutionFunction([buf, clearValue](const FrameGraphPassContext& ctx) {
+        pass.SetExecutionFunction([&buffer, clearValue](const FrameGraphPassContext& ctx) {
+            auto buf = buffer.GetBuffer();
             auto cmd = ctx.m_CmdList;
             cmd->BufferClear(buf, clearValue);
         });

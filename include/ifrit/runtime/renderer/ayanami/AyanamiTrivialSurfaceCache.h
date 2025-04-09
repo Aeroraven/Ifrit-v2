@@ -44,24 +44,26 @@ namespace Ifrit::Runtime::Ayanami
 
         void              UpdateSceneCache(Scene* scene);
         void              PrepareImmutableResource();
+        void              InitContext(FrameGraphBuilder& builder);
+
         GraphicsPassNode& UpdateSurfaceCacheAtlas(FrameGraphBuilder& builder);
         ComputePassNode&  UpdateRadianceCacheAtlas(FrameGraphBuilder& builder, Scene* scene);
         void              UpdateSurfaceModelMatrix();
         ComputePassNode&  UpdateIndirectRadianceCacheAtlas(
              FrameGraphBuilder& builder, Scene* scene, u32 globalDFSRV, u32 meshDFList);
 
-        Graphics::Rhi::RhiTextureRef GetAlbedoAtlas();
-        Graphics::Rhi::RhiTextureRef GetNormalAtlas();
-        Graphics::Rhi::RhiTextureRef GetDepthAtlas();
-        Graphics::Rhi::RhiTextureRef GetRadianceAtlas();
-        Graphics::Rhi::RhiTextureRef GetTracedRadianceAtlas();
+        FGTextureNode&              GetRDGAlbedoAtlas();
+        FGTextureNode&              GetRDGNormalAtlas();
+        FGTextureNode&              GetRDGDepthAtlas();
+        FGTextureNode&              GetRDGRadianceAtlas();
+        FGTextureNode&              GetRDGTracedRadianceAtlas();
 
-        u32                          GetRadianceSRVId();
-        u32                          GetDepthSRVId();
-        Graphics::Rhi::RhiBufferRef  GetCardDataBuffer();
-        u32                          GetCardResolution();
-        u32                          GetCardAtlasResolution();
-        u32                          GetWorldMatsId();
-        u32                          GetNumCards();
+        u32                         GetRadianceSRVId();
+        u32                         GetDepthSRVId();
+        Graphics::Rhi::RhiBufferRef GetCardDataBuffer();
+        u32                         GetCardResolution();
+        u32                         GetCardAtlasResolution();
+        u32                         GetWorldMatsId();
+        u32                         GetNumCards();
     };
 } // namespace Ifrit::Runtime::Ayanami

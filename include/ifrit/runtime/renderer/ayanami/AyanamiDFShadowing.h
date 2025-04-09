@@ -28,12 +28,14 @@ namespace Ifrit::Runtime::Ayanami
     class IFRIT_APIDECL AyanamiDistanceFieldLighting
     {
     private:
-        Graphics::Rhi::RhiBackend*           m_Rhi     = nullptr;
-        AyanamiDistanceFieldLightingPrivate* m_Private = nullptr;
+        Graphics::Rhi::RhiBackend*           m_Rhi = nullptr;
+        AyanamiDistanceFieldLightingPrivate* m_Ctx = nullptr;
 
     public:
         AyanamiDistanceFieldLighting(Graphics::Rhi::RhiBackend* rhi);
         ~AyanamiDistanceFieldLighting();
+
+        void              InitContext(FrameGraphBuilder& builder, u32 tileSize);
 
         GraphicsPassNode& DistanceFieldShadowTileScatter(FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs,
             Vector4f sceneBound, Vector3f lightDir, u32 tileSize);
@@ -42,7 +44,8 @@ namespace Ifrit::Runtime::Ayanami
             u32 depthSRV, u32 perframe, Vector4f sceneBound, Vector3f lightDir, u32 tileSize, float softness);
 
         ComputePassNode&  AddDistanceFieldRadianceCachePass(FrameGraphBuilder& builder, u32 meshDfList, u32 numTotalMdf,
-             u32 depthAtlasSRV, Vector4f sceneBound, Vector3f lightDir, u32 radianceUAV, u32 cardDataId, u32 cardRes,
-             u32 cardAtlasRes, u32 numCards, u32 worldObjId, u32 shadowCullTileSize, float softness);
+             FGTextureNodeRef depthAtlasTex, Vector4f sceneBound, Vector3f lightDir, FGTextureNodeRef radianceTex,
+             u32 cardDataId, u32 cardRes, u32 cardAtlasRes, u32 numCards, u32 worldObjId, u32 shadowCullTileSize,
+             float softness);
     };
 } // namespace Ifrit::Runtime::Ayanami
