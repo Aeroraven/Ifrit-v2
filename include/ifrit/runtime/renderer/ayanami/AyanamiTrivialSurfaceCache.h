@@ -47,10 +47,10 @@ namespace Ifrit::Runtime::Ayanami
         void              InitContext(FrameGraphBuilder& builder);
 
         GraphicsPassNode& UpdateSurfaceCacheAtlas(FrameGraphBuilder& builder);
-        ComputePassNode&  UpdateRadianceCacheAtlas(FrameGraphBuilder& builder, Scene* scene);
+        ComputePassNode&  UpdateShadowVisibilityAtlas(FrameGraphBuilder& builder, Scene* scene);
         void              UpdateSurfaceModelMatrix();
         ComputePassNode&  UpdateIndirectRadianceCacheAtlas(
-             FrameGraphBuilder& builder, Scene* scene, u32 globalDFSRV, u32 meshDFList);
+             FrameGraphBuilder& builder, Scene* scene, FGTextureNodeRef globalDFSRV, u32 meshDFList);
         void                        UpdateDirectLighting(FrameGraphBuilder& builder, u32 meshDFList, Vector3f lightDir);
 
         FGTextureNode&              GetRDGAlbedoAtlas();
@@ -58,9 +58,8 @@ namespace Ifrit::Runtime::Ayanami
         FGTextureNode&              GetRDGDepthAtlas();
         FGTextureNode&              GetRDGShadowVisibilityAtlas();
         FGTextureNode&              GetRDGTracedRadianceAtlas();
+        FGTextureNode&              GetRDGDirectLightingAtlas();
 
-        u32                         GetRadianceSRVId();
-        u32                         GetDepthSRVId();
         Graphics::Rhi::RhiBufferRef GetCardDataBuffer();
         u32                         GetCardResolution();
         u32                         GetCardAtlasResolution();

@@ -209,12 +209,11 @@ namespace Ifrit
             auto numMeshes = 0;
             for (auto& m : meshes)
             {
+                // Surrounding => 617
                 numMeshes++;
-                if (numMeshes <= 631)
+                if (numMeshes == 1601 || numMeshes < 590)
                     continue;
-                if (numMeshes >= 700 && numMeshes < 750)
-                    continue;
-                if (numMeshes > 812)
+                if (numMeshes > 800)
                     break;
                 auto t      = m->m_prefab;
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();

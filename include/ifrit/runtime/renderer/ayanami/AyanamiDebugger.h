@@ -37,9 +37,19 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiDebugger(Graphics::Rhi::RhiBackend* rhi);
         ~AyanamiDebugger();
 
-        ComputePassNode& RenderSceneFromCacheSurface(FrameGraphBuilder& builder, FGTextureNodeRef outputTexture,
+        void RenderSceneFromCacheSurface(FrameGraphBuilder& builder, FGTextureNodeRef outputTexture,
             FGTextureNodeRef cardAlbedoAtlas, FGTextureNodeRef cardNormalAtlas, FGTextureNodeRef cardRadianceAtlas,
             FGTextureNodeRef cardDepthAtlas, u32 totalCards, u32 cardResolution, u32 cardAtlasResolution,
             u32 cardDataBuffer, u32 perFrameId, u32 meshDfListId);
+
+        void RenderSceneFromSamplingObjectGrids(FrameGraphBuilder& builder, FGTextureNodeRef outputTexture,
+            FGTextureNodeRef cardDirectLightingAtlas, FGTextureNodeRef cardAlbedoAtlas, FGTextureNodeRef cardDepthAtlas,
+            FGTextureNodeRef globalDF, FGBufferNodeRef globalObjectGrids, u32 perFrameDataId, u32 allCardData,
+            u32 meshDfDesc, Vector2u outTextureSize, Vector3f worldBoundMax, Vector3f worldBoundMin, u32 cardResolution,
+            u32 cardAtlasResolution, u32 voxelsPerWidth, u32 globalDfWidth);
+
+        void RenderValidObjectGrids(FrameGraphBuilder& builder, FGTextureNodeRef outputTexture,
+            FGBufferNodeRef globalObjectGrids, Vector3f worldBoundMax, Vector3f worldBoundMin, u32 voxelsPerWidth,
+            u32 perFrame);
     };
 } // namespace Ifrit::Runtime::Ayanami

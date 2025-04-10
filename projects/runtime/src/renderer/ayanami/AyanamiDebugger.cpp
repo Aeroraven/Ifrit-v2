@@ -36,9 +36,9 @@ namespace Ifrit::Runtime::Ayanami
     {
         m_Private = new AyanamiDebuggerPrivate();
     }
-    IFRIT_APIDECL                  AyanamiDebugger::~AyanamiDebugger() { delete m_Private; }
+    IFRIT_APIDECL      AyanamiDebugger::~AyanamiDebugger() { delete m_Private; }
 
-    IFRIT_APIDECL ComputePassNode& AyanamiDebugger::RenderSceneFromCacheSurface(FrameGraphBuilder& builder,
+    IFRIT_APIDECL void AyanamiDebugger::RenderSceneFromCacheSurface(FrameGraphBuilder& builder,
         FGTextureNodeRef outputTexture, FGTextureNodeRef cardAlbedoAtlas, FGTextureNodeRef cardNormalAtlas,
         FGTextureNodeRef cardRadianceAtlas, FGTextureNodeRef cardDepthAtlas, u32 totalCards, u32 cardResolution,
         u32 cardAtlasResolution, u32 cardDataBuffer, u32 perFrameId, u32 meshDfListId)
@@ -49,6 +49,8 @@ namespace Ifrit::Runtime::Ayanami
             FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImgFmt_R64_UINT,
                 RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_CopyDst));
 
+        // Note: RenderDoc might show INCORRECT value on R64_UINT clear.
+        // following behavior is well-defined in vulkan spec.
         AddClearUAVTexturePass(
             builder, "Ayanami.Debug.ReconFromSurfaceCache.DepthClear", resAtomicDepth, 0xffffffffffffffffull);
 
@@ -123,7 +125,110 @@ namespace Ifrit::Runtime::Ayanami
                 SetRootSignature(data, ctx);
             });
         pass2.AddReadResource(*cardDepthAtlas).AddReadResource(resAtomicDepth).AddWriteResource(*outputTexture);
+    }
 
-        return pass1;
+    void AyanamiDebugger::RenderSceneFromSamplingObjectGrids(FrameGraphBuilder& builder, FGTextureNodeRef outputTexture,
+        FGTextureNodeRef cardDirectLightingAtlas, FGTextureNodeRef cardAlbedoAtlas, FGTextureNodeRef cardDepthAtlas,
+        FGTextureNodeRef globalDF, FGBufferNodeRef globalObjectGrids, u32 perFrameDataId, u32 allCardData,
+        u32 meshDfDesc, Vector2u outTextureSize, Vector3f worldBoundMax, Vector3f worldBoundMin, u32 cardResolution,
+        u32 cardAtlasResolution, u32 voxelsPerWidth, u32 globalDfWidth)
+    {
+        struct PushConst
+        {
+            Vector4f m_GlobalDFBoxMin;
+            Vector4f m_GlobalDFBoxMax;
+            u32      m_PerFrameId;
+            u32      m_GlobalDFId;
+            u32      m_OutTex;
+            u32      m_RtH;
+            u32      m_RtW;
+            u32      m_GlobalObjectGridUAV;
+            u32      m_GlobalDFResolution;
+            u32      m_VoxelsPerClipMapWidth;
+            u32      m_MeshDFDescListId;
+            u32      m_AllCardData;
+            u32      m_CardResolution;
+            u32      m_CardAtlasResolution;
+            u32      m_CardDepthAtlasSRV;
+            u32      m_CardAlbedoAtlasSRV;
+        } pc;
+        pc.m_GlobalDFBoxMax        = Vector4f(worldBoundMax, 0.0f);
+        pc.m_GlobalDFBoxMin        = Vector4f(worldBoundMin, 0.0f);
+        pc.m_PerFrameId            = perFrameDataId;
+        pc.m_GlobalDFId            = 0;
+        pc.m_OutTex                = 0;
+        pc.m_RtH                   = outTextureSize.y;
+        pc.m_RtW                   = outTextureSize.x;
+        pc.m_GlobalObjectGridUAV   = 0;
+        pc.m_GlobalDFResolution    = globalDfWidth;
+        pc.m_VoxelsPerClipMapWidth = voxelsPerWidth;
+        pc.m_MeshDFDescListId      = meshDfDesc;
+        pc.m_AllCardData           = allCardData;
+        pc.m_CardResolution        = cardResolution;      // TODO
+        pc.m_CardAtlasResolution   = cardAtlasResolution; // TODO
+        pc.m_CardDepthAtlasSRV     = 0;
+        pc.m_CardAlbedoAtlasSRV    = 0;
+
+        auto tgX = DivRoundUp(outTextureSize.x, Config::kAyanamiDbgObjGridTileSize);
+        auto tgY = DivRoundUp(outTextureSize.y, Config::kAyanamiDbgObjGridTileSize);
+
+        AddComputePass<PushConst>(builder, "Ayanami.Debug.SampleObjectGrids",
+            Internal::kIntShaderTableAyanami.DbgSampleObjectGridsCS, Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc,
+            [outputTexture, globalDF, globalObjectGrids, cardDepthAtlas, cardAlbedoAtlas](
+                PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_OutTex              = ctx.m_FgDesc->GetUAV(*outputTexture);
+                data.m_GlobalDFId          = ctx.m_FgDesc->GetSRV(*globalDF);
+                data.m_GlobalObjectGridUAV = ctx.m_FgDesc->GetUAV(*globalObjectGrids);
+                data.m_CardDepthAtlasSRV   = ctx.m_FgDesc->GetSRV(*cardDepthAtlas);
+                data.m_CardAlbedoAtlasSRV  = ctx.m_FgDesc->GetSRV(*cardAlbedoAtlas);
+                SetRootSignature(data, ctx);
+            })
+            .AddWriteResource(*outputTexture)
+            .AddReadResource(*cardDirectLightingAtlas)
+            .AddReadResource(*cardAlbedoAtlas)
+            .AddReadResource(*globalObjectGrids)
+            .AddReadResource(*cardDepthAtlas)
+            .AddReadResource(*globalDF);
+    }
+
+    IFRIT_APIDECL void AyanamiDebugger::RenderValidObjectGrids(FrameGraphBuilder& builder,
+        FGTextureNodeRef outputTexture, FGBufferNodeRef globalObjectGrids, Vector3f worldBoundMax,
+        Vector3f worldBoundMin, u32 voxelsPerWidth, u32 perFrame)
+    {
+        auto  rtWidth  = outputTexture->GetWidth();
+        auto  rtHeight = outputTexture->GetHeight();
+
+        auto& resTempDepth = builder.DeclareTexture("Ayanami.RDG.DebugValidObjectGrids_Depth",
+            FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImgFmt_D32_SFLOAT, RhiImageUsage::RhiImgUsage_Depth));
+
+        struct PushConst
+        {
+            Vector4f m_WorldBoundMin;
+            Vector4f m_WorldBoundMax;
+            u32      m_PerFrame;
+            u32      m_VoxelsPerWidth;
+            u32      m_ObjectGridId;
+        } pc;
+
+        pc.m_WorldBoundMin  = Vector4f(worldBoundMin, 0.0f);
+        pc.m_WorldBoundMax  = Vector4f(worldBoundMax, 0.0f);
+        pc.m_PerFrame       = perFrame;
+        pc.m_VoxelsPerWidth = voxelsPerWidth;
+        pc.m_ObjectGridId   = 0;
+
+        i32              tgX = voxelsPerWidth;
+        GraphicsPassArgs args;
+        args.m_CullMode = Graphics::Rhi::RhiCullMode::None;
+
+        AddMeshDrawPass<PushConst>(builder, "Ayanami.Debug.ValidObjectGrids",
+            Internal::kIntShaderTableAyanami.DbgVisObjGridsMS, Internal::kIntShaderTableAyanami.DbgVisObjGridsFS,
+            Vector3i(tgX), args, pc,
+            [globalObjectGrids](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_ObjectGridId = ctx.m_FgDesc->GetSRV(*globalObjectGrids);
+                SetRootSignature(data, ctx);
+            })
+            .AddRenderTarget(*outputTexture)
+            .AddDepthTarget(resTempDepth)
+            .AddReadResource(*globalObjectGrids);
     }
 } // namespace Ifrit::Runtime::Ayanami

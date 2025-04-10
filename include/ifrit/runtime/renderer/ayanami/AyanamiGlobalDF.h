@@ -35,17 +35,19 @@ namespace Ifrit::Runtime::Ayanami
         using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
         using GPUSRVDesc = Graphics::Rhi::RhiSRVDesc;
 
-        Vector3f   m_worldBoundMin;
-        Vector3f   m_worldBoundMax;
-        u32        m_clipmapSize;
+        Vector3f         m_worldBoundMin;
+        Vector3f         m_worldBoundMax;
+        u32              m_clipmapSize;
 
         // I don't think this is a good design, but it's the most stupid and straightforward way to do it
         // That means ignoring paging, streaming and atlas.
-        GPUTexture m_clipmapTexture;
-        GPUSRVDesc m_clipmapSRV;
+        GPUTexture       m_clipmapTexture;
+        GPUBuffer        m_objectGridBuffer;
+        u32              m_VoxelsPerWidth;
 
-        GPUBuffer  m_objectGridBuffer;
-        u32        m_VoxelsPerWidth;
+        FGTextureNodeRef m_RDGClipMapTexture;
+        FGBufferNodeRef  m_RDGObjectGrid;
+
         AyanamiGlobalDFClipmap() {}
     };
 
@@ -63,6 +65,8 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiGlobalDF(const AyanamiRenderConfig& config, IApplication* m_app);
         ~AyanamiGlobalDF() = default;
 
+        void             InitContext(FrameGraphBuilder& builder);
+
         ComputePassNode& AddClipmapUpdate(
             FrameGraphBuilder& builder, u32 clipmapLevel, u32 perFrameDataId, u32 numMeshes, u32 meshDFListId);
 
@@ -72,9 +76,13 @@ namespace Ifrit::Runtime::Ayanami
         ComputePassNode& AddObjectGridCompositionPass(
             FrameGraphBuilder& builder, u32 clipmapLevel, u32 numMeshes, u32 meshDFListId);
 
-        GPUTexture                GetClipmapVolume(u32 clipmapLevel);
+        FGTextureNodeRef GetClipmapVolume(u32 clipmapLevel);
+        FGBufferNodeRef  GetObjectGridVolume(u32 clipmapLevel);
 
-        Graphics::Rhi::RhiSRVDesc GetClipmapVolumeSRV(u32 clipmapLevel);
+        Vector3f         GetWorldBoundMin(u32 clipmapLevel);
+        Vector3f         GetWorldBoundMax(u32 clipmapLevel);
+        u32              GetVoxelsPerSide(u32 clipmapLevel);
+        u32              GetClipmapWidth(u32 clipmapLevel);
     };
 
 } // namespace Ifrit::Runtime::Ayanami

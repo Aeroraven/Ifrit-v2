@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
 #include "Random/Random.WNoise2D.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 layout(
     local_size_x = kAyanamiShadowVisibilityCardSizePerBlock, 
@@ -125,6 +126,7 @@ vec2 ShadowMapSingle(uint lightId, vec3 worldPos,uint csmIdx){
     vec3 lightPosNDC = lightPos.xyz / lightPos.w;
     vec2 lightPosNDCxy = lightPosNDC.xy * 0.5 + 0.5;
 
+    // This sampler is maintained by syaro. Don't move this.
     float shadowMapZ = texture(GetSampler2D(shadowRef), lightPosNDCxy.xy).r;
     float refZ = lightPosNDC.z;
     
@@ -185,7 +187,7 @@ void main(){
     tileOffsetToNDCxy = tileOffsetToNDCxy * 2.0 - 1.0;
 
     vec2 atlasSampleUV = (overallOffset+0.5) / vec2(PushConst.cardAtlasResolution);
-    float tileOffsetNdcZ = texture(GetSampler2D(PushConst.depthAtlasSRVId), atlasSampleUV).r;
+    float tileOffsetNdcZ = SampleTexture2D(PushConst.depthAtlasSRVId, sLinearClamp,atlasSampleUV).r; //texture(GetSampler2D(PushConst.depthAtlasSRVId), 
     vec4 tileOffsetNdc = vec4(tileOffsetToNDCxy, tileOffsetNdcZ, 1.0);
 
     vec4 worldPos = atlasToWorld * tileOffsetNdc;

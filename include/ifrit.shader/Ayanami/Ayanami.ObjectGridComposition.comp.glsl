@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
 #include "ComputeUtils.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 layout(
     local_size_x = kAyanamiObjectGridTileSize, 
@@ -50,7 +51,7 @@ RegisterStorage(BMeshDFMeta,{
 RegisterUniform(BLocalTransform,{
     mat4 m_LocalToWorld;
     mat4 m_WorldToLocal;
-    float m_MaxScale;
+    vec4 m_MaxScale;
 });
 
 RegisterStorage(BObjectCell,{
@@ -86,13 +87,16 @@ float ClosestDistanceToSDF(MeshDFMeta MdfMeta, vec3 QueryPos, vec3 MeshScale, ma
 
     vec3 ClampedUVW = (ClampedPos-MeshBBoxMin)/(MeshBBoxMax-MeshBBoxMin);
 
+    //float SdfVal = SampleTexture3D(SDFId,sLinearClamp,ClampedUVW).r * MeshMaxScale; 
     float SdfVal = texture(GetSampler3D(SDFId), ClampedUVW).r * MeshMaxScale;
     float TotalSdf = max(SdfVal + ToBoxAllPositive,ToBoxAll);
     return TotalSdf;
 }
 
 uint PackCellData(uint MeshId,float HitDist,float CellWidth){
-    uint HitDistInt = uint(HitDist / CellWidth * 0xFF);
+    float HitDistRaw = HitDist / CellWidth;
+    HitDistRaw = clamp(HitDistRaw, 0.0, 1.0);
+    uint HitDistInt = uint( HitDistRaw * 0xFF) & 0xFF;
     return (MeshId & 0xFFFFFF) | (HitDistInt << 24);
 }
 
@@ -112,7 +116,27 @@ void AddObjectToGridCell(uint MeshId, uint CellId, float HitDist,float CellWidth
             }
         }
     }
-    
+}
+
+void SortGridCell(uint CellId){
+    uvec4 CellData = GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId];
+    uint CellDataArr[kAyanamiObjectGridTileSize];
+    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
+        CellDataArr[i] = CellData[i];
+    }
+    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
+        for(uint j=i+1;j<kAyanamiObjectGridTileSize;j++){
+            if(CellDataArr[i] > CellDataArr[j]){
+                uint Temp = CellDataArr[i];
+                CellDataArr[i] = CellDataArr[j];
+                CellDataArr[j] = Temp;
+            }
+        }
+    }
+    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
+        CellData[i] = CellDataArr[i];
+    }
+    GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId] = CellData;
 }
 
 
@@ -135,7 +159,8 @@ void main(){
     vec3 TileExtent = (TileOffsetInCellsNext - TileOffsetInCells) * 2.0 * PushConst.m_ClipMapRadius;
 
     float CellWidth = PushConst.m_ClipMapRadius * 2.0 / float(PushConst.m_VoxelsPerClipMapWidth);
-    vec3 CellCenterCoord = (vec3(CellId) + vec3(0.5)) * CellWidth;
+    vec3 CellCenterCoordPercent = (vec3(CellId) + vec3(0.5)) / vec3(PushConst.m_VoxelsPerClipMapWidth);
+    vec3 CellCenterCoord = mix(vec3(PushConst.m_ClipMapRadius)*-1.0, vec3(PushConst.m_ClipMapRadius), CellCenterCoordPercent);
     vec3 CellExtent = vec3(1.0) * CellWidth;
 
     float CullingAcceptTh = 1.44 * CellWidth + kAyanami_ObjectGridCellQueryInterpolationRange * CellWidth;
@@ -167,16 +192,17 @@ void main(){
             vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
             vec3 BoxExtentMS = (BoxRB - BoxLT);
 
-            vec3 BoxCenterWS = (localToWorld * vec4(BoxCenterMS, 1.0)).xyz;
-            vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale;
+            vec4 BoxCenterWSH = (localToWorld * vec4(BoxCenterMS, 1.0));
+            vec3 BoxCenterWS = BoxCenterWSH.xyz / BoxCenterWSH.w;
+            vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
 
             float SqDist = ifrit_AabbSquaredDistance(TileCenterCoord, TileExtent, BoxCenterWS, BoxExtentWS);
-            if(SqDist < CullingAcceptThSq){
+            //if(SqDist < CullingAcceptThSq){
                 uint LocalIndex = atomicAdd(LocalSharedCullResultCount, 1);
                 if(LocalIndex < kAyanami_ObjectGridCellMaxCullObjPerPass){
                     LocalSharedCullResult[LocalIndex] = i;
                 }
-            }
+            //}
         }
         barrier();
         // compose mdfs to Cells
@@ -191,17 +217,18 @@ void main(){
             vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
             vec3 BoxExtentMS = (BoxRB - BoxLT);
 
-            vec3 BoxCenterWS = (localToWorld * vec4(BoxCenterMS, 1.0)).xyz;
-            vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale;
+            vec4 BoxCenterWSH = (localToWorld * vec4(BoxCenterMS, 1.0));
+            vec3 BoxCenterWS = BoxCenterWSH.xyz / BoxCenterWSH.w;
+            vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
 
             float SqDist = ifrit_AabbSquaredDistance(CellCenterCoord, CellExtent, BoxCenterWS, BoxExtentWS);
-            if(SqDist < CellCullingAcceptThSq){
+            //if(SqDist < CellCullingAcceptThSq){
                 //might be a candidate to this grid
-                vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale);
+                vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz);
                 float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
-                AddObjectToGridCell(MeshId, CellLoc, HitDist,CellWidth);
-                
-            }
+                AddObjectToGridCell(MeshId, CellLoc, HitDist, 3.0*CellWidth);
+                SortGridCell(CellLoc);
+            //}
         }
         barrier();
     }

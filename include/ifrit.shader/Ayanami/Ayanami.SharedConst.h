@@ -69,6 +69,8 @@ namespace Ifrit::Runtime::Ayanami::Config
     AYANAMI_DEFINE_UINT(kAyanamiSCDirectLightObjectsPerBlock, 8);
     AYANAMI_DEFINE_UINT(kAyanamiSCDirectLightCardSizePerBlock, 8);
 
+    AYANAMI_DEFINE_UINT(kAyanamiDbgObjGridTileSize, 8);
+
 #ifdef __cplusplus
 } // namespace Ifrit::Runtime::AYANAMI
     #undef AYANAMI_DEFINE_UINT

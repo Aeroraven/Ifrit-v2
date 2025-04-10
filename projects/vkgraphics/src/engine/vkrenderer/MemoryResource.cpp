@@ -439,8 +439,14 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateTexture3D(
         u32 width, u32 height, u32 depth, VkFormat format, VkImageUsageFlags extraUsage)
     {
+        bool isDepth = false;
+        if (format == VK_FORMAT_D32_SFLOAT || format == VK_FORMAT_D24_UNORM_S8_UINT)
+        {
+            isDepth = true;
+        }
+
         ImageCreateInfo ci{};
-        ci.aspect = ImageAspect::Color;
+        ci.aspect = (!isDepth) ? ImageAspect::Color : ImageAspect::Depth;
         if (depth == 1)
             ci.type = ImageType::Image2D;
         else

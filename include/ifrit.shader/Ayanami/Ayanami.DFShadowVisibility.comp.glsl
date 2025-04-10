@@ -184,7 +184,7 @@ void main(){
     tileOffsetToNDCxy = tileOffsetToNDCxy * 2.0 - 1.0;
 
     vec2 atlasSampleUV = (overallOffset+0.5) / vec2(PushConst.m_CardAtlasResolution);
-    float tileOffsetNdcZ = SampleTexture2D(PushConst.m_DepthAtlasSRVId,sLinearClamp,atlasSampleUV).r;//texture(GetSampler2D(PushConst.m_DepthAtlasSRVId), atlasSampleUV).r;
+    float tileOffsetNdcZ = SampleTexture2D(PushConst.m_DepthAtlasSRVId,sLinearClamp,atlasSampleUV).r;
     vec4 tileOffsetNdc = vec4(tileOffsetToNDCxy, tileOffsetNdcZ, 1.0);
 
     vec4 worldPos = atlasToWorld * tileOffsetNdc;
