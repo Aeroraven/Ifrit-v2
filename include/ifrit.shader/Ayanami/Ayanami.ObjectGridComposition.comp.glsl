@@ -171,6 +171,8 @@ void main(){
     uint CellLoc = ifrit_ToCellId(CellId, uvec3(PushConst.m_VoxelsPerClipMapWidth));
     GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellLoc] = uvec4(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF);
     barrier();
+    
+#if AYANAMI_OBJECT_GRID_CULL
     for(uint T=0; T<NumCullingPasses; T++){
 
         if(ifrit_IsFirstLane()){
@@ -226,10 +228,38 @@ void main(){
                 //might be a candidate to this grid
                 vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz);
                 float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
-                AddObjectToGridCell(MeshId, CellLoc, HitDist, 3.0*CellWidth);
+                AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius * 2.0);
                 SortGridCell(CellLoc);
             //}
         }
         barrier();
     }
+#else
+    uint i;
+    for(i=0;i<PushConst.m_NumTotalMeshDF;i++){
+        uint MeshId = i;
+        MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
+        MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
+        mat4 localToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
+        mat4 WorldToLocal = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_WorldToLocal;
+        vec3 BoxLT = MdfMeta.bboxMin.xyz;
+        vec3 BoxRB = MdfMeta.bboxMax.xyz;
+        vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
+        vec3 BoxExtentMS = (BoxRB - BoxLT);
+
+        vec4 BoxCenterWSH = (localToWorld * vec4(BoxCenterMS, 1.0));
+        vec3 BoxCenterWS = BoxCenterWSH.xyz / BoxCenterWSH.w;
+        vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
+
+        float SqDist = ifrit_AabbSquaredDistance(CellCenterCoord, CellExtent, BoxCenterWS, BoxExtentWS);
+        if(SqDist < CellCullingAcceptThSq){
+            //might be a candidate to this grid
+            vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz);
+            float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
+            AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius*0.5 );
+            SortGridCell(CellLoc);
+        }
+    }
+
+#endif
 }

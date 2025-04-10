@@ -1,4 +1,3 @@
-
 /*
 Ifrit-v2
 Copyright (C) 2024-2025 funkybirds(Aeroraven)
@@ -31,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 layout(local_size_x = 12, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 8, max_primitives = 12) out;
 
-layout(location = 0) out  vec3 meshColor[];
+layout(location = 0) out vec3 meshColor[];
 RegisterUniform(BPerframe,{
     PerFramePerViewData m_Data;
 });

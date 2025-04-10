@@ -193,48 +193,56 @@ namespace Ifrit::Runtime
             builder, scene, &resGlobalDFGen, m_resources->m_SceneAggregator->GetGatheredBufferId());
 
         // Pass RayMarch
-        if (m_resources->m_DbgShowMDF)
+        if (true)
         {
-            struct PushConst
+            if (m_resources->m_DbgShowMDF)
             {
-                u32 perframeId;
-                u32 totalInsts;
-                u32 descId;
-                u32 output;
-                u32 rtH;
-                u32 rtW;
-            } pc;
-            pc.rtH        = rtHeight;
-            pc.rtW        = rtWidth;
-            pc.totalInsts = m_resources->m_SceneAggregator->GetNumGatheredInstances();
-            pc.descId     = m_resources->m_SceneAggregator->GetGatheredBufferId();
-            pc.perframeId = primaryViewCBV;
+                struct PushConst
+                {
+                    u32 perframeId;
+                    u32 totalInsts;
+                    u32 descId;
+                    u32 output;
+                    u32 rtH;
+                    u32 rtW;
+                } pc;
+                pc.rtH        = rtHeight;
+                pc.rtW        = rtWidth;
+                pc.totalInsts = m_resources->m_SceneAggregator->GetNumGatheredInstances();
+                pc.descId     = m_resources->m_SceneAggregator->GetGatheredBufferId();
+                pc.perframeId = primaryViewCBV;
 
-            AddComputePass<PushConst>(builder, "Ayanami.RaymarchPass", Internal::kIntShaderTableAyanami.RayMarchCS,
-                Vector3i{ Math::DivRoundUp<i32>(rtWidth, 8), Math::DivRoundUp<i32>(rtHeight, 8), 1 }, pc,
-                [&resRaymarchOutput](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.output = ctx.m_FgDesc->GetUAV(resRaymarchOutput);
-                    SetRootSignature(data, ctx);
-                })
-                .AddReadResource(resGlobalDFGen)
-                .AddWriteResource(resRaymarchOutput);
+                AddComputePass<PushConst>(builder, "Ayanami.RaymarchPass", Internal::kIntShaderTableAyanami.RayMarchCS,
+                    Vector3i{ Math::DivRoundUp<i32>(rtWidth, 8), Math::DivRoundUp<i32>(rtHeight, 8), 1 }, pc,
+                    [&resRaymarchOutput](PushConst data, const FrameGraphPassContext& ctx) {
+                        data.output = ctx.m_FgDesc->GetUAV(resRaymarchOutput);
+                        SetRootSignature(data, ctx);
+                    })
+                    .AddReadResource(resGlobalDFGen)
+                    .AddWriteResource(resRaymarchOutput);
+            }
+            else
+            {
+                m_globalDF->AddRayMarchPass(builder, 0, primaryViewCBV, &resRaymarchOutput, { rtWidth, rtHeight })
+                    .AddReadResource(resGlobalDFGen)
+                    .AddWriteResource(resRaymarchOutput);
+            }
         }
-        else
-        {
-            m_globalDF->AddRayMarchPass(builder, 0, primaryViewCBV, &resRaymarchOutput, { rtWidth, rtHeight })
-                .AddReadResource(resGlobalDFGen)
-                .AddWriteResource(resRaymarchOutput);
-        }
+
         // Pass DFSS
-        m_resources->m_DFLighting
-            ->DistanceFieldShadowRender(builder, m_resources->m_SceneAggregator->GetGatheredBufferId(),
-                m_resources->m_SceneAggregator->GetNumGatheredInstances(),
-                perframe.m_views[0].m_visibilityDepthIdSRV_Combined->GetActiveId(), primaryViewCBV, sceneBound,
-                sceneLight, 64, 2)
-            .AddRenderTarget(resDfssOut)
-            .AddReadResource(resGDepth);
+        if (false)
+        {
+            m_resources->m_DFLighting
+                ->DistanceFieldShadowRender(builder, m_resources->m_SceneAggregator->GetGatheredBufferId(),
+                    m_resources->m_SceneAggregator->GetNumGatheredInstances(),
+                    perframe.m_views[0].m_visibilityDepthIdSRV_Combined->GetActiveId(), primaryViewCBV, sceneBound,
+                    sceneLight, 64, 2)
+                .AddRenderTarget(resDfssOut)
+                .AddReadResource(resGDepth);
+        }
 
         // Pass Defered Shading
+
         {
             auto& resSurfaceCacheNormal = m_resources->m_SurfaceCache->GetRDGNormalAtlas();
             struct PushConst
@@ -258,6 +266,7 @@ namespace Ifrit::Runtime
                 .AddReadResource(resSurfaceCacheNormal);
         }
         // Pass Surface Cache Debug
+        if (false)
         {
             auto& resAlbedoAtlas   = m_resources->m_SurfaceCache->GetRDGAlbedoAtlas();
             auto& resNormalAtlas   = m_resources->m_SurfaceCache->GetRDGNormalAtlas();
@@ -271,6 +280,7 @@ namespace Ifrit::Runtime
                 m_resources->m_SceneAggregator->GetGatheredBufferId());
         }
         // Pass Object Grid Debug - Vis
+        if (false)
         {
             auto maxWorldBound  = m_globalDF->GetWorldBoundMax(0);
             auto minWorldBound  = m_globalDF->GetWorldBoundMin(0);
@@ -280,6 +290,7 @@ namespace Ifrit::Runtime
         }
 
         // Pass Object Grid Debug
+        if (false)
         {
             auto& resDirectLightingAtlas = m_resources->m_SurfaceCache->GetRDGDirectLightingAtlas();
             auto& resAlbedoAtlas         = m_resources->m_SurfaceCache->GetRDGAlbedoAtlas();
@@ -310,7 +321,7 @@ namespace Ifrit::Runtime
             AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass", Internal::kIntShaderTableAyanami.CopyVS,
                 Internal::kIntShaderTableAyanami.CopyFS, pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugObjGridOut);
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resRaymarchOutput);
                     SetRootSignature(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)

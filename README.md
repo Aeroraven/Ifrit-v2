@@ -7,31 +7,25 @@ Some toys about real-time rendering. Currently, it contains:
 - **Experimental Renderer**:
   - **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details. (Under development)
   - **Ayanami**: A planned project for Global Illumination. (Under planning)
-    <br/><br/>
-
-- [Ifrit-v2](#ifrit-v2)
-  * [1. Features Supported](#1-features-supported)
-  * [2. Setup / Run](#2-setup---run)
-  * [3. References & Acknowledgements](#3-references---acknowledgements)
-  * [4. License](#4-license)
 
 
 
-| <center>Soft Renderer / Mesh Shading</center>                | <center>Soft Renderer / CUDA Renderer</center>         |
-| ------------------------------------------------------------ | ------------------------------------------------------ |
-| ![](docs/img/img_demo3.png)                                  | ![](docs/img/img_demo1.png)                            |
-| <center>**Syaro / Cull Rasterize Visibility Buffer (R32_UINT)**</center> | <center>**Syaro / Final Output**</center>              |
-| ![](docs/img/syaro_clodvisb.png)                             | ![](docs/img/syaro_clod1.png)                          |
-| <center>**Syaro / Timing**</center>                          | <center>**Soft Renderer / Derivatives**</center>       |
-| <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" />  | ![](docs/img/soft_dx1.png)                             |
-| <center>**Ayanami / Mesh Distance Field\***</center>         | <center>**Ayanami / Global Distance Field\***</center> |
-| ![](docs/img/ayanami_meshdf3.png)                            | ![](docs/img/ayanami_globaldf.png)                     |
-| <center>**Soft Renderer / Profile** (Nsight Compute)</center> | <center>**Syaro / Debug** (RenderDoc)</center>         |
-| ![](docs/img/soft_nscp.png)                                  | ![](docs/img/syaro_diag.png)                           |
+
+| Soft Renderer / Mesh Shading                                | Soft Renderer / CUDA Renderer               |
+| ----------------------------------------------------------- | ------------------------------------------- |
+| ![](docs/img/img_demo3.png)                                 | ![](docs/img/img_demo1.png)                 |
+| **Syaro / Cull Rasterize Visibility Buffer (R32_UINT)**     | **Syaro / Final Output**                    |
+| ![](docs/img/syaro_clodvisb.png)                            | ![](docs/img/syaro_clod1.png)               |
+| **Syaro / Timing**                                          | **Soft Renderer / Derivatives**             |
+| <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" /> | ![](docs/img/soft_dx1.png)                  |
+| **Ayanami / GDF Object Grids + Surface Cache Lookup***      | **Ayanami / Global Distance Field (GDF)\*** |
+| ![](docs/img/ayanami_objgrid_exp1.png)                      | ![](docs/img/ayanami_globaldf2.png)         |
+| **Soft Renderer / Profile** (Nsight Compute)                | **Syaro / Debug** (RenderDoc)               |
+| ![](docs/img/soft_nscp.png)                                 | ![](docs/img/syaro_diag.png)                |
+
+**Check  [`GALLERY.md`](./GALLERY.md) for more pictures.**
 
 To visualize Syaro's LoD change, refer to `docs/img/syaro_lod.mkv`
-
-Check  **[`GALLERY.md`](./GALLERY.md)** for more pictures.
 
 <br/><br/>
 
@@ -91,10 +85,11 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
     - Distance Field Shadow Culling
     - Distance Field Soft Shadow (DFSS)
   - Surface Cache + Radiance Cache
+    - Object Grids (Global Distance Field Attribute Lookup)
 
 
 
-*. For problems and details, refer to [TODO.md](./TODO.md)
+*. These features might be severely unstable and time-consuming. For problems and details, refer to [TODO.md](./TODO.md)
 
 
 ## 2. Setup / Run

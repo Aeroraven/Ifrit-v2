@@ -112,9 +112,9 @@ void main(){
             vec3 p = rayOrigin + rayDir*t;
             vec3 uvw = (p - lb) / (rt - lb);
             uvw = clamp(uvw, vec3(0.0), vec3(1.0));
-            float sdf = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw).r - 0.0225;
+            float sdf = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw).r - 0.035;
 
-            if(sdf < 0.0125){
+            if(sdf < 0.0075){
                 found = true;
                 float dx1 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw + vec3(normalEps.x, 0.0, 0.0)).r;
                 float dx2 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw - vec3(normalEps.x, 0.0, 0.0)).r;

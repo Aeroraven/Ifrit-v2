@@ -6,7 +6,9 @@
 
 ![](docs/img/ayanami_dfss.png)
 
+### Mesh Distance Fields (MDFs)
 
+![](docs/img/ayanami_meshdf3.png)
 
 ## Soft Renderer
 

@@ -35,6 +35,8 @@ namespace Ifrit::Runtime::Ayanami::Config
     #define AYANAMI_DEFINE_FLOAT(x, y) const float x = y
 #endif
 
+#define AYANAMI_OBJECT_GRID_CULL 0
+
     // SDF expanding. This is used to expand the SDF volume to avoid artifacts in thin geometry.
     AYANAMI_DEFINE_UINT(kAyanami_SDFExpand, 1);
     AYANAMI_DEFINE_FLOAT(kAyanami_SDFExpandRatio, 0.1f);

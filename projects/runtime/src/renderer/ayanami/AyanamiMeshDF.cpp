@@ -154,12 +154,13 @@ namespace Ifrit::Runtime::Ayanami
 
             auto stagedMetaBuffer = rhi->CreateStagedSingleBuffer(m_gpuResource->sdfMetaBuffer.get());
             AyanamiMeshDFResource::SDFMeta sdfMeta;
-            sdfMeta.bboxMin = Vector4f(m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z, 0);
-            sdfMeta.bboxMax = Vector4f(m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z, 0);
-            sdfMeta.width   = m_sdWidth;
-            sdfMeta.height  = m_sdHeight;
-            sdfMeta.depth   = m_sdDepth;
-            sdfMeta.sdfId   = m_gpuResource->sdfTextureBindId->GetActiveId();
+            sdfMeta.bboxMin      = Vector4f(m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z, 0);
+            sdfMeta.bboxMax      = Vector4f(m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z, 0);
+            sdfMeta.width        = m_sdWidth;
+            sdfMeta.height       = m_sdHeight;
+            sdfMeta.depth        = m_sdDepth;
+            sdfMeta.sdfId        = m_gpuResource->sdfTextureBindId->GetActiveId();
+            sdfMeta.m_IsTwoSided = m_IsDoubleSided ? 1 : 0;
 
             auto tq = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
             tq->RunSyncCommand([&](const RhiCommandList* cmd) {

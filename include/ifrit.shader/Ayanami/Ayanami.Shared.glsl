@@ -28,6 +28,7 @@ struct MeshDFMeta{
     uint height;
     uint depth;
     uint sdfId;
+    uint m_IsTwoSided;
 };
 
 struct CardData{

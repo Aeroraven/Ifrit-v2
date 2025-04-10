@@ -88,10 +88,10 @@ struct CardAccumulator{
     float m_MaxWeight;
 };
 
-const float kEPS = 1e-4;
+const float kEPS = 1e-6;
 
 vec3 GetGlobalDistanceGradient(vec3 PosUVW){
-    vec3 NormalEps = vec3(0.5/PushConst.m_GlobalDFResolution);
+    vec3 NormalEps = vec3(0.15/PushConst.m_GlobalDFResolution);
     float dx1 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW + vec3(NormalEps.x, 0.0, 0.0)).r;
     float dx2 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW - vec3(NormalEps.x, 0.0, 0.0)).r;
     float dy1 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW + vec3(0.0, NormalEps.y, 0.0)).r;
@@ -117,14 +117,17 @@ uint GetObjectGridIdFromHitPos(vec3 WorldPos){
 }
 
 void SampleCard(uint MeshId, uint CardFace, vec3 HitPosWS, vec3 HitNormalWS, vec3 HitPosMS, vec3 HitNormalMS,
-    vec3 InNormalWeights, inout CardAccumulator Accum){
+    vec3 InNormalWeights, vec3 MeshExtent, inout CardAccumulator Accum){
 
     uint CardId = MeshId * 6 + CardFace;
     CardData CardFaceData = GetResource(BAllCardData, PushConst.m_AllCardData).m_Mats[CardId];
     mat4 ModelToCardScreen = CardFaceData.m_VP;
     vec3 HitPosCS = (ModelToCardScreen * vec4(HitPosMS, 1.0)).xyz;
-
+    float ClampThreshold = 0.05;
     vec2 HitPosUV = HitPosCS.xy * 0.5 + 0.5;
+    if(HitPosUV.x > -ClampThreshold && HitPosUV.x < (1.0+ClampThreshold) && HitPosUV.y > -ClampThreshold && HitPosUV.y < (1.0+ClampThreshold)){
+        HitPosUV = clamp(HitPosUV, vec2(0.0), vec2(1.0));
+    }
     if(HitPosUV.x < 0.0 || HitPosUV.x > 1.0 || HitPosUV.y < 0.0 || HitPosUV.y > 1.0){
         return;
     }
@@ -140,18 +143,32 @@ void SampleCard(uint MeshId, uint CardFace, vec3 HitPosWS, vec3 HitNormalWS, vec
     uvec2 AtlasOffset = CardOffset + TileOffset;
     vec2 AtlasUV = (vec2(AtlasOffset) + vec2(0.5)) / vec2(PushConst.m_CardAtlasResolution);
 
+    float ExtentZ = 1.0;
+    float NormalWeights = 1.0;
+    
+    if(CardFace < 2){
+        NormalWeights = InNormalWeights.x;
+        ExtentZ = MeshExtent.x;
+    }else if(CardFace < 4){
+        NormalWeights = InNormalWeights.y;
+        ExtentZ = MeshExtent.y;
+    }else{
+        NormalWeights = InNormalWeights.z;
+        ExtentZ = MeshExtent.z;
+    }
+
+    float BiasOffset = 10.0/ExtentZ;
+    float BiasFalloff = max(8e-1,0.5 * BiasOffset);
+
     float CardDepth = SampleTexture2D(PushConst.m_CardDepthAtlasSRV, sLinearClamp, AtlasUV).r;
     float TexelVisibility = 1.0;
     if(CardDepth >= 1.0){
         TexelVisibility = 0.0;
-    }
-    float NormalWeights = 1.0;
-    if(CardFace < 2){
-        NormalWeights = InNormalWeights.x;
-    }else if(CardFace < 4){
-        NormalWeights = InNormalWeights.y;
     }else{
-        NormalWeights = InNormalWeights.z;
+        float HitDepth = HitPosCS.z;
+        float HitDifference = (abs(HitDepth - CardDepth) - BiasOffset)/BiasFalloff;
+        HitDifference = clamp(HitDifference, 0.0, 1.0);
+        TexelVisibility = 1.0-HitDifference;
     }
 
     float OverallWeights = NormalWeights * TexelVisibility;
@@ -171,13 +188,18 @@ void SampleCard(uint MeshId, uint CardFace, vec3 HitPosWS, vec3 HitNormalWS, vec
 void SampleMesh(uint MeshId, vec3 HitPosWS, vec3 HitNormalWS,inout CardAccumulator Accum){
     MeshDFDesc MeshDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
     uint TransformId = MeshDesc.m_TransformId;
+    uint MdfMetaId = MeshDesc.m_MdfMetaId;
+    MeshDFMeta MeshMeta = GetResource(BMeshDFMeta, MdfMetaId).m_Data;
+    bool IsTwoSided = MeshMeta.m_IsTwoSided != 0;
     mat4 WorldToLocal = GetResource(BLocalTransform, TransformId).m_WorldToLocal;
 
     vec3 HitPosMS = (WorldToLocal * vec4(HitPosWS, 1.0)).xyz;
     vec3 HitNormalMS = (WorldToLocal * vec4(HitNormalWS, 0.0)).xyz;
     HitNormalMS = normalize(HitNormalMS);
 
+    bool AlwaysTwoSided = false;
     vec3 HitNormalMSSq = HitNormalMS * HitNormalMS;
+
     // X->1,2; Y->3,4 Z->5,6
     uint SampleDirectionMask = 0;
     if(HitNormalMSSq.x>=kEPS){
@@ -186,12 +208,18 @@ void SampleMesh(uint MeshId, vec3 HitPosWS, vec3 HitNormalWS,inout CardAccumulat
         }else{
             SampleDirectionMask |= 2;
         }
+        if(IsTwoSided||AlwaysTwoSided){
+            SampleDirectionMask |= 3;
+        }
     }
     if(HitNormalMSSq.y>=kEPS){
         if(HitNormalMS.y<0.0){
             SampleDirectionMask |= 4;
         }else{
             SampleDirectionMask |= 8;
+        }
+        if(IsTwoSided||AlwaysTwoSided){
+            SampleDirectionMask |= 12;
         }
     }
     if(HitNormalMSSq.z>=kEPS){
@@ -200,16 +228,22 @@ void SampleMesh(uint MeshId, vec3 HitPosWS, vec3 HitNormalWS,inout CardAccumulat
         }else{
             SampleDirectionMask |= 32;
         }
+        if(IsTwoSided||AlwaysTwoSided){
+            SampleDirectionMask |= 48;
+        }
     }
 
     uint ValidOrientationMask = SampleDirectionMask;
+    vec3 BboxMax = MeshMeta.bboxMax.xyz;
+    vec3 BboxMin = MeshMeta.bboxMin.xyz;
+    vec3 MeshExtent = BboxMax - BboxMin;
     while(ValidOrientationMask>0){
         uint LowBit = findLSB(ValidOrientationMask);
         
         uint CardFace = LowBit;
         ValidOrientationMask &= ~(1 << LowBit);
         vec3 InNormalWeights = HitNormalMSSq;
-        SampleCard(MeshId, CardFace, HitPosWS, HitNormalWS, HitPosMS, HitNormalMS, InNormalWeights, Accum);
+        SampleCard(MeshId, CardFace, HitPosWS, HitNormalWS, HitPosMS, HitNormalMS, InNormalWeights,MeshExtent, Accum);
     }
 }
 
@@ -241,8 +275,10 @@ CardSample EvaluateGlobalDFHit(vec3 TraceOriginWS, vec3 TraceDirWS, float HitTim
         ValidSamples += 1.0;
     }
 
-    if(Accum.m_Samples > -10.0){
+    if(Accum.m_Samples > 0.0){
         Sample.m_Albedo =  Accum.m_AccAlbedo / Accum.m_Samples;
+    }else{
+        Sample.m_Albedo = vec4(0.05, 0.05, 0.05, 1.0);
     }
 
     return Sample;
@@ -303,7 +339,7 @@ void main(){
     
     // Get object grids from the global df grid
     if(HitTime<1e-3){
-        imageStore(GetUAVImage2DR32F(PushConst.m_OutTex), ivec2(tX, tY), vec4(1.0,0.0,0.0, 1.0));
+        imageStore(GetUAVImage2DR32F(PushConst.m_OutTex), ivec2(tX, tY), vec4(0.1,0.1,0.1, 1.0));
         return;
     }
     CardSample HitSample = EvaluateGlobalDFHit(RayOrigin, RayDir, HitTime);

@@ -82,9 +82,12 @@ public:
         if (camera)
         {
             // 11.519989 2.360000 -5.760006
-            camera->SetPosition({ 3.239989f + m_movRight - m_movLeft, 2.240000f + m_movTop - m_movBottom,
+            // 1.43999, 2.24, -6.000006
+            // camera->SetPosition({ 3.239989f + m_movRight - m_movLeft, 2.240000f + m_movTop - m_movBottom,
+            //     -6.000006f + m_movFar - m_movNear });
+            camera->SetPosition({ 1.43999f + m_movRight - m_movLeft, 2.240000f + m_movTop - m_movBottom,
                 -6.000006f + m_movFar - m_movNear });
-            camera->SetRotation({ 0.0f, m_movRot + 6.91f, 0.0f });
+            camera->SetRotation({ 0.0f, m_movRot + 7.39f, 0.0f });
 
             // if print q, print the position and rotation
             if (m_inputSystem->IsKeyPressed(InputKeyCode::Q))
@@ -165,7 +168,7 @@ namespace Ifrit
             Ayanami::AyanamiRenderConfig ayaConfig;
             ayaConfig.m_globalDFClipmapLevels       = 1;
             ayaConfig.m_globalDFClipmapResolution   = 256;
-            ayaConfig.m_globalDFBaseExtent          = 14.0f;
+            ayaConfig.m_globalDFBaseExtent          = 13.0f;
             ayaConfig.m_DebugForceSurfaceCacheRegen = false;
 
             renderer       = std::make_shared<AyanamiRenderer>(this, ayaConfig);
@@ -211,10 +214,11 @@ namespace Ifrit
             {
                 // Surrounding => 617
                 numMeshes++;
-                if (numMeshes == 1601 || numMeshes < 590)
-                    continue;
+                // if (numMeshes == 1601 || numMeshes <)
+                //     continue;
                 if (numMeshes > 800)
                     break;
+
                 auto t      = m->m_prefab;
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
                 meshDF->BuildMeshDF(GetCacheDir());
