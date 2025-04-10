@@ -170,14 +170,16 @@ void main(){
 
     uint CellLoc = ifrit_ToCellId(CellId, uvec3(PushConst.m_VoxelsPerClipMapWidth));
     GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellLoc] = uvec4(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF);
+    memoryBarrierShared();
     barrier();
     
-#if AYANAMI_OBJECT_GRID_CULL
+#if 1
     for(uint T=0; T<NumCullingPasses; T++){
 
         if(ifrit_IsFirstLane()){
             LocalSharedCullResultCount = 0;
         }
+        memoryBarrierShared();
         barrier();
 
         // Cull mdfs to Tiles
@@ -199,13 +201,14 @@ void main(){
             vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
 
             float SqDist = ifrit_AabbSquaredDistance(TileCenterCoord, TileExtent, BoxCenterWS, BoxExtentWS);
-            //if(SqDist < CullingAcceptThSq){
+            if(SqDist < CullingAcceptThSq){
                 uint LocalIndex = atomicAdd(LocalSharedCullResultCount, 1);
                 if(LocalIndex < kAyanami_ObjectGridCellMaxCullObjPerPass){
                     LocalSharedCullResult[LocalIndex] = i;
                 }
-            //}
+            }
         }
+        memoryBarrierShared();
         barrier();
         // compose mdfs to Cells
         for(i=0;i<LocalSharedCullResultCount;i++){
@@ -224,14 +227,15 @@ void main(){
             vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
 
             float SqDist = ifrit_AabbSquaredDistance(CellCenterCoord, CellExtent, BoxCenterWS, BoxExtentWS);
-            //if(SqDist < CellCullingAcceptThSq){
+            if(SqDist < CellCullingAcceptThSq){
                 //might be a candidate to this grid
                 vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz);
                 float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
-                AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius * 2.0);
+                AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius * 0.5);
                 SortGridCell(CellLoc);
-            //}
+            }
         }
+        memoryBarrierShared();
         barrier();
     }
 #else

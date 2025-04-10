@@ -214,8 +214,8 @@ namespace Ifrit
             {
                 // Surrounding => 617
                 numMeshes++;
-                // if (numMeshes == 1601 || numMeshes <)
-                //     continue;
+                if (numMeshes == 1601 || numMeshes < 600)
+                    continue;
                 if (numMeshes > 800)
                     break;
 

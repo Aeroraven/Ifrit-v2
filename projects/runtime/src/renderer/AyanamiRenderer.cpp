@@ -193,7 +193,7 @@ namespace Ifrit::Runtime
             builder, scene, &resGlobalDFGen, m_resources->m_SceneAggregator->GetGatheredBufferId());
 
         // Pass RayMarch
-        if (true)
+        if (false)
         {
             if (m_resources->m_DbgShowMDF)
             {
@@ -290,7 +290,7 @@ namespace Ifrit::Runtime
         }
 
         // Pass Object Grid Debug
-        if (false)
+        if (true)
         {
             auto& resDirectLightingAtlas = m_resources->m_SurfaceCache->GetRDGDirectLightingAtlas();
             auto& resAlbedoAtlas         = m_resources->m_SurfaceCache->GetRDGAlbedoAtlas();
@@ -321,7 +321,7 @@ namespace Ifrit::Runtime
             AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass", Internal::kIntShaderTableAyanami.CopyVS,
                 Internal::kIntShaderTableAyanami.CopyFS, pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resRaymarchOutput);
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugObjGridOut);
                     SetRootSignature(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)

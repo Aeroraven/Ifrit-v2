@@ -138,7 +138,7 @@ uint ifrit_DivRoundUp(uint a, uint b){
 }
 
 uint ifrit_ToCellId(uvec3 tileId, uvec3 worldSize){
-    return tileId.z*worldSize.x*worldSize.y+(tileId.z+tileId.y)*worldSize.x+tileId.x;
+    return tileId.z*worldSize.x*worldSize.y+(tileId.y)*worldSize.x+tileId.x;
 }
 
 float ifrit_AabbSquaredDistance(vec3 center1, vec3 extent1, vec3 center2, vec3 extent2){
