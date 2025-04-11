@@ -127,4 +127,45 @@ namespace Ifrit::Math
         resCullOrthoY = projMaxY - projMinY;
         resCenter     = { reqCamPos.x, reqCamPos.y, reqCamPos.z };
     }
+
+    IF_FORCEINLINE Matrix4x4f GetViewOrthoProjectionForAABB(
+        const Vector3f& BboxMinWS, const Vector3f& BboxMaxWS, const Vector3f& RayDirWS)
+    {
+        Vec<Vector3f> bboxCorners(8);
+        Vec<Vector3f> bboxCornersRayVS(8);
+        for (u32 i = 0u; i < 8u; i++)
+        {
+            Vector3f corner = { (i & 1) ? BboxMaxWS.x : BboxMinWS.x, (i & 2) ? BboxMaxWS.y : BboxMinWS.y,
+                (i & 4) ? BboxMaxWS.z : BboxMinWS.z };
+            bboxCorners[i] = corner;
+        }
+        Vector3f   dLookAtCenter = Vector3f{ 0.0f, 0.0f, 0.0f };
+        Vector3f   dUp           = Vector3f{ 0.0f, 1.0f, 0.0f };
+        Vector3f   dRay          = RayDirWS;
+        Matrix4x4f dTestView     = LookAt(dLookAtCenter, dRay, dUp);
+        for (u32 i = 0u; i < 8u; i++)
+        {
+            bboxCornersRayVS[i] = MatMul(dTestView, Vector4f(bboxCorners[i], 1.0f)).xyz();
+        }
+        f32 projMinX = std::numeric_limits<f32>::max();
+        f32 projMaxX = -std::numeric_limits<f32>::max();
+        f32 projMinY = std::numeric_limits<f32>::max();
+        f32 projMaxY = -std::numeric_limits<f32>::max();
+        f32 projMinZ = std::numeric_limits<f32>::max();
+        f32 projMaxZ = -std::numeric_limits<f32>::max();
+        for (u32 i = 0u; i < 8u; i++)
+        {
+            projMinX = std::min(projMinX, bboxCornersRayVS[i].x);
+            projMaxX = std::max(projMaxX, bboxCornersRayVS[i].x);
+            projMinY = std::min(projMinY, bboxCornersRayVS[i].y);
+            projMaxY = std::max(projMaxY, bboxCornersRayVS[i].y);
+            projMinZ = std::min(projMinZ, bboxCornersRayVS[i].z);
+            projMaxZ = std::max(projMaxZ, bboxCornersRayVS[i].z);
+        }
+        Matrix4x4f remapMatrix = CubeSpaceRemap(Vector3f(projMinX, projMinY, projMinZ),
+            Vector3f(projMaxX, projMaxY, projMaxZ), Vector3f(-1.0f, -1.0f, 0.0f), Vector3f(1.0f, 1.0f, 1.0f));
+
+        Matrix4x4f orthoMatrix = MatMul(remapMatrix, dTestView);
+        return orthoMatrix;
+    }
 } // namespace Ifrit::Math

@@ -90,6 +90,8 @@ float DistanceFieldShadowInObj(vec3 rayOriginWS, uint meshDFId){
     MeshDFMeta meta = GetResource(BMeshDFMeta, desc.m_MdfMetaId).m_Data;
     mat4 worldToLocal = GetResource(BLocalTransform, desc.m_TransformId).m_WorldToLocal;
 
+    vec2 MeshDFQuantScale = AyaShared_GetSdfQuantScale(meta);
+
     uint SdfId = meta.sdfId;
     vec3 lb = meta.bboxMin.xyz;
     vec3 rt = meta.bboxMax.xyz;
@@ -121,12 +123,13 @@ float DistanceFieldShadowInObj(vec3 rayOriginWS, uint meshDFId){
         vec3 InvExtent = 1.0 / (rt - lb);
         for(int i=0;i<20;i++){
             vec3 UVW= (Hitp - lb) * InvExtent;
-            float Sdf = texture(GetSampler3D(SdfId), UVW).x-VolBias;
+            //float Sdf = texture(GetSampler3D(SdfId), UVW).x-VolBias;
+            float Sdf = AyaShared_SampleMeshDF(SdfId, UVW, MeshDFQuantScale) - VolBias;
             float AbsSdf = abs(Sdf);
             t += max(1e-4*MaxExtent,AbsSdf* 0.5) ;
             Hitp = o + nD * t;
             RetShadow = min(RetShadow, PushConst.m_ShadowCoefK*AbsSdf/(t+1e-6)*100.0);
-            if(AbsSdf<1e-1 || t>=tMax || RetShadow <= 1e-2){
+            if(AbsSdf<1e-1 || t>=tMax || RetShadow <= 5e-2){
                 break;
             }
         }
@@ -141,7 +144,7 @@ float DistanceFieldShadowInTile(vec3 rayOriginWS, uint TileId){
     for(uint i=0;i<DfInTile;i++){
         uint dfId = GetResource(BTileScatter, PushConst.m_ShadowCullTileDFList).m_Data[tileOffset + i];
         ShadowAttn = min(ShadowAttn,DistanceFieldShadowInObj(rayOriginWS,dfId));
-        if(ShadowAttn<=1e-2){
+        if(ShadowAttn<=5e-2){
             break;
         }
     }
@@ -150,7 +153,7 @@ float DistanceFieldShadowInTile(vec3 rayOriginWS, uint TileId){
 
 float DistanceFieldShadow(vec3 rayOriginWS){
     vec4 lightPos = PushConst.m_ShadowLightVP * vec4(rayOriginWS, 1.0);
-    vec2 uv = (lightPos.xy / lightPos.w) * 0.5 + 0.5;
+    vec2 uv = lightPos.xy * 0.5 + 0.5;
     if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0){
         return 1.0;
     }

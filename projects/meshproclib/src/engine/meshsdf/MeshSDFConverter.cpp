@@ -617,4 +617,34 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         }
     }
 
+    IFRIT_MESHPROC_API void CompactSDF(const SignedDistanceField& sdf, CompactSignedDistanceField& compactSdf)
+    {
+        compactSdf.width   = sdf.width;
+        compactSdf.height  = sdf.height;
+        compactSdf.depth   = sdf.depth;
+        compactSdf.bboxMin = sdf.bboxMin;
+        compactSdf.bboxMax = sdf.bboxMax;
+        compactSdf.sdfData.resize(sdf.sdfData.size());
+
+        f32 minDist = FLT_MAX;
+        f32 maxDist = -FLT_MAX;
+        for (u32 i = 0; i < sdf.sdfData.size(); i++)
+        {
+            auto dist = sdf.sdfData[i];
+            minDist   = std::min(minDist, dist);
+            maxDist   = std::max(maxDist, dist);
+        }
+
+        compactSdf.m_SdfMax = maxDist;
+        compactSdf.m_SdfMin = minDist;
+
+        for (u32 i = 0; i < sdf.sdfData.size(); i++)
+        {
+            auto dist             = sdf.sdfData[i];
+            dist                  = std::clamp(dist, minDist, maxDist);
+            f32 ratio             = (dist - minDist) / (maxDist - minDist) * 255.0f;
+            compactSdf.sdfData[i] = static_cast<u8>(std::round(ratio));
+        }
+        iInfo("Compact SDF: minDist: {}, maxDist: {}", minDist, maxDist);
+    }
 } // namespace Ifrit::MeshProcLib::MeshSDFProcess

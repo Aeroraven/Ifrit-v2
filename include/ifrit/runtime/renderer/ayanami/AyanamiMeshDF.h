@@ -29,9 +29,6 @@ namespace Ifrit::Runtime::Ayanami
         {
             Vector4f bboxMin;
             Vector4f bboxMax;
-            u32      width;
-            u32      height;
-            u32      depth;
             u32      sdfId;
             u32      m_IsTwoSided;
         };
@@ -52,7 +49,7 @@ namespace Ifrit::Runtime::Ayanami
     class IFRIT_APIDECL AyanamiMeshDF : public Component
     {
     private:
-        Vec<f32>                    m_sdfData;
+        Vec<u8>                     m_CompactSDFData;
         u32                         m_sdWidth;
         u32                         m_sdHeight;
         u32                         m_sdDepth;
@@ -60,6 +57,8 @@ namespace Ifrit::Runtime::Ayanami
         Vector3f                    m_sdBoxMax;
         bool                        m_isBuilt       = false;
         bool                        m_IsDoubleSided = false;
+        f32                         m_SdfMin        = 0.0f;
+        f32                         m_SdfMax        = 0.0f;
 
         Uref<AyanamiMeshDFResource> m_gpuResource = nullptr;
 

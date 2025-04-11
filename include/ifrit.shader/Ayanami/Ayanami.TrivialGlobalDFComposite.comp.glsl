@@ -80,6 +80,7 @@ void main(){
 
         uint MdfMetaId = CurMeshDesc0.m_MdfMetaId;
         MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfMetaId).m_Data;
+        vec2 MeshDFQuantScale = AyaShared_GetSdfQuantScale(MdfMeta);
         uint SDFId = MdfMeta.sdfId;
 
         vec4 CellLocalCoord = WorldToLocal*vec4(CellWorldCoord, 1.0);
@@ -104,7 +105,8 @@ void main(){
 
         vec3 ClampedUVW = (ClampedPos-MeshBBoxMin)/(MeshBBoxMax-MeshBBoxMin);
 
-        float SdfVal = texture(GetSampler3D(SDFId), ClampedUVW).r * MeshMaxScale;
+        //float SdfVal = texture(GetSampler3D(SDFId), ClampedUVW).r * MeshMaxScale;
+        float SdfVal = AyaShared_SampleMeshDF(SDFId, ClampedUVW, MeshDFQuantScale) * MeshMaxScale;
         float TotalSdf = max(SdfVal + ToBoxAllPositive,ToBoxAll);
 
         OptimalSDF = min(OptimalSDF, TotalSdf);

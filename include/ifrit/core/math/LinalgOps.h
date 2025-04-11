@@ -384,4 +384,23 @@ namespace Ifrit::Math
         return result;
     }
 
+    IF_FORCEINLINE Matrix4x4f CubeSpaceRemap(
+        const Vector3f& srcMin, const Vector3f& srcMax, const Vector3f& dstMin, const Vector3f& dstMax)
+    {
+        f32        scaleX  = (dstMax.x - dstMin.x) / (srcMax.x - srcMin.x);
+        f32        scaleY  = (dstMax.y - dstMin.y) / (srcMax.y - srcMin.y);
+        f32        scaleZ  = (dstMax.z - dstMin.z) / (srcMax.z - srcMin.z);
+        f32        offsetX = dstMin.x - srcMin.x * scaleX;
+        f32        offsetY = dstMin.y - srcMin.y * scaleY;
+        f32        offsetZ = dstMin.z - srcMin.z * scaleZ;
+        Matrix4x4f result  = Identity4();
+        result[0][0]       = scaleX;
+        result[1][1]       = scaleY;
+        result[2][2]       = scaleZ;
+        result[0][3]       = offsetX;
+        result[1][3]       = offsetY;
+        result[2][3]       = offsetZ;
+        return result;
+    }
+
 } // namespace Ifrit::Math

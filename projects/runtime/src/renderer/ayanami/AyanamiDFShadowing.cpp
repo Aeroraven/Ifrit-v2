@@ -65,8 +65,8 @@ namespace Ifrit::Runtime::Ayanami
     }
 
     IFRIT_APIDECL GraphicsPassNode& AyanamiDistanceFieldLighting::DistanceFieldShadowTileScatter(
-        FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs, Vector4f sceneBound, Vector3f lightDir,
-        u32 tileSize)
+        FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs, Vector3f sceneBoundMin, Vector3f sceneBoundMax,
+        Vector3f lightDir, u32 tileSize)
     {
         if (tileSize > 64 || totalMeshDfs > 4096)
         {
@@ -86,14 +86,8 @@ namespace Ifrit::Runtime::Ayanami
 
         } pc;
 
-        if (sceneBound.w < 1e-4f)
-        {
-            iError("Scene bound is too small, please check the scene or the light direction.");
-            std::abort();
-        }
-
-        pc.m_VP               = GetLightViewProj(sceneBound, lightDir);
-        pc.m_NumMeshDF        = totalMeshDfs;
+        pc.m_VP        = Math::Transpose(Math::GetViewOrthoProjectionForAABB(sceneBoundMin, sceneBoundMax, lightDir));
+        pc.m_NumMeshDF = totalMeshDfs;
         pc.m_MeshDFDescListId = meshDfList;
         pc.m_NumTilesWidth    = 64;
         pc.m_TileAtomics      = 0;
@@ -121,8 +115,8 @@ namespace Ifrit::Runtime::Ayanami
     }
 
     IFRIT_APIDECL GraphicsPassNode& AyanamiDistanceFieldLighting::DistanceFieldShadowRender(FrameGraphBuilder& builder,
-        u32 meshDfList, u32 totalMeshDfs, u32 depthSRV, u32 perframe, Vector4f sceneBound, Vector3f lightDir,
-        u32 tileSize, float softness)
+        u32 meshDfList, u32 totalMeshDfs, u32 depthSRV, u32 perframe, Vector3f sceneBoundMin, Vector3f sceneBoundMax,
+        Vector3f lightDir, u32 tileSize, float softness)
     {
         using namespace Ifrit::Math;
         struct PushConst
@@ -139,9 +133,9 @@ namespace Ifrit::Runtime::Ayanami
             f32        m_ShadowCoefK; // This controls DFSS softness.
         } pc;
 
-        auto normDir          = Normalize(lightDir);
-        pc.m_LightVP          = GetLightViewProj(sceneBound, lightDir);
-        pc.m_LightDir         = Vector4f(normDir.x, normDir.y, normDir.z, 0.0f);
+        auto normDir  = Normalize(lightDir);
+        pc.m_LightVP  = Math::Transpose(Math::GetViewOrthoProjectionForAABB(sceneBoundMin, sceneBoundMax, normDir));
+        pc.m_LightDir = Vector4f(normDir.x, normDir.y, normDir.z, 0.0f);
         pc.m_TileDFAtomics    = 0;
         pc.m_TileDFList       = 0;
         pc.m_TotalDFCount     = totalMeshDfs;
@@ -163,8 +157,8 @@ namespace Ifrit::Runtime::Ayanami
 
     IFRIT_APIDECL ComputePassNode& AyanamiDistanceFieldLighting::AddDistanceFieldRadianceCachePass(
         FrameGraphBuilder& builder, u32 meshDfList, u32 numTotalMdf, FGTextureNodeRef depthAtlasTex,
-        Vector4f sceneBound, Vector3f lightDir, FGTextureNodeRef radianceTex, u32 cardDataId, u32 cardRes,
-        u32 cardAtlasRes, u32 numCards, u32 worldObjId, u32 shadowCullTileSize, float softness)
+        Vector3f sceneBoundMin, Vector3f sceneBoundMax, Vector3f lightDir, FGTextureNodeRef radianceTex, u32 cardDataId,
+        u32 cardRes, u32 cardAtlasRes, u32 numCards, u32 worldObjId, u32 shadowCullTileSize, float softness)
     {
         struct PushConst
         {
@@ -189,8 +183,9 @@ namespace Ifrit::Runtime::Ayanami
             f32        m_ShadowCoefK;
         } pc;
 
-        auto normDir                 = Normalize(lightDir);
-        pc.m_ShadowLightVP           = GetLightViewProj(sceneBound, lightDir);
+        auto normDir = Normalize(lightDir);
+        pc.m_ShadowLightVP =
+            Math::Transpose(Math::GetViewOrthoProjectionForAABB(sceneBoundMin, sceneBoundMax, normDir));
         pc.m_ShadowLightDir          = Vector4f(normDir.x, normDir.y, normDir.z, 0.0f);
         pc.m_TotalCards              = numCards;
         pc.m_CardResolution          = cardRes;

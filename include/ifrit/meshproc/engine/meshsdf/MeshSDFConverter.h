@@ -51,7 +51,22 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         IFRIT_STRUCT_SERIALIZE(sdfData, width, height, depth, bboxMin, bboxMax);
     };
 
+    struct CompactSignedDistanceField
+    {
+        Vec<u8>  sdfData;
+        i32      width;
+        i32      height;
+        i32      depth;
+        Vector3f bboxMin;
+        Vector3f bboxMax;
+        f32      m_SdfMin;
+        f32      m_SdfMax;
+        IFRIT_STRUCT_SERIALIZE(sdfData, width, height, depth, bboxMin, bboxMax);
+    };
+
     IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
         u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method, bool twoSided);
+
+    IFRIT_MESHPROC_API void CompactSDF(const SignedDistanceField& sdf, CompactSignedDistanceField& compactSdf);
 
 } // namespace Ifrit::MeshProcLib::MeshSDFProcess

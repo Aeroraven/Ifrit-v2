@@ -24,9 +24,6 @@ struct MeshDFDesc{
 struct MeshDFMeta{
     vec4 bboxMin;
     vec4 bboxMax;
-    uint width;
-    uint height;
-    uint depth;
     uint sdfId;
     uint m_IsTwoSided;
 };
@@ -35,3 +32,14 @@ struct CardData{
     mat4 m_VP;
     mat4 m_VPInv;
 };
+
+vec2 AyaShared_GetSdfQuantScale(MeshDFMeta meta){
+    float scaleMax = meta.bboxMax.w;
+    float scaleMin = meta.bboxMin.w;
+    return vec2(scaleMin,scaleMax);
+}
+
+float AyaShared_SampleMeshDF(uint SdfCombinedSRV,vec3 uvw, vec2 scale){
+    float v = texture(GetSampler3D(SdfCombinedSRV),uvw).r;
+    return mix(scale.x,scale.y,v);
+}

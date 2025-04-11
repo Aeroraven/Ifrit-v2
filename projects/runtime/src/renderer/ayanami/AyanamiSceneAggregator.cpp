@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiSceneAggregator.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiMeshDF.h"
 #include "ifrit/core/math/VectorOps.h"
+#include "ifrit/core/math/GeometryFunctions.h"
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -43,6 +44,8 @@ namespace Ifrit::Runtime::Ayanami
 
         Vector4f                                 m_BoundBall;
         AyanamiSceneAggregator::AggregatedLights m_AggregatedLights;
+        Vector3f                                 m_SceneBoundMin;
+        Vector3f                                 m_SceneBoundMax;
     };
 
     IFRIT_APIDECL void AyanamiSceneAggregator::CollectScene(Scene* scene)
@@ -108,7 +111,8 @@ namespace Ifrit::Runtime::Ayanami
             Vector3f size                 = Vector3f(maxX - minX, maxY - minY, maxZ - minZ);
             float    radius               = Length(size) * 0.5f;
             m_sceneResources->m_BoundBall = Vector4f(center.x, center.y, center.z, radius);
-            // printf("BoundBall: %f %f %f %f\n", center.x, center.y, center.z, radius);
+            m_sceneResources->m_SceneBoundMin = Vector3f(minX, minY, minZ);
+            m_sceneResources->m_SceneBoundMax = Vector3f(maxX, maxY, maxZ);
 
             // TODO: non-directional light
             AggregatedLights  lights;
@@ -179,6 +183,21 @@ namespace Ifrit::Runtime::Ayanami
     IFRIT_APIDECL AyanamiSceneAggregator::AggregatedLights AyanamiSceneAggregator::GetAggregatedLights() const
     {
         return m_sceneResources->m_AggregatedLights;
+    }
+
+    IFRIT_APIDECL Matrix4x4f AyanamiSceneAggregator::GetLightBoundVP(Vector3f lightDirWS) const
+    {
+        return Math::GetViewOrthoProjectionForAABB(
+            m_sceneResources->m_SceneBoundMin, m_sceneResources->m_SceneBoundMax, lightDirWS);
+    }
+
+    IFRIT_APIDECL Vector3f AyanamiSceneAggregator::GetSceneBoundMin() const
+    {
+        return m_sceneResources->m_SceneBoundMin;
+    }
+    IFRIT_APIDECL Vector3f AyanamiSceneAggregator::GetSceneBoundMax() const
+    {
+        return m_sceneResources->m_SceneBoundMax;
     }
 
 } // namespace Ifrit::Runtime::Ayanami

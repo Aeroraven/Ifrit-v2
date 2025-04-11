@@ -38,14 +38,15 @@ namespace Ifrit::Runtime::Ayanami
         void              InitContext(FrameGraphBuilder& builder, u32 tileSize);
 
         GraphicsPassNode& DistanceFieldShadowTileScatter(FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs,
-            Vector4f sceneBound, Vector3f lightDir, u32 tileSize);
+            Vector3f sceneBoundMin, Vector3f sceneBoundMax, Vector3f lightDir, u32 tileSize);
 
         GraphicsPassNode& DistanceFieldShadowRender(FrameGraphBuilder& builder, u32 meshDfList, u32 totalMeshDfs,
-            u32 depthSRV, u32 perframe, Vector4f sceneBound, Vector3f lightDir, u32 tileSize, float softness);
+            u32 depthSRV, u32 perframe, Vector3f sceneBoundMin, Vector3f sceneBoundMax, Vector3f lightDir, u32 tileSize,
+            float softness);
 
         ComputePassNode&  AddDistanceFieldRadianceCachePass(FrameGraphBuilder& builder, u32 meshDfList, u32 numTotalMdf,
-             FGTextureNodeRef depthAtlasTex, Vector4f sceneBound, Vector3f lightDir, FGTextureNodeRef radianceTex,
-             u32 cardDataId, u32 cardRes, u32 cardAtlasRes, u32 numCards, u32 worldObjId, u32 shadowCullTileSize,
-             float softness);
+             FGTextureNodeRef depthAtlasTex, Vector3f sceneBoundMin, Vector3f sceneBoundMax, Vector3f lightDir,
+             FGTextureNodeRef radianceTex, u32 cardDataId, u32 cardRes, u32 cardAtlasRes, u32 numCards, u32 worldObjId,
+             u32 shadowCullTileSize, float softness);
     };
 } // namespace Ifrit::Runtime::Ayanami

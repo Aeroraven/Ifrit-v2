@@ -52,5 +52,5 @@ void main(){
     uint inListPos = atomicAdd(GetResource(BTileAtomics, PushConst.m_TileAtomics).m_Data[tileId], 1u);
     uint overPos = inListPos + PushConst.m_NumMeshDF * tileId;
     GetResource(BTileScatter, PushConst.m_ScatterOutput).m_Data[overPos] = meshId;
-    outDummy = 0.0;
+    outDummy = 1.0;
 }

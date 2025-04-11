@@ -58,6 +58,9 @@ namespace Ifrit::Runtime::Ayanami
 
         Vector4f         GetSceneBoundSphere() const;
         AggregatedLights GetAggregatedLights() const;
+        Matrix4x4f       GetLightBoundVP(Vector3f lightDirWS) const;
+        Vector3f         GetSceneBoundMin() const;
+        Vector3f         GetSceneBoundMax() const;
     };
 
 } // namespace Ifrit::Runtime::Ayanami

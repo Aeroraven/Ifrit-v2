@@ -61,12 +61,12 @@ namespace Ifrit::Runtime
     };
 
     static ComputePassNode& AddDFRadianceInjectPass(FrameGraphBuilder& builder, AyanamiRendererResources* res,
-        Vector4f sceneBound, Vector3f lightDir, u32 cullTileSize, float softness)
+        Vector3f sceneBoundMin, Vector3f sceneBoundMax, Vector3f lightDir, u32 cullTileSize, float softness)
     {
 
         auto& pass = res->m_DFLighting->AddDistanceFieldRadianceCachePass(builder,
             res->m_SceneAggregator->GetGatheredBufferId(), res->m_SceneAggregator->GetNumGatheredInstances(),
-            &res->m_SurfaceCache->GetRDGDepthAtlas(), sceneBound, lightDir,
+            &res->m_SurfaceCache->GetRDGDepthAtlas(), sceneBoundMin, sceneBoundMax, lightDir,
             &res->m_SurfaceCache->GetRDGShadowVisibilityAtlas(), res->m_SurfaceCache->GetCardDataBuffer()->GetDescId(),
             res->m_SurfaceCache->GetCardResolution(), res->m_SurfaceCache->GetCardAtlasResolution(),
             res->m_SurfaceCache->GetNumCards(), res->m_SurfaceCache->GetWorldMatsId(), cullTileSize, softness);
@@ -162,7 +162,10 @@ namespace Ifrit::Runtime
         m_resources->m_SurfaceCache->UpdateShadowVisibilityAtlas(builder, scene);
 
         // Pass DF Culling
-        auto sceneBound  = m_resources->m_SceneAggregator->GetSceneBoundSphere();
+        auto sceneBound    = m_resources->m_SceneAggregator->GetSceneBoundSphere();
+        auto sceneBoundMin = m_resources->m_SceneAggregator->GetSceneBoundMin();
+        auto sceneBoundMax = m_resources->m_SceneAggregator->GetSceneBoundMax();
+
         auto sceneLights = m_resources->m_SceneAggregator->GetAggregatedLights();
         if (sceneLights.m_LightFronts.size() != 1)
         {
@@ -173,12 +176,12 @@ namespace Ifrit::Runtime
         auto sceneLight = sceneLights.m_LightFronts[0];
         m_resources->m_DFLighting->DistanceFieldShadowTileScatter(builder,
             m_resources->m_SceneAggregator->GetGatheredBufferId(),
-            m_resources->m_SceneAggregator->GetNumGatheredInstances(), sceneBound, sceneLight, 64);
+            m_resources->m_SceneAggregator->GetNumGatheredInstances(), sceneBoundMin, sceneBoundMax, sceneLight, 64);
 
         // printf("Scene bound: %f %f %f %f\n", sceneBound.x, sceneBound.y, sceneBound.z, sceneBound.w);
 
         // Pass DF Radiance Injection (World Space)
-        AddDFRadianceInjectPass(builder, m_resources, sceneBound, sceneLight, 64, 2.0f);
+        AddDFRadianceInjectPass(builder, m_resources, sceneBoundMin, sceneBoundMax, sceneLight, 64, 2.0f);
 
         // Pass Direct Lighting
         m_resources->m_SurfaceCache->UpdateDirectLighting(
@@ -239,8 +242,8 @@ namespace Ifrit::Runtime
             m_resources->m_DFLighting
                 ->DistanceFieldShadowRender(builder, m_resources->m_SceneAggregator->GetGatheredBufferId(),
                     m_resources->m_SceneAggregator->GetNumGatheredInstances(),
-                    perframe.m_views[0].m_visibilityDepthIdSRV_Combined->GetActiveId(), primaryViewCBV, sceneBound,
-                    sceneLight, 64, 2)
+                    perframe.m_views[0].m_visibilityDepthIdSRV_Combined->GetActiveId(), primaryViewCBV, sceneBoundMin,
+                    sceneBoundMax, sceneLight, 64, 2)
                 .AddRenderTarget(resDfssOut)
                 .AddReadResource(resGDepth);
         }

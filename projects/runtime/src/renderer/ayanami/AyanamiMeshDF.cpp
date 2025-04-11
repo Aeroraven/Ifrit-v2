@@ -67,6 +67,27 @@ namespace Ifrit::Runtime::Ayanami
             bool shouldGenCachedDF = false;
             auto cachePathStr      = String(cachePath);
 
+            auto serialCompactMeshDFName = "core.ayanami.meshdf_1_u8." + meshData->identifier + ".cache";
+            auto hasCachedCompactDF      = false;
+            bool shouldGenCompactDF      = false;
+            auto cacheCompactPathStr     = String(cachePathStr + serialCompactMeshDFName);
+
+            if (!std::filesystem::exists(cacheCompactPathStr))
+            {
+                shouldGenCompactDF = true;
+            }
+            else
+            {
+                hasCachedCompactDF = std::filesystem::exists(cacheCompactPathStr);
+                if (hasCachedCompactDF)
+                {
+                    shouldGenCompactDF = false;
+                }
+                else
+                {
+                    shouldGenCompactDF = true;
+                }
+            }
             if (!std::filesystem::exists(cachePathStr))
             {
                 shouldGenCachedDF = true;
@@ -86,8 +107,15 @@ namespace Ifrit::Runtime::Ayanami
                 }
             }
 
-            SignedDistanceField sdf;
-            if (hasCachedDF)
+            SignedDistanceField        sdf;
+            CompactSignedDistanceField compactSdf;
+            if (hasCachedCompactDF)
+            {
+                auto serialCompactMeshDFPath = cacheCompactPathStr + serialCompactMeshDFName;
+                auto buffer                  = ReadBinaryFile(serialCompactMeshDFPath);
+                Ifrit::Common::Serialization::DeserializeBinary(buffer, compactSdf);
+            }
+            else if (hasCachedDF)
             {
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 auto buffer           = ReadBinaryFile(serialMeshDFPath);
@@ -107,13 +135,25 @@ namespace Ifrit::Runtime::Ayanami
                     WriteBinaryFile(serialMeshDFPath, buffer);
                 }
             }
-            m_sdfData  = std::move(sdf.sdfData);
-            m_sdWidth  = sdf.width;
-            m_sdHeight = sdf.height;
-            m_sdDepth  = sdf.depth;
-            m_sdBoxMin = Vector3f(sdf.bboxMin.x, sdf.bboxMin.y, sdf.bboxMin.z);
-            m_sdBoxMax = Vector3f(sdf.bboxMax.x, sdf.bboxMax.y, sdf.bboxMax.z);
-            m_isBuilt  = true;
+            if (shouldGenCompactDF)
+            {
+                iInfo("Building compact mesh distance field for {}", meshData->identifier);
+                CompactSDF(sdf, compactSdf);
+                auto   serialCompactMeshDFPath = cacheCompactPathStr + serialCompactMeshDFName;
+                String buffer;
+                Ifrit::Common::Serialization::SerializeBinary(compactSdf, buffer);
+                WriteBinaryFile(serialCompactMeshDFPath, buffer);
+            }
+
+            m_CompactSDFData = std::move(compactSdf.sdfData);
+            m_sdWidth        = compactSdf.width;
+            m_sdHeight       = compactSdf.height;
+            m_sdDepth        = compactSdf.depth;
+            m_sdBoxMin       = Vector3f(compactSdf.bboxMin);
+            m_sdBoxMax       = Vector3f(compactSdf.bboxMax);
+            m_isBuilt        = true;
+            m_SdfMin         = compactSdf.m_SdfMin;
+            m_SdfMax         = compactSdf.m_SdfMax;
 
             if (Any(Abs(m_sdBoxMax - m_sdBoxMin) < 1e-1f))
             {
@@ -135,15 +175,15 @@ namespace Ifrit::Runtime::Ayanami
             m_gpuResource = std::make_unique<AyanamiMeshDFResource>();
             using namespace Ifrit::Graphics::Rhi;
             auto volumeSize   = m_sdWidth * m_sdHeight * m_sdDepth;
-            auto deviceVolume = rhi->CreateBuffer("Ayanami_DFVolume", volumeSize * sizeof(f32),
+            auto deviceVolume = rhi->CreateBuffer("Ayanami_DFVolume", volumeSize * sizeof(u8),
                 RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
             deviceVolume->MapMemory();
-            deviceVolume->WriteBuffer(m_sdfData.data(), volumeSize * sizeof(f32), 0);
+            deviceVolume->WriteBuffer(m_CompactSDFData.data(), volumeSize * sizeof(u8), 0);
             deviceVolume->FlushBuffer();
             deviceVolume->UnmapMemory();
 
             m_gpuResource->sdfTexture = rhi->CreateTexture3D("Ayanami_DFTexture", m_sdWidth, m_sdHeight, m_sdDepth,
-                RhiImageFormat::RhiImgFmt_R32_SFLOAT,
+                RhiImageFormat::RhiImgFmt_R8_UNORM,
                 RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_CopyDst
                     | RhiImageUsage::RhiImgUsage_UnorderedAccess,
                 true);
@@ -154,11 +194,9 @@ namespace Ifrit::Runtime::Ayanami
 
             auto stagedMetaBuffer = rhi->CreateStagedSingleBuffer(m_gpuResource->sdfMetaBuffer.get());
             AyanamiMeshDFResource::SDFMeta sdfMeta;
-            sdfMeta.bboxMin      = Vector4f(m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z, 0);
-            sdfMeta.bboxMax      = Vector4f(m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z, 0);
-            sdfMeta.width        = m_sdWidth;
-            sdfMeta.height       = m_sdHeight;
-            sdfMeta.depth        = m_sdDepth;
+
+            sdfMeta.bboxMin      = Vector4f(m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z, m_SdfMin);
+            sdfMeta.bboxMax      = Vector4f(m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z, m_SdfMax);
             sdfMeta.sdfId        = m_gpuResource->sdfTextureBindId->GetActiveId();
             sdfMeta.m_IsTwoSided = m_IsDoubleSided ? 1 : 0;
 

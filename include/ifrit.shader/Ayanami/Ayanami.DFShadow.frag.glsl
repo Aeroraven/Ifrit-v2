@@ -101,11 +101,14 @@ float RayMarchingForObject(uint meshDFId, vec3 rayOriginWS){
     float retShadow = 1.0;
     float selfBias = 0e-4*maxExtent;
     float volBias = 1e-3*maxExtent;
+
+    vec2 MeshDFQuantScale = AyaShared_GetSdfQuantScale(meta);
     if(hit){
         for(int i=0;i<32;i++){
             vec3 uvw= (hitp - lb) / (rt - lb);
             uvw = clamp(uvw, 0.0, 1.0);
-            float sdf = texture(GetSampler3D(meta.sdfId), uvw).x-volBias;
+            //float sdf = texture(GetSampler3D(meta.sdfId), uvw).x-volBias;
+            float sdf = AyaShared_SampleMeshDF(sdfId, uvw, MeshDFQuantScale) - volBias;
             t+= max(1e-4*maxExtent,abs(sdf)* 0.5) ;
             hitp = o + nD * t;
             retShadow = min(retShadow, PushConst.m_ShadowCoefK*abs(sdf)/(abs(t)+1e-6)*100.0);
