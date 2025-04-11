@@ -185,8 +185,12 @@ namespace Ifrit::Runtime
             builder, m_resources->m_SceneAggregator->GetGatheredBufferId(), sceneLight);
 
         // Pass Voxel Construction (Object Grids)
-        m_globalDF->AddObjectGridCompositionPass(builder, 0, m_resources->m_SceneAggregator->GetNumGatheredInstances(),
-            m_resources->m_SceneAggregator->GetGatheredBufferId());
+        if (!m_resources->m_Inited || m_selfRenderConfig.m_DebugForceObjectGridRegen)
+        {
+            m_globalDF->AddObjectGridCompositionPass(builder, 0,
+                m_resources->m_SceneAggregator->GetNumGatheredInstances(),
+                m_resources->m_SceneAggregator->GetGatheredBufferId());
+        }
 
         // Pass Indirect Radiance
         m_resources->m_SurfaceCache->UpdateIndirectRadianceCacheAtlas(
@@ -280,7 +284,7 @@ namespace Ifrit::Runtime
                 m_resources->m_SceneAggregator->GetGatheredBufferId());
         }
         // Pass Object Grid Debug - Vis
-        if (false)
+
         {
             auto maxWorldBound  = m_globalDF->GetWorldBoundMax(0);
             auto minWorldBound  = m_globalDF->GetWorldBoundMin(0);

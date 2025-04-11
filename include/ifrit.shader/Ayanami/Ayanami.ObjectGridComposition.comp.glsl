@@ -100,24 +100,6 @@ uint PackCellData(uint MeshId,float HitDist,float CellWidth){
     return (MeshId & 0xFFFFFF) | (HitDistInt << 24);
 }
 
-void AddObjectToGridCell(uint MeshId, uint CellId, float HitDist,float CellWidth){
-    uint MaxIndex = 0;
-    uvec4 CellData = GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId];
-    uint PackedData = PackCellData(MeshId, HitDist, CellWidth);
-    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
-        MaxIndex = max(MaxIndex, CellData[i]);
-    }
-    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
-        if(CellData[i] == MaxIndex){
-            if(PackedData < CellData[i]){
-                CellData[i] = PackedData;
-                GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId] = CellData;
-                break;
-            }
-        }
-    }
-}
-
 void SortGridCell(uint CellId){
     uvec4 CellData = GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId];
     uint CellDataArr[kAyanamiObjectGridTileSize];
@@ -137,6 +119,27 @@ void SortGridCell(uint CellId){
         CellData[i] = CellDataArr[i];
     }
     GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId] = CellData;
+}
+
+void AddObjectToGridCell(uint MeshId, uint CellId, float HitDist,float CellWidth){
+    uint MaxIndex = 0;
+    uvec4 CellData = GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId];
+    uint PackedData = PackCellData(MeshId, HitDist, CellWidth);
+    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
+        MaxIndex = max(MaxIndex, CellData[i]);
+    }
+    if(MaxIndex != 0xFFFFFFFF){
+        SortGridCell(CellId);
+    }
+    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
+        if(CellData[i] == MaxIndex){
+            if(PackedData < CellData[i]){
+                CellData[i] = PackedData;
+                GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId] = CellData;
+                break;
+            }
+        }
+    }
 }
 
 
@@ -189,15 +192,14 @@ void main(){
         for(i=startId+LocalId; i<endId; i+= LocalSize){
             MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[i];
             MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
-            mat4 localToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
+            mat4 LocalToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
 
             vec3 BoxLT = MdfMeta.bboxMin.xyz;
             vec3 BoxRB = MdfMeta.bboxMax.xyz;
             vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
             vec3 BoxExtentMS = (BoxRB - BoxLT);
 
-            vec4 BoxCenterWSH = (localToWorld * vec4(BoxCenterMS, 1.0));
-            vec3 BoxCenterWS = BoxCenterWSH.xyz / BoxCenterWSH.w;
+            vec3 BoxCenterWS = (LocalToWorld * vec4(BoxCenterMS, 1.0)).xyz;
             vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
 
             float SqDist = ifrit_AabbSquaredDistance(TileCenterCoord, TileExtent, BoxCenterWS, BoxExtentWS);
@@ -215,15 +217,14 @@ void main(){
             uint MeshId = LocalSharedCullResult[i];
             MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
             MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
-            mat4 localToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
+            mat4 LocalToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
             mat4 WorldToLocal = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_WorldToLocal;
             vec3 BoxLT = MdfMeta.bboxMin.xyz;
             vec3 BoxRB = MdfMeta.bboxMax.xyz;
             vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
             vec3 BoxExtentMS = (BoxRB - BoxLT);
 
-            vec4 BoxCenterWSH = (localToWorld * vec4(BoxCenterMS, 1.0));
-            vec3 BoxCenterWS = BoxCenterWSH.xyz / BoxCenterWSH.w;
+            vec3 BoxCenterWS = (LocalToWorld * vec4(BoxCenterMS, 1.0)).xyz;
             vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
 
             float SqDist = ifrit_AabbSquaredDistance(CellCenterCoord, CellExtent, BoxCenterWS, BoxExtentWS);
@@ -232,7 +233,6 @@ void main(){
                 vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz);
                 float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
                 AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius * 0.5);
-                SortGridCell(CellLoc);
             }
         }
         memoryBarrierShared();
@@ -244,15 +244,14 @@ void main(){
         uint MeshId = i;
         MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
         MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
-        mat4 localToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
+        mat4 LocalToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
         mat4 WorldToLocal = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_WorldToLocal;
         vec3 BoxLT = MdfMeta.bboxMin.xyz;
         vec3 BoxRB = MdfMeta.bboxMax.xyz;
         vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
         vec3 BoxExtentMS = (BoxRB - BoxLT);
 
-        vec4 BoxCenterWSH = (localToWorld * vec4(BoxCenterMS, 1.0));
-        vec3 BoxCenterWS = BoxCenterWSH.xyz / BoxCenterWSH.w;
+        vec4 BoxCenterWS = (LocalToWorld * vec4(BoxCenterMS, 1.0));
         vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
 
         float SqDist = ifrit_AabbSquaredDistance(CellCenterCoord, CellExtent, BoxCenterWS, BoxExtentWS);
@@ -261,7 +260,6 @@ void main(){
             vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz);
             float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
             AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius*0.5 );
-            SortGridCell(CellLoc);
         }
     }
 

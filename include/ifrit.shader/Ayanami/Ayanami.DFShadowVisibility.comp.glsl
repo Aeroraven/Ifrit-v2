@@ -90,11 +90,11 @@ float DistanceFieldShadowInObj(vec3 rayOriginWS, uint meshDFId){
     MeshDFMeta meta = GetResource(BMeshDFMeta, desc.m_MdfMetaId).m_Data;
     mat4 worldToLocal = GetResource(BLocalTransform, desc.m_TransformId).m_WorldToLocal;
 
-    uint sdfId = meta.sdfId;
+    uint SdfId = meta.sdfId;
     vec3 lb = meta.bboxMin.xyz;
     vec3 rt = meta.bboxMax.xyz;
     vec3 extent = rt - lb;
-    float maxExtent = min(min(extent.x, extent.y), extent.z);
+    float MaxExtent = min(min(extent.x, extent.y), extent.z);
     vec3 rayDir = normalize(-PushConst.m_ShadowLightDir.xyz);
 
     float advance = 0.01;
@@ -110,40 +110,42 @@ float DistanceFieldShadowInObj(vec3 rayOriginWS, uint meshDFId){
     vec3 o = pO.xyz;
     vec3 nD = normalize(d);
 
-    float t;
-    bool hit = ifrit_RayboxIntersection(o,nD,lb,rt,t);
+    float t,tMax;
+    bool Hit = ifrit_RayboxIntersectionDual(o,nD,lb,rt,t, tMax);
     t = max(0.0,t);
 
-    vec3 hitp = o + nD * t;
-    float retShadow = 1.0;
-    float selfBias = 0e-4*maxExtent;
-    float volBias = 1e-3*maxExtent;
-    if(hit){
+    vec3 Hitp = o + nD * t;
+    float RetShadow = 1.0;
+    float VolBias = 1e-3*MaxExtent;
+    if(Hit){
+        vec3 InvExtent = 1.0 / (rt - lb);
         for(int i=0;i<20;i++){
-            vec3 uvw= (hitp - lb) / (rt - lb);
-            uvw = clamp(uvw, 0.0, 1.0);
-            float sdf = texture(GetSampler3D(meta.sdfId), uvw).x-volBias;
-            t+= max(1e-4*maxExtent,abs(sdf)* 0.5) ;
-            hitp = o + nD * t;
-            
-            retShadow = min(retShadow, PushConst.m_ShadowCoefK*abs(sdf)/(abs(t)+1e-6)*100.0);
-            if(abs(sdf)<1e-1){
+            vec3 UVW= (Hitp - lb) * InvExtent;
+            float Sdf = texture(GetSampler3D(SdfId), UVW).x-VolBias;
+            float AbsSdf = abs(Sdf);
+            t += max(1e-4*MaxExtent,AbsSdf* 0.5) ;
+            Hitp = o + nD * t;
+            RetShadow = min(RetShadow, PushConst.m_ShadowCoefK*AbsSdf/(t+1e-6)*100.0);
+            if(AbsSdf<1e-1 || t>=tMax || RetShadow <= 1e-2){
                 break;
             }
         }
     }
-    return retShadow;
+    return RetShadow;
 }
 
-float DistanceFieldShadowInTile(vec3 rayOriginWS, uint tileId){
-    float shadowAttn = 1.0;
-    uint tileOffset = PushConst.m_ShadowCullTotalDFs * tileId;
-    uint dfInTile = GetResource(BTileAtomics, PushConst.m_ShadowCullTileDFAtomics).m_Data[tileId];
-    for(uint i=0;i<dfInTile;i++){
+float DistanceFieldShadowInTile(vec3 rayOriginWS, uint TileId){
+    float ShadowAttn = 1.0;
+    uint tileOffset = PushConst.m_ShadowCullTotalDFs * TileId;
+    uint DfInTile = GetResource(BTileAtomics, PushConst.m_ShadowCullTileDFAtomics).m_Data[TileId];
+    for(uint i=0;i<DfInTile;i++){
         uint dfId = GetResource(BTileScatter, PushConst.m_ShadowCullTileDFList).m_Data[tileOffset + i];
-        shadowAttn = min(shadowAttn,DistanceFieldShadowInObj(rayOriginWS,dfId));
+        ShadowAttn = min(ShadowAttn,DistanceFieldShadowInObj(rayOriginWS,dfId));
+        if(ShadowAttn<=1e-2){
+            break;
+        }
     }
-    return shadowAttn;
+    return ShadowAttn;
 }
 
 float DistanceFieldShadow(vec3 rayOriginWS){
@@ -152,10 +154,10 @@ float DistanceFieldShadow(vec3 rayOriginWS){
     if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0){
         return 1.0;
     }
-    uint tileX = uint(uv.x * PushConst.m_ShadowCullTileSize);
-    uint tileY = uint(uv.y * PushConst.m_ShadowCullTileSize);
-    uint tileId = tileX + tileY * PushConst.m_ShadowCullTileSize;
-    return DistanceFieldShadowInTile(rayOriginWS, tileId);
+    uint TileX = uint(uv.x * PushConst.m_ShadowCullTileSize);
+    uint TileY = uint(uv.y * PushConst.m_ShadowCullTileSize);
+    uint TileId = TileX + TileY * PushConst.m_ShadowCullTileSize;
+    return DistanceFieldShadowInTile(rayOriginWS, TileId);
 }
 
 

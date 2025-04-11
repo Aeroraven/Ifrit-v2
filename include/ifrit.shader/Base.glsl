@@ -133,6 +133,33 @@ bool ifrit_RayboxIntersection(vec3 o,vec3 d,vec3 lb,vec3 rt, out float t){
     return true;
 }
 
+bool ifrit_RayboxIntersectionDual(vec3 o,vec3 d,vec3 lb,vec3 rt, out float tStart, out float tEnd){
+    vec3 dirfrac;
+    dirfrac.x = 1.0f / d.x;
+    dirfrac.y = 1.0f / d.y;
+    dirfrac.z = 1.0f / d.z;
+    float t1 = (lb.x - o.x)*dirfrac.x;
+    float t2 = (rt.x - o.x)*dirfrac.x;
+    float t3 = (lb.y - o.y)*dirfrac.y;
+    float t4 = (rt.y - o.y)*dirfrac.y;
+    float t5 = (lb.z - o.z)*dirfrac.z;
+    float t6 = (rt.z - o.z)*dirfrac.z;
+
+    float tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
+    float tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
+    if (tmax < 0){
+        tStart = tmax;
+        return false;
+    }
+    if (tmin > tmax){
+        tStart = tmax;
+        return false;
+    }
+    tStart = tmin;
+    tEnd = tmax;
+    return true;
+}
+
 uint ifrit_DivRoundUp(uint a, uint b){
     return (a + b - 1) / b;
 }

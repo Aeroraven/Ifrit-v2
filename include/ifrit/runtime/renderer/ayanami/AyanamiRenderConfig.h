@@ -34,5 +34,6 @@ namespace Ifrit::Runtime::Ayanami
 
         bool m_DebugForceSurfaceCacheRegen = false;
         bool m_DebugRunDFSS                = false;
+        bool m_DebugForceObjectGridRegen   = false;
     };
 } // namespace Ifrit::Runtime::Ayanami
