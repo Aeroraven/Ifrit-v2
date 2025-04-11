@@ -61,7 +61,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         Vector3f bboxMax;
         f32      m_SdfMin;
         f32      m_SdfMax;
-        IFRIT_STRUCT_SERIALIZE(sdfData, width, height, depth, bboxMin, bboxMax);
+        IFRIT_STRUCT_SERIALIZE(sdfData, width, height, depth, bboxMin, bboxMax, m_SdfMin, m_SdfMax);
     };
 
     IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,

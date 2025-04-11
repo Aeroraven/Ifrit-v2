@@ -528,6 +528,30 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         ComputeMeshBoundingBox(data);
         ComputeTriangleBoundingBox(data);
 
+        if (sdfWidth == ~0 || sdfHeight == ~0 || sdfDepth == ~0)
+        {
+            // Generate SDF size based on mesh bounding box
+            // Min voxels = 8,  World size = 12.5f
+            // Max voxels = 64,  World size = 100.0f;
+
+            u32 expectedX = 0.0;
+            u32 expectedY = 0.0;
+            u32 expectedZ = 0.0;
+
+            u32 worldSizeX = data.bboxMax.x - data.bboxMin.x;
+            u32 worldSizeY = data.bboxMax.y - data.bboxMin.y;
+            u32 worldSizeZ = data.bboxMax.z - data.bboxMin.z;
+
+            expectedX = std::max(8u, std::min(64u, u32(std::round(worldSizeX * 16.0f / 25.0f))));
+            expectedY = std::max(8u, std::min(64u, u32(std::round(worldSizeY * 16.0f / 25.0f))));
+            expectedZ = std::max(8u, std::min(64u, u32(std::round(worldSizeZ * 16.0f / 25.0f))));
+
+            sdfWidth  = expectedX;
+            sdfHeight = expectedY;
+            sdfDepth  = expectedZ;
+            iDebug("Auto SDF size: {}x{}x{}", sdfWidth, sdfHeight, sdfDepth);
+        }
+
         // dilate the bbox by a small amount, like 5%
         auto bboxDilate = (data.bboxMax - data.bboxMin) * 0.1f;
         data.bboxMin -= bboxDilate;
@@ -575,7 +599,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             std::uniform_real_distribution<f32> dis(0.0f, 1.0f);
 
             Vec<Vector3f>                       samples;
-            constexpr u32                       sqrtNumSamples = 9;
+            constexpr u32                       sqrtNumSamples = 7;
             constexpr u32                       numSamples     = sqrtNumSamples * sqrtNumSamples;
             samples.reserve(numSamples);
             for (u32 i = 0; i < numSamples; i++)

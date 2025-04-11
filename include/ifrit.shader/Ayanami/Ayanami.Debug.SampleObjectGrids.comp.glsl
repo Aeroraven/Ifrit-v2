@@ -321,7 +321,7 @@ void main(){
     vec3 NormalEps = vec3(0.5/PushConst.m_GlobalDFResolution);
     
     if(Hit){
-        for(int i=0;i<100;i++){
+        for(int i=0;i<200;i++){
             vec3 p = RayOrigin + RayDir*t;
             vec3 SdfUV = (p - BoxMin) / (BoxMax - BoxMin);
             SdfUV = clamp(SdfUV, vec3(0.0), vec3(1.0));

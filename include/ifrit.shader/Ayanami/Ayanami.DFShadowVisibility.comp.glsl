@@ -101,12 +101,9 @@ float DistanceFieldShadowInObj(vec3 rayOriginWS, uint meshDFId){
 
     float advance = 0.01;
     vec4 pO = vec4(rayOriginWS + rayDir * advance, 1.0);
+    vec4 pD = pO + vec4(rayDir, 0.0);
     pO = worldToLocal * pO;
-    pO = pO / pO.w;
-
-    vec4 pD = vec4(rayOriginWS + rayDir * (1.0+advance), 1.0);
     pD = worldToLocal * pD;
-    pD = pD / pD.w;
 
     vec3 d = pD.xyz - pO.xyz;
     vec3 o = pO.xyz;

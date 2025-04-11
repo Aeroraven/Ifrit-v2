@@ -62,12 +62,12 @@ namespace Ifrit::Runtime::Ayanami
             meshDesc.normalData     = reinterpret_cast<i8*>(meshData->m_normals.data());
             meshDesc.normalStride   = sizeof(Vector3f);
 
-            auto serialMeshDFName  = "core.ayanami.meshdf_1." + meshData->identifier + ".cache";
+            auto serialMeshDFName  = "core.ayanami.meshdf_2." + meshData->identifier + ".cache";
             bool hasCachedDF       = false;
             bool shouldGenCachedDF = false;
             auto cachePathStr      = String(cachePath);
 
-            auto serialCompactMeshDFName = "core.ayanami.meshdf_1_u8." + meshData->identifier + ".cache";
+            auto serialCompactMeshDFName = "core.ayanami.meshdf_2_u8." + meshData->identifier + ".cache";
             auto hasCachedCompactDF      = false;
             bool shouldGenCompactDF      = false;
             auto cacheCompactPathStr     = String(cachePathStr + serialCompactMeshDFName);
@@ -111,7 +111,7 @@ namespace Ifrit::Runtime::Ayanami
             CompactSignedDistanceField compactSdf;
             if (hasCachedCompactDF)
             {
-                auto serialCompactMeshDFPath = cacheCompactPathStr + serialCompactMeshDFName;
+                auto serialCompactMeshDFPath = cacheCompactPathStr;
                 auto buffer                  = ReadBinaryFile(serialCompactMeshDFPath);
                 Ifrit::Common::Serialization::DeserializeBinary(buffer, compactSdf);
             }
@@ -124,8 +124,9 @@ namespace Ifrit::Runtime::Ayanami
             else
             {
                 iInfo("Building mesh distance field for {}", meshData->identifier);
-                ConvertMeshToSDF(meshDesc, sdf, cAyanamiMeshDFWidth, cAyanamiMeshDFWidth, cAyanamiMeshDFWidth,
-                    MeshProcLib::MeshSDFProcess::SDFGenerateMethod::RayTracing, false);
+
+                ConvertMeshToSDF(
+                    meshDesc, sdf, ~0u, ~0u, ~0u, MeshProcLib::MeshSDFProcess::SDFGenerateMethod::RayTracing, false);
 
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 if (shouldGenCachedDF)
@@ -139,7 +140,7 @@ namespace Ifrit::Runtime::Ayanami
             {
                 iInfo("Building compact mesh distance field for {}", meshData->identifier);
                 CompactSDF(sdf, compactSdf);
-                auto   serialCompactMeshDFPath = cacheCompactPathStr + serialCompactMeshDFName;
+                auto   serialCompactMeshDFPath = cacheCompactPathStr;
                 String buffer;
                 Ifrit::Common::Serialization::SerializeBinary(compactSdf, buffer);
                 WriteBinaryFile(serialCompactMeshDFPath, buffer);
@@ -154,6 +155,9 @@ namespace Ifrit::Runtime::Ayanami
             m_isBuilt        = true;
             m_SdfMin         = compactSdf.m_SdfMin;
             m_SdfMax         = compactSdf.m_SdfMax;
+
+            auto bboxSize = m_sdBoxMax - m_sdBoxMin;
+            // iInfo("Mbox Extent: {} {} {}", bboxSize.x, bboxSize.y, bboxSize.z);
 
             if (Any(Abs(m_sdBoxMax - m_sdBoxMin) < 1e-1f))
             {
