@@ -26,14 +26,17 @@ namespace Ifrit::Imaging::Compress
     {
         RGBA8_UNORM,
         RG8_UNORM,
+        R8_UNORM,
         ATSC_6x6_UNORM,
         BC7_UNORM,
+        BC4_UNORM
     };
 
     enum class CompressionAlgo
     {
         BC5,
-        BC7
+        BC7,
+        BC4
     };
 
     IFRIT_IMAGING_API void DiscardBAChannel(

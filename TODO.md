@@ -6,17 +6,29 @@
   - 可行参考：https://advances.realtimerendering.com/s2022/SIGGRAPH2022-Advances-Lumen-Wright%20et%20al.pdf
   - 可行缓解：(A) UDF + DF Expansion (B) Virtual Surface
 
+- Ayanami: 是否可行的SDF的BC4压缩
 
+  - 参考：https://jcgt.org/published/0011/03/06/paper-lowres.pdf
+
+    
 
 ### Resolved
 
 #### 2025.04
 
+- Ayanami: 缓解 SDF RayMarching （包括离线Shadow Mask生成）的高延迟和内存带宽(Nsight Graphics: Long Scoreboard)：停止无效步进，优化DF Shadow Culling包围盒，调整Object Grid的Culling和Sort策略，自适应MDF体积，引入MDF的BC4压缩。(250412)
+
+  | After Fixing                                                 | Before Fixing                                                |
+  | ------------------------------------------------------------ | ------------------------------------------------------------ |
+  | (包括强制GDF Object Grids/Direct Lighting Atlas重生成)<br/>帧用时: 84.1 ms (-80.6%)<br/><img src="docs/imgtodo/20250412051715.png" style="zoom:50%;" /> | (包括强制GDF Object Grids/Direct Lighting Atlas重生成)<br/>帧用时: 433.1 ms<br/><img src="docs/imgtodo/2025-04-12 051343.png" style="zoom:50%;" /> |
+
+  
+
 - Ayanami: 缓解 DF Shadow Culling 的错误和重复问题 (250407)
 
   | After Fixing                                                 | Before Fixing                                                |
   | ------------------------------------------------------------ | ------------------------------------------------------------ |
-  | <img src="docs/imgtodo/2025-04-07 095430.png" style="zoom:80%;" /> | <img src="docs/imgtodo/2025-04-07 093307.png" style="zoom:100%;" /> |
+  | <img src="docs/imgtodo/2025-04-07 095430.png" style="zoom:50%;" /> | <img src="docs/imgtodo/2025-04-07 093307.png" style="zoom:60%;" /> |
 
     
 

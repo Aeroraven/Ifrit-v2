@@ -30,6 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/typing/Util.h"
 #include <filesystem>
 
+#include "ifrit/imaging/compress/CompressedTextureUtil.h"
+
 using namespace Ifrit::Math;
 
 namespace Ifrit::Runtime::Ayanami
@@ -51,7 +53,8 @@ namespace Ifrit::Runtime::Ayanami
         {
             using namespace Ifrit::MeshProcLib::MeshSDFProcess;
             using namespace Ifrit::MeshProcLib;
-            using namespace Ifrit;
+            using namespace Ifrit::Imaging::Compress;
+
             MeshDescriptor meshDesc;
             meshDesc.indexCount     = SizeCast<int>(meshData->m_indices.size());
             meshDesc.indexData      = reinterpret_cast<i8*>(meshData->m_indices.data());
@@ -72,6 +75,27 @@ namespace Ifrit::Runtime::Ayanami
             bool shouldGenCompactDF      = false;
             auto cacheCompactPathStr     = String(cachePathStr + serialCompactMeshDFName);
 
+            auto bc4CompactMeshDFName   = "core.ayanami.meshdf_2_bc4." + meshData->identifier + ".cache";
+            auto hasCachedBC4CompactDF  = false;
+            bool shouldGenBC4CompactDF  = false;
+            auto cacheBC4CompactPathStr = String(cachePathStr + bc4CompactMeshDFName);
+
+            if (!std::filesystem::exists(cacheBC4CompactPathStr))
+            {
+                shouldGenBC4CompactDF = true;
+            }
+            else
+            {
+                hasCachedBC4CompactDF = std::filesystem::exists(cacheBC4CompactPathStr);
+                if (hasCachedBC4CompactDF)
+                {
+                    shouldGenBC4CompactDF = false;
+                }
+                else
+                {
+                    shouldGenBC4CompactDF = true;
+                }
+            }
             if (!std::filesystem::exists(cacheCompactPathStr))
             {
                 shouldGenCompactDF = true;
@@ -109,6 +133,8 @@ namespace Ifrit::Runtime::Ayanami
 
             SignedDistanceField        sdf;
             CompactSignedDistanceField compactSdf;
+            RSizedBuffer               bc4CompressedSdf;
+
             if (hasCachedCompactDF)
             {
                 auto serialCompactMeshDFPath = cacheCompactPathStr;
@@ -145,16 +171,31 @@ namespace Ifrit::Runtime::Ayanami
                 Ifrit::Common::Serialization::SerializeBinary(compactSdf, buffer);
                 WriteBinaryFile(serialCompactMeshDFPath, buffer);
             }
+            if (shouldGenBC4CompactDF)
+            {
+                // TODO:
+                iInfo("Building BC4 compact mesh distance field for {}", meshData->identifier);
+                auto         serialCompactMeshDFPath = cacheBC4CompactPathStr;
+                RSizedBuffer bufferIn(compactSdf.sdfData);
+                WriteTex2DToBlockCompressedFile(bufferIn, cacheBC4CompactPathStr, TextureFormat::R8_UNORM,
+                    compactSdf.width, compactSdf.height, compactSdf.depth, CompressionAlgo::BC4);
+            }
 
-            m_CompactSDFData = std::move(compactSdf.sdfData);
-            m_sdWidth        = compactSdf.width;
-            m_sdHeight       = compactSdf.height;
-            m_sdDepth        = compactSdf.depth;
-            m_sdBoxMin       = Vector3f(compactSdf.bboxMin);
-            m_sdBoxMax       = Vector3f(compactSdf.bboxMax);
-            m_isBuilt        = true;
-            m_SdfMin         = compactSdf.m_SdfMin;
-            m_SdfMax         = compactSdf.m_SdfMax;
+            // Read Bc4 compressed sdf
+            u32 uWidth, uHeight, uDepth;
+            ReadBlockCompressedTex2DFromFile(bc4CompressedSdf, cacheBC4CompactPathStr, uWidth, uHeight, uDepth);
+
+            m_CompactSDFData = bc4CompressedSdf.ToByteVector<u8>(); //
+
+            // m_CompactSDFData = std::move(compactSdf.sdfData);
+            m_sdWidth  = uWidth;
+            m_sdHeight = uHeight;
+            m_sdDepth  = uDepth;
+            m_sdBoxMin = Vector3f(compactSdf.bboxMin);
+            m_sdBoxMax = Vector3f(compactSdf.bboxMax);
+            m_isBuilt  = true;
+            m_SdfMin   = compactSdf.m_SdfMin;
+            m_SdfMax   = compactSdf.m_SdfMax;
 
             auto bboxSize = m_sdBoxMax - m_sdBoxMin;
             // iInfo("Mbox Extent: {} {} {}", bboxSize.x, bboxSize.y, bboxSize.z);
@@ -178,19 +219,17 @@ namespace Ifrit::Runtime::Ayanami
             }
             m_gpuResource = std::make_unique<AyanamiMeshDFResource>();
             using namespace Ifrit::Graphics::Rhi;
-            auto volumeSize   = m_sdWidth * m_sdHeight * m_sdDepth;
-            auto deviceVolume = rhi->CreateBuffer("Ayanami_DFVolume", volumeSize * sizeof(u8),
+            auto volumeSize   = m_CompactSDFData.size();
+            auto deviceVolume = rhi->CreateBuffer("Ayanami_DFVolume", volumeSize,
                 RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
             deviceVolume->MapMemory();
-            deviceVolume->WriteBuffer(m_CompactSDFData.data(), volumeSize * sizeof(u8), 0);
+            deviceVolume->WriteBuffer(m_CompactSDFData.data(), volumeSize, 0);
             deviceVolume->FlushBuffer();
             deviceVolume->UnmapMemory();
 
             m_gpuResource->sdfTexture = rhi->CreateTexture3D("Ayanami_DFTexture", m_sdWidth, m_sdHeight, m_sdDepth,
-                RhiImageFormat::RhiImgFmt_R8_UNORM,
-                RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_CopyDst
-                    | RhiImageUsage::RhiImgUsage_UnorderedAccess,
-                true);
+                RhiImageFormat::RhiImgFmt_BC4_UNORM_BLOCK,
+                RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_CopyDst, false);
             m_gpuResource->sdfTextureBindId =
                 rhi->RegisterCombinedImageSampler(m_gpuResource->sdfTexture.get(), linearClampSampler.get());
             m_gpuResource->sdfMetaBuffer = rhi->CreateBuffer("Ayanami_DFMeta", sizeof(AyanamiMeshDFResource::SDFMeta),

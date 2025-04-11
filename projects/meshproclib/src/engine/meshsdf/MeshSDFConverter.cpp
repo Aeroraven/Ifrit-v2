@@ -546,6 +546,11 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             expectedY = std::max(8u, std::min(64u, u32(std::round(worldSizeY * 16.0f / 25.0f))));
             expectedZ = std::max(8u, std::min(64u, u32(std::round(worldSizeZ * 16.0f / 25.0f))));
 
+            // align to power o 4
+            expectedX = (expectedX + 3) & ~3u;
+            expectedY = (expectedY + 3) & ~3u;
+            expectedZ = (expectedZ + 3) & ~3u;
+
             sdfWidth  = expectedX;
             sdfHeight = expectedY;
             sdfDepth  = expectedZ;

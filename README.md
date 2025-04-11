@@ -84,7 +84,8 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
   - Distance Field Generation*
     - Distance Field Shadow Culling
     - Distance Field Soft Shadow (DFSS)
-  - Surface Cache + Radiance Cache
+    - BC4 Compression
+  - Surface Cache*
     - Object Grids (Global Distance Field Attribute Lookup)
 
 
@@ -194,3 +195,15 @@ Some ideas might be borrowed from Unreal Engine (or its related SIG or GDC prese
 ## 6. License
 
 It's by default licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html). The copy for license can be found in the root directory. 
+
+
+
+
+
+
+
+
+$$
+F(n) = \sum_{i=1}^n\left(n \% p\right) \\
+F(n+1) = \sum_{i=1}^n\left((n+1)\%p \right)
+$$

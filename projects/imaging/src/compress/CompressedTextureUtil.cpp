@@ -47,6 +47,10 @@ namespace Ifrit::Imaging::Compress
                 createInfo.vkFormat = VK_FORMAT_R8G8_UNORM;
                 channels            = 2;
                 break;
+            case TextureFormat::R8_UNORM:
+                createInfo.vkFormat = VK_FORMAT_R8_UNORM;
+                channels            = 1;
+                break;
             default:
                 iAssertion(false, "Compress: Unsupported format");
                 break;
@@ -68,8 +72,12 @@ namespace Ifrit::Imaging::Compress
         level     = 0;
         layer     = 0;
         faceSlice = 0;
-        result    = ktxTexture_SetImageFromMemory(ktxTexture(texture), level, layer, faceSlice, src, srcSize);
 
+        for (level = 0; level < createInfo.baseDepth; ++level)
+        {
+            result = ktxTexture_SetImageFromMemory(
+                ktxTexture(texture), 0, layer, level, src + (baseWidth * baseHeight) * level, baseWidth * baseHeight);
+        }
         channels = ktxTexture2_GetNumComponents(texture);
 
         params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
@@ -87,6 +95,12 @@ namespace Ifrit::Imaging::Compress
             result           = ktxTexture2_CompressBasisEx(texture, &params);
             iAssertion(channels == 2, "Compress: BC5 requires RG format");
             result = ktxTexture2_TranscodeBasis(texture, KTX_TTF_BC5_RG, 0);
+        }
+        else if (algo == CompressionAlgo::BC4)
+        {
+            result = ktxTexture2_CompressBasisEx(texture, &params);
+            iAssertion(channels == 1, "Compress: BC4 requires R format");
+            result = ktxTexture2_TranscodeBasis(texture, KTX_TTF_BC4_R, 0);
         }
 
         ktxTexture_WriteToNamedFile(ktxTexture(texture), outFile.c_str());
@@ -107,8 +121,9 @@ namespace Ifrit::Imaging::Compress
         level     = 0;
         layer     = 0;
         faceSlice = 0;
+
         result    = ktxTexture_GetImageOffset(texture, level, layer, faceSlice, &offset);
-        sliceSize = ktxTexture_GetImageSize(texture, level);
+        sliceSize = ktxTexture_GetDataSize(texture);
         image     = ktxTexture_GetData(texture) + offset;
 
         baseWidth  = texture->baseWidth;

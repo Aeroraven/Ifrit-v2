@@ -325,7 +325,7 @@ void main(){
             vec3 p = RayOrigin + RayDir*t;
             vec3 SdfUV = (p - BoxMin) / (BoxMax - BoxMin);
             SdfUV = clamp(SdfUV, vec3(0.0), vec3(1.0));
-            float SdfVal = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, SdfUV).r - 0.0225;
+            float SdfVal = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, SdfUV).r - 0.03;
 
             if(SdfVal < 0.0125){
                 HitTime = t;

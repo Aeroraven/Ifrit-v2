@@ -86,5 +86,13 @@ namespace Ifrit
             m_Data.resize(size);
             memcpy(m_Data.data(), ptr, size);
         }
+
+        template <typename T> Vec<T> ToByteVector() const
+        {
+            static_assert(sizeof(T) == 1, "T must be a byte-sized type");
+            Vec<T> result(m_Data.size() / sizeof(T));
+            memcpy(result.data(), m_Data.data(), m_Data.size());
+            return result;
+        }
     };
 } // namespace Ifrit

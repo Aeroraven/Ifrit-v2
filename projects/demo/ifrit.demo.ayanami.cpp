@@ -170,6 +170,7 @@ namespace Ifrit
             ayaConfig.m_globalDFClipmapResolution   = 256;
             ayaConfig.m_globalDFBaseExtent          = 13.0f;
             ayaConfig.m_DebugForceSurfaceCacheRegen = false;
+            ayaConfig.m_DebugForceObjectGridRegen   = true;
 
             renderer       = std::make_shared<AyanamiRenderer>(this, ayaConfig);
             auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf"); //
@@ -214,9 +215,9 @@ namespace Ifrit
             {
                 // Surrounding => 617
                 numMeshes++;
-                if (numMeshes == 1601 || numMeshes < 200)
-                    continue;
-                if (numMeshes > 800)
+                // if (numMeshes == 1601 || numMeshes < 600)
+                //     continue;
+                if (numMeshes > 2000)
                     break;
 
                 auto t      = m->m_prefab;
