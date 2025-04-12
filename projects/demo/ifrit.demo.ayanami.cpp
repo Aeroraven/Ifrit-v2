@@ -217,7 +217,7 @@ namespace Ifrit
                 numMeshes++;
                 // if (numMeshes == 1601 || numMeshes < 600)
                 //     continue;
-                if (numMeshes > 2000)
+                if (numMeshes > 800)
                     break;
 
                 auto t      = m->m_prefab;

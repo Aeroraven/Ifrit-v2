@@ -313,9 +313,9 @@ void main(){
     vec3 BoxMin = PushConst.m_GlobalDFBoxMin.xyz;
     vec3 BoxMax = PushConst.m_GlobalDFBoxMax.xyz;
 
-    float t;
+    float t,tMax;
     float HitTime = 0.0;
-    bool Hit = ifrit_RayboxIntersection(RayOrigin, RayDir, BoxMin, BoxMax, t);
+    bool Hit = ifrit_RayboxIntersectionDual(RayOrigin, RayDir, BoxMin, BoxMax, t,tMax);
 
     t = max(t, 0.0);
     vec3 NormalEps = vec3(0.5/PushConst.m_GlobalDFResolution);
@@ -334,6 +334,9 @@ void main(){
             }
 
             t += max(1e-2,SdfVal * 0.5);
+            if(t>=tMax){
+                break;
+            }
         }
     }
     

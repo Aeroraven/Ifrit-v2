@@ -385,6 +385,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     public:
         GraphicsPass(EngineContext* context, PipelineCache* pipelineCache, DescriptorManager* descriptorManager,
             RegisteredResourceMapper* mapper);
+        virtual ~GraphicsPass() {}
 
         void record(Ifrit::Graphics::VulkanGraphics::RenderTargets* renderTarget);
 
@@ -473,7 +474,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
         }
 
-        void        record() override;
+        void record() override;
+        virtual ~ComputePass() {}
         u32         getRequiredQueueCapability() override;
         void        SetComputeShader(Rhi::RhiShader* shader) override;
         void        build(u32 numMultiBuffers) override;

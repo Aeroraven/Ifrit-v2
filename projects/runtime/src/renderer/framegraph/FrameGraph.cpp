@@ -198,34 +198,26 @@ namespace Ifrit::Runtime
         ctx.m_CmdList->EndScope();
     }
 
-    IFRIT_APIDECL FrameGraphBuilder::~FrameGraphBuilder()
-    {
-        for (auto& res : m_resources)
-        {
-            delete res;
-        }
-        for (auto& pass : m_passes)
-        {
-            delete pass;
-        }
-    }
+    IFRIT_APIDECL               FrameGraphBuilder::~FrameGraphBuilder() {}
 
     IFRIT_APIDECL ResourceNode& FrameGraphBuilder::AddResource(const String& name)
     {
-        ResourceNode* node = new ResourceNode();
-        node->id           = SizeCast<u32>(m_resources.size());
-        node->type         = FrameGraphResourceType::Undefined;
-        node->name         = name;
-        node->isImported   = false;
-        m_resources.push_back(node);
+        // ResourceNode* node = new ResourceNode();
+        auto node        = std::make_unique<ResourceNode>();
+        node->id         = SizeCast<u32>(m_resources.size());
+        node->type       = FrameGraphResourceType::Undefined;
+        node->name       = name;
+        node->isImported = false;
 
-        // iInfo("Resource ID:{}  Name:{}", node.id, node.name);
-        return *node;
+        auto resPtr = node.get();
+        m_resources.push_back(std::move(node));
+        return *resPtr;
     }
 
     IFRIT_APIDECL PassNode& FrameGraphBuilder::AddPass(const String& name, FrameGraphPassType type)
     {
-        PassNode* node   = new PassNode();
+        // PassNode* node   = new PassNode();
+        auto node        = std::make_unique<PassNode>();
         node->type       = type;
         node->id         = SizeCast<u32>(m_passes.size());
         node->name       = name;
@@ -233,8 +225,10 @@ namespace Ifrit::Runtime
         // node.inputResources     = inputs;
         // node.outputResources    = outputs;
         // node.dependentResources = dependencies;
-        m_passes.push_back(node);
-        return *node;
+        // m_passes.push_back(node);
+        auto passPtr = node.get();
+        m_passes.push_back(std::move(node));
+        return *passPtr;
     }
 
     IFRIT_APIDECL ComputePassNode& FrameGraphBuilder::AddComputePass(
@@ -244,14 +238,15 @@ namespace Ifrit::Runtime
         cp->SetComputeShader(m_ShaderRegistry->GetShader(shader, 0));
         cp->SetPushConstSize(pushConsts * sizeof(u32));
 
-        auto pass        = new ComputePassNode(std::move(cp));
+        auto pass        = std::make_unique<ComputePassNode>(std::move(cp));
         pass->id         = SizeCast<u32>(m_passes.size());
         pass->name       = name;
         pass->isImported = false;
         pass->type       = FrameGraphPassType::Compute;
 
-        m_passes.push_back(pass);
-        return *pass;
+        auto passPtr = pass.get();
+        m_passes.push_back(std::move(pass));
+        return *passPtr;
     }
 
     IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddGraphicsPass(
@@ -262,14 +257,15 @@ namespace Ifrit::Runtime
         gp->SetPixelShader(m_ShaderRegistry->GetShader(fs, 0));
         gp->SetPushConstSize(pushConsts * sizeof(u32));
 
-        auto pass        = new GraphicsPassNode(std::move(gp));
+        auto pass        = std::make_unique<GraphicsPassNode>(std::move(gp));
         pass->id         = SizeCast<u32>(m_passes.size());
         pass->name       = name;
         pass->isImported = false;
         pass->type       = FrameGraphPassType::Graphics;
 
-        m_passes.push_back(pass);
-        return *pass;
+        auto passPtr = pass.get();
+        m_passes.push_back(std::move(pass));
+        return *passPtr;
     }
 
     IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddMeshGraphicsPass(
@@ -280,14 +276,16 @@ namespace Ifrit::Runtime
         gp->SetPixelShader(m_ShaderRegistry->GetShader(fs, 0));
         gp->SetPushConstSize(pushConsts * sizeof(u32));
 
-        auto pass        = new GraphicsPassNode(std::move(gp));
+        // auto pass        = new GraphicsPassNode(std::move(gp));
+        auto pass        = std::make_unique<GraphicsPassNode>(std::move(gp));
         pass->id         = SizeCast<u32>(m_passes.size());
         pass->name       = name;
         pass->isImported = false;
         pass->type       = FrameGraphPassType::Graphics;
 
-        m_passes.push_back(pass);
-        return *pass;
+        auto passPtr = pass.get();
+        m_passes.push_back(std::move(pass));
+        return *passPtr;
     }
 
     IFRIT_APIDECL ResourceNode& FrameGraphBuilder::DeclareTexture(const String& name, const FrameGraphTextureDesc& desc)
@@ -509,7 +507,7 @@ namespace Ifrit::Runtime
             {
                 continue;
             }
-            auto res = graph.m_resources[i];
+            auto res = graph.m_resources[i].get();
             // iInfo("FrameGraph: Resource {} is used from {} to {}.", res->name, resourceBeginUse[i],
             // resourceEndUse[i]);
             graph.m_passes[resourceBeginUse[i]]->m_ResourceCreateRequest.push_back(i);
@@ -622,7 +620,7 @@ namespace Ifrit::Runtime
             for (auto& resId : pass->outputResources)
             {
                 auto& res           = graph.m_resources[resId];
-                auto  desiredLayout = GetDesiredOutputLayout(pass->type, res->type, res);
+                auto  desiredLayout = GetDesiredOutputLayout(pass->type, res->type, res.get());
 
                 // Get aliased resource state
                 void* resPtr = nullptr;
@@ -764,7 +762,7 @@ namespace Ifrit::Runtime
             // PreExecute
             for (u32 i = 0; i < pass->m_ResourceCreateRequest.size(); i++)
             {
-                auto res = compiledGraph.m_graph->m_resources[pass->m_ResourceCreateRequest[i]];
+                auto res = compiledGraph.m_graph->m_resources[pass->m_ResourceCreateRequest[i]].get();
                 iAssertion(!res->isImported, "Resource should not be imported.");
 
                 if (res->type == FrameGraphResourceType::ResourceBuffer)
@@ -806,7 +804,7 @@ namespace Ifrit::Runtime
             // PostExecute
             for (u32 i = 0; i < pass->m_ResourceReleaseRequest.size(); i++)
             {
-                auto res = compiledGraph.m_graph->m_resources[pass->m_ResourceReleaseRequest[i]];
+                auto res = compiledGraph.m_graph->m_resources[pass->m_ResourceReleaseRequest[i]].get();
                 iAssertion(!res->isImported, "Resource should not be imported.");
 
                 if (res->type == FrameGraphResourceType::ResourceBuffer)

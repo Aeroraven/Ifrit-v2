@@ -19,19 +19,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #version 450
 
+layout(location = 0) in vec2 vTexCoord;
 
-layout(location = 0) in vec2 texCoord;
-
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 OutColor;
 
 #include "Bindless.glsl"
 #include "SamplerUtils.SharedConst.h"
 
-layout(push_constant) uniform PushConstant{
-    uint rayMarchResult;
-} pc;
+layout(push_constant) uniform UPushConstant{
+    uint m_RayMarchResult;
+} PushConst;
 
 void main(){
-    vec4 color = SampleTexture2D(pc.rayMarchResult,sLinearClamp,texCoord);
-    outColor = vec4(color.xyz, 1.0);
+    vec4 Color = SampleTexture2D(PushConst.m_RayMarchResult,sLinearClamp,vTexCoord);
+    OutColor = vec4(Color.xyz, 1.0);
 }

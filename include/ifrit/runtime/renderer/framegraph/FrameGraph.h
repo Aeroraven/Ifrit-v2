@@ -262,6 +262,7 @@ namespace Ifrit::Runtime
         // Legacy Interface, should be removed in the future.
         PassNode& AddDependentResource(const ResourceNode& res);
         PassNode& SetExecutionFunction(Fn<void(const FrameGraphPassContext&)> func);
+        virtual ~PassNode() {}
 
     protected:
         virtual void        Execute(const FrameGraphPassContext& ctx);
@@ -279,10 +280,11 @@ namespace Ifrit::Runtime
         Uref<Graphics::Rhi::RhiComputePass> m_pass;
 
     protected:
-        ComputePassNode(Uref<Graphics::Rhi::RhiComputePass>&& pass);
         virtual void Execute(const FrameGraphPassContext& ctx) override;
 
     public:
+        ComputePassNode(Uref<Graphics::Rhi::RhiComputePass>&& pass);
+        virtual ~ComputePassNode() {}
         inline Graphics::Rhi::RhiComputePass* GetPass() { return m_pass.get(); }
         inline virtual void                   FillContext(FrameGraphPassContext& passContext)
         {
@@ -313,7 +315,6 @@ namespace Ifrit::Runtime
         bool                                          m_RTComposed = false;
 
     protected:
-        GraphicsPassNode(Uref<Graphics::Rhi::RhiGraphicsPass>&& pass);
         virtual void Execute(const FrameGraphPassContext& ctx) override;
         void         ComposeRenderTargets(Graphics::Rhi::RhiBackend* rhiBackend);
         virtual void OnAfterResourceAllocated(Graphics::Rhi::RhiBackend* rhiBackend) override
@@ -322,6 +323,7 @@ namespace Ifrit::Runtime
         }
 
     public:
+        GraphicsPassNode(Uref<Graphics::Rhi::RhiGraphicsPass>&& pass);
         inline Graphics::Rhi::RhiGraphicsPass* GetPass() { return m_pass.get(); }
         inline virtual void                    FillContext(FrameGraphPassContext& passContext)
         {
@@ -343,11 +345,11 @@ namespace Ifrit::Runtime
         virtual Graphics::Rhi::RhiSRVDesc GetSRV(const ResourceNode& res) const = 0;
     };
 
-    class IFRIT_APIDECL FrameGraphBuilder : public IFrameGraphDescRegistry
+    class IFRIT_APIDECL FrameGraphBuilder : public IFrameGraphDescRegistry, public NonCopyable
     {
     private:
-        Vec<ResourceNode*>          m_resources;
-        Vec<PassNode*>              m_passes;
+        Vec<Uref<ResourceNode>>     m_resources;
+        Vec<Uref<PassNode>>         m_passes;
         FrameGraphCompileMode       m_compileMode       = FrameGraphCompileMode::Sequential;
         FrameGraphResourceInitState m_resourceInitState = FrameGraphResourceInitState::Manual;
         ShaderRegistry*             m_ShaderRegistry    = nullptr;
