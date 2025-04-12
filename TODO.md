@@ -21,6 +21,7 @@
   | After Fixing                                                 | Before Fixing                                                |
   | ------------------------------------------------------------ | ------------------------------------------------------------ |
   | (包括强制GDF Object Grids/Direct Lighting Atlas重生成)<br/>帧用时: 84.1 ms (-80.6%)<br/><img src="docs/imgtodo/20250412051715.png" style="zoom:50%;" /> | (包括强制GDF Object Grids/Direct Lighting Atlas重生成)<br/>帧用时: 433.1 ms<br/><img src="docs/imgtodo/2025-04-12 051343.png" style="zoom:50%;" /> |
+  | (Syaro GBuffer/CSM+完全的Direct Lighting Atlas重生成+Obj Grid 的Albedo Atlas可视化)<br/>帧用时: 19.51 ms<br/>(2501413) | (Syaro GBuffer/CSM+完全的Direct Lighting Atlas重生成+Obj Grid 的Albedo Atlas可视化)<br/>帧用时:  待测试 <br/> |
 
   
 

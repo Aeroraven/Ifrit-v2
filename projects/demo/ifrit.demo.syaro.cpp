@@ -104,11 +104,11 @@ public:
         renderer       = std::make_shared<SyaroRenderer>(this);
         auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Bistro/untitled.gltf");
         // Renderer config
-        renderConfig.m_visualizationType          = RendererVisualizationType::Default;
-        renderConfig.m_indirectLightingType       = IndirectLightingType::HBAO;
-        renderConfig.m_antiAliasingType           = AntiAliasingType::TAA;
-        renderConfig.m_shadowConfig.m_maxDistance = 200.0f;
-        renderConfig.m_superSamplingRate          = 1.0f;
+        renderConfig.m_VisualizationType          = RendererVisualizationType::Default;
+        renderConfig.m_IndirectLightingType       = IndirectLightingType::HBAO;
+        renderConfig.m_AntiAliasingType           = AntiAliasingType::TAA;
+        renderConfig.m_ShadowConfig.m_maxDistance = 200.0f;
+        renderConfig.m_SuperSamplingRate          = 1.0f;
 
         // Scene
         auto s    = m_sceneAssetManager->CreateScene("TestScene2");

@@ -75,8 +75,8 @@ namespace Ifrit::Imaging::Compress
 
         for (level = 0; level < createInfo.baseDepth; ++level)
         {
-            result = ktxTexture_SetImageFromMemory(
-                ktxTexture(texture), 0, layer, level, src + (baseWidth * baseHeight) * level, baseWidth * baseHeight);
+            result = ktxTexture_SetImageFromMemory(ktxTexture(texture), 0, layer, level,
+                src + (baseWidth * baseHeight) * level * channels, baseWidth * baseHeight * channels);
         }
         channels = ktxTexture2_GetNumComponents(texture);
 

@@ -133,6 +133,7 @@ layout(push_constant) uniform CullingPass{
     uint passNo;
     uint swOffset;
     uint rejectSwRaster;
+    uint m_ConeCullMode;
 } pConst;
 
 shared uint sConsumer;
@@ -344,15 +345,20 @@ void enqueueClusterGroupSingleMeshlet(uint meshletRef, uint objId, uint meshletI
 
 #if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
     // cone culling
-    
-    vec4 normalConeAxis = model * vec4(meshlet.normalCone.xyz,0.0);
-    vec4 normalConeApex = model * vec4(meshlet.normalConeApex.xyz,1.0);
-    vec3 cameraPos = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraPosition.xyz;
     float camViewType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
-    float coneAngle = dot(normalize(normalConeApex.xyz - cameraPos),normalize(normalConeAxis.xyz));
-    if(coneAngle > meshlet.normalCone.w+1e-6){
-        return;
+        
+    if(pConst.m_ConeCullMode == 0){
+        
+    }else{
+        vec4 normalConeAxis = model * vec4(meshlet.normalCone.xyz,0.0);
+        vec4 normalConeApex = model * vec4(meshlet.normalConeApex.xyz,1.0);
+        vec3 cameraPos = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraPosition.xyz;
+        float coneAngle = dot(normalize(normalConeApex.xyz - cameraPos),normalize(normalConeAxis.xyz));
+        if(coneAngle > meshlet.normalCone.w+1e-6){
+            return;
+        }
     }
+    
 
     // frustum culling
     bool bMeshletCulled = false;

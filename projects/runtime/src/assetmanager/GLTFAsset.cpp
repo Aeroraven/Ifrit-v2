@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/assetmanager/GLTFAsset.h"
+#include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/algo/Hash.h"
 #include "ifrit/core/typing/Util.h"
@@ -282,7 +283,7 @@ namespace Ifrit::Runtime
             iError("GLTFAsset: {}", err);
         }
         // Create meshes
-        std::unordered_map<std::pair<u32, u32>, u32, PairwiseHash<u32, u32>> meshHash;
+        CustomHashMap<Pair<u32, u32>, u32, PairwiseHash<u32, u32>> meshHash;
         auto cachePath = m_manager->GetApplication()->GetCacheDir();
         for (auto i = 0; auto& mesh : m_internalData->model.meshes)
         {

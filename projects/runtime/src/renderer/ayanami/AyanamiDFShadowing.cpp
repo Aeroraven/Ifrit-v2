@@ -155,7 +155,7 @@ namespace Ifrit::Runtime::Ayanami
         return pass;
     }
 
-    IFRIT_APIDECL ComputePassNode& AyanamiDistanceFieldLighting::AddDistanceFieldRadianceCachePass(
+    IFRIT_APIDECL ComputePassNode& AyanamiDistanceFieldLighting::AddDistanceFieldShadowMaskPass(
         FrameGraphBuilder& builder, u32 meshDfList, u32 numTotalMdf, FGTextureNodeRef depthAtlasTex,
         Vector3f sceneBoundMin, Vector3f sceneBoundMax, Vector3f lightDir, FGTextureNodeRef radianceTex, u32 cardDataId,
         u32 cardRes, u32 cardAtlasRes, u32 numCards, u32 worldObjId, u32 shadowCullTileSize, float softness)
@@ -205,7 +205,7 @@ namespace Ifrit::Runtime::Ayanami
         auto  cardGroups = DivRoundUp(numCards, Config::kAyanamiShadowVisibilityObjectsPerBlock);
         auto  tileGroups = DivRoundUp(cardRes, Config::kAyanamiShadowVisibilityCardSizePerBlock);
 
-        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.DFRadianceCachePass",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.OfflineShadowMask",
             Internal::kIntShaderTableAyanami.DFShadowVisibilityCS,
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
             [this, depthAtlasTex, radianceTex](PushConst data, const FrameGraphPassContext& ctx) {

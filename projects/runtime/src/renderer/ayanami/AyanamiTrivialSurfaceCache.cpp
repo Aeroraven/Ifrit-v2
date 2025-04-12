@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/ayanami/AyanamiTrivialSurfaceCache.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiMeshMarker.h"
+#include "ifrit/runtime/renderer/ayanami/AyanamiMeshDF.h"
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/base/Mesh.h"
 #include "ifrit/runtime/material/SyaroDefaultGBufEmitter.h"
@@ -69,6 +70,9 @@ namespace Ifrit::Runtime::Ayanami
 
         u32          m_TempAlbedoId;
         u32          m_TempNormalId;
+
+        // For bistro surroundings
+        bool         m_ReversedView = false;
     };
 
     struct ManagedMeshCardGPUData
@@ -162,6 +166,7 @@ namespace Ifrit::Runtime::Ayanami
             auto marker       = obj->GetComponent<AyanamiMeshMarker>();
             auto meshFilter   = obj->GetComponent<MeshFilter>();
             auto meshRenderer = obj->GetComponent<MeshRenderer>();
+            auto meshdf       = obj->GetComponent<AyanamiMeshDF>();
 
             if (meshFilter == nullptr)
             {
@@ -256,7 +261,8 @@ namespace Ifrit::Runtime::Ayanami
                     card.m_CardExtent.y = m_Resources->m_AtlasElementSize;
 
                     // LookAt & Ortho
-                    f32      viewNearPlane = 0.1f;
+                    f32      viewNearPlane     = 10.0f;
+                    f32      cardZCompensation = 10.0f;
                     Vector3f viewLocation =
                         meshBBoxCenter - card.m_CardDirection * cardExtent.z - card.m_CardDirection * viewNearPlane;
 
@@ -265,8 +271,8 @@ namespace Ifrit::Runtime::Ayanami
                     Matrix4x4f viewMatrix = LookAt(viewLocation, viewTarget, viewUp);
 
                     f32        viewAspect = cardExtent.x / cardExtent.y;
-                    Matrix4x4f viewOrtho  = OrthographicNegateY(
-                        cardExtent.y * 2.0, viewAspect, viewNearPlane, cardExtent.z * 2.0f + viewNearPlane);
+                    Matrix4x4f viewOrtho  = OrthographicNegateY(cardExtent.y * 2.0, viewAspect, viewNearPlane,
+                         cardExtent.z * 2.0f + viewNearPlane + cardZCompensation);
 
                     // printf("ViewExtent: %f, %f, %f\n", cardExtent.x, cardExtent.y, cardExtent.z);
                     // printf("ViewCenter: %f, %f, %f\n", meshBBoxCenter.x, meshBBoxCenter.y, meshBBoxCenter.z);
@@ -279,6 +285,11 @@ namespace Ifrit::Runtime::Ayanami
 
                     card.m_TempAlbedoId = albedoId;
                     card.m_TempNormalId = normalId;
+
+                    if (meshdf->IsDoubleSided())
+                    {
+                        card.m_ReversedView = true;
+                    }
 
                     m_Resources->m_MeshCardGPUData[slotId].m_ObserverVP        = Transpose(viewVP);
                     m_Resources->m_MeshCardGPUData[slotId].m_ObserverVPInverse = Transpose(Inverse4(viewVP));
@@ -372,6 +383,15 @@ namespace Ifrit::Runtime::Ayanami
                 pc.allCardDataId = m_Resources->m_ObserveDeviceData->GetDescId();
                 pc.tangentId     = card.m_CardTangentBuffer->GetDescId();
                 pc.normalId      = card.m_CardNormalBuffer->GetDescId();
+
+                if (card.m_ReversedView)
+                {
+                    cmd->SetCullMode(RhiCullMode::Back);
+                }
+                else
+                {
+                    cmd->SetCullMode(RhiCullMode::None);
+                }
 
                 auto vioPass = const_cast<Graphics::Rhi::RhiGraphicsPass*>(ctx.m_GraphicsPass);
                 cmd->SetPushConst(&pc, 0, sizeof(PushConst));

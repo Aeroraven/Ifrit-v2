@@ -170,10 +170,15 @@ namespace Ifrit
             ayaConfig.m_globalDFClipmapResolution   = 256;
             ayaConfig.m_globalDFBaseExtent          = 13.0f;
             ayaConfig.m_DebugForceSurfaceCacheRegen = false;
-            ayaConfig.m_DebugForceObjectGridRegen   = true;
+            ayaConfig.m_DebugForceObjectGridRegen   = false;
+
+            renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
+
+            // Bistro interior has many one-sided meshes. The culling strategy is required to be reconsidered.
+            renderConfig.m_OverrideMaterialCulling = OverrideMaterialCulling::ForcedCullNone;
 
             renderer       = std::make_shared<AyanamiRenderer>(this, ayaConfig);
-            auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf"); //
+            auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInteriorModified/bistro.gltf"); //
             // auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Fox/scene.gltf"); //
             //   Scene
             auto s    = m_sceneAssetManager->CreateScene("TestScene2");
@@ -217,11 +222,12 @@ namespace Ifrit
                 numMeshes++;
                 // if (numMeshes == 1601 || numMeshes < 600)
                 //     continue;
-                if (numMeshes > 800)
-                    break;
+                // if (numMeshes > 726)
+                //     continue;
 
                 auto t      = m->m_prefab;
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
+                meshDF->SetCompression(true);
                 meshDF->BuildMeshDF(GetCacheDir());
                 auto meshMarker = t->AddComponent<Ayanami::AyanamiMeshMarker>();
 
@@ -257,6 +263,7 @@ namespace Ifrit
                 renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { sFrameStart.get() });
             renderer->EndFrame({ renderComplete.get() });
             // std::abort();
+            // std::exit(0);
         }
 
         void OnEnd() override {}

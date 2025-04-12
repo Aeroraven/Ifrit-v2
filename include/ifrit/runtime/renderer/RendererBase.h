@@ -65,6 +65,13 @@ namespace Ifrit::Runtime
         HBAO,
         SSGI
     };
+    enum class OverrideMaterialCulling
+    {
+        None,
+        ForcedCullFront,
+        ForcedCullBack,
+        ForcedCullNone
+    };
 
     struct RendererConfig
     {
@@ -77,11 +84,12 @@ namespace Ifrit::Runtime
             Array<f32, 4>           m_csmBorders    = { 0.08f, 0.05f, 0.0f, 0.0f };
         };
 
-        AntiAliasingType          m_antiAliasingType     = AntiAliasingType::None;
-        IndirectLightingType      m_indirectLightingType = IndirectLightingType::HBAO;
-        RendererVisualizationType m_visualizationType    = RendererVisualizationType::Default;
-        ShadowConfig              m_shadowConfig;
-        f32                       m_superSamplingRate = 1.0f;
+        AntiAliasingType          m_AntiAliasingType        = AntiAliasingType::None;
+        IndirectLightingType      m_IndirectLightingType    = IndirectLightingType::HBAO;
+        RendererVisualizationType m_VisualizationType       = RendererVisualizationType::Default;
+        OverrideMaterialCulling   m_OverrideMaterialCulling = OverrideMaterialCulling::None;
+        ShadowConfig              m_ShadowConfig;
+        f32                       m_SuperSamplingRate = 1.0f;
     };
 
     // TODO: move render graph to here
@@ -101,9 +109,9 @@ namespace Ifrit::Runtime
         inline void GetSupersampledRenderArea(
             const RenderTargets* finalRenderTargets, u32* renderWidth, u32* renderHeight)
         {
-            *renderWidth = static_cast<u32>(finalRenderTargets->GetRenderArea().width / m_config->m_superSamplingRate);
+            *renderWidth = static_cast<u32>(finalRenderTargets->GetRenderArea().width / m_config->m_SuperSamplingRate);
             *renderHeight =
-                static_cast<u32>(finalRenderTargets->GetRenderArea().height / m_config->m_superSamplingRate);
+                static_cast<u32>(finalRenderTargets->GetRenderArea().height / m_config->m_SuperSamplingRate);
         }
 
         virtual void PrepareImmutableResources();

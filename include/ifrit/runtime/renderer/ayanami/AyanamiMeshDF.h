@@ -55,10 +55,11 @@ namespace Ifrit::Runtime::Ayanami
         u32                         m_sdDepth;
         Vector3f                    m_sdBoxMin;
         Vector3f                    m_sdBoxMax;
-        bool                        m_isBuilt       = false;
-        bool                        m_IsDoubleSided = false;
-        f32                         m_SdfMin        = 0.0f;
-        f32                         m_SdfMax        = 0.0f;
+        bool                        m_isBuilt        = false;
+        bool                        m_IsDoubleSided  = false;
+        f32                         m_SdfMin         = 0.0f;
+        f32                         m_SdfMax         = 0.0f;
+        bool                        m_UseCompression = false;
 
         Uref<AyanamiMeshDFResource> m_gpuResource = nullptr;
 
@@ -77,6 +78,8 @@ namespace Ifrit::Runtime::Ayanami
         inline Vector3f GetBoxMin() const { return m_sdBoxMin; }
         inline Vector3f GetBoxMax() const { return m_sdBoxMax; }
         inline void     SetDoubleSided(bool isDoubleSided) { m_IsDoubleSided = isDoubleSided; }
+        inline bool     IsDoubleSided() const { return m_IsDoubleSided; }
+        inline void     SetCompression(bool useCompression) { m_UseCompression = useCompression; }
         IFRIT_COMPONENT_SERIALIZE(m_sdWidth, m_sdHeight, m_sdDepth, m_sdBoxMin, m_sdBoxMax);
     };
 

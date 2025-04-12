@@ -44,7 +44,10 @@ layout(push_constant) uniform PushConstants {
 void main(){
     vec4 albedo = texture(GetSampler2D(PushConst.albedoId), TexCoord);
     vec4 normal = texture(GetSampler2D(PushConst.NormalTexId), TexCoord);
-    vec3 normalMap = normal.rgb * 2.0 - 1.0;
+    vec2 normalRG = normal.xy * 2.0 - 1.0;
+    float normalB = sqrt(1.0 - dot(normalRG, normalRG));
+    vec3 normalMap = vec3(normalRG, normalB);
+    //vec3 normalMap = normal.rgb * 2.0 - 1.0;
 
     vec3 tangent = normalize(Tangent.xyz);
     tangent = normalize(tangent - dot(tangent, Normal) * Normal);

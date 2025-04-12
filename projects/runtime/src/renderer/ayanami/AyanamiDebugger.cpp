@@ -151,36 +151,39 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_CardAtlasResolution;
             u32      m_CardDepthAtlasSRV;
             u32      m_CardAlbedoAtlasSRV;
+            u32      m_CardDirectLightingAtlasSRV;
         } pc;
-        pc.m_GlobalDFBoxMax        = Vector4f(worldBoundMax, 0.0f);
-        pc.m_GlobalDFBoxMin        = Vector4f(worldBoundMin, 0.0f);
-        pc.m_PerFrameId            = perFrameDataId;
-        pc.m_GlobalDFId            = 0;
-        pc.m_OutTex                = 0;
-        pc.m_RtH                   = outTextureSize.y;
-        pc.m_RtW                   = outTextureSize.x;
-        pc.m_GlobalObjectGridUAV   = 0;
-        pc.m_GlobalDFResolution    = globalDfWidth;
-        pc.m_VoxelsPerClipMapWidth = voxelsPerWidth;
-        pc.m_MeshDFDescListId      = meshDfDesc;
-        pc.m_AllCardData           = allCardData;
-        pc.m_CardResolution        = cardResolution;      // TODO
-        pc.m_CardAtlasResolution   = cardAtlasResolution; // TODO
-        pc.m_CardDepthAtlasSRV     = 0;
-        pc.m_CardAlbedoAtlasSRV    = 0;
+        pc.m_GlobalDFBoxMax             = Vector4f(worldBoundMax, 0.0f);
+        pc.m_GlobalDFBoxMin             = Vector4f(worldBoundMin, 0.0f);
+        pc.m_PerFrameId                 = perFrameDataId;
+        pc.m_GlobalDFId                 = 0;
+        pc.m_OutTex                     = 0;
+        pc.m_RtH                        = outTextureSize.y;
+        pc.m_RtW                        = outTextureSize.x;
+        pc.m_GlobalObjectGridUAV        = 0;
+        pc.m_GlobalDFResolution         = globalDfWidth;
+        pc.m_VoxelsPerClipMapWidth      = voxelsPerWidth;
+        pc.m_MeshDFDescListId           = meshDfDesc;
+        pc.m_AllCardData                = allCardData;
+        pc.m_CardResolution             = cardResolution;      // TODO
+        pc.m_CardAtlasResolution        = cardAtlasResolution; // TODO
+        pc.m_CardDepthAtlasSRV          = 0;
+        pc.m_CardAlbedoAtlasSRV         = 0;
+        pc.m_CardDirectLightingAtlasSRV = 0;
 
         auto tgX = DivRoundUp(outTextureSize.x, Config::kAyanamiDbgObjGridTileSize);
         auto tgY = DivRoundUp(outTextureSize.y, Config::kAyanamiDbgObjGridTileSize);
 
         AddComputePass<PushConst>(builder, "Ayanami.Debug.SampleObjectGrids",
             Internal::kIntShaderTableAyanami.DbgSampleObjectGridsCS, Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc,
-            [outputTexture, globalDF, globalObjectGrids, cardDepthAtlas, cardAlbedoAtlas](
+            [outputTexture, globalDF, globalObjectGrids, cardDepthAtlas, cardAlbedoAtlas, cardDirectLightingAtlas](
                 PushConst data, const FrameGraphPassContext& ctx) {
-                data.m_OutTex              = ctx.m_FgDesc->GetUAV(*outputTexture);
-                data.m_GlobalDFId          = ctx.m_FgDesc->GetSRV(*globalDF);
-                data.m_GlobalObjectGridUAV = ctx.m_FgDesc->GetUAV(*globalObjectGrids);
-                data.m_CardDepthAtlasSRV   = ctx.m_FgDesc->GetSRV(*cardDepthAtlas);
-                data.m_CardAlbedoAtlasSRV  = ctx.m_FgDesc->GetSRV(*cardAlbedoAtlas);
+                data.m_OutTex                     = ctx.m_FgDesc->GetUAV(*outputTexture);
+                data.m_GlobalDFId                 = ctx.m_FgDesc->GetSRV(*globalDF);
+                data.m_GlobalObjectGridUAV        = ctx.m_FgDesc->GetUAV(*globalObjectGrids);
+                data.m_CardDepthAtlasSRV          = ctx.m_FgDesc->GetSRV(*cardDepthAtlas);
+                data.m_CardAlbedoAtlasSRV         = ctx.m_FgDesc->GetSRV(*cardAlbedoAtlas);
+                data.m_CardDirectLightingAtlasSRV = ctx.m_FgDesc->GetSRV(*cardDirectLightingAtlas);
                 SetRootSignature(data, ctx);
             })
             .AddWriteResource(*outputTexture)

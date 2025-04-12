@@ -44,7 +44,7 @@ namespace Ifrit::Runtime::Ayanami
             u32 depthSRV, u32 perframe, Vector3f sceneBoundMin, Vector3f sceneBoundMax, Vector3f lightDir, u32 tileSize,
             float softness);
 
-        ComputePassNode&  AddDistanceFieldRadianceCachePass(FrameGraphBuilder& builder, u32 meshDfList, u32 numTotalMdf,
+        ComputePassNode&  AddDistanceFieldShadowMaskPass(FrameGraphBuilder& builder, u32 meshDfList, u32 numTotalMdf,
              FGTextureNodeRef depthAtlasTex, Vector3f sceneBoundMin, Vector3f sceneBoundMax, Vector3f lightDir,
              FGTextureNodeRef radianceTex, u32 cardDataId, u32 cardRes, u32 cardAtlasRes, u32 numCards, u32 worldObjId,
              u32 shadowCullTileSize, float softness);

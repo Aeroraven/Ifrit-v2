@@ -99,11 +99,11 @@ void main(){
     vec3 lb = pc.m_GlobalDFBoxMin.xyz;
     vec3 rt = pc.m_GlobalDFBoxMax.xyz;
 
-    float t;
-    bool hit = rayboxIntersection(rayOrigin, rayDir, lb, rt, t);
+    float t,tMax;
+    bool hit = ifrit_RayboxIntersectionDual(rayOrigin, rayDir, lb, rt, t, tMax);
 
     t = max(t, 0.0);
-    vec3 normalEps = vec3(1.0/256.0, 1.0/256.0, 1.0/256.0)*0.5;
+    vec3 normalEps = vec3(1.0/256.0, 1.0/256.0, 1.0/256.0)*0.15;
     bool found = false;
     
 
@@ -112,9 +112,9 @@ void main(){
             vec3 p = rayOrigin + rayDir*t;
             vec3 uvw = (p - lb) / (rt - lb);
             uvw = clamp(uvw, vec3(0.0), vec3(1.0));
-            float sdf = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw).r - 0.035;
+            float sdf = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw).r - 0.03;
 
-            if(sdf < 0.0075){
+            if(sdf < 0.015){
                 found = true;
                 float dx1 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw + vec3(normalEps.x, 0.0, 0.0)).r;
                 float dx2 = SampleTexture3D(pc.m_GlobalDFId, sLinearClamp, uvw - vec3(normalEps.x, 0.0, 0.0)).r;
@@ -132,6 +132,9 @@ void main(){
             }
 
             t += max(1e-2,sdf * 0.5);
+            if(t>=tMax){
+                break;
+            }
         }
     }
     

@@ -65,17 +65,17 @@ namespace Ifrit::Runtime::Ayanami
             meshDesc.normalData     = reinterpret_cast<i8*>(meshData->m_normals.data());
             meshDesc.normalStride   = sizeof(Vector3f);
 
-            auto serialMeshDFName  = "core.ayanami.meshdf_2." + meshData->identifier + ".cache";
+            auto serialMeshDFName  = "runtime.ayanami.meshdf_2." + meshData->identifier + ".cache";
             bool hasCachedDF       = false;
             bool shouldGenCachedDF = false;
             auto cachePathStr      = String(cachePath);
 
-            auto serialCompactMeshDFName = "core.ayanami.meshdf_2_u8." + meshData->identifier + ".cache";
+            auto serialCompactMeshDFName = "runtime.ayanami.meshdf_2_u8." + meshData->identifier + ".cache";
             auto hasCachedCompactDF      = false;
             bool shouldGenCompactDF      = false;
             auto cacheCompactPathStr     = String(cachePathStr + serialCompactMeshDFName);
 
-            auto bc4CompactMeshDFName   = "core.ayanami.meshdf_2_bc4." + meshData->identifier + ".cache";
+            auto bc4CompactMeshDFName   = "runtime.ayanami.meshdf_2_bc4." + meshData->identifier + ".cache";
             auto hasCachedBC4CompactDF  = false;
             bool shouldGenBC4CompactDF  = false;
             auto cacheBC4CompactPathStr = String(cachePathStr + bc4CompactMeshDFName);
@@ -159,7 +159,7 @@ namespace Ifrit::Runtime::Ayanami
                 {
                     String buffer;
                     Ifrit::Common::Serialization::SerializeBinary(sdf, buffer);
-                    WriteBinaryFile(serialMeshDFPath, buffer);
+                    // WriteBinaryFile(serialMeshDFPath, buffer);
                 }
             }
             if (shouldGenCompactDF)
@@ -185,9 +185,14 @@ namespace Ifrit::Runtime::Ayanami
             u32 uWidth, uHeight, uDepth;
             ReadBlockCompressedTex2DFromFile(bc4CompressedSdf, cacheBC4CompactPathStr, uWidth, uHeight, uDepth);
 
-            m_CompactSDFData = bc4CompressedSdf.ToByteVector<u8>(); //
-
-            // m_CompactSDFData = std::move(compactSdf.sdfData);
+            if (!m_UseCompression)
+            {
+                m_CompactSDFData = std::move(compactSdf.sdfData);
+            }
+            else
+            {
+                m_CompactSDFData = bc4CompressedSdf.ToByteVector<u8>();
+            }
             m_sdWidth  = uWidth;
             m_sdHeight = uHeight;
             m_sdDepth  = uDepth;
@@ -227,9 +232,19 @@ namespace Ifrit::Runtime::Ayanami
             deviceVolume->FlushBuffer();
             deviceVolume->UnmapMemory();
 
-            m_gpuResource->sdfTexture = rhi->CreateTexture3D("Ayanami_DFTexture", m_sdWidth, m_sdHeight, m_sdDepth,
-                RhiImageFormat::RhiImgFmt_BC4_UNORM_BLOCK,
-                RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_CopyDst, false);
+            if (!m_UseCompression)
+            {
+                m_gpuResource->sdfTexture = rhi->CreateTexture3D("Ayanami_DFTexture", m_sdWidth, m_sdHeight, m_sdDepth,
+                    RhiImageFormat::RhiImgFmt_R8_UNORM,
+                    RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_CopyDst, false);
+            }
+            else
+            {
+                m_gpuResource->sdfTexture = rhi->CreateTexture3D("Ayanami_DFTexture", m_sdWidth, m_sdHeight, m_sdDepth,
+                    RhiImageFormat::RhiImgFmt_BC4_UNORM_BLOCK,
+                    RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_CopyDst, false);
+            }
+
             m_gpuResource->sdfTextureBindId =
                 rhi->RegisterCombinedImageSampler(m_gpuResource->sdfTexture.get(), linearClampSampler.get());
             m_gpuResource->sdfMetaBuffer = rhi->CreateBuffer("Ayanami_DFMeta", sizeof(AyanamiMeshDFResource::SDFMeta),

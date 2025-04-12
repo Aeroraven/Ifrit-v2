@@ -131,8 +131,8 @@ namespace Ifrit::Runtime
         RhiScissor scissor;
         scissor.x      = 0;
         scissor.y      = 0;
-        scissor.width  = finalRenderTargets->GetRenderArea().width / cfg.m_superSamplingRate;
-        scissor.height = finalRenderTargets->GetRenderArea().height / cfg.m_superSamplingRate;
+        scissor.width  = finalRenderTargets->GetRenderArea().width / cfg.m_SuperSamplingRate;
+        scissor.height = finalRenderTargets->GetRenderArea().height / cfg.m_SuperSamplingRate;
         return scissor;
     }
 
@@ -323,7 +323,7 @@ namespace Ifrit::Runtime
 
         auto& resFsr2Output = fg.AddResource("Fsr2Output");
 
-        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
+        if (m_config->m_AntiAliasingType == AntiAliasingType::FSR2)
             resFsr2Output.SetImportedResource(perframeData.m_fsr2Data.m_fsr2Output.get(), { 0, 0, 1, 1 });
 
         // PASS START!
@@ -373,7 +373,7 @@ namespace Ifrit::Runtime
         auto& passFsr2Dispatch = fg.AddPass("FSR2Dispatch", FrameGraphPassType::Compute);
         auto& passToneMapping  = fg.AddPass("ToneMapping", FrameGraphPassType::Graphics);
 
-        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
+        if (m_config->m_AntiAliasingType == AntiAliasingType::FSR2)
         {
             passGlobalFog.AddReadResource(resPrimaryViewDepth)
                 .AddReadResource(resDeferredShadingOutput)
@@ -383,7 +383,7 @@ namespace Ifrit::Runtime
 
             passFsr2Dispatch.AddReadResource(resBloomOutput).AddWriteResource(resFsr2Output);
         }
-        else if (m_config->m_antiAliasingType == AntiAliasingType::TAA)
+        else if (m_config->m_AntiAliasingType == AntiAliasingType::TAA)
         {
             passGlobalFog.AddReadResource(resPrimaryViewDepth)
                 .AddReadResource(resDeferredShadingOutput)
@@ -405,7 +405,7 @@ namespace Ifrit::Runtime
         }
 
         // Tonemapping
-        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
+        if (m_config->m_AntiAliasingType == AntiAliasingType::FSR2)
         {
             passToneMapping.AddReadResource(resFsr2Output).AddWriteResource(resFinalOutput);
         }
@@ -517,7 +517,7 @@ namespace Ifrit::Runtime
             m_globalFogPass->RenderPostFx(data.m_CmdList, fogRT.get(), inputId, inputDepthId, primaryViewId);
         });
 
-        if (m_config->m_antiAliasingType == AntiAliasingType::TAA)
+        if (m_config->m_AntiAliasingType == AntiAliasingType::TAA)
         {
             passTAAResolve.SetExecutionFunction([&](const FrameGraphPassContext& data) {
                 auto commandList = data.m_CmdList;
@@ -579,7 +579,7 @@ namespace Ifrit::Runtime
             });
         }
 
-        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
+        if (m_config->m_AntiAliasingType == AntiAliasingType::FSR2)
         {
             passFsr2Dispatch.SetExecutionFunction([&](const FrameGraphPassContext& data) {
                 auto commandList = data.m_CmdList;
@@ -631,7 +631,7 @@ namespace Ifrit::Runtime
             passFsr2Dispatch.SetExecutionFunction([&](const FrameGraphPassContext& data) {});
         }
 
-        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
+        if (m_config->m_AntiAliasingType == AntiAliasingType::FSR2)
         {
             auto renderArea = renderTargets->GetRenderArea();
             auto width      = renderArea.width;
@@ -651,7 +651,7 @@ namespace Ifrit::Runtime
         }
 
         // transition input resources
-        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
+        if (m_config->m_AntiAliasingType == AntiAliasingType::FSR2)
         {
             runImageBarrier(cmd, perframeData.m_fsr2Data.m_fsr2Output.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
 
@@ -850,7 +850,7 @@ namespace Ifrit::Runtime
     {
         auto rhi = m_app->GetRhi();
         m_persistentCullingPass =
-            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.PersistentCullingCS, 5, 3);
+            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.PersistentCullingCS, 5, 4);
 
         m_indirectDrawBuffer = rhi->CreateBufferDevice("Syaro_IndirectDraw", u32Size * 1, kbBufUsage_Indirect, true);
         m_persistCullDesc    = rhi->CreateBindlessDescriptorRef();
@@ -1133,6 +1133,7 @@ namespace Ifrit::Runtime
                 u32 passNo;
                 u32 swOffset;
                 u32 rejectSwRaster;
+                u32 m_ConeCullMode;
             } pcPersistCull;
 
             ctx->m_cmd->AddResourceBarrier(perView.m_persistCullBarrier);
@@ -1149,6 +1150,27 @@ namespace Ifrit::Runtime
             ctx->m_cmd->AttachUniformRef(3, m_persistCullDesc);
             ctx->m_cmd->AttachUniformRef(4, perView.m_allFilteredMeshletsDesc);
             ctx->m_cmd->AttachUniformRef(5, perView.m_instCullDesc);
+
+            // forced culling
+            if (m_config->m_OverrideMaterialCulling == OverrideMaterialCulling::ForcedCullNone)
+            {
+                pcPersistCull.m_ConeCullMode = 0;
+            }
+            else if (m_config->m_OverrideMaterialCulling == OverrideMaterialCulling::ForcedCullFront)
+            {
+                pcPersistCull.m_ConeCullMode = 1;
+                iWarn("Forced culling front is not supported yet. Defaulting to back culling.");
+            }
+            else if (m_config->m_OverrideMaterialCulling == OverrideMaterialCulling::ForcedCullBack)
+            {
+                pcPersistCull.m_ConeCullMode = 2;
+            }
+            else
+            {
+                pcPersistCull.m_ConeCullMode = 2;
+            }
+
+            // raw code
             if (perView.m_viewType == PerFrameData::ViewType::Primary)
             {
                 pcPersistCull.rejectSwRaster = 0;
@@ -1181,7 +1203,23 @@ namespace Ifrit::Runtime
             // bind view buffer
             ctx->m_cmd->AttachUniformRef(1, perView.m_viewBindlessRef);
             ctx->m_cmd->AttachUniformRef(2, perframeData.m_allInstanceData.m_batchedObjBufRef);
-            ctx->m_cmd->SetCullMode(RhiCullMode::Back);
+            if (m_renderConfig.m_OverrideMaterialCulling == OverrideMaterialCulling::ForcedCullNone)
+            {
+                ctx->m_cmd->SetCullMode(RhiCullMode::None);
+            }
+            else if (m_renderConfig.m_OverrideMaterialCulling == OverrideMaterialCulling::ForcedCullFront)
+            {
+                ctx->m_cmd->SetCullMode(RhiCullMode::Front);
+            }
+            else if (m_renderConfig.m_OverrideMaterialCulling == OverrideMaterialCulling::ForcedCullBack)
+            {
+                ctx->m_cmd->SetCullMode(RhiCullMode::Back);
+            }
+            else
+            {
+                // Cull back default
+                ctx->m_cmd->SetCullMode(RhiCullMode::Back);
+            }
             ctx->m_cmd->AttachUniformRef(3, perView.m_allFilteredMeshletsDesc);
             if (cullPass == CullingPass::First)
             {
@@ -1274,7 +1312,7 @@ namespace Ifrit::Runtime
             pcCombine.hwDepthSRVId = perView.m_visDepthIdSRV_HW->GetActiveId();
             pcCombine.swVisUAVId   = perView.m_visibilityBuffer_SW->GetDescId();
             pcCombine.swDepthUAVId = perView.m_visPassDepth_SW->GetDescId();
-            pcCombine.outMode      = m_config->m_visualizationType == RendererVisualizationType::SwHwMaps;
+            pcCombine.outMode      = m_config->m_VisualizationType == RendererVisualizationType::SwHwMaps;
 
             IF_CONSTEXPR auto wgSizeX = SyaroConfig::cCombineVisBufferThreadGroupSizeX;
             IF_CONSTEXPR auto wgSizeY = SyaroConfig::cCombineVisBufferThreadGroupSizeY;
@@ -1695,13 +1733,13 @@ namespace Ifrit::Runtime
         cmd->BeginScope("Syaro: Ambient Occlusion");
         cmd->AddResourceBarrier(
             { perframeData.m_gbuffer.m_normal_smoothnessBarrier, perframeData.m_gbuffer.m_specular_occlusionBarrier });
-        if (m_config->m_indirectLightingType == IndirectLightingType::HBAO)
+        if (m_config->m_IndirectLightingType == IndirectLightingType::HBAO)
         {
             m_aoPass->RenderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(), ao, perframe.get());
             cmd->AddResourceBarrier({ perframeData.m_gbuffer.m_specular_occlusionBarrier });
             aoBlurFunc();
         }
-        else if (m_config->m_indirectLightingType == IndirectLightingType::SSGI)
+        else if (m_config->m_IndirectLightingType == IndirectLightingType::SSGI)
         {
             m_aoPass->RenderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(), ao, perframe.get());
             cmd->AddResourceBarrier({ perframeData.m_gbuffer.m_specular_occlusionBarrier });
@@ -1881,7 +1919,7 @@ namespace Ifrit::Runtime
         perframeData.m_fsr2Data.m_fsr2OutputSRVId =
             rhi->RegisterCombinedImageSampler(perframeData.m_fsr2Data.m_fsr2Output.get(), linearSampler.get());
 
-        if (m_config->m_antiAliasingType == AntiAliasingType::FSR2)
+        if (m_config->m_AntiAliasingType == AntiAliasingType::FSR2)
         {
             Graphics::Rhi::FSR2::RhiFSR2InitialzeArgs args;
             args.displayHeight   = outputRth;
@@ -2022,7 +2060,7 @@ namespace Ifrit::Runtime
                 for (u32 i = 0; i < perframeData.m_views.size(); i++)
                 {
                     if (perframeData.m_views[i].m_viewType == PerFrameData::ViewType::Shadow
-                        && m_config->m_visualizationType == RendererVisualizationType::Default)
+                        && m_config->m_VisualizationType == RendererVisualizationType::Default)
                     {
                         if ((m_renderRole & SyaroRenderRole::Shadowing))
                         {
@@ -2046,7 +2084,7 @@ namespace Ifrit::Runtime
                             RenderTwoPassOcclCulling(CullingPass::Second, perframeData, renderTargets, cmd,
                                 PerFrameData::ViewType::Primary, ~0u);
                             cmd->GlobalMemoryBarrier();
-                            if (m_config->m_visualizationType != RendererVisualizationType::Default)
+                            if (m_config->m_VisualizationType != RendererVisualizationType::Default)
                             {
                                 return;
                             }
@@ -2070,12 +2108,12 @@ namespace Ifrit::Runtime
 
         if (m_renderRole & SyaroRenderRole::Shading)
         {
-            if (m_config->m_visualizationType != RendererVisualizationType::Default)
+            if (m_config->m_VisualizationType != RendererVisualizationType::Default)
             {
                 auto deferredTask = dq->RunAsyncCommand(
                     [&](const RhiCommandList* cmd) {
-                        if (m_config->m_visualizationType == RendererVisualizationType::Triangle
-                            || m_config->m_visualizationType == RendererVisualizationType::SwHwMaps)
+                        if (m_config->m_VisualizationType == RendererVisualizationType::Triangle
+                            || m_config->m_VisualizationType == RendererVisualizationType::SwHwMaps)
                         {
                             cmd->GlobalMemoryBarrier();
                             RenderTriangleView(perframeData, renderTargets, cmd);
@@ -2129,12 +2167,12 @@ namespace Ifrit::Runtime
         auto               outputWidth = renderTargets->GetRenderArea().width;
         SceneCollectConfig sceneConfig;
         float              jx, jy;
-        if (config.m_antiAliasingType == AntiAliasingType::TAA)
+        if (config.m_AntiAliasingType == AntiAliasingType::TAA)
         {
             sceneConfig.projectionTranslateX = (haltonX * 2.0f - 1.0f) / width;
             sceneConfig.projectionTranslateY = (haltonY * 2.0f - 1.0f) / height;
         }
-        else if (config.m_antiAliasingType == AntiAliasingType::FSR2)
+        else if (config.m_AntiAliasingType == AntiAliasingType::FSR2)
         {
 
             m_fsr2proc->GetJitters(&jx, &jy, perframeData.m_frameId, actualRw, outputWidth);
@@ -2150,7 +2188,7 @@ namespace Ifrit::Runtime
         }
 
         // If debug views, ignore all jitters
-        if (config.m_visualizationType != RendererVisualizationType::Default)
+        if (config.m_VisualizationType != RendererVisualizationType::Default)
         {
             perframeData.m_taaJitterX        = 0;
             perframeData.m_taaJitterY        = 0;
@@ -2163,12 +2201,12 @@ namespace Ifrit::Runtime
         auto end0      = std::chrono::high_resolution_clock::now();
         auto duration0 = std::chrono::duration_cast<std::chrono::milliseconds>(end0 - start);
         // iDebug("CPU time, frame collecting: {} ms", duration0.count());
-        if (config.m_antiAliasingType == AntiAliasingType::TAA)
+        if (config.m_AntiAliasingType == AntiAliasingType::TAA)
         {
             perframeData.m_taaJitterX = sceneConfig.projectionTranslateX * 0.5f;
             perframeData.m_taaJitterY = sceneConfig.projectionTranslateY * 0.5f;
         }
-        else if (config.m_antiAliasingType == AntiAliasingType::FSR2)
+        else if (config.m_AntiAliasingType == AntiAliasingType::FSR2)
         {
             perframeData.m_taaJitterX = jx;
             perframeData.m_taaJitterY = jy;
@@ -2180,7 +2218,7 @@ namespace Ifrit::Runtime
         }
 
         // If debug views, ignore all jitters
-        if (config.m_visualizationType != RendererVisualizationType::Default)
+        if (config.m_VisualizationType != RendererVisualizationType::Default)
         {
             perframeData.m_taaJitterX        = 0;
             perframeData.m_taaJitterY        = 0;

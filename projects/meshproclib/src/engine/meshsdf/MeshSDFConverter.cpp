@@ -562,6 +562,13 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         data.bboxMin -= bboxDilate;
         data.bboxMax += bboxDilate;
 
+        auto bboxCenter = (data.bboxMin + data.bboxMax) * 0.5f;
+        auto bboxMinLim = bboxCenter - 1.0f;
+        auto bboxMaxLim = bboxCenter + 1.0f;
+
+        data.bboxMin = Min(data.bboxMin, bboxMinLim);
+        data.bboxMax = Max(data.bboxMax, bboxMaxLim);
+
         // build accel structure
         data.asTriIndices.resize(meshDesc.indexCount / 3);
         for (u32 i = 0; i < meshDesc.indexCount / 3; i++)

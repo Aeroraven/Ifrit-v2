@@ -60,11 +60,11 @@ namespace Ifrit::Runtime
         Ref<FrameGraphResourcePool>             m_ResourcePool = nullptr;
     };
 
-    static ComputePassNode& AddDFRadianceInjectPass(FrameGraphBuilder& builder, AyanamiRendererResources* res,
+    static ComputePassNode& AddOfflineShadowMaskPass(FrameGraphBuilder& builder, AyanamiRendererResources* res,
         Vector3f sceneBoundMin, Vector3f sceneBoundMax, Vector3f lightDir, u32 cullTileSize, float softness)
     {
 
-        auto& pass = res->m_DFLighting->AddDistanceFieldRadianceCachePass(builder,
+        auto& pass = res->m_DFLighting->AddDistanceFieldShadowMaskPass(builder,
             res->m_SceneAggregator->GetGatheredBufferId(), res->m_SceneAggregator->GetNumGatheredInstances(),
             &res->m_SurfaceCache->GetRDGDepthAtlas(), sceneBoundMin, sceneBoundMax, lightDir,
             &res->m_SurfaceCache->GetRDGShadowVisibilityAtlas(), res->m_SurfaceCache->GetCardDataBuffer()->GetDescId(),
@@ -167,6 +167,7 @@ namespace Ifrit::Runtime
         auto sceneBoundMax = m_resources->m_SceneAggregator->GetSceneBoundMax();
 
         auto sceneLights = m_resources->m_SceneAggregator->GetAggregatedLights();
+
         if (sceneLights.m_LightFronts.size() != 1)
         {
             iError("AyanamiRenderer: temporarily only support one light for now, got {}",
@@ -180,8 +181,11 @@ namespace Ifrit::Runtime
 
         // printf("Scene bound: %f %f %f %f\n", sceneBound.x, sceneBound.y, sceneBound.z, sceneBound.w);
 
-        // Pass DF Radiance Injection (World Space)
-        AddDFRadianceInjectPass(builder, m_resources, sceneBoundMin, sceneBoundMax, sceneLight, 64, 2.0f);
+        // Pass AddOfflineShadowMaskPass (World Space)
+        if (true)
+        {
+            AddOfflineShadowMaskPass(builder, m_resources, sceneBoundMin, sceneBoundMax, sceneLight, 64, 2.0f);
+        }
 
         // Pass Direct Lighting
         m_resources->m_SurfaceCache->UpdateDirectLighting(
@@ -200,7 +204,7 @@ namespace Ifrit::Runtime
             builder, scene, &resGlobalDFGen, m_resources->m_SceneAggregator->GetGatheredBufferId());
 
         // Pass RayMarch
-        if (false)
+        if (true)
         {
             if (m_resources->m_DbgShowMDF)
             {

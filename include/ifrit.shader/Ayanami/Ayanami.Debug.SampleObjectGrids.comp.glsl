@@ -75,6 +75,7 @@ layout(push_constant) uniform UPushConstant{
     uint m_CardAtlasResolution;
     uint m_CardDepthAtlasSRV;
     uint m_CardAlbedoAtlasSRV;
+    uint m_CardDirectLightingAtlasSRV;
 } PushConst;
 
 struct CardSample{
@@ -91,7 +92,7 @@ struct CardAccumulator{
 const float kEPS = 1e-6;
 
 vec3 GetGlobalDistanceGradient(vec3 PosUVW){
-    vec3 NormalEps = vec3(0.15/PushConst.m_GlobalDFResolution);
+    vec3 NormalEps = vec3(0.1/PushConst.m_GlobalDFResolution);
     float dx1 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW + vec3(NormalEps.x, 0.0, 0.0)).r;
     float dx2 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW - vec3(NormalEps.x, 0.0, 0.0)).r;
     float dy1 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW + vec3(0.0, NormalEps.y, 0.0)).r;
@@ -158,7 +159,7 @@ void SampleCard(uint MeshId, uint CardFace, vec3 HitPosWS, vec3 HitNormalWS, vec
     }
 
     float BiasOffset = 10.0/ExtentZ;
-    float BiasFalloff = max(8e-1,0.5 * BiasOffset);
+    float BiasFalloff = 0.25*BiasOffset;
 
     float CardDepth = SampleTexture2D(PushConst.m_CardDepthAtlasSRV, sLinearClamp, AtlasUV).r;
     float TexelVisibility = 1.0;
@@ -166,7 +167,7 @@ void SampleCard(uint MeshId, uint CardFace, vec3 HitPosWS, vec3 HitNormalWS, vec
         TexelVisibility = 0.0;
     }else{
         float HitDepth = HitPosCS.z;
-        float HitDifference = (abs(HitDepth - CardDepth) - BiasOffset)/BiasFalloff;
+        float HitDifference = (abs(HitDepth - CardDepth) - BiasOffset);
         HitDifference = clamp(HitDifference, 0.0, 1.0);
         TexelVisibility = 1.0-HitDifference;
     }
@@ -175,6 +176,8 @@ void SampleCard(uint MeshId, uint CardFace, vec3 HitPosWS, vec3 HitNormalWS, vec
 
     if(OverallWeights > 0.0){
         vec4 Albedo = SampleTexture2D(PushConst.m_CardAlbedoAtlasSRV, sLinearClamp, AtlasUV);
+        //vec4 Albedo = vec4(vec3(abs( HitPosCS.z - CardDepth)*0.00001),0.0);
+        //vec4 Albedo = SampleTexture2D(PushConst.m_CardDirectLightingAtlasSRV, sLinearClamp, AtlasUV);
         Accum.m_AccAlbedo += Albedo * OverallWeights;
         Accum.m_Samples += OverallWeights;
         if(OverallWeights > Accum.m_MaxWeight){
@@ -202,14 +205,14 @@ void SampleMesh(uint MeshId, vec3 HitPosWS, vec3 HitNormalWS,inout CardAccumulat
 
     // X->1,2; Y->3,4 Z->5,6
     uint SampleDirectionMask = 0;
+    if(IsTwoSided){
+        //HitNormalMS = -HitNormalMS;
+    }
     if(HitNormalMSSq.x>=kEPS){
         if(HitNormalMS.x<0.0){
             SampleDirectionMask |= 1;
         }else{
             SampleDirectionMask |= 2;
-        }
-        if(IsTwoSided||AlwaysTwoSided){
-            SampleDirectionMask |= 3;
         }
     }
     if(HitNormalMSSq.y>=kEPS){
@@ -218,18 +221,12 @@ void SampleMesh(uint MeshId, vec3 HitPosWS, vec3 HitNormalWS,inout CardAccumulat
         }else{
             SampleDirectionMask |= 8;
         }
-        if(IsTwoSided||AlwaysTwoSided){
-            SampleDirectionMask |= 12;
-        }
     }
     if(HitNormalMSSq.z>=kEPS){
         if(HitNormalMS.z<0.0){
             SampleDirectionMask |= 16;
         }else{
             SampleDirectionMask |= 32;
-        }
-        if(IsTwoSided||AlwaysTwoSided){
-            SampleDirectionMask |= 48;
         }
     }
 
@@ -327,7 +324,7 @@ void main(){
             SdfUV = clamp(SdfUV, vec3(0.0), vec3(1.0));
             float SdfVal = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, SdfUV).r - 0.03;
 
-            if(SdfVal < 0.0125){
+            if(SdfVal < 0.017){
                 HitTime = t;
                 Normal = GetGlobalDistanceGradient(SdfUV);
                 break;

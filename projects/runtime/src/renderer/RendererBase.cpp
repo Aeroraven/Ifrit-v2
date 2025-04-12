@@ -169,19 +169,19 @@ namespace Ifrit::Runtime
             return shadow;
         });
 
-        auto shadowViewCounts = SizeCast<u32>(lightWithShadow.size()) * m_config->m_shadowConfig.m_csmCount;
+        auto shadowViewCounts = SizeCast<u32>(lightWithShadow.size()) * m_config->m_ShadowConfig.m_csmCount;
 
         if (perframeData.m_views.size() < 1 + shadowViewCounts)
         {
             perframeData.m_views.resize(1 + shadowViewCounts);
         }
-        if (perframeData.m_shadowData2.m_shadowViews.size() < m_config->m_shadowConfig.k_maxShadowMaps)
+        if (perframeData.m_shadowData2.m_shadowViews.size() < m_config->m_ShadowConfig.k_maxShadowMaps)
         {
-            perframeData.m_shadowData2.m_shadowViews.resize(m_config->m_shadowConfig.k_maxShadowMaps);
+            perframeData.m_shadowData2.m_shadowViews.resize(m_config->m_ShadowConfig.k_maxShadowMaps);
         }
-        if (perframeData.m_shadowData2.m_LightFronts.size() < m_config->m_shadowConfig.k_maxShadowMaps)
+        if (perframeData.m_shadowData2.m_LightFronts.size() < m_config->m_ShadowConfig.k_maxShadowMaps)
         {
-            perframeData.m_shadowData2.m_LightFronts.resize(m_config->m_shadowConfig.k_maxShadowMaps);
+            perframeData.m_shadowData2.m_LightFronts.resize(m_config->m_ShadowConfig.k_maxShadowMaps);
         }
         perframeData.m_shadowData2.m_enabledShadowMaps = SizeCast<u32>(lightWithShadow.size());
         for (auto di = 0, dj = 0; auto& lightObj : lightWithShadow)
@@ -190,17 +190,17 @@ namespace Ifrit::Runtime
             auto               light          = lightObj->GetComponentUnsafe<Light>();
             auto               lightTransform = lightObj->GetComponentUnsafe<Transform>();
             std::vector<float> csmSplits(
-                m_config->m_shadowConfig.m_csmSplits.begin(), m_config->m_shadowConfig.m_csmSplits.end());
+                m_config->m_ShadowConfig.m_csmSplits.begin(), m_config->m_ShadowConfig.m_csmSplits.end());
             std::vector<float> csmBorders(
-                m_config->m_shadowConfig.m_csmBorders.begin(), m_config->m_shadowConfig.m_csmBorders.end());
-            auto                 maxDist = m_config->m_shadowConfig.m_maxDistance;
+                m_config->m_ShadowConfig.m_csmBorders.begin(), m_config->m_ShadowConfig.m_csmBorders.end());
+            auto                 maxDist = m_config->m_ShadowConfig.m_maxDistance;
             std::array<float, 4> splitStart, splitEnd;
             auto&                viewData = perframeData.m_views[0];
             auto                 csmViews = RenderingUtil::CascadeShadowMapping::fillCSMViews(viewData, *light,
-                                light->GetShadowMapResolution(), *lightTransform, m_config->m_shadowConfig.m_csmCount, maxDist,
+                                light->GetShadowMapResolution(), *lightTransform, m_config->m_ShadowConfig.m_csmCount, maxDist,
                                 csmSplits, csmBorders, splitStart, splitEnd);
 
-            perframeData.m_shadowData2.m_shadowViews[di].m_csmSplits = m_config->m_shadowConfig.m_csmCount;
+            perframeData.m_shadowData2.m_shadowViews[di].m_csmSplits = m_config->m_ShadowConfig.m_csmCount;
             perframeData.m_shadowData2.m_shadowViews[di].m_csmStart  = splitStart;
             perframeData.m_shadowData2.m_shadowViews[di].m_csmEnd    = splitEnd;
 
