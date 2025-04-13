@@ -28,10 +28,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Ayanami/Ayanami.SharedConst.h"
-#include "Ayanami/Ayanami.Shared.glsl"
 #include "ComputeUtils.glsl"
 #include "SamplerUtils.SharedConst.h"
+
+#include "Ayanami/Ayanami.SharedConst.h"
+#include "Ayanami/Ayanami.Shared.glsl"
+
 
 layout(
     local_size_x = kAyanamiReconFromSCDepthTileSize, 

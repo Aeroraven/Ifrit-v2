@@ -21,10 +21,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "ComputeUtils.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
 #include "Random/Random.WNoise2D.glsl"
-#include "SamplerUtils.SharedConst.h"
 
 layout(
     local_size_x = kAyanamiShadowVisibilityCardSizePerBlock, 

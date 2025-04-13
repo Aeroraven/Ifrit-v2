@@ -222,8 +222,8 @@ namespace Ifrit
                 numMeshes++;
                 // if (numMeshes == 1601 || numMeshes < 600)
                 //     continue;
-                // if (numMeshes > 726)
-                //     continue;
+                 if (numMeshes > 726)
+                     continue;
 
                 auto t      = m->m_prefab;
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();

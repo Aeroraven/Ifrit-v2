@@ -21,10 +21,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Ayanami/Ayanami.SharedConst.h"
-#include "Ayanami/Ayanami.Shared.glsl"
 #include "ComputeUtils.glsl"
 #include "SamplerUtils.SharedConst.h"
+
+#include "Ayanami/Ayanami.SharedConst.h"
+#include "Ayanami/Ayanami.Shared.glsl"
 
 layout(
     local_size_x = kAyanamiRadiosityTraceKernelSize, 
@@ -33,6 +34,8 @@ layout(
 ) in;
 
 layout(push_constant) uniform UPushConst{
+    vec4 m_GlobalDFBoxMin;
+    vec4 m_GlobalDFBoxMax;
     vec2 m_TraceCoordJitter;
     vec2 m_ProbeCenterJitter;
     uint m_TraceRadianceAtlasUAV;
@@ -41,9 +44,16 @@ layout(push_constant) uniform UPushConst{
     uint m_CardAtlasResolution;
     uint m_CardDepthAtlasSRV;
     uint m_CardNormalAtlasSRV;
+    uint m_CardLightingAtlasSRV;
     uint m_AllCardObjDataId;
     uint m_AllMeshDFDataId;
     uint m_NumTotalCards;
+    uint m_GlobalDFResolution;
+    uint m_VoxelsPerWidth;
+    uint m_ObjectGridUAV;
+    uint m_MeshDFDescListId;
+
+
 }PushConst;
 
 RegisterStorage(BAllCardData,{
@@ -182,14 +192,11 @@ uvec2 GetRadianceSlot(uint TileIndex, uvec2 OffsetInTile, uvec2 TraceRayCoord){
     return OffsetByTile + OffsetInTile + TraceRayCoord;
 }
 
-struct GlobalDFTraceResult{
-    vec3 m_HitPos;
-    float m_Light;
-};
+float TraceGlobalDF(vec3 RayOrigin, vec3 RayDir){
+    float hitTime = AyaShared_RayMarchGlobalDF(RayOrigin,RayDir,PushConst.m_GlobalDFSRV,PushConst.m_GlobalDFBoxMin.xyz,
+        PushConst.m_GlobalDFBoxMax.xyz,0.017,0.03,200);
 
-GlobalDFTraceResult TraceGlobalDF(vec3 RayOrigin, vec3 RayDir){
-    GlobalDFTraceResult Result;
-    return Result;
+    return hitTime;
 }
 
 void main(){
@@ -223,9 +230,24 @@ void main(){
         // Here, trace!
         vec3 RayOrigin = SampledData.m_WorldPos + WorldRayDir * 0.01;
         vec3 RayDir = WorldRayDir;
-        GlobalDFTraceResult TraceResult = TraceGlobalDF(RayOrigin, RayDir);
+        float HitTime = TraceGlobalDF(RayOrigin,RayDir);
+        bool IsHit = HitTime > 1e-3;
+
+        vec3 FinalRadiance = vec3(0.0);
+        if(IsHit){
+            CardSample HitSample = AyaShared_EvaluateGlobalDFHit(RayOrigin,RayDir,HitTime,
+                PushConst.m_GlobalDFSRV,PushConst.m_GlobalDFBoxMin.xyz,PushConst.m_GlobalDFBoxMax.xyz,
+                PushConst.m_GlobalDFResolution,PushConst.m_VoxelsPerWidth,PushConst.m_ObjectGridUAV,
+                PushConst.m_MeshDFDescListId,PushConst.m_AllCardObjDataId,PushConst.m_CardDepthAtlasSRV,
+                PushConst.m_CardLightingAtlasSRV, PushConst.m_CardResolution, PushConst.m_CardAtlasResolution,
+                kAyanamiObjectGridTileSize);
+
+            // TODO: final lighting is yet to be implemented.
+            // This will be considered later
+            FinalRadiance = HitSample.m_Albedo.xyz;
+        }
 
         // Write to atlas
-        imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(RadianceVal, 1.0));
+        imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(FinalRadiance, 1.0));
     }
 }

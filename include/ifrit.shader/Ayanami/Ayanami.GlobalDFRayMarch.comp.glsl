@@ -21,9 +21,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "ComputeUtils.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 #include "Ayanami/Ayanami.Shared.glsl"
 #include "Ayanami/Ayanami.SharedConst.h"
-#include "SamplerUtils.SharedConst.h"
 
 layout(local_size_x = kAyanamiGlobalDFRayMarchTileSize, local_size_y = kAyanamiGlobalDFRayMarchTileSize, local_size_z = 1) in;
 

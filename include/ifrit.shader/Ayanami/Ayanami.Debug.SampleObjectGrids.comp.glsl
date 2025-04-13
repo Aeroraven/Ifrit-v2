@@ -21,9 +21,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 #include "Ayanami/Ayanami.Shared.glsl"
 #include "Ayanami/Ayanami.SharedConst.h"
-#include "SamplerUtils.SharedConst.h"
+
+
 
 layout(
     local_size_x = kAyanamiGlobalDFRayMarchTileSize, 
@@ -48,9 +51,6 @@ RegisterStorage(BAllCardData,{
 });
 
 
-RegisterStorage(BObjectCell,{
-    uvec4 m_Cell[];
-});
 
 RegisterUniform(BLocalTransform,{
     mat4 m_LocalToWorld;
@@ -78,208 +78,6 @@ layout(push_constant) uniform UPushConstant{
     uint m_CardDirectLightingAtlasSRV;
 } PushConst;
 
-struct CardSample{
-    vec4 m_Albedo;
-};
-
-struct CardAccumulator{
-    vec4 m_AccAlbedo;
-    vec4 m_MaxAlbedo;
-    float m_Samples;
-    float m_MaxWeight;
-};
-
-const float kEPS = 1e-6;
-
-vec3 GetGlobalDistanceGradient(vec3 PosUVW){
-    vec3 NormalEps = vec3(0.1/PushConst.m_GlobalDFResolution);
-    float dx1 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW + vec3(NormalEps.x, 0.0, 0.0)).r;
-    float dx2 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW - vec3(NormalEps.x, 0.0, 0.0)).r;
-    float dy1 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW + vec3(0.0, NormalEps.y, 0.0)).r;
-    float dy2 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW - vec3(0.0, NormalEps.y, 0.0)).r;
-    float dz1 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW + vec3(0.0, 0.0, NormalEps.z)).r;
-    float dz2 = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, PosUVW - vec3(0.0, 0.0, NormalEps.z)).r;
-    return normalize(vec3(dx1 - dx2, dy1 - dy2, dz1 - dz2));
-}
-
-vec3 GetGlobalDistanceUVWFromWorldPos(vec3 WorldPos){
-    vec3 BoxMin = PushConst.m_GlobalDFBoxMin.xyz;
-    vec3 BoxMax = PushConst.m_GlobalDFBoxMax.xyz;
-    vec3 SdfUV = (WorldPos - BoxMin) / (BoxMax - BoxMin);
-    SdfUV = clamp(SdfUV, vec3(0.0), vec3(1.0));
-    return SdfUV;
-}
-
-uint GetObjectGridIdFromHitPos(vec3 WorldPos){
-    vec3 SdfUV = GetGlobalDistanceUVWFromWorldPos(WorldPos);
-    uvec3 ObjGrid = uvec3(SdfUV * vec3(PushConst.m_VoxelsPerClipMapWidth));
-    uint CellLoc = ifrit_ToCellId(ObjGrid, uvec3(PushConst.m_VoxelsPerClipMapWidth));
-    return CellLoc;
-}
-
-void SampleCard(uint MeshId, uint CardFace, vec3 HitPosWS, vec3 HitNormalWS, vec3 HitPosMS, vec3 HitNormalMS,
-    vec3 InNormalWeights, vec3 MeshExtent, inout CardAccumulator Accum){
-
-    uint CardId = MeshId * 6 + CardFace;
-    CardData CardFaceData = GetResource(BAllCardData, PushConst.m_AllCardData).m_Mats[CardId];
-    mat4 ModelToCardScreen = CardFaceData.m_VP;
-    vec3 HitPosCS = (ModelToCardScreen * vec4(HitPosMS, 1.0)).xyz;
-    float ClampThreshold = 0.05;
-    vec2 HitPosUV = HitPosCS.xy * 0.5 + 0.5;
-    if(HitPosUV.x > -ClampThreshold && HitPosUV.x < (1.0+ClampThreshold) && HitPosUV.y > -ClampThreshold && HitPosUV.y < (1.0+ClampThreshold)){
-        HitPosUV = clamp(HitPosUV, vec2(0.0), vec2(1.0));
-    }
-    if(HitPosUV.x < 0.0 || HitPosUV.x > 1.0 || HitPosUV.y < 0.0 || HitPosUV.y > 1.0){
-        return;
-    }
-    
-    uint CardsPerRow = PushConst.m_CardAtlasResolution / PushConst.m_CardResolution;
-    uint CardIdX = CardId % CardsPerRow;
-    uint CardIdY = CardId / CardsPerRow;
-    uint CardOffsetX = CardIdX * PushConst.m_CardResolution;
-    uint CardOffsetY = CardIdY * PushConst.m_CardResolution;
-    uvec2 CardOffset = uvec2(CardOffsetX, CardOffsetY);
-    uvec2 TileOffset = uvec2(HitPosUV * vec2(PushConst.m_CardResolution));
-
-    uvec2 AtlasOffset = CardOffset + TileOffset;
-    vec2 AtlasUV = (vec2(AtlasOffset) + vec2(0.5)) / vec2(PushConst.m_CardAtlasResolution);
-
-    float ExtentZ = 1.0;
-    float NormalWeights = 1.0;
-    
-    if(CardFace < 2){
-        NormalWeights = InNormalWeights.x;
-        ExtentZ = MeshExtent.x;
-    }else if(CardFace < 4){
-        NormalWeights = InNormalWeights.y;
-        ExtentZ = MeshExtent.y;
-    }else{
-        NormalWeights = InNormalWeights.z;
-        ExtentZ = MeshExtent.z;
-    }
-
-    float BiasOffset = 10.0/ExtentZ;
-    float BiasFalloff = 0.25*BiasOffset;
-
-    float CardDepth = SampleTexture2D(PushConst.m_CardDepthAtlasSRV, sLinearClamp, AtlasUV).r;
-    float TexelVisibility = 1.0;
-    if(CardDepth >= 1.0){
-        TexelVisibility = 0.0;
-    }else{
-        float HitDepth = HitPosCS.z;
-        float HitDifference = (abs(HitDepth - CardDepth) - BiasOffset);
-        HitDifference = clamp(HitDifference, 0.0, 1.0);
-        TexelVisibility = 1.0-HitDifference;
-    }
-
-    float OverallWeights = NormalWeights * TexelVisibility;
-
-    if(OverallWeights > 0.0){
-        vec4 Albedo = SampleTexture2D(PushConst.m_CardAlbedoAtlasSRV, sLinearClamp, AtlasUV);
-        //vec4 Albedo = vec4(vec3(abs( HitPosCS.z - CardDepth)*0.00001),0.0);
-        //vec4 Albedo = SampleTexture2D(PushConst.m_CardDirectLightingAtlasSRV, sLinearClamp, AtlasUV);
-        Accum.m_AccAlbedo += Albedo * OverallWeights;
-        Accum.m_Samples += OverallWeights;
-        if(OverallWeights > Accum.m_MaxWeight){
-            Accum.m_MaxWeight = OverallWeights;
-            Accum.m_MaxAlbedo = Albedo;
-        }
-    }
-
-}
-
-void SampleMesh(uint MeshId, vec3 HitPosWS, vec3 HitNormalWS,inout CardAccumulator Accum){
-    MeshDFDesc MeshDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
-    uint TransformId = MeshDesc.m_TransformId;
-    uint MdfMetaId = MeshDesc.m_MdfMetaId;
-    MeshDFMeta MeshMeta = GetResource(BMeshDFMeta, MdfMetaId).m_Data;
-    bool IsTwoSided = MeshMeta.m_IsTwoSided != 0;
-    mat4 WorldToLocal = GetResource(BLocalTransform, TransformId).m_WorldToLocal;
-
-    vec3 HitPosMS = (WorldToLocal * vec4(HitPosWS, 1.0)).xyz;
-    vec3 HitNormalMS = (WorldToLocal * vec4(HitNormalWS, 0.0)).xyz;
-    HitNormalMS = normalize(HitNormalMS);
-
-    bool AlwaysTwoSided = false;
-    vec3 HitNormalMSSq = HitNormalMS * HitNormalMS;
-
-    // X->1,2; Y->3,4 Z->5,6
-    uint SampleDirectionMask = 0;
-    if(IsTwoSided){
-        //HitNormalMS = -HitNormalMS;
-    }
-    if(HitNormalMSSq.x>=kEPS){
-        if(HitNormalMS.x<0.0){
-            SampleDirectionMask |= 1;
-        }else{
-            SampleDirectionMask |= 2;
-        }
-    }
-    if(HitNormalMSSq.y>=kEPS){
-        if(HitNormalMS.y<0.0){
-            SampleDirectionMask |= 4;
-        }else{
-            SampleDirectionMask |= 8;
-        }
-    }
-    if(HitNormalMSSq.z>=kEPS){
-        if(HitNormalMS.z<0.0){
-            SampleDirectionMask |= 16;
-        }else{
-            SampleDirectionMask |= 32;
-        }
-    }
-
-    uint ValidOrientationMask = SampleDirectionMask;
-    vec3 BboxMax = MeshMeta.bboxMax.xyz;
-    vec3 BboxMin = MeshMeta.bboxMin.xyz;
-    vec3 MeshExtent = BboxMax - BboxMin;
-    while(ValidOrientationMask>0){
-        uint LowBit = findLSB(ValidOrientationMask);
-        
-        uint CardFace = LowBit;
-        ValidOrientationMask &= ~(1 << LowBit);
-        vec3 InNormalWeights = HitNormalMSSq;
-        SampleCard(MeshId, CardFace, HitPosWS, HitNormalWS, HitPosMS, HitNormalMS, InNormalWeights,MeshExtent, Accum);
-    }
-}
-
-CardSample EvaluateGlobalDFHit(vec3 TraceOriginWS, vec3 TraceDirWS, float HitTime){
-    CardSample Sample;
-    Sample.m_Albedo = vec4(0.0);
-
-    CardAccumulator Accum;
-    Accum.m_AccAlbedo = vec4(0.0);
-    Accum.m_MaxAlbedo = vec4(0.0);
-    Accum.m_Samples = 0.0;
-    Accum.m_MaxWeight = 0.0;
-
-    vec3 HitPosWS = TraceOriginWS + TraceDirWS * HitTime;
-    vec3 HitPosSdfUVW = GetGlobalDistanceUVWFromWorldPos(HitPosWS);
-    vec3 HitNormalWS = GetGlobalDistanceGradient(HitPosSdfUVW);
-    uint ObjGridId = GetObjectGridIdFromHitPos(HitPosWS);
-
-    uvec4 ObjGridData = GetResource(BObjectCell, PushConst.m_GlobalObjectGridUAV).m_Cell[ObjGridId];
-    float ValidSamples=0.0;
-    for(uint ObjSlotId=0;ObjSlotId<kAyanamiObjectGridTileSize;ObjSlotId++){
-        uint ObjGridSlotData = ObjGridData[ObjSlotId];
-        uint MeshId = ObjGridSlotData & 0xFFFFFF;
-        uint DepthId = (ObjGridSlotData >> 24) & 0xFF;
-        if(DepthId == 0xFF) continue;
-
-        // Got it, sample its cards!
-        SampleMesh(MeshId, HitPosWS, HitNormalWS, Accum);
-        ValidSamples += 1.0;
-    }
-
-    if(Accum.m_Samples > 0.0){
-        Sample.m_Albedo =  Accum.m_AccAlbedo / Accum.m_Samples;
-    }else{
-        Sample.m_Albedo = vec4(0.05, 0.05, 0.05, 1.0);
-    }
-
-    return Sample;
-}
 
 void main(){
     float Fov = GetResource(BPerframe, PushConst.m_PerFrameId).m_Data.m_cameraFovX;
@@ -303,46 +101,21 @@ void main(){
     vec3 RayDir = normalize(vec3(NdcX * TanFov, NdcY * TanFov, 1.0));
     RayDir = normalize(Rotation * RayDir);
 
-    vec3 Normal = vec3(0.0, 0.0, 0.0);
-
     // Ray-march the global DF
     vec3 RayOrigin = CamPos;
-    vec3 BoxMin = PushConst.m_GlobalDFBoxMin.xyz;
-    vec3 BoxMax = PushConst.m_GlobalDFBoxMax.xyz;
-
-    float t,tMax;
-    float HitTime = 0.0;
-    bool Hit = ifrit_RayboxIntersectionDual(RayOrigin, RayDir, BoxMin, BoxMax, t,tMax);
-
-    t = max(t, 0.0);
-    vec3 NormalEps = vec3(0.5/PushConst.m_GlobalDFResolution);
-    
-    if(Hit){
-        for(int i=0;i<200;i++){
-            vec3 p = RayOrigin + RayDir*t;
-            vec3 SdfUV = (p - BoxMin) / (BoxMax - BoxMin);
-            SdfUV = clamp(SdfUV, vec3(0.0), vec3(1.0));
-            float SdfVal = SampleTexture3D(PushConst.m_GlobalDFId, sLinearClamp, SdfUV).r - 0.03;
-
-            if(SdfVal < 0.017){
-                HitTime = t;
-                Normal = GetGlobalDistanceGradient(SdfUV);
-                break;
-            }
-
-            t += max(1e-2,SdfVal * 0.5);
-            if(t>=tMax){
-                break;
-            }
-        }
-    }
+    float HitTime = AyaShared_RayMarchGlobalDF(RayOrigin, RayDir, PushConst.m_GlobalDFId, PushConst.m_GlobalDFBoxMin.xyz,
+        PushConst.m_GlobalDFBoxMax.xyz,0.017,0.03,200);
     
     // Get object grids from the global df grid
     if(HitTime<1e-3){
         imageStore(GetUAVImage2DR32F(PushConst.m_OutTex), ivec2(tX, tY), vec4(0.1,0.1,0.1, 1.0));
         return;
     }
-    CardSample HitSample = EvaluateGlobalDFHit(RayOrigin, RayDir, HitTime);
+    CardSample HitSample = AyaShared_EvaluateGlobalDFHit(RayOrigin, RayDir, HitTime, PushConst.m_GlobalDFId,
+        PushConst.m_GlobalDFBoxMin.xyz, PushConst.m_GlobalDFBoxMax.xyz, PushConst.m_GlobalDFResolution,
+        PushConst.m_VoxelsPerClipMapWidth, PushConst.m_GlobalObjectGridUAV, PushConst.m_MeshDFDescListId,
+        PushConst.m_AllCardData,PushConst.m_CardDepthAtlasSRV,PushConst.m_CardAlbedoAtlasSRV,
+        PushConst.m_CardResolution,PushConst.m_CardAtlasResolution,kAyanamiObjectGridTileSize);
     //HitSample.m_Albedo.xyz += 0.1;
     imageStore(GetUAVImage2DR32F(PushConst.m_OutTex), ivec2(tX, tY), vec4(HitSample.m_Albedo.xyz, 1.0));
 }
