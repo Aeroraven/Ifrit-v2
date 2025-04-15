@@ -201,10 +201,10 @@ namespace Ifrit::Runtime
 
         // Pass Radiosity Trace (I. Trace)
         {
-            auto resObjectGridPtr = m_globalDF->GetObjectGridVolume(0);
-            m_resources->m_SurfaceCache->UpdateRadiosityTrace(builder, scene, &resGlobalDFGen, resObjectGridPtr,
-                m_resources->m_SceneAggregator->GetGatheredBufferId(), sceneBoundMin, sceneBoundMax,
-                m_globalDF->GetClipmapWidth(0), m_globalDF->GetVoxelsPerSide(0));
+            // auto resObjectGridPtr = m_globalDF->GetObjectGridVolume(0);
+            // m_resources->m_SurfaceCache->UpdateRadiosityTrace(builder, scene, &resGlobalDFGen, resObjectGridPtr,
+            //     m_resources->m_SceneAggregator->GetGatheredBufferId(), sceneBoundMin, sceneBoundMax,
+            //     m_globalDF->GetClipmapWidth(0), m_globalDF->GetVoxelsPerSide(0));
         }
 
         // Pass Radiosity Trace (II. Filter)

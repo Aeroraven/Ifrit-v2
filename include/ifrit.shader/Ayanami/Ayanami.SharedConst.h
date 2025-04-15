@@ -72,6 +72,7 @@ namespace Ifrit::Runtime::Ayanami::Config
     AYANAMI_DEFINE_UINT(kAyanamiSCDirectLightCardSizePerBlock, 8);
 
     AYANAMI_DEFINE_UINT(kAyanamiDbgObjGridTileSize, 8);
+    AYANAMI_DEFINE_UINT(kAyanamiSphericalHarmonicsCvtKernelSize, 64);
 
 #ifdef __cplusplus
 } // namespace Ifrit::Runtime::AYANAMI
