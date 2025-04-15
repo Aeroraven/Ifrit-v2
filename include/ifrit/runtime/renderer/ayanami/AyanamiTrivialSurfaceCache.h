@@ -49,16 +49,18 @@ namespace Ifrit::Runtime::Ayanami
         GraphicsPassNode& UpdateSurfaceCacheAtlas(FrameGraphBuilder& builder);
         ComputePassNode&  UpdateShadowVisibilityAtlas(FrameGraphBuilder& builder, Scene* scene);
         void              UpdateSurfaceModelMatrix();
-        ComputePassNode&  UpdateIndirectRadianceCacheAtlas(
-             FrameGraphBuilder& builder, Scene* scene, FGTextureNodeRef globalDFSRV, u32 meshDFList);
-        void                        UpdateDirectLighting(FrameGraphBuilder& builder, u32 meshDFList, Vector3f lightDir);
+        ComputePassNode&  UpdateRadiosityTrace(FrameGraphBuilder& builder, Scene* scene, FGTextureNodeRef globalDFSRV,
+             FGBufferNodeRef objectGridsUAV, u32 meshDFList, Vector3f globalDFMin, Vector3f globalDFMax,
+             u32 globalDFResolution, u32 voxelsPerGdfWidth);
 
-        FGTextureNode&              GetRDGAlbedoAtlas();
-        FGTextureNode&              GetRDGNormalAtlas();
-        FGTextureNode&              GetRDGDepthAtlas();
-        FGTextureNode&              GetRDGShadowVisibilityAtlas();
-        FGTextureNode&              GetRDGTracedRadianceAtlas();
-        FGTextureNode&              GetRDGDirectLightingAtlas();
+        void              UpdateDirectLighting(FrameGraphBuilder& builder, u32 meshDFList, Vector3f lightDir);
+
+        FGTextureNode&    GetRDGAlbedoAtlas();
+        FGTextureNode&    GetRDGNormalAtlas();
+        FGTextureNode&    GetRDGDepthAtlas();
+        FGTextureNode&    GetRDGShadowVisibilityAtlas();
+        FGTextureNode&    GetRDGTracedRadianceAtlas();
+        FGTextureNode&    GetRDGDirectLightingAtlas();
 
         Graphics::Rhi::RhiBufferRef GetCardDataBuffer();
         u32                         GetCardResolution();

@@ -25,9 +25,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ComputeUtils.glsl"
 #include "SamplerUtils.SharedConst.h"
 
-
-#include "Ayanami/Ayanami.Shared.glsl"
 #include "Ayanami/Ayanami.SharedConst.h"
+#include "Ayanami/Ayanami.Shared.glsl"
+
 
 
 // TODO: It's better to make them group in a warp (32 for most NV devices). Now some threads are idle.

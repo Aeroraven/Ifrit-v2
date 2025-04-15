@@ -60,7 +60,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 - Bindless Descriptors
 - Dynamic Rendering
 - Render Hardware Interface
-- Render Graph
+- Render Dependency Graph
   - Lock-free Resource Pool & Primary Resource Reuse 
   - Simple Lifetime Tracking & State Tracking
 - Task System
@@ -78,6 +78,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 
 #### 1.2.2 Ayanami: Maybe Something about Global Illumination
 
+- Implementation reports, check [here](./include/ifrit.shader/Ayanami/Readme.md)
 - It's planning to implement some GI algorithms.
 - Fully driven by the render graph.
 - Currently, it covers:
@@ -184,6 +185,7 @@ The architecture for subproject Syaro seems to be a little messy, following plan
 
 - Render-Graph-Driven Process
 - Redundant Dynamic Uniform Buffer Removal
+- Shader Variants
 
 ## 5. References & Acknowledgements
 
@@ -200,10 +202,3 @@ It's by default licensed under [AGPL-v3 License (or later)](https://www.gnu.org/
 
 
 
-
-
-
-$$
-F(n) = \sum_{i=1}^n\left(n \% p\right) \\
-F(n+1) = \sum_{i=1}^n\left((n+1)\%p \right)
-$$

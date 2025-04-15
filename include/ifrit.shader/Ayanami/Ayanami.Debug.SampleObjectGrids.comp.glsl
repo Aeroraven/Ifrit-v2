@@ -23,8 +23,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Bindless.glsl"
 #include "SamplerUtils.SharedConst.h"
 
-#include "Ayanami/Ayanami.Shared.glsl"
 #include "Ayanami/Ayanami.SharedConst.h"
+#include "Ayanami/Ayanami.Shared.glsl"
 
 
 

@@ -199,9 +199,15 @@ namespace Ifrit::Runtime
                 m_resources->m_SceneAggregator->GetGatheredBufferId());
         }
 
-        // Pass Indirect Radiance
-        m_resources->m_SurfaceCache->UpdateIndirectRadianceCacheAtlas(
-            builder, scene, &resGlobalDFGen, m_resources->m_SceneAggregator->GetGatheredBufferId());
+        // Pass Radiosity Trace (I. Trace)
+        {
+            auto resObjectGridPtr = m_globalDF->GetObjectGridVolume(0);
+            m_resources->m_SurfaceCache->UpdateRadiosityTrace(builder, scene, &resGlobalDFGen, resObjectGridPtr,
+                m_resources->m_SceneAggregator->GetGatheredBufferId(), sceneBoundMin, sceneBoundMax,
+                m_globalDF->GetClipmapWidth(0), m_globalDF->GetVoxelsPerSide(0));
+        }
+
+        // Pass Radiosity Trace (II. Filter)
 
         // Pass RayMarch
         if (true)

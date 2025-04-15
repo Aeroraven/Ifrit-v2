@@ -47,6 +47,13 @@ struct CardSample{
     vec4 m_Albedo;
 };
 
+struct RadiosityRayCardSample{
+    vec3 m_WorldPos;
+    vec3 m_WorldNormal;
+    bool m_ValidSample; // In atlas but hit nothing
+    bool m_PresentInAtlas;
+};
+
 RegisterStorage(BAyaShared_AllCardData,{
     CardData m_Mats[];
 });
@@ -307,4 +314,122 @@ CardSample AyaShared_EvaluateGlobalDFHit(vec3 TraceOriginWS, vec3 TraceDirWS, fl
         Sample.m_Albedo = vec4(0.05, 0.05, 0.05, 1.0);
     }
     return Sample;
+}
+
+// ==== Radiosity Tracing ====
+
+void AyaShared_RayTraceCoordToCardInfo(uint GThreadId, vec2 Jitter, out uvec2 OffsetInCardTile,out uint CardTileId, out uvec2 TraceRayCoord){
+    uint ProbeId = GThreadId % kAyanami_RadiosityTracesPerProbe;
+    
+    uint ProbesPerTile = kAyanami_RadiosityProbesPerCardTileWidth * kAyanami_RadiosityProbesPerCardTileWidth;
+    uint CurTileId = ProbeId / ProbesPerTile;
+    uint CurProbeIdInTile = GThreadId % ProbesPerTile;
+    uvec2 ProbePosInTile = uvec2(CurProbeIdInTile % kAyanami_RadiosityProbesPerCardTileWidth,
+                                 CurProbeIdInTile / kAyanami_RadiosityProbesPerCardTileWidth);
+
+    uint ProbeSpacing = kAyanami_CardTileWidth / kAyanami_RadiosityProbesPerCardTileWidth;
+    uvec2 ProbeOffset = ProbePosInTile * ProbeSpacing + uvec2(ProbeSpacing * Jitter);
+    OffsetInCardTile = ProbeOffset;
+    CardTileId = CurTileId;
+
+    uint RayOffsetInProbe =  GThreadId % kAyanami_RadiosityTracesPerProbe;
+    uvec2 RayCoord = uvec2(RayOffsetInProbe % kAyanami_RadiosityProbHemiRes,
+                             RayOffsetInProbe / kAyanami_RadiosityProbHemiRes);
+    TraceRayCoord = RayCoord;
+}
+
+// Atlas = 8192x8192
+// Tile = 8x8
+// 2x2 Probes per tile => 1 probe = 4x4 area (16traces) => 1 probe = 16 storage slots for radiance
+uvec2 AyaShared_GetRadianceSlot(uint TileIndex, uvec2 OffsetInTile, uvec2 TraceRayCoord, uint CardAtlasResolution){
+    uint TilesPerAtlasWidth = CardAtlasResolution / kAyanami_CardTileWidth;
+    uint TileX = TileIndex % TilesPerAtlasWidth;
+    uint TileY = TileIndex / TilesPerAtlasWidth;
+    uvec2 OffsetByTile = uvec2(TileX, TileY) * kAyanami_CardTileWidth;
+
+    uvec2 InTileProbeId = OffsetInTile / kAyanami_RadiosityProbHemiRes;
+    uvec2 OffsetByProbe = InTileProbeId * kAyanami_RadiosityProbHemiRes;
+    return OffsetByTile + OffsetInTile + TraceRayCoord;
+}
+
+
+mat4 AyaShared_GetCardMeshLocalToWorld(uint CardId, uint AllMeshDFDataId){
+    uint MeshDFId = CardId / 6;
+    MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, AllMeshDFDataId).m_Data[MeshDFId];
+    MeshDFMeta MeshMeta = GetResource(BAyaShared_MeshDFMeta, AllMeshDFDataId).m_Data;
+    uint TransformId = MeshDesc.m_TransformId;
+    return GetResource(BAyaShared_LocalTransform, TransformId).m_LocalToWorld;
+}
+
+mat4 AyaShared_GetCardViewVPToWorld(uint CardId, uint AllCardObjDataId){
+    CardData CardDesc = GetResource(BAyaShared_AllCardData, AllCardObjDataId).m_Mats[CardId];
+    return CardDesc.m_VPInv;
+}
+
+RadiosityRayCardSample AyaShared_RadiosityRayCardSample(uint CardId, uvec2 InCardUV, uvec2 AtlasUV, uint CardResolution, uint CardAtlasResolution,
+    uint CardDepthAtlasSRV, uint CardNormalAtlasSRV, uint AllCardObjDataId, uint AllMeshDFDataId){
+
+    vec2 InCardUVF = (vec2(InCardUV) + vec2(0.5)) / float(CardResolution);
+    vec2 AtlasUVF = (vec2(AtlasUV) + vec2(0.5)) / float(CardAtlasResolution);
+    InCardUVF = InCardUVF * 2.0 - 1.0;
+    AtlasUVF = AtlasUVF * 2.0 - 1.0;
+
+    float Depth = SampleTexture2D(CardDepthAtlasSRV,sLinearClamp,AtlasUVF).r;
+    vec2 LocalNormalRG = SampleTexture2D(CardNormalAtlasSRV,sLinearClamp,AtlasUVF).rg * 2.0 - 1.0;
+    vec3 LocalNormal = normalize(vec3(LocalNormalRG, sqrt(1.0 - dot(LocalNormalRG, LocalNormalRG))));
+
+    if(Depth == 1.0){
+        RadiosityRayCardSample SampledData;
+        SampledData.m_WorldPos = vec3(0.0);
+        SampledData.m_WorldNormal = vec3(0.0);
+        SampledData.m_ValidSample = false;
+        return SampledData;
+    }
+
+    vec4 OrthoNDC = vec4(InCardUVF, Depth, 1.0);
+    mat4 CardViewToLocal = AyaShared_GetCardViewVPToWorld(CardId, AllCardObjDataId);
+    vec4 LocalPos = CardViewToLocal * OrthoNDC;
+    LocalPos /= LocalPos.w;
+
+    mat4 CardMeshToWorld = AyaShared_GetCardMeshLocalToWorld(CardId, AllMeshDFDataId);
+    vec4 WorldNormal = CardMeshToWorld * vec4(LocalNormal, 0.0);
+    vec4 WorldPos = CardMeshToWorld * vec4(LocalPos.xyz, 1.0);
+    WorldPos /= WorldPos.w;
+    WorldNormal = normalize(WorldNormal);
+
+    RadiosityRayCardSample SampledData;
+    SampledData.m_WorldPos = WorldPos.xyz;
+    SampledData.m_WorldNormal = WorldNormal.xyz;
+    SampledData.m_ValidSample = true;
+}
+
+RadiosityRayCardSample AyaShared_GetRadiosityRayCardSample(uint CardTileId, uvec2 OffsetInCardTile, uint CardAtlasResolution, 
+    uint CardResolution, uint NumCards, uint CardDepthAtlasSRV, uint CardNormalAtlasSRV, uint AllCardObjDataId, uint AllMeshDFDataId){
+        
+    uint TilesPerAtlasWidth = CardAtlasResolution / kAyanami_CardTileWidth;
+    uint TileX = CardTileId % TilesPerAtlasWidth;
+    uint TileY = CardTileId / TilesPerAtlasWidth;
+
+    uint CardX = TileX * kAyanami_CardTileWidth + OffsetInCardTile.x;
+    uint CardY = TileY * kAyanami_CardTileWidth + OffsetInCardTile.y;
+    uint CardIdX = CardX % CardResolution;
+    uint CardIdY = CardY % CardResolution;
+    uint CardId = CardIdX + CardIdY * CardResolution;
+
+    uvec2 InCardUV = uvec2(CardX, CardY) % kAyanami_CardTileWidth;
+    uvec2 AtlasUV = uvec2(CardX, CardY);
+
+    if(CardId >= NumCards){
+        RadiosityRayCardSample SampledData;
+        SampledData.m_WorldPos = vec3(0.0);
+        SampledData.m_WorldNormal = vec3(0.0);
+        SampledData.m_ValidSample = false;
+        SampledData.m_PresentInAtlas = false;
+        return SampledData;
+    }
+
+    RadiosityRayCardSample SampledData = AyaShared_RadiosityRayCardSample(CardId, InCardUV, AtlasUV, CardResolution, CardAtlasResolution,
+        CardDepthAtlasSRV, CardNormalAtlasSRV, AllCardObjDataId, AllMeshDFDataId);
+    SampledData.m_PresentInAtlas = true;
+    return SampledData;
 }

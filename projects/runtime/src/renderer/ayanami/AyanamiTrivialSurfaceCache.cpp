@@ -555,11 +555,14 @@ namespace Ifrit::Runtime::Ayanami
         return pass;
     }
 
-    IFRIT_APIDECL ComputePassNode& AyanamiTrivialSurfaceCacheManager::UpdateIndirectRadianceCacheAtlas(
-        FrameGraphBuilder& builder, Scene* scene, FGTextureNodeRef globalDFSRV, u32 meshDFList)
+    IFRIT_APIDECL ComputePassNode& AyanamiTrivialSurfaceCacheManager::UpdateRadiosityTrace(FrameGraphBuilder& builder,
+        Scene* scene, FGTextureNodeRef globalDFSRV, FGBufferNodeRef objectGridsUAV, u32 meshDFList,
+        Vector3f globalDFMin, Vector3f globalDFMax, u32 globalDFResolution, u32 voxelsPerGdfWidth)
     {
         struct PushConst
         {
+            Vector4f m_GlobalDFBoxMin;
+            Vector4f m_GlobalDFBoxMax;
             Vector2f m_TraceCoordJitter;
             Vector2f m_ProbeCenterJitter;
             u32      m_TraceRadianceAtlasUAV;
@@ -568,11 +571,17 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_CardAtlasResolution;
             u32      m_CardDepthAtlasSRV;
             u32      m_CardNormalAtlasSRV;
+            u32      m_CardLightingAtlasSRV;
             u32      m_AllCardObjDataId;
             u32      m_AllMeshDFDataId;
             u32      m_NumTotalCards;
+            u32      m_GlobalDFResolution;
+            u32      m_VoxelsPerWidth;
+            u32      m_ObjectGridUAV;
         } pc;
 
+        pc.m_GlobalDFBoxMin        = Vector4f(globalDFMin, 0.0f);
+        pc.m_GlobalDFBoxMax        = Vector4f(globalDFMax, 0.0f);
         pc.m_TraceCoordJitter      = Vector2f(0.0f, 0.0f);
         pc.m_ProbeCenterJitter     = Vector2f(0.0f, 0.0f);
         pc.m_TraceRadianceAtlasUAV = 0;
@@ -581,23 +590,31 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_CardAtlasResolution   = m_Resolution;
         pc.m_CardDepthAtlasSRV     = 0;
         pc.m_CardNormalAtlasSRV    = 0;
+        pc.m_CardLightingAtlasSRV  = 0;
         pc.m_AllCardObjDataId      = m_Resources->m_ObserveDeviceData->GetDescId();
         pc.m_AllMeshDFDataId       = meshDFList;
         pc.m_NumTotalCards         = m_Resources->m_MeshCardIndex.load();
+        pc.m_GlobalDFResolution    = globalDFResolution;
+        pc.m_VoxelsPerWidth        = voxelsPerGdfWidth;
+        pc.m_ObjectGridUAV         = 0;
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiosityGenPass",
             Internal::kIntShaderTableAyanami.RadiosityTraceCS, Vector3i{ 0, 1, 1 }, pc,
-            [globalDFSRV, this](PushConst data, const FrameGraphPassContext& ctx) {
+            [globalDFSRV, objectGridsUAV, this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GlobalDFSRV           = ctx.m_FgDesc->GetSRV(*globalDFSRV);
                 data.m_CardDepthAtlasSRV     = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheTemporaryDepth);
                 data.m_CardNormalAtlasSRV    = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
+                data.m_CardLightingAtlasSRV  = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneDirectLighting);
                 data.m_TraceRadianceAtlasUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
+                data.m_ObjectGridUAV         = ctx.m_FgDesc->GetUAV(*objectGridsUAV);
                 SetRootSignature(data, ctx);
             });
 
         pass.AddWriteResource(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas)
             .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
             .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth)
+            .AddReadResource(*m_Resources->m_RDGSceneDirectLighting)
+            .AddReadResource(*objectGridsUAV)
             .AddReadResource(*globalDFSRV);
 
         return pass;
