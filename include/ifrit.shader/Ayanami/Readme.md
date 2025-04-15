@@ -52,7 +52,7 @@
   
   - $l=0,m=0$, $Y=\frac{1}{2\sqrt\pi}$. Then, we have
     $$
-    Y'=\int_H \frac{\cos \phi\sin\phi}{2\sqrt\pi}\mathrm{d}\phi\mathrm{d}\theta=\frac{1}{2\sqrt\pi}(2\pi)\frac{1}{4}\int_0^\pi\sin\phi\mathrm{d}\phi=\sqrt{\frac{\pi}{2}}
+    Y'=\int_H \frac{\cos \phi\sin\phi}{2\sqrt\pi}\mathrm{d}\phi\mathrm{d}\theta=\frac{1}{2\sqrt\pi}(2\pi)\frac{1}{4}\int_0^\pi\sin\phi\mathrm{d}\phi=\frac{\sqrt{\pi}}{2}
     $$
   
   - $l=1,Y=\sqrt{\frac{3}{4\pi}}w$. Consider the integral
@@ -63,7 +63,6 @@
     With special case, we have 
     $$
     I_z=2\pi\int_0^{\pi/2}(\cos\phi\sin\phi) \sin\phi\mathrm{d}\phi\\
-    =2\pi\int_0^{\pi/2}\cos\phi(1-\cos^2\phi)\mathrm{d}\phi\\
     =2\pi\int_0^{\pi/2}\cos\phi\mathrm{d}\phi-2\pi\int_0^{\pi/2}\cos^3\phi\mathrm{d}{\phi}
     $$
     Using Wallis' integral
