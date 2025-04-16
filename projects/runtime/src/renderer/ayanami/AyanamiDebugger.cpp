@@ -234,4 +234,60 @@ namespace Ifrit::Runtime::Ayanami
             .AddDepthTarget(resTempDepth)
             .AddReadResource(*globalObjectGrids);
     }
+
+    IFRIT_APIDECL
+    void AyanamiDebugger::VisualizeScreenProbeLocation(FrameGraphBuilder& builder, FGTextureNodeRef outputTexture,
+        FGBufferNodeRef adaptiveProbesList, FGBufferNodeRef adaptiveProbesCounter, FGTextureNodeRef sceneAlbedo)
+    {
+        struct PushConstUniformPass
+        {
+            u32 m_RTWidth;
+            u32 m_RTHeight;
+            u32 m_AlbedoSRV;
+            u32 m_OutputTextureUAV;
+        } pc1;
+
+        struct PushConstAdaptivePass
+        {
+            u32 m_AdaptiveProbesCounterUAV;
+            u32 m_AdaptiveProbesListUAV;
+            u32 m_OutputTextureUAV;
+        } pc2;
+
+        pc1.m_RTWidth          = outputTexture->GetWidth();
+        pc1.m_RTHeight         = outputTexture->GetHeight();
+        pc1.m_AlbedoSRV        = 0;
+        pc1.m_OutputTextureUAV = 0;
+
+        pc2.m_AdaptiveProbesCounterUAV = 0;
+        pc2.m_AdaptiveProbesListUAV    = 0;
+        pc2.m_OutputTextureUAV         = 0;
+
+        // Pass 1
+        auto tgX = DivRoundUp(pc1.m_RTWidth, Config::kAyanamiDbgScrProbeUniformVisKernelSize);
+        auto tgY = DivRoundUp(pc1.m_RTHeight, Config::kAyanamiDbgScrProbeUniformVisKernelSize);
+        AddComputePass<PushConstUniformPass>(builder, "Ayanami.Debug.VisualizeScreenProbeUniform",
+            Internal::kIntShaderTableAyanami.DbgVisScreenUniformProbeCS, Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc1,
+            [sceneAlbedo, outputTexture](PushConstUniformPass data, const FrameGraphPassContext& ctx) {
+                data.m_AlbedoSRV        = ctx.m_FgDesc->GetSRV(*sceneAlbedo);
+                data.m_OutputTextureUAV = ctx.m_FgDesc->GetUAV(*outputTexture);
+                SetRootSignature(data, ctx);
+            })
+            .AddReadResource(*sceneAlbedo)
+            .AddWriteResource(*outputTexture);
+
+        // Pass 2
+        AddIndirectComputePass<PushConstAdaptivePass>(builder, "Ayanami.Debug.VisualizeScreenProbeAdaptive",
+            Internal::kIntShaderTableAyanami.DbgVisAdaptiveProbeCS, *adaptiveProbesCounter, sizeof(u32), pc2,
+            [adaptiveProbesList, adaptiveProbesCounter, outputTexture](
+                PushConstAdaptivePass data, const FrameGraphPassContext& ctx) {
+                data.m_AdaptiveProbesCounterUAV = ctx.m_FgDesc->GetUAV(*adaptiveProbesCounter);
+                data.m_AdaptiveProbesListUAV    = ctx.m_FgDesc->GetUAV(*adaptiveProbesList);
+                data.m_OutputTextureUAV         = ctx.m_FgDesc->GetUAV(*outputTexture);
+                SetRootSignature(data, ctx);
+            })
+            .AddReadResource(*adaptiveProbesList)
+            .AddReadResource(*adaptiveProbesCounter)
+            .AddWriteResource(*outputTexture);
+    }
 } // namespace Ifrit::Runtime::Ayanami

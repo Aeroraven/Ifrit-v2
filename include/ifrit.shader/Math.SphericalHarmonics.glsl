@@ -23,7 +23,7 @@ struct MTwoBandSH_RGB{
     MTwoBandSH m_R;
     MTwoBandSH m_G;
     MTwoBandSH m_B;
-}
+};
 
 MTwoBandSH ifrit_SHBasis2Encode(vec3 dir){
     // Follows the Unreal's convention. References:
@@ -43,6 +43,14 @@ MTwoBandSH ifrit_SHCosineLobe2Encode(vec3 dir){
     sh.m_Coef.y = -1.023327f * dir.y;  
     sh.m_Coef.z = 1.023327f * dir.z;   
     sh.m_Coef.w = -1.023327f * dir.x;  
+    return sh;
+}
+
+MTwoBandSH_RGB ifrit_SHBasis2EncodeRGB(vec3 dir){
+    MTwoBandSH_RGB sh;
+    sh.m_R = ifrit_SHBasis2Encode(dir);
+    sh.m_G = ifrit_SHBasis2Encode(dir);
+    sh.m_B = ifrit_SHBasis2Encode(dir);
     return sh;
 }
 
@@ -72,6 +80,14 @@ MTwoBandSH_RGB ifrit_MulSH2RGB(MTwoBandSH_RGB sh, float scalar){
     return result;
 }
 
+MTwoBandSH_RGB ifrit_MulSH2RGBColor(MTwoBandSH_RGB sh, vec3 color){
+    MTwoBandSH_RGB result;
+    result.m_R = ifrit_MulSH2(sh.m_R, color.r);
+    result.m_G = ifrit_MulSH2(sh.m_G, color.g);
+    result.m_B = ifrit_MulSH2(sh.m_B, color.b);
+    return result;
+}
+
 MTwoBandSH_RGB ifrit_AddSH2RGB(MTwoBandSH_RGB sh1, MTwoBandSH_RGB sh2){
     MTwoBandSH_RGB result;
     result.m_R = ifrit_AddSH2(sh1.m_R, sh2.m_R);
@@ -92,4 +108,12 @@ vec3 ifrit_DotSH2RGB(MTwoBandSH_RGB sh1, MTwoBandSH_RGB sh2){
         dot(sh1.m_B.m_Coef, sh2.m_B.m_Coef)
     );
     return ret;
+}
+
+MTwoBandSH_RGB ifrit_ZeroSH2RGB(){
+    MTwoBandSH_RGB sh;
+    sh.m_R.m_Coef = vec4(0.0);
+    sh.m_G.m_Coef = vec4(0.0);
+    sh.m_B.m_Coef = vec4(0.0);
+    return sh;
 }

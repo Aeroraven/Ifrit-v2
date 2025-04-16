@@ -44,6 +44,9 @@ namespace Ifrit::Runtime::FrameGraphUtils
     IFRIT_RUNTIME_API ComputePassNode&  AddComputePass(FrameGraphBuilder& builder, const String& name,
          const String& shader, Vector3i workGroups, u32 pushConsts, FnPassFunction onCall);
 
+    IFRIT_RUNTIME_API ComputePassNode&  AddIndirectComputePass(FrameGraphBuilder& builder, const String& name,
+         const String& shader, ResourceNode& workGroupsIndirect, u32 offset, u32 pushConsts, FnPassFunction onCall);
+
     IFRIT_RUNTIME_API PassNode&         AddClearUAVPass(
                 FrameGraphBuilder& builder, const String& name, ResourceNode& buffer, u32 clearValue);
 
@@ -87,6 +90,16 @@ namespace Ifrit::Runtime::FrameGraphUtils
     {
         auto& node = AddComputePass(builder, name, shader, workGroups, GetPushConstSize<RootSignature>(),
             [onCall, passData](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
+        return node;
+    }
+
+    template <typename PassData, typename RootSignature = PassData>
+    ComputePassNode& AddIndirectComputePass(FrameGraphBuilder& builder, const String& name, const String& shader,
+        ResourceNode& workGroupsIndirect, u32 offset, PassData passData, FnPassFunctionWithData<PassData> onCall)
+    {
+        auto& node =
+            AddIndirectComputePass(builder, name, shader, workGroupsIndirect, offset, GetPushConstSize<RootSignature>(),
+                [onCall, passData](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
         return node;
     }
 

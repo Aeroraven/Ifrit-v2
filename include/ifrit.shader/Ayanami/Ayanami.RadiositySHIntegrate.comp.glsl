@@ -16,10 +16,27 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-bool ifrit_IsFirstLane(){
-    return gl_LocalInvocationID.x == 0 && gl_LocalInvocationID.y == 0 && gl_LocalInvocationID.z == 0;
-}
+#version 450
+#extension GL_GOOGLE_include_directive : require
 
-bool ifrit_IsGlobalFirstThread(){
-    return gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0 && gl_GlobalInvocationID.z == 0;
+
+#include "Base.glsl"
+#include "Bindless.glsl"
+#include "ComputeUtils.glsl"
+#include "SamplerUtils.SharedConst.h"
+#include "Math.SphericalHarmonics.glsl"
+
+#include "Ayanami/Ayanami.SharedConst.h"
+#include "Ayanami/Ayanami.Shared.glsl"
+
+layout(
+    local_size_x = 1, 
+    local_size_y = 1, 
+    local_size_z = 1 
+) in;
+
+
+void main(){
+
+    
 }

@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Bindless.glsl"
 #include "ComputeUtils.glsl"
 #include "SamplerUtils.SharedConst.h"
+#include "Math.SphericalHarmonics.glsl"
 
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
@@ -34,6 +35,75 @@ layout(
     local_size_z = 1 
 ) in;
 
+struct PushConst{
+    vec2 m_TraceCoordJitter;
+    vec2 m_ProbeCenterJitter;
+    uint m_CardAtlasResolution;
+    uint m_CardResolution;
+    uint m_NumTotalCards;
+    uint m_CardDepthAtlasSRV;
+    uint m_CardNormalAtlasSRV;
+    uint m_AllCardObjDataId;
+    uint m_AllMeshDFDataId;
+    uint m_FilteredRadianceAtlasUAV;
+    uint m_RWRadiosityProbeSHAtlasRUAV;
+    uint m_RWRadiosityProbeSHAtlasGUAV;
+    uint m_RWRadiosityProbeSHAtlasBUAV;
+};
+
+ivec2 GetProbeSHAtlasCoord(uint ProbeIndex){
+    uint TilesPerAtlasWidth = PushConst.m_CardAtlasResolution / kAyanami_CardTileWidth;
+    uint ProbesPerAtlasWidth = kAyanami_RadiosityProbesPerCardTileWidth * TilesPerAtlasWidth;
+    uint ProbeX = ProbeIndex % ProbesPerAtlasWidth;
+    uint ProbeY = ProbeIndex / ProbesPerAtlasWidth;
+    return ivec2(ProbeX, ProbeY);
+}
+
+void WriteSHAtlas(uint ProbeIndex, MTwoBandSH_RGB SHCoefs){
+    ivec2 WriteLocation = GetProbeSHAtlasCoord(ProbeIndex);
+    mageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasRUAV), ivec2(WriteLocation), SHCoefs.m_R.m_Coef);
+    mageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasGUAV), ivec2(WriteLocation), SHCoefs.m_G.m_Coef);
+    mageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasBUAV), ivec2(WriteLocation), SHCoefs.m_B.m_Coef);
+}
+
 void main(){
+    uint GlobalId = gl_GlobalInvocationID.x; //Probe Id
+    uint ProbeRayStart = kAyanami_RadiosityTracesPerProbe * GlobalId;
+
+    uint TileIndex;
+    uvec2 OffsetInTile;
+    uvec2 TraceRayCoord;
+    AyaShared_RayTraceCoordToCardInfo(ProbeRayStart, PushConst.m_TraceCoordJitter, OffsetInTile, TileIndex, TraceRayCoord);
+
+    RadiosityRayCardSample SampledData = AyaShared_GetRadiosityRayCardSample(TileIndex, OffsetInTile, PushConst.m_CardAtlasResolution,
+        PushConst.m_CardResolution, PushConst.m_NumTotalCards, PushConst.m_CardDepthAtlasSRV,
+        PushConst.m_CardNormalAtlasSRV, PushConst.m_AllCardObjDataId, PushConst.m_AllMeshDFDataId);
     
+    MTwoBandSH_RGB SHCoefs = ifrit_ZeroSH2RGB();
+
+    if(!SampledData.m_PresentInAtlas || !SampledData.m_ValidSample){
+        WriteSHAtlas(GlobalId, SHCoefs);
+        return;
+    }
+
+    uvec2 WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoord, PushConst.m_CardAtlasResolution);
+
+    for(uint TraceX = 0;TraceX<kAyanami_RadiosityProbHemiRes;TraceX++){
+        for(uint TraceY = 0;TraceY<kAyanami_RadiosityProbHemiRes;TraceY++){
+            uvec2 TraceRayCoordS = uvec2(TraceX, TraceY);
+            vec2 ProbeUV = (vec2(TraceRayCoordS) + PushConst.m_ProbeCenterJitter) / float(kAyanami_RadiosityProbHemiRes);
+            vec4 RayPDF = ifrit_SampleCosineHemisphereWithPDF(ProbeUV);
+            vec3 LocalRayDir = RayPDF.xyz;
+            float PDF = RayPDF.w;
+            mat3 TBN = ifrit_FrisvadONB(SampledData.m_WorldNormal);
+            vec3 WorldRayDir = TBN * LocalRayDir;
+
+            WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoordS, PushConst.m_CardAtlasResolution);
+            vec3 FilteredRadiance = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_FilteredRadianceAtlasUAV), ivec2(WriteSlot)).rgb;
+
+            SHCoefs = ifrit_AddSH2RGB(SHCoefs, ifrit_MulSH2RGBColor(ifrit_SHBasis2EncodeRGB(WorldRayDir), FilteredRadiance / PDF));
+        }
+    }
+    SHCoefs = ifrit_MulSH2RGB(SHCoefs, 1.0 / float(kAyanami_RadiosityProbHemiRes * kAyanami_RadiosityProbHemiRes));
+    WriteSHAtlas(GlobalId, SHCoefs);
 }

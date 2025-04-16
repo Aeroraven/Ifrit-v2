@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiDFShadowing.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/renderer/ayanami//AyanamiDebugger.h"
+#include "ifrit/runtime/renderer/ayanami/AyanamiScreenProbeProc.h"
 
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::Runtime::FrameGraphUtils;
@@ -53,6 +54,7 @@ namespace Ifrit::Runtime
         Uref<AyanamiTrivialSurfaceCacheManager> m_SurfaceCache = nullptr;
         Uref<AyanamiDistanceFieldLighting>      m_DFLighting   = nullptr;
         Uref<AyanamiDebugger>                   m_Debugger     = nullptr;
+        Uref<AyanamiScreenProbeProcessor>       m_ScreenProbe  = nullptr;
 
         bool                                    m_Inited     = false;
         bool                                    m_DbgShowMDF = false;
@@ -83,6 +85,7 @@ namespace Ifrit::Runtime
         m_resources->m_DFLighting   = std::make_unique<AyanamiDistanceFieldLighting>(m_app->GetRhi());
         m_resources->m_FgExecutor   = std::make_unique<FrameGraphExecutor>(m_app->GetRhi());
         m_resources->m_Debugger     = std::make_unique<AyanamiDebugger>(m_app->GetRhi());
+        m_resources->m_ScreenProbe  = std::make_unique<AyanamiScreenProbeProcessor>(m_app->GetRhi());
     }
     IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer()
     {
@@ -109,6 +112,7 @@ namespace Ifrit::Runtime
         m_resources->m_SurfaceCache->InitContext(builder);
         m_resources->m_DFLighting->InitContext(builder, 64);
         m_globalDF->InitContext(builder);
+        m_resources->m_ScreenProbe->InitContext(builder, 2048, 2048, 2.5f);
 
         // Import resources
         auto& resRenderTargets =
@@ -116,28 +120,34 @@ namespace Ifrit::Runtime
         auto& resGNormal = builder.ImportTexture("Ayanami.GBufferNormal", perframe.m_gbuffer.m_normal_smoothness.get());
         auto& resGDepth =
             builder.ImportTexture("Ayanami.GBufferDepth", perframe.m_views[0].m_visibilityDepth_Combined.get());
+        auto& resGAlbedo =
+            builder.ImportTexture("Ayanami.GBufferAlbedo", perframe.m_gbuffer.m_albedo_materialFlags.get());
         auto& resGlobalDFGen      = *m_globalDF->GetClipmapVolume(0);
         auto& resGlobalObjectGrid = *m_globalDF->GetObjectGridVolume(0);
 
         // Managed resources
-        auto& resRaymarchOutput  = builder.DeclareTexture("Ayanami.RDG.RayMarchOutput",
-             FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                 RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead));
-        auto& resDfssOut         = builder.DeclareTexture("Ayanami.RDG.DFSSOutput",
+        auto& resRaymarchOutput   = builder.DeclareTexture("Ayanami.RDG.RayMarchOutput",
+              FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                  RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead));
+        auto& resDfssOut          = builder.DeclareTexture("Ayanami.RDG.DFSSOutput",
+                     FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                         RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead));
+        auto& resDeferOut         = builder.DeclareTexture("Ayanami.RDG.DeferShadingOut",
                     FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
                         RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead));
-        auto& resDeferOut        = builder.DeclareTexture("Ayanami.RDG.DeferShadingOut",
-                   FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                       RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead));
-        auto& resDebugSCOut      = builder.DeclareTexture("Ayanami.RDG.DebugSCOut",
-                 FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                     RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead
-                         | RhiImageUsage::RhiImgUsage_UnorderedAccess));
-        auto& resDebugObjGridOut = builder.DeclareTexture("Ayanami.RDG.DebugObjGridOut",
-            FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead
-                    | RhiImageUsage::RhiImgUsage_UnorderedAccess));
-        auto& resDebugObjGridVis = builder.DeclareTexture("Ayanami.RDG.DebugObjGridVis",
+        auto& resDebugSCOut       = builder.DeclareTexture("Ayanami.RDG.DebugSCOut",
+                  FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                      RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead
+                          | RhiImageUsage::RhiImgUsage_UnorderedAccess));
+        auto& resDebugObjGridOut  = builder.DeclareTexture("Ayanami.RDG.DebugObjGridOut",
+             FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                 RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead
+                     | RhiImageUsage::RhiImgUsage_UnorderedAccess));
+        auto& resDebugObjGridVis  = builder.DeclareTexture("Ayanami.RDG.DebugObjGridVis",
+             FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                 RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead
+                     | RhiImageUsage::RhiImgUsage_UnorderedAccess));
+        auto& resDebugScrProbeVis = builder.DeclareTexture("Ayanami.RDG.DebugScrProbeVis",
             FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
                 RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead
                     | RhiImageUsage::RhiImgUsage_UnorderedAccess));
@@ -258,8 +268,12 @@ namespace Ifrit::Runtime
                 .AddReadResource(resGDepth);
         }
 
-        // Pass Defered Shading
+        // Pass Screen Probe Place
+        {
+            m_resources->m_ScreenProbe->AdaptiveScreenProbePlace(builder, primaryViewCBV, &resGNormal, &resGDepth);
+        }
 
+        // Pass Defered Shading
         {
             auto& resSurfaceCacheNormal = m_resources->m_SurfaceCache->GetRDGNormalAtlas();
             struct PushConst
@@ -306,6 +320,14 @@ namespace Ifrit::Runtime
                 maxWorldBound, minWorldBound, voxelsPerWidth, primaryViewCBV);
         }
 
+        // Pass Screen Probe Debug - Vis
+
+        {
+            m_resources->m_Debugger->VisualizeScreenProbeLocation(builder, &resDebugScrProbeVis,
+                m_resources->m_ScreenProbe->GetAdaptiveProbesList(),
+                m_resources->m_ScreenProbe->GetAdaptiveProbesCounter(), &resGAlbedo);
+        }
+
         // Pass Object Grid Debug
         if (true)
         {
@@ -338,7 +360,7 @@ namespace Ifrit::Runtime
             AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass", Internal::kIntShaderTableAyanami.CopyVS,
                 Internal::kIntShaderTableAyanami.CopyFS, pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugObjGridOut);
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugScrProbeVis);
                     SetRootSignature(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)
@@ -348,6 +370,7 @@ namespace Ifrit::Runtime
                 .AddReadResource(resDeferOut)
                 .AddReadResource(resDebugObjGridOut)
                 .AddReadResource(resDebugObjGridVis)
+                .AddReadResource(resDebugScrProbeVis)
                 .AddReadResource(resGNormal);
         }
 

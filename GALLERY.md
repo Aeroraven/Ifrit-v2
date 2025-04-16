@@ -2,6 +2,10 @@
 
 ## Ayanami
 
+### Adaptive Screen Space Probe Placement
+
+![](docs/img/ayanami_adascrprobe1.png)
+
 ### Distance Field Soft Shadow
 
 ![](docs/img/ayanami_dfss.png)

@@ -53,6 +53,10 @@ namespace Ifrit::Runtime::Internal
         SDEF DbgSampleObjectGridsCS     = DECLARE_CS("Ayanami/DbgSampleObjectGridsCS");
         SDEF DbgVisObjGridsMS           = DECLARE_MS("Ayanami/DbgVisObjGridsMS");
         SDEF DbgVisObjGridsFS           = DECLARE_FS("Ayanami/DbgVisObjGridsFS");
+        SDEF DbgVisAdaptiveProbeCS      = DECLARE_CS("Ayanami/DbgVisAdaptiveProbeCS");
+        SDEF DbgVisScreenUniformProbeCS = DECLARE_CS("Ayanami/DbgVisScreenUniformProbeCS");
+
+        SDEF ScreenProbeAdaptivePlaceCS = DECLARE_CS("Ayanami/ScreenProbeAdaptivePlaceCS");
 
     } kIntShaderTableAyanami;
 

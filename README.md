@@ -88,6 +88,8 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
     - BC4 Compression
   - Surface Cache*
     - Object Grids (Global Distance Field Attribute Lookup)
+  - Lighting Probes*
+    - Adaptive Screen Space Probe Placement
 
 
 

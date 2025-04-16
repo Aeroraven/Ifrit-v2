@@ -51,5 +51,8 @@ namespace Ifrit::Runtime::Ayanami
         void RenderValidObjectGrids(FrameGraphBuilder& builder, FGTextureNodeRef outputTexture,
             FGBufferNodeRef globalObjectGrids, Vector3f worldBoundMax, Vector3f worldBoundMin, u32 voxelsPerWidth,
             u32 perFrame);
+
+        void VisualizeScreenProbeLocation(FrameGraphBuilder& builder, FGTextureNodeRef outputTexture,
+            FGBufferNodeRef adaptiveProbesList, FGBufferNodeRef adaptiveProbesCounter, FGTextureNodeRef sceneAlbedo);
     };
 } // namespace Ifrit::Runtime::Ayanami

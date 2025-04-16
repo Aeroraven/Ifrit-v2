@@ -93,6 +93,22 @@ namespace Ifrit::Runtime::FrameGraphUtils
         return pass;
     }
 
+    IFRIT_APIDECL ComputePassNode& AddIndirectComputePass(FrameGraphBuilder& builder, const String& name,
+        const String& shader, ResourceNode& workGroupsIndirect, u32 offset, u32 pushConsts, FnPassFunction onCall)
+    {
+        auto& pass = builder.AddComputePass(name, shader, pushConsts);
+        auto  rhi  = builder.GetRhi();
+        auto  cp   = pass.GetPass();
+        pass.AddReadResource(workGroupsIndirect);
+        pass.SetExecutionFunction(
+            [&workGroupsIndirect, pushConsts, onCall, cp, offset](const FrameGraphPassContext& ctx) {
+                auto cmd = ctx.m_CmdList;
+                onCall(ctx);
+                cmd->DispatchIndirect(workGroupsIndirect.GetBuffer(), offset);
+            });
+        return pass;
+    }
+
     IFRIT_APIDECL PassNode& AddClearUAVPass(
         FrameGraphBuilder& builder, const String& name, ResourceNode& buffer, u32 clearValue)
     {
@@ -108,6 +124,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
                 auto buf = buffer.GetBuffer();
                 auto cmd = ctx.m_CmdList;
                 cmd->BufferClear(buf, clearValue);
+                cmd->GlobalMemoryBarrier();
             });
         }
 

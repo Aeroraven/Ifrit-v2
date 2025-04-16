@@ -67,6 +67,7 @@ vec4 GetNeighbourRadianceSample(
     ivec2 NeighbourTileCoord = ivec2(NeighbourProbeCoord / kAyanami_RadiosityProbesPerCardTileWidth);
     uint NeighbourTileIndex = uint(NeighbourTileCoord.x + NeighbourTileCoord.y * TilesPerAtlasWidth);
 
+    // TODO: WRONG offsetInTile
     RadiosityRayCardSample NearSample = AyaShared_GetRadiosityRayCardSample(NeighbourTileIndex, OffsetInTile, PushConst.m_CardAtlasResolution,
     PushConst.m_zCardResolution, PushConst.m_NumTotalCards, PushConst.m_CardDepthAtlasSRV,
         PushConst.m_CardNormalAtlasSRV, PushConst.m_AllCardObjDataId, PushConst.m_AllMeshDFDataId);

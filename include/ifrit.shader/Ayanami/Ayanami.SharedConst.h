@@ -55,6 +55,10 @@ namespace Ifrit::Runtime::Ayanami::Config
     AYANAMI_DEFINE_UINT(kAyanami_RadiosityTracesPerProbeSqrt, 4);
     AYANAMI_DEFINE_UINT(kAyanami_RadiosityProbHemiRes, 4);
 
+    // Screen Probe Placement
+    AYANAMI_DEFINE_UINT(kAyanami_ScreenProbeUniformPlaceTileWidth, 16);
+    AYANAMI_DEFINE_UINT(kAyanami_ScreenProbeProbeHemiRes, 8); // 64 rays per probe
+
     // Kernel Sizes
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFCompositeTileSize, 8);
     AYANAMI_DEFINE_UINT(kAyanamiGlobalDFRayMarchTileSize, 16);
@@ -73,6 +77,10 @@ namespace Ifrit::Runtime::Ayanami::Config
 
     AYANAMI_DEFINE_UINT(kAyanamiDbgObjGridTileSize, 8);
     AYANAMI_DEFINE_UINT(kAyanamiSphericalHarmonicsCvtKernelSize, 64);
+
+    AYANAMI_DEFINE_UINT(kAyanamiScrProbeAdaptivePlaceKernelSize, 8);
+    AYANAMI_DEFINE_UINT(kAyanamiScrProbeAdaptiveGroupKernelSize, 64);
+    AYANAMI_DEFINE_UINT(kAyanamiDbgScrProbeUniformVisKernelSize, 8);
 
 #ifdef __cplusplus
 } // namespace Ifrit::Runtime::AYANAMI

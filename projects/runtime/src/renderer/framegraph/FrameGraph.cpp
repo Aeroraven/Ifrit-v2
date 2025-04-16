@@ -483,7 +483,7 @@ namespace Ifrit::Runtime
         Vec<u32> resourceEndUse;
         for (u32 i = 0; i < graph.m_resources.size(); i++)
         {
-            resourceBeginUse.push_back(graph.m_resources.size());
+            resourceBeginUse.push_back(graph.m_passes.size());
             resourceEndUse.push_back(0);
         }
         for (u32 i = 0; i < graph.m_passes.size(); i++)
@@ -510,6 +510,10 @@ namespace Ifrit::Runtime
             auto res = graph.m_resources[i].get();
             // iInfo("FrameGraph: Resource {} is used from {} to {}.", res->name, resourceBeginUse[i],
             // resourceEndUse[i]);
+            if (resourceBeginUse[i] == graph.m_passes.size())
+            {
+                continue;
+            }
             graph.m_passes[resourceBeginUse[i]]->m_ResourceCreateRequest.push_back(i);
             graph.m_passes[resourceEndUse[i]]->m_ResourceReleaseRequest.push_back(i);
         }
@@ -524,7 +528,8 @@ namespace Ifrit::Runtime
         for (const auto& pass : graph.m_passes)
         {
             compiledGraph.m_inputBarriers.push_back({});
-            // Make transitions for read resources
+            // iInfo("Compiler: Compiling pass: {}.", pass->name);
+            //  Make transitions for read resources
             for (auto& resId : pass->inputResources)
             {
                 auto& res           = graph.m_resources[resId];
@@ -584,35 +589,35 @@ namespace Ifrit::Runtime
                         aliasBarrier.dstState = desiredLayout;
                         compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
                     }
-                    else
+                }
+                else
+                {
+                    if (res->IsImported() && rawResourceIsWriting[resPtr])
                     {
-                        if (res->IsImported() && rawResourceIsWriting[resPtr])
-                        {
-                            // If the resource is writing, then we need to make a uav barrier to prevent RAW
-                            CompiledFrameGraph::ResourceBarrier aliasBarrier;
-                            aliasBarrier.m_ResId          = resId;
-                            aliasBarrier.enableUAVBarrier = true;
-                            compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
-                        }
-                        else if (!res->isImported && managedResourceIsWriting[resId] > 0)
-                        {
-                            // If the resource is writing, then we need to make a uav barrier to prevent RAW
-                            CompiledFrameGraph::ResourceBarrier aliasBarrier;
-                            aliasBarrier.m_ResId          = resId;
-                            aliasBarrier.enableUAVBarrier = true;
-                            compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
-                        }
+                        // If the resource is writing, then we need to make a uav barrier to prevent RAW
+                        CompiledFrameGraph::ResourceBarrier aliasBarrier;
+                        aliasBarrier.m_ResId          = resId;
+                        aliasBarrier.enableUAVBarrier = true;
+                        compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
                     }
-                    if (res->isImported)
+                    else if (!res->isImported && managedResourceIsWriting[resId] > 0)
                     {
-                        rawResourceState[resPtr]     = desiredLayout;
-                        rawResourceIsWriting[resPtr] = 0;
+                        // If the resource is writing, then we need to make a uav barrier to prevent RAW
+                        CompiledFrameGraph::ResourceBarrier aliasBarrier;
+                        aliasBarrier.m_ResId          = resId;
+                        aliasBarrier.enableUAVBarrier = true;
+                        compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
                     }
-                    else
-                    {
-                        managedResourceState[resId]     = desiredLayout;
-                        managedResourceIsWriting[resId] = 0;
-                    }
+                }
+                if (res->isImported)
+                {
+                    rawResourceState[resPtr]     = desiredLayout;
+                    rawResourceIsWriting[resPtr] = 0;
+                }
+                else
+                {
+                    managedResourceState[resId]     = desiredLayout;
+                    managedResourceIsWriting[resId] = 0;
                 }
             }
 
@@ -673,18 +678,19 @@ namespace Ifrit::Runtime
                         aliasBarrier.enableTransitionBarrier = true;
                         aliasBarrier.srcState = Graphics::Rhi::RhiResourceState::AutoTraced; // rawResState;
                         aliasBarrier.dstState = desiredLayout;
+
                         compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
                     }
-                    if (res->isImported)
-                    {
-                        rawResourceState[resPtr]     = desiredLayout;
-                        rawResourceIsWriting[resPtr] = 1;
-                    }
-                    else
-                    {
-                        managedResourceState[resId] = desiredLayout;
-                        managedResourceIsWriting[resId] += 1;
-                    }
+                }
+                if (res->isImported)
+                {
+                    rawResourceState[resPtr]     = desiredLayout;
+                    rawResourceIsWriting[resPtr] = 1;
+                }
+                else
+                {
+                    managedResourceState[resId] = desiredLayout;
+                    managedResourceIsWriting[resId] += 1;
                 }
             }
         }
@@ -706,10 +712,14 @@ namespace Ifrit::Runtime
             {
                 if (res.type == FrameGraphResourceType::ResourceBuffer)
                 {
+                    iAssertion(res.importedBuffer,
+                        "FrameGraphExecutor: Imported buffer resource is null. Lifetime is corrupted.");
                     resBarrier.m_transition.m_buffer = res.importedBuffer;
                 }
                 else
                 {
+                    iAssertion(res.importedTexture,
+                        "FrameGraphExecutor: Imported texture resource is null. Lifetime is corrupted.");
                     resBarrier.m_transition.m_texture     = res.importedTexture;
                     resBarrier.m_transition.m_subResource = res.subResource;
                 }
@@ -718,10 +728,12 @@ namespace Ifrit::Runtime
             {
                 if (res.type == FrameGraphResourceType::ResourceBuffer)
                 {
+                    iAssertion(res.selfBuffer, "FrameGraphExecutor: Buffer resource is null. Lifetime is corrupted.");
                     resBarrier.m_transition.m_buffer = res.selfBuffer;
                 }
                 else
                 {
+                    iAssertion(res.selfTexture, "FrameGraphExecutor: Texture resource is null. Lifetime is corrupted.");
                     resBarrier.m_transition.m_texture     = res.selfTexture;
                     resBarrier.m_transition.m_subResource = res.subResource;
                 }
@@ -737,14 +749,35 @@ namespace Ifrit::Runtime
             resBarrier.m_uav.m_type = res.type == FrameGraphResourceType::ResourceBuffer
                 ? Graphics::Rhi::RhiResourceType::Buffer
                 : Graphics::Rhi::RhiResourceType::Texture;
-            if (res.type == FrameGraphResourceType::ResourceBuffer)
+            if (res.isImported)
             {
-                resBarrier.m_uav.m_buffer = res.importedBuffer;
+                if (res.type == FrameGraphResourceType::ResourceBuffer)
+                {
+                    iAssertion(
+                        res.importedBuffer, "FrameGraphExecutor: Buffer resource is null. Lifetime is corrupted.");
+                    resBarrier.m_uav.m_buffer = res.importedBuffer;
+                }
+                else
+                {
+                    iAssertion(
+                        res.importedTexture, "FrameGraphExecutor: Texture resource is null. Lifetime is corrupted.");
+                    resBarrier.m_uav.m_texture = res.importedTexture;
+                }
             }
             else
             {
-                resBarrier.m_uav.m_texture = res.importedTexture;
+                if (res.type == FrameGraphResourceType::ResourceBuffer)
+                {
+                    iAssertion(res.selfBuffer, "FrameGraphExecutor: Buffer resource is null. Lifetime is corrupted.");
+                    resBarrier.m_uav.m_buffer = res.selfBuffer;
+                }
+                else
+                {
+                    iAssertion(res.selfTexture, "FrameGraphExecutor: Texture resource is null. Lifetime is corrupted.");
+                    resBarrier.m_uav.m_texture = res.selfTexture;
+                }
             }
+
             valid = true;
         }
 
@@ -759,12 +792,17 @@ namespace Ifrit::Runtime
         using namespace Ifrit::Graphics::Rhi;
         for (auto& pass : compiledGraph.m_graph->m_passes)
         {
+            if (pass->name == "Ayanami.Debug.VisualizeScreenProbeAdaptive")
+            {
+                // std::abort();
+            }
             // PreExecute
+            // iInfo("FrameGraphExecutor: Executing {}", pass->name);
             for (u32 i = 0; i < pass->m_ResourceCreateRequest.size(); i++)
             {
                 auto res = compiledGraph.m_graph->m_resources[pass->m_ResourceCreateRequest[i]].get();
                 iAssertion(!res->isImported, "Resource should not be imported.");
-
+                // iInfo("FrameGraphExecutor: Allocating {} ({})", res->name,res->id);
                 if (res->type == FrameGraphResourceType::ResourceBuffer)
                 {
                     auto resAlloc      = compiledGraph.m_graph->m_ResourcePool->CreateBuffer(res->bufferDesc);
@@ -800,13 +838,13 @@ namespace Ifrit::Runtime
 
             pass->FillContext(passContext);
             pass->Execute(passContext);
-
+            // cmd->GlobalMemoryBarrier();
             // PostExecute
             for (u32 i = 0; i < pass->m_ResourceReleaseRequest.size(); i++)
             {
                 auto res = compiledGraph.m_graph->m_resources[pass->m_ResourceReleaseRequest[i]].get();
                 iAssertion(!res->isImported, "Resource should not be imported.");
-
+                // iInfo("FrameGraphExecutor: Recycling {} ({})", res->name, res->id);
                 if (res->type == FrameGraphResourceType::ResourceBuffer)
                 {
                     res->selfBuffer = nullptr;

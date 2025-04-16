@@ -759,19 +759,21 @@ namespace Ifrit::Graphics::VulkanGraphics
                     bufferBarrier.offset        = 0;
                     bufferBarrier.size          = VK_WHOLE_SIZE;
                     bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-                    bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                    bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT
+                        | VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_UNIFORM_READ_BIT;
                     bufferBarriers.push_back(bufferBarrier);
                 }
                 else if (resourceType == Rhi::RhiResourceType::Texture)
                 {
 
-                    if (barrier.m_uav.m_texture->GetState() != Rhi::RhiResourceState::Common)
+                    if (barrier.m_uav.m_texture->GetState() != Rhi::RhiResourceState::Common
+                        && barrier.m_uav.m_texture->GetState() != Rhi::RhiResourceState::UnorderedAccess)
                     {
-                        iError("Texture state mismatch, expected:{} actual:{}", i32(Rhi::RhiResourceState::Common),
-                            i32(barrier.m_uav.m_texture->GetState()));
+                        iError("Texture state mismatch, expected:{}/{} actual:{}", i32(Rhi::RhiResourceState::Common),
+                            i32(Rhi::RhiResourceState::UnorderedAccess), i32(barrier.m_uav.m_texture->GetState()));
                         std::abort();
                     }
-                    _setTextureState(barrier.m_uav.m_texture, Rhi::RhiResourceState::Common);
+                    _setTextureState(barrier.m_uav.m_texture, Rhi::RhiResourceState::UnorderedAccess);
 
                     // WARNING: subresource unspecified
                     VkImageMemoryBarrier imageBarrier{};
@@ -783,9 +785,10 @@ namespace Ifrit::Graphics::VulkanGraphics
                     imageBarrier.subresourceRange.baseArrayLayer = 0;
                     imageBarrier.subresourceRange.layerCount     = 1;
                     imageBarrier.srcAccessMask                   = VK_ACCESS_SHADER_WRITE_BIT;
-                    imageBarrier.dstAccessMask                   = VK_ACCESS_SHADER_READ_BIT;
-                    imageBarrier.oldLayout                       = VK_IMAGE_LAYOUT_GENERAL;
-                    imageBarrier.newLayout                       = VK_IMAGE_LAYOUT_GENERAL;
+                    imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT
+                        | VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_UNIFORM_READ_BIT;
+                    imageBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+                    imageBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
                     imageBarriers.push_back(imageBarrier);
                 }
             }

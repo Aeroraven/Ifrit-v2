@@ -78,6 +78,24 @@ RegisterStorage(BAyaShared_ObjectCell,{
     uvec4 m_Cell[];
 });
 
+RegisterUniform(BAyaShared_Perframe,{
+    PerFramePerViewData data;
+});
+
+PerFramePerViewData AyaShared_GetPerFrameData(uint PerFrameId){
+    return GetResource(BAyaShared_Perframe, PerFrameId).data;
+}
+
+vec4 AyaShared_GetWorldPosFromDepthPersp(PerFramePerViewData PerFrame,float Depth, vec2 UV){
+    vec3 NdcXyz = vec3(UV*2.0-1.0, Depth);
+    float CamNear = PerFrame.m_cameraNear;
+    float CamFar = PerFrame.m_cameraFar;
+    float WorldDepth = ifrit_recoverViewSpaceDepth(Depth, CamNear, CamFar);
+    vec4 Ndc = vec4(NdcXyz, 1.0) * WorldDepth;
+    mat4 ClipToWorld = PerFrame.m_clipToWorld;
+    vec4 WorldPos = ClipToWorld * Ndc;
+    return vec4(WorldPos.xyz / WorldPos.w, WorldDepth);
+}
 
 vec2 AyaShared_GetSdfQuantScale(MeshDFMeta meta){
     float scaleMax = meta.bboxMax.w;
