@@ -59,7 +59,9 @@ namespace Ifrit::Runtime
         data.m_hizRefs.push_back(0);
         for (int i = 0; i < maxMip; i++)
         {
-            data.m_hizRefs.push_back(rhi->GetUAVDescriptor(data.m_hizTexture.get(), { static_cast<u32>(i), 0, 1, 1 }));
+            auto uavDescriptor = rhi->GetUAVDescriptor(data.m_hizTexture.get(), { static_cast<u32>(i), 0, 1, 1 });
+            data.m_hizRefs.push_back(uavDescriptor);
+            // iInfo("Hiz mip level {}: {}", i, uavDescriptor);
         }
         data.m_hizRefBuffer =
             rhi->CreateBufferDevice("SHiZ_Ref", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest, true);

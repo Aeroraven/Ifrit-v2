@@ -566,14 +566,17 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL Rhi::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(
         Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource)
     {
-        if (texture->GetDescId())
+        bool isMainLayer = (subResource.mipCount == 1) && (subResource.layerCount == 1) && (subResource.arrayLayer == 0)
+            && (subResource.mipLevel == 0);
+        if (texture->GetDescId() && isMainLayer)
         {
             return texture->GetDescId();
         }
         auto dm  = m_implDetails->m_descriptorManager.get();
         auto tex = CheckedCast<SingleDeviceImage>(texture);
         auto p   = dm->RegisterStorageImage(tex, subResource);
-        texture->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, p));
+        if (isMainLayer)
+            texture->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, p));
         return p;
     }
     IFRIT_APIDECL Rhi::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(Rhi::RhiTexture* texture)
