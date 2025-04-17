@@ -220,10 +220,10 @@ namespace Ifrit
             {
                 // Surrounding => 617
                 numMeshes++;
-                // if (numMeshes == 1000 || numMeshes <1000)
-                //      continue;
-                //  if (numMeshes > 1300)
-                //      continue;
+                // if (numMeshes == 1000 || numMeshes < 600)
+                //     continue;
+                // if (numMeshes > 700)
+                //     continue;
 
                 auto t      = m->m_prefab;
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();

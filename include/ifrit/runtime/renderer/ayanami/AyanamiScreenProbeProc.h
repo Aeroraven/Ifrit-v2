@@ -37,8 +37,10 @@ namespace Ifrit::Runtime::Ayanami
         void InitContext(FrameGraphBuilder& builder, u32 maxRtWidth, u32 maxRtHeight, f32 adaptiveProbesRatio);
         void AdaptiveScreenProbePlace(
             FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef viewNormal, FGTextureNodeRef viewDepth);
+        void             ProbeScreenTrace(FrameGraphBuilder& builder, u32 perframeCBV, FGBufferNodeRef hizBuffer);
 
-        FGBufferNodeRef GetAdaptiveProbesList() const;
-        FGBufferNodeRef GetAdaptiveProbesCounter() const;
+        FGBufferNodeRef  GetAdaptiveProbesList() const;
+        FGBufferNodeRef  GetAdaptiveProbesCounter() const;
+        FGTextureNodeRef GetScreenProbeRadianceAtlas() const;
     };
 } // namespace Ifrit::Runtime::Ayanami

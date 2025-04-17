@@ -90,6 +90,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
     - Object Grids (Global Distance Field Attribute Lookup)
   - Lighting Probes*
     - Adaptive Screen Space Probe Placement
+    - Screen Space Probe Tracing (SSGI+HiZ)
 
 
 

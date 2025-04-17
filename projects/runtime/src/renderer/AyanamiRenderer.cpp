@@ -55,6 +55,7 @@ namespace Ifrit::Runtime
         Uref<AyanamiDistanceFieldLighting>      m_DFLighting   = nullptr;
         Uref<AyanamiDebugger>                   m_Debugger     = nullptr;
         Uref<AyanamiScreenProbeProcessor>       m_ScreenProbe  = nullptr;
+        Uref<SinglePassHiZPass>                 m_SpHiZ        = nullptr;
 
         bool                                    m_Inited     = false;
         bool                                    m_DbgShowMDF = false;
@@ -75,6 +76,19 @@ namespace Ifrit::Runtime
         return pass;
     }
 
+    static void PrepareHierarchicalZForSSGI(const Graphics::Rhi::RhiCommandList* cmd, SinglePassHiZPass* spHiz,
+        PerFrameData& perFrame, RhiRenderTargets* rts)
+    {
+        // Single-pass downsampler HiZ is managed by Syaro so, prep step is intentionally left empty
+        auto rtsArea  = rts->GetRenderArea();
+        auto rtWidth  = rtsArea.width;
+        auto rtHeight = rtsArea.height;
+        cmd->BeginScope("Ayanami: Prepare HiZ for SSGI");
+        spHiz->RunHiZPass(perFrame.m_views[0].m_spHiZDataMin, cmd, rtWidth, rtHeight, true);
+        cmd->EndScope();
+        cmd->GlobalMemoryBarrier();
+    }
+
     IFRIT_APIDECL void AyanamiRenderer::InitRenderer()
     {
         m_resources                 = new AyanamiRendererResources();
@@ -86,6 +100,7 @@ namespace Ifrit::Runtime
         m_resources->m_FgExecutor   = std::make_unique<FrameGraphExecutor>(m_app->GetRhi());
         m_resources->m_Debugger     = std::make_unique<AyanamiDebugger>(m_app->GetRhi());
         m_resources->m_ScreenProbe  = std::make_unique<AyanamiScreenProbeProcessor>(m_app->GetRhi());
+        m_resources->m_SpHiZ        = std::make_unique<SinglePassHiZPass>(m_app);
     }
     IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer()
     {
@@ -98,6 +113,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void AyanamiRenderer::SetupAndRunFrameGraph(
         Scene* scene, PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
+        cmd->BeginScope("Ayanami: Execute Render Graph");
         FrameGraphBuilder builder(m_app->GetShaderRegistry(), m_app->GetRhi(), m_resources->m_ResourcePool.get());
         builder.SetResourceInitState(FrameGraphResourceInitState::Uninitialized);
 
@@ -112,7 +128,7 @@ namespace Ifrit::Runtime
         m_resources->m_SurfaceCache->InitContext(builder);
         m_resources->m_DFLighting->InitContext(builder, 64);
         m_globalDF->InitContext(builder);
-        m_resources->m_ScreenProbe->InitContext(builder, 2048, 2048, 2.5f);
+        m_resources->m_ScreenProbe->InitContext(builder, 2048, 2048, 0.5f);
 
         // Import resources
         auto& resRenderTargets =
@@ -124,6 +140,8 @@ namespace Ifrit::Runtime
             builder.ImportTexture("Ayanami.GBufferAlbedo", perframe.m_gbuffer.m_albedo_materialFlags.get());
         auto& resGlobalDFGen      = *m_globalDF->GetClipmapVolume(0);
         auto& resGlobalObjectGrid = *m_globalDF->GetObjectGridVolume(0);
+        auto& resHiZDescMin =
+            builder.ImportBuffer("Ayanami.HizMin", perframe.m_views[0].m_spHiZDataMin.m_hizRefBuffer.get());
 
         // Managed resources
         auto& resRaymarchOutput   = builder.DeclareTexture("Ayanami.RDG.RayMarchOutput",
@@ -271,6 +289,7 @@ namespace Ifrit::Runtime
         // Pass Screen Probe Place
         {
             m_resources->m_ScreenProbe->AdaptiveScreenProbePlace(builder, primaryViewCBV, &resGNormal, &resGDepth);
+            m_resources->m_ScreenProbe->ProbeScreenTrace(builder, primaryViewCBV, &resHiZDescMin);
         }
 
         // Pass Defered Shading
@@ -352,7 +371,8 @@ namespace Ifrit::Runtime
 
         // Pass Debug
         {
-            auto& resDirectRadiance = m_resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
+            auto& resDirectRadiance  = m_resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
+            auto  resSsProbeRadiance = m_resources->m_ScreenProbe->GetScreenProbeRadianceAtlas();
             struct PushConst
             {
                 u32 raymarchOutput = 0;
@@ -360,7 +380,7 @@ namespace Ifrit::Runtime
             AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass", Internal::kIntShaderTableAyanami.CopyVS,
                 Internal::kIntShaderTableAyanami.CopyFS, pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugScrProbeVis);
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(*resSsProbeRadiance);
                     SetRootSignature(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)
@@ -371,12 +391,14 @@ namespace Ifrit::Runtime
                 .AddReadResource(resDebugObjGridOut)
                 .AddReadResource(resDebugObjGridVis)
                 .AddReadResource(resDebugScrProbeVis)
+                .AddReadResource(*resSsProbeRadiance)
                 .AddReadResource(resGNormal);
         }
 
         auto compiledFg = m_resources->m_FgCompiler.Compile(builder);
         m_resources->m_FgExecutor->ExecuteInSingleCmd(cmd, compiledFg);
         m_resources->m_Inited = true;
+        cmd->EndScope();
     }
 
     IFRIT_APIDECL Uref<AyanamiRenderer::GPUCommandSubmission> AyanamiRenderer::Render(Scene* scene, Camera* camera,
@@ -401,9 +423,9 @@ namespace Ifrit::Runtime
 
         auto task = dq->RunAsyncCommand(
             [&](const GPUCmdBuffer* cmd) {
-                cmd->BeginScope("Ayanami: Execute Render Graph");
+                // Prepare SSGI HiZ
+                PrepareHierarchicalZForSSGI(cmd, m_resources->m_SpHiZ.get(), perframeData, renderTargets);
                 SetupAndRunFrameGraph(scene, perframeData, renderTargets, cmd);
-                cmd->EndScope();
             },
             { vgTaskTimestamp.get() }, {});
 

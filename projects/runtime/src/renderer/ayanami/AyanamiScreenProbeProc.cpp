@@ -44,6 +44,12 @@ namespace Ifrit::Runtime::Ayanami
         FGTextureNodeRef m_ProbeSH_B             = nullptr;
         FGBufferNodeRef  m_AdaptiveProbesList    = nullptr;
         FGBufferNodeRef  m_AdaptiveProbesCounter = nullptr;
+
+        FGBufferNodeRef  m_MeshDFTracingRayList         = nullptr;
+        FGBufferNodeRef  m_MeshDFTracingRayIndirectArgs = nullptr;
+
+        u32              m_ActiveRTWidth  = 0;
+        u32              m_ActiveRTHeight = 0;
     };
 
     IFRIT_APIDECL AyanamiScreenProbeProcessor::AyanamiScreenProbeProcessor(Graphics::Rhi::RhiBackend* rhi) : m_Rhi(rhi)
@@ -72,9 +78,16 @@ namespace Ifrit::Runtime::Ayanami
                 m_Private->m_MaxAdaptiveProbesCount * sizeof(u32), RhiBufferUsage::RhiBufferUsage_SSBO));
 
         m_Private->m_AdaptiveProbesCounter = &builder.DeclareBuffer("Ayanami.RDG.ScreeProbe.AdaptiveProbesCounter",
-            FrameGraphBufferDesc(sizeof(u32) * 4,
+            FrameGraphBufferDesc(sizeof(u32) * 7,
                 RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst
                     | RhiBufferUsage::RhiBufferUsage_Indirect));
+
+        // m_MeshDFTracingRayIndirectArgs: (counter | indargs for mesh df tracing)
+        m_Private->m_MeshDFTracingRayIndirectArgs =
+            &builder.DeclareBuffer("Ayanami.RDG.ScreeProbe.MeshDFTracingIndirectArgs",
+                FrameGraphBufferDesc(sizeof(u32) * 4,
+                    RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst
+                        | RhiBufferUsage::RhiBufferUsage_Indirect));
 
         // Create the radiance atlas
         {
@@ -88,6 +101,14 @@ namespace Ifrit::Runtime::Ayanami
             m_Private->m_RadianceAtlas = &builder.DeclareTexture("Ayanami.RDG.ScreeProbe.RadianceAtlas",
                 FrameGraphTextureDesc(requiredWidth, requiredHeight, 1, RhiImgFmt_R32G32B32A32_SFLOAT,
                     RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead));
+        }
+
+        // Then list for trace coords for mesh df tracing
+        {
+            u32 maxProbes                     = m_Private->m_MaxUniformProbes + m_Private->m_MaxAdaptiveProbesCount;
+            u32 maxTraces                     = maxProbes * kAyanami_ScreenProbeTracePerProbe;
+            m_Private->m_MeshDFTracingRayList = &builder.DeclareBuffer("Ayanami.RDG.ScreeProbe.MeshDFTracingRayList",
+                FrameGraphBufferDesc(maxTraces * sizeof(u32), RhiBufferUsage::RhiBufferUsage_SSBO));
         }
 
         // Then, the probe sh
@@ -140,6 +161,10 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_RTHeight                 = viewNormal->GetHeight();
         pc.m_MaxAdaptiveProbes        = m_Private->m_MaxAdaptiveProbesCount;
 
+        // update active rt size
+        m_Private->m_ActiveRTWidth  = pc.m_RTWidth;
+        m_Private->m_ActiveRTHeight = pc.m_RTHeight;
+
         // num of probes proposals
         i32 PropX = DivRoundUp(pc.m_RTWidth, pc.m_DownSampleSize);
         i32 PropY = DivRoundUp(pc.m_RTHeight, pc.m_DownSampleSize);
@@ -162,6 +187,53 @@ namespace Ifrit::Runtime::Ayanami
             .AddWriteResource(*m_Private->m_AdaptiveProbesList);
     }
 
+    IFRIT_APIDECL void AyanamiScreenProbeProcessor::ProbeScreenTrace(
+        FrameGraphBuilder& builder, u32 perframeCBV, FGBufferNodeRef hizBuffer)
+    {
+        AddClearUAVPass(builder, "Ayanami.ScreenProbe.ClearMeshDFTracingRayIndirectArgs",
+            *m_Private->m_MeshDFTracingRayIndirectArgs, 0);
+
+        struct PushConst
+        {
+            Vector2f m_RayJitter;
+            u32      m_HizStorage;
+            u32      m_PerFrameCBV;
+            u32      m_RTWidth;
+            u32      m_RTHeight;
+            u32      m_ScreenProbeLightingAtlasUAV;
+            u32      m_MeshDFTraceProposalCounterUAV;
+            u32      m_MeshDFTraceProposalListUAV;
+            u32      m_AdaptiveProbesListUAV;
+        } pc;
+
+        pc.m_RayJitter                   = Vector2f(0.0f, 0.0f);
+        pc.m_HizStorage                  = 0;
+        pc.m_PerFrameCBV                 = perframeCBV;
+        pc.m_RTWidth                     = m_Private->m_ActiveRTWidth;
+        pc.m_RTHeight                    = m_Private->m_ActiveRTHeight;
+        pc.m_ScreenProbeLightingAtlasUAV = 0;
+        pc.m_MeshDFTraceProposalListUAV  = 0;
+
+        // the indirect compute arg starts at offset 4
+        AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.ScreenSpaceTrace",
+            Internal::kIntShaderTableAyanami.ScreenProbeTraceScreenCS, *m_Private->m_AdaptiveProbesCounter,
+            4 * sizeof(u32), pc,
+            [hizBuffer, this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_HizStorage                    = ctx.m_FgDesc->GetSRV(*hizBuffer);
+                data.m_ScreenProbeLightingAtlasUAV   = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
+                data.m_MeshDFTraceProposalListUAV    = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFTracingRayList);
+                data.m_MeshDFTraceProposalCounterUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFTracingRayIndirectArgs);
+                data.m_AdaptiveProbesListUAV         = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesList);
+                SetRootSignature(data, ctx);
+            })
+            .AddReadResource(*hizBuffer)
+            .AddWriteResource(*m_Private->m_RadianceAtlas)
+            .AddWriteResource(*m_Private->m_MeshDFTracingRayList)
+            .AddReadResource(*m_Private->m_AdaptiveProbesCounter)
+            .AddReadResource(*m_Private->m_AdaptiveProbesList)
+            .AddReadWriteResource(*m_Private->m_MeshDFTracingRayIndirectArgs);
+    }
+
     IFRIT_APIDECL FGBufferNodeRef AyanamiScreenProbeProcessor::GetAdaptiveProbesList() const
     {
         return m_Private->m_AdaptiveProbesList;
@@ -169,5 +241,9 @@ namespace Ifrit::Runtime::Ayanami
     IFRIT_APIDECL FGBufferNodeRef AyanamiScreenProbeProcessor::GetAdaptiveProbesCounter() const
     {
         return m_Private->m_AdaptiveProbesCounter;
+    }
+    IFRIT_APIDECL FGTextureNodeRef AyanamiScreenProbeProcessor::GetScreenProbeRadianceAtlas() const
+    {
+        return m_Private->m_RadianceAtlas;
     }
 } // namespace Ifrit::Runtime::Ayanami

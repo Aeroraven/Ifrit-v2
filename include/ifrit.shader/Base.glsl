@@ -173,17 +173,6 @@ float ifrit_AabbSquaredDistance(vec3 center1, vec3 extent1, vec3 center2, vec3 e
     return dot(d,d);
 }
 
-vec4 ifrit_SampleCosineHemisphereWithPDF(vec2 uv){
-    float phi = uv.x * 2.0 * kPI;
-    float cosTheta = sqrt(uv.y);
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-    vec4 ret;
-    ret.x = cos(phi) * sinTheta;
-    ret.y = sin(phi) * sinTheta;
-    ret.z = cosTheta;
-    ret.w = cosTheta / kPI; // PDF
-    return ret;
-}
 
 mat3 ifrit_FrisvadONB(vec3 normal){
     // https://graphics.pixar.com/library/OrthonormalB/paper.pdf

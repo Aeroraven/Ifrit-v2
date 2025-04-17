@@ -64,6 +64,9 @@ RegisterStorage(BAdaptiveProbesCounter,{
     uint m_InvoX; // below two are used for debugging only
     uint m_InvoY; 
     uint m_InvoZ;
+    uint m_InvoTraceX; // used for screen space tracing
+    uint m_InvoTraceY;
+    uint m_InvoTraceZ;
 });
 
 RegisterStorage(BAdaptiveProbesList,{
@@ -75,8 +78,9 @@ uint AllocateGlobalAdaptiveProbeList(uint Count){
     return GlobalStart;
 }
 
-void MaximizeIndirectArgsX(uint Ref){
+void MaximizeIndirectArgsX(uint Ref,uint Ref2){
     atomicMax(GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoX, Ref);
+    atomicMax(GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoTraceX, Ref2);
 }
 
 ScreenSpaceSample GetScreenSample(uvec2 ScreenCoord){
@@ -138,7 +142,7 @@ vec4 GetNeighbourProbeWeights(uvec2 ScreenCoord, ScreenSpaceSample CoordSample){
     ProbeDepthValid.w = (ProbePosWS[3].z > 1e20) ? 0.0 : 1.0;
 
     vec4 DepthWeights;
-    DepthWeights = exp2(-200.0 * (RelativeDepth * RelativeDepth));
+    DepthWeights = exp2(-80.0 * (RelativeDepth * RelativeDepth));
 
     vec4 FinalWeights = vec4(1.0);
     FinalWeights *= DepthWeights * ProbeDepthValid;
@@ -154,6 +158,12 @@ uint PackLocation(uvec2 Location){
 }
 
 void main(){
+    // Get num uniform probes
+    uint ProbeCntPerX = ifrit_DivRoundUp(PushConst.m_RTWidth, kAyanami_ScreenProbeUniformPlaceTileWidth);
+    uint ProbeCntPerY = ifrit_DivRoundUp(PushConst.m_RTHeight, kAyanami_ScreenProbeUniformPlaceTileWidth);
+    uint TotalUniformProbes = ProbeCntPerX * ProbeCntPerY;
+
+    // Start the main kernel
     uvec2 DispatchCoord =  uvec2(gl_GlobalInvocationID.xy);
     uint LocalId = gl_LocalInvocationIndex.x;
     uvec2 ScreenCoord = DispatchCoord * PushConst.m_DownSampleSize + uvec2(PushConst.m_CoordJitter * PushConst.m_DownSampleSize);
@@ -168,6 +178,8 @@ void main(){
     if(ifrit_IsGlobalFirstThread()){
         GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoY = 1;
         GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoZ = 1;
+        GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoTraceY = 1;
+        GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoTraceZ = 1;
     }
     groupMemoryBarrier();
     barrier();
@@ -196,7 +208,7 @@ void main(){
         sAdaptiveSampleGlobalStart = AllocateGlobalAdaptiveProbeList(sAdaptiveSampleCount);
         uint TotalProbes = sAdaptiveSampleGlobalStart + sAdaptiveSampleCount;
         uint RequiredIndirectX = ifrit_DivRoundUp(TotalProbes, kAyanamiScrProbeAdaptiveGroupKernelSize);
-        MaximizeIndirectArgsX(RequiredIndirectX);
+        MaximizeIndirectArgsX(RequiredIndirectX,TotalProbes+TotalUniformProbes);
     }
     groupMemoryBarrier();
     barrier();

@@ -111,7 +111,7 @@ namespace Ifrit::Runtime
             auto tgY = DivRoundUp(data.m_hizHeight, cSPHiZTileSize);
             ctx->m_cmd->Dispatch(tgX, tgY, 1);
         });
-        cmd->BeginScope("Single Pass Hierarchical Z-Buffer");
+        cmd->BeginScope("Ifrit.Common: Single Pass Hierarchical Z-Buffer");
         m_singlePassHiZPass->Run(cmd, 0);
         cmd->EndScope();
     }

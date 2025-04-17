@@ -174,7 +174,7 @@ For each card tile, the tracer places $N$ probes, each has $K$ tracing rays. Let
 
 
 
+### 3.  Screen Probe Tracing
 
-
-
+​	Only Mesh DFs inside the grid cell where the screen probe resides are sampled during the Mesh DF tracing.
 
