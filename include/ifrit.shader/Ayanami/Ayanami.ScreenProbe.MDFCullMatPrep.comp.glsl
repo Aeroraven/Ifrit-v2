@@ -81,10 +81,12 @@ void main(){
     float GridYMax = PushConst.m_WorldBoundMax.y;
     float GridZMax = mix(PushConst.m_WorldBoundMin.z, PushConst.m_WorldBoundMax.z, float(GlobalTid + 1u) / float(PushConst.m_SlicesZ));
 
+    //GridZMin =  PushConst.m_WorldBoundMin.z;
+    //GridZMax =  PushConst.m_WorldBoundMax.z;
     // ortho map
     vec3 SrcMin = vec3(GridXMin, GridYMin, GridZMin);
     vec3 SrcMax = vec3(GridXMax, GridYMax, GridZMax);
-    vec3 DstMin = vec3(-1.0, -1.0, -1.0);
+    vec3 DstMin = vec3(-1.0, -1.0, 0.0);
     vec3 DstMax = vec3(1.0, 1.0, 1.0);
 
     mat4 OrthoVP = ifrit_CubeSpaceRemap(SrcMin, SrcMax, DstMin, DstMax);

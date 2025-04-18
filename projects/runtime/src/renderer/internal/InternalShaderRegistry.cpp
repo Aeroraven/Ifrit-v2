@@ -67,6 +67,7 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE(ISTAya.ScreenProbeMDFCullPrepCS, "Ayanami/Ayanami.ScreenProbe.MDFCullMatPrep");
         REG_VERTEX(ISTAya.ScreenProbeMDFCullScatterVS, "Ayanami/Ayanami.ScreenProbe.CullMDFToGrids");
         REG_FRAGMENT(ISTAya.ScreenProbeMDFCullScatterFS, "Ayanami/Ayanami.ScreenProbe.CullMDFToGrids");
+        REG_COMPUTE(ISTAya.ScreenProbeMDFTraceCS, "Ayanami/Ayanami.ScreenProbe.MDFTrace");
 
         REG_COMPUTE(ISTAya.DbgSampleObjectGridsCS, "Ayanami/Ayanami.Debug.SampleObjectGrids");
         REG_MESH(ISTAya.DbgVisObjGridsMS, "Ayanami/Ayanami.Debug.VisObjectGrids");

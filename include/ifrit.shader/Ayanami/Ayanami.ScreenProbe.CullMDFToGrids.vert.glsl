@@ -69,4 +69,5 @@ void main(){
     vec4 ClipPos = LocalToClip * vec4(LerpValue, 1.0);
     gl_Position = ClipPos;
     vInstanceId = InstanceId;
+    vZSlice = ZSlice;
 }

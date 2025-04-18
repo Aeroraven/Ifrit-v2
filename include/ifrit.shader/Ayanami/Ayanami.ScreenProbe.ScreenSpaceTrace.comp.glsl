@@ -51,6 +51,7 @@ layout(push_constant) uniform UPushConst{
 
 const float kRayProceedMax = 1000.0;
 const float kRayProceedAdvance = 1e-3;
+const uint kMaxTraceIters = 60;
 
 RegisterStorage(BHiZStorage,{
     uint m_Pad;
@@ -155,7 +156,7 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
     int ProceedSignX = DiffPixels.x > 0.0 ? 1 : -1;
     int ProceedSignY = DiffPixels.y > 0.0 ? 1 : -1;
     float CurStepF  = 0.0;
-    int MaxIters = 40;
+    int MaxIters = int(kMaxTraceIters);
     int CurIters = 0;
     while(CurStepF <= 1 && CurMip >= 0 && CurIters < MaxIters){
         CurIters += 1;
@@ -194,7 +195,7 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
     }
 
     // Check the hit z difference
-    if(abs(DepthDiffVS) > 5e-2){
+    if(abs(DepthDiffVS) > 1e-1 && CurStepF > 1e-3){
         FinalHit = false;
     }
 

@@ -295,6 +295,8 @@ namespace Ifrit::Runtime
             m_resources->m_ScreenProbe->ScatterMeshDFToGrids(builder, primaryViewCBV,
                 m_resources->m_SceneAggregator->GetNumGatheredInstances(),
                 m_resources->m_SceneAggregator->GetGatheredBufferId());
+            m_resources->m_ScreenProbe->ProbeMDFTrace(
+                builder, primaryViewCBV, m_resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth);
         }
 
         // Pass Defered Shading

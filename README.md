@@ -79,18 +79,29 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 #### 1.2.2 Ayanami: Maybe Something about Global Illumination
 
 - Implementation reports, check [here](./include/ifrit.shader/Ayanami/Readme.md)
+
 - It's planning to implement some GI algorithms.
+
 - Fully driven by the render graph.
+
 - Currently, it covers:
   - Distance Field Generation*
     - Distance Field Shadow Culling
     - Distance Field Soft Shadow (DFSS)
     - BC4 Compression
+    
   - Surface Cache*
     - Object Grids (Global Distance Field Attribute Lookup)
+    
   - Lighting Probes*
     - Adaptive Screen Space Probe Placement
-    - Screen Space Probe Tracing (SSGI+HiZ)
+    
+    - Screen  Probe Tracing 
+    
+      - Screen Space Tracing(SSGI+HiZ)
+      - Mesh Distance Field Tracing (Cull+Ray Marching)
+    
+      
 
 
 

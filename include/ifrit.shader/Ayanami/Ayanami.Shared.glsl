@@ -99,6 +99,19 @@ mat4 AyaShared_GetLocalToWorld(uint MeshDescId,uint MDFId){
     return GetResource(BAyaShared_LocalTransform, TransformId).m_LocalToWorld;
 }
 
+mat4 AyaShared_GetWorldToLocalMesh(uint MeshDescId,uint MDFId){
+    MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, MeshDescId).m_Data[MDFId];
+    uint TransformId = MeshDesc.m_TransformId;
+    return GetResource(BAyaShared_LocalTransform, TransformId).m_WorldToLocal;
+}
+
+vec3 AyaShared_GetMeshDFScale(uint MeshDescId,uint MDFId){
+    MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, MeshDescId).m_Data[MDFId];
+    uint TransformId = MeshDesc.m_TransformId;
+    vec4 Scale = GetResource(BAyaShared_LocalTransform, TransformId).m_MaxScale;
+    return Scale.xyz;
+}
+
 // ====
 vec4 AyaShared_GetWorldPosFromDepthPersp(PerFramePerViewData PerFrame,float Depth, vec2 UV){
     vec3 NdcXyz = vec3(UV*2.0-1.0, Depth);
