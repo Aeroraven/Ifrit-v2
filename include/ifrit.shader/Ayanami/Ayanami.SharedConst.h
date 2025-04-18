@@ -85,6 +85,7 @@ namespace Ifrit::Runtime::Ayanami::Config
 
     AYANAMI_DEFINE_UINT(kAyanamiScrProbeScreenTraceKernelSize, kAyanami_ScreenProbeProbeHemiRes); // 1 probe per TG
     AYANAMI_DEFINE_UINT(kAyanamiScrProbeMDFTraceKernelSize, 64);                                  // 64 traces per TG
+    AYANAMI_DEFINE_UINT(kAyanamiScrProbeGDFTraceKernelSize, 64);                                  // 64 traces per TG
 
     AYANAMI_DEFINE_UINT(kAyanamiScrProbeMDFCullPrepKernelSize, 64);
 

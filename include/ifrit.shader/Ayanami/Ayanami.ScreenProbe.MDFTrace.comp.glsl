@@ -53,6 +53,8 @@ layout(push_constant) uniform UPushConst{
     uint m_CullGridListUAV;
     uint m_MeshDFDescListId;
     uint m_MaxMdfsPerGrid;
+    uint m_GlobalDFTraceProposalCounterUAV;
+    uint m_GlobalDFTraceProposalListUAV;
 }PushConst;
 
 const float kRayProceedMax = 1000.0;
@@ -65,6 +67,10 @@ struct TraceRayProposal{
     uvec2 m_TraceRayCoord;
     uint m_ProbeId;
 };
+
+shared uint sFailureRayCount;
+shared uint sFailureRayGlobalStart;
+shared uint sFailureRayList[kAyanamiScrProbeMDFTraceKernelSize];
 
 
 RegisterStorage(BCullScatterOutput,{
@@ -81,6 +87,17 @@ RegisterStorage(BMeshDFTraceProposalIndirectArgs,{
     uint m_InvoX; // indirect args for mdf tracing for ss probes
     uint m_InvoY;
     uint m_InvoZ;
+});
+
+RegisterStorage(BGlobalDFTraceProposalIndirectArgs,{
+    uint m_MdfFailureRays;
+    uint m_InvoX; // indirect args for mdf tracing for ss probes
+    uint m_InvoY;
+    uint m_InvoZ;
+});
+
+RegisterStorage(BGloablDFTraceProposalList,{
+    uint m_List[];
 });
 
 RegisterStorage(BMeshDFTraceProposalList,{
@@ -195,11 +212,11 @@ vec4 MeshDFGridTrace(vec3 RayDirWS, vec3 RayOriginWS){
     for(int i = -kGridSearchRange; i <= kGridSearchRange; i++){
         for(int j = -kGridSearchRange; j <= kGridSearchRange; j++){
             for(int k = -kGridSearchRange; k <= kGridSearchRange; k++){
-                uvec3 GridPos = RayOriginGSI + uvec3(i, j, k);
+                ivec3 GridPos = ivec3(RayOriginGSI) + ivec3(i, j, k);
                 if(GridPos.x >= 0 && GridPos.x < PushConst.m_CullGridSize.x &&
                    GridPos.y >= 0 && GridPos.y < PushConst.m_CullGridSize.y &&
                    GridPos.z >= 0 && GridPos.z < PushConst.m_CullGridSize.z){
-                    MeshDFGridTraceGrids(RayDirWS, RayOriginWS, GridPos, HitMeshDFId, HitTime);
+                    MeshDFGridTraceGrids(RayDirWS, RayOriginWS, uvec3(GridPos), HitMeshDFId, HitTime);
                 }
             }
         }
@@ -215,12 +232,21 @@ vec4 MeshDFGridTrace(vec3 RayDirWS, vec3 RayOriginWS){
 
 
 void main(){
+    // prepare indirect args for global df tracing (TODO: move this into a separate kernel)
+    if(ifrit_IsGlobalFirstThread()){
+        GetResource(BGlobalDFTraceProposalIndirectArgs,PushConst.m_GlobalDFTraceProposalCounterUAV).m_InvoY = 1;
+        GetResource(BGlobalDFTraceProposalIndirectArgs,PushConst.m_GlobalDFTraceProposalCounterUAV).m_InvoZ = 1;    
+    }
+    if(ifrit_IsFirstLane()){
+        sFailureRayCount = 0;
+    }
+    barrier();
+
+    // the main process for mdf tracing
     PerFramePerViewData PerFrame = AyaShared_GetPerFrameData(PushConst.m_PerFrameCBV);
     float ClipNear = PerFrame.m_cameraNear;
     float ClipFar = PerFrame.m_cameraFar;
     mat4 ClipToWorld = PerFrame.m_clipToWorld;
-
-
 
     uint TraceRayId = gl_GlobalInvocationID.x;
     uint TotalTraceRays = GetResource(BMeshDFTraceProposalIndirectArgs,PushConst.m_MeshDFTraceProposalCounterUAV).m_SsgiFailureRays;
@@ -264,8 +290,28 @@ void main(){
     vec4 HitResult = MeshDFGridTrace(SampledRay, ProbeLocWS);
     if(HitResult.w < 0.5){
         // mdf hit miss
-        //imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0, 1.0, 1.0, 1.0));
+        uint LocalFailureRayId = atomicAdd(sFailureRayCount, 1);
+        sFailureRayList[LocalFailureRayId] = TraceRayPackedData;
     }else{
         imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0,1.0,0.0, 1.0));
+    }
+
+    barrier();
+
+    // prepare the proposals for global df tracing
+    if(ifrit_IsFirstLane()){
+        uint LocalFailureRayCount = sFailureRayCount;
+        uint GlobalFailureRayCount = atomicAdd(GetResource(BGlobalDFTraceProposalIndirectArgs,PushConst.m_GlobalDFTraceProposalCounterUAV).m_MdfFailureRays, LocalFailureRayCount);
+        sFailureRayGlobalStart = GlobalFailureRayCount;
+        uint TotalFailureRays = GlobalFailureRayCount + LocalFailureRayCount;
+        uint GlobalDFProposalTGs = ifrit_DivRoundUp(TotalFailureRays, kAyanamiScrProbeGDFTraceKernelSize);
+        atomicMax(GetResource(BGlobalDFTraceProposalIndirectArgs,PushConst.m_GlobalDFTraceProposalCounterUAV).m_InvoX, GlobalDFProposalTGs);
+    }
+    barrier();  
+    uint LocalId = gl_LocalInvocationID.x;
+    if(LocalId < sFailureRayCount){
+        uint GlobalFailureRayId = sFailureRayGlobalStart + LocalId;
+        uint GlobalDFTraceProposalPackedData = sFailureRayList[LocalId];
+        GetResource(BGloablDFTraceProposalList,PushConst.m_GlobalDFTraceProposalListUAV).m_List[GlobalFailureRayId] = GlobalDFTraceProposalPackedData;
     }
 }
