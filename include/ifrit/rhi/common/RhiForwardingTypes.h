@@ -107,35 +107,35 @@ namespace Ifrit::Graphics::Rhi
 
     enum RhiBlendOp
     {
-        RHI_BLEND_OP_ADD              = 0,
-        RHI_BLEND_OP_SUBTRACT         = 1,
-        RHI_BLEND_OP_REVERSE_SUBTRACT = 2,
-        RHI_BLEND_OP_MIN              = 3,
-        RHI_BLEND_OP_MAX              = 4,
+        RhiBlendOp_ADD              = 0,
+        RhiBlendOp_SUBTRACT         = 1,
+        RhiBlendOp_REVERSE_SUBTRACT = 2,
+        RhiBlendOp_MIN              = 3,
+        RhiBlendOp_MAX              = 4,
     };
 
     enum RhiBlendFactor
     {
-        RHI_BLEND_FACTOR_ZERO                     = 0,
-        RHI_BLEND_FACTOR_ONE                      = 1,
-        RHI_BLEND_FACTOR_SRC_COLOR                = 2,
-        RHI_BLEND_FACTOR_ONE_MINUS_SRC_COLOR      = 3,
-        RHI_BLEND_FACTOR_DST_COLOR                = 4,
-        RHI_BLEND_FACTOR_ONE_MINUS_DST_COLOR      = 5,
-        RHI_BLEND_FACTOR_SRC_ALPHA                = 6,
-        RHI_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA      = 7,
-        RHI_BLEND_FACTOR_DST_ALPHA                = 8,
-        RHI_BLEND_FACTOR_ONE_MINUS_DST_ALPHA      = 9,
-        RHI_BLEND_FACTOR_CONSTANT_COLOR           = 10,
-        RHI_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR = 11,
-        RHI_BLEND_FACTOR_CONSTANT_ALPHA           = 12,
-        RHI_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA = 13,
-        RHI_BLEND_FACTOR_SRC_ALPHA_SATURATE       = 14,
-        RHI_BLEND_FACTOR_SRC1_COLOR               = 15,
-        RHI_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR     = 16,
-        RHI_BLEND_FACTOR_SRC1_ALPHA               = 17,
-        RHI_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA     = 18,
-        RHI_BLEND_FACTOR_MAX_ENUM                 = 0x7FFFFFFF
+        RhiBlendFactor_ZERO                     = 0,
+        RhiBlendFactor_ONE                      = 1,
+        RhiBlendFactor_SRC_COLOR                = 2,
+        RhiBlendFactor_ONE_MINUS_SRC_COLOR      = 3,
+        RhiBlendFactor_DST_COLOR                = 4,
+        RhiBlendFactor_ONE_MINUS_DST_COLOR      = 5,
+        RhiBlendFactor_SRC_ALPHA                = 6,
+        RhiBlendFactor_ONE_MINUS_SRC_ALPHA      = 7,
+        RhiBlendFactor_DST_ALPHA                = 8,
+        RhiBlendFactor_ONE_MINUS_DST_ALPHA      = 9,
+        RhiBlendFactor_CONSTANT_COLOR           = 10,
+        RhiBlendFactor_ONE_MINUS_CONSTANT_COLOR = 11,
+        RhiBlendFactor_CONSTANT_ALPHA           = 12,
+        RhiBlendFactor_ONE_MINUS_CONSTANT_ALPHA = 13,
+        RhiBlendFactor_SRC_ALPHA_SATURATE       = 14,
+        RhiBlendFactor_SRC1_COLOR               = 15,
+        RhiBlendFactor_ONE_MINUS_SRC1_COLOR     = 16,
+        RhiBlendFactor_SRC1_ALPHA               = 17,
+        RhiBlendFactor_ONE_MINUS_SRC1_ALPHA     = 18,
+        RhiBlendFactor_MAX_ENUM                 = 0x7FFFFFFF
     };
 
     // These are just mapped from vulkan spec
@@ -383,6 +383,8 @@ namespace Ifrit::Graphics::Rhi
     {
         Load,
         Clear,
+        LoadNoStore,
+        ClearNoStore,
         DontCare
     };
     enum class RhiCullMode

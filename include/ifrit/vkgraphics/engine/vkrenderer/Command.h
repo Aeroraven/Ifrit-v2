@@ -157,7 +157,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         void                   DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const override;
         void                   DrawIndexed(
                               u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const override;
-
+        void DrawIndexedIndirect(const Rhi::RhiBuffer* buffer, u32 offset) const override;
         void CopyBuffer(const Rhi::RhiBuffer* srcBuffer, const Rhi::RhiBuffer* dstBuffer, u32 size, u32 srcOffset = 0,
             u32 dstOffset = 0) const;
         void CopyBufferToImageAllInternal(const Rhi::RhiBuffer* srcBuffer, VkImage dstImage, VkImageLayout dstLayout,

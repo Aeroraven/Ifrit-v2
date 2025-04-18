@@ -82,10 +82,24 @@ RegisterUniform(BAyaShared_Perframe,{
     PerFramePerViewData data;
 });
 
+
+// ==== Common ====
 PerFramePerViewData AyaShared_GetPerFrameData(uint PerFrameId){
     return GetResource(BAyaShared_Perframe, PerFrameId).data;
 }
+MeshDFMeta AyaShared_GetMeshDFData(uint MeshDescId,uint MDFId){
+    MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, MeshDescId).m_Data[MDFId];
+    MeshDFMeta MeshMeta = GetResource(BAyaShared_MeshDFMeta, MeshDesc.m_MdfMetaId).m_Data;
+    return MeshMeta;
+}
 
+mat4 AyaShared_GetLocalToWorld(uint MeshDescId,uint MDFId){
+    MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, MeshDescId).m_Data[MDFId];
+    uint TransformId = MeshDesc.m_TransformId;
+    return GetResource(BAyaShared_LocalTransform, TransformId).m_LocalToWorld;
+}
+
+// ====
 vec4 AyaShared_GetWorldPosFromDepthPersp(PerFramePerViewData PerFrame,float Depth, vec2 UV){
     vec3 NdcXyz = vec3(UV*2.0-1.0, Depth);
     float CamNear = PerFrame.m_cameraNear;

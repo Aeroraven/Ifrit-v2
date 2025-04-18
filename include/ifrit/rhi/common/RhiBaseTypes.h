@@ -27,12 +27,12 @@ namespace Ifrit::Graphics::Rhi
     struct RhiAttachmentBlendInfo
     {
         bool           m_blendEnable         = false;
-        RhiBlendFactor m_srcColorBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ONE;
-        RhiBlendFactor m_dstColorBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ZERO;
-        RhiBlendOp     m_colorBlendOp        = RhiBlendOp::RHI_BLEND_OP_ADD;
-        RhiBlendFactor m_srcAlphaBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ONE;
-        RhiBlendFactor m_dstAlphaBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ZERO;
-        RhiBlendOp     m_alphaBlendOp        = RhiBlendOp::RHI_BLEND_OP_ADD;
+        RhiBlendFactor m_srcColorBlendFactor = RhiBlendFactor::RhiBlendFactor_ONE;
+        RhiBlendFactor m_dstColorBlendFactor = RhiBlendFactor::RhiBlendFactor_ZERO;
+        RhiBlendOp     m_colorBlendOp        = RhiBlendOp::RhiBlendOp_ADD;
+        RhiBlendFactor m_srcAlphaBlendFactor = RhiBlendFactor::RhiBlendFactor_ONE;
+        RhiBlendFactor m_dstAlphaBlendFactor = RhiBlendFactor::RhiBlendFactor_ZERO;
+        RhiBlendOp     m_alphaBlendOp        = RhiBlendOp::RhiBlendOp_ADD;
     };
 
     struct RhiClearValue

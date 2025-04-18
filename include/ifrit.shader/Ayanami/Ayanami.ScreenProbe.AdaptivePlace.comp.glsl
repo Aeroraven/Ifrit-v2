@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
-
 #include "Base.glsl"
 #include "Bindless.glsl"
 #include "ComputeUtils.glsl"
@@ -89,7 +88,7 @@ ScreenSpaceSample GetScreenSample(uvec2 ScreenCoord){
 
     vec3 ViewNormal = SampleTexture2D(PushConst.m_ScrNormalCombSRV,sLinearClamp,GBufferUV).xyz;
     ViewNormal = normalize(ViewNormal * 2.0 - 1.0);
-    float ViewDepth = SampleTexture2D(PushConst.m_ScrDepthCombSRV,sLinearClamp,GBufferUV).x;
+    float ViewDepth = SampleTexture2D(PushConst.m_ScrDepthCombSRV,sNearestClamp,GBufferUV).x;
     if(ViewDepth>= 1.0){
         return ScreenSpaceSample(vec3(0.0), vec3(0.0) , 0.0, false);
     }

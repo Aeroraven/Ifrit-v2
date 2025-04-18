@@ -56,8 +56,11 @@ namespace Ifrit::Runtime::Internal
         SDEF DbgVisAdaptiveProbeCS      = DECLARE_CS("Ayanami/DbgVisAdaptiveProbeCS");
         SDEF DbgVisScreenUniformProbeCS = DECLARE_CS("Ayanami/DbgVisScreenUniformProbeCS");
 
-        SDEF ScreenProbeAdaptivePlaceCS = DECLARE_CS("Ayanami/ScreenProbeAdaptivePlaceCS");
-        SDEF ScreenProbeTraceScreenCS   = DECLARE_CS("Ayanami/ScreenProbeTraceScreenCS");
+        SDEF ScreenProbeAdaptivePlaceCS  = DECLARE_CS("Ayanami/ScreenProbeAdaptivePlaceCS");
+        SDEF ScreenProbeTraceScreenCS    = DECLARE_CS("Ayanami/ScreenProbeTraceScreenCS");
+        SDEF ScreenProbeMDFCullPrepCS    = DECLARE_CS("Ayanami/ScreenProbeMDFCullPrepCS");
+        SDEF ScreenProbeMDFCullScatterVS = DECLARE_VS("Ayanami/ScreenProbeMDFCullScatterVS");
+        SDEF ScreenProbeMDFCullScatterFS = DECLARE_FS("Ayanami/ScreenProbeMDFCullScatterFS");
 
     } kIntShaderTableAyanami;
 

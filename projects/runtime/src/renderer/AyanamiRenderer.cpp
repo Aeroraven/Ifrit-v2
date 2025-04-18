@@ -290,6 +290,11 @@ namespace Ifrit::Runtime
         {
             m_resources->m_ScreenProbe->AdaptiveScreenProbePlace(builder, primaryViewCBV, &resGNormal, &resGDepth);
             m_resources->m_ScreenProbe->ProbeScreenTrace(builder, primaryViewCBV, &resHiZDescMin);
+            m_resources->m_ScreenProbe->PrepareMeshDFCulling(
+                builder, m_resources->m_SceneAggregator->GetNumGatheredInstances(), sceneBoundMin, sceneBoundMax);
+            m_resources->m_ScreenProbe->ScatterMeshDFToGrids(builder, primaryViewCBV,
+                m_resources->m_SceneAggregator->GetNumGatheredInstances(),
+                m_resources->m_SceneAggregator->GetGatheredBufferId());
         }
 
         // Pass Defered Shading

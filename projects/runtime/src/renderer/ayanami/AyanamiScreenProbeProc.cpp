@@ -30,26 +30,40 @@ namespace Ifrit::Runtime::Ayanami
 {
     struct AyanamiScreenProbeProcessorPrivate
     {
-        f32              m_AdaptiveProbesRatio      = 0.0f;
-        u32              m_MaxRTWidth               = 0;
-        u32              m_MaxRTHeight              = 0;
-        u32              m_MaxUniformTilesPerWidth  = 0;
-        u32              m_MaxUniformTilesPerHeight = 0;
-        u32              m_MaxUniformProbes         = 0;
-        u32              m_MaxAdaptiveProbesCount   = 0;
+        f32                         m_AdaptiveProbesRatio      = 0.0f;
+        u32                         m_MaxRTWidth               = 0;
+        u32                         m_MaxRTHeight              = 0;
+        u32                         m_MaxUniformTilesPerWidth  = 0;
+        u32                         m_MaxUniformTilesPerHeight = 0;
+        u32                         m_MaxUniformProbes         = 0;
+        u32                         m_MaxAdaptiveProbesCount   = 0;
 
-        FGTextureNodeRef m_RadianceAtlas         = nullptr;
-        FGTextureNodeRef m_ProbeSH_R             = nullptr;
-        FGTextureNodeRef m_ProbeSH_G             = nullptr;
-        FGTextureNodeRef m_ProbeSH_B             = nullptr;
-        FGBufferNodeRef  m_AdaptiveProbesList    = nullptr;
-        FGBufferNodeRef  m_AdaptiveProbesCounter = nullptr;
+        FGTextureNodeRef            m_RadianceAtlas         = nullptr;
+        FGTextureNodeRef            m_ProbeSH_R             = nullptr;
+        FGTextureNodeRef            m_ProbeSH_G             = nullptr;
+        FGTextureNodeRef            m_ProbeSH_B             = nullptr;
+        FGBufferNodeRef             m_AdaptiveProbesList    = nullptr;
+        FGBufferNodeRef             m_AdaptiveProbesCounter = nullptr;
 
-        FGBufferNodeRef  m_MeshDFTracingRayList         = nullptr;
-        FGBufferNodeRef  m_MeshDFTracingRayIndirectArgs = nullptr;
+        FGBufferNodeRef             m_MeshDFTracingRayList         = nullptr;
+        FGBufferNodeRef             m_MeshDFTracingRayIndirectArgs = nullptr;
+        FGBufferNodeRef             m_CubeIndex                    = nullptr;
+        FGTextureNodeRef            m_MeshDFCullingDepth           = nullptr;
+        FGTextureNodeRef            m_MeshDFCullingDummy           = nullptr;
+        FGBufferNodeRef             m_MeshDFCullingMatrix          = nullptr;
+        FGBufferNodeRef             m_MeshDFCullingListCounter     = nullptr;
+        FGBufferNodeRef             m_MeshDFCullingList            = nullptr;
+        FGBufferNodeRef             m_MeshDFCullingIndirectArgs    = nullptr;
 
-        u32              m_ActiveRTWidth  = 0;
-        u32              m_ActiveRTHeight = 0;
+        u32                         m_ActiveRTWidth  = 0;
+        u32                         m_ActiveRTHeight = 0;
+
+        u32                         m_MDFCullGridSizeXY   = 32;
+        u32                         m_MDFCullGridSizeZ    = 32;
+        u32                         m_MDFMaxCullObjInGrid = 512;
+
+        // Persistent Resources
+        Graphics::Rhi::RhiBufferRef m_CubeIndexRHI = nullptr;
     };
 
     IFRIT_APIDECL AyanamiScreenProbeProcessor::AyanamiScreenProbeProcessor(Graphics::Rhi::RhiBackend* rhi) : m_Rhi(rhi)
@@ -128,6 +142,64 @@ namespace Ifrit::Runtime::Ayanami
             m_Private->m_ProbeSH_B = &builder.DeclareTexture("Ayanami.RDG.ScreeProbe.ProbeSH_B",
                 FrameGraphTextureDesc(requiredWidthFinal, requiredHeightFinal, 1, RhiImgFmt_R32G32B32A32_SFLOAT,
                     RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead));
+        }
+        // Prepare the cube index buffer
+        {
+            if (m_Private->m_CubeIndexRHI == nullptr)
+            {
+
+                // a clumsy workaround to make clang-format happy
+#define TMP_CUBE_INDICES \
+    0, 1, 2, 1, 3, 2, 5, 4, 7, 4, 6, 7, 4, 5, 0, 5, 1, 0, 4, 0, 6, 0, 2, 6, 1, 5, 3, 5, 7, 3, 2, 3, 6, 3, 7, 6,
+                Array<u32, 36> cubeTriangleIndex = { TMP_CUBE_INDICES };
+#undef TMP_CUBE_INDICES
+                m_Private->m_CubeIndexRHI = m_Rhi->CreateBuffer("Ayanami.Persistent.ScreenProbe.CubeIndex",
+                    sizeof(u32) * cubeTriangleIndex.size(),
+                    RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_Index, false, false);
+
+                auto stagingBuffer = m_Rhi->CreateStagedSingleBuffer(m_Private->m_CubeIndexRHI.get());
+                auto tq            = m_Rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
+                tq->RunSyncCommand([&](const RhiCommandList* cmdList) {
+                    stagingBuffer->CmdCopyToDevice(
+                        cmdList, cubeTriangleIndex.data(), sizeof(u32) * cubeTriangleIndex.size(), 0);
+                });
+            }
+            m_Private->m_CubeIndex =
+                &builder.ImportBuffer("Ayanami.RDG.ScreeProbe.CubeIndex", m_Private->m_CubeIndexRHI.get());
+        }
+        // meshdf culling texture
+        {
+            m_Private->m_MeshDFCullingDummy = &builder.DeclareTexture("Ayanami.RDG.ScreeProbe.MeshDFCullingDummy",
+                FrameGraphTextureDesc(m_Private->m_MDFCullGridSizeXY, m_Private->m_MDFCullGridSizeXY, 1,
+                    RhiImgFmt_R8_UNORM, RhiImageUsage::RhiImgUsage_RenderTarget));
+
+            m_Private->m_MeshDFCullingDepth = &builder.DeclareTexture("Ayanami.RDG.ScreeProbe.MeshDFCullingDepth",
+                FrameGraphTextureDesc(m_Private->m_MDFCullGridSizeXY, m_Private->m_MDFCullGridSizeXY, 1,
+                    RhiImgFmt_D32_SFLOAT, RhiImageUsage::RhiImgUsage_Depth));
+
+            m_Private->m_MeshDFCullingMatrix = &builder.DeclareBuffer("Ayanami.RDG.ScreeProbe.MeshDFCullingMatrix",
+                FrameGraphBufferDesc(
+                    sizeof(Matrix4x4f) * m_Private->m_MDFCullGridSizeZ, RhiBufferUsage::RhiBufferUsage_SSBO));
+
+            u32 totalCullGrids =
+                m_Private->m_MDFCullGridSizeXY * m_Private->m_MDFCullGridSizeXY * m_Private->m_MDFCullGridSizeZ;
+
+            // warn: when enlarge, check if u32 overflows
+            u32 totalCullGridsMDFSeats = totalCullGrids * m_Private->m_MDFMaxCullObjInGrid;
+
+            m_Private->m_MeshDFCullingListCounter =
+                &builder.DeclareBuffer("Ayanami.RDG.ScreeProbe.MeshDFCullingListCounter",
+                    FrameGraphBufferDesc(
+                        sizeof(u32) * totalCullGrids, RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage_CopyDst));
+            m_Private->m_MeshDFCullingList = &builder.DeclareBuffer("Ayanami.RDG.ScreeProbe.MeshDFCullingList",
+                FrameGraphBufferDesc(sizeof(u32) * totalCullGridsMDFSeats,
+                    RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage_CopyDst));
+
+            // warning: drawindirectindexed requires 5 args
+            m_Private->m_MeshDFCullingIndirectArgs =
+                &builder.DeclareBuffer("Ayanami.RDG.ScreeProbe.MeshDFCullingIndirectArgs",
+                    FrameGraphBufferDesc(sizeof(u32) * 5,
+                        RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_Indirect));
         }
     }
     IFRIT_APIDECL void AyanamiScreenProbeProcessor::AdaptiveScreenProbePlace(
@@ -232,6 +304,83 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*m_Private->m_AdaptiveProbesCounter)
             .AddReadResource(*m_Private->m_AdaptiveProbesList)
             .AddReadWriteResource(*m_Private->m_MeshDFTracingRayIndirectArgs);
+    }
+
+    IFRIT_APIDECL void AyanamiScreenProbeProcessor::PrepareMeshDFCulling(
+        FrameGraphBuilder& builder, u32 numTotalMdfs, Vector3f worldBoundMin, Vector3f worldBoundMax)
+    {
+        struct PushConst
+        {
+            Vector4f m_WorldBoundMin;
+            Vector4f m_WorldBoundMax;
+            u32      m_IndirectDrawArgs;
+            u32      m_SlicesZ;
+            u32      m_GridVpUAV;
+            u32      m_TotalMdfCount;
+        } pc;
+        pc.m_WorldBoundMin    = Vector4f(worldBoundMin, 0.0f);
+        pc.m_WorldBoundMax    = Vector4f(worldBoundMax, 0.0f);
+        pc.m_IndirectDrawArgs = 0;
+        pc.m_SlicesZ          = m_Private->m_MDFCullGridSizeZ;
+        pc.m_GridVpUAV        = 0;
+        pc.m_TotalMdfCount    = numTotalMdfs;
+
+        auto tgX = DivRoundUp(m_Private->m_MDFCullGridSizeZ, kAyanamiScrProbeMDFCullPrepKernelSize);
+        AddComputePass<PushConst>(builder, "Ayanami.ScreenProbe.MDFCullingPrep",
+            Internal::kIntShaderTableAyanami.ScreenProbeMDFCullPrepCS, Vector3i{ (i32)tgX, 1, 1 }, pc,
+            [this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_GridVpUAV        = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingMatrix);
+                data.m_IndirectDrawArgs = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingIndirectArgs);
+                SetRootSignature(data, ctx);
+            })
+            .AddWriteResource(*m_Private->m_MeshDFCullingMatrix)
+            .AddWriteResource(*m_Private->m_MeshDFCullingIndirectArgs);
+    }
+
+    IFRIT_APIDECL void AyanamiScreenProbeProcessor::ScatterMeshDFToGrids(
+        FrameGraphBuilder& builder, u32 perframeCBV, u32 numTotalMdfs, u32 meshDFDescUAV)
+    {
+        AddClearUAVPass(
+            builder, "Ayanami.ScreenProbe.ClearMeshDFCullingListCounter", *m_Private->m_MeshDFCullingListCounter, 0);
+        struct PushConst
+        {
+            u32 m_MeshDFDescListId;
+            u32 m_PerFrameId;
+            u32 m_TotalMdfCount;
+            u32 m_GridVpUAV;
+            u32 m_MaxMdfsPerGrid;
+            u32 m_NumGridsPerSlice;
+            u32 m_ScatterCounterUAV;
+            u32 m_ScatterOutputUAV;
+            u32 m_NumTilesWidth;
+        } pc;
+        pc.m_MeshDFDescListId  = meshDFDescUAV;
+        pc.m_PerFrameId        = perframeCBV;
+        pc.m_TotalMdfCount     = numTotalMdfs;
+        pc.m_GridVpUAV         = 0;
+        pc.m_MaxMdfsPerGrid    = m_Private->m_MDFMaxCullObjInGrid;
+        pc.m_NumGridsPerSlice  = m_Private->m_MDFCullGridSizeXY * m_Private->m_MDFCullGridSizeXY;
+        pc.m_ScatterCounterUAV = 0;
+        pc.m_ScatterOutputUAV  = 0;
+        pc.m_NumTilesWidth     = m_Private->m_MaxUniformTilesPerWidth;
+
+        AddIndirectDrawPass<PushConst>(builder, "Ayanami.ScreenProbe.MDFCullScatter",
+            Internal::kIntShaderTableAyanami.ScreenProbeMDFCullScatterVS,
+            Internal::kIntShaderTableAyanami.ScreenProbeMDFCullScatterFS, *m_Private->m_MeshDFCullingIndirectArgs,
+            *m_Private->m_CubeIndex, 0, GraphicsPassArgs{}, pc,
+            [this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_GridVpUAV         = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingMatrix);
+                data.m_ScatterCounterUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingListCounter);
+                data.m_ScatterOutputUAV  = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingList);
+                SetRootSignature(data, ctx);
+            })
+            .AddRenderTarget(*m_Private->m_MeshDFCullingDummy)
+            .AddDepthTarget(*m_Private->m_MeshDFCullingDepth, RhiRenderTargetLoadOp::ClearNoStore)
+            .AddReadResource(*m_Private->m_MeshDFCullingIndirectArgs)
+            .AddReadResource(*m_Private->m_CubeIndex)
+            .AddWriteResource(*m_Private->m_MeshDFCullingMatrix)
+            .AddWriteResource(*m_Private->m_MeshDFCullingListCounter)
+            .AddWriteResource(*m_Private->m_MeshDFCullingList);
     }
 
     IFRIT_APIDECL FGBufferNodeRef AyanamiScreenProbeProcessor::GetAdaptiveProbesList() const

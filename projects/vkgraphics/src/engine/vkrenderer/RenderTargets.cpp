@@ -49,7 +49,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         // render graph or explicitly by the user.
         if (m_depthStencilAttachment != nullptr)
         {
-            auto depthSrcLayout = (m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear)
+            auto depthSrcLayout =
+                (m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear
+                    || m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore)
                 ? Rhi::RhiResourceState::Undefined
                 : Rhi::RhiResourceState::DepthStencilRT;
             cmd->AddImageBarrier(m_depthStencilAttachment->GetRenderTarget(), depthSrcLayout,
@@ -58,7 +60,8 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         for (auto attachment : m_colorAttachments)
         {
-            auto srcLayout = (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear)
+            auto srcLayout = (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear
+                                 || attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore)
                 ? Rhi::RhiResourceState::Undefined
                 : Rhi::RhiResourceState::ColorRT;
             cmd->AddImageBarrier(
@@ -76,7 +79,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             clearValue.depthStencil.stencil = m_depthStencilAttachment->GetClearValue().m_stencil;
 
             VkAttachmentLoadOp loadOp;
-            if (m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear)
+            if (m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear
+                || m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore)
             {
                 loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             }
@@ -89,10 +93,19 @@ namespace Ifrit::Graphics::VulkanGraphics
                 loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
             }
 
-            depthAttachmentInfo.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-            depthAttachmentInfo.clearValue  = clearValue;
-            depthAttachmentInfo.loadOp      = loadOp;
-            depthAttachmentInfo.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
+            depthAttachmentInfo.sType      = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+            depthAttachmentInfo.clearValue = clearValue;
+            depthAttachmentInfo.loadOp     = loadOp;
+            if (m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore
+                || m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::LoadNoStore
+                || m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::DontCare)
+            {
+                depthAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            }
+            else
+            {
+                depthAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            }
             depthAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
             depthAttachmentInfo.imageView   = m_depthStencilAttachment->GetRenderTargetInternal()->GetImageView();
         }
@@ -105,7 +118,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             clearValue.color.float32[3] = attachment->GetClearValue().m_color[3];
 
             VkAttachmentLoadOp loadOp;
-            if (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear)
+            if (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear
+                || attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore)
             {
                 loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             }
@@ -121,10 +135,20 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto                         tgtArrLayer = attachment->GetTargetArrLayer();
 
             VkRenderingAttachmentInfoKHR attachmentInfo{};
-            attachmentInfo.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-            attachmentInfo.clearValue  = clearValue;
-            attachmentInfo.loadOp      = loadOp;
-            attachmentInfo.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
+            attachmentInfo.sType      = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+            attachmentInfo.clearValue = clearValue;
+            attachmentInfo.loadOp     = loadOp;
+            if (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore
+                || attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::LoadNoStore
+                || attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::DontCare)
+            {
+                attachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            }
+            else
+            {
+                attachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            }
+            // attachmentInfo.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
             attachmentInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
             attachmentInfo.imageView =
                 attachment->GetRenderTargetInternal()->GetImageViewMipLayer(tgtMip, tgtArrLayer, 1, 1);
@@ -205,7 +229,16 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto extf = m_context->GetExtensionFunction();
 
             extf.p_vkCmdSetDepthTestEnable(cmdraw, VK_TRUE);
-            extf.p_vkCmdSetDepthWriteEnable(cmdraw, VK_TRUE);
+            if (m_depthStencilAttachment->GetLoadOp() != Rhi::RhiRenderTargetLoadOp::ClearNoStore
+                && m_depthStencilAttachment->GetLoadOp() != Rhi::RhiRenderTargetLoadOp::DontCare
+                && m_depthStencilAttachment->GetLoadOp() != Rhi::RhiRenderTargetLoadOp::LoadNoStore)
+            {
+                extf.p_vkCmdSetDepthWriteEnable(cmdraw, VK_TRUE);
+            }
+            else
+            {
+                extf.p_vkCmdSetDepthWriteEnable(cmdraw, VK_FALSE);
+            }
             extf.p_vkCmdSetDepthCompareOp(cmdraw, VK_COMPARE_OP_LESS);
         }
         else

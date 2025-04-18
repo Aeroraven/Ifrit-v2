@@ -52,7 +52,7 @@ namespace Ifrit::Graphics::Rhi
         virtual void DrawMeshTasksIndirect(const RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const  = 0;
         virtual void DrawIndexed(
             u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance) const = 0;
-
+        virtual void DrawIndexedIndirect(const RhiBuffer* buffer, u32 offset) const                       = 0;
         // Clear UAV storage buffer, considered as a transfer operation, typically
         // need a barrier for sync.
         virtual void BufferClear(const RhiBuffer* buffer, u32 val) const                                         = 0;

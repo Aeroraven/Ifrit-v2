@@ -6,7 +6,7 @@ Some toys about real-time rendering. Currently, it contains:
 - **Soft-Renderer**: CUDA / Multithreaded CPU Software Rasterizer & Ray-tracer, with JIT support.
 - **Experimental Renderer**:
   - **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details. (Under development)
-  - **Ayanami**: A planned project for Global Illumination. (Under planning)
+  - **Ayanami**: A Planned Project for Global Illumination with Probes and Software Raytracing. (Under development)
 
 
 
@@ -179,7 +179,8 @@ Following features implemented in Aria/Vulkan might be considered to move into t
   - Kawase Blur
   - Global Fog
   - SSAO
-  - SSGI/SSR
+  - <s>SSGI/SSR</s> 
+    - SSGI-like tracing has been covered in `Ifrit.Runtime/Ayanami/ScreenProbeTracing`
 - Volumetric Lighting
 - Procedural Generator
   - GPU Marching Cubes

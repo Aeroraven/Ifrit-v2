@@ -203,12 +203,12 @@ namespace Ifrit::Runtime
 
             RhiAttachmentBlendInfo blendInfo;
             blendInfo.m_blendEnable         = true;
-            blendInfo.m_srcColorBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_SRC_ALPHA;
-            blendInfo.m_dstColorBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-            blendInfo.m_colorBlendOp        = RhiBlendOp::RHI_BLEND_OP_ADD;
-            blendInfo.m_alphaBlendOp        = RhiBlendOp::RHI_BLEND_OP_ADD;
-            blendInfo.m_srcAlphaBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_SRC_ALPHA;
-            blendInfo.m_dstAlphaBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            blendInfo.m_srcColorBlendFactor = RhiBlendFactor::RhiBlendFactor_SRC_ALPHA;
+            blendInfo.m_dstColorBlendFactor = RhiBlendFactor::RhiBlendFactor_ONE_MINUS_SRC_ALPHA;
+            blendInfo.m_colorBlendOp        = RhiBlendOp::RhiBlendOp_ADD;
+            blendInfo.m_alphaBlendOp        = RhiBlendOp::RhiBlendOp_ADD;
+            blendInfo.m_srcAlphaBlendFactor = RhiBlendFactor::RhiBlendFactor_SRC_ALPHA;
+            blendInfo.m_dstAlphaBlendFactor = RhiBlendFactor::RhiBlendFactor_ONE_MINUS_SRC_ALPHA;
 
             rts->SetColorAttachments({ colorRT.get() });
             rts->SetRenderArea({ 0, 0, width, height });
@@ -1979,12 +1979,12 @@ namespace Ifrit::Runtime
 
             RhiAttachmentBlendInfo blendInfo;
             blendInfo.m_blendEnable         = false;
-            blendInfo.m_srcColorBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_SRC_ALPHA;
-            blendInfo.m_dstColorBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-            blendInfo.m_colorBlendOp        = RhiBlendOp::RHI_BLEND_OP_ADD;
-            blendInfo.m_alphaBlendOp        = RhiBlendOp::RHI_BLEND_OP_ADD;
-            blendInfo.m_srcAlphaBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_SRC_ALPHA;
-            blendInfo.m_dstAlphaBlendFactor = RhiBlendFactor::RHI_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            blendInfo.m_srcColorBlendFactor = RhiBlendFactor::RhiBlendFactor_SRC_ALPHA;
+            blendInfo.m_dstColorBlendFactor = RhiBlendFactor::RhiBlendFactor_ONE_MINUS_SRC_ALPHA;
+            blendInfo.m_colorBlendOp        = RhiBlendOp::RhiBlendOp_ADD;
+            blendInfo.m_alphaBlendOp        = RhiBlendOp::RhiBlendOp_ADD;
+            blendInfo.m_srcAlphaBlendFactor = RhiBlendFactor::RhiBlendFactor_SRC_ALPHA;
+            blendInfo.m_dstAlphaBlendFactor = RhiBlendFactor::RhiBlendFactor_ONE_MINUS_SRC_ALPHA;
             perframeData.m_taaHistory[i].m_colorRTRef->SetBlendInfo(blendInfo);
 
             perframeData.m_taaHistory[i].m_rts = rhi->CreateRenderTargets();

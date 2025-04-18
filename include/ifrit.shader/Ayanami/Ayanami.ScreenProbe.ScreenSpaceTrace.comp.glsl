@@ -270,8 +270,8 @@ void main(){
         sFailureRayCount = 0;
     }
     if(ifrit_IsGlobalFirstThread()){
-        GetResource(BMeshDFTraceProposalIndirectArgs,PushConst.m_MeshDFTraceProposalListUAV).m_InvoY = 1;
-        GetResource(BMeshDFTraceProposalIndirectArgs,PushConst.m_MeshDFTraceProposalListUAV).m_InvoZ = 1;
+        GetResource(BMeshDFTraceProposalIndirectArgs,PushConst.m_MeshDFTraceProposalCounterUAV).m_InvoY = 1;
+        GetResource(BMeshDFTraceProposalIndirectArgs,PushConst.m_MeshDFTraceProposalCounterUAV).m_InvoZ = 1;
     }
     barrier();
 

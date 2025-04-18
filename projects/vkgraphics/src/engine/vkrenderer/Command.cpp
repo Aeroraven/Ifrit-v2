@@ -228,6 +228,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdDrawIndexed(m_commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
+    IFRIT_APIDECL void CommandBuffer::DrawIndexedIndirect(const Rhi::RhiBuffer* buffer, u32 offset) const
+    {
+        auto buf = CheckedCast<SingleBuffer>(buffer)->GetBuffer();
+        vkCmdDrawIndexedIndirect(m_commandBuffer, buf, offset, 1, sizeof(VkDrawIndexedIndirectCommand));
+    }
+
     IFRIT_APIDECL void CommandBuffer::Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const
     {
         vkCmdDispatch(m_commandBuffer, groupCountX, groupCountY, groupCountZ);

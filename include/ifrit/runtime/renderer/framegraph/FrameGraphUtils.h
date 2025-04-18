@@ -41,6 +41,10 @@ namespace Ifrit::Runtime::FrameGraphUtils
         const String& ms, const String& fs, Vector3i workGroups, u32 pushConsts, const GraphicsPassArgs& args,
         FnPassFunction onCall);
 
+    IFRIT_RUNTIME_API GraphicsPassNode& AddIndirectDrawPass(FrameGraphBuilder& builder, const String& name,
+        const String& vs, const String& fs, ResourceNode& indirectArgs, ResourceNode& indexBuffer, u32 offset,
+        u32 pushConsts, const GraphicsPassArgs& args, FnPassFunction onCall);
+
     IFRIT_RUNTIME_API ComputePassNode&  AddComputePass(FrameGraphBuilder& builder, const String& name,
          const String& shader, Vector3i workGroups, u32 pushConsts, FnPassFunction onCall);
 
@@ -100,6 +104,17 @@ namespace Ifrit::Runtime::FrameGraphUtils
         auto& node =
             AddIndirectComputePass(builder, name, shader, workGroupsIndirect, offset, GetPushConstSize<RootSignature>(),
                 [onCall, passData](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
+        return node;
+    }
+
+    template <typename PassData, typename RootSignature = PassData>
+    GraphicsPassNode& AddIndirectDrawPass(FrameGraphBuilder& builder, const String& name, const String& vs,
+        const String& fs, ResourceNode& indirectArgs, ResourceNode& indexBuffer, u32 offset,
+        const GraphicsPassArgs& args, PassData passData, FnPassFunctionWithData<PassData> onCall)
+    {
+        auto& node = AddIndirectDrawPass(builder, name, vs, fs, indirectArgs, indexBuffer, offset,
+            GetPushConstSize<RootSignature>(), args,
+            [onCall, passData](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
         return node;
     }
 

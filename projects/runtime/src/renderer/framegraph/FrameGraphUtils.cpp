@@ -79,6 +79,26 @@ namespace Ifrit::Runtime::FrameGraphUtils
         return pass;
     }
 
+    IFRIT_APIDECL GraphicsPassNode& AddIndirectDrawPass(FrameGraphBuilder& builder, const String& name,
+        const String& vs, const String& fs, ResourceNode& indirectArgs, ResourceNode& indexBuffer, u32 offset,
+        u32 pushConsts, const GraphicsPassArgs& args, FnPassFunction onCall)
+    {
+        auto& pass           = builder.AddGraphicsPass(name, vs, fs, pushConsts);
+        auto  rhi            = builder.GetRhi();
+        auto  underlyingPass = pass.GetPass();
+        pass.AddReadResource(indirectArgs);
+        pass.AddReadResource(indexBuffer);
+        pass.SetExecutionFunction([onCall, &indirectArgs, indexBuffer, offset, args](const FrameGraphPassContext& ctx) {
+            auto cmd = ctx.m_CmdList;
+            onCall(ctx);
+            if (args.m_CullMode != Graphics::Rhi::RhiCullMode::None)
+                cmd->SetCullMode(args.m_CullMode);
+            cmd->AttachIndexBuffer(indexBuffer.GetBuffer());
+            cmd->DrawIndexedIndirect(indirectArgs.GetBuffer(), 0);
+        });
+        return pass;
+    }
+
     IFRIT_APIDECL ComputePassNode& AddComputePass(FrameGraphBuilder& builder, const String& name, const String& shader,
         Vector3i workGroups, u32 pushConsts, FnPassFunction onCall)
     {
