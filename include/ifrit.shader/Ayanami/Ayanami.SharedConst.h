@@ -88,6 +88,9 @@ namespace Ifrit::Runtime::Ayanami::Config
     AYANAMI_DEFINE_UINT(kAyanamiScrProbeGDFTraceKernelSize, 64);                                  // 64 traces per TG
 
     AYANAMI_DEFINE_UINT(kAyanamiScrProbeMDFCullPrepKernelSize, 64);
+    AYANAMI_DEFINE_UINT(kAyanamiScrProbeIntegrateSHKernelSize, 64);
+
+    AYANAMI_DEFINE_UINT(kAyanamiScrProbePixelGatherKernelSize, 8);
 
 #ifdef __cplusplus
 } // namespace Ifrit::Runtime::AYANAMI

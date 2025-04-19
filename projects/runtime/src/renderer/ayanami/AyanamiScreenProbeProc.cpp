@@ -39,9 +39,6 @@ namespace Ifrit::Runtime::Ayanami
         u32                         m_MaxAdaptiveProbesCount   = 0;
 
         FGTextureNodeRef            m_RadianceAtlas         = nullptr;
-        FGTextureNodeRef            m_ProbeSH_R             = nullptr;
-        FGTextureNodeRef            m_ProbeSH_G             = nullptr;
-        FGTextureNodeRef            m_ProbeSH_B             = nullptr;
         FGBufferNodeRef             m_AdaptiveProbesList    = nullptr;
         FGBufferNodeRef             m_AdaptiveProbesCounter = nullptr;
 
@@ -57,6 +54,8 @@ namespace Ifrit::Runtime::Ayanami
 
         FGBufferNodeRef             m_GlobalDFTracingList         = nullptr;
         FGBufferNodeRef             m_GlobalDFTracingIndirectArgs = nullptr;
+
+        FGBufferNodeRef             m_IntegratedSH = nullptr;
 
         u32                         m_ActiveRTWidth  = 0;
         u32                         m_ActiveRTHeight = 0;
@@ -97,7 +96,7 @@ namespace Ifrit::Runtime::Ayanami
                 m_Private->m_MaxAdaptiveProbesCount * sizeof(u32), RhiBufferUsage::RhiBufferUsage_SSBO));
 
         m_Private->m_AdaptiveProbesCounter = &builder.DeclareBuffer("Ayanami.RDG.ScreeProbe.AdaptiveProbesCounter",
-            FrameGraphBufferDesc(sizeof(u32) * 7,
+            FrameGraphBufferDesc(sizeof(u32) * 10,
                 RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst
                     | RhiBufferUsage::RhiBufferUsage_Indirect));
 
@@ -138,24 +137,15 @@ namespace Ifrit::Runtime::Ayanami
                  FrameGraphBufferDesc(maxTraces * sizeof(u32), RhiBufferUsage::RhiBufferUsage_SSBO));
         }
 
-        // Then, the probe sh
+        // then probes SH
         {
-            u32 requiredHeight         = m_Private->m_MaxUniformTilesPerHeight * kAyanami_ScreenProbeProbeHemiRes;
-            u32 requiredWidth          = m_Private->m_MaxUniformTilesPerWidth * kAyanami_ScreenProbeProbeHemiRes;
-            u32 requiredHeightAdaptive = static_cast<u32>(std::ceil(m_Private->m_AdaptiveProbesRatio * requiredHeight));
-            u32 requiredHeightFinal    = requiredHeight + requiredHeightAdaptive;
-            u32 requiredWidthFinal     = requiredWidth;
+            u32 maxProbes = m_Private->m_MaxUniformProbes + m_Private->m_MaxAdaptiveProbesCount;
+            u32 maxSHSize = maxProbes * 27;
 
-            m_Private->m_ProbeSH_R = &builder.DeclareTexture("Ayanami.RDG.ScreeProbe.ProbeSH_R",
-                FrameGraphTextureDesc(requiredWidthFinal, requiredHeightFinal, 1, RhiImgFmt_R32G32B32A32_SFLOAT,
-                    RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead));
-            m_Private->m_ProbeSH_G = &builder.DeclareTexture("Ayanami.RDG.ScreeProbe.ProbeSH_G",
-                FrameGraphTextureDesc(requiredWidthFinal, requiredHeightFinal, 1, RhiImgFmt_R32G32B32A32_SFLOAT,
-                    RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead));
-            m_Private->m_ProbeSH_B = &builder.DeclareTexture("Ayanami.RDG.ScreeProbe.ProbeSH_B",
-                FrameGraphTextureDesc(requiredWidthFinal, requiredHeightFinal, 1, RhiImgFmt_R32G32B32A32_SFLOAT,
-                    RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead));
+            m_Private->m_IntegratedSH = &builder.DeclareBuffer("Ayanami.RDG.ScreeProbe.IntegratedSH",
+                FrameGraphBufferDesc(maxSHSize * sizeof(Vector4f), RhiBufferUsage::RhiBufferUsage_SSBO));
         }
+
         // Prepare the cube index buffer
         {
             if (m_Private->m_CubeIndexRHI == nullptr)
@@ -527,6 +517,81 @@ namespace Ifrit::Runtime::Ayanami
             .AddWriteResource(*m_Private->m_RadianceAtlas)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingIndirectArgs)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingList);
+    }
+
+    IFRIT_APIDECL void AyanamiScreenProbeProcessor::ProbeIntegrate(FrameGraphBuilder& builder)
+    {
+        struct PushConst
+        {
+            Vector2f m_RayJitter;
+            u32      m_AdaptiveProbesCounterUAV;
+            u32      m_AdaptiveProbesListUAV;
+            u32      m_RTWidth;
+            u32      m_RTHeight;
+            u32      m_ScreenProbeLightingAtlasUAV;
+            u32      m_OutputSHCoefBufferUAV;
+        } pc;
+        pc.m_RayJitter                   = Vector2f(0.0f, 0.0f);
+        pc.m_AdaptiveProbesCounterUAV    = 0;
+        pc.m_AdaptiveProbesListUAV       = 0;
+        pc.m_RTWidth                     = m_Private->m_ActiveRTWidth;
+        pc.m_RTHeight                    = m_Private->m_ActiveRTHeight;
+        pc.m_ScreenProbeLightingAtlasUAV = 0;
+        pc.m_OutputSHCoefBufferUAV       = 0;
+
+        AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.IntegrateSH",
+            Internal::kIntShaderTableAyanami.ScreenProbeSHIntegrateCS, *m_Private->m_AdaptiveProbesCounter,
+            7 * sizeof(u32), pc,
+            [this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_AdaptiveProbesCounterUAV    = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesCounter);
+                data.m_AdaptiveProbesListUAV       = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesList);
+                data.m_ScreenProbeLightingAtlasUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
+                data.m_OutputSHCoefBufferUAV       = ctx.m_FgDesc->GetUAV(*m_Private->m_IntegratedSH);
+                SetRootSignature(data, ctx);
+            })
+            .AddReadResource(*m_Private->m_AdaptiveProbesCounter)
+            .AddReadResource(*m_Private->m_AdaptiveProbesList)
+            .AddReadResource(*m_Private->m_RadianceAtlas)
+            .AddReadWriteResource(*m_Private->m_IntegratedSH);
+    }
+
+    IFRIT_APIDECL void AyanamiScreenProbeProcessor::ProbePixelGather(FrameGraphBuilder& builder, u32 perframeCBV,
+        FGTextureNodeRef gbufferDepth, FGTextureNodeRef gbufferNormal, FGTextureNodeRef outputTex)
+    {
+        struct PushConst
+        {
+            u32 m_RTWidth;
+            u32 m_RTHeight;
+            u32 m_PerFrameCBV;
+            u32 m_ScrNormalCombSRV;
+            u32 m_ScrDepthCombSRV;
+            u32 m_OutputSHCoefBufferUAV;
+            u32 m_OutTexUAV;
+        } pc;
+        pc.m_RTWidth               = m_Private->m_ActiveRTWidth;
+        pc.m_RTHeight              = m_Private->m_ActiveRTHeight;
+        pc.m_PerFrameCBV           = perframeCBV;
+        pc.m_ScrNormalCombSRV      = 0;
+        pc.m_ScrDepthCombSRV       = 0;
+        pc.m_OutputSHCoefBufferUAV = 0;
+        pc.m_OutTexUAV             = 0;
+
+        auto tgX = DivRoundUp(pc.m_RTWidth, kAyanamiScrProbePixelGatherKernelSize);
+        auto tgY = DivRoundUp(pc.m_RTHeight, kAyanamiScrProbePixelGatherKernelSize);
+
+        AddComputePass<PushConst>(builder, "Ayanami.ScreenProbe.PixelGather",
+            Internal::kIntShaderTableAyanami.ScreenProbePixelGatherCS, Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc,
+            [this, gbufferDepth, gbufferNormal, outputTex](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_ScrNormalCombSRV      = ctx.m_FgDesc->GetSRV(*gbufferNormal);
+                data.m_ScrDepthCombSRV       = ctx.m_FgDesc->GetSRV(*gbufferDepth);
+                data.m_OutputSHCoefBufferUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_IntegratedSH);
+                data.m_OutTexUAV             = ctx.m_FgDesc->GetUAV(*outputTex);
+                SetRootSignature(data, ctx);
+            })
+            .AddReadResource(*gbufferDepth)
+            .AddReadResource(*gbufferNormal)
+            .AddWriteResource(*outputTex)
+            .AddReadResource(*m_Private->m_IntegratedSH);
     }
 
     IFRIT_APIDECL FGBufferNodeRef AyanamiScreenProbeProcessor::GetAdaptiveProbesList() const

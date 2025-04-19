@@ -66,6 +66,9 @@ RegisterStorage(BAdaptiveProbesCounter,{
     uint m_InvoTraceX; // used for screen space tracing
     uint m_InvoTraceY;
     uint m_InvoTraceZ;
+    uint m_InvoGatherX; // used for screen space tracing
+    uint m_InvoGatherY;
+    uint m_InvoGatherZ;
 });
 
 RegisterStorage(BAdaptiveProbesList,{
@@ -77,9 +80,10 @@ uint AllocateGlobalAdaptiveProbeList(uint Count){
     return GlobalStart;
 }
 
-void MaximizeIndirectArgsX(uint Ref,uint Ref2){
+void MaximizeIndirectArgsX(uint Ref,uint Ref2,uint Ref3){
     atomicMax(GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoX, Ref);
     atomicMax(GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoTraceX, Ref2);
+    atomicMax(GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoGatherX, Ref3);
 }
 
 ScreenSpaceSample GetScreenSample(uvec2 ScreenCoord){
@@ -179,6 +183,8 @@ void main(){
         GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoZ = 1;
         GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoTraceY = 1;
         GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoTraceZ = 1;
+        GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoGatherY = 1;
+        GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_InvoGatherZ = 1;
     }
     groupMemoryBarrier();
     barrier();
@@ -207,7 +213,8 @@ void main(){
         sAdaptiveSampleGlobalStart = AllocateGlobalAdaptiveProbeList(sAdaptiveSampleCount);
         uint TotalProbes = sAdaptiveSampleGlobalStart + sAdaptiveSampleCount;
         uint RequiredIndirectX = ifrit_DivRoundUp(TotalProbes, kAyanamiScrProbeAdaptiveGroupKernelSize);
-        MaximizeIndirectArgsX(RequiredIndirectX,TotalProbes+TotalUniformProbes);
+        uint RequiredGatherTGX = ifrit_DivRoundUp(TotalProbes+TotalUniformProbes, kAyanamiScrProbeIntegrateSHKernelSize);
+        MaximizeIndirectArgsX(RequiredIndirectX,TotalProbes+TotalUniformProbes,RequiredGatherTGX);
     }
     groupMemoryBarrier();
     barrier();

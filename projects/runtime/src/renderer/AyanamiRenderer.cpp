@@ -170,6 +170,11 @@ namespace Ifrit::Runtime
                 RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead
                     | RhiImageUsage::RhiImgUsage_UnorderedAccess));
 
+        auto& resDebugProbeGather = builder.DeclareTexture("Ayanami.RDG.DebugProbeGather",
+            FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_ShaderRead
+                    | RhiImageUsage::RhiImgUsage_UnorderedAccess));
+
         // Shared
         auto  primaryViewCBV = perframe.m_views[0].m_viewBufferId->GetActiveId();
 
@@ -299,6 +304,9 @@ namespace Ifrit::Runtime
                 builder, primaryViewCBV, m_resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth);
 
             m_resources->m_ScreenProbe->ProbeGDFTrace(builder, primaryViewCBV, &resGDepth, &resGlobalDFGen, 13.0f);
+            m_resources->m_ScreenProbe->ProbeIntegrate(builder);
+            m_resources->m_ScreenProbe->ProbePixelGather(
+                builder, primaryViewCBV, &resGDepth, &resGNormal, &resDebugProbeGather);
         }
 
         // Pass Defered Shading
@@ -389,7 +397,7 @@ namespace Ifrit::Runtime
             AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass", Internal::kIntShaderTableAyanami.CopyVS,
                 Internal::kIntShaderTableAyanami.CopyFS, pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(*resSsProbeRadiance);
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugProbeGather);
                     SetRootSignature(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)
@@ -401,6 +409,7 @@ namespace Ifrit::Runtime
                 .AddReadResource(resDebugObjGridVis)
                 .AddReadResource(resDebugScrProbeVis)
                 .AddReadResource(*resSsProbeRadiance)
+                .AddReadResource(resDebugProbeGather)
                 .AddReadResource(resGNormal);
         }
 

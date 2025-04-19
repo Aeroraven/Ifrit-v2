@@ -45,6 +45,9 @@ namespace Ifrit::Runtime::Ayanami
             FrameGraphBuilder& builder, u32 perframeCBV, u32 meshDFDescUAV, FGTextureNodeRef gbufferDepth);
         void             ProbeGDFTrace(FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef gbufferDepth,
                         FGTextureNodeRef globalDF, u32 globalDFWSRang);
+        void             ProbeIntegrate(FrameGraphBuilder& builder);
+        void             ProbePixelGather(FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef gbufferDepth,
+                        FGTextureNodeRef gbufferNormal, FGTextureNodeRef outputTex);
 
         FGBufferNodeRef  GetAdaptiveProbesList() const;
         FGBufferNodeRef  GetAdaptiveProbesCounter() const;

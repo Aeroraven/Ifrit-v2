@@ -58,8 +58,6 @@ namespace Ifrit::Runtime::Internal
         REG_FRAGMENT(ISTAya.TestDeferShadingFS, "Ayanami/Ayanami.TestDeferShading");
         REG_COMPUTE(ISTAya.DFShadowVisibilityCS, "Ayanami/Ayanami.DFShadowVisibility");
         REG_COMPUTE(ISTAya.ObjectGridCompositionCS, "Ayanami/Ayanami.ObjectGridComposition");
-        REG_COMPUTE(ISTAya.DbgReconFromSurfaceCacheCS, "Ayanami/Ayanami.Debug.ReconFromSurfaceCache");
-        REG_COMPUTE(ISTAya.DbgSampleReconDepthCS, "Ayanami/Ayanami.Debug.SampleReconDepth");
         REG_COMPUTE(ISTAya.RadiosityTraceCS, "Ayanami/Ayanami.RadiosityTrace");
         REG_COMPUTE(ISTAya.SurfaceCacheDirectLightCS, "Ayanami/Ayanami.SurfaceCacheDirectLighting");
         REG_COMPUTE(ISTAya.ScreenProbeAdaptivePlaceCS, "Ayanami/Ayanami.ScreenProbe.AdaptivePlace");
@@ -69,12 +67,16 @@ namespace Ifrit::Runtime::Internal
         REG_FRAGMENT(ISTAya.ScreenProbeMDFCullScatterFS, "Ayanami/Ayanami.ScreenProbe.CullMDFToGrids");
         REG_COMPUTE(ISTAya.ScreenProbeMDFTraceCS, "Ayanami/Ayanami.ScreenProbe.MDFTrace");
         REG_COMPUTE(ISTAya.ScreenProbeGDFTraceCS, "Ayanami/Ayanami.ScreenProbe.GDFTrace");
+        REG_COMPUTE(ISTAya.ScreenProbeSHIntegrateCS, "Ayanami/Ayanami.ScreenProbe.IntegrateSH");
+        REG_COMPUTE(ISTAya.ScreenProbePixelGatherCS, "Ayanami/Ayanami.ScreenProbe.PixelGather");
 
         REG_COMPUTE(ISTAya.DbgSampleObjectGridsCS, "Ayanami/Ayanami.Debug.SampleObjectGrids");
         REG_MESH(ISTAya.DbgVisObjGridsMS, "Ayanami/Ayanami.Debug.VisObjectGrids");
         REG_FRAGMENT(ISTAya.DbgVisObjGridsFS, "Ayanami/Ayanami.Debug.VisObjectGrids");
         REG_COMPUTE(ISTAya.DbgVisAdaptiveProbeCS, "Ayanami/Ayanami.Debug.AdaptiveProbeLocate");
         REG_COMPUTE(ISTAya.DbgVisScreenUniformProbeCS, "Ayanami/Ayanami.Debug.ScreenUniformProbeVis");
+        REG_COMPUTE(ISTAya.DbgReconFromSurfaceCacheCS, "Ayanami/Ayanami.Debug.ReconFromSurfaceCache");
+        REG_COMPUTE(ISTAya.DbgSampleReconDepthCS, "Ayanami/Ayanami.Debug.SampleReconDepth");
 
         // Common
         REG_VERTEX(IST.Common.FullScreenVS, "CommonPass/FullScreen");
