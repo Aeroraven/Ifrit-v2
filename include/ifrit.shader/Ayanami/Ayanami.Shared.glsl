@@ -139,7 +139,7 @@ float AyaShared_RayMarchGlobalDF(vec3 RayOrigin, vec3 RayDir, uint GlobalDFId, v
     float AcceptThreshold, float SdfExpansion, uint MaxSteps){
 
     float t,tMax;
-    float HitTime = 0.0;
+    float HitTime = -1.0;
     bool Hit = ifrit_RayboxIntersectionDual(RayOrigin, RayDir, BoxMin, BoxMax, t,tMax);
 
     t = max(t, 0.0);
@@ -156,8 +156,14 @@ float AyaShared_RayMarchGlobalDF(vec3 RayOrigin, vec3 RayDir, uint GlobalDFId, v
                 break;
             }
             t += max(1e-2,SdfVal * 0.5);
+            
+            if(HitTime == -1.0){
+                HitTime = SdfVal;
+            }else{
+                HitTime = min(HitTime, SdfVal);
+            }
             if(t>=tMax){
-                break;
+                //break;
             }
         }
     }

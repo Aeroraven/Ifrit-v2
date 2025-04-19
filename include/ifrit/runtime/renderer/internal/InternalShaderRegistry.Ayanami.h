@@ -62,6 +62,7 @@ namespace Ifrit::Runtime::Internal
         SDEF ScreenProbeMDFCullScatterVS = DECLARE_VS("Ayanami/ScreenProbeMDFCullScatterVS");
         SDEF ScreenProbeMDFCullScatterFS = DECLARE_FS("Ayanami/ScreenProbeMDFCullScatterFS");
         SDEF ScreenProbeMDFTraceCS       = DECLARE_CS("Ayanami/ScreenProbeMDFTraceCS");
+        SDEF ScreenProbeGDFTraceCS       = DECLARE_CS("Ayanami/ScreenProbeGDFTraceCS");
 
     } kIntShaderTableAyanami;
 

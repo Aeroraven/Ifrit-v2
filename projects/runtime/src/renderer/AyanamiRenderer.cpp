@@ -297,6 +297,8 @@ namespace Ifrit::Runtime
                 m_resources->m_SceneAggregator->GetGatheredBufferId());
             m_resources->m_ScreenProbe->ProbeMDFTrace(
                 builder, primaryViewCBV, m_resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth);
+
+            m_resources->m_ScreenProbe->ProbeGDFTrace(builder, primaryViewCBV, &resGDepth, &resGlobalDFGen, 13.0f);
         }
 
         // Pass Defered Shading

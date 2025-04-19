@@ -54,8 +54,8 @@ void main(){
     InstanceId = InstanceId % PushConst.m_TotalMdfCount;
 
     MeshDFMeta MDFData = AyaShared_GetMeshDFData(PushConst.m_MeshDFDescListId, InstanceId);
-    vec3 BboxMin = MDFData.bboxMin.xyz;
-    vec3 BboxMax = MDFData.bboxMax.xyz;
+    vec3 BboxMin = MDFData.bboxMin.xyz - vec3(1.0);
+    vec3 BboxMax = MDFData.bboxMax.xyz + vec3(1.0);
 
     vec3 LerpValue = vec3(0.0, 0.0, 0.0);
     LerpValue.x = mix(BboxMin.x, BboxMax.x, float(VertexId & 1u));

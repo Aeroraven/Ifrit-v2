@@ -380,10 +380,13 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_ScatterOutputUAV  = 0;
         pc.m_NumTilesWidth     = m_Private->m_MDFCullGridSizeXY;
 
+        auto drawArgs       = GraphicsPassArgs{};
+        drawArgs.m_CullMode = RhiCullMode::Front;
+
         AddIndirectDrawPass<PushConst>(builder, "Ayanami.ScreenProbe.MDFCullScatter",
             Internal::kIntShaderTableAyanami.ScreenProbeMDFCullScatterVS,
             Internal::kIntShaderTableAyanami.ScreenProbeMDFCullScatterFS, *m_Private->m_MeshDFCullingIndirectArgs,
-            *m_Private->m_CubeIndex, 0, GraphicsPassArgs{}, pc,
+            *m_Private->m_CubeIndex, 0, drawArgs, pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GridVpUAV         = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingMatrix);
                 data.m_ScatterCounterUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingListCounter);
@@ -471,6 +474,59 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingIndirectArgs)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingList)
             .AddReadWriteResource(*m_Private->m_RadianceAtlas);
+    }
+
+    IFRIT_APIDECL void AyanamiScreenProbeProcessor::ProbeGDFTrace(FrameGraphBuilder& builder, u32 perframeCBV,
+        FGTextureNodeRef gbufferDepth, FGTextureNodeRef globalDF, u32 globalDFWSRange)
+    {
+        struct PushConst
+        {
+            Vector4f m_WorldBoundMin;
+            Vector4f m_WorldBoundMax;
+            Vector2f m_RayJitter;
+            u32      m_GlobalDFSRV;
+            u32      m_GlobalDFTraceProposalCounterUAV;
+            u32      m_GlobalDFTraceProposalListUAV;
+            u32      m_AdaptiveProbesListUAV;
+            u32      m_PerFrameCBV;
+            u32      m_RTWidth;
+            u32      m_RTHeight;
+            u32      m_GBufferDepthSRV;
+            u32      m_ScreenProbeLightingAtlasUAV;
+        } pc;
+        pc.m_RayJitter                       = Vector2f(0.0f, 0.0f);
+        pc.m_GlobalDFSRV                     = 0;
+        pc.m_WorldBoundMin                   = Vector4f(-(f32)globalDFWSRange);
+        pc.m_WorldBoundMax                   = Vector4f((f32)globalDFWSRange);
+        pc.m_PerFrameCBV                     = perframeCBV;
+        pc.m_RTWidth                         = m_Private->m_ActiveRTWidth;
+        pc.m_RTHeight                        = m_Private->m_ActiveRTHeight;
+        pc.m_GlobalDFTraceProposalCounterUAV = 0;
+        pc.m_GlobalDFTraceProposalListUAV    = 0;
+        pc.m_AdaptiveProbesListUAV           = 0;
+        pc.m_GBufferDepthSRV                 = 0;
+        pc.m_GlobalDFSRV                     = 0;
+        pc.m_ScreenProbeLightingAtlasUAV     = 0;
+
+        AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.GDFTrace",
+            Internal::kIntShaderTableAyanami.ScreenProbeGDFTraceCS, *m_Private->m_GlobalDFTracingIndirectArgs,
+            1 * sizeof(u32), pc,
+            [this, gbufferDepth, globalDF](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_GlobalDFSRV = ctx.m_FgDesc->GetSRV(*globalDF);
+                data.m_GlobalDFTraceProposalCounterUAV =
+                    ctx.m_FgDesc->GetUAV(*m_Private->m_GlobalDFTracingIndirectArgs);
+                data.m_GlobalDFTraceProposalListUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_GlobalDFTracingList);
+                data.m_AdaptiveProbesListUAV        = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesList);
+                data.m_GBufferDepthSRV              = ctx.m_FgDesc->GetSRV(*gbufferDepth);
+                data.m_ScreenProbeLightingAtlasUAV  = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
+                SetRootSignature(data, ctx);
+            })
+            .AddReadResource(*gbufferDepth)
+            .AddReadResource(*globalDF)
+            .AddReadResource(*m_Private->m_AdaptiveProbesList)
+            .AddWriteResource(*m_Private->m_RadianceAtlas)
+            .AddReadWriteResource(*m_Private->m_GlobalDFTracingIndirectArgs)
+            .AddReadWriteResource(*m_Private->m_GlobalDFTracingList);
     }
 
     IFRIT_APIDECL FGBufferNodeRef AyanamiScreenProbeProcessor::GetAdaptiveProbesList() const

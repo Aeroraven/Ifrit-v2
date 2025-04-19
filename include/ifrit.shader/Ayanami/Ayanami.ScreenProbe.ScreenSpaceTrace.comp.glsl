@@ -51,7 +51,7 @@ layout(push_constant) uniform UPushConst{
 
 const float kRayProceedMax = 1000.0;
 const float kRayProceedAdvance = 1e-3;
-const uint kMaxTraceIters = 60;
+const uint kMaxTraceIters = 65;
 
 RegisterStorage(BHiZStorage,{
     uint m_Pad;
@@ -195,7 +195,7 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
     }
 
     // Check the hit z difference
-    if(abs(DepthDiffVS) > 1e-1 && CurStepF > 1e-3){
+    if(abs(DepthDiffVS) > 1.0){
         FinalHit = false;
     }
 
@@ -329,15 +329,15 @@ void main(){
     uvec2 WritingSlot = GetProbeWritingSlot(ProbeId, ProbeCntPerX, TraceRayCoord);
     if(!ValidProbe){
         // probe is not valid, write the invalid color
-        imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0, 0.0, 1.0, 1.0));
+        imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0, 1.0, 1.0, 1.0));
         
     }else if(SsgiTraceResult.z < 0.5){
         // screen hit miss
-        imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0, 0.0, 0.0, 1.0));
+        imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0, 1.0, 1.0, 1.0));
         uint FailureRayId = atomicAdd(sFailureRayCount, 1);
         sFailureRayList[FailureRayId] = PackLocationAndRay(ProbeId, TraceRayCoord);
     }else{
-        imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0, 1.0, 0.0, 1.0));
+        imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0, 0.0, 0.0, 1.0));
     }
 
     barrier();

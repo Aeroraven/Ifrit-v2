@@ -43,6 +43,8 @@ namespace Ifrit::Runtime::Ayanami
         void ScatterMeshDFToGrids(FrameGraphBuilder& builder, u32 perframeCBV, u32 numTotalMdfs, u32 meshDFDescUAV);
         void ProbeMDFTrace(
             FrameGraphBuilder& builder, u32 perframeCBV, u32 meshDFDescUAV, FGTextureNodeRef gbufferDepth);
+        void             ProbeGDFTrace(FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef gbufferDepth,
+                        FGTextureNodeRef globalDF, u32 globalDFWSRang);
 
         FGBufferNodeRef  GetAdaptiveProbesList() const;
         FGBufferNodeRef  GetAdaptiveProbesCounter() const;

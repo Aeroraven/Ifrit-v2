@@ -59,9 +59,9 @@ layout(push_constant) uniform UPushConst{
 
 const float kRayProceedMax = 1000.0;
 const float kRayProceedAdvance = 1e-3;
-const uint kMaxTraceSteps = 100;
+const uint kMaxTraceSteps = 40;
 const float kMDFHitThreshold = 1.0;
-const int kGridSearchRange = 2;
+const int kGridSearchRange = 1;
 
 struct TraceRayProposal{
     uvec2 m_TraceRayCoord;
@@ -165,7 +165,7 @@ vec3 MeshDFGridTraceSingleMDF(vec3 RayDirWS, vec3 RayOriginWS, uint MeshDFId, fl
             vec3 UVW = (HitPoint - BboxLB) / (BboxRT - BboxLB);
             float Sdf = texture(GetSampler3D(SdfId), UVW).x - 1.0;
             float AbsSdf = abs(Sdf);
-            if(AbsSdf<kMDFHitThreshold){
+            if(Sdf<kMDFHitThreshold){
                 IsFinalHit = true;
                 break;
             }
@@ -192,7 +192,7 @@ void MeshDFGridTraceGrids(vec3 RayDirWS, vec3 RayOriginWS, uvec3 GridPos, inout 
     for(uint i = 0; i < GridElements; i++){
         uint MeshDFId = GetResource(BCullScatterOutput, PushConst.m_CullGridListUAV).m_List[GridOffset + i];
         vec3 HitResult = MeshDFGridTraceSingleMDF(RayDirWS, RayOriginWS, MeshDFId, HitTime);
-        if(HitResult.x > 0.0 && HitResult.x < HitTime){
+        if(HitResult.x >= 0.0 && HitResult.x < HitTime){
             HitTime = HitResult.x;
             HitMeshDFId = int(MeshDFId);
         }
@@ -250,52 +250,52 @@ void main(){
 
     uint TraceRayId = gl_GlobalInvocationID.x;
     uint TotalTraceRays = GetResource(BMeshDFTraceProposalIndirectArgs,PushConst.m_MeshDFTraceProposalCounterUAV).m_SsgiFailureRays;
-    if(TraceRayId >= TotalTraceRays) return;
 
-    uint TraceRayPackedData = GetResource(BMeshDFTraceProposalList,PushConst.m_MeshDFTraceProposalListUAV).m_List[TraceRayId];
-    TraceRayProposal TraceRay = UnpackLocationAndRay(TraceRayPackedData);
+    if(TraceRayId < TotalTraceRays) {
+        uint TraceRayPackedData = GetResource(BMeshDFTraceProposalList,PushConst.m_MeshDFTraceProposalListUAV).m_List[TraceRayId];
+        TraceRayProposal TraceRay = UnpackLocationAndRay(TraceRayPackedData);
 
-    uint ProbeCntPerX = ifrit_DivRoundUp(PushConst.m_RTWidth, kAyanami_ScreenProbeUniformPlaceTileWidth);
-    uint ProbeCntPerY = ifrit_DivRoundUp(PushConst.m_RTHeight, kAyanami_ScreenProbeUniformPlaceTileWidth);
-    uint TotalUniformProbes = ProbeCntPerX * ProbeCntPerY;
+        uint ProbeCntPerX = ifrit_DivRoundUp(PushConst.m_RTWidth, kAyanami_ScreenProbeUniformPlaceTileWidth);
+        uint ProbeCntPerY = ifrit_DivRoundUp(PushConst.m_RTHeight, kAyanami_ScreenProbeUniformPlaceTileWidth);
+        uint TotalUniformProbes = ProbeCntPerX * ProbeCntPerY;
 
-    vec2 ProbeUV;
-    if(TraceRay.m_ProbeId < TotalUniformProbes){
-        uint ProbeIdX = TraceRay.m_ProbeId % ProbeCntPerX;
-        uint ProbeIdY = TraceRay.m_ProbeId / ProbeCntPerX;
-        uint ProbeLocX = ProbeIdX * kAyanami_ScreenProbeUniformPlaceTileWidth;
-        uint ProbeLocY = ProbeIdY * kAyanami_ScreenProbeUniformPlaceTileWidth;
-        ProbeUV = vec2(float(ProbeLocX),float(ProbeLocY)) / vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
-    }else{
-        uint AdaptiveProbeId = TraceRay.m_ProbeId - TotalUniformProbes;
-        uvec2 AdaptiveProbeCoord = GetAdaptiveProbeCoord(AdaptiveProbeId);
-        ProbeUV = vec2(AdaptiveProbeCoord) / vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+        vec2 ProbeUV;
+        if(TraceRay.m_ProbeId < TotalUniformProbes){
+            uint ProbeIdX = TraceRay.m_ProbeId % ProbeCntPerX;
+            uint ProbeIdY = TraceRay.m_ProbeId / ProbeCntPerX;
+            uint ProbeLocX = ProbeIdX * kAyanami_ScreenProbeUniformPlaceTileWidth;
+            uint ProbeLocY = ProbeIdY * kAyanami_ScreenProbeUniformPlaceTileWidth;
+            ProbeUV = vec2(float(ProbeLocX),float(ProbeLocY)) / vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+        }else{
+            uint AdaptiveProbeId = TraceRay.m_ProbeId - TotalUniformProbes;
+            uvec2 AdaptiveProbeCoord = GetAdaptiveProbeCoord(AdaptiveProbeId);
+            ProbeUV = vec2(AdaptiveProbeCoord) / vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+        }
+
+        float ProbeLocDepthNDC = SampleTexture2D(PushConst.m_GBufferDepthSRV, sNearestClamp, ProbeUV).r;
+        vec3 ProbeLocNDC = vec3(ProbeUV*2.0-1.0, ProbeLocDepthNDC);
+        float ProbeLocDepthVS = ifrit_recoverViewSpaceDepth(ProbeLocDepthNDC, ClipNear, ClipFar);
+        vec3 ProbeLocCS = ProbeLocNDC * ProbeLocDepthVS;
+        vec4 ProbeLocWSH = ClipToWorld * vec4(ProbeLocCS, ProbeLocDepthVS);
+        vec3 ProbeLocWS = ProbeLocWSH.xyz / ProbeLocWSH.w;
+
+        vec2 TraceRayUV =(vec2(TraceRay.m_TraceRayCoord) + vec2(PushConst.m_RayJitter)) / vec2(kAyanami_ScreenProbeProbeHemiRes);
+        vec4 SampledRayAndPDF = ifrit_SampleUniformSphereWithPDF(TraceRayUV);
+        vec3 SampledRay = SampledRayAndPDF.xyz;
+        float SampledRayPDF = SampledRayAndPDF.w;
+
+        ProbeLocWS += SampledRay * kRayProceedAdvance;
+        uvec2 WritingSlot = GetProbeWritingSlot(TraceRay.m_ProbeId, ProbeCntPerX, TraceRay.m_TraceRayCoord);
+
+        vec4 HitResult = MeshDFGridTrace(SampledRay, ProbeLocWS);
+        if(HitResult.w < 0.5){
+            // mdf hit miss
+            uint LocalFailureRayId = atomicAdd(sFailureRayCount, 1);
+            sFailureRayList[LocalFailureRayId] = TraceRayPackedData;
+        }else{
+            imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0,1.0,0.0, 1.0));
+        }
     }
-
-    float ProbeLocDepthNDC = SampleTexture2D(PushConst.m_GBufferDepthSRV, sNearestClamp, ProbeUV).r;
-    vec3 ProbeLocNDC = vec3(ProbeUV*2.0-1.0, ProbeLocDepthNDC);
-    float ProbeLocDepthVS = ifrit_recoverViewSpaceDepth(ProbeLocDepthNDC, ClipNear, ClipFar);
-    vec3 ProbeLocCS = ProbeLocNDC * ProbeLocDepthVS;
-    vec4 ProbeLocWSH = ClipToWorld * vec4(ProbeLocCS, ProbeLocDepthVS);
-    vec3 ProbeLocWS = ProbeLocWSH.xyz / ProbeLocWSH.w;
-
-    vec2 TraceRayUV =(vec2(TraceRay.m_TraceRayCoord) + vec2(PushConst.m_RayJitter)) / vec2(kAyanami_ScreenProbeProbeHemiRes);
-    vec4 SampledRayAndPDF = ifrit_SampleUniformSphereWithPDF(TraceRayUV);
-    vec3 SampledRay = SampledRayAndPDF.xyz;
-    float SampledRayPDF = SampledRayAndPDF.w;
-
-    ProbeLocWS += SampledRay * kRayProceedAdvance;
-    uvec2 WritingSlot = GetProbeWritingSlot(TraceRay.m_ProbeId, ProbeCntPerX, TraceRay.m_TraceRayCoord);
-
-    vec4 HitResult = MeshDFGridTrace(SampledRay, ProbeLocWS);
-    if(HitResult.w < 0.5){
-        // mdf hit miss
-        uint LocalFailureRayId = atomicAdd(sFailureRayCount, 1);
-        sFailureRayList[LocalFailureRayId] = TraceRayPackedData;
-    }else{
-        imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0,1.0,0.0, 1.0));
-    }
-
     barrier();
 
     // prepare the proposals for global df tracing
