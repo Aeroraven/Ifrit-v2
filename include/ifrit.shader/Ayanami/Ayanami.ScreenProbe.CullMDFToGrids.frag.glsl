@@ -29,6 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
 layout(push_constant) uniform UPushConstant{
+    vec4 m_WorldBoundMin;
+    vec4 m_WorldBoundMax;
     uint m_MeshDFDescListId;
     uint m_PerFrameId;
     uint m_TotalMdfCount;

@@ -28,6 +28,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Ayanami/Ayanami.Shared.glsl"
 
 layout(push_constant) uniform UPushConstant{
+    vec4 m_WorldBoundMin;
+    vec4 m_WorldBoundMax;
     uint m_MeshDFDescListId;
     uint m_PerFrameId;
     uint m_TotalMdfCount;
@@ -54,8 +56,8 @@ void main(){
     InstanceId = InstanceId % PushConst.m_TotalMdfCount;
 
     MeshDFMeta MDFData = AyaShared_GetMeshDFData(PushConst.m_MeshDFDescListId, InstanceId);
-    vec3 BboxMin = MDFData.bboxMin.xyz - vec3(1.0);
-    vec3 BboxMax = MDFData.bboxMax.xyz + vec3(1.0);
+    vec3 BboxMin = MDFData.bboxMin.xyz - vec3(25.0);
+    vec3 BboxMax = MDFData.bboxMax.xyz + vec3(25.0);
 
     vec3 LerpValue = vec3(0.0, 0.0, 0.0);
     LerpValue.x = mix(BboxMin.x, BboxMax.x, float(VertexId & 1u));

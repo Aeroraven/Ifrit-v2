@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
+#include "Ayanami/Ayanami.ScreenProbe.Shared.glsl"
 
 layout(
     local_size_x = kAyanamiScrProbeMDFTraceKernelSize, 
@@ -55,13 +56,15 @@ layout(push_constant) uniform UPushConst{
     uint m_MaxMdfsPerGrid;
     uint m_GlobalDFTraceProposalCounterUAV;
     uint m_GlobalDFTraceProposalListUAV;
+    uint m_NumMeshDFs;
 }PushConst;
 
 const float kRayProceedMax = 1000.0;
-const float kRayProceedAdvance = 1e-3;
+const float kRayProceedAdvance = 0.25;
 const uint kMaxTraceSteps = 40;
 const float kMDFHitThreshold = 0.08;
-const int kGridSearchRange = 1;
+const int kGridSearchRange = 2;
+const bool kGridCulling = true;
 
 struct TraceRayProposal{
     uvec2 m_TraceRayCoord;
@@ -209,18 +212,29 @@ vec4 MeshDFGridTrace(vec3 RayDirWS, vec3 RayOriginWS){
     uvec3 RayOriginGSI = uvec3(RayOriginGS);
 
     ivec3 RayOriginGSIS = ivec3(RayOriginGSI);
-    for(int i = -kGridSearchRange; i <= kGridSearchRange; i++){
-        for(int j = -kGridSearchRange; j <= kGridSearchRange; j++){
-            for(int k = -kGridSearchRange; k <= kGridSearchRange; k++){
-                ivec3 GridPos = ivec3(RayOriginGSI) + ivec3(i, j, k);
-                if(GridPos.x >= 0 && GridPos.x < PushConst.m_CullGridSize.x &&
-                   GridPos.y >= 0 && GridPos.y < PushConst.m_CullGridSize.y &&
-                   GridPos.z >= 0 && GridPos.z < PushConst.m_CullGridSize.z){
-                    MeshDFGridTraceGrids(RayDirWS, RayOriginWS, uvec3(GridPos), HitMeshDFId, HitTime);
+    if(kGridCulling){
+        for(int i = -kGridSearchRange; i <= kGridSearchRange; i++){
+            for(int j = -kGridSearchRange; j <= kGridSearchRange; j++){
+                for(int k = -kGridSearchRange; k <= kGridSearchRange; k++){
+                    ivec3 GridPos = ivec3(RayOriginGSI) + ivec3(i, j, k);
+                    if(GridPos.x >= 0 && GridPos.x < PushConst.m_CullGridSize.x &&
+                    GridPos.y >= 0 && GridPos.y < PushConst.m_CullGridSize.y &&
+                    GridPos.z >= 0 && GridPos.z < PushConst.m_CullGridSize.z){
+                        MeshDFGridTraceGrids(RayDirWS, RayOriginWS, uvec3(GridPos), HitMeshDFId, HitTime);
+                    }
                 }
             }
         }
+    }else{
+        for(uint i = 0; i < PushConst.m_NumMeshDFs; i++){
+            vec3 HitResult = MeshDFGridTraceSingleMDF(RayDirWS, RayOriginWS, i, HitTime);
+            if(HitResult.x >= 0.0 && HitResult.x < HitTime){
+                HitTime = HitResult.x;
+                HitMeshDFId = int(i);
+            }
+        }
     }
+    
 
 
     if(HitMeshDFId == -1){
@@ -279,10 +293,7 @@ void main(){
         vec4 ProbeLocWSH = ClipToWorld * vec4(ProbeLocCS, ProbeLocDepthVS);
         vec3 ProbeLocWS = ProbeLocWSH.xyz / ProbeLocWSH.w;
 
-        vec2 TraceRayUV =(vec2(TraceRay.m_TraceRayCoord) + vec2(PushConst.m_RayJitter)) / vec2(kAyanami_ScreenProbeProbeHemiRes);
-        vec4 SampledRayAndPDF = ifrit_SampleUniformSphereWithPDF(TraceRayUV);
-        vec3 SampledRay = SampledRayAndPDF.xyz;
-        float SampledRayPDF = SampledRayAndPDF.w;
+        vec3 SampledRay = AyaShared_GetScreenProbeTraceCoord(TraceRay.m_TraceRayCoord,PushConst.m_RayJitter);
 
         ProbeLocWS += SampledRay * kRayProceedAdvance;
         uvec2 WritingSlot = GetProbeWritingSlot(TraceRay.m_ProbeId, ProbeCntPerX, TraceRay.m_TraceRayCoord);
@@ -296,7 +307,6 @@ void main(){
             imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0,1.0,0.0, 1.0));
         }
     }
-    return;
     barrier();
 
     // prepare the proposals for global df tracing

@@ -63,7 +63,7 @@ RegisterStorage(BIndirectDrawArgs,{
 void main(){
     uint GlobalTid = gl_GlobalInvocationID.x;
     if(ifrit_IsGlobalFirstThread()){
-        uint TotalInstanceToRender = PushConst.m_TotalMdfCount * PushConst.m_SlicesZ;
+        uint TotalInstanceToRender = PushConst.m_TotalMdfCount * 1u;
         GetResource(BIndirectDrawArgs, PushConst.m_IndirectDrawArgs).m_InstanceCount = TotalInstanceToRender;
         GetResource(BIndirectDrawArgs, PushConst.m_IndirectDrawArgs).m_VertexCount = 3u * 12u;
         GetResource(BIndirectDrawArgs, PushConst.m_IndirectDrawArgs).m_StartVertex = 0u;
@@ -81,8 +81,8 @@ void main(){
     float GridYMax = PushConst.m_WorldBoundMax.y;
     float GridZMax = mix(PushConst.m_WorldBoundMin.z, PushConst.m_WorldBoundMax.z, float(GlobalTid + 1u) / float(PushConst.m_SlicesZ));
 
-    //GridZMin =  PushConst.m_WorldBoundMin.z;
-    //GridZMax =  PushConst.m_WorldBoundMax.z;
+    GridZMin =  PushConst.m_WorldBoundMin.z;
+    GridZMax =  PushConst.m_WorldBoundMax.z;
     // ortho map
     vec3 SrcMin = vec3(GridXMin, GridYMin, GridZMin);
     vec3 SrcMax = vec3(GridXMax, GridYMax, GridZMax);

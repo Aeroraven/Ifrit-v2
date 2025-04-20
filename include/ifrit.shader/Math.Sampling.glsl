@@ -51,3 +51,26 @@ vec4 ifrit_SampleCosineHemisphereWithPDF(vec2 uv, vec3 Normal){
     ret.w = PDF;
     return ret;
 }
+
+vec3 ifrit_ConcentricOctahedralTransform(vec2 UV){
+    // https://zhuanlan.zhihu.com/p/408898601
+    // https://fileadmin.cs.lth.se/graphics/research/papers/2008/simdmapping/clarberg_simdmapping08_preprint.pdf
+    // Port from ifrit.core.math
+
+    const float PI = 3.14159265358979323846;
+
+    vec2 sampleOffset = UV * 2.0 - vec2(1.0);
+
+    float u = sampleOffset.x;
+    float v = sampleOffset.y;
+    float d = 1.0 - abs(u) - abs(v);
+    float r = 1.0 - abs(d);
+
+    float z = (d > 0.0 ? 1.0 : -1.0) * (1.0 - r * r);
+    float theta = PI / 4.0 * ((abs(v) - abs(u)) / (r + 1.0));
+    float sinT = sin(theta) * (v >= 0.0 ? 1.0 : -1.0);
+    float cosT = cos(theta) * (u >= 0.0 ? 1.0 : -1.0);
+    float x = cosT * r * sqrt(2.0 - z * z);
+    float y = sinT * r * sqrt(2.0 - z * z);
+    return vec3(x, y, z);
+}

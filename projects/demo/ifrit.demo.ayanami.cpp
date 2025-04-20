@@ -85,9 +85,14 @@ public:
             // 1.43999, 2.24, -6.000006
             // camera->SetPosition({ 3.239989f + m_movRight - m_movLeft, 2.240000f + m_movTop - m_movBottom,
             //     -6.000006f + m_movFar - m_movNear });
+
             camera->SetPosition({ 1.43999f + m_movRight - m_movLeft, 2.240000f + m_movTop - m_movBottom,
                 -6.000006f + m_movFar - m_movNear });
             camera->SetRotation({ 0.0f, m_movRot + 7.39f, 0.0f });
+
+            camera->SetPosition({ 4.19999f + m_movRight - m_movLeft, 1.520000f + m_movTop - m_movBottom,
+                -4.800006f + m_movFar - m_movNear });
+            camera->SetRotation({ 0.0f, m_movRot + 8.95f, 0.0f });
 
             // if print q, print the position and rotation
             if (m_inputSystem->IsKeyPressed(InputKeyCode::Q))
@@ -222,7 +227,7 @@ namespace Ifrit
                 numMeshes++;
                 if (numMeshes == 1000 || numMeshes < 600)
                     continue;
-                if (numMeshes > 800)
+                if (numMeshes > 850 && numMeshes < 2000)
                     continue;
 
                 auto t      = m->m_prefab;

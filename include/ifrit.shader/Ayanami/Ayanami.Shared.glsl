@@ -484,3 +484,4 @@ RadiosityRayCardSample AyaShared_GetRadiosityRayCardSample(uint CardTileId, uvec
     SampledData.m_PresentInAtlas = true;
     return SampledData;
 }
+

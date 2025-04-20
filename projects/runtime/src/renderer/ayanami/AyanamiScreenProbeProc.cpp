@@ -61,9 +61,10 @@ namespace Ifrit::Runtime::Ayanami
         u32                         m_ActiveRTHeight = 0;
         Vector4f                    m_ActiveWorldBoundMin;
         Vector4f                    m_ActiveWorldBoundMax;
+        u32                         m_ActiveMDFCounts = 0;
 
-        u32                         m_MDFCullGridSizeXY   = 32;
-        u32                         m_MDFCullGridSizeZ    = 32;
+        u32                         m_MDFCullGridSizeXY   = 16;
+        u32                         m_MDFCullGridSizeZ    = 1;
         u32                         m_MDFMaxCullObjInGrid = 512;
 
         // Persistent Resources
@@ -330,6 +331,7 @@ namespace Ifrit::Runtime::Ayanami
 
         m_Private->m_ActiveWorldBoundMax = pc.m_WorldBoundMax;
         m_Private->m_ActiveWorldBoundMin = pc.m_WorldBoundMin;
+        m_Private->m_ActiveMDFCounts     = numTotalMdfs;
 
         auto tgX = DivRoundUp(m_Private->m_MDFCullGridSizeZ, kAyanamiScrProbeMDFCullPrepKernelSize);
         AddComputePass<PushConst>(builder, "Ayanami.ScreenProbe.MDFCullingPrep",
@@ -350,16 +352,20 @@ namespace Ifrit::Runtime::Ayanami
             builder, "Ayanami.ScreenProbe.ClearMeshDFCullingListCounter", *m_Private->m_MeshDFCullingListCounter, 0);
         struct PushConst
         {
-            u32 m_MeshDFDescListId;
-            u32 m_PerFrameId;
-            u32 m_TotalMdfCount;
-            u32 m_GridVpUAV;
-            u32 m_MaxMdfsPerGrid;
-            u32 m_NumGridsPerSlice;
-            u32 m_ScatterCounterUAV;
-            u32 m_ScatterOutputUAV;
-            u32 m_NumTilesWidth;
+            Vector4f m_WorldBoundMin;
+            Vector4f m_WorldBoundMax;
+            u32      m_MeshDFDescListId;
+            u32      m_PerFrameId;
+            u32      m_TotalMdfCount;
+            u32      m_GridVpUAV;
+            u32      m_MaxMdfsPerGrid;
+            u32      m_NumGridsPerSlice;
+            u32      m_ScatterCounterUAV;
+            u32      m_ScatterOutputUAV;
+            u32      m_NumTilesWidth;
         } pc;
+        pc.m_WorldBoundMin     = m_Private->m_ActiveWorldBoundMin;
+        pc.m_WorldBoundMax     = m_Private->m_ActiveWorldBoundMax;
         pc.m_MeshDFDescListId  = meshDFDescUAV;
         pc.m_PerFrameId        = perframeCBV;
         pc.m_TotalMdfCount     = numTotalMdfs;
@@ -418,6 +424,7 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_MaxMdfsPerGrid;
             u32      m_GlobalDFTraceProposalCounterUAV;
             u32      m_GlobalDFTraceProposalListUAV;
+            u32      m_NumMeshDFs;
         } pc;
         pc.m_WorldBoundMin = m_Private->m_ActiveWorldBoundMin;
         pc.m_WorldBoundMax = m_Private->m_ActiveWorldBoundMax;
@@ -438,6 +445,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MaxMdfsPerGrid                  = m_Private->m_MDFMaxCullObjInGrid;
         pc.m_GlobalDFTraceProposalCounterUAV = 0;
         pc.m_GlobalDFTraceProposalListUAV    = 0;
+        pc.m_NumMeshDFs                      = m_Private->m_ActiveMDFCounts;
 
         AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.MDFTrace",
             Internal::kIntShaderTableAyanami.ScreenProbeMDFTraceCS, *m_Private->m_MeshDFTracingRayIndirectArgs,

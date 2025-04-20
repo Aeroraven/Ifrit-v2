@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
+#include "Ayanami/Ayanami.ScreenProbe.Shared.glsl"
 
 layout(
     local_size_x = kAyanami_ScreenProbeProbeHemiRes, 
@@ -49,8 +50,8 @@ layout(push_constant) uniform UPushConst{
     uint m_AdaptiveProbesListUAV;
 }PushConst;
 
-const float kRayProceedMax = 50.0;
-const float kRayProceedAdvance = 1e-2;
+const float kRayProceedMax = 40.0;
+const float kRayProceedAdvance = 0.01;
 const uint kMaxTraceIters = 60;
 const bool kHizProceed = true;
 const bool kUseWordSpaceSsgi = false;
@@ -164,7 +165,7 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
     float ProceedTexelY = 0.0;
     float ProceedRefZ = 0.0;
     float ProceedCurZ = 0.0;
-    while(CurMip >= 0 && CurIters < MaxIters){
+    while(CurMip >= 0 && CurStepF <= 1.0 && CurIters < MaxIters){
         CurIters += 1;
         float T = CurStepF;
         vec2 CurUV = mix(RayStartUV, RayEndUV, T);
@@ -179,7 +180,7 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
         ProceedCurZ = RayStartVS.z;
 
         bool IsCollided = false;
-        if(CurZ >= ReferenceZ && (CurMip!=0 || ValidZ)){
+        if(CurZ >= ReferenceZ+1e-3 && (CurMip!=0 || ValidZ)){
             IsCollided = true;
         }
 
@@ -208,10 +209,11 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
     }
 
     // Check the hit z difference
-    if(abs(DepthDiffVS) > 0.5){
+    if(abs(DepthDiffVS) > 0.2){
         FinalHit = false;
+        return vec3(HitUV-RayStartUV, 0.0);
     }
-    return vec3(HitUV, FinalHit ? 1.0 : 0.0);
+    return vec3(HitUV-RayStartUV, FinalHit ? 1.0 : 0.0);
 }
 
 vec3 SsgiTraceImplWorldSpace(vec3 RayStartWS, vec3 RayEndWS){
@@ -286,10 +288,7 @@ vec3 SsgiTrace(vec3 RayDirWS, vec3 RayOriginWS){
     if(RayNDCIntersection.x>0.0 || RayNDCIntersection.y < 0.0){
         ValidSample = false;
     }
-    vec2 AbsProceedDirUV = abs(ProceedDirUV);
-    if(AbsProceedDirUV.x < 1e-4 || AbsProceedDirUV.y < 1e-4){
-        ValidSample = false;
-    }
+
 
     vec3 RayTraceStartVS = OriginVS.xyz;
     vec3 RayTraceEndVS = ProceedVS.xyz;
@@ -325,16 +324,14 @@ void main(){
 
     uint ProbeId = gl_WorkGroupID.x;
     uvec2 TraceRayCoord = gl_LocalInvocationID.xy;
-    vec2 TraceRayUV = (vec2(TraceRayCoord)+PushConst.m_RayJitter) / vec2(kAyanami_ScreenProbeProbeHemiRes);
+    
     PerFramePerViewData PerFrame = AyaShared_GetPerFrameData(PushConst.m_PerFrameCBV);
     float ClipNear = PerFrame.m_cameraNear;
     float ClipFar = PerFrame.m_cameraFar;
     mat4 ClipToWorld = PerFrame.m_clipToWorld;
 
     // Note that, importance sampling is not used here. It's scheduled in the future.
-    vec4 SampledRayAndPDF = ifrit_SampleUniformSphereWithPDF(TraceRayUV);
-    vec3 SampledRay = SampledRayAndPDF.xyz;
-    float SampledRayPDF = SampledRayAndPDF.w;
+    vec3 SampledRay = AyaShared_GetScreenProbeTraceCoord(TraceRayCoord,PushConst.m_RayJitter);
 
     // Get probe center WS
     uint ProbeCntPerX = ifrit_DivRoundUp(PushConst.m_RTWidth, kAyanami_ScreenProbeUniformPlaceTileWidth);
@@ -384,8 +381,7 @@ void main(){
     }else{
         imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0,0.0,0.0, 1.0));
     }
-
-    return ;
+    //return ;
 
     barrier();
 

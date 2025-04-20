@@ -11,17 +11,17 @@ Some toys about real-time rendering. Currently, it contains:
 
 
 
-| Soft Renderer / Mesh Shading                                | Soft Renderer / CUDA Renderer               |
-| ----------------------------------------------------------- | ------------------------------------------- |
-| ![](docs/img/img_demo3.png)                                 | ![](docs/img/img_demo1.png)                 |
-| **Syaro / Cull Rasterize Visibility Buffer (R32_UINT)**     | **Syaro / Final Output**                    |
-| ![](docs/img/syaro_clodvisb.png)                            | ![](docs/img/syaro_clod1.png)               |
-| **Syaro / Timing**                                          | **Soft Renderer / Derivatives**             |
-| <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" /> | ![](docs/img/soft_dx1.png)                  |
-| **Ayanami / GDF Object Grids + Surface Cache Lookup***      | **Ayanami / Global Distance Field (GDF)\*** |
-| ![](docs/img/ayanami_objgrid_exp1.png)                      | ![](docs/img/ayanami_globaldf2.png)         |
-| **Soft Renderer / Profile** (Nsight Compute)                | **Syaro / Debug** (RenderDoc)               |
-| ![](docs/img/soft_nscp.png)                                 | ![](docs/img/syaro_diag.png)                |
+| Soft Renderer / Mesh Shading                                | Soft Renderer / CUDA Renderer                                |
+| ----------------------------------------------------------- | ------------------------------------------------------------ |
+| ![](docs/img/img_demo3.png)                                 | ![](docs/img/img_demo1.png)                                  |
+| **Syaro / Cull Rasterize Visibility Buffer (R32_UINT)**     | **Syaro / Final Output**                                     |
+| ![](docs/img/syaro_clodvisb.png)                            | ![](docs/img/syaro_clod1.png)                                |
+| **Syaro / Timing**                                          | **Soft Renderer / Derivatives**                              |
+| <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" /> | ![](docs/img/soft_dx1.png)                                   |
+| **Ayanami / GDF Object Grids + Surface Cache Lookup***      | **Ayanami / Global Distance Field (GDF)\***                  |
+| ![](docs/img/ayanami_objgrid_exp1.png)                      | ![](docs/img/ayanami_globaldf2.png)                          |
+| **Soft Renderer / Profile** (Nsight Compute)                | **Ayanami / Debug (Tracing Hierarchy, Incomplete) \*** (RenderDoc) |
+| <img src="docs/img/soft_nscp.png" style="zoom:80%;" />      | <img src="docs/img/aya_diag.png" style="zoom:80%;" />        |
 
 **Check  [`GALLERY.md`](./GALLERY.md) for more pictures.**
 
@@ -97,14 +97,10 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
     - Adaptive Screen Space Probe Placement
     
     - Screen  Probe Tracing 
-    
       - Screen Space Tracing (SSGI+HiZ)
-      - Mesh Distance Field Tracing (Cull+Ray Marching)
-      - Global Distance Field Tracing
+      - Mesh/Global Distance Field Tracing (Grid Cull+Ray Marching)
       
       
-
-
 
 *. These features might be severely unstable and time-consuming. For problems and details, refer to [TODO.md](./TODO.md)
 

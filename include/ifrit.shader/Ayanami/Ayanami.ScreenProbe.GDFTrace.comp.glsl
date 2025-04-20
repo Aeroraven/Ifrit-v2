@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
+#include "Ayanami/Ayanami.ScreenProbe.Shared.glsl"
 
 layout(
     local_size_x = kAyanamiScrProbeGDFTraceKernelSize, 
@@ -50,7 +51,7 @@ layout(push_constant) uniform UPushConst{
     uint m_ScreenProbeLightingAtlasUAV;
 }PushConst;
 
-const float kRayProceedAdvance = 1e-3;
+const float kRayProceedAdvance = 0.6;
 
 struct TraceRayProposal{
     uvec2 m_TraceRayCoord;
@@ -146,10 +147,7 @@ void main(){
         vec4 ProbeLocWSH = ClipToWorld * vec4(ProbeLocCS, ProbeLocDepthVS);
         vec3 ProbeLocWS = ProbeLocWSH.xyz / ProbeLocWSH.w;
 
-        vec2 TraceRayUV =(vec2(TraceRay.m_TraceRayCoord) + vec2(PushConst.m_RayJitter)) / vec2(kAyanami_ScreenProbeProbeHemiRes);
-        vec4 SampledRayAndPDF = ifrit_SampleUniformSphereWithPDF(TraceRayUV);
-        vec3 SampledRay = SampledRayAndPDF.xyz;
-        float SampledRayPDF = SampledRayAndPDF.w;
+        vec3 SampledRay = AyaShared_GetScreenProbeTraceCoord(TraceRay.m_TraceRayCoord,PushConst.m_RayJitter);
 
         ProbeLocWS += SampledRay * kRayProceedAdvance;
         uvec2 WritingSlot = GetProbeWritingSlot(TraceRay.m_ProbeId, ProbeCntPerX, TraceRay.m_TraceRayCoord);

@@ -92,8 +92,9 @@ vec4 GetNeighbourProbeWeights(uvec2 ScreenCoord, ScreenSpaceSample CoordSample){
     float BilinearWeightsX = 1.0 - abs(float(ScreenCoord.x % kAyanami_ScreenProbeUniformPlaceTileWidth) / float(kAyanami_ScreenProbeUniformPlaceTileWidth));
     float BilinearWeightsY = 1.0 - abs(float(ScreenCoord.y % kAyanami_ScreenProbeUniformPlaceTileWidth) / float(kAyanami_ScreenProbeUniformPlaceTileWidth));
 
-    BilinearWeightsX = (BilinearWeightsX + 0.2) / 1.2;
-    BilinearWeightsY = (BilinearWeightsY + 0.2) / 1.2;
+    float GatherBaseingBias = 0.05;
+    BilinearWeightsX =  (BilinearWeightsX + GatherBaseingBias) / (1.0 + 2.0*GatherBaseingBias);
+    BilinearWeightsY =  (BilinearWeightsY + GatherBaseingBias) / (1.0 + 2.0*GatherBaseingBias);
 
     uvec2 NearProbes[4];
     NearProbes[0] = ProbeId + uvec2(0, 0);

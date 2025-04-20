@@ -148,8 +148,8 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
     }
 
     // Check the hit z difference
-    if(abs(DepthDiffVS) > 0.25){
-        //FinalHit = false;
+    if(abs(DepthDiffVS) > 0.35){
+        FinalHit = false;
     }
     return vec3(HitUV, FinalHit ? 1.0 : 0.0);
 }
@@ -285,7 +285,7 @@ void main(){
     vec3 LambertBRDF = Albedo * (1.0 / 3.14159265358979323846);
     vec3 Irradiance = vec3(DiffuseLobeR, DiffuseLobeG, DiffuseLobeB);
     Irradiance = max(Irradiance, vec3(0.0)) ;
-    Irradiance = Irradiance * LambertBRDF;
+    Irradiance = Irradiance ;
 
     // Store GI
     vec4 AoRaw = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_AOTexUAV), ivec2(ScreenCoord));

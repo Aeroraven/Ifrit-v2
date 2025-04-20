@@ -69,7 +69,7 @@ namespace Ifrit::Runtime::RenderingUtil::CascadeShadowMapping
             Vector3f rCenter;
             auto     worldToView = Math::Transpose(perView.m_viewData.m_worldToView);
             auto     viewToWorld = Inverse4((worldToView));
-            GetFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, viewToWorld, vApex, lightFront, 1e2f, rZFar,
+            GetFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, viewToWorld, vApex, lightFront, 1e1f, rZFar,
                 rOrthoSize, rCenter, rCullOrthoX, rCullOrthoY);
             auto  lightCamUp = Vector3f{ 0.0f, 1.0f, 0.0f };
             auto  proj       = OrthographicNegateY(rOrthoSize, 1.0, 0.1f, rZFar);
