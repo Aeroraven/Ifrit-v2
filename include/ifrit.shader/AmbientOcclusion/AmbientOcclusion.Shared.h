@@ -40,7 +40,9 @@ namespace Ifrit::Runtime::Shaders::AmbientOcclusionConfig
     IFRIT_AO_DEFINE_UINT(cSSGIThreadGroupSizeX, 16);
     IFRIT_AO_DEFINE_UINT(cSSGIThreadGroupSizeY, 16);
     IFRIT_AO_DEFINE_UINT(cSSGIBounces, 1);
-    IFRIT_AO_DEFINE_UINT(cSSGISamples, 64);
+
+    IFRIT_AO_DEFINE_UINT(cSSGISamples, 16);
+    IFRIT_AO_DEFINE_UINT(cSSGIHemiProbeHemiRes, 4);
 
 #define SSGI_USE_HIERARCHICAL_Z 1
 #define SSGI_RAY_MAX_DISTANCE 2.0f

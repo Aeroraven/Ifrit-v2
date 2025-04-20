@@ -60,7 +60,7 @@ layout(push_constant) uniform UPushConst{
 const float kRayProceedMax = 1000.0;
 const float kRayProceedAdvance = 1e-3;
 const uint kMaxTraceSteps = 40;
-const float kMDFHitThreshold = 1.0;
+const float kMDFHitThreshold = 0.08;
 const int kGridSearchRange = 1;
 
 struct TraceRayProposal{
@@ -163,7 +163,7 @@ vec3 MeshDFGridTraceSingleMDF(vec3 RayDirWS, vec3 RayOriginWS, uint MeshDFId, fl
     if(IsHit){
         for(int i=0;i<kMaxTraceSteps;i++){
             vec3 UVW = (HitPoint - BboxLB) / (BboxRT - BboxLB);
-            float Sdf = texture(GetSampler3D(SdfId), UVW).x - 1.0;
+            float Sdf = texture(GetSampler3D(SdfId), UVW).x;
             float AbsSdf = abs(Sdf);
             if(Sdf<kMDFHitThreshold){
                 IsFinalHit = true;
@@ -296,6 +296,7 @@ void main(){
             imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0,1.0,0.0, 1.0));
         }
     }
+    return;
     barrier();
 
     // prepare the proposals for global df tracing

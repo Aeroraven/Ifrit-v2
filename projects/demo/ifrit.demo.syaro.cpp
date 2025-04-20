@@ -70,17 +70,22 @@ public:
         if (inputSystem->IsKeyPressed(InputKeyCode::F))
             m_movNear += scale;
         if (inputSystem->IsKeyPressed(InputKeyCode::Z))
-            m_movRot += scale * 0.03f;
+            m_movRot += scale * 0.3f;
         if (inputSystem->IsKeyPressed(InputKeyCode::X))
-            m_movRot -= scale * 0.03f;
+            m_movRot -= scale * 0.3f;
 
         auto parent = this->GetParentUnsafe();
         auto camera = parent->GetComponent<Transform>();
         if (camera)
         {
-            camera->SetPosition(
-                { -20.0f + m_movRight - m_movLeft, 8.0f + m_movTop - m_movBottom, 2.05f + m_movFar - m_movNear });
-            camera->SetRotation({ 0.0f, m_movRot + 1.57f, 0.0f });
+            // Bistro Exterior
+            // camera->SetPosition(
+            //     { -20.0f + m_movRight - m_movLeft, 8.0f + m_movTop - m_movBottom, 2.05f + m_movFar - m_movNear });
+            // camera->SetRotation({ 0.0f, m_movRot + 1.57f, 0.0f });
+
+            camera->SetPosition({ 1.43999f + m_movRight - m_movLeft, 2.240000f + m_movTop - m_movBottom,
+                -6.000006f + m_movFar - m_movNear });
+            camera->SetRotation({ 0.0f, m_movRot + 7.39f, 0.0f });
         }
     }
 };
@@ -101,13 +106,17 @@ private:
 public:
     void OnStart() override
     {
-        renderer       = std::make_shared<SyaroRenderer>(this);
-        auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Bistro/untitled.gltf");
+        renderer = std::make_shared<SyaroRenderer>(this);
+        // auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Bistro/untitled.gltf");
+        auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInteriorModified/bistro.gltf");
+
         // Renderer config
-        renderConfig.m_VisualizationType          = RendererVisualizationType::Default;
-        renderConfig.m_IndirectLightingType       = IndirectLightingType::HBAO;
-        renderConfig.m_AntiAliasingType           = AntiAliasingType::TAA;
-        renderConfig.m_ShadowConfig.m_maxDistance = 200.0f;
+        renderConfig.m_VisualizationType       = RendererVisualizationType::Default;
+        renderConfig.m_IndirectLightingType    = IndirectLightingType::SSGI;
+        renderConfig.m_AntiAliasingType        = AntiAliasingType::TAA;
+        renderConfig.m_OverrideMaterialCulling = OverrideMaterialCulling::ForcedCullNone;
+        // renderConfig.m_ShadowConfig.m_maxDistance = 200.0f;
+        renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
         renderConfig.m_SuperSamplingRate          = 1.0f;
 
         // Scene
@@ -134,7 +143,8 @@ public:
         auto lightGameObject = node->AddGameObject("sun");
         auto light           = lightGameObject->AddComponent<Light>();
         auto lightTransform  = lightGameObject->GetComponent<Transform>();
-        lightTransform->SetRotation({ 120.0 / 180.0f * std::numbers::pi_v<float>, 0.0f, 0.0f });
+        // lightTransform->SetRotation({ 120.0 / 180.0f * std::numbers::pi_v<float>, 0.0f, 0.0f });
+        lightTransform->SetRotation({ 13.0f, 2.0f, 0.0f });
         light->SetShadowMap(true);
         light->SetShadowMapResolution(2048);
         light->SetAffectPbrSky(true);
@@ -144,6 +154,10 @@ public:
         for (auto& m : meshes)
         {
             numMeshes++;
+            if (numMeshes == 1000 || numMeshes < 600)
+                continue;
+            if (numMeshes > 850 && numMeshes < 2000)
+                continue;
             node->AddGameObjectTransferred(std::move(m->m_prefab));
         }
 

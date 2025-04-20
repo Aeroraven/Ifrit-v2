@@ -48,7 +48,7 @@ namespace Ifrit::Runtime
             u32 aoTex, GPUBindId* perframeData);
 
         void RenderSSGI(const CommandBuffer* cmd, u32 width, u32 height, GPUBindId* perframeData, u32 depthHizMinUAV,
-            u32 depthHizMaxUAV, GPUBindId* normalSRV, u32 aoUAV, GPUBindId* albedoSRV, u32 hizTexW, u32 hizTexH,
-            u32 numLods, GPUBindId* blueNoiseSRV);
+            u32 depthHizMaxUAV, GPUBindId* normalSRV, u32 aoUAV, u32 finalLightingSRV, u32 hizTexW, u32 hizTexH,
+            u32 numLods, GPUBindId* blueNoiseSRV, GPUBindId* albedoSRV);
     };
 } // namespace Ifrit::Runtime

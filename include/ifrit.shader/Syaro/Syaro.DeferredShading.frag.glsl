@@ -74,6 +74,7 @@ layout(push_constant) uniform PushConstant{
     uint numShadowMaps;
     uint depthTexRef;
     uint shadowTexRef;
+    uint m_GIMode; // 0: AO, 1: GI | Todo: move this into shader variants
 } pc;
 
 const vec4 testLightPos = vec4(0.61237, -0.50, -0.61237, 0.00) * 3.0;
@@ -135,14 +136,20 @@ void main(){
     float PIx = 3.14159265359;
     vec3 specular = dpbr_cookTorranceBRDF(F,G,D,NdotV,NdotL);
     vec3 indirect = vec3(aoN);
-    vec3 Lo = ((kD/PIx)* albedo+ specular) * NdotL * 2.3;
+    vec3 Lo = ((kD/PIx)* albedo+ specular) * NdotL * 8.3;
     vec3 LInd = indirect;
 
     vec3 ambient = vec3(0.12) * albedo * pow(ao,1.5);
     float shadow = texture(GetSampler2D(pc.shadowTexRef),texCoord).r;
 
+    vec3 color;
     //This is incorrect, but it's used for test if shadow mapping works
-    vec3 color = Lo * shadow + ambient; //+ LInd * pow(ao,1.5);
+    if(pc.m_GIMode == 0){
+        color = Lo * shadow + ambient; //+ LInd * pow(ao,1.5);
+    }else{
+        color = Lo * shadow + aoN;
+    }
+    
     //vec3 color = LInd;
     outColor = vec4(color,1.0);
 }

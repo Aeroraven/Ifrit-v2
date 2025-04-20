@@ -496,12 +496,18 @@ namespace Ifrit::Runtime
                 u32      numShadowMaps;
                 u32      depthTexRef;
                 u32      shadowTexRef;
+                u32      m_GIMode; // 0: AO, 1:GI
             } pc;
             pc.sundir           = perframeData.m_sunDir;
             pc.numShadowMaps    = perframeData.m_shadowData2.m_enabledShadowMaps;
             pc.shadowMapDataRef = perframeData.m_shadowData2.m_allShadowDataId->GetActiveId();
             pc.depthTexRef      = primaryView.m_visibilityDepthIdSRV_Combined->GetActiveId();
             pc.shadowTexRef     = perframeData.m_deferShadowMaskId->GetActiveId();
+            pc.m_GIMode         = 0; // AO
+            if (m_config->m_IndirectLightingType == IndirectLightingType::SSGI)
+            {
+                pc.m_GIMode = 1;
+            }
             commandList->BeginScope("Syaro: Deferred Shading");
             RenderingUtil::EnqueueFullScreenPass(commandList, rhi, pass, postprocRT0.get(),
                 { perframeData.m_gbufferDescFrag, perframeData.m_gbufferDepthDesc, primaryView.m_viewBindlessRef }, &pc,
@@ -714,7 +720,7 @@ namespace Ifrit::Runtime
             pass->SetVertexShader(vsShader);
             pass->SetPixelShader(fsShader);
             pass->SetNumBindlessDescriptorSets(3);
-            pass->SetPushConstSize(8 * u32Size);
+            pass->SetPushConstSize(9 * u32Size);
             pass->SetRenderTargetFormat(rtCfg);
             m_deferredShadingPass[paCfg] = pass;
         }
@@ -1741,6 +1747,10 @@ namespace Ifrit::Runtime
         }
         else if (m_config->m_IndirectLightingType == IndirectLightingType::SSGI)
         {
+            auto curFrameId        = perframeData.m_frameId % 2;
+            auto lastFrameLighting = perframeData.m_taaHistory[curFrameId].m_colorRT;
+            auto srv               = m_app->GetRhi()->GetSRVDescriptor(lastFrameLighting.get());
+
             m_aoPass->RenderHBAO(cmd, width, height, depthSamp.get(), normalSamp.get(), ao, perframe.get());
             cmd->AddResourceBarrier({ perframeData.m_gbuffer.m_specular_occlusionBarrier });
             aoBlurFunc();
@@ -1749,9 +1759,9 @@ namespace Ifrit::Runtime
             cmd->GlobalMemoryBarrier();
             m_aoPass->RenderSSGI(cmd, width, height, primaryView.m_viewBufferId.get(),
                 primaryView.m_spHiZDataMin.m_hizRefBuffer->GetDescId(),
-                primaryView.m_spHiZData.m_hizRefBuffer->GetDescId(), normalSamp.get(), aoIntermediate, albedoSamp.get(),
+                primaryView.m_spHiZData.m_hizRefBuffer->GetDescId(), normalSamp.get(), aoIntermediate, srv,
                 primaryView.m_spHiZDataMin.m_hizWidth, primaryView.m_spHiZDataMin.m_hizHeight,
-                primaryView.m_spHiZDataMin.m_hizIters, m_immRes.m_blueNoiseSRV.get());
+                primaryView.m_spHiZDataMin.m_hizIters, m_immRes.m_blueNoiseSRV.get(), albedoSamp.get());
 
             cmd->GlobalMemoryBarrier();
             m_jointBilateralFilter->RenderPostFx(

@@ -41,3 +41,13 @@ vec4 ifrit_SampleUniformSphereWithPDF(vec2 uv){
     return ret;
 }
 
+
+vec4 ifrit_SampleCosineHemisphereWithPDF(vec2 uv, vec3 Normal){
+    vec3 SampleH = ifrit_SampleUniformSphereWithPDF(uv).xyz;
+    vec3 SampleH2 = normalize(Normal+SampleH);
+    float PDF = dot(SampleH2, Normal) / kPI;
+    vec4 ret;
+    ret.xyz = SampleH2;
+    ret.w = PDF;
+    return ret;
+}

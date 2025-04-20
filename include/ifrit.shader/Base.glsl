@@ -58,10 +58,7 @@ struct PerObjectData {
 
 const float kPI = 3.14159265359;
 
-float ifrit_recoverViewSpaceDepth(float screenZ, float nearPlane, float farPlane){
-  // Near->0 (Scr), Far->1 (Scr)
-  return (2.0 * nearPlane * farPlane) / ( - screenZ * (farPlane - nearPlane) + (farPlane + nearPlane));
-}
+
 
 float ifrit_viewZToClipZ(float viewZ, float zNear, float zFar){
   float dz = zFar/(zFar-zNear)*viewZ - zFar*zNear/(zFar-zNear);
@@ -79,6 +76,12 @@ float ifrit_clipZToViewZ(float clipZ, float zNear, float zFar){
   float fn_mul = zFar*zNear;
   float fn_sub = zFar-zNear;  
   return fn_mul/(zFar-clipZ*fn_sub);
+}
+
+float ifrit_recoverViewSpaceDepth(float screenZ, float nearPlane, float farPlane){
+  // Near->0 (Scr), Far->1 (Scr)
+  // return (2.0 * nearPlane * farPlane) / ( - screenZ * (farPlane - nearPlane) + (farPlane + nearPlane));
+  return ifrit_clipZToViewZ(screenZ, nearPlane, farPlane);
 }
 
 float ifrit_signedDistToPlane(vec4 plane, vec4 point){

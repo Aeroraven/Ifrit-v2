@@ -51,7 +51,7 @@ namespace Ifrit::Runtime
         m_ssgiPass  = rhi->CreateComputePass();
         m_ssgiPass->SetComputeShader(shader);
         m_ssgiPass->SetNumBindlessDescriptorSets(0);
-        m_ssgiPass->SetPushConstSize(sizeof(u32) * 12);
+        m_ssgiPass->SetPushConstSize(sizeof(u32) * 13);
     }
 
     IFRIT_APIDECL void AmbientOcclusionPass::RenderHBAO(const CommandBuffer* cmd, u32 width, u32 height,
@@ -90,7 +90,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void AmbientOcclusionPass::RenderSSGI(const CommandBuffer* cmd, u32 width, u32 height,
         GPUBindId* perframeData, u32 depthHizMinUAV, u32 depthHizMaxUAV, GPUBindId* normalSRV, u32 aoUAV,
-        GPUBindId* albedoSRV, u32 hizTexW, u32 hizTexH, u32 numLods, GPUBindId* blueNoiseSRV)
+        u32 finalLightSRV, u32 hizTexW, u32 hizTexH, u32 numLods, GPUBindId* blueNoiseSRV, GPUBindId* albedoSRV)
     {
         struct SSGIPushConst
         {
@@ -99,27 +99,29 @@ namespace Ifrit::Runtime
             u32 depthTexMin;
             u32 depthTexMax;
             u32 aoTex;
-            u32 albedoTex;
+            u32 finalLightTex;
             u32 hizTexW;
             u32 hizTexH;
             u32 rtW;
             u32 rtH;
             u32 numLods;
             u32 blueNoiseSRV;
+            u32 albedoSRV;
         } pc;
 
-        pc.perframe     = perframeData->GetActiveId();
-        pc.normalTex    = normalSRV->GetActiveId();
-        pc.depthTexMin  = depthHizMinUAV;
-        pc.depthTexMax  = depthHizMaxUAV;
-        pc.aoTex        = aoUAV;
-        pc.albedoTex    = albedoSRV->GetActiveId();
-        pc.hizTexW      = hizTexW;
-        pc.hizTexH      = hizTexH;
-        pc.rtW          = width;
-        pc.rtH          = height;
-        pc.numLods      = numLods;
-        pc.blueNoiseSRV = blueNoiseSRV->GetActiveId();
+        pc.perframe      = perframeData->GetActiveId();
+        pc.normalTex     = normalSRV->GetActiveId();
+        pc.depthTexMin   = depthHizMinUAV;
+        pc.depthTexMax   = depthHizMaxUAV;
+        pc.aoTex         = aoUAV;
+        pc.finalLightTex = finalLightSRV;
+        pc.hizTexW       = hizTexW;
+        pc.hizTexH       = hizTexH;
+        pc.rtW           = width;
+        pc.rtH           = height;
+        pc.numLods       = numLods;
+        pc.blueNoiseSRV  = blueNoiseSRV->GetActiveId();
+        pc.albedoSRV     = albedoSRV->GetActiveId();
 
         if (m_ssgiPass == nullptr)
         {
