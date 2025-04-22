@@ -110,6 +110,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         PFN_vkGetAccelerationStructureBuildSizesKHR    p_vkGetAccelerationStructureBuildSizesKHR;
         PFN_vkCmdTraceRaysKHR                          p_vkCmdTraceRaysKHR;
         PFN_vkCreateRayTracingPipelinesKHR             p_vkCreateRayTracingPipelinesKHR;
+
+        PFN_vkSetDebugUtilsObjectNameEXT               p_vkSetDebugUtilsObjectNameEXT;
+        PFN_vkSetDebugUtilsObjectTagEXT                p_vkSetDebugUtilsObjectTagEXT;
     };
 
     class IFRIT_APIDECL EngineContext : public Rhi::RhiDevice

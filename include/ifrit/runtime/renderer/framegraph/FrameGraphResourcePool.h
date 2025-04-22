@@ -154,8 +154,8 @@ namespace Ifrit::Runtime
         FrameGraphResourcePool(Graphics::Rhi::RhiBackend* rhi);
         ~FrameGraphResourcePool();
 
-        FrameGraphPoolBufAllocResult CreateBuffer(const FrameGraphBufferDesc& desc);
-        FrameGraphPoolTexAllocResult CreateTexture(const FrameGraphTextureDesc& desc);
+        FrameGraphPoolBufAllocResult CreateBuffer(const FrameGraphBufferDesc& desc, const String& name);
+        FrameGraphPoolTexAllocResult CreateTexture(const FrameGraphTextureDesc& desc, const String& name);
 
         void                         ReleaseBuffer(RIndexedPtr buffer);
         void                         ReleaseTexture(RIndexedPtr texture);

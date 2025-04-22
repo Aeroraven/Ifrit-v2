@@ -825,13 +825,13 @@ namespace Ifrit::Runtime
                 // iInfo("FrameGraphExecutor: Allocating {} ({})", res->name,res->id);
                 if (res->type == FrameGraphResourceType::ResourceBuffer)
                 {
-                    auto resAlloc      = compiledGraph.m_graph->m_ResourcePool->CreateBuffer(res->bufferDesc);
+                    auto resAlloc = compiledGraph.m_graph->m_ResourcePool->CreateBuffer(res->bufferDesc, res->name);
                     res->m_PooledResId = resAlloc.m_PooledResId;
                     res->selfBuffer    = resAlloc.m_Buffer;
                 }
                 else if (res->type == FrameGraphResourceType::ResourceTexture)
                 {
-                    auto resAlloc      = compiledGraph.m_graph->m_ResourcePool->CreateTexture(res->textureDesc);
+                    auto resAlloc = compiledGraph.m_graph->m_ResourcePool->CreateTexture(res->textureDesc, res->name);
                     res->m_PooledResId = resAlloc.m_PooledResId;
                     res->selfTexture   = resAlloc.m_Texture;
                     res->subResource   = { 0, 0, 1, 1 };

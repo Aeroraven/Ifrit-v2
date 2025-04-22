@@ -72,6 +72,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline BufferCreateInfo    GetCreateInfo() const { return m_createInfo; }
 
         virtual Rhi::RhiDeviceAddr GetDeviceAddress() const;
+
+        virtual void               SetDebugName(const String& name) override;
     };
 
     class IFRIT_APIDECL MultiBuffer : public Rhi::RhiMultiBuffer
@@ -190,7 +192,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             return static_cast<Rhi::RhiImageFormat>(m_format);
         }
-        virtual u32 GetUsage() const override { return m_createInfo.usage; }
+        virtual u32  GetUsage() const override { return m_createInfo.usage; }
+        virtual void SetDebugName(const String& name) override;
     };
 
     struct SamplerCreateInfo
@@ -223,6 +226,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         Sampler(EngineContext* ctx, const SamplerCreateInfo& ci);
         ~Sampler();
         inline VkSampler GetSampler() { return m_sampler; }
+        virtual void     SetDebugName(const String& name) override;
     };
 
     class IFRIT_APIDECL ResourceManager

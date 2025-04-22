@@ -81,8 +81,8 @@ namespace Ifrit::Graphics::Rhi
             }
             return m_descHandle.GetId();
         }
-        IF_FORCEINLINE virtual void          SetDebugName(const String& name) { m_debugName = name; }
-        IF_FORCEINLINE virtual const String& GetDebugName() const { return m_debugName; }
+        virtual void          SetDebugName(const String& name) { m_debugName = name; }
+        virtual const String& GetDebugName() const { return m_debugName; }
     };
 
     class IFRIT_APIDECL RhiBuffer : public RhiDeviceResource

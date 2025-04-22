@@ -56,7 +56,7 @@ layout(push_constant) uniform UPushConst{
 
 float TraceGlobalDF(vec3 RayOrigin, vec3 RayDir){
     float hitTime = AyaShared_RayMarchGlobalDF(RayOrigin,RayDir,PushConst.m_GlobalDFSRV,PushConst.m_GlobalDFBoxMin.xyz,
-        PushConst.m_GlobalDFBoxMax.xyz,0.017,0.03,200);
+        PushConst.m_GlobalDFBoxMax.xyz,0.015,0.03,200);
 
     return hitTime;
 }

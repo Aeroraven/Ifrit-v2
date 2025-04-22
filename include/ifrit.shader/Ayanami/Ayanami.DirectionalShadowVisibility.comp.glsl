@@ -215,7 +215,7 @@ void main(){
     float ShadowCoverage = 0.0;
     vec2 ShadowVisibilityAndCoverage = GlobalShadowVisibility(WorldPosP.xyz, ViewPos.xyz);
     ShadowVisibility = ShadowVisibilityAndCoverage.x;
-    ShadowCoverage = 0.0;//ShadowVisibilityAndCoverage.y;
+    ShadowCoverage = ShadowVisibilityAndCoverage.y;
 
     imageStore(GetUAVImage2DR32F(PushConst.ShadowMaskOutUAV), ivec2(OverallOffset), vec4(ShadowVisibility, ShadowCoverage, 0.0, 1.0));
 }

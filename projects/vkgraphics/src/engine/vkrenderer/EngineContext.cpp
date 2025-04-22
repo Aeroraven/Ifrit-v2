@@ -51,7 +51,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME };
 
-    bool enableExtension(bool mandatory, const char* extension, const Vec<VkExtensionProperties>& availableExtensions,
+    bool EnableExtension(bool mandatory, const char* extension, const Vec<VkExtensionProperties>& availableExtensions,
         Vec<const char*>& targetExtension)
     {
         for (auto ext : availableExtensions)
@@ -92,7 +92,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         return false;
     }
-    int physicalDeviceRanking(const VkPhysicalDevice& device)
+    int PhysicalDeviceRanking(const VkPhysicalDevice& device, String* name)
     {
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(device, &properties);
@@ -102,9 +102,13 @@ namespace Ifrit::Graphics::VulkanGraphics
             score += 100000;
         }
         score += properties.limits.maxImageDimension2D;
+        if (name)
+        {
+            *name = properties.deviceName;
+        }
         return score;
     }
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT                                                        messageType,
 
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
@@ -128,7 +132,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return VK_FALSE;
     }
     // START CLASS DEFINITION
-    template <typename T> void loadExtFunc(T& extf, const char* name, VkDevice device)
+    template <typename T> void LoadExtFunc(T& extf, const char* name, VkDevice device)
     {
         extf = (T)vkGetDeviceProcAddr(device, name);
         if (!extf)
@@ -141,41 +145,47 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL void                   EngineContext::loadExtensionFunction()
     {
-        loadExtFunc(m_extf.p_vkCmdSetDepthTestEnable, "vkCmdSetDepthTestEnable", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetDepthWriteEnable, "vkCmdSetDepthWriteEnable", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetDepthCompareOp, "vkCmdSetDepthCompareOp", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetDepthBoundsTestEnable, "vkCmdSetDepthBoundsTestEnable", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetStencilTestEnable, "vkCmdSetStencilTestEnable", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetStencilOp, "vkCmdSetStencilOp", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetDepthTestEnable, "vkCmdSetDepthTestEnable", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetDepthWriteEnable, "vkCmdSetDepthWriteEnable", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetDepthCompareOp, "vkCmdSetDepthCompareOp", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetDepthBoundsTestEnable, "vkCmdSetDepthBoundsTestEnable", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetStencilTestEnable, "vkCmdSetStencilTestEnable", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetStencilOp, "vkCmdSetStencilOp", m_device);
 
-        loadExtFunc(m_extf.p_vkCmdSetColorBlendEnableEXT, "vkCmdSetColorBlendEnableEXT", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetColorWriteEnableEXT, "vkCmdSetColorWriteEnableEXT", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetColorWriteMaskEXT, "vkCmdSetColorWriteMaskEXT", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetColorBlendEquationEXT, "vkCmdSetColorBlendEquationEXT", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetLogicOpEXT, "vkCmdSetLogicOpEXT", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetLogicOpEnableEXT, "vkCmdSetLogicOpEnableEXT", m_device);
-        loadExtFunc(m_extf.p_vkCmdSetVertexInputEXT, "vkCmdSetVertexInputEXT", m_device);
-        loadExtFunc(m_extf.p_vkCmdDrawMeshTasksEXT, "vkCmdDrawMeshTasksEXT", m_device);
-        loadExtFunc(m_extf.p_vkCmdDrawMeshTasksIndirectEXT, "vkCmdDrawMeshTasksIndirectEXT", m_device);
-        loadExtFunc(m_extf.p_vkCmdBeginDebugUtilsLabelEXT, "vkCmdBeginDebugUtilsLabelEXT", m_device);
-        loadExtFunc(m_extf.p_vkCmdEndDebugUtilsLabelEXT, "vkCmdEndDebugUtilsLabelEXT", m_device);
-        // loadExtFunc(m_extf.p_vkCmdSetCullModeEXT, "vkCmdSetCullModeEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetColorBlendEnableEXT, "vkCmdSetColorBlendEnableEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetColorWriteEnableEXT, "vkCmdSetColorWriteEnableEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetColorWriteMaskEXT, "vkCmdSetColorWriteMaskEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetColorBlendEquationEXT, "vkCmdSetColorBlendEquationEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetLogicOpEXT, "vkCmdSetLogicOpEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetLogicOpEnableEXT, "vkCmdSetLogicOpEnableEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdSetVertexInputEXT, "vkCmdSetVertexInputEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdDrawMeshTasksEXT, "vkCmdDrawMeshTasksEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdDrawMeshTasksIndirectEXT, "vkCmdDrawMeshTasksIndirectEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdBeginDebugUtilsLabelEXT, "vkCmdBeginDebugUtilsLabelEXT", m_device);
+        LoadExtFunc(m_extf.p_vkCmdEndDebugUtilsLabelEXT, "vkCmdEndDebugUtilsLabelEXT", m_device);
+        // LoadExtFunc(m_extf.p_vkCmdSetCullModeEXT, "vkCmdSetCullModeEXT", m_device);
+
+        if (m_args.m_enableValidationLayer)
+        {
+            LoadExtFunc(m_extf.p_vkSetDebugUtilsObjectNameEXT, "vkSetDebugUtilsObjectNameEXT", m_device);
+            LoadExtFunc(m_extf.p_vkSetDebugUtilsObjectTagEXT, "vkSetDebugUtilsObjectTagEXT", m_device);
+        }
 
         if (m_args.m_enableHardwareRayTracing)
         {
-            loadExtFunc(
+            LoadExtFunc(
                 m_extf.p_vkGetRayTracingShaderGroupHandlesKHR, "vkGetRayTracingShaderGroupHandlesKHR", m_device);
-            loadExtFunc(m_extf.p_vkCreateAccelerationStructureKHR, "vkCreateAccelerationStructureKHR", m_device);
-            loadExtFunc(m_extf.p_vkCmdBuildAccelerationStructuresKHR, "vkCmdBuildAccelerationStructuresKHR", m_device);
-            loadExtFunc(m_extf.p_vkGetAccelerationStructureDeviceAddressKHR,
+            LoadExtFunc(m_extf.p_vkCreateAccelerationStructureKHR, "vkCreateAccelerationStructureKHR", m_device);
+            LoadExtFunc(m_extf.p_vkCmdBuildAccelerationStructuresKHR, "vkCmdBuildAccelerationStructuresKHR", m_device);
+            LoadExtFunc(m_extf.p_vkGetAccelerationStructureDeviceAddressKHR,
                 "vkGetAccelerationStructureDeviceAddressKHR", m_device);
-            loadExtFunc(
+            LoadExtFunc(
                 m_extf.p_vkGetAccelerationStructureBuildSizesKHR, "vkGetAccelerationStructureBuildSizesKHR", m_device);
-            loadExtFunc(m_extf.p_vkCmdTraceRaysKHR, "vkCmdTraceRaysKHR", m_device);
-            loadExtFunc(m_extf.p_vkCreateRayTracingPipelinesKHR, "vkCreateRayTracingPipelinesKHR", m_device);
+            LoadExtFunc(m_extf.p_vkCmdTraceRaysKHR, "vkCmdTraceRaysKHR", m_device);
+            LoadExtFunc(m_extf.p_vkCreateRayTracingPipelinesKHR, "vkCreateRayTracingPipelinesKHR", m_device);
         }
 
-        vkrDebug("Extension functions loaded");
+        iDebug("EngineContext: Extension functions loaded");
     }
     IFRIT_APIDECL
     EngineContext::EngineContext(const Rhi::RhiInitializeArguments& args) : m_args(args) { Init(); }
@@ -216,17 +226,17 @@ namespace Ifrit::Graphics::VulkanGraphics
             const char** extensionsExtra     = m_args.m_extensionGetter(&extensionCountExtra);
             for (u32 i = 0; i < extensionCountExtra; i++)
             {
-                enableExtension(true, extensionsExtra[i], availableExtensions, targetExtensions);
+                EnableExtension(true, extensionsExtra[i], availableExtensions, targetExtensions);
             }
         }
 
         if (m_args.m_enableValidationLayer)
         {
-            enableExtension(true, VK_EXT_DEBUG_UTILS_EXTENSION_NAME, availableExtensions, targetExtensions);
+            EnableExtension(true, VK_EXT_DEBUG_UTILS_EXTENSION_NAME, availableExtensions, targetExtensions);
         }
         for (auto ext : m_instanceExtension)
         {
-            enableExtension(true, ext, availableExtensions, targetExtensions);
+            EnableExtension(true, ext, availableExtensions, targetExtensions);
         }
 
         instanceCI.enabledExtensionCount   = SizeCast<u32>(targetExtensions.size());
@@ -249,7 +259,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         instanceCI.ppEnabledLayerNames = targetLayers.data();
 
         vkrVulkanAssert(vkCreateInstance(&instanceCI, nullptr, &m_instance), "Failed to create Vulkan instance");
-        vkrDebug("Instance created");
+        iDebug("EngineContext: Vulkan instance created");
 
         // Debug Messenger
         if (m_args.m_enableValidationLayer)
@@ -260,7 +270,7 @@ namespace Ifrit::Graphics::VulkanGraphics
                 | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
             debugCI.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
                 | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-            debugCI.pfnUserCallback = debugCallback;
+            debugCI.pfnUserCallback = DebugCallback;
             debugCI.pUserData       = nullptr;
 
             auto func =
@@ -286,13 +296,16 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         VkPhysicalDevice bestDevice = VK_NULL_HANDLE;
         int              bestScore  = 0;
+        String           bestName;
         for (auto device : physicalDevices)
         {
-            int score = physicalDeviceRanking(device);
+            String name;
+            int    score = PhysicalDeviceRanking(device, &name);
             if (score > bestScore)
             {
                 bestScore  = score;
                 bestDevice = device;
+                bestName   = name;
             }
         }
         if (bestDevice == VK_NULL_HANDLE)
@@ -300,7 +313,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             vkrError("No suitable physical device found");
         }
         m_physicalDevice = bestDevice;
-        vkrDebug("Physical device selected");
+        iDebug("EngineContext: Using physical device: {}", bestName);
 
         // Physical Device Propertie
         vkGetPhysicalDeviceProperties(m_physicalDevice, &m_phyDeviceProperties);
@@ -429,19 +442,19 @@ namespace Ifrit::Graphics::VulkanGraphics
             "Failed to enumerate device extensions");
         for (auto extension : m_deviceExtensions)
         {
-            enableExtension(true, extension, availableExtensionsDevice, tarGetDeviceExtensions);
+            EnableExtension(true, extension, availableExtensionsDevice, tarGetDeviceExtensions);
         }
         if (m_args.m_enableHardwareRayTracing)
         {
-            iInfo("Hardware ray tracing enabled");
+            iInfo("EngineContext: Hardware ray tracing enabled");
             for (auto extension : m_deviceExtensionsExtended)
             {
-                enableExtension(true, extension, availableExtensionsDevice, tarGetDeviceExtensions);
+                EnableExtension(true, extension, availableExtensionsDevice, tarGetDeviceExtensions);
             }
         }
         else
         {
-            iInfo("Hardware ray tracing disabled");
+            iInfo("EngineContext: Hardware ray tracing disabled");
         }
 
         deviceCI.enabledExtensionCount   = SizeCast<u32>(tarGetDeviceExtensions.size());
@@ -463,7 +476,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         deviceCI.enabledLayerCount   = SizeCast<u32>(targetLayersDevice.size());
         deviceCI.ppEnabledLayerNames = targetLayersDevice.data();
         vkrVulkanAssert(vkCreateDevice(bestDevice, &deviceCI, nullptr, &m_device), "Failed to create logical device");
-        vkrDebug("Logical device created");
 
         // Retrieve Queues
         for (u32 i = 0; i < m_queueInfo.m_queueFamilies.size(); i++)
@@ -500,9 +512,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         vmaCreateAllocator(&allocatorCI, &m_allocator);
 
         loadExtensionFunction();
-        vkrDebug("Allocator created");
 
-        vkrLog("Engine context initialized");
+        iInfo("EngineContext: Graphics backend initialized");
     }
 
     void EngineContext::Destructor()

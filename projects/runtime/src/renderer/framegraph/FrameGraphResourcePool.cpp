@@ -22,13 +22,15 @@ namespace Ifrit::Runtime
 {
     FrameGraphResourcePool::FrameGraphResourcePool(Graphics::Rhi::RhiBackend* rhi) : m_Rhi(rhi) {}
 
-    IFRIT_APIDECL FrameGraphPoolBufAllocResult FrameGraphResourcePool::CreateBuffer(const FrameGraphBufferDesc& desc)
+    IFRIT_APIDECL FrameGraphPoolBufAllocResult FrameGraphResourcePool::CreateBuffer(
+        const FrameGraphBufferDesc& desc, const String& name)
     {
         auto&                        hset = m_AvailableBuffers[desc];
         FrameGraphPoolBufAllocResult alloc;
+        auto                         debugName = "RDGManaged." + name;
         if (hset.empty())
         {
-            auto buffer                = m_Rhi->CreateBuffer("FGBuffer", desc.m_Size, desc.m_Usage, false, true);
+            auto buffer                = m_Rhi->CreateBuffer(debugName, desc.m_Size, desc.m_Usage, false, true);
             auto id                    = m_BufferPool.AllocateIndexed();
             auto ptr                   = m_BufferPool.GetPtrFromIndex(id);
             ptr->m_Buffer              = buffer;
@@ -51,19 +53,22 @@ namespace Ifrit::Runtime
 
             alloc.m_PooledResId = id;
             alloc.m_Buffer      = ptr->m_Buffer.get();
+            ptr->m_Buffer->SetDebugName(debugName);
         }
         return alloc;
     }
 
-    IFRIT_APIDECL FrameGraphPoolTexAllocResult FrameGraphResourcePool::CreateTexture(const FrameGraphTextureDesc& desc)
+    IFRIT_APIDECL FrameGraphPoolTexAllocResult FrameGraphResourcePool::CreateTexture(
+        const FrameGraphTextureDesc& desc, const String& name)
     {
         auto&                        hset = m_AvailableTextures[desc];
         FrameGraphPoolTexAllocResult alloc;
+        auto                         debugName = "RDGManaged." + name;
         if (hset.empty())
         {
             auto isStorage = (desc.m_Usage & Graphics::Rhi::RhiImgUsage_UnorderedAccess) != 0;
             auto texture   = m_Rhi->CreateTexture3D(
-                "FGTexture", desc.m_Width, desc.m_Height, desc.m_Depth, desc.m_Format, desc.m_Usage, isStorage);
+                debugName, desc.m_Width, desc.m_Height, desc.m_Depth, desc.m_Format, desc.m_Usage, isStorage);
 
             auto id                    = m_TexturePool.AllocateIndexed();
             auto ptr                   = m_TexturePool.GetPtrFromIndex(id);
@@ -88,6 +93,8 @@ namespace Ifrit::Runtime
 
             alloc.m_PooledResId = id;
             alloc.m_Texture     = ptr->m_Texture.get();
+
+            ptr->m_Texture->SetDebugName(debugName);
         }
         return alloc;
     }

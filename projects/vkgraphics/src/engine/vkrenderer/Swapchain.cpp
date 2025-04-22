@@ -96,7 +96,7 @@ namespace Ifrit::Graphics::VulkanGraphics
                 break;
             }
         }
-        vkrDebug("Queue specified");
+        // vkrDebug("Queue specified");
 
         // Swapchain support details
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
@@ -251,7 +251,7 @@ namespace Ifrit::Graphics::VulkanGraphics
                 "Failed to create semaphore");
         }
 
-        vkrLog("Swapchain created");
+        iDebug("Swapchain: Swapchain created");
     }
 
     IFRIT_APIDECL void Swapchain::Destructor()

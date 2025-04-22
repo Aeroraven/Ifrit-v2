@@ -81,6 +81,35 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL Rhi::RhiDeviceAddr SingleBuffer::GetDeviceAddress() const { return m_deviceAddress; }
 
+    IFRIT_APIDECL void               SingleBuffer::SetDebugName(const String& name)
+    {
+        if (name == RhiDeviceResource::GetDebugName())
+        {
+            return;
+        }
+        RhiDeviceResource::SetDebugName(name);
+        auto inDebugMode = m_context->IsDebugMode();
+        if (inDebugMode && name.size())
+        {
+            auto                          newName = "IfBuffer." + name;
+            VkDebugUtilsObjectNameInfoEXT nameInfo{};
+            nameInfo.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            nameInfo.objectType   = VK_OBJECT_TYPE_BUFFER;
+            nameInfo.objectHandle = (u64)m_buffer;
+            nameInfo.pObjectName  = newName.c_str();
+
+            auto extFuncs = m_context->GetExtensionFunction();
+            if (extFuncs.p_vkSetDebugUtilsObjectNameEXT)
+            {
+                extFuncs.p_vkSetDebugUtilsObjectNameEXT(m_context->GetDevice(), &nameInfo);
+            }
+            else
+            {
+                vkrError("Failed to set debug name for buffer, extension not loaded");
+            }
+        }
+    }
+
     // Class: MultiBuffer
     IFRIT_APIDECL MultiBuffer::MultiBuffer(EngineContext* ctx, const BufferCreateInfo& ci, u32 numCopies)
         : Rhi::RhiMultiBuffer(ctx->GetDeleteQueue()), m_context(ctx), m_createInfo(ci)
@@ -165,6 +194,37 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
         }
     }
+
+    IFRIT_APIDECL void SingleDeviceImage::SetDebugName(const String& name)
+    {
+        if (name == RhiDeviceResource::GetDebugName())
+        {
+            return;
+        }
+        auto inDebugMode = m_context->IsDebugMode();
+        if (inDebugMode && name.size())
+        {
+            auto                          newName = "IfImage." + name;
+
+            VkDebugUtilsObjectNameInfoEXT nameInfo{};
+            nameInfo.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            nameInfo.objectType   = VK_OBJECT_TYPE_IMAGE;
+            nameInfo.objectHandle = (u64)m_image;
+            nameInfo.pObjectName  = newName.c_str();
+
+            auto extFuncs = m_context->GetExtensionFunction();
+            if (extFuncs.p_vkSetDebugUtilsObjectNameEXT)
+            {
+                extFuncs.p_vkSetDebugUtilsObjectNameEXT(m_context->GetDevice(), &nameInfo);
+            }
+            else
+            {
+                vkrError("Failed to set debug name for image, extension not loaded");
+            }
+        }
+        RhiDeviceResource::SetDebugName(name);
+    }
+
     IFRIT_APIDECL SingleDeviceImage::SingleDeviceImage(EngineContext* ctx, const ImageCreateInfo& ci)
         : Rhi::RhiTexture(ctx->GetDeleteQueue())
     {
@@ -315,9 +375,92 @@ namespace Ifrit::Graphics::VulkanGraphics
         samplerCI.maxLod                  = ci.maxLod;
 
         vkrVulkanAssert(vkCreateSampler(ctx->GetDevice(), &samplerCI, nullptr, &m_sampler), "Failed to create sampler");
+
+        // make a default name
+        String name = "IfSampler.";
+
+        // wrap mode
+        if (samplerCI.addressModeU == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER)
+        {
+            name += "ClampToBorder.";
+        }
+        else if (samplerCI.addressModeU == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
+        {
+            name += "ClampToEdge.";
+        }
+        else if (samplerCI.addressModeU == VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT)
+        {
+            name += "MirroredRepeat.";
+        }
+        else if (samplerCI.addressModeU == VK_SAMPLER_ADDRESS_MODE_REPEAT)
+        {
+            name += "Repeat.";
+        }
+        else
+        {
+            name += "Unknown.";
+        }
+
+        // mag filter
+        if (samplerCI.magFilter == VK_FILTER_NEAREST)
+        {
+            name += "MagNearest.";
+        }
+        else if (samplerCI.magFilter == VK_FILTER_LINEAR)
+        {
+            name += "MagLinear.";
+        }
+        else
+        {
+            name += "Unknown.";
+        }
+
+        // min filter
+        if (samplerCI.minFilter == VK_FILTER_NEAREST)
+        {
+            name += "MinNearest.";
+        }
+        else if (samplerCI.minFilter == VK_FILTER_LINEAR)
+        {
+            name += "MinLinear.";
+        }
+        else
+        {
+            name += "Unknown.";
+        }
+
+        SetDebugName(name);
     }
 
-    IFRIT_APIDECL Sampler::~Sampler() { vkDestroySampler(m_context->GetDevice(), m_sampler, nullptr); }
+    IFRIT_APIDECL      Sampler::~Sampler() { vkDestroySampler(m_context->GetDevice(), m_sampler, nullptr); }
+
+    IFRIT_APIDECL void Sampler::SetDebugName(const String& name)
+    {
+        if (name == RhiDeviceResource::GetDebugName())
+        {
+            return;
+        }
+        auto inDebugMode = m_context->IsDebugMode();
+        if (inDebugMode && name.size())
+        {
+            VkDebugUtilsObjectNameInfoEXT nameInfo{};
+            nameInfo.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            nameInfo.objectType   = VK_OBJECT_TYPE_SAMPLER;
+            nameInfo.objectHandle = (u64)m_sampler;
+            nameInfo.pObjectName  = name.c_str();
+
+            auto extFuncs = m_context->GetExtensionFunction();
+            if (extFuncs.p_vkSetDebugUtilsObjectNameEXT)
+            {
+                extFuncs.p_vkSetDebugUtilsObjectNameEXT(m_context->GetDevice(), &nameInfo);
+            }
+            else
+            {
+                vkrError("Failed to set debug name for sampler, extension not loaded");
+            }
+        }
+        RhiDeviceResource::SetDebugName(name);
+    }
 
     // Class: ResourceManager
     IFRIT_APIDECL std::shared_ptr<MultiBuffer> ResourceManager::CreateMultipleBuffer(
