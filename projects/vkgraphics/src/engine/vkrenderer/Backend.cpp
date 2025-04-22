@@ -568,7 +568,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
         bool isMainLayer = (subResource.mipCount == 1) && (subResource.layerCount == 1) && (subResource.arrayLayer == 0)
             && (subResource.mipLevel == 0);
-        if (texture->GetDescId() && isMainLayer)
+        if (texture->GetDescId(true) != ~0u && isMainLayer)
         {
             return texture->GetDescId();
         }
@@ -590,19 +590,22 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL Rhi::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(Rhi::RhiBuffer* buffer)
     {
         // vulkan seems to not support buffer SRV, so we just return UAV
-        if (buffer->GetDescId())
-        {
-            return buffer->GetDescId();
-        }
         auto dm  = m_implDetails->m_descriptorManager.get();
         auto buf = CheckedCast<SingleBuffer>(buffer);
         auto p   = dm->RegisterStorageBuffer(buf);
-        buffer->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageBuffer, p));
+        return p;
+    }
+    IFRIT_APIDECL Rhi::RhiCBVDesc RhiVulkanBackend::GetCBVDescriptor(Rhi::RhiBuffer* buffer)
+    {
+
+        auto dm  = m_implDetails->m_descriptorManager.get();
+        auto buf = CheckedCast<SingleBuffer>(buffer);
+        auto p   = dm->RegisterUniformBuffer(buf);
         return p;
     }
     IFRIT_APIDECL Rhi::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(Rhi::RhiBuffer* buffer)
     {
-        if (buffer->GetDescId())
+        if (buffer->GetDescId(true) != ~0u)
         {
             return buffer->GetDescId();
         }

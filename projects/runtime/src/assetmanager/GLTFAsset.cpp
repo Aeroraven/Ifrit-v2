@@ -375,40 +375,45 @@ namespace Ifrit::Runtime
                             }
                         }
                     }
-                    auto normalTexIndexTex = normalData.index;
-                    auto baseColorIndex    = rawGLTFData.textures[baseColorIndexTex].source;
-                    auto normalTexIndex    = rawGLTFData.textures[normalTexIndexTex].source;
-                    auto baseColorURI      = rawGLTFData.images[baseColorIndex].uri;
-                    auto normalTexURI      = rawGLTFData.images[normalTexIndex].uri;
 
-                    auto texPathBase = gltfDir / baseColorURI;
-                    auto texBase     = m_manager->requestAsset<Asset>(texPathBase);
-                    auto material    = std::make_shared<SyaroDefaultGBufEmitter>(m_manager->GetApplication());
+                    auto material = std::make_shared<SyaroDefaultGBufEmitter>(m_manager->GetApplication());
 
-                    auto texCastedBase = std::dynamic_pointer_cast<TextureAsset>(texBase);
-                    if (!texCastedBase)
+                    if (rawGLTFData.textures.size() > 0)
                     {
-                        iWarn("GLTFAsset: invalid texture asset");
-                    }
-                    else
-                    {
-                        auto albedoId = rhi->RegisterCombinedImageSampler(
-                            texCastedBase->GetTexture().get(), m_internalData->defaultSampler.get());
-                        material->SetAlbedoId(albedoId->GetActiveId());
-                    }
+                        auto normalTexIndexTex = normalData.index;
+                        auto baseColorIndex    = rawGLTFData.textures[baseColorIndexTex].source;
+                        auto normalTexIndex    = rawGLTFData.textures[normalTexIndexTex].source;
+                        auto baseColorURI      = rawGLTFData.images[baseColorIndex].uri;
+                        auto normalTexURI      = rawGLTFData.images[normalTexIndex].uri;
 
-                    auto texPathNormal   = gltfDir / normalTexURI;
-                    auto texNormal       = m_manager->requestAsset<Asset>(texPathNormal);
-                    auto texCastedNormal = std::dynamic_pointer_cast<TextureAsset>(texNormal);
-                    if (!texCastedNormal)
-                    {
-                        iWarn("GLTFAsset: invalid texture asset");
-                    }
-                    else
-                    {
-                        auto normalId = rhi->RegisterCombinedImageSampler(
-                            texCastedNormal->GetTexture().get(), m_internalData->defaultSampler.get());
-                        material->SetNormalMapId(normalId->GetActiveId());
+                        auto texPathBase = gltfDir / baseColorURI;
+                        auto texBase     = m_manager->requestAsset<Asset>(texPathBase);
+
+                        auto texCastedBase = std::dynamic_pointer_cast<TextureAsset>(texBase);
+                        if (!texCastedBase)
+                        {
+                            iWarn("GLTFAsset: invalid texture asset");
+                        }
+                        else
+                        {
+                            auto albedoId = rhi->RegisterCombinedImageSampler(
+                                texCastedBase->GetTexture().get(), m_internalData->defaultSampler.get());
+                            material->SetAlbedoId(albedoId->GetActiveId());
+                        }
+
+                        auto texPathNormal   = gltfDir / normalTexURI;
+                        auto texNormal       = m_manager->requestAsset<Asset>(texPathNormal);
+                        auto texCastedNormal = std::dynamic_pointer_cast<TextureAsset>(texNormal);
+                        if (!texCastedNormal)
+                        {
+                            iWarn("GLTFAsset: invalid texture asset");
+                        }
+                        else
+                        {
+                            auto normalId = rhi->RegisterCombinedImageSampler(
+                                texCastedNormal->GetTexture().get(), m_internalData->defaultSampler.get());
+                            material->SetNormalMapId(normalId->GetActiveId());
+                        }
                     }
 
                     auto meshRenderer = prefab->m_prefab->AddComponent<MeshRenderer>();

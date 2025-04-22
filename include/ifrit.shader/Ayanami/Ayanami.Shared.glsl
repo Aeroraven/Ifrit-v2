@@ -153,17 +153,18 @@ float AyaShared_RayMarchGlobalDF(vec3 RayOrigin, vec3 RayDir, uint GlobalDFId, v
             SdfVal = SdfVal - SdfExpansion;
             if(SdfVal < AcceptThreshold){
                 HitTime = t;
+                if(HitTime == -1.0){
+                    HitTime = SdfVal;
+                }else{
+                    HitTime = min(HitTime, SdfVal);
+                }
                 break;
             }
             t += max(1e-2,SdfVal * 0.5);
             
-            if(HitTime == -1.0){
-                HitTime = SdfVal;
-            }else{
-                HitTime = min(HitTime, SdfVal);
-            }
+            
             if(t>=tMax){
-                //break;
+                break;
             }
         }
     }

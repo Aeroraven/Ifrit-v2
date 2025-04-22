@@ -67,10 +67,11 @@ vec3 ifrit_ConcentricOctahedralTransform(vec2 UV){
     float r = 1.0 - abs(d);
 
     float z = (d > 0.0 ? 1.0 : -1.0) * (1.0 - r * r);
-    float theta = PI / 4.0 * ((abs(v) - abs(u)) / (r + 1.0));
+    float theta = PI / 4.0 * ((abs(v) - abs(u)) / r+1.0);
     float sinT = sin(theta) * (v >= 0.0 ? 1.0 : -1.0);
     float cosT = cos(theta) * (u >= 0.0 ? 1.0 : -1.0);
     float x = cosT * r * sqrt(2.0 - z * z);
     float y = sinT * r * sqrt(2.0 - z * z);
-    return vec3(x, y, z);
+    return normalize(vec3(x, y, z));
+    //return normalize(vec3(-0.3,1.0,-0.3));
 }

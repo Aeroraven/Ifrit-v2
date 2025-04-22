@@ -69,6 +69,11 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE(ISTAya.ScreenProbeGDFTraceCS, "Ayanami/Ayanami.ScreenProbe.GDFTrace");
         REG_COMPUTE(ISTAya.ScreenProbeSHIntegrateCS, "Ayanami/Ayanami.ScreenProbe.IntegrateSH");
         REG_COMPUTE(ISTAya.ScreenProbePixelGatherCS, "Ayanami/Ayanami.ScreenProbe.PixelGather");
+        REG_COMPUTE(ISTAya.ScreenProbeBorderFixCS, "Ayanami/Ayanami.ScreenProbe.OctMapBorderFix");
+
+        REG_FRAGMENT(ISTAya.DeferredShadowFS, "Ayanami/Ayanami.FinalLighting.DirectShadow");
+        REG_FRAGMENT(ISTAya.DeferredLightingFS, "Ayanami/Ayanami.FinalLighting.DirectLighting");
+        REG_FRAGMENT(ISTAya.DeferredExpMixFS, "Ayanami/Ayanami.FinalLighting.ExperimentalMix");
 
         REG_COMPUTE(ISTAya.DbgSampleObjectGridsCS, "Ayanami/Ayanami.Debug.SampleObjectGrids");
         REG_MESH(ISTAya.DbgVisObjGridsMS, "Ayanami/Ayanami.Debug.VisObjectGrids");

@@ -60,11 +60,11 @@ layout(push_constant) uniform UPushConst{
 }PushConst;
 
 const float kRayProceedMax = 1000.0;
-const float kRayProceedAdvance = 0.25;
-const uint kMaxTraceSteps = 40;
-const float kMDFHitThreshold = 0.08;
-const int kGridSearchRange = 2;
-const bool kGridCulling = true;
+const float kRayProceedAdvance = 3e-2;
+const uint kMaxTraceSteps = 60;
+const float kMDFHitThreshold = 0.01;
+const int kGridSearchRange = 1;
+const bool kGridCulling = false;
 
 struct TraceRayProposal{
     uvec2 m_TraceRayCoord;
@@ -144,6 +144,7 @@ vec3 MeshDFGridTraceSingleMDF(vec3 RayDirWS, vec3 RayOriginWS, uint MeshDFId, fl
     MeshDFMeta MDFMeta = AyaShared_GetMeshDFData(PushConst.m_MeshDFDescListId, MeshDFId);
     mat4 WorldToLocal = AyaShared_GetWorldToLocalMesh(PushConst.m_MeshDFDescListId, MeshDFId);
     vec3 MeshDFScale = AyaShared_GetMeshDFScale(PushConst.m_MeshDFDescListId, MeshDFId);
+    vec2 MeshDFQuantScale = AyaShared_GetSdfQuantScale(MDFMeta);
 
     vec3 RayOriginLS = (WorldToLocal * vec4(RayOriginWS, 1.0)).xyz;
     vec3 RayProceedLS = (WorldToLocal * vec4((RayOriginWS + RayDirWS), 1.0)).xyz;
@@ -166,13 +167,13 @@ vec3 MeshDFGridTraceSingleMDF(vec3 RayDirWS, vec3 RayOriginWS, uint MeshDFId, fl
     if(IsHit){
         for(int i=0;i<kMaxTraceSteps;i++){
             vec3 UVW = (HitPoint - BboxLB) / (BboxRT - BboxLB);
-            float Sdf = texture(GetSampler3D(SdfId), UVW).x;
+            float Sdf = AyaShared_SampleMeshDF(SdfId, UVW, MeshDFQuantScale);
             float AbsSdf = abs(Sdf);
             if(Sdf<kMDFHitThreshold){
                 IsFinalHit = true;
                 break;
             }
-            T += max(1e-4, AbsSdf * 0.5);
+            T += max(3e-4, AbsSdf * 0.2);
             if(T >= TMax){
                 break;
             }
@@ -299,13 +300,23 @@ void main(){
         uvec2 WritingSlot = GetProbeWritingSlot(TraceRay.m_ProbeId, ProbeCntPerX, TraceRay.m_TraceRayCoord);
 
         vec4 HitResult = MeshDFGridTrace(SampledRay, ProbeLocWS);
-        if(HitResult.w < 0.5){
-            // mdf hit miss
-            uint LocalFailureRayId = atomicAdd(sFailureRayCount, 1);
-            sFailureRayList[LocalFailureRayId] = TraceRayPackedData;
+
+        if(!kVisTracingHierarchy){
+            if(HitResult.w < 0.5){
+                // mdf hit miss
+                uint LocalFailureRayId = atomicAdd(sFailureRayCount, 1);
+                sFailureRayList[LocalFailureRayId] = TraceRayPackedData;
+            }
         }else{
-            imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0,1.0,0.0, 1.0));
+            if(HitResult.w < 0.5){
+                // mdf hit miss
+                uint LocalFailureRayId = atomicAdd(sFailureRayCount, 1);
+                sFailureRayList[LocalFailureRayId] = TraceRayPackedData;
+            }else{
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0,1.0,0.0, 1.0));
+            }
         }
+        
     }
     barrier();
 

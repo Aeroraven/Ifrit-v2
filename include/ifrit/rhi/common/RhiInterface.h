@@ -138,6 +138,8 @@ namespace Ifrit::Graphics::Rhi
         virtual RhiSRVDesc                 GetSRVDescriptor(RhiBuffer* buffer)                                    = 0;
         virtual RhiUAVDesc                 GetUAVDescriptor(RhiBuffer* buffer)                                    = 0;
 
+        virtual RhiCBVDesc                 GetCBVDescriptor(RhiBuffer* buffer) = 0;
+
         // Render target
         virtual Ref<RhiColorAttachment>    CreateRenderTarget(RhiTexture* renderTarget, RhiClearValue clearValue,
                RhiRenderTargetLoadOp loadOp, u32 mip, u32 arrLayer) = 0;

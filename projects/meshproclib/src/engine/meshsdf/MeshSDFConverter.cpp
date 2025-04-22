@@ -542,9 +542,9 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             u32 worldSizeY = data.bboxMax.y - data.bboxMin.y;
             u32 worldSizeZ = data.bboxMax.z - data.bboxMin.z;
 
-            expectedX = std::max(8u, std::min(64u, u32(std::round(worldSizeX * 16.0f / 25.0f))));
-            expectedY = std::max(8u, std::min(64u, u32(std::round(worldSizeY * 16.0f / 25.0f))));
-            expectedZ = std::max(8u, std::min(64u, u32(std::round(worldSizeZ * 16.0f / 25.0f))));
+            expectedX = std::max(16u, std::min(64u, u32(std::round(worldSizeX * 16.0f / 25.0f))));
+            expectedY = std::max(16u, std::min(64u, u32(std::round(worldSizeY * 16.0f / 25.0f))));
+            expectedZ = std::max(16u, std::min(64u, u32(std::round(worldSizeZ * 16.0f / 25.0f))));
 
             // align to power o 4
             expectedX = (expectedX + 3) & ~3u;
@@ -563,8 +563,8 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         data.bboxMax += bboxDilate;
 
         auto bboxCenter = (data.bboxMin + data.bboxMax) * 0.5f;
-        auto bboxMinLim = bboxCenter - 1.0f;
-        auto bboxMaxLim = bboxCenter + 1.0f;
+        auto bboxMinLim = bboxCenter - 0.25f;
+        auto bboxMaxLim = bboxCenter - 0.25f;
 
         data.bboxMin = Min(data.bboxMin, bboxMinLim);
         data.bboxMax = Max(data.bboxMax, bboxMaxLim);

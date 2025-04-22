@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
+#include "Ayanami/Ayanami.ScreenProbe.Shared.glsl"
 
 // TODO: it's expected to make probe process per TG. here the simplified solution is used.
 // That is, a probe per thread
@@ -81,8 +82,8 @@ uvec2 GetAdaptiveProbeCoord(uint AdaptiveProbeId){
 uvec2 GetProbeWritingSlot(uint ProbeId, uint ProbeCntPerX, uvec2 TraceRayCoord){
     uint ProbeX = ProbeId % ProbeCntPerX;
     uint ProbeY = ProbeId / ProbeCntPerX;
-    uint ProbeLocX = ProbeX * kAyanami_ScreenProbeProbeHemiRes;
-    uint ProbeLocY = ProbeY * kAyanami_ScreenProbeProbeHemiRes;
+    uint ProbeLocX = ProbeX * (kAyanami_ScreenProbeProbeHemiRes+2);
+    uint ProbeLocY = ProbeY * (kAyanami_ScreenProbeProbeHemiRes+2);
     uvec2 ProbeLoc = uvec2(ProbeLocX, ProbeLocY);
     uvec2 WritingSlot = ProbeLoc + TraceRayCoord;
     return WritingSlot; 
@@ -133,13 +134,10 @@ void main(){
     for(uint i=0;i<kAyanami_ScreenProbeProbeHemiRes;i++){
         for(uint j=0;j<kAyanami_ScreenProbeProbeHemiRes;j++){
             uvec2 TraceRayCoord = uvec2(i,j);
-            vec2 TraceRayUV = (vec2(TraceRayCoord)+PushConst.m_RayJitter) / vec2(kAyanami_ScreenProbeProbeHemiRes);
-            uvec2 WritingSlot = GetProbeWritingSlot(ProbeId, ProbeCntPerX, TraceRayCoord);
 
-            vec4 SampledRayAndPDF = ifrit_SampleUniformSphereWithPDF(TraceRayUV);
-            vec3 SampledRay = SampledRayAndPDF.xyz;
-            float SampledRayPDF = SampledRayAndPDF.w;
-
+            uvec2 WritingSlot = GetProbeWritingSlot(ProbeId, ProbeCntPerX, TraceRayCoord+uvec2(1,1));
+            
+            vec3 SampledRay =  AyaShared_GetScreenProbeTraceCoord(TraceRayCoord,PushConst.m_RayJitter);
             vec3 Radiance = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot)).xyz;
 
             MThreeBandSH_RGB RayBasisRGB = ifrit_SHBasis3EncodeRGB(SampledRay);

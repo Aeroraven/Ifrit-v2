@@ -42,7 +42,7 @@ namespace Ifrit::Math
         f32 r = 1.0f - std::abs(d);
 
         f32 z     = ((d > 0.0f) ? 1.0f : -1.0f) * (1.0f - r * r);
-        f32 theta = PI / 4.0f * ((abs(v) - abs(u)) / (r + 1.0f));
+        f32 theta = PI / 4.0f * ((abs(v) - abs(u)) / r + 1.0f);
         f32 sinT  = std::sin(theta) * ((v >= 0.0f) ? 1.0f : -1.0f);
         f32 cosT  = std::cos(theta) * ((u >= 0.0f) ? 1.0f : -1.0f);
         f32 x     = cosT * r * std::sqrt(2.0f - z * z);

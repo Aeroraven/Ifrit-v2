@@ -88,6 +88,12 @@ float ifrit_signedDistToPlane(vec4 plane, vec4 point){
     return dot(plane.xyz,point.xyz) + plane.w;
 }
 
+float ifrit_PerspectiveLerpVS(float z0, float z1, float t){
+  float numo = z0*z1;
+  float deno = z1 + (z0-z1)*t; 
+  return numo/deno;
+}
+
 
 float ifrit_perspectiveLerp(float v0, float v1, float z0, float z1, float t){
   float lp = (1.0/z0 + (1.0/z1 - 1.0/z0) * t);

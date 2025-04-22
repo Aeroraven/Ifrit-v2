@@ -69,10 +69,12 @@ namespace Ifrit::Graphics::Rhi
         }
         IF_FORCEINLINE virtual void MarkForDelete() { m_deleteQueue->AddResourceToDeleteQueue(this); }
         IF_FORCEINLINE virtual void SetDescriptorHandle(const RhiDescriptorHandle& handle) { m_descHandle = handle; }
-        IF_FORCEINLINE virtual u32  GetDescId() const
+        IF_FORCEINLINE virtual u32  GetDescId(bool allowInvalid = false) const
         {
             if (m_descHandle.GetType() == RhiDescriptorHeapType::Invalid)
             {
+                if (allowInvalid)
+                    return ~0u;
                 iError("Invalid descriptor handle");
                 std::abort();
                 return ~0u;

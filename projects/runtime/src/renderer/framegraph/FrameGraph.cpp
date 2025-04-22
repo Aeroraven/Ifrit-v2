@@ -378,6 +378,26 @@ namespace Ifrit::Runtime
         return 0;
     }
 
+    Graphics::Rhi::RhiCBVDesc FrameGraphBuilder::GetCBV(const ResourceNode& res) const
+    {
+        if (res.isImported)
+        {
+            if (res.type == FrameGraphResourceType::ResourceBuffer)
+            {
+                return m_Rhi->GetCBVDescriptor(res.importedBuffer);
+            }
+        }
+        if (res.type == FrameGraphResourceType::ResourceBuffer)
+        {
+            iAssertion(res.selfBuffer,
+                "FrameGraphBuilder: GetCBV() called on buffer resource that is not created. Lifetime is corrupted.");
+            return m_Rhi->GetCBVDescriptor(res.selfBuffer);
+        }
+        iError("FrameGraphBuilder: GetCBV() called on resource that is not a buffer.");
+        std::abort();
+        return 0;
+    }
+
     // Frame Graph compiler
 
     Graphics::Rhi::RhiResourceState GetInputResourceState(FrameGraphPassType passType, FrameGraphResourceType resType)

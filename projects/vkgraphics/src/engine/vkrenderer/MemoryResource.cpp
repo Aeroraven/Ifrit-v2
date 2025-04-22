@@ -91,6 +91,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto bufferRef = MakeCountRef<Rhi::RhiBuffer>(bufferPtr);
             m_buffersOwning.push_back(bufferRef);
             m_buffers.push_back(bufferPtr);
+            bufferPtr->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::Invalid, 0));
         }
     }
 

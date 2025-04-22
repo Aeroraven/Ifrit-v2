@@ -343,6 +343,7 @@ namespace Ifrit::Runtime
     public:
         virtual Graphics::Rhi::RhiUAVDesc GetUAV(const ResourceNode& res) const = 0;
         virtual Graphics::Rhi::RhiSRVDesc GetSRV(const ResourceNode& res) const = 0;
+        virtual Graphics::Rhi::RhiCBVDesc GetCBV(const ResourceNode& res) const = 0;
     };
 
     class IFRIT_APIDECL FrameGraphBuilder : public IFrameGraphDescRegistry, public NonCopyable
@@ -382,6 +383,7 @@ namespace Ifrit::Runtime
 
         Graphics::Rhi::RhiUAVDesc         GetUAV(const ResourceNode& res) const override;
         Graphics::Rhi::RhiSRVDesc         GetSRV(const ResourceNode& res) const override;
+        Graphics::Rhi::RhiCBVDesc         GetCBV(const ResourceNode& res) const override;
 
         inline Graphics::Rhi::RhiBackend* GetRhi() const { return m_Rhi; }
         inline ShaderRegistry*            GetShaderRegistry() const { return m_ShaderRegistry; }

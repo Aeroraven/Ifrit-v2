@@ -26,8 +26,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiDFShadowing.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
-#include "ifrit/runtime/renderer/ayanami//AyanamiDebugger.h"
+#include "ifrit/runtime/renderer/ayanami/AyanamiDebugger.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiScreenProbeProc.h"
+#include "ifrit/runtime/renderer/ayanami/AyanamiDeferredShading.h"
 
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::Runtime::FrameGraphUtils;
@@ -51,11 +52,12 @@ namespace Ifrit::Runtime
         FrameGraphCompiler                      m_FgCompiler;
         Uref<FrameGraphExecutor>                m_FgExecutor;
         Uref<AyanamiSceneAggregator>            m_SceneAggregator;
-        Uref<AyanamiTrivialSurfaceCacheManager> m_SurfaceCache = nullptr;
-        Uref<AyanamiDistanceFieldLighting>      m_DFLighting   = nullptr;
-        Uref<AyanamiDebugger>                   m_Debugger     = nullptr;
-        Uref<AyanamiScreenProbeProcessor>       m_ScreenProbe  = nullptr;
-        Uref<SinglePassHiZPass>                 m_SpHiZ        = nullptr;
+        Uref<AyanamiTrivialSurfaceCacheManager> m_SurfaceCache    = nullptr;
+        Uref<AyanamiDistanceFieldLighting>      m_DFLighting      = nullptr;
+        Uref<AyanamiDebugger>                   m_Debugger        = nullptr;
+        Uref<AyanamiScreenProbeProcessor>       m_ScreenProbe     = nullptr;
+        Uref<SinglePassHiZPass>                 m_SpHiZ           = nullptr;
+        Uref<AyanamiDeferredShading>            m_DeferredShading = nullptr;
 
         bool                                    m_Inited     = false;
         bool                                    m_DbgShowMDF = false;
@@ -91,21 +93,22 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void AyanamiRenderer::InitRenderer()
     {
-        m_resources                 = new AyanamiRendererResources();
-        m_resources->m_ResourcePool = std::make_shared<FrameGraphResourcePool>(m_app->GetRhi());
-        m_resources->m_SceneAggregator =
+        m_Resources                 = new AyanamiRendererResources();
+        m_Resources->m_ResourcePool = std::make_shared<FrameGraphResourcePool>(m_app->GetRhi());
+        m_Resources->m_SceneAggregator =
             std::make_unique<AyanamiSceneAggregator>(m_app->GetRhi(), m_app->GetSharedRenderResource());
-        m_resources->m_SurfaceCache = std::make_unique<AyanamiTrivialSurfaceCacheManager>(m_selfRenderConfig, m_app);
-        m_resources->m_DFLighting   = std::make_unique<AyanamiDistanceFieldLighting>(m_app->GetRhi());
-        m_resources->m_FgExecutor   = std::make_unique<FrameGraphExecutor>(m_app->GetRhi());
-        m_resources->m_Debugger     = std::make_unique<AyanamiDebugger>(m_app->GetRhi());
-        m_resources->m_ScreenProbe  = std::make_unique<AyanamiScreenProbeProcessor>(m_app->GetRhi());
-        m_resources->m_SpHiZ        = std::make_unique<SinglePassHiZPass>(m_app);
+        m_Resources->m_SurfaceCache    = std::make_unique<AyanamiTrivialSurfaceCacheManager>(m_SelfRenderConfig, m_app);
+        m_Resources->m_DFLighting      = std::make_unique<AyanamiDistanceFieldLighting>(m_app->GetRhi());
+        m_Resources->m_FgExecutor      = std::make_unique<FrameGraphExecutor>(m_app->GetRhi());
+        m_Resources->m_Debugger        = std::make_unique<AyanamiDebugger>(m_app->GetRhi());
+        m_Resources->m_ScreenProbe     = std::make_unique<AyanamiScreenProbeProcessor>(m_app->GetRhi());
+        m_Resources->m_SpHiZ           = std::make_unique<SinglePassHiZPass>(m_app);
+        m_Resources->m_DeferredShading = std::make_unique<AyanamiDeferredShading>(m_app->GetRhi());
     }
     IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer()
     {
-        if (m_resources)
-            delete m_resources;
+        if (m_Resources)
+            delete m_Resources;
     }
 
     IFRIT_APIDECL void AyanamiRenderer::PrepareResources(RenderTargets* renderTargets, const RendererConfig& config) {}
@@ -114,7 +117,7 @@ namespace Ifrit::Runtime
         Scene* scene, PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
         cmd->BeginScope("Ayanami: Execute Render Graph");
-        FrameGraphBuilder builder(m_app->GetShaderRegistry(), m_app->GetRhi(), m_resources->m_ResourcePool.get());
+        FrameGraphBuilder builder(m_app->GetShaderRegistry(), m_app->GetRhi(), m_Resources->m_ResourcePool.get());
         builder.SetResourceInitState(FrameGraphResourceInitState::Uninitialized);
 
         auto rtWidth  = renderTargets->GetRenderArea().width;
@@ -125,10 +128,11 @@ namespace Ifrit::Runtime
             iWarn("Just here to make clang-format happy");
 
         // Init
-        m_resources->m_SurfaceCache->InitContext(builder);
-        m_resources->m_DFLighting->InitContext(builder, 64);
-        m_globalDF->InitContext(builder);
-        m_resources->m_ScreenProbe->InitContext(builder, 2048, 2048, 0.5f);
+        m_Resources->m_SurfaceCache->InitContext(builder);
+        m_Resources->m_DFLighting->InitContext(builder, 64);
+        m_GlobalDF->InitContext(builder);
+        m_Resources->m_ScreenProbe->InitContext(builder, 2048, 2048, 0.5f);
+        m_Resources->m_DeferredShading->InitContext(builder, rtWidth, rtHeight);
 
         // Import resources
         auto& resRenderTargets =
@@ -138,10 +142,13 @@ namespace Ifrit::Runtime
             builder.ImportTexture("Ayanami.GBufferDepth", perframe.m_views[0].m_visibilityDepth_Combined.get());
         auto& resGAlbedo =
             builder.ImportTexture("Ayanami.GBufferAlbedo", perframe.m_gbuffer.m_albedo_materialFlags.get());
-        auto& resGlobalDFGen      = *m_globalDF->GetClipmapVolume(0);
-        auto& resGlobalObjectGrid = *m_globalDF->GetObjectGridVolume(0);
+        auto& resGlobalDFGen      = *m_GlobalDF->GetClipmapVolume(0);
+        auto& resGlobalObjectGrid = *m_GlobalDF->GetObjectGridVolume(0);
         auto& resHiZDescMin =
             builder.ImportBuffer("Ayanami.HizMin", perframe.m_views[0].m_spHiZDataMin.m_hizRefBuffer.get());
+
+        auto& resShadowData =
+            builder.ImportBuffer("Ayanami.ShadowData", perframe.m_shadowData2.m_allShadowData->GetActiveBuffer());
 
         // Managed resources
         auto& resRaymarchOutput   = builder.DeclareTexture("Ayanami.RDG.RayMarchOutput",
@@ -179,27 +186,27 @@ namespace Ifrit::Runtime
         auto  primaryViewCBV = perframe.m_views[0].m_viewBufferId->GetActiveId();
 
         // Pass Global DF Generation
-        if (!m_resources->m_Inited)
+        if (!m_Resources->m_Inited)
         {
-            m_globalDF
+            m_GlobalDF
                 ->AddClipmapUpdate(builder, 0, primaryViewCBV,
-                    m_resources->m_SceneAggregator->GetNumGatheredInstances(),
-                    m_resources->m_SceneAggregator->GetGatheredBufferId())
+                    m_Resources->m_SceneAggregator->GetNumGatheredInstances(),
+                    m_Resources->m_SceneAggregator->GetGatheredBufferId())
                 .AddWriteResource(resGlobalDFGen);
         }
         // Pass Surface Cache + Radiance Injection (Camera View)
-        if (!m_resources->m_Inited || m_selfRenderConfig.m_DebugForceSurfaceCacheRegen)
+        if (!m_Resources->m_Inited || m_SelfRenderConfig.m_DebugForceSurfaceCacheRegen)
         {
-            m_resources->m_SurfaceCache->UpdateSurfaceCacheAtlas(builder);
+            m_Resources->m_SurfaceCache->UpdateSurfaceCacheAtlas(builder);
         }
-        m_resources->m_SurfaceCache->UpdateShadowVisibilityAtlas(builder, scene);
+        m_Resources->m_SurfaceCache->UpdateShadowVisibilityAtlas(builder, scene);
 
         // Pass DF Culling
-        auto sceneBound    = m_resources->m_SceneAggregator->GetSceneBoundSphere();
-        auto sceneBoundMin = m_resources->m_SceneAggregator->GetSceneBoundMin();
-        auto sceneBoundMax = m_resources->m_SceneAggregator->GetSceneBoundMax();
+        auto sceneBound    = m_Resources->m_SceneAggregator->GetSceneBoundSphere();
+        auto sceneBoundMin = m_Resources->m_SceneAggregator->GetSceneBoundMin();
+        auto sceneBoundMax = m_Resources->m_SceneAggregator->GetSceneBoundMax();
 
-        auto sceneLights = m_resources->m_SceneAggregator->GetAggregatedLights();
+        auto sceneLights = m_Resources->m_SceneAggregator->GetAggregatedLights();
 
         if (sceneLights.m_LightFronts.size() != 1)
         {
@@ -208,36 +215,36 @@ namespace Ifrit::Runtime
             std::abort();
         }
         auto sceneLight = sceneLights.m_LightFronts[0];
-        m_resources->m_DFLighting->DistanceFieldShadowTileScatter(builder,
-            m_resources->m_SceneAggregator->GetGatheredBufferId(),
-            m_resources->m_SceneAggregator->GetNumGatheredInstances(), sceneBoundMin, sceneBoundMax, sceneLight, 64);
+        m_Resources->m_DFLighting->DistanceFieldShadowTileScatter(builder,
+            m_Resources->m_SceneAggregator->GetGatheredBufferId(),
+            m_Resources->m_SceneAggregator->GetNumGatheredInstances(), sceneBoundMin, sceneBoundMax, sceneLight, 64);
 
         // printf("Scene bound: %f %f %f %f\n", sceneBound.x, sceneBound.y, sceneBound.z, sceneBound.w);
 
         // Pass AddOfflineShadowMaskPass (World Space)
         if (true)
         {
-            AddOfflineShadowMaskPass(builder, m_resources, sceneBoundMin, sceneBoundMax, sceneLight, 64, 2.0f);
+            AddOfflineShadowMaskPass(builder, m_Resources, sceneBoundMin, sceneBoundMax, sceneLight, 64, 2.0f);
         }
 
         // Pass Direct Lighting
-        m_resources->m_SurfaceCache->UpdateDirectLighting(
-            builder, m_resources->m_SceneAggregator->GetGatheredBufferId(), sceneLight);
+        m_Resources->m_SurfaceCache->UpdateDirectLighting(
+            builder, m_Resources->m_SceneAggregator->GetGatheredBufferId(), sceneLight);
 
         // Pass Voxel Construction (Object Grids)
-        if (!m_resources->m_Inited || m_selfRenderConfig.m_DebugForceObjectGridRegen)
+        if (!m_Resources->m_Inited || m_SelfRenderConfig.m_DebugForceObjectGridRegen)
         {
-            m_globalDF->AddObjectGridCompositionPass(builder, 0,
-                m_resources->m_SceneAggregator->GetNumGatheredInstances(),
-                m_resources->m_SceneAggregator->GetGatheredBufferId());
+            m_GlobalDF->AddObjectGridCompositionPass(builder, 0,
+                m_Resources->m_SceneAggregator->GetNumGatheredInstances(),
+                m_Resources->m_SceneAggregator->GetGatheredBufferId());
         }
 
         // Pass Radiosity Trace (I. Trace)
         {
-            // auto resObjectGridPtr = m_globalDF->GetObjectGridVolume(0);
-            // m_resources->m_SurfaceCache->UpdateRadiosityTrace(builder, scene, &resGlobalDFGen, resObjectGridPtr,
-            //     m_resources->m_SceneAggregator->GetGatheredBufferId(), sceneBoundMin, sceneBoundMax,
-            //     m_globalDF->GetClipmapWidth(0), m_globalDF->GetVoxelsPerSide(0));
+            auto resObjectGridPtr = m_GlobalDF->GetObjectGridVolume(0);
+            m_Resources->m_SurfaceCache->UpdateRadiosityTrace(builder, scene, &resGlobalDFGen, resObjectGridPtr,
+                m_Resources->m_SceneAggregator->GetGatheredBufferId(), sceneBoundMin, sceneBoundMax,
+                m_GlobalDF->GetClipmapWidth(0), m_GlobalDF->GetVoxelsPerSide(0));
         }
 
         // Pass Radiosity Trace (II. Filter)
@@ -245,7 +252,7 @@ namespace Ifrit::Runtime
         // Pass RayMarch
         if (true)
         {
-            if (m_resources->m_DbgShowMDF)
+            if (m_Resources->m_DbgShowMDF)
             {
                 struct PushConst
                 {
@@ -258,8 +265,8 @@ namespace Ifrit::Runtime
                 } pc;
                 pc.rtH        = rtHeight;
                 pc.rtW        = rtWidth;
-                pc.totalInsts = m_resources->m_SceneAggregator->GetNumGatheredInstances();
-                pc.descId     = m_resources->m_SceneAggregator->GetGatheredBufferId();
+                pc.totalInsts = m_Resources->m_SceneAggregator->GetNumGatheredInstances();
+                pc.descId     = m_Resources->m_SceneAggregator->GetGatheredBufferId();
                 pc.perframeId = primaryViewCBV;
 
                 AddComputePass<PushConst>(builder, "Ayanami.RaymarchPass", Internal::kIntShaderTableAyanami.RayMarchCS,
@@ -273,7 +280,7 @@ namespace Ifrit::Runtime
             }
             else
             {
-                m_globalDF->AddRayMarchPass(builder, 0, primaryViewCBV, &resRaymarchOutput, { rtWidth, rtHeight })
+                m_GlobalDF->AddRayMarchPass(builder, 0, primaryViewCBV, &resRaymarchOutput, { rtWidth, rtHeight })
                     .AddReadResource(resGlobalDFGen)
                     .AddWriteResource(resRaymarchOutput);
             }
@@ -282,9 +289,9 @@ namespace Ifrit::Runtime
         // Pass DFSS
         if (false)
         {
-            m_resources->m_DFLighting
-                ->DistanceFieldShadowRender(builder, m_resources->m_SceneAggregator->GetGatheredBufferId(),
-                    m_resources->m_SceneAggregator->GetNumGatheredInstances(),
+            m_Resources->m_DFLighting
+                ->DistanceFieldShadowRender(builder, m_Resources->m_SceneAggregator->GetGatheredBufferId(),
+                    m_Resources->m_SceneAggregator->GetNumGatheredInstances(),
                     perframe.m_views[0].m_visibilityDepthIdSRV_Combined->GetActiveId(), primaryViewCBV, sceneBoundMin,
                     sceneBoundMax, sceneLight, 64, 2)
                 .AddRenderTarget(resDfssOut)
@@ -293,94 +300,84 @@ namespace Ifrit::Runtime
 
         // Pass Screen Probe Place
         {
-            m_resources->m_ScreenProbe->AdaptiveScreenProbePlace(builder, primaryViewCBV, &resGNormal, &resGDepth);
-            m_resources->m_ScreenProbe->ProbeScreenTrace(builder, primaryViewCBV, &resHiZDescMin);
-            m_resources->m_ScreenProbe->PrepareMeshDFCulling(
-                builder, m_resources->m_SceneAggregator->GetNumGatheredInstances(), sceneBoundMin, sceneBoundMax);
-            m_resources->m_ScreenProbe->ScatterMeshDFToGrids(builder, primaryViewCBV,
-                m_resources->m_SceneAggregator->GetNumGatheredInstances(),
-                m_resources->m_SceneAggregator->GetGatheredBufferId());
-            m_resources->m_ScreenProbe->ProbeMDFTrace(
-                builder, primaryViewCBV, m_resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth);
+            auto resLastFrameFinalLighting = m_Resources->m_DeferredShading->GetRDGLastFrameFinalLightingTexture();
 
-            m_resources->m_ScreenProbe->ProbeGDFTrace(builder, primaryViewCBV, &resGDepth, &resGlobalDFGen, 13.0f);
-            m_resources->m_ScreenProbe->ProbeIntegrate(builder);
-            m_resources->m_ScreenProbe->ProbePixelGather(
+            m_Resources->m_ScreenProbe->AdaptiveScreenProbePlace(builder, primaryViewCBV, &resGNormal, &resGDepth);
+            m_Resources->m_ScreenProbe->ProbeScreenTrace(
+                builder, primaryViewCBV, &resHiZDescMin, resLastFrameFinalLighting);
+            m_Resources->m_ScreenProbe->PrepareMeshDFCulling(
+                builder, m_Resources->m_SceneAggregator->GetNumGatheredInstances(), sceneBoundMin, sceneBoundMax);
+            m_Resources->m_ScreenProbe->ScatterMeshDFToGrids(builder, primaryViewCBV,
+                m_Resources->m_SceneAggregator->GetNumGatheredInstances(),
+                m_Resources->m_SceneAggregator->GetGatheredBufferId());
+            m_Resources->m_ScreenProbe->ProbeMDFTrace(
+                builder, primaryViewCBV, m_Resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth);
+
+            m_Resources->m_ScreenProbe->ProbeGDFTrace(builder, primaryViewCBV, &resGDepth, &resGlobalDFGen, 13.0f);
+            m_Resources->m_ScreenProbe->ProbeOctMappingBorderFix(builder);
+            m_Resources->m_ScreenProbe->ProbeIntegrate(builder);
+            m_Resources->m_ScreenProbe->ProbePixelGather(
                 builder, primaryViewCBV, &resGDepth, &resGNormal, &resDebugProbeGather);
         }
 
         // Pass Defered Shading
         {
-            auto& resSurfaceCacheNormal = m_resources->m_SurfaceCache->GetRDGNormalAtlas();
-            struct PushConst
-            {
-                Vector4f lightDir;
-                u32      normalSRV;
-                u32      perframeId;
-                u32      m_ShadowMapSRV = 0;
-            } pc;
-            pc.normalSRV  = perframe.m_gbuffer.m_normal_smoothness_sampId->GetActiveId();
-            pc.perframeId = primaryViewCBV;
-            pc.lightDir   = Vector4f(sceneLights.m_LightFronts[0], 0.0f);
-            AddPostProcessPass<PushConst>(builder, "Ayanami.DeferredShading",
-                Internal::kIntShaderTableAyanami.TestDeferShadingFS, pc,
-                [&resDfssOut](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.m_ShadowMapSRV = ctx.m_FgDesc->GetSRV(resDfssOut);
-                    SetRootSignature(data, ctx);
-                })
-                .AddRenderTarget(resDeferOut)
-                .AddReadResource(resDfssOut)
-                .AddReadResource(resSurfaceCacheNormal);
+            m_Resources->m_DeferredShading->RenderDeferredShadow(
+                builder, primaryViewCBV, &resShadowData, &resGDepth, &resGNormal, 1);
+            m_Resources->m_DeferredShading->RenderDeferredLighting(
+                builder, primaryViewCBV, &resGDepth, &resGNormal, &resGAlbedo, &resShadowData, 1);
+            m_Resources->m_DeferredShading->ExperimentalFuse(builder);
         }
+
         // Pass Surface Cache Debug
         if (false)
         {
-            auto& resAlbedoAtlas   = m_resources->m_SurfaceCache->GetRDGAlbedoAtlas();
-            auto& resNormalAtlas   = m_resources->m_SurfaceCache->GetRDGNormalAtlas();
-            auto& resRadianceAtlas = m_resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
-            auto& resDepthAtlas    = m_resources->m_SurfaceCache->GetRDGDepthAtlas();
+            auto& resAlbedoAtlas   = m_Resources->m_SurfaceCache->GetRDGAlbedoAtlas();
+            auto& resNormalAtlas   = m_Resources->m_SurfaceCache->GetRDGNormalAtlas();
+            auto& resRadianceAtlas = m_Resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
+            auto& resDepthAtlas    = m_Resources->m_SurfaceCache->GetRDGDepthAtlas();
 
-            m_resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resAlbedoAtlas,
-                &resNormalAtlas, &resRadianceAtlas, &resDepthAtlas, m_resources->m_SurfaceCache->GetNumCards(),
-                m_resources->m_SurfaceCache->GetCardResolution(), m_resources->m_SurfaceCache->GetCardAtlasResolution(),
-                m_resources->m_SurfaceCache->GetCardDataBuffer()->GetDescId(), primaryViewCBV,
-                m_resources->m_SceneAggregator->GetGatheredBufferId());
+            m_Resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resAlbedoAtlas,
+                &resNormalAtlas, &resRadianceAtlas, &resDepthAtlas, m_Resources->m_SurfaceCache->GetNumCards(),
+                m_Resources->m_SurfaceCache->GetCardResolution(), m_Resources->m_SurfaceCache->GetCardAtlasResolution(),
+                m_Resources->m_SurfaceCache->GetCardDataBuffer()->GetDescId(), primaryViewCBV,
+                m_Resources->m_SceneAggregator->GetGatheredBufferId());
         }
         // Pass Object Grid Debug - Vis
 
         {
-            auto maxWorldBound  = m_globalDF->GetWorldBoundMax(0);
-            auto minWorldBound  = m_globalDF->GetWorldBoundMin(0);
-            auto voxelsPerWidth = m_globalDF->GetVoxelsPerSide(0);
-            m_resources->m_Debugger->RenderValidObjectGrids(builder, &resDebugObjGridVis, &resGlobalObjectGrid,
+            auto maxWorldBound  = m_GlobalDF->GetWorldBoundMax(0);
+            auto minWorldBound  = m_GlobalDF->GetWorldBoundMin(0);
+            auto voxelsPerWidth = m_GlobalDF->GetVoxelsPerSide(0);
+            m_Resources->m_Debugger->RenderValidObjectGrids(builder, &resDebugObjGridVis, &resGlobalObjectGrid,
                 maxWorldBound, minWorldBound, voxelsPerWidth, primaryViewCBV);
         }
 
         // Pass Screen Probe Debug - Vis
 
         {
-            m_resources->m_Debugger->VisualizeScreenProbeLocation(builder, &resDebugScrProbeVis,
-                m_resources->m_ScreenProbe->GetAdaptiveProbesList(),
-                m_resources->m_ScreenProbe->GetAdaptiveProbesCounter(), &resGAlbedo);
+            m_Resources->m_Debugger->VisualizeScreenProbeLocation(builder, &resDebugScrProbeVis,
+                m_Resources->m_ScreenProbe->GetAdaptiveProbesList(),
+                m_Resources->m_ScreenProbe->GetAdaptiveProbesCounter(), &resGAlbedo);
         }
 
         // Pass Object Grid Debug
         if (true)
         {
-            auto& resDirectLightingAtlas = m_resources->m_SurfaceCache->GetRDGDirectLightingAtlas();
-            auto& resAlbedoAtlas         = m_resources->m_SurfaceCache->GetRDGAlbedoAtlas();
-            auto& resDepthAtlas          = m_resources->m_SurfaceCache->GetRDGDepthAtlas();
-            auto  maxWorldBound          = m_globalDF->GetWorldBoundMax(0);
-            auto  minWorldBound          = m_globalDF->GetWorldBoundMin(0);
-            auto  mdfDataId              = m_resources->m_SceneAggregator->GetGatheredBufferId();
-            auto  cardDataId             = m_resources->m_SurfaceCache->GetCardDataBuffer()->GetDescId();
+            auto& resDirectLightingAtlas = m_Resources->m_SurfaceCache->GetRDGDirectLightingAtlas();
+            auto& resAlbedoAtlas         = m_Resources->m_SurfaceCache->GetRDGAlbedoAtlas();
+            auto& resDepthAtlas          = m_Resources->m_SurfaceCache->GetRDGDepthAtlas();
+            auto  maxWorldBound          = m_GlobalDF->GetWorldBoundMax(0);
+            auto  minWorldBound          = m_GlobalDF->GetWorldBoundMin(0);
+            auto  mdfDataId              = m_Resources->m_SceneAggregator->GetGatheredBufferId();
+            auto  cardDataId             = m_Resources->m_SurfaceCache->GetCardDataBuffer()->GetDescId();
 
-            auto  gdfResolution       = m_globalDF->GetClipmapWidth(0);
-            auto  voxelsPerWidth      = m_globalDF->GetVoxelsPerSide(0);
-            auto  cardResolution      = m_resources->m_SurfaceCache->GetCardResolution();
-            auto  cardAtlasResolution = m_resources->m_SurfaceCache->GetCardAtlasResolution();
+            auto  gdfResolution       = m_GlobalDF->GetClipmapWidth(0);
+            auto  voxelsPerWidth      = m_GlobalDF->GetVoxelsPerSide(0);
+            auto  cardResolution      = m_Resources->m_SurfaceCache->GetCardResolution();
+            auto  cardAtlasResolution = m_Resources->m_SurfaceCache->GetCardAtlasResolution();
 
-            m_resources->m_Debugger->RenderSceneFromSamplingObjectGrids(builder, &resDebugObjGridOut,
+            m_Resources->m_Debugger->RenderSceneFromSamplingObjectGrids(builder, &resDebugObjGridOut,
                 &resDirectLightingAtlas, &resAlbedoAtlas, &resDepthAtlas, &resGlobalDFGen, &resGlobalObjectGrid,
                 primaryViewCBV, cardDataId, mdfDataId, Vector2u(rtWidth, rtHeight), maxWorldBound, minWorldBound,
                 cardResolution, cardAtlasResolution, voxelsPerWidth, gdfResolution);
@@ -388,8 +385,10 @@ namespace Ifrit::Runtime
 
         // Pass Debug
         {
-            auto& resDirectRadiance  = m_resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
-            auto  resSsProbeRadiance = m_resources->m_ScreenProbe->GetScreenProbeRadianceAtlas();
+            auto& resDirectRadiance   = m_Resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
+            auto  resSsProbeRadiance  = m_Resources->m_ScreenProbe->GetScreenProbeRadianceAtlas();
+            auto  resDeferredShadow   = m_Resources->m_DeferredShading->GetRDGDirectShadowTexture();
+            auto  resDeferredLighting = m_Resources->m_DeferredShading->GetRDGDirectLightingTexture();
             struct PushConst
             {
                 u32 raymarchOutput = 0;
@@ -409,13 +408,15 @@ namespace Ifrit::Runtime
                 .AddReadResource(resDebugObjGridVis)
                 .AddReadResource(resDebugScrProbeVis)
                 .AddReadResource(*resSsProbeRadiance)
+                .AddReadResource(*resDeferredShadow)
                 .AddReadResource(resDebugProbeGather)
+                .AddReadResource(*resDeferredLighting)
                 .AddReadResource(resGNormal);
         }
 
-        auto compiledFg = m_resources->m_FgCompiler.Compile(builder);
-        m_resources->m_FgExecutor->ExecuteInSingleCmd(cmd, compiledFg);
-        m_resources->m_Inited = true;
+        auto compiledFg = m_Resources->m_FgCompiler.Compile(builder);
+        m_Resources->m_FgExecutor->ExecuteInSingleCmd(cmd, compiledFg);
+        m_Resources->m_Inited = true;
         cmd->EndScope();
     }
 
@@ -431,18 +432,18 @@ namespace Ifrit::Runtime
 
         // Simply launch syaro's rendering for Gbuffer and shadowing
         // Now only directional light is considered, so no light culling is required
-        auto vgTaskTimestamp = m_vgRenderer->Render(scene, camera, renderTargets, config, cmdToWait);
+        auto vgTaskTimestamp = m_VGRenderer->Render(scene, camera, renderTargets, config, cmdToWait);
 
         // Start the main process
-        m_resources->m_SceneAggregator->CollectScene(scene);
-        m_resources->m_SurfaceCache->UpdateSceneCache(scene);
+        m_Resources->m_SceneAggregator->CollectScene(scene);
+        m_Resources->m_SurfaceCache->UpdateSceneCache(scene);
         auto rhi = m_app->GetRhi();
         auto dq  = rhi->GetQueue(RhiQueueCapability::RhiQueue_Graphics);
 
         auto task = dq->RunAsyncCommand(
             [&](const GPUCmdBuffer* cmd) {
                 // Prepare SSGI HiZ
-                PrepareHierarchicalZForSSGI(cmd, m_resources->m_SpHiZ.get(), perframeData, renderTargets);
+                PrepareHierarchicalZForSSGI(cmd, m_Resources->m_SpHiZ.get(), perframeData, renderTargets);
                 SetupAndRunFrameGraph(scene, perframeData, renderTargets, cmd);
             },
             { vgTaskTimestamp.get() }, {});

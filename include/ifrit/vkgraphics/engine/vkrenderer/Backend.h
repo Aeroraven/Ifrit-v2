@@ -102,6 +102,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         virtual Rhi::RhiSRVDesc                     GetSRVDescriptor(Rhi::RhiBuffer* buffer) override;
         virtual Rhi::RhiUAVDesc                     GetUAVDescriptor(Rhi::RhiBuffer* buffer) override;
 
+        virtual Rhi::RhiCBVDesc                     GetCBVDescriptor(Rhi::RhiBuffer* buffer) override;
+
         // Render targets
         virtual Ref<Rhi::RhiColorAttachment>        CreateRenderTarget(Rhi::RhiTexture* renderTarget,
                    Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers) override;

@@ -37,7 +37,8 @@ namespace Ifrit::Runtime::Ayanami
         void InitContext(FrameGraphBuilder& builder, u32 maxRtWidth, u32 maxRtHeight, f32 adaptiveProbesRatio);
         void AdaptiveScreenProbePlace(
             FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef viewNormal, FGTextureNodeRef viewDepth);
-        void ProbeScreenTrace(FrameGraphBuilder& builder, u32 perframeCBV, FGBufferNodeRef hizBuffer);
+        void ProbeScreenTrace(
+            FrameGraphBuilder& builder, u32 perframeCBV, FGBufferNodeRef hizBuffer, FGTextureNodeRef lastFrameIndirect);
         void PrepareMeshDFCulling(
             FrameGraphBuilder& builder, u32 numTotalMdfs, Vector3f worldBoundMin, Vector3f worldBoundMax);
         void ScatterMeshDFToGrids(FrameGraphBuilder& builder, u32 perframeCBV, u32 numTotalMdfs, u32 meshDFDescUAV);
@@ -46,6 +47,7 @@ namespace Ifrit::Runtime::Ayanami
         void             ProbeGDFTrace(FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef gbufferDepth,
                         FGTextureNodeRef globalDF, u32 globalDFWSRang);
         void             ProbeIntegrate(FrameGraphBuilder& builder);
+        void             ProbeOctMappingBorderFix(FrameGraphBuilder& builder);
         void             ProbePixelGather(FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef gbufferDepth,
                         FGTextureNodeRef gbufferNormal, FGTextureNodeRef outputTex);
 

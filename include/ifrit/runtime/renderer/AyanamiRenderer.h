@@ -50,17 +50,14 @@ namespace Ifrit::Runtime
         using DrawPass             = Graphics::Rhi::RhiGraphicsPass;
         using GPUShader            = Graphics::Rhi::RhiShader;
         using GPUTexture           = Graphics::Rhi::RhiTexture;
-        using GPUColorRT           = Graphics::Rhi::RhiColorAttachment;
-        using GPURTs               = Graphics::Rhi::RhiRenderTargets;
         using GPUCmdBuffer         = Graphics::Rhi::RhiCommandList;
-        using GPUSampler           = Graphics::Rhi::RhiSampler;
 
     private:
-        Uref<SyaroRenderer>            m_vgRenderer;
-        AyanamiRendererResources*      m_resources = nullptr;
+        Uref<SyaroRenderer>            m_VGRenderer;
+        AyanamiRendererResources*      m_Resources = nullptr;
 
-        Ayanami::AyanamiRenderConfig   m_selfRenderConfig;
-        Uref<Ayanami::AyanamiGlobalDF> m_globalDF = nullptr;
+        Ayanami::AyanamiRenderConfig   m_SelfRenderConfig;
+        Uref<Ayanami::AyanamiGlobalDF> m_GlobalDF = nullptr;
 
     private:
         void InitRenderer();
@@ -70,11 +67,11 @@ namespace Ifrit::Runtime
 
     public:
         AyanamiRenderer(IApplication* app, Ayanami::AyanamiRenderConfig config)
-            : RendererBase(app), m_vgRenderer(std::make_unique<SyaroRenderer>(app)), m_selfRenderConfig(config)
+            : RendererBase(app), m_VGRenderer(std::make_unique<SyaroRenderer>(app)), m_SelfRenderConfig(config)
         {
-            m_vgRenderer->SetRenderRole(SyaroRenderRole::GBuffer | SyaroRenderRole::Shadowing);
+            m_VGRenderer->SetRenderRole(SyaroRenderRole::GBuffer | SyaroRenderRole::Shadowing);
             InitRenderer();
-            m_globalDF = std::make_unique<Ayanami::AyanamiGlobalDF>(config, app);
+            m_GlobalDF = std::make_unique<Ayanami::AyanamiGlobalDF>(config, app);
         }
         virtual ~AyanamiRenderer();
 

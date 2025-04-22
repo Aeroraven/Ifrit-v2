@@ -51,7 +51,7 @@ layout(push_constant) uniform UPushConst{
     uint m_ScreenProbeLightingAtlasUAV;
 }PushConst;
 
-const float kRayProceedAdvance = 0.6;
+const float kRayProceedAdvance = 0.2;
 
 struct TraceRayProposal{
     uvec2 m_TraceRayCoord;
@@ -95,7 +95,7 @@ uvec2 GetProbeWritingSlot(uint ProbeId, uint ProbeCntPerX, uvec2 TraceRayCoord){
 
 float TraceGlobalDF(vec3 RayOrigin, vec3 RayDir){
     float HitTime = AyaShared_RayMarchGlobalDF(RayOrigin,RayDir,PushConst.m_GlobalDFSRV,PushConst.m_WorldBoundMin.xyz,
-        PushConst.m_WorldBoundMax.xyz,0.017,0.03,180);
+        PushConst.m_WorldBoundMax.xyz,0.015,0.03,200);
 
     return HitTime;
 }
@@ -153,8 +153,16 @@ void main(){
         uvec2 WritingSlot = GetProbeWritingSlot(TraceRay.m_ProbeId, ProbeCntPerX, TraceRay.m_TraceRayCoord);
 
         float TraceResult = TraceGlobalDF(ProbeLocWS, SampledRay);
-        if(TraceResult>=0.0){
-            imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0,0.0,1.0, 0.0));
+        if(!kVisTracingHierarchy){
+            if(TraceResult<0.0){
+                // skylight, for simplicity
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(2.3));
+            }
+        }else{
+            if(TraceResult>=0.0){
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0,0.0,1.0, 0.0));
+            }
         }
+        
     }
 }

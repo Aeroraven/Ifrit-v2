@@ -48,11 +48,12 @@ layout(push_constant) uniform UPushConst{
     uint m_MeshDFTraceProposalCounterUAV;
     uint m_MeshDFTraceProposalListUAV;
     uint m_AdaptiveProbesListUAV;
+    uint m_LastFrameFinalLightingSRV;
 }PushConst;
 
-const float kRayProceedMax = 40.0;
-const float kRayProceedAdvance = 0.01;
-const uint kMaxTraceIters = 60;
+const float kRayProceedMax = 5.0;
+const float kRayProceedAdvance = 2e-3;
+const uint kMaxTraceIters = 600;
 const bool kHizProceed = true;
 const bool kUseWordSpaceSsgi = false;
 
@@ -125,7 +126,19 @@ float GetHizDepth(ivec2 UV, uint Mip, bool Ranged){
 }
 
 float GetHizDepth(vec2 UV, uint Mip){
+    if(UV.x<0.0 || UV.x>1.0 || UV.y<0.0 || UV.y>1.0){
+        return -1.0;
+    }
     vec2 PixelUV = UV * vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+    ivec2 PixelUVInt = ivec2(PixelUV);
+    return GetHizDepth(PixelUVInt, Mip, false);
+}
+
+float GetHizDepthPx(vec2 UV, uint Mip){
+    if(UV.x<0.0 || UV.x>PushConst.m_RTWidth || UV.y<0.0 || UV.y>PushConst.m_RTHeight){
+        return -1.0;
+    }
+    vec2 PixelUV = UV;
     ivec2 PixelUVInt = ivec2(PixelUV);
     return GetHizDepth(PixelUVInt, Mip, false);
 }
@@ -137,6 +150,10 @@ float GetHizDepthRanged(vec2 UV, uint Mip){
 }
 
 vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndUV){
+    // To alleviate the rounding problem, some strategies are used:
+    // References from: 
+    // https://github.com/Raphael2048/FengRender/blob/master/resources/shaders/ssr.hlsl
+
     PerFramePerViewData PerFrame = AyaShared_GetPerFrameData(PushConst.m_PerFrameCBV);
     float ClipNear = PerFrame.m_cameraNear;
     float ClipFar = PerFrame.m_cameraFar;
@@ -144,8 +161,7 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
     vec2 DiffUV = RayEndUV - RayStartUV;
     vec2 DiffPixels = DiffUV * vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
     ivec2 DiffPixelsInt = ivec2(DiffPixels);
-    ivec2 RayStartUVInt = ivec2(RayStartUV * vec2(PushConst.m_RTWidth, PushConst.m_RTHeight));
-
+    
     float MaxStepsF = max(abs(DiffPixels.x), abs(DiffPixels.y));
     uint MaxSteps = uint(MaxStepsF) + 1; // total steps required on marching Hiz level 0
     float MinimalStep = 1.0 / float(MaxSteps);
@@ -157,6 +173,10 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
 
     int ProceedSignX = DiffPixels.x > 0.0 ? 1 : -1;
     int ProceedSignY = DiffPixels.y > 0.0 ? 1 : -1;
+
+    int ProceedStepX = DiffPixels.x >= 0.0 ? 1 : 0;
+    int ProceedStepY = DiffPixels.y >= 0.0 ? 1 : 0;
+
     float CurStepF  = 0.0;
     int MaxIters = int(kMaxTraceIters);
     int CurIters = 0;
@@ -165,22 +185,46 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
     float ProceedTexelY = 0.0;
     float ProceedRefZ = 0.0;
     float ProceedCurZ = 0.0;
-    while(CurMip >= 0 && CurStepF <= 1.0 && CurIters < MaxIters){
+
+    vec2 RayStartPx = vec2(RayStartUV * vec2(PushConst.m_RTWidth, PushConst.m_RTHeight));
+    vec2 RayEndPx = vec2(RayEndUV * vec2(PushConst.m_RTWidth, PushConst.m_RTHeight));
+    vec2 CurPx = RayStartPx;
+    ivec2 RayStartUVInt = ivec2(RayStartPx);
+
+    bool MainDirectionX = abs(DiffPixels.x) > abs(DiffPixels.y);
+    vec2 NormSSDirection = normalize(DiffPixels);
+
+    float LastCurZ = 0.0;
+    float LastRefZ = 0.0;
+    float LastIter  = 0.0;
+
+    while(CurMip >= 0 && CurIters < MaxIters){
         CurIters += 1;
+        CurStepF = (MainDirectionX)?
+            (CurPx.x - RayStartPx).x / DiffPixels.x :
+            (CurPx.y - RayStartPx).y / DiffPixels.y;
+        
+
         float T = CurStepF;
-        vec2 CurUV = mix(RayStartUV, RayEndUV, T);
-        float ReferenceZ = GetHizDepth(CurUV, CurMip);
+        vec2 CurUV = CurPx / vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+
+        float ReferenceZ =  GetHizDepthPx(CurPx, CurMip);
         bool ValidZ = ReferenceZ > 0.0 && ReferenceZ < 1.0;
         ReferenceZ = ifrit_recoverViewSpaceDepth(ReferenceZ, ClipNear, ClipFar);
-        float CurZ = ifrit_perspectiveLerp(RayStartVS.z, RayEndVS.z, RayStartVS.z, RayEndVS.z, T);
-        ivec2 CurUVInt = ivec2(CurUV * vec2(PushConst.m_RTWidth, PushConst.m_RTHeight));
-        ivec2 CurUVIntMip = CurUVInt >> CurMip;
+        float CurZ = ifrit_PerspectiveLerpVS(RayStartVS.z, RayEndVS.z, T);
+        ivec2 CurUVIntMip = ivec2(CurPx) >> CurMip;
+
+        if(ValidZ){
+            LastCurZ = CurZ;
+            LastRefZ = ReferenceZ;
+            LastIter = float(CurIters);
+        }
 
         ProceedRefZ = ReferenceZ;
         ProceedCurZ = RayStartVS.z;
 
         bool IsCollided = false;
-        if(CurZ >= ReferenceZ+1e-3 && (CurMip!=0 || ValidZ)){
+        if(CurZ - ReferenceZ>=-2e-4 && (CurMip!=0 || ValidZ) && T>0.0){
             IsCollided = true;
         }
 
@@ -193,13 +237,25 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
 
         // step if not collided
         if(!IsCollided){
-            int NextTexelX = ((CurUVIntMip.x + ProceedSignX)<<CurMip) - RayStartUVInt.x;
-            int NextTexelY = ((CurUVIntMip.y + ProceedSignY)<<CurMip) - RayStartUVInt.y;
+            int NextTexelX = ((CurUVIntMip.x + ProceedStepX)<<CurMip) - RayStartUVInt.x;
+            int NextTexelY = ((CurUVIntMip.y + ProceedStepY)<<CurMip) - RayStartUVInt.y;
 
-            float StepX = float(NextTexelX) / float(DiffPixelsInt.x);
-            float StepY = float(NextTexelY) / float(DiffPixelsInt.y);
-            float NextStep = max(CurStepF, min(abs(StepX), abs(StepY)));
-            CurStepF = NextStep;
+            float StepX = float(NextTexelX) / float(NormSSDirection.x);
+            float StepY = float(NextTexelY) / float(NormSSDirection.y);
+
+            //StepX = max(0.0, StepX);
+            //StepY = max(0.0, StepY);
+            
+            float NextStep;
+            if(abs(NormSSDirection.x)<1e-6){
+                NextStep = StepY;
+            }else if(abs(NormSSDirection.y)<1e-6){
+                NextStep = StepX;
+            }else{
+                NextStep = min(StepX, StepY);
+            }
+            CurPx = vec2(RayStartUVInt.xy) + NextStep * NormSSDirection.xy + vec2(ProceedSignX,ProceedSignY) * vec2(0.0001);
+            
             if(kHizProceed)
                 CurMip = min(CurMip+1, 6);
         }else{
@@ -208,12 +264,14 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
         }
     }
 
+    //return vec3(LastCurZ, LastRefZ, LastIter);
+
     // Check the hit z difference
-    if(abs(DepthDiffVS) > 0.2){
+    if(abs(DepthDiffVS) > 0.1){
         FinalHit = false;
-        return vec3(HitUV-RayStartUV, 0.0);
+        return vec3(HitUV, 0.0);
     }
-    return vec3(HitUV-RayStartUV, FinalHit ? 1.0 : 0.0);
+    return vec3(HitUV, FinalHit ? 1.0 : 0.0);
 }
 
 vec3 SsgiTraceImplWorldSpace(vec3 RayStartWS, vec3 RayEndWS){
@@ -369,22 +427,37 @@ void main(){
     vec3 SsgiTraceResult = ValidProbe ? SsgiTrace(SampledRay, ProbeLocWS) : vec3(0.0, 0.0, 0.0);
     // TODO: sample lighting
     uvec2 WritingSlot = GetProbeWritingSlot(ProbeId, ProbeCntPerX, TraceRayCoord);
-    if(!ValidProbe){
-        // probe is not valid, write the invalid color
-        imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0, 1.0, 1.0, 1.0));
-        
-    }else if(SsgiTraceResult.z < 0.5){
-        // screen hit miss
-        imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0,1.0,1.0, 0.0));
-        uint FailureRayId = atomicAdd(sFailureRayCount, 1);
-        sFailureRayList[FailureRayId] = PackLocationAndRay(ProbeId, TraceRayCoord);
+
+    if(!kVisTracingHierarchy){
+        if(ValidProbe){
+            if(SsgiTraceResult.z > 0.5){
+                // screen hit
+                vec2 HitUV = SsgiTraceResult.xy;
+                vec3 HitRadiance = SampleTexture2D(PushConst.m_LastFrameFinalLightingSRV, sLinearClamp, HitUV).xyz;
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(HitRadiance,1.0));
+            }else{
+                // screen hit miss
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0));
+                uint FailureRayId = atomicAdd(sFailureRayCount, 1);
+                sFailureRayList[FailureRayId] = PackLocationAndRay(ProbeId, TraceRayCoord);
+            }
+        }
+
     }else{
-        imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0,0.0,0.0, 1.0));
+        if(!ValidProbe){
+            // probe is not valid, write the invalid color
+            imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0, 1.0, 1.0, 1.0));
+            
+        }else if(SsgiTraceResult.z < 0.5){
+            // screen hit miss
+            imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0,1.0,1.0, 0.0));
+            uint FailureRayId = atomicAdd(sFailureRayCount, 1);
+            sFailureRayList[FailureRayId] = PackLocationAndRay(ProbeId, TraceRayCoord);
+        }else{
+            imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0,0.0,0.0, 1.0));
+        }
     }
-    //return ;
-
     barrier();
-
     // writing into compact list
     if(ifrit_IsFirstLane()){
         uint FailureRayCount = sFailureRayCount;

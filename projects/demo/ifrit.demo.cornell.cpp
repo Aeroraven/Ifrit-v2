@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/LinalgOps.h"
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/Runtime.h"
+#include "ifrit/runtime/material/SyaroDefaultGBufEmitter.h"
 #include <numbers>
 #include <thread>
 
@@ -81,18 +82,9 @@ public:
         auto camera = parent->GetComponent<Transform>();
         if (camera)
         {
-            // 11.519989 2.360000 -5.760006
-            // 1.43999, 2.24, -6.000006
-            // camera->SetPosition({ 3.239989f + m_movRight - m_movLeft, 2.240000f + m_movTop - m_movBottom,
-            //     -6.000006f + m_movFar - m_movNear });
-
-            camera->SetPosition({ 1.43999f + m_movRight - m_movLeft, 2.240000f + m_movTop - m_movBottom,
-                -6.000006f + m_movFar - m_movNear });
-            camera->SetRotation({ 0.0f, m_movRot + 7.39f, 0.0f });
-
-            // camera->SetPosition({ 4.19999f + m_movRight - m_movLeft, 1.520000f + m_movTop - m_movBottom,
-            //     -4.800006f + m_movFar - m_movNear });
-            // camera->SetRotation({ 0.0f, m_movRot + 8.95f, 0.0f });
+            camera->SetPosition({ 0.0f + m_movRight - m_movLeft, 0.0f + m_movTop - m_movBottom + 1.0f,
+                3.000006f + m_movFar - m_movNear });
+            camera->SetRotation({ 0.0f, m_movRot + 3.14f, 0.0f });
 
             // if print q, print the position and rotation
             if (m_inputSystem->IsKeyPressed(InputKeyCode::Q))
@@ -183,9 +175,8 @@ namespace Ifrit
             renderConfig.m_OverrideMaterialCulling = OverrideMaterialCulling::ForcedCullNone;
 
             renderer       = std::make_shared<AyanamiRenderer>(this, ayaConfig);
-            auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInteriorModified/bistro.gltf"); //
-            // auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Fox/scene.gltf"); //
-            //   Scene
+            auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Cornell/Untitled.gltf"); //
+
             auto s    = m_sceneAssetManager->CreateScene("TestScene2");
             auto node = s->AddSceneNode();
 
@@ -195,14 +186,11 @@ namespace Ifrit
             camera->SetMainCamera(true);
             camera->SetAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
             camera->SetFov(60.0f / 180.0f * std::numbers::pi_v<float>);
-            camera->SetFar(60.0f);
+            camera->SetFar(20.0f);
             camera->SetNear(0.50f);
 
             auto cameraTransform = cameraGameObject->GetComponent<Transform>();
-            cameraTransform->SetPosition({ 0.0f, 0.5f, -1.25f });
-            cameraTransform->SetRotation({ 0.0f, 0.1f, 0.0f });
             cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
-            cameraTransform->SetPosition({ 0.0f, 2.0f, -0.0f });
 
             auto cameraMover = cameraGameObject->AddComponent<CameraMovingScript>();
             cameraMover->SetInputSystem(m_inputSystem.get());
@@ -220,27 +208,57 @@ namespace Ifrit
 
             auto meshes = bistroObj->GetLoadedMesh(s.get());
 
-            auto numMeshes = 0;
+            auto numMeshes        = 0;
+            auto normalAsset      = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Cornell_Normal.png");
+            auto redAlbedoAsset   = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Red.png");
+            auto greenAlbedoAsset = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Green.png");
+            auto whiteAlbedoAsset = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/White.png");
+
             for (auto& m : meshes)
             {
-                // Surrounding => 617
                 numMeshes++;
-                if (numMeshes == 1000 || numMeshes < 600)
-                    continue;
-                if (numMeshes > 850 && numMeshes < 2000)
-                    continue;
 
-                auto t      = m->m_prefab;
+                auto t        = m->m_prefab;
+                auto material = std::make_shared<SyaroDefaultGBufEmitter>(this);
+                auto sampler  = m_SharedRenderResource->GetLinearClampSampler();
+
+                if (numMeshes >= 4 && numMeshes <= 5 || numMeshes == 6 || numMeshes <= 2)
+                {
+                    // continue;
+                }
+                if (numMeshes == 4)
+                {
+                    material->SetAlbedoId(
+                        m_rhiLayer->RegisterCombinedImageSampler(redAlbedoAsset->GetTexture().get(), sampler.get())
+                            ->GetActiveId());
+                }
+                else if (numMeshes == 5)
+                {
+                    material->SetAlbedoId(
+                        m_rhiLayer->RegisterCombinedImageSampler(greenAlbedoAsset->GetTexture().get(), sampler.get())
+                            ->GetActiveId());
+                }
+                else
+                {
+                    material->SetAlbedoId(
+                        m_rhiLayer->RegisterCombinedImageSampler(whiteAlbedoAsset->GetTexture().get(), sampler.get())
+                            ->GetActiveId());
+                }
+                material->SetNormalMapId(
+                    m_rhiLayer->RegisterCombinedImageSampler(normalAsset->GetTexture().get(), sampler.get())
+                        ->GetActiveId());
+                material->BuildMaterial();
+
+                auto meshRenderer = t->GetComponent<MeshRenderer>();
+                meshRenderer->SetMaterial(material);
+
                 auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
-                meshDF->SetCompression(true);
+                meshDF->SetCompression(false);
                 meshDF->BuildMeshDF(GetCacheDir());
                 auto meshMarker = t->AddComponent<Ayanami::AyanamiMeshMarker>();
 
                 auto transform = t->GetComponent<Transform>();
-                transform->SetRotation({ 0.0f, 0.0f, 0.0f });
-                transform->SetPosition({ 0.0f, 0.0f, 0.0f });
-                transform->SetScale({ 0.01f, 0.01f, 0.01f });
-                auto mat = transform->GetModelToWorldMatrix();
+                auto mat       = transform->GetModelToWorldMatrix();
                 node->AddGameObjectTransferred(std::move(m->m_prefab));
             }
             iInfo("Num meshes: {}", numMeshes);
