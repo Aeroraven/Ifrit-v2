@@ -153,11 +153,11 @@ float AyaShared_RayMarchGlobalDF(vec3 RayOrigin, vec3 RayDir, uint GlobalDFId, v
             SdfVal = SdfVal - SdfExpansion;
             if(SdfVal < AcceptThreshold){
                 HitTime = t;
-                if(HitTime == -1.0){
-                    HitTime = SdfVal;
-                }else{
-                    HitTime = min(HitTime, SdfVal);
-                }
+                // if(HitTime == -1.0){
+                //     HitTime = SdfVal;
+                // }else{
+                //     HitTime = min(HitTime, SdfVal);
+                // }
                 break;
             }
             t += max(1e-2,SdfVal * 0.5);
@@ -213,7 +213,7 @@ void AyaShared_SampleCard(uint MeshId, uint CardFace, vec3 HitPosWS, vec3 HitNor
         ExtentZ = MeshExtent.z;
     }
 
-    float BiasOffset = 10.0/ExtentZ;
+    float BiasOffset = 0.01/ExtentZ;
     float BiasFalloff = 0.25*BiasOffset;
 
     float CardDepth = SampleTexture2D(DepthAtlasSRV, sLinearClamp, AtlasUV).r;
@@ -222,14 +222,14 @@ void AyaShared_SampleCard(uint MeshId, uint CardFace, vec3 HitPosWS, vec3 HitNor
         TexelVisibility = 0.0;
     }else{
         float HitDepth = HitPosCS.z;
-        float HitDifference = (abs(HitDepth - CardDepth) - BiasOffset);
+        float HitDifference = (abs(HitDepth - CardDepth) - BiasOffset)/BiasFalloff;
         HitDifference = clamp(HitDifference, 0.0, 1.0);
         TexelVisibility = 1.0-HitDifference;
     }
 
     float OverallWeights = NormalWeights * TexelVisibility;
 
-    if(OverallWeights > 0.0){
+    if(OverallWeights >= 0.0){
         vec4 Albedo = SampleTexture2D(DirectLightingAtlasSRV, sLinearClamp, AtlasUV);
         Accum.m_AccAlbedo += Albedo * OverallWeights;
         Accum.m_Samples += OverallWeights;
@@ -365,6 +365,11 @@ CardSample AyaShared_EvaluateGlobalDFHit(vec3 TraceOriginWS, vec3 TraceDirWS, fl
     }else{
         Sample.m_Albedo = vec4(0.05, 0.05, 0.05, 1.0);
     }
+
+    if(Accum.m_MaxWeight >= 0.97){
+        Sample.m_Albedo = Accum.m_MaxAlbedo;
+    }
+    
     return Sample;
 }
 

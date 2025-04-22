@@ -330,14 +330,14 @@ namespace Ifrit::Runtime
         }
 
         // Pass Surface Cache Debug
-        if (false)
+        if (true)
         {
             auto& resAlbedoAtlas   = m_Resources->m_SurfaceCache->GetRDGAlbedoAtlas();
             auto& resNormalAtlas   = m_Resources->m_SurfaceCache->GetRDGNormalAtlas();
             auto& resRadianceAtlas = m_Resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
             auto& resDepthAtlas    = m_Resources->m_SurfaceCache->GetRDGDepthAtlas();
 
-            m_Resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resAlbedoAtlas,
+            m_Resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resRadianceAtlas,
                 &resNormalAtlas, &resRadianceAtlas, &resDepthAtlas, m_Resources->m_SurfaceCache->GetNumCards(),
                 m_Resources->m_SurfaceCache->GetCardResolution(), m_Resources->m_SurfaceCache->GetCardAtlasResolution(),
                 m_Resources->m_SurfaceCache->GetCardDataBuffer()->GetDescId(), primaryViewCBV,
@@ -396,7 +396,7 @@ namespace Ifrit::Runtime
             AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass", Internal::kIntShaderTableAyanami.CopyVS,
                 Internal::kIntShaderTableAyanami.CopyFS, pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugProbeGather);
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugObjGridOut);
                     SetRootSignature(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)

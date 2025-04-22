@@ -448,7 +448,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto nums          = deleteList->ProcessDeleteQueue();
         if (nums > 0)
         {
-            iDebug("Deleted {} resources", nums);
+            // iDebug("Deleted {} resources", nums);
         }
     }
     IFRIT_APIDECL void RhiVulkanBackend::EndFrame() { m_implDetails->m_commandExecutor->EndFrame(); }

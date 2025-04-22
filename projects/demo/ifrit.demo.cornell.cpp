@@ -165,9 +165,9 @@ namespace Ifrit
             Ayanami::AyanamiRenderConfig ayaConfig;
             ayaConfig.m_globalDFClipmapLevels       = 1;
             ayaConfig.m_globalDFClipmapResolution   = 256;
-            ayaConfig.m_globalDFBaseExtent          = 13.0f;
+            ayaConfig.m_globalDFBaseExtent          = 2.0f;
             ayaConfig.m_DebugForceSurfaceCacheRegen = false;
-            ayaConfig.m_DebugForceObjectGridRegen   = false;
+            ayaConfig.m_DebugForceObjectGridRegen   = true;
 
             renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
 
@@ -226,13 +226,13 @@ namespace Ifrit
                 {
                     // continue;
                 }
-                if (numMeshes == 4)
+                if (numMeshes == 5)
                 {
                     material->SetAlbedoId(
                         m_rhiLayer->RegisterCombinedImageSampler(redAlbedoAsset->GetTexture().get(), sampler.get())
                             ->GetActiveId());
                 }
-                else if (numMeshes == 5)
+                else if (numMeshes == 6)
                 {
                     material->SetAlbedoId(
                         m_rhiLayer->RegisterCombinedImageSampler(greenAlbedoAsset->GetTexture().get(), sampler.get())

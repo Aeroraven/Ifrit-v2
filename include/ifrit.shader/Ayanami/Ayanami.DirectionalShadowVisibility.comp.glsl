@@ -179,16 +179,24 @@ void main(){
     uint transformId = GetResource(BAllWorldData, PushConst.WorldObjId).m_TransformId[CardIndex];
     mat4 LocalToWorld = GetResource(BLocalTransform, transformId).m_LocalToWorld;
     mat4 AtlasToWorld = LocalToWorld * AtlasToLocal;
+    mat4 ViewToWorld = GetResource(BPerFrameData, PushConst.m_PerFrameId).m_Data.m_worldToView;
 
     vec2 TileOffsetToNDCxy = (vec2(TileOffset)+0.5) / vec2(PushConst.CardResolution);
     TileOffsetToNDCxy = TileOffsetToNDCxy * 2.0 - 1.0;
 
     vec2 AtlasSampleUV = (OverallOffset+0.5) / vec2(PushConst.CardAtlasResolution);
-    float TileOffsetNdcZ = SampleTexture2D(PushConst.depthAtlasSRVId, sLinearClamp,AtlasSampleUV).r; //texture(GetSampler2D(PushConst.depthAtlasSRVId), 
+    float TileOffsetNdcZ = SampleTexture2D(PushConst.depthAtlasSRVId, sNearestClamp,AtlasSampleUV).r; //texture(GetSampler2D(PushConst.depthAtlasSRVId), 
+    vec3 TexelNormalVS = SampleTexture2D(PushConst.m_NormalAtlasSRV, sLinearClamp, AtlasSampleUV).xyz;
+    
     vec4 TileOffsetNdc = vec4(TileOffsetToNDCxy, TileOffsetNdcZ, 1.0);
 
-    vec4 WorldPos = AtlasToWorld * TileOffsetNdc;
-    vec4 WorldPosNDC = WorldPos / WorldPos.w;
+    vec4 WorldPosH = AtlasToWorld * TileOffsetNdc;
+    vec4 WorldPosP = WorldPosH / WorldPosH.w;
+    vec3 WorldNormal = normalize(AtlasToWorld * vec4(TexelNormalVS, 0.0)).xyz;
+
+    // add a slight normal offset to avoid self shadowing
+    float NormalOffset =  5e-3;
+    WorldPosP += vec4(WorldNormal * NormalOffset,0.0); // normal offsetting
 
     // Test if the World position can be seen by the Light.
     // Two components should write to the desired texture:
@@ -201,13 +209,13 @@ void main(){
     }
 
     mat4 WorldToView = GetResource(BPerFrameData, PushConst.m_PerFrameId).m_Data.m_worldToView;
-    vec4 ViewPos = WorldToView * WorldPosNDC;
+    vec4 ViewPos = WorldToView * WorldPosP;
 
     float ShadowVisibility = 0.0;
     float ShadowCoverage = 0.0;
-    vec2 ShadowVisibilityAndCoverage = GlobalShadowVisibility(WorldPosNDC.xyz, ViewPos.xyz);
+    vec2 ShadowVisibilityAndCoverage = GlobalShadowVisibility(WorldPosP.xyz, ViewPos.xyz);
     ShadowVisibility = ShadowVisibilityAndCoverage.x;
-    ShadowCoverage = ShadowVisibilityAndCoverage.y;
+    ShadowCoverage = 0.0;//ShadowVisibilityAndCoverage.y;
 
     imageStore(GetUAVImage2DR32F(PushConst.ShadowMaskOutUAV), ivec2(OverallOffset), vec4(ShadowVisibility, ShadowCoverage, 0.0, 1.0));
 }

@@ -87,6 +87,9 @@ layout(push_constant)  uniform PushConstData{
     float m_ShadowCoefK;
 } PushConst;
 
+const bool kUseGridCull = true;
+const float kShadowInterruptThreshold = 1e-3;
+
 float DistanceFieldShadowInObj(vec3 rayOriginWS, uint meshDFId){
 
     MeshDFDesc desc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[meshDFId];
@@ -118,18 +121,19 @@ float DistanceFieldShadowInObj(vec3 rayOriginWS, uint meshDFId){
 
     vec3 Hitp = o + nD * t;
     float RetShadow = 1.0;
-    float VolBias = 1e-3*MaxExtent;
+    float VolBias = 0.005;
     if(Hit){
         vec3 InvExtent = 1.0 / (rt - lb);
-        for(int i=0;i<20;i++){
+        for(int i=0;i<40;i++){
             vec3 UVW= (Hitp - lb) * InvExtent;
-            //float Sdf = texture(GetSampler3D(SdfId), UVW).x-VolBias;
             float Sdf = AyaShared_SampleMeshDF(SdfId, UVW, MeshDFQuantScale) - VolBias;
             float AbsSdf = abs(Sdf);
-            t += max(1e-4*MaxExtent,AbsSdf* 0.5) ;
+
+            t += max(1e-4,AbsSdf* 0.2) ;
             Hitp = o + nD * t;
-            RetShadow = min(RetShadow, PushConst.m_ShadowCoefK*AbsSdf/(t+1e-6)*100.0);
-            if(AbsSdf<1e-1 || t>=tMax || RetShadow <= 5e-2){
+            RetShadow = min(RetShadow, PushConst.m_ShadowCoefK*max(0.0,AbsSdf)/(t+1e-6)*5.0);
+
+            if(AbsSdf<0 || t>=tMax || RetShadow <= kShadowInterruptThreshold){
                 break;
             }
         }
@@ -144,7 +148,7 @@ float DistanceFieldShadowInTile(vec3 rayOriginWS, uint TileId){
     for(uint i=0;i<DfInTile;i++){
         uint dfId = GetResource(BTileScatter, PushConst.m_ShadowCullTileDFList).m_Data[tileOffset + i];
         ShadowAttn = min(ShadowAttn,DistanceFieldShadowInObj(rayOriginWS,dfId));
-        if(ShadowAttn<=5e-2){
+        if(ShadowAttn<=kShadowInterruptThreshold){
             break;
         }
     }
@@ -157,10 +161,24 @@ float DistanceFieldShadow(vec3 rayOriginWS){
     if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0){
         return 1.0;
     }
-    uint TileX = uint(uv.x * PushConst.m_ShadowCullTileSize);
-    uint TileY = uint(uv.y * PushConst.m_ShadowCullTileSize);
-    uint TileId = TileX + TileY * PushConst.m_ShadowCullTileSize;
-    return DistanceFieldShadowInTile(rayOriginWS, TileId);
+
+    if(kUseGridCull){
+        uint TileX = uint(uv.x * PushConst.m_ShadowCullTileSize);
+        uint TileY = uint(uv.y * PushConst.m_ShadowCullTileSize);
+        uint TileId = TileX + TileY * PushConst.m_ShadowCullTileSize;
+        return DistanceFieldShadowInTile(rayOriginWS, TileId);
+    }else{
+        uint NumMeshDFs = PushConst.m_TotalCards / 6;
+        float ShadowAttnGlobal = 1.0;
+        for(uint i=0;i<NumMeshDFs;i++){
+            float ShadowAttn = DistanceFieldShadowInObj(rayOriginWS,i);
+            ShadowAttnGlobal = min(ShadowAttnGlobal, ShadowAttn);
+            if(ShadowAttnGlobal <= kShadowInterruptThreshold){
+                break;
+            }
+        }
+        return ShadowAttnGlobal;
+    }
 }
 
 

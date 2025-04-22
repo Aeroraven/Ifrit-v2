@@ -203,14 +203,16 @@ The architecture for subproject Syaro seems to be a little messy, following plan
 
 See [ACKNOWLEDGEMENTS.md](./ACKNOWLEDGEMENTS.md) for more details.
 
-Some ideas might be borrowed from Unreal Engine (or its related SIG or GDC presents). However, due to the license compatibility (AGPL-v3 vs. Unreal Engine's EULA), the code is not copied (or used in other predefined forms) from the Unreal Engine source code.
+Some ideas might be borrowed from Unreal Engine (or its related SIG or GDC presents). However, due to the license compatibility (AGPL-v3 vs. Unreal Engine's EULA), the code is not copied (or used in other predefined unallowed forms) from the Unreal Engine source code.
 
 
 ## 6. License
 
-It's by default licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html). The copy for license can be found in the root directory. 
+The repo is licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html) **by default**. Other licenses are only applicable with all contributors' consent.
 
+All commits and codes before commit `434ff294bca5bf11e318ea91afe327ba5f88e4e1` (not including) are solely licensed under AGPL-v3.0 license **with no exceptions**.
 
+The copy for license can be found in the root directory. 
 
 
 

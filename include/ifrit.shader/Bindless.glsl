@@ -104,6 +104,9 @@ layout(binding = IFRIT_BINDLESS_BINDING_SAMPLER, set = IFRIT_BINDLESS_SET_ID) un
 #define SampleTexture2D(texId, samplerId, uv) texture(sampler2D(IFRIT_SRV_TEXTURE2D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv)
 #define SampleTexture3D(texId, samplerId, uv) texture(sampler3D(IFRIT_SRV_TEXTURE3D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv)
 
+#define SampleTexture2DLoad(texId, samplerId, uv) texelFetch(sampler2D(IFRIT_SRV_TEXTURE2D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv,0)
+#define SampleTexture3DLoad(texId, samplerId, uv) texelFetch(sampler3D(IFRIT_SRV_TEXTURE3D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv,0)
+
 RegisterStorage(bIfritInternal_VerticesPos,{
     vec4 position[];
 });

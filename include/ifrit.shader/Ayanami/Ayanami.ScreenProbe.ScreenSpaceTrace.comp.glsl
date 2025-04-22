@@ -52,7 +52,7 @@ layout(push_constant) uniform UPushConst{
 }PushConst;
 
 const float kRayProceedMax = 5.0;
-const float kRayProceedAdvance = 2e-3;
+const float kRayProceedAdvance = 3e-3;
 const uint kMaxTraceIters = 600;
 const bool kHizProceed = true;
 const bool kUseWordSpaceSsgi = false;
@@ -267,7 +267,7 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
     //return vec3(LastCurZ, LastRefZ, LastIter);
 
     // Check the hit z difference
-    if(abs(DepthDiffVS) > 0.1){
+    if(abs(DepthDiffVS) > 0.05){
         FinalHit = false;
         return vec3(HitUV, 0.0);
     }
