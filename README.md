@@ -2,7 +2,7 @@
 
 **English** | [简体中文](./README_cn.md)
 
-> Some details for the repository is at the repository can be found at:
+> Some details for the repository can be found at:
 >
 > [https://aeroraven.github.io/Ibuki/](https://aeroraven.github.io/Ibuki/)
 
