@@ -1,5 +1,7 @@
 # Ifrit-v2
 
+**English** | [简体中文](./README_cn.md)
+
 
 Some toys about real-time rendering. Currently, it contains:
 

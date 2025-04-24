@@ -242,9 +242,6 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
 
             float StepX = float(NextTexelX) / float(NormSSDirection.x);
             float StepY = float(NextTexelY) / float(NormSSDirection.y);
-
-            //StepX = max(0.0, StepX);
-            //StepY = max(0.0, StepY);
             
             float NextStep;
             if(abs(NormSSDirection.x)<1e-6){
