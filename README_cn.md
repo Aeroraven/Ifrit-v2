@@ -2,6 +2,10 @@
 
 [English](./README.md) | **简体中文**
 
+> 一些关于本仓库的实现细节可以在下方找到：
+>
+> [https://aeroraven.github.io/Ibuki/](https://aeroraven.github.io/Ibuki/)
+
 
 一些关于Real-Time Rendering的小玩具，目前包括内容：
 
