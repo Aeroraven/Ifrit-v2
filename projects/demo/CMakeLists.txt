@@ -33,7 +33,15 @@ include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)
 
 
 # add link libraries to a variable
-set(IFRIT_DEMO_LINK_LIBRARIES ifrit.softrenderer ifrit.meshproclib ifrit.display glfw ifrit.vkrenderer ifrit.runtime ifrit.core)
+set(IFRIT_DEMO_LINK_LIBRARIES 
+    ifrit.softrenderer 
+    ifrit.meshproclib 
+    ifrit.display 
+    glfw 
+    ifrit.vkrenderer 
+    ifrit.runtime 
+    ifrit.core
+    ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(ifrit.demo.syaro meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES})

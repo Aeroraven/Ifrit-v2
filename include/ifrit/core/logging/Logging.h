@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #endif
 
 #include <format>
-#define SPDLOG_HEADER_ONLY
+// #define SPDLOG_HEADER_ONLY
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <tuple>
@@ -35,68 +35,42 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Logging
 {
 
-    template <typename... Args>
-    void Info(const char* fmt, Args&&... args)
+    template <typename... Args> void Info(const char* fmt, Args&&... args)
     {
         spdlog::info(fmt, std::forward<Args>(args)...);
     }
 
-    template <typename... Args>
-    void Warn(const char* fmt, Args&&... args)
+    template <typename... Args> void Warn(const char* fmt, Args&&... args)
     {
         spdlog::warn(fmt, std::forward<Args>(args)...);
     }
 
-    template <typename... Args>
-    void Error(const char* fmt, Args&&... args)
+    template <typename... Args> void Error(const char* fmt, Args&&... args)
     {
         spdlog::error(fmt, std::forward<Args>(args)...);
     }
 
-    template <typename... Args>
-    void Debug(const char* fmt, Args&&... args)
+    template <typename... Args> void Debug(const char* fmt, Args&&... args)
     {
         spdlog::debug(fmt, std::forward<Args>(args)...);
     }
 
-    template <typename... Args>
-    void Trace(const char* fmt, Args&&... args)
+    template <typename... Args> void Trace(const char* fmt, Args&&... args)
     {
         spdlog::trace(fmt, std::forward<Args>(args)...);
     }
 
-    template <typename T>
-    void Info(const T& msg)
-    {
-        spdlog::info(msg);
-    }
+    template <typename T> void Info(const T& msg) { spdlog::info(msg); }
 
-    template <typename T>
-    void Warn(const T& msg)
-    {
-        spdlog::warn(msg);
-    }
+    template <typename T> void Warn(const T& msg) { spdlog::warn(msg); }
 
-    template <typename T>
-    void Error(const T& msg)
-    {
-        spdlog::error(msg);
-    }
+    template <typename T> void Error(const T& msg) { spdlog::error(msg); }
 
-    template <typename T>
-    void Debug(const T& msg)
-    {
-        spdlog::debug(msg);
-    }
+    template <typename T> void Debug(const T& msg) { spdlog::debug(msg); }
 
-    template <typename T>
-    void Trace(const T& msg)
-    {
-        spdlog::trace(msg);
-    }
+    template <typename T> void Trace(const T& msg) { spdlog::trace(msg); }
 
-    template <typename T>
-    void Assertion(bool condition, const T& msg)
+    template <typename T> void Assertion(bool condition, const T& msg)
     {
         if (!condition)
         {
@@ -163,39 +137,33 @@ namespace Ifrit::Logging
         GetLoggerModule(moduleName)->trace(formatted);
     }
 
-    template <typename T>
-    inline void Info2(const char* moduleName, const T& msg)
+    template <typename T> inline void Info2(const char* moduleName, const T& msg)
     {
         auto s = GetLoggerModule(moduleName);
         s->info(msg);
     }
 
-    template <typename T>
-    inline void Warn2(const char* moduleName, const T& msg)
+    template <typename T> inline void Warn2(const char* moduleName, const T& msg)
     {
         GetLoggerModule(moduleName)->warn(msg);
     }
 
-    template <typename T>
-    inline void error2(const char* moduleName, const T& msg)
+    template <typename T> inline void error2(const char* moduleName, const T& msg)
     {
         GetLoggerModule(moduleName)->error(msg);
     }
 
-    template <typename T>
-    inline void Debug2(const char* moduleName, const T& msg)
+    template <typename T> inline void Debug2(const char* moduleName, const T& msg)
     {
         GetLoggerModule(moduleName)->debug(msg);
     }
 
-    template <typename T>
-    inline void Trace2(const char* moduleName, const T& msg)
+    template <typename T> inline void Trace2(const char* moduleName, const T& msg)
     {
         GetLoggerModule(moduleName)->trace(msg);
     }
 
-    template <typename T>
-    inline void Assertion2(const char* moduleName, bool condition, const T& msg)
+    template <typename T> inline void Assertion2(const char* moduleName, bool condition, const T& msg)
     {
         if (!condition)
         {

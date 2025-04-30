@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
-#include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/RenderPass.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
 using namespace Ifrit;

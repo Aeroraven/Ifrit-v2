@@ -62,7 +62,7 @@ namespace Ifrit::Runtime
         u32                   m_meshId;
         u32                   m_primitiveId;
         u32                   m_nodeId;
-        Ref<GameObjectPrefab> m_prefab;
+        Ref<GameObject> m_prefab;
         GLTFPrefab(IComponentManagerKeeper* keeper, AssetMetadata* metadata, GLTFAsset* asset, u32 meshId,
             u32 primitiveId, u32 nodeId, const Matrix4x4f& parentTransform);
     };

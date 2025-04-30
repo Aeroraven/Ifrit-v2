@@ -16,7 +16,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/RenderPass.h"
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 

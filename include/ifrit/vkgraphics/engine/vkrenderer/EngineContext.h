@@ -35,23 +35,33 @@ namespace Ifrit::Graphics::VulkanGraphics
     class IFRIT_APIDECL ResourceDeleteQueue : public Rhi::IRhiDeviceResourceDeleteQueue
     {
     private:
-        std::queue<Rhi::RhiDeviceResource*> m_deleteQueue;
+        u64                            m_CurrentFrameStep = 0;
+        Queue<Rhi::RhiDeviceResource*> m_DeleteQueue;
+        Queue<u64>                     m_FrameIdToDelete;
 
     public:
-        virtual void AddResourceToDeleteQueue(Rhi::RhiDeviceResource* resource) { m_deleteQueue.push(resource); }
+        virtual void AddResourceToDeleteQueue(Rhi::RhiDeviceResource* resource)
+        {
+            m_DeleteQueue.push(resource);
+            m_FrameIdToDelete.push(m_CurrentFrameStep + 2);
+        }
 
-        virtual i32  ProcessDeleteQueue()
+        virtual i32 ProcessDeleteQueue()
         {
             i32 count = 0;
-            while (!m_deleteQueue.empty())
+            while (!m_DeleteQueue.empty())
             {
-                auto resource = m_deleteQueue.front();
-                m_deleteQueue.pop();
+                auto resource = m_DeleteQueue.front();
+                if (m_FrameIdToDelete.front() > m_CurrentFrameStep)
+                    break;
+                m_DeleteQueue.pop();
+                m_FrameIdToDelete.pop();
                 if (!resource->GetDebugName().empty())
                     iDebug("Deleting resource: {}", resource->GetDebugName());
                 delete resource;
                 count++;
             }
+            m_CurrentFrameStep++;
             return count;
         }
 
@@ -130,7 +140,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ExtensionFunction               m_extf;
         VkPhysicalDeviceProperties      m_phyDeviceProperties{};
 
-        Uref<ResourceDeleteQueue>       m_deleteQueue;
+        Uref<ResourceDeleteQueue>       m_DeleteQueue;
 
         std::string                     cacheDirectory = "";
 
@@ -161,6 +171,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         void                                      SetCacheDirectory(const std::string& dir) { cacheDirectory = dir; }
         inline bool                               IsDebugMode() { return m_args.m_enableValidationLayer; }
 
-        inline ResourceDeleteQueue*               GetDeleteQueue() { return m_deleteQueue.get(); }
+        inline ResourceDeleteQueue*               GetDeleteQueue() { return m_DeleteQueue.get(); }
     };
 } // namespace Ifrit::Graphics::VulkanGraphics

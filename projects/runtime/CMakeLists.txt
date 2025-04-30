@@ -32,7 +32,8 @@ target_link_libraries(ifrit.runtime
 	ifrit.meshproclib 
 	ifrit.core 
 	ifrit.imaging
-	${FSR2_API_LIBRARIES})
+	${FSR2_API_LIBRARIES}
+	${IFRIT_COMMON_DEPENDENCIES_SHARED})
 target_compile_options(ifrit.runtime
 	PRIVATE 
 	$<$<CXX_COMPILER_ID:MSVC>:/bigobj> 

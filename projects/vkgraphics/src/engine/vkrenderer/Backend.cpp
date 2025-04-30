@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
 #include "ifrit/core/typing/Util.h"
-#include "ifrit/vkgraphics/engine/vkrenderer/RenderGraph.h"
+#include "ifrit/vkgraphics/engine/vkrenderer/RenderPass.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderTargets.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Timer.h"

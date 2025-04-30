@@ -24,10 +24,16 @@ include_directories(${IFRIT_PROJECT_SUBDIR})
 # if windows
 if(WIN32)
     add_library(ifrit.display SHARED ${IFRIT_DISPLAY_SOURCE_FILES_CXX} ${IFRIT_DISPLAY_SOURCE_FILES_C} ${IFRIT_DISPLAY_HEADER_FILES})
-    target_link_libraries(ifrit.display  glfw Vulkan::Vulkan)
+    target_link_libraries(ifrit.display  
+        glfw 
+        Vulkan::Vulkan
+        ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 else()
     add_library(ifrit.display SHARED ${IFRIT_DISPLAY_SOURCE_FILES_CXX} ${IFRIT_DISPLAY_SOURCE_FILES_C} ${IFRIT_DISPLAY_HEADER_FILES})
-    target_link_libraries(ifrit.display  glfw  Vulkan::Vulkan)
+    target_link_libraries(ifrit.display  
+    glfw  
+    Vulkan::Vulkan
+    ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 endif()
 
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.Display")

@@ -205,9 +205,6 @@ namespace Ifrit::Runtime
         IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components, m_componentIndex, m_componentsHashed);
     };
 
-    // This will change in the future
-    using GameObjectPrefab = GameObject;
-
     class IFRIT_APIDECL Component : public Ifrit::NonCopyable
     {
     protected:

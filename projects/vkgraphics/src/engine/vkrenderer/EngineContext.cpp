@@ -209,7 +209,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         instanceCI.ppEnabledLayerNames     = nullptr;
 
         // Create delete queue
-        m_deleteQueue = std::make_unique<ResourceDeleteQueue>();
+        m_DeleteQueue = std::make_unique<ResourceDeleteQueue>();
 
         // Instance : Extensions
         u32 extensionCount = 0;

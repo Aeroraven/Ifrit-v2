@@ -41,7 +41,11 @@ set(KTX_FEATURE_TESTS OFF CACHE BOOL "Disable KTX feature tests" FORCE)
 set(KTX_FEATURE_TOOLS_CTS OFF CACHE BOOL "Disable KTX tests" FORCE)
 set(KTX_FEATURE_TOOLS OFF CACHE BOOL "Disable KTX tools" FORCE)
 
+# spdlog
+set(SPDLOG_BUILD_SHARED ON CACHE BOOL "Disable KTX tools" FORCE)
+
 # start building
+add_subdirectory(dependencies/spdlog)
 add_subdirectory(dependencies/glfw)
 add_subdirectory(dependencies/meshoptimizer)
 add_subdirectory(dependencies/gklib)
@@ -60,6 +64,7 @@ add_subdirectory(projects/runtime)
 add_subdirectory(projects/rhi)
 add_subdirectory(projects/demo)
 
+add_dependencies(ifrit.core spdlog)
 add_dependencies(ifrit.meshproclib meshoptimizer metis)
 add_dependencies(ifrit.softrenderer ifrit.ircompile)
 add_dependencies(ifrit.imaging ktx)

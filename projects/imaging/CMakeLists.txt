@@ -25,5 +25,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_library(ifrit.imaging SHARED ${IFRIT_IMAGING_SOURCE_FILES_CXX} ${IFRIT_IMAGING_SOURCE_FILES_C})
-target_link_libraries(ifrit.imaging PUBLIC ktx)     
+target_link_libraries(ifrit.imaging PUBLIC 
+    ktx
+    ${IFRIT_COMMON_DEPENDENCIES_SHARED})     
 
