@@ -18,11 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "Component.h"
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/math/VectorDefs.h"
-#include "ifrit/core/serialization/MathTypeSerialization.h"
-#include "ifrit/core/serialization/SerialInterface.h"
-#include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/common/Pch.h"
 
 namespace Ifrit::Runtime
 {

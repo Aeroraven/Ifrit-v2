@@ -18,10 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/base/IfritBase.h"
 
-#include "ifrit/core/logging/Logging.h"
-#include "ifrit/core/math/constfunc/ConstFunc.h"
 #include "ifrit/core/file/FileOps.h"
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/renderer/RendererUtil.h"
 #include "ifrit/runtime/renderer/SyaroRenderer.h"
 #include "ifrit/runtime/renderer/util/RenderingUtils.h"

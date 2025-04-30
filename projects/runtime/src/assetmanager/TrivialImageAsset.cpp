@@ -17,7 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/assetmanager/TrivialImageAsset.h"
-#include "ifrit/core/logging/Logging.h"
+#include "ifrit/runtime/common/Pch.h"
+
 #include "ifrit/imaging/compress/CompressedTextureUtil.h"
 #include <fstream>
 
@@ -87,8 +88,8 @@ namespace Ifrit::Runtime
             {
                 defaultFmt = Graphics::Rhi::RhiImageFormat::RhiImgFmt_BC5_UNORM_BLOCK;
             }
-            //TextureFormat fmt;
-            u32           baseWidth, baseHeight, baseDepth;
+            // TextureFormat fmt;
+            u32 baseWidth, baseHeight, baseDepth;
             ReadBlockCompressedTex2DFromFile(data, cacheFile, baseWidth, baseHeight, baseDepth);
             texSize  = data.GetSize();
             height   = baseHeight;

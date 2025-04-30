@@ -17,10 +17,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/assetmanager/GLTFAsset.h"
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/logging/Logging.h"
+#include "ifrit/runtime/common/Pch.h"
+
 #include "ifrit/core/algo/Hash.h"
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/assetmanager/TextureAsset.h"
 #include "ifrit/runtime/material/SyaroDefaultGBufEmitter.h"
 #include <fstream>

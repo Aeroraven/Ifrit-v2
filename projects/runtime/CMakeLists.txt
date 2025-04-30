@@ -26,6 +26,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_library(ifrit.runtime SHARED ${IFRIT_CORELIB_SOURCE_FILES_CXX} ${IFRIT_CORELIB_SOURCE_FILES_C})
+
+# rhi include
+set(IFRIT_RUNTIME_INCLUDE_PATH ${IFRIT_PROJECT_DIR}/include/ifrit/runtime)
+set(IFRIT_RUNTIME_PCH_HEADER ${IFRIT_RUNTIME_INCLUDE_PATH}/common/Pch.h)
+
+target_precompile_headers(ifrit.runtime
+	PRIVATE 
+	$<$<CXX_COMPILER_ID:MSVC>:"${IFRIT_RUNTIME_PCH_HEADER}"> 
+	$<$<CXX_COMPILER_ID:GNU>:"${IFRIT_RUNTIME_PCH_HEADER}">)
+
 target_link_libraries(ifrit.runtime 
 	ifrit.rhi 
 	ifrit.display 
@@ -34,6 +44,7 @@ target_link_libraries(ifrit.runtime
 	ifrit.imaging
 	${FSR2_API_LIBRARIES}
 	${IFRIT_COMMON_DEPENDENCIES_SHARED})
+
 target_compile_options(ifrit.runtime
 	PRIVATE 
 	$<$<CXX_COMPILER_ID:MSVC>:/bigobj> 

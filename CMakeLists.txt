@@ -64,11 +64,27 @@ add_subdirectory(projects/runtime)
 add_subdirectory(projects/rhi)
 add_subdirectory(projects/demo)
 
-add_dependencies(ifrit.core spdlog)
-add_dependencies(ifrit.meshproclib meshoptimizer metis)
-add_dependencies(ifrit.softrenderer ifrit.ircompile)
-add_dependencies(ifrit.imaging ktx)
-add_dependencies(ifrit.runtime ifrit.rhi ifrit.display ifrit.meshproclib ifrit.core ${FSR2_API_LIBRARIES})
+add_dependencies(ifrit.core 
+    spdlog)
+add_dependencies(ifrit.meshproclib 
+    meshoptimizer 
+    metis
+    ifrit.core)
+
+add_dependencies(ifrit.softrenderer 
+    ifrit.ircompile
+    ifrit.core)
+
+add_dependencies(ifrit.imaging 
+    ktx
+    ifrit.core)
+
+add_dependencies(ifrit.runtime 
+    ifrit.rhi 
+    ifrit.display 
+    ifrit.meshproclib 
+    ifrit.core 
+    ${FSR2_API_LIBRARIES})
 
 set(DEMO_DEPENDENCIES 
     ifrit.vkrenderer 

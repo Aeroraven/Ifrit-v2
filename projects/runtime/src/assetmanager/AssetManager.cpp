@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/algo/Identifier.h"
 #include "ifrit/runtime/assetmanager/Asset.h"
 #include "ifrit/runtime/assetmanager/DirectDrawSurfaceAsset.h"
@@ -26,7 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/assetmanager/WaveFrontAsset.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
 #include <fstream>
-#include <iostream>
 #include <stdexcept>
 
 namespace Ifrit::Runtime

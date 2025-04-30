@@ -20,10 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "AssetReference.h"
 #include "Component.h"
 #include "Material.h"
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/common/Pch.h"
 #include "ifrit/meshproc/engine/mesh/MeshClusterBase.h"
-#include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Runtime
 {

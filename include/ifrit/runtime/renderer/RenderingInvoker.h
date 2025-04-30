@@ -15,11 +15,11 @@ GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+#pragma once
+#include "ifrit/runtime/common/Pch.h"
 
-#include "ifrit/core/logging/Logging.h"
 #include "ifrit/runtime/application/Application.h"
 #include "ifrit/display/presentation/window/WindowSelector.h"
-#include "ifrit/rhi/platform/RhiSelector.h"
 
 namespace Ifrit::Runtime
 {

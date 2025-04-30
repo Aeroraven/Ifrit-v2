@@ -24,10 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/meshproc/engine/meshsdf/MeshSDFConverter.h"
 #undef IFRIT_MESHPROC_IMPORT
 
-#include "ifrit/core/math/simd/SimdVectors.h"
-#include "ifrit/core/math/VectorOps.h"
 #include "ifrit/core/file/FileOps.h"
-#include "ifrit/core/typing/Util.h"
 #include <filesystem>
 
 #include "ifrit/imaging/compress/CompressedTextureUtil.h"

@@ -17,11 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/RendererBase.h"
-#include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/algo/Parallel.h"
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/base/Light.h"
-#include "ifrit/rhi/common/RhiLayer.h"
 
 #include "ifrit/runtime/renderer/util/NoiseUtils.h"
 #include "ifrit/runtime/renderer/util/RenderingUtils.h"

@@ -17,14 +17,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/math/VectorDefs.h"
+#include "ifrit/runtime/common/Pch.h"
+
 #include "ifrit/runtime/base/Material.h"
 #include "ifrit/runtime/base/Mesh.h"
 #include "ifrit/runtime/base/Object.h"
-#include "ifrit/rhi/common/RhiLayer.h"
-#include <unordered_map>
-#include <vector>
 
 namespace Ifrit::Runtime
 {

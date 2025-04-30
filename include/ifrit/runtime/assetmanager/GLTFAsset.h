@@ -17,7 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/runtime/common/Pch.h"
+
 #include "ifrit/runtime/assetmanager/Asset.h"
 #include "ifrit/runtime/base/Mesh.h"
 
@@ -58,10 +59,10 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL GLTFPrefab
     {
     public:
-        GLTFAsset*            m_asset;
-        u32                   m_meshId;
-        u32                   m_primitiveId;
-        u32                   m_nodeId;
+        GLTFAsset*      m_asset;
+        u32             m_meshId;
+        u32             m_primitiveId;
+        u32             m_nodeId;
         Ref<GameObject> m_prefab;
         GLTFPrefab(IComponentManagerKeeper* keeper, AssetMetadata* metadata, GLTFAsset* asset, u32 meshId,
             u32 primitiveId, u32 nodeId, const Matrix4x4f& parentTransform);

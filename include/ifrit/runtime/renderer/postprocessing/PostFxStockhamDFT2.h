@@ -17,10 +17,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/runtime/common/Pch.h"
 #include "ifrit/core/algo/Hash.h"
 #include "ifrit/runtime/renderer/PostprocessPass.h"
-#include <unordered_map>
 
 namespace Ifrit::Runtime::PostprocessPassCollection
 {

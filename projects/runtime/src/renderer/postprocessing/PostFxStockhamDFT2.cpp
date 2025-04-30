@@ -1,9 +1,6 @@
 #pragma once
 #include "ifrit/runtime/renderer/postprocessing/PostFxStockhamDFT2.h"
-#include "ifrit/core/logging/Logging.h"
-#include "ifrit/core/math/constfunc/ConstFunc.h"
 #include "ifrit/core/math/fastutil/FastUtil.h"
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime::PostprocessPassCollection

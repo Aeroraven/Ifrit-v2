@@ -18,22 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "AssetReference.h"
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/algo/Container.h"
-#include "ifrit/core/logging/Logging.h"
-#include "ifrit/core/math/VectorDefs.h"
-#include "ifrit/core/serialization/MathTypeSerialization.h"
-#include "ifrit/core/serialization/SerialInterface.h"
-#include "ifrit/core/platform/ApiConv.h"
-#include "ifrit/core/typing/Util.h"
-#include "ifrit/rhi/common/RhiLayer.h"
-#include <array>
-#include <cstdint>
-#include <memory>
-#include <string>
+#include "ifrit/runtime/common/Pch.h"
+
 #include <typeinfo>
-#include <unordered_map>
-#include <vector>
 
 #define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject, __VA_ARGS__)
 #define IFRIT_COMPONENT_REGISTER(x) \

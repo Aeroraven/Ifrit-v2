@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/runtime/assetmanager/Asset.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/runtime/common/Pch.h"
 
 namespace Ifrit::Runtime
 {

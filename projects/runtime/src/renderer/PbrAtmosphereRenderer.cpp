@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/PbrAtmosphereRenderer.h"
 #include "ifrit.shader/Atmosphere/PAS.SharedConst.h"
-#include "ifrit/core/math/constfunc/ConstFunc.h"
 #include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/util/PbrAtmoConstants.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"

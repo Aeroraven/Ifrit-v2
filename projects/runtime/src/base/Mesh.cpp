@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/meshproc/engine/base/MeshDesc.h"
 
 #undef IFRIT_MESHPROC_IMPORT
-#include "ifrit/core/math/simd/SimdVectors.h"
+#include "ifrit/runtime/common/Pch.h"
 #include "ifrit/core/file/FileOps.h"
 #include <filesystem>
 

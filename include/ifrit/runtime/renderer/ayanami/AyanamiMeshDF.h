@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/runtime/base/Component.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/runtime/common/Pch.h"
 #include "ifrit/runtime/renderer/SharedRenderResource.h"
 
 namespace Ifrit::Runtime::Ayanami

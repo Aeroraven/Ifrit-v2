@@ -17,7 +17,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/application/Application.h"
-#include "ifrit/core/logging/Logging.h"
 #include "ifrit/display/presentation/window/WindowSelector.h"
 #include "ifrit/rhi/platform/RhiSelector.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"

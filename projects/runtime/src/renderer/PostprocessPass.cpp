@@ -1,5 +1,4 @@
 #include "ifrit/runtime/renderer/PostprocessPass.h"
-#include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 

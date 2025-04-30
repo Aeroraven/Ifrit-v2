@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/runtime/renderer/ayanami/AyanamiGlobalDF.h"
 #include "ifrit/runtime/renderer/util/RenderingUtils.h"
-#include "ifrit/core/math/constfunc/ConstFunc.h"
 
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"

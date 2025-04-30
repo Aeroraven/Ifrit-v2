@@ -17,8 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/assetmanager/WaveFrontAsset.h"
-#include "ifrit/core/logging/Logging.h"
-#include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/common/Pch.h"
 #include <fstream>
 
 using Ifrit::SizeCast;

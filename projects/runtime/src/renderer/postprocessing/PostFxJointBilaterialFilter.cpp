@@ -1,7 +1,4 @@
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/renderer/postprocessing/PostFxJointBilaterialFilter.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 

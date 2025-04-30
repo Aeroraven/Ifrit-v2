@@ -17,7 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/runtime/common/Pch.h"
+
 #include "ifrit/runtime/application/ProjectProperty.h"
 #include "ifrit/runtime/assetmanager/Asset.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
@@ -26,7 +27,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/scene/SceneManager.h"
 #include "ifrit/runtime/util/TimingRecorder.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
-#include <string>
 
 namespace Ifrit::Runtime
 {

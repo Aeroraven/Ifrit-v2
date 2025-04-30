@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/AyanamiRenderer.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
 
-#include "ifrit/core/math/constfunc/ConstFunc.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiSceneAggregator.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiTrivialSurfaceCache.h"
 

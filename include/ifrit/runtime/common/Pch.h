@@ -17,22 +17,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/runtime/common/Pch.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/algo/Container.h"
+#include "ifrit/core/logging/Logging.h"
+#include "ifrit/core/math/VectorDefs.h"
+#include "ifrit/core/serialization/MathTypeSerialization.h"
+#include "ifrit/core/serialization/SerialInterface.h"
+#include "ifrit/core/platform/ApiConv.h"
+#include "ifrit/core/typing/Util.h"
+#include "ifrit/rhi/common/RhiLayer.h"
 
-#include "ifrit/runtime/renderer/PostprocessPass.h"
-
-namespace Ifrit::Runtime::PostprocessPassCollection
-{
-
-    class IFRIT_APIDECL PostFxJointBilaterialFilter : public PostprocessPass
-    {
-        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
-        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
-
-    public:
-        PostFxJointBilaterialFilter(IApplication* app);
-        void RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets, GPUBindId* colorSRV,
-            GPUBindId* normalSRV, GPUBindId* depthSRV, u32 kernelSize);
-    };
-
-} // namespace Ifrit::Runtime::PostprocessPassCollection
+#include "ifrit/core/math/constfunc/ConstFunc.h"
+#include "ifrit/core/math/simd/SimdVectors.h"

@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/util/TimingRecorder.h"
 #include "ifrit/runtime/forwarding/FwdShaderRegistry.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/rhi/common/RhiForwardingTypes.h"
 #include "ifrit/runtime/renderer/SharedRenderResource.h"
 
 namespace Ifrit::Runtime

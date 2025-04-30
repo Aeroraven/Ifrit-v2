@@ -1,6 +1,5 @@
 #pragma once
 #include "ifrit/runtime/renderer/postprocessing/PostFxGaussianHori.h"
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime::PostprocessPassCollection

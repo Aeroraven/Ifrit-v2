@@ -1,4 +1,3 @@
-#include "ifrit/core/base/IfritBase.h"
 
 #include "ifrit/core/math/constfunc/ConstFunc.h"
 #include "ifrit/runtime/renderer/commonpass/SinglePassHiZ.h"
