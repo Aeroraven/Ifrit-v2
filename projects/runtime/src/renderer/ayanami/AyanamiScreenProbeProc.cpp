@@ -173,14 +173,14 @@ namespace Ifrit::Runtime::Ayanami
                 Array<u32, 36> cubeTriangleIndex = { TMP_CUBE_INDICES };
 #undef TMP_CUBE_INDICES
                 m_Private->m_CubeIndexRHI = m_Rhi->CreateBuffer("Ayanami.Persistent.ScreenProbe.CubeIndex",
-                    sizeof(u32) * cubeTriangleIndex.size(),
+                    sizeof(u32) * SizeCast<u32>(cubeTriangleIndex.size()),
                     RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_Index, false, false);
 
                 auto stagingBuffer = m_Rhi->CreateStagedSingleBuffer(m_Private->m_CubeIndexRHI.get());
                 auto tq            = m_Rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
                 tq->RunSyncCommand([&](const RhiCommandList* cmdList) {
                     stagingBuffer->CmdCopyToDevice(
-                        cmdList, cubeTriangleIndex.data(), sizeof(u32) * cubeTriangleIndex.size(), 0);
+                        cmdList, cubeTriangleIndex.data(), sizeof(u32) * SizeCast<u32>(cubeTriangleIndex.size()), 0);
                 });
             }
             m_Private->m_CubeIndex =
@@ -447,8 +447,8 @@ namespace Ifrit::Runtime::Ayanami
         } pc;
         pc.m_WorldBoundMin = m_Private->m_ActiveWorldBoundMin;
         pc.m_WorldBoundMax = m_Private->m_ActiveWorldBoundMax;
-        pc.m_CullGridSize  = Vector4f(
-            m_Private->m_MDFCullGridSizeXY, m_Private->m_MDFCullGridSizeXY, m_Private->m_MDFCullGridSizeZ, 0.0f);
+        pc.m_CullGridSize  = Vector4f(1.0f * m_Private->m_MDFCullGridSizeXY, 1.0f * m_Private->m_MDFCullGridSizeXY,
+             1.0f * m_Private->m_MDFCullGridSizeZ, 0.0f);
         pc.m_RayJitter                       = Vector2f(0.0f, 0.0f);
         pc.m_PerFrameCBV                     = perframeCBV;
         pc.m_RTWidth                         = m_Private->m_ActiveRTWidth;

@@ -43,7 +43,7 @@ namespace Ifrit
                 {
                     auto numChildJobs = m_ChildJobs.load(std::memory_order_acquire);
                     // Decreases the parent job's child count
-                    for (u32 i = 0; i < numChildJobs; ++i)
+                    for (u32 i = 0; i < static_cast<u32>(numChildJobs); ++i)
                     {
                         auto childJob = m_Continuations[i];
                         if (childJob != nullptr)
@@ -132,9 +132,6 @@ namespace Ifrit
                     return stolenTask;
                 }
             }
-            int sz = m_Attributes->m_JobQueue.Size();
-            int th = m_Attributes->m_ThreadId;
-            // iWarn("TaskWorker: No task to fetch {}. Worker {} is idle.",sz ,th );
             return TaskRef();
         }
         else

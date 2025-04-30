@@ -105,7 +105,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         buildInfo.sType         = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
         buildInfo.type          = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
         buildInfo.flags         = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-        buildInfo.geometryCount = geometries.size();
+        buildInfo.geometryCount = SizeCast<u32>(geometries.size());
         buildInfo.pGeometries   = geometries.data();
 
         VkAccelerationStructureBuildSizesInfoKHR sizeInfo = {};
@@ -115,7 +115,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         // Create buffer
         BufferCreateInfo blasBufferCI;
-        blasBufferCI.size        = sizeInfo.accelerationStructureSize;
+        blasBufferCI.size        = SizeCast<u32>(sizeInfo.accelerationStructureSize);
         blasBufferCI.hostVisible = false;
         blasBufferCI.usage =
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
@@ -132,7 +132,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         // Build BLAS
         BufferCreateInfo scratchBufferCI;
-        scratchBufferCI.size        = sizeInfo.buildScratchSize;
+        scratchBufferCI.size        = SizeCast<u32>(sizeInfo.buildScratchSize);
         scratchBufferCI.hostVisible = false;
         scratchBufferCI.usage       = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         m_scratchBuffer             = std::make_shared<SingleBuffer>(m_context, scratchBufferCI);
@@ -197,7 +197,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             pBuildRanges.push_back(&range);
         }
 
-        u32                                         numInstances = instances.size();
+        u32                                         numInstances = SizeCast<u32>(instances.size());
         VkAccelerationStructureBuildGeometryInfoKHR buildInfo    = {};
         buildInfo.sType         = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
         buildInfo.type          = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
@@ -214,7 +214,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         // Create As buffer
         BufferCreateInfo tlasBufferCI;
-        tlasBufferCI.size        = sizeInfo.accelerationStructureSize;
+        tlasBufferCI.size        = SizeCast<u32>(sizeInfo.accelerationStructureSize);
         tlasBufferCI.hostVisible = false;
         tlasBufferCI.usage =
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
@@ -231,7 +231,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         // Build TLAS
         BufferCreateInfo scratchBufferCI;
-        scratchBufferCI.size        = sizeInfo.buildScratchSize;
+        scratchBufferCI.size        = SizeCast<u32>(sizeInfo.buildScratchSize);
         scratchBufferCI.hostVisible = false;
         scratchBufferCI.usage       = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         m_scratchBuffer             = std::make_shared<SingleBuffer>(m_context, scratchBufferCI);
@@ -261,7 +261,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL void ShaderBindingTable::appendShaderBindingTable(const Vec<Rhi::RhiRTShaderGroup>& groups)
     {
 
-        auto             numShaders = groups.size();
+        auto             numShaders = SizeCast<u32>(groups.size());
         BufferCreateInfo sbtBufferCI{};
         sbtBufferCI.size        = numShaders * m_rtContext->getAlignedShaderGroupHandleSize();
         sbtBufferCI.hostVisible = true;
@@ -290,7 +290,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
             if (shaderMap.find(shader) == shaderMap.end())
             {
-                shaderMap[shader] = m_shaders.size();
+                shaderMap[shader] = SizeCast<u32>(m_shaders.size());
                 m_shaders.push_back(shader);
             }
         };
@@ -331,7 +331,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             VkRayTracingShaderGroupCreateInfoKHR groupCI = {};
             groupCI.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
             bool hasHitShaders                           = false;
-            u32  numGroups                               = group.size();
+            u32  numGroups                               = SizeCast<u32>(group.size());
             for (auto& shader : group)
             {
                 hasHitShaders = false;
@@ -549,7 +549,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto pipeline = std::make_unique<RaytracingPipeline>(m_context, m_rtContext, ci);
         m_raytracingPipelines.push_back(std::move(pipeline));
         m_raytracingPipelineCI.push_back(ci);
-        m_rtPipelineHash[hash].push_back(m_raytracingPipelines.size() - 1);
+        m_rtPipelineHash[hash].push_back(SizeCast<i32>(m_raytracingPipelines.size()) - 1);
         return pipeline.get();
     }
 

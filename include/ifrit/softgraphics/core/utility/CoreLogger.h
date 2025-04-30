@@ -57,7 +57,13 @@ namespace Ifrit::Graphics::SoftGraphics::Core::Utility
 					break;
 			}
 			std::time_t t = std::time(0);
+#ifdef _MSC_VER
+            std::tm nowp;
+            std::tm* now = &nowp;
+            localtime_s(now, &t);
+#else
 			std::tm*	now = std::localtime(&t);
+#endif
 			std::cout << "[" << logLevel << "][" << now->tm_year + 1900 << "-"
 					  << now->tm_mon + 1 << "-" << now->tm_mday << " " << now->tm_hour
 					  << ":" << now->tm_min << ":" << now->tm_sec << "][" << caller

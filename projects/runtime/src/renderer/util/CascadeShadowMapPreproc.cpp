@@ -92,7 +92,7 @@ namespace Ifrit::Runtime::RenderingUtil::CascadeShadowMapping
             result.m_proj           = proj;
             result.m_view           = view;
             result.m_lightCamPos    = { rCenter.x, rCenter.y, rCenter.z, 1.0f };
-            result.m_near           = 1e-3;
+            result.m_near           = 1e-3f;
             result.m_far            = rZFar;
             result.m_orthoSize      = rOrthoSize;
             result.m_clipOrthoSizeX = rCullOrthoX;

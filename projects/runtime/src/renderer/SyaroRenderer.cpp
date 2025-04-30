@@ -128,8 +128,8 @@ namespace Ifrit::Runtime
         RhiScissor scissor;
         scissor.x      = 0;
         scissor.y      = 0;
-        scissor.width  = finalRenderTargets->GetRenderArea().width / cfg.m_SuperSamplingRate;
-        scissor.height = finalRenderTargets->GetRenderArea().height / cfg.m_SuperSamplingRate;
+        scissor.width  = static_cast<u32>( finalRenderTargets->GetRenderArea().width / cfg.m_SuperSamplingRate);
+        scissor.height = static_cast<u32>( finalRenderTargets->GetRenderArea().height / cfg.m_SuperSamplingRate);
         return scissor;
     }
 
@@ -885,7 +885,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void SyaroRenderer::MaterialClassifyBufferSetup(
         PerFrameData& perframeData, RenderTargets* renderTargets)
     {
-        auto numMaterials = perframeData.m_enabledEffects.size();
+        auto numMaterials = SizeCast<u32>(perframeData.m_enabledEffects.size());
         auto rhi          = m_app->GetRhi();
 
         u32  actualRtWidth = 0, actualRtHeight = 0;

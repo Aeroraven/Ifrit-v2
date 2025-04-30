@@ -344,7 +344,7 @@ namespace Ifrit
             {
                 return nullptr;
             }
-            if (index.m_Ptr >= m_IdToPtr.size())
+            if (index.m_Ptr >= SizeCast<IntPtr>( m_IdToPtr.size()))
             {
                 iError("RObjectQueue: Invalid index: {}. Max size: {}", index.m_Ptr, m_IdToPtr.size());
                 std::abort();
@@ -358,7 +358,7 @@ namespace Ifrit
             {
                 return;
             }
-            if (index.m_Ptr >= m_IdToPtr.size())
+            if (index.m_Ptr >= SizeCast<IntPtr>(m_IdToPtr.size()))
             {
                 iError("RObjectQueue: Invalid index: {}. Max size: {}", index.m_Ptr, m_IdToPtr.size());
                 std::abort();

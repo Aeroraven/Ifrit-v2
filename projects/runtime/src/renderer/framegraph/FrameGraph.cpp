@@ -501,7 +501,7 @@ namespace Ifrit::Runtime
         Vec<u32> resourceEndUse;
         for (u32 i = 0; i < graph.m_resources.size(); i++)
         {
-            resourceBeginUse.push_back(graph.m_passes.size());
+            resourceBeginUse.push_back( SizeCast<ResourceNodeId>( graph.m_passes.size()));
             resourceEndUse.push_back(0);
         }
         for (u32 i = 0; i < graph.m_passes.size(); i++)

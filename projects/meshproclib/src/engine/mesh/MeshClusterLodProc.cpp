@@ -74,7 +74,9 @@ namespace Ifrit::MeshProcLib::MeshProcess
         }
         return (u64(a) << 32) | b;
     }
-    std::tuple<u32, u32> UnpackUnorderedPair(u64 pair) { return std::make_tuple(pair >> 32, pair & 0xFFFFFFFFull); }
+    std::tuple<u32, u32> UnpackUnorderedPair(u64 pair)
+    { return std::make_tuple(static_cast<u32>(pair >> 32), static_cast<u32>(pair & 0xFFFFFFFFull));
+    }
 
     void                 FreeUnusedMemoryInCotenxt(ClusterLodGeneratorContext& ctx)
     {
@@ -466,7 +468,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
             auto   option           = meshopt_SimplifyLockBorder | meshopt_SimplifyErrorAbsolute;
             auto   targetIndexCount = static_cast<u32>(aggregatedIndexBuffer.size() * MESH_SIMPLIFICATION_RATE);
             f32    targetError      = predefError * modelScale; // 0.01f;
-            size_t simplifiedSize   = 0.0;
+            size_t simplifiedSize   = 0;
 
             if (mesh.normalData == nullptr)
             {

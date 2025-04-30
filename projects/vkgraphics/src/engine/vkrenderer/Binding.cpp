@@ -174,7 +174,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             return m_storageBufferMap[buffer->GetBuffer()];
         }
 
-        auto handleId = m_storageBuffers.size();
+        auto handleId = SizeCast<u32>(m_storageBuffers.size());
         m_storageBuffers.push_back(buffer->GetBuffer());
         m_storageBufferMap[buffer->GetBuffer()] = handleId;
 
@@ -208,7 +208,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             return it->second;
         }
-        auto handleId = m_SampledImages.size();
+        auto handleId = SizeCast<u32>(m_SampledImages.size());
         m_SampledImages.push_back(imgView);
 
         m_SampledImageMap[imgView] = handleId;
@@ -235,7 +235,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             return it->second;
         }
-        auto handleId = m_IndependentSamplers.size();
+        auto handleId = SizeCast<u32>(m_IndependentSamplers.size());
         m_IndependentSamplers.push_back(samplerHandle);
         m_IndependentSamplerMap[samplerHandle] = handleId;
 

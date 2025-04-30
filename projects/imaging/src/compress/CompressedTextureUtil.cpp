@@ -123,7 +123,7 @@ namespace Ifrit::Imaging::Compress
         faceSlice = 0;
 
         result    = ktxTexture_GetImageOffset(texture, level, layer, faceSlice, &offset);
-        sliceSize = ktxTexture_GetDataSize(texture);
+        sliceSize = static_cast<u32>(ktxTexture_GetDataSize(texture));
         image     = ktxTexture_GetData(texture) + offset;
 
         baseWidth  = texture->baseWidth;

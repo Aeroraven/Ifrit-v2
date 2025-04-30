@@ -210,7 +210,7 @@ namespace Ifrit::Runtime::Ayanami
                 auto uvBuffer      = meshResource.uvBuffer;
                 auto tangentBuffer = meshResource.tangentBuffer;
                 auto normalBuffer  = meshResource.normalBuffer;
-                auto indexCounts   = meshData->m_indices.size();
+                auto indexCounts   = SizeCast<u32>(meshData->m_indices.size());
 
                 if (vertexBuffer == nullptr || indexBuffer == nullptr)
                 {
@@ -270,7 +270,7 @@ namespace Ifrit::Runtime::Ayanami
                     Matrix4x4f viewMatrix = LookAt(viewLocation, viewTarget, viewUp);
 
                     f32        viewAspect = cardExtent.x / cardExtent.y;
-                    Matrix4x4f viewOrtho  = OrthographicNegateY(cardExtent.y * 2.0, viewAspect, viewNearPlane,
+                    Matrix4x4f viewOrtho  = OrthographicNegateY(cardExtent.y * 2.0f, viewAspect, viewNearPlane,
                          cardExtent.z * 2.0f + viewNearPlane + cardZCompensation);
 
                     // printf("ViewExtent: %f, %f, %f\n", cardExtent.x, cardExtent.y, cardExtent.z);
@@ -341,10 +341,10 @@ namespace Ifrit::Runtime::Ayanami
             {
                 RhiViewport      viewport;
                 ManagedMeshCard& card = m_Resources->m_MeshCards[id];
-                viewport.x            = card.m_CardLocation.x;
-                viewport.y            = card.m_CardLocation.y;
-                viewport.width        = card.m_CardExtent.x;
-                viewport.height       = card.m_CardExtent.y;
+                viewport.x            = 1.0f * card.m_CardLocation.x;
+                viewport.y            = 1.0f * card.m_CardLocation.y;
+                viewport.width        = 1.0f * card.m_CardExtent.x;
+                viewport.height       = 1.0f * card.m_CardExtent.y;
                 viewport.minDepth     = 0.0f;
                 viewport.maxDepth     = 1.0f;
                 cmd->SetViewports({ viewport });
@@ -469,8 +469,8 @@ namespace Ifrit::Runtime::Ayanami
 
         auto maxAtlasSlots =
             m_Resolution * m_Resolution / m_Resources->m_AtlasElementSize / m_Resources->m_AtlasElementSize;
-        auto requiredObserverBufferSize = maxAtlasSlots * sizeof(ManagedMeshCardGPUData);
-        auto requiredCoherentBufferSize = maxAtlasSlots * sizeof(ManagedMeshCardCoherentGPUData);
+        auto requiredObserverBufferSize = SizeCast<u32>(maxAtlasSlots * sizeof(ManagedMeshCardGPUData));
+        auto requiredCoherentBufferSize = SizeCast<u32>(maxAtlasSlots * sizeof(ManagedMeshCardCoherentGPUData));
 
         m_Resources->m_ObserveDeviceData =
             rhi->CreateBuffer("AyanamiTrivialSurfaceCache_ObserverData", requiredObserverBufferSize,
@@ -660,7 +660,7 @@ namespace Ifrit::Runtime::Ayanami
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateSurfaceModelMatrix()
     {
-        for (int i = 0; i < m_Resources->m_MeshCardIndex; i++)
+        for (u32 i = 0; i < m_Resources->m_MeshCardIndex; i++)
         {
             auto obj                                                = m_Resources->m_MeshCards[i].m_Object;
             auto transform                                          = obj->GetComponent<Transform>();

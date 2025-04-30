@@ -42,7 +42,7 @@ namespace Ifrit::Runtime
         fileReaded.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         file.close();
         Ref<Scene> x;
-        Ifrit::Common::Serialization::deserialize(fileReaded, x);
+        Ifrit::Common::Serialization::DeserializeBinary(fileReaded, x);
         asset->m_scene = x;
         auto fileName  = metadata.m_name;
         // remove extension
@@ -107,7 +107,7 @@ namespace Ifrit::Runtime
         {
             auto   scene = m_scenes[idx];
             String serialized;
-            serialize(scene, serialized);
+            SerializeBinary(scene, serialized);
             auto          fileName = m_sceneDataPath / (name + cSceneFileExtension);
             std::ofstream file(fileName);
             file << serialized;
@@ -135,7 +135,7 @@ namespace Ifrit::Runtime
             file.seekg(0, std::ios::beg);
             serialized.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             Ref<Scene> scene;
-            deserialize(serialized, scene);
+            DeserializeBinary(serialized, scene);
             // use the name of the file as the key, extension removed
             auto name = entry.path().filename().replace_extension("").generic_string();
             // m_scenes[name] = scene;

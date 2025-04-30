@@ -14,6 +14,14 @@
 
 ### Resolved
 
+#### 2025.05
+
+- Build: 降低编译耗时 (PCH, spdlog由head only转库文件，移除cereal冗余archive) (250501)
+
+  | After Fixing       | Before Fixing   |
+  | ------------------ | --------------- |
+  | 编译用时: 4min 30s | 编译用时: 11min |
+
 #### 2025.04
 
 - Ayanami: 缓解 SDF RayMarching （包括离线Shadow Mask生成）的高延迟和内存带宽(Nsight Graphics: Long Scoreboard)：停止无效步进，优化DF Shadow Culling包围盒，调整Object Grid的Culling和Sort策略，自适应MDF体积，引入MDF的BC4压缩。(250412)
@@ -34,7 +42,7 @@
     
 
 - VkGraphics: 修复AllocateCommandBuffer导致的内存泄漏 (250404)
-  
+
   - 参考：https://developer.download.nvidia.com/gameworks/events/GDC2016/Vulkan_Essentials_GDC16_tlorach.pdf#page=25.00
 
 

@@ -312,7 +312,7 @@ namespace Ifrit::Runtime
             m_Resources->m_ScreenProbe->ProbeMDFTrace(
                 builder, primaryViewCBV, m_Resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth);
 
-            m_Resources->m_ScreenProbe->ProbeGDFTrace(builder, primaryViewCBV, &resGDepth, &resGlobalDFGen, 13.0f);
+            m_Resources->m_ScreenProbe->ProbeGDFTrace(builder, primaryViewCBV, &resGDepth, &resGlobalDFGen, 13);
             m_Resources->m_ScreenProbe->ProbeOctMappingBorderFix(builder);
             m_Resources->m_ScreenProbe->ProbeIntegrate(builder);
             m_Resources->m_ScreenProbe->ProbePixelGather(

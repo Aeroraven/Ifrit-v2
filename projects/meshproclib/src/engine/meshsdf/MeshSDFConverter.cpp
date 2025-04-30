@@ -311,7 +311,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         data.asRoot->bboxMin  = data.bboxMin;
         data.asRoot->bboxMax  = data.bboxMax;
         data.asRoot->startIdx = 0;
-        data.asRoot->endIdx   = data.asTriIndices.size();
+        data.asRoot->endIdx   = SizeCast<u32>(data.asTriIndices.size());
         BuildAccelStructRecur(data, data.asRoot);
     }
 
@@ -534,13 +534,13 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             // Min voxels = 8,  World size = 12.5f
             // Max voxels = 64,  World size = 100.0f;
 
-            u32 expectedX = 0.0;
-            u32 expectedY = 0.0;
-            u32 expectedZ = 0.0;
+            u32 expectedX = 0;
+            u32 expectedY = 0;
+            u32 expectedZ = 0;
 
-            u32 worldSizeX = data.bboxMax.x - data.bboxMin.x;
-            u32 worldSizeY = data.bboxMax.y - data.bboxMin.y;
-            u32 worldSizeZ = data.bboxMax.z - data.bboxMin.z;
+            u32 worldSizeX = static_cast<u32>(data.bboxMax.x - data.bboxMin.x);
+            u32 worldSizeY = static_cast<u32>(data.bboxMax.y - data.bboxMin.y);
+            u32 worldSizeZ = static_cast<u32>(data.bboxMax.z - data.bboxMin.z);
 
             expectedX = std::max(16u, std::min(64u, u32(std::round(worldSizeX * 16.0f / 25.0f))));
             expectedY = std::max(16u, std::min(64u, u32(std::round(worldSizeY * 16.0f / 25.0f))));
@@ -571,7 +571,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
 
         // build accel structure
         data.asTriIndices.resize(meshDesc.indexCount / 3);
-        for (u32 i = 0; i < meshDesc.indexCount / 3; i++)
+        for (u32 i = 0; i < meshDesc.indexCount / 3u; i++)
         {
             data.asTriIndices[i] = i;
         }

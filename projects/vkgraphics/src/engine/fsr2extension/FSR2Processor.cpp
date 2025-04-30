@@ -157,8 +157,8 @@ namespace Ifrit::Graphics::VulkanGraphics::FSR2
         dispatchParams.jitterOffset.x      = args.jitterX;
         dispatchParams.jitterOffset.y      = args.jitterY;
         dispatchParams.frameTimeDelta      = args.deltaTime * 5.0f;
-        dispatchParams.motionVectorScale.x = m_context->initContext.maxRenderSize.width;
-        dispatchParams.motionVectorScale.y = m_context->initContext.maxRenderSize.height;
+        dispatchParams.motionVectorScale.x = 1.0f * m_context->initContext.maxRenderSize.width;
+        dispatchParams.motionVectorScale.y = 1.0f* m_context->initContext.maxRenderSize.height;
 
         dispatchParams.cameraNear              = args.camNear;
         dispatchParams.cameraFar               = args.camFar;

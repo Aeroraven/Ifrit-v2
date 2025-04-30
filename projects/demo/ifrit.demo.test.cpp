@@ -51,7 +51,7 @@ void taskTest()
     {
         auto task = scheduler.EnqueueTask(
             [&scheduler, &tasks, i](Task* task, void*) {
-                printf("Task %d is running\n", task->GetId());
+                printf("Task %lld is running\n", task->GetId());
                 std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 1000));
             },
             {}, nullptr);

@@ -63,13 +63,13 @@ namespace Ifrit::Runtime
             // iInfo("Hiz mip level {}: {}", i, uavDescriptor);
         }
         data.m_hizRefBuffer =
-            rhi->CreateBufferDevice("SHiZ_Ref", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest, true);
+            rhi->CreateBufferDevice("SHiZ_Ref", u32Size * SizeCast<u32>(data.m_hizRefs.size()), kbBufUsage_SSBO_CopyDest, true);
         data.m_hizAtomics =
-            rhi->CreateBufferDevice("SHiZ_Atmoics", u32Size * data.m_hizRefs.size(), kbBufUsage_SSBO_CopyDest, true);
+            rhi->CreateBufferDevice("SHiZ_Atmoics", u32Size * SizeCast<u32>(data.m_hizRefs.size()), kbBufUsage_SSBO_CopyDest, true);
         auto staged = rhi->CreateStagedSingleBuffer(data.m_hizRefBuffer.get());
         auto tq     = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
         tq->RunSyncCommand([&](const GPUCmdBuffer* cmd) {
-            staged->CmdCopyToDevice(cmd, data.m_hizRefs.data(), u32Size * data.m_hizRefs.size(), 0);
+            staged->CmdCopyToDevice(cmd, data.m_hizRefs.data(), u32Size * SizeCast<u32>(data.m_hizRefs.size()), 0);
         });
 
         data.m_hizDesc = rhi->CreateBindlessDescriptorRef();

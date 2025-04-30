@@ -116,7 +116,7 @@ namespace Ifrit::Runtime::Ayanami
             // TODO: non-directional light
             AggregatedLights  lights;
             Ref<PerFrameData> perFrameData = scene->GetPerFrameData();
-            for (auto i = 0; auto& v : perFrameData->m_shadowData2.m_LightFronts)
+            for (u32 i = 0; auto& v : perFrameData->m_shadowData2.m_LightFronts)
             {
                 lights.m_LightFronts.push_back(v);
                 if ((++i) >= perFrameData->m_shadowData2.m_enabledShadowMaps)
@@ -136,7 +136,7 @@ namespace Ifrit::Runtime::Ayanami
 
         if (m_sceneResources->m_mdfAllInstances == nullptr)
         {
-            m_sceneResources->m_m_mdfAllInstancesAllocSize = m_sceneResources->m_meshMetaIds.size();
+            m_sceneResources->m_m_mdfAllInstancesAllocSize = SizeCast<u32>(m_sceneResources->m_meshMetaIds.size());
             m_sceneResources->m_mdfAllInstances            = m_rhi->CreateBufferCoherent(
                 sizeof(AyanamiSceneResources::MDFDescriptor) * m_sceneResources->m_m_mdfAllInstancesAllocSize,
                 Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopyDst
@@ -163,7 +163,7 @@ namespace Ifrit::Runtime::Ayanami
 
     IFRIT_APIDECL u32 AyanamiSceneAggregator::GetNumGatheredInstances() const
     {
-        return m_sceneResources->m_meshMetaIds.size();
+        return SizeCast<u32>(m_sceneResources->m_meshMetaIds.size());
     }
 
     IFRIT_APIDECL void AyanamiSceneAggregator::Init() { m_sceneResources = new AyanamiSceneResources(); }

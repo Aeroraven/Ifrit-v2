@@ -221,7 +221,7 @@ namespace Ifrit::Runtime::Ayanami
             }
             m_gpuResource = std::make_unique<AyanamiMeshDFResource>();
             using namespace Ifrit::Graphics::Rhi;
-            auto volumeSize   = m_CompactSDFData.size();
+            auto volumeSize   = SizeCast<u32>(m_CompactSDFData.size());
             auto deviceVolume = rhi->CreateBuffer("Ayanami_DFVolume", volumeSize,
                 RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
             deviceVolume->MapMemory();

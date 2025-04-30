@@ -46,7 +46,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             u32 srcImgId;
             u32 kernelImgId;
             u32 dstImgId;
-        } pcb;
+        } ;
 
         using Ifrit::Math::CountLeadingZero;
         using Ifrit::Math::IntegerLog2;

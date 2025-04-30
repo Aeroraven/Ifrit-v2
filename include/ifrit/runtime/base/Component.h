@@ -49,13 +49,13 @@ namespace Ifrit::Runtime
         inline String SerializeAttribute()
         {
             String serialized;
-            Ifrit::Common::Serialization::serialize(m_attributes, serialized);
+            Ifrit::Common::Serialization::SerializeBinary(m_attributes, serialized);
             return serialized;
         }
         inline void DeserializeAttribute()
         {
             String serialized;
-            Ifrit::Common::Serialization::deserialize(serialized, m_attributes);
+            Ifrit::Common::Serialization::DeserializeBinary(serialized, m_attributes);
         }
     };
 
@@ -100,7 +100,7 @@ namespace Ifrit::Runtime
                 m_ComponentArray[typeHash] = Vec<Ref<Component>>();
             }
             auto ret = std::make_shared<T>(parentObject);
-            SetComponentId(ret, m_ComponentArray[typeHash].size(), typeHash);
+            SetComponentId(ret, SizeCast<u32>( m_ComponentArray[typeHash].size()), typeHash);
             m_ComponentArray[typeHash].push_back(ret);
             return ret;
         }
@@ -143,8 +143,8 @@ namespace Ifrit::Runtime
                 iError("Component type name conflicted");
                 std::abort();
             }
-            m_componentIndex[typeName]   = m_components.size() - 1;
-            m_componentsHashed[typeHash] = m_components.size() - 1;
+            m_componentIndex[typeName]   =  SizeCast<u32>(m_components.size()) - 1;
+            m_componentsHashed[typeHash] = SizeCast<u32>(m_components.size()) - 1;
             return component;
         }
 

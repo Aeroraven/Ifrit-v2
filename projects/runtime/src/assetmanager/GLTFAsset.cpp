@@ -290,7 +290,7 @@ namespace Ifrit::Runtime
             {
                 auto mesh = std::make_shared<GLTFMesh>(&m_metadata, this, i, j, ~0u, cachePath);
                 m_meshes.push_back(std::move(mesh));
-                meshHash[{ i, j }] = m_meshes.size() - 1;
+                meshHash[{ i, j }] = SizeCast<u32>(m_meshes.size()) - 1;
                 j++;
             }
             i++;
