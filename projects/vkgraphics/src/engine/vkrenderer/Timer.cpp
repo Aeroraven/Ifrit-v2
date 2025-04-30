@@ -17,7 +17,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/Timer.h"
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
@@ -69,12 +68,12 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
         m_currentFrame = (m_currentFrame + 1) % m_numFrameInFlight;
 
-        auto     device          = m_context->GetDevice();
-        auto     timeStampPeriod = m_context->GetPhysicalDeviceProperties().limits.timestampPeriod;
-        auto     curFrame        = m_currentFrame;
-        uint64_t ts[2];
+        auto device          = m_context->GetDevice();
+        auto timeStampPeriod = m_context->GetPhysicalDeviceProperties().limits.timestampPeriod;
+        auto curFrame        = m_currentFrame;
+        u64  ts[2];
         vkGetQueryPoolResults(
-            device, m_queryPools[curFrame], 0, 2, sizeof(uint64_t) * 2, ts, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+            device, m_queryPools[curFrame], 0, 2, sizeof(u64) * 2, ts, sizeof(u64), VK_QUERY_RESULT_64_BIT);
         float nanoToMs = 1.0f / 1000000.0f;
         m_elapsedMs    = static_cast<float>(ts[1] - ts[0]) * timeStampPeriod * nanoToMs;
         vkResetQueryPool(m_context->GetDevice(), m_queryPools[m_currentFrame], 0, 2);

@@ -18,8 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include <vulkan/vulkan.h>
-#include "ifrit/core/logging/Logging.h"
+#include "ifrit/vkgraphics/common/Pch.h"
 #include <stdexcept>
+
 namespace Ifrit::Graphics::VulkanGraphics
 {
     inline void vkrAssert(bool condition, const char* message)

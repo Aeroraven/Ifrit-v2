@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define NOMINMAX
 #endif
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <algorithm>
 

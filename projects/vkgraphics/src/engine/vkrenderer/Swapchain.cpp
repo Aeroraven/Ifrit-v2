@@ -19,12 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #ifdef _WIN32
     #include <windows.h>
 #endif
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Swapchain.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <algorithm>
-#include <array>
-#include <vector>
 
 using namespace Ifrit;
 

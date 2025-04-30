@@ -17,8 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/platform/ApiConv.h"
+#include "ifrit/core/logging/Logging.h"
 #include "ifrit/rhi/common/RhiFsr2Processor.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 namespace Ifrit::Graphics::VulkanGraphics::FSR2

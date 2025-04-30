@@ -17,9 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/typing/Util.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/vkgraphics/common/Pch.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
@@ -28,11 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderTargets.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Swapchain.h"
-#include <functional>
-#include <memory>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
 
 // TODO: render graph abstraction is deprecated in this level
 // it's intended to be used in a higher level.
@@ -530,10 +523,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         EngineContext*               m_context;
         DescriptorManager*           m_descriptorManager;
 
-        Vec<Queue*>                  m_queuesGraphics;
-        Vec<Queue*>                  m_queuesCompute;
-        Vec<Queue*>                  m_queuesTransfer;
-        Vec<Queue*>                  m_queues;
+        Vec<DeviceQueue*>            m_queuesGraphics;
+        Vec<DeviceQueue*>            m_queuesCompute;
+        Vec<DeviceQueue*>            m_queuesTransfer;
+        Vec<DeviceQueue*>            m_queues;
 
         Swapchain*                   m_swapchain;
         ResourceManager*             m_resourceManager;
@@ -562,7 +555,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         void                    EndFrame();
 
         // for rhi layers
-        Queue*                  GetQueue(QueueRequirement req);
+        DeviceQueue*            GetQueue(QueueRequirement req);
         void                    QueueCollectionFrameAdvance();
     };
 

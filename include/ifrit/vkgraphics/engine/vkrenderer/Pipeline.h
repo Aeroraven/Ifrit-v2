@@ -17,11 +17,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/vkgraphics/common/Pch.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
-#include <memory>
 
 namespace Ifrit::Graphics::VulkanGraphics
 {

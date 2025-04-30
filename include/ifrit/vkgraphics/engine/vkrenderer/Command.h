@@ -17,12 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/typing/Util.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/vkgraphics/common/Pch.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
-#include <memory>
-#include <vector>
 #include <stack>
 
 namespace Ifrit::Graphics::VulkanGraphics
@@ -230,7 +226,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     // Note that command buffers should be recycled in order to avoid memory leaks.
     // https://developer.download.nvidia.com/gameworks/events/GDC2016/Vulkan_Essentials_GDC16_tlorach.pdf#page=15.00
-    class IFRIT_APIDECL Queue : public Rhi::RhiQueue, NonCopyable
+    class IFRIT_APIDECL DeviceQueue : public Rhi::RhiQueue, NonCopyable
     {
     private:
         EngineContext*                  m_context;
@@ -247,10 +243,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         u32                             m_ActiveFrame    = 0; // The current frame that is being processed by the GPU.
 
     public:
-        Queue() { printf("Runtime Error:queue\n"); }
-        Queue(EngineContext* ctx, VkQueue queue, u32 queueFamily, u32 capability, u32 inFlightFrames);
+        DeviceQueue() { printf("Runtime Error:queue\n"); }
+        DeviceQueue(EngineContext* ctx, VkQueue queue, u32 queueFamily, u32 capability, u32 inFlightFrames);
 
-        virtual ~Queue() {}
+        virtual ~DeviceQueue() {}
         inline VkQueue        GetQueue() const { return m_queue; }
         inline u32            GetQueueFamily() const { return m_queueFamily; }
         inline u32            GetCapability() const { return m_capability; }
@@ -274,8 +270,8 @@ namespace Ifrit::Graphics::VulkanGraphics
     class IFRIT_APIDECL QueueCollections
     {
     private:
-        EngineContext*   m_context;
-        Vec<Uref<Queue>> m_queues;
+        EngineContext*         m_context;
+        Vec<Uref<DeviceQueue>> m_queues;
 
     public:
         QueueCollections(EngineContext* ctx) : m_context(ctx) {}
@@ -284,15 +280,15 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         void              LoadQueues(u32 numFramesInFlight);
         void              FrameAdvance();
-        Vec<Queue*>       GetGraphicsQueues();
-        Vec<Queue*>       GetComputeQueues();
-        Vec<Queue*>       GetTransferQueues();
+        Vec<DeviceQueue*> GetGraphicsQueues();
+        Vec<DeviceQueue*> GetComputeQueues();
+        Vec<DeviceQueue*> GetTransferQueues();
     };
 
     struct CommandSubmissionInfo
     {
         CommandBuffer*          m_commandBuffer;
-        Queue*                  m_queue;
+        DeviceQueue*            m_queue;
         Vec<TimelineSemaphore*> m_waitSemaphore;
         Vec<u64>                m_waitValues;
         Vec<TimelineSemaphore*> m_signalSemaphore;

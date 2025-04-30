@@ -19,7 +19,16 @@ add_definitions(-DIFRIT_API_EXPORT)
 add_definitions(-DIFRIT_VKGRAPHICS_SHARED_SHADER_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.shader")
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.VkGraphics")
 
+#pch
+set(IFRIT_VKGRAPHICS_PCH_HEADER ${IFRIT_PROJECT_DIR}/include/ifrit/vkgraphics/common/Pch.h)
+
+
 add_library(ifrit.vkrenderer SHARED ${IFRIT_VKRENDERER_SOURCE_FILES_CXX} ${IFRIT_VKRENDERER_SOURCE_FILES_C} ${IFRIT_VKRENDERER_HEADER_FILES})
+target_precompile_headers(ifrit.vkrenderer
+    PRIVATE 
+    $<$<CXX_COMPILER_ID:MSVC>:"${IFRIT_VKGRAPHICS_PCH_HEADER}"> 
+    $<$<CXX_COMPILER_ID:GNU>:"${IFRIT_VKGRAPHICS_PCH_HEADER}">)
+
 target_link_libraries(ifrit.vkrenderer Vulkan::Vulkan Vulkan::shaderc_combined ${FSR2_API_LIBRARIES} ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 
 # windows specific

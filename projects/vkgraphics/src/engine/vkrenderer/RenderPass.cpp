@@ -17,7 +17,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderPass.h"
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
 using namespace Ifrit;
@@ -486,11 +485,11 @@ namespace Ifrit::Graphics::VulkanGraphics
             m_queueCollections = std::make_unique<QueueCollections>(m_context);
             m_queueCollections->LoadQueues(numFramesInFlight);
         }
-        auto                graphicsQueues = m_queueCollections->GetGraphicsQueues();
-        auto                computeQueues  = m_queueCollections->GetComputeQueues();
-        std::vector<Queue*> chosenQueue;
-        uint32_t            numGraphicsQueues = numGraphics;
-        uint32_t            numComputeQueues  = numCompute;
+        auto                      graphicsQueues = m_queueCollections->GetGraphicsQueues();
+        auto                      computeQueues  = m_queueCollections->GetComputeQueues();
+        std::vector<DeviceQueue*> chosenQueue;
+        uint32_t                  numGraphicsQueues = numGraphics;
+        uint32_t                  numComputeQueues  = numCompute;
         if (reqPresentQueue)
         {
             VkQueue presentQueue = m_swapchain->GetPresentQueue();
@@ -601,9 +600,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_swapchainImageResource->ForceResetState();
         QueueCollectionFrameAdvance();
     }
-    IFRIT_APIDECL void   CommandExecutor::EndFrame() { m_swapchain->Present(); }
+    IFRIT_APIDECL void         CommandExecutor::EndFrame() { m_swapchain->Present(); }
 
-    IFRIT_APIDECL Queue* CommandExecutor::GetQueue(QueueRequirement req)
+    IFRIT_APIDECL DeviceQueue* CommandExecutor::GetQueue(QueueRequirement req)
     {
 
         // This section is too MESSY

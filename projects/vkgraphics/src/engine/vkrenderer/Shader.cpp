@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "spirv_reflect/spirv_reflect.c"
 
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include "sha1/sha1.hpp"

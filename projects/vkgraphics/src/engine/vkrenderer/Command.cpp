@@ -17,7 +17,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Binding.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/RenderPass.h"
@@ -845,7 +844,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdSetCullMode(m_commandBuffer, cullMode);
     }
     // Class: Queue
-    IFRIT_APIDECL Queue::Queue(
+    IFRIT_APIDECL DeviceQueue::DeviceQueue(
         EngineContext* ctx, VkQueue queue, u32 family, VkQueueFlags capability, u32 m_InFlightFrames)
         : m_context(ctx)
         , m_queue(queue)
@@ -861,14 +860,14 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_timelineSemaphore = std::make_unique<TimelineSemaphore>(ctx);
     }
 
-    IFRIT_APIDECL void Queue::FrameAdvance()
+    IFRIT_APIDECL void DeviceQueue::FrameAdvance()
     {
         m_ActiveFrame    = (m_ActiveFrame + 1) % m_InFlightFrames;
         auto currentPool = m_commandPools[m_ActiveFrame].get();
         currentPool->ResetCommandPool();
     }
 
-    IFRIT_APIDECL CommandBuffer* Queue::BeginRecording()
+    IFRIT_APIDECL CommandBuffer* DeviceQueue::BeginRecording()
     {
         if (m_cmdBufInUse.size() != 0)
         {
@@ -889,7 +888,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    IFRIT_APIDECL TimelineSemaphoreWait Queue::SubmitCommand(
+    IFRIT_APIDECL TimelineSemaphoreWait DeviceQueue::SubmitCommand(
         const Vec<TimelineSemaphoreWait>& waitSemaphores, VkFence fence, VkSemaphore swapchainSemaphore)
     {
         m_recordedCounter++;
@@ -954,9 +953,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         return ret;
     }
 
-    IFRIT_APIDECL void Queue::WaitIdle() { vkQueueWaitIdle(m_queue); }
+    IFRIT_APIDECL void DeviceQueue::WaitIdle() { vkQueueWaitIdle(m_queue); }
 
-    IFRIT_APIDECL void Queue::CounterReset() { m_recordedCounter = 0; }
+    IFRIT_APIDECL void DeviceQueue::CounterReset() { m_recordedCounter = 0; }
 
     // Class: CommandSubmissionList
     IFRIT_APIDECL      CommandSubmissionList::CommandSubmissionList(EngineContext* ctx) : m_context(ctx)
@@ -1024,7 +1023,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    void Queue::RunSyncCommand(std::function<void(const Rhi::RhiCommandList*)> func)
+    void DeviceQueue::RunSyncCommand(std::function<void(const Rhi::RhiCommandList*)> func)
     {
         auto cmd = BeginRecording();
         func(cmd);
@@ -1032,8 +1031,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         WaitIdle();
     }
 
-    std::unique_ptr<Rhi::RhiTaskSubmission> Queue::RunAsyncCommand(std::function<void(const Rhi::RhiCommandList*)> func,
-        const Vec<Rhi::RhiTaskSubmission*>& waitOn, const Vec<Rhi::RhiTaskSubmission*>& toIssue)
+    std::unique_ptr<Rhi::RhiTaskSubmission> DeviceQueue::RunAsyncCommand(
+        std::function<void(const Rhi::RhiCommandList*)> func, const Vec<Rhi::RhiTaskSubmission*>& waitOn,
+        const Vec<Rhi::RhiTaskSubmission*>& toIssue)
     {
         auto cmd = BeginRecording();
         func(cmd);
@@ -1057,7 +1057,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return std::make_unique<TimelineSemaphoreWait>(SubmitCommand(waitSemaphores, fence, swapchainSemaphore));
     }
 
-    void Queue::HostWaitEvent(Rhi::RhiTaskSubmission* event)
+    void DeviceQueue::HostWaitEvent(Rhi::RhiTaskSubmission* event)
     {
         VkSemaphoreWaitInfo waitInfo{};
         auto                sev = CheckedCast<TimelineSemaphoreWait>(event);
@@ -1077,7 +1077,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             auto queue           = queueData.m_allQueues[i];
             auto queueCapability = queueData.m_queueFamilies[queue.m_familyIndex].m_capability;
-            m_queues.push_back(std::make_unique<Queue>(
+            m_queues.push_back(std::make_unique<DeviceQueue>(
                 m_context, queue.m_queue, queue.m_familyIndex, queueCapability, numFramesInFlight));
         }
     }
@@ -1090,9 +1090,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL Vec<Queue*> QueueCollections::GetGraphicsQueues()
+    IFRIT_APIDECL Vec<DeviceQueue*> QueueCollections::GetGraphicsQueues()
     {
-        Vec<Queue*> graphicsQueues;
+        Vec<DeviceQueue*> graphicsQueues;
         for (int i = 0; i < m_queues.size(); i++)
         {
             if (m_queues[i]->GetCapability() & VK_QUEUE_GRAPHICS_BIT)
@@ -1103,9 +1103,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         return graphicsQueues;
     }
 
-    IFRIT_APIDECL Vec<Queue*> QueueCollections::GetComputeQueues()
+    IFRIT_APIDECL Vec<DeviceQueue*> QueueCollections::GetComputeQueues()
     {
-        Vec<Queue*> computeQueues;
+        Vec<DeviceQueue*> computeQueues;
         for (int i = 0; i < m_queues.size(); i++)
         {
             if (m_queues[i]->GetCapability() & VK_QUEUE_COMPUTE_BIT)
@@ -1116,9 +1116,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         return computeQueues;
     }
 
-    IFRIT_APIDECL Vec<Queue*> QueueCollections::GetTransferQueues()
+    IFRIT_APIDECL Vec<DeviceQueue*> QueueCollections::GetTransferQueues()
     {
-        Vec<Queue*> transferQueues;
+        Vec<DeviceQueue*> transferQueues;
         for (int i = 0; i < m_queues.size(); i++)
         {
             if (m_queues[i]->GetCapability() & VK_QUEUE_COMPUTE_BIT)

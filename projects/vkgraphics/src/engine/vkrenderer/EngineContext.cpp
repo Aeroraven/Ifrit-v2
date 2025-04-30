@@ -17,11 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
-#include "ifrit/core/typing/Util.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <cstring>
-#include <vector>
-using namespace Ifrit;
 
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
