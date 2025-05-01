@@ -29,7 +29,12 @@ target_precompile_headers(ifrit.vkrenderer
     $<$<CXX_COMPILER_ID:MSVC>:"${IFRIT_VKGRAPHICS_PCH_HEADER}"> 
     $<$<CXX_COMPILER_ID:GNU>:"${IFRIT_VKGRAPHICS_PCH_HEADER}">)
 
-target_link_libraries(ifrit.vkrenderer Vulkan::Vulkan Vulkan::shaderc_combined ${FSR2_API_LIBRARIES} ${IFRIT_COMMON_DEPENDENCIES_SHARED})
+target_link_libraries(ifrit.vkrenderer 
+    Vulkan::Vulkan 
+    Vulkan::shaderc_combined 
+    ${FSR2_API_LIBRARIES} 
+    ${IFRIT_COMMON_DEPENDENCIES_SHARED}
+    ifrit.core)
 
 # windows specific
 include(${IFRIT_PROJECT_DIR}/projects/buildinfra/WindowsLibConv.cmake)

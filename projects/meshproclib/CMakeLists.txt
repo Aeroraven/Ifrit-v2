@@ -65,4 +65,5 @@ target_link_libraries(ifrit.meshproclib PUBLIC
     metis 
     meshoptimizer 
     GKlib
+    ifrit.core
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})     

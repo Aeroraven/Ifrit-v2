@@ -43,24 +43,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             m_FrameIdToDelete.push(m_CurrentFrameStep + 2);
         }
 
-        virtual i32 ProcessDeleteQueue()
-        {
-            i32 count = 0;
-            while (!m_DeleteQueue.empty())
-            {
-                auto resource = m_DeleteQueue.front();
-                if (m_FrameIdToDelete.front() > m_CurrentFrameStep)
-                    break;
-                m_DeleteQueue.pop();
-                m_FrameIdToDelete.pop();
-                if (!resource->GetDebugName().empty())
-                    iDebug("Deleting resource: {}", resource->GetDebugName());
-                delete resource;
-                count++;
-            }
-            m_CurrentFrameStep++;
-            return count;
-        }
+        virtual i32 ProcessDeleteQueue();
 
         virtual ~ResourceDeleteQueue() { ProcessDeleteQueue(); }
     };
@@ -143,7 +126,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     private:
         void Init();
-        void loadExtensionFunction();
+        void LoadExtensionFunction();
         void Destructor();
 
     public:

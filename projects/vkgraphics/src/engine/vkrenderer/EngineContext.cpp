@@ -25,6 +25,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Graphics::VulkanGraphics
 {
+    IFRIT_APIDECL i32 ResourceDeleteQueue::ProcessDeleteQueue()
+    {
+        i32 count = 0;
+        while (!m_DeleteQueue.empty())
+        {
+            auto resource = m_DeleteQueue.front();
+            if (m_FrameIdToDelete.front() > m_CurrentFrameStep)
+                break;
+            m_DeleteQueue.pop();
+            m_FrameIdToDelete.pop();
+            if (!resource->GetDebugName().empty())
+                iDebug("Deleting resource: {}", resource->GetDebugName());
+            delete resource;
+            count++;
+        }
+        m_CurrentFrameStep++;
+        return count;
+    }
 
     Vec<const char*> m_instanceExtension = { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
     Vec<const char*> m_deviceExtensions  = {
@@ -72,7 +90,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         return false;
     }
-    bool enableLayer(bool mandatory, const char* layer, const Vec<VkLayerProperties>& availableLayers,
+    bool EnableLayer(bool mandatory, const char* layer, const Vec<VkLayerProperties>& availableLayers,
         Vec<const char*>& targetLayers)
     {
         for (auto lay : availableLayers)
@@ -140,7 +158,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL const Vec<const char*> EngineContext::GetDeviceExtensions() const { return m_deviceExtensions; }
 
-    IFRIT_APIDECL void                   EngineContext::loadExtensionFunction()
+    IFRIT_APIDECL void                   EngineContext::LoadExtensionFunction()
     {
         LoadExtFunc(m_extf.p_vkCmdSetDepthTestEnable, "vkCmdSetDepthTestEnable", m_device);
         LoadExtFunc(m_extf.p_vkCmdSetDepthWriteEnable, "vkCmdSetDepthWriteEnable", m_device);
@@ -250,7 +268,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         if (m_args.m_enableValidationLayer)
         {
-            enableLayer(true, s_validationLayerName, availableLayers, targetLayers);
+            EnableLayer(true, s_validationLayerName, availableLayers, targetLayers);
         }
         instanceCI.enabledLayerCount   = SizeCast<u32>(targetLayers.size());
         instanceCI.ppEnabledLayerNames = targetLayers.data();
@@ -468,7 +486,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         if (m_args.m_enableValidationLayer)
         {
-            enableLayer(true, s_validationLayerName, availableLayersDevice, targetLayersDevice);
+            EnableLayer(true, s_validationLayerName, availableLayersDevice, targetLayersDevice);
         }
         deviceCI.enabledLayerCount   = SizeCast<u32>(targetLayersDevice.size());
         deviceCI.ppEnabledLayerNames = targetLayersDevice.data();
@@ -508,7 +526,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         allocatorCI.flags                  = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
         vmaCreateAllocator(&allocatorCI, &m_allocator);
 
-        loadExtensionFunction();
+        LoadExtensionFunction();
 
         iInfo("EngineContext: Graphics backend initialized");
     }

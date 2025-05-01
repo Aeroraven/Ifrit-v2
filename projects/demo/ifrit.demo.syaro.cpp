@@ -112,7 +112,7 @@ public:
 
         // Renderer config
         renderConfig.m_VisualizationType       = RendererVisualizationType::Default;
-        renderConfig.m_IndirectLightingType    = IndirectLightingType::SSGI;
+        renderConfig.m_IndirectLightingType    = IndirectLightingType::HBAO;
         renderConfig.m_AntiAliasingType        = AntiAliasingType::TAA;
         renderConfig.m_OverrideMaterialCulling = OverrideMaterialCulling::ForcedCullNone;
         // renderConfig.m_ShadowConfig.m_maxDistance = 200.0f;

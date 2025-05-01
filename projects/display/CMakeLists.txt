@@ -27,12 +27,14 @@ if(WIN32)
     target_link_libraries(ifrit.display  
         glfw 
         Vulkan::Vulkan
+        ifrit.core
         ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 else()
     add_library(ifrit.display SHARED ${IFRIT_DISPLAY_SOURCE_FILES_CXX} ${IFRIT_DISPLAY_SOURCE_FILES_C} ${IFRIT_DISPLAY_HEADER_FILES})
     target_link_libraries(ifrit.display  
     glfw  
     Vulkan::Vulkan
+    ifrit.core
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 endif()
 

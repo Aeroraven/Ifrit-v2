@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/algo/Identifier.h"
+#include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/assetmanager/Asset.h"
 #include "ifrit/runtime/assetmanager/DirectDrawSurfaceAsset.h"
 #include "ifrit/runtime/assetmanager/GLTFAsset.h"
@@ -64,18 +65,13 @@ namespace Ifrit::Runtime
             importer->ProcessMetadata(metaData);
             String serialized;
             serialized = MetadataSerialization(metaData);
-            std::ofstream file(metaPath);
-            file << serialized;
-            file.close();
+
+            WriteBinaryFile(metaPath.string(), serialized);
         }
 
         // Deserialize metadata and import asset
-        std::ifstream file(metaPath);
-        String        serialized;
-        file.seekg(0, std::ios::end);
-        serialized.reserve(file.tellg());
-        file.seekg(0, std::ios::beg);
-        serialized.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        String        serialized = ReadBinaryFile(metaPath.string());
+
         AssetMetadata metadata;
         MetadataDeserialization(serialized, metadata);
         auto importerName = metadata.m_importer;

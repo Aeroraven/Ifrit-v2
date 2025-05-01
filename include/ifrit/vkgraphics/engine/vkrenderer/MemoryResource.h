@@ -19,8 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/vkgraphics/common/Pch.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
-#include <memory>
-#include <unordered_map>
 
 namespace Ifrit::Graphics::VulkanGraphics
 {

@@ -187,6 +187,16 @@ namespace Ifrit::Graphics::VulkanGraphics
             // PSO cache should be used in the future
             SHA1   sha1;
             String rawCode(ci.code.begin(), ci.code.end());
+
+            // If permutations are used, add defines to the shader code
+            if (!ci.m_Permutations.empty())
+            {
+                for (const auto& perm : ci.m_Permutations)
+                {
+                    rawCode += "#define " + perm + "\n";
+                }
+            }
+
             String precompiled;
             precompiled = precompileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
             sha1.update(precompiled);

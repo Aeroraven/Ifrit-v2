@@ -27,10 +27,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #endif
 
 #include <format>
-// #define SPDLOG_HEADER_ONLY
+#include "ifrit/core/platform/ApiConv.h"
+#include "ifrit/core/base/IfritBase.h"
+
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <tuple>
+
+#include "ifrit/core/base/CoreBase.h"
 
 namespace Ifrit::Logging
 {
@@ -80,27 +84,7 @@ namespace Ifrit::Logging
     }
 
     // v2
-
-    inline void RegisterLoggerModule(const std::string& name)
-    {
-        spdlog::set_pattern("[%H:%M:%S %z] [%n] [%^%l%$] %v");
-        auto stdoutSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        auto logger     = std::make_shared<spdlog::logger>(name, stdoutSink);
-        logger->set_pattern("[%Y/%m/%d %H:%M:%S %z] [%^%-7l%$] [%n] %v");
-        logger->set_level(spdlog::level::trace);
-        spdlog::register_logger(logger);
-    }
-
-    inline std::shared_ptr<spdlog::logger> GetLoggerModule(const std::string& name)
-    {
-        auto logger = spdlog::get(name);
-        if (!logger)
-        {
-            RegisterLoggerModule(name);
-            return spdlog::get(name);
-        }
-        return logger;
-    }
+    IFRIT_CORE_API Ref<spdlog::logger> GetLoggerModule(const String& name);
 
     template <typename... Args>
     inline void Info2(const char* moduleName, std::format_string<Args...> fmt, Args&&... args)

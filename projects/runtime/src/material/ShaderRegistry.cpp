@@ -83,7 +83,7 @@ namespace Ifrit::Runtime
                     auto shaderCodeVec = Vec<char>(shaderCode.begin(), shaderCode.end());
                     auto rhi           = m_Data->m_App->GetRhi();
                     auto shader        = rhi->CreateShader(
-                        sName, shaderCodeVec, sEntry, stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode);
+                        sName, shaderCodeVec, sEntry, stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode, {});
 
                     m_Data->m_ShaderMap[sName].m_Shader = shader;
                     m_Data->m_ShaderMap[sName].m_Status.store(

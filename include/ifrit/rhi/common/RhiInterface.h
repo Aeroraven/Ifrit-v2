@@ -105,9 +105,9 @@ namespace Ifrit::Graphics::Rhi
         virtual Ref<RhiStagedSingleBuffer> CreateStagedSingleBuffer(RhiBuffer* target) = 0;
 
         // Command execution
-        virtual RhiQueue*                  GetQueue(RhiQueueCapability req)       = 0;
+        virtual RhiQueue*                  GetQueue(RhiQueueCapability req)                                        = 0;
         virtual RhiShader*                 CreateShader(const String& name, const Vec<char>& code, const String& entry,
-                            RhiShaderStage stage, RhiShaderSourceType sourceType) = 0;
+                            RhiShaderStage stage, RhiShaderSourceType sourceType, const Vec<String>& permutations) = 0;
 
         // Pass execution, Deprecated
         virtual RhiComputePass*            CreateComputePass()  = 0;

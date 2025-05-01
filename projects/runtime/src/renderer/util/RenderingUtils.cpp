@@ -31,7 +31,7 @@ namespace Ifrit::Runtime::RenderingUtil
         auto      shaderCode     = ReadTextFile(path);
         Vec<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
         return rhi->CreateShader(
-            shaderPath, shaderCodeVec, entryPoint, stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode);
+            shaderPath, shaderCodeVec, entryPoint, stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode, {});
     }
 
     IFRIT_APIDECL Graphics::Rhi::RhiComputePass* CreateComputePassInternal(

@@ -50,7 +50,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         // Shader
         Rhi::RhiShader*    CreateShader(const String& name, const std::vector<char>& code, const String& entry,
-               Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
+               Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType, const Vec<String>& permutations) override;
 
         // Texture
         Rhi::RhiTextureRef CreateTexture2D(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format,

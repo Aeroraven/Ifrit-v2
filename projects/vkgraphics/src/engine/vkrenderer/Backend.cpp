@@ -226,7 +226,8 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL Rhi::RhiShader* RhiVulkanBackend::CreateShader(const std::string& name, const Vec<char>& code,
-        const std::string& entry, Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType)
+        const std::string& entry, Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType,
+        const Vec<String>& permutations)
     {
         ShaderModuleCI ci{};
         ci.code           = code;

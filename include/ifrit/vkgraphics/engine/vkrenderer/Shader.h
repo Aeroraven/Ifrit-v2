@@ -32,6 +32,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         Rhi::RhiShaderStage      stage;
         Rhi::RhiShaderSourceType sourceType;
         String                   fileName;
+
+        Vec<String>              m_Permutations;
     };
 
     class IFRIT_APIDECL ShaderModule : public Rhi::RhiShader
@@ -54,16 +56,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         ~ShaderModule();
         VkShaderModule                  GetModule() const;
         VkPipelineShaderStageCreateInfo GetStageCI() const;
-        inline u32                      GetCodeSize() const
-        {
-            using namespace Ifrit;
-            return SizeCast<u32>(m_ci.code.size());
-        }
-        inline u32 GetNumDescriptorSets() const override
-        {
-            using namespace Ifrit;
-            return SizeCast<u32>(m_reflectSets.size());
-        }
+        inline u32                      GetCodeSize() const { return SizeCast<u32>(m_ci.code.size()); }
+        inline u32 GetNumDescriptorSets() const override { return SizeCast<u32>(m_reflectSets.size()); }
         virtual Rhi::RhiShaderStage GetStage() const override { return m_ci.stage; }
 
         void                        CacheReflectionData();

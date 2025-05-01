@@ -69,7 +69,7 @@ namespace Ifrit::Runtime
                 throw std::runtime_error("Unknown shader stage");
             }
 
-            auto p = rhi->CreateShader(fileName, data, "main", stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode);
+            auto p = rhi->CreateShader(fileName, data, "main", stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode, {});
             // TODO: eliminate raw pointer
             m_selfData = p;
             return m_selfData;
