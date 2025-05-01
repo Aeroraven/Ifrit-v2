@@ -81,6 +81,9 @@ layout(binding = IFRIT_BINDLESS_BINDING_STORAGE_IMAGE, set = IFRIT_BINDLESS_SET_
 #define IFRIT_SRV_TEXTURE2D_NAME _ifrit_bindlessNaming(srv_texture_2d)
 layout(binding = IFRIT_BINDLESS_BINDING_SAMPLED_IMAGE, set = IFRIT_BINDLESS_SET_ID) uniform texture2D IFRIT_SRV_TEXTURE2D_NAME[];
 
+#define IFRIT_SRV_TEXTURE2DU_NAME _ifrit_bindlessNaming(srv_texture_2du)
+layout(binding = IFRIT_BINDLESS_BINDING_SAMPLED_IMAGE, set = IFRIT_BINDLESS_SET_ID) uniform utexture2D IFRIT_SRV_TEXTURE2DU_NAME[];
+
 #define IFRIT_SRV_TEXTURE3D_NAME _ifrit_bindlessNaming(srv_texture_3d)
 layout(binding = IFRIT_BINDLESS_BINDING_SAMPLED_IMAGE, set = IFRIT_BINDLESS_SET_ID) uniform texture3D IFRIT_SRV_TEXTURE3D_NAME[];
 
@@ -105,6 +108,7 @@ layout(binding = IFRIT_BINDLESS_BINDING_SAMPLER, set = IFRIT_BINDLESS_SET_ID) un
 #define SampleTexture3D(texId, samplerId, uv) texture(sampler3D(IFRIT_SRV_TEXTURE3D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv)
 
 #define SampleTexture2DLoad(texId, samplerId, uv) texelFetch(sampler2D(IFRIT_SRV_TEXTURE2D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv,0)
+#define SampleTexture2DLoadUint(texId, samplerId, uv) texelFetch(usampler2D(IFRIT_SRV_TEXTURE2DU_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv,0)
 #define SampleTexture3DLoad(texId, samplerId, uv) texelFetch(sampler3D(IFRIT_SRV_TEXTURE3D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv,0)
 
 RegisterStorage(bIfritInternal_VerticesPos,{

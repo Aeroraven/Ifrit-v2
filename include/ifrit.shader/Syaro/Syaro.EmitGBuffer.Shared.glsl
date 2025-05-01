@@ -87,40 +87,19 @@ layout(binding = 0, set = 1) uniform MaterialPassData{
     uint debugImageRef;
 } uMaterialPassData;
 
-layout(binding = 0, set = 2) uniform EmitGBufferRefs{
-    uint gBufferRef;
-} uGBufferRefs;
-
-layout(binding = 0, set = 3) uniform PerframeViewData{
-    uint refCurFrame;
-    uint refPrevFrame;
-}uPerframeView;
-
-layout(binding = 0, set = 4) uniform InstanceData{
-    uvec4 ref;
-}uInstanceData;
-
-layout(binding = 0, set = 5) uniform IndirectDrawData{
-    uint allMeshletsRef;
-    uint allMeshletsRefSW;
-    uint indDrawCmdRef;
-}uIndirectDrawData;
-
-layout(binding = 0, set = 6) uniform EmitDepthTargetData{
-    uint velocityMaterialRef; //Seems rgb32f specifiers are not provided
-    uint visBufferRef;
-    uint motionVectorRef;
-}uEmitDepthTargetData;
-
-
 layout(push_constant) uniform EmitGBufferPushConstant{
     uint materialIndex;
     uint renderWidth;
     uint renderHeight;
+    uint m_VisibilitySRV;
+    uint m_AllMeshletsRefUAV;
+    uint m_InstanceDataUAV;
+    uint m_CurFrameDataCBV;
+    uint m_GBufferRefsUAV;
 } uEmitGBufferPushConstant;
 
 uint gbcomp_GetGBufferId(){
-    return uGBufferRefs.gBufferRef;
+    return uEmitGBufferPushConstant.m_GBufferRefsUAV;
 }
 uint gbcomp_GetTotalPixels(){
     uint materialIndex = uEmitGBufferPushConstant.materialIndex;
@@ -165,7 +144,7 @@ uvec2 gbcomp_GetPixelReused(uint ofx,uvec2 totalPxMaterOffset){
 #endif
 
 uvec2 gbcomp_GetVisBufferData(uvec2 pos){
-    uint sampledVal = texelFetch(GetSampler2DU(uEmitDepthTargetData.visBufferRef), ivec2(pos), 0).r;
+    uint sampledVal = SampleTexture2DLoadUint(uEmitGBufferPushConstant.m_VisibilitySRV,sNearestClamp, ivec2(pos)).r;
     uint clusterId = (sampledVal >> 7)-1;
     uint triangleId = sampledVal & 0x0000007Fu;
     return uvec2(clusterId, triangleId);
@@ -174,7 +153,7 @@ uvec2 gbcomp_GetVisBufferData(uvec2 pos){
 uvec4 _gbcomp_readMeshletVertexIndicesRef(uvec2 objMeshletId){
     uint meshletId = objMeshletId.y;
     uint objId = objMeshletId.x;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     uint vertexRef = GetResource(bMeshDataRef,obj).meshletVertexBuffer;
     uint indexRef = GetResource(bMeshDataRef,obj).meshletIndexBuffer;
@@ -222,7 +201,7 @@ uint _gbcomp_readVertexIndex_2(uvec2 objMeshletId, uint vertexId,uvec4 mviRef,ui
 
 uint _gbcomp_readAlbedoTexId(uvec2 objMeshletId){
     uint objId = objMeshletId.x;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objId].objectDataRef;
     uint materialRef = GetResource(bMeshDataRef,obj).materialDataBufferId;
     uint albedoTexId = GetResource(bMaterialData, materialRef).albedoTexId;
     return albedoTexId;
@@ -230,7 +209,7 @@ uint _gbcomp_readAlbedoTexId(uvec2 objMeshletId){
 
 uint _gbcomp_readNormalTexId(uvec2 objMeshletId){
     uint objId = objMeshletId.x;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objId].objectDataRef;
     uint materialRef = GetResource(bMeshDataRef,obj).materialDataBufferId;
     uint normalTexId = GetResource(bMaterialData, materialRef).normalTexId;
     return normalTexId;
@@ -238,7 +217,7 @@ uint _gbcomp_readNormalTexId(uvec2 objMeshletId){
 
 uvec2 _gbcomp_readAlbedoNormalTexId(uvec2 objMeshletId){
     uint objId = objMeshletId.x;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objId].objectDataRef;
     uint materialRef = GetResource(bMeshDataRef,obj).materialDataBufferId;
     uint albedoTexId = GetResource(bMaterialData, materialRef).albedoTexId;
     uint normalTexId = GetResource(bMaterialData, materialRef).normalTexId;
@@ -246,7 +225,7 @@ uvec2 _gbcomp_readAlbedoNormalTexId(uvec2 objMeshletId){
 }
 
 uvec2 _gbcomp_getObjMeshletId(uint clusterId){
-    return GetResource(bFilteredMeshlets2,uIndirectDrawData.allMeshletsRef).data[clusterId];
+    return GetResource(bFilteredMeshlets2,uEmitGBufferPushConstant.m_AllMeshletsRefUAV).data[clusterId];
 }
 
 // Code translated from: https://jcgt.org/published/0002/02/04/
@@ -269,9 +248,9 @@ vec3 _gbcomp_rayTriangleIntersect(vec3 p0, vec3 p1, vec3 p2, vec3 o, vec3 d){
 vec3 _gbcomp_getBarycentric(vec3 v0, vec3 v1, vec3 v2, uvec2 texPos){
     vec2 uvNdc = vec2(texPos) / vec2(uEmitGBufferPushConstant.renderWidth, uEmitGBufferPushConstant.renderHeight);
     uvNdc = uvNdc * 2.0 - 1.0;
-    float zNear = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_cameraNear;
+    float zNear = GetResource(bPerframeView, uEmitGBufferPushConstant.m_CurFrameDataCBV).data.m_cameraNear;
     vec4 ndcPos = vec4(uvNdc, 0.0, 1.0) * zNear;
-    mat4 invP = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_invPerspective;
+    mat4 invP = GetResource(bPerframeView, uEmitGBufferPushConstant.m_CurFrameDataCBV).data.m_invPerspective;
     vec3 viewDir = normalize((invP * ndcPos).xyz);
     vec3 bary = _gbcomp_rayTriangleIntersect(v0, v1, v2, vec3(0.0), viewDir);
     return bary;
@@ -346,7 +325,7 @@ struct gbcomp_TriangleDataShared{
 gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos){
     gbcomp_TriangleData data;
     uvec2 objMeshletId = _gbcomp_getObjMeshletId(clusterTriangleId.x);
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].objectDataRef;
     uint triangleId = clusterTriangleId.y;
     
     uvec4 mviRef = _gbcomp_readMeshletVertexIndicesRef(objMeshletId);
@@ -365,9 +344,9 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     vec4 v1 = vec4(GetResource(bVertices, vertexRef).data[v1Idx].xyz, 1.0);
     vec4 v2 = vec4(GetResource(bVertices, vertexRef).data[v2Idx].xyz, 1.0);
 
-    uint transRef = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].transformRef;
+    uint transRef = GetResource(bPerObjectRef, uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef;
     mat4 localToWorld = GetResource(bLocalTransform, transRef).m_localToWorld;
-    mat4 worldToView = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_worldToView;
+    mat4 worldToView = GetResource(bPerframeView, uEmitGBufferPushConstant.m_CurFrameDataCBV).data.m_worldToView;
     mat4 localToView = worldToView * localToWorld;
 
     vec4 v0vs = localToView * v0;
@@ -436,7 +415,7 @@ gbcomp_TriangleDataShared gbcomp_GetTriangleDataImp(uvec2 clusterTriangleId, uve
     gbcomp_TriangleDataShared data;
     uvec2 objMeshletId = _gbcomp_getObjMeshletId(clusterTriangleId.x);
     uint triangleId = clusterTriangleId.y;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].objectDataRef;
 
     uvec4 mviRef = _gbcomp_readMeshletVertexIndicesRef(objMeshletId);
     uint vertexRef = mviRef.w;
@@ -451,9 +430,9 @@ gbcomp_TriangleDataShared gbcomp_GetTriangleDataImp(uvec2 clusterTriangleId, uve
     uint v1Idx = _gbcomp_readVertexIndex_2(objMeshletId, v1Tx,mviRef,meshletOffset);
     uint v2Idx = _gbcomp_readVertexIndex_2(objMeshletId, v2Tx,mviRef,meshletOffset);
 
-    uint transRef = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].transformRef;
+    uint transRef = GetResource(bPerObjectRef, uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef;
     mat4 localToWorld = GetResource(bLocalTransform, transRef).m_localToWorld;
-    mat4 worldToClip = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_worldToClip;
+    mat4 worldToClip = GetResource(bPerframeView, uEmitGBufferPushConstant.m_CurFrameDataCBV).data.m_worldToClip;
     mat4 localToClip = worldToClip * localToWorld;
 
     vec4 v0vs = localToClip * GetResource(bVertices, vertexRef).data[v0Idx];
@@ -545,8 +524,8 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
         data.vpNormalVS = rNormal;
 
         // make this to be in view space. TODO: inverse transform
-        mat4 worldToView = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_worldToView;
-        mat4 localToWorld = GetResource(bLocalTransform, GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].transformRef).m_localToWorld;
+        mat4 worldToView = GetResource(bPerframeView, uEmitGBufferPushConstant.m_CurFrameDataCBV).data.m_worldToView;
+        mat4 localToWorld = GetResource(bLocalTransform, GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef).m_localToWorld;
         mat4 localToView = worldToView * localToWorld;
 
         data.vpNormalVS = normalize(data.vpNormalVS);
@@ -555,8 +534,8 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
 
         //data.vpNormalVS = normalize(vec3(1.0,0.0,-1.0));
     }else{
-        mat4 localToWorld = GetResource(bLocalTransform, GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].transformRef).m_localToWorld;
-        mat4 worldToView = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_worldToView;
+        mat4 localToWorld = GetResource(bLocalTransform, GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef).m_localToWorld;
+        mat4 worldToView = GetResource(bPerframeView, uEmitGBufferPushConstant.m_CurFrameDataCBV).data.m_worldToView;
         mat4 localToView = worldToView * localToWorld;
         vec4 normalVS = localToView * vec4(normalLocal,0.0);
         data.vpNormalVS = normalize(vec3(normalVS));

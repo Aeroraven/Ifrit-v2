@@ -136,7 +136,7 @@ void main(){
     float PIx = 3.14159265359;
     vec3 specular = dpbr_cookTorranceBRDF(F,G,D,NdotV,NdotL);
     vec3 indirect = vec3(aoN);
-    vec3 Lo = ((kD/PIx)* albedo+ specular) * NdotL * 100.3;
+    vec3 Lo = ((kD/PIx)* albedo+ specular) * NdotL * 2.3;
     vec3 LInd = indirect;
 
     vec3 ambient = vec3(0.12) * albedo * pow(ao,1.5);
@@ -147,7 +147,7 @@ void main(){
     if(pc.m_GIMode == 0){
         color = Lo * shadow + ambient; //+ LInd * pow(ao,1.5);
     }else{
-        color = Lo * shadow + aoN * (kD/PIx)* albedo;
+        color = Lo * shadow + ambient;//aoN * (kD/PIx)* albedo;
     }
     
     //vec3 color = LInd;

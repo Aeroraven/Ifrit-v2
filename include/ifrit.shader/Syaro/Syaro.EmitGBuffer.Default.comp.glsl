@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Deferred.glsl"
 #include "Syaro/Syaro.Shared.glsl"
 #include "Syaro/Syaro.SharedConst.h"
+#include "SamplerUtils.SharedConst.h"
 
 layout(local_size_x = cEmitGbufThreadGroupSizeX, local_size_y = 1, local_size_z = 1) in;
 

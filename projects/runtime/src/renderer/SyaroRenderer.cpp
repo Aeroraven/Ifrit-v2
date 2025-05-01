@@ -64,10 +64,9 @@ namespace Ifrit::Runtime
         u32 m_height;
     };
 
-    std::vector<RhiResourceBarrier> RegisterUAVBarriers(
-        const std::vector<RhiBuffer*>& buffers, const std::vector<RhiTexture*>& textures)
+    Vec<RhiResourceBarrier> RegisterUAVBarriers(const Vec<RhiBuffer*>& buffers, const Vec<RhiTexture*>& textures)
     {
-        std::vector<RhiResourceBarrier> barriers;
+        Vec<RhiResourceBarrier> barriers;
         for (auto& buffer : buffers)
         {
             RhiUAVBarrier barrier;
@@ -91,11 +90,11 @@ namespace Ifrit::Runtime
         return barriers;
     }
 
-    void runImageBarrier(
+    void RunImageBarrier(
         const RhiCommandList* cmd, RhiTexture* texture, RhiResourceState dst, RhiImageSubResource subResource)
     {
-        std::vector<RhiResourceBarrier> barriers;
-        RhiTransitionBarrier            barrier;
+        Vec<RhiResourceBarrier> barriers;
+        RhiTransitionBarrier    barrier;
         barrier.m_type        = RhiResourceType::Texture;
         barrier.m_texture     = texture;
         barrier.m_srcState    = RhiResourceState::AutoTraced;
@@ -112,8 +111,8 @@ namespace Ifrit::Runtime
 
     void runUAVBufferBarrier(const RhiCommandList* cmd, RhiBuffer* buffer)
     {
-        std::vector<RhiResourceBarrier> barriers;
-        RhiUAVBarrier                   barrier;
+        Vec<RhiResourceBarrier> barriers;
+        RhiUAVBarrier           barrier;
         barrier.m_type   = RhiResourceType::Buffer;
         barrier.m_buffer = buffer;
         RhiResourceBarrier resBarrier;
@@ -128,8 +127,8 @@ namespace Ifrit::Runtime
         RhiScissor scissor;
         scissor.x      = 0;
         scissor.y      = 0;
-        scissor.width  = static_cast<u32>( finalRenderTargets->GetRenderArea().width / cfg.m_SuperSamplingRate);
-        scissor.height = static_cast<u32>( finalRenderTargets->GetRenderArea().height / cfg.m_SuperSamplingRate);
+        scissor.width  = static_cast<u32>(finalRenderTargets->GetRenderArea().width / cfg.m_SuperSamplingRate);
+        scissor.height = static_cast<u32>(finalRenderTargets->GetRenderArea().height / cfg.m_SuperSamplingRate);
         return scissor;
     }
 
@@ -656,18 +655,18 @@ namespace Ifrit::Runtime
         // transition input resources
         if (m_config->m_AntiAliasingType == AntiAliasingType::FSR2)
         {
-            runImageBarrier(cmd, perframeData.m_fsr2Data.m_fsr2Output.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
+            RunImageBarrier(cmd, perframeData.m_fsr2Data.m_fsr2Output.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
 
             auto motion      = perframeData.m_motionVector.get();
             auto primaryView = GetPrimaryView(perframeData);
             auto depth       = primaryView.m_visibilityDepth_Combined.get();
 
-            runImageBarrier(cmd, motion, RhiResourceState::ShaderRead, { 0, 0, 1, 1 });
-            runImageBarrier(cmd, depth, RhiResourceState::ShaderRead, { 0, 0, 1, 1 });
+            RunImageBarrier(cmd, motion, RhiResourceState::ShaderRead, { 0, 0, 1, 1 });
+            RunImageBarrier(cmd, depth, RhiResourceState::ShaderRead, { 0, 0, 1, 1 });
         }
-        runImageBarrier(
+        RunImageBarrier(
             cmd, m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get(), RhiResourceState::ColorRT, { 0, 0, 1, 1 });
-        runImageBarrier(
+        RunImageBarrier(
             cmd, m_postprocTex[{ mainRtWidth, mainRtHeight }][1].get(), RhiResourceState::ColorRT, { 0, 0, 1, 1 });
 
         // run!
@@ -853,7 +852,7 @@ namespace Ifrit::Runtime
     {
         auto rhi = m_app->GetRhi();
         m_persistentCullingPass =
-            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.PersistentCullingCS, 5, 4);
+            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.PersistentCullingCS, 5, 8);
 
         m_indirectDrawBuffer = rhi->CreateBufferDevice("Syaro_IndirectDraw", u32Size * 1, kbBufUsage_Indirect, true);
         m_persistCullDesc    = rhi->CreateBindlessDescriptorRef();
@@ -868,7 +867,7 @@ namespace Ifrit::Runtime
     {
         auto rhi = m_app->GetRhi();
         m_emitDepthTargetsPass =
-            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.EmitDepthTargetCS, 4, 2);
+            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.EmitDepthTargetCS, 4, 9);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SetupMaterialClassifyPass()
@@ -1015,8 +1014,8 @@ namespace Ifrit::Runtime
                     rhi->CreateBufferDevice("Syaro_InstCullDispatch", u32Size * 12, kbBufUsage_Indirect, true);
 
                 view.m_instCullDesc = rhi->CreateBindlessDescriptorRef();
-                view.m_instCullDesc->AddStorageBuffer(view.m_instCullDiscardObj.get(), 0);
-                view.m_instCullDesc->AddStorageBuffer(view.m_instCullPassedObj.get(), 1);
+                view.m_instCullDesc->AddStorageBuffer(view.m_instCullPassedObj.get(), 0);
+                view.m_instCullDesc->AddStorageBuffer(view.m_instCullDiscardObj.get(), 1);
                 view.m_instCullDesc->AddStorageBuffer(view.m_persistCullIndirectDispatch.get(), 2);
 
                 // create barriers
@@ -1048,27 +1047,46 @@ namespace Ifrit::Runtime
             ctx->m_cmd->AddImageBarrier(primaryView.m_visibilityDepth_Combined.get(),
                 RhiResourceState::DepthStencilRenderTarget, RhiResourceState::Common, { 0, 0, 1, 1 });
 #endif
-            runImageBarrier(ctx->m_cmd, perframeData.m_velocityMaterial.get(),
+            RunImageBarrier(
+                ctx->m_cmd, perframeData.m_velocityMaterial.get(), RhiResourceState::UnorderedAccess, { 0, 0, 1, 1 });
+            RunImageBarrier(ctx->m_cmd, perframeData.m_motionVector.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
 
-                RhiResourceState::UnorderedAccess, { 0, 0, 1, 1 });
-            runImageBarrier(ctx->m_cmd, perframeData.m_motionVector.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
+            struct PushConstant
+            {
+                u32 m_Width;
+                u32 m_Height;
+                u32 m_VelocityMaterialUAV;
+                u32 m_VisibilitySRV;
+                u32 m_MotionVectorUAV;
+                u32 m_AllMeshletsRefUAV;
+                u32 m_InstanceDataUAV;
+                u32 m_CurFrameDataCBV;
+                u32 m_LastFrameDataCBV;
+            } pc;
+            pc.m_Width               = primaryView.m_renderWidth;
+            pc.m_Height              = primaryView.m_renderHeight;
+            pc.m_VelocityMaterialUAV = rhi->GetUAVDescriptor(perframeData.m_velocityMaterial.get());
+            pc.m_VisibilitySRV       = rhi->GetSRVDescriptor(primaryView.m_visibilityBuffer_Combined.get());
+            pc.m_MotionVectorUAV     = rhi->GetUAVDescriptor(perframeData.m_motionVector.get());
+            pc.m_AllMeshletsRefUAV   = rhi->GetUAVDescriptor(primaryView.m_allFilteredMeshletsHW.get());
+            pc.m_InstanceDataUAV =
+                rhi->GetUAVDescriptor(perframeData.m_shaderEffectData[0].m_batchedObjectData->GetActiveBuffer());
+            pc.m_CurFrameDataCBV  = rhi->GetCBVDescriptor(primaryView.m_viewBuffer->GetActiveBuffer());
+            pc.m_LastFrameDataCBV = rhi->GetCBVDescriptor(primaryView.m_viewBufferLast->GetActiveBuffer());
+
             ctx->m_cmd->ClearUAVTexFloat(perframeData.m_motionVector.get(), { 0, 0, 1, 1 }, { 0.0f, 0.0f, 0.0f, 0.0f });
-            ctx->m_cmd->AttachUniformRef(1, primaryView.m_viewBindlessRef);
-            ctx->m_cmd->AttachUniformRef(2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
-            ctx->m_cmd->AttachUniformRef(3, primaryView.m_allFilteredMeshletsDesc);
-            ctx->m_cmd->AttachUniformRef(4, perframeData.m_velocityMaterialDesc);
-            u32 pcData[2] = { primaryView.m_renderWidth, primaryView.m_renderHeight };
-            ctx->m_cmd->SetPushConst(&pcData[0], 0, u32Size * 2);
-            u32 wgX = (pcData[0] + cEmitDepthGroupSizeX - 1) / cEmitDepthGroupSizeX;
-            u32 wgY = (pcData[1] + cEmitDepthGroupSizeY - 1) / cEmitDepthGroupSizeY;
+            ctx->m_cmd->SetPushConst(&pc, 0, sizeof(PushConstant));
+
+            u32 wgX = DivRoundUp(pc.m_Width, cEmitDepthGroupSizeX);
+            u32 wgY = DivRoundUp(pc.m_Height, cEmitDepthGroupSizeY);
             ctx->m_cmd->Dispatch(wgX, wgY, 1);
 
-            runImageBarrier(ctx->m_cmd, perframeData.m_velocityMaterial.get(),
+            RunImageBarrier(ctx->m_cmd, perframeData.m_velocityMaterial.get(),
 
                 RhiResourceState::UnorderedAccess, { 0, 0, 1, 1 });
 
 #if !SYARO_ENABLE_SW_RASTERIZER
-            runImageBarrier(ctx->m_cmd, primaryView.m_visibilityDepth_Combined.get(), RhiResourceState::DepthStencilRT,
+            RunImageBarrier(ctx->m_cmd, primaryView.m_visibilityDepth_Combined.get(), RhiResourceState::DepthStencilRT,
                 { 0, 0, 1, 1 });
 #endif
         });
@@ -1080,11 +1098,10 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void SyaroRenderer::RenderTwoPassOcclCulling(CullingPass cullPass, PerFrameData& perframeData,
         RenderTargets* renderTargets, const GPUCmdBuffer* cmd, PerFrameData::ViewType filteredViewType, u32 idx)
     {
-        auto                                                 rhi       = m_app->GetRhi();
-        int                                                  pcData[2] = { 0, 1 };
+        auto                                      rhi = m_app->GetRhi();
 
-        std::unique_ptr<SyaroRenderer::GPUCommandSubmission> lastTask = nullptr;
-        u32                                                  k        = idx;
+        Uref<SyaroRenderer::GPUCommandSubmission> lastTask = nullptr;
+        u32                                       k        = idx;
         if (k == ~0u)
         {
             for (k = 0; k < perframeData.m_views.size(); k++)
@@ -1103,9 +1120,15 @@ namespace Ifrit::Runtime
         {
             cmd->GlobalMemoryBarrier();
         }
-        auto& perView           = perframeData.m_views[k];
-        auto  numObjs           = perframeData.m_allInstanceData.m_objectData.size();
-        int   pcDataInstCull[4] = { 0, Ifrit::SizeCast<int>(numObjs), 1, Ifrit::SizeCast<int>(numObjs) };
+        auto& perView = perframeData.m_views[k];
+        auto  numObjs = perframeData.m_allInstanceData.m_objectData.size();
+
+        struct PushConst
+        {
+            u32 m_PassNo;
+            u32 m_TotalInstances;
+        } pc;
+
         m_instanceCullingPass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
             if (cullPass == CullingPass::First)
             {
@@ -1119,13 +1142,19 @@ namespace Ifrit::Runtime
 
             if (cullPass == CullingPass::First)
             {
-                ctx->m_cmd->SetPushConst(&pcDataInstCull[0], 0, u32Size * 2);
+                pc.m_PassNo         = 0;
+                pc.m_TotalInstances = numObjs;
+
+                ctx->m_cmd->SetPushConst(&pc, 0, sizeof(PushConst));
                 auto tgx = DivRoundUp(SizeCast<u32>(numObjs), SyaroConfig::cInstanceCullingThreadGroupSizeX);
                 ctx->m_cmd->Dispatch(tgx, 1, 1);
             }
             else if (cullPass == CullingPass::Second)
             {
-                ctx->m_cmd->SetPushConst(&pcDataInstCull[2], 0, u32Size * 2);
+                pc.m_PassNo         = 1;
+                pc.m_TotalInstances = numObjs;
+
+                ctx->m_cmd->SetPushConst(&pc, 0, sizeof(PushConst));
                 ctx->m_cmd->DispatchIndirect(perView.m_persistCullIndirectDispatch.get(), 3 * u32Size);
             }
         });
@@ -1137,6 +1166,10 @@ namespace Ifrit::Runtime
                 u32 swOffset;
                 u32 rejectSwRaster;
                 u32 m_ConeCullMode;
+                u32 m_InstanceDataUAV;
+                u32 m_CurFrameDataCBV;
+                u32 m_AllMeshletsRefUAV;
+                u32 m_IndirectDrawCmdUAV;
             } pcPersistCull;
 
             ctx->m_cmd->AddResourceBarrier(perView.m_persistCullBarrier);
@@ -1148,11 +1181,13 @@ namespace Ifrit::Runtime
             runUAVBufferBarrier(ctx->m_cmd, perView.m_allFilteredMeshletsAllCount.get());
             runUAVBufferBarrier(ctx->m_cmd, m_indirectDrawBuffer.get());
             // bind view buffer
-            ctx->m_cmd->AttachUniformRef(1, perView.m_viewBindlessRef);
-            ctx->m_cmd->AttachUniformRef(2, perframeData.m_shaderEffectData[0].m_batchedObjBufRef);
-            ctx->m_cmd->AttachUniformRef(3, m_persistCullDesc);
-            ctx->m_cmd->AttachUniformRef(4, perView.m_allFilteredMeshletsDesc);
-            ctx->m_cmd->AttachUniformRef(5, perView.m_instCullDesc);
+            ctx->m_cmd->AttachUniformRef(1, perView.m_instCullDesc);
+
+            pcPersistCull.m_InstanceDataUAV =
+                rhi->GetUAVDescriptor(perframeData.m_shaderEffectData[0].m_batchedObjectData->GetActiveBuffer());
+            pcPersistCull.m_CurFrameDataCBV    = rhi->GetCBVDescriptor(perView.m_viewBuffer->GetActiveBuffer());
+            pcPersistCull.m_AllMeshletsRefUAV  = rhi->GetUAVDescriptor(perView.m_allFilteredMeshletsHW.get());
+            pcPersistCull.m_IndirectDrawCmdUAV = rhi->GetUAVDescriptor(perView.m_allFilteredMeshletsAllCount.get());
 
             // forced culling
             if (m_config->m_OverrideMaterialCulling == OverrideMaterialCulling::ForcedCullNone)
@@ -1224,6 +1259,7 @@ namespace Ifrit::Runtime
                 ctx->m_cmd->SetCullMode(RhiCullMode::Back);
             }
             ctx->m_cmd->AttachUniformRef(3, perView.m_allFilteredMeshletsDesc);
+            int pcData[2] = { 0, 1 };
             if (cullPass == CullingPass::First)
             {
                 ctx->m_cmd->SetPushConst(&pcData[0], 0, u32Size);
@@ -1289,9 +1325,9 @@ namespace Ifrit::Runtime
         combinePass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
             if (cullPass == CullingPass::First)
             {
-                runImageBarrier(ctx->m_cmd, perView.m_visibilityBuffer_Combined.get(),
+                RunImageBarrier(ctx->m_cmd, perView.m_visibilityBuffer_Combined.get(),
                     RhiResourceState::UnorderedAccess, { 0, 0, 1, 1 });
-                runImageBarrier(ctx->m_cmd, perView.m_visibilityDepth_Combined.get(), RhiResourceState::UnorderedAccess,
+                RunImageBarrier(ctx->m_cmd, perView.m_visibilityDepth_Combined.get(), RhiResourceState::UnorderedAccess,
                     { 0, 0, 1, 1 });
             }
             struct CombinePassPushConst
@@ -1467,7 +1503,7 @@ namespace Ifrit::Runtime
     {
         auto rhi = m_app->GetRhi();
         m_defaultEmitGBufferPass =
-            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.EmitGBufferCS, 6, 3);
+            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.EmitGBufferCS, 2, 8);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SphizBufferSetup(PerFrameData& perframeData, RenderTargets* renderTargets)
@@ -1635,17 +1671,18 @@ namespace Ifrit::Runtime
         PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd)
     {
         auto numMaterials = perframeData.m_enabledEffects.size();
+        auto rhi          = m_app->GetRhi();
         m_defaultEmitGBufferPass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
             // first transition all gbuffer textures to UAV/Common
-            runImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_albedo_materialFlags.get(), RhiResourceState::Common,
+            RunImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_albedo_materialFlags.get(), RhiResourceState::Common,
                 { 0, 0, 1, 1 });
-            runImageBarrier(
+            RunImageBarrier(
                 ctx->m_cmd, perframeData.m_gbuffer.m_normal_smoothness.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
-            runImageBarrier(
+            RunImageBarrier(
                 ctx->m_cmd, perframeData.m_gbuffer.m_emissive.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
-            runImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_specular_occlusion.get(), RhiResourceState::Common,
+            RunImageBarrier(ctx->m_cmd, perframeData.m_gbuffer.m_specular_occlusion.get(), RhiResourceState::Common,
                 { 0, 0, 1, 1 });
-            runImageBarrier(
+            RunImageBarrier(
                 ctx->m_cmd, perframeData.m_gbuffer.m_shadowMask.get(), RhiResourceState::Common, { 0, 0, 1, 1 });
 
             // Clear gbuffer textures
@@ -1665,19 +1702,38 @@ namespace Ifrit::Runtime
             // one dispatch
             u32 actualRtw = 0, actualRth = 0;
             GetSupersampledRenderArea(renderTargets, &actualRtw, &actualRth);
-            u32   pcData[3]   = { 0, actualRtw, actualRth };
+
+            // primary view
             auto& primaryView = GetPrimaryView(perframeData);
+
+            struct PushConst
+            {
+                u32 m_MaterialIndex;
+                u32 m_RenderWidth;
+                u32 m_RenderHeight;
+                u32 m_VisibilitySRV;
+                u32 m_AllMeshletsRefUAV;
+                u32 m_InstanceDataUAV;
+                u32 m_CurFrameDataCBV;
+                u32 m_GBufferRefsUAV;
+            } pc;
+            pc.m_RenderWidth       = actualRtw;
+            pc.m_RenderHeight      = actualRth;
+            pc.m_VisibilitySRV     = rhi->GetSRVDescriptor(primaryView.m_visibilityBuffer_Combined.get());
+            pc.m_AllMeshletsRefUAV = rhi->GetUAVDescriptor(primaryView.m_allFilteredMeshletsHW.get());
+            pc.m_CurFrameDataCBV   = rhi->GetCBVDescriptor(primaryView.m_viewBuffer->GetActiveBuffer());
+            pc.m_GBufferRefsUAV    = rhi->GetUAVDescriptor(perframeData.m_gbuffer.m_gbufferRefs.get());
+
+            // auto& primaryView = GetPrimaryView(perframeData);
             for (int i = 0; i < numMaterials; i++)
             {
                 ctx->m_cmd->AttachUniformRef(1, perframeData.m_matClassDesc);
-                ctx->m_cmd->AttachUniformRef(2, perframeData.m_gbuffer.m_gbufferDesc);
-                ctx->m_cmd->AttachUniformRef(3, primaryView.m_viewBindlessRef);
-                ctx->m_cmd->AttachUniformRef(4, perframeData.m_shaderEffectData[i].m_batchedObjBufRef);
-                ctx->m_cmd->AttachUniformRef(5, primaryView.m_allFilteredMeshletsDesc);
-                ctx->m_cmd->AttachUniformRef(6, perframeData.m_velocityMaterialDesc);
 
-                pcData[0] = i;
-                ctx->m_cmd->SetPushConst(&pcData[0], 0, u32Size * 3);
+                pc.m_MaterialIndex = i;
+                pc.m_InstanceDataUAV =
+                    rhi->GetUAVDescriptor(perframeData.m_shaderEffectData[i].m_batchedObjectData->GetActiveBuffer());
+
+                ctx->m_cmd->SetPushConst(&pc, 0, sizeof(PushConst));
                 RhiResourceBarrier barrierCountBuffer;
                 barrierCountBuffer.m_type         = RhiBarrierType::UAVAccess;
                 barrierCountBuffer.m_uav.m_buffer = perframeData.m_matClassCountBuffer.get();
@@ -1688,7 +1744,6 @@ namespace Ifrit::Runtime
                 ctx->m_cmd->AddResourceBarrier(perframeData.m_gbuffer.m_gbufferBarrier);
             }
         });
-        auto rhi = m_app->GetRhi();
         cmd->BeginScope("Syaro: Emit  GBuffer");
         m_defaultEmitGBufferPass->Run(cmd, 0);
         cmd->EndScope();
@@ -2005,7 +2060,7 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission> SyaroRenderer::Render(PerFrameData& perframeData,
-        SyaroRenderer::RenderTargets* renderTargets, const std::vector<SyaroRenderer::GPUCommandSubmission*>& cmdToWait)
+        SyaroRenderer::RenderTargets* renderTargets, const Vec<SyaroRenderer::GPUCommandSubmission*>& cmdToWait)
     {
 
         // According to
@@ -2035,14 +2090,14 @@ namespace Ifrit::Runtime
 
         auto start1 = std::chrono::high_resolution_clock::now();
         PrepareAggregatedShadowData(perframeData);
-        auto                            end1     = std::chrono::high_resolution_clock::now();
-        auto                            elapsed1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
+        auto                    end1     = std::chrono::high_resolution_clock::now();
+        auto                    elapsed1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
 
         // Then draw
-        auto                            rhi = m_app->GetRhi();
-        auto                            dq  = rhi->GetQueue(RhiQueueCapability::RhiQueue_Graphics);
+        auto                    rhi = m_app->GetRhi();
+        auto                    dq  = rhi->GetQueue(RhiQueueCapability::RhiQueue_Graphics);
 
-        std::vector<RhiTaskSubmission*> cmdToWaitBkp = cmdToWait;
+        Vec<RhiTaskSubmission*> cmdToWaitBkp = cmdToWait;
         std::unique_ptr<RhiTaskSubmission> pbrAtmoTask;
         if (perframeData.m_atmosphereData == nullptr)
         {
@@ -2146,7 +2201,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission> SyaroRenderer::Render(Scene* scene,
         Camera* camera, RenderTargets* renderTargets, const RendererConfig& config,
-        const std::vector<GPUCommandSubmission*>& cmdToWait)
+        const Vec<GPUCommandSubmission*>& cmdToWait)
     {
 
         auto start = std::chrono::high_resolution_clock::now();
@@ -2242,6 +2297,7 @@ namespace Ifrit::Runtime
 
         auto end      = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        iDebug("CPU time, frame rendering: {} ms", duration.count());
         return ret;
     }
 

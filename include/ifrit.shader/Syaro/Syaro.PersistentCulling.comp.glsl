@@ -103,26 +103,7 @@ RegisterStorage(bHierCullDispatch,{
 });
 
 
-layout(binding = 0, set = 1) uniform PerframeViewData{
-    uint refCurFrame;
-    uint refPrevFrame;
-}uPerframeView;
-
-layout(binding = 0, set = 2) uniform InstanceData{
-    uvec4 ref;
-}uInstanceData;
-
-layout(binding = 0, set = 3) uniform IndirectDrawData{
-    uvec4 ref;
-}uIndirectDrawData;
-
-layout(binding = 0, set = 4) uniform IndirectDrawData2{
-    uint allMeshletsRef;
-    uint allMeshletsRefSW;
-    uint indDrawCmdRef;
-}uIndirectDrawData2;
-
-layout(binding = 0, set = 5) uniform IndirectCompData{
+layout(binding = 0, set = 1) uniform IndirectCompData{
     uint acceptRef;
     uint rejectRef;
     uint indRef;
@@ -134,6 +115,10 @@ layout(push_constant) uniform CullingPass{
     uint swOffset;
     uint rejectSwRaster;
     uint m_ConeCullMode;
+    uint m_InstanceDataUAV;
+    uint m_CurFrameDataCBV;
+    uint m_AllMeshletsRefUAV;
+    uint m_IndirectDrawCmdUAV;
 } pConst;
 
 shared uint sConsumer;
@@ -167,13 +152,13 @@ bool isClusterGroupVisible(uint id, mat4 mvMat,float rtHeight,float tanfovy,floa
     float camAspect, float orthoSize, float cullOrthoX, float cullOrthoY, float maxScale){
 
     uint objId = getObjId();
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,pConst.m_InstanceDataUAV).data[objId].objectDataRef;
     uint cpcntRefMesh = GetResource(bMeshDataRef,obj).cpCounterBuffer;
 
     uint clusterRef = GetResource(bMeshDataRef,obj).clusterGroupBuffer;
     uint totalLod = GetResource(bCpCounterMesh,cpcntRefMesh).totalLods;
     
-    vec3 camPos = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraPosition.xyz;   
+    vec3 camPos = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraPosition.xyz;   
 
     ClusterGroup group = GetResource(bClusterGroup,clusterRef).data[id];
     vec3 selfSphereCenter = group.selfBoundSphere.xyz;
@@ -240,10 +225,10 @@ bool frustumCullLRTB(vec4 left, vec4 right, vec4 top, vec4 bottom, vec4 boundBal
 
 // If the object should be culled, return true
 bool frustumCull(vec4 boundBall, float radius, float tanHalfFovY){
-    float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
-    float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
+    float camFar = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraFar;
+    float camNear = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraNear;
     
-    float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+    float camAspect = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraAspect;
     float z = boundBall.z;
     if(z+radius < camNear || z-radius > camFar){
         return true;
@@ -259,18 +244,18 @@ bool frustumCull(vec4 boundBall, float radius, float tanHalfFovY){
 }
 
 bool frustumCullOrtho(vec4 boundBall, float radius){
-    float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
-    float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
-    float camFovY = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+    float camFar = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraFar;
+    float camNear = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraNear;
+    float camFovY = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraFovY;
     float halfFovY = camFovY * 0.5;
-    float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+    float camAspect = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraAspect;
     float z = boundBall.z;
     if(z+radius < camNear || z-radius > camFar){
         return true;
     }
-    float camOrthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
-    float camOrthoSizeCullX = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeX;
-    float camOrthoSizeCullY = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeY;
+    float camOrthoSize = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraOrthoSize;
+    float camOrthoSizeCullX = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cullCamOrthoSizeX;
+    float camOrthoSizeCullY = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cullCamOrthoSizeY;
 
     float camOrthoHalfSize = camOrthoSize;
 
@@ -300,11 +285,11 @@ bool frustumCullOrtho(vec4 boundBall, float radius){
 void enqueueClusterGroupSingleMeshlet(uint meshletRef, uint objId, uint meshletId, uint clusterRef, uint micRef, float tanHalfFovY,uint lod){
     
     Meshlet meshlet = GetResource(bMeshlet,meshletRef).data[meshletId];
-    uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
-    uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
+    uint instId = GetResource(bPerObjectRef,pConst.m_InstanceDataUAV).data[objId].instanceDataRef;
+    uint trans = GetResource(bPerObjectRef,pConst.m_InstanceDataUAV).data[objId].transformRef;
     mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
     float maxScale = GetResource(bLocalTransform,trans).m_maxScale;
-    mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
+    mat4 view = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_worldToView;
     mat4 mv = view * model;
 
 #if SYARO_SHADER_SHARED_CLUSTER_GROUP_LEVEL_REMOVAL
@@ -316,10 +301,10 @@ void enqueueClusterGroupSingleMeshlet(uint meshletRef, uint objId, uint meshletI
     
 
     // Get view cam type
-    float viewCamType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
-    float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
-    float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
-    float rtHeight = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderHeight;
+    float viewCamType = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_viewCameraType;
+    float camAspect = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraAspect;
+    float orthoSize = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraOrthoSize;
+    float rtHeight = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_renderHeight;
     float tanfovy = tanHalfFovY;
 
     vec4 selfErrorSphere = meshlet.selfErrorSphere;
@@ -345,14 +330,14 @@ void enqueueClusterGroupSingleMeshlet(uint meshletRef, uint objId, uint meshletI
 
 #if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
     // cone culling
-    float camViewType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
+    float camViewType = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_viewCameraType;
         
     if(pConst.m_ConeCullMode == 0){
         
     }else{
         vec4 normalConeAxis = model * vec4(meshlet.normalCone.xyz,0.0);
         vec4 normalConeApex = model * vec4(meshlet.normalConeApex.xyz,1.0);
-        vec3 cameraPos = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraPosition.xyz;
+        vec3 cameraPos = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraPosition.xyz;
         float coneAngle = dot(normalize(normalConeApex.xyz - cameraPos),normalize(normalConeAxis.xyz));
         if(coneAngle > meshlet.normalCone.w+1e-6){
             return;
@@ -381,32 +366,32 @@ void enqueueClusterGroupSingleMeshlet(uint meshletRef, uint objId, uint meshletI
     if(pConst.rejectSwRaster == 0){
         // We don't want sw rasterizer got homogeneous clipping. So if sphere intersects
         // the near plane, we just discard it.
-        float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
-        float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
+        float camNear = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraNear;
+        float camFar = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraFar;
         if(boundBall.z - radius > camNear){
             float projectedRadius = 0.0;
             if(camViewType>0.5){
-                float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
-                float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
+                float orthoSize = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraOrthoSize;
+                float camAspect = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraAspect;
                 projectedRadius = radius * camAspect / orthoSize;
             }else{
-                float fov = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+                float fov = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraFovY;
                 float tanfovy = tan(fov*0.5);
                 float lengthx = length(boundBall.xyz);
                 projectedRadius = computeProjectedRadius(tanfovy,lengthx,radius);
             }
-            float rtWidth = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderWidth;
+            float rtWidth = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_renderWidth;
             projectedRadius*=rtWidth;
 
             if(projectedRadius < 32.0){
                 if(isSecondCullingPass()){
-                    uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1sw;
-                    pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2sw,1);
+                    uint basePos = GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).meshletsToDraw1sw;
+                    pos = atomicAdd(GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).meshletsToDraw2sw,1);
                     pos += basePos;
                 }else{
-                    pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1sw,1);
+                    pos = atomicAdd(GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).meshletsToDraw1sw,1);
                 }
-                GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRefSW).data[pos+pConst.swOffset] = ivec2(objId,meshletId);
+                GetResource(bFilteredMeshlets2,pConst.m_AllMeshletsRefUAV).data[pos+pConst.swOffset] = ivec2(objId,meshletId);
                 return;
             }
             
@@ -417,13 +402,13 @@ void enqueueClusterGroupSingleMeshlet(uint meshletRef, uint objId, uint meshletI
 #endif
     // End culling
     if(isSecondCullingPass()){
-        uint basePos = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1;
-        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2,1);
+        uint basePos = GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).meshletsToDraw1;
+        pos = atomicAdd(GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).meshletsToDraw2,1);
         pos += basePos;
     }else{
-        pos = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1,1);
+        pos = atomicAdd(GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).meshletsToDraw1,1);
     }
-    GetResource(bFilteredMeshlets2,uIndirectDrawData2.allMeshletsRef).data[pos] = ivec2(objId,meshletId);
+    GetResource(bFilteredMeshlets2,pConst.m_AllMeshletsRefUAV).data[pos] = ivec2(objId,meshletId);
 }
 
 void enqueueClusterGroupImpl(uint id, uint clusterRef, uint micRef, float tanHalfFovY){
@@ -432,7 +417,7 @@ void enqueueClusterGroupImpl(uint id, uint clusterRef, uint micRef, float tanHal
     int numMeshlets = int(group.childMeshletCount);
     uint pos = 0;
     bool bMeshletCulled = false;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,pConst.m_InstanceDataUAV).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     for(uint i = 0;i<numMeshlets;i++){
         uint meshletId = GetResource(bMeshletsInClusterGroup,micRef).data[group.childMeshletStart+i];
@@ -452,26 +437,26 @@ void main(){
     }
 
     if(gl_WorkGroupID.x==0){
-        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y2 = 1;
-        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z2 = 1;
-        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y1 = 1;
-        GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z1 = 1;
+        GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).y2 = 1;
+        GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).z2 = 1;
+        GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).y1 = 1;
+        GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).z1 = 1;
     }
     
     uint threadId = gl_LocalInvocationID.x;
     uint objId = getObjId();
     uint groupSize = gl_WorkGroupSize.x;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
-    uint instId = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].instanceDataRef;
+    uint obj = GetResource(bPerObjectRef,pConst.m_InstanceDataUAV).data[objId].objectDataRef;
+    uint instId = GetResource(bPerObjectRef,pConst.m_InstanceDataUAV).data[objId].instanceDataRef;
     uint micRef = GetResource(bMeshDataRef,obj).meshletInClusterBuffer;
-    float viewCamType = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_viewCameraType;
+    float viewCamType = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_viewCameraType;
 
-    uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
+    uint trans = GetResource(bPerObjectRef,pConst.m_InstanceDataUAV).data[objId].transformRef;
     mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
-    mat4 view = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
+    mat4 view = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_worldToView;
     mat4 mv = view * model;
 
-    float rtHeight =  GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_renderHeight;
+    float rtHeight =  GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_renderHeight;
 
     uint cpcntRefMesh = GetResource(bMeshDataRef,obj).cpCounterBuffer;
     uint cpcntRefInst = GetResource(bInstanceDataRef,instId).cpCounterBuffer;
@@ -483,12 +468,12 @@ void main(){
 
     uint totalBVHNodes = GetResource(bCpCounterMesh,cpcntRefMesh).totalBvh;
     uint totalClusterGroups = GetResource(bCpCounterMesh,cpcntRefMesh).totalCluster;
-    float fov = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
+    float fov = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraFovY;
     float tanfovy = tan(fov*0.5);
-    float camAspect = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraAspect;
-    float orthoSize = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraOrthoSize;
-    float cullOrthoX = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeX;
-    float cullOrthoY = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cullCamOrthoSizeY;
+    float camAspect = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraAspect;
+    float orthoSize = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cameraOrthoSize;
+    float cullOrthoX = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cullCamOrthoSizeX;
+    float cullOrthoY = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cullCamOrthoSizeY;
 
     float maxScale = GetResource(bLocalTransform,trans).m_maxScale;
 
@@ -580,15 +565,15 @@ void main(){
             }
         }
     }
-    //GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2 = 104829;
+    //GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).x2 = 104829;
 
     barrier();
     if(threadId == 0){
         if(isSecondCullingPass()){
-            uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups2,1) + 1;
+            uint v = atomicAdd(GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).completedWorkGroups2,1) + 1;
             if(v == gl_NumWorkGroups.x){
-                uint m2 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2;
-                uint m2sw = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw2sw;
+                uint m2 = GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).meshletsToDraw2;
+                uint m2sw = GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).meshletsToDraw2sw;
 #if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
                 uint issuedTasks = m2;
                 uint issuedTasksSw = m2sw;
@@ -596,20 +581,20 @@ void main(){
                 uint issuedTasks = (m2 + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
                 uint issuedTasksSw = (m2sw + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
 #endif
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2 = issuedTasks;
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x2sw = issuedTasksSw;
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y2 = 1;
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z2 = 1;
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y2sw = 1;
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z2sw = 1;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).x2 = issuedTasks;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).x2sw = issuedTasksSw;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).y2 = 1;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).z2 = 1;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).y2sw = 1;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).z2sw = 1;
                 
             }
         }
         else{
-            uint v = atomicAdd(GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).completedWorkGroups1,1) + 1;
+            uint v = atomicAdd(GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).completedWorkGroups1,1) + 1;
             if(v == gl_NumWorkGroups.x){
-                uint m1 = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1;
-                uint m1sw = GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).meshletsToDraw1sw;
+                uint m1 = GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).meshletsToDraw1;
+                uint m1sw = GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).meshletsToDraw1sw;
 #if SYARO_SHADER_MESHLET_CULL_IN_PERSISTENT_CULL
                 uint issuedTasks = m1;
                 uint issuedTasksSw = m1sw;
@@ -617,12 +602,12 @@ void main(){
                 uint issuedTasks = (m1 + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
                 uint issuedTasksSw = (m1sw + cMeshRasterizeTaskThreadGroupSize-1) / cMeshRasterizeTaskThreadGroupSize;
 #endif
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1 = issuedTasks;
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).x1sw = issuedTasksSw;
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y1 = 1;
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z1 = 1;
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).y1sw = 1;
-                GetResource(bDrawCallSize,uIndirectDrawData2.indDrawCmdRef).z1sw = 1;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).x1 = issuedTasks;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).x1sw = issuedTasksSw;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).y1 = 1;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).z1 = 1;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).y1sw = 1;
+                GetResource(bDrawCallSize,pConst.m_IndirectDrawCmdUAV).z1sw = 1;
             }
         }
     }

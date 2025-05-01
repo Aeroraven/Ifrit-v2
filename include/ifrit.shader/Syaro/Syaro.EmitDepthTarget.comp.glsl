@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Bindless.glsl"
 #include "Syaro/Syaro.Shared.glsl"
 #include "Syaro/Syaro.SharedConst.h"
+#include "SamplerUtils.SharedConst.h"
 
 layout(local_size_x = cEmitDepthTargetThreadGroupSizeX, local_size_y = cEmitDepthTargetThreadGroupSizeY, local_size_z = 1) in;
 
@@ -47,34 +48,20 @@ RegisterStorage(bFilteredMeshlets2,{
     uvec2 data[];
 });
 
-
-layout(binding = 0, set = 1) uniform PerframeViewData{
-    uint refCurFrame;
-    uint refPrevFrame;
-}uPerframeView;
-
-layout(binding = 0, set = 2) uniform InstanceData{
-    uvec4 ref;
-}uInstanceData;
-
-layout(binding = 0, set = 3) uniform IndirectDrawData{
-    uint allMeshletsRef;
-    uint indDrawCmdRef;
-}uIndirectDrawData;
-
-layout(binding = 0, set = 4) uniform EmitDepthTargetData{
-    uint velocityMaterialRef; //Seems rgb32f specifiers are not provided
-    uint visBufferRef;
-    uint motionVectorRef;
-}uEmitDepthTargetData;
-
 layout(push_constant) uniform EmitDepthTargetPushConstant{
     uint renderWidth;
     uint renderHeight;
+    uint m_VelocityMaterialUAV;
+    uint m_VisibilitySRV;
+    uint m_MotionVectorUAV;
+    uint m_AllMeshletsRefUAV;
+    uint m_InstanceDataUAV;
+    uint m_CurFrameDataCBV;
+    uint m_PrevFrameDataCBV;
 }uEmitDepthTargetPushConstant;
 
 uvec2 unpackVisBuffer(uvec2 pos){
-    uint sampledVal = texelFetch(GetSampler2DU(uEmitDepthTargetData.visBufferRef), ivec2(pos), 0).r;
+    uint sampledVal = SampleTexture2DLoadUint(uEmitDepthTargetPushConstant.m_VisibilitySRV,sNearestClamp, ivec2(pos)).r;
     uint clusterId = (sampledVal >> 7);
     uint triangleId = sampledVal & 0x0000007Fu;
     return uvec2(clusterId, triangleId);
@@ -100,22 +87,22 @@ vec3 rayTriangleIntersect(vec3 p0, vec3 p1, vec3 p2, vec3 o, vec3 d){
 vec3 getBarycentric(vec3 v0, vec3 v1, vec3 v2, uvec2 texPos){
     vec2 uvNdc = vec2(texPos) / vec2(uEmitDepthTargetPushConstant.renderWidth, uEmitDepthTargetPushConstant.renderHeight);
     uvNdc = uvNdc * 2.0 - 1.0;
-    float zNear = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_cameraNear;
+    float zNear = GetResource(bPerframeView, uEmitDepthTargetPushConstant.m_CurFrameDataCBV).data.m_cameraNear;
     vec4 ndcPos = vec4(uvNdc, 0.0, 1.0) * zNear;
-    mat4 invP = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_invPerspective;
+    mat4 invP = GetResource(bPerframeView, uEmitDepthTargetPushConstant.m_CurFrameDataCBV).data.m_invPerspective;
     vec3 viewDir = normalize((invP * ndcPos).xyz);
     vec3 bary = rayTriangleIntersect(v0, v1, v2, vec3(0.0), viewDir);
     return bary;
 }
 
 uvec2 getObjMeshletId(uint clusterId){
-    return GetResource(bFilteredMeshlets2,uIndirectDrawData.allMeshletsRef).data[clusterId];
+    return GetResource(bFilteredMeshlets2,uEmitDepthTargetPushConstant.m_AllMeshletsRefUAV).data[clusterId];
 }
 
 uint readTriangleIndex(uvec2 objMeshletId, uint triangleId){
     uint meshletId = objMeshletId.y;
     uint objId = objMeshletId.x;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,uEmitDepthTargetPushConstant.m_InstanceDataUAV).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     uint indexRef = GetResource(bMeshDataRef,obj).meshletIndexBuffer;
     uint meshletOffset = GetResource(bMeshlet, meshletRef).data[meshletId].triangle_offset;
@@ -126,7 +113,7 @@ uint readTriangleIndex(uvec2 objMeshletId, uint triangleId){
 uint readVertexIndex(uvec2 objMeshletId, uint vertexId){
     uint meshletId = objMeshletId.y;
     uint objId = objMeshletId.x;
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,uEmitDepthTargetPushConstant.m_InstanceDataUAV).data[objId].objectDataRef;
     uint meshletRef = GetResource(bMeshDataRef,obj).meshletBuffer;
     uint vertexRef = GetResource(bMeshDataRef,obj).meshletVertexBuffer;
 
@@ -148,13 +135,13 @@ void main(){
     uvec2 pos = uvec2(px, py);
     uvec2 clusterTriangleId = unpackVisBuffer(pos);
     if(clusterTriangleId.x == 0){
-        imageStore(GetUAVImage2DRGBA32F(uEmitDepthTargetData.velocityMaterialRef), ivec2(pos), vec4(0.0));
+        imageStore(GetUAVImage2DRGBA32F(uEmitDepthTargetPushConstant.m_VelocityMaterialUAV), ivec2(pos), vec4(0.0));
         return;
     }
     clusterTriangleId.x -= 1;
     uvec2 objMeshletId = getObjMeshletId(clusterTriangleId.x);
 
-    uint obj = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objMeshletId.x].objectDataRef;
+    uint obj = GetResource(bPerObjectRef,uEmitDepthTargetPushConstant.m_InstanceDataUAV).data[objMeshletId.x].objectDataRef;
     uint vertexRef = GetResource(bMeshDataRef,obj).vertexBuffer;
 
     uint vTx = readTriangleIndex(objMeshletId, clusterTriangleId.y);
@@ -170,13 +157,13 @@ void main(){
     vec4 v1 = vec4(GetResource(bVertices, vertexRef).data[v1Idx].xyz, 1.0);
     vec4 v2 = vec4(GetResource(bVertices, vertexRef).data[v2Idx].xyz, 1.0);
 
-    uint transRef = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].transformRef;
+    uint transRef = GetResource(bPerObjectRef, uEmitDepthTargetPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef;
     mat4 localToWorld = GetResource(bLocalTransform, transRef).m_localToWorld;
     vec4 v0ws = localToWorld * v0;
     vec4 v1ws = localToWorld * v1;
     vec4 v2ws = localToWorld * v2;
 
-    mat4 worldToView = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_worldToView;
+    mat4 worldToView = GetResource(bPerframeView, uEmitDepthTargetPushConstant.m_CurFrameDataCBV).data.m_worldToView;
     vec4 v0vs = worldToView * v0ws;
     vec4 v1vs = worldToView * v1ws;
     vec4 v2vs = worldToView * v2ws;
@@ -184,11 +171,11 @@ void main(){
     vec3 bary = getBarycentric(v0vs.xyz, v1vs.xyz, v2vs.xyz, pos);
 
     // Motion vector
-    uint transLastRef = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].transformRefLast;
+    uint transLastRef = GetResource(bPerObjectRef, uEmitDepthTargetPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRefLast;
     mat4 localToWorldLast = GetResource(bLocalTransform, transLastRef).m_localToWorld;
-    mat4 worldToViewLast = GetResource(bPerframeView, uPerframeView.refPrevFrame).data.m_worldToView;
-    mat4 projectionLast = GetResource(bPerframeView, uPerframeView.refPrevFrame).data.m_perspective;
-    mat4 projNow = GetResource(bPerframeView, uPerframeView.refCurFrame).data.m_perspective;
+    mat4 worldToViewLast = GetResource(bPerframeView, uEmitDepthTargetPushConstant.m_PrevFrameDataCBV).data.m_worldToView;
+    mat4 projectionLast = GetResource(bPerframeView, uEmitDepthTargetPushConstant.m_PrevFrameDataCBV).data.m_perspective;
+    mat4 projNow = GetResource(bPerframeView, uEmitDepthTargetPushConstant.m_CurFrameDataCBV).data.m_perspective;
 
     // Eliminate jitter in the motion vector
     projectionLast[0][2] = 0.0;
@@ -219,15 +206,14 @@ void main(){
     float msDepth = vpScr.z / vpScr.w;
 
     // Material ID
-    uint instanceRef = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].instanceDataRef;
-    uint materialId = GetResource(bPerObjectRef, uInstanceData.ref.x).data[objMeshletId.x].materialId;
+    uint instanceRef = GetResource(bPerObjectRef, uEmitDepthTargetPushConstant.m_InstanceDataUAV).data[objMeshletId.x].instanceDataRef;
+    uint materialId = GetResource(bPerObjectRef, uEmitDepthTargetPushConstant.m_InstanceDataUAV).data[objMeshletId.x].materialId;
 
     // Then write to the buffer
     vec4 velMatData = vec4((motionVector), msDepth, float(materialId)+1.0);
-    imageStore(GetUAVImage2DRGBA32F(uEmitDepthTargetData.velocityMaterialRef), ivec2(pos), velMatData);
+    imageStore(GetUAVImage2DRGBA32F(uEmitDepthTargetPushConstant.m_VelocityMaterialUAV), ivec2(pos), velMatData);
 
 
     // And motion vector
-    imageStore(GetUAVImage2DRGBA32F(uEmitDepthTargetData.motionVectorRef), ivec2(pos), vec4(motionVector, 0.0, 0.0));
+    imageStore(GetUAVImage2DRGBA32F(uEmitDepthTargetPushConstant.m_MotionVectorUAV), ivec2(pos), vec4(motionVector, 0.0, 0.0));
 }
-

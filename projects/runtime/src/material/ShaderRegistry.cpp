@@ -78,7 +78,8 @@ namespace Ifrit::Runtime
                     auto shaderCode = ReadTextFile(shaderPath);
                     if (shaderCode.size() == 0)
                     {
-                        printf("Cannot read file %s\n", shaderPath.c_str());
+                        iError("Cannot read shader file {}", shaderPath.c_str());
+                        std::abort();
                     }
                     auto shaderCodeVec = Vec<char>(shaderCode.begin(), shaderCode.end());
                     auto rhi           = m_Data->m_App->GetRhi();
