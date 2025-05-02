@@ -26,7 +26,8 @@ namespace Ifrit::Runtime
     {
         auto rhi            = app->GetRhi();
         m_app               = app;
-        m_singlePassHiZPass = CreateComputePassInternal(app, Internal::kIntShaderTable.Common.SinglePassHzbCS, 1, 6);
+        m_singlePassHiZPass = CreateComputePassInternal(
+            app, ShaderVariantDesc(Internal::kIntShaderTable.Common.SinglePassHzbCS, {}), 1, 6);
     }
 
     IFRIT_APIDECL bool SinglePassHiZPass::CheckResourceToRebuild(
@@ -62,10 +63,10 @@ namespace Ifrit::Runtime
             data.m_hizRefs.push_back(uavDescriptor);
             // iInfo("Hiz mip level {}: {}", i, uavDescriptor);
         }
-        data.m_hizRefBuffer =
-            rhi->CreateBufferDevice("SHiZ_Ref", u32Size * SizeCast<u32>(data.m_hizRefs.size()), kbBufUsage_SSBO_CopyDest, true);
-        data.m_hizAtomics =
-            rhi->CreateBufferDevice("SHiZ_Atmoics", u32Size * SizeCast<u32>(data.m_hizRefs.size()), kbBufUsage_SSBO_CopyDest, true);
+        data.m_hizRefBuffer = rhi->CreateBufferDevice(
+            "SHiZ_Ref", u32Size * SizeCast<u32>(data.m_hizRefs.size()), kbBufUsage_SSBO_CopyDest, true);
+        data.m_hizAtomics = rhi->CreateBufferDevice(
+            "SHiZ_Atmoics", u32Size * SizeCast<u32>(data.m_hizRefs.size()), kbBufUsage_SSBO_CopyDest, true);
         auto staged = rhi->CreateStagedSingleBuffer(data.m_hizRefBuffer.get());
         auto tq     = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
         tq->RunSyncCommand([&](const GPUCmdBuffer* cmd) {

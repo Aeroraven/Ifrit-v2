@@ -230,10 +230,10 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL ComputePassNode& FrameGraphBuilder::AddComputePass(
-        const String& name, const String& shader, u32 pushConsts)
+        const String& name, const ShaderVariantDesc& shader, u32 pushConsts)
     {
         auto cp = m_Rhi->CreateComputePass2();
-        cp->SetComputeShader(m_ShaderRegistry->GetShader(shader, 0));
+        cp->SetComputeShader(m_ShaderRegistry->GetShader(shader));
         cp->SetPushConstSize(pushConsts * sizeof(u32));
 
         auto pass        = std::make_unique<ComputePassNode>(std::move(cp));
@@ -248,11 +248,11 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddGraphicsPass(
-        const String& name, const String& vs, const String& fs, u32 pushConsts)
+        const String& name, const ShaderVariantDesc& vs, const ShaderVariantDesc& fs, u32 pushConsts)
     {
         auto gp = m_Rhi->CreateGraphicsPass2();
-        gp->SetVertexShader(m_ShaderRegistry->GetShader(vs, 0));
-        gp->SetPixelShader(m_ShaderRegistry->GetShader(fs, 0));
+        gp->SetVertexShader(m_ShaderRegistry->GetShader(vs));
+        gp->SetPixelShader(m_ShaderRegistry->GetShader(fs));
         gp->SetPushConstSize(pushConsts * sizeof(u32));
 
         auto pass        = std::make_unique<GraphicsPassNode>(std::move(gp));
@@ -267,11 +267,11 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddMeshGraphicsPass(
-        const String& name, const String& ms, const String& fs, u32 pushConsts)
+        const String& name, const ShaderVariantDesc& ms, const ShaderVariantDesc& fs, u32 pushConsts)
     {
         auto gp = m_Rhi->CreateGraphicsPass2();
-        gp->SetMeshShader(m_ShaderRegistry->GetShader(ms, 0));
-        gp->SetPixelShader(m_ShaderRegistry->GetShader(fs, 0));
+        gp->SetMeshShader(m_ShaderRegistry->GetShader(ms));
+        gp->SetPixelShader(m_ShaderRegistry->GetShader(fs));
         gp->SetPushConstSize(pushConsts * sizeof(u32));
 
         // auto pass        = new GraphicsPassNode(std::move(gp));
@@ -501,7 +501,7 @@ namespace Ifrit::Runtime
         Vec<u32> resourceEndUse;
         for (u32 i = 0; i < graph.m_resources.size(); i++)
         {
-            resourceBeginUse.push_back( SizeCast<ResourceNodeId>( graph.m_passes.size()));
+            resourceBeginUse.push_back(SizeCast<ResourceNodeId>(graph.m_passes.size()));
             resourceEndUse.push_back(0);
         }
         for (u32 i = 0; i < graph.m_passes.size(); i++)

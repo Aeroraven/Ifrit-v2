@@ -268,7 +268,8 @@ namespace Ifrit::Runtime
                 pc.descId     = m_Resources->m_SceneAggregator->GetGatheredBufferId();
                 pc.perframeId = primaryViewCBV;
 
-                AddComputePass<PushConst>(builder, "Ayanami.RaymarchPass", Internal::kIntShaderTableAyanami.RayMarchCS,
+                AddComputePass<PushConst>(builder, "Ayanami.RaymarchPass",
+                    ShaderVariantDesc(Internal::kIntShaderTableAyanami.RayMarchCS, {}),
                     Vector3i{ Math::DivRoundUp<i32>(rtWidth, 8), Math::DivRoundUp<i32>(rtHeight, 8), 1 }, pc,
                     [&resRaymarchOutput](PushConst data, const FrameGraphPassContext& ctx) {
                         data.output = ctx.m_FgDesc->GetUAV(resRaymarchOutput);
@@ -392,8 +393,9 @@ namespace Ifrit::Runtime
             {
                 u32 raymarchOutput = 0;
             } pc;
-            AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass", Internal::kIntShaderTableAyanami.CopyVS,
-                Internal::kIntShaderTableAyanami.CopyFS, pc,
+            AddFullScreenQuadPass<PushConst>(builder, "Ayanami.DebugPass",
+                ShaderVariantDesc(Internal::kIntShaderTableAyanami.CopyVS, {}),
+                ShaderVariantDesc(Internal::kIntShaderTableAyanami.CopyFS, {}), pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
                     data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugObjGridOut);
                     SetRootSignature(data, ctx);

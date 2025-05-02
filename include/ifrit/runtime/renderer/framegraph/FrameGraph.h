@@ -365,15 +365,17 @@ namespace Ifrit::Runtime
         PassNode&         AddPass(const String& name, FrameGraphPassType type);
         void              SetResourceInitState(FrameGraphResourceInitState state) { m_resourceInitState = state; }
 
-        ComputePassNode&  AddComputePass(const String& name, const String& shader, u32 pushConsts);
-        GraphicsPassNode& AddGraphicsPass(const String& name, const String& vs, const String& fs, u32 pushConsts);
-        GraphicsPassNode& AddMeshGraphicsPass(const String& name, const String& ms, const String& fs, u32 pushConsts);
+        ComputePassNode&  AddComputePass(const String& name, const ShaderVariantDesc& shader, u32 pushConsts);
+        GraphicsPassNode& AddGraphicsPass(
+            const String& name, const ShaderVariantDesc& vs, const ShaderVariantDesc& fs, u32 pushConsts);
+        GraphicsPassNode& AddMeshGraphicsPass(
+            const String& name, const ShaderVariantDesc& ms, const ShaderVariantDesc& fs, u32 pushConsts);
 
-        ResourceNode&     DeclareTexture(const String& name, const FrameGraphTextureDesc& desc);
-        ResourceNode&     DeclareBuffer(const String& name, const FrameGraphBufferDesc& desc);
+        ResourceNode& DeclareTexture(const String& name, const FrameGraphTextureDesc& desc);
+        ResourceNode& DeclareBuffer(const String& name, const FrameGraphBufferDesc& desc);
 
-        ResourceNode&     ImportTexture(
-                const String& name, FgTexture* texture, const FgTextureSubResource& subResource = { 0, 0, 1, 1 });
+        ResourceNode& ImportTexture(
+            const String& name, FgTexture* texture, const FgTextureSubResource& subResource = { 0, 0, 1, 1 });
         ResourceNode&                     ImportBuffer(const String& name, FgBuffer* buffer);
 
         Graphics::Rhi::RhiUAVDesc         GetUAV(const ResourceNode& res) const override;

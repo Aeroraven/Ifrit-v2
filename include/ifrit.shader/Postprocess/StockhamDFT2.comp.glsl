@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 // Stockham FFT & IFFT, in single pass
 
-#version 450
+
 #include "Base.glsl"
 #include "Bindless.glsl"
 

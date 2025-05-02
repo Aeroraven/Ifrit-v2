@@ -15,31 +15,27 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 #pragma once
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/runtime/base/Base.h"
 #include "ifrit/runtime/forwarding/FwdBase.h"
-#include "ifrit/runtime/material/ShaderVariantDescriptor.h"
 
 namespace Ifrit::Runtime
 {
 
-    struct ShaderRegistryData;
-    class IFRIT_APIDECL ShaderRegistry
+    struct ShaderVariantDesc
     {
-        using ShaderTp   = Graphics::Rhi::RhiShader;
-        using ShaderType = Graphics::Rhi::RhiShaderStage;
-        ShaderRegistryData* m_Data;
+        String      m_Name;
+        Vec<String> m_Defines;
 
-    public:
-        ShaderRegistry(IApplication* app);
-        ~ShaderRegistry();
-        void      RegisterShader(const String& name, const String& path, const String& entry, ShaderType stage);
-        void      WaitForShaderCompilations();
+        ShaderVariantDesc() = default;
+        ShaderVariantDesc(const String& name, const Vec<String>& defines) : m_Name(name), m_Defines(defines) {}
+        ShaderVariantDesc(const String& name) : m_Name(name) {}
 
-        // Note GetShader is a blocking call
-        ShaderTp* GetShader(const ShaderVariantDesc& desc);
+        bool operator==(const ShaderVariantDesc& other) const
+        {
+            return m_Name == other.m_Name && m_Defines == other.m_Defines;
+        }
     };
 
 } // namespace Ifrit::Runtime

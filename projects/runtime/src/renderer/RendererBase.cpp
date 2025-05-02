@@ -434,7 +434,7 @@ namespace Ifrit::Runtime
                 perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(), linearSampler.get());
 
             // color rts
-            RenderingUtil::warpRenderTargets(rhi, perframeData.m_gbuffer.m_specular_occlusion.get(),
+            RenderingUtil::WarpRenderTargets(rhi, perframeData.m_gbuffer.m_specular_occlusion.get(),
                 perframeData.m_gbuffer.m_specular_occlusion_colorRT, perframeData.m_gbuffer.m_specular_occlusion_RTs);
 
             // barriers
@@ -836,7 +836,8 @@ namespace Ifrit::Runtime
                         stagedMaterialDataBuffer = rhi->CreateStagedSingleBuffer(meshResource.materialDataBuffer.get());
                         stagedBuffers.push_back(stagedMaterialDataBuffer);
                         pendingVertexBuffers.push_back(&shaderEffect.m_materials[i]->m_data[0][0]);
-                        pendingVertexBufferSizes.push_back(SizeCast<u32>(shaderEffect.m_materials[i]->m_data[0].size()));
+                        pendingVertexBufferSizes.push_back(
+                            SizeCast<u32>(shaderEffect.m_materials[i]->m_data[0].size()));
                     }
 
                     auto stagedObjectBuffer = rhi->CreateStagedSingleBuffer(meshResource.objectBuffer.get());

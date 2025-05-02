@@ -15,7 +15,8 @@ namespace Ifrit::Runtime
             auto              shaderCode     = ReadTextFile(path);
             std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
             m_shader = rhi->CreateShader(path, shaderCodeVec, "main", Graphics::Rhi::RhiShaderStage::Compute,
-                Graphics::Rhi::RhiShaderSourceType::GLSLCode, {});
+                              Graphics::Rhi::RhiShaderSourceType::GLSLCode)
+                           ->GetVariant({});
             m_shaderEffect.m_shaders.push_back(m_shader);
             m_shaderEffect.m_type = ShaderEffectType::Compute;
         }

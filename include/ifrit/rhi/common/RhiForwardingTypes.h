@@ -28,7 +28,7 @@ namespace Ifrit::Graphics::Rhi
     class RhiBuffer;
     class RhiTexture;
     class RhiSampler;
-    class RhiShader;
+
     class RhiPipeline;
     class RhiSwapchain;
     class RhiDevice;
@@ -36,6 +36,9 @@ namespace Ifrit::Graphics::Rhi
     class RhiStagedSingleBuffer;
 
     class RhiCommandList;
+
+    class RhiShader;
+    class RhiShaderCollection;
 
     // Note here 'passes' are in fact 'pipeline references'
     // If two pass hold similar pipeline CI, they are the same

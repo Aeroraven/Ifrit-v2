@@ -122,7 +122,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_GBufferDepthSRV = 0;
 
         AddPostProcessPass<PushConst>(builder, "Ayanami.FinalLighting.DirectShadow",
-            Internal::kIntShaderTableAyanami.DeferredShadowFS, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DeferredShadowFS, {}), pc,
             [this, gbufferDepth, shadowData, gbufferNormal](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_LightDataId      = ctx.m_FgDesc->GetUAV(*shadowData);
                 data.m_GBufferDepthSRV  = ctx.m_FgDesc->GetSRV(*gbufferDepth);
@@ -158,7 +158,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_LightDataId        = 0;
 
         AddPostProcessPass<PushConst>(builder, "Ayanami.FinalLighting.DirectLighting",
-            Internal::kIntShaderTableAyanami.DeferredLightingFS, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DeferredLightingFS, {}), pc,
             [this, gbufferDepth, gbufferNormal, gbufferAlbedo, shadowData](
                 PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_ShadowOcclusionSRV = ctx.m_FgDesc->GetSRV(*m_Private->m_DeferredShadowTexture);
@@ -188,7 +188,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_DirectLightingSRV   = 0;
 
         AddPostProcessPass<PushConst>(builder, "Ayanami.FinalLighting.Fuse",
-            Internal::kIntShaderTableAyanami.DeferredExpMixFS, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DeferredExpMixFS, {}), pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_IndirectLightingSRV = ctx.m_FgDesc->GetSRV(*m_Private->m_CurFrameIndirectLightingTex);
                 data.m_DirectLightingSRV   = ctx.m_FgDesc->GetSRV(*m_Private->m_DeferredDirectLightingTexture);

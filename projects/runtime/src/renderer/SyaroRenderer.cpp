@@ -158,7 +158,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL SyaroRenderer::GPUShader* SyaroRenderer::GetInternalShader(const char* name)
     {
         auto shaderRegistry = m_app->GetShaderRegistry();
-        return shaderRegistry->GetShader(name, 0);
+        return shaderRegistry->GetShader(ShaderVariantDesc(name, {}));
     }
 
     IFRIT_APIDECL void SyaroRenderer::SetupPostprocessPassAndTextures()
@@ -683,8 +683,8 @@ namespace Ifrit::Runtime
     {
         m_atmosphereRenderer = std::make_shared<PbrAtmosphereRenderer>(m_app);
         auto rhi             = m_app->GetRhi();
-        m_atmospherePass =
-            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.PbrAtmoRenderCS, 0, 19);
+        m_atmospherePass     = RenderingUtil::CreateComputePassInternal(
+            m_app, ShaderVariantDesc(Internal::kIntShaderTable.Syaro.PbrAtmoRenderCS, {}), 0, 19);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SetupDeferredShadingPass(RenderTargets* renderTargets)
@@ -844,15 +844,15 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SyaroRenderer::SetupInstanceCullingPass()
     {
-        m_instanceCullingPass =
-            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.InstanceCullingCS, 4, 2);
+        m_instanceCullingPass = RenderingUtil::CreateComputePassInternal(
+            m_app, ShaderVariantDesc(Internal::kIntShaderTable.Syaro.InstanceCullingCS, {}), 4, 2);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SetupPersistentCullingPass()
     {
-        auto rhi = m_app->GetRhi();
-        m_persistentCullingPass =
-            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.PersistentCullingCS, 5, 8);
+        auto rhi                = m_app->GetRhi();
+        m_persistentCullingPass = RenderingUtil::CreateComputePassInternal(
+            m_app, ShaderVariantDesc(Internal::kIntShaderTable.Syaro.PersistentCullingCS, {}), 5, 8);
 
         m_indirectDrawBuffer = rhi->CreateBufferDevice("Syaro_IndirectDraw", u32Size * 1, kbBufUsage_Indirect, true);
         m_persistCullDesc    = rhi->CreateBindlessDescriptorRef();
@@ -865,20 +865,20 @@ namespace Ifrit::Runtime
     }
     IFRIT_APIDECL void SyaroRenderer::SetupEmitDepthTargetsPass()
     {
-        auto rhi = m_app->GetRhi();
-        m_emitDepthTargetsPass =
-            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.EmitDepthTargetCS, 4, 9);
+        auto rhi               = m_app->GetRhi();
+        m_emitDepthTargetsPass = RenderingUtil::CreateComputePassInternal(
+            m_app, ShaderVariantDesc(Internal::kIntShaderTable.Syaro.EmitDepthTargetCS, {}), 4, 9);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SetupMaterialClassifyPass()
     {
         auto rhi            = m_app->GetRhi();
         m_matclassCountPass = RenderingUtil::CreateComputePassInternal(
-            m_app, Internal::kIntShaderTable.Syaro.ClassifyMaterialCountCS, 1, 3);
+            m_app, ShaderVariantDesc(Internal::kIntShaderTable.Syaro.ClassifyMaterialCountCS, {}), 1, 3);
         m_matclassReservePass = RenderingUtil::CreateComputePassInternal(
-            m_app, Internal::kIntShaderTable.Syaro.ClassifyMaterialReserveCS, 1, 3);
+            m_app, ShaderVariantDesc(Internal::kIntShaderTable.Syaro.ClassifyMaterialReserveCS, {}), 1, 3);
         m_matclassScatterPass = RenderingUtil::CreateComputePassInternal(
-            m_app, Internal::kIntShaderTable.Syaro.ClassifyMaterialScatterCS, 1, 3);
+            m_app, ShaderVariantDesc(Internal::kIntShaderTable.Syaro.ClassifyMaterialScatterCS, {}), 1, 3);
     }
 
     IFRIT_APIDECL void SyaroRenderer::MaterialClassifyBufferSetup(
@@ -1501,9 +1501,9 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SyaroRenderer::SetupDefaultEmitGBufferPass()
     {
-        auto rhi = m_app->GetRhi();
-        m_defaultEmitGBufferPass =
-            RenderingUtil::CreateComputePassInternal(m_app, Internal::kIntShaderTable.Syaro.EmitGBufferCS, 2, 8);
+        auto rhi                 = m_app->GetRhi();
+        m_defaultEmitGBufferPass = RenderingUtil::CreateComputePassInternal(
+            m_app, ShaderVariantDesc(Internal::kIntShaderTable.Syaro.EmitGBufferCS, {}), 2, 8);
     }
 
     IFRIT_APIDECL void SyaroRenderer::SphizBufferSetup(PerFrameData& perframeData, RenderTargets* renderTargets)

@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 // Software rasterizer 
 
-#version 450
+
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_shader_atomic_float : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : enable

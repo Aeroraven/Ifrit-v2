@@ -24,11 +24,11 @@ namespace Ifrit::Runtime
 {
 
     // Shader class
-    IFRIT_APIDECL ShaderAsset::ShaderRef* ShaderAsset::LoadShader()
+    IFRIT_APIDECL ShaderAsset::ShaderRef* ShaderAsset::LoadShader(const Vec<String>& permutations)
     {
         if (m_loaded)
         {
-            return m_selfData;
+            return m_selfData->GetVariant(permutations);
         }
         else
         {
@@ -69,10 +69,10 @@ namespace Ifrit::Runtime
                 throw std::runtime_error("Unknown shader stage");
             }
 
-            auto p = rhi->CreateShader(fileName, data, "main", stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode, {});
+            auto p = rhi->CreateShader(fileName, data, "main", stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode);
             // TODO: eliminate raw pointer
             m_selfData = p;
-            return m_selfData;
+            return m_selfData->GetVariant(permutations);
         }
     }
 

@@ -21,11 +21,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Graphics::Rhi
 {
+
     class IFRIT_APIDECL RhiShader
     {
     public:
         virtual RhiShaderStage GetStage() const             = 0;
         virtual u32            GetNumDescriptorSets() const = 0;
+    };
+
+    class IFRIT_APIDECL RhiShaderCollection
+    {
+    public:
+        virtual RhiShader* GetVariant(const Vec<String>& defines) = 0;
+        virtual bool       MultiCompileReady()                    = 0;
     };
 
     class IFRIT_APIDECL RhiRTShaderBindingTable

@@ -91,8 +91,8 @@ namespace Ifrit::Runtime::Ayanami
         auto  tgX       = DivRoundUp(cardResolution, Config::kAyanamiReconFromSCTileSize);
         auto  atomicPtr = &resAtomicDepth;
         auto& pass1     = AddComputePass<PushConst>(builder, "Ayanami.Debug.DepthReconFromSurfaceCache",
-            Internal::kIntShaderTableAyanami.DbgReconFromSurfaceCacheCS, Vector3i((i32)tgX, (i32)tgX, (i32)totalCards),
-            pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgReconFromSurfaceCacheCS, {}),
+            Vector3i((i32)tgX, (i32)tgX, (i32)totalCards), pc,
             [outputTexture, cardAlbedoAtlas, cardNormalAtlas, cardRadianceAtlas, cardDepthAtlas, atomicPtr](
                 PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_OutputUAV            = ctx.m_FgDesc->GetUAV(*outputTexture);
@@ -113,7 +113,8 @@ namespace Ifrit::Runtime::Ayanami
         auto  tgX2  = DivRoundUp(rtWidth, Config::kAyanamiReconFromSCDepthTileSize);
         auto  tgY2  = DivRoundUp(rtHeight, Config::kAyanamiReconFromSCDepthTileSize);
         auto& pass2 = AddComputePass<PushConst>(builder, "Ayanami.Debug.SampleReconDepth",
-            Internal::kIntShaderTableAyanami.DbgSampleReconDepthCS, Vector3i((i32)tgX2, (i32)tgY2, 1), pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgSampleReconDepthCS, {}),
+            Vector3i((i32)tgX2, (i32)tgY2, 1), pc,
             [outputTexture, cardAlbedoAtlas, cardNormalAtlas, cardRadianceAtlas, cardDepthAtlas, atomicPtr](
                 PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_OutputUAV            = ctx.m_FgDesc->GetUAV(*outputTexture);
@@ -175,7 +176,8 @@ namespace Ifrit::Runtime::Ayanami
         auto tgY = DivRoundUp(outTextureSize.y, Config::kAyanamiDbgObjGridTileSize);
 
         AddComputePass<PushConst>(builder, "Ayanami.Debug.SampleObjectGrids",
-            Internal::kIntShaderTableAyanami.DbgSampleObjectGridsCS, Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgSampleObjectGridsCS, {}),
+            Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc,
             [outputTexture, globalDF, globalObjectGrids, cardDepthAtlas, cardAlbedoAtlas, cardDirectLightingAtlas](
                 PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_OutTex                     = ctx.m_FgDesc->GetUAV(*outputTexture);
@@ -224,8 +226,8 @@ namespace Ifrit::Runtime::Ayanami
         args.m_CullMode = Graphics::Rhi::RhiCullMode::None;
 
         AddMeshDrawPass<PushConst>(builder, "Ayanami.Debug.ValidObjectGrids",
-            Internal::kIntShaderTableAyanami.DbgVisObjGridsMS, Internal::kIntShaderTableAyanami.DbgVisObjGridsFS,
-            Vector3i(tgX), args, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgVisObjGridsMS, {}),
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgVisObjGridsFS, {}), Vector3i(tgX), args, pc,
             [globalObjectGrids](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_ObjectGridId = ctx.m_FgDesc->GetSRV(*globalObjectGrids);
                 SetRootSignature(data, ctx);
@@ -267,7 +269,8 @@ namespace Ifrit::Runtime::Ayanami
         auto tgX = DivRoundUp(pc1.m_RTWidth, Config::kAyanamiDbgScrProbeUniformVisKernelSize);
         auto tgY = DivRoundUp(pc1.m_RTHeight, Config::kAyanamiDbgScrProbeUniformVisKernelSize);
         AddComputePass<PushConstUniformPass>(builder, "Ayanami.Debug.VisualizeScreenProbeUniform",
-            Internal::kIntShaderTableAyanami.DbgVisScreenUniformProbeCS, Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc1,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgVisScreenUniformProbeCS, {}),
+            Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc1,
             [sceneAlbedo, outputTexture](PushConstUniformPass data, const FrameGraphPassContext& ctx) {
                 data.m_AlbedoSRV        = ctx.m_FgDesc->GetSRV(*sceneAlbedo);
                 data.m_OutputTextureUAV = ctx.m_FgDesc->GetUAV(*outputTexture);
@@ -278,7 +281,8 @@ namespace Ifrit::Runtime::Ayanami
 
         // Pass 2
         AddIndirectComputePass<PushConstAdaptivePass>(builder, "Ayanami.Debug.VisualizeScreenProbeAdaptive",
-            Internal::kIntShaderTableAyanami.DbgVisAdaptiveProbeCS, *adaptiveProbesCounter, sizeof(u32), pc2,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgVisAdaptiveProbeCS, {}), *adaptiveProbesCounter,
+            sizeof(u32), pc2,
             [adaptiveProbesList, adaptiveProbesCounter, outputTexture](
                 PushConstAdaptivePass data, const FrameGraphPassContext& ctx) {
                 data.m_AdaptiveProbesCounterUAV = ctx.m_FgDesc->GetUAV(*adaptiveProbesCounter);

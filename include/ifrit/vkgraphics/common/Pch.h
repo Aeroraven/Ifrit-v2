@@ -22,3 +22,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/rhi/common/RhiLayer.h"
 #include "ifrit/core/logging/Logging.h"
+#include "ifrit/core/math/Intrinsics.h"

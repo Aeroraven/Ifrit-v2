@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #include "Bindless.glsl"
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;

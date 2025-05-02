@@ -332,7 +332,8 @@ namespace Ifrit::Runtime::Ayanami
     {
 
         auto& pass = builder.AddGraphicsPass("Ayanami/SurfaceCacheGenPass",
-            Internal::kIntShaderTableAyanami.SurfaceCacheGenVS, Internal::kIntShaderTableAyanami.SurfaceCacheGenFS, 9);
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.SurfaceCacheGenVS, {}),
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.SurfaceCacheGenFS, {}), 9);
 
         pass.SetExecutionFunction([this](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
@@ -540,7 +541,7 @@ namespace Ifrit::Runtime::Ayanami
 
         UpdateSurfaceModelMatrix();
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.CameraShadowVisibilityPass",
-            Internal::kIntShaderTableAyanami.DirectShadowVisibilityCS,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DirectShadowVisibilityCS, {}),
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_NormalAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
@@ -598,7 +599,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_ObjectGridUAV         = 0;
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiosityGenPass",
-            Internal::kIntShaderTableAyanami.RadiosityTraceCS, Vector3i{ 0, 1, 1 }, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.RadiosityTraceCS, {}), Vector3i{ 0, 1, 1 }, pc,
             [globalDFSRV, objectGridsUAV, this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GlobalDFSRV           = ctx.m_FgDesc->GetSRV(*globalDFSRV);
                 data.m_CardDepthAtlasSRV     = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheTemporaryDepth);
@@ -645,7 +646,7 @@ namespace Ifrit::Runtime::Ayanami
         auto  tileGroups = DivRoundUp(m_Resources->m_AtlasElementSize, Config::kAyanamiSCDirectLightCardSizePerBlock);
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.SurfaceCacheDirectLighting",
-            Internal::kIntShaderTableAyanami.SurfaceCacheDirectLightCS,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.SurfaceCacheDirectLightCS, {}),
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_DirectLightUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneDirectLighting);

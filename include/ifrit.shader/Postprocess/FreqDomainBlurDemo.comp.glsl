@@ -1,4 +1,4 @@
-#version 450
+
 #include "Base.glsl"
 #include "Bindless.glsl"
 

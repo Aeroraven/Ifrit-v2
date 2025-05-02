@@ -31,7 +31,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
     }
 
     IFRIT_APIDECL GraphicsPassNode& AddFullScreenQuadPass(FrameGraphBuilder& builder, const String& name,
-        const String& vs, const String& fs, u32 pushConsts, FnPassFunction onCall)
+        const ShaderVariantDesc& vs, const ShaderVariantDesc& fs, u32 pushConsts, FnPassFunction onCall)
     {
         auto& pass           = builder.AddGraphicsPass(name, vs, fs, pushConsts);
         auto  rhi            = builder.GetRhi();
@@ -47,12 +47,13 @@ namespace Ifrit::Runtime::FrameGraphUtils
         return pass;
     }
 
-    IFRIT_RUNTIME_API GraphicsPassNode& AddPostProcessPass(
-        FrameGraphBuilder& builder, const String& name, const String& fs, u32 pushConsts, FnPassFunction onCall)
+    IFRIT_RUNTIME_API GraphicsPassNode& AddPostProcessPass(FrameGraphBuilder& builder, const String& name,
+        const ShaderVariantDesc& fs, u32 pushConsts, FnPassFunction onCall)
     {
-        auto& pass = builder.AddGraphicsPass(name, Internal::kIntShaderTable.Common.FullScreenVS, fs, pushConsts);
-        auto  rhi  = builder.GetRhi();
-        auto  underlyingPass = pass.GetPass();
+        auto& pass = builder.AddGraphicsPass(
+            name, ShaderVariantDesc(Internal::kIntShaderTable.Common.FullScreenVS, {}), fs, pushConsts);
+        auto rhi            = builder.GetRhi();
+        auto underlyingPass = pass.GetPass();
         pass.SetExecutionFunction([rhi, onCall](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
             onCall(ctx);
@@ -63,8 +64,9 @@ namespace Ifrit::Runtime::FrameGraphUtils
         return pass;
     }
 
-    IFRIT_APIDECL GraphicsPassNode& AddMeshDrawPass(FrameGraphBuilder& builder, const String& name, const String& ms,
-        const String& fs, Vector3i workGroups, u32 pushConsts, const GraphicsPassArgs& args, FnPassFunction onCall)
+    IFRIT_APIDECL GraphicsPassNode& AddMeshDrawPass(FrameGraphBuilder& builder, const String& name,
+        const ShaderVariantDesc& ms, const ShaderVariantDesc& fs, Vector3i workGroups, u32 pushConsts,
+        const GraphicsPassArgs& args, FnPassFunction onCall)
     {
         auto& pass           = builder.AddMeshGraphicsPass(name, ms, fs, pushConsts);
         auto  rhi            = builder.GetRhi();
@@ -80,8 +82,8 @@ namespace Ifrit::Runtime::FrameGraphUtils
     }
 
     IFRIT_APIDECL GraphicsPassNode& AddIndirectDrawPass(FrameGraphBuilder& builder, const String& name,
-        const String& vs, const String& fs, ResourceNode& indirectArgs, ResourceNode& indexBuffer, u32 offset,
-        u32 pushConsts, const GraphicsPassArgs& args, FnPassFunction onCall)
+        const ShaderVariantDesc& vs, const ShaderVariantDesc& fs, ResourceNode& indirectArgs, ResourceNode& indexBuffer,
+        u32 offset, u32 pushConsts, const GraphicsPassArgs& args, FnPassFunction onCall)
     {
         auto& pass           = builder.AddGraphicsPass(name, vs, fs, pushConsts);
         auto  rhi            = builder.GetRhi();
@@ -99,8 +101,8 @@ namespace Ifrit::Runtime::FrameGraphUtils
         return pass;
     }
 
-    IFRIT_APIDECL ComputePassNode& AddComputePass(FrameGraphBuilder& builder, const String& name, const String& shader,
-        Vector3i workGroups, u32 pushConsts, FnPassFunction onCall)
+    IFRIT_APIDECL ComputePassNode& AddComputePass(FrameGraphBuilder& builder, const String& name,
+        const ShaderVariantDesc& shader, Vector3i workGroups, u32 pushConsts, FnPassFunction onCall)
     {
         auto& pass = builder.AddComputePass(name, shader, pushConsts);
         auto  rhi  = builder.GetRhi();
@@ -114,7 +116,8 @@ namespace Ifrit::Runtime::FrameGraphUtils
     }
 
     IFRIT_APIDECL ComputePassNode& AddIndirectComputePass(FrameGraphBuilder& builder, const String& name,
-        const String& shader, ResourceNode& workGroupsIndirect, u32 offset, u32 pushConsts, FnPassFunction onCall)
+        const ShaderVariantDesc& shader, ResourceNode& workGroupsIndirect, u32 offset, u32 pushConsts,
+        FnPassFunction onCall)
     {
         auto& pass = builder.AddComputePass(name, shader, pushConsts);
         auto  rhi  = builder.GetRhi();

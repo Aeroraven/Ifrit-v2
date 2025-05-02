@@ -101,9 +101,9 @@ namespace Ifrit::Runtime::Ayanami
         args.m_CullMode = Graphics::Rhi::RhiCullMode::Front;
 
         auto& pass = AddMeshDrawPass<PushConst>(builder, "Ayanami.DFShadowTileCull",
-            Internal::kIntShaderTableAyanami.DFShadowTileCullingMS,
-            Internal::kIntShaderTableAyanami.DFShadowTileCullingFS, Vector3i{ (i32)totalMeshDfs, 1, 1 }, args, pc,
-            [this](PushConst data, const FrameGraphPassContext& ctx) {
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DFShadowTileCullingMS, {}),
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DFShadowTileCullingFS, {}),
+            Vector3i{ (i32)totalMeshDfs, 1, 1 }, args, pc, [this](PushConst data, const FrameGraphPassContext& ctx) {
                 ctx.m_CmdList->SetCullMode(Graphics::Rhi::RhiCullMode::Front);
                 data.m_TileAtomics   = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);
                 data.m_ScatterOutput = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResScatterOutput);
@@ -147,8 +147,9 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MeshDFDescListId = meshDfList;
         pc.m_ShadowCoefK      = softness;
 
-        auto& pass = AddPostProcessPass<PushConst>(builder, "Ayanami.DFSS", Internal::kIntShaderTableAyanami.DFShadowFS,
-            pc, [this](PushConst data, const FrameGraphPassContext& ctx) {
+        auto& pass = AddPostProcessPass<PushConst>(builder, "Ayanami.DFSS",
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DFShadowFS, {}), pc,
+            [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_TileDFAtomics = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);
                 data.m_TileDFList    = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResScatterOutput);
                 SetRootSignature(data, ctx);
@@ -208,7 +209,7 @@ namespace Ifrit::Runtime::Ayanami
         auto  tileGroups = DivRoundUp(cardRes, Config::kAyanamiShadowVisibilityCardSizePerBlock);
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.OfflineShadowMask",
-            Internal::kIntShaderTableAyanami.DFShadowVisibilityCS,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DFShadowVisibilityCS, {}),
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
             [this, depthAtlasTex, radianceTex](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_ShadowCullTileDFAtomics = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);

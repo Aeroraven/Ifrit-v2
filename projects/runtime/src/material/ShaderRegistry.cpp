@@ -28,7 +28,8 @@ namespace Ifrit::Runtime
 
     struct ShaderRegistryData
     {
-        using ShaderTp = Graphics::Rhi::RhiShader;
+        using ShaderTp           = Graphics::Rhi::RhiShader;
+        using ShaderCollectionTp = Graphics::Rhi::RhiShaderCollection;
 
         enum class ShaderStatus : u32
         {
@@ -39,9 +40,9 @@ namespace Ifrit::Runtime
 
         struct ShaderMapEntry
         {
-            ShaderTp*            m_Shader     = nullptr;
-            TaskHandle           m_TaskHandle = nullptr;
-            Atomic<ShaderStatus> m_Status     = ShaderStatus::Uncompiled;
+            Ref<ShaderCollectionTp> m_Shader     = nullptr;
+            TaskHandle              m_TaskHandle = nullptr;
+            Atomic<ShaderStatus>    m_Status     = ShaderStatus::Uncompiled;
         };
 
         IApplication*                   m_App;
@@ -84,7 +85,7 @@ namespace Ifrit::Runtime
                     auto shaderCodeVec = Vec<char>(shaderCode.begin(), shaderCode.end());
                     auto rhi           = m_Data->m_App->GetRhi();
                     auto shader        = rhi->CreateShader(
-                        sName, shaderCodeVec, sEntry, stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode, {});
+                        sName, shaderCodeVec, sEntry, stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode);
 
                     m_Data->m_ShaderMap[sName].m_Shader = shader;
                     m_Data->m_ShaderMap[sName].m_Status.store(
@@ -102,8 +103,11 @@ namespace Ifrit::Runtime
         }
     }
 
-    ShaderRegistry::ShaderTp* ShaderRegistry::GetShader(const String& name, u64 permutations)
+    ShaderRegistry::ShaderTp* ShaderRegistry::GetShader(const ShaderVariantDesc& desc)
     {
+        auto name         = desc.m_Name;
+        auto permutations = desc.m_Defines;
+
         if (m_Data->m_ShaderMap.contains(name))
         {
             auto& entry = m_Data->m_ShaderMap[name];
@@ -111,7 +115,7 @@ namespace Ifrit::Runtime
             {
                 std::this_thread::yield();
             }
-            return m_Data->m_ShaderMap[name].m_Shader;
+            return m_Data->m_ShaderMap[name].m_Shader->GetVariant(permutations);
         }
         else
         {

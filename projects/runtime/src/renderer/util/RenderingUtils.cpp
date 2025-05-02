@@ -23,24 +23,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Runtime::RenderingUtil
 {
 
-    IFRIT_APIDECL Graphics::Rhi::RhiShader* LoadShaderFromFile(Graphics::Rhi::RhiBackend* rhi, const char* shaderPath,
-        const char* entryPoint, Graphics::Rhi::RhiShaderStage stage)
-    {
-        String    shaderBasePath = IFRIT_RUNTIME_SHARED_SHADER_PATH;
-        auto      path           = shaderBasePath + "/" + shaderPath;
-        auto      shaderCode     = ReadTextFile(path);
-        Vec<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
-        return rhi->CreateShader(
-            shaderPath, shaderCodeVec, entryPoint, stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode, {});
-    }
-
     IFRIT_APIDECL Graphics::Rhi::RhiComputePass* CreateComputePassInternal(
-        IApplication* app, const char* shaderName, u32 numBindlessDescs, u32 numPushConsts)
+        IApplication* app, const ShaderVariantDesc& desc, u32 numBindlessDescs, u32 numPushConsts)
     {
         auto rhi       = app->GetRhi();
         auto shaderlib = app->GetShaderRegistry();
 
-        auto shader = shaderlib->GetShader(shaderName, 0);
+        auto shader = shaderlib->GetShader(desc);
         auto pass   = rhi->CreateComputePass();
         pass->SetComputeShader(shader);
         pass->SetNumBindlessDescriptorSets(numBindlessDescs);
@@ -48,12 +37,13 @@ namespace Ifrit::Runtime::RenderingUtil
         return pass;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiGraphicsPass* CreateGraphicsPassInternal(IApplication* app, const char* nameVS,
-        const char* nameFS, u32 numBindlessDescs, u32 numPushConsts, const Graphics::Rhi::RhiRenderTargetsFormat& vFmts)
+    IFRIT_APIDECL Graphics::Rhi::RhiGraphicsPass* CreateGraphicsPassInternal(IApplication* app,
+        const ShaderVariantDesc& vsDesc, const ShaderVariantDesc& fsDesc, u32 numBindlessDescs, u32 numPushConsts,
+        const Graphics::Rhi::RhiRenderTargetsFormat& vFmts)
     {
         auto registry = app->GetShaderRegistry();
-        auto vs       = registry->GetShader(nameVS, 0);
-        auto fs       = registry->GetShader(nameFS, 0);
+        auto vs       = registry->GetShader(vsDesc);
+        auto fs       = registry->GetShader(fsDesc);
         auto rhi      = app->GetRhi();
 
         auto pass = rhi->CreateGraphicsPass();
@@ -86,7 +76,7 @@ namespace Ifrit::Runtime::RenderingUtil
 
         pass->Run(cmd, rt, 0);
     }
-    IFRIT_APIDECL void warpRenderTargets(Graphics::Rhi::RhiBackend* rhi, Graphics::Rhi::RhiTexture* vTex,
+    IFRIT_APIDECL void WarpRenderTargets(Graphics::Rhi::RhiBackend* rhi, Graphics::Rhi::RhiTexture* vTex,
         Ref<Graphics::Rhi::RhiColorAttachment>& vCA, Ref<Graphics::Rhi::RhiRenderTargets>& vRT)
     {
         vCA = rhi->CreateRenderTarget(

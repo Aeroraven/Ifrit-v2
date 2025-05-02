@@ -8,7 +8,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL PostprocessPass::GPUShader* PostprocessPass::CreateInternalShader(const char* name)
     {
         auto registry = m_app->GetShaderRegistry();
-        return registry->GetShader(name, 0);
+        return registry->GetShader(ShaderVariantDesc(name));
     }
 
     IFRIT_APIDECL PostprocessPass::DrawPass* PostprocessPass::SetupRenderPipeline(RenderTargets* renderTargets)

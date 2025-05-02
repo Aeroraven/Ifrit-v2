@@ -33,30 +33,30 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     struct RhiVulkanBackendImplDetails : public NonCopyable
     {
-        Uref<CommandExecutor>                       m_commandExecutor;
-        Uref<DescriptorManager>                     m_descriptorManager;
-        Uref<ResourceManager>                       m_resourceManager;
-        Vec<Uref<StagedSingleBuffer>>               m_stagedSingleBuffer;
-        Uref<PipelineCache>                         m_pipelineCache;
+        Uref<CommandExecutor>                          m_commandExecutor;
+        Uref<DescriptorManager>                        m_descriptorManager;
+        Uref<ResourceManager>                          m_resourceManager;
+        Vec<Uref<StagedSingleBuffer>>                  m_stagedSingleBuffer;
+        Uref<PipelineCache>                            m_pipelineCache;
 
-        Uref<RegisteredResourceMapper>              m_mapper;
+        Uref<RegisteredResourceMapper>                 m_mapper;
 
         // managed passes
-        Vec<Uref<ComputePass>>                      m_computePasses;
-        Vec<Uref<GraphicsPass>>                     m_graphicsPasses;
-        Vec<Uref<DescriptorBindlessIndices>>        m_bindlessIndices;
+        Vec<Uref<ComputePass>>                         m_computePasses;
+        Vec<Uref<GraphicsPass>>                        m_graphicsPasses;
+        Vec<Uref<DescriptorBindlessIndices>>           m_bindlessIndices;
 
         // managed descriptors
-        Vec<Ref<Rhi::RhiDescHandleLegacy>>          m_bindlessIdRefs;
+        Vec<Ref<Rhi::RhiDescHandleLegacy>>             m_bindlessIdRefs;
 
         // some utility buffers
-        Rhi::RhiBufferRef                           m_fullScreenQuadVertexBuffer;
-        Ref<VertexBufferDescriptor>                 m_fullScreenQuadVertexBufferDescriptor;
+        Rhi::RhiBufferRef                              m_fullScreenQuadVertexBuffer;
+        Ref<VertexBufferDescriptor>                    m_fullScreenQuadVertexBufferDescriptor;
 
         // timers
-        Vec<Ref<DeviceTimer>>                       m_deviceTimers;
+        Vec<Ref<DeviceTimer>>                          m_deviceTimers;
 
-        RConcurrentGrowthVector<Uref<ShaderModule>> m_shaderModule;
+        RConcurrentGrowthVector<Ref<ShaderCollection>> m_shaderModule;
     };
 
     IFRIT_APIDECL
@@ -225,20 +225,18 @@ namespace Ifrit::Graphics::VulkanGraphics
         return s;
     }
 
-    IFRIT_APIDECL Rhi::RhiShader* RhiVulkanBackend::CreateShader(const std::string& name, const Vec<char>& code,
-        const std::string& entry, Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType,
-        const Vec<String>& permutations)
+    IFRIT_APIDECL Ref<Rhi::RhiShaderCollection> RhiVulkanBackend::CreateShader(const String& name,
+        const Vec<char>& code, const String& entry, Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType)
     {
-        ShaderModuleCI ci{};
-        ci.code           = code;
-        ci.entryPoint     = entry;
-        ci.stage          = stage;
-        ci.sourceType     = sourceType;
-        ci.fileName       = name;
-        auto shaderModule = std::make_unique<ShaderModule>(CheckedCast<EngineContext>(m_device.get()), ci);
-        auto ptr          = shaderModule.get();
-        m_implDetails->m_shaderModule.PushBack(std::move(shaderModule));
-        return ptr;
+        ShaderCollectionCI ci{};
+        ci.m_Code             = code;
+        ci.m_EntryPoint       = entry;
+        ci.m_Stage            = stage;
+        ci.m_SourceType       = sourceType;
+        ci.m_FileName         = name;
+        auto shaderCollection = std::make_shared<ShaderCollection>(CheckedCast<EngineContext>(m_device.get()), ci);
+        m_implDetails->m_shaderModule.PushBack(shaderCollection);
+        return shaderCollection;
     }
 
     IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateTexture2D(

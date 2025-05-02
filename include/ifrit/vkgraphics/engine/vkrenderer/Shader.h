@@ -66,4 +66,37 @@ namespace Ifrit::Graphics::VulkanGraphics
         // get signature
         inline String               GetSignature() const { return m_signature; }
     };
+
+    struct ShaderCollectionCI
+    {
+        Vec<char>                m_Code;
+        String                   m_EntryPoint;
+        Rhi::RhiShaderStage      m_Stage;
+        Rhi::RhiShaderSourceType m_SourceType;
+        String                   m_FileName;
+    };
+
+    class IFRIT_APIDECL ShaderCollection : public Rhi::RhiShaderCollection, public NonCopyable
+    {
+    private:
+        Vec<String>                     m_DefineNames;
+        HashMap<String, u32>            m_DefineIds;
+        HashMap<u64, Ref<ShaderModule>> m_ShaderVariants;
+        EngineContext*                  m_Context;
+        ShaderCollectionCI              m_CI;
+
+        Vec<u32>                        m_MultiCompileIds;
+        bool                            m_MultiCompileReady = false;
+
+    private:
+        void CompileShaderVariant(u64 permId);
+        void PrecompileMultiCompileShaders();
+        void PrecompileMultiCompileShadersImpl(u32 curVariantTag, u64 curPermId);
+
+    public:
+        ShaderCollection(EngineContext* ctx, const ShaderCollectionCI& ci);
+        virtual ~ShaderCollection() = default;
+        virtual Rhi::RhiShader* GetVariant(const Vec<String>& defines) override;
+        virtual bool            MultiCompileReady() override;
+    };
 } // namespace Ifrit::Graphics::VulkanGraphics

@@ -264,7 +264,8 @@ namespace Ifrit::Runtime::Ayanami
         i32 tgY = DivRoundUp(PropY, kAyanamiScrProbeAdaptivePlaceKernelSize);
 
         AddComputePass<PushConst>(builder, "Ayanami.ScreenProbe.AdaptivePlace",
-            Internal::kIntShaderTableAyanami.ScreenProbeAdaptivePlaceCS, Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeAdaptivePlaceCS, {}),
+            Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc,
             [viewNormal, viewDepth, this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_ScrNormalCombSRV         = ctx.m_FgDesc->GetSRV(*viewNormal);
                 data.m_ScrDepthCombSRV          = ctx.m_FgDesc->GetSRV(*viewDepth);
@@ -309,8 +310,8 @@ namespace Ifrit::Runtime::Ayanami
 
         // the indirect compute arg starts at offset 4
         AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.ScreenSpaceTrace",
-            Internal::kIntShaderTableAyanami.ScreenProbeTraceScreenCS, *m_Private->m_AdaptiveProbesCounter,
-            4 * sizeof(u32), pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeTraceScreenCS, {}),
+            *m_Private->m_AdaptiveProbesCounter, 4 * sizeof(u32), pc,
             [hizBuffer, lastFrameFinalLighting, this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_HizStorage                    = ctx.m_FgDesc->GetSRV(*hizBuffer);
                 data.m_ScreenProbeLightingAtlasUAV   = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
@@ -354,7 +355,8 @@ namespace Ifrit::Runtime::Ayanami
 
         auto tgX = DivRoundUp(m_Private->m_MDFCullGridSizeZ, kAyanamiScrProbeMDFCullPrepKernelSize);
         AddComputePass<PushConst>(builder, "Ayanami.ScreenProbe.MDFCullingPrep",
-            Internal::kIntShaderTableAyanami.ScreenProbeMDFCullPrepCS, Vector3i{ (i32)tgX, 1, 1 }, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeMDFCullPrepCS, {}),
+            Vector3i{ (i32)tgX, 1, 1 }, pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GridVpUAV        = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingMatrix);
                 data.m_IndirectDrawArgs = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingIndirectArgs);
@@ -399,9 +401,9 @@ namespace Ifrit::Runtime::Ayanami
         drawArgs.m_CullMode = RhiCullMode::Front;
 
         AddIndirectDrawPass<PushConst>(builder, "Ayanami.ScreenProbe.MDFCullScatter",
-            Internal::kIntShaderTableAyanami.ScreenProbeMDFCullScatterVS,
-            Internal::kIntShaderTableAyanami.ScreenProbeMDFCullScatterFS, *m_Private->m_MeshDFCullingIndirectArgs,
-            *m_Private->m_CubeIndex, 0, drawArgs, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeMDFCullScatterVS, {}),
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeMDFCullScatterFS, {}),
+            *m_Private->m_MeshDFCullingIndirectArgs, *m_Private->m_CubeIndex, 0, drawArgs, pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GridVpUAV         = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingMatrix);
                 data.m_ScatterCounterUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingListCounter);
@@ -449,10 +451,10 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_WorldBoundMax = m_Private->m_ActiveWorldBoundMax;
         pc.m_CullGridSize  = Vector4f(1.0f * m_Private->m_MDFCullGridSizeXY, 1.0f * m_Private->m_MDFCullGridSizeXY,
              1.0f * m_Private->m_MDFCullGridSizeZ, 0.0f);
-        pc.m_RayJitter                       = Vector2f(0.0f, 0.0f);
-        pc.m_PerFrameCBV                     = perframeCBV;
-        pc.m_RTWidth                         = m_Private->m_ActiveRTWidth;
-        pc.m_RTHeight                        = m_Private->m_ActiveRTHeight;
+        pc.m_RayJitter     = Vector2f(0.0f, 0.0f);
+        pc.m_PerFrameCBV   = perframeCBV;
+        pc.m_RTWidth       = m_Private->m_ActiveRTWidth;
+        pc.m_RTHeight      = m_Private->m_ActiveRTHeight;
         pc.m_ScreenProbeLightingAtlasUAV     = 0;
         pc.m_MeshDFTraceProposalListUAV      = 0;
         pc.m_MeshDFTraceProposalCounterUAV   = 0;
@@ -467,8 +469,8 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_NumMeshDFs                      = m_Private->m_ActiveMDFCounts;
 
         AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.MDFTrace",
-            Internal::kIntShaderTableAyanami.ScreenProbeMDFTraceCS, *m_Private->m_MeshDFTracingRayIndirectArgs,
-            1 * sizeof(u32), pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeMDFTraceCS, {}),
+            *m_Private->m_MeshDFTracingRayIndirectArgs, 1 * sizeof(u32), pc,
             [this, gbufferDepth](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_ScreenProbeLightingAtlasUAV   = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
                 data.m_MeshDFTraceProposalListUAV    = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFTracingRayList);
@@ -526,8 +528,8 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_ScreenProbeLightingAtlasUAV     = 0;
 
         AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.GDFTrace",
-            Internal::kIntShaderTableAyanami.ScreenProbeGDFTraceCS, *m_Private->m_GlobalDFTracingIndirectArgs,
-            1 * sizeof(u32), pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeGDFTraceCS, {}),
+            *m_Private->m_GlobalDFTracingIndirectArgs, 1 * sizeof(u32), pc,
             [this, gbufferDepth, globalDF](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GlobalDFSRV = ctx.m_FgDesc->GetSRV(*globalDF);
                 data.m_GlobalDFTraceProposalCounterUAV =
@@ -564,8 +566,8 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_ScreenProbeLightingAtlasUAVOut = 0;
 
         AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.OctMappingBorderFix",
-            Internal::kIntShaderTableAyanami.ScreenProbeBorderFixCS, *m_Private->m_AdaptiveProbesCounter,
-            7 * sizeof(u32), pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeBorderFixCS, {}),
+            *m_Private->m_AdaptiveProbesCounter, 7 * sizeof(u32), pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_AdaptiveProbesCounterUAV       = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesCounter);
                 data.m_ScreenProbeLightingAtlasUAVIn  = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
@@ -598,8 +600,8 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_OutputSHCoefBufferUAV       = 0;
 
         AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.IntegrateSH",
-            Internal::kIntShaderTableAyanami.ScreenProbeSHIntegrateCS, *m_Private->m_AdaptiveProbesCounter,
-            7 * sizeof(u32), pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeSHIntegrateCS, {}),
+            *m_Private->m_AdaptiveProbesCounter, 7 * sizeof(u32), pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_AdaptiveProbesCounterUAV    = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesCounter);
                 data.m_AdaptiveProbesListUAV       = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesList);
@@ -638,7 +640,8 @@ namespace Ifrit::Runtime::Ayanami
         auto tgY = DivRoundUp(pc.m_RTHeight, kAyanamiScrProbePixelGatherKernelSize);
 
         AddComputePass<PushConst>(builder, "Ayanami.ScreenProbe.PixelGather",
-            Internal::kIntShaderTableAyanami.ScreenProbePixelGatherCS, Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbePixelGatherCS, {}),
+            Vector3i{ (i32)tgX, (i32)tgY, 1 }, pc,
             [this, gbufferDepth, gbufferNormal, outputTex](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_ScrNormalCombSRV      = ctx.m_FgDesc->GetSRV(*gbufferNormal);
                 data.m_ScrDepthCombSRV       = ctx.m_FgDesc->GetSRV(*gbufferDepth);

@@ -49,8 +49,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         Rhi::RhiQueue*                  GetQueue(Rhi::RhiQueueCapability req) override;
 
         // Shader
-        Rhi::RhiShader*    CreateShader(const String& name, const std::vector<char>& code, const String& entry,
-               Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType, const Vec<String>& permutations) override;
+        Ref<Rhi::RhiShaderCollection>   CreateShader(const String& name, const Vec<char>& code, const String& entry,
+              Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
 
         // Texture
         Rhi::RhiTextureRef CreateTexture2D(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format,

@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include "sha1/sha1.hpp"
+#include "ifrit/core/algo/StlStringUtils.h"
 #include <fstream>
 #include <iostream>
 #include <shaderc/shaderc.hpp>
@@ -64,7 +65,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         String m_source;
     };
 
-    String precompileShaderFile(const String& source_name, shaderc_shader_kind kind, const String& source)
+    String PrecompileShaderFile(const String& source_name, shaderc_shader_kind kind, const String& source)
     {
         shaderc::Compiler       compiler;
         shaderc::CompileOptions options;
@@ -83,7 +84,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return String(precompiledModule.cbegin(), precompiledModule.cend());
     }
 
-    Vec<u32> compileShaderFile(
+    Vec<u32> CompileShaderFile(
         const String& source_name, shaderc_shader_kind kind, const String& source, bool optimize = true)
     {
         shaderc::Compiler       compiler;
@@ -187,6 +188,8 @@ namespace Ifrit::Graphics::VulkanGraphics
             // PSO cache should be used in the future
             SHA1   sha1;
             String rawCode(ci.code.begin(), ci.code.end());
+            // add glsl version to the shader code
+            rawCode = "#version 450\n" + rawCode;
 
             // If permutations are used, add defines to the shader code
             if (!ci.m_Permutations.empty())
@@ -198,14 +201,14 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
 
             String precompiled;
-            precompiled = precompileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
+            precompiled = PrecompileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
             sha1.update(precompiled);
             auto hash   = sha1.final();
             m_signature = hash;
 
             if (cacheDir.empty())
             {
-                compiledCode      = compileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
+                compiledCode      = CompileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
                 moduleCI.codeSize = compiledCode.size() * sizeof(u32);
                 moduleCI.pCode    = compiledCode.data();
             }
@@ -225,7 +228,7 @@ namespace Ifrit::Graphics::VulkanGraphics
                 }
                 else
                 {
-                    compiledCode = compileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
+                    compiledCode = CompileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
                     std::ofstream cache(cacheFile, std::ios::binary);
                     cache.write(reinterpret_cast<const char*>(compiledCode.data()), compiledCode.size() * sizeof(u32));
                     cache.close();
@@ -325,4 +328,121 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL VkShaderModule                  ShaderModule::GetModule() const { return m_module; }
 
     IFRIT_APIDECL VkPipelineShaderStageCreateInfo ShaderModule::GetStageCI() const { return m_stageCI; }
+
+    // Shader collection
+    IFRIT_APIDECL ShaderCollection::ShaderCollection(EngineContext* ctx, const ShaderCollectionCI& ci)
+        : m_Context(ctx), m_CI(ci)
+    {
+        auto        codeStr = String(m_CI.m_Code.begin(), m_CI.m_Code.end());
+        auto        defines = SplitString(codeStr, "\n");
+        Vec<String> glslLines;
+        for (const auto& define : defines)
+        {
+            if (define.starts_with("#pragma"))
+            {
+                auto tokens = SplitString(define, " ");
+                if (tokens[1] == "ifrit.multi_compile")
+                {
+                    auto defineName = tokens[2];
+                    m_DefineNames.push_back(defineName);
+                    m_DefineIds[defineName] = m_DefineNames.size() - 1;
+                    m_MultiCompileIds.push_back(m_DefineNames.size() - 1);
+                }
+                else if (tokens[1] == "ifrit.shader_feature")
+                {
+                    auto defineName = tokens[2];
+                    m_DefineNames.push_back(defineName);
+                    m_DefineIds[defineName] = m_DefineNames.size() - 1;
+                }
+            }
+            else
+            {
+                glslLines.push_back(define);
+            }
+        }
+        String glslCode = JoinString(glslLines, "\n");
+        m_CI.m_Code     = Vec<char>(glslCode.begin(), glslCode.end());
+
+        PrecompileMultiCompileShaders();
+    }
+
+    IFRIT_APIDECL void ShaderCollection::CompileShaderVariant(u64 permId)
+    {
+        if (m_ShaderVariants.count(permId) > 0)
+        {
+            return;
+        }
+
+        Vec<String> defines;
+        while (permId)
+        {
+            u32 trailingBit = Math::CountTrailingZero(permId);
+            permId &= ~(1 << trailingBit);
+        }
+
+        ShaderModuleCI shaderModuleCI;
+        shaderModuleCI.code           = m_CI.m_Code;
+        shaderModuleCI.entryPoint     = m_CI.m_EntryPoint;
+        shaderModuleCI.stage          = m_CI.m_Stage;
+        shaderModuleCI.sourceType     = m_CI.m_SourceType;
+        shaderModuleCI.fileName       = m_CI.m_FileName;
+        shaderModuleCI.m_Permutations = std::move(defines);
+
+        auto shaderModule        = std::make_unique<ShaderModule>(m_Context, shaderModuleCI);
+        m_ShaderVariants[permId] = std::move(shaderModule);
+    }
+
+    IFRIT_APIDECL void ShaderCollection::PrecompileMultiCompileShaders()
+    {
+        if (m_MultiCompileIds.size() >= 12)
+        {
+            iError("Multi compile shaders are limited to 12 permutations, please reduce the number of permutations.");
+            return;
+        }
+        PrecompileMultiCompileShadersImpl(0, 0);
+        m_MultiCompileReady = true;
+    }
+
+    IFRIT_APIDECL void ShaderCollection::PrecompileMultiCompileShadersImpl(u32 curVariantTag, u64 curPermId)
+    {
+        if (curVariantTag == m_MultiCompileIds.size())
+        {
+            CompileShaderVariant(curPermId);
+            return;
+        }
+        u32 retainedId = curPermId;
+        PrecompileMultiCompileShadersImpl(curVariantTag + 1, curPermId);
+        retainedId |= (1 << m_MultiCompileIds[curVariantTag]);
+        PrecompileMultiCompileShadersImpl(curVariantTag + 1, retainedId);
+    }
+
+    IFRIT_APIDECL Rhi::RhiShader* ShaderCollection::GetVariant(const Vec<String>& defines)
+    {
+        u64 permId = 0;
+        for (const auto& define : defines)
+        {
+            if (m_DefineIds.count(define) > 0)
+            {
+                auto id = m_DefineIds[define];
+                permId |= (1 << id);
+            }
+            else
+            {
+                iError("Shader define {} not found in shader collection {}", define, m_CI.m_FileName);
+                std::abort();
+            }
+        }
+        CompileShaderVariant(permId);
+        if (m_ShaderVariants.count(permId) > 0)
+        {
+            return m_ShaderVariants[permId].get();
+        }
+        else
+        {
+            iError("Shader variant {} not found in shader collection {}", permId, m_CI.m_FileName);
+            std::abort();
+        }
+    }
+    IFRIT_APIDECL bool ShaderCollection::MultiCompileReady() { return m_MultiCompileReady; }
+
 } // namespace Ifrit::Graphics::VulkanGraphics

@@ -25,10 +25,12 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL ShaderAsset : public Asset
     {
     private:
-        using ShaderRef = Graphics::Rhi::RhiShader;
-        ShaderAsset::ShaderRef* m_selfData;
-        bool                    m_loaded = false;
-        IApplication*           m_app;
+        using ShaderRef        = Graphics::Rhi::RhiShader;
+        using ShaderCollection = Graphics::Rhi::RhiShaderCollection;
+
+        Ref<ShaderCollection> m_selfData;
+        bool                  m_loaded = false;
+        IApplication*         m_app;
 
     public:
         ShaderAsset(AssetMetadata metadata, std::filesystem::path path, IApplication* app)
@@ -36,7 +38,7 @@ namespace Ifrit::Runtime
         {
         }
 
-        ShaderRef* LoadShader();
+        ShaderRef* LoadShader(const Vec<String>& permutations);
     };
     class IFRIT_APIDECL ShaderAssetImporter : public AssetImporter
     {

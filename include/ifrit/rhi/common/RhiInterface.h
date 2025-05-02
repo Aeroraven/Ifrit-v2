@@ -105,9 +105,9 @@ namespace Ifrit::Graphics::Rhi
         virtual Ref<RhiStagedSingleBuffer> CreateStagedSingleBuffer(RhiBuffer* target) = 0;
 
         // Command execution
-        virtual RhiQueue*                  GetQueue(RhiQueueCapability req)                                        = 0;
-        virtual RhiShader*                 CreateShader(const String& name, const Vec<char>& code, const String& entry,
-                            RhiShaderStage stage, RhiShaderSourceType sourceType, const Vec<String>& permutations) = 0;
+        virtual RhiQueue*                  GetQueue(RhiQueueCapability req) = 0;
+        virtual Ref<RhiShaderCollection>   CreateShader(const String& name, const Vec<char>& code, const String& entry,
+              RhiShaderStage stage, RhiShaderSourceType sourceType)         = 0;
 
         // Pass execution, Deprecated
         virtual RhiComputePass*            CreateComputePass()  = 0;
@@ -137,8 +137,7 @@ namespace Ifrit::Graphics::Rhi
         virtual RhiUAVDesc                 GetUAVDescriptor(RhiTexture* texture)                                  = 0;
         virtual RhiSRVDesc                 GetSRVDescriptor(RhiBuffer* buffer)                                    = 0;
         virtual RhiUAVDesc                 GetUAVDescriptor(RhiBuffer* buffer)                                    = 0;
-
-        virtual RhiCBVDesc                 GetCBVDescriptor(RhiBuffer* buffer) = 0;
+        virtual RhiCBVDesc                 GetCBVDescriptor(RhiBuffer* buffer)                                    = 0;
 
         // Render target
         virtual Ref<RhiColorAttachment>    CreateRenderTarget(RhiTexture* renderTarget, RhiClearValue clearValue,

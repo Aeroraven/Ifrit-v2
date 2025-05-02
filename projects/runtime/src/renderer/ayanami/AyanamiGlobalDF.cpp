@@ -97,7 +97,8 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MeshDFDescListId      = meshDFListId;
 
         auto& pass = FrameGraphUtils::AddComputePass<PushConst>(builder, "Ayanami.GlobalDFComposite",
-            Internal::kIntShaderTableAyanami.TrivialGlobalDFCompCS, Vector3i{ (i32)tgX, (i32)tgX, (i32)tgX }, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.TrivialGlobalDFCompCS, {}),
+            Vector3i{ (i32)tgX, (i32)tgX, (i32)tgX }, pc,
             [this, clipmapLevel](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GlobalDFVolumeId = ctx.m_FgDesc->GetUAV(*m_TestClipMaps[clipmapLevel]->m_RDGClipMapTexture);
                 SetRootSignature(data, ctx);
@@ -131,7 +132,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_RtW        = outTextureSize.x;
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.GlobalDFRayMarch",
-            Internal::kIntShaderTableAyanami.GlobalDFRayMarchCS,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.GlobalDFRayMarchCS, {}),
             Vector3i{ DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize),
                 DivRoundUp<i32, i32>(outTextureSize.x, Config::kAyanamiGlobalDFRayMarchTileSize), 1 },
             pc, [outTexture, clipmapLevel, this](PushConst data, const FrameGraphPassContext& ctx) {
@@ -162,7 +163,7 @@ namespace Ifrit::Runtime::Ayanami
         u32 groupsX =
             DivRoundUp<u32, u32>(m_TestClipMaps[clipmapLevel]->m_VoxelsPerWidth, Config::kAyanamiObjectGridTileSize);
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.ObjectGridComposition",
-            Internal::kIntShaderTableAyanami.ObjectGridCompositionCS,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.ObjectGridCompositionCS, {}),
             Vector3i{ (int)groupsX, (int)groupsX, (int)groupsX }, pc,
             [this, clipmapLevel](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_CellDataId = ctx.m_FgDesc->GetUAV(*m_TestClipMaps[clipmapLevel]->m_RDGObjectGrid);
