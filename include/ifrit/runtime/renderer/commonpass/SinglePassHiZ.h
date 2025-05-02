@@ -16,7 +16,8 @@ namespace Ifrit::Runtime
         using GPUSampler   = Graphics::Rhi::RhiSampler;
 
     protected:
-        ComputePass*  m_singlePassHiZPass = nullptr;
+        ComputePass*  m_SinglePassHiZPassMin = nullptr;
+        ComputePass*  m_SinglePassHiZPassMax = nullptr;
         IApplication* m_app;
 
     public:

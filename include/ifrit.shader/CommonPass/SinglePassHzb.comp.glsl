@@ -38,6 +38,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Syaro/Syaro.Shared.glsl"
 #include "Syaro/Syaro.SharedConst.h"
 
+#pragma ifrit.multi_compile SINGLE_HIZ_MIN_MODE
+#pragma ifrit.multi_compile SINGLE_HIZ_MAX_MODE
+
 layout(local_size_x = cHiZThreadGroupSize, local_size_y = 1, local_size_z = 1) in;
 
 RegisterStorage(bHiZStorage,{
@@ -118,11 +121,13 @@ void main(){
                         float d4 = depthFetch(tileX+1,tileY+1);
 
                         float maxDepth = 0.0;
-                        if(uHiZPushConstant.minMode == 0){
-                            maxDepth = max(max(d1,d2),max(d3,d4));
-                        }else{
-                            maxDepth = min(min(d1,d2),min(d3,d4));
-                        }
+#ifdef SINGLE_HIZ_MAX_MODE
+                        maxDepth = max(max(d1,d2),max(d3,d4));
+#endif
+
+#ifdef SINGLE_HIZ_MIN_MODE
+                        maxDepth = min(min(d1,d2),min(d3,d4));
+#endif
 
                         // for compatibility, we store the depth in the first mip level.
                         imageStore(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i]),ivec2(tileX,tileY),vec4(d1,0.0,0.0,0.0));
@@ -139,11 +144,13 @@ void main(){
                         float d4 = imageLoad(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i]),ivec2(tileX+1,tileY+1)).r;
 
                         float maxDepth = 0.0;
-                        if(uHiZPushConstant.minMode == 0){
-                            maxDepth = max(max(d1,d2),max(d3,d4));
-                        }else{
-                            maxDepth = min(min(d1,d2),min(d3,d4));
-                        }
+#ifdef SINGLE_HIZ_MAX_MODE
+                        maxDepth = max(max(d1,d2),max(d3,d4));
+#endif
+
+#ifdef SINGLE_HIZ_MIN_MODE
+                        maxDepth = min(min(d1,d2),min(d3,d4));
+#endif
                         imageStore(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i+1]),ivec2(tileX/2,tileY/2),vec4(maxDepth,0.0,0.0,0.0));
                     }
                 }
@@ -183,12 +190,12 @@ void main(){
                     float d4 = imageLoad(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i]),ivec2(tileX2,tileY2)).r;
 
                     float maxDepth = 0.0;
-                    if(uHiZPushConstant.minMode == 0){
-                        maxDepth = max(max(d1,d2),max(d3,d4));
-                    }else{
-                        maxDepth = min(min(d1,d2),min(d3,d4));
-                    }
-                    max(max(d1,d2),max(d3,d4));
+#ifdef SINGLE_HIZ_MAX_MODE
+                    maxDepth = max(max(d1,d2),max(d3,d4));
+#endif
+#ifdef SINGLE_HIZ_MIN_MODE
+                    maxDepth = min(min(d1,d2),min(d3,d4));
+#endif
                     imageStore(GetUAVImage2DR32F(GetResource(bHiZStorage,uHiZData.hizRefs).mipRefs[i+1]),ivec2(tileX/2,tileY/2),vec4(maxDepth,0.0,0.0,0.0));
                 }
             }

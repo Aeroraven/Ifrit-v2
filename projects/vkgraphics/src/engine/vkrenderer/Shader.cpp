@@ -179,6 +179,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
 
         Vec<u32> compiledCode;
+        m_ci.m_Permutations = ci.m_Permutations;
         if (ci.sourceType == Rhi::RhiShaderSourceType::GLSLCode)
         {
 
@@ -189,16 +190,18 @@ namespace Ifrit::Graphics::VulkanGraphics
             SHA1   sha1;
             String rawCode(ci.code.begin(), ci.code.end());
             // add glsl version to the shader code
-            rawCode = "#version 450\n" + rawCode;
-
+            
             // If permutations are used, add defines to the shader code
             if (!ci.m_Permutations.empty())
             {
                 for (const auto& perm : ci.m_Permutations)
                 {
-                    rawCode += "#define " + perm + "\n";
+                    rawCode = "#define " + perm + " 1\n" + rawCode;
                 }
             }
+
+            rawCode = "#version 450\n" + rawCode;
+
 
             String precompiled;
             precompiled = PrecompileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
@@ -246,6 +249,32 @@ namespace Ifrit::Graphics::VulkanGraphics
         moduleCI.sType  = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
         vkrVulkanAssert(vkCreateShaderModule(device, &moduleCI, nullptr, &m_module), "Failed to create shader module");
+        if (m_context->IsDebugMode())
+        {
+            // add shader name
+            VkDebugUtilsObjectNameInfoEXT nameInfo{};
+            nameInfo.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            nameInfo.objectType   = VK_OBJECT_TYPE_SHADER_MODULE;
+            nameInfo.objectHandle = reinterpret_cast<u64>(m_module);
+
+            String shaderName = "IfShader." + ci.fileName + "(";
+            for (auto& define : m_ci.m_Permutations)
+            {
+                shaderName += define + ",";
+            }
+            shaderName += ")";
+            nameInfo.pObjectName = shaderName.c_str();
+
+            auto extFunc = m_context->GetExtensionFunction();
+            extFunc.p_vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
+
+            if (m_ci.m_Permutations.size() > 0)
+            {
+                printf("Shader %s with permutations %s\n", m_ci.fileName.c_str(),
+                    JoinString(m_ci.m_Permutations, ",").c_str());
+            }
+        }
+
         m_stageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 
         m_ci             = ci;
@@ -374,10 +403,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
 
         Vec<String> defines;
+        auto        permIdCopy = permId;
         while (permId)
         {
             u32 trailingBit = Math::CountTrailingZero(permId);
             permId &= ~(1 << trailingBit);
+            defines.push_back(m_DefineNames[trailingBit]);
         }
 
         ShaderModuleCI shaderModuleCI;
@@ -388,8 +419,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         shaderModuleCI.fileName       = m_CI.m_FileName;
         shaderModuleCI.m_Permutations = std::move(defines);
 
-        auto shaderModule        = std::make_unique<ShaderModule>(m_Context, shaderModuleCI);
-        m_ShaderVariants[permId] = std::move(shaderModule);
+        auto shaderModule            = std::make_unique<ShaderModule>(m_Context, shaderModuleCI);
+        m_ShaderVariants[permIdCopy] = std::move(shaderModule);
     }
 
     IFRIT_APIDECL void ShaderCollection::PrecompileMultiCompileShaders()
@@ -435,6 +466,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         CompileShaderVariant(permId);
         if (m_ShaderVariants.count(permId) > 0)
         {
+            if (permId != 0)
+            {
+                // std::abort();
+            }
             return m_ShaderVariants[permId].get();
         }
         else

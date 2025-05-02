@@ -115,6 +115,10 @@ namespace Ifrit::Runtime
             {
                 std::this_thread::yield();
             }
+            if (permutations.size() != 0)
+            {
+                iDebug("Shader {} has {} permutations", name, permutations.size());
+            }
             return m_Data->m_ShaderMap[name].m_Shader->GetVariant(permutations);
         }
         else

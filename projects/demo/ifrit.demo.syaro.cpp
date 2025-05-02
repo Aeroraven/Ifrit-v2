@@ -146,7 +146,7 @@ public:
             numMeshes++;
             if (numMeshes > 300)
             {
-                // continue;
+                continue;
             }
             node->AddGameObjectTransferred(std::move(m->m_prefab));
         }

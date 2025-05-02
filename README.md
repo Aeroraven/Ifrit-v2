@@ -70,6 +70,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
   - Lock-free Resource Pool & Primary Resource Reuse 
   - Simple Lifetime Tracking & State Tracking
 - Task System
+- Shader Variants
 - Texture Compression Supports
 
 #### 1.2.1 Syaro: Virtual-Geometry-based Deferred Renderer

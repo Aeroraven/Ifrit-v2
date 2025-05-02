@@ -24,10 +24,12 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL     SinglePassHiZPass::SinglePassHiZPass(IApplication* app)
     {
-        auto rhi            = app->GetRhi();
-        m_app               = app;
-        m_singlePassHiZPass = CreateComputePassInternal(
-            app, ShaderVariantDesc(Internal::kIntShaderTable.Common.SinglePassHzbCS, {}), 1, 6);
+        auto rhi               = app->GetRhi();
+        m_app                  = app;
+        m_SinglePassHiZPassMax = CreateComputePassInternal(
+            app, ShaderVariantDesc(Internal::kIntShaderTable.Common.SinglePassHzbCS, { "SINGLE_HIZ_MAX_MODE" }), 1, 6);
+        m_SinglePassHiZPassMin = CreateComputePassInternal(
+            app, ShaderVariantDesc(Internal::kIntShaderTable.Common.SinglePassHzbCS, { "SINGLE_HIZ_MIN_MODE" }), 1, 6);
     }
 
     IFRIT_APIDECL bool SinglePassHiZPass::CheckResourceToRebuild(
@@ -104,7 +106,13 @@ namespace Ifrit::Runtime
 
         IF_CONSTEXPR static u32 cSPHiZTileSize = 64;
 
-        m_singlePassHiZPass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
+        ComputePass*            pass = nullptr;
+        if (minMode)
+            pass = m_SinglePassHiZPassMin;
+        else
+            pass = m_SinglePassHiZPassMax;
+
+        pass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
             ctx->m_cmd->AttachUniformRef(1, data.m_hizDesc);
             ctx->m_cmd->SetPushConst(&pc, 0, u32Size * 6);
             auto tgX = DivRoundUp(data.m_hizWidth, cSPHiZTileSize);
@@ -112,7 +120,7 @@ namespace Ifrit::Runtime
             ctx->m_cmd->Dispatch(tgX, tgY, 1);
         });
         cmd->BeginScope("Ifrit.Common: Single Pass Hierarchical Z-Buffer");
-        m_singlePassHiZPass->Run(cmd, 0);
+        pass->Run(cmd, 0);
         cmd->EndScope();
     }
 } // namespace Ifrit::Runtime
