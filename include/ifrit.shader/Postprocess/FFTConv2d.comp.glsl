@@ -169,9 +169,6 @@ vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pad
     float halfPixelX = 0.5/float(rtW/downscale);
     float halfPixelY = 0.5/float(rtH/downscale);
     vec2 uv = vec2(sampX+halfPixelX,sampY+halfPixelY);
-    // if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){
-    //     return vec4(0.0);
-    // }
     uv = clamp(uv,0.0,1.0);
     vec4 rt = SampleTexture2D(imgId,sLinearClamp,uv);
 

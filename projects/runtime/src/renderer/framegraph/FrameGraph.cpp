@@ -856,7 +856,7 @@ namespace Ifrit::Runtime
 
             pass->FillContext(passContext);
             pass->Execute(passContext);
-            // cmd->GlobalMemoryBarrier();
+            cmd->GlobalMemoryBarrier();
             // PostExecute
             for (u32 i = 0; i < pass->m_ResourceReleaseRequest.size(); i++)
             {

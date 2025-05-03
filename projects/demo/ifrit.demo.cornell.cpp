@@ -170,6 +170,7 @@ namespace Ifrit
             ayaConfig.m_DebugForceObjectGridRegen   = true;
 
             renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
+            renderConfig.m_AntiAliasingType           = AntiAliasingType::None;
 
             // Bistro interior has many one-sided meshes. The culling strategy is required to be reconsidered.
             renderConfig.m_OverrideMaterialCulling = OverrideMaterialCulling::ForcedCullNone;

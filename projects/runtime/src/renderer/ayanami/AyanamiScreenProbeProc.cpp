@@ -58,6 +58,8 @@ namespace Ifrit::Runtime::Ayanami
 
         FGBufferNodeRef             m_IntegratedSH = nullptr;
 
+        FGTextureNodeRef            m_ActiveGBufferAlbedo = nullptr;
+
         u32                         m_ActiveRTWidth  = 0;
         u32                         m_ActiveRTHeight = 0;
         Vector4f                    m_ActiveWorldBoundMin;
@@ -308,6 +310,8 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_MeshDFTraceProposalListUAV  = 0;
         pc.m_LastFrameFinalLighting      = 0;
 
+        m_Private->m_ActiveGBufferAlbedo = lastFrameFinalLighting;
+
         // the indirect compute arg starts at offset 4
         AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.ScreenSpaceTrace",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeTraceScreenCS, {}),
@@ -445,6 +449,7 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_MaxMdfsPerGrid;
             u32      m_GlobalDFTraceProposalCounterUAV;
             u32      m_GlobalDFTraceProposalListUAV;
+            u32      m_GBufferAlbedoSRV;
             u32      m_NumMeshDFs;
         } pc;
         pc.m_WorldBoundMin = m_Private->m_ActiveWorldBoundMin;
@@ -467,6 +472,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_GlobalDFTraceProposalCounterUAV = 0;
         pc.m_GlobalDFTraceProposalListUAV    = 0;
         pc.m_NumMeshDFs                      = m_Private->m_ActiveMDFCounts;
+        pc.m_GBufferAlbedoSRV                = 0;
 
         AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.MDFTrace",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeMDFTraceCS, {}),
@@ -479,6 +485,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_GBufferDepthSRV               = ctx.m_FgDesc->GetSRV(*gbufferDepth);
                 data.m_CullGridCounterUAV            = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingListCounter);
                 data.m_CullGridListUAV               = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingList);
+                data.m_GBufferAlbedoSRV              = ctx.m_FgDesc->GetSRV(*m_Private->m_ActiveGBufferAlbedo);
                 data.m_GlobalDFTraceProposalCounterUAV =
                     ctx.m_FgDesc->GetUAV(*m_Private->m_GlobalDFTracingIndirectArgs);
                 data.m_GlobalDFTraceProposalListUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_GlobalDFTracingList);
@@ -490,6 +497,7 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*m_Private->m_MeshDFCullingListCounter)
             .AddReadResource(*m_Private->m_MeshDFCullingList)
             .AddReadResource(*gbufferDepth)
+            .AddReadResource(*m_Private->m_ActiveGBufferAlbedo)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingIndirectArgs)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingList)
             .AddReadWriteResource(*m_Private->m_RadianceAtlas);
@@ -511,6 +519,7 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_RTWidth;
             u32      m_RTHeight;
             u32      m_GBufferDepthSRV;
+            u32      m_GBufferAlbedoSRV;
             u32      m_ScreenProbeLightingAtlasUAV;
         } pc;
         pc.m_RayJitter                       = Vector2f(0.0f, 0.0f);
@@ -537,6 +546,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_GlobalDFTraceProposalListUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_GlobalDFTracingList);
                 data.m_AdaptiveProbesListUAV        = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesList);
                 data.m_GBufferDepthSRV              = ctx.m_FgDesc->GetSRV(*gbufferDepth);
+                data.m_GBufferAlbedoSRV             = ctx.m_FgDesc->GetSRV(*m_Private->m_ActiveGBufferAlbedo);
                 data.m_ScreenProbeLightingAtlasUAV  = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
                 SetRootSignature(data, ctx);
             })
@@ -544,6 +554,7 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*globalDF)
             .AddReadResource(*m_Private->m_AdaptiveProbesList)
             .AddWriteResource(*m_Private->m_RadianceAtlas)
+            .AddReadResource(*m_Private->m_ActiveGBufferAlbedo)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingIndirectArgs)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingList);
     }

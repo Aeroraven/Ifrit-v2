@@ -62,9 +62,9 @@ ivec2 GetProbeSHAtlasCoord(uint ProbeIndex){
 
 void WriteSHAtlas(uint ProbeIndex, MTwoBandSH_RGB SHCoefs){
     ivec2 WriteLocation = GetProbeSHAtlasCoord(ProbeIndex);
-    mageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasRUAV), ivec2(WriteLocation), SHCoefs.m_R.m_Coef);
-    mageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasGUAV), ivec2(WriteLocation), SHCoefs.m_G.m_Coef);
-    mageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasBUAV), ivec2(WriteLocation), SHCoefs.m_B.m_Coef);
+    imageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasRUAV), ivec2(WriteLocation), SHCoefs.m_R.m_Coef);
+    imageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasGUAV), ivec2(WriteLocation), SHCoefs.m_G.m_Coef);
+    imageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasBUAV), ivec2(WriteLocation), SHCoefs.m_B.m_Coef);
 }
 
 void main(){

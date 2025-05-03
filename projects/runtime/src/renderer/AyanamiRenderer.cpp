@@ -130,7 +130,7 @@ namespace Ifrit::Runtime
         m_Resources->m_SurfaceCache->InitContext(builder);
         m_Resources->m_DFLighting->InitContext(builder, 64);
         m_GlobalDF->InitContext(builder);
-        m_Resources->m_ScreenProbe->InitContext(builder, 2048, 2048, 0.5f);
+        m_Resources->m_ScreenProbe->InitContext(builder, 2048, 2048, 0.05f);
         m_Resources->m_DeferredShading->InitContext(builder, rtWidth, rtHeight);
 
         // Import resources
@@ -148,6 +148,9 @@ namespace Ifrit::Runtime
 
         auto& resShadowData =
             builder.ImportBuffer("Ayanami.ShadowData", perframe.m_shadowData2.m_allShadowData->GetActiveBuffer());
+
+        auto& resHiz0 = builder.ImportTexture(
+            "Ayanami.Hiz0", perframe.m_views[0].m_spHiZDataMin.m_hizTexture.get(), { 3, 0, 1, 1 });
 
         // Managed resources
         auto& resRaymarchOutput   = builder.DeclareTexture("Ayanami.RDG.RayMarchOutput",
@@ -251,7 +254,7 @@ namespace Ifrit::Runtime
         // Pass RayMarch
         if (true)
         {
-            if (m_Resources->m_DbgShowMDF)
+            if (true || m_Resources->m_DbgShowMDF)
             {
                 struct PushConst
                 {
@@ -301,10 +304,10 @@ namespace Ifrit::Runtime
         // Pass Screen Probe Place
         {
             auto resLastFrameFinalLighting = m_Resources->m_DeferredShading->GetRDGLastFrameFinalLightingTexture();
+            auto clipmapRange              = m_GlobalDF->GetWorldBoundMax(0).x;
 
             m_Resources->m_ScreenProbe->AdaptiveScreenProbePlace(builder, primaryViewCBV, &resGNormal, &resGDepth);
-            m_Resources->m_ScreenProbe->ProbeScreenTrace(
-                builder, primaryViewCBV, &resHiZDescMin, resLastFrameFinalLighting);
+            m_Resources->m_ScreenProbe->ProbeScreenTrace(builder, primaryViewCBV, &resHiZDescMin, &resGAlbedo);
             m_Resources->m_ScreenProbe->PrepareMeshDFCulling(
                 builder, m_Resources->m_SceneAggregator->GetNumGatheredInstances(), sceneBoundMin, sceneBoundMax);
             m_Resources->m_ScreenProbe->ScatterMeshDFToGrids(builder, primaryViewCBV,
@@ -313,7 +316,8 @@ namespace Ifrit::Runtime
             m_Resources->m_ScreenProbe->ProbeMDFTrace(
                 builder, primaryViewCBV, m_Resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth);
 
-            m_Resources->m_ScreenProbe->ProbeGDFTrace(builder, primaryViewCBV, &resGDepth, &resGlobalDFGen, 13);
+            m_Resources->m_ScreenProbe->ProbeGDFTrace(
+                builder, primaryViewCBV, &resGDepth, &resGlobalDFGen, clipmapRange);
             m_Resources->m_ScreenProbe->ProbeOctMappingBorderFix(builder);
             m_Resources->m_ScreenProbe->ProbeIntegrate(builder);
             m_Resources->m_ScreenProbe->ProbePixelGather(
@@ -397,7 +401,7 @@ namespace Ifrit::Runtime
                 ShaderVariantDesc(Internal::kIntShaderTableAyanami.CopyVS, {}),
                 ShaderVariantDesc(Internal::kIntShaderTableAyanami.CopyFS, {}), pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugObjGridOut);
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugProbeGather);
                     SetRootSignature(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)

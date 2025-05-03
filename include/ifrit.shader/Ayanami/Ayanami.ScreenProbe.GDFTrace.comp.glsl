@@ -48,6 +48,7 @@ layout(push_constant) uniform UPushConst{
     uint m_RTWidth;
     uint m_RTHeight;
     uint m_GBufferDepthSRV;
+    uint m_GBufferAlbedoSRV;
     uint m_ScreenProbeLightingAtlasUAV;
 }PushConst;
 
@@ -95,7 +96,7 @@ uvec2 GetProbeWritingSlot(uint ProbeId, uint ProbeCntPerX, uvec2 TraceRayCoord){
 
 float TraceGlobalDF(vec3 RayOrigin, vec3 RayDir){
     float HitTime = AyaShared_RayMarchGlobalDF(RayOrigin,RayDir,PushConst.m_GlobalDFSRV,PushConst.m_WorldBoundMin.xyz,
-        PushConst.m_WorldBoundMax.xyz,0.015,0.03,200);
+        PushConst.m_WorldBoundMax.xyz,0.015,0.015,400);
 
     return HitTime;
 }
@@ -116,6 +117,7 @@ void main(){
     float ClipNear = PerFrame.m_cameraNear;
     float ClipFar = PerFrame.m_cameraFar;
     mat4 ClipToWorld = PerFrame.m_clipToWorld;
+    mat4 WorldToClip = PerFrame.m_worldToClip;
 
     uint TraceRayId = gl_GlobalInvocationID.x;
     uint TotalTraceRays = GetResource(BGlobalDFTraceProposalIndirectArgs,PushConst.m_GlobalDFTraceProposalCounterUAV).m_MdfFailureRays;
@@ -128,16 +130,19 @@ void main(){
         uint TotalUniformProbes = ProbeCntPerX * ProbeCntPerY;
 
         vec2 ProbeUV;
+        vec2 ProbeUVPx;
         if(TraceRay.m_ProbeId < TotalUniformProbes){
             uint ProbeIdX = TraceRay.m_ProbeId % ProbeCntPerX;
             uint ProbeIdY = TraceRay.m_ProbeId / ProbeCntPerX;
             uint ProbeLocX = ProbeIdX * kAyanami_ScreenProbeUniformPlaceTileWidth;
             uint ProbeLocY = ProbeIdY * kAyanami_ScreenProbeUniformPlaceTileWidth;
             ProbeUV = vec2(float(ProbeLocX),float(ProbeLocY)) / vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+            ProbeUVPx = vec2(float(ProbeLocX),float(ProbeLocY));
         }else{
             uint AdaptiveProbeId = TraceRay.m_ProbeId - TotalUniformProbes;
             uvec2 AdaptiveProbeCoord = GetAdaptiveProbeCoord(AdaptiveProbeId);
             ProbeUV = vec2(AdaptiveProbeCoord) / vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+            ProbeUVPx = vec2(AdaptiveProbeCoord);
         }
 
         float ProbeLocDepthNDC = SampleTexture2D(PushConst.m_GBufferDepthSRV, sNearestClamp, ProbeUV).r;
@@ -152,15 +157,31 @@ void main(){
         ProbeLocWS += SampledRay * kRayProceedAdvance;
         uvec2 WritingSlot = GetProbeWritingSlot(TraceRay.m_ProbeId, ProbeCntPerX, TraceRay.m_TraceRayCoord);
 
-        float TraceResult = TraceGlobalDF(ProbeLocWS, SampledRay);
+        float TraceResult =  TraceGlobalDF(ProbeLocWS, SampledRay);
         if(!kVisTracingHierarchy){
-            if(TraceResult<0.0){
+            if(TraceResult<1e-2){
                 // skylight, for simplicity
                 imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(2.3));
+            }else{
+                vec3 HitPosWS = ProbeLocWS + SampledRay * TraceResult;
+                vec4 HitPosCS = WorldToClip * vec4(HitPosWS, 1.0);
+                vec4 HitPosNDC = HitPosCS / HitPosCS.w;
+                vec2 HitPosUV = HitPosNDC.xy * 0.5 + 0.5;
+                vec4 Albedo = SampleTexture2D(PushConst.m_GBufferAlbedoSRV, sLinearClamp, HitPosUV.xy).rgba;
+
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(Albedo.rgb, 0.0));
             }
         }else{
-            if(TraceResult>=0.0){
+            // vec3 HitPosWS = ProbeLocWS + SampledRay * TraceResult;
+            // vec4 HitPosCS = WorldToClip * vec4(HitPosWS, 1.0);
+            // vec4 HitPosNDC = HitPosCS / HitPosCS.w;
+            // vec2 HitPosUV = HitPosNDC.xy * 0.5 + 0.5;
+            // vec4 Albedo = SampleTexture2D(PushConst.m_GBufferAlbedoSRV, sLinearClamp, HitPosUV.xy).rgba;
+
+            if(TraceResult>=1e-4){
                 imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0,0.0,1.0, 0.0));
+            }else{
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(1.0,1.0,1.0,0.0));
             }
         }
         

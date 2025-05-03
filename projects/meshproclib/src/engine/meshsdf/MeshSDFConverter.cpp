@@ -563,8 +563,8 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         data.bboxMax += bboxDilate;
 
         auto bboxCenter = (data.bboxMin + data.bboxMax) * 0.5f;
-        auto bboxMinLim = bboxCenter - 0.25f;
-        auto bboxMaxLim = bboxCenter - 0.25f;
+        auto bboxMinLim = bboxCenter - 0.1f;
+        auto bboxMaxLim = bboxCenter - 0.1f;
 
         data.bboxMin = Min(data.bboxMin, bboxMinLim);
         data.bboxMax = Max(data.bboxMax, bboxMaxLim);

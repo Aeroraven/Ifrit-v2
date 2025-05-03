@@ -17,8 +17,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-
-
 layout(location = 0) in vec2 vTexCoord;
 
 layout(location = 0) out vec4 OutColor;
@@ -31,6 +29,6 @@ layout(push_constant) uniform UPushConstant{
 } PushConst;
 
 void main(){
-    vec4 Color = SampleTexture2D(PushConst.m_RayMarchResult,sLinearClamp,vTexCoord);
+    vec4 Color = SampleTexture2D(PushConst.m_RayMarchResult,sLinearClamp,vTexCoord*vec2(1.0,1.0));
     OutColor = vec4(Color.xyz, 1.0);
 }

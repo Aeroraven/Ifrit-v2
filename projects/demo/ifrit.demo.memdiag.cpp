@@ -199,7 +199,7 @@ int main()
     info.m_rhiComputeQueueCount  = 1;
     info.m_rhiGraphicsQueueCount = 1;
     info.m_rhiTransferQueueCount = 1;
-    info.m_rhiNumBackBuffers     = 2;
+    info.m_rhiNumBackBuffers     = 3;
     info.m_name                  = "Ifrit-v2";
     info.m_cachePath             = IFRIT_DEMO_CACHE_PATH;
     info.m_rhiDebugMode          = true;

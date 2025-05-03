@@ -79,7 +79,7 @@ public:
         if (camera)
         {
             camera->SetPosition(
-                { -20.0f + m_movRight - m_movLeft, 8.0f + m_movTop - m_movBottom, 2.05f + m_movFar - m_movNear });
+                { -20.0f + m_movRight - m_movLeft, 8000.0f + m_movTop - m_movBottom, 2.05f + m_movFar - m_movNear });
             camera->SetRotation({ 0.0f, m_movRot + 1.57f, 0.0f });
         }
     }
@@ -146,7 +146,7 @@ public:
             numMeshes++;
             if (numMeshes > 300)
             {
-                // continue;
+                continue;
             }
             node->AddGameObjectTransferred(std::move(m->m_prefab));
         }
@@ -192,7 +192,7 @@ int main()
     info.m_rhiComputeQueueCount  = 1;
     info.m_rhiGraphicsQueueCount = 1;
     info.m_rhiTransferQueueCount = 1;
-    info.m_rhiNumBackBuffers     = 2;
+    info.m_rhiNumBackBuffers     = 3;
     info.m_name                  = "Ifrit-v2";
     info.m_cachePath             = IFRIT_DEMO_CACHE_PATH;
     info.m_rhiDebugMode          = true;

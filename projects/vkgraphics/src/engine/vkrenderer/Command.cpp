@@ -763,9 +763,8 @@ namespace Ifrit::Graphics::VulkanGraphics
                     bufferBarrier.buffer        = CheckedCast<SingleBuffer>(barrier.m_uav.m_buffer)->GetBuffer();
                     bufferBarrier.offset        = 0;
                     bufferBarrier.size          = VK_WHOLE_SIZE;
-                    bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-                    bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT
-                        | VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_UNIFORM_READ_BIT;
+                    bufferBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT;
+                    bufferBarrier.dstAccessMask = VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT;
                     bufferBarriers.push_back(bufferBarrier);
                 }
                 else if (resourceType == Rhi::RhiResourceType::Texture)

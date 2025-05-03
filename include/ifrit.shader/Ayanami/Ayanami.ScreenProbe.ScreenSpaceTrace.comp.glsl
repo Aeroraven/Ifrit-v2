@@ -52,8 +52,8 @@ layout(push_constant) uniform UPushConst{
 }PushConst;
 
 const float kRayProceedMax = 5.0;
-const float kRayProceedAdvance = 3e-3;
-const uint kMaxTraceIters = 600;
+const float kRayProceedAdvance = 6e-3;
+const uint kMaxTraceIters = 60;
 const bool kHizProceed = true;
 const bool kUseWordSpaceSsgi = false;
 
@@ -224,7 +224,7 @@ vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndU
         ProceedCurZ = RayStartVS.z;
 
         bool IsCollided = false;
-        if(CurZ - ReferenceZ>=-2e-4 && (CurMip!=0 || ValidZ) && T>0.0){
+        if(CurZ - ReferenceZ>=-3e-4 && (CurMip!=0 || ValidZ) && T>0.0){
             IsCollided = true;
         }
 
@@ -395,20 +395,23 @@ void main(){
     
     vec3 ProbeLocWS;
     vec2 ProbeUV;
+    vec2 ProbeUVPx;
     if(ProbeId < TotalUniformProbes){
         uint ProbeX = ProbeId % ProbeCntPerX;
         uint ProbeY = ProbeId / ProbeCntPerX;
         uint ProbeLocX = ProbeX * kAyanami_ScreenProbeUniformPlaceTileWidth;
         uint ProbeLocY = ProbeY * kAyanami_ScreenProbeUniformPlaceTileWidth;
         ProbeUV = vec2(ProbeLocX, ProbeLocY) / vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+        ProbeUVPx = vec2(ProbeLocX, ProbeLocY);
     }else{
         // This is an adaptive probe
         uint AdaptiveProbeId = ProbeId - TotalUniformProbes;
         uvec2 AdaptiveProbeCoord = GetAdaptiveProbeCoord(AdaptiveProbeId);
         ProbeUV = vec2(AdaptiveProbeCoord) / vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+        ProbeUVPx = vec2(AdaptiveProbeCoord);
     }
 
-    float ProbeLocDepthNDC = GetHizDepth(ProbeUV, 0);
+    float ProbeLocDepthNDC = GetHizDepthPx(ProbeUVPx, 0);
     bool ValidProbe = true;
     if(ProbeLocDepthNDC >= 1.0){
         ValidProbe = false;
@@ -431,13 +434,15 @@ void main(){
                 // screen hit
                 vec2 HitUV = SsgiTraceResult.xy;
                 vec3 HitRadiance = SampleTexture2D(PushConst.m_LastFrameFinalLightingSRV, sLinearClamp, HitUV).xyz;
-                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(HitRadiance,1.0));
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(HitRadiance, 1.0));
             }else{
                 // screen hit miss
                 imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0));
                 uint FailureRayId = atomicAdd(sFailureRayCount, 1);
                 sFailureRayList[FailureRayId] = PackLocationAndRay(ProbeId, TraceRayCoord);
             }
+        }else{
+            imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0));
         }
 
     }else{

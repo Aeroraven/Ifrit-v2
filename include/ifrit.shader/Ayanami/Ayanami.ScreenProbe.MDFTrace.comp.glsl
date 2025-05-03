@@ -56,13 +56,14 @@ layout(push_constant) uniform UPushConst{
     uint m_MaxMdfsPerGrid;
     uint m_GlobalDFTraceProposalCounterUAV;
     uint m_GlobalDFTraceProposalListUAV;
+    uint m_GBufferAlbedoSRV;
     uint m_NumMeshDFs;
 }PushConst;
 
-const float kRayProceedMax = 1000.0;
-const float kRayProceedAdvance = 3e-2;
-const uint kMaxTraceSteps = 60;
-const float kMDFHitThreshold = 0.01;
+const float kRayProceedMax = 10000.0;
+const float kRayProceedAdvance = 0.2;
+const uint kMaxTraceSteps = 6000;
+const float kMDFHitThreshold = 0.03;
 const int kGridSearchRange = 1;
 const bool kGridCulling = false;
 
@@ -167,15 +168,15 @@ vec3 MeshDFGridTraceSingleMDF(vec3 RayDirWS, vec3 RayOriginWS, uint MeshDFId, fl
     if(IsHit){
         for(int i=0;i<kMaxTraceSteps;i++){
             vec3 UVW = (HitPoint - BboxLB) / (BboxRT - BboxLB);
-            float Sdf = AyaShared_SampleMeshDF(SdfId, UVW, MeshDFQuantScale);
+            float Sdf = AyaShared_SampleMeshDF(SdfId, UVW, MeshDFQuantScale)-0.02;
             float AbsSdf = abs(Sdf);
             if(Sdf<kMDFHitThreshold){
                 IsFinalHit = true;
                 break;
             }
-            T += max(3e-4, AbsSdf * 0.2);
+            T += max(1e-4, Sdf * 0.1);
             if(T >= TMax){
-                break;
+                //break;
             }
         }
     }
@@ -227,7 +228,7 @@ vec4 MeshDFGridTrace(vec3 RayDirWS, vec3 RayOriginWS){
             }
         }
     }else{
-        for(uint i = 0; i < PushConst.m_NumMeshDFs; i++){
+        for(uint i = 0; i <=PushConst.m_NumMeshDFs; i++){
             vec3 HitResult = MeshDFGridTraceSingleMDF(RayDirWS, RayOriginWS, i, HitTime);
             if(HitResult.x >= 0.0 && HitResult.x < HitTime){
                 HitTime = HitResult.x;
@@ -235,8 +236,6 @@ vec4 MeshDFGridTrace(vec3 RayDirWS, vec3 RayOriginWS){
             }
         }
     }
-    
-
 
     if(HitMeshDFId == -1){
         return vec4(RayOriginWS, 0.0);
@@ -262,6 +261,7 @@ void main(){
     float ClipNear = PerFrame.m_cameraNear;
     float ClipFar = PerFrame.m_cameraFar;
     mat4 ClipToWorld = PerFrame.m_clipToWorld;
+    mat4 WorldToClip = PerFrame.m_worldToClip;
 
     uint TraceRayId = gl_GlobalInvocationID.x;
     uint TotalTraceRays = GetResource(BMeshDFTraceProposalIndirectArgs,PushConst.m_MeshDFTraceProposalCounterUAV).m_SsgiFailureRays;
@@ -306,12 +306,23 @@ void main(){
                 // mdf hit miss
                 uint LocalFailureRayId = atomicAdd(sFailureRayCount, 1);
                 sFailureRayList[LocalFailureRayId] = TraceRayPackedData;
+            }else{
+                // temporarily we uses screen info here
+
+                vec3 HitPoint = HitResult.xyz;
+                vec4 HitPointCS = WorldToClip * vec4(HitPoint, 1.0);
+                HitPointCS /= HitPointCS.w;
+                vec2 HitPointUV = HitPointCS.xy * 0.5 + 0.5;
+                vec4 Albedo = SampleTexture2D(PushConst.m_GBufferAlbedoSRV, sLinearClamp, HitPointUV.xy).rgba;
+
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(Albedo.xyz, 1.0));
             }
         }else{
             if(HitResult.w < 0.5){
-                // mdf hit miss
+                //mdf hit miss
                 uint LocalFailureRayId = atomicAdd(sFailureRayCount, 1);
                 sFailureRayList[LocalFailureRayId] = TraceRayPackedData;
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0,0.0,1.0, 1.0));
             }else{
                 imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0,1.0,0.0, 1.0));
             }

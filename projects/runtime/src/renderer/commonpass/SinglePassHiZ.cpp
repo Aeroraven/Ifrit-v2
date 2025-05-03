@@ -55,7 +55,7 @@ namespace Ifrit::Runtime
         auto rhi          = m_app->GetRhi();
         auto maxMip       = int(std::floor(std::log2(std::max(rtWidth, rtHeight))) + 1);
         data.m_hizTexture = rhi->CreateMipMapTexture(
-            "SHiZ_Tex", rtWidth, rtHeight, maxMip, RhiImageFormat::RhiImgFmt_R32_SFLOAT, kbImUsage_UAV, true);
+            "SHiZ_Tex", rtWidth, rtHeight, maxMip, RhiImageFormat::RhiImgFmt_R32_SFLOAT, kbImUsage_UAV_SRV, true);
 
         data.m_hizRefs.resize(0);
         data.m_hizRefs.push_back(0);

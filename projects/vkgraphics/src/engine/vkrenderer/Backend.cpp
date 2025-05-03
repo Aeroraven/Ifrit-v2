@@ -422,14 +422,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             desc->SetActiveFrame(m_swapChain->GetCurrentImageIndex());
         }
-        for (auto& pass : m_implDetails->m_computePasses)
-        {
-            pass->SetActiveFrame(m_swapChain->GetCurrentImageIndex());
-        }
-        for (auto& pass : m_implDetails->m_graphicsPasses)
-        {
-            pass->SetActiveFrame(m_swapChain->GetCurrentImageIndex());
-        }
         for (auto& idRef : m_implDetails->m_bindlessIdRefs)
         {
             idRef->activeFrame = m_swapChain->GetCurrentImageIndex();
@@ -443,10 +435,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto engineContext = CheckedCast<EngineContext>(m_device.get());
         auto deleteList    = engineContext->GetDeleteQueue();
         auto nums          = deleteList->ProcessDeleteQueue();
-        if (nums > 0)
-        {
-            // iDebug("Deleted {} resources", nums);
-        }
     }
     IFRIT_APIDECL void RhiVulkanBackend::EndFrame() { m_implDetails->m_commandExecutor->EndFrame(); }
     IFRIT_APIDECL Uref<Rhi::RhiTaskSubmission> RhiVulkanBackend::GetSwapchainFrameReadyEventHandler()
