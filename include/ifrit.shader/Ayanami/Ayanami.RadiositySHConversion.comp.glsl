@@ -36,7 +36,7 @@ layout(
     local_size_z = 1 
 ) in;
 
-struct PushConst{
+layout(push_constant) uniform UPushConst{
     vec2 m_TraceCoordJitter;
     vec2 m_ProbeCenterJitter;
     uint m_CardAtlasResolution;
@@ -50,7 +50,8 @@ struct PushConst{
     uint m_RWRadiosityProbeSHAtlasRUAV;
     uint m_RWRadiosityProbeSHAtlasGUAV;
     uint m_RWRadiosityProbeSHAtlasBUAV;
-};
+    uint m_TotalProbes;
+}PushConst;
 
 ivec2 GetProbeSHAtlasCoord(uint ProbeIndex){
     uint TilesPerAtlasWidth = PushConst.m_CardAtlasResolution / kAyanami_CardTileWidth;
@@ -69,6 +70,7 @@ void WriteSHAtlas(uint ProbeIndex, MTwoBandSH_RGB SHCoefs){
 
 void main(){
     uint GlobalId = gl_GlobalInvocationID.x; //Probe Id
+    if(GlobalId >= PushConst.m_TotalProbes) return;
     uint ProbeRayStart = kAyanami_RadiosityTracesPerProbe * GlobalId;
 
     uint TileIndex;

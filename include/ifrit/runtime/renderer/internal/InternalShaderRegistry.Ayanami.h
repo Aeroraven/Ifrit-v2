@@ -46,6 +46,7 @@ namespace Ifrit::Runtime::Internal
         SDEF DFShadowVisibilityCS      = DECLARE_CS("Ayanami/DFRadianceInjection");
         SDEF ObjectGridCompositionCS   = DECLARE_CS("Ayanami/ObjectGridComposition");
         SDEF RadiosityTraceCS          = DECLARE_CS("Ayanami/RadiosityTrace");
+        SDEF RadiositySHConversionCS   = DECLARE_CS("Ayanami/RadiositySHConversion");
         SDEF SurfaceCacheDirectLightCS = DECLARE_CS("Ayanami/SurfaceCacheDirectLighting");
 
         SDEF DbgReconFromSurfaceCacheCS = DECLARE_CS("Ayanami/DbgReconFromSurfaceCache");

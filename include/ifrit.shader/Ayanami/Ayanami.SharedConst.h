@@ -69,6 +69,7 @@ namespace Ifrit::Runtime::Ayanami::Config
 
     AYANAMI_DEFINE_UINT(kAyanamiObjectGridTileSize, 4);
     AYANAMI_DEFINE_UINT(kAyanamiRadiosityTraceKernelSize, kAyanami_RadiosityTracesPerCardTile);
+    AYANAMI_DEFINE_UINT(kAyanamiSphericalHarmonicsCvtKernelSize, 64);
 
     AYANAMI_DEFINE_UINT(kAyanamiReconFromSCTileSize, 8);
     AYANAMI_DEFINE_UINT(kAyanamiReconFromSCDepthTileSize, 8);
@@ -77,7 +78,6 @@ namespace Ifrit::Runtime::Ayanami::Config
     AYANAMI_DEFINE_UINT(kAyanamiSCDirectLightCardSizePerBlock, 8);
 
     AYANAMI_DEFINE_UINT(kAyanamiDbgObjGridTileSize, 8);
-    AYANAMI_DEFINE_UINT(kAyanamiSphericalHarmonicsCvtKernelSize, 64);
 
     AYANAMI_DEFINE_UINT(kAyanamiScrProbeAdaptivePlaceKernelSize, 8);
     AYANAMI_DEFINE_UINT(kAyanamiScrProbeAdaptiveGroupKernelSize, 64);

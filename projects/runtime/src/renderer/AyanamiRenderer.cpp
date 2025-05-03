@@ -130,7 +130,7 @@ namespace Ifrit::Runtime
         m_Resources->m_SurfaceCache->InitContext(builder);
         m_Resources->m_DFLighting->InitContext(builder, 64);
         m_GlobalDF->InitContext(builder);
-        m_Resources->m_ScreenProbe->InitContext(builder, 2048, 2048, 0.05f);
+        m_Resources->m_ScreenProbe->InitContext(builder, 2048, 2048, 0.5f);
         m_Resources->m_DeferredShading->InitContext(builder, rtWidth, rtHeight);
 
         // Import resources
@@ -241,20 +241,21 @@ namespace Ifrit::Runtime
                 m_Resources->m_SceneAggregator->GetGatheredBufferId());
         }
 
-        // Pass Radiosity Trace (I. Trace)
+        // Pass Radiosity Trace
         {
             auto resObjectGridPtr = m_GlobalDF->GetObjectGridVolume(0);
             m_Resources->m_SurfaceCache->UpdateRadiosityTrace(builder, scene, &resGlobalDFGen, resObjectGridPtr,
                 m_Resources->m_SceneAggregator->GetGatheredBufferId(), sceneBoundMin, sceneBoundMax,
                 m_GlobalDF->GetClipmapWidth(0), m_GlobalDF->GetVoxelsPerSide(0));
-        }
 
-        // Pass Radiosity Trace (II. Filter)
+            m_Resources->m_SurfaceCache->RadiositySHConversion(
+                builder, m_Resources->m_SceneAggregator->GetGatheredBufferId());
+        }
 
         // Pass RayMarch
         if (true)
         {
-            if (true || m_Resources->m_DbgShowMDF)
+            if (m_Resources->m_DbgShowMDF)
             {
                 struct PushConst
                 {

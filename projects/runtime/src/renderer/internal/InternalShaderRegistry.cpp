@@ -59,6 +59,8 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE(ISTAya.DFShadowVisibilityCS, "Ayanami/Ayanami.DFShadowVisibility");
         REG_COMPUTE(ISTAya.ObjectGridCompositionCS, "Ayanami/Ayanami.ObjectGridComposition");
         REG_COMPUTE(ISTAya.RadiosityTraceCS, "Ayanami/Ayanami.RadiosityTrace");
+        REG_COMPUTE(ISTAya.RadiositySHConversionCS, "Ayanami/Ayanami.RadiositySHConversion");
+
         REG_COMPUTE(ISTAya.SurfaceCacheDirectLightCS, "Ayanami/Ayanami.SurfaceCacheDirectLighting");
         REG_COMPUTE(ISTAya.ScreenProbeAdaptivePlaceCS, "Ayanami/Ayanami.ScreenProbe.AdaptivePlace");
         REG_COMPUTE(ISTAya.ScreenProbeTraceScreenCS, "Ayanami/Ayanami.ScreenProbe.ScreenSpaceTrace");

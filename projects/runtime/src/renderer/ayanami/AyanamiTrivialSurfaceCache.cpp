@@ -101,6 +101,10 @@ namespace Ifrit::Runtime::Ayanami
         RhiTextureRef                       m_SceneDirectLightingAtlas;
         RhiTextureRef                       m_SceneCacheIndirrectRadianceAtlas;
 
+        RhiTextureRef                       m_SceneCacheRadiositySH_R;
+        RhiTextureRef                       m_SceneCacheRadiositySH_G;
+        RhiTextureRef                       m_SceneCacheRadiositySH_B;
+
         // This marks whether a texel (thread group) on surface cache should use
         // offline shadow map or not.
         RhiBufferRef                        m_ShadowMaskOfflineBuffer;
@@ -138,6 +142,10 @@ namespace Ifrit::Runtime::Ayanami
         FGTextureNodeRef                    m_RDGSceneDirectLighting;
         FGTextureNodeRef                    m_RDGSceneCacheIndirectRadianceAtlas;
         FGTextureNodeRef                    m_RDGSceneCacheTemporaryDepth;
+
+        FGTextureNodeRef                    m_RDGSceneCacheRadiositySH_R;
+        FGTextureNodeRef                    m_RDGSceneCacheRadiositySH_G;
+        FGTextureNodeRef                    m_RDGSceneCacheRadiositySH_B;
     };
 
     AyanamiTrivialSurfaceCacheManager::AyanamiTrivialSurfaceCacheManager(
@@ -428,6 +436,12 @@ namespace Ifrit::Runtime::Ayanami
             "Ayanami.SceneCacheIndirectRadianceAtlas", m_Resources->m_SceneCacheIndirrectRadianceAtlas.get());
         m_Resources->m_RDGSceneCacheTemporaryDepth =
             &builder.ImportTexture("Ayanami.SceneCacheTemporaryDepth", m_Resources->m_SceneCacheTemporaryDepth.get());
+        m_Resources->m_RDGSceneCacheRadiositySH_R =
+            &builder.ImportTexture("Ayanami.SceneCacheRadiositySH_R", m_Resources->m_SceneCacheRadiositySH_R.get());
+        m_Resources->m_RDGSceneCacheRadiositySH_G =
+            &builder.ImportTexture("Ayanami.SceneCacheRadiositySH_G", m_Resources->m_SceneCacheRadiositySH_G.get());
+        m_Resources->m_RDGSceneCacheRadiositySH_B =
+            &builder.ImportTexture("Ayanami.SceneCacheRadiositySH_B", m_Resources->m_SceneCacheRadiositySH_B.get());
     }
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::PrepareImmutableResource()
@@ -463,6 +477,15 @@ namespace Ifrit::Runtime::Ayanami
                 RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess
                     | RhiImageUsage::RhiImgUsage_RenderTarget,
                 true);
+        m_Resources->m_SceneCacheRadiositySH_R = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadiositySH_R",
+            m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
+            RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess, true);
+        m_Resources->m_SceneCacheRadiositySH_G = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadiositySH_G",
+            m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
+            RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess, true);
+        m_Resources->m_SceneCacheRadiositySH_B = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadiositySH_B",
+            m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
+            RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess, true);
 
         // A depth buffer is required for the surface cache pass
         m_Resources->m_SceneCacheTemporaryDepth =
@@ -598,8 +621,13 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_VoxelsPerWidth        = voxelsPerGdfWidth;
         pc.m_ObjectGridUAV         = 0;
 
+        auto totalCardTiles =
+            m_Resources->m_AtlasElementSize / (Config::kAyanami_CardTileWidth * Config::kAyanami_CardTileWidth);
+        auto  totalTraces = totalCardTiles * Config::kAyanami_RadiosityTracesPerCardTile;
+        auto  numTGs      = DivRoundUp<i32,i32>(totalTraces, Config::kAyanamiRadiosityTraceKernelSize);
+
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiosityGenPass",
-            ShaderVariantDesc(Internal::kIntShaderTableAyanami.RadiosityTraceCS, {}), Vector3i{ 0, 1, 1 }, pc,
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.RadiosityTraceCS, {}), Vector3i{ numTGs, 1, 1 }, pc,
             [globalDFSRV, objectGridsUAV, this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GlobalDFSRV           = ctx.m_FgDesc->GetSRV(*globalDFSRV);
                 data.m_CardDepthAtlasSRV     = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheTemporaryDepth);
@@ -618,6 +646,72 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*globalDFSRV);
 
         return pass;
+    }
+
+    IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::RadiositySHConversion(
+        FrameGraphBuilder& builder, u32 meshDFList)
+    {
+        // TODO
+        struct PushConst
+        {
+            Vector2f m_TraceCoordJitter;
+            Vector2f m_ProbeCenterJitter;
+            u32      m_CardAtlasResolution;
+            u32      m_CardResolution;
+            u32      m_NumTotalCards;
+            u32      m_CardDepthAtlasSRV;
+            u32      m_CardNormalAtlasSRV;
+            u32      m_AllCardObjDataId;
+            u32      m_AllMeshDFDataId;
+            u32      m_FilteredRadianceAtlasUAV;
+            u32      m_RWRadiosityProbeSHAtlasRUAV;
+            u32      m_RWRadiosityProbeSHAtlasGUAV;
+            u32      m_RWRadiosityProbeSHAtlasBUAV;
+            u32      m_TotalProbes;
+        } pc;
+        pc.m_TraceCoordJitter            = Vector2f(0.0f, 0.0f);
+        pc.m_ProbeCenterJitter           = Vector2f(0.0f, 0.0f);
+        pc.m_CardAtlasResolution         = m_Resolution;
+        pc.m_CardResolution              = m_Resources->m_AtlasElementSize;
+        pc.m_NumTotalCards               = m_Resources->m_MeshCardIndex.load();
+        pc.m_CardDepthAtlasSRV           = 0;
+        pc.m_CardNormalAtlasSRV          = 0;
+        pc.m_AllCardObjDataId            = m_Resources->m_ObserveDeviceData->GetDescId();
+        pc.m_AllMeshDFDataId             = meshDFList;
+        pc.m_FilteredRadianceAtlasUAV    = 0;
+        pc.m_RWRadiosityProbeSHAtlasRUAV = 0;
+        pc.m_RWRadiosityProbeSHAtlasGUAV = 0;
+        pc.m_RWRadiosityProbeSHAtlasBUAV = 0;
+
+        auto numCardTiles =
+            m_Resources->m_AtlasElementSize / (Config::kAyanami_CardTileWidth * Config::kAyanami_CardTileWidth);
+        auto numProbes = numCardTiles
+            * (Config::kAyanami_RadiosityProbesPerCardTileWidth * Config::kAyanami_RadiosityProbesPerCardTileWidth);
+
+        auto numTGs      = DivRoundUp<i32,i32>(numProbes, Config::kAyanamiSphericalHarmonicsCvtKernelSize);
+        pc.m_TotalProbes = numProbes;
+
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiositySHConversion",
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.RadiositySHConversionCS, {}), Vector3i{ numTGs, 1, 1 },
+            pc, [this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_CardDepthAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheTemporaryDepth);
+                data.m_CardNormalAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
+
+                // TODO: this is not filtered
+                data.m_FilteredRadianceAtlasUAV =
+                    ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
+                data.m_RWRadiosityProbeSHAtlasRUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_R);
+                data.m_RWRadiosityProbeSHAtlasGUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_G);
+                data.m_RWRadiosityProbeSHAtlasBUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_B);
+                SetRootSignature(data, ctx);
+            });
+
+        pass.AddWriteResource(*m_Resources->m_RDGSceneCacheRadiositySH_R)
+            .AddWriteResource(*m_Resources->m_RDGSceneCacheRadiositySH_G)
+            .AddWriteResource(*m_Resources->m_RDGSceneCacheRadiositySH_B)
+            .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth)
+            .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
+            .AddReadResource(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
     }
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateDirectLighting(

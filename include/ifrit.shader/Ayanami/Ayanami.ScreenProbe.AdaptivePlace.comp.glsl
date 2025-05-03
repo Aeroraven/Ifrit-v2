@@ -198,7 +198,7 @@ void main(){
     if(ValidSample){
         vec4 Weights = GetNeighbourProbeWeights(ScreenCoord, Sample);
         for(uint i=0;i<4;i++){
-            if(false&&Weights[i] < 0.01){
+            if(Weights[i] < 0.01){
                 // here, this location is not covered by near probes.
                 uint PackedLocation = PackLocation(ScreenCoord);
                 uint LocalAdaptiveListIdx = atomicAdd(sAdaptiveSampleCount, 1);

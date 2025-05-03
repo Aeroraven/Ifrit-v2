@@ -52,6 +52,8 @@ namespace Ifrit::Runtime::Ayanami
              FGBufferNodeRef objectGridsUAV, u32 meshDFList, Vector3f globalDFMin, Vector3f globalDFMax,
              u32 globalDFResolution, u32 voxelsPerGdfWidth);
 
+        void              RadiositySHConversion(FrameGraphBuilder& builder, u32 meshDFList);
+
         void              UpdateDirectLighting(FrameGraphBuilder& builder, u32 meshDFList, Vector3f lightDir);
 
         FGTextureNode&    GetRDGAlbedoAtlas();
