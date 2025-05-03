@@ -42,7 +42,7 @@ RegisterUniform(BPerFrameData,{
 
 void main(){
     mat4 viewToWorld = GetResource(BPerFrameData, PushConst.m_PerFrameId).data.m_viewToWorld;
-    vec3 normal = texture(GetSampler2D(PushConst.m_NormalSRV), texCoord).xyz;
+    vec3 normal = SampleTexture2D(PushConst.m_NormalSRV,sLinearClamp, texCoord).xyz;
     if(normal.x == 0.0 && normal.y == 0.0 && normal.z == 0.0){
         outColor = vec4(1.0, 1.0, 0.0, 1.0);
         return;
@@ -50,7 +50,7 @@ void main(){
     normal = normalize(normal * 2.0 - 1.0);
     normal = normalize((viewToWorld * vec4(normal, 0.0)).xyz);
 
-    float shadow = SampleTexture2D(PushConst.m_ShadowMapSRV,sLinearClamp,texCoord).r; //texture(GetSampler2D(PushConst.m_ShadowMapSRV), texCoord).r;
+    float shadow = SampleTexture2D(PushConst.m_ShadowMapSRV,sLinearClamp,texCoord).r; 
     vec3 light = normalize(PushConst.m_LightDir.xyz);
     float dotProduct = max(0.0, dot(normal, -light))* shadow;
 

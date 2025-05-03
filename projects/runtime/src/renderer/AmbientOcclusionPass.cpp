@@ -54,7 +54,7 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL void AmbientOcclusionPass::RenderHBAO(const CommandBuffer* cmd, u32 width, u32 height,
-        GPUBindId* depthSamp, GPUBindId* normalSamp, u32 aoTex, GPUBindId* perframeData)
+        SRVDesc depthSamp, SRVDesc normalSamp, u32 aoTex, CBVDesc perframeData)
     {
         if (m_hbaoPass == nullptr)
         {
@@ -69,9 +69,9 @@ namespace Ifrit::Runtime
             float radius;
             float maxRadius;
         } pc;
-        pc.perframe  = perframeData->GetActiveId();
-        pc.normalTex = normalSamp->GetActiveId();
-        pc.depthTex  = depthSamp->GetActiveId();
+        pc.perframe  = perframeData;
+        pc.normalTex = normalSamp;
+        pc.depthTex  = depthSamp;
         pc.aoTex     = aoTex;
         pc.radius    = 0.5f;
         pc.maxRadius = 1.0f;
@@ -88,8 +88,8 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL void AmbientOcclusionPass::RenderSSGI(const CommandBuffer* cmd, u32 width, u32 height,
-        GPUBindId* perframeData, u32 depthHizMinUAV, u32 depthHizMaxUAV, GPUBindId* normalSRV, u32 aoUAV,
-        u32 finalLightSRV, u32 hizTexW, u32 hizTexH, u32 numLods, GPUBindId* blueNoiseSRV, GPUBindId* albedoSRV)
+        CBVDesc perframeData, u32 depthHizMinUAV, u32 depthHizMaxUAV, SRVDesc normalSRV, u32 aoUAV, u32 finalLightSRV,
+        u32 hizTexW, u32 hizTexH, u32 numLods, SRVDesc blueNoiseSRV, SRVDesc albedoSRV)
     {
         struct SSGIPushConst
         {
@@ -108,8 +108,8 @@ namespace Ifrit::Runtime
             u32 albedoSRV;
         } pc;
 
-        pc.perframe      = perframeData->GetActiveId();
-        pc.normalTex     = normalSRV->GetActiveId();
+        pc.perframe      = perframeData;
+        pc.normalTex     = normalSRV;
         pc.depthTexMin   = depthHizMinUAV;
         pc.depthTexMax   = depthHizMaxUAV;
         pc.aoTex         = aoUAV;
@@ -119,8 +119,8 @@ namespace Ifrit::Runtime
         pc.rtW           = width;
         pc.rtH           = height;
         pc.numLods       = numLods;
-        pc.blueNoiseSRV  = blueNoiseSRV->GetActiveId();
-        pc.albedoSRV     = albedoSRV->GetActiveId();
+        pc.blueNoiseSRV  = blueNoiseSRV;
+        pc.albedoSRV     = albedoSRV;
 
         if (m_ssgiPass == nullptr)
         {

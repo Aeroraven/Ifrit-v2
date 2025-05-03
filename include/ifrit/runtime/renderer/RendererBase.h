@@ -39,11 +39,11 @@ namespace Ifrit::Runtime
     struct ImmutableRendererResources
     {
         using GPUTexture = Graphics::Rhi::RhiTextureRef;
-        using GPUBindId  = Graphics::Rhi::RhiDescHandleLegacy;
-        std::mutex                 m_mutex;
-        bool                       m_initialized = false;
-        GPUTexture                 m_blueNoise;
-        std::shared_ptr<GPUBindId> m_blueNoiseSRV = nullptr;
+        using SRVDesc    = Graphics::Rhi::RhiSRVDesc;
+        std::mutex m_mutex;
+        bool       m_initialized = false;
+        GPUTexture m_blueNoise;
+        SRVDesc    m_blueNoiseSRV = 0;
     };
 
     enum class AntiAliasingType

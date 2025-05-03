@@ -11,7 +11,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
     }
 
     IFRIT_APIDECL void PostFxJointBilaterialFilter::RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets,
-        GPUBindId* colorSRV, GPUBindId* normalSRV, GPUBindId* depthSRV, u32 kernelSize)
+        SRVDesc colorSRV, SRVDesc normalSRV, SRVDesc depthSRV, u32 kernelSize)
     {
         struct PushConst
         {
@@ -21,9 +21,9 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             u32 halfKernSize;
         };
         PushConst pushConst = {
-            colorSRV->GetActiveId(),
-            normalSRV->GetActiveId(),
-            depthSRV->GetActiveId(),
+            colorSRV,
+            normalSRV,
+            depthSRV,
             kernelSize,
         };
         RenderInternal(nullptr, renderTargets, cmd, &pushConst, {}, "Postprocess: Joint Bilaterial Filter");

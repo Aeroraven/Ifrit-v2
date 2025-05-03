@@ -37,6 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Bindless.glsl"
 #include "Syaro/Syaro.Shared.glsl"
 #include "Syaro/Syaro.SharedConst.h"
+#include "SamplerUtils.SharedConst.h"
 
 #pragma ifrit.multi_compile SINGLE_HIZ_MIN_MODE
 #pragma ifrit.multi_compile SINGLE_HIZ_MAX_MODE
@@ -87,7 +88,7 @@ float depthFetch(uint x,uint y){
         if(uHiZPushConstant.minMode == 1) return 0.0;
         return 1.0;
     }
-    return texelFetch(GetSampler2D(uHiZData.depthImg),ivec2(x,y),0).r;
+    return SampleTexture2DLoad(uHiZData.depthImg,sLinearClamp,ivec2(x,y)).r;
 }
 
 shared uint sharedCounter;

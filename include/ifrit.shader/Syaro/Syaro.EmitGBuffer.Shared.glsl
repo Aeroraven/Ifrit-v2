@@ -385,7 +385,7 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     data.vTangent = _gbcomp_interpolate4(tangent0,tangent1,tangent2,data.barycentric.xyz);
 
     if(albedoTexId != ~0u){
-        data.vAlbedo = texture(GetSampler2D(albedoTexId), data.vpUV.xy);
+        data.vAlbedo = SampleTexture2D(albedoTexId,sLinearRepeat, data.vpUV.xy);
     }
 
     if(normalTexId!=~0u){
@@ -396,7 +396,7 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
         vec3 bitangent = cross(tangent,normal) * tangentX.w;
         mat3 tbn = mat3(tangent,bitangent,normal);
 
-        vec4 vNormal = texture(GetSampler2D(normalTexId), data.vpUV.xy);
+        vec4 vNormal = SampleTexture2D(normalTexId,sLinearRepeat, data.vpUV.xy);
         vec2 vNormalRG = vNormal.rg * 2.0 - 1.0;
         float vNormalZ = sqrt(1.0-vNormalRG.r*vNormalRG.r-vNormalRG.g*vNormalRG.g);
 
@@ -496,7 +496,7 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
     uint normalTexId = albedoNormalTexId.y;
 
     if(albedoTexId != ~0u){
-        data.vAlbedo = texture(GetSampler2D(albedoTexId), data.vpUV.xy);
+        data.vAlbedo = SampleTexture2D(albedoTexId,sLinearRepeat, data.vpUV.xy);
     }
 
     if(normalTexId!=~0u){
@@ -507,7 +507,7 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
         vec3 bitangent = cross(tangent,normal) * tangentX.w;
         mat3 tbn = mat3(tangent,bitangent,normal);
 
-        vec4 vNormal = texture(GetSampler2D(normalTexId), data.vpUV.xy);
+        vec4 vNormal = SampleTexture2D(normalTexId,sLinearRepeat, data.vpUV.xy);
         vec2 vNormalRG;
         float vNormalZ;
 

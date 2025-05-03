@@ -128,7 +128,7 @@ vec2 ShadowMapSingle(uint LightId, vec3 WorldPos,uint csmIdx){
     vec2 LightPosNDCxy = LightPosNDC.xy * 0.5 + 0.5;
 
     // This sampler is maintained by syaro. Don't move this.
-    float ShadowMapZ = texture(GetSampler2D(ShadowRef), LightPosNDCxy.xy).r;
+    float ShadowMapZ = SampleTexture2D(ShadowRef,sLinearClamp, LightPosNDCxy.xy).r;
     float refZ = LightPosNDC.z;
     
     //if ndc out of range, return 0 coverage to g
@@ -185,7 +185,7 @@ void main(){
     TileOffsetToNDCxy = TileOffsetToNDCxy * 2.0 - 1.0;
 
     vec2 AtlasSampleUV = (OverallOffset+0.5) / vec2(PushConst.CardAtlasResolution);
-    float TileOffsetNdcZ = SampleTexture2D(PushConst.depthAtlasSRVId, sNearestClamp,AtlasSampleUV).r; //texture(GetSampler2D(PushConst.depthAtlasSRVId), 
+    float TileOffsetNdcZ = SampleTexture2D(PushConst.depthAtlasSRVId, sNearestClamp,AtlasSampleUV).r; 
     vec3 TexelNormalVS = SampleTexture2D(PushConst.m_NormalAtlasSRV, sLinearClamp, AtlasSampleUV).xyz;
     
     vec4 TileOffsetNdc = vec4(TileOffsetToNDCxy, TileOffsetNdcZ, 1.0);

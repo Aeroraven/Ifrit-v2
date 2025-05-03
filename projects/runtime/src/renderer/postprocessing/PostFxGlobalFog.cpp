@@ -11,7 +11,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
     }
 
     IFRIT_APIDECL void PostFxGlobalFog::RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets,
-        GPUBindId* inputTexCombSampler, GPUBindId* inputDepthTexCombSampler, GPUBindId* inputViewUniform)
+        SRVDesc inputTexCombSampler, SRVDesc inputDepthTexCombSampler, CBVDesc inputViewUniform)
     {
         struct PushConst
         {
@@ -19,8 +19,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             u32 inputDepthTexCombSampler;
             u32 inputViewUniform;
         };
-        PushConst pushConst = { inputTexCombSampler->GetActiveId(), inputDepthTexCombSampler->GetActiveId(),
-            inputViewUniform->GetActiveId() };
+        PushConst pushConst = { inputTexCombSampler, inputDepthTexCombSampler, inputViewUniform };
         RenderInternal(nullptr, renderTargets, cmd, &pushConst, {}, "Postprocess: Global Fog");
     }
 

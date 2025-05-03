@@ -29,17 +29,17 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     struct PostFxFFTConv2dResourceCollection
     {
-        using GPUBindId  = Graphics::Rhi::RhiDescHandleLegacy;
+        using SRVDesc    = Graphics::Rhi::RhiSRVDesc;
         using GPUTexture = Graphics::Rhi::RhiTextureRef;
         using GPUShader  = Graphics::Rhi::RhiShader;
 
-        GPUTexture     m_tex1;
-        Ref<GPUBindId> m_tex1IdSamp;
-        GPUTexture     m_tex2;
-        GPUTexture     m_texTemp;
+        GPUTexture m_tex1;
+        SRVDesc    m_tex1IdSamp;
+        GPUTexture m_tex2;
+        GPUTexture m_texTemp;
 
-        GPUTexture     m_texGaussian;
-        Ref<GPUBindId> m_texGaussianSampId;
+        GPUTexture m_texGaussian;
+        SRVDesc    m_texGaussianSampId;
 
         PostFxFFTConv2dResourceCollection()                                         = default;
         PostFxFFTConv2dResourceCollection(const PostFxFFTConv2dResourceCollection&) = default;
@@ -47,7 +47,8 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     class IFRIT_APIDECL PostFxFFTConv2d : public PostprocessPass
     {
-        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
+        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
+        using CBVDesc       = Graphics::Rhi::RhiCBVDesc;
         using RenderTargets = Graphics::Rhi::RhiRenderTargets;
         using GPUTexture    = Graphics::Rhi::RhiTexture;
         using ComputePass   = Graphics::Rhi::RhiComputePass;
@@ -61,8 +62,8 @@ namespace Ifrit::Runtime::PostprocessPassCollection
     public:
         PostFxFFTConv2d(IApplication* app);
         ~PostFxFFTConv2d();
-        void RenderPostFx(const GPUCmdBuffer* cmd, GPUBindId* srcSampId, u32 dstUAVImg, GPUBindId* kernelSampId,
-            u32 srcWidth, u32 srcHeight, u32 kernelWidth, u32 kernelHeight, u32 srcDownscale);
+        void RenderPostFx(const GPUCmdBuffer* cmd, SRVDesc srcSampId, u32 dstUAVImg, SRVDesc kernelSampId, u32 srcWidth,
+            u32 srcHeight, u32 kernelWidth, u32 kernelHeight, u32 srcDownscale);
     };
 
 } // namespace Ifrit::Runtime::PostprocessPassCollection

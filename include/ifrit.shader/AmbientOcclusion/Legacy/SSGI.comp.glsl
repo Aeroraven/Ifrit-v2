@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "AmbientOcclusion/AmbientOcclusion.Shared.h"
 #include "Random/Random.WNoise2D.glsl"
 #include "Random/Random.BlueNoise2D.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 RegisterUniform(bPerframe,{
     PerFramePerViewData data;
@@ -335,9 +336,9 @@ void ssgiMainSingleBounce(){
 
     
     vec3 vsPos = toViewspace(uv,vsDepth,invPerspective,nearZ,farZ);
-    vec3 normal = texelFetch(GetSampler2D(pushConst.normalTex), ivec2(threadX,threadY), 0).xyz;
+    vec3 normal = SampleTexture2DLoad(pushConst.normalTex,sLinearClamp, ivec2(threadX,threadY)).xyz;
     normal = normalize(normal * 2.0 - 1.0);
-    vec3 startAlbedo = texelFetch(GetSampler2D(pushConst.albedoTex), ivec2(threadX,threadY), 0).xyz;
+    vec3 startAlbedo = SampleTexture2DLoad(pushConst.albedoTex,sLinearClamp,ivec2(threadX,threadY)).xyz;
     vec3 inRay = normalize(vsPos);
 
     vec3 finalGI = vec3(0.0);
@@ -365,7 +366,7 @@ void ssgiMainSingleBounce(){
             vec4 clipPosHit = perspective * vec4(payload.hitPos,1.0);
             vec2 uvHit = clipPosHit.xy / clipPosHit.w;
             uvHit = (uvHit + 1.0) * 0.5;
-            vec3 hitAlbedo = texture(GetSampler2D(pushConst.albedoTex), uvHit).xyz;
+            vec3 hitAlbedo = SampleTexture2D(pushConst.albedoTex,sLinearClamp, uvHit).xyz;
             Li = hitAlbedo;
         }
         vec3 Ls = brdfA * Li * cosTheta * invpdf;

@@ -28,7 +28,8 @@ namespace Ifrit::Runtime
     {
         using ComputePass   = Graphics::Rhi::RhiComputePass;
         using CommandBuffer = Graphics::Rhi::RhiCommandList;
-        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
+        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
+        using CBVDesc       = Graphics::Rhi::RhiCBVDesc;
         using GPUShader     = Graphics::Rhi::RhiShader;
 
     private:
@@ -42,11 +43,11 @@ namespace Ifrit::Runtime
 
     public:
         AmbientOcclusionPass(IApplication* app) : m_app(app) {}
-        void RenderHBAO(const CommandBuffer* cmd, u32 width, u32 height, GPUBindId* depthSamp, GPUBindId* normalSamp,
-            u32 aoTex, GPUBindId* perframeData);
+        void RenderHBAO(const CommandBuffer* cmd, u32 width, u32 height, SRVDesc depthSamp, SRVDesc normalSamp,
+            u32 aoTex, CBVDesc perframeData);
 
-        void RenderSSGI(const CommandBuffer* cmd, u32 width, u32 height, GPUBindId* perframeData, u32 depthHizMinUAV,
-            u32 depthHizMaxUAV, GPUBindId* normalSRV, u32 aoUAV, u32 finalLightingSRV, u32 hizTexW, u32 hizTexH,
-            u32 numLods, GPUBindId* blueNoiseSRV, GPUBindId* albedoSRV);
+        void RenderSSGI(const CommandBuffer* cmd, u32 width, u32 height, CBVDesc perframeData, u32 depthHizMinUAV,
+            u32 depthHizMaxUAV, SRVDesc normalSRV, u32 aoUAV, u32 finalLightingSRV, u32 hizTexW, u32 hizTexH,
+            u32 numLods, SRVDesc blueNoiseSRV, SRVDesc albedoSRV);
     };
 } // namespace Ifrit::Runtime

@@ -33,16 +33,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "commonpass/SinglePassHiZ.h"
 
+#include "ifrit/runtime/renderer/syaro/SyaroEnums.h"
+
 namespace Ifrit::Runtime
 {
-
-    enum SyaroRenderRole
-    {
-        Shading     = 0x1,
-        GBuffer     = 0x2,
-        Shadowing   = 0x4,
-        FullProcess = Shading | GBuffer | Shadowing,
-    };
 
     class IFRIT_APIDECL SyaroRenderer : public RendererBase
     {
@@ -58,6 +52,10 @@ namespace Ifrit::Runtime
         using GPUColorRT           = Graphics::Rhi::RhiColorAttachment;
         using GPURTs               = Graphics::Rhi::RhiRenderTargets;
         using GPUCmdBuffer         = Graphics::Rhi::RhiCommandList;
+
+        using SRVDesc = Graphics::Rhi::RhiSRVDesc;
+        using UAVDesc = Graphics::Rhi::RhiUAVDesc;
+        using CBVDesc = Graphics::Rhi::RhiCBVDesc;
 
         enum class CullingPass
         {
@@ -138,7 +136,7 @@ namespace Ifrit::Runtime
         // Postprocess, just 2 textures and 1 sampler is required.
         using PairHash = PairwiseHash<u32, u32>;
         CustomHashMap<Pair<u32, u32>, Array<GPUTexture, 2>, PairHash>      m_postprocTex;
-        CustomHashMap<Pair<u32, u32>, Array<Ref<GPUBindId>, 2>, PairHash>  m_postprocTexSRV;
+        CustomHashMap<Pair<u32, u32>, Array<SRVDesc, 2>, PairHash>         m_postprocTexSRV;
         CustomHashMap<Pair<u32, u32>, Array<Ref<GPUColorRT>, 2>, PairHash> m_postprocColorRT;
         CustomHashMap<Pair<u32, u32>, Array<Ref<GPURTs>, 2>, PairHash>     m_postprocRTs;
         Ref<GPUBindId>                                                     m_postprocTexSamplerId;

@@ -86,7 +86,7 @@ vec2 ShadowMapSingle(uint LightId, vec3 WorldPos,uint CsmIdx){
     vec2 LightPosNDCxy = LightPosNDC.xy * 0.5 + 0.5;
 
     // This sampler is maintained by syaro. Don't move this.
-    float ShadowMapZ = texture(GetSampler2D(ShadowRef), LightPosNDCxy.xy).r;
+    float ShadowMapZ = SampleTexture2D(ShadowRef,sLinearClamp, LightPosNDCxy.xy).r;
     float refZ = LightPosNDC.z;
 
     if(LightPosNDCxy.x < 0.0 || LightPosNDCxy.x > 1.0 || LightPosNDCxy.y < 0.0 || LightPosNDCxy.y > 1.0){
@@ -101,7 +101,7 @@ vec2 ShadowMapSingle(uint LightId, vec3 WorldPos,uint CsmIdx){
             if(SampleUV.x < 0.0 || SampleUV.x > 1.0 || SampleUV.y < 0.0 || SampleUV.y > 1.0){
                 continue;
             }
-            float ShadowMapZSample = texture(GetSampler2D(ShadowRef), SampleUV).r;
+            float ShadowMapZSample = SampleTexture2D(ShadowRef,sLinearClamp, SampleUV).r;
             TotalVis += (refZ < ShadowMapZSample + 1e-5) ? 1.0 : 0.0;
             TotalSample += 1.0;
         }

@@ -25,13 +25,13 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     class IFRIT_APIDECL PostFxGaussianVert : public PostprocessPass
     {
-        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
+        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
         using RenderTargets = Graphics::Rhi::RhiRenderTargets;
 
     public:
         PostFxGaussianVert(IApplication* app);
         void RenderPostFx(
-            const GPUCmdBuffer* cmd, RenderTargets* renderTargets, GPUBindId* inputTexCombSampler, u32 kernelSize);
+            const GPUCmdBuffer* cmd, RenderTargets* renderTargets, SRVDesc inputTexCombSampler, u32 kernelSize);
     };
 
 } // namespace Ifrit::Runtime::PostprocessPassCollection

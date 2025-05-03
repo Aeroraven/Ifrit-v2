@@ -43,8 +43,8 @@ layout(push_constant) uniform PushConstants {
 } PushConst;
 
 void main(){
-    vec4 albedo = texture(GetSampler2D(PushConst.albedoId), TexCoord);
-    vec4 normal = texture(GetSampler2D(PushConst.NormalTexId), TexCoord);
+    vec4 albedo = SampleTexture2D(PushConst.albedoId,sLinearClamp, TexCoord);
+    vec4 normal = SampleTexture2D(PushConst.NormalTexId,sLinearClamp, TexCoord);
     vec2 normalRG = normal.xy * 2.0 - 1.0;
     float normalB = sqrt(1.0 - dot(normalRG, normalRG));
     vec3 normalMap = vec3(normalRG, normalB);

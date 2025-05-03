@@ -125,10 +125,11 @@ namespace Ifrit::Graphics::Rhi
         virtual Uref<RhiTaskSubmission>    GetSwapchainRenderDoneEventHandler() = 0;
 
         // Descriptor, these are deprecated.
-        virtual RhiBindlessDescriptorRef*  CreateBindlessDescriptorRef()                                          = 0;
-        virtual Ref<RhiDescHandleLegacy>   RegisterUniformBuffer(RhiMultiBuffer* buffer)                          = 0;
-        virtual Ref<RhiDescHandleLegacy>   RegisterStorageBufferShared(RhiMultiBuffer* buffer)                    = 0;
-        virtual Ref<RhiDescHandleLegacy>   RegisterCombinedImageSampler(RhiTexture* texture, RhiSampler* sampler) = 0;
+        virtual RhiBindlessDescriptorRef*  CreateBindlessDescriptorRef()                       = 0;
+        virtual Ref<RhiDescHandleLegacy>   RegisterUniformBuffer(RhiMultiBuffer* buffer)       = 0;
+        virtual Ref<RhiDescHandleLegacy>   RegisterStorageBufferShared(RhiMultiBuffer* buffer) = 0;
+        // virtual Ref<RhiDescHandleLegacy>   RegisterCombinedImageSampler(RhiTexture* texture, RhiSampler* sampler) =
+        // 0;
 
         // Descriptors
         virtual RhiSRVDesc                 GetSRVDescriptor(RhiTexture* texture, RhiImageSubResource subResource) = 0;

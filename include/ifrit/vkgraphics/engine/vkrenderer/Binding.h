@@ -185,7 +185,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         virtual void AddUniformBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc) override;
         virtual void AddStorageBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc) override;
         virtual void AddStorageBuffer(Rhi::RhiBuffer* buffer, u32 loc) override;
-        virtual void AddCombinedImageSampler(Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler, u32 loc) override;
+        virtual void AddSRVImage(Rhi::RhiTexture* texture, u32 loc) override;
         virtual void AddUAVImage(Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, u32 loc) override;
         void         BuildRanges();
 

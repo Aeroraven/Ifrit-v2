@@ -199,7 +199,7 @@ namespace Ifrit::Graphics::Rhi
         virtual void AddUniformBuffer(RhiMultiBuffer* buffer, u32 loc)                          = 0;
         virtual void AddStorageBuffer(RhiMultiBuffer* buffer, u32 loc)                          = 0;
         virtual void AddStorageBuffer(RhiBuffer* buffer, u32 loc)                               = 0;
-        virtual void AddCombinedImageSampler(RhiTexture* texture, RhiSampler* sampler, u32 loc) = 0;
+        virtual void AddSRVImage(RhiTexture* texture, u32 loc)                                  = 0;
         virtual void AddUAVImage(RhiTexture* texture, RhiImageSubResource subResource, u32 loc) = 0;
     };
 

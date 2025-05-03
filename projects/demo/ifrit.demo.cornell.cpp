@@ -228,25 +228,17 @@ namespace Ifrit
                 }
                 if (numMeshes == 5)
                 {
-                    material->SetAlbedoId(
-                        m_rhiLayer->RegisterCombinedImageSampler(redAlbedoAsset->GetTexture().get(), sampler.get())
-                            ->GetActiveId());
+                    material->SetAlbedoId(m_rhiLayer->GetSRVDescriptor(redAlbedoAsset->GetTexture().get()));
                 }
                 else if (numMeshes == 6)
                 {
-                    material->SetAlbedoId(
-                        m_rhiLayer->RegisterCombinedImageSampler(greenAlbedoAsset->GetTexture().get(), sampler.get())
-                            ->GetActiveId());
+                    material->SetAlbedoId(m_rhiLayer->GetSRVDescriptor(greenAlbedoAsset->GetTexture().get()));
                 }
                 else
                 {
-                    material->SetAlbedoId(
-                        m_rhiLayer->RegisterCombinedImageSampler(whiteAlbedoAsset->GetTexture().get(), sampler.get())
-                            ->GetActiveId());
+                    material->SetAlbedoId(m_rhiLayer->GetSRVDescriptor(whiteAlbedoAsset->GetTexture().get()));
                 }
-                material->SetNormalMapId(
-                    m_rhiLayer->RegisterCombinedImageSampler(normalAsset->GetTexture().get(), sampler.get())
-                        ->GetActiveId());
+                material->SetNormalMapId(m_rhiLayer->GetSRVDescriptor(normalAsset->GetTexture().get()));
                 material->BuildMaterial();
 
                 auto meshRenderer = t->GetComponent<MeshRenderer>();

@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Bindless.glsl"
 #include "Syaro/Syaro.Shared.glsl"
 #include "Syaro/Syaro.SharedConst.h"
+#include "SamplerUtils.SharedConst.h"
 
 layout(local_size_x = cCombineVisBufferThreadGroupSizeX, local_size_y = cCombineVisBufferThreadGroupSizeY, local_size_z = 1) in;
 
@@ -53,7 +54,7 @@ void main(){
     if(x>=pc.rtWidth || y>=pc.rtHeight) return;
 
     uint offset = y*pc.rtWidth + x;
-    float hwDepth = texelFetch(GetSampler2D(pc.hwDepthBufferId), ivec2(x,y), 0).r;
+    float hwDepth = SampleTexture2DLoad(pc.hwDepthBufferId,sLinearClamp, ivec2(x,y)).r;
     float swDepth = 1e9;
     uint swVis = 0;
     uint hwVis = 0;

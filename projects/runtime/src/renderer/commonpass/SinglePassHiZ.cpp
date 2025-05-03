@@ -77,7 +77,7 @@ namespace Ifrit::Runtime
 
         data.m_hizDesc = rhi->CreateBindlessDescriptorRef();
         data.m_hizDesc->AddStorageBuffer(data.m_hizRefBuffer.get(), 1);
-        data.m_hizDesc->AddCombinedImageSampler(depthTexture, sampler, 0);
+        data.m_hizDesc->AddSRVImage(depthTexture, 0);
         data.m_hizDesc->AddStorageBuffer(data.m_hizAtomics.get(), 2);
 
         data.m_hizWidth  = rtWidth;

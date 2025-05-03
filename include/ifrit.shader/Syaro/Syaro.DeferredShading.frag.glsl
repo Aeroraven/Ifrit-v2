@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "DeferredPBR.glsl"
 #include "Random/Random.WNoise2D.glsl"
 #include "Syaro/Syaro.SharedConst.h"
+#include "SamplerUtils.SharedConst.h"
 
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
@@ -84,18 +85,18 @@ mat2 rotate2d(float angle){
 }
 
 void main(){
-    vec3 albedo = texture(GetSampler2D(uGBufferRefs.albedo_materialFlags),texCoord).rgb;
-    vec3 normal = texture(GetSampler2D(uGBufferRefs.normal_smoothness),texCoord).rgb;
-    vec4 motion_depth = texture(GetSampler2D(uMotionDepthRefs.ref),texCoord).rgba;
+    vec3 albedo = SampleTexture2D(uGBufferRefs.albedo_materialFlags,sLinearClamp,texCoord).rgb;
+    vec3 normal = SampleTexture2D(uGBufferRefs.normal_smoothness,sLinearClamp,texCoord).rgb;
+    vec4 motion_depth = SampleTexture2D(uMotionDepthRefs.ref,sLinearClamp,texCoord).rgba;
     mat4 invproj = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_invPerspective;
     mat4 worldToView = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
     float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
     float vsDepth = ifrit_recoverViewSpaceDepth(motion_depth.b,camNear,camFar);
-    float ao = texture(GetSampler2D(uGBufferRefs.specular_occlusion),texCoord).a;
-    vec3 aoN = texture(GetSampler2D(uGBufferRefs.specular_occlusion),texCoord).rgb;
+    float ao = SampleTexture2D(uGBufferRefs.specular_occlusion,sLinearClamp,texCoord).a;
+    vec3 aoN = SampleTexture2D(uGBufferRefs.specular_occlusion,sLinearClamp,texCoord).rgb;
     mat4 clipToWorld = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_clipToWorld;
-    float depth = texture(GetSampler2D(pc.depthTexRef),texCoord).r;
+    float depth = SampleTexture2D(pc.depthTexRef,sLinearClamp,texCoord).r;
 
     if(motion_depth.a < 0.5){
         outColor = vec4(0.0);
@@ -140,7 +141,7 @@ void main(){
     vec3 LInd = indirect;
 
     vec3 ambient = vec3(0.12) * albedo * pow(ao,1.5);
-    float shadow = texture(GetSampler2D(pc.shadowTexRef),texCoord).r;
+    float shadow = SampleTexture2D(pc.shadowTexRef,sLinearClamp,texCoord).r;
 
     vec3 color;
     //This is incorrect, but it's used for test if shadow mapping works

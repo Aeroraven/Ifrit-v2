@@ -519,18 +519,18 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterCombinedImageSampler(
-        Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler)
-    {
-        auto descriptorManager = m_implDetails->m_descriptorManager.get();
-        auto tex               = CheckedCast<SingleDeviceImage>(texture);
-        auto sam               = CheckedCast<Sampler>(sampler);
-        auto id                = descriptorManager->RegisterCombinedImageSampler(tex, sam);
-        auto p                 = std::make_shared<Rhi::RhiDescHandleLegacy>();
-        p->ids.push_back(id);
-        p->activeFrame = 0;
-        return p;
-    }
+    // Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterCombinedImageSampler(
+    //     Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler)
+    // {
+    //     auto descriptorManager = m_implDetails->m_descriptorManager.get();
+    //     auto tex               = CheckedCast<SingleDeviceImage>(texture);
+    //     auto sam               = CheckedCast<Sampler>(sampler);
+    //     auto id                = descriptorManager->RegisterCombinedImageSampler(tex, sam);
+    //     auto p                 = std::make_shared<Rhi::RhiDescHandleLegacy>();
+    //     p->ids.push_back(id);
+    //     p->activeFrame = 0;
+    //     return p;
+    // }
 
     IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterStorageBufferShared(
         Rhi::RhiMultiBuffer* buffer)

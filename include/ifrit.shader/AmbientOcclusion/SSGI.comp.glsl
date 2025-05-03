@@ -231,7 +231,7 @@ void main(){
     LocationWS /= LocationWS.w;
     LocationVS /= LocationVS.w;
 
-    vec3 NormalVS = texelFetch(GetSampler2D(PushConst.m_NormalTexSRV), ivec2(ScreenCoord), 0).xyz;
+    vec3 NormalVS = SampleTexture2DLoad(PushConst.m_NormalTexSRV,sNearestClamp, ivec2(ScreenCoord)).xyz;
     NormalVS = normalize(NormalVS * 2.0 - 1.0);
     vec3 NormalWS = (PerFrame.m_worldToView * vec4(NormalVS, 0.0)).xyz;
     NormalWS = normalize(NormalWS);
@@ -257,7 +257,7 @@ void main(){
         TracingResult.w = TracingResultRaw.z;
 
         vec2 HitUV = vec2(TracingResultRaw.x, TracingResultRaw.y);
-        vec3 HitLighting = SampleTexture2D(PushConst.m_FinalLightingSRV,sLinearClamp,HitUV).rgb;//texture(GetSampler2D(PushConst.m_FinalLightingSRV), HitUV).xyz;
+        vec3 HitLighting = SampleTexture2D(PushConst.m_FinalLightingSRV,sLinearClamp,HitUV).rgb;
         if(HitUV.x == -1.0 && HitUV.y == 0.0){
             HitLighting = vec3(0.0,0.0,0.0); //skylight, for simplicity
         }
@@ -280,7 +280,7 @@ void main(){
     float DiffuseLobeG = ifrit_DotSH3(DiffuseTransfer, SHCoefs.m_G);
     float DiffuseLobeB = ifrit_DotSH3(DiffuseTransfer, SHCoefs.m_B);
 
-    vec3 Albedo = texelFetch(GetSampler2D(PushConst.m_AlbedoTexSRV), ivec2(ScreenCoord), 0).xyz;
+    vec3 Albedo = SampleTexture2DLoad(PushConst.m_AlbedoTexSRV, sLinearClamp, ivec2(ScreenCoord)).xyz;
 
     vec3 LambertBRDF = Albedo * (1.0 / 3.14159265358979323846);
     vec3 Irradiance = vec3(DiffuseLobeR, DiffuseLobeG, DiffuseLobeB);

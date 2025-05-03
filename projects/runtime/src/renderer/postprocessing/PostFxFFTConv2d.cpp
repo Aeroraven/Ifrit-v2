@@ -47,8 +47,8 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     IFRIT_APIDECL      PostFxFFTConv2d::~PostFxFFTConv2d() {}
 
-    IFRIT_APIDECL void PostFxFFTConv2d::RenderPostFx(const GPUCmdBuffer* cmd, GPUBindId* srcSampId, u32 dstUAVImg,
-        GPUBindId* kernelSampId, u32 srcWidth, u32 srcHeight, u32 kernelWidth, u32 kernelHeight, u32 srcDownscale)
+    IFRIT_APIDECL void PostFxFFTConv2d::RenderPostFx(const GPUCmdBuffer* cmd, SRVDesc srcSampId, u32 dstUAVImg,
+        SRVDesc kernelSampId, u32 srcWidth, u32 srcHeight, u32 kernelWidth, u32 kernelHeight, u32 srcDownscale)
     {
         // todo
 
@@ -102,10 +102,10 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             auto texGaussian       = rhi->CreateTexture2D("PostFx_Conv_TexGaussian", kernelWidth, kernelHeight,
                       RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
                       RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead, true);
-            auto texGaussianSampId = rhi->RegisterCombinedImageSampler(texGaussian.get(), texSampler.get());
+            auto texGaussianSampId = rhi->GetSRVDescriptor(texGaussian.get());
 
             res->m_tex1              = tex1;
-            res->m_tex1IdSamp        = rhi->RegisterCombinedImageSampler(tex1.get(), texSampler.get());
+            res->m_tex1IdSamp        = rhi->GetSRVDescriptor(tex1.get());
             res->m_tex2              = tex2;
             res->m_texTemp           = texTemp;
             res->m_texGaussian       = texGaussian;
@@ -141,9 +141,9 @@ namespace Ifrit::Runtime::PostprocessPassCollection
         pc.srcRtH             = srcHeight;
         pc.kernRtW            = kernelWidth;
         pc.kernRtH            = kernelHeight;
-        pc.srcImage           = srcSampId->GetActiveId();
+        pc.srcImage           = srcSampId;
         pc.srcIntermImage     = m_resMap[{ p2Width, p2Height }].m_tex1->GetDescId();
-        pc.srcIntermImageSamp = m_resMap[{ p2Width, p2Height }].m_tex1IdSamp->GetActiveId();
+        pc.srcIntermImageSamp = m_resMap[{ p2Width, p2Height }].m_tex1IdSamp;
         pc.kernImage          = 0; // kernelSampId->GetActiveId();
         pc.kernIntermImage    = m_resMap[{ p2Width, p2Height }].m_tex2->GetDescId();
         pc.dstImage           = dstUAVImg;
@@ -152,13 +152,13 @@ namespace Ifrit::Runtime::PostprocessPassCollection
         pc.fftTexSizeHLog     = logP2Height;
         pc.bloomMix           = 1;
 
-        if (kernelSampId != nullptr)
+        if (kernelSampId != ~0)
         {
-            pc.kernImage = kernelSampId->GetActiveId();
+            pc.kernImage = kernelSampId;
         }
         else
         {
-            pc.kernImage = m_resMap[{ p2Width, p2Height }].m_texGaussianSampId->GetActiveId();
+            pc.kernImage = m_resMap[{ p2Width, p2Height }].m_texGaussianSampId;
 
             struct PushConstBlur
             {

@@ -45,8 +45,7 @@ namespace Ifrit::Runtime
         if (m_immRes.m_blueNoise == nullptr)
         {
             m_immRes.m_blueNoise    = RenderingUtil::loadBlueNoise(rhi);
-            m_immRes.m_blueNoiseSRV = rhi->RegisterCombinedImageSampler(
-                m_immRes.m_blueNoise.get(), m_app->GetSharedRenderResource()->GetLinearRepeatSampler().get());
+            m_immRes.m_blueNoiseSRV = rhi->GetSRVDescriptor(m_immRes.m_blueNoise.get());
         }
     }
 
@@ -424,14 +423,14 @@ namespace Ifrit::Runtime
                 "Render_GShadowMask", actualRtWidth, actualRtHeight, targetFomrat, tarGetUsage, true);
 
             // sampler
-            perframeData.m_gbuffer.m_albedo_materialFlags_sampId = rhi->RegisterCombinedImageSampler(
-                perframeData.m_gbuffer.m_albedo_materialFlags.get(), linearSampler.get());
-            perframeData.m_gbuffer.m_normal_smoothness_sampId = rhi->RegisterCombinedImageSampler(
-                perframeData.m_gbuffer.m_normal_smoothness.get(), linearSampler.get());
-            perframeData.m_gbuffer.m_specular_occlusion_sampId = rhi->RegisterCombinedImageSampler(
-                perframeData.m_gbuffer.m_specular_occlusion.get(), linearSampler.get());
-            perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId = rhi->RegisterCombinedImageSampler(
-                perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(), linearSampler.get());
+            perframeData.m_gbuffer.m_albedo_materialFlags_sampId =
+                rhi->GetSRVDescriptor(perframeData.m_gbuffer.m_albedo_materialFlags.get());
+            perframeData.m_gbuffer.m_normal_smoothness_sampId =
+                rhi->GetSRVDescriptor(perframeData.m_gbuffer.m_normal_smoothness.get());
+            perframeData.m_gbuffer.m_specular_occlusion_sampId =
+                rhi->GetSRVDescriptor(perframeData.m_gbuffer.m_specular_occlusion.get());
+            perframeData.m_gbuffer.m_specular_occlusion_intermediate_sampId =
+                rhi->GetSRVDescriptor(perframeData.m_gbuffer.m_specular_occlusion_intermediate.get());
 
             // color rts
             RenderingUtil::WarpRenderTargets(rhi, perframeData.m_gbuffer.m_specular_occlusion.get(),
@@ -470,16 +469,11 @@ namespace Ifrit::Runtime
 
             // Then gbuffer desc for pixel shader
             perframeData.m_gbufferDescFrag = rhi->CreateBindlessDescriptorRef();
-            perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
-                perframeData.m_gbuffer.m_albedo_materialFlags.get(), linearSampler.get(), 0);
-            perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
-                perframeData.m_gbuffer.m_specular_occlusion.get(), linearSampler.get(), 1);
-            perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
-                perframeData.m_gbuffer.m_normal_smoothness.get(), linearSampler.get(), 2);
-            perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
-                perframeData.m_gbuffer.m_emissive.get(), linearSampler.get(), 3);
-            perframeData.m_gbufferDescFrag->AddCombinedImageSampler(
-                perframeData.m_gbuffer.m_shadowMask.get(), linearSampler.get(), 4);
+            perframeData.m_gbufferDescFrag->AddSRVImage(perframeData.m_gbuffer.m_albedo_materialFlags.get(), 0);
+            perframeData.m_gbufferDescFrag->AddSRVImage(perframeData.m_gbuffer.m_specular_occlusion.get(), 1);
+            perframeData.m_gbufferDescFrag->AddSRVImage(perframeData.m_gbuffer.m_normal_smoothness.get(), 2);
+            perframeData.m_gbufferDescFrag->AddSRVImage(perframeData.m_gbuffer.m_emissive.get(), 3);
+            perframeData.m_gbufferDescFrag->AddSRVImage(perframeData.m_gbuffer.m_shadowMask.get(), 4);
 
             // Create a uav barrier for the gbuffer
             perframeData.m_gbuffer.m_gbufferBarrier.clear();

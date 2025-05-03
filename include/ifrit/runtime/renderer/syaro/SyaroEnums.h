@@ -1,7 +1,7 @@
 
 /*
 Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
+Copyright (C) 2024-2025 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,22 +17,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/runtime/common/Pch.h"
-
-#include "ifrit/runtime/renderer/PostprocessPass.h"
-
-namespace Ifrit::Runtime::PostprocessPassCollection
+namespace Ifrit::Runtime
 {
-
-    class IFRIT_APIDECL PostFxJointBilaterialFilter : public PostprocessPass
+    enum SyaroRenderRole
     {
-        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
-        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
-
-    public:
-        PostFxJointBilaterialFilter(IApplication* app);
-        void RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets, SRVDesc colorSRV, SRVDesc normalSRV,
-            SRVDesc depthSRV, u32 kernelSize);
+        Shading     = 0x1,
+        GBuffer     = 0x2,
+        Shadowing   = 0x4,
+        FullProcess = Shading | GBuffer | Shadowing,
     };
-
-} // namespace Ifrit::Runtime::PostprocessPassCollection
+} // namespace Ifrit::Runtime

@@ -24,12 +24,12 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     class IFRIT_APIDECL PostFxAcesToneMapping : public PostprocessPass
     {
-        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
+        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
         using RenderTargets = Graphics::Rhi::RhiRenderTargets;
 
     public:
         PostFxAcesToneMapping(IApplication* app);
-        void RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets, GPUBindId* inputTexCombSampler);
+        void RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets, SRVDesc inputTexCombSampler);
     };
 
 } // namespace Ifrit::Runtime::PostprocessPassCollection

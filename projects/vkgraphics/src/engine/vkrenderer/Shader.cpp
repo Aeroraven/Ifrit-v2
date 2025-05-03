@@ -190,7 +190,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             SHA1   sha1;
             String rawCode(ci.code.begin(), ci.code.end());
             // add glsl version to the shader code
-            
+
             // If permutations are used, add defines to the shader code
             if (!ci.m_Permutations.empty())
             {
@@ -201,7 +201,6 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
 
             rawCode = "#version 450\n" + rawCode;
-
 
             String precompiled;
             precompiled = PrecompileShaderFile(ci.fileName, static_cast<shaderc_shader_kind>(kind), rawCode);
@@ -267,12 +266,6 @@ namespace Ifrit::Graphics::VulkanGraphics
 
             auto extFunc = m_context->GetExtensionFunction();
             extFunc.p_vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
-
-            if (m_ci.m_Permutations.size() > 0)
-            {
-                printf("Shader %s with permutations %s\n", m_ci.fileName.c_str(),
-                    JoinString(m_ci.m_Permutations, ",").c_str());
-            }
         }
 
         m_stageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

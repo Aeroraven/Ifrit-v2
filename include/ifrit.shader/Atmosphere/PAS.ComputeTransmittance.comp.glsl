@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
 #include "Atmosphere/PAS.SharedConst.h"
 #include "Atmosphere/PAS.Definition.glsl"
 #include "Atmosphere/PAS.Function.glsl"

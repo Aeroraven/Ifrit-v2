@@ -89,8 +89,6 @@ float ClosestDistanceToSDF(MeshDFMeta MdfMeta, vec3 QueryPos, vec3 MeshScale, ma
 
     vec3 ClampedUVW = (ClampedPos-MeshBBoxMin)/(MeshBBoxMax-MeshBBoxMin);
 
-    //float SdfVal = SampleTexture3D(SDFId,sLinearClamp,ClampedUVW).r * MeshMaxScale; 
-    // float SdfVal = texture(GetSampler3D(SDFId), ClampedUVW).r * MeshMaxScale;
     float SdfVal = AyaShared_SampleMeshDF(SDFId, ClampedUVW, MeshDFQuantScale) * MeshMaxScale;
     float TotalSdf = max(SdfVal + ToBoxAllPositive,ToBoxAll);
     return TotalSdf;

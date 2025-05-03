@@ -24,13 +24,14 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     class IFRIT_APIDECL PostFxGlobalFog : public PostprocessPass
     {
-        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
+        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
+        using CBVDesc       = Graphics::Rhi::RhiCBVDesc;
         using RenderTargets = Graphics::Rhi::RhiRenderTargets;
 
     public:
         PostFxGlobalFog(IApplication* app);
-        void RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets, GPUBindId* inputTexCombSampler,
-            GPUBindId* inputDepthTexCombSampler, GPUBindId* inputViewUniform);
+        void RenderPostFx(const GPUCmdBuffer* cmd, RenderTargets* renderTargets, SRVDesc inputTexCombSampler,
+            SRVDesc inputDepthTexCombSampler, CBVDesc inputViewUniform);
     };
 
 } // namespace Ifrit::Runtime::PostprocessPassCollection

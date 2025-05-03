@@ -19,6 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
 
@@ -37,7 +39,7 @@ void main(){
         float y = fragCoord.y + float(i) * offset;
         float gaussianWeight = 1.0 / sqrt(2.0 * 3.14159265359 * 1.0) * exp(-float(i * i) / (2.0 * 1.0));
         totalWeights += gaussianWeight;
-        color += texelFetch(GetSampler2D(pc.inputTexture), ivec2(x, y), 0).rgba * gaussianWeight;
+        color += SampleTexture2DLoad(pc.inputTexture,sLinearClamp, ivec2(x, y)).rgba * gaussianWeight;
     }
     outColor = vec4(color / totalWeights);
 }

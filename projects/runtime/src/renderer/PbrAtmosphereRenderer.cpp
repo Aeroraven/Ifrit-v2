@@ -156,20 +156,15 @@ namespace Ifrit::Runtime
         data->m_deltaMultipleScattering     = data->m_deltaRayleighScattering;
 
         // bindless ids for combined image sampler
-        data->m_transmittanceCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_transmittance.get(), sampler.get());
-        data->m_deltaIrradianceCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_deltaIrradiance.get(), sampler.get());
-        data->m_irradianceCombSamplerId = rhi->RegisterCombinedImageSampler(data->m_irradiance.get(), sampler.get());
-        data->m_scatteringCombSamplerId = rhi->RegisterCombinedImageSampler(data->m_scattering.get(), sampler.get());
+        data->m_transmittanceCombSamplerId   = rhi->GetSRVDescriptor(data->m_transmittance.get());
+        data->m_deltaIrradianceCombSamplerId = rhi->GetSRVDescriptor(data->m_deltaIrradiance.get());
+        data->m_irradianceCombSamplerId      = rhi->GetSRVDescriptor(data->m_irradiance.get());
+        data->m_scatteringCombSamplerId      = rhi->GetSRVDescriptor(data->m_scattering.get());
         data->m_optionalSingleMieScatteringCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_optionalSingleMieScattering.get(), sampler.get());
-        data->m_deltaRayleighScatteringCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_deltaRayleighScattering.get(), sampler.get());
-        data->m_deltaMieScatteringCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_deltaMieScattering.get(), sampler.get());
-        data->m_deltaScatteringDensityCombSamplerId =
-            rhi->RegisterCombinedImageSampler(data->m_deltaScatteringDensity.get(), sampler.get());
+            rhi->GetSRVDescriptor(data->m_optionalSingleMieScattering.get());
+        data->m_deltaRayleighScatteringCombSamplerId = rhi->GetSRVDescriptor(data->m_deltaRayleighScattering.get());
+        data->m_deltaMieScatteringCombSamplerId      = rhi->GetSRVDescriptor(data->m_deltaMieScattering.get());
+        data->m_deltaScatteringDensityCombSamplerId  = rhi->GetSRVDescriptor(data->m_deltaScatteringDensity.get());
         data->m_deltaMultipleScatteringCombSamplerId = data->m_deltaRayleighScatteringCombSamplerId;
 
         // Copy atmo params to GPU
@@ -297,7 +292,7 @@ namespace Ifrit::Runtime
         } pcIrradiance;
 
         pcIrradiance.atmoData           = data->m_atmosphereParamsBuffer->GetDescId();
-        pcIrradiance.transmittanceRef   = data->m_transmittanceCombSamplerId->GetActiveId();
+        pcIrradiance.transmittanceRef   = data->m_transmittanceCombSamplerId;
         pcIrradiance.irradianceRef      = data->m_irradiance->GetDescId();
         pcIrradiance.deltaIrradianceRef = data->m_deltaIrradiance->GetDescId();
         m_irradiancePrecomputePass->SetRecordFunction([&](RhiRenderPassContext* ctx) {
@@ -327,7 +322,7 @@ namespace Ifrit::Runtime
         pSingleScattering.deltaMie             = data->m_deltaMieScattering->GetDescId();
         pSingleScattering.scattering           = data->m_scattering->GetDescId();
         pSingleScattering.singleMieScattering  = data->m_optionalSingleMieScattering->GetDescId();
-        pSingleScattering.transmittanceSampler = data->m_transmittanceCombSamplerId->GetActiveId();
+        pSingleScattering.transmittanceSampler = data->m_transmittanceCombSamplerId;
         m_singleScatteringPass->SetRecordFunction([&](RhiRenderPassContext* ctx) {
             ctx->m_cmd->SetPushConst(&pSingleScattering, 0, sizeof(pSingleScattering));
             IF_CONSTEXPR auto wgX =
@@ -383,32 +378,30 @@ namespace Ifrit::Runtime
         } pMultipleScattering;
 
         auto recordCmdOrder = [&](u32 order) {
-            pScatteringDensity.atmoData             = data->m_atmosphereParamsBuffer->GetDescId();
-            pScatteringDensity.transmittanceSampler = data->m_transmittanceCombSamplerId->GetActiveId();
-            pScatteringDensity.singleRayleighScatterSampler =
-                data->m_deltaRayleighScatteringCombSamplerId->GetActiveId();
-            pScatteringDensity.singleMieScatterSampler   = data->m_deltaMieScatteringCombSamplerId->GetActiveId();
-            pScatteringDensity.multipleScatteringSampler = data->m_deltaMultipleScatteringCombSamplerId->GetActiveId();
-            pScatteringDensity.irradianceSampler         = data->m_deltaIrradianceCombSamplerId->GetActiveId();
-            pScatteringDensity.scatterDensity            = data->m_deltaScatteringDensity->GetDescId();
-            pScatteringDensity.scatterOrder              = order;
+            pScatteringDensity.atmoData                     = data->m_atmosphereParamsBuffer->GetDescId();
+            pScatteringDensity.transmittanceSampler         = data->m_transmittanceCombSamplerId;
+            pScatteringDensity.singleRayleighScatterSampler = data->m_deltaRayleighScatteringCombSamplerId;
+            pScatteringDensity.singleMieScatterSampler      = data->m_deltaMieScatteringCombSamplerId;
+            pScatteringDensity.multipleScatteringSampler    = data->m_deltaMultipleScatteringCombSamplerId;
+            pScatteringDensity.irradianceSampler            = data->m_deltaIrradianceCombSamplerId;
+            pScatteringDensity.scatterDensity               = data->m_deltaScatteringDensity->GetDescId();
+            pScatteringDensity.scatterOrder                 = order;
 
-            pIndirectIrradiance.lumFromRad      = Math::Identity4();
-            pIndirectIrradiance.atmoData        = data->m_atmosphereParamsBuffer->GetDescId();
-            pIndirectIrradiance.deltaIrradiance = data->m_deltaIrradiance->GetDescId();
-            pIndirectIrradiance.irradiance      = data->m_irradiance->GetDescId();
-            pIndirectIrradiance.singleRayleighScatteringSamp =
-                data->m_deltaRayleighScatteringCombSamplerId->GetActiveId();
-            pIndirectIrradiance.singleMieScatteringSamp = data->m_deltaMieScatteringCombSamplerId->GetActiveId();
-            pIndirectIrradiance.multipleScatteringSamp  = data->m_deltaMultipleScatteringCombSamplerId->GetActiveId();
-            pIndirectIrradiance.scatteringOrder         = order - 1;
+            pIndirectIrradiance.lumFromRad                   = Math::Identity4();
+            pIndirectIrradiance.atmoData                     = data->m_atmosphereParamsBuffer->GetDescId();
+            pIndirectIrradiance.deltaIrradiance              = data->m_deltaIrradiance->GetDescId();
+            pIndirectIrradiance.irradiance                   = data->m_irradiance->GetDescId();
+            pIndirectIrradiance.singleRayleighScatteringSamp = data->m_deltaRayleighScatteringCombSamplerId;
+            pIndirectIrradiance.singleMieScatteringSamp      = data->m_deltaMieScatteringCombSamplerId;
+            pIndirectIrradiance.multipleScatteringSamp       = data->m_deltaMultipleScatteringCombSamplerId;
+            pIndirectIrradiance.scatteringOrder              = order - 1;
 
             pMultipleScattering.lumFromRad              = Math::Identity4();
             pMultipleScattering.atmoData                = data->m_atmosphereParamsBuffer->GetDescId();
             pMultipleScattering.deltaMultipleScattering = data->m_deltaMultipleScattering->GetDescId();
             pMultipleScattering.scattering              = data->m_scattering->GetDescId();
-            pMultipleScattering.transmittanceSamp       = data->m_transmittanceCombSamplerId->GetActiveId();
-            pMultipleScattering.scatteringDensitySamp   = data->m_deltaScatteringDensityCombSamplerId->GetActiveId();
+            pMultipleScattering.transmittanceSamp       = data->m_transmittanceCombSamplerId;
+            pMultipleScattering.scatteringDensitySamp   = data->m_deltaScatteringDensityCombSamplerId;
 
             m_scatteringDensity->SetRecordFunction([&](RhiRenderPassContext* ctx) {
                 ctx->m_cmd->SetPushConst(&pScatteringDensity, 0, sizeof(pScatteringDensity));
@@ -502,10 +495,10 @@ namespace Ifrit::Runtime
         PbrAtmosphereResourceDesc desc;
         auto                      data = reinterpret_cast<PbrAtmospherePerframe*>(perframe.m_atmosphereData.get());
         desc.atmo                      = data->m_atmosphereParamsBuffer->GetDescId();
-        desc.texIrradiance             = data->m_irradianceCombSamplerId->GetActiveId();
-        desc.texMieScattering          = data->m_optionalSingleMieScatteringCombSamplerId->GetActiveId();
-        desc.texScattering             = data->m_scatteringCombSamplerId->GetActiveId();
-        desc.texTransmittance          = data->m_transmittanceCombSamplerId->GetActiveId();
+        desc.texIrradiance             = data->m_irradianceCombSamplerId;
+        desc.texMieScattering          = data->m_optionalSingleMieScatteringCombSamplerId;
+        desc.texScattering             = data->m_scatteringCombSamplerId;
+        desc.texTransmittance          = data->m_transmittanceCombSamplerId;
         desc.earthRadius               = data->m_atmosphereParams.bottomRadius;
         desc.bottomAtmoRadius          = data->m_atmosphereParams.bottomRadius;
         desc.groundAlbedo              = Vector4f(0.1f, 0.1f, 0.1f, 1.0f);

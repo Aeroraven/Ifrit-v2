@@ -3,6 +3,7 @@
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 layout(push_constant) uniform DebugTriangleView{
     uint visBufferSRV;   
@@ -27,7 +28,7 @@ vec4 colorLut[12]={
 };
 
 void main(){
-    uint vis = texture(GetSampler2DU(pc.visBufferSRV), inPosition).r;
+    uint vis = SampleTexture2DUint(pc.visBufferSRV,sNearestClamp, inPosition).r;
     uint val = (vis & 0x7F) % 12;
     outColor = colorLut[val];
 }

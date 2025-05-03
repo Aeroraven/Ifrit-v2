@@ -10,7 +10,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
     }
 
     IFRIT_APIDECL void PostFxGaussianVert::RenderPostFx(
-        const GPUCmdBuffer* cmd, RenderTargets* renderTargets, GPUBindId* inputTexCombSampler, u32 kernelSize)
+        const GPUCmdBuffer* cmd, RenderTargets* renderTargets, SRVDesc inputTexCombSampler, u32 kernelSize)
     {
         struct PushConst
         {
@@ -18,7 +18,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             u32 kernelSize;
         };
         PushConst pushConst = {
-            inputTexCombSampler->GetActiveId(),
+            inputTexCombSampler,
             kernelSize,
         };
         RenderInternal(nullptr, renderTargets, cmd, &pushConst, {}, "Postprocess: Vertical Gaussian Blur");

@@ -85,12 +85,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         virtual Rhi::RhiBindlessDescriptorRef* CreateBindlessDescriptorRef() override;
         virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer) override;
         virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterStorageBufferShared(Rhi::RhiMultiBuffer* buffer) override;
-        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterCombinedImageSampler(
-             Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler) override;
+        // virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterCombinedImageSampler(
+        //      Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler) override;
 
         // Descriptor, refactored
-        virtual Rhi::RhiSRVDesc GetSRVDescriptor(
-            Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
+        virtual Rhi::RhiSRVDesc                GetSRVDescriptor(
+                           Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
         virtual Rhi::RhiUAVDesc GetUAVDescriptor(
             Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
         virtual Rhi::RhiSRVDesc                     GetSRVDescriptor(Rhi::RhiTexture* texture) override;

@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 layout(push_constant) uniform PushConstDFT2{
     uint logW;
@@ -51,7 +52,7 @@ vec2 loadSrcImg(uint orientation,uint anotherDim,uint pos){
             vec2 halfPixel = vec2(0.5/float(pc.rtW/pc.downscaleFactor),0.5/float(pc.rtH/pc.downscaleFactor));
             vec2 uv = vec2(float(pos)/float(pc.rtW/pc.downscaleFactor),float(anotherDim)/float(pc.rtH/pc.downscaleFactor));
             uv = uv + halfPixel;
-            ret = texture(GetSampler2D(pc.rawSampImg),uv).rg;
+            ret = SampleTexture2D(pc.rawSampImg,sLinearClamp,uv).rg;
             ret.g = 0.0;
         }else{
             ret = imageLoad(GetUAVImage2DRGBA32F(pc.srcImg),ivec2(pos,anotherDim)).rg;

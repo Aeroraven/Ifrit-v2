@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Base.glsl"
 #include "Bindless.glsl"
 #include "Postprocess/FFTConv2d.Shared.h"
+#include "SamplerUtils.SharedConst.h"
 
 layout(push_constant) uniform PushConstFFTConv2d{
     uint srcDownScale;
@@ -172,7 +173,7 @@ vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pad
     //     return vec4(0.0);
     // }
     uv = clamp(uv,0.0,1.0);
-    vec4 rt = texture(GetSampler2D(imgId),uv);
+    vec4 rt = SampleTexture2D(imgId,sLinearClamp,uv);
 
     float luma = rgbToLuma(rt);
     if(pc.fftStep!=kStepDFT1){

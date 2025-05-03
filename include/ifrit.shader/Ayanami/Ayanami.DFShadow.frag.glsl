@@ -110,7 +110,6 @@ float RayMarchingForObject(uint meshDFId, vec3 rayOriginWS){
         for(int i=0;i<32;i++){
             vec3 uvw= (hitp - lb) / (rt - lb);
             uvw = clamp(uvw, 0.0, 1.0);
-            //float sdf = texture(GetSampler3D(meta.sdfId), uvw).x-volBias;
             float sdf = AyaShared_SampleMeshDF(sdfId, uvw, MeshDFQuantScale) - volBias;
             t+= max(1e-4*maxExtent,abs(sdf)* 0.5) ;
             hitp = o + nD * t;
@@ -161,7 +160,7 @@ float RayMarchingFromWS(vec3 rayOriginWS){
 
 void main(){
     vec2 ndcXY = texCoord * 2.0 - 1.0;
-    float depth = texture(GetSampler2D(PushConst.m_DepthSRV), texCoord).x;
+    float depth = SampleTexture2D(PushConst.m_DepthSRV,sLinearClamp, texCoord).x;
     float camNear = GetResource(BPerFrameData, PushConst.m_PerFrameId).data.m_cameraNear;
     float camFar = GetResource(BPerFrameData, PushConst.m_PerFrameId).data.m_cameraFar;
     mat4 clipToWorld = GetResource(BPerFrameData, PushConst.m_PerFrameId).data.m_clipToWorld;

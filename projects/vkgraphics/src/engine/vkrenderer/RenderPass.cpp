@@ -69,14 +69,13 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_passDescriptorLayout = layout;
     }
 
-    IFRIT_APIDECL void RenderGraphPass::AddCombinedImageSampler(
-        RegisteredImageHandle* image, RegisteredSamplerHandle* sampler, uint32_t position)
+    IFRIT_APIDECL void RenderGraphPass::AddSampledImage(RegisteredImageHandle* image, uint32_t position)
     {
         auto numCopies = image->GetNumBuffers();
         m_resourceDescriptorHandle[position].resize(numCopies);
         for (int i = 0; i < static_cast<int>(numCopies); i++)
         {
-            auto v = m_descriptorManager->RegisterCombinedImageSampler(image->GetImage(i), sampler->GetSampler());
+            auto v = m_descriptorManager->RegisterSampledImage(image->GetImage(i), { 0, 0, 1, 1 });
             m_resourceDescriptorHandle[position][i] = v;
         }
         // Add as input

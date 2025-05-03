@@ -242,8 +242,7 @@ namespace Ifrit::Runtime::Ayanami
                     RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_CopyDst, false);
             }
 
-            m_gpuResource->sdfTextureBindId =
-                rhi->RegisterCombinedImageSampler(m_gpuResource->sdfTexture.get(), linearClampSampler.get());
+            m_gpuResource->sdfTextureBindId = rhi->GetSRVDescriptor(m_gpuResource->sdfTexture.get());
             m_gpuResource->sdfMetaBuffer = rhi->CreateBuffer("Ayanami_DFMeta", sizeof(AyanamiMeshDFResource::SDFMeta),
                 RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO, true, true);
 
@@ -252,7 +251,7 @@ namespace Ifrit::Runtime::Ayanami
 
             sdfMeta.bboxMin      = Vector4f(m_sdBoxMin.x, m_sdBoxMin.y, m_sdBoxMin.z, m_SdfMin);
             sdfMeta.bboxMax      = Vector4f(m_sdBoxMax.x, m_sdBoxMax.y, m_sdBoxMax.z, m_SdfMax);
-            sdfMeta.sdfId        = m_gpuResource->sdfTextureBindId->GetActiveId();
+            sdfMeta.sdfId        = m_gpuResource->sdfTextureBindId;
             sdfMeta.m_IsTwoSided = m_IsDoubleSided ? 1 : 0;
 
             auto tq = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);

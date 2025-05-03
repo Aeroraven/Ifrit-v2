@@ -395,9 +395,8 @@ namespace Ifrit::Runtime
                         }
                         else
                         {
-                            auto albedoId = rhi->RegisterCombinedImageSampler(
-                                texCastedBase->GetTexture().get(), m_internalData->defaultSampler.get());
-                            material->SetAlbedoId(albedoId->GetActiveId());
+                            auto albedoId = rhi->GetSRVDescriptor(texCastedBase->GetTexture().get());
+                            material->SetAlbedoId(albedoId);
                         }
 
                         auto texPathNormal   = gltfDir / normalTexURI;
@@ -409,9 +408,8 @@ namespace Ifrit::Runtime
                         }
                         else
                         {
-                            auto normalId = rhi->RegisterCombinedImageSampler(
-                                texCastedNormal->GetTexture().get(), m_internalData->defaultSampler.get());
-                            material->SetNormalMapId(normalId->GetActiveId());
+                            auto normalId = rhi->GetSRVDescriptor(texCastedNormal->GetTexture().get());
+                            material->SetNormalMapId(normalId);
                         }
                     }
 

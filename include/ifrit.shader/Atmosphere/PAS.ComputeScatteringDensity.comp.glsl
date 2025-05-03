@@ -22,10 +22,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
 #include "Atmosphere/PAS.SharedConst.h"
 #include "Atmosphere/PAS.Definition.glsl"
 #include "Atmosphere/PAS.Function.glsl"
 #include "Atmosphere/PAS.Shared.glsl"
+
 
 layout(local_size_x = cPasScatteringDensityTGX, local_size_y = cPasScatteringDensityTGY, local_size_z = cPasScatteringDensityTGZ) in;
 
@@ -47,11 +49,11 @@ void main(){
     AtmosphereParameters atmo = GetResource(bAtmo, pConst.atmoData).data;
 
     vec3 scatterDensity = ComputeScatteringDensityTexture(atmo,
-        GetSampler2D(pConst.transmittance),
-        GetSampler3D(pConst.singleRayleighScattering),
-        GetSampler3D(pConst.singleMieScattering),
-        GetSampler3D(pConst.multipleScattering),
-        GetSampler2D(pConst.irradiance),
+        pConst.transmittance,
+        pConst.singleRayleighScattering,
+        pConst.singleMieScattering,
+        pConst.multipleScattering,
+        pConst.irradiance,
         px,pConst.scatteringOrder);  
 
     imageStore(GetUAVImage3DRGBA32F(pConst.scatterDensity), ivec3(thread), vec4(scatterDensity, 1.0));

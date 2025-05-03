@@ -292,8 +292,8 @@ namespace Ifrit::Runtime
             m_Resources->m_DFLighting
                 ->DistanceFieldShadowRender(builder, m_Resources->m_SceneAggregator->GetGatheredBufferId(),
                     m_Resources->m_SceneAggregator->GetNumGatheredInstances(),
-                    perframe.m_views[0].m_visibilityDepthIdSRV_Combined->GetActiveId(), primaryViewCBV, sceneBoundMin,
-                    sceneBoundMax, sceneLight, 64, 2)
+                    perframe.m_views[0].m_visibilityDepthIdSRV_Combined, primaryViewCBV, sceneBoundMin, sceneBoundMax,
+                    sceneLight, 64, 2)
                 .AddRenderTarget(resDfssOut)
                 .AddReadResource(resGDepth);
         }

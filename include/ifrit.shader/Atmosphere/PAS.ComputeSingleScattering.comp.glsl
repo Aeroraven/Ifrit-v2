@@ -22,10 +22,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
 #include "Atmosphere/PAS.SharedConst.h"
 #include "Atmosphere/PAS.Definition.glsl"
 #include "Atmosphere/PAS.Function.glsl"
 #include "Atmosphere/PAS.Shared.glsl"
+
 
 
 layout(local_size_x = cPasSingleScatteringTGX, local_size_y = cPasSingleScatteringTGY, local_size_z = cPasSingleScatteringTGZ) in;
@@ -47,7 +49,7 @@ void main(){
     AtmosphereParameters atmo = GetResource(bAtmo, pConst.atmoData).data;
     vec3 dRayleigh = vec3(0.0);
     vec3 dMie = vec3(0.0);
-    ComputeSingleScatteringTexture(atmo, GetSampler2D(pConst.transmittance), 
+    ComputeSingleScatteringTexture(atmo, pConst.transmittance, 
         px, dRayleigh, dMie);
 
     vec4 scatteringRgb = pConst.luminanceFromRadiance * vec4(dRayleigh.rgb,0.0);

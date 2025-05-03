@@ -92,9 +92,13 @@ layout(binding = IFRIT_BINDLESS_BINDING_SAMPLED_IMAGE, set = IFRIT_BINDLESS_SET_
 layout(binding = IFRIT_BINDLESS_BINDING_SAMPLER, set = IFRIT_BINDLESS_SET_ID) uniform sampler IFRIT_BINDLESS_INDEP_SAMPLER_NAME[];
 
 #define GetResource(name,id) _ifrit_bindlessNaming(name)[(id)]
-#define GetSampler2D(id) IFRIT_BINDLESS_SAMPLER2D_NAME[(id)]
-#define GetSampler3D(id) IFRIT_BINDLESS_SAMPLER3D_NAME[(id)]
-#define GetSampler2DU(id) IFRIT_BINDLESS_SAMPLER2DU_NAME[(id)]
+
+// Update 250503: to make the impl compatible with other rhi impl, combined samplers are dropped forcely
+// together with the rhi-side apis.
+// 
+// #define GetSampler2D(id) IFRIT_BINDLESS_SAMPLER2D_NAME[(id)]
+// #define GetSampler3D(id) IFRIT_BINDLESS_SAMPLER3D_NAME[(id)]
+// #define GetSampler2DU(id) IFRIT_BINDLESS_SAMPLER2DU_NAME[(id)]
 
 #define GetUAVImage2DR64UI(id) IFRIT_UAV_IMAGE2D_R64UI_NAME[(id)]
 #define GetUAVImage2DR32F(id) IFRIT_UAV_IMAGE2D_R32F_NAME[(id)]
@@ -105,11 +109,19 @@ layout(binding = IFRIT_BINDLESS_BINDING_SAMPLER, set = IFRIT_BINDLESS_SET_ID) un
 #define GetUAVImage2DRGBA8(id) IFRIT_UAV_IMAGE2D_RGBA8_NAME[(id)]
 
 #define SampleTexture2D(texId, samplerId, uv) texture(sampler2D(IFRIT_SRV_TEXTURE2D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv)
+#define SampleTexture2DOffset(texId, samplerId, uv, offset) textureOffset(sampler2D(IFRIT_SRV_TEXTURE2D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv, offset)
+#define SampleTexture2DSize(texId, samplerId) textureSize(sampler2D(IFRIT_SRV_TEXTURE2D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), 0)
+
+#define SampleTexture2DUint(texId, samplerId, uv) texture(usampler2D(IFRIT_SRV_TEXTURE2DU_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv)
+
 #define SampleTexture3D(texId, samplerId, uv) texture(sampler3D(IFRIT_SRV_TEXTURE3D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv)
 
 #define SampleTexture2DLoad(texId, samplerId, uv) texelFetch(sampler2D(IFRIT_SRV_TEXTURE2D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv,0)
 #define SampleTexture2DLoadUint(texId, samplerId, uv) texelFetch(usampler2D(IFRIT_SRV_TEXTURE2DU_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv,0)
 #define SampleTexture3DLoad(texId, samplerId, uv) texelFetch(sampler3D(IFRIT_SRV_TEXTURE3D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId]), uv,0)
+
+#define CombineSampler2D(texId, samplerId) sampler2D(IFRIT_SRV_TEXTURE2D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId])
+#define CombineSampler3D(texId, samplerId) sampler3D(IFRIT_SRV_TEXTURE3D_NAME[texId], IFRIT_BINDLESS_INDEP_SAMPLER_NAME[samplerId])
 
 RegisterStorage(bIfritInternal_VerticesPos,{
     vec4 position[];

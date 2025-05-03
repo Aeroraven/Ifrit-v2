@@ -83,7 +83,7 @@ namespace Ifrit::Runtime
             vec3                        absorptionExtinction;
             vec3                        groundAlbedo;
         };
-        using GPUBindId = Graphics::Rhi::RhiDescHandleLegacy;
+        using SRVDesc = Graphics::Rhi::RhiSRVDesc;
 
         PbrAtmosphereParameter m_atmosphereParams;
         GPUBuffer              m_atmosphereParamsBuffer;
@@ -98,15 +98,15 @@ namespace Ifrit::Runtime
         GPUTexture             m_deltaMultipleScattering;
         GPUTexture             m_optionalSingleMieScattering;
 
-        Ref<GPUBindId>         m_transmittanceCombSamplerId;
-        Ref<GPUBindId>         m_deltaIrradianceCombSamplerId;
-        Ref<GPUBindId>         m_deltaRayleighScatteringCombSamplerId;
-        Ref<GPUBindId>         m_deltaMieScatteringCombSamplerId;
-        Ref<GPUBindId>         m_deltaScatteringDensityCombSamplerId;
-        Ref<GPUBindId>         m_irradianceCombSamplerId;
-        Ref<GPUBindId>         m_scatteringCombSamplerId;
-        Ref<GPUBindId>         m_deltaMultipleScatteringCombSamplerId;
-        Ref<GPUBindId>         m_optionalSingleMieScatteringCombSamplerId;
+        SRVDesc                m_transmittanceCombSamplerId;
+        SRVDesc                m_deltaIrradianceCombSamplerId;
+        SRVDesc                m_deltaRayleighScatteringCombSamplerId;
+        SRVDesc                m_deltaMieScatteringCombSamplerId;
+        SRVDesc                m_deltaScatteringDensityCombSamplerId;
+        SRVDesc                m_irradianceCombSamplerId;
+        SRVDesc                m_scatteringCombSamplerId;
+        SRVDesc                m_deltaMultipleScatteringCombSamplerId;
+        SRVDesc                m_optionalSingleMieScatteringCombSamplerId;
 
         Matrix4x4f             luminanceFromRad;
     };

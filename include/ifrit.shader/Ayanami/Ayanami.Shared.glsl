@@ -131,7 +131,7 @@ vec2 AyaShared_GetSdfQuantScale(MeshDFMeta meta){
 }
 
 float AyaShared_SampleMeshDF(uint SdfCombinedSRV,vec3 uvw, vec2 scale){
-    float v = texture(GetSampler3D(SdfCombinedSRV),uvw).r;
+    float v = SampleTexture3D(SdfCombinedSRV,sLinearClamp,uvw).r;
     return mix(scale.x,scale.y,v);
 }
 

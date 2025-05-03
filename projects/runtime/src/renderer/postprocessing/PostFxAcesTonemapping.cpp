@@ -10,13 +10,13 @@ namespace Ifrit::Runtime::PostprocessPassCollection
     }
 
     IFRIT_APIDECL void PostFxAcesToneMapping::RenderPostFx(
-        const GPUCmdBuffer* cmd, RenderTargets* renderTargets, GPUBindId* inputTexCombSampler)
+        const GPUCmdBuffer* cmd, RenderTargets* renderTargets, SRVDesc inputTexCombSampler)
     {
         struct PushConst
         {
             u32 inputTexCombSampler;
         };
-        PushConst pushConst = { inputTexCombSampler->GetActiveId() };
+        PushConst pushConst = { inputTexCombSampler };
         RenderInternal(nullptr, renderTargets, cmd, &pushConst, {}, "Postprocess: Aces Tone Mapping");
     }
 

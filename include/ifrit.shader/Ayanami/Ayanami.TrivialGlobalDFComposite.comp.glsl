@@ -107,7 +107,6 @@ void main(){
 
         vec3 ClampedUVW = (ClampedPos-MeshBBoxMin)/(MeshBBoxMax-MeshBBoxMin);
 
-        //float SdfVal = texture(GetSampler3D(SDFId), ClampedUVW).r * MeshMaxScale;
         float SdfVal = AyaShared_SampleMeshDF(SDFId, ClampedUVW, MeshDFQuantScale) * MeshMaxScale;
         float TotalSdf = max(SdfVal + ToBoxAllPositive,ToBoxAll);
 

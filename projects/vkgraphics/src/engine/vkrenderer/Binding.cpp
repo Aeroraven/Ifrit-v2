@@ -443,14 +443,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void DescriptorBindlessIndices::AddCombinedImageSampler(
-        Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler, u32 loc)
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddSRVImage(Rhi::RhiTexture* texture, u32 loc)
     {
         auto tex = Ifrit::CheckedCast<SingleDeviceImage>(texture);
-        auto sam = Ifrit::CheckedCast<Sampler>(sampler);
         for (u32 i = 0; i < numCopies; i++)
         {
-            auto p            = m_descriptorManager->RegisterCombinedImageSampler(tex, sam);
+            auto p            = m_descriptorManager->RegisterSampledImage(tex, { 0, 0, 1, 1 });
             m_indices[i][loc] = p;
         }
     }

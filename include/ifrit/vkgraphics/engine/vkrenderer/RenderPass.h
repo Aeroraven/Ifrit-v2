@@ -304,14 +304,16 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
         }
         virtual ~RenderGraphPass() {}
-        void         setPassDescriptorLayout_base(const Vec<Rhi::RhiDescriptorType>& layout);
+        void                setPassDescriptorLayout_base(const Vec<Rhi::RhiDescriptorType>& layout);
 
-        inline void  SetActiveFrame(u32 frame) { m_activeFrame = frame; }
-        virtual u32  getRequiredQueueCapability() = 0;
-        virtual void withCommandBuffer(CommandBuffer* commandBuffer, Fn<void()> func);
+        inline void         SetActiveFrame(u32 frame) { m_activeFrame = frame; }
+        virtual u32         getRequiredQueueCapability() = 0;
+        virtual void        withCommandBuffer(CommandBuffer* commandBuffer, Fn<void()> func);
 
         // void         AddUniformBuffer_base(RegisteredBufferHandle* buffer, u32 position);
-        void AddCombinedImageSampler(RegisteredImageHandle* image, RegisteredSamplerHandle* sampler, u32 position);
+        // void         AddCombinedImageSampler(RegisteredImageHandle* image, RegisteredSamplerHandle* sampler, u32
+        // position);
+        void                AddSampledImage(RegisteredImageHandle* image, u32 position);
         // void AddStorageBuffer_base(RegisteredBufferHandle* buffer, u32 position, Rhi::RhiResourceAccessType access);
 
         inline void         SetDefaultNumMultiBuffers(u32 x) { m_defaultMultibuffers = x; }

@@ -34,11 +34,11 @@ namespace Ifrit::Runtime::Ayanami
         };
         using GPUTexture = Graphics::Rhi::RhiTextureRef;
         using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
-        using GPUBindId  = Graphics::Rhi::RhiDescHandleLegacy;
+        using SRVDesc    = Graphics::Rhi::RhiSRVDesc;
 
-        GPUTexture     sdfTexture;
-        Ref<GPUBindId> sdfTextureBindId;
-        GPUBuffer      sdfMetaBuffer;
+        GPUTexture sdfTexture;
+        SRVDesc    sdfTextureBindId;
+        GPUBuffer  sdfMetaBuffer;
 
         // GPUSampler     sdfSampler; // this design is not a good idea, should be removed in the future
         // Yes, it's removed now
