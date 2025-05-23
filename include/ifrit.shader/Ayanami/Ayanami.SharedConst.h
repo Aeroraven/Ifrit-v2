@@ -70,6 +70,7 @@ namespace Ifrit::Runtime::Ayanami::Config
     AYANAMI_DEFINE_UINT(kAyanamiObjectGridTileSize, 4);
     AYANAMI_DEFINE_UINT(kAyanamiRadiosityTraceKernelSize, kAyanami_RadiosityTracesPerCardTile);
     AYANAMI_DEFINE_UINT(kAyanamiSphericalHarmonicsCvtKernelSize, 64);
+    AYANAMI_DEFINE_UINT(kAyanamiRadiosityIntegrateKernelSizeY, kAyanami_CardTileWidth);
 
     AYANAMI_DEFINE_UINT(kAyanamiReconFromSCTileSize, 8);
     AYANAMI_DEFINE_UINT(kAyanamiReconFromSCDepthTileSize, 8);

@@ -62,7 +62,7 @@ float TraceGlobalDF(vec3 RayOrigin, vec3 RayDir){
 }
 
 void main(){
-    uint tID = gl_LocalInvocationID.x;
+    uint tID = gl_GlobalInvocationID.x;
     uvec2 gID = gl_WorkGroupID.xy;
 
     uint TileIndex;
