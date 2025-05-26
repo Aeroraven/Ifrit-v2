@@ -65,6 +65,8 @@ vec4 GetNeighbourRadianceSample(
 
     int TilesPerAtlasWidth = PushConst.m_CardAtlasResolution / kAyanami_RadiosityCardTileWidth;
     ivec2 NeighbourTileCoord = ivec2(NeighbourProbeCoord / kAyanami_RadiosityProbesPerCardTileWidth);
+
+    // TODO: WRONG INDEX
     uint NeighbourTileIndex = uint(NeighbourTileCoord.x + NeighbourTileCoord.y * TilesPerAtlasWidth);
 
     // TODO: WRONG offsetInTile

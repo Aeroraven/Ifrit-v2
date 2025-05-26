@@ -101,7 +101,7 @@ namespace Ifrit::Runtime::Ayanami
             Vector3i{ (i32)tgX, (i32)tgX, (i32)tgX }, pc,
             [this, clipmapLevel](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GlobalDFVolumeId = ctx.m_FgDesc->GetUAV(*m_TestClipMaps[clipmapLevel]->m_RDGClipMapTexture);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             });
         pass.AddWriteResource(*m_TestClipMaps[clipmapLevel]->m_RDGClipMapTexture);
         return pass;
@@ -138,7 +138,7 @@ namespace Ifrit::Runtime::Ayanami
             pc, [outTexture, clipmapLevel, this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_OutTex     = ctx.m_FgDesc->GetUAV(*outTexture);
                 data.m_GlobalDFId = ctx.m_FgDesc->GetSRV(*m_TestClipMaps[clipmapLevel]->m_RDGClipMapTexture);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             });
         return pass;
     }
@@ -167,7 +167,7 @@ namespace Ifrit::Runtime::Ayanami
             Vector3i{ (int)groupsX, (int)groupsX, (int)groupsX }, pc,
             [this, clipmapLevel](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_CellDataId = ctx.m_FgDesc->GetUAV(*m_TestClipMaps[clipmapLevel]->m_RDGObjectGrid);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             });
         return pass;
     }

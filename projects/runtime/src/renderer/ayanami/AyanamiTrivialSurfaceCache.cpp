@@ -570,7 +570,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_NormalAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
                 data.depthAtlasSRVId  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheTemporaryDepth);
                 data.radianceOutId    = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneShadowVisibilityAtlas);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             });
         pass.AddWriteResource(*m_Resources->m_RDGSceneShadowVisibilityAtlas)
             .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth);
@@ -621,10 +621,12 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_VoxelsPerWidth        = voxelsPerGdfWidth;
         pc.m_ObjectGridUAV         = 0;
 
-        auto totalCardTiles =
-            m_Resources->m_AtlasElementSize / (Config::kAyanami_CardTileWidth * Config::kAyanami_CardTileWidth);
-        auto  totalTraces = totalCardTiles * Config::kAyanami_RadiosityTracesPerCardTile;
-        auto  numTGs      = DivRoundUp<i32,i32>(totalTraces, Config::kAyanamiRadiosityTraceKernelSize);
+        auto totalCardTiles = m_Resources->m_AtlasElementSize * m_Resources->m_AtlasElementSize
+            / (Config::kAyanami_CardTileWidth * Config::kAyanami_CardTileWidth) * pc.m_NumTotalCards;
+        auto totalTraces = totalCardTiles * Config::kAyanami_RadiosityTracesPerCardTile;
+        iDebug("Total Traces: {}", totalTraces);
+        iDebug("Total Card Tiles: {}", totalCardTiles);
+        auto  numTGs = DivRoundUp<i32, i32>(totalTraces, Config::kAyanamiRadiosityTraceKernelSize);
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiosityGenPass",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.RadiosityTraceCS, {}), Vector3i{ numTGs, 1, 1 }, pc,
@@ -635,7 +637,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_CardLightingAtlasSRV  = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneDirectLighting);
                 data.m_TraceRadianceAtlasUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
                 data.m_ObjectGridUAV         = ctx.m_FgDesc->GetUAV(*objectGridsUAV);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             });
 
         pass.AddWriteResource(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas)
@@ -688,7 +690,7 @@ namespace Ifrit::Runtime::Ayanami
         auto numProbes = numCardTiles
             * (Config::kAyanami_RadiosityProbesPerCardTileWidth * Config::kAyanami_RadiosityProbesPerCardTileWidth);
 
-        auto numTGs      = DivRoundUp<i32,i32>(numProbes, Config::kAyanamiSphericalHarmonicsCvtKernelSize);
+        auto numTGs      = DivRoundUp<i32, i32>(numProbes, Config::kAyanamiSphericalHarmonicsCvtKernelSize);
         pc.m_TotalProbes = numProbes;
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiositySHConversion",
@@ -703,7 +705,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_RWRadiosityProbeSHAtlasRUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_R);
                 data.m_RWRadiosityProbeSHAtlasGUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_G);
                 data.m_RWRadiosityProbeSHAtlasBUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_B);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             });
 
         pass.AddWriteResource(*m_Resources->m_RDGSceneCacheRadiositySH_R)
@@ -746,7 +748,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_DirectLightUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneDirectLighting);
                 data.m_ShadowMaskSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneShadowVisibilityAtlas);
                 data.m_NormalAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
                          .AddWriteResource(*m_Resources->m_RDGSceneDirectLighting)
                          .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)

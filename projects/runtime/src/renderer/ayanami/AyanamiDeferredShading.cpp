@@ -127,7 +127,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_LightDataId      = ctx.m_FgDesc->GetUAV(*shadowData);
                 data.m_GBufferDepthSRV  = ctx.m_FgDesc->GetSRV(*gbufferDepth);
                 data.m_GBufferNormalSRV = ctx.m_FgDesc->GetSRV(*gbufferNormal);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddRenderTarget(*m_Private->m_DeferredShadowTexture)
             .AddReadResource(*gbufferDepth)
@@ -166,7 +166,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_GNormalSRV         = ctx.m_FgDesc->GetSRV(*gbufferNormal);
                 data.m_GDepthSRV          = ctx.m_FgDesc->GetSRV(*gbufferDepth);
                 data.m_LightDataId        = ctx.m_FgDesc->GetUAV(*shadowData);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddRenderTarget(*m_Private->m_DeferredDirectLightingTexture)
             .AddReadResource(*gbufferDepth)
@@ -192,7 +192,7 @@ namespace Ifrit::Runtime::Ayanami
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_IndirectLightingSRV = ctx.m_FgDesc->GetSRV(*m_Private->m_CurFrameIndirectLightingTex);
                 data.m_DirectLightingSRV   = ctx.m_FgDesc->GetSRV(*m_Private->m_DeferredDirectLightingTexture);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddRenderTarget(*m_Private->m_CurFrameFinalLightingTex)
             .AddReadResource(*m_Private->m_CurFrameIndirectLightingTex)

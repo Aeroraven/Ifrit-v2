@@ -277,7 +277,7 @@ namespace Ifrit::Runtime
                     Vector3i{ Math::DivRoundUp<i32>(rtWidth, 8), Math::DivRoundUp<i32>(rtHeight, 8), 1 }, pc,
                     [&resRaymarchOutput](PushConst data, const FrameGraphPassContext& ctx) {
                         data.output = ctx.m_FgDesc->GetUAV(resRaymarchOutput);
-                        SetRootSignature(data, ctx);
+                        SetRootConstant(data, ctx);
                     })
                     .AddReadResource(resGlobalDFGen)
                     .AddWriteResource(resRaymarchOutput);
@@ -403,7 +403,7 @@ namespace Ifrit::Runtime
                 ShaderVariantDesc(Internal::kIntShaderTableAyanami.CopyFS, {}), pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
                     data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugProbeGather);
-                    SetRootSignature(data, ctx);
+                    SetRootConstant(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)
                 .AddReadResource(resDebugSCOut)

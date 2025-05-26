@@ -121,7 +121,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
     }
 
     // Other Utilities
-    template <typename T> void SetRootSignature(const T& data, const FrameGraphPassContext& ctx)
+    template <typename T> void SetRootConstant(const T& data, const FrameGraphPassContext& ctx)
     {
         ctx.m_CmdList->SetPushConst(&data, 0, sizeof(T));
     }

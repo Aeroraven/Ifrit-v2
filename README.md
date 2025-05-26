@@ -181,8 +181,10 @@ The source files can be decomposed into following parts.
 | ifrit.softgraphics | Implementation of soft renderer, with both MT-CPU and CUDA version |
 | ifrit.vkgraphics   | Vulkan backend                                               |
 
-
 ## 4. Future Plans
+
+### 4.1 Migration of  Project Aria
+
 Following features implemented in Aria/Vulkan might be considered to move into this repository:
 
 - Hardware Ray Tracing
@@ -200,11 +202,25 @@ Following features implemented in Aria/Vulkan might be considered to move into t
 - Procedural Generator
   - GPU Marching Cubes
 
+### 4.2 Syaro Refactoring
+
 The architecture for subproject Syaro seems to be a little messy, following plans are scheduled:
 
 - Render-Graph-Driven Process
 - Redundant Dynamic Uniform Buffer Removal
 - Shader Variants
+
+### 4.3 Interview Feedback 
+
+Following features are scheduled, with suggestions given by summer internship interviewers. 
+
+- Optimized RDGs
+- Multithreaded Rendering
+- Branch Optimizations for Shaders
+  - Change of Shader Languages: `Slang` or `HLSL` 
+
+- `ddx` for Syaro
+- Fixed-Point Math For Soft Renderer
 
 ## 5. References & Acknowledgements
 

@@ -72,11 +72,15 @@ void main(){
 
     uvec2 WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoord, PushConst.m_CardAtlasResolution);
 
+    // uint WriteSlotX = tID % PushConst.m_CardAtlasResolution;
+    // uint WriteSlotY = tID / PushConst.m_CardAtlasResolution;
+    // uvec2 WriteSlot = uvec2(WriteSlotX, WriteSlotY);
+
     RadiosityRayCardSample SampledData = AyaShared_GetRadiosityRayCardSample(TileIndex, OffsetInTile, PushConst.m_CardAtlasResolution,
         PushConst.m_CardResolution, PushConst.m_NumTotalCards, PushConst.m_CardDepthAtlasSRV,
         PushConst.m_CardNormalAtlasSRV, PushConst.m_AllCardObjDataId, PushConst.m_AllMeshDFDataId);
     if(!SampledData.m_PresentInAtlas){
-        return;
+        //return;
     }
 
     vec3 RadianceVal = vec3(0.0);
@@ -113,5 +117,8 @@ void main(){
 
         // Write to atlas
         imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(FinalRadiance, 1.0));
+    }else{
+        imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(SampledData.m_WorldNormal, 1.0));
     }
+    imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(SampledData.m_WorldNormal, tID));
 }

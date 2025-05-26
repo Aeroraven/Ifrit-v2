@@ -101,7 +101,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_CardRadianceAtlasSRV = ctx.m_FgDesc->GetSRV(*cardRadianceAtlas);
                 data.m_CardDepthAtlasSRV    = ctx.m_FgDesc->GetSRV(*cardDepthAtlas);
                 data.m_AtomicDepthUAV       = ctx.m_FgDesc->GetUAV(*atomicPtr);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             });
         pass1.AddReadResource(*cardAlbedoAtlas)
             .AddWriteResource(*outputTexture)
@@ -123,7 +123,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_CardRadianceAtlasSRV = ctx.m_FgDesc->GetSRV(*cardRadianceAtlas);
                 data.m_CardDepthAtlasSRV    = ctx.m_FgDesc->GetSRV(*cardDepthAtlas);
                 data.m_AtomicDepthUAV       = ctx.m_FgDesc->GetUAV(*atomicPtr);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             });
         pass2.AddReadResource(*cardDepthAtlas).AddReadResource(resAtomicDepth).AddWriteResource(*outputTexture);
     }
@@ -186,7 +186,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_CardDepthAtlasSRV          = ctx.m_FgDesc->GetSRV(*cardDepthAtlas);
                 data.m_CardAlbedoAtlasSRV         = ctx.m_FgDesc->GetSRV(*cardAlbedoAtlas);
                 data.m_CardDirectLightingAtlasSRV = ctx.m_FgDesc->GetSRV(*cardDirectLightingAtlas);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddWriteResource(*outputTexture)
             .AddReadResource(*cardDirectLightingAtlas)
@@ -230,7 +230,7 @@ namespace Ifrit::Runtime::Ayanami
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgVisObjGridsFS, {}), Vector3i(tgX), args, pc,
             [globalObjectGrids](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_ObjectGridId = ctx.m_FgDesc->GetSRV(*globalObjectGrids);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddRenderTarget(*outputTexture)
             .AddDepthTarget(resTempDepth)
@@ -274,7 +274,7 @@ namespace Ifrit::Runtime::Ayanami
             [sceneAlbedo, outputTexture](PushConstUniformPass data, const FrameGraphPassContext& ctx) {
                 data.m_AlbedoSRV        = ctx.m_FgDesc->GetSRV(*sceneAlbedo);
                 data.m_OutputTextureUAV = ctx.m_FgDesc->GetUAV(*outputTexture);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddReadResource(*sceneAlbedo)
             .AddWriteResource(*outputTexture);
@@ -288,7 +288,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_AdaptiveProbesCounterUAV = ctx.m_FgDesc->GetUAV(*adaptiveProbesCounter);
                 data.m_AdaptiveProbesListUAV    = ctx.m_FgDesc->GetUAV(*adaptiveProbesList);
                 data.m_OutputTextureUAV         = ctx.m_FgDesc->GetUAV(*outputTexture);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddReadResource(*adaptiveProbesList)
             .AddReadResource(*adaptiveProbesCounter)

@@ -273,7 +273,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_ScrDepthCombSRV          = ctx.m_FgDesc->GetSRV(*viewDepth);
                 data.m_AdaptiveProbesCounterUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesCounter);
                 data.m_AdaptiveProbesListUAV    = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesList);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddReadResource(*viewNormal)
             .AddReadResource(*viewDepth)
@@ -323,7 +323,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_MeshDFTraceProposalCounterUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFTracingRayIndirectArgs);
                 data.m_AdaptiveProbesListUAV         = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesList);
                 data.m_LastFrameFinalLighting        = ctx.m_FgDesc->GetSRV(*lastFrameFinalLighting);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddReadResource(*hizBuffer)
             .AddWriteResource(*m_Private->m_RadianceAtlas)
@@ -364,7 +364,7 @@ namespace Ifrit::Runtime::Ayanami
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GridVpUAV        = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingMatrix);
                 data.m_IndirectDrawArgs = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingIndirectArgs);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddWriteResource(*m_Private->m_MeshDFCullingMatrix)
             .AddWriteResource(*m_Private->m_MeshDFCullingIndirectArgs);
@@ -412,7 +412,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_GridVpUAV         = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingMatrix);
                 data.m_ScatterCounterUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingListCounter);
                 data.m_ScatterOutputUAV  = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFCullingList);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddRenderTarget(*m_Private->m_MeshDFCullingDummy)
             //.AddDepthTarget(*m_Private->m_MeshDFCullingDepth, RhiRenderTargetLoadOp::ClearNoStore)
@@ -489,7 +489,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_GlobalDFTraceProposalCounterUAV =
                     ctx.m_FgDesc->GetUAV(*m_Private->m_GlobalDFTracingIndirectArgs);
                 data.m_GlobalDFTraceProposalListUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_GlobalDFTracingList);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddReadResource(*m_Private->m_MeshDFTracingRayIndirectArgs)
             .AddReadResource(*m_Private->m_MeshDFTracingRayList)
@@ -548,7 +548,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_GBufferDepthSRV              = ctx.m_FgDesc->GetSRV(*gbufferDepth);
                 data.m_GBufferAlbedoSRV             = ctx.m_FgDesc->GetSRV(*m_Private->m_ActiveGBufferAlbedo);
                 data.m_ScreenProbeLightingAtlasUAV  = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddReadResource(*gbufferDepth)
             .AddReadResource(*globalDF)
@@ -583,7 +583,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_AdaptiveProbesCounterUAV       = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesCounter);
                 data.m_ScreenProbeLightingAtlasUAVIn  = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
                 data.m_ScreenProbeLightingAtlasUAVOut = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlasFixed);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddReadResource(*m_Private->m_AdaptiveProbesCounter)
             .AddReadResource(*m_Private->m_RadianceAtlas)
@@ -618,7 +618,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_AdaptiveProbesListUAV       = ctx.m_FgDesc->GetUAV(*m_Private->m_AdaptiveProbesList);
                 data.m_ScreenProbeLightingAtlasUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlasFixed);
                 data.m_OutputSHCoefBufferUAV       = ctx.m_FgDesc->GetUAV(*m_Private->m_IntegratedSH);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddReadResource(*m_Private->m_AdaptiveProbesCounter)
             .AddReadResource(*m_Private->m_AdaptiveProbesList)
@@ -658,7 +658,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_ScrDepthCombSRV       = ctx.m_FgDesc->GetSRV(*gbufferDepth);
                 data.m_OutputSHCoefBufferUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_IntegratedSH);
                 data.m_OutTexUAV             = ctx.m_FgDesc->GetUAV(*outputTex);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             })
             .AddReadResource(*gbufferDepth)
             .AddReadResource(*gbufferNormal)

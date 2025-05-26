@@ -107,7 +107,7 @@ namespace Ifrit::Runtime::Ayanami
                 ctx.m_CmdList->SetCullMode(Graphics::Rhi::RhiCullMode::Front);
                 data.m_TileAtomics   = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);
                 data.m_ScatterOutput = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResScatterOutput);
-                SetRootSignature<PushConst>(data, ctx);
+                SetRootConstant<PushConst>(data, ctx);
             });
         pass.AddRenderTarget(*m_Ctx->m_ResScatterOutputTex)
             .AddWriteResource(*m_Ctx->m_ResAtomic)
@@ -152,7 +152,7 @@ namespace Ifrit::Runtime::Ayanami
             [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_TileDFAtomics = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);
                 data.m_TileDFList    = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResScatterOutput);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             });
         pass.AddReadResource(*m_Ctx->m_ResAtomic).AddReadResource(*m_Ctx->m_ResScatterOutput);
         return pass;
@@ -216,7 +216,7 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_ShadowCullTileDFList    = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResScatterOutput);
                 data.m_DepthAtlasSRVId         = ctx.m_FgDesc->GetSRV(*depthAtlasTex);
                 data.m_RadianceUAV             = ctx.m_FgDesc->GetUAV(*radianceTex);
-                SetRootSignature(data, ctx);
+                SetRootConstant(data, ctx);
             });
         pass.AddReadResource(*m_Ctx->m_ResAtomic)
             .AddReadResource(*m_Ctx->m_ResScatterOutput)
