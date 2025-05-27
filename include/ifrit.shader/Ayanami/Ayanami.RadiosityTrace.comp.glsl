@@ -70,7 +70,8 @@ void main(){
     uvec2 TraceRayCoord;
     AyaShared_RayTraceCoordToCardInfo(tID, PushConst.m_TraceCoordJitter, OffsetInTile, TileIndex, TraceRayCoord);
 
-    uvec2 WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoord, PushConst.m_CardAtlasResolution);
+    uvec2 WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoord, PushConst.m_CardAtlasResolution,
+        PushConst.m_CardResolution);
 
     // uint WriteSlotX = tID % PushConst.m_CardAtlasResolution;
     // uint WriteSlotY = tID / PushConst.m_CardAtlasResolution;
@@ -85,18 +86,18 @@ void main(){
 
     vec3 RadianceVal = vec3(0.0);
     float HitDistance = 1e30;
-
+    //SampledData.m_WorldNormal = vec3(1.0,0.0,0.0); //debugging purpose
     if(SampledData.m_ValidSample){
         // Prepare for global df tracing
-        vec2 ProbeUV = (vec2(TraceRayCoord) + PushConst.m_ProbeCenterJitter) / float(kAyanami_RadiosityProbHemiRes);
+        vec2 ProbeUV = (vec2(TraceRayCoord) + vec2(0.5) + PushConst.m_ProbeCenterJitter) / float(kAyanami_RadiosityProbHemiRes);
         vec4 RayPDF = ifrit_SampleCosineHemisphereWithPDF(ProbeUV);
         vec3 LocalRayDir = RayPDF.xyz;
         float PDF = RayPDF.w;
         mat3 TBN = ifrit_FrisvadONB(SampledData.m_WorldNormal);
-        vec3 WorldRayDir = TBN * LocalRayDir;
+        vec3 WorldRayDir = normalize(TBN * LocalRayDir);
 
         // Here, trace!
-        vec3 RayOrigin = SampledData.m_WorldPos + WorldRayDir * 0.01;
+        vec3 RayOrigin = SampledData.m_WorldPos + WorldRayDir * 5e-2 + SampledData.m_WorldNormal * 5e-2;
         vec3 RayDir = WorldRayDir;
         float HitTime = TraceGlobalDF(RayOrigin,RayDir);
         bool IsHit = HitTime > 1e-3;
@@ -116,9 +117,11 @@ void main(){
         }
 
         // Write to atlas
-        imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(FinalRadiance, 1.0));
+        imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(FinalRadiance, HitTime));
+
+       
     }else{
-        imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(SampledData.m_WorldNormal, 1.0));
+        imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(0.0,1.0,1.0, 1.0));
     }
-    imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(SampledData.m_WorldNormal, tID));
+    //imageStore(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(WriteSlot), vec4(SampledData.m_WorldNormal, tID));
 }

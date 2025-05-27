@@ -94,7 +94,8 @@ vec4 GetNeighbourRadianceSample(
         return vec4(0.0);
     }
 
-    uvec2 NeighbourSlot = AyaShared_GetRadianceSlot(NeighbourTileIndex, OffsetInTile, TraceRayCoord, PushConst.m_CardAtlasResolution);
+    uvec2 NeighbourSlot = AyaShared_GetRadianceSlot(NeighbourTileIndex, OffsetInTile, TraceRayCoord, PushConst.m_CardAtlasResolution,
+        PushConst.m_CardResolution);
     vec3 SampledRadiance = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_TraceRadianceAtlasUAV), ivec2(NeighbourSlot)).rgb;
     return vec4(SampledRadiance * DepthFactor, 1.0);
 }
@@ -108,7 +109,8 @@ void main(){
     uvec2 TraceRayCoord;
     AyaShared_RayTraceCoordToCardInfo(tID, PushConst.m_TraceCoordJitter, OffsetInTile, TileIndex, TraceRayCoord);
 
-    uvec2 WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoord, PushConst.m_CardAtlasResolution);
+    uvec2 WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoord, PushConst.m_CardAtlasResolution,
+        PushConst.m_CardResolution);
     RadiosityRayCardSample SampledData = AyaShared_GetRadiosityRayCardSample(TileIndex, OffsetInTile, PushConst.m_CardAtlasResolution,
         PushConst.m_CardResolution, PushConst.m_NumTotalCards, PushConst.m_CardDepthAtlasSRV,
         PushConst.m_CardNormalAtlasSRV, PushConst.m_AllCardObjDataId, PushConst.m_AllMeshDFDataId);

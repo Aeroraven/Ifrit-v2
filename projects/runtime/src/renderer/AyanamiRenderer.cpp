@@ -243,9 +243,12 @@ namespace Ifrit::Runtime
 
         // Pass Radiosity Trace
         {
+            auto maxWorldBound = m_GlobalDF->GetWorldBoundMax(0);
+            auto minWorldBound = m_GlobalDF->GetWorldBoundMin(0);
+
             auto resObjectGridPtr = m_GlobalDF->GetObjectGridVolume(0);
             m_Resources->m_SurfaceCache->UpdateRadiosityTrace(builder, scene, &resGlobalDFGen, resObjectGridPtr,
-                m_Resources->m_SceneAggregator->GetGatheredBufferId(), sceneBoundMin, sceneBoundMax,
+                m_Resources->m_SceneAggregator->GetGatheredBufferId(), minWorldBound, maxWorldBound,
                 m_GlobalDF->GetClipmapWidth(0), m_GlobalDF->GetVoxelsPerSide(0));
 
             m_Resources->m_SurfaceCache->RadiositySHConversion(
@@ -342,7 +345,7 @@ namespace Ifrit::Runtime
             auto& resRadianceAtlas = m_Resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
             auto& resDepthAtlas    = m_Resources->m_SurfaceCache->GetRDGDepthAtlas();
 
-            m_Resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resRadianceAtlas,
+            m_Resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resNormalAtlas,
                 &resNormalAtlas, &resRadianceAtlas, &resDepthAtlas, m_Resources->m_SurfaceCache->GetNumCards(),
                 m_Resources->m_SurfaceCache->GetCardResolution(), m_Resources->m_SurfaceCache->GetCardAtlasResolution(),
                 m_Resources->m_SurfaceCache->GetCardDataBuffer()->GetDescId(), primaryViewCBV,
@@ -402,7 +405,7 @@ namespace Ifrit::Runtime
                 ShaderVariantDesc(Internal::kIntShaderTableAyanami.CopyVS, {}),
                 ShaderVariantDesc(Internal::kIntShaderTableAyanami.CopyFS, {}), pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugProbeGather);
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugSCOut);
                     SetRootConstant(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)

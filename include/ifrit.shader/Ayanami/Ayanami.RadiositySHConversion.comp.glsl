@@ -89,7 +89,8 @@ void main(){
         return;
     }
 
-    uvec2 WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoord, PushConst.m_CardAtlasResolution);
+    uvec2 WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoord, PushConst.m_CardAtlasResolution,
+        PushConst.m_CardResolution);
 
     for(uint TraceX = 0;TraceX<kAyanami_RadiosityProbHemiRes;TraceX++){
         for(uint TraceY = 0;TraceY<kAyanami_RadiosityProbHemiRes;TraceY++){
@@ -101,7 +102,8 @@ void main(){
             mat3 TBN = ifrit_FrisvadONB(SampledData.m_WorldNormal);
             vec3 WorldRayDir = TBN * LocalRayDir;
 
-            WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoordS, PushConst.m_CardAtlasResolution);
+            WriteSlot = AyaShared_GetRadianceSlot(TileIndex, OffsetInTile, TraceRayCoordS, PushConst.m_CardAtlasResolution,
+                PushConst.m_CardResolution);
             vec3 FilteredRadiance = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_FilteredRadianceAtlasUAV), ivec2(WriteSlot)).rgb;
 
             SHCoefs = ifrit_AddSH2RGB(SHCoefs, ifrit_MulSH2RGBColor(ifrit_SHBasis2EncodeRGB(WorldRayDir), FilteredRadiance / PDF));

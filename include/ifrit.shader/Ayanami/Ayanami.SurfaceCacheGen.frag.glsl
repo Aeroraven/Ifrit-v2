@@ -26,9 +26,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 layout(location = 0) in vec2 TexCoord;
 layout(location = 1) in vec3 Normal;
 layout(location = 2) in vec4 Tangent;
+layout(location = 3) in vec4 vWorldPos;
 
 layout(location = 0) out vec4 OutColor;
-layout(location = 1) out vec2 OutNormal;
+layout(location = 1) out vec4 OutNormal;
 
 layout(push_constant) uniform PushConstants {
     uint albedoId;
@@ -59,5 +60,5 @@ void main(){
     normalLocal = normalLocal * 0.5 + 0.5;
 
     OutColor = albedo.xyzw;
-    OutNormal = normalLocal.xy;
+    OutNormal = vec4(Normal* 0.5 + 0.5, 1.0);
 }

@@ -16,8 +16,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
+#define INTERNAL_AYANAMI_DEBUG 1
 
-
+#if INTERNAL_AYANAMI_DEBUG
+    #define INTERNAL_AYANAMI_NORMAL_DEBUG 1
+    #define INTERNAL_AYANAMI_RADIOSITY_TILE_ENCODING_DEBUG 1
+#endif
 
 struct MeshDFDesc{
     uint m_MdfMetaId;
@@ -155,7 +159,7 @@ float AyaShared_RayMarchGlobalDF(vec3 RayOrigin, vec3 RayDir, uint GlobalDFId, v
                 HitTime = t;
                 break;
             }
-            t += max(1e-4,SdfVal * 0.5);
+            t += max(1e-4,SdfVal * 0.3);
             if(t>=tMax){
                 break;
             }
@@ -337,6 +341,7 @@ CardSample AyaShared_EvaluateGlobalDFHit(vec3 TraceOriginWS, vec3 TraceDirWS, fl
     vec3 HitPosWS = TraceOriginWS + TraceDirWS * HitTime;
     vec3 HitPosSdfUVW = AyaShared_GetGlobalDistanceUVWFromWorldPos(HitPosWS,GlobalDFBoxMin,GlobalDFBoxMax);
     vec3 HitNormalWS = AyaShared_GetGlobalDistanceGradient(HitPosSdfUVW,GlobalDFSRV,GlobalDFResolution);
+    //HitNormalWS = TraceDirWS;
     uint ObjGridId = AyaShared_GetObjectGridIdFromHitPos(HitPosWS,GlobalDFBoxMin,GlobalDFBoxMax,VoxelsPerClipMapwidth);
 
     uvec4 ObjGridData = GetResource(BAyaShared_ObjectCell, ObjectGridUAV).m_Cell[ObjGridId];
@@ -356,7 +361,7 @@ CardSample AyaShared_EvaluateGlobalDFHit(vec3 TraceOriginWS, vec3 TraceDirWS, fl
     if(Accum.m_Samples > 0.0){
         Sample.m_Albedo =  Accum.m_AccAlbedo / Accum.m_Samples;
     }else{
-        Sample.m_Albedo = vec4(0.05, 0.05, 0.05, 1.0);
+        Sample.m_Albedo = vec4(1.05, 0.05, 1.05, 1.0);
     }
 
     if(Accum.m_MaxWeight >= 0.97){
@@ -414,7 +419,28 @@ uvec2 AyaShared_GetTileOffsetInAtlas(uint TileIndex, uint CardResolution, uint C
     return OverallOffset;
 }
 
-uvec2 AyaShared_GetRadianceSlot(uint TileIndex, uvec2 OffsetInTile, uvec2 TraceRayCoord, uint CardAtlasResolution){
+uvec2 AyaShared_GetRadianceSlot(uint TileIndex, uvec2 OffsetInTile, uvec2 TraceRayCoord, uint CardAtlasResolution, uint CardResolution){
+
+#if INTERNAL_AYANAMI_RADIOSITY_TILE_ENCODING_DEBUG
+    uint TilesPerCardWidth = CardResolution / kAyanami_CardTileWidth;
+    uint TilesPerCard = TilesPerCardWidth * TilesPerCardWidth;
+
+    uint CardId = TileIndex / TilesPerCard;
+    uint NumCardsInAtlasRow = CardAtlasResolution / CardResolution;
+    uint CardX = CardId % NumCardsInAtlasRow;
+    uint CardY = CardId / NumCardsInAtlasRow;
+    uvec2 CardOffset = uvec2(CardX, CardY) * CardResolution;
+
+    uint TileIndexRemain = TileIndex % TilesPerCard;
+    uint TileX = TileIndexRemain % TilesPerCardWidth;
+    uint TileY = TileIndexRemain / TilesPerCardWidth;
+    uvec2 TileOffset = uvec2(TileX, TileY) * kAyanami_CardTileWidth + CardOffset;
+
+    uvec2 InTileProbeId = OffsetInTile / kAyanami_RadiosityProbHemiRes;
+    uvec2 OffsetByProbe = InTileProbeId * kAyanami_RadiosityProbHemiRes;
+    
+    return TileOffset + OffsetInTile + TraceRayCoord;
+#else
     uint TilesPerAtlasWidth = CardAtlasResolution / kAyanami_CardTileWidth;
     uint TileX = TileIndex % TilesPerAtlasWidth;
     uint TileY = TileIndex / TilesPerAtlasWidth;
@@ -424,6 +450,7 @@ uvec2 AyaShared_GetRadianceSlot(uint TileIndex, uvec2 OffsetInTile, uvec2 TraceR
     uvec2 OffsetByProbe = InTileProbeId * kAyanami_RadiosityProbHemiRes;
     
     return OffsetByTile + OffsetInTile + TraceRayCoord;
+#endif
 }
 
 
@@ -449,10 +476,14 @@ RadiosityRayCardSample AyaShared_RadiosityRayCardSample(uint CardId, uvec2 InCar
     // AtlasUVF = AtlasUVF * 2.0 - 1.0;
 
     float Depth = SampleTexture2D(CardDepthAtlasSRV,sNearestClamp,AtlasUVF).r;
+#if INTERNAL_AYANAMI_NORMAL_DEBUG
+    vec3 LocalNormal = (SampleTexture2D(CardNormalAtlasSRV,sNearestClamp,AtlasUVF).rgb) * 2.0 - 1.0;
+#else
     vec2 LocalNormalRG = SampleTexture2D(CardNormalAtlasSRV,sNearestClamp,AtlasUVF).rg * 2.0 - 1.0;
-    vec3 LocalNormal = normalize(vec3(LocalNormalRG, sqrt(1.0 - dot(LocalNormalRG, LocalNormalRG))));
+    vec3 LocalNormal = normalize(vec3(LocalNormalRG, sqrt(max(0.0,1.0 - dot(LocalNormalRG, LocalNormalRG)))));
+#endif
 
-    if(Depth == 1.0){
+    if(Depth > 0.9999){
         RadiosityRayCardSample SampledData;
         SampledData.m_WorldPos = vec3(0.0);
         SampledData.m_WorldNormal = vec3(0.0);
@@ -489,11 +520,13 @@ RadiosityRayCardSample AyaShared_GetRadiosityRayCardSample(uint CardTileId, uvec
     uint TileX = TileOffset.x;
     uint TileY = TileOffset.y;
 
+    uint CardsPerRow = CardAtlasResolution / CardResolution;
+
     uint CardX = TileX * kAyanami_CardTileWidth + OffsetInCardTile.x;
     uint CardY = TileY * kAyanami_CardTileWidth + OffsetInCardTile.y;
     uint CardIdX = CardX / CardResolution;
     uint CardIdY = CardY / CardResolution;
-    uint CardId = CardIdX + CardIdY * CardResolution;
+    uint CardId = CardIdX + CardIdY * CardsPerRow;
 
     uvec2 InCardUV = uvec2(CardX, CardY) % CardResolution;
     uvec2 AtlasUV = uvec2(CardX, CardY);
@@ -504,14 +537,12 @@ RadiosityRayCardSample AyaShared_GetRadiosityRayCardSample(uint CardTileId, uvec
         SampledData.m_WorldNormal = vec3(0.0);
         SampledData.m_ValidSample = false;
         SampledData.m_PresentInAtlas = false;
-        //SampledData.m_WorldNormal = vec3(CardId,vec2(float(TileX), float(CardTileId)));
         return SampledData;
     }
 
     RadiosityRayCardSample SampledData = AyaShared_RadiosityRayCardSample(CardId, InCardUV, AtlasUV, CardResolution, CardAtlasResolution,
         CardDepthAtlasSRV, CardNormalAtlasSRV, AllCardObjDataId, AllMeshDFDataId);
     SampledData.m_PresentInAtlas = true;
-    //SampledData.m_WorldNormal = vec3(CardId,vec2(InCardUV));
     return SampledData;
 }
 

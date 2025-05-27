@@ -455,7 +455,7 @@ namespace Ifrit::Runtime::Ayanami
                  m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
                  RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
         m_Resources->m_SceneCacheNormalAtlas      = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_NormalAtlas",
-                 m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8G8_SNORM,
+                 m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
                  RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_RenderTarget, false);
         m_Resources->m_SceneCacheEmissionAtlas    = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_EmissionAtlas",
                m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R8_UNORM,
@@ -628,13 +628,14 @@ namespace Ifrit::Runtime::Ayanami
         iDebug("Total Card Tiles: {}", totalCardTiles);
         auto  numTGs = DivRoundUp<i32, i32>(totalTraces, Config::kAyanamiRadiosityTraceKernelSize);
 
-        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiosityGenPass",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiosityTrace",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.RadiosityTraceCS, {}), Vector3i{ numTGs, 1, 1 }, pc,
             [globalDFSRV, objectGridsUAV, this](PushConst data, const FrameGraphPassContext& ctx) {
-                data.m_GlobalDFSRV           = ctx.m_FgDesc->GetSRV(*globalDFSRV);
-                data.m_CardDepthAtlasSRV     = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheTemporaryDepth);
-                data.m_CardNormalAtlasSRV    = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
-                data.m_CardLightingAtlasSRV  = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneDirectLighting);
+                data.m_GlobalDFSRV        = ctx.m_FgDesc->GetSRV(*globalDFSRV);
+                data.m_CardDepthAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheTemporaryDepth);
+                data.m_CardNormalAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
+                // data.m_CardLightingAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneDirectLighting);
+                data.m_CardLightingAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheAlbedoAtlas);
                 data.m_TraceRadianceAtlasUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
                 data.m_ObjectGridUAV         = ctx.m_FgDesc->GetUAV(*objectGridsUAV);
                 SetRootConstant(data, ctx);
@@ -644,6 +645,7 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
             .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth)
             .AddReadResource(*m_Resources->m_RDGSceneDirectLighting)
+            .AddReadResource(*m_Resources->m_RDGSceneCacheAlbedoAtlas)
             .AddReadResource(*objectGridsUAV)
             .AddReadResource(*globalDFSRV);
 

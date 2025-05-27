@@ -166,7 +166,7 @@ namespace Ifrit
             ayaConfig.m_globalDFClipmapLevels       = 1;
             ayaConfig.m_globalDFClipmapResolution   = 256;
             ayaConfig.m_globalDFBaseExtent          = 2.0f;
-            ayaConfig.m_DebugForceSurfaceCacheRegen = false;
+            ayaConfig.m_DebugForceSurfaceCacheRegen = true;
             ayaConfig.m_DebugForceObjectGridRegen   = true;
 
             renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;

@@ -33,6 +33,7 @@ RegisterStorage(BAllCardData,{
 layout(location = 0) out vec2 TexCoord;
 layout(location = 1) out vec3 Normal;
 layout(location = 2) out vec4 Tangent;
+layout(location = 3) out vec4 vWorldPos;
 
 layout(push_constant) uniform PushConstants {
     uint albedoId;
@@ -58,5 +59,6 @@ void main(){
     Normal = normalize(normal);
     Tangent = tangent;
     TexCoord = vec2(uv.x, uv.y);
+    vWorldPos = pos;
     gl_Position = worldPos;
 }
