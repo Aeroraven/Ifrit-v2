@@ -223,10 +223,10 @@ namespace Ifrit
                 auto material = std::make_shared<SyaroDefaultGBufEmitter>(this);
                 auto sampler  = m_SharedRenderResource->GetLinearClampSampler();
 
-                if (numMeshes >= 4 && numMeshes <= 5 || numMeshes == 6 || numMeshes <= 2)
-                {
-                    // continue;
-                }
+                // if (numMeshes >= 4 && numMeshes <= 5 || numMeshes == 6 || numMeshes == 3 || numMeshes <= 2)
+                // {
+                //     continue;
+                // }
                 if (numMeshes == 5)
                 {
                     material->SetAlbedoId(m_rhiLayer->GetSRVDescriptor(redAlbedoAsset->GetTexture().get()));

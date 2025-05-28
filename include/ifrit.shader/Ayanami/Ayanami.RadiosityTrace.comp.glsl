@@ -56,7 +56,7 @@ layout(push_constant) uniform UPushConst{
 
 float TraceGlobalDF(vec3 RayOrigin, vec3 RayDir){
     float hitTime = AyaShared_RayMarchGlobalDF(RayOrigin,RayDir,PushConst.m_GlobalDFSRV,PushConst.m_GlobalDFBoxMin.xyz,
-        PushConst.m_GlobalDFBoxMax.xyz,0.015,0.03,200);
+        PushConst.m_GlobalDFBoxMax.xyz,0.015,0.005,200);
 
     return hitTime;
 }
@@ -97,10 +97,10 @@ void main(){
         vec3 WorldRayDir = normalize(TBN * LocalRayDir);
 
         // Here, trace!
-        vec3 RayOrigin = SampledData.m_WorldPos + WorldRayDir * 5e-2 + SampledData.m_WorldNormal * 5e-2;
+        vec3 RayOrigin = SampledData.m_WorldPos + WorldRayDir * 1e-2 + SampledData.m_WorldNormal * 2e-2;
         vec3 RayDir = WorldRayDir;
         float HitTime = TraceGlobalDF(RayOrigin,RayDir);
-        bool IsHit = HitTime > 1e-3;
+        bool IsHit = HitTime > 1e-5;
 
         vec3 FinalRadiance = vec3(0.0);
         if(IsHit){
@@ -114,6 +114,7 @@ void main(){
             // TODO: final lighting is yet to be implemented.
             // This will be considered later
             FinalRadiance = HitSample.m_Albedo.xyz;
+            //FinalRadiance = vec3(1.0);
         }
 
         // Write to atlas

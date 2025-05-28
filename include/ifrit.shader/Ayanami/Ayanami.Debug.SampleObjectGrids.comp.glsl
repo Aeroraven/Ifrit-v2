@@ -104,7 +104,7 @@ void main(){
     // Ray-march the global DF
     vec3 RayOrigin = CamPos;
     float HitTime = AyaShared_RayMarchGlobalDF(RayOrigin, RayDir, PushConst.m_GlobalDFId, PushConst.m_GlobalDFBoxMin.xyz,
-        PushConst.m_GlobalDFBoxMax.xyz,0.015,0.03,200);
+        PushConst.m_GlobalDFBoxMax.xyz,0.015,0.005,200);
     
     // Get object grids from the global df grid
     if(HitTime<1e-3){

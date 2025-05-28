@@ -16,6 +16,8 @@
 
 #### 2025.05
 
+- Ayanami: 修复浮点误差导致的Surface Cache近平面丢失 (250529)
+
 - Build: 降低编译耗时 (PCH, spdlog由head only转库文件，移除cereal冗余archive) (250501)
 
   | After Fixing       | Before Fixing   |

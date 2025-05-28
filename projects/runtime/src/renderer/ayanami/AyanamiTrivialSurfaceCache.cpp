@@ -101,6 +101,7 @@ namespace Ifrit::Runtime::Ayanami
         RhiTextureRef                       m_SceneDirectLightingAtlas;
         RhiTextureRef                       m_SceneCacheIndirrectRadianceAtlas;
 
+        RhiTextureRef                       m_SceneCacheRadiosityTraceResult;
         RhiTextureRef                       m_SceneCacheRadiositySH_R;
         RhiTextureRef                       m_SceneCacheRadiositySH_G;
         RhiTextureRef                       m_SceneCacheRadiositySH_B;
@@ -141,6 +142,7 @@ namespace Ifrit::Runtime::Ayanami
         FGTextureNodeRef                    m_RDGSceneShadowVisibilityAtlas;
         FGTextureNodeRef                    m_RDGSceneDirectLighting;
         FGTextureNodeRef                    m_RDGSceneCacheIndirectRadianceAtlas;
+        FGTextureNodeRef                    m_RDGSceneCacheRadiosityTraceResult;
         FGTextureNodeRef                    m_RDGSceneCacheTemporaryDepth;
 
         FGTextureNodeRef                    m_RDGSceneCacheRadiositySH_R;
@@ -268,10 +270,11 @@ namespace Ifrit::Runtime::Ayanami
                     card.m_CardExtent.y = m_Resources->m_AtlasElementSize;
 
                     // LookAt & Ortho
-                    f32      viewNearPlane     = 10.0f;
-                    f32      cardZCompensation = 10.0f;
-                    Vector3f viewLocation =
-                        meshBBoxCenter - card.m_CardDirection * cardExtent.z - card.m_CardDirection * viewNearPlane;
+                    f32      viewNearPlane             = 10.0f;
+                    f32      viewNearPlaneCompensation = 1.0f;
+                    f32      cardZCompensation         = 10.0f;
+                    Vector3f viewLocation              = meshBBoxCenter - card.m_CardDirection * cardExtent.z
+                        - card.m_CardDirection * (viewNearPlane + viewNearPlaneCompensation);
 
                     Vector3f   viewUp     = kCardLookAtUps[i];
                     Vector3f   viewTarget = meshBBoxCenter;
@@ -279,13 +282,16 @@ namespace Ifrit::Runtime::Ayanami
 
                     f32        viewAspect = cardExtent.x / cardExtent.y;
                     Matrix4x4f viewOrtho  = OrthographicNegateY(cardExtent.y * 2.0f, viewAspect, viewNearPlane,
-                         cardExtent.z * 2.0f + viewNearPlane + cardZCompensation);
+                         cardExtent.z * 2.0f + viewNearPlane + cardZCompensation + viewNearPlaneCompensation);
 
+                    // printf("Card %d:\n", slotId);
                     // printf("ViewExtent: %f, %f, %f\n", cardExtent.x, cardExtent.y, cardExtent.z);
                     // printf("ViewCenter: %f, %f, %f\n", meshBBoxCenter.x, meshBBoxCenter.y, meshBBoxCenter.z);
+                    // printf("ViewLocation: %f, %f, %f\n", viewLocation.x, viewLocation.y, viewLocation.z);
 
                     Matrix4x4f viewProj = viewOrtho;
                     Matrix4x4f viewVP   = MatMul(viewProj, viewMatrix);
+
                     card.m_ObserverView = viewMatrix;
                     card.m_ObserverProj = viewOrtho;
                     card.m_ObserverVP   = viewVP;
@@ -436,6 +442,8 @@ namespace Ifrit::Runtime::Ayanami
             "Ayanami.SceneCacheIndirectRadianceAtlas", m_Resources->m_SceneCacheIndirrectRadianceAtlas.get());
         m_Resources->m_RDGSceneCacheTemporaryDepth =
             &builder.ImportTexture("Ayanami.SceneCacheTemporaryDepth", m_Resources->m_SceneCacheTemporaryDepth.get());
+        m_Resources->m_RDGSceneCacheRadiosityTraceResult = &builder.ImportTexture(
+            "Ayanami.SceneCacheRadiosityTraceResult", m_Resources->m_SceneCacheRadiosityTraceResult.get());
         m_Resources->m_RDGSceneCacheRadiositySH_R =
             &builder.ImportTexture("Ayanami.SceneCacheRadiositySH_R", m_Resources->m_SceneCacheRadiositySH_R.get());
         m_Resources->m_RDGSceneCacheRadiositySH_G =
@@ -477,6 +485,10 @@ namespace Ifrit::Runtime::Ayanami
                 RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess
                     | RhiImageUsage::RhiImgUsage_RenderTarget,
                 true);
+        m_Resources->m_SceneCacheRadiosityTraceResult =
+            rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadiosityTraceResult", m_Resolution, m_Resolution,
+                RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
+                RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess, true);
         m_Resources->m_SceneCacheRadiositySH_R = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadiositySH_R",
             m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
             RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess, true);
@@ -636,12 +648,12 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_CardNormalAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
                 // data.m_CardLightingAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneDirectLighting);
                 data.m_CardLightingAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheAlbedoAtlas);
-                data.m_TraceRadianceAtlasUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
+                data.m_TraceRadianceAtlasUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiosityTraceResult);
                 data.m_ObjectGridUAV         = ctx.m_FgDesc->GetUAV(*objectGridsUAV);
                 SetRootConstant(data, ctx);
             });
 
-        pass.AddWriteResource(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas)
+        pass.AddWriteResource(*m_Resources->m_RDGSceneCacheRadiosityTraceResult)
             .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
             .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth)
             .AddReadResource(*m_Resources->m_RDGSceneDirectLighting)
@@ -703,7 +715,7 @@ namespace Ifrit::Runtime::Ayanami
 
                 // TODO: this is not filtered
                 data.m_FilteredRadianceAtlasUAV =
-                    ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
+                    ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiosityTraceResult);
                 data.m_RWRadiosityProbeSHAtlasRUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_R);
                 data.m_RWRadiosityProbeSHAtlasGUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_G);
                 data.m_RWRadiosityProbeSHAtlasBUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_B);
@@ -715,7 +727,7 @@ namespace Ifrit::Runtime::Ayanami
             .AddWriteResource(*m_Resources->m_RDGSceneCacheRadiositySH_B)
             .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth)
             .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
-            .AddReadResource(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
+            .AddReadResource(*m_Resources->m_RDGSceneCacheRadiosityTraceResult);
     }
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::RadiositySHIntegrate(
