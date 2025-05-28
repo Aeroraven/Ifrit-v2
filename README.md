@@ -189,7 +189,7 @@ See [ACKNOWLEDGEMENTS.md](./ACKNOWLEDGEMENTS.md) for more details.
 
 Some ideas might be borrowed from Unreal Engine (or its related SIG or GDC presents). However, due to the license compatibility (AGPL-v3 vs. Unreal Engine's EULA), the code is not copied (or used in other predefined unallowed forms) from the Unreal Engine source code.
 
-And extra acknowledgements to the comments from interviewers when I was seeking for my summer internship chances. Some suggestions was added into the todo list.
+And extra acknowledgements to the comments from interviewers when I was seeking for my summer internship opportunities. Some suggestions were added into the todo list.
 
 ## 6. License
 
