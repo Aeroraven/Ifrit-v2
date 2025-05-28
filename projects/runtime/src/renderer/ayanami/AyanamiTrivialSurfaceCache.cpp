@@ -687,8 +687,8 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_RWRadiosityProbeSHAtlasGUAV = 0;
         pc.m_RWRadiosityProbeSHAtlasBUAV = 0;
 
-        auto numCardTiles =
-            m_Resources->m_AtlasElementSize / (Config::kAyanami_CardTileWidth * Config::kAyanami_CardTileWidth);
+        auto numCardTiles = m_Resources->m_AtlasElementSize * m_Resources->m_AtlasElementSize
+            / (Config::kAyanami_CardTileWidth * Config::kAyanami_CardTileWidth) * pc.m_NumTotalCards;
         auto numProbes = numCardTiles
             * (Config::kAyanami_RadiosityProbesPerCardTileWidth * Config::kAyanami_RadiosityProbesPerCardTileWidth);
 
@@ -716,6 +716,53 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth)
             .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
             .AddReadResource(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
+    }
+
+    IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::RadiositySHIntegrate(
+        FrameGraphBuilder& builder, u32 meshDFList)
+    {
+        struct PushConst
+        {
+            u32 m_CardResolution;
+            u32 m_CardAtlasResolution;
+            u32 m_MeshDFDescIdUAV;
+            u32 m_CardNormalAtlasSRV;
+            u32 m_RadiosityProbeSHAtlasRUAV;
+            u32 m_RadiosityProbeSHAtlasGUAV;
+            u32 m_RadiosityProbeSHAtlasBUAV;
+            u32 m_SurfaceIndirectLightingUAV;
+        } pc;
+        pc.m_CardResolution             = m_Resources->m_AtlasElementSize;
+        pc.m_CardAtlasResolution        = m_Resolution;
+        pc.m_MeshDFDescIdUAV            = meshDFList;
+        pc.m_CardNormalAtlasSRV         = 0;
+        pc.m_RadiosityProbeSHAtlasRUAV  = 0;
+        pc.m_RadiosityProbeSHAtlasGUAV  = 0;
+        pc.m_RadiosityProbeSHAtlasBUAV  = 0;
+        pc.m_SurfaceIndirectLightingUAV = 0;
+
+        auto numCards     = m_Resources->m_MeshCardIndex.load();
+        auto numCardTiles = m_Resources->m_AtlasElementSize * m_Resources->m_AtlasElementSize
+            / (Config::kAyanami_CardTileWidth * Config::kAyanami_CardTileWidth) * numCards;
+        auto  numTGs = static_cast<i32>(numCardTiles);
+
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiositySHIntegrate",
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.RadiositySHIntegrateCS, {}), Vector3i{ numTGs, 1, 1 },
+            pc,
+            [this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_CardNormalAtlasSRV        = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
+                data.m_RadiosityProbeSHAtlasRUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_R);
+                data.m_RadiosityProbeSHAtlasGUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_G);
+                data.m_RadiosityProbeSHAtlasBUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiositySH_B);
+                data.m_SurfaceIndirectLightingUAV =
+                    ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
+                SetRootConstant(data, ctx);
+            })
+                         .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
+                         .AddReadResource(*m_Resources->m_RDGSceneCacheRadiositySH_R)
+                         .AddReadResource(*m_Resources->m_RDGSceneCacheRadiositySH_G)
+                         .AddReadResource(*m_Resources->m_RDGSceneCacheRadiositySH_B)
+                         .AddWriteResource(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
     }
 
     IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::UpdateDirectLighting(
@@ -807,10 +854,16 @@ namespace Ifrit::Runtime::Ayanami
         return *m_Resources->m_RDGSceneDirectLighting;
     }
 
+    IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGIndirectLightingAtlas()
+    {
+        return *m_Resources->m_RDGSceneCacheIndirectRadianceAtlas;
+    }
+
     IFRIT_APIDECL Graphics::Rhi::RhiBufferRef AyanamiTrivialSurfaceCacheManager::GetCardDataBuffer()
     {
         return m_Resources->m_ObserveDeviceData;
     }
+
     IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetCardResolution() { return m_Resources->m_AtlasElementSize; }
     IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetCardAtlasResolution() { return m_Resolution; }
     IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetWorldMatsId()

@@ -32,34 +32,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 layout(
     local_size_x = 1, 
     local_size_y = kAyanamiRadiosityIntegrateKernelSizeY, 
-    local_size_z = kAyanamiRadiosityIntegrateKernelSizeY, 
+    local_size_z = kAyanamiRadiosityIntegrateKernelSizeY
 ) in;
 
 layout(push_constant) uniform UPushConstant{
-    uint m_TotalCards;
     uint m_CardResolution;
     uint m_CardAtlasResolution;
-    uint m_PerFrameCBV;
     uint m_MeshDFDescIdUAV;
     uint m_CardNormalAtlasSRV;
-
     uint m_RadiosityProbeSHAtlasRUAV;
     uint m_RadiosityProbeSHAtlasGUAV;
     uint m_RadiosityProbeSHAtlasBUAV;
-
     uint m_SurfaceIndirectLightingUAV;
 }PushConst;
 
-ivec2 GetProbeSHAtlasCoord(uint ProbeIndex){
-    uint TilesPerAtlasWidth = PushConst.m_CardAtlasResolution / kAyanami_CardTileWidth;
-    uint ProbesPerAtlasWidth = kAyanami_RadiosityProbesPerCardTileWidth * TilesPerAtlasWidth;
-    uint ProbeX = ProbeIndex % ProbesPerAtlasWidth;
-    uint ProbeY = ProbeIndex / ProbesPerAtlasWidth;
-    return ivec2(ProbeX, ProbeY);
-}
+#include "Ayanami/Ayanami.Radiosity.Shared.glsl"
 
 MTwoBandSH_RGB ReadSHAtlas(uint ProbeIndex){
-    ivec2 WriteLocation = GetProbeSHAtlasCoord(ProbeIndex);
+    ivec2 WriteLocation = GetProbeSHAtlasCoord(ProbeIndex, PushConst.m_CardAtlasResolution, PushConst.m_CardResolution);
     MTwoBandSH_RGB SHCoefs;
     SHCoefs.m_R.m_Coef = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_RadiosityProbeSHAtlasRUAV), WriteLocation);
     SHCoefs.m_G.m_Coef = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_RadiosityProbeSHAtlasGUAV), WriteLocation);
@@ -69,18 +59,26 @@ MTwoBandSH_RGB ReadSHAtlas(uint ProbeIndex){
 
 
 void main(){
-    uvec3 GlobalInvo = uvec2(gl_GlobalInvocationID.xyz);
+    uvec3 GlobalInvo = uvec3(gl_GlobalInvocationID.xyz);
     uvec2 InCardTileOffset = GlobalInvo.yz;
     uint CardTileId = GlobalInvo.x;
     
     uint CardsPerRow = PushConst.m_CardAtlasResolution / PushConst.m_CardResolution;
-    uint CardTilesPerCard = PushConst.m_CardResolution / kAyanami_CardTileWidth;
+    uint CardTilesPerCardWidth = PushConst.m_CardResolution / kAyanami_CardTileWidth;
+    uint CardTilesPerCard = CardTilesPerCardWidth * CardTilesPerCardWidth;
+
     uint CardId = CardTileId / CardTilesPerCard;
 
+    uint CardX = CardId % CardsPerRow;
+    uint CardY = CardId / CardsPerRow;
+
+    uint TileRemainder = CardTileId % CardTilesPerCard;
+    uint TileX = TileRemainder % CardTilesPerCardWidth;
+    uint TileY = TileRemainder / CardTilesPerCardWidth;
+
     // Locate the probe id for this pixel
-    uint CardTilesPerRow = PushConst.m_CardAtlasResolution / kAyanami_CardTileWidth;
-    uint CardTileIdX = CardTileId % CardTilesPerRow;
-    uint CardTileIdY = CardTileId / CardTilesPerRow;
+    uint CardTileIdX = TileX + CardX * CardTilesPerCardWidth;
+    uint CardTileIdY = TileY + CardY * CardTilesPerCardWidth;
 
     uint ProbeRangeWidth = kAyanami_CardTileWidth / kAyanami_RadiosityProbesPerCardTileWidth;
     uint InTileProbeIdX = InCardTileOffset.x / ProbeRangeWidth;
@@ -96,13 +94,19 @@ void main(){
     // Get the normal from the surface cache and evaluate the diffuse transfer
     uint CardTilePosX = CardTileIdX * kAyanami_CardTileWidth + InCardTileOffset.x;
     uint CardTilePosY = CardTileIdY * kAyanami_CardTileWidth + InCardTileOffset.y;
+
+#if INTERNAL_AYANAMI_NORMAL_DEBUG
+    vec3 LocalNormal = SampleTexture2DLoad(PushConst.m_CardNormalAtlasSRV, sNearestClamp, ivec2(CardTilePosX, CardTilePosY)).xyz;
+    LocalNormal = LocalNormal * 2.0 - 1.0; 
+#else
     vec2 CardNormalRG = SampleTexture2DLoad(PushConst.m_CardNormalAtlasSRV, sNearestClamp, ivec2(CardTilePosX, CardTilePosY)).xy;
     vec2 NormalRG = CardNormalRG * 2.0 - 1.0;
     float NormalB = sqrt(1.0 - dot(NormalRG, NormalRG));
     vec3 NormalMap = vec3(NormalRG, NormalB);
     vec3 LocalNormal = normalize(NormalMap);
+#endif
 
-    mat4 LocalToWorld = AyaShared_GetLocalToWorld(PushConst.m_MeshDFDescIdUAV, CardId/6);
+    mat4 LocalToWorld = AyaShared_GetCardMeshLocalToWorld(CardId,PushConst.m_MeshDFDescIdUAV);
     vec3 WorldNormal = normalize((LocalToWorld * vec4(LocalNormal, 0.0)).xyz);
 
     MTwoBandSH DiffuseTransfer = ifrit_SHCosineLobe2Encode(WorldNormal);

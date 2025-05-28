@@ -53,17 +53,12 @@ layout(push_constant) uniform UPushConst{
     uint m_TotalProbes;
 }PushConst;
 
-ivec2 GetProbeSHAtlasCoord(uint ProbeIndex){
-    uint TilesPerAtlasWidth = PushConst.m_CardAtlasResolution / kAyanami_CardTileWidth;
-    uint ProbesPerAtlasWidth = kAyanami_RadiosityProbesPerCardTileWidth * TilesPerAtlasWidth;
-    uint ProbeX = ProbeIndex % ProbesPerAtlasWidth;
-    uint ProbeY = ProbeIndex / ProbesPerAtlasWidth;
-    return ivec2(ProbeX, ProbeY);
-}
+#include "Ayanami/Ayanami.Radiosity.Shared.glsl"
 
 void WriteSHAtlas(uint ProbeIndex, MTwoBandSH_RGB SHCoefs){
-    ivec2 WriteLocation = GetProbeSHAtlasCoord(ProbeIndex);
+    ivec2 WriteLocation = GetProbeSHAtlasCoord(ProbeIndex, PushConst.m_CardAtlasResolution, PushConst.m_CardResolution);
     imageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasRUAV), ivec2(WriteLocation), SHCoefs.m_R.m_Coef);
+    //imageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasRUAV), ivec2(WriteLocation), vec4(ProbeIndex));
     imageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasGUAV), ivec2(WriteLocation), SHCoefs.m_G.m_Coef);
     imageStore(GetUAVImage2DRGBA32F(PushConst.m_RWRadiosityProbeSHAtlasBUAV), ivec2(WriteLocation), SHCoefs.m_B.m_Coef);
 }
@@ -95,7 +90,7 @@ void main(){
     for(uint TraceX = 0;TraceX<kAyanami_RadiosityProbHemiRes;TraceX++){
         for(uint TraceY = 0;TraceY<kAyanami_RadiosityProbHemiRes;TraceY++){
             uvec2 TraceRayCoordS = uvec2(TraceX, TraceY);
-            vec2 ProbeUV = (vec2(TraceRayCoordS) + PushConst.m_ProbeCenterJitter) / float(kAyanami_RadiosityProbHemiRes);
+            vec2 ProbeUV = (vec2(TraceRayCoordS) + vec2(0.5) + PushConst.m_ProbeCenterJitter) / float(kAyanami_RadiosityProbHemiRes);
             vec4 RayPDF = ifrit_SampleCosineHemisphereWithPDF(ProbeUV);
             vec3 LocalRayDir = RayPDF.xyz;
             float PDF = RayPDF.w;
@@ -107,6 +102,7 @@ void main(){
             vec3 FilteredRadiance = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_FilteredRadianceAtlasUAV), ivec2(WriteSlot)).rgb;
 
             SHCoefs = ifrit_AddSH2RGB(SHCoefs, ifrit_MulSH2RGBColor(ifrit_SHBasis2EncodeRGB(WorldRayDir), FilteredRadiance / PDF));
+            //SHCoefs = ifrit_AddSH2RGB(SHCoefs, ifrit_MulSH2RGBColor(ifrit_SHBasis2EncodeRGB(WorldRayDir), FilteredRadiance));
         }
     }
     SHCoefs = ifrit_MulSH2RGB(SHCoefs, 1.0 / float(kAyanami_RadiosityProbHemiRes * kAyanami_RadiosityProbHemiRes));

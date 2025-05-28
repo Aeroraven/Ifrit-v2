@@ -253,6 +253,9 @@ namespace Ifrit::Runtime
 
             m_Resources->m_SurfaceCache->RadiositySHConversion(
                 builder, m_Resources->m_SceneAggregator->GetGatheredBufferId());
+
+            m_Resources->m_SurfaceCache->RadiositySHIntegrate(
+                builder, m_Resources->m_SceneAggregator->GetGatheredBufferId());
         }
 
         // Pass RayMarch
@@ -340,12 +343,13 @@ namespace Ifrit::Runtime
         // Pass Surface Cache Debug
         if (true)
         {
-            auto& resAlbedoAtlas   = m_Resources->m_SurfaceCache->GetRDGAlbedoAtlas();
-            auto& resNormalAtlas   = m_Resources->m_SurfaceCache->GetRDGNormalAtlas();
-            auto& resRadianceAtlas = m_Resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
-            auto& resDepthAtlas    = m_Resources->m_SurfaceCache->GetRDGDepthAtlas();
+            auto& resAlbedoAtlas      = m_Resources->m_SurfaceCache->GetRDGAlbedoAtlas();
+            auto& resNormalAtlas      = m_Resources->m_SurfaceCache->GetRDGNormalAtlas();
+            auto& resRadianceAtlas    = m_Resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
+            auto& resDepthAtlas       = m_Resources->m_SurfaceCache->GetRDGDepthAtlas();
+            auto& resIndirectRadiance = m_Resources->m_SurfaceCache->GetRDGIndirectLightingAtlas();
 
-            m_Resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resNormalAtlas,
+            m_Resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resIndirectRadiance,
                 &resNormalAtlas, &resRadianceAtlas, &resDepthAtlas, m_Resources->m_SurfaceCache->GetNumCards(),
                 m_Resources->m_SurfaceCache->GetCardResolution(), m_Resources->m_SurfaceCache->GetCardAtlasResolution(),
                 m_Resources->m_SurfaceCache->GetCardDataBuffer()->GetDescId(), primaryViewCBV,
@@ -379,6 +383,7 @@ namespace Ifrit::Runtime
             auto  minWorldBound          = m_GlobalDF->GetWorldBoundMin(0);
             auto  mdfDataId              = m_Resources->m_SceneAggregator->GetGatheredBufferId();
             auto  cardDataId             = m_Resources->m_SurfaceCache->GetCardDataBuffer()->GetDescId();
+            auto& resIndirectRadiance    = m_Resources->m_SurfaceCache->GetRDGIndirectLightingAtlas();
 
             auto  gdfResolution       = m_GlobalDF->GetClipmapWidth(0);
             auto  voxelsPerWidth      = m_GlobalDF->GetVoxelsPerSide(0);
@@ -394,6 +399,7 @@ namespace Ifrit::Runtime
         // Pass Debug
         {
             auto& resDirectRadiance   = m_Resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
+            auto& resIndirectRadiance = m_Resources->m_SurfaceCache->GetRDGIndirectLightingAtlas();
             auto  resSsProbeRadiance  = m_Resources->m_ScreenProbe->GetScreenProbeRadianceAtlas();
             auto  resDeferredShadow   = m_Resources->m_DeferredShading->GetRDGDirectShadowTexture();
             auto  resDeferredLighting = m_Resources->m_DeferredShading->GetRDGDirectLightingTexture();
@@ -420,6 +426,7 @@ namespace Ifrit::Runtime
                 .AddReadResource(*resDeferredShadow)
                 .AddReadResource(resDebugProbeGather)
                 .AddReadResource(*resDeferredLighting)
+                .AddReadResource(resIndirectRadiance)
                 .AddReadResource(resGNormal);
         }
 

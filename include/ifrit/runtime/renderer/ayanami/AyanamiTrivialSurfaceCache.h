@@ -53,6 +53,7 @@ namespace Ifrit::Runtime::Ayanami
              u32 globalDFResolution, u32 voxelsPerGdfWidth);
 
         void              RadiositySHConversion(FrameGraphBuilder& builder, u32 meshDFList);
+        void              RadiositySHIntegrate(FrameGraphBuilder& builder, u32 meshDFList);
 
         void              UpdateDirectLighting(FrameGraphBuilder& builder, u32 meshDFList, Vector3f lightDir);
 
@@ -62,6 +63,7 @@ namespace Ifrit::Runtime::Ayanami
         FGTextureNode&    GetRDGShadowVisibilityAtlas();
         FGTextureNode&    GetRDGTracedRadianceAtlas();
         FGTextureNode&    GetRDGDirectLightingAtlas();
+        FGTextureNode&    GetRDGIndirectLightingAtlas();
 
         Graphics::Rhi::RhiBufferRef GetCardDataBuffer();
         u32                         GetCardResolution();

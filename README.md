@@ -1,7 +1,5 @@
 # Ifrit-v2
 
-**English** | [简体中文](./README_cn.md)
-
 > Some details for the repository can be found at:
 >
 > [https://aeroraven.github.io/Ibuki/](https://aeroraven.github.io/Ibuki/)
@@ -38,7 +36,6 @@ To visualize Syaro's LoD change, refer to `docs/img/syaro_lod.mkv`
 This repository is the successor to my following repositories: 
 
 - [Aria](https://github.com/Aeroraven/Aria): Some scenes and toys about using WebGL2 and Vulkan.
-  - Some features implemented in Aria/Vulkan might be considered to move into this repository, check [here](#4-future-plans) for more details.
 
 - [Ifrit-v1](https://github.com/Aeroraven/Ifrit): An console drawing helper for course projects that use Java.
   - Still, Ifrit-v2 soft renderer supports console display (like Windows Powershell).
@@ -109,7 +106,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
       
       
 
-*. These features might be severely unstable and time-consuming. For problems and details, refer to [TODO.md](./TODO.md)
+*. These features might be severely unstable and time-consuming. For problems and details, refer to [CHANGELOG.md](./CHANGELOG.md)
 
 
 ## 2. Setup / Run
@@ -183,44 +180,8 @@ The source files can be decomposed into following parts.
 
 ## 4. Future Plans
 
-### 4.1 Migration of  Project Aria
+See [TODO.md](./TODO.md) for more details.
 
-Following features implemented in Aria/Vulkan might be considered to move into this repository:
-
-- Hardware Ray Tracing
-- NPR Shading
-  - Outline (Post-Processing / Back Facing)
-  - Rim Lighting
-- Post Processing
-  - FXAA
-  - Kawase Blur
-  - Global Fog
-  - SSAO
-  - <s>SSGI/SSR</s> 
-    - SSGI-like tracing has been covered in `Ifrit.Runtime/Ayanami/ScreenProbeTracing`
-- Volumetric Lighting
-- Procedural Generator
-  - GPU Marching Cubes
-
-### 4.2 Syaro Refactoring
-
-The architecture for subproject Syaro seems to be a little messy, following plans are scheduled:
-
-- Render-Graph-Driven Process
-- Redundant Dynamic Uniform Buffer Removal
-- Shader Variants
-
-### 4.3 Interview Feedback 
-
-Following features are scheduled, with suggestions given by summer internship interviewers. 
-
-- Optimized RDGs
-- Multithreaded Rendering
-- Branch Optimizations for Shaders
-  - Change of Shader Languages: `Slang` or `HLSL` 
-
-- `ddx` for Syaro
-- Fixed-Point Math For Soft Renderer
 
 ## 5. References & Acknowledgements
 
