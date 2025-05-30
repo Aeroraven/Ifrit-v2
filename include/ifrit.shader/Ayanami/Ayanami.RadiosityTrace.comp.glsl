@@ -56,7 +56,7 @@ layout(push_constant) uniform UPushConst{
 
 float TraceGlobalDF(vec3 RayOrigin, vec3 RayDir){
     float hitTime = AyaShared_RayMarchGlobalDF(RayOrigin,RayDir,PushConst.m_GlobalDFSRV,PushConst.m_GlobalDFBoxMin.xyz,
-        PushConst.m_GlobalDFBoxMax.xyz,0.015,0.005,200);
+        PushConst.m_GlobalDFBoxMax.xyz,0.003,0.003,200);
 
     return hitTime;
 }
@@ -97,7 +97,7 @@ void main(){
         vec3 WorldRayDir = normalize(TBN * LocalRayDir);
 
         // Here, trace!
-        vec3 RayOrigin = SampledData.m_WorldPos + WorldRayDir * 1e-2 + SampledData.m_WorldNormal * 2e-2;
+        vec3 RayOrigin = SampledData.m_WorldPos + SampledData.m_WorldNormal * 2e-2;
         vec3 RayDir = WorldRayDir;
         float HitTime = TraceGlobalDF(RayOrigin,RayDir);
         bool IsHit = HitTime > 1e-5;

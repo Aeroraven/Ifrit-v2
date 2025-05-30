@@ -73,6 +73,21 @@ namespace Ifrit::Runtime
         auto tq     = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
         tq->RunSyncCommand([&](const GPUCmdBuffer* cmd) {
             staged->CmdCopyToDevice(cmd, data.m_hizRefs.data(), u32Size * SizeCast<u32>(data.m_hizRefs.size()), 0);
+
+            Vec<RhiResourceBarrier> barriers;
+            for (int i = 0; i < data.m_hizIters; i++)
+            {
+
+                auto barrier                       = RhiResourceBarrier();
+                barrier.m_type                     = RhiBarrierType::Transition;
+                barrier.m_transition.m_type        = RhiResourceType::Texture;
+                barrier.m_transition.m_texture     = data.m_hizTexture.get();
+                barrier.m_transition.m_subResource = { (u32)i, 0, 1, 1 };
+                barrier.m_transition.m_srcState    = RhiResourceState::AutoTraced;
+                barrier.m_transition.m_dstState    = RhiResourceState::UnorderedAccess;
+                barriers.push_back(barrier);
+            }
+            cmd->AddResourceBarrier(barriers);
         });
 
         data.m_hizDesc = rhi->CreateBindlessDescriptorRef();
@@ -113,6 +128,8 @@ namespace Ifrit::Runtime
             pass = m_SinglePassHiZPassMax;
 
         pass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
+            using namespace Graphics::Rhi;
+
             ctx->m_cmd->AttachUniformRef(1, data.m_hizDesc);
             ctx->m_cmd->SetPushConst(&pc, 0, u32Size * 6);
             auto tgX = DivRoundUp(data.m_hizWidth, cSPHiZTileSize);

@@ -179,23 +179,28 @@ void main(){
     uint transformId = GetResource(BAllWorldData, PushConst.WorldObjId).m_TransformId[CardIndex];
     mat4 LocalToWorld = GetResource(BLocalTransform, transformId).m_LocalToWorld;
     mat4 AtlasToWorld = LocalToWorld * AtlasToLocal;
-    mat4 ViewToWorld = GetResource(BPerFrameData, PushConst.m_PerFrameId).m_Data.m_worldToView;
-
+    
     vec2 TileOffsetToNDCxy = (vec2(TileOffset)+0.5) / vec2(PushConst.CardResolution);
     TileOffsetToNDCxy = TileOffsetToNDCxy * 2.0 - 1.0;
 
     vec2 AtlasSampleUV = (OverallOffset+0.5) / vec2(PushConst.CardAtlasResolution);
     float TileOffsetNdcZ = SampleTexture2D(PushConst.depthAtlasSRVId, sNearestClamp,AtlasSampleUV).r; 
-    vec3 TexelNormalVS = SampleTexture2D(PushConst.m_NormalAtlasSRV, sLinearClamp, AtlasSampleUV).xyz;
+#if INTERNAL_AYANAMI_NORMAL_DEBUG
+    vec3 TexelNormalVS = SampleTexture2D(PushConst.m_NormalAtlasSRV, sLinearClamp, AtlasSampleUV).xyz * 2.0 - 1.0;
+#else
+    vec2 TexelNormalRG = SampleTexture2D(PushConst.m_NormalAtlasSRV, sLinearClamp, AtlasSampleUV).rg * 2.0 - 1.0;
+    vec3 TexelNormalVS = vec3(TexelNormalRG, sqrt(1.0 - dot(TexelNormalRG, TexelNormalRG)));
+
+#endif
     
     vec4 TileOffsetNdc = vec4(TileOffsetToNDCxy, TileOffsetNdcZ, 1.0);
 
     vec4 WorldPosH = AtlasToWorld * TileOffsetNdc;
     vec4 WorldPosP = WorldPosH / WorldPosH.w;
-    vec3 WorldNormal = normalize(AtlasToWorld * vec4(TexelNormalVS, 0.0)).xyz;
+    vec3 WorldNormal = normalize(LocalToWorld * vec4(TexelNormalVS, 0.0)).xyz;
 
     // add a slight normal offset to avoid self shadowing
-    float NormalOffset =  5e-3;
+    float NormalOffset =  1e-3;
     WorldPosP += vec4(WorldNormal * NormalOffset,0.0); // normal offsetting
 
     // Test if the World position can be seen by the Light.

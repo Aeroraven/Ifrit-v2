@@ -1,5 +1,16 @@
 ## Ifrit-v2/TODO
 
+### 4.0 Ongoing Schedule
+
+- Subproject Ayanami:
+  - Indirect Lighting on Surface Atlas
+  - Denoising / ReSTIR
+- Subproject Syaro:
+  - Refactoring with RDGs
+- Architectural
+  - Shader Rewrite: `ifrit.shader.neo`
+  - Multithreaded Rendering
+
 ### 4.1 Migration of  Project Aria
 
 Following features implemented in Aria/Vulkan might be considered to move into this repository:

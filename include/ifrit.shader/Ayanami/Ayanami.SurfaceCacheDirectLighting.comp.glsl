@@ -81,8 +81,13 @@ void main(){
 
 
     vec2 AtlasUV = (vec2(OverallOffset) + vec2(0.5)) / vec2(PushConst.m_CardAtlasResolution);
+
+#if INTERNAL_AYANAMI_NORMAL_DEBUG
+    vec3 NormalLocal = SampleTexture2D(PushConst.m_NormalAtlasSRV, sLinearClamp, AtlasUV).xyz * 2.0 - 1.0;
+#else
     vec2 NormalRG = SampleTexture2D(PushConst.m_NormalAtlasSRV, sLinearClamp, AtlasUV).rg * 2.0 - 1.0;
     vec3 NormalLocal = vec3(NormalRG, sqrt(1.0 - dot(NormalRG, NormalRG)));
+#endif
 
     uint MeshId = tID.z / 6;
     MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
