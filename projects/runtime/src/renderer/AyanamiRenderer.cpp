@@ -257,6 +257,10 @@ namespace Ifrit::Runtime
             m_Resources->m_SurfaceCache->RadiositySHIntegrate(
                 builder, m_Resources->m_SceneAggregator->GetGatheredBufferId());
         }
+        // Pass Combine Lighting
+        {
+            m_Resources->m_SurfaceCache->CombineLighting(builder);
+        }
 
         // Pass RayMarch
         if (true)
@@ -343,6 +347,7 @@ namespace Ifrit::Runtime
         // Pass Surface Cache Debug
         if (true)
         {
+            auto& resFinalLightingAtlas  = m_Resources->m_SurfaceCache->GetRDGFinalLightingAtlas();
             auto& resAlbedoAtlas         = m_Resources->m_SurfaceCache->GetRDGAlbedoAtlas();
             auto& resNormalAtlas         = m_Resources->m_SurfaceCache->GetRDGNormalAtlas();
             auto& resRadianceAtlas       = m_Resources->m_SurfaceCache->GetRDGShadowVisibilityAtlas();
@@ -350,7 +355,7 @@ namespace Ifrit::Runtime
             auto& resIndirectRadiance    = m_Resources->m_SurfaceCache->GetRDGIndirectLightingAtlas();
             auto& resDirectLightingAtlas = m_Resources->m_SurfaceCache->GetRDGDirectLightingAtlas();
 
-            m_Resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resDirectLightingAtlas,
+            m_Resources->m_Debugger->RenderSceneFromCacheSurface(builder, &resDebugSCOut, &resFinalLightingAtlas,
                 &resNormalAtlas, &resRadianceAtlas, &resDepthAtlas, m_Resources->m_SurfaceCache->GetNumCards(),
                 m_Resources->m_SurfaceCache->GetCardResolution(), m_Resources->m_SurfaceCache->GetCardAtlasResolution(),
                 m_Resources->m_SurfaceCache->GetCardDataBuffer()->GetDescId(), primaryViewCBV,
@@ -367,7 +372,6 @@ namespace Ifrit::Runtime
         }
 
         // Pass Screen Probe Debug - Vis
-
         {
             m_Resources->m_Debugger->VisualizeScreenProbeLocation(builder, &resDebugScrProbeVis,
                 m_Resources->m_ScreenProbe->GetAdaptiveProbesList(),
@@ -378,6 +382,7 @@ namespace Ifrit::Runtime
         if (true)
         {
             auto& resDirectLightingAtlas = m_Resources->m_SurfaceCache->GetRDGDirectLightingAtlas();
+            auto& resFinalLightingAtlas  = m_Resources->m_SurfaceCache->GetRDGFinalLightingAtlas();
             auto& resAlbedoAtlas         = m_Resources->m_SurfaceCache->GetRDGAlbedoAtlas();
             auto& resDepthAtlas          = m_Resources->m_SurfaceCache->GetRDGDepthAtlas();
             auto  maxWorldBound          = m_GlobalDF->GetWorldBoundMax(0);

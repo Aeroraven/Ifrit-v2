@@ -49,8 +49,7 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE(ISTAya.DirectShadowVisibilityCS, "Ayanami/Ayanami.DirectionalShadowVisibility");
         REG_COMPUTE(ISTAya.GlobalDFRayMarchCS, "Ayanami/Ayanami.GlobalDFRayMarch");
         REG_COMPUTE(ISTAya.RayMarchCS, "Ayanami/Ayanami.RayMarch");
-        REG_FRAGMENT(ISTAya.SurfaceCacheGenFS, "Ayanami/Ayanami.SurfaceCacheGen");
-        REG_VERTEX(ISTAya.SurfaceCacheGenVS, "Ayanami/Ayanami.SurfaceCacheGen");
+
         REG_COMPUTE(ISTAya.TrivialGlobalDFCompCS, "Ayanami/Ayanami.TrivialGlobalDFComposite");
         REG_MESH(ISTAya.DFShadowTileCullingMS, "Ayanami/Ayanami.DFShadowTileCull");
         REG_FRAGMENT(ISTAya.DFShadowTileCullingFS, "Ayanami/Ayanami.DFShadowTileCull");
@@ -58,11 +57,16 @@ namespace Ifrit::Runtime::Internal
         REG_FRAGMENT(ISTAya.TestDeferShadingFS, "Ayanami/Ayanami.TestDeferShading");
         REG_COMPUTE(ISTAya.DFShadowVisibilityCS, "Ayanami/Ayanami.DFShadowVisibility");
         REG_COMPUTE(ISTAya.ObjectGridCompositionCS, "Ayanami/Ayanami.ObjectGridComposition");
+
         REG_COMPUTE(ISTAya.RadiosityTraceCS, "Ayanami/Ayanami.RadiosityTrace");
         REG_COMPUTE(ISTAya.RadiositySHConversionCS, "Ayanami/Ayanami.RadiositySHConversion");
         REG_COMPUTE(ISTAya.RadiositySHIntegrateCS, "Ayanami/Ayanami.RadiositySHIntegrate");
 
-        REG_COMPUTE(ISTAya.SurfaceCacheDirectLightCS, "Ayanami/Ayanami.SurfaceCacheDirectLighting");
+        REG_COMPUTE(ISTAya.SurfaceCacheDirectLightCS, "Ayanami/Ayanami.SurfaceCache.DirectLighting");
+        REG_COMPUTE(ISTAya.SurfaceCacheCombineLightCS, "Ayanami/Ayanami.SurfaceCache.CombineLighting");
+        REG_FRAGMENT(ISTAya.SurfaceCacheGenFS, "Ayanami/Ayanami.SurfaceCache.Generate");
+        REG_VERTEX(ISTAya.SurfaceCacheGenVS, "Ayanami/Ayanami.SurfaceCache.Generate");
+
         REG_COMPUTE(ISTAya.ScreenProbeAdaptivePlaceCS, "Ayanami/Ayanami.ScreenProbe.AdaptivePlace");
         REG_COMPUTE(ISTAya.ScreenProbeTraceScreenCS, "Ayanami/Ayanami.ScreenProbe.ScreenSpaceTrace");
         REG_COMPUTE(ISTAya.ScreenProbeMDFCullPrepCS, "Ayanami/Ayanami.ScreenProbe.MDFCullMatPrep");

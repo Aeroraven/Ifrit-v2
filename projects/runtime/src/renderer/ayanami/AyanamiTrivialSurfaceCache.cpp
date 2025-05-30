@@ -98,8 +98,9 @@ namespace Ifrit::Runtime::Ayanami
         RhiTextureRef                       m_SceneCacheSpecularAtlas;
         RhiTextureRef                       m_SceneCacheTemporaryDepth;
         RhiTextureRef                       m_SceneShadowVisibilityAtlas;
-        RhiTextureRef                       m_SceneDirectLightingAtlas;
+        RhiTextureRef                       m_SceneCacheDirectLightingAtlas;
         RhiTextureRef                       m_SceneCacheIndirrectRadianceAtlas;
+        RhiTextureRef                       m_SceneCacheFinalLightingAtlas;
 
         RhiTextureRef                       m_SceneCacheRadiosityTraceResult;
         RhiTextureRef                       m_SceneCacheRadiositySH_R;
@@ -140,8 +141,10 @@ namespace Ifrit::Runtime::Ayanami
         FGTextureNodeRef                    m_RDGSceneCacheEmissionAtlas;
         FGTextureNodeRef                    m_RDGSceneCacheSpecularAtlas;
         FGTextureNodeRef                    m_RDGSceneShadowVisibilityAtlas;
-        FGTextureNodeRef                    m_RDGSceneDirectLighting;
+        FGTextureNodeRef                    m_RDGSceneCacheDirectLightingAtlas;
         FGTextureNodeRef                    m_RDGSceneCacheIndirectRadianceAtlas;
+        FGTextureNodeRef                    m_RDGSceneCacheFinalLightingAtlas;
+
         FGTextureNodeRef                    m_RDGSceneCacheRadiosityTraceResult;
         FGTextureNodeRef                    m_RDGSceneCacheTemporaryDepth;
 
@@ -436,10 +439,13 @@ namespace Ifrit::Runtime::Ayanami
             &builder.ImportTexture("Ayanami.SceneCacheSpecularAtlas", m_Resources->m_SceneCacheSpecularAtlas.get());
         m_Resources->m_RDGSceneShadowVisibilityAtlas = &builder.ImportTexture(
             "Ayanami.SceneShadowVisibilityAtlas", m_Resources->m_SceneShadowVisibilityAtlas.get());
-        m_Resources->m_RDGSceneDirectLighting =
-            &builder.ImportTexture("Ayanami.SceneDirectLightingAtlas", m_Resources->m_SceneDirectLightingAtlas.get());
+        m_Resources->m_RDGSceneCacheDirectLightingAtlas = &builder.ImportTexture(
+            "Ayanami.SceneCacheDirectLightingAtlas", m_Resources->m_SceneCacheDirectLightingAtlas.get());
         m_Resources->m_RDGSceneCacheIndirectRadianceAtlas = &builder.ImportTexture(
             "Ayanami.SceneCacheIndirectRadianceAtlas", m_Resources->m_SceneCacheIndirrectRadianceAtlas.get());
+        m_Resources->m_RDGSceneCacheFinalLightingAtlas = &builder.ImportTexture(
+            "Ayanami.SceneCacheFinalLightingAtlas", m_Resources->m_SceneCacheFinalLightingAtlas.get());
+
         m_Resources->m_RDGSceneCacheTemporaryDepth =
             &builder.ImportTexture("Ayanami.SceneCacheTemporaryDepth", m_Resources->m_SceneCacheTemporaryDepth.get());
         m_Resources->m_RDGSceneCacheRadiosityTraceResult = &builder.ImportTexture(
@@ -476,15 +482,23 @@ namespace Ifrit::Runtime::Ayanami
             RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess
                 | RhiImageUsage::RhiImgUsage_RenderTarget,
             true);
-        m_Resources->m_SceneDirectLightingAtlas = rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_DirectLightingAtlas",
-            m_Resolution, m_Resolution, RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
-            RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess, true);
+        m_Resources->m_SceneCacheDirectLightingAtlas =
+            rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_DirectLightingAtlas", m_Resolution, m_Resolution,
+                RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
+                RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess, true);
         m_Resources->m_SceneCacheIndirrectRadianceAtlas =
             rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_IndirectRadianceAtlas", m_Resolution, m_Resolution,
                 RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
                 RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess
                     | RhiImageUsage::RhiImgUsage_RenderTarget,
                 true);
+        m_Resources->m_SceneCacheFinalLightingAtlas =
+            rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_FinalLightingAtlas", m_Resolution, m_Resolution,
+                RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
+                RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess
+                    | RhiImageUsage::RhiImgUsage_RenderTarget,
+                true);
+
         m_Resources->m_SceneCacheRadiosityTraceResult =
             rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_RadiosityTraceResult", m_Resolution, m_Resolution,
                 RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
@@ -575,7 +589,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_NormalAtlasSRV = 0;
 
         UpdateSurfaceModelMatrix();
-        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.CameraShadowVisibilityPass",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.SurfaceCache.CameraShadowVisibility",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.DirectShadowVisibilityCS, {}),
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
@@ -640,14 +654,15 @@ namespace Ifrit::Runtime::Ayanami
         iDebug("Total Card Tiles: {}", totalCardTiles);
         auto  numTGs = DivRoundUp<i32, i32>(totalTraces, Config::kAyanamiRadiosityTraceKernelSize);
 
-        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiosityTrace",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.Radiosity.Trace",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.RadiosityTraceCS, {}), Vector3i{ numTGs, 1, 1 }, pc,
             [globalDFSRV, objectGridsUAV, this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GlobalDFSRV        = ctx.m_FgDesc->GetSRV(*globalDFSRV);
                 data.m_CardDepthAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheTemporaryDepth);
                 data.m_CardNormalAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
-                // data.m_CardLightingAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneDirectLighting);
-                data.m_CardLightingAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheAlbedoAtlas);
+                // data.m_CardLightingAtlasSRV  =
+                // ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheDirectLightingAtlas);
+                data.m_CardLightingAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheFinalLightingAtlas);
                 data.m_TraceRadianceAtlasUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheRadiosityTraceResult);
                 data.m_ObjectGridUAV         = ctx.m_FgDesc->GetUAV(*objectGridsUAV);
                 SetRootConstant(data, ctx);
@@ -656,8 +671,8 @@ namespace Ifrit::Runtime::Ayanami
         pass.AddWriteResource(*m_Resources->m_RDGSceneCacheRadiosityTraceResult)
             .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
             .AddReadResource(*m_Resources->m_RDGSceneCacheTemporaryDepth)
-            .AddReadResource(*m_Resources->m_RDGSceneDirectLighting)
-            .AddReadResource(*m_Resources->m_RDGSceneCacheAlbedoAtlas)
+            .AddReadResource(*m_Resources->m_RDGSceneCacheDirectLightingAtlas)
+            .AddReadResource(*m_Resources->m_RDGSceneCacheFinalLightingAtlas)
             .AddReadResource(*objectGridsUAV)
             .AddReadResource(*globalDFSRV);
 
@@ -707,7 +722,7 @@ namespace Ifrit::Runtime::Ayanami
         auto numTGs      = DivRoundUp<i32, i32>(numProbes, Config::kAyanamiSphericalHarmonicsCvtKernelSize);
         pc.m_TotalProbes = numProbes;
 
-        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiositySHConversion",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.Radiosity.SHConversion",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.RadiositySHConversionCS, {}), Vector3i{ numTGs, 1, 1 },
             pc, [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_CardDepthAtlasSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheTemporaryDepth);
@@ -758,7 +773,7 @@ namespace Ifrit::Runtime::Ayanami
             / (Config::kAyanami_CardTileWidth * Config::kAyanami_CardTileWidth) * numCards;
         auto  numTGs = static_cast<i32>(numCardTiles);
 
-        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.RadiositySHIntegrate",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.Radiosity.SHIntegrate",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.RadiositySHIntegrateCS, {}), Vector3i{ numTGs, 1, 1 },
             pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
@@ -802,16 +817,16 @@ namespace Ifrit::Runtime::Ayanami
         auto  cardGroups = DivRoundUp(numCards, Config::kAyanamiSCDirectLightObjectsPerBlock);
         auto  tileGroups = DivRoundUp(m_Resources->m_AtlasElementSize, Config::kAyanamiSCDirectLightCardSizePerBlock);
 
-        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.SurfaceCacheDirectLighting",
+        auto& pass = AddComputePass<PushConst>(builder, "Ayanami.SurfaceCache.DirectLighting",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.SurfaceCacheDirectLightCS, {}),
             Vector3i{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups }, pc,
             [this](PushConst data, const FrameGraphPassContext& ctx) {
-                data.m_DirectLightUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneDirectLighting);
+                data.m_DirectLightUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheDirectLightingAtlas);
                 data.m_ShadowMaskSRV  = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneShadowVisibilityAtlas);
                 data.m_NormalAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheNormalAtlas);
                 SetRootConstant(data, ctx);
             })
-                         .AddWriteResource(*m_Resources->m_RDGSceneDirectLighting)
+                         .AddWriteResource(*m_Resources->m_RDGSceneCacheDirectLightingAtlas)
                          .AddReadResource(*m_Resources->m_RDGSceneCacheNormalAtlas)
                          .AddReadResource(*m_Resources->m_RDGSceneShadowVisibilityAtlas);
     }
@@ -834,6 +849,45 @@ namespace Ifrit::Runtime::Ayanami
                 SizeCast<u32>(m_Resources->m_MeshCardCoherentGPUData.size() * sizeof(ManagedMeshCardCoherentGPUData)),
                 0);
         });
+    }
+
+    IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::CombineLighting(FrameGraphBuilder& builder)
+    {
+        struct PushConst
+        {
+            u32 m_DirectLightingAtlasSRV;
+            u32 m_IndirectLightingAtlasSRV;
+            u32 m_AlbedoAtlasSRV;
+            u32 m_FinalLightingAtlasUAV;
+            u32 m_CardResolution;
+            u32 m_CardAtlasResolution;
+        } pc;
+        pc.m_DirectLightingAtlasSRV   = 0;
+        pc.m_IndirectLightingAtlasSRV = 0;
+        pc.m_AlbedoAtlasSRV           = 0;
+        pc.m_FinalLightingAtlasUAV    = 0;
+        pc.m_CardResolution           = m_Resources->m_AtlasElementSize;
+        pc.m_CardAtlasResolution      = m_Resolution;
+
+        auto numCards   = m_Resources->m_MeshCardIndex.load();
+        auto cardGroups = DivRoundUp(numCards, Config::kAyanamiSCDirectLightObjectsPerBlock);
+        auto tileGroups = DivRoundUp(m_Resources->m_AtlasElementSize, Config::kAyanamiSCDirectLightCardSizePerBlock);
+        Vector3i numTGs{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups };
+
+        auto&    pass = AddComputePass<PushConst>(builder, "Ayanami.SurfaceCache.CombineLighting",
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.SurfaceCacheCombineLightCS, {}), numTGs, pc,
+            [this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_DirectLightingAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheDirectLightingAtlas);
+                data.m_IndirectLightingAtlasSRV =
+                    ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);
+                data.m_AlbedoAtlasSRV        = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheAlbedoAtlas);
+                data.m_FinalLightingAtlasUAV = ctx.m_FgDesc->GetUAV(*m_Resources->m_RDGSceneCacheFinalLightingAtlas);
+                SetRootConstant(data, ctx);
+            })
+                         .AddWriteResource(*m_Resources->m_RDGSceneCacheFinalLightingAtlas)
+                         .AddReadResource(*m_Resources->m_RDGSceneCacheDirectLightingAtlas)
+                         .AddReadResource(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas)
+                         .AddReadResource(*m_Resources->m_RDGSceneCacheAlbedoAtlas);
     }
 
     IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGAlbedoAtlas()
@@ -863,12 +917,16 @@ namespace Ifrit::Runtime::Ayanami
 
     IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGDirectLightingAtlas()
     {
-        return *m_Resources->m_RDGSceneDirectLighting;
+        return *m_Resources->m_RDGSceneCacheDirectLightingAtlas;
     }
 
     IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGIndirectLightingAtlas()
     {
         return *m_Resources->m_RDGSceneCacheIndirectRadianceAtlas;
+    }
+    IFRIT_APIDECL FGTextureNode& AyanamiTrivialSurfaceCacheManager::GetRDGFinalLightingAtlas()
+    {
+        return *m_Resources->m_RDGSceneCacheFinalLightingAtlas;
     }
 
     IFRIT_APIDECL Graphics::Rhi::RhiBufferRef AyanamiTrivialSurfaceCacheManager::GetCardDataBuffer()

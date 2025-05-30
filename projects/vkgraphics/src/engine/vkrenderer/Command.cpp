@@ -700,8 +700,7 @@ namespace Ifrit::Graphics::VulkanGraphics
                 }
                 else
                 {
-                    iError("Source state is not auto traced");
-                    std::abort();
+                    srcState = barrier.m_transition.m_srcState;
                 }
                 auto          dstState = barrier.m_transition.m_dstState;
                 VkAccessFlags srcAccessMask, dstAccessMask;
