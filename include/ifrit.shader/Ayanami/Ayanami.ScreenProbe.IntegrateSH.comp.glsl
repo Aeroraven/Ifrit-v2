@@ -112,9 +112,7 @@ void main(){
     uint TotalProbes = GetResource(BAdaptiveProbesCounter,PushConst.m_AdaptiveProbesCounterUAV).m_Counter+ TotalUniformProbes;
 
     uint ProbeId = gl_GlobalInvocationID.x;
-    if(ProbeId >= TotalProbes) return;
-
-    
+    if(ProbeId >= TotalProbes) return;    
 
     vec2 ProbeUV;
     if(ProbeId < TotalUniformProbes){

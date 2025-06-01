@@ -43,10 +43,11 @@ namespace Ifrit::Runtime::Ayanami
         void RenderDeferredLighting(FrameGraphBuilder& builder, u32 perFrameCBV, FGTextureNodeRef gbufferDepth,
             FGTextureNodeRef gbufferNormal, FGTextureNodeRef gbufferAlbedo, FGBufferNodeRef shadowData,
             u32 totalLights);
-        void ExperimentalFuse(FrameGraphBuilder& builder);
+        void ExperimentalFuse(FrameGraphBuilder& builder, FGTextureNodeRef gbufferAlbedo);
 
         FGTextureNodeRef GetRDGDirectShadowTexture() const;
         FGTextureNodeRef GetRDGDirectLightingTexture() const;
+        FGTextureNodeRef GetRDGIndirectLightingTexture() const;
         FGTextureNodeRef GetRDGFinalLightingTexture() const;
         FGTextureNodeRef GetRDGLastFrameFinalLightingTexture() const;
     };

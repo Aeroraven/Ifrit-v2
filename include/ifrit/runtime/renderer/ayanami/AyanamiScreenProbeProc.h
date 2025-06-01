@@ -42,14 +42,17 @@ namespace Ifrit::Runtime::Ayanami
         void PrepareMeshDFCulling(
             FrameGraphBuilder& builder, u32 numTotalMdfs, Vector3f worldBoundMin, Vector3f worldBoundMax);
         void ScatterMeshDFToGrids(FrameGraphBuilder& builder, u32 perframeCBV, u32 numTotalMdfs, u32 meshDFDescUAV);
-        void ProbeMDFTrace(
-            FrameGraphBuilder& builder, u32 perframeCBV, u32 meshDFDescUAV, FGTextureNodeRef gbufferDepth);
-        void             ProbeGDFTrace(FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef gbufferDepth,
-                        FGTextureNodeRef globalDF, u32 globalDFWSRang);
-        void             ProbeIntegrate(FrameGraphBuilder& builder);
-        void             ProbeOctMappingBorderFix(FrameGraphBuilder& builder);
-        void             ProbePixelGather(FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef gbufferDepth,
-                        FGTextureNodeRef gbufferNormal, FGTextureNodeRef outputTex);
+        void ProbeMDFTrace(FrameGraphBuilder& builder, u32 perframeCBV, u32 meshDFDescUAV,
+            FGTextureNodeRef gbufferDepth, u32 allCardDataId, FGTextureNodeRef cardDepthAtlas,
+            FGTextureNodeRef cardAlbedoAtlas, u32 cardResolution, u32 cardAtlasResolution);
+        void ProbeGDFTrace(FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef gbufferDepth,
+            FGTextureNodeRef globalDF, u32 globalDFWSRange, u32 allCardDataId, FGTextureNodeRef cardDepthAtlas,
+            FGTextureNodeRef cardAlbedoAtlas, u32 cardResolution, u32 cardAtlasResolution, u32 globalDFResolution,
+            u32 voxelsPerClipMapwidth, FGBufferNodeRef globalObjectGrids, u32 meshDFDesc);
+        void ProbeIntegrate(FrameGraphBuilder& builder);
+        void ProbeOctMappingBorderFix(FrameGraphBuilder& builder);
+        void ProbePixelGather(FrameGraphBuilder& builder, u32 perframeCBV, FGTextureNodeRef gbufferDepth,
+            FGTextureNodeRef gbufferNormal, FGTextureNodeRef outputTex);
 
         FGBufferNodeRef  GetAdaptiveProbesList() const;
         FGBufferNodeRef  GetAdaptiveProbesCounter() const;

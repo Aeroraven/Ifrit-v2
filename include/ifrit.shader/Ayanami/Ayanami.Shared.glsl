@@ -309,10 +309,43 @@ vec3 AyaShared_GetGlobalDistanceGradient(vec3 PosUVW, uint GlobalDFId, uint Glob
     return normalize(vec3(dx1 - dx2, dy1 - dy2, dz1 - dz2));
 }
 
+vec3 AyaShared_GetMeshDistanceGradient(vec3 PosUVW, uint MeshDFDescList, uint MDFId){
+    MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, MeshDFDescList).m_Data[MDFId];
+    MeshDFMeta MeshMeta = GetResource(BAyaShared_MeshDFMeta, MeshDesc.m_MdfMetaId).m_Data;
+    vec2 Scale = AyaShared_GetSdfQuantScale(MeshMeta);
+    vec3 NormalEps = vec3(0.1);
+    
+    float dx1 = AyaShared_SampleMeshDF(MeshMeta.sdfId, PosUVW + vec3(NormalEps.x, 0.0, 0.0), Scale);
+    float dx2 = AyaShared_SampleMeshDF(MeshMeta.sdfId, PosUVW - vec3(NormalEps.x, 0.0, 0.0), Scale);
+    float dy1 = AyaShared_SampleMeshDF(MeshMeta.sdfId, PosUVW + vec3(0.0, NormalEps.y, 0.0), Scale);
+    float dy2 = AyaShared_SampleMeshDF(MeshMeta.sdfId, PosUVW - vec3(0.0, NormalEps.y, 0.0), Scale);
+    float dz1 = AyaShared_SampleMeshDF(MeshMeta.sdfId, PosUVW + vec3(0.0, 0.0, NormalEps.z), Scale);
+    float dz2 = AyaShared_SampleMeshDF(MeshMeta.sdfId, PosUVW - vec3(0.0, 0.0, NormalEps.z), Scale);
+    
+    vec3 LocalNormal = normalize(vec3(dx1 - dx2, dy1 - dy2, dz1 - dz2));
+    mat4 LocalToWorld = AyaShared_GetLocalToWorld(MeshDFDescList, MDFId);
+    vec4 WorldNormal = LocalToWorld * vec4(LocalNormal, 0.0);
+    WorldNormal = normalize(WorldNormal);
+    return WorldNormal.xyz;
+}
+
 vec3 AyaShared_GetGlobalDistanceUVWFromWorldPos(vec3 WorldPos, vec3 GlobalDFMin, vec3 GlobalDFMax){
     vec3 BoxMin = GlobalDFMin;
     vec3 BoxMax = GlobalDFMax;
     vec3 SdfUV = (WorldPos - BoxMin) / (BoxMax - BoxMin);
+    SdfUV = clamp(SdfUV, vec3(0.0), vec3(1.0));
+    return SdfUV;
+}
+
+vec3 AyaShared_GetMeshDistanceUVWFromWorldPos(vec3 WorldPos, uint MeshDFDescList, uint MDFId){
+    MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, MeshDFDescList).m_Data[MDFId];
+    MeshDFMeta MeshMeta = GetResource(BAyaShared_MeshDFMeta, MeshDesc.m_MdfMetaId).m_Data;
+    vec3 BoxMin = MeshMeta.bboxMin.xyz;
+    vec3 BoxMax = MeshMeta.bboxMax.xyz;
+    
+    mat4 WorldToLocal = AyaShared_GetWorldToLocalMesh(MeshDFDescList, MDFId);
+    vec4 LocalPos = WorldToLocal * vec4(WorldPos, 1.0);
+    vec3 SdfUV = (LocalPos.xyz - BoxMin) / (BoxMax - BoxMin);
     SdfUV = clamp(SdfUV, vec3(0.0), vec3(1.0));
     return SdfUV;
 }
@@ -369,6 +402,38 @@ CardSample AyaShared_EvaluateGlobalDFHit(vec3 TraceOriginWS, vec3 TraceDirWS, fl
         Sample.m_Albedo = Accum.m_MaxAlbedo;
     }
     
+    return Sample;
+}
+
+CardSample AyaShared_EvaluateMeshDFHit(vec3 TraceOriginWS,vec3 TraceDirWS, float HitTime,uint MeshId,
+    uint MeshDFDescListId, uint AllCardData, uint CardDepthAtlasSRV,uint CardAlbedoAtlasSRV,
+    uint CardResolution, uint CardAtlasResolution){
+
+    CardSample Sample;
+    Sample.m_Albedo = vec4(0.0);
+
+    CardAccumulator Accum;
+    Accum.m_AccAlbedo = vec4(0.0);
+    Accum.m_MaxAlbedo = vec4(0.0);
+    Accum.m_Samples = 0.0;
+    Accum.m_MaxWeight = 0.0;
+
+    vec3 HitPosWS = TraceOriginWS + TraceDirWS * HitTime;
+    vec3 HitPosUVW = AyaShared_GetMeshDistanceUVWFromWorldPos(HitPosWS, MeshDFDescListId, MeshId);
+    vec3 HitNormalWS = AyaShared_GetMeshDistanceGradient(HitPosUVW, MeshDFDescListId, MeshId);
+
+    AyaShared_SampleMeshCards(MeshId, HitPosWS, HitNormalWS, MeshDFDescListId, AllCardData,
+        CardDepthAtlasSRV, CardAlbedoAtlasSRV, CardResolution, CardAtlasResolution, Accum);
+
+    if(Accum.m_Samples > 0.0){
+        Sample.m_Albedo =  Accum.m_AccAlbedo / Accum.m_Samples;
+    }else{
+        Sample.m_Albedo = vec4(1.05, 0.05, 1.05, 1.0);
+    }
+
+    if(Accum.m_MaxWeight >= 0.97){
+        Sample.m_Albedo = Accum.m_MaxAlbedo;
+    }
     return Sample;
 }
 

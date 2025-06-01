@@ -315,24 +315,37 @@ namespace Ifrit::Runtime
         // Pass Screen Probe Place
         {
             auto resLastFrameFinalLighting = m_Resources->m_DeferredShading->GetRDGLastFrameFinalLightingTexture();
+            auto resIndirectLightingFuse   = m_Resources->m_DeferredShading->GetRDGIndirectLightingTexture();
             auto clipmapRange              = m_GlobalDF->GetWorldBoundMax(0).x;
+            auto allCardData               = m_Resources->m_SurfaceCache->GetCardDataBuffer()->GetDescId();
+
+            auto resSCDepth    = &m_Resources->m_SurfaceCache->GetRDGDepthAtlas();
+            auto resSCAlbedo   = &m_Resources->m_SurfaceCache->GetRDGAlbedoAtlas();
+            auto cardSize      = m_Resources->m_SurfaceCache->GetCardResolution();
+            auto cardAtlasSize = m_Resources->m_SurfaceCache->GetCardAtlasResolution();
+
+            auto gdfResolution  = m_GlobalDF->GetClipmapWidth(0);
+            auto voxelsPerWidth = m_GlobalDF->GetVoxelsPerSide(0);
 
             m_Resources->m_ScreenProbe->AdaptiveScreenProbePlace(builder, primaryViewCBV, &resGNormal, &resGDepth);
-            m_Resources->m_ScreenProbe->ProbeScreenTrace(builder, primaryViewCBV, &resHiZDescMin, &resGAlbedo);
+            m_Resources->m_ScreenProbe->ProbeScreenTrace(
+                builder, primaryViewCBV, &resHiZDescMin, resLastFrameFinalLighting);
             m_Resources->m_ScreenProbe->PrepareMeshDFCulling(
                 builder, m_Resources->m_SceneAggregator->GetNumGatheredInstances(), sceneBoundMin, sceneBoundMax);
             m_Resources->m_ScreenProbe->ScatterMeshDFToGrids(builder, primaryViewCBV,
                 m_Resources->m_SceneAggregator->GetNumGatheredInstances(),
                 m_Resources->m_SceneAggregator->GetGatheredBufferId());
-            m_Resources->m_ScreenProbe->ProbeMDFTrace(
-                builder, primaryViewCBV, m_Resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth);
+            m_Resources->m_ScreenProbe->ProbeMDFTrace(builder, primaryViewCBV,
+                m_Resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth, allCardData, resSCDepth, resSCAlbedo,
+                cardSize, cardAtlasSize);
 
-            m_Resources->m_ScreenProbe->ProbeGDFTrace(
-                builder, primaryViewCBV, &resGDepth, &resGlobalDFGen, clipmapRange);
+            m_Resources->m_ScreenProbe->ProbeGDFTrace(builder, primaryViewCBV, &resGDepth, &resGlobalDFGen,
+                clipmapRange, allCardData, resSCDepth, resSCAlbedo, cardSize, cardAtlasSize, gdfResolution,
+                voxelsPerWidth, &resGlobalObjectGrid, m_Resources->m_SceneAggregator->GetGatheredBufferId());
             m_Resources->m_ScreenProbe->ProbeOctMappingBorderFix(builder);
             m_Resources->m_ScreenProbe->ProbeIntegrate(builder);
             m_Resources->m_ScreenProbe->ProbePixelGather(
-                builder, primaryViewCBV, &resGDepth, &resGNormal, &resDebugProbeGather);
+                builder, primaryViewCBV, &resGDepth, &resGNormal, resIndirectLightingFuse);
         }
 
         // Pass Defered Shading
@@ -341,7 +354,7 @@ namespace Ifrit::Runtime
                 builder, primaryViewCBV, &resShadowData, &resGDepth, &resGNormal, 1);
             m_Resources->m_DeferredShading->RenderDeferredLighting(
                 builder, primaryViewCBV, &resGDepth, &resGNormal, &resGAlbedo, &resShadowData, 1);
-            m_Resources->m_DeferredShading->ExperimentalFuse(builder);
+            m_Resources->m_DeferredShading->ExperimentalFuse(builder, &resGAlbedo);
         }
 
         // Pass Surface Cache Debug
@@ -410,6 +423,8 @@ namespace Ifrit::Runtime
             auto  resSsProbeRadiance     = m_Resources->m_ScreenProbe->GetScreenProbeRadianceAtlas();
             auto  resDeferredShadow      = m_Resources->m_DeferredShading->GetRDGDirectShadowTexture();
             auto  resDeferredLighting    = m_Resources->m_DeferredShading->GetRDGDirectLightingTexture();
+            auto  resFinalLighting       = m_Resources->m_DeferredShading->GetRDGFinalLightingTexture();
+            auto  resFinalLightingAtlas  = m_Resources->m_SurfaceCache->GetRDGFinalLightingAtlas();
             struct PushConst
             {
                 u32 raymarchOutput = 0;
@@ -418,7 +433,7 @@ namespace Ifrit::Runtime
                 ShaderVariantDesc(Internal::kIntShaderTableAyanami.CopyVS, {}),
                 ShaderVariantDesc(Internal::kIntShaderTableAyanami.CopyFS, {}), pc,
                 [&](PushConst data, const FrameGraphPassContext& ctx) {
-                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(resDebugSCOut);
+                    data.raymarchOutput = ctx.m_FgDesc->GetSRV(*resFinalLighting);
                     SetRootConstant(data, ctx);
                 })
                 .AddRenderTarget(resRenderTargets)
@@ -435,6 +450,8 @@ namespace Ifrit::Runtime
                 .AddReadResource(*resDeferredLighting)
                 .AddReadResource(resIndirectRadiance)
                 .AddReadResource(resDirectLightingAtlas)
+                .AddReadResource(*resFinalLighting)
+                .AddReadResource(resFinalLightingAtlas)
                 .AddReadResource(resGNormal);
         }
 

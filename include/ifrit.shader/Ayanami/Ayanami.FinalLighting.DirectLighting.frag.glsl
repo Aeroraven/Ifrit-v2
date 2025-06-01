@@ -96,6 +96,10 @@ void main(){
     PerFramePerViewData PerFrame = AyaShared_GetPerFrameData(PushConst.m_PerFrameCBV);
     
     float ClipDepth = SampleTexture2D(PushConst.m_GDepthSRV, sNearestClamp, vTexCoord).r;
+    if(ClipDepth <= 0.0 || ClipDepth >= 1.0){
+        oDirectLighting = vec4(0.0);
+        return;
+    }
     vec3 NdcPos = vec3(vTexCoord * 2.0 - 1.0, ClipDepth);
 
     mat4 ClipToWorld = PerFrame.m_clipToWorld;

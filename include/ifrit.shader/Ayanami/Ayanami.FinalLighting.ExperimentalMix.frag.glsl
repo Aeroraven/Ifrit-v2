@@ -31,14 +31,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 layout(push_constant)  uniform PushConstData{
     uint m_DirectLightingSRV;
     uint m_IndirectLightingSRV; 
+    uint m_GAlbedoSRV;
 } PushConst;
 
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 oFinalColor;
 
 void main(){
+    vec3 Albedo = SampleTexture2D(PushConst.m_GAlbedoSRV, sNearestClamp, vTexCoord).xyz;
     vec4 DirectLighting = SampleTexture2D(PushConst.m_DirectLightingSRV,sLinearClamp,vTexCoord);
     vec4 IndirectLighting = SampleTexture2D(PushConst.m_IndirectLightingSRV,sLinearClamp,vTexCoord);
-    vec4 FinalColor = DirectLighting + IndirectLighting;
+    vec3 LambertianBRDF = Albedo / kPI;
+
+    // Note that direct lighting is already multiplied by the Lambertian BRDF in prev passes >w<
+    vec4 FinalColor = DirectLighting + IndirectLighting * vec4(LambertianBRDF,1.0);
     oFinalColor = FinalColor;
 }

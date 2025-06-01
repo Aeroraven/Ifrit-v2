@@ -430,7 +430,7 @@ void main(){
 
     if(!kVisTracingHierarchy){
         if(ValidProbe){
-            if(SsgiTraceResult.z > 0.5){
+            if(!kSkipScreenTrace&&SsgiTraceResult.z > 0.5){
                 // screen hit
                 vec2 HitUV = SsgiTraceResult.xy;
                 vec3 HitRadiance = SampleTexture2D(PushConst.m_LastFrameFinalLightingSRV, sLinearClamp, HitUV).xyz;

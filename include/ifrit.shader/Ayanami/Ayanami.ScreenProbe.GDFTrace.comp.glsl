@@ -50,6 +50,16 @@ layout(push_constant) uniform UPushConst{
     uint m_GBufferDepthSRV;
     uint m_GBufferAlbedoSRV;
     uint m_ScreenProbeLightingAtlasUAV;
+
+    uint m_AllCardObjDataId;
+    uint m_CardDepthAtlasSRV;
+    uint m_CardAlbedoAtlasSRV;
+    uint m_CardResolution;
+    uint m_CardAtlasResolution;
+    uint m_GlobalDFResolution;
+    uint m_VoxelsPerClipMapwidth;
+    uint m_ObjectGridUAV;
+    uint m_MeshDFDescListId;
 }PushConst;
 
 const float kRayProceedAdvance = 0.2;
@@ -161,15 +171,37 @@ void main(){
         if(!kVisTracingHierarchy){
             if(TraceResult<1e-2){
                 // skylight, for simplicity
-                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(2.3));
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(0.0));
             }else{
-                vec3 HitPosWS = ProbeLocWS + SampledRay * TraceResult;
-                vec4 HitPosCS = WorldToClip * vec4(HitPosWS, 1.0);
-                vec4 HitPosNDC = HitPosCS / HitPosCS.w;
-                vec2 HitPosUV = HitPosNDC.xy * 0.5 + 0.5;
-                vec4 Albedo = SampleTexture2D(PushConst.m_GBufferAlbedoSRV, sLinearClamp, HitPosUV.xy).rgba;
+                // vec3 HitPosWS = ProbeLocWS + SampledRay * TraceResult;
+                // vec4 HitPosCS = WorldToClip * vec4(HitPosWS, 1.0);
+                // vec4 HitPosNDC = HitPosCS / HitPosCS.w;
+                // vec2 HitPosUV = HitPosNDC.xy * 0.5 + 0.5;
+                // vec4 Albedo = SampleTexture2D(PushConst.m_GBufferAlbedoSRV, sLinearClamp, HitPosUV.xy).rgba;
 
-                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(Albedo.rgb, 0.0));
+                // imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), vec4(Albedo.rgb, 0.0));
+
+                CardSample HitSample = AyaShared_EvaluateGlobalDFHit(
+                    ProbeLocWS, 
+                    SampledRay,
+                    TraceResult,
+                    PushConst.m_GlobalDFSRV,
+                    PushConst.m_WorldBoundMin.xyz,
+                    PushConst.m_WorldBoundMax.xyz,
+                    PushConst.m_GlobalDFResolution,
+                    PushConst.m_VoxelsPerClipMapwidth,
+                    PushConst.m_ObjectGridUAV,
+                    PushConst.m_MeshDFDescListId,
+                    PushConst.m_AllCardObjDataId,
+                    PushConst.m_CardDepthAtlasSRV, 
+                    PushConst.m_CardAlbedoAtlasSRV,
+                    PushConst.m_CardResolution,
+                    PushConst.m_CardAtlasResolution,
+                    kAyanamiObjectGridTileSize
+                );
+                vec4 Albedo = vec4(HitSample.m_Albedo.xyz, 0.0);
+                imageStore(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot), Albedo);
+               
             }
         }else{
             // vec3 HitPosWS = ProbeLocWS + SampledRay * TraceResult;

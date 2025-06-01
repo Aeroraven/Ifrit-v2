@@ -18,7 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 // === Screen Probe ===
 
-const bool kVisTracingHierarchy = true;
+const bool kVisTracingHierarchy = false;
+const bool kSkipScreenTrace = true; // Skip screen trace for debugging purposes
 
 vec3 AyaShared_GetScreenProbeTraceCoord(uvec2 TraceRayCoord, vec2 Jitter){
     vec2 UV = (vec2(TraceRayCoord)+Jitter + vec2(0.5)) / vec2(kAyanami_ScreenProbeProbeHemiRes);

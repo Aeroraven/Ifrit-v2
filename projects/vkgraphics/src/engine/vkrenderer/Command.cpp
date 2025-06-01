@@ -776,6 +776,12 @@ namespace Ifrit::Graphics::VulkanGraphics
                             i32(Rhi::RhiResourceState::UnorderedAccess), i32(barrier.m_uav.m_texture->GetState()));
                         std::abort();
                     }
+                    if (barrier.m_uav.m_texture->GetImageFormat() == Rhi::RhiImageFormat::RhiImgFmt_D32_SFLOAT)
+                    {
+                        iError("Depth texture cannot be used as UAV, texture: {}",
+                            barrier.m_uav.m_texture->GetDebugName());
+                        std::abort();
+                    }
                     _setTextureState(barrier.m_uav.m_texture, Rhi::RhiResourceState::UnorderedAccess);
 
                     // WARNING: subresource unspecified

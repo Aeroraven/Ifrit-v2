@@ -176,26 +176,31 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*shadowData);
     }
 
-    IFRIT_APIDECL void AyanamiDeferredShading::ExperimentalFuse(FrameGraphBuilder& builder)
+    IFRIT_APIDECL void AyanamiDeferredShading::ExperimentalFuse(
+        FrameGraphBuilder& builder, FGTextureNodeRef gbufferAlbedo)
     {
         struct PushConst
         {
-            u32 m_IndirectLightingSRV;
             u32 m_DirectLightingSRV;
+            u32 m_IndirectLightingSRV;
+            u32 m_GAlbedoSRV;
         } pc;
 
         pc.m_IndirectLightingSRV = 0;
         pc.m_DirectLightingSRV   = 0;
+        pc.m_GAlbedoSRV          = 0;
 
         AddPostProcessPass<PushConst>(builder, "Ayanami.FinalLighting.Fuse",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.DeferredExpMixFS, {}), pc,
-            [this](PushConst data, const FrameGraphPassContext& ctx) {
+            [this, gbufferAlbedo](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_IndirectLightingSRV = ctx.m_FgDesc->GetSRV(*m_Private->m_CurFrameIndirectLightingTex);
                 data.m_DirectLightingSRV   = ctx.m_FgDesc->GetSRV(*m_Private->m_DeferredDirectLightingTexture);
+                data.m_GAlbedoSRV          = ctx.m_FgDesc->GetSRV(*gbufferAlbedo);
                 SetRootConstant(data, ctx);
             })
             .AddRenderTarget(*m_Private->m_CurFrameFinalLightingTex)
             .AddReadResource(*m_Private->m_CurFrameIndirectLightingTex)
+            .AddReadResource(*gbufferAlbedo)
             .AddReadResource(*m_Private->m_DeferredDirectLightingTexture);
     }
     IFRIT_APIDECL FGTextureNodeRef AyanamiDeferredShading::GetRDGDirectShadowTexture() const
@@ -205,6 +210,10 @@ namespace Ifrit::Runtime::Ayanami
     IFRIT_APIDECL FGTextureNodeRef AyanamiDeferredShading::GetRDGDirectLightingTexture() const
     {
         return m_Private->m_DeferredDirectLightingTexture;
+    }
+    IFRIT_APIDECL FGTextureNodeRef AyanamiDeferredShading::GetRDGIndirectLightingTexture() const
+    {
+        return m_Private->m_CurFrameIndirectLightingTex;
     }
     IFRIT_APIDECL FGTextureNodeRef AyanamiDeferredShading::GetRDGLastFrameFinalLightingTexture() const
     {

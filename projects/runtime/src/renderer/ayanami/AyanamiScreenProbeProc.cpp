@@ -423,8 +423,9 @@ namespace Ifrit::Runtime::Ayanami
             .AddWriteResource(*m_Private->m_MeshDFCullingList);
     }
 
-    IFRIT_APIDECL void AyanamiScreenProbeProcessor::ProbeMDFTrace(
-        FrameGraphBuilder& builder, u32 perframeCBV, u32 meshDFDescUAV, FGTextureNodeRef gbufferDepth)
+    IFRIT_APIDECL void AyanamiScreenProbeProcessor::ProbeMDFTrace(FrameGraphBuilder& builder, u32 perframeCBV,
+        u32 meshDFDescUAV, FGTextureNodeRef gbufferDepth, u32 allCardDataId, FGTextureNodeRef cardDepthAtlas,
+        FGTextureNodeRef cardAlbedoAtlas, u32 cardResolution, u32 cardAtlasResolution)
     {
         AddClearUAVPass(builder, "Ayanami.ScreenProbe.ClearGlobalDFTraceProposalCounter",
             *m_Private->m_GlobalDFTracingIndirectArgs, 0);
@@ -451,6 +452,12 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_GlobalDFTraceProposalListUAV;
             u32      m_GBufferAlbedoSRV;
             u32      m_NumMeshDFs;
+
+            u32      m_AllCardObjDataId;
+            u32      m_CardDepthAtlasSRV;
+            u32      m_CardAlbedoAtlasSRV;
+            u32      m_CardResolution;
+            u32      m_CardAtlasResolution;
         } pc;
         pc.m_WorldBoundMin = m_Private->m_ActiveWorldBoundMin;
         pc.m_WorldBoundMax = m_Private->m_ActiveWorldBoundMax;
@@ -474,10 +481,16 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_NumMeshDFs                      = m_Private->m_ActiveMDFCounts;
         pc.m_GBufferAlbedoSRV                = 0;
 
+        pc.m_AllCardObjDataId    = allCardDataId;
+        pc.m_CardDepthAtlasSRV   = 0;
+        pc.m_CardAlbedoAtlasSRV  = 0;
+        pc.m_CardResolution      = cardResolution;
+        pc.m_CardAtlasResolution = cardAtlasResolution;
+
         AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.MDFTrace",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeMDFTraceCS, {}),
             *m_Private->m_MeshDFTracingRayIndirectArgs, 1 * sizeof(u32), pc,
-            [this, gbufferDepth](PushConst data, const FrameGraphPassContext& ctx) {
+            [this, gbufferDepth, cardDepthAtlas, cardAlbedoAtlas](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_ScreenProbeLightingAtlasUAV   = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
                 data.m_MeshDFTraceProposalListUAV    = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFTracingRayList);
                 data.m_MeshDFTraceProposalCounterUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_MeshDFTracingRayIndirectArgs);
@@ -489,6 +502,9 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_GlobalDFTraceProposalCounterUAV =
                     ctx.m_FgDesc->GetUAV(*m_Private->m_GlobalDFTracingIndirectArgs);
                 data.m_GlobalDFTraceProposalListUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_GlobalDFTracingList);
+
+                data.m_CardDepthAtlasSRV  = ctx.m_FgDesc->GetSRV(*cardDepthAtlas);
+                data.m_CardAlbedoAtlasSRV = ctx.m_FgDesc->GetSRV(*cardAlbedoAtlas);
                 SetRootConstant(data, ctx);
             })
             .AddReadResource(*m_Private->m_MeshDFTracingRayIndirectArgs)
@@ -498,13 +514,17 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*m_Private->m_MeshDFCullingList)
             .AddReadResource(*gbufferDepth)
             .AddReadResource(*m_Private->m_ActiveGBufferAlbedo)
+            .AddReadResource(*cardDepthAtlas)
+            .AddReadResource(*cardAlbedoAtlas)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingIndirectArgs)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingList)
             .AddReadWriteResource(*m_Private->m_RadianceAtlas);
     }
 
     IFRIT_APIDECL void AyanamiScreenProbeProcessor::ProbeGDFTrace(FrameGraphBuilder& builder, u32 perframeCBV,
-        FGTextureNodeRef gbufferDepth, FGTextureNodeRef globalDF, u32 globalDFWSRange)
+        FGTextureNodeRef gbufferDepth, FGTextureNodeRef globalDF, u32 globalDFWSRange, u32 allCardDataId,
+        FGTextureNodeRef cardDepthAtlas, FGTextureNodeRef cardAlbedoAtlas, u32 cardResolution, u32 cardAtlasResolution,
+        u32 globalDFResolution, u32 voxelsPerClipMapwidth, FGBufferNodeRef globalObjectGrids, u32 meshDFDesc)
     {
         struct PushConst
         {
@@ -521,6 +541,17 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_GBufferDepthSRV;
             u32      m_GBufferAlbedoSRV;
             u32      m_ScreenProbeLightingAtlasUAV;
+
+            u32      m_AllCardObjDataId;
+            u32      m_CardDepthAtlasSRV;
+            u32      m_CardAlbedoAtlasSRV;
+            u32      m_CardResolution;
+            u32      m_CardAtlasResolution;
+
+            u32      m_GlobalDFResolution;
+            u32      m_VoxelsPerClipMapwidth;
+            u32      m_ObjectGridUAV;
+            u32      m_MeshDFDescListId;
         } pc;
         pc.m_RayJitter                       = Vector2f(0.0f, 0.0f);
         pc.m_GlobalDFSRV                     = 0;
@@ -536,10 +567,22 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_GlobalDFSRV                     = 0;
         pc.m_ScreenProbeLightingAtlasUAV     = 0;
 
+        pc.m_AllCardObjDataId    = allCardDataId;
+        pc.m_CardDepthAtlasSRV   = 0;
+        pc.m_CardAlbedoAtlasSRV  = 0;
+        pc.m_CardResolution      = cardResolution;
+        pc.m_CardAtlasResolution = cardAtlasResolution;
+
+        pc.m_GlobalDFResolution    = globalDFResolution;
+        pc.m_VoxelsPerClipMapwidth = voxelsPerClipMapwidth;
+        pc.m_ObjectGridUAV         = 0;
+        pc.m_MeshDFDescListId      = meshDFDesc;
+
         AddIndirectComputePass<PushConst>(builder, "Ayanami.ScreenProbe.GDFTrace",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.ScreenProbeGDFTraceCS, {}),
             *m_Private->m_GlobalDFTracingIndirectArgs, 1 * sizeof(u32), pc,
-            [this, gbufferDepth, globalDF](PushConst data, const FrameGraphPassContext& ctx) {
+            [this, gbufferDepth, globalDF, cardDepthAtlas, cardAlbedoAtlas, globalObjectGrids](
+                PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_GlobalDFSRV = ctx.m_FgDesc->GetSRV(*globalDF);
                 data.m_GlobalDFTraceProposalCounterUAV =
                     ctx.m_FgDesc->GetUAV(*m_Private->m_GlobalDFTracingIndirectArgs);
@@ -548,6 +591,11 @@ namespace Ifrit::Runtime::Ayanami
                 data.m_GBufferDepthSRV              = ctx.m_FgDesc->GetSRV(*gbufferDepth);
                 data.m_GBufferAlbedoSRV             = ctx.m_FgDesc->GetSRV(*m_Private->m_ActiveGBufferAlbedo);
                 data.m_ScreenProbeLightingAtlasUAV  = ctx.m_FgDesc->GetUAV(*m_Private->m_RadianceAtlas);
+
+                data.m_CardDepthAtlasSRV  = ctx.m_FgDesc->GetSRV(*cardDepthAtlas);
+                data.m_CardAlbedoAtlasSRV = ctx.m_FgDesc->GetSRV(*cardAlbedoAtlas);
+
+                data.m_ObjectGridUAV = ctx.m_FgDesc->GetUAV(*globalObjectGrids);
                 SetRootConstant(data, ctx);
             })
             .AddReadResource(*gbufferDepth)
@@ -555,6 +603,9 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*m_Private->m_AdaptiveProbesList)
             .AddWriteResource(*m_Private->m_RadianceAtlas)
             .AddReadResource(*m_Private->m_ActiveGBufferAlbedo)
+            .AddReadResource(*cardAlbedoAtlas)
+            .AddReadResource(*cardDepthAtlas)
+            .AddReadResource(*globalObjectGrids)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingIndirectArgs)
             .AddReadWriteResource(*m_Private->m_GlobalDFTracingList);
     }
