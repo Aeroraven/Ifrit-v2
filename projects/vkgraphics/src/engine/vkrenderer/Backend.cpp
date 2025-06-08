@@ -459,14 +459,14 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     Ref<Rhi::RhiColorAttachment> RhiVulkanBackend::CreateRenderTarget(Rhi::RhiTexture* renderTarget,
-        Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers)
+        Rhi::RhiClearValue2 clearValue, Rhi::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers)
     {
         auto attachment = std::make_shared<ColorAttachment>(renderTarget, clearValue, loadOp, mips, layers);
         return attachment;
     }
 
     Ref<Rhi::RhiDepthStencilAttachment> RhiVulkanBackend::CreateRenderTargetDepthStencil(
-        Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp)
+        Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue2 clearValue, Rhi::RhiRenderTargetLoadOp loadOp)
     {
         auto attachment = std::make_shared<DepthStencilAttachment>(renderTarget, clearValue, loadOp);
         return attachment;

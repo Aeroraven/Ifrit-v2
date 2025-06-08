@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
+#include "ifrit/rhi/common/RhiStructHelper.h"
 
 namespace Ifrit::Runtime::FrameGraphUtils
 {
@@ -154,8 +155,8 @@ namespace Ifrit::Runtime::FrameGraphUtils
         return pass;
     }
 
-    IFRIT_APIDECL PassNode& AddClearUAVTexturePass(
-        FrameGraphBuilder& builder, const String& name, ResourceNode& texture, u64 clearValue)
+    IFRIT_APIDECL PassNode& AddClearUAVTexturePass(FrameGraphBuilder& builder, const String& name,
+        ResourceNode& texture, Graphics::Rhi::RhiClearColorValue clearValue)
     {
         auto& pass = builder.AddPass(name, FrameGraphPassType::Transfer).AddWriteResource(texture);
         if (texture.GetType() != FrameGraphResourceType::ResourceTexture)
@@ -167,7 +168,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
         {
             pass.SetExecutionFunction([&texture, clearValue](const FrameGraphPassContext& ctx) {
                 auto cmd = ctx.m_CmdList;
-                cmd->ClearUAVTexLong(texture.GetTexture(), { 0, 0, 1, 1 }, clearValue);
+                cmd->ClearUAVTexture(texture.GetTexture(), { 0, 0, 1, 1 }, clearValue);
             });
         }
 

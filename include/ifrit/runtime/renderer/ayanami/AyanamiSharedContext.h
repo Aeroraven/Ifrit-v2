@@ -17,26 +17,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/runtime/common/Pch.h"
+#include "ifrit/runtime/base/Base.h"
+#include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
 
 namespace Ifrit::Runtime::Ayanami
 {
-    struct AyanamiRenderConfig
+    struct AyanamiSharedContext
     {
-        u32  m_globalDFClipmapLevels     = 4;
-        u32  m_globalDFClipmapResolution = 256;   // 16MB per clipmap level
-        f32  m_globalDFBaseExtent        = 20.0f; // 2500.0 in the original code
-
-        u32  m_SurfaceCacheResolution       = 4096;
-        u32  m_RadiancePassMaxPerTileLights = 8;
-
-        u32  m_VoxelExtentPerGlobalClipMap = 64; // object grids
-
-        bool m_DebugForceSurfaceCacheRegen = false;
-        bool m_DebugRunDFSS                = false;
-        bool m_DebugForceObjectGridRegen   = false;
-
-        u32  m_SurfaceCacheLowDiscrepancySeqLen    = 16;
-        u32  m_SurfaceCacheTemporalAccumMaxHistory = 32;
+        u64 m_FrameIdx = 0;
     };
 } // namespace Ifrit::Runtime::Ayanami

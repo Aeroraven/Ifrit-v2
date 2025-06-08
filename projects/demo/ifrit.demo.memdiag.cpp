@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
 #include <numbers>
 #include <thread>
+#include "ifrit/rhi/common/RhiStructHelper.h"
 
 #define WINDOW_WIDTH 1980
 #define WINDOW_HEIGHT 1080
@@ -158,14 +159,14 @@ namespace Ifrit
             light->SetAffectPbrSky(true);
 
             // Render targets
-            auto rt       = m_rhiLayer.get();
-            depthImage    = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
-            swapchainImg  = rt->GetSwapchainImage();
-            renderTargets = rt->CreateRenderTargets();
-            colorAttachment =
-                rt->CreateRenderTarget(swapchainImg, { 0.0f, 0.0f, 0.0f, 1.0f }, RhiRenderTargetLoadOp::Clear, 0, 0);
-            depthAttachment =
-                rt->CreateRenderTargetDepthStencil(depthImage.get(), { {}, 1.0f }, RhiRenderTargetLoadOp::Clear);
+            auto rt         = m_rhiLayer.get();
+            depthImage      = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
+            swapchainImg    = rt->GetSwapchainImage();
+            renderTargets   = rt->CreateRenderTargets();
+            colorAttachment = rt->CreateRenderTarget(swapchainImg,
+                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
+            depthAttachment = rt->CreateRenderTargetDepthStencil(depthImage.get(),
+                Graphics::Rhi::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Clear);
             renderTargets->SetColorAttachments({ colorAttachment.get() });
             renderTargets->SetDepthStencilAttachment(depthAttachment.get());
             renderTargets->SetRenderArea(scissor);

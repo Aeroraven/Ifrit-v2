@@ -181,10 +181,8 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         void DispatchIndirect(const Rhi::RhiBuffer* buffer, u32 offset) const override;
         void SetPushConst(const void* data, u32 offset, u32 size) const override;
-        void ClearUAVTexFloat(const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource,
-            const Array<float, 4>& val) const override;
-        void ClearUAVTexLong(
-            const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, u64 val) const override;
+        void ClearUAVTexture(const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource,
+            const Rhi::RhiClearColorValue& clearValue) const override;
         void AddResourceBarrier(const Vec<Rhi::RhiResourceBarrier>& barriers) const override;
 
         void GlobalMemoryBarrier() const override;

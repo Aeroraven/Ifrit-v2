@@ -35,39 +35,45 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #define IF_SIZEOF_RETURN_TYPE u32
 
-// check if compiler supports constexpr
-#if _MSC_VER >= 1920
-    #define IF_CONSTEXPR constexpr
-    #define IF_CONSTEXPR_AVAILABLE 1
+// check if compiler supports C++20, export to IF_CXX20_AVAILABLE
+#ifdef _MSVC_LANG
+    #define IF_CXX_VERSION _MSVC_LANG
+    #define IF_COMPILER_MSVC 1
 #else
-    #if __cplusplus >= 201703L
-        #define IF_CONSTEXPR constexpr
-        #define IF_CONSTEXPR_AVAILABLE 1
+    #define IF_CXX_VERSION __cplusplus
+    // check g++ or clang
+    #ifdef __GNUC__
+        #define IF_COMPILER_GCC 1
+    #elif defined(__clang__)
+        #define IF_COMPILER_CLANG 1
     #else
-        #define IF_CONSTEXPR
+        #define IF_COMPILER_UNKNOWN 1
     #endif
 #endif
 
-// check if compiler support noexcept
-#if _MSC_VER >= 1900
-    #define IF_NOEXCEPT noexcept
+#define IF_CONSTEXPR_AVAILABLE 1
+
+#define IF_CONSTEXPR constexpr
+#define IF_NOEXCEPT noexcept
+
+#if IF_CXX_VERSION >= 202002L
+    #define IF_CONSTEVAL consteval
 #else
-    #if __cplusplus >= 201703L
-        #define IF_NOEXCEPT noexcept
-    #else
-        #define IF_NOEXCEPT
-    #endif
+    #define IF_CONSTEVAL IF_CONSTEXPR
+#endif
+
+#if IF_CXX_VERSION >= 201703L
+    #define IF_NODISCARD [[nodiscard]]
+#else
+    #define IF_NODISCARD
+    #error "C++17 or later is required for Ifrit-v2. Please enable C++17 support in your compiler settings."
 #endif
 
 // forceinline
-#if _MSC_VER >= 1900
+#if defined(IF_COMPILER_MSVC)
     #define IF_FORCEINLINE __forceinline
 #else
-    #if __cplusplus >= 201703L
-        #define IF_FORCEINLINE inline
-    #else
-        #define IF_FORCEINLINE
-    #endif
+    #define IF_FORCEINLINE inline
 #endif
 
 namespace Ifrit
@@ -143,6 +149,22 @@ namespace Ifrit
     using String                                                      = std::string;
     template <typename T> using Queue                                 = std::queue<T>;
     using IntPtr                                                      = std::intptr_t;
+#endif
+
+// Requires
+#if IF_CXX_VERSION >= 202002L
+    namespace Private
+    {
+        template <typename T>
+        concept RequiresHelper = true;
+
+    } // namespace Private
+
+    // clang-format off
+    #define IF_REQUIRES(...)  > requires(!!(__VA_ARGS__)) && Private::RequiresHelper < int
+    // clang-format on
+#else
+    #define IF_REQUIRES(...) , std::enable_if_t<(__VA_ARGS__), int> = 0
 #endif
 
 } // namespace Ifrit

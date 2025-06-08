@@ -102,10 +102,10 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         // Render targets
         virtual Ref<Rhi::RhiColorAttachment>        CreateRenderTarget(Rhi::RhiTexture* renderTarget,
-                   Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers) override;
+                   Rhi::RhiClearValue2 clearValue, Rhi::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers) override;
 
         virtual Ref<Rhi::RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
-            Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp) override;
+            Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue2 clearValue, Rhi::RhiRenderTargetLoadOp loadOp) override;
 
         virtual Ref<Rhi::RhiRenderTargets>         CreateRenderTargets() override;
 

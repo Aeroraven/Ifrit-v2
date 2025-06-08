@@ -141,11 +141,11 @@ namespace Ifrit::Graphics::Rhi
         virtual RhiCBVDesc                 GetCBVDescriptor(RhiBuffer* buffer)                                    = 0;
 
         // Render target
-        virtual Ref<RhiColorAttachment>    CreateRenderTarget(RhiTexture* renderTarget, RhiClearValue clearValue,
+        virtual Ref<RhiColorAttachment>    CreateRenderTarget(RhiTexture* renderTarget, RhiClearValue2 clearValue,
                RhiRenderTargetLoadOp loadOp, u32 mip, u32 arrLayer) = 0;
 
         virtual Ref<RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
-            RhiTexture* renderTarget, RhiClearValue clearValue, RhiRenderTargetLoadOp loadOp) = 0;
+            RhiTexture* renderTarget, RhiClearValue2 clearValue, RhiRenderTargetLoadOp loadOp) = 0;
 
         virtual Ref<RhiRenderTargets>         CreateRenderTargets() = 0;
 

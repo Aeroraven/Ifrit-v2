@@ -74,8 +74,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         if (m_depthStencilAttachment)
         {
             VkClearValue clearValue;
-            clearValue.depthStencil.depth   = m_depthStencilAttachment->GetClearValue().m_depth;
-            clearValue.depthStencil.stencil = m_depthStencilAttachment->GetClearValue().m_stencil;
+            clearValue.depthStencil.depth   = m_depthStencilAttachment->GetClearValue().m_DepthStencil.m_Depth;
+            clearValue.depthStencil.stencil = m_depthStencilAttachment->GetClearValue().m_DepthStencil.m_Stencil;
 
             VkAttachmentLoadOp loadOp;
             if (m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear
@@ -111,10 +111,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         for (auto attachment : m_colorAttachments)
         {
             VkClearValue clearValue;
-            clearValue.color.float32[0] = attachment->GetClearValue().m_color[0];
-            clearValue.color.float32[1] = attachment->GetClearValue().m_color[1];
-            clearValue.color.float32[2] = attachment->GetClearValue().m_color[2];
-            clearValue.color.float32[3] = attachment->GetClearValue().m_color[3];
+            // clearValue.color.float32[0] = attachment->GetClearValue().m_color[0];
+            // clearValue.color.float32[1] = attachment->GetClearValue().m_color[1];
+            // clearValue.color.float32[2] = attachment->GetClearValue().m_color[2];
+            // clearValue.color.float32[3] = attachment->GetClearValue().m_color[3];
+            memcpy(&clearValue.color.float32[0], attachment->GetClearValue().m_Color.m_ValueF32, sizeof(float) * 4);
 
             VkAttachmentLoadOp loadOp;
             if (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear

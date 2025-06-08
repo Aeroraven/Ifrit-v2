@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/base/Scene.h"
 #include "AyanamiRenderConfig.h"
+#include "AyanamiSharedContext.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
 
@@ -35,10 +36,12 @@ namespace Ifrit::Runtime::Ayanami
     private:
         IApplication*                              m_App;
         u32                                        m_Resolution;
-        AyanamiTrivialSurfaceCacheManagerResource* m_Resources = nullptr;
+        AyanamiTrivialSurfaceCacheManagerResource* m_Resources     = nullptr;
+        AyanamiSharedContext*                      m_SharedContext = nullptr;
 
     public:
-        AyanamiTrivialSurfaceCacheManager(const AyanamiRenderConfig& config, IApplication* app);
+        AyanamiTrivialSurfaceCacheManager(
+            const AyanamiRenderConfig& config, AyanamiSharedContext* sharedCtx, IApplication* app);
         ~AyanamiTrivialSurfaceCacheManager();
 
         void              UpdateSceneCache(Scene* scene);
@@ -72,5 +75,7 @@ namespace Ifrit::Runtime::Ayanami
         u32                         GetCardAtlasResolution();
         u32                         GetWorldMatsId();
         u32                         GetNumCards();
+
+        void                        FrameProceed();
     };
 } // namespace Ifrit::Runtime::Ayanami

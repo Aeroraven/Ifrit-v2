@@ -82,8 +82,15 @@ uvec2 GetAdaptiveProbeCoord(uint AdaptiveProbeId){
 uvec2 GetProbeWritingSlot(uint ProbeId, uint ProbeCntPerX, uvec2 TraceRayCoord){
     uint ProbeX = ProbeId % ProbeCntPerX;
     uint ProbeY = ProbeId / ProbeCntPerX;
-    uint ProbeLocX = ProbeX * (kAyanami_ScreenProbeProbeHemiRes+2);
-    uint ProbeLocY = ProbeY * (kAyanami_ScreenProbeProbeHemiRes+2);
+    uint ProbeLocX; //= ProbeX * (kAyanami_ScreenProbeProbeHemiRes+2);
+    uint ProbeLocY; //= ProbeY * (kAyanami_ScreenProbeProbeHemiRes+2);
+    if(kEnableOctMapBorderFix){
+        ProbeLocX = ProbeX * (kAyanami_ScreenProbeProbeHemiRes+2);
+        ProbeLocY = ProbeY * (kAyanami_ScreenProbeProbeHemiRes+2);
+    }else{
+        ProbeLocX = ProbeX * kAyanami_ScreenProbeProbeHemiRes;
+        ProbeLocY = ProbeY * kAyanami_ScreenProbeProbeHemiRes;
+    }
     uvec2 ProbeLoc = uvec2(ProbeLocX, ProbeLocY);
     uvec2 WritingSlot = ProbeLoc + TraceRayCoord;
     return WritingSlot; 
@@ -133,7 +140,12 @@ void main(){
         for(uint j=0;j<kAyanami_ScreenProbeProbeHemiRes;j++){
             uvec2 TraceRayCoord = uvec2(i,j);
 
-            uvec2 WritingSlot = GetProbeWritingSlot(ProbeId, ProbeCntPerX, TraceRayCoord+uvec2(1,1));
+            uvec2 WritingSlot;
+            if(kEnableOctMapBorderFix){
+                WritingSlot = GetProbeWritingSlot(ProbeId, ProbeCntPerX, TraceRayCoord+uvec2(1,1));
+            }else{
+                WritingSlot = GetProbeWritingSlot(ProbeId, ProbeCntPerX, TraceRayCoord);
+            }
             
             vec3 SampledRay =  AyaShared_GetScreenProbeTraceCoord(TraceRayCoord,PushConst.m_RayJitter);
             vec3 Radiance = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot)).xyz;

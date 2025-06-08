@@ -58,3 +58,11 @@ ivec2 GetProbeSHAtlasCoord(uint ProbeIndex,uint CardAtlasResolution, uint CardRe
     return ivec2(ProbeX, ProbeY);
 #endif
 }
+
+vec4 AyaShared_RadiosityGetRayPDF(vec2 ProbeUV){
+#if INTERNAL_AYANAMI_RADIOSITY_UNIFORM_DISTRIBUTION_DEBUG
+    return ifrit_SampleUniformSphereWithPDF(ProbeUV);
+#else
+    return ifrit_SampleCosineHemisphereWithPDF(ProbeUV);
+#endif
+}

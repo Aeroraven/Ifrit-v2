@@ -538,41 +538,47 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     };
 
-    IFRIT_APIDECL void CommandBuffer::ClearUAVTexFloat(
-        const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, const std::array<float, 4>& val) const
-    {
-        auto              image = CheckedCast<SingleDeviceImage>(texture);
-        VkClearColorValue clearColor;
-        clearColor.float32[0] = val[0];
-        clearColor.float32[1] = val[1];
-        clearColor.float32[2] = val[2];
-        clearColor.float32[3] = val[3];
-        VkImageSubresourceRange range{};
-        range.aspectMask     = image->GetAspect();
-        range.baseMipLevel   = subResource.mipLevel;
-        range.levelCount     = subResource.mipCount;
-        range.baseArrayLayer = subResource.arrayLayer;
-        range.layerCount     = subResource.layerCount;
-        vkCmdClearColorImage(m_commandBuffer, image->GetImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &range);
-    }
+    // IFRIT_APIDECL void CommandBuffer::ClearUAVTexFloat(
+    //     const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, const std::array<float, 4>& val) const
+    // {
+    //     auto              image = CheckedCast<SingleDeviceImage>(texture);
+    //     VkClearColorValue clearColor;
+    //     clearColor.float32[0] = val[0];
+    //     clearColor.float32[1] = val[1];
+    //     clearColor.float32[2] = val[2];
+    //     clearColor.float32[3] = val[3];
+    //     VkImageSubresourceRange range{};
+    //     range.aspectMask     = image->GetAspect();
+    //     range.baseMipLevel   = subResource.mipLevel;
+    //     range.levelCount     = subResource.mipCount;
+    //     range.baseArrayLayer = subResource.arrayLayer;
+    //     range.layerCount     = subResource.layerCount;
+    //     vkCmdClearColorImage(m_commandBuffer, image->GetImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &range);
+    // }
 
-    IFRIT_APIDECL void CommandBuffer::ClearUAVTexLong(
-        const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, u64 val) const
+    IFRIT_APIDECL void CommandBuffer::ClearUAVTexture(
+        const Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, const Rhi::RhiClearColorValue& val) const
     {
         auto              image = CheckedCast<SingleDeviceImage>(texture);
         VkClearColorValue clearColor;
-        clearColor.uint32[0] = static_cast<u32>(val & 0xFFFFFFFF);
-        clearColor.uint32[1] = static_cast<u32>((val >> 32) & 0xFFFFFFFF);
-        clearColor.uint32[2] = static_cast<u32>(val & 0xFFFFFFFF);
-        clearColor.uint32[3] = static_cast<u32>((val >> 32) & 0xFFFFFFFF);
+        memcpy(clearColor.uint32, val.m_ValueU32, sizeof(clearColor.uint32));
         VkImageSubresourceRange range{};
         range.aspectMask     = image->GetAspect();
         range.baseMipLevel   = subResource.mipLevel;
         range.levelCount     = subResource.mipCount;
         range.baseArrayLayer = subResource.arrayLayer;
         range.layerCount     = subResource.layerCount;
-        vkCmdClearColorImage(
-            m_commandBuffer, image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
+
+        auto state = image->GetState();
+        if (state == Rhi::RhiResourceState::CopyDst)
+        {
+            vkCmdClearColorImage(
+                m_commandBuffer, image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
+        }
+        else
+        {
+            vkCmdClearColorImage(m_commandBuffer, image->GetImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &range);
+        }
     }
 
     IFRIT_APIDECL void CommandBuffer::CopyImage(const Rhi::RhiTexture* src, Rhi::RhiImageSubResource srcSub,

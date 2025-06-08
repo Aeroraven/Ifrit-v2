@@ -27,15 +27,15 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
     private:
         SingleDeviceImage*          m_renderTarget;
-        Rhi::RhiClearValue          m_clearValue;
+        Rhi::RhiClearValue2         m_clearValue;
         Rhi::RhiRenderTargetLoadOp  m_loadOp;
         u32                         m_targetMip      = ~0u;
         u32                         m_targetArrLayer = ~0u;
         Rhi::RhiAttachmentBlendInfo m_blendInfo;
 
     public:
-        ColorAttachment(Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp,
-            u32 mip, u32 arrLayer)
+        ColorAttachment(Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue2 clearValue,
+            Rhi::RhiRenderTargetLoadOp loadOp, u32 mip, u32 arrLayer)
             : m_renderTarget(Ifrit::CheckedCast<SingleDeviceImage>(renderTarget))
             , m_clearValue(clearValue)
             , m_loadOp(loadOp)
@@ -46,7 +46,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         inline SingleDeviceImage*         GetRenderTargetInternal() const { return m_renderTarget; }
         inline Rhi::RhiTexture*           GetRenderTarget() const override { return m_renderTarget; }
-        inline Rhi::RhiClearValue         GetClearValue() const { return m_clearValue; }
+        inline Rhi::RhiClearValue2        GetClearValue() const { return m_clearValue; }
         inline Rhi::RhiRenderTargetLoadOp GetLoadOp() const { return m_loadOp; }
         inline u32                        GetTargetMip() const { return m_targetMip; }
         inline u32                        GetTargetArrLayer() const { return m_targetArrLayer; }
@@ -59,12 +59,12 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
     private:
         SingleDeviceImage*         m_renderTarget;
-        Rhi::RhiClearValue         m_clearValue;
+        Rhi::RhiClearValue2        m_clearValue;
         Rhi::RhiRenderTargetLoadOp m_loadOp;
 
     public:
         DepthStencilAttachment(
-            Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue clearValue, Rhi::RhiRenderTargetLoadOp loadOp)
+            Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue2 clearValue, Rhi::RhiRenderTargetLoadOp loadOp)
             : m_renderTarget(Ifrit::CheckedCast<SingleDeviceImage>(renderTarget))
             , m_clearValue(clearValue)
             , m_loadOp(loadOp)
@@ -74,7 +74,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline SingleDeviceImage*         GetRenderTargetInternal() const { return m_renderTarget; }
         inline Rhi::RhiTexture*           GetRenderTarget() const { return m_renderTarget; }
         inline Rhi::RhiTexture*           GetTexture() const override { return m_renderTarget; }
-        inline Rhi::RhiClearValue         GetClearValue() const { return m_clearValue; }
+        inline Rhi::RhiClearValue2        GetClearValue() const { return m_clearValue; }
         inline Rhi::RhiRenderTargetLoadOp GetLoadOp() const { return m_loadOp; }
     };
 

@@ -28,6 +28,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 
+#include "ifrit/core/math/LowDiscrepancy.h"
+
 using namespace Ifrit::Graphics::Rhi;
 using Ifrit::Math::DivRoundUp;
 using namespace Ifrit::Runtime::FrameGraphUtils;
@@ -151,16 +153,24 @@ namespace Ifrit::Runtime::Ayanami
         FGTextureNodeRef                    m_RDGSceneCacheRadiositySH_R;
         FGTextureNodeRef                    m_RDGSceneCacheRadiositySH_G;
         FGTextureNodeRef                    m_RDGSceneCacheRadiositySH_B;
+
+        // Low Discrepancy Sequence
+        u32                                 m_AccumHistoryLength;
+        u32                                 m_ProbeJitterSeqLen;
+        Vector2f                            m_ProbeJitter;
     };
 
     AyanamiTrivialSurfaceCacheManager::AyanamiTrivialSurfaceCacheManager(
-        const AyanamiRenderConfig& config, IApplication* app)
+        const AyanamiRenderConfig& config, AyanamiSharedContext* sharedCtx, IApplication* app)
         : m_App(app), m_Resolution(config.m_SurfaceCacheResolution)
     {
         m_Resources                                  = new AyanamiTrivialSurfaceCacheManagerResource();
         m_Resources->m_ForceSurfaceCacheRegeneration = config.m_DebugForceSurfaceCacheRegen;
+        m_SharedContext                              = sharedCtx;
 
-        m_Resources->m_MaxPerTileLights = config.m_RadiancePassMaxPerTileLights;
+        m_Resources->m_MaxPerTileLights   = config.m_RadiancePassMaxPerTileLights;
+        m_Resources->m_ProbeJitterSeqLen  = config.m_SurfaceCacheLowDiscrepancySeqLen;
+        m_Resources->m_AccumHistoryLength = config.m_SurfaceCacheTemporalAccumMaxHistory;
         PrepareImmutableResource();
     }
     AyanamiTrivialSurfaceCacheManager::~AyanamiTrivialSurfaceCacheManager() { delete m_Resources; }
@@ -496,7 +506,7 @@ namespace Ifrit::Runtime::Ayanami
             rhi->CreateTexture2D("AyanamiTrivialSurfaceCache_FinalLightingAtlas", m_Resolution, m_Resolution,
                 RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
                 RhiImageUsage::RhiImgUsage_ShaderRead | RhiImageUsage::RhiImgUsage_UnorderedAccess
-                    | RhiImageUsage::RhiImgUsage_RenderTarget,
+                    | RhiImageUsage::RhiImgUsage_RenderTarget | RhiImageUsage::RhiImgUsage_CopyDst,
                 true);
 
         m_Resources->m_SceneCacheRadiosityTraceResult =
@@ -608,6 +618,14 @@ namespace Ifrit::Runtime::Ayanami
         Scene* scene, FGTextureNodeRef globalDFSRV, FGBufferNodeRef objectGridsUAV, u32 meshDFList,
         Vector3f globalDFMin, Vector3f globalDFMax, u32 globalDFResolution, u32 voxelsPerGdfWidth)
     {
+        // pass 0: clear final lightint atlas on frame 1
+        if (m_SharedContext->m_FrameIdx == 1)
+        {
+            AddClearUAVTexturePass(builder, "Ayanami.Radiosity.ClearLightingAtlas",
+                *m_Resources->m_RDGSceneCacheFinalLightingAtlas, Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
+        }
+
+        // pass 1: radiosity trace
         struct PushConst
         {
             Vector4f m_GlobalDFBoxMin;
@@ -632,7 +650,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_GlobalDFBoxMin        = Vector4f(globalDFMin, 0.0f);
         pc.m_GlobalDFBoxMax        = Vector4f(globalDFMax, 0.0f);
         pc.m_TraceCoordJitter      = Vector2f(0.0f, 0.0f);
-        pc.m_ProbeCenterJitter     = Vector2f(0.0f, 0.0f);
+        pc.m_ProbeCenterJitter     = m_Resources->m_ProbeJitter;
         pc.m_TraceRadianceAtlasUAV = 0;
         pc.m_GlobalDFSRV           = 0;
         pc.m_CardResolution        = m_Resources->m_AtlasElementSize;
@@ -701,7 +719,7 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_TotalProbes;
         } pc;
         pc.m_TraceCoordJitter            = Vector2f(0.0f, 0.0f);
-        pc.m_ProbeCenterJitter           = Vector2f(0.0f, 0.0f);
+        pc.m_ProbeCenterJitter           = m_Resources->m_ProbeJitter;
         pc.m_CardAtlasResolution         = m_Resolution;
         pc.m_CardResolution              = m_Resources->m_AtlasElementSize;
         pc.m_NumTotalCards               = m_Resources->m_MeshCardIndex.load();
@@ -855,6 +873,7 @@ namespace Ifrit::Runtime::Ayanami
     {
         struct PushConst
         {
+            u32 m_FrameIdx; // clamped to max history !!!
             u32 m_DirectLightingAtlasSRV;
             u32 m_IndirectLightingAtlasSRV;
             u32 m_AlbedoAtlasSRV;
@@ -862,6 +881,8 @@ namespace Ifrit::Runtime::Ayanami
             u32 m_CardResolution;
             u32 m_CardAtlasResolution;
         } pc;
+        pc.m_FrameIdx = static_cast<u32>(
+            std::min(m_SharedContext->m_FrameIdx, static_cast<u64>(m_Resources->m_AccumHistoryLength)));
         pc.m_DirectLightingAtlasSRV   = 0;
         pc.m_IndirectLightingAtlasSRV = 0;
         pc.m_AlbedoAtlasSRV           = 0;
@@ -940,5 +961,15 @@ namespace Ifrit::Runtime::Ayanami
     {
         return m_Resources->m_ObserveDeviceDataCoherentBindId->GetActiveId();
     }
-    IFRIT_APIDECL u32 AyanamiTrivialSurfaceCacheManager::GetNumCards() { return m_Resources->m_MeshCardIndex.load(); }
+    IFRIT_APIDECL u32  AyanamiTrivialSurfaceCacheManager::GetNumCards() { return m_Resources->m_MeshCardIndex.load(); }
+
+    IFRIT_APIDECL void AyanamiTrivialSurfaceCacheManager::FrameProceed()
+    {
+        using namespace Math;
+
+        auto frameIdx              = m_SharedContext->m_FrameIdx;
+        auto seqEleId              = static_cast<u32>(frameIdx % m_Resources->m_ProbeJitterSeqLen);
+        auto jitter                = Math::Hammersley2d(seqEleId, m_Resources->m_ProbeJitterSeqLen);
+        m_Resources->m_ProbeJitter = jitter - Vector2f(0.5f);
+    }
 } // namespace Ifrit::Runtime::Ayanami

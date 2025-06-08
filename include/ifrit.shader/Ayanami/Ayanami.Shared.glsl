@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define INTERNAL_AYANAMI_NORMAL_DEBUG 1
     #define INTERNAL_AYANAMI_RADIOSITY_TILE_ENCODING_DEBUG 1
     #define INTERNAL_AYANAMI_RADIOSITY_TILE_SHCONV_DEBUG 1
+    #define INTERNAL_AYANAMI_RADIOSITY_UNIFORM_DISTRIBUTION_DEBUG 1
 #endif
 
 struct MeshDFDesc{

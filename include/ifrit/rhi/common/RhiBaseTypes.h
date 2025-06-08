@@ -24,6 +24,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Graphics::Rhi
 {
+    enum class RhiTypeFlags : u8
+    {
+        Float32 = 0x01,
+        Float64 = 0x02,
+        Int8    = 0x03,
+        Int16   = 0x04,
+        Int32   = 0x05,
+        Int64   = 0x06,
+        UInt8   = 0x07,
+        UInt16  = 0x08,
+        UInt32  = 0x09,
+        UInt64  = 0x0A,
+    };
+
     struct RhiAttachmentBlendInfo
     {
         bool           m_blendEnable         = false;
@@ -35,11 +49,135 @@ namespace Ifrit::Graphics::Rhi
         RhiBlendOp     m_alphaBlendOp        = RhiBlendOp::RhiBlendOp_ADD;
     };
 
-    struct RhiClearValue
+    // struct RhiClearValue
+    // {
+    //     f32 m_color[4];
+    //     f32 m_depth;
+    //     u32 m_stencil;
+    // };
+
+    struct RhiClearColorValue
     {
-        f32 m_color[4];
-        f32 m_depth;
-        u32 m_stencil;
+        RhiClearColorValue() = default;
+        RhiTypeFlags m_Type;
+        union
+        {
+            f32 m_ValueF32[4];
+            u32 m_ValueU32[4];
+            i32 m_ValueI32[4];
+        };
+
+        RhiClearColorValue(const RhiClearColorValue& other) : m_Type(other.m_Type)
+        {
+            if (m_Type == RhiTypeFlags::Float32)
+            {
+                m_ValueF32[0] = other.m_ValueF32[0];
+                m_ValueF32[1] = other.m_ValueF32[1];
+                m_ValueF32[2] = other.m_ValueF32[2];
+                m_ValueF32[3] = other.m_ValueF32[3];
+            }
+            else if (m_Type == RhiTypeFlags::UInt32)
+            {
+                m_ValueU32[0] = other.m_ValueU32[0];
+                m_ValueU32[1] = other.m_ValueU32[1];
+                m_ValueU32[2] = other.m_ValueU32[2];
+                m_ValueU32[3] = other.m_ValueU32[3];
+            }
+            else // if (m_Type == RhiTypeFlags::Int32)
+            {
+                m_ValueI32[0] = other.m_ValueI32[0];
+                m_ValueI32[1] = other.m_ValueI32[1];
+                m_ValueI32[2] = other.m_ValueI32[2];
+                m_ValueI32[3] = other.m_ValueI32[3];
+            }
+        }
+
+        RhiClearColorValue& operator=(const RhiClearColorValue& other)
+        {
+            if (this != &other)
+            {
+                m_Type = other.m_Type;
+                if (m_Type == RhiTypeFlags::Float32)
+                {
+                    m_ValueF32[0] = other.m_ValueF32[0];
+                    m_ValueF32[1] = other.m_ValueF32[1];
+                    m_ValueF32[2] = other.m_ValueF32[2];
+                    m_ValueF32[3] = other.m_ValueF32[3];
+                }
+                else if (m_Type == RhiTypeFlags::UInt32)
+                {
+                    m_ValueU32[0] = other.m_ValueU32[0];
+                    m_ValueU32[1] = other.m_ValueU32[1];
+                    m_ValueU32[2] = other.m_ValueU32[2];
+                    m_ValueU32[3] = other.m_ValueU32[3];
+                }
+                else // if (m_Type == RhiTypeFlags::Int32)
+                {
+                    m_ValueI32[0] = other.m_ValueI32[0];
+                    m_ValueI32[1] = other.m_ValueI32[1];
+                    m_ValueI32[2] = other.m_ValueI32[2];
+                    m_ValueI32[3] = other.m_ValueI32[3];
+                }
+            }
+            return *this;
+        }
+    };
+
+    struct RhiClearDepthStencilValue
+    {
+        f32 m_Depth;
+        u32 m_Stencil;
+    };
+
+    enum class RhiClearValueType : u8
+    {
+        Color        = 0x01,
+        DepthStencil = 0x02,
+    };
+
+    struct RhiClearValue2
+    {
+        RhiClearValueType m_Type;
+        union
+        {
+            RhiClearColorValue        m_Color;
+            RhiClearDepthStencilValue m_DepthStencil;
+        };
+
+        RhiClearValue2() = default;
+        RhiClearValue2(const RhiClearColorValue& color) : m_Type(RhiClearValueType::Color), m_Color(color) {}
+        RhiClearValue2(const RhiClearDepthStencilValue& depthStencil)
+            : m_Type(RhiClearValueType::DepthStencil), m_DepthStencil(depthStencil)
+        {
+        }
+        RhiClearValue2(const RhiClearValue2& other) : m_Type(other.m_Type)
+        {
+            if (m_Type == RhiClearValueType::Color)
+            {
+                m_Color = other.m_Color;
+            }
+            else // if (m_Type == RhiClearValueType::DepthStencil)
+            {
+                m_DepthStencil = other.m_DepthStencil;
+            }
+        }
+
+        RhiClearValue2& operator=(const RhiClearValue2& other)
+        {
+            if (this != &other)
+            {
+                m_Type = other.m_Type;
+                if (m_Type == RhiClearValueType::Color)
+                {
+                    m_Color = other.m_Color;
+                }
+                else // if (m_Type == RhiClearValueType::DepthStencil)
+                {
+                    m_DepthStencil = other.m_DepthStencil;
+                }
+            }
+            return *this;
+        }
     };
 
     struct RhiViewport

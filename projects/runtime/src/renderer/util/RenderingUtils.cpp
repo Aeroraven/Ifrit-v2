@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/runtime/renderer/util/RenderingUtils.h"
 #include "ifrit/runtime/material/ShaderRegistry.h"
+#include "ifrit/rhi/common/RhiStructHelper.h"
 
 namespace Ifrit::Runtime::RenderingUtil
 {
@@ -79,8 +80,8 @@ namespace Ifrit::Runtime::RenderingUtil
     IFRIT_APIDECL void WarpRenderTargets(Graphics::Rhi::RhiBackend* rhi, Graphics::Rhi::RhiTexture* vTex,
         Ref<Graphics::Rhi::RhiColorAttachment>& vCA, Ref<Graphics::Rhi::RhiRenderTargets>& vRT)
     {
-        vCA = rhi->CreateRenderTarget(
-            vTex, { 0.0f, 0.0f, 0.0f, 0.0f }, Graphics::Rhi::RhiRenderTargetLoadOp::Clear, 0, 0);
+        vCA = rhi->CreateRenderTarget(vTex, Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)),
+            Graphics::Rhi::RhiRenderTargetLoadOp::Clear, 0, 0);
         vRT = rhi->CreateRenderTargets();
         vRT->SetColorAttachments({ vCA.get() });
         vRT->SetRenderArea({ 0, 0, vTex->GetWidth(), vTex->GetHeight() });

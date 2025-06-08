@@ -276,3 +276,7 @@ extern "C"
     template struct IFRIT_APIDECL irect3Di;
     template struct IFRIT_APIDECL irect3Dui;
 }
+
+#define Vector4g CoreVec4
+#define Vector3g CoreVec3
+#define Vector2g CoreVec2

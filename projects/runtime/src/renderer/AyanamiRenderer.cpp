@@ -29,6 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiScreenProbeProc.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiDeferredShading.h"
 
+#include "ifrit/runtime/renderer/ayanami/AyanamiSharedContext.h"
+
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::Runtime::FrameGraphUtils;
 
@@ -57,6 +59,8 @@ namespace Ifrit::Runtime
         Uref<AyanamiScreenProbeProcessor>       m_ScreenProbe     = nullptr;
         Uref<SinglePassHiZPass>                 m_SpHiZ           = nullptr;
         Uref<AyanamiDeferredShading>            m_DeferredShading = nullptr;
+
+        Uref<AyanamiSharedContext>              m_SharedContext = nullptr;
 
         bool                                    m_Inited     = false;
         bool                                    m_DbgShowMDF = false;
@@ -92,11 +96,14 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void AyanamiRenderer::InitRenderer()
     {
-        m_Resources                 = new AyanamiRendererResources();
+        m_Resources                  = new AyanamiRendererResources();
+        m_Resources->m_SharedContext = std::make_unique<AyanamiSharedContext>();
+
         m_Resources->m_ResourcePool = std::make_shared<FrameGraphResourcePool>(m_app->GetRhi());
         m_Resources->m_SceneAggregator =
             std::make_unique<AyanamiSceneAggregator>(m_app->GetRhi(), m_app->GetSharedRenderResource());
-        m_Resources->m_SurfaceCache    = std::make_unique<AyanamiTrivialSurfaceCacheManager>(m_SelfRenderConfig, m_app);
+        m_Resources->m_SurfaceCache = std::make_unique<AyanamiTrivialSurfaceCacheManager>(
+            m_SelfRenderConfig, m_Resources->m_SharedContext.get(), m_app);
         m_Resources->m_DFLighting      = std::make_unique<AyanamiDistanceFieldLighting>(m_app->GetRhi());
         m_Resources->m_FgExecutor      = std::make_unique<FrameGraphExecutor>(m_app->GetRhi());
         m_Resources->m_Debugger        = std::make_unique<AyanamiDebugger>(m_app->GetRhi());
@@ -104,6 +111,7 @@ namespace Ifrit::Runtime
         m_Resources->m_SpHiZ           = std::make_unique<SinglePassHiZPass>(m_app);
         m_Resources->m_DeferredShading = std::make_unique<AyanamiDeferredShading>(m_app->GetRhi());
     }
+
     IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer()
     {
         if (m_Resources)
@@ -480,6 +488,10 @@ namespace Ifrit::Runtime
         m_Resources->m_SurfaceCache->UpdateSceneCache(scene);
         auto rhi = m_app->GetRhi();
         auto dq  = rhi->GetQueue(RhiQueueCapability::RhiQueue_Graphics);
+
+        // On frame proceed
+        m_Resources->m_SharedContext->m_FrameIdx++;
+        m_Resources->m_SurfaceCache->FrameProceed();
 
         auto task = dq->RunAsyncCommand(
             [&](const GPUCmdBuffer* cmd) {

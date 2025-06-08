@@ -28,6 +28,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
 
+#include "Ayanami/Ayanami.Radiosity.Shared.glsl"
+
 layout(
     local_size_x = kAyanamiRadiosityTraceKernelSize, 
     local_size_y = 1, 
@@ -90,7 +92,7 @@ void main(){
     if(SampledData.m_ValidSample){
         // Prepare for global df tracing
         vec2 ProbeUV = (vec2(TraceRayCoord) + vec2(0.5) + PushConst.m_ProbeCenterJitter) / float(kAyanami_RadiosityProbHemiRes);
-        vec4 RayPDF = ifrit_SampleCosineHemisphereWithPDF(ProbeUV);
+        vec4 RayPDF = AyaShared_RadiosityGetRayPDF(ProbeUV);
         vec3 LocalRayDir = RayPDF.xyz;
         float PDF = RayPDF.w;
         mat3 TBN = ifrit_FrisvadONB(SampledData.m_WorldNormal);

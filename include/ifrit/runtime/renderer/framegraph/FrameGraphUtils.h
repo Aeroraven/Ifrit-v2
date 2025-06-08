@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
 #include "ifrit/runtime/base/Base.h"
+#include "ifrit/rhi/common/RhiStructHelper.h"
 
 namespace Ifrit::Runtime::FrameGraphUtils
 {
@@ -55,75 +56,83 @@ namespace Ifrit::Runtime::FrameGraphUtils
     IFRIT_RUNTIME_API PassNode&         AddClearUAVPass(
                 FrameGraphBuilder& builder, const String& name, ResourceNode& buffer, u32 clearValue);
 
-    IFRIT_RUNTIME_API PassNode& AddClearUAVTexturePass(
-        FrameGraphBuilder& builder, const String& name, ResourceNode& texture, u64 clearValue);
+    IFRIT_RUNTIME_API PassNode& AddClearUAVTexturePass(FrameGraphBuilder& builder, const String& name,
+        ResourceNode& texture, Graphics::Rhi::RhiClearColorValue clearValue);
     // Templated Version
 
     template <typename PassData> using FnPassFunctionWithData = Fn<void(PassData, const FrameGraphPassContext&)>;
 
-    template <typename PassData, typename RootSignature = PassData>
+    template <typename PassData, typename RootConstantTp = PassData>
     GraphicsPassNode& AddFullScreenQuadPass(FrameGraphBuilder& builder, const String& name, const ShaderVariantDesc& vs,
         const ShaderVariantDesc& fs, PassData passData, FnPassFunctionWithData<PassData> onCall)
     {
-        auto& node = AddFullScreenQuadPass(builder, name, vs, fs, GetPushConstSize<RootSignature>(),
+        auto& node = AddFullScreenQuadPass(builder, name, vs, fs, GetPushConstSize<RootConstantTp>(),
             [passData, onCall](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
         return node;
     }
 
-    template <typename PassData, typename RootSignature = PassData>
+    template <typename PassData, typename RootConstantTp = PassData>
     GraphicsPassNode& AddPostProcessPass(FrameGraphBuilder& builder, const String& name, const ShaderVariantDesc& fs,
         PassData passData, FnPassFunctionWithData<PassData> onCall)
     {
-        auto& node = AddPostProcessPass(builder, name, fs, GetPushConstSize<RootSignature>(),
+        auto& node = AddPostProcessPass(builder, name, fs, GetPushConstSize<RootConstantTp>(),
             [passData, onCall](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
         return node;
     }
 
-    template <typename PassData, typename RootSignature = PassData>
+    template <typename PassData, typename RootConstantTp = PassData>
     GraphicsPassNode& AddMeshDrawPass(FrameGraphBuilder& builder, const String& name, const ShaderVariantDesc& ms,
         const ShaderVariantDesc& fs, Vector3i workGroups, const GraphicsPassArgs& args, PassData passData,
         FnPassFunctionWithData<PassData> onCall)
     {
-        auto& node = AddMeshDrawPass(builder, name, ms, fs, workGroups, GetPushConstSize<RootSignature>(), args,
+        auto& node = AddMeshDrawPass(builder, name, ms, fs, workGroups, GetPushConstSize<RootConstantTp>(), args,
             [onCall, passData](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
         return node;
     }
 
-    template <typename PassData, typename RootSignature = PassData>
+    template <typename PassData, typename RootConstantTp = PassData>
     ComputePassNode& AddComputePass(FrameGraphBuilder& builder, const String& name, const ShaderVariantDesc& shader,
         Vector3i workGroups, PassData passData, FnPassFunctionWithData<PassData> onCall)
     {
-        auto& node = AddComputePass(builder, name, shader, workGroups, GetPushConstSize<RootSignature>(),
+        auto& node = AddComputePass(builder, name, shader, workGroups, GetPushConstSize<RootConstantTp>(),
             [onCall, passData](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
         return node;
     }
 
-    template <typename PassData, typename RootSignature = PassData>
+    template <typename PassData, typename RootConstantTp = PassData>
     ComputePassNode& AddIndirectComputePass(FrameGraphBuilder& builder, const String& name,
         const ShaderVariantDesc& shader, ResourceNode& workGroupsIndirect, u32 offset, PassData passData,
         FnPassFunctionWithData<PassData> onCall)
     {
-        auto& node =
-            AddIndirectComputePass(builder, name, shader, workGroupsIndirect, offset, GetPushConstSize<RootSignature>(),
-                [onCall, passData](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
+        auto& node = AddIndirectComputePass(builder, name, shader, workGroupsIndirect, offset,
+            GetPushConstSize<RootConstantTp>(),
+            [onCall, passData](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
         return node;
     }
 
-    template <typename PassData, typename RootSignature = PassData>
+    template <typename PassData, typename RootConstantTp = PassData>
     GraphicsPassNode& AddIndirectDrawPass(FrameGraphBuilder& builder, const String& name, const ShaderVariantDesc& vs,
         const ShaderVariantDesc& fs, ResourceNode& indirectArgs, ResourceNode& indexBuffer, u32 offset,
         const GraphicsPassArgs& args, PassData passData, FnPassFunctionWithData<PassData> onCall)
     {
         auto& node = AddIndirectDrawPass(builder, name, vs, fs, indirectArgs, indexBuffer, offset,
-            GetPushConstSize<RootSignature>(), args,
+            GetPushConstSize<RootConstantTp>(), args,
             [onCall, passData](const FrameGraphPassContext& ctx) { onCall(passData, ctx); });
         return node;
+    }
+
+    template <typename ClearValueTp IF_REQUIRES(
+        (std::is_same_v<ClearValueTp, u64> || std::is_same_v<ClearValueTp, Vector4f>))>
+    PassNode& AddClearUAVTexturePass(
+        FrameGraphBuilder& builder, const String& name, ResourceNode& texture, ClearValueTp clearValue)
+    {
+        return AddClearUAVTexturePass(builder, name, texture, Graphics::Rhi::CreateRhiClearColorValue(clearValue));
     }
 
     // Other Utilities
     template <typename T> void SetRootConstant(const T& data, const FrameGraphPassContext& ctx)
     {
         ctx.m_CmdList->SetPushConst(&data, 0, sizeof(T));
-    }
+    } // namespace Ifrit::Runtime::FrameGraphUtils
 
 } // namespace Ifrit::Runtime::FrameGraphUtils

@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
+#include "ifrit/rhi/common/RhiStructHelper.h"
 #include <stdexcept>
 
 using Ifrit::SizeCast;
@@ -103,12 +104,8 @@ namespace Ifrit::Runtime
         Vec<Graphics::Rhi::RhiColorAttachment*> crts;
         for (u32 i = 0; i < m_RenderTarget.size(); i++)
         {
-            auto                         res = m_RenderTarget[i];
-            Graphics::Rhi::RhiClearValue clearValue;
-            clearValue.m_color[0] = m_ColorClearValue[i].x;
-            clearValue.m_color[1] = m_ColorClearValue[i].y;
-            clearValue.m_color[2] = m_ColorClearValue[i].z;
-            clearValue.m_color[3] = m_ColorClearValue[i].w;
+            auto                          res = m_RenderTarget[i];
+            Graphics::Rhi::RhiClearValue2 clearValue(Graphics::Rhi::CreateRhiClearColorValue(m_ColorClearValue[i]));
             auto rt = rhiBackend->CreateRenderTarget(res->GetTexture(), clearValue, m_ColorLoadOp[i], 0, 0);
             crts.push_back(rt.get());
             m_RhiColorRTs.push_back(rt);
@@ -119,8 +116,8 @@ namespace Ifrit::Runtime
         m_RhiRTs->SetColorAttachments(crts);
         if (m_DepthTarget != nullptr)
         {
-            Graphics::Rhi::RhiClearValue clearValue;
-            clearValue.m_depth = m_DepthClearValue;
+            Graphics::Rhi::RhiClearValue2 clearValue(
+                Graphics::Rhi::CreateRhiClearDepthStencilValue(m_DepthClearValue, 0));
             auto rt =
                 rhiBackend->CreateRenderTargetDepthStencil(m_DepthTarget->GetTexture(), clearValue, m_DepthLoadOp);
             m_RhiDepthRT = rt;

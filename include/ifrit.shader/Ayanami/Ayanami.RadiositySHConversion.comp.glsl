@@ -91,7 +91,7 @@ void main(){
         for(uint TraceY = 0;TraceY<kAyanami_RadiosityProbHemiRes;TraceY++){
             uvec2 TraceRayCoordS = uvec2(TraceX, TraceY);
             vec2 ProbeUV = (vec2(TraceRayCoordS) + vec2(0.5) + PushConst.m_ProbeCenterJitter) / float(kAyanami_RadiosityProbHemiRes);
-            vec4 RayPDF = ifrit_SampleCosineHemisphereWithPDF(ProbeUV);
+            vec4 RayPDF = AyaShared_RadiosityGetRayPDF(ProbeUV);
             vec3 LocalRayDir = RayPDF.xyz;
             float PDF = RayPDF.w;
             mat3 TBN = ifrit_FrisvadONB(SampledData.m_WorldNormal);

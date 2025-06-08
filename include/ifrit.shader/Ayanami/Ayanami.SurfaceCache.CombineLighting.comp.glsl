@@ -34,6 +34,7 @@ layout(
 ) in;
  
 layout(push_constant)  uniform PushConstData{
+    uint m_FrameIdx; // clamped to max history !!!
     uint m_DirectLightingAtlasSRV;
     uint m_IndirectLightingAtlasSRV;
     uint m_AlbedoAtlasSRV;
@@ -59,5 +60,11 @@ void main(){
 
     vec4 DiffuseLambertBRDF = Albedo / kPI;
     vec4 FinalLighting = (DirectLighting + IndirectLighting) * DiffuseLambertBRDF;
+
+    // temporal accumulation
+    uint NumHistoryFrames = (PushConst.m_FrameIdx == 0) ? 0 : PushConst.m_FrameIdx - 1;
+    vec4 PreviousLighting = imageLoad(GetUAVImage2DR32F(PushConst.m_FinalLightingAtlasUAV), ivec2(OverallOffset));
+    vec4 MixedLighting = mix(PreviousLighting, FinalLighting, 1.0 / float(NumHistoryFrames + 1));
+
     imageStore(GetUAVImage2DR32F(PushConst.m_FinalLightingAtlasUAV), ivec2(OverallOffset), vec4(FinalLighting.rgb, 1.0));
 }
