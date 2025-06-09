@@ -64,10 +64,12 @@ layout(push_constant) uniform UPushConst{
     uint m_CardAlbedoAtlasSRV;
     uint m_CardResolution;
     uint m_CardAtlasResolution;
+
+    //uint m_GBufferNormalSRV;
 }PushConst;
 
 const float kRayProceedMax = 10000.0;
-const float kRayProceedAdvance = 0.2;
+const float kRayProceedAdvance = 2e-1;
 const uint kMaxTraceSteps = 6000;
 const float kMDFHitThreshold = 0.03;
 const int kGridSearchRange = 1;
@@ -174,13 +176,13 @@ vec3 MeshDFGridTraceSingleMDF(vec3 RayDirWS, vec3 RayOriginWS, uint MeshDFId, fl
     if(IsHit){
         for(int i=0;i<kMaxTraceSteps;i++){
             vec3 UVW = (HitPoint - BboxLB) / (BboxRT - BboxLB);
-            float Sdf = AyaShared_SampleMeshDF(SdfId, UVW, MeshDFQuantScale)-0.02;
+            float Sdf = AyaShared_SampleMeshDF(SdfId, UVW, MeshDFQuantScale);
             float AbsSdf = abs(Sdf);
-            if(Sdf<kMDFHitThreshold){
+            if(Sdf<kMDFHitThreshold && T>1e-3){
                 IsFinalHit = true;
                 break;
             }
-            T += max(1e-4, Sdf * 0.1);
+            T += max(1e-4, Sdf * 0.3);
             if(T >= TMax){
                 //break;
             }
@@ -304,7 +306,7 @@ void main(){
         vec3 ProbeLocWS = ProbeLocWSH.xyz / ProbeLocWSH.w;
 
         vec3 SampledRay = AyaShared_GetScreenProbeTraceCoord(TraceRay.m_TraceRayCoord,PushConst.m_RayJitter);
-
+        //SampledRay = vec3(1.0,0.0,0.0);
         ProbeLocWS += SampledRay * kRayProceedAdvance;
         uvec2 WritingSlot = GetProbeWritingSlot(TraceRay.m_ProbeId, ProbeCntPerX, TraceRay.m_TraceRayCoord);
 
@@ -313,7 +315,7 @@ void main(){
         vec4 HitResult = MeshDFGridTrace(SampledRay, ProbeLocWS, HitMeshDFId, HitTime);
 
         if(!kVisTracingHierarchy){
-            if(HitResult.w < 0.5){
+            if(kSkipMDFTrace||HitResult.w < 0.5){
                 // mdf hit miss
                 uint LocalFailureRayId = atomicAdd(sFailureRayCount, 1);
                 sFailureRayList[LocalFailureRayId] = TraceRayPackedData;

@@ -52,26 +52,47 @@ vec4 ifrit_SampleCosineHemisphereWithPDF(vec2 uv, vec3 Normal){
     return ret;
 }
 
-vec3 ifrit_ConcentricOctahedralTransform(vec2 UV){
+
+
+// Ray Tracing Gems 16.5.4.2
+// Better description in Clarberg's
+// "Fast Equal-Area Mapping of the (Hemi)Sphere using SIMD"
+
+
+float ifrit_SignPreserveZero(float v)
+{
+    return (v<0.0) ? -1.0:1.0;
+}
+
+vec3 ifrit_ConcentricOctahedralTransform(vec2 u)
+{
     // https://zhuanlan.zhihu.com/p/408898601
     // https://fileadmin.cs.lth.se/graphics/research/papers/2008/simdmapping/clarberg_simdmapping08_preprint.pdf
     // Port from ifrit.core.math
 
+    // This implementation is based on shacklettbp/madrona
+    // https://github.com/shacklettbp/madrona/blob/main/src/render/vk/shaders/utils.hlsl
+
     const float PI = 3.14159265358979323846;
+    u = u * 2.0 - 1.0;
 
-    vec2 sampleOffset = UV * 2.0 - vec2(1.0);
-
-    float u = sampleOffset.x;
-    float v = sampleOffset.y;
-    float d = 1.0 - abs(u) - abs(v);
+    // Compute radius r (branchless)
+    float d = 1.0 - (abs(u.x) + abs(u.y));
     float r = 1.0 - abs(d);
 
-    float z = (d > 0.0 ? 1.0 : -1.0) * (1.0 - r * r);
-    float theta = PI / 4.0 * ((abs(v) - abs(u)) / r+1.0);
-    float sinT = sin(theta) * (v >= 0.0 ? 1.0 : -1.0);
-    float cosT = cos(theta) * (u >= 0.0 ? 1.0 : -1.0);
-    float x = cosT * r * sqrt(2.0 - z * z);
-    float y = sinT * r * sqrt(2.0 - z * z);
+    // Compute phi in the first quadrant (branchless, except for the
+    // division-by-zero test), using sign(u) to map the result to the
+    // correct quadrant below
+    float phi = (r == 0.0) ? 0.0 :
+        (PI * ((abs(u.y) - abs(u.x)) / r + 1.0));
+
+    float f = r * sqrt(2.0 - r * r);
+
+    // abs() around f * cos/sin(phi) is necessary because they can return
+    // negative 0 due to floating precision
+    float x = ifrit_SignPreserveZero(u.x) * abs(f * cos(phi));
+    float y = ifrit_SignPreserveZero(u.y) * abs(f * sin(phi));
+    float z = ifrit_SignPreserveZero(d) * (1.0 - r * r);
+
     return normalize(vec3(x, y, z));
-    //return normalize(vec3(-0.3,1.0,-0.3));
 }
