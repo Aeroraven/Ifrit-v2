@@ -70,9 +70,10 @@ namespace Ifrit::Runtime::Internal
         SDEF ScreenProbePixelGatherCS    = DECLARE_CS("Ayanami/ScreenProbePixelGatherCS");
         SDEF ScreenProbeBorderFixCS      = DECLARE_CS("Ayanami/ScreenProbeBorderFixCS");
 
-        SDEF DeferredShadowFS   = DECLARE_FS("Ayanami/DeferredShadow");
-        SDEF DeferredLightingFS = DECLARE_FS("Ayanami/DeferredLighting");
-        SDEF DeferredExpMixFS   = DECLARE_FS("Ayanami/DeferredExpMix");
+        SDEF DeferredShadowFS         = DECLARE_FS("Ayanami/DeferredShadow");
+        SDEF DeferredLightingFS       = DECLARE_FS("Ayanami/DeferredLighting");
+        SDEF DeferredExpMixFS         = DECLARE_FS("Ayanami/DeferredExpMix");
+        SDEF TemporalFilterIndirectCS = DECLARE_CS("Ayanami/TemporalFilterIndirect");
 
     } kIntShaderTableAyanami;
 

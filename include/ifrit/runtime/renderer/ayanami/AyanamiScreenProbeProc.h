@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/runtime/base/Base.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
+#include "AyanamiSharedContext.h"
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -27,11 +28,12 @@ namespace Ifrit::Runtime::Ayanami
     class IFRIT_RUNTIME_API AyanamiScreenProbeProcessor
     {
     private:
-        AyanamiScreenProbeProcessorPrivate* m_Private = nullptr;
-        Graphics::Rhi::RhiBackend*          m_Rhi     = nullptr;
+        AyanamiScreenProbeProcessorPrivate* m_Private       = nullptr;
+        Graphics::Rhi::RhiBackend*          m_Rhi           = nullptr;
+        AyanamiSharedContext*               m_SharedContext = nullptr;
 
     public:
-        AyanamiScreenProbeProcessor(Graphics::Rhi::RhiBackend* rhi);
+        AyanamiScreenProbeProcessor(Graphics::Rhi::RhiBackend* rhi, AyanamiSharedContext* sharedContext);
         virtual ~AyanamiScreenProbeProcessor();
 
         void InitContext(FrameGraphBuilder& builder, u32 maxRtWidth, u32 maxRtHeight, f32 adaptiveProbesRatio);
@@ -57,5 +59,7 @@ namespace Ifrit::Runtime::Ayanami
         FGBufferNodeRef  GetAdaptiveProbesList() const;
         FGBufferNodeRef  GetAdaptiveProbesCounter() const;
         FGTextureNodeRef GetScreenProbeRadianceAtlas() const;
+
+        void             FrameProceed();
     };
 } // namespace Ifrit::Runtime::Ayanami

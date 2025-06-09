@@ -151,7 +151,7 @@ void main(){
             vec3 Radiance = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_ScreenProbeLightingAtlasUAV), ivec2(WritingSlot)).xyz;
 
             MThreeBandSH_RGB RayBasisRGB = ifrit_SHBasis3EncodeRGB(SampledRay);
-            MThreeBandSH_RGB RayBasisRGBScaled = ifrit_MulSH3RGBColor(RayBasisRGB, Radiance);
+            MThreeBandSH_RGB RayBasisRGBScaled = ifrit_MulSH3RGBColor(RayBasisRGB, Radiance * 4.0 * kPI);
             SHCoeffs = ifrit_AddSH3RGB(SHCoeffs, RayBasisRGBScaled);
         }
     }

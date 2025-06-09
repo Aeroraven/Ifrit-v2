@@ -66,5 +66,5 @@ void main(){
     vec4 PreviousLighting = imageLoad(GetUAVImage2DR32F(PushConst.m_FinalLightingAtlasUAV), ivec2(OverallOffset));
     vec4 MixedLighting = mix(PreviousLighting, FinalLighting, 1.0 / float(NumHistoryFrames + 1));
 
-    imageStore(GetUAVImage2DR32F(PushConst.m_FinalLightingAtlasUAV), ivec2(OverallOffset), vec4(FinalLighting.rgb, 1.0));
+    imageStore(GetUAVImage2DR32F(PushConst.m_FinalLightingAtlasUAV), ivec2(OverallOffset), vec4(MixedLighting.rgb, 1.0));
 }

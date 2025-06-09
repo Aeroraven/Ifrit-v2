@@ -87,7 +87,10 @@ vec3 ShadingFromLight(uint LightIdx, vec3 WorldPos, vec3 WorldNormal, vec3 Albed
     float PIx = 3.14159265359;
     vec3 Specular = dpbr_cookTorranceBRDF(F,G,D,NdotV,NdotL);
 
-    vec3 Lo = ((kD/PIx)* Albedo+ Specular) * NdotL * 12.3;
+    //vec3 Lo = ((kD/PIx)* Albedo+ Specular) * NdotL * 12.3;
+
+    vec3 LambertBRDF = Albedo / PIx;
+    vec3 Lo = LambertBRDF * NdotL * 5.0;
 
     return Lo * ShadowMask ;
 }

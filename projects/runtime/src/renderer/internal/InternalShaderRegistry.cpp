@@ -81,6 +81,7 @@ namespace Ifrit::Runtime::Internal
         REG_FRAGMENT(ISTAya.DeferredShadowFS, "Ayanami/Ayanami.FinalLighting.DirectShadow");
         REG_FRAGMENT(ISTAya.DeferredLightingFS, "Ayanami/Ayanami.FinalLighting.DirectLighting");
         REG_FRAGMENT(ISTAya.DeferredExpMixFS, "Ayanami/Ayanami.FinalLighting.ExperimentalMix");
+        REG_COMPUTE(ISTAya.TemporalFilterIndirectCS, "Ayanami/Ayanami.FinalLighting.TemporalFilteringIndirect");
 
         REG_COMPUTE(ISTAya.DbgSampleObjectGridsCS, "Ayanami/Ayanami.Debug.SampleObjectGrids");
         REG_MESH(ISTAya.DbgVisObjGridsMS, "Ayanami/Ayanami.Debug.VisObjectGrids");

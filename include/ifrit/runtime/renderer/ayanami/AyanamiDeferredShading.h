@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/base/Base.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
 
+#include "AyanamiSharedContext.h"
+
 namespace Ifrit::Runtime::Ayanami
 {
     struct AyanamiDeferredShadingPrivate;
@@ -32,8 +34,10 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiDeferredShadingPrivate* m_Private = nullptr;
         Graphics::Rhi::RhiBackend*     m_Rhi     = nullptr;
 
+        AyanamiSharedContext*          m_SharedContext = nullptr;
+
     public:
-        AyanamiDeferredShading(Graphics::Rhi::RhiBackend* rhi);
+        AyanamiDeferredShading(Graphics::Rhi::RhiBackend* rhi, AyanamiSharedContext* sharedContext);
         virtual ~AyanamiDeferredShading();
 
         void InitContext(FrameGraphBuilder& builder, u32 rtWidth, u32 rtHeight);
@@ -44,6 +48,7 @@ namespace Ifrit::Runtime::Ayanami
             FGTextureNodeRef gbufferNormal, FGTextureNodeRef gbufferAlbedo, FGBufferNodeRef shadowData,
             u32 totalLights);
         void ExperimentalFuse(FrameGraphBuilder& builder, FGTextureNodeRef gbufferAlbedo);
+        void IndirectLightingTemporalFilter(FrameGraphBuilder& builder);
 
         FGTextureNodeRef GetRDGDirectShadowTexture() const;
         FGTextureNodeRef GetRDGDirectLightingTexture() const;

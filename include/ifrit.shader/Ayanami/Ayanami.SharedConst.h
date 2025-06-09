@@ -93,6 +93,10 @@ namespace Ifrit::Runtime::Ayanami::Config
 
     AYANAMI_DEFINE_UINT(kAyanamiScrProbePixelGatherKernelSize, 8);
 
+    // Temporal
+    AYANAMI_DEFINE_UINT(kAyanamiFinalTemporalReprojKernelSizeX, 16);
+    AYANAMI_DEFINE_UINT(kAyanamiFinalTemporalReprojKernelSizeY, 16);
+
 #ifdef __cplusplus
 } // namespace Ifrit::Runtime::AYANAMI
     #undef AYANAMI_DEFINE_UINT

@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
+#include "ifrit/core/math/LowDiscrepancy.h"
 
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::Math;
@@ -72,9 +73,12 @@ namespace Ifrit::Runtime::Ayanami
 
         // Persistent Resources
         Graphics::Rhi::RhiBufferRef m_CubeIndexRHI = nullptr;
+        Vector2f                    m_RayJitter    = Vector2f(0.0f, 0.0f);
     };
 
-    IFRIT_APIDECL AyanamiScreenProbeProcessor::AyanamiScreenProbeProcessor(Graphics::Rhi::RhiBackend* rhi) : m_Rhi(rhi)
+    IFRIT_APIDECL AyanamiScreenProbeProcessor::AyanamiScreenProbeProcessor(
+        Graphics::Rhi::RhiBackend* rhi, AyanamiSharedContext* sharedContext)
+        : m_Rhi(rhi), m_SharedContext(sharedContext)
     {
         m_Private = new AyanamiScreenProbeProcessorPrivate();
     }
@@ -301,7 +305,7 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_LastFrameFinalLighting;
         } pc;
 
-        pc.m_RayJitter                   = Vector2f(0.0f, 0.0f);
+        pc.m_RayJitter                   = m_Private->m_RayJitter;
         pc.m_HizStorage                  = 0;
         pc.m_PerFrameCBV                 = perframeCBV;
         pc.m_RTWidth                     = m_Private->m_ActiveRTWidth;
@@ -463,7 +467,7 @@ namespace Ifrit::Runtime::Ayanami
         pc.m_WorldBoundMax = m_Private->m_ActiveWorldBoundMax;
         pc.m_CullGridSize  = Vector4f(1.0f * m_Private->m_MDFCullGridSizeXY, 1.0f * m_Private->m_MDFCullGridSizeXY,
              1.0f * m_Private->m_MDFCullGridSizeZ, 0.0f);
-        pc.m_RayJitter     = Vector2f(0.0f, 0.0f);
+        pc.m_RayJitter     = m_Private->m_RayJitter;
         pc.m_PerFrameCBV   = perframeCBV;
         pc.m_RTWidth       = m_Private->m_ActiveRTWidth;
         pc.m_RTHeight      = m_Private->m_ActiveRTHeight;
@@ -553,7 +557,7 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_ObjectGridUAV;
             u32      m_MeshDFDescListId;
         } pc;
-        pc.m_RayJitter                       = Vector2f(0.0f, 0.0f);
+        pc.m_RayJitter                       = m_Private->m_RayJitter;
         pc.m_GlobalDFSRV                     = 0;
         pc.m_WorldBoundMin                   = Vector4f(-(f32)globalDFWSRange);
         pc.m_WorldBoundMax                   = Vector4f((f32)globalDFWSRange);
@@ -653,7 +657,7 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_ScreenProbeLightingAtlasUAV;
             u32      m_OutputSHCoefBufferUAV;
         } pc;
-        pc.m_RayJitter                   = Vector2f(0.0f, 0.0f);
+        pc.m_RayJitter                   = m_Private->m_RayJitter;
         pc.m_AdaptiveProbesCounterUAV    = 0;
         pc.m_AdaptiveProbesListUAV       = 0;
         pc.m_RTWidth                     = m_Private->m_ActiveRTWidth;
@@ -715,6 +719,15 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*gbufferNormal)
             .AddWriteResource(*outputTex)
             .AddReadResource(*m_Private->m_IntegratedSH);
+    }
+
+    IFRIT_APIDECL void AyanamiScreenProbeProcessor::FrameProceed()
+    {
+        // todo
+        auto curFrameId        = m_SharedContext->m_FrameIdx % 32;
+        auto jitter            = Hammersley2d(curFrameId, 32);
+        jitter                 = jitter - Vector2f(0.5f, 0.5f); // center jitter
+        m_Private->m_RayJitter = jitter;
     }
 
     IFRIT_APIDECL FGBufferNodeRef AyanamiScreenProbeProcessor::GetAdaptiveProbesList() const

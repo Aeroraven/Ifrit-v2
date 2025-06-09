@@ -102,7 +102,7 @@ void main(){
     float ShadowVisibility = SampleTexture2D(PushConst.m_ShadowMaskSRV, sLinearClamp, AtlasUV).r;
     Irradiance *= ShadowVisibility;
 
-    vec3 Color = vec3(1.0, 1.0, 1.0) * Irradiance;
+    vec3 Color = vec3(1.0, 1.0, 1.0) * Irradiance * 5.0;
 
     imageStore(GetUAVImage2DR32F(PushConst.m_DirectLightingUAV), ivec2(OverallOffset), vec4(Color, 1.0));
 }

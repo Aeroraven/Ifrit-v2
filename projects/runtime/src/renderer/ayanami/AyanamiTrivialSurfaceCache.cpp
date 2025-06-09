@@ -649,7 +649,7 @@ namespace Ifrit::Runtime::Ayanami
 
         pc.m_GlobalDFBoxMin        = Vector4f(globalDFMin, 0.0f);
         pc.m_GlobalDFBoxMax        = Vector4f(globalDFMax, 0.0f);
-        pc.m_TraceCoordJitter      = Vector2f(0.0f, 0.0f);
+        pc.m_TraceCoordJitter      = m_Resources->m_ProbeJitter;
         pc.m_ProbeCenterJitter     = m_Resources->m_ProbeJitter;
         pc.m_TraceRadianceAtlasUAV = 0;
         pc.m_GlobalDFSRV           = 0;
@@ -718,7 +718,7 @@ namespace Ifrit::Runtime::Ayanami
             u32      m_RWRadiosityProbeSHAtlasBUAV;
             u32      m_TotalProbes;
         } pc;
-        pc.m_TraceCoordJitter            = Vector2f(0.0f, 0.0f);
+        pc.m_TraceCoordJitter            = m_Resources->m_ProbeJitter;
         pc.m_ProbeCenterJitter           = m_Resources->m_ProbeJitter;
         pc.m_CardAtlasResolution         = m_Resolution;
         pc.m_CardResolution              = m_Resources->m_AtlasElementSize;

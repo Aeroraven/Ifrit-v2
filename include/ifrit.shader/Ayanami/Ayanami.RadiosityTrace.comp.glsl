@@ -116,7 +116,7 @@ void main(){
             // TODO: final lighting is yet to be implemented.
             // This will be considered later
             FinalRadiance = HitSample.m_Albedo.xyz;
-            //FinalRadiance = vec3(1.0);
+            // FinalRadiance = vec3(1.0);
         }
 
         // Write to atlas

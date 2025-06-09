@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 
+#include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
+
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::Math;
 using namespace Ifrit::Runtime::FrameGraphUtils;
@@ -37,17 +39,18 @@ namespace Ifrit::Runtime::Ayanami
         FGTextureNodeRef        m_DeferredShadowTexture         = nullptr;
         FGTextureNodeRef        m_DeferredDirectLightingTexture = nullptr;
 
-        FGTextureNodeRef        m_LastFrameFinalLightingTex   = nullptr;
-        FGTextureNodeRef        m_CurFrameFinalLightingTex    = nullptr;
-        FGTextureNodeRef        m_CurFrameIndirectLightingTex = nullptr;
+        FGTextureNodeRef        m_LastFrameFinalLightingTex    = nullptr;
+        FGTextureNodeRef        m_LastFrameIndirectLightingTex = nullptr;
+        FGTextureNodeRef        m_CurFrameFinalLightingTex     = nullptr;
+        FGTextureNodeRef        m_CurFrameIndirectLightingTex  = nullptr;
 
         // Managed Resources (Persistent)
         bool                    m_PersistentResourceInited = false;
         RhiTextureRef           m_IndirectLightingTex[2];
         RhiTextureRef           m_FinalLightingTex[kHistoryFrames];
     };
-    AyanamiDeferredShading::AyanamiDeferredShading(Graphics::Rhi::RhiBackend* rhi)
-        : m_Private(new AyanamiDeferredShadingPrivate()), m_Rhi(rhi)
+    AyanamiDeferredShading::AyanamiDeferredShading(Graphics::Rhi::RhiBackend* rhi, AyanamiSharedContext* sharedContext)
+        : m_Private(new AyanamiDeferredShadingPrivate()), m_Rhi(rhi), m_SharedContext(sharedContext)
     {
     }
     AyanamiDeferredShading::~AyanamiDeferredShading() { delete m_Private; }
@@ -102,6 +105,8 @@ namespace Ifrit::Runtime::Ayanami
                   .get());
         m_Private->m_CurFrameIndirectLightingTex = &builder.ImportTexture(
             "Ayanami.RDG.IndirectLighting.CurFrame", m_Private->m_IndirectLightingTex[m_Private->m_FrameIdx % 2].get());
+        m_Private->m_LastFrameIndirectLightingTex = &builder.ImportTexture("Ayanami.RDG.IndirectLighting.LastFrame",
+            m_Private->m_IndirectLightingTex[(m_Private->m_FrameIdx + 1) % 2].get());
     }
 
     IFRIT_APIDECL void AyanamiDeferredShading::RenderDeferredShadow(FrameGraphBuilder& builder, u32 perFrameCBV,
@@ -202,6 +207,37 @@ namespace Ifrit::Runtime::Ayanami
             .AddReadResource(*m_Private->m_CurFrameIndirectLightingTex)
             .AddReadResource(*gbufferAlbedo)
             .AddReadResource(*m_Private->m_DeferredDirectLightingTexture);
+    }
+    IFRIT_APIDECL void AyanamiDeferredShading::IndirectLightingTemporalFilter(FrameGraphBuilder& builder)
+    {
+        struct PushConst
+        {
+            u32 m_FrameIdx;
+            u32 m_CurrentFrameIndirectLightingUAV;
+            u32 m_HistoryIndirectLightingUAV;
+            u32 m_RtWidth;
+            u32 m_RtHeight;
+        } pc;
+        pc.m_FrameIdx                        = std::min(128ull, m_SharedContext->m_FrameIdx);
+        pc.m_CurrentFrameIndirectLightingUAV = 0;
+        pc.m_HistoryIndirectLightingUAV      = 0;
+        pc.m_RtWidth                         = m_Private->m_ActiveRTWidth;
+        pc.m_RtHeight                        = m_Private->m_ActiveRTHeight;
+
+        i32      tgX           = Math::DivRoundUp(pc.m_RtWidth, Config::kAyanamiFinalTemporalReprojKernelSizeX);
+        i32      tgY           = Math::DivRoundUp(pc.m_RtHeight, Config::kAyanamiFinalTemporalReprojKernelSizeY);
+        Vector3i workGroupSize = Vector3i(tgX, tgY, 1);
+
+        AddComputePass<PushConst>(builder, "Ayanami.FinalLighting.IndirectLightingTemporalFilter",
+            ShaderVariantDesc(Internal::kIntShaderTableAyanami.TemporalFilterIndirectCS, {}), workGroupSize, pc,
+            [this](PushConst data, const FrameGraphPassContext& ctx) {
+                data.m_CurrentFrameIndirectLightingUAV =
+                    ctx.m_FgDesc->GetUAV(*m_Private->m_CurFrameIndirectLightingTex);
+                data.m_HistoryIndirectLightingUAV = ctx.m_FgDesc->GetUAV(*m_Private->m_LastFrameIndirectLightingTex);
+                SetRootConstant(data, ctx);
+            })
+            .AddWriteResource(*m_Private->m_CurFrameIndirectLightingTex)
+            .AddReadResource(*m_Private->m_LastFrameIndirectLightingTex);
     }
     IFRIT_APIDECL FGTextureNodeRef AyanamiDeferredShading::GetRDGDirectShadowTexture() const
     {

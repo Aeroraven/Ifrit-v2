@@ -104,12 +104,14 @@ namespace Ifrit::Runtime
             std::make_unique<AyanamiSceneAggregator>(m_app->GetRhi(), m_app->GetSharedRenderResource());
         m_Resources->m_SurfaceCache = std::make_unique<AyanamiTrivialSurfaceCacheManager>(
             m_SelfRenderConfig, m_Resources->m_SharedContext.get(), m_app);
-        m_Resources->m_DFLighting      = std::make_unique<AyanamiDistanceFieldLighting>(m_app->GetRhi());
-        m_Resources->m_FgExecutor      = std::make_unique<FrameGraphExecutor>(m_app->GetRhi());
-        m_Resources->m_Debugger        = std::make_unique<AyanamiDebugger>(m_app->GetRhi());
-        m_Resources->m_ScreenProbe     = std::make_unique<AyanamiScreenProbeProcessor>(m_app->GetRhi());
-        m_Resources->m_SpHiZ           = std::make_unique<SinglePassHiZPass>(m_app);
-        m_Resources->m_DeferredShading = std::make_unique<AyanamiDeferredShading>(m_app->GetRhi());
+        m_Resources->m_DFLighting = std::make_unique<AyanamiDistanceFieldLighting>(m_app->GetRhi());
+        m_Resources->m_FgExecutor = std::make_unique<FrameGraphExecutor>(m_app->GetRhi());
+        m_Resources->m_Debugger   = std::make_unique<AyanamiDebugger>(m_app->GetRhi());
+        m_Resources->m_ScreenProbe =
+            std::make_unique<AyanamiScreenProbeProcessor>(m_app->GetRhi(), m_Resources->m_SharedContext.get());
+        m_Resources->m_SpHiZ = std::make_unique<SinglePassHiZPass>(m_app);
+        m_Resources->m_DeferredShading =
+            std::make_unique<AyanamiDeferredShading>(m_app->GetRhi(), m_Resources->m_SharedContext.get());
     }
 
     IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer()
@@ -329,6 +331,7 @@ namespace Ifrit::Runtime
 
             auto resSCDepth    = &m_Resources->m_SurfaceCache->GetRDGDepthAtlas();
             auto resSCAlbedo   = &m_Resources->m_SurfaceCache->GetRDGAlbedoAtlas();
+            auto resSCLighting = &m_Resources->m_SurfaceCache->GetRDGFinalLightingAtlas();
             auto cardSize      = m_Resources->m_SurfaceCache->GetCardResolution();
             auto cardAtlasSize = m_Resources->m_SurfaceCache->GetCardAtlasResolution();
 
@@ -344,11 +347,11 @@ namespace Ifrit::Runtime
                 m_Resources->m_SceneAggregator->GetNumGatheredInstances(),
                 m_Resources->m_SceneAggregator->GetGatheredBufferId());
             m_Resources->m_ScreenProbe->ProbeMDFTrace(builder, primaryViewCBV,
-                m_Resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth, allCardData, resSCDepth, resSCAlbedo,
-                cardSize, cardAtlasSize);
+                m_Resources->m_SceneAggregator->GetGatheredBufferId(), &resGDepth, allCardData, resSCDepth,
+                resSCLighting, cardSize, cardAtlasSize);
 
             m_Resources->m_ScreenProbe->ProbeGDFTrace(builder, primaryViewCBV, &resGDepth, &resGlobalDFGen,
-                clipmapRange, allCardData, resSCDepth, resSCAlbedo, cardSize, cardAtlasSize, gdfResolution,
+                clipmapRange, allCardData, resSCDepth, resSCLighting, cardSize, cardAtlasSize, gdfResolution,
                 voxelsPerWidth, &resGlobalObjectGrid, m_Resources->m_SceneAggregator->GetGatheredBufferId());
             m_Resources->m_ScreenProbe->ProbeOctMappingBorderFix(builder);
             m_Resources->m_ScreenProbe->ProbeIntegrate(builder);
@@ -358,6 +361,7 @@ namespace Ifrit::Runtime
 
         // Pass Defered Shading
         {
+            m_Resources->m_DeferredShading->IndirectLightingTemporalFilter(builder);
             m_Resources->m_DeferredShading->RenderDeferredShadow(
                 builder, primaryViewCBV, &resShadowData, &resGDepth, &resGNormal, 1);
             m_Resources->m_DeferredShading->RenderDeferredLighting(
@@ -492,6 +496,7 @@ namespace Ifrit::Runtime
         // On frame proceed
         m_Resources->m_SharedContext->m_FrameIdx++;
         m_Resources->m_SurfaceCache->FrameProceed();
+        m_Resources->m_ScreenProbe->FrameProceed();
 
         auto task = dq->RunAsyncCommand(
             [&](const GPUCmdBuffer* cmd) {
