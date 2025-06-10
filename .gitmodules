@@ -37,3 +37,6 @@
 [submodule "dependencies/ktxsoftware"]
 	path = dependencies/ktxsoftware
 	url = git@github.com:KhronosGroup/KTX-Software.git
+[submodule "dependencies/slang"]
+	path = dependencies/slang
+	url = git@github.com:shader-slang/slang.git
