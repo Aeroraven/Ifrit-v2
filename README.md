@@ -163,20 +163,21 @@ To run the demo
 
 The source files can be decomposed into following parts.
 
-| Module Name        | Functionality                                                |
-| ------------------ | ------------------------------------------------------------ |
-| ifrit.core         | Basic definitions, logging, serialization, typing utilities (like compilation time utils) |
-| ifrit.core.math    | Helper functions for SIMD and performance-oriented intrinsic <br/>Basic linalg supports |
-| ifrit.runtime      | Implementations of renderer.<br/>Basic supports for mesh, assets, components and rendering |
-| ifrit.demo         | Demo                                                         |
-| ifrit.display      | Platform-specific window support <br/>Provides view layer for renderers, like console display for soft renderer |
-| ifrit.external     | External dependencies building <br/>Contains FSR2            |
-| ifrit.ircompile    | Backend for JIT runtime<br/>Based on LLVM                    |
-| ifrit.imaging      | Utilities for image processing<br/>Including some texture compression utilities. |
-| ifrit.meshproc     | Algorithms for mesh processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh auto-lod and mesh-level signed distance field generation |
-| ifrit.rhi          | Backend-agnostic render hardware interface.                  |
-| ifrit.softgraphics | Implementation of soft renderer, with both MT-CPU and CUDA version |
-| ifrit.vkgraphics   | Vulkan backend                                               |
+| Module Name         | Functionality                                                |
+| ------------------- | ------------------------------------------------------------ |
+| ifrit.core          | Basic definitions, logging, serialization, typing utilities (like compilation time utils) |
+| ifrit.core.math     | Helper functions for SIMD and performance-oriented intrinsic <br/>Basic linalg supports |
+| ifrit.runtime       | Implementations of renderer.<br/>Basic supports for mesh, assets, components and rendering |
+| ifrit.demo          | Demo                                                         |
+| ifrit.display       | Platform-specific window support <br/>Provides view layer for renderers, like console display for soft renderer |
+| ifrit.external      | External dependencies building <br/>Contains FSR2            |
+| ifrit.ircompile     | Backend for JIT runtime<br/>Based on LLVM                    |
+| ifrit.imaging       | Utilities for image processing<br/>Including some texture compression utilities. |
+| ifrit.meshproc      | Algorithms for mesh processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh auto-lod and mesh-level signed distance field generation |
+| ifrit.rhi           | Backend-agnostic render hardware interface.                  |
+| ifrit.shadercompile | Backend for shader compilation                               |
+| ifrit.softgraphics  | Implementation of soft renderer, with both MT-CPU and CUDA version |
+| ifrit.vkgraphics    | Vulkan backend                                               |
 
 ## 4. Future Plans
 

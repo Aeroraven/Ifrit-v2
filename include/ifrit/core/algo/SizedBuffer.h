@@ -94,5 +94,7 @@ namespace Ifrit
             memcpy(result.data(), m_Data.data(), m_Data.size());
             return result;
         }
+
+        String ToString() const { return String(reinterpret_cast<const char*>(m_Data.data()), m_Data.size()); }
     };
 } // namespace Ifrit

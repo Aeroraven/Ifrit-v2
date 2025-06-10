@@ -27,13 +27,10 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     struct ShaderModuleCI
     {
-        Vec<char>                code;
-        String                   entryPoint;
-        Rhi::RhiShaderStage      stage;
-        Rhi::RhiShaderSourceType sourceType;
-        String                   fileName;
-
-        Vec<String>              m_Permutations;
+        String              m_IRCode;
+        Rhi::RhiShaderStage stage;
+        String              m_ShaderName;
+        String              m_EntryPoint;
     };
 
     class IFRIT_APIDECL ShaderModule : public Rhi::RhiShader
@@ -44,9 +41,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         EngineContext*                  m_context;
         ShaderModuleCI                  m_ci;
         String                          m_entryPoint;
-        SpvReflectShaderModule          m_reflectModule;
-        Vec<SpvReflectDescriptorSet*>   m_reflectSets;
-        bool                            m_reflectionCreated = false;
 
         // Intended for pipeline cache
         String                          m_signature;
@@ -56,8 +50,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         ~ShaderModule();
         VkShaderModule                  GetModule() const;
         VkPipelineShaderStageCreateInfo GetStageCI() const;
-        inline u32                      GetCodeSize() const { return SizeCast<u32>(m_ci.code.size()); }
-        inline u32 GetNumDescriptorSets() const override { return SizeCast<u32>(m_reflectSets.size()); }
+        inline u32                      GetCodeSize() const { return SizeCast<u32>(m_ci.m_IRCode.size()); }
+        inline u32                      GetNumDescriptorSets() const override
+        {
+            std::abort();
+            return 0;
+        }
         virtual Rhi::RhiShaderStage GetStage() const override { return m_ci.stage; }
 
         void                        CacheReflectionData();

@@ -348,6 +348,8 @@ namespace Ifrit::Graphics::Rhi
     enum class RhiShaderSourceType
     {
         GLSLCode,
+        HLSLCode,
+        SlangCode,
         Binary
     };
     enum class RhiVertexInputRate

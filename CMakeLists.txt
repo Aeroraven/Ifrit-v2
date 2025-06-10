@@ -53,6 +53,7 @@ add_subdirectory(dependencies/metis)
 add_subdirectory(dependencies/ktxsoftware)
 
 add_subdirectory(projects/core)
+add_subdirectory(projects/shadercompile)
 add_subdirectory(projects/imaging)
 add_subdirectory(projects/display)
 add_subdirectory(projects/ircompile)
@@ -84,6 +85,11 @@ add_dependencies(ifrit.runtime
     ifrit.display 
     ifrit.meshproclib 
     ifrit.core 
+    ${FSR2_API_LIBRARIES})
+
+add_dependencies(ifrit.vkrenderer 
+    ifrit.core 
+    ifrit.shadercompile
     ${FSR2_API_LIBRARIES})
 
 set(DEMO_DEPENDENCIES 

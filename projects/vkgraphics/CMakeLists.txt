@@ -31,7 +31,7 @@ target_precompile_headers(ifrit.vkrenderer
 
 target_link_libraries(ifrit.vkrenderer 
     Vulkan::Vulkan 
-    Vulkan::shaderc_combined 
+    ifrit.shadercompile
     ${FSR2_API_LIBRARIES} 
     ${IFRIT_COMMON_DEPENDENCIES_SHARED}
     ifrit.core)
