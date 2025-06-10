@@ -34,11 +34,11 @@ include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)
 
 # add link libraries to a variable
 set(IFRIT_DEMO_LINK_LIBRARIES 
-    ifrit.softrenderer 
+    ifrit.softgraphics 
     ifrit.meshproclib 
     ifrit.display 
     glfw 
-    ifrit.vkrenderer 
+    ifrit.vkgraphics 
     ifrit.runtime 
     ifrit.core
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})

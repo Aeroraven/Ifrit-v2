@@ -17,6 +17,6 @@ add_definitions(-DIFRIT_API_EXPORT)
 
 add_library(ifrit.rhi SHARED ${IFRIT_RHI_SOURCE_FILES_CXX} ${IFRIT_RHI_SOURCE_FILES_C} ${IFRIT_RHI_HEADER_FILES})
 target_link_libraries(ifrit.rhi 
-    ifrit.vkrenderer
+    ifrit.vkgraphics
     ifrit.core
     ${IFRIT_COMMON_DEPENDENCIES_SHARED}) 

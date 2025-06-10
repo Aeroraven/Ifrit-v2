@@ -23,13 +23,13 @@ add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.VkGraphics")
 set(IFRIT_VKGRAPHICS_PCH_HEADER ${IFRIT_PROJECT_DIR}/include/ifrit/vkgraphics/common/Pch.h)
 
 
-add_library(ifrit.vkrenderer SHARED ${IFRIT_VKRENDERER_SOURCE_FILES_CXX} ${IFRIT_VKRENDERER_SOURCE_FILES_C} ${IFRIT_VKRENDERER_HEADER_FILES})
-target_precompile_headers(ifrit.vkrenderer
+add_library(ifrit.vkgraphics SHARED ${IFRIT_VKRENDERER_SOURCE_FILES_CXX} ${IFRIT_VKRENDERER_SOURCE_FILES_C} ${IFRIT_VKRENDERER_HEADER_FILES})
+target_precompile_headers(ifrit.vkgraphics
     PRIVATE 
     $<$<CXX_COMPILER_ID:MSVC>:"${IFRIT_VKGRAPHICS_PCH_HEADER}"> 
     $<$<CXX_COMPILER_ID:GNU>:"${IFRIT_VKGRAPHICS_PCH_HEADER}">)
 
-target_link_libraries(ifrit.vkrenderer 
+target_link_libraries(ifrit.vkgraphics 
     Vulkan::Vulkan 
     ifrit.shadercompile
     ${FSR2_API_LIBRARIES} 
@@ -38,6 +38,6 @@ target_link_libraries(ifrit.vkrenderer
 
 # windows specific
 include(${IFRIT_PROJECT_DIR}/projects/buildinfra/WindowsLibConv.cmake)
-WindowsPrebuild(ifrit.vkrenderer ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "libifrit.vkrenderer")
-WindowsPostbuild(ifrit.vkrenderer "libifrit.vkrenderer.def" "libifrit.vkrenderer.dll" "libifrit.vkrenderer.lib" ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "x64")
-AddImpLib(ifrit.vkrenderer ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "libifrit.vkrenderer")
+WindowsPrebuild(ifrit.vkgraphics ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "libifrit.vkgraphics")
+WindowsPostbuild(ifrit.vkgraphics "libifrit.vkgraphics.def" "libifrit.vkgraphics.dll" "libifrit.vkgraphics.lib" ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "x64")
+AddImpLib(ifrit.vkgraphics ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "libifrit.vkgraphics")
