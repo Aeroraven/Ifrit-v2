@@ -45,7 +45,7 @@ namespace Ifrit::Logging
                 return logger;
             }
             RegisterLoggerModule(name);
-            printf("Registered logger module: %s\n", name.c_str());
+            // printf("Registered logger module: %s\n", name.c_str());
             return spdlog::get(name);
         }
         logger->set_pattern("[%Y/%m/%d %H:%M:%S %z] [%^%-7l%$] [%n] %v");

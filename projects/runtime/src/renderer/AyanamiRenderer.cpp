@@ -41,6 +41,9 @@ namespace Ifrit::Runtime
     using namespace Ifrit::Runtime::Ayanami;
     using namespace Ifrit::Graphics::Rhi;
 
+    static ConsoleVariable<i32> cvAyanamiDebugOption(
+        "cv.Ayanami.DebugOption", 114514, "Ayanami Debug Option", CVF_Default);
+
     struct AyanamiRendererResources
     {
         using DrawPass    = RhiGraphicsPass;
@@ -507,6 +510,7 @@ namespace Ifrit::Runtime
             { vgTaskTimestamp.get() }, {});
 
         // Sleep(2000);
+        iDebug("Test:{}", cvAyanamiDebugOption.GetValue());
         return task;
     }
 

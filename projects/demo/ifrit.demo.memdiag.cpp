@@ -121,9 +121,9 @@ namespace Ifrit
             iInfo("DemoApplication::OnStart()");
 
             Ayanami::AyanamiRenderConfig ayaConfig;
-            ayaConfig.m_globalDFClipmapLevels     = 1;
-            ayaConfig.m_globalDFClipmapResolution = 256;
-            ayaConfig.m_globalDFBaseExtent        = 16.0f;
+            ayaConfig.m_GlobalDFClipmapLevels     = 1;
+            ayaConfig.m_GlobalDFClipmapResolution = 256;
+            ayaConfig.m_GlobalDFBaseExtent        = 16.0f;
 
             renderer       = std::make_shared<AyanamiRenderer>(this, ayaConfig);
             auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInterior/Untitled.gltf"); //

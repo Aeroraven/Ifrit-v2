@@ -164,9 +164,9 @@ namespace Ifrit
             iInfo("DemoApplication::OnStart()");
 
             Ayanami::AyanamiRenderConfig ayaConfig;
-            ayaConfig.m_globalDFClipmapLevels       = 1;
-            ayaConfig.m_globalDFClipmapResolution   = 256;
-            ayaConfig.m_globalDFBaseExtent          = 2.0f;
+            ayaConfig.m_GlobalDFClipmapLevels       = 1;
+            ayaConfig.m_GlobalDFClipmapResolution   = 256;
+            ayaConfig.m_GlobalDFBaseExtent          = 2.0f;
             ayaConfig.m_DebugForceSurfaceCacheRegen = true;
             ayaConfig.m_DebugForceObjectGridRegen   = true;
 

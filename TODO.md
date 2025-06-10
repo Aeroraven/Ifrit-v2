@@ -3,7 +3,7 @@
 ### 4.0 Ongoing Schedule
 
 - Subproject Ayanami:
-  - Indirect Lighting on Surface Atlas
+  - Indirect Lighting on Surface Atlas (Debugging Phase)
   - Denoising / ReSTIR
 - Subproject Syaro:
   - Refactoring with RDGs

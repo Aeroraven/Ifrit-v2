@@ -36,6 +36,13 @@ using namespace Ifrit::Runtime::FrameGraphUtils;
 
 namespace Ifrit::Runtime::Ayanami
 {
+    static ConsoleVariable<u32> cvLowDiscrepancySeqLen("cv.Ayanami.SurfaceCache.LowDiscrepancySeqLen", 16,
+        "Length of low discrepancy sequence for surface cache generation", CVF_Default);
+    static ConsoleVariable<u32> cvSurfaceCacheTemporalAccumMaxHistory("cv.Ayanami.SurfaceCache.TemporalAccumMaxHistory",
+        32, "Maximum history length for temporal accumulation in surface cache", CVF_Default);
+    static ConsoleVariable<u32> cvSurfaceCacheResolution(
+        "cv.Ayanami.SurfaceCache.Resolution", 4096, "Resolution of the surface cache atlas", CVF_Default);
+
     static constexpr Array<Vector3f, 6> kCardDirections = { Vector3f(1.0f, 0.0f, 0.0f), Vector3f(-1.0f, 0.0f, 0.0f),
         Vector3f(0.0f, 1.0f, 0.0f), Vector3f(0.0f, -1.0f, 0.0f), Vector3f(0.0f, 0.0f, 1.0f),
         Vector3f(0.0f, 0.0f, -1.0f) };
@@ -162,15 +169,15 @@ namespace Ifrit::Runtime::Ayanami
 
     AyanamiTrivialSurfaceCacheManager::AyanamiTrivialSurfaceCacheManager(
         const AyanamiRenderConfig& config, AyanamiSharedContext* sharedCtx, IApplication* app)
-        : m_App(app), m_Resolution(config.m_SurfaceCacheResolution)
+        : m_App(app), m_Resolution(cvSurfaceCacheResolution.GetValue())
     {
         m_Resources                                  = new AyanamiTrivialSurfaceCacheManagerResource();
         m_Resources->m_ForceSurfaceCacheRegeneration = config.m_DebugForceSurfaceCacheRegen;
         m_SharedContext                              = sharedCtx;
 
         m_Resources->m_MaxPerTileLights   = config.m_RadiancePassMaxPerTileLights;
-        m_Resources->m_ProbeJitterSeqLen  = config.m_SurfaceCacheLowDiscrepancySeqLen;
-        m_Resources->m_AccumHistoryLength = config.m_SurfaceCacheTemporalAccumMaxHistory;
+        m_Resources->m_ProbeJitterSeqLen  = cvLowDiscrepancySeqLen.GetValue();
+        m_Resources->m_AccumHistoryLength = cvSurfaceCacheTemporalAccumMaxHistory.GetValue();
         PrepareImmutableResource();
     }
     AyanamiTrivialSurfaceCacheManager::~AyanamiTrivialSurfaceCacheManager() { delete m_Resources; }

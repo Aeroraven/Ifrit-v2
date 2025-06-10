@@ -23,20 +23,14 @@ namespace Ifrit::Runtime::Ayanami
 {
     struct AyanamiRenderConfig
     {
-        u32  m_globalDFClipmapLevels     = 4;
-        u32  m_globalDFClipmapResolution = 256;   // 16MB per clipmap level
-        f32  m_globalDFBaseExtent        = 20.0f; // 2500.0 in the original code
+        u32  m_GlobalDFClipmapLevels     = 4;
+        u32  m_GlobalDFClipmapResolution = 256;   // 16MB per clipmap level
+        f32  m_GlobalDFBaseExtent        = 20.0f; // 2500.0 in the original code
 
-        u32  m_SurfaceCacheResolution       = 4096;
         u32  m_RadiancePassMaxPerTileLights = 8;
-
-        u32  m_VoxelExtentPerGlobalClipMap = 64; // object grids
 
         bool m_DebugForceSurfaceCacheRegen = false;
         bool m_DebugRunDFSS                = false;
         bool m_DebugForceObjectGridRegen   = false;
-
-        u32  m_SurfaceCacheLowDiscrepancySeqLen    = 16;
-        u32  m_SurfaceCacheTemporalAccumMaxHistory = 32;
     };
 } // namespace Ifrit::Runtime::Ayanami

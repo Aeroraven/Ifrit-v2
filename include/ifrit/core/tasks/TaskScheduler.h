@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/algo/Memory.h"
 #include "ifrit/core/algo/Parallel.h"
 
+#include "ifrit/core/base/CoreBase.h"
 namespace Ifrit
 {
     IF_CONSTEXPR u32 cTaskMaxContinuationCount = 16;
@@ -135,5 +136,7 @@ namespace Ifrit
         friend class TaskWorker;
         friend class Task;
     };
+
+    IFRIT_CORE_API TaskScheduler* GetTaskScheduler();
 
 } // namespace Ifrit

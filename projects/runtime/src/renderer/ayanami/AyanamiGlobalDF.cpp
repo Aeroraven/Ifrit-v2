@@ -30,16 +30,19 @@ using namespace Ifrit::Runtime::FrameGraphUtils;
 
 namespace Ifrit::Runtime::Ayanami
 {
+    static ConsoleVariable<u32> cvVoxelExtentPerGlobalClipMap(
+        "cv.Ayanami.GlobalDistanceField.VoxelExtentPerGlobalClipMap", 64,
+        "The number of voxels per side in each global DF clipmap level", CVF_Default);
 
     IFRIT_APIDECL AyanamiGlobalDF::AyanamiGlobalDF(const AyanamiRenderConfig& config, IApplication* app) : m_app(app)
     {
         auto rhi                = app->GetRhi();
         auto linearClampSampler = app->GetSharedRenderResource()->GetLinearClampSampler();
-        m_TestClipMaps.resize(config.m_globalDFClipmapLevels);
-        for (u32 i = 0; i < config.m_globalDFClipmapLevels; i++)
+        m_TestClipMaps.resize(config.m_GlobalDFClipmapLevels);
+        for (u32 i = 0; i < config.m_GlobalDFClipmapLevels; i++)
         {
-            auto extent                        = config.m_globalDFBaseExtent;
-            auto resolution                    = config.m_globalDFClipmapResolution;
+            auto extent                        = config.m_GlobalDFBaseExtent;
+            auto resolution                    = config.m_GlobalDFClipmapResolution;
             m_TestClipMaps[i]                  = std::make_unique<AyanamiGlobalDFClipmap>();
             m_TestClipMaps[i]->m_clipmapSize   = resolution;
             m_TestClipMaps[i]->m_worldBoundMin = Vector3f(-extent, -extent, -extent);
@@ -52,9 +55,9 @@ namespace Ifrit::Runtime::Ayanami
                 true);
 
             // Voxel Lighting Resources
-            u32 totalVoxels = config.m_VoxelExtentPerGlobalClipMap * config.m_VoxelExtentPerGlobalClipMap
-                * config.m_VoxelExtentPerGlobalClipMap;
-            m_TestClipMaps[i]->m_VoxelsPerWidth   = config.m_VoxelExtentPerGlobalClipMap;
+            auto voxelExtentPerGlobalClipMap = cvVoxelExtentPerGlobalClipMap.GetValue();
+            u32  totalVoxels = voxelExtentPerGlobalClipMap * voxelExtentPerGlobalClipMap * voxelExtentPerGlobalClipMap;
+            m_TestClipMaps[i]->m_VoxelsPerWidth   = voxelExtentPerGlobalClipMap;
             m_TestClipMaps[i]->m_objectGridBuffer = rhi->CreateBuffer("Ayanami_GlobalDF_ObjectGrid",
                 totalVoxels * sizeof(u32) * Config::kAyanami_MaxObjectPerGridCell,
                 Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO, false, true);

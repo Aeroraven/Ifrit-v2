@@ -29,3 +29,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/math/constfunc/ConstFunc.h"
 #include "ifrit/core/math/simd/SimdVectors.h"
+
+#include "ifrit/core/console/ConsoleObject.h"

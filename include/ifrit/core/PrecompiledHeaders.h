@@ -44,3 +44,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/file/FileOps.h"
 
 #include "ifrit/core/logging/Logging.h"
+
+#include "ifrit/core/console/ConsoleObject.h"
+#include "ifrit/core/console/ConsoleObjectManager.h"

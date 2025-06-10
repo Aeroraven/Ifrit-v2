@@ -278,4 +278,10 @@ namespace Ifrit
         iInfo("TaskScheduler: All workers finished.");
     }
 
+    IFRIT_APIDECL TaskScheduler* GetTaskScheduler()
+    {
+        static TaskScheduler scheduler(8, true);
+        return &scheduler;
+    }
+
 } // namespace Ifrit

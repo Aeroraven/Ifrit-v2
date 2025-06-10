@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "ifrit/runtime/material/ShaderRegistry.h"
 #include "ifrit/core/tasks/TaskScheduler.h"
-#include "ifrit/core/global/GlobalInstances.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/core/file/FileOps.h"

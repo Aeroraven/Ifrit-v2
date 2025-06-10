@@ -1,7 +1,7 @@
 
 /*
 Ifrit-v2
-Copyright (C) 2024-2025 funkybirds(Aeroraven)
+Copyright (C) 2024 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,13 +16,11 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/core/global/GlobalInstances.h"
+#pragma once
+#include "ifrit/core/base/IfritBase.h"
 
 namespace Ifrit
 {
-    IFRIT_APIDECL TaskScheduler* GetTaskScheduler()
-    {
-        static TaskScheduler scheduler(8, true);
-        return &scheduler;
-    }
+    template <typename T, typename... Types> using TypeIsAnyOf = std::disjunction<std::is_same<T, Types>...>;
+    template <typename T, typename... Types> inline IF_CONSTEXPR bool TypeIsAnyOf_v = TypeIsAnyOf<T, Types...>::value;
 } // namespace Ifrit
