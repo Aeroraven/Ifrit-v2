@@ -74,7 +74,24 @@ namespace Ifrit::Runtime
             auto taskExecutor                       = GetTaskScheduler();
             m_Data->m_ShaderMap[sName].m_TaskHandle = taskExecutor->EnqueueTask(
                 [sPath, sName, sEntry, stage, this](Task* task, void* data) {
-                    auto shaderPath = String(IFRIT_RUNTIME_SHARED_SHADER_PATH) + "/" + sPath;
+                    auto   fileExtension = sPath.substr(sPath.find_last_of('.') + 1);
+                    String shaderPath;
+                    auto   shaderType = Graphics::Rhi::RhiShaderSourceType::GLSLCode;
+                    if (fileExtension == "glsl")
+                    {
+                        shaderPath = String(IFRIT_RUNTIME_SHARED_SHADER_PATH) + "/" + sPath;
+                    }
+                    else if (fileExtension == "slang")
+                    {
+                        shaderPath = String(IFRIT_RUNTIME_SHARED_SHADER_NEXT_PATH) + "/" + sPath;
+                        shaderType = Graphics::Rhi::RhiShaderSourceType::SlangCode;
+                    }
+                    else
+                    {
+                        iError("Unsupported shader file extension: {}", fileExtension);
+                        std::abort();
+                    }
+
                     auto shaderCode = ReadTextFile(shaderPath);
                     if (shaderCode.size() == 0)
                     {
@@ -83,8 +100,7 @@ namespace Ifrit::Runtime
                     }
                     auto shaderCodeVec = Vec<char>(shaderCode.begin(), shaderCode.end());
                     auto rhi           = m_Data->m_App->GetRhi();
-                    auto shader        = rhi->CreateShader(
-                        sName, shaderCodeVec, sEntry, stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode);
+                    auto shader        = rhi->CreateShader(sName, shaderCodeVec, sEntry, stage, shaderType);
 
                     m_Data->m_ShaderMap[sName].m_Shader = shader;
                     m_Data->m_ShaderMap[sName].m_Status.store(

@@ -10,6 +10,9 @@
 - Architectural
   - Shader Rewrite: `ifrit.shader.neo`
   - Multithreaded Rendering
+- Bug Fixing
+  - (vkgraphics) Dangling view identifiers after resource destruction
+
 
 ### 4.1 Migration of  Project Aria
 

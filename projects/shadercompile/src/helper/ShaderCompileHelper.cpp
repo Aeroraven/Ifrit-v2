@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/shadercompile/helper/ShaderCompileHelper.h"
 #include "ifrit/shadercompile/glslproc/GlslSpirvTranslator.h"
+#include "ifrit/shadercompile/slangproc/SlangCompiler.h"
 #include "ifrit/core/logging/Logging.h"
 
 namespace Ifrit::ShaderCompile
@@ -29,6 +30,16 @@ namespace Ifrit::ShaderCompile
         if (sourceType == ShaderSourceFormat::GLSL && targetFormat == ShaderIRFormat::SpirV)
         {
             compiler = new GLSLProc::GlslSpirvTranslator();
+        }
+        else if (sourceType == ShaderSourceFormat::Slang && targetFormat == ShaderIRFormat::SpirV)
+        {
+            compiler = new SlangProc::SlangCompiler();
+        }
+        else
+        {
+            iError("Unsupported shader source format ");
+            std::abort();
+            return {};
         }
         compiler->SetCachePath(m_CacheDir);
         compiler->SetIncludeBase(m_IncludeBase);

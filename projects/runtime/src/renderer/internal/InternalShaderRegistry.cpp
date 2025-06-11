@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
+#include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Neo.h"
 
 namespace Ifrit::Runtime::Internal
 {
@@ -29,8 +30,20 @@ namespace Ifrit::Runtime::Internal
 #define REG_FRAGMENT(name, path) REG_SHADER(name, path ".frag.glsl", Graphics::Rhi::RhiShaderStage::Fragment)
 #define REG_MESH(name, path) REG_SHADER(name, path ".mesh.glsl", Graphics::Rhi::RhiShaderStage::Mesh)
 
+#define REG_SHADER_NEO(name, path, stage, entry) shaderRegistry->RegisterShader(name, path, entry, stage)
+#define REG_COMPUTE_NEO(name, path, entry) \
+    REG_SHADER_NEO(name, path ".comp.slang", Graphics::Rhi::RhiShaderStage::Compute, entry)
+#define REG_VERTEX_NEO(name, path, entry) \
+    REG_SHADER_NEO(name, path ".vert.slang", Graphics::Rhi::RhiShaderStage::Vertex, entry)
+#define REG_FRAGMENT_NEO(name, path, entry) \
+    REG_SHADER_NEO(name, path ".frag.slang", Graphics::Rhi::RhiShaderStage::Fragment, entry)
+#define REG_MESH_NEO(name, path, entry) \
+    REG_SHADER_NEO(name, path ".mesh.slang", Graphics::Rhi::RhiShaderStage::Mesh, entry)
+
         const auto& IST    = kIntShaderTable;
         const auto& ISTAya = kIntShaderTableAyanami;
+        const auto& ISTNeo = kIntShaderTableNeo;
+
         // GI & AO
         REG_COMPUTE(IST.GI.HBAOCS, "AmbientOcclusion/HBAO");
         REG_COMPUTE(IST.GI.SSGICS, "AmbientOcclusion/SSGI");
@@ -132,6 +145,9 @@ namespace Ifrit::Runtime::Internal
         REG_MESH(IST.Syaro.VisBufferMS, "Syaro/Syaro.VisBuffer");
         REG_MESH(IST.Syaro.VisBufferDepthMS, "Syaro/Syaro.VisBufferDepth");
 
+        // Neo
+        REG_COMPUTE_NEO(ISTNeo.TestCS, "TestCS", "TestCS");
+
         iInfo("Internal: Compiling internal shaders...");
         shaderRegistry->WaitForShaderCompilations();
         iInfo("Internal: Internal shaders compiled.");
@@ -141,5 +157,10 @@ namespace Ifrit::Runtime::Internal
 #undef REG_VERTEX
 #undef REG_COMPUTE
 #undef REG_SHADER
+
+#undef REG_MESH_NEO
+#undef REG_FRAGMENT_NEO
+#undef REG_VERTEX_NEO
+#undef REG_COMPUTE_NEO
     }
 } // namespace Ifrit::Runtime::Internal

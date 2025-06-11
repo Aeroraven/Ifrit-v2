@@ -122,15 +122,16 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 Following dependencies should be manually configured. Other dependencies will be configured via submodule.
 
 - OpenGL >= 4.6 
-- CMake >= 3.24
-- MSVC >= 19.29 (`cpp20` Support Required)
+- CMake >= 3.25
+- MSVC >= 19.29
 
 **Ifrit Runtime (Syaro/Ayanami)**
 
-- Vulkan SDK 1.3 (with shaderc combined)
-  - Core Features 1.3
+- Vulkan SDK >= 1.3.296
   - with `EXT_mesh_shader` extension
   - with `EXT_shader_image_atomic_int64` extension
+
+- Python 3
 
 **Ifrit Soft Renderer** 
 
@@ -144,7 +145,7 @@ Following dependencies should be manually configured. Other dependencies will be
 
 ```shell
 cmake -S . -B ./build -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build ./build
+cmake --build ./build # Or open Visual Studio manually
 ```
 
 
@@ -175,7 +176,7 @@ The source files can be decomposed into following parts.
 | ifrit.imaging       | Utilities for image processing<br/>Including some texture compression utilities. |
 | ifrit.meshproc      | Algorithms for mesh processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh auto-lod and mesh-level signed distance field generation |
 | ifrit.rhi           | Backend-agnostic render hardware interface.                  |
-| ifrit.shadercompile | Backend for shader compilation                               |
+| ifrit.shadercompile | Backend for shader compilation<br/>Contains glslc and slang backend |
 | ifrit.softgraphics  | Implementation of soft renderer, with both MT-CPU and CUDA version |
 | ifrit.vkgraphics    | Vulkan backend                                               |
 

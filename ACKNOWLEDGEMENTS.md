@@ -18,14 +18,13 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT                  |
 | [spirv-reflect](https://github.com/KhronosGroup/SPIRV-Reflect) | Shader Reflection                | Apache 2.0           |
 | [shaderc](https://github.com/google/shaderc?tab=License-1-ov-file#readme) | Shader Compilation               | Apache 2.0           |
+| [slang](https://github.com/shader-slang/slang)               | Shader Compilation               | Apache 2.0           |
 | [sha1](https://github.com/vog/sha1)                          | Hash                             | Public domain        |
 | [precomputed_atmospheric_scattering](https://github.com/ebruneton/precomputed_atmospheric_scattering) | Atmospheric Scattering           | BSD-3-Clause         |
 | [gcem](https://github.com/kthohr/gcem)                       | Compile-time Math                | Apache 2.0           |
 | [spdlog](https://github.com/gabime/spdlog.git)               | Logging                          | MIT                  |
 | [fsr2](https://github.com/GPUOpen-Effects/FidelityFX-FSR2)   | Super Resolution                 | MIT                  |
-| [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) * | Texture Compression              | Apache 2.0           |
-
-*. License files can be obtained in submodule after you git clone this repository.
+| [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) | Texture Compression              | Apache 2.0           |
 
 
 

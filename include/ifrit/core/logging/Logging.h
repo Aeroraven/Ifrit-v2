@@ -121,6 +121,17 @@ namespace Ifrit::Logging
         GetLoggerModule(moduleName)->trace(formatted);
     }
 
+    template <typename... Args>
+    inline void Assertion2(const char* moduleName, bool condition, std::format_string<Args...> fmt, Args&&... args)
+    {
+        if (!condition)
+        {
+            auto formatted = std::format(fmt, std::forward<Args>(args)...);
+            GetLoggerModule(moduleName)->error(formatted);
+            throw std::runtime_error(formatted);
+        }
+    }
+
     template <typename T> inline void Info2(const char* moduleName, const T& msg)
     {
         auto s = GetLoggerModule(moduleName);

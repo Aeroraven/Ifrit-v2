@@ -27,5 +27,6 @@ add_library(ifrit.shadercompile SHARED ${IFRIT_SHADER_COMPILE_SOURCE_FILES_CXX} 
 target_link_libraries(ifrit.shadercompile PUBLIC 
     ifrit.core
     Vulkan::shaderc_combined 
+    slang
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})     
 

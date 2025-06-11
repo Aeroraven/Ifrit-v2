@@ -81,7 +81,7 @@ namespace Ifrit
         u8&         operator[](u32 index) { return m_Data[index]; }
         const u8&   operator[](u32 index) const { return m_Data[index]; }
 
-        void        CopyFromRaw(void* ptr, u32 size)
+        void        CopyFromRaw(const void* ptr, u32 size)
         {
             m_Data.resize(size);
             memcpy(m_Data.data(), ptr, size);

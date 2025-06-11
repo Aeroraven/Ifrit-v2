@@ -19,7 +19,7 @@ endfunction()
 set(IFRIT_GLOBAL_LLVM_DIR_LINUX "/usr/local/llvm-10/")
 set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "C:/llvm-project/")
 set(IFRIT_GLOBAL_CUDA_DIR_WINDOWS "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/")
- 
+  
 # Set global flags
 set(IFRIT_GLOBAL_INTEGRATED_BUILD_FLAG 1)
 set(IFRIT_GLOBAL_DISABLE_LLVM 1)
@@ -62,6 +62,7 @@ set(FSR2_API_LIBRARIES ffx_fsr2_api_vk_x64 ffx_fsr2_api_x64)
 set(KTX_FEATURE_TESTS OFF CACHE BOOL "Disable KTX feature tests" FORCE)
 set(KTX_FEATURE_TOOLS_CTS OFF CACHE BOOL "Disable KTX tests" FORCE)
 set(KTX_FEATURE_TOOLS OFF CACHE BOOL "Disable KTX tools" FORCE)
+set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1) # hack to prevent CTest added targets
 
 # spdlog
 set(SPDLOG_BUILD_SHARED ON CACHE BOOL "Disable KTX tools" FORCE)
@@ -104,54 +105,7 @@ set(IFRIT_GROUP_DEPENDENCIES "Project Ifrit/ThirdParty")
 set(IFRIT_GROUP_DEMO "Project Ifrit/Demo")
 
 # slang targets
-# set_targets_folder(dependencies/slang ${IFRIT_GROUP_DEPENDENCIES}/slang)
-set_target_properties(slang PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang)
-set_target_properties(slangc PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang)
-set_target_properties(slang-common-objects PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang)
-set_target_properties(slangd PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang)
-set_target_properties(slang-glslang PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang)
-set_target_properties(slangi PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang)
-set_target_properties(slang-rt PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang)
-set_target_properties(core PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang)
-set_target_properties(compiler-core PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang)
-
-set(IFRIT_SLANG_GENERATED_TARGETS
-    slang-capability-defs
-    slang-capability-lookup
-    slang-fiddle-output
-    slang-lookup-tables
-    slang-embedded-core-module
-    slang-embedded-core-module-source
-    slang-no-embedded-core-module
-    slang-no-embedded-core-module-source
-    slang-glsl-module
-    prelude
-    copy_slang_headers
-    generate_core_module_headers
-    copy-slang-llvm
-    copy-slang-tint
-    copy-webgpu_dawn
-)
-foreach(target IN LISTS IFRIT_SLANG_GENERATED_TARGETS)
-    set_target_properties(${target} PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang/generated)
-endforeach()
-
-set(IFRIT_SLANG_GENERATOR_HEADERS
-    slang-bootstrap
-    slang-lookup-generator
-    slang-cpp-parser
-    slang-embed
-    slang-generate
-    slang-spirv-embed-generator
-    slang-without-embedded-core-module
-    slang-embed
-    slang-fiddle
-    slang-capability-generator
-    all-generators
-)
-foreach(header IN LISTS IFRIT_SLANG_GENERATOR_HEADERS)
-    set_target_properties(${header} PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang/generator)
-endforeach()
+include(projects/buildinfra/SlangBuildPostprocess.cmake)
 
 # spdlog targets
 set_targets_folder(dependencies/spdlog ${IFRIT_GROUP_DEPENDENCIES}/spdlog)
@@ -239,4 +193,4 @@ add_dependencies(ifrit.demo.ayanami ${DEMO_DEPENDENCIES})
 add_dependencies(ifrit.demo.test ${DEMO_DEPENDENCIES})
 add_dependencies(ifrit.demo.memdiag ${DEMO_DEPENDENCIES})
 add_dependencies(ifrit.demo.cornell ${DEMO_DEPENDENCIES})
-    
+      
