@@ -49,13 +49,6 @@ void main(){
     vec4 CurrentColor = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_CurrentFrameIndirectLightingUAV), ivec2(tID));
 
     // if nan set to zero
-    if(isnan(CurrentColor.r) || isnan(CurrentColor.g) || isnan(CurrentColor.b) || isnan(CurrentColor.a)){
-        CurrentColor = vec4(1000.0,1000.0,1000.0,1.0);
-    }
-    if(isnan(HistoryColor.r) || isnan(HistoryColor.g) || isnan(HistoryColor.b) || isnan(HistoryColor.a)){
-        HistoryColor =  vec4(1000.0,1000.0,1000.0,1.0);
-    }
-
     uint NumHistoryFrames = PushConst.m_FrameIdx;
     if(NumHistoryFrames > 0){
         NumHistoryFrames = NumHistoryFrames - 1;

@@ -268,7 +268,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         // iDebug("IR size: {} bytes", irSize);
         ShaderModuleCI shaderModuleCI;
         shaderModuleCI.m_IRCode     = output.m_IR.m_Data.ToString();
-        shaderModuleCI.m_EntryPoint = m_CI.m_EntryPoint;
+        shaderModuleCI.m_EntryPoint = "main"; // m_CI.m_EntryPoint;
         shaderModuleCI.stage        = m_CI.m_Stage;
         shaderModuleCI.m_ShaderName = m_CI.m_FileName;
 

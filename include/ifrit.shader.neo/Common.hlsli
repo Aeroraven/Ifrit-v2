@@ -26,6 +26,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define IFSHADER_DEFINE_CONST_FLOAT3(name, value) static const float3 name = value;
 #define IFSHADER_DEFINE_CONST_FLOAT4(name, value) static const float4 name = value;
 
+#define IFSHADER_VS_ENTRY "vertex"
+#define IFSHADER_PS_ENTRY "pixel"
+#define IFSHADER_CS_ENTRY "compute"
+
 #ifdef COMPILER_DXC
     #ifdef __HLSL_VERSION 
         #define IFSHADER_TEMPLATE template
@@ -36,10 +40,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
         #define IFSHADER_TEXELELEMENT_TYPE
         #define IFSHADER_UNSCOPED_ENUM 
         #define IFSHADER_FLOATVEC_TYPE //float,float2,float3,float4
+        #define IFSHADER_ENTRY(x) [[shader(x)]]
+        #define IFSHADER_BLOCKSIZE(x,y,z) [[numthreads(x, y, z)]]
         #ifdef IFSHADER_VULKAN
             #define IFSHADER_BINDING(binding, set) [[vk::binding(binding, set)]]
+            #define IFSHADER_LOCATION(location) [[vk::location(location)]]
+            #define IFSHADER_PUSHCONST [[vk::push_constant]]
         #else
             #define IFSHADER_BINDING(binding, set)
+            #define IFSHADER_LOCATION(location)
+            #define IFSHADER_PUSHCONST
         #endif
     #else
         #error "This shader module is only supported in HLSL or Slang."
@@ -53,11 +63,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define IFSHADER_TEXELELEMENT_TYPE ITexelElement
     #define IFSHADER_UNSCOPED_ENUM [UnscopedEnum]
     #define IFSHADER_FLOATVEC_TYPE __BuiltinFloatingPointType
-        
+    #define IFSHADER_ENTRY(x) [shader(x)]
+    #define IFSHADER_BLOCKSIZE(x,y,z) [numthreads(x, y, z)]
     #ifdef IFSHADER_VULKAN
         #define IFSHADER_BINDING(x, y) [vk::binding(x, y)]
+        #define IFSHADER_LOCATION(x) [vk::location(x)]
+        #define IFSHADER_PUSHCONST [vk::push_constant]
     #else
         #define IFSHADER_BINDING(x, y)
+        #define IFSHADER_LOCATION(x)
+        #define IFSHADER_PUSHCONST
     #endif
 #endif
 

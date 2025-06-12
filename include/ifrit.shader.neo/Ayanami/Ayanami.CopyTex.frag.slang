@@ -16,21 +16,34 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
+#include "ifrit.shader.neo/Common.hlsli"
+#include "ifrit.shader.neo/Bindless.hlsli"
 
-#extension GL_GOOGLE_include_directive : require
+namespace IfritShader
+{
+    struct PixelInput
+    {
+        IFSHADER_LOCATION(0) float2 TexCoord : TEXCOORD0;
+    };
 
-#include "Base.glsl"
-#include "Bindless.glsl"
-#include "Ayanami/Ayanami.SharedConst.h"
-#include "Ayanami/Ayanami.Shared.glsl"
-#include "ComputeUtils.glsl"
+    struct PixelOutput
+    {
+        float4 Color : SV_Target0;
+    };
 
-layout(
-    local_size_x = 1, 
-    local_size_y = 1, 
-    local_size_z = 1 
-) in;
+    struct PushConstant_T
+    {
+        TTexture2DHandle<float4> m_TexHandle;
+    };
 
-void main(){
+    IFSHADER_PUSHCONST PushConstant_T PushConst;
     
+    IFSHADER_ENTRY(IFSHADER_PS_ENTRY)
+    PixelOutput CopyTexPS(PixelInput input)
+    {
+        PixelOutput output;
+        output.Color = PushConst.m_TexHandle.Sample(ESamplerType::SLinearClamp,input.TexCoord);
+        return output;
+    }
+
 }

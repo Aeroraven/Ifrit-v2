@@ -60,5 +60,5 @@ void main(){
     normalLocal = normalLocal * 0.5 + 0.5;
 
     OutColor = albedo.xyzw;
-    OutNormal = vec4(Normal* 0.5 + 0.5, 1.0);
+    OutNormal = vec4(normalLocal, 1.0);
 }

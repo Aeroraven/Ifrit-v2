@@ -68,13 +68,13 @@ namespace IfritShader
     {
         uint Index;
 
-        T Load(uint Offset)
+        T Load(uint Offset = 0)
         {
             RWStructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_RWStructuredBuffer[Index];
             return Buffer[Offset];
         }
 
-        void Store(uint Offset, T Value)
+        void Store(T Value, uint Offset = 0)
         {
             RWStructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_RWStructuredBuffer[Index];
             Buffer[Offset] = Value;
@@ -138,6 +138,13 @@ namespace IfritShader
             Texture2D<T> Texture = _Ifrit_ResourceHeap_Texture[Index];
             SamplerState Sampler = _Ifrit_ResourceHeap_Sampler[(uint)SamplerType];
             return Texture.Sample(Sampler, UV);
+        }
+
+        T SampleLevel(ESamplerType SamplerType, float2 UV, float Level)
+        {
+            Texture2D<T> Texture = _Ifrit_ResourceHeap_Texture[Index];
+            SamplerState Sampler = _Ifrit_ResourceHeap_Sampler[(uint)SamplerType];
+            return Texture.SampleLevel(Sampler, UV, Level);
         }
     };
     
