@@ -251,7 +251,15 @@ namespace Ifrit::Graphics::VulkanGraphics
         job.m_Definitions = definitionsInternal;
 
         auto compiler = ShaderCompile::ShaderCompileHelper();
-        compiler.SetIncludeBase(IFRIT_VKGRAPHICS_SHARED_SHADER_PATH);
+        if (job.m_Source.m_Format == ShaderCompile::ShaderSourceFormat::Slang)
+        {
+            compiler.SetIncludeBase(IFRIT_VKGRAPHICS_SHARED_SHADER_NEXT_INCLUDE_BASE);
+        }
+        else
+        {
+            compiler.SetIncludeBase(IFRIT_VKGRAPHICS_SHARED_SHADER_PATH);
+        }
+
         compiler.SetCacheDir(m_Context->GetCacheDir());
         compiler.SetOptimization(ShaderCompile::ShaderCompileOptimization::Performance);
 

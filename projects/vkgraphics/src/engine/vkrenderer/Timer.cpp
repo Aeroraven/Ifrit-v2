@@ -36,6 +36,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             vkrVulkanAssert(vkCreateQueryPool(ctx->GetDevice(), &poolInfo, nullptr, &m_queryPools[i]),
                 "Failed to create query pool");
+
+            // reset the query pool for each frame
+            vkResetQueryPool(ctx->GetDevice(), m_queryPools[i], 0, 2);
         }
     }
 

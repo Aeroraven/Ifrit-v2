@@ -31,14 +31,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define _ifrit_bindlessNaming(name) u##name##_bindless
 #define _ifrit_bindlessType(name) u##name##_bindless_type
 
+#ifdef IF_VERTEX_SHADER
+    #define IFSHADER_LEGACY_SSBO_ACCESS readonly
+#else
+    #define IFSHADER_LEGACY_SSBO_ACCESS
+#endif
+
 #define RegisterUniform(name, type) layout(binding = IFRIT_BINDLESS_BINDING_UNIFORM, set = IFRIT_BINDLESS_SET_ID) \
     uniform _ifrit_bindlessType(name) type _ifrit_bindlessNaming(name)[]
 
 #define RegisterStorage(name, type) layout(binding = IFRIT_BINDLESS_BINDING_STORAGE, set = IFRIT_BINDLESS_SET_ID) \
-    buffer _ifrit_bindlessType(name) type _ifrit_bindlessNaming(name)[]
+    IFSHADER_LEGACY_SSBO_ACCESS buffer _ifrit_bindlessType(name) type _ifrit_bindlessNaming(name)[]
 
 #define RegisterStorage140(name, type) layout(std140,binding = IFRIT_BINDLESS_BINDING_STORAGE, set = IFRIT_BINDLESS_SET_ID) \
-    buffer _ifrit_bindlessType(name) type _ifrit_bindlessNaming(name)[]
+    IFSHADER_LEGACY_SSBO_ACCESS buffer _ifrit_bindlessType(name) type _ifrit_bindlessNaming(name)[]
 
 
 // combined image samplers

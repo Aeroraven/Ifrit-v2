@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "slang/include/slang-com-ptr.h"
 #include "slang/include/slang.h"
 
+#include "sha1/sha1.hpp"
+#include <filesystem>
 #include <fstream>
 namespace Ifrit::ShaderCompile::SlangProc
 {
@@ -39,6 +41,14 @@ namespace Ifrit::ShaderCompile::SlangProc
 
     ShaderCompileOutput SlangCompiler::Compile(const ShaderCompileJob& job)
     {
+
+        auto sourceCode = job.m_Source.m_Code;
+        sourceCode      = "#define IFSHADER_VULKAN 1\n" + sourceCode;
+        for (const auto& [key, value] : job.m_Definitions)
+        {
+            sourceCode = "#define " + key + " " + value + "\n" + sourceCode;
+        }
+
         using Slang::ComPtr;
         ComPtr<slang::IGlobalSession> slangGlobalSession;
 
@@ -51,12 +61,18 @@ namespace Ifrit::ShaderCompile::SlangProc
         targetDesc.profile             = slangGlobalSession->findProfile("spirv_1_5");
         targetDesc.flags               = 0;
 
-        sessionDesc.targets                          = &targetDesc;
-        sessionDesc.targetCount                      = 1;
-        Array<slang::CompilerOptionEntry, 1> options = { { slang::CompilerOptionName::EmitSpirvDirectly,
-            { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr } } };
-        sessionDesc.compilerOptionEntries            = options.data();
-        sessionDesc.compilerOptionEntryCount         = 0; // options.size();
+        sessionDesc.targets                     = &targetDesc;
+        sessionDesc.targetCount                 = 1;
+        Vec<slang::CompilerOptionEntry> options = {
+            { slang::CompilerOptionName::EmitSpirvDirectly,
+                { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr } },
+            { slang::CompilerOptionName::Include,
+                { slang::CompilerOptionValueKind::String, 0, 0, m_IncludeBase.c_str(), nullptr } },
+
+        };
+
+        sessionDesc.compilerOptionEntries    = options.data();
+        sessionDesc.compilerOptionEntryCount = options.size();
 
         ComPtr<slang::ISession> session;
         iAssertion(
@@ -66,10 +82,52 @@ namespace Ifrit::ShaderCompile::SlangProc
         {
             ComPtr<slang::IBlob> diagnosticBlob;
             slangModule = session->loadModuleFromSourceString(
-                job.m_Name.c_str(), job.m_Name.c_str(), job.m_Source.m_Code.c_str(), diagnosticBlob.writeRef());
+                job.m_Name.c_str(), job.m_Name.c_str(), sourceCode.c_str(), diagnosticBlob.writeRef());
             diagnoseIfNeeded(diagnosticBlob);
             iAssertion(slangModule != nullptr, "Failed to load Slang module: {}", job.m_Name);
             // std::abort();
+        }
+
+        ComPtr<slang::IBlob> serializedModule;
+        {
+            SlangResult result = slangModule->serialize(serializedModule.writeRef());
+            iAssertion(result >= 0, "Failed to serialize Slang module: {}, code:{}", job.m_Name, (i32)result);
+        }
+        String serializedModuleStr;
+        serializedModuleStr.resize(serializedModule->getBufferSize());
+        memcpy(serializedModuleStr.data(), serializedModule->getBufferPointer(), serializedModule->getBufferSize());
+
+        SHA1 sha1;
+        sha1.update(serializedModuleStr);
+        String moduleHash = sha1.final();
+        iDebug("Slang module {} hash: {}", job.m_Name, moduleHash);
+
+        String cachedModulePath = m_CachePath + "/ifritsc.slang.shader." + moduleHash + ".cache";
+        if (std::filesystem::exists(cachedModulePath))
+        {
+            iDebug("Using cached Slang module: {}", cachedModulePath);
+            ShaderCompileOutput output;
+            output.m_IR.m_Format = ShaderIRFormat::SpirV;
+            std::ifstream file(cachedModulePath, std::ios::binary);
+            if (file)
+            {
+                file.seekg(0, std::ios::end);
+                size_t size = file.tellg();
+                file.seekg(0, std::ios::beg);
+                Vec<u8> data;
+                data.resize(size);
+                file.read(reinterpret_cast<char*>(data.data()), size);
+
+                output.m_IR.m_Data.CopyFromRaw(data.data(), data.size());
+                output.m_IR.m_Format = ShaderIRFormat::SpirV;
+            }
+            else
+            {
+                iError("Failed to read cached Slang module: {}", cachedModulePath);
+                std::abort();
+            }
+            output.m_Signature = moduleHash;
+            return output;
         }
 
         Slang::ComPtr<slang::IEntryPoint> entryPoint;
@@ -114,20 +172,19 @@ namespace Ifrit::ShaderCompile::SlangProc
         ShaderCompileOutput output;
         output.m_IR.m_Format = ShaderIRFormat::SpirV;
         output.m_IR.m_Data.CopyFromRaw(spirvCode->getBufferPointer(), spirvCode->getBufferSize());
-        // output.m_Signature = # TODO
+        output.m_Signature = moduleHash;
 
-        // debug, write spirv to $cacheDir/job.m_Name.spv
-        String        spirvFilePath = m_CachePath + "/Test.spv";
-        std::ofstream spirvFile(spirvFilePath, std::ios::binary);
-        if (spirvFile.is_open())
+        // write to cache
+        std::ofstream cacheFile(cachedModulePath, std::ios::binary);
+        if (cacheFile)
         {
-            spirvFile.write((const char*)spirvCode->getBufferPointer(), spirvCode->getBufferSize());
-            spirvFile.close();
-            iDebug("Slang SPIR-V code written to: {}", spirvFilePath);
+            cacheFile.write(reinterpret_cast<const char*>(output.m_IR.m_Data.GetData()), output.m_IR.m_Data.GetSize());
+            cacheFile.close();
+            iDebug("Cached Slang module: {}", cachedModulePath);
         }
         else
         {
-            iError("Failed to write SPIR-V code to file: {}", spirvFilePath);
+            iError("Failed to write cached Slang module: {}", cachedModulePath);
         }
 
         return output;

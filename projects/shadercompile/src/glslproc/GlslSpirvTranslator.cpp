@@ -155,6 +155,31 @@ namespace Ifrit::ShaderCompile::GLSLProc
 
         // add permutations preprocessor definitions
         String rawCode = job.m_Source.m_Code;
+        if (job.m_Stage == ShaderCompileStage::VertexShader)
+        {
+            rawCode = "#define IF_VERTEX_SHADER\n" + rawCode;
+        }
+        else if (job.m_Stage == ShaderCompileStage::FragmentShader)
+        {
+            rawCode = "#define IF_FRAGMENT_SHADER\n" + rawCode;
+        }
+        else if (job.m_Stage == ShaderCompileStage::ComputeShader)
+        {
+            rawCode = "#define IF_COMPUTE_SHADER\n" + rawCode;
+        }
+        else if (job.m_Stage == ShaderCompileStage::GeometryShader)
+        {
+            rawCode = "#define IF_GEOMETRY_SHADER\n" + rawCode;
+        }
+        else if (job.m_Stage == ShaderCompileStage::MeshShader)
+        {
+            rawCode = "#define IF_MESH_SHADER\n" + rawCode;
+        }
+        else if (job.m_Stage == ShaderCompileStage::AmplificationShader)
+        {
+            rawCode = "#define IF_AMPLIFICATION_SHADER\n" + rawCode;
+        }
+
         if (!job.m_Definitions.empty())
         {
             for (const auto& def : job.m_Definitions)

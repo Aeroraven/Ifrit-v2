@@ -15,23 +15,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit.shader.neo/Bindless.hlsli" 
-#include "ifrit.shader.neo/Math.MonteCarlo.hlsli"
-#include "ifrit.shader.neo/Math.RayTrace.hlsli"
-#include "ifrit.shader.neo/Math.SphericalHarmonics.hlsli"
-#include "ifrit.shader.neo/Math.Transforms.hlsli"
+#pragma once
+#include "ifrit.shader.neo/Common.hlsli"
 
- 
-StructuredBuffer<float> buffer0;
-StructuredBuffer<float> buffer1;
-RWStructuredBuffer<float> result;
-
-[shader("compute")]
-[numthreads(1,1,1)]
-void TestCS(uint3 threadId : SV_DispatchThreadID)
+namespace IfritShader 
 {
-    uint index = threadId.x;
-    result[index] = buffer0[index] + buffer1[index];
-}
+    IFSHADER_UNSCOPED_ENUM
+    enum class ESamplerType : uint
+    {
+        SLinearClamp = 0,
+        SNearestClamp = 1,
+        SLinearRepeat = 2,
+        SNearestRepeat = 3,
+    };
 
-// Test
+}

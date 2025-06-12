@@ -433,11 +433,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         shaderImageAtomicInt64Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_ATOMIC_INT64_FEATURES_EXT;
         shaderImageAtomicInt64Features.shaderImageInt64Atomics = VK_TRUE;
 
-        deviceFeatures.samplerAnisotropy = VK_TRUE;
-        deviceFeatures.geometryShader    = VK_TRUE;
-        deviceFeatures.shaderFloat64     = VK_TRUE;
-        deviceFeatures.shaderInt64       = VK_TRUE;
-        deviceFeatures.shaderInt16       = VK_TRUE;
+        deviceFeatures.samplerAnisotropy        = VK_TRUE;
+        deviceFeatures.geometryShader           = VK_TRUE;
+        deviceFeatures.shaderFloat64            = VK_TRUE;
+        deviceFeatures.shaderInt64              = VK_TRUE;
+        deviceFeatures.shaderInt16              = VK_TRUE;
+        deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
 
         VkDeviceCreateInfo deviceCI   = {};
         deviceCI.sType                = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

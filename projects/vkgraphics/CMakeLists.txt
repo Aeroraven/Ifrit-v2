@@ -17,6 +17,8 @@ include(${IFRIT_PROJECT_DIR}/projects/buildinfra/VulkanResolve.cmake)
 add_definitions(-DIFRIT_DLL)
 add_definitions(-DIFRIT_API_EXPORT)
 add_definitions(-DIFRIT_VKGRAPHICS_SHARED_SHADER_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.shader")
+add_definitions(-DIFRIT_VKGRAPHICS_SHARED_SHADER_NEXT_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.shader.neo")
+add_definitions(-DIFRIT_VKGRAPHICS_SHARED_SHADER_NEXT_INCLUDE_BASE="${IFRIT_PROJECT_DIR}/include/")
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.VkGraphics")
 
 #pch
