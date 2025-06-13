@@ -17,25 +17,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit.shader.neo/Common.hlsli"
 #include "ifrit.shader.neo/Bindless.hlsli"
-#include "ifrit.shader.neo/Ayanami/Ayanami.SharedConst.hlsli"
 
+#include "ifrit.shader.neo/Ayanami/Ayanami.SharedConst.hlsli"
 #include "ifrit.shader.neo/Ayanami/Ayanami.SharedUtils.hlsli"
 
 namespace IfritShader{
 namespace Ayanami{
 
-    struct PixelInput
+    struct VertexOutput
     {
-        IFSHADER_LOCATION(0) float2 TexCoord : TEXCOORD0;
-        IFSHADER_LOCATION(1) float3 Normal : NORMAL;
-        IFSHADER_LOCATION(2) float4 Tangent : TANGENT;
-        IFSHADER_LOCATION(3) float4 WorldPos : TEXCOORD1;
-    };
-
-    struct PixelOutput
-    {
-        float4 Color : SV_Target0;
-        float4 Normal : SV_Target1;
+        float4 Position : SV_Position;
+        IFSHADER_LOCATION(0) float2 vTexCoord : TEXCOORD0;
+        IFSHADER_LOCATION(1) float3 vNormal : NORMAL;
+        IFSHADER_LOCATION(2) float4 vTangent : TANGENT;
+        IFSHADER_LOCATION(3) float4 vWorldPosition : TEXCOORD1;
     };
 
     struct PushConstant_T
@@ -52,29 +47,29 @@ namespace Ayanami{
     };
 
     IFSHADER_PUSHCONST PushConstant_T PushConst;
-    IFSHADER_ENTRY(IFSHADER_PS_ENTRY)
-    PixelOutput SurfaceCacheGeneratePS(PixelInput input)
+
+    IFSHADER_ENTRY(IFSHADER_VS_ENTRY)
+    VertexOutput SurfaceCacheGenerateVS(uint VertexId : SV_VertexID)
     {
-        float4 AlbedoColor = PushConst.m_Albedo.Sample(ESamplerType::SLinearClamp, input.TexCoord);
-        float2 NormalColorRG = PushConst.m_Normal.Sample(ESamplerType::SLinearClamp, input.TexCoord);
-        NormalColorRG = NormalColorRG * 2.0f - 1.0f; 
-        float NormalB = sqrt(1.0f - dot(NormalColorRG, NormalColorRG));
+        float4 LocalPosition = PushConst.m_Vertex.Load(VertexId);
+        float2 TexCoord = PushConst.m_UV.Load(VertexId);
+        float3 Normal = PushConst.m_NormalBuffer.Load(VertexId).xyz;
+        float4 Tangent = PushConst.m_TangentBuffer.Load(VertexId);
 
-        float3 Normal = float3(NormalColorRG, NormalB);
-        float3 Tangent = normalize(input.Tangent.xyz);
-        Tangent = normalize(Tangent - dot(Tangent,Normal) * Normal);
+        float4x4 CardVP = PushConst.m_AllCardData.Load(PushConst.m_CardId).m_VP;
+        float4 CardLocalPosition = mul(CardVP, LocalPosition);
 
-        float3 Bitangent = cross(Normal, Tangent);
-        float3x3 TBN = float3x3(Tangent, Bitangent, Normal);
+        VertexOutput output;
+        output.Position = CardLocalPosition;
+        output.vTexCoord = TexCoord;
+        output.vNormal = Normal;
+        output.vTangent = Tangent;
+        output.vWorldPosition = LocalPosition;
 
-        float3 NormalLocal = normalize(mul(TBN, Normal));
-        NormalLocal = NormalLocal * 0.5f + 0.5f; // Convert to [0,1] range
-
-        PixelOutput output;
-        output.Color = AlbedoColor;
-        output.Normal = float4(Normal * 0.5f + 0.5f, 1.0f);
-        
         return output;
     }
+
+
+
 }
 }

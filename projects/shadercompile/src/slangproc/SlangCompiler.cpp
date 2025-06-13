@@ -63,9 +63,14 @@ namespace Ifrit::ShaderCompile::SlangProc
 
         sessionDesc.targets                     = &targetDesc;
         sessionDesc.targetCount                 = 1;
+        sessionDesc.defaultMatrixLayoutMode     = SlangMatrixLayoutMode::SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
         Vec<slang::CompilerOptionEntry> options = {
             { slang::CompilerOptionName::EmitSpirvDirectly,
                 { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr } },
+            { slang::CompilerOptionName::Capability,
+                { slang::CompilerOptionValueKind::String, 0, 0, "SPV_EXT_shader_image_int64", nullptr } },
+            { slang::CompilerOptionName::Capability,
+                { slang::CompilerOptionValueKind::String, 0, 0, "Int64ImageEXT", nullptr } },
             { slang::CompilerOptionName::Include,
                 { slang::CompilerOptionValueKind::String, 0, 0, m_IncludeBase.c_str(), nullptr } },
 

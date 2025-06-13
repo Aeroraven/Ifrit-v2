@@ -60,7 +60,7 @@ namespace Ifrit::Runtime::Internal
         REG_FRAGMENT_NEO(ISTAya.CopyFS, "Ayanami/Ayanami.CopyTex", "CopyTexPS");
         REG_VERTEX_NEO(ISTAya.CopyVS, "Ayanami/Ayanami.CopyTex", "CopyTexVS");
         REG_COMPUTE(ISTAya.DirectShadowVisibilityCS, "Ayanami/Ayanami.DirectionalShadowVisibility");
-        REG_COMPUTE(ISTAya.GlobalDFRayMarchCS, "Ayanami/Ayanami.GlobalDFRayMarch");
+        REG_COMPUTE_NEO(ISTAya.GlobalDFRayMarchCS, "Ayanami/Ayanami.Debug.GlobalDFRayMarch", "DebugGlobalDFRayMarchCS");
         REG_COMPUTE(ISTAya.RayMarchCS, "Ayanami/Ayanami.RayMarch");
 
         REG_COMPUTE(ISTAya.TrivialGlobalDFCompCS, "Ayanami/Ayanami.TrivialGlobalDFComposite");
@@ -79,7 +79,7 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTAya.SurfaceCacheCombineLightCS, "Ayanami/Ayanami.SurfaceCache.CombineLighting",
             "SurfaceCacheCombineLightingCS");
         REG_FRAGMENT_NEO(ISTAya.SurfaceCacheGenFS, "Ayanami/Ayanami.SurfaceCache.Generate", "SurfaceCacheGeneratePS");
-        REG_VERTEX(ISTAya.SurfaceCacheGenVS, "Ayanami/Ayanami.SurfaceCache.Generate");
+        REG_VERTEX_NEO(ISTAya.SurfaceCacheGenVS, "Ayanami/Ayanami.SurfaceCache.Generate", "SurfaceCacheGenerateVS");
 
         REG_COMPUTE(ISTAya.ScreenProbeAdaptivePlaceCS, "Ayanami/Ayanami.ScreenProbe.AdaptivePlace");
         REG_COMPUTE(ISTAya.ScreenProbeTraceScreenCS, "Ayanami/Ayanami.ScreenProbe.ScreenSpaceTrace");
@@ -92,20 +92,23 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE(ISTAya.ScreenProbePixelGatherCS, "Ayanami/Ayanami.ScreenProbe.PixelGather");
         REG_COMPUTE(ISTAya.ScreenProbeBorderFixCS, "Ayanami/Ayanami.ScreenProbe.OctMapBorderFix");
 
-        REG_FRAGMENT(ISTAya.DeferredShadowFS, "Ayanami/Ayanami.FinalLighting.DirectShadow");
-        REG_FRAGMENT(ISTAya.DeferredLightingFS, "Ayanami/Ayanami.FinalLighting.DirectLighting");
-        REG_FRAGMENT(ISTAya.DeferredExpMixFS, "Ayanami/Ayanami.FinalLighting.ExperimentalMix");
+        REG_FRAGMENT_NEO(ISTAya.DeferredShadowFS, "Ayanami/Ayanami.FinalLighting.DirectShadow", "FinalDirectShadowPS");
+        REG_FRAGMENT_NEO(
+            ISTAya.DeferredLightingFS, "Ayanami/Ayanami.FinalLighting.DirectLighting", "FinalDirectLightingPS");
+        REG_FRAGMENT_NEO(
+            ISTAya.DeferredExpMixFS, "Ayanami/Ayanami.FinalLighting.ExperimentalMix", "FinalLightingMixPS");
         REG_COMPUTE_NEO(ISTAya.TemporalFilterIndirectCS, "Ayanami/Ayanami.FinalLighting.TemporalFilteringIndirect",
             "FinalLightingTemporalFilteringIndirectCS");
 
         REG_COMPUTE(ISTAya.DbgSampleObjectGridsCS, "Ayanami/Ayanami.Debug.SampleObjectGrids");
         REG_MESH(ISTAya.DbgVisObjGridsMS, "Ayanami/Ayanami.Debug.VisObjectGrids");
-        REG_FRAGMENT(ISTAya.DbgVisObjGridsFS, "Ayanami/Ayanami.Debug.VisObjectGrids");
+        REG_FRAGMENT_NEO(ISTAya.DbgVisObjGridsFS, "Ayanami/Ayanami.Debug.VisObjectGrids", "DebugVisObjectGridsPS");
         REG_COMPUTE_NEO(
             ISTAya.DbgVisAdaptiveProbeCS, "Ayanami/Ayanami.Debug.AdaptiveProbeLocate", "DebugAdaptiveProbeLocateCS");
         REG_COMPUTE(ISTAya.DbgVisScreenUniformProbeCS, "Ayanami/Ayanami.Debug.ScreenUniformProbeVis");
         REG_COMPUTE(ISTAya.DbgReconFromSurfaceCacheCS, "Ayanami/Ayanami.Debug.ReconFromSurfaceCache");
-        REG_COMPUTE(ISTAya.DbgSampleReconDepthCS, "Ayanami/Ayanami.Debug.SampleReconDepth");
+        REG_COMPUTE_NEO(
+            ISTAya.DbgSampleReconDepthCS, "Ayanami/Ayanami.Debug.SampleReconDepth", "DebugSampleReconDepthCS");
 
         // Common
         REG_VERTEX(IST.Common.FullScreenVS, "CommonPass/FullScreen");

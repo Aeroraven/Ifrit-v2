@@ -32,4 +32,5 @@ namespace IfritShader
     IFSHADER_DEFINE_CONST_UINT32(kAyanamiReconFromSCTileSize, 8);
     IFSHADER_DEFINE_CONST_UINT32(kAyanamiReconFromSCDepthTileSize, 8);
 
+    IFSHADER_DEFINE_CONST_UINT32(kAyanamiGlobalDFRayMarchTileSize, 16);
 }

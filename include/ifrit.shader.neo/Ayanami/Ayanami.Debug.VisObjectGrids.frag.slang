@@ -1,7 +1,6 @@
-
 /*
 Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
+Copyright (C) 2024-2025 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,27 +16,39 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit.shader.neo/Common.hlsli"
+#include "ifrit.shader.neo/Bindless.hlsli"
 
 namespace IfritShader{
 namespace Ayanami{
-    struct VertexOutput
+
+    struct PixelInput
     {
-        float4 Position : SV_Position;
-        IFSHADER_LOCATION(0) float2 TexCoord : TEXCOORD0;
+        IFSHADER_LOCATION(0) float3 vMeshColor;
     };
 
-    struct VertexInput
+    struct PixelOutput
     {
-        IFSHADER_LOCATION(0) float2 Position : POSITION;
+        IFSHADER_LOCATION(0) float4 outColor : SV_Target0;
     };
 
-    IFSHADER_ENTRY(IFSHADER_VS_ENTRY)
-    VertexOutput CopyTexVS(VertexInput input)
+    struct PushConstant_T
     {
-        VertexOutput output;
-        output.Position = float4(input.Position - float2(1.0f), 0.0f, 1.0f);
-        output.TexCoord = input.Position * 0.5f;
+        float4 m_WorldBoundMin;
+        float4 m_WorldBoundMax;
+        TConstantBufferHandle<PerFramePerViewData> m_PerFrame;
+        uint m_VoxelsPerWidth;
+        uint m_ObjectGridId;
+    };
+
+    IFSHADER_PUSHCONST PushConstant_T PushConst;
+
+    IFSHADER_ENTRY(IFSHADER_PS_ENTRY)
+    PixelOutput DebugVisObjectGridsPS(PixelInput input)
+    {
+        PixelOutput output;
+        output.outColor = float4(input.vMeshColor, 1.0f);
         return output;
     }
+
 }
 }

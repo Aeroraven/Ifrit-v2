@@ -45,14 +45,13 @@ namespace Ifrit::Runtime::Ayanami
     {
         auto  rtWidth        = outputTexture->GetWidth();
         auto  rtHeight       = outputTexture->GetHeight();
-        auto& resAtomicDepth = builder.DeclareTexture("Ayanami.Debug.RenderAtomicDepthAtlas",
-            FrameGraphTextureDesc(rtWidth, rtHeight, 1, RhiImgFmt_R64_UINT,
-                RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_CopyDst));
+        auto& resAtomicDepth = builder.DeclareBuffer("Ayanami.Debug.RenderAtomicDepthAtlas",
+            FrameGraphBufferDesc(rtWidth * rtHeight * sizeof(u64),
+                RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_SSBO));
 
         // Note: RenderDoc might show INCORRECT value on R64_UINT clear.
         // following behavior is well-defined in vulkan spec.
-        AddClearUAVTexturePass(
-            builder, "Ayanami.Debug.ReconFromSurfaceCache.DepthClear", resAtomicDepth, 0xffffffffffffffffull);
+        AddClearUAVPass(builder, "Ayanami.Debug.ReconFromSurfaceCache.DepthClear", resAtomicDepth, 0xffffffffu);
 
         struct PushConst
         {

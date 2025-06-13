@@ -59,6 +59,10 @@ layout(push_constant) uniform UPushConst
     uint m_MeshDFDescId;
 } PushConst;   
 
+RegisterStorage(BAtomicDepthData,{
+    uint64_t m_DepthData[];
+});
+
 RegisterStorage(BAllCardData,{
     CardData m_Mats[];
 });
@@ -85,7 +89,9 @@ RegisterUniform(BLocalTransform,{
 void WritePixel(uvec2 AtlasUV, float Depth, uvec2 ScreenUV){
     // 32Bit depth | 16Bit AtlasX | 16Bit AtlasY 
     uint64_t DepthData = uint(Depth * 65535.0) << 32 | (AtlasUV.x << 16) | AtlasUV.y;
-    imageAtomicMin(GetUAVImage2DR64UI(PushConst.m_AtomicDepthUAV), ivec2(ScreenUV), uint64_t(DepthData));
+    uint LinearizedId = ScreenUV.y * PushConst.m_OutputWidth + ScreenUV.x;
+    //imageAtomicMin(GetUAVImage2DR64UI(PushConst.m_AtomicDepthUAV), ivec2(ScreenUV), uint64_t(DepthData));
+    atomicMin(GetResource(BAtomicDepthData, PushConst.m_AtomicDepthUAV).m_DepthData[LinearizedId], uint64_t(DepthData));
 }
 
 void main(){

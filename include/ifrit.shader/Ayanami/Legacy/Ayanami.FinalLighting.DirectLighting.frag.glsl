@@ -1,4 +1,3 @@
-
 /*
 Ifrit-v2
 Copyright (C) 2024-2025 funkybirds(Aeroraven)

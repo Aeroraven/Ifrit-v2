@@ -19,8 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader.neo/Bindless.hlsli"
 #include "ifrit.shader.neo/Ayanami/Ayanami.SharedConst.hlsli"
 
-namespace IfritShader
-{
+namespace IfritShader{
+namespace Ayanami{
     struct PushConstant_T
     {
         uint m_FrameIndex;
@@ -69,4 +69,5 @@ namespace IfritShader
     }
 
     
+}
 }

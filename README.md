@@ -129,7 +129,7 @@ Following dependencies should be manually configured. Other dependencies will be
 
 - Vulkan SDK >= 1.3.296
   - with `EXT_mesh_shader` extension
-  - with `EXT_shader_image_atomic_int64` extension
+  - To check all extensions required, refer to [Requirements](./REQUIREMENTS.md)
 
 - Python 3
 

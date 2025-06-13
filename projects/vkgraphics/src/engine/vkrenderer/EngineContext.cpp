@@ -363,6 +363,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         // Device
         VkPhysicalDeviceFeatures                           deviceFeatures                      = {};
+        VkPhysicalDeviceVulkan11Features                   deviceFeatures11                    = {};
         VkPhysicalDeviceVulkan12Features                   deviceFeatures12                    = {};
         VkPhysicalDeviceDynamicRenderingFeaturesKHR        deviceFeaturesDynamic               = {};
         VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT deviceFeaturesDynamicVertexInput    = {};
@@ -374,6 +375,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkPhysicalDeviceMeshShaderFeaturesEXT              meshShaderFeatures{};
         VkPhysicalDeviceHostQueryResetFeaturesEXT          hostQueryResetFeatures{};
         VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT  shaderImageAtomicInt64Features{};
+
+        deviceFeatures11.sType                = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+        deviceFeatures11.shaderDrawParameters = VK_TRUE;
+        deviceFeatures11.pNext                = &deviceFeatures12;
 
         deviceFeatures12.sType                           = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
         deviceFeatures12.timelineSemaphore               = VK_TRUE;
@@ -433,19 +438,20 @@ namespace Ifrit::Graphics::VulkanGraphics
         shaderImageAtomicInt64Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_ATOMIC_INT64_FEATURES_EXT;
         shaderImageAtomicInt64Features.shaderImageInt64Atomics = VK_TRUE;
 
-        deviceFeatures.samplerAnisotropy        = VK_TRUE;
-        deviceFeatures.geometryShader           = VK_TRUE;
-        deviceFeatures.shaderFloat64            = VK_TRUE;
-        deviceFeatures.shaderInt64              = VK_TRUE;
-        deviceFeatures.shaderInt16              = VK_TRUE;
-        deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
+        deviceFeatures.samplerAnisotropy              = VK_TRUE;
+        deviceFeatures.geometryShader                 = VK_TRUE;
+        deviceFeatures.shaderFloat64                  = VK_TRUE;
+        deviceFeatures.shaderInt64                    = VK_TRUE;
+        deviceFeatures.shaderInt16                    = VK_TRUE;
+        deviceFeatures.fragmentStoresAndAtomics       = VK_TRUE;
+        deviceFeatures.vertexPipelineStoresAndAtomics = VK_TRUE;
 
         VkDeviceCreateInfo deviceCI   = {};
         deviceCI.sType                = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         deviceCI.queueCreateInfoCount = SizeCast<u32>(queueCreateInfos.size());
         deviceCI.pQueueCreateInfos    = queueCreateInfos.data();
         deviceCI.pEnabledFeatures     = &deviceFeatures;
-        deviceCI.pNext                = &deviceFeatures12;
+        deviceCI.pNext                = &deviceFeatures11;
 
         // Device : Extensions
         Vec<const char*> tarGetDeviceExtensions;

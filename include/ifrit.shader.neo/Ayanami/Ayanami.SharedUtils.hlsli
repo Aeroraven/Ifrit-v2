@@ -1,7 +1,6 @@
-
 /*
 Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
+Copyright (C) 2024-2025 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,28 +15,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit.shader.neo/Common.hlsli"
-
 namespace IfritShader{
 namespace Ayanami{
-    struct VertexOutput
+
+    struct CardTransformData
     {
-        float4 Position : SV_Position;
-        IFSHADER_LOCATION(0) float2 TexCoord : TEXCOORD0;
+        float4x4 m_VP;
+        float4x4 m_VPInv;
     };
 
-    struct VertexInput
-    {
-        IFSHADER_LOCATION(0) float2 Position : POSITION;
-    };
-
-    IFSHADER_ENTRY(IFSHADER_VS_ENTRY)
-    VertexOutput CopyTexVS(VertexInput input)
-    {
-        VertexOutput output;
-        output.Position = float4(input.Position - float2(1.0f), 0.0f, 1.0f);
-        output.TexCoord = input.Position * 0.5f;
-        return output;
-    }
 }
 }

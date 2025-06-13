@@ -1,7 +1,6 @@
-
 /*
 Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
+Copyright (C) 2024-2025 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by

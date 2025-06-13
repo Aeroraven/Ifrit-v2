@@ -1,4 +1,3 @@
-
 /*
 Ifrit-v2
 Copyright (C) 2024-2025 funkybirds(Aeroraven)
@@ -18,32 +17,43 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit.shader.neo/Common.hlsli"
 #include "ifrit.shader.neo/Bindless.hlsli"
+#include "ifrit.shader.neo/Lighting/CascadedShadowMapping.hlsli"
 
-namespace IfritShader{
+namespace IfritShader {
 namespace Ayanami{
+
     struct PixelInput
     {
-        IFSHADER_LOCATION(0) float2 TexCoord : TEXCOORD0;
+        IFSHADER_LOCATION(0) float2 vTexCoord : TEXCOORD0;
     };
 
     struct PixelOutput
     {
-        float4 Color : SV_Target0;
+        IFSHADER_LOCATION(0) float4 FinalColor : SV_Target0;
     };
 
     struct PushConstant_T
     {
-        TTexture2DHandle<float4> m_TexHandle;
+        TTexture2DHandle<float4> m_DirectLighting;
+        TTexture2DHandle<float4> m_IndirectLighting;
+        TTexture2DHandle<float4> m_Albedo;
     };
 
     IFSHADER_PUSHCONST PushConstant_T PushConst;
-    
+
     IFSHADER_ENTRY(IFSHADER_PS_ENTRY)
-    PixelOutput CopyTexPS(PixelInput input)
+    PixelOutput FinalLightingMixPS(PixelInput Input)
     {
-        PixelOutput output;
-        output.Color = PushConst.m_TexHandle.Sample(ESamplerType::SLinearClamp,input.TexCoord);
-        return output;
+        PixelOutput Output;
+        float4 DirectLighting = PushConst.m_DirectLighting.SampleLevel(ESamplerType::SLinearClamp, Input.vTexCoord, 0);
+        float4 IndirectLighting = PushConst.m_IndirectLighting.SampleLevel(ESamplerType::SLinearClamp, Input.vTexCoord, 0);
+        float4 Albedo = PushConst.m_Albedo.SampleLevel(ESamplerType::SLinearClamp, Input.vTexCoord, 0);
+
+        float3 LambertBRDF = Albedo.rgb * kInvPI;
+        float3 FinalColor = DirectLighting.xyz + IndirectLighting.xyz * LambertBRDF;
+
+        Output.FinalColor = float4(FinalColor, 1.0f);
+        return Output;
     }
 }
 }

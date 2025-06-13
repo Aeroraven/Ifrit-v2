@@ -20,8 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader.neo/Bindless.hlsli"
 #include "ifrit.shader.neo/Ayanami/Ayanami.SharedConst.hlsli"
 
-namespace IfritShader
-{
+namespace IfritShader{
+namespace Ayanami{
 
     struct AdaptiveProbeElement
     {
@@ -72,4 +72,5 @@ namespace IfritShader
         uint2 Coords = UnpackLocation(probeElement.m_PackedCoord);
         PushConst.m_OutputTex.Store(Coords, float4(0.0f, 1.0f, 0.0f, 1.0f)); // Store green color at the probe location
     }
+}
 }

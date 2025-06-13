@@ -81,13 +81,24 @@ namespace IfritShader
         }
     };
 
+    IFSHADER_TEMPLATE_STRUCT(TRWStructuredBufferHandle_ReadOnly,T)
+    {
+        uint Index;
+
+        T Load(uint Offset = 0)
+        {
+            StructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_RWStructuredBuffer[Index];
+            return Buffer[Offset];
+        }
+    };
+
     IFSHADER_TEMPLATE_STRUCT(TStructuredBufferHandle,T)
     {
         uint Index;
 
         T Load(uint Offset)
         {
-            StructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_StructuredBuffer[Index];
+            StructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_StructuredBuffer[Index].as<StructuredBuffer<T>>();
             return Buffer[Offset];
         }
     };
@@ -121,17 +132,28 @@ namespace IfritShader
         }
     };
 
-    IFSHADER_TEMPLATE_STRUCT(TTexture2DHandle,T)
+    IFSHADER_TEMPLATE_STRUCT(TRWTexture3DHandle,T)
     IFSHADER_REQUIRES(T:IFSHADER_TEXELELEMENT_TYPE)
     {
         uint Index;
 
-        T Sample(ESamplerType SamplerType, uint2 UV)
+        T Load(uint3 UV)
         {
-            Texture2D<T> Texture = _Ifrit_ResourceHeap_Texture[Index];
-            SamplerState Sampler = _Ifrit_ResourceHeap_Sampler[(uint)SamplerType];
-            return Texture.Sample(Sampler, UV);
+            RWTexture3D<T> Texture = _Ifrit_ResourceHeap_RWTexture[Index];
+            return Texture[UV];
         }
+
+        void Store(uint3 UV, T Value)
+        {
+            RWTexture3D<T> Texture = _Ifrit_ResourceHeap_RWTexture[Index];
+            Texture[UV] = Value;
+        }
+    };
+
+    IFSHADER_TEMPLATE_STRUCT(TTexture2DHandle,T)
+    IFSHADER_REQUIRES(T:IFSHADER_TEXELELEMENT_TYPE)
+    {
+        uint Index;
 
         T Sample(ESamplerType SamplerType, float2 UV)
         {
@@ -147,5 +169,33 @@ namespace IfritShader
             return Texture.SampleLevel(Sampler, UV, Level);
         }
     };
+
+    IFSHADER_TEMPLATE_STRUCT(TTexture3DHandle,T)
+    IFSHADER_REQUIRES(T:IFSHADER_TEXELELEMENT_TYPE)
+    {
+        uint Index;
+
+        T Sample(ESamplerType SamplerType, float3 UV)
+        {
+            Texture3D<T> Texture = _Ifrit_ResourceHeap_Texture[Index];
+            SamplerState Sampler = _Ifrit_ResourceHeap_Sampler[(uint)SamplerType];
+            return Texture.Sample(Sampler, UV);
+        }
+
+        T SampleLevel(ESamplerType SamplerType, float3 UV, float Level)
+        {
+            Texture3D<T> Texture = _Ifrit_ResourceHeap_Texture[Index];
+            SamplerState Sampler = _Ifrit_ResourceHeap_Sampler[(uint)SamplerType];
+            return Texture.SampleLevel(Sampler, UV, Level);
+        }
+    };
+
+
+    // Vertex data
+
+    struct TVertexDataHandle : TRWStructuredBufferHandle_ReadOnly<float4>{};
+    struct TNormalDataHandle : TRWStructuredBufferHandle_ReadOnly<float4>{};
+    struct TTangentDataHandle : TRWStructuredBufferHandle_ReadOnly<float4>{};
+    struct TUVDataHandle : TRWStructuredBufferHandle_ReadOnly<float2>{};
     
 }

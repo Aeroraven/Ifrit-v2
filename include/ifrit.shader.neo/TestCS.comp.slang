@@ -21,6 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader.neo/Math.SphericalHarmonics.hlsli"
 #include "ifrit.shader.neo/Math.Transforms.hlsli"
 
+#include "ifrit.shader.neo/Random/Random.Simplex2d.hlsli"
+#include "ifrit.shader.neo/Lighting/CascadedShadowMapping.hlsli"
+
  
 StructuredBuffer<float> buffer0;
 StructuredBuffer<float> buffer1;
