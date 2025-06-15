@@ -90,7 +90,36 @@ namespace IfritShader
             StructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_RWStructuredBuffer[Index];
             return Buffer[Offset];
         }
+    }; 
+
+    IFSHADER_TEMPLATE_STRUCT(TAtomicRWStructuredBufferHandle,T) : TRWStructuredBufferHandle<T>
+    IFSHADER_REQUIRES(T:IArithmeticAtomicable)
+    {
+        T AtomicAdd(uint Offset, T Value)
+        {
+            RWStructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_RWStructuredBuffer[Index];
+            T RetVaule;
+            InterlockedAdd(Buffer[Offset], Value, RetVaule);
+            return RetVaule;
+        }
+
+        T AtomicMax(uint Offset, T Value)
+        {
+            RWStructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_RWStructuredBuffer[Index];
+            T RetVaule;
+            InterlockedMax(Buffer[Offset], Value, RetVaule);
+            return RetVaule;
+        }
+
+        T AtomicMin(uint Offset, T Value)
+        {
+            RWStructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_RWStructuredBuffer[Index];
+            T RetVaule;
+            InterlockedMin(Buffer[Offset], Value, RetVaule);
+            return RetVaule;
+        }
     };
+
 
     IFSHADER_TEMPLATE_STRUCT(TStructuredBufferHandle,T)
     {
@@ -168,6 +197,12 @@ namespace IfritShader
             SamplerState Sampler = _Ifrit_ResourceHeap_Sampler[(uint)SamplerType];
             return Texture.SampleLevel(Sampler, UV, Level);
         }
+
+        T Load(uint2 UV,uint Level)
+        {
+            Texture2D<T> Texture = _Ifrit_ResourceHeap_Texture[Index];
+            return Texture.Load(uint3(UV,Level));
+        }
     };
 
     IFSHADER_TEMPLATE_STRUCT(TTexture3DHandle,T)
@@ -187,6 +222,12 @@ namespace IfritShader
             Texture3D<T> Texture = _Ifrit_ResourceHeap_Texture[Index];
             SamplerState Sampler = _Ifrit_ResourceHeap_Sampler[(uint)SamplerType];
             return Texture.SampleLevel(Sampler, UV, Level);
+        }
+
+        T Load(uint3 UV,uint Level)
+        {
+            Texture3D<T> Texture = _Ifrit_ResourceHeap_Texture[Index];
+            return Texture.Load(uint4(UV,Level));
         }
     };
 

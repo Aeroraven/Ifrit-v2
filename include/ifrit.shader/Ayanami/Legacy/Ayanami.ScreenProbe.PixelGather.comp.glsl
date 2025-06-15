@@ -78,10 +78,11 @@ ScreenSpaceSample GetProbePos(uvec2 ProbeId){
     // We temporarily drop the jitter
     uvec2 ScreenUV = ProbeId * kAyanami_ScreenProbeUniformPlaceTileWidth;
     ScreenSpaceSample Sample = GetScreenSample(ScreenUV);
-    if(!Sample.m_Valid){
+    if(Sample.m_Valid){
         return Sample;
     }
-    Sample.m_WorldPos = vec3(1e30, 1e30, 1e30);
+    Sample.m_WorldPos = vec3(1e3, 1e3, 1e3);
+    return Sample;
 }
 
 

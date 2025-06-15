@@ -35,6 +35,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
         #define IFSHADER_TEMPLATE template
         #define IFSHADER_TEMPLATE_STRUCT(x,T) template<typename T> struct x
         #define IFSHADER_REQUIRES(x)
+        #define IFSHADER_REQUIRES_2(x,y)
         #define IFSHADER_ARITHMETIC_TYPE 
         #define IFSHADER_INTEGER_TYPE 
         #define IFSHADER_TEXELELEMENT_TYPE
@@ -58,6 +59,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define IFSHADER_TEMPLATE __generic
     #define IFSHADER_TEMPLATE_STRUCT(x,T) struct x<T>
     #define IFSHADER_REQUIRES(x) where x
+    #define IFSHADER_REQUIRES_2(x,y) where x,y
     #define IFSHADER_ARITHMETIC_TYPE IArithmetic
     #define IFSHADER_INTEGER_TYPE __BuiltinIntegerType
     #define IFSHADER_TEXELELEMENT_TYPE ITexelElement
@@ -118,6 +120,13 @@ namespace IfritShader{
         uint m_MaterialId;
     };
 
+    struct FInstanceLocalTransform
+    {
+        float4x4 m_LocalToWorld;
+        float4x4 m_WorldToLocal;
+        float4 m_MaxScale;
+    };
+
     IFSHADER_TEMPLATE<typename T>
     T DivRoundUp(T Value, T Divisor)
     IFSHADER_REQUIRES(T : IFSHADER_INTEGER_TYPE)
@@ -145,6 +154,18 @@ namespace IfritShader{
         int i = asint(v);
         return (i < 0) ? -1.0 : 1.0;
     }
+
+    bool IsFirstLane(uint3 GroupThreadId)
+    {
+        return (GroupThreadId.x == 0 && GroupThreadId.y == 0 && GroupThreadId.z == 0);
+    }
+
+    bool IsGlobalFirstThread(uint3 DispatchThreadId)
+    {
+        return (DispatchThreadId.x == 0 && DispatchThreadId.y == 0 && DispatchThreadId.z == 0);
+    }
+
+
 }
 
 #else

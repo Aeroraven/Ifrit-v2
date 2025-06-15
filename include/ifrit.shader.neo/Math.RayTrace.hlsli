@@ -55,8 +55,8 @@ namespace Math{
         float TMax = min(max(T0, T1), max(T2, T3));
         if (TMax < 0 || TMin > TMax)
         {   
-            TStart = 0.0f;
-            TEnd = 0.0f;
+            TStart = -1.0f;
+            TEnd = -1.0f;
             return false; // No intersection
         }
         TStart = TMin;
