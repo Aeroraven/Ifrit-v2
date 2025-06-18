@@ -43,7 +43,7 @@ RegisterStorage(BAllWorldData,{
     uint m_TransformId[];
 });
 
-RegisterUniform(BLocalTransform,{
+RegisterStorage(BLocalTransform,{
     mat4 m_LocalToWorld;
     mat4 m_WorldToLocal;
     float m_MaxScale;

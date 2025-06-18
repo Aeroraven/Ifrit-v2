@@ -35,7 +35,7 @@ layout(push_constant) uniform UPushConstant{
     uint m_ShadowMapSRV;
 } PushConst;
 
-RegisterUniform(BPerFrameData,{
+RegisterStorage(BPerFrameData,{
     PerFramePerViewData data;
 });
 

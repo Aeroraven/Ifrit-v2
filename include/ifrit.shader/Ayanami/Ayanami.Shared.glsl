@@ -73,7 +73,7 @@ RegisterStorage(BAyaShared_MeshDFMeta,{
     MeshDFMeta m_Data;
 });
 
-RegisterUniform(BAyaShared_LocalTransform,{
+RegisterStorage(BAyaShared_LocalTransform,{
     mat4 m_LocalToWorld;
     mat4 m_WorldToLocal;
     vec4 m_MaxScale;
@@ -84,7 +84,7 @@ RegisterStorage(BAyaShared_ObjectCell,{
     uvec4 m_Cell[];
 });
 
-RegisterUniform(BAyaShared_Perframe,{
+RegisterStorage(BAyaShared_Perframe,{
     PerFramePerViewData data;
 });
 

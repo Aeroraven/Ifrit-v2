@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-RegisterUniform(bPerframe,{
+RegisterStorage(bPerframe,{
     PerFramePerViewData data;
 });
 
@@ -42,7 +42,7 @@ RegisterStorage(bMeshDFMeta,{
     MeshDFMeta data;
 });
 
-RegisterUniform(bLocalTransform,{
+RegisterStorage(bLocalTransform,{
     mat4 m_localToWorld;
     mat4 m_worldToLocal;
     vec4 m_maxScale;

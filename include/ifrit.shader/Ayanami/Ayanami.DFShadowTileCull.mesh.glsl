@@ -37,7 +37,7 @@ RegisterStorage(BMeshDFMeta,{
     MeshDFMeta m_Data;
 });
 
-RegisterUniform(BLocalTransform,{
+RegisterStorage(BLocalTransform,{
     mat4 m_LocalToWorld;
     mat4 m_WorldToLocal;
     vec4 m_MaxScale;

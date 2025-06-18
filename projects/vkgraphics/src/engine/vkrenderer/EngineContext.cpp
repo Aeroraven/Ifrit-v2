@@ -62,12 +62,31 @@ namespace Ifrit::Graphics::VulkanGraphics
         VK_EXT_SHADER_IMAGE_ATOMIC_INT64_EXTENSION_NAME,
     };
 
+    static bool vGlobalMeshShaderSupported = false;
+
+    Vec<bool*>  m_deviceExtensionsChk = {
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        &vGlobalMeshShaderSupported,
+        nullptr,
+        nullptr,
+        nullptr,
+    };
+
     Vec<const char*> m_deviceExtensionsExtended = { VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME };
 
     bool EnableExtension(bool mandatory, const char* extension, const Vec<VkExtensionProperties>& availableExtensions,
-        Vec<const char*>& targetExtension)
+        Vec<const char*>& targetExtension, bool* chk = nullptr)
     {
         for (auto ext : availableExtensions)
         {
@@ -87,6 +106,18 @@ namespace Ifrit::Graphics::VulkanGraphics
                 vkrLog(ext.extensionName);
             }
             iError("Extension not found: {}", extension);
+            if (chk)
+            {
+                *chk = true;
+            }
+        }
+        else
+        {
+            if (chk)
+            {
+                *chk = false;
+            }
+            iWarn("Extension is not supported: {}", extension);
         }
         return false;
     }
@@ -249,9 +280,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             EnableExtension(true, VK_EXT_DEBUG_UTILS_EXTENSION_NAME, availableExtensions, targetExtensions);
         }
-        for (auto ext : m_instanceExtension)
+        for (auto i = 0; auto ext : m_instanceExtension)
         {
-            EnableExtension(true, ext, availableExtensions, targetExtensions);
+            EnableExtension(false, ext, availableExtensions, targetExtensions);
         }
 
         instanceCI.enabledExtensionCount   = SizeCast<u32>(targetExtensions.size());
@@ -388,7 +419,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         deviceFeatures12.descriptorBindingStorageBufferUpdateAfterBind      = VK_TRUE;
         deviceFeatures12.descriptorBindingStorageImageUpdateAfterBind       = VK_TRUE;
         deviceFeatures12.descriptorBindingStorageTexelBufferUpdateAfterBind = VK_TRUE;
-        deviceFeatures12.descriptorBindingUniformBufferUpdateAfterBind      = VK_TRUE;
+        deviceFeatures12.descriptorBindingUniformBufferUpdateAfterBind      = VK_FALSE;
         deviceFeatures12.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE;
         deviceFeatures12.descriptorBindingUpdateUnusedWhilePending          = VK_TRUE;
         deviceFeatures12.descriptorBindingVariableDescriptorCount           = VK_TRUE;
@@ -462,9 +493,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkrVulkanAssert(vkEnumerateDeviceExtensionProperties(
                             bestDevice, nullptr, &extensionCountDevice, availableExtensionsDevice.data()),
             "Failed to enumerate device extensions");
-        for (auto extension : m_deviceExtensions)
+        for (auto i = 0; auto extension : m_deviceExtensions)
         {
-            EnableExtension(true, extension, availableExtensionsDevice, tarGetDeviceExtensions);
+            EnableExtension(
+                true, extension, availableExtensionsDevice, tarGetDeviceExtensions, m_deviceExtensionsChk[i++]);
         }
         if (m_args.m_enableHardwareRayTracing)
         {

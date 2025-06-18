@@ -211,5 +211,25 @@ namespace Ayanami{
         return uint2(ProbeX, ProbeY);
     #endif
     }
+
+    void GetRadiosityRayTraceCoordToCardInfo(uint GThreadId, float2 Jitter, out uint2 OffsetInCardTile,out uint CardTileId, out uint2 TraceRayCoord){
+        uint ProbeId = GThreadId / kAyanami_RadiosityTracesPerProbe;
+        
+        uint ProbesPerTile = kAyanami_RadiosityProbesPerCardTileWidth * kAyanami_RadiosityProbesPerCardTileWidth;
+        uint CurTileId = ProbeId / ProbesPerTile;
+        uint CurProbeIdInTile = ProbeId % ProbesPerTile;
+        uint2 ProbePosInTile = uint2(CurProbeIdInTile % kAyanami_RadiosityProbesPerCardTileWidth,
+                                     CurProbeIdInTile / kAyanami_RadiosityProbesPerCardTileWidth);
+    
+        uint ProbeSpacing = kAyanami_CardTileWidth / kAyanami_RadiosityProbesPerCardTileWidth;
+        uint2 ProbeOffset = ProbePosInTile * ProbeSpacing + uint2(ProbeSpacing * Jitter);
+        OffsetInCardTile = ProbeOffset;
+        CardTileId = CurTileId;
+    
+        uint RayOffsetInProbe =  GThreadId % kAyanami_RadiosityTracesPerProbe;
+        uint2 RayCoord = uint2(RayOffsetInProbe % kAyanami_RadiosityProbHemiRes,
+                                 RayOffsetInProbe / kAyanami_RadiosityProbHemiRes);
+        TraceRayCoord = RayCoord;
+    }
 }
 }

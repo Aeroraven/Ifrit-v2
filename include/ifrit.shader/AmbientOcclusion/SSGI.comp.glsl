@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Random/Random.WNoise2D.glsl"
 #include "Random/Random.BlueNoise2D.glsl"
 
-RegisterUniform(BPerframe,{
+RegisterStorage(BPerframe,{
     PerFramePerViewData m_Data;
 });
 

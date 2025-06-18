@@ -34,7 +34,7 @@ layout(
     local_size_z = 1) 
 in;
 
-RegisterUniform(BPerframe,{
+RegisterStorage(BPerframe,{
     PerFramePerViewData m_Data;
 });
 
@@ -52,7 +52,7 @@ RegisterStorage(BAllCardData,{
 
 
 
-RegisterUniform(BLocalTransform,{
+RegisterStorage(BLocalTransform,{
     mat4 m_LocalToWorld;
     mat4 m_WorldToLocal;
     vec4 m_MaxScale;

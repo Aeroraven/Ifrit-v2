@@ -29,7 +29,7 @@ struct Meshlet {
     vec4 selfErrorSphere;
 };
 
-RegisterUniform(bLocalTransform,{
+RegisterStorage(bLocalTransform,{
     mat4 m_localToWorld;
     mat4 m_worldToLocal;
     float m_maxScale;
@@ -58,7 +58,7 @@ RegisterStorage(bInstanceDataRef,{
     uint filteredMeshletsBuffer;
     uint materialId;
 });
-RegisterUniform(bPerframeView,{
+RegisterStorage(bPerframeView,{
     PerFramePerViewData data;
 });
 RegisterStorage(bPerObjectRef,{

@@ -38,7 +38,7 @@ layout(push_constant) uniform UPushConstant{
     uint m_MeshDFDescListId;
 } PushConst;
 
-RegisterUniform(BPerFrame,{
+RegisterStorage(BPerFrame,{
     PerFramePerViewData m_Data;
 });
 
@@ -50,7 +50,7 @@ RegisterStorage(BMeshDFMeta,{
     MeshDFMeta m_Data;
 });
 
-RegisterUniform(BLocalTransform,{
+RegisterStorage(BLocalTransform,{
     mat4 m_LocalToWorld;
     mat4 m_WorldToLocal;
     vec4 m_MaxScale;

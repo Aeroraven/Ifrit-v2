@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Base.glsl"
 #include "SamplerUtils.SharedConst.h"
 
-RegisterUniform(bPerframeView,{
+RegisterStorage(bPerframeView,{
     PerFramePerViewData data;
 });
 

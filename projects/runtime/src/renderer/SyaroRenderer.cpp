@@ -1067,8 +1067,8 @@ namespace Ifrit::Runtime
             pc.m_AllMeshletsRefUAV   = rhi->GetUAVDescriptor(primaryView.m_allFilteredMeshletsHW.get());
             pc.m_InstanceDataUAV =
                 rhi->GetUAVDescriptor(perframeData.m_shaderEffectData[0].m_batchedObjectData->GetActiveBuffer());
-            pc.m_CurFrameDataCBV  = rhi->GetCBVDescriptor(primaryView.m_viewBuffer->GetActiveBuffer());
-            pc.m_LastFrameDataCBV = rhi->GetCBVDescriptor(primaryView.m_viewBufferLast->GetActiveBuffer());
+            pc.m_CurFrameDataCBV  = rhi->GetUAVDescriptor(primaryView.m_viewBuffer->GetActiveBuffer());
+            pc.m_LastFrameDataCBV = rhi->GetUAVDescriptor(primaryView.m_viewBufferLast->GetActiveBuffer());
 
             ctx->m_cmd->ClearUAVTexture(perframeData.m_motionVector.get(), { 0, 0, 1, 1 },
                 Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)));
@@ -1182,7 +1182,7 @@ namespace Ifrit::Runtime
 
             pcPersistCull.m_InstanceDataUAV =
                 rhi->GetUAVDescriptor(perframeData.m_shaderEffectData[0].m_batchedObjectData->GetActiveBuffer());
-            pcPersistCull.m_CurFrameDataCBV    = rhi->GetCBVDescriptor(perView.m_viewBuffer->GetActiveBuffer());
+            pcPersistCull.m_CurFrameDataCBV    = rhi->GetUAVDescriptor(perView.m_viewBuffer->GetActiveBuffer());
             pcPersistCull.m_AllMeshletsRefUAV  = rhi->GetUAVDescriptor(perView.m_allFilteredMeshletsHW.get());
             pcPersistCull.m_IndirectDrawCmdUAV = rhi->GetUAVDescriptor(perView.m_allFilteredMeshletsAllCount.get());
 
@@ -1717,7 +1717,7 @@ namespace Ifrit::Runtime
             pc.m_RenderHeight      = actualRth;
             pc.m_VisibilitySRV     = rhi->GetSRVDescriptor(primaryView.m_visibilityBuffer_Combined.get());
             pc.m_AllMeshletsRefUAV = rhi->GetUAVDescriptor(primaryView.m_allFilteredMeshletsHW.get());
-            pc.m_CurFrameDataCBV   = rhi->GetCBVDescriptor(primaryView.m_viewBuffer->GetActiveBuffer());
+            pc.m_CurFrameDataCBV   = rhi->GetUAVDescriptor(primaryView.m_viewBuffer->GetActiveBuffer());
             pc.m_GBufferRefsUAV    = rhi->GetUAVDescriptor(perframeData.m_gbuffer.m_gbufferRefs.get());
 
             // auto& primaryView = GetPrimaryView(perframeData);

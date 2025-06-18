@@ -4,6 +4,7 @@
 
 - Subproject Ayanami:
   - Indirect Lighting on Surface Atlas (Debugging Phase)
+  - Hardware Path Tracer (Reference Purpose)
   - Denoising / ReSTIR
 - Subproject Syaro:
   - Refactoring with RDGs
@@ -12,6 +13,7 @@
   - Multithreaded Rendering
 - Bug Fixing
   - (vkgraphics) Dangling view identifiers after resource destruction
+  - (runtime/asset) Potential crash when loading gltf models
 
 
 ### 4.1 Migration of  Project Aria

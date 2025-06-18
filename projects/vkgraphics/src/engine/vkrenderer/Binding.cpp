@@ -66,7 +66,11 @@ namespace Ifrit::Graphics::VulkanGraphics
             m_bindings[i].stageFlags         = VK_SHADER_STAGE_ALL;
             m_bindings[i].pImmutableSamplers = nullptr;
 
-            m_bindingFlags[i] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+            if (i != 0)
+                m_bindingFlags[i] =
+                    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+            else
+                m_bindingFlags[i] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
         }
         VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCI{};
         bindingFlagsCI.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;

@@ -35,7 +35,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
 
-RegisterUniform(bPerframeView,{
+RegisterStorage(bPerframeView,{
     PerFramePerViewData data;
 });
 

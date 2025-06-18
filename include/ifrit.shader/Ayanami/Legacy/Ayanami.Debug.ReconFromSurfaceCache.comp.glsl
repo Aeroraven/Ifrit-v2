@@ -67,7 +67,7 @@ RegisterStorage(BAllCardData,{
     CardData m_Mats[];
 });
 
-RegisterUniform(BPerFrame,{
+RegisterStorage(BPerFrame,{
     PerFramePerViewData m_Data;
 });
 
@@ -79,7 +79,7 @@ RegisterStorage(BMeshDFMeta,{
     MeshDFMeta data;
 });
 
-RegisterUniform(BLocalTransform,{
+RegisterStorage(BLocalTransform,{
     mat4 m_LocalToWorld;
     mat4 m_WorldToLocal;
     vec4 m_MaxScale;

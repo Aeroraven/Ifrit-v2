@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 layout(local_size_x = kAyanamiGlobalDFRayMarchTileSize, local_size_y = kAyanamiGlobalDFRayMarchTileSize, local_size_z = 1) in;
 
-RegisterUniform(bPerframe,{
+RegisterStorage(bPerframe,{
     PerFramePerViewData data;
 });
 

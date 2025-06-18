@@ -60,13 +60,13 @@ RegisterStorage(BTileScatter,{
     uint m_Data[];
 });
 
-RegisterUniform(BLocalTransform,{
+RegisterStorage(BLocalTransform,{
     mat4 m_localToWorld;
     mat4 m_worldToLocal;
     vec4 m_maxScale;
 });
 
-RegisterUniform(BPerFrameData,{
+RegisterStorage(BPerFrameData,{
     PerFramePerViewData data;
 });
 

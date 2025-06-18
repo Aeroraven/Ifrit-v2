@@ -542,15 +542,15 @@ namespace Ifrit::Runtime
             if (curView.m_viewBindlessRef == nullptr)
             {
                 curView.m_viewBuffer =
-                    rhi->CreateBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RhiBufferUsage_Uniform);
+                    rhi->CreateBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RhiBufferUsage_SSBO);
                 curView.m_viewBindlessRef = rhi->CreateBindlessDescriptorRef();
-                curView.m_viewBindlessRef->AddUniformBuffer(curView.m_viewBuffer.get(), 0);
+                curView.m_viewBindlessRef->AddStorageBuffer(curView.m_viewBuffer.get(), 0);
                 curView.m_viewBufferLast =
-                    rhi->CreateBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RhiBufferUsage_Uniform);
+                    rhi->CreateBufferCoherent(sizeof(PerFramePerViewData), RhiBufferUsage::RhiBufferUsage_SSBO);
 
-                curView.m_viewBindlessRef->AddUniformBuffer(curView.m_viewBufferLast.get(), 1);
+                curView.m_viewBindlessRef->AddStorageBuffer(curView.m_viewBufferLast.get(), 1);
                 initLastFrameMatrix    = true;
-                curView.m_viewBufferId = rhi->RegisterUniformBuffer(curView.m_viewBuffer.get());
+                curView.m_viewBufferId = rhi->RegisterStorageBufferShared(curView.m_viewBuffer.get());
             }
 
             // Update view buffer
@@ -613,14 +613,14 @@ namespace Ifrit::Runtime
                 bool initLastFrameMatrix = false;
                 if (transformBuffer == nullptr)
                 {
-                    transformBuffer = rhi->CreateBufferCoherent(
-                        sizeof(MeshInstanceTransform), RhiBufferUsage::RhiBufferUsage_Uniform);
-                    bindlessRef = rhi->RegisterUniformBuffer(transformBuffer.get());
+                    transformBuffer =
+                        rhi->CreateBufferCoherent(sizeof(MeshInstanceTransform), RhiBufferUsage::RhiBufferUsage_SSBO);
+                    bindlessRef = rhi->RegisterStorageBufferShared(transformBuffer.get());
                     transform->SetGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
                     initLastFrameMatrix = true;
-                    transformBufferLast = rhi->CreateBufferCoherent(
-                        sizeof(MeshInstanceTransform), RhiBufferUsage::RhiBufferUsage_Uniform);
-                    bindlessRefLast = rhi->RegisterUniformBuffer(transformBufferLast.get());
+                    transformBufferLast =
+                        rhi->CreateBufferCoherent(sizeof(MeshInstanceTransform), RhiBufferUsage::RhiBufferUsage_SSBO);
+                    bindlessRefLast = rhi->RegisterStorageBufferShared(transformBufferLast.get());
                     transform->SetGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
                 }
 

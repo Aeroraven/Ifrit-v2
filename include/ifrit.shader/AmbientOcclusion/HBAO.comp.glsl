@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Random/Random.WNoise2D.glsl"
 #include "SamplerUtils.SharedConst.h"
 
-RegisterUniform(bPerframe,{
+RegisterStorage(bPerframe,{
     PerFramePerViewData data;
 });
 

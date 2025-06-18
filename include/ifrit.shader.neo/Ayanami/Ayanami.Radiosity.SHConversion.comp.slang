@@ -59,7 +59,16 @@ namespace Ayanami{
                                  uint3 GroupID : SV_GroupID,
                                  uint3 GroupThreadID : SV_GroupThreadID)
     {
-        //TODO
+        uint GlobalId = ThreadID.x; //Probe Id
+        if(GlobalId >= PushConst.m_TotalProbes) return;
+        uint ProbeRayStart = kAyanami_RadiosityTracesPerProbe * GlobalId;
+
+        uint TileIndex;
+        uint2 OffsetInTile;
+        uint2 TraceRayCoord;
+
+        GetRadiosityRayTraceCoordToCardInfo(ProbeRayStart, PushConst.m_TraceCoordJitter, OffsetInTile, TileIndex, TraceRayCoord);
+
     }
 }
 }

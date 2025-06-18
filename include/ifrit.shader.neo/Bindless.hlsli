@@ -136,10 +136,15 @@ namespace IfritShader
     {
         uint Index;
 
-        ConstantBuffer<T> Load()
+        // ConstantBuffer<T> Load()
+        // {
+        //     ConstantBuffer<T> Buffer = _Ifrit_ResourceHeap_ConstantBuffer[Index].as<ConstantBuffer<T>>();
+        //     return Buffer;
+        // }
+        T Load()
         {
-            ConstantBuffer<T> Buffer = _Ifrit_ResourceHeap_ConstantBuffer[Index].as<ConstantBuffer<T>>();
-            return Buffer;
+            RWStructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_RWStructuredBuffer[Index];
+            return Buffer[0];
         }
     };
 
