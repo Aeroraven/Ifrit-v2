@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Neo.h"
 
+#include "ifrit/runtime/simulation/internal/InternalShaderRegistry.Siro.h"
+
 namespace Ifrit::Runtime::Internal
 {
     IFRIT_APIDECL void RegisterRuntimeInternalShaders(ShaderRegistry* shaderRegistry)
@@ -43,6 +45,8 @@ namespace Ifrit::Runtime::Internal
         const auto& IST    = kIntShaderTable;
         const auto& ISTAya = kIntShaderTableAyanami;
         const auto& ISTNeo = kIntShaderTableNeo;
+
+        const auto& ISTSiro = kIntShaderTableSiro;
 
         // GI & AO
         REG_COMPUTE(IST.GI.HBAOCS, "AmbientOcclusion/HBAO");
@@ -161,6 +165,9 @@ namespace Ifrit::Runtime::Internal
 
         // Neo
         REG_COMPUTE_NEO(ISTNeo.TestCS, "TestCS", "TestCS");
+
+        // SIRO
+        REG_COMPUTE_NEO(ISTSiro.TrivialPBDClothInit, "Siro/TrivialPBDCloth.Init", "TrivialPBDClothInit");
 
         iInfo("Internal: Compiling internal shaders...");
         shaderRegistry->WaitForShaderCompilations();
