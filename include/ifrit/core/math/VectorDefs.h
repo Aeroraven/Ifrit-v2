@@ -242,6 +242,15 @@ template <class T, int U> struct CoreVec4Shared
 #define igvec3 CoreVec3
 #define igvec4 CoreVec4
 
+template <class T> struct CoreMat3
+{
+    T                   data[3][3];
+    IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
+    IFRIT_DUAL T*       operator[](int i) { return data[i]; }
+};
+template struct CoreMat3<float>;
+#define Matrix3x3f CoreMat3<float>
+
 template <class T> struct CoreMat4
 {
     T                   data[4][4];
@@ -268,6 +277,9 @@ extern "C"
     template struct IFRIT_APIDECL Vector2u;
     template struct IFRIT_APIDECL Vector3u;
     template struct IFRIT_APIDECL Vector4u;
+
+    template struct IFRIT_APIDECL Matrix3x3f;
+    template struct IFRIT_APIDECL Matrix4x4f;
 
     template struct IFRIT_APIDECL irect2Df;
     template struct IFRIT_APIDECL irect2Di;

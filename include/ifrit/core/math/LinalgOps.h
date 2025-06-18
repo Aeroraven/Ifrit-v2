@@ -1,4 +1,3 @@
-
 /*
 Ifrit-v2
 Copyright (C) 2024 funkybirds(Aeroraven)
@@ -212,6 +211,19 @@ namespace Ifrit::Math
         return result;
     }
 
+    IF_FORCEINLINE Matrix3x3f Identity3()
+    {
+        Matrix3x3f result;
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                result[i][j] = i == j ? 1.0f : 0.0f;
+            }
+        }
+        return result;
+    }
+
     IF_FORCEINLINE Matrix4x4f EulerAngleToMatrix(const Vector3f& euler)
     {
         Matrix4x4f result = Identity4();
@@ -400,6 +412,135 @@ namespace Ifrit::Math
         result[0][3]       = offsetX;
         result[1][3]       = offsetY;
         result[2][3]       = offsetZ;
+        return result;
+    }
+
+    IF_FORCEINLINE Matrix3x3f Transpose3(const Matrix3x3f& a)
+    {
+        Matrix3x3f result;
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                result[i][j] = a[j][i];
+            }
+        }
+        return result;
+    }
+
+    IF_FORCEINLINE Vector3f MatMul3(const Matrix3x3f& a, const Vector3f& b)
+    {
+        Vector3f result;
+        result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z;
+        result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z;
+        result.z = a[2][0] * b.x + a[2][1] * b.y + a[2][2] * b.z;
+        return result;
+    }
+
+    IF_FORCEINLINE Matrix3x3f MatMul3(const Matrix3x3f& a, const Matrix3x3f& b)
+    {
+        Matrix3x3f result;
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                result[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j];
+            }
+        }
+        return result;
+    }
+
+    IF_FORCEINLINE Matrix3x3f Inverse3(const Matrix3x3f& m)
+    {
+        // Calculate cofactors and determinant
+        f32        cofactor00 = m[1][1] * m[2][2] - m[1][2] * m[2][1];
+        f32        cofactor01 = m[1][0] * m[2][2] - m[1][2] * m[2][0];
+        f32        cofactor02 = m[1][0] * m[2][1] - m[1][1] * m[2][0];
+
+        f32        cofactor10 = m[0][1] * m[2][2] - m[0][2] * m[2][1];
+        f32        cofactor11 = m[0][0] * m[2][2] - m[0][2] * m[2][0];
+        f32        cofactor12 = m[0][0] * m[2][1] - m[0][1] * m[2][0];
+
+        f32        cofactor20 = m[0][1] * m[1][2] - m[0][2] * m[1][1];
+        f32        cofactor21 = m[0][0] * m[1][2] - m[0][2] * m[1][0];
+        f32        cofactor22 = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+
+        // Calculate determinant
+        f32        det    = m[0][0] * cofactor00 - m[0][1] * cofactor01 + m[0][2] * cofactor02;
+        f32        invDet = 1.0f / det; // Reciprocal of determinant
+
+        // Build adjugate matrix and multiply by reciprocal of determinant
+        Matrix3x3f result;
+        result[0][0] = cofactor00 * invDet;
+        result[0][1] = -cofactor10 * invDet;
+        result[0][2] = cofactor20 * invDet;
+
+        result[1][0] = -cofactor01 * invDet;
+        result[1][1] = cofactor11 * invDet;
+        result[1][2] = -cofactor21 * invDet;
+
+        result[2][0] = cofactor02 * invDet;
+        result[2][1] = -cofactor12 * invDet;
+        result[2][2] = cofactor22 * invDet;
+
+        return result;
+    }
+
+    IF_FORCEINLINE Matrix4x4f Mat3ToMat4(const Matrix3x3f& m)
+    {
+        Matrix4x4f result;
+        // Copy the 3x3 part
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                result[i][j] = m[i][j];
+            }
+        }
+        // Set the rest to identity matrix values
+        result[0][3] = 0.0f;
+        result[1][3] = 0.0f;
+        result[2][3] = 0.0f;
+        result[3][0] = 0.0f;
+        result[3][1] = 0.0f;
+        result[3][2] = 0.0f;
+        result[3][3] = 1.0f;
+
+        return result;
+    }
+
+    IF_FORCEINLINE Matrix3x3f Mat4ToMat3(const Matrix4x4f& m)
+    {
+        Matrix3x3f result;
+        // Extract the 3x3 part
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                result[i][j] = m[i][j];
+            }
+        }
+        return result;
+    }
+
+    IF_FORCEINLINE Matrix3x3f CrossProductMatrix(const Vector3f& v)
+    {
+        // Creates a skew-symmetric matrix from a 3D vector
+        // This matrix can be used to compute cross products: CrossProductMatrix(a) * b = a × b
+        Matrix3x3f result;
+
+        result[0][0] = 0.0f;
+        result[0][1] = -v.z;
+        result[0][2] = v.y;
+
+        result[1][0] = v.z;
+        result[1][1] = 0.0f;
+        result[1][2] = -v.x;
+
+        result[2][0] = -v.y;
+        result[2][1] = v.x;
+        result[2][2] = 0.0f;
+
         return result;
     }
 

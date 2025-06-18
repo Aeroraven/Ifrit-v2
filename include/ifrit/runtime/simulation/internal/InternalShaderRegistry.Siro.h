@@ -28,12 +28,14 @@ namespace Ifrit::Runtime::Internal
 #define DECLARE_CS(name) name "/CS"
 #define DECLARE_MS(name) name "/MS"
 
-#define SDEF IF_CONSTEXPR static const char*
-
-    static struct InternalShaderTableSiro
+#define SDEF IF_CONSTEXPR static const char* static struct InternalShaderTableSiro
     {
-        SDEF TrivialPBDClothInit = DECLARE_CS("Siro/TrivialPBDCloth/Init");
-    } kIntShaderTableSiro;
+        SDEF TrivialPBDClothInit                  = DECLARE_CS("Siro/TrivialPBDCloth/Init");
+        SDEF TrivialPBDClothVelocityUpdatePre     = DECLARE_CS("Siro/TrivialPBDCloth/VelocityUpdatePre");
+        SDEF TrivialPBDClothDampingSystemState    = DECLARE_CS("Siro/TrivialPBDCloth/DampingSystemState");
+        SDEF TrivialPBDClothDampingVelocityUpdate = DECLARE_CS("Siro/TrivialPBDCloth/DampingVelocityUpdate");
+    }
+    kIntShaderTableSiro;
 
 #undef SDEF
 

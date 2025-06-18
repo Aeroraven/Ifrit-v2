@@ -10,17 +10,18 @@ namespace Ifrit::Runtime::Siro
      * Contains all the buffers and parameters required for position-based dynamics cloth simulation
      */
     struct TrivialPBDClothPrivateData
-    {
-        // Cloth dimensions and properties
-        u32                         m_Width              = 0;     // Number of vertices in width
-        u32                         m_Height             = 0;     // Number of vertices in height
-        u32                         m_TotalVertices      = 0;     // Total number of vertices (width * height)
-        u32                         m_Mass               = 1;     // Mass value for each vertex
-        f32                         m_InvMass            = 1.0f;  // 1/Mass, precomputed
-        f32                         m_StiffnessStretch   = 0.9f;  // Stiffness coefficient for stretch constraints
-        f32                         m_StiffnessBend      = 0.5f;  // Stiffness coefficient for bend constraints
-        f32                         m_DampingCoefficient = 0.03f; // Damping coefficient for velocity
-        f32                         m_Gravity            = 9.8f;  // Gravity force magnitude (along y-axis)
+    {                                     // Cloth dimensions and properties
+        u32 m_Width              = 0;     // Number of vertices in width
+        u32 m_Height             = 0;     // Number of vertices in height
+        u32 m_TotalVertices      = 0;     // Total number of vertices (width * height)
+        u32 m_Mass               = 1;     // Mass value for each vertex
+        f32 m_InvMass            = 1.0f;  // 1/Mass, precomputed
+        f32 m_StiffnessStretch   = 0.9f;  // Stiffness coefficient for stretch constraints
+        f32 m_StiffnessBend      = 0.5f;  // Stiffness coefficient for bend constraints
+        f32 m_DampingCoefficient = 0.03f; // Basic damping coefficient for velocity
+        f32 m_RigidBodyDamping =
+            0.2f; // Advanced damping coefficient for rigid body mode preservation (0=no damping, 1=full damping)
+        f32                         m_Gravity = 9.8f; // Gravity force magnitude (along y-axis)
 
         // Simulation state flags
         bool                        m_Initialized = false; // Whether the cloth has been initialized
@@ -37,21 +38,22 @@ namespace Ifrit::Runtime::Siro
         Graphics::Rhi::RhiBufferRef m_StretchConstraintBuffer; // Stretch constraint data for GPU
         Graphics::Rhi::RhiBufferRef m_BendConstraintBuffer;    // Bend constraint data for GPU
         Graphics::Rhi::RhiBufferRef m_FixedVertexBuffer;       // Fixed vertices mask/data
+        Graphics::Rhi::RhiBufferRef
+                        m_SystemStateBuffer; // System state buffer for damping (center of mass, angular momentum, etc.)
 
         // FrameGraph Buffer Node References (for framegraph integration)
-        FGBufferNodeRef             m_PositionBufferNode          = nullptr;
-        FGBufferNodeRef             m_PrevPositionBufferNode      = nullptr;
-        FGBufferNodeRef             m_VelocityBufferNode          = nullptr;
-        FGBufferNodeRef             m_OffsetBufferNode            = nullptr;
-        FGBufferNodeRef             m_ConstraintBufferNode        = nullptr;
-        FGBufferNodeRef             m_NormalBufferNode            = nullptr;
-        FGBufferNodeRef             m_CounterBufferNode           = nullptr;
-        FGBufferNodeRef             m_IndexBufferNode             = nullptr;
-        FGBufferNodeRef             m_StretchConstraintBufferNode = nullptr;
-        FGBufferNodeRef             m_BendConstraintBufferNode    = nullptr;
-        FGBufferNodeRef             m_FixedVertexBufferNode       = nullptr;
-
-        // GPU-compatible constraint structures
+        FGBufferNodeRef m_PositionBufferNode          = nullptr;
+        FGBufferNodeRef m_PrevPositionBufferNode      = nullptr;
+        FGBufferNodeRef m_VelocityBufferNode          = nullptr;
+        FGBufferNodeRef m_OffsetBufferNode            = nullptr;
+        FGBufferNodeRef m_ConstraintBufferNode        = nullptr;
+        FGBufferNodeRef m_NormalBufferNode            = nullptr;
+        FGBufferNodeRef m_CounterBufferNode           = nullptr;
+        FGBufferNodeRef m_IndexBufferNode             = nullptr;
+        FGBufferNodeRef m_StretchConstraintBufferNode = nullptr;
+        FGBufferNodeRef m_BendConstraintBufferNode    = nullptr;
+        FGBufferNodeRef m_FixedVertexBufferNode       = nullptr;
+        FGBufferNodeRef m_SystemStateBufferNode       = nullptr; // GPU-compatible constraint structures
         struct StretchConstraint
         {
             u32 idxA;       // First vertex index
@@ -68,6 +70,21 @@ namespace Ifrit::Runtime::Siro
             u32 idxD;      // Fourth vertex index
             f32 restAngle; // Rest angle between triangles
             f32 stiffness; // Constraint stiffness multiplier
+        };
+
+        // System state structure for damping calculations
+        struct SystemState
+        {
+            Vector3f centerOfMass;         // Center of mass position (x_cm)
+            Vector3f centerOfMassVelocity; // Center of mass velocity (v_cm)
+            Vector3f angularMomentum;      // Angular momentum (L)
+            // 3x3 inertia tensor (I) stored as 9 floats in row-major order
+            f32      inertiaTensor[9];
+            // 3x3 inverse inertia tensor (I^-1) stored as 9 floats in row-major order
+            f32      invInertiaTensor[9];
+            Vector3f angularVelocity; // Angular velocity (ω)
+            f32      totalMass;       // Total mass of the system
+            u32      padding[3];      // Padding to ensure alignment
         };
 
         // Simple buffer size helpers (kept for convenience)
@@ -156,15 +173,18 @@ namespace Ifrit::Runtime::Siro
         m_Data->m_StretchConstraintBuffer =
             rhi->CreateBuffer("PBDCloth_StretchConstraints", stretchConstraintBufferSize, ssboUsage, false, true);
 
-        m_Data->m_BendConstraintBuffer =
-            rhi->CreateBuffer("PBDCloth_BendConstraints", bendConstraintBufferSize, ssboUsage, false, true);
-
-        // Fixed vertex buffer (mask)
+        m_Data->m_BendConstraintBuffer = rhi->CreateBuffer(
+            "PBDCloth_BendConstraints", bendConstraintBufferSize, ssboUsage, false, true); // Fixed vertex buffer (mask)
         m_Data->m_FixedVertexBuffer =
             rhi->CreateBuffer("PBDCloth_FixedVertices", fixedVertexBufferSize, ssboUsage, false, true);
 
         // Atomic counter buffer
         m_Data->m_CounterBuffer = rhi->CreateBuffer("PBDCloth_Counter", counterBufferSize, ssboUsage, false, true);
+
+        // System state buffer for damping calculations
+        u32 systemStateBufferSize = sizeof(TrivialPBDClothPrivateData::SystemState);
+        m_Data->m_SystemStateBuffer =
+            rhi->CreateBuffer("PBDCloth_SystemState", systemStateBufferSize, ssboUsage, false, true);
 
         // Create FrameGraph buffer nodes
         auto& positionBufferNode     = builder.ImportBuffer("PBDCloth_Position", m_Data->m_PositionBuffer.get());
@@ -198,6 +218,9 @@ namespace Ifrit::Runtime::Siro
         m_Data->m_FixedVertexBufferNode = &fixedVertexBufferNode;
         auto& counterBufferNode         = builder.ImportBuffer("PBDCloth_Counter", m_Data->m_CounterBuffer.get());
         m_Data->m_CounterBufferNode     = &counterBufferNode;
+
+        auto& systemStateBufferNode = builder.ImportBuffer("PBDCloth_SystemState", m_Data->m_SystemStateBuffer.get());
+        m_Data->m_SystemStateBufferNode = &systemStateBufferNode;
 
         // Add a compute pass to initialize the cloth
         // Define push constant data structure for the initialization shader
@@ -268,10 +291,167 @@ namespace Ifrit::Runtime::Siro
         // Mark as initialized
         m_Data->m_Initialized = true;
     }
+    IFRIT_APIDECL void TrivialPBDCloth::VelocityUpdatePre(FrameGraphBuilder& builder, f32 deltaTime)
+    {
+        // Skip if not initialized
+        if (!m_Data || !m_Data->m_Initialized)
+        {
+            return;
+        }
 
-    IFRIT_APIDECL void TrivialPBDCloth::VelocityUpdatePre(FrameGraphBuilder& builder, f32 deltaTime) {}
+        // Define push constant data structure for the velocity update shader
+        struct PushConstant
+        {
+            f32 m_DeltaTime;
+            f32 m_InvMass;
+            f32 m_Gravity;
+            u32 m_NumVertices;
+            u32 m_PositionBuffer;
+            u32 m_PrevPositionBuffer;
+            u32 m_VelocityBuffer;
+            u32 m_FixedVertexBuffer;
+        };
 
-    IFRIT_APIDECL void TrivialPBDCloth::DampVelocity(FrameGraphBuilder& builder, f32 dampingFactor) {}
+        // Create push constant data
+        PushConstant pc;
+        pc.m_DeltaTime   = deltaTime;
+        pc.m_InvMass     = m_Data->m_InvMass;
+        pc.m_Gravity     = m_Data->m_Gravity;
+        pc.m_NumVertices = m_Data->m_TotalVertices;
+
+        // Calculate dispatch dimensions
+        // Using a 1D dispatch since we're processing vertices in a flat array
+        constexpr u32 kBlockSize    = 16; // Must match the shader's thread block size
+        u32           dispatchSizeX = (m_Data->m_TotalVertices + kBlockSize - 1) / kBlockSize;
+
+        // Add the compute pass using the VelocityUpdatePre compute shader
+        auto&         velocityUpdatePass =
+            FrameGraphUtils::AddComputePass<PushConstant>(builder, "TrivialPBDCloth.VelocityUpdatePre",
+                ShaderVariantDesc(Internal::kIntShaderTableSiro.TrivialPBDClothVelocityUpdatePre, {}),
+                Vector3i(dispatchSizeX, 1, 1), pc,
+                [positionBufferNode        = m_Data->m_PositionBufferNode,
+                    prevPositionBufferNode = m_Data->m_PrevPositionBufferNode,
+                    velocityBufferNode     = m_Data->m_VelocityBufferNode,
+                    fixedVertexBufferNode  = m_Data->m_FixedVertexBufferNode](
+                    PushConstant data, const FrameGraphPassContext& ctx) {
+                    // Set buffer handles in the push constants
+                    data.m_PositionBuffer =
+                        ctx.m_FgDesc->GetUAV(*positionBufferNode); // Read-only in this shader, but UAV for consistency
+                    data.m_PrevPositionBuffer = ctx.m_FgDesc->GetUAV(
+                        *prevPositionBufferNode); // Not used directly but included for future expansion
+                    data.m_VelocityBuffer    = ctx.m_FgDesc->GetUAV(*velocityBufferNode);    // Read-write
+                    data.m_FixedVertexBuffer = ctx.m_FgDesc->GetUAV(*fixedVertexBufferNode); // Read-only but using UAV
+
+                    // Send the push constant data to the GPU
+                    FrameGraphUtils::SetRootConstant(data, ctx);
+                });
+
+        // Define resource dependencies for the pass
+        velocityUpdatePass
+            .AddReadResource(*m_Data->m_PositionBufferNode)    // Read current positions
+            .AddReadResource(*m_Data->m_FixedVertexBufferNode) // Read fixed vertex flags
+            .AddWriteResource(*m_Data->m_VelocityBufferNode);  // Write to velocity buffer
+    }
+    IFRIT_APIDECL void TrivialPBDCloth::DampVelocity(FrameGraphBuilder& builder, f32 dampingFactor)
+    {
+        // Skip damping if factor is zero or cloth has no vertices
+        if (dampingFactor <= 0.0f || m_Data->m_TotalVertices == 0)
+        {
+            return;
+        }
+
+        // Define push constant data structure for the damping system state compute shader
+        struct DampingSystemStatePushConstant
+        {
+            u32 m_NumVertices;
+            f32 m_DampingCoefficient;
+            f32 m_RigidBodyDamping;
+            f32 m_Epsilon; // Small epsilon to avoid division by zero
+            u32 m_PositionBuffer;
+            u32 m_VelocityBuffer;
+            u32 m_SystemStateBuffer;
+        };
+
+        // Create push constant data
+        DampingSystemStatePushConstant pc;
+        pc.m_NumVertices        = m_Data->m_TotalVertices;
+        pc.m_DampingCoefficient = m_Data->m_DampingCoefficient;
+        pc.m_RigidBodyDamping   = m_Data->m_RigidBodyDamping * dampingFactor; // Scale by input factor
+        pc.m_Epsilon            = 1e-5f;                                      // Small epsilon to avoid division by zero
+
+        // First pass: compute system state (center of mass, velocity, angular momentum, inertia tensor)
+        // Using a single thread dispatch (1,1,1) since this is a reduction calculation for global properties
+        auto& dampingSystemStatePass = FrameGraphUtils::AddComputePass<DampingSystemStatePushConstant>(builder,
+            "TrivialPBDCloth.DampingSystemState",
+            ShaderVariantDesc(Internal::kIntShaderTableSiro.TrivialPBDClothDampingSystemState, {}),
+            Vector3i(1, 1, 1), // Single thread dispatch
+            pc,
+            [positionBufferNode = m_Data->m_PositionBufferNode, velocityBufferNode = m_Data->m_VelocityBufferNode,
+                systemStateBufferNode = m_Data->m_SystemStateBufferNode](
+                DampingSystemStatePushConstant data, const FrameGraphPassContext& ctx) {
+                // Set buffer handles in the push constants
+                data.m_PositionBuffer    = ctx.m_FgDesc->GetUAV(*positionBufferNode);    // Read-only but using UAV
+                data.m_VelocityBuffer    = ctx.m_FgDesc->GetUAV(*velocityBufferNode);    // Read-only but using UAV
+                data.m_SystemStateBuffer = ctx.m_FgDesc->GetUAV(*systemStateBufferNode); // Write target
+
+                // Send the push constant data to the GPU
+                FrameGraphUtils::SetRootConstant(data, ctx);
+            }); // Define resource dependencies for the pass
+        dampingSystemStatePass
+            .AddReadResource(*m_Data->m_PositionBufferNode)      // Read positions
+            .AddReadResource(*m_Data->m_VelocityBufferNode)      // Read velocities
+            .AddWriteResource(*m_Data->m_SystemStateBufferNode); // Write system state
+
+        // Second pass: Apply damping to each vertex using the computed system state
+        struct DampingVelocityUpdatePushConstant
+        {
+            u32 m_NumVertices;
+            f32 m_RigidBodyDamping;
+            f32 m_Epsilon;
+            f32 m_Pad;
+            u32 m_PositionBuffer;
+            u32 m_VelocityBuffer;
+            u32 m_FixedVertexBuffer;
+            u32 m_SystemStateBuffer;
+        };
+
+        // Create push constant data for the second pass
+        DampingVelocityUpdatePushConstant pcUpdate;
+        pcUpdate.m_NumVertices      = m_Data->m_TotalVertices;
+        pcUpdate.m_RigidBodyDamping = m_Data->m_RigidBodyDamping * dampingFactor;
+        pcUpdate.m_Epsilon          = 1e-5f;
+        pcUpdate.m_Pad              = 0.0f;
+
+        // Calculate dispatch dimensions for vertex processing
+        constexpr u32 kBlockSize    = 256; // Must match the shader's thread block size
+        u32           dispatchSizeX = (m_Data->m_TotalVertices + kBlockSize - 1) / kBlockSize;
+
+        // Add the damping velocity update compute pass
+        auto& dampingVelocityUpdatePass = FrameGraphUtils::AddComputePass<DampingVelocityUpdatePushConstant>(builder,
+            "TrivialPBDCloth.DampingVelocityUpdate",
+            ShaderVariantDesc(Internal::kIntShaderTableSiro.TrivialPBDClothDampingVelocityUpdate, {}),
+            Vector3i(dispatchSizeX, 1, 1), pcUpdate,
+            [positionBufferNode = m_Data->m_PositionBufferNode, velocityBufferNode = m_Data->m_VelocityBufferNode,
+                fixedVertexBufferNode = m_Data->m_FixedVertexBufferNode,
+                systemStateBufferNode = m_Data->m_SystemStateBufferNode](
+                DampingVelocityUpdatePushConstant data, const FrameGraphPassContext& ctx) {
+                // Set buffer handles in the push constants
+                data.m_PositionBuffer    = ctx.m_FgDesc->GetUAV(*positionBufferNode);    // Read-only but using UAV
+                data.m_VelocityBuffer    = ctx.m_FgDesc->GetUAV(*velocityBufferNode);    // Read-write
+                data.m_FixedVertexBuffer = ctx.m_FgDesc->GetUAV(*fixedVertexBufferNode); // Read-only but using UAV
+                data.m_SystemStateBuffer = ctx.m_FgDesc->GetSRV(*systemStateBufferNode); // Read-only
+
+                // Send the push constant data to the GPU
+                FrameGraphUtils::SetRootConstant(data, ctx);
+            });
+
+        // Define resource dependencies for the second pass
+        dampingVelocityUpdatePass
+            .AddReadResource(*m_Data->m_PositionBufferNode)    // Read positions
+            .AddReadResource(*m_Data->m_FixedVertexBufferNode) // Read fixed vertex flags
+            .AddReadResource(*m_Data->m_SystemStateBufferNode) // Read system state
+            .AddWriteResource(*m_Data->m_VelocityBufferNode);  // Write to velocity buffer
+    }
 
     IFRIT_APIDECL void TrivialPBDCloth::InitialOffsetGeneration(FrameGraphBuilder& builder, f32 deltaTime) {}
 
