@@ -45,8 +45,8 @@ namespace Ifrit::Graphics::VulkanGraphics
 #endif
 
         // Queue specify
-        auto& queueData        = m_context->GetQueueInfo();
-        auto& deviceExtensions = m_context->GetDeviceExtensions();
+        auto&            queueData        = m_context->GetQueueInfo();
+        Vec<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
         for (int i = 0; i < queueData.m_queueFamilies.size(); i++)
         {
             VkBool32 presentSupport   = VK_FALSE;

@@ -248,7 +248,6 @@ template <class T> struct CoreMat3
     IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
     IFRIT_DUAL T*       operator[](int i) { return data[i]; }
 };
-template struct CoreMat3<float>;
 #define Matrix3x3f CoreMat3<float>
 
 template <class T> struct CoreMat4
@@ -257,7 +256,6 @@ template <class T> struct CoreMat4
     IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
     IFRIT_DUAL T*       operator[](int i) { return data[i]; }
 };
-template struct CoreMat4<float>;
 #define Matrix4x4f CoreMat4<float>
 
 extern "C"

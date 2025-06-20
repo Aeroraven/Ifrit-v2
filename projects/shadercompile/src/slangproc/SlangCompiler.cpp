@@ -110,7 +110,7 @@ namespace Ifrit::ShaderCompile::SlangProc
         String cachedModulePath = m_CachePath + "/ifritsc.slang.shader." + moduleHash + ".cache";
         if (std::filesystem::exists(cachedModulePath))
         {
-            iDebug("Using cached Slang module: {}", cachedModulePath);
+            // iDebug("Using cached Slang module: {}", cachedModulePath);
             ShaderCompileOutput output;
             output.m_IR.m_Format = ShaderIRFormat::SpirV;
             std::ifstream file(cachedModulePath, std::ios::binary);
