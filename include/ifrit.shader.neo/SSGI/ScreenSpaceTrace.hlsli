@@ -45,7 +45,7 @@ namespace SSGI{
         float2 DiffUV = RayEndUV - RayStartUV;
         float2 DiffPixels = DiffUV * ScreenExtent;
 
-        int2 DiffPixelsInt = int2(DiffPixels.x, DiffPixels.y);
+        int2 DiffPixelsInt = int2(int(DiffPixels.x), int(DiffPixels.y));
         float MaxStepsF = max(abs(DiffPixelsInt.x), abs(DiffPixelsInt.y));
         uint MaxSteps = (uint)MaxStepsF + 1;
 
@@ -74,7 +74,7 @@ namespace SSGI{
         float2 RayStartPx = RayStartUV * ScreenExtent;
         float2 RayEndPx = RayEndUV * ScreenExtent;
         float2 CurPx = RayStartPx;
-        int2 RayStartUVInt = int2(RayStartPx.x, RayStartPx.y);
+        int2 RayStartUVInt = int2(int(RayStartPx.x), int(RayStartPx.y));
 
         bool MainDirectionX = abs(DiffPixels.x) >= abs(DiffPixels.y);
         float2 NormSSDirection = normalize(DiffPixels);

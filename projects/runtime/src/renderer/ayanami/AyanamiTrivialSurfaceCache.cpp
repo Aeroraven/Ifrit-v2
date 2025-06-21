@@ -674,9 +674,9 @@ namespace Ifrit::Runtime::Ayanami
 
         auto totalCardTiles = m_Resources->m_AtlasElementSize * m_Resources->m_AtlasElementSize
             / (Config::kAyanami_CardTileWidth * Config::kAyanami_CardTileWidth) * pc.m_NumTotalCards;
-        auto totalTraces = totalCardTiles * Config::kAyanami_RadiosityTracesPerCardTile;
-        iDebug("Total Traces: {}", totalTraces);
-        iDebug("Total Card Tiles: {}", totalCardTiles);
+        auto  totalTraces = totalCardTiles * Config::kAyanami_RadiosityTracesPerCardTile;
+        // iDebug("Total Traces: {}", totalTraces);
+        // iDebug("Total Card Tiles: {}", totalCardTiles);
         auto  numTGs = DivRoundUp<i32, i32>(totalTraces, Config::kAyanamiRadiosityTraceKernelSize);
 
         auto& pass = AddComputePass<PushConst>(builder, "Ayanami.Radiosity.Trace",

@@ -160,6 +160,7 @@ namespace Ifrit
             m_Attributes->m_Workers.emplace_back(workerRef);
             m_Attributes->m_Workers[i]->Launch();
         }
+        iInfo("TaskScheduler: Created {} worker threads.", numThreads);
     }
 
     IFRIT_APIDECL void TaskScheduler::DereferenceTask(RIndexedPtr taskId)

@@ -42,7 +42,7 @@ namespace Ayanami{
 
     void WritePixel(uint2 AtlasUV, float Depth, uint2 ScreenUV){
         // 32Bit depth | 16Bit AtlasX | 16Bit AtlasY 
-        uint64_t DepthData = uint(Depth * 65535.0) << 32 | (AtlasUV.x << 16) | AtlasUV.y;
+        uint64_t DepthData = uint64_t(Depth * 65535.0) << 32 | (AtlasUV.x << 16) | AtlasUV.y;
         uint LinearizedId = ScreenUV.y * PushConst.m_OutputWidth + ScreenUV.x;
         PushConst.m_AtomicDepth.AtomicMin(LinearizedId, DepthData);
     }

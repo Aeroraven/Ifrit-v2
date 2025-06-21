@@ -69,7 +69,7 @@ namespace Ayanami{
             return;
         }
 
-        uint2 AtlasUV = uint2(DepthValue & uint64_t(0xFFFF), (DepthValue >> 16) & 0xFFFF).yx;
+        uint2 AtlasUV = uint2(uint(DepthValue & uint64_t(0xFFFF)), uint((DepthValue >> 16) & 0xFFFF)).yx;
         float2 AtlasUVf = (float2(AtlasUV)+0.5f) / float(PushConst.m_CardAtlasResolution);
         
         if(AtlasUVf.x >= 1.0f || AtlasUVf.y >= 1.0f)
