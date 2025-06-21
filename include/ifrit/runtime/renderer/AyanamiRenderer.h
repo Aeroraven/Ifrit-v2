@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/runtime/common/Pch.h"
 
-
 #include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/renderer/RendererUtil.h"
 #include "ifrit/runtime/renderer/SyaroRenderer.h"
@@ -51,11 +50,11 @@ namespace Ifrit::Runtime
         using GPUCmdBuffer         = Graphics::Rhi::RhiCommandList;
 
     private:
-        Uref<SyaroRenderer>            m_VGRenderer;
-        AyanamiRendererResources*      m_Resources = nullptr;
+        Owner<SyaroRenderer>            m_VGRenderer;
+        AyanamiRendererResources*       m_Resources = nullptr;
 
-        Ayanami::AyanamiRenderConfig   m_SelfRenderConfig;
-        Uref<Ayanami::AyanamiGlobalDF> m_GlobalDF = nullptr;
+        Ayanami::AyanamiRenderConfig    m_SelfRenderConfig;
+        Owner<Ayanami::AyanamiGlobalDF> m_GlobalDF = nullptr;
 
     private:
         void InitRenderer();
@@ -65,15 +64,15 @@ namespace Ifrit::Runtime
 
     public:
         AyanamiRenderer(IApplication* app, Ayanami::AyanamiRenderConfig config)
-            : RendererBase(app), m_VGRenderer(std::make_unique<SyaroRenderer>(app)), m_SelfRenderConfig(config)
+            : RendererBase(app), m_VGRenderer(MakeOwner<SyaroRenderer>(app)), m_SelfRenderConfig(config)
         {
             m_VGRenderer->SetRenderRole(SyaroRenderRole::GBuffer | SyaroRenderRole::Shadowing);
             InitRenderer();
-            m_GlobalDF = std::make_unique<Ayanami::AyanamiGlobalDF>(config, app);
+            m_GlobalDF = MakeOwner<Ayanami::AyanamiGlobalDF>(config, app);
         }
         virtual ~AyanamiRenderer();
 
-        virtual Uref<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
+        virtual Owner<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
             const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait) override;
     };
 

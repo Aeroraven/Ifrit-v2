@@ -103,8 +103,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
 
     IFRIT_APIDECL void TileRasterRenderer::bindVertexShader(VertexShader& vertexShader)
     {
-        this->context->owningVaryingDesc =
-            std::make_unique<VaryingDescriptor>(std::move(vertexShader.getVaryingDescriptor()));
+        this->context->owningVaryingDesc = MakeOwner<VaryingDescriptor>(std::move(vertexShader.getVaryingDescriptor()));
         bindVertexShaderLegacy(vertexShader, *this->context->owningVaryingDesc);
     }
 
@@ -136,7 +135,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
     {
         if (varyingBufferDirtyFlag)
         {
-            context->vertexShaderResult = std::make_unique<VertexShaderResult>(
+            context->vertexShaderResult = MakeOwner<VertexShaderResult>(
                 context->vertexBuffer->getVertexCount(), context->varyingDescriptor->getVaryingCounts());
             shaderBindingDirtyFlag = false;
         }
@@ -154,10 +153,10 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
         workers.resize(context->numThreads);
         for (int i = 0; i < context->numThreads; i++)
         {
-            workers[i] = std::make_unique<TileRasterWorker>(i, this, context);
+            workers[i] = MakeOwner<TileRasterWorker>(i, this, context);
             workers[i]->status.store(TileRasterStage::IDLE, std::memory_order::relaxed);
         }
-        selfOwningWorker = std::make_unique<TileRasterWorker>(context->numThreads, this, context);
+        selfOwningWorker = MakeOwner<TileRasterWorker>(context->numThreads, this, context);
     }
     void TileRasterRenderer::statusTransitionBarrier3(TileRasterStage waitOn, TileRasterStage proceedTo)
     {
@@ -415,7 +414,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
 
     IFRIT_APIDECL void TileRasterRenderer::Init()
     {
-        context                         = std::make_shared<TileRasterContext>();
+        context                         = MakeRef<TileRasterContext>();
         context->blendState.blendEnable = false;
 
         createWorkers();

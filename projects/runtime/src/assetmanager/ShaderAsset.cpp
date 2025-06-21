@@ -86,7 +86,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void ShaderAssetImporter::ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata)
     {
-        auto asset = std::make_shared<ShaderAsset>(metadata, path, m_assetManager->GetApplication());
+        auto asset = MakeRef<ShaderAsset>(metadata, path, m_assetManager->GetApplication());
         m_assetManager->RegisterAsset(asset);
         // iInfo("Imported asset: [Shader] {}", metadata.m_uuid);
     }

@@ -272,13 +272,13 @@ namespace Ifrit::Runtime
     struct IFRIT_APIDECL ComputePassNode : public PassNode, NonCopyable
     {
     protected:
-        Uref<Graphics::Rhi::RhiComputePass> m_pass;
+        Owner<Graphics::Rhi::RhiComputePass> m_pass;
 
     protected:
         virtual void Execute(const FrameGraphPassContext& ctx) override;
 
     public:
-        ComputePassNode(Uref<Graphics::Rhi::RhiComputePass>&& pass);
+        ComputePassNode(Owner<Graphics::Rhi::RhiComputePass>&& pass);
         virtual ~ComputePassNode() {}
         inline Graphics::Rhi::RhiComputePass* GetPass() { return m_pass.get(); }
         inline virtual void                   FillContext(FrameGraphPassContext& passContext)
@@ -294,7 +294,7 @@ namespace Ifrit::Runtime
         using LoadOp = Graphics::Rhi::RhiRenderTargetLoadOp;
 
     protected:
-        Uref<Graphics::Rhi::RhiGraphicsPass>          m_pass;
+        Owner<Graphics::Rhi::RhiGraphicsPass>         m_pass;
 
         Vec<ResourceNode*>                            m_RenderTarget;
         Vec<LoadOp>                                   m_ColorLoadOp;
@@ -318,7 +318,7 @@ namespace Ifrit::Runtime
         }
 
     public:
-        GraphicsPassNode(Uref<Graphics::Rhi::RhiGraphicsPass>&& pass);
+        GraphicsPassNode(Owner<Graphics::Rhi::RhiGraphicsPass>&& pass);
         inline Graphics::Rhi::RhiGraphicsPass* GetPass() { return m_pass.get(); }
         inline virtual void                    FillContext(FrameGraphPassContext& passContext)
         {
@@ -344,8 +344,8 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL FrameGraphBuilder : public IFrameGraphDescRegistry, public NonCopyable
     {
     private:
-        Vec<Uref<ResourceNode>>     m_resources;
-        Vec<Uref<PassNode>>         m_passes;
+        Vec<Owner<ResourceNode>>    m_resources;
+        Vec<Owner<PassNode>>        m_passes;
         FrameGraphCompileMode       m_compileMode       = FrameGraphCompileMode::Sequential;
         FrameGraphResourceInitState m_resourceInitState = FrameGraphResourceInitState::Manual;
         ShaderRegistry*             m_ShaderRegistry    = nullptr;

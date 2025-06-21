@@ -52,10 +52,7 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
             }
         }
     }
-    void TrivialRaytracerWorker::threadCreate()
-    {
-        thread = std::make_unique<std::thread>(&TrivialRaytracerWorker::Run, this);
-    }
+    void TrivialRaytracerWorker::threadCreate() { thread = MakeOwner<std::thread>(&TrivialRaytracerWorker::Run, this); }
 
     void TrivialRaytracerWorker::tracingProcess()
     {

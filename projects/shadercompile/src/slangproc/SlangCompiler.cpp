@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/logging/Logging.h"
 #include "slang/include/slang-com-ptr.h"
 #include "slang/include/slang.h"
+#include "ifrit/core/typing/Util.h"
 
 #include "sha1/sha1.hpp"
 #include <filesystem>
@@ -77,7 +78,7 @@ namespace Ifrit::ShaderCompile::SlangProc
         };
 
         sessionDesc.compilerOptionEntries    = options.data();
-        sessionDesc.compilerOptionEntryCount = options.size();
+        sessionDesc.compilerOptionEntryCount = SizeCast<u32>(options.size());
 
         ComPtr<slang::ISession> session;
         iAssertion(
@@ -105,7 +106,7 @@ namespace Ifrit::ShaderCompile::SlangProc
         SHA1 sha1;
         sha1.update(serializedModuleStr);
         String moduleHash = sha1.final();
-        iDebug("Slang module {} hash: {}", job.m_Name, moduleHash);
+        // iDebug("Slang module {} hash: {}", job.m_Name, moduleHash);
 
         String cachedModulePath = m_CachePath + "/ifritsc.slang.shader." + moduleHash + ".cache";
         if (std::filesystem::exists(cachedModulePath))
@@ -123,7 +124,7 @@ namespace Ifrit::ShaderCompile::SlangProc
                 data.resize(size);
                 file.read(reinterpret_cast<char*>(data.data()), size);
 
-                output.m_IR.m_Data.CopyFromRaw(data.data(), data.size());
+                output.m_IR.m_Data.CopyFromRaw(data.data(), SizeCast<u32>(data.size()));
                 output.m_IR.m_Format = ShaderIRFormat::SpirV;
             }
             else
@@ -176,7 +177,7 @@ namespace Ifrit::ShaderCompile::SlangProc
 
         ShaderCompileOutput output;
         output.m_IR.m_Format = ShaderIRFormat::SpirV;
-        output.m_IR.m_Data.CopyFromRaw(spirvCode->getBufferPointer(), spirvCode->getBufferSize());
+        output.m_IR.m_Data.CopyFromRaw(spirvCode->getBufferPointer(), SizeCast<u32>(spirvCode->getBufferSize()));
         output.m_Signature = moduleHash;
 
         // write to cache
@@ -185,7 +186,7 @@ namespace Ifrit::ShaderCompile::SlangProc
         {
             cacheFile.write(reinterpret_cast<const char*>(output.m_IR.m_Data.GetData()), output.m_IR.m_Data.GetSize());
             cacheFile.close();
-            iDebug("Cached Slang module: {}", cachedModulePath);
+            // iDebug("Cached Slang module: {}", cachedModulePath);
         }
         else
         {

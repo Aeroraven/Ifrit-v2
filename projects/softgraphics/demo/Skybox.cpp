@@ -36,9 +36,9 @@ namespace Ifrit::Demo::Skybox
 
         IF_CONSTEXPR static int                 DEMO_RESOLUTION = 2048;
 
-        std::shared_ptr<ImageF32>               image1   = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4, true);
-        std::shared_ptr<ImageF32>               depth    = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
-        std::shared_ptr<TileRasterRendererCuda> renderer = std::make_shared<TileRasterRendererCuda>();
+        std::shared_ptr<ImageF32>               image1   = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4, true);
+        std::shared_ptr<ImageF32>               depth    = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
+        std::shared_ptr<TileRasterRendererCuda> renderer = MakeRef<TileRasterRendererCuda>();
         FrameBuffer                             frameBuffer;
         VertexBuffer                            vertexBuffer;
         std::vector<int>                        indexBuffer;
@@ -65,8 +65,8 @@ namespace Ifrit::Demo::Skybox
         vertexBuffer.setValue(6, 1, Vector4f(1.0, -1.0, 1.0, 1));
         vertexBuffer.setValue(7, 1, Vector4f(1.0, 1.0, 1.0, 1));
 
-        indexBuffer = { 0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 5, 1, 0, 0, 4, 5,
-            6, 2, 1, 1, 5, 6, 7, 3, 2, 2, 6, 7, 4, 0, 3, 3, 7, 4 };
+        indexBuffer = { 0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4, 5, 1, 0, 0, 4, 5, 6, 2, 1, 1, 5, 6, 7, 3, 2, 2, 6, 7, 4, 0,
+            3, 3, 7, 4 };
 
         frameBuffer.SetColorAttachments({ image1.get() });
         frameBuffer.SetDepthAttachment(*depth);
@@ -79,7 +79,8 @@ namespace Ifrit::Demo::Skybox
         std::vector<std::vector<float>> texData(6);
         std::vector<int>                texW(6), texH(6);
         ImageLoader                     imageLoader;
-        std::array<std::string, 6>      texNames = { "right.jpg", "left.jpg", "top.jpg", "bottom.jpg", "front.jpg", "back.jpg" };
+        std::array<std::string, 6>      texNames = { "right.jpg", "left.jpg", "top.jpg", "bottom.jpg", "front.jpg",
+                 "back.jpg" };
         for (int i = 0; i < 6; i++)
         {
             std::string name = std::string(IFRIT_ASSET_PATH "/skybox/") + texNames[i];
@@ -130,11 +131,11 @@ namespace Ifrit::Demo::Skybox
         renderer->SetDepthTestEnable(true);
         renderer->setClearValues({ { 1, 1, 1, 0 } }, 255.0);
 
-        auto windowBuilder  = std::make_unique<AdaptiveWindowBuilder>();
+        auto windowBuilder  = MakeOwner<AdaptiveWindowBuilder>();
         auto windowProvider = windowBuilder->buildUniqueWindowProvider();
         windowProvider->Setup(2048, 1152);
 
-        auto backendBuilder = std::make_unique<AdaptiveBackendBuilder>();
+        auto backendBuilder = MakeOwner<AdaptiveBackendBuilder>();
         auto backend        = backendBuilder->BuildUniqueBackend();
 
         backend->SetViewport(0, 0, windowProvider->GetWidth(), windowProvider->GetHeight());
@@ -143,7 +144,7 @@ namespace Ifrit::Demo::Skybox
             renderer->clear();
             renderer->drawElements();
             std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-            *coreTime                                          = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            *coreTime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             backend->UpdateTexture(*image1);
             backend->draw();
         });
@@ -151,8 +152,5 @@ namespace Ifrit::Demo::Skybox
     }
 #endif
 
-    int mainCpu()
-    {
-        return 0;
-    }
+    int mainCpu() { return 0; }
 } // namespace Ifrit::Demo::Skybox

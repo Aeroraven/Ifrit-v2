@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(Ifrit-v2x)
+project(Ifrit-v2)
 
 # set(ENV{http_proxy} "http://127.0.0.1:10809")
 # set(ENV{https_proxy} "http://127.0.0.1:10809")

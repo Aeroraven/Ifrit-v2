@@ -126,10 +126,10 @@ namespace Ifrit::Runtime
         inline void  SetRendererConfig(const RendererConfig* config) { m_config = config; }
 
     public:
-        virtual Uref<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
+        virtual Owner<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
             const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait) = 0;
 
-        virtual void                       EndFrame(const Vec<GPUCommandSubmission*>& cmdToWait);
-        virtual Uref<GPUCommandSubmission> BeginFrame();
+        virtual void                        EndFrame(const Vec<GPUCommandSubmission*>& cmdToWait);
+        virtual Owner<GPUCommandSubmission> BeginFrame();
     };
 } // namespace Ifrit::Runtime

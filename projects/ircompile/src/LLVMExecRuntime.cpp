@@ -51,7 +51,7 @@ ExitOnError             ExitOnErr;
 static ThreadSafeModule optimizeModule(ThreadSafeModule M)
 {
     // Create a function pass manager.
-    auto FPM = std::make_unique<legacy::FunctionPassManager>(M.GetModuleUnlocked());
+    auto FPM = MakeOwner<legacy::FunctionPassManager>(M.GetModuleUnlocked());
 
     // Add some optimizations.
     FPM->add(createPromoteMemoryToRegisterPass());
@@ -76,7 +76,7 @@ static ThreadSafeModule optimizeModule(ThreadSafeModule M)
 
 struct IfritCompLLVMExecutionSession
 {
-    std::unique_ptr<legacy::PassManager> PM = std::make_unique<legacy::PassManager>();
+    std::unique_ptr<legacy::PassManager> PM = MakeOwner<legacy::PassManager>();
 
     std::unique_ptr<LLVMContext>         llvmCtx;
     ThreadSafeModule                     tsModule;
@@ -89,7 +89,7 @@ struct IfritCompLLVMExecutionSession
         jit = ExitOnErr(jitBuilder.create());
         jit->getMainJITDylib().addGenerator(
             cantFail(DynamicLibrarySearchGenerator::GetForCurrentProcess(jit->getDataLayout().getGlobalPrefix())));
-        llvmCtx = std::make_unique<LLVMContext>();
+        llvmCtx = MakeOwner<LLVMContext>();
         auto M  = parseIR(*MemoryBuffer::getMemBuffer(irCode), Err, *llvmCtx);
         if (!M)
         {
@@ -120,8 +120,8 @@ IFRIT_COM_LE_API void IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Init()
 #endif
 }
 
-IFRIT_COM_LE_API IfritCompLLVMExecutionSession* IFRIT_COM_LE_API_CALLCONV
-IfritCom_LlvmExec_Create(const char* ir, const char* identifier)
+IFRIT_COM_LE_API IfritCompLLVMExecutionSession* IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Create(
+    const char* ir, const char* identifier)
 {
 #ifndef IFRIT_IGNORE_IRCOMPILE
     auto session = new IfritCompLLVMExecutionSession();
@@ -139,8 +139,8 @@ IFRIT_COM_LE_API void IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Destroy(IfritC
 #endif
 }
 
-IFRIT_COM_LE_API void* IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Lookup(IfritCompLLVMExecutionSession* session,
-    const char*                                                                                          symbol)
+IFRIT_COM_LE_API void* IFRIT_COM_LE_API_CALLCONV IfritCom_LlvmExec_Lookup(
+    IfritCompLLVMExecutionSession* session, const char* symbol)
 {
 #ifndef IFRIT_IGNORE_IRCOMPILE
     return session->lookupSymbol(symbol);

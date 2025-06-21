@@ -90,13 +90,13 @@ namespace Ifrit::Runtime
 
     struct SyaroV2RendererResources
     {
-        SyaroRenderRole              m_RenderRole = SyaroRenderRole::FullProcess;
-        RendererConfig               m_RendererConfig;
+        SyaroRenderRole               m_RenderRole = SyaroRenderRole::FullProcess;
+        RendererConfig                m_RendererConfig;
 
-        PerFrameData*                m_ActivePerFrameData    = nullptr;
-        PerFrameData::PerViewData*   m_ActivePrimaryViewData = nullptr;
+        PerFrameData*                 m_ActivePerFrameData    = nullptr;
+        PerFrameData::PerViewData*    m_ActivePrimaryViewData = nullptr;
 
-        Uref<FSR2::RhiFsr2Processor> m_FSR2Proc = nullptr;
+        Owner<FSR2::RhiFsr2Processor> m_FSR2Proc = nullptr;
     };
 
     IFRIT_APIDECL SyaroV2Renderer::SyaroV2Renderer(IApplication* app) : RendererBase(app)
@@ -113,7 +113,7 @@ namespace Ifrit::Runtime
         m_Res->m_RenderRole = static_cast<SyaroRenderRole>(role);
     }
 
-    Uref<RhiTaskSubmission> SyaroV2Renderer::Render(Scene* scene, Camera* camera, RhiRenderTargets* renderTargets,
+    Owner<RhiTaskSubmission> SyaroV2Renderer::Render(Scene* scene, Camera* camera, RhiRenderTargets* renderTargets,
         const RendererConfig& config, const Vec<RhiTaskSubmission*>& cmdToWait)
     {
         PrepareImmutableResources();

@@ -235,7 +235,7 @@ namespace Ifrit::Graphics::SoftGraphics::MeshletBuilder::Impl
 
     void writeGenratedMeshlet(MbContext* ctx, const MbCurrentMeshlet& meshlet)
     {
-        auto emitMeshlet = std::make_unique<Meshlet>();
+        auto emitMeshlet = MakeOwner<Meshlet>();
         auto totalVerts  = meshlet.usedVertices.size();
         emitMeshlet->vbufs.setVertexCount(SizeCast<int>(totalVerts));
         emitMeshlet->vbufs.setLayout({ TypeDescriptors.FLOAT4, TypeDescriptors.FLOAT4 });
@@ -277,7 +277,7 @@ namespace Ifrit::Graphics::SoftGraphics::MeshletBuilder
         int posAttrId, std::vector<std::unique_ptr<Meshlet>>& outData)
     {
         using namespace Impl;
-        auto ctx = std::make_unique<MbContext>();
+        auto ctx = MakeOwner<MbContext>();
         initializeContext(ctx.get(), *vbuffer, *ibuffer, posAttrId);
 
         auto curMeshlet = MbCurrentMeshlet();

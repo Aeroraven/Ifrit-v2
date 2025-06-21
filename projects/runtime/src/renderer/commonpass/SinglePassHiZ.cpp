@@ -116,14 +116,14 @@ namespace Ifrit::Runtime
             using namespace Graphics::Rhi;
 
             Vec<RhiResourceBarrier> barriers;
-            for (int i = 0; i < data.m_hizIters; i++)
+            for (u32 i = 0; i < data.m_hizIters; i++)
             {
 
                 auto barrier                       = RhiResourceBarrier();
                 barrier.m_type                     = RhiBarrierType::Transition;
                 barrier.m_transition.m_type        = RhiResourceType::Texture;
                 barrier.m_transition.m_texture     = data.m_hizTexture.get();
-                barrier.m_transition.m_subResource = { (u32)i, 0, 1, 1 };
+                barrier.m_transition.m_subResource = { i, 0, 1, 1 };
                 barrier.m_transition.m_srcState    = RhiResourceState::Undefined;
                 barrier.m_transition.m_dstState    = RhiResourceState::UnorderedAccess;
                 barriers.push_back(barrier);

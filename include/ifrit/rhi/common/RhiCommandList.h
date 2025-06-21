@@ -85,13 +85,13 @@ namespace Ifrit::Graphics::Rhi
         virtual ~RhiQueue() = default;
 
         // Runs a command buffer, with CPU waiting the GPU to finish
-        virtual void                    RunSyncCommand(Fn<void(const RhiCommandList*)> func) = 0;
+        virtual void                     RunSyncCommand(Fn<void(const RhiCommandList*)> func) = 0;
 
         // Runs a command buffer, with CPU not waiting the GPU to finish
-        virtual Uref<RhiTaskSubmission> RunAsyncCommand(Fn<void(const RhiCommandList*)> func,
+        virtual Owner<RhiTaskSubmission> RunAsyncCommand(Fn<void(const RhiCommandList*)> func,
             const Vec<RhiTaskSubmission*>& waitOn, const Vec<RhiTaskSubmission*>& toIssue) = 0;
 
         // Host sync
-        virtual void                    HostWaitEvent(RhiTaskSubmission* event) = 0;
+        virtual void                     HostWaitEvent(RhiTaskSubmission* event) = 0;
     };
 } // namespace Ifrit::Graphics::Rhi

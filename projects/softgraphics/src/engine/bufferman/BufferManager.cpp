@@ -49,7 +49,7 @@ namespace Ifrit::Graphics::SoftGraphics::BufferManager::Impl
         buffers[bufferId].id                = bufferId;
         buffers[bufferId].manager           = this->wrapperObject;
         bufferMetadata[bufferId].size       = pCI.bufferSize;
-        bufferMetadata[bufferId].data       = std::make_unique<char[]>(pCI.bufferSize);
+        bufferMetadata[bufferId].data       = MakeOwner<char[]>(pCI.bufferSize);
         bufferMetadata[bufferId].maintained = true;
         return buffers[bufferId];
     }
@@ -106,7 +106,7 @@ namespace Ifrit::Graphics::SoftGraphics::BufferManager
     void TrivialBufferManager::Init()
     {
         initialized = true;
-        impl        = std::make_unique<Impl::BufferManagerImpl>(shared_from_this());
+        impl        = MakeOwner<Impl::BufferManagerImpl>(shared_from_this());
     }
     IfritBuffer TrivialBufferManager::CreateBuffer(const IfritBufferCreateInfo& pCI)
     {

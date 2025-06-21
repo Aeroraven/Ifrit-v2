@@ -218,7 +218,7 @@ namespace Ifrit::Runtime::Ayanami
             u32 m_RtWidth;
             u32 m_RtHeight;
         } pc;
-        pc.m_FrameIdx                        = std::min(128ull, m_SharedContext->m_FrameIdx);
+        pc.m_FrameIdx                        = SizeCast<u32>(std::min(128ull, m_SharedContext->m_FrameIdx));
         pc.m_CurrentFrameIndirectLightingUAV = 0;
         pc.m_HistoryIndirectLightingUAV      = 0;
         pc.m_RtWidth                         = m_Private->m_ActiveRTWidth;

@@ -183,7 +183,7 @@ namespace Ifrit
             // Bistro interior has many one-sided meshes. The culling strategy is required to be reconsidered.
             renderConfig.m_OverrideMaterialCulling = OverrideMaterialCulling::ForcedCullNone;
 
-            renderer       = std::make_shared<AyanamiRenderer>(this, ayaConfig);
+            renderer       = MakeRef<AyanamiRenderer>(this, ayaConfig);
             auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("BistroInteriorModified/bistro.gltf"); //
             // auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Fox/scene.gltf"); //
             //   Scene

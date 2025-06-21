@@ -104,12 +104,12 @@ namespace Ifrit::Demo::ShaderVMDemo
         loader.loadObject(IFRIT_ASSET_PATH "/bunny.obj", pos, normal, uv, index);
         procNormal = loader.RemapNormals(normal, index, pos.size());
 
-        IF_CONSTEXPR int                    DEMO_RESOLUTION_X = 2048;
-        IF_CONSTEXPR int                    DEMO_RESOLUTION_Y = 2048;
-        std::shared_ptr<ImageF32>           image = std::make_shared<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 4);
-        std::shared_ptr<ImageF32>           depth = std::make_shared<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 1);
-        std::shared_ptr<TileRasterRenderer> renderer    = std::make_shared<TileRasterRenderer>();
-        std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
+        IF_CONSTEXPR int                      DEMO_RESOLUTION_X = 2048;
+        IF_CONSTEXPR int                      DEMO_RESOLUTION_Y = 2048;
+        std::shared_ptr<ImageF32>             image     = MakeRef<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 4);
+        std::shared_ptr<ImageF32>             depth     = MakeRef<ImageF32>(DEMO_RESOLUTION_X, DEMO_RESOLUTION_Y, 1);
+        std::shared_ptr<TileRasterRenderer>   renderer  = MakeRef<TileRasterRenderer>();
+        std::shared_ptr<TrivialBufferManager> bufferman = MakeRef<TrivialBufferManager>();
         bufferman->Init();
         FrameBuffer  frameBuffer;
 

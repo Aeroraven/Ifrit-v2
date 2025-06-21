@@ -535,7 +535,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         // Otherwise create a new pipeline
         m_graphicsPipelineCI.push_back(ci);
-        auto&& p = std::make_unique<GraphicsPipeline>(m_context, ci);
+        auto&& p = MakeOwner<GraphicsPipeline>(m_context, ci);
         m_graphicsPipelines.push_back(std::move(p));
         m_graphicsPipelineMap[hash].push_back(SizeCast<int>(m_graphicsPipelines.size()) - 1);
         return m_graphicsPipelines.back().get();
@@ -554,7 +554,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         // Otherwise create a new pipeline
         m_computePipelineCI.push_back(ci);
-        auto&& p = std::make_unique<ComputePipeline>(m_context, ci);
+        auto&& p = MakeOwner<ComputePipeline>(m_context, ci);
         m_computePipelines.push_back(std::move(p));
         m_computePipelineMap[hash].push_back(SizeCast<int>(m_computePipelines.size()) - 1);
         return m_computePipelines.back().get();

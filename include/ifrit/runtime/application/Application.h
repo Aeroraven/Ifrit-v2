@@ -37,14 +37,14 @@ namespace Ifrit::Runtime
         using WindowProvider = Display::Window::WindowProvider;
 
     protected:
-        Uref<RhiBackend>          m_rhiLayer; // should be destroyed last
+        Owner<RhiBackend>         m_rhiLayer; // should be destroyed last
         Ref<SharedRenderResource> m_SharedRenderResource;
         Ref<SceneManager>         m_sceneManager;
         Ref<AssetManager>         m_assetManager;
         Ref<SceneAssetManager>    m_sceneAssetManager;
         Ref<InputSystem>          m_inputSystem;
         Ref<TimingRecorder>       m_timingRecorder;
-        Uref<WindowProvider>      m_windowProvider;
+        Owner<WindowProvider>     m_windowProvider;
         Ref<ShaderRegistry>       m_shaderRegistry;
         ProjectProperty           m_info;
 

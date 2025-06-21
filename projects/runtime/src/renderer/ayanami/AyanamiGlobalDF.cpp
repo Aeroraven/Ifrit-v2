@@ -43,7 +43,7 @@ namespace Ifrit::Runtime::Ayanami
         {
             auto extent                        = config.m_GlobalDFBaseExtent;
             auto resolution                    = config.m_GlobalDFClipmapResolution;
-            m_TestClipMaps[i]                  = std::make_unique<AyanamiGlobalDFClipmap>();
+            m_TestClipMaps[i]                  = MakeOwner<AyanamiGlobalDFClipmap>();
             m_TestClipMaps[i]->m_clipmapSize   = resolution;
             m_TestClipMaps[i]->m_worldBoundMin = Vector3f(-extent, -extent, -extent);
             m_TestClipMaps[i]->m_worldBoundMax = Vector3f(extent, extent, extent);

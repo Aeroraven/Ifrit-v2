@@ -165,13 +165,13 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void SyaroRenderer::SetupPostprocessPassAndTextures()
     {
         // passes
-        m_acesToneMapping = std::make_unique<PostprocessPassCollection::PostFxAcesToneMapping>(m_app);
-        m_globalFogPass   = std::make_unique<PostprocessPassCollection::PostFxGlobalFog>(m_app);
-        m_gaussianHori    = std::make_unique<PostprocessPassCollection::PostFxGaussianHori>(m_app);
-        m_gaussianVert    = std::make_unique<PostprocessPassCollection::PostFxGaussianVert>(m_app);
-        m_fftConv2d       = std::make_unique<PostprocessPassCollection::PostFxFFTConv2d>(m_app);
+        m_acesToneMapping = MakeOwner<PostprocessPassCollection::PostFxAcesToneMapping>(m_app);
+        m_globalFogPass   = MakeOwner<PostprocessPassCollection::PostFxGlobalFog>(m_app);
+        m_gaussianHori    = MakeOwner<PostprocessPassCollection::PostFxGaussianHori>(m_app);
+        m_gaussianVert    = MakeOwner<PostprocessPassCollection::PostFxGaussianVert>(m_app);
+        m_fftConv2d       = MakeOwner<PostprocessPassCollection::PostFxFFTConv2d>(m_app);
 
-        m_jointBilateralFilter = std::make_unique<PostprocessPassCollection::PostFxJointBilaterialFilter>(m_app);
+        m_jointBilateralFilter = MakeOwner<PostprocessPassCollection::PostFxJointBilaterialFilter>(m_app);
 
         // fsr2
         m_fsr2proc = m_app->GetRhi()->CreateFsr2Processor();
@@ -679,7 +679,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SyaroRenderer::SetupPbrAtmosphereRenderer()
     {
-        m_atmosphereRenderer = std::make_shared<PbrAtmosphereRenderer>(m_app);
+        m_atmosphereRenderer = MakeRef<PbrAtmosphereRenderer>(m_app);
         auto rhi             = m_app->GetRhi();
         m_atmospherePass     = RenderingUtil::CreateComputePassInternal(
             m_app, ShaderVariantDesc(Internal::kIntShaderTable.Syaro.PbrAtmoRenderCS, {}), 0, 19);
@@ -859,7 +859,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SyaroRenderer::SetupSinglePassHiZPass()
     {
-        m_singlePassHiZProc = std::make_shared<SinglePassHiZPass>(m_app);
+        m_singlePassHiZProc = MakeRef<SinglePassHiZPass>(m_app);
     }
     IFRIT_APIDECL void SyaroRenderer::SetupEmitDepthTargetsPass()
     {
@@ -1095,10 +1095,10 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void SyaroRenderer::RenderTwoPassOcclCulling(CullingPass cullPass, PerFrameData& perframeData,
         RenderTargets* renderTargets, const GPUCmdBuffer* cmd, PerFrameData::ViewType filteredViewType, u32 idx)
     {
-        auto                                      rhi = m_app->GetRhi();
+        auto                                       rhi = m_app->GetRhi();
 
-        Uref<SyaroRenderer::GPUCommandSubmission> lastTask = nullptr;
-        u32                                       k        = idx;
+        Owner<SyaroRenderer::GPUCommandSubmission> lastTask = nullptr;
+        u32                                        k        = idx;
         if (k == ~0u)
         {
             for (k = 0; k < perframeData.m_views.size(); k++)
@@ -1140,7 +1140,7 @@ namespace Ifrit::Runtime
             if (cullPass == CullingPass::First)
             {
                 pc.m_PassNo         = 0;
-                pc.m_TotalInstances = numObjs;
+                pc.m_TotalInstances = SizeCast<u32>(numObjs);
 
                 ctx->m_cmd->SetPushConst(&pc, 0, sizeof(PushConst));
                 auto tgx = DivRoundUp(SizeCast<u32>(numObjs), SyaroConfig::cInstanceCullingThreadGroupSizeX);
@@ -1149,7 +1149,7 @@ namespace Ifrit::Runtime
             else if (cullPass == CullingPass::Second)
             {
                 pc.m_PassNo         = 1;
-                pc.m_TotalInstances = numObjs;
+                pc.m_TotalInstances = SizeCast<u32>(numObjs);
 
                 ctx->m_cmd->SetPushConst(&pc, 0, sizeof(PushConst));
                 ctx->m_cmd->DispatchIndirect(perView.m_persistCullIndirectDispatch.get(), 3 * u32Size);
@@ -1606,7 +1606,7 @@ namespace Ifrit::Runtime
 
                 // second pass rts
                 perView.m_visDepthRT2_HW = rhi->CreateRenderTargetDepthStencil(visDepthHW.get(),
-                    Graphics::Rhi::CreateRhiClearDepthStencilValue(1.0f, 0.0f), RhiRenderTargetLoadOp::Load);
+                    Graphics::Rhi::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Load);
                 perView.m_visRTs2_HW     = rhi->CreateRenderTargets();
                 if (perView.m_viewType == PerFrameData::ViewType::Primary)
                 {

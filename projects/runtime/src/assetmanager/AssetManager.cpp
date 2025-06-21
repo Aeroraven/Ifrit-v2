@@ -149,12 +149,11 @@ namespace Ifrit::Runtime
     {
         // register default importers
         // TODO: maybe weak_ptr should be used, but i am too lazy to do that
-        RegisterImporter(WaveFrontAssetImporter::IMPORTER_NAME, std::make_shared<WaveFrontAssetImporter>(this));
-        RegisterImporter(ShaderAssetImporter::IMPORTER_NAME, std::make_shared<ShaderAssetImporter>(this));
-        RegisterImporter(GLTFAssetImporter::IMPORTER_NAME, std::make_shared<GLTFAssetImporter>(this));
-        RegisterImporter(
-            DirectDrawSurfaceAssetImporter::IMPORTER_NAME, std::make_shared<DirectDrawSurfaceAssetImporter>(this));
-        RegisterImporter(TrivialImageAssetImporter::IMPORTER_NAME, std::make_shared<TrivialImageAssetImporter>(this));
+        RegisterImporter(WaveFrontAssetImporter::IMPORTER_NAME, MakeRef<WaveFrontAssetImporter>(this));
+        RegisterImporter(ShaderAssetImporter::IMPORTER_NAME, MakeRef<ShaderAssetImporter>(this));
+        RegisterImporter(GLTFAssetImporter::IMPORTER_NAME, MakeRef<GLTFAssetImporter>(this));
+        RegisterImporter(DirectDrawSurfaceAssetImporter::IMPORTER_NAME, MakeRef<DirectDrawSurfaceAssetImporter>(this));
+        RegisterImporter(TrivialImageAssetImporter::IMPORTER_NAME, MakeRef<TrivialImageAssetImporter>(this));
         basePath = path;
         m_app    = app;
         // LoadAssetDirectory(basePath);

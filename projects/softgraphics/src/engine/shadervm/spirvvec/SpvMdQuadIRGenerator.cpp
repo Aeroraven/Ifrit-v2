@@ -217,7 +217,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             auto tgt  = GET_PARAM(0);
             auto bits = GET_PARAM_SCALAR(1);
             tgt->flag |= SPVC_VARIABLE_TYPE;
-            tgt->tp = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp = MakeOwner<SpVcVMTypeDescriptor>();
             if (bits == 64)
                 tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_FLOAT64;
             if (bits == 32)
@@ -232,7 +232,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             auto tgt  = GET_PARAM(0);
             auto bits = GET_PARAM_SCALAR(1);
             auto sign = GET_PARAM_SCALAR(2);
-            tgt->tp   = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp   = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->flag |= SPVC_VARIABLE_TYPE;
             if (sign == 0)
             {
@@ -262,7 +262,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             auto tgt      = GET_PARAM(0);
             auto storage  = GET_PARAM_SCALAR(1);
             auto tp       = GET_PARAM(2);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_POINTER;
             tgt->tp->children.push_back(tp->tp.get());
             tgt->tp->storageClass = storage;
@@ -274,7 +274,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             auto tgt      = GET_PARAM(0);
             auto tp       = GET_PARAM(1);
             auto size     = GET_PARAM_SCALAR(2);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_VECTOR;
             tgt->tp->children.push_back(tp->tp.get());
             tgt->tp->size = size;
@@ -283,7 +283,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         DEF_PASS(OpTypeBool)
         {
             auto tgt      = GET_PARAM(0);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_BOOL;
             tgt->flag |= SPVC_VARIABLE_TYPE;
         }
@@ -292,7 +292,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             auto tgt      = GET_PARAM(0);
             auto tp       = GET_PARAM(1);
             auto size     = GET_PARAM(2);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_ARRAY;
             tgt->tp->children.push_back(tp->tp.get());
             tgt->tp->size = size->constant->value[0];
@@ -301,14 +301,14 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         DEF_PASS(OpTypeVoid)
         {
             auto tgt      = GET_PARAM(0);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_VOID;
             tgt->flag |= SPVC_VARIABLE_TYPE;
         }
         DEF_PASS(OpTypeStruct)
         {
             auto tgt      = GET_PARAM(0);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_STRUCT;
             for (int i = 1; i < params.size(); i++)
             {
@@ -321,7 +321,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         {
             auto tgt      = GET_PARAM(1);
             auto retTp    = GET_PARAM(0);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_FUNCTION;
             tgt->tp->children.push_back(retTp->tp.get());
             for (int i = 2; i < params.size(); i++)
@@ -339,7 +339,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         DEF_PASS(OpTypeImage)
         {
             auto tgt      = GET_PARAM(0);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_IMAGE;
             tgt->flag |= SPVC_VARIABLE_TYPE;
             EMIT_WARN("Not implemented: OpTypeImage");
@@ -347,7 +347,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         DEF_PASS(OpTypeSampler)
         {
             auto tgt      = GET_PARAM(0);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_SAMPLER;
             tgt->flag |= SPVC_VARIABLE_TYPE;
             EMIT_WARN("Not implemented: OpTypeSampler");
@@ -355,7 +355,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         DEF_PASS(OpTypeSampledImage)
         {
             auto tgt      = GET_PARAM(0);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_SAMPLED_IMAGE;
             tgt->flag |= SPVC_VARIABLE_TYPE;
             EMIT_WARN("Not implemented: OpTypeSampledImage");
@@ -365,7 +365,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             auto tgt      = GET_PARAM(0);
             auto tp       = GET_PARAM(1);
             auto size     = GET_PARAM_SCALAR(2);
-            tgt->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+            tgt->tp       = MakeOwner<SpVcVMTypeDescriptor>();
             tgt->tp->type = SpVcVMTypeEnum::SPVC_TYPE_MATRIX;
             tgt->tp->children.push_back(tp->tp.get());
             tgt->tp->size = size;
@@ -379,7 +379,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             auto tp              = GET_PARAM(0);
             auto val             = GET_PARAM_SCALAR(2);
             tgt->tpRef           = tp;
-            tgt->constant        = std::make_unique<SpVcVMGenConstant>();
+            tgt->constant        = MakeOwner<SpVcVMGenConstant>();
             tgt->constant->tpRef = tp->tp.get();
             tgt->constant->value.push_back(val);
             tgt->flag |= SPVC_VARIABLE_CONSTANT;
@@ -388,7 +388,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         {
             auto tgt      = GET_PARAM(1);
             auto tp       = GET_PARAM(0);
-            tgt->constant = std::make_unique<SpVcVMGenConstant>();
+            tgt->constant = MakeOwner<SpVcVMGenConstant>();
             tgt->tpRef    = tp;
             for (int i = 2; i < params.size(); i++)
             {
@@ -491,7 +491,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             auto dec    = GET_PARAM_SCALAR(1);
             if (target->descSet == nullptr)
             {
-                target->descSet = std::make_unique<SpVcVMDecoration>();
+                target->descSet = MakeOwner<SpVcVMDecoration>();
             }
             if (dec == spv::Decoration::DecorationDescriptorSet)
             {
@@ -538,25 +538,25 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
     {
         LLVM::SpVcLLVMArgument* makeMaskVar(SpVcQuadGroupedIRGenerator* irg)
         {
-            auto p  = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-            auto tp = irg->addIr(std::make_unique<LLVM::SpVcLLVMTypeInt32>());
-            auto q  = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, p));
+            auto p  = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+            auto tp = irg->addIr(MakeOwner<LLVM::SpVcLLVMTypeInt32>());
+            auto q  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, p));
             return q;
         }
 
         LLVM::SpVcLLVMArgument* makeBoolVar(SpVcQuadGroupedIRGenerator* irg)
         {
-            auto p  = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-            auto tp = irg->addIr(std::make_unique<LLVM::SpVcLLVMTypeBool>());
-            auto q  = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, p));
+            auto p  = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+            auto tp = irg->addIr(MakeOwner<LLVM::SpVcLLVMTypeBool>());
+            auto q  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, p));
             return q;
         }
 
         LLVM::SpVcLLVMArgument* makeOneImm(SpVcQuadGroupedIRGenerator* irg)
         {
-            auto p  = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(1));
-            auto tp = irg->addIr(std::make_unique<LLVM::SpVcLLVMTypeInt32>());
-            auto q  = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, p));
+            auto p  = irg->addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(1));
+            auto tp = irg->addIr(MakeOwner<LLVM::SpVcLLVMTypeInt32>());
+            auto q  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, p));
             return q;
         }
 
@@ -571,13 +571,12 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             {
                 if (var->isAllQuad)
                     invo = 0;
-                auto cVar = var->llvmVarName[invo].arg;
-                auto cVarReg =
-                    irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto cVar        = var->llvmVarName[invo].arg;
+                auto cVarReg     = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
                 auto cVarType    = spirvGetImmediateType(id, invo, irg);
-                auto cVarTypeArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(cVarType, cVarReg));
-                auto cVarLoad    = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(cVarTypeArg, cVar), irg->getActiveBlock());
+                auto cVarTypeArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(cVarType, cVarReg));
+                auto cVarLoad =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(cVarTypeArg, cVar), irg->getActiveBlock());
                 return cVarTypeArg;
             }
             else if (var->flag & SPVC_VARIABLE_CONSTANT)
@@ -593,19 +592,19 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         }
         LLVM::SpVcLLVMArgument* spirvCreateVarWithSameType(int id, int invo, SpVcQuadGroupedIRGenerator* irg)
         {
-            auto var      = irg->getVariableSafe(id);
-            auto cVar     = var->llvmVarName[invo].arg;
-            auto cVarReg  = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-            auto cVarType = spirvGetImmediateType(id, invo, irg);
-            auto cVarTypeArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(cVarType, cVarReg));
+            auto var         = irg->getVariableSafe(id);
+            auto cVar        = var->llvmVarName[invo].arg;
+            auto cVarReg     = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+            auto cVarType    = spirvGetImmediateType(id, invo, irg);
+            auto cVarTypeArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(cVarType, cVarReg));
             return cVarTypeArg;
         }
 
         LLVM::SpVcLLVMArgument* spirvCreateVarWithType(SpVcVMTypeDescriptor* desc, SpVcQuadGroupedIRGenerator* irg)
         {
-            auto cVarReg  = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-            auto cVarType = desc->llvmType;
-            auto cVarTypeArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(cVarType, cVarReg));
+            auto cVarReg     = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+            auto cVarType    = desc->llvmType;
+            auto cVarTypeArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(cVarType, cVarReg));
             return cVarTypeArg;
         }
 
@@ -617,20 +616,20 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             auto actMask    = irg->getActiveBlock()->stackBelong->masks.activeExecMask.back()->llvmVarName[invo].arg;
             auto actMaskReg = makeMaskVar(irg);
             // Load actMask -> actMaskReg
-            auto actMaskLoad = irg->addIrB(
-                std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(actMaskReg, actMask), irg->getActiveBlock());
+            auto actMaskLoad =
+                irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(actMaskReg, actMask), irg->getActiveBlock());
 
             auto imm1   = makeOneImm(irg);
             auto cmpReg = makeBoolVar(irg);
-            auto cmp = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(cmpReg, actMaskReg, imm1, "icmp eq"),
-                irg->getActiveBlock());
+            auto cmp    = irg->addIrB(
+                MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(cmpReg, actMaskReg, imm1, "icmp eq"), irg->getActiveBlock());
 
             auto cVarArg = spirvImmediateLoad(id, invo, irg);
             auto selRes  = spirvCreateVarWithSameType(id, invo, irg);
-            auto sel     = irg->addIrB(
-                std::make_unique<LLVM::SpVcLLVMIns_Select>(selRes, cmpReg, val, cVarArg), irg->getActiveBlock());
+            auto sel =
+                irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_Select>(selRes, cmpReg, val, cVarArg), irg->getActiveBlock());
             auto cVarStore =
-                irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(cVar, selRes), irg->getActiveBlock());
+                irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(cVar, selRes), irg->getActiveBlock());
         }
 
         void foreachInvo(std::function<void(int)> func, SpVcQuadGroupedIRGenerator* irg)
@@ -659,35 +658,35 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             };
             using MASK_TYPE = LLVM::SpVcLLVMTypeInt32;
             auto MAKE_MASK  = [&]() {
-                auto p  = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                auto tp = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto q  = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, p));
+                auto p  = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto tp = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto q  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, p));
                 return q;
             };
 
             auto MAKE_LABEL = [&]() {
-                auto q = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMLabelName>(irg->allocateLlvmVarName()), irg->getActiveBlock());
+                auto q =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMLabelName>(irg->allocateLlvmVarName()), irg->getActiveBlock());
                 return q;
             };
 
             auto MAKE_MASK_ALLOC = [&](LLVM::SpVcLLVMArgument* q) {
-                auto tp = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto p  = irg->addIrF(std::make_unique<LLVM::SpVcLLVMIns_Alloca>(q, tp), irg->getActiveBlock());
+                auto tp = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto p  = irg->addIrF(MakeOwner<LLVM::SpVcLLVMIns_Alloca>(q, tp), irg->getActiveBlock());
             };
 
             auto MAKE_MASK_INIT = [&](LLVM::SpVcLLVMArgument* q) {
-                auto immOne = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(1));
-                auto tp     = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto sq     = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, immOne));
-                auto p = irg->addIrF(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(q, sq), irg->getActiveBlock());
+                auto immOne = irg->addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(1));
+                auto tp     = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto sq     = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, immOne));
+                auto p      = irg->addIrF(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(q, sq), irg->getActiveBlock());
             };
 
             auto MAKE_MASK_INIT_LOCAL = [&](LLVM::SpVcLLVMArgument* q) {
-                auto immOne = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(1));
-                auto tp     = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto sq     = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, immOne));
-                auto p = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(q, sq), irg->getActiveBlock());
+                auto immOne = irg->addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(1));
+                auto tp     = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto sq     = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, immOne));
+                auto p      = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(q, sq), irg->getActiveBlock());
             };
 
             auto MAKE_MASK_AND = [&](LLVM::SpVcLLVMArgument* dest, LLVM::SpVcLLVMArgument* a,
@@ -696,31 +695,29 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 auto rA    = MAKE_MASK();
                 auto rB    = MAKE_MASK();
                 // auto p =
-                // irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rDest,
+                // irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rDest,
                 // dest), irg->getActiveBlock());
-                auto q = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
-                auto s = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
-                auto t = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest, rA, rB, "and"), irg->getActiveBlock());
-                auto u =
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
+                auto q = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
+                auto s = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
+                auto t =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(rDest, rA, rB, "and"), irg->getActiveBlock());
+                auto u = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
             };
 
             auto MAKE_MASK_NEGATE = [&](LLVM::SpVcLLVMArgument* dest, LLVM::SpVcLLVMArgument* a) {
                 auto rDest         = MAKE_MASK();
                 auto rA            = MAKE_MASK();
-                auto allOneImm     = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(1));
-                auto allOneImmType = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto allOneArg     = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(allOneImmType, allOneImm));
+                auto allOneImm     = irg->addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(1));
+                auto allOneImmType = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto allOneArg     = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(allOneImmType, allOneImm));
 
                 // auto p =
-                // irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rDest,
+                // irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rDest,
                 // dest), irg->getActiveBlock());
-                auto q = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
+                auto q     = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
                 auto minus = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest, allOneArg, rA, "sub"), irg->getActiveBlock());
-                auto u =
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
+                    MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(rDest, allOneArg, rA, "sub"), irg->getActiveBlock());
+                auto u = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
             };
 
             auto FORALL_CHAN = [&](std::function<void(int)> f) {
@@ -778,7 +775,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 {
                     // Jump to block label
                     auto p = curB->llvmLabel;
-                    auto q = irg->addIrBPre(std::make_unique<LLVM::SpVcLLVMIns_Br>(p), curB);
+                    auto q = irg->addIrBPre(MakeOwner<LLVM::SpVcLLVMIns_Br>(p), curB);
                 }
             }
 
@@ -962,9 +959,9 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
 
             using MASK_TYPE = LLVM::SpVcLLVMTypeInt32;
             auto MAKE_MASK  = [&]() {
-                auto p  = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                auto tp = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto q  = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, p));
+                auto p  = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto tp = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto q  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, p));
                 return q;
             };
             auto MAKE_MASK_AND = [&](LLVM::SpVcLLVMArgument* dest, LLVM::SpVcLLVMArgument* a,
@@ -972,30 +969,28 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 auto rDest = MAKE_MASK();
                 auto rA    = MAKE_MASK();
                 auto rB    = MAKE_MASK();
-                // auto p = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_Load>(rDest,
+                // auto p = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_Load>(rDest,
                 // dest), irg->getActiveBlock());
-                auto q = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
-                auto s = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
-                auto t = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest, rA, rB, "and"), irg->getActiveBlock());
-                auto u =
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
+                auto q = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
+                auto s = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
+                auto t =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(rDest, rA, rB, "and"), irg->getActiveBlock());
+                auto u = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
             };
             auto MAKE_MASK_AND_TO_REG = [&](LLVM::SpVcLLVMArgument* dest, LLVM::SpVcLLVMArgument* a,
                                             LLVM::SpVcLLVMArgument* b) {
                 auto rA = MAKE_MASK();
                 auto rB = MAKE_MASK();
-                auto q  = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
-                auto s  = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
-                auto t  = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(dest, rA, rB, "and"), irg->getActiveBlock());
+                auto q  = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
+                auto s  = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
+                auto t =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(dest, rA, rB, "and"), irg->getActiveBlock());
             };
             auto MAKE_MASK_OR_REG = [&](LLVM::SpVcLLVMArgument* dest, LLVM::SpVcLLVMArgument* a,
                                         LLVM::SpVcLLVMArgument* b) {
                 auto rB = MAKE_MASK();
-                auto s  = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
-                auto t  = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(dest, a, rB, "or"), irg->getActiveBlock());
+                auto s  = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
+                auto t = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(dest, a, rB, "or"), irg->getActiveBlock());
             };
             auto target = GET_PARAM(0);
 
@@ -1014,7 +1009,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 auto curB  = GET_PARAM(0)->blockBelong;
                 auto label = curB->contLabel;
                 // Create BR
-                auto br = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_Br>(label), irg->getActiveBlock());
+                auto br = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_Br>(label), irg->getActiveBlock());
             }
             if (CONTAIN_TAG(SPVC_BLOCK_LOOP_BREAK))
             {
@@ -1028,23 +1023,22 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     auto breakMask    = MASK_BREAK(sp->masks, x);
                     auto breakMaskReg = MAKE_MASK();
                     auto p            = irg->addIrB(
-                        std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(brMaskReg, brMask), irg->getActiveBlock());
-                    auto p1 = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(breakMaskReg, breakMask),
-                        irg->getActiveBlock());
+                        MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(brMaskReg, brMask), irg->getActiveBlock());
+                    auto p1 = irg->addIrB(
+                        MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(breakMaskReg, breakMask), irg->getActiveBlock());
 
-                    auto immOne = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(1));
-                    auto tp     = irg->addIr(std::make_unique<LLVM::SpVcLLVMTypeInt32>());
-                    auto sq     = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, immOne));
-                    auto ps =
-                        irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(brMaskRegNeg, sq, brMaskReg, "isub"),
-                            irg->getActiveBlock());
+                    auto immOne = irg->addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(1));
+                    auto tp     = irg->addIr(MakeOwner<LLVM::SpVcLLVMTypeInt32>());
+                    auto sq     = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, immOne));
+                    auto ps  = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(brMaskRegNeg, sq, brMaskReg, "isub"),
+                         irg->getActiveBlock());
                     auto ps1 = irg->addIrB(
-                        std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(breakMaskReg, breakMaskReg, brMaskRegNeg, "and"),
+                        MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(breakMaskReg, breakMaskReg, brMaskRegNeg, "and"),
                         irg->getActiveBlock());
 
                     // Store
-                    auto p2 = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(breakMask, breakMaskReg),
-                        irg->getActiveBlock());
+                    auto p2 = irg->addIrB(
+                        MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(breakMask, breakMaskReg), irg->getActiveBlock());
 
                     // AND ACT_MASK
                     auto actMask = MASK_ACT_LAST(sp->masks, x);
@@ -1065,20 +1059,19 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                         MAKE_MASK_OR_REG(maskOrToken[x], maskOrToken[x - 1], MASK_ACT_LAST(sp->masks, x));
                     }
                 });
-                auto tpZero     = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto immZero    = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(0));
-                auto immZeroArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpZero, immZero));
-                auto cmpRetTp   = irg->addIr(std::make_unique<LLVM::SpVcLLVMTypeBool>());
-                auto cmpRetName =
-                    irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                auto cmpRet = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(cmpRetTp, cmpRetName));
-                auto cmp    = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(cmpRet, maskOrToken[3], immZeroArg, "icmp eq"),
-                    irg->getActiveBlock());
+                auto tpZero     = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto immZero    = irg->addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(0));
+                auto immZeroArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tpZero, immZero));
+                auto cmpRetTp   = irg->addIr(MakeOwner<LLVM::SpVcLLVMTypeBool>());
+                auto cmpRetName = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto cmpRet     = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(cmpRetTp, cmpRetName));
+                auto cmp =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(cmpRet, maskOrToken[3], immZeroArg, "icmp eq"),
+                        irg->getActiveBlock());
 
-                auto skipLabel = irg->addIr(std::make_unique<LLVM::SpVcLLVMLabelName>(irg->allocateLlvmVarName()));
+                auto skipLabel = irg->addIr(MakeOwner<LLVM::SpVcLLVMLabelName>(irg->allocateLlvmVarName()));
                 auto br        = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_BrCond>(cmpRet, mergeLabel, skipLabel), irg->getActiveBlock());
+                    MakeOwner<LLVM::SpVcLLVMIns_BrCond>(cmpRet, mergeLabel, skipLabel), irg->getActiveBlock());
                 irg->addIrBExist(skipLabel, irg->getActiveBlock());
             }
         }
@@ -1102,30 +1095,30 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     f(i);
             };
             using MASK_TYPE = LLVM::SpVcLLVMTypeInt32;
-            auto tpZero     = irg->addIr(std::make_unique<MASK_TYPE>());
+            auto tpZero     = irg->addIr(MakeOwner<MASK_TYPE>());
             auto MAKE_MASK  = [&]() {
-                auto p  = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                auto tp = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto q  = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, p));
+                auto p  = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto tp = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto q  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, p));
                 return q;
             };
 
             auto MAKE_LABEL = [&]() {
-                auto q = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMLabelName>(irg->allocateLlvmVarName()), irg->getActiveBlock());
+                auto q =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMLabelName>(irg->allocateLlvmVarName()), irg->getActiveBlock());
                 return q;
             };
 
             auto MAKE_MASK_ALLOC = [&](LLVM::SpVcLLVMArgument* q) {
-                auto tp = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto p  = irg->addIrF(std::make_unique<LLVM::SpVcLLVMIns_Alloca>(q, tp), irg->getActiveBlock());
+                auto tp = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto p  = irg->addIrF(MakeOwner<LLVM::SpVcLLVMIns_Alloca>(q, tp), irg->getActiveBlock());
             };
 
             auto MAKE_MASK_INIT = [&](LLVM::SpVcLLVMArgument* q) {
-                auto immOne = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(1));
-                auto tp     = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto sq     = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, immOne));
-                auto p = irg->addIrF(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(q, sq), irg->getActiveBlock());
+                auto immOne = irg->addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(1));
+                auto tp     = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto sq     = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, immOne));
+                auto p      = irg->addIrF(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(q, sq), irg->getActiveBlock());
             };
 
             auto MAKE_MASK_AND = [&](LLVM::SpVcLLVMArgument* dest, LLVM::SpVcLLVMArgument* a,
@@ -1133,30 +1126,28 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 auto rDest = MAKE_MASK();
                 auto rA    = MAKE_MASK();
                 auto rB    = MAKE_MASK();
-                // auto p = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_Load>(rDest,
+                // auto p = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_Load>(rDest,
                 // dest), irg->getActiveBlock());
-                auto q = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
-                auto s = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
-                auto t = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest, rA, rB, "and"), irg->getActiveBlock());
-                auto u =
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
+                auto q = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
+                auto s = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
+                auto t =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(rDest, rA, rB, "and"), irg->getActiveBlock());
+                auto u = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
             };
             auto MAKE_MASK_AND_TO_REG = [&](LLVM::SpVcLLVMArgument* dest, LLVM::SpVcLLVMArgument* a,
                                             LLVM::SpVcLLVMArgument* b) {
                 auto rA = MAKE_MASK();
                 auto rB = MAKE_MASK();
-                auto q  = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_Load>(rA, a), irg->getActiveBlock());
-                auto s  = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
-                auto t  = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(dest, rA, rB, "and"), irg->getActiveBlock());
+                auto q  = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_Load>(rA, a), irg->getActiveBlock());
+                auto s  = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
+                auto t =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(dest, rA, rB, "and"), irg->getActiveBlock());
             };
             auto MAKE_MASK_OR_REG = [&](LLVM::SpVcLLVMArgument* dest, LLVM::SpVcLLVMArgument* a,
                                         LLVM::SpVcLLVMArgument* b) {
                 auto rB = MAKE_MASK();
-                auto s  = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_Load>(rB, b), irg->getActiveBlock());
-                auto t  = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(dest, a, rB, "or"), irg->getActiveBlock());
+                auto s  = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_Load>(rB, b), irg->getActiveBlock());
+                auto t = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(dest, a, rB, "or"), irg->getActiveBlock());
             };
             auto MASK_ACT_LAST_PREV = [&](SpVcVMExecutionMask& v, int x) {
                 if (v.activeExecMask.size() < 2)
@@ -1175,8 +1166,8 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     auto mask    = MASK_BREAK(sp->masks, x);
                     auto condArg = cond->llvmVarName[x].arg;
 
-                    auto p = irg->addIrF(
-                        std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(mask, condArg), irg->getActiveBlock());
+                    auto p =
+                        irg->addIrF(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(mask, condArg), irg->getActiveBlock());
                 });
                 // AND MASK_BR_LAST with MASK_ACT_LAST
                 FORALL_CHAN([&](int x) {
@@ -1199,22 +1190,20 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     }
                 });
                 // Compare maskOrToken[3] with 0
-                auto immZero    = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(0));
-                auto immZeroArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpZero, immZero));
-                auto cmpRetTp   = irg->addIr(std::make_unique<LLVM::SpVcLLVMTypeBool>());
-                auto cmpRetName =
-                    irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                auto cmpRet = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(cmpRetTp, cmpRetName));
-                auto cmp    = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(cmpRet, maskOrToken[3], immZeroArg, "icmp eq"),
-                    irg->getActiveBlock());
+                auto immZero    = irg->addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(0));
+                auto immZeroArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tpZero, immZero));
+                auto cmpRetTp   = irg->addIr(MakeOwner<LLVM::SpVcLLVMTypeBool>());
+                auto cmpRetName = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto cmpRet     = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(cmpRetTp, cmpRetName));
+                auto cmp =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(cmpRet, maskOrToken[3], immZeroArg, "icmp eq"),
+                        irg->getActiveBlock());
 
                 auto trueParam  = GET_PARAM(1);
                 auto falseParam = GET_PARAM(2);
                 auto trueBlock  = trueParam->blockBelong;
                 auto falseBlock = falseParam->blockBelong;
-                irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_BrCond>(cmpRet, falseBlock->llvmLabel, trueBlock->llvmLabel),
+                irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_BrCond>(cmpRet, falseBlock->llvmLabel, trueBlock->llvmLabel),
                     irg->getActiveBlock());
             }
             else if (CONTAIN_TAG(SPVC_BLOCK_LOOP_BREAK))
@@ -1233,8 +1222,8 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     auto cond    = GET_PARAM(0);
                     auto mask    = MASK_BR_LAST(sp->masks, x);
                     auto condArg = cond->llvmVarName[x].arg;
-                    auto p       = irg->addIrF(
-                        std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(mask, condArg), irg->getActiveBlock());
+                    auto p =
+                        irg->addIrF(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(mask, condArg), irg->getActiveBlock());
                 });
                 // AND MASK_BR_LAST with MASK_ACT_LAST_PR
                 FORALL_CHAN([&](int x) {
@@ -1256,8 +1245,8 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
 
             // GenIR
             auto irFuncName = irg->allocateLlvmVarName();
-            irg->addIrFx(std::make_unique<LLVM::SpVcLLVMIns_FunctionFragmentEntry>(irFuncName), func);
-            irg->addIrFxTail(std::make_unique<LLVM::SpVcLLVMIns_FunctiOnEnd>(), func);
+            irg->addIrFx(MakeOwner<LLVM::SpVcLLVMIns_FunctionFragmentEntry>(irFuncName), func);
+            irg->addIrFxTail(MakeOwner<LLVM::SpVcLLVMIns_FunctiOnEnd>(), func);
             ctx->binds.mainFunction = irFuncName;
 
             // Init func
@@ -1267,20 +1256,20 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             };
             using MASK_TYPE = LLVM::SpVcLLVMTypeInt32;
             auto MAKE_MASK  = [&]() {
-                auto p  = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                auto tp = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto q  = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, p));
+                auto p  = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto tp = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto q  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, p));
                 return q;
             };
             auto MAKE_MASK_ALLOC = [&](LLVM::SpVcLLVMArgument* q) {
-                auto tp = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto p  = irg->addIrFx(std::make_unique<LLVM::SpVcLLVMIns_Alloca>(q, tp), func);
+                auto tp = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto p  = irg->addIrFx(MakeOwner<LLVM::SpVcLLVMIns_Alloca>(q, tp), func);
             };
             auto MAKE_MASK_INIT_LOCAL = [&](LLVM::SpVcLLVMArgument* q) {
-                auto immOne = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(1));
-                auto tp     = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto sq     = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, immOne));
-                auto p      = irg->addIrFx(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(q, sq), func);
+                auto immOne = irg->addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(1));
+                auto tp     = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto sq     = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, immOne));
+                auto p      = irg->addIrFx(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(q, sq), func);
             };
 
             sp->masks.execMask     = irg->createExecutionMaskVar();
@@ -1326,9 +1315,8 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     auto destImmRes = spirvCreateVarWithSameType(dest, c, irg);
                     auto opAImm     = spirvImmediateLoad(opA, c, irg);
                     auto opBImm     = spirvImmediateLoad(opB, c, irg);
-                    auto res =
-                        irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(destImmRes, opAImm, opBImm, op),
-                            irg->getActiveBlock());
+                    auto res        = irg->addIrB(
+                        MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(destImmRes, opAImm, opBImm, op), irg->getActiveBlock());
                     spirvImmediateMaskedStore(dest, c, destImmRes, irg);
                 },
                 irg);
@@ -1343,7 +1331,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     auto destImmRes = spirvCreateVarWithSameType(dest, c, irg);
                     auto opAImm     = spirvImmediateLoad(opA, c, irg);
                     auto res        = irg->addIrB(
-                        std::make_unique<LLVM::SpVcLLVMIns_MathUnary>(destImmRes, opAImm, op), irg->getActiveBlock());
+                        MakeOwner<LLVM::SpVcLLVMIns_MathUnary>(destImmRes, opAImm, op), irg->getActiveBlock());
                     spirvImmediateMaskedStore(dest, c, destImmRes, irg);
                 },
                 irg);
@@ -1373,9 +1361,8 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     auto destImmRes = spirvCreateVarWithSameType(dest, c, irg);
                     auto opAImm     = spirvImmediateLoad(opA, c, irg);
                     auto opBImm     = spirvImmediateLoad(opB, c, irg);
-                    auto res =
-                        irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(destImmRes, opAImm, opBImm, op),
-                            irg->getActiveBlock());
+                    auto res        = irg->addIrB(
+                        MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(destImmRes, opAImm, opBImm, op), irg->getActiveBlock());
                     spirvImmediateMaskedStore(dest, c, destImmRes, irg);
                 },
                 irg);
@@ -1425,12 +1412,12 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 if (irg->getActiveBlock() == nullptr)
                 {
                     // Is global
-                    auto allocaIns = irg->addIrG(std::make_unique<LLVM::SpVcLLVMIns_GlobalVariable>(arg));
+                    auto allocaIns = irg->addIrG(MakeOwner<LLVM::SpVcLLVMIns_GlobalVariable>(arg));
                 }
                 else
                 {
-                    auto allocaIns = irg->addIrFx(
-                        std::make_unique<LLVM::SpVcLLVMIns_Alloca>(arg, tpLlvm), tgt->blockBelong->funcBelong);
+                    auto allocaIns =
+                        irg->addIrFx(MakeOwner<LLVM::SpVcLLVMIns_Alloca>(arg, tpLlvm), tgt->blockBelong->funcBelong);
                 }
             }
             else
@@ -1441,12 +1428,12 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                         if (irg->getActiveBlock() == nullptr)
                         {
                             // Is global
-                            auto allocaIns = irg->addIrG(std::make_unique<LLVM::SpVcLLVMIns_GlobalVariable>(arg));
+                            auto allocaIns = irg->addIrG(MakeOwner<LLVM::SpVcLLVMIns_GlobalVariable>(arg));
                         }
                         else
                         {
                             auto allocaIns = irg->addIrFx(
-                                std::make_unique<LLVM::SpVcLLVMIns_Alloca>(arg, tpLlvm), tgt->blockBelong->funcBelong);
+                                MakeOwner<LLVM::SpVcLLVMIns_Alloca>(arg, tpLlvm), tgt->blockBelong->funcBelong);
                         }
                     },
                     irg);
@@ -1504,14 +1491,12 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     if (i == 0)
                     {
                         irg->addIrB(
-                            std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(rp, loadIns, i),
-                            b);
+                            MakeOwner<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(rp, loadIns, i), b);
                     }
                     else
                     {
                         irg->addIrB(
-                            std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndex>(rp, last, loadIns, i),
-                            b);
+                            MakeOwner<LLVM::SpVcLLVMIns_InsertElementWithConstantIndex>(rp, last, loadIns, i), b);
                     }
                     last = rp;
                 }
@@ -1530,26 +1515,25 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     for (int j = 0; j < vecSize; j++)
                     {
                         auto regName =
-                            irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                        auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(vecBaseTp, regName));
+                            irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                        auto regArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(vecBaseTp, regName));
                         regArgs.push_back(regArg);
                         irg->addIrB(
-                            std::make_unique<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(regArgs[j], loadIns, j),
-                            b);
+                            MakeOwner<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(regArgs[j], loadIns, j), b);
                     }
                     for (int j = 0; j < vecSize; j++)
                     {
                         auto rp = spirvCreateVarWithType(tp, irg);
                         if (cnt == 0)
                         {
-                            irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(
+                            irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(
                                             rp, regArgs[j], cnt),
                                 b);
                         }
                         else
                         {
-                            irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndex>(
-                                            rp, last, regArgs[j], cnt),
+                            irg->addIrB(
+                                MakeOwner<LLVM::SpVcLLVMIns_InsertElementWithConstantIndex>(rp, last, regArgs[j], cnt),
                                 b);
                         }
                         cnt++;
@@ -1582,13 +1566,12 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             auto tgtType = irg->getVariableSafe(tgtId)->tpRef->tp.get();
             if (tgtType->type == SpVcVMTypeEnum::SPVC_TYPE_VECTOR)
             {
-                auto vecReg = spirvImmediateLoad(tgtId, invo, irg);
-                auto tpReg  = irg->getVariableSafe(tgtId)->tpRef->tp->children[0]->llvmType;
-                auto idx    = params[p];
-                auto regName =
-                    irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpReg, regName));
-                irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(regArg, vecReg, idx),
+                auto vecReg  = spirvImmediateLoad(tgtId, invo, irg);
+                auto tpReg   = irg->getVariableSafe(tgtId)->tpRef->tp->children[0]->llvmType;
+                auto idx     = params[p];
+                auto regName = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto regArg  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tpReg, regName));
+                irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(regArg, vecReg, idx),
                     irg->getActiveBlock());
                 return regArg;
             }
@@ -1621,11 +1604,10 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     for (int i = 0; i < irg->getVariableSafe(src1->id)->tpRef->tp->size; i++)
                     {
                         auto regName =
-                            irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                        auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(elType, regName));
+                            irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                        auto regArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(elType, regName));
                         args.push_back(regArg);
-                        irg->addIrB(
-                            std::make_unique<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(args[i], reg1, i),
+                        irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(args[i], reg1, i),
                             irg->getActiveBlock());
                     }
                     // Sum up
@@ -1634,27 +1616,24 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     {
                         if (i == 0)
                         {
-                            auto regName = irg->addIr(
-                                std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                            auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(elType, regName));
-                            irg->addIrB(
-                                std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(regArg, args[i], args[i + 1], "fmul"),
+                            auto regName =
+                                irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                            auto regArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(elType, regName));
+                            irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(regArg, args[i], args[i + 1], "fmul"),
                                 irg->getActiveBlock());
                             largs.push_back(regArg);
                         }
                         else
                         {
-                            auto regName2 = irg->addIr(
-                                std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                            auto regArg2 = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(elType, regName2));
-                            auto regName = irg->addIr(
-                                std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                            auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(elType, regName));
-                            irg->addIrB(
-                                std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(regArg2, args[i], args[i + 1], "fmul"),
+                            auto regName2 =
+                                irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                            auto regArg2 = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(elType, regName2));
+                            auto regName =
+                                irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                            auto regArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(elType, regName));
+                            irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(regArg2, args[i], args[i + 1], "fmul"),
                                 irg->getActiveBlock());
-                            irg->addIrB(
-                                std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(regArg, largs.back(), regArg2, "fadd"),
+                            irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(regArg, largs.back(), regArg2, "fadd"),
                                 irg->getActiveBlock());
                             largs.push_back(regArg);
                         }
@@ -1682,31 +1661,31 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     for (int i = 4; i < params.size(); i++)
                     {
                         auto regName =
-                            irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                        auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpX, regName));
+                            irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                        auto regArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tpX, regName));
                         args.push_back(regArg);
                         auto sInd       = params[i];
                         auto vecSize    = irg->getVariableSafe(src1->id)->tpRef->tp->size;
                         auto procVec    = sInd >= (vecSize + 0u) ? src2Reg : src1Reg;
                         auto procVecIdx = sInd >= (vecSize + 0u) ? sInd - vecSize : sInd;
-                        irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(
-                                        regArg, procVec, procVecIdx),
+                        irg->addIrB(
+                            MakeOwner<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(regArg, procVec, procVecIdx),
                             irg->getActiveBlock());
 
                         // Build ret
                         auto retName =
-                            irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                        auto retArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpP, retName));
+                            irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                        auto retArg = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tpP, retName));
                         ret.push_back(retArg);
                         if (i == 4)
                         {
-                            irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(
-                                            retArg, regArg, 0),
+                            irg->addIrB(
+                                MakeOwner<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(retArg, regArg, 0),
                                 irg->getActiveBlock());
                         }
                         else
                         {
-                            irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndex>(
+                            irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_InsertElementWithConstantIndex>(
                                             retArg, ret[i - 5], regArg, i - 4),
                                 irg->getActiveBlock());
                         }
@@ -1771,7 +1750,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                         args.push_back(arg);
                     }
                     auto retVal = spirvCreateVarWithSameType(GET_PARAM_SCALAR(1), x, irg);
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_FunctionCallExtInst>(retVal, funcName, args),
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_FunctionCallExtInst>(retVal, funcName, args),
                         irg->getActiveBlock());
                     spirvImmediateMaskedStore(GET_PARAM(1)->id, x, retVal, irg);
                 },
@@ -1786,23 +1765,21 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 return srcReg;
             if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_VECTOR)
             {
-                auto idx   = irg->getVariableSafe(params[p])->constant->value[0];
-                auto tpReg = tp->children[0]->llvmType;
-                auto regName =
-                    irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpReg, regName));
-                irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(regArg, srcReg, idx),
+                auto idx     = irg->getVariableSafe(params[p])->constant->value[0];
+                auto tpReg   = tp->children[0]->llvmType;
+                auto regName = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto regArg  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tpReg, regName));
+                irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_ExtractElementWithConstantIndex>(regArg, srcReg, idx),
                     irg->getActiveBlock());
                 return regArg;
             }
             else if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_STRUCT)
             {
-                auto idx   = irg->getVariableSafe(params[p])->constant->value[0];
-                auto tpReg = tp->children[idx]->llvmType;
-                auto regName =
-                    irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                auto regArg = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpReg, regName));
-                irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_ExtractValueWithConstantIndex>(regArg, srcReg, idx),
+                auto idx     = irg->getVariableSafe(params[p])->constant->value[0];
+                auto tpReg   = tp->children[idx]->llvmType;
+                auto regName = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto regArg  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tpReg, regName));
+                irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_ExtractValueWithConstantIndex>(regArg, srcReg, idx),
                     irg->getActiveBlock());
                 return accessChainLookup(regArg, ++p, params, irg, tp->children[idx]);
             }
@@ -1830,9 +1807,9 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             // Fetch all in MASK_ACT_LAST, if it's one, set RET_MASK to zero
             using MASK_TYPE = LLVM::SpVcLLVMTypeInt32;
             auto MAKE_MASK  = [&]() {
-                auto p  = irg->addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
-                auto tp = irg->addIr(std::make_unique<MASK_TYPE>());
-                auto q  = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, p));
+                auto p  = irg->addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(irg->allocateLlvmVarName()));
+                auto tp = irg->addIr(MakeOwner<MASK_TYPE>());
+                auto q  = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, p));
                 return q;
             };
             auto MAKE_MASK_AND = [&](LLVM::SpVcLLVMArgument* dest, LLVM::SpVcLLVMArgument* a,
@@ -1841,14 +1818,13 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 auto rA    = MAKE_MASK();
                 auto rB    = MAKE_MASK();
                 // auto p =
-                // irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rDest,
+                // irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rDest,
                 // dest), irg->getActiveBlock());
-                auto q = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
-                auto s = irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
-                auto t = irg->addIrB(
-                    std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest, rA, rB, "and"), irg->getActiveBlock());
-                auto u =
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
+                auto q = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, a), irg->getActiveBlock());
+                auto s = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rB, b), irg->getActiveBlock());
+                auto t =
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(rDest, rA, rB, "and"), irg->getActiveBlock());
+                auto u = irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(dest, rDest), irg->getActiveBlock());
             };
 
             foreachInvo(
@@ -1857,33 +1833,30 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     auto curB        = irg->getActiveBlock();
                     auto rA          = MAKE_MASK();
                     auto maskActLast = MASK_ACT_LAST(curB->stackBelong->masks, x);
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, maskActLast), curB);
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rA, maskActLast), curB);
                     auto maskRet = curB->funcBelong->returnMask->llvmVarName[x].arg;
                     auto rRet    = MAKE_MASK();
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_LoadForcedPtr>(rRet, maskRet), curB);
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_LoadForcedPtr>(rRet, maskRet), curB);
 
                     auto rDest         = MAKE_MASK();
-                    auto allOneImm     = irg->addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(1));
-                    auto allOneImmType = irg->addIr(std::make_unique<MASK_TYPE>());
-                    auto allOneArg     = irg->addIr(std::make_unique<LLVM::SpVcLLVMArgument>(allOneImmType, allOneImm));
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest, allOneArg, rA, "sub"),
-                        irg->getActiveBlock());
+                    auto allOneImm     = irg->addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(1));
+                    auto allOneImmType = irg->addIr(MakeOwner<MASK_TYPE>());
+                    auto allOneArg     = irg->addIr(MakeOwner<LLVM::SpVcLLVMArgument>(allOneImmType, allOneImm));
+                    irg->addIrB(
+                        MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(rDest, allOneArg, rA, "sub"), irg->getActiveBlock());
 
                     auto rDest2 = MAKE_MASK();
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rDest2, rRet, rDest, "and"),
-                        irg->getActiveBlock());
                     irg->addIrB(
-                        std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(maskRet, rDest2), irg->getActiveBlock());
+                        MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(rDest2, rRet, rDest, "and"), irg->getActiveBlock());
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(maskRet, rDest2), irg->getActiveBlock());
 
                     auto rAp = MAKE_MASK();
-                    irg->addIrB(
-                        std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(rAp, rDest2, rA, "and"), irg->getActiveBlock());
-                    irg->addIrB(
-                        std::make_unique<LLVM::SpVcLLVMIns_StoreForcedPtr>(maskActLast, rAp), irg->getActiveBlock());
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(rAp, rDest2, rA, "and"), irg->getActiveBlock());
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_StoreForcedPtr>(maskActLast, rAp), irg->getActiveBlock());
                 },
                 irg);
             // TODO: Return
-            irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_ReturnVoid>(), irg->getActiveBlock());
+            irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_ReturnVoid>(), irg->getActiveBlock());
         }
 
         CONV_PASS(OpVectorTimesScalar)
@@ -1903,18 +1876,18 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     {
                         auto rp = spirvCreateVarWithType(src1->tpRef->tp.get(), irg);
                         if (i == 0)
-                            irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(
-                                            rp, scalarReg, 0),
+                            irg->addIrB(
+                                MakeOwner<LLVM::SpVcLLVMIns_InsertElementWithConstantIndexUndefInit>(rp, scalarReg, 0),
                                 irg->getActiveBlock());
                         else
-                            irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_InsertElementWithConstantIndex>(
-                                            rp, last, scalarReg, i),
+                            irg->addIrB(
+                                MakeOwner<LLVM::SpVcLLVMIns_InsertElementWithConstantIndex>(rp, last, scalarReg, i),
                                 irg->getActiveBlock());
                         last = rp;
                     }
                     auto regArg = spirvCreateVarWithType(src1->tpRef->tp.get(), irg);
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(regArg, vecReg, last, "fmul"),
-                        irg->getActiveBlock());
+                    irg->addIrB(
+                        MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(regArg, vecReg, last, "fmul"), irg->getActiveBlock());
                     spirvImmediateMaskedStore(GET_PARAM_SCALAR(1), x, regArg, irg);
                 },
                 irg);
@@ -1936,7 +1909,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     // fsub instruction
                     auto resultType = GET_PARAM(0)->tp.get();
                     auto resultReg  = spirvCreateVarWithType(resultType, irg);
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(resultReg, upperReg, lowerReg, "fsub"),
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(resultReg, upperReg, lowerReg, "fsub"),
                         irg->getActiveBlock());
                     spirvImmediateMaskedStore(GET_PARAM(1)->id, x, resultReg, irg);
                 },
@@ -1958,7 +1931,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     // fsub instruction
                     auto resultType = GET_PARAM(0)->tp.get();
                     auto resultReg  = spirvCreateVarWithType(resultType, irg);
-                    irg->addIrB(std::make_unique<LLVM::SpVcLLVMIns_MathBinary>(resultReg, upperReg, lowerReg, "fsub"),
+                    irg->addIrB(MakeOwner<LLVM::SpVcLLVMIns_MathBinary>(resultReg, upperReg, lowerReg, "fsub"),
                         irg->getActiveBlock());
                     spirvImmediateMaskedStore(GET_PARAM(1)->id, x, resultReg, irg);
                 },
@@ -1995,7 +1968,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
 
     void SpVcQuadGroupedIRGenerator::pushNewStack()
     {
-        auto uv    = std::make_unique<SpVcVMGenStack>();
+        auto uv    = MakeOwner<SpVcVMGenStack>();
         auto ptruv = uv.get();
         mCtx->genstack.push_back(std::move(uv));
         mCtx->structStack.push_back(ptruv);
@@ -2006,7 +1979,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
     SpVcVMGenVariable* SpVcQuadGroupedIRGenerator::createExecutionMaskVar()
     {
         auto maskVar      = getVariableSafe(--curVarMask);
-        maskVar->tp       = std::make_unique<SpVcVMTypeDescriptor>();
+        maskVar->tp       = MakeOwner<SpVcVMTypeDescriptor>();
         maskVar->tp->type = SpVcVMTypeEnum::SPVC_TYPE_INT32;
         maskVar->flag |= SPVC_VARIABLE_VAR;
         maskVar->name        = "execMask";
@@ -2362,32 +2335,32 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             {
                 if (v.tp->type == SpVcVMTypeEnum::SPVC_TYPE_INT32)
                 {
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypeInt32>());
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypeInt32>());
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
                 else if (v.tp->type == SpVcVMTypeEnum::SPVC_TYPE_FLOAT32)
                 {
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypeFloat32>());
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypeFloat32>());
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
                 else if (v.tp->type == SpVcVMTypeEnum::SPVC_TYPE_UNSIGNED32)
                 {
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypeInt32>());
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypeInt32>());
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
                 else if (v.tp->type == SpVcVMTypeEnum::SPVC_TYPE_BOOL)
                 {
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypeBool>());
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypeBool>());
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
                 else if (v.tp->type == SpVcVMTypeEnum::SPVC_TYPE_POINTER)
                 {
                     auto ref       = v.tp->children[0]->llvmType;
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypePointer>(ref));
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypePointer>(ref));
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
@@ -2395,7 +2368,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 {
                     auto ref       = v.tp->children[0]->llvmType;
                     auto cnt       = v.tp->size;
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypeVector>(cnt, ref));
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypeVector>(cnt, ref));
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
@@ -2404,7 +2377,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     auto ref       = v.tp->children[0]->children[0]->llvmType;
                     auto cnt       = v.tp->size;
                     auto childSize = v.tp->children[0]->size;
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypeVector>(cnt * childSize, ref));
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypeVector>(cnt * childSize, ref));
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
@@ -2412,7 +2385,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 {
                     auto ref       = v.tp->children[0]->llvmType;
                     auto cnt       = v.tp->size;
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypeArray>(cnt, ref));
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypeArray>(cnt, ref));
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
@@ -2423,28 +2396,28 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     {
                         ch.push_back(v.tp->children[i]->llvmType);
                     }
-                    auto ptr           = addIr(std::make_unique<LLVM::SpVcLLVMTypeStruct>(ch));
+                    auto ptr           = addIr(MakeOwner<LLVM::SpVcLLVMTypeStruct>(ch));
                     auto aliasName     = allocateLlvmVarName();
-                    auto aliasNameExpr = addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(aliasName));
-                    auto typedIns      = addIrG(std::make_unique<LLVM::SpVcLLVMIns_TypeAlias>(aliasNameExpr, ptr));
-                    v.tp->llvmType     = addIr(std::make_unique<LLVM::SpVcLLVMTypeStructAliased>(aliasName));
+                    auto aliasNameExpr = addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(aliasName));
+                    auto typedIns      = addIrG(MakeOwner<LLVM::SpVcLLVMIns_TypeAlias>(aliasNameExpr, ptr));
+                    v.tp->llvmType     = addIr(MakeOwner<LLVM::SpVcLLVMTypeStructAliased>(aliasName));
                     VERBOSE_TPGEN(ptr);
                 }
                 else if (v.tp->type == SpVcVMTypeEnum::SPVC_TYPE_IMAGE)
                 {
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypeVoidPtr>());
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypeVoidPtr>());
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
                 else if (v.tp->type == SpVcVMTypeEnum::SPVC_TYPE_SAMPLER)
                 {
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypeVoidPtr>());
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypeVoidPtr>());
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
                 else if (v.tp->type == SpVcVMTypeEnum::SPVC_TYPE_SAMPLED_IMAGE)
                 {
-                    auto ptr       = addIr(std::make_unique<LLVM::SpVcLLVMTypeVoidPtr>());
+                    auto ptr       = addIr(MakeOwner<LLVM::SpVcLLVMTypeVoidPtr>());
                     v.tp->llvmType = ptr;
                     VERBOSE_TPGEN(ptr);
                 }
@@ -2467,16 +2440,16 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                 {
                     if (v.blockBelong == nullptr)
                     {
-                        auto varName = addIr(std::make_unique<LLVM::SpVcLLVMGlobalVariableName>(allocateLlvmVarName()));
-                        auto varArg  = addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, varName));
+                        auto varName = addIr(MakeOwner<LLVM::SpVcLLVMGlobalVariableName>(allocateLlvmVarName()));
+                        auto varArg  = addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, varName));
                         v.llvmVarName[i].arg = varArg;
                         // EMIT_VERBOSE_CORE("Allocated llvmir for", k, " : ",
                         // varArg->emitIR());
                     }
                     else
                     {
-                        auto varName = addIr(std::make_unique<LLVM::SpVcLLVMLocalVariableName>(allocateLlvmVarName()));
-                        auto varArg  = addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tp, varName));
+                        auto varName         = addIr(MakeOwner<LLVM::SpVcLLVMLocalVariableName>(allocateLlvmVarName()));
+                        auto varArg          = addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tp, varName));
                         v.llvmVarName[i].arg = varArg;
                         // EMIT_VERBOSE_CORE("Allocated llvmir for", k, " : ",
                         // varArg->emitIR());
@@ -2536,20 +2509,20 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     {
                         args.push_back(v.constant->children[i]->arg);
                     }
-                    auto constv     = addIr(std::make_unique<LLVM::SpVcLLVMConstantValueVector>(args));
-                    auto constArg   = addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpllvm, constv));
+                    auto constv     = addIr(MakeOwner<LLVM::SpVcLLVMConstantValueVector>(args));
+                    auto constArg   = addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tpllvm, constv));
                     v.constant->arg = constArg;
                 }
                 else if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_INT32)
                 {
-                    auto constv     = addIr(std::make_unique<LLVM::SpVcLLVMConstantValueInt>(v.constant->value[0]));
-                    auto constArg   = addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpllvm, constv));
+                    auto constv     = addIr(MakeOwner<LLVM::SpVcLLVMConstantValueInt>(v.constant->value[0]));
+                    auto constArg   = addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tpllvm, constv));
                     v.constant->arg = constArg;
                 }
                 else if (tp->type == SpVcVMTypeEnum::SPVC_TYPE_FLOAT32)
                 {
-                    auto constv     = addIr(std::make_unique<LLVM::SpVcLLVMConstantValueFloat32>(v.constant->value[0]));
-                    auto constArg   = addIr(std::make_unique<LLVM::SpVcLLVMArgument>(tpllvm, constv));
+                    auto constv     = addIr(MakeOwner<LLVM::SpVcLLVMConstantValueFloat32>(v.constant->value[0]));
+                    auto constArg   = addIr(MakeOwner<LLVM::SpVcLLVMArgument>(tpllvm, constv));
                     v.constant->arg = constArg;
                 }
             }
@@ -2558,7 +2531,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         // For each block, an entry label is required `
         for (auto& block : mCtx->blocks)
         {
-            auto varName     = addIrB(std::make_unique<LLVM::SpVcLLVMLabelName>(allocateLlvmVarName()), block.get());
+            auto varName     = addIrB(MakeOwner<LLVM::SpVcLLVMLabelName>(allocateLlvmVarName()), block.get());
             block->llvmLabel = varName;
             // EMIT_VERBOSE_CORE("Allocated llvmir for block entry label: ",
             // varName->emitIR());
@@ -2604,7 +2577,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             setCurrentProgCounter(i);
             if (inst.opCode == spv::Op::OpLabel)
             {
-                mCtx->blocks.push_back(std::make_unique<SpVcVMGenBlock>());
+                mCtx->blocks.push_back(MakeOwner<SpVcVMGenBlock>());
                 auto& block       = mCtx->blocks.back();
                 block->startingPc = i;
                 block->funcBelong = mCtx->activeFuncEnv;
@@ -2616,7 +2589,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             }
             if (inst.opCode == spv::Op::OpFunction)
             {
-                mCtx->funcs.push_back(std::make_unique<SpVcVMGenFunction>());
+                mCtx->funcs.push_back(MakeOwner<SpVcVMGenFunction>());
                 auto& func                                    = mCtx->funcs.back();
                 func->startingPc                              = i;
                 mCtx->activeFuncEnv                           = func.get();
@@ -2804,7 +2777,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
             // ADD NOTE
             if (getActiveBlock() != nullptr)
             {
-                addIrB(std::make_unique<LLVM::SpVcLLVMIns_Note>("line " + std::to_string(i)), getActiveBlock());
+                addIrB(MakeOwner<LLVM::SpVcLLVMIns_Note>("line " + std::to_string(i)), getActiveBlock());
             }
             // EMIT
             if (mConvPassHandlers.count(ins[i].opCode) > 0)
@@ -2819,7 +2792,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                         auto var     = getVariableSafe(ins[i].opParams[1]);
                         auto varName = var->llvmVarName[k].arg;
                         auto varType = var->tpRef->tp->llvmType;
-                        addIrB(std::make_unique<LLVM::SpVcLLVMIns_Alloca>(varName, varType), getActiveBlock());
+                        addIrB(MakeOwner<LLVM::SpVcLLVMIns_Alloca>(varName, varType), getActiveBlock());
                     }
                 }
 
@@ -2830,7 +2803,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     auto var = getVariableSafe(ins[i].opParams[1]);
                     for (auto& phiDep : var->phiDeps)
                     {
-                        addIrB(std::make_unique<LLVM::SpVcLLVMIns_Note>("Phi Dep"), getActiveBlock());
+                        addIrB(MakeOwner<LLVM::SpVcLLVMIns_Note>("Phi Dep"), getActiveBlock());
                         for (int k = 0; k < getQuads(); k++)
                         {
                             auto immReg = ConversionPass::spirvImmediateLoad(ins[i].opParams[1], k, this);
@@ -2843,7 +2816,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
                     auto var = getVariableSafe(ins[i].opParams[0]);
                     for (auto& phiDep : var->phiDepsEx)
                     {
-                        addIrB(std::make_unique<LLVM::SpVcLLVMIns_Note>("Phi Dep"), getActiveBlock());
+                        addIrB(MakeOwner<LLVM::SpVcLLVMIns_Note>("Phi Dep"), getActiveBlock());
                         for (int k = 0; k < getQuads(); k++)
                         {
                             auto immReg = ConversionPass::spirvImmediateLoad(phiDep.first->id, k, this);

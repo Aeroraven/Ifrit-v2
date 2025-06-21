@@ -73,7 +73,7 @@ namespace Ifrit::Demo::AccelStructDemo
             image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y,
                 payload.color.z, payload.color.w);
         }
-        IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() { return std::make_unique<DemoRayGen>(); }
+        IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() { return MakeOwner<DemoRayGen>(); }
     };
 
     class DemoClosetHit : public CloseHitShader
@@ -101,10 +101,7 @@ namespace Ifrit::Demo::AccelStructDemo
                 payload = execStack.back().payloadPtr;
             }
         }
-        IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy()
-        {
-            return std::make_unique<DemoClosetHit>();
-        }
+        IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy() { return MakeOwner<DemoClosetHit>(); }
     };
 
     class DemoMiss : public MissShader
@@ -133,7 +130,7 @@ namespace Ifrit::Demo::AccelStructDemo
             }
         }
 
-        IFRIT_HOST virtual std::unique_ptr<MissShader> getThreadLocalCopy() { return std::make_unique<DemoMiss>(); }
+        IFRIT_HOST virtual std::unique_ptr<MissShader> getThreadLocalCopy() { return MakeOwner<DemoMiss>(); }
     };
 
     int mainCpu()
@@ -170,15 +167,15 @@ namespace Ifrit::Demo::AccelStructDemo
         tlas.bufferData(blasArray);
         tlas.buildAccelerationStructure();
 
-        std::shared_ptr<TrivialRaytracer> raytracer = std::make_shared<TrivialRaytracer>();
+        std::shared_ptr<TrivialRaytracer> raytracer = MakeRef<TrivialRaytracer>();
         raytracer->Init();
         raytracer->bindAccelerationStructure(&tlas);
 
         IF_CONSTEXPR int DEMO_RESOLUTION = 1024;
-        image                            = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
+        image                            = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
         raytracer->bindTestImage(image.get());
 
-        std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
+        std::shared_ptr<TrivialBufferManager> bufferman = MakeRef<TrivialBufferManager>();
         bufferman->Init();
 
         auto imageptrv = image.get();

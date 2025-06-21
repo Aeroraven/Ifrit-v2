@@ -123,9 +123,9 @@ namespace Ifrit::Demo::DemoDefault
         loader.loadObject(IFRIT_ASSET_PATH "/sponza3.obj", pos, normal, uv, index);
         procNormal = loader.RemapNormals(normal, index, pos.size());
 
-        std::shared_ptr<ImageF32>           image    = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
-        std::shared_ptr<ImageF32>           depth    = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
-        std::shared_ptr<TileRasterRenderer> renderer = std::make_shared<TileRasterRenderer>();
+        std::shared_ptr<ImageF32>           image    = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
+        std::shared_ptr<ImageF32>           depth    = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
+        std::shared_ptr<TileRasterRenderer> renderer = MakeRef<TileRasterRenderer>();
         FrameBuffer                         frameBuffer;
 
         VertexBuffer                        vertexBuffer;
@@ -168,7 +168,7 @@ namespace Ifrit::Demo::DemoDefault
         renderer->bindFrameBuffer(frameBuffer);
         renderer->bindVertexBuffer(vertexBuffer);
 
-        std::shared_ptr<TrivialBufferManager> bufferman = std::make_shared<TrivialBufferManager>();
+        std::shared_ptr<TrivialBufferManager> bufferman = MakeRef<TrivialBufferManager>();
         bufferman->Init();
         auto indexBuffer1 = bufferman->CreateBuffer({ sizeof(indexBuffer[0]) * indexBuffer.size() });
         bufferman->bufferData(indexBuffer1, indexBuffer.data(), 0, sizeof(indexBuffer[0]) * indexBuffer.size());
@@ -246,9 +246,9 @@ namespace Ifrit::Demo::DemoDefault
         procNormal = loader.RemapNormals(normal, index, pos.size());
         // procUv = loader.RemapUVs(uv, index, pos.size());
 
-        std::shared_ptr<ImageF32> image1 = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4, true);
-        std::shared_ptr<ImageF32> depth  = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
-        std::shared_ptr<TileRasterRendererCuda> renderer = std::make_shared<TileRasterRendererCuda>();
+        std::shared_ptr<ImageF32>               image1   = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4, true);
+        std::shared_ptr<ImageF32>               depth    = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
+        std::shared_ptr<TileRasterRendererCuda> renderer = MakeRef<TileRasterRendererCuda>();
         FrameBuffer                             frameBuffer;
         VertexBuffer                            vertexBuffer;
         std::vector<int>                        indexBuffer;

@@ -22,6 +22,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Graphics::Rhi
 {
+
+    struct RhiCapabilityList
+    {
+        bool m_MeshShaderEnabled;
+        bool m_HardwareRayTracingEnabled;
+        bool m_ConservativeRasterizationEnabled;
+        bool m_ShaderFloatAtomicsEnabled;
+    };
+
     class IFRIT_APIDECL RhiDevice
     {
     protected:

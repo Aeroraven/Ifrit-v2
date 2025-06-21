@@ -36,12 +36,12 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
 
     struct BVHNode : public NonCopyableStruct
     {
-        SVector3f     bboxMin;
-        SVector3f     bboxMax;
-        Uref<BVHNode> left;
-        Uref<BVHNode> right;
-        u32           startIdx;
-        u32           endIdx;
+        SVector3f      bboxMin;
+        SVector3f      bboxMax;
+        Owner<BVHNode> left;
+        Owner<BVHNode> right;
+        u32            startIdx;
+        u32            endIdx;
     };
 
     struct Mesh2SDFTempData : public NonCopyableStruct
@@ -55,7 +55,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         u32            meshNumIndices;
 
         Vec<u32>       asTriIndices;
-        Uref<BVHNode>  asRoot;
+        Owner<BVHNode> asRoot;
         Vec<SVector3f> asTriBboxMin;
         Vec<SVector3f> asTriBboxMax;
         Vec<SVector3f> asTriBboxMid;
@@ -214,7 +214,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         return tmax > tmin;
     }
 
-    void CalculateAsChildBbox(const Mesh2SDFTempData& data, Uref<BVHNode>& node)
+    void CalculateAsChildBbox(const Mesh2SDFTempData& data, Owner<BVHNode>& node)
     {
         node->bboxMin = SVector3f(FLT_MAX);
         node->bboxMax = SVector3f(-FLT_MAX);
@@ -226,7 +226,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         }
     }
 
-    void BuildAccelStructRecur(Mesh2SDFTempData& data, Uref<BVHNode>& node)
+    void BuildAccelStructRecur(Mesh2SDFTempData& data, Owner<BVHNode>& node)
     {
         auto numChildren = node->endIdx - node->startIdx;
         if (numChildren <= cMinBvhChilds)
@@ -291,12 +291,12 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
             return;
         }
 
-        node->left           = std::make_unique<BVHNode>();
+        node->left           = MakeOwner<BVHNode>();
         node->left->startIdx = node->startIdx;
         node->left->endIdx   = leftIdx;
         CalculateAsChildBbox(data, node->left);
 
-        node->right           = std::make_unique<BVHNode>();
+        node->right           = MakeOwner<BVHNode>();
         node->right->startIdx = leftIdx;
         node->right->endIdx   = node->endIdx;
         CalculateAsChildBbox(data, node->right);
@@ -307,7 +307,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
 
     void BuildAccelStruct(Mesh2SDFTempData& data)
     {
-        data.asRoot           = std::make_unique<BVHNode>();
+        data.asRoot           = MakeOwner<BVHNode>();
         data.asRoot->bboxMin  = data.bboxMin;
         data.asRoot->bboxMax  = data.bboxMax;
         data.asRoot->startIdx = 0;

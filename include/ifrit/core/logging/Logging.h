@@ -183,6 +183,10 @@ namespace Ifrit::Logging
     #define iDebug(...) Logging::Debug2(IFRIT_LOG_MODULE_NAME, __VA_ARGS__)
     #define iTrace(...) Logging::Trace2(IFRIT_LOG_MODULE_NAME, __VA_ARGS__)
     #define iAssertion(condition, ...) Logging::Assertion2(IFRIT_LOG_MODULE_NAME, condition, __VA_ARGS__)
+
+    #define iErrorWithAbort(...) \
+        iError(__VA_ARGS__);     \
+        std::abort();
 #else
     static_assert(false, "IFRIT_LOG_MODULE_NAME is not defined");
 #endif

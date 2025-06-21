@@ -6,13 +6,17 @@
   - 可行参考：https://advances.realtimerendering.com/s2022/SIGGRAPH2022-Advances-Lumen-Wright%20et%20al.pdf
   - 可行缓解：(A) UDF + DF Expansion (B) Virtual Surface
 
-- Ayanami: 是否可行的SDF的BC4压缩；部分区域压缩后导致精度丢失Artifacts
+- Ayanami: SDF BC4部分区域压缩后导致精度丢失Artifacts
 
   - 参考：https://jcgt.org/published/0011/03/06/paper-lowres.pdf
 
     
 
 ### Resolved
+
+#### 2025.06
+
+- VkGraphics: 部分兼容性调整，允许较低配置设备(如GTX1050)运行核心功能.
 
 #### 2025.05
 

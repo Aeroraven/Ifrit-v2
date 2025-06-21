@@ -106,7 +106,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
     SpvVertexShader::SpvVertexShader(const SpvVertexShader& p) : SpvRuntimeBackend(p) { isThreadSafe = false; }
     IFRIT_HOST std::unique_ptr<VertexShader> SpvVertexShader::getThreadLocalCopy()
     {
-        auto copy = std::make_unique<SpvVertexShader>(*this);
+        auto copy = MakeOwner<SpvVertexShader>(*this);
         return copy;
     }
 
@@ -151,7 +151,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
     }
     IFRIT_HOST std::unique_ptr<FragmentShader> SpvFragmentShader::getThreadLocalCopy()
     {
-        auto copy = std::make_unique<SpvFragmentShader>(*this);
+        auto copy = MakeOwner<SpvFragmentShader>(*this);
         return copy;
     }
 
@@ -248,7 +248,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
     }
     IFRIT_HOST std::unique_ptr<Raytracer::RayGenShader> SpvRaygenShader::getThreadLocalCopy()
     {
-        auto copy = std::make_unique<SpvRaygenShader>(*this);
+        auto copy = MakeOwner<SpvRaygenShader>(*this);
         return copy;
     }
     IFRIT_HOST void SpvRaygenShader::updateUniformData(int binding, int set, const void* pData)
@@ -303,7 +303,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
     }
     IFRIT_HOST std::unique_ptr<Raytracer::MissShader> SpvMissShader::getThreadLocalCopy()
     {
-        auto copy = std::make_unique<SpvMissShader>(*this);
+        auto copy = MakeOwner<SpvMissShader>(*this);
         return copy;
     }
     IFRIT_HOST void SpvMissShader::updateUniformData(int binding, int set, const void* pData)
@@ -362,7 +362,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
     }
     IFRIT_HOST std::unique_ptr<Raytracer::CloseHitShader> SpvClosestHitShader::getThreadLocalCopy()
     {
-        auto copy = std::make_unique<SpvClosestHitShader>(*this);
+        auto copy = MakeOwner<SpvClosestHitShader>(*this);
         return copy;
     }
     IFRIT_HOST void SpvClosestHitShader::updateUniformData(int binding, int set, const void* pData)

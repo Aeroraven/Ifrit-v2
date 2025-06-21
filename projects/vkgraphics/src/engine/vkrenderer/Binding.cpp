@@ -119,7 +119,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkGetPhysicalDeviceProperties(m_context->GetPhysicalDevice(), &properties);
         m_minUniformBufferAlignment = SizeCast<int>(properties.limits.minUniformBufferOffsetAlignment);
 
-        m_currentBindRange = std::make_unique<DescriptorBindRangeData>();
+        m_currentBindRange = MakeOwner<DescriptorBindRangeData>();
 
         // Descriptor layout for bindless parameter
         m_bindingShared.binding            = 0;
@@ -355,7 +355,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.size                      = m_currentBindRange->m_currentOffset;
         ci.usage                     = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         ci.hostVisible               = true;
-        m_currentBindRange->m_buffer = std::make_unique<SingleBuffer>(m_context, ci);
+        m_currentBindRange->m_buffer = MakeOwner<SingleBuffer>(m_context, ci);
 
         m_currentBindRange->m_buffer->MapMemory();
         for (int i = 0; i < m_currentBindRange->m_ranges.size(); i++)
@@ -414,7 +414,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkUpdateDescriptorSets(m_context->GetDevice(), 1, &write, 0, nullptr);
 
         m_bindRanges.push_back(std::move(m_currentBindRange));
-        m_currentBindRange = std::make_unique<DescriptorBindRangeData>();
+        m_currentBindRange = MakeOwner<DescriptorBindRangeData>();
     }
 
     IFRIT_APIDECL void DescriptorBindlessIndices::AddUniformBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc)

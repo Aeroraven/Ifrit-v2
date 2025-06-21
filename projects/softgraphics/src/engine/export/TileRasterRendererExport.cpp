@@ -23,8 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #define IFRIT_TRNS Ifrit::Graphics::SoftGraphics::TileRaster
 #define IFRIT_BASENS Ifrit::Graphics::SoftGraphics
-#define IFRIT_TRTP \
-    Ifrit::Graphics::SoftGraphics::LibraryExport::TileRasterRendererWrapper
+#define IFRIT_TRTP Ifrit::Graphics::SoftGraphics::LibraryExport::TileRasterRendererWrapper
 
 using namespace Ifrit::Graphics::SoftGraphics;
 using namespace Ifrit::Graphics::SoftGraphics::LibraryExport;
@@ -42,8 +41,7 @@ namespace Ifrit::Graphics::SoftGraphics::LibraryExport
     {
     public:
         VertexShaderFunctionalPtr func = nullptr;
-        virtual void              execute(const void* const* input, Vector4f* outPos,
-                         Vector4f* const* outVaryings) override
+        virtual void execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) override
         {
             if (func)
                 func(input, outPos, outVaryings);
@@ -53,35 +51,30 @@ namespace Ifrit::Graphics::SoftGraphics::LibraryExport
     {
     public:
         FragmentShaderFunctionalPtr func = nullptr;
-        virtual void                execute(const void* varyings, void* colorOutput,
-                           float* fragmentDepth) override
+        virtual void                execute(const void* varyings, void* colorOutput, float* fragmentDepth) override
         {
             if (func)
                 func(varyings, colorOutput, fragmentDepth);
         }
     };
 } // namespace Ifrit::Graphics::SoftGraphics::LibraryExport
-IFRIT_APIDECL_COMPAT IFRIT_TRTP* IFRIT_APICALL iftrCreateInstance()
-    IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT IFRIT_TRTP* IFRIT_APICALL iftrCreateInstance() IFRIT_EXPORT_COMPAT_NOTHROW
 {
     auto hInst      = new TileRasterRendererWrapper();
-    hInst->renderer = std::make_shared<IFRIT_TRNS::TileRasterRenderer>();
+    hInst->renderer = Ifrit::MakeRef<IFRIT_TRNS::TileRasterRenderer>();
     return hInst;
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL
-iftrDestroyInstance(IFRIT_TRTP* hInstance) IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDestroyInstance(IFRIT_TRTP* hInstance) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     delete hInstance;
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindFrameBuffer(
-    IFRIT_TRTP*                hInstance,
-    IFRIT_BASENS::FrameBuffer* frameBuffer) IFRIT_EXPORT_COMPAT_NOTHROW
+    IFRIT_TRTP* hInstance, IFRIT_BASENS::FrameBuffer* frameBuffer) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     hInstance->renderer->bindFrameBuffer(*frameBuffer);
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindVertexBuffer(
-    IFRIT_TRTP* hInstance, const IFRIT_BASENS::VertexBuffer* vertexBuffer)
-    IFRIT_EXPORT_COMPAT_NOTHROW
+    IFRIT_TRTP* hInstance, const IFRIT_BASENS::VertexBuffer* vertexBuffer) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     hInstance->renderer->bindVertexBuffer(*vertexBuffer);
 }
@@ -91,34 +84,30 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindIndexBuffer(
     auto p = reinterpret_cast<BufferManager::IfritBuffer*>(indexBuffer);
     hInstance->renderer->bindIndexBuffer(*p);
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindVertexShaderFunc(
-    IFRIT_TRTP* hInstance, IFRIT_BASENS::VertexShaderFunctionalPtr func,
-    IFRIT_BASENS::VaryingDescriptor* vsOutDescriptors)
-    IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindVertexShaderFunc(IFRIT_TRTP* hInstance,
+    IFRIT_BASENS::VertexShaderFunctionalPtr                                  func,
+    IFRIT_BASENS::VaryingDescriptor* vsOutDescriptors) IFRIT_EXPORT_COMPAT_NOTHROW
 {
-    auto vsInst  = std::make_unique<VertexShaderFunctionalWrapper>();
+    auto vsInst  = Ifrit::MakeOwner<VertexShaderFunctionalWrapper>();
     vsInst->func = func;
     hInstance->renderer->bindVertexShaderLegacy(*vsInst, *vsOutDescriptors);
     hInstance->allocatedFuncWrappers.push_back(std::move(vsInst));
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindFragmentShaderFunc(
-    IFRIT_TRTP* hInstance, IFRIT_BASENS::FragmentShaderFunctionalPtr func)
-    IFRIT_EXPORT_COMPAT_NOTHROW
+    IFRIT_TRTP* hInstance, IFRIT_BASENS::FragmentShaderFunctionalPtr func) IFRIT_EXPORT_COMPAT_NOTHROW
 {
-    auto fsInst  = std::make_unique<FragmentShaderFunctionalWrapper>();
+    auto fsInst  = Ifrit::MakeOwner<FragmentShaderFunctionalWrapper>();
     fsInst->func = func;
     hInstance->renderer->bindFragmentShader(*fsInst);
     hInstance->allocatedFuncWrappers.push_back(std::move(fsInst));
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetBlendFunc(
-    IFRIT_TRTP* hInstance, IFRIT_BASENS::IfritColorAttachmentBlendState* state)
-    IFRIT_EXPORT_COMPAT_NOTHROW
+    IFRIT_TRTP* hInstance, IFRIT_BASENS::IfritColorAttachmentBlendState* state) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     hInstance->renderer->setBlendFunc(*state);
 }
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrSetDepthFunc(
-    IFRIT_TRTP*                  hInstance,
-    IFRIT_BASENS::IfritCompareOp state) IFRIT_EXPORT_COMPAT_NOTHROW
+    IFRIT_TRTP* hInstance, IFRIT_BASENS::IfritCompareOp state) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     hInstance->renderer->SetDepthFunc(state);
 }
@@ -132,27 +121,20 @@ IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrOptSetDepthTestEnable(
 {
     hInstance->renderer->optSetDepthTestEnable(opt);
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL
-iftrDrawLegacy(IFRIT_TRTP* hInstance, int numVertices,
-    int clearFramebuffer) IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrDrawLegacy(
+    IFRIT_TRTP* hInstance, int numVertices, int clearFramebuffer) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     hInstance->renderer->drawElements(numVertices, clearFramebuffer);
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrClear(IFRIT_TRTP* hInstance)
-    IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrClear(IFRIT_TRTP* hInstance) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     hInstance->renderer->clear();
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrInit(IFRIT_TRTP* hInstance)
-    IFRIT_EXPORT_COMPAT_NOTHROW
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrInit(IFRIT_TRTP* hInstance) IFRIT_EXPORT_COMPAT_NOTHROW
 {
     hInstance->renderer->Init();
 }
-IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrTest(void (*p)(int))
-    IFRIT_EXPORT_COMPAT_NOTHROW
-{
-    p(114514);
-}
+IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrTest(void (*p)(int)) IFRIT_EXPORT_COMPAT_NOTHROW { p(114514); }
 
 // Update v1
 IFRIT_APIDECL_COMPAT void IFRIT_APICALL iftrBindVertexShader(

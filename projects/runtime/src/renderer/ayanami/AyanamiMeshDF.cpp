@@ -219,7 +219,7 @@ namespace Ifrit::Runtime::Ayanami
                 iError("AyanamiMeshDF::BuildGPUResource() requires mesh to be built first");
                 std::abort();
             }
-            m_gpuResource = std::make_unique<AyanamiMeshDFResource>();
+            m_gpuResource = MakeOwner<AyanamiMeshDFResource>();
             using namespace Ifrit::Graphics::Rhi;
             auto volumeSize   = SizeCast<u32>(m_CompactSDFData.size());
             auto deviceVolume = rhi->CreateBuffer("Ayanami_DFVolume", volumeSize,

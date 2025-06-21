@@ -102,7 +102,7 @@ private:
 public:
     void OnStart() override
     {
-        renderer       = std::make_shared<SyaroRenderer>(this);
+        renderer       = MakeRef<SyaroRenderer>(this);
         auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Bistro/untitled.gltf");
         // Renderer config
         renderConfig.m_VisualizationType          = RendererVisualizationType::Default;

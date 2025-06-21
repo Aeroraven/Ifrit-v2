@@ -20,15 +20,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
 namespace Ifrit::Graphics::VulkanGraphics
 {
-    extern IFRIT_APIDECL_IMPORT void GetRhiBackendBuilder_Vulkan(Uref<Rhi::RhiBackendFactory>& ptr);
+    extern IFRIT_APIDECL_IMPORT void GetRhiBackendBuilder_Vulkan(Owner<Rhi::RhiBackendFactory>& ptr);
 } // namespace Ifrit::Graphics::VulkanGraphics
 
 namespace Ifrit::Graphics::Rhi
 {
-    IFRIT_APIDECL Uref<RhiBackend> RhiSelector::CreateBackend(RhiBackendType type,
-        const RhiInitializeArguments&                                        args)
+    IFRIT_APIDECL Owner<RhiBackend> RhiSelector::CreateBackend(RhiBackendType type, const RhiInitializeArguments& args)
     {
-        Uref<RhiBackendFactory> factory;
+        Owner<RhiBackendFactory> factory;
         if (type == RhiBackendType::Vulkan)
         {
             VulkanGraphics::GetRhiBackendBuilder_Vulkan(factory);

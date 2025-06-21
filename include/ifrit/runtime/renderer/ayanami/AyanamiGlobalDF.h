@@ -54,10 +54,10 @@ namespace Ifrit::Runtime::Ayanami
     private:
         using GPUTexture = Graphics::Rhi::RhiTextureRef;
 
-        IApplication*                     m_app;
-        Graphics::Rhi::RhiComputePass*    m_updateClipmapPass = nullptr;
-        Graphics::Rhi::RhiComputePass*    m_raymarchPass      = nullptr;
-        Vec<Uref<AyanamiGlobalDFClipmap>> m_TestClipMaps;
+        IApplication*                      m_app;
+        Graphics::Rhi::RhiComputePass*     m_updateClipmapPass = nullptr;
+        Graphics::Rhi::RhiComputePass*     m_raymarchPass      = nullptr;
+        Vec<Owner<AyanamiGlobalDFClipmap>> m_TestClipMaps;
 
     public:
         AyanamiGlobalDF(const AyanamiRenderConfig& config, IApplication* m_app);

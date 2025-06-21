@@ -28,8 +28,7 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
         {
             for (auto& worker : workers)
             {
-                worker->status.store(TrivialRaytracerWorkerStatus::TERMINATED,
-                    std::memory_order::relaxed);
+                worker->status.store(TrivialRaytracerWorkerStatus::TERMINATED, std::memory_order::relaxed);
             }
             for (auto& worker : workers)
             {
@@ -42,23 +41,20 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
     void TrivialRaytracer::Init()
     {
         initialized = true;
-        context     = std::make_shared<TrivialRaytracerContext>();
+        context     = MakeRef<TrivialRaytracerContext>();
         context->perWorkerMiss.resize(context->numThreads);
         context->perWorkerRaygen.resize(context->numThreads);
         context->perWorkerRayhit.resize(context->numThreads);
 
         for (int i = 0; i < context->numThreads; i++)
         {
-            auto worker = std::make_unique<TrivialRaytracerWorker>(shared_from_this(),
-                context, i);
-            worker->status.store(TrivialRaytracerWorkerStatus::IDLE,
-                std::memory_order::relaxed);
+            auto worker = MakeOwner<TrivialRaytracerWorker>(shared_from_this(), context, i);
+            worker->status.store(TrivialRaytracerWorkerStatus::IDLE, std::memory_order::relaxed);
             worker->threadCreate();
             workers.push_back(std::move(worker));
         }
     }
-    void TrivialRaytracer::bindAccelerationStructure(
-        const BoundingVolumeHierarchyTopLevelAS* as)
+    void TrivialRaytracer::bindAccelerationStructure(const BoundingVolumeHierarchyTopLevelAS* as)
     {
         context->accelerationStructure = as;
     }
@@ -83,45 +79,33 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
         context->closestHitShader = shader;
         for (int i = 0; i < context->numThreads; i++)
         {
-            context->perWorkerRayhit[i] =
-                context->closestHitShader->getThreadLocalCopy();
+            context->perWorkerRayhit[i] = context->closestHitShader->getThreadLocalCopy();
         }
     }
-    void TrivialRaytracer::bindCallableShader(CallableShader* shader)
-    {
-        context->callableShader = shader;
-    }
-    void TrivialRaytracer::bindUniformBuffer(int binding, int set,
-        BufferManager::IfritBuffer pBuffer)
+    void TrivialRaytracer::bindCallableShader(CallableShader* shader) { context->callableShader = shader; }
+    void TrivialRaytracer::bindUniformBuffer(int binding, int set, BufferManager::IfritBuffer pBuffer)
     {
         auto  p = pBuffer.manager.lock();
         void* data;
         p->mapBufferMemory(pBuffer, &data);
         this->context->uniformMapping[{ binding, set }] = data;
     }
-    void TrivialRaytracer::traceRays(uint32_t width, uint32_t height,
-        uint32_t depth)
+    void TrivialRaytracer::traceRays(uint32_t width, uint32_t height, uint32_t depth)
     {
         context->traceRegion = Vector3i(width, height, depth);
         context->numTileX    = (width + context->tileWidth - 1) / context->tileWidth;
         context->numTileY    = (height + context->tileHeight - 1) / context->tileHeight;
         context->numTileZ    = (depth + context->tileDepth - 1) / context->tileDepth;
-        context->totalTiles =
-            context->numTileX * context->numTileY * context->numTileZ;
-        unresolvedTiles = context->totalTiles;
+        context->totalTiles  = context->numTileX * context->numTileY * context->numTileZ;
+        unresolvedTiles      = context->totalTiles;
         updateUniformBuffer();
         for (auto& worker : workers)
         {
-            worker->status.store(TrivialRaytracerWorkerStatus::TRACING,
-                std::memory_order::relaxed);
+            worker->status.store(TrivialRaytracerWorkerStatus::TRACING, std::memory_order::relaxed);
         }
-        statusTransitionBarrier(TrivialRaytracerWorkerStatus::TRACING_SYNC,
-            TrivialRaytracerWorkerStatus::COMPLETED);
+        statusTransitionBarrier(TrivialRaytracerWorkerStatus::TRACING_SYNC, TrivialRaytracerWorkerStatus::COMPLETED);
     }
-    int TrivialRaytracer::fetchUnresolvedTiles()
-    {
-        return unresolvedTiles.fetch_sub(1) - 1;
-    }
+    int  TrivialRaytracer::fetchUnresolvedTiles() { return unresolvedTiles.fetch_sub(1) - 1; }
     void TrivialRaytracer::updateUniformBuffer()
     {
         auto rgenUniforms = context->raygenShader->getUniformList();
@@ -131,8 +115,7 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
             {
                 if (context->uniformMapping.count(x))
                 {
-                    context->perWorkerRaygen[i]->updateUniformData(
-                        x.first, x.second, context->uniformMapping[x]);
+                    context->perWorkerRaygen[i]->updateUniformData(x.first, x.second, context->uniformMapping[x]);
                 }
             }
         }
@@ -141,13 +124,11 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
     {
         for (auto& worker : workers)
         {
-            worker->status.store(TrivialRaytracerWorkerStatus::IDLE,
-                std::memory_order::relaxed);
+            worker->status.store(TrivialRaytracerWorkerStatus::IDLE, std::memory_order::relaxed);
         }
     }
     void TrivialRaytracer::statusTransitionBarrier(
-        TrivialRaytracerWorkerStatus waitOn,
-        TrivialRaytracerWorkerStatus proceedTo)
+        TrivialRaytracerWorkerStatus waitOn, TrivialRaytracerWorkerStatus proceedTo)
     {
         while (true)
         {
@@ -170,8 +151,7 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
             }
         }
     }
-    void TrivialRaytracer::bindTestImage(
-        Ifrit::Graphics::SoftGraphics::Core::Data::ImageF32* image)
+    void TrivialRaytracer::bindTestImage(Ifrit::Graphics::SoftGraphics::Core::Data::ImageF32* image)
     {
         context->testImage = image;
     }

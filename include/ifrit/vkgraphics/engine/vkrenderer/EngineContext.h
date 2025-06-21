@@ -120,8 +120,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         ExtensionFunction               m_extf;
         VkPhysicalDeviceProperties      m_phyDeviceProperties{};
 
-        Uref<ResourceDeleteQueue>       m_DeleteQueue;
+        Owner<ResourceDeleteQueue>      m_DeleteQueue;
 
+        Rhi::RhiCapabilityList          m_Capability   = {};
         std::string                     cacheDirectory = "";
 
     private:
@@ -152,5 +153,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline bool                               IsDebugMode() { return m_args.m_enableValidationLayer; }
 
         inline ResourceDeleteQueue*               GetDeleteQueue() { return m_DeleteQueue.get(); }
+        inline Rhi::RhiCapabilityList             GetCapabilities() const { return m_Capability; }
     };
 } // namespace Ifrit::Graphics::VulkanGraphics

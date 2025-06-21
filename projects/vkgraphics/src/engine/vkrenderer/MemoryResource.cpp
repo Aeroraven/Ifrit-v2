@@ -473,7 +473,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
             numCopies = m_defaultCopies;
         }
-        auto buffer = std::make_shared<MultiBuffer>(m_context, ci, numCopies);
+        auto buffer = MakeRef<MultiBuffer>(m_context, ci, numCopies);
         m_multiBuffer.push_back(buffer);
         return buffer;
     }
@@ -503,7 +503,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
             numCopies = m_defaultCopies;
         }
-        auto buffer = std::make_shared<MultiBuffer>(m_context, ci, numCopies);
+        auto buffer = MakeRef<MultiBuffer>(m_context, ci, numCopies);
         auto ptr    = buffer.get();
         m_multiBuffer.push_back(buffer);
         m_multiBufferTraced.push_back(SizeCast<int>(m_multiBuffer.size()) - 1);

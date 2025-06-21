@@ -259,7 +259,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void        DirectDrawSurfaceAssetImporter::ImportAsset(
         const std::filesystem::path& path, AssetMetadata& metadata)
     {
-        auto asset = std::make_shared<DirectDrawSurfaceAsset>(metadata, path, m_assetManager->GetApplication());
+        auto asset = MakeRef<DirectDrawSurfaceAsset>(metadata, path, m_assetManager->GetApplication());
         m_assetManager->RegisterAsset(asset);
         // iInfo("Imported asset: [DDSTexture] {}", metadata.m_uuid);
     }

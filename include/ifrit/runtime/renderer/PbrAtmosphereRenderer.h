@@ -148,13 +148,13 @@ namespace Ifrit::Runtime
             SetupMultipleScatteringPass();
         }
 
-        virtual Uref<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
+        virtual Owner<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
             const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait) override
         {
             throw std::runtime_error("Not implemented");
         }
 
-        virtual Uref<GPUCommandSubmission> RenderInternal(
+        virtual Owner<GPUCommandSubmission> RenderInternal(
             PerFrameData& perframe, const Vec<GPUCommandSubmission*>& cmdToWait);
 
         virtual PbrAtmosphereResourceDesc GetResourceDesc(PerFrameData& perframe);

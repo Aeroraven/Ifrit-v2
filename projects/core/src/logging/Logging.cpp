@@ -24,8 +24,8 @@ namespace Ifrit::Logging
     {
 
         spdlog::set_pattern("[%H:%M:%S %z] [%n] [%^%l%$] %v");
-        auto stdoutSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        auto logger     = std::make_shared<spdlog::logger>(name, stdoutSink);
+        auto stdoutSink = MakeRef<spdlog::sinks::stdout_color_sink_mt>();
+        auto logger     = MakeRef<spdlog::logger>(name, stdoutSink);
         logger->set_pattern("[%Y/%m/%d %H:%M:%S %z] [%^%-7l%$] [%n] %v");
         logger->set_level(spdlog::level::trace);
         spdlog::register_logger(logger);

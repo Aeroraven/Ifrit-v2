@@ -33,7 +33,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SceneAssetImporter::ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata)
     {
-        auto          asset = std::make_shared<SceneAsset>(metadata, path);
+        auto          asset = MakeRef<SceneAsset>(metadata, path);
         String        fileReaded;
         std::ifstream file(path);
         file.seekg(0, std::ios::end);
@@ -96,7 +96,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL SceneAssetManager::SceneAssetManager(std::filesystem::path path, AssetManager* assetman)
         : m_sceneDataPath(path), m_assetManager(assetman)
     {
-        m_sceneImporter = std::make_shared<SceneAssetImporter>(assetman, this);
+        m_sceneImporter = MakeRef<SceneAssetImporter>(assetman, this);
         assetman->RegisterImporter(m_sceneImporter->IMPORTER_NAME, m_sceneImporter);
     }
 
@@ -146,7 +146,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL Ref<Scene> SceneAssetManager::CreateScene(String name)
     {
-        auto scene = std::make_shared<Scene>();
+        auto scene = MakeRef<Scene>();
         // m_scenes[name] = scene;
         m_scenesIndex[name] = SizeCast<uint32_t>(m_scenes.size());
         m_scenes.push_back(scene);

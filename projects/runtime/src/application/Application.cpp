@@ -86,24 +86,24 @@ namespace Ifrit::Runtime
         m_rhiLayer->SetCacheDirectory(m_info.m_cachePath);
 
         // Prepare shared render resource
-        m_SharedRenderResource = std::make_shared<SharedRenderResource>(m_rhiLayer.get());
+        m_SharedRenderResource = MakeRef<SharedRenderResource>(m_rhiLayer.get());
 
         // Prepare internal shaders
-        m_shaderRegistry = std::make_shared<ShaderRegistry>(this);
+        m_shaderRegistry = MakeRef<ShaderRegistry>(this);
         Internal::RegisterRuntimeInternalShaders(m_shaderRegistry.get());
 
         // Setup systems
-        m_assetManager      = std::make_shared<AssetManager>(m_info.m_assetPath, this);
-        m_sceneAssetManager = std::make_shared<SceneAssetManager>(m_info.m_scenePath, m_assetManager.get());
+        m_assetManager      = MakeRef<AssetManager>(m_info.m_assetPath, this);
+        m_sceneAssetManager = MakeRef<SceneAssetManager>(m_info.m_scenePath, m_assetManager.get());
         m_assetManager->LoadAssetDirectory();
         iInfo("AssetManager: loaded assets");
-        m_sceneManager = std::make_shared<SceneManager>(this);
+        m_sceneManager = MakeRef<SceneManager>(this);
 
         // Input System
-        m_inputSystem = std::make_shared<InputSystem>(this);
+        m_inputSystem = MakeRef<InputSystem>(this);
 
         // Timing Recorder
-        m_timingRecorder = std::make_shared<TimingRecorder>();
+        m_timingRecorder = MakeRef<TimingRecorder>();
 
         OnStart();
     }

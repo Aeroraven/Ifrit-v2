@@ -137,7 +137,7 @@ namespace Ifrit
     template <typename T, u32 V> using Array                          = std::array<T, V>;
     template <typename T> using Vec                                   = std::vector<T>;
     template <typename T> using Ref                                   = std::shared_ptr<T>;
-    template <typename T> using Uref                                  = std::unique_ptr<T>;
+    template <typename T> using Owner                                 = std::unique_ptr<T>;
     template <typename T> using Set                                   = std::set<T>;
     template <typename T> using HashSet                               = std::unordered_set<T>;
     template <typename K, typename V> using Map                       = std::map<K, V>;
@@ -149,6 +149,17 @@ namespace Ifrit
     using String                                                      = std::string;
     template <typename T> using Queue                                 = std::queue<T>;
     using IntPtr                                                      = std::intptr_t;
+
+    template <typename T, typename... Args> IF_FORCEINLINE Ref<T> MakeRef(Args&&... args)
+    {
+        return std::make_shared<T>(std::forward<Args>(args)...);
+    }
+
+    template <typename T, typename... Args> IF_FORCEINLINE Owner<T> MakeOwner(Args&&... args)
+    {
+        return std::make_unique<T>(std::forward<Args>(args)...);
+    }
+
 #endif
 
 // Requires

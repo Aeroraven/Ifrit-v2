@@ -99,8 +99,8 @@ namespace Ifrit::Runtime
             {
                 m_ComponentArray[typeHash] = Vec<Ref<Component>>();
             }
-            auto ret = std::make_shared<T>(parentObject);
-            SetComponentId(ret, SizeCast<u32>( m_ComponentArray[typeHash].size()), typeHash);
+            auto ret = MakeRef<T>(parentObject);
+            SetComponentId(ret, SizeCast<u32>(m_ComponentArray[typeHash].size()), typeHash);
             m_ComponentArray[typeHash].push_back(ret);
             return ret;
         }
@@ -143,7 +143,7 @@ namespace Ifrit::Runtime
                 iError("Component type name conflicted");
                 std::abort();
             }
-            m_componentIndex[typeName]   =  SizeCast<u32>(m_components.size()) - 1;
+            m_componentIndex[typeName]   = SizeCast<u32>(m_components.size()) - 1;
             m_componentsHashed[typeHash] = SizeCast<u32>(m_components.size()) - 1;
             return component;
         }

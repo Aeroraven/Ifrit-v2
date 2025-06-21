@@ -120,7 +120,7 @@ namespace Ifrit::Runtime
         CustomHashMap<PipeConf, DrawPass*, PipeHash> m_taaPass;
 
         // FSR2
-        Uref<Graphics::Rhi::FSR2::RhiFsr2Processor>  m_fsr2proc;
+        Owner<Graphics::Rhi::FSR2::RhiFsr2Processor> m_fsr2proc;
 
         // Atmosphere
         ComputePass*                                 m_atmospherePass = nullptr;
@@ -142,12 +142,12 @@ namespace Ifrit::Runtime
         Ref<GPUBindId>                                                     m_postprocTexSamplerId;
 
         // All postprocess passes required
-        Uref<PostprocessPassCollection::PostFxAcesToneMapping>             m_acesToneMapping;
-        Uref<PostprocessPassCollection::PostFxGlobalFog>                   m_globalFogPass;
-        Uref<PostprocessPassCollection::PostFxGaussianHori>                m_gaussianHori;
-        Uref<PostprocessPassCollection::PostFxGaussianVert>                m_gaussianVert;
-        Uref<PostprocessPassCollection::PostFxFFTConv2d>                   m_fftConv2d;
-        Uref<PostprocessPassCollection::PostFxJointBilaterialFilter>       m_jointBilateralFilter;
+        Owner<PostprocessPassCollection::PostFxAcesToneMapping>            m_acesToneMapping;
+        Owner<PostprocessPassCollection::PostFxGlobalFog>                  m_globalFogPass;
+        Owner<PostprocessPassCollection::PostFxGaussianHori>               m_gaussianHori;
+        Owner<PostprocessPassCollection::PostFxGaussianVert>               m_gaussianVert;
+        Owner<PostprocessPassCollection::PostFxFFTConv2d>                  m_fftConv2d;
+        Owner<PostprocessPassCollection::PostFxJointBilaterialFilter>      m_jointBilateralFilter;
 
         // Intermediate views
         CustomHashMap<PipeConf, DrawPass*, PipeHash>                       m_triangleViewPass;
@@ -209,12 +209,21 @@ namespace Ifrit::Runtime
         void SetupAndRunFrameGraph(PerFrameData& perframeData, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
 
     private:
-        virtual Uref<GPUCommandSubmission> Render(
+        virtual Owner<GPUCommandSubmission> Render(
             PerFrameData& perframeData, RenderTargets* renderTargets, const Vec<GPUCommandSubmission*>& cmdToWait);
 
     public:
         SyaroRenderer(IApplication* app) : RendererBase(app)
         {
+            auto rhiCapability = m_app->GetRhi()->GetCapabilities();
+            if (!rhiCapability.m_MeshShaderEnabled)
+            {
+                iErrorWithAbort("SyaroV1 Renderer: Syaro uses mesh shader for mesh processing, "
+                                "which requires mesh shader support. "
+                                "Your device does not support it, or it is not enabled. "
+                                "Please enable mesh shader support in the RHI settings.");
+            }
+
             SetupPersistentCullingPass();
             SetupVisibilityPass();
             SetupInstanceCullingPass();
@@ -226,11 +235,11 @@ namespace Ifrit::Runtime
             SetupPostprocessPassAndTextures();
             CreateTimer();
 
-            m_aoPass        = std::make_shared<AmbientOcclusionPass>(app);
-            m_RenderResPool = std::make_shared<FrameGraphResourcePool>(app->GetRhi());
+            m_aoPass        = MakeRef<AmbientOcclusionPass>(app);
+            m_RenderResPool = MakeRef<FrameGraphResourcePool>(app->GetRhi());
         }
-        inline void                        SetRenderRole(u32 role) { m_renderRole = role; }
-        virtual Uref<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
+        inline void                         SetRenderRole(u32 role) { m_renderRole = role; }
+        virtual Owner<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
             const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait) override;
     };
 } // namespace Ifrit::Runtime

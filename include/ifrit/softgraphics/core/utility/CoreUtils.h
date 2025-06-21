@@ -51,14 +51,11 @@ namespace Ifrit::Graphics::SoftGraphics::Core::Utility
             std::unique_ptr<GroupIteratorTp> curIters;
 
         public:
-            iterator(const GroupIteratorTp& iterators)
-            {
-                this->curIters = std::make_unique<GroupIteratorTp>(iterators);
-            }
+            iterator(const GroupIteratorTp& iterators) { this->curIters = MakeOwner<GroupIteratorTp>(iterators); }
             iterator(const iterator& other)
             {
                 GroupIteratorTp pIters = *other.curIters;
-                this->curIters         = std::make_unique<GroupIteratorTp>(pIters);
+                this->curIters         = MakeOwner<GroupIteratorTp>(pIters);
             }
             iterator& operator++()
             {
@@ -80,10 +77,7 @@ namespace Ifrit::Graphics::SoftGraphics::Core::Utility
         };
 
     public:
-        CoreUtilZipContainer(Args... args)
-        {
-            this->tuples = std::make_unique<std::tuple<Args...>>(std::make_tuple(args...));
-        }
+        CoreUtilZipContainer(Args... args) { this->tuples = MakeOwner<std::tuple<Args...>>(std::make_tuple(args...)); }
         iterator begin()
         {
             return iterator(std::apply([](auto&... p) { return std::make_tuple((p.begin())...); }, *(this->tuples)));

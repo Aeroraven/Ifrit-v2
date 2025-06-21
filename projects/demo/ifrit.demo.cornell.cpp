@@ -176,7 +176,7 @@ namespace Ifrit
             // Bistro interior has many one-sided meshes. The culling strategy is required to be reconsidered.
             renderConfig.m_OverrideMaterialCulling = OverrideMaterialCulling::ForcedCullNone;
 
-            renderer       = std::make_shared<AyanamiRenderer>(this, ayaConfig);
+            renderer       = MakeRef<AyanamiRenderer>(this, ayaConfig);
             auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Cornell/Untitled.gltf"); //
 
             auto s    = m_sceneAssetManager->CreateScene("TestScene2");
@@ -221,7 +221,7 @@ namespace Ifrit
                 numMeshes++;
 
                 auto t        = m->m_prefab;
-                auto material = std::make_shared<SyaroDefaultGBufEmitter>(this);
+                auto material = MakeRef<SyaroDefaultGBufEmitter>(this);
                 auto sampler  = m_SharedRenderResource->GetLinearClampSampler();
 
                 // if (numMeshes >= 4 && numMeshes <= 5 || numMeshes == 6 || numMeshes == 3 || numMeshes <= 2)
@@ -264,7 +264,7 @@ namespace Ifrit
             colorAttachment = rt->CreateRenderTarget(swapchainImg,
                 Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
             depthAttachment = rt->CreateRenderTargetDepthStencil(depthImage.get(),
-                Graphics::Rhi::CreateRhiClearDepthStencilValue(1.0f, 0.0), RhiRenderTargetLoadOp::Clear);
+                Graphics::Rhi::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Clear);
             renderTargets->SetColorAttachments({ colorAttachment.get() });
             renderTargets->SetDepthStencilAttachment(depthAttachment.get());
             renderTargets->SetRenderArea(scissor);

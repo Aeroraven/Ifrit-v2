@@ -150,7 +150,7 @@ namespace Ifrit::Runtime
         else
         {
             m_loaded   = true;
-            m_selfData = std::make_shared<MeshData>();
+            m_selfData = MakeRef<MeshData>();
             Vec<Vector3f> vertices;
             Vec<Vector3f> normals;
             Vec<Vector3f> remappedNormals;
@@ -222,7 +222,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void WaveFrontAssetImporter::ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata)
     {
-        auto asset = std::make_shared<WaveFrontAsset>(metadata, path);
+        auto asset = MakeRef<WaveFrontAsset>(metadata, path);
         m_assetManager->RegisterAsset(asset);
         // iInfo("Imported asset: [WaveFrontMesh] {}", metadata.m_uuid);
     }

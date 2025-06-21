@@ -27,13 +27,13 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL Ref<SceneNode> SceneNode::AddChildNode()
     {
-        auto node = std::make_shared<SceneNode>(m_parentScene);
+        auto node = MakeRef<SceneNode>(m_parentScene);
         m_children.push_back(node);
         return node;
     }
     IFRIT_APIDECL Ref<GameObject> SceneNode::AddGameObject(const String& name)
     {
-        auto obj = std::make_shared<GameObject>();
+        auto obj = MakeRef<GameObject>();
         obj->Initialize(m_parentScene->GetComponentManager());
         obj->SetName(name);
         m_gameObjects.push_back(obj);
@@ -219,10 +219,9 @@ namespace Ifrit::Runtime
         OnUpdate();
     }
 
-    IFRIT_APIDECL Scene::Scene()
-        : m_root(std::make_shared<SceneNode>(this)), m_perFrameData(std::make_shared<PerFrameData>())
+    IFRIT_APIDECL Scene::Scene() : m_root(MakeRef<SceneNode>(this)), m_perFrameData(MakeRef<PerFrameData>())
     {
-        m_componentManager = std::make_shared<ComponentManager>();
+        m_componentManager = MakeRef<ComponentManager>();
     }
 
 } // namespace Ifrit::Runtime

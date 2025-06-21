@@ -66,6 +66,26 @@ namespace Ifrit::Runtime
         String sPath  = path;
         String sEntry = entry;
 
+        auto   rhiCapability = m_Data->m_App->GetRhi()->GetCapabilities();
+        if (!rhiCapability.m_MeshShaderEnabled && (stage == ShaderType::Mesh || stage == ShaderType::Task))
+        {
+            iWarn("ShaderRegistry: Shader `{}` requires mesh shader support. But your device does not support it,"
+                  "or it is not enabled. Error will be raised when trying to use this shader.",
+                sName);
+            return;
+        }
+        if (!rhiCapability.m_HardwareRayTracingEnabled
+            && (stage == ShaderType::RTRayGen || stage == ShaderType::RTMiss || stage == ShaderType::RTAnyHit
+                || stage == ShaderType::RTClosestHit || stage == ShaderType::RTIntersection
+                || stage == ShaderType::RTCallable))
+        {
+            iWarn(
+                "ShaderRegistry: Shader `{}` requires hardware ray tracing support. But your device does not support it,"
+                "or it is not enabled. Error will be raised when trying to use this shader.",
+                sName);
+            return;
+        }
+
         if (!m_Data->m_ShaderMap.contains(sName))
         {
             m_Data->m_CompilingShaders.fetch_add(1, std::memory_order::acq_rel);
@@ -88,15 +108,13 @@ namespace Ifrit::Runtime
                     }
                     else
                     {
-                        iError("Unsupported shader file extension: {}", fileExtension);
-                        std::abort();
+                        iErrorWithAbort("ShaderRegistry: Unsupported shader file extension: {}", fileExtension);
                     }
 
                     auto shaderCode = ReadTextFile(shaderPath);
                     if (shaderCode.size() == 0)
                     {
-                        iError("Cannot read shader file {}", shaderPath.c_str());
-                        std::abort();
+                        iErrorWithAbort("ShaderRegistry: Cannot read shader file {}", shaderPath.c_str());
                     }
                     auto shaderCodeVec = Vec<char>(shaderCode.begin(), shaderCode.end());
                     auto rhi           = m_Data->m_App->GetRhi();
@@ -106,6 +124,7 @@ namespace Ifrit::Runtime
                     m_Data->m_ShaderMap[sName].m_Status.store(
                         ShaderRegistryData::ShaderStatus::Compiled, std::memory_order::release);
                     m_Data->m_CompilingShaders.fetch_sub(1, std::memory_order::acq_rel);
+                    iInfo("ShaderRegistry: Compiled shader `{}`", sName);
                 },
                 {}, nullptr);
         }
@@ -130,15 +149,11 @@ namespace Ifrit::Runtime
             {
                 std::this_thread::yield();
             }
-            if (permutations.size() != 0)
-            {
-                // iDebug("Shader {} has {} permutations", name, permutations.size());
-            }
             return m_Data->m_ShaderMap[name].m_Shader->GetVariant(permutations);
         }
         else
         {
-            iError("Shader {} not found", name);
+            iErrorWithAbort("ShaderRegistry: Shader {} not found", name);
             return nullptr;
         }
     }

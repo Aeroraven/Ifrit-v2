@@ -28,15 +28,17 @@ namespace Ifrit::Graphics::VulkanGraphics
     protected:
         // Note that Destructor order matters here
         // https://isocpp.org/wiki/faq/dtors#order-dtors-for-members
-        Uref<Rhi::RhiDevice>         m_device;
-        Uref<Rhi::RhiSwapchain>      m_swapChain;
+        Owner<Rhi::RhiDevice>        m_device;
+        Owner<Rhi::RhiSwapchain>     m_swapChain;
         RhiVulkanBackendImplDetails* m_implDetails;
+        Rhi::RhiCapabilityList       m_Capability = {};
 
     public:
         RhiVulkanBackend(const Rhi::RhiInitializeArguments& args);
         ~RhiVulkanBackend();
 
         void                     WaitDeviceIdle() override;
+        Rhi::RhiCapabilityList   GetCapabilities() const override;
         Ref<Rhi::RhiDeviceTimer> CreateDeviceTimer() override;
         Rhi::RhiBufferRef        CreateBuffer(
                    const String& name, u32 size, u32 usage, bool hostVisible, bool addUAV) const override;
@@ -71,23 +73,20 @@ namespace Ifrit::Graphics::VulkanGraphics
         Rhi::RhiComputePass*                   CreateComputePass() override;
         Rhi::RhiGraphicsPass*                  CreateGraphicsPass() override;
 
-        Uref<Rhi::RhiComputePass>              CreateComputePass2() override;
-        Uref<Rhi::RhiGraphicsPass>             CreateGraphicsPass2() override;
+        Owner<Rhi::RhiComputePass>             CreateComputePass2() override;
+        Owner<Rhi::RhiGraphicsPass>            CreateGraphicsPass2() override;
 
         // Swapchain
         Rhi::RhiTexture*                       GetSwapchainImage() override;
         void                                   BeginFrame() override;
         void                                   EndFrame() override;
-        Uref<Rhi::RhiTaskSubmission>           GetSwapchainFrameReadyEventHandler() override;
-        Uref<Rhi::RhiTaskSubmission>           GetSwapchainRenderDoneEventHandler() override;
+        Owner<Rhi::RhiTaskSubmission>          GetSwapchainFrameReadyEventHandler() override;
+        Owner<Rhi::RhiTaskSubmission>          GetSwapchainRenderDoneEventHandler() override;
 
         // Descriptor
         virtual Rhi::RhiBindlessDescriptorRef* CreateBindlessDescriptorRef() override;
         virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer) override;
         virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterStorageBufferShared(Rhi::RhiMultiBuffer* buffer) override;
-        // virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterCombinedImageSampler(
-        //      Rhi::RhiTexture* texture, Rhi::RhiSampler* sampler) override;
-
         // Descriptor, refactored
         virtual Rhi::RhiSRVDesc                GetSRVDescriptor(
                            Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
@@ -107,30 +106,30 @@ namespace Ifrit::Graphics::VulkanGraphics
         virtual Ref<Rhi::RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
             Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue2 clearValue, Rhi::RhiRenderTargetLoadOp loadOp) override;
 
-        virtual Ref<Rhi::RhiRenderTargets>         CreateRenderTargets() override;
+        virtual Ref<Rhi::RhiRenderTargets>          CreateRenderTargets() override;
 
         // Vertex buffer
-        virtual Ref<Rhi::RhiVertexBufferView>      CreateVertexBufferView() override;
-        virtual Ref<Rhi::RhiVertexBufferView>      GetFullScreenQuadVertexBufferView() const override;
+        virtual Ref<Rhi::RhiVertexBufferView>       CreateVertexBufferView() override;
+        virtual Ref<Rhi::RhiVertexBufferView>       GetFullScreenQuadVertexBufferView() const override;
 
         // Cache
-        virtual void                               SetCacheDirectory(const String& dir) override;
-        virtual String                             GetCacheDir() const override;
+        virtual void                                SetCacheDirectory(const String& dir) override;
+        virtual String                              GetCacheDir() const override;
 
         // Extension
-        virtual Uref<Rhi::FSR2::RhiFsr2Processor>  CreateFsr2Processor() override;
+        virtual Owner<Rhi::FSR2::RhiFsr2Processor>  CreateFsr2Processor() override;
 
         // Raytracing
-        virtual Uref<Rhi::RhiRTInstance>           CreateTLAS() { return nullptr; }
-        virtual Uref<Rhi::RhiRTScene>              CreateBLAS() { return nullptr; }
-        virtual Uref<Rhi::RhiRTShaderBindingTable> CreateShaderBindingTable() { return nullptr; }
+        virtual Owner<Rhi::RhiRTInstance>           CreateTLAS() { return nullptr; }
+        virtual Owner<Rhi::RhiRTScene>              CreateBLAS() { return nullptr; }
+        virtual Owner<Rhi::RhiRTShaderBindingTable> CreateShaderBindingTable() { return nullptr; }
 
-        virtual Uref<Rhi::RhiRTPass>               CreateRaytracingPass() { return nullptr; }
+        virtual Owner<Rhi::RhiRTPass>               CreateRaytracingPass() { return nullptr; }
     };
 
     class IFRIT_APIDECL RhiVulkanBackendBuilder : public Rhi::RhiBackendFactory, public NonCopyable
     {
     public:
-        Uref<Rhi::RhiBackend> CreateBackend(const Rhi::RhiInitializeArguments& args) override;
+        Owner<Rhi::RhiBackend> CreateBackend(const Rhi::RhiInitializeArguments& args) override;
     };
 } // namespace Ifrit::Graphics::VulkanGraphics

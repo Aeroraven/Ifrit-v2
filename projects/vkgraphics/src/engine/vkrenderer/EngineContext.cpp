@@ -59,20 +59,24 @@ namespace Ifrit::Graphics::VulkanGraphics
         VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,
         VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
         VK_EXT_SHADER_IMAGE_ATOMIC_INT64_EXTENSION_NAME,
+        VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME,
+        VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME,
     };
-    static bool      vSwapchainSupported                    = false;
-    static bool      vTimelineSemaphoreSupported            = false;
-    static bool      vGlobalMeshShaderSupported             = false;
-    static bool      vGlobalDynamicRenderingSupported       = false;
-    static bool      vGlobalDynamicVertexInputSupported     = false;
-    static bool      vGlobalDynamicState2Supported          = false;
-    static bool      vGlobalDynamicState3Supported          = false;
-    static bool      vGlobalColorWriteEnableSupported       = false;
-    static bool      vGlobalDescriptorIndexingSupported     = false;
-    static bool      vGlobalSpirv14Supported                = false;
-    static bool      vGlobalHostQueryResetSupported         = false;
-    static bool      vGlobalShaderFloatControlsSupported    = false;
-    static bool      vGlobalShaderImageAtomicInt64Supported = false;
+    static bool      vSwapchainSupported                       = false;
+    static bool      vTimelineSemaphoreSupported               = false;
+    static bool      vGlobalMeshShaderSupported                = false;
+    static bool      vGlobalDynamicRenderingSupported          = false;
+    static bool      vGlobalDynamicVertexInputSupported        = false;
+    static bool      vGlobalDynamicState2Supported             = false;
+    static bool      vGlobalDynamicState3Supported             = false;
+    static bool      vGlobalColorWriteEnableSupported          = false;
+    static bool      vGlobalDescriptorIndexingSupported        = false;
+    static bool      vGlobalSpirv14Supported                   = false;
+    static bool      vGlobalHostQueryResetSupported            = false;
+    static bool      vGlobalShaderFloatControlsSupported       = false;
+    static bool      vGlobalShaderImageAtomicInt64Supported    = false;
+    static bool      vGlobalShaderAtomicFloatSupported         = false;
+    static bool      vGlobalConservativeRasterizationSupported = false;
 
     // clang-format off
     Vec<bool*>       m_deviceExtensionsChk = { 
@@ -88,7 +92,10 @@ namespace Ifrit::Graphics::VulkanGraphics
         &vGlobalMeshShaderSupported, 
         &vGlobalHostQueryResetSupported,
         &vGlobalShaderFloatControlsSupported, 
-        &vGlobalShaderImageAtomicInt64Supported };
+        &vGlobalShaderImageAtomicInt64Supported,
+        &vGlobalShaderAtomicFloatSupported,
+        &vGlobalConservativeRasterizationSupported
+    };
     // clang-format on
 
     Vec<const char*> m_deviceExtensionsExtended = { VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
@@ -266,7 +273,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         instanceCI.ppEnabledLayerNames     = nullptr;
 
         // Create delete queue
-        m_DeleteQueue = std::make_unique<ResourceDeleteQueue>();
+        m_DeleteQueue = MakeOwner<ResourceDeleteQueue>();
 
         // Instance : Extensions
         u32 extensionCount = 0;
@@ -420,6 +427,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         if (m_args.m_enableHardwareRayTracing)
         {
             iInfo("EngineContext: Hardware ray tracing enabled");
+            m_Capability.m_HardwareRayTracingEnabled = true;
             for (auto extension : m_deviceExtensionsExtended)
             {
                 EnableExtension(true, extension, availableExtensionsDevice, targetDeviceExtensions);
@@ -427,6 +435,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         else
         {
+            m_Capability.m_HardwareRayTracingEnabled = false;
             iInfo("EngineContext: Hardware ray tracing disabled");
         }
 
@@ -441,25 +450,27 @@ namespace Ifrit::Graphics::VulkanGraphics
 
 #define SKIP_FEATURES(name) iWarn("EngineContext: Feature Not Supported: {}", name);
 
-        VkPhysicalDeviceFeatures                           deviceFeatures                      = {};
-        VkPhysicalDeviceVulkan11Features                   deviceFeatures11                    = {};
-        VkPhysicalDeviceVulkan12Features                   deviceFeatures12                    = {};
-        VkPhysicalDeviceDynamicRenderingFeaturesKHR        deviceFeaturesDynamic               = {};
-        VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT deviceFeaturesDynamicVertexInput    = {};
-        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT   deviceFeaturesExtendedDynamicState3 = {};
-        VkPhysicalDeviceExtendedDynamicState2FeaturesEXT   deviceFeaturesExtendedState2        = {};
-        VkPhysicalDeviceExtendedDynamicStateFeaturesEXT    deviceFeaturesExtendedState         = {};
-        VkPhysicalDeviceColorWriteEnableFeaturesEXT        deviceFeaturesColorWriteEnable      = {};
-        VkPhysicalDeviceDescriptorIndexingFeatures         descriptorIndexingFeatures{};
-        VkPhysicalDeviceMeshShaderFeaturesEXT              meshShaderFeatures{};
-        VkPhysicalDeviceHostQueryResetFeaturesEXT          hostQueryResetFeatures{};
-        VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT  shaderImageAtomicInt64Features{};
+        VkPhysicalDeviceFeatures                               deviceFeatures                      = {};
+        VkPhysicalDeviceVulkan11Features                       deviceFeatures11                    = {};
+        VkPhysicalDeviceVulkan12Features                       deviceFeatures12                    = {};
+        VkPhysicalDeviceDynamicRenderingFeaturesKHR            deviceFeaturesDynamic               = {};
+        VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT     deviceFeaturesDynamicVertexInput    = {};
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT       deviceFeaturesExtendedDynamicState3 = {};
+        VkPhysicalDeviceExtendedDynamicState2FeaturesEXT       deviceFeaturesExtendedState2        = {};
+        VkPhysicalDeviceExtendedDynamicStateFeaturesEXT        deviceFeaturesExtendedState         = {};
+        VkPhysicalDeviceColorWriteEnableFeaturesEXT            deviceFeaturesColorWriteEnable      = {};
+        VkPhysicalDeviceDescriptorIndexingFeatures             descriptorIndexingFeatures{};
+        VkPhysicalDeviceMeshShaderFeaturesEXT                  meshShaderFeatures{};
+        VkPhysicalDeviceHostQueryResetFeaturesEXT              hostQueryResetFeatures{};
+        VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT      shaderImageAtomicInt64Features{};
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT           shaderAtomicFloatFeatures{};
+        VkPhysicalDeviceConservativeRasterizationPropertiesEXT conservativeRasterizationProperties{};
 
-        VkDeviceCreateInfo                                 deviceCI = {};
-        deviceCI.sType                                              = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        deviceCI.queueCreateInfoCount                               = SizeCast<u32>(queueCreateInfos.size());
-        deviceCI.pQueueCreateInfos                                  = queueCreateInfos.data();
-        deviceCI.pEnabledFeatures                                   = &deviceFeatures;
+        VkDeviceCreateInfo                                     deviceCI = {};
+        deviceCI.sType                                                  = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCI.queueCreateInfoCount                                   = SizeCast<u32>(queueCreateInfos.size());
+        deviceCI.pQueueCreateInfos                                      = queueCreateInfos.data();
+        deviceCI.pEnabledFeatures                                       = &deviceFeatures;
         // deviceCI.pNext                                              = &deviceFeatures11;
         deviceCI.enabledExtensionCount   = SizeCast<u32>(targetDeviceExtensions.size());
         deviceCI.ppEnabledExtensionNames = targetDeviceExtensions.data();
@@ -556,13 +567,15 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         if (vGlobalMeshShaderSupported)
         {
-            meshShaderFeatures.sType      = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
-            meshShaderFeatures.taskShader = VK_TRUE;
-            meshShaderFeatures.meshShader = VK_TRUE;
+            meshShaderFeatures.sType         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
+            meshShaderFeatures.taskShader    = VK_TRUE;
+            meshShaderFeatures.meshShader    = VK_TRUE;
+            m_Capability.m_MeshShaderEnabled = true;
             ADD_TO_FEATURES(meshShaderFeatures, pLinklistHead, "Mesh Shader Features");
         }
         else
         {
+            m_Capability.m_MeshShaderEnabled = false;
             SKIP_FEATURES("Mesh Shader Features");
         }
 
@@ -576,6 +589,20 @@ namespace Ifrit::Graphics::VulkanGraphics
         else
         {
             SKIP_FEATURES("Shader Image Atomic Int64 Features");
+        }
+
+        if (vGlobalShaderAtomicFloatSupported)
+        {
+            shaderAtomicFloatFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
+            shaderAtomicFloatFeatures.shaderBufferFloat32Atomics   = VK_TRUE;
+            shaderAtomicFloatFeatures.shaderBufferFloat32AtomicAdd = VK_TRUE;
+            m_Capability.m_ShaderFloatAtomicsEnabled               = true;
+            ADD_TO_FEATURES(shaderAtomicFloatFeatures, pLinklistHead, "Shader Atomic Float Features");
+        }
+        else
+        {
+            m_Capability.m_ShaderFloatAtomicsEnabled = false;
+            SKIP_FEATURES("Shader Atomic Float Features");
         }
 
         deviceFeatures.samplerAnisotropy              = VK_TRUE;

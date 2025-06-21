@@ -26,6 +26,6 @@ namespace Ifrit::Display::Backend
     class IFRIT_APIDECL AdaptiveBackendBuilder
     {
     public:
-        Uref<BackendProvider> BuildUniqueBackend();
+        Owner<BackendProvider> BuildUniqueBackend();
     };
 } // namespace Ifrit::Display::Backend

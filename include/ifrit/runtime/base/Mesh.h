@@ -248,8 +248,8 @@ namespace Ifrit::Runtime
         Ref<MeshInstance> m_instance  = nullptr;
 
     public:
-        MeshFilter() { m_instance = std::make_shared<MeshInstance>(); }
-        MeshFilter(Ref<GameObject> owner) : Component(owner) { m_instance = std::make_shared<MeshInstance>(); }
+        MeshFilter() { m_instance = MakeRef<MeshInstance>(); }
+        MeshFilter(Ref<GameObject> owner) : Component(owner) { m_instance = MakeRef<MeshInstance>(); }
         virtual ~MeshFilter() = default;
         inline String Serialize() override { return ""; }
         inline void   Deserialize() override {}

@@ -32,8 +32,8 @@ namespace Ifrit
     public:
         ConsoleVariable(const char* name, T value, const char* description, u8 flags = CVF_Default)
         {
-            Uref<IConsoleVariableRegistryEntry> entry =
-                std::make_unique<ConsoleVariableRegistryEntry<T>>(value, description, flags);
+            Owner<IConsoleVariableRegistryEntry> entry =
+                MakeOwner<ConsoleVariableRegistryEntry<T>>(value, description, flags);
             m_Entry = static_cast<ConsoleVariableRegistryEntry<T>*>(entry.get());
             GetConsoleVariableRegistry()->RegisterVariable(name, entry);
         }

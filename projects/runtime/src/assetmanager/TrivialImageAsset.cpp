@@ -171,7 +171,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void             TrivialImageAssetImporter::ImportAsset(
         const std::filesystem::path& path, AssetMetadata& metadata)
     {
-        auto asset = std::make_shared<TrivialImageAsset>(metadata, path, m_assetManager->GetApplication());
+        auto asset = MakeRef<TrivialImageAsset>(metadata, path, m_assetManager->GetApplication());
         m_assetManager->RegisterAsset(asset);
     }
 

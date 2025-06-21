@@ -481,7 +481,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
         if (m_queueCollections == nullptr)
         {
-            m_queueCollections = std::make_unique<QueueCollections>(m_context);
+            m_queueCollections = MakeOwner<QueueCollections>(m_context);
             m_queueCollections->LoadQueues(numFramesInFlight);
         }
         auto                      graphicsQueues = m_queueCollections->GetGraphicsQueues();

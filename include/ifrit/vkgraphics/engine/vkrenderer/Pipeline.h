@@ -98,11 +98,11 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
     private:
         EngineContext*                  m_context;
-        Vec<Uref<GraphicsPipeline>>     m_graphicsPipelines;
+        Vec<Owner<GraphicsPipeline>>    m_graphicsPipelines;
         Vec<GraphicsPipelineCreateInfo> m_graphicsPipelineCI;
         HashMap<u64, Vec<int>>          m_graphicsPipelineMap;
 
-        Vec<Uref<ComputePipeline>>      m_computePipelines;
+        Vec<Owner<ComputePipeline>>     m_computePipelines;
         Vec<ComputePipelineCreateInfo>  m_computePipelineCI;
         HashMap<u64, Vec<int>>          m_computePipelineMap;
 

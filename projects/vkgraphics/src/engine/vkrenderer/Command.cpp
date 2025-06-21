@@ -72,7 +72,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_InFlightCommandBuffers.clear();
     }
 
-    IFRIT_APIDECL void CommandPool::EnqueueInFlightCommandBuffer(Uref<CommandBuffer>&& cmdBuf)
+    IFRIT_APIDECL void CommandPool::EnqueueInFlightCommandBuffer(Owner<CommandBuffer>&& cmdBuf)
     {
         m_InFlightCommandBuffers.emplace_back(std::move(cmdBuf));
     }
@@ -91,7 +91,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkCommandBuffer buffer;
         vkrVulkanAssert(
             vkAllocateCommandBuffers(m_context->GetDevice(), &bufferAI, &buffer), "Failed to allocate command buffer");
-        return std::make_shared<CommandBuffer>(m_context, buffer, m_queueFamily);
+        return MakeRef<CommandBuffer>(m_context, buffer, m_queueFamily);
     }
 
     IFRIT_APIDECL std::unique_ptr<CommandBuffer> CommandPool::AllocateCommandBufferUnique()
@@ -108,7 +108,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             vkrVulkanAssert(vkAllocateCommandBuffers(m_context->GetDevice(), &bufferAI, &buffer),
                 "Failed to allocate command buffer");
 
-            return std::make_unique<CommandBuffer>(m_context, buffer, m_queueFamily);
+            return MakeOwner<CommandBuffer>(m_context, buffer, m_queueFamily);
         }
         else
         {
@@ -862,12 +862,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         , m_capability(capability)
         , m_InFlightFrames(m_InFlightFrames)
     {
-        // m_commandPool       = std::make_unique<CommandPool>(ctx, family);
+        // m_commandPool       = MakeOwner<CommandPool>(ctx, family);
         for (u32 i = 0; i < m_InFlightFrames; i++)
         {
-            m_commandPools.push_back(std::make_unique<CommandPool>(ctx, family));
+            m_commandPools.push_back(MakeOwner<CommandPool>(ctx, family));
         }
-        m_timelineSemaphore = std::make_unique<TimelineSemaphore>(ctx);
+        m_timelineSemaphore = MakeOwner<TimelineSemaphore>(ctx);
     }
 
     IFRIT_APIDECL void DeviceQueue::FrameAdvance()
@@ -883,7 +883,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             vkrError("Command buffer still in use");
         }
-        Uref<CommandBuffer> buffer;
+        Owner<CommandBuffer> buffer;
         buffer = m_commandPools[m_ActiveFrame]->AllocateCommandBufferUnique();
 
         if (buffer == nullptr)
@@ -952,7 +952,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         vkrVulkanAssert(vkQueueSubmit(m_queue, 1, &submitInfo, vfence), "Failed to submit command buffer");
         // move the command buffer to the free list
-        Uref<CommandBuffer> cmdBuf = std::move(m_cmdBufInUse.top());
+        Owner<CommandBuffer> cmdBuf = std::move(m_cmdBufInUse.top());
         m_commandPools[m_ActiveFrame]->EnqueueInFlightCommandBuffer(std::move(cmdBuf));
         m_cmdBufInUse.pop();
 
@@ -970,7 +970,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     // Class: CommandSubmissionList
     IFRIT_APIDECL      CommandSubmissionList::CommandSubmissionList(EngineContext* ctx) : m_context(ctx)
     {
-        m_hostSyncSemaphore = std::make_unique<TimelineSemaphore>(ctx);
+        m_hostSyncSemaphore = MakeOwner<TimelineSemaphore>(ctx);
     }
 
     IFRIT_APIDECL void CommandSubmissionList::AddSubmission(const CommandSubmissionInfo& info)
@@ -1064,7 +1064,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto semaphore = CheckedCast<TimelineSemaphoreWait>(waitOn[i]);
             waitSemaphores.push_back(*semaphore);
         }
-        return std::make_unique<TimelineSemaphoreWait>(SubmitCommand(waitSemaphores, fence, swapchainSemaphore));
+        return MakeOwner<TimelineSemaphoreWait>(SubmitCommand(waitSemaphores, fence, swapchainSemaphore));
     }
 
     void DeviceQueue::HostWaitEvent(Rhi::RhiTaskSubmission* event)
@@ -1087,7 +1087,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             auto queue           = queueData.m_allQueues[i];
             auto queueCapability = queueData.m_queueFamilies[queue.m_familyIndex].m_capability;
-            m_queues.push_back(std::make_unique<DeviceQueue>(
+            m_queues.push_back(MakeOwner<DeviceQueue>(
                 m_context, queue.m_queue, queue.m_familyIndex, queueCapability, numFramesInFlight));
         }
     }

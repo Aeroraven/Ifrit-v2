@@ -156,7 +156,7 @@ namespace Ifrit
         m_Attributes->m_Workers.reserve(numThreads);
         for (u32 i = 0; i < numThreads; ++i)
         {
-            auto workerRef = std::make_shared<TaskWorker>(this, i);
+            auto workerRef = MakeRef<TaskWorker>(this, i);
             m_Attributes->m_Workers.emplace_back(workerRef);
             m_Attributes->m_Workers[i]->Launch();
         }

@@ -8,11 +8,9 @@
 Some **toys** about real-time rendering. Currently, it contains:
 
 - **Soft-Renderer**: CUDA / Multithreaded CPU Software Rasterizer & Ray-tracer, with JIT support.
-- **Experimental Renderer**:
-  - **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details. (Under development)
-  - **Ayanami**: A Planned Project for Global Illumination with Probes and Software Raytracing. (Under development)
-
-
+- **Experimental Renderer**: All projects are under development.
+  - **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details. 
+  - **Ayanami**: A Planned Project for Global Illumination with Probes and Software Raytracing.
 
 
 | Soft Renderer / Mesh Shading                                | Soft Renderer / CUDA Renderer                                |
@@ -195,9 +193,7 @@ And extra acknowledgements to the comments from interviewers when I was seeking 
 
 ## 6. License
 
-The repo is licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html) **by default**. Other licenses are only applicable with all contributors' consent.
-
-All commits and codes before commit `434ff294bca5bf11e318ea91afe327ba5f88e4e1` (not including) are solely licensed under AGPL-v3.0 license **with no exceptions**.
+The repo is licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html) **by default**. Other licenses are only applicable with all contributors' consent. Dual licensing is applicable.
 
 The copy for license can be found in the root directory. 
 

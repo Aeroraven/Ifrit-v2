@@ -48,7 +48,7 @@ namespace Ifrit::Runtime
         {
             return;
         }
-        auto data                     = std::make_shared<PbrAtmospherePerframe>();
+        auto data                     = MakeRef<PbrAtmospherePerframe>();
         perframeData.m_atmosphereData = data;
 
         IF_CONSTEXPR auto solarIrradiance      = Util::PbrAtmoConstants::GetSolarIrradiance();

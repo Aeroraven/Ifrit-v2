@@ -63,8 +63,8 @@ namespace Ifrit::Graphics::Rhi
     class IFRIT_APIDECL RhiBackendFactory
     {
     public:
-        virtual ~RhiBackendFactory()                                               = default;
-        virtual Uref<RhiBackend> CreateBackend(const RhiInitializeArguments& args) = 0;
+        virtual ~RhiBackendFactory()                                                = default;
+        virtual Owner<RhiBackend> CreateBackend(const RhiInitializeArguments& args) = 0;
     };
 
     class IFRIT_APIDECL RhiBackend
@@ -79,6 +79,8 @@ namespace Ifrit::Graphics::Rhi
         virtual Ref<RhiDeviceTimer> CreateDeviceTimer() = 0;
         // Memory resource
         virtual void                WaitDeviceIdle() = 0;
+
+        virtual RhiCapabilityList   GetCapabilities() const = 0;
 
         // Create a general buffer
         virtual RhiBufferRef        CreateBuffer(
@@ -114,22 +116,20 @@ namespace Ifrit::Graphics::Rhi
         virtual RhiGraphicsPass*           CreateGraphicsPass() = 0;
 
         // Pass execution
-        virtual Uref<RhiComputePass>       CreateComputePass2()  = 0;
-        virtual Uref<RhiGraphicsPass>      CreateGraphicsPass2() = 0;
+        virtual Owner<RhiComputePass>      CreateComputePass2()  = 0;
+        virtual Owner<RhiGraphicsPass>     CreateGraphicsPass2() = 0;
 
         // Swapchain
         virtual RhiTexture*                GetSwapchainImage()                  = 0;
         virtual void                       BeginFrame()                         = 0;
         virtual void                       EndFrame()                           = 0;
-        virtual Uref<RhiTaskSubmission>    GetSwapchainFrameReadyEventHandler() = 0;
-        virtual Uref<RhiTaskSubmission>    GetSwapchainRenderDoneEventHandler() = 0;
+        virtual Owner<RhiTaskSubmission>   GetSwapchainFrameReadyEventHandler() = 0;
+        virtual Owner<RhiTaskSubmission>   GetSwapchainRenderDoneEventHandler() = 0;
 
         // Descriptor, these are deprecated.
         virtual RhiBindlessDescriptorRef*  CreateBindlessDescriptorRef()                       = 0;
         virtual Ref<RhiDescHandleLegacy>   RegisterUniformBuffer(RhiMultiBuffer* buffer)       = 0;
         virtual Ref<RhiDescHandleLegacy>   RegisterStorageBufferShared(RhiMultiBuffer* buffer) = 0;
-        // virtual Ref<RhiDescHandleLegacy>   RegisterCombinedImageSampler(RhiTexture* texture, RhiSampler* sampler) =
-        // 0;
 
         // Descriptors
         virtual RhiSRVDesc                 GetSRVDescriptor(RhiTexture* texture, RhiImageSubResource subResource) = 0;
@@ -147,23 +147,23 @@ namespace Ifrit::Graphics::Rhi
         virtual Ref<RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
             RhiTexture* renderTarget, RhiClearValue2 clearValue, RhiRenderTargetLoadOp loadOp) = 0;
 
-        virtual Ref<RhiRenderTargets>         CreateRenderTargets() = 0;
+        virtual Ref<RhiRenderTargets>          CreateRenderTargets() = 0;
 
         // Vertex buffer
-        virtual Ref<RhiVertexBufferView>      CreateVertexBufferView()                  = 0;
-        virtual Ref<RhiVertexBufferView>      GetFullScreenQuadVertexBufferView() const = 0;
+        virtual Ref<RhiVertexBufferView>       CreateVertexBufferView()                  = 0;
+        virtual Ref<RhiVertexBufferView>       GetFullScreenQuadVertexBufferView() const = 0;
 
-        virtual void                          SetCacheDirectory(const String& dir) = 0;
-        virtual String                        GetCacheDir() const                  = 0;
+        virtual void                           SetCacheDirectory(const String& dir) = 0;
+        virtual String                         GetCacheDir() const                  = 0;
 
         // Extensions
-        virtual Uref<FSR2::RhiFsr2Processor>  CreateFsr2Processor() = 0;
+        virtual Owner<FSR2::RhiFsr2Processor>  CreateFsr2Processor() = 0;
 
         // Raytracing
-        virtual Uref<RhiRTInstance>           CreateTLAS()               = 0;
-        virtual Uref<RhiRTScene>              CreateBLAS()               = 0;
-        virtual Uref<RhiRTShaderBindingTable> CreateShaderBindingTable() = 0;
-        virtual Uref<RhiRTPass>               CreateRaytracingPass()     = 0;
+        virtual Owner<RhiRTInstance>           CreateTLAS()               = 0;
+        virtual Owner<RhiRTScene>              CreateBLAS()               = 0;
+        virtual Owner<RhiRTShaderBindingTable> CreateShaderBindingTable() = 0;
+        virtual Owner<RhiRTPass>               CreateRaytracingPass()     = 0;
     };
 
 } // namespace Ifrit::Graphics::Rhi

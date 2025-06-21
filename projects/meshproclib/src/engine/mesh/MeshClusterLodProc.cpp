@@ -75,10 +75,11 @@ namespace Ifrit::MeshProcLib::MeshProcess
         return (u64(a) << 32) | b;
     }
     std::tuple<u32, u32> UnpackUnorderedPair(u64 pair)
-    { return std::make_tuple(static_cast<u32>(pair >> 32), static_cast<u32>(pair & 0xFFFFFFFFull));
+    {
+        return std::make_tuple(static_cast<u32>(pair >> 32), static_cast<u32>(pair & 0xFFFFFFFFull));
     }
 
-    void                 FreeUnusedMemoryInCotenxt(ClusterLodGeneratorContext& ctx)
+    void FreeUnusedMemoryInCotenxt(ClusterLodGeneratorContext& ctx)
     {
         auto maxMeshlets = ctx.totalMeshlets;
         auto maxVertexCount =
@@ -734,13 +735,13 @@ namespace Ifrit::MeshProcLib::MeshProcess
 
     struct ClusterGroupBVHNode
     {
-        Array<Uref<ClusterGroupBVHNode>, BVH_CHILDREN> child;
-        Vec<const ClusterGroup*>                       childClusterGroups;
-        u32                                            isLeaf          = 0;
-        u32                                            curChildren     = 0;
-        u32                                            subTreeSize     = 0;
-        f32                                            maxClusterError = 0.0f;
-        BoundingBox                                    bbox;
+        Array<Owner<ClusterGroupBVHNode>, BVH_CHILDREN> child;
+        Vec<const ClusterGroup*>                        childClusterGroups;
+        u32                                             isLeaf          = 0;
+        u32                                             curChildren     = 0;
+        u32                                             subTreeSize     = 0;
+        f32                                             maxClusterError = 0.0f;
+        BoundingBox                                     bbox;
     };
 
     struct ClusterGroupBVHNodeBuildData
@@ -752,7 +753,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
 
     struct ClusterGroupBVH
     {
-        Uref<ClusterGroupBVHNode> root;
+        Owner<ClusterGroupBVHNode> root;
     };
 
     // Some bvh utility functions
@@ -842,7 +843,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
     {
         Vec<ClusterGroupBVHNodeBuildData> q;
         // first, make bvh root
-        bvh.root = std::make_unique<ClusterGroupBVHNode>();
+        bvh.root = MakeOwner<ClusterGroupBVHNode>();
         Vec<u32> clusterGroupIndices(clusterGroups.size());
         for (int i = 0; i < clusterGroups.size(); i++)
             clusterGroupIndices[i] = i;
@@ -890,8 +891,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
                 continue;
             }
 
-            curNode.bvhNode->child[0] = std::make_unique<ClusterGroupBVHNode>();
-            curNode.bvhNode->child[1] = std::make_unique<ClusterGroupBVHNode>();
+            curNode.bvhNode->child[0] = MakeOwner<ClusterGroupBVHNode>();
+            curNode.bvhNode->child[1] = MakeOwner<ClusterGroupBVHNode>();
 
             ClusterGroupBVHNodeBuildData leftSubTree, rightSubTree;
             leftSubTree.clusterStart  = curNode.clusterStart;
@@ -921,8 +922,8 @@ namespace Ifrit::MeshProcLib::MeshProcess
         struct IndirectChildrenSet
         {
             // after collapse, these nodes will be deleted
-            Vec<Uref<ClusterGroupBVHNode>> nodesToCollapse;
-            Vec<Uref<ClusterGroupBVHNode>> childNodes;
+            Vec<Owner<ClusterGroupBVHNode>> nodesToCollapse;
+            Vec<Owner<ClusterGroupBVHNode>> childNodes;
             IndirectChildrenSet() {}
             IndirectChildrenSet& operator=(const IndirectChildrenSet& p) = delete;
             IndirectChildrenSet(const IndirectChildrenSet& p)            = delete;
@@ -1021,7 +1022,7 @@ namespace Ifrit::MeshProcLib::MeshProcess
             }
 
             // remove all leaf nodes (node->child), using erase if
-            Vec<Uref<ClusterGroupBVHNode>> newChildren;
+            Vec<Owner<ClusterGroupBVHNode>> newChildren;
             for (u32 i = 0; i < node->curChildren; i++)
             {
                 if (!node->child[i]->isLeaf)

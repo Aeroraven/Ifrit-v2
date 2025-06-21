@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/shadercompile/glslproc/GlslSpirvTranslator.h"
 #include "ifrit/core/logging/Logging.h"
+#include "ifrit/core/typing/Util.h"
 #include "sha1/sha1.hpp"
 #include <shaderc/shaderc.hpp>
 #include "spirv_reflect/spirv_reflect.h"
@@ -66,7 +67,7 @@ namespace Ifrit::ShaderCompile::GLSLProc
     {
         shaderc::Compiler       compiler;
         shaderc::CompileOptions options;
-        options.SetIncluder(std::make_unique<CustomShaderInclude>(baseDir));
+        options.SetIncluder(MakeOwner<CustomShaderInclude>(baseDir));
         options.SetGenerateDebugInfo();
         //  precompile
         shaderc::PreprocessedSourceCompilationResult precompiledModule =
@@ -88,7 +89,7 @@ namespace Ifrit::ShaderCompile::GLSLProc
     {
         shaderc::Compiler       compiler;
         shaderc::CompileOptions options;
-        options.SetIncluder(std::make_unique<CustomShaderInclude>(baseDir));
+        options.SetIncluder(MakeOwner<CustomShaderInclude>(baseDir));
         options.SetGenerateDebugInfo();
         //  precompile
         shaderc::PreprocessedSourceCompilationResult precompiledModule =
@@ -269,7 +270,7 @@ namespace Ifrit::ShaderCompile::GLSLProc
             }
         }
         output.m_IR.m_Format = ShaderIRFormat::SpirV;
-        output.m_IR.m_Data.CopyFromRaw(pCode, codeSize);
+        output.m_IR.m_Data.CopyFromRaw(pCode, SizeCast<u32>(codeSize));
         // iDebug("Data size: {}", output.m_IR.m_Data.GetSize());
         return output;
     }

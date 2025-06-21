@@ -25,9 +25,25 @@ set(IFRIT_SLANG_GENERATED_TARGETS
     copy-slang-tint
     copy-webgpu_dawn
 )
+
+set(IFRIT_SLANG_ACCEPTED_TARGETS)
+
 foreach(target IN LISTS IFRIT_SLANG_GENERATED_TARGETS)
+    if (TARGET ${target})
+        list(APPEND IFRIT_SLANG_ACCEPTED_TARGETS ${target})
+    else()
+        message(WARNING "Target '${target}' not found, skipping.")
+    endif()
+endforeach()
+
+# foreach(target IN LISTS IFRIT_SLANG_GENERATED_TARGETS)
+#     set_target_properties(${target} PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang/generated)
+# endforeach()
+
+foreach(target IN LISTS IFRIT_SLANG_ACCEPTED_TARGETS)
     set_target_properties(${target} PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/slang/generated)
 endforeach()
+
 
 set(IFRIT_SLANG_GENERATOR_HEADERS
     slang-bootstrap

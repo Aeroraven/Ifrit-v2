@@ -81,7 +81,7 @@ namespace Ifrit::Runtime
     }
 
     // Specialized nodes
-    IFRIT_APIDECL GraphicsPassNode::GraphicsPassNode(Uref<Graphics::Rhi::RhiGraphicsPass>&& pass)
+    IFRIT_APIDECL GraphicsPassNode::GraphicsPassNode(Owner<Graphics::Rhi::RhiGraphicsPass>&& pass)
         : m_pass(std::move(pass))
     {
     }
@@ -180,7 +180,8 @@ namespace Ifrit::Runtime
         return *this;
     }
 
-    IFRIT_APIDECL ComputePassNode::ComputePassNode(Uref<Graphics::Rhi::RhiComputePass>&& pass) : m_pass(std::move(pass))
+    IFRIT_APIDECL ComputePassNode::ComputePassNode(Owner<Graphics::Rhi::RhiComputePass>&& pass)
+        : m_pass(std::move(pass))
     {
     }
 
@@ -198,7 +199,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL ResourceNode& FrameGraphBuilder::AddResource(const String& name)
     {
         // ResourceNode* node = new ResourceNode();
-        auto node        = std::make_unique<ResourceNode>();
+        auto node        = MakeOwner<ResourceNode>();
         node->id         = SizeCast<u32>(m_resources.size());
         node->type       = FrameGraphResourceType::Undefined;
         node->name       = name;
@@ -212,7 +213,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL PassNode& FrameGraphBuilder::AddPass(const String& name, FrameGraphPassType type)
     {
         // PassNode* node   = new PassNode();
-        auto node        = std::make_unique<PassNode>();
+        auto node        = MakeOwner<PassNode>();
         node->type       = type;
         node->id         = SizeCast<u32>(m_passes.size());
         node->name       = name;
@@ -233,7 +234,7 @@ namespace Ifrit::Runtime
         cp->SetComputeShader(m_ShaderRegistry->GetShader(shader));
         cp->SetPushConstSize(pushConsts * sizeof(u32));
 
-        auto pass        = std::make_unique<ComputePassNode>(std::move(cp));
+        auto pass        = MakeOwner<ComputePassNode>(std::move(cp));
         pass->id         = SizeCast<u32>(m_passes.size());
         pass->name       = name;
         pass->isImported = false;
@@ -252,7 +253,7 @@ namespace Ifrit::Runtime
         gp->SetPixelShader(m_ShaderRegistry->GetShader(fs));
         gp->SetPushConstSize(pushConsts * sizeof(u32));
 
-        auto pass        = std::make_unique<GraphicsPassNode>(std::move(gp));
+        auto pass        = MakeOwner<GraphicsPassNode>(std::move(gp));
         pass->id         = SizeCast<u32>(m_passes.size());
         pass->name       = name;
         pass->isImported = false;
@@ -272,7 +273,7 @@ namespace Ifrit::Runtime
         gp->SetPushConstSize(pushConsts * sizeof(u32));
 
         // auto pass        = new GraphicsPassNode(std::move(gp));
-        auto pass        = std::make_unique<GraphicsPassNode>(std::move(gp));
+        auto pass        = MakeOwner<GraphicsPassNode>(std::move(gp));
         pass->id         = SizeCast<u32>(m_passes.size());
         pass->name       = name;
         pass->isImported = false;

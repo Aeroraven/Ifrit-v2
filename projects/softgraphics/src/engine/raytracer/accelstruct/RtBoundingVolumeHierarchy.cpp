@@ -217,8 +217,8 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
                 }
             }
 
-            node->left               = std::make_unique<BVHNode>();
-            node->right              = std::make_unique<BVHNode>();
+            node->left               = MakeOwner<BVHNode>();
+            node->right              = MakeOwner<BVHNode>();
             node->left->elementSize  = pivot - start + 1;
             node->right->elementSize = node->elementSize - node->left->elementSize;
 
@@ -292,7 +292,7 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
         std::vector<int>& indices, std::vector<SVector3f>& centers, std::vector<int>& belonging,
         const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& data)
     {
-        root = std::make_unique<BVHNode>();
+        root = MakeOwner<BVHNode>();
 
         bboxes    = std::vector<BoundingBox>(size);
         indices   = std::vector<int>(size);
@@ -475,7 +475,7 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
     }
     void BoundingVolumeHierarchyBottomLevelAS::buildAccelerationStructure()
     {
-        root = std::make_unique<BVHNode>();
+        root = MakeOwner<BVHNode>();
 
         bboxes    = std::vector<BoundingBox>(size);
         indices   = std::vector<int>(size);

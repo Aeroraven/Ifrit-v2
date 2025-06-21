@@ -1678,7 +1678,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
 #undef IF_DECLPS_ITERFUNC
     }
 
-    void TileRasterWorker::threadStart() { execWorker = std::make_unique<std::thread>(&TileRasterWorker::Run, this); }
+    void TileRasterWorker::threadStart() { execWorker = MakeOwner<std::thread>(&TileRasterWorker::Run, this); }
 
     void TileRasterWorker::pixelShadingFromTagBufferQuadInvo(
         const int dxA, const int dyA, const PixelShadingFuncArgs& args) IFRIT_AP_NOTHROW

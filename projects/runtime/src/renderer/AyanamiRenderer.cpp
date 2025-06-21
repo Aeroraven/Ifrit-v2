@@ -53,22 +53,22 @@ namespace Ifrit::Runtime
         using ColorRT     = RhiColorAttachment;
         using GPURT       = RhiRenderTargets;
 
-        FrameGraphCompiler                      m_FgCompiler;
-        Uref<FrameGraphExecutor>                m_FgExecutor;
-        Uref<AyanamiSceneAggregator>            m_SceneAggregator;
-        Uref<AyanamiTrivialSurfaceCacheManager> m_SurfaceCache    = nullptr;
-        Uref<AyanamiDistanceFieldLighting>      m_DFLighting      = nullptr;
-        Uref<AyanamiDebugger>                   m_Debugger        = nullptr;
-        Uref<AyanamiScreenProbeProcessor>       m_ScreenProbe     = nullptr;
-        Uref<SinglePassHiZPass>                 m_SpHiZ           = nullptr;
-        Uref<AyanamiDeferredShading>            m_DeferredShading = nullptr;
+        FrameGraphCompiler                       m_FgCompiler;
+        Owner<FrameGraphExecutor>                m_FgExecutor;
+        Owner<AyanamiSceneAggregator>            m_SceneAggregator;
+        Owner<AyanamiTrivialSurfaceCacheManager> m_SurfaceCache    = nullptr;
+        Owner<AyanamiDistanceFieldLighting>      m_DFLighting      = nullptr;
+        Owner<AyanamiDebugger>                   m_Debugger        = nullptr;
+        Owner<AyanamiScreenProbeProcessor>       m_ScreenProbe     = nullptr;
+        Owner<SinglePassHiZPass>                 m_SpHiZ           = nullptr;
+        Owner<AyanamiDeferredShading>            m_DeferredShading = nullptr;
 
-        Uref<AyanamiSharedContext>              m_SharedContext = nullptr;
+        Owner<AyanamiSharedContext>              m_SharedContext = nullptr;
 
-        bool                                    m_Inited     = false;
-        bool                                    m_DbgShowMDF = false;
+        bool                                     m_Inited     = false;
+        bool                                     m_DbgShowMDF = false;
 
-        Ref<FrameGraphResourcePool>             m_ResourcePool = nullptr;
+        Ref<FrameGraphResourcePool>              m_ResourcePool = nullptr;
     };
 
     static ComputePassNode& AddOfflineShadowMaskPass(FrameGraphBuilder& builder, AyanamiRendererResources* res,
@@ -99,22 +99,31 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void AyanamiRenderer::InitRenderer()
     {
-        m_Resources                  = new AyanamiRendererResources();
-        m_Resources->m_SharedContext = std::make_unique<AyanamiSharedContext>();
+        auto rhiCapability = m_app->GetRhi()->GetCapabilities();
+        if (!rhiCapability.m_MeshShaderEnabled)
+        {
+            iErrorWithAbort("Ayanami.Renderer: Ayanami uses SyaroV1 as the GBuffer generator,"
+                            "which requires mesh shader support. "
+                            "Your device does not support it, or it is not enabled. "
+                            "Please enable mesh shader support in the RHI settings.");
+        }
 
-        m_Resources->m_ResourcePool = std::make_shared<FrameGraphResourcePool>(m_app->GetRhi());
+        m_Resources                  = new AyanamiRendererResources();
+        m_Resources->m_SharedContext = MakeOwner<AyanamiSharedContext>();
+
+        m_Resources->m_ResourcePool = MakeRef<FrameGraphResourcePool>(m_app->GetRhi());
         m_Resources->m_SceneAggregator =
-            std::make_unique<AyanamiSceneAggregator>(m_app->GetRhi(), m_app->GetSharedRenderResource());
-        m_Resources->m_SurfaceCache = std::make_unique<AyanamiTrivialSurfaceCacheManager>(
-            m_SelfRenderConfig, m_Resources->m_SharedContext.get(), m_app);
-        m_Resources->m_DFLighting = std::make_unique<AyanamiDistanceFieldLighting>(m_app->GetRhi());
-        m_Resources->m_FgExecutor = std::make_unique<FrameGraphExecutor>(m_app->GetRhi());
-        m_Resources->m_Debugger   = std::make_unique<AyanamiDebugger>(m_app->GetRhi());
+            MakeOwner<AyanamiSceneAggregator>(m_app->GetRhi(), m_app->GetSharedRenderResource());
+        m_Resources->m_SurfaceCache =
+            MakeOwner<AyanamiTrivialSurfaceCacheManager>(m_SelfRenderConfig, m_Resources->m_SharedContext.get(), m_app);
+        m_Resources->m_DFLighting = MakeOwner<AyanamiDistanceFieldLighting>(m_app->GetRhi());
+        m_Resources->m_FgExecutor = MakeOwner<FrameGraphExecutor>(m_app->GetRhi());
+        m_Resources->m_Debugger   = MakeOwner<AyanamiDebugger>(m_app->GetRhi());
         m_Resources->m_ScreenProbe =
-            std::make_unique<AyanamiScreenProbeProcessor>(m_app->GetRhi(), m_Resources->m_SharedContext.get());
-        m_Resources->m_SpHiZ = std::make_unique<SinglePassHiZPass>(m_app);
+            MakeOwner<AyanamiScreenProbeProcessor>(m_app->GetRhi(), m_Resources->m_SharedContext.get());
+        m_Resources->m_SpHiZ = MakeOwner<SinglePassHiZPass>(m_app);
         m_Resources->m_DeferredShading =
-            std::make_unique<AyanamiDeferredShading>(m_app->GetRhi(), m_Resources->m_SharedContext.get());
+            MakeOwner<AyanamiDeferredShading>(m_app->GetRhi(), m_Resources->m_SharedContext.get());
     }
 
     IFRIT_APIDECL AyanamiRenderer::~AyanamiRenderer()
@@ -476,7 +485,7 @@ namespace Ifrit::Runtime
         cmd->EndScope();
     }
 
-    IFRIT_APIDECL Uref<AyanamiRenderer::GPUCommandSubmission> AyanamiRenderer::Render(Scene* scene, Camera* camera,
+    IFRIT_APIDECL Owner<AyanamiRenderer::GPUCommandSubmission> AyanamiRenderer::Render(Scene* scene, Camera* camera,
         RenderTargets* renderTargets, const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait)
     {
 
@@ -509,8 +518,6 @@ namespace Ifrit::Runtime
             },
             { vgTaskTimestamp.get() }, {});
 
-        // Sleep(2000);
-        iDebug("Test:{}", cvAyanamiDebugOption.GetValue());
         return task;
     }
 

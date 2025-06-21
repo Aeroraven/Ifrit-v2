@@ -119,7 +119,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         blasBufferCI.hostVisible = false;
         blasBufferCI.usage =
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-        m_blasBuffer = std::make_shared<SingleBuffer>(m_context, blasBufferCI);
+        m_blasBuffer = MakeRef<SingleBuffer>(m_context, blasBufferCI);
 
         // Create BLAS
         VkAccelerationStructureCreateInfoKHR asCI = {};
@@ -135,7 +135,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         scratchBufferCI.size        = SizeCast<u32>(sizeInfo.buildScratchSize);
         scratchBufferCI.hostVisible = false;
         scratchBufferCI.usage       = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-        m_scratchBuffer             = std::make_shared<SingleBuffer>(m_context, scratchBufferCI);
+        m_scratchBuffer             = MakeRef<SingleBuffer>(m_context, scratchBufferCI);
 
         buildInfo.dstAccelerationStructure  = m_as;
         buildInfo.scratchData.deviceAddress = m_scratchBuffer->GetDeviceAddress();
@@ -218,7 +218,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         tlasBufferCI.hostVisible = false;
         tlasBufferCI.usage =
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-        m_tlasBuffer = std::make_shared<SingleBuffer>(m_context, tlasBufferCI);
+        m_tlasBuffer = MakeRef<SingleBuffer>(m_context, tlasBufferCI);
 
         // Create TLAS
         VkAccelerationStructureCreateInfoKHR asCI = {};
@@ -234,7 +234,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         scratchBufferCI.size        = SizeCast<u32>(sizeInfo.buildScratchSize);
         scratchBufferCI.hostVisible = false;
         scratchBufferCI.usage       = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-        m_scratchBuffer             = std::make_shared<SingleBuffer>(m_context, scratchBufferCI);
+        m_scratchBuffer             = MakeRef<SingleBuffer>(m_context, scratchBufferCI);
 
         buildInfo.dstAccelerationStructure  = m_as;
         buildInfo.scratchData.deviceAddress = m_scratchBuffer->GetDeviceAddress();
@@ -266,7 +266,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         sbtBufferCI.size        = numShaders * m_rtContext->getAlignedShaderGroupHandleSize();
         sbtBufferCI.hostVisible = true;
         sbtBufferCI.usage = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-        auto                            sbtBuffer = std::make_shared<SingleBuffer>(m_context, sbtBufferCI);
+        auto                            sbtBuffer = MakeRef<SingleBuffer>(m_context, sbtBufferCI);
 
         VkStridedDeviceAddressRegionKHR stridedRegion = {};
         stridedRegion.deviceAddress                   = sbtBuffer->GetDeviceAddress();
@@ -546,7 +546,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
         }
 
-        auto pipeline = std::make_unique<RaytracingPipeline>(m_context, m_rtContext, ci);
+        auto pipeline = MakeOwner<RaytracingPipeline>(m_context, m_rtContext, ci);
         m_raytracingPipelines.push_back(std::move(pipeline));
         m_raytracingPipelineCI.push_back(ci);
         m_rtPipelineHash[hash].push_back(SizeCast<i32>(m_raytracingPipelines.size()) - 1);

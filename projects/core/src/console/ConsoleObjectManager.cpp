@@ -23,7 +23,7 @@ namespace Ifrit
 {
     struct ConsoleVariableRegistryData
     {
-        HashMap<String, Uref<IConsoleVariableRegistryEntry>> m_CVars;
+        HashMap<String, Owner<IConsoleVariableRegistryEntry>> m_CVars;
     };
 
     IFRIT_APIDECL      ConsoleVariableRegistry::~ConsoleVariableRegistry() { delete m_Data; }
@@ -31,7 +31,7 @@ namespace Ifrit
     IFRIT_APIDECL      ConsoleVariableRegistry::ConsoleVariableRegistry() : m_Data(new ConsoleVariableRegistryData()) {}
 
     IFRIT_APIDECL void ConsoleVariableRegistry::RegisterVariable(
-        const char* name, Uref<IConsoleVariableRegistryEntry>& ptr)
+        const char* name, Owner<IConsoleVariableRegistryEntry>& ptr)
     {
         m_Data->m_CVars[name] = std::move(ptr);
         iDebug("Registered console variable: {}", name);

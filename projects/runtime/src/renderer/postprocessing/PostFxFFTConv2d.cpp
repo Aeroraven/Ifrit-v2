@@ -85,7 +85,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
         {
             firstTime = true;
             using namespace Ifrit::Graphics::Rhi;
-            auto res           = std::make_unique<PostFxFFTConv2dResourceCollection>();
+            auto res           = MakeOwner<PostFxFFTConv2dResourceCollection>();
             auto rhi           = m_app->GetRhi();
             auto linearSampler = m_app->GetSharedRenderResource()->GetLinearRepeatSampler();
             auto tex1          = rhi->CreateTexture2D("PostFx_Conv_Tex1", p2Width * 2, p2Height,

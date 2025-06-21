@@ -45,8 +45,8 @@ namespace Ifrit::Runtime
         SyaroV2Renderer(IApplication* app);
         virtual ~SyaroV2Renderer();
 
-        void                                           SetRenderRole(u32 role);
-        virtual Uref<Graphics::Rhi::RhiTaskSubmission> Render(Scene* scene, Camera* camera,
+        void                                            SetRenderRole(u32 role);
+        virtual Owner<Graphics::Rhi::RhiTaskSubmission> Render(Scene* scene, Camera* camera,
             Graphics::Rhi::RhiRenderTargets* renderTargets, const RendererConfig& config,
             const Vec<Graphics::Rhi::RhiTaskSubmission*>& cmdToWait) override;
     };

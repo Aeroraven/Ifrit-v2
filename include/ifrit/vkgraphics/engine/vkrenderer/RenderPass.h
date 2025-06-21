@@ -180,7 +180,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     class IFRIT_APIDECL RegisteredResourceMapper : public Ifrit::NonCopyable
     {
     private:
-        Vec<Uref<RegisteredResource>>    m_resources;
+        Vec<Owner<RegisteredResource>>   m_resources;
         HashMap<SingleBuffer*, u32>      m_bufferMap;
         HashMap<SingleDeviceImage*, u32> m_imageMap;
         HashMap<MultiBuffer*, u32>       m_multiBufferMap;
@@ -199,7 +199,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
             else
             {
-                auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
+                auto registeredBuffer = MakeOwner<RegisteredBufferHandle>(buffer);
                 auto ptr              = registeredBuffer.get();
                 m_resources.push_back(std::move(registeredBuffer));
                 m_bufferMap[buffer] = Ifrit::SizeCast<u32>(m_resources.size()) - 1;
@@ -220,13 +220,13 @@ namespace Ifrit::Graphics::VulkanGraphics
                 {
                     using namespace Ifrit;
                     auto swapchainImage  = CheckedCast<SwapchainImageResource>(image);
-                    auto registeredImage = std::make_unique<RegisteredSwapchainImage>(swapchainImage);
+                    auto registeredImage = MakeOwner<RegisteredSwapchainImage>(swapchainImage);
                     auto ptr             = registeredImage.get();
                     m_resources.push_back(std::move(registeredImage));
                     m_imageMap[image] = SizeCast<u32>(m_resources.size()) - 1;
                     return ptr;
                 }
-                auto registeredImage = std::make_unique<RegisteredImageHandle>(image);
+                auto registeredImage = MakeOwner<RegisteredImageHandle>(image);
                 auto ptr             = registeredImage.get();
                 m_resources.push_back(std::move(registeredImage));
                 m_imageMap[image] = Ifrit::SizeCast<u32>(m_resources.size()) - 1;
@@ -243,7 +243,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
             else
             {
-                auto registeredBuffer = std::make_unique<RegisteredBufferHandle>(buffer);
+                auto registeredBuffer = MakeOwner<RegisteredBufferHandle>(buffer);
                 auto ptr              = registeredBuffer.get();
                 m_resources.push_back(std::move(registeredBuffer));
                 m_multiBufferMap[buffer] = Ifrit::SizeCast<u32>(m_resources.size()) - 1;
@@ -522,19 +522,19 @@ namespace Ifrit::Graphics::VulkanGraphics
     class IFRIT_APIDECL CommandExecutor
     {
     private:
-        EngineContext*               m_context;
-        DescriptorManager*           m_descriptorManager;
+        EngineContext*                m_context;
+        DescriptorManager*            m_descriptorManager;
 
-        Vec<DeviceQueue*>            m_queuesGraphics;
-        Vec<DeviceQueue*>            m_queuesCompute;
-        Vec<DeviceQueue*>            m_queuesTransfer;
-        Vec<DeviceQueue*>            m_queues;
+        Vec<DeviceQueue*>             m_queuesGraphics;
+        Vec<DeviceQueue*>             m_queuesCompute;
+        Vec<DeviceQueue*>             m_queuesTransfer;
+        Vec<DeviceQueue*>             m_queues;
 
-        Swapchain*                   m_swapchain;
-        ResourceManager*             m_resourceManager;
+        Swapchain*                    m_swapchain;
+        ResourceManager*              m_resourceManager;
 
-        Uref<SwapchainImageResource> m_swapchainImageResource;
-        Uref<QueueCollections>       m_queueCollections;
+        Owner<SwapchainImageResource> m_swapchainImageResource;
+        Owner<QueueCollections>       m_queueCollections;
 
     public:
         CommandExecutor(EngineContext* context, Swapchain* swapchain, DescriptorManager* descriptorManager,
@@ -544,7 +544,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             , m_descriptorManager(descriptorManager)
             , m_resourceManager(resourceManager)
         {
-            m_swapchainImageResource = std::make_unique<SwapchainImageResource>(swapchain);
+            m_swapchainImageResource = MakeOwner<SwapchainImageResource>(swapchain);
             m_resourceManager->SetDefaultCopies(swapchain->GetNumBackbuffers());
         }
         CommandExecutor(const CommandExecutor& p)            = delete;

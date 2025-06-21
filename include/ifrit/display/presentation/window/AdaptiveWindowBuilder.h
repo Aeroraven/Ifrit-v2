@@ -26,6 +26,6 @@ namespace Ifrit::Display::Window
     class IFRIT_APIDECL AdaptiveWindowBuilder
     {
     public:
-        Uref<WindowProvider> buildUniqueWindowProvider();
+        Owner<WindowProvider> buildUniqueWindowProvider();
     };
 } // namespace Ifrit::Display::Window

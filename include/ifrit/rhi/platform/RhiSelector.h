@@ -34,6 +34,6 @@ namespace Ifrit::Graphics::Rhi
     class IFRIT_APIDECL RhiSelector
     {
     public:
-        Uref<RhiBackend> CreateBackend(RhiBackendType, const RhiInitializeArguments& args);
+        Owner<RhiBackend> CreateBackend(RhiBackendType, const RhiInitializeArguments& args);
     };
 } // namespace Ifrit::Graphics::Rhi

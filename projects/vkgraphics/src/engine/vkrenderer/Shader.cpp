@@ -164,14 +164,14 @@ namespace Ifrit::Graphics::VulkanGraphics
                 {
                     auto defineName = tokens[2];
                     m_DefineNames.push_back(defineName);
-                    m_DefineIds[defineName] = m_DefineNames.size() - 1;
-                    m_MultiCompileIds.push_back(m_DefineNames.size() - 1);
+                    m_DefineIds[defineName] = SizeCast<u32>(m_DefineNames.size()) - 1;
+                    m_MultiCompileIds.push_back(SizeCast<u32>(m_DefineNames.size()) - 1);
                 }
                 else if (tokens[1] == "ifrit.shader_feature")
                 {
                     auto defineName = tokens[2];
                     m_DefineNames.push_back(defineName);
-                    m_DefineIds[defineName] = m_DefineNames.size() - 1;
+                    m_DefineIds[defineName] = SizeCast<u32>(m_DefineNames.size()) - 1;
                 }
             }
             else
@@ -272,7 +272,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         shaderModuleCI.stage        = m_CI.m_Stage;
         shaderModuleCI.m_ShaderName = m_CI.m_FileName;
 
-        auto shaderModule            = std::make_unique<ShaderModule>(m_Context, shaderModuleCI);
+        auto shaderModule            = MakeOwner<ShaderModule>(m_Context, shaderModuleCI);
         m_ShaderVariants[permIdCopy] = std::move(shaderModule);
     }
 
@@ -294,9 +294,9 @@ namespace Ifrit::Graphics::VulkanGraphics
             CompileShaderVariant(curPermId);
             return;
         }
-        u32 retainedId = curPermId;
+        u64 retainedId = curPermId;
         PrecompileMultiCompileShadersImpl(curVariantTag + 1, curPermId);
-        retainedId |= (1 << m_MultiCompileIds[curVariantTag]);
+        retainedId |= (1ull << m_MultiCompileIds[curVariantTag]);
         PrecompileMultiCompileShadersImpl(curVariantTag + 1, retainedId);
     }
 
@@ -308,7 +308,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             if (m_DefineIds.count(define) > 0)
             {
                 auto id = m_DefineIds[define];
-                permId |= (1 << id);
+                permId |= (1ull << id);
             }
             else
             {

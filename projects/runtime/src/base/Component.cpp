@@ -29,7 +29,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL Ref<GameObject> GameObject::CreatePrefab(IComponentManagerKeeper* managerKeeper)
     {
-        auto prefab = std::make_shared<GameObject>();
+        auto prefab = MakeRef<GameObject>();
         prefab->Initialize(managerKeeper->GetComponentManager());
         // prefab->AddComponent<Transform>();
         return prefab;

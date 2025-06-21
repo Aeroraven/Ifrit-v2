@@ -100,9 +100,9 @@ namespace Ifrit::Demo::MeshletDemo
         loader.loadObject(IFRIT_ASSET_PATH "/bunny.obj", pos, normal, uv, index);
         procNormal = loader.RemapNormals(normal, index, pos.size());
 
-        std::shared_ptr<ImageF32>               image = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
-        std::shared_ptr<ImageF32>               depth = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
-        std::shared_ptr<TileRasterRendererCuda> renderer = std::make_shared<TileRasterRendererCuda>();
+        std::shared_ptr<ImageF32>               image    = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
+        std::shared_ptr<ImageF32>               depth    = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
+        std::shared_ptr<TileRasterRendererCuda> renderer = MakeRef<TileRasterRendererCuda>();
         FrameBuffer                             frameBuffer;
 
         VertexBuffer                            vertexBuffer;
@@ -170,12 +170,12 @@ namespace Ifrit::Demo::MeshletDemo
             { DEMO_RESOLUTION / 2, DEMO_RESOLUTION / 2, DEMO_RESOLUTION, DEMO_RESOLUTION } });
         renderer->setScissorTestEnable(false);
 
-        auto windowBuilder  = std::make_unique<AdaptiveWindowBuilder>();
+        auto windowBuilder  = MakeOwner<AdaptiveWindowBuilder>();
         auto windowProvider = windowBuilder->buildUniqueWindowProvider();
         windowProvider->setup(2048, 1152);
         windowProvider->SetTitle("Ifrit-v2 <Mesh Shader>");
 
-        auto backendBuilder = std::make_unique<AdaptiveBackendBuilder>();
+        auto backendBuilder = MakeOwner<AdaptiveBackendBuilder>();
         auto backend        = backendBuilder->BuildUniqueBackend();
 
         backend->SetViewport(0, 0, windowProvider->GetWidth(), windowProvider->GetHeight());
@@ -205,9 +205,9 @@ namespace Ifrit::Demo::MeshletDemo
         loader.loadObject(IFRIT_ASSET_PATH "/bunny.obj", pos, normal, uv, index);
         procNormal = loader.RemapNormals(normal, index, pos.size());
 
-        std::shared_ptr<ImageF32>           image    = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
-        std::shared_ptr<ImageF32>           depth    = std::make_shared<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
-        std::shared_ptr<TileRasterRenderer> renderer = std::make_shared<TileRasterRenderer>();
+        std::shared_ptr<ImageF32>           image    = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 4);
+        std::shared_ptr<ImageF32>           depth    = MakeRef<ImageF32>(DEMO_RESOLUTION, DEMO_RESOLUTION, 1);
+        std::shared_ptr<TileRasterRenderer> renderer = MakeRef<TileRasterRenderer>();
         FrameBuffer                         frameBuffer;
 
         VertexBuffer                        vertexBuffer;
@@ -260,11 +260,11 @@ namespace Ifrit::Demo::MeshletDemo
         MeshletDemoFS fragmentShader;
         renderer->bindFragmentShader(fragmentShader);
 
-        auto windowBuilder  = std::make_unique<AdaptiveWindowBuilder>();
+        auto windowBuilder  = MakeOwner<AdaptiveWindowBuilder>();
         auto windowProvider = windowBuilder->buildUniqueWindowProvider();
         windowProvider->Setup(2048, 1152);
 
-        auto backendBuilder = std::make_unique<AdaptiveBackendBuilder>();
+        auto backendBuilder = MakeOwner<AdaptiveBackendBuilder>();
         auto backend        = backendBuilder->BuildUniqueBackend();
 
         backend->SetViewport(0, 0, windowProvider->GetWidth(), windowProvider->GetHeight());

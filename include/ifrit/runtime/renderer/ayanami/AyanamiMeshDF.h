@@ -49,19 +49,19 @@ namespace Ifrit::Runtime::Ayanami
     class IFRIT_APIDECL AyanamiMeshDF : public Component
     {
     private:
-        Vec<u8>                     m_CompactSDFData;
-        u32                         m_sdWidth;
-        u32                         m_sdHeight;
-        u32                         m_sdDepth;
-        Vector3f                    m_sdBoxMin;
-        Vector3f                    m_sdBoxMax;
-        bool                        m_isBuilt        = false;
-        bool                        m_IsDoubleSided  = false;
-        f32                         m_SdfMin         = 0.0f;
-        f32                         m_SdfMax         = 0.0f;
-        bool                        m_UseCompression = false;
+        Vec<u8>                      m_CompactSDFData;
+        u32                          m_sdWidth;
+        u32                          m_sdHeight;
+        u32                          m_sdDepth;
+        Vector3f                     m_sdBoxMin;
+        Vector3f                     m_sdBoxMax;
+        bool                         m_isBuilt        = false;
+        bool                         m_IsDoubleSided  = false;
+        f32                          m_SdfMin         = 0.0f;
+        f32                          m_SdfMax         = 0.0f;
+        bool                         m_UseCompression = false;
 
-        Uref<AyanamiMeshDFResource> m_gpuResource = nullptr;
+        Owner<AyanamiMeshDFResource> m_gpuResource = nullptr;
 
     public:
         AyanamiMeshDF() {}

@@ -101,7 +101,7 @@ namespace Ifrit::Runtime
             return m_selfData;
         }
         // Start loading mesh
-        m_selfData = std::make_shared<MeshData>();
+        m_selfData = MakeRef<MeshData>();
         m_selfData->identifier =
             m_asset->GetMetadata().m_uuid + "_" + std::to_string(m_meshId) + "_" + std::to_string(m_primitiveId);
 
@@ -288,7 +288,7 @@ namespace Ifrit::Runtime
         {
             for (auto j = 0; auto& primitive : mesh.primitives)
             {
-                auto mesh = std::make_shared<GLTFMesh>(&m_metadata, this, i, j, ~0u, cachePath);
+                auto mesh = MakeRef<GLTFMesh>(&m_metadata, this, i, j, ~0u, cachePath);
                 m_meshes.push_back(std::move(mesh));
                 meshHash[{ i, j }] = SizeCast<u32>(m_meshes.size()) - 1;
                 j++;
@@ -349,8 +349,7 @@ namespace Ifrit::Runtime
             {
                 for (auto j = 0; auto& primitive : rawGLTFData.meshes[node.mesh].primitives)
                 {
-                    auto prefab =
-                        std::make_shared<GLTFPrefab>(keeper, &m_metadata, this, node.mesh, j, nodeId, parentTransform);
+                    auto prefab = MakeRef<GLTFPrefab>(keeper, &m_metadata, this, node.mesh, j, nodeId, parentTransform);
                     auto meshFilter = prefab->m_prefab->AddComponent<MeshFilter>();
                     auto mesh       = m_meshes[meshHash[{ SizeCast<u32>(node.mesh), j }]];
                     meshFilter->SetMesh(mesh);
@@ -375,7 +374,7 @@ namespace Ifrit::Runtime
                         }
                     }
 
-                    auto material = std::make_shared<SyaroDefaultGBufEmitter>(m_manager->GetApplication());
+                    auto material = MakeRef<SyaroDefaultGBufEmitter>(m_manager->GetApplication());
 
                     if (rawGLTFData.textures.size() > 0)
                     {
@@ -458,7 +457,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void GLTFAssetImporter::ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata)
     {
-        auto asset = std::make_shared<GLTFAsset>(metadata, path, m_assetManager);
+        auto asset = MakeRef<GLTFAsset>(metadata, path, m_assetManager);
         m_assetManager->RegisterAsset(asset);
 
         // iInfo("Imported asset: [GLTFObject] {}", metadata.m_uuid);

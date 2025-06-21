@@ -68,7 +68,7 @@ namespace Ifrit
         ~ConsoleVariableRegistry();
         ConsoleVariableRegistry();
 
-        void                           RegisterVariable(const char* name, Uref<IConsoleVariableRegistryEntry>& ptr);
+        void                           RegisterVariable(const char* name, Owner<IConsoleVariableRegistryEntry>& ptr);
         void                           UnregisterVariable(const char* name);
         IConsoleVariableRegistryEntry* FindVariableGeneric(const char* name) const;
 

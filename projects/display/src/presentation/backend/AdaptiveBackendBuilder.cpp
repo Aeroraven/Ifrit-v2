@@ -23,7 +23,7 @@ namespace Ifrit::Display::Backend
 {
     IFRIT_APIDECL std::unique_ptr<BackendProvider> AdaptiveBackendBuilder::BuildUniqueBackend()
     {
-        auto obj = std::make_unique<OpenGLBackend>();
+        auto obj = MakeOwner<OpenGLBackend>();
         return obj;
     }
 } // namespace Ifrit::Display::Backend

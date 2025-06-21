@@ -34,7 +34,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         static_cast<typename std::underlying_type<Rhi::RhiDescriptorType>::type>(Rhi::RhiDescriptorType::MaxEnum);
 
     IF_CONSTEXPR Array<DescriptorTypeDetails, cMaxDescriptorType> cDescriptorTypeDetails = {
-        { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 40000 }, { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 40000 },
+        { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 15 }, { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 40000 },
             { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 40000 }, { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 40000 },
             { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 40000 }, { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 40000 },
             { VK_DESCRIPTOR_TYPE_SAMPLER, 40000 } }
@@ -54,12 +54,12 @@ namespace Ifrit::Graphics::VulkanGraphics
             u32       offset;
             u32       bytes;
         };
-        u32                m_currentOffset = 0;
-        Vec<Range>         m_ranges;
-        VkDescriptorPool   m_pool{};
-        VkDescriptorSet    m_set{};
+        u32                 m_currentOffset = 0;
+        Vec<Range>          m_ranges;
+        VkDescriptorPool    m_pool{};
+        VkDescriptorSet     m_set{};
 
-        Uref<SingleBuffer> m_buffer;
+        Owner<SingleBuffer> m_buffer;
     };
 
     struct DescriptorImageView
@@ -120,8 +120,8 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         u32                                                                m_minUniformBufferAlignment = 0;
 
-        Vec<Uref<DescriptorBindRangeData>>                                 m_bindRanges;
-        Uref<DescriptorBindRangeData>                                      m_currentBindRange;
+        Vec<Owner<DescriptorBindRangeData>>                                m_bindRanges;
+        Owner<DescriptorBindRangeData>                                     m_currentBindRange;
 
         VkDescriptorSetLayout                                              m_layoutShared = VK_NULL_HANDLE;
         VkDescriptorSetLayoutBinding                                       m_bindingShared{};

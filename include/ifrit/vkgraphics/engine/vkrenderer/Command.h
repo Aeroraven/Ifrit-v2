@@ -199,12 +199,12 @@ namespace Ifrit::Graphics::VulkanGraphics
     class IFRIT_APIDECL CommandPool : NonCopyable
     {
     private:
-        EngineContext*           m_context;
-        u32                      m_queueFamily;
-        VkCommandPool            m_commandPool;
+        EngineContext*            m_context;
+        u32                       m_queueFamily;
+        VkCommandPool             m_commandPool;
 
-        Vec<Uref<CommandBuffer>> m_AvailableCommandBuffers;
-        Vec<Uref<CommandBuffer>> m_InFlightCommandBuffers;
+        Vec<Owner<CommandBuffer>> m_AvailableCommandBuffers;
+        Vec<Owner<CommandBuffer>> m_InFlightCommandBuffers;
 
     protected:
         void Init();
@@ -215,11 +215,11 @@ namespace Ifrit::Graphics::VulkanGraphics
             Init();
         }
         ~CommandPool();
-        Ref<CommandBuffer>  AllocateCommandBuffer();
-        Uref<CommandBuffer> AllocateCommandBufferUnique();
-        void                ResetCommandPool();
+        Ref<CommandBuffer>   AllocateCommandBuffer();
+        Owner<CommandBuffer> AllocateCommandBufferUnique();
+        void                 ResetCommandPool();
 
-        void                EnqueueInFlightCommandBuffer(Uref<CommandBuffer>&& cmdBuf);
+        void                 EnqueueInFlightCommandBuffer(Owner<CommandBuffer>&& cmdBuf);
     };
 
     // Note that command buffers should be recycled in order to avoid memory leaks.
@@ -227,18 +227,18 @@ namespace Ifrit::Graphics::VulkanGraphics
     class IFRIT_APIDECL DeviceQueue : public Rhi::RhiQueue, NonCopyable
     {
     private:
-        EngineContext*                  m_context;
-        VkQueue                         m_queue;
-        u32                             m_queueFamily;
-        u32                             m_capability;
-        Vec<Uref<CommandPool>>          m_commandPools;
-        Uref<TimelineSemaphore>         m_timelineSemaphore;
-        std::stack<Uref<CommandBuffer>> m_cmdBufInUse;
-        u64                             m_recordedCounter      = 0;
-        CommandBuffer*                  m_currentCommandBuffer = nullptr;
+        EngineContext*                   m_context;
+        VkQueue                          m_queue;
+        u32                              m_queueFamily;
+        u32                              m_capability;
+        Vec<Owner<CommandPool>>          m_commandPools;
+        Owner<TimelineSemaphore>         m_timelineSemaphore;
+        std::stack<Owner<CommandBuffer>> m_cmdBufInUse;
+        u64                              m_recordedCounter      = 0;
+        CommandBuffer*                   m_currentCommandBuffer = nullptr;
 
-        u32                             m_InFlightFrames = 0;
-        u32                             m_ActiveFrame    = 0; // The current frame that is being processed by the GPU.
+        u32                              m_InFlightFrames = 0;
+        u32                              m_ActiveFrame    = 0; // The current frame that is being processed by the GPU.
 
     public:
         DeviceQueue() { printf("Runtime Error:queue\n"); }
@@ -252,24 +252,24 @@ namespace Ifrit::Graphics::VulkanGraphics
         CommandBuffer*        BeginRecording();
         TimelineSemaphoreWait SubmitCommand(
             const Vec<TimelineSemaphoreWait>& waitSemaphores, VkFence fence, VkSemaphore swapchainSemaphore = nullptr);
-        void                         WaitIdle();
-        void                         CounterReset();
-        void                         FrameAdvance();
+        void                          WaitIdle();
+        void                          CounterReset();
+        void                          FrameAdvance();
 
         // for rhi layers override
-        void                         RunSyncCommand(std::function<void(const Rhi::RhiCommandList*)> func) override;
+        void                          RunSyncCommand(std::function<void(const Rhi::RhiCommandList*)> func) override;
 
-        Uref<Rhi::RhiTaskSubmission> RunAsyncCommand(std::function<void(const Rhi::RhiCommandList*)> func,
+        Owner<Rhi::RhiTaskSubmission> RunAsyncCommand(std::function<void(const Rhi::RhiCommandList*)> func,
             const Vec<Rhi::RhiTaskSubmission*>& waitOn, const Vec<Rhi::RhiTaskSubmission*>& toIssue) override;
 
-        void                         HostWaitEvent(Rhi::RhiTaskSubmission* event) override;
+        void                          HostWaitEvent(Rhi::RhiTaskSubmission* event) override;
     };
 
     class IFRIT_APIDECL QueueCollections
     {
     private:
-        EngineContext*         m_context;
-        Vec<Uref<DeviceQueue>> m_queues;
+        EngineContext*          m_context;
+        Vec<Owner<DeviceQueue>> m_queues;
 
     public:
         QueueCollections(EngineContext* ctx) : m_context(ctx) {}
@@ -299,7 +299,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     private:
         EngineContext*             m_context;
         Vec<CommandSubmissionInfo> m_submissions;
-        Uref<TimelineSemaphore>    m_hostSyncSemaphore = nullptr;
+        Owner<TimelineSemaphore>   m_hostSyncSemaphore = nullptr;
 
     public:
         CommandSubmissionList(EngineContext* ctx);
