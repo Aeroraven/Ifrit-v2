@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Neo.h"
 
-#include "ifrit/runtime/simulation/internal/InternalShaderRegistry.Siro.h"
+#include "ifrit/runtime/physics/internal/InternalShaderRegistry.Siro.h"
 
 namespace Ifrit::Runtime::Internal
 {
@@ -42,9 +42,10 @@ namespace Ifrit::Runtime::Internal
 #define REG_MESH_NEO(name, path, entry) \
     REG_SHADER_NEO(name, path ".mesh.slang", Graphics::Rhi::RhiShaderStage::Mesh, entry)
 
-        const auto& IST    = kIntShaderTable;
-        const auto& ISTAya = kIntShaderTableAyanami;
-        const auto& ISTNeo = kIntShaderTableNeo;
+        const auto& IST     = kIntShaderTable;
+        const auto& ISTAya  = kIntShaderTableAyanami;
+        const auto& ISTNeo  = kIntShaderTableNeo;
+        const auto& ISTSiro = kIntShaderTableSiro;
 
         // const auto& ISTSiro = kIntShaderTableSiro;
 
@@ -140,7 +141,7 @@ namespace Ifrit::Runtime::Internal
         // Postprocessing Vertex
         REG_VERTEX(IST.PostprocessVertex.CommonVS, "Postprocess/Postproc.Common");
 
-        // Syaro
+        // Syaro V1
         REG_COMPUTE(IST.Syaro.ClassifyMaterialCountCS, "Syaro/Syaro.ClassifyMaterial.Count");
         REG_COMPUTE(IST.Syaro.ClassifyMaterialReserveCS, "Syaro/Syaro.ClassifyMaterial.Reserve");
         REG_COMPUTE(IST.Syaro.ClassifyMaterialScatterCS, "Syaro/Syaro.ClassifyMaterial.Scatter");
@@ -166,8 +167,20 @@ namespace Ifrit::Runtime::Internal
         // Neo
         REG_COMPUTE_NEO(ISTNeo.TestCS, "TestCS", "TestCS");
 
-        // SIRO
-        // REG_COMPUTE_NEO(ISTSiro.TrivialPBDClothInit, "Siro/TrivialPBDCloth.Init", "TrivialPBDClothInit");
+        // Siro
+        REG_COMPUTE_NEO(
+            ISTSiro.PBDClothApplyCorrectionCS, "Siro/PBDCloth.ApplyCorrection", "SiroPBDClothApplyCorrectionCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityPostCS, "Siro/PBDCloth.UpdateVelocityPost",
+            "SiroPBDClothUpdateVelocityPostCS");
+        REG_COMPUTE_NEO(
+            ISTSiro.PBDClothUpdateVelocityPreCS, "Siro/PBDCloth.UpdateVelocityPre", "SiroPBDClothUpdateVelocityPreCS");
+        REG_COMPUTE_NEO(
+            ISTSiro.PBDClothPredPositionGenCS, "Siro/PBDCloth.PredPositionGen", "SiroPBDClothPredPositionGenCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothDistanceConstraintProjectCS, "Siro/PBDCloth.DistanceConstraintProject",
+            "SiroPBDClothDistanceConstraintProjectCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothBendingConstraintProjectCS, "Siro/PBDCloth.BendingConstraintProject",
+            "SiroPBDClothBendingConstraintProjectCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDPredPositionGenCS, "Siro/PBDCloth.PredPositionGen", "SiroPBDClothPredPositionGenCS");
 
         // Base Forward
         REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");

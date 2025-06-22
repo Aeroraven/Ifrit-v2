@@ -691,28 +691,44 @@ namespace Ifrit::Runtime
                         SizeCast<u32>(meshDataRef->m_normalsAligned.size() * sizeof(Vector4f)), tmpUsage, true);
                     meshResource.uvBuffer     = rhi->CreateBufferDevice(
                         "Mesh_UV", SizeCast<u32>(meshDataRef->m_uvs.size() * sizeof(Vector2f)), tmpUsage, true);
-                    meshResource.bvhNodeBuffer          = rhi->CreateBufferDevice("Mesh_BVHNode",
-                                 SizeCast<u32>(
-                            meshDataRef->m_bvhNodes.size() * sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
-                                 tmpUsage, true);
-                    meshResource.clusterGroupBuffer     = rhi->CreateBufferDevice("Mesh_ClusterGroup",
-                            SizeCast<u32>(
-                            meshDataRef->m_clusterGroups.size() * sizeof(MeshProcLib::MeshProcess::ClusterGroup)),
-                            tmpUsage, true);
-                    meshResource.meshletBuffer          = rhi->CreateBufferDevice("Mesh_Cluster",
-                                 SizeCast<u32>(meshDataRef->m_meshlets.size() * sizeof(MeshData::MeshletData)), tmpUsage, true);
-                    meshResource.meshletVertexBuffer    = rhi->CreateBufferDevice("Mesh_ClusterVertex",
-                           SizeCast<u32>(meshDataRef->m_meshletVertices.size() * sizeof(u32)), tmpUsage, true);
-                    meshResource.meshletIndexBuffer     = rhi->CreateBufferDevice("Mesh_ClusterIndex",
-                            SizeCast<u32>(meshDataRef->m_meshletTriangles.size() * sizeof(u32)), tmpUsage, true);
-                    meshResource.meshletInClusterBuffer = rhi->CreateBufferDevice("Mesh_ClusterInGroups",
-                        SizeCast<u32>(meshDataRef->m_meshletInClusterGroup.size() * sizeof(u32)), tmpUsage, true);
-                    meshResource.cpCounterBuffer        = rhi->CreateBufferDevice(
-                        "Mesh_CpCounter", SizeCast<u32>(sizeof(MeshData::GPUCPCounter)), tmpUsage, true);
+
                     meshResource.tangentBuffer = rhi->CreateBufferDevice("Mesh_Tangent",
                         SizeCast<u32>(sizeof(Vector4f) * meshDataRef->m_tangents.size()), tmpUsage, true);
                     meshResource.indexBuffer   = rhi->CreateBufferDevice(
                         "Mesh_Index", SizeCast<u32>(sizeof(u32) * meshDataRef->m_indices.size()), tmpUsageIdx, true);
+
+                    if (meshDataRef->m_MeshType == MeshType::VirtualGeometry)
+                    {
+                        meshResource.bvhNodeBuffer          = rhi->CreateBufferDevice("Mesh_BVHNode",
+                                     SizeCast<u32>(
+                                meshDataRef->m_bvhNodes.size() * sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
+                                     tmpUsage, true);
+                        meshResource.clusterGroupBuffer     = rhi->CreateBufferDevice("Mesh_ClusterGroup",
+                                SizeCast<u32>(
+                                meshDataRef->m_clusterGroups.size() * sizeof(MeshProcLib::MeshProcess::ClusterGroup)),
+                                tmpUsage, true);
+                        meshResource.meshletBuffer          = rhi->CreateBufferDevice("Mesh_Cluster",
+                                     SizeCast<u32>(meshDataRef->m_meshlets.size() * sizeof(MeshData::MeshletData)), tmpUsage,
+                                     true);
+                        meshResource.meshletVertexBuffer    = rhi->CreateBufferDevice("Mesh_ClusterVertex",
+                               SizeCast<u32>(meshDataRef->m_meshletVertices.size() * sizeof(u32)), tmpUsage, true);
+                        meshResource.meshletIndexBuffer     = rhi->CreateBufferDevice("Mesh_ClusterIndex",
+                                SizeCast<u32>(meshDataRef->m_meshletTriangles.size() * sizeof(u32)), tmpUsage, true);
+                        meshResource.meshletInClusterBuffer = rhi->CreateBufferDevice("Mesh_ClusterInGroups",
+                            SizeCast<u32>(meshDataRef->m_meshletInClusterGroup.size() * sizeof(u32)), tmpUsage, true);
+                        meshResource.cpCounterBuffer        = rhi->CreateBufferDevice(
+                            "Mesh_CpCounter", SizeCast<u32>(sizeof(MeshData::GPUCPCounter)), tmpUsage, true);
+                    }
+                    else
+                    {
+                        meshResource.bvhNodeBuffer          = nullptr;
+                        meshResource.clusterGroupBuffer     = nullptr;
+                        meshResource.meshletBuffer          = nullptr;
+                        meshResource.meshletVertexBuffer    = nullptr;
+                        meshResource.meshletIndexBuffer     = nullptr;
+                        meshResource.meshletInClusterBuffer = nullptr;
+                        meshResource.cpCounterBuffer        = nullptr;
+                    }
 
                     auto  materialDataSize = 0;
                     auto& materialRef      = shaderEffect.m_materials[i];
@@ -739,21 +755,35 @@ namespace Ifrit::Runtime
                     // Here, we assume that no double bufferring is allowed
                     // meaning no CPU-GPU data transfer is allowed for mesh data after
                     // initialization
-                    Mesh::GPUObjectBuffer& objectBuffer   = meshResource.objectData;
-                    objectBuffer.vertexBufferId           = meshResource.vertexBuffer->GetDescId();
-                    objectBuffer.normalBufferId           = meshResource.normalBuffer->GetDescId();
-                    objectBuffer.uvBufferId               = meshResource.uvBuffer->GetDescId();
-                    objectBuffer.bvhNodeBufferId          = meshResource.bvhNodeBuffer->GetDescId();
-                    objectBuffer.clusterGroupBufferId     = meshResource.clusterGroupBuffer->GetDescId();
-                    objectBuffer.meshletBufferId          = meshResource.meshletBuffer->GetDescId();
-                    objectBuffer.meshletVertexBufferId    = meshResource.meshletVertexBuffer->GetDescId();
-                    objectBuffer.meshletIndexBufferId     = meshResource.meshletIndexBuffer->GetDescId();
-                    objectBuffer.meshletInClusterBufferId = meshResource.meshletInClusterBuffer->GetDescId();
-                    objectBuffer.cpCounterBufferId        = meshResource.cpCounterBuffer->GetDescId();
-                    objectBuffer.boundingSphere           = mesh->GetBoundingSphere(meshDataRef->m_vertices);
-                    objectBuffer.materialDataId  = haveMaterialData ? meshResource.materialDataBuffer->GetDescId() : 0;
-                    objectBuffer.tangentBufferId = meshResource.tangentBuffer->GetDescId();
-                    objectBuffer.indexBufferId   = meshResource.indexBuffer->GetDescId();
+                    Mesh::GPUObjectBuffer& objectBuffer = meshResource.objectData;
+                    objectBuffer.vertexBufferId         = meshResource.vertexBuffer->GetDescId();
+                    objectBuffer.normalBufferId         = meshResource.normalBuffer->GetDescId();
+                    objectBuffer.uvBufferId             = meshResource.uvBuffer->GetDescId();
+                    objectBuffer.tangentBufferId        = meshResource.tangentBuffer->GetDescId();
+                    objectBuffer.indexBufferId          = meshResource.indexBuffer->GetDescId();
+
+                    if (meshDataRef->m_MeshType == MeshType::VirtualGeometry)
+                    {
+                        // Virtual geometry buffers
+                        objectBuffer.bvhNodeBufferId          = meshResource.bvhNodeBuffer->GetDescId();
+                        objectBuffer.clusterGroupBufferId     = meshResource.clusterGroupBuffer->GetDescId();
+                        objectBuffer.meshletBufferId          = meshResource.meshletBuffer->GetDescId();
+                        objectBuffer.meshletVertexBufferId    = meshResource.meshletVertexBuffer->GetDescId();
+                        objectBuffer.meshletIndexBufferId     = meshResource.meshletIndexBuffer->GetDescId();
+                        objectBuffer.meshletInClusterBufferId = meshResource.meshletInClusterBuffer->GetDescId();
+                        objectBuffer.cpCounterBufferId        = meshResource.cpCounterBuffer->GetDescId();
+                    }
+                    else
+                    {
+                        // Non-virtual geometry buffers
+                        objectBuffer.bvhNodeBufferId          = ~0u;
+                        objectBuffer.clusterGroupBufferId     = ~0u;
+                        objectBuffer.meshletBufferId          = ~0u;
+                        objectBuffer.meshletVertexBufferId    = ~0u;
+                        objectBuffer.meshletIndexBufferId     = ~0u;
+                        objectBuffer.meshletInClusterBufferId = ~0u;
+                        objectBuffer.cpCounterBufferId        = ~0u;
+                    }
 
                     // description for the whole mesh
                     meshResource.objectBuffer =
@@ -769,20 +799,29 @@ namespace Ifrit::Runtime
                 auto& meshInstObjData = meshInst->m_resource.objectData;
                 if (instanceResource.objectBuffer == nullptr)
                 {
+                    auto tmpUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
+                    requireUpdate = true;
+                    if (meshDataRef->m_MeshType == MeshType::VirtualGeometry)
+                    {
+                        instanceResource.cpQueueBuffer = rhi->CreateBufferDevice("Render_CpQueue",
+                            SizeCast<u32>(sizeof(u32) * meshDataRef->m_bvhNodes.size()), tmpUsage, true);
 
-                    auto tmpUsage                  = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
-                    requireUpdate                  = true;
-                    instanceResource.cpQueueBuffer = rhi->CreateBufferDevice(
-                        "Render_CpQueue", SizeCast<u32>(sizeof(u32) * meshDataRef->m_bvhNodes.size()), tmpUsage, true);
+                        auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0];
+                        if (meshDataRef->m_numMeshletsEachLod.size() > 1)
+                            safeNumMeshlets += meshDataRef->m_numMeshletsEachLod[1];
+                        instanceResource.filteredMeshlets = rhi->CreateBufferDevice(
+                            "Render_FilteredClsters", sizeof(u32) * safeNumMeshlets, tmpUsage, true);
 
-                    auto safeNumMeshlets = meshDataRef->m_numMeshletsEachLod[0];
-                    if (meshDataRef->m_numMeshletsEachLod.size() > 1)
-                        safeNumMeshlets += meshDataRef->m_numMeshletsEachLod[1];
-                    instanceResource.filteredMeshlets = rhi->CreateBufferDevice(
-                        "Render_FilteredClsters", sizeof(u32) * safeNumMeshlets, tmpUsage, true);
-
-                    instanceResource.objectData.cpQueueBufferId    = instanceResource.cpQueueBuffer->GetDescId();
-                    instanceResource.objectData.filteredMeshletsId = instanceResource.filteredMeshlets->GetDescId();
+                        instanceResource.objectData.cpQueueBufferId    = instanceResource.cpQueueBuffer->GetDescId();
+                        instanceResource.objectData.filteredMeshletsId = instanceResource.filteredMeshlets->GetDescId();
+                    }
+                    else
+                    {
+                        instanceResource.cpQueueBuffer                 = nullptr;
+                        instanceResource.filteredMeshlets              = nullptr;
+                        instanceResource.objectData.cpQueueBufferId    = ~0u;
+                        instanceResource.objectData.filteredMeshletsId = ~0u;
+                    }
 
                     instanceResource.objectBuffer = rhi->CreateBufferDevice(
                         "Render_Objects", sizeof(MeshInstance::GPUObjectBuffer), tmpUsage, true);
@@ -813,17 +852,22 @@ namespace Ifrit::Runtime
                     enqueueStagedBuffer(uvBuffer, m_uvs);
                     enqueueStagedBuffer(tangentBuffer, m_tangents);
                     enqueueStagedBuffer(indexBuffer, m_indices);
-                    enqueueStagedBuffer(bvhNodeBuffer, m_bvhNodes);
-                    enqueueStagedBuffer(clusterGroupBuffer, m_clusterGroups);
-                    enqueueStagedBuffer(meshletBuffer, m_meshlets);
-                    enqueueStagedBuffer(meshletVertexBuffer, m_meshletVertices);
-                    enqueueStagedBuffer(meshletIndexBuffer, m_meshletTriangles);
-                    enqueueStagedBuffer(meshletInClusterBuffer, m_meshletInClusterGroup);
 
-                    auto stagedCPCounterBuffer = rhi->CreateStagedSingleBuffer(meshResource.cpCounterBuffer.get());
-                    stagedBuffers.push_back(stagedCPCounterBuffer);
-                    pendingVertexBuffers.push_back(&meshDataRef->m_cpCounter);
-                    pendingVertexBufferSizes.push_back(sizeof(MeshData::GPUCPCounter));
+                    if (meshDataRef->m_MeshType == MeshType::VirtualGeometry)
+                    {
+                        // Virtual geometry buffers
+                        enqueueStagedBuffer(bvhNodeBuffer, m_bvhNodes);
+                        enqueueStagedBuffer(clusterGroupBuffer, m_clusterGroups);
+                        enqueueStagedBuffer(meshletBuffer, m_meshlets);
+                        enqueueStagedBuffer(meshletVertexBuffer, m_meshletVertices);
+                        enqueueStagedBuffer(meshletIndexBuffer, m_meshletTriangles);
+                        enqueueStagedBuffer(meshletInClusterBuffer, m_meshletInClusterGroup);
+
+                        auto stagedCPCounterBuffer = rhi->CreateStagedSingleBuffer(meshResource.cpCounterBuffer.get());
+                        stagedBuffers.push_back(stagedCPCounterBuffer);
+                        pendingVertexBuffers.push_back(&meshDataRef->m_cpCounter);
+                        pendingVertexBufferSizes.push_back(sizeof(MeshData::GPUCPCounter));
+                    }
 
                     std::shared_ptr<RhiStagedSingleBuffer> stagedMaterialDataBuffer = nullptr;
                     if (haveMaterialData)

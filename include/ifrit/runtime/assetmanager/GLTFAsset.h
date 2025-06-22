@@ -55,6 +55,9 @@ namespace Ifrit::Runtime
         virtual Ref<MeshData> LoadMesh() override;
         virtual MeshData*     LoadMeshUnsafe() override;
         virtual u32           GetNumIndices() override;
+        virtual u32           GetNumVertices() override;
+        virtual Vec<u32>      GetIndexBufferHost() override;
+        virtual Vec<Vector3f> GetVertexBufferHost() override;
     };
 
     class IFRIT_APIDECL GLTFPrefab

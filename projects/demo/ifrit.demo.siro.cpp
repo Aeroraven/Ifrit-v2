@@ -83,7 +83,7 @@ public:
         auto camera = parent->GetComponent<Transform>();
         if (camera)
         {
-            camera->SetPosition({ 0.0f + m_movRight - m_movLeft, 0.0f + m_movTop - m_movBottom + 1.0f,
+            camera->SetPosition({ 0.0f + m_movRight - m_movLeft + 0.5f, 0.0f + m_movTop - m_movBottom + 0.2f,
                 3.000006f + m_movFar - m_movNear });
             camera->SetRotation({ 0.0f, m_movRot + 3.14f, 0.0f });
 
@@ -154,6 +154,7 @@ namespace Ifrit
         RhiTextureRef                  depthImage;
         Ref<RhiDepthStencilAttachment> depthAttachment;
         Ref<BaseForwardRenderer>       renderer;
+        Ref<Siro::SiroSimulator>       siroSimulator;
         RhiTexture*                    swapchainImg;
         RendererConfig                 renderConfig;
         float                          timing = 0;
@@ -165,15 +166,12 @@ namespace Ifrit
 
             renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
             renderConfig.m_AntiAliasingType           = AntiAliasingType::None;
+            renderConfig.m_OverrideMaterialCulling    = OverrideMaterialCulling::ForcedCullNone;
 
-            // Bistro interior has many one-sided meshes. The culling strategy is required to be reconsidered.
-            renderConfig.m_OverrideMaterialCulling = OverrideMaterialCulling::ForcedCullNone;
-
-            renderer       = MakeRef<BaseForwardRenderer>(this);
-            auto bistroObj = m_assetManager->GetAssetByName<GLTFAsset>("Cornell/Untitled.gltf"); //
-
-            auto s    = m_sceneAssetManager->CreateScene("TestScene2");
-            auto node = s->AddSceneNode();
+            renderer      = MakeRef<BaseForwardRenderer>(this);
+            siroSimulator = MakeRef<Siro::SiroSimulator>(this);
+            auto s        = m_sceneAssetManager->CreateScene("TestScene2");
+            auto node     = s->AddSceneNode();
 
             auto cameraGameObject = node->AddGameObject("camera");
             auto camera           = cameraGameObject->AddComponent<Camera>();
@@ -201,54 +199,23 @@ namespace Ifrit
             auto lightRotScript = lightGameObject->AddComponent<LightRotScript>();
             lightRotScript->SetInputSystem(m_inputSystem.get());
 
-            auto meshes = bistroObj->GetLoadedMesh(s.get());
+            auto cloth          = node->AddGameObject("cloth");
+            auto clothMesh      = MakeRef<Siro::TessellatedRectMesh>(1.0f, 1.0f, 32, 32, Vector3f(0.0f, 0.0f, 0.0f));
+            auto material       = MakeRef<SyaroDefaultGBufEmitter>(this);
+            auto redAlbedoAsset = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Red.png");
+            auto normalAsset    = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Cornell_Normal.png");
+            material->SetAlbedoId(m_rhiLayer->GetSRVDescriptor(redAlbedoAsset->GetTexture().get()));
+            material->SetNormalMapId(m_rhiLayer->GetSRVDescriptor(normalAsset->GetTexture().get()));
+            material->BuildMaterial();
 
-            auto numMeshes        = 0;
-            auto normalAsset      = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Cornell_Normal.png");
-            auto redAlbedoAsset   = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Red.png");
-            auto greenAlbedoAsset = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Green.png");
-            auto whiteAlbedoAsset = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/White.png");
+            auto meshFilter = cloth->AddComponent<MeshFilter>();
+            meshFilter->SetMesh(clothMesh);
+            auto meshRenderer = cloth->AddComponent<MeshRenderer>();
+            meshRenderer->SetMaterial(material);
+            auto pbdCloth = cloth->AddComponent<Siro::PBDCloth>();
+            pbdCloth->AddFixedParticles({ 0, 31 });
+            siroSimulator->RegisterSolver(pbdCloth.get());
 
-            for (auto& m : meshes)
-            {
-                numMeshes++;
-
-                auto t        = m->m_prefab;
-                auto material = MakeRef<SyaroDefaultGBufEmitter>(this);
-                auto sampler  = m_SharedRenderResource->GetLinearClampSampler();
-
-                // if (numMeshes >= 4 && numMeshes <= 5 || numMeshes == 6 || numMeshes == 3 || numMeshes <= 2)
-                // {
-                //     continue;
-                // }
-                if (numMeshes == 5)
-                {
-                    material->SetAlbedoId(m_rhiLayer->GetSRVDescriptor(redAlbedoAsset->GetTexture().get()));
-                }
-                else if (numMeshes == 6)
-                {
-                    material->SetAlbedoId(m_rhiLayer->GetSRVDescriptor(greenAlbedoAsset->GetTexture().get()));
-                }
-                else
-                {
-                    material->SetAlbedoId(m_rhiLayer->GetSRVDescriptor(whiteAlbedoAsset->GetTexture().get()));
-                }
-                material->SetNormalMapId(m_rhiLayer->GetSRVDescriptor(normalAsset->GetTexture().get()));
-                material->BuildMaterial();
-
-                auto meshRenderer = t->GetComponent<MeshRenderer>();
-                meshRenderer->SetMaterial(material);
-
-                auto meshDF = t->AddComponent<Ayanami::AyanamiMeshDF>();
-                meshDF->SetCompression(false);
-                meshDF->BuildMeshDF(GetCacheDir());
-                auto meshMarker = t->AddComponent<Ayanami::AyanamiMeshMarker>();
-
-                auto transform = t->GetComponent<Transform>();
-                auto mat       = transform->GetModelToWorldMatrix();
-                node->AddGameObjectTransferred(std::move(m->m_prefab));
-            }
-            iInfo("Num meshes: {}", numMeshes);
             // Render targets
             auto rt         = m_rhiLayer.get();
             depthImage      = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
@@ -271,7 +238,8 @@ namespace Ifrit
             auto sFrameStart = renderer->BeginFrame();
             auto renderComplete =
                 renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { sFrameStart.get() });
-            renderer->EndFrame({ renderComplete.get() });
+            auto simulateComplete = siroSimulator->Update(0.016f, { renderComplete.get() });
+            renderer->EndFrame({ simulateComplete.get() });
             // std::abort();
             // std::exit(0);
         }

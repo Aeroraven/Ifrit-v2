@@ -1,16 +1,19 @@
 ## Ifrit-v2/TODO
 
 ### 4.0 Ongoing Schedule
-
-- Subproject Ayanami:
+- Subproject Siro: `ifrit.runtime/physics.siro` (Highest Priority)
+  - Helper Utilities for Miscellaneous Requirements
+- Subproject Ayanami: `ifrit.runtime/render.ayanami`
   - Indirect Lighting on Surface Atlas (Debugging Phase)
   - Hardware Path Tracer (Reference Purpose)
   - Denoising / ReSTIR
-- Subproject Syaro:
+- Subproject Syaro: `ifrit.runtime/render.syaro.v2`
   - Refactoring with RDGs
 - Architectural
   - Shader Rewrite: `ifrit.shader.neo`
   - Multithreaded Rendering
+    - Async Compute
+  - Streaming
 - Bug Fixing
   - (vkgraphics) Dangling view identifiers after resource destruction
   - (runtime/asset) Potential crash when loading gltf models

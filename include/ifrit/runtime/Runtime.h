@@ -40,3 +40,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiMeshMarker.h"
 
 #include "ifrit/runtime/renderer/BaseForwardRenderer.h"
+
+#include "ifrit/runtime/physics/siro/PBDCloth.h"
+#include "ifrit/runtime/physics/siro/TessellatedRectMesh.h"
+#include "ifrit/runtime/physics/siro/SiroSimulator.h"

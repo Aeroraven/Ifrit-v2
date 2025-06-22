@@ -46,4 +46,17 @@ namespace Ifrit::Math
         return __builtin_ctz(x);
 #endif
     }
+
+    // Packing a 32-bit integer into a 64-bit integer. With ordered comparison.
+    IF_FORCEINLINE u64 OrderedPack32(u32 x, u32 y)
+    {
+        if (x < y)
+        {
+            return (u64)x | ((u64)y << 32);
+        }
+        else
+        {
+            return (u64)y | ((u64)x << 32);
+        }
+    }
 } // namespace Ifrit::Math

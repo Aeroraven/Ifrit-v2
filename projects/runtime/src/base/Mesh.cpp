@@ -288,5 +288,28 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL u32 Mesh::GetNumIndices() { return SizeCast<u32>(m_data->m_indices.size()); }
+    IFRIT_APIDECL u32 Mesh::GetNumVertices() { return SizeCast<u32>(m_data->m_vertices.size()); }
+
+    IFRIT_APIDECL Vec<u32> Mesh::GetIndexBufferHost()
+    {
+        Vec<u32> indices;
+        indices.reserve(m_data->m_indices.size());
+        for (auto& i : m_data->m_indices)
+        {
+            indices.push_back(SizeCast<u32>(i));
+        }
+        return indices;
+    }
+
+    IFRIT_APIDECL Vec<Vector3f> Mesh::GetVertexBufferHost()
+    {
+        Vec<Vector3f> vertices;
+        vertices.reserve(m_data->m_vertices.size());
+        for (auto& v : m_data->m_vertices)
+        {
+            vertices.push_back(v);
+        }
+        return vertices;
+    }
 
 } // namespace Ifrit::Runtime

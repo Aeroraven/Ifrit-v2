@@ -248,7 +248,34 @@ namespace Ifrit::Runtime
             return m_selfDataRaw;
         }
     }
-    IFRIT_APIDECL u32  GLTFMesh::GetNumIndices() { return SizeCast<u32>(m_selfData->m_indices.size()); }
+    IFRIT_APIDECL u32 GLTFMesh::GetNumIndices() { return SizeCast<u32>(m_selfData->m_indices.size()); }
+    IFRIT_APIDECL u32 GLTFMesh::GetNumVertices() { return SizeCast<u32>(m_selfData->m_vertices.size()); }
+
+    IFRIT_APIDECL Vec<u32> GLTFMesh::GetIndexBufferHost()
+    {
+        if (m_loaded)
+        {
+            return m_selfData->m_indices;
+        }
+        else
+        {
+            LoadMesh();
+            return m_selfData->m_indices;
+        }
+    }
+
+    IFRIT_APIDECL Vec<Vector3f> GLTFMesh::GetVertexBufferHost()
+    {
+        if (m_loaded)
+        {
+            return m_selfData->m_vertices;
+        }
+        else
+        {
+            LoadMesh();
+            return m_selfData->m_vertices;
+        }
+    }
 
     // Asset class
 

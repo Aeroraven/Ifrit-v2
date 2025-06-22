@@ -25,6 +25,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime
 {
+    enum class MeshType
+    {
+        Conventional,
+        VirtualGeometry
+    };
+
     struct MeshData
     {
         struct GPUCPCounter
@@ -47,6 +53,7 @@ namespace Ifrit::Runtime
             Vector4f selfErrorSphere;
         };
         String                                          identifier;
+        MeshType                                        m_MeshType = MeshType::VirtualGeometry;
 
         Vec<Vector3f>                                   m_vertices;
         Vec<Vector4f>                                   m_verticesAligned;
@@ -187,9 +194,12 @@ namespace Ifrit::Runtime
             resource.objectData   = m_resource.objectData;
         }
         // TODO: static method
-        virtual void     CreateMeshLodHierarchy(Ref<MeshData> meshData, const String& cachePath);
-        virtual Vector4f GetBoundingSphere(const Vec<Vector3f>& vertices);
-        virtual u32      GetNumIndices();
+        virtual void          CreateMeshLodHierarchy(Ref<MeshData> meshData, const String& cachePath);
+        virtual Vector4f      GetBoundingSphere(const Vec<Vector3f>& vertices);
+        virtual u32           GetNumIndices();
+        virtual u32           GetNumVertices();
+        virtual Vec<u32>      GetIndexBufferHost();
+        virtual Vec<Vector3f> GetVertexBufferHost();
 
         IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
     };
