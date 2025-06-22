@@ -126,8 +126,11 @@ Following dependencies should be manually configured. Other dependencies will be
 **Ifrit Runtime (Syaro/Ayanami)**
 
 - Vulkan SDK >= 1.3.296
-  - with `EXT_mesh_shader` extension
+  - Core Features 1.2 (Necessary)
+  - with `EXT_mesh_shader` extension (Optional^)
   - To check all extensions required, refer to [Requirements](./REQUIREMENTS.md)
+
+> ^. You can still use partial of the `Ifrit.Runtime` features without some extensions. However, `Syaro` and `Ayanami` will not work properly without these extensions. Your app might crash or fail to run.
 
 - Python 3
 

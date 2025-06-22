@@ -288,8 +288,8 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer::Impl
         return cx;
     }
 
-    void procBuildBvhTLAS(std::unique_ptr<BVHNode>& root, int size, std::vector<BoundingBox>& bboxes,
-        std::vector<int>& indices, std::vector<SVector3f>& centers, std::vector<int>& belonging,
+    void procBuildBvhTLAS(Owner<BVHNode>& root, int size, std::vector<BoundingBox>& bboxes, std::vector<int>& indices,
+        std::vector<SVector3f>& centers, std::vector<int>& belonging,
         const std::vector<BoundingVolumeHierarchyBottomLevelAS*>& data)
     {
         root = MakeOwner<BVHNode>();

@@ -248,7 +248,7 @@ namespace Ifrit::Runtime
         m_multipleScatteringPass->SetPushConstSize(sizeof(u32) * 5 + sizeof(Matrix4x4f));
     }
 
-    IFRIT_APIDECL std::unique_ptr<PbrAtmosphereRenderer::GPUCommandSubmission> PbrAtmosphereRenderer::RenderInternal(
+    IFRIT_APIDECL Owner<PbrAtmosphereRenderer::GPUCommandSubmission> PbrAtmosphereRenderer::RenderInternal(
         PerFrameData& perframe, const Vec<GPUCommandSubmission*>& cmdToWait)
     {
         using namespace Ifrit::Math;

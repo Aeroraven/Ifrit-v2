@@ -91,7 +91,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         this->allowDepthModification = p.allowDepthModification;
         this->requiresQuadInfo       = p.requiresQuadInfo;
     }
-    IFRIT_HOST std::unique_ptr<FragmentShader> SpvVecFragmentShader::getThreadLocalCopy()
+    IFRIT_HOST Owner<FragmentShader> SpvVecFragmentShader::getThreadLocalCopy()
     {
         auto copy = MakeOwner<SpvVecFragmentShader>(*this);
         return copy;

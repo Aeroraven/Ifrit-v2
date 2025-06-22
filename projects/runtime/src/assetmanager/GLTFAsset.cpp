@@ -248,6 +248,7 @@ namespace Ifrit::Runtime
             return m_selfDataRaw;
         }
     }
+    IFRIT_APIDECL u32  GLTFMesh::GetNumIndices() { return SizeCast<u32>(m_selfData->m_indices.size()); }
 
     // Asset class
 

@@ -18,7 +18,7 @@ add_library(ifrit.ircompile SHARED
 
 set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
 string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
-message(STATUS "[IFRIT/EnvCheck]: Working Directory ${IFRIT_PROJECT_DIR}")
+message(STATUS "[Ifrit.Build.IrCompile]: Working Directory ${IFRIT_PROJECT_DIR}")
 
 if(NOT MSVC)
     target_compile_options(ifrit.ircompile PRIVATE -O2)

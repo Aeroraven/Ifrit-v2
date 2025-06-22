@@ -13,6 +13,16 @@ function(set_targets_folder folder_name group_name)
         set_target_properties(${tgt} PROPERTIES FOLDER "${group_name}")
     endforeach()
 endfunction()
+
+function(ifrit_add_dependency dependency_name)
+    message(STATUS "[Ifrit.Build.Dependencies] Adding dependency ${dependency_name}")
+    add_subdirectory(dependencies/${dependency_name})
+endfunction()
+
+function(ifrit_add_core_component component_name)
+    message(STATUS "[Ifrit.Build.Core] Adding core component ${component_name}")
+    add_subdirectory(projects/${component_name})
+endfunction()
  
 # Note following paths should be set to the correct paths on your system
 # Fallback paths will be used if `find_package` fails to find the package 
@@ -23,10 +33,13 @@ set(IFRIT_GLOBAL_CUDA_DIR_WINDOWS "C:/Program Files/NVIDIA GPU Computing Toolkit
 # Set global flags
 set(IFRIT_GLOBAL_INTEGRATED_BUILD_FLAG 1)
 set(IFRIT_GLOBAL_DISABLE_LLVM 1)
+
+# some global checks
+include(projects/buildinfra/SIMDCheck.cmake)
  
 # llvm
 if (IFRIT_GLOBAL_DISABLE_LLVM)
-    message(STATUS "[Ifrit/Deps] LLVM disabled. Using pre-defined paths.")
+    message(STATUS "[Ifrit.Build.Dependencies] LLVM disabled. Using pre-defined paths.")
 else()
     find_package(LLVM 10...<12 CONFIG QUIET)
     if(LLVM_FOUND)
@@ -35,7 +48,7 @@ else()
         set(IFRIT_GLOBAL_LLVM_DIR_LINUX "${LLVM_INCLUDE_DIRS}/../")
     else()
         # warning message
-        message(STATUS "[Ifrit/Deps] LLVM package not found. Using pre-defined paths.")
+        message(STATUS "[Ifrit.Build.Dependencies] LLVM package not found. Using pre-defined paths.")
     endif()
 endif()
 
@@ -78,31 +91,36 @@ set(SLANG_LIB_TYPE STATIC CACHE STRING "Slang library type" FORCE)
 # glfw
 set(GLFW_INSTALL OFF CACHE BOOL "Disable GLFW install" FORCE)
 
-# start building
-add_subdirectory(dependencies/spdlog)
-add_subdirectory(dependencies/glfw)
-add_subdirectory(dependencies/meshoptimizer)
-add_subdirectory(dependencies/gklib)
-add_subdirectory(dependencies/metis)
-add_subdirectory(dependencies/ktxsoftware)
-add_subdirectory(dependencies/slang)
+# ifrit
+set(IFRIT_DEMO_LIST CACHE INTERNAL "List of demo stages" FORCE)
 
-add_subdirectory(projects/core)
-add_subdirectory(projects/shadercompile)
-add_subdirectory(projects/imaging)
-add_subdirectory(projects/display)
-add_subdirectory(projects/ircompile)
-add_subdirectory(projects/softgraphics)
-add_subdirectory(projects/meshproclib)
-add_subdirectory(projects/vkgraphics)
-add_subdirectory(projects/external/fsr2)
-add_subdirectory(projects/runtime)
-add_subdirectory(projects/rhi)
-add_subdirectory(projects/demo)
+# start building
+ifrit_add_dependency(spdlog)
+ifrit_add_dependency(glfw)
+ifrit_add_dependency(meshoptimizer)
+ifrit_add_dependency(gklib)
+ifrit_add_dependency(metis)
+ifrit_add_dependency(ktxsoftware)
+ifrit_add_dependency(slang)
+
+ifrit_add_core_component(core)
+ifrit_add_core_component(shadercompile)
+ifrit_add_core_component(imaging)
+ifrit_add_core_component(display)
+ifrit_add_core_component(ircompile)
+ifrit_add_core_component(softgraphics)
+ifrit_add_core_component(meshproclib)
+ifrit_add_core_component(vkgraphics)
+ifrit_add_core_component(external/fsr2)
+ifrit_add_core_component(runtime)
+ifrit_add_core_component(rhi)
+ifrit_add_core_component(demo)
 
 set(IFRIT_GROUP_ENGINE "Project Ifrit/Engine")
 set(IFRIT_GROUP_DEPENDENCIES "Project Ifrit/ThirdParty")
 set(IFRIT_GROUP_DEMO "Project Ifrit/Demo")
+
+
 
 # slang targets
 include(projects/buildinfra/SlangBuildPostprocess.cmake)
@@ -146,11 +164,13 @@ set_target_properties(ifrit.vkgraphics PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 
-set_target_properties(ifrit.demo.syaro PROPERTIES FOLDER ${IFRIT_GROUP_DEMO})
-set_target_properties(ifrit.demo.ayanami PROPERTIES FOLDER ${IFRIT_GROUP_DEMO})
-set_target_properties(ifrit.demo.test PROPERTIES FOLDER ${IFRIT_GROUP_DEMO})
-set_target_properties(ifrit.demo.memdiag PROPERTIES FOLDER ${IFRIT_GROUP_DEMO})
-set_target_properties(ifrit.demo.cornell PROPERTIES FOLDER ${IFRIT_GROUP_DEMO})
+# print num demoss
+
+foreach(DEMO_STAGE ${IFRIT_DEMO_LIST})
+    set_target_properties(${DEMO_STAGE} PROPERTIES FOLDER ${IFRIT_GROUP_DEMO})
+    message(STATUS "[Ifrit.Build.Demo] Added demo stage: ${DEMO_STAGE}")
+
+endforeach()
 
 add_dependencies(ifrit.core 
     spdlog)
@@ -188,9 +208,7 @@ set(DEMO_DEPENDENCIES
     ifrit.rhi
     ifrit.imaging
 )
-add_dependencies(ifrit.demo.syaro ${DEMO_DEPENDENCIES})
-add_dependencies(ifrit.demo.ayanami ${DEMO_DEPENDENCIES})
-add_dependencies(ifrit.demo.test ${DEMO_DEPENDENCIES})
-add_dependencies(ifrit.demo.memdiag ${DEMO_DEPENDENCIES})
-add_dependencies(ifrit.demo.cornell ${DEMO_DEPENDENCIES})
-      
+
+foreach(DEMO_STAGE ${IFRIT_DEMO_LIST})
+    add_dependencies(${DEMO_STAGE} ${DEMO_DEPENDENCIES})
+endforeach()

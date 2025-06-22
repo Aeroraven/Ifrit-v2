@@ -33,9 +33,9 @@ namespace Ifrit::Graphics::SoftGraphics::LibraryExport
 {
     struct TileRasterRendererWrapper
     {
-        std::shared_ptr<IFRIT_TRNS::TileRasterRenderer>        renderer;
-        std::vector<std::unique_ptr<IFRIT_BASENS::ShaderBase>> allocatedFuncWrappers;
-        std::unique_ptr<std::vector<int>>                      allocatedIndexBuffer;
+        std::shared_ptr<IFRIT_TRNS::TileRasterRenderer> renderer;
+        std::vector<Owner<IFRIT_BASENS::ShaderBase>>    allocatedFuncWrappers;
+        Owner<std::vector<int>>                         allocatedIndexBuffer;
     };
     class VertexShaderFunctionalWrapper : virtual public VertexShader
     {

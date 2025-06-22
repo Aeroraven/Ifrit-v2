@@ -127,7 +127,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
 
         template <class T>
             requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-        T* addIr(std::unique_ptr<T>&& ir)
+        T* addIr(Owner<T>&& ir)
         {
             auto v = ir.get();
             mCtx->irExprs.push_back(std::move(ir));
@@ -135,7 +135,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         }
         template <class T>
             requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-        T* addIrG(std::unique_ptr<T>&& ir)
+        T* addIrG(Owner<T>&& ir)
         {
             auto v = ir.get();
             mCtx->irExprs.push_back(std::move(ir));
@@ -144,7 +144,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         }
         template <class T>
             requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-        T* addIrB(std::unique_ptr<T>&& ir, SpVcVMGenBlock* b)
+        T* addIrB(Owner<T>&& ir, SpVcVMGenBlock* b)
         {
             auto v = ir.get();
             mCtx->irExprs.push_back(std::move(ir));
@@ -153,7 +153,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         }
         template <class T>
             requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-        T* addIrBPre(std::unique_ptr<T>&& ir, SpVcVMGenBlock* b)
+        T* addIrBPre(Owner<T>&& ir, SpVcVMGenBlock* b)
         {
             auto v = ir.get();
             mCtx->irExprs.push_back(std::move(ir));
@@ -170,7 +170,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         }
         template <class T>
             requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-        T* addIrF(std::unique_ptr<T>&& ir, SpVcVMGenBlock* b)
+        T* addIrF(Owner<T>&& ir, SpVcVMGenBlock* b)
         {
             auto v = ir.get();
             mCtx->irExprs.push_back(std::move(ir));
@@ -180,7 +180,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
 
         template <class T>
             requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-        T* addIrFx(std::unique_ptr<T>&& ir, SpVcVMGenFunction* f)
+        T* addIrFx(Owner<T>&& ir, SpVcVMGenFunction* f)
         {
             auto v = ir.get();
             mCtx->irExprs.push_back(std::move(ir));
@@ -190,7 +190,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
 
         template <class T>
             requires std::is_base_of_v<LLVM::SpVcLLVMExpr, T>
-        T* addIrFxTail(std::unique_ptr<T>&& ir, SpVcVMGenFunction* f)
+        T* addIrFxTail(Owner<T>&& ir, SpVcVMGenFunction* f)
         {
             auto v = ir.get();
             mCtx->irExprs.push_back(std::move(ir));

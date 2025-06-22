@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Display::Window
 {
-    IFRIT_APIDECL std::unique_ptr<WindowProvider> WindowSelector::CreateWindowProvider(
+    IFRIT_APIDECL Owner<WindowProvider> WindowSelector::CreateWindowProvider(
         WindowProviderType type, const WindowProviderSetupArgs& args)
     {
         GLFWWindowProviderInitArgs initArgs;

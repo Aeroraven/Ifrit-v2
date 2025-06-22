@@ -94,7 +94,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         inline u32  GetActiveFrame() { return m_activeFrame; }
         inline void SetActiveFrame(u32 frame) { m_activeFrame = frame; }
-        inline u32  GetBufferCount()
+        inline u32  GetBufferCount() override
         {
             using namespace Ifrit;
             return SizeCast<int>(m_buffers.size());
@@ -102,6 +102,14 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline Rhi::RhiBuffer* GetActiveBufferRelative(u32 deltaFrame) override
         {
             return m_buffers[(m_activeFrame + deltaFrame) % m_buffers.size()];
+        }
+        inline Rhi::RhiBufferRef GetRhiBuffer(u32 index) override
+        {
+            if (index < m_buffersOwning.size())
+            {
+                return m_buffersOwning[index];
+            }
+            return nullptr;
         }
     };
 

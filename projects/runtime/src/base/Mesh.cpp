@@ -287,4 +287,6 @@ namespace Ifrit::Runtime
         return { center.x, center.y, center.z, radius };
     }
 
+    IFRIT_APIDECL u32 Mesh::GetNumIndices() { return SizeCast<u32>(m_data->m_indices.size()); }
+
 } // namespace Ifrit::Runtime

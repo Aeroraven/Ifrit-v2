@@ -73,7 +73,7 @@ namespace Ifrit::Demo::AccelStructDemo
             image->fillPixelRGBA(inputInvocation.x, inputInvocation.y, payload.color.x, payload.color.y,
                 payload.color.z, payload.color.w);
         }
-        IFRIT_HOST virtual std::unique_ptr<RayGenShader> getThreadLocalCopy() { return MakeOwner<DemoRayGen>(); }
+        IFRIT_HOST virtual Owner<RayGenShader> getThreadLocalCopy() { return MakeOwner<DemoRayGen>(); }
     };
 
     class DemoClosetHit : public CloseHitShader
@@ -101,7 +101,7 @@ namespace Ifrit::Demo::AccelStructDemo
                 payload = execStack.back().payloadPtr;
             }
         }
-        IFRIT_HOST virtual std::unique_ptr<CloseHitShader> getThreadLocalCopy() { return MakeOwner<DemoClosetHit>(); }
+        IFRIT_HOST virtual Owner<CloseHitShader> getThreadLocalCopy() { return MakeOwner<DemoClosetHit>(); }
     };
 
     class DemoMiss : public MissShader
@@ -130,7 +130,7 @@ namespace Ifrit::Demo::AccelStructDemo
             }
         }
 
-        IFRIT_HOST virtual std::unique_ptr<MissShader> getThreadLocalCopy() { return MakeOwner<DemoMiss>(); }
+        IFRIT_HOST virtual Owner<MissShader> getThreadLocalCopy() { return MakeOwner<DemoMiss>(); }
     };
 
     int mainCpu()

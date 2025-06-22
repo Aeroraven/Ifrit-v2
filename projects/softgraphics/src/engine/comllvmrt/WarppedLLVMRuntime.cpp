@@ -66,7 +66,7 @@ namespace Ifrit::Graphics::SoftGraphics::ComLLVMRuntime
         return IfritCom_LlvmExec_Lookup(session->session, symbol.c_str());
     }
 
-    std::unique_ptr<ShaderRuntime> WrappedLLVMRuntime::getThreadLocalCopy()
+    Owner<ShaderRuntime> WrappedLLVMRuntime::getThreadLocalCopy()
     {
         auto copy = MakeOwner<WrappedLLVMRuntime>();
         copy->loadIR(session->irCode, session->irIdentifier);
@@ -75,8 +75,5 @@ namespace Ifrit::Graphics::SoftGraphics::ComLLVMRuntime
 
     WrappedLLVMRuntimeBuilder::WrappedLLVMRuntimeBuilder() { WrappedLLVMRuntime::initLlvmBackend(); }
 
-    std::unique_ptr<ShaderRuntime> WrappedLLVMRuntimeBuilder::buildRuntime() const
-    {
-        return MakeOwner<WrappedLLVMRuntime>();
-    }
+    Owner<ShaderRuntime> WrappedLLVMRuntimeBuilder::buildRuntime() const { return MakeOwner<WrappedLLVMRuntime>(); }
 } // namespace Ifrit::Graphics::SoftGraphics::ComLLVMRuntime

@@ -31,8 +31,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         std::vector<int>   inputBytes[SpVcQuadSize];
         std::vector<void*> outputs[SpVcQuadSize];
         std::vector<int>   outputBytes[SpVcQuadSize];
-        std::unordered_map<
-            std::pair<int, int>, std::pair<void*, int>,
+        std::unordered_map<std::pair<int, int>, std::pair<void*, int>,
             Ifrit::Graphics::SoftGraphics::Core::Utility::PairHash>
               uniform;
         void* entry = nullptr;
@@ -41,22 +40,21 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
     class SpvVecRuntimeBackend
     {
     protected:
-        static int                     CreateTime;
-        Spirv::SpvVMReader             reader;
-        SpVcQuadGroupedIRGenerator     interpreter;
-        Spirv::SpvVMContext            spctx;
-        SpVcVMGeneratorContext         spvir;
-        const SpVcVMGeneratorContext*  spvirRef;
-        ShaderRuntime*                 runtime;
-        SpvVecRuntimeSymbolTables      symbolTables;
-        std::unique_ptr<ShaderRuntime> copiedRuntime = nullptr;
-        std::string                    irCode;
+        static int                    CreateTime;
+        Spirv::SpvVMReader            reader;
+        SpVcQuadGroupedIRGenerator    interpreter;
+        Spirv::SpvVMContext           spctx;
+        SpVcVMGeneratorContext        spvir;
+        const SpVcVMGeneratorContext* spvirRef;
+        ShaderRuntime*                runtime;
+        SpvVecRuntimeSymbolTables     symbolTables;
+        Owner<ShaderRuntime>          copiedRuntime = nullptr;
+        std::string                   irCode;
 
-        std::unique_ptr<ShaderRuntime> owningRuntime = nullptr;
+        Owner<ShaderRuntime>          owningRuntime = nullptr;
 
     public:
-        SpvVecRuntimeBackend(const ShaderRuntimeBuilder& runtime,
-            std::vector<char>                            irByteCode);
+        SpvVecRuntimeBackend(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
         SpvVecRuntimeBackend(const SpvVecRuntimeBackend& other);
 
     protected:
@@ -69,19 +67,14 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         SpvVecFragmentShader(const SpvVecFragmentShader& p);
 
     public:
-        SpvVecFragmentShader(const ShaderRuntimeBuilder& runtime,
-            std::vector<char>                            irByteCode);
+        SpvVecFragmentShader(const ShaderRuntimeBuilder& runtime, std::vector<char> irByteCode);
         ~SpvVecFragmentShader() = default;
-        IFRIT_DUAL virtual void            execute(const void* varyings, void* colorOutput,
-                       float* fragmentDepth) override;
-        IFRIT_HOST virtual void            executeInQuad(const void** varyings,
-                       void**                                         colorOutput,
-                       float**                                        fragmentDepth) override;
-        IFRIT_HOST virtual FragmentShader* GetCudaClone() override;
-        IFRIT_HOST virtual std::unique_ptr<FragmentShader>
-                                                            getThreadLocalCopy() override;
-        IFRIT_HOST virtual void                             updateUniformData(int binding, int set,
-                                        const void* pData) override;
+        IFRIT_DUAL virtual void execute(const void* varyings, void* colorOutput, float* fragmentDepth) override;
+        IFRIT_HOST virtual void executeInQuad(
+            const void** varyings, void** colorOutput, float** fragmentDepth) override;
+        IFRIT_HOST virtual FragmentShader*       GetCudaClone() override;
+        IFRIT_HOST virtual Owner<FragmentShader> getThreadLocalCopy() override;
+        IFRIT_HOST virtual void                  updateUniformData(int binding, int set, const void* pData) override;
         IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() override;
     };
 } // namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec

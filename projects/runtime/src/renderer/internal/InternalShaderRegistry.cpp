@@ -46,7 +46,7 @@ namespace Ifrit::Runtime::Internal
         const auto& ISTAya = kIntShaderTableAyanami;
         const auto& ISTNeo = kIntShaderTableNeo;
 
-        const auto& ISTSiro = kIntShaderTableSiro;
+        // const auto& ISTSiro = kIntShaderTableSiro;
 
         // GI & AO
         REG_COMPUTE(IST.GI.HBAOCS, "AmbientOcclusion/HBAO");
@@ -167,7 +167,11 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTNeo.TestCS, "TestCS", "TestCS");
 
         // SIRO
-        REG_COMPUTE_NEO(ISTSiro.TrivialPBDClothInit, "Siro/TrivialPBDCloth.Init", "TrivialPBDClothInit");
+        // REG_COMPUTE_NEO(ISTSiro.TrivialPBDClothInit, "Siro/TrivialPBDCloth.Init", "TrivialPBDClothInit");
+
+        // Base Forward
+        REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");
+        REG_FRAGMENT_NEO(IST.BaseForward.ForwardPS, "BaseForward/Forward.Default", "BaseForwardPS");
 
         iInfo("Internal: Compiling internal shaders...");
         shaderRegistry->WaitForShaderCompilations();

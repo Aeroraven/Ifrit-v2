@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Display::Window
 {
-    IFRIT_APIDECL std::unique_ptr<WindowProvider> AdaptiveWindowBuilder::buildUniqueWindowProvider()
+    IFRIT_APIDECL Owner<WindowProvider> AdaptiveWindowBuilder::buildUniqueWindowProvider()
     {
         auto obj = MakeOwner<GLFWWindowProvider>();
         return obj;

@@ -38,3 +38,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/ayanami/AyanamiMeshDF.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiMeshMarker.h"
+
+#include "ifrit/runtime/renderer/BaseForwardRenderer.h"

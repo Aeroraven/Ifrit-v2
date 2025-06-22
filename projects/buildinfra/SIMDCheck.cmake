@@ -23,7 +23,7 @@ if(NOT DEFINED IFRIT_CONFIGURE_SIMD)
     ")
     check_c_source_compiles("${CHECK_AVX2_SOURCE}" IFRIT_ENABLE_SIMD_AVX2)
     set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQUIRED_FLAG})
-    message(STATUS "AVX2 Support - ${IFRIT_ENABLE_SIMD_AVX2}")
+    message(STATUS "[Ifrit.Build.SIMDCheck] AVX2 Support - ${IFRIT_ENABLE_SIMD_AVX2}")
 
     # Deps Check / SSE
     set(OLD_CMAKE_REQUIRED_FLAG ${CMAKE_REQUIRED_FLAGS})
@@ -42,7 +42,7 @@ if(NOT DEFINED IFRIT_CONFIGURE_SIMD)
     ")
     check_c_source_compiles("${CHECK_SSE_SOURCE}" IFRIT_ENABLE_SIMD_SSE)
     set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQUIRED_FLAG})
-    message(STATUS "SSE Support - ${IFRIT_ENABLE_SIMD_SSE}")
+    message(STATUS "[Ifrit.Build.SIMDCheck] SSE Support - ${IFRIT_ENABLE_SIMD_SSE}")
 
     if(${IFRIT_ENABLE_SIMD_SSE})
         add_definitions(-DIFRIT_FEATURE_SIMD)

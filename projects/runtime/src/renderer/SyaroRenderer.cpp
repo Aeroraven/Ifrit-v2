@@ -2049,7 +2049,7 @@ namespace Ifrit::Runtime
         }
     }
 
-    IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission> SyaroRenderer::Render(PerFrameData& perframeData,
+    IFRIT_APIDECL Owner<SyaroRenderer::GPUCommandSubmission> SyaroRenderer::Render(PerFrameData& perframeData,
         SyaroRenderer::RenderTargets* renderTargets, const Vec<SyaroRenderer::GPUCommandSubmission*>& cmdToWait)
     {
 
@@ -2080,15 +2080,15 @@ namespace Ifrit::Runtime
 
         auto start1 = std::chrono::high_resolution_clock::now();
         PrepareAggregatedShadowData(perframeData);
-        auto                    end1     = std::chrono::high_resolution_clock::now();
-        auto                    elapsed1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
+        auto                     end1     = std::chrono::high_resolution_clock::now();
+        auto                     elapsed1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
 
         // Then draw
-        auto                    rhi = m_app->GetRhi();
-        auto                    dq  = rhi->GetQueue(RhiQueueCapability::RhiQueue_Graphics);
+        auto                     rhi = m_app->GetRhi();
+        auto                     dq  = rhi->GetQueue(RhiQueueCapability::RhiQueue_Graphics);
 
-        Vec<RhiTaskSubmission*> cmdToWaitBkp = cmdToWait;
-        std::unique_ptr<RhiTaskSubmission> pbrAtmoTask;
+        Vec<RhiTaskSubmission*>  cmdToWaitBkp = cmdToWait;
+        Owner<RhiTaskSubmission> pbrAtmoTask;
         if (perframeData.m_atmosphereData == nullptr)
         {
             // Need to create an atmosphere output texture
@@ -2189,9 +2189,8 @@ namespace Ifrit::Runtime
         }
     }
 
-    IFRIT_APIDECL std::unique_ptr<SyaroRenderer::GPUCommandSubmission> SyaroRenderer::Render(Scene* scene,
-        Camera* camera, RenderTargets* renderTargets, const RendererConfig& config,
-        const Vec<GPUCommandSubmission*>& cmdToWait)
+    IFRIT_APIDECL Owner<SyaroRenderer::GPUCommandSubmission> SyaroRenderer::Render(Scene* scene, Camera* camera,
+        RenderTargets* renderTargets, const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait)
     {
 
         auto start = std::chrono::high_resolution_clock::now();

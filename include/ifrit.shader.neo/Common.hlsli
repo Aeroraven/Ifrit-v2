@@ -52,6 +52,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
             #define IFSHADER_LOCATION(location)
             #define IFSHADER_PUSHCONST
         #endif
+        #define IFSHADER_TYPEALIAS_STRUCT(name, type) struct name : type {};
     #else
         #error "This shader module is only supported in HLSL or Slang."
     #endif
@@ -76,6 +77,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
         #define IFSHADER_LOCATION(x)
         #define IFSHADER_PUSHCONST
     #endif
+    #define IFSHADER_TYPEALIAS_STRUCT(name, type) typealias name = type;
 #endif
 
 namespace IfritShader{
@@ -111,7 +113,7 @@ namespace IfritShader{
         uint m_Pad2;
     };
 
-    struct PerObjectData
+    struct PerObjectDataRaw
     {
         uint m_TransformRef;
         uint m_ObjectDataRef;

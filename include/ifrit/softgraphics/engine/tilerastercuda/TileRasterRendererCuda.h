@@ -33,36 +33,36 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster::CUDA
     class TileRasterRendererCuda : public std::enable_shared_from_this<TileRasterRendererCuda>
     {
     private:
-        std::unique_ptr<TileRasterContextCuda>   context;
-        std::unique_ptr<TileRasterDeviceContext> deviceContext;
-        bool                                     needVaryingUpdate        = true;
-        bool                                     needFragmentShaderUpdate = true;
-        bool                                     initCudaContext          = false;
+        Owner<TileRasterContextCuda>   context;
+        Owner<TileRasterDeviceContext> deviceContext;
+        bool                           needVaryingUpdate        = true;
+        bool                           needFragmentShaderUpdate = true;
+        bool                           initCudaContext          = false;
 
         // Depth Test
-        IfritCompareOp                           ctxDepthFunc       = IF_COMPARE_OP_LESS;
-        bool                                     ctxDepthTestEnable = true;
-        std::vector<Vector4f>                    ctxClearColors     = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-        float                                    ctxClearDepth      = 1.0f;
+        IfritCompareOp                 ctxDepthFunc       = IF_COMPARE_OP_LESS;
+        bool                           ctxDepthTestEnable = true;
+        std::vector<Vector4f>          ctxClearColors     = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+        float                          ctxClearDepth      = 1.0f;
 
         // Device Addrs
-        int*                                     deviceIndexBuffer           = nullptr;
-        char*                                    deviceVertexBuffer          = nullptr;
-        TypeDescriptorEnum*                      deviceVertexTypeDescriptor  = nullptr;
-        TypeDescriptorEnum*                      deviceVaryingTypeDescriptor = nullptr;
-        float*                                   deviceDepthBuffer           = nullptr;
-        Vector4f*                                devicePosBuffer             = nullptr;
-        int*                                     deviceShadingLockBuffer     = nullptr;
+        int*                           deviceIndexBuffer           = nullptr;
+        char*                          deviceVertexBuffer          = nullptr;
+        TypeDescriptorEnum*            deviceVertexTypeDescriptor  = nullptr;
+        TypeDescriptorEnum*            deviceVaryingTypeDescriptor = nullptr;
+        float*                         deviceDepthBuffer           = nullptr;
+        Vector4f*                      devicePosBuffer             = nullptr;
+        int*                           deviceShadingLockBuffer     = nullptr;
 
-        std::vector<Vector4f*>                   deviceHostColorBuffers[2];
-        Vector4f**                               deviceColorBuffer[2] = { nullptr, nullptr };
-        std::vector<Vector4f*>                   hostColorBuffers{};
+        std::vector<Vector4f*>         deviceHostColorBuffers[2];
+        Vector4f**                     deviceColorBuffer[2] = { nullptr, nullptr };
+        std::vector<Vector4f*>         hostColorBuffers{};
 
-        bool                                     doubleBuffer  = false;
-        int                                      currentBuffer = 0;
+        bool                           doubleBuffer  = false;
+        int                            currentBuffer = 0;
 
         // Render confs
-        IfritPolygonMode                         polygonMode = IF_POLYGON_MODE_FILL;
+        IfritPolygonMode               polygonMode = IF_POLYGON_MODE_FILL;
 
     private:
         enum TileRasterRendererCudaVertexPipelineType
@@ -85,15 +85,16 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster::CUDA
         IFRIT_APIDECL void bindVertexShader(VertexShader* vertexShader, VaryingDescriptor& varyingDescriptor);
         IFRIT_APIDECL void bindFragmentShader(FragmentShader* fragmentShader);
         IFRIT_APIDECL void bindGeometryShader(GeometryShader* geometryShader);
-        IFRIT_APIDECL void bindMeshShader(MeshShader* meshShader, VaryingDescriptor& varyingDescriptor, Vector3i localSize);
+        IFRIT_APIDECL void bindMeshShader(
+            MeshShader* meshShader, VaryingDescriptor& varyingDescriptor, Vector3i localSize);
         IFRIT_APIDECL void bindTaskShader(TaskShader* taskShader, VaryingDescriptor& varyingDescriptor);
 
         IFRIT_APIDECL void CreateTexture(int slotId, const IfritImageCreateInfo& createInfo);
         IFRIT_APIDECL void CreateSampler(int slotId, const IfritSamplerT& samplerState);
         IFRIT_APIDECL void generateMipmap(int slotId, IfritFilter filter);
         IFRIT_APIDECL void blitImage(int srcSlotId, int dstSlotId, const IfritImageBlit& region, IfritFilter filter);
-        IFRIT_APIDECL void copyHostBufferToImage(void* srcBuffer, int dstSlot,
-            const std::vector<IfritBufferImageCopy>& regions);
+        IFRIT_APIDECL void copyHostBufferToImage(
+            void* srcBuffer, int dstSlot, const std::vector<IfritBufferImageCopy>& regions);
 
         IFRIT_APIDECL void CreateBuffer(int slotId, int bufSize);
         IFRIT_APIDECL void copyHostBufferToBuffer(const void* srcBuffer, int dstSlot, int size);

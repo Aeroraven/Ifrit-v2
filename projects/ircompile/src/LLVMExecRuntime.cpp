@@ -76,15 +76,15 @@ static ThreadSafeModule optimizeModule(ThreadSafeModule M)
 
 struct IfritCompLLVMExecutionSession
 {
-    std::unique_ptr<legacy::PassManager> PM = MakeOwner<legacy::PassManager>();
+    Owner<legacy::PassManager> PM = MakeOwner<legacy::PassManager>();
 
-    std::unique_ptr<LLVMContext>         llvmCtx;
-    ThreadSafeModule                     tsModule;
-    SMDiagnostic                         Err;
-    LLJITBuilder                         jitBuilder;
-    std::unique_ptr<LLJIT>               jit;
-    bool                                 ready = false;
-    void                                 loadIR(std::string irCode)
+    Owner<LLVMContext>         llvmCtx;
+    ThreadSafeModule           tsModule;
+    SMDiagnostic               Err;
+    LLJITBuilder               jitBuilder;
+    Owner<LLJIT>               jit;
+    bool                       ready = false;
+    void                       loadIR(std::string irCode)
     {
         jit = ExitOnErr(jitBuilder.create());
         jit->getMainJITDylib().addGenerator(

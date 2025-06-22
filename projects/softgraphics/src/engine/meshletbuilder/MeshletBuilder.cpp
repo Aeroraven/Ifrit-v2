@@ -41,15 +41,15 @@ namespace Ifrit::Graphics::SoftGraphics::MeshletBuilder::Impl
 
     struct MbContext
     {
-        std::vector<Vector4f>                  vertices;
-        std::vector<MbTriangle>                triangles;
-        std::vector<std::vector<int>>          adjMaps;
-        std::vector<int>                       remainActiveAdj;
-        std::vector<int>                       triangleEmitted;
-        std::vector<MbCurrentMeshlet>          finishedMeshlets;
-        std::vector<std::unique_ptr<Meshlet>>* generatedMeshlets;
-        const int                              maxTriangles = 128;
-        const int                              maxVertices  = 256;
+        std::vector<Vector4f>         vertices;
+        std::vector<MbTriangle>       triangles;
+        std::vector<std::vector<int>> adjMaps;
+        std::vector<int>              remainActiveAdj;
+        std::vector<int>              triangleEmitted;
+        std::vector<MbCurrentMeshlet> finishedMeshlets;
+        std::vector<Owner<Meshlet>>*  generatedMeshlets;
+        const int                     maxTriangles = 128;
+        const int                     maxVertices  = 256;
     };
 
     void initializeContext(MbContext* ctx, const VertexBuffer& vbuf, const std::vector<int>& ibuf, int posAttrId)
@@ -273,8 +273,7 @@ namespace Ifrit::Graphics::SoftGraphics::MeshletBuilder
 {
     IFRIT_APIDECL void TrivialMeshletBuilder::bindVertexBuffer(const VertexBuffer& vbuf) { this->vbuffer = &vbuf; }
     IFRIT_APIDECL void TrivialMeshletBuilder::bindIndexBuffer(const std::vector<int>& ibuf) { this->ibuffer = &ibuf; }
-    IFRIT_APIDECL void TrivialMeshletBuilder::buildMeshlet(
-        int posAttrId, std::vector<std::unique_ptr<Meshlet>>& outData)
+    IFRIT_APIDECL void TrivialMeshletBuilder::buildMeshlet(int posAttrId, std::vector<Owner<Meshlet>>& outData)
     {
         using namespace Impl;
         auto ctx = MakeOwner<MbContext>();
@@ -308,7 +307,7 @@ namespace Ifrit::Graphics::SoftGraphics::MeshletBuilder
             writeGenratedMeshlet(ctx.get(), ctx->finishedMeshlets[i]);
         }
     }
-    IFRIT_APIDECL void TrivialMeshletBuilder::mergeMeshlet(const std::vector<std::unique_ptr<Meshlet>>& meshlets,
+    IFRIT_APIDECL void TrivialMeshletBuilder::mergeMeshlet(const std::vector<Owner<Meshlet>>& meshlets,
         Meshlet& outData, std::vector<int>& outVertexOffset, std::vector<int>& outIndexOffset, bool autoIncre)
     {
         auto totalVerts   = 0;

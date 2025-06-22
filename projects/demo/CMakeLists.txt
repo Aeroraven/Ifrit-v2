@@ -20,13 +20,21 @@ add_definitions(-DIFRIT_DEMO_CACHE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Cache/")
 #     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
 # endif()
 
+file(GLOB IFRIT_DEMO_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ifrit.demo.*.cpp")
+set(IFRIT_DEMO_LIST_LOCAL)
 
-# add executable
-add_executable(ifrit.demo.syaro ifrit.demo.syaro.cpp)
-add_executable(ifrit.demo.ayanami ifrit.demo.ayanami.cpp)
-add_executable(ifrit.demo.test ifrit.demo.test.cpp)
-add_executable(ifrit.demo.memdiag ifrit.demo.memdiag.cpp)
-add_executable(ifrit.demo.cornell ifrit.demo.cornell.cpp)
+foreach(SOURCE_FILE ${IFRIT_DEMO_SOURCES})
+    string(REGEX REPLACE ".*/(ifrit.demo.*)\\.cpp" "\\1" SOURCE_NAME ${SOURCE_FILE})
+    add_executable(${SOURCE_NAME} ${SOURCE_FILE})
+    list(APPEND IFRIT_DEMO_LIST_LOCAL ${SOURCE_NAME})
+endforeach()
+
+#set ifrit_demo_list a global variable
+set(IFRIT_DEMO_LIST ${IFRIT_DEMO_LIST_LOCAL} CACHE INTERNAL "List of demo stages" FORCE)
+
+#print demo list
+message(STATUS "[Ifrit.Build.Demo2] Found ${IFRIT_DEMO_LIST} demo stages.")
+message(STATUS "[Ifrit.Build.Demo2] Found ${IFRIT_DEMO_LIST_LOCAL} demo stages.")
 
 include_directories(${IFRIT_PROJECT_SUBDIR}/softrenderer/include)
 include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)
@@ -44,15 +52,12 @@ set(IFRIT_DEMO_LINK_LIBRARIES
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_link_libraries(ifrit.demo.syaro meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES})
-    target_link_libraries(ifrit.demo.ayanami meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES})
-    target_link_libraries(ifrit.demo.test meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES})
-    target_link_libraries(ifrit.demo.memdiag meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES})
-    target_link_libraries(ifrit.demo.cornell meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES})
+    foreach(TARGET_NAME ${IFRIT_DEMO_LIST_LOCAL})
+        target_link_libraries(${TARGET_NAME} meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES})
+    endforeach()
 else()
-    target_link_libraries(ifrit.demo.syaro meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES} dl pthread)
-    target_link_libraries(ifrit.demo.ayanami meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES} dl pthread)
-    target_link_libraries(ifrit.demo.test meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES} dl pthread)
-    target_link_libraries(ifrit.demo.memdiag meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES} dl pthread)
-    target_link_libraries(ifrit.demo.cornell meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES} dl pthread)
+    foreach(TARGET_NAME ${IFRIT_DEMO_LIST_LOCAL})
+        target_link_libraries(${TARGET_NAME} meshoptimizer ${IFRIT_DEMO_LINK_LIBRARIES} dl pthread)
+    endforeach()
 endif()
+    

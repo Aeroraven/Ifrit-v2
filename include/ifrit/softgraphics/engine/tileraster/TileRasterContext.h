@@ -77,17 +77,17 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
         float                                             invFrameHeight;
 
         // Owning Bindings
-        std::unique_ptr<VaryingDescriptor>                owningVaryingDesc;
+        Owner<VaryingDescriptor>                          owningVaryingDesc;
 
         // Thread-safe Calls
         VertexShader*                                     threadSafeVS[TileRasterContext::numThreads + 1];
         FragmentShader*                                   threadSafeFS[TileRasterContext::numThreads + 1];
 
-        std::unique_ptr<VertexShader>                     threadSafeVSOwningSection[TileRasterContext::numThreads + 1];
-        std::unique_ptr<FragmentShader>                   threadSafeFSOwningSection[TileRasterContext::numThreads + 1];
+        Owner<VertexShader>                               threadSafeVSOwningSection[TileRasterContext::numThreads + 1];
+        Owner<FragmentShader>                             threadSafeFSOwningSection[TileRasterContext::numThreads + 1];
 
         // Resources
-        std::unique_ptr<VertexShaderResult>               vertexShaderResult;
+        Owner<VertexShaderResult>                         vertexShaderResult;
         std::vector<std::vector<int>>                     rasterizerQueue[TileRasterContext::numThreads + 1];
         std::vector<std::vector<int>>                     coverQueue[TileRasterContext::numThreads + 1];
 

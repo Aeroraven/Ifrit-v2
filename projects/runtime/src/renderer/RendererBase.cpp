@@ -590,6 +590,7 @@ namespace Ifrit::Runtime
                 shaderEffect.m_objectData.resize(objectCount);
                 shaderEffect.m_batchedObjectData =
                     rhi->CreateBufferCoherent(sizeof(PerObjectData) * objectCount, RhiBufferUsage::RhiBufferUsage_SSBO);
+                rhi->RegisterStorageBufferShared(shaderEffect.m_batchedObjectData.get());
 
                 // TODO: update instead of recreate
                 shaderEffect.m_batchedObjBufRef = rhi->CreateBindlessDescriptorRef();
@@ -902,7 +903,7 @@ namespace Ifrit::Runtime
         rhi->EndFrame();
     }
 
-    IFRIT_APIDECL std::unique_ptr<RendererBase::GPUCommandSubmission> RendererBase::BeginFrame()
+    IFRIT_APIDECL Owner<RendererBase::GPUCommandSubmission> RendererBase::BeginFrame()
     {
         auto rhi = m_app->GetRhi();
         rhi->BeginFrame();

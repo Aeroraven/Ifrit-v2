@@ -104,7 +104,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
         isThreadSafe = false;
     }
     SpvVertexShader::SpvVertexShader(const SpvVertexShader& p) : SpvRuntimeBackend(p) { isThreadSafe = false; }
-    IFRIT_HOST std::unique_ptr<VertexShader> SpvVertexShader::getThreadLocalCopy()
+    IFRIT_HOST Owner<VertexShader> SpvVertexShader::getThreadLocalCopy()
     {
         auto copy = MakeOwner<SpvVertexShader>(*this);
         return copy;
@@ -149,7 +149,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
         this->allowDepthModification = p.allowDepthModification;
         this->requiresQuadInfo       = p.requiresQuadInfo;
     }
-    IFRIT_HOST std::unique_ptr<FragmentShader> SpvFragmentShader::getThreadLocalCopy()
+    IFRIT_HOST Owner<FragmentShader> SpvFragmentShader::getThreadLocalCopy()
     {
         auto copy = MakeOwner<SpvFragmentShader>(*this);
         return copy;
@@ -246,7 +246,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
         ifritError("CUDA not supported");
         return nullptr;
     }
-    IFRIT_HOST std::unique_ptr<Raytracer::RayGenShader> SpvRaygenShader::getThreadLocalCopy()
+    IFRIT_HOST Owner<Raytracer::RayGenShader> SpvRaygenShader::getThreadLocalCopy()
     {
         auto copy = MakeOwner<SpvRaygenShader>(*this);
         return copy;
@@ -301,7 +301,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
         ifritError("CUDA not supported");
         return nullptr;
     }
-    IFRIT_HOST std::unique_ptr<Raytracer::MissShader> SpvMissShader::getThreadLocalCopy()
+    IFRIT_HOST Owner<Raytracer::MissShader> SpvMissShader::getThreadLocalCopy()
     {
         auto copy = MakeOwner<SpvMissShader>(*this);
         return copy;
@@ -360,7 +360,7 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::Spirv
         ifritError("CUDA not supported");
         return nullptr;
     }
-    IFRIT_HOST std::unique_ptr<Raytracer::CloseHitShader> SpvClosestHitShader::getThreadLocalCopy()
+    IFRIT_HOST Owner<Raytracer::CloseHitShader> SpvClosestHitShader::getThreadLocalCopy()
     {
         auto copy = MakeOwner<SpvClosestHitShader>(*this);
         return copy;

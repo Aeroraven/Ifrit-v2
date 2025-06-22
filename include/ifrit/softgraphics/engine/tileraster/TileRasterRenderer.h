@@ -51,19 +51,19 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
     {
 
     private:
-        bool                                           shaderBindingDirtyFlag = true;
-        bool                                           varyingBufferDirtyFlag = true;
-        std::shared_ptr<TileRasterContext>             context;
-        std::vector<std::unique_ptr<TileRasterWorker>> workers;
-        std::unique_ptr<TileRasterWorker>              selfOwningWorker;
-        std::mutex                                     lock;
-        std::atomic<u32>                               unresolvedTileRaster          = 0;
-        std::atomic<u32>                               unresolvedTileFragmentShading = 0;
-        std::atomic<u32>                               unresolvedTileSort            = 0;
-        std::atomic<u32>                               unresolvedChunkVertex         = 0;
-        std::atomic<u32>                               unresolvedChunkGeometry       = 0;
+        bool                                 shaderBindingDirtyFlag = true;
+        bool                                 varyingBufferDirtyFlag = true;
+        std::shared_ptr<TileRasterContext>   context;
+        std::vector<Owner<TileRasterWorker>> workers;
+        Owner<TileRasterWorker>              selfOwningWorker;
+        std::mutex                           lock;
+        std::atomic<u32>                     unresolvedTileRaster          = 0;
+        std::atomic<u32>                     unresolvedTileFragmentShading = 0;
+        std::atomic<u32>                     unresolvedTileSort            = 0;
+        std::atomic<u32>                     unresolvedChunkVertex         = 0;
+        std::atomic<u32>                     unresolvedChunkGeometry       = 0;
 
-        bool                                           initialized = false;
+        bool                                 initialized = false;
 
     protected:
         void createWorkers();

@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Display::Backend
 {
-    IFRIT_APIDECL std::unique_ptr<BackendProvider> AdaptiveBackendBuilder::BuildUniqueBackend()
+    IFRIT_APIDECL Owner<BackendProvider> AdaptiveBackendBuilder::BuildUniqueBackend()
     {
         auto obj = MakeOwner<OpenGLBackend>();
         return obj;

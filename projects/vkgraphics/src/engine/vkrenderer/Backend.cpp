@@ -508,7 +508,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto     numBackbuffers    = m_swapChain->GetNumBackbuffers();
         for (u32 i = 0; i < numBackbuffers; i++)
         {
-            auto id = descriptorManager->RegisterStorageBuffer(multiBuffer->GetBuffer(i));
+            auto                     id = descriptorManager->RegisterStorageBuffer(multiBuffer->GetBuffer(i));
+            Rhi::RhiDescriptorHandle handle(Rhi::RhiDescriptorHeapType::StorageBuffer, id);
+            multiBuffer->GetBuffer(i)->SetDescriptorHandle(handle);
             ids.push_back(id);
         }
         auto p         = MakeRef<Rhi::RhiDescHandleLegacy>();

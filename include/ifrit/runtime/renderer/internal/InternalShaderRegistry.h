@@ -101,6 +101,12 @@ namespace Ifrit::Runtime::Internal
             SDEF VisBufferDepthMS          = DECLARE_MS("Syaro/VisBufferDepth");
         } Syaro;
 
+        IF_CONSTEXPR static struct
+        {
+            SDEF ForwardVS = DECLARE_VS("BaseForward/Default");
+            SDEF ForwardPS = DECLARE_FS("BaseForward/Default");
+        } BaseForward;
+
     } kIntShaderTable;
 
 #undef SDEF

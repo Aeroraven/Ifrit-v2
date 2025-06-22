@@ -239,9 +239,8 @@ namespace IfritShader
 
     // Vertex data
 
-    struct TVertexDataHandle : TRWStructuredBufferHandle_ReadOnly<float4>{};
-    struct TNormalDataHandle : TRWStructuredBufferHandle_ReadOnly<float4>{};
-    struct TTangentDataHandle : TRWStructuredBufferHandle_ReadOnly<float4>{};
-    struct TUVDataHandle : TRWStructuredBufferHandle_ReadOnly<float2>{};
-    
+    IFSHADER_TYPEALIAS_STRUCT(TVertexDataHandle, TRWStructuredBufferHandle_ReadOnly<float4>);
+    IFSHADER_TYPEALIAS_STRUCT(TNormalDataHandle, TRWStructuredBufferHandle_ReadOnly<float4>);
+    IFSHADER_TYPEALIAS_STRUCT(TTangentDataHandle, TRWStructuredBufferHandle_ReadOnly<float4>);
+    IFSHADER_TYPEALIAS_STRUCT(TUVDataHandle, TRWStructuredBufferHandle_ReadOnly<float2>);
 }

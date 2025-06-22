@@ -35,7 +35,7 @@ namespace Ifrit::Graphics::SoftGraphics::Core::Utility
         using GroupIteratorTp    = std::tuple<ContainerIteratorTp<Args>...>;
         using GroupIteratorValTp = std::tuple<ContainerIteratorValTp<Args>...>;
 
-        std::unique_ptr<std::tuple<Args...>> tuples;
+        Owner<std::tuple<Args...>> tuples;
 
     public:
         class iterator
@@ -48,7 +48,7 @@ namespace Ifrit::Graphics::SoftGraphics::Core::Utility
             using pointer           = GroupIteratorValTp*;
 
         private:
-            std::unique_ptr<GroupIteratorTp> curIters;
+            Owner<GroupIteratorTp> curIters;
 
         public:
             iterator(const GroupIteratorTp& iterators) { this->curIters = MakeOwner<GroupIteratorTp>(iterators); }

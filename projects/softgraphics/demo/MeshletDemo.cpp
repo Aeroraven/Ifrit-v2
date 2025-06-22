@@ -124,11 +124,11 @@ namespace Ifrit::Demo::MeshletDemo
         mBuilder.bindIndexBuffer(indexBuffer);
         mBuilder.bindVertexBuffer(vertexBuffer);
 
-        std::vector<std::unique_ptr<Meshlet>> outMeshlet;
+        std::vector<Owner<Meshlet>> outMeshlet;
 
-        std::vector<int>                      outVertOffset, outIndexOffset;
+        std::vector<int>            outVertOffset, outIndexOffset;
 
-        Meshlet                               mergedMeshlet;
+        Meshlet                     mergedMeshlet;
         mBuilder.buildMeshlet(0, outMeshlet);
         mBuilder.mergeMeshlet(outMeshlet, mergedMeshlet, outVertOffset, outIndexOffset, false);
         int totalMeshlets = outMeshlet.size(), totalInds = mergedMeshlet.ibufs.size(),
@@ -229,9 +229,9 @@ namespace Ifrit::Demo::MeshletDemo
         mBuilder.bindIndexBuffer(indexBuffer);
         mBuilder.bindVertexBuffer(vertexBuffer);
 
-        std::vector<std::unique_ptr<Meshlet>> outMeshlet;
-        std::vector<int>                      outVertOffset, outIndexOffset;
-        Meshlet                               mergedMeshlet;
+        std::vector<Owner<Meshlet>> outMeshlet;
+        std::vector<int>            outVertOffset, outIndexOffset;
+        Meshlet                     mergedMeshlet;
         printf("Prepare to build\n");
         mBuilder.buildMeshlet(0, outMeshlet);
         printf("Built\n");

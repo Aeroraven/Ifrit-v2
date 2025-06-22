@@ -128,12 +128,12 @@ namespace Ifrit::Graphics::VulkanGraphics
     class IFRIT_APIDECL RaytracingPipelineCache
     {
     private:
-        EngineContext*                           m_context;
-        HwRaytracingContext*                     m_rtContext;
+        EngineContext*                  m_context;
+        HwRaytracingContext*            m_rtContext;
 
-        Vec<std::unique_ptr<RaytracingPipeline>> m_raytracingPipelines;
-        Vec<RaytracePipelineCreateInfo>          m_raytracingPipelineCI;
-        HashMap<u64, Vec<int>>                   m_rtPipelineHash;
+        Vec<Owner<RaytracingPipeline>>  m_raytracingPipelines;
+        Vec<RaytracePipelineCreateInfo> m_raytracingPipelineCI;
+        HashMap<u64, Vec<int>>          m_rtPipelineHash;
 
     public:
         RaytracingPipelineCache(EngineContext* ctx, HwRaytracingContext* rtctx) : m_context(ctx), m_rtContext(rtctx) {}

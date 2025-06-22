@@ -27,7 +27,7 @@ set(IFRIT_COMMON_DEPENDENCIES_SHARED spdlog)
 # Versions for GCC
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10.0)
-        message(FATAL_ERROR "GCC version must be at least 10.0!")
+        message(FATAL_ERROR "[Ifrit.Build.ProjectShared] GCC version must be at least 10.0!")
     endif()
 endif()
 

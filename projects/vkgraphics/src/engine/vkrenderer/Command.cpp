@@ -94,7 +94,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return MakeRef<CommandBuffer>(m_context, buffer, m_queueFamily);
     }
 
-    IFRIT_APIDECL std::unique_ptr<CommandBuffer> CommandPool::AllocateCommandBufferUnique()
+    IFRIT_APIDECL Owner<CommandBuffer> CommandPool::AllocateCommandBufferUnique()
     {
         if (m_AvailableCommandBuffers.empty())
         {
@@ -1041,9 +1041,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         WaitIdle();
     }
 
-    std::unique_ptr<Rhi::RhiTaskSubmission> DeviceQueue::RunAsyncCommand(
-        std::function<void(const Rhi::RhiCommandList*)> func, const Vec<Rhi::RhiTaskSubmission*>& waitOn,
-        const Vec<Rhi::RhiTaskSubmission*>& toIssue)
+    Owner<Rhi::RhiTaskSubmission> DeviceQueue::RunAsyncCommand(std::function<void(const Rhi::RhiCommandList*)> func,
+        const Vec<Rhi::RhiTaskSubmission*>& waitOn, const Vec<Rhi::RhiTaskSubmission*>& toIssue)
     {
         auto cmd = BeginRecording();
         func(cmd);

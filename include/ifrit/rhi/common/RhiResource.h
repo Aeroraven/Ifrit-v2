@@ -120,6 +120,8 @@ namespace Ifrit::Graphics::Rhi
         virtual RhiBuffer* GetActiveBuffer()                       = 0;
         virtual RhiBuffer* GetActiveBufferRelative(u32 deltaFrame) = 0;
         virtual ~RhiMultiBuffer()                                  = default;
+        virtual RhiBufferRef GetRhiBuffer(u32 index)               = 0;
+        virtual u32          GetBufferCount()                      = 0;
     };
 
     class IFRIT_APIDECL RhiStagedSingleBuffer

@@ -189,6 +189,7 @@ namespace Ifrit::Runtime
         // TODO: static method
         virtual void     CreateMeshLodHierarchy(Ref<MeshData> meshData, const String& cachePath);
         virtual Vector4f GetBoundingSphere(const Vec<Vector3f>& vertices);
+        virtual u32      GetNumIndices();
 
         IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
     };
