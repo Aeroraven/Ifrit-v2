@@ -82,7 +82,7 @@ namespace Ifrit::Runtime::Siro
         bool                            m_ResourcePrepared = false;
         u32                             m_SolverIterations = 10;
         f32                             m_DefaultGravityY  = -5e-2f;
-        f32                             m_VelocityDamping  = 0.99f; // Damping factor for velocity updates
+        f32                             m_VelocityDamping  = 0.999f; // Damping factor for velocity updates
     };
 
     IFRIT_APIDECL PBDCloth::~PBDCloth()
@@ -361,8 +361,8 @@ namespace Ifrit::Runtime::Siro
     {
         for (u32 i = 0; i < numIterations; ++i)
         {
-            ProjectConstraintsDistance(builder, 1);
-            // ProjectConstraintsBending(builder, 1);
+            ProjectConstraintsDistance(builder, numIterations);
+            ProjectConstraintsBending(builder, numIterations);
             ApplyCorrections(builder);
         }
     }

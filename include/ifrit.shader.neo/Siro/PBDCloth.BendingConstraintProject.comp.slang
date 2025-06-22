@@ -99,6 +99,10 @@ namespace Siro{
         float SharedDeno = InvMassA*dot(Q1,Q1) + InvMassB*dot(Q2,Q2) + InvMassC*dot(Q3,Q3) + InvMassD*dot(Q4,Q4);
         float SharedFactor = -SharedNumo / (SharedDeno + 1e-9f);
 
+        if(isnan(SharedFactor) || isinf(SharedFactor)){
+            SharedFactor = 0.0f;
+        }
+        
         float K = 1.0f - pow(1.0f - Constraint.m_Stiffness, PushConst.m_InvSolverIters);
         SharedFactor *= K;
 
