@@ -46,7 +46,7 @@ namespace Siro{
         float3 CollVelocityInTangent = CollVelocity - CollVelocityInNormal;
 
         // Update velocity
-        float3 NewVelocity = CollVelocityInTangent - CollVelocityInNormal;
+        float3 NewVelocity = CollVelocityInTangent - CollVelocityInNormal * 0.3f;
         PushConst.m_Velocities.Store(float4(NewVelocity, 0.0f), Constraint.m_ParticleA);
     }
 }

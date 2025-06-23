@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/runtime/physics/siro/SiroIntegrator.h"
 
+#include "ifrit/runtime/renderer/ayanami/AyanamiMeshDF.h"
+
 namespace Ifrit::Runtime::Siro
 {
     struct PBDClothAttribute
@@ -47,6 +49,7 @@ namespace Ifrit::Runtime::Siro
         void                 BuildConstraints();
         void                 Initialize();
         void                 PrepareRDGResources(FrameGraphBuilder& builder);
+        void                 PrepareColliders(FrameGraphBuilder& builder);
 
         void                 ProjectConstraints(FrameGraphBuilder& builder, u32 numIterations);
         void                 ProjectConstraintsDistance(FrameGraphBuilder& builder, u32 numIterations);
@@ -72,6 +75,7 @@ namespace Ifrit::Runtime::Siro
         virtual void RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime) override;
 
         void         AddFixedParticles(Vec<u32> fixedParticles);
+        void         AddCollider(Ayanami::AyanamiMeshDF* collider);
     };
 
 } // namespace Ifrit::Runtime::Siro

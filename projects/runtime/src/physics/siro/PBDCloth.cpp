@@ -58,12 +58,20 @@ namespace Ifrit::Runtime::Siro
         u32      m_ParticleA;
     };
 
+    struct FColliderData
+    {
+        u32 m_SdfId;
+        u32 m_ColliderMeshDataId;
+    };
+
     struct PBDClothPrivateData
     {
         Vec<PBDClothDistanceConstraint> m_DistanceConstraints;
         Vec<PBDClothBendingConstraint>  m_BendingConstraints;
         Vec<f32>                        m_InverseMass;
         HashSet<u32>                    m_FixedParticles;
+        Vec<Ayanami::AyanamiMeshDF*>    m_Colliders;
+        bool                            m_ColliderStateChange = true;
 
         RhiBufferRef                    m_ParticleExternalForces;
         RhiBufferRef                    m_ParticlePredPositions;
@@ -76,6 +84,7 @@ namespace Ifrit::Runtime::Siro
 
         RhiBufferRef                    m_GPUDistanceConstraints;
         RhiBufferRef                    m_GPUBendingConstraints;
+        RhiBufferRef                    m_GPUColliderData;
 
         FGBufferNodeRef                 m_RDGParticleExternalForces;
         FGBufferNodeRef                 m_RDGParticlePredPositions;
@@ -91,14 +100,16 @@ namespace Ifrit::Runtime::Siro
 
         FGBufferNodeRef                 m_RDGParticleCollisions;
         FGBufferNodeRef                 m_RDGParticleCollisionsCounter;
+        FGBufferNodeRef                 m_RDGColliderData;
 
         u32                             m_NumParticles           = 0;
         u32                             m_NumIndices             = 0;
         bool                            m_ResourcePrepared       = false;
-        u32                             m_SolverIterations       = 10;
+        u32                             m_SolverIterations       = 20;
         f32                             m_DefaultGravityY        = -5e-2f;
         f32                             m_VelocityDamping        = 0.999f; // Damping factor for velocity updates
         u32                             m_MaxCollisionsPerVertex = 4;
+        u32                             m_MaxColliders           = 128;
     };
 
     IFRIT_APIDECL PBDCloth::~PBDCloth()
@@ -287,6 +298,7 @@ namespace Ifrit::Runtime::Siro
             auto usage                 = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
             auto indirectUsage = RhiBufferUsage::RhiBufferUsage_Indirect | RhiBufferUsage::RhiBufferUsage_CopyDst
                 | RhiBufferUsage::RhiBufferUsage_SSBO;
+            auto colliderSize = SizeCast<u32>(m_Data->m_MaxColliders * sizeof(FColliderData));
 
             m_Data->m_ParticleCorrections = rhi->CreateBuffer("PBDCloth.Corrections", v4fSize, usage, false, true);
             m_Data->m_ParticleExternalForces =
@@ -297,6 +309,7 @@ namespace Ifrit::Runtime::Siro
             m_Data->m_ParticleInverseMass   = rhi->CreateBuffer("PBDCloth.InverseMass", v1fSize, usage, false, true);
             m_Data->m_ParticleCollisionsCounter = rhi->CreateBuffer(
                 "PBDCloth.CollisionCounter", SizeCast<u32>(4 * sizeof(u32)), indirectUsage, false, true);
+            m_Data->m_GPUColliderData = rhi->CreateBuffer("PBDCloth.ColliderData", colliderSize, usage, false, true);
 
             auto distanceConstraintSize =
                 SizeCast<u32>(m_Data->m_DistanceConstraints.size() * sizeof(PBDClothDistanceConstraint));
@@ -330,6 +343,7 @@ namespace Ifrit::Runtime::Siro
 
             m_Data->m_ResourcePrepared = true;
         }
+        PrepareColliders(builder);
         // todo
         m_Data->m_RDGParticleCorrections =
             &builder.ImportBuffer("PBDCloth.Corrections", m_Data->m_ParticleCorrections.get());
@@ -352,6 +366,7 @@ namespace Ifrit::Runtime::Siro
             &builder.ImportBuffer("PBDCloth.CollisionConstraints", m_Data->m_ParticleCollisions.get());
         m_Data->m_RDGParticleCollisionsCounter =
             &builder.ImportBuffer("PBDCloth.CollisionCounter", m_Data->m_ParticleCollisionsCounter.get());
+        m_Data->m_RDGColliderData = &builder.ImportBuffer("PBDCloth.ColliderData", m_Data->m_GPUColliderData.get());
 
         auto meshFilter = GetParentUnsafe()->GetComponent<MeshFilter>();
         iAssertion(
@@ -369,6 +384,35 @@ namespace Ifrit::Runtime::Siro
         m_Data->m_RDGParticlePositions = &builder.ImportBuffer("PBDCloth.Positions", vertexBufferDevice.get());
         m_Data->m_RDGParticleNormals   = &builder.ImportBuffer("PBDCloth.Normals", normalBufferDevice.get());
         m_Data->m_RDGParticleIndices   = &builder.ImportBuffer("PBDCloth.Indices", indexBufferDevice.get());
+    }
+
+    IFRIT_APIDECL void PBDCloth::PrepareColliders(FrameGraphBuilder& builder)
+    {
+        if (m_Data->m_ColliderStateChange)
+        {
+            m_Data->m_ColliderStateChange = false;
+            auto rhi                      = builder.GetRhi();
+            auto stagedColliderData       = rhi->CreateStagedSingleBuffer(m_Data->m_GPUColliderData.get());
+
+            auto tq = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
+            tq->RunSyncCommand([&](const RhiCommandList* cmd) {
+                Vec<FColliderData> colliderData;
+                for (const auto& collider : m_Data->m_Colliders)
+                {
+                    auto parent     = collider->GetParent();
+                    auto meshFilter = parent->GetComponent<MeshFilter>();
+                    iAssertion(meshFilter != nullptr,
+                        "Siro.PBDCloth: Collider's parent GameObject must have a MeshFilter component");
+                    iAssertion(collider != nullptr, "Siro.PBDCloth: Collider cannot be null");
+                    FColliderData data;
+                    data.m_SdfId              = collider->GetMetaBufferId();
+                    data.m_ColliderMeshDataId = meshFilter->GetMesh()->m_resource.objectBuffer->GetDescId();
+                    colliderData.push_back(data);
+                }
+                stagedColliderData->CmdCopyToDevice(
+                    cmd, colliderData.data(), SizeCast<u32>(colliderData.size() * sizeof(FColliderData)), 0);
+            });
+        }
     }
 
     IFRIT_APIDECL void PBDCloth::RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime)
@@ -392,6 +436,12 @@ namespace Ifrit::Runtime::Siro
                 m_Data->m_FixedParticles.insert(particle);
             }
         }
+    }
+
+    IFRIT_APIDECL void PBDCloth::AddCollider(Ayanami::AyanamiMeshDF* collider)
+    {
+        iAssertion(collider != nullptr, "Siro.PBDCloth: Cannot add a null collider");
+        m_Data->m_Colliders.push_back(collider);
     }
 
     IFRIT_APIDECL void PBDCloth::ProjectConstraints(FrameGraphBuilder& builder, u32 numIterations)
@@ -731,8 +781,7 @@ namespace Ifrit::Runtime::Siro
         struct PushConst
         {
             u32 m_CollisionConstraintCounter;
-            u32 m_CollisionSDFs;
-            u32 m_ObjectData;
+            u32 m_ColliderData;
             u32 m_CollisionConstraints;
             u32 m_PredPositions;
             u32 m_Velocities;
@@ -742,14 +791,13 @@ namespace Ifrit::Runtime::Siro
         } pc;
 
         pc.m_CollisionConstraintCounter = 0;
-        pc.m_CollisionSDFs              = 0;
-        pc.m_ObjectData                 = 0;
+        pc.m_ColliderData               = 0;
         pc.m_CollisionConstraints       = 0;
         pc.m_PredPositions              = 0;
         pc.m_Velocities                 = 0;
         pc.m_Positions                  = 0;
         pc.m_NumParticles               = m_Data->m_NumParticles;
-        pc.m_NumSDFs                    = 0;
+        pc.m_NumSDFs                    = SizeCast<u32>(m_Data->m_Colliders.size());
 
         i32   tgX = DivRoundUp(pc.m_NumParticles, IfritShader::Siro::kSiroTGSizeX);
 
@@ -757,6 +805,7 @@ namespace Ifrit::Runtime::Siro
             ShaderVariantDesc(kIntShaderTableSiro.PBDClothGenerateSDFCollisionCS, {}), Vector3i(tgX, 1, 1), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
                 pc.m_CollisionConstraintCounter = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCollisionsCounter);
+                pc.m_ColliderData               = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGColliderData);
                 pc.m_CollisionConstraints       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCollisions);
                 pc.m_PredPositions              = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
                 pc.m_Velocities                 = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleVelocities);
@@ -768,6 +817,7 @@ namespace Ifrit::Runtime::Siro
                          .AddWriteResource(*m_Data->m_RDGParticleCollisions)
                          .AddReadResource(*m_Data->m_RDGParticlePredPositions)
                          .AddReadResource(*m_Data->m_RDGParticleVelocities)
+                         .AddReadResource(*m_Data->m_RDGColliderData)
                          .AddReadResource(*m_Data->m_RDGParticlePositions);
     }
 

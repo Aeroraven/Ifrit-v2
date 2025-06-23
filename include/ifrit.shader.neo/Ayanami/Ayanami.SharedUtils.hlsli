@@ -69,6 +69,27 @@ namespace Ayanami{
             float2 QuantScale = GetSdfQuantScale();
             return lerp(QuantScale.x, QuantScale.y, SdfValue);
         }
+
+        float3 SampleSdfNormal(float3 UVW,float eps = 5e-3)
+        {
+            float dx1 = SampleSdf(float3(UVW.x + eps, UVW.y, UVW.z));
+            float dx2 = SampleSdf(float3(UVW.x - eps, UVW.y, UVW.z));
+            float dy1 = SampleSdf(float3(UVW.x, UVW.y + eps, UVW.z));
+            float dy2 = SampleSdf(float3(UVW.x, UVW.y - eps, UVW.z));
+            float dz1 = SampleSdf(float3(UVW.x, UVW.y, UVW.z + eps));
+            float dz2 = SampleSdf(float3(UVW.x, UVW.y, UVW.z - eps));
+            float3 Normal = float3(dx1 - dx2, dy1 - dy2, dz1 - dz2);
+            float NormalLength = length(Normal);
+            if (NormalLength > 0.0f)
+            {
+                return normalize(Normal);
+            }
+            else
+            {
+                return float3(0.0f, 0.0f, 1.0f); // Default normal if no gradient is found
+            }
+            
+        }
     };
 
     struct FMeshDFDescriptor

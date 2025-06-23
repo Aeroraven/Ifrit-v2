@@ -36,7 +36,7 @@ namespace Ifrit::Runtime::Ayanami
 
     IF_CONSTEXPR u32   cAyanamiMeshDFWidth = 64;
 
-    IFRIT_APIDECL void AyanamiMeshDF::BuildMeshDF(const std::string_view& cachePath)
+    IFRIT_APIDECL void AyanamiMeshDF::BuildMeshDF(const std::string_view& cachePath, Vector3u sdfSize)
     {
         auto meshFilter = this->GetParentUnsafe()->GetComponentUnsafe<MeshFilter>();
         if (meshFilter == nullptr)
@@ -148,8 +148,8 @@ namespace Ifrit::Runtime::Ayanami
             {
                 iInfo("Building mesh distance field for {}", meshData->identifier);
 
-                ConvertMeshToSDF(
-                    meshDesc, sdf, ~0u, ~0u, ~0u, MeshProcLib::MeshSDFProcess::SDFGenerateMethod::RayTracing, false);
+                ConvertMeshToSDF(meshDesc, sdf, sdfSize.x, sdfSize.y, sdfSize.z,
+                    MeshProcLib::MeshSDFProcess::SDFGenerateMethod::RayTracing, false);
 
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 if (shouldGenCachedDF)
@@ -209,9 +209,8 @@ namespace Ifrit::Runtime::Ayanami
         }
     }
 
-    IFRIT_APIDECL void AyanamiMeshDF::BuildGPUResource(Graphics::Rhi::RhiBackend* rhi, SharedRenderResource* sharedRes)
+    IFRIT_APIDECL void AyanamiMeshDF::BuildGPUResource(Graphics::Rhi::RhiBackend* rhi)
     {
-        auto linearClampSampler = sharedRes->GetLinearClampSampler();
         if (m_gpuResource == nullptr)
         {
             if (m_isBuilt == false)

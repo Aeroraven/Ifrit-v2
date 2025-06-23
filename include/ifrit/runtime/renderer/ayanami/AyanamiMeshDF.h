@@ -72,8 +72,8 @@ namespace Ifrit::Runtime::Ayanami
         inline void        Deserialize() override {}
 
     public:
-        void            BuildMeshDF(const std::string_view& cachePath);
-        void            BuildGPUResource(Graphics::Rhi::RhiBackend* rhi, SharedRenderResource* sharedRes);
+        void            BuildMeshDF(const std::string_view& cachePath, Vector3u sdfSize = Vector3u(~0u, ~0u, ~0u));
+        void            BuildGPUResource(Graphics::Rhi::RhiBackend* rhi);
         inline u32      GetMetaBufferId() const { return m_gpuResource->sdfMetaBuffer->GetDescId(); }
         inline Vector3f GetBoxMin() const { return m_sdBoxMin; }
         inline Vector3f GetBoxMax() const { return m_sdBoxMax; }
