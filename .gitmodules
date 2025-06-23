@@ -43,3 +43,6 @@
 [submodule "dependencies/tetgen"]
 	path = dependencies/tetgen
 	url = https://github.com/ufz/tetgen.git
+[submodule "dependencies/imgui"]
+	path = dependencies/imgui
+	url = git@github.com:ocornut/imgui.git
