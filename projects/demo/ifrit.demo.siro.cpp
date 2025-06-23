@@ -83,8 +83,8 @@ public:
         auto camera = parent->GetComponent<Transform>();
         if (camera)
         {
-            camera->SetPosition({ 0.0f + m_movRight - m_movLeft + 0.5f, 0.0f + m_movTop - m_movBottom + 0.2f,
-                3.000006f + m_movFar - m_movNear });
+            camera->SetPosition({ 0.0f + m_movRight - m_movLeft, 0.0f + m_movTop - m_movBottom + 0.2f,
+                0.740006f + m_movFar - m_movNear });
             camera->SetRotation({ 0.0f, m_movRot + 3.14f, 0.0f });
 
             // if print q, print the position and rotation
@@ -199,9 +199,9 @@ namespace Ifrit
             auto lightRotScript = lightGameObject->AddComponent<LightRotScript>();
             lightRotScript->SetInputSystem(m_inputSystem.get());
 
-            auto cloth          = node->AddGameObject("cloth");
-            auto clothMesh      = MakeRef<Siro::TessellatedRectMesh>(1.0f, 1.0f, 32, 32, Vector3f(0.0f, 0.0f, 0.0f));
-            auto material       = MakeRef<SyaroDefaultGBufEmitter>(this);
+            auto cloth     = node->AddGameObject("cloth");
+            auto clothMesh = MakeRef<Siro::TessellatedRectMesh>(0.5f, 0.5f, 32, 32, Vector3f(-0.25f, 0.5f, -0.25f));
+            auto material  = MakeRef<SyaroDefaultGBufEmitter>(this);
             auto redAlbedoAsset = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Red.png");
             auto normalAsset    = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Cornell_Normal.png");
             material->SetAlbedoId(m_rhiLayer->GetSRVDescriptor(redAlbedoAsset->GetTexture().get()));
@@ -215,6 +215,13 @@ namespace Ifrit
             auto pbdCloth = cloth->AddComponent<Siro::PBDCloth>();
             pbdCloth->AddFixedParticles({ 0, 31 });
             siroSimulator->RegisterSolver(pbdCloth.get());
+
+            auto bunny           = node->AddGameObject("bunny");
+            auto bunnyMeshAsset  = m_assetManager->GetAssetByName<WaveFrontAsset>("bunny.obj");
+            auto bunnyMeshFilter = bunny->AddComponent<MeshFilter>();
+            bunnyMeshFilter->SetMesh(bunnyMeshAsset);
+            auto bunnyMeshRenderer = bunny->AddComponent<MeshRenderer>();
+            bunnyMeshRenderer->SetMaterial(material);
 
             // Render targets
             auto rt         = m_rhiLayer.get();

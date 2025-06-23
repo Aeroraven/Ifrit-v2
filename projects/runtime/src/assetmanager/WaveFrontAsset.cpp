@@ -185,11 +185,13 @@ namespace Ifrit::Runtime
             // align vertices
             m_selfData->m_verticesAligned.resize(vertices.size());
             m_selfData->m_normalsAligned.resize(vertices.size());
+            m_selfData->m_tangents.resize(vertices.size());
             for (int i = 0; i < vertices.size(); i++)
             {
                 m_selfData->m_verticesAligned[i] = Vector4f(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
                 m_selfData->m_normalsAligned[i] =
                     Vector4f(remappedNormals[i].x, remappedNormals[i].y, remappedNormals[i].z, 1.0);
+                m_selfData->m_tangents[i] = Vector4f(0.0f, 0.0f, 0.0f, 1.0f); // Default tangent, can be set later
             }
             this->CreateMeshLodHierarchy(m_selfData, "");
         }
@@ -212,8 +214,18 @@ namespace Ifrit::Runtime
         return m_selfDataRaw;
     }
 
+    // virtual u32           GetNumIndices();
+    // virtual u32           GetNumVertices();
+    // virtual Vec<u32>      GetIndexBufferHost();
+    // virtual Vec<Vector3f> GetVertexBufferHost();
+
+    IFRIT_APIDECL u32 WaveFrontAsset::GetNumIndices() { return SizeCast<u32>(m_selfData->m_indices.size()); }
+    IFRIT_APIDECL u32 WaveFrontAsset::GetNumVertices() { return SizeCast<u32>(m_selfData->m_vertices.size()); }
+    IFRIT_APIDECL Vec<u32> WaveFrontAsset::GetIndexBufferHost() { return m_selfData->m_indices; }
+    IFRIT_APIDECL Vec<Vector3f> WaveFrontAsset::GetVertexBufferHost() { return m_selfData->m_vertices; }
+
     // Importer
-    IFRIT_APIDECL void WaveFrontAssetImporter::ProcessMetadata(AssetMetadata& metadata)
+    IFRIT_APIDECL void          WaveFrontAssetImporter::ProcessMetadata(AssetMetadata& metadata)
     {
         metadata.m_importer = IMPORTER_NAME;
     }

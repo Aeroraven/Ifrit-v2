@@ -38,9 +38,14 @@ namespace Ifrit::Runtime
             m_assetReference.m_usingAsset = true;
             m_usingAsset                  = true;
         }
-        Ref<MeshData> LoadMesh() override;
-        MeshData*     LoadMeshUnsafe() override;
-        inline Mesh&  GetMesh() { return *this; }
+        Ref<MeshData>         LoadMesh() override;
+        MeshData*             LoadMeshUnsafe() override;
+        inline Mesh&          GetMesh() { return *this; }
+
+        virtual u32           GetNumIndices();
+        virtual u32           GetNumVertices();
+        virtual Vec<u32>      GetIndexBufferHost();
+        virtual Vec<Vector3f> GetVertexBufferHost();
     };
     class IFRIT_APIDECL WaveFrontAssetImporter : public AssetImporter
     {
