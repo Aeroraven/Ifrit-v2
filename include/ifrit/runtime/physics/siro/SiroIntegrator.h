@@ -24,7 +24,7 @@ namespace Ifrit::Runtime::Siro
     class ISiroExplicitEulerSolver
     {
     public:
-        virtual void RunApproximationStep(FrameGraphBuilder& builder, f32 deltaTime) = 0;
+        virtual void RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime) = 0;
     };
 
 } // namespace Ifrit::Runtime::Siro

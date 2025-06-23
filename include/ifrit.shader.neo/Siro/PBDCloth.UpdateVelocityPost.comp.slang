@@ -28,6 +28,7 @@ namespace Siro{
         TRWStructuredBufferHandle<float4> m_PredPositions;
         float m_DeltaTime; 
         uint m_NumParticles;
+        TRWStructuredBufferHandle<uint> m_CollisionCounters;
         
     };
 
@@ -37,6 +38,10 @@ namespace Siro{
     IFSHADER_BLOCKSIZE(kSiroTGSizeX,1,1)
     void SiroPBDClothUpdateVelocityPostCS(uint3 ThreadId:SV_DispatchThreadID)
     {
+        // clear counter
+        PushConst.m_CollisionCounters.Store(0,0);
+        PushConst.m_CollisionCounters.Store(0,1);
+        
         if (ThreadId.x >= PushConst.m_NumParticles) return;
         uint FixedState = PushConst.m_FixedState.Load(ThreadId.x);
         if(FixedState != 0) return;

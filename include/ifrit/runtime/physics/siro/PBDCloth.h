@@ -51,11 +51,15 @@ namespace Ifrit::Runtime::Siro
         void                 ProjectConstraints(FrameGraphBuilder& builder, u32 numIterations);
         void                 ProjectConstraintsDistance(FrameGraphBuilder& builder, u32 numIterations);
         void                 ProjectConstraintsBending(FrameGraphBuilder& builder, u32 numIterations);
+        void                 ProjectConstraintsCollision(FrameGraphBuilder& builder);
         void                 ApplyCorrections(FrameGraphBuilder& builder);
         void                 UpdateVelocityPre(FrameGraphBuilder& builder, f32 deltaTime);
         void                 UpdateVelocityPost(FrameGraphBuilder& builder, f32 deltaTime);
         void                 GeneratePredictedPosition(FrameGraphBuilder& builder, f32 deltaTime);
         void                 UpdateNormals(FrameGraphBuilder& builder);
+
+        void                 GenerateCollisionConstraints(FrameGraphBuilder& builder);
+        void                 UpdateVelocityCollision(FrameGraphBuilder& builder);
 
     public:
         PBDCloth() { Initialize(); }
@@ -65,7 +69,7 @@ namespace Ifrit::Runtime::Siro
         String       Serialize() override { return SerializeAttribute(); }
         void         Deserialize() override { DeserializeAttribute(); }
 
-        virtual void RunApproximationStep(FrameGraphBuilder& builder, f32 deltaTime) override;
+        virtual void RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime) override;
 
         void         AddFixedParticles(Vec<u32> fixedParticles);
     };

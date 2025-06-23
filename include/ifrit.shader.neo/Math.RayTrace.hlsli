@@ -64,5 +64,68 @@ namespace Math{
         return true;  
     }
 
+    bool LineSphereIntersection(float3 SegStart, float3 SegEnd, 
+        float3 SphereCenter, float SphereRadius,
+        out float3 IntersectionPoint)
+    {
+        // Initialize default value
+        IntersectionPoint = float3(0.0f, 0.0f, 0.0f);
+        
+        // Check if either endpoint is inside the sphere - important for PBD
+        float distStartToCenter = length(SegStart - SphereCenter);
+        float distEndToCenter = length(SegEnd - SphereCenter);
+        
+        if (distStartToCenter <= SphereRadius) {
+            IntersectionPoint = SegStart;
+            return true;
+        }
+        
+        if (distEndToCenter <= SphereRadius) {
+            IntersectionPoint = SegEnd;
+            return true;
+        }
+        
+        float3 D = SegEnd - SegStart;  
+        float SegLength = length(D);
+        
+        // Handle degenerate segment
+        if (SegLength < 1e-6f) {
+            return false; // Already checked if point is inside above
+        }
+        
+        // Normalize direction
+        float3 Dir = D / SegLength;
+        float3 M = SegStart - SphereCenter;
+
+        // Standard ray-sphere intersection
+        float A = 1.0f;  
+        float B = 2.0f * dot(Dir, M);
+        float C = dot(M, M) - SphereRadius * SphereRadius;
+        
+        float Discriminant = B * B - 4.0f * A * C;
+        if (Discriminant < 0.0f) {
+            return false;
+        }
+        
+        // Get both intersection points
+        float SqrtDisc = sqrt(Discriminant);
+        float T1 = (-B - SqrtDisc) / (2.0f * A);
+        float T2 = (-B + SqrtDisc) / (2.0f * A);
+        
+        // Check both T1 and T2 independently
+        bool validT1 = (T1 >= 0.0f && T1 <= SegLength);
+        bool validT2 = (T2 >= 0.0f && T2 <= SegLength);
+        
+        // Choose closest valid intersection point
+        if (validT1) {
+            IntersectionPoint = SegStart + T1 * Dir;
+            return true;
+        } else if (validT2) {
+            IntersectionPoint = SegStart + T2 * Dir;
+            return true;
+        }
+        
+        return false;
+    }
 }
 }

@@ -371,12 +371,14 @@ namespace Ifrit::Runtime::Siro
         m_Data->m_RDGParticleIndices   = &builder.ImportBuffer("PBDCloth.Indices", indexBufferDevice.get());
     }
 
-    IFRIT_APIDECL void PBDCloth::RunApproximationStep(FrameGraphBuilder& builder, f32 deltaTime)
+    IFRIT_APIDECL void PBDCloth::RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime)
     {
         PrepareRDGResources(builder);
         UpdateVelocityPre(builder, deltaTime);
         GeneratePredictedPosition(builder, deltaTime);
+        GenerateCollisionConstraints(builder);
         ProjectConstraints(builder, m_Data->m_SolverIterations);
+        UpdateVelocityCollision(builder);
         UpdateVelocityPost(builder, deltaTime);
         UpdateNormals(builder);
     }
@@ -398,6 +400,7 @@ namespace Ifrit::Runtime::Siro
         {
             ProjectConstraintsDistance(builder, numIterations);
             ProjectConstraintsBending(builder, numIterations);
+            ProjectConstraintsCollision(builder);
             ApplyCorrections(builder);
         }
     }
@@ -430,9 +433,9 @@ namespace Ifrit::Runtime::Siro
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
                 pc.m_PredPositions       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
                 pc.m_Corrections         = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCorrections);
-                pc.m_InverseMass         = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleInverseMass);
-                pc.m_DistanceConstraints = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGDistanceConstraints);
-                pc.m_FixedState          = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleFixed);
+                pc.m_InverseMass         = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleInverseMass);
+                pc.m_DistanceConstraints = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGDistanceConstraints);
+                pc.m_FixedState          = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleFixed);
 
                 SetRootConstant(pc, ctx);
             })
@@ -469,9 +472,9 @@ namespace Ifrit::Runtime::Siro
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
                 pc.m_PredPositions      = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
                 pc.m_Corrections        = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCorrections);
-                pc.m_InverseMass        = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleInverseMass);
-                pc.m_BendingConstraints = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGBendingConstraints);
-                pc.m_FixedState         = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleFixed);
+                pc.m_InverseMass        = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleInverseMass);
+                pc.m_BendingConstraints = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGBendingConstraints);
+                pc.m_FixedState         = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleFixed);
 
                 SetRootConstant(pc, ctx);
             })
@@ -481,6 +484,39 @@ namespace Ifrit::Runtime::Siro
                          .AddReadResource(*m_Data->m_RDGBendingConstraints)
                          .AddReadResource(*m_Data->m_RDGParticleFixed);
     }
+
+    IFRIT_APIDECL void PBDCloth::ProjectConstraintsCollision(FrameGraphBuilder& builder)
+    {
+        struct PushConst
+        {
+            u32 m_CollisionConstraintCounter;
+            u32 m_CollisionConstraints;
+            u32 m_PredPositions;
+            u32 m_CorrectionHandle;
+        } pc;
+
+        pc.m_CollisionConstraintCounter = 0;
+        pc.m_CollisionConstraints       = 0;
+        pc.m_PredPositions              = 0;
+        pc.m_CorrectionHandle           = 0;
+
+        auto& pass = AddIndirectComputePass<PushConst>(builder, "PBDCloth.ProjectConstraintsCollision",
+            ShaderVariantDesc(kIntShaderTableSiro.PBDClothCollisionConstraintProject, {}),
+            *m_Data->m_RDGParticleCollisionsCounter, 4u, pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_CollisionConstraintCounter = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCollisionsCounter);
+                pc.m_CollisionConstraints       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCollisions);
+                pc.m_PredPositions              = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
+                pc.m_CorrectionHandle           = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCorrections);
+
+                SetRootConstant(pc, ctx);
+            })
+                         .AddWriteResource(*m_Data->m_RDGParticleCorrections)
+                         .AddReadResource(*m_Data->m_RDGParticlePredPositions)
+                         .AddReadResource(*m_Data->m_RDGParticleCollisionsCounter)
+                         .AddReadResource(*m_Data->m_RDGParticleCollisions);
+    }
+
     IFRIT_APIDECL void PBDCloth::UpdateVelocityPre(FrameGraphBuilder& builder, f32 deltaTime)
     {
         struct PushConst
@@ -509,11 +545,11 @@ namespace Ifrit::Runtime::Siro
         auto& pass = AddComputePass<PushConst>(builder, "PBDCloth.UpdateVelocityPre",
             ShaderVariantDesc(kIntShaderTableSiro.PBDClothUpdateVelocityPreCS, {}), Vector3i(tgX, 1, 1), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
-                pc.m_ExternalForces = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleExternalForces);
-                pc.m_InverseMass    = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleInverseMass);
+                pc.m_ExternalForces = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleExternalForces);
+                pc.m_InverseMass    = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleInverseMass);
                 pc.m_Velocities     = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleVelocities);
-                pc.m_FixedState     = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleFixed);
-                pc.m_PredPositions  = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticlePredPositions);
+                pc.m_FixedState     = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleFixed);
+                pc.m_PredPositions  = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
 
                 SetRootConstant(pc, ctx);
             })
@@ -534,25 +570,28 @@ namespace Ifrit::Runtime::Siro
             u32      m_PredPositions;
             f32      m_DeltaTime;
             u32      m_NumParticles;
+            u32      m_CollisionCountersId;
         } pc;
 
-        pc.m_GravityFactor = Vector4f(0.0f, m_Data->m_DefaultGravityY, 0.0f, 0.0f);
-        pc.m_Positions     = 0;
-        pc.m_Velocities    = 0;
-        pc.m_FixedState    = 0;
-        pc.m_PredPositions = 0;
-        pc.m_DeltaTime     = deltaTime;
-        pc.m_NumParticles  = m_Data->m_NumParticles;
+        pc.m_GravityFactor       = Vector4f(0.0f, m_Data->m_DefaultGravityY, 0.0f, 0.0f);
+        pc.m_Positions           = 0;
+        pc.m_Velocities          = 0;
+        pc.m_FixedState          = 0;
+        pc.m_PredPositions       = 0;
+        pc.m_DeltaTime           = deltaTime;
+        pc.m_NumParticles        = m_Data->m_NumParticles;
+        pc.m_CollisionCountersId = 0;
 
         i32   tgX = DivRoundUp(pc.m_NumParticles, IfritShader::Siro::kSiroTGSizeX);
 
         auto& pass = AddComputePass<PushConst>(builder, "PBDCloth.UpdateVelocityPost",
             ShaderVariantDesc(kIntShaderTableSiro.PBDClothUpdateVelocityPostCS, {}), Vector3i(tgX, 1, 1), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
-                pc.m_Positions     = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticlePositions);
-                pc.m_Velocities    = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleVelocities);
-                pc.m_FixedState    = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleFixed);
-                pc.m_PredPositions = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticlePredPositions);
+                pc.m_Positions           = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePositions);
+                pc.m_Velocities          = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleVelocities);
+                pc.m_FixedState          = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleFixed);
+                pc.m_PredPositions       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
+                pc.m_CollisionCountersId = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCollisionsCounter);
 
                 SetRootConstant(pc, ctx);
             })
@@ -590,11 +629,11 @@ namespace Ifrit::Runtime::Siro
             ShaderVariantDesc(kIntShaderTableSiro.PBDClothPredPositionGenCS, {}), Vector3i(tgX, 1, 1), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
                 pc.m_PredPositions    = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
-                pc.m_CurrentPositions = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticlePositions);
+                pc.m_CurrentPositions = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePositions);
                 pc.m_Corrections      = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCorrections);
-                pc.m_InverseMass      = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleInverseMass);
-                pc.m_Velocities       = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleVelocities);
-                pc.m_FixedState       = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleFixed);
+                pc.m_InverseMass      = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleInverseMass);
+                pc.m_Velocities       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleVelocities);
+                pc.m_FixedState       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleFixed);
 
                 SetRootConstant(pc, ctx);
             })
@@ -627,8 +666,8 @@ namespace Ifrit::Runtime::Siro
             ShaderVariantDesc(kIntShaderTableSiro.PBDClothApplyCorrectionCS, {}), Vector3i(tgX, 1, 1), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
                 pc.m_PredPositions = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
-                pc.m_Corrections   = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleCorrections);
-                pc.m_FixedState    = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleFixed);
+                pc.m_Corrections   = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCorrections);
+                pc.m_FixedState    = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleFixed);
 
                 SetRootConstant(pc, ctx);
             })
@@ -658,8 +697,8 @@ namespace Ifrit::Runtime::Siro
             ShaderVariantDesc(kIntShaderTableSiro.PBDClothNormalUpdateCS, {}), Vector3i(tgX, 1, 1), pc1,
             [this](PushConst_1 pc, const FrameGraphPassContext& ctx) {
                 pc.m_Normal   = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleNormals);
-                pc.m_Position = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticlePositions);
-                pc.m_Indices  = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleIndices);
+                pc.m_Position = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePositions);
+                pc.m_Indices  = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleIndices);
 
                 SetRootConstant(pc, ctx);
             })
@@ -685,6 +724,82 @@ namespace Ifrit::Runtime::Siro
 
                 SetRootConstant(pc, ctx);
             }).AddWriteResource(*m_Data->m_RDGParticleNormals);
+    }
+
+    IFRIT_APIDECL void PBDCloth::GenerateCollisionConstraints(FrameGraphBuilder& builder)
+    {
+        struct PushConst
+        {
+            u32 m_CollisionConstraintCounter;
+            u32 m_CollisionSDFs;
+            u32 m_ObjectData;
+            u32 m_CollisionConstraints;
+            u32 m_PredPositions;
+            u32 m_Velocities;
+            u32 m_Positions;
+            u32 m_NumParticles;
+            u32 m_NumSDFs;
+        } pc;
+
+        pc.m_CollisionConstraintCounter = 0;
+        pc.m_CollisionSDFs              = 0;
+        pc.m_ObjectData                 = 0;
+        pc.m_CollisionConstraints       = 0;
+        pc.m_PredPositions              = 0;
+        pc.m_Velocities                 = 0;
+        pc.m_Positions                  = 0;
+        pc.m_NumParticles               = m_Data->m_NumParticles;
+        pc.m_NumSDFs                    = 0;
+
+        i32   tgX = DivRoundUp(pc.m_NumParticles, IfritShader::Siro::kSiroTGSizeX);
+
+        auto& pass = AddComputePass<PushConst>(builder, "PBDCloth.GenerateCollisionConstraints",
+            ShaderVariantDesc(kIntShaderTableSiro.PBDClothGenerateSDFCollisionCS, {}), Vector3i(tgX, 1, 1), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_CollisionConstraintCounter = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCollisionsCounter);
+                pc.m_CollisionConstraints       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCollisions);
+                pc.m_PredPositions              = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
+                pc.m_Velocities                 = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleVelocities);
+                pc.m_Positions                  = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePositions);
+
+                SetRootConstant(pc, ctx);
+            })
+                         .AddWriteResource(*m_Data->m_RDGParticleCollisionsCounter)
+                         .AddWriteResource(*m_Data->m_RDGParticleCollisions)
+                         .AddReadResource(*m_Data->m_RDGParticlePredPositions)
+                         .AddReadResource(*m_Data->m_RDGParticleVelocities)
+                         .AddReadResource(*m_Data->m_RDGParticlePositions);
+    }
+
+    IFRIT_APIDECL void PBDCloth::UpdateVelocityCollision(FrameGraphBuilder& builder)
+    {
+        struct PushConst
+        {
+            u32 m_Positions;
+            u32 m_CollisionConstraints;
+            u32 m_Velocities;
+            u32 m_CollisionConstraintCounter;
+        } pc;
+        pc.m_Positions                  = 0;
+        pc.m_CollisionConstraints       = 0;
+        pc.m_Velocities                 = 0;
+        pc.m_CollisionConstraintCounter = 0;
+
+        auto& pass = AddIndirectComputePass<PushConst>(builder, "PBDCloth.UpdateVelocityCollision",
+            ShaderVariantDesc(kIntShaderTableSiro.PBDClothUpdateVelocityCollisionCS, {}),
+            *m_Data->m_RDGParticleCollisionsCounter, 4u, pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_Positions                  = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePositions);
+                pc.m_CollisionConstraints       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCollisions);
+                pc.m_Velocities                 = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleVelocities);
+                pc.m_CollisionConstraintCounter = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCollisionsCounter);
+
+                SetRootConstant(pc, ctx);
+            })
+                         .AddWriteResource(*m_Data->m_RDGParticleVelocities)
+                         .AddReadResource(*m_Data->m_RDGParticlePositions)
+                         .AddReadResource(*m_Data->m_RDGParticleCollisions)
+                         .AddReadResource(*m_Data->m_RDGParticleCollisionsCounter);
     }
 
 } // namespace Ifrit::Runtime::Siro

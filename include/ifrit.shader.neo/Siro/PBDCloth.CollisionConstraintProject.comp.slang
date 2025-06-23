@@ -24,7 +24,8 @@ namespace Siro{
     struct PushConst_T{
         FPBDCollisionProcessIndirectArgs m_CollisionConstraintCounter;
         TRWStructuredBufferHandle<FPBDCollsionConstraint> m_CollisionConstraints;
-        uint m_NumParticles;
+        TRWStructuredBufferHandle<float4> m_PredPositions;
+        FPBDCorrectionHandle m_CorrectionHandle;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -35,7 +36,16 @@ namespace Siro{
     {
         if (ThreadId.x >= PushConst.m_CollisionConstraintCounter.GetCounter()) return;
 
+        FPBDCollsionConstraint Constraint = PushConst.m_CollisionConstraints.Load(ThreadId.x);  
+        float3 Normal = Constraint.m_CollisionNormal.xyz;
+        float3 CollPos = Constraint.m_CollisionPos.xyz;
+        float3 PredPos = PushConst.m_PredPositions.Load(Constraint.m_ParticleA).xyz;
+        float Cp = dot((PredPos - CollPos),Normal);
+        float NsSq = dot(Normal, Normal);
+        float InvNsSq = NsSq > 0.0f ? 1.0f / NsSq : 0.0f;
 
+        float3 DeltaP = -Cp*InvNsSq * Normal;
+        PushConst.m_CorrectionHandle.AddCorrection(Constraint.m_ParticleA,DeltaP);
     }
 }
 }

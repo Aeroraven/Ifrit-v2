@@ -184,6 +184,12 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTSiro.PBDClothNormalUpdateCS, "Siro/PBDCloth.NormalUpdate", "SiroPBDClothNormalUpdateCS");
         REG_COMPUTE_NEO(
             ISTSiro.PBDClothNormalRegularizeCS, "Siro/PBDCloth.NormalRegularize", "SiroPBDClothNormalRegularizeCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothGenerateSDFCollisionCS, "Siro/PBDCloth.GenerateSDFCollision",
+            "SiroPBDClothGenerateSDFCollisionCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothCollisionConstraintProject, "Siro/PBDCloth.CollisionConstraintProject",
+            "SiroPBDClothCollisionConstraintProjectCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityCollisionCS, "Siro/PBDCloth.UpdateVelocityCollision",
+            "SiroPBDClothUpdateVelocityCollisionCS");
 
         // Base Forward
         REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");

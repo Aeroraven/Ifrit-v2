@@ -58,9 +58,13 @@ namespace Siro{
     {
         TAtomicRWStructuredBufferHandle<uint> m_Data;
 
-        void AddCounter(uint Value)
+        uint AddCounter(uint Value)
         {
-            m_Data.AtomicAdd(0, Value);
+            uint Idx = m_Data.AtomicAdd(0, Value);
+            m_Data.AtomicMax(1, DivRoundUp(Idx+1, kSiroTGSizeX));
+            m_Data.AtomicMax(2, 1); 
+            m_Data.AtomicMax(3, 1); 
+            return Idx;
         }
 
         void UpdateIndirectArgs(uint Count)

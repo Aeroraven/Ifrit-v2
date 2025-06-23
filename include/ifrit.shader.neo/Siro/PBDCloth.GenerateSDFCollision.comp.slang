@@ -19,6 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader.neo/Ayanami/Ayanami.SharedUtils.hlsli"
 #include "ifrit.shader.neo/ObjectDescriptor.hlsli"
 
+#include "ifrit.shader.neo/Math.RayTrace.hlsli"
+
 namespace IfritShader{
 namespace Siro{
 
@@ -27,6 +29,9 @@ namespace Siro{
         TRWStructuredBufferHandle<Ayanami::FMeshDFDetail> m_CollisionSDFs;
         TRWStructuredBufferHandle<FPerObjectData> m_ObjectData;
         TRWStructuredBufferHandle<FPBDCollsionConstraint> m_CollisionConstraints;
+        TRWStructuredBufferHandle<float4> m_PredPositions;
+        TRWStructuredBufferHandle<float4> m_Velocities;
+        TRWStructuredBufferHandle<float4> m_Positions;
         uint m_NumParticles;
         uint m_NumSDFs;
     };
@@ -39,7 +44,31 @@ namespace Siro{
     {
         if (ThreadId.x >= PushConst.m_NumParticles) return;
         
+        float3 TestSphereCenter = float3(0.5f, -1.5f, 0.5f);
+        float TestSphereRadius = 1.0f;
 
+        float3 ParticlePredPosition = PushConst.m_PredPositions.Load(ThreadId.x).xyz;
+        float3 ParticleVelocity = PushConst.m_Velocities.Load(ThreadId.x).xyz;
+        float3 ParticlePosition = PushConst.m_Positions.Load(ThreadId.x).xyz;
+
+        bool bCollision = false;
+        float3 CollisionPosition;
+        float3 CollisionNormal;
+        bCollision = Math::LineSphereIntersection(ParticlePosition,ParticlePredPosition,
+            TestSphereCenter, TestSphereRadius, CollisionPosition);
+
+        if (bCollision) {
+            CollisionNormal = normalize(CollisionPosition - TestSphereCenter);
+
+            uint PropId = PushConst.m_CollisionConstraintCounter.AddCounter(1);
+            FPBDCollsionConstraint Constraint;
+            Constraint.m_ParticleA = ThreadId.x;
+            Constraint.m_CollisionNormal =  float4(CollisionNormal, 0.0f);
+            Constraint.m_CollisionPos = float4(CollisionPosition, 0.0f);
+            Constraint.m_CollisionVelocity = float4(ParticleVelocity, 0.0f);
+
+            PushConst.m_CollisionConstraints.Store(Constraint, PropId);
+        }
     }
 }
 }

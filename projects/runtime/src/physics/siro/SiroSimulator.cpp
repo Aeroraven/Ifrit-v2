@@ -57,7 +57,7 @@ namespace Ifrit::Runtime::Siro
                 FrameGraphBuilder builder(m_App->GetShaderRegistry(), m_App->GetRhi(), m_Data->m_ResourcePool.get());
                 for (auto& solver : m_Data->m_SolversExpliciteEuler)
                 {
-                    solver->RunApproximationStep(builder, deltaTime);
+                    solver->RunSolverStep(builder, deltaTime);
                 }
                 auto compiledGraph = m_Data->m_FgCompiler->Compile(builder);
                 m_Data->m_FgExecutor->ExecuteInSingleCmd(cmdList, compiledGraph);
