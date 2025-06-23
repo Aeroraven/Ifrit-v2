@@ -41,6 +41,42 @@ namespace Siro{
         }
     };
 
+    struct FPBDNormalHandle
+    {
+        TAtomicRWStructuredBufferHandle<float> m_Data;
+
+        void AddNormal(uint Index, float3 Correction)
+        {
+            uint Offset = Index * 4;
+            m_Data.AtomicAdd(Offset, Correction.x);
+            m_Data.AtomicAdd(Offset + 1, Correction.y);
+            m_Data.AtomicAdd(Offset + 2, Correction.z);
+        }
+    };
+
+    struct FPBDCollisionProcessIndirectArgs
+    {
+        TAtomicRWStructuredBufferHandle<uint> m_Data;
+
+        void AddCounter(uint Value)
+        {
+            m_Data.AtomicAdd(0, Value);
+        }
+
+        void UpdateIndirectArgs(uint Count)
+        {
+            uint TgX = DivRoundUp(Count, kSiroTGSizeX);
+            m_Data.AtomicMax(1, TgX);
+            m_Data.AtomicMax(2, 1); 
+            m_Data.AtomicMax(3, 1); 
+        }
+
+        uint GetCounter()
+        {
+            return m_Data.Load(0);
+        }
+    }
+
     struct FPBDDistanceConstraint
     {
         uint m_ParticleA;
@@ -57,7 +93,16 @@ namespace Siro{
         uint m_ParticleD;
         float m_RestAngle;
         float m_Stiffness;
-    }
+    };
+
+    struct FPBDCollsionConstraint
+    {
+        float4 m_CollisionPos;
+        float4 m_CollisionNormal;
+        float4 m_CollisionVelocity;
+        uint m_ParticleA;
+    };
+
 #endif // __cplusplus
 }
 }

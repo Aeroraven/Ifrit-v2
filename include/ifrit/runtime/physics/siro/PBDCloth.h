@@ -55,6 +55,7 @@ namespace Ifrit::Runtime::Siro
         void                 UpdateVelocityPre(FrameGraphBuilder& builder, f32 deltaTime);
         void                 UpdateVelocityPost(FrameGraphBuilder& builder, f32 deltaTime);
         void                 GeneratePredictedPosition(FrameGraphBuilder& builder, f32 deltaTime);
+        void                 UpdateNormals(FrameGraphBuilder& builder);
 
     public:
         PBDCloth() { Initialize(); }

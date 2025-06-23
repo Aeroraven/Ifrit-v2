@@ -50,6 +50,14 @@ namespace Ifrit::Runtime::Siro
         f32 m_Stiffness = 0.5f;
     };
 
+    struct FPBDCollsionConstraint
+    {
+        Vector4f m_CollisionPos;
+        Vector4f m_CollisionNormal;
+        Vector4f m_CollisionVelocity;
+        u32      m_ParticleA;
+    };
+
     struct PBDClothPrivateData
     {
         Vec<PBDClothDistanceConstraint> m_DistanceConstraints;
@@ -63,6 +71,8 @@ namespace Ifrit::Runtime::Siro
         RhiBufferRef                    m_ParticleCorrections;
         RhiBufferRef                    m_ParticleFixed;
         RhiBufferRef                    m_ParticleInverseMass;
+        RhiBufferRef                    m_ParticleCollisions;
+        RhiBufferRef                    m_ParticleCollisionsCounter;
 
         RhiBufferRef                    m_GPUDistanceConstraints;
         RhiBufferRef                    m_GPUBendingConstraints;
@@ -72,17 +82,23 @@ namespace Ifrit::Runtime::Siro
         FGBufferNodeRef                 m_RDGParticleVelocities;
         FGBufferNodeRef                 m_RDGParticleCorrections;
         FGBufferNodeRef                 m_RDGParticlePositions;
+        FGBufferNodeRef                 m_RDGParticleNormals;
+        FGBufferNodeRef                 m_RDGParticleIndices;
         FGBufferNodeRef                 m_RDGParticleFixed;
         FGBufferNodeRef                 m_RDGParticleInverseMass;
         FGBufferNodeRef                 m_RDGDistanceConstraints;
         FGBufferNodeRef                 m_RDGBendingConstraints;
 
-        u32                             m_NumParticles     = 0;
-        u32                             m_NumIndices       = 0;
-        bool                            m_ResourcePrepared = false;
-        u32                             m_SolverIterations = 10;
-        f32                             m_DefaultGravityY  = -5e-2f;
-        f32                             m_VelocityDamping  = 0.999f; // Damping factor for velocity updates
+        FGBufferNodeRef                 m_RDGParticleCollisions;
+        FGBufferNodeRef                 m_RDGParticleCollisionsCounter;
+
+        u32                             m_NumParticles           = 0;
+        u32                             m_NumIndices             = 0;
+        bool                            m_ResourcePrepared       = false;
+        u32                             m_SolverIterations       = 10;
+        f32                             m_DefaultGravityY        = -5e-2f;
+        f32                             m_VelocityDamping        = 0.999f; // Damping factor for velocity updates
+        u32                             m_MaxCollisionsPerVertex = 4;
     };
 
     IFRIT_APIDECL PBDCloth::~PBDCloth()
@@ -269,6 +285,9 @@ namespace Ifrit::Runtime::Siro
             auto v4fSize               = SizeCast<u32>(m_Data->m_NumParticles * sizeof(Vector4f));
             auto v1fSize               = SizeCast<u32>(m_Data->m_NumParticles * sizeof(f32));
             auto usage                 = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
+            auto indirectUsage = RhiBufferUsage::RhiBufferUsage_Indirect | RhiBufferUsage::RhiBufferUsage_CopyDst
+                | RhiBufferUsage::RhiBufferUsage_SSBO;
+
             m_Data->m_ParticleCorrections = rhi->CreateBuffer("PBDCloth.Corrections", v4fSize, usage, false, true);
             m_Data->m_ParticleExternalForces =
                 rhi->CreateBuffer("PBDCloth.ExternalForces", v4fSize, usage, false, true);
@@ -276,15 +295,22 @@ namespace Ifrit::Runtime::Siro
             m_Data->m_ParticleVelocities    = rhi->CreateBuffer("PBDCloth.Velocities", v4fSize, usage, false, true);
             m_Data->m_ParticleFixed         = rhi->CreateBuffer("PBDCloth.FixedParticles", v1fSize, usage, false, true);
             m_Data->m_ParticleInverseMass   = rhi->CreateBuffer("PBDCloth.InverseMass", v1fSize, usage, false, true);
+            m_Data->m_ParticleCollisionsCounter = rhi->CreateBuffer(
+                "PBDCloth.CollisionCounter", SizeCast<u32>(4 * sizeof(u32)), indirectUsage, false, true);
 
             auto distanceConstraintSize =
                 SizeCast<u32>(m_Data->m_DistanceConstraints.size() * sizeof(PBDClothDistanceConstraint));
             auto bendingConstraintSize =
                 SizeCast<u32>(m_Data->m_BendingConstraints.size() * sizeof(PBDClothBendingConstraint));
+            auto collisionConstraintSize = SizeCast<u32>(
+                m_Data->m_NumParticles * m_Data->m_MaxCollisionsPerVertex * sizeof(FPBDCollsionConstraint));
+
             m_Data->m_GPUDistanceConstraints =
                 rhi->CreateBuffer("PBDCloth.DistanceConstraints", distanceConstraintSize, usage, false, true);
             m_Data->m_GPUBendingConstraints =
                 rhi->CreateBuffer("PBDCloth.BendingConstraints", bendingConstraintSize, usage, false, true);
+            m_Data->m_ParticleCollisions =
+                rhi->CreateBuffer("PBDCloth.CollisionConstraints", collisionConstraintSize, usage, false, true);
 
             // Launch a immediate command to upload data (not good)
             auto tq                       = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
@@ -322,6 +348,11 @@ namespace Ifrit::Runtime::Siro
         m_Data->m_RDGBendingConstraints =
             &builder.ImportBuffer("PBDCloth.BendingConstraints", m_Data->m_GPUBendingConstraints.get());
 
+        m_Data->m_RDGParticleCollisions =
+            &builder.ImportBuffer("PBDCloth.CollisionConstraints", m_Data->m_ParticleCollisions.get());
+        m_Data->m_RDGParticleCollisionsCounter =
+            &builder.ImportBuffer("PBDCloth.CollisionCounter", m_Data->m_ParticleCollisionsCounter.get());
+
         auto meshFilter = GetParentUnsafe()->GetComponent<MeshFilter>();
         iAssertion(
             meshFilter != nullptr, "Siro.PBDCloth: PBDCloth requires a MeshFilter component on the parent GameObject");
@@ -330,11 +361,14 @@ namespace Ifrit::Runtime::Siro
 
         auto vertexBufferDevice = meshObject->m_resource.vertexBuffer;
         auto normalBufferDevice = meshObject->m_resource.normalBuffer;
+        auto indexBufferDevice  = meshObject->m_resource.indexBuffer;
 
         iAssertion(vertexBufferDevice != nullptr, "Siro.PBDCloth: MeshFilter's mesh has no vertex buffer");
         iAssertion(normalBufferDevice != nullptr, "Siro.PBDCloth: MeshFilter's mesh has no normal buffer");
 
         m_Data->m_RDGParticlePositions = &builder.ImportBuffer("PBDCloth.Positions", vertexBufferDevice.get());
+        m_Data->m_RDGParticleNormals   = &builder.ImportBuffer("PBDCloth.Normals", normalBufferDevice.get());
+        m_Data->m_RDGParticleIndices   = &builder.ImportBuffer("PBDCloth.Indices", indexBufferDevice.get());
     }
 
     IFRIT_APIDECL void PBDCloth::RunApproximationStep(FrameGraphBuilder& builder, f32 deltaTime)
@@ -344,6 +378,7 @@ namespace Ifrit::Runtime::Siro
         GeneratePredictedPosition(builder, deltaTime);
         ProjectConstraints(builder, m_Data->m_SolverIterations);
         UpdateVelocityPost(builder, deltaTime);
+        UpdateNormals(builder);
     }
 
     IFRIT_APIDECL void PBDCloth::AddFixedParticles(Vec<u32> fixedParticles)
@@ -600,6 +635,56 @@ namespace Ifrit::Runtime::Siro
                          .AddWriteResource(*m_Data->m_RDGParticlePredPositions)
                          .AddReadWriteResource(*m_Data->m_RDGParticleCorrections)
                          .AddReadResource(*m_Data->m_RDGParticleFixed);
+    }
+
+    IFRIT_APIDECL void PBDCloth::UpdateNormals(FrameGraphBuilder& builder)
+    {
+        struct PushConst_1
+        {
+            u32 m_Normal;
+            u32 m_Position;
+            u32 m_Indices;
+            u32 m_NumIndices;
+        } pc1;
+
+        pc1.m_Normal     = 0;
+        pc1.m_Position   = 0;
+        pc1.m_Indices    = 0;
+        pc1.m_NumIndices = m_Data->m_NumIndices;
+
+        i32   tgX = DivRoundUp(pc1.m_NumIndices, IfritShader::Siro::kSiroTGSizeX);
+
+        auto& pass = AddComputePass<PushConst_1>(builder, "PBDCloth.UpdateNormals",
+            ShaderVariantDesc(kIntShaderTableSiro.PBDClothNormalUpdateCS, {}), Vector3i(tgX, 1, 1), pc1,
+            [this](PushConst_1 pc, const FrameGraphPassContext& ctx) {
+                pc.m_Normal   = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleNormals);
+                pc.m_Position = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticlePositions);
+                pc.m_Indices  = ctx.m_FgDesc->GetSRV(*m_Data->m_RDGParticleIndices);
+
+                SetRootConstant(pc, ctx);
+            })
+                         .AddWriteResource(*m_Data->m_RDGParticleNormals)
+                         .AddReadResource(*m_Data->m_RDGParticlePositions)
+                         .AddReadResource(*m_Data->m_RDGParticleIndices);
+
+        struct PushConst_2
+        {
+            u32 m_Normal;
+            u32 m_NumVertices;
+        } pc2;
+
+        pc2.m_Normal      = 0;
+        pc2.m_NumVertices = m_Data->m_NumParticles;
+
+        i32   tgX2 = DivRoundUp(pc2.m_NumVertices, IfritShader::Siro::kSiroTGSizeX);
+
+        auto& pass2 = AddComputePass<PushConst_2>(builder, "PBDCloth.UpdateNormalsFinal",
+            ShaderVariantDesc(kIntShaderTableSiro.PBDClothNormalRegularizeCS, {}), Vector3i(tgX2, 1, 1), pc2,
+            [this](PushConst_2 pc, const FrameGraphPassContext& ctx) {
+                pc.m_Normal = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleNormals);
+
+                SetRootConstant(pc, ctx);
+            }).AddWriteResource(*m_Data->m_RDGParticleNormals);
     }
 
 } // namespace Ifrit::Runtime::Siro

@@ -181,6 +181,9 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTSiro.PBDClothBendingConstraintProjectCS, "Siro/PBDCloth.BendingConstraintProject",
             "SiroPBDClothBendingConstraintProjectCS");
         REG_COMPUTE_NEO(ISTSiro.PBDPredPositionGenCS, "Siro/PBDCloth.PredPositionGen", "SiroPBDClothPredPositionGenCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothNormalUpdateCS, "Siro/PBDCloth.NormalUpdate", "SiroPBDClothNormalUpdateCS");
+        REG_COMPUTE_NEO(
+            ISTSiro.PBDClothNormalRegularizeCS, "Siro/PBDCloth.NormalRegularize", "SiroPBDClothNormalRegularizeCS");
 
         // Base Forward
         REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");

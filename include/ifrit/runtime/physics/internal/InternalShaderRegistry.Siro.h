@@ -38,6 +38,8 @@ namespace Ifrit::Runtime::Internal
         SDEF PBDClothDistanceConstraintProjectCS = DECLARE_CS("Siro/PBDCloth.DistanceConstraintProject");
         SDEF PBDClothBendingConstraintProjectCS  = DECLARE_CS("Siro/PBDCloth.BendingConstraintProject");
         SDEF PBDPredPositionGenCS                = DECLARE_CS("Siro/PBD.PredPositionGen");
+        SDEF PBDClothNormalUpdateCS              = DECLARE_CS("Siro/PBDCloth.NormalUpdate");
+        SDEF PBDClothNormalRegularizeCS          = DECLARE_CS("Siro/PBDCloth.NormalRegularize");
 
     } kIntShaderTableSiro;
 
