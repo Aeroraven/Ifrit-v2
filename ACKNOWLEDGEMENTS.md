@@ -25,6 +25,7 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [spdlog](https://github.com/gabime/spdlog.git)               | Logging                          | MIT                  |
 | [fsr2](https://github.com/GPUOpen-Effects/FidelityFX-FSR2)   | Super Resolution                 | MIT                  |
 | [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) | Texture Compression              | Apache 2.0           |
+| [tetgen](https://github.com/ufz/tetgen)                      | Mesh Tetrahedralization          | AGPL 3.0             |
 
 
 
@@ -79,7 +80,9 @@ And some references that give inspirations. Thanks for their selfless dedication
 2. https://zhuanlan.zhihu.com/p/352723264
 
 
+
 ### 3.2 About naming
+
 All names are chosen randomly from some characters.
 
 - Ifrit: https://arknights.wiki.gg/wiki/Ifrit

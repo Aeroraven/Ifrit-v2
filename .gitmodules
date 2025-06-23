@@ -40,3 +40,6 @@
 [submodule "dependencies/slang"]
 	path = dependencies/slang
 	url = git@github.com:shader-slang/slang.git
+[submodule "dependencies/tetgen"]
+	path = dependencies/tetgen
+	url = https://github.com/ufz/tetgen.git

@@ -22,6 +22,8 @@ Some **toys** about real-time rendering. Currently, it contains:
 | <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" /> | ![](docs/img/soft_dx1.png)                                   |
 | **Ayanami / GDF Object Grids + Surface Cache Lookup***      | **Ayanami / Global Distance Field (GDF)\***                  |
 | ![](docs/img/ayanami_objgrid_exp1.png)                      | ![](docs/img/ayanami_globaldf2.png)                          |
+| **Siro / Position Based Dynamics**                          | **Aria / Volumetric Lighting**                               |
+| ![](docs/img/siro_pbd1.png)                                 | ![](docs/img/aria_hist2.png)                                 |
 | **Soft Renderer / Profile** (Nsight Compute)                | **Ayanami / Debug (Tracing Hierarchy, Incomplete) \*** (RenderDoc) |
 | <img src="docs/img/soft_nscp.png" style="zoom:80%;" />      | <img src="docs/img/aya_diag.png" style="zoom:80%;" />        |
 
@@ -123,7 +125,7 @@ Following dependencies should be manually configured. Other dependencies will be
 - CMake >= 3.25
 - MSVC >= 19.29
 
-**Ifrit Runtime (Syaro/Ayanami)**
+**Ifrit Runtime (Syaro/Ayanami/Siro)**
 
 - Vulkan SDK >= 1.3.296
   - Core Features 1.2 (Necessary)
@@ -196,9 +198,9 @@ And extra acknowledgements to the comments from interviewers when I was seeking 
 
 ## 6. License
 
-The repo is licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html) **by default**. Other licenses are only applicable with all contributors' consent. Dual licensing is applicable.
+Note that this repository contains external dependencies that use AGPL3.0 license.
 
-The copy for license can be found in the root directory. 
+The repo is licensed under [AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html) **by default**. Other licenses are only applicable with all contributors' consent. Dual licensing is applicable. The copy for license can be found in the root directory. 
 
 
 
