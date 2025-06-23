@@ -23,14 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/serialization/SerialInterface.h"
 #include "ifrit/core/platform/ApiConv.h"
 #include "ifrit/meshproc/engine/base/MeshDesc.h"
-#include <cstdint>
-#include <vector>
-
-#ifndef IFRIT_MESHPROC_IMPORT
-    #define IFRIT_MESHPROC_API IFRIT_APIDECL
-#else
-    #define IFRIT_MESHPROC_API IFRIT_APIDECL_IMPORT
-#endif
+#include "ifrit/meshproc/engine/base/MeshProcBase.h"
 
 namespace Ifrit::MeshProcLib::MeshSDFProcess
 {

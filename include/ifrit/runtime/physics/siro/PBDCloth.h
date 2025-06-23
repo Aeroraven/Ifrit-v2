@@ -34,6 +34,12 @@ namespace Ifrit::Runtime::Siro
         IFRIT_STRUCT_SERIALIZE(m_DefaultBendingStiffness, m_DefaultStretchingStiffness);
     };
 
+    enum class EPBDClothSimulationType : u8
+    {
+        FlatCloth,
+        SoftBody,
+    };
+
     struct PBDClothPrivateData;
 
     // PBDCloth is a component that simulates cloth physics using Position Based Dynamics (PBD).

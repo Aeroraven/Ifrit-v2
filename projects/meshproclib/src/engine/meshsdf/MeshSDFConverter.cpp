@@ -508,7 +508,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         return optimalDistance;
     }
 
-    IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
+    IFRIT_APIDECL void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
         u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method, bool twoSided)
     {
         // TODO: this is a trivial implementation, that has worse performance O(NM), where N is the number of voxels and
@@ -653,7 +653,7 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         }
     }
 
-    IFRIT_MESHPROC_API void CompactSDF(const SignedDistanceField& sdf, CompactSignedDistanceField& compactSdf)
+    IFRIT_APIDECL void CompactSDF(const SignedDistanceField& sdf, CompactSignedDistanceField& compactSdf)
     {
         compactSdf.width   = sdf.width;
         compactSdf.height  = sdf.height;

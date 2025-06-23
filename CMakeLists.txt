@@ -91,6 +91,9 @@ set(SLANG_LIB_TYPE STATIC CACHE STRING "Slang library type" FORCE)
 # glfw
 set(GLFW_INSTALL OFF CACHE BOOL "Disable GLFW install" FORCE)
 
+# tetgen
+set(TETGEN_SKIP_INSTALL ON CACHE BOOL "Disable Tetgen install" FORCE)
+
 # ifrit
 set(IFRIT_DEMO_LIST CACHE INTERNAL "List of demo stages" FORCE)
 
@@ -102,6 +105,7 @@ ifrit_add_dependency(gklib)
 ifrit_add_dependency(metis)
 ifrit_add_dependency(ktxsoftware)
 ifrit_add_dependency(slang)
+ifrit_add_dependency(tetgen)
 
 ifrit_add_core_component(core)
 ifrit_add_core_component(shadercompile)
@@ -151,6 +155,11 @@ set_target_properties(shader_permutations_vk PROPERTIES FOLDER ${IFRIT_GROUP_DEP
 # glfw3 targets
 set_target_properties(glfw PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/glfw)
 set_target_properties(update_mappings PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/glfw)
+
+# tetgen targets
+set_target_properties(tet PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/tetgen)
+set_target_properties(tetgen PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/tetgen)
+
 
 # ifrit targets
 set_target_properties(ifrit.core PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})

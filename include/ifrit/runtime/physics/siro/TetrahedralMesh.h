@@ -1,7 +1,6 @@
-
 /*
 Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
+Copyright (C) 2024-2025 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -14,28 +13,18 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/runtime/common/Pch.h"
+#include "ifrit/runtime/base/Base.h"
+#include "ifrit/runtime/base/Component.h"
+#include "ifrit/runtime/base/Mesh.h"
 
-namespace Ifrit::MeshProcLib
+namespace Ifrit::Runtime::Siro
 {
-    struct MeshDescriptor
+    class IFRIT_RUNTIME_API TetrahedralMesh
     {
-        i8* vertexData;
-        i8* indexData;
-        i8* normalData;
-        i32 vertexCount;
-        i32 indexCount;
-        i32 vertexStride;
-        i32 positionOffset;
-        i32 normalStride;
     };
-
-    struct FTetrahedralMeshData
-    {
-        Vec<Vector3f> m_Vertices;
-        Vec<u32>      m_Indices;
-    };
-} // namespace Ifrit::MeshProcLib
+} // namespace Ifrit::Runtime::Siro

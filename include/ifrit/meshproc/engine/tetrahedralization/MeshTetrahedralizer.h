@@ -17,23 +17,17 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "MeshClusterBase.h"
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/math/LinalgOps.h"
+#include "ifrit/core/serialization/MathTypeSerialization.h"
+#include "ifrit/core/serialization/SerialInterface.h"
 #include "ifrit/core/platform/ApiConv.h"
-#include <meshoptimizer/src/meshoptimizer.h>
+#include "ifrit/meshproc/engine/base/MeshDesc.h"
 #include "ifrit/meshproc/engine/base/MeshProcBase.h"
 
-namespace Ifrit::MeshProcLib::MeshProcess
+namespace Ifrit::MeshProcLib::Tetrahedralization
 {
 
-    class IFRIT_MESHPROC_API MeshletConeCullProc
-    {
+    IFRIT_MESHPROC_API FTetrahedralMeshData TetrahedralizeMesh(const MeshDescriptor& mesh);
 
-    public:
-        void CreateNormalCones(const MeshDescriptor& meshDesc, const Vec<Vector4i>& meshlets,
-            const Vec<u32>& meshletVertices, const Vec<u8>& meshletTriangles, Vec<Vector4f>& normalConeAxisCutoff,
-            Vec<Vector4f>& normalConeApex, Vec<Vector4f>& boundSphere);
-    };
-
-} // namespace Ifrit::MeshProcLib::MeshProcess
+} // namespace Ifrit::MeshProcLib::Tetrahedralization
