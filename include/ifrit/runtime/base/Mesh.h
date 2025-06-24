@@ -27,9 +27,9 @@ namespace Ifrit::Runtime
 {
     enum class MeshType
     {
-        Conventional,
+        Surface,
+        Solid,
         VirtualGeometry,
-        Tetrahedral
     };
 
     struct MeshData
@@ -201,6 +201,12 @@ namespace Ifrit::Runtime
         virtual u32           GetNumVertices();
         virtual Vec<u32>      GetIndexBufferHost();
         virtual Vec<Vector3f> GetVertexBufferHost();
+
+        virtual Vec<u32>      GetSolidMeshIndices();
+        virtual Vec<Vector3f> GetSolidMeshVertices();
+        virtual Vec<u32>      GetSurfaceMeshIndices();
+
+        virtual Ref<MeshData> GetBaseMesh();
 
         IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
     };

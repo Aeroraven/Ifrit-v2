@@ -39,7 +39,7 @@ namespace Ifrit::Runtime::Siro
     IFRIT_APIDECL void TessellatedRectMesh::Initialize()
     {
         m_SelfData             = std::make_shared<MeshData>();
-        m_SelfData->m_MeshType = MeshType::Conventional;
+        m_SelfData->m_MeshType = MeshType::Surface;
     }
 
     IFRIT_APIDECL Ref<MeshData> TessellatedRectMesh::LoadMesh()

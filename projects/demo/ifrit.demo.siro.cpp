@@ -200,12 +200,8 @@ namespace Ifrit
             lightRotScript->SetInputSystem(m_inputSystem.get());
 
             auto cloth     = node->AddGameObject("cloth");
-            auto clothMesh = MakeRef<Siro::TessellatedRectMesh>(0.25f, 0.25f, 40, 40, Vector3f(-0.15f, 0.2f, -0.14f));
+            auto clothMesh = MakeRef<Siro::TessellatedRectMesh>(0.25f, 0.25f, 40, 40, Vector3f(-0.15f, -0.02f, -0.14f));
             auto material  = MakeRef<SyaroDefaultGBufEmitter>(this);
-            auto redAlbedoAsset = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Red.png");
-            auto normalAsset    = m_assetManager->GetAssetByName<TrivialImageAsset>("Cornell/Cornell_Normal.png");
-            material->SetAlbedoId(m_rhiLayer->GetSRVDescriptor(redAlbedoAsset->GetTexture().get()));
-            material->SetNormalMapId(m_rhiLayer->GetSRVDescriptor(normalAsset->GetTexture().get()));
             material->BuildMaterial();
 
             auto meshFilter = cloth->AddComponent<MeshFilter>();
@@ -214,19 +210,25 @@ namespace Ifrit
             meshRenderer->SetMaterial(material);
             auto pbdCloth = cloth->AddComponent<Siro::PBDCloth>();
             pbdCloth->AddFixedParticles({ 0, 40, 41 * 40 + 0, 41 * 40 + 41 });
-            siroSimulator->RegisterSolver(pbdCloth.get());
+            // siroSimulator->RegisterSolver(pbdCloth.get());
 
             auto bunny           = node->AddGameObject("bunny");
-            auto bunnyMeshAsset  = m_assetManager->GetAssetByName<WaveFrontAsset>("bunny.obj");
+            auto bunnyMeshAsset  = m_assetManager->GetAssetByName<WaveFrontAsset>("bunny_watertight.obj");
             auto bunnyMeshFilter = bunny->AddComponent<MeshFilter>();
-            bunnyMeshFilter->SetMesh(bunnyMeshAsset);
+            auto bunnyTetra      = MakeRef<Siro::TetrahedralMesh>();
+            bunnyTetra->SetTriangularMesh(bunnyMeshAsset);
+            bunnyMeshFilter->SetMesh(bunnyTetra);
             auto bunnyMeshRenderer = bunny->AddComponent<MeshRenderer>();
             bunnyMeshRenderer->SetMaterial(material);
             auto bunnyMeshDF = bunny->AddComponent<Ayanami::AyanamiMeshDF>();
             bunnyMeshDF->BuildMeshDF(GetCacheDir(), Vector3u(64, 64, 64));
             bunnyMeshDF->BuildGPUResource(GetRhi());
+            auto bunnySoftBody = bunny->AddComponent<Siro::PBDCloth>();
+            bunnySoftBody->AddCollider(bunnyMeshDF.get());
+            bunnySoftBody->SetType(Siro::EPBDClothSimulationType::Volume);
 
-            pbdCloth->AddCollider(bunnyMeshDF.get());
+            // pbdCloth->AddCollider(bunnyMeshDF.get());
+            siroSimulator->RegisterSolver(bunnySoftBody.get());
 
             // Render targets
             auto rt         = m_rhiLayer.get();
@@ -250,7 +252,7 @@ namespace Ifrit
             auto sFrameStart = renderer->BeginFrame();
             auto renderComplete =
                 renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { sFrameStart.get() });
-            auto simulateComplete = siroSimulator->Update(0.016f, { renderComplete.get() });
+            auto simulateComplete = siroSimulator->Update(0.006f, { renderComplete.get() });
             renderer->EndFrame({ simulateComplete.get() });
             // std::abort();
             // std::exit(0);

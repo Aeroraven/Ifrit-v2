@@ -177,7 +177,7 @@ The source files can be decomposed into following parts.
 | ifrit.external      | External dependencies building <br/>Contains FSR2            |
 | ifrit.ircompile     | Backend for JIT runtime<br/>Based on LLVM                    |
 | ifrit.imaging       | Utilities for image processing<br/>Including some texture compression utilities. |
-| ifrit.meshproc      | Algorithms for mesh processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh auto-lod and mesh-level signed distance field generation |
+| ifrit.meshproc      | Algorithms for mesh processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh tetrahedralization, mesh auto-lod and mesh-level signed distance field generation |
 | ifrit.rhi           | Backend-agnostic render hardware interface.                  |
 | ifrit.shadercompile | Backend for shader compilation<br/>Contains glslc and slang backend |
 | ifrit.softgraphics  | Implementation of soft renderer, with both MT-CPU and CUDA version |

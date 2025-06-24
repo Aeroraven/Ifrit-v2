@@ -110,7 +110,7 @@ namespace Ifrit::Runtime
                     cmd->SetCullMode(RhiCullMode::None);
 
                     cmd->SetPushConst(&pc, 0, sizeof(PushConst));
-                    auto indexCount = shaderEffects.m_meshes[i]->GetNumIndices();
+                    auto indexCount = shaderEffects.m_meshes[i]->LoadMeshUnsafe()->m_indices.size();
 
                     if (indexCount != 0)
                     {

@@ -107,6 +107,16 @@ namespace Siro{
         uint m_ParticleA;
     };
 
+    struct FPBDVolumeConstraint
+    {
+        uint m_ParticleA;
+        uint m_ParticleB;
+        uint m_ParticleC;
+        uint m_ParticleD;
+        float m_RestVolume;
+        float m_Stiffness;
+    };
+
 #endif // __cplusplus
 }
 }

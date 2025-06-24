@@ -312,4 +312,9 @@ namespace Ifrit::Runtime
         return vertices;
     }
 
+    IFRIT_APIDECL Vec<u32> Mesh::GetSolidMeshIndices() { return GetIndexBufferHost(); }
+    IFRIT_APIDECL Vec<Vector3f> Mesh::GetSolidMeshVertices() { return GetVertexBufferHost(); }
+    IFRIT_APIDECL Vec<u32> Mesh::GetSurfaceMeshIndices() { return GetIndexBufferHost(); }
+    IFRIT_APIDECL Ref<MeshData> Mesh::GetBaseMesh() { return LoadMesh(); }
+
 } // namespace Ifrit::Runtime

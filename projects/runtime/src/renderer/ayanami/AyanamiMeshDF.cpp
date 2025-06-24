@@ -45,7 +45,7 @@ namespace Ifrit::Runtime::Ayanami
             std::abort();
         }
         auto meshContainer = meshFilter->GetMesh();
-        auto meshData      = meshContainer->LoadMesh();
+        auto meshData      = meshContainer->GetBaseMesh();
 
         {
             using namespace Ifrit::MeshProcLib::MeshSDFProcess;

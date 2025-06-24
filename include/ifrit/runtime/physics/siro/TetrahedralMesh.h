@@ -37,7 +37,8 @@ namespace Ifrit::Runtime::Siro
         Vec<Vector3f> m_Vertices;
         Vec<u32>      m_Indices;
         Vec<u32>      m_TriangleIndices;
-        Mesh*         m_TriangularMesh = nullptr;
+        Vec<u32>      m_SurfaceTriangleIndices;
+        Ref<Mesh>     m_TriangularMesh = nullptr;
         Ref<MeshData> m_SelfData;
         bool          m_Loaded = false;
 
@@ -48,7 +49,7 @@ namespace Ifrit::Runtime::Siro
         TetrahedralMesh();
         virtual ~TetrahedralMesh();
 
-        void                  SetTriangularMesh(Mesh* mesh);
+        void                  SetTriangularMesh(Ref<Mesh> mesh);
 
         virtual Ref<MeshData> LoadMesh() override;
         virtual MeshData*     LoadMeshUnsafe() override;
@@ -57,6 +58,10 @@ namespace Ifrit::Runtime::Siro
         virtual Vec<u32>      GetIndexBufferHost() override;
         virtual Vec<Vector3f> GetVertexBufferHost() override;
 
-        virtual Vec<u32>      GetTetrahedronIndicesHost();
+        virtual Vec<u32>      GetSolidMeshIndices() override;
+        virtual Vec<Vector3f> GetSolidMeshVertices() override;
+        virtual Vec<u32>      GetSurfaceMeshIndices() override;
+
+        virtual Ref<MeshData> GetBaseMesh() override;
     };
 } // namespace Ifrit::Runtime::Siro

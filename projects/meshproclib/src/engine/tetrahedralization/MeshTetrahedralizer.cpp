@@ -27,7 +27,7 @@ namespace Ifrit::MeshProcLib::Tetrahedralization
     IFRIT_APIDECL FTetrahedralMeshData TetrahedralizeMesh(const MeshDescriptor& mesh)
     {
         // TODO : delete new allocations in the end
-
+        u32*     indexData = reinterpret_cast<u32*>(mesh.indexData);
         tetgenio in;
         in.firstnumber    = 0; // 0-based indexing
         in.numberofpoints = mesh.vertexCount;
@@ -54,19 +54,19 @@ namespace Ifrit::MeshProcLib::Tetrahedralization
             tetgenio::polygon* p = &f->polygonlist[0];
             p->numberofvertices  = 3;
             p->vertexlist        = new int[p->numberofvertices];
-            p->vertexlist[0]     = mesh.indexData[i * 3 + 0];
-            p->vertexlist[1]     = mesh.indexData[i * 3 + 1];
-            p->vertexlist[2]     = mesh.indexData[i * 3 + 2];
+            p->vertexlist[0]     = indexData[i * 3 + 0];
+            p->vertexlist[1]     = indexData[i * 3 + 1];
+            p->vertexlist[2]     = indexData[i * 3 + 2];
         }
 
         tetgenio       out;
 
         tetgenbehavior behavior;
 
-        behavior.plc      = 1;
-        behavior.quality  = 1;
-        behavior.minratio = 1.414;
-        behavior.diagnose = 1;
+        behavior.plc       = 1;
+        behavior.minratio  = 1.414;
+        behavior.maxvolume = 0.1;
+        behavior.quiet     = 1;
 
         tetrahedralize(&behavior, &in, &out);
 
@@ -85,6 +85,7 @@ namespace Ifrit::MeshProcLib::Tetrahedralization
             tetrahedralMeshData.m_Indices[i * 4 + 2] = out.tetrahedronlist[i * 4 + 2];
             tetrahedralMeshData.m_Indices[i * 4 + 3] = out.tetrahedronlist[i * 4 + 3];
         }
+        iDebug("Tetrahedralization complete: {} vertices, {} tetrahedra", out.numberofpoints, out.numberoftetrahedra);
 
         return tetrahedralMeshData;
     }

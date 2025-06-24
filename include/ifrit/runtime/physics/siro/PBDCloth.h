@@ -37,7 +37,7 @@ namespace Ifrit::Runtime::Siro
     enum class EPBDClothSimulationType : u8
     {
         FlatCloth,
-        SoftBody,
+        Volume,
     };
 
     struct PBDClothPrivateData;
@@ -61,6 +61,8 @@ namespace Ifrit::Runtime::Siro
         void                 ProjectConstraints(FrameGraphBuilder& builder, u32 numIterations);
         void                 ProjectConstraintsDistance(FrameGraphBuilder& builder, u32 numIterations);
         void                 ProjectConstraintsBending(FrameGraphBuilder& builder, u32 numIterations);
+        void                 ProjectConstraintsVolume(FrameGraphBuilder& builder, u32 numIterations);
+
         void                 ProjectConstraintsCollision(FrameGraphBuilder& builder);
         void                 ApplyCorrections(FrameGraphBuilder& builder);
         void                 UpdateVelocityPre(FrameGraphBuilder& builder, f32 deltaTime);

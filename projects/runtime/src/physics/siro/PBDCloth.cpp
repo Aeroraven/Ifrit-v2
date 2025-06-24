@@ -38,7 +38,7 @@ namespace Ifrit::Runtime::Siro
         u32 m_ParticleA  = 0;
         u32 m_ParticleB  = 0;
         f32 m_RestLength = 0.0f;
-        f32 m_Stiffness  = 0.5f;
+        f32 m_Stiffness  = 0.85f;
     };
 
     struct PBDClothBendingConstraint
@@ -59,6 +59,16 @@ namespace Ifrit::Runtime::Siro
         u32      m_ParticleA;
     };
 
+    struct FPBDClothVolumeConstraint
+    {
+        u32 m_ParticleA  = 0;
+        u32 m_ParticleB  = 0;
+        u32 m_ParticleC  = 0;
+        u32 m_ParticleD  = 0;
+        f32 m_RestVolume = 0;
+        f32 m_Stiffness  = 0.85f;
+    };
+
     struct FColliderData
     {
         u32 m_SdfId;
@@ -69,6 +79,7 @@ namespace Ifrit::Runtime::Siro
     {
         Vec<PBDClothDistanceConstraint> m_DistanceConstraints;
         Vec<PBDClothBendingConstraint>  m_BendingConstraints;
+        Vec<FPBDClothVolumeConstraint>  m_VolumeConstraints;
         Vec<f32>                        m_InverseMass;
         HashSet<u32>                    m_FixedParticles;
         Vec<Ayanami::AyanamiMeshDF*>    m_Colliders;
@@ -86,6 +97,7 @@ namespace Ifrit::Runtime::Siro
 
         RhiBufferRef                    m_GPUDistanceConstraints;
         RhiBufferRef                    m_GPUBendingConstraints;
+        RhiBufferRef                    m_GPUVolumeConstraints;
         RhiBufferRef                    m_GPUColliderData;
 
         FGBufferNodeRef                 m_RDGParticleExternalForces;
@@ -99,6 +111,7 @@ namespace Ifrit::Runtime::Siro
         FGBufferNodeRef                 m_RDGParticleInverseMass;
         FGBufferNodeRef                 m_RDGDistanceConstraints;
         FGBufferNodeRef                 m_RDGBendingConstraints;
+        FGBufferNodeRef                 m_RDGVolumeConstraints;
 
         FGBufferNodeRef                 m_RDGParticleCollisions;
         FGBufferNodeRef                 m_RDGParticleCollisionsCounter;
@@ -107,7 +120,7 @@ namespace Ifrit::Runtime::Siro
         u32                             m_NumParticles           = 0;
         u32                             m_NumIndices             = 0;
         bool                            m_ResourcePrepared       = false;
-        u32                             m_SolverIterations       = 20;
+        u32                             m_SolverIterations       = 200;
         f32                             m_DefaultGravityY        = -5e-2f;
         f32                             m_VelocityDamping        = 0.999f; // Damping factor for velocity updates
         u32                             m_MaxCollisionsPerVertex = 4;
@@ -259,7 +272,6 @@ namespace Ifrit::Runtime::Siro
                     bendingConstraint.m_ParticleC = vertexA;
                     bendingConstraint.m_ParticleD = vertexB;
                     bendingConstraint.m_RestAngle = angle;
-                    bendingConstraint.m_Stiffness = 0.5f;
 
                     // Add the constraint
                     m_Data->m_BendingConstraints.push_back(bendingConstraint);
@@ -286,13 +298,96 @@ namespace Ifrit::Runtime::Siro
 
         auto meshObject = meshFilter->GetMesh();
         iAssertion(meshObject != nullptr, "Siro.PBDCloth: MeshFilter has no mesh data");
+
+        auto meshData = meshObject->LoadMesh();
+        iAssertion(meshData->m_MeshType == MeshType::Solid,
+            "Siro.PBDCloth: Tetrahedral mesh is required for volume constraints");
+
+        auto solidVertices     = meshObject->GetSolidMeshVertices();
+        auto solidIndices      = meshObject->GetSolidMeshIndices();
+        auto triangularIndices = meshObject->GetIndexBufferHost();
+
+        // Volume constraint
+        for (u32 i = 0; i < solidIndices.size(); i += 4)
+        {
+            auto                      iA = solidIndices[i];
+            auto                      iB = solidIndices[i + 1];
+            auto                      iC = solidIndices[i + 2];
+            auto                      iD = solidIndices[i + 3];
+
+            auto                      pA = solidVertices[iA];
+            auto                      pB = solidVertices[iB];
+            auto                      pC = solidVertices[iC];
+            auto                      pD = solidVertices[iD];
+
+            float                     volume = Dot(Cross(pB - pA, pC - pA), pD - pA) / 6.0f;
+
+            FPBDClothVolumeConstraint volumeConstraint;
+            volumeConstraint.m_ParticleA  = iA;
+            volumeConstraint.m_ParticleB  = iB;
+            volumeConstraint.m_ParticleC  = iC;
+            volumeConstraint.m_ParticleD  = iD;
+            volumeConstraint.m_RestVolume = volume;
+
+            m_Data->m_VolumeConstraints.push_back(volumeConstraint);
+        }
+
+        // Distance constraint
+        HashSet<u64> distanceConstraintMap;
+        for (u32 i = 0; i < solidIndices.size(); i += 4)
+        {
+            auto          iA = solidIndices[i];
+            auto          iB = solidIndices[i + 1];
+            auto          iC = solidIndices[i + 2];
+            auto          iD = solidIndices[i + 3];
+
+            Array<u64, 6> edges = { OrderedPack32(iA, iB), OrderedPack32(iA, iC), OrderedPack32(iA, iD),
+                OrderedPack32(iB, iC), OrderedPack32(iB, iD), OrderedPack32(iC, iD) };
+
+            for (auto& e : edges)
+            {
+                if (distanceConstraintMap.find(e) == distanceConstraintMap.end())
+                {
+                    distanceConstraintMap.insert(e);
+                    auto                       endPtA     = solidVertices[e & 0xFFFFFFFF];
+                    auto                       endPtB     = solidVertices[(e >> 32) & 0xFFFFFFFF];
+                    f32                        restLength = Length(endPtA - endPtB);
+
+                    PBDClothDistanceConstraint distanceConstraint;
+                    distanceConstraint.m_ParticleA  = e & 0xFFFFFFFF;
+                    distanceConstraint.m_ParticleB  = (e >> 32) & 0xFFFFFFFF;
+                    distanceConstraint.m_RestLength = restLength;
+
+                    m_Data->m_DistanceConstraints.push_back(distanceConstraint);
+                }
+            }
+        }
+        m_Data->m_NumParticles = SizeCast<u32>(solidVertices.size());
+        m_Data->m_NumIndices   = SizeCast<u32>(triangularIndices.size());
+
+        for (auto i = 0u; i < m_Data->m_NumParticles; i++)
+        {
+            m_Data->m_InverseMass.push_back(1.0f);
+        }
     }
 
     IFRIT_APIDECL void PBDCloth::PrepareRDGResources(FrameGraphBuilder& builder)
     {
         if (!m_Data->m_ResourcePrepared)
         {
-            BuildConstraints();
+            if (m_Data->m_SimulationType == EPBDClothSimulationType::FlatCloth)
+            {
+                BuildConstraints();
+            }
+            else if (m_Data->m_SimulationType == EPBDClothSimulationType::Volume)
+            {
+                BuildConstraintsVolume();
+            }
+            else
+            {
+                iError("Siro.PBDCloth: Unsupported simulation type");
+                return;
+            }
             Vec<u32> fixedParticles; // Can be compressed
             for (u32 i = 0; i < m_Data->m_NumParticles; ++i)
             {
@@ -332,13 +427,22 @@ namespace Ifrit::Runtime::Siro
                 SizeCast<u32>(m_Data->m_BendingConstraints.size() * sizeof(PBDClothBendingConstraint));
             auto collisionConstraintSize = SizeCast<u32>(
                 m_Data->m_NumParticles * m_Data->m_MaxCollisionsPerVertex * sizeof(FPBDCollsionConstraint));
+            auto volumeConstraintSize =
+                SizeCast<u32>(m_Data->m_VolumeConstraints.size() * sizeof(FPBDClothVolumeConstraint));
+
+            auto distanceConstraintSizeCR  = std::max(distanceConstraintSize, 1u);
+            auto bendingConstraintSizeCR   = std::max(bendingConstraintSize, 1u);
+            auto collisionConstraintSizeCR = std::max(collisionConstraintSize, 1u);
+            auto volumeConstraintSizeCR    = std::max(volumeConstraintSize, 1u);
 
             m_Data->m_GPUDistanceConstraints =
-                rhi->CreateBuffer("PBDCloth.DistanceConstraints", distanceConstraintSize, usage, false, true);
+                rhi->CreateBuffer("PBDCloth.DistanceConstraints", distanceConstraintSizeCR, usage, false, true);
             m_Data->m_GPUBendingConstraints =
-                rhi->CreateBuffer("PBDCloth.BendingConstraints", bendingConstraintSize, usage, false, true);
+                rhi->CreateBuffer("PBDCloth.BendingConstraints", bendingConstraintSizeCR, usage, false, true);
             m_Data->m_ParticleCollisions =
-                rhi->CreateBuffer("PBDCloth.CollisionConstraints", collisionConstraintSize, usage, false, true);
+                rhi->CreateBuffer("PBDCloth.CollisionConstraints", collisionConstraintSizeCR, usage, false, true);
+            m_Data->m_GPUVolumeConstraints =
+                rhi->CreateBuffer("PBDCloth.VolumeConstraints", volumeConstraintSizeCR, usage, false, true);
 
             // Launch a immediate command to upload data (not good)
             auto tq                       = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
@@ -346,14 +450,19 @@ namespace Ifrit::Runtime::Siro
             auto stagedBendingConstraint  = rhi->CreateStagedSingleBuffer(m_Data->m_GPUBendingConstraints.get());
             auto stagedFixedParticles     = rhi->CreateStagedSingleBuffer(m_Data->m_ParticleFixed.get());
             auto stagedInverseMass        = rhi->CreateStagedSingleBuffer(m_Data->m_ParticleInverseMass.get());
+            auto stagedVolumeConstraint   = rhi->CreateStagedSingleBuffer(m_Data->m_GPUVolumeConstraints.get());
 
             tq->RunSyncCommand([&](const RhiCommandList* cmd) {
                 stagedDistanceConstraint->CmdCopyToDevice(
                     cmd, m_Data->m_DistanceConstraints.data(), distanceConstraintSize, 0);
-                stagedBendingConstraint->CmdCopyToDevice(
-                    cmd, m_Data->m_BendingConstraints.data(), bendingConstraintSize, 0);
+                if (bendingConstraintSize > 0)
+                    stagedBendingConstraint->CmdCopyToDevice(
+                        cmd, m_Data->m_BendingConstraints.data(), bendingConstraintSize, 0);
                 stagedFixedParticles->CmdCopyToDevice(cmd, fixedParticles.data(), v1fSize, 0);
                 stagedInverseMass->CmdCopyToDevice(cmd, m_Data->m_InverseMass.data(), v1fSize, 0);
+                if (volumeConstraintSize > 0)
+                    stagedVolumeConstraint->CmdCopyToDevice(
+                        cmd, m_Data->m_VolumeConstraints.data(), volumeConstraintSize, 0);
             });
 
             m_Data->m_ResourcePrepared = true;
@@ -376,6 +485,8 @@ namespace Ifrit::Runtime::Siro
             &builder.ImportBuffer("PBDCloth.DistanceConstraints", m_Data->m_GPUDistanceConstraints.get());
         m_Data->m_RDGBendingConstraints =
             &builder.ImportBuffer("PBDCloth.BendingConstraints", m_Data->m_GPUBendingConstraints.get());
+        m_Data->m_RDGVolumeConstraints =
+            &builder.ImportBuffer("PBDCloth.VolumeConstraints", m_Data->m_GPUVolumeConstraints.get());
 
         m_Data->m_RDGParticleCollisions =
             &builder.ImportBuffer("PBDCloth.CollisionConstraints", m_Data->m_ParticleCollisions.get());
@@ -403,7 +514,7 @@ namespace Ifrit::Runtime::Siro
 
     IFRIT_APIDECL void PBDCloth::PrepareColliders(FrameGraphBuilder& builder)
     {
-        if (m_Data->m_ColliderStateChange)
+        if (m_Data->m_ColliderStateChange && m_Data->m_Colliders.size() > 0)
         {
             m_Data->m_ColliderStateChange = false;
             auto rhi                      = builder.GetRhi();
@@ -464,7 +575,14 @@ namespace Ifrit::Runtime::Siro
         for (u32 i = 0; i < numIterations; ++i)
         {
             ProjectConstraintsDistance(builder, numIterations);
-            ProjectConstraintsBending(builder, numIterations);
+            if (m_Data->m_SimulationType == EPBDClothSimulationType::Volume)
+            {
+                ProjectConstraintsVolume(builder, numIterations);
+            }
+            else if (m_Data->m_SimulationType == EPBDClothSimulationType::FlatCloth)
+            {
+                ProjectConstraintsBending(builder, numIterations);
+            }
             ProjectConstraintsCollision(builder);
             ApplyCorrections(builder);
         }
@@ -547,6 +665,47 @@ namespace Ifrit::Runtime::Siro
                          .AddReadResource(*m_Data->m_RDGParticlePredPositions)
                          .AddReadResource(*m_Data->m_RDGParticleInverseMass)
                          .AddReadResource(*m_Data->m_RDGBendingConstraints)
+                         .AddReadResource(*m_Data->m_RDGParticleFixed);
+    }
+
+    IFRIT_APIDECL void PBDCloth::ProjectConstraintsVolume(FrameGraphBuilder& builder, u32 numIterations)
+    {
+        struct PushConst
+        {
+            u32 m_PredPositions;
+            u32 m_Corrections;
+            u32 m_InverseMass;
+            u32 m_VolumeConstraints;
+            u32 m_FixedState;
+            u32 m_NumConstraints;
+            f32 m_InvSolverIters;
+        } pc;
+
+        pc.m_PredPositions     = 0;
+        pc.m_Corrections       = 0;
+        pc.m_InverseMass       = 0;
+        pc.m_VolumeConstraints = 0;
+        pc.m_FixedState        = 0;
+        pc.m_NumConstraints    = SizeCast<u32>(m_Data->m_VolumeConstraints.size());
+        pc.m_InvSolverIters    = 1.0f / f32(numIterations);
+
+        i32   tgX = DivRoundUp(pc.m_NumConstraints, IfritShader::Siro::kSiroTGSizeX);
+
+        auto& pass = AddComputePass<PushConst>(builder, "PBDCloth.ProjectConstraintsVolume",
+            ShaderVariantDesc(kIntShaderTableSiro.PBDClothVolumeConstraintProjectCS, {}), Vector3i(tgX, 1, 1), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_PredPositions     = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
+                pc.m_Corrections       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCorrections);
+                pc.m_InverseMass       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleInverseMass);
+                pc.m_VolumeConstraints = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGVolumeConstraints);
+                pc.m_FixedState        = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleFixed);
+
+                SetRootConstant(pc, ctx);
+            })
+                         .AddWriteResource(*m_Data->m_RDGParticleCorrections)
+                         .AddReadResource(*m_Data->m_RDGParticlePredPositions)
+                         .AddReadResource(*m_Data->m_RDGParticleInverseMass)
+                         .AddReadResource(*m_Data->m_RDGVolumeConstraints)
                          .AddReadResource(*m_Data->m_RDGParticleFixed);
     }
 

@@ -190,6 +190,8 @@ namespace Ifrit::Runtime::Internal
             "SiroPBDClothCollisionConstraintProjectCS");
         REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityCollisionCS, "Siro/PBDCloth.UpdateVelocityCollision",
             "SiroPBDClothUpdateVelocityCollisionCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothVolumeConstraintProjectCS, "Siro/PBDCloth.VolumeConstraintProject",
+            "SiroPBDClothVolumeConstraintProjectCS");
 
         // Base Forward
         REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");
