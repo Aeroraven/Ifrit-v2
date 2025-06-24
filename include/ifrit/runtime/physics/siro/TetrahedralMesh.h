@@ -24,7 +24,39 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace Ifrit::Runtime::Siro
 {
-    class IFRIT_RUNTIME_API TetrahedralMesh
+    struct TetrahedralMeshAttribute
     {
+        f32 m_PlaceHolder;
+
+        IFRIT_STRUCT_SERIALIZE(m_PlaceHolder);
+    };
+
+    class IFRIT_RUNTIME_API TetrahedralMesh : public Mesh
+    {
+    private:
+        Vec<Vector3f> m_Vertices;
+        Vec<u32>      m_Indices;
+        Vec<u32>      m_TriangleIndices;
+        Mesh*         m_TriangularMesh = nullptr;
+        Ref<MeshData> m_SelfData;
+        bool          m_Loaded = false;
+
+    private:
+        void BuildMesh();
+
+    public:
+        TetrahedralMesh();
+        virtual ~TetrahedralMesh();
+
+        void                  SetTriangularMesh(Mesh* mesh);
+
+        virtual Ref<MeshData> LoadMesh() override;
+        virtual MeshData*     LoadMeshUnsafe() override;
+        virtual u32           GetNumIndices() override;
+        virtual u32           GetNumVertices() override;
+        virtual Vec<u32>      GetIndexBufferHost() override;
+        virtual Vec<Vector3f> GetVertexBufferHost() override;
+
+        virtual Vec<u32>      GetTetrahedronIndicesHost();
     };
 } // namespace Ifrit::Runtime::Siro

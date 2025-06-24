@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Siro.h"
 
 #include "ifrit.shader.neo/Siro/PBDCloth.Shared.hlsli"
+#include "ifrit/runtime/physics/siro/TetrahedralMesh.h"
 
 using namespace Ifrit::Math;
 using namespace Ifrit::Graphics::Rhi;
@@ -72,6 +73,7 @@ namespace Ifrit::Runtime::Siro
         HashSet<u32>                    m_FixedParticles;
         Vec<Ayanami::AyanamiMeshDF*>    m_Colliders;
         bool                            m_ColliderStateChange = true;
+        EPBDClothSimulationType         m_SimulationType      = EPBDClothSimulationType::FlatCloth;
 
         RhiBufferRef                    m_ParticleExternalForces;
         RhiBufferRef                    m_ParticlePredPositions;
@@ -122,6 +124,8 @@ namespace Ifrit::Runtime::Siro
     }
 
     IFRIT_APIDECL void PBDCloth::Initialize() { m_Data = new PBDClothPrivateData(); }
+
+    IFRIT_APIDECL void PBDCloth::SetType(EPBDClothSimulationType type) { m_Data->m_SimulationType = type; }
 
     IFRIT_APIDECL void PBDCloth::BuildConstraints()
     {
@@ -271,6 +275,17 @@ namespace Ifrit::Runtime::Siro
         {
             m_Data->m_InverseMass.push_back(1.0f);
         }
+    }
+
+    IFRIT_APIDECL void PBDCloth::BuildConstraintsVolume()
+    {
+
+        auto meshFilter = GetParentUnsafe()->GetComponent<MeshFilter>();
+        iAssertion(
+            meshFilter != nullptr, "Siro.PBDCloth: PBDCloth requires a MeshFilter component on the parent GameObject");
+
+        auto meshObject = meshFilter->GetMesh();
+        iAssertion(meshObject != nullptr, "Siro.PBDCloth: MeshFilter has no mesh data");
     }
 
     IFRIT_APIDECL void PBDCloth::PrepareRDGResources(FrameGraphBuilder& builder)

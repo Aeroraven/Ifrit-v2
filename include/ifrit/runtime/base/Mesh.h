@@ -28,7 +28,8 @@ namespace Ifrit::Runtime
     enum class MeshType
     {
         Conventional,
-        VirtualGeometry
+        VirtualGeometry,
+        Tetrahedral
     };
 
     struct MeshData

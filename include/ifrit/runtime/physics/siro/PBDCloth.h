@@ -53,6 +53,7 @@ namespace Ifrit::Runtime::Siro
     private:
         PBDClothPrivateData* m_Data;
         void                 BuildConstraints();
+        void                 BuildConstraintsVolume();
         void                 Initialize();
         void                 PrepareRDGResources(FrameGraphBuilder& builder);
         void                 PrepareColliders(FrameGraphBuilder& builder);
@@ -82,6 +83,8 @@ namespace Ifrit::Runtime::Siro
 
         void         AddFixedParticles(Vec<u32> fixedParticles);
         void         AddCollider(Ayanami::AyanamiMeshDF* collider);
+
+        void         SetType(EPBDClothSimulationType type);
     };
 
 } // namespace Ifrit::Runtime::Siro
