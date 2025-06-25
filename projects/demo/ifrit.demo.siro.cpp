@@ -170,8 +170,8 @@ namespace Ifrit
 
             renderer      = MakeRef<BaseForwardRenderer>(this);
             siroSimulator = MakeRef<Siro::SiroSimulator>(this);
-            auto s        = m_sceneAssetManager->CreateScene("TestScene2");
-            auto node     = s->AddSceneNode();
+            auto scene    = m_sceneAssetManager->CreateScene("TestScene2");
+            auto node     = scene->AddSceneNode();
 
             auto cameraGameObject = node->AddGameObject("camera");
             auto camera           = cameraGameObject->AddComponent<Camera>();
@@ -243,7 +243,7 @@ namespace Ifrit
             renderTargets->SetDepthStencilAttachment(depthAttachment.get());
             renderTargets->SetRenderArea(scissor);
 
-            m_sceneManager->SetActiveScene(s);
+            m_sceneManager->SetActiveScene(scene);
         }
 
         void OnUpdate() override
@@ -254,8 +254,6 @@ namespace Ifrit
                 renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { sFrameStart.get() });
             auto simulateComplete = siroSimulator->Update(0.006f, { renderComplete.get() });
             renderer->EndFrame({ simulateComplete.get() });
-            // std::abort();
-            // std::exit(0);
         }
 
         void OnEnd() override {}
@@ -271,8 +269,8 @@ int main()
     info.m_scenePath             = IFRIT_DEMO_SCENE_PATH;
     info.m_displayProvider       = Runtime::AppDisplayProvider::GLFW;
     info.m_rhiType               = Runtime::AppRhiType::Vulkan;
-    info.m_width                 = 1980;
-    info.m_height                = 1080;
+    info.m_width                 = WINDOW_WIDTH;
+    info.m_height                = WINDOW_HEIGHT;
     info.m_rhiComputeQueueCount  = 1;
     info.m_rhiGraphicsQueueCount = 1;
     info.m_rhiTransferQueueCount = 1;
