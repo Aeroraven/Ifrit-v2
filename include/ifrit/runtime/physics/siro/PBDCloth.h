@@ -40,6 +40,12 @@ namespace Ifrit::Runtime::Siro
         Volume,
     };
 
+    enum class EPBDSimulatorAlgorithm : u8
+    {
+        TrivialPBD,  // PBD
+        ExtendedPBD, // XPBD
+    };
+
     struct PBDClothPrivateData;
 
     // PBDCloth is a component that simulates cloth physics using Position Based Dynamics (PBD).
@@ -58,8 +64,8 @@ namespace Ifrit::Runtime::Siro
         void                 PrepareRDGResources(FrameGraphBuilder& builder);
         void                 PrepareColliders(FrameGraphBuilder& builder);
 
-        void                 ProjectConstraints(FrameGraphBuilder& builder, u32 numIterations);
-        void                 ProjectConstraintsDistance(FrameGraphBuilder& builder, u32 numIterations);
+        void                 ProjectConstraints(FrameGraphBuilder& builder, u32 numIterations, f32 deltaTime);
+        void                 ProjectConstraintsDistance(FrameGraphBuilder& builder, u32 numIterations, f32 deltaTime);
         void                 ProjectConstraintsBending(FrameGraphBuilder& builder, u32 numIterations);
         void                 ProjectConstraintsVolume(FrameGraphBuilder& builder, u32 numIterations);
 
@@ -69,6 +75,8 @@ namespace Ifrit::Runtime::Siro
         void                 UpdateVelocityPost(FrameGraphBuilder& builder, f32 deltaTime);
         void                 GeneratePredictedPosition(FrameGraphBuilder& builder, f32 deltaTime);
         void                 UpdateNormals(FrameGraphBuilder& builder);
+
+        void                 ResetLambdas(FrameGraphBuilder& builder);
 
         void                 GenerateCollisionConstraints(FrameGraphBuilder& builder);
         void                 UpdateVelocityCollision(FrameGraphBuilder& builder);
@@ -87,6 +95,7 @@ namespace Ifrit::Runtime::Siro
         void         AddCollider(Ayanami::AyanamiMeshDF* collider);
 
         void         SetType(EPBDClothSimulationType type);
+        void         SetSimulationAlgorithm(EPBDSimulatorAlgorithm algorithm);
     };
 
 } // namespace Ifrit::Runtime::Siro

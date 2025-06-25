@@ -16,6 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit.shader.neo/Siro/PBDCloth.Shared.hlsli"
+#pragma ifrit.multi_compile IFSHADER_SIRO_XPBD
 
 namespace IfritShader{
 namespace Siro{
@@ -28,7 +29,11 @@ namespace Siro{
         TRWStructuredBufferHandle<uint> m_FixedState;
         uint m_NumConstraints;
         float m_InvSolverIters;
-        
+
+        // Following are used for XPBD
+        TAtomicRWStructuredBufferHandle<float> m_Lambda;
+        float m_Compliance; 
+        float m_DeltaTime;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -69,12 +74,24 @@ namespace Siro{
         float MoveWeightA = -MassA * MassSumDeno;
         float MoveWeightB = MassB * MassSumDeno;
 
+#ifdef IFSHADER_SIRO_XPBD
+        float Lambda = PushConst.m_Lambda.Load(ThreadId.x);
+        float Compliance = PushConst.m_Compliance / (PushConst.m_DeltaTime * PushConst.m_DeltaTime);
+        float ConstraintValue = LengthDelta - RestLength;
+
+        float DeltaLambda = (-ConstraintValue - Lambda * Compliance) / (MassSum + Compliance+1e-9f);
+        float3 Correction = DeltaLambda * UnitDelta;
+        PushConst.m_Lambda.AtomicAdd(ThreadId.x, DeltaLambda);
+        float3 CorrectionA = Correction * MassA;
+        float3 CorrectionB = -Correction * MassB;
+#else
         float SpringComp = (LengthDelta - RestLength);
         float K = 1.0f - pow(1.0f - Stiffness, PushConst.m_InvSolverIters);
 
         float3 Correction = UnitDelta * SpringComp * K;
         float3 CorrectionA = Correction * MoveWeightA;
         float3 CorrectionB = Correction * MoveWeightB;
+#endif
 
         if(FixedStateA == 0){
             PushConst.m_Corrections.AddCorrection(Constraint.m_ParticleA, CorrectionA);

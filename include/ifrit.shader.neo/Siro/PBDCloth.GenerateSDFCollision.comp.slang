@@ -247,7 +247,7 @@ namespace Siro{
 
         bCollision = LineXoZPlaneIntersection(
             ParticlePosition, ParticlePredPosition,
-            -0.02f,
+            -10.02f,
             CollisionPosition, CollisionNormal);
 
         if (bCollision) {

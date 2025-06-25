@@ -29,7 +29,7 @@ namespace Siro{
         float m_DeltaTime;
         float m_DampingFactor;
         uint m_NumParticles;
-        
+
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -39,7 +39,7 @@ namespace Siro{
     void SiroPBDClothUpdateVelocityPreCS(uint3 ThreadId:SV_DispatchThreadID)
     {
         if (ThreadId.x >= PushConst.m_NumParticles) return;
-
+        
         float3 ExternalForce = PushConst.m_ExternalForces.Load(ThreadId.x).xyz;
         float InverseMass = PushConst.m_InverseMass.Load(ThreadId.x);
         float3 Velocity = PushConst.m_Velocities.Load(ThreadId.x).xyz;

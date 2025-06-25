@@ -209,8 +209,11 @@ namespace Ifrit
             auto meshRenderer = cloth->AddComponent<MeshRenderer>();
             meshRenderer->SetMaterial(material);
             auto pbdCloth = cloth->AddComponent<Siro::PBDCloth>();
-            pbdCloth->AddFixedParticles({ 0, 40, 41 * 40 + 0, 41 * 40 + 41 });
-            // siroSimulator->RegisterSolver(pbdCloth.get());
+            pbdCloth->AddFixedParticles({
+                0,
+                40,
+            });
+            siroSimulator->RegisterSolver(pbdCloth.get());
 
             auto bunny           = node->AddGameObject("bunny");
             auto bunnyMeshAsset  = m_assetManager->GetAssetByName<WaveFrontAsset>("bunny_watertight.obj");
@@ -227,8 +230,8 @@ namespace Ifrit
             bunnySoftBody->AddCollider(bunnyMeshDF.get());
             bunnySoftBody->SetType(Siro::EPBDClothSimulationType::Volume);
 
-            // pbdCloth->AddCollider(bunnyMeshDF.get());
-            siroSimulator->RegisterSolver(bunnySoftBody.get());
+            pbdCloth->AddCollider(bunnyMeshDF.get());
+            // siroSimulator->RegisterSolver(bunnySoftBody.get());
 
             // Render targets
             auto rt         = m_rhiLayer.get();

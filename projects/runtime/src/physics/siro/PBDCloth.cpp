@@ -85,6 +85,7 @@ namespace Ifrit::Runtime::Siro
         Vec<Ayanami::AyanamiMeshDF*>    m_Colliders;
         bool                            m_ColliderStateChange = true;
         EPBDClothSimulationType         m_SimulationType      = EPBDClothSimulationType::FlatCloth;
+        EPBDSimulatorAlgorithm          m_SimulationAlgorithm = EPBDSimulatorAlgorithm::TrivialPBD;
 
         RhiBufferRef                    m_ParticleExternalForces;
         RhiBufferRef                    m_ParticlePredPositions;
@@ -125,6 +126,11 @@ namespace Ifrit::Runtime::Siro
         f32                             m_VelocityDamping        = 0.999f; // Damping factor for velocity updates
         u32                             m_MaxCollisionsPerVertex = 4;
         u32                             m_MaxColliders           = 128;
+
+        // XPBD specific
+        RhiBufferRef                    m_DistanceLambda;
+
+        FGBufferNodeRef                 m_RDGDistanceLambda;
     };
 
     IFRIT_APIDECL PBDCloth::~PBDCloth()
@@ -139,6 +145,11 @@ namespace Ifrit::Runtime::Siro
     IFRIT_APIDECL void PBDCloth::Initialize() { m_Data = new PBDClothPrivateData(); }
 
     IFRIT_APIDECL void PBDCloth::SetType(EPBDClothSimulationType type) { m_Data->m_SimulationType = type; }
+
+    IFRIT_APIDECL void PBDCloth::SetSimulationAlgorithm(EPBDSimulatorAlgorithm algorithm)
+    {
+        m_Data->m_SimulationAlgorithm = algorithm;
+    }
 
     IFRIT_APIDECL void PBDCloth::BuildConstraints()
     {
@@ -429,11 +440,13 @@ namespace Ifrit::Runtime::Siro
                 m_Data->m_NumParticles * m_Data->m_MaxCollisionsPerVertex * sizeof(FPBDCollsionConstraint));
             auto volumeConstraintSize =
                 SizeCast<u32>(m_Data->m_VolumeConstraints.size() * sizeof(FPBDClothVolumeConstraint));
+            auto distanceLambdaSize = SizeCast<u32>(m_Data->m_NumParticles * sizeof(f32)); // For XPBD
 
             auto distanceConstraintSizeCR  = std::max(distanceConstraintSize, 1u);
             auto bendingConstraintSizeCR   = std::max(bendingConstraintSize, 1u);
             auto collisionConstraintSizeCR = std::max(collisionConstraintSize, 1u);
             auto volumeConstraintSizeCR    = std::max(volumeConstraintSize, 1u);
+            auto distanceLambdaSizeCR      = std::max(distanceLambdaSize, 1u);
 
             m_Data->m_GPUDistanceConstraints =
                 rhi->CreateBuffer("PBDCloth.DistanceConstraints", distanceConstraintSizeCR, usage, false, true);
@@ -443,6 +456,8 @@ namespace Ifrit::Runtime::Siro
                 rhi->CreateBuffer("PBDCloth.CollisionConstraints", collisionConstraintSizeCR, usage, false, true);
             m_Data->m_GPUVolumeConstraints =
                 rhi->CreateBuffer("PBDCloth.VolumeConstraints", volumeConstraintSizeCR, usage, false, true);
+            m_Data->m_DistanceLambda =
+                rhi->CreateBuffer("PBDCloth.DistanceLambda", distanceLambdaSizeCR, usage, false, true);
 
             // Launch a immediate command to upload data (not good)
             auto tq                       = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
@@ -510,6 +525,9 @@ namespace Ifrit::Runtime::Siro
         m_Data->m_RDGParticlePositions = &builder.ImportBuffer("PBDCloth.Positions", vertexBufferDevice.get());
         m_Data->m_RDGParticleNormals   = &builder.ImportBuffer("PBDCloth.Normals", normalBufferDevice.get());
         m_Data->m_RDGParticleIndices   = &builder.ImportBuffer("PBDCloth.Indices", indexBufferDevice.get());
+
+        // XPBD specific
+        m_Data->m_RDGDistanceLambda = &builder.ImportBuffer("PBDCloth.DistanceLambda", m_Data->m_DistanceLambda.get());
     }
 
     IFRIT_APIDECL void PBDCloth::PrepareColliders(FrameGraphBuilder& builder)
@@ -546,9 +564,16 @@ namespace Ifrit::Runtime::Siro
         PrepareRDGResources(builder);
         UpdateVelocityPre(builder, deltaTime);
         GeneratePredictedPosition(builder, deltaTime);
-        GenerateCollisionConstraints(builder);
-        ProjectConstraints(builder, m_Data->m_SolverIterations);
-        UpdateVelocityCollision(builder);
+        if (m_Data->m_SimulationAlgorithm == EPBDSimulatorAlgorithm::TrivialPBD)
+        {
+            GenerateCollisionConstraints(builder);
+            ProjectConstraints(builder, m_Data->m_SolverIterations, deltaTime);
+            UpdateVelocityCollision(builder);
+        }
+        else if (m_Data->m_SimulationAlgorithm == EPBDSimulatorAlgorithm::ExtendedPBD)
+        {
+            ProjectConstraints(builder, m_Data->m_SolverIterations, deltaTime);
+        }
         UpdateVelocityPost(builder, deltaTime);
         UpdateNormals(builder);
     }
@@ -570,25 +595,37 @@ namespace Ifrit::Runtime::Siro
         m_Data->m_Colliders.push_back(collider);
     }
 
-    IFRIT_APIDECL void PBDCloth::ProjectConstraints(FrameGraphBuilder& builder, u32 numIterations)
+    IFRIT_APIDECL void PBDCloth::ProjectConstraints(FrameGraphBuilder& builder, u32 numIterations, f32 deltaTime)
     {
-        for (u32 i = 0; i < numIterations; ++i)
+        if (m_Data->m_SimulationAlgorithm == EPBDSimulatorAlgorithm::TrivialPBD)
         {
-            ProjectConstraintsDistance(builder, numIterations);
-            if (m_Data->m_SimulationType == EPBDClothSimulationType::Volume)
+            for (u32 i = 0; i < numIterations; ++i)
             {
-                ProjectConstraintsVolume(builder, numIterations);
+                ProjectConstraintsDistance(builder, numIterations, deltaTime);
+                if (m_Data->m_SimulationType == EPBDClothSimulationType::Volume)
+                {
+                    ProjectConstraintsVolume(builder, numIterations);
+                }
+                else if (m_Data->m_SimulationType == EPBDClothSimulationType::FlatCloth)
+                {
+                    ProjectConstraintsBending(builder, numIterations);
+                }
+                ProjectConstraintsCollision(builder);
+                ApplyCorrections(builder);
             }
-            else if (m_Data->m_SimulationType == EPBDClothSimulationType::FlatCloth)
+        }
+        else if (m_Data->m_SimulationAlgorithm == EPBDSimulatorAlgorithm::ExtendedPBD)
+        {
+            for (u32 i = 0; i < numIterations; ++i)
             {
-                ProjectConstraintsBending(builder, numIterations);
+                ProjectConstraintsDistance(builder, numIterations, deltaTime);
+                ApplyCorrections(builder);
             }
-            ProjectConstraintsCollision(builder);
-            ApplyCorrections(builder);
         }
     }
 
-    IFRIT_APIDECL void PBDCloth::ProjectConstraintsDistance(FrameGraphBuilder& builder, u32 numIterations)
+    IFRIT_APIDECL void PBDCloth::ProjectConstraintsDistance(
+        FrameGraphBuilder& builder, u32 numIterations, f32 deltaTime)
     {
         struct PushConst
         {
@@ -599,6 +636,11 @@ namespace Ifrit::Runtime::Siro
             u32 m_FixedState;
             u32 m_NumConstraints;
             f32 m_InvSolverIters;
+
+            // XPBD Params
+            u32 m_LambdaId;
+            f32 m_Compilance;
+            f32 m_DeltaTime;
         } pc;
 
         pc.m_PredPositions       = 0;
@@ -608,6 +650,10 @@ namespace Ifrit::Runtime::Siro
         pc.m_FixedState          = 0;
         pc.m_NumConstraints      = SizeCast<u32>(m_Data->m_DistanceConstraints.size());
         pc.m_InvSolverIters      = 1.0f / f32(numIterations);
+
+        pc.m_LambdaId   = 0;
+        pc.m_Compilance = 0.000000001f;
+        pc.m_DeltaTime  = deltaTime;
 
         i32   tgX = DivRoundUp(pc.m_NumConstraints, IfritShader::Siro::kSiroTGSizeX);
 
@@ -619,6 +665,7 @@ namespace Ifrit::Runtime::Siro
                 pc.m_InverseMass         = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleInverseMass);
                 pc.m_DistanceConstraints = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGDistanceConstraints);
                 pc.m_FixedState          = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleFixed);
+                pc.m_LambdaId            = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGDistanceLambda);
 
                 SetRootConstant(pc, ctx);
             })
@@ -626,6 +673,7 @@ namespace Ifrit::Runtime::Siro
                          .AddReadResource(*m_Data->m_RDGParticlePredPositions)
                          .AddReadResource(*m_Data->m_RDGParticleInverseMass)
                          .AddReadResource(*m_Data->m_RDGDistanceConstraints)
+                         .AddReadWriteResource(*m_Data->m_RDGDistanceLambda)
                          .AddReadResource(*m_Data->m_RDGParticleFixed);
     }
     IFRIT_APIDECL void PBDCloth::ProjectConstraintsBending(FrameGraphBuilder& builder, u32 numIterations)
@@ -753,6 +801,7 @@ namespace Ifrit::Runtime::Siro
             f32 m_DeltaTime;
             f32 m_DampingFactor;
             u32 m_NumParticles;
+
         } pc;
 
         pc.m_ExternalForces = 0;
@@ -948,6 +997,12 @@ namespace Ifrit::Runtime::Siro
 
                 SetRootConstant(pc, ctx);
             }).AddWriteResource(*m_Data->m_RDGParticleNormals);
+    }
+
+    IFRIT_APIDECL void PBDCloth::ResetLambdas(FrameGraphBuilder& builder)
+    {
+        IF_CONSTEXPR auto DestVal = std::bit_cast<u32, f32>(0.0f);
+        AddClearUAVPass(builder, "PBDCloth.ResetLambdas", *m_Data->m_RDGDistanceLambda, DestVal);
     }
 
     IFRIT_APIDECL void PBDCloth::GenerateCollisionConstraints(FrameGraphBuilder& builder)
