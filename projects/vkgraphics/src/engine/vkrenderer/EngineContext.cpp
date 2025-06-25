@@ -179,6 +179,10 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
         if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
+            if (pCallbackData->messageIdNumber == -1307510846)
+            {
+                return VK_FALSE;
+            }
             iError("Validation layer called");
             iError("Error:{}", pCallbackData->pMessage);
 
@@ -192,7 +196,6 @@ namespace Ifrit::Graphics::VulkanGraphics
             iWarn(pCallbackData->pMessage);
         }
 
-        // std::abort();
         return VK_FALSE;
     }
     // START CLASS DEFINITION
