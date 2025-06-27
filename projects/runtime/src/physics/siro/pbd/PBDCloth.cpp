@@ -16,14 +16,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ifrit/runtime/physics/siro/PBDCloth.h"
+#include "ifrit/runtime/physics/siro/pbd/PBDCloth.h"
 #include "ifrit/runtime/base/Mesh.h"
 #include "ifrit/core/math/Intrinsics.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Siro.h"
 
 #include "ifrit.shader.neo/Siro/PBDCloth.Shared.hlsli"
-#include "ifrit/runtime/physics/siro/TetrahedralMesh.h"
+#include "ifrit/runtime/physics/siro/geometry/TetrahedralMesh.h"
 
 using namespace Ifrit::Math;
 using namespace Ifrit::Graphics::Rhi;

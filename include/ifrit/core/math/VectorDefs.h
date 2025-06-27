@@ -258,6 +258,14 @@ template <class T> struct CoreMat4
 };
 #define Matrix4x4f CoreMat4<float>
 
+template <class T> struct CoreMat2
+{
+    T                   data[2][2];
+    IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
+    IFRIT_DUAL T*       operator[](int i) { return data[i]; }
+};
+#define Matrix2x2f CoreMat2<float>
+
 extern "C"
 {
     template struct IFRIT_APIDECL Vector2f;
@@ -278,6 +286,7 @@ extern "C"
 
     template struct IFRIT_APIDECL Matrix3x3f;
     template struct IFRIT_APIDECL Matrix4x4f;
+    template struct IFRIT_APIDECL Matrix2x2f;
 
     template struct IFRIT_APIDECL irect2Df;
     template struct IFRIT_APIDECL irect2Di;

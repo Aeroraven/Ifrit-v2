@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
-#include "ifrit/runtime/physics/siro/TessellatedRectMesh.h"
+#include "ifrit/runtime/physics/siro/geometry/TessellatedRectMesh.h"
 
 namespace Ifrit::Runtime::Siro
 {
