@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader.neo/Siro/PBDCloth.Shared.hlsli"
 #pragma ifrit.multi_compile IFSHADER_SIRO_XPBD
 
+static const float kSolverStepModifier = 0.5f;
+
 namespace IfritShader{
 namespace Siro{
 
@@ -76,19 +78,24 @@ namespace Siro{
 
 #ifdef IFSHADER_SIRO_XPBD
         float Lambda = PushConst.m_Lambda.Load(ThreadId.x);
+        if(isnan(Lambda) || isinf(Lambda)){
+            Lambda = 0.0f;
+        }
         float Compliance = PushConst.m_Compliance / (PushConst.m_DeltaTime * PushConst.m_DeltaTime);
         float ConstraintValue = LengthDelta - RestLength;
 
         float DeltaLambda = (-ConstraintValue - Lambda * Compliance) / (MassSum + Compliance+1e-9f);
-        float3 Correction = DeltaLambda * UnitDelta;
-        PushConst.m_Lambda.AtomicAdd(ThreadId.x, DeltaLambda);
+        float3 Correction = DeltaLambda * UnitDelta * kSolverStepModifier;
+        
+        PushConst.m_Lambda.Store(0.0f, ThreadId.x);
+        
         float3 CorrectionA = Correction * MassA;
         float3 CorrectionB = -Correction * MassB;
 #else
         float SpringComp = (LengthDelta - RestLength);
         float K = 1.0f - pow(1.0f - Stiffness, PushConst.m_InvSolverIters);
 
-        float3 Correction = UnitDelta * SpringComp * K;
+        float3 Correction = UnitDelta * SpringComp * K * kSolverStepModifier;
         float3 CorrectionA = Correction * MoveWeightA;
         float3 CorrectionB = Correction * MoveWeightB;
 #endif

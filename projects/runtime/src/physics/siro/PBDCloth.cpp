@@ -129,8 +129,8 @@ namespace Ifrit::Runtime::Siro
 
         // XPBD specific
         RhiBufferRef                    m_DistanceLambda;
-
         FGBufferNodeRef                 m_RDGDistanceLambda;
+        f32                             m_DefaultCompliance = 0.000001f;
     };
 
     IFRIT_APIDECL PBDCloth::~PBDCloth()
@@ -412,11 +412,10 @@ namespace Ifrit::Runtime::Siro
                 }
             }
 
-            m_Data->m_ResourcePrepared = true;
-            auto rhi                   = builder.GetRhi();
-            auto v4fSize               = SizeCast<u32>(m_Data->m_NumParticles * sizeof(Vector4f));
-            auto v1fSize               = SizeCast<u32>(m_Data->m_NumParticles * sizeof(f32));
-            auto usage                 = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
+            auto rhi           = builder.GetRhi();
+            auto v4fSize       = SizeCast<u32>(m_Data->m_NumParticles * sizeof(Vector4f));
+            auto v1fSize       = SizeCast<u32>(m_Data->m_NumParticles * sizeof(f32));
+            auto usage         = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
             auto indirectUsage = RhiBufferUsage::RhiBufferUsage_Indirect | RhiBufferUsage::RhiBufferUsage_CopyDst
                 | RhiBufferUsage::RhiBufferUsage_SSBO;
             auto colliderSize = SizeCast<u32>(m_Data->m_MaxColliders * sizeof(FColliderData));
@@ -478,9 +477,11 @@ namespace Ifrit::Runtime::Siro
                 if (volumeConstraintSize > 0)
                     stagedVolumeConstraint->CmdCopyToDevice(
                         cmd, m_Data->m_VolumeConstraints.data(), volumeConstraintSize, 0);
+
+                // clear velocity
             });
 
-            m_Data->m_ResourcePrepared = true;
+            // m_Data->m_ResourcePrepared = true;
         }
         PrepareColliders(builder);
         // todo
@@ -528,6 +529,12 @@ namespace Ifrit::Runtime::Siro
 
         // XPBD specific
         m_Data->m_RDGDistanceLambda = &builder.ImportBuffer("PBDCloth.DistanceLambda", m_Data->m_DistanceLambda.get());
+
+        if (!m_Data->m_ResourcePrepared)
+        {
+            AddClearUAVPass(builder, "PBDCloth.ResetVelocity", *m_Data->m_RDGParticleVelocities, 0);
+        }
+        m_Data->m_ResourcePrepared = true;
     }
 
     IFRIT_APIDECL void PBDCloth::PrepareColliders(FrameGraphBuilder& builder)
@@ -572,6 +579,7 @@ namespace Ifrit::Runtime::Siro
         }
         else if (m_Data->m_SimulationAlgorithm == EPBDSimulatorAlgorithm::ExtendedPBD)
         {
+            ResetLambdas(builder);
             ProjectConstraints(builder, m_Data->m_SolverIterations, deltaTime);
         }
         UpdateVelocityPost(builder, deltaTime);
@@ -652,13 +660,20 @@ namespace Ifrit::Runtime::Siro
         pc.m_InvSolverIters      = 1.0f / f32(numIterations);
 
         pc.m_LambdaId   = 0;
-        pc.m_Compilance = 0.000000001f;
+        pc.m_Compilance = m_Data->m_DefaultCompliance;
         pc.m_DeltaTime  = deltaTime;
 
-        i32   tgX = DivRoundUp(pc.m_NumConstraints, IfritShader::Siro::kSiroTGSizeX);
+        i32         tgX = DivRoundUp(pc.m_NumConstraints, IfritShader::Siro::kSiroTGSizeX);
+
+        Vec<String> shaderPerm;
+        if (m_Data->m_SimulationAlgorithm == EPBDSimulatorAlgorithm::ExtendedPBD)
+        {
+            shaderPerm.push_back("IFSHADER_SIRO_XPBD");
+        }
 
         auto& pass = AddComputePass<PushConst>(builder, "PBDCloth.ProjectConstraintsDistance",
-            ShaderVariantDesc(kIntShaderTableSiro.PBDClothDistanceConstraintProjectCS, {}), Vector3i(tgX, 1, 1), pc,
+            ShaderVariantDesc(kIntShaderTableSiro.PBDClothDistanceConstraintProjectCS, shaderPerm), Vector3i(tgX, 1, 1),
+            pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
                 pc.m_PredPositions       = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticlePredPositions);
                 pc.m_Corrections         = ctx.m_FgDesc->GetUAV(*m_Data->m_RDGParticleCorrections);

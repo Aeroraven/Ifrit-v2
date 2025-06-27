@@ -83,7 +83,7 @@ public:
         auto camera = parent->GetComponent<Transform>();
         if (camera)
         {
-            camera->SetPosition({ 0.0f + m_movRight - m_movLeft, 0.0f + m_movTop - m_movBottom + 0.1f,
+            camera->SetPosition({ 0.0f + m_movRight - m_movLeft, 0.0f + m_movTop - m_movBottom + 2.1f,
                 0.340006f + m_movFar - m_movNear });
             camera->SetRotation({ 0.0f, m_movRot + 3.14f, 0.0f });
 
@@ -200,7 +200,7 @@ namespace Ifrit
             lightRotScript->SetInputSystem(m_inputSystem.get());
 
             auto cloth     = node->AddGameObject("cloth");
-            auto clothMesh = MakeRef<Siro::TessellatedRectMesh>(0.25f, 0.25f, 40, 40, Vector3f(-0.15f, -0.02f, -0.14f));
+            auto clothMesh = MakeRef<Siro::TessellatedRectMesh>(0.25f, 0.25f, 40, 40, Vector3f(-0.15f, 2.02f, -0.14f));
             auto material  = MakeRef<SyaroDefaultGBufEmitter>(this);
             material->BuildMaterial();
 
@@ -213,6 +213,7 @@ namespace Ifrit
                 0,
                 40,
             });
+            pbdCloth->SetSimulationAlgorithm(Siro::EPBDSimulatorAlgorithm::ExtendedPBD);
             siroSimulator->RegisterSolver(pbdCloth.get());
 
             auto bunny           = node->AddGameObject("bunny");
