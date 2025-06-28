@@ -454,7 +454,7 @@ namespace Ifrit::Runtime
         {
             for (auto& nodeId : scene.nodes)
             {
-                traverseNode(nodeId, Math::Identity4());
+                traverseNode(nodeId, Math::Identity<f32,4>());
             }
         }
     }

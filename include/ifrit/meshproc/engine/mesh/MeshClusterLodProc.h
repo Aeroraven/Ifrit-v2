@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "MeshClusterBase.h"
 #include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/math/LinalgOps.h"
+#include "ifrit/core/math/linalg/LinalgOps.h"
 #include "ifrit/core/serialization/MathTypeSerialization.h"
 #include "ifrit/core/serialization/SerialInterface.h"
 #include "ifrit/core/platform/ApiConv.h"

@@ -242,29 +242,45 @@ template <class T, int U> struct CoreVec4Shared
 #define igvec3 CoreVec3
 #define igvec4 CoreVec4
 
-template <class T> struct CoreMat3
-{
-    T                   data[3][3];
-    IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
-    IFRIT_DUAL T*       operator[](int i) { return data[i]; }
-};
-#define Matrix3x3f CoreMat3<float>
+// template <class T> struct CoreMat3
+// {
+//     T                   data[3][3];
+//     IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
+//     IFRIT_DUAL T*       operator[](int i) { return data[i]; }
+// };
+// #define Matrix3x3f CoreMat3<float>
 
-template <class T> struct CoreMat4
-{
-    T                   data[4][4];
-    IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
-    IFRIT_DUAL T*       operator[](int i) { return data[i]; }
-};
-#define Matrix4x4f CoreMat4<float>
+// template <class T> struct CoreMat4
+// {
+//     T                   data[4][4];
+//     IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
+//     IFRIT_DUAL T*       operator[](int i) { return data[i]; }
+// };
+// #define Matrix4x4f CoreMat4<float>
 
-template <class T> struct CoreMat2
+// template <class T> struct CoreMat2
+// {
+//     T                   data[2][2];
+//     IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
+//     IFRIT_DUAL T*       operator[](int i) { return data[i]; }
+// };
+// #define Matrix2x2f CoreMat2<float>
+
+template <class T, Ifrit::u32 R, Ifrit::u32 C> struct CoreMat
 {
-    T                   data[2][2];
+    T                   data[R][C];
     IFRIT_DUAL const T* operator[](int i) const { return data[i]; }
     IFRIT_DUAL T*       operator[](int i) { return data[i]; }
 };
-#define Matrix2x2f CoreMat2<float>
+
+#define Matrix3x3f CoreMat<float, 3, 3>
+#define Matrix4x4f CoreMat<float, 4, 4>
+#define Matrix2x2f CoreMat<float, 2, 2>
+
+template <Ifrit::u32 R, Ifrit::u32 C> using CoreMatFloat = CoreMat<float, R, C>;
+
+#define Matrixf CoreMatFloat
+#define Matrixg CoreMat
 
 extern "C"
 {

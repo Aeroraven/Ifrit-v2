@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 
-#include "ifrit/core/math/LowDiscrepancy.h"
+#include "ifrit/core/math/sampling/LowDiscrepancy.h"
 
 using namespace Ifrit::Graphics::Rhi;
 using Ifrit::Math::DivRoundUp;
@@ -325,7 +325,7 @@ namespace Ifrit::Runtime::Ayanami
                     }
 
                     m_Resources->m_MeshCardGPUData[slotId].m_ObserverVP        = Transpose(viewVP);
-                    m_Resources->m_MeshCardGPUData[slotId].m_ObserverVPInverse = Transpose(Inverse4(viewVP));
+                    m_Resources->m_MeshCardGPUData[slotId].m_ObserverVPInverse = Transpose(Inverse(viewVP));
 
                     m_Resources->m_MeshCards[slotId]  = card;
                     m_Resources->m_RequireGpuDataSync = true;

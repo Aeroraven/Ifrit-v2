@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #ifndef IFRIT_DLL
     #define IFRIT_DLL
 #endif
-#include "ifrit/core/math/LinalgOps.h"
+#include "ifrit/core/math/linalg/LinalgOps.h"
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/runtime/Runtime.h"
 #include <numbers>

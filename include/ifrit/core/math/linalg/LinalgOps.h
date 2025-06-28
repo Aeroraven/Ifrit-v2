@@ -16,26 +16,70 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "../platform/ApiConv.h"
-#include "VectorOps.h"
+#include "ifrit/core/platform/ApiConv.h"
+#include "ifrit/core/math/VectorOps.h"
 #include "ifrit/core/base/IfritBase.h"
 #include <cmath>
 #include <numbers>
 
 namespace Ifrit::Math
 {
-    IF_FORCEINLINE Matrix4x4f Transpose(const Matrix4x4f& a)
+    // Generalized matrix operations
+    template <class T, u32 R, u32 C> IF_FORCEINLINE Matrixg<T, C, R> Transpose(const Matrixg<T, R, C>& a)
     {
-        Matrix4x4f result;
-        for (int i = 0; i < 4; i++)
+        Matrixg<T,C, R> result;
+        for (u32 i = 0; i < R; i++)
         {
-            for (int j = 0; j < 4; j++)
+            for (u32 j = 0; j < C; j++)
             {
-                result[i][j] = a[j][i];
+                result[j][i] = a[i][j];
             }
         }
         return result;
     }
+
+    template <class T, u32 R1, u32 M, u32 C2>
+    IF_FORCEINLINE Matrixg<T, C2, R1> MatMul(const Matrixg<T, R1, M>& a, const Matrixg<T, M, C2>& b)
+    {
+        Matrixg<T, C2, R1> result;
+        for (u32 i = 0; i < R1; i++)
+        {
+            for (u32 j = 0; j < C2; j++)
+            {
+                result[j][i] = 0;
+                for (u32 k = 0; k < M; k++)
+                {
+                    result[j][i] += a[i][k] * b[k][j];
+                }
+            }
+        }
+        return result;
+    }
+
+    template <class T, u32 R> IF_FORCEINLINE Matrixg<T, R, R> Identity()
+    {
+        Matrixg<T, R, R> result;
+        for (u32 i = 0; i < R; i++)
+        {
+            for (u32 j = 0; j < R; j++)
+            {
+                result[i][j] = (i == j) ? static_cast<T>(1) : static_cast<T>(0);
+            }
+        }
+        return result;
+    }
+
+    template <class T, u32 R> IF_FORCEINLINE T MatTrace(const Matrixg<T, R, R>& a)
+    {
+        T trace = static_cast<T>(0);
+        for (u32 i = 0; i < R; i++)
+        {
+            trace += a[i][i];
+        }
+        return trace;
+    }
+
+    // Specific matrix operations
     IF_FORCEINLINE Vector4f MatMul(const Matrix4x4f& a, const Vector4f& b)
     {
         Vector4f result;
@@ -45,18 +89,120 @@ namespace Ifrit::Math
         result.w = a[3][0] * b.x + a[3][1] * b.y + a[3][2] * b.z + a[3][3] * b.w;
         return result;
     }
-    IF_FORCEINLINE Matrix4x4f MatMul(const Matrix4x4f& a, const Matrix4x4f& b)
+
+    IF_FORCEINLINE Vector3f MatMul(const Matrix3x3f& a, const Vector3f& b)
     {
-        Matrix4x4f result;
-        for (int i = 0; i < 4; i++)
-        {
-            for (int j = 0; j < 4; j++)
-            {
-                result[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j] + a[i][3] * b[3][j];
-            }
-        }
+        Vector3f result;
+        result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z;
+        result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z;
+        result.z = a[2][0] * b.x + a[2][1] * b.y + a[2][2] * b.z;
         return result;
     }
+
+    IF_FORCEINLINE Matrix3x3f Inverse(const Matrix3x3f& m)
+    {
+        // Calculate cofactors and determinant
+        f32        cofactor00 = m[1][1] * m[2][2] - m[1][2] * m[2][1];
+        f32        cofactor01 = m[1][0] * m[2][2] - m[1][2] * m[2][0];
+        f32        cofactor02 = m[1][0] * m[2][1] - m[1][1] * m[2][0];
+
+        f32        cofactor10 = m[0][1] * m[2][2] - m[0][2] * m[2][1];
+        f32        cofactor11 = m[0][0] * m[2][2] - m[0][2] * m[2][0];
+        f32        cofactor12 = m[0][0] * m[2][1] - m[0][1] * m[2][0];
+
+        f32        cofactor20 = m[0][1] * m[1][2] - m[0][2] * m[1][1];
+        f32        cofactor21 = m[0][0] * m[1][2] - m[0][2] * m[1][0];
+        f32        cofactor22 = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+
+        // Calculate determinant
+        f32        det    = m[0][0] * cofactor00 - m[0][1] * cofactor01 + m[0][2] * cofactor02;
+        f32        invDet = 1.0f / det; // Reciprocal of determinant
+
+        // Build adjugate matrix and multiply by reciprocal of determinant
+        Matrix3x3f result;
+        result[0][0] = cofactor00 * invDet;
+        result[0][1] = -cofactor10 * invDet;
+        result[0][2] = cofactor20 * invDet;
+
+        result[1][0] = -cofactor01 * invDet;
+        result[1][1] = cofactor11 * invDet;
+        result[1][2] = -cofactor21 * invDet;
+
+        result[2][0] = cofactor02 * invDet;
+        result[2][1] = -cofactor12 * invDet;
+        result[2][2] = cofactor22 * invDet;
+
+        return result;
+    }
+
+    IF_FORCEINLINE Matrix4x4f Inverse(const Matrix4x4f& p)
+    {
+        // From: https://stackoverflow.com/questions/1148309/inverting-a-4x4-matrix
+        // Translated by copilot (AI)
+        auto a2323 = p[2][2] * p[3][3] - p[2][3] * p[3][2];
+        auto a1323 = p[2][1] * p[3][3] - p[2][3] * p[3][1];
+        auto a1223 = p[2][1] * p[3][2] - p[2][2] * p[3][1];
+        auto a0323 = p[2][0] * p[3][3] - p[2][3] * p[3][0];
+        auto a0223 = p[2][0] * p[3][2] - p[2][2] * p[3][0];
+        auto a0123 = p[2][0] * p[3][1] - p[2][1] * p[3][0];
+        auto a2313 = p[1][2] * p[3][3] - p[1][3] * p[3][2];
+        auto a1313 = p[1][1] * p[3][3] - p[1][3] * p[3][1];
+        auto a1213 = p[1][1] * p[3][2] - p[1][2] * p[3][1];
+        auto a2312 = p[1][2] * p[2][3] - p[1][3] * p[2][2];
+        auto a1312 = p[1][1] * p[2][3] - p[1][3] * p[2][1];
+        auto a1212 = p[1][1] * p[2][2] - p[1][2] * p[2][1];
+        auto a0313 = p[1][0] * p[3][3] - p[1][3] * p[3][0];
+        auto a0213 = p[1][0] * p[3][2] - p[1][2] * p[3][0];
+        auto a0312 = p[1][0] * p[2][3] - p[1][3] * p[2][0];
+        auto a0212 = p[1][0] * p[2][2] - p[1][2] * p[2][0];
+        auto a0113 = p[1][0] * p[3][1] - p[1][1] * p[3][0];
+        auto a0112 = p[1][0] * p[2][1] - p[1][1] * p[2][0];
+        auto det   = p[0][0] * (p[1][1] * a2323 - p[1][2] * a1323 + p[1][3] * a1223)
+            - p[0][1] * (p[1][0] * a2323 - p[1][2] * a0323 + p[1][3] * a0223)
+            + p[0][2] * (p[1][0] * a1323 - p[1][1] * a0323 + p[1][3] * a0123)
+            - p[0][3] * (p[1][0] * a1223 - p[1][1] * a0223 + p[1][2] * a0123);
+        auto       invdet = 1 / det;
+        Matrix4x4f inv;
+        inv[0][0] = invdet * (p[1][1] * a2323 - p[1][2] * a1323 + p[1][3] * a1223);
+        inv[0][1] = -invdet * (p[0][1] * a2323 - p[0][2] * a1323 + p[0][3] * a1223);
+        inv[0][2] = invdet * (p[0][1] * a2313 - p[0][2] * a1313 + p[0][3] * a1213);
+        inv[0][3] = -invdet * (p[0][1] * a2312 - p[0][2] * a1312 + p[0][3] * a1212);
+        inv[1][0] = -invdet * (p[1][0] * a2323 - p[1][2] * a0323 + p[1][3] * a0223);
+        inv[1][1] = invdet * (p[0][0] * a2323 - p[0][2] * a0323 + p[0][3] * a0223);
+        inv[1][2] = -invdet * (p[0][0] * a2313 - p[0][2] * a0313 + p[0][3] * a0213);
+        inv[1][3] = invdet * (p[0][0] * a2312 - p[0][2] * a0312 + p[0][3] * a0212);
+        inv[2][0] = invdet * (p[1][0] * a1323 - p[1][1] * a0323 + p[1][3] * a0123);
+        inv[2][1] = -invdet * (p[0][0] * a1323 - p[0][1] * a0323 + p[0][3] * a0123);
+        inv[2][2] = invdet * (p[0][0] * a1313 - p[0][1] * a0313 + p[0][3] * a0113);
+        inv[2][3] = -invdet * (p[0][0] * a1312 - p[0][1] * a0312 + p[0][3] * a0112);
+        inv[3][0] = -invdet * (p[1][0] * a1223 - p[1][1] * a0223 + p[1][2] * a0123);
+        inv[3][1] = invdet * (p[0][0] * a1223 - p[0][1] * a0223 + p[0][2] * a0123);
+        inv[3][2] = -invdet * (p[0][0] * a1213 - p[0][1] * a0213 + p[0][2] * a0113);
+        inv[3][3] = invdet * (p[0][0] * a1212 - p[0][1] * a0212 + p[0][2] * a0112);
+        return inv;
+    }
+
+    IF_FORCEINLINE Matrix2x2f Inverse(const Matrix2x2f& m)
+    {
+        f32        det    = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+        f32        invDet = 1.0f / det;
+
+        Matrix2x2f result;
+        result[0][0] = m[1][1] * invDet;
+        result[0][1] = -m[0][1] * invDet;
+        result[1][0] = -m[1][0] * invDet;
+        result[1][1] = m[0][0] * invDet;
+        return result;
+    }
+
+    IF_FORCEINLINE f32 Determinant(const Matrix2x2f& m) { return m[0][0] * m[1][1] - m[0][1] * m[1][0]; }
+
+    IF_FORCEINLINE f32 Determinant(const Matrix3x3f& m)
+    {
+        return m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+            + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+    }
+
     IF_FORCEINLINE Matrix4x4f AxisAngleRotation(const Vector3f& axis, f32 angle)
     {
         f32        c = cos(angle), s = sin(angle);
@@ -198,35 +344,9 @@ namespace Ifrit::Math
         return result;
     }
 
-    IF_FORCEINLINE Matrix4x4f Identity4()
-    {
-        Matrix4x4f result;
-        for (int i = 0; i < 4; i++)
-        {
-            for (int j = 0; j < 4; j++)
-            {
-                result[i][j] = i == j ? 1.0f : 0.0f;
-            }
-        }
-        return result;
-    }
-
-    IF_FORCEINLINE Matrix3x3f Identity3()
-    {
-        Matrix3x3f result;
-        for (int i = 0; i < 3; i++)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                result[i][j] = i == j ? 1.0f : 0.0f;
-            }
-        }
-        return result;
-    }
-
     IF_FORCEINLINE Matrix4x4f EulerAngleToMatrix(const Vector3f& euler)
     {
-        Matrix4x4f result = Identity4();
+        Matrix4x4f result = Identity<f32, 4>();
         result            = MatMul(AxisAngleRotation({ 1, 0, 0 }, euler.x), result);
         result            = MatMul(AxisAngleRotation({ 0, 1, 0 }, euler.y), result);
         result            = MatMul(AxisAngleRotation({ 0, 0, 1 }, euler.z), result);
@@ -286,7 +406,7 @@ namespace Ifrit::Math
 
     IF_FORCEINLINE Matrix4x4f Translate3D(const Vector3f& t)
     {
-        Matrix4x4f result = Identity4();
+        Matrix4x4f result = Identity<f32, 4>();
         result[0][3]      = t.x;
         result[1][3]      = t.y;
         result[2][3]      = t.z;
@@ -295,64 +415,17 @@ namespace Ifrit::Math
 
     IF_FORCEINLINE Matrix4x4f Scale3D(const Vector3f& s)
     {
-        Matrix4x4f result = Identity4();
+        Matrix4x4f result = Identity<f32, 4>();
         result[0][0]      = s.x;
         result[1][1]      = s.y;
         result[2][2]      = s.z;
         return result;
     }
 
-    IF_FORCEINLINE Matrix4x4f Inverse4(const Matrix4x4f& p)
-    {
-        // From: https://stackoverflow.com/questions/1148309/inverting-a-4x4-matrix
-        // Translated by copilot (AI)
-        auto a2323 = p[2][2] * p[3][3] - p[2][3] * p[3][2];
-        auto a1323 = p[2][1] * p[3][3] - p[2][3] * p[3][1];
-        auto a1223 = p[2][1] * p[3][2] - p[2][2] * p[3][1];
-        auto a0323 = p[2][0] * p[3][3] - p[2][3] * p[3][0];
-        auto a0223 = p[2][0] * p[3][2] - p[2][2] * p[3][0];
-        auto a0123 = p[2][0] * p[3][1] - p[2][1] * p[3][0];
-        auto a2313 = p[1][2] * p[3][3] - p[1][3] * p[3][2];
-        auto a1313 = p[1][1] * p[3][3] - p[1][3] * p[3][1];
-        auto a1213 = p[1][1] * p[3][2] - p[1][2] * p[3][1];
-        auto a2312 = p[1][2] * p[2][3] - p[1][3] * p[2][2];
-        auto a1312 = p[1][1] * p[2][3] - p[1][3] * p[2][1];
-        auto a1212 = p[1][1] * p[2][2] - p[1][2] * p[2][1];
-        auto a0313 = p[1][0] * p[3][3] - p[1][3] * p[3][0];
-        auto a0213 = p[1][0] * p[3][2] - p[1][2] * p[3][0];
-        auto a0312 = p[1][0] * p[2][3] - p[1][3] * p[2][0];
-        auto a0212 = p[1][0] * p[2][2] - p[1][2] * p[2][0];
-        auto a0113 = p[1][0] * p[3][1] - p[1][1] * p[3][0];
-        auto a0112 = p[1][0] * p[2][1] - p[1][1] * p[2][0];
-        auto det   = p[0][0] * (p[1][1] * a2323 - p[1][2] * a1323 + p[1][3] * a1223)
-            - p[0][1] * (p[1][0] * a2323 - p[1][2] * a0323 + p[1][3] * a0223)
-            + p[0][2] * (p[1][0] * a1323 - p[1][1] * a0323 + p[1][3] * a0123)
-            - p[0][3] * (p[1][0] * a1223 - p[1][1] * a0223 + p[1][2] * a0123);
-        auto       invdet = 1 / det;
-        Matrix4x4f inv;
-        inv[0][0] = invdet * (p[1][1] * a2323 - p[1][2] * a1323 + p[1][3] * a1223);
-        inv[0][1] = -invdet * (p[0][1] * a2323 - p[0][2] * a1323 + p[0][3] * a1223);
-        inv[0][2] = invdet * (p[0][1] * a2313 - p[0][2] * a1313 + p[0][3] * a1213);
-        inv[0][3] = -invdet * (p[0][1] * a2312 - p[0][2] * a1312 + p[0][3] * a1212);
-        inv[1][0] = -invdet * (p[1][0] * a2323 - p[1][2] * a0323 + p[1][3] * a0223);
-        inv[1][1] = invdet * (p[0][0] * a2323 - p[0][2] * a0323 + p[0][3] * a0223);
-        inv[1][2] = -invdet * (p[0][0] * a2313 - p[0][2] * a0313 + p[0][3] * a0213);
-        inv[1][3] = invdet * (p[0][0] * a2312 - p[0][2] * a0312 + p[0][3] * a0212);
-        inv[2][0] = invdet * (p[1][0] * a1323 - p[1][1] * a0323 + p[1][3] * a0123);
-        inv[2][1] = -invdet * (p[0][0] * a1323 - p[0][1] * a0323 + p[0][3] * a0123);
-        inv[2][2] = invdet * (p[0][0] * a1313 - p[0][1] * a0313 + p[0][3] * a0113);
-        inv[2][3] = -invdet * (p[0][0] * a1312 - p[0][1] * a0312 + p[0][3] * a0112);
-        inv[3][0] = -invdet * (p[1][0] * a1223 - p[1][1] * a0223 + p[1][2] * a0123);
-        inv[3][1] = invdet * (p[0][0] * a1223 - p[0][1] * a0223 + p[0][2] * a0123);
-        inv[3][2] = -invdet * (p[0][0] * a1213 - p[0][1] * a0213 + p[0][2] * a0113);
-        inv[3][3] = invdet * (p[0][0] * a1212 - p[0][1] * a0212 + p[0][2] * a0112);
-        return inv;
-    }
-
     IF_FORCEINLINE Matrix4x4f GetTransformMatrix(
         const Vector3f& scale, const Vector3f& translation, const Vector3f& rotation)
     {
-        Matrix4x4f result = Identity4();
+        Matrix4x4f result = Identity<float, 4>();
         result            = MatMul(Scale3D(scale), result);
         result            = MatMul(AxisAngleRotation({ 1, 0, 0 }, rotation.x), result);
         result            = MatMul(AxisAngleRotation({ 0, 1, 0 }, rotation.y), result);
@@ -405,121 +478,13 @@ namespace Ifrit::Math
         f32        offsetX = dstMin.x - srcMin.x * scaleX;
         f32        offsetY = dstMin.y - srcMin.y * scaleY;
         f32        offsetZ = dstMin.z - srcMin.z * scaleZ;
-        Matrix4x4f result  = Identity4();
+        Matrix4x4f result  = Identity<f32, 4>();
         result[0][0]       = scaleX;
         result[1][1]       = scaleY;
         result[2][2]       = scaleZ;
         result[0][3]       = offsetX;
         result[1][3]       = offsetY;
         result[2][3]       = offsetZ;
-        return result;
-    }
-
-    IF_FORCEINLINE Matrix3x3f Transpose3(const Matrix3x3f& a)
-    {
-        Matrix3x3f result;
-        for (int i = 0; i < 3; i++)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                result[i][j] = a[j][i];
-            }
-        }
-        return result;
-    }
-
-    IF_FORCEINLINE Vector3f MatMul3(const Matrix3x3f& a, const Vector3f& b)
-    {
-        Vector3f result;
-        result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z;
-        result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z;
-        result.z = a[2][0] * b.x + a[2][1] * b.y + a[2][2] * b.z;
-        return result;
-    }
-
-    IF_FORCEINLINE Matrix3x3f MatMul3(const Matrix3x3f& a, const Matrix3x3f& b)
-    {
-        Matrix3x3f result;
-        for (int i = 0; i < 3; i++)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                result[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j];
-            }
-        }
-        return result;
-    }
-
-    IF_FORCEINLINE Matrix3x3f Inverse3(const Matrix3x3f& m)
-    {
-        // Calculate cofactors and determinant
-        f32        cofactor00 = m[1][1] * m[2][2] - m[1][2] * m[2][1];
-        f32        cofactor01 = m[1][0] * m[2][2] - m[1][2] * m[2][0];
-        f32        cofactor02 = m[1][0] * m[2][1] - m[1][1] * m[2][0];
-
-        f32        cofactor10 = m[0][1] * m[2][2] - m[0][2] * m[2][1];
-        f32        cofactor11 = m[0][0] * m[2][2] - m[0][2] * m[2][0];
-        f32        cofactor12 = m[0][0] * m[2][1] - m[0][1] * m[2][0];
-
-        f32        cofactor20 = m[0][1] * m[1][2] - m[0][2] * m[1][1];
-        f32        cofactor21 = m[0][0] * m[1][2] - m[0][2] * m[1][0];
-        f32        cofactor22 = m[0][0] * m[1][1] - m[0][1] * m[1][0];
-
-        // Calculate determinant
-        f32        det    = m[0][0] * cofactor00 - m[0][1] * cofactor01 + m[0][2] * cofactor02;
-        f32        invDet = 1.0f / det; // Reciprocal of determinant
-
-        // Build adjugate matrix and multiply by reciprocal of determinant
-        Matrix3x3f result;
-        result[0][0] = cofactor00 * invDet;
-        result[0][1] = -cofactor10 * invDet;
-        result[0][2] = cofactor20 * invDet;
-
-        result[1][0] = -cofactor01 * invDet;
-        result[1][1] = cofactor11 * invDet;
-        result[1][2] = -cofactor21 * invDet;
-
-        result[2][0] = cofactor02 * invDet;
-        result[2][1] = -cofactor12 * invDet;
-        result[2][2] = cofactor22 * invDet;
-
-        return result;
-    }
-
-    IF_FORCEINLINE Matrix4x4f Mat3ToMat4(const Matrix3x3f& m)
-    {
-        Matrix4x4f result;
-        // Copy the 3x3 part
-        for (int i = 0; i < 3; i++)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                result[i][j] = m[i][j];
-            }
-        }
-        // Set the rest to identity matrix values
-        result[0][3] = 0.0f;
-        result[1][3] = 0.0f;
-        result[2][3] = 0.0f;
-        result[3][0] = 0.0f;
-        result[3][1] = 0.0f;
-        result[3][2] = 0.0f;
-        result[3][3] = 1.0f;
-
-        return result;
-    }
-
-    IF_FORCEINLINE Matrix3x3f Mat4ToMat3(const Matrix4x4f& m)
-    {
-        Matrix3x3f result;
-        // Extract the 3x3 part
-        for (int i = 0; i < 3; i++)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                result[i][j] = m[i][j];
-            }
-        }
         return result;
     }
 

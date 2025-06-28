@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/algo/Parallel.h"
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/core/math/VectorOps.h"
-#include "ifrit/core/math/SphericalSampling.h"
+#include "ifrit/core/math/sampling/SphericalSampling.h"
 
 #include <random>
 

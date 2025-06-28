@@ -20,8 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
-#include "ifrit/core/math/LinalgOps.h"
-#include "ifrit/core/math/GeometryFunctions.h"
+#include "ifrit/core/math/linalg/LinalgOps.h"
+#include "ifrit/core/math/linalg/GeometryFunctions.h"
 
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::Math;

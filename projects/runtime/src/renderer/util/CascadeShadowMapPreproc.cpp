@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/util/CascadeShadowMapPreproc.h"
 #include "ifrit/core/logging/Logging.h"
-#include "ifrit/core/math/GeometryFunctions.h"
+#include "ifrit/core/math/linalg/GeometryFunctions.h"
 
 namespace Ifrit::Runtime::RenderingUtil::CascadeShadowMapping
 {
@@ -68,7 +68,7 @@ namespace Ifrit::Runtime::RenderingUtil::CascadeShadowMapping
             auto     rCullOrthoX = 0.0f, rCullOrthoY = 0.0f;
             Vector3f rCenter;
             auto     worldToView = Math::Transpose(perView.m_viewData.m_worldToView);
-            auto     viewToWorld = Inverse4((worldToView));
+            auto     viewToWorld = Inverse((worldToView));
             GetFrustumBoundingBoxWithRay(camFovY, camAspect, vNear, vFar, viewToWorld, vApex, lightFront, 1e1f, rZFar,
                 rOrthoSize, rCenter, rCullOrthoX, rCullOrthoY);
             auto  lightCamUp = Vector3f{ 0.0f, 1.0f, 0.0f };
@@ -77,7 +77,7 @@ namespace Ifrit::Runtime::RenderingUtil::CascadeShadowMapping
 
             // To alleviate shadow flickering, we need to snap the light camera to texel
             auto  viewOriginal    = LookAt(Vector3f{ 0.0f, 0.0f, 0.0f }, lightFront, lightCamUp);
-            auto  viewOriginalInv = Inverse4(viewOriginal);
+            auto  viewOriginalInv = Inverse(viewOriginal);
             auto  camPosOriginal  = MatMul(viewOriginal, Vector4f{ rCenter.x, rCenter.y, rCenter.z, 1.0f });
             float texelSize       = rOrthoSize / shadowResolution;
             auto  camPosSnapped   = Vector3f{ camPosOriginal.x - std::fmodf(camPosOriginal.x, texelSize),
@@ -134,9 +134,9 @@ namespace Ifrit::Runtime::RenderingUtil::CascadeShadowMapping
                 Math::Transpose(view.m_viewData.m_perspective), Math::Transpose(view.m_viewData.m_worldToView)));
             view.m_viewData.m_cameraAspect = 1.0f;
             view.m_viewData.m_inversePerspective =
-                Math::Transpose(Ifrit::Math::Inverse4(Math::Transpose(view.m_viewData.m_perspective)));
+                Math::Transpose(Math::Inverse(Math::Transpose(view.m_viewData.m_perspective)));
             view.m_viewData.m_clipToWorld =
-                Math::Transpose(Math::Inverse4(Math::Transpose(view.m_viewData.m_worldToClip)));
+                Math::Transpose(Math::Inverse(Math::Transpose(view.m_viewData.m_worldToClip)));
             view.m_viewData.m_cameraPosition    = split.m_lightCamPos;
             view.m_viewData.m_cameraFront       = { lightDir.x, lightDir.y, lightDir.z, 0.0f };
             view.m_viewData.m_cameraNear        = split.m_near;
@@ -148,7 +148,7 @@ namespace Ifrit::Runtime::RenderingUtil::CascadeShadowMapping
             view.m_viewData.m_cullCamOrthoSizeY = split.m_clipOrthoSizeY;
             view.m_viewData.m_viewCameraType    = 1.0f;
             view.m_viewData.m_viewToWorld =
-                Math::Transpose(Math::Inverse4(Math::Transpose(view.m_viewData.m_worldToView)));
+                Math::Transpose(Math::Inverse(Math::Transpose(view.m_viewData.m_worldToView)));
 
             auto shadowMapSize              = light.GetShadowMapResolution();
             view.m_viewData.m_renderHeightf = static_cast<float>(shadowMapSize);

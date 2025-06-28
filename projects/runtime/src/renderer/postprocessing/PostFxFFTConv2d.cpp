@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/runtime/renderer/postprocessing/PostFxFFTConv2d.h"
 #include "ifrit.shader/Postprocess/FFTConv2d.Shared.h"
-#include "ifrit/core/math/fastutil/FastUtil.h"
+#include "ifrit/core/math/Intrinsics.h"
 #include "ifrit/runtime/renderer/postprocessing/PostFxStockhamDFT2.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 

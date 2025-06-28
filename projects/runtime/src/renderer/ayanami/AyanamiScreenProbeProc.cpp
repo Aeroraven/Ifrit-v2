@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
-#include "ifrit/core/math/LowDiscrepancy.h"
+#include "ifrit/core/math/sampling/LowDiscrepancy.h"
 
 using namespace Ifrit::Graphics::Rhi;
 using namespace Ifrit::Math;

@@ -179,7 +179,7 @@ namespace Ifrit::Runtime
                 cmd, &data->m_atmosphereParams, sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter), 0);
         });
         // Last, a matrix to convert radiance to luminance
-        data->luminanceFromRad = Math::Identity4();
+        data->luminanceFromRad = Math::Identity<f32,4>();
     }
 
     IFRIT_APIDECL PbrAtmosphereRenderer::GPUShader* PbrAtmosphereRenderer::GetInternalShader(const char* name)
@@ -316,7 +316,7 @@ namespace Ifrit::Runtime
             u32        transmittanceSampler;
         } pSingleScattering;
 
-        pSingleScattering.lumFromRad           = Math::Identity4();
+        pSingleScattering.lumFromRad           = Math::Identity<f32,4>();
         pSingleScattering.atmoData             = data->m_atmosphereParamsBuffer->GetDescId();
         pSingleScattering.deltaRayleigh        = data->m_deltaRayleighScattering->GetDescId();
         pSingleScattering.deltaMie             = data->m_deltaMieScattering->GetDescId();
@@ -387,7 +387,7 @@ namespace Ifrit::Runtime
             pScatteringDensity.scatterDensity               = data->m_deltaScatteringDensity->GetDescId();
             pScatteringDensity.scatterOrder                 = order;
 
-            pIndirectIrradiance.lumFromRad                   = Math::Identity4();
+            pIndirectIrradiance.lumFromRad                   = Math::Identity<f32,4>();
             pIndirectIrradiance.atmoData                     = data->m_atmosphereParamsBuffer->GetDescId();
             pIndirectIrradiance.deltaIrradiance              = data->m_deltaIrradiance->GetDescId();
             pIndirectIrradiance.irradiance                   = data->m_irradiance->GetDescId();
@@ -396,7 +396,7 @@ namespace Ifrit::Runtime
             pIndirectIrradiance.multipleScatteringSamp       = data->m_deltaMultipleScatteringCombSamplerId;
             pIndirectIrradiance.scatteringOrder              = order - 1;
 
-            pMultipleScattering.lumFromRad              = Math::Identity4();
+            pMultipleScattering.lumFromRad              = Math::Identity<f32,4>();
             pMultipleScattering.atmoData                = data->m_atmosphereParamsBuffer->GetDescId();
             pMultipleScattering.deltaMultipleScattering = data->m_deltaMultipleScattering->GetDescId();
             pMultipleScattering.scattering              = data->m_scattering->GetDescId();

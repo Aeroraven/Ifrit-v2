@@ -106,12 +106,12 @@ namespace Ifrit::Runtime
                 Math::Transpose(Math::MatMul(Math::Transpose(viewData.m_viewData.m_perspective),
                     Math::Transpose(viewData.m_viewData.m_worldToView)));
             viewData.m_viewData.m_viewToWorld =
-                Math::Transpose(Math::Inverse4(Math::Transpose(viewData.m_viewData.m_worldToView)));
+                Math::Transpose(Math::Inverse(Math::Transpose(viewData.m_viewData.m_worldToView)));
             viewData.m_viewData.m_cameraAspect = camera->GetAspect();
             viewData.m_viewData.m_inversePerspective =
-                Math::Transpose(Ifrit::Math::Inverse4(Math::Transpose(viewData.m_viewData.m_perspective)));
+                Math::Transpose(Math::Inverse(Math::Transpose(viewData.m_viewData.m_perspective)));
             viewData.m_viewData.m_clipToWorld =
-                Math::Transpose(Math::Inverse4(Math::Transpose(viewData.m_viewData.m_worldToClip)));
+                Math::Transpose(Math::Inverse(Math::Transpose(viewData.m_viewData.m_worldToClip)));
             auto cameraTransform = camera->GetParent()->GetComponentUnsafe<Transform>();
             if (cameraTransform == nullptr)
             {
@@ -632,7 +632,7 @@ namespace Ifrit::Runtime
                     MeshInstanceTransform model;
                     // Transpose is required because glsl uses column major matrices
                     model.model    = Math::Transpose(transform->GetModelToWorldMatrix());
-                    model.invModel = Math::Transpose(Math::Inverse4(transform->GetModelToWorldMatrix()));
+                    model.invModel = Math::Transpose(Math::Inverse(transform->GetModelToWorldMatrix()));
                     auto scale     = transform->GetScale();
                     model.maxScale =
                         Vector4f(scale.x, scale.y, scale.z, 0.0); // std::max(scale.x, std::max(scale.y, scale.z));
@@ -655,7 +655,7 @@ namespace Ifrit::Runtime
                 {
                     MeshInstanceTransform modelLast;
                     modelLast.model    = Math::Transpose(transform->GetModelToWorldMatrix());
-                    modelLast.invModel = Math::Transpose(Math::Inverse4(transform->GetModelToWorldMatrix()));
+                    modelLast.invModel = Math::Transpose(Math::Inverse(transform->GetModelToWorldMatrix()));
                     auto lastScale     = transform->GetScaleLast();
                     modelLast.maxScale = Vector4f(lastScale.x, lastScale.y, lastScale.z,
                         0.0); // std::max(lastScale.x, std::max(lastScale.y, lastScale.z));
