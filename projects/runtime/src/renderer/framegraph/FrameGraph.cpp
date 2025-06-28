@@ -245,13 +245,14 @@ namespace Ifrit::Runtime
         return *passPtr;
     }
 
-    IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddGraphicsPass(
-        const String& name, const ShaderVariantDesc& vs, const ShaderVariantDesc& fs, u32 pushConsts)
+    IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddGraphicsPass(const String& name, const ShaderVariantDesc& vs,
+        const ShaderVariantDesc& fs, u32 pushConsts, Graphics::Rhi::RhiRasterizerTopology topology)
     {
         auto gp = m_Rhi->CreateGraphicsPass2();
         gp->SetVertexShader(m_ShaderRegistry->GetShader(vs));
         gp->SetPixelShader(m_ShaderRegistry->GetShader(fs));
         gp->SetPushConstSize(pushConsts * sizeof(u32));
+        gp->SetRasterizerTopology(topology);
 
         auto pass        = MakeOwner<GraphicsPassNode>(std::move(gp));
         pass->id         = SizeCast<u32>(m_passes.size());

@@ -43,14 +43,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
         #define IFSHADER_FLOATVEC_TYPE //float,float2,float3,float4
         #define IFSHADER_ENTRY(x) [[shader(x)]]
         #define IFSHADER_BLOCKSIZE(x,y,z) [[numthreads(x, y, z)]]
+        #define IFSHADER_POINTSIZE_SEMANTIC PSIZE
         #ifdef IFSHADER_VULKAN
             #define IFSHADER_BINDING(binding, set) [[vk::binding(binding, set)]]
             #define IFSHADER_LOCATION(location) [[vk::location(location)]]
             #define IFSHADER_PUSHCONST [[vk::push_constant]]
+            #define IFSHADER_POINTSIZE_DECORATE [[vk::builtin("PointSize")]]
         #else
             #define IFSHADER_BINDING(binding, set)
             #define IFSHADER_LOCATION(location)
             #define IFSHADER_PUSHCONST
+            #define IFSHADER_POINTSIZE_DECORATE
         #endif
         #define IFSHADER_TYPEALIAS_STRUCT(name, type) struct name : type {};
     #else
@@ -68,14 +71,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define IFSHADER_FLOATVEC_TYPE __BuiltinFloatingPointType
     #define IFSHADER_ENTRY(x) [shader(x)]
     #define IFSHADER_BLOCKSIZE(x,y,z) [numthreads(x, y, z)]
+    #define IFSHADER_POINTSIZE_SEMANTIC SV_PointSize
     #ifdef IFSHADER_VULKAN
         #define IFSHADER_BINDING(x, y) [vk::binding(x, y)]
         #define IFSHADER_LOCATION(x) [vk::location(x)]
         #define IFSHADER_PUSHCONST [vk::push_constant]
+        #define IFSHADER_POINTSIZE_DECORATE 
     #else
         #define IFSHADER_BINDING(x, y)
         #define IFSHADER_LOCATION(x)
         #define IFSHADER_PUSHCONST
+        #define IFSHADER_POINTSIZE_DECORATE
     #endif
     #define IFSHADER_TYPEALIAS_STRUCT(name, type) typealias name = type;
 #endif

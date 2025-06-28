@@ -366,8 +366,9 @@ namespace Ifrit::Runtime
         void              SetResourceInitState(FrameGraphResourceInitState state) { m_resourceInitState = state; }
 
         ComputePassNode&  AddComputePass(const String& name, const ShaderVariantDesc& shader, u32 pushConsts);
-        GraphicsPassNode& AddGraphicsPass(
-            const String& name, const ShaderVariantDesc& vs, const ShaderVariantDesc& fs, u32 pushConsts);
+        GraphicsPassNode& AddGraphicsPass(const String& name, const ShaderVariantDesc& vs, const ShaderVariantDesc& fs,
+            u32                                  pushConsts,
+            Graphics::Rhi::RhiRasterizerTopology topology = Graphics::Rhi::RhiRasterizerTopology::TriangleList);
         GraphicsPassNode& AddMeshGraphicsPass(
             const String& name, const ShaderVariantDesc& ms, const ShaderVariantDesc& fs, u32 pushConsts);
 

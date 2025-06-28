@@ -27,7 +27,7 @@ namespace Ifrit::Math
     // Generalized matrix operations
     template <class T, u32 R, u32 C> IF_FORCEINLINE Matrixg<T, C, R> Transpose(const Matrixg<T, R, C>& a)
     {
-        Matrixg<T,C, R> result;
+        Matrixg<T, C, R> result;
         for (u32 i = 0; i < R; i++)
         {
             for (u32 j = 0; j < C; j++)
@@ -79,6 +79,19 @@ namespace Ifrit::Math
         return trace;
     }
 
+    template <class T, u32 R, u32 C> IF_FORCEINLINE Matrixg<T, C, R> ZeroMatrix()
+    {
+        Matrixg<T, C, R> result;
+        for (u32 i = 0; i < R; i++)
+        {
+            for (u32 j = 0; j < C; j++)
+            {
+                result[i][j] = static_cast<T>(0);
+            }
+        }
+        return result;
+    }
+
     // Specific matrix operations
     IF_FORCEINLINE Vector4f MatMul(const Matrix4x4f& a, const Vector4f& b)
     {
@@ -96,6 +109,14 @@ namespace Ifrit::Math
         result.x = a[0][0] * b.x + a[0][1] * b.y + a[0][2] * b.z;
         result.y = a[1][0] * b.x + a[1][1] * b.y + a[1][2] * b.z;
         result.z = a[2][0] * b.x + a[2][1] * b.y + a[2][2] * b.z;
+        return result;
+    }
+
+    IF_FORCEINLINE Vector2f MatMul(const Matrix2x2f& a, const Vector2f& b)
+    {
+        Vector2f result;
+        result.x = a[0][0] * b.x + a[0][1] * b.y;
+        result.y = a[1][0] * b.x + a[1][1] * b.y;
         return result;
     }
 

@@ -46,6 +46,9 @@ namespace Ifrit::Runtime::Internal
         SDEF PBDClothUpdateVelocityCollisionCS  = DECLARE_CS("Siro/PBDCloth.UpdateVelocityCollision");
 
         SDEF PBDClothVolumeConstraintProjectCS = DECLARE_CS("Siro/PBDCloth.VolumeConstraintProject");
+
+        SDEF ParticleRenderVS = DECLARE_VS("Siro/ParticleRender");
+        SDEF ParticleRenderFS = DECLARE_FS("Siro/ParticleRender");
     } kIntShaderTableSiro;
 
 #undef SDEF

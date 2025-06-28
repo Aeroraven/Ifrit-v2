@@ -193,6 +193,9 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTSiro.PBDClothVolumeConstraintProjectCS, "Siro/PBDCloth.VolumeConstraintProject",
             "SiroPBDClothVolumeConstraintProjectCS");
 
+        REG_VERTEX_NEO(ISTSiro.ParticleRenderVS, "Siro/ParticleRender", "SiroParticleRenderVS");
+        REG_FRAGMENT_NEO(ISTSiro.ParticleRenderFS, "Siro/ParticleRender", "SiroParticleRenderPS");
+
         // Base Forward
         REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");
         REG_FRAGMENT_NEO(IST.BaseForward.ForwardPS, "BaseForward/Forward.Default", "BaseForwardPS");
