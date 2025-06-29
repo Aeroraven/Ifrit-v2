@@ -46,7 +46,16 @@ namespace Ifrit::Math::LinAlg
                 xNew[i] = (b[i] - sum) / a[i][i];
             }
 
-            if (VectorOps::Norm(xNew - x) < errorTolerance)
+            f32 maxError = 0.0f;
+            for (u32 i = 0; i < C; ++i)
+            {
+                f32 error = std::abs(xNew[i] - x[i]);
+                if (error > maxError)
+                {
+                    maxError = error;
+                }
+            }
+            if (maxError < errorTolerance)
             {
                 return xNew;
             }
@@ -78,7 +87,16 @@ namespace Ifrit::Math::LinAlg
                 xNew[i] = (b[i] - sum) / a[i][i];
             }
 
-            if (VectorOps::Norm(xNew - x) < errorTolerance)
+            f32 maxError = 0.0f;
+            for (u32 i = 0; i < C; ++i)
+            {
+                f32 error = std::abs(xNew[i] - x[i]);
+                if (error > maxError)
+                {
+                    maxError = error;
+                }
+            }
+            if (maxError < errorTolerance)
             {
                 return xNew;
             }

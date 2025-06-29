@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ifrit/core/math/linalg/LinalgOps.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Siro.h"
+#include "ifrit/core/math/linalg/LinearSolver.h"
 
 #include <random>
 
@@ -61,7 +62,7 @@ namespace Ifrit::Runtime::Siro
         f32                     m_GridSizeX = 0.0f;
         f32                     m_GridSizeY = 0.0f;
 
-        IF_CONSTEXPR static u32 kDefaultGridsPerDim  = 256;
+        IF_CONSTEXPR static u32 kDefaultGridsPerDim  = 32;
         IF_CONSTEXPR static u32 kDefaultParticles    = 1024;
         IF_CONSTEXPR static f32 kDefaultGridSize     = 1.0f;
         IF_CONSTEXPR static f32 kDefaultParticleMass = 1.0f;
@@ -100,6 +101,112 @@ namespace Ifrit::Runtime::Siro
         }
     }
 
+    void FluidProjection(APICHostTestPrivateData& data, f32 coef, f32 dx)
+    {
+        // TODO
+        // Solve P using: C*Div(u) = Laplacian(P)
+        // Where Laplacian(P) = (P(i+1,j) + P(i-1,j) + P(i,j+1) + P(i,j-1) - 4*P(i,j))/ (dx*dx)
+        // Div(u) = (u(i+1,j) - u(i-1,j)) / (2*dx) + (u(i,j+1) - u(i,j-1)) / (2*dx)
+
+        // Then C*dx*{(u(i+1,j) - u(i-1,j)) / 2 + (u(i,j+1) - u(i,j-1)) / 2} = (P(i+1,j) + P(i-1,j) + P(i,j+1) +
+        // P(i,j-1) - 4*P(i,j))
+        // N Grids & N Constraints
+        IF_CONSTEXPR u32 kNumGrids =
+            APICHostTestPrivateData::kDefaultGridsPerDim * APICHostTestPrivateData::kDefaultGridsPerDim;
+        IF_CONSTEXPR u32                     kNumGridsPerDim = APICHostTestPrivateData::kDefaultGridsPerDim;
+
+        Owner<Matrixf<kNumGrids, kNumGrids>> pA = MakeOwner<Matrixf<kNumGrids, kNumGrids>>();
+        Owner<Array<f32, kNumGrids>>         pb = MakeOwner<Array<f32, kNumGrids>>();
+        Owner<Array<f32, kNumGrids>>         px = MakeOwner<Array<f32, kNumGrids>>();
+
+        auto&                                A = *pA;
+        auto&                                b = *pb;
+        auto&                                x = *px;
+
+        auto                                 GridToIndex = [&](u32 x, u32 y) -> u32 {
+            if (x < 0 || x >= data.m_NumGridsX || y < 0 || y >= data.m_NumGridsY)
+            {
+                return ~0u;
+            }
+            return x + y * data.m_NumGridsX;
+        };
+        auto GetVelocity = [&](u32 x, u32 y) -> Vector2f {
+            if (x < 0 || x >= data.m_NumGridsX || y < 0 || y >= data.m_NumGridsY)
+            {
+                return Vector2f(0.0f);
+            }
+            auto index = GridToIndex(x, y);
+            return data.m_Grids[index].m_Velocity;
+        };
+        for (u32 i = 0; i < kNumGridsPerDim; ++i)
+        {
+            for (u32 j = 0; j < kNumGridsPerDim; ++j)
+            {
+                auto thisGridIndex     = GridToIndex(i, j);
+                auto thisGridIndexXNeg = GridToIndex(i - 1, j);
+                auto thisGridIndexXPos = GridToIndex(i + 1, j);
+                auto thisGridIndexYNeg = GridToIndex(i, j - 1);
+                auto thisGridIndexYPos = GridToIndex(i, j + 1);
+
+                A[thisGridIndex][thisGridIndex] = 1.0f;
+                if (thisGridIndexXNeg != ~0u)
+                {
+                    A[thisGridIndex][thisGridIndexXNeg] = -0.25f;
+                }
+                if (thisGridIndexXPos != ~0u)
+                {
+                    A[thisGridIndex][thisGridIndexXPos] = -0.25f;
+                }
+                if (thisGridIndexYNeg != ~0u)
+                {
+                    A[thisGridIndex][thisGridIndexYNeg] = -0.25f;
+                }
+                if (thisGridIndexYPos != ~0u)
+                {
+                    A[thisGridIndex][thisGridIndexYPos] = -0.25f;
+                }
+
+                Vector2f velocity     = GetVelocity(i, j);
+                Vector2f velocityXNeg = GetVelocity(i - 1, j);
+                Vector2f velocityXPos = GetVelocity(i + 1, j);
+                Vector2f velocityYNeg = GetVelocity(i, j - 1);
+                Vector2f velocityYPos = GetVelocity(i, j + 1);
+
+                float    velDx   = (velocityXPos.x - velocityXNeg.x) * 0.5f;
+                float    velDy   = (velocityYPos.y - velocityYNeg.y) * 0.5f;
+                float    divU    = (velDx + velDy) * coef * -0.25f * dx;
+                b[thisGridIndex] = divU;
+                x[thisGridIndex] = 0.0f;
+            }
+        }
+        auto newX = Math::LinAlg::GaussSeidelSolver(A, b, x, 40, 1e-6f);
+
+        auto GetPressure = [&](u32 x, u32 y) -> f32 {
+            if (x < 0 || x >= data.m_NumGridsX || y < 0 || y >= data.m_NumGridsY)
+            {
+                return 0.0f;
+            }
+            auto index = GridToIndex(x, y);
+            return newX[index];
+        };
+
+        // Update grid velocities
+        for (u32 i = 0; i < kNumGridsPerDim; ++i)
+        {
+            for (u32 j = 0; j < kNumGridsPerDim; ++j)
+            {
+                auto  thisGridIndex = GridToIndex(i, j);
+                auto& grid          = data.m_Grids[thisGridIndex];
+
+                f32   gradPx = GetPressure(i + 1, j) - GetPressure(i - 1, j);
+                f32   gradPy = GetPressure(i, j + 1) - GetPressure(i, j - 1);
+
+                grid.m_Velocity.x -= gradPx / coef / dx;
+                grid.m_Velocity.y -= gradPy / coef / dx;
+            }
+        }
+    }
+
     IFRIT_APIDECL u32 APICHostTest::GridToIndex(u32 x, u32 y) { return x + y * m_Data->m_NumGridsX; }
     IFRIT_APIDECL Pair<u32, u32> APICHostTest::IndexToGrid(u32 index)
     {
@@ -118,7 +225,7 @@ namespace Ifrit::Runtime::Siro
             p.m_Velocity =
                 Vector2f(RandomUniform(-1.0f, 1.0f), RandomUniform(-1.0f, 1.0f)) * 0.0f + Vector2f(0.0f, 0.00f);
             p.m_Position =
-                Vector2f(RandomUniform(-1.0f, 1.0f), RandomUniform(-1.0f, 1.0f)) * 16.0f + Vector2f(32.0f, 32.0f);
+                Vector2f(RandomUniform(-1.0f, 1.0f), RandomUniform(-1.0f, 1.0f)) * 8.0f + Vector2f(16.0f, 16.0f);
             p.m_Mass = APICHostTestPrivateData::kDefaultParticleMass;
         }
 
@@ -210,14 +317,16 @@ namespace Ifrit::Runtime::Siro
             auto [gridX, gridY] = IndexToGrid(gridIndex);
             if (gridX <= 2 || gridX >= m_Data->m_NumGridsX - 2)
             {
-                grid.m_Velocity.x = 0.0f;
+                // grid.m_Velocity.x = 0.0f;
             }
             if (gridY <= 2 || gridY >= m_Data->m_NumGridsY - 2)
             {
-                grid.m_Velocity.y = 0.0f;
+                // grid.m_Velocity.y = 0.0f;
             }
         }
         // TODO: Projection
+
+        FluidProjection(*m_Data, 1.0f, 1.0f);
 
         // G2P
         for (auto& p : m_Data->m_Particles)
