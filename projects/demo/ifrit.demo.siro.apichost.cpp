@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <thread>
 #include "ifrit/rhi/common/RhiStructHelper.h"
 
-#include "ifrit/runtime/physics/siro/mpm/APICHostTest.h"
+#include "ifrit/runtime/physics/siro/mpm/APICFluid.h"
 
 #define WINDOW_WIDTH 1980
 #define WINDOW_HEIGHT 1080
@@ -54,7 +54,7 @@ namespace Ifrit
         RhiTexture*                    swapchainImg;
         RendererConfig                 renderConfig;
 
-        Ref<Siro::APICHostTest>        m_ApicHostTest;
+        Ref<Siro::APICFluid>           m_ApicHostTest;
 
         Ref<FrameGraphCompiler>        m_FrameGraphCompiler;
         Ref<FrameGraphExecutor>        m_FrameGraphExecutor;
@@ -70,7 +70,7 @@ namespace Ifrit
             renderConfig.m_OverrideMaterialCulling    = OverrideMaterialCulling::ForcedCullNone;
 
             renderer       = MakeRef<BaseForwardRenderer>(this);
-            m_ApicHostTest = MakeRef<Siro::APICHostTest>();
+            m_ApicHostTest = MakeRef<Siro::APICFluid>();
             auto scene     = m_sceneAssetManager->CreateScene("TestScene2");
             auto node      = scene->AddSceneNode();
 
@@ -114,7 +114,7 @@ namespace Ifrit
                 [&](const RhiCommandList* cmd) {
                     FrameGraphBuilder builder(GetShaderRegistry(), GetRhi(), m_FrameGraphResourcePool.get());
                     auto              rt = builder.ImportTexture("Demo_Swapchain", swapchainImg);
-                    m_ApicHostTest->TestAPIC(builder, &rt);
+                    m_ApicHostTest->RunSolver(builder, &rt);
 
                     auto fg = m_FrameGraphCompiler->Compile(builder);
                     m_FrameGraphExecutor->ExecuteInSingleCmd(cmd, fg);

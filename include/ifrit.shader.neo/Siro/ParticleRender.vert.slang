@@ -40,7 +40,7 @@ namespace Siro{
         float Range = PushConst.m_ParticleRange;
 
         VSOutput output;
-        output.Position = float4(Position/ Range, 0.5f, 1.0f) ;
+        output.Position = float4(Position/ Range * 2.0 - 1.0, 0.5f, 1.0f) ;
         output.PointSize = 1.0f;
 
         return output;

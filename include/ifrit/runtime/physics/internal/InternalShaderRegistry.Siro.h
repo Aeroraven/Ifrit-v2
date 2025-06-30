@@ -49,6 +49,18 @@ namespace Ifrit::Runtime::Internal
 
         SDEF ParticleRenderVS = DECLARE_VS("Siro/ParticleRender");
         SDEF ParticleRenderFS = DECLARE_FS("Siro/ParticleRender");
+
+        SDEF APICFluidG2PCS                 = DECLARE_CS("Siro/APICFluid.G2P");
+        SDEF APICFluidGridResetCS           = DECLARE_CS("Siro/APICFluid.GridReset");
+        SDEF APICFluidGridProjectionApplyCS = DECLARE_CS("Siro/APICFluid.GridProjectionApply");
+        SDEF APICFluidGridProjectionSolveCS = DECLARE_CS("Siro/APICFluid.GridProjectionSolve");
+        SDEF APICFluidGridProjectionSolveVelPrecomputeCS =
+            DECLARE_CS("Siro/APICFluid.GridProjectionSolveVelPrecompute");
+        SDEF APICFluidGridUpdateCS     = DECLARE_CS("Siro/APICFluid.GridUpdate");
+        SDEF APICFluidP2GCS            = DECLARE_CS("Siro/APICFluid.P2G");
+        SDEF APICFluidParticleInitCS   = DECLARE_CS("Siro/APICFluid.ParticleInit");
+        SDEF APICFluidParticleUpdateCS = DECLARE_CS("Siro/APICFluid.ParticleUpdate");
+
     } kIntShaderTableSiro;
 
 #undef SDEF

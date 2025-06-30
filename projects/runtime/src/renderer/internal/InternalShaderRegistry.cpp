@@ -200,6 +200,21 @@ namespace Ifrit::Runtime::Internal
         REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");
         REG_FRAGMENT_NEO(IST.BaseForward.ForwardPS, "BaseForward/Forward.Default", "BaseForwardPS");
 
+        // Siro APIC
+        REG_COMPUTE_NEO(ISTSiro.APICFluidG2PCS, "Siro/APIC/APICFluid.G2P", "ApicGridToParticleCS");
+        REG_COMPUTE_NEO(ISTSiro.APICFluidGridResetCS, "Siro/APIC/APICFluid.GridReset", "ApicGridResetCS");
+        REG_COMPUTE_NEO(ISTSiro.APICFluidGridProjectionApplyCS, "Siro/APIC/APICFluid.GridProjectionApply",
+            "ApicGridProjectionApplyCS");
+        REG_COMPUTE_NEO(ISTSiro.APICFluidGridProjectionSolveCS, "Siro/APIC/APICFluid.GridProjectionSolve",
+            "ApicGridProjectionSolveCS");
+        REG_COMPUTE_NEO(ISTSiro.APICFluidGridProjectionSolveVelPrecomputeCS,
+            "Siro/APIC/APICFluid.GridProjectionSolveVelPrecompute", "ApicGridProjectionSolveVelPrecomputeCS");
+        REG_COMPUTE_NEO(ISTSiro.APICFluidP2GCS, "Siro/APIC/APICFluid.P2G", "ApicParticleToGridCS");
+        REG_COMPUTE_NEO(ISTSiro.APICFluidGridUpdateCS, "Siro/APIC/APICFluid.GridUpdate", "ApicGridUpdateCS");
+        REG_COMPUTE_NEO(ISTSiro.APICFluidParticleInitCS, "Siro/APIC/APICFluid.ParticleInit", "ApicParticleInitCS");
+        REG_COMPUTE_NEO(
+            ISTSiro.APICFluidParticleUpdateCS, "Siro/APIC/APICFluid.ParticleUpdate", "ApicParticleUpdateCS");
+
         iInfo("Internal: Compiling internal shaders...");
         shaderRegistry->WaitForShaderCompilations();
         iInfo("Internal: Internal shaders compiled.");
