@@ -63,13 +63,13 @@ namespace Siro{
             {
                 BoundaryVelocity.x = GridVelocity.x;
             }
-            else if((BoundaryCondition & 12) == 12)
+            if((BoundaryCondition & 12) == 12)
             {
                 BoundaryVelocity.y = GridVelocity.y;
             }
 
             PushConst.m_GridState.Store(PackedState, ThreadId.x);
-            PushConst.m_GridVelocity.Store(GridVelocity, ThreadId.x);
+            PushConst.m_GridVelocity.Store(BoundaryVelocity, ThreadId.x);
         }
     }
 

@@ -56,6 +56,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
             #define IFSHADER_POINTSIZE_DECORATE
         #endif
         #define IFSHADER_TYPEALIAS_STRUCT(name, type) struct name : type {};
+        #define IFSHADER_TYPEALIAS(name,type) typedef type name;
     #else
         #error "This shader module is only supported in HLSL or Slang."
     #endif
@@ -84,6 +85,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
         #define IFSHADER_POINTSIZE_DECORATE
     #endif
     #define IFSHADER_TYPEALIAS_STRUCT(name, type) typealias name = type;
+    #define IFSHADER_TYPEALIAS(name,type) typealias name = type;
 #endif
 
 namespace IfritShader{

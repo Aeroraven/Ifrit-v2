@@ -16,7 +16,7 @@ namespace Ifrit::Runtime::Siro
     {
         u32             m_GridSize          = 128;
         u32             m_NumParticles      = 180000;
-        f32             m_DefaultTimestep   = 0.008f;
+        f32             m_DefaultTimestep   = 0.03f;
         f32             m_Density           = 0.001f;
         bool            m_Initialized       = false;
         u32             m_DefaultIterations = 200;
@@ -276,15 +276,15 @@ namespace Ifrit::Runtime::Siro
     {
         struct PushConst
         {
-            f32  m_Timestep;
-            f32  m_Density;
-            u32  m_GridSize;
+            f32 m_Timestep;
+            f32 m_Density;
+            u32 m_GridSize;
 
-            u32  m_GridVelocityId;
-            u32  m_GridStateId;
-            u32  m_GridCoefBId;
-            u32  m_GridPressureId;
-            bool m_ClearPressure;
+            u32 m_GridVelocityId;
+            u32 m_GridStateId;
+            u32 m_GridCoefBId;
+            u32 m_GridPressureId;
+            u32 m_ClearPressure;
         } pc;
 
         pc.m_Timestep       = m_DefaultTimestep;
@@ -296,11 +296,11 @@ namespace Ifrit::Runtime::Siro
         pc.m_GridPressureId = 0;
         if (m_FrameId == 0)
         {
-            pc.m_ClearPressure = true; // Clear pressure on first frame
+            pc.m_ClearPressure = 1; // Clear pressure on first frame
         }
         else
         {
-            pc.m_ClearPressure = false;
+            pc.m_ClearPressure = 0;
         }
 
         u32 numGrids = m_GridSize * m_GridSize;
@@ -487,6 +487,7 @@ namespace Ifrit::Runtime::Siro
         {
             u32 m_PositionId;
             f32 m_GridRange;
+            f32 m_AspectRatio;
         } pc;
 
         pc.m_PositionId = 0;
@@ -505,8 +506,9 @@ namespace Ifrit::Runtime::Siro
             auto      rtHeight = rt->GetHeight();
 
             PushConst pc;
-            pc.m_PositionId = ctx.m_FgDesc->GetUAV(*m_RDGParticleLocation);
-            pc.m_GridRange  = m_GridSize;
+            pc.m_PositionId  = ctx.m_FgDesc->GetUAV(*m_RDGParticleLocation);
+            pc.m_GridRange   = m_GridSize;
+            pc.m_AspectRatio = (f32)rtWidth / (f32)rtHeight;
 
             cmd->AttachIndexBuffer(m_ParticleIndex.get());
             cmd->SetCullMode(RhiCullMode::None);

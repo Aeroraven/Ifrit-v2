@@ -65,7 +65,7 @@ namespace Siro{
                 if(ContribWeight <= 0.0f)
                     continue;
 
-#ifdef IFSHADER_APIC
+#ifndef IFSHADER_NO_APIC
                 float2 ContribVelocity = ParticleVelocity + mul(C, GridCenterToParticle);
 #else
                 float2 ContribVelocity = ParticleVelocity;

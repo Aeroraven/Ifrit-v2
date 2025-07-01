@@ -23,6 +23,7 @@ namespace Siro{
     struct PushConst_T{
         TRWStructuredBufferHandle<float2> m_Positions;
         float m_ParticleRange;
+        float m_AspectRatio;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -39,8 +40,11 @@ namespace Siro{
         float2 Position = PushConst.m_Positions.Load(VertexId);
         float Range = PushConst.m_ParticleRange;
 
+        float2 Loc = Position/ Range * 2.0 - 1.0;
+        Loc.x /= PushConst.m_AspectRatio; 
+
         VSOutput output;
-        output.Position = float4(Position/ Range * 2.0 - 1.0, 0.5f, 1.0f) ;
+        output.Position = float4(Loc, 0.5f, 1.0f);
         output.PointSize = 1.0f;
 
         return output;

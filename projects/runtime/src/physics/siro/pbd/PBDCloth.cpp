@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Siro.h"
 
-#include "ifrit.shader.neo/Siro/PBDCloth.Shared.hlsli"
+#include "ifrit.shader.neo/Siro/PBD/PBDCloth.Shared.hlsli"
 #include "ifrit/runtime/physics/siro/geometry/TetrahedralMesh.h"
 
 using namespace Ifrit::Math;

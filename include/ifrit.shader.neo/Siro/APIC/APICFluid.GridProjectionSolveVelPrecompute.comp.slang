@@ -12,7 +12,7 @@ namespace Siro{
         TRWStructuredBufferHandle<int> m_GridState;
         TRWStructuredBufferHandle<float> m_GridCoefB; // Ax=B
         TRWStructuredBufferHandle<float> m_GridInitPressure;
-        bool m_ClearPressure;
+        uint m_ClearPressure;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -43,7 +43,7 @@ namespace Siro{
 
         int GridState = PushConst.m_GridState.Load(ThreadId.x);
 
-        if(PushConst.m_ClearPressure)
+        if(PushConst.m_ClearPressure == 1)
         {
             PushConst.m_GridInitPressure.Store(0.5f, ThreadId.x);
         }

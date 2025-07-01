@@ -169,28 +169,29 @@ namespace Ifrit::Runtime::Internal
 
         // Siro
         REG_COMPUTE_NEO(
-            ISTSiro.PBDClothApplyCorrectionCS, "Siro/PBDCloth.ApplyCorrection", "SiroPBDClothApplyCorrectionCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityPostCS, "Siro/PBDCloth.UpdateVelocityPost",
+            ISTSiro.PBDClothApplyCorrectionCS, "Siro/PBD/PBDCloth.ApplyCorrection", "SiroPBDClothApplyCorrectionCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityPostCS, "Siro/PBD/PBDCloth.UpdateVelocityPost",
             "SiroPBDClothUpdateVelocityPostCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityPreCS, "Siro/PBD/PBDCloth.UpdateVelocityPre",
+            "SiroPBDClothUpdateVelocityPreCS");
         REG_COMPUTE_NEO(
-            ISTSiro.PBDClothUpdateVelocityPreCS, "Siro/PBDCloth.UpdateVelocityPre", "SiroPBDClothUpdateVelocityPreCS");
-        REG_COMPUTE_NEO(
-            ISTSiro.PBDClothPredPositionGenCS, "Siro/PBDCloth.PredPositionGen", "SiroPBDClothPredPositionGenCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothDistanceConstraintProjectCS, "Siro/PBDCloth.DistanceConstraintProject",
+            ISTSiro.PBDClothPredPositionGenCS, "Siro/PBD/PBDCloth.PredPositionGen", "SiroPBDClothPredPositionGenCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothDistanceConstraintProjectCS, "Siro/PBD/PBDCloth.DistanceConstraintProject",
             "SiroPBDClothDistanceConstraintProjectCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothBendingConstraintProjectCS, "Siro/PBDCloth.BendingConstraintProject",
+        REG_COMPUTE_NEO(ISTSiro.PBDClothBendingConstraintProjectCS, "Siro/PBD/PBDCloth.BendingConstraintProject",
             "SiroPBDClothBendingConstraintProjectCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDPredPositionGenCS, "Siro/PBDCloth.PredPositionGen", "SiroPBDClothPredPositionGenCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothNormalUpdateCS, "Siro/PBDCloth.NormalUpdate", "SiroPBDClothNormalUpdateCS");
         REG_COMPUTE_NEO(
-            ISTSiro.PBDClothNormalRegularizeCS, "Siro/PBDCloth.NormalRegularize", "SiroPBDClothNormalRegularizeCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothGenerateSDFCollisionCS, "Siro/PBDCloth.GenerateSDFCollision",
+            ISTSiro.PBDPredPositionGenCS, "Siro/PBD/PBDCloth.PredPositionGen", "SiroPBDClothPredPositionGenCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothNormalUpdateCS, "Siro/PBD/PBDCloth.NormalUpdate", "SiroPBDClothNormalUpdateCS");
+        REG_COMPUTE_NEO(
+            ISTSiro.PBDClothNormalRegularizeCS, "Siro/PBD/PBDCloth.NormalRegularize", "SiroPBDClothNormalRegularizeCS");
+        REG_COMPUTE_NEO(ISTSiro.PBDClothGenerateSDFCollisionCS, "Siro/PBD/PBDCloth.GenerateSDFCollision",
             "SiroPBDClothGenerateSDFCollisionCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothCollisionConstraintProject, "Siro/PBDCloth.CollisionConstraintProject",
+        REG_COMPUTE_NEO(ISTSiro.PBDClothCollisionConstraintProject, "Siro/PBD/PBDCloth.CollisionConstraintProject",
             "SiroPBDClothCollisionConstraintProjectCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityCollisionCS, "Siro/PBDCloth.UpdateVelocityCollision",
+        REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityCollisionCS, "Siro/PBD/PBDCloth.UpdateVelocityCollision",
             "SiroPBDClothUpdateVelocityCollisionCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothVolumeConstraintProjectCS, "Siro/PBDCloth.VolumeConstraintProject",
+        REG_COMPUTE_NEO(ISTSiro.PBDClothVolumeConstraintProjectCS, "Siro/PBD/PBDCloth.VolumeConstraintProject",
             "SiroPBDClothVolumeConstraintProjectCS");
 
         REG_VERTEX_NEO(ISTSiro.ParticleRenderVS, "Siro/ParticleRender", "SiroParticleRenderVS");

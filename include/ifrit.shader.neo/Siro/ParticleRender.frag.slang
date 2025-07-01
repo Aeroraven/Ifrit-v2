@@ -23,6 +23,7 @@ namespace Siro{
     struct PushConst_T{
         TRWStructuredBufferHandle<float2> m_Positions;
         float m_ParticleRange;
+        float m_AspectRatio;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;

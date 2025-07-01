@@ -15,34 +15,37 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit.shader.neo/Siro/PBDCloth.Shared.hlsli"
+#include "ifrit.shader.neo/Siro/PBD/PBDCloth.Shared.hlsli"
 
 namespace IfritShader{
 namespace Siro{
 
     struct PushConst_T{
-        TRWStructuredBufferHandle<float4> m_Normal;
-        uint m_Vertices;
+        TRWStructuredBufferHandle<float4> m_PredPositions;
+        TRWStructuredBufferHandle<float4> m_Corrections;
+        TRWStructuredBufferHandle<uint> m_FixedState;
+        uint m_NumParticles;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
     IFSHADER_BLOCKSIZE(kSiroTGSizeX,1,1)
-    void SiroPBDClothNormalRegularizeCS(uint3 ThreadId:SV_DispatchThreadID)
+    void SiroPBDClothApplyCorrectionCS(uint3 ThreadId:SV_DispatchThreadID)
     {
-        if (ThreadId.x >= PushConst.m_Vertices) return;
+        if (ThreadId.x >= PushConst.m_NumParticles) return;
+        float3 PredPos = PushConst.m_PredPositions.Load(ThreadId.x).xyz;
+        float3 Correction = PushConst.m_Corrections.Load(ThreadId.x).xyz;
 
-        float3 Normal = PushConst.m_Normal.Load(ThreadId.x).xyz;
-        float Length = length(Normal);
-
-        if (Length > 1e-6f) {
-            Normal /= Length; // Normalize the normal vector
+        uint FixedState = PushConst.m_FixedState.Load(ThreadId.x);
+        if (FixedState != 0) {
+            PredPos = PushConst.m_PredPositions.Load(ThreadId.x).xyz; 
         } else {
-            Normal = float3(0.0f, 0.0f, 1.0f); // Default normal if length is too small
+            PredPos += Correction;
         }
+        PushConst.m_PredPositions.Store(float4(PredPos, 0.0f), ThreadId.x);
+        PushConst.m_Corrections.Store(float4(0.0f, 0.0f, 0.0f, 0.0f), ThreadId.x);
 
-        PushConst.m_Normal.Store(float4(Normal, 0.0f), ThreadId.x);
     }
 }
 }
