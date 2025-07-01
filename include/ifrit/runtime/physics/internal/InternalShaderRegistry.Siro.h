@@ -29,8 +29,11 @@ namespace Ifrit::Runtime::Internal
 #define DECLARE_MS(name) name "/MS"
 
 #define SDEF IF_CONSTEXPR static const char*
+    IFRIT_RUNTIME_API void RegisterRuntimeInternalShadersSiro(ShaderRegistry* shaderRegistry);
+
     static struct InternalShaderTableSiro
     {
+
         SDEF PBDClothApplyCorrectionCS           = DECLARE_CS("Siro/PBDCloth.ApplyCorrection");
         SDEF PBDClothUpdateVelocityPostCS        = DECLARE_CS("Siro/PBDCloth.UpdateVelocityPost");
         SDEF PBDClothUpdateVelocityPreCS         = DECLARE_CS("Siro/PBDCloth.UpdateVelocityPre");
@@ -60,6 +63,14 @@ namespace Ifrit::Runtime::Internal
         SDEF APICFluidP2GCS            = DECLARE_CS("Siro/APICFluid.P2G");
         SDEF APICFluidParticleInitCS   = DECLARE_CS("Siro/APICFluid.ParticleInit");
         SDEF APICFluidParticleUpdateCS = DECLARE_CS("Siro/APICFluid.ParticleUpdate");
+
+        SDEF MPMG2PCS                = DECLARE_CS("Siro/MPM/MPM.G2P");
+        SDEF MPMGridResetCS          = DECLARE_CS("Siro/MPM/MPM.GridReset");
+        SDEF MPMGridForceUpdateCS    = DECLARE_CS("Siro/MPM/MPM.GridForceUpdate");
+        SDEF MPMGridVelocityUpdateCS = DECLARE_CS("Siro/MPM/MPM.GridVelocityUpdate");
+        SDEF MPMGridRegularizeCS     = DECLARE_CS("Siro/MPM/MPM.GridRegularize");
+        SDEF MPMP2GCS                = DECLARE_CS("Siro/MPM/MPM.P2G");
+        SDEF MPMParticleAdvectionCS  = DECLARE_CS("Siro/MPM/MPM.ParticleAdvection");
 
     } kIntShaderTableSiro;
 

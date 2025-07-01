@@ -42,10 +42,9 @@ namespace Ifrit::Runtime::Internal
 #define REG_MESH_NEO(name, path, entry) \
     REG_SHADER_NEO(name, path ".mesh.slang", Graphics::Rhi::RhiShaderStage::Mesh, entry)
 
-        const auto& IST     = kIntShaderTable;
-        const auto& ISTAya  = kIntShaderTableAyanami;
-        const auto& ISTNeo  = kIntShaderTableNeo;
-        const auto& ISTSiro = kIntShaderTableSiro;
+        const auto& IST    = kIntShaderTable;
+        const auto& ISTAya = kIntShaderTableAyanami;
+        const auto& ISTNeo = kIntShaderTableNeo;
 
         // const auto& ISTSiro = kIntShaderTableSiro;
 
@@ -167,54 +166,12 @@ namespace Ifrit::Runtime::Internal
         // Neo
         REG_COMPUTE_NEO(ISTNeo.TestCS, "TestCS", "TestCS");
 
-        // Siro
-        REG_COMPUTE_NEO(
-            ISTSiro.PBDClothApplyCorrectionCS, "Siro/PBD/PBDCloth.ApplyCorrection", "SiroPBDClothApplyCorrectionCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityPostCS, "Siro/PBD/PBDCloth.UpdateVelocityPost",
-            "SiroPBDClothUpdateVelocityPostCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityPreCS, "Siro/PBD/PBDCloth.UpdateVelocityPre",
-            "SiroPBDClothUpdateVelocityPreCS");
-        REG_COMPUTE_NEO(
-            ISTSiro.PBDClothPredPositionGenCS, "Siro/PBD/PBDCloth.PredPositionGen", "SiroPBDClothPredPositionGenCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothDistanceConstraintProjectCS, "Siro/PBD/PBDCloth.DistanceConstraintProject",
-            "SiroPBDClothDistanceConstraintProjectCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothBendingConstraintProjectCS, "Siro/PBD/PBDCloth.BendingConstraintProject",
-            "SiroPBDClothBendingConstraintProjectCS");
-        REG_COMPUTE_NEO(
-            ISTSiro.PBDPredPositionGenCS, "Siro/PBD/PBDCloth.PredPositionGen", "SiroPBDClothPredPositionGenCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothNormalUpdateCS, "Siro/PBD/PBDCloth.NormalUpdate", "SiroPBDClothNormalUpdateCS");
-        REG_COMPUTE_NEO(
-            ISTSiro.PBDClothNormalRegularizeCS, "Siro/PBD/PBDCloth.NormalRegularize", "SiroPBDClothNormalRegularizeCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothGenerateSDFCollisionCS, "Siro/PBD/PBDCloth.GenerateSDFCollision",
-            "SiroPBDClothGenerateSDFCollisionCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothCollisionConstraintProject, "Siro/PBD/PBDCloth.CollisionConstraintProject",
-            "SiroPBDClothCollisionConstraintProjectCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothUpdateVelocityCollisionCS, "Siro/PBD/PBDCloth.UpdateVelocityCollision",
-            "SiroPBDClothUpdateVelocityCollisionCS");
-        REG_COMPUTE_NEO(ISTSiro.PBDClothVolumeConstraintProjectCS, "Siro/PBD/PBDCloth.VolumeConstraintProject",
-            "SiroPBDClothVolumeConstraintProjectCS");
-
-        REG_VERTEX_NEO(ISTSiro.ParticleRenderVS, "Siro/ParticleRender", "SiroParticleRenderVS");
-        REG_FRAGMENT_NEO(ISTSiro.ParticleRenderFS, "Siro/ParticleRender", "SiroParticleRenderPS");
-
         // Base Forward
         REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");
         REG_FRAGMENT_NEO(IST.BaseForward.ForwardPS, "BaseForward/Forward.Default", "BaseForwardPS");
 
-        // Siro APIC
-        REG_COMPUTE_NEO(ISTSiro.APICFluidG2PCS, "Siro/APIC/APICFluid.G2P", "ApicGridToParticleCS");
-        REG_COMPUTE_NEO(ISTSiro.APICFluidGridResetCS, "Siro/APIC/APICFluid.GridReset", "ApicGridResetCS");
-        REG_COMPUTE_NEO(ISTSiro.APICFluidGridProjectionApplyCS, "Siro/APIC/APICFluid.GridProjectionApply",
-            "ApicGridProjectionApplyCS");
-        REG_COMPUTE_NEO(ISTSiro.APICFluidGridProjectionSolveCS, "Siro/APIC/APICFluid.GridProjectionSolve",
-            "ApicGridProjectionSolveCS");
-        REG_COMPUTE_NEO(ISTSiro.APICFluidGridProjectionSolveVelPrecomputeCS,
-            "Siro/APIC/APICFluid.GridProjectionSolveVelPrecompute", "ApicGridProjectionSolveVelPrecomputeCS");
-        REG_COMPUTE_NEO(ISTSiro.APICFluidP2GCS, "Siro/APIC/APICFluid.P2G", "ApicParticleToGridCS");
-        REG_COMPUTE_NEO(ISTSiro.APICFluidGridUpdateCS, "Siro/APIC/APICFluid.GridUpdate", "ApicGridUpdateCS");
-        REG_COMPUTE_NEO(ISTSiro.APICFluidParticleInitCS, "Siro/APIC/APICFluid.ParticleInit", "ApicParticleInitCS");
-        REG_COMPUTE_NEO(
-            ISTSiro.APICFluidParticleUpdateCS, "Siro/APIC/APICFluid.ParticleUpdate", "ApicParticleUpdateCS");
+        // Siro
+        RegisterRuntimeInternalShadersSiro(shaderRegistry);
 
         iInfo("Internal: Compiling internal shaders...");
         shaderRegistry->WaitForShaderCompilations();
