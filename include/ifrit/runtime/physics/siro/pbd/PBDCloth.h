@@ -51,10 +51,7 @@ namespace Ifrit::Runtime::Siro
     // PBDCloth is a component that simulates cloth physics using Position Based Dynamics (PBD).
     // This component relies on MeshFilter to provide the mesh data for the cloth simulation.
     // It does not support dynamic mesh topology changes.
-    class IFRIT_RUNTIME_API PBDCloth :
-        public Component,
-        public AttributeOwner<PBDClothAttribute>,
-        public ISiroExplicitEulerSolver
+    class IFRIT_RUNTIME_API PBDCloth : public Component, public AttributeOwner<PBDClothAttribute>, public ISiroSolver
     {
     private:
         PBDClothPrivateData* m_Data;

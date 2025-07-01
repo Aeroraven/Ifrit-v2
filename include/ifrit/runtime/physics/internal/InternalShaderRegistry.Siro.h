@@ -71,6 +71,7 @@ namespace Ifrit::Runtime::Internal
         SDEF MPMGridRegularizeCS     = DECLARE_CS("Siro/MPM/MPM.GridRegularize");
         SDEF MPMP2GCS                = DECLARE_CS("Siro/MPM/MPM.P2G");
         SDEF MPMParticleAdvectionCS  = DECLARE_CS("Siro/MPM/MPM.ParticleAdvection");
+        SDEF MPMParticleInitCS       = DECLARE_CS("Siro/MPM/MPM.ParticleInit");
 
     } kIntShaderTableSiro;
 

@@ -93,6 +93,7 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTSiro.MPMGridRegularizeCS, "Siro/MPM/MPM.GridRegularize", "MpmGridRegularizeCS");
         REG_COMPUTE_NEO(ISTSiro.MPMP2GCS, "Siro/MPM/MPM.P2G", "MpmParticleToGridCS");
         REG_COMPUTE_NEO(ISTSiro.MPMParticleAdvectionCS, "Siro/MPM/MPM.ParticleAdvection", "MpmParticleAdvectionCS");
+        REG_COMPUTE_NEO(ISTSiro.MPMParticleInitCS, "Siro/MPM/MPM.ParticleInit", "MpmParticleInitCS");
 
 #undef REG_MESH
 #undef REG_FRAGMENT

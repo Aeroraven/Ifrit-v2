@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace Ifrit::Runtime::Siro
 {
-    class ISiroExplicitEulerSolver
+    class ISiroSolver
     {
     public:
         virtual void RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime) = 0;

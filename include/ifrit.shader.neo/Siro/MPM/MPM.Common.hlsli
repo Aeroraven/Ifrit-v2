@@ -399,6 +399,18 @@ namespace MPM{
 #endif
             return Result;
         }
+
+        FSpatialVector GetMinBound()
+        {
+            return ToSpatialVector(m_GridTranslation);
+        }
+
+        FSpatialVector GetMaxBound()
+        {
+            FScalar GridSpacing = m_GridSpacing;
+            FSpatialVector GridSize = ToSpatialVector(m_GridSize);
+            return ToSpatialVector(m_GridTranslation) + GridSize * GridSpacing;
+        }
     };
 
     struct FDenseGridStructureHandle

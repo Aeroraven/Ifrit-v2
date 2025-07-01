@@ -24,10 +24,10 @@ namespace Ifrit::Runtime::Siro
 {
     struct SiroSimulatorPrivateData
     {
-        Owner<FrameGraphCompiler>      m_FgCompiler;
-        Owner<FrameGraphExecutor>      m_FgExecutor;
-        Ref<FrameGraphResourcePool>    m_ResourcePool;
-        Vec<ISiroExplicitEulerSolver*> m_SolversExpliciteEuler;
+        Owner<FrameGraphCompiler>   m_FgCompiler;
+        Owner<FrameGraphExecutor>   m_FgExecutor;
+        Ref<FrameGraphResourcePool> m_ResourcePool;
+        Vec<ISiroSolver*>           m_SolversExpliciteEuler;
     };
 
     SiroSimulator::SiroSimulator(IApplication* app) : m_App(app)
@@ -66,7 +66,7 @@ namespace Ifrit::Runtime::Siro
         return task;
     }
 
-    void SiroSimulator::RegisterSolver(ISiroExplicitEulerSolver* solver)
+    void SiroSimulator::RegisterSolver(ISiroSolver* solver)
     {
         if (solver)
         {

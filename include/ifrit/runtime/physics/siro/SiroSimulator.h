@@ -36,6 +36,6 @@ namespace Ifrit::Runtime::Siro
 
         Owner<Graphics::Rhi::RhiTaskSubmission> Update(f32 deltaTime, Vec<Graphics::Rhi::RhiTaskSubmission*> waitFor);
 
-        void                                    RegisterSolver(ISiroExplicitEulerSolver* solver);
+        void                                    RegisterSolver(ISiroSolver* solver);
     };
 } // namespace Ifrit::Runtime::Siro
