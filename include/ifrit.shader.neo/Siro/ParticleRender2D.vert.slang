@@ -28,17 +28,26 @@ namespace Siro{
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
 
-    struct PSOutput
+    struct VSOutput
     {
-        IFSHADER_LOCATION(0) float4 Color: SV_Target0;
+        float4 Position: SV_Position;
+        IFSHADER_POINTSIZE_DECORATE float PointSize: IFSHADER_POINTSIZE_SEMANTIC;
     };
 
-    IFSHADER_ENTRY(IFSHADER_PS_ENTRY)
-    PSOutput SiroParticleRenderPS()
+    IFSHADER_ENTRY(IFSHADER_VS_ENTRY)
+    VSOutput SiroParticleRender2DVS(uint VertexId: SV_VertexID)
     {
-        PSOutput Output;
-        Output.Color = float4(1.0f, 1.0f, 1.0f, 1.0f); 
-        return Output;
+        float2 Position = PushConst.m_Positions.Load(VertexId);
+        float Range = PushConst.m_ParticleRange;
+
+        float2 Loc = Position/ Range * 2.0 - 1.0;
+        Loc.x /= PushConst.m_AspectRatio;
+        Loc.y = -Loc.y; 
+        VSOutput output;
+        output.Position = float4(Loc, 0.5f, 1.0f);
+        output.PointSize = 1.0f;
+
+        return output;
     }
 }
 }

@@ -494,8 +494,8 @@ namespace Ifrit::Runtime::Siro
         pc.m_GridRange  = m_GridSize * m_GridSize;
 
         auto& pass = builder.AddGraphicsPass("APICFluid.Draw",
-            ShaderVariantDesc(Internal::kIntShaderTableSiro.ParticleRenderVS, {}),
-            ShaderVariantDesc(Internal::kIntShaderTableSiro.ParticleRenderFS, {}), GetPushConstSize<PushConst>(),
+            ShaderVariantDesc(Internal::kIntShaderTableSiro.ParticleRender2dVS, {}),
+            ShaderVariantDesc(Internal::kIntShaderTableSiro.ParticleRender2dFS, {}), GetPushConstSize<PushConst>(),
             RhiRasterizerTopology::Point);
 
         pass.SetExecutionFunction([renderTarget, this](const FrameGraphPassContext& ctx) {

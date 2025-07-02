@@ -1,4 +1,5 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_3D
+#pragma ifrit.multi_compile IFSHADER_MPM_MLS
 #include "ifrit.shader.neo/Siro/MPM/MPM.Common.hlsli"
 #include "ifrit.shader.neo/Random/Random.Simplex2d.hlsli"
 namespace IfritShader{
@@ -18,9 +19,19 @@ namespace MPM{
         FScalarHandle m_ParticleVolume;
         FPackedMatrixHandle m_ParticleB;
         FPackedMatrixHandle m_ParticleDeformationGrad;
+        FScalarHandle m_ParticleDeformationGradDet;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
+
+    float3 Hash31(float p)
+    {
+        // https://www.shadertoy.com/view/4djSRW
+        float3 p3 = fract(float3(p) * float3(.1031, .1030, .0973));
+        p3 += dot(p3, p3.yzx+33.33);
+        return fract((p3.xxy+p3.yzz)*p3.zyx); 
+    }
+
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
     IFSHADER_BLOCKSIZE(kMpmTGSizeX, 1, 1)
@@ -35,17 +46,8 @@ namespace MPM{
         FSpatialVector GridMinBound = Grid.GetMinBound();
         FSpatialVector GridMaxBound = Grid.GetMaxBound();
 
-        float RandomSeedX = ThreadId.x * 114.514f;
-        float RandomSeedY = ThreadId.x * 1919.0f;
-        float RandomOffsetX = Random::Simplex2D(float2(RandomSeedX, RandomSeedY));
 
-        float RandomSeedY2 = ThreadId.x * 1919.0f + 1.0f;
-        float RandomOffsetY = Random::Simplex2D(float2(RandomSeedY2, RandomSeedX));
-
-        float RandomSeedZ = ThreadId.x * 7234.0f + 721.0f;
-        float RandomOffsetZ = Random::Simplex2D(float2(RandomSeedZ, RandomSeedY2));
-
-        float4 RandomOffset = float4(RandomOffsetX, RandomOffsetY, RandomOffsetZ, 0.0f);
+        float4 RandomOffset = float4(Hash31(float(ThreadId.x)*11.45141f),0.0f);
         FSpatialVector RandomOffsetVec = ToSpatialVector(RandomOffset);
 
         FSpatialVector RandomUV = lerp(FSpatialVector(0.375f),FSpatialVector(0.625f), RandomOffsetVec);
@@ -60,8 +62,10 @@ namespace MPM{
         FSpatialTransform I = GetIdentitySpatialTransform();
         FSpatialTransform B = 0;
 
-        PushConst.m_ParticleB.StoreMatrix(ThreadId.x, I);
-        PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, B);
+        PushConst.m_ParticleB.StoreMatrix(ThreadId.x, B);
+        PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, I);
+
+        PushConst.m_ParticleDeformationGradDet.Store(ThreadId.x, Math::Trace(I));
     }
 
 }}}

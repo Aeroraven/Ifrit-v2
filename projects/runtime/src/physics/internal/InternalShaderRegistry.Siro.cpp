@@ -67,8 +67,10 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTSiro.PBDClothVolumeConstraintProjectCS, "Siro/PBD/PBDCloth.VolumeConstraintProject",
             "SiroPBDClothVolumeConstraintProjectCS");
 
-        REG_VERTEX_NEO(ISTSiro.ParticleRenderVS, "Siro/ParticleRender", "SiroParticleRenderVS");
-        REG_FRAGMENT_NEO(ISTSiro.ParticleRenderFS, "Siro/ParticleRender", "SiroParticleRenderPS");
+        REG_VERTEX_NEO(ISTSiro.ParticleRender2dVS, "Siro/ParticleRender2D", "SiroParticleRender2DVS");
+        REG_FRAGMENT_NEO(ISTSiro.ParticleRender2dFS, "Siro/ParticleRender2D", "SiroParticleRender2DPS");
+        REG_VERTEX_NEO(ISTSiro.ParticleRender3dVS, "Siro/ParticleRender3D", "SiroParticleRender3DVS");
+        REG_FRAGMENT_NEO(ISTSiro.ParticleRender3dFS, "Siro/ParticleRender3D", "SiroParticleRender3DPS");
 
         // APIC
         REG_COMPUTE_NEO(ISTSiro.APICFluidG2PCS, "Siro/APIC/APICFluid.G2P", "ApicGridToParticleCS");
@@ -94,6 +96,7 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTSiro.MPMP2GCS, "Siro/MPM/MPM.P2G", "MpmParticleToGridCS");
         REG_COMPUTE_NEO(ISTSiro.MPMParticleAdvectionCS, "Siro/MPM/MPM.ParticleAdvection", "MpmParticleAdvectionCS");
         REG_COMPUTE_NEO(ISTSiro.MPMParticleInitCS, "Siro/MPM/MPM.ParticleInit", "MpmParticleInitCS");
+        REG_COMPUTE_NEO(ISTSiro.MPMGridGravityApplyCS, "Siro/MPM/MPM.GridGravityApply", "MpmGridGravityApplyCS");
 
 #undef REG_MESH
 #undef REG_FRAGMENT

@@ -1,4 +1,5 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_3D
+#pragma ifrit.multi_compile IFSHADER_MPM_MLS
 #include "ifrit.shader.neo/Siro/MPM/MPM.Common.hlsli"
 
 namespace IfritShader{
@@ -36,6 +37,7 @@ namespace MPM{
         FSpatialIndex CenterGrid = Grid.GetCentralGrid(ParticleLocation);
         FSpatialTransform NewB = 0.0f;
         FSpatialVector NewVelocity = 0.0f;
+        FScalar GridSpacing = Grid.GetGridSpacing();
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)
             FSpatialIndex GridOffset = ToSpatialIndex(dx,dy,dz);
             FSpatialIndex GridCell = GridOffset + CenterGrid;
@@ -47,22 +49,26 @@ namespace MPM{
             FSpatialVector GradW = FSpatialVector(0.0f);
             FScalar W = 0.0f;
 #ifdef IFSHADER_MPM_INTERP_CUBIC
-            GradW = EulerianInterpCubicSpatialGradient(G2PVector, Grid.GetGridSpacing());
-            W = EulerianInterpCubicSpatial(G2PVector);
+            GradW = EulerianInterpCubicSpatialGradient(G2PVector/GridSpacing, GridSpacing);
+            W = EulerianInterpCubicSpatial(G2PVector/GridSpacing);
 #else
-            GradW = EulerianInterpQuadraticSpatialGradient(G2PVector,Grid.GetGridSpacing());
-            W = EulerianInterpQuadraticSpatial(G2PVector);
+            GradW = EulerianInterpQuadraticSpatialGradient(G2PVector/GridSpacing,GridSpacing);
+            W = EulerianInterpQuadraticSpatial(G2PVector/GridSpacing);
 #endif
             FSpatialVector GridVelocity = Grid.LoadVelocity(GridCell);      
 
+#ifndef IFSHADER_MPM_MLS
             DeformGradChange += PushConst.m_DeltaTime * Math::OuterProduct(GridVelocity, GradW);
+#endif
             NewVelocity += W * GridVelocity;
             NewB += W * Math::OuterProduct(GridVelocity, G2PVector);
         IFSHADER_MPM_RANGESEARCH_END()
 
+#ifndef IFSHADER_MPM_MLS
         FSpatialTransform ParticleDeformGrad = PushConst.m_ParticleDeformationGrad.GetMatrix(ThreadId.x);
         FSpatialTransform NewDeformGrad = mul(DeformGradChange, ParticleDeformGrad);
         PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, NewDeformGrad);
+#endif
 
         PushConst.m_ParticleVelocity.Store(ThreadId.x, NewVelocity);
         PushConst.m_ParticleB.StoreMatrix(ThreadId.x, NewB);

@@ -1,4 +1,5 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_3D
+#pragma ifrit.multi_compile IFSHADER_MPM_MLS
 #include "ifrit.shader.neo/Siro/MPM/MPM.Common.hlsli"
 
 namespace IfritShader{
@@ -39,7 +40,7 @@ namespace MPM{
             FScalar GridMass = Grid.LoadMass(GridIndex);
             FSpatialVector GridMomentum = Grid.LoadVelocity(GridIndex);
             FSpatialVector GridVelocity = FSpatialVector(0.0f);
-            if(GridMass > 0.0f){
+            if(GridMass > 1e-6f){
                 GridVelocity = GridMomentum / GridMass;
                 int InGroupLoc;
                 InterlockedAdd(sMarkedGridCount, 1, InGroupLoc);

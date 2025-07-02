@@ -1,4 +1,5 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_3D
+#pragma ifrit.multi_compile IFSHADER_MPM_MLS
 #include "ifrit.shader.neo/Siro/MPM/MPM.Common.hlsli"
 
 namespace IfritShader{
@@ -15,6 +16,7 @@ namespace MPM{
         FSpatialVectorHandle m_ParticleLocation;
         FScalarHandle m_ParticleVolume;
         FPackedMatrixHandle m_ParticleDeformationGrad;
+        FScalarHandle m_ParticleDeformationGradDet;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -34,8 +36,27 @@ namespace MPM{
         FScalar ParticleVolume = PushConst.m_ParticleVolume.Load(ThreadId.x);
         FSpatialTransform ParticleDeformGrad = PushConst.m_ParticleDeformationGrad.GetMatrix(ThreadId.x);
         FDenseGridStructure Grid = PushConst.m_Grid.Load();
-
+        FScalar GridSpacing = Grid.GetGridSpacing();
         FSpatialIndex CenterGrid = Grid.GetCentralGrid(ParticleLocation);
+        FScalar J = PushConst.m_ParticleDeformationGradDet.Load(ThreadId.x);
+        
+        FScalar DInv = 0.0f;
+#ifdef IFSHADER_MPM_INTERP_CUBIC
+        DInv = 3.0f * rcp(GridSpacing*GridSpacing);
+#else
+        DInv = 4.0f * rcp(GridSpacing*GridSpacing);
+#endif
+
+        FScalar Mu = PushConst.m_MaterialParameters1.x;
+        FScalar Lambda = PushConst.m_MaterialParameters1.y;
+        FSpatialTransform P = 0.0f;
+        
+#ifdef IFSHADER_MPM_MLS
+        P = NeoHookeanStress(ParticleDeformGrad, Mu, Lambda);
+#else
+        P = NeoHookeanStress(ParticleDeformGrad, Mu, Lambda);
+#endif
+        FSpatialTransform FT = Math::Transpose(ParticleDeformGrad);
 
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)
             FSpatialIndex GridOffset = ToSpatialIndex(dx,dy,dz);
@@ -44,18 +65,26 @@ namespace MPM{
 
             FSpatialVector GridCenter = Grid.GetGridLocation(GridCell);
             FSpatialVector G2PVector = GridCenter - ParticleLocation;
-            FSpatialVector GradW = FSpatialVector(0.0f);
-#ifdef IFSHADER_MPM_INTERP_CUBIC
-            GradW = EulerianInterpCubicSpatialGradient(G2PVector, Grid.GetGridSpacing());
+            
+#ifdef IFSHADER_MPM_MLS
+            FScalar W = 0.0f;
+    #ifdef IFSHADER_MPM_INTERP_CUBIC
+            W = EulerianInterpCubicSpatial(G2PVector/GridSpacing);
+    #else
+            W = EulerianInterpQuadraticSpatial(G2PVector/GridSpacing);
+    #endif
+            FSpatialTransform PFT = mul(P, FT);
+            Grid.AddForce(GridCell, -ParticleVolume * W * DInv * mul(PFT, G2PVector));
 #else
-            GradW = EulerianInterpQuadraticSpatialGradient(G2PVector, Grid.GetGridSpacing());
-#endif      
-            FScalar Mu = PushConst.m_MaterialParameters1.x;
-            FScalar Lambda = PushConst.m_MaterialParameters1.y;
-            FSpatialTransform P = NeoHookeanStress(ParticleDeformGrad, Mu, Lambda);
-            P = Math::Transpose(P);
+            FSpatialVector GradW = FSpatialVector(0.0f);
+    #ifdef IFSHADER_MPM_INTERP_CUBIC
+            GradW = EulerianInterpCubicSpatialGradient(G2PVector/GridSpacing, GridSpacing);
+    #else
+            GradW = EulerianInterpQuadraticSpatialGradient(G2PVector/GridSpacing, GridSpacing);
+    #endif      
+            Grid.AddForce(GridCell, -ParticleVolume*mul(mul(P,FT), GradW));
+#endif
 
-            Grid.AddForce(GridCell, -ParticleVolume*mul(P, GradW));
         IFSHADER_MPM_RANGESEARCH_END()
 
     }

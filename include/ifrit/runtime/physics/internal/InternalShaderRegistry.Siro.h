@@ -50,8 +50,10 @@ namespace Ifrit::Runtime::Internal
 
         SDEF PBDClothVolumeConstraintProjectCS = DECLARE_CS("Siro/PBDCloth.VolumeConstraintProject");
 
-        SDEF ParticleRenderVS = DECLARE_VS("Siro/ParticleRender");
-        SDEF ParticleRenderFS = DECLARE_FS("Siro/ParticleRender");
+        SDEF ParticleRender2dVS = DECLARE_VS("Siro/ParticleRender2D");
+        SDEF ParticleRender2dFS = DECLARE_FS("Siro/ParticleRender2D");
+        SDEF ParticleRender3dVS = DECLARE_VS("Siro/ParticleRender3D");
+        SDEF ParticleRender3dFS = DECLARE_FS("Siro/ParticleRender3D");
 
         SDEF APICFluidG2PCS                 = DECLARE_CS("Siro/APICFluid.G2P");
         SDEF APICFluidGridResetCS           = DECLARE_CS("Siro/APICFluid.GridReset");
@@ -72,6 +74,7 @@ namespace Ifrit::Runtime::Internal
         SDEF MPMP2GCS                = DECLARE_CS("Siro/MPM/MPM.P2G");
         SDEF MPMParticleAdvectionCS  = DECLARE_CS("Siro/MPM/MPM.ParticleAdvection");
         SDEF MPMParticleInitCS       = DECLARE_CS("Siro/MPM/MPM.ParticleInit");
+        SDEF MPMGridGravityApplyCS   = DECLARE_CS("Siro/MPM/MPM.GridGravityApply");
 
     } kIntShaderTableSiro;
 

@@ -12,7 +12,7 @@ namespace MPM{
 
     IFSHADER_DEFINE_CONST_UINT32(kMpmTGSizeX, 128);
 
-    IFSHADER_DEFINE_CONST_INT32(kMpmGridSearchRange, 2);
+    IFSHADER_DEFINE_CONST_INT32(kMpmGridSearchRange,2);
 
 #ifndef __cplusplus
     IFSHADER_TYPEALIAS(FScalar, float);
@@ -36,9 +36,9 @@ namespace MPM{
             float4 Row1 = PackedMatrix.Load(Index * 3 + 1);
             float4 Row2 = PackedMatrix.Load(Index * 3 + 2);
             return FSpatialTransform(
-                float3(Row0.x, Row0.y, Row0.z),
-                float3(Row1.x, Row1.y, Row1.z),
-                float3(Row2.x, Row2.y, Row2.z)
+                Row0.x, Row0.y, Row0.z,
+                Row1.x, Row1.y, Row1.z,
+                Row2.x, Row2.y, Row2.z
             );
         }
 
@@ -282,7 +282,7 @@ namespace MPM{
             return FSpatialIndex(X, Y, Z);
 #else
             int Y = EncodedIndex / int(GridSize.x);
-            int X = EncodedIndex - Y * int(GridSize.x);
+            int X = EncodedIndex % int(GridSize.x);
             return FSpatialIndex(X, Y); 
 #endif
         }
@@ -433,8 +433,8 @@ namespace MPM{
             int CurSize = Index + Count;
             int RequiredTGs = DivRoundUp(CurSize, kMpmTGSizeX);
             m_Data.AtomicMax(1, RequiredTGs);
-            m_Data.Store(2, 1);
-            m_Data.Store(3, 1);
+            m_Data.Store(1, 2);
+            m_Data.Store(1, 3);
             return Index;
         }
 
@@ -487,7 +487,7 @@ namespace MPM{
         if(AbsX < 0.5f)
             return -2.0f * Val;
         else if(AbsX < 1.5f)
-            return -1.0f * (1.5f - AbsX) * ValSign;
+            return Val - 1.5f * ValSign;
         else
             return 0.0f;
         
@@ -612,6 +612,12 @@ namespace MPM{
         return P;
     }
 
+    FSpatialTransform NeoHookeanStress(FSpatialTransform F, FScalar J, FScalar Mu, FScalar Lambda)
+    {
+        FSpatialTransform F_InvT = Math::Inverse(Math::Transpose(F));
+        FSpatialTransform P = Mu*(F-F_InvT) + Lambda*log(J)*F_InvT;
+        return P;
+    }
 
 #endif
 }}}

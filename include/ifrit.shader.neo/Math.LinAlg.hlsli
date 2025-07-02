@@ -116,5 +116,32 @@ namespace Math{
     {
         return transpose(m);
     }
+
+    bool HasNaN(float3x3 m)
+    {
+        return isnan(m._11) || isnan(m._12) || isnan(m._13) ||
+               isnan(m._21) || isnan(m._22) || isnan(m._23) ||
+               isnan(m._31) || isnan(m._32) || isnan(m._33);
+    }
+    bool HasNaN(float2x2 m)
+    {
+        return isnan(m._11) || isnan(m._12) ||
+               isnan(m._21) || isnan(m._22);
+    }
+    
+    float Trace(float3x3 m)
+    {
+        return m._11 + m._22 + m._33;
+    }
+
+    float Trace(float2x2 m)
+    {
+        return m._11 + m._22;
+    }
+
+    float Trace(float4x4 m)
+    {
+        return m._11 + m._22 + m._33 + m._44;
+    }
 }
 }
