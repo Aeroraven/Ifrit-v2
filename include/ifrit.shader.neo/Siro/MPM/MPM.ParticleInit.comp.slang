@@ -65,7 +65,15 @@ namespace MPM{
         PushConst.m_ParticleB.StoreMatrix(ThreadId.x, B);
         PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, I);
 
-        PushConst.m_ParticleDeformationGradDet.Store(ThreadId.x, Math::Trace(I));
+        FScalar DInv = 0.0f;
+        FScalar GridSpacing = Grid.GetGridSpacing();
+#ifdef IFSHADER_MPM_INTERP_CUBIC
+        DInv = 3.0f * rcp(GridSpacing*GridSpacing);
+#else
+        DInv = 4.0f * rcp(GridSpacing*GridSpacing);
+#endif
+
+        PushConst.m_ParticleDeformationGradDet.Store(ThreadId.x, Math::Determinant(I));
     }
 
 }}}

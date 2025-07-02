@@ -52,7 +52,7 @@ namespace MPM{
         FSpatialTransform P = 0.0f;
         
 #ifdef IFSHADER_MPM_MLS
-        P = NeoHookeanStress(ParticleDeformGrad, Mu, Lambda);
+        P = NeoHookeanStress(ParticleDeformGrad, J, Mu, Lambda);
 #else
         P = NeoHookeanStress(ParticleDeformGrad, Mu, Lambda);
 #endif
