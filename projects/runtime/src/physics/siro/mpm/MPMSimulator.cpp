@@ -16,7 +16,7 @@ namespace Ifrit::Runtime::Siro
     {
         using FSpatialVector        = Vector3f;
         using FSpatialTransform     = Matrix3x3f;
-        using FSpatialVectorAligned = Vector3f;
+        using FSpatialVectorAligned = Vector4f;
         using FScalar               = f32;
     };
 

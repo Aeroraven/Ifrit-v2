@@ -46,10 +46,10 @@ namespace Ifrit::Math
         {
             for (u32 j = 0; j < C2; j++)
             {
-                result[j][i] = 0;
+                result[i][j] = 0;
                 for (u32 k = 0; k < M; k++)
                 {
-                    result[j][i] += a[i][k] * b[k][j];
+                    result[i][j] += a[i][k] * b[k][j];
                 }
             }
         }
