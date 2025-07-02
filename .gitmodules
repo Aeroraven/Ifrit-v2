@@ -46,3 +46,6 @@
 [submodule "dependencies/imgui"]
 	path = dependencies/imgui
 	url = git@github.com:ocornut/imgui.git
+[submodule "dependencies/openvdb"]
+	path = dependencies/openvdb
+	url = git@github.com:Aeroraven/openvdb.git
