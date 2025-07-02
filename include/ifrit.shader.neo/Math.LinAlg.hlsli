@@ -143,5 +143,53 @@ namespace Math{
     {
         return m._11 + m._22 + m._33 + m._44;
     }
+
+    void QRDecomposition(float3x3 A, out float3x3 Q, out float3x3 R)
+    {
+        float3 a1 = (float3(A._11, A._21, A._31));
+        float3 a2 = (float3(A._12, A._22, A._32));
+        float3 a3 = (float3(A._13, A._23, A._33));
+
+        float3 b1 = a1;
+        float k21 = dot(a2,b1) / dot(b1, b1);
+
+        float3 b2 = a2 - k21 * b1;
+        float k31 = dot(a3,b1) / dot(b1, b1);
+        float k32 = dot(a3,b2) / dot(b2, b2);
+        
+        float3 b3 = a3 - k31 * b1 - k32 * b2;
+
+        float3 q1 = normalize(b1);
+        float3 q2 = normalize(b2);
+        float3 q3 = normalize(b3);
+
+        Q = float3x3(q1, q2, q3);
+        R = float3x3(
+            length(b1), k21 * length(b1), k31 * length(b1),
+            0.0f, length(b2), k32 * length(b2),
+            0.0f, 0.0f, length(b3)
+        );
+    }
+
+    void QRDecomposition(float2x2 A, out float2x2 Q, out float2x2 R)
+    {
+        float2 a1 = (float2(A._11, A._21));
+        float2 a2 = (float2(A._12, A._22));
+
+        float2 b1 = a1;
+        float k21 = dot(a2,b1) / dot(b1, b1);
+
+        float2 b2 = a2 - k21 * b1;
+
+        float2 q1 = normalize(b1);
+        float2 q2 = normalize(b2);
+
+        Q = float2x2(q1, q2);
+        R = float2x2(
+            length(b1), k21 * length(b1),
+            0.0f, length(b2)
+        );
+    }
+
 }
 }
