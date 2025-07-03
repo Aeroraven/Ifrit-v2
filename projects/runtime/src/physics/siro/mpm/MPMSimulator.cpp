@@ -11,6 +11,13 @@ namespace Ifrit::Runtime::Siro
 {
     template <u32 Dimension> struct MPMSimulatorTypes;
 
+    struct MPMParticleMaterials
+    {
+        f32                      m_YoungsModulus = 100.0f;
+        f32                      m_PoissonRatio  = 0.2f;
+        MPMSimulatorParticleType m_ParticleType  = MPMSimulatorParticleType::Fluid;
+    };
+
     template <> struct MPMSimulatorTypes<2>
     {
         using FSpatialVector           = Vector2f;
@@ -70,6 +77,8 @@ namespace Ifrit::Runtime::Siro
         RhiBufferRef                  m_ParticleApicB;
         RhiBufferRef                  m_ParticleIndex;
         RhiBufferRef                  m_ParticleDebug;
+        RhiBufferRef                  m_ParticleStressContrib;
+        RhiBufferRef                  m_ParticleMatProperty;
 
         RhiBufferRef                  m_GridForce;
         RhiBufferRef                  m_GridVelocity;
@@ -85,6 +94,9 @@ namespace Ifrit::Runtime::Siro
         FGBufferNodeRef               m_RDGParticleVolume;
         FGBufferNodeRef               m_RDGParticleApicB;
         FGBufferNodeRef               m_RDGParticleDebug;
+        FGBufferNodeRef               m_RDGParticleStressContrib;
+        FGBufferNodeRef               m_RDGParticleMatProperty;
+
         FGBufferNodeRef               m_RDGGridForce;
         FGBufferNodeRef               m_RDGGridVelocity;
         FGBufferNodeRef               m_RDGGridMass;
@@ -122,6 +134,10 @@ namespace Ifrit::Runtime::Siro
     {
         struct PushConst
         {
+            f32 m_DefaultYoungsModulus;
+            f32 m_DefaultPoissonRatio;
+            u32 m_DefaultMatType;
+
             u32 m_NumParticles;
             f32 m_Mass;
             f32 m_Density;
@@ -133,7 +149,12 @@ namespace Ifrit::Runtime::Siro
             u32 m_ParticleB;
             u32 m_ParticleDeformationGrad;
             u32 m_ParticleDeformationGradDet;
+            u32 m_ParticleMatProperty;
         } pc;
+        pc.m_DefaultYoungsModulus = m_Config->m_DefaultYoungsModulus;
+        pc.m_DefaultPoissonRatio  = m_Config->m_DefaultPoissonRatio;
+        pc.m_DefaultMatType       = static_cast<u32>(m_Config->m_DefaultParticleType);
+
         pc.m_NumParticles               = m_Config->m_DefaultNumParticles;
         pc.m_Mass                       = m_Config->m_DefaultMass;
         pc.m_Density                    = m_Config->m_DefaultDensity;
@@ -145,6 +166,7 @@ namespace Ifrit::Runtime::Siro
         pc.m_ParticleB                  = 0;
         pc.m_ParticleDeformationGrad    = 0;
         pc.m_ParticleDeformationGradDet = 0;
+        pc.m_ParticleMatProperty        = 0;
 
         auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
 
@@ -159,6 +181,7 @@ namespace Ifrit::Runtime::Siro
                 pc.m_ParticleB                  = ctx.m_FgDesc->GetUAV(*m_RDGParticleApicB);
                 pc.m_ParticleDeformationGrad    = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
                 pc.m_ParticleDeformationGradDet = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGradDet);
+                pc.m_ParticleMatProperty        = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
 
                 SetRootConstant(pc, ctx);
             })
@@ -205,6 +228,9 @@ namespace Ifrit::Runtime::Siro
             u32 m_Grid;
             u32 m_ParticleDeformGrad;
             u32 m_ParticleDeformGradDet;
+            u32 m_ParticleDebug;
+            u32 m_ParticleStressContrib;
+            u32 m_ParticleMatProperty;
         } pc;
 
         pc.m_NumParticles          = m_Config->m_DefaultNumParticles;
@@ -216,6 +242,9 @@ namespace Ifrit::Runtime::Siro
         pc.m_Grid                  = 0;
         pc.m_ParticleDeformGrad    = 0;
         pc.m_ParticleDeformGradDet = 0;
+        pc.m_ParticleDebug         = 0;
+        pc.m_ParticleStressContrib = 0;
+        pc.m_ParticleMatProperty   = 0;
 
         auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
 
@@ -229,6 +258,9 @@ namespace Ifrit::Runtime::Siro
                 pc.m_Grid                  = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
                 pc.m_ParticleDeformGrad    = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
                 pc.m_ParticleDeformGradDet = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGradDet);
+                pc.m_ParticleDebug         = ctx.m_FgDesc->GetUAV(*m_RDGParticleDebug);
+                pc.m_ParticleStressContrib = ctx.m_FgDesc->GetUAV(*m_RDGParticleStressContrib);
+                pc.m_ParticleMatProperty   = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
 
                 SetRootConstant(pc, ctx);
             })
@@ -239,7 +271,10 @@ namespace Ifrit::Runtime::Siro
             .AddWriteResource(*m_RDGGridAttribute)
             .AddWriteResource(*m_RDGGridVelocity)
             .AddWriteResource(*m_RDGGridMass)
+            .AddWriteResource(*m_RDGParticleDebug)
             .AddReadWriteResource(*m_RDGParticleDeformGradDet)
+            .AddReadWriteResource(*m_RDGParticleStressContrib)
+            .AddReadResource(*m_RDGParticleMatProperty)
             .AddReadWriteResource(*m_RDGParticleDeformGrad);
     }
 
@@ -281,24 +316,26 @@ namespace Ifrit::Runtime::Siro
     {
         struct PushConst
         {
-            Vector4f m_MaterialParameters1;
-            u32      m_NumParticles;
-            u32      m_Grid;
-            u32      m_ParticleLocation;
-            u32      m_ParticleVolume;
-            u32      m_ParticleDeformationGrad;
-            u32      m_ParticleDeformationGradDet;
+            u32 m_NumParticles;
+            u32 m_Grid;
+            u32 m_ParticleLocation;
+            u32 m_ParticleVolume;
+            u32 m_ParticleDeformationGrad;
+            u32 m_ParticleDeformationGradDet;
+            u32 m_ParticleStressContrib;
+            u32 m_ParticleMaterial;
         } pc;
-        auto Mu     = m_Config->m_DefaultNeoHookeanMu;
-        auto Lambda = m_Config->m_DefaultNeoHookeanLambda;
+        auto Mu     = m_Config->m_DefaultYoungsModulus;
+        auto Lambda = m_Config->m_DefaultPoissonRatio;
 
-        pc.m_MaterialParameters1        = Vector4f(Mu, Lambda, 0.0f, 0.0f);
         pc.m_NumParticles               = m_Config->m_DefaultNumParticles;
         pc.m_Grid                       = 0;
         pc.m_ParticleLocation           = 0;
         pc.m_ParticleVolume             = 0;
         pc.m_ParticleDeformationGrad    = 0;
         pc.m_ParticleDeformationGradDet = 0;
+        pc.m_ParticleStressContrib      = 0;
+        pc.m_ParticleMaterial           = 0;
 
         auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
 
@@ -310,6 +347,8 @@ namespace Ifrit::Runtime::Siro
                 pc.m_ParticleVolume             = ctx.m_FgDesc->GetUAV(*m_RDGParticleVolume);
                 pc.m_ParticleDeformationGrad    = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
                 pc.m_ParticleDeformationGradDet = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGradDet);
+                pc.m_ParticleStressContrib      = ctx.m_FgDesc->GetUAV(*m_RDGParticleStressContrib);
+                pc.m_ParticleMaterial           = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
 
                 SetRootConstant(pc, ctx);
             })
@@ -317,7 +356,9 @@ namespace Ifrit::Runtime::Siro
             .AddReadResource(*m_RDGParticlePosition)
             .AddReadResource(*m_RDGParticleVolume)
             .AddReadResource(*m_RDGParticleDeformGrad)
+            .AddReadResource(*m_RDGParticleStressContrib)
             .AddReadWriteResource(*m_RDGParticleDeformGradDet)
+            .AddReadResource(*m_RDGParticleMatProperty)
             .AddWriteResource(*m_RDGGridForce);
     }
 
@@ -499,15 +540,17 @@ namespace Ifrit::Runtime::Siro
         auto numParticles = m_Config->m_DefaultNumParticles;
         auto numGrids     = GetNumGrids();
 
-        auto particlePosSz        = numParticles * MTypes::kFSpatialVectorAlignedSize;
-        auto particleVelSz        = numParticles * MTypes::kFSpatialVectorAlignedSize;
-        auto particleMassSz       = numParticles * MTypes::kFScalarSize;
-        auto particleDeformGradSz = numParticles * MTypes::kFSpatialTransformAlignedSize;
-        auto particleJSz          = numParticles * MTypes::kFScalarSize;
-        auto particleVolSz        = numParticles * MTypes::kFScalarSize;
-        auto particleApicBSz      = numParticles * MTypes::kFSpatialTransformAlignedSize;
-        auto particleIndexSz      = numParticles * sizeof(u32);
-        auto particleDebugSz      = numParticles * MTypes::kFSpatialVectorAlignedSize;
+        auto particlePosSz           = numParticles * MTypes::kFSpatialVectorAlignedSize;
+        auto particleVelSz           = numParticles * MTypes::kFSpatialVectorAlignedSize;
+        auto particleMassSz          = numParticles * MTypes::kFScalarSize;
+        auto particleDeformGradSz    = numParticles * MTypes::kFSpatialTransformAlignedSize;
+        auto particleJSz             = numParticles * MTypes::kFScalarSize;
+        auto particleVolSz           = numParticles * MTypes::kFScalarSize;
+        auto particleApicBSz         = numParticles * MTypes::kFSpatialTransformAlignedSize;
+        auto particleIndexSz         = numParticles * sizeof(u32);
+        auto particleDebugSz         = numParticles * 64;
+        auto particleStressContribSz = numParticles * MTypes::kFSpatialTransformAlignedSize;
+        auto particleMatPropertySz   = numParticles * sizeof(MPMParticleMaterials);
 
         auto gridForceSz = numGrids * MTypes::kFSpatialVectorAlignedSize;
         auto gridVelSz   = numGrids * MTypes::kFSpatialVectorAlignedSize;
@@ -528,6 +571,10 @@ namespace Ifrit::Runtime::Siro
         m_ParticleApicB  = RHI->CreateBufferDevice("MPM_ParticleApicB", particleApicBSz, defaultUsage, true);
         m_ParticleIndex  = RHI->CreateBufferDevice("MPM_ParticleIndex", particleIndexSz, indexUsage, true);
         m_ParticleDebug  = RHI->CreateBufferDevice("MPM_ParticleDebug", particleDebugSz, defaultUsage, true);
+        m_ParticleStressContrib =
+            RHI->CreateBufferDevice("MPM_ParticleStressContrib", particleStressContribSz, defaultUsage, true);
+        m_ParticleMatProperty =
+            RHI->CreateBufferDevice("MPM_ParticleMaterialProperty", particleMatPropertySz, defaultUsage, true);
 
         m_GridForce     = RHI->CreateBufferDevice("MPM_GridForce", gridForceSz, defaultUsage, true);
         m_GridVelocity  = RHI->CreateBufferDevice("MPM_GridVelocity", gridVelSz, defaultUsage, true);
@@ -546,13 +593,16 @@ namespace Ifrit::Runtime::Siro
         m_RDGParticleDeformGrad = &builder.ImportBuffer("MPM_ParticleDeformGradient", m_ParticleDeformGrad.get());
         m_RDGParticleDeformGradDet =
             &builder.ImportBuffer("MPM_ParticleDeformGradientDeterminant", m_ParticleDeformGradDet.get());
-        m_RDGParticleVolume = &builder.ImportBuffer("MPM_ParticleVolume", m_ParticleVolume.get());
-        m_RDGParticleApicB  = &builder.ImportBuffer("MPM_ParticleApicB", m_ParticleApicB.get());
-        m_RDGParticleDebug  = &builder.ImportBuffer("MPM_ParticleDebug", m_ParticleDebug.get());
-        m_RDGGridForce      = &builder.ImportBuffer("MPM_GridForce", m_GridForce.get());
-        m_RDGGridVelocity   = &builder.ImportBuffer("MPM_GridVelocity", m_GridVelocity.get());
-        m_RDGGridMass       = &builder.ImportBuffer("MPM_GridMass", m_GridMass.get());
-        m_RDGGridAttribute  = &builder.ImportBuffer("MPM_GridAttribute", m_GridAttribute.get());
+        m_RDGParticleVolume        = &builder.ImportBuffer("MPM_ParticleVolume", m_ParticleVolume.get());
+        m_RDGParticleApicB         = &builder.ImportBuffer("MPM_ParticleApicB", m_ParticleApicB.get());
+        m_RDGParticleDebug         = &builder.ImportBuffer("MPM_ParticleDebug", m_ParticleDebug.get());
+        m_RDGParticleStressContrib = &builder.ImportBuffer("MPM_ParticleStressContrib", m_ParticleStressContrib.get());
+        m_RDGParticleMatProperty   = &builder.ImportBuffer("MPM_ParticleMaterialProperty", m_ParticleMatProperty.get());
+
+        m_RDGGridForce     = &builder.ImportBuffer("MPM_GridForce", m_GridForce.get());
+        m_RDGGridVelocity  = &builder.ImportBuffer("MPM_GridVelocity", m_GridVelocity.get());
+        m_RDGGridMass      = &builder.ImportBuffer("MPM_GridMass", m_GridMass.get());
+        m_RDGGridAttribute = &builder.ImportBuffer("MPM_GridAttribute", m_GridAttribute.get());
 
         // Transient
         auto defaultUsage  = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
@@ -584,14 +634,17 @@ namespace Ifrit::Runtime::Siro
         {
             ParticleInit(builder);
         }
-        GridReset(builder);
-        ParticleToGridTransfer(builder, deltaTime);
-        GridVelocityNormalize(builder);
-        GridForceUpdate(builder);
-        GridGravityApply(builder);
-        GridVelocityUpdate(builder, deltaTime);
-        GridToParticleTransfer(builder, deltaTime);
-        ParticleAdvect(builder, deltaTime);
+        for (auto i = 0; i < m_Config->m_Substeps; ++i)
+        {
+            GridReset(builder);
+            ParticleToGridTransfer(builder, deltaTime);
+            GridVelocityNormalize(builder);
+            GridForceUpdate(builder);
+            GridGravityApply(builder);
+            GridVelocityUpdate(builder, deltaTime);
+            GridToParticleTransfer(builder, deltaTime);
+            ParticleAdvect(builder, deltaTime);
+        }
     }
 
     ShaderVariantDesc MPMSimulatorPrivateData::GetShader(const String& name) const

@@ -8,15 +8,14 @@ namespace MPM{
 
     struct PushConst_T
     {
-        // Default to Neo-Hookean now
-        float4 m_MaterialParameters1;
-
         int m_NumParticles;
         FDenseGridStructureHandle m_Grid;
         FSpatialVectorHandle m_ParticleLocation;
         FScalarHandle m_ParticleVolume;
         FPackedMatrixHandle m_ParticleDeformationGrad;
         FScalarHandle m_ParticleDeformationGradDet;
+        FPackedMatrixHandle m_ParticleStressContrib;
+        TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -39,24 +38,27 @@ namespace MPM{
         FScalar GridSpacing = Grid.GetGridSpacing();
         FSpatialIndex CenterGrid = Grid.GetCentralGrid(ParticleLocation);
         FScalar J = PushConst.m_ParticleDeformationGradDet.Load(ThreadId.x);
+        FMpmParticleMaterial ParticleMaterial = PushConst.m_ParticleMaterial.Load(ThreadId.x);
         
         FScalar DInv = 0.0f;
 #ifdef IFSHADER_MPM_INTERP_CUBIC
         DInv = 3.0f * rcp(GridSpacing*GridSpacing);
 #else
         DInv = 4.0f * rcp(GridSpacing*GridSpacing);
-#endif
+#endif  
 
-        FScalar Mu = PushConst.m_MaterialParameters1.x;
-        FScalar Lambda = PushConst.m_MaterialParameters1.y;
-        FSpatialTransform P = 0.0f;
-        
+        FSpatialTransform PFT = 0.0f;
 #ifdef IFSHADER_MPM_MLS
-        P = NeoHookeanStress(ParticleDeformGrad, J, Mu, Lambda);
+        PFT = PushConst.m_ParticleStressContrib.GetMatrix(ThreadId.x);
 #else
-        P = NeoHookeanStress(ParticleDeformGrad, Mu, Lambda);
+        FScalar Young = ParticleMaterial.m_Youngs;
+        FScalar Possion =  ParticleMaterial.m_Possion;
+        FScalar Mu, Lambda;
+        ToLameParameter(Young, Possion,Mu, Lambda);
+
+        //PFT = NeoHookeanStressFT(ParticleDeformGrad, Mu, Lambda);
+        PFT = FixedCortotatedStressFT(ParticleDeformGrad,Mu,Lambda);
 #endif
-        FSpatialTransform FT = Math::Transpose(ParticleDeformGrad);
 
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)
             FSpatialIndex GridOffset = ToSpatialIndex(dx,dy,dz);
@@ -73,7 +75,6 @@ namespace MPM{
     #else
             W = EulerianInterpQuadraticSpatial(G2PVector/GridSpacing);
     #endif
-            FSpatialTransform PFT = mul(P, FT);
             Grid.AddForce(GridCell, -ParticleVolume * W * DInv * mul(PFT, G2PVector));
 #else
             FSpatialVector GradW = FSpatialVector(0.0f);
@@ -82,7 +83,7 @@ namespace MPM{
     #else
             GradW = EulerianInterpQuadraticSpatialGradient(G2PVector/GridSpacing, GridSpacing);
     #endif      
-            Grid.AddForce(GridCell, -ParticleVolume*mul(mul(P,FT), GradW));
+            Grid.AddForce(GridCell, -ParticleVolume*mul(PFT, GradW));
 #endif
 
         IFSHADER_MPM_RANGESEARCH_END()

@@ -8,6 +8,10 @@ namespace MPM{
 
     struct PushConst_T
     {
+        float m_DefaultYoungs;
+        float m_DefaultPossion;
+        int m_DefaultMatType;
+
         int m_NumParticles;
         float m_Mass;
         float m_Density;
@@ -20,6 +24,7 @@ namespace MPM{
         FPackedMatrixHandle m_ParticleB;
         FPackedMatrixHandle m_ParticleDeformationGrad;
         FScalarHandle m_ParticleDeformationGradDet;
+        TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -72,6 +77,13 @@ namespace MPM{
 #else
         DInv = 4.0f * rcp(GridSpacing*GridSpacing);
 #endif
+
+        FMpmParticleMaterial Material;
+        Material.m_Possion = PushConst.m_DefaultPossion;
+        Material.m_Youngs = PushConst.m_DefaultYoungs;
+        Material.m_Type = PushConst.m_DefaultMatType;
+
+        PushConst.m_ParticleMaterial.Store(Material,ThreadId.x);
 
         PushConst.m_ParticleDeformationGradDet.Store(ThreadId.x, Math::Determinant(I));
     }

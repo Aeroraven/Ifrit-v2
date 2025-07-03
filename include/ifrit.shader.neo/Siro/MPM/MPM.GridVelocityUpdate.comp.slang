@@ -33,14 +33,21 @@ namespace MPM{
         FSpatialIndex GridCell = Grid.DecodeSpatialIndex(ValidGridIndex);
         FSpatialCondBitSet BoundaryCondition = Grid.IsBoundaryGrid(GridCell);
 
+        FSpatialCondBitSet LeftBoundary = BoundaryCondition & FSpatialCondBitSet(1);
+        FSpatialCondBitSet RightBoundary = (BoundaryCondition & FSpatialCondBitSet(2)) >> 1;
+
         FSpatialVector GridVelocity = Grid.LoadVelocity(GridCell);
         FSpatialVector GridForce = Grid.LoadForce(GridCell);
         FScalar GridMass = Grid.LoadMass(GridCell);
 
         FSpatialVector NewVelocity = GridVelocity + PushConst.m_DeltaTime * GridForce / GridMass;
-        FSpatialVector BoundaryMod = 1.0f - FSpatialVector(BoundaryCondition);
 
-        NewVelocity = NewVelocity * BoundaryMod;
+        FSpatialVector NewVelocityPos = max(NewVelocity, FSpatialVector(0.0f));
+        FSpatialVector NewVelocityNeg = min(NewVelocity, FSpatialVector(0.0f));
+        FSpatialVector LeftBoundaryReject = 1.0f - FSpatialVector(LeftBoundary);
+        FSpatialVector RightBoundaryReject = 1.0f - FSpatialVector(RightBoundary);
+
+        NewVelocity = NewVelocityPos * RightBoundaryReject + NewVelocityNeg * LeftBoundaryReject;
 
         Grid.StoreVelocity(GridCell, NewVelocity);
     }

@@ -17,6 +17,10 @@ namespace MPM{
         FDenseGridStructureHandle m_Grid;
         FPackedMatrixHandle m_ParticleDeformationGrad;
         FScalarHandle m_ParticleDeformationGradDet;
+        FPackedMatrixHandle m_ParticleDebug;
+        FPackedMatrixHandle m_ParticleStressContrib;
+
+        TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -37,11 +41,13 @@ namespace MPM{
         FSpatialTransform ParticleB = PushConst.m_ParticleB.GetMatrix(ThreadId.x);
         FScalar ParticleMass = PushConst.m_ParticleMass.Load(ThreadId.x);
         FDenseGridStructure Grid = PushConst.m_Grid.Load();
+        FMpmParticleMaterial ParticleMaterial = PushConst.m_ParticleMaterial.Load(ThreadId.x);
 
         FSpatialIndex CenterGrid = Grid.GetCentralGrid(ParticleLocation);
 
         FScalar DInv = 0.0f;
         FScalar GridSpacing = Grid.GetGridSpacing();
+        bool IsFluid = ParticleMaterial.m_Type == 1;
 
 #ifdef IFSHADER_MPM_INTERP_CUBIC
         DInv = 3.0f * rcp(GridSpacing*GridSpacing);
@@ -51,15 +57,47 @@ namespace MPM{
         FSpatialTransform ParticleC = ParticleB * DInv;
 
 #ifdef IFSHADER_MPM_MLS
+        
         FSpatialTransform ParticleDeformGrad = PushConst.m_ParticleDeformationGrad.GetMatrix(ThreadId.x);
         FSpatialTransform DeformGradChange = PushConst.m_DeltaTime * mul(ParticleC, ParticleDeformGrad);
         ParticleDeformGrad += DeformGradChange;
-        PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, ParticleDeformGrad);
 
         FScalar TraceC = Math::Trace(ParticleC);
         FScalar J = PushConst.m_ParticleDeformationGradDet.Load(ThreadId.x);
+
+    #ifdef IFSHADER_MPM_UPDATE_J
         J += PushConst.m_DeltaTime * TraceC * J;
+    #else
+        FSpatialTransform U,S,V;
+        Math::SVD(ParticleDeformGrad, U, S, V);
+        J = Math::DiagProduct(S,1e-6f);
+    #endif
         PushConst.m_ParticleDeformationGradDet.Store(ThreadId.x, J);
+
+        
+        if(IsFluid)
+        {
+    #ifdef IFSHADER_MPM_3D
+            ParticleDeformGrad = GetIdentitySpatialTransform() * pow(J, 1.0f/3.0f);
+    #else
+            ParticleDeformGrad = GetIdentitySpatialTransform() * sqrt(J);
+    #endif
+        }
+        PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, ParticleDeformGrad);
+
+        FScalar Young = ParticleMaterial.m_Youngs;
+        FScalar Possion = ParticleMaterial.m_Possion;
+        FScalar Mu, Lambda;
+        ToLameParameter( Young, Possion,Mu, Lambda);
+        if(IsFluid)
+        {
+            Mu = 0.0f;
+        }
+        
+
+        FSpatialTransform PFT = 0.0f;
+        PFT = FixedCortotatedStressFT(ParticleDeformGrad, J, Mu,Lambda);
+        PushConst.m_ParticleStressContrib.StoreMatrix(ThreadId.x, PFT);
 #endif
         
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)

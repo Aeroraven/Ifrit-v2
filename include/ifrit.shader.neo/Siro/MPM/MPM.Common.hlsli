@@ -4,6 +4,7 @@
 #ifndef __cplusplus
 #include "ifrit.shader.neo/Bindless.hlsli"
 #include "ifrit.shader.neo/Math.LinAlg.hlsli"
+#include "ifrit.shader.neo/Math.LinAlg.SVD.hlsli"
 #endif
 
 namespace IfritShader{
@@ -216,6 +217,13 @@ namespace MPM{
 
     IFSHADER_TYPEALIAS(FSpatialCondBitSet, FSpatialIndex);
 
+    struct FMpmParticleMaterial
+    {
+        float m_Youngs;
+        float m_Possion;
+        int m_Type;
+    };
+
     struct FScalarHandle
     {
         TRWStructuredBufferHandle<FScalar> Scalars;
@@ -390,12 +398,12 @@ namespace MPM{
             FSpatialCondBitSet Result;
             int4 BoundaryWidth = m_GridBoundaryWidth;
 #ifdef IFSHADER_MPM_3D
-            Result.x = (Index.x < BoundaryWidth.x || Index.x >= m_GridSize.x - BoundaryWidth.x) ? 1 : 0;
-            Result.y = (Index.y < BoundaryWidth.y || Index.y >= m_GridSize.y - BoundaryWidth.y) ? 1 : 0;
-            Result.z = (Index.z < BoundaryWidth.z || Index.z >= m_GridSize.z - BoundaryWidth.z) ? 1 : 0;
+            Result.x = (Index.x < BoundaryWidth.x) ? 1 : (Index.x >= m_GridSize.x - BoundaryWidth.x) ? 2 : 0;
+            Result.y = (Index.y < BoundaryWidth.y) ? 1 : (Index.y >= m_GridSize.y - BoundaryWidth.y) ? 2 : 0;
+            Result.z = (Index.z < BoundaryWidth.z) ? 1 : (Index.z >= m_GridSize.z - BoundaryWidth.z) ? 2 : 0;
 #else
-            Result.x = (Index.x < BoundaryWidth.x || Index.x >= m_GridSize.x - BoundaryWidth.x) ? 1 : 0;
-            Result.y = (Index.y < BoundaryWidth.y || Index.y >= m_GridSize.y - BoundaryWidth.y) ? 1 : 0;
+            Result.x = (Index.x < BoundaryWidth.x) ? 1 : (Index.x >= m_GridSize.x - BoundaryWidth.x) ? 2 : 0;
+            Result.y = (Index.y < BoundaryWidth.y) ? 1 : (Index.y >= m_GridSize.y - BoundaryWidth.y) ? 2 : 0;
 #endif
             return Result;
         }
@@ -604,18 +612,54 @@ namespace MPM{
     // Constitutive models
     // ==========================================
 
-    FSpatialTransform NeoHookeanStress(FSpatialTransform F, FScalar Mu, FScalar Lambda)
+    void ToLameParameter(
+        FScalar YoungModulus, 
+        FScalar PoissonRatio, 
+        out FScalar Mu, 
+        out FScalar Lambda)
     {
-        FSpatialTransform F_InvT = Math::Inverse(Math::Transpose(F));
+        Mu = YoungModulus / (2.0f * (1.0f + PoissonRatio));
+        Lambda = YoungModulus * PoissonRatio / ((1.0f + PoissonRatio) * (1.0f - 2.0f * PoissonRatio));
+    }
+
+    FSpatialTransform NeoHookeanStressFT(FSpatialTransform F, FScalar Mu, FScalar Lambda)
+    {
+        FSpatialTransform F_T = Math::Transpose(F);
+        FSpatialTransform F_InvT = Math::Inverse(F_T);
         FScalar J = Math::Determinant(F);
         FSpatialTransform P = Mu*(F-F_InvT) + Lambda*log(J)*F_InvT;
+        return mul(P, F_T); 
+    }
+
+    FSpatialTransform NeoHookeanStressFT(FSpatialTransform F, FScalar J, FScalar Mu, FScalar Lambda)
+    {
+        FSpatialTransform F_T = Math::Transpose(F);
+        FSpatialTransform F_InvT = Math::Inverse(F_T);
+        FSpatialTransform P = Mu*(F-F_InvT) + Lambda*log(J)*F_InvT;
+        return mul(P, F_T);
+    }
+
+    FSpatialTransform FixedCortotatedStressFT(FSpatialTransform F, FScalar Mu, FScalar Lambda)
+    {
+        FScalar J = Math::Determinant(F);
+        FSpatialTransform I = GetIdentitySpatialTransform();
+        FSpatialTransform F_T = Math::Transpose(F);
+        
+        FSpatialTransform R;
+        FSpatialTransform S;
+        Math::PolarDecomposition(F,R,S);
+        FSpatialTransform P = 2.0f * Mu * mul((F - R),F_T) + Lambda * (J - 1.0f) * J * I;
         return P;
     }
 
-    FSpatialTransform NeoHookeanStress(FSpatialTransform F, FScalar J, FScalar Mu, FScalar Lambda)
+    FSpatialTransform FixedCortotatedStressFT(FSpatialTransform F, FScalar J, FScalar Mu, FScalar Lambda)
     {
-        FSpatialTransform F_InvT = Math::Inverse(Math::Transpose(F));
-        FSpatialTransform P = Mu*(F-F_InvT) + Lambda*log(J)*F_InvT;
+        FSpatialTransform F_T = Math::Transpose(F);
+        FSpatialTransform I = GetIdentitySpatialTransform();
+        FSpatialTransform R;
+        FSpatialTransform S;
+        Math::PolarDecomposition(F,R,S);
+        FSpatialTransform P = 2.0f * Mu * mul((F - R),F_T) + Lambda * (J - 1.0f) * J * I;
         return P;
     }
 

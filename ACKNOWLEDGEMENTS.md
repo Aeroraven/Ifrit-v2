@@ -26,6 +26,7 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [fsr2](https://github.com/GPUOpen-Effects/FidelityFX-FSR2)   | Super Resolution                 | MIT                  |
 | [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) | Texture Compression              | Apache 2.0           |
 | [tetgen](https://github.com/ufz/tetgen)                      | Mesh Tetrahedralization          | AGPL 3.0             |
+| [openvdb](https://github.com/AcademySoftwareFoundation/openvdb) | (Volume Data Structure)          | Apache 2.0           |
 
 
 
@@ -75,16 +76,14 @@ And some references that give inspirations. Thanks for their selfless dedication
 2. https://zhuanlan.zhihu.com/p/696464007
 3. https://zhuanlan.zhihu.com/p/522165652
 
+**Physics**
+
+1. https://github.com/zenustech/zpc
+2. https://github.com/yuanming-hu/taichi_mpm
+
 **Coding**
+
 1. https://github.com/TensorWorks/UE-Clang-Format
 2. https://zhuanlan.zhihu.com/p/352723264
 
 
-
-### 3.2 About naming
-
-All names are chosen randomly from some characters.
-
-- Ifrit: https://arknights.wiki.gg/wiki/Ifrit
-- Syaro: https://gochiusa.fandom.com/wiki/Syaro_Kirima
-  - Directly: https://osu.ppy.sh/beatmapsets/451250#osu/974142

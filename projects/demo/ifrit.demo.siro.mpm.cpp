@@ -96,7 +96,7 @@ namespace Ifrit
                 [&](const RhiCommandList* cmd) {
                     FrameGraphBuilder builder(GetShaderRegistry(), GetRhi(), m_FrameGraphResourcePool.get());
                     auto              rt = builder.ImportTexture("Demo_Swapchain", swapchainImg);
-                    m_MpmSim->RunSolverStep(builder, 1.0f / 60.0f);
+                    m_MpmSim->RunSolverStep(builder, 1.0f / 1000.0f);
                     m_MpmSim->Render(builder, &rt);
 
                     auto fg = m_FrameGraphCompiler->Compile(builder);
